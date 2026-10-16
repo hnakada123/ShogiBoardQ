@@ -25,12 +25,6 @@
 class JkfToSfenConverter
 {
 public:
-    static QString detectInitialSfenFromFile(const QString& jkfPath, QString* detectedLabel = nullptr);
-    static QStringList convertFile(const QString& jkfPath, QString* errorMessage = nullptr);
-    static QList<KifDisplayItem> extractMovesWithTimes(const QString& jkfPath, QString* errorMessage = nullptr);
-    [[nodiscard]] static bool parseWithVariations(const QString& jkfPath, KifParseResult& out, QString* errorMessage = nullptr);
-    static QList<KifGameInfoItem> extractGameInfo(const QString& filePath);
-    static QMap<QString, QString> extractGameInfoMap(const QString& filePath);
     static QString mapPresetToSfen(const QString& preset);
 
     // テキスト（貼り付けた棋譜など）
@@ -39,16 +33,12 @@ public:
     static QList<KifGameInfoItem> extractGameInfoFromText(const QString& text);
 
 private:
-    static bool loadJsonFile(const QString& filePath, QJsonObject& root, QString* warn);
     static bool parseJson(const QByteArray& data, QJsonObject& root, QString* warn);
     static bool parseRoot(const QJsonObject& root, KifParseResult& out, QString* errorMessage);
     static QList<KifGameInfoItem> gameInfoFromRoot(const QJsonObject& root);
     static QString buildInitialSfen(const QJsonObject& root, QString* detectedLabel = nullptr);
-    static bool parseMovesArray(const QJsonArray& movesArray,
-                                const QString& baseSfen,
-                                KifLine& mainline,
-                                QList<KifVariation>& variations,
-                                QString* warn);
+    static bool parseMovesArray(const QJsonArray& movesArray, const QString& baseSfen,
+                                KifParseResult& out, QString* warn);
 };
 
 #endif // JKFTOSFENCONVERTER_H

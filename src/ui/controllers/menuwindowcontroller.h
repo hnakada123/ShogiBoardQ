@@ -30,7 +30,7 @@ public:
     /**
      * @brief 依存オブジェクト構造体
      */
-    struct Dependencies {
+    struct Deps {
         QWidget* parentWidget = nullptr;
         QMenuBar* menuBar = nullptr;
     };
@@ -40,7 +40,7 @@ public:
      * @param deps 依存オブジェクト
      * @param parent 親オブジェクト
      */
-    explicit MenuWindowController(const Dependencies& deps, QObject* parent = nullptr);
+    explicit MenuWindowController(const Deps& deps, QObject* parent = nullptr);
 
     /**
      * @brief デストラクタ

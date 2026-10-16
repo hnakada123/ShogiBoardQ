@@ -5,7 +5,7 @@
 #include <QTimer>
 #include "mainwindow.h"
 #include "mainwindowcomposer.h"
-#include "gamestartcoordinator.h"
+#include "gamestartoptionsbuilder.h"
 #include "gamerecordmodel.h"
 #include "kifubranchtree.h"
 #include "kifurecordlistmodel.h"
@@ -15,14 +15,26 @@
 #include "shogigamecontroller.h"
 #include "uistatepolicymanager.h"
 #include "shogiclock.h"
-#include "timecontrolcontroller.h"
-#include "consecutivegamescontroller.h"
-#include "boardsetupcontroller.h"
+#include "matchtimerecord.h"
+#include "consecutivegameseries.h"
+#include "boardmovecontroller.h"
 #include "playerinfopresenter.h"
 #include "kifunavigationstate.h"
 
 class TestWiringContracts : public QObject {
     Q_OBJECT
+
+    /// 対局開始ダイアログで選んだのと同じ経路（計画を作って GameSession が始める）で、表示中の手から対局を始める
+    static bool startGame(MainWindowComponents& p, const StartGameDialogData& data, QString* error)
+    {
+        GameStartRequest request;
+        request.dialogData = data;
+        request.recordLine = p.navState->currentRecordLine();
+        request.startNodeId = p.navState->currentNode()->nodeId();
+        const std::optional<GameStartPlan> plan = GameStartOptionsBuilder::plan(request, error);
+        return plan && p.gameSession->startGame(*plan, /*beginSeries=*/true);
+    }
+
     QTemporaryDir m_config;
     MainWindowComponents* m_parts = nullptr;
     QTimer m_messageCloser;
@@ -69,25 +81,23 @@ private slots:
         p.playerInfo->onMatchPlayersResolved(humanEngine);
         QCOMPARE(state.activity.activity(), AppActivityState::Activity::Idle);
         QVERIFY(!state.currentMatchPlayers());
-        GameStartCoordinator::Ctx ctx;
-        ctx.dialogData.startingPositionNumber = 1;
-        ctx.dialogData.isHuman1 = ctx.dialogData.isHuman2 = true;
-        ctx.startSfen = state.startSfenStr;
-        ctx.currentSfen = state.currentSfenStr;
+        StartGameDialogData data;
+        data.startingPositionNumber = 1;
+        data.isHuman1 = data.isHuman2 = true;
         QString error;
-        QVERIFY2(p.gameStart->initializeGame(ctx, error), qPrintable(error));
+        QVERIFY2(startGame(p, data, &error), qPrintable(error));
         connect(p.gameController, &ShogiGameController::moveCommitted, this, &TestWiringContracts::observeMove);
-        p.boardSetupController->onMoveRequested(QPoint(7, 7), QPoint(7, 6));
-        p.boardSetupController->onMoveRequested(QPoint(3, 3), QPoint(3, 4));
+        p.boardMoves->onMoveRequested(QPoint(7, 7), QPoint(7, 6));
+        p.boardMoves->onMoveRequested(QPoint(3, 3), QPoint(3, 4));
         QCOMPARE(m_consistentMoves, 2);
         QCOMPARE(p.match->record().moveCount(), 2);
-        QCOMPARE(state.currentSfenStr, p.match->record().lastSfen());
+        QCOMPARE(p.navState->currentSfen(), p.match->record().lastSfen());
         p.gameSession->undoTwoMoves();
         QCOMPARE(p.match->record().moveCount(), 0);
-        QCOMPARE(p.liveGameSession->totalPly(), 0);
+        QCOMPARE(p.liveGameSession->liveNode()->ply(), 0);
         QCOMPARE(p.navState->currentPly(), 0);
         QCOMPARE(p.kifuRecord->rowCount(), 1);
-        QCOMPARE(state.currentSfenStr, p.match->record().startSfen);
+        QCOMPARE(p.navState->currentSfen(), p.match->record().startSfen);
         QVERIFY(p.gameRecord->isDirty());
         p.gameRecord->clearDirty();
         m_parts = nullptr;
@@ -100,16 +110,14 @@ private slots:
         m_parts = &p;
         m_endWasCommitted = false;
         connect(p.match, &MatchCoordinator::gameEnded, this, &TestWiringContracts::observeEnd);
-        GameStartCoordinator::Ctx ctx;
-        ctx.dialogData.startingPositionNumber = 1;
-        ctx.dialogData.isHuman1 = ctx.dialogData.isHuman2 = true;
-        ctx.dialogData.basicTimeMinutes1 = 3;
-        ctx.dialogData.humanName1 = QStringLiteral("太郎");
-        ctx.dialogData.humanName2 = QStringLiteral("花子");
-        ctx.startSfen = state.startSfenStr;
-        ctx.currentSfen = state.currentSfenStr;
+        StartGameDialogData data;
+        data.startingPositionNumber = 1;
+        data.isHuman1 = data.isHuman2 = true;
+        data.basicTimeMinutes1 = 3;
+        data.humanName1 = QStringLiteral("太郎");
+        data.humanName2 = QStringLiteral("花子");
         QString error;
-        QVERIFY2(p.gameStart->initializeGame(ctx, error), qPrintable(error));
+        QVERIFY2(startGame(p, data, &error), qPrintable(error));
         QCOMPARE(p.uiStatePolicy->currentState(), UiStatePolicyManager::AppState::DuringGame);
         QCOMPARE(state.activity.activity(), AppActivityState::Activity::DuringGame);
         QVERIFY(state.players.humanVsHuman());
@@ -117,13 +125,13 @@ private slots:
         QCOMPARE(state.players.name(Turn::White), QStringLiteral("花子"));
         QVERIFY(p.liveGameSession->isActive());
         QCOMPARE(p.match->clock()->timeControl().black.mainMs, 180000);
-        QCOMPARE(p.timeController->timeControl().black.mainMs, 180000);
-        QVERIFY(p.timeController->gameStartDateTime().isValid());
+        QCOMPARE(p.timeRecord.timeControl().black.mainMs, 180000);
+        QVERIFY(p.timeRecord.startDateTime().isValid());
 
         p.gameSession->resign();
         QVERIFY(m_endWasCommitted);
         QCOMPARE(p.kifuRecord->rowCount(), 2);
-        QVERIFY(p.timeController->gameEndDateTime().isValid());
+        QVERIFY(p.timeRecord.endDateTime().isValid());
         p.gameSession->resign();
         QCOMPARE(p.kifuRecord->rowCount(), 2);
         p.gameRecord->clearDirty();
@@ -144,10 +152,22 @@ private slots:
     {
         MainWindow window;
         auto& p = window.composer().parts();
-        emit p.gameStart->consecutiveGamesConfigured(3, true);
-        QVERIFY(p.consecutiveGamesController->shouldStartNextGame());
-        emit p.gameStart->consecutiveGamesConfigured(1, false);
-        QVERIFY(!p.consecutiveGamesController->shouldStartNextGame());
+        StartGameDialogData data;
+        data.startingPositionNumber = 1;
+        data.isHuman1 = data.isHuman2 = true;
+        data.consecutiveGames = 3;
+        data.isSwitchTurnEachGame = true;
+        QString error;
+        QVERIFY2(startGame(p, data, &error), qPrintable(error));
+        QVERIFY(p.consecutiveGames->shouldStartNextGame());
+        QCOMPARE(p.consecutiveGames->totalGames(), 3);
+        p.match->handleBreakOff();
+
+        data.consecutiveGames = 1;
+        QVERIFY2(startGame(p, data, &error), qPrintable(error));
+        QVERIFY(!p.consecutiveGames->shouldStartNextGame());
+        p.match->handleBreakOff();
+        p.gameRecord->clearDirty();
     }
 };
 QTEST_MAIN(TestWiringContracts)

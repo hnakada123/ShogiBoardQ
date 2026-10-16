@@ -59,8 +59,6 @@ private slots:
     void returnToGame();
     void stopSearch();
     void retrySearch();
-    void onFontIncrease();
-    void onFontDecrease();
     void onFlipToggled(bool flipped);
     void cancelBoardSelection();
 

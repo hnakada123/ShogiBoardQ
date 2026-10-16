@@ -29,27 +29,11 @@ struct KifLineDraft {
     bool resolve(KifLine& out, QString* error) const;
 };
 
-
-int asciiDigitToInt(QChar c);
-int zenkakuDigitToInt(QChar c);
-int flexDigitToIntNoDetach(QChar c);
-int flexDigitsToIntNoDetach(QStringView text);
-
-
-struct KanjiPieceResult {
-    Piece base;
-    bool promoted;
-};
-
 struct MoveDestination {
     int toFile;
     int toRank;
     bool isSameAsPrev;
 };
-
-[[nodiscard]] std::optional<KanjiPieceResult> mapKanjiPiece(QStringView text);
-
-[[nodiscard]] std::optional<int> parseDigit(QChar ch);      // '0'〜'9' → 0〜9
 
 // 改行区切りで追記（buf が空でなければ '\n' を挿入してから text を追加）
 void appendLine(QString& buf, const QString& text);
@@ -72,11 +56,6 @@ bool isKifCommentLine(QStringView s);
 
 // KIF/KI2共通：しおり行判定（先頭が '&'）
 bool isBookmarkLine(QStringView s);
-
-// CSA/JKF共通：CSA形式の終局コード（%TORYO / TORYO の両方）を終局の種類にする。
-// %+ILLEGAL_ACTION / %-ILLEGAL_ACTION は、不正を行った側が手番側なら反則負け、相手なら反則勝ち。
-// 終局コードでなければ None
-TerminalType csaSpecialToTerminal(const QString& code, Turn sideToMove);
 
 // CSA/JKF共通：mm:ss形式の時間フォーマット（ミリ秒入力）
 QString formatTimeMS(qint64 ms);
@@ -128,20 +107,6 @@ void finalizeDisplayItems(QString& commentBuf, QList<KifDisplayItem>& items,
 
 // 持駒の枚数からSFENの持駒欄を作る（飛角金銀桂香歩の順。先手は大文字、後手は小文字。なければ "-"）
 QString buildHandsSfen(const QMap<Piece, int>& black, const QMap<Piece, int>& white);
-
-// KIF/KI2共通：変化の開始局面と、その局面に至る直前の指し手（「同」の解決用、USI形式）
-struct VariationBase {
-    QString sfen;
-    QString prevUsi;
-    int parentVariation = -1;
-};
-
-// KIF/KI2共通：「変化：N手」の開始局面を、それまでに読んだ手順から求める。
-// 後から書かれた変化ほど優先し、N手目より前から始まり N-1 手目まで続く変化があればその局面を使う。
-// なければ本譜の局面を使う。どれも N-1 手目まで届かなければ std::nullopt
-[[nodiscard]] std::optional<VariationBase> findVariationBase(const KifLine& mainline,
-                                                             const QList<KifVariation>& variations,
-                                                             int startPly);
 
 // KIF/KI2共通：手順の先頭にある開始局面の項目を取り除き、そのコメント・しおりを最初の指し手へ移す
 // （変化の手順は最初の指し手から始まる）

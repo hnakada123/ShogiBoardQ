@@ -198,7 +198,7 @@ private slots:
         // QTableView の既定の見出しと同じ設定
         QVERIFY(view.horizontalHeader()->sectionsClickable());
         QVERIFY(view.horizontalHeader()->highlightSections());
-        EngineInfoWidget info;
+        EngineInfoWidget info(AnalysisSettings::ThinkingTable::Engine1);
         auto* table = info.findChild<QTableWidget*>(QStringLiteral("engineInfoTable"));
         QVERIFY(table);
         QVERIFY(qobject_cast<TableHeaderView*>(table->horizontalHeader()));

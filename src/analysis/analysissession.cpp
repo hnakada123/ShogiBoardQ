@@ -5,10 +5,9 @@
 
 #include "appactivitystate.h"
 #include "enginelifecyclemanager.h"
-#include "shogienginethinkingmodel.h"
+#include "kifubranchnode.h"
+#include "kifunavigationstate.h"
 #include "usi.h"
-
-#include <QSignalBlocker>
 
 AnalysisSession::AnalysisSession(const Deps& deps, QObject* parent)
     : QObject(parent)
@@ -17,6 +16,8 @@ AnalysisSession::AnalysisSession(const Deps& deps, QObject* parent)
     Q_ASSERT(m_deps.engines && m_deps.activity);
     m_restartTimer.setSingleShot(true);
     connect(&m_restartTimer, &QTimer::timeout, this, &AnalysisSession::restartConsiderationDeferred);
+    if (m_deps.navState)
+        connect(m_deps.navState, &KifuNavigationState::changed, this, &AnalysisSession::followDisplayedPosition);
 }
 
 Usi* AnalysisSession::engine() const
@@ -38,10 +39,7 @@ bool AnalysisSession::start(const AnalysisOptions& opt)
     if (m_state == State::Starting || m_state == State::CancelStarting || isShutdownInProgress()) return false;
 
     // 前のセッションは知らせずに終え、エンジンを破棄してから新しいセッションを始める
-    {
-        const QSignalBlocker blocker(this);
-        endSession();
-    }
+    endSession();
     m_deps.engines->destroyEngines();
     m_state = State::Starting;
     m_startupError.clear();
@@ -61,17 +59,13 @@ bool AnalysisSession::start(const AnalysisOptions& opt)
     m_multiPV = opt.multiPV;
     m_previousTo = opt.previousTo;
     m_lastUsiMove = opt.lastUsiMove;
-    m_considerationModel = nullptr;
+    const UsiProtocolHandler* protocol = engine->protocol();
     if (m_mode == Mode::Tsume) {
-        connect(engine, &Usi::checkmateSolved, this, &AnalysisSession::onCheckmateSolved);
-        connect(engine, &Usi::checkmateNoMate, this, &AnalysisSession::onCheckmateNoMate);
-        connect(engine, &Usi::checkmateNotImplemented, this, &AnalysisSession::onCheckmateNotImplemented);
-        connect(engine, &Usi::checkmateUnknown, this, &AnalysisSession::onCheckmateUnknown);
-        connect(engine, &Usi::bestMoveReceived, this, &AnalysisSession::onTsumeBestMoveReceived);
+        connect(protocol, &UsiProtocolHandler::checkmateReceived, this, &AnalysisSession::onCheckmate);
+        connect(protocol, &UsiProtocolHandler::bestMoveReceived, this, &AnalysisSession::onTsumeBestMoveReceived);
     } else {
-        m_considerationModel = opt.considerationModel;
-        if (m_considerationModel) engine->setConsiderationModel(m_considerationModel, opt.multiPV);
-        connect(engine, &Usi::bestMoveReceived, this, &AnalysisSession::onConsiderationBestMoveReceived);
+        connect(protocol, &UsiProtocolHandler::bestMoveReceived,
+                this, &AnalysisSession::onConsiderationBestMoveReceived);
     }
 
     const bool accepted = engine->startEngine(opt.enginePath, opt.engineName);
@@ -86,6 +80,7 @@ bool AnalysisSession::start(const AnalysisOptions& opt)
         return false;
     }
     emit engineNamesChanged(opt.engineName, QString());
+    if (m_mode == Mode::Consideration) emit considerationResultsCleared();
     startSearch();
     return true;
 }
@@ -95,8 +90,12 @@ void AnalysisSession::startSearch()
     if (!m_engine) return;
     m_engine->setPreviousMove(m_previousTo);
     m_engine->setLastUsiMove(m_lastUsiMove);
-    if (m_mode == Mode::Tsume) m_engine->startMateSearch(m_positionStr, m_byoyomiMs);
-    else m_engine->sendAnalysisCommands(m_positionStr, m_byoyomiMs, m_multiPV);
+    if (m_mode == Mode::Tsume) {
+        m_engine->startMateSearch(m_positionStr, m_byoyomiMs);
+        return;
+    }
+    m_engine->startConsideration(m_positionStr, m_byoyomiMs, m_multiPV);
+    emit considerationSearchStarted();
 }
 
 void AnalysisSession::stop()
@@ -108,11 +107,7 @@ void AnalysisSession::stop()
     }
     if (isShutdownInProgress()) return;
     m_deps.engines->setShutdownInProgress(true);
-    const Mode previous = m_mode;
-    {
-        const QSignalBlocker blocker(this);
-        endSession();
-    }
+    const Mode previous = endSession();
     m_deps.engines->destroyEngines(false);
     m_deps.engines->setShutdownInProgress(false);
     m_deps.activity->setActivity(AppActivityState::Activity::Idle);
@@ -120,17 +115,18 @@ void AnalysisSession::stop()
     if (previous == Mode::Tsume) emit tsumeSearchModeEnded();
 }
 
-void AnalysisSession::endSession()
+AnalysisSession::Mode AnalysisSession::endSession()
 {
     const Mode previous = m_mode;
     m_restartTimer.stop();
     m_mode = Mode::None;
     m_state = State::Idle;
-    if (m_engine) disconnect(m_engine, nullptr, this, nullptr);
+    if (m_engine) {
+        disconnect(m_engine, nullptr, this, nullptr);
+        disconnect(m_engine->protocol(), nullptr, this, nullptr);
+    }
     m_engine.clear();
-    m_considerationModel = nullptr;
-    if (previous == Mode::Consideration) emit considerationModeEnded();
-    if (previous == Mode::Tsume) emit tsumeSearchModeEnded();
+    return previous;
 }
 
 void AnalysisSession::onEngineError(const QString& message)
@@ -158,8 +154,24 @@ void AnalysisSession::updateMultiPV(int multiPV)
     requestConsiderationRestart();
 }
 
+void AnalysisSession::followDisplayedPosition()
+{
+    if (m_mode != Mode::Consideration) return;
+    const KifuBranchNode* node = m_deps.navState->currentNode();
+    if (!node || node->sfen().isEmpty()) return;
+    // 局面に至った手（読み筋の「同」の判定と、矢印の基準）
+    BoardSquare previousTo;
+    QString lastUsiMove;
+    if (node->isActualMove()) {
+        previousTo = node->move().move.to;
+        lastUsiMove = node->move().move.toString();
+    }
+    updatePosition(QStringLiteral("position sfen ") + node->sfen(), previousTo, lastUsiMove);
+}
+
 bool AnalysisSession::updatePosition(const QString& positionStr, BoardSquare previousTo, const QString& lastUsiMove)
 {
+
     if (m_mode != Mode::Consideration || m_positionStr == positionStr) return false;
     m_positionStr = positionStr;
     m_previousTo = previousTo;
@@ -170,17 +182,17 @@ bool AnalysisSession::updatePosition(const QString& positionStr, BoardSquare pre
 
 void AnalysisSession::requestConsiderationRestart()
 {
-    if (m_considerationModel) m_considerationModel->clearAllItems();
+    if (m_mode == Mode::Consideration) emit considerationResultsCleared();
     if (!m_engine || m_mode != Mode::Consideration) return;
     switch (m_state) {
     case State::Searching:
         if (!m_engine->isInitializing()) {
             // stop の応答を受けるまで次の go を送らない。
             m_state = State::StoppingSearch;
-            m_engine->sendStopCommand();
+            m_engine->stop();
             return;
         }
-        m_engine->sendStopCommand(); // 初期化待ちの古い探索要求を取り消す
+        m_engine->stop(); // 初期化待ちの古い探索要求を取り消す
         [[fallthrough]];
     case State::Waiting:
         m_state = State::RestartQueued;
@@ -190,7 +202,7 @@ void AnalysisSession::requestConsiderationRestart()
     }
 }
 
-void AnalysisSession::onConsiderationBestMoveReceived()
+void AnalysisSession::onConsiderationBestMoveReceived(const UsiBestMove& /*result*/)
 {
     if (m_mode != Mode::Consideration) return;
     if (m_state == State::StoppingSearch) {
@@ -205,7 +217,7 @@ void AnalysisSession::onConsiderationBestMoveReceived()
 void AnalysisSession::restartConsiderationDeferred()
 {
     if (m_mode != Mode::Consideration || m_state != State::RestartQueued || !m_engine) return;
-    if (m_considerationModel) m_considerationModel->clearAllItems();
+    emit considerationResultsCleared();
     m_state = State::Searching;
     startSearch();
 }
@@ -221,11 +233,25 @@ void AnalysisSession::finalizeTsumeSearch(const QString& resultMessage)
     emit messageRequested(tr("詰み探索"), resultMessage);
 }
 
-void AnalysisSession::onCheckmateSolved(const QStringList& pv)
+void AnalysisSession::onCheckmate(const UsiCheckmate& result)
 {
-    finalizeTsumeSearch(tr("詰みあり（手順 %1 手）").arg(pv.size()));
+    switch (result.result) {
+    case UsiCheckmate::Result::Mate:
+        finalizeTsumeSearch(tr("詰みあり（手順 %1 手）").arg(result.pv.size()));
+        return;
+    case UsiCheckmate::Result::NoMate:
+        finalizeTsumeSearch(tr("詰みなし"));
+        return;
+    case UsiCheckmate::Result::NotImplemented:
+        finalizeTsumeSearch(tr("（エンジン側）未実装"));
+        return;
+    case UsiCheckmate::Result::Unknown:
+        finalizeTsumeSearch(tr("時間内に詰みを判定できませんでした"));
+        return;
+    }
 }
-void AnalysisSession::onCheckmateNoMate() { finalizeTsumeSearch(tr("詰みなし")); }
-void AnalysisSession::onCheckmateNotImplemented() { finalizeTsumeSearch(tr("（エンジン側）未実装")); }
-void AnalysisSession::onCheckmateUnknown() { finalizeTsumeSearch(tr("時間内に詰みを判定できませんでした")); }
-void AnalysisSession::onTsumeBestMoveReceived() { finalizeTsumeSearch(tr("探索が完了しました")); }
+
+void AnalysisSession::onTsumeBestMoveReceived(const UsiBestMove& /*result*/)
+{
+    finalizeTsumeSearch(tr("探索が完了しました"));
+}

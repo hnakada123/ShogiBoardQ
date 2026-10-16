@@ -18,8 +18,7 @@ class QLabel;
 /**
  * @brief CSA通信ログの表示・操作を担うパネル
  *
- * EngineAnalysisTab から CSA通信ログ関連の責務を分離したクラス。
- * ツールバー（フォントサイズ）、コマンド入力バー、ログ表示エリアを持つ。
+ * CSA通信ログドックの中身を buildUi() で作る。ツールバー（フォントサイズ）、コマンド入力バー、ログ表示エリアを持つ。
  */
 class CsaLogPanel : public QObject
 {
@@ -44,8 +43,6 @@ signals:
     void csaRawCommandRequested(const QString& command);
 
 private slots:
-    void onFontIncrease();
-    void onFontDecrease();
     void onCommandEntered();
     void updateSendButton();
     void copyLog();

@@ -12,19 +12,14 @@
 
 class QWidget;
 class QDockWidget;
-class DialogCoordinator;
-class ShogiGameController;
 class ShogiView;
 class AppActivityState;
-class MatchCoordinator;
+class BoardColorDialog;
 class JishogiScoreDialogController;
 class NyugyokuDeclarationHandler;
-class CsaGameWiring;
-class CsaGameDialog;
 class CsaGameCoordinator;
-class BoardSetupController;
-class EngineAnalysisTab;
-class EvaluationChartWidget;
+class CsaGameDialog;
+class CsaGameSession;
 class SfenCollectionDialog;
 class PieceSoundPlayer;
 class KifuFileController;
@@ -34,8 +29,8 @@ class KifuFileController;
  *
  * 責務:
  * - バージョン情報、エンジン設定、成り確認、持将棋判定、入玉宣言、
- *   詰将棋探索/生成、メニューウィンドウ、CSA通信対局、
- *   棋譜解析、局面集ビューア、駒音の設定の各ダイアログ起動
+ *   詰将棋の対局・生成、メニューウィンドウ、CSA通信対局、
+ *   局面集ビューア、駒音・盤の外観・文字の大きさの設定の各ダイアログ起動
  */
 class DialogLauncher : public QObject
 {
@@ -48,16 +43,11 @@ public:
         KifuFileController* kifuFileController = nullptr;  ///< 未保存の棋譜の確認
         const AppActivityState* activity = nullptr;              ///< 通信対局中か・対局中か
 
-        DialogCoordinator* dialogCoordinator = nullptr;
-        ShogiGameController* gameController = nullptr;
-        MatchCoordinator* match = nullptr;
         ShogiView* shogiView = nullptr;
         JishogiScoreDialogController* jishogiController = nullptr;
         NyugyokuDeclarationHandler* nyugyokuHandler = nullptr;
-        CsaGameWiring* csaGameWiring = nullptr;            ///< 通信対局の司令塔は最初の CSA 対局で作られる
-        BoardSetupController* boardSetupController = nullptr;
-        EngineAnalysisTab* analysisTab = nullptr;
-        EvaluationChartWidget* evalChart = nullptr;
+        CsaGameCoordinator* csaGame = nullptr;             ///< 通信対局中の入玉宣言の送り先
+        CsaGameSession* csaSession = nullptr;              ///< 通信対局を始める
         PieceSoundPlayer* pieceSoundPlayer = nullptr;
         /// 対局者を下手・上手と呼ぶか（駒落ちで、対局情報の見出しが下手・上手のとき）
         std::function<bool()> usesHandicapNames;
@@ -77,20 +67,17 @@ public slots:
     void displayEngineSettingsDialog();
     void displayJishogiScoreDialog();
     void handleNyugyokuDeclaration();
-    void displayTsumeShogiSearchDialog();
     void displayTsumeshogiGeneratorDialog();
     void displayTsumePlayDialog();
     void displayMenuWindow();
     void displayCsaGameDialog();
-    void displayKifuAnalysisDialog();
     void displaySfenCollectionViewer();
     void displayPieceSoundSettingsDialog();
+    void displayBoardAppearanceDialog();
+    void displayFontSettingsDialog();
 
 signals:
     void sfenCollectionPositionSelected(const QString& sfen);
-
-private slots:
-    void onCsaEngineScoreUpdatedInternal(int scoreCp, int ply, const QString& mate);
 
 private:
     Deps m_deps;
@@ -98,6 +85,8 @@ private:
     QPointer<CsaGameDialog> m_csaGameDialog;
     // Lifecycle: Created on open, deleted on close (WA_DeleteOnClose)
     QPointer<SfenCollectionDialog> m_sfenCollectionDialog;
+    // 盤の外観の設定は開いたまま盤を見比べられるようにモードレスで1つだけ開く（閉じたら破棄）
+    QPointer<BoardColorDialog> m_boardColorDialog;
 };
 
 #endif // DIALOGLAUNCHER_H

@@ -193,8 +193,22 @@ QString label(const QString& canonical, const QString& beforeSfen, const QString
         + (canonical.trimmed().endsWith(QLatin1Char('+')) ? QStringLiteral(" [+]") : QString());
 }
 
+QString moveLabel(const QString& canonical, const QString& beforeSfen, const QString& usi, bool fullOrigin)
+{
+    if (current.notation == Notation::Japanese || usi.isEmpty()) return status(canonical);
+    Options style = current;
+    style.alwaysOrigin = fullOrigin || style.alwaysOrigin;
+    return move(beforeSfen, usi, style);
+}
+
+QString branchMark()
+{
+    return current.notation == Notation::Western ? QStringLiteral(" [+]") : QStringLiteral("+");
+}
+
 QString status(const QString& canonical)
 {
+
     // Only a whole generated label (with optional move number/side), never free text.
     static const QRegularExpression prefix(QStringLiteral("^(\\s*[0-9]+\\s+)?([▲△☗☖]\\s*)?"));
     const auto match = prefix.match(canonical);

@@ -9,13 +9,23 @@
 #include <QFont>
 #include <QList>
 #include <QStringList>
+
+#include "analysissettings.h"
+
 class QTableWidget;
 class UsiCommLogModel;
 
+/**
+ * @brief エンジン名・予想手・探索手・深さ・ノード数などを1行で出す情報欄
+ *
+ * 列幅は内容に合わせて広げる。利用者が見出しの境目をドラッグして列幅を変えると、
+ * その幅を思考の表の組（table）ごとに保存し、以後は自動で変えない。
+ */
 class EngineInfoWidget : public QWidget {
     Q_OBJECT
 public:
-    explicit EngineInfoWidget(QWidget* parent=nullptr, bool showPredictedMove=true);
+    explicit EngineInfoWidget(AnalysisSettings::ThinkingTable table, QWidget* parent = nullptr,
+                              bool showPredictedMove = true);
     void setModel(UsiCommLogModel* model);
     void setDisplayNameFallback(const QString& name);
     
@@ -23,20 +33,12 @@ public:
     void setFontSize(int pointSize);
     int fontSize() const { return m_fontSize; }
     
-    // ウィジェットインデックス（設定保存用）
-    void setWidgetIndex(int index) { m_widgetIndex = index; }
-    int widgetIndex() const { return m_widgetIndex; }
-    
-    // 列幅の取得・設定
+    // 列幅の取得・設定（設定した幅は内容に合わせて変えない）
     QList<int> columnWidths() const;
     void setColumnWidths(const QList<int>& widths);
     
     // 列数の取得
     int columnCount() const { return COL_COUNT; }
-
-signals:
-    // 列幅変更シグナル
-    void columnWidthChanged();
 
 protected:
     // 情報帯を表示幅に合わせる
@@ -52,16 +54,16 @@ private slots:
     void onNpsChanged();
     void onHashChanged();
     
-    // 列幅変更時のスロット
-    void onSectionResized(int logicalIndex, int oldSize, int newSize);
+    // 利用者が列幅を変えたら保存する
+    void onSectionResizedByUser();
 
 private:
     UsiCommLogModel* m_model=nullptr;
     QTableWidget* m_table=nullptr;
     QString m_fallbackName;
     int m_fontSize=10;
-    int m_widgetIndex=0;  // ウィジェットインデックス
-    bool m_columnWidthsLoaded=false;  // 列幅が設定ファイルから読み込まれたか
+    AnalysisSettings::ThinkingTable m_thinkingTable;  // 列幅を保存する組
+    bool m_fixedColumnWidths=false;  // 保存した幅・利用者が決めた幅を使うか（内容に合わせない）
     bool m_showPredictedMove=true;  // 予想手列を表示するか
     bool m_tableGeometryPending=false;  // 列幅・高さの計算を予約済みか
 

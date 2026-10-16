@@ -5,9 +5,6 @@
 /// @brief UI外観/ウィンドウ表示制御コントローラの定義
 
 #include <QObject>
-#include <QSize>
-
-#include "shogitypes.h"
 
 class ShogiView;
 class TimeDisplayPresenter;
@@ -29,7 +26,6 @@ class QMainWindow;
  * - 名前/時計フォント設定
  * - 盤反転+プレイヤー情報更新
  * - 盤拡大/縮小
- * - タブ切替時の設定保存
  */
 class MainWindowAppearanceController : public QObject
 {
@@ -37,41 +33,26 @@ class MainWindowAppearanceController : public QObject
 
 public:
     struct Deps {
-        ShogiView* shogiView = nullptr;
-        TimeDisplayPresenter* timePresenter = nullptr;
+        QMainWindow* window = nullptr;                  ///< 横幅を盤・ドックに合わせるウィンドウ（必須）
+        QWidget* centralWidget = nullptr;               ///< 盤を置くセントラルウィジェット（必須）
+        QToolBar* toolBar = nullptr;                    ///< ツールバー
+        QAction* toolBarAction = nullptr;               ///< 「ツールバー」メニュー（表示状態を合わせる）
+        ShogiView* shogiView = nullptr;                 ///< 盤（必須）
+        TimeDisplayPresenter* timePresenter = nullptr;  ///< 盤を反転したときに時計を描き直す
     };
 
-    explicit MainWindowAppearanceController(QObject* parent = nullptr);
+    /// セントラルウィジェットに盤を置き、ツールバーと盤の Ctrl+ホイールの拡大・縮小を設定する
+    explicit MainWindowAppearanceController(const Deps& deps, QObject* parent = nullptr);
 
-    void updateDeps(const Deps& deps);
-
-    // --- 初期化メソッド（コンストラクタ時に1回呼ぶ） ---
-
-    /// セントラルウィジェットのコンテナを構築する
-    void setupCentralWidgetContainer(QWidget* centralWidget);
-
-    /// UIデザイナーで定義したツールバーを設定する
-    void configureToolBarFromUi(QToolBar* toolBar, QAction* actionToolBar);
-
-    /// アプリケーション全体のツールチップフィルタを設定する
-    void installAppToolTips(QMainWindow* mainWindow);
-
-    /// 将棋盤をセントラルウィジェットに配置する
-    void setupBoardInCenter();
-
-    /// 対局者名と時計のフォントを設定する
+    /// ツールバーのボタンにアプリのツールチップを付ける（全部品ができてから1回呼ぶ）
+    void installAppToolTips();
+    /// 対局者名・時計の書体を設定から合わせる（全部品ができてから1回呼ぶ）
     void setupNameAndClockFonts();
 
     // --- アクセサ ---
 
     QWidget* central() const { return m_central; }
 public slots:
-    /// 盤面サイズ変更時の後処理
-    void onBoardSizeChanged(QSize fieldSize);
-
-    /// 評価値グラフの高さ調整を遅延実行する
-    void performDeferredEvalChartResize();
-
     /// 盤を反転する（手前に表示する側を入れ替え、駒の向きと時計の見た目を合わせる）
     void flipBoard();
 
@@ -84,19 +65,22 @@ public slots:
     /// ツールバー表示/非表示切替
     void onToolBarVisibilityToggled(bool visible);
 
-    /// タブ切替時の設定保存
-    void onTabCurrentChanged(int index);
+private slots:
+    /// 盤の大きさが変わったらセントラルウィジェットを盤に合わせる
+    void fitCentralToBoard();
 
 private:
+    void setupCentralWidgetContainer(QWidget* centralWidget);
+    void configureToolBarFromUi(QToolBar* toolBar, QAction* actionToolBar);
+    void setupBoardInCenter();
     bool eventFilter(QObject* watched, QEvent* event) override;
     void scheduleWindowWidthUpdate();
     void updateWindowWidth();
 
-    Deps m_deps;
-    QMainWindow* m_mainWindow = nullptr;
+    const Deps m_deps;
+    QMainWindow* const m_mainWindow;
     QWidget* m_central = nullptr;
     QVBoxLayout* m_centralLayout = nullptr;
-    QToolBar* m_toolBar = nullptr;
     bool m_windowWidthUpdatePending = false;
 };
 

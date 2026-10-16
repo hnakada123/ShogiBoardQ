@@ -2,150 +2,63 @@
 #define KIFULOADCOORDINATOR_H
 
 /// @file kifuloadcoordinator.h
-/// @brief 棋譜読み込みコーディネータクラスの定義
+/// @brief 棋譜ファイル・貼り付けた棋譜・局面を読み、分岐ツリーを作り直す
 
-
-#include <QObject>
-#include <QTableWidget>
-#include <functional>
 #include <QFutureWatcher>
+#include <QList>
+#include <QObject>
+#include <QString>
+
 #include "kifuloadparser.h"
 
-#include "logcategories.h"
-#include "kiftosfenconverter.h"
-#include "branchtreemanager.h"
-#include "shogiview.h"
-#include "recordpane.h"
-#include "kifurecordlistmodel.h"
-
 class KifuBranchTree;
-class KifuNavigationState;
-class KifuApplyService;
 
 /**
- * @brief 棋譜ファイルの読み込みと内部データ構築を統括するコーディネータ
+ * @brief 棋譜を読み、棋譜の正本（分岐ツリー）を作り直す
  *
- * KIF/KI2/CSA/JKF/USEN/USI形式の棋譜ファイルを解析し、
- * SFEN列・表示データ・分岐ツリーなど内部データモデルを構築する。
- * 貼り付けテキストの自動判定読み込みにも対応。
- *
- * I/O層は KifuFileReader、適用層は KifuApplyService に委譲し、
- * 本クラスは解析→データ構築→UI反映の3段パイプラインの調整役に専念する。
+ * 読む処理（KifuLoadParser）はワーカースレッドで行い、結果をメインスレッドでツリーに載せる。
+ * 表示（棋譜欄・分岐・盤）は、ツリーが変わると表示中の手（KifuNavigationState）が開始局面へ戻り、
+ * それを受けた部品が合わせる。対局情報は gameInfoLoaded() で知らせる。
  */
 class KifuLoadCoordinator : public QObject
 {
     Q_OBJECT
 
 public:
-    explicit KifuLoadCoordinator(QTableWidget* gameInfoTable,
-                        RecordPane* recordPane,
-                        KifuRecordListModel* kifuRecordModel,
-                        KifuBranchListModel* kifuBranchModel,
-                        QObject* parent=nullptr);
-
+    explicit KifuLoadCoordinator(KifuBranchTree* tree, QObject* parent = nullptr);
     ~KifuLoadCoordinator() override;
 
+    // --- 非同期（画面からの読み込み。終わったら loadFinished） ---
+    /// ファイルを読む（形式は拡張子と内容から判定する）
     void loadFileAsync(const QString& filePath);
+    /// 貼り付けたテキストを読む（形式は内容から判定する。SFEN・BOD は局面だけ）
     void loadTextAsync(const QString& content);
+    /// 読み込み中の処理を捨てる
     void cancelLoad();
 
-    // --- 分岐候補（テキスト）側の索引 ---
-
-    /// 分岐候補の情報
-    struct BranchCandidate {
-        QString text;  ///< 表示テキスト（例: 「▲２六歩(27)」）
-        int row;       ///< 解決済み行番号
-        int ply;       ///< 手数（1始まり）
-    };
-
-    // --- ファイル形式別読み込み ---
-    // 戻り値: 読み込みと適用に成功した場合 true（失敗時は errorOccurred を発行済み）
-
-    [[nodiscard]] bool loadKifuFromFile(const QString& filePath);
-    [[nodiscard]] bool loadJkfFromFile(const QString& filePath);
-    [[nodiscard]] bool loadCsaFromFile(const QString& filePath);
-    [[nodiscard]] bool loadKi2FromFile(const QString& filePath);
-    [[nodiscard]] bool loadUsenFromFile(const QString& filePath);
-    [[nodiscard]] bool loadUsiFromFile(const QString& filePath);
-
-    // --- テキスト・局面読み込み ---
-
-    /// 文字列から棋譜を読み込む（棋譜貼り付け機能用、形式を自動判定）
-    [[nodiscard]] bool loadKifuFromString(const QString& content);
-
-    /// SFEN形式の局面を読み込む
-    [[nodiscard]] bool loadPositionFromSfen(const QString& sfenStr);
-
-    /// BOD形式の局面を読み込む（内部でSFENに変換して処理）
-    [[nodiscard]] bool loadPositionFromBod(const QString& bodStr);
-
-    // --- 外部オブジェクト設定 ---
-
-    void setBranchTreeManager(BranchTreeManager* manager);
-    void setShogiView(ShogiView* view) { m_shogiView = view; }
-    void setBranchTree(KifuBranchTree* tree) { m_branchTree = tree; }
-    void setNavigationState(KifuNavigationState* state) { m_navState = state; }
-
-    // --- 分岐管理 ---
-
+    // --- 同期（自動化 API・テスト。失敗時は errorOccurred を出してから false） ---
+    [[nodiscard]] bool loadFile(const QString& filePath);
+    [[nodiscard]] bool loadText(const QString& content);
+    /// SFEN の局面を開始局面にする
+    [[nodiscard]] bool loadPositionFromSfen(const QString& sfen);
 
 signals:
     void loadFinished(bool success);
-
-    /// 棋譜読み込み中のエラーを通知する
     void errorOccurred(const QString& errorMessage);
-
-    /// 棋譜の表示データが準備できた時に通知する
-    void displayGameRecord(const QList<KifDisplayItem> disp);
-
-    /// 指定手数での盤面同期とハイライト更新を要求する
-    void syncBoardAndHighlightsAtRow(int ply1);
-
-    /// ナビゲーション矢印ボタンの有効化を要求する
-    void enableArrowButtons();
-
-    /// 分岐候補のワイヤリング設定を要求する
-    void setupBranchCandidatesWiring();
-
-    /// 対局情報がテーブルに反映された時に通知する
-    void gameInfoPopulated(const QList<KifGameInfoItem>& items);
-
-    /// 分岐ツリーの構築が完了した時に通知する
-    void branchTreeBuilt();
-
-private:
-    void initApplyService();
-
-    // --- 状態フラグ ---
-    bool m_loadingKifu = false;               ///< 棋譜読み込み中フラグ（分岐更新を抑止）
-
-    // --- UIウィジェット（非所有） ---
-    QTableWidget* m_gameInfoTable;            ///< 対局情報テーブル（非所有）
-    BranchTreeManager* m_branchTreeManager = nullptr; ///< 分岐ツリーマネージャー
-    ShogiView* m_shogiView = nullptr;         ///< 盤面ビュー（非所有）
-
-    // --- 棋譜データ ---
-    RecordPane* m_recordPane;                 ///< 棋譜ペイン（非所有）
-
-    // --- モデル ---
-    KifuRecordListModel* m_kifuRecordModel;   ///< 棋譜レコードモデル（非所有）
-    KifuBranchListModel* m_kifuBranchModel;   ///< 分岐リストモデル（非所有）
-
-    // --- 分岐管理 ---
-    KifuBranchTree* m_branchTree = nullptr;   ///< 分岐ツリー（非所有）
-    KifuNavigationState* m_navState = nullptr; ///< ナビゲーション状態（非所有）
-
-    // --- 適用サービス ---
-    KifuApplyService* m_applyService = nullptr; ///< 適用層サービス（Qt parent所有）
-
-    // --- 内部ヘルパ ---
-    bool applyLoadResult(const KifuLoadResult& result);
-    void startLoad(const QString& input, bool text);
-    QFutureWatcher<KifuLoadResult>* m_loadWatcher = nullptr;
-    CancelFlag m_loadCancel;
+    /// 読んだ棋譜の対局情報（局面だけを読んだときは空）
+    void gameInfoLoaded(const QList<KifGameInfoItem>& items);
 
 private slots:
     void onLoadFinished();
+
+private:
+    void startLoad(const QString& input, bool text);
+    bool applyLoadResult(const KifuLoadResult& result);
+    bool applyRecord(const KifuLoadResult& result);
+
+    KifuBranchTree* m_tree = nullptr;                      ///< 棋譜の正本（非所有）
+    QFutureWatcher<KifuLoadResult>* m_loadWatcher = nullptr;
+    CancelFlag m_loadCancel;
 };
 
 #endif // KIFULOADCOORDINATOR_H

@@ -15,7 +15,7 @@ class QWidget;
 /**
  * @brief 入玉宣言の処理を管理するハンドラ
  *
- * MainWindowから分離された責務:
+ * 責務:
  * - 入玉宣言の確認（条件の判定は NyugyokuJudgement）
  * - 宣言結果の表示
  * - 対局終了処理への連携
@@ -25,13 +25,8 @@ class NyugyokuDeclarationHandler : public QObject
     Q_OBJECT
 
 public:
-    explicit NyugyokuDeclarationHandler(QObject* parent = nullptr);
-
-    /**
-     * @brief 依存オブジェクトを設定
-     */
-    void setGameController(ShogiGameController* gc);
-    void setMatchCoordinator(MatchCoordinator* match);
+    /// gc: 宣言する側（手番）、match: ローカル対局の終局を伝える先
+    NyugyokuDeclarationHandler(ShogiGameController* gc, MatchCoordinator* match, QObject* parent = nullptr);
 
     /**
      * @brief 入玉宣言を実行する

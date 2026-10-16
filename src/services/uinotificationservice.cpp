@@ -20,14 +20,10 @@ UiNotificationService::ScopedCapture::~ScopedCapture()
     s_activeCapture = m_previous;
 }
 
-UiNotificationService::UiNotificationService(QObject* parent)
+UiNotificationService::UiNotificationService(const Deps& deps, QObject* parent)
     : QObject(parent)
+    , m_deps(deps)
 {
-}
-
-void UiNotificationService::updateDeps(const Deps& deps)
-{
-    m_deps = deps;
 }
 
 void UiNotificationService::displayErrorMessage(const QString& message)
@@ -56,4 +52,13 @@ void UiNotificationService::displayMessage(ErrorBus::ErrorLevel level, const QSt
         QMessageBox::critical(m_deps.parentWidget, tr("Error"), message);
         break;
     }
+}
+
+void UiNotificationService::showInformation(const QString& title, const QString& message)
+{
+    if (s_activeCapture != nullptr) {
+        s_activeCapture->m_notices.append(message);
+        return;
+    }
+    QMessageBox::information(m_deps.parentWidget, title, message);
 }

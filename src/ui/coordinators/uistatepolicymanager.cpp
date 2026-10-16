@@ -5,7 +5,8 @@
 
 #include "ui_mainwindow.h"
 #include "recordpane.h"
-#include "engineanalysistab.h"
+#include "branchtreemanager.h"
+#include "considerationtabmanager.h"
 #include "boardinteractioncontroller.h"
 
 #include <QAction>
@@ -15,17 +16,12 @@
 // 初期化
 // ======================================================================
 
-UiStatePolicyManager::UiStatePolicyManager(QObject* parent)
+UiStatePolicyManager::UiStatePolicyManager(const Deps& deps, QObject* parent)
     : QObject(parent)
+    , m_deps(deps)
+    , m_activity(deps.activity ? deps.activity : &m_defaultActivity)
 {
-    connect(m_activity, &AppActivityState::changed, this, &UiStatePolicyManager::refreshActivity);
-}
-
-void UiStatePolicyManager::updateDeps(const Deps& deps)
-{
-    disconnect(m_activity, nullptr, this, nullptr);
-    m_deps = deps;
-    m_activity = deps.activity ? deps.activity : &m_defaultActivity;
+    // 状態は動作状態（AppActivityState）が決める。変わるたびに表のとおりに有効・無効を切り替える
     connect(m_activity, &AppActivityState::changed, this, &UiStatePolicyManager::refreshActivity);
     refreshActivity();
 }
@@ -206,12 +202,6 @@ bool UiStatePolicyManager::isEnabled(UiElement element) const
     return effectivePolicy(element) == Policy::Enabled;
 }
 
-void UiStatePolicyManager::applyState(AppState state)
-{
-    if (currentState() == state) refreshActivity();
-    else m_activity->setActivity(state);
-}
-
 void UiStatePolicyManager::refreshActivity()
 {
     for (int i = 0; i < static_cast<int>(UiElement::Count); ++i) {
@@ -222,48 +212,13 @@ void UiStatePolicyManager::refreshActivity()
 }
 
 // ======================================================================
-// 遷移スロット
+// 状態に左右されない条件
 // ======================================================================
-
-void UiStatePolicyManager::transitionToIdle()
-{
-    applyState(AppState::Idle);
-}
 
 void UiStatePolicyManager::setResumeAvailable(bool available)
 {
     m_resumeAvailable = available;
     applyPolicy(UiElement::GameResume, effectivePolicy(UiElement::GameResume));
-}
-
-void UiStatePolicyManager::transitionToDuringGame()
-{
-    applyState(AppState::DuringGame);
-}
-
-void UiStatePolicyManager::transitionToDuringAnalysis()
-{
-    applyState(AppState::DuringAnalysis);
-}
-
-void UiStatePolicyManager::transitionToDuringCsaGame()
-{
-    applyState(AppState::DuringCsaGame);
-}
-
-void UiStatePolicyManager::transitionToDuringTsumeSearch()
-{
-    applyState(AppState::DuringTsumeSearch);
-}
-
-void UiStatePolicyManager::transitionToDuringConsideration()
-{
-    applyState(AppState::DuringConsideration);
-}
-
-void UiStatePolicyManager::transitionToDuringPositionEdit()
-{
-    applyState(AppState::DuringPositionEdit);
 }
 
 void UiStatePolicyManager::enableNavigationIfAllowed()
@@ -290,13 +245,13 @@ void UiStatePolicyManager::applyPolicy(UiElement element, Policy policy)
         if (m_deps.recordPane) m_deps.recordPane->setNavigationEnabled(enabled);
         break;
     case UiElement::WidgetBranchTree:
-        if (m_deps.analysisTab) m_deps.analysisTab->setBranchTreeClickEnabled(enabled);
+        if (m_deps.branchTree) m_deps.branchTree->setBranchTreeClickEnabled(enabled);
         break;
     case UiElement::WidgetBoardClick:
         if (m_deps.boardController) m_deps.boardController->setMoveInputEnabled(enabled);
         break;
     case UiElement::WidgetConsiderationStart:
-        if (m_deps.analysisTab) m_deps.analysisTab->setConsiderationStartEnabled(enabled);
+        if (m_deps.consideration) m_deps.consideration->setStartConsiderationEnabled(enabled);
         break;
     default:
         break;

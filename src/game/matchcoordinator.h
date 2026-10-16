@@ -5,9 +5,9 @@
 /// @brief ローカル対局（人間・エンジン）の司令塔
 
 #include <QObject>
-#include <QPoint>
 #include <QString>
 #include <memory>
+#include <optional>
 
 #include "gamemodestrategy.h"
 #include "interruptedgamestate.h"
@@ -15,6 +15,7 @@
 #include "matchtypes.h"
 #include "recordline.h"
 #include "startoptions.h"
+#include "usiscore.h"
 
 class AppActivityState;
 class EngineLifecycleManager;
@@ -29,7 +30,8 @@ class Usi;
  * 対局の手順（RecordLine）を持ち、一手の確定（時計・棋譜・千日手・最大手数）、終局の判定と記録、
  * 待った、中断と再開を受け持つ。手番ごとに誰が指すかは対局者の組（MatchPlayers）別の Strategy が決める。
  *
- * 盤・手番・対局者名・時計の表示はシグナルで知らせ、棋譜の行は MatchRecordSink に書き込む。
+ * 棋譜の行は MatchRecordSink に書き込む（書くと表示中の手が最新の手になり、盤・手番の表示が合う）。
+ * 時計・評価値・終局はシグナルで知らせる。アプリの動作状態（対局中・待機）はこのクラスが書く。
  * 通信対局（CSA）はこのクラスを使わない（CsaGameCoordinator）。
  */
 class MatchCoordinator : public QObject, private MatchStrategyHost {
@@ -110,7 +112,7 @@ public:
 
     // --- 時計 ---
 
-    ShogiClock* clock() const override { return m_clock; }
+    ShogiClock* clock() const { return m_clock; }
     /// いまの時計の値で timeUpdated を出す
     void pokeTimeUpdateNow();
 
@@ -118,19 +120,11 @@ public:
     MatchStrategyHost& strategyHost() { return *this; }
 
 signals:
-    // --- 対局の準備・盤・手番 ---
-    /// 対局を準備した（盤は開始局面。対局者名・エンジン名の表示を合わせる）
-    void gamePrepared(const MatchStartOptions& opt);
-    /// 盤を描き直す
-    void boardChanged();
-    /// 手番が変わった（手番の表示・時計の表示）
-    void turnChanged(Turn sideToMove);
-    /// 指した手の移動元・移動先を示す（盤座標）
-    void moveHighlightRequested(const QPoint& from, const QPoint& to);
-    /// 待ったで ply 手目の局面に戻した（盤・ハイライト・手番と時計の表示・盤の入力を合わせる）
+    // --- 盤 ---
+    /// 待ったで ply 手目の局面に戻した（評価値グラフと盤の入力を合わせる）
     void movesUndone(int ply);
-    /// エンジンが指した（side のエンジンの評価値を ply 手目としてグラフに足す）
-    void engineMovePlayed(Turn side, int ply);
+    /// エンジンが指した（score は指した側から見た最善の読み筋の評価値。グラフの ply 手目に足す）
+    void engineMovePlayed(Turn side, int ply, const UsiScore& score);
 
     // --- 時計 ---
     /**
@@ -140,9 +134,7 @@ signals:
     void timeUpdated(qint64 blackMs, qint64 whiteMs, Turn sideToMove, qint64 urgencyMs);
 
     // --- 終局 ---
-    /// 終局状態が変わった（終局した・終局の行を書いた・解いた）
-    void gameOverStateChanged(const MatchCoordinator::GameOverState& st);
-    /// 終局した（終局の行は棋譜に書いた後）
+    /// 終局した（終局の行は棋譜に書き、動作状態を待機にした後）
     void gameEnded(const MatchCoordinator::GameEndInfo& info);
     /// 終局の知らせ（ダイアログ）を出す
     void gameOverMessage(const QString& title, const QString& message);
@@ -156,15 +148,16 @@ signals:
 private:
     // --- MatchStrategyHost ---
     EngineLifecycleManager& engines() override { return *m_engines; }
-    ShogiGameController* gameController() const override { return m_gc; }
-    void refreshBoardAndTurn() override;
+    Turn sideToMove() const override;
     void requestEngineMove(Turn side) override;
-    void setEnginePonder(Turn side, const QString& ponder) override;
-    bool applyEngineMove(const UsiMove& move, Turn mover, qint64 elapsedMs) override;
+    void setWaitingForEngines(bool waiting) override;
+    void recordConsiderationTime(Turn mover, qint64 elapsedMs) override;
+    bool applyEngineMove(const UsiMatchMove& move) override;
     bool completeHumanMove(const RecordEntry& played) override;
 
     void createStrategy(const StartOptions& opt);
-    bool completeMove(RecordEntry played, bool engineMove);
+    /// 一手を確定する。engineScore はエンジンの手のとき（グラフに足す評価値）
+    bool completeMove(RecordEntry played, std::optional<UsiScore> engineScore);
     void emitTimeUpdate();
     void disarmTurnTimer();
 
@@ -175,11 +168,18 @@ private:
     void handleEngineError(const QString& message);
     bool checkAndHandleSennichite();
     void handleMaxMovesJishogi();
-    /// 終局を記録する（状態・棋譜の終局の行・gameEnded）
-    void finishGame(const GameEndInfo& info);
+    /// 終局の後の知らせ方
+    enum class Notice {
+        Announce,     ///< 結果のダイアログを出し、自動保存して gameEndProcessed
+        Declaration,  ///< 入玉宣言（結果は宣言の判定で知らせる）。自動保存して gameEndProcessed
+        Interrupt,    ///< 中断（再開できる）。gameInterrupted
+    };
+    /**
+     * @brief 終局する（時計を止め、エンジンに gameover を送り、終局の行を書いて待機に戻す）
+     * @param engineLoser エンジンに負けと知らせる側（引き分け・中断は nullopt）
+     */
+    void endGame(const GameEndInfo& info, std::optional<Turn> engineLoser, Notice notice);
     void appendTerminalRecord(const GameEndInfo& info);
-    /// 終局を知らせ、自動保存を頼んで gameEndProcessed を出す
-    void announceResult(const GameEndInfo& info);
     QString resultMessage(const GameEndInfo& info) const;
 
     // --- 待った・中断 ---
@@ -195,6 +195,8 @@ private:
     RecordLine m_record;
     std::unique_ptr<InterruptedGameState> m_interruptedGame;
     bool m_handicapNames = false;
+    bool m_playing = false;             ///< beginPlay から終局まで（時計を動かしてよい）
+    bool m_waitingForEngines = false;   ///< エンジンの初期化を待っている（時計を止めておく）
 };
 
 #endif // MATCHCOORDINATOR_H

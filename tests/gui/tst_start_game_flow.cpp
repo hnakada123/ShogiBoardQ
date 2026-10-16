@@ -22,7 +22,6 @@
 #include "gamesettings.h"
 #include "settingscommon.h"
 #include "kifupresentation.h"
-#include "gamestartcoordinator.h"
 #include "gamestartoptionsbuilder.h"
 #include "mainwindow.h"
 #include "mainwindowcomposer.h"
@@ -34,21 +33,22 @@
 #include "kifunavigationstate.h"
 #include "kifubranchtree.h"
 #include "kifubranchnode.h"
-#include "kifudisplaycoordinator.h"
-#include "consecutivegamescontroller.h"
+#include "matchtimerecord.h"
+#include "consecutivegameseries.h"
 #include <QTemporaryDir>
 #include <QDir>
 #include <QFile>
+#include "boardchromewidget.h"
 #include "shogiview.h"
 #include "shogiboard.h"
 #include "shogiclock.h"
 #include "recordpane.h"
-#include "gameinfopanecontroller.h"
+#include "gameinfopane.h"
 #include "gameinfokeys.h"
 #include "gamerecordmodel.h"
-#include "timecontrolcontroller.h"
 #include <QTableView>
 #include <QTableWidget>
+#include "../game_info_table_helper.h"
 #include <utility>
 
 class TestStartGameFlow : public QObject {
@@ -111,7 +111,7 @@ class TestStartGameFlow : public QObject {
         if (whiteToMove) child<QAction>(*window, "actionChangeTurn")->trigger();
         child<QAction>(*window, "actionEndEditPosition")->trigger();
         QVERIFY(!view->positionEditMode());
-        QCOMPARE(window->composer().state().currentSfenStr,
+        QCOMPARE(window->composer().parts().navState->currentSfen(),
                  boardSfen + (whiteToMove ? QStringLiteral(" w - 1") : QStringLiteral(" b - 1")));
     }
 private slots:
@@ -152,7 +152,7 @@ private slots:
         qunsetenv("AUDIT_ENGINE_WAIT_FOR_STOP");
         dialogTimer.stop();
         if (window) {
-            if (window->composer().parts().consecutiveGamesController) window->composer().parts().consecutiveGamesController->reset();
+            if (window->composer().parts().consecutiveGames) window->composer().parts().consecutiveGames->reset();
             if (auto* match = window->composer().parts().match) match->handleBreakOff();
             window.reset();
         }
@@ -166,18 +166,18 @@ private slots:
         QTest::mouseClick(view, Qt::LeftButton, Qt::NoModifier, square(7, 7));
         QTest::mouseClick(view, Qt::LeftButton, Qt::NoModifier, square(7, 6));
         QTRY_COMPARE(window->composer().parts().match->record().sfens().size(), 2);
-        QTRY_VERIFY(!view->chrome()->blackActive());
-        const QString blackText = view->blackClockLabel()->text();
-        const QString whiteText = view->whiteClockLabel()->text();
+        QTRY_VERIFY(!(view->chrome()->activeSide() == Turn::Black));
+        const QString blackText = view->chrome()->blackClockLabel()->text();
+        const QString whiteText = view->chrome()->whiteClockLabel()->text();
         QVERIFY(blackText.startsWith(QStringLiteral("00:0")) && blackText != QStringLiteral("00:00:00"));
         QVERIFY(whiteText != QStringLiteral("00:00:00"));
 
         child<QAction>(*window, "actionFlipBoard")->trigger();
 
         QVERIFY(view->flipMode());
-        QCOMPARE(view->blackClockLabel()->text(), blackText);
-        QCOMPARE(view->whiteClockLabel()->text(), whiteText);
-        QVERIFY(!view->chrome()->blackActive());
+        QCOMPARE(view->chrome()->blackClockLabel()->text(), blackText);
+        QCOMPARE(view->chrome()->whiteClockLabel()->text(), whiteText);
+        QVERIFY(!(view->chrome()->activeSide() == Turn::Black));
     }
     void resumeInterruptedGame_data() {
         QTest::addColumn<int>("mode");
@@ -295,7 +295,7 @@ private slots:
         QVERIFY(!clock->isRunning());
         auto* engines = window->composer().parts().engines;
         for (int slot : {1, 2}) {
-            if (Usi* engine = engines->engineInSlot(slot)) QVERIFY(!engine->isEngineRunning());
+            if (Usi* engine = engines->engineInSlot(slot)) QVERIFY(!engine->isRunning());
         }
         // 中断中の棋譜閲覧が再開地点に影響しない。
         auto* table = window->findChild<RecordPane*>()->kifuView();
@@ -312,9 +312,9 @@ private slots:
         QCOMPARE(window->composer().parts().kifuRecord->rowCount(), pausePly + 1);
         QVERIFY(!window->composer().parts().navState->currentNode()->isTerminal());
         QCOMPARE(window->composer().parts().navState->currentPly(), pausePly);
-        QString consistencyReason;
-        QVERIFY2(window->composer().parts().displayCoordinator->verifyDisplayConsistencyDetailed(&consistencyReason),
-                 qPrintable(consistencyReason));
+        // 棋譜欄の強調と行は表示中の手と揃っている
+        QCOMPARE(window->composer().parts().kifuRecord->currentHighlightRow(), pausePly);
+        QCOMPARE(window->composer().parts().kifuRecord->nodeAt(pausePly), window->composer().parts().navState->currentNode());
         QTest::qWait(150);
         QVERIFY(clock->isRunning());
         playNext();
@@ -355,8 +355,8 @@ private slots:
         child<QSpinBox>(d,"basicTimeMinutes2")->setValue(0);
         child<QSpinBox>(d,"byoyomiSec2")->setValue(3);
         accept(d);
-        QCOMPARE(d.basicTimeMinutes1(),5); QCOMPARE(d.byoyomiSec1(),10);
-        QCOMPARE(d.basicTimeMinutes2(),0); QCOMPARE(d.byoyomiSec2(),3);
+        QCOMPARE(d.data().basicTimeMinutes1,5); QCOMPARE(d.data().byoyomiSec1,10);
+        QCOMPARE(d.data().basicTimeMinutes2,0); QCOMPARE(d.data().byoyomiSec2,3);
         StartGameDialog reopened;
         QCOMPARE(child<QSpinBox>(reopened,"byoyomiSec2")->value(),3);
         QVERIFY(child<QGroupBox>(reopened,"groupBoxSecondPlayerTimeSettings")->isChecked());
@@ -416,7 +416,7 @@ private slots:
         child<QSpinBox>(d,"byoyomiSec1")->setValue(10);
         child<QSpinBox>(d,"byoyomiSec2")->setValue(3);
         accept(d);
-        QCOMPARE(d.basicTimeMinutes2(),5); QCOMPARE(d.byoyomiSec2(),10);
+        QCOMPARE(d.data().basicTimeMinutes2,5); QCOMPARE(d.data().byoyomiSec2,10);
     }
     void swapTimesAndNames() {
         StartGameDialog d;
@@ -427,8 +427,8 @@ private slots:
         child<QSpinBox>(d,"byoyomiSec2")->setValue(3);
         child<QPushButton>(d,"pushButtonSwapSides")->click();
         accept(d);
-        QCOMPARE(d.humanName1(),"B"); QCOMPARE(d.humanName2(),"A");
-        QCOMPARE(d.byoyomiSec1(),3); QCOMPARE(d.byoyomiSec2(),10);
+        QCOMPARE(d.data().humanName1,"B"); QCOMPARE(d.data().humanName2,"A");
+        QCOMPARE(d.data().byoyomiSec1,3); QCOMPARE(d.data().byoyomiSec2,10);
     }
     void cancelDoesNotSaveGameSettings() {
         StartGameDialog d;
@@ -451,9 +451,9 @@ private slots:
         auto* p2 = child<QComboBox>(d,"comboBoxPlayer2");
         qInfo() << "no engines: count=" << p2->count() << "index=" << p2->currentIndex();
         accept(d);
-        qInfo() << "accepted: isHuman2=" << d.isHuman2() << "isEngine2=" << d.isEngine2() << "engineNumber2=" << d.engineNumber2();
+        qInfo() << "accepted: isHuman2=" << d.data().isHuman2 << "isEngine2=" << d.data().isEngine2 << "engineNumber2=" << d.data().engineNumber2;
         QCOMPARE(p2->currentIndex(),0);
-        QVERIFY(d.isHuman2());
+        QVERIFY(d.data().isHuman2);
     }
     void resetClearsSeparateTimeFlag() {
         StartGameDialog d;
@@ -498,39 +498,39 @@ private slots:
         window = std::make_unique<MainWindow>();
         window->resize(1400, 1000);
         window->show();
-        auto* controller = window->findChild<GameInfoPaneController*>();
+        auto* controller = window->findChild<GameInfoPane*>();
         QVERIFY(controller);
-        auto* table = controller->tableWidget();
-        QCOMPARE(table->rowCount(), 9);
-        QVERIFY(table->item(1, 1)->text().isEmpty());
-        // 対局者は名前が決まるまで「先手」「後手」（GameInfoPaneController::resetGameInfo）
-        QCOMPARE(table->item(2, 1)->text(), QStringLiteral("先手"));
-        QCOMPARE(table->item(3, 1)->text(), QStringLiteral("後手"));
-        table->item(6, 1)->setText(QStringLiteral("練習対局"));
-        table->item(7, 1)->setText(QStringLiteral("自宅"));
+        GameInfoTable table{controller->tableView()};
+        QCOMPARE(table.rowCount(), 9);
+        QVERIFY(table.text(1, 1).isEmpty());
+        // 対局者は名前が決まるまで「先手」「後手」（GameInfoPane::resetGameInfo）
+        QCOMPARE(table.text(2, 1), QStringLiteral("先手"));
+        QCOMPARE(table.text(3, 1), QStringLiteral("後手"));
+        table.setText(6, 1, QStringLiteral("練習対局"));
+        table.setText(7, 1, QStringLiteral("自宅"));
         controller->applyChanges();
         window->activateWindow();
-        table->setFocus();
-        QTRY_VERIFY(table->hasFocus());
-        table->setCurrentCell(8, 1);
-        table->scrollToItem(table->currentItem());
-        table->editItem(table->currentItem());
+        table.view->setFocus();
+        QTRY_VERIFY(table.view->hasFocus());
+        table.setCurrentCell(8, 1);
+        table.view->scrollTo(table.view->currentIndex());
+        table.editCurrent();
         auto* editor = qobject_cast<QLineEdit*>(QApplication::focusWidget());
         QVERIFY(editor);
         editor->setText(QStringLiteral("更新ボタンを押す前の備考"));
         const QDateTime before = QDateTime::currentDateTime().addSecs(-1);
         requestedPreset = preset;
         startWindowGame();
-        QCOMPARE(table->rowCount(), 9);
-        const auto start = QDateTime::fromString(table->item(1, 1)->text(), QStringLiteral("yyyy/MM/dd HH:mm:ss"));
+        QCOMPARE(table.rowCount(), 9);
+        const auto start = QDateTime::fromString(table.text(1, 1), QStringLiteral("yyyy/MM/dd HH:mm:ss"));
         QVERIFY(start.isValid());
         QVERIFY(start >= before && start <= QDateTime::currentDateTime());
-        QCOMPARE(table->item(2, 1)->text(), QStringLiteral("対局者A"));
-        QCOMPARE(table->item(3, 1)->text(), QStringLiteral("対局者B"));
-        QCOMPARE(table->item(5, 1)->text(), QStringLiteral("05:00+30"));
-        QCOMPARE(table->item(6, 1)->text(), QStringLiteral("練習対局"));
-        QCOMPARE(table->item(7, 1)->text(), QStringLiteral("自宅"));
-        QCOMPARE(table->item(8, 1)->text(), QStringLiteral("更新ボタンを押す前の備考"));
+        QCOMPARE(table.text(2, 1), QStringLiteral("対局者A"));
+        QCOMPARE(table.text(3, 1), QStringLiteral("対局者B"));
+        QCOMPARE(table.text(5, 1), QStringLiteral("05:00+30"));
+        QCOMPARE(table.text(6, 1), QStringLiteral("練習対局"));
+        QCOMPARE(table.text(7, 1), QStringLiteral("自宅"));
+        QCOMPARE(table.text(8, 1), QStringLiteral("更新ボタンを押す前の備考"));
         QVERIFY(!controller->isDirty());
         auto* record = window->findChild<GameRecordModel*>();
         QVERIFY(record);
@@ -581,7 +581,7 @@ private slots:
         auto* clock = match->clock();
         QVERIFY(clock);
         auto* record = window->findChild<RecordPane*>();
-        const QString sfen = window->composer().state().currentSfenStr;
+        const QString sfen = window->composer().parts().navState->currentSfen();
         const QStringList history = match->record().sfens();
         const auto box = view->board()->pieceBox();
         const auto hands = view->board()->pieceStand();
@@ -590,10 +590,8 @@ private slots:
         const qint64 whiteTime = clock->remainingMainTimeMs(Turn::White);
         const qint64 engineLogSize = QFile(qEnvironmentVariable("AUDIT_USI_LOG")).size();
         QSignalSpy ended(match, &MatchCoordinator::gameEnded);
-        auto* gameStart = window->composer().parts().gameStart;
-        QVERIFY(gameStart);
-        QSignalSpy started(gameStart, &GameStartCoordinator::started);
-        QSignalSpy cleaned(gameStart, &GameStartCoordinator::requestPreStartCleanup);
+        // 始められない局面では棋譜を作り直さない
+        QSignalSpy cleaned(window->composer().parts().branchTree, &KifuBranchTree::treeChanged);
 
         startWindowGame();
         QTest::qWait(50);
@@ -602,7 +600,6 @@ private slots:
         QVERIFY(messages.first().contains(QStringLiteral("対局を開始できません")));
         QVERIFY(messages.first().contains(QStringLiteral("先手 %1枚、後手 %2枚")
                      .arg(boardSfen.count('K')).arg(boardSfen.count('k'))));
-        QCOMPARE(started.count(), 0);
         QCOMPARE(cleaned.count(), 0);
         QCOMPARE(ended.count(), 0);
         QVERIFY(!clock->isRunning());
@@ -613,8 +610,8 @@ private slots:
         QCOMPARE(view->board()->convertBoardToSfen(), boardSfen);
         QCOMPARE(view->board()->pieceBox(), box);
         QCOMPARE(view->board()->pieceStand(), hands);
-        QCOMPARE(window->composer().state().currentSfenStr, sfen);
-        QCOMPARE(window->composer().state().startSfenStr, sfen);
+        QCOMPARE(window->composer().parts().navState->currentSfen(), sfen);
+        QCOMPARE(window->composer().parts().branchTree->root()->sfen(), sfen);
         QCOMPARE(match->record().sfens(), history);
         QCOMPARE(record->kifuView()->model()->rowCount(), rows);
         QVERIFY(!record->isNavigationDisabled());
@@ -770,11 +767,11 @@ private slots:
         configureEngineGames(1);
         startWindowGame();
         dialogTimer.start(10);
-        QTRY_COMPARE_WITH_TIMEOUT(window->composer().parts().consecutiveGamesController->currentGameNumber(), 2, 5000);
+        QTRY_COMPARE_WITH_TIMEOUT(window->composer().parts().consecutiveGames->currentGameNumber(), 2, 5000);
         dialogTimer.stop();
-        QVERIFY(window->composer().parts().consecutiveGamesController);
-        qInfo() << "consecutive maxMoves: game=" << window->composer().parts().consecutiveGamesController->currentGameNumber();
-        QCOMPARE(window->composer().parts().consecutiveGamesController->currentGameNumber(),2);
+        QVERIFY(window->composer().parts().consecutiveGames);
+        qInfo() << "consecutive maxMoves: game=" << window->composer().parts().consecutiveGames->currentGameNumber();
+        QCOMPARE(window->composer().parts().consecutiveGames->currentGameNumber(),2);
     }
     void consecutiveAutoSaveKeepsMoves() {
         // 1局1秒以上にして、秒単位の保存ファイル名が衝突しないようにする。
@@ -789,7 +786,7 @@ private slots:
         startWindowGame();
         dialogTimer.start(10);
         QTRY_VERIFY_WITH_TIMEOUT(window->composer().parts().match->gameOverState().isOver
-                                 && window->composer().parts().consecutiveGamesController->currentGameNumber() == 2, 10000);
+                                 && window->composer().parts().consecutiveGames->currentGameNumber() == 2, 10000);
         dialogTimer.stop();
         const QStringList files = QDir(dir.path()).entryList({"*.kifu"},QDir::Files);
         qInfo() << "autosave dir=" << dir.path() << "files=" << files;
@@ -812,15 +809,15 @@ private slots:
         settings.setValue("GameSettings/basicTimeMinutes2", 3);
         settings.sync();
         startWindowGame();
-        const auto first = window->composer().parts().timeController->timeControl();
+        const auto first = window->composer().parts().timeRecord.timeControl();
         QCOMPARE(first.black.mainMs, qint64(300000));
         QCOMPARE(first.white.mainMs, qint64(180000));
-        auto* table = window->findChild<GameInfoPaneController*>()->tableWidget();
+        GameInfoTable table{window->findChild<GameInfoPane*>()->tableView()};
         QCOMPARE(gameInfoValue(table, GameInfoKeys::kTimeControl), QStringLiteral("先手 05:00 / 後手 03:00"));
         dialogTimer.start(10);
-        QTRY_COMPARE_WITH_TIMEOUT(window->composer().parts().consecutiveGamesController->currentGameNumber(), 2, 5000);
+        QTRY_COMPARE_WITH_TIMEOUT(window->composer().parts().consecutiveGames->currentGameNumber(), 2, 5000);
         dialogTimer.stop();
-        const auto second = window->composer().parts().timeController->timeControl();
+        const auto second = window->composer().parts().timeRecord.timeControl();
         QCOMPARE(second.black.mainMs, qint64(180000));
         QCOMPARE(second.white.mainMs, qint64(300000));
         QTRY_COMPARE(gameInfoValue(table, GameInfoKeys::kTimeControl), QStringLiteral("先手 03:00 / 後手 05:00"));
@@ -828,7 +825,7 @@ private slots:
         QCOMPARE(gameInfoValue(table, GameInfoKeys::kBlackPlayer), QStringLiteral("Audit USI"));
         QCOMPARE(gameInfoValue(table, GameInfoKeys::kWhitePlayer), QStringLiteral("Audit USI"));
         QVERIFY(!gameInfoValue(table, GameInfoKeys::kStartDateTime).isEmpty());
-        QVERIFY(window->findChild<ShogiView*>()->blackNameLabel()->fullText().contains(QStringLiteral("Audit USI")));
+        QVERIFY(window->findChild<ShogiView*>()->chrome()->blackNameLabel()->fullText().contains(QStringLiteral("Audit USI")));
     }
     void handicapGameInfoUsesShitateUwate() {
         auto& settings = SettingsCommon::openSettings();
@@ -842,8 +839,8 @@ private slots:
         settings.sync();
         requestedPreset = 4;  // 角落ち
         startWindowGame();
-        auto* controller = window->findChild<GameInfoPaneController*>();
-        auto* table = controller->tableWidget();
+        auto* controller = window->findChild<GameInfoPane*>();
+        GameInfoTable table{controller->tableView()};
         QCOMPARE(gameInfoValue(table, GameInfoKeys::kShitatePlayer), QStringLiteral("下手さん"));
         QCOMPARE(gameInfoValue(table, GameInfoKeys::kUwatePlayer), QStringLiteral("上手さん"));
         QCOMPARE(gameInfoValue(table, GameInfoKeys::kTimeControl), QStringLiteral("下手 01:00+2 / 上手 02:00+3"));
@@ -854,23 +851,22 @@ private slots:
         GameRecordModel::ExportContext context;
         context.gameInfoItems = controller->gameInfo();
         context.gameInfoProvided = true;
-        context.startSfen = window->composer().state().startSfenStr;
+        context.startSfen = window->composer().parts().branchTree->root()->sfen();
         const QString kif = record.toKifLines(context).join(QLatin1Char('\n'));
         QVERIFY2(kif.contains(QStringLiteral("下手：下手さん")), qPrintable(kif));
         QVERIFY(kif.contains(QStringLiteral("上手：上手さん")));
         QVERIFY(kif.contains(QStringLiteral("持ち時間：下手 01:00+2 / 上手 02:00+3")));
         QVERIFY(!kif.contains(QStringLiteral("先手：")));
-        const QString csa = record.toCsaLines(context, {}).join(QLatin1Char('\n'));
+        const QString csa = record.toCsaLines(context).join(QLatin1Char('\n'));
         QVERIFY2(csa.contains(QStringLiteral("N+下手さん")), qPrintable(csa));
         QVERIFY(csa.contains(QStringLiteral("N-上手さん")));
         QVERIFY(csa.contains(QStringLiteral("$TIME+:60+2+0")));
         QVERIFY(csa.contains(QStringLiteral("$TIME-:120+3+0")));
     }
 private:
-    static QString gameInfoValue(const QTableWidget* table, const QString& key) {
-        for (int row = 0; row < table->rowCount(); ++row) {
-            if (table->item(row, 0) && table->item(row, 0)->text() == key)
-                return table->item(row, 1) ? table->item(row, 1)->text() : QString();
+    static QString gameInfoValue(const GameInfoTable& table, const QString& key) {
+        for (int row = 0; row < table.rowCount(); ++row) {
+            if (table.text(row, 0) == key) return table.text(row, 1);
         }
         return {};
     }

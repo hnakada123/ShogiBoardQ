@@ -4,9 +4,9 @@
 #include <QTableView>
 #include <QTemporaryDir>
 
-#include "analysisresultspresenter.h"
+#include "analysisresultspanel.h"
 #include "considerationtabmanager.h"
-#include "engineanalysispresenter.h"
+#include "thinkingtableview.h"
 #include "kifuanalysislistmodel.h"
 #include "numericrightaligncommadelegate.h"
 #include "shogienginethinkingmodel.h"
@@ -28,10 +28,10 @@ private slots:
     void thinkingModelResetsDoNotAccumulateDelegates()
     {
         ShogiEngineThinkingModel first, second;
-        QTableView view1, view2;
-        EngineAnalysisPresenter presenter;
-        presenter.setViews(&view1, &view2, nullptr, nullptr);
-        presenter.setModels(&first, &second);
+        ThinkingTableView view1(AnalysisSettings::ThinkingTable::Engine1);
+        ThinkingTableView view2(AnalysisSettings::ThinkingTable::Engine2);
+        view1.setThinkingModel(&first);
+        view2.setThinkingModel(&second);
         for (int i = 0; i < 100; ++i) {
             first.clearAllItems();
             second.clearAllItems();
@@ -54,12 +54,10 @@ private slots:
     void thinkingModelSwitchReleasesSelectionModels()
     {
         ShogiEngineThinkingModel first, second;
-        QTableView view;
-        EngineAnalysisPresenter presenter;
-        presenter.setViews(&view, nullptr, nullptr, nullptr);
-        presenter.setModels(&first, nullptr);
+        ThinkingTableView view(AnalysisSettings::ThinkingTable::Engine1);
+        view.setThinkingModel(&first);
         for (int i = 0; i < 100; ++i) {
-            presenter.setEngine1ThinkingModel(i % 2 ? &first : &second);
+            view.setThinkingModel(i % 2 ? &first : &second);
             QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
         }
         QCOMPARE(view.findChildren<QItemSelectionModel*>().size(), 1);
@@ -81,7 +79,7 @@ private slots:
     void analysisModelSwitchReleasesSelectionModels()
     {
         KifuAnalysisListModel first, second;
-        AnalysisResultsPresenter presenter;
+        AnalysisResultsPanel presenter;
         std::unique_ptr<QWidget> page(presenter.containerWidget());
         for (int i = 0; i < 100; ++i) {
             presenter.showWithModel(i % 2 ? &first : &second);

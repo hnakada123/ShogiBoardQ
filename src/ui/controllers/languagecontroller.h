@@ -14,7 +14,7 @@ class QWidget;
 /**
  * @brief 言語設定の管理を行うコントローラ
  *
- * MainWindowから分離された責務:
+ * 責務:
  * - 言語設定の変更
  * - 言語メニュー状態の更新
  * - 再起動要求ダイアログの表示
@@ -24,22 +24,23 @@ class LanguageController : public QObject
     Q_OBJECT
 
 public:
-    explicit LanguageController(QObject* parent = nullptr);
+    /// メニューの項目（どれも無くてよい）
+    struct Deps {
+        QWidget* parentWidget = nullptr;          ///< 再起動の知らせ・表記の説明の親
+        QAction* systemLanguage = nullptr;
+        QAction* japanese = nullptr;
+        QAction* english = nullptr;
+        QAction* chineseSimplified = nullptr;
+        QAction* chineseTraditional = nullptr;
+        QAction* notationAuto = nullptr;          ///< 指し手の表記: 言語に合わせる
+        QAction* notationJapanese = nullptr;      ///< 指し手の表記: 日本式
+        QAction* notationWestern = nullptr;       ///< 指し手の表記: 英語式
+        QAction* notationOrigin = nullptr;        ///< 移動元を付ける
+        QAction* notationHelp = nullptr;          ///< 表記の説明
+    };
 
-    /**
-     * @brief 言語アクションを設定
-     * @param systemAction システム言語アクション
-     * @param japaneseAction 日本語アクション
-     * @param englishAction 英語アクション
-     */
-    void setActions(QAction* systemAction, QAction* japaneseAction, QAction* englishAction,
-                    QAction* simplifiedAction = nullptr, QAction* traditionalAction = nullptr);
-    void setNotationActions(QAction* automatic, QAction* japanese, QAction* western, QAction* origin, QAction* help);
-
-    /**
-     * @brief 親ウィジェットを設定（ダイアログ表示用）
-     */
-    void setParentWidget(QWidget* parent);
+    /// 言語（相互排他）と表記の項目を設定とつなぐ
+    explicit LanguageController(const Deps& deps, QObject* parent = nullptr);
 
     /**
      * @brief 言語メニューの状態を更新
@@ -70,6 +71,9 @@ private slots:
     void showNotationHelp();
 
 private:
+    void setActions(QAction* systemAction, QAction* japaneseAction, QAction* englishAction,
+                    QAction* simplifiedAction, QAction* traditionalAction);
+    void setNotationActions(QAction* automatic, QAction* japanese, QAction* western, QAction* origin, QAction* help);
     void restartNotice();
     /**
      * @brief 言語を変更する

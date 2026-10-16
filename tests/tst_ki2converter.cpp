@@ -1,6 +1,7 @@
 #include <QtTest>
 #include <QCoreApplication>
 
+#include "kifu_file_helper.h"
 #include "ki2tosfenconverter.h"
 #include "ki2lexer.h"
 #include "ki2movenotation.h"
@@ -50,7 +51,7 @@ private slots:
             "変化：3手\n▲９六歩\n").toUtf8(), QStringLiteral("ki2")));
         KifParseResult result;
         QString error;
-        QVERIFY2(Ki2ToSfenConverter::parseWithVariations(file.fileName(), result, &error), qPrintable(error));
+        QVERIFY2(KifuFile::parse<Ki2ToSfenConverter>(file.fileName(), result, &error), qPrintable(error));
         QCOMPARE(result.mainline.usiMoves(), QStringList({"7g7f", "3c3d", "2g2f"}));
         QCOMPARE(result.variations.size(), 2);
         QCOMPARE(result.variations[0].startPly, 2);
@@ -60,8 +61,8 @@ private slots:
         QCOMPARE(result.variations[1].startPly, 3);
         QCOMPARE(result.variations[1].line.usiMoves(), QStringList({"9g9f"}));
         QCOMPARE(result.variations[1].line.baseSfen, result.variations[0].line.sfenList()[1]);
-        QCOMPARE(Ki2ToSfenConverter::convertFile(file.fileName()), result.mainline.usiMoves());
-        QCOMPARE(Ki2ToSfenConverter::extractMovesWithTimes(file.fileName()).size(), 4);
+        QCOMPARE(KifuFile::usiMoves<Ki2ToSfenConverter>(file.fileName()), result.mainline.usiMoves());
+        QCOMPARE(KifuFile::displayItems<Ki2ToSfenConverter>(file.fileName()).size(), 4);
     }
 
     void failedMoveRejectsWholeRecord()
@@ -71,12 +72,12 @@ private slots:
             "手合割：平手\n▲７六歩 △５五銀 ▲２六歩\n").toUtf8(), QStringLiteral("ki2")));
         KifParseResult result;
         QString error;
-        QVERIFY(!Ki2ToSfenConverter::parseWithVariations(file.fileName(), result, &error));
+        QVERIFY(!KifuFile::parse<Ki2ToSfenConverter>(file.fileName(), result, &error));
         QVERIFY(!error.isEmpty());
         QVERIFY(result.mainline.displayItems().isEmpty());
         QVERIFY(result.mainline.usiMoves().isEmpty());
-        QVERIFY(Ki2ToSfenConverter::convertFile(file.fileName()).isEmpty());
-        QVERIFY(Ki2ToSfenConverter::extractMovesWithTimes(file.fileName()).isEmpty());
+        QVERIFY(KifuFile::usiMoves<Ki2ToSfenConverter>(file.fileName()).isEmpty());
+        QVERIFY(KifuFile::displayItems<Ki2ToSfenConverter>(file.fileName()).isEmpty());
     }
 
     /// 成駒の名前（成銀・成桂・成香）は成駒の移動。同じマスへ動ける生駒があっても成駒を選ぶ
@@ -203,7 +204,7 @@ private slots:
         QFETCH(QStringList, variations);
         KifParseResult result;
         QString error;
-        QVERIFY2(Ki2ToSfenConverter::parseWithVariations(fixturePath(file), result, &error), qPrintable(error));
+        QVERIFY2(KifuFile::parse<Ki2ToSfenConverter>(fixturePath(file), result, &error), qPrintable(error));
         QCOMPARE(result.mainline.usiMoves(), mainline);
         QStringList firstMoves;
         for (const KifVariation& variation : std::as_const(result.variations)) {
@@ -216,7 +217,7 @@ private slots:
 
     void detectInitialSfen()
     {
-        QString sfen = Ki2ToSfenConverter::detectInitialSfenFromFile(
+        QString sfen = KifuFile::initialSfen<Ki2ToSfenConverter>(
             fixturePath(QStringLiteral("test_basic.ki2")));
         QCOMPARE(sfen, kHirateSfen);
     }
@@ -224,7 +225,7 @@ private slots:
     void convertFile_sevenMoves()
     {
         QString error;
-        QStringList moves = Ki2ToSfenConverter::convertFile(
+        QStringList moves = KifuFile::usiMoves<Ki2ToSfenConverter>(
             fixturePath(QStringLiteral("test_basic.ki2")), &error);
         QVERIFY2(error.isEmpty(), qPrintable(error));
         QCOMPARE(moves.size(), 7);
@@ -234,7 +235,7 @@ private slots:
     void extractMovesWithTimes()
     {
         QString error;
-        QList<KifDisplayItem> items = Ki2ToSfenConverter::extractMovesWithTimes(
+        QList<KifDisplayItem> items = KifuFile::displayItems<Ki2ToSfenConverter>(
             fixturePath(QStringLiteral("test_basic.ki2")), &error);
         QVERIFY2(error.isEmpty(), qPrintable(error));
         // Returns opening item (ply 0) + 7 moves = 8
@@ -248,7 +249,7 @@ private slots:
     void convertFile_nonExistentFile()
     {
         QString error;
-        QStringList moves = Ki2ToSfenConverter::convertFile(
+        QStringList moves = KifuFile::usiMoves<Ki2ToSfenConverter>(
             fixturePath(QStringLiteral("nonexistent.ki2")), &error);
         QVERIFY(moves.isEmpty());
     }
@@ -257,7 +258,7 @@ private slots:
     {
         KifParseResult result;
         QString error;
-        bool ok = Ki2ToSfenConverter::parseWithVariations(
+        bool ok = KifuFile::parse<Ki2ToSfenConverter>(
             fixturePath(QStringLiteral("nonexistent.ki2")), result, &error);
         QVERIFY(!ok);
         QVERIFY(!error.isEmpty());
@@ -267,7 +268,7 @@ private slots:
     void detectInitialSfen_nonExistentFile()
     {
         QString label;
-        QString sfen = Ki2ToSfenConverter::detectInitialSfenFromFile(
+        QString sfen = KifuFile::initialSfen<Ki2ToSfenConverter>(
             fixturePath(QStringLiteral("nonexistent.ki2")), &label);
         // Falls back to hirate
         QCOMPARE(sfen,
@@ -287,7 +288,7 @@ private slots:
         tmp.close();
 
         QString error;
-        QStringList moves = Ki2ToSfenConverter::convertFile(tmp.fileName(), &error);
+        QStringList moves = KifuFile::usiMoves<Ki2ToSfenConverter>(tmp.fileName(), &error);
         QCOMPARE(moves.size(), 0);
     }
 
@@ -299,7 +300,7 @@ private slots:
         tmp.close();
 
         QString error;
-        QList<KifDisplayItem> items = Ki2ToSfenConverter::extractMovesWithTimes(
+        QList<KifDisplayItem> items = KifuFile::displayItems<Ki2ToSfenConverter>(
             tmp.fileName(), &error);
         // Should return at most the opening item
         QVERIFY(items.size() <= 1);
@@ -320,7 +321,7 @@ private slots:
         tmp.close();
 
         QString error;
-        QStringList moves = Ki2ToSfenConverter::convertFile(tmp.fileName(), &error);
+        QStringList moves = KifuFile::usiMoves<Ki2ToSfenConverter>(tmp.fileName(), &error);
         QCOMPARE(moves.size(), 0);
     }
 
@@ -330,7 +331,7 @@ private slots:
 
     void extractGameInfo_basic()
     {
-        auto info = Ki2ToSfenConverter::extractGameInfo(
+        auto info = KifuFile::gameInfo<Ki2ToSfenConverter>(
             fixturePath(QStringLiteral("test_basic.ki2")));
         const auto values = KifuParseCommon::toGameInfoMap(info);
         QCOMPARE(values.value(QStringLiteral("先手")), QStringLiteral("テスト先手"));
@@ -344,7 +345,7 @@ private slots:
         QVERIFY(tmp.open());
         tmp.close();
 
-        auto info = Ki2ToSfenConverter::extractGameInfo(tmp.fileName());
+        auto info = KifuFile::gameInfo<Ki2ToSfenConverter>(tmp.fileName());
         QVERIFY(info.isEmpty());
     }
     // ========================================
@@ -365,14 +366,14 @@ private slots:
         QVERIFY(KifuTestHelper::writeToTempFile(tmp, fileContent, QStringLiteral("ki2")));
 
         QString error;
-        (void)Ki2ToSfenConverter::convertFile(tmp.fileName(), &error);
+        (void)KifuFile::usiMoves<Ki2ToSfenConverter>(tmp.fileName(), &error);
 
         KifParseResult result;
-        const bool success = Ki2ToSfenConverter::parseWithVariations(tmp.fileName(), result, &error);
+        const bool success = KifuFile::parse<Ki2ToSfenConverter>(tmp.fileName(), result, &error);
 
-        (void)Ki2ToSfenConverter::detectInitialSfenFromFile(tmp.fileName());
-        (void)Ki2ToSfenConverter::extractGameInfo(tmp.fileName());
-        (void)Ki2ToSfenConverter::extractMovesWithTimes(tmp.fileName(), &error);
+        (void)KifuFile::initialSfen<Ki2ToSfenConverter>(tmp.fileName());
+        (void)KifuFile::gameInfo<Ki2ToSfenConverter>(tmp.fileName());
+        (void)KifuFile::displayItems<Ki2ToSfenConverter>(tmp.fileName(), &error);
 
         KifuTestHelper::verifyParsedRecord(success, result, error);
     }
@@ -388,10 +389,10 @@ private slots:
             tmp, KifuTestHelper::generateLongKi2Content(1500), QStringLiteral("ki2")));
 
         QString error;
-        (void)Ki2ToSfenConverter::convertFile(tmp.fileName(), &error);
+        (void)KifuFile::usiMoves<Ki2ToSfenConverter>(tmp.fileName(), &error);
 
         KifParseResult result;
-        QVERIFY2(Ki2ToSfenConverter::parseWithVariations(tmp.fileName(), result, &error), qPrintable(error));
+        QVERIFY2(KifuFile::parse<Ki2ToSfenConverter>(tmp.fileName(), result, &error), qPrintable(error));
 
         QCOMPARE(result.mainline.moveCount(), 1500);
         KifuTestHelper::verifyParsedRecord(true, result, error);
@@ -405,7 +406,7 @@ private slots:
         QVERIFY(KifuTestHelper::writeToTempFile(file, text.toUtf8(), QStringLiteral("ki2")));
         KifParseResult fromFile, fromText;
         QString error;
-        QVERIFY2(Ki2ToSfenConverter::parseWithVariations(file.fileName(), fromFile, &error), qPrintable(error));
+        QVERIFY2(KifuFile::parse<Ki2ToSfenConverter>(file.fileName(), fromFile, &error), qPrintable(error));
         QVERIFY2(Ki2ToSfenConverter::parseText(text, fromText, &error), qPrintable(error));
         QCOMPARE(fromText.mainline.usiMoves(), fromFile.mainline.usiMoves());
         QCOMPARE(fromText.variations.size(), 1);

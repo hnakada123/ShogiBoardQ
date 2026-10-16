@@ -11,6 +11,7 @@
 #include <memory>
 
 #include "fontsizehelper.h"
+#include "startgamedatabridge.h"
 
 namespace Ui {
 class StartGameDialog;
@@ -31,34 +32,8 @@ public:
     explicit StartGameDialog(QWidget *parent = nullptr);
     ~StartGameDialog() override;
 
-    // --- 対局者情報 ---
-
-    bool isHuman1() const;
-    bool isHuman2() const;
-    bool isEngine1() const;
-    bool isEngine2() const;
-    const QString& engineName1() const;
-    const QString& engineName2() const;
-    const QString& humanName1() const;
-    const QString& humanName2() const;
-    int engineNumber1() const;
-    int engineNumber2() const;
-
-    // --- 持ち時間設定 ---
-
-    int basicTimeHour1() const;
-    int basicTimeMinutes1() const;
-    int byoyomiSec1() const;
-    int addEachMoveSec1() const;
-    int basicTimeHour2() const;
-    int basicTimeMinutes2() const;
-    int byoyomiSec2() const;
-    int addEachMoveSec2() const;
-
-    // --- 開始局面 ---
-
-    const QString& startingPositionName() const;
-    int startingPositionNumber() const;
+    /// 画面で選んだ対局の条件（「後手に異なる時間を設定」がなければ後手の時間は先手と同じ）
+    StartGameDialogData data() const;
 
     /// 開始局面コンボボックスを「現在の局面」(index 0) に強制設定する
     void forceCurrentPositionSelection();
@@ -71,58 +46,10 @@ public:
 
     const QList<StartGameDialog::Engine>& engineList() const;
 
-    // --- 対局オプション ---
-
-    int maxMoves() const;
-    int consecutiveGames() const;
-    bool isShowHumanInFront() const;
-    bool isAutoSaveKifu() const;
-    const QString& kifuSaveDir() const;
-    bool isLoseOnTimeout() const;
-    bool isSwitchTurnEachGame() const;
-
 private:
     std::unique_ptr<Ui::StartGameDialog> ui; ///< UIオブジェクト
 
-    // --- 対局者フラグ ---
-
-    bool m_isHuman1 = false;                 ///< 先手／下手が人間か
-    bool m_isHuman2 = false;                 ///< 後手／上手が人間か
-    bool m_isEngine1 = false;                ///< 先手／下手がエンジンか
-    bool m_isEngine2 = false;                ///< 後手／上手がエンジンか
-
-    // --- 対局者名 ---
-
-    QString m_engineName1;                  ///< 先手／下手のエンジン名
-    QString m_engineName2;                  ///< 後手／上手のエンジン名
-    QString m_humanName1;                   ///< 先手／下手の人間名
-    QString m_humanName2;                   ///< 後手／上手の人間名
-    int m_engineNumber1 = 0;                 ///< 先手／下手のエンジン番号
-    int m_engineNumber2 = 0;                 ///< 後手／上手のエンジン番号
-
-    // --- 持ち時間 ---
-
-    int m_basicTimeHour1 = 0;                ///< 対局者1の持ち時間（時間）
-    int m_basicTimeMinutes1 = 0;             ///< 対局者1の持ち時間（分）
-    int m_addEachMoveSec1 = 0;               ///< 対局者1のフィッシャー加算（秒）
-    int m_byoyomiSec1 = 0;                   ///< 対局者1の秒読み（秒）
-    int m_basicTimeHour2 = 0;                ///< 対局者2の持ち時間（時間）
-    int m_basicTimeMinutes2 = 0;             ///< 対局者2の持ち時間（分）
-    int m_addEachMoveSec2 = 0;               ///< 対局者2のフィッシャー加算（秒）
-    int m_byoyomiSec2 = 0;                   ///< 対局者2の秒読み（秒）
-
-    // --- 局面・対局オプション ---
-
-    QString m_startingPositionName;         ///< 開始局面名（平手、二枚落ち等）
-    int m_startingPositionNumber = 0;        ///< 開始局面番号
     QList<Engine> m_engineList;              ///< 登録エンジンのリスト
-    int m_maxMoves = 0;                      ///< 最大手数（0=無制限）
-    int m_consecutiveGames = 1;              ///< 連続対局数
-    bool m_isShowHumanInFront = false;       ///< 人間を手前に表示するか
-    bool m_isAutoSaveKifu = false;           ///< 棋譜の自動保存フラグ
-    QString m_kifuSaveDir;                  ///< 棋譜の保存ディレクトリ
-    bool m_isLoseOnTimeout = false;          ///< 時間切れ負けフラグ
-    bool m_isSwitchTurnEachGame = false;     ///< 1局ごとに手番入替フラグ
 
     // --- 初期化・設定 ---
 
@@ -155,9 +82,6 @@ private slots:
     /// 対局開始ボタン押下時に、時間設定を確認してから設定を保存しダイアログを閉じる
     void onStartRequested();
 
-    /// OKボタン押下時にダイアログの各パラメータをメンバー変数に取得する
-    void updateGameSettingsFromDialog();
-
     /// 先手側のエンジン設定ダイアログを表示する
     void onFirstPlayerSettingsClicked();
 
@@ -181,9 +105,6 @@ private slots:
 
     /// 加算時間値変更時に秒読みを0にする（秒読みと加算は排他）
     void handleAddEachMoveSecChanged(int value);
-
-    void increaseFontSize();
-    void decreaseFontSize();
 
     /// 先手側の対局者選択変更時にUIを更新する
     void onPlayer1SelectionChanged(int index);

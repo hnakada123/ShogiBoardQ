@@ -62,100 +62,6 @@ bool KifLineDraft::resolve(KifLine& out, QString* error) const
     return true;
 }
 
-namespace {
-
-const QString& zenkakuDigitsStr()
-{
-    static const QString digits = QStringLiteral("０１２３４５６７８９");
-    return digits;
-}
-
-} // namespace
-
-int asciiDigitToInt(QChar c)
-{
-    const ushort u = c.unicode();
-    return (u >= '0' && u <= '9') ? (u - '0') : 0;
-}
-
-int zenkakuDigitToInt(QChar c)
-{
-    const int idx = static_cast<int>(zenkakuDigitsStr().indexOf(c));
-    return (idx >= 0) ? idx : 0;
-}
-
-int flexDigitToIntNoDetach(QChar c)
-{
-    int v = asciiDigitToInt(c);
-    if (!v) {
-        v = zenkakuDigitToInt(c);
-    }
-    return v;
-}
-
-int flexDigitsToIntNoDetach(QStringView text)
-{
-    int value = 0;
-    const int n = static_cast<int>(text.size());
-    for (int i = 0; i < n; ++i) {
-        const QChar ch = text.at(i);
-        int d = asciiDigitToInt(ch);
-        if (!d) {
-            d = zenkakuDigitToInt(ch);
-        }
-        if (!d && ch != QChar(u'0') && ch != QChar(u'０')) {
-            continue;
-        }
-        if (ch == QChar(u'0') || ch == QChar(u'０')) {
-            d = 0;
-        }
-        value = value * 10 + d;
-    }
-    return value;
-}
-
-std::optional<KanjiPieceResult> mapKanjiPiece(QStringView text)
-{
-    if (text.contains(QChar(u'歩')) || text.contains(QChar(u'と'))) {
-        return KanjiPieceResult{Piece::BlackPawn, text.contains(QChar(u'と'))};
-    }
-    if (text.contains(QChar(u'香')) || text.contains(QChar(u'杏'))) {
-        return KanjiPieceResult{Piece::BlackLance,
-                                text.contains(QChar(u'杏')) || text.contains(QStringLiteral("成香"))};
-    }
-    if (text.contains(QChar(u'桂')) || text.contains(QChar(u'圭'))) {
-        return KanjiPieceResult{Piece::BlackKnight,
-                                text.contains(QChar(u'圭')) || text.contains(QStringLiteral("成桂"))};
-    }
-    if (text.contains(QChar(u'銀')) || text.contains(QChar(u'全'))) {
-        return KanjiPieceResult{Piece::BlackSilver,
-                                text.contains(QChar(u'全')) || text.contains(QStringLiteral("成銀"))};
-    }
-    if (text.contains(QChar(u'金'))) {
-        return KanjiPieceResult{Piece::BlackGold, false};
-    }
-    if (text.contains(QChar(u'角')) || text.contains(QChar(u'馬'))) {
-        return KanjiPieceResult{Piece::BlackBishop, text.contains(QChar(u'馬'))};
-    }
-    if (text.contains(QChar(u'飛')) || text.contains(QChar(u'龍')) || text.contains(QChar(u'竜'))) {
-        return KanjiPieceResult{Piece::BlackRook,
-                                text.contains(QChar(u'龍')) || text.contains(QChar(u'竜'))};
-    }
-    if (text.contains(QChar(u'玉')) || text.contains(QChar(u'王'))) {
-        return KanjiPieceResult{Piece::BlackKing, false};
-    }
-
-    return std::nullopt;
-}
-
-std::optional<int> parseDigit(QChar ch)
-{
-    const ushort u = ch.unicode();
-    if (u >= '0' && u <= '9')
-        return u - '0';
-    return std::nullopt;
-}
-
 void appendLine(QString& buf, const QString& text)
 {
     if (!buf.isEmpty()) buf += QLatin1Char('\n');
@@ -284,41 +190,6 @@ bool isKifCommentLine(QStringView s)
 bool isBookmarkLine(QStringView s)
 {
     return s.startsWith(QLatin1Char('&'));
-}
-
-TerminalType csaSpecialToTerminal(const QString& code, Turn sideToMove)
-{
-    // %プレフィックスを除去して統一キーで検索
-    QString key = code;
-    if (key.startsWith(QLatin1Char('%'))) key = key.mid(1);
-    // %+ILLEGAL_ACTION / %-ILLEGAL_ACTION は不正を行った側。手番側でなければ手番側の反則勝ち
-    if ((key.startsWith(QLatin1Char('+')) || key.startsWith(QLatin1Char('-')))
-        && QStringView{key}.mid(1).startsWith(QLatin1String("ILLEGAL_ACTION"))) {
-        const Turn offender = key.startsWith(QLatin1Char('+')) ? Turn::Black : Turn::White;
-        return offender == sideToMove ? TerminalType::IllegalLoss : TerminalType::IllegalWin;
-    }
-
-    struct Entry { const char* key; TerminalType type; };
-    static const Entry table[] = {
-        {"TORYO",            TerminalType::Resign},
-        {"CHUDAN",           TerminalType::Interrupt},
-        {"OUTE_SENNICHITE",  TerminalType::PerpetualCheck},
-        {"SENNICHITE",       TerminalType::Repetition},
-        {"JISHOGI",          TerminalType::Impasse},
-        {"TIME_UP",          TerminalType::Timeout},
-        {"ILLEGAL_MOVE",     TerminalType::IllegalLoss},
-        {"ILLEGAL_ACTION",   TerminalType::IllegalLoss},
-        {"KACHI",            TerminalType::DeclarationWin},
-        {"HIKIWAKE",         TerminalType::Draw},
-        {"MAX_MOVES",        TerminalType::MaxMoves},
-        {"TSUMI",            TerminalType::Checkmate},
-        {"FUZUMI",           TerminalType::NoCheckmate},
-        {"ERROR",            TerminalType::Error},
-    };
-    for (const auto& e : table) {
-        if (key.startsWith(QLatin1String(e.key))) return e.type;
-    }
-    return TerminalType::None;
 }
 
 QString formatTimeMS(qint64 ms)
@@ -485,29 +356,6 @@ QString buildHandsSfen(const QMap<Piece, int>& black, const QMap<Piece, int>& wh
         }
     }
     return s.isEmpty() ? QStringLiteral("-") : s;
-}
-
-std::optional<VariationBase> findVariationBase(const KifLine& mainline,
-                                               const QList<KifVariation>& variations,
-                                               int startPly)
-{
-    const int branchPly = startPly - 1;  // 分岐元の局面の手数
-    if (branchPly < 0) return std::nullopt;
-
-    // 後から書かれた変化から探す（同じ手数から始まる兄弟の変化は分岐元にならない）
-    for (qsizetype vi = variations.size() - 1; vi >= 0; --vi) {
-        const KifVariation& var = variations.at(vi);
-        if (var.startPly > branchPly) continue;
-        const qsizetype idx = branchPly - (var.startPly - 1);
-        if (idx < 1 || idx >= var.line.moveCount() + 1) continue;
-        return VariationBase{var.line.sfenAt(static_cast<int>(idx)), var.line.usiMoves().value(idx - 1), static_cast<int>(vi)};
-    }
-
-    if (branchPly < mainline.moveCount() + 1) {
-        return VariationBase{mainline.sfenAt(branchPly),
-                             branchPly >= 1 ? mainline.usiMoves().value(branchPly - 1) : QString()};
-    }
-    return std::nullopt;
 }
 
 void mergeOpeningIntoFirstMove(KifLine& line)

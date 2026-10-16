@@ -8,8 +8,6 @@
 
 #include "usimove.h"
 
-class ShogiEngineThinkingModel;
-
 /// 検討・詰み探索の開始オプション
 struct AnalysisOptions {
     enum class Mode { Consideration, Tsume };
@@ -20,7 +18,6 @@ struct AnalysisOptions {
     QString  positionStr;               ///< "position sfen ... [moves ...]" の完全文字列
     int      byoyomiMs = 0;             ///< 0=無制限、>0=ms
     int      multiPV   = 1;             ///< MultiPV（候補手の数）
-    ShogiEngineThinkingModel* considerationModel = nullptr; ///< 検討タブ用モデル
     BoardSquare previousTo;             ///< 局面に至った手の移動先（読み筋の「同」の判定に使う）
     QString  lastUsiMove;               ///< 開始局面に至った最後の指し手（USI形式）
 };

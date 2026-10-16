@@ -5,6 +5,7 @@
 #include "boardcoordinates.h"
 
 #include "shogiview.h"
+#include "shogiviewhighlighting.h"
 #include "shogigamecontroller.h"
 #include "shogiboard.h"
 #include "shogitypes.h"
@@ -33,8 +34,8 @@ BoardInteractionController::BoardInteractionController(ShogiView* view,
     // ShogiView 側でハイライト参照配列がクリアされた場合、
     // 本クラスの所有ポインタも同期してリセットする。
     connect(m_view, &ShogiView::highlightsCleared, this, &BoardInteractionController::onHighlightsCleared);
-    connect(m_gc, &ShogiGameController::currentPlayerChanged,
-            this, &BoardInteractionController::cancelPendingClick);
+    // 手番が替わったら（指した・手番だけを変えた）、つまんでいた駒と行き先の表示をやめる
+    connect(m_gc->board(), &ShogiBoard::turnChanged, this, &BoardInteractionController::cancelPendingClick);
 }
 
 // ======================================================================
@@ -94,7 +95,7 @@ void BoardInteractionController::onLeftClick(const QPoint& pt)
 
     // 成/不成ダイアログ表示中もドラッグ状態を維持するため、ここではドラッグを終了しない。
     // ShogiGameController 側で昇格判定後に endDragSignal を emit し、
-    // MainWindow::endDrag() 経由で ShogiView::endDrag() が呼ばれる。
+    // それが ShogiView::endDrag() につながっている（合成ルートが接続する）。
     emit moveRequested(from, to);
 }
 
@@ -215,7 +216,7 @@ void BoardInteractionController::selectPieceAndHighlight(const QPoint& field)
 
     if (m_selectedField) deleteHighlight(m_selectedField);
     m_selectedField = std::make_unique<ShogiView::FieldHighlight>(file, rank, QColor(255, 128, 0, 70));
-    m_view->addHighlight(m_selectedField.get());
+    m_view->highlighting()->addHighlight(m_selectedField.get());
 
     // 対局開始で盤モデルが差し替わるため、選択時に現在の盤へ接続する。
     connect(board, &ShogiBoard::boardReset,
@@ -260,7 +261,7 @@ void BoardInteractionController::refreshLegalMoveHighlights()
             auto highlight = std::make_unique<ShogiView::FieldHighlight>(
                 file, rank, QColor(65, 155, 225, 105),
                 ShogiView::FieldHighlight::Purpose::LegalDestination);
-            m_view->addHighlight(highlight.get());
+            m_view->highlighting()->addHighlight(highlight.get());
             m_legalMoveHighlights.push_back(std::move(highlight));
         }
     }
@@ -277,7 +278,7 @@ void BoardInteractionController::updateHighlight(std::unique_ptr<ShogiView::Fiel
 void BoardInteractionController::deleteHighlight(std::unique_ptr<ShogiView::FieldHighlight>& hl)
 {
     if (!hl) return;
-    m_view->removeHighlight(hl.get());
+    m_view->highlighting()->removeHighlight(hl.get());
     hl.reset();
 }
 
@@ -286,7 +287,7 @@ void BoardInteractionController::addNewHighlight(std::unique_ptr<ShogiView::Fiel
                                                  const QColor& color)
 {
     hl = std::make_unique<ShogiView::FieldHighlight>(pos.x(), pos.y(), color);
-    m_view->addHighlight(hl.get());
+    m_view->highlighting()->addHighlight(hl.get());
 }
 
 void BoardInteractionController::resetSelectionAndHighlight()

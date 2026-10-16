@@ -38,13 +38,6 @@ QJsonObject sfenToJkfData(const QString& sfen);
  */
 QJsonObject moveToJkf(const ShogiBoard& board, Turn mover, const UsiMove& move, BoardSquare previousTo);
 
-/**
- * @brief 終局の種類から JKF の special を作る
- * @param mover 終局した局面の手番（反則勝ちで、反則をした側の符号を決める）
- * @return special の文字列。JKF に無い終局（不戦勝・不戦敗）は空
- */
-QString terminalToJkfSpecial(TerminalType type, Turn mover);
-
 } // namespace JkfFormatter
 
 #endif // JKFFORMATTER_H

@@ -8,26 +8,18 @@
 #include <QStringList>
 #include <functional>
 
+#include "kifuformat.h"
+
 /**
  * @brief 棋譜の保存形式の判定と書き出し（ダイアログを出さない。GUI・自動化 API・CLI で共通）
  */
 namespace KifuSaveFile {
 
-/// 保存形式（保存先パスの拡張子から決定する）
-enum class SaveFormat {
-    Kif,   ///< .kif / .kifu（既定。未知の拡張子もこれ）
-    Ki2,   ///< .ki2 / .ki2u
-    Csa,   ///< .csa
-    Jkf,   ///< .jkf
-    Usen,  ///< .usen
-    Usi,   ///< .usi
-};
-
 /// 保存形式が確定してから、その形式の出力だけを生成する。
-using LineGenerator = std::function<QStringList(SaveFormat)>;
+using LineGenerator = std::function<QStringList(KifuFormat)>;
 
-/// 保存先パスの拡張子から保存形式を判定する（大文字小文字は区別しない）
-SaveFormat saveFormatForPath(const QString& path);
+/// 保存先パスの拡張子から保存形式を判定する（大文字小文字は区別しない。保存できない拡張子は Kif）
+KifuFormat saveFormatForPath(const QString& path);
 
 /// 拡張子のない保存パスに、選択されたフィルタの拡張子を付ける。
 QString pathForSelectedFilter(const QString& path, const QString& selectedFilter);

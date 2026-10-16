@@ -13,11 +13,11 @@
 #include <algorithm>
 
 namespace {
-/// エンジン無応答ガードの余裕時間(ms)
+/// 制限時間を過ぎても応答がなければ stop を送るまでの余裕(ms)
 constexpr int kSafetyMarginMs = 5000;
 /// プログレス更新間隔(ms)
 constexpr int kProgressIntervalMs = 500;
-/// 安全タイマー発火後に送る stop への応答待ち時間(ms)
+/// stop への応答を待つ時間(ms)
 constexpr int kStopResponseTimeoutMs = 3000;
 /// 1回のバッチで集める候補局面数（候補はエンジン探索に比べ十分軽く作れるので少量でよい）
 constexpr int kBatchSize = 8;
@@ -34,9 +34,6 @@ const std::atomic_bool kNeverStop{false};
 TsumeshogiGenerator::TsumeshogiGenerator(QObject* parent)
     : QObject(parent)
 {
-    m_safetyTimer.setSingleShot(true);
-    connect(&m_safetyTimer, &QTimer::timeout, this, &TsumeshogiGenerator::onSafetyTimeout);
-
     connect(&m_progressTimer, &QTimer::timeout, this, &TsumeshogiGenerator::onProgressTimerTimeout);
     connect(&m_batchWatcher, &QFutureWatcher<TsumeshogiCandidateScreener::Batch>::finished,
             this, &TsumeshogiGenerator::onBatchReady);
@@ -67,15 +64,8 @@ void TsumeshogiGenerator::start(const Settings& settings)
 
     // エンジンとの接続を作る（思考情報の表示は使わない）。所有は parent（this）
     m_engine = new UsiEngineSession(this);
-    UsiProtocolHandler* handler = m_engine->handler();
-    connect(handler, &UsiProtocolHandler::checkmateSolved,
-            this, &TsumeshogiGenerator::onCheckmateSolved);
-    connect(handler, &UsiProtocolHandler::checkmateNoMate,
-            this, &TsumeshogiGenerator::onCheckmateNoMate);
-    connect(handler, &UsiProtocolHandler::checkmateNotImplemented,
-            this, &TsumeshogiGenerator::onCheckmateNotImplemented);
-    connect(handler, &UsiProtocolHandler::checkmateUnknown,
-            this, &TsumeshogiGenerator::onCheckmateUnknown);
+    connect(m_engine->handler(), &UsiProtocolHandler::checkmateReceived, this, &TsumeshogiGenerator::onCheckmate);
+    connect(m_engine, &UsiEngineSession::searchTimedOut, this, &TsumeshogiGenerator::onNoResponse);
     connect(m_engine, &UsiEngineSession::errorOccurred,
             this, &TsumeshogiGenerator::onEngineError);
     connect(m_engine, &UsiEngineSession::ready, this, &TsumeshogiGenerator::onEngineInitialized);
@@ -106,9 +96,12 @@ void TsumeshogiGenerator::start(const Settings& settings)
 
 void TsumeshogiGenerator::sendMateSearch(const QString& positionStr, int timeLimitMs)
 {
-    UsiProtocolHandler* handler = m_engine->handler();
-    handler->sendPosition(positionStr);
-    handler->sendGoMate(timeLimitMs);
+    UsiSearchRequest search;
+    search.position = positionStr;
+    search.go = UsiGo::mate(timeLimitMs);
+    search.stopAfterMs = timeLimitMs + kSafetyMarginMs;
+    search.replyTimeoutMs = kStopResponseTimeoutMs;
+    m_engine->search(search);
 }
 
 void TsumeshogiGenerator::onEngineInitialized()
@@ -157,12 +150,30 @@ bool TsumeshogiGenerator::isRunning() const
 // エンジン応答スロット
 // ======================================================================
 
-void TsumeshogiGenerator::onCheckmateSolved(const QStringList& pv)
+void TsumeshogiGenerator::onCheckmate(const UsiCheckmate& result)
 {
     if (m_phase == Phase::Idle) return;
-    if (consumeStaleResponse()) return;
-    m_safetyTimer.stop();
+    if (result.stopped) {
+        // 無応答で stop を送った後の応答（stop への応答または遅れた応答）は結果として扱わない
+        if (m_phase == Phase::Trimming) rejectInconclusiveTrim();
+        else advanceAfterFailure();
+        return;
+    }
+    switch (result.result) {
+    case UsiCheckmate::Result::Mate: onMate(result.pv); return;
+    case UsiCheckmate::Result::NoMate: onNoMate(); return;
+    case UsiCheckmate::Result::Unknown: onUndetermined(); return;
+    case UsiCheckmate::Result::NotImplemented:
+        m_phase = Phase::Idle;
+        cleanup();
+        emit errorOccurred(tr("エンジンが詰み探索に対応していません。"));
+        emit finished();
+        return;
+    }
+}
 
+void TsumeshogiGenerator::onMate(const QStringList& pv)
+{
     if (m_phase == Phase::Verifying) {
         submitVerification(TsumeshogiVerifier::Reply::Mate, pv);
         return;
@@ -183,11 +194,8 @@ void TsumeshogiGenerator::onCheckmateSolved(const QStringList& pv)
     startVerification(m_phase == Phase::Searching ? m_currentSfen : m_trimTestSfen, m_phase);
 }
 
-void TsumeshogiGenerator::onCheckmateNoMate()
+void TsumeshogiGenerator::onNoMate()
 {
-    if (m_phase == Phase::Idle) return;
-    if (consumeStaleResponse()) return;
-    m_safetyTimer.stop();
     if (m_phase == Phase::Verifying) {
         submitVerification(TsumeshogiVerifier::Reply::NoMate);
         return;
@@ -201,21 +209,8 @@ void TsumeshogiGenerator::onCheckmateNoMate()
     advanceAfterFailure();
 }
 
-void TsumeshogiGenerator::onCheckmateNotImplemented()
+void TsumeshogiGenerator::onUndetermined()
 {
-    if (m_phase == Phase::Idle) return;
-    m_safetyTimer.stop();
-    m_phase = Phase::Idle;
-    cleanup();
-    emit errorOccurred(tr("エンジンが詰み探索に対応していません。"));
-    emit finished();
-}
-
-void TsumeshogiGenerator::onCheckmateUnknown()
-{
-    if (m_phase == Phase::Idle) return;
-    if (consumeStaleResponse()) return;
-    m_safetyTimer.stop();
     // 不明・時間切れは「その駒が必要」という証明ではない。
     if (m_phase == Phase::Trimming) {
         rejectInconclusiveTrim();
@@ -224,36 +219,14 @@ void TsumeshogiGenerator::onCheckmateUnknown()
     advanceAfterFailure();
 }
 
-void TsumeshogiGenerator::onSafetyTimeout()
+void TsumeshogiGenerator::onNoResponse()
 {
+    // stop にも応答しない → エンジンが固まっているとみなして生成を中止する
     if (m_phase == Phase::Idle) return;
-
-    if (m_awaitingStopResponse) {
-        // stop にも応答しない → エンジンが固まっているとみなして生成を中止する
-        m_awaitingStopResponse = false;
-        m_phase = Phase::Idle;
-        cleanup();
-        emit errorOccurred(tr("エンジンが応答しないため生成を中止しました。"));
-        emit finished();
-        return;
-    }
-
-    // エンジン無応答 → 探索を止めて応答を待つ。次の局面は応答を受け取ってから送る。
-    // 先に次を送ると、遅れて届いた前局面の応答を新しい局面の結果として誤採択してしまう
-    m_awaitingStopResponse = true;
-    m_engine->handler()->sendStop();
-    m_safetyTimer.start(kStopResponseTimeoutMs);
-}
-
-bool TsumeshogiGenerator::consumeStaleResponse()
-{
-    // 安全タイマー発火後に届いた応答（stop への応答または遅延した応答）は結果として扱わない
-    if (!m_awaitingStopResponse) return false;
-    m_awaitingStopResponse = false;
-    m_safetyTimer.stop();
-    if (m_phase == Phase::Trimming) rejectInconclusiveTrim();
-    else advanceAfterFailure();
-    return true;
+    m_phase = Phase::Idle;
+    cleanup();
+    emit errorOccurred(tr("エンジンが応答しないため生成を中止しました。"));
+    emit finished();
 }
 
 void TsumeshogiGenerator::advanceAfterFailure()
@@ -329,7 +302,6 @@ void TsumeshogiGenerator::generateAndSendNext()
     sendMateSearch(positionStr, m_settings.timeoutMs);
 
     // 安全タイマーを設定
-    m_safetyTimer.start(m_settings.timeoutMs + kSafetyMarginMs);
 }
 
 void TsumeshogiGenerator::processResult(bool found, const QStringList& pv)
@@ -384,7 +356,6 @@ void TsumeshogiGenerator::cleanup()
     } else {
         m_batchWatcher.setFuture({});
     }
-    m_safetyTimer.stop();
     m_progressTimer.stop();
     m_verificationStepTimer.stop();
     m_verifier.abort();
@@ -407,7 +378,6 @@ void TsumeshogiGenerator::cleanup()
     m_positionQueue.clear();
     m_foundSfens.clear();
     m_waitingForPositions = false;
-    m_awaitingStopResponse = false;
     m_cancelFlag.reset();
 
     // トリミング状態をクリア
@@ -527,7 +497,6 @@ void TsumeshogiGenerator::sendTrimmingCheck(const QString& modifiedSfen)
     QString positionStr = QStringLiteral("position sfen ") + modifiedSfen;
     sendMateSearch(positionStr, m_settings.timeoutMs);
 
-    m_safetyTimer.start(m_settings.timeoutMs + kSafetyMarginMs);
 }
 
 void TsumeshogiGenerator::finishTrimmingPhase()
@@ -674,7 +643,6 @@ void TsumeshogiGenerator::continueVerification()
     emit verificationProgress(++m_verificationQueries);
     QString position = QStringLiteral("position sfen ") + sfen;
     sendMateSearch(position, timeout);
-    m_safetyTimer.start(timeout + 5000);
 }
 
 void TsumeshogiGenerator::finishVerification()

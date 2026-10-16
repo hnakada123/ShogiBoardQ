@@ -49,10 +49,8 @@ private slots:
     void updateSelectionState();
 
     // フォントサイズを増加する
-    void increaseFontSize();
 
     // フォントサイズを減少する
-    void decreaseFontSize();
 
 private:
     std::unique_ptr<Ui::EngineRegistrationDialog> ui;

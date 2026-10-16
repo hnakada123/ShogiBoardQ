@@ -18,6 +18,9 @@ inline QString turnToSfen(Turn t) { return t == Turn::Black ? QStringLiteral("b"
 /// SFEN手番文字列 → Turn
 inline Turn sfenToTurn(const QString& s) { return s == QStringLiteral("b") ? Turn::Black : Turn::White; }
 
+/// 相手の手番
+inline Turn opponent(Turn t) { return t == Turn::Black ? Turn::White : Turn::Black; }
+
 /// ログ出力用（"Black" / "White"）
 inline QDebug operator<<(QDebug debug, Turn t)
 {

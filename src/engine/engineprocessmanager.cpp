@@ -24,11 +24,6 @@ bool EngineProcessManager::isRunning() const
     return m_process && m_process->state() == QProcess::Running;
 }
 
-QProcess::ProcessState EngineProcessManager::state() const
-{
-    return m_process ? m_process->state() : QProcess::NotRunning;
-}
-
 void EngineProcessManager::sendCommand(const QString& command)
 {
     if (!m_process || 
@@ -47,74 +42,6 @@ void EngineProcessManager::sendCommand(const QString& command)
     qCDebug(lcEngine).nospace() << logPrefix() << " 送信: " << command;
 }
 
-void EngineProcessManager::closeWriteChannel()
-{
-    if (m_process) {
-        m_process->closeWriteChannel();
-    }
-}
-
-void EngineProcessManager::pumpPendingOutput()
-{
-    if (!m_process) return;
-
-    int loops = 0;
-    while (m_process && m_process->canReadLine() && loops < 16) {
-        onReadyReadStdout();
-        ++loops;
-    }
-    onReadyReadStderr();
-}
-
-void EngineProcessManager::setShutdownState(ShutdownState state)
-{
-    m_shutdownState = state;
-}
-
-void EngineProcessManager::setPostQuitInfoStringLinesLeft(int count)
-{
-    m_postQuitInfoStringLinesLeft = count;
-}
-
-void EngineProcessManager::decrementPostQuitLines()
-{
-    if (m_postQuitInfoStringLinesLeft > 0) {
-        --m_postQuitInfoStringLinesLeft;
-        if (m_postQuitInfoStringLinesLeft <= 0) {
-            m_shutdownState = ShutdownState::IgnoreAll;
-        }
-    }
-}
-
-void EngineProcessManager::discardStdout()
-{
-    if (m_process) {
-        (void)m_process->readAllStandardOutput();
-    }
-}
-
-void EngineProcessManager::discardStderr()
-{
-    if (m_process) {
-        (void)m_process->readAllStandardError();
-    }
-}
-
-bool EngineProcessManager::canReadLine() const
-{
-    return m_process && m_process->canReadLine();
-}
-
-QByteArray EngineProcessManager::readLine()
-{
-    return m_process ? m_process->readLine() : QByteArray();
-}
-
-QByteArray EngineProcessManager::readAllStderr()
-{
-    return m_process ? m_process->readAllStandardError() : QByteArray();
-}
-
 void EngineProcessManager::setLogIdentity(const QString& engineTag,
                                           const QString& sideTag,
                                           const QString& engineName)
@@ -126,16 +53,10 @@ void EngineProcessManager::setLogIdentity(const QString& engineTag,
 
 QString EngineProcessManager::logPrefix() const
 {
-    QString within = m_logEngineTag.isEmpty() ? "[E?]" : m_logEngineTag;
-    if (!m_logSideTag.isEmpty()) {
-        within.insert(within.size() - 1, "/" + m_logSideTag);
-    }
-
-    QString head = within;
-    if (!m_logEngineName.isEmpty()) {
-        head += " " + m_logEngineName;
-    }
-
+    QString head = QStringLiteral("[") + (m_logEngineTag.isEmpty() ? QStringLiteral("E?") : m_logEngineTag);
+    if (!m_logSideTag.isEmpty()) head += QLatin1Char('/') + m_logSideTag;
+    head += QLatin1Char(']');
+    if (!m_logEngineName.isEmpty()) head += QLatin1Char(' ') + m_logEngineName;
     return head;
 }
 
@@ -143,91 +64,32 @@ void EngineProcessManager::onReadyReadStdout()
 {
     if (!m_process) return;
     QPointer<EngineProcessManager> guard(this);
-
-    m_processedLines = 0;
-
-    while (m_process && m_process->canReadLine() && m_processedLines < kMaxLinesPerChunk) {
-        const QByteArray data = m_process->readLine();
-        QString line = QString::fromUtf8(data).trimmed();
-
-        if (line.isEmpty()) {
-            ++m_processedLines;
-            continue;
-        }
-
-        if (line.startsWith(QStringLiteral("id name "))) {
-            const QString name = line.mid(8).trimmed();
-            if (!name.isEmpty() && m_logEngineName.isEmpty()) {
-                m_logEngineName = name;
-                if (!guard) return;
-            }
-        }
-
-        if (m_shutdownState == ShutdownState::IgnoreAll) {
-            qCDebug(lcEngine).nospace() << logPrefix() << " [drop-ignore-all] " << line;
-            ++m_processedLines;
-            continue;
-        }
-
-        if (m_shutdownState == ShutdownState::IgnoreAllExceptInfoString) {
-            if (line.startsWith(QStringLiteral("info string")) &&
-                m_postQuitInfoStringLinesLeft > 0) {
-                emit dataReceived(line);
-                if (!guard) return;
-                decrementPostQuitLines();
-            } else {
-                qCDebug(lcEngine).nospace() << logPrefix() << " [drop-after-quit] " << line;
-            }
-            ++m_processedLines;
-            continue;
-        }
-
+    int processedLines = 0;
+    while (m_process && m_process->canReadLine() && processedLines < kMaxLinesPerChunk) {
+        const QString line = QString::fromUtf8(m_process->readLine()).trimmed();
+        ++processedLines;
+        if (line.isEmpty()) continue;
+        qCDebug(lcEngine).nospace() << logPrefix() << " 受信: " << line;
         emit dataReceived(line);
         if (!guard) return;
-        qCDebug(lcEngine).nospace() << logPrefix() << " 受信: " << line;
-
-        ++m_processedLines;
     }
-
     scheduleMoreReading();
 }
 
 void EngineProcessManager::onReadyReadStderr()
 {
     if (!m_process) return;
-
-    if (m_shutdownState == ShutdownState::IgnoreAll) {
-        discardStderr();
-        return;
-    }
-
-    const QByteArray data = m_process->readAllStandardError();
-    if (data.isEmpty()) return;
-
-    const QStringList lines = QString::fromUtf8(data).split('\n', Qt::SkipEmptyParts);
-
-    for (const QString& l : std::as_const(lines)) {
+    const QStringList lines = QString::fromUtf8(m_process->readAllStandardError()).split('\n', Qt::SkipEmptyParts);
+    for (const QString& l : lines) {
         const QString line = l.trimmed();
         if (line.isEmpty()) continue;
-
-        if (m_shutdownState == ShutdownState::IgnoreAllExceptInfoString) {
-            if (m_postQuitInfoStringLinesLeft > 0 &&
-                line.startsWith(QStringLiteral("info string"))) {
-                emit stderrReceived(line);
-                decrementPostQuitLines();
-            }
-            continue;
-        }
-
-        emit stderrReceived(line);
         qCDebug(lcEngine).nospace() << logPrefix() << " stderr: " << line;
+        emit stderrReceived(line);
     }
 }
 
 void EngineProcessManager::onProcessError(QProcess::ProcessError error)
 {
-    m_startupErrorReported = true;
-
     QString errorMessage;
 
     switch (error) {
@@ -265,27 +127,18 @@ void EngineProcessManager::onProcessFinished(int exitCode, QProcess::ExitStatus 
 {
     Q_UNUSED(exitCode)
     Q_UNUSED(status)
+    // 手放したプロセスは切り離してあるので、ここに来るのは手放す前に終わったとき
+    QPointer<EngineProcessManager> guard(this);
     if (m_process) {
-        QPointer<EngineProcessManager> guard(this);
-        const QByteArray outTail = m_process->readAllStandardOutput();
-        m_process->readAllStandardError();
-
-        if (!outTail.isEmpty()) {
-            const QStringList lines = QString::fromUtf8(outTail).split('\n', Qt::SkipEmptyParts);
-            for (const QString& line : std::as_const(lines)) {
-                const QString trimmed = line.trimmed();
-                if (!trimmed.isEmpty() &&
-                    m_shutdownState != ShutdownState::IgnoreAll) {
-                    emit dataReceived(trimmed);
-                    if (!guard) return;
-                }
-            }
+        const QStringList lines = QString::fromUtf8(m_process->readAllStandardOutput()).split('\n', Qt::SkipEmptyParts);
+        for (const QString& line : lines) {
+            const QString trimmed = line.trimmed();
+            if (trimmed.isEmpty()) continue;
+            emit dataReceived(trimmed);
+            if (!guard) return;
         }
     }
-
-    const bool unexpected = m_shutdownState == ShutdownState::Running;
-    m_shutdownState = ShutdownState::IgnoreAll;
-    if (unexpected) emit processExited();
+    emit processExited();
 }
 
 void EngineProcessManager::scheduleMoreReading()
@@ -339,8 +192,6 @@ bool EngineProcessManager::startProcessAsync(const QString& engineFile)
     }
     stopProcessAsync();
     m_currentEnginePath = engineFile;
-    m_shutdownState = ShutdownState::Running;
-    m_startupErrorReported = false;
     m_process = std::make_unique<QProcess>();
     m_process->setWorkingDirectory(QFileInfo(engineFile).absolutePath());
     connect(m_process.get(), &QProcess::started, this, &EngineProcessManager::processStarted);
@@ -359,7 +210,5 @@ void EngineProcessManager::stopProcessAsync()
     disconnect(process, nullptr, this, nullptr);
     if (process->state() == QProcess::Running) process->write("quit\n");
     new RetiringEngineProcess(process);
-    m_shutdownState = ShutdownState::IgnoreAll;
-    m_postQuitInfoStringLinesLeft = 0;
     m_currentEnginePath.clear();
 }

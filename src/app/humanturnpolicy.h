@@ -4,10 +4,9 @@
 /// @file humanturnpolicy.h
 /// @brief 盤を人間が操作できるか・対局が進行中かの判定
 
-#include <functional>
-
 class AppActivityState;
-class CsaGameWiring;
+class BranchTreeEditController;
+class CsaGameCoordinator;
 class MatchCoordinator;
 class ShogiGameController;
 
@@ -24,13 +23,13 @@ public:
         const AppActivityState* activity = nullptr;
         const ShogiGameController* gameController = nullptr;
         const MatchCoordinator* match = nullptr;
-        /// 通信対局の配線（司令塔は最初の CSA 対局で作られるので、呼ばれた時点のものを使う）
-        const CsaGameWiring* csaGameWiring = nullptr;
-        /// 対局していないとき、盤上の着手を棋譜の変化として受け付けるか
-        std::function<bool()> canRecordVariationMove;
+        const CsaGameCoordinator* csaGame = nullptr;     ///< 通信対局の司令塔
+        /// 対局していないとき、盤上の着手を棋譜の変化として記録できるか
+        const BranchTreeEditController* branchEdit = nullptr;
     };
 
-    void updateDeps(const Deps& deps);
+    /// 依存が無いものは「操作できない」「対局していない」と答える
+    explicit HumanTurnPolicy(const Deps& deps) : m_deps(deps) {}
 
     /// 盤を人間が操作できる手番か（対局していなければ、変化の入力を受け付けるか）
     bool isHumanTurnNow() const;
@@ -39,7 +38,7 @@ public:
     bool isGameActivelyInProgress() const;
 
 private:
-    Deps m_deps;
+    const Deps m_deps;
 };
 
 #endif // HUMANTURNPOLICY_H

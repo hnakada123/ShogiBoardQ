@@ -40,7 +40,7 @@ class TestLegalMoveHighlights : public QObject
         {
             QList<QPoint> result;
             for (int i = 0; i < view.highlighting()->highlightCount(); ++i) {
-                auto* hl = static_cast<ShogiView::FieldHighlight*>(view.highlight(i));
+                const ShogiView::FieldHighlight* hl = view.highlighting()->highlight(i);
                 if (hl->purpose() == ShogiView::FieldHighlight::Purpose::LegalDestination)
                     result.append(QPoint(hl->file(), hl->rank()));
             }
@@ -202,7 +202,7 @@ private slots:
         if (operation == "applied" || operation == "rejected")
             ui.controller->onMoveApplied(QPoint(7, 7), QPoint(7, 6), operation == "applied");
         else if (operation == "clear") ui.controller->clearAllHighlights();
-        else if (operation == "view-clear") ui.view.removeHighlightAllData();
+        else if (operation == "view-clear") ui.view.highlighting()->removeHighlightAllData();
         else if (operation == "reset") ui.gc.board()->setSfen(SfenUtils::hirateSfen());
         else if (operation == "turn") ui.gc.setCurrentPlayer(Turn::White);
         else if (operation == "disable") ui.controller->setMoveInputEnabled(false);

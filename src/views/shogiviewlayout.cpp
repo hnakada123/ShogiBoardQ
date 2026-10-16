@@ -68,6 +68,17 @@ QRect ShogiViewLayout::calculateSquareRectangleBasedOnBoardState(
     return QRect(xPosition, yPosition, fs.width(), fs.height());
 }
 
+QPoint ShogiViewLayout::squareAt(const QPoint& boardLocal, int boardFiles, int boardRanks) const
+{
+    const QSize fs = m_fieldSize;
+    if (fs.isEmpty() || boardLocal.x() < 0 || boardLocal.y() < 0) return {};
+    const int column = boardLocal.x() / fs.width();
+    const int row = boardLocal.y() / fs.height();
+    if (column >= boardFiles || row >= boardRanks) return {};
+    if (m_flipMode) return {column + 1, boardRanks - row};
+    return {boardFiles - column, row + 1};
+}
+
 QRect ShogiViewLayout::calculateRectangleForRankOrFileLabel(
     int file, int rank, int boardRanks) const
 {
@@ -139,10 +150,10 @@ QRect ShogiViewLayout::pieceBoxSideSelectorRect(const QRect& box)
 
 namespace {
 // 駒台のセル（基準盤マス file=1/2, rank=6..9）に置く先手の駒。
-// 後手の駒台は同じ並びを180度回したもの（file と rank を反転し、小文字にする）。
-constexpr std::array<std::array<char, 4>, 2> kBlackStandPieces{{
-    {'K', 'B', 'S', 'L'},   // file=1（rank=6..9）
-    {'R', 'G', 'N', 'P'},   // file=2（rank=6..9）
+// 後手の駒台は同じ並びを180度回したもの（file と rank を反転し、後手の駒にする）。
+constexpr std::array<std::array<Piece, 4>, 2> kBlackStandPieces{{
+    {Piece::BlackKing, Piece::BlackBishop, Piece::BlackSilver, Piece::BlackLance},  // file=1（rank=6..9）
+    {Piece::BlackRook, Piece::BlackGold, Piece::BlackKnight, Piece::BlackPawn},     // file=2（rank=6..9）
 }};
 } // namespace
 
@@ -155,29 +166,36 @@ QRect ShogiViewLayout::standCellRect(bool black, const QRect& baseField) const
                  baseField.top() + offsetY(), baseField.width(), baseField.height());
 }
 
-QChar ShogiViewLayout::standPieceAt(bool black, int file, int rank)
+Piece ShogiViewLayout::standPieceAt(bool black, int file, int rank)
 {
     if (!black) {
         file = 3 - file;
         rank = 10 - rank;
     }
-    if (file < 1 || file > 2 || rank < 6 || rank > 9) return QLatin1Char(' ');
-    const QChar piece = QLatin1Char(kBlackStandPieces[static_cast<std::size_t>(file - 1)]
-                                                     [static_cast<std::size_t>(rank - 6)]);
-    return black ? piece : piece.toLower();
+    if (file < 1 || file > 2 || rank < 6 || rank > 9) return Piece::None;
+    const Piece piece = kBlackStandPieces[static_cast<std::size_t>(file - 1)]
+                                         [static_cast<std::size_t>(rank - 6)];
+    return black ? piece : toWhite(piece);
 }
 
-QPoint ShogiViewLayout::standBaseCell(bool black, int pseudoRank)
+std::array<QPoint, 8> ShogiViewLayout::standBaseCells(bool black)
 {
-    const int rank = pseudoRank;
-    if (black) {
-        if (rank == 7 || rank == 5 || rank == 3 || rank == 1) return {2, 6 + (7 - rank) / 2};
-        if (rank == 8 || rank == 6 || rank == 4 || rank == 2) return {1, 6 + (8 - rank) / 2};
-    } else {
-        if (rank == 3 || rank == 5 || rank == 7 || rank == 9) return {1, (11 - rank) / 2};
-        if (rank == 2 || rank == 4 || rank == 6 || rank == 8) return {2, (10 - rank) / 2};
+    const int firstRank = black ? 6 : 1;
+    std::array<QPoint, 8> cells;
+    for (std::size_t i = 0; i < cells.size(); ++i)
+        cells[i] = QPoint(int(i % 2) + 1, firstRank + int(i / 2));
+    return cells;
+}
+
+QPoint ShogiViewLayout::standBaseCellOf(Piece piece)
+{
+    const Piece base = demote(piece);
+    if (base == Piece::None) return {};
+    const bool black = isBlackPiece(base);
+    for (const QPoint& cell : standBaseCells(black)) {
+        if (standPieceAt(black, cell.x(), cell.y()) == base) return cell;
     }
-    return {0, 0};
+    return {};
 }
 
 QRect ShogiViewLayout::pieceBoxCellRect(const QRect& box, int rank)

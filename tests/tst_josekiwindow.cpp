@@ -20,7 +20,8 @@
 #include "josekiwindow.h"
 #include "josekibooksession.h"
 #include "josekirepository.h"
-#include "josekipresenter.h"
+#include "josekifilecontroller.h"
+#include "josekitablemodel.h"
 #include "josekimergedialog.h"
 #include "josekimovedialog.h"
 #include "josekimoveinputwidget.h"
@@ -77,6 +78,7 @@ private slots:
     void testDialogCancelPersistsSize();
     void testAddKeepsTargetPosition();
     void testSameSfenKeepsTableRows();
+    void testButtonColumnsActOnRow();
 
 private:
     static QString initialSfen();
@@ -200,7 +202,7 @@ void TestJosekiWindow::testApplyFontSizeToTableHeader()
     JosekiWindow window;
 
     // テーブルを探す
-    QTableWidget *table = window.findChild<QTableWidget *>();
+    QTableView *table = window.findChild<QTableView *>();
     QVERIFY(table != nullptr);
 
     // テーブルヘッダーのフォントサイズが 16 に設定されているか
@@ -222,10 +224,10 @@ void TestJosekiWindow::testFontSizePreservedAfterHideShow()
     QVERIFY(QTest::qWaitForWindowExposed(&window));
 
     // A+ を3回押してフォントサイズを 13 にする
-    // onFontSizeIncrease() を直接呼び出す
-    window.onFontSizeIncrease();
-    window.onFontSizeIncrease();
-    window.onFontSizeIncrease();
+    // A+ と同じ m_fontHelper.increase() を直接呼び出す
+    window.m_fontHelper.increase();
+    window.m_fontHelper.increase();
+    window.m_fontHelper.increase();
 
     // フォントサイズが 13 に変わっているか
     QCOMPARE(window.font().pointSize(), 13);
@@ -234,7 +236,7 @@ void TestJosekiWindow::testFontSizePreservedAfterHideShow()
     QCOMPARE(JosekiSettings::josekiWindowFontSize(), 13);
 
     // テーブルヘッダーのフォントサイズも 13 か
-    QTableWidget *table = window.findChild<QTableWidget *>();
+    QTableView *table = window.findChild<QTableView *>();
     QVERIFY(table != nullptr);
     QCOMPARE(table->horizontalHeader()->font().pointSize(), 13);
 
@@ -259,7 +261,7 @@ void TestJosekiWindow::testFontSizePreservedAfterHideShow()
         QCOMPARE(window2.font().pointSize(), 13);
 
         // テーブルヘッダーのフォントサイズも 13 か
-        QTableWidget *table2 = window2.findChild<QTableWidget *>();
+        QTableView *table2 = window2.findChild<QTableView *>();
         QVERIFY(table2 != nullptr);
         QCOMPARE(table2->horizontalHeader()->font().pointSize(), 13);
     }
@@ -402,11 +404,8 @@ QString TestJosekiWindow::initialSfen()
 bool TestJosekiWindow::seedWindow(JosekiWindow &window, const QString &path)
 {
     window.m_pendingAutoLoadPath.clear();
-    const QString key = JosekiPresenter::normalizeSfen(initialSfen());
-    window.m_session->repository()->addMove(key, {QStringLiteral("7g7f"), QStringLiteral("none"), 10, 32, 1, {}});
-    window.m_session->repository()->ensureSfenWithPly(key, initialSfen());
-    if (!window.saveToFile(path)) return false;
-    window.applySavedFilePath(path);
+    window.m_session->addMove(initialSfen(), {QStringLiteral("7g7f"), QStringLiteral("none"), 10, 32, 1, {}});
+    if (!window.m_session->save(path)) return false;
     window.setCurrentSfen(initialSfen());
     return true;
 }
@@ -441,30 +440,28 @@ void TestJosekiWindow::testBusyBlocksEditsAndMerge()
     window.setKifuDataForMerge({initialSfen()}, {QStringLiteral("2g2f")}, {}, 1);
     auto *merge = window.findChild<JosekiMergeDialog*>();
     QVERIFY(merge);
-    QSignalSpy registrations(&window, &JosekiWindow::mergeRegistrationFinished);
-    window.setModified(true);
-    window.saveToFileAsync(path);
+    window.m_session->setModified(true);
+    window.m_files->saveTo(path);
     QVERIFY(window.isIoBusy());
     window.setCurrentSfen(initialSfen()); // 保存中に局面更新で行が作り直される場合も禁止
-    QVERIFY(!window.m_tableWidget->cellWidget(0, 4)->isEnabled());
-    QVERIFY(!window.m_tableWidget->cellWidget(0, 5)->isEnabled());
+    QVERIFY(!window.m_tableView->isEnabled());
     QVERIFY(!window.m_actionEdit->isEnabled());
     QVERIFY(!window.m_actionDelete->isEnabled());
     QVERIFY(!merge->isEnabled());
-    window.setModified(true);
+    window.m_session->setModified(true);
     QVERIFY(!window.m_saveButton->isEnabled());
     window.editMoveAt(0);
     window.deleteMoveAt(0);
     window.onAddMoveButtonClicked();
-    window.onMergeRegisterMove(JosekiPresenter::normalizeSfen(initialSfen()), initialSfen(), QStringLiteral("2g2f"));
-    QCOMPARE(registrations.count(), 0);
+    QVERIFY(!window.registerMergeEntries({KifuMergeEntry{1, initialSfen(), QStringLiteral("2g2f"), {}, false}}));
+    QVERIFY(!window.m_session->hasMove(initialSfen(), QStringLiteral("2g2f")));
     QTRY_VERIFY(!window.isIoBusy());
-    QVERIFY(window.m_tableWidget->isEnabled());
+    QVERIFY(window.m_tableView->isEnabled());
     QVERIFY(merge->isEnabled());
     QVERIFY(!window.m_session->isModified());
     const auto saved = JosekiRepository::parseFromFile(path);
     QVERIFY(saved.success);
-    const auto moves = saved.josekiData.value(JosekiPresenter::normalizeSfen(initialSfen()));
+    const auto moves = saved.josekiData.value(JosekiBookSession::positionKey(initialSfen()));
     QCOMPARE(moves.size(), 1);
     QCOMPARE(moves.first().value, 10);
 }
@@ -484,22 +481,23 @@ void TestJosekiWindow::testFileSwitchClosesMerge()
     const QString path = m_tempDir.filePath(QStringLiteral("source.db"));
     const QString target = m_tempDir.filePath(QStringLiteral("target.db"));
     QVERIFY(seedWindow(window, path));
-    QVERIFY(window.m_session->repository()->saveToFile(target));
+    QFile::remove(target);
+    QVERIFY(QFile::copy(path, target));
     window.setKifuDataForMerge({initialSfen()}, {QStringLiteral("2g2f")}, {}, 1);
     QPointer<JosekiMergeDialog> merge = window.findChild<JosekiMergeDialog*>();
     QVERIFY(merge && merge->isVisible());
-    if (operation == QStringLiteral("new")) window.onNewButtonClicked();
-    else if (operation == QStringLiteral("load")) window.loadAndApplyFileAsync(target);
-    else window.saveToFileAsync(target);
+    if (operation == QStringLiteral("new")) window.m_files->newBook();
+    else if (operation == QStringLiteral("load")) window.m_files->openFile(target);
+    else window.m_files->saveTo(target);
     QVERIFY(!merge || !merge->isVisible());
     if (merge) {
         // 遅延破棄待ちの古いダイアログからも登録できないこと
-        merge->registerMove(JosekiPresenter::normalizeSfen(initialSfen()), initialSfen(), QStringLiteral("2g2f"));
+        QMetaObject::invokeMethod(merge, "onRegisterButtonClicked", Qt::DirectConnection, Q_ARG(int, 0));
     }
     QTRY_VERIFY(!window.isIoBusy());
     const auto saved = JosekiRepository::parseFromFile(target);
     QVERIFY(saved.success);
-    QCOMPARE(saved.josekiData.value(JosekiPresenter::normalizeSfen(initialSfen())).size(), 1);
+    QCOMPARE(saved.josekiData.value(JosekiBookSession::positionKey(initialSfen())).size(), 1);
 }
 
 void TestJosekiWindow::testMergeSaveFailureAndRetry()
@@ -511,30 +509,26 @@ void TestJosekiWindow::testMergeSaveFailureAndRetry()
     QVERIFY(seedWindow(window, path));
     QVERIFY(QFile::remove(path));
     QVERIFY(QDir().rmdir(directory));
-    window.setModified(true);
+    window.m_session->setModified(true);
     window.setKifuDataForMerge({initialSfen()}, {QStringLiteral("7g7f")}, {}, 1);
     auto *merge = window.findChild<JosekiMergeDialog*>();
     auto *table = merge->findChild<QTableWidget*>();
-    QSignalSpy results(&window, &JosekiWindow::mergeRegistrationFinished);
     m_messageSeen = false;
     m_responseRole = QMessageBox::AcceptRole;
     QTimer::singleShot(0, this, &TestJosekiWindow::respondToMessageBox);
     qobject_cast<QPushButton*>(table->cellWidget(0, 2))->click();
     QVERIFY(m_messageSeen);
-    QCOMPARE(results.count(), 1);
-    QCOMPARE(results.last().last().toBool(), false);
     QVERIFY(table->item(0, 3)->text().isEmpty());
     QVERIFY(table->cellWidget(0, 2)->isEnabled());
     QVERIFY(window.m_session->isModified());
-    QCOMPARE(window.m_currentMoves.first().frequency, 1);
+    QCOMPARE(window.m_model->moves().first().frequency, 1);
     QVERIFY(QDir().mkpath(directory));
     qobject_cast<QPushButton*>(table->cellWidget(0, 2))->click();
-    QCOMPARE(results.last().last().toBool(), true);
     QVERIFY(!table->cellWidget(0, 2)->isEnabled());
     QVERIFY(!window.m_session->isModified());
     const auto saved = JosekiRepository::parseFromFile(path);
     QVERIFY(saved.success);
-    QCOMPARE(saved.josekiData.value(JosekiPresenter::normalizeSfen(initialSfen())).first().frequency, 2);
+    QCOMPARE(saved.josekiData.value(JosekiBookSession::positionKey(initialSfen())).first().frequency, 2);
 }
 
 void TestJosekiWindow::testMergeRegisterAllSkipsRegistered()
@@ -545,16 +539,15 @@ void TestJosekiWindow::testMergeRegisterAllSkipsRegistered()
                               {QStringLiteral("7g7f"), QStringLiteral("2g2f"), QStringLiteral("7g7f")}, {}, 1);
     auto *merge = window.findChild<JosekiMergeDialog*>();
     auto *table = merge->findChild<QTableWidget*>();
-    QSignalSpy results(&window, &JosekiWindow::mergeRegistrationFinished);
     qobject_cast<QPushButton*>(table->cellWidget(0, 2))->click();
     QVERIFY(!table->cellWidget(2, 2)->isEnabled());
     QTimer::singleShot(0, this, &TestJosekiWindow::respondToMessageBox);
     QVERIFY(QMetaObject::invokeMethod(merge, "onRegisterAllButtonClicked", Qt::DirectConnection));
     QVERIFY(QMetaObject::invokeMethod(merge, "onRegisterAllButtonClicked", Qt::DirectConnection));
-    QCOMPARE(results.count(), 2);
-    QCOMPARE(window.m_currentMoves.size(), 2);
-    QCOMPARE(window.m_currentMoves.first().frequency, 2);
-    QCOMPARE(window.m_currentMoves.last().frequency, 1);
+    QVERIFY(!table->cellWidget(1, 2)->isEnabled());
+    QCOMPARE(window.m_model->moves().size(), 2);
+    QCOMPARE(window.m_model->moves().first().frequency, 2);
+    QCOMPARE(window.m_model->moves().last().frequency, 1);
 }
 
 /// 「全て登録」はまとめて保存する。保存に失敗したら1手も登録せず、再試行で全て登録できる
@@ -571,27 +564,23 @@ void TestJosekiWindow::testMergeRegisterAllSavesAtOnce()
                               {QStringLiteral("7g7f"), QStringLiteral("2g2f")}, {}, 1);
     auto *merge = window.findChild<JosekiMergeDialog*>();
     auto *table = merge->findChild<QTableWidget*>();
-    QSignalSpy results(&window, &JosekiWindow::mergeRegistrationFinished);
 
     m_messageSeen = false;
     m_responseRole = QMessageBox::AcceptRole;
     QTimer::singleShot(0, this, &TestJosekiWindow::respondToMessageBox);
     QVERIFY(QMetaObject::invokeMethod(merge, "onRegisterAllButtonClicked", Qt::DirectConnection));
     QVERIFY(m_messageSeen);
-    QCOMPARE(results.count(), 1);
-    QCOMPARE(results.last().last().toBool(), false);
     QVERIFY(table->cellWidget(0, 2)->isEnabled());
     QVERIFY(table->cellWidget(1, 2)->isEnabled());
 
     QVERIFY(QDir().mkpath(directory));
     QTimer::singleShot(0, this, &TestJosekiWindow::respondToMessageBox);
     QVERIFY(QMetaObject::invokeMethod(merge, "onRegisterAllButtonClicked", Qt::DirectConnection));
-    QCOMPARE(results.count(), 3);
     QVERIFY(!table->cellWidget(0, 2)->isEnabled());
     QVERIFY(!table->cellWidget(1, 2)->isEnabled());
     const auto saved = JosekiRepository::parseFromFile(path);
     QVERIFY(saved.success);
-    const auto moves = saved.josekiData.value(JosekiPresenter::normalizeSfen(initialSfen()));
+    const auto moves = saved.josekiData.value(JosekiBookSession::positionKey(initialSfen()));
     QCOMPARE(moves.size(), 2);
     QCOMPARE(moves.first().frequency, 2);
 }
@@ -647,12 +636,12 @@ void TestJosekiWindow::testHistoryKeepsOnlyLoadedFiles()
     QTimer responder;
     connect(&responder, &QTimer::timeout, this, &TestJosekiWindow::respondToMessageBox);
     responder.start(20);
-    window.loadAndApplyFileAsync(broken);
+    window.m_files->openFile(broken);
     QTRY_VERIFY(!window.isIoBusy() && m_messageSeen);
     responder.stop();
     QVERIFY(!window.m_session->recentFiles().contains(broken));
 
-    window.loadAndApplyFileAsync(book);
+    window.m_files->openFile(book);
     QTRY_VERIFY(!window.isIoBusy());
     QCOMPARE(window.m_session->recentFiles().value(0), book);
 }
@@ -664,11 +653,11 @@ void TestJosekiWindow::testClearHistoryStopsAutoLoad()
     const QString book = m_tempDir.filePath(QStringLiteral("clear.db"));
     QVERIFY(seedWindow(window, book));
     QCOMPARE(JosekiSettings::josekiWindowLastFilePath(), book);
-    window.onClearRecentFilesClicked();
+    window.m_files->clearRecentFiles();
     QVERIFY(JosekiSettings::josekiWindowLastFilePath().isEmpty());
     window.saveSettings();  // ウィンドウを閉じるときの保存でも戻らない
     QVERIFY(JosekiSettings::josekiWindowLastFilePath().isEmpty());
-    window.applySavedFilePath(book);
+    QVERIFY(window.m_session->save(book));
     QCOMPARE(JosekiSettings::josekiWindowLastFilePath(), book);
 }
 
@@ -676,13 +665,13 @@ void TestJosekiWindow::testDirtyStatusSurvivesRefresh()
 {
     JosekiWindow window;
     QVERIFY(seedWindow(window, m_tempDir.filePath(QStringLiteral("dirty.db"))));
-    window.setModified(true);
+    window.m_session->setModified(true);
     window.updateJosekiDisplay();
     QCOMPARE(window.m_fileStatusLabel->text(), QStringLiteral("未保存"));
-    window.m_session->repository()->clear();
+    QVERIFY(window.m_session->removeMove(initialSfen(), QStringLiteral("7g7f")));
     window.updateJosekiDisplay();
     QCOMPARE(window.m_fileStatusLabel->text(), QStringLiteral("未保存"));
-    window.setModified(false);
+    window.m_session->setModified(false);
     QVERIFY(window.m_fileStatusLabel->text().isEmpty());
 }
 
@@ -704,8 +693,8 @@ void TestJosekiWindow::testConfirmClose()
     JosekiWindow window;
     const QString path = m_tempDir.filePath(QStringLiteral("close.db"));
     QVERIFY(seedWindow(window, path));
-    const QString key = JosekiPresenter::normalizeSfen(initialSfen());
-    window.m_presenter->editMove(key, QStringLiteral("7g7f"), 99, 32, 1, {});
+    const QString key = JosekiBookSession::positionKey(initialSfen());
+    QVERIFY(window.m_session->updateMove(initialSfen(), {QStringLiteral("7g7f"), QStringLiteral("none"), 99, 32, 1, {}}));
     m_responseRole = static_cast<QMessageBox::ButtonRole>(role);
     m_messageSeen = false;
     QTimer::singleShot(0, this, &TestJosekiWindow::respondToMessageBox);
@@ -721,8 +710,7 @@ void TestJosekiWindow::testConfirmCloseSavesNewFile()
 {
     QCoreApplication::setAttribute(Qt::AA_DontUseNativeDialogs);
     JosekiWindow window;
-    window.m_presenter->addMove(JosekiPresenter::normalizeSfen(initialSfen()), initialSfen(),
-                                {QStringLiteral("7g7f"), QStringLiteral("none"), 10, 32, 1, {}});
+    window.m_session->addMove(initialSfen(), {QStringLiteral("7g7f"), QStringLiteral("none"), 10, 32, 1, {}});
     QVERIFY(window.m_saveButton->isEnabled());
     m_newSavePath = m_tempDir.filePath(QStringLiteral("close-new.db"));
     m_responseRole = QMessageBox::AcceptRole;
@@ -739,7 +727,7 @@ void TestJosekiWindow::testConfirmCloseWhileSaving()
     JosekiWindow window;
     const QString path = m_tempDir.filePath(QStringLiteral("close-busy.db"));
     QVERIFY(seedWindow(window, path));
-    window.saveToFileAsync(path);
+    window.m_files->saveTo(path);
     m_messageSeen = false;
     m_responseRole = QMessageBox::AcceptRole;
     QTimer::singleShot(0, this, &TestJosekiWindow::respondToMessageBox);
@@ -841,16 +829,16 @@ void TestJosekiWindow::testEditReplyAndLargeFrequency()
     JosekiWindow window;
     const QString path = m_tempDir.filePath(QStringLiteral("edit-reply.db"));
     QVERIFY(seedWindow(window, path));
-    const QString key = JosekiPresenter::normalizeSfen(initialSfen());
-    window.m_presenter->editMove(key, QStringLiteral("7g7f"), 10, 32, 2000000, {}, QStringLiteral("8c8d"));
+    const QString key = JosekiBookSession::positionKey(initialSfen());
+    QVERIFY(window.m_session->updateMove(initialSfen(), {QStringLiteral("7g7f"), QStringLiteral("8c8d"), 10, 32, 2000000, {}}));
     window.updateJosekiDisplay();
     window.show();
     QVERIFY(QTest::qWaitForWindowExposed(&window));
     QTimer::singleShot(0, this, &TestJosekiWindow::acceptMoveEdit);
     window.editMoveAt(0);
-    QCOMPARE(window.m_currentMoves.first().nextMove, QStringLiteral("3c3d"));
-    QCOMPARE(window.m_currentMoves.first().frequency, 2000000);
-    QVERIFY(window.saveToFile(path));
+    QCOMPARE(window.m_model->moves().first().nextMove, QStringLiteral("3c3d"));
+    QCOMPARE(window.m_model->moves().first().frequency, 2000000);
+    QVERIFY(window.m_session->save(path));
     const auto saved = JosekiRepository::parseFromFile(path);
     QVERIFY(saved.success);
     QCOMPARE(saved.josekiData.value(key).first().nextMove, QStringLiteral("3c3d"));
@@ -865,13 +853,13 @@ void TestJosekiWindow::testColumnWidthsSurviveRefresh()
         QVERIFY(seedWindow(window, m_tempDir.filePath(QStringLiteral("widths.db"))));
         window.show();
         QVERIFY(QTest::qWaitForWindowExposed(&window));
-        window.m_tableWidget->setColumnWidth(2, 280);
-        window.m_tableWidget->setColumnWidth(3, 270);
+        window.m_tableView->setColumnWidth(2, 280);
+        window.m_tableView->setColumnWidth(3, 270);
         window.setCurrentSfen(initialSfen());
-        QCOMPARE(window.m_tableWidget->columnWidth(2), 280);
+        QCOMPARE(window.m_tableView->columnWidth(2), 280);
         window.hide();
         window.show();
-        QCOMPARE(window.m_tableWidget->columnWidth(3), 270);
+        QCOMPARE(window.m_tableView->columnWidth(3), 270);
         window.saveSettings();
         const QString shots = qEnvironmentVariable("JOSEKI_SCREENSHOT_DIR");
         if (!shots.isEmpty()) {
@@ -883,8 +871,8 @@ void TestJosekiWindow::testColumnWidthsSurviveRefresh()
     JosekiWindow restored;
     restored.show();
     QVERIFY(QTest::qWaitForWindowExposed(&restored));
-    QCOMPARE(restored.m_tableWidget->columnWidth(2), 280);
-    QCOMPARE(restored.m_tableWidget->columnWidth(3), 270);
+    QCOMPARE(restored.m_tableView->columnWidth(2), 280);
+    QCOMPARE(restored.m_tableView->columnWidth(3), 270);
 }
 
 void TestJosekiWindow::testEmptyAndStoppedDisplay()
@@ -896,7 +884,7 @@ void TestJosekiWindow::testEmptyAndStoppedDisplay()
     QVERIFY(window.m_emptyGuideLabel->isVisible());
     window.resize(1100, 700);
     QCoreApplication::processEvents();
-    QVERIFY(window.m_tableWidget->viewport()->rect().contains(window.m_emptyGuideLabel->geometry()));
+    QVERIFY(window.m_tableView->viewport()->rect().contains(window.m_emptyGuideLabel->geometry()));
     window.m_stopButton->setChecked(true);
     window.onStopButtonClicked();
     QVERIFY(window.m_stopButton->isVisible()); // 空の定跡でも再開できる
@@ -938,53 +926,78 @@ void TestJosekiWindow::testAddKeepsTargetPosition()
     window.setCurrentSfen(initialSfen());
     QTimer::singleShot(0, this, &TestJosekiWindow::acceptMoveAfterPositionChange);
     window.onAddMoveButtonClicked();
-    const auto moves = window.m_session->repository()->movesForPosition(JosekiPresenter::normalizeSfen(initialSfen()));
+    const auto moves = window.m_session->movesAt(initialSfen());
     QCOMPARE(moves.size(), 1);
     QCOMPARE(moves.first().move, QStringLiteral("7g7f"));
-    QVERIFY(!window.m_session->repository()->containsPosition(JosekiPresenter::normalizeSfen(window.m_currentSfen)));
+    QVERIFY(!window.m_session->hasPosition(window.m_currentSfen));
 }
 
-/// 同じ局面が続けて設定されたときは表の行（ボタン）を作り直さない。人間が指せるかが
-/// 変わったとき・定跡データを変えたとき・局面が変わったときは行を入れ替える
+/// 同じ局面が続けて設定されたときは表を更新しない。人間が指せるかが変わったとき・定跡データを
+/// 変えたとき・局面が変わったときは中身を入れ替える（行の増減は挿入・削除で知らせ、列幅を保つ）
 void TestJosekiWindow::testSameSfenKeepsTableRows()
 {
     JosekiSettings::josekiWindowAutoLoadEnabled.set(false);
     JosekiWindow window;
     QVERIFY(seedWindow(window, m_tempDir.filePath(QStringLiteral("same.db"))));
-    QTableWidget *table = window.m_tableWidget;
-    QCOMPARE(table->rowCount(), 1);
-    QWidget *editButton = table->cellWidget(0, 4);
-    QWidget *deleteButton = table->cellWidget(0, 5);
-    QVERIFY(editButton && deleteButton && table->cellWidget(0, 1));
+    JosekiTableModel *model = window.m_model;
+    QCOMPARE(model->rowCount(), 1);
+    const auto cell = [model](int row, int column) { return model->index(row, column).data().toString(); };
+    QCOMPARE(cell(0, JosekiTableModel::Play), QStringLiteral("着手"));
+    QCOMPARE(cell(0, JosekiTableModel::Edit), QStringLiteral("編集"));
 
-    // 同じ局面: 行もボタンもそのまま
+    // 同じ局面: 表は変えない
+    QSignalSpy changed(model, &QAbstractItemModel::dataChanged);
+    QSignalSpy reset(model, &QAbstractItemModel::modelReset);
     window.setCurrentSfen(initialSfen());
-    QCOMPARE(table->cellWidget(0, 4), editButton);
-    QCOMPARE(table->cellWidget(0, 5), deleteButton);
+    QCOMPARE(changed.count(), 0);
 
-    // 人間が指せなくなると「着手」の列だけ消え、ほかのボタンは使い回す
+    // 人間が指せなくなると「着手」の列だけ空になる
     window.setHumanCanPlayProvider([] { return false; });
     window.setCurrentSfen(initialSfen());
-    QVERIFY(!table->cellWidget(0, 1));
-    QCOMPARE(table->cellWidget(0, 4), editButton);
+    QVERIFY(cell(0, JosekiTableModel::Play).isEmpty());
+    QCOMPARE(cell(0, JosekiTableModel::Edit), QStringLiteral("編集"));
     window.setHumanCanPlayProvider([] { return true; });
     window.setCurrentSfen(initialSfen());
-    QVERIFY(table->cellWidget(0, 1));
+    QCOMPARE(cell(0, JosekiTableModel::Play), QStringLiteral("着手"));
 
-    // 定跡手を足すと行が増え、ボタンの行番号も合う
-    window.m_presenter->addMove(JosekiPresenter::normalizeSfen(initialSfen()), initialSfen(),
-                                {QStringLiteral("2g2f"), QStringLiteral("none"), 5, 20, 1, {}});
+    // 定跡手を足すと行が増える
+    QSignalSpy inserted(model, &QAbstractItemModel::rowsInserted);
+    window.m_session->addMove(initialSfen(), {QStringLiteral("2g2f"), QStringLiteral("none"), 5, 20, 1, {}});
     window.updateJosekiDisplay();
-    QCOMPARE(table->rowCount(), 2);
-    QCOMPARE(table->cellWidget(1, 4)->property("row").toInt(), 1);
-    QCOMPARE(window.m_currentMoves.size(), 2);
+    QCOMPARE(model->rowCount(), 2);
+    QCOMPARE(inserted.count(), 1);
+    QCOMPARE(window.m_model->moves().size(), 2);
 
-    // 定跡に無い局面では行が消え、戻すと作り直される
+    // 定跡に無い局面では行が消え、戻すと戻る
     window.setCurrentSfen(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"));
-    QCOMPARE(table->rowCount(), 0);
+    QCOMPARE(model->rowCount(), 0);
     window.setCurrentSfen(initialSfen());
-    QCOMPARE(table->rowCount(), 2);
-    QVERIFY(table->cellWidget(0, 1) && table->cellWidget(0, 4) && table->cellWidget(0, 5));
+    QCOMPARE(model->rowCount(), 2);
+    QCOMPARE(reset.count(), 0);
+}
+
+/// 「着手」「編集」「削除」の列を押すと、その行の定跡手を指す・編集する・消す
+void TestJosekiWindow::testButtonColumnsActOnRow()
+{
+    JosekiSettings::josekiWindowAutoLoadEnabled.set(false);
+    JosekiWindow window;
+    QVERIFY(seedWindow(window, m_tempDir.filePath(QStringLiteral("buttons.db"))));
+    QSignalSpy selected(&window, &JosekiWindow::josekiMoveSelected);
+    window.onTableClicked(window.m_model->index(0, JosekiTableModel::Play));
+    QCOMPARE(selected.count(), 1);
+    QCOMPARE(selected.first().first().toString(), QStringLiteral("7g7f"));
+    // 人間が指せないときは「着手」を押しても指さない
+    window.setHumanCanPlayProvider([] { return false; });
+    window.updateJosekiDisplay();
+    window.onTableClicked(window.m_model->index(0, JosekiTableModel::Play));
+    QCOMPARE(selected.count(), 1);
+
+    m_responseRole = QMessageBox::YesRole;
+    QTimer::singleShot(0, this, &TestJosekiWindow::respondToMessageBox);
+    window.onTableClicked(window.m_model->index(0, JosekiTableModel::Delete));
+    m_responseRole = QMessageBox::AcceptRole;
+    QCOMPARE(window.m_model->rowCount(), 0);
+    QVERIFY(window.m_session->isModified());
 }
 
 QTEST_MAIN(TestJosekiWindow)

@@ -2,50 +2,38 @@
 #define GAMESESSION_H
 
 /// @file gamesession.h
-/// @brief 対局の流れ（開始・着手の記録・終局・待った・中断と再開・連続対局）の UI 側の受け持ち
+/// @brief 対局の利用者の操作（開始・投了・中断・再開・待った・新規）と、対局の棋譜の受け手
 
 #include <QObject>
 #include <QString>
 
-#include "gamestartcoordinator.h"
-#include "mainwindowresetservice.h"
+#include "gamestartoptionsbuilder.h"
 #include "matchcoordinator.h"
 #include "matchrecordsink.h"
 
 struct AppState;
 class AnalysisSession;
-class BoardInteractionController;
-class BoardSyncPresenter;
-class ConsecutiveGamesController;
-class CsaGameWiring;
-class DialogCoordinator;
-class EvaluationGraphController;
+class ConsecutiveGameSeries;
+class CsaGameCoordinator;
 class GameRecordModel;
-class JosekiWindowController;
-class KifuBranchTree;
 class KifuFileController;
-class KifuNavigationCoordinator;
 class KifuNavigationState;
-class KifuRecordListModel;
 class LiveGameSession;
+class MainWindowAppearanceController;
+class MatchTimeRecord;
 class PlayerInfoPresenter;
-class PreStartCleanupHandler;
-class RecordPane;
-class ReplayController;
-class ShogiGameController;
+class SessionResetCoordinator;
+class ShogiClock;
 class ShogiView;
-class TimeControlController;
-class TurnStateSyncService;
+class TimeDisplayPresenter;
 class UiStatePolicyManager;
 
 /**
- * @brief 対局の流れの UI 側の受け持ち
+ * @brief 対局の利用者の操作を受け、対局の司令塔（MatchCoordinator）・通信対局へ頼む
  *
- * 利用者の操作（対局開始・投了・中断・再開・すぐ指させる・待った）を受け、司令塔（MatchCoordinator）や
- * 通信対局（CsaGameCoordinator）に頼む。司令塔の知らせ（開始・終局・中断・待った）を受けて、
- * 棋譜欄・分岐ツリー・時計・盤の表示・メニューの状態を合わせる。
- *
- * 対局の棋譜の受け手（MatchRecordSink）でもある。確定した行はライブ対局のセッション（分岐ツリー）に追記する。
+ * 対局の開始はここで1つの関数として順に行う（棋譜を整える → 時計 → 対局者の表示 → 対局 → 初手）。
+ * 対局の棋譜の受け手（MatchRecordSink）でもあり、確定した行はライブ対局（分岐ツリー）に書く。
+ * 盤・棋譜欄・手番の表示は、ツリーと表示中の手が変わると各部品が自分で合わせる。
  */
 class GameSession : public QObject, public MatchRecordSink
 {
@@ -53,42 +41,26 @@ class GameSession : public QObject, public MatchRecordSink
 
 public:
     struct Deps {
-        AppState* state = nullptr;
-        MatchCoordinator* match = nullptr;
-        GameStartCoordinator* gameStart = nullptr;
-        CsaGameWiring* csa = nullptr;                     ///< 通信対局の司令塔は最初の CSA 対局で作られる
-        AnalysisSession* analysis = nullptr;              ///< 検討・詰み探索（対局を始める前に止める）
-        ConsecutiveGamesController* consecutive = nullptr;
-        PreStartCleanupHandler* preStartCleanup = nullptr;
-
-        ShogiGameController* gameController = nullptr;
-        ShogiView* shogiView = nullptr;
-        BoardInteractionController* boardController = nullptr;
-        BoardSyncPresenter* boardSync = nullptr;
-        TurnStateSyncService* turnSync = nullptr;
-        TimeControlController* timeController = nullptr;
-        ReplayController* replayController = nullptr;
-        UiStatePolicyManager* uiStatePolicy = nullptr;
-        PlayerInfoPresenter* playerInfo = nullptr;
-        JosekiWindowController* josekiController = nullptr;
-        DialogCoordinator* dialogCoordinator = nullptr;
-        KifuFileController* kifuFileController = nullptr;
-
-        KifuBranchTree* branchTree = nullptr;
-        KifuNavigationState* navState = nullptr;
-        KifuNavigationCoordinator* kifuNav = nullptr;
-        LiveGameSession* liveSession = nullptr;
-        GameRecordModel* gameRecord = nullptr;
-        KifuRecordListModel* kifuRecordModel = nullptr;
-        RecordPane* recordPane = nullptr;
-        EvaluationGraphController* evalGraph = nullptr;
-
-        MainWindowResetService::SessionUiDeps sessionUi;   ///< 対局ごとに消すログ・思考表示
-        MainWindowResetService::ModelResetDeps models;     ///< 「新規」で作り直す棋譜まわり
+        AppState* state = nullptr;                          ///< 対局者・上書き保存先・動作状態
+        MatchCoordinator* match = nullptr;                  ///< ローカル対局の司令塔
+        AnalysisSession* analysis = nullptr;                ///< 検討・詰み探索（「新規」で止める）
+        ConsecutiveGameSeries* consecutive = nullptr;  ///< 連続対局
+        SessionResetCoordinator* reset = nullptr;           ///< 棋譜と表示の作り直し
+        KifuNavigationState* navState = nullptr;            ///< 表示中の手（現在局面からの開始・再開）
+        LiveGameSession* liveSession = nullptr;             ///< 対局の手順の書き先
+        GameRecordModel* gameRecord = nullptr;              ///< 未保存の印
+        ShogiClock* clock = nullptr;                        ///< 対局の時計
+        MatchTimeRecord* timeRecord = nullptr;              ///< 持ち時間と開始・終了の日時
+        TimeDisplayPresenter* timePresenter = nullptr;      ///< 時計の表示
+        PlayerInfoPresenter* playerInfo = nullptr;          ///< 対局者・対局情報の表示
+        UiStatePolicyManager* uiStatePolicy = nullptr;      ///< 「再開」を出すか
+        KifuFileController* kifuFileController = nullptr;   ///< 未保存の棋譜の確認
+        ShogiView* shogiView = nullptr;                     ///< 手前に表示している側
+        MainWindowAppearanceController* appearance = nullptr; ///< 「人を手前に表示する」の盤の反転
+        CsaGameCoordinator* csaGame = nullptr;              ///< 通信対局中の投了・中断・即指しの送り先（必須）
     };
 
-    explicit GameSession(QObject* parent = nullptr);
-    void setDeps(const Deps& deps);
+    explicit GameSession(const Deps& deps, QObject* parent = nullptr);
 
     // --- MatchRecordSink（対局・通信対局の棋譜の行） ---
     bool canAppendRecord() const override;
@@ -96,17 +68,10 @@ public:
     bool canUndoRecords(int count) const override;
     void undoRecords(int count) override;
 
-    // --- リセット ---
-
-    /// 「新規」: 対局・検討・通信対局を止め、平手の開始局面にする
-    void resetToInitialState();
-    /// 棋譜を読み込む前に、前の対局のログ・グラフ・コメントを消す
-    void clearUiBeforeKifuLoad();
-    /// 棋譜まわり（分岐ツリー・対局情報・終了時刻）を開始局面 sfen で作り直す
-    void resetModels(const QString& sfen);
+    /// 計画どおりに対局を始める。beginSeries なら連続対局の1局目として局数を数え始める
+    bool startGame(const GameStartPlan& plan, bool beginSeries);
 
     // --- 通信対局 ---
-
     /// 通信対局の棋譜を、サーバーの開始局面と対局者名で作り直してライブ記録を始める
     void beginCsaGameRecord(const QString& startSfen, const QString& blackName, const QString& whiteName);
     /// 終局時刻を記録して対局情報に反映する
@@ -123,38 +88,25 @@ public slots:
     void makeEngineMoveNow();
     void undoTwoMoves();
     void resumeInterruptedGame();
+    /// 「新規」: 対局・検討・通信対局を止め、平手の開始局面だけの棋譜にする（未保存の確認は呼び出し側）
+    void resetToInitialState();
     /// 中断した対局を再開できなくする（棋譜を変えたとき・別の対局を始めたとき）
     void discardInterruptedGame();
-    /// 評価値グラフを消す（局面編集を始めたとき）
-    void clearEvalState();
-
-    // --- 対局の開始（GameStartCoordinator から） ---
-    void prepareStart(const GameStartPreparation& preparation);
-    void applyTimeControl(const GameStartCoordinator::TimeSettings& tc);
-    void onGameStarted(const MatchStartOptions& opt);
 
     // --- 司令塔から ---
-    /// 対局を準備した（盤は開始局面）。盤を描き直し、対局者名・エンジン名の表示をモードに合わせる
-    void onGamePrepared(const MatchStartOptions& opt);
-    /// 盤を描き直す（着手・待った）
-    void renderBoard();
-    void onGameOverStateChanged(const MatchCoordinator::GameOverState& st);
     void onGameEnded(const MatchCoordinator::GameEndInfo& info);
     void onGameEndProcessed(const MatchCoordinator::GameEndInfo& info);
     void onGameInterrupted();
-    void onMovesUndone(int ply);
-
-    // --- 連続対局 ---
-    void startNextGame(const GameStartCoordinator::StartParams& params);
+    /// 連続対局の次局
+    void startNextGame(const GameStartPlan& plan);
 
 private:
     bool isCsaGameActive() const;
-    void stopEnginesAndNetwork();
-    void resetGameState();
-    void resetUiState(const QString& sfen);
+    QString recordStartSfen() const;
 
     Deps m_deps;
     int m_interruptedNodeId = -1;
+
 };
 
 #endif // GAMESESSION_H

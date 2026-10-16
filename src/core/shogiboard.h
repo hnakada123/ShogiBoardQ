@@ -162,6 +162,9 @@ signals:
     /// 局面を丸ごと替える setSfen は、この通知ではなく boardReset で知らせる
     void standChanged(Piece piece);
 
+    /// 手番が変わった（指した・手番だけを変えた。局面を丸ごと替えたときは boardReset で知らせる）
+    void turnChanged(Turn turn);
+
 private:
     int m_ranks;                    ///< 盤の段数（9）
     int m_files;                    ///< 盤の筋数（9）

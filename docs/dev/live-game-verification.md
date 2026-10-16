@@ -27,7 +27,7 @@
 
 - Release ビルドでは `QT_NO_DEBUG_OUTPUT` により `qCDebug()` がコンパイル時に除去され、メッセージハンドラも空になる。
   ログを見るには **Debug ビルドが必須**。
-- Debug ビルドは起動時のカレントディレクトリに `debug.log` を**追記**する（`src/app/main.cpp`、`.gitignore` 済み）。
+- Debug ビルドは起動時のカレントディレクトリに `debug.log` を**追記**する（`src/app/applicationlogging.cpp`。`main.cpp` で生成。`.gitignore` 済み）。
   `QT_LOGGING_RULES` は不要（既定で全カテゴリの debug が有効）。
 - 通常の `build/`（Release）とは別に `build-debug/` を作る。テストは不要なので `BUILD_TESTING=OFF` で約3分。
 
@@ -189,28 +189,25 @@ resign
 
 | 文字列 | 出所 | 意味・期待値の例 |
 |---|---|---|
+| `[Match] Start HvE` | HumanVsEngineStrategy | 人間対エンジンの対局の開始（エンジンの側は `engineSide=`） |
 | `appendRecord: text=` | GameSession | 記録された手。人間手＋応手＋投了の数と一致すること |
-| `addMove: added to tree` / `addMove: reused existing node` | LiveGameSession | ツリーへの追加／指し直しによる再利用 |
-| `startFromNode ENTER branchPoint=` | LiveGameSession | 対局の開始局面のノード。途中局面からの開始手数は `branchPointPly=` |
-| `[BTM] rebuildBranchTree: rows=` | BranchTreeManager | 分岐ツリーの全再構築。対局中は新規ライン発生時のみ |
-| `goToNode ENTER` | KifuNavigationController | 棋譜閲覧の移動（盤面を SFEN から再設定する経路）。対局中は 0 |
-| `syncBoardAndHighlightsAtRow ply=` | BoardSyncPresenter | 手数を指定した盤面同期（棋譜の読み込み・待った）。待ったをしなければ対局中は 0 |
-| `shogiboard.cpp` かつ `setSfen:` | ShogiBoard | 盤面の SFEN 再設定そのもの。対局中は 0 |
-| `POST-NAVIGATION INCONSISTENCY` | KifuDisplayCoordinator | 表示一致性検証の警告。0 件。直後の `Reason:` 行に理由 |
+| `[BTM] rebuildBranchTree: rows=` | BranchTreeManager | 分岐ツリーの全再構築。対局中は新規ライン発生時のみ（同じ手順への追加は `appendNode` で描き足す） |
+| `shogiboard.cpp` かつ `setSfen:` | ShogiBoard | 盤面の SFEN 再設定そのもの（表示中の手の局面が盤と違うとき `BoardSyncPresenter` が呼ぶ）。対局中は 0 |
+| `onGameEnded cause=` | GameSession | 終局の原因（`MatchCoordinator::Cause` の値）と負けた側 |
 | `[WARN]` | 全般 | 警告の総数 |
 
 ```bash
 echo "moves=$(grep -c 'appendRecord: text=' "$S/moves.log") \
 rebuild=$(grep -c 'rebuildBranchTree: rows=' "$S/moves.log") \
 setSfen=$(grep -c 'shogiboard.cpp.*setSfen:' "$S/moves.log") \
-inconsistency=$(grep -c 'POST-NAVIGATION INCONSISTENCY' "$S/moves.log") \
 warn=$(grep -c '\[WARN\]' "$S/moves.log")"
-grep -n "POST-NAVIGATION INCONSISTENCY" -A 12 "$S/moves.log" | grep "Reason:"
+grep -n '\[WARN\]' "$S/moves.log"
 ```
 
-対局終了（投了など）では `GameSession::onGameEnded` がライブ対局のセッションを commit し、`onGameEnded: committing live game session` が出る
-（中断は再開できるよう commit しない）。終局後にナビボタンで戻る・進むを行うと
-`goBack LEAVE resultPly=` / `goForward: step ... displayText=` で辿った経路を確認できる。
+対局終了（投了など）では `GameSession::onGameEnded` がライブ対局のセッション（`LiveGameSession`）を commit する
+（中断は再開できるよう commit しない）。終局後にナビボタンで戻る・進むときは、棋譜欄・分岐ツリー・盤面が
+同じ手に合うことをスクリーンショットで確かめる（表示中の手は `KifuNavigationState` が持ち、
+`KifuDisplayPresenter` と `BoardSyncPresenter` がそれぞれ合わせる）。
 
 ## 7. スクリーンショットで確認する観点
 
@@ -243,5 +240,5 @@ pkill -f '^Xvfb :99'
 
 2026-09-15、分岐ツリー・ライブ対局周りの修正（重複ノード、`findBySfen`、盤面再設定の停止、盤面手番の GC 同期、
 分岐ツリーの差分描画、手番補正コードの削除）をこの手順で検証した。人間側 3〜4 手の対局を計 5 局行い、
-`setSfen` 0 回、`engineTurnNow= true` が毎手、一致性警告 0 件、分岐ツリー全再構築は新規ライン発生時の 1 回のみ、
+`setSfen` 0 回、エンジンの手番判定が毎手正しいこと、一致性警告 0 件、分岐ツリー全再構築は新規ライン発生時の 1 回のみ、
 分岐発生時の「+」と候補欄の内容が正しいことをログとスクリーンショットで確認した。

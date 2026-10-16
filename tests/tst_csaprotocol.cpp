@@ -3,7 +3,7 @@
 ///
 /// テスト対象:
 /// - CsaClient::GameSummary（時間単位変換、初期化、手番判定）
-/// - CsaMoveConverter（CSA↔USI変換、駒変換、結果文字列変換）
+/// - CsaMoveConverter（CSA↔USI の指し手の変換）・CsaClient の結果の表示名
 /// - SfenCsaPositionConverter（CSA↔SFEN局面変換）
 
 #include <QtTest>
@@ -67,20 +67,70 @@ private slots:
         QCOMPARE(ended.count(), 1);
     }
 
+    // ========================================
+    // CsaMoveConverter: CSA ⇔ USI の指し手（指す前の盤で駒を読む）
+    // ========================================
+
+    void csaToUsi_data()
+    {
+        QTest::addColumn<QString>("sfen");
+        QTest::addColumn<QString>("csaMove");
+        QTest::addColumn<QString>("usi");
+        const QString hirate = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+        QTest::newRow("pawn") << hirate << QStringLiteral("+7776FU") << QStringLiteral("7g7f");
+        QTest::newRow("rook") << hirate << QStringLiteral("+2858HI") << QStringLiteral("2h5h");
+        const QString opened = QStringLiteral("lnsgkgsnl/1r5b1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL b - 3");
+        QTest::newRow("bishop-promotes") << opened << QStringLiteral("+8822UM") << QStringLiteral("8h2b+");
+        QTest::newRow("bishop-declines") << opened << QStringLiteral("+8822KA") << QStringLiteral("8h2b");
+        const QString gote = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL w - 2");
+        QTest::newRow("gote") << gote << QStringLiteral("-3334FU") << QStringLiteral("3c3d");
+        const QString hand = QStringLiteral("lnsgkgsnl/1r7/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b B 1");
+        QTest::newRow("drop") << hand << QStringLiteral("+0055KA") << QStringLiteral("B*5e");
+        // 盤の馬を動かす手は成りではない
+        const QString horse = QStringLiteral("lnsgkg1nl/1r5+B1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/7R1/LNSGKGSNL b B 5");
+        QTest::newRow("horse-moves") << horse << QStringLiteral("+2231UM") << QStringLiteral("2b3a");
+        // 盤と合わない手
+        QTest::newRow("wrong-piece") << hirate << QStringLiteral("+7776KY") << QString();
+        QTest::newRow("wrong-side") << hirate << QStringLiteral("-3334FU") << QString();
+        QTest::newRow("no-hand") << hirate << QStringLiteral("+0055KA") << QString();
+        QTest::newRow("promoted-drop") << hand << QStringLiteral("+0055UM") << QString();
+        QTest::newRow("too-short") << hirate << QStringLiteral("+77") << QString();
+        QTest::newRow("empty") << hirate << QString() << QString();
+    }
+
+    void csaToUsi()
+    {
+        QFETCH(QString, sfen);
+        QFETCH(QString, csaMove);
+        QFETCH(QString, usi);
+        ShogiBoard board;
+        QVERIFY(board.trySetSfen(sfen));
+        const auto move = CsaMoveConverter::toUsi(csaMove, board);
+        QCOMPARE(move ? move->toString() : QString(), usi);
+        // 読めた手は CSA に戻すと同じ表記になる
+        if (move) QCOMPARE(CsaMoveConverter::toCsa(*move, board.currentPlayer(), board), csaMove);
+    }
+
+    void usiToCsa_emptySourceIsRejected()
+    {
+        ShogiBoard board;
+        QVERIFY(board.trySetSfen(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1")));
+        QCOMPARE(CsaMoveConverter::toCsa(*UsiMove::parse(QStringLiteral("5e5d")), Turn::Black, board), QString());
+        QCOMPARE(CsaMoveConverter::toCsa(*UsiMove::parse(QStringLiteral("P*5e")), Turn::White, board),
+                 QStringLiteral("-0055FU"));
+    }
+
     void csaMoveConverter_promotedPieceMoveIsNotPromotion()
     {
         ShogiGameController gc;
-        QString start = QStringLiteral("lnsgkg1nl/1r5+B1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/7R1/LNSGKGSNL b B 5");
-        gc.newGame(start);
-        const std::optional<RecordEntry> played = CsaMoveConverter::applyMoveToBoard(QStringLiteral("+2231UM"), &gc);
+        gc.newGame(QStringLiteral("lnsgkg1nl/1r5+B1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/7R1/LNSGKGSNL b B 5"));
+        const auto move = CsaMoveConverter::toUsi(QStringLiteral("+2231UM"), *gc.board());
+        QVERIFY(move);
+        const std::optional<RecordEntry> played = gc.applyRecordedMove(*move);
         QVERIFY(played);
         QCOMPARE(played->move.move.toString(), QStringLiteral("2b3a"));
         QVERIFY(played->sfen.endsWith(QStringLiteral(" 6")));
     }
-
-    // ========================================
-    // GameSummary: 時間単位変換
-    // ========================================
 
     void gameSummary_timeUnitMs_data()
     {
@@ -199,198 +249,17 @@ private slots:
     }
 
     // ========================================
-    // CsaMoveConverter: CSA -> USI 変換
-    // ========================================
-
-    void csaToUsi_data()
-    {
-        QTest::addColumn<QString>("csaMove");
-        QTest::addColumn<QString>("expectedUsi");
-
-        // 通常の移動
-        QTest::newRow("7776FU") << QStringLiteral("+7776FU") << QStringLiteral("7g7f");
-        QTest::newRow("3334FU") << QStringLiteral("-3334FU") << QStringLiteral("3c3d");
-        QTest::newRow("2628HI") << QStringLiteral("+2628HI") << QStringLiteral("2f2h");
-        QTest::newRow("8822UM") << QStringLiteral("+8822UM") << QStringLiteral("8h2b+");
-
-        // 駒打ち
-        QTest::newRow("drop_FU") << QStringLiteral("+0055FU") << QStringLiteral("P*5e");
-        QTest::newRow("drop_KA") << QStringLiteral("-0033KA") << QStringLiteral("B*3c");
-        QTest::newRow("drop_KI") << QStringLiteral("+0041KI") << QStringLiteral("G*4a");
-
-        // 成り駒（成った結果の表記 → USIでは +）
-        QTest::newRow("promote_TO") << QStringLiteral("+2324TO") << QStringLiteral("2c2d+");
-        QTest::newRow("promote_RY") << QStringLiteral("-8228RY") << QStringLiteral("8b2h+");
-        QTest::newRow("promote_NY") << QStringLiteral("+1112NY") << QStringLiteral("1a1b+");
-        QTest::newRow("promote_NK") << QStringLiteral("+2133NK") << QStringLiteral("2a3c+");
-        QTest::newRow("promote_NG") << QStringLiteral("+3122NG") << QStringLiteral("3a2b+");
-
-        // 短すぎる入力
-        QTest::newRow("too_short") << QStringLiteral("+77") << QString();
-        QTest::newRow("empty")     << QString()             << QString();
-    }
-
-    void csaToUsi()
-    {
-        QFETCH(QString, csaMove);
-        QFETCH(QString, expectedUsi);
-
-        QCOMPARE(CsaMoveConverter::csaToUsi(csaMove), expectedUsi);
-    }
-
-    // ========================================
-    // CsaMoveConverter: CSA駒記号 -> USI駒記号
-    // ========================================
-
-    void csaPieceToUsi_data()
-    {
-        QTest::addColumn<QString>("csaPiece");
-        QTest::addColumn<QString>("expectedUsi");
-
-        QTest::newRow("FU") << QStringLiteral("FU") << QStringLiteral("P");
-        QTest::newRow("KY") << QStringLiteral("KY") << QStringLiteral("L");
-        QTest::newRow("KE") << QStringLiteral("KE") << QStringLiteral("N");
-        QTest::newRow("GI") << QStringLiteral("GI") << QStringLiteral("S");
-        QTest::newRow("KI") << QStringLiteral("KI") << QStringLiteral("G");
-        QTest::newRow("KA") << QStringLiteral("KA") << QStringLiteral("B");
-        QTest::newRow("HI") << QStringLiteral("HI") << QStringLiteral("R");
-        QTest::newRow("OU") << QStringLiteral("OU") << QStringLiteral("K");
-        QTest::newRow("TO") << QStringLiteral("TO") << QStringLiteral("+P");
-        QTest::newRow("NY") << QStringLiteral("NY") << QStringLiteral("+L");
-        QTest::newRow("NK") << QStringLiteral("NK") << QStringLiteral("+N");
-        QTest::newRow("NG") << QStringLiteral("NG") << QStringLiteral("+S");
-        QTest::newRow("UM") << QStringLiteral("UM") << QStringLiteral("+B");
-        QTest::newRow("RY") << QStringLiteral("RY") << QStringLiteral("+R");
-    }
-
-    void csaPieceToUsi()
-    {
-        QFETCH(QString, csaPiece);
-        QFETCH(QString, expectedUsi);
-
-        QCOMPARE(CsaMoveConverter::csaPieceToUsi(csaPiece), expectedUsi);
-    }
-
-    // ========================================
-    // CsaMoveConverter: USI駒記号 -> CSA駒記号
-    // ========================================
-
-    void usiPieceToCsa_data()
-    {
-        QTest::addColumn<QString>("usiPiece");
-        QTest::addColumn<bool>("promoted");
-        QTest::addColumn<QString>("expectedCsa");
-
-        QTest::newRow("P")        << QStringLiteral("P") << false << QStringLiteral("FU");
-        QTest::newRow("L")        << QStringLiteral("L") << false << QStringLiteral("KY");
-        QTest::newRow("N")        << QStringLiteral("N") << false << QStringLiteral("KE");
-        QTest::newRow("S")        << QStringLiteral("S") << false << QStringLiteral("GI");
-        QTest::newRow("G")        << QStringLiteral("G") << false << QStringLiteral("KI");
-        QTest::newRow("B")        << QStringLiteral("B") << false << QStringLiteral("KA");
-        QTest::newRow("R")        << QStringLiteral("R") << false << QStringLiteral("HI");
-        QTest::newRow("K")        << QStringLiteral("K") << false << QStringLiteral("OU");
-        QTest::newRow("P_prom")   << QStringLiteral("P") << true  << QStringLiteral("TO");
-        QTest::newRow("L_prom")   << QStringLiteral("L") << true  << QStringLiteral("NY");
-        QTest::newRow("N_prom")   << QStringLiteral("N") << true  << QStringLiteral("NK");
-        QTest::newRow("S_prom")   << QStringLiteral("S") << true  << QStringLiteral("NG");
-        QTest::newRow("B_prom")   << QStringLiteral("B") << true  << QStringLiteral("UM");
-        QTest::newRow("R_prom")   << QStringLiteral("R") << true  << QStringLiteral("RY");
-    }
-
-    void usiPieceToCsa()
-    {
-        QFETCH(QString, usiPiece);
-        QFETCH(bool, promoted);
-        QFETCH(QString, expectedCsa);
-
-        QCOMPARE(CsaMoveConverter::usiPieceToCsa(usiPiece, promoted), expectedCsa);
-    }
-
-    // ========================================
-    // CsaMoveConverter: CSA駒記号 -> 漢字
-    // ========================================
-
-    void csaPieceToKanji_data()
-    {
-        QTest::addColumn<QString>("csaPiece");
-        QTest::addColumn<QString>("expectedKanji");
-
-        QTest::newRow("FU") << QStringLiteral("FU") << QStringLiteral("歩");
-        QTest::newRow("KY") << QStringLiteral("KY") << QStringLiteral("香");
-        QTest::newRow("KE") << QStringLiteral("KE") << QStringLiteral("桂");
-        QTest::newRow("GI") << QStringLiteral("GI") << QStringLiteral("銀");
-        QTest::newRow("KI") << QStringLiteral("KI") << QStringLiteral("金");
-        QTest::newRow("KA") << QStringLiteral("KA") << QStringLiteral("角");
-        QTest::newRow("HI") << QStringLiteral("HI") << QStringLiteral("飛");
-        QTest::newRow("OU") << QStringLiteral("OU") << QStringLiteral("玉");
-        QTest::newRow("TO") << QStringLiteral("TO") << QStringLiteral("と");
-        QTest::newRow("NY") << QStringLiteral("NY") << QStringLiteral("成香");
-        QTest::newRow("NK") << QStringLiteral("NK") << QStringLiteral("成桂");
-        QTest::newRow("NG") << QStringLiteral("NG") << QStringLiteral("成銀");
-        QTest::newRow("UM") << QStringLiteral("UM") << QStringLiteral("馬");
-        QTest::newRow("RY") << QStringLiteral("RY") << QStringLiteral("龍");
-    }
-
-    void csaPieceToKanji()
-    {
-        QFETCH(QString, csaPiece);
-        QFETCH(QString, expectedKanji);
-
-        QCOMPARE(CsaMoveConverter::csaPieceToKanji(csaPiece), expectedKanji);
-    }
-
-    // ========================================
-    // CsaMoveConverter: 駒タイプインデックス
-    // ========================================
-
-    void pieceTypeFromCsa_data()
-    {
-        QTest::addColumn<QString>("csaPiece");
-        QTest::addColumn<int>("expectedType");
-
-        QTest::newRow("FU") << QStringLiteral("FU") << 1;
-        QTest::newRow("TO") << QStringLiteral("TO") << 1;
-        QTest::newRow("KY") << QStringLiteral("KY") << 2;
-        QTest::newRow("NY") << QStringLiteral("NY") << 2;
-        QTest::newRow("KE") << QStringLiteral("KE") << 3;
-        QTest::newRow("NK") << QStringLiteral("NK") << 3;
-        QTest::newRow("GI") << QStringLiteral("GI") << 4;
-        QTest::newRow("NG") << QStringLiteral("NG") << 4;
-        QTest::newRow("KI") << QStringLiteral("KI") << 5;
-        QTest::newRow("KA") << QStringLiteral("KA") << 6;
-        QTest::newRow("UM") << QStringLiteral("UM") << 6;
-        QTest::newRow("HI") << QStringLiteral("HI") << 7;
-        QTest::newRow("RY") << QStringLiteral("RY") << 7;
-        QTest::newRow("OU") << QStringLiteral("OU") << 8;
-        QTest::newRow("XX") << QStringLiteral("XX") << 0;
-    }
-
-    void pieceTypeFromCsa()
-    {
-        QFETCH(QString, csaPiece);
-        QFETCH(int, expectedType);
-
-        QCOMPARE(CsaMoveConverter::pieceTypeFromCsa(csaPiece), expectedType);
-    }
-
-    void csaPieceToSfenPiece_unknownReturnsNone()
-    {
-        QCOMPARE(CsaMoveConverter::csaPieceToSfenPiece(QStringLiteral("XX"), true), Piece::None);
-        QCOMPARE(CsaMoveConverter::csaPieceToSfenPiece(QString(), false), Piece::None);
-    }
-
-    // ========================================
     // CsaMoveConverter: 対局結果文字列
     // ========================================
 
     void gameResultToString()
     {
-        QVERIFY(!CsaMoveConverter::gameResultToString(CsaClient::GameResult::Win).isEmpty());
-        QVERIFY(!CsaMoveConverter::gameResultToString(CsaClient::GameResult::Lose).isEmpty());
-        QVERIFY(!CsaMoveConverter::gameResultToString(CsaClient::GameResult::Draw).isEmpty());
-        QVERIFY(!CsaMoveConverter::gameResultToString(CsaClient::GameResult::Censored).isEmpty());
-        QVERIFY(!CsaMoveConverter::gameResultToString(CsaClient::GameResult::Chudan).isEmpty());
-        QVERIFY(!CsaMoveConverter::gameResultToString(CsaClient::GameResult::Unknown).isEmpty());
+        QVERIFY(!CsaClient::gameResultText(CsaClient::GameResult::Win).isEmpty());
+        QVERIFY(!CsaClient::gameResultText(CsaClient::GameResult::Lose).isEmpty());
+        QVERIFY(!CsaClient::gameResultText(CsaClient::GameResult::Draw).isEmpty());
+        QVERIFY(!CsaClient::gameResultText(CsaClient::GameResult::Censored).isEmpty());
+        QVERIFY(!CsaClient::gameResultText(CsaClient::GameResult::Chudan).isEmpty());
+        QVERIFY(!CsaClient::gameResultText(CsaClient::GameResult::Unknown).isEmpty());
     }
 
     // ========================================
@@ -399,80 +268,20 @@ private slots:
 
     void gameEndCauseToString()
     {
-        QVERIFY(!CsaMoveConverter::gameEndCauseToString(CsaClient::GameEndCause::Resign).isEmpty());
-        QVERIFY(!CsaMoveConverter::gameEndCauseToString(CsaClient::GameEndCause::TimeUp).isEmpty());
-        QVERIFY(!CsaMoveConverter::gameEndCauseToString(CsaClient::GameEndCause::IllegalMove).isEmpty());
-        QVERIFY(!CsaMoveConverter::gameEndCauseToString(CsaClient::GameEndCause::Sennichite).isEmpty());
-        QVERIFY(!CsaMoveConverter::gameEndCauseToString(CsaClient::GameEndCause::OuteSennichite).isEmpty());
-        QVERIFY(!CsaMoveConverter::gameEndCauseToString(CsaClient::GameEndCause::Jishogi).isEmpty());
-        QVERIFY(!CsaMoveConverter::gameEndCauseToString(CsaClient::GameEndCause::MaxMoves).isEmpty());
-        QVERIFY(!CsaMoveConverter::gameEndCauseToString(CsaClient::GameEndCause::Chudan).isEmpty());
-        QVERIFY(!CsaMoveConverter::gameEndCauseToString(CsaClient::GameEndCause::IllegalAction).isEmpty());
-        QVERIFY(!CsaMoveConverter::gameEndCauseToString(CsaClient::GameEndCause::Unknown).isEmpty());
+        QVERIFY(!CsaClient::gameEndCauseText(CsaClient::GameEndCause::Resign).isEmpty());
+        QVERIFY(!CsaClient::gameEndCauseText(CsaClient::GameEndCause::TimeUp).isEmpty());
+        QVERIFY(!CsaClient::gameEndCauseText(CsaClient::GameEndCause::IllegalMove).isEmpty());
+        QVERIFY(!CsaClient::gameEndCauseText(CsaClient::GameEndCause::Sennichite).isEmpty());
+        QVERIFY(!CsaClient::gameEndCauseText(CsaClient::GameEndCause::OuteSennichite).isEmpty());
+        QVERIFY(!CsaClient::gameEndCauseText(CsaClient::GameEndCause::Jishogi).isEmpty());
+        QVERIFY(!CsaClient::gameEndCauseText(CsaClient::GameEndCause::MaxMoves).isEmpty());
+        QVERIFY(!CsaClient::gameEndCauseText(CsaClient::GameEndCause::Chudan).isEmpty());
+        QVERIFY(!CsaClient::gameEndCauseText(CsaClient::GameEndCause::IllegalAction).isEmpty());
+        QVERIFY(!CsaClient::gameEndCauseText(CsaClient::GameEndCause::Unknown).isEmpty());
 
         // 各結果が異なる文字列であることを確認
-        QVERIFY(CsaMoveConverter::gameEndCauseToString(CsaClient::GameEndCause::Resign)
-                != CsaMoveConverter::gameEndCauseToString(CsaClient::GameEndCause::TimeUp));
-    }
-
-    // ========================================
-    // CsaMoveConverter: 表示用変換（csaToPretty）
-    // ========================================
-
-    void csaToPretty_normalMove()
-    {
-        // ▲７六歩(77) — 通常の移動
-        QString result = CsaMoveConverter::csaToPretty(
-            QStringLiteral("+7776FU"), false, BoardSquare{});
-        QVERIFY(result.contains(QStringLiteral("▲")));
-        QVERIFY(result.contains(QStringLiteral("歩")));
-        QVERIFY(result.contains(QStringLiteral("(77)")));
-    }
-
-    void csaToPretty_goteMove()
-    {
-        // △３四歩(33)
-        QString result = CsaMoveConverter::csaToPretty(
-            QStringLiteral("-3334FU"), false, BoardSquare{});
-        QVERIFY(result.contains(QStringLiteral("△")));
-        QVERIFY(result.contains(QStringLiteral("歩")));
-    }
-
-    void csaToPretty_drop()
-    {
-        // ▲５五歩打
-        QString result = CsaMoveConverter::csaToPretty(
-            QStringLiteral("+0055FU"), false, BoardSquare{});
-        QVERIFY(result.contains(QStringLiteral("打")));
-        QVERIFY(result.contains(QStringLiteral("歩")));
-    }
-
-    void csaToPretty_sameSquare()
-    {
-        // 「同」表記 — 前の手の移動先と同じ座標への移動
-        // -3334GI: from(3,3) to(3,4)、前の手が(3,4)への移動 → 同銀
-        QString result = CsaMoveConverter::csaToPretty(
-            QStringLiteral("-3334GI"), false, BoardSquare{3, 4});
-        QVERIFY(result.contains(QStringLiteral("同")));
-        QVERIFY(result.contains(QStringLiteral("銀")));
-        QVERIFY(result.contains(QStringLiteral("(33)")));  // 移動元
-    }
-
-    void csaToPretty_promotion()
-    {
-        // 成り: isPromotion=true の場合、成る前の駒名+「成」
-        QString result = CsaMoveConverter::csaToPretty(
-            QStringLiteral("+8822UM"), true, BoardSquare{});
-        QVERIFY(result.contains(QStringLiteral("角")));  // 成る前の駒名
-        QVERIFY(result.contains(QStringLiteral("成")));
-    }
-
-    void csaToPretty_shortInput()
-    {
-        // 短すぎる入力はそのまま返す
-        QString result = CsaMoveConverter::csaToPretty(
-            QStringLiteral("+77"), false, BoardSquare{});
-        QCOMPARE(result, QStringLiteral("+77"));
+        QVERIFY(CsaClient::gameEndCauseText(CsaClient::GameEndCause::Resign)
+                != CsaClient::gameEndCauseText(CsaClient::GameEndCause::TimeUp));
     }
 
     // ========================================
@@ -630,9 +439,11 @@ private slots:
         QFETCH(QString, csaMove);
         QFETCH(bool, expectEmpty);
 
-        QString result = CsaMoveConverter::csaToUsi(csaMove);
+        ShogiBoard board;
+        QVERIFY(board.trySetSfen(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1")));
+        const auto result = CsaMoveConverter::toUsi(csaMove, board);
         if (expectEmpty) {
-            QVERIFY(result.isEmpty());
+            QVERIFY(!result);
         }
         // All cases: must not crash
     }
@@ -661,37 +472,6 @@ private slots:
         const auto sfen = SfenCsaPositionConverter::fromCsaPositionLines(csaLines, &error);
         QVERIFY(!sfen.has_value());
         QVERIFY(!error.isEmpty());
-    }
-
-    // ========================================
-    // Table-driven: csaPieceToUsi 異常入力
-    // ========================================
-
-    void csaPieceToUsi_abnormal_data()
-    {
-        QTest::addColumn<QString>("csaPiece");
-        QTest::addColumn<QString>("expectedUsi");
-
-        // 未知駒種は空文字列を返して異常を呼び出し側に通知する
-        QTest::newRow("empty_string")
-            << QString() << QString();
-        QTest::newRow("single_char")
-            << QStringLiteral("F") << QString();
-        QTest::newRow("unknown_two_chars")
-            << QStringLiteral("XX") << QString();
-        QTest::newRow("lowercase")
-            << QStringLiteral("fu") << QString();
-        QTest::newRow("three_chars")
-            << QStringLiteral("FUX") << QString();
-    }
-
-    void csaPieceToUsi_abnormal()
-    {
-        QFETCH(QString, csaPiece);
-        QFETCH(QString, expectedUsi);
-
-        QString result = CsaMoveConverter::csaPieceToUsi(csaPiece);
-        QCOMPARE(result, expectedUsi);
     }
 
     // ========================================
@@ -752,60 +532,6 @@ private slots:
         // timeUnitMs should return default even with empty fields
         QCOMPARE(gs.timeUnitMs(true), 1000);
         QCOMPARE(gs.timeUnitMs(false), 1000);
-    }
-
-    // ========================================
-    // 異常系: csaToPretty ロバストネス
-    // ========================================
-
-    void csaToPretty_robustness_data()
-    {
-        QTest::addColumn<QString>("csaMove");
-
-        QTest::newRow("empty_string")
-            << QString();
-        QTest::newRow("single_plus")
-            << QStringLiteral("+");
-        QTest::newRow("only_coordinates")
-            << QStringLiteral("+7776");
-        QTest::newRow("digit_string")
-            << QStringLiteral("1234567");
-    }
-
-    void csaToPretty_robustness()
-    {
-        QFETCH(QString, csaMove);
-
-        // Must not crash regardless of input
-        (void)CsaMoveConverter::csaToPretty(csaMove, false, BoardSquare{});
-        QVERIFY(true);
-    }
-
-    // ========================================
-    // 異常系: CsaMoveConverter usiPieceToCsa 不正入力
-    // ========================================
-
-    void usiPieceToCsa_abnormal_data()
-    {
-        QTest::addColumn<QString>("usiPiece");
-        QTest::addColumn<bool>("promoted");
-        QTest::addColumn<bool>("expectedEmpty");
-
-        QTest::newRow("empty_not_promoted")  << QString()             << false << true;
-        QTest::newRow("empty_promoted")      << QString()             << true  << true;
-        QTest::newRow("unknown_piece")       << QStringLiteral("X")   << false << true;
-        QTest::newRow("lowercase_p")         << QStringLiteral("p")   << false << true;
-        QTest::newRow("multi_char")          << QStringLiteral("PK")  << false << true;
-    }
-
-    void usiPieceToCsa_abnormal()
-    {
-        QFETCH(QString, usiPiece);
-        QFETCH(bool, promoted);
-        QFETCH(bool, expectedEmpty);
-
-        const QString result = CsaMoveConverter::usiPieceToCsa(usiPiece, promoted);
-        QCOMPARE(result.isEmpty(), expectedEmpty);
     }
 
     // ========================================
@@ -1072,68 +798,18 @@ private slots:
     }
 
     // ========================================
-    // テーブル駆動: CsaMoveConverter csaToUsi 成駒バリエーション
-    // ========================================
-
-    void csaToUsi_promotedPieces_data()
-    {
-        QTest::addColumn<QString>("csaMove");
-        QTest::addColumn<QString>("expectedUsi");
-
-        // 成駒の移動（成った駒が移動するケース）
-        QTest::newRow("TO_move") << QStringLiteral("+2324TO") << QStringLiteral("2c2d+");
-        QTest::newRow("RY_move") << QStringLiteral("-8228RY") << QStringLiteral("8b2h+");
-        QTest::newRow("UM_move") << QStringLiteral("+8822UM") << QStringLiteral("8h2b+");
-        QTest::newRow("NY_move") << QStringLiteral("+1112NY") << QStringLiteral("1a1b+");
-        QTest::newRow("NK_move") << QStringLiteral("+2133NK") << QStringLiteral("2a3c+");
-        QTest::newRow("NG_move") << QStringLiteral("+3122NG") << QStringLiteral("3a2b+");
-    }
-
-    void csaToUsi_promotedPieces()
-    {
-        QFETCH(QString, csaMove);
-        QFETCH(QString, expectedUsi);
-
-        QCOMPARE(CsaMoveConverter::csaToUsi(csaMove), expectedUsi);
-    }
-
-    // ========================================
-    // CsaMoveConverter: csaPieceToKanji 異常入力
-    // ========================================
-
-    void csaPieceToKanji_abnormal_data()
-    {
-        QTest::addColumn<QString>("csaPiece");
-
-        QTest::newRow("empty_string") << QString();
-        QTest::newRow("single_char") << QStringLiteral("F");
-        QTest::newRow("unknown_piece") << QStringLiteral("XX");
-        QTest::newRow("lowercase") << QStringLiteral("fu");
-        QTest::newRow("three_chars") << QStringLiteral("FUX");
-    }
-
-    void csaPieceToKanji_abnormal()
-    {
-        QFETCH(QString, csaPiece);
-
-        // Must not crash; returns some default value
-        (void)CsaMoveConverter::csaPieceToKanji(csaPiece);
-        QVERIFY(true);
-    }
-
-    // ========================================
     // CsaMoveConverter: 全結果値が一意であること
     // ========================================
 
     void gameResultToString_allDistinct()
     {
         QStringList results;
-        results << CsaMoveConverter::gameResultToString(CsaClient::GameResult::Win)
-                << CsaMoveConverter::gameResultToString(CsaClient::GameResult::Lose)
-                << CsaMoveConverter::gameResultToString(CsaClient::GameResult::Draw)
-                << CsaMoveConverter::gameResultToString(CsaClient::GameResult::Censored)
-                << CsaMoveConverter::gameResultToString(CsaClient::GameResult::Chudan)
-                << CsaMoveConverter::gameResultToString(CsaClient::GameResult::Unknown);
+        results << CsaClient::gameResultText(CsaClient::GameResult::Win)
+                << CsaClient::gameResultText(CsaClient::GameResult::Lose)
+                << CsaClient::gameResultText(CsaClient::GameResult::Draw)
+                << CsaClient::gameResultText(CsaClient::GameResult::Censored)
+                << CsaClient::gameResultText(CsaClient::GameResult::Chudan)
+                << CsaClient::gameResultText(CsaClient::GameResult::Unknown);
 
         // 全て非空
         for (const QString& r : std::as_const(results)) {
@@ -1148,16 +824,16 @@ private slots:
     void gameEndCauseToString_allDistinct()
     {
         QStringList causes;
-        causes << CsaMoveConverter::gameEndCauseToString(CsaClient::GameEndCause::Resign)
-               << CsaMoveConverter::gameEndCauseToString(CsaClient::GameEndCause::TimeUp)
-               << CsaMoveConverter::gameEndCauseToString(CsaClient::GameEndCause::IllegalMove)
-               << CsaMoveConverter::gameEndCauseToString(CsaClient::GameEndCause::Sennichite)
-               << CsaMoveConverter::gameEndCauseToString(CsaClient::GameEndCause::OuteSennichite)
-               << CsaMoveConverter::gameEndCauseToString(CsaClient::GameEndCause::Jishogi)
-               << CsaMoveConverter::gameEndCauseToString(CsaClient::GameEndCause::MaxMoves)
-               << CsaMoveConverter::gameEndCauseToString(CsaClient::GameEndCause::Chudan)
-               << CsaMoveConverter::gameEndCauseToString(CsaClient::GameEndCause::IllegalAction)
-               << CsaMoveConverter::gameEndCauseToString(CsaClient::GameEndCause::Unknown);
+        causes << CsaClient::gameEndCauseText(CsaClient::GameEndCause::Resign)
+               << CsaClient::gameEndCauseText(CsaClient::GameEndCause::TimeUp)
+               << CsaClient::gameEndCauseText(CsaClient::GameEndCause::IllegalMove)
+               << CsaClient::gameEndCauseText(CsaClient::GameEndCause::Sennichite)
+               << CsaClient::gameEndCauseText(CsaClient::GameEndCause::OuteSennichite)
+               << CsaClient::gameEndCauseText(CsaClient::GameEndCause::Jishogi)
+               << CsaClient::gameEndCauseText(CsaClient::GameEndCause::MaxMoves)
+               << CsaClient::gameEndCauseText(CsaClient::GameEndCause::Chudan)
+               << CsaClient::gameEndCauseText(CsaClient::GameEndCause::IllegalAction)
+               << CsaClient::gameEndCauseText(CsaClient::GameEndCause::Unknown);
 
         for (const QString& c : std::as_const(causes)) {
             QVERIFY(!c.isEmpty());
@@ -1213,50 +889,10 @@ private slots:
     }
 
     // ========================================
-    // 異常系: CsaMoveConverter csaToUsi 座標境界値
-    // ========================================
-
-    void csaToUsi_coordinateBoundary_data()
-    {
-        QTest::addColumn<QString>("csaMove");
-        QTest::addColumn<bool>("expectNonEmpty");
-
-        // 有効な座標範囲 (1-9)
-        QTest::newRow("corner_11") << QStringLiteral("+1112FU") << true;
-        QTest::newRow("corner_99") << QStringLiteral("-9998FU") << true;
-        QTest::newRow("corner_19") << QStringLiteral("+1918FU") << true;
-        QTest::newRow("corner_91") << QStringLiteral("-9192FU") << true;
-
-        // 座標0を含む（駒打ちと区別）
-        QTest::newRow("zero_from_drop") << QStringLiteral("+0055FU") << true;
-
-        // 非数字座標は不正扱い（空文字列）
-        QTest::newRow("alpha_coordinates") << QStringLiteral("+ABCDFU") << false;
-    }
-
-    void csaToUsi_coordinateBoundary()
-    {
-        QFETCH(QString, csaMove);
-        QFETCH(bool, expectNonEmpty);
-
-        QString result = CsaMoveConverter::csaToUsi(csaMove);
-        QCOMPARE(!result.isEmpty(), expectNonEmpty);
-    }
-
-    // ========================================
     // 異常系: CsaMoveConverter csaToPretty 大きな moveCount
     // ========================================
 
-    void csaToPretty_invalidPreviousSquare()
-    {
-        // 盤外の直前の升でもクラッシュせず、「同」にしない
-        const QString result = CsaMoveConverter::csaToPretty(
-            QStringLiteral("+7776FU"), false, BoardSquare{0, 10});
-        QVERIFY(!result.isEmpty());
-        QVERIFY(!result.contains(QStringLiteral("同")));
-    }
-
-    void csaMoveConverter_applyMoveToBoard_dropWithoutStandPieceFails()
+    void csaMoveConverter_dropWithoutHandIsRejected()
     {
         ShogiGameController gc;
         QString startSfen = QStringLiteral(
@@ -1268,7 +904,7 @@ private slots:
         const Piece before = gc.board()->pieceCharacter(5, 5);
         QVERIFY(before == Piece::None);
 
-        QVERIFY(!CsaMoveConverter::applyMoveToBoard(QStringLiteral("+0055FU"), &gc));
+        QVERIFY(!CsaMoveConverter::toUsi(QStringLiteral("+0055FU"), *gc.board()));
         QCOMPARE(gc.board()->pieceCharacter(5, 5), Piece::None);
         QCOMPARE(gc.board()->toSfen(), startSfen);
     }
@@ -1298,29 +934,6 @@ private slots:
         QCOMPARE(gs.timeBlack.timeUnit, QStringLiteral("1sec"));
         QCOMPARE(gs.timeBlack.totalTime, 0);
         QCOMPARE(gs.timeWhite.byoyomi, 0);
-    }
-
-    // ========================================
-    // テーブル駆動: CsaMoveConverter pieceTypeFromCsa 境界値
-    // ========================================
-
-    void pieceTypeFromCsa_boundary_data()
-    {
-        QTest::addColumn<QString>("csaPiece");
-        QTest::addColumn<int>("expectedType");
-
-        QTest::newRow("empty")       << QString()              << 0;
-        QTest::newRow("single_char") << QStringLiteral("F")    << 0;
-        QTest::newRow("lowercase")   << QStringLiteral("fu")   << 0;
-        QTest::newRow("null_chars")  << QString(2, QChar('\0')) << 0;
-    }
-
-    void pieceTypeFromCsa_boundary()
-    {
-        QFETCH(QString, csaPiece);
-        QFETCH(int, expectedType);
-
-        QCOMPARE(CsaMoveConverter::pieceTypeFromCsa(csaPiece), expectedType);
     }
 
     // ========================================

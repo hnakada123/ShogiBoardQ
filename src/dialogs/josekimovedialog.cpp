@@ -164,8 +164,9 @@ void JosekiMoveDialog::setupUi(bool isEdit)
     // シグナル・スロット接続
     connect(m_buttonBox, &QDialogButtonBox::accepted, this, &JosekiMoveDialog::validateInput);
     connect(m_buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
-    connect(m_fontIncreaseBtn, &QPushButton::clicked, this, &JosekiMoveDialog::onFontSizeIncrease);
-    connect(m_fontDecreaseBtn, &QPushButton::clicked, this, &JosekiMoveDialog::onFontSizeDecrease);
+    connect(m_fontIncreaseBtn, &QPushButton::clicked, &m_fontHelper, &FontSizeHelper::increase);
+    connect(m_fontDecreaseBtn, &QPushButton::clicked, &m_fontHelper, &FontSizeHelper::decrease);
+    connect(&m_fontHelper, &FontSizeHelper::fontSizeChanged, this, &JosekiMoveDialog::applyFontSize);
 
     connect(m_moveInput, &JosekiMoveInputWidget::moveChanged, this, &JosekiMoveDialog::updateValidation);
     connect(m_nextMoveInput, &JosekiMoveInputWidget::moveChanged, this, &JosekiMoveDialog::updateValidation);
@@ -301,16 +302,6 @@ QString JosekiMoveDialog::comment() const
 void JosekiMoveDialog::setComment(const QString &comment)
 {
     m_commentEdit->setText(comment);
-}
-
-void JosekiMoveDialog::onFontSizeIncrease()
-{
-    if (m_fontHelper.increase()) applyFontSize();
-}
-
-void JosekiMoveDialog::onFontSizeDecrease()
-{
-    if (m_fontHelper.decrease()) applyFontSize();
 }
 
 void JosekiMoveDialog::applyFontSize()

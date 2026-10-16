@@ -7,23 +7,18 @@
 #include "usiprotocolhandler.h"
 
 namespace {
-constexpr int kSafetyMarginMs = 5000;
-constexpr int kStopResponseMs = 3000;
+constexpr int kSafetyMarginMs = 5000;   ///< 制限時間を過ぎても応答がなければ stop を送る
+constexpr int kStopResponseMs = 3000;   ///< stop の後に応答を待つ上限
 }
 
 MateSearchRunner::MateSearchRunner(QObject* parent)
     : QObject(parent)
     , m_session(new UsiEngineSession(this))
 {
-    m_safetyTimer.setSingleShot(true);
-    connect(&m_safetyTimer, &QTimer::timeout, this, &MateSearchRunner::onSafetyTimeout);
     connect(m_session, &UsiEngineSession::ready, this, &MateSearchRunner::onSessionReady);
     connect(m_session, &UsiEngineSession::errorOccurred, this, &MateSearchRunner::onSessionError);
-    UsiProtocolHandler* handler = m_session->handler();
-    connect(handler, &UsiProtocolHandler::checkmateSolved, this, &MateSearchRunner::onSolved);
-    connect(handler, &UsiProtocolHandler::checkmateNoMate, this, &MateSearchRunner::onNoMate);
-    connect(handler, &UsiProtocolHandler::checkmateNotImplemented, this, &MateSearchRunner::onNotImplemented);
-    connect(handler, &UsiProtocolHandler::checkmateUnknown, this, &MateSearchRunner::onUnknown);
+    connect(m_session, &UsiEngineSession::searchTimedOut, this, &MateSearchRunner::onNoResponse);
+    connect(m_session->handler(), &UsiProtocolHandler::checkmateReceived, this, &MateSearchRunner::onCheckmate);
 }
 
 QString MateSearchRunner::statusName(Status status)
@@ -40,7 +35,6 @@ QString MateSearchRunner::statusName(Status status)
 bool MateSearchRunner::start(const Request& request, QString* error)
 {
     m_done = false;
-    m_stopSent = false;
     m_request = request;
     m_searchStarted = false;
     m_elapsed.invalidate();
@@ -51,36 +45,38 @@ void MateSearchRunner::onSessionReady()
 {
     if (m_done) return;
     m_searchStarted = true;
-    const auto& request = m_request;
-    UsiProtocolHandler* handler = m_session->handler();
-    handler->sendPosition(request.positionCommand);
-    handler->sendGoMate(qMax(100, request.timeMs));
+    const int timeMs = qMax(100, m_request.timeMs);
+    UsiSearchRequest search;
+    search.position = m_request.positionCommand;
+    search.go = UsiGo::mate(timeMs);
+    search.stopAfterMs = timeMs + kSafetyMarginMs;
+    search.replyTimeoutMs = kStopResponseMs;
+    m_session->search(search);
     m_elapsed.start();
-    m_safetyTimer.start(qMax(100, request.timeMs) + kSafetyMarginMs);
 }
 
 void MateSearchRunner::stop()
 {
-    if (m_done || m_stopSent) return;
-    if (!m_searchStarted) { finish(Status::Unknown, {}); return; }
-    m_stopSent = true;
-    m_session->handler()->sendStop();
-    m_safetyTimer.start(kStopResponseMs);
-}
-
-void MateSearchRunner::onSolved(const QStringList& pv) { finish(Status::Mate, pv); }
-void MateSearchRunner::onNoMate() { finish(Status::NoMate, {}); }
-void MateSearchRunner::onNotImplemented() { finish(Status::NotImplemented, {}); }
-void MateSearchRunner::onUnknown() { finish(Status::Unknown, {}); }
-
-void MateSearchRunner::onSafetyTimeout()
-{
     if (m_done) return;
-    if (!m_stopSent) {
-        // 制限時間を過ぎても応答が無い。stop を送って短く待つ
-        stop();
+    if (!m_searchStarted) {
+        finish(Status::Unknown, {});
         return;
     }
+    m_session->stop();
+}
+
+void MateSearchRunner::onCheckmate(const UsiCheckmate& result)
+{
+    switch (result.result) {
+    case UsiCheckmate::Result::Mate: finish(Status::Mate, result.pv); return;
+    case UsiCheckmate::Result::NoMate: finish(Status::NoMate, {}); return;
+    case UsiCheckmate::Result::NotImplemented: finish(Status::NotImplemented, {}); return;
+    case UsiCheckmate::Result::Unknown: finish(Status::Unknown, {}); return;
+    }
+}
+
+void MateSearchRunner::onNoResponse()
+{
     finish(Status::Unknown, {});
 }
 
@@ -88,7 +84,6 @@ void MateSearchRunner::onSessionError(const QString& message)
 {
     if (m_done) return;
     m_done = true;
-    m_safetyTimer.stop();
     m_session->quit();
     emit errorOccurred(message);
 }
@@ -97,7 +92,6 @@ void MateSearchRunner::finish(Status status, const QStringList& pv)
 {
     if (m_done) return;
     m_done = true;
-    m_safetyTimer.stop();
     m_session->quit();
     emit finished(status, pv);
 }

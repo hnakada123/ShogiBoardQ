@@ -7,7 +7,9 @@
 #include "gamerecordmodel.h"
 #include "kifubranchtree.h"
 #include "kifurecordlistmodel.h"
+#include "kifunavigationstate.h"
 #include "livegamesession.h"
+#include "sessionresetcoordinator.h"
 #include "sfenutils.h"
 #include "appsettings.h"
 #include "test_replay.h"
@@ -41,7 +43,7 @@ private slots:
         const auto moves = TestReplay::buildGameMoves(initial, usi);
         const auto positions = TestReplay::buildSfenRecord(initial, usi, false);
         for (int game = 0; game < 2; ++game) {
-            parts.gameSession->prepareStart({GameStartPreparation::Mode::NewGame, initial, -1});
+            QVERIFY(parts.sessionReset->prepareGameStart({GameStartPreparation::Mode::NewGame, initial, -1}));
             QVERIFY(session->canAddMove());
             QSignalSpy inserted(rows, &QAbstractItemModel::rowsInserted);
             QSignalSpy changed(tree, &KifuBranchTree::treeChanged);
@@ -53,7 +55,8 @@ private slots:
                 entry.mover = i == 0 ? Turn::Black : Turn::White;
                 entry.time = RecordTime::fromMilliseconds(1250, 1250);
                 service->appendRecord(entry);
-                QCOMPARE(session->totalPly(), i + 1);
+                QCOMPARE(session->liveNode()->ply(), i + 1);
+                QCOMPARE(parts.navState->currentNode(), session->liveNode());
                 QCOMPARE(rows->rowCount(), i + 2);
                 QCOMPARE(session->liveNode()->sfen(), positions.at(i + 1));
             }
@@ -69,7 +72,7 @@ private slots:
             QVERIFY(session->commit());
             QVERIFY(!session->isActive());
             const auto kif = model->toKifLines({}).join('\n');
-            const auto csa = model->toCsaLines({}, usi).join('\n');
+            const auto csa = model->toCsaLines({}).join('\n');
             const auto jkf = model->toJkfLines({}).join('\n');
             QVERIFY(kif.contains(QStringLiteral("７六歩")));
             QVERIFY(kif.contains(QStringLiteral("投了")));

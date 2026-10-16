@@ -12,6 +12,8 @@ class EvaluationChartView;
 class QLabel;
 class QTimer;
 class QGridLayout;
+#include "usiscore.h"
+
 class QPushButton;
 class EvaluationChartConfigurator;
 
@@ -23,11 +25,12 @@ public:
     ~EvaluationChartWidget() override;
     QWidget* chartViewWidget() const;
 
-    // mate は USI の score mate（数値または +/-）。空文字列は通常評価値。
-    void appendScoreP1(int ply, int cp, bool invert = false, const QString& mate = {});
-    void appendScoreP2(int ply, int cp, bool invert = false, const QString& mate = {});
-    void appendScoreP1Buffered(int ply, int cp, bool invert = false, const QString& mate = {});
-    void appendScoreP2Buffered(int ply, int cp, bool invert = false, const QString& mate = {});
+    /// 先手から見た評価値を ply 手目に描く（P1 は 1つ目の系列、P2 は 2つ目の系列）。評価値なしは描かない
+    void appendScoreP1(int ply, const UsiScore& blackScore);
+    void appendScoreP2(int ply, const UsiScore& blackScore);
+    /// 少し待ってからまとめて描く（棋譜解析で1局面ずつ届くとき）
+    void appendScoreP1Buffered(int ply, const UsiScore& blackScore);
+    void appendScoreP2Buffered(int ply, const UsiScore& blackScore);
     void flushPendingScores();
     void clearAll();
     void removeLastP1();
@@ -86,16 +89,12 @@ private slots:
 
 private:
     enum NavButton { NavFirst, NavBack10, NavPrev, NavNext, NavFwd10, NavLast, NavButtonCount };
-    struct Score {
-        int cp = 0;                 // 先手視点。描画時に丸めても元の値を保持する。
-        QString mate;              // 先手視点の符号、手数不明は +/-。
-    };
+    /// 先手から見た評価値。描くときに表示範囲へ丸めても、元の値を持つ
+    using Score = UsiScore;
     struct PendingScore {
         int side;
         int ply;
-        int cp;
-        bool invert;
-        QString mate;
+        UsiScore score;
     };
     void setupAxes();
     void setupChart();
@@ -109,8 +108,8 @@ private:
     void refreshData();
     void showCurrentPly();
     void updatePresentation();
-    void appendScore(int side, int ply, int cp, bool invert, const QString& mate);
-    void bufferScore(int side, int ply, int cp, bool invert, const QString& mate);
+    void appendScore(int side, int ply, const UsiScore& blackScore);
+    void bufferScore(int side, int ply, const UsiScore& blackScore);
     void removeLast(int side);
     qreal displayedValue(const Score& score) const;
     QString scoreText(const Score& score) const;

@@ -16,21 +16,13 @@
 #include <QSpinBox>
 #include <QTimer>
 #include <QToolButton>
-#include "tablemodelutils.h"
-#include "kifumovedelegate.h"
 #include "buttonstyles.h"
 #include "flowlayout.h"
-#include "numericrightaligncommadelegate.h"
-#include "pvboardbuttondelegate.h"
-#include "pvtextdelegate.h"
-#include "tablestyles.h"
 #include "shogienginethinkingmodel.h"
-#include "thinkinginfopresenter.h"
+#include "thinkingtableview.h"
 #include <QFont>
-#include <QHeaderView>
 #include <QHBoxLayout>
 #include <QPushButton>
-#include <QTableView>
 #include <QVBoxLayout>
 #include <initializer_list>
 
@@ -66,24 +58,12 @@ void ConsiderationTabManager::setConsiderationMultiPV(int value)
 
 void ConsiderationTabManager::setConsiderationTimeLimit(bool unlimited, int byoyomiSecVal)
 {
-    m_considerationTimeLimitSec = unlimited ? 0 : byoyomiSecVal;
-
+    // 利用者が選んだときと同じく、変更は設定に保存して知らせる（onTimeSettingChanged）
     if (m_unlimitedTimeRadioButton && m_considerationTimeRadioButton && m_byoyomiSecSpinBox) {
-        m_unlimitedTimeRadioButton->blockSignals(true);
-        m_considerationTimeRadioButton->blockSignals(true);
-        m_byoyomiSecSpinBox->blockSignals(true);
-
-        if (unlimited) {
-            m_unlimitedTimeRadioButton->setChecked(true);
-        } else {
-            m_considerationTimeRadioButton->setChecked(true);
-            m_byoyomiSecSpinBox->setValue(byoyomiSecVal);
-        }
-
-        m_unlimitedTimeRadioButton->blockSignals(false);
-        m_considerationTimeRadioButton->blockSignals(false);
-        m_byoyomiSecSpinBox->blockSignals(false);
+        if (!unlimited) m_byoyomiSecSpinBox->setValue(byoyomiSecVal);
+        (unlimited ? m_unlimitedTimeRadioButton : m_considerationTimeRadioButton)->setChecked(true);
     }
+    m_considerationTimeLimitSec = unlimited ? 0 : byoyomiSecVal;
     updateTimeControls();
 }
 
@@ -393,6 +373,21 @@ void ConsiderationTabManager::onElapsedTimerTick()
 // ConsiderationTabManager のUI構築・フォント管理
 // ============================================================
 
+QWidget* ConsiderationTabManager::buildUi(QWidget* parent)
+{
+    auto* page = new QWidget(parent);
+    auto* layout = new QVBoxLayout(page);
+    layout->setContentsMargins(4, 4, 4, 4);
+    layout->setSpacing(4);
+    buildConsiderationUi(page);
+    return page;
+}
+
+void ConsiderationTabManager::clearViewSelection(const ShogiEngineThinkingModel* model)
+{
+    if (m_considerationView && m_considerationView->thinkingModel() == model) m_considerationView->clearRowSelection();
+}
+
 void ConsiderationTabManager::buildConsiderationUi(QWidget* parentWidget)
 {
     buildToolbarControls(parentWidget);
@@ -424,7 +419,8 @@ void ConsiderationTabManager::buildToolbarControls(QWidget* parentWidget)
     m_btnConsiderationFontDecrease->setToolTip(tr("フォントサイズを小さくする"));
     m_btnConsiderationFontDecrease->setStyleSheet(ButtonStyles::panelToolButton());
     connect(m_btnConsiderationFontDecrease, &QToolButton::clicked,
-            this, &ConsiderationTabManager::onConsiderationFontDecrease);
+            &m_considerationFontSize, &FontSizeHelper::decrease);
+    connect(&m_considerationFontSize, &FontSizeHelper::fontSizeChanged, this, &ConsiderationTabManager::applyFontSize);
 
     // フォントサイズ増加ボタン（A+）
     m_btnConsiderationFontIncrease = new QToolButton(m_considerationToolbar);
@@ -433,7 +429,7 @@ void ConsiderationTabManager::buildToolbarControls(QWidget* parentWidget)
     m_btnConsiderationFontIncrease->setToolTip(tr("フォントサイズを大きくする"));
     m_btnConsiderationFontIncrease->setStyleSheet(ButtonStyles::panelToolButton());
     connect(m_btnConsiderationFontIncrease, &QToolButton::clicked,
-            this, &ConsiderationTabManager::onConsiderationFontIncrease);
+            &m_considerationFontSize, &FontSizeHelper::increase);
 
     // エンジン選択コンボボックス
     m_engineComboBox = new QComboBox(m_considerationToolbar);
@@ -551,60 +547,18 @@ void ConsiderationTabManager::layoutToolbar()
 void ConsiderationTabManager::buildConsiderationView(QWidget* parentWidget)
 {
     // EngineInfoWidget（検討タブ用）
-    m_considerationInfo = new EngineInfoWidget(parentWidget, false);
+    m_considerationInfo = new EngineInfoWidget(AnalysisSettings::ThinkingTable::Consideration, parentWidget, false);
     m_considerationInfo->setObjectName(QStringLiteral("considerationInfo"));
-    m_considerationInfo->setWidgetIndex(2);
     m_considerationInfo->setFontSize(m_considerationFontSize.fontSize());
-    m_considerationInfo->setColumnWidths(AnalysisSettings::engineInfoColumnWidths(2));
-    connect(m_considerationInfo, &EngineInfoWidget::columnWidthChanged,
-            this, &ConsiderationTabManager::saveInfoColumnWidths);
 
-    // 読み筋テーブルビュー
-    m_considerationView = new QTableView(parentWidget);
+    // 読み筋の表
+    m_considerationView = new ThinkingTableView(AnalysisSettings::ThinkingTable::Consideration, parentWidget);
     m_considerationView->setObjectName(QStringLiteral("considerationView"));
-
-    m_considerationView->setShowGrid(false);
-    m_considerationView->setMouseTracking(true);
-    // 思考表（EngineAnalysisPresenter::setupThinkingViewHeader）と見た目をそろえ、
-    // 縦のスクロールバーを常に出しておく
-    m_considerationView->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
-    m_considerationView->setSelectionBehavior(QAbstractItemView::SelectRows);
-    m_considerationView->setSelectionMode(QAbstractItemView::SingleSelection);
-    m_considerationView->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    m_considerationView->setHorizontalScrollMode(QAbstractItemView::ScrollPerPixel);
-    m_considerationView->setItemDelegateForColumn(4, new PvBoardButtonDelegate(m_considerationView));
-    m_considerationView->setItemDelegateForColumn(5, new PvTextDelegate(m_considerationView));
-
-    // ヘッダ設定
-    {
-        auto* h = m_considerationView->horizontalHeader();
-        if (h) {
-            m_considerationView->setStyleSheet(TableStyles::thinking());
-            h->setDefaultSectionSize(100);
-            h->setMinimumSectionSize(24);
-            h->setStretchLastSection(true);
-            connect(h, &QHeaderView::sectionResized,
-                    this, &ConsiderationTabManager::saveViewColumnWidths);
-        }
-        auto* vh = m_considerationView->verticalHeader();
-        if (vh) {
-            vh->setVisible(false);
-            const int rowHeight = KifuMoveDelegate::textHeight(m_considerationView->font()) + 4;
-            vh->setDefaultSectionSize(rowHeight);
-            vh->setSectionResizeMode(QHeaderView::Fixed);
-        }
-        m_considerationView->setWordWrap(false);
-    }
-
-    // 読み筋テーブルのクリックシグナルを接続
-    connect(m_considerationView, &QTableView::clicked,
-            this, &ConsiderationTabManager::onConsiderationViewClicked);
+    connect(m_considerationView, &ThinkingTableView::pvRowClicked, this, &ConsiderationTabManager::pvRowClicked);
 
     // buildConsiderationUi() より前に setConsiderationThinkingModel() が呼ばれた場合、
     // 保存済みモデルをビューに適用する
-    if (m_considerationModel) {
-        setConsiderationThinkingModel(m_considerationModel);
-    }
+    if (m_considerationModel) m_considerationView->setThinkingModel(m_considerationModel);
 }
 
 // ===================== モデル設定 =====================
@@ -612,77 +566,10 @@ void ConsiderationTabManager::buildConsiderationView(QWidget* parentWidget)
 void ConsiderationTabManager::setConsiderationThinkingModel(ShogiEngineThinkingModel* m)
 {
     m_considerationModel = m;
-    if (m_considerationView && m) {
-        const QSignalBlocker blocker(m_considerationView->horizontalHeader());
-        TableModelUtils::setModel(m_considerationView, m);
-        // 数値列の右寄せ＆3桁カンマ
-        // 検討の開始・終了でモデルを再設定しても同じ delegate を使う。
-        auto* delegate = qobject_cast<NumericRightAlignCommaDelegate*>(m_considerationView->itemDelegateForColumn(0));
-        if (!delegate) delegate = new NumericRightAlignCommaDelegate(m_considerationView);
-        for (int c = 0; c < 4; ++c) {
-            m_considerationView->setItemDelegateForColumn(c, delegate);
-        }
-        applyViewColumnWidths();
-    }
-} // NOLINT(clang-analyzer-cplusplus.NewDeleteLeaks)
-
-void ConsiderationTabManager::applyViewColumnWidths()
-{
-    if (!m_considerationView || !m_considerationModel) return;
-    auto* header = m_considerationView->horizontalHeader();
-    const QSignalBlocker blocker(header);
-    const QFontMetrics metrics(m_considerationView->font());
-    const auto saved = AnalysisSettings::thinkingViewColumnWidths(2);
-    const QString samples[] = {QStringLiteral("99,999"), QStringLiteral("99"),
-        QStringLiteral("99,999,999"), QStringLiteral("-9,999"), tr("表示")};
-    for (int col = 0; col < 5; ++col) {
-        const QString title = m_considerationModel->headerData(col, Qt::Horizontal).toString();
-        const int minimum = qMax(metrics.horizontalAdvance(title), metrics.horizontalAdvance(samples[col])) + 20;
-        const int width = saved.size() == 6 ? qMax(minimum, saved.at(col)) : minimum;
-        m_considerationView->setColumnWidth(col, width);
-    }
-    // 評価値列は、訳語の長い詰みの表示（英語では "Mate in 99 plies"）も省略せずに表示する。
-    const int mateWidth = metrics.horizontalAdvance(ThinkingInfoPresenter::mateScoreText(QStringLiteral("-99"))) + 20;
-    m_considerationView->setColumnWidth(3, qMax(m_considerationView->columnWidth(3), mateWidth));
-    // 読み筋は残り幅を使う。狭いドックでも横スクロールで閲覧できる。
-    m_considerationView->setColumnWidth(5, metrics.horizontalAdvance(QStringLiteral("M")) * 24);
-}
-
-void ConsiderationTabManager::saveViewColumnWidths(int logicalIndex)
-{
-    // 最終列はドックのリサイズでも伸縮するため保存対象から除く。
-    if (logicalIndex >= 5 || !m_considerationModel) return;
-    QList<int> widths;
-    for (int col = 0; col < 5; ++col) widths.append(m_considerationView->columnWidth(col));
-    widths.append(0);
-    AnalysisSettings::setThinkingViewColumnWidths(2, widths);
-}
-
-void ConsiderationTabManager::saveInfoColumnWidths()
-{
-    AnalysisSettings::setEngineInfoColumnWidths(2, m_considerationInfo->columnWidths());
+    if (m_considerationView && m) m_considerationView->setThinkingModel(m);
 }
 
 // ===================== スロット（UI関連） =====================
-
-void ConsiderationTabManager::onConsiderationViewClicked(const QModelIndex& index)
-{
-    if (!index.isValid()) return;
-    if (index.column() == 4) {
-        qCDebug(lcUi) << "[ConsiderationTabManager] onConsiderationViewClicked: row=" << index.row() << "(盤面ボタン)";
-        emit pvRowClicked(2, index.row());
-    }
-}
-
-void ConsiderationTabManager::onConsiderationFontIncrease()
-{
-    if (m_considerationFontSize.increase()) applyFontSize();
-}
-
-void ConsiderationTabManager::onConsiderationFontDecrease()
-{
-    if (m_considerationFontSize.decrease()) applyFontSize();
-}
 
 void ConsiderationTabManager::applyFontSize()
 {
@@ -733,15 +620,5 @@ void ConsiderationTabManager::applyFontSize()
     }
 
     if (m_considerationInfo) m_considerationInfo->setFontSize(size);
-
-    const QString headerStyle = TableStyles::thinking(size);
-
-    if (m_considerationView) {
-        const QSignalBlocker blocker(m_considerationView->horizontalHeader());
-        m_considerationView->setFont(font);
-        m_considerationView->setStyleSheet(headerStyle);
-        const int rowHeight = KifuMoveDelegate::textHeight(m_considerationView->font()) + 4;
-        m_considerationView->verticalHeader()->setDefaultSectionSize(rowHeight);
-        applyViewColumnWidths();
-    }
+    if (m_considerationView) m_considerationView->setFontPointSize(size);
 }

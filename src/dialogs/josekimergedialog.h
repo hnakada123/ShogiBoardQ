@@ -14,7 +14,9 @@
 #include <QList>
 #include <QString>
 #include <QSet>
+#include <QButtonGroup>
 #include <QCloseEvent>
+#include <functional>
 
 #include "fontsizehelper.h"
 #include "josekitypes.h"
@@ -54,44 +56,21 @@ public:
      */
     void setRegisteredMoves(const QSet<QString> &registeredMoves);
 
-public slots:
-    void onRegistrationFinished(const QString &sfen, const QString &usiMove, bool success);
-
-signals:
-    /**
-     * @brief 指し手を定跡に登録するシグナル
-     * @param sfen 局面SFEN（手数を除いた正規化形式）
-     * @param sfenWithPly 局面SFEN（手数付き）
-     * @param usiMove USI形式の指し手
-     */
-    void registerMove(const QString &sfen, const QString &sfenWithPly, const QString &usiMove);
-    
-    /**
-     * @brief 未登録の指し手をまとめて登録するシグナル（定跡ファイルへの保存は1回）
-     * @param entries 登録する棋譜エントリのリスト
-     */
-    void registerAllMoves(const QList<KifuMergeEntry> &entries);
+    /// 指し手を定跡に登録する関数（登録して定跡ファイルに保存できたら true）
+    using Registrar = std::function<bool(const QList<KifuMergeEntry> &entries)>;
+    /// 登録する関数を設定する。空にすると登録できなくなる（定跡ファイルを替えたとき）
+    void setRegistrar(Registrar registrar);
 
 private slots:
-    /**
-     * @brief 「登録」ボタンがクリックされた時のスロット
-     */
-    void onRegisterButtonClicked();
+    /// 行の「登録」ボタン
+    void onRegisterButtonClicked(int row);
     
     /**
      * @brief 「全て登録」ボタンがクリックされた時のスロット
      */
     void onRegisterAllButtonClicked();
     
-    /**
-     * @brief フォントサイズを拡大する
-     */
-    void onFontSizeIncrease();
     
-    /**
-     * @brief フォントサイズを縮小する
-     */
-    void onFontSizeDecrease();
 
 protected:
     void closeEvent(QCloseEvent *event) override;
@@ -111,7 +90,8 @@ private:
      * @brief フォントサイズを適用する
      */
     void applyFontSize();
-    bool registerEntry(const KifuMergeEntry &entry);
+    /// 指し手を登録する（登録して保存できたら true）
+    bool registerEntries(const QList<KifuMergeEntry> &entries);
     
     /**
      * @brief SFENを正規化（手数を除去）
@@ -140,8 +120,8 @@ private:
     QList<KifuMergeEntry> m_entries; ///< 棋譜エントリ
     QSet<QString> m_registeredMoves;   ///< 登録済みの指し手セット（「正規化SFEN:USI指し手」形式）
     FontSizeHelper m_fontHelper;            ///< フォントサイズヘルパー
-    bool m_lastRegistrationSucceeded = false;
-    bool m_batchRegistering = false;  ///< 「全て登録」の結果を受け取っている間は表を作り直さない
+    Registrar m_registrar;
+    QButtonGroup *m_registerButtons = nullptr;  ///< 行の「登録」ボタン（id が行）
 };
 
 #endif // JOSEKIMERGEDIALOG_H

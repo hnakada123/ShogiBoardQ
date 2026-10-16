@@ -6,8 +6,9 @@
 
 #include "tsumeevaluation.h"
 #include <QObject>
+
+#include "usimessages.h"
 #include <QStringList>
-#include <QTimer>
 
 class UsiEngineSession;
 
@@ -37,9 +38,7 @@ signals:
 private slots:
     void onReady();
     void onSessionError(const QString& message);
-    void onCheckmateSolved(const QStringList& pv);
-    void onCheckmateNoMate();
-    void onCheckmateUndetermined();
+    void onCheckmate(const UsiCheckmate& result);
     void timedOut();
 
 private:
@@ -51,7 +50,6 @@ private:
     QString m_executable;
     QString m_sfen;
     UsiEngineSession* m_session = nullptr;  ///< QObject parent 所有
-    QTimer m_deadline;
     int m_milliseconds = 5000;
     Phase m_phase = Phase::Off;
 };

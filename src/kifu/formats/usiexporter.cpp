@@ -2,42 +2,22 @@
 /// @brief USI形式棋譜エクスポータクラスの実装
 
 #include "usiexporter.h"
+#include "terminalcodes.h"
 #include "logcategories.h"
 #include "kifuexportcommon.h"
-
-// ========================================
-// ヘルパ関数
-// ========================================
-
-static QString getUsiTerminalCode(TerminalType terminal)
-{
-    // 棋譜ファイル用の拡張。エンジンとのposition通信には含めない。
-    switch (terminal) {
-    case TerminalType::Resign: return QStringLiteral("resign");
-    case TerminalType::Interrupt: return QStringLiteral("break");
-    case TerminalType::PerpetualCheck:
-    case TerminalType::Repetition: return QStringLiteral("rep_draw");
-    case TerminalType::Impasse:
-    case TerminalType::Draw: return QStringLiteral("draw");
-    case TerminalType::Timeout: return QStringLiteral("timeout");
-    case TerminalType::DeclarationWin: return QStringLiteral("win");
-    case TerminalType::Checkmate: return QStringLiteral("checkmate");
-    case TerminalType::IllegalWin: return QStringLiteral("illegal_win");
-    case TerminalType::IllegalLoss: return QStringLiteral("lose");
-    default: return {};
-    }
-}
+#include "kifubranchnode.h"
+#include "kifubranchtree.h"
 
 // ========================================
 // エクスポート
 // ========================================
 
-QStringList UsiExporter::exportLines(const GameRecordModel& model,
-                                     const GameRecordModel::ExportContext& ctx,
-                                     const QStringList& usiMoves)
+QStringList UsiExporter::exportLines(const GameRecordModel& model, const GameRecordModel::ExportContext& ctx)
 {
-    const QList<KifDisplayItem> disp = model.collectMainlineForExport();
-    return exportPosition(ctx.startSfen, usiMoves, disp.isEmpty() ? TerminalType::None : disp.last().terminalType);
+    const KifuBranchTree* tree = model.branchTree();
+    if (!tree || tree->isEmpty()) return exportPosition(ctx.startSfen, {});
+    const QList<KifuBranchNode*> line = tree->mainLine();
+    return exportPosition(ctx.startSfen, tree->mainRecordLine().usiMoves(), line.constLast()->terminalType());
 }
 
 QStringList UsiExporter::exportPosition(const QString& startSfen, const QStringList& usiMoves,
@@ -63,7 +43,7 @@ QStringList UsiExporter::exportPosition(const QString& startSfen, const QStringL
     QStringList mainlineUsi = usiMoves;
 
     // 3) 終局コードを取得
-    const QString terminalCode = getUsiTerminalCode(terminal);
+    const QString terminalCode = TerminalCodes::usi(terminal);
 
     // 4) position コマンド文字列を構築
     QString usiLine = positionStr;

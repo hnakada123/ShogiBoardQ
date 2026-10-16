@@ -17,13 +17,19 @@ enum class SameSquare {
     Compact,  ///< 「同銀」（読み筋のように手を続けて書くとき）
 };
 
+/// 棋譜に書かれていた修飾（JKF の relative・promote を表記に残す）
+struct Notes {
+    QString modifier;                ///< 相対位置の修飾語（「右」「上」「打」など。KI2 と同じ語）
+    bool declinedPromotion = false;  ///< 成れるのに成らなかった（「不成」と書く）
+};
+
 /**
  * @brief KIF 形式の指し手の文字列を out の後ろに足す
  *
  * 引数は format と同じ。読み筋のように手を続けて書くとき、手ごとに文字列を作らずに済む。
  */
 inline void append(QString& out, Turn mover, Piece moving, const UsiMove& move, BoardSquare previousTo = {},
-                   SameSquare same = SameSquare::Spaced)
+                   SameSquare same = SameSquare::Spaced, const Notes& notes = {})
 {
     out += QChar(mover == Turn::Black ? u'▲' : u'△');
     if (previousTo.isValid() && previousTo == move.to) {
@@ -34,11 +40,13 @@ inline void append(QString& out, Turn mover, Piece moving, const UsiMove& move, 
         out += ShogiNotation::rankKanjiChar(move.to.rank);
     }
     out += ShogiNotation::movePieceName(moving);
+    out += notes.modifier;
     if (move.isDrop()) {
-        out += QChar(u'打');
+        if (!notes.modifier.contains(u'打')) out += QChar(u'打');
         return;
     }
     if (move.promote) out += QChar(u'成');
+    else if (notes.declinedPromotion) out += QStringLiteral("不成");
     out += QLatin1Char('(');
     out += QChar(u'0' + move.from.file);
     out += QChar(u'0' + move.from.rank);
@@ -55,10 +63,11 @@ inline void append(QString& out, Turn mover, Piece moving, const UsiMove& move, 
  * 対局の棋譜・棋譜の読み込み・通信対局・定跡・詰将棋の読み筋で同じ書式を使う。
  * 成香・成桂・成銀は2文字で書く。
  */
-inline QString format(Turn mover, Piece moving, const UsiMove& move, BoardSquare previousTo = {})
+inline QString format(Turn mover, Piece moving, const UsiMove& move, BoardSquare previousTo = {},
+                      const Notes& notes = {})
 {
     QString text;
-    append(text, mover, moving, move, previousTo);
+    append(text, mover, moving, move, previousTo, SameSquare::Spaced, notes);
     return text;
 }
 

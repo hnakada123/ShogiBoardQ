@@ -2,23 +2,33 @@
 #define KIFUANALYSISRESULTSDISPLAY_H
 
 /// @file kifuanalysisresultsdisplay.h
-/// @brief 棋譜解析結果表示ウィジェットクラスの定義
-
+/// @brief 棋譜解析の結果の表の1行
 
 #include <QObject>
 #include <QString>
-#include "kifupresentation.h"
+#include <optional>
 
+#include "kifupresentation.h"
+#include "usiscore.h"
+
+/**
+ * @brief 棋譜解析の結果の表の1行（1局面の解析結果）
+ *
+ * 評価値は先手から見た値（UsiScore）で持つ。表示する文字列（「mate 3」・形勢）は表のモデルが作る。
+ */
 class KifuAnalysisResultsDisplay : public QObject
 {
     Q_OBJECT
 public:
-    // コンストラクタ
     explicit KifuAnalysisResultsDisplay(QObject *parent = nullptr);
 
-    // コンストラクタ
-    KifuAnalysisResultsDisplay(const QString& currentMove, const QString& evaluationValue, const QString& evaluationDifference,
-                               const QString& principalVariation, QObject* parent = nullptr);
+    /**
+     * @param evaluation 先手から見た評価値（定跡・未取得は None）
+     * @param evaluationDifference 直前の解析局面からの評価値の増減（比べられなければ nullopt）
+     */
+    KifuAnalysisResultsDisplay(const QString& currentMove, const UsiScore& evaluation,
+                               std::optional<int> evaluationDifference, const QString& principalVariation,
+                               QObject* parent = nullptr);
 
 private:
     // 指し手
@@ -27,11 +37,8 @@ private:
     // 候補手（前の行の読み筋の最初の指し手）
     QString m_candidateMove;
 
-    // 評価値
-    QString m_evaluationValue;
-
-    // 評価値差
-    QString m_evaluationDifference;
+    UsiScore m_evaluation;
+    std::optional<int> m_evaluationDifference;
 
     // 読み筋（漢字表記）
     QString m_principalVariation;
@@ -61,11 +68,10 @@ public:
     // 候補手を設定する。
     void setCandidateMove(const QString& move) { m_candidateMove = move; }
 
-    // 評価値を取得する。
-    QString evaluationValue() const;
-
-    // 評価値差を取得する。
-    QString evaluationDifference() const;
+    /// 先手から見た評価値（定跡・未取得は None）
+    const UsiScore& evaluation() const { return m_evaluation; }
+    /// 直前の解析局面からの評価値の増減（比べられなければ nullopt）
+    std::optional<int> evaluationDifference() const { return m_evaluationDifference; }
 
     // 読み筋（漢字表記）を取得する。
     QString principalVariation() const;

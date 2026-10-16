@@ -2,19 +2,18 @@
 /// @brief CSA形式棋譜エクスポータクラスの実装
 
 #include "csaexporter.h"
-#include "usimove.h"
 #include "shoginotation.h"
-#include "sfenreplay.h"
-#include "shogiboard.h"
 #include "csaformatter.h"
 #include "kifuexportcommon.h"
 #include "gameinfokeys.h"
 #include "gamerecordmodel.h"
-#include "kifdisplayitem.h"
+#include "kifubranchnode.h"
+#include "kifubranchtree.h"
 #include "kifparsetypes.h"
 #include "logcategories.h"
 #include "sfencsapositionconverter.h"
 #include "sfenutils.h"
+#include "terminalcodes.h"
 
 #include <QDateTime>
 #include <QRegularExpression>
@@ -37,23 +36,9 @@ static void appendCsaComments(const QString& comment, QStringList& out)
 // CsaExporter 本体
 // ========================================
 
-QStringList CsaExporter::exportLines(const GameRecordModel& model,
-                                     const GameRecordModel::ExportContext& ctx,
-                                     const QStringList& usiMoves)
+QStringList CsaExporter::exportLines(const GameRecordModel& model, const GameRecordModel::ExportContext& ctx)
 {
     QStringList out;
-
-    // デバッグ: 入力データの確認
-    qCDebug(lcKifu).noquote() << "toCsaLines: ========== CSA出力開始 ==========";
-    qCDebug(lcKifu).noquote() << "toCsaLines: usiMoves.size() =" << usiMoves.size();
-    if (!usiMoves.isEmpty()) {
-        qCDebug(lcKifu).noquote() << "toCsaLines: usiMoves[0..min(5,size)] ="
-                                  << usiMoves.mid(0, qMin(5, usiMoves.size()));
-    }
-
-    // 指し手の駒種（CSA は着手後の駒）を知るための局面（平手から始め、局面図があればその局面にする）
-    ShogiBoard position;
-    (void)position.trySetSfen(SfenUtils::hirateSfen());
 
     // 1) 文字コード宣言 (V3.0で追加)
     out << QStringLiteral("'CSA encoding=UTF-8");
@@ -107,42 +92,24 @@ QStringList CsaExporter::exportLines(const GameRecordModel& model,
             continue;
         }
 
-        if (key == QStringLiteral("棋戦")) {
-            out << QStringLiteral("$EVENT:%1").arg(val);
-        } else if (key == QStringLiteral("場所")) {
-            out << QStringLiteral("$SITE:%1").arg(val);
-        } else if (key == QStringLiteral("開始日時")) {
-            QString csaDateTime = CsaFormatter::convertToCsaDateTime(val);
-            out << QStringLiteral("$START_TIME:%1").arg(csaDateTime);
-            hasStartTime = true;
-        } else if (key == QStringLiteral("終了日時")) {
-            QString csaDateTime = CsaFormatter::convertToCsaDateTime(val);
-            out << QStringLiteral("$END_TIME:%1").arg(csaDateTime);
-        } else if (key == QStringLiteral("持ち時間")) {
+        if (key == GameInfoKeys::kTimeControl) {
+            // このアプリで対局した持ち時間は ctx.timeControl から書く（下）。読み込んだ棋譜の持ち時間は文字列から変換する
+            if (!ctx.timeControl.isUnlimited()) continue;
             // 時間制限のない対局は $TIME を書かずに表す
             if (val != QStringLiteral("無制限")) out << CsaFormatter::convertToCsaTimeLines(val);
             hasTime = true;
-        } else if (key == QStringLiteral("持ち時間(秒/加算)")) {
-            out << QStringLiteral("$TIME:%1").arg(val);
-            hasTime = true;
-        } else if (key == QStringLiteral("先手:持ち時間(秒/加算)")) {
-            out << QStringLiteral("$TIME+:%1").arg(val);
-            hasTime = true;
-        } else if (key == QStringLiteral("後手:持ち時間(秒/加算)")) {
-            out << QStringLiteral("$TIME-:%1").arg(val);
-            hasTime = true;
-        } else if (key == QStringLiteral("戦型")) {
-            out << QStringLiteral("$OPENING:%1").arg(val);
-        } else if (key == QStringLiteral("最大手数")) {
-            out << QStringLiteral("$MAX_MOVES:%1").arg(val);
-        } else if (key == QStringLiteral("持将棋") || key == QStringLiteral("持将棋点数")) {
-            out << QStringLiteral("$JISHOGI:%1").arg(val);
-        } else if (key == QStringLiteral("備考")) {
-            QString noteVal = val;
-            noteVal.replace(QStringLiteral("\\"), QStringLiteral("\\\\"));
-            noteVal.replace(QStringLiteral("\n"), QStringLiteral("\\n"));
-            out << QStringLiteral("$NOTE:%1").arg(noteVal);
+            continue;
         }
+        const QString csaKey = CsaFormatter::csaKeyFromGameInfo(key);
+        if (csaKey.isEmpty()) continue;
+        QString value = val;
+        if (csaKey == QLatin1String("START_TIME") || csaKey == QLatin1String("END_TIME"))
+            value = CsaFormatter::convertToCsaDateTime(val);
+        else if (csaKey == QLatin1String("NOTE"))
+            value = CsaFormatter::escapeNote(val);
+        if (csaKey == QLatin1String("START_TIME")) hasStartTime = true;
+        if (csaKey.startsWith(QLatin1String("TIME"))) hasTime = true;
+        out << QStringLiteral("$%1:%2").arg(csaKey, value);
     }
 
     // 5-2) 対局情報に開始日時がなくても、このアプリで対局した開始時刻が分かれば記録する。
@@ -179,7 +146,6 @@ QStringList CsaExporter::exportLines(const GameRecordModel& model,
             SfenCsaPositionConverter::toCsaPositionLines(ctx.startSfen, &convErr);
         if (csaPos && !csaPos->isEmpty()) {
             out << *csaPos;
-            (void)position.trySetSfen(ctx.startSfen);
         } else {
             qCWarning(lcKifu).noquote()
                 << "SFEN->CSA position conversion failed. fallback to PI. error=" << convErr;
@@ -188,122 +154,41 @@ QStringList CsaExporter::exportLines(const GameRecordModel& model,
         }
     }
 
-    // 7) 本譜の指し手を収集
-    const QList<KifDisplayItem> disp = model.collectMainlineForExport();
+    // 7) 本譜の指し手（分岐ツリーの各手の指し手・指した側・消費時間・終局をそのまま書く）
+    const KifuBranchTree* tree = model.branchTree();
+    const QList<KifuBranchNode*> line = (tree && !tree->isEmpty()) ? tree->mainLine() : QList<KifuBranchNode*>();
+    if (!line.isEmpty()) appendCsaComments(line.first()->comment(), out);   // 開始局面のコメント
 
-    qCDebug(lcKifu).noquote() << "toCsaLines: disp.size() =" << disp.size();
-    for (qsizetype dbgIdx = 0; dbgIdx < qMin(qsizetype(10), disp.size()); ++dbgIdx) {
-        qCDebug(lcKifu).noquote() << "toCsaLines: disp[" << dbgIdx << "].prettyMove ="
-                                  << disp[dbgIdx].prettyMove;
-    }
-
-    // 開始局面のコメントを出力
-    int startIdx = 0;
-    if (!disp.isEmpty() && disp[0].ply == 0) {
-        appendCsaComments(disp[0].comment, out);
-        startIdx = 1;
-        qCDebug(lcKifu).noquote() << "toCsaLines: 開始局面エントリあり、startIdx = 1";
-    }
-
-    // デバッグ: ループ開始前
-    qCDebug(lcKifu).noquote() << "toCsaLines: ========== CSA変換ループ開始 ==========";
-    qCDebug(lcKifu).noquote() << "toCsaLines: startIdx =" << startIdx
-                              << ", disp.size() =" << disp.size()
-                              << ", usiMoves.size() =" << usiMoves.size();
-
-    // 8) 各指し手を出力
-    int moveNo = 1;
-    bool isSente = true;
-    if (!ctx.startSfen.isEmpty()) {
-        const QStringList sfenParts = ctx.startSfen.trimmed().split(QLatin1Char(' '));
-        if (sfenParts.size() >= 2 && sfenParts[1] == QStringLiteral("w"))
-            isSente = false;
-    }
-    int processedMoves = 0;
-    int skippedNoUsi = 0;
-
-    for (qsizetype i = startIdx; i < disp.size(); ++i) {
-        const auto& it = disp[i];
-        const QString moveText = it.prettyMove.trimmed();
-
-        if (moveText.isEmpty() && it.terminalType == TerminalType::None) {
-            continue;
-        }
-
-        // 終局語の判定
-        if (it.terminalType != TerminalType::None) {
-            qCDebug(lcKifu).noquote() << "toCsaLines: 終局語検出: moveText =" << moveText;
-            const QString resultCode = CsaFormatter::csaResultCode(it.terminalType, it.terminalSide);
-            if (!resultCode.isEmpty()) {
-                out << resultCode;
-                out << CsaFormatter::extractCsaTimeToken(it.timeText);
+    int moves = 0;
+    for (qsizetype i = 1; i < line.size(); ++i) {
+        const KifuBranchNode* node = line.at(i);
+        if (node->isTerminal()) {
+            const QString special = TerminalCodes::csaSpecial(node->terminalType(), node->terminalSide(), false);
+            if (!special.isEmpty()) {
+                out << QLatin1Char('%') + special;
+                out << CsaFormatter::timeToken(node->time());
             }
-            appendCsaComments(it.comment, out);
+            appendCsaComments(node->comment(), out);
             break;
         }
-
-        // USI指し手を取得
-        QString usiMove;
-        if (moveNo - 1 < usiMoves.size()) {
-            usiMove = usiMoves.at(moveNo - 1);
-        }
-
-        qCDebug(lcKifu).noquote() << "toCsaLines: LOOP: i=" << i
-                                  << " moveNo=" << moveNo
-                                  << " isSente=" << isSente
-                                  << " moveText='" << moveText << "'"
-                                  << " usiMove='" << usiMove << "'";
-
-        // CSA形式の指し手を構築
-        QString csaMove;
-        const QString sign = isSente ? QStringLiteral("+") : QStringLiteral("-");
-
-        if (const auto move = UsiMove::parse(usiMove)) {
-            const Turn mover = isSente ? Turn::Black : Turn::White;
-            const Piece moving = move->isDrop() ? move->dropPieceFor(mover)
-                                                : position.pieceAt(move->from);
-            const QString csaPiece = ShogiNotation::csaPieceCode(move->promote ? promote(moving) : moving);
-            (void)SfenReplay::applyLenient(position, usiMove);
-            if (!csaPiece.isEmpty()) {
-                const QString from = move->isDrop()
-                    ? QStringLiteral("00")
-                    : QStringLiteral("%1%2").arg(move->from.file).arg(move->from.rank);
-                csaMove = QStringLiteral("%1%2%3%4%5")
-                    .arg(sign, from, QString::number(move->to.file), QString::number(move->to.rank), csaPiece);
-            }
-        }
-
-        if (csaMove.isEmpty()) {
-            ++skippedNoUsi;
-            if (skippedNoUsi <= 5) {
-                qCDebug(lcKifu).noquote() << "toCsaLines: スキップ(USIなし): i=" << i
-                                          << " moveNo=" << moveNo
-                                          << " moveText=" << moveText;
-            }
-            ++moveNo;
-            isSente = !isSente;
+        // CSA の駒は指した後の駒（成りは成った駒）
+        const ShogiMove move = node->move();
+        const QString csaPiece = ShogiNotation::csaPieceCode(move.move.promote ? promote(move.movingPiece)
+                                                                                 : move.movingPiece);
+        if (!move.isValid() || csaPiece.isEmpty()) {
+            qCDebug(lcKifu).noquote() << "toCsaLines: skipped a move without the moved piece at ply" << node->ply();
             continue;
         }
-
-        // 指し手を出力
-        out << csaMove;
-        out << CsaFormatter::extractCsaTimeToken(it.timeText);
-        ++processedMoves;
-
-        // コメント出力
-        appendCsaComments(it.comment, out);
-
-        ++moveNo;
-        isSente = !isSente;
+        const QString sign = node->record().mover == Turn::Black ? QStringLiteral("+") : QStringLiteral("-");
+        const QString from = move.isDrop() ? QStringLiteral("00")
+                                           : QStringLiteral("%1%2").arg(move.move.from.file).arg(move.move.from.rank);
+        out << QStringLiteral("%1%2%3%4%5").arg(sign, from, QString::number(move.move.to.file),
+                                                QString::number(move.move.to.rank), csaPiece);
+        out << CsaFormatter::timeToken(node->time());
+        appendCsaComments(node->comment(), out);
+        ++moves;
     }
 
-    // デバッグ: 結果サマリ
-    qCDebug(lcKifu).noquote() << "toCsaLines: ========== CSA出力終了 ==========";
-    qCDebug(lcKifu).noquote() << "toCsaLines: processedMoves =" << processedMoves
-                              << ", skippedNoUsi =" << skippedNoUsi;
-    qCDebug(lcKifu).noquote() << "toCsaLines: generated"
-                              << out.size() << "lines,"
-                              << (moveNo - 1) << "moves";
-
+    qCDebug(lcKifu).noquote() << "toCsaLines: generated" << out.size() << "lines," << moves << "moves";
     return out;
 }

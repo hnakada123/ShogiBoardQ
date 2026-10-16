@@ -1,7 +1,7 @@
 /// @file tst_analysisflow.cpp
-/// @brief AnalysisFlowController のユニットテスト
+/// @brief 棋譜解析（KifuAnalysisController・AnalysisJob）と検討の開始（ConsiderationUiController）のテスト
 ///
-/// 解析フロー制御の状態遷移・シグナル発火・エラー回復をテストする。
+/// 解析の開始・中止・完了・エラーの状態遷移（動作状態と実行中か）と、検討タブの設定で検討を始める流れを確かめる。
 
 #include <QTest>
 #include <QTemporaryDir>
@@ -9,26 +9,34 @@
 #include <QSignalSpy>
 #include <QSettings>
 #include <QStringList>
+#include <QVBoxLayout>
+#include <QWidget>
+#include <memory>
 
-#include "analysisflowcontroller.h"
 #include "analysiscoordinator.h"
-#include "sfenutils.h"
-#include "considerationflowcontroller.h"
-#include "enginesettingsconstants.h"
-#include "usi.h"
-#include "kifuanalysisdialog.h"
-#include "kifuanalysislistmodel.h"
-#include "kifurecordlistmodel.h"
+#include "analysisjob.h"
 #include "analysissession.h"
 #include "appactivitystate.h"
+#include "considerationtabmanager.h"
+#include "considerationuicontroller.h"
 #include "enginelifecyclemanager.h"
-#include "shogiclock.h"
+#include "enginesettingsconstants.h"
+#include "errorbus.h"
+#include "kifuanalysiscontroller.h"
+#include "kifuanalysisdialog.h"
+#include "kifuanalysislistmodel.h"
+#include "kifubranchnode.h"
+#include "kifubranchtree.h"
+#include "kifunavigationcontroller.h"
+#include "kifunavigationstate.h"
 #include "settingscommon.h"
-#include "usicommlogmodel.h"
+#include "sfenutils.h"
+#include "shogiclock.h"
 #include "shogienginethinkingmodel.h"
-#include "shogigamecontroller.h"
 #include "test_replay.h"
-
+#include "usi.h"
+#include "usicommlogmodel.h"
+#include "usimodelbinding.h"
 
 namespace {
 /// 検討・詰み探索のセッションと、それが使うエンジンの枠
@@ -39,17 +47,9 @@ struct AnalysisHarness {
     AnalysisSession session{AnalysisSession::Deps{&engines, &activity}};
 };
 
-void clearConsiderationEngineSettings()
-{
-    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-    settings.clear();
-    settings.sync();
-}
-
-void writeConsiderationEngineSettings(const QString& path, const QString& name)
+void writeEngineSettings(const QString& path, const QString& name)
 {
     using namespace EngineSettingsConstants;
-
     QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
     settings.clear();
     settings.beginWriteArray(EnginesGroupName);
@@ -60,64 +60,74 @@ void writeConsiderationEngineSettings(const QString& path, const QString& name)
     settings.sync();
 }
 
-void resetConsiderationSettings()
+QString mockEngine()
 {
-    clearConsiderationEngineSettings();
+    return QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
 }
 } // namespace
 
-/// テスト用ヘルパ: start() に渡す最小限の Deps を構築する
+/// 平手から2手の棋譜（表示中の手順）と、棋譜解析の部品
 class TestHelper
 {
 public:
     QStringList sfenRecord;
-    QStringList usiMoves;
+    QStringList usiMoves{QStringLiteral("7g7f"), QStringLiteral("3c3d")};
+    KifuBranchTree tree;
+    KifuNavigationState nav{&tree};
+    KifuNavigationController navController{&nav};
+    AppActivityState activity;
     KifuAnalysisListModel analysisModel;
     UsiCommLogModel logModel;
     ShogiEngineThinkingModel thinkingModel;
+    ShogiClock clock;
+    EngineLifecycleManager engines{&clock};
     Usi* usi = nullptr;
-    QString lastError;
+    QSignalSpy errors{&ErrorBus::instance(), &ErrorBus::messagePosted};
 
     TestHelper()
     {
-        writeConsiderationEngineSettings(QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match"), QStringLiteral("AnalysisTest"));
-
-        // 平手の開始局面 + 2手分
-        usiMoves << QStringLiteral("7g7f") << QStringLiteral("3c3d");
+        writeEngineSettings(mockEngine(), QStringLiteral("AnalysisTest"));
         sfenRecord = TestReplay::buildSfenRecord(SfenUtils::hirateSfen(), usiMoves, false);
-
-        usi = new Usi(&logModel, &thinkingModel, nullptr);
+        const QList<ShogiMove> moves = TestReplay::buildGameMoves(SfenUtils::hirateSfen(), usiMoves);
+        tree.setRootSfen(sfenRecord.first());
+        KifuBranchNode* node = tree.root();
+        for (int i = 0; i < moves.size(); ++i) node = tree.addMove(node, moves.at(i), usiMoves.at(i), sfenRecord.at(i + 1));
+        usi = new Usi();
+        new UsiModelBinding(usi, {&logModel, &thinkingModel});
     }
 
-    ~TestHelper()
+    ~TestHelper() { delete usi; }
+
+    /// エンジンが1行返したことにする
+    void engineReplies(const QString& line) const
     {
-        delete usi;
+        const_cast<UsiProtocolHandler*>(usi->protocol())->onDataReceived(line);
     }
 
-    AnalysisFlowController::Deps makeDeps()
+    RecordLine line() const { return KifuBranchTree::toRecordLine(tree.mainLine()); }
+
+    std::unique_ptr<KifuAnalysisController> controller(bool borrowEngine = true)
     {
-        AnalysisFlowController::Deps d;
-        d.line = RecordLine::fromPositions(sfenRecord, TestReplay::buildGameMoves(sfenRecord.first(), usiMoves));
-        d.line.currentPly = 0;
+        KifuAnalysisController::Deps d;
+        d.activity = &activity;
         d.analysisModel = &analysisModel;
-        d.usi = usi;
-        d.logModel = &logModel;
-        d.thinkingModel = &thinkingModel;
-        d.activePly = 0;
-        d.blackPlayerName = QStringLiteral("先手");
-        d.whitePlayerName = QStringLiteral("後手");
-        d.displayError = [this](const QString& msg) { lastError = msg; };
-        return d;
+        d.engines = &engines;
+        d.navState = &nav;
+        d.navController = &navController;
+        d.engine = borrowEngine ? usi : nullptr;
+        return std::make_unique<KifuAnalysisController>(d);
     }
 
-    /// start() に最小限の deps + ダイアログを渡して実行
-    void startAnalysis(AnalysisFlowController& ctrl)
+    /// 条件ダイアログの既定値（全局面）で解析を始める
+    bool startAnalysis(KifuAnalysisController& ctrl)
     {
-        auto deps = makeDeps();
-        KifuAnalysisDialog dlg;
-        dlg.setMaxPly(static_cast<int>(sfenRecord.size()) - 1);
-        ctrl.start(deps, &dlg);
+        KifuAnalysisDialog dialog;
+        dialog.setMaxPly(static_cast<int>(usiMoves.size()));
+        const std::optional<AnalysisRequest> request = ctrl.requestFromDialog(dialog);
+        return request && ctrl.start(*request);
     }
+
+    QString lastError() const { return errors.isEmpty() ? QString() : errors.last().at(1).toString(); }
 
 private:
     Q_DISABLE_COPY(TestHelper)
@@ -135,11 +145,11 @@ private slots:
     {
         TestHelper h;
         AnalysisRequest request;
-        request.line = h.makeDeps().line;
+        request.line = h.line();
         request.enginePath = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
         request.engineName = QStringLiteral("HeadlessAnalysis");
         request.options.endPly = 2;
-        AnalysisJob job(request, {h.usi, &h.logModel, &h.thinkingModel});
+        AnalysisJob job(request, {h.usi});
         QSignalSpy positions(&job, &AnalysisJob::positionPrepared);
         QSignalSpy results(&job, &AnalysisJob::resultReady);
         QSignalSpy finished(&job, &AnalysisJob::finished);
@@ -152,7 +162,7 @@ private slots:
         QVERIFY(!job.isRunning());
         job.stop();
         emit h.usi->engineInitialized();
-        emit h.usi->bestMoveReceived();
+        h.engineReplies(QStringLiteral("bestmove 7g7f"));
         QCOMPARE(finished.size(), 1);
         QCOMPARE(results.size(), 3);
     }
@@ -161,15 +171,15 @@ private slots:
     {
         TestHelper h;
         AnalysisRequest request;
-        request.line = h.makeDeps().line;
+        request.line = h.line();
         request.enginePath = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
-        AnalysisJob job(request, {h.usi, &h.logModel, &h.thinkingModel});
+        AnalysisJob job(request, {h.usi});
         QSignalSpy positions(&job, &AnalysisJob::positionPrepared);
         QSignalSpy finished(&job, &AnalysisJob::finished);
         QVERIFY(job.start());
         job.stop();
         emit h.usi->engineInitialized();
-        emit h.usi->bestMoveReceived();
+        h.engineReplies(QStringLiteral("bestmove 7g7f"));
         QCOMPARE(positions.size(), 0);
         QCOMPARE(finished.size(), 1);
         QVERIFY(!job.isRunning());
@@ -216,421 +226,185 @@ private slots:
     void initTestCase()
     {
         QVERIFY(m_config.isValid());
+        qputenv("XDG_CONFIG_HOME", m_config.path().toUtf8());
         qputenv("SHOGIBOARDQ_CONFIG_HOME", m_config.path().toUtf8());
     }
-    // --- 1. 状態遷移テスト ---
 
-    /// 初期状態は Idle（isRunning = false）
-    void initialState();
+    // === 棋譜解析の状態 ===
 
-    /// start() 後は Running 状態になる
-    void startTransitionsToRunning();
+    void initialState()
+    {
+        TestHelper h;
+        auto ctrl = h.controller();
+        QVERIFY(!ctrl->isRunning());
+        ctrl->stop();   // 解析していなければ何もしない
+        QCOMPARE(h.activity.activity(), AppActivityState::Activity::Idle);
+    }
 
-    /// stop() 後は Idle に戻る
-    void stopTransitionsToIdle();
+    /// 解析中は動作状態を「棋譜解析中」にし、中止で待機に戻す
+    void startAndStopFollowActivity()
+    {
+        TestHelper h;
+        auto ctrl = h.controller();
+        QVERIFY(h.startAnalysis(*ctrl));
+        QVERIFY(ctrl->isRunning());
+        QCOMPARE(h.activity.activity(), AppActivityState::Activity::DuringAnalysis);
+        ctrl->stop();
+        QVERIFY(!ctrl->isRunning());
+        QCOMPARE(h.activity.activity(), AppActivityState::Activity::Idle);
+        ctrl->stop();
+        QCOMPARE(h.activity.activity(), AppActivityState::Activity::Idle);
+    }
 
-    /// 解析中でない場合の stop() は何もしない
-    void stopWhenNotRunning();
+    /// 解析中に始め直すと、前の解析を止めて新しい解析を始める
+    void startWhileRunningRestarts()
+    {
+        TestHelper h;
+        auto ctrl = h.controller();
+        QVERIFY(h.startAnalysis(*ctrl));
+        QVERIFY(h.startAnalysis(*ctrl));
+        QVERIFY(ctrl->isRunning());
+        QCOMPARE(h.activity.activity(), AppActivityState::Activity::DuringAnalysis);
+        ctrl->stop();
+        QVERIFY(!ctrl->isRunning());
+    }
 
-    /// 解析中に再度 start() を呼ぶ場合：最初の解析は上書きされ新しい解析が開始される
-    void startWhileRunning();
+    /// 最後まで解析すると結果の表が埋まり、解析している手へ棋譜が移り、待機に戻る
+    void analysisRunsToCompletion()
+    {
+        TestHelper h;
+        auto ctrl = h.controller();
+        QVERIFY(h.startAnalysis(*ctrl));
+        QTRY_VERIFY_WITH_TIMEOUT(!ctrl->isRunning(), 7000);
+        QCOMPARE(h.analysisModel.rowCount(), 3);
+        QCOMPARE(h.nav.currentPly(), 2);
+        QCOMPARE(h.activity.activity(), AppActivityState::Activity::Idle);
+        QVERIFY(h.lastError().isEmpty());
+    }
 
-    // --- 2. シグナル発火テスト ---
+    // === エラー ===
 
-    /// stop() 時に analysisStopped シグナルが発火する
-    void stopEmitsAnalysisStopped();
+    void startWithEmptyLineReportsError()
+    {
+        TestHelper h;
+        auto ctrl = h.controller();
+        QVERIFY(!ctrl->start(AnalysisRequest{}));
+        QVERIFY(!ctrl->isRunning());
+        QVERIFY(h.lastError().contains(QStringLiteral("棋譜データ")));
+        QCOMPARE(h.activity.activity(), AppActivityState::Activity::Idle);
+    }
 
-    /// stop() 中にも analysisStopped は 1 回だけ発火
-    void stopEmitsAnalysisStoppedOnce();
+    /// エンジンを渡さなければ、解析ごとにエンジンを作って使う
+    void startWithoutEngineOwnsOne()
+    {
+        TestHelper h;
+        auto ctrl = h.controller(/*borrowEngine=*/false);
+        QVERIFY(h.startAnalysis(*ctrl));
+        QVERIFY(ctrl->isRunning());
+        QVERIFY(h.lastError().isEmpty());
+        ctrl->stop();
+        QVERIFY(!ctrl->isRunning());
+    }
 
-    /// 解析完了（onAnalysisFinished）時に analysisStopped が発火する
-    void analysisFinishedEmitsAnalysisStopped();
+    void startWithEngineInitFailure()
+    {
+        TestHelper h;
+        auto ctrl = h.controller();
+        writeEngineSettings(QStringLiteral("/missing/engine"), QStringLiteral("Missing"));
+        h.startAnalysis(*ctrl);
+        QTRY_VERIFY_WITH_TIMEOUT(!ctrl->isRunning(), 5000);
+        QVERIFY(!h.lastError().isEmpty());
+        QCOMPARE(h.activity.activity(), AppActivityState::Activity::Idle);
+    }
 
-    /// analysisProgressReported シグナルの発火テスト（onPositionPrepared 経由）
-    void positionPreparedEmitsProgress();
+    void engineErrorStopsAnalysis()
+    {
+        TestHelper h;
+        auto ctrl = h.controller();
+        QVERIFY(h.startAnalysis(*ctrl));
+        Q_EMIT h.usi->errorOccurred(QStringLiteral("Engine crashed"));
+        QVERIFY(!ctrl->isRunning());
+        QVERIFY(h.lastError().contains(QStringLiteral("Engine crashed")));
+        QCOMPARE(h.activity.activity(), AppActivityState::Activity::Idle);
+    }
 
-    // --- 3. エラー時の状態回復テスト ---
+    // === 検討の開始（検討タブの設定を1回読んで、表示中の局面で始める） ===
 
-    /// sfenRecord が null の場合は開始されずエラーコールバックが呼ばれる
-    void startWithNullSfenRecord();
+    void considerationStartsWithTabSettings()
+    {
+        writeEngineSettings(mockEngine(), QStringLiteral("StoredEngine"));
+        AnalysisHarness h;
+        KifuBranchTree tree;
+        tree.setRootSfen(SfenUtils::hirateSfen());
+        const QString after = TestReplay::buildSfenRecord(SfenUtils::hirateSfen(), {QStringLiteral("7g7f")}, false).at(1);
+        KifuBranchNode* first = tree.addMove(tree.root(), TestReplay::buildGameMoves(SfenUtils::hirateSfen(),
+                                             {QStringLiteral("7g7f")}).first(), QStringLiteral("▲７六歩(77)"), after);
+        KifuNavigationState nav(&tree);
+        nav.setCurrentNode(first);
 
-    /// sfenRecord が空の場合は開始されずエラーコールバックが呼ばれる
-    void startWithEmptySfenRecord();
+        QWidget panel;
+        new QVBoxLayout(&panel);
+        ShogiEngineThinkingModel considerationModel;
+        ConsiderationTabManager tab;
+        tab.setConsiderationThinkingModel(&considerationModel);
+        tab.buildConsiderationUi(&panel);
+        tab.setConsiderationTimeLimit(false, 15);
+        tab.setConsiderationMultiPV(4);
 
-    /// analysisModel が null の場合は開始されずエラーコールバックが呼ばれる
-    void startWithNullAnalysisModel();
+        ConsiderationUiController::Deps deps;
+        deps.considerationTabManager = &tab;
+        deps.session = &h.session;
+        deps.navState = &nav;
+        deps.considerationModel = &considerationModel;
+        ConsiderationUiController controller(deps);
+        controller.startConsideration();
 
-    /// usi が null の場合は開始されずエラーコールバックが呼ばれる
-    void startWithNullUsi();
+        QCOMPARE(h.activity.activity(), AppActivityState::Activity::DuringConsideration);
+        QVERIFY(h.session.isConsidering());
+        QVERIFY(h.session.engine());
+        // 設定を書き戻さない（タブの値はそのまま）
+        QCOMPARE(tab.considerationMultiPV(), 4);
+        QVERIFY(!tab.isUnlimitedTime());
+        QCOMPARE(tab.byoyomiSec(), 15);
+        auto* process = h.session.engine()->findChild<EngineProcessManager*>();
+        QVERIFY(process);
+        QSignalSpy commands(process, &EngineProcessManager::commandSent);
+        QTRY_VERIFY_WITH_TIMEOUT(!h.session.engine()->isInitializing(), 5000);
+        QStringList sent;
+        for (const auto& args : commands) sent.append(args.first().toString());
+        QVERIFY2(sent.contains(QStringLiteral("position startpos moves 7g7f")), qPrintable(sent.join('\n')));
+        QVERIFY(sent.contains(QStringLiteral("setoption name MultiPV value 4")));
+        h.session.stop();
+        QCOMPARE(h.activity.activity(), AppActivityState::Activity::Idle);
+    }
 
-    /// dialog が null の場合は開始されず即座に戻る
-    void startWithNullDialog();
+    /// 登録の無いエンジンが選ばれていれば、検討を始めずに知らせる
+    void considerationWithUnknownEngineReportsError()
+    {
+        writeEngineSettings(mockEngine(), QStringLiteral("StoredEngine"));
+        AnalysisHarness h;
+        KifuBranchTree tree;
+        tree.setRootSfen(SfenUtils::hirateSfen());
+        KifuNavigationState nav(&tree);
+        QWidget panel;
+        new QVBoxLayout(&panel);
+        ConsiderationTabManager tab;
+        tab.buildConsiderationUi(&panel);
+        writeEngineSettings(mockEngine(), QStringLiteral("RenamedEngine"));   // タブの一覧を作った後に登録が変わった
 
-    /// エンジン初期化失敗時は解析を開始しない
-    void startWithEngineInitFailure();
-
-    /// エンジンエラー発生時に解析が停止する
-    void engineErrorStopsAnalysis();
-
-    /// エンジンエラー発生時にエラーコールバックが呼ばれる
-    void engineErrorCallsDisplayError();
-
-    // --- 4. ConsiderationFlowController ---
-
-    /// 検討のセッションが未設定のときは開始せずエラーを返す
-    void considerationDirect_withoutSession_returnsFalse();
-
-    /// 無効なエンジン設定では開始通知を出さず false を返す
-    void considerationDirect_invalidEngineSelection_returnsFalse();
-
-    /// 正常系では開始通知・設定通知・startAnalysis が揃って動く
-    void considerationDirect_validEngine_startsAnalysis();
+        ConsiderationUiController::Deps deps;
+        deps.considerationTabManager = &tab;
+        deps.session = &h.session;
+        deps.navState = &nav;
+        ConsiderationUiController controller(deps);
+        QSignalSpy errors(&ErrorBus::instance(), &ErrorBus::messagePosted);
+        controller.startConsideration();
+        QCOMPARE(errors.count(), 1);
+        QVERIFY(errors.last().at(1).toString().contains(QStringLiteral("検討エンジン")));
+        QVERIFY(!h.session.isConsidering());
+        QCOMPARE(h.activity.activity(), AppActivityState::Activity::Idle);
+    }
 };
-
-// === 1. 状態遷移テスト ===
-
-void TestAnalysisFlow::initialState()
-{
-    AnalysisFlowController ctrl;
-    QVERIFY(!ctrl.isRunning());
-}
-
-void TestAnalysisFlow::startTransitionsToRunning()
-{
-    TestHelper h;
-    AnalysisFlowController ctrl;
-    h.startAnalysis(ctrl);
-
-    QVERIFY(ctrl.isRunning());
-}
-
-void TestAnalysisFlow::stopTransitionsToIdle()
-{
-    TestHelper h;
-    AnalysisFlowController ctrl;
-    h.startAnalysis(ctrl);
-    QVERIFY(ctrl.isRunning());
-
-    ctrl.stop();
-    QVERIFY(!ctrl.isRunning());
-}
-
-void TestAnalysisFlow::stopWhenNotRunning()
-{
-    AnalysisFlowController ctrl;
-    QSignalSpy spy(&ctrl, &AnalysisFlowController::analysisStopped);
-
-    // 解析中でないので stop() は何もしない
-    ctrl.stop();
-    QVERIFY(!ctrl.isRunning());
-    QCOMPARE(spy.count(), 0);
-}
-
-void TestAnalysisFlow::startWhileRunning()
-{
-    TestHelper h;
-    AnalysisFlowController ctrl;
-    h.startAnalysis(ctrl);
-    QVERIFY(ctrl.isRunning());
-
-    QSignalSpy stopped(&ctrl, &AnalysisFlowController::analysisStopped);
-    h.startAnalysis(ctrl);
-    QVERIFY(ctrl.isRunning());
-    QCOMPARE(stopped.count(), 1);
-    ctrl.stop();
-    QCOMPARE(stopped.count(), 2);
-}
-
-// === 2. シグナル発火テスト ===
-
-void TestAnalysisFlow::stopEmitsAnalysisStopped()
-{
-    TestHelper h;
-    AnalysisFlowController ctrl;
-    h.startAnalysis(ctrl);
-
-    QSignalSpy spy(&ctrl, &AnalysisFlowController::analysisStopped);
-    ctrl.stop();
-
-    // stop() → m_coord->stop() → analysisFinished → onAnalysisFinished の経路で1回だけ発火
-    QCOMPARE(spy.count(), 1);
-}
-
-void TestAnalysisFlow::stopEmitsAnalysisStoppedOnce()
-{
-    TestHelper h;
-    AnalysisFlowController ctrl;
-    h.startAnalysis(ctrl);
-
-    QSignalSpy spy(&ctrl, &AnalysisFlowController::analysisStopped);
-    ctrl.stop();
-    const auto firstStopCount = spy.count();
-
-    ctrl.stop(); // 2回目は m_running=false なので何もしない
-    QCOMPARE(spy.count(), firstStopCount); // 追加発火なし
-}
-
-void TestAnalysisFlow::analysisFinishedEmitsAnalysisStopped()
-{
-    TestHelper h;
-    AnalysisFlowController ctrl;
-    h.startAnalysis(ctrl);
-    QVERIFY(ctrl.isRunning());
-
-    QSignalSpy spy(&ctrl, &AnalysisFlowController::analysisStopped);
-
-    // stop() 経由で AnalysisCoordinator::analysisFinished → onAnalysisFinished が
-    // 呼び出され、analysisStopped が発火されることを検証
-    ctrl.stop();
-    QVERIFY(spy.count() >= 1);
-    QVERIFY(!ctrl.isRunning());
-}
-
-void TestAnalysisFlow::positionPreparedEmitsProgress()
-{
-    TestHelper h;
-    AnalysisFlowController ctrl;
-    QSignalSpy positions(&ctrl, &AnalysisFlowController::analysisPositionPrepared);
-    QSignalSpy scores(&ctrl, &AnalysisFlowController::analysisProgressReported);
-    h.startAnalysis(ctrl);
-    QTRY_VERIFY_WITH_TIMEOUT(positions.count() >= 1, 5000);
-    ctrl.stop();
-    QCOMPARE(scores.count(), 0); // 評価のない結果や盤面移動を評価値として通知しない。
-}
-
-// === 3. エラー時の状態回復テスト ===
-
-void TestAnalysisFlow::startWithNullSfenRecord()
-{
-    TestHelper h;
-    AnalysisFlowController ctrl;
-    auto deps = h.makeDeps();
-    deps.line = {};
-
-    KifuAnalysisDialog dlg;
-    ctrl.start(deps, &dlg);
-
-    QVERIFY(!ctrl.isRunning());
-    QVERIFY(h.lastError.contains(QStringLiteral("棋譜データ")));
-}
-
-void TestAnalysisFlow::startWithEmptySfenRecord()
-{
-    TestHelper h;
-    AnalysisFlowController ctrl;
-    auto deps = h.makeDeps();
-    deps.line = RecordLine{};
-
-    KifuAnalysisDialog dlg;
-    ctrl.start(deps, &dlg);
-
-    QVERIFY(!ctrl.isRunning());
-    QVERIFY(h.lastError.contains(QStringLiteral("棋譜データ")));
-}
-
-void TestAnalysisFlow::startWithNullAnalysisModel()
-{
-    TestHelper h;
-    AnalysisFlowController ctrl;
-    auto deps = h.makeDeps();
-    deps.analysisModel = nullptr;
-
-    KifuAnalysisDialog dlg;
-    ctrl.start(deps, &dlg);
-
-    QVERIFY(!ctrl.isRunning());
-    QVERIFY(h.lastError.contains(QStringLiteral("解析モデル")));
-}
-
-void TestAnalysisFlow::startWithNullUsi()
-{
-    TestHelper h;
-    AnalysisFlowController ctrl;
-    auto deps = h.makeDeps();
-    deps.usi = nullptr;
-    KifuAnalysisDialog dlg;
-    ctrl.start(deps, &dlg);
-    QVERIFY(ctrl.isRunning()); // 未指定なら実行がエンジンを所有する。
-    QVERIFY(h.lastError.isEmpty());
-    ctrl.stop();
-    QVERIFY(!ctrl.isRunning());
-}
-
-void TestAnalysisFlow::startWithNullDialog()
-{
-    TestHelper h;
-    AnalysisFlowController ctrl;
-    auto deps = h.makeDeps();
-
-    // dialog が null → 即座に return（エラーコールバックなし）
-    ctrl.start(deps, nullptr);
-
-    QVERIFY(!ctrl.isRunning());
-    // エラーコールバックは呼ばれない（null dialog チェックはエラー表示せず return）
-    QVERIFY(h.lastError.isEmpty());
-}
-
-void TestAnalysisFlow::startWithEngineInitFailure()
-{
-    TestHelper h;
-    AnalysisFlowController ctrl;
-
-    writeConsiderationEngineSettings(QStringLiteral("/missing/engine"), QStringLiteral("Missing"));
-    h.startAnalysis(ctrl);
-
-    QTRY_VERIFY_WITH_TIMEOUT(!ctrl.isRunning(), 5000);
-    QVERIFY(!h.lastError.isEmpty());
-}
-
-void TestAnalysisFlow::engineErrorStopsAnalysis()
-{
-    TestHelper h;
-    AnalysisFlowController ctrl;
-    h.startAnalysis(ctrl);
-    QVERIFY(ctrl.isRunning());
-
-    QSignalSpy spy(&ctrl, &AnalysisFlowController::analysisStopped);
-
-    // Usi の errorOccurred シグナルをシミュレート
-    Q_EMIT h.usi->errorOccurred(QStringLiteral("Engine crashed"));
-
-    QVERIFY(!ctrl.isRunning());
-    // onEngineError → stop() → m_coord->stop() → analysisFinished → onAnalysisFinished
-    // の経路で1回だけ発火
-    QCOMPARE(spy.count(), 1);
-}
-
-void TestAnalysisFlow::engineErrorCallsDisplayError()
-{
-    TestHelper h;
-    AnalysisFlowController ctrl;
-    h.startAnalysis(ctrl);
-    QVERIFY(ctrl.isRunning());
-
-    // Usi の errorOccurred シグナルをシミュレート
-    Q_EMIT h.usi->errorOccurred(QStringLiteral("Engine crashed"));
-
-    QVERIFY(!ctrl.isRunning());
-    QVERIFY(h.lastError.contains(QStringLiteral("Engine crashed")));
-}
-
-void TestAnalysisFlow::considerationDirect_withoutSession_returnsFalse()
-{
-    resetConsiderationSettings();
-
-    ConsiderationFlowController flow;
-    ConsiderationFlowController::Deps deps;
-    QString lastError;
-    bool startedNotified = false;
-    deps.onStarted = [&startedNotified]() { startedNotified = true; };
-    deps.onError = [&lastError](const QString& msg) { lastError = msg; };
-
-    const bool started = flow.runDirect(deps, {}, QStringLiteral("position startpos"));
-
-    QVERIFY(!started);
-    QVERIFY(lastError.contains(QStringLiteral("検討のセッション")));
-    QVERIFY(!startedNotified);
-
-}
-
-void TestAnalysisFlow::considerationDirect_invalidEngineSelection_returnsFalse()
-{
-    resetConsiderationSettings();
-
-    AnalysisHarness h;
-
-    ConsiderationFlowController flow;
-    ConsiderationFlowController::Deps deps;
-    QString lastError;
-    bool startedNotified = false;
-    bool timeReadyCalled = false;
-    bool multiPVReadyCalled = false;
-    deps.session = &h.session;
-    deps.onStarted = [&startedNotified]() { startedNotified = true; };
-    deps.onError = [&lastError](const QString& msg) { lastError = msg; };
-    deps.onTimeSettingsReady = [&timeReadyCalled](bool, int) { timeReadyCalled = true; };
-    deps.onMultiPVReady = [&multiPVReadyCalled](int) { multiPVReadyCalled = true; };
-
-    ConsiderationFlowController::DirectParams params;
-    params.engineIndex = 0;
-    params.engineName = QStringLiteral("MissingEngine");
-
-    const bool started = flow.runDirect(deps, params, QStringLiteral("position startpos"));
-
-    QVERIFY(!started);
-    QVERIFY(lastError.contains(QStringLiteral("検討エンジン")));
-    QVERIFY(!startedNotified);
-    QVERIFY(!timeReadyCalled);
-    QVERIFY(!multiPVReadyCalled);
-
-}
-
-void TestAnalysisFlow::considerationDirect_validEngine_startsAnalysis()
-{
-    resetConsiderationSettings();
-    writeConsiderationEngineSettings(QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match"),
-                                     QStringLiteral("StoredEngine"));
-
-    AnalysisHarness h;
-
-    ShogiEngineThinkingModel considerationModel;
-    ConsiderationFlowController flow;
-    ConsiderationFlowController::Deps deps;
-    bool startedNotified = false;
-    bool timeReadyCalled = false;
-    bool multiPVReadyCalled = false;
-    bool unlimitedReceived = true;
-    int byoyomiReceived = 0;
-    int multiPVReceived = 0;
-    QString lastError;
-    deps.session = &h.session;
-    deps.considerationModel = &considerationModel;
-    deps.onStarted = [&startedNotified]() { startedNotified = true; };
-    deps.onError = [&lastError](const QString& msg) { lastError = msg; };
-    deps.onTimeSettingsReady = [&timeReadyCalled, &unlimitedReceived, &byoyomiReceived](bool unlimited, int byoyomiSec) {
-        timeReadyCalled = true;
-        unlimitedReceived = unlimited;
-        byoyomiReceived = byoyomiSec;
-    };
-    deps.onMultiPVReady = [&multiPVReadyCalled, &multiPVReceived](int multiPV) {
-        multiPVReadyCalled = true;
-        multiPVReceived = multiPV;
-    };
-
-    ConsiderationFlowController::DirectParams params;
-    params.engineIndex = 0;
-    params.unlimitedTime = false;
-    params.byoyomiSec = 15;
-    params.multiPV = 4;
-    params.previousTo = BoardSquare{7, 6};
-    params.lastUsiMove = QStringLiteral("7g7f");
-
-    const QString position = QStringLiteral("position startpos moves 7g7f");
-    const bool started = flow.runDirect(deps, params, position);
-
-    QVERIFY(started);
-    QVERIFY(lastError.isEmpty());
-    QVERIFY(startedNotified);
-    QVERIFY(timeReadyCalled);
-    QVERIFY(multiPVReadyCalled);
-    QCOMPARE(unlimitedReceived, false);
-    QCOMPARE(byoyomiReceived, 15);
-    QCOMPARE(multiPVReceived, 4);
-    QCOMPARE(h.activity.activity(), AppActivityState::Activity::DuringConsideration);
-    QVERIFY(h.session.isConsidering());
-    QVERIFY(h.session.engine());
-    auto* process = h.session.engine()->findChild<EngineProcessManager*>();
-    QVERIFY(process);
-    QSignalSpy commands(process, &EngineProcessManager::commandSent);
-    QTRY_VERIFY_WITH_TIMEOUT(!h.session.engine()->isInitializing(), 5000);
-    QStringList sent;
-    for (const auto& args : commands) sent.append(args.first().toString());
-    QVERIFY2(sent.contains(position), qPrintable(sent.join('\n')));
-    QVERIFY(sent.contains(QStringLiteral("setoption name MultiPV value 4")));
-    QVERIFY(sent.contains(QStringLiteral("go infinite")));
-    h.session.stop();
-
-}
 
 QTEST_MAIN(TestAnalysisFlow)
 #include "tst_analysisflow.moc"

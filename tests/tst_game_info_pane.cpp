@@ -6,15 +6,17 @@
 #include <QLabel>
 #include <QPushButton>
 #include <QHeaderView>
-#include <QTableWidget>
+#include <QTableView>
 #include <QTemporaryDir>
 #include <QToolButton>
-#include "gameinfopanecontroller.h"
+#include "gameinfopane.h"
+#include "game_info_table_helper.h"
+#include "header_drag_helper.h"
 #include "gamesettings.h"
 #include "gameinfokeys.h"
 #include "playerinfopresenter.h"
 #include "gamerecordmodel.h"
-#include "engineanalysistab.h"
+#include "thinkingpanel.h"
 #include "engineinfowidget.h"
 #include "analysissettings.h"
 #include "elidelabel.h"
@@ -26,9 +28,8 @@ class TestGameInfoPane : public QObject
 {
     Q_OBJECT
     QTemporaryDir m_config;
-    QScopedPointer<GameInfoPaneController> m_controller;
-    QScopedPointer<QWidget> m_container;
-    QTableWidget* m_table = nullptr;
+    QScopedPointer<GameInfoPane> m_controller;
+    GameInfoTable m_table;
 
 private slots:
     void initTestCase()
@@ -42,56 +43,54 @@ private slots:
     {
         GameSettings::gameInfoFontSize.set(10);
         GameSettings::gameInfoKeyColumnWidth.set(0);
-        m_controller.reset(new GameInfoPaneController);
-        m_container.reset(m_controller->containerWidget());
+        m_controller.reset(new GameInfoPane);
         m_controller->setGameInfo({{QStringLiteral("先手"), QStringLiteral("Black")},
                                   {QStringLiteral("後手"), QStringLiteral("White")},
                                   {QStringLiteral("棋戦"), QStringLiteral("Original")}});
-        m_table = m_controller->tableWidget();
-        m_container->resize(700, 300);
-        m_container->show();
-        m_container->activateWindow();
-        m_table->setFocus();
-        QTRY_VERIFY(m_table->hasFocus());
+        m_table.view = m_controller->tableView();
+        m_controller->resize(700, 300);
+        m_controller->show();
+        m_controller->activateWindow();
+        m_table.view->setFocus();
+        QTRY_VERIFY(m_table.view->hasFocus());
     }
 
     void cleanup()
     {
-        m_container.reset();
         m_controller.reset();
     }
 
     void keyboardCellOperations()
     {
-        m_table->setCurrentCell(0, 1);
-        QTest::keyClick(m_table, Qt::Key_C, Qt::ControlModifier);
+        m_table.setCurrentCell(0, 1);
+        QTest::keyClick(m_table.view, Qt::Key_C, Qt::ControlModifier);
         QCOMPARE(QApplication::clipboard()->text(), QStringLiteral("Black"));
-        m_table->setCurrentCell(1, 1);
-        QTest::keyClick(m_table, Qt::Key_V, Qt::ControlModifier);
-        QCOMPARE(m_table->item(1, 1)->text(), QStringLiteral("Black"));
-        QTest::keyClick(m_table, Qt::Key_Z, Qt::ControlModifier);
-        QCOMPARE(m_table->item(1, 1)->text(), QStringLiteral("White"));
-        QTest::keyClick(m_table, Qt::Key_Y, Qt::ControlModifier);
-        QCOMPARE(m_table->item(1, 1)->text(), QStringLiteral("Black"));
-        QTest::keyClick(m_table, Qt::Key_X, Qt::ControlModifier);
-        QCOMPARE(m_table->item(1, 1)->text(), QString());
-        m_table->setCurrentCell(0, 0);
-        QTest::keyClick(m_table, Qt::Key_V, Qt::ControlModifier);
-        QCOMPARE(m_table->item(0, 0)->text(), QStringLiteral("先手"));
+        m_table.setCurrentCell(1, 1);
+        QTest::keyClick(m_table.view, Qt::Key_V, Qt::ControlModifier);
+        QCOMPARE(m_table.text(1, 1), QStringLiteral("Black"));
+        QTest::keyClick(m_table.view, Qt::Key_Z, Qt::ControlModifier);
+        QCOMPARE(m_table.text(1, 1), QStringLiteral("White"));
+        QTest::keyClick(m_table.view, Qt::Key_Y, Qt::ControlModifier);
+        QCOMPARE(m_table.text(1, 1), QStringLiteral("Black"));
+        QTest::keyClick(m_table.view, Qt::Key_X, Qt::ControlModifier);
+        QCOMPARE(m_table.text(1, 1), QString());
+        m_table.setCurrentCell(0, 0);
+        QTest::keyClick(m_table.view, Qt::Key_V, Qt::ControlModifier);
+        QCOMPARE(m_table.text(0, 0), QStringLiteral("先手"));
     }
 
     void toolbarRespectsEditorSelection()
     {
-        m_table->setCurrentCell(0, 1);
-        m_table->editItem(m_table->currentItem());
+        m_table.setCurrentCell(0, 1);
+        m_table.editCurrent();
         auto* editor = qobject_cast<QLineEdit*>(QApplication::focusWidget());
         QVERIFY(editor);
         editor->setSelection(1, 3);
-        QTest::mouseClick(m_container->findChild<QToolButton*>(QStringLiteral("gameInfoCopy")), Qt::LeftButton);
+        QTest::mouseClick(m_controller->findChild<QToolButton*>(QStringLiteral("gameInfoCopy")), Qt::LeftButton);
         QCOMPARE(QApplication::clipboard()->text(), QStringLiteral("lac"));
-        QTest::mouseClick(m_container->findChild<QToolButton*>(QStringLiteral("gameInfoCut")), Qt::LeftButton);
+        QTest::mouseClick(m_controller->findChild<QToolButton*>(QStringLiteral("gameInfoCut")), Qt::LeftButton);
         QCOMPARE(editor->text(), QStringLiteral("Bk"));
-        QTest::mouseClick(m_container->findChild<QToolButton*>(QStringLiteral("gameInfoPaste")), Qt::LeftButton);
+        QTest::mouseClick(m_controller->findChild<QToolButton*>(QStringLiteral("gameInfoPaste")), Qt::LeftButton);
         QCOMPARE(editor->text(), QStringLiteral("Black"));
         m_controller->commitPendingEditor();
         QVERIFY(!m_controller->isDirty());
@@ -99,22 +98,22 @@ private slots:
 
     void synchronizedNamesSurviveUndo()
     {
-        m_table->item(2, 1)->setText(QStringLiteral("Edited event"));
+        m_table.setText(2, 1, QStringLiteral("Edited event"));
         m_controller->updatePlayerNames(QStringLiteral("New black"), QStringLiteral("New white"));
         QVERIFY(m_controller->isDirty());
         m_controller->undo();
-        QCOMPARE(m_table->item(0, 1)->text(), QStringLiteral("New black"));
-        QCOMPARE(m_table->item(1, 1)->text(), QStringLiteral("New white"));
-        QCOMPARE(m_table->item(2, 1)->text(), QStringLiteral("Original"));
+        QCOMPARE(m_table.text(0, 1), QStringLiteral("New black"));
+        QCOMPARE(m_table.text(1, 1), QStringLiteral("New white"));
+        QCOMPARE(m_table.text(2, 1), QStringLiteral("Original"));
         QVERIFY(!m_controller->isDirty());
         m_controller->redo();
-        QCOMPARE(m_table->item(2, 1)->text(), QStringLiteral("Edited event"));
+        QCOMPARE(m_table.text(2, 1), QStringLiteral("Edited event"));
     }
 
     void commitIsSynchronous()
     {
-        m_table->setCurrentCell(0, 1);
-        m_table->editItem(m_table->currentItem());
+        m_table.setCurrentCell(0, 1);
+        m_table.editCurrent();
         auto* editor = qobject_cast<QLineEdit*>(QApplication::focusWidget());
         QVERIFY(editor);
         editor->setText(QStringLiteral("In progress"));
@@ -127,12 +126,12 @@ private slots:
 
     void endTimePreservesPendingEditorAndHistory()
     {
-        m_table->setCurrentCell(0, 1);
-        m_table->editItem(m_table->currentItem());
+        m_table.setCurrentCell(0, 1);
+        m_table.editCurrent();
         auto* editor = qobject_cast<QLineEdit*>(QApplication::focusWidget());
         QVERIFY(editor);
         editor->setText(QStringLiteral("Pending player"));
-        QDialog dialog(m_container.data());
+        QDialog dialog(m_controller.data());
         QLineEdit otherEditor(&dialog);
         dialog.setModal(true);
         dialog.show();
@@ -141,52 +140,52 @@ private slots:
         QTRY_VERIFY(otherEditor.hasFocus());
         const QString endTime = QStringLiteral("2026/09/27 10:00:00");
         m_controller->updateGameInfoValue(QStringLiteral("終了日時"), endTime);
-        QCOMPARE(m_table->item(0, 1)->text(), QStringLiteral("Pending player"));
+        QCOMPARE(m_table.text(0, 1), QStringLiteral("Pending player"));
         QVERIFY(m_controller->isDirty());
         m_controller->undo();
-        QCOMPARE(m_table->item(0, 1)->text(), QStringLiteral("Black"));
-        QCOMPARE(m_table->item(3, 1)->text(), endTime);
+        QCOMPARE(m_table.text(0, 1), QStringLiteral("Black"));
+        QCOMPARE(m_table.text(3, 1), endTime);
         QVERIFY(!m_controller->isDirty());
         m_controller->redo();
-        QCOMPARE(m_table->item(0, 1)->text(), QStringLiteral("Pending player"));
-        QCOMPARE(m_table->item(3, 1)->text(), endTime);
+        QCOMPARE(m_table.text(0, 1), QStringLiteral("Pending player"));
+        QCOMPARE(m_table.text(3, 1), endTime);
     }
 
     void loadResetsHistoryAndReadOnlyKeys()
     {
         m_controller->addRow();
         m_controller->commitPendingEditor();
-        m_table->item(3, 0)->setText(QStringLiteral("Custom"));
+        m_table.setText(3, 0, QStringLiteral("Custom"));
         m_controller->undo();
         m_controller->redo();
-        QVERIFY(m_table->item(3, 0)->flags() & Qt::ItemIsEditable);
+        QVERIFY(m_table.editable(3, 0));
         m_controller->setGameInfo({{QStringLiteral("先手"), QStringLiteral("Next game")}});
         m_controller->undo();
         m_controller->redo();
-        QCOMPARE(m_table->rowCount(), 1);
-        QCOMPARE(m_table->item(0, 1)->text(), QStringLiteral("Next game"));
-        QVERIFY(!(m_table->item(0, 0)->flags() & Qt::ItemIsEditable));
+        QCOMPARE(m_table.rowCount(), 1);
+        QCOMPARE(m_table.text(0, 1), QStringLiteral("Next game"));
+        QVERIFY(!(m_table.editable(0, 0)));
         QVERIFY(!m_controller->isDirty());
     }
 
     void controlsFollowSelectionAndClipboard()
     {
-        auto* cut = m_container->findChild<QToolButton*>(QStringLiteral("gameInfoCut"));
-        auto* copy = m_container->findChild<QToolButton*>(QStringLiteral("gameInfoCopy"));
-        auto* paste = m_container->findChild<QToolButton*>(QStringLiteral("gameInfoPaste"));
-        auto* remove = m_container->findChild<QToolButton*>(QStringLiteral("gameInfoRemoveRow"));
-        auto* undo = m_container->findChild<QToolButton*>(QStringLiteral("gameInfoUndo"));
-        auto* redo = m_container->findChild<QToolButton*>(QStringLiteral("gameInfoRedo"));
-        auto* apply = m_container->findChild<QPushButton*>(QStringLiteral("gameInfoApply"));
+        auto* cut = m_controller->findChild<QToolButton*>(QStringLiteral("gameInfoCut"));
+        auto* copy = m_controller->findChild<QToolButton*>(QStringLiteral("gameInfoCopy"));
+        auto* paste = m_controller->findChild<QToolButton*>(QStringLiteral("gameInfoPaste"));
+        auto* remove = m_controller->findChild<QToolButton*>(QStringLiteral("gameInfoRemoveRow"));
+        auto* undo = m_controller->findChild<QToolButton*>(QStringLiteral("gameInfoUndo"));
+        auto* redo = m_controller->findChild<QToolButton*>(QStringLiteral("gameInfoRedo"));
+        auto* apply = m_controller->findChild<QPushButton*>(QStringLiteral("gameInfoApply"));
         QVERIFY(!undo->isEnabled());
         QVERIFY(!redo->isEnabled());
         QVERIFY(!apply->isEnabled());
-        m_table->setCurrentCell(0, 0);
+        m_table.setCurrentCell(0, 0);
         QApplication::clipboard()->setText(QStringLiteral("new value"));
         QVERIFY(copy->isEnabled());
         QVERIFY(!cut->isEnabled());
         QVERIFY(!paste->isEnabled());
-        m_table->setCurrentCell(0, 1);
+        m_table.setCurrentCell(0, 1);
         QVERIFY(cut->isEnabled());
         QVERIFY(paste->isEnabled());
         QApplication::clipboard()->clear();
@@ -198,7 +197,7 @@ private slots:
         QVERIFY(!undo->isEnabled());
         QVERIFY(redo->isEnabled());
         QVERIFY(!apply->isEnabled());
-        m_table->clearSelection();
+        m_table.view->clearSelection();
         QVERIFY(!remove->isEnabled());
         QVERIFY(!copy->isEnabled());
         QVERIFY(!cut->isEnabled());
@@ -208,25 +207,25 @@ private slots:
     /// 案内文がボタンの次の行に回っても、余白があれば1行で表示する
     void editingHintStaysOnOneLine()
     {
-        auto* status = m_container->findChild<QLabel*>(QStringLiteral("gameInfoEditing"));
-        auto* apply = m_container->findChild<QPushButton*>(QStringLiteral("gameInfoApply"));
+        auto* status = m_controller->findChild<QLabel*>(QStringLiteral("gameInfoEditing"));
+        auto* apply = m_controller->findChild<QPushButton*>(QStringLiteral("gameInfoApply"));
         QVERIFY(status && apply);
         // QLabel は折り返し可能だと、平均文字幅の 20 字分より長い1行を短く折り返した幅を sizeHint にする。
         // 訳文（英語など）と同じ程度の長さで確かめる。
         status->setText(QStringLiteral("Double-click a value to edit the game information"));
         const int textWidth = status->fontMetrics().horizontalAdvance(status->text());
-        m_container->resize(qMax(apply->mapTo(m_container.data(), QPoint()).x() + apply->width(), textWidth) + 40, 300);
-        QTRY_VERIFY(status->mapTo(m_container.data(), QPoint()).y() > apply->mapTo(m_container.data(), QPoint()).y());
+        m_controller->resize(qMax(apply->mapTo(m_controller.data(), QPoint()).x() + apply->width(), textWidth) + 40, 300);
+        QTRY_VERIFY(status->mapTo(m_controller.data(), QPoint()).y() > apply->mapTo(m_controller.data(), QPoint()).y());
         QVERIFY(status->height() < 2 * status->fontMetrics().lineSpacing());
         QVERIFY(status->width() >= status->fontMetrics().horizontalAdvance(status->text()));
     }
 
     void pendingEditEnablesApplyAndEscapeClearsIt()
     {
-        auto* apply = m_container->findChild<QPushButton*>(QStringLiteral("gameInfoApply"));
-        auto* status = m_container->findChild<QLabel*>(QStringLiteral("gameInfoEditing"));
-        m_table->setCurrentCell(0, 1);
-        m_table->editItem(m_table->currentItem());
+        auto* apply = m_controller->findChild<QPushButton*>(QStringLiteral("gameInfoApply"));
+        auto* status = m_controller->findChild<QLabel*>(QStringLiteral("gameInfoEditing"));
+        m_table.setCurrentCell(0, 1);
+        m_table.editCurrent();
         auto* editor = qobject_cast<QLineEdit*>(QApplication::focusWidget());
         QVERIFY(editor);
         QTest::keyClicks(editor, "Changed");
@@ -234,27 +233,27 @@ private slots:
         QVERIFY(status->text().contains(QStringLiteral("未反映")));
         QTest::keyClick(editor, Qt::Key_Escape);
         QTRY_VERIFY(!apply->isEnabled());
-        QCOMPARE(m_table->item(0, 1)->text(), QStringLiteral("Black"));
-        m_table->editItem(m_table->currentItem());
+        QCOMPARE(m_table.text(0, 1), QStringLiteral("Black"));
+        m_table.editCurrent();
         editor = qobject_cast<QLineEdit*>(QApplication::focusWidget());
         QVERIFY(editor);
         QTest::keyClicks(editor, "Updated");
-        QSignalSpy updated(m_controller.data(), &GameInfoPaneController::gameInfoUpdated);
+        QSignalSpy updated(m_controller.data(), &GameInfoPane::gameInfoUpdated);
         QTest::mouseClick(apply, Qt::LeftButton);
         QCOMPARE(updated.count(), 1);
-        QCOMPARE(m_table->item(0, 1)->text(), QStringLiteral("Updated"));
+        QCOMPARE(m_table.text(0, 1), QStringLiteral("Updated"));
         QVERIFY(!m_controller->isDirty());
         QVERIFY(!apply->isEnabled());
     }
 
     void applyShortcutCommitsPendingEdit()
     {
-        m_table->setCurrentCell(2, 1);
-        m_table->editItem(m_table->currentItem());
+        m_table.setCurrentCell(2, 1);
+        m_table.editCurrent();
         auto* editor = qobject_cast<QLineEdit*>(QApplication::focusWidget());
         QVERIFY(editor);
         QTest::keyClicks(editor, "New event");
-        QSignalSpy updated(m_controller.data(), &GameInfoPaneController::gameInfoUpdated);
+        QSignalSpy updated(m_controller.data(), &GameInfoPane::gameInfoUpdated);
         QTest::keyClick(editor, Qt::Key_Return, Qt::ControlModifier);
         QTRY_COMPARE(updated.count(), 1);
         QCOMPARE(m_controller->gameInfo().at(2).value, QStringLiteral("New event"));
@@ -263,70 +262,69 @@ private slots:
 
     void removeRowsCanBeUndone()
     {
-        auto* remove = m_container->findChild<QToolButton*>(QStringLiteral("gameInfoRemoveRow"));
-        m_table->setCurrentCell(1, 1);
+        auto* remove = m_controller->findChild<QToolButton*>(QStringLiteral("gameInfoRemoveRow"));
+        m_table.setCurrentCell(1, 1);
         QTest::mouseClick(remove, Qt::LeftButton);
-        QCOMPARE(m_table->rowCount(), 2);
-        QCOMPARE(m_table->item(1, 0)->text(), QStringLiteral("棋戦"));
+        QCOMPARE(m_table.rowCount(), 2);
+        QCOMPARE(m_table.text(1, 0), QStringLiteral("棋戦"));
         m_controller->undo();
-        QCOMPARE(m_table->rowCount(), 3);
-        QCOMPARE(m_table->item(1, 1)->text(), QStringLiteral("White"));
-        QVERIFY(!(m_table->item(1, 0)->flags() & Qt::ItemIsEditable));
+        QCOMPARE(m_table.rowCount(), 3);
+        QCOMPARE(m_table.text(1, 1), QStringLiteral("White"));
+        QVERIFY(!(m_table.editable(1, 0)));
         QVERIFY(!m_controller->isDirty());
         m_controller->redo();
-        QCOMPARE(m_table->rowCount(), 2);
+        QCOMPARE(m_table.rowCount(), 2);
         m_controller->addRow();
         m_controller->commitPendingEditor();
         QTest::mouseClick(remove, Qt::LeftButton);
-        QCOMPARE(m_table->rowCount(), 2);
+        QCOMPARE(m_table.rowCount(), 2);
         m_controller->undo();
-        QCOMPARE(m_table->rowCount(), 3);
-        QVERIFY(m_table->item(2, 0)->flags() & Qt::ItemIsEditable);
+        QCOMPARE(m_table.rowCount(), 3);
+        QVERIFY(m_table.editable(2, 0));
         for (int i = 0; i < 3; ++i) QTest::mouseClick(remove, Qt::LeftButton);
-        QCOMPARE(m_table->rowCount(), 0);
+        QCOMPARE(m_table.rowCount(), 0);
         QVERIFY(!remove->isEnabled());
         m_controller->undo();
-        QCOMPARE(m_table->rowCount(), 1);
+        QCOMPARE(m_table.rowCount(), 1);
     }
 
     void longValuesWrapAndTooltipsStayCurrent()
     {
         const QString text = QStringLiteral("<長い備考> & ").repeated(35) + QStringLiteral("\n次の行");
-        m_table->item(2, 1)->setText(text);
-        const int wideHeight = m_table->rowHeight(2);
-        QVERIFY(wideHeight > m_table->rowHeight(0));
-        QVERIFY(m_table->item(2, 1)->toolTip().contains(QStringLiteral("&lt;長い備考&gt; &amp;")));
-        m_container->resize(360, 400);
-        QTRY_VERIFY(m_table->rowHeight(2) > wideHeight);
+        m_table.setText(2, 1, text);
+        const int wideHeight = m_table.view->rowHeight(2);
+        QVERIFY(wideHeight > m_table.view->rowHeight(0));
+        QVERIFY(m_table.toolTip(2, 1).contains(QStringLiteral("&lt;長い備考&gt; &amp;")));
+        m_controller->resize(360, 400);
+        QTRY_VERIFY(m_table.view->rowHeight(2) > wideHeight);
         m_controller->undo();
-        QCOMPARE(m_table->item(2, 1)->toolTip(), QStringLiteral("<qt>Original</qt>"));
+        QCOMPARE(m_table.toolTip(2, 1), QStringLiteral("<qt>Original</qt>"));
         m_controller->updateGameInfoValue(QStringLiteral("棋戦"), QStringLiteral("Automatic"));
-        QCOMPARE(m_table->item(2, 1)->toolTip(), QStringLiteral("<qt>Automatic</qt>"));
+        QCOMPARE(m_table.toolTip(2, 1), QStringLiteral("<qt>Automatic</qt>"));
         QVERIFY(!m_controller->isDirty());
     }
 
     void fontAndColumnWidthAreRestored()
     {
         m_controller->setGameInfo({{QStringLiteral("先手省略名"), QStringLiteral("Black")}});
-        const int originalWidth = m_table->columnWidth(0);
+        const int originalWidth = m_table.view->columnWidth(0);
         m_controller->setFontSize(24);
-        QVERIFY(m_table->columnWidth(0) > originalWidth);
-        QVERIFY(!m_container->findChild<QToolButton*>(QStringLiteral("gameInfoFontIncrease"))->isEnabled());
+        QVERIFY(m_table.view->columnWidth(0) > originalWidth);
+        QVERIFY(!m_controller->findChild<QToolButton*>(QStringLiteral("gameInfoFontIncrease"))->isEnabled());
         m_controller->setFontSize(8);
-        QVERIFY(!m_container->findChild<QToolButton*>(QStringLiteral("gameInfoFontDecrease"))->isEnabled());
-        m_table->setColumnWidth(0, 180);
+        QVERIFY(!m_controller->findChild<QToolButton*>(QStringLiteral("gameInfoFontDecrease"))->isEnabled());
+        HeaderDrag::resizeSection(m_table.view->horizontalHeader(), 0, 180);
         m_controller->setGameInfo({{QStringLiteral("棋戦"), QStringLiteral("Next")}});
-        QCOMPARE(m_table->columnWidth(0), 180);
-        GameInfoPaneController restored;
-        QScopedPointer<QWidget> restoredContainer(restored.containerWidget());
+        QCOMPARE(m_table.view->columnWidth(0), 180);
+        GameInfoPane restored;
         QCOMPARE(restored.fontSize(), 8);
-        QCOMPARE(restored.tableWidget()->columnWidth(0), 180);
+        QCOMPARE(restored.tableView()->columnWidth(0), 180);
     }
 
     void initialValuesHaveDefaultNamesAndDisplayOnlyHints()
     {
         m_controller->resetGameInfo();
-        QCOMPARE(m_table->rowCount(), 9);
+        QCOMPARE(m_table.rowCount(), 9);
         const QStringList keys = {QStringLiteral("対局日"), QStringLiteral("開始日時"),
                                   QStringLiteral("先手"), QStringLiteral("後手"), QStringLiteral("手合割"),
                                   QStringLiteral("持ち時間"), QStringLiteral("棋戦"),
@@ -335,13 +333,13 @@ private slots:
         const QStringList values = {{}, {}, QStringLiteral("先手"), QStringLiteral("後手"),
                                     QStringLiteral("平手"), {}, {}, {}, {}};
         for (int row = 0; row < keys.size(); ++row) {
-            QCOMPARE(m_table->item(row, 0)->text(), keys.at(row));
-            QCOMPARE(m_table->item(row, 1)->text(), values.at(row));
+            QCOMPARE(m_table.text(row, 0), keys.at(row));
+            QCOMPARE(m_table.text(row, 1), values.at(row));
         }
         QVERIFY(!m_controller->isDirty());
-        QVERIFY(m_table->item(1, 1)->data(Qt::AccessibleTextRole).toString().contains(QStringLiteral("未開始")));
-        m_table->setCurrentCell(2, 1);
-        m_table->editItem(m_table->currentItem());
+        QVERIFY(m_table.accessibleText(1, 1).contains(QStringLiteral("未開始")));
+        m_table.setCurrentCell(2, 1);
+        m_table.editCurrent();
         auto* editor = qobject_cast<QLineEdit*>(QApplication::focusWidget());
         QVERIFY(editor);
         QCOMPARE(editor->text(), QStringLiteral("先手"));
@@ -362,37 +360,30 @@ private slots:
         QVERIFY(kif.contains(QStringLiteral("後手：後手\n")));
 
         m_controller->setGameInfo({{GameInfoKeys::kStartDateTime, {}}});
-        QVERIFY(!m_table->item(0, 1)->data(Qt::AccessibleTextRole).toString().contains(QStringLiteral("未開始")));
-    }
-
-    void thinkingPanelsFollowMatchMode_data()
-    {
-        QTest::addColumn<bool>("tabFirst");
-        QTest::newRow("tab-before-controller") << true;
-        QTest::newRow("tab-after-controller") << false;
+        QVERIFY(!m_table.accessibleText(0, 1).contains(QStringLiteral("未開始")));
     }
 
     void thinkingPanelsFollowMatchMode()
     {
-        QFETCH(bool, tabFirst);
         QWidget parent;
-        EngineAnalysisTab tab;
-        auto* page = tab.createThinkingPage(&parent);
+        ThinkingPanel tab(&parent);
+        auto* page = &tab;
         const auto views = page->findChildren<QTableView*>(QString(), Qt::FindDirectChildrenOnly);
         QCOMPARE(views.size(), 2);
         AppState state;
+        GameInfoPane gameInfo;
         PlayerInfoPresenter::Deps deps;
         deps.parentWidget = &parent;
+        deps.gameInfo = &gameInfo;
         deps.state = &state;
+        deps.thinking = &tab;
         PlayerInfoPresenter wiring(deps);
-        if (tabFirst) wiring.setAnalysisTab(&tab);
         MatchPlayers engines;
         engines.blackIsEngine = true;
         engines.whiteIsEngine = true;
         engines.blackEngineName = QStringLiteral("Engine A");
         engines.whiteEngineName = QStringLiteral("Engine B");
         wiring.onMatchPlayersResolved(engines);
-        if (!tabFirst) wiring.setAnalysisTab(&tab);
         QVERIFY(tab.info1()->isVisibleTo(page));
         QVERIFY(tab.info2()->isVisibleTo(page));
         QVERIFY(views.at(0)->isVisibleTo(page));
@@ -415,8 +406,8 @@ private slots:
     {
         AnalysisSettings::thinkingFontSize.set(10);
         QWidget parent;
-        EngineAnalysisTab tab;
-        auto* page = tab.createThinkingPage(&parent);
+        ThinkingPanel tab(&parent);
+        auto* page = &tab;
         auto* decrease = page->findChild<QToolButton*>(QStringLiteral("thinkingFontDecrease"));
         auto* increase = page->findChild<QToolButton*>(QStringLiteral("thinkingFontIncrease"));
         auto* arrows = page->findChild<QCheckBox*>(QStringLiteral("matchArrows"));
@@ -443,101 +434,101 @@ private slots:
         QWidget parent;
         ShogiView view;
         AppState state;
+        GameInfoPane gameInfo;
         PlayerInfoPresenter::Deps deps;
         deps.parentWidget = &parent;
+        deps.gameInfo = &gameInfo;
         deps.shogiView = &view;
         deps.state = &state;
         PlayerInfoPresenter wiring(deps);
-        wiring.addGameInfoTabAtStartup();
-        QScopedPointer<QWidget> container(wiring.gameInfoController()->containerWidget());
-        QCOMPARE(view.blackNameLabel()->fullText(), QStringLiteral("▲先手"));
-        QCOMPARE(view.whiteNameLabel()->fullText(), QStringLiteral("▽後手"));
+        QCOMPARE(view.chrome()->blackNameLabel()->fullText(), QStringLiteral("▲先手"));
+        QCOMPARE(view.chrome()->whiteNameLabel()->fullText(), QStringLiteral("▽後手"));
         // 対局していないときの表示でも対局情報の名前を残す
         wiring.showMatchPlayers();
-        QCOMPARE(view.blackNameLabel()->fullText(), QStringLiteral("▲先手"));
-        QCOMPARE(wiring.gameInfoController()->tableWidget()->item(2, 1)->text(), QStringLiteral("先手"));
+        QCOMPARE(view.chrome()->blackNameLabel()->fullText(), QStringLiteral("▲先手"));
+        QCOMPARE(GameInfoTable{wiring.gameInfoPane()->tableView()}.text(2, 1), QStringLiteral("先手"));
 
         // 対局後の「新規」でも前の対局者名を残さない
         MatchPlayers humans;
         humans.blackHumanName = QStringLiteral("太郎");
         humans.whiteHumanName = QStringLiteral("花子");
         wiring.onMatchPlayersResolved(humans);
-        QCOMPARE(view.blackNameLabel()->fullText(), QStringLiteral("▲太郎"));
-        wiring.gameInfoController()->resetGameInfo();
+        QCOMPARE(view.chrome()->blackNameLabel()->fullText(), QStringLiteral("▲太郎"));
+        wiring.gameInfoPane()->resetGameInfo();
         wiring.syncBoardNamesWithGameInfo();
-        QCOMPARE(view.blackNameLabel()->fullText(), QStringLiteral("▲先手"));
-        QCOMPARE(view.whiteNameLabel()->fullText(), QStringLiteral("▽後手"));
+        QCOMPARE(view.chrome()->blackNameLabel()->fullText(), QStringLiteral("▲先手"));
+        QCOMPARE(view.chrome()->whiteNameLabel()->fullText(), QStringLiteral("▽後手"));
     }
 
     void startingGameKeepsMetadataAndPendingEdits()
     {
         QWidget parent;
+        GameInfoPane gameInfo;
+        auto* controller = &gameInfo;
         PlayerInfoPresenter::Deps deps;
         deps.parentWidget = &parent;
+        deps.gameInfo = controller;
         PlayerInfoPresenter wiring(deps);
-        wiring.addGameInfoTabAtStartup();
-        auto* controller = wiring.gameInfoController();
-        QScopedPointer<QWidget> container(controller->containerWidget());
-        auto* table = controller->tableWidget();
-        container->resize(700, 400);
-        container->show();
-        container->activateWindow();
-        table->setFocus();
-        QTRY_VERIFY(table->hasFocus());
-        table->item(6, 1)->setText(QStringLiteral("練習対局"));
-        table->item(7, 1)->setText(QStringLiteral("自宅"));
+        GameInfoTable table{controller->tableView()};
+        controller->resize(700, 400);
+        controller->show();
+        controller->activateWindow();
+        table.view->setFocus();
+        QTRY_VERIFY(table.view->hasFocus());
+        table.setText(6, 1, QStringLiteral("練習対局"));
+        table.setText(7, 1, QStringLiteral("自宅"));
         controller->updateGameInfoValue(GameInfoKeys::kEndDateTime, QStringLiteral("2025/01/01 10:00:00"));
         controller->updateGameInfoValue(QStringLiteral("消費時間"), QStringLiteral("前局の消費時間"));
-        table->setCurrentCell(8, 1);
-        table->editItem(table->currentItem());
+        table.setCurrentCell(8, 1);
+        table.editCurrent();
         auto* editor = qobject_cast<QLineEdit*>(QApplication::focusWidget());
         QVERIFY(editor);
         editor->setText(QStringLiteral("入力途中の備考"));
         const QDateTime start(QDate(2026, 10, 2), QTime(15, 30, 5));
         wiring.setGameInfoForMatchStart(start, QStringLiteral("太郎"), QStringLiteral("花子"),
                                        QStringLiteral("平手"), TimeControl{{300000, 30000, 0}, {300000, 30000, 0}});
-        QCOMPARE(table->rowCount(), 9);
-        QCOMPARE(table->item(0, 1)->text(), QStringLiteral("2026/10/02"));
-        QCOMPARE(table->item(1, 1)->text(), QStringLiteral("2026/10/02 15:30:05"));
-        QCOMPARE(table->item(2, 1)->text(), QStringLiteral("太郎"));
-        QCOMPARE(table->item(3, 1)->text(), QStringLiteral("花子"));
-        QCOMPARE(table->item(5, 1)->text(), QStringLiteral("05:00+30"));
-        QCOMPARE(table->item(6, 1)->text(), QStringLiteral("練習対局"));
-        QCOMPARE(table->item(7, 1)->text(), QStringLiteral("自宅"));
-        QCOMPARE(table->item(8, 1)->text(), QStringLiteral("入力途中の備考"));
+        QCOMPARE(table.rowCount(), 9);
+        QCOMPARE(table.text(0, 1), QStringLiteral("2026/10/02"));
+        QCOMPARE(table.text(1, 1), QStringLiteral("2026/10/02 15:30:05"));
+        QCOMPARE(table.text(2, 1), QStringLiteral("太郎"));
+        QCOMPARE(table.text(3, 1), QStringLiteral("花子"));
+        QCOMPARE(table.text(5, 1), QStringLiteral("05:00+30"));
+        QCOMPARE(table.text(6, 1), QStringLiteral("練習対局"));
+        QCOMPARE(table.text(7, 1), QStringLiteral("自宅"));
+        QCOMPARE(table.text(8, 1), QStringLiteral("入力途中の備考"));
         QVERIFY(!controller->isDirty());
         wiring.setGameInfoForMatchStart(start.addSecs(3600), QStringLiteral("花子"), QStringLiteral("太郎"),
                                        QStringLiteral("平手"), TimeControl{});
-        QCOMPARE(table->item(5, 1)->text(), QStringLiteral("無制限"));
-        QCOMPARE(table->item(8, 1)->text(), QStringLiteral("入力途中の備考"));
+        QCOMPARE(table.text(5, 1), QStringLiteral("無制限"));
+        QCOMPARE(table.text(8, 1), QStringLiteral("入力途中の備考"));
 
         // 駒落ちは対局者を下手・上手で書き、前の対局の先手・後手の行を残さない。
         // 先後で違う持ち時間は両方を書く。
         wiring.setGameInfoForMatchStart(start, QStringLiteral("下手さん"), QStringLiteral("上手さん"),
                                        QStringLiteral("角落ち"), TimeControl{{60000, 2000, 0}, {120000, 3000, 0}});
-        QCOMPARE(table->rowCount(), 9);
-        QCOMPARE(table->item(2, 0)->text(), GameInfoKeys::kShitatePlayer);
-        QCOMPARE(table->item(2, 1)->text(), QStringLiteral("下手さん"));
-        QCOMPARE(table->item(3, 0)->text(), GameInfoKeys::kUwatePlayer);
-        QCOMPARE(table->item(3, 1)->text(), QStringLiteral("上手さん"));
-        QCOMPARE(table->item(5, 1)->text(), QStringLiteral("下手 01:00+2 / 上手 02:00+3"));
+        QCOMPARE(table.rowCount(), 9);
+        QCOMPARE(table.text(2, 0), GameInfoKeys::kShitatePlayer);
+        QCOMPARE(table.text(2, 1), QStringLiteral("下手さん"));
+        QCOMPARE(table.text(3, 0), GameInfoKeys::kUwatePlayer);
+        QCOMPARE(table.text(3, 1), QStringLiteral("上手さん"));
+        QCOMPARE(table.text(5, 1), QStringLiteral("下手 01:00+2 / 上手 02:00+3"));
         for (const auto& item : controller->gameInfo()) {
             QVERIFY(item.key != GameInfoKeys::kBlackPlayer);
             QVERIFY(item.key != GameInfoKeys::kWhitePlayer);
         }
         controller->updatePlayerNames(QStringLiteral("新しい下手"), QStringLiteral("新しい上手"));
-        QCOMPARE(table->item(2, 1)->text(), QStringLiteral("新しい下手"));
-        QCOMPARE(table->item(3, 1)->text(), QStringLiteral("新しい上手"));
+        QCOMPARE(table.text(2, 1), QStringLiteral("新しい下手"));
+        QCOMPARE(table.text(3, 1), QStringLiteral("新しい上手"));
         wiring.setGameInfoForMatchStart(start, QStringLiteral("太郎"), QStringLiteral("花子"),
                                        QStringLiteral("平手"), TimeControl{{60000, 2000, 0}, {120000, 3000, 0}});
-        QCOMPARE(table->rowCount(), 9);
-        QCOMPARE(table->item(2, 0)->text(), GameInfoKeys::kBlackPlayer);
-        QCOMPARE(table->item(3, 0)->text(), GameInfoKeys::kWhitePlayer);
-        QCOMPARE(table->item(5, 1)->text(), QStringLiteral("先手 01:00+2 / 後手 02:00+3"));
+        QCOMPARE(table.rowCount(), 9);
+        QCOMPARE(table.text(2, 0), GameInfoKeys::kBlackPlayer);
+        QCOMPARE(table.text(3, 0), GameInfoKeys::kWhitePlayer);
+        QCOMPARE(table.text(5, 1), QStringLiteral("先手 01:00+2 / 後手 02:00+3"));
         controller->resetGameInfo();
-        QVERIFY(table->item(6, 1)->text().isEmpty());
-        QVERIFY(table->item(1, 1)->text().isEmpty());
-        QVERIFY(table->item(1, 1)->data(Qt::AccessibleTextRole).toString().contains(QStringLiteral("未開始")));
+        QVERIFY(table.text(6, 1).isEmpty());
+        QVERIFY(table.text(1, 1).isEmpty());
+        QVERIFY(table.accessibleText(1, 1).contains(QStringLiteral("未開始")));
     }
 };
 

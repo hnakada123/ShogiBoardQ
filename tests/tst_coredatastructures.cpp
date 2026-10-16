@@ -6,7 +6,6 @@
 #include "shogitypes.h"
 #include "shogiboard.h"
 #include "shogigamecontroller.h"
-#include "turnmanager.h"
 #include "jishogicalculator.h"
 #include "notationutils.h"
 
@@ -53,61 +52,34 @@ private slots:
         QCOMPARE(m.move.drop, Piece::BlackPawn);
     }
 
-    // === TurnManager tests ===
+    // === 手番（正本は盤） ===
 
-    void turnManager_initialState()
+    void turn_sfenTokens()
     {
-        TurnManager tm;
-        // 新しい対局の前は先手
-        QCOMPARE(tm.side(), Turn::Black);
+        QCOMPARE(turnToSfen(Turn::Black), QStringLiteral("b"));
+        QCOMPARE(turnToSfen(Turn::White), QStringLiteral("w"));
+        QCOMPARE(sfenToTurn(QStringLiteral("b")), Turn::Black);
+        QCOMPARE(sfenToTurn(QStringLiteral("w")), Turn::White);
     }
 
-    void turnManager_setPlayer1()
+    /// 盤の手番は局面の SFEN から決まり、手番だけを変えたとき・指したときに1回だけ知らせる
+    void turn_boardIsTheSource()
     {
-        TurnManager tm;
-        tm.set(Turn::Black);
-        QCOMPARE(tm.side(), Turn::Black);
-        QCOMPARE(tm.toSfenToken(), QStringLiteral("b"));
-    }
+        ShogiBoard board;
+        board.setSfen(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"));
+        QCOMPARE(board.currentPlayer(), Turn::White);
 
-    void turnManager_setPlayer2()
-    {
-        TurnManager tm;
-        tm.set(Turn::White);
-        QCOMPARE(tm.side(), Turn::White);
-        QCOMPARE(tm.toSfenToken(), QStringLiteral("w"));
-    }
-
-    void turnManager_toggle()
-    {
-        TurnManager tm;
-        tm.set(Turn::Black);
-        tm.toggle();
-        QCOMPARE(tm.side(), Turn::White);
-        tm.toggle();
-        QCOMPARE(tm.side(), Turn::Black);
-    }
-
-    void turnManager_setFromSfenToken()
-    {
-        TurnManager tm;
-        tm.setFromSfenToken(QStringLiteral("w"));
-        QCOMPARE(tm.side(), Turn::White);
-        tm.setFromSfenToken(QStringLiteral("b"));
-        QCOMPARE(tm.side(), Turn::Black);
-    }
-
-    void turnManager_changedSignal()
-    {
-        TurnManager tm;
-        QSignalSpy spy(&tm, &TurnManager::changed);
+        QSignalSpy spy(&board, &ShogiBoard::turnChanged);
         QVERIFY(spy.isValid());
-
-        tm.set(Turn::Black);
+        board.setCurrentPlayer(Turn::White);
+        QCOMPARE(spy.count(), 0);
+        board.setCurrentPlayer(Turn::Black);
         QCOMPARE(spy.count(), 1);
+        QCOMPARE(spy.last().first().value<Turn>(), Turn::Black);
 
-        tm.toggle();
+        QVERIFY(board.applyUsiMove(*UsiMove::parse(u"7g7f")));
         QCOMPARE(spy.count(), 2);
+        QCOMPARE(board.currentPlayer(), Turn::White);
     }
 
     // === ShogiUtils tests ===
@@ -391,29 +363,15 @@ private slots:
 
     // === NotationUtils tests ===
 
-    void notationUtils_kanjiDigitToInt()
+    void shogiNotation_digits()
     {
-        QCOMPARE(NotationUtils::kanjiDigitToInt(QChar(u'一')), 1);
-        QCOMPARE(NotationUtils::kanjiDigitToInt(QChar(u'五')), 5);
-        QCOMPARE(NotationUtils::kanjiDigitToInt(QChar(u'九')), 9);
-        QCOMPARE(NotationUtils::kanjiDigitToInt(QChar('A')), 0);
-        QCOMPARE(NotationUtils::kanjiDigitToInt(QChar('1')), 0);
-    }
-
-    void notationUtils_intToZenkakuDigit()
-    {
-        QCOMPARE(NotationUtils::intToZenkakuDigit(1), QStringLiteral("１"));
-        QCOMPARE(NotationUtils::intToZenkakuDigit(9), QStringLiteral("９"));
-        QCOMPARE(NotationUtils::intToZenkakuDigit(0), QStringLiteral("？"));
-        QCOMPARE(NotationUtils::intToZenkakuDigit(10), QStringLiteral("？"));
-    }
-
-    void notationUtils_intToKanjiDigit()
-    {
-        QCOMPARE(NotationUtils::intToKanjiDigit(1), QStringLiteral("一"));
-        QCOMPARE(NotationUtils::intToKanjiDigit(9), QStringLiteral("九"));
-        QCOMPARE(NotationUtils::intToKanjiDigit(0), QStringLiteral("？"));
-        QCOMPARE(NotationUtils::intToKanjiDigit(10), QStringLiteral("？"));
+        QCOMPARE(ShogiNotation::rankFromKanji(QChar(u'一')), 1);
+        QCOMPARE(ShogiNotation::rankFromKanji(QChar(u'九')), 9);
+        QCOMPARE(ShogiNotation::rankFromKanji(QChar('1')), 0);
+        QCOMPARE(ShogiNotation::fileZenkaku(1), QStringLiteral("１"));
+        QCOMPARE(ShogiNotation::fileZenkaku(10), QString());
+        QCOMPARE(ShogiNotation::rankKanji(9), QStringLiteral("九"));
+        QCOMPARE(ShogiNotation::rankKanji(0), QString());
     }
 
     void notationUtils_formatSfenMove()

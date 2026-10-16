@@ -15,26 +15,26 @@
 #include <QResizeEvent>
 #include <QShowEvent>
 #include <QScrollBar>
-#include <QSignalBlocker>
 #include "usicommlogmodel.h"
 
-EngineInfoWidget::EngineInfoWidget(QWidget* parent, bool showPredictedMove)
+EngineInfoWidget::EngineInfoWidget(AnalysisSettings::ThinkingTable table, QWidget* parent,
+                                   bool showPredictedMove)
     : QWidget(parent)
     , m_table(new QTableWidget(1, COL_COUNT, this))
+    , m_thinkingTable(table)
     , m_showPredictedMove(showPredictedMove)
 {
     setupTable();
     initializeCells();
     buildLayout();
+    // 保存した列幅があれば使う
+    setColumnWidths(AnalysisSettings::engineInfoColumnWidths(m_thinkingTable));
 }
 
 void EngineInfoWidget::setupTable()
 {
     // 表の幅が変わるたびの見出しの文字の測り直しなどを省く見出しにする（QTableView の既定と同じ設定）
-    auto* header = new TableHeaderView(Qt::Horizontal, m_table);
-    header->setSectionsClickable(true);
-    header->setHighlightSections(true);
-    m_table->setHorizontalHeader(header);
+    auto* header = TableHeaderView::install(m_table);
 
     // ヘッダー設定
     QStringList headers;
@@ -76,9 +76,8 @@ void EngineInfoWidget::setupTable()
         m_table->setColumnHidden(COL_PRED, true);
     }
 
-    // 列幅変更時のシグナルを接続
-    connect(m_table->horizontalHeader(), &QHeaderView::sectionResized,
-            this, &EngineInfoWidget::onSectionResized);
+    // 利用者が列幅を変えたら保存する
+    connect(header, &TableHeaderView::sectionResizedByUser, this, &EngineInfoWidget::onSectionResizedByUser);
 
     // 編集不可・選択不可
     m_table->setEditTriggers(QAbstractItemView::NoEditTriggers);
@@ -188,7 +187,7 @@ void EngineInfoWidget::onHashChanged()    { setCellValue(COL_HASH, m_model->hash
 void EngineInfoWidget::setDisplayNameFallback(const QString& name) {
     qCDebug(lcUi).noquote() << "[EngineInfoWidget::setDisplayNameFallback] name=" << name
                        << "this=" << this
-                       << "m_widgetIndex=" << m_widgetIndex
+                       << "table=" << static_cast<int>(m_thinkingTable)
                        << "m_model=" << m_model
                        << "modelEngineName=" << (m_model ? m_model->engineName() : "<no model>");
     m_fallbackName = name;
@@ -229,33 +228,18 @@ void EngineInfoWidget::applyHeaderStyle()
 void EngineInfoWidget::setColumnWidths(const QList<int>& widths)
 {
     if (!m_table || widths.size() != COL_COUNT) return;
-    
-    // シグナルを一時的にブロック（設定中にシグナルが発火しないように）
-    m_table->horizontalHeader()->blockSignals(true);
-    
     for (int col = 0; col < COL_COUNT; ++col) {
-        if (widths.at(col) > 0) {
-            m_table->setColumnWidth(col, widths.at(col));
-        }
+        if (widths.at(col) > 0) m_table->setColumnWidth(col, widths.at(col));
     }
-    
-    m_table->horizontalHeader()->blockSignals(false);
-    
-    // 設定ファイルから読み込まれたことを記録
-    m_columnWidthsLoaded = true;
+    m_fixedColumnWidths = true;
     updateTableGeometry();
 }
 
-// 列幅変更時のスロット
-void EngineInfoWidget::onSectionResized(int logicalIndex, int oldSize, int newSize)
+void EngineInfoWidget::onSectionResizedByUser()
 {
-    Q_UNUSED(logicalIndex)
-    Q_UNUSED(oldSize)
-    Q_UNUSED(newSize)
-    
-    m_columnWidthsLoaded = true;
+    m_fixedColumnWidths = true;
+    AnalysisSettings::setEngineInfoColumnWidths(m_thinkingTable, columnWidths());
     updateTableGeometry();
-    emit columnWidthChanged();
 }
 
 void EngineInfoWidget::resizeEvent(QResizeEvent* event)
@@ -300,8 +284,7 @@ int EngineInfoWidget::headerHeight()
 void EngineInfoWidget::updateTableGeometry()
 {
     m_tableGeometryPending = false;
-    const QSignalBlocker blocker(m_table->horizontalHeader());
-    if (!m_columnWidthsLoaded) {
+    if (!m_fixedColumnWidths) {
         const QFont headingFont = m_table->font();
         const bool japanese = KifuPresentation::options().notation == KifuPresentation::Notation::Japanese;
         const QFont moveFont = japanese ? ApplicationFonts::japaneseFont(headingFont) : headingFont;

@@ -11,6 +11,7 @@
 #include <QTimer>
 
 #include "usiinfo.h"
+#include "usimessages.h"
 
 class UsiEngineSession;
 
@@ -51,8 +52,7 @@ signals:
 private slots:
     void onSessionReady();
     void onInfo(const UsiInfo& info);
-    void onBestMove();
-    void onThinkTimeout();
+    void onBestMove(const UsiBestMove& result);
     void onNoResponse();
     void onSessionError(const QString& message);
 
@@ -60,8 +60,6 @@ private:
     void finish(const QString& bestmove, const QString& ponder);
 
     UsiEngineSession* m_session = nullptr; ///< QObject parent 所有
-    QTimer m_thinkTimer;
-    QTimer m_noResponseTimer;
     QElapsedTimer m_elapsed;
     QMap<int, UsiInfo> m_latest;
     bool m_done = false;

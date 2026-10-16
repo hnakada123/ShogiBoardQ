@@ -10,66 +10,56 @@ namespace AnalysisSettings {
 
 // --- 解析タブ ---
 
-QList<int> engineInfoColumnWidths(int widgetIndex)
+namespace {
+QList<int> readWidths(const QString& key)
 {
     QSettings& s = SettingsCommon::openSettings();
-    QString key = QString(SettingsKeys::kEngineInfoColumnWidthsFmt).arg(widgetIndex);
     QList<int> widths;
-
-    int size = s.beginReadArray(key);
+    const int size = s.beginReadArray(key);
     for (int i = 0; i < size; ++i) {
         s.setArrayIndex(i);
         widths.append(s.value(SettingsKeys::kArrayWidth, 0).toInt());
     }
     s.endArray();
-
     return widths;
 }
 
-void setEngineInfoColumnWidths(int widgetIndex, const QList<int>& widths)
+void writeWidths(const QString& key, const QList<int>& widths)
 {
     QSettings& s = SettingsCommon::openSettings();
-    QString key = QString(SettingsKeys::kEngineInfoColumnWidthsFmt).arg(widgetIndex);
-
     s.beginWriteArray(key);
     for (qsizetype i = 0; i < widths.size(); ++i) {
         s.setArrayIndex(static_cast<int>(i));
         s.setValue(SettingsKeys::kArrayWidth, widths.at(i));
     }
     s.endArray();
-
     s.sync();
 }
 
-QList<int> thinkingViewColumnWidths(int viewIndex)
+QString tableKey(const char* format, ThinkingTable table)
 {
-    QSettings& s = SettingsCommon::openSettings();
-    QString key = QString(SettingsKeys::kThinkingViewColumnWidthsFmt).arg(viewIndex);
-    QList<int> widths;
+    return QString::fromLatin1(format).arg(static_cast<int>(table));
+}
+} // namespace
 
-    int size = s.beginReadArray(key);
-    for (int i = 0; i < size; ++i) {
-        s.setArrayIndex(i);
-        widths.append(s.value(SettingsKeys::kArrayWidth, 0).toInt());
-    }
-    s.endArray();
-
-    return widths;
+QList<int> engineInfoColumnWidths(ThinkingTable table)
+{
+    return readWidths(tableKey(SettingsKeys::kEngineInfoColumnWidthsFmt, table));
 }
 
-void setThinkingViewColumnWidths(int viewIndex, const QList<int>& widths)
+void setEngineInfoColumnWidths(ThinkingTable table, const QList<int>& widths)
 {
-    QSettings& s = SettingsCommon::openSettings();
-    QString key = QString(SettingsKeys::kThinkingViewColumnWidthsFmt).arg(viewIndex);
+    writeWidths(tableKey(SettingsKeys::kEngineInfoColumnWidthsFmt, table), widths);
+}
 
-    s.beginWriteArray(key);
-    for (qsizetype i = 0; i < widths.size(); ++i) {
-        s.setArrayIndex(static_cast<int>(i));
-        s.setValue(SettingsKeys::kArrayWidth, widths.at(i));
-    }
-    s.endArray();
+QList<int> thinkingViewColumnWidths(ThinkingTable table)
+{
+    return readWidths(tableKey(SettingsKeys::kThinkingViewColumnWidthsFmt, table));
+}
 
-    s.sync();
+void setThinkingViewColumnWidths(ThinkingTable table, const QList<int>& widths)
+{
+    writeWidths(tableKey(SettingsKeys::kThinkingViewColumnWidthsFmt, table), widths);
 }
 
 int usiLogCommandTarget()

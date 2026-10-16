@@ -17,53 +17,30 @@ int KifuAnalysisListModel::columnCount(const QModelIndex &parent) const
     return 8;
 }
 
-// 評価値を将棋の形勢表現（互角/やや有利/有利/優勢/勝勢）に変換する
-// 評価値は先手視点の値を前提とする（正=先手有利、負=後手有利）
-static QString getJudgementString(const QString& evalStr)
+// 先手から見た評価値の表示（定跡・未取得は「-」、詰みは "mate 3" など）
+QVariant KifuAnalysisListModel::evaluationText(const UsiScore& score)
 {
-    if (evalStr.isEmpty() || evalStr == QStringLiteral("-")) {
-        return QString();
-    }
+    if (score.isCp()) return score.value;
+    if (!score.isMate()) return QStringLiteral("-");
+    return QStringLiteral("mate %1").arg(score.mateText());
+}
 
-    // 詰み表示の場合
-    if (evalStr.contains(QStringLiteral("詰")) || evalStr.contains(QStringLiteral("mate"))) {
-        const QString mate = evalStr.startsWith(QStringLiteral("mate "))
-            ? evalStr.mid(5).trimmed() : evalStr;
-        if (mate.startsWith(QLatin1Char('-')) || mate == QStringLiteral("0")) {
-            return QObject::tr("後手勝ち");
-        } else {
-            return QObject::tr("先手勝ち");
-        }
-    }
+// 先手から見た評価値を形勢（互角・やや有利・有利・優勢・勝勢）にする
+QString KifuAnalysisListModel::judgementText(const UsiScore& score)
+{
+    if (score.isMate()) return score.mateSign() > 0 ? tr("先手勝ち") : tr("後手勝ち");
+    if (!score.isCp()) return QString();
 
-    bool ok = false;
-    int score = evalStr.toInt(&ok);
-    if (!ok) {
-        return QString();
-    }
-
-    const qint64 absScore = std::abs(static_cast<qint64>(score));
+    const qint64 absScore = std::abs(static_cast<qint64>(score.value));
+    // 互角のときは「互角」だけ、それ以外は「先手/後手：形勢」
+    if (absScore <= 100) return tr("互角");
     QString advantage;
-
-    if (absScore <= 100) {
-        advantage = QObject::tr("互角");
-    } else if (absScore <= 300) {
-        advantage = QObject::tr("やや有利");
-    } else if (absScore <= 600) {
-        advantage = QObject::tr("有利");
-    } else if (absScore <= 1000) {
-        advantage = QObject::tr("優勢");
-    } else {
-        advantage = QObject::tr("勝勢");
-    }
-
-    // 互角の場合は「互角」のみ、それ以外は「先手/後手 + 形勢」
-    if (absScore <= 100) {
-        return advantage;
-    }
-
-    QString side = (score > 0) ? QObject::tr("先手") : QObject::tr("後手");
-    return QObject::tr("%1：%2").arg(side, advantage);
+    if (absScore <= 300) advantage = tr("やや有利");
+    else if (absScore <= 600) advantage = tr("有利");
+    else if (absScore <= 1000) advantage = tr("優勢");
+    else advantage = tr("勝勢");
+    const QString side = score.value > 0 ? tr("先手") : tr("後手");
+    return tr("%1：%2").arg(side, advantage);
 }
 
 QVariant KifuAnalysisListModel::data(const QModelIndex &index, int role) const
@@ -128,11 +105,11 @@ QVariant KifuAnalysisListModel::data(const QModelIndex &index, int role) const
         }
         return QString();
     case 3: // 評価値
-        return item->evaluationValue();
+        return evaluationText(item->evaluation());
     case 4: // 形勢
-        return getJudgementString(item->evaluationValue());
+        return judgementText(item->evaluation());
     case 5: // 差
-        return item->evaluationDifference();
+        return item->evaluationDifference() ? QVariant(*item->evaluationDifference()) : QVariant(QStringLiteral("-"));
     case 7: // 読み筋
         return item->displayPv();
     default:

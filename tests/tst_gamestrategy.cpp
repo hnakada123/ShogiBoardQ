@@ -11,8 +11,7 @@ class TestGameStrategy : public QObject {
     QTemporaryDir m_config;
     MatchHarness* m_observed = nullptr;
     bool m_coherentMove = false;
-    int m_recordsAtRender = -1;
-    int m_recordsAtTurn = -1;
+    int m_recordsAtCommit = -1;
 
     /// 一手を確定し終えてから着手の確定を知らせる（盤・手順・棋譜・時計が揃っている）
     void observeCommittedMove(Turn mover, int ply)
@@ -23,12 +22,11 @@ class TestGameStrategy : public QObject {
             && h.sink.records.last().sfen == h.mc->record().lastSfen()
             && h.sink.records.last().time.toText() == h.clock.recordTime(Turn::Black).toText();
     }
-    void observeRender() { m_recordsAtRender = static_cast<int>(m_observed->sink.records.size()); }
-    void observeTurn() { m_recordsAtTurn = static_cast<int>(m_observed->sink.records.size()); }
+    void observeCommit() { m_recordsAtCommit = static_cast<int>(m_observed->sink.records.size()); }
 
     static bool engineMove(MatchHarness& h, const QString& usi, Turn mover, qint64 elapsedMs)
     {
-        return h.mc->strategyHost().applyEngineMove(*UsiMove::parse(usi), mover, elapsedMs);
+        return h.mc->strategyHost().applyEngineMove(::engineMove(usi, mover, elapsedMs));
     }
 
     static void startTimed(MatchHarness& h, int maxMoves = 0)
@@ -64,16 +62,16 @@ private slots:
         QTest::newRow("human") << true;
         QTest::newRow("engine") << false;
     }
-    /// 人間の手とエンジンの手は同じように記録し、記録してから盤と手番を描き直す
+    /// 人間の手とエンジンの手は同じように記録し、記録してから着手の確定を知らせる
+    /// （棋譜欄・盤の強調は記録された行から表示中の手を作る）
     void acceptedMove()
     {
         QFETCH(bool, human);
         MatchHarness h;
         startTimed(h);
         m_observed = &h;
-        m_recordsAtRender = m_recordsAtTurn = -1;
-        connect(h.mc.get(), &MatchCoordinator::boardChanged, this, &TestGameStrategy::observeRender);
-        connect(h.mc.get(), &MatchCoordinator::turnChanged, this, &TestGameStrategy::observeTurn);
+        m_recordsAtCommit = -1;
+        connect(&h.gc, &ShogiGameController::moveCommitted, this, &TestGameStrategy::observeCommit);
         QSignalSpy evaluated(h.mc.get(), &MatchCoordinator::engineMovePlayed);
         if (human) {
             h.clock.setMeasuredConsiderationTime(Turn::Black, 3000);
@@ -95,8 +93,7 @@ private slots:
         QCOMPARE(recorded.time.totalMs, 3000);
         QCOMPARE(h.mc->currentPly(), 1);
         QCOMPARE(h.gc.currentPlayer(), Turn::White);
-        QCOMPARE(m_recordsAtRender, 1);
-        QCOMPARE(m_recordsAtTurn, 1);
+        QCOMPARE(m_recordsAtCommit, 1);
         m_observed = nullptr;
     }
     void illegalEngineMoveDoesNotRecordNormalMove()
@@ -150,7 +147,7 @@ private slots:
     {
         MatchHarness h;
         EngineVsEngineStrategy strategy(h.mc->strategyHost(), {});
-        QSignalSpy board(h.mc.get(), &MatchCoordinator::boardChanged);
+        QSignalSpy board(h.gc.board(), &ShogiBoard::turnChanged);
         strategy.onHumanMove(RecordEntry::played(ShogiMove(*UsiMove::parse(u"7g7f"), Piece::BlackPawn),
                                                  QStringLiteral("unexpected"), SfenUtils::hirateSfen()));
         QVERIFY(h.sink.records.isEmpty());

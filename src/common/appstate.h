@@ -8,21 +8,18 @@
 
 #include "appactivitystate.h"
 #include "matchplayers.h"
-#include "sfenutils.h"
-#include "shogitypes.h"
 
 /**
  * @brief MainWindow が束ねる部品どうしで共有する状態
  *
  * 所有者は MainWindowComposer。部品はレジストリ経由ではなく、
  * 組み立て時にここへのポインタを受け取る（個々のフィールドへのポインタは渡さない）。
- * 棋譜の正本は分岐ツリー（KifuBranchTree）。対局中の手順は対局の司令塔（MatchCoordinator::record()）が持つ。
+ * 棋譜の正本は分岐ツリー（KifuBranchTree）、表示中の局面は KifuNavigationState が持つ（ここには写さない）。
+ * 対局中の手順は対局の司令塔（MatchCoordinator::record()）が持つ。
  */
 struct AppState {
     // --- 対局 ---
     AppActivityState activity;
-    QString startSfenStr = SfenUtils::hirateSfen();        ///< 開始局面（完全な SFEN）
-    QString currentSfenStr = QStringLiteral("startpos");   ///< 表示中の局面
 
     // --- 対局者 ---
     MatchPlayers players;                                  ///< 最後に始めた対局の対局者（名前と人間・エンジン）

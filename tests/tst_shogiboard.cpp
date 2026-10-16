@@ -238,7 +238,9 @@ private slots:
         ShogiBoard board;
         board.setSfen(sfen);
         const auto turn = board.currentPlayer();
+        QSignalSpy resetSpy(&board, &ShogiBoard::boardReset);
         board.resetGameBoard();
+        QCOMPARE(resetSpy.count(), 1);
 
         QCOMPARE(board.convertBoardToSfen(), QStringLiteral("9/9/9/9/9/9/9/9/9"));
         QCOMPARE(board.pieceStandCount(Piece::BlackKing), 0);

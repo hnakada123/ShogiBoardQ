@@ -20,7 +20,7 @@ class UiStatePolicyManager;
 class KifuFileController;
 class KifuExportController;
 class GameRecordModel;
-class CsaGameWiring;
+class CsaGameCoordinator;
 class AnalysisSession;
 
 /**
@@ -42,7 +42,7 @@ struct AutomationContext {
     KifuFileController* kifuFileController = nullptr;
     KifuExportController* kifuExportController = nullptr;
     GameRecordModel* gameRecordModel = nullptr;
-    CsaGameWiring* csaGameWiring = nullptr;                   ///< 通信対局の司令塔は最初の CSA 対局で作られる
+    const CsaGameCoordinator* csaGame = nullptr;              ///< 通信対局の司令塔
 
     // メニューウィンドウ（dialogs 層）の操作。automation 層からは直接触れないので関数で受け取る
     std::function<QStringList()> menuFavorites;

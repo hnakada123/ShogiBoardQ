@@ -1,37 +1,34 @@
 /// @file tst_game_start_flow.cpp
-/// @brief 対局開始フローの回帰テスト
+/// @brief 対局開始の流れの回帰テスト
 ///
-/// 対局開始ダイアログからの対局者の読み取り、start() バリデーション、
-/// 時間制御正規化、シグナル発火をテストする。
+/// 対局開始ダイアログの値から開始の計画（GameStartOptionsBuilder::plan）を作り、
+/// 時計に持ち時間を設定して対局の司令塔（MatchCoordinator）で始める流れを確かめる。
+/// 本体では GameSession::startGame がこの順に1つの関数で行う。
 
 #include <QTest>
 #include <QSignalSpy>
+#include <QTemporaryDir>
+#include <memory>
 
 #include "appactivitystate.h"
 #include "enginelifecyclemanager.h"
-#include "gamestartcoordinator.h"
 #include "gamestartoptionsbuilder.h"
 #include "matchcoordinator.h"
 #include "shogiclock.h"
-#include "kifurecordlistmodel.h"
 #include "shogigamecontroller.h"
+#include "timecontrolutil.h"
 #include "usi.h"
-#include <QTemporaryDir>
-#include <memory>
 
 static const QString kHirateSfen =
     QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
 
-/// テスト用ハーネス: GameStartCoordinator + MatchCoordinator のセットアップ
+/// 対局の司令塔と、その部品（盤・時計・動作状態・エンジンの枠）
 struct TestHarness {
     ShogiClock clock;
     ShogiGameController gc;
     AppActivityState activity;
     EngineLifecycleManager engines{&clock};
-
-    MatchCoordinator* match = nullptr;
-    GameStartCoordinator* gsc = nullptr;
-    std::unique_ptr<QSignalSpy> prepared;  ///< 対局を準備した回数（盤を開始局面にした）
+    std::unique_ptr<MatchCoordinator> match;
 
     TestHarness()
     {
@@ -40,77 +37,61 @@ struct TestHarness {
         matchDeps.clock = &clock;
         matchDeps.activity = &activity;
         matchDeps.engines = &engines;
-        match = new MatchCoordinator(matchDeps);
-        prepared = std::make_unique<QSignalSpy>(match, &MatchCoordinator::gamePrepared);
-        GameStartCoordinator::Deps gscDeps;
-        gscDeps.match = match;
-        gsc = new GameStartCoordinator(gscDeps);
+        match = std::make_unique<MatchCoordinator>(matchDeps);
     }
 
     ~TestHarness()
     {
-        delete gsc;
-        prepared.reset();
-        delete match;
+        match.reset();
         engines.destroyEngines();
     }
 
-    int initializedCount() const { return static_cast<int>(prepared->count()); }
-
-    /// HvH平手の最小 StartParams を構築
-    GameStartCoordinator::StartParams makeHvhParams()
+    /// 本体（GameSession::startGame）と同じ順に、時計を設定して対局を始める
+    void start(const MatchStartOptions& options, const MatchTimeSettings& time = {}, bool beginPlay = true)
     {
-        GameStartCoordinator::StartParams p;
-        p.opt.sfenStart = kHirateSfen;
-        p.autoStartEngineMove = false;
-        return p;
+        const QString sfen = GameStartOptionsBuilder::canonicalizeSfen(options.sfenStart);
+        TimeControlUtil::applyToClock(clock, time, sfen.section(QLatin1Char(' '), 1, 1) == QLatin1String("w")
+                                                       ? Turn::White : Turn::Black);
+        match->start(options);
+        if (beginPlay) match->beginPlay();
     }
 
-    /// HvE平手の最小 StartParams を構築
-    GameStartCoordinator::StartParams makeHveParams()
+    static MatchStartOptions hvh()
     {
-        GameStartCoordinator::StartParams p;
-        p.opt.players.whiteIsEngine = true;
-        p.opt.sfenStart = kHirateSfen;
-        p.opt.enginePath2 = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
-        p.opt.players.whiteEngineName = QStringLiteral("TestEngine");
-        p.autoStartEngineMove = false;
-        return p;
+        MatchStartOptions opt;
+        opt.sfenStart = kHirateSfen;
+        return opt;
     }
 
-    /// EvE平手の最小 StartParams を構築
-    GameStartCoordinator::StartParams makeEveParams()
+    static MatchStartOptions hve()
     {
-        GameStartCoordinator::StartParams p;
-        p.opt.players.blackIsEngine = true;
-        p.opt.players.whiteIsEngine = true;
-        p.opt.sfenStart = kHirateSfen;
-        p.opt.enginePath1 = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
-        p.opt.enginePath2 = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
-        p.opt.players.blackEngineName = QStringLiteral("Engine1");
-        p.opt.players.whiteEngineName = QStringLiteral("Engine2");
-        p.autoStartEngineMove = true;
-        return p;
+        MatchStartOptions opt = hvh();
+        opt.players.whiteIsEngine = true;
+        opt.enginePath2 = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
+        opt.players.whiteEngineName = QStringLiteral("TestEngine");
+        return opt;
+    }
+
+    static MatchStartOptions eve()
+    {
+        MatchStartOptions opt = hvh();
+        opt.players.blackIsEngine = true;
+        opt.players.whiteIsEngine = true;
+        opt.enginePath1 = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
+        opt.enginePath2 = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
+        opt.players.blackEngineName = QStringLiteral("Engine1");
+        opt.players.whiteEngineName = QStringLiteral("Engine2");
+        return opt;
     }
 };
 
-/// start() が適用後に通知した時間設定を受け取る。
-struct AppliedTimeControl {
-    int count = 0;
-    GameStartCoordinator::TimeSettings last;
-};
-
-static AppliedTimeControl startAndCaptureTimeControl(GameStartCoordinator* gsc,
-                                                     const GameStartCoordinator::StartParams& params)
+/// 人間どうしの対局開始ダイアログの値
+static StartGameDialogData humanDialog(int startingPosition)
 {
-    AppliedTimeControl applied;
-    QSignalSpy spy(gsc, &GameStartCoordinator::requestApplyTimeControl);
-    gsc->start(params);
-    applied.count = static_cast<int>(spy.count());
-    if (!spy.isEmpty()) {
-        applied.last = qvariant_cast<GameStartCoordinator::TimeSettings>(spy.last().at(0));
-    }
-    return applied;
+    StartGameDialogData data;
+    data.startingPositionNumber = startingPosition;
+    data.isHuman1 = data.isHuman2 = true;
+    return data;
 }
 
 class TestGameStartFlow : public QObject
@@ -124,40 +105,62 @@ private slots:
         QVERIFY(m_config.isValid());
         qputenv("SHOGIBOARDQ_CONFIG_HOME", m_config.path().toUtf8());
     }
-    void initializeGameValidatesBeforeCleanup()
+
+    // ============================================================
+    // A) 開始の計画
+    // ============================================================
+
+    /// 指せない局面（玉が無い）からは計画を作らず、理由を返す（棋譜も時計も変えない）
+    void plan_rejectsInvalidPositionBeforeAnyChange()
     {
-        TestHarness h;
-        const QString invalid = QStringLiteral("9/9/9/9/9/9/9/9/9 b - 1");
-        GameStartCoordinator::Ctx ctx;
-        ctx.currentSfen = invalid;
-        ctx.dialogData.startingPositionNumber = 0;
-        ctx.dialogData.isHuman1 = ctx.dialogData.isHuman2 = true;
-        QSignalSpy cleanup(h.gsc, &GameStartCoordinator::requestPreStartCleanup);
-        QSignalSpy time(h.gsc, &GameStartCoordinator::requestApplyTimeControl);
+        GameStartRequest request;
+        request.dialogData = humanDialog(0);
+        request.recordLine.startSfen = QStringLiteral("9/9/9/9/9/9/9/9/9 b - 1");
         QString error;
-        QVERIFY(!h.gsc->initializeGame(ctx, error));
+        QVERIFY(!GameStartOptionsBuilder::plan(request, &error).has_value());
         QVERIFY(!error.isEmpty());
-        QCOMPARE(cleanup.count(), 0);
-        QCOMPARE(time.count(), 0);
-        QCOMPARE(h.initializedCount(), 0);
     }
-    void initializeGameAppliesCleanupAndClockOnce()
+
+    /// 手合割を選んだ対局は新しい棋譜、現在局面からの対局は表示中の手から始める
+    void plan_choosesStartPosition()
+    {
+        GameStartRequest request;
+        request.dialogData = humanDialog(1);
+        request.dialogData.basicTimeMinutes1 = 5;
+        request.startNodeId = 42;
+        QString error;
+        std::optional<GameStartPlan> plan = GameStartOptionsBuilder::plan(request, &error);
+        QVERIFY2(plan.has_value(), qPrintable(error));
+        QCOMPARE(plan->preparation.mode, GameStartPreparation::Mode::NewGame);
+        QCOMPARE(plan->preparation.startNodeId, -1);
+        QCOMPARE(plan->options.sfenStart, kHirateSfen);
+        QCOMPARE(plan->time.rules.black.mainMs, 300000LL);
+
+        request.dialogData.startingPositionNumber = 0;
+        request.recordLine.startSfen = QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 w - 1");
+        plan = GameStartOptionsBuilder::plan(request, &error);
+        QVERIFY2(plan.has_value(), qPrintable(error));
+        QCOMPARE(plan->preparation.mode, GameStartPreparation::Mode::CurrentPosition);
+        QCOMPARE(plan->preparation.startNodeId, 42);
+        QCOMPARE(plan->options.sfenStart, request.recordLine.startSfen);
+    }
+
+    /// 計画どおりに時計を1回設定してから対局を始める
+    void startAppliesClockOnce()
     {
         TestHarness h;
-        GameStartCoordinator::Ctx ctx;
-        ctx.dialogData.startingPositionNumber = 1;
-        ctx.dialogData.isHuman1 = ctx.dialogData.isHuman2 = true;
-        ctx.dialogData.basicTimeMinutes1 = 5;
-        QSignalSpy cleanup(h.gsc, &GameStartCoordinator::requestPreStartCleanup);
-        QSignalSpy time(h.gsc, &GameStartCoordinator::requestApplyTimeControl);
+        GameStartRequest request;
+        request.dialogData = humanDialog(1);
+        request.dialogData.basicTimeMinutes1 = 5;
         QString error;
-        QVERIFY(h.gsc->initializeGame(ctx, error));
-        QCOMPARE(cleanup.count(), 1);
-        QCOMPARE(time.count(), 1);
-        QCOMPARE(h.initializedCount(), 1);
+        const std::optional<GameStartPlan> plan = GameStartOptionsBuilder::plan(request, &error);
+        QVERIFY2(plan.has_value(), qPrintable(error));
+        h.start(plan->options, plan->time);
         QCOMPARE(h.clock.timeControl().black.mainMs, 300000);
         QVERIFY(h.clock.isRunning());
+        QCOMPARE(h.activity.activity(), AppActivityState::Activity::DuringGame);
     }
+
     void timeoutChoiceSurvivesTimeControlNormalization_data()
     {
         QTest::addColumn<bool>("loseOnTimeout");
@@ -173,20 +176,19 @@ private slots:
         data.byoyomiSec2 = 120;
         data.isLoseOnTimeout = loseOnTimeout;
 
+        const MatchTimeSettings time = GameStartOptionsBuilder::buildTimeSettings(data);
+        QVERIFY(!time.rules.isUnlimited());
+        QCOMPARE(time.loseOnTimeout, loseOnTimeout);
+        QCOMPARE(time.rules.black.byoyomiMs, 60000LL);
+        QCOMPARE(time.rules.white.byoyomiMs, 120000LL);
+
         TestHarness h;
-        auto p = h.makeHvhParams();
-        p.tc = GameStartOptionsBuilder::buildTimeControl(data);
-        QVERIFY(p.tc.enabled);
-        QCOMPARE(p.tc.loseOnTimeout, loseOnTimeout);
-        const AppliedTimeControl applied = startAndCaptureTimeControl(h.gsc, p);
-        QCOMPARE(applied.count, 1);
-        QCOMPARE(applied.last.loseOnTimeout, loseOnTimeout);
-        QCOMPARE(applied.last.rules.black.byoyomiMs, 60000LL);
-        QCOMPARE(applied.last.rules.white.byoyomiMs, 120000LL);
+        h.start(TestHarness::hvh(), time);
+        QCOMPARE(h.clock.timeControl().white.byoyomiMs, 120000LL);
     }
 
     // ============================================================
-    // A) 対局者の読み取り: playersFromDialog()
+    // B) 対局者の読み取り: playersFromDialog()
     // ============================================================
 
     void players_fromDialog_data()
@@ -247,30 +249,10 @@ private slots:
     }
 
     // ============================================================
-    // B) start() バリデーション
+    // C) 局面の検査
     // ============================================================
 
-    void start_nullMatch_noSignalEmitted()
-    {
-        // MatchCoordinator が null の場合、started シグナルが発火しないこと
-        GameStartCoordinator::Deps deps;
-        deps.match = nullptr;
-        GameStartCoordinator gsc(deps);
-        QSignalSpy spy(&gsc, &GameStartCoordinator::started);
-
-        GameStartCoordinator::StartParams p;
-        p.opt.sfenStart = kHirateSfen;
-
-        gsc.start(p);
-
-        QCOMPARE(spy.count(), 0);
-    }
-
-    // ============================================================
-    // C) start() 正常系: HvH, HvE, EvE
-    // ============================================================
-
-    void start_invalidKings_data()
+    void plan_invalidKings_data()
     {
         QTest::addColumn<QString>("sfen");
         for (const QString& turn : {QStringLiteral("b"), QStringLiteral("w")}) {
@@ -289,26 +271,20 @@ private slots:
         }
     }
 
-    void start_invalidKings()
+    void plan_invalidKings()
     {
         QFETCH(QString, sfen);
-        TestHarness h;
-        auto p = h.makeEveParams();
-        p.opt.sfenStart = sfen;
-        p.tc.enabled = true;
-        p.tc.rules.black.mainMs = 300000;
-        QSignalSpy started(h.gsc, &GameStartCoordinator::started);
-        QSignalSpy timeControl(h.gsc, &GameStartCoordinator::requestApplyTimeControl);
-
-        h.gsc->start(p);
-
-        QCOMPARE(started.count(), 0);
-        QCOMPARE(timeControl.count(), 0);
-        QVERIFY(!(h.initializedCount() > 0));
-        QVERIFY(!h.clock.isRunning());
+        QString why;
+        QVERIFY(!GameStartOptionsBuilder::validateKings(sfen, &why));
+        QVERIFY(!why.isEmpty());
+        GameStartRequest request;
+        request.dialogData = humanDialog(0);
+        request.recordLine.startSfen = sfen;
+        QString error;
+        QVERIFY(!GameStartOptionsBuilder::plan(request, &error).has_value());
     }
 
-    void start_validKings_data()
+    void plan_validKings_data()
     {
         QTest::addColumn<QString>("sfen");
         QTest::newRow("default-position") << QString();
@@ -321,41 +297,37 @@ private slots:
         }
     }
 
-    void start_validKings()
+    void plan_validKings()
     {
         QFETCH(QString, sfen);
+        GameStartRequest request;
+        request.dialogData = humanDialog(0);
+        request.recordLine.startSfen = sfen;
+        QString error;
+        const std::optional<GameStartPlan> plan = GameStartOptionsBuilder::plan(request, &error);
+        QVERIFY2(plan.has_value(), qPrintable(error));
         TestHarness h;
-        auto p = h.makeHvhParams();
-        p.opt.sfenStart = sfen;
-        QSignalSpy started(h.gsc, &GameStartCoordinator::started);
-        h.gsc->start(p);
-        QCOMPARE(started.count(), 1);
-        QVERIFY((h.initializedCount() > 0));
+        h.start(plan->options, plan->time);
+        QCOMPARE(h.activity.activity(), AppActivityState::Activity::DuringGame);
+        QCOMPARE(h.match->record().startSfen, GameStartOptionsBuilder::canonicalizeSfen(sfen));
     }
 
-    void start_hvh_emitsStartedSignal()
+    // ============================================================
+    // D) 対局者の組ごとの開始
+    // ============================================================
+
+    void start_hvh()
     {
         TestHarness h;
-        QSignalSpy spy(h.gsc, &GameStartCoordinator::started);
-
-        auto p = h.makeHvhParams();
-        h.gsc->start(p);
-
-        QCOMPARE(spy.count(), 1);
-        QVERIFY((h.initializedCount() > 0));
+        h.start(TestHarness::hvh());
         QVERIFY(h.match->players().humanVsHuman());
+        QCOMPARE(h.activity.activity(), AppActivityState::Activity::DuringGame);
     }
 
-    void start_hve_configuresCalled()
+    void start_hve()
     {
         TestHarness h;
-        QSignalSpy spy(h.gsc, &GameStartCoordinator::started);
-
-        auto p = h.makeHveParams();
-        h.gsc->start(p);
-
-        QCOMPARE(spy.count(), 1);
-        QVERIFY((h.initializedCount() > 0));
+        h.start(TestHarness::hve());
         QVERIFY(h.match->players().isHuman(Turn::Black));
         QVERIFY(h.match->players().isEngine(Turn::White));
     }
@@ -363,192 +335,105 @@ private slots:
     void start_eve_triggersInitialEngineMove()
     {
         TestHarness h;
-
-        auto p = h.makeEveParams();
-        h.gsc->start(p);
-
-        QVERIFY((h.initializedCount() > 0));
+        h.start(TestHarness::eve());
         QVERIFY(h.engines.engineInSlot(1));
         QSignalSpy ready(h.engines.engineInSlot(1), &Usi::matchMoveReady);
         QTRY_VERIFY_WITH_TIMEOUT(!ready.isEmpty(), 5000);
     }
 
-    void start_hvh_noInitialEngineMove()
+    /// 時計は準備の後、指し始めるときに動かす
+    void clockStartsWithPlay()
     {
         TestHarness h;
-
-        auto p = h.makeHvhParams();
-        p.autoStartEngineMove = false;
-        h.gsc->start(p);
-
+        h.start(TestHarness::hvh(), {}, /*beginPlay=*/false);
         QVERIFY(!h.clock.isRunning());
+        h.match->beginPlay();
+        QVERIFY(h.clock.isRunning());
     }
 
     // ============================================================
-    // D) TimeControl 正規化テスト
+    // E) 持ち時間の正規化
     // ============================================================
 
-    void start_byoyomiPriorityOverIncrement()
+    /// 秒読みと加算が同時に指定された場合、秒読みが優先される
+    void time_byoyomiPriorityOverIncrement()
     {
-        // 秒読みと加算が同時に指定された場合、秒読みが優先される
-        TestHarness h;
-
-        auto p = h.makeHvhParams();
-        p.tc.enabled = true;
-        p.tc.rules.black.mainMs = 600000;      // 10分
-        p.tc.rules.white.mainMs = 600000;
-        p.tc.rules.black.byoyomiMs = 30000;    // 30秒秒読み
-        p.tc.rules.white.byoyomiMs = 30000;
-        p.tc.rules.black.incrementMs = 10000;  // 10秒加算（秒読みがあるので無視されるべき）
-        p.tc.rules.white.incrementMs = 10000;
-
-        const AppliedTimeControl applied = startAndCaptureTimeControl(h.gsc, p);
-
-        QCOMPARE(applied.count, 1);
-        QVERIFY2(applied.last.rules.usesByoyomi(), "byoyomi should be used when both specified");
-        QCOMPARE(applied.last.rules.black.byoyomiMs, 30000LL);
-        QCOMPARE(applied.last.rules.white.byoyomiMs, 30000LL);
-        // increment は 0 にリセットされるべき
-        QCOMPARE(applied.last.rules.black.incrementMs, 0LL);
-        QCOMPARE(applied.last.rules.white.incrementMs, 0LL);
+        StartGameDialogData data;
+        data.basicTimeMinutes1 = data.basicTimeMinutes2 = 10;
+        data.byoyomiSec1 = data.byoyomiSec2 = 30;
+        data.addEachMoveSec1 = data.addEachMoveSec2 = 10;
+        const MatchTimeSettings time = GameStartOptionsBuilder::buildTimeSettings(data);
+        QVERIFY2(time.rules.usesByoyomi(), "byoyomi should be used when both specified");
+        QCOMPARE(time.rules.black.byoyomiMs, 30000LL);
+        QCOMPARE(time.rules.white.byoyomiMs, 30000LL);
+        QCOMPARE(time.rules.black.incrementMs, 0LL);
+        QCOMPARE(time.rules.white.incrementMs, 0LL);
     }
 
-    void start_incrementOnlyWhenNoByoyomi()
+    void time_incrementOnlyWhenNoByoyomi()
     {
-        // 秒読みなし、加算ありの場合
-        TestHarness h;
-
-        auto p = h.makeHvhParams();
-        p.tc.enabled = true;
-        p.tc.rules.black.mainMs = 600000;
-        p.tc.rules.white.mainMs = 600000;
-        p.tc.rules.black.byoyomiMs = 0;
-        p.tc.rules.white.byoyomiMs = 0;
-        p.tc.rules.black.incrementMs = 5000;   // 5秒加算
-        p.tc.rules.white.incrementMs = 5000;
-
-        const AppliedTimeControl applied = startAndCaptureTimeControl(h.gsc, p);
-
-        QCOMPARE(applied.count, 1);
-        QVERIFY2(!applied.last.rules.usesByoyomi(), "byoyomi should not be used");
-        QCOMPARE(applied.last.rules.black.incrementMs, 5000LL);
-        QCOMPARE(applied.last.rules.white.incrementMs, 5000LL);
+        StartGameDialogData data;
+        data.basicTimeMinutes1 = data.basicTimeMinutes2 = 10;
+        data.addEachMoveSec1 = data.addEachMoveSec2 = 5;
+        const MatchTimeSettings time = GameStartOptionsBuilder::buildTimeSettings(data);
+        QVERIFY2(!time.rules.usesByoyomi(), "byoyomi should not be used");
+        QCOMPARE(time.rules.black.incrementMs, 5000LL);
+        QCOMPARE(time.rules.white.incrementMs, 5000LL);
     }
 
-    void start_autoEnableWhenValuesPresent()
+    /// 値が1つでもあれば持ち時間のある対局。全部 0 なら消費時間だけを数える（前局の持ち時間は残さない）
+    void time_unlimitedOnlyWhenAllZero()
     {
-        // enabled=false だが時間値が設定されている場合、自動で有効化される
+        StartGameDialogData data;
+        data.basicTimeHour1 = data.basicTimeHour2 = 1;
+        QVERIFY(!GameStartOptionsBuilder::buildTimeSettings(data).rules.isUnlimited());
+
         TestHarness h;
-        QSignalSpy tcSpy(h.gsc, &GameStartCoordinator::requestApplyTimeControl);
-
-        auto p = h.makeHvhParams();
-        p.tc.enabled = false;            // 明示的にfalse
-        p.tc.rules.black.mainMs = 3600000;        // 1時間（値あり）
-        p.tc.rules.white.mainMs = 3600000;
-
-        h.gsc->start(p);
-
-        // requestApplyTimeControl が発火していること（値があるので有効化）
-        QVERIFY(tcSpy.count() > 0);
+        h.start(TestHarness::hvh(), GameStartOptionsBuilder::buildTimeSettings(data));
+        QVERIFY(!h.clock.isUnlimited());
+        h.match->handleBreakOff();
+        h.start(TestHarness::hvh(), GameStartOptionsBuilder::buildTimeSettings(StartGameDialogData{}));
+        QVERIFY(h.clock.isUnlimited());
     }
 
-    void start_noTimeControlWhenAllZero()
+    void time_asymmetric()
     {
-        // 全て0でも前局の時間制限を解除するため、一度通知する
-        TestHarness h;
-        QSignalSpy tcSpy(h.gsc, &GameStartCoordinator::requestApplyTimeControl);
-
-        auto p = h.makeHvhParams();
-        p.tc.enabled = false;
-        p.tc.rules.black.mainMs = 0;
-        p.tc.rules.white.mainMs = 0;
-        p.tc.rules.black.byoyomiMs = 0;
-        p.tc.rules.white.byoyomiMs = 0;
-        p.tc.rules.black.incrementMs = 0;
-        p.tc.rules.white.incrementMs = 0;
-
-        h.gsc->start(p);
-
-        QCOMPARE(tcSpy.count(), 1);
-    }
-
-    void start_asymmetricTimeControl()
-    {
-        // 先手と後手で異なる持ち時間設定
-        TestHarness h;
-
-        auto p = h.makeHvhParams();
-        p.tc.enabled = true;
-        p.tc.rules.black.mainMs = 3600000;     // 先手: 1時間
-        p.tc.rules.black.byoyomiMs = 60000;    // 先手: 60秒秒読み
-        p.tc.rules.white.mainMs = 1800000;     // 後手: 30分
-        p.tc.rules.white.byoyomiMs = 30000;    // 後手: 30秒秒読み
-
-        const AppliedTimeControl applied = startAndCaptureTimeControl(h.gsc, p);
-
-        QCOMPARE(applied.count, 1);
-        QCOMPARE(applied.last.rules.black.byoyomiMs, 60000LL);
-        QCOMPARE(applied.last.rules.white.byoyomiMs, 30000LL);
-        QCOMPARE(applied.last.rules.black.mainMs, 3600000LL);
-        QCOMPARE(applied.last.rules.white.mainMs, 1800000LL);
+        StartGameDialogData data;
+        data.basicTimeHour1 = 1;
+        data.byoyomiSec1 = 60;
+        data.basicTimeMinutes2 = 30;
+        data.byoyomiSec2 = 30;
+        const MatchTimeSettings time = GameStartOptionsBuilder::buildTimeSettings(data);
+        QCOMPARE(time.rules.black.byoyomiMs, 60000LL);
+        QCOMPARE(time.rules.white.byoyomiMs, 30000LL);
+        QCOMPARE(time.rules.black.mainMs, 3600000LL);
+        QCOMPARE(time.rules.white.mainMs, 1800000LL);
     }
 
     // ============================================================
-    // E) prepare() シグナルテスト
-    // ============================================================
-
-
-
-
-
-    // ============================================================
-    // F) 連続対局設定（StartOptions プロパティ検証）
+    // F) 開始の設定の受け渡し
     // ============================================================
 
     void start_maxMovesPassedThrough()
     {
         TestHarness h;
-
-        auto p = h.makeHvhParams();
-        p.opt.maxMoves = 256;
-
-        h.gsc->start(p);
-
-        QVERIFY((h.initializedCount() > 0));
+        MatchStartOptions opt = TestHarness::hvh();
+        opt.maxMoves = 256;
+        h.start(opt);
         QCOMPARE(h.match->options().maxMoves, 256);
     }
 
-
-
-    // ============================================================
-    // G) 開始要求の検証と一度だけの適用
-    // ============================================================
-
-
-
-
-
-
-
-    // ============================================================
-    // I) 複数回 start() を呼んでも安全
-    // ============================================================
-
+    /// 続けて別の組で始め直しても、そのたびに対局者が入れ替わる
     void start_multipleCallsSafe()
     {
         TestHarness h;
-        QSignalSpy spy(h.gsc, &GameStartCoordinator::started);
-
-        auto p1 = h.makeHvhParams();
-        h.gsc->start(p1);
-
-        auto p2 = h.makeHveParams();
-        h.gsc->start(p2);
-
-        auto p3 = h.makeEveParams();
-        h.gsc->start(p3);
-
-        QCOMPARE(spy.count(), 3);
+        h.start(TestHarness::hvh());
+        QVERIFY(h.match->players().humanVsHuman());
+        h.start(TestHarness::hve());
+        QVERIFY(h.match->players().isEngine(Turn::White));
+        h.start(TestHarness::eve());
+        QVERIFY(h.match->players().engineVsEngine());
+        QCOMPARE(h.activity.activity(), AppActivityState::Activity::DuringGame);
     }
 };
 

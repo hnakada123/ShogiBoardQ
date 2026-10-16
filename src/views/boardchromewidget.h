@@ -77,21 +77,12 @@ public:
     QLabel* turnBadge(bool black) const { return m_badges[black ? 0 : 1]; }
 
     // ──────────────── 手番・緊急度 ────────────────
-    void setActiveSide(bool blackTurn);
-    void setActiveIsBlack(bool activeIsBlack) { m_blackActive = activeIsBlack; }
-    bool blackActive() const { return m_blackActive; }
-    /// 手番が替わった：時計の警告は手番側が同じときだけ引き継ぐ
-    void updateTurnIndicator(Turn now);
-    void setHighlightStyle(const QColor& bgOn, const QColor& fgOn, const QColor& fgOff);
-    void clearTurnHighlight();
-    void setUrgencyVisuals(Urgency u);
-    void applyClockUrgency(qint64 activeRemainMs);
+    /// 手番の側を強調する。手番の側が替わったら時計の警告を消す（同じ側なら残す）
+    void setActiveSide(Turn side);
+    Turn activeSide() const { return m_activeSide; }
+    /// 手番の側の時計の警告
+    void setUrgency(Urgency u);
     Urgency urgency() const { return m_urgency; }
-    /// 対局終了時のスタイル維持（trueの間は clearTurnHighlight を無視）
-    void setGameOverStyleLock(bool locked) { m_gameOverStyleLock = locked; }
-    bool gameOverStyleLock() const { return m_gameOverStyleLock; }
-    /// 盤面の配色が変わった：色の上書きを取り消して配色に合わせる
-    void refreshBackgroundColors();
 
 signals:
     void pieceBoxSideClicked(Turn side);
@@ -127,12 +118,8 @@ private:
     bool m_clockEnabled = true;
 
     // 手番表示の状態
-    QColor m_highlightBg;                        ///< setHighlightStyle() による一時的な上書き
-    QColor m_highlightFgOn;
-    QColor m_highlightFgOff;
-    bool m_blackActive = true;
-    bool m_turnHighlightActive = false;
-    bool m_gameOverStyleLock = false;
+    Turn m_activeSide = Turn::Black;
+    bool m_turnHighlightActive = false;          ///< 手番の側を一度でも示したか（起動直後は示さない）
     Urgency m_urgency = Urgency::Normal;
 
     // 対局者の名前・時計・枠・手番の札のスタイルシート。手番の交代では何度も、時計の表示が

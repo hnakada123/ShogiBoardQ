@@ -12,14 +12,14 @@
 #include "parsecommon.h"
 #include "sfenutils.h"
 
-using Format = KifuConversionService::Format;
+using Format = KifuFormat;
 
 class TestKifuFormatCompliance : public QObject
 {
     Q_OBJECT
 
     static KifuConversionService::Result convert(const QString& text, Format output,
-                                                  Format input = Format::Auto)
+                                                  std::optional<KifuFormat> input = std::nullopt)
     {
         KifuConversionService::Request request;
         request.text = text;
@@ -414,7 +414,7 @@ private slots:
     {
         QTest::addColumn<int>("format");
         for (const Format fmt : {Format::Kif, Format::Ki2, Format::Csa, Format::Jkf}) {
-            QTest::newRow(qPrintable(KifuConversionService::formatName(fmt))) << static_cast<int>(fmt);
+            QTest::newRow(qPrintable(KifuFormats::name(fmt))) << static_cast<int>(fmt);
         }
     }
 
@@ -504,7 +504,7 @@ private slots:
         file.write(text.toUtf8());
         file.close();
         const auto fromFile = KifuLoadParser::parseFile(file.fileName());
-        const auto fromText = KifuLoadParser::parseContent(text, KifuFileReader::KifuFormat::KIF);
+        const auto fromText = KifuLoadParser::parseContent(text, KifuFormat::Kif);
         QVERIFY2(fromFile.success, qPrintable(fromFile.error));
         QVERIFY2(fromText.success, qPrintable(fromText.error));
         QCOMPARE(fromFile.filePath, file.fileName());

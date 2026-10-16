@@ -1,6 +1,7 @@
 #include <QtTest>
 #include <QCoreApplication>
 
+#include "kifu_file_helper.h"
 #include "jkftosfenconverter.h"
 #include "kifdisplayitem.h"
 #include "kifparsetypes.h"
@@ -28,7 +29,7 @@ private:
 private slots:
     void detectInitialSfen()
     {
-        QString sfen = JkfToSfenConverter::detectInitialSfenFromFile(
+        QString sfen = KifuFile::initialSfen<JkfToSfenConverter>(
             fixturePath(QStringLiteral("test_basic.jkf")));
         QCOMPARE(sfen, kHirateSfen);
     }
@@ -36,7 +37,7 @@ private slots:
     void convertFile_sevenMoves()
     {
         QString error;
-        QStringList moves = JkfToSfenConverter::convertFile(
+        QStringList moves = KifuFile::usiMoves<JkfToSfenConverter>(
             fixturePath(QStringLiteral("test_basic.jkf")), &error);
         QVERIFY2(error.isEmpty(), qPrintable(error));
         QCOMPARE(moves.size(), 7);
@@ -56,7 +57,7 @@ private slots:
     void convertFile_nonExistentFile()
     {
         QString error;
-        QStringList moves = JkfToSfenConverter::convertFile(
+        QStringList moves = KifuFile::usiMoves<JkfToSfenConverter>(
             fixturePath(QStringLiteral("nonexistent.jkf")), &error);
         QVERIFY(moves.isEmpty());
         QVERIFY(!error.isEmpty());
@@ -66,7 +67,7 @@ private slots:
     {
         KifParseResult result;
         QString error;
-        bool ok = JkfToSfenConverter::parseWithVariations(
+        bool ok = KifuFile::parse<JkfToSfenConverter>(
             fixturePath(QStringLiteral("nonexistent.jkf")), result, &error);
         QVERIFY(!ok);
         QVERIFY(!error.isEmpty());
@@ -75,7 +76,7 @@ private slots:
     void detectInitialSfen_nonExistentFile()
     {
         QString label;
-        QString sfen = JkfToSfenConverter::detectInitialSfenFromFile(
+        QString sfen = KifuFile::initialSfen<JkfToSfenConverter>(
             fixturePath(QStringLiteral("nonexistent.jkf")), &label);
         // Falls back to hirate
         QCOMPARE(sfen, kHirateSfen);
@@ -94,7 +95,7 @@ private slots:
         tmp.close();
 
         QString error;
-        QStringList moves = JkfToSfenConverter::convertFile(tmp.fileName(), &error);
+        QStringList moves = KifuFile::usiMoves<JkfToSfenConverter>(tmp.fileName(), &error);
         QVERIFY(moves.isEmpty());
         // Empty file is not valid JSON
         QVERIFY(!error.isEmpty());
@@ -113,7 +114,7 @@ private slots:
         tmp.close();
 
         QString error;
-        QStringList moves = JkfToSfenConverter::convertFile(tmp.fileName(), &error);
+        QStringList moves = KifuFile::usiMoves<JkfToSfenConverter>(tmp.fileName(), &error);
         QVERIFY(moves.isEmpty());
         QVERIFY(!error.isEmpty());
     }
@@ -128,7 +129,7 @@ private slots:
 
         KifParseResult result;
         QString error;
-        bool ok = JkfToSfenConverter::parseWithVariations(tmp.fileName(), result, &error);
+        bool ok = KifuFile::parse<JkfToSfenConverter>(tmp.fileName(), result, &error);
         QVERIFY(!ok);
         QVERIFY(!error.isEmpty());
     }
@@ -146,7 +147,7 @@ private slots:
         tmp.close();
 
         QString error;
-        QStringList moves = JkfToSfenConverter::convertFile(tmp.fileName(), &error);
+        QStringList moves = KifuFile::usiMoves<JkfToSfenConverter>(tmp.fileName(), &error);
         QVERIFY(moves.isEmpty());
         QVERIFY(!error.isEmpty());
     }
@@ -164,7 +165,7 @@ private slots:
         tmp.close();
 
         QString error;
-        QStringList moves = JkfToSfenConverter::convertFile(tmp.fileName(), &error);
+        QStringList moves = KifuFile::usiMoves<JkfToSfenConverter>(tmp.fileName(), &error);
         QVERIFY(moves.isEmpty());
         QVERIFY(!error.isEmpty());
     }
@@ -179,7 +180,7 @@ private slots:
 
         KifParseResult result;
         QString error;
-        bool ok = JkfToSfenConverter::parseWithVariations(tmp.fileName(), result, &error);
+        bool ok = KifuFile::parse<JkfToSfenConverter>(tmp.fileName(), result, &error);
         QVERIFY(!ok);
     }
 
@@ -196,7 +197,7 @@ private slots:
         tmp.close();
 
         QString error;
-        QStringList moves = JkfToSfenConverter::convertFile(tmp.fileName(), &error);
+        QStringList moves = KifuFile::usiMoves<JkfToSfenConverter>(tmp.fileName(), &error);
         QCOMPARE(moves.size(), 0);
     }
 
@@ -213,7 +214,7 @@ private slots:
         tmp.close();
 
         QString error;
-        QStringList moves = JkfToSfenConverter::convertFile(tmp.fileName(), &error);
+        QStringList moves = KifuFile::usiMoves<JkfToSfenConverter>(tmp.fileName(), &error);
         // Only real moves, not the special
         QCOMPARE(moves.size(), 1);
     }
@@ -224,7 +225,7 @@ private slots:
 
     void extractGameInfo_nonExistentFile()
     {
-        auto info = JkfToSfenConverter::extractGameInfo(
+        auto info = KifuFile::gameInfo<JkfToSfenConverter>(
             fixturePath(QStringLiteral("nonexistent.jkf")));
         QVERIFY(info.isEmpty());
     }
@@ -236,7 +237,7 @@ private slots:
         QVERIFY(tmp.open());
         tmp.close();
 
-        auto info = JkfToSfenConverter::extractGameInfo(tmp.fileName());
+        auto info = KifuFile::gameInfo<JkfToSfenConverter>(tmp.fileName());
         QVERIFY(info.isEmpty());
     }
 
@@ -248,7 +249,7 @@ private slots:
         tmp.write("{\"moves\": []}");
         tmp.close();
 
-        auto info = JkfToSfenConverter::extractGameInfo(tmp.fileName());
+        auto info = KifuFile::gameInfo<JkfToSfenConverter>(tmp.fileName());
         QVERIFY(info.isEmpty());
     }
 
@@ -295,7 +296,7 @@ private slots:
 
         QString error;
         // Must not crash regardless of JSON structure
-        QStringList moves = JkfToSfenConverter::convertFile(tmp.fileName(), &error);
+        QStringList moves = KifuFile::usiMoves<JkfToSfenConverter>(tmp.fileName(), &error);
         QVERIFY(moves.isEmpty());
     }
 
@@ -315,7 +316,7 @@ private slots:
             QStringLiteral("jkf")));
 
         QString error;
-        const QList<KifDisplayItem> disp = JkfToSfenConverter::extractMovesWithTimes(tmp.fileName(), &error);
+        const QList<KifDisplayItem> disp = KifuFile::displayItems<JkfToSfenConverter>(tmp.fileName(), &error);
         QVERIFY(disp.size() >= 2); // 開始局面 + 1手以上
         QVERIFY(error.contains(QStringLiteral("out-of-range color")));
     }
@@ -337,7 +338,7 @@ private slots:
 
         KifParseResult result;
         QString error;
-        const bool ok = JkfToSfenConverter::parseWithVariations(tmp.fileName(), result, &error);
+        const bool ok = KifuFile::parse<JkfToSfenConverter>(tmp.fileName(), result, &error);
         QVERIFY(ok);
         QVERIFY(!result.mainline.displayItems().isEmpty());
         QVERIFY(error.contains(QStringLiteral("out-of-range color")));
@@ -360,13 +361,13 @@ private slots:
         QVERIFY(KifuTestHelper::writeToTempFile(tmp, fileContent, QStringLiteral("jkf")));
 
         QString error;
-        (void)JkfToSfenConverter::convertFile(tmp.fileName(), &error);
+        (void)KifuFile::usiMoves<JkfToSfenConverter>(tmp.fileName(), &error);
 
         KifParseResult result;
-        const bool success = JkfToSfenConverter::parseWithVariations(tmp.fileName(), result, &error);
+        const bool success = KifuFile::parse<JkfToSfenConverter>(tmp.fileName(), result, &error);
 
-        (void)JkfToSfenConverter::detectInitialSfenFromFile(tmp.fileName());
-        (void)JkfToSfenConverter::extractGameInfo(tmp.fileName());
+        (void)KifuFile::initialSfen<JkfToSfenConverter>(tmp.fileName());
+        (void)KifuFile::gameInfo<JkfToSfenConverter>(tmp.fileName());
 
         KifuTestHelper::verifyParsedRecord(success, result, error);
     }
@@ -382,10 +383,10 @@ private slots:
             tmp, KifuTestHelper::generateLongJkfContent(1500), QStringLiteral("jkf")));
 
         QString error;
-        (void)JkfToSfenConverter::convertFile(tmp.fileName(), &error);
+        (void)KifuFile::usiMoves<JkfToSfenConverter>(tmp.fileName(), &error);
 
         KifParseResult result;
-        QVERIFY2(JkfToSfenConverter::parseWithVariations(tmp.fileName(), result, &error), qPrintable(error));
+        QVERIFY2(KifuFile::parse<JkfToSfenConverter>(tmp.fileName(), result, &error), qPrintable(error));
 
         QCOMPARE(result.mainline.moveCount(), 1500);
         KifuTestHelper::verifyParsedRecord(true, result, error);

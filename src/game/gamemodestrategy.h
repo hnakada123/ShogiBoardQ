@@ -8,12 +8,9 @@
 
 #include "recordentry.h"
 #include "shogitypes.h"
-#include "usimove.h"
 
 class EngineLifecycleManager;
-class ShogiClock;
-class ShogiGameController;
-class Usi;
+struct UsiMatchMove;
 
 /**
  * @brief Strategy が司令塔（MatchCoordinator）に頼む操作
@@ -23,25 +20,25 @@ class Usi;
  */
 class MatchStrategyHost {
 public:
-    virtual ShogiGameController* gameController() const = 0;
-    virtual ShogiClock* clock() const = 0;
     virtual EngineLifecycleManager& engines() = 0;
     virtual bool isGameOver() const = 0;
+    /// 盤の手番
+    virtual Turn sideToMove() const = 0;
     /// 対局の手順の手数（開始局面からの指した手の数）
     virtual int currentPly() const = 0;
 
-    /// 盤と手番の表示を、いまの局面に合わせるよう知らせる
-    virtual void refreshBoardAndTurn() = 0;
     /// side の手番のエンジンに、いまの局面で思考させる
     virtual void requestEngineMove(Turn side) = 0;
-    /// side の手番のエンジンが返した先読みの局面を覚える（次の思考で使う）
-    virtual void setEnginePonder(Turn side, const QString& ponder) = 0;
+    /// エンジンの初期化を待つ間は時計を止める（待ち終えたら、対局中なら動かす）
+    virtual void setWaitingForEngines(bool waiting) = 0;
+    /// 人間の考慮時間を記録する（人間対人間の手番の計測）
+    virtual void recordConsiderationTime(Turn mover, qint64 elapsedMs) = 0;
 
     /**
-     * @brief エンジンの指し手を盤に指し、一手を確定する
+     * @brief エンジンの指し手を盤に指し、一手を確定する（先読みの局面は次の思考に使う）
      * @return 対局が続くなら true（反則手・千日手・最大手数・終局なら false）
      */
-    virtual bool applyEngineMove(const UsiMove& move, Turn mover, qint64 elapsedMs) = 0;
+    virtual bool applyEngineMove(const UsiMatchMove& move) = 0;
 
     /**
      * @brief 盤で指した人間の手（ShogiGameController が指した後）で一手を確定する

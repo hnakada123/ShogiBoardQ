@@ -15,12 +15,12 @@
 着手（人間 or エンジン）
     │
     ▼
-validateAndMove() で SFEN 履歴に追加
-    │
+MatchCoordinator::completeMove()   ← 人間の手は completeHumanMove()、エンジンの手は applyEngineMove() から
+    │  時計の確定・対局の手順（m_record）と棋譜への追記
     ▼
-checkAndHandleSennichite()     ← MatchCoordinator
+checkAndHandleSennichite()         ← MatchCoordinator
     │
-    ├─ SennichiteDetector::check(sfenRecord)
+    ├─ SennichiteDetector::check(m_record.sfens())
     │       │
     │       ├─ positionKey() で手数を除いた局面キーを抽出
     │       ├─ 同一キーの出現回数をカウント
@@ -32,26 +32,19 @@ checkAndHandleSennichite()     ← MatchCoordinator
     │               ├─ 全て後手の王手 → ContinuousCheckByWhite
     │               └─ それ以外 → Draw
     │
-    ├─ Result::Draw → handleSennichite()
-    ├─ Result::ContinuousCheckByBlack/ByWhite → handleOuteSennichite(Turn::Black / Turn::White)
-    └─ Result::None → 通常続行
+    ├─ Result::Draw → endGame({Cause::Sennichite, …}, nullopt)
+    ├─ Result::ContinuousCheckByBlack/ByWhite → endGame({Cause::OuteSennichite, Turn::Black / Turn::White}, 同じ側)
+    └─ Result::None → 最大手数の判定へ進み、対局を続行
 ```
 
 ## ファイル構成
-
-### 新規ファイル
 
 | ファイル | 役割 |
 |----------|------|
 | `src/game/sennichitedetector.h` | 千日手検出ユーティリティクラスの定義 |
 | `src/game/sennichitedetector.cpp` | 検出ロジックの実装 |
-
-### 修正ファイル
-
-| ファイル | 変更内容 |
-|----------|----------|
-| `src/game/matchcoordinator.h` | `Cause` enumに `Sennichite`/`OuteSennichite` を追加、検出メソッド宣言 |
-| `src/game/matchcoordinator.cpp` | 検出呼び出し・終局処理・棋譜追記・ダイアログ表示の追加 |
+| `src/game/matchtypes.h` | 終局原因 `MatchCause`（`Sennichite`/`OuteSennichite`） |
+| `src/game/matchcoordinator.h/.cpp` | 一手の確定ごとの検出呼び出し・終局処理・終局行の追記・ダイアログの文言 |
 
 ## SennichiteDetector クラス
 
@@ -88,7 +81,7 @@ static QString positionKey(const QString& sfen);
 3回目と4回目の出現の間（`thirdIdx+1` 〜 `fourthIdx`）の局面を調べる:
 
 - 各局面について `ShogiBoard::setSfen()` で盤面を復元
-- `EngineMoveValidator::checkIfKingInCheck()` で手番側の玉が王手されているか判定
+- `EngineMoveValidator::isInCheck(board, turn)` で手番側の玉が王手されているか判定
 - 「手番側の玉が王手されている」= 直前の相手の手が王手
 - 先手の手がすべて王手かどうかは後手番の局面だけ、後手の手は先手番の局面だけで数える
   （王手をかけた側の手番の局面まで分母に入れると、毎手王手でも成立しない）
@@ -101,43 +94,40 @@ SFEN 手番フィールド:
 
 一方の指し手がすべて王手だった場合、その側の反則負けとなる。テストは `tests/tst_sennichite_detector.cpp`。
 
-## MatchCoordinator の変更
+## MatchCoordinator での処理
 
-### Cause enum 拡張
+### 終局原因
+
+`MatchCoordinator::Cause` は `MatchCause`（`src/game/matchtypes.h`）の別名。
 
 ```cpp
-enum class Cause : int {
-    Resignation    = 0,  // 投了
-    Timeout        = 1,  // 時間切れ
-    BreakOff       = 2,  // 中断
-    Jishogi        = 3,  // 持将棋／最大手数到達
-    NyugyokuWin    = 4,  // 入玉宣言勝ち
-    IllegalMove    = 5,  // 反則負け
-    Sennichite     = 6,  // 千日手（引き分け）      ← 追加
-    OuteSennichite = 7   // 連続王手の千日手（反則負け） ← 追加
+enum class MatchCause : int {
+    Resignation    = 0,  ///< 投了
+    Timeout        = 1,  ///< 時間切れ
+    BreakOff       = 2,  ///< 中断
+    Jishogi        = 3,  ///< 持将棋／最大手数到達
+    NyugyokuWin    = 4,  ///< 入玉宣言勝ち
+    IllegalMove    = 5,  ///< 反則負け（入玉宣言失敗など）
+    Sennichite     = 6,  ///< 千日手（引き分け）
+    OuteSennichite = 7   ///< 連続王手の千日手（反則負け）
 };
 ```
 
-### 追加メソッド
+### 関連メソッド
 
 | メソッド | 役割 |
 |----------|------|
-| `checkAndHandleSennichite()` | 千日手チェックのエントリポイント。EvE/HvE/HvH に応じた SFEN 履歴を選択して判定。終局した場合 `true` を返す |
-| `handleSennichite()` | 通常千日手の終局処理。`handleMaxMovesJishogi()` と同パターン。エンジンへ `gameover draw` を送信 |
-| `handleOuteSennichite(Turn loser)` | 連続王手千日手の終局処理（loser は王手を続けた側）。勝敗が確定するため、エンジンへ `gameover win`/`lose` を送信 |
+| `checkAndHandleSennichite()` | 千日手チェックのエントリポイント。対局の手順（`MatchCoordinator::record()`）の局面列を判定する。対局者の組（人間・エンジン）によらず同じ手順を使う。終局した場合 `true` を返す |
+| `endGame(info, engineLoser, notice)` | 終局処理（時計を止め、エンジンへ `gameover` を送り、終局行を追記して待機に戻す）。通常千日手は `engineLoser` なしで呼び、エンジンへ `gameover draw` を送る。連続王手の千日手は王手を続けた側を `engineLoser` にして、`gameover win`/`lose` を送る |
+| `appendTerminalRecord(info)` | 終局原因から終局行（`RecordEntry::ending()`）を作って棋譜に追記する |
 
 ### 検出呼び出しポイント
 
-各着手後に `if (checkAndHandleSennichite()) return;` を挿入する。判定は、その手を棋譜に追記してから行う。
+人間の手（`MatchStrategyHost::completeHumanMove()`）もエンジンの手（`MatchStrategyHost::applyEngineMove()`）も、`MatchCoordinator::completeMove()` で一手を確定する。千日手の判定はここで、その手を対局の手順と棋譜に追記した後、最大手数の判定の前に1回だけ行う（`if (checkAndHandleSennichite()) return false;`）。
 千日手が成立すると終局行（`▲千日手` など）を追記して以降の棋譜追記を止めるため、先に判定すると
 千日手を成立させた手そのものが棋譜から抜ける。
 
-| 対局モード | メソッド | タイミング |
-|-----------|----------|-----------|
-| HvE | `HumanVsEngineStrategy::onHumanMoveEngineReply()` | 人間の手の後（人間の手は `onHumanMove()` で追記済み。最大手数・`engineTurnNow` チェックの前） |
-| HvE | `HumanVsEngineStrategy::onEngineMoveReady()` | エンジンの手を棋譜と盤面に反映した後（最大手数チェックの前） |
-| EvE | `EngineVsEngineStrategy::onEngineMoveReady()` | 各手を棋譜と盤面に反映した後（最大手数チェックの前） |
-| HvH | `HumanVsHumanStrategy::onHumanMove()` | 指し手を棋譜に追記した後（最大手数チェックの前） |
+`completeMove()` は対局が続くかを返す。`HumanVsHumanStrategy::onHumanMove()`・`HumanVsEngineStrategy::onHumanMove()`・`EngineVsEngineStrategy::onEngineMoveReady()` は `false` なら次の手番の処理（考慮時間の計測・エンジンへの思考の依頼）をしない。
 
 ### 終局時の表示
 
@@ -146,12 +136,12 @@ enum class Cause : int {
 | 千日手 | 「千日手が成立しました。」 | `▲千日手` / `△千日手`（終局した局面の手番側） |
 | 連続王手 | 「先手の連続王手の千日手。後手の勝ちです。」 | 手番側の `反則勝ち` / `反則負け`（下記） |
 
-終局行の印と消費時間は、終局した局面の手番側のもの（棋譜を読み込んだときに付く印と同じ）。
+終局行の印と消費時間は、終局した局面の手番側のもの（`RecordEntry::endingSide()`。棋譜を読み込んだときに付く印と同じ）。
 棋譜形式（KIF・CSA・JKF）には連続王手の千日手の終局語が無いため、王手を続けた側の反則として
-`KifuParseCommon::foulTerminalMove()` で記録する。王手の手で成立したときは手番側（勝者）の `反則勝ち`、
+`TerminalType::IllegalWin` / `TerminalType::IllegalLoss` の終局行で記録する。王手の手で成立したときは手番側（勝者）の `反則勝ち`、
 逃げた手で成立したときは手番側（王手を続けた側）の `反則負け` になり、CSA では `%+ILLEGAL_ACTION` /
-`%-ILLEGAL_ACTION` / `%ILLEGAL_MOVE` として書き出され、どの形式で保存しても勝敗が残る。
-CSA通信対局（`CsaGameWiring::buildEndLineText()`）も同じ関数を使う。
+`%-ILLEGAL_ACTION` / `%ILLEGAL_MOVE` として書き出され（`TerminalCodes::csaSpecial()`）、どの形式で保存しても勝敗が残る。
+CSA通信対局（`CsaGameProgress::endRecord()`）も同じ規則で終局行を作る。
 
 ## 翻訳
 

@@ -2,33 +2,17 @@
 #define TIMECONTROLUTIL_H
 
 /// @file timecontrolutil.h
-/// @brief 持ち時間設定をShogiClockへ適用するユーティリティの定義
+/// @brief 対局の時間の決まりを将棋時計へ適用する
 
-#include "gamestartcoordinator.h"
-#include <QString>
+#include "matchtimesettings.h"
+#include "shogitypes.h"
 
 class ShogiClock;
-class GameStartCoordinator;
 
-/**
- * @brief 持ち時間設定をShogiClockへ適用するユーティリティ名前空間
- *
- * GameStartCoordinator::TimeSettings の設定値を ShogiClock に変換・適用する。
- *
- */
 namespace TimeControlUtil {
 
-/**
- * @brief GameStartCoordinator::TimeSettings を ShogiClock へ適用する
- * @param clock 対象の将棋時計
- * @param tc 持ち時間設定
- * @param startSfenStr 開始局面のSFEN（初期手番の推定にのみ使用）
- * @param currentSfenStr 現在局面のSFEN（初期手番の推定にのみ使用）
- */
-void applyToClock(ShogiClock* clock,
-                  const GameStartCoordinator::TimeSettings& tc,
-                  const QString& startSfenStr,
-                  const QString& currentSfenStr);
+/// 時間の決まりを時計に設定し、時計の手番を最初に指す側にする（時計はまだ動かさない）
+void applyToClock(ShogiClock& clock, const MatchTimeSettings& settings, Turn firstPlayer);
 
 } // namespace TimeControlUtil
 

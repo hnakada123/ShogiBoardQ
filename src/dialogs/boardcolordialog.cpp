@@ -377,39 +377,40 @@ void BoardColorDialog::syncThemeSelection()
 
 namespace {
 using Component = BoardAppearanceCatalog::Component;
+/// おすすめの組み合わせ。部品は見本の変わらない名前（BoardAppearanceSample::key）で指す
 struct Combination {
     const char* name;
     const char* pieces;
-    int board;
-    int stand;
-    int information;
-    int background;
+    const char* board;
+    const char* stand;
+    const char* information;
+    const char* background;
 };
 const Combination combinations[] = {
-    {QT_TRANSLATE_NOOP("BoardColorDialog", "標準・榧と畳"), "standard", 0, 0, 0, 0},
-    {QT_TRANSLATE_NOOP("BoardColorDialog", "淡虎斑・白榧"), "torafu_light", 1, 1, 1, 1},
-    {QT_TRANSLATE_NOOP("BoardColorDialog", "黒檀・月白"), "deep_ebony", 8, 8, 16, 8},
-    {QT_TRANSLATE_NOOP("BoardColorDialog", "白木・墨夜"), "wood_pale", 11, 11, 10, 11},
-    {QT_TRANSLATE_NOOP("BoardColorDialog", "青磁・白磁"), "tint_celadon", 6, 6, 2, 6},
-    {QT_TRANSLATE_NOOP("BoardColorDialog", "葡萄・藤鼠"), "deep_grape", 17, 17, 4, 17},
-    {QT_TRANSLATE_NOOP("BoardColorDialog", "Facet（木肌）"), "chess_facet_wood", 20, 20, 1, 20},
-    {QT_TRANSLATE_NOOP("BoardColorDialog", "Facet（白）"), "chess_facet_paper", 21, 21, 2, 21},
-    {QT_TRANSLATE_NOOP("BoardColorDialog", "Facet（墨）"), "chess_facet_slate", 22, 22, 10, 22},
-    {QT_TRANSLATE_NOOP("BoardColorDialog", "Atelier（木肌）"), "chess_atelier_wood", 20, 20, 1, 20},
-    {QT_TRANSLATE_NOOP("BoardColorDialog", "Atelier（白）"), "chess_atelier_paper", 21, 21, 2, 21},
-    {QT_TRANSLATE_NOOP("BoardColorDialog", "Atelier（墨）"), "chess_atelier_slate", 22, 22, 10, 22},
-    {QT_TRANSLATE_NOOP("BoardColorDialog", "Ribbon（木肌）"), "chess_ribbon_wood", 20, 20, 1, 20},
-    {QT_TRANSLATE_NOOP("BoardColorDialog", "Ribbon（白）"), "chess_ribbon_paper", 21, 21, 2, 21},
-    {QT_TRANSLATE_NOOP("BoardColorDialog", "Ribbon（墨）"), "chess_ribbon_slate", 22, 22, 10, 22},
-    {QT_TRANSLATE_NOOP("BoardColorDialog", "端正（木肌）"), "alphabet_sei_wood", 23, 23, 1, 23},
-    {QT_TRANSLATE_NOOP("BoardColorDialog", "端正（白）"), "alphabet_sei_paper", 24, 24, 2, 24},
-    {QT_TRANSLATE_NOOP("BoardColorDialog", "端正（墨）"), "alphabet_sei_slate", 25, 25, 10, 25},
-    {QT_TRANSLATE_NOOP("BoardColorDialog", "凛（木肌）"), "alphabet_rin_wood", 23, 23, 1, 23},
-    {QT_TRANSLATE_NOOP("BoardColorDialog", "凛（白）"), "alphabet_rin_paper", 24, 24, 2, 24},
-    {QT_TRANSLATE_NOOP("BoardColorDialog", "凛（墨）"), "alphabet_rin_slate", 25, 25, 10, 25},
-    {QT_TRANSLATE_NOOP("BoardColorDialog", "墨（木肌）"), "alphabet_sumi_wood", 23, 23, 1, 23},
-    {QT_TRANSLATE_NOOP("BoardColorDialog", "墨（白）"), "alphabet_sumi_paper", 24, 24, 2, 24},
-    {QT_TRANSLATE_NOOP("BoardColorDialog", "墨（墨）"), "alphabet_sumi_slate", 25, 25, 10, 25}
+    {QT_TRANSLATE_NOOP("BoardColorDialog", "標準・榧と畳"), "standard", "榧", "木肌", "若草", "畳"},
+    {QT_TRANSLATE_NOOP("BoardColorDialog", "淡虎斑・白榧"), "torafu_light", "白榧", "白榧", "生成り", "白緑"},
+    {QT_TRANSLATE_NOOP("BoardColorDialog", "黒檀・月白"), "deep_ebony", "月白", "月白", "銀鼠", "青鼠"},
+    {QT_TRANSLATE_NOOP("BoardColorDialog", "白木・墨夜"), "wood_pale", "墨夜", "墨夜", "墨", "墨夜"},
+    {QT_TRANSLATE_NOOP("BoardColorDialog", "青磁・白磁"), "tint_celadon", "白桐", "白桐", "白磁", "柳鼠"},
+    {QT_TRANSLATE_NOOP("BoardColorDialog", "葡萄・藤鼠"), "deep_grape", "藤鼠", "藤鼠", "藤霞", "藤鼠"},
+    {QT_TRANSLATE_NOOP("BoardColorDialog", "Facet（木肌）"), "chess_facet_wood", "チェス・木肌", "チェス・木肌", "生成り", "チェス・木肌"},
+    {QT_TRANSLATE_NOOP("BoardColorDialog", "Facet（白）"), "chess_facet_paper", "チェス・白", "チェス・白", "白磁", "チェス・白"},
+    {QT_TRANSLATE_NOOP("BoardColorDialog", "Facet（墨）"), "chess_facet_slate", "チェス・墨", "チェス・墨", "墨", "チェス・墨"},
+    {QT_TRANSLATE_NOOP("BoardColorDialog", "Atelier（木肌）"), "chess_atelier_wood", "チェス・木肌", "チェス・木肌", "生成り", "チェス・木肌"},
+    {QT_TRANSLATE_NOOP("BoardColorDialog", "Atelier（白）"), "chess_atelier_paper", "チェス・白", "チェス・白", "白磁", "チェス・白"},
+    {QT_TRANSLATE_NOOP("BoardColorDialog", "Atelier（墨）"), "chess_atelier_slate", "チェス・墨", "チェス・墨", "墨", "チェス・墨"},
+    {QT_TRANSLATE_NOOP("BoardColorDialog", "Ribbon（木肌）"), "chess_ribbon_wood", "チェス・木肌", "チェス・木肌", "生成り", "チェス・木肌"},
+    {QT_TRANSLATE_NOOP("BoardColorDialog", "Ribbon（白）"), "chess_ribbon_paper", "チェス・白", "チェス・白", "白磁", "チェス・白"},
+    {QT_TRANSLATE_NOOP("BoardColorDialog", "Ribbon（墨）"), "chess_ribbon_slate", "チェス・墨", "チェス・墨", "墨", "チェス・墨"},
+    {QT_TRANSLATE_NOOP("BoardColorDialog", "端正（木肌）"), "alphabet_sei_wood", "欧文・木肌", "欧文・木肌", "生成り", "欧文・木肌"},
+    {QT_TRANSLATE_NOOP("BoardColorDialog", "端正（白）"), "alphabet_sei_paper", "欧文・白", "欧文・白", "白磁", "欧文・白"},
+    {QT_TRANSLATE_NOOP("BoardColorDialog", "端正（墨）"), "alphabet_sei_slate", "欧文・墨", "欧文・墨", "墨", "欧文・墨"},
+    {QT_TRANSLATE_NOOP("BoardColorDialog", "凛（木肌）"), "alphabet_rin_wood", "欧文・木肌", "欧文・木肌", "生成り", "欧文・木肌"},
+    {QT_TRANSLATE_NOOP("BoardColorDialog", "凛（白）"), "alphabet_rin_paper", "欧文・白", "欧文・白", "白磁", "欧文・白"},
+    {QT_TRANSLATE_NOOP("BoardColorDialog", "凛（墨）"), "alphabet_rin_slate", "欧文・墨", "欧文・墨", "墨", "欧文・墨"},
+    {QT_TRANSLATE_NOOP("BoardColorDialog", "墨（木肌）"), "alphabet_sumi_wood", "欧文・木肌", "欧文・木肌", "生成り", "欧文・木肌"},
+    {QT_TRANSLATE_NOOP("BoardColorDialog", "墨（白）"), "alphabet_sumi_paper", "欧文・白", "欧文・白", "白磁", "欧文・白"},
+    {QT_TRANSLATE_NOOP("BoardColorDialog", "墨（墨）"), "alphabet_sumi_slate", "欧文・墨", "欧文・墨", "墨", "欧文・墨"}
 };
 
 QListWidget* gallery(QWidget* parent, const QString& name)
@@ -733,11 +734,13 @@ void BoardColorDialog::syncCatalog()
     int selected = -1;
     for (int i = 0; i < static_cast<int>(std::size(combinations)); ++i) {
         const auto& combination = combinations[i];
-        if (style == QLatin1String(combination.pieces)
-            && m_componentLists.at(0)->currentRow() == combination.board
-            && m_componentLists.at(1)->currentRow() == combination.stand
-            && m_componentLists.at(2)->currentRow() == combination.information
-            && m_componentLists.at(3)->currentRow() == combination.background) selected = i;
+        const char* keys[] = {combination.board, combination.stand, combination.information, combination.background};
+        bool same = style == QLatin1String(combination.pieces);
+        for (int c = 0; same && c < static_cast<int>(std::size(keys)); ++c) {
+            same = m_componentLists.at(c)->currentRow()
+                == BoardAppearanceCatalog::indexOf(static_cast<Component>(c), QString::fromUtf8(keys[c]));
+        }
+        if (same) selected = i;
     }
     m_combinations->setCurrentIndex(selected);
 }
@@ -748,10 +751,11 @@ void BoardColorDialog::applyCombination(int index)
     const auto& combination = combinations[index];
     auto colors = BoardAppearance::instance().colors();
     auto visuals = BoardAppearance::instance().visuals();
-    const int rows[] = {combination.board, combination.stand, combination.information, combination.background};
-    for (int i = 0; i < static_cast<int>(std::size(rows)); ++i) {
+    const char* keys[] = {combination.board, combination.stand, combination.information, combination.background};
+    for (int i = 0; i < static_cast<int>(std::size(keys)); ++i) {
         const auto component = static_cast<Component>(i);
-        BoardAppearanceCatalog::apply(component, BoardAppearanceCatalog::samples(component).at(rows[i]), colors, visuals);
+        const int row = BoardAppearanceCatalog::indexOf(component, QString::fromUtf8(keys[i]));
+        if (row >= 0) BoardAppearanceCatalog::apply(component, BoardAppearanceCatalog::samples(component).at(row), colors, visuals);
     }
     PieceImageProvider::instance().setStyle(QLatin1String(combination.pieces));
     BoardAppearance::instance().setColors(colors);

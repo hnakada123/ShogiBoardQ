@@ -16,20 +16,13 @@
 #include "kifparsetypes.h"
 #include "kifubranchtree.h"
 
-class KifuNavigationState;
 class KifuBranchNode;
 
 /**
- * @brief 棋譜データの中央管理クラス
+ * @brief 棋譜（分岐ツリー）の編集・未保存の印・書き出しの窓口
  *
- * 棋譜のコメント編集、保存、読み込みを一元管理し、
- * データの整合性を保証する。
- *
- * 設計方針:
- * - コメント・しおりは分岐ツリーの各ノードを参照し、このクラス経由で同期更新する
- * - 既存データへの参照を保持し、必要に応じて同期更新を行う
- * - KIF/CSA/JKF/USEN/USI形式への出力機能を提供
- *
+ * コメント・しおりは分岐ツリーのノードに書き、書いたノードを commentChanged / bookmarkChanged で知らせる。
+ * 棋譜の追記・取り込みは markDirty() で未保存として記録する。書き出しは形式ごとの Exporter に任せる。
  */
 class GameRecordModel : public QObject
 {
@@ -39,63 +32,15 @@ public:
     explicit GameRecordModel(QObject* parent = nullptr);
     ~GameRecordModel() override = default;
 
-    // --- 初期化 ---
-
-    /**
-     * @brief KifuBranchTree を設定（新システム用）
-     */
+    /// 書き出す棋譜（分岐ツリー）を設定する
     void setBranchTree(KifuBranchTree* tree);
 
-    /**
-     * @brief KifuNavigationState を設定（新システム用、現在のライン取得に使用）
-     */
-    void setNavigationState(KifuNavigationState* state);
+    // --- コメント・しおり ---
 
-    /**
-     * @brief 棋譜読み込み時の初期化
-     * @param disp 読み込んだ棋譜の表示データ
-     * @param rowCount SFEN記録の行数（コメント配列のサイズ決定に使用）
-     */
-    void initializeFromDisplayItems(const QList<KifDisplayItem>& disp, int rowCount);
-
-    /**
-     * @brief 新規対局開始時のクリア
-     */
-    void clear();
-
-    // --- コメント操作（Single Source of Truth） ---
-
-    /**
-     * @brief 指定手数のコメントを設定
-     * @param ply 手数（0=開始局面, 1=1手目, ...）
-     * @param comment 新しいコメント
-     *
-     * 表示中の手順の ply 手目のノード（分岐ツリーが無い場合だけ内部配列）に書き込む。
-     */
-    void setComment(int ply, const QString& comment);
-
-    /**
-     * @brief 指定手数のコメントを取得
-     * @param ply 手数（0=開始局面, 1=1手目, ...）
-     * @return コメント文字列（なければ空文字）
-     */
-    QString comment(int ply) const;
-
-    // --- しおり操作 ---
-
-    /**
-     * @brief 指定手数のしおりを設定
-     * @param ply 手数（0=開始局面, 1=1手目, ...）
-     * @param bookmark 新しいしおり
-     */
-    void setBookmark(int ply, const QString& bookmark);
-
-    /**
-     * @brief 指定手数のしおりを取得
-     * @param ply 手数（0=開始局面, 1=1手目, ...）
-     * @return しおり文字列（なければ空文字）
-     */
-    QString bookmark(int ply) const;
+    /// node のコメントを書き換える（変わったら未保存にして commentChanged を出す）
+    void setComment(KifuBranchNode* node, const QString& comment);
+    /// node のしおりを書き換える（変わったら未保存にして bookmarkChanged を出す）
+    void setBookmark(KifuBranchNode* node, const QString& bookmark);
 
     // --- 棋譜出力 ---
 
@@ -124,13 +69,12 @@ public:
     /**
      * @brief CSA形式の行リストを生成
      * @param ctx 出力コンテキスト（ヘッダ情報等）
-     * @param usiMoves USI形式の指し手リスト
      * @return CSA形式の行リスト
      * 
      * CSA形式はコンピュータ将棋協会の標準棋譜ファイル形式です。
      * 分岐の指し手には対応していません（本譜のみ出力）。
      */
-    QStringList toCsaLines(const ExportContext& ctx, const QStringList& usiMoves) const;
+    QStringList toCsaLines(const ExportContext& ctx) const;
 
     /**
      * @brief JKF形式（JSON棋譜フォーマット）の行リストを生成
@@ -146,28 +90,24 @@ public:
     /**
      * @brief USEN形式（Url Safe sfen-Extended Notation）の行リストを生成
      * @param ctx 出力コンテキスト（ヘッダ情報等）
-     * @param usiMoves USI形式の指し手リスト（本譜用）
      * @return USEN形式の行リスト（1要素のUSEN文字列）
      * 
      * USEN形式はURLセーフな短い文字列で棋譜を表現するフォーマットです。
      * 分岐の指し手にも対応しています。
      * https://www.slideshare.net/slideshow/scalajs-web/92707205#15
      */
-    QStringList toUsenLines(const ExportContext& ctx, const QStringList& usiMoves) const;
+    QStringList toUsenLines(const ExportContext& ctx) const;
 
     /**
      * @brief USIプロトコル形式（position コマンド文字列）の行リストを生成
      * @param ctx 出力コンテキスト（ヘッダ情報等）
-     * @param usiMoves USI形式の指し手リスト（本譜用）
      * @return USI形式の行リスト（1要素のposition コマンド文字列）
      * 
      * USI形式は将棋GUIとエンジン間の通信プロトコルで使用される棋譜フォーマットです。
      * 分岐の指し手には対応していません（本譜のみ出力）。
      * https://shogidokoro2.stars.ne.jp/usi.html
      */
-    QStringList toUsiLines(const ExportContext& ctx, const QStringList& usiMoves) const;
-
-    // --- ライブ対局用 ---
+    QStringList toUsiLines(const ExportContext& ctx) const;
 
     // --- 状態取得 ---
 
@@ -183,11 +123,6 @@ public:
 
     /// 棋譜の追記や取り込みを未保存として記録する。
     void markDirty() { m_isDirty = true; }
-
-    /**
-     * @brief アクティブ行のインデックス
-     */
-    int activeRow() const;
 
     // --- データアクセス（エクスポータ向け） ---
 
@@ -218,30 +153,14 @@ public:
     static void resolvePlayerNames(const ExportContext& ctx, QString& outBlack, QString& outWhite);
 
 signals:
-    /**
-     * @brief コメントが変更された
-     * @param ply 変更された手数
-     * @param newComment 新しいコメント
-     */
-    void commentChanged(int ply, const QString& newComment);
+    /// ノードのコメントが変わった
+    void commentChanged(int nodeId, const QString& comment);
+    /// ノードのしおりが変わった
+    void bookmarkChanged(int nodeId, const QString& bookmark);
 
-    void bookmarkChanged(int ply, const QString& bookmark);
 private:
-    // === ツリーがない場合のフォールバックデータ ===
-    QList<QString> m_comments;   ///< 手数インデックス → コメント
-    QList<QString> m_bookmarks;  ///< 手数インデックス → しおり
-    bool m_isDirty = false;        ///< 変更フラグ
-
-    // === 外部データへの参照（同期更新用、所有しない） ===
-
-    // === 新システム（KifuBranchTree）への参照 ===
-    KifuBranchTree* m_branchTree = nullptr;
-    KifuNavigationState* m_navState = nullptr;
-
-    // === 内部ヘルパ ===
-    KifuBranchNode* nodeForCurrentLine(int ply) const;
-    bool hasBranchTree() const;
-
+    bool m_isDirty = false;                     ///< 未保存の変更があるか
+    KifuBranchTree* m_branchTree = nullptr;     ///< 棋譜の正本（非所有）
 };
 
 #endif // GAMERECORDMODEL_H

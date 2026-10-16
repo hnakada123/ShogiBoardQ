@@ -9,10 +9,32 @@
 #include <QStringList>
 #include <limits>
 
-#include "usiinfoparser.h"
+#include "usilineparser.h"
 #include "analysiscoordinator.h"
 #include "analysisresulthandler.h"
 #include "kifuanalysislistmodel.h"
+
+namespace {
+UsiInfo info(const char* line)
+{
+    return *UsiLineParser::parseInfo(QString::fromUtf8(line));
+}
+
+/// 棋譜解析の表の「mate 5」「mate +」「mate +0」などの表示から、先手から見た評価値を作る
+UsiScore mateScore(const QString& text)
+{
+    const QString mate = text.mid(QStringLiteral("mate ").size());
+    UsiScore score;
+    score.kind = UsiScore::Kind::Mate;
+    if (mate == QLatin1String("+") || mate == QLatin1String("-")) {
+        score.mateWin = mate == QLatin1String("+");
+        return score;
+    }
+    score = UsiScore::mate(mate.toInt());
+    if (mate == QLatin1String("+0")) score.mateWin = true;
+    return score;
+}
+} // namespace
 
 class TestAnalysisCoordinator : public QObject
 {
@@ -53,15 +75,11 @@ private slots:
     void commitPendingResult_updatesLastCommitted();
     void commitPendingResult_bookMove_clearsUsiPv();
     void commitPendingResult_resignIsNotAMove();
-    void reset_clearsAllPending();
+    void resetLastCommitted_forgetsCommittedPly();
     void mateMetadataSurvivesCommit();
     void missingEvaluationAndDifferences();
     void mateJudgement_data();
     void mateJudgement();
-    void extractUsiMoveFromKanji_basicMove();
-    void extractUsiMoveFromKanji_promotion();
-    void extractUsiMoveFromKanji_drop();
-    void extractUsiMoveFromKanji_emptyInput();
 };
 
 // === AnalysisCoordinator 基本テスト ===
@@ -158,7 +176,7 @@ void TestAnalysisCoordinator::onEngineInfo_scorecp_emitsProgress()
 
     QSignalSpy spy(&coord, &AnalysisCoordinator::analysisProgress);
 
-    coord.onEngineInfo(*UsiInfoParser::parse(QStringLiteral("info depth 10 seldepth 15 score cp 123 pv 7g7f 3c3d")));
+    coord.onEngineInfo(*UsiLineParser::parseInfo(QStringLiteral("info depth 10 seldepth 15 score cp 123 pv 7g7f 3c3d")));
 
     QCOMPARE(spy.count(), 1);
 
@@ -188,7 +206,7 @@ void TestAnalysisCoordinator::onEngineInfo_scoremate_emitsProgress()
 
     QSignalSpy spy(&coord, &AnalysisCoordinator::analysisProgress);
 
-    coord.onEngineInfo(*UsiInfoParser::parse(QStringLiteral("info depth 20 score mate 5 pv 7g7f 3c3d 8h2b+")));
+    coord.onEngineInfo(*UsiLineParser::parseInfo(QStringLiteral("info depth 20 score mate 5 pv 7g7f 3c3d 8h2b+")));
 
     QCOMPARE(spy.count(), 1);
 
@@ -214,13 +232,13 @@ void TestAnalysisCoordinator::onEngineInfo_noScore_emitsProgress()
     QSignalSpy spy(&coord, &AnalysisCoordinator::analysisProgress);
 
     // 解析開始前の info は捨てる
-    coord.onEngineInfo(*UsiInfoParser::parse(QStringLiteral("info depth 3 pv 7g7f")));
+    coord.onEngineInfo(*UsiLineParser::parseInfo(QStringLiteral("info depth 3 pv 7g7f")));
     QCOMPARE(spy.count(), 0);
 
     coord.startAnalyzeSingle(0);
 
     // 評価値も読み筋もない info（info string）も進捗として渡す（受け手が使う項目を選ぶ）
-    coord.onEngineInfo(*UsiInfoParser::parse(QStringLiteral("info string hello world")));
+    coord.onEngineInfo(*UsiLineParser::parseInfo(QStringLiteral("info string hello world")));
 
     QCOMPARE(spy.count(), 1);
     const auto info = qvariant_cast<UsiInfo>(spy.at(0).at(1));
@@ -246,7 +264,7 @@ void TestAnalysisCoordinator::onEngineBestmove_single_emitsFinished()
     QSignalSpy spy(&coord, &AnalysisCoordinator::analysisFinished);
 
     // SinglePosition モードで bestmove を受信すると Idle で完了
-    coord.onEngineBestmoveReceived(QStringLiteral("bestmove 7g7f"));
+    coord.onEngineBestmoveReceived();
 
     QCOMPARE(spy.count(), 1);
     auto mode = spy.at(0).at(0).value<AnalysisCoordinator::Mode>();
@@ -273,7 +291,7 @@ void TestAnalysisCoordinator::onEngineBestmove_range_advancesToNextPly()
     QSignalSpy posSpy(&coord, &AnalysisCoordinator::positionPrepared);
 
     // 最初の bestmove → 次の ply へ進む
-    coord.onEngineBestmoveReceived(QStringLiteral("bestmove 7g7f"));
+    coord.onEngineBestmoveReceived();
 
     QCOMPARE(coord.currentPly(), 1);
     // positionPrepared が次の ply 用に発火
@@ -299,8 +317,9 @@ void TestAnalysisCoordinator::sendGoCommand_emitsRequestSendUsiCommand()
     coord.startAnalyzeSingle(1);
     QCOMPARE(spy.count(), 1);
     QVERIFY(spy.at(0).at(0).toString().startsWith(QStringLiteral("position")));
+    QCOMPARE(spy.at(0).at(1).toInt(), 5000);  // この時間で stop を送ってもらう
     coord.stop();
-    coord.onEngineBestmoveReceived({});
+    coord.onEngineBestmoveReceived();
     QCOMPARE(spy.count(), 1);
 }
 
@@ -330,36 +349,34 @@ void TestAnalysisCoordinator::setOptions_multiPV_sendSetoption()
 
 void TestAnalysisCoordinator::updatePending_storesData()
 {
-    AnalysisResultHandler handler;
     KifuAnalysisListModel model;
 
     AnalysisResultHandler::Refs refs;
     refs.analysisModel = &model;
-    handler.setRefs(refs);
+    AnalysisResultHandler handler(refs);
 
-    handler.updatePending(5, 150, 0, QStringLiteral("7g7f 3c3d"));
+    handler.updatePending(5, info("info score cp 150 pv 7g7f 3c3d"));
 
     // updatePending だけでは lastCommittedPly は更新されない
     QCOMPARE(handler.lastCommittedPly(), -1);
-    QCOMPARE(handler.lastCommittedScoreCp(), 0);
+    QVERIFY(handler.lastCommittedScore().isNone());
 }
 
 void TestAnalysisCoordinator::commitPendingResult_updatesLastCommitted()
 {
-    AnalysisResultHandler handler;
     KifuAnalysisListModel model;
 
     AnalysisResultHandler::Refs refs;
     refs.analysisModel = &model;
-    handler.setRefs(refs);
+    AnalysisResultHandler handler(refs);
 
-    handler.updatePending(2, 200, 0, QStringLiteral("7g7f 3c3d"));
+    handler.updatePending(2, info("info score cp 200 pv 7g7f 3c3d"));
     handler.commitPendingResult();
 
     // commit 後は lastCommittedPly が更新される
     QCOMPARE(handler.lastCommittedPly(), 2);
-    // ply=2 は偶数（先手番）なので scoreCp=200 がそのまま
-    QCOMPARE(handler.lastCommittedScoreCp(), 200);
+    // ply=2 は偶数（先手番）なので評価値 200 がそのまま
+    QCOMPARE(handler.lastCommittedScore().value, 200);
 
     // モデルに1行追加されている
     QCOMPARE(model.rowCount(), 1);
@@ -376,15 +393,14 @@ void TestAnalysisCoordinator::commitPendingResult_bookMove_clearsUsiPv()
     coord.setOptions(opt);
     coord.startAnalyzeSingle(1); // currentPly=1 をセット
 
-    AnalysisResultHandler handler;
     KifuAnalysisListModel model;
 
     AnalysisResultHandler::Refs refs;
     refs.analysisModel = &model;
     refs.coord = &coord;
-    handler.setRefs(refs);
+    AnalysisResultHandler handler(refs);
 
-    handler.updatePending(1, 120, 0, QStringLiteral("7g7f 3c3d (100.00%)"));
+    handler.updatePending(1, info("info score cp 120 pv 7g7f 3c3d (100.00%)"));
     handler.commitPendingResult();
     QCOMPARE(model.rowCount(), 1);
 
@@ -405,13 +421,12 @@ void TestAnalysisCoordinator::commitPendingResult_bookMove_clearsUsiPv()
 void TestAnalysisCoordinator::commitPendingResult_resignIsNotAMove()
 {
     // 詰んだ局面ではエンジンが「pv resign」を返す。resign を候補手や読み筋の盤面表示に使わない
-    AnalysisResultHandler handler;
     KifuAnalysisListModel model;
     AnalysisResultHandler::Refs refs;
     refs.analysisModel = &model;
-    handler.setRefs(refs);
+    AnalysisResultHandler handler(refs);
 
-    handler.updatePending(2, std::numeric_limits<int>::min(), -1, QStringLiteral("resign"), QStringLiteral("-1"));
+    handler.updatePending(2, info("info score mate -1 pv resign"));
     handler.updatePendingPvKanji(QStringLiteral("▲投了"));
     handler.commitPendingResult();
 
@@ -423,52 +438,53 @@ void TestAnalysisCoordinator::commitPendingResult_resignIsNotAMove()
 
 void TestAnalysisCoordinator::mateMetadataSurvivesCommit()
 {
-    AnalysisResultHandler handler;
     KifuAnalysisListModel model;
     AnalysisResultHandler::Refs refs;
     refs.analysisModel = &model;
-    handler.setRefs(refs);
-    handler.updatePending(1, std::numeric_limits<int>::min(), 5, QStringLiteral("7g7f"));
+    AnalysisResultHandler handler(refs);
+    handler.updatePending(1, info("info score mate 5 pv 7g7f"));
     // nodes/time のみの追報で詰み情報が消えない。
-    handler.updatePending(1, std::numeric_limits<int>::min(), 0, QString());
+    handler.updatePending(1, info("info nodes 100"));
     handler.commitPendingResult();
-    QCOMPARE(handler.lastCommittedMate(), QStringLiteral("-5"));
-    handler.updatePending(2, 120, 0, QStringLiteral("7g7f"));
+    // 後手番の局面なので先手から見ると詰まされる側
+    QVERIFY(handler.lastCommittedScore().isMate());
+    QCOMPARE(handler.lastCommittedScore().mateText(), QStringLiteral("-5"));
+    handler.updatePending(2, info("info score cp 120 pv 7g7f"));
     handler.commitPendingResult();
-    QVERIFY(handler.lastCommittedMate().isEmpty());
-    QCOMPARE(handler.lastCommittedScoreCp(), 120);
-    handler.updatePending(3, std::numeric_limits<int>::min(), 0, QString(), QStringLiteral("-"));
+    QVERIFY(handler.lastCommittedScore().isCp());
+    QCOMPARE(handler.lastCommittedScore().value, 120);
+    handler.updatePending(3, info("info score mate -"));
     handler.commitPendingResult();
-    QCOMPARE(handler.lastCommittedMate(), QStringLiteral("+"));
-    handler.reset();
-    QVERIFY(handler.lastCommittedMate().isEmpty());
+    QCOMPARE(handler.lastCommittedScore().mateText(), QStringLiteral("+"));
 }
 
 void TestAnalysisCoordinator::missingEvaluationAndDifferences()
 {
-    AnalysisResultHandler handler;
     KifuAnalysisListModel model;
     AnalysisResultHandler::Refs refs;
     refs.analysisModel = &model;
-    handler.setRefs(refs);
-    handler.updatePending(0, 120, 0, QStringLiteral("7g7f"));
+    AnalysisResultHandler handler(refs);
+    handler.updatePending(0, info("info score cp 120 pv 7g7f"));
     handler.commitPendingResult();
-    QCOMPARE(model.item(0)->evaluationDifference(), QStringLiteral("-"));
-    handler.updatePending(1, -160, 0, QStringLiteral("3c3d"));
+    QVERIFY(!model.item(0)->evaluationDifference());
+    QCOMPARE(model.index(0, 5).data().toString(), QStringLiteral("-"));
+    handler.updatePending(1, info("info score cp -160 pv 3c3d"));
     handler.commitPendingResult();
-    QCOMPARE(model.item(1)->evaluationDifference(), QStringLiteral("40"));
-    handler.updatePending(2, std::numeric_limits<int>::min(), 0, QStringLiteral("2g2f"));
+    QCOMPARE(model.item(1)->evaluationDifference(), std::optional<int>(40));
+    QCOMPARE(model.index(1, 5).data().toString(), QStringLiteral("40"));
+    handler.updatePending(2, info("info pv 2g2f"));
     handler.commitPendingResult();
-    QCOMPARE(model.item(2)->evaluationValue(), QStringLiteral("-"));
-    QCOMPARE(model.item(2)->evaluationDifference(), QStringLiteral("-"));
+    QVERIFY(model.item(2)->evaluation().isNone());
+    QCOMPARE(model.index(2, 3).data().toString(), QStringLiteral("-"));
+    QVERIFY(!model.item(2)->evaluationDifference());
     QVERIFY(model.index(2, 4).data().toString().isEmpty());
-    QCOMPARE(handler.lastCommittedScoreCp(), std::numeric_limits<int>::min());
-    handler.updatePending(3, -200, 0, QStringLiteral("8c8d"));
+    QVERIFY(handler.lastCommittedScore().isNone());
+    handler.updatePending(3, info("info score cp -200 pv 8c8d"));
     handler.commitPendingResult();
-    QCOMPARE(model.item(3)->evaluationDifference(), QStringLiteral("-"));
-    handler.updatePending(4, std::numeric_limits<int>::min(), -3, QStringLiteral("7g7f"));
+    QVERIFY(!model.item(3)->evaluationDifference());
+    handler.updatePending(4, info("info score mate -3 pv 7g7f"));
     handler.commitPendingResult();
-    QCOMPARE(model.item(4)->evaluationDifference(), QStringLiteral("-"));
+    QVERIFY(!model.item(4)->evaluationDifference());
 }
 
 void TestAnalysisCoordinator::mateJudgement_data()
@@ -488,61 +504,26 @@ void TestAnalysisCoordinator::mateJudgement()
     QFETCH(QString, score);
     QFETCH(QString, judgement);
     KifuAnalysisListModel model;
-    model.appendItem(new KifuAnalysisResultsDisplay(QString(), score, QString(), QString()));
+    model.appendItem(new KifuAnalysisResultsDisplay(QString(), mateScore(score), std::nullopt, QString()));
+    QCOMPARE(model.index(0, 3).data().toString(), score);
     QCOMPARE(model.index(0, 4).data().toString(), judgement);
 }
 
-void TestAnalysisCoordinator::reset_clearsAllPending()
+void TestAnalysisCoordinator::resetLastCommitted_forgetsCommittedPly()
 {
-    AnalysisResultHandler handler;
     KifuAnalysisListModel model;
 
     AnalysisResultHandler::Refs refs;
     refs.analysisModel = &model;
-    handler.setRefs(refs);
+    AnalysisResultHandler handler(refs);
 
-    handler.updatePending(3, 100, 0, QStringLiteral("7g7f"));
+    handler.updatePending(3, info("info score cp 100 pv 7g7f"));
     handler.commitPendingResult();
     QCOMPARE(handler.lastCommittedPly(), 3);
 
-    handler.reset();
+    handler.resetLastCommitted();
 
     QCOMPARE(handler.lastCommittedPly(), -1);
-    QCOMPARE(handler.lastCommittedScoreCp(), 0);
-}
-
-void TestAnalysisCoordinator::extractUsiMoveFromKanji_basicMove()
-{
-    // "▲７六歩(77)" → "7g7f"
-    const QString result = AnalysisResultHandler::extractUsiMoveFromKanji(
-        QStringLiteral("\u2617\uFF17\u516D\u6B69(77)"));
-    // ▲ = \u2617 ... actually let me use the actual characters
-    // Let me construct it properly
-    const QString input = QString::fromUtf8("▲７六歩(77)");
-    const QString usi = AnalysisResultHandler::extractUsiMoveFromKanji(input);
-    QCOMPARE(usi, QStringLiteral("7g7f"));
-}
-
-void TestAnalysisCoordinator::extractUsiMoveFromKanji_promotion()
-{
-    // "▲３三歩成(34)" → "3d3c+"
-    const QString input = QString::fromUtf8("▲３三歩成(34)");
-    const QString usi = AnalysisResultHandler::extractUsiMoveFromKanji(input);
-    QCOMPARE(usi, QStringLiteral("3d3c+"));
-}
-
-void TestAnalysisCoordinator::extractUsiMoveFromKanji_drop()
-{
-    // "▲５五角打" → "B*5e"
-    const QString input = QString::fromUtf8("▲５五角打");
-    const QString usi = AnalysisResultHandler::extractUsiMoveFromKanji(input);
-    QCOMPARE(usi, QStringLiteral("B*5e"));
-}
-
-void TestAnalysisCoordinator::extractUsiMoveFromKanji_emptyInput()
-{
-    const QString usi = AnalysisResultHandler::extractUsiMoveFromKanji(QString());
-    QVERIFY(usi.isEmpty());
 }
 
 QTEST_MAIN(TestAnalysisCoordinator)

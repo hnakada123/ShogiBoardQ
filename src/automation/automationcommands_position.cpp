@@ -17,8 +17,7 @@ void AutomationCommands::registerPositionCommands(AutomationDispatcher& dispatch
         const QStringList record = currentLinePositions(context);
         const int ply = context.currentPly();
         result[QStringLiteral("sfen")] = currentSfen(context);
-        QString start = !record.isEmpty() ? record.first()
-                                                     : (context.state ? context.state->startSfenStr : QString());
+        const QString start = record.isEmpty() ? SfenUtils::hirateSfen() : record.first();
         result[QStringLiteral("start_sfen")] = SfenUtils::normalizeStart(start);
         result[QStringLiteral("ply")] = ply;
         // 表示中の手数までの指し手（分岐ツリーの各手から取る）

@@ -23,6 +23,12 @@ QString pv(const QString& beforeSfen, const QString& usiMoves, const QString& ja
            bool fullOrigin = false);
 QString label(const QString& canonical, const QString& beforeSfen = {},
               const QString& usi = {}, bool fullOrigin = false);
+/// 1手の表記（手数・分岐の印を含まない）。日本語表記なら棋譜の表記（終局語は表示言語に合わせる）、
+/// 英語表記なら指す前の局面と指し手から作る
+QString moveLabel(const QString& canonical, const QString& beforeSfen, const QString& usi, bool fullOrigin = false);
+/// 分岐がある手に付ける印（日本語表記は "+"、英語表記は " [+]"）
+QString branchMark();
+
 QString status(const QString& canonical);
 QString infoKey(const QString& canonical);
 QString infoValue(const QString& key, const QString& raw);

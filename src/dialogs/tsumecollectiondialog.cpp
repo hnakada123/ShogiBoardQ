@@ -2,7 +2,7 @@
 #include "dialogutils.h"
 #include "buttonstyles.h"
 #include "enginelistsettings.h"
-#include "tsumepositionanalyzer.h"
+#include "tsumecollectionsession.h"
 #include "tsumeshogisettings.h"
 #include <QComboBox>
 #include <QAbstractItemView>
@@ -31,12 +31,8 @@ TsumeCollectionDialog::TsumeCollectionDialog(QWidget* parent)
 {
     setObjectName(QStringLiteral("tsumeCollectionDialog"));
     setWindowTitle(tr("詰将棋問題一覧"));
-    m_store = std::make_unique<TsumeProgressStore>();
-    m_store->open();
-    m_analyzer = new TsumePositionAnalyzer(this);
-    m_analysisTimer.setSingleShot(true);
-    connect(&m_analysisTimer, &QTimer::timeout, this, &TsumeCollectionDialog::analyzeNext);
-    connect(m_analyzer, &TsumePositionAnalyzer::finished, this, &TsumeCollectionDialog::analysisFinished);
+    m_session = new TsumeCollectionSession(this);
+    connect(m_session, &TsumeCollectionSession::evaluationChanged, this, &TsumeCollectionDialog::updateCards);
     buildUi();
     applyFontSize();
     const auto preferences = TsumeshogiSettings::collectionPreferences();
@@ -50,6 +46,8 @@ TsumeCollectionDialog::TsumeCollectionDialog(QWidget* parent)
     m_pageSize->setCurrentIndex(std::max(0, pageSizeIndex));
     m_filter->setCurrentIndex(std::clamp(preferences.filter, 0, 3));
     m_timeout->setValue(std::clamp(preferences.timeoutSec, 1, 600));
+    m_session->setTimeoutMs(m_timeout->value() * 1000);
+    connect(m_timeout, &QSpinBox::valueChanged, this, &TsumeCollectionDialog::timeoutChanged);
     connect(m_engine, &QComboBox::currentIndexChanged, this, &TsumeCollectionDialog::engineChanged);
     connect(m_pageSize, &QComboBox::currentIndexChanged, this, &TsumeCollectionDialog::filterChanged);
     connect(m_filter, &QComboBox::currentIndexChanged, this, &TsumeCollectionDialog::filterChanged);
@@ -60,13 +58,13 @@ TsumeCollectionDialog::TsumeCollectionDialog(QWidget* parent)
 
 TsumeCollectionDialog::~TsumeCollectionDialog()
 {
-    cancelAnalysis();
+    m_session->cancelEvaluation();
     savePreferences();
 }
 
 void TsumeCollectionDialog::done(int result)
 {
-    cancelAnalysis();
+    m_session->cancelEvaluation();
     savePreferences();
     QDialog::done(result);
 }
@@ -158,8 +156,9 @@ void TsumeCollectionDialog::buildUi()
     m_fontIncrease->setText(QStringLiteral("A+"));
     m_fontIncrease->setToolTip(tr("文字サイズを拡大"));
     m_fontIncrease->setStyleSheet(ButtonStyles::fontButton());
-    connect(m_fontDecrease, &QToolButton::clicked, this, &TsumeCollectionDialog::onFontDecrease);
-    connect(m_fontIncrease, &QToolButton::clicked, this, &TsumeCollectionDialog::onFontIncrease);
+    connect(m_fontDecrease, &QToolButton::clicked, &m_fontHelper, &FontSizeHelper::decrease);
+    connect(m_fontIncrease, &QToolButton::clicked, &m_fontHelper, &FontSizeHelper::increase);
+    connect(&m_fontHelper, &FontSizeHelper::fontSizeChanged, this, &TsumeCollectionDialog::applyFontSize);
     navigation->addWidget(m_fontDecrease);
     navigation->addWidget(m_fontIncrease);
     m_first = new QPushButton(tr("最初"), this);
@@ -190,23 +189,13 @@ void TsumeCollectionDialog::savePreferences()
 {
     TsumeshogiSettings::CollectionPreferences preferences;
     preferences.size = size();
-    preferences.lastFile = m_file;
+    preferences.lastFile = m_session->filePath();
     preferences.enginePath = m_engine->currentIndex() == 0 ? QStringLiteral("@hayanagi") : m_engine->currentData().toString();
     preferences.pageSize = m_pageSize->currentData().toInt();
     preferences.page = m_page->value();
     preferences.filter = m_filter->currentIndex();
     preferences.timeoutSec = m_timeout->value();
     TsumeshogiSettings::setCollectionPreferences(preferences);
-}
-
-void TsumeCollectionDialog::onFontIncrease()
-{
-    if (m_fontHelper.increase()) applyFontSize();
-}
-
-void TsumeCollectionDialog::onFontDecrease()
-{
-    if (m_fontHelper.decrease()) applyFontSize();
 }
 
 void TsumeCollectionDialog::applyFontSize()
@@ -218,47 +207,52 @@ void TsumeCollectionDialog::applyFontSize()
 // 詰み手順の解析
 // ============================================================
 
-void TsumeCollectionDialog::cancelAnalysis()
-{
-    m_analysisTimer.stop();
-    m_analyzer->cancel();
-    m_pending = -1;
-    m_queue.clear();
-}
-
 void TsumeCollectionDialog::engineChanged()
 {
-    cancelAnalysis();
-    m_analyzer->configure(m_engine->currentData().toString(), m_store.get());
-    m_results.clear();
-    m_notice->setText(m_engine->currentData().toString().isEmpty()
-        ? tr("内蔵判定は31手までです。長手数を解く場合はエンジン登録でKomoringHeightsを登録し、ここで選択してください。")
-        : tr("玉方はHayanagi、詰み判定はKomoringHeightsです。参考手順の手数と、確認済みの詰み手数を区別して表示します。"));
-    if (!m_store->error().isEmpty()) m_notice->setText(tr("履歴を保存できません: %1").arg(m_store->error()));
+    m_session->setEngine(m_engine->currentData().toString());
+    m_notice->setText(m_session->usesEngine()
+        ? tr("玉方はHayanagi、詰み判定はKomoringHeightsです。参考手順の手数と、確認済みの詰み手数を区別して表示します。")
+        : tr("内蔵判定は31手までです。長手数を解く場合はエンジン登録でKomoringHeightsを登録し、ここで選択してください。"));
+    showStoreError();
     rebuildPage();
+}
+
+void TsumeCollectionDialog::timeoutChanged(int seconds)
+{
+    m_session->setTimeoutMs(seconds * 1000);
+}
+
+void TsumeCollectionDialog::showStoreError()
+{
+    if (!m_session->store()->error().isEmpty())
+        m_notice->setText(tr("履歴を保存できません: %1").arg(m_session->store()->error()));
 }
 
 QString TsumeCollectionDialog::lengthText(int index) const
 {
-    if (m_pending >= 0 && m_ids[m_pending] == m_ids[index]) return tr("判定中…");
-    const auto found = m_results.constFind(m_ids[index]);
-    if (found != m_results.cend()) {
+    if (m_session->isPending(index)) return tr("判定中…");
+    if (const auto found = m_session->result(index)) {
         if (found->status == TsumeEvaluation::Status::Mate) return tr("%1手詰").arg(found->plies);
         if (found->status == TsumeEvaluation::Status::NoMate) return tr("不詰（確認済み）");
         return tr("判定不能（再判定できます）");
     }
-    const auto& reference = m_problems[index].referenceMoves;
+    const auto& reference = m_session->problem(index).referenceMoves;
     return reference.isEmpty() ? tr("手数未判定") : tr("参考手順: %1手・未検証").arg(reference.size());
+}
+
+void TsumeCollectionDialog::updateCards()
+{
+    for (auto* card : std::as_const(m_cards)) updateCard(card);
 }
 
 void TsumeCollectionDialog::updateCard(QPushButton* card)
 {
     const int index = card->property("problemIndex").toInt();
-    const auto progress = m_progress.value(m_ids[index]);
+    const auto progress = m_session->progress(index);
     auto* length = card->findChild<QLabel*>(QStringLiteral("cardLength"));
     auto* history = card->findChild<QLabel*>(QStringLiteral("cardProgress"));
     length->setText(lengthText(index));
-    const auto result = m_results.value(m_ids[index]);
+    const TsumeEvaluation result = m_session->result(index).value_or(TsumeEvaluation{});
     length->setToolTip(result.detail);
     history->setText(progress.solves > 0 ? tr("正答済み ／ 挑戦%1回・正答%2回").arg(progress.attempts).arg(progress.solves)
                      : progress.attempts > 0 ? tr("挑戦済み・未正答 ／ 挑戦%1回").arg(progress.attempts) : tr("未挑戦"));
@@ -269,39 +263,11 @@ void TsumeCollectionDialog::updateCard(QPushButton* card)
     card->setEnabled(result.status != TsumeEvaluation::Status::NoMate);
 }
 
-void TsumeCollectionDialog::analyzeNext()
-{
-    if (m_playing || m_pending >= 0) return;
-    while (!m_queue.isEmpty()) {
-        const int index = m_queue.takeFirst();
-        if (m_results.contains(m_ids[index])) continue;
-        m_pending = index;
-        for (auto* card : std::as_const(m_cards)) updateCard(card);
-        m_analyzer->evaluate(m_problems[index].sfen, m_timeout->value() * 1000);
-        return;
-    }
-}
-
-void TsumeCollectionDialog::analysisFinished(const TsumeEvaluation& result)
-{
-    if (m_pending < 0 || m_playing) return;
-    m_results.insert(m_ids[m_pending], result);
-    m_pending = -1;
-    for (auto* card : std::as_const(m_cards)) updateCard(card);
-    m_analysisTimer.start(0);
-}
-
 void TsumeCollectionDialog::reanalyzePage()
 {
-    cancelAnalysis();
-    for (auto* card : std::as_const(m_cards)) {
-        const int index = card->property("problemIndex").toInt();
-        m_results.remove(m_ids[index]);
-        m_store->removeCached(m_ids[index], m_analyzer->engineKey());
-        updateCard(card);
-        m_queue.append(index);
-    }
-    m_analysisTimer.start(0);
+    QList<int> indexes;
+    for (auto* card : std::as_const(m_cards)) indexes.append(card->property("problemIndex").toInt());
+    m_session->reevaluate(indexes);
 }
 
 // ============================================================
@@ -310,7 +276,7 @@ void TsumeCollectionDialog::reanalyzePage()
 
 void TsumeCollectionDialog::restoreLastFile()
 {
-    if (!m_file.isEmpty()) return;
+    if (!m_session->filePath().isEmpty()) return;
     const auto preferences = TsumeshogiSettings::collectionPreferences();
     const QString file = preferences.lastFile.isEmpty() ? TsumeshogiSettings::playPreferences().lastFile : preferences.lastFile;
     if (QFileInfo::exists(file) && loadFile(file)) m_page->setValue(preferences.page);
@@ -318,47 +284,32 @@ void TsumeCollectionDialog::restoreLastFile()
 
 void TsumeCollectionDialog::openFile()
 {
-    const auto path = QFileDialog::getOpenFileName(this, tr("詰将棋の局面集を開く"), m_file,
+    const auto path = QFileDialog::getOpenFileName(this, tr("詰将棋の局面集を開く"), m_session->filePath(),
                                                  tr("局面集 (*.txt *.sfen *.usi);;すべてのファイル (*)"));
     if (!path.isEmpty()) loadFile(path);
 }
 
 bool TsumeCollectionDialog::loadFile(const QString& path)
 {
-    QFile file(path);
-    if (!file.open(QIODevice::ReadOnly)) {
-        QMessageBox::warning(this, windowTitle(), tr("ファイルを開けませんでした。\n%1").arg(file.errorString()));
+    QString error;
+    QList<int> invalidLines;
+    if (!m_session->load(path, &error, &invalidLines)) {
+        QMessageBox::warning(this, windowTitle(), error.isEmpty()
+            ? tr("有効な詰将棋局面がありません。SFEN形式と玉方の玉を確認してください。")
+            : tr("ファイルを開けませんでした。\n%1").arg(error));
         return false;
     }
-    const QByteArray contents = file.readAll();
-    const auto parsed = TsumeCollection::parse(QString::fromUtf8(contents));
-    if (parsed.problems.isEmpty()) {
-        QMessageBox::warning(this, windowTitle(), tr("有効な詰将棋局面がありません。SFEN形式と玉方の玉を確認してください。"));
-        return false;
-    }
-    cancelAnalysis();
-    m_problems = parsed.problems;
-    m_file = path;
-    m_ids = parsed.positionIds;
-    m_results.clear();
-    m_store->setVerifiedCollection(contents, parsed);
     m_fileLabel->setText(QFileInfo(path).fileName());
     m_fileLabel->setToolTip(path);
     m_resetCollection->setEnabled(true);
-    refreshProgress();
+    showStoreError();
     filterChanged();
-    if (!parsed.invalidLines.isEmpty()) {
+    if (!invalidLines.isEmpty()) {
         QStringList lines;
-        for (int line : parsed.invalidLines) lines.append(QString::number(line));
+        for (int line : std::as_const(invalidLines)) lines.append(QString::number(line));
         QMessageBox::warning(this, windowTitle(), tr("次の行は形式が不正なため読み込めませんでした: %1").arg(lines.join(QStringLiteral(", "))));
     }
     return true;
-}
-
-void TsumeCollectionDialog::refreshProgress()
-{
-    m_progress = m_store->progress(m_ids);
-    if (!m_store->error().isEmpty()) m_notice->setText(tr("履歴を保存できません: %1").arg(m_store->error()));
 }
 
 void TsumeCollectionDialog::resetCollectionProgress() { resetProgress(false); }
@@ -366,10 +317,10 @@ void TsumeCollectionDialog::resetAllProgress() { resetProgress(true); }
 
 void TsumeCollectionDialog::resetProgress(bool allCollections)
 {
-    if (m_playing || (!allCollections && m_ids.isEmpty())) return;
+    if (m_playing || (!allCollections && m_session->problemCount() == 0)) return;
     const QString message = allCollections
         ? tr("過去に開いたすべての局面集の挑戦・正答履歴を初期化し、すべての問題を未挑戦に戻します。\nこの操作は取り消せません。初期化しますか？")
-        : tr("「%1」の全問題の挑戦・正答履歴を初期化し、未挑戦に戻します。\n表示中のページや絞り込みに関係なく、この局面集の全問題が対象です。\n同じ局面が他の局面集にもある場合、その共有履歴も初期化されます。\nこの操作は取り消せません。初期化しますか？").arg(QFileInfo(m_file).fileName());
+        : tr("「%1」の全問題の挑戦・正答履歴を初期化し、未挑戦に戻します。\n表示中のページや絞り込みに関係なく、この局面集の全問題が対象です。\n同じ局面が他の局面集にもある場合、その共有履歴も初期化されます。\nこの操作は取り消せません。初期化しますか？").arg(QFileInfo(m_session->filePath()).fileName());
     QMessageBox confirmation(QMessageBox::Warning, tr("履歴の初期化"), message,
                              QMessageBox::Yes | QMessageBox::Cancel, this);
     confirmation.setOption(QMessageBox::Option::DontUseNativeDialog);
@@ -378,12 +329,10 @@ void TsumeCollectionDialog::resetProgress(bool allCollections)
     confirmation.setDefaultButton(QMessageBox::Cancel);
     confirmation.setEscapeButton(QMessageBox::Cancel);
     if (confirmation.exec() != QMessageBox::Yes) return;
-    const bool succeeded = allCollections ? m_store->resetAllProgress() : m_store->resetProgress(m_ids);
-    if (!succeeded) {
-        QMessageBox::warning(this, tr("履歴の初期化"), tr("履歴を初期化できませんでした。\n%1").arg(m_store->error()));
+    if (!m_session->resetProgress(allCollections)) {
+        QMessageBox::warning(this, tr("履歴の初期化"), tr("履歴を初期化できませんでした。\n%1").arg(m_session->store()->error()));
         return;
     }
-    refreshProgress();
     rebuildPage();
 }
 
@@ -401,22 +350,16 @@ void TsumeCollectionDialog::lastPage() { m_page->setValue(m_page->maximum()); }
 
 void TsumeCollectionDialog::rebuildPage()
 {
-    cancelAnalysis();
-    m_filtered.clear();
-    const int filter = m_filter->currentIndex();
-    for (qsizetype i = 0; i < m_problems.size(); ++i) {
-        const auto progress = m_progress.value(m_ids[i]);
-        if (filter == 0 || (filter == 1 && progress.attempts == 0) ||
-            (filter == 2 && progress.attempts > 0 && progress.solves == 0) || (filter == 3 && progress.solves > 0))
-            m_filtered.append(static_cast<int>(i));
-    }
-    const int count = static_cast<int>(m_filtered.size());
-    const int pageSize = m_pageSize->currentData().toInt();
-    const int pages = std::max(1, (count + pageSize - 1) / pageSize);
+    m_session->cancelEvaluation();
+    m_filtered = m_session->filtered(static_cast<TsumeCollectionSession::Filter>(m_filter->currentIndex()));
+    const auto page = TsumeCollectionSession::page(static_cast<int>(m_filtered.size()),
+                                                   m_pageSize->currentData().toInt(), m_page->value());
+    const int count = page.count;
+    const int pages = page.pages;
     { const QSignalBlocker blocker(m_page); m_page->setMaximum(pages); }
     m_page->setEnabled(count > 0);
-    const int begin = (m_page->value() - 1) * pageSize;
-    const int end = std::min(count, begin + pageSize);
+    const int begin = page.begin;
+    const int end = page.end;
     m_summary->setText(tr("%1問中 %2〜%3問 ／ %4/%5ページ").arg(count).arg(count ? begin + 1 : 0).arg(end).arg(m_page->value()).arg(pages));
     m_first->setEnabled(m_page->value() > 1);
     m_previous->setEnabled(m_page->value() > 1);
@@ -429,7 +372,7 @@ void TsumeCollectionDialog::rebuildPage()
     m_cards.clear();
     m_grid->setAlignment(count == 0 ? Qt::AlignTop : Qt::AlignTop | Qt::AlignLeft);
     if (count == 0) {
-        auto* empty = new QLabel(m_problems.isEmpty()
+        auto* empty = new QLabel(m_session->problemCount() == 0
             ? tr("問題がありません。「局面集を開く…」からSFEN形式のファイルを選んでください。")
             : tr("この挑戦状況に一致する問題はありません。絞り込みを「すべて」にすると全問を表示できます。"), m_scroll->widget());
         empty->setObjectName(QStringLiteral("tsumeEmptyState"));
@@ -437,20 +380,22 @@ void TsumeCollectionDialog::rebuildPage()
         empty->setMargin(16);
         m_grid->addWidget(empty, 0, 0);
     }
+    QList<int> shown;
     for (int row = begin; row < end; ++row) {
         const int index = m_filtered[row];
+        const TsumeProblem& problem = m_session->problem(index);
         auto* card = new QPushButton(m_scroll->widget());
         card->setObjectName(QStringLiteral("tsumeProblemCard"));
         card->setProperty("problemIndex", index);
         card->setMinimumWidth(350);
         card->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
-        card->setToolTip(m_problems[index].sfen);
+        card->setToolTip(problem.sfen);
         card->setAutoDefault(false);
         auto* contents = new QVBoxLayout(card);
-        auto* title = new QLabel(tr("第%1問（%2行目）").arg(index + 1).arg(m_problems[index].lineNumber), card);
+        auto* title = new QLabel(tr("第%1問（%2行目）").arg(index + 1).arg(problem.lineNumber), card);
         title->setAttribute(Qt::WA_TransparentForMouseEvents);
         contents->addWidget(title);
-        contents->addWidget(new TsumePositionPreview(m_problems[index].sfen, card));
+        contents->addWidget(new TsumePositionPreview(problem.sfen, card));
         for (const auto& name : {QStringLiteral("cardLength"), QStringLiteral("cardProgress")}) {
             auto* label = new QLabel(card);
             label->setObjectName(name);
@@ -458,20 +403,16 @@ void TsumeCollectionDialog::rebuildPage()
             label->setAttribute(Qt::WA_TransparentForMouseEvents);
             contents->addWidget(label);
         }
-        if (!m_results.contains(m_ids[index])) {
-            const auto cache = m_store->validatedCached(m_ids[index], m_analyzer->engineKey(),
-                                                        !m_engine->currentData().toString().isEmpty());
-            if (cache) m_results.insert(m_ids[index], *cache);
-        }
         DialogUtils::applyFontToAllChildren(card, font());
-        updateCard(card);
         connect(card, &QPushButton::clicked, this, &TsumeCollectionDialog::startProblem);
         m_cards.append(card);
-        if (!m_results.contains(m_ids[index]) && !m_queue.contains(index)) m_queue.append(index);
+        shown.append(index);
     }
+    // 表示した問題の手数を判定する（判定済みのものは結果を使う）
+    m_session->evaluate(shown);
+    updateCards();
     arrangeCards();
     m_scroll->verticalScrollBar()->setValue(0);
-    if (!m_playing) m_analysisTimer.start(0);
 }
 
 void TsumeCollectionDialog::arrangeCards()
@@ -494,7 +435,7 @@ void TsumeCollectionDialog::startProblem()
     if (!card || m_playing) return;
     const int position = static_cast<int>(m_filtered.indexOf(card->property("problemIndex").toInt()));
     if (position < 0) return;
-    cancelAnalysis();
+    m_session->setPaused(true);
     m_playing = true;
     const int scroll = m_scroll->verticalScrollBar()->value();
     savePreferences();
@@ -513,8 +454,9 @@ void TsumeCollectionDialog::startProblem()
     }
     m_playing = false;
     // 対局開始時の再判定で確定した手数も一覧へ反映する。
-    for (int index : std::as_const(m_played)) m_results.remove(m_ids[index]);
-    refreshProgress();
+    m_session->forgetResults(m_played);
+    m_session->refreshProgress();
+    m_session->setPaused(false);
     rebuildPage();
     m_scroll->verticalScrollBar()->setValue(scroll);
     raise();
@@ -529,7 +471,8 @@ void TsumeCollectionDialog::playProblemAt(int position, int timeoutSec)
     const int index = m_filtered[position];
     m_playPosition = position;
     if (!m_played.contains(index)) m_played.append(index);
-    m_play->setProblem(m_problems[index], index + 1, m_engine->currentData().toString(), m_store.get(), timeoutSec);
+    m_play->setProblem(m_session->problem(index), index + 1, m_engine->currentData().toString(), m_session->store(),
+                       timeoutSec);
     m_play->setProblemNavigation(position > 0, position + 1 < m_filtered.size());
 }
 

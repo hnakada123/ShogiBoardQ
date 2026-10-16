@@ -7,24 +7,20 @@
 #include "mainwindow.h"
 #include "mainwindowactions.h"
 #include "mainwindowcomposer.h"
-#include "csagamewiring.h"
-#include "branchnavigationwiring.h"
+#include "csagamecoordinator.h"
+#include "csagamesession.h"
 #include "analysissession.h"
 #include "enginelifecyclemanager.h"
 #include "gamesession.h"
-#include "gamestartcoordinator.h"
 #include "commentcoordinator.h"
 #include "gamerecordmodel.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
 #include "kifunavigationstate.h"
-#include "gamerecordpresenter.h"
 #include "positioneditcoordinator.h"
-#include "prestartcleanuphandler.h"
-#include "replaycontroller.h"
-#include "timecontrolcontroller.h"
-#include "dialogcoordinator.h"
-#include "boardsetupcontroller.h"
+#include "kifuanalysiscontroller.h"
+#include "tsumesearchcontroller.h"
+#include "boardmovecontroller.h"
 #include "pvclickcontroller.h"
 #include "considerationuicontroller.h"
 #include "appsettings.h"
@@ -33,7 +29,8 @@
 #include "kifufilecontroller.h"
 #include "dialoglauncher.h"
 #include "kifuanalysislistmodel.h"
-#include "kifudisplaycoordinator.h"
+#include "boardsyncpresenter.h"
+#include "kifudisplaypresenter.h"
 #include "kifunavigationcontroller.h"
 #include "livegamesession.h"
 #include "recordpane.h"
@@ -86,26 +83,26 @@ private slots:
     {
         MainWindow window;
         auto& parts = window.composer().parts();
-        QCOMPARE(window.findChildren<TimeControlController*>().size(), 1);
-        QCOMPARE(window.findChildren<ReplayController*>().size(), 1);
         QCOMPARE(window.findChildren<GameSession*>().size(), 1);
         QCOMPARE(window.findChildren<MatchCoordinator*>().size(), 1);
         QCOMPARE(window.findChildren<AnalysisSession*>().size(), 1);
         QCOMPARE(window.findChildren<EngineLifecycleManager*>().size(), 1);
-        QCOMPARE(window.findChildren<GameStartCoordinator*>().size(), 1);
-        QCOMPARE(window.findChildren<PreStartCleanupHandler*>().size(), 1);
-        QCOMPARE(window.findChildren<GameRecordPresenter*>().size(), 1);
-        QCOMPARE(window.findChildren<BoardSetupController*>().size(), 1);
+        QCOMPARE(window.findChildren<KifuDisplayPresenter*>().size(), 1);
+        QCOMPARE(window.findChildren<BoardSyncPresenter*>().size(), 1);
+        QCOMPARE(window.findChildren<BoardMoveController*>().size(), 1);
+        QCOMPARE(window.findChildren<CsaGameCoordinator*>().size(), 1);
+        QCOMPARE(window.findChildren<CsaGameSession*>().size(), 1);
         QCOMPARE(window.findChildren<PositionEditCoordinator*>().size(), 1);
         QCOMPARE(window.findChildren<PvClickController*>().size(), 1);
-        QCOMPARE(window.findChildren<DialogCoordinator*>().size(), 1);
+        QCOMPARE(window.findChildren<KifuAnalysisController*>().size(), 1);
+        QCOMPARE(window.findChildren<TsumeSearchController*>().size(), 1);
         QCOMPARE(window.findChildren<ConsiderationUiController*>().size(), 1);
         QCOMPARE(window.findChildren<CommentCoordinator*>().size(), 1);
         auto* editing = window.findChild<PositionEditCoordinator*>();
         QSignalSpy started(editing, &PositionEditCoordinator::positionEditingStarted);
         QSignalSpy finished(editing, &PositionEditCoordinator::positionEditingFinished);
         parts.actions->beginPositionEditing();
-        parts.actions->finishPositionEditing();
+        parts.posEditCoordinator->finishPositionEditing();
         QCOMPARE(started.count(), 1);
         QCOMPARE(finished.count(), 1);
     }
@@ -180,11 +177,11 @@ private slots:
         parts.actions->beginPositionEditing();
         QVERIFY(m_answered);
         QCOMPARE(started.count(), 1);
-        parts.actions->finishPositionEditing();
+        parts.posEditCoordinator->finishPositionEditing();
     }
 
-    /// 盤・分岐ナビゲーション・棋譜解析の結果は、起動時にレジストリが1回だけ作って MainWindow が持つ。
-    /// 部品どうしは同じものを指し、分岐ナビゲーションの初期化をやり直しても作り直さず、配線も重ならない
+    /// 盤・分岐ナビゲーション・棋譜解析の結果は、起動時に合成ルートが1回だけ作って MainWindow が持つ。
+    /// 部品どうしは同じものを指し、配線も重ならない
     void startupPartsAreCreatedOnceAndShared()
     {
         MainWindow window;
@@ -196,17 +193,15 @@ private slots:
         QCOMPARE(window.findChildren<KifuNavigationState*>(), QList<KifuNavigationState*>{nav.navState});
         QCOMPARE(window.findChildren<KifuNavigationController*>(),
                  QList<KifuNavigationController*>{nav.kifuNavController});
-        QCOMPARE(window.findChildren<KifuDisplayCoordinator*>(), QList<KifuDisplayCoordinator*>{nav.displayCoordinator});
+        QCOMPARE(window.findChildren<KifuDisplayPresenter*>(), QList<KifuDisplayPresenter*>{nav.kifuDisplay});
         QCOMPARE(window.findChildren<LiveGameSession*>(), QList<LiveGameSession*>{nav.liveGameSession});
-        QCOMPARE(nav.kifuNavController->tree(), nav.branchTree);
+        QCOMPARE(nav.navState->tree(), nav.branchTree);
         QCOMPARE(nav.kifuNavController->state(), nav.navState);
         QVERIFY(nav.analysis);
         QCOMPARE(nav.analysis->parent(), &window);
-        // CSA 通信対局の司令塔は、最初の対局を始めるまで作らない
-        QVERIFY(nav.csaGameWiring->coordinator() == nullptr);
-
-        nav.branchNavWiring->initialize();
-        QCOMPARE(window.findChildren<KifuBranchTree*>(), QList<KifuBranchTree*>{nav.branchTree});
+        // CSA 通信対局の司令塔も起動時に1つだけ作り、通信対局のセッションと対局の操作が同じものを使う
+        QCOMPARE(window.findChildren<CsaGameCoordinator*>(), QList<CsaGameCoordinator*>{nav.csaGame});
+        QCOMPARE(nav.csaSession->coordinator(), nav.csaGame);
 
         QVERIFY(nav.kifuFileController->loadKifuText(QStringLiteral("position startpos moves 7g7f 3c3d 2g2f")));
         nav.kifuNavController->goToFirst();

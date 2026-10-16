@@ -2,11 +2,11 @@
 /// @brief USI形式棋譜コンバータクラスの実装
 
 #include "usitosfenconverter.h"
+#include "terminalcodes.h"
 #include "parsecommon.h"
 #include "kifreader.h"
 #include "sfenutils.h"
 
-#include <QFile>
 #include <QRegularExpression>
 
 // ============================================================================
@@ -51,41 +51,6 @@
 // ============================================================================
 
 namespace {
-
-// 終局理由コードと終局の種類
-struct TerminalInfo {
-    const char* code;
-    TerminalType type;
-};
-
-static const TerminalInfo kTerminalCodes[] = {
-    {"resign",     TerminalType::Resign},
-    {"break",      TerminalType::Interrupt},
-    {"rep_draw",   TerminalType::Repetition},
-    {"draw",       TerminalType::Impasse},
-    {"timeout",    TerminalType::Timeout},
-    {"win",        TerminalType::DeclarationWin},
-    {"lose",       TerminalType::IllegalLoss},
-    {"sennichite", TerminalType::Repetition},
-    {"checkmate",  TerminalType::Checkmate},
-    {"illegal_win", TerminalType::IllegalWin},
-    // 過去のShogiBoardQが出力した独自終局コードも読み込む。
-    {"mate",       TerminalType::Checkmate},
-    {"illegal",    TerminalType::IllegalLoss},
-    {nullptr, TerminalType::None}
-};
-
-// 終局理由コードかどうかを判定（kTerminalCodesを参照して一貫性を保つ）
-static bool isTerminalCode(const QString& str)
-{
-    const QString lower = str.toLower();
-    for (int i = 0; kTerminalCodes[i].code != nullptr; ++i) {
-        if (lower == QString::fromLatin1(kTerminalCodes[i].code)) {
-            return true;
-        }
-    }
-    return false;
-}
 
 // USI指し手として有効かどうかを簡易判定
 static bool isValidUsiMove(const QString& str)
@@ -198,19 +163,6 @@ QString UsiToSfenConverter::labelForBaseSfen(const QString& baseSfen)
     return baseSfen == SfenUtils::hirateSfen() ? QStringLiteral("平手") : QStringLiteral("局面指定");
 }
 
-QString UsiToSfenConverter::detectInitialSfenFromFile(const QString& usiPath, QString* detectedLabel)
-{
-    QString baseSfen;
-    QStringList usiMoves;
-    QString warn;
-    if (!parseUsiFile(usiPath, baseSfen, usiMoves, nullptr, &warn)) {
-        if (detectedLabel) *detectedLabel = QStringLiteral("平手(既定)");
-        return SfenUtils::hirateSfen();
-    }
-    if (detectedLabel) *detectedLabel = labelForBaseSfen(baseSfen);
-    return baseSfen;
-}
-
 QString UsiToSfenConverter::detectInitialSfenFromText(const QString& text, QString* detectedLabel)
 {
     QString baseSfen;
@@ -222,30 +174,6 @@ QString UsiToSfenConverter::detectInitialSfenFromText(const QString& text, QStri
     }
     if (detectedLabel) *detectedLabel = labelForBaseSfen(baseSfen);
     return baseSfen;
-}
-
-QStringList UsiToSfenConverter::convertFile(const QString& usiPath, QString* errorMessage)
-{
-    KifParseResult result;
-    return parseWithVariations(usiPath, result, errorMessage) ? result.mainline.usiMoves() : QStringList();
-}
-
-QList<KifDisplayItem> UsiToSfenConverter::extractMovesWithTimes(const QString& usiPath, QString* errorMessage)
-{
-    KifParseResult result;
-    return parseWithVariations(usiPath, result, errorMessage) ? result.mainline.displayItems() : QList<KifDisplayItem>();
-}
-
-bool UsiToSfenConverter::parseWithVariations(const QString& usiPath,
-                                              KifParseResult& out,
-                                              QString* errorMessage)
-{
-    out = KifParseResult{};
-    QString baseSfen;
-    QStringList usiMoves;
-    QString terminalCode;
-    if (!parseUsiFile(usiPath, baseSfen, usiMoves, &terminalCode, errorMessage)) return false;
-    return buildResult(baseSfen, usiMoves, terminalCode, out, errorMessage);
 }
 
 bool UsiToSfenConverter::parseText(const QString& text, KifParseResult& out, QString* errorMessage)
@@ -276,52 +204,15 @@ bool UsiToSfenConverter::buildResult(const QString& baseSfen, const QStringList&
     // 終局理由があれば追加
     if (!terminalCode.isEmpty()) {
         line.disp.push_back(KifuParseCommon::createUsiTerminalDisplayItem(
-            plyNumber + 1, terminalFromCode(terminalCode), baseSfen, usiMoves.size()));
+            plyNumber + 1, TerminalCodes::fromUsi(terminalCode), baseSfen, usiMoves.size()));
         line.endsWithTerminal = true;
     }
     return line.resolve(out.mainline, error);
 }
 
-QList<KifGameInfoItem> UsiToSfenConverter::extractGameInfo(const QString& filePath)
-{
-    Q_UNUSED(filePath)
-    // USI形式はメタ情報を含まないため空を返す
-    return QList<KifGameInfoItem>();
-}
-
-QMap<QString, QString> UsiToSfenConverter::extractGameInfoMap(const QString& filePath)
-{
-    Q_UNUSED(filePath)
-    // USI形式はメタ情報を含まないため空を返す
-    return QMap<QString, QString>();
-}
-
-TerminalType UsiToSfenConverter::terminalFromCode(const QString& code)
-{
-    for (int i = 0; kTerminalCodes[i].code != nullptr; ++i) {
-        if (code.compare(QString::fromLatin1(kTerminalCodes[i].code), Qt::CaseInsensitive) == 0) {
-            return kTerminalCodes[i].type;
-        }
-    }
-    return TerminalType::Error;
-}
-
 // ============================================================================
 // 非公開メソッド
 // ============================================================================
-
-bool UsiToSfenConverter::parseUsiFile(const QString& usiPath,
-                                      QString& baseSfen,
-                                      QStringList& usiMoves,
-                                      QString* terminalCode,
-                                      QString* warn)
-{
-    QString content;
-    if (!readUsiFile(usiPath, content, warn)) {
-        return false;
-    }
-    return parseUsiPositionString(content, baseSfen, usiMoves, terminalCode, warn);
-}
 
 bool UsiToSfenConverter::parseUsiText(const QString& text,
                                       QString& baseSfen,
@@ -422,7 +313,7 @@ bool UsiToSfenConverter::parseUsiPositionString(const QString& usiStr,
 
     for (; i < tokens.size(); ++i) {
         const QString& token = tokens.at(i);
-        if (isTerminalCode(token)) {
+        if (TerminalCodes::isUsiCode(token)) {
             // 終局理由コード。以降は無視
             if (terminalCode) *terminalCode = token.toLower();
             break;

@@ -14,13 +14,6 @@
 #include "shogigamecontroller.h"
 #include <QSignalBlocker>
 
-namespace {
-bool isInitialPromotionMove(const QString& csaMove, ShogiGameController* gameController)
-{
-    return gameController && CsaMoveConverter::isPromotionMove(csaMove, gameController->board());
-}
-} // namespace
-
 void CsaGameCoordinator::setGameState(GameState state)
 {
     if (m_gameState != state) {
@@ -48,17 +41,13 @@ void CsaGameCoordinator::setupInitialPosition()
     }
     m_gameController->board()->setSfen(*startSfen);
     m_gameController->board()->setMoveNumber(1);
-    m_gameController->setCurrentPlayer(m_gameController->board()->currentPlayer());
 
     CsaGameProgress& p = m_progress;
     p.record = RecordLine{};
     p.record.startSfen = m_gameController->board()->toSfen();
 
     for (const QString& move : std::as_const(p.summary.moves)) {
-        const bool isPromotion = isInitialPromotionMove(move, m_gameController);
-        const QString prettyMove = CsaMoveConverter::csaToPretty(move, isPromotion, p.previousTo());
-
-        const std::optional<RecordEntry> played = CsaMoveConverter::applyMoveToBoard(move, m_gameController);
+        const std::optional<RecordEntry> played = playCsaMove(move);
         if (!played) {
             qCWarning(lcNetwork).noquote()
                 << "Failed to replay CSA move from Game_Summary:" << move;
@@ -70,7 +59,6 @@ void CsaGameCoordinator::setupInitialPosition()
 
         // 再開局面の指し手は Game_Summary の消費時間（,T）を付けて記録する
         RecordEntry entry = *played;
-        entry.displayText = prettyMove.trimmed();
         entry.time = p.initialMoveTime(p.moveCount());
         p.record.entries.append(entry);
     }
@@ -101,7 +89,7 @@ void CsaGameCoordinator::setupClock()
 void CsaGameCoordinator::startEngine()
 {
     if (!m_engineController) {
-        m_engineController = new CsaEngineController(this);
+        m_engineController = new CsaEngineController(m_engines, this);
         connect(m_engineController, &CsaEngineController::logMessage,
                 this, &CsaGameCoordinator::logMessage);
         connect(m_engineController, &CsaEngineController::initialized,
@@ -116,8 +104,6 @@ void CsaGameCoordinator::startEngine()
     CsaEngineController::InitParams params;
     params.enginePath = m_options.enginePath;
     params.engineName = m_options.engineName;
-    params.commLog = m_usiCommLog;
-    params.thinkingModel = m_engineThinking;
     // USI初期化の待機中にもTCPのGame_Summaryが届く。readyokを待って合意する。
     m_initializingEngine = true;
     m_engineNeedsRestart = false;

@@ -10,7 +10,7 @@
 #include <utility>
 #include "logcategories.h"
 
-MenuWindowController::MenuWindowController(const Dependencies& deps, QObject* parent)
+MenuWindowController::MenuWindowController(const Deps& deps, QObject* parent)
     : QObject(parent)
     , m_parentWidget(deps.parentWidget)
     , m_menuBar(deps.menuBar)

@@ -5,9 +5,9 @@
 #include <QJsonObject>
 #include <QTemporaryFile>
 #include <QClipboard>
+#include "kifu_file_helper.h"
 #include "bodtextgenerator.h"
 #include "csaformatter.h"
-#include "kifuclipboardservice.h"
 
 #include "gamerecordmodel.h"
 #include "kifubranchtree.h"
@@ -21,7 +21,8 @@
 #include "usitosfenconverter.h"
 #include "usentosfenconverter.h"
 #include "livegamesession.h"
-#include "kifuexportclipboard.h"
+#include "kifuexportcontroller.h"
+#include "matchtimerecord.h"
 #include "appstate.h"
 #include "kifunavigationstate.h"
 #include "kifuexportmetadata.h"
@@ -47,37 +48,22 @@ private:
         return tree.addMove(parent, moves.value(0), pretty, positions.last(), time);
     }
 
-    void setupBasicModel(GameRecordModel& model, KifuBranchTree& tree,
-                         KifuNavigationState& navState, QList<KifDisplayItem>& disp)
+    /// 7手の本譜（指し手は表記だけ）を作り、モデルに渡す
+    static void setupBasicModel(GameRecordModel& model, KifuBranchTree& tree)
     {
         tree.setRootSfen(kHirateSfen);
         ShogiMove move;
         auto* current = tree.root();
-
-        QStringList moves = {
+        const QStringList moves = {
             QStringLiteral("▲７六歩"), QStringLiteral("△３四歩"),
             QStringLiteral("▲２六歩"), QStringLiteral("△８四歩"),
             QStringLiteral("▲２五歩"), QStringLiteral("△８五歩"),
             QStringLiteral("▲７八金")
         };
-
-        for (int i = 0; i < moves.size(); ++i) {
-            current = tree.addMove(current, move, moves[i],
-                                   QStringLiteral("sfen%1").arg(i + 1));
+        for (qsizetype i = 0; i < moves.size(); ++i) {
+            current = tree.addMove(current, move, moves.at(i), QStringLiteral("sfen%1").arg(i + 1));
         }
-
-        disp.clear();
-        disp.append(KifDisplayItem(QStringLiteral("開始局面")));
-        for (int i = 0; i < moves.size(); ++i) {
-            disp.append(KifDisplayItem(moves[i], QString(), QString(), i + 1));
-        }
-
-        navState.setTree(&tree);
-        navState.goToRoot();
-
         model.setBranchTree(&tree);
-        model.setNavigationState(&navState);
-        model.initializeFromDisplayItems(disp, static_cast<int>(disp.size()));
     }
 
 private slots:
@@ -126,13 +112,13 @@ private slots:
         context.gameInfoProvided = true;
         context.gameInfoItems = {{QStringLiteral("先手"), QStringLiteral("鈴木")},
                                  {QStringLiteral("後手"), QStringLiteral("山田")}};
-        const QString csa = model.toCsaLines(context, usi).join(QLatin1Char('\n'));
+        const QString csa = model.toCsaLines(context).join(QLatin1Char('\n'));
         QVERIFY2(!csa.contains(QStringLiteral("$START_TIME")), qPrintable(csa));
         QVERIFY2(!csa.contains(QStringLiteral("$END_TIME")), qPrintable(csa));
 
         // このアプリで対局した開始時刻が分かる場合は記録する
         context.gameStartDateTime = QDateTime(QDate(2026, 10, 5), QTime(9, 30, 0));
-        const QString live = model.toCsaLines(context, usi).join(QLatin1Char('\n'));
+        const QString live = model.toCsaLines(context).join(QLatin1Char('\n'));
         QVERIFY2(live.contains(QStringLiteral("$START_TIME:2026/10/05 09:30:00")), qPrintable(live));
         QVERIFY(!live.contains(QStringLiteral("$END_TIME")));
     }
@@ -150,12 +136,12 @@ private slots:
         context.startSfen = kHirateSfen;
         context.gameInfoProvided = true;
         context.gameInfoItems = {{QStringLiteral("持ち時間"), QStringLiteral("無制限")}};
-        const QString csa = model.toCsaLines(context, usi).join(QLatin1Char('\n'));
+        const QString csa = model.toCsaLines(context).join(QLatin1Char('\n'));
         QVERIFY2(!csa.contains(QStringLiteral("$TIME")), qPrintable(csa));
         QVERIFY2(csa.contains(QStringLiteral("+7776FU")), qPrintable(csa));
 
         context.gameInfoItems = {{QStringLiteral("持ち時間"), QStringLiteral("10:00+10")}};
-        const QString timed = model.toCsaLines(context, usi).join(QLatin1Char('\n'));
+        const QString timed = model.toCsaLines(context).join(QLatin1Char('\n'));
         QVERIFY2(timed.contains(QStringLiteral("$TIME:600+10+0")), qPrintable(timed));
     }
 
@@ -185,7 +171,7 @@ private slots:
         QVERIFY(KifuTestHelper::writeToTempFile(file, text.toUtf8(), QStringLiteral("ki2")));
         KifParseResult result;
         QString error;
-        QVERIFY2(Ki2ToSfenConverter::parseWithVariations(file.fileName(), result, &error), qPrintable(error));
+        QVERIFY2(KifuFile::parse<Ki2ToSfenConverter>(file.fileName(), result, &error), qPrintable(error));
         QCOMPARE(result.mainline.usiMoves(), usi);
     }
 
@@ -207,21 +193,21 @@ private slots:
         QStringList output;
         if (format == "kif") output = model.toKifLines(context);
         else if (format == "ki2") output = model.toKi2Lines(context);
-        else if (format == "csa") output = model.toCsaLines(context, usi);
+        else if (format == "csa") output = model.toCsaLines(context);
         else if (format == "jkf") output = model.toJkfLines(context);
-        else if (format == "usi") output = model.toUsiLines(context, usi);
-        else output = model.toUsenLines(context, usi);
+        else if (format == "usi") output = model.toUsiLines(context);
+        else output = model.toUsenLines(context);
         QTemporaryFile file;
         QVERIFY(KifuTestHelper::writeToTempFile(file, output.join(QLatin1Char('\n')).toUtf8(), format));
         KifParseResult result;
         QString error;
         bool parsed = false;
-        if (format == "kif") parsed = KifToSfenConverter::parseWithVariations(file.fileName(), result, &error);
-        else if (format == "ki2") parsed = Ki2ToSfenConverter::parseWithVariations(file.fileName(), result, &error);
-        else if (format == "csa") parsed = CsaToSfenConverter::parse(file.fileName(), result, &error);
-        else if (format == "jkf") parsed = JkfToSfenConverter::parseWithVariations(file.fileName(), result, &error);
-        else if (format == "usi") parsed = UsiToSfenConverter::parseWithVariations(file.fileName(), result, &error);
-        else parsed = UsenToSfenConverter::parseWithVariations(file.fileName(), result, &error);
+        if (format == "kif") parsed = KifuFile::parse<KifToSfenConverter>(file.fileName(), result, &error);
+        else if (format == "ki2") parsed = KifuFile::parse<Ki2ToSfenConverter>(file.fileName(), result, &error);
+        else if (format == "csa") parsed = KifuFile::parse<CsaToSfenConverter>(file.fileName(), result, &error);
+        else if (format == "jkf") parsed = KifuFile::parse<JkfToSfenConverter>(file.fileName(), result, &error);
+        else if (format == "usi") parsed = KifuFile::parse<UsiToSfenConverter>(file.fileName(), result, &error);
+        else parsed = KifuFile::parse<UsenToSfenConverter>(file.fileName(), result, &error);
         QVERIFY2(parsed, qPrintable(error));
         QCOMPARE(result.mainline.baseSfen, initial);
         QCOMPARE(result.mainline.usiMoves(), usi);
@@ -250,8 +236,8 @@ private slots:
             + QStringLiteral("\n手数----指手---------消費時間--\n1 ３四歩(33)\n2 投了\n");
         QTemporaryFile file;
         QVERIFY(KifuTestHelper::writeToTempFile(file, text.toUtf8(), QStringLiteral("kif")));
-        QCOMPARE(KifToSfenConverter::detectInitialSfenFromFile(file.fileName()), initial);
-        const auto items = KifToSfenConverter::extractMovesWithTimes(file.fileName());
+        QCOMPARE(KifuFile::initialSfen<KifToSfenConverter>(file.fileName()), initial);
+        const auto items = KifuFile::displayItems<KifToSfenConverter>(file.fileName());
         QCOMPARE(items.size(), 3);
         QCOMPARE(items[1].ply, 1);
         QVERIFY(items[1].prettyMove.startsWith(QStringLiteral("△")));
@@ -327,8 +313,8 @@ private slots:
         KifParseResult result;
         QString error;
         const bool ok = format == QStringLiteral("kif")
-            ? KifToSfenConverter::parseWithVariations(file.fileName(), result, &error)
-            : Ki2ToSfenConverter::parseWithVariations(file.fileName(), result, &error);
+            ? KifuFile::parse<KifToSfenConverter>(file.fileName(), result, &error)
+            : KifuFile::parse<Ki2ToSfenConverter>(file.fileName(), result, &error);
         QVERIFY2(ok, qPrintable(error));
         QCOMPARE(result.mainline.usiMoves().size(), moveCount);
         QCOMPARE(result.mainline.displayItems()[1].ply, 1);
@@ -352,11 +338,11 @@ private slots:
         GameRecordModel::ExportContext ctx;
         ctx.startSfen = initial;
         QTemporaryFile file;
-        QVERIFY(KifuTestHelper::writeToTempFile(file, model.toUsenLines(ctx, {"3c3d"})
+        QVERIFY(KifuTestHelper::writeToTempFile(file, model.toUsenLines(ctx)
             .join(QLatin1Char('\n')).toUtf8(), QStringLiteral("usen")));
         KifParseResult result;
         QString error;
-        QVERIFY2(UsenToSfenConverter::parseWithVariations(file.fileName(), result, &error), qPrintable(error));
+        QVERIFY2(KifuFile::parse<UsenToSfenConverter>(file.fileName(), result, &error), qPrintable(error));
         QCOMPARE(result.variations.size(), 1);
         QCOMPARE(result.variations[0].line.usiMoves(), QStringList({"P*5e"}));
     }
@@ -392,7 +378,7 @@ private slots:
         QVERIFY(KifuTestHelper::writeToTempFile(file, json, QStringLiteral("jkf")));
         KifParseResult result;
         QString error;
-        QVERIFY2(JkfToSfenConverter::parseWithVariations(file.fileName(), result, &error), qPrintable(error));
+        QVERIFY2(KifuFile::parse<JkfToSfenConverter>(file.fileName(), result, &error), qPrintable(error));
         QCOMPARE(result.mainline.usiMoves(), QStringList({"4f5e"}));
         QCOMPARE(result.mainline.sfenList().last(), tree.mainLine().last()->sfen());
     }
@@ -460,7 +446,7 @@ private slots:
         QVERIFY(!kif.contains(QStringLiteral("先手：")));
         QVERIFY(!kif.contains(QStringLiteral("後手：")));
         QVERIFY(kif.contains(QStringLiteral("持ち時間：下手 01:00+2 / 上手 02:00+3")));
-        const QString csa = model.toCsaLines(ctx, {}).join(QLatin1Char('\n'));
+        const QString csa = model.toCsaLines(ctx).join(QLatin1Char('\n'));
         QVERIFY2(csa.contains(QStringLiteral("N+下手エンジン")), qPrintable(csa));
         QVERIFY(csa.contains(QStringLiteral("N-上手エンジン")));
         QVERIFY(csa.contains(QStringLiteral("$TIME+:60+2+0")));
@@ -473,7 +459,7 @@ private slots:
         const QString hirate = model.toKifLines(ctx).join(QLatin1Char('\n'));
         QVERIFY(hirate.contains(QStringLiteral("先手：下手エンジン")));
         QVERIFY(hirate.contains(QStringLiteral("持ち時間：01:00+2")));
-        QVERIFY(model.toCsaLines(ctx, {}).contains(QStringLiteral("$TIME:60+2+0")));
+        QVERIFY(model.toCsaLines(ctx).contains(QStringLiteral("$TIME:60+2+0")));
 
         // 読み込んだ棋譜の見出しが先手・後手なら、駒落ちでも局面図をその呼び方にそろえる
         ctx.startSfen = QStringLiteral("lnsgkgsnl/1r7/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
@@ -504,8 +490,8 @@ private slots:
         const QStringList ki2 = model.toKi2Lines(ctx);
         QVERIFY2(ki2.contains(QStringLiteral("まで1手で時間切れにより上手の勝ち")), qPrintable(ki2.join(QLatin1Char('\n'))));
         QVERIFY(!ki2.contains(QStringLiteral("▲時間切れ")));
-        QVERIFY(model.toUsiLines(ctx, {QStringLiteral("3c3d")}).join(QLatin1Char('\n')).endsWith(QStringLiteral("3c3d timeout")));
-        QVERIFY(model.toUsenLines(ctx, {QStringLiteral("3c3d")}).join(QLatin1Char('\n')).trimmed().endsWith(QStringLiteral(".t")));
+        QVERIFY(model.toUsiLines(ctx).join(QLatin1Char('\n')).endsWith(QStringLiteral("3c3d timeout")));
+        QVERIFY(model.toUsenLines(ctx).join(QLatin1Char('\n')).trimmed().endsWith(QStringLiteral(".t")));
         QVERIFY(model.toJkfLines(ctx).join(QLatin1Char('\n')).contains(QStringLiteral("\"special\":\"TIME_UP\"")));
     }
 
@@ -520,7 +506,7 @@ private slots:
         QTemporaryFile file;
         QVERIFY(KifuTestHelper::writeToTempFile(
             file, (bod + QStringLiteral("\n手数----指手---------消費時間--\n")).toUtf8(), QStringLiteral("kif")));
-        QCOMPARE(KifToSfenConverter::detectInitialSfenFromFile(file.fileName()), sfen);
+        QCOMPARE(KifuFile::initialSfen<KifToSfenConverter>(file.fileName()), sfen);
     }
 
     /// 「局面図をコピー」も、駒落ちは KIF の局面図と同じく下手・上手で書く（途中の局面も同じ）
@@ -550,17 +536,14 @@ private slots:
         addTestMove(tree, tree.root(), move, QStringLiteral("1手目"));
         GameRecordModel model;
         model.setBranchTree(&tree);
-        KifuExportClipboard exporter(nullptr);
-        KifuExportClipboard::Deps deps;
         AppState state;
-        state.startSfenStr = startSfen;
-        KifuNavigationState nav;
-        nav.setTree(&tree);
+        KifuNavigationState nav(&tree);
         nav.setCurrentNode(tree.findByPlyOnMainLine(1));
+        KifuExportController::Deps deps;
         deps.gameRecord = &model;
         deps.state = &state;
         deps.navState = &nav;
-        exporter.setDependencies(deps);
+        KifuExportController exporter(deps);
         QVERIFY(exporter.copyBodToClipboard());
         const QStringList bod = QApplication::clipboard()->text().split(QLatin1Char('\n'));
         for (const QString& line : std::as_const(lines)) {
@@ -568,22 +551,33 @@ private slots:
         }
     }
 
+    /// クリップボードへのコピーも、持ち時間と開始・終了の日時を棋譜に書く
     void clipboardKeepsTimeMetadata()
     {
         KifuBranchTree tree;
         tree.setRootSfen(kHirateSfen);
         GameRecordModel model;
         model.setBranchTree(&tree);
+        const TimeControl timeControl{{630000, 30000, 5000}, {630000, 30000, 5000}};
+        MatchTimeRecord timeRecord;
+        timeRecord.begin(timeControl);
+        timeRecord.recordEnd();
+        KifuExportController::Deps deps;
+        deps.gameRecord = &model;
+        deps.timeRecord = &timeRecord;
+        KifuExportController exporter(deps);
+
         GameRecordModel::ExportContext ctx;
         ctx.startSfen = kHirateSfen;
-        ctx.timeControl = TimeControl{{630000, 30000, 5000}, {630000, 30000, 5000}};
-        ctx.gameStartDateTime = QDateTime(QDate(2025, 1, 2), QTime(3, 4, 5));
-        ctx.gameEndDateTime = QDateTime(QDate(2025, 1, 2), QTime(6, 7, 8));
-        QVERIFY(KifuClipboardService::copyKif(model, ctx));
+        ctx.timeControl = timeControl;
+        ctx.gameStartDateTime = timeRecord.startDateTime();
+        ctx.gameEndDateTime = timeRecord.endDateTime();
+        QVERIFY(exporter.copyKifToClipboard());
         QCOMPARE(QApplication::clipboard()->text(), model.toKifLines(ctx).join(QLatin1Char('\n')));
-        QVERIFY(KifuClipboardService::copyKi2(model, ctx));
+        QVERIFY(exporter.copyKi2ToClipboard());
         QCOMPARE(QApplication::clipboard()->text(), model.toKi2Lines(ctx).join(QLatin1Char('\n')));
-        QVERIFY(QApplication::clipboard()->text().contains(QStringLiteral("2025/01/02 06:07:08")));
+        QVERIFY(QApplication::clipboard()->text().contains(
+            timeRecord.endDateTime().toString(QStringLiteral("yyyy/MM/dd HH:mm:ss"))));
     }
 
     void removedGameInfoStaysEmptyOnExport()
@@ -612,10 +606,10 @@ private slots:
         ctx.startSfen = initial;
         QTemporaryFile kif;
         QVERIFY(KifuTestHelper::writeToTempFile(kif, model.toKifLines(ctx).join(QLatin1Char('\n')).toUtf8(), QStringLiteral("kif")));
-        QCOMPARE(KifToSfenConverter::detectInitialSfenFromFile(kif.fileName()), initial);
+        QCOMPARE(KifuFile::initialSfen<KifToSfenConverter>(kif.fileName()), initial);
         QTemporaryFile ki2;
         QVERIFY(KifuTestHelper::writeToTempFile(ki2, model.toKi2Lines(ctx).join(QLatin1Char('\n')).toUtf8(), QStringLiteral("ki2")));
-        QCOMPARE(Ki2ToSfenConverter::detectInitialSfenFromFile(ki2.fileName()), initial);
+        QCOMPARE(KifuFile::initialSfen<Ki2ToSfenConverter>(ki2.fileName()), initial);
     }
 
     void clipboardExportAfterResume_data()
@@ -642,25 +636,22 @@ private slots:
         QStringList sessionUsi = {newUsi};
         QStringList sessionSfens = TestReplay::buildSfenRecord(anchor->sfen(), sessionUsi, false);
 
-        LiveGameSession session;
-        session.setTree(&tree);
+        KifuNavigationState nav(&tree);
+        LiveGameSession session(&tree, &nav);
         session.startFromNode(anchor);
-        session.addMove(TestReplay::buildGameMoves(anchor->sfen(), sessionUsi).value(0),
-                        newPretty, sessionSfens.last(), QStringLiteral("00:05/00:00:05"));
+        session.appendRecord(RecordEntry::played(TestReplay::buildGameMoves(anchor->sfen(), sessionUsi).value(0),
+                                                 newPretty, sessionSfens.last(),
+                                                 RecordTime::fromText(QStringLiteral("00:05/00:00:05"))));
         QVERIFY(session.commit());
 
         GameRecordModel model;
         model.setBranchTree(&tree);
-        KifuExportClipboard exporter(nullptr);
-        KifuExportClipboard::Deps deps;
         AppState state;
-        state.startSfenStr = anchor->sfen();
-        KifuNavigationState nav;
-        nav.setTree(&tree);
+        KifuExportController::Deps deps;
         deps.gameRecord = &model;
         deps.state = &state;
         deps.navState = &nav;
-        exporter.setDependencies(deps);
+        KifuExportController exporter(deps);
         if (format == QStringLiteral("csa")) QVERIFY(exporter.copyCsaToClipboard());
         else if (format == QStringLiteral("usi")) QVERIFY(exporter.copyUsiToClipboard());
         else QVERIFY(exporter.copyUsenToClipboard());
@@ -671,9 +662,9 @@ private slots:
         KifParseResult result;
         QString error;
         bool ok;
-        if (format == QStringLiteral("csa")) ok = CsaToSfenConverter::parse(tmp.fileName(), result, &error);
-        else if (format == QStringLiteral("usi")) ok = UsiToSfenConverter::parseWithVariations(tmp.fileName(), result, &error);
-        else ok = UsenToSfenConverter::parseWithVariations(tmp.fileName(), result, &error);
+        if (format == QStringLiteral("csa")) ok = KifuFile::parse<CsaToSfenConverter>(tmp.fileName(), result, &error);
+        else if (format == QStringLiteral("usi")) ok = KifuFile::parse<UsiToSfenConverter>(tmp.fileName(), result, &error);
+        else ok = KifuFile::parse<UsenToSfenConverter>(tmp.fileName(), result, &error);
         QVERIFY2(ok, qPrintable(error));
         QStringList expected = {QStringLiteral("7g7f"), QStringLiteral("3c3d")};
         if (!branch) expected.append(newUsi);
@@ -699,13 +690,11 @@ private slots:
 
         // 開始局面だけの本譜を書き出す（対局用の一覧など、ほかの指し手の出どころは無い）。
         tree.setRootSfen(kHirateSfen);
-        KifuExportClipboard exporter(nullptr);
-        KifuExportClipboard::Deps deps;
         AppState state;
-        state.startSfenStr = kHirateSfen;
+        KifuExportController::Deps deps;
         deps.gameRecord = &model;
         deps.state = &state;
-        exporter.setDependencies(deps);
+        KifuExportController exporter(deps);
         QVERIFY(exporter.copyUsiToClipboard());
         QCOMPARE(QApplication::clipboard()->text(), QStringLiteral("position startpos"));
     }
@@ -747,7 +736,7 @@ private slots:
         QStringList output;
         if (format == QStringLiteral("kif")) output = model.toKifLines(ctx);
         else if (format == QStringLiteral("ki2")) output = model.toKi2Lines(ctx);
-        else if (format == QStringLiteral("csa")) output = model.toCsaLines(ctx, expectedMoves);
+        else if (format == QStringLiteral("csa")) output = model.toCsaLines(ctx);
         else output = model.toJkfLines(ctx);
 
         QTemporaryFile tmp;
@@ -755,10 +744,10 @@ private slots:
         KifParseResult result;
         QString error;
         bool ok;
-        if (format == QStringLiteral("kif")) ok = KifToSfenConverter::parseWithVariations(tmp.fileName(), result, &error);
-        else if (format == QStringLiteral("ki2")) ok = Ki2ToSfenConverter::parseWithVariations(tmp.fileName(), result, &error);
-        else if (format == QStringLiteral("csa")) ok = CsaToSfenConverter::parse(tmp.fileName(), result, &error);
-        else ok = JkfToSfenConverter::parseWithVariations(tmp.fileName(), result, &error);
+        if (format == QStringLiteral("kif")) ok = KifuFile::parse<KifToSfenConverter>(tmp.fileName(), result, &error);
+        else if (format == QStringLiteral("ki2")) ok = KifuFile::parse<Ki2ToSfenConverter>(tmp.fileName(), result, &error);
+        else if (format == QStringLiteral("csa")) ok = KifuFile::parse<CsaToSfenConverter>(tmp.fileName(), result, &error);
+        else ok = KifuFile::parse<JkfToSfenConverter>(tmp.fileName(), result, &error);
         QVERIFY2(ok, qPrintable(error));
         QCOMPARE(result.mainline.usiMoves(), expectedMoves);
         QVERIFY(result.mainline.displayItems().size() >= 3);
@@ -798,7 +787,7 @@ private slots:
         QVERIFY(KifuTestHelper::writeToTempFile(tmp, json, QStringLiteral("jkf")));
         KifParseResult result;
         QString error;
-        QVERIFY2(JkfToSfenConverter::parseWithVariations(tmp.fileName(), result, &error), qPrintable(error));
+        QVERIFY2(KifuFile::parse<JkfToSfenConverter>(tmp.fileName(), result, &error), qPrintable(error));
         QCOMPARE(result.mainline.usiMoves(), QStringList({QStringLiteral("7g7f"), QStringLiteral("3c3d"), QStringLiteral("2g2f")}));
         QCOMPARE(result.variations.size(), 3);
         QCOMPARE(result.variations[0].startPly, 1);
@@ -818,7 +807,7 @@ private slots:
         QCOMPARE(secondFork[1].toObject()[QStringLiteral("forks")].toArray().size(), 1);
         QTemporaryFile nestedFile;
         QVERIFY(KifuTestHelper::writeToTempFile(nestedFile, model.toJkfLines(ctx).join(QLatin1Char('\n')).toUtf8(), QStringLiteral("jkf")));
-        QVERIFY2(JkfToSfenConverter::parseWithVariations(nestedFile.fileName(), result, &error), qPrintable(error));
+        QVERIFY2(KifuFile::parse<JkfToSfenConverter>(nestedFile.fileName(), result, &error), qPrintable(error));
         QCOMPARE(result.variations.size(), 4);
         QCOMPARE(result.variations[2].startPly, 3);
         QCOMPARE(result.variations[2].line.usiMoves(), QStringList({"9g9f"}));
@@ -844,7 +833,7 @@ private slots:
                                                QStringLiteral("jkf")));
         KifParseResult result;
         QString error;
-        QVERIFY2(JkfToSfenConverter::parseWithVariations(tmp.fileName(), result, &error), qPrintable(error));
+        QVERIFY2(KifuFile::parse<JkfToSfenConverter>(tmp.fileName(), result, &error), qPrintable(error));
         QCOMPARE(result.variations.size(), 1);
         QCOMPARE(result.variations[0].startPly, 4);
         QCOMPARE(result.variations[0].line.usiMoves(), QStringList({QStringLiteral("3a2b")}));
@@ -856,26 +845,22 @@ private slots:
     {
         GameRecordModel model;
         KifuBranchTree tree;
-        KifuNavigationState navState;
-        QList<KifDisplayItem> disp;
-        setupBasicModel(model, tree, navState, disp);
+        setupBasicModel(model, tree);
 
-        model.setComment(1, QStringLiteral("初手のコメント"));
-        QCOMPARE(model.comment(1), QStringLiteral("初手のコメント"));
+        model.setComment(tree.mainLine().at(1), QStringLiteral("初手のコメント"));
+        QCOMPARE(tree.mainLine().at(1)->comment(), QStringLiteral("初手のコメント"));
     }
 
     void commentChanged_signal()
     {
         GameRecordModel model;
         KifuBranchTree tree;
-        KifuNavigationState navState;
-        QList<KifDisplayItem> disp;
-        setupBasicModel(model, tree, navState, disp);
+        setupBasicModel(model, tree);
 
         QSignalSpy spy(&model, &GameRecordModel::commentChanged);
         QVERIFY(spy.isValid());
 
-        model.setComment(2, QStringLiteral("テストコメント"));
+        model.setComment(tree.mainLine().at(2), QStringLiteral("テストコメント"));
         QCOMPARE(spy.count(), 1);
     }
 
@@ -885,28 +870,10 @@ private slots:
     {
         GameRecordModel model;
         KifuBranchTree tree;
-        KifuNavigationState navState;
-        QList<KifDisplayItem> disp;
-        setupBasicModel(model, tree, navState, disp);
+        setupBasicModel(model, tree);
 
-        model.setBookmark(3, QStringLiteral("重要局面"));
-        QCOMPARE(model.bookmark(3), QStringLiteral("重要局面"));
-    }
-
-    // === Initialize / Clear ===
-
-    void clear_resetsAll()
-    {
-        GameRecordModel model;
-        KifuBranchTree tree;
-        KifuNavigationState navState;
-        QList<KifDisplayItem> disp;
-        setupBasicModel(model, tree, navState, disp);
-
-        model.setComment(1, QStringLiteral("test"));
-        model.clear();
-
-        QVERIFY(!model.isDirty());
+        model.setBookmark(tree.mainLine().at(3), QStringLiteral("重要局面"));
+        QCOMPARE(tree.mainLine().at(3)->bookmark(), QStringLiteral("重要局面"));
     }
 
     // === Dirty Flag ===
@@ -915,12 +882,10 @@ private slots:
     {
         GameRecordModel model;
         KifuBranchTree tree;
-        KifuNavigationState navState;
-        QList<KifDisplayItem> disp;
-        setupBasicModel(model, tree, navState, disp);
+        setupBasicModel(model, tree);
 
         QVERIFY(!model.isDirty());
-        model.setComment(1, QStringLiteral("comment"));
+        model.setComment(tree.mainLine().at(1), QStringLiteral("comment"));
         QVERIFY(model.isDirty());
         model.clearDirty();
         QVERIFY(!model.isDirty());
@@ -932,9 +897,7 @@ private slots:
     {
         GameRecordModel model;
         KifuBranchTree tree;
-        KifuNavigationState navState;
-        QList<KifDisplayItem> disp;
-        setupBasicModel(model, tree, navState, disp);
+        setupBasicModel(model, tree);
 
         GameRecordModel::ExportContext ctx;
         ctx.startSfen = kHirateSfen;
@@ -958,9 +921,7 @@ private slots:
     {
         GameRecordModel model;
         KifuBranchTree tree;
-        KifuNavigationState navState;
-        QList<KifDisplayItem> disp;
-        setupBasicModel(model, tree, navState, disp);
+        setupBasicModel(model, tree);
 
         GameRecordModel::ExportContext ctx;
         ctx.startSfen = kHirateSfen;
@@ -1015,9 +976,7 @@ private slots:
     {
         GameRecordModel model;
         KifuBranchTree tree;
-        KifuNavigationState navState;
-        QList<KifDisplayItem> disp;
-        setupBasicModel(model, tree, navState, disp);
+        setupBasicModel(model, tree);
 
         GameRecordModel::ExportContext ctx;
         ctx.startSfen = kHirateSfen;
@@ -1027,7 +986,7 @@ private slots:
             QStringLiteral("2f2e"), QStringLiteral("8d8e"),
             QStringLiteral("6i7h")
         };
-        auto lines = model.toUsenLines(ctx, usiMoves);
+        auto lines = model.toUsenLines(ctx);
         QVERIFY(!lines.isEmpty());
         // USEN output typically starts with "~0."
         QVERIFY(lines.first().startsWith(QStringLiteral("~")));
@@ -1104,20 +1063,7 @@ private slots:
 
         // モデルセットアップ
         GameRecordModel model;
-        KifuNavigationState navState;
-        navState.setTree(&tree);
-        navState.goToRoot();
         model.setBranchTree(&tree);
-        model.setNavigationState(&navState);
-
-        QList<KifDisplayItem> disp;
-        disp.append(KifDisplayItem(QStringLiteral("開始局面")));
-        auto mainNodes = tree.allLines().at(0).nodes;
-        for (int i = 1; i < mainNodes.size(); ++i) {
-            auto* node = mainNodes.at(i);
-            disp.append(KifDisplayItem(node->displayText(), node->timeText(), QString(), node->ply()));
-        }
-        model.initializeFromDisplayItems(disp, static_cast<int>(disp.size()));
 
         GameRecordModel::ExportContext ctx;
         ctx.startSfen = kHirateSfen;
@@ -1223,7 +1169,7 @@ private slots:
                                                 QStringLiteral("ki2u")));
         KifParseResult result;
         QString error;
-        QVERIFY2(Ki2ToSfenConverter::parseWithVariations(ki2.fileName(), result, &error), qPrintable(error));
+        QVERIFY2(KifuFile::parse<Ki2ToSfenConverter>(ki2.fileName(), result, &error), qPrintable(error));
         QCOMPARE(result.variations.size(), 1);
         QCOMPARE(result.variations.at(0).line.usiMoves(), QStringList({QStringLiteral("4a5b")}));
     }
@@ -1251,7 +1197,7 @@ private slots:
         QVERIFY(KifuTestHelper::writeToTempFile(ki2, text.toUtf8(), QStringLiteral("ki2u")));
         KifParseResult result;
         QString error;
-        QVERIFY2(Ki2ToSfenConverter::parseWithVariations(ki2.fileName(), result, &error), qPrintable(error));
+        QVERIFY2(KifuFile::parse<Ki2ToSfenConverter>(ki2.fileName(), result, &error), qPrintable(error));
         QVERIFY(result.mainline.displayItems().last().prettyMove.contains(QStringLiteral("詰み")));
         QCOMPARE(result.variations.size(), 1);
         QCOMPARE(result.variations.at(0).line.displayItems().last().terminalType, TerminalType::Timeout);

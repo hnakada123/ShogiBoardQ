@@ -252,11 +252,11 @@ async def test_waiting_log_and_mcp_enter(csa_env, csa_server):
         dialog = await ui.connect(csa_server[0])
         await asyncio.sleep(0.2)
         await ui.call("click_dialog_button", dialog=dialog, text="通信ログ")
-        log = await ui.call("get_widget_text", dialog="csaWaitingLogWindow", widget="csaWaitingLogView")
+        log = await ui.call("get_widget_text", dialog="csaWaitingLogWindow", widget="csaLogView")
         text = log["widgets"][0]["text"]
         assert "LOGIN:BoardQ OK" in text
         assert "audit-secret" not in text
-        await ui.call("set_widget_value", target="csaWaitingLogWindow", widget="csaWaitingCommandInput",
+        await ui.call("set_widget_value", target="csaWaitingLogWindow", widget="csaCommandInput",
                       value="LOGOUT", submit=True)
         await ui.wait_state(ui_state="idle", play_mode="not_started")
 
@@ -300,12 +300,12 @@ async def test_log_send_buttons_and_disconnect(csa_env, csa_server, tmp_path):
         await ui.call("capture_screenshot", output_dir=str(tmp_path / "disconnected"))
         dialog = await ui.connect(csa_server[0])
         await ui.call("click_dialog_button", dialog=dialog, text="通信ログ")
-        await ui.call("set_widget_value", target="csaWaitingLogWindow", widget="csaWaitingCommandInput",
+        await ui.call("set_widget_value", target="csaWaitingLogWindow", widget="csaCommandInput",
                       value="%%WHO")
-        await ui.call("click_widget", target="csaWaitingLogWindow", widget="csaWaitingSendButton")
+        await ui.call("click_widget", target="csaWaitingLogWindow", widget="csaSendButton")
         deadline = asyncio.get_running_loop().time() + 5
         while True:
-            data = await ui.call("get_widget_text", dialog="csaWaitingLogWindow", widget="csaWaitingLogView")
+            data = await ui.call("get_widget_text", dialog="csaWaitingLogWindow", widget="csaLogView")
             if "##[WHO]" in data["widgets"][0]["text"]:
                 break
             assert asyncio.get_running_loop().time() < deadline

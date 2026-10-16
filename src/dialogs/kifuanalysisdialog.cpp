@@ -91,8 +91,9 @@ KifuAnalysisDialog::KifuAnalysisDialog(QWidget *parent)
     connect(ui->byoyomiSec, &QSpinBox::valueChanged, this, &KifuAnalysisDialog::updateSummary);
     
     // フォントサイズ調整ボタン
-    connect(ui->btnFontIncrease, &QPushButton::clicked, this, &KifuAnalysisDialog::onFontIncrease);
-    connect(ui->btnFontDecrease, &QPushButton::clicked, this, &KifuAnalysisDialog::onFontDecrease);
+    connect(ui->btnFontIncrease, &QPushButton::clicked, &m_fontHelper, &FontSizeHelper::increase);
+    connect(ui->btnFontDecrease, &QPushButton::clicked, &m_fontHelper, &FontSizeHelper::decrease);
+    connect(&m_fontHelper, &FontSizeHelper::fontSizeChanged, this, &KifuAnalysisDialog::applyFontSize);
     
     // 範囲指定のスピンボックスの有効/無効を設定
     bool rangeEnabled = ui->radioButtonRangePosition->isChecked();
@@ -308,18 +309,6 @@ void KifuAnalysisDialog::readEngineNameAndDir()
         // 棋譜解析ダイアログのエンジン選択リストにエンジン名を追加する。
         ui->comboBoxEngine1->addItem(engine.name);
     }
-}
-
-// フォントサイズ拡大
-void KifuAnalysisDialog::onFontIncrease()
-{
-    if (m_fontHelper.increase()) applyFontSize();
-}
-
-// フォントサイズ縮小
-void KifuAnalysisDialog::onFontDecrease()
-{
-    if (m_fontHelper.decrease()) applyFontSize();
 }
 
 // 範囲指定の数値欄の前後に置く文字列を設定する。

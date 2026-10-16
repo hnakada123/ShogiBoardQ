@@ -2,101 +2,50 @@
 #define PVCLICKCONTROLLER_H
 
 /// @file pvclickcontroller.h
-/// @brief 読み筋クリックコントローラクラスの定義
+/// @brief 読み筋の行をクリックしたとき、読み筋を盤で再生するダイアログを開く
 
-
+#include <QHash>
 #include <QObject>
 #include <QString>
-#include <QStringList>
-#include <QList>
 
+#include "shogienginethinkingmodel.h"
 
-#include "matchplayers.h"
-#include "recordline.h"
-
-class KifuNavigationState;
 struct AppState;
-class ShogiEngineThinkingModel;
+class KifuNavigationState;
 class ShogiView;
 
 /**
- * @brief PvClickController - 読み筋クリック処理クラス
+ * @brief 思考タブ・検討タブの読み筋の行から、読み筋の局面と手順で読み筋ダイアログを開く
  *
- * MainWindowから読み筋（PV）クリック時の処理を分離したクラス。
- * 以下の責務を担当:
- * - 読み筋行クリック時のデータ取得
- * - USI形式読み筋の解析
- * - PvBoardDialogの表示
+ * 読み筋の局面は、エンジンが読み筋を出したときの局面（ShogiInfoRecord::baseSfen）を使う。
  */
 class PvClickController : public QObject
 {
     Q_OBJECT
 
 public:
-    /// クリックしたときに読む状態（onPvRowClicked で写し取る）
-    struct StateRefs {
-        const AppState* state = nullptr;                        ///< 対局者・表示中の局面・開始局面
-        const KifuNavigationState* navState = nullptr;          ///< 表示中の手順（分岐ツリー）
+    struct Deps {
+        const KifuNavigationState* navState = nullptr;      ///< 表示中の手順（読み筋の局面に至った手を探す）
+        const AppState* state = nullptr;                    ///< 対局者名
+        const ShogiView* shogiView = nullptr;               ///< 盤の反転状態
     };
 
-    explicit PvClickController(QObject* parent = nullptr);
-    ~PvClickController() override;
-
-    // --------------------------------------------------------
-    // 依存オブジェクトの設定
-    // --------------------------------------------------------
-    void setThinkingModels(ShogiEngineThinkingModel* model1, ShogiEngineThinkingModel* model2);
-    void setConsiderationModel(ShogiEngineThinkingModel* model);
-    void setStateRefs(const StateRefs& refs);
-    void setShogiView(ShogiView* view);
+    explicit PvClickController(const Deps& deps, QObject* parent = nullptr);
 
 signals:
-    void pvDialogClosed(int engineIndex);
+    /// model の行から開いた読み筋ダイアログが閉じた（表の選択を外す）
+    void pvDialogClosed(const ShogiEngineThinkingModel* model);
 
 public slots:
-    /**
-     * @brief 読み筋行がクリックされた時の処理
-     * @param engineIndex エンジンインデックス（0 or 1）
-     * @param row クリックされた行
-     */
-    void onPvRowClicked(int engineIndex, int row);
+    /// 思考の表（model）の row 行目の「盤面」ボタンが押された
+    void onPvRowClicked(ShogiEngineThinkingModel* model, int row);
+
+private slots:
+    void onPvDialogFinished();
 
 private:
-    void onPvDialogFinished(int result);
-
-    /**
-     * @brief 現在の局面SFENを取得（フォールバック付き）
-     */
-    QString resolveCurrentSfen(const QString& baseSfen) const;
-
-    /**
-     * @brief 対局者名（最後に始めた対局の対局者。名前が無ければ先手・後手）を取得
-     */
-    void resolvePlayerNames(QString& blackName, QString& whiteName) const;
-
-    /// engineIndex(0/1/2) に対応する思考モデルを返す
-    ShogiEngineThinkingModel* modelForEngineIndex(int engineIndex) const;
-
-    /// PVダイアログのハイライト情報（前局面/最終USI手）を解決する
-    void resolveHighlightContext(const QString& currentSfen,
-                                 QString& lastUsiMove,
-                                 QString& prevSfenForHighlight) const;
-
-private:
-    void syncFromRefs();
-
-    ShogiEngineThinkingModel* m_modelThinking1 = nullptr;
-    ShogiEngineThinkingModel* m_modelThinking2 = nullptr;
-    ShogiEngineThinkingModel* m_considerationModel = nullptr;
-    RecordLine m_line;                                   ///< クリック時点の表示中の手順
-    ShogiView* m_shogiView = nullptr;                    ///< 盤面反転状態取得用
-
-    StateRefs m_stateRefs;                               ///< 動的状態へのポインタ群
-
-    MatchPlayers m_players;
-    QString m_currentSfenStr;
-    QString m_startSfenStr;
-    bool m_boardFlipped = false;     ///< GUI本体の盤面反転状態
+    Deps m_deps;
+    QHash<const QObject*, const ShogiEngineThinkingModel*> m_dialogSources;  ///< 開いているダイアログと元の表
 };
 
 #endif // PVCLICKCONTROLLER_H

@@ -10,7 +10,8 @@
 
 class QAction;
 class RecordPane;
-class EngineAnalysisTab;
+class BranchTreeManager;
+class ConsiderationTabManager;
 class BoardInteractionController;
 
 namespace Ui { class MainWindow; }
@@ -94,19 +95,16 @@ public:
     struct Deps {
         Ui::MainWindow* ui = nullptr;
         RecordPane* recordPane = nullptr;
-        EngineAnalysisTab* analysisTab = nullptr;
+        BranchTreeManager* branchTree = nullptr;              ///< 分岐ツリーのクリック
+        ConsiderationTabManager* consideration = nullptr;     ///< 検討ドックの「検討開始」
         BoardInteractionController* boardController = nullptr;
         std::function<bool()> localGameHasHuman;  ///< ローカル対局に人間が参加しているか（待った・投了・入玉宣言）
         AppActivityState* activity = nullptr;
     };
 
-    explicit UiStatePolicyManager(QObject* parent = nullptr);
-
-    /// 依存オブジェクトを更新する（遅延生成対応）
-    void updateDeps(const Deps& deps);
-
-    /// 指定状態のポリシーを全UI要素に一括適用する
-    void applyState(AppState state);
+    /// deps.activity が無ければ自分だけの動作状態を使う（テスト用）
+    explicit UiStatePolicyManager(const Deps& deps, QObject* parent = nullptr);
+    UiStatePolicyManager() : UiStatePolicyManager(Deps{}) {}
 
     /// 現在の状態を返す
     AppState currentState() const { return m_activity->activity(); }
@@ -119,14 +117,6 @@ public:
 
 public slots:
     void setResumeAvailable(bool available);
-    /// 各状態遷移用の便利スロット（シグナル直結用）
-    void transitionToIdle();
-    void transitionToDuringGame();
-    void transitionToDuringAnalysis();
-    void transitionToDuringCsaGame();
-    void transitionToDuringTsumeSearch();
-    void transitionToDuringConsideration();
-    void transitionToDuringPositionEdit();
 
     /// ナビゲーションが許可されている場合のみ矢印ボタンを有効化する
     void enableNavigationIfAllowed();
@@ -144,7 +134,7 @@ private:
 
     Deps m_deps;
     AppActivityState m_defaultActivity;
-    AppActivityState* m_activity = &m_defaultActivity;
+    AppActivityState* m_activity = nullptr;
     void refreshActivity();
     bool m_resumeAvailable = false;
 };

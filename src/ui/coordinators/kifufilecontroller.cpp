@@ -3,14 +3,12 @@
 
 #include "kifufilecontroller.h"
 #include "appstate.h"
-#include "replaycontroller.h"
 #include "kifuexportcontroller.h"
-#include "kifufilereader.h"
 #include "kifuloadcoordinator.h"
 #include "kifupastedialog.h"
 #include "kifusavecoordinator.h"
 #include "gamerecordmodel.h"
-#include "gameinfopanecontroller.h"
+#include "gameinfopane.h"
 #include "gamesettings.h"
 #include "logcategories.h"
 
@@ -19,14 +17,12 @@
 #include <QStatusBar>
 #include <QProgressDialog>
 
-KifuFileController::KifuFileController(QObject* parent)
+KifuFileController::KifuFileController(const Deps& deps, QObject* parent)
     : QObject(parent)
+    , m_deps(deps)
 {
-}
-
-void KifuFileController::updateDeps(const Deps& deps)
-{
-    m_deps = deps;
+    Q_ASSERT(m_deps.state && m_deps.gameRecord && m_deps.exportController && m_deps.loadCoordinator);
+    connect(m_deps.loadCoordinator, &KifuLoadCoordinator::loadFinished, this, &KifuFileController::onAsyncLoadFinished);
 }
 
 bool KifuFileController::confirmDiscardUnsaved()
@@ -41,7 +37,6 @@ bool KifuFileController::confirmDiscardUnsaved()
 
 void KifuFileController::prepareForKifuLoad()
 {
-    if (m_deps.replayController) m_deps.replayController->setReplayMode(true);
     if (m_deps.clearUiBeforeKifuLoad) m_deps.clearUiBeforeKifuLoad();
 }
 
@@ -139,7 +134,7 @@ void KifuFileController::startAsyncLoad(const QString& input, bool text)
     m_loadProgress->setWindowModality(Qt::WindowModal);
     m_loadProgress->setMinimumDuration(0);
     connect(m_loadProgress, &QProgressDialog::canceled, coordinator, &KifuLoadCoordinator::cancelLoad);
-    connect(coordinator, &KifuLoadCoordinator::loadFinished, this, &KifuFileController::onAsyncLoadFinished, Qt::UniqueConnection);
+    m_asyncLoadPending = true;
     m_loadProgress->show();
     if (text) coordinator->loadTextAsync(input);
     else coordinator->loadFileAsync(input);
@@ -147,6 +142,9 @@ void KifuFileController::startAsyncLoad(const QString& input, bool text)
 
 void KifuFileController::onAsyncLoadFinished(bool success)
 {
+    // 自動化 API などほかから始めた読み込みの終わりは扱わない
+    if (!m_asyncLoadPending) return;
+    m_asyncLoadPending = false;
     if (m_loadProgress) {
         m_loadProgress->close();
         m_loadProgress->deleteLater();
@@ -159,7 +157,7 @@ void KifuFileController::onAsyncLoadFinished(bool success)
         if (m_kifuPasteDialog) m_kifuPasteDialog->accept();
         if (m_deps.statusBar) m_deps.statusBar->showMessage(tr("棋譜を取り込みました"), 3000);
     } else {
-        setOverwriteTarget(m_pendingLoadPath);
+        attachToFile(m_pendingLoadPath);
     }
 }
 
@@ -173,9 +171,7 @@ void KifuFileController::onSfenCollectionPositionSelected(const QString& sfen)
         // 局面集から反映した局面は棋譜ファイル由来ではないので、以前のファイルへ上書きさせない。
         // 局面そのものは局面集ファイルに残っているため未保存扱いにはせず、続けて別の局面を
         // 選んでも保存の確認を出さない（反映後に指し手を進めた場合は通常どおり確認する）
-        if (success) {
-            clearOverwriteTarget();
-        }
+        if (success) attachToFile(QString());
         if (m_deps.statusBar) {
             if (success) {
                 m_deps.statusBar->showMessage(tr("局面を反映しました"), 3000);
@@ -190,9 +186,9 @@ void KifuFileController::onSfenCollectionPositionSelected(const QString& sfen)
     }
 }
 
-void KifuFileController::autoSaveKifuToFile(const QString& saveDir)
+void KifuFileController::autoSaveKifu(const QString& saveDir, const QString& extension)
 {
-    qCDebug(lcApp) << "autoSaveKifuToFile called: dir=" << saveDir;
+    qCDebug(lcApp) << "autoSaveKifu: dir=" << saveDir << "extension=" << extension;
 
     auto* kec = m_deps.exportController;
     if (!kec) {
@@ -200,7 +196,7 @@ void KifuFileController::autoSaveKifuToFile(const QString& saveDir)
         return;
     }
 
-    if (auto savedPath = kec->autoSaveToDir(saveDir)) {
+    if (auto savedPath = kec->autoSaveToDir(saveDir, extension)) {
         if (m_deps.state) {
             m_deps.state->saveFileName = *savedPath;
         }
@@ -220,8 +216,9 @@ bool KifuFileController::hasUnsavedChanges() const
 bool KifuFileController::loadKifuFile(const QString& filePath)
 {
     prepareForKifuLoad();
-    const bool loaded = dispatchKifuLoad(filePath);
-    if (loaded) setOverwriteTarget(filePath);
+    // 拡張子が .json などでも、内容から形式を判定して読み込む
+    const bool loaded = m_deps.loadCoordinator && m_deps.loadCoordinator->loadFile(filePath);
+    if (loaded) attachToFile(filePath);
     return loaded;
 }
 
@@ -230,7 +227,7 @@ bool KifuFileController::loadKifuText(const QString& content)
     prepareForKifuLoad();
     auto* klc = m_deps.loadCoordinator;
     if (!klc) return false;
-    const bool success = klc->loadKifuFromString(content);
+    const bool success = klc->loadText(content);
     if (success) {
         clearOverwriteTarget();
         if (auto* record = m_deps.gameRecord) {
@@ -260,29 +257,13 @@ bool KifuFileController::saveKifuToPath(const QString& filePath, QString* errorT
     auto* kec = m_deps.exportController;
     if (!kec) return false;
     const bool ok = kec->saveToPathWithoutDialogs(filePath, errorText);
-    if (ok) setOverwriteTarget(filePath);
+    if (ok) attachToFile(filePath);
     return ok;
 }
 
-bool KifuFileController::dispatchKifuLoad(const QString& filePath)
+void KifuFileController::attachToFile(const QString& filePath)
 {
-    auto* klc = m_deps.loadCoordinator;
-    if (!klc) return false;
-
-    // 拡張子が .json などでも、内容から形式を判定して読み込む
-    switch (KifuFileReader::detectFileFormat(filePath)) {
-    case KifuFileReader::KifuFormat::CSA:  return klc->loadCsaFromFile(filePath);
-    case KifuFileReader::KifuFormat::KI2:  return klc->loadKi2FromFile(filePath);
-    case KifuFileReader::KifuFormat::JKF:  return klc->loadJkfFromFile(filePath);
-    case KifuFileReader::KifuFormat::USEN: return klc->loadUsenFromFile(filePath);
-    case KifuFileReader::KifuFormat::USI:  return klc->loadUsiFromFile(filePath);
-    default: break;
-    }
-    return klc->loadKifuFromFile(filePath);
-}
-
-void KifuFileController::setOverwriteTarget(const QString& filePath)
-{
+    if (auto* record = m_deps.gameRecord) record->clearDirty();
     if (!m_deps.state) return;
 
     // 保存形式を拡張子で決められるファイルだけを上書き対象にする。

@@ -22,12 +22,9 @@ public:
      * @brief USEN形式の行リストを生成
      * @param model 棋譜データモデル
      * @param ctx 出力コンテキスト（ヘッダ情報等）
-     * @param usiMoves USI形式の指し手リスト（本譜用）
      * @return USEN形式の行リスト（1要素のUSEN文字列）
      */
-    static QStringList exportLines(const GameRecordModel& model,
-                                   const GameRecordModel::ExportContext& ctx,
-                                   const QStringList& usiMoves);
+    static QStringList exportLines(const GameRecordModel& model, const GameRecordModel::ExportContext& ctx);
 };
 
 #endif // USENEXPORTER_H

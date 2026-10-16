@@ -14,6 +14,7 @@
 #include "branchtreeeditcontroller.h"
 #include "branchtreelayout.h"
 #include "branchtreemanager.h"
+#include "gamerecordmodel.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
 #include "kifudisplaypresenter.h"
@@ -21,6 +22,7 @@
 #include "kifunavigationstate.h"
 #include "kifupresentation.h"
 #include "livegamesession.h"
+#include "shogiboard.h"
 #include "shogigamecontroller.h"
 #include "shogimove.h"
 
@@ -56,6 +58,37 @@ struct Fixture {
     {
         const QString mark = (parent->ply() % 2 == 0) ? QStringLiteral("▲") : QStringLiteral("△");
         return tree.addMove(parent, ShogiMove(), mark + name, QStringLiteral("sfen-") + name);
+    }
+};
+
+/// 分岐の編集に要る部品一式（表示中の手・移動・ライブ対局・未保存の印）
+struct EditHarness {
+    KifuNavigationState state;
+    KifuNavigationController nav;
+    LiveGameSession live;
+    GameRecordModel record;
+    BranchTreeEditController controller;
+
+    explicit EditHarness(KifuBranchTree& tree)
+        : state(&tree)
+        , nav(&state)
+        , live(&tree, &state)
+        , controller(deps(tree, state, nav, live, record))
+    {
+        record.setBranchTree(&tree);
+    }
+
+    static BranchTreeEditController::Deps deps(KifuBranchTree& tree, KifuNavigationState& state,
+                                               KifuNavigationController& nav, LiveGameSession& live,
+                                               GameRecordModel& record)
+    {
+        BranchTreeEditController::Deps d;
+        d.tree = &tree;
+        d.navState = &state;
+        d.navController = &nav;
+        d.liveSession = &live;
+        d.gameRecord = &record;
+        return d;
     }
 };
 } // namespace
@@ -137,73 +170,51 @@ private slots:
     void controller_deleteMovesCurrentOutOfSubtree()
     {
         Fixture f;
-        KifuNavigationState state;
-        state.setTree(&f.tree);
-        KifuNavigationController nav;
-        nav.setTreeAndState(&f.tree, &state);
-        nav.goToNode(f.b3);
+        EditHarness h(f.tree);
+        h.nav.goToNode(f.b3);
+        QSignalSpy changed(&h.state, &KifuNavigationState::changed);
 
-        int dirty = 0;
-        BranchTreeEditController controller;
-        BranchTreeEditController::Deps deps;
-        deps.tree = &f.tree;
-        deps.navState = &state;
-        deps.navController = &nav;
-        deps.markGameRecordDirty = [&dirty]() { ++dirty; };
-        controller.updateDeps(deps);
-
-        QVERIFY(controller.apply(BranchTreeEditController::Operation::DeleteFromHere, f.b2, false));
-        QCOMPARE(state.currentNode(), f.main.at(1));
-        QCOMPARE(dirty, 1);
+        QVERIFY(h.controller.apply(BranchTreeEditController::Operation::DeleteFromHere, f.b2, false));
+        QCOMPARE(h.state.currentNode(), f.main.at(1));
+        QVERIFY(h.record.isDirty());
         QCOMPARE(f.main.at(1)->childCount(), 1);
+        // 表示中の手の移動と削除をまとめて1回だけ知らせる
+        QCOMPARE(changed.count(), 1);
     }
 
     // 削除の確認は、KDE で訳されない「Yes」ではなく操作名のボタンで尋ね、キャンセルなら削除しない
     void controller_deleteConfirmationNamesTheAction()
     {
         Fixture f;
-        BranchTreeEditController controller;
-        BranchTreeEditController::Deps deps;
-        deps.tree = &f.tree;
-        controller.updateDeps(deps);
+        EditHarness h(f.tree);
 
         const int before = f.tree.nodeCount();
         m_confirmActionText.clear();
         m_confirmDefaultIsCancel = false;
         QTimer::singleShot(0, this, &TestBranchTreeEditing::inspectDeleteConfirmation);
-        QVERIFY(!controller.apply(BranchTreeEditController::Operation::DeleteFromHere, f.b2));
+        QVERIFY(!h.controller.apply(BranchTreeEditController::Operation::DeleteFromHere, f.b2));
         QCOMPARE(m_confirmActionText, BranchTreeEditController::tr("削除する"));
         QVERIFY(m_confirmDefaultIsCancel);
         QCOMPARE(f.tree.nodeCount(), before);
+        QVERIFY(!h.record.isDirty());
     }
 
     // 削除の確認の手は、分岐ツリーと同じ表記（英語式の表記なら P-7f）で示す
     void controller_deleteConfirmationUsesDisplayedNotation()
     {
         KifuBranchTree tree;
-        KifuNavigationState state;
-        state.setTree(&tree);
-        KifuNavigationController nav;
-        nav.setTreeAndState(&tree, &state);
+        tree.setRootSfen(kHirateSfen);
+        EditHarness h(tree);
         ShogiGameController gc;
-        QString initial = kHirateSfen;
-        gc.newGame(initial);
 
-        BranchTreeEditController controller;
-        BranchTreeEditController::Deps deps;
-        deps.tree = &tree;
-        deps.navState = &state;
-        deps.navController = &nav;
-        deps.startPositionSfen = []() { return QStringLiteral("startpos"); };
-        controller.updateDeps(deps);
         QPoint from(7, 7), to(7, 6);
-        QVERIFY(controller.recordBoardMove(from, to, &gc));
+        QVERIFY(h.controller.recordBoardMove(from, to, &gc));
         KifuBranchNode* move = tree.root()->childAt(0);
 
         KifuPresentation::configure(QStringLiteral("en"), QStringLiteral("western"), false);
         m_confirmText.clear();
         QTimer::singleShot(0, this, &TestBranchTreeEditing::inspectDeleteConfirmation);
-        const bool deleted = controller.apply(BranchTreeEditController::Operation::DeleteFromHere, move);
+        const bool deleted = h.controller.apply(BranchTreeEditController::Operation::DeleteFromHere, move);
         KifuPresentation::configure(QStringLiteral("ja"), QStringLiteral("japanese"), false);
         QVERIFY(!deleted);
         QVERIFY2(m_confirmText.contains(QStringLiteral("P-7f")), qPrintable(m_confirmText));
@@ -213,105 +224,79 @@ private slots:
     void controller_promoteKeepsCurrentNode()
     {
         Fixture f;
-        KifuNavigationState state;
-        state.setTree(&f.tree);
-        KifuNavigationController nav;
-        nav.setTreeAndState(&f.tree, &state);
-        nav.goToNode(f.a6);
-
-        BranchTreeEditController controller;
-        BranchTreeEditController::Deps deps;
-        deps.tree = &f.tree;
-        deps.navState = &state;
-        deps.navController = &nav;
-        controller.updateDeps(deps);
+        EditHarness h(f.tree);
+        h.nav.goToNode(f.a6);
 
         using Op = BranchTreeEditController::Operation;
-        QVERIFY(controller.isApplicable(Op::PromoteToMainLine, f.a6));
-        QVERIFY(controller.isApplicable(Op::MoveUp, f.a6));
-        QVERIFY(!controller.isApplicable(Op::MoveDown, f.a6));
-        QVERIFY(controller.apply(Op::PromoteToMainLine, f.a6));
-        QCOMPARE(state.currentNode(), f.a6);
-        QCOMPARE(state.currentLineIndex(), 0);
-        QVERIFY(!controller.isApplicable(Op::PromoteToMainLine, f.a6));
-        QVERIFY(controller.isApplicable(Op::MoveDown, f.a6));
+        QVERIFY(h.controller.isApplicable(Op::PromoteToMainLine, f.a6));
+        QVERIFY(h.controller.isApplicable(Op::MoveUp, f.a6));
+        QVERIFY(!h.controller.isApplicable(Op::MoveDown, f.a6));
+        QSignalSpy changed(&h.state, &KifuNavigationState::changed);
+        QVERIFY(h.controller.apply(Op::PromoteToMainLine, f.a6));
+        QCOMPARE(changed.count(), 1);
+        QCOMPARE(h.state.currentNode(), f.a6);
+        QCOMPARE(h.state.currentLineIndex(), 0);
+        QVERIFY(!h.controller.isApplicable(Op::PromoteToMainLine, f.a6));
+        QVERIFY(h.controller.isApplicable(Op::MoveDown, f.a6));
     }
 
     void controller_notApplicableDuringGame()
     {
         Fixture f;
-        LiveGameSession session;
-        session.setTree(&f.tree);
-        session.startFromRoot();
+        EditHarness h(f.tree);
+        h.live.startFromRoot();
 
-        BranchTreeEditController controller;
-        BranchTreeEditController::Deps deps;
-        deps.tree = &f.tree;
-        deps.liveSession = &session;
-        controller.updateDeps(deps);
-        QVERIFY(!controller.canEdit());
-        QVERIFY(!controller.isApplicable(BranchTreeEditController::Operation::DeleteFromHere, f.b2));
-        session.discard();
-        QVERIFY(controller.canEdit());
+        QVERIFY(!h.controller.canEdit());
+        QVERIFY(!h.controller.canRecordBoardMove());
+        QVERIFY(!h.controller.isApplicable(BranchTreeEditController::Operation::DeleteFromHere, f.b2));
+        h.live.discard();
+        QVERIFY(h.controller.canEdit());
     }
 
     // 対局していないときの盤上の手：棋譜が空なら開始局面から始め、同じ手は既存の手へ移動する
-    void controller_recordsBoardMoveFromEmptyRecord()
+    // 対局していないときの盤上の手：表示中の手の次の手として記録し、同じ手は既存の手へ移動する
+    void controller_recordsBoardMoveAsVariation()
     {
-        KifuBranchTree tree;   // 起動直後と同じく空
-        KifuNavigationState state;
-        state.setTree(&tree);
-        KifuNavigationController nav;
-        nav.setTreeAndState(&tree, &state);
+        KifuBranchTree tree;
+        tree.setRootSfen(kHirateSfen);   // 起動直後と同じく開始局面だけ
+        EditHarness h(tree);
         ShogiGameController gc;
-        QString initial = kHirateSfen;
-        gc.newGame(initial);
+        QVERIFY(h.controller.canRecordBoardMove());
 
-        int dirty = 0;
-        int rootCreated = 0;
-        BranchTreeEditController controller;
-        BranchTreeEditController::Deps deps;
-        deps.tree = &tree;
-        deps.navState = &state;
-        deps.navController = &nav;
-        deps.markGameRecordDirty = [&dirty]() { ++dirty; };
-        deps.startPositionSfen = []() { return QStringLiteral("startpos"); };
-        deps.treeRootCreated = [&rootCreated]() { ++rootCreated; };
-        controller.updateDeps(deps);
-        QVERIFY(!controller.canEdit());
-        QVERIFY(controller.canRecordBoardMove());
-
+        QSignalSpy changed(&h.state, &KifuNavigationState::changed);
         QPoint from(7, 7), to(7, 6);
-        QVERIFY(controller.recordBoardMove(from, to, &gc));
-        QCOMPARE(rootCreated, 1);
-        QCOMPARE(tree.root()->sfen(), kHirateSfen);
+        QVERIFY(h.controller.recordBoardMove(from, to, &gc));
         QCOMPARE(tree.root()->childCount(), 1);
-        QCOMPARE(state.currentNode(), tree.root()->childAt(0));
-        QVERIFY(state.currentNode()->displayText().contains(QStringLiteral("７六歩")));
-        QCOMPARE(dirty, 1);
+        QCOMPARE(h.state.currentNode(), tree.root()->childAt(0));
+        QVERIFY(h.state.currentNode()->displayText().contains(QStringLiteral("７六歩")));
+        QCOMPARE(gc.board()->toSfen(), h.state.currentSfen());
+        QCOMPARE(changed.count(), 1);
+        QVERIFY(h.record.isDirty());
 
         // 同じ手を指し直しても重複した変化は作らない
-        nav.goToNode(tree.root());
+        h.record.clearDirty();
+        h.nav.goToNode(tree.root());
         from = QPoint(7, 7);
         to = QPoint(7, 6);
-        QVERIFY(controller.recordBoardMove(from, to, &gc));
+        QVERIFY(h.controller.recordBoardMove(from, to, &gc));
         QCOMPARE(tree.root()->childCount(), 1);
-        QCOMPARE(dirty, 1);
+        QVERIFY(!h.record.isDirty());
 
         // 違う手は新しい変化になる
-        nav.goToNode(tree.root());
+        h.nav.goToNode(tree.root());
         from = QPoint(2, 7);
         to = QPoint(2, 6);
-        QVERIFY(controller.recordBoardMove(from, to, &gc));
+        QVERIFY(h.controller.recordBoardMove(from, to, &gc));
         QCOMPARE(tree.root()->childCount(), 2);
-        QCOMPARE(dirty, 2);
+        QVERIFY(h.record.isDirty());
+        QCOMPARE(h.state.currentLineIndex(), 1);
 
         // 後手番の局面（▲２六歩の後）で先手の駒は動かせず、記録もしない
-        QCOMPARE(state.currentNode()->ply(), 1);
+        QCOMPARE(h.state.currentNode()->ply(), 1);
         const int nodesBefore = tree.nodeCount();
         from = QPoint(2, 6);
         to = QPoint(2, 5);
-        QVERIFY(!controller.recordBoardMove(from, to, &gc));
+        QVERIFY(!h.controller.recordBoardMove(from, to, &gc));
         QCOMPARE(tree.nodeCount(), nodesBefore);
     }
 

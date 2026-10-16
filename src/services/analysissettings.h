@@ -5,8 +5,8 @@
 /// @brief 解析・検討設定の永続化
 ///
 /// 評価値グラフ・解析タブ・棋譜解析・検討モード・読み筋盤面に関する設定を提供します。
-/// 呼び出し元: evaluationchartwidget.cpp, engineanalysistab.cpp, kifuanalysisdialog.cpp,
-///             analysisresultspresenter.cpp, considerationtabmanager.cpp,
+/// 呼び出し元: evaluationchartwidget.cpp, thinkingpanel.cpp, kifuanalysisdialog.cpp,
+///             analysisresultspanel.cpp, considerationtabmanager.cpp,
 ///             pvboarddialog.cpp
 
 #include <QSize>
@@ -45,13 +45,16 @@ inline const Setting<QSize> evalChartSettingsSize{"EvalChart/settingsSize", QSiz
 
 // --- 解析タブ ---
 
-/// エンジン情報ウィジェットの列幅（widgetIndex: 0=上段, 1=下段）
-QList<int> engineInfoColumnWidths(int widgetIndex);
-void setEngineInfoColumnWidths(int widgetIndex, const QList<int>& widths);
+/// 思考の表とその上のエンジン情報欄の組。列幅は組ごとに保存する
+enum class ThinkingTable { Engine1 = 0, Engine2 = 1, Consideration = 2 };
 
-/// 思考タブ下段（読み筋テーブル）の列幅（viewIndex: 0=エンジン1, 1=エンジン2）
-QList<int> thinkingViewColumnWidths(int viewIndex);
-void setThinkingViewColumnWidths(int viewIndex, const QList<int>& widths);
+/// エンジン情報欄の列幅
+QList<int> engineInfoColumnWidths(ThinkingTable table);
+void setEngineInfoColumnWidths(ThinkingTable table, const QList<int>& widths);
+
+/// 思考の表（読み筋の表）の列幅
+QList<int> thinkingViewColumnWidths(ThinkingTable table);
+void setThinkingViewColumnWidths(ThinkingTable table, const QList<int>& widths);
 
 /// USI通信ログタブのフォントサイズ（デフォルト: 10）
 inline const Setting<int> usiLogFontSize{"FontSize/usiLog", 10};

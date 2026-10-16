@@ -28,24 +28,15 @@ class ShogiGameController : public QObject
     Q_OBJECT
 
 public:
-    /// 盤面・手順・棋譜・時計を更新し終えるまで、着手と手番の通知を保留する。
-    class PositionUpdate {
-    public:
-        explicit PositionUpdate(ShogiGameController& owner) : m_owner(owner) { ++m_owner.m_updateDepth; }
-        ~PositionUpdate() { m_owner.endPositionUpdate(); }
-        PositionUpdate(const PositionUpdate&) = delete;
-        PositionUpdate& operator=(const PositionUpdate&) = delete;
-    private:
-        ShogiGameController& m_owner;
-    };
-    [[nodiscard]] PositionUpdate positionUpdate() { return PositionUpdate(*this); }
 
     explicit ShogiGameController(QObject* parent = nullptr);
     ~ShogiGameController() override;
 
+    /// 対局の盤（起動から終了まで同じ1つ。局面は newGame・setSfen で入れ替える）
     ShogiBoard* board() const;
-    /// 手番（新しい対局の前は先手）
-    Turn currentPlayer() const { return m_currentPlayer; }
+    /// 手番（盤の手番）
+    Turn currentPlayer() const;
+    /// 盤の手番を変える（局面編集の手番変更・検討する局面の手番）
     void setCurrentPlayer(Turn player);
 
     /// 「同」表記の基準（局面に至った手の移動先。開始局面は無効値）を復元する
@@ -75,10 +66,9 @@ public:
     const UsiMove& lastMove() const { return m_lastMove; }
 
     /**
-     * @brief 着手の確定を知らせる（盤・手順・棋譜・時計を更新し終えた後）
-     *
-     * 更新中（positionUpdate の間）なら、手番の通知の後に知らせる。
+     * @brief 着手の確定を知らせる（盤・手順・棋譜・時計を更新し終えた後に、対局の司令塔が呼ぶ）
      * @param ply 対局の手順での手数
+
      */
     void notifyMoveCommitted(Turn mover, int ply);
 
@@ -105,30 +95,19 @@ public slots:
     /**
      * @brief SFEN文字列から新規対局を準備する
      *
-     * 盤面・駒台を初期化し、指定SFENの配置に設定する。手番は SFEN の手番になる。
+     * 盤を指定SFENの局面にし、成りの指定と「同」表記の基準を消す。手番は SFEN の手番になる。
      */
     void newGame(const QString& startSfen);
 
 signals:
-    /// 手番が変更された（→ TurnManager、BoardInteractionController）
-    void currentPlayerChanged(Turn);
-
     /// 駒のドラッグ終了を通知する（→ ShogiView）
     void endDragSignal();
 
-    /// 着手が確定した（→ MainWindowActions::handleMoveCommitted、PieceSoundPlayer）
+    /// 着手が確定した（→ PieceSoundPlayer）
     void moveCommitted(Turn mover, int ply);
 
 private:
-    void endPositionUpdate();
-    int m_updateDepth = 0;
-    bool m_turnNotificationPending = false;
-    int m_committedPly = -1;
-    Turn m_committedMover = Turn::Black;
-
-    std::unique_ptr<ShogiBoard> m_board; ///< 将棋盤（所有）
-    Turn m_currentPlayer = Turn::Black; ///< 現在の手番
-    bool m_sideToMoveSet = false;       ///< 手番を一度でも設定したか
+    std::unique_ptr<ShogiBoard> m_board; ///< 将棋盤（所有。起動から終了まで同じ1つ）
 
     PromotionChooser m_promotionChooser; ///< 成り・不成の選び方
     UsiMove m_lastMove;                  ///< 直前に指した手

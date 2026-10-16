@@ -40,12 +40,12 @@ Q1: QObject 派生クラスか？
 - `MainWindowComposer` が生成するオブジェクト → MainWindow（`&m_window`）を親に指定
 
 ```cpp
-// Good — parent ownership
-auto* controller = new ReplayController(parent);
+// Good — parent ownership（EngineLifecycleManager::createEngine()）
+auto* engine = new Usi(this);
 
 // Good — 合成ルートでの生成（mainwindowcomposer_create.cpp、MainWindow を親に指定）
-m_c.dialogCoordinatorWiring = new DialogCoordinatorWiring(&m_window);
-m_c.timeController = new TimeControlController(&m_window);
+m_c.clock = new ShogiClock(&m_window);
+m_c.match = new MatchCoordinator(md, &m_window);
 ```
 
 ### 2. 非QObject クラス — `std::unique_ptr`
@@ -55,8 +55,8 @@ m_c.timeController = new TimeControlController(&m_window);
 - 裸の `new` + 生ポインタ保持は原則禁止
 
 **unique_ptr を使用する基準:**
-- 非QObject クラス（`GameModeStrategy`, `HumanTurnPolicy` 等）
-- QObject 派生だが parent chain 不要の場合（`CsaGameWiring`、`EvaluationGraphController` など `MainWindowComponents` の `std::unique_ptr` メンバ）
+- 非QObject クラス（`GameModeStrategy`, `HumanTurnPolicy`, `SessionResetCoordinator` 等）
+- QObject 派生だが parent chain 不要の場合（MainWindow の `m_composer`（`MainWindowComposer`）、`KifuAnalysisController` の `AnalysisJob`、`EngineProcessManager` の `QProcess` など）
 - MainWindow が排他的に寿命を管理するサービス
 
 ```cpp
@@ -89,29 +89,32 @@ QObject 派生クラスで、`new` の直後に parent が設定される場合�
 ```cpp
 // OK — parent 即時設定（mainwindowcomposer_create.cpp）
 m_c.boardSync = new BoardSyncPresenter(bs, &m_window);
-m_c.gameSession = new GameSession(&m_window);
+m_c.gameSession = new GameSession(gd, &m_window);
 
 // NG — parent なしで裸の new
 auto* obj = new SomeQObject();  // 誰が破棄するのか不明
 ```
 
-### 5. Wiring クラスの生成ルール
+### 5. 部品の生成と接続のルール
 
-Wiring クラス（`*Wiring`）の生成（`new` / `std::make_unique`）は、合成ルート `MainWindowComposer`（`src/app/mainwindowcomposer_*.cpp`）で起動時に1回だけ行い、`MainWindowComponents` のメンバに置く。ほかのクラスで直接 `new` してはならない。
+部品の生成（`new` / `std::make_unique`）は、合成ルート `MainWindowComposer`（`src/app/mainwindowcomposer_create.cpp`）で起動時に1回だけ行い、`MainWindowComponents` のメンバに置く。ほかのクラスで別の部品を直接 `new` してはならない。
 
-`UiActionsWiring` は `MainWindowComposer::connectSignals()`（`mainwindowcomposer_finalize.cpp`）が生成する。アクション別の Wiring（`FileActionsWiring` など）は `UiActionsWiring` が子として生成する。
+部品どうしのシグナル接続は `MainWindowComposer` の `connect*()`（`mainwindowcomposer_wire.cpp`）で全部品を作った後に行う。Wiring（`*Wiring`）は接続だけを行う関数の集まりで、インスタンスを作らない（例: `MenuActionsWiring::wire()` がメニュー・ツールバーの項目を処理する部品へつなぐ）。
 
 ```cpp
-// Good — 合成ルートで生成（mainwindowcomposer_create.cpp）
-void MainWindowComposer::createServices()
+// Good — 合成ルートでつなぐ（mainwindowcomposer_wire.cpp）
+void MainWindowComposer::connectAnalysisAndUi()
 {
     // ...
-    m_c.branchNavWiring = std::make_unique<BranchNavigationWiring>();
+    MenuActionsWiring::Deps md;
+    md.ui = &m_ui;
+    md.actions = m_c.actions;
     // ...
+    MenuActionsWiring::wire(md);
 }
 
 // NG — 部品の中で別の部品を直接 new
-*m_deps.dialogCoordinatorWiringPtr = new DialogCoordinatorWiring(m_deps.mainWindow);
+m_dialogs = new DialogLauncher(deps, m_deps.parentWidget);
 ```
 
 ## 再生成オブジェクトの寿命管理
@@ -125,27 +128,27 @@ void MainWindowComposer::createServices()
 
 | オブジェクト | 再生成タイミング | 所有者 |
 |-------------|-----------------|--------|
-| `Usi`（エンジン） | 対局・検討・詰み探索の開始ごと（`EngineLifecycleManager::createEngine()` で作り、`destroyEngines()` などで `deleteLater`） | `EngineLifecycleManager` (QObject parent) |
-| `QProcess` (エンジン) | エンジン起動/停止ごと | `EngineProcessManager` (QObject parent) |
+| `Usi`（エンジン） | 対局・検討・詰み探索の開始ごと（`EngineLifecycleManager::createEngine()` で作り、`destroySeat()` で `deleteLater`） | `EngineLifecycleManager` (QObject parent) |
+| `QProcess` (エンジン) | エンジン起動/停止ごと | `EngineProcessManager`（`std::unique_ptr`。停止時は終了を見届けるオブジェクトへ移す） |
 
-`MatchCoordinator`・`GameStartCoordinator`・`KifuLoadCoordinator` は再生成しない。
+`MatchCoordinator`・`GameSession`・`KifuLoadCoordinator` は再生成しない。
 
 | オブジェクト | 生成タイミング | 所有者 |
 |-------------|---------------|--------|
-| `MatchCoordinator` | 起動時に1回（`MainWindowComposer::createServices()`） | MainWindow (QObject parent) |
-| `GameStartCoordinator` | 起動時に1回（`MainWindowComposer::createServices()`） | MainWindow (QObject parent) |
-| `KifuLoadCoordinator` | 起動時に1回（`KifuLoadCoordinatorFactory::createAndWire()`、`MainWindowComposer::wireKifu()` から） | MainWindow (QObject parent) |
+| `MatchCoordinator` | 起動時に1回（`MainWindowComposer::createMatchAndAnalysis()`） | MainWindow (QObject parent) |
+| `GameSession` | 起動時に1回（`MainWindowComposer::createSessions()`） | MainWindow (QObject parent) |
+| `KifuLoadCoordinator` | 起動時に1回（`MainWindowComposer::createSessions()`） | MainWindow (QObject parent) |
 
 **寿命コメントの記法:**
 
 ```cpp
 // Lifetime: owned by MainWindow (QObject parent=&m_window)
 // Created: once at startup by MainWindowComposer, never recreated
-m_c.timeController = new TimeControlController(&m_window);
+m_c.clock = new ShogiClock(&m_window);
 
 // Lifetime: owned by EngineLifecycleManager (QObject parent=this)
 // Recreated: per game / consideration / mate search start (deleteLater in destroySeat())
-auto* engine = new Usi(comm, think, this);
+auto* engine = new Usi(this);
 ```
 
 ### 寿命注釈規約
@@ -156,15 +159,15 @@ auto* engine = new Usi(comm, think, this);
 
 | テンプレート | 意味 | 例 |
 |-------------|------|-----|
-| `Created once in <method>` | 1回生成、以後再生成なし | `MainWindowComposer::createServices()` で1回だけ生成 |
+| `Created once in <method>` | 1回生成、以後再生成なし | `MainWindowComposer::createSessions()` で1回だけ生成 |
 | `Recreated per <event>` | 特定イベントで破棄・再生成 | 対局開始ごと（エンジン） |
 | `Destroyed by <owner>` | 明示的な破棄元がある | `unique_ptr` 破棄、`deleteLater` |
 
 **ヘッダーでの記述例:**
 
 ```cpp
-// Lifecycle: Created once in MainWindowComposer::createServices(), destroyed with parent
-QPointer<BoardSyncPresenter> m_boardSync;
+// Lifecycle: Recreated per session by EngineLifecycleManager (deleteLater in destroySeat())
+QPointer<Usi> m_engine;
 
 // Lifecycle: created once at startup by MainWindowComposer (parent=MainWindow), never recreated
 MatchCoordinator* m_match = nullptr;
@@ -208,16 +211,16 @@ engine->deleteLater();
 3. **既に nullptr チェックを行っている箇所**: QPointer の自動 null 化が安全性を向上
 4. **外部管理のオブジェクトへの参照**: 所有者が別にいて、予期しないタイミングで破棄される可能性
 5. **コントローラ/ハンドラが保持する非所有メンバ変数**: セッターで受け取る QObject ポインタで、
-   参照先のライフサイクルが独立しているもの（例: `ReplayController::m_match`）
+   参照先のライフサイクルが独立しているもの（例: `CsaGameCoordinator::m_gameController`）
 
 ### QPointer を使用しなくてよい場合
 
 1. **Deps/Refs 構造体のメンバ**: 構造体自体が短寿命（関数スコープ）のため不要
 2. **unique_ptr が管理するオブジェクト**: 所有権が明確で、破棄タイミングも制御下
 3. **寿命が参照元と同一の場合**: 同じ親の子オブジェクト間の参照等
-4. **一度だけ作られ、終了まで変わらない参照先**: `MainWindowComponents::match` / `gameStart` は
-   `MainWindowComposer` が起動時に一度だけ作り（親は MainWindow）、作り直さないので生ポインタで持つ（使う前に nullptr を確認する）。
-   受け取る側のコントローラでは QPointer を使用する（「消費側クラスでの QPointer 適用」）
+4. **一度だけ作られ、終了まで変わらない参照先**: `MainWindowComponents` の部品（`match`・`gameSession` など）は
+   `MainWindowComposer` が起動時に一度だけ作り（親は MainWindow）、作り直さないので生ポインタで持つ。
+   受け取る側の部品も同じ寿命なので、`Deps` で生ポインタとして受け取る（「消費側クラスでの QPointer 適用」）
 
 ### 使用例
 
@@ -226,8 +229,8 @@ engine->deleteLater();
 MatchCoordinator* match = nullptr;
 KifuLoadCoordinator* kifuLoadCoordinator = nullptr;  // 親は MainWindow。起動時に作る
 
-// コントローラ — 所有者が別にいる QObject への非所有参照
-QPointer<MatchCoordinator> m_match;  // GameStartCoordinator・ReplayController
+// 再生成されるエンジンへの非所有参照（AnalysisSession。EngineLifecycleManager が作り直す）
+QPointer<Usi> m_engine;
 
 // 外部管理オブジェクトへの参照
 QPointer<ShogiBoard> m_board;  // 寿命は外部管理（QPointerで安全）
@@ -235,13 +238,14 @@ QPointer<ShogiBoard> m_board;  // 寿命は外部管理（QPointerで安全）
 
 ## モデルが所有するアイテム
 
-`AbstractListModel<T>` 派生クラス（`KifuRecordListModel`、`ShogiEngineThinkingModel` 等）は、
+`AbstractListModel<T>`（`src/common/abstractlistmodel.h`）派生クラス（`ShogiEngineThinkingModel`、`KifuAnalysisListModel` 等）は、
 格納アイテムの所有権をモデルが持つ。アイテム削除時は手動 `delete` が必要。
 
 ```cpp
-// KifuRecordListModel::removeLastItem()
-auto* ptr = list.takeLast();
-delete ptr;  // 所有権がモデル側にある前提
+// AbstractListModel<T>::removeLastItem()
+T* removed = list.takeLast();
+endRemoveRows();
+delete removed;  // 所有権がモデル側にある前提
 ```
 
 このパターンでは `delete` の使用が許可される。コメントで所有権の前提を明記すること。
@@ -258,15 +262,17 @@ delete ptr;  // 所有権がモデル側にある前提
 ## QProcess の再生成パターン
 
 `EngineProcessManager` のように、オブジェクトのライフサイクル中に子オブジェクトを
-破棄・再生成するケースでは、parent ownership と手動 `delete` を併用する。
+破棄・再生成するケースでは、`std::unique_ptr` で持ち、止めるときは終了を見届けるオブジェクトへ所有権を移す。
+呼び出し元が先に破棄されても、`quit` → `terminate` → `kill` を最後まで進めてから破棄できる。
 
 ```cpp
-// startProcess() — parent ownership で生成
-m_process = new QProcess(this);
+// startProcessAsync() — 起動ごとに作る
+m_process = std::make_unique<QProcess>();
 
-// stopProcess() — 明示的に破棄して再生成に備える
-delete m_process;
-m_process = nullptr;
+// stopProcessAsync() — 所有権を手放し、RetiringEngineProcess（親はアプリケーション）に渡す
+auto* process = m_process.release();
+disconnect(process, nullptr, this, nullptr);
+new RetiringEngineProcess(process);  // プロセスが終わったら自分ごと deleteLater
 ```
 
 ## 禁止パターン
@@ -282,23 +288,23 @@ m_process = nullptr;
 
 以下のケースでは手動 `delete` の使用を許可する。理由をコメントで明記すること。
 
-1. **Qt の `takeItem()` / `takeWidget()` 系API** — 所有権がコンテナから呼び出し側に移転するため
+1. **Qt の `takeItem()` / `takeWidget()` 系API** — 所有権がコンテナから呼び出し側に移転するため（`std::unique_ptr` で受けられるならそうする）
    ```cpp
-   // engineregistrationdialog.cpp
-   delete ui->engineListWidget->takeItem(i);  // takeItem で所有権移転
+   // engineregistrationdialog.cpp — takeItem で所有権移転
+   std::unique_ptr<QListWidgetItem> takenItem(ui->engineListWidget->takeItem(index));
    ```
 
 2. **QLayout のアイテム解放** — レイアウト解体時の手動クリーンアップ
    ```cpp
    // flowlayout.cpp
-   while (auto* item = takeAt(0)) {
+   QLayoutItem *item;
+   while ((item = takeAt(0)))
        delete item;
-   }
    ```
 
 3. **モデル所有アイテムの削除** — 上記「モデルが所有するアイテム」を参照
 
-4. **QProcess 等の再生成パターン** — parent ownership 下でも明示破棄が必要な場合
+4. **終了を見届けて自分を破棄するオブジェクト** — 上記「QProcess の再生成パターン」の `RetiringEngineProcess` のように、`new` の後は自分で `deleteLater()` する場合（裸の `new` の例外。理由をコメントで明記する）
 
 ## 所有権カテゴリ一覧
 
@@ -310,29 +316,29 @@ MainWindow 自身が持つのは `ui` と `m_composer`（`MainWindowComposer`）
 |---------|---------|-----|
 | UI フレームワーク | `std::unique_ptr`（MainWindow） | `ui` (Ui::MainWindow) |
 | 合成ルート | `std::unique_ptr`（MainWindow） | `m_composer` |
-| 非QObject サービス | `std::unique_ptr`（MainWindowComponents） | `humanTurnPolicy` |
-| 親を持たない QObject | `std::unique_ptr`（MainWindowComponents） | `evalGraphController`, `turnStateSync`, `csaGameWiring` |
-| QObject コントローラ | QObject parent（MainWindow）+ 生ポインタ | `timeController`, `replayController`, `boardSync`, `commentCoordinator`, `match`, `gameStart` |
-| 他の部品が作る QObject（一度だけ作る） | 生ポインタ | `dialogCoordinator`（`dialogCoordinatorWiring` が作る）, `gameInfoController`（`playerInfo` が作る） |
-| ほかの部品が作る QObject | `QPointer<T>` | `boardController`（`BoardSetupController` が作る） |
-| UI ウィジェット | QObject parent (レイアウト経由) | `shogiView`, `evalChart` |
+| 非QObject サービス | `std::unique_ptr`（MainWindowComponents） | `humanTurnPolicy`, `sessionReset` |
+| 値で持つ記録 | MainWindowComponents のメンバ（値） | `timeRecord`（`MatchTimeRecord`） |
+| QObject の部品 | QObject parent（MainWindow）+ 生ポインタ | `match`, `gameSession`, `boardSync`, `commentCoordinator`, `kifuLoadCoordinator` |
+| ドックの中身 | QObject parent（MainWindow。ドックに置くとドックが親になる）+ 生ポインタ | `thinkingPanel`, `considerationTab`, `gameInfoPane` |
+| UI ウィジェット | QObject parent (レイアウト経由) | `shogiView`, `evalChart`, `recordPane` |
+| 自動化 API のサーバー | QObject parent（MainWindow）+ 生ポインタ。`--automation` 指定時だけ作る | `automationServer` |
 
 ## 消費側クラスでの QPointer 適用
 
-所有者が別にいるオブジェクト（`MatchCoordinator`, `GameStartCoordinator` 等）への非所有参照を
-保持するコントローラ/ハンドラクラスでは、メンバ変数に `QPointer<T>` を使用する。
+`MainWindowComposer` が起動時に一度だけ作る部品（`MatchCoordinator`・`GameSession` など。親は MainWindow）は作り直さないので、
+受け取る側（`BoardMoveController`・`NyugyokuDeclarationHandler` など）も同じ寿命として `Deps` やコンストラクタで生ポインタを受け取る
+（「QPointer を使用しなくてよい場合」の 3・4）。
 
-どちらも現在は `MainWindowComposer` が起動時に一度だけ作り（親は MainWindow）、作り直さない。
-それでも所有者は受け取る側ではないので、セッターで受け取る消費側クラスは `QPointer` で破棄に備える。
-`MainWindowComponents` 側は生ポインタで持つ。MainWindow を親とする同じ寿命の部品（`BoardSetupController`・
-`TimeControlController` など）は、「QPointer を使用しなくてよい場合」の 3 に当たるので生ポインタで持つ。
+`QPointer<T>` を使うのは、受け取る側より先に破棄されうるもの（再生成されるエンジンや、閉じると破棄されるダイアログ）への参照である。
 
 **対象クラスの例:**
 
 | クラス | QPointer メンバ | 理由 |
 |--------|----------------|------|
-| `GameStartCoordinator` | `m_match` | MC の所有者は MainWindow（合成ルートが作る） |
-| `ReplayController` | `m_match` | MC の所有者は MainWindow（合成ルートが作る） |
+| `AnalysisSession`・`AnalysisJob` | `m_engine`（`Usi`） | エンジンはセッションごとに作り直される |
+| `CandidateArrowPresenter`・`EngineDisplayPresenter` | `m_engines`（E1・E2 の `Usi`） | エンジンの枠の中身は対局・検討ごとに作り直される |
+| `DialogLauncher` | `m_sfenCollectionDialog` など | 閉じると破棄されるダイアログ |
+| `KifuFileController` | `m_kifuPasteDialog` | 同上 |
 
 ## PRレビュー観点
 

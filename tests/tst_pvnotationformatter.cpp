@@ -5,13 +5,13 @@
 
 #include "sfenutils.h"
 #include "pvnotationformatter.h"
-#include "usiinfoparser.h"
+#include "usilineparser.h"
 
 namespace {
 /// info 行を解析して formatter で漢字表記にする（解析できない行は空の info）
 void format(PvNotationFormatter& formatter, const QString& line)
 {
-    formatter.format(UsiInfoParser::parse(line).value_or(UsiInfo{}));
+    formatter.format(UsiLineParser::parseInfo(line).value_or(UsiInfo{}));
 }
 } // namespace
 

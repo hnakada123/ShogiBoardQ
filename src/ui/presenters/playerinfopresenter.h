@@ -13,22 +13,23 @@
 #include "kifparsetypes.h"
 #include "timecontrol.h"
 
-class QTabWidget;
 class QWidget;
-class GameInfoPaneController;
+class GameInfoPane;
 class ShogiView;
-class EngineAnalysisTab;
-class EvaluationGraphController;
-class TimeControlController;
+class ConsiderationTabManager;
+class ThinkingPanel;
+class EvaluationGraphPresenter;
 class GameRecordModel;
+class KifuBranchTree;
 class LiveGameSession;
+class MatchTimeRecord;
 class UsiCommLogModel;
 struct AppState;
 
 /**
  * @brief 対局者名・エンジン名と対局情報を表示先へ反映する
  *
- * 表示先は、盤の対局者名・対局情報ドック（GameInfoPaneController。このクラスが作る）・
+ * 表示先は、盤の対局者名・対局情報ドック（GameInfoPane。このクラスが作る）・
  * 通信ログの見出し（E1・E2）・思考タブの2つ目のエンジン欄・検討タブ・評価値グラフ。
  * 対局が決まると対局者を AppState::players に記録し、対局情報（開始日時・対局者・手合割・持ち時間）を作る。
  */
@@ -39,29 +40,27 @@ class PlayerInfoPresenter : public QObject
 public:
     struct Deps {
         QWidget* parentWidget = nullptr;
-        QTabWidget* tabWidget = nullptr;                  ///< 前回選んだタブを復元する先（任意）
+        GameInfoPane* gameInfo = nullptr;       ///< 対局情報の表（必須）
         ShogiView* shogiView = nullptr;
-        AppState* state = nullptr;                        ///< 対局者・動作状態・開始局面（非所有）
-        TimeControlController* timeController = nullptr;  ///< 持ち時間と開始日時（非所有）
+        AppState* state = nullptr;                        ///< 対局者・動作状態（非所有）
+        const MatchTimeRecord* timeRecord = nullptr;      ///< 持ち時間と開始日時（非所有）
+        const KifuBranchTree* tree = nullptr;             ///< 棋譜の開始局面（手合割の判定。非所有）
         GameRecordModel* gameRecord = nullptr;            ///< 対局情報を編集したら未保存にする（非所有）
         /// 読み込んだ棋譜の途中局面から対局を続けているかの判定と、続けた対局の対局者・日時を
         /// 分岐の最初の手のコメントとして残す先（非所有）
         LiveGameSession* liveGameSession = nullptr;
+        ThinkingPanel* thinking = nullptr;                ///< 2つ目のエンジン欄を出すか・エンジン名
+        ConsiderationTabManager* consideration = nullptr; ///< 検討のエンジン名
+        EvaluationGraphPresenter* evalGraph = nullptr;    ///< 評価値グラフの系列名
+        UsiCommLogModel* logModel1 = nullptr;             ///< エンジン欄の名前（E1）
+        UsiCommLogModel* logModel2 = nullptr;             ///< エンジン欄の名前（E2）
     };
 
     explicit PlayerInfoPresenter(const Deps& deps, QObject* parent = nullptr);
     ~PlayerInfoPresenter() override;
 
-    // --- 後から作られる表示先 ---
-    void setAnalysisTab(EngineAnalysisTab* analysisTab);
-    void setEvalGraphController(EvaluationGraphController* controller);
-    void setLogModels(UsiCommLogModel* log1, UsiCommLogModel* log2);
-
     /// 対局情報ドック
-    GameInfoPaneController* gameInfoController() const { return m_gameInfoController; }
-
-    /// 起動時の対局情報を用意し、前回選んだタブを復元する
-    void addGameInfoTabAtStartup();
+    GameInfoPane* gameInfoPane() const { return m_gameInfoPane; }
 
     // --- 対局者 ---
 
@@ -95,8 +94,8 @@ public:
     void updateGameInfoWithTimeControl(const TimeControl& timeControl);
 
 public slots:
-    /// 読み込んだ棋譜の元の対局情報を覚える
-    void setOriginalGameInfo(const QList<KifGameInfoItem>& items);
+    /// 棋譜を読んだ（対局情報欄に出して元の対局情報として覚え、盤の対局者名を合わせる）
+    void onGameInfoLoaded(const QList<KifGameInfoItem>& items);
 
     /**
      * @brief 対局開始ダイアログで対局者が決まった（対局を始める前）
@@ -109,10 +108,6 @@ public slots:
     /// 検討・詰み探索のエンジンの名前が変わった（検討タブと思考タブのエンジン名・評価値グラフに出す）
     void onAnalysisEngineNamesChanged(const QString& engine1, const QString& engine2);
 
-signals:
-    /// 中央のタブが切り替わった
-    void tabCurrentChanged(int index);
-
 private:
     void onGameInfoUpdated(const QList<KifGameInfoItem>& items);
     void applyBoardNames(const QList<KifGameInfoItem>& items);
@@ -120,20 +115,23 @@ private:
     void showPlayers(const MatchPlayers* players);
     void setSecondEngineVisible(bool visible);
     bool continuesExistingRecord() const;
+    QString startSfen() const;
 
     QWidget* m_parentWidget = nullptr;
-    QTabWidget* m_tabWidget = nullptr;
     ShogiView* m_shogiView = nullptr;
     AppState* m_state = nullptr;
-    TimeControlController* m_timeController = nullptr;
+    const MatchTimeRecord* m_timeRecord = nullptr;
+    const KifuBranchTree* m_tree = nullptr;
+
     GameRecordModel* m_gameRecord = nullptr;
     LiveGameSession* m_liveGameSession = nullptr;
-    EngineAnalysisTab* m_analysisTab = nullptr;
-    EvaluationGraphController* m_evalGraphController = nullptr;
+    ThinkingPanel* m_thinking = nullptr;
+    ConsiderationTabManager* m_consideration = nullptr;
+    EvaluationGraphPresenter* m_evalGraphController = nullptr;
     UsiCommLogModel* m_logModel1 = nullptr;
     UsiCommLogModel* m_logModel2 = nullptr;
 
-    GameInfoPaneController* m_gameInfoController = nullptr;  ///< 親は parentWidget
+    GameInfoPane* m_gameInfoPane = nullptr;
 
     /// 棋譜の途中から続けた対局では、終局時にも棋譜の対局情報（終了日時など）を書き換えない
     bool m_keepRecordHeader = false;

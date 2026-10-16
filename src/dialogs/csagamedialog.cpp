@@ -113,9 +113,10 @@ void CsaGameDialog::connectSignalsAndSlots()
 
     // フォントサイズボタン
     connect(ui->toolButtonFontIncrease, &QToolButton::clicked,
-            this, &CsaGameDialog::onFontIncrease);
+            &m_fontHelper, &FontSizeHelper::increase);
     connect(ui->toolButtonFontDecrease, &QToolButton::clicked,
-            this, &CsaGameDialog::onFontDecrease);
+            &m_fontHelper, &FontSizeHelper::decrease);
+    connect(&m_fontHelper, &FontSizeHelper::fontSizeChanged, this, &CsaGameDialog::applyFontSize);
 }
 
 void CsaGameDialog::refreshChoices()
@@ -236,31 +237,6 @@ void CsaGameDialog::onAccepted()
         return;
     }
 
-    // 設定値をメンバー変数にキャッシュ
-    m_isHuman = ui->radioButtonHuman->isChecked();
-    m_engineName = ui->comboBoxEngine->currentText();
-    m_engineNumber = ui->comboBoxEngine->currentIndex();
-    m_host = ui->lineEditHost->text().trimmed();
-    m_port = ui->spinBoxPort->value();
-    m_loginId = ui->lineEditId->text().trimmed();
-    m_password = ui->lineEditPassword->text();
-
-    m_keepAliveEnabled = ui->checkBoxKeepAlive->isChecked();
-    m_keepAliveIntervalSec = ui->spinBoxKeepAliveInterval->value();
-    m_tcpKeepAliveEnabled = ui->checkBoxTcpKeepAlive->isChecked();
-    m_thinkingMarginSec = ui->spinBoxThinkingMargin->value();
-    m_gameCountMode = ui->radioButtonGamesUnlimited->isChecked() ? GameCountMode::Unlimited
-                    : ui->radioButtonGamesCount->isChecked() ? GameCountMode::Count
-                    : GameCountMode::Single;
-    m_gameCount = ui->spinBoxGameCount->value();
-    m_reconnectAfterGame = ui->checkBoxReconnect->isChecked();
-    m_autoSaveEnabled = ui->checkBoxAutoSave->isChecked();
-    m_autoSaveDir = ui->lineEditAutoSaveDir->text().trimmed();
-    m_autoSaveFormat = ui->comboBoxAutoSaveFormat->currentData().toString();
-    m_autoFlipBoard = ui->checkBoxAutoFlip->isChecked();
-    m_gameName = ui->lineEditGameName->text().trimmed();
-    m_turnPreference = static_cast<TurnPreference>(ui->comboBoxTurnPreference->currentIndex());
-
     // 設定を保存
     saveGameSettings();
     saveAdvancedSettings();
@@ -330,16 +306,51 @@ void CsaGameDialog::showEngineSettingsDialog(QComboBox* comboBox)
     }
 }
 
-// ========== Getter implementations ==========
+// ========== 選んだ値 ==========
 
-QString CsaGameDialog::host() const
+CsaGameDialog::Selection CsaGameDialog::selection() const
 {
-    return m_host;
-}
+    Selection selection;
+    CsaGameCoordinator::StartOptions& start = selection.start;
+    start.host = ui->lineEditHost->text().trimmed();
+    start.port = ui->spinBoxPort->value();
+    start.transport = useTls() ? CsaClient::Transport::Tls : CsaClient::Transport::Plain;
+    start.username = ui->lineEditId->text().trimmed();
+    // shogi-server のゲーム名と手番の希望は「ゲーム名[-b|-w],パスワード」の形でパスワード欄に載せる
+    const QString password = ui->lineEditPassword->text();
+    const QString gameName = ui->lineEditGameName->text().trimmed();
+    if (gameName.isEmpty()) {
+        start.password = password;
+    } else {
+        QString token = gameName;
+        const auto turn = static_cast<TurnPreference>(ui->comboBoxTurnPreference->currentIndex());
+        if (turn == TurnPreference::Black) token += QStringLiteral("-b");
+        else if (turn == TurnPreference::White) token += QStringLiteral("-w");
+        start.password = token + QLatin1Char(',') + password;
+    }
+    if (ui->radioButtonHuman->isChecked()) {
+        start.playerType = CsaGameCoordinator::PlayerType::Human;
+    } else {
+        start.playerType = CsaGameCoordinator::PlayerType::Engine;
+        start.engineName = ui->comboBoxEngine->currentText();
+        start.enginePath = m_engineList.value(ui->comboBoxEngine->currentIndex()).path;
+    }
+    start.keepAliveEnabled = ui->checkBoxKeepAlive->isChecked();
+    start.keepAliveIntervalMs = ui->spinBoxKeepAliveInterval->value() * 1000;
+    start.tcpKeepAliveEnabled = ui->checkBoxTcpKeepAlive->isChecked();
+    start.thinkingMarginMs = ui->spinBoxThinkingMargin->value() * 1000;
+    switch (gameCountMode()) {
+    case GameCountMode::Count: start.gameLimit = qMax(1, ui->spinBoxGameCount->value()); break;
+    case GameCountMode::Unlimited: start.gameLimit = 0; break;
+    case GameCountMode::Single: start.gameLimit = 1; break;
+    }
+    start.reconnectAfterGame = ui->checkBoxReconnect->isChecked();
 
-int CsaGameDialog::port() const
-{
-    return m_port;
+    selection.autoSaveEnabled = ui->checkBoxAutoSave->isChecked();
+    selection.autoSaveDir = ui->lineEditAutoSaveDir->text().trimmed();
+    selection.autoSaveFormat = ui->comboBoxAutoSaveFormat->currentData().toString();
+    selection.autoFlipBoard = ui->checkBoxAutoFlip->isChecked();
+    return selection;
 }
 
 bool CsaGameDialog::useTls() const
@@ -347,66 +358,11 @@ bool CsaGameDialog::useTls() const
     return ui->comboBoxTransport->currentIndex() == 1;
 }
 
-QString CsaGameDialog::loginId() const
+CsaGameDialog::GameCountMode CsaGameDialog::gameCountMode() const
 {
-    return m_loginId;
-}
-
-QString CsaGameDialog::password() const
-{
-    return m_password;
-}
-
-QString CsaGameDialog::loginPassword() const
-{
-    if (m_gameName.isEmpty()) return m_password;
-    // shogi-server: 「ゲーム名[-b|-w],パスワード」をパスワード欄で受け付ける
-    QString token = m_gameName;
-    if (m_turnPreference == TurnPreference::Black) token += QStringLiteral("-b");
-    else if (m_turnPreference == TurnPreference::White) token += QStringLiteral("-w");
-    return token + QLatin1Char(',') + m_password;
-}
-
-bool CsaGameDialog::isHuman() const
-{
-    return m_isHuman;
-}
-
-QString CsaGameDialog::engineName() const
-{
-    return m_engineName;
-}
-
-int CsaGameDialog::engineNumber() const
-{
-    return m_engineNumber;
-}
-
-const QList<CsaGameDialog::Engine>& CsaGameDialog::engineList() const
-{
-    return m_engineList;
-}
-
-int CsaGameDialog::gameLimit() const
-{
-    switch (m_gameCountMode) {
-    case GameCountMode::Count: return qMax(1, m_gameCount);
-    case GameCountMode::Unlimited: return 0;
-    case GameCountMode::Single: break;
-    }
-    return 1;
-}
-
-// フォントサイズを大きくする
-void CsaGameDialog::onFontIncrease()
-{
-    if (m_fontHelper.increase()) applyFontSize();
-}
-
-// フォントサイズを小さくする
-void CsaGameDialog::onFontDecrease()
-{
-    if (m_fontHelper.decrease()) applyFontSize();
+    if (ui->radioButtonGamesUnlimited->isChecked()) return GameCountMode::Unlimited;
+    if (ui->radioButtonGamesCount->isChecked()) return GameCountMode::Count;
+    return GameCountMode::Single;
 }
 
 // ダイアログ全体にフォントサイズを適用する
@@ -591,7 +547,7 @@ void CsaGameDialog::saveAdvancedSettings()
     NetworkSettings::csaKeepAliveIntervalSec.set(ui->spinBoxKeepAliveInterval->value());
     NetworkSettings::csaTcpKeepAliveEnabled.set(ui->checkBoxTcpKeepAlive->isChecked());
     NetworkSettings::csaThinkingMarginSec.set(ui->spinBoxThinkingMargin->value());
-    NetworkSettings::csaGameCountMode.set(static_cast<int>(m_gameCountMode));
+    NetworkSettings::csaGameCountMode.set(static_cast<int>(gameCountMode()));
     NetworkSettings::csaGameCount.set(ui->spinBoxGameCount->value());
     NetworkSettings::csaReconnectAfterGame.set(ui->checkBoxReconnect->isChecked());
     NetworkSettings::csaAutoFlipBoard.set(ui->checkBoxAutoFlip->isChecked());

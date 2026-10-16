@@ -23,8 +23,8 @@
 
 class ShogiGameController;
 class ShogiClock;
-class UsiCommLogModel;
-class ShogiEngineThinkingModel;
+class EngineLifecycleManager;
+class Usi;
 
 /**
  * @brief CSA通信対局コーディネータクラス
@@ -86,11 +86,10 @@ public:
     /**
      * @brief 依存オブジェクト
      */
-    struct Dependencies {
+    struct Deps {
         ShogiGameController* gameController = nullptr;
         ShogiClock* clock = nullptr;
-        UsiCommLogModel* usiCommLog = nullptr;
-        ShogiEngineThinkingModel* engineThinking = nullptr;
+        EngineLifecycleManager* engines = nullptr;  ///< エンジンで指すとき、エンジンを置く枠
     };
 
     /**
@@ -117,10 +116,10 @@ public:
         bool reconnectAfterGame = false;    ///< 終局後にサーバーが切断したら再接続して次の対局を待つ
     };
 
-    explicit CsaGameCoordinator(QObject* parent = nullptr);
+    /// 依存が無ければ盤・時計を動かさない（通信の手順だけを試すテスト用）
+    explicit CsaGameCoordinator(const Deps& deps, QObject* parent = nullptr);
+    CsaGameCoordinator() : CsaGameCoordinator(Deps{}) {}
     ~CsaGameCoordinator() override;
-
-    void setDependencies(const Dependencies& deps);
     void startGame(const StartOptions& options);
     void stopGame();
 
@@ -197,7 +196,8 @@ signals:
     void moveHighlightRequested(const QPoint& from, const QPoint& to);
     void logMessage(const QString& message, bool isError = false);
     void csaCommLogAppended(const QString& line);
-    void engineScoreUpdated(int scoreCp, int ply, const QString& mate);
+    /// 自分のエンジンの評価値（自分から見た値）。ply は指した後の手数
+    void engineScoreUpdated(const UsiScore& score, int ply);
 
 public slots:
     void onHumanMove(const QPoint& from, const QPoint& to);
@@ -258,9 +258,11 @@ private:
     bool failIfVerdictPending();
     /// 解釈できなかった指し手の裁定待ちを取り消す（終局・切断時）
     void clearPendingVerdict();
+    /// CSA の指し手で盤を進める（盤と合わなければ nullopt）。表記の「同」は CSA の棋譜の直前の手で決める
+    std::optional<RecordEntry> playCsaMove(const QString& csaMove);
     /// 着手を記録して通知する（手数・手番・ハイライト・棋譜行）
-    void finishMove(const QString& csaMove, const RecordEntry& played, bool isPromotion,
-                    int consumedTimeMs, const QPoint& from, const QPoint& to, bool nowMyTurn);
+    void finishMove(const RecordEntry& played, int consumedTimeMs, const QPoint& from, const QPoint& to,
+                    bool nowMyTurn);
     /// 同じ確定経路で人間・エンジン・相手の着手を記録する。
     bool applyConfirmedMove(const QString& move, int consumedTimeMs, bool nowMyTurn);
 
@@ -269,10 +271,9 @@ private:
 
     QPointer<ShogiGameController> m_gameController;
     QPointer<ShogiClock> m_clock;
+    EngineLifecycleManager* m_engines = nullptr;  ///< 非所有
 
     // エンジン初期化用（CsaEngineControllerに渡す）
-    UsiCommLogModel* m_usiCommLog = nullptr;
-    ShogiEngineThinkingModel* m_engineThinking = nullptr;
 
     GameState m_gameState = GameState::Idle;
     PlayerType m_playerType = PlayerType::Human;

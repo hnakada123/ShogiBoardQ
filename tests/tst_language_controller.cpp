@@ -7,6 +7,7 @@
 /// - AppSettings::setLanguage → updateMenuState のラウンドトリップ
 
 #include <QtTest>
+#include <memory>
 #include <QAction>
 #include <QActionGroup>
 #include <QStandardPaths>
@@ -58,12 +59,12 @@ private:
     }
 
     struct TestSetup {
-        LanguageController controller;
         QAction systemAction{QStringLiteral("System")};
         QAction japaneseAction{QStringLiteral("日本語")};
         QAction englishAction{QStringLiteral("English")};
         QAction simplifiedAction{QStringLiteral("简体中文")};
         QAction traditionalAction{QStringLiteral("繁體中文")};
+        std::unique_ptr<LanguageController> controller;
 
         TestSetup()
         {
@@ -72,7 +73,13 @@ private:
             englishAction.setCheckable(true);
             simplifiedAction.setCheckable(true);
             traditionalAction.setCheckable(true);
-            controller.setActions(&systemAction, &japaneseAction, &englishAction, &simplifiedAction, &traditionalAction);
+            LanguageController::Deps deps;
+            deps.systemLanguage = &systemAction;
+            deps.japanese = &japaneseAction;
+            deps.english = &englishAction;
+            deps.chineseSimplified = &simplifiedAction;
+            deps.chineseTraditional = &traditionalAction;
+            controller = std::make_unique<LanguageController>(deps);
         }
     };
 
@@ -97,9 +104,14 @@ private slots:
     /// 「棋譜表記の読み方」は、記号と説明が別の行に分かれないよう各行を折り返さずに表示する
     void notationHelpKeepsLinesUnwrapped()
     {
-        LanguageController controller;
         QAction automatic, japanese, western, origin, help;
-        controller.setNotationActions(&automatic, &japanese, &western, &origin, &help);
+        LanguageController::Deps deps;
+        deps.notationAuto = &automatic;
+        deps.notationJapanese = &japanese;
+        deps.notationWestern = &western;
+        deps.notationOrigin = &origin;
+        deps.notationHelp = &help;
+        LanguageController controller(deps);
         m_unwrappedLines = -1;
         QTimer::singleShot(0, this, &TestLanguageController::inspectNotationHelp);
         help.trigger();
@@ -113,9 +125,14 @@ private slots:
         if (saved < 8) QSKIP("既定の文字が最小の大きさのため確かめられない");
         AppSettings::setDialogFontSize(QStringLiteral("messageBox"), saved);
         DialogFontScale::installForMessageBoxes(qApp);
-        LanguageController controller;
         QAction automatic, japanese, western, origin, help;
-        controller.setNotationActions(&automatic, &japanese, &western, &origin, &help);
+        LanguageController::Deps deps;
+        deps.notationAuto = &automatic;
+        deps.notationJapanese = &japanese;
+        deps.notationWestern = &western;
+        deps.notationOrigin = &origin;
+        deps.notationHelp = &help;
+        LanguageController controller(deps);
         m_unwrappedLines = -1;
         QTimer::singleShot(0, this, &TestLanguageController::inspectNotationHelp);
         help.trigger();
@@ -213,14 +230,14 @@ void TestLanguageController::updateMenuState_afterSettingsChange()
 
     // 設定を変更後に updateMenuState で同期
     AppSettings::language.set(QStringLiteral("ja_JP"));
-    s.controller.updateMenuState();
+    s.controller->updateMenuState();
     QVERIFY(s.japaneseAction.isChecked());
     QVERIFY(!s.systemAction.isChecked());
     QVERIFY(!s.englishAction.isChecked());
 
     // さらに英語に変更
     AppSettings::language.set(QStringLiteral("en"));
-    s.controller.updateMenuState();
+    s.controller->updateMenuState();
     QVERIFY(s.englishAction.isChecked());
     QVERIFY(!s.systemAction.isChecked());
     QVERIFY(!s.japaneseAction.isChecked());

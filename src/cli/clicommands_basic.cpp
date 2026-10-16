@@ -124,13 +124,15 @@ int CliCommands::convertKifu(const QStringList& args)
     KifuConversionService::Request request;
     request.inputPath = parser.value(QStringLiteral("input"));
     request.text = parser.value(QStringLiteral("text"));
-    const auto inputFormat = KifuConversionService::parseFormat(parser.value(QStringLiteral("input-format")));
-    const auto outputFormat = KifuConversionService::parseFormat(parser.value(QStringLiteral("output-format")));
-    if (!inputFormat) return CliOutput::fail(kInvalidArgument, QStringLiteral("Unknown --input-format"));
-    if (!outputFormat || *outputFormat == KifuConversionService::Format::Auto) {
+    const QString inputName = parser.value(QStringLiteral("input-format"));
+    if (inputName.compare(QLatin1String("auto"), Qt::CaseInsensitive) != 0) {
+        request.inputFormat = KifuFormats::fromName(inputName);
+        if (!request.inputFormat) return CliOutput::fail(kInvalidArgument, QStringLiteral("Unknown --input-format"));
+    }
+    const auto outputFormat = KifuFormats::fromName(parser.value(QStringLiteral("output-format")));
+    if (!outputFormat || *outputFormat == KifuFormat::Bod) {
         return CliOutput::fail(kInvalidArgument, QStringLiteral("--output-format must be one of kif, ki2, csa, jkf, usi, usen, sfen"));
     }
-    request.inputFormat = *inputFormat;
     request.outputFormat = *outputFormat;
 
     const QString outputPath = parser.value(QStringLiteral("output"));
@@ -144,8 +146,8 @@ int CliCommands::convertKifu(const QStringList& args)
 
     QJsonObject obj;
     obj[QStringLiteral("ok")] = true;
-    obj[QStringLiteral("input_format")] = KifuConversionService::formatName(result.inputFormat);
-    obj[QStringLiteral("output_format")] = KifuConversionService::formatName(request.outputFormat);
+    obj[QStringLiteral("input_format")] = KifuFormats::name(result.inputFormat);
+    obj[QStringLiteral("output_format")] = KifuFormats::name(request.outputFormat);
     obj[QStringLiteral("initial_sfen")] = result.initialSfen;
     obj[QStringLiteral("ply_count")] = static_cast<int>(result.usiMoves.size());
     obj[QStringLiteral("usi_moves")] = QJsonArray::fromStringList(result.usiMoves);

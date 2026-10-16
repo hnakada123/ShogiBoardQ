@@ -22,10 +22,10 @@ public:
 
     // ──────────────── ハイライト管理 ────────────────
     // ハイライト配列は非所有。寿命は呼び出し側（Controller/Dialog）が管理する。
-    void addHighlight(ShogiView::Highlight* hl);
-    void removeHighlight(ShogiView::Highlight* hl);
+    void addHighlight(const ShogiView::FieldHighlight* hl);
+    void removeHighlight(const ShogiView::FieldHighlight* hl);
     void removeHighlightAllData();
-    ShogiView::Highlight* highlight(int index) const { return m_highlights.at(index); }
+    const ShogiView::FieldHighlight* highlight(int index) const { return m_highlights.at(index); }
     int highlightCount() const { return static_cast<int>(m_highlights.size()); }
 
     // ──────────────── 矢印管理 ────────────────
@@ -44,12 +44,12 @@ signals:
     void highlightsCleared();
 
 private:
-    void updateHighlightArea(const ShogiView::Highlight* hl);
+    void updateHighlightArea(const ShogiView::FieldHighlight* hl);
 
     ShogiView* m_view;
 
     // ハイライト/矢印データ
-    QList<ShogiView::Highlight*> m_highlights;
+    QList<const ShogiView::FieldHighlight*> m_highlights;
     QList<ShogiView::Arrow> m_arrows;
 };
 

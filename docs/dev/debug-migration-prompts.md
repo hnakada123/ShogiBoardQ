@@ -3,6 +3,8 @@
 `docs/dev/debug-logging-guidelines.md` に従って、各モジュールの `qDebug()` を `QLoggingCategory` ベースに移行するためのプロンプト集。
 各プロンプトをそのままコピーして Claude Code に貼り付けることで、モジュール単位で移行を実行できる。
 
+> 注記: 移行は済んでいる。各プロンプトのファイル名・クラス名（`analysisflowcontroller.cpp`・`PreStartCleanupHandler` など）は移行した当時のもので、今は統合・削除されたものを含む。
+
 ---
 
 ## 共通ルール（全プロンプト共通）

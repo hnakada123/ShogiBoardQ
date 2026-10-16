@@ -37,9 +37,8 @@ private slots:
     {
         KifuBranchTree tree;
         buildTestTree(tree);
-        KifuNavigationState state;
-        KifuNavigationController controller;
-        controller.setTreeAndState(&tree, &state);
+        KifuNavigationState state(&tree);
+        KifuNavigationController controller(&state);
         controller.goToLine(1, 2);
         auto* parent = state.currentNode();
         auto* main = parent->childAt(0);
@@ -61,16 +60,16 @@ private slots:
     {
         KifuBranchTree tree;
         buildTestTree(tree);
-        KifuNavigationState state;
-        state.setTree(&tree);
+        KifuNavigationState state(&tree);
         state.setCurrentNode(tree.findByPlyOnMainLine(3));
         const int oldId = state.currentNode()->nodeId();
         QVERIFY(tree.removeSubtree(state.currentNode()));
-        QCOMPARE(state.currentNode(), nullptr);
+        // 表示中の手が消えたら開始局面へ移る（消えたノードの ID は使い回さない）
+        QCOMPARE(state.currentNode(), tree.root());
+        const int oldRootId = tree.root()->nodeId();
         tree.setRootSfen(kHirateSfen);
         QVERIFY(tree.root()->nodeId() != oldId);
-        QCOMPARE(state.currentNode(), nullptr);
-        state.goToRoot();
+        QVERIFY(tree.root()->nodeId() != oldRootId);
         QCOMPARE(state.currentNode(), tree.root());
         QCOMPARE(state.currentLineIndex(), 0);
     }
@@ -79,11 +78,8 @@ private slots:
     {
         KifuBranchTree tree;
         buildTestTree(tree);
-        KifuNavigationState state;
-        state.setTree(&tree);
-        KifuNavigationController controller;
-        controller.setTreeAndState(&tree, &state);
-        QSignalSpy handled(&controller, &KifuNavigationController::branchNodeHandled);
+        KifuNavigationState state(&tree);
+        KifuNavigationController controller(&state);
 
         controller.goToLine(1, 0);
         QCOMPARE(state.currentNode(), tree.root());
@@ -97,41 +93,43 @@ private slots:
         controller.goToLine(1, 20);
         QCOMPARE(state.currentPly(), 4);
         QCOMPARE(state.currentLineIndex(), 1);
-        QCOMPARE(handled.count(), 5);
+
+        // 存在しない手順へは移らず、通知も出さない
+        QSignalSpy changed(&state, &KifuNavigationState::changed);
         controller.goToLine(-1, 0);
         controller.goToLine(9, 0);
         QCOMPARE(state.currentPly(), 4);
-        QCOMPARE(handled.count(), 5);
+        QCOMPARE(changed.count(), 0);
     }
 
-    void navigationNotifiesConsiderationPosition()
+    /// 表示中の手が変わるたびに changed() を1回だけ出し、変わらなければ出さない
+    /// （盤・棋譜欄・検討はこの通知を受けて表示中の局面を読む）
+    void navigationNotifiesChangedOncePerMove()
     {
         KifuBranchTree tree;
         tree.setRootSfen(kHirateSfen);
         const ShogiMove move(UsiMove::fromString(u"7g7f"), Piece::BlackPawn);
         const QString after = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL w - 2");
         tree.addMove(tree.root(), move, QStringLiteral("７六歩"), after);
-        KifuNavigationState state;
-        KifuNavigationController controller;
-        controller.setTreeAndState(&tree, &state);
-        QSignalSpy handled(&controller, &KifuNavigationController::branchNodeHandled);
+        KifuNavigationState state(&tree);
+        KifuNavigationController controller(&state);
+        QSignalSpy changed(&state, &KifuNavigationState::changed);
 
         controller.goToPly(1);
-        QCOMPARE(handled.count(), 1);
-        QCOMPARE(handled.last().at(1).toString(), after);
-        QCOMPARE(handled.last().at(2).value<BoardSquare>(), (BoardSquare{7, 6}));
-        QCOMPARE(handled.last().at(3).toString(), QStringLiteral("7g7f"));
+        QCOMPARE(changed.count(), 1);
+        QCOMPARE(state.currentSfen(), after);
+        QCOMPARE(state.currentNode()->move().move.toString(), QStringLiteral("7g7f"));
         controller.goToFirst();
-        QCOMPARE(handled.count(), 2);
-        QCOMPARE(handled.last().at(1).toString(), kHirateSfen);
-        QVERIFY(!handled.last().at(2).value<BoardSquare>().isValid());
-        QVERIFY(handled.last().at(3).toString().isEmpty());
+        QCOMPARE(changed.count(), 2);
+        QCOMPARE(state.currentSfen(), kHirateSfen);
+        controller.goToFirst();
+        QCOMPARE(changed.count(), 2);
         controller.goToLast();
-        QCOMPARE(handled.count(), 3);
-        QCOMPARE(handled.last().at(1).toString(), after);
-        controller.handleBranchNodeActivated(0, 0);
-        QCOMPARE(handled.count(), 4);
-        QCOMPARE(handled.last().at(1).toString(), kHirateSfen);
+        QCOMPARE(changed.count(), 3);
+        QCOMPARE(state.currentSfen(), after);
+        controller.selectBranchTreeNode(0, 0);
+        QCOMPARE(changed.count(), 4);
+        QCOMPARE(state.currentSfen(), kHirateSfen);
     }
 
     void goToFirst()
@@ -139,11 +137,9 @@ private slots:
         KifuBranchTree tree;
         buildTestTree(tree);
 
-        KifuNavigationState state;
-        state.setTree(&tree);
+        KifuNavigationState state(&tree);
 
-        KifuNavigationController controller;
-        controller.setTreeAndState(&tree, &state);
+        KifuNavigationController controller(&state);
 
         // Navigate to ply 5 first
         controller.goToPly(5);
@@ -159,12 +155,10 @@ private slots:
         KifuBranchTree tree;
         buildTestTree(tree);
 
-        KifuNavigationState state;
-        state.setTree(&tree);
+        KifuNavigationState state(&tree);
         state.goToRoot();
 
-        KifuNavigationController controller;
-        controller.setTreeAndState(&tree, &state);
+        KifuNavigationController controller(&state);
 
         controller.goToLast();
         QCOMPARE(state.currentPly(), 7);
@@ -175,12 +169,10 @@ private slots:
         KifuBranchTree tree;
         buildTestTree(tree);
 
-        KifuNavigationState state;
-        state.setTree(&tree);
+        KifuNavigationState state(&tree);
         state.goToRoot();
 
-        KifuNavigationController controller;
-        controller.setTreeAndState(&tree, &state);
+        KifuNavigationController controller(&state);
 
         controller.goForward();
         QCOMPARE(state.currentPly(), 1);
@@ -194,11 +186,9 @@ private slots:
         KifuBranchTree tree;
         buildTestTree(tree);
 
-        KifuNavigationState state;
-        state.setTree(&tree);
+        KifuNavigationState state(&tree);
 
-        KifuNavigationController controller;
-        controller.setTreeAndState(&tree, &state);
+        KifuNavigationController controller(&state);
 
         // Navigate to ply 5 first, then go back
         controller.goToPly(5);
@@ -211,28 +201,24 @@ private slots:
         QCOMPARE(state.currentPly(), 3);
     }
 
-    void canGoForward_atEnd()
+    /// 最終手から進む・開始局面から戻る操作では動かず、通知も出さない
+    void goForwardAtEnd_andGoBackAtRoot_stay()
     {
         KifuBranchTree tree;
         buildTestTree(tree);
-
-        KifuNavigationState state;
-        state.setTree(&tree);
+        KifuNavigationState state(&tree);
+        KifuNavigationController controller(&state);
         state.setCurrentNode(tree.findByPlyOnMainLine(7));
+        QCOMPARE(state.nextNode(state.currentNode()), nullptr);
 
-        QVERIFY(!state.canGoForward());
-    }
-
-    void canGoBack_atRoot()
-    {
-        KifuBranchTree tree;
-        buildTestTree(tree);
-
-        KifuNavigationState state;
-        state.setTree(&tree);
-        state.goToRoot();
-
-        QVERIFY(!state.canGoBack());
+        QSignalSpy changed(&state, &KifuNavigationState::changed);
+        controller.goForward();
+        QCOMPARE(state.currentPly(), 7);
+        controller.goToFirst();
+        QCOMPARE(changed.count(), 1);
+        controller.goBack();
+        QCOMPARE(state.currentNode(), tree.root());
+        QCOMPARE(changed.count(), 1);
     }
 
     void isOnMainLine()
@@ -240,8 +226,7 @@ private slots:
         KifuBranchTree tree;
         buildTestTree(tree);
 
-        KifuNavigationState state;
-        state.setTree(&tree);
+        KifuNavigationState state(&tree);
         state.setCurrentNode(tree.findByPlyOnMainLine(3));
 
         QVERIFY(state.isOnMainLine());
@@ -252,12 +237,10 @@ private slots:
         KifuBranchTree tree;
         buildTestTree(tree);
 
-        KifuNavigationState state;
-        state.setTree(&tree);
+        KifuNavigationState state(&tree);
         state.goToRoot();
 
-        KifuNavigationController controller;
-        controller.setTreeAndState(&tree, &state);
+        KifuNavigationController controller(&state);
 
         controller.goToPly(5);
         QCOMPARE(state.currentPly(), 5);
@@ -270,11 +253,9 @@ private slots:
         KifuBranchTree tree;
         buildTestTree(tree);
 
-        KifuNavigationState state;
-        state.setTree(&tree);
+        KifuNavigationState state(&tree);
 
-        KifuNavigationController controller;
-        controller.setTreeAndState(&tree, &state);
+        KifuNavigationController controller(&state);
 
         // 対局終了時の流れをシミュレート:
         // 1) goToRoot()
@@ -288,11 +269,10 @@ private slots:
         QCOMPARE(state.currentPly(), 7);
 
         // 3) goBack(1) で正しく1手戻れることを確認
-        QSignalSpy spy(&controller, &KifuNavigationController::recordHighlightRequired);
+        QSignalSpy spy(&state, &KifuNavigationState::changed);
         controller.goBack(1);
         QCOMPARE(state.currentPly(), 6);
         QCOMPARE(spy.count(), 1);
-        QCOMPARE(spy.at(0).at(0).toInt(), 6);
 
         // 4) さらにもう1手戻る
         controller.goBack(1);
@@ -305,22 +285,19 @@ private slots:
         KifuBranchTree tree;
         buildTestTree(tree);
 
-        KifuNavigationState state;
-        state.setTree(&tree);
+        KifuNavigationState state(&tree);
         state.goToRoot();
 
-        KifuNavigationController controller;
-        controller.setTreeAndState(&tree, &state);
+        KifuNavigationController controller(&state);
 
-        QSignalSpy spy(&controller, &KifuNavigationController::recordHighlightRequired);
+        QSignalSpy spy(&state, &KifuNavigationState::changed);
         controller.goBack(1);
-        // ルートからは戻れないが、シグナルは発火する（ply 0 のまま）
+        // ルートからは戻れず、表示中の手も変わらないので通知しない
         QCOMPARE(state.currentPly(), 0);
-        QCOMPARE(spy.count(), 1);
-        QCOMPARE(spy.at(0).at(0).toInt(), 0);
+        QCOMPARE(spy.count(), 0);
     }
 
-    void handleBranchNodeActivated_switchesToMainLineFromNestedBranch()
+    void selectBranchTreeNode_switchesToMainLineFromNestedBranch()
     {
         KifuBranchTree tree;
         tree.setRootSfen(kHirateSfen);
@@ -343,22 +320,20 @@ private slots:
         auto* branch5Nested = tree.addMove(branch4, move, QStringLiteral("branch5_nested"), QStringLiteral("bsfen5n"));
         QVERIFY(branch5Nested != nullptr);
 
-        KifuNavigationState state;
-        state.setTree(&tree);
+        KifuNavigationState state(&tree);
 
-        KifuNavigationController controller;
-        controller.setTreeAndState(&tree, &state);
+        KifuNavigationController controller(&state);
 
         const auto nestedLineIndex = tree.findLineIndexForNode(branch5Nested);
         QVERIFY(nestedLineIndex.has_value() && *nestedLineIndex > 0);
 
         // まず入れ子分岐（5手目）を選択
-        controller.handleBranchNodeActivated(*nestedLineIndex, 5);
+        controller.selectBranchTreeNode(*nestedLineIndex, 5);
         QCOMPARE(state.currentNode(), branch5Nested);
         QCOMPARE(state.currentLineIndex(), *nestedLineIndex);
 
         // 次に本譜3手目をクリックしたとき、分岐3手目に吸われず本譜3手目へ遷移すること
-        controller.handleBranchNodeActivated(/*row=*/0, /*ply=*/3);
+        controller.selectBranchTreeNode(/*row=*/0, /*ply=*/3);
         QCOMPARE(state.currentNode(), main3);
         QCOMPARE(state.currentLineIndex(), 0);
         QVERIFY(state.isOnMainLine());
@@ -383,21 +358,19 @@ private slots:
         auto* branch5Nested = tree.addMove(branch4, move, QStringLiteral("branch5_nested"), QStringLiteral("bsfen5n"));
         QVERIFY(branch5Nested != nullptr);
 
-        KifuNavigationState state;
-        state.setTree(&tree);
-        KifuNavigationController controller;
-        controller.setTreeAndState(&tree, &state);
+        KifuNavigationState state(&tree);
+        KifuNavigationController controller(&state);
 
         const auto firstLineIndex = tree.findLineIndexForNode(branch5First);
         QVERIFY(firstLineIndex.has_value() && *firstLineIndex > 0);
 
-        controller.handleBranchNodeActivated(*firstLineIndex, 5);
+        controller.selectBranchTreeNode(*firstLineIndex, 5);
         QCOMPARE(state.currentNode(), branch5First);
         QVERIFY(branch5First->isMainLine());     // ノード単位では親の最初の子
         QVERIFY(!state.isOnMainLine());          // 表示中ラインは分岐
 
         // 分岐点の子（2番目の子）でも当然 false
-        controller.handleBranchNodeActivated(*firstLineIndex, 3);
+        controller.selectBranchTreeNode(*firstLineIndex, 3);
         QCOMPARE(state.currentNode(), branch3);
         QVERIFY(!state.isOnMainLine());
 
@@ -409,7 +382,7 @@ private slots:
         QVERIFY(state.isOnMainLine());
     }
 
-    void handleBranchNodeActivated_sharedNodeOnParentBranchRowKeepsCurrentLine()
+    void selectBranchTreeNode_sharedNodeOnParentBranchRowKeepsCurrentLine()
     {
         // 入れ子分岐（ライン2）を表示中に、親分岐（ライン1）の行に描かれた共有ノードを
         // クリックしても現在ラインに留まること（本譜行の共有ノードと同じ扱い）。
@@ -428,10 +401,8 @@ private slots:
         auto* branch5First = tree.addMove(branch4, move, QStringLiteral("branch5_first"), QStringLiteral("bsfen5f"));
         auto* branch5Nested = tree.addMove(branch4, move, QStringLiteral("branch5_nested"), QStringLiteral("bsfen5n"));
 
-        KifuNavigationState state;
-        state.setTree(&tree);
-        KifuNavigationController controller;
-        controller.setTreeAndState(&tree, &state);
+        KifuNavigationState state(&tree);
+        KifuNavigationController controller(&state);
 
         const int line1 = tree.findLineIndexForNode(branch5First).value_or(-1);
         const int line2 = tree.findLineIndexForNode(branch5Nested).value_or(-1);
@@ -439,32 +410,33 @@ private slots:
         QCOMPARE(line2, 2);
 
         // 入れ子分岐（ライン2）の5手目を表示中
-        controller.handleBranchNodeActivated(line2, 5);
+        controller.selectBranchTreeNode(line2, 5);
         QCOMPARE(state.currentNode(), branch5Nested);
         QCOMPARE(state.currentLineIndex(), line2);
 
         // ライン1の行に描かれる共有ノード（3手目 branch3）をクリック → ライン2に留まる
-        controller.handleBranchNodeActivated(line1, 3);
+        controller.selectBranchTreeNode(line1, 3);
         QCOMPARE(state.currentNode(), branch3);
         QCOMPARE(state.currentLineIndex(), line2);
 
         // 本譜行の共有ノード（2手目 main2）をクリック → ライン2に留まる
-        controller.handleBranchNodeActivated(0, 2);
+        controller.selectBranchTreeNode(0, 2);
         QCOMPARE(state.currentNode(), main2);
         QCOMPARE(state.currentLineIndex(), line2);
 
         // ライン1だけにあるノード（5手目 branch5_first）をクリック → ライン1へ切り替わる
-        controller.handleBranchNodeActivated(line1, 5);
+        controller.selectBranchTreeNode(line1, 5);
         QCOMPARE(state.currentNode(), branch5First);
         QCOMPARE(state.currentLineIndex(), line1);
 
         // 本譜だけにあるノード（3手目 main3）をクリック → 本譜へ切り替わる
-        controller.handleBranchNodeActivated(0, 3);
+        controller.selectBranchTreeNode(0, 3);
         QCOMPARE(state.currentNode(), main3);
         QCOMPARE(state.currentLineIndex(), 0);
     }
 
-    void rememberPathSelections_recordsChildIndexAtEveryBranchPoint()
+    /// 移った手までの経路の分岐点で選んだ子を覚え、経路の外の分岐点で選んだ子は忘れない
+    void selectedChildrenAreRememberedAtEveryBranchPoint()
     {
         KifuBranchTree tree;
         tree.setRootSfen(kHirateSfen);
@@ -475,24 +447,24 @@ private slots:
         QVERIFY(main3 != nullptr);
         auto* branch3 = tree.addMove(main2, move, QStringLiteral("branch3"), QStringLiteral("bsfen3"));
         auto* branch4 = tree.addMove(branch3, move, QStringLiteral("branch4"), QStringLiteral("bsfen4"));
-        QVERIFY(tree.addMove(branch4, move, QStringLiteral("branch5_first"), QStringLiteral("bsfen5f")) != nullptr);
+        auto* branch5First = tree.addMove(branch4, move, QStringLiteral("branch5_first"), QStringLiteral("bsfen5f"));
         auto* branch5Nested = tree.addMove(branch4, move, QStringLiteral("branch5_nested"), QStringLiteral("bsfen5n"));
 
-        KifuNavigationState state;
-        state.setTree(&tree);
-        QCOMPARE(state.lastSelectedChildAt(main2), 0);
-        QCOMPARE(state.lastSelectedChildAt(branch4), 0);
+        KifuNavigationState state(&tree);
+        QCOMPARE(state.nextNode(main2), main3);
+        QCOMPARE(state.nextNode(branch4), branch5First);
 
-        state.rememberPathSelections(branch5Nested);
-        QCOMPARE(state.lastSelectedChildAt(main2), 1);     // branch3 は main2 の2番目の子
-        QCOMPARE(state.lastSelectedChildAt(branch4), 1);   // branch5_nested は branch4 の2番目の子
+        state.setCurrentNode(branch5Nested);
+        QCOMPARE(state.nextNode(main2), branch3);
+        QCOMPARE(state.nextNode(branch4), branch5Nested);
+        QCOMPARE(state.selectedPath().constLast(), branch5Nested);
 
-        state.rememberPathSelections(main3);
-        QCOMPARE(state.lastSelectedChildAt(main2), 0);
-        QCOMPARE(state.lastSelectedChildAt(branch4), 1);   // 経路外の分岐点は変わらない
+        state.setCurrentNode(main3);
+        QCOMPARE(state.nextNode(main2), main3);
+        QCOMPARE(state.nextNode(branch4), branch5Nested);   // 経路外の分岐点は変わらない
 
-        state.rememberPathSelections(nullptr);            // 何も起きない
-        QCOMPARE(state.lastSelectedChildAt(main2), 0);
+        state.resetToNode(main3);                          // 選択を忘れる
+        QCOMPARE(state.nextNode(branch4), branch5First);
     }
 
     void goToMainLineAtCurrentPly_whenMainLineIsShorter()
@@ -511,27 +483,24 @@ private slots:
         auto* branch5Nested = tree.addMove(branch4, move, QStringLiteral("branch5_nested"), QStringLiteral("bsfen5n"));
         QVERIFY(branch5Nested != nullptr);
 
-        KifuNavigationState state;
-        state.setTree(&tree);
-        KifuNavigationController controller;
-        controller.setTreeAndState(&tree, &state);
+        KifuNavigationState state(&tree);
+        KifuNavigationController controller(&state);
 
         const auto nestedLineIndex = tree.findLineIndexForNode(branch5Nested);
         QVERIFY(nestedLineIndex.has_value() && *nestedLineIndex > 0);
-        controller.handleBranchNodeActivated(*nestedLineIndex, 5);
+        controller.selectBranchTreeNode(*nestedLineIndex, 5);
         QCOMPARE(state.currentNode(), branch5Nested);
-        QVERIFY(state.hasBranchAtCurrent());   // 「本譜へ戻る」が表示される状況
+        QVERIFY(state.offersBackToMainLine());   // 「本譜へ戻る」が表示される状況
         QVERIFY(!state.isOnMainLine());
 
-        QSignalSpy highlightSpy(&controller, &KifuNavigationController::recordHighlightRequired);
+        QSignalSpy changed(&state, &KifuNavigationState::changed);
         controller.goToMainLineAtCurrentPly();
 
         QCOMPARE(state.currentNode(), main3);
         QVERIFY(state.isOnMainLine());
         QCOMPARE(state.currentLineIndex(), 0);
-        QCOMPARE(state.preferredLineIndex(), -1);
-        QCOMPARE(highlightSpy.count(), 1);
-        QCOMPARE(highlightSpy.at(0).at(0).toInt(), 3);
+        QVERIFY(!state.offersBackToMainLine());
+        QCOMPARE(changed.count(), 1);
 
         // 以降のナビゲーションも本譜を辿ること
         controller.goBack(1);
@@ -545,12 +514,10 @@ private slots:
         KifuBranchTree tree;
         buildTestTree(tree);
 
-        KifuNavigationState state;
-        state.setTree(&tree);
+        KifuNavigationState state(&tree);
         state.goToRoot();
 
-        KifuNavigationController controller;
-        controller.setTreeAndState(&tree, &state);
+        KifuNavigationController controller(&state);
 
         auto* rng = QRandomGenerator::global();
 

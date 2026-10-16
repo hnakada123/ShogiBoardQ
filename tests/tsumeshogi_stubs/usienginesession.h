@@ -4,9 +4,17 @@
 #include <QObject>
 #include <QString>
 
+#include "usigotime.h"
 #include "usiprotocolhandler.h"
 
-// ジェネレータの状態遷移テスト用。起動は即座に成功し、送信は handler() が記録する。
+struct UsiSearchRequest {
+    QString position;
+    UsiGo go;
+    int stopAfterMs = 0;
+    int replyTimeoutMs = 0;
+};
+
+// ジェネレータの状態遷移テスト用。起動は即座に成功し、探索の依頼は handler() が記録する。
 class UsiEngineSession : public QObject
 {
     Q_OBJECT
@@ -16,10 +24,17 @@ public:
     bool isInitializing() const { return false; }
     void cancelCurrentOperation() {}
     void quit() {}
+    void search(const UsiSearchRequest& request)
+    {
+        m_handler->positions.append(request.position);
+        m_handler->timeouts.append(request.go.mateTimeMs);
+    }
+    void stop() { ++m_handler->stops; }
     UsiProtocolHandler* handler() const { return m_handler; }
 signals:
     void ready();
     void errorOccurred(const QString&);
+    void searchTimedOut();
 private:
     UsiProtocolHandler* m_handler;
 };

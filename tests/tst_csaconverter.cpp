@@ -1,6 +1,7 @@
 #include <QtTest>
 #include <QCoreApplication>
 
+#include "kifu_file_helper.h"
 #include "kifdisplayitem.h"
 #include "csatosfenconverter.h"
 #include "kifparsetypes.h"
@@ -31,7 +32,7 @@ private slots:
     {
         KifParseResult result;
         QString warn;
-        bool ok = CsaToSfenConverter::parse(
+        bool ok = KifuFile::parse<CsaToSfenConverter>(
             fixturePath(QStringLiteral("test_basic.csa")), result, &warn);
         QVERIFY(ok);
         QCOMPARE(result.mainline.usiMoves().size(), 7);
@@ -40,7 +41,7 @@ private slots:
 
     void extractGameInfo()
     {
-        auto info = CsaToSfenConverter::extractGameInfo(
+        auto info = KifuFile::gameInfo<CsaToSfenConverter>(
             fixturePath(QStringLiteral("test_basic.csa")));
 
         bool foundSente = false;
@@ -63,7 +64,7 @@ private slots:
     {
         KifParseResult result;
         QString warn;
-        bool ok = CsaToSfenConverter::parse(
+        bool ok = KifuFile::parse<CsaToSfenConverter>(
             fixturePath(QStringLiteral("test_basic.csa")), result, &warn);
         QVERIFY(ok);
         QVERIFY(result.mainline.usiMoves().size() >= 1);
@@ -78,7 +79,7 @@ private slots:
     {
         KifParseResult result;
         QString warn;
-        bool ok = CsaToSfenConverter::parse(
+        bool ok = KifuFile::parse<CsaToSfenConverter>(
             fixturePath(QStringLiteral("test_drop.csa")), result, &warn);
         QVERIFY(ok);
         // Moves: +7776FU, -3334FU, +8822UM, -3122GI, +0055KA
@@ -94,7 +95,7 @@ private slots:
     {
         KifParseResult result;
         QString warn;
-        bool ok = CsaToSfenConverter::parse(
+        bool ok = KifuFile::parse<CsaToSfenConverter>(
             fixturePath(QStringLiteral("test_promote.csa")), result, &warn);
         QVERIFY(ok);
         // Moves: +7776FU, -3334FU, +8822UM
@@ -110,7 +111,7 @@ private slots:
     {
         KifParseResult result;
         QString warn;
-        bool ok = CsaToSfenConverter::parse(
+        bool ok = KifuFile::parse<CsaToSfenConverter>(
             fixturePath(QStringLiteral("test_various_pieces.csa")), result, &warn);
         QVERIFY(ok);
         // Move 5: +8977KE (knight from 8,9 to 7,7 as KE, no promotion)
@@ -126,7 +127,7 @@ private slots:
     {
         KifParseResult result;
         QString warn;
-        bool ok = CsaToSfenConverter::parse(
+        bool ok = KifuFile::parse<CsaToSfenConverter>(
             fixturePath(QStringLiteral("test_various_pieces.csa")), result, &warn);
         QVERIFY(ok);
         // +7776FU -> 7g7f (pawn)
@@ -161,7 +162,7 @@ private slots:
     {
         KifParseResult result;
         QString warn;
-        bool ok = CsaToSfenConverter::parse(
+        bool ok = KifuFile::parse<CsaToSfenConverter>(
             fixturePath(QStringLiteral("test_basic.csa")), result, &warn);
         QVERIFY(ok);
         QCOMPARE(result.mainline.baseSfen,
@@ -176,7 +177,7 @@ private slots:
     {
         KifParseResult result;
         QString warn;
-        bool ok = CsaToSfenConverter::parse(
+        bool ok = KifuFile::parse<CsaToSfenConverter>(
             fixturePath(QStringLiteral("test_handicap_2piece.csa")), result, &warn);
         QVERIFY(ok);
         // 2-piece handicap: no rook/bishop for white, gote moves first
@@ -195,7 +196,7 @@ private slots:
     {
         KifParseResult result;
         QString warn;
-        bool ok = CsaToSfenConverter::parse(
+        bool ok = KifuFile::parse<CsaToSfenConverter>(
             fixturePath(QStringLiteral("nonexistent.csa")), result, &warn);
         QVERIFY(!ok);
     }
@@ -214,7 +215,7 @@ private slots:
 
         KifParseResult result;
         QString warn;
-        bool ok = CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
+        bool ok = KifuFile::parse<CsaToSfenConverter>(tmp.fileName(), result, &warn);
         // Should still succeed (parse returns true even with no moves)
         QVERIFY(ok);
         QCOMPARE(result.mainline.usiMoves().size(), 0);
@@ -234,7 +235,7 @@ private slots:
 
         KifParseResult result;
         QString warn;
-        bool ok = CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
+        bool ok = KifuFile::parse<CsaToSfenConverter>(tmp.fileName(), result, &warn);
         // Parse succeeds but the invalid move is skipped
         QVERIFY(ok);
         QCOMPARE(result.mainline.usiMoves().size(), 0);
@@ -255,7 +256,7 @@ private slots:
 
         KifParseResult result;
         QString warn;
-        bool ok = CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
+        bool ok = KifuFile::parse<CsaToSfenConverter>(tmp.fileName(), result, &warn);
         // Line without +/- is ignored (not a move line)
         QVERIFY(ok);
         QCOMPARE(result.mainline.usiMoves().size(), 0);
@@ -275,7 +276,7 @@ private slots:
 
         KifParseResult result;
         QString warn;
-        bool ok = CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
+        bool ok = KifuFile::parse<CsaToSfenConverter>(tmp.fileName(), result, &warn);
         QVERIFY(ok);
         QCOMPARE(result.mainline.usiMoves().size(), 0);
         QVERIFY(!warn.isEmpty());
@@ -295,7 +296,7 @@ private slots:
 
         KifParseResult result;
         QString warn;
-        bool ok = CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
+        bool ok = KifuFile::parse<CsaToSfenConverter>(tmp.fileName(), result, &warn);
         QVERIFY2(ok, qPrintable(warn));
         QVERIFY(result.mainline.entries.isEmpty());
         QCOMPARE(result.mainline.baseSfen, QStringLiteral("9/9/9/9/9/9/9/9/9 b - 1"));
@@ -315,7 +316,7 @@ private slots:
 
         KifParseResult result;
         QString warn;
-        bool ok = CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
+        bool ok = KifuFile::parse<CsaToSfenConverter>(tmp.fileName(), result, &warn);
         // CSA lexer accepts column 0 as a drop (from=00); verify parse doesn't crash
         QVERIFY(ok);
     }
@@ -334,7 +335,7 @@ private slots:
 
         KifParseResult result;
         QString warn;
-        bool ok = CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
+        bool ok = KifuFile::parse<CsaToSfenConverter>(tmp.fileName(), result, &warn);
         QVERIFY(ok);
         QCOMPARE(result.mainline.usiMoves().size(), 2);
         // Display items should include the opening item + 2 moves + result
@@ -355,7 +356,7 @@ private slots:
 
         KifParseResult result;
         QString warn;
-        bool ok = CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
+        bool ok = KifuFile::parse<CsaToSfenConverter>(tmp.fileName(), result, &warn);
         QVERIFY(ok);
         // First move should succeed, second fails, third succeeds
         QVERIFY(result.mainline.usiMoves().size() >= 1);
@@ -367,7 +368,7 @@ private slots:
 
     void extractGameInfo_nonExistentFile()
     {
-        auto info = CsaToSfenConverter::extractGameInfo(
+        auto info = KifuFile::gameInfo<CsaToSfenConverter>(
             fixturePath(QStringLiteral("nonexistent.csa")));
         QVERIFY(info.isEmpty());
     }
@@ -383,7 +384,7 @@ private slots:
         QVERIFY(tmp.open());
         tmp.close();
 
-        auto info = CsaToSfenConverter::extractGameInfo(tmp.fileName());
+        auto info = KifuFile::gameInfo<CsaToSfenConverter>(tmp.fileName());
         QVERIFY(info.isEmpty());
     }
 
@@ -410,7 +411,7 @@ private slots:
 
         KifParseResult result;
         QString warn;
-        bool ok = CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
+        bool ok = KifuFile::parse<CsaToSfenConverter>(tmp.fileName(), result, &warn);
         QVERIFY(ok);
         QCOMPARE(result.mainline.usiMoves().size(), 3);
         QCOMPARE(result.mainline.displayItems().size(), 5);
@@ -434,7 +435,7 @@ private slots:
 
         KifParseResult result;
         QString warn;
-        bool ok = CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
+        bool ok = KifuFile::parse<CsaToSfenConverter>(tmp.fileName(), result, &warn);
         // CSA lexer treats from=00 as drop; verify parse doesn't crash
         QVERIFY(ok);
     }
@@ -474,7 +475,7 @@ private slots:
         KifParseResult result;
         QString warn;
         // Must not crash regardless of input
-        const bool success = CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
+        const bool success = KifuFile::parse<CsaToSfenConverter>(tmp.fileName(), result, &warn);
         KifuTestHelper::verifyParsedRecord(success, result, warn);
     }
     // ========================================
@@ -492,7 +493,7 @@ private slots:
         KifParseResult result;
         QString warn;
         // Must not crash; unexpected version should be handled gracefully
-        const bool success = CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
+        const bool success = KifuFile::parse<CsaToSfenConverter>(tmp.fileName(), result, &warn);
         KifuTestHelper::verifyParsedRecord(success, result, warn);
         QVERIFY(success);
         QCOMPARE(result.mainline.usiMoves(), QStringList{QStringLiteral("7g7f")});
@@ -513,7 +514,7 @@ private slots:
 
         KifParseResult result;
         QString warn;
-        const bool success = CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
+        const bool success = KifuFile::parse<CsaToSfenConverter>(tmp.fileName(), result, &warn);
         // Must not crash
         KifuTestHelper::verifyParsedRecord(success, result, warn);
         QVERIFY(success);
@@ -534,7 +535,7 @@ private slots:
 
         KifParseResult result;
         QString warn;
-        const bool success = CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
+        const bool success = KifuFile::parse<CsaToSfenConverter>(tmp.fileName(), result, &warn);
         // Must not crash with out-of-range or non-numeric coordinates
         KifuTestHelper::verifyParsedRecord(success, result, warn);
         QVERIFY(result.mainline.entries.isEmpty());
@@ -554,7 +555,7 @@ private slots:
 
         KifParseResult result;
         QString warn;
-        bool ok = CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
+        bool ok = KifuFile::parse<CsaToSfenConverter>(tmp.fileName(), result, &warn);
         // Must not crash; unknown special moves should be ignored or handled
         QVERIFY(ok);
         QCOMPARE(result.mainline.usiMoves().size(), 2);
@@ -591,7 +592,7 @@ private slots:
 
         KifParseResult result;
         QString warn;
-        bool ok = CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
+        bool ok = KifuFile::parse<CsaToSfenConverter>(tmp.fileName(), result, &warn);
         // Must not crash; special results should be handled
         QVERIFY(ok);
         QCOMPARE(result.mainline.usiMoves().size(), 2);
@@ -611,7 +612,7 @@ private slots:
 
         KifParseResult result;
         QString warn;
-        const bool success = CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
+        const bool success = KifuFile::parse<CsaToSfenConverter>(tmp.fileName(), result, &warn);
         // Must not crash
         KifuTestHelper::verifyParsedRecord(success, result, warn);
         QVERIFY(result.mainline.entries.isEmpty());
@@ -632,7 +633,7 @@ private slots:
 
         KifParseResult result;
         QString warn;
-        const bool success = CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
+        const bool success = KifuFile::parse<CsaToSfenConverter>(tmp.fileName(), result, &warn);
         // Must not crash
         KifuTestHelper::verifyParsedRecord(success, result, warn);
         QVERIFY(result.mainline.entries.isEmpty());
@@ -656,9 +657,9 @@ private slots:
 
         KifParseResult result;
         QString warn;
-        const bool success = CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
+        const bool success = KifuFile::parse<CsaToSfenConverter>(tmp.fileName(), result, &warn);
 
-        (void)CsaToSfenConverter::extractGameInfo(tmp.fileName());
+        (void)KifuFile::gameInfo<CsaToSfenConverter>(tmp.fileName());
 
         KifuTestHelper::verifyParsedRecord(success, result, warn);
     }
@@ -675,7 +676,7 @@ private slots:
 
         KifParseResult result;
         QString warn;
-        QVERIFY(CsaToSfenConverter::parse(tmp.fileName(), result, &warn));
+        QVERIFY(KifuFile::parse<CsaToSfenConverter>(tmp.fileName(), result, &warn));
         QCOMPARE(result.mainline.usiMoves().size(), 1500);
         QCOMPARE(result.mainline.usiMoves().last(), QStringLiteral("5b5a"));
         QVERIFY2(warn.isEmpty(), qPrintable(warn));
@@ -731,7 +732,7 @@ private slots:
         QVERIFY(KifuTestHelper::writeToTempFile(tmp, csa, QStringLiteral("csa")));
         KifParseResult result;
         QString warn;
-        QVERIFY(CsaToSfenConverter::parse(tmp.fileName(), result, &warn));
+        QVERIFY(KifuFile::parse<CsaToSfenConverter>(tmp.fileName(), result, &warn));
         QCOMPARE(result.mainline.baseSfen, sfen);
     }
 
@@ -776,7 +777,7 @@ private slots:
         QVERIFY(KifuTestHelper::writeToTempFile(tmp, csa, QStringLiteral("csa")));
         KifParseResult result;
         QString warn;
-        QVERIFY(CsaToSfenConverter::parse(tmp.fileName(), result, &warn));
+        QVERIFY(KifuFile::parse<CsaToSfenConverter>(tmp.fileName(), result, &warn));
         QVERIFY2(warn.isEmpty(), qPrintable(warn));
         QCOMPARE(result.mainline.usiMoves(), usi);
         QStringList texts;
@@ -808,7 +809,7 @@ private slots:
         QVERIFY(KifuTestHelper::writeToTempFile(tmp, "PI\n+\n" + move + "\n", QStringLiteral("csa")));
         KifParseResult result;
         QString warn;
-        QVERIFY(CsaToSfenConverter::parse(tmp.fileName(), result, &warn));
+        QVERIFY(KifuFile::parse<CsaToSfenConverter>(tmp.fileName(), result, &warn));
         QVERIFY(result.mainline.usiMoves().isEmpty());
         QVERIFY2(warn.contains(QStringLiteral("does not match the position")), qPrintable(warn));
     }

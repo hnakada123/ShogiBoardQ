@@ -5,11 +5,12 @@
 #include "ki2lexer.h"
 #include "ki2movenotation.h"
 #include "kiftosfenconverter.h"
+#include "kiflexer.h"
 #include "kifreader.h"
 #include "parsecommon.h"
 #include "notationutils.h"
+#include "shoginotation.h"
 #include "sfenreplay.h"
-#include "shogiboard.h"
 #include "shogiboard.h"
 
 #include <QRegularExpression>
@@ -59,11 +60,6 @@ void handleKi2TerminalWord(TerminalType terminal, Turn side, int& moveIndex,
 QString Ki2ToSfenConverter::mapHandicapToSfen(const QString& label)
 {
     return NotationUtils::mapHandicapToSfen(label);
-}
-
-QString Ki2ToSfenConverter::detectInitialSfenFromFile(const QString& ki2Path, QString* detectedLabel)
-{
-    return KifToSfenConverter::detectInitialSfenFromFile(ki2Path, detectedLabel);
 }
 
 namespace {
@@ -124,40 +120,19 @@ bool parseKi2Block(const QStringList& lines, const QString& baseSfen, int startP
 }
 } // namespace
 
-QStringList Ki2ToSfenConverter::convertFile(const QString& path, QString* errorMessage)
-{
-    KifParseResult result;
-    return parseWithVariations(path, result, errorMessage) ? result.mainline.usiMoves() : QStringList();
-}
-
-QList<KifDisplayItem> Ki2ToSfenConverter::extractMovesWithTimes(const QString& path, QString* errorMessage)
-{
-    KifParseResult result;
-    return parseWithVariations(path, result, errorMessage) ? result.mainline.displayItems() : QList<KifDisplayItem>();
-}
-
-bool Ki2ToSfenConverter::parseWithVariations(const QString& path, KifParseResult& out, QString* errorMessage)
-{
-    out = KifParseResult{};
-    QString text;
-    QString encoding;
-    if (!KifReader::readAllTextAuto(path, text, &encoding, errorMessage)) return false;
-    return parseText(text, out, errorMessage);
-}
-
 bool Ki2ToSfenConverter::parseText(const QString& text, KifParseResult& out, QString* errorMessage)
 {
     return parseLines(KifReader::splitLines(text), out, errorMessage);
 }
 
-bool Ki2ToSfenConverter::parseLines(const QStringList& lines, KifParseResult& out, QString* errorMessage)
+bool Ki2ToSfenConverter::parseLines(const QStringList& lines, KifParseResult& out, QString* errorMessage,
+                                    QString* detectedLabel)
 {
     out = KifParseResult{};
-    const QString initial = KifToSfenConverter::detectInitialSfenFromLines(lines);
-    static const QRegularExpression variationRe(QStringLiteral("^変化[:：]\\s*([0-9０-９]+)\\s*手"));
+    const QString initial = KifToSfenConverter::detectInitialSfenFromLines(lines, detectedLabel);
     QList<qsizetype> boundaries;
     for (qsizetype i = 0; i < lines.size(); ++i) {
-        if (variationRe.match(lines[i].trimmed()).hasMatch()) boundaries.append(i);
+        if (KifLexer::variationHeaderCaptureRe().match(lines[i]).hasMatch()) boundaries.append(i);
     }
     boundaries.append(lines.size());
     KifParseResult parsed;
@@ -165,23 +140,21 @@ bool Ki2ToSfenConverter::parseLines(const QStringList& lines, KifParseResult& ou
         return false;
     }
     for (qsizetype block = 0; block + 1 < boundaries.size(); ++block) {
-        const auto match = variationRe.match(lines[boundaries[block]].trimmed());
-        const int start = KifuParseCommon::flexDigitsToIntNoDetach(match.captured(1));
-        const auto base = KifuParseCommon::findVariationBase(parsed.mainline, parsed.variations, start);
+        const auto match = KifLexer::variationHeaderCaptureRe().match(lines[boundaries[block]]);
+        const int start = ShogiNotation::numberFromDigits(match.captured(1));
+        const auto base = parsed.latestBranchPoint(start);
         if (!base) {
             if (errorMessage) *errorMessage = QStringLiteral("KI2: invalid variation start: %1").arg(start);
             return false;
         }
         // 変化の最初の手の「同」は、分岐する前の手の移動先
         BoardSquare previousTo;
-        if (const auto previous = UsiMove::parse(base->prevUsi)) previousTo = previous->to;
-        KifVariation variation;
-        variation.startPly = start;
-        variation.parentVariation = base->parentVariation;
+        if (const auto previous = UsiMove::parse(base->previousUsi)) previousTo = previous->to;
+        KifLine line;
         const auto blockLines = lines.mid(boundaries[block] + 1, boundaries[block + 1] - boundaries[block] - 1);
-        if (!parseKi2Block(blockLines, base->sfen, start, previousTo, variation.line, errorMessage)) return false;
-        KifuParseCommon::mergeOpeningIntoFirstMove(variation.line);
-        parsed.variations.append(variation);
+        if (!parseKi2Block(blockLines, base->sfen, start, previousTo, line, errorMessage)) return false;
+        KifuParseCommon::mergeOpeningIntoFirstMove(line);
+        parsed.addVariation(*base, std::move(line));
     }
     out = std::move(parsed);
     return true;
@@ -202,23 +175,6 @@ QList<KifGameInfoItem> Ki2ToSfenConverter::extractGameInfoFromLines(const QStrin
     return KifuParseCommon::extractHeaderGameInfo(lines, [](const QString& t) {
         return Ki2Lexer::isKi2MoveLine(t);
     });
-}
-
-QList<KifGameInfoItem> Ki2ToSfenConverter::extractGameInfo(const QString& filePath)
-{
-    if (filePath.isEmpty()) return {};
-
-    QString usedEnc, warn, text;
-    if (!KifReader::readAllTextAuto(filePath, text, &usedEnc, &warn)) {
-        qCWarning(lcKifu).noquote() << "read failed:" << filePath << "warn:" << warn;
-        return {};
-    }
-    return extractGameInfoFromText(text);
-}
-
-QMap<QString, QString> Ki2ToSfenConverter::extractGameInfoMap(const QString& filePath)
-{
-    return KifuParseCommon::toGameInfoMap(extractGameInfo(filePath));
 }
 
 bool Ki2ToSfenConverter::buildInitialSfenFromBod(const QStringList& lines,

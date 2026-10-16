@@ -66,7 +66,6 @@ void ChangeEngineSettingsDialog::createOptionWidgets()
         "QLabel { background-color: transparent; padding: 8px; "
         "font-weight: bold; color: #333333; }");
 
-
     // 画面レイアウトを作成する。
     QVBoxLayout* optionWidgetsLayout = new QVBoxLayout;
 
@@ -100,8 +99,9 @@ void ChangeEngineSettingsDialog::createOptionWidgets()
     ui->fontIncreaseButton->setStyleSheet(ButtonStyles::fontButton());
 
     // フォントサイズ変更ボタンの接続
-    connect(ui->fontIncreaseButton, &QPushButton::clicked, this, &ChangeEngineSettingsDialog::increaseFontSize);
-    connect(ui->fontDecreaseButton, &QPushButton::clicked, this, &ChangeEngineSettingsDialog::decreaseFontSize);
+    connect(ui->fontIncreaseButton, &QPushButton::clicked, &m_fontHelper, &FontSizeHelper::increase);
+    connect(ui->fontDecreaseButton, &QPushButton::clicked, &m_fontHelper, &FontSizeHelper::decrease);
+    connect(&m_fontHelper, &FontSizeHelper::fontSizeChanged, this, &ChangeEngineSettingsDialog::applyFontSize);
 
     // 保存されているフォントサイズを適用
     applyFontSize();
@@ -146,18 +146,6 @@ void ChangeEngineSettingsDialog::restoreDefaultSettings()
     m_optionHandler->restoreDefaultOptions();
     m_ponderEnabled->setChecked(m_defaultPonderEnabled);
     m_sendUnreportedPonder->setChecked(true);
-}
-
-// フォントサイズを増加する。
-void ChangeEngineSettingsDialog::increaseFontSize()
-{
-    if (m_fontHelper.increase()) applyFontSize();
-}
-
-// フォントサイズを減少する。
-void ChangeEngineSettingsDialog::decreaseFontSize()
-{
-    if (m_fontHelper.decrease()) applyFontSize();
 }
 
 // すべてのウィジェットにフォントサイズを適用する。

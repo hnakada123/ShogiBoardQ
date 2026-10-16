@@ -6,8 +6,11 @@
 #include <QMessageBox>
 #include "mainwindow.h"
 #include "mainwindowcomposer.h"
-#include "analysistabwiring.h"
-#include "engineanalysistab.h"
+#include "branchtreemanager.h"
+#include "commenteditorpanel.h"
+#include "considerationtabmanager.h"
+#include "thinkingpanel.h"
+#include "usilogpanel.h"
 #include "gamerecordmodel.h"
 #include "kifubranchtree.h"
 #include "kifunavigationstate.h"
@@ -38,20 +41,6 @@ private slots:
         QVERIFY(m_config.isValid());
         qputenv("SHOGIBOARDQ_CONFIG_HOME", m_config.path().toUtf8());
     }
-    void creationIsIdempotent()
-    {
-        QWidget parent;
-        AnalysisTabWiring::Deps deps;
-        deps.centralParent = &parent;
-        AnalysisTabWiring wiring(deps);
-        auto* tab = wiring.buildUiAndWire();
-        QCOMPARE(wiring.buildUiAndWire(), tab);
-        QSignalSpy forwarded(&wiring, &AnalysisTabWiring::branchNodeActivated);
-        emit tab->branchNodeActivated(3, 18);
-        QCOMPARE(forwarded.count(), 1);
-        QCOMPARE(forwarded.first().at(0).toInt(), 3);
-        QCOMPARE(forwarded.first().at(1).toInt(), 18);
-    }
     void branchAndCommentSignalsUpdateRecord()
     {
         MainWindow window;
@@ -62,9 +51,9 @@ private slots:
         const auto sfens = TestReplay::buildSfenRecord(SfenUtils::hirateSfen(), usi, false);
         auto* node = p.branchTree->addMove(p.branchTree->root(), moves.first(), QStringLiteral("▲７六歩"), sfens.last());
         QVERIFY(node);
-        emit p.analysisTab->branchNodeActivated(0, 1);
+        emit p.branchTreeView->branchNodeActivated(0, 1);
         QCOMPARE(p.navState->currentNode(), node);
-        emit p.analysisTab->commentUpdated(1, QStringLiteral("実物の配線によるコメント"));
+        emit p.commentEditor->commentUpdated(1, QStringLiteral("実物の配線によるコメント"));
         QCOMPARE(node->comment(), QStringLiteral("実物の配線によるコメント"));
         QVERIFY(p.gameRecord->isDirty());
         p.gameRecord->clearDirty();
@@ -73,7 +62,7 @@ private slots:
     {
         MainWindow window;
         auto& p = window.composer().parts();
-        emit p.analysisTab->usiCommandRequested(2, QStringLiteral("isready"));
+        emit p.usiLog->usiCommandRequested(2, QStringLiteral("isready"));
         QString logs;
         const auto editors = window.findChildren<QPlainTextEdit*>();
         for (auto* editor : editors) logs += editor->toPlainText();
@@ -84,10 +73,12 @@ private slots:
     {
         MainWindow window;
         auto& p = window.composer().parts();
-        auto* record = new ShogiInfoRecord({}, {}, {}, {}, QStringLiteral("▲７六歩"), QStringLiteral("7g7f"));
-        record->setBaseSfen(SfenUtils::hirateSfen());
-        p.thinking1->appendItem(record);
-        emit p.analysisTab->pvRowClicked(0, 0);
+        ThinkingInfoRow row;
+        row.pvKanji = QStringLiteral("▲７六歩");
+        row.usiPv = QStringLiteral("7g7f");
+        row.baseSfen = SfenUtils::hirateSfen();
+        p.thinking1->appendItem(new ShogiInfoRecord(row));
+        emit p.thinkingPanel->pvRowClicked(p.thinking1, 0);
         PvBoardDialog* board = nullptr;
         const auto widgets = QApplication::topLevelWidgets();
         for (auto* widget : widgets) {
@@ -102,7 +93,7 @@ private slots:
         MainWindow window;
         m_seenDialog.clear();
         QTimer::singleShot(0, this, &TestWiringAnalysisTab::rejectModal);
-        emit window.composer().parts().analysisTab->engineSettingsRequested(0, QStringLiteral("TestEngine"));
+        emit window.composer().parts().considerationTab->engineSettingsRequested(0, QStringLiteral("TestEngine"));
         QCOMPARE(m_seenDialog, QStringLiteral("ChangeEngineSettingsDialog"));
     }
     void considerationSignalReportsMissingEngine()
@@ -112,7 +103,7 @@ private slots:
         m_seenMessage.clear();
         const auto previousActivity = window.composer().state().activity.activity();
         QTimer::singleShot(0, this, &TestWiringAnalysisTab::rejectModal);
-        emit window.composer().parts().analysisTab->startConsiderationRequested();
+        emit window.composer().parts().considerationTab->startConsiderationRequested();
         QCOMPARE(m_seenDialog, QStringLiteral("QMessageBox"));
         QCOMPARE(m_seenMessage, QStringLiteral("将棋エンジンが選択されていません。"));
         QCOMPARE(window.composer().state().activity.activity(), previousActivity);

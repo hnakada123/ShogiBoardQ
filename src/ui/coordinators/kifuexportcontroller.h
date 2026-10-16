@@ -2,170 +2,90 @@
 #define KIFUEXPORTCONTROLLER_H
 
 /// @file kifuexportcontroller.h
-/// @brief 棋譜エクスポートコントローラクラスの定義
-
+/// @brief 棋譜の書き出し（ファイル保存・上書き・自動保存・クリップボードへのコピー）
 
 #include <QObject>
 #include <QString>
 #include <QStringList>
-#include <QList>
-#include <QPoint>
 #include <optional>
 
-#include "gamerecordmodel.h"  // GameRecordModel::ExportContext
+#include "gamerecordmodel.h"
 #include "kifusavefile.h"
 
-class QWidget;
-class GameRecordModel;
-class KifuRecordListModel;
-class GameInfoPaneController;
-class TimeControlController;
-class ShogiGameController;
-class KifuExportClipboard;
-class KifuNavigationState;
 struct AppState;
-struct ShogiMove;
-namespace KifuSaveCoordinator { enum class SaveFormat; }
+class GameInfoPane;
+class KifuNavigationState;
+class MatchTimeRecord;
+class QWidget;
+class ShogiGameController;
 
 /**
- * @brief KifuExportController - 棋譜エクスポートの管理クラス
+ * @brief 棋譜を形式ごとの行にして、ファイル・クリップボードへ書き出す
  *
- * MainWindowから棋譜エクスポート関連の処理を分離したクラス。
- * 以下の責務を担当:
- * - 各種形式でのファイル保存（KIF/KI2/CSA/JKF/USEN/USI）
- * - クリップボードへのコピー
- * - USI指し手リストの生成
- * - BOD形式の生成
+ * 書き出しの文脈（対局情報・開始局面・対局者・持ち時間・開始と終了の日時）はここで1回だけ組み立てる。
  */
 class KifuExportController : public QObject
 {
     Q_OBJECT
 
 public:
-    explicit KifuExportController(QWidget* parentWidget, QObject* parent = nullptr);
-    ~KifuExportController() override;
-
-    // --------------------------------------------------------
-    // 依存オブジェクトの設定
-    // --------------------------------------------------------
-
-    /**
-     * @brief エクスポートに必要な依存オブジェクトを一括設定
-     */
-    struct Dependencies {
-        GameRecordModel* gameRecord = nullptr;
-        KifuRecordListModel* kifuRecordModel = nullptr;
-        GameInfoPaneController* gameInfoController = nullptr;
-        TimeControlController* timeController = nullptr;
-        ShogiGameController* gameController = nullptr;
-
-        const AppState* state = nullptr;               ///< 開始局面・動作状態・対局者（書き出すたびに読む）
-        const KifuNavigationState* navState = nullptr; ///< 表示中の手順と手数
+    struct Deps {
+        QWidget* parentWidget = nullptr;                    ///< 保存ダイアログの親
+        GameRecordModel* gameRecord = nullptr;              ///< 棋譜（必須）
+        GameInfoPane* gameInfoPane = nullptr; ///< 対局情報
+        const MatchTimeRecord* timeRecord = nullptr;        ///< 持ち時間と開始・終了の日時
+        ShogiGameController* gameController = nullptr;      ///< 盤（局面のコピー）
+        const AppState* state = nullptr;                    ///< 対局者
+        const KifuNavigationState* navState = nullptr;      ///< 表示中の手（局面のコピー・現在の手までのコピー）
     };
 
-    void setDependencies(const Dependencies& deps);
+    explicit KifuExportController(const Deps& deps, QObject* parent = nullptr);
 
-    // --------------------------------------------------------
-    // ファイル保存
-    // --------------------------------------------------------
-
-    /**
-     * @brief 棋譜をファイルに保存（ダイアログ表示）
-     * @return 保存したファイルパス（キャンセル時は空）
-     */
+    // --- ファイル保存 ---
+    /// 棋譜をファイルに保存する（ダイアログ表示）。保存したファイルのパス（キャンセル時は空）
     QString saveToFile();
-
-    /**
-     * @brief 棋譜を上書き保存（Shift_JIS で表せない文字の確認・失敗の通知にダイアログを使う）
-     * @param filePath 保存先ファイルパス
-     * @return 成功時true
-     */
+    /// 棋譜を上書き保存する（Shift_JIS で表せない文字の確認・失敗の通知にダイアログを使う）
     [[nodiscard]] bool overwriteFile(const QString& filePath);
-
-    /**
-     * @brief ダイアログを出さずに指定パスへ保存する（自動化 API 用）
-     * @param errorText 失敗時の理由（Shift_JIS で表せない文字など）
-     * @return 成功時true
-     */
+    /// ダイアログを出さずに指定パスへ保存する（自動化 API 用）。失敗の理由を errorText に返す
     [[nodiscard]] bool saveToPathWithoutDialogs(const QString& filePath, QString* errorText);
-
-    // --------------------------------------------------------
-    // クリップボードコピー（KifuExportClipboardへ委譲）
-    // --------------------------------------------------------
-
-    /** @brief KIF形式でクリップボードにコピー */
-    [[nodiscard]] bool copyKifToClipboard();
-
-    /** @brief KI2形式でクリップボードにコピー */
-    [[nodiscard]] bool copyKi2ToClipboard();
-
-    /** @brief CSA形式でクリップボードにコピー */
-    [[nodiscard]] bool copyCsaToClipboard();
-
-    /** @brief USI形式（全手）でクリップボードにコピー */
-    [[nodiscard]] bool copyUsiToClipboard();
-
-    /** @brief USI形式（現在の手まで）でクリップボードにコピー */
-    [[nodiscard]] bool copyUsiCurrentToClipboard();
-
-    /** @brief JKF形式でクリップボードにコピー */
-    [[nodiscard]] bool copyJkfToClipboard();
-
-    /** @brief USEN形式でクリップボードにコピー */
-    [[nodiscard]] bool copyUsenToClipboard();
-
-    /** @brief SFEN形式で現在局面をクリップボードにコピー */
-    [[nodiscard]] bool copySfenToClipboard();
-
-    /** @brief BOD形式で現在局面をクリップボードにコピー */
-    [[nodiscard]] bool copyBodToClipboard();
-
     /**
-     * @brief 指定ディレクトリへ自動保存（ダイアログなし）
-     * @param saveDir 保存先ディレクトリ
-     * @return 成功時は保存されたファイルパス、失敗時は std::nullopt
+     * @brief 指定フォルダへ自動保存する（ダイアログなし）。保存したパスを返す
+     * @param extension 保存形式の拡張子（kifu・kif・ki2・csa・jkf・usen・usi）。名前は対局者と日時から作る
      */
-    [[nodiscard]] std::optional<QString> autoSaveToDir(const QString& saveDir);
+    [[nodiscard]] std::optional<QString> autoSaveToDir(const QString& saveDir,
+                                                       const QString& extension = QStringLiteral("kifu"));
+    /// 指定形式の出力行を作る（ファイルに書かない。自動化 API 用）
+    QStringList exportLines(KifuFormat format) const;
 
-    // --------------------------------------------------------
-    // ユーティリティ
-    // --------------------------------------------------------
-
-    /**
-     * @brief 指定形式の出力行を生成する（ファイルに書かない。自動化 API 用）
-     *
-     * 準備コールバックを呼んでから生成する。棋譜モデルが無ければ空リスト。
-     */
-    QStringList exportLines(KifuSaveFile::SaveFormat format);
+public slots:
+    // --- クリップボードへのコピー ---
+    bool copyKifToClipboard() { return copyRecord(KifuFormat::Kif); }
+    bool copyKi2ToClipboard() { return copyRecord(KifuFormat::Ki2); }
+    bool copyCsaToClipboard() { return copyRecord(KifuFormat::Csa); }
+    bool copyUsiToClipboard() { return copyRecord(KifuFormat::Usi); }
+    bool copyJkfToClipboard() { return copyRecord(KifuFormat::Jkf); }
+    bool copyUsenToClipboard() { return copyRecord(KifuFormat::Usen); }
+    /// USI 形式で、表示中の手順の表示中の手までをコピーする
+    bool copyUsiCurrentToClipboard();
+    /// 盤の局面を SFEN でコピーする
+    bool copySfenToClipboard();
+    /// 盤の局面を BOD（局面図）でコピーする
+    bool copyBodToClipboard();
 
 signals:
-    /**
-     * @brief ステータスバーにメッセージを表示
-     */
+    /// ステータスバーに出す知らせ
     void statusMessage(const QString& message, int timeout);
 
 private:
-    /// 指定パスへ保存する。dialogParent が nullptr ならダイアログを出さない
-    bool writeToPath(const QString& filePath, QWidget* dialogParent, QString* errorText);
-
-    /**
-     * @brief USI指し手リストを取得（複数ソースから優先順位で）
-     */
-    QStringList resolveUsiMoves() const;
-
-    /**
-     * @brief GameRecordModel用のExportContextを構築
-     */
     GameRecordModel::ExportContext buildExportContext() const;
+    bool writeToPath(const QString& filePath, QWidget* dialogParent, QString* errorText);
+    bool copyRecord(KifuFormat format);
+    bool setClipboardText(const QString& text, const QString& successMsg);
+    /// 盤の局面の SFEN（手数は表示中の手の次の手）
+    QString boardSfen() const;
+    void markSaved(const QString& message);
 
-    /**
-     * @brief 保存形式に応じた出力行を生成（m_deps.gameRecord が必要）
-     */
-    QStringList linesForFormat(KifuSaveFile::SaveFormat format) const;
-
-    QWidget* m_parentWidget = nullptr;
-    Dependencies m_deps;
-    KifuExportClipboard* m_clipboard = nullptr;
+    Deps m_deps;
 };
 
 #endif // KIFUEXPORTCONTROLLER_H

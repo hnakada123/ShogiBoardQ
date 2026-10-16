@@ -4,13 +4,13 @@
 /// @file csagamedialog.h
 /// @brief CSA対局ダイアログクラスの定義
 
-
 #include "enginelistsettings.h"
 #include <QDialog>
 #include <QList>
 
 #include <memory>
 
+#include "csagamecoordinator.h"
 #include "fontsizehelper.h"
 
 QT_BEGIN_NAMESPACE
@@ -74,82 +74,16 @@ public:
      */
     ~CsaGameDialog() override;
 
-    // ========== サーバー接続情報の取得 ==========
-
-    /**
-     * @brief 接続先ホストを取得
-     * @return 接続先ホスト名またはIPアドレス
-     */
-    QString host() const;
-
-    /**
-     * @brief ポート番号を取得
-     * @return ポート番号
-     */
-    int port() const;
-    bool useTls() const;
-
-    /**
-     * @brief ログインIDを取得
-     * @return ログインID
-     */
-    QString loginId() const;
-
-    /**
-     * @brief パスワードを取得（入力されたままの値）
-     * @return パスワード
-     */
-    QString password() const;
-
-    /**
-     * @brief LOGIN コマンドに載せるパスワード欄の文字列を取得
-     *
-     * shogi-server のゲーム名が指定されていれば「ゲーム名[-b|-w],パスワード」の形にする。
-     */
-    QString loginPassword() const;
-
-    // ========== 対局者情報の取得 ==========
-
-    /**
-     * @brief こちら側が人間かどうかを取得
-     * @return 人間の場合true
-     */
-    bool isHuman() const;
-
-    /**
-     * @brief 選択されているエンジン名を取得
-     * @return エンジン名
-     */
-    QString engineName() const;
-
-    /**
-     * @brief 選択されているエンジン番号を取得
-     * @return エンジン番号（コンボボックスのインデックス）
-     */
-    int engineNumber() const;
-
-    /**
-     * @brief エンジンリストを取得
-     * @return エンジンリストへの参照
-     */
-    const QList<Engine>& engineList() const;
-
-    // ========== 詳細設定の取得 ==========
-
-    bool keepAliveEnabled() const { return m_keepAliveEnabled; }
-    int keepAliveIntervalSec() const { return m_keepAliveIntervalSec; }
-    bool tcpKeepAliveEnabled() const { return m_tcpKeepAliveEnabled; }
-    int thinkingMarginSec() const { return m_thinkingMarginSec; }
-    /// 対局数の上限（無制限は 0）
-    int gameLimit() const;
-    bool reconnectAfterGame() const { return m_reconnectAfterGame; }
-    bool autoSaveEnabled() const { return m_autoSaveEnabled; }
-    QString autoSaveDir() const { return m_autoSaveDir; }
-    /// 自動保存の形式（拡張子: kif/kifu/ki2/csa/jkf/usi）
-    QString autoSaveFormat() const { return m_autoSaveFormat; }
-    bool autoFlipBoard() const { return m_autoFlipBoard; }
-    QString gameName() const { return m_gameName; }
-    TurnPreference turnPreference() const { return m_turnPreference; }
+    /// 画面で選んだ条件（接続・対局の進め方と、棋譜の自動保存・盤の向き）
+    struct Selection {
+        CsaGameCoordinator::StartOptions start;  ///< 接続と対局の進め方（パスワード欄はゲーム名と手番の希望を含む）
+        bool autoSaveEnabled = false;
+        QString autoSaveDir;
+        QString autoSaveFormat;  ///< 自動保存の形式（拡張子: kif/kifu/ki2/csa/jkf/usi）
+        bool autoFlipBoard = false;
+    };
+    /// 画面の値から条件を作る
+    Selection selection() const;
 
     /**
      * @brief 登録エンジンと接続履歴を設定ファイルから読み直す（入力中の値は残す）
@@ -187,17 +121,11 @@ private slots:
      */
     void onAutoSaveDirBrowse();
 
-    /**
-     * @brief フォントサイズを大きくする
-     */
-    void onFontIncrease();
-
-    /**
-     * @brief フォントサイズを小さくする
-     */
-    void onFontDecrease();
-
 private:
+    /// 対局数の決め方（画面の選択）
+    GameCountMode gameCountMode() const;
+    /// TLS で接続するか（画面の選択）
+    bool useTls() const;
     QString validationMessage() const;
     /**
      * @brief シグナル・スロットの接続を行う
@@ -273,28 +201,8 @@ private:
     FontSizeHelper m_fontHelper;          ///< フォントサイズヘルパー
 
     // 設定値のキャッシュ
-    bool m_isHuman = true;  ///< こちら側が人間かどうか
-    QString m_engineName;   ///< 選択されたエンジン名
-    int m_engineNumber = 0; ///< 選択されたエンジン番号
-    QString m_host;         ///< 接続先ホスト
-    int m_port = 4081;      ///< ポート番号
-    QString m_loginId;      ///< ログインID
-    QString m_password;     ///< パスワード
 
     // 詳細設定のキャッシュ
-    bool m_keepAliveEnabled = true;
-    int m_keepAliveIntervalSec = 40;
-    bool m_tcpKeepAliveEnabled = true;
-    int m_thinkingMarginSec = 1;
-    GameCountMode m_gameCountMode = GameCountMode::Single;
-    int m_gameCount = 2;
-    bool m_reconnectAfterGame = false;
-    bool m_autoSaveEnabled = false;
-    QString m_autoSaveDir;
-    QString m_autoSaveFormat = QStringLiteral("kif");
-    bool m_autoFlipBoard = true;
-    QString m_gameName;
-    TurnPreference m_turnPreference = TurnPreference::None;
 };
 
 #endif // CSAGAMEDIALOG_H

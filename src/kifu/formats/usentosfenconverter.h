@@ -4,7 +4,6 @@
 /// @file usentosfenconverter.h
 /// @brief USEN形式棋譜コンバータクラスの定義
 
-
 #include <QString>
 #include <QStringList>
 #include <QList>
@@ -35,28 +34,10 @@ struct UsenDecodeResult {
 class UsenToSfenConverter
 {
 public:
-    // 既存API互換: 初期局面SFENを取得
-    static QString detectInitialSfenFromFile(const QString& usenPath, QString* detectedLabel = nullptr);
-
-    // 既存API互換: 本譜のUSI列のみを抽出（終局で打ち切り）
-    static QStringList convertFile(const QString& usenPath, QString* errorMessage = nullptr);
-
-    // 既存API互換: 本譜の「指し手＋時間」（コメントも格納）を抽出
-    static QList<KifDisplayItem> extractMovesWithTimes(const QString& usenPath, QString* errorMessage = nullptr);
-
-    // 新API: 本譜＋全変化をまとめて抽出（コメントも格納）
-    [[nodiscard]] static bool parseWithVariations(const QString& usenPath, KifParseResult& out, QString* errorMessage = nullptr);
 
     // テキスト（貼り付けた棋譜など）版
     static QString detectInitialSfenFromText(const QString& text, QString* detectedLabel = nullptr);
     [[nodiscard]] static bool parseText(const QString& text, KifParseResult& out, QString* errorMessage = nullptr);
-
-    // USENファイルから「対局情報」を抽出して順序付きで返す
-    // 注意: USENは基本的にメタ情報を含まないため、ファイル名から推測するか空を返す
-    static QList<KifGameInfoItem> extractGameInfo(const QString& filePath);
-
-    // キー→値 へ高速アクセスしたい場合のマップ版
-    static QMap<QString, QString> extractGameInfoMap(const QString& filePath);
 
     // USEN文字列から指し手列をデコード
     static QStringList decodeUsenMoves(const QString& usenStr, QString* terminalOut = nullptr);
@@ -64,14 +45,8 @@ public:
     // USEN文字列から指し手列をデコード（エラー情報付き厳密版）
     static UsenDecodeResult decodeUsenMovesStrict(const QString& usenStr, QString* terminalOut = nullptr);
 
-    // 終局理由コードから終局の種類にする（不明なコードは Error）
-    static TerminalType terminalFromCode(const QString& code);
-
 private:
     // ---- USEN デコードヘルパ ----
-
-    // USENファイルを読み込み文字列を返す
-    static bool readUsenFile(const QString& filePath, QString& content, QString* warn);
 
     // USEN文字列を解析して本譜と分岐に分割
     static bool parseUsenString(const QString& usen, 
@@ -88,7 +63,6 @@ private:
 
     // 3文字のbase36から指し手番号（0-46655の範囲）を取得
     static int base36ToMoveIndex(const QString& threeChars);
-
 
 };
 

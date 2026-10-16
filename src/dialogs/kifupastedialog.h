@@ -50,8 +50,6 @@ private slots:
     void onCancelClicked();
     void onPasteClicked();
     void onClearClicked();
-    void increaseFontSize();
-    void decreaseFontSize();
     void updateInputActions();
     void updateClipboardAction();
 

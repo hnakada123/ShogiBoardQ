@@ -21,7 +21,7 @@ bool applyLenient(ShogiBoard& board, const QString& usiMove)
     const Piece piece = move->dropPieceFor(mover);
     if (board.pieceStandCount(piece) > 0) board.consumeStandPiece(piece);
     board.movePieceToSquare(piece, 0, 0, move->to.file, move->to.rank, false);
-    board.setCurrentPlayer(mover == Turn::Black ? Turn::White : Turn::Black);
+    board.setCurrentPlayer(opponent(mover));
     board.setMoveNumber(board.moveNumber() + 1);
     return true;
 }

@@ -61,12 +61,12 @@ ShogiBoardQ のマルチスレッド化における設計方針と実装ルー�
 ワーカースレッドには**値オブジェクト（コピー）のみ**渡す。
 
 ```cpp
-// Good: 値コピーを渡す
-struct KifuLoadRequest {
-    QString filePath;
-    JobGeneration generation;
-    CancelFlag cancelFlag;
-};
+// Good: 値（入力の文字列・キャンセルフラグ）を渡し、結果も値（KifuLoadResult）で受け取る
+// （KifuLoadCoordinator::startLoad）
+m_loadWatcher->setFuture(QtConcurrent::run([input, text, cancel]() {
+    return text ? KifuLoadParser::parseText(input, cancel)
+                : KifuLoadParser::parseFile(input, std::nullopt, cancel);
+}));
 
 // Bad: ポインタや参照を渡す
 void loadInWorker(GameRecordModel* model);  // 禁止
@@ -143,11 +143,11 @@ connect(worker, &Worker::resultReady,
 ## 10. 棋譜読み込みとUSIの非同期経路
 
 - GUIのファイル選択・貼り付けは `KifuLoadCoordinator::loadFileAsync/loadTextAsync` を使う。
-- `KifuLoadParser` は入力とキャンセルフラグだけを受け取り、値として結果を返す。モデル・分岐ツリー・画面の更新は `KifuApplyService` がGUIスレッドで行う。
+- `KifuLoadParser` は入力とキャンセルフラグだけを受け取り、値（`KifuLoadResult`）として結果を返す。分岐ツリーの作り直しは `KifuLoadCoordinator` がGUIスレッドで行い（`KifuBranchTreeBuilder`）、棋譜欄・盤などの表示はツリーの変更を受けて各部品がGUIスレッドで合わせる。
 - 読み込みの置換・中止では旧watcherを切り離し、古い結果を反映しない。貼り付けたテキストは一時ファイルを作らず、テキストのまま解析する。変換器内部の解析中は強制停止せず、処理の境界でキャンセルを確認する。
 - 通常のGUI対局・解析とCLI解析ジョブは非同期USI初期化を使う。`usiok` と `readyok` はそれぞれタイマーで監視し、初期化完了まで探索要求を保留する。
 - 対局の着手は `matchMoveReady` で適用する。先読み不一致時は `stop` の応答を回収してから新しい `go` を送る。即指しの `stop` と要求のキャンセルは区別する。
-- 終了は `quit → terminate → kill` をタイマーで進める。同期APIは既存のテスト・自動操作との互換用途に残すが、新しいGUI経路では待機型APIを使用しない。
+- 終了は `quit → terminate → kill` をタイマーで進める（`EngineProcessManager::stopProcessAsync()`。呼び出し元を破棄した後もイベント駆動で完了させる）。応答を待ってイベントループを止める待機型APIは使用しない。
 
 ## 11. 内蔵詰将棋探索のスレッド予算
 
@@ -163,7 +163,7 @@ Hayanagiの既存の並列探索を使い、OpenMPは追加しない。
 先読み切り替え、キャンセル、異常終了、探索結果・手数の一致を検証する。
 GUIテストでは読み込み中のウィンドウ破棄、即指し、CSA、連続対局も確認する。
 
-2026-09-29の開発環境で、同じHayanagiに対し `tests/bench_tsume.py` を各2回実行した参考値
+2026-09-29の開発環境で、同じHayanagiに対し `Hayanagi/tests/bench_tsume.py` を各2回実行した参考値
 （最小時間、1スレッド対4スレッド）:
 
 | 局面 | 1スレッド | 4スレッド |

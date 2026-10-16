@@ -73,6 +73,8 @@ void JosekiMergeDialog::setupUi()
     // === テーブル ===
     m_tableWidget = new QTableWidget(this);
     m_tableWidget->setItemDelegateForColumn(1, new KifuMoveDelegate(m_tableWidget));
+    m_registerButtons = new QButtonGroup(this);
+    connect(m_registerButtons, &QButtonGroup::idClicked, this, &JosekiMergeDialog::onRegisterButtonClicked);
     m_tableWidget->setColumnCount(4);
     
     QStringList headers;
@@ -117,8 +119,9 @@ void JosekiMergeDialog::setupUi()
     mainLayout->addLayout(buttonLayout);
     
     // === シグナル・スロット接続 ===
-    connect(m_fontIncreaseBtn, &QPushButton::clicked, this, &JosekiMergeDialog::onFontSizeIncrease);
-    connect(m_fontDecreaseBtn, &QPushButton::clicked, this, &JosekiMergeDialog::onFontSizeDecrease);
+    connect(m_fontIncreaseBtn, &QPushButton::clicked, &m_fontHelper, &FontSizeHelper::increase);
+    connect(m_fontDecreaseBtn, &QPushButton::clicked, &m_fontHelper, &FontSizeHelper::decrease);
+    connect(&m_fontHelper, &FontSizeHelper::fontSizeChanged, this, &JosekiMergeDialog::applyFontSize);
     connect(m_registerAllButton, &QPushButton::clicked, this, &JosekiMergeDialog::onRegisterAllButtonClicked);
     connect(m_closeButton, &QPushButton::clicked, this, &QDialog::accept);
     
@@ -180,15 +183,10 @@ void JosekiMergeDialog::updateTable()
         
         // 登録ボタン（青系の配色）
         QPushButton *registerBtn = new QPushButton(alreadyRegistered ? tr("登録済") : tr("登録"), this);
-        registerBtn->setProperty("row", i);
         registerBtn->setAutoDefault(false);
         registerBtn->setStyleSheet(ButtonStyles::tableRegisterButton());
-        
-        if (alreadyRegistered) {
-            registerBtn->setEnabled(false);
-        } else {
-            connect(registerBtn, &QPushButton::clicked, this, &JosekiMergeDialog::onRegisterButtonClicked);
-        }
+        registerBtn->setEnabled(!alreadyRegistered);
+        m_registerButtons->addButton(registerBtn, i);
         m_tableWidget->setCellWidget(i, 2, registerBtn);
         
         // 状態
@@ -214,31 +212,25 @@ void JosekiMergeDialog::updateTable()
     m_tableWidget->resizeRowsToContents();
 }
 
-void JosekiMergeDialog::onRegisterButtonClicked()
+void JosekiMergeDialog::setRegistrar(Registrar registrar)
 {
-    QPushButton *button = qobject_cast<QPushButton*>(sender());
-    if (!button) return;
-    
-    int row = button->property("row").toInt();
+    m_registrar = std::move(registrar);
+}
+
+void JosekiMergeDialog::onRegisterButtonClicked(int row)
+{
     if (row < 0 || row >= static_cast<int>(m_entries.size())) return;
-    
-    registerEntry(m_entries[row]);
+    const KifuMergeEntry &entry = m_entries.at(row);
+    if (isRegistered(entry.sfen, entry.usiMove)) return;
+    if (registerEntries({entry})) updateTable();
 }
 
-bool JosekiMergeDialog::registerEntry(const KifuMergeEntry &entry)
+bool JosekiMergeDialog::registerEntries(const QList<KifuMergeEntry> &entries)
 {
-    if (!isEnabled() || isRegistered(entry.sfen, entry.usiMove)) return false;
-    m_lastRegistrationSucceeded = false;
-    emit registerMove(normalizeSfen(entry.sfen), entry.sfen, entry.usiMove);
-    return m_lastRegistrationSucceeded;
-}
-
-void JosekiMergeDialog::onRegistrationFinished(const QString &sfen, const QString &usiMove, bool success)
-{
-    m_lastRegistrationSucceeded = success;
-    if (!success) return;
-    m_registeredMoves.insert(normalizeSfen(sfen) + QLatin1Char(':') + usiMove);
-    if (!m_batchRegistering) updateTable();
+    if (!isEnabled() || !m_registrar || entries.isEmpty() || !m_registrar(entries)) return false;
+    for (const KifuMergeEntry &entry : entries)
+        m_registeredMoves.insert(normalizeSfen(entry.sfen) + QLatin1Char(':') + entry.usiMove);
+    return true;
 }
 
 void JosekiMergeDialog::onRegisterAllButtonClicked()
@@ -259,25 +251,12 @@ void JosekiMergeDialog::onRegisterAllButtonClicked()
     }
     if (pending.isEmpty()) return;
 
-    m_lastRegistrationSucceeded = false;
-    m_batchRegistering = true;
-    emit registerAllMoves(pending);
-    m_batchRegistering = false;
+    const bool registered = registerEntries(pending);
     updateTable();
-    if (!m_lastRegistrationSucceeded) return;
+    if (!registered) return;
 
     QMessageBox::information(this, tr("一括登録完了"),
         tr("%1件の指し手を定跡に登録しました。").arg(pending.size()));
-}
-
-void JosekiMergeDialog::onFontSizeIncrease()
-{
-    if (m_fontHelper.increase()) applyFontSize();
-}
-
-void JosekiMergeDialog::onFontSizeDecrease()
-{
-    if (m_fontHelper.decrease()) applyFontSize();
 }
 
 void JosekiMergeDialog::applyFontSize()

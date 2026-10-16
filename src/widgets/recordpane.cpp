@@ -249,11 +249,10 @@ void RecordPane::wireSignals()
     // 分岐候補欄: マウスクリックと活性化（Enter キー等）の両方でナビゲーションする。
     // シングルクリックで activated も発火する環境では同じ行が二重処理されるため、
     // スロット側で clicked 直後の activated を1周回だけ無視する。
-    connect(m_branch, &QTableView::clicked, this, &RecordPane::onBranchClicked, Qt::UniqueConnection);
+    connect(m_branch, &QTableView::clicked, this, &RecordPane::onBranchClicked);
     m_branch->setContextMenuPolicy(Qt::CustomContextMenu);
-    connect(m_branch, &QWidget::customContextMenuRequested, this, &RecordPane::onBranchContextMenuRequested,
-            Qt::UniqueConnection);
-    connect(m_branch, &QTableView::activated, this, &RecordPane::onBranchActivated, Qt::UniqueConnection);
+    connect(m_branch, &QWidget::customContextMenuRequested, this, &RecordPane::onBranchContextMenuRequested);
+    connect(m_branch, &QTableView::activated, this, &RecordPane::onBranchActivated);
 
     // 文字サイズ変更ボタンの接続
     connect(m_btnFontUp, &QPushButton::clicked, this, &RecordPane::onFontIncrease);
@@ -316,11 +315,6 @@ void RecordPane::updateKifuTableWidth()
 
 void RecordPane::setModels(KifuRecordListModel* recModel, KifuBranchListModel* brModel)
 {
-    if (!m_kifu || !m_branch) {
-        qCWarning(lcUi).noquote() << "[RecordPane] setModels: m_kifu or m_branch is null, rebuilding UI";
-        buildUi();
-    }
-
     qCDebug(lcUi) << "setModels called";
     qCDebug(lcUi) << "m_kifu styleSheet in setModels:" << m_kifu->styleSheet().left(100) << "...";
 
@@ -378,14 +372,6 @@ void RecordPane::setModels(KifuRecordListModel* recModel, KifuBranchListModel* b
         hh2->setSectionResizeMode(0, QHeaderView::Stretch);
     }
 
-    // 分岐テーブルの選択変更時にモデルのハイライト行を更新
-    if (auto* sel = m_branch->selectionModel()) {
-        if (m_connBranchCurrentRow) {
-            disconnect(m_connBranchCurrentRow);
-        }
-        m_connBranchCurrentRow = connect(sel, &QItemSelectionModel::currentRowChanged,
-                this, &RecordPane::onBranchCurrentRowChanged);
-    }
 }
 
 QTableView* RecordPane::kifuView() const { return m_kifu; }
@@ -516,20 +502,12 @@ void RecordPane::updateBranchAppearance()
     m_branchContainer->setFixedWidth(expanded ? expandedWidth : 28);
 }
 
-void RecordPane::onBranchCurrentRowChanged(const QModelIndex& current, const QModelIndex&)
-{
-    auto* brModel = qobject_cast<KifuBranchListModel*>(m_branch->model());
-    if (brModel && current.isValid()) {
-        brModel->setCurrentHighlightRow(current.row());
-    }
-}
-
 void RecordPane::onBranchClicked(const QModelIndex& index)
 {
     m_lastClickedBranchIndex = index;
     m_branchClickGuard = true;
     QTimer::singleShot(0, this, &RecordPane::clearBranchClickGuard);
-    emit branchActivated(index);
+    if (index.isValid()) emit branchRowActivated(index.row());
 }
 
 void RecordPane::onBranchActivated(const QModelIndex& index)
@@ -538,7 +516,7 @@ void RecordPane::onBranchActivated(const QModelIndex& index)
         qCDebug(lcUi).noquote() << "[RecordPane] onBranchActivated: skipped (already handled by clicked) row=" << index.row();
         return;
     }
-    emit branchActivated(index);
+    if (index.isValid()) emit branchRowActivated(index.row());
 }
 
 void RecordPane::clearBranchClickGuard()

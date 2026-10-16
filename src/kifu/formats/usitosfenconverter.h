@@ -4,7 +4,6 @@
 /// @file usitosfenconverter.h
 /// @brief USI形式棋譜コンバータクラスの定義
 
-
 #include <QString>
 #include <QStringList>
 #include <QList>
@@ -45,25 +44,6 @@
 class UsiToSfenConverter
 {
 public:
-    // 既存API互換: 初期局面SFENを取得
-    static QString detectInitialSfenFromFile(const QString& usiPath, QString* detectedLabel = nullptr);
-
-    // 既存API互換: 本譜のUSI列のみを抽出（終局で打ち切り）
-    static QStringList convertFile(const QString& usiPath, QString* errorMessage = nullptr);
-
-    // 既存API互換: 本譜の「指し手＋時間」（コメントも格納）を抽出
-    static QList<KifDisplayItem> extractMovesWithTimes(const QString& usiPath, QString* errorMessage = nullptr);
-
-    // 新API: 本譜＋全変化をまとめて抽出（コメントも格納）
-    [[nodiscard]] static bool parseWithVariations(const QString& usiPath, KifParseResult& out, QString* errorMessage = nullptr);
-
-    // ファイルを読み、開始局面SFEN・指し手列・終局コードに分解する。
-    // 指し手のない局面だけのファイル（.sfen 等）でも true を返し usiMoves は空になる。
-    [[nodiscard]] static bool parseUsiFile(const QString& usiPath,
-                                           QString& baseSfen,
-                                           QStringList& usiMoves,
-                                           QString* terminalCode,
-                                           QString* warn);
 
     // テキスト（貼り付けた棋譜など）版。最初の position/SFEN らしき行を対象にする
     static QString detectInitialSfenFromText(const QString& text, QString* detectedLabel = nullptr);
@@ -73,16 +53,6 @@ public:
                                            QStringList& usiMoves,
                                            QString* terminalCode,
                                            QString* warn);
-
-    // USIファイルから「対局情報」を抽出して順序付きで返す
-    // 注意: USIは基本的にメタ情報を含まないため、ファイル名から推測するか空を返す
-    static QList<KifGameInfoItem> extractGameInfo(const QString& filePath);
-
-    // キー→値 へ高速アクセスしたい場合のマップ版
-    static QMap<QString, QString> extractGameInfoMap(const QString& filePath);
-
-    // 終局理由コードから終局の種類にする（不明なコードは Error）
-    static TerminalType terminalFromCode(const QString& code);
 
 private:
     // ---- USI ファイル読み込み ----
@@ -110,7 +80,6 @@ private:
                                        QStringList& usiMoves,
                                        QString* terminalCode,
                                        QString* warn);
-
 
 };
 

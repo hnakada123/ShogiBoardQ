@@ -3,17 +3,68 @@
 
 #include "gamestartoptionsbuilder.h"
 
-#include <array>
+#include <QCoreApplication>
 
+#include "handicaps.h"
 #include "logcategories.h"
 #include "sfenutils.h"
+
+// ============================================================
+// 開始の計画
+// ============================================================
+
+std::optional<GameStartPlan> GameStartOptionsBuilder::plan(const GameStartRequest& request, QString* error)
+{
+    const StartGameDialogData& dlg = request.dialogData;
+    const bool fromCurrent = dlg.startingPositionNumber == 0;
+    RecordLine line = fromCurrent ? request.recordLine : RecordLine{};
+    if (line.startSfen.isEmpty()) {
+        line.startSfen = canonicalizeSfen(fromCurrent ? QString() : startingPositionSfen(dlg.startingPositionNumber));
+    } else {
+        line.startSfen = canonicalizeSfen(line.startSfen);
+    }
+    line = line.upTo(qBound(0, line.currentPly, line.moveCount()));
+    const QString sfen = line.lastSfen();
+    if (!validateKings(sfen, error)) return std::nullopt;
+
+    GameStartPlan result;
+    result.options = buildStartOptions(sfen, dlg);
+    result.options.recordLine = line;
+    result.time = buildTimeSettings(dlg);
+    result.preparation.mode = fromCurrent ? GameStartPreparation::Mode::CurrentPosition
+                                          : GameStartPreparation::Mode::NewGame;
+    result.preparation.rootSfen = line.startSfen;
+    result.preparation.startNodeId = fromCurrent ? request.startNodeId : -1;
+    result.flipBoard = needsHumanAtBottomFlip(dlg, request.bottomSide);
+    result.consecutiveGames = dlg.consecutiveGames;
+    result.switchTurnEachGame = dlg.isSwitchTurnEachGame;
+    return result;
+}
+
+bool GameStartOptionsBuilder::validateKings(const QString& sfen, QString* whyNot)
+{
+    // 駒箱に入っている王・玉は通常対局の盤上の玉として数えない。
+    // 局面編集や詰将棋用の片玉局面は許可し、通常対局の開始時だけ検証する。
+    const QString board = canonicalizeSfen(sfen).section(QLatin1Char(' '), 0, 0);
+    const auto blackKings = board.count(QLatin1Char('K'));
+    const auto whiteKings = board.count(QLatin1Char('k'));
+    if (blackKings == 1 && whiteKings == 1) return true;
+    if (whyNot) {
+        *whyNot = QCoreApplication::translate("GameStartOptionsBuilder",
+                                              "対局を開始できません。\n"
+                                              "通常の対局には、先手と後手の王・玉を盤上に1枚ずつ配置してください。\n"
+                                              "現在の枚数：先手 %1枚、後手 %2枚\n"
+                                              "「編集」→「局面編集開始」で配置を修正してください。")
+                      .arg(blackKings).arg(whiteKings);
+    }
+    return false;
+}
 
 // ============================================================
 // TimeControl 構築
 // ============================================================
 
-GameStartOptionsBuilder::TimeSettings
-GameStartOptionsBuilder::buildTimeControl(const StartGameDialogData& data)
+MatchTimeSettings GameStartOptionsBuilder::buildTimeSettings(const StartGameDialogData& data)
 {
     const auto minutesToMs = [](int hours, int minutes) {
         return qMax<qint64>(0, (static_cast<qint64>(hours) * 3600 + minutes * 60) * 1000);
@@ -28,14 +79,14 @@ GameStartOptionsBuilder::buildTimeControl(const StartGameDialogData& data)
     rules.black.incrementMs = secondsToMs(data.addEachMoveSec1);
     rules.white.incrementMs = secondsToMs(data.addEachMoveSec2);
 
-    TimeSettings tc;
+    MatchTimeSettings tc;
     tc.loseOnTimeout = data.isLoseOnTimeout;
     tc.rules = rules.normalized();
-    tc.enabled = !tc.rules.isUnlimited();
 
     qCDebug(lcGame).noquote()
-        << "buildTimeControl:"
-        << " enabled=" << tc.enabled
+        << "buildTimeSettings:"
+        << " limited=" << !tc.rules.isUnlimited()
+
         << " P1{base=" << tc.rules.black.mainMs << " byo=" << tc.rules.black.byoyomiMs << " inc=" << tc.rules.black.incrementMs << "}"
         << " P2{base=" << tc.rules.white.mainMs << " byo=" << tc.rules.white.byoyomiMs << " inc=" << tc.rules.white.incrementMs << "}";
 
@@ -64,45 +115,15 @@ MatchPlayers GameStartOptionsBuilder::playersFromDialog(const StartGameDialogDat
 // 開始局面プリセット
 // ============================================================
 
-const QString& GameStartOptionsBuilder::startingPositionSfen(int index)
+QString GameStartOptionsBuilder::startingPositionSfen(int index)
 {
-    // 純SFENテーブル（1=平手, 2=香落ち, …, 14=十枚落ち）
-    static const auto& kPresets = *[]() {
-        static const std::array<QString, 14> arr = {{
-            //  1: 平手
-            SfenUtils::hirateSfen(),
-            //  2: 香落ち
-            QStringLiteral("lnsgkgsn1/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
-            //  3: 右香落ち
-            QStringLiteral("1nsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
-            //  4: 角落ち
-            QStringLiteral("lnsgkgsnl/1r7/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
-            //  5: 飛車落ち
-            QStringLiteral("lnsgkgsnl/7b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
-            //  6: 飛香落ち
-            QStringLiteral("lnsgkgsn1/7b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
-            //  7: 二枚落ち
-            QStringLiteral("lnsgkgsnl/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
-            //  8: 三枚落ち
-            QStringLiteral("lnsgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
-            //  9: 四枚落ち
-            QStringLiteral("1nsgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
-            // 10: 五枚落ち
-            QStringLiteral("2sgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
-            // 11: 左五枚落ち
-            QStringLiteral("1nsgkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
-            // 12: 六枚落ち
-            QStringLiteral("2sgkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
-            // 13: 八枚落ち
-            QStringLiteral("3gkg3/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
-            // 14: 十枚落ち
-            QStringLiteral("4k4/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1")
-        }};
-        return &arr;
-    }();
-
+    // 対局開始ダイアログの「開始局面」の並び（1=平手, 2=香落ち, …, 14=十枚落ち）
+    static constexpr const char16_t* kPositions[kStartingPositionCount] = {
+        u"平手", u"香落ち", u"右香落ち", u"角落ち", u"飛車落ち", u"飛香落ち", u"二枚落ち",
+        u"三枚落ち", u"四枚落ち", u"五枚落ち", u"左五枚落ち", u"六枚落ち", u"八枚落ち", u"十枚落ち",
+    };
     const int idx = qBound(1, index, kStartingPositionCount) - 1;
-    return kPresets[static_cast<size_t>(idx)];
+    return QString::fromLatin1(Handicaps::byLabel(QStringView(kPositions[idx]))->sfen);
 }
 
 // ============================================================

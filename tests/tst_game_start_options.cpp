@@ -60,8 +60,8 @@ private slots:
         QTRY_COMPARE_WITH_TIMEOUT(initialized.count(), 1, 5000);
         h.mc->strategyHost().requestEngineMove(Turn::White);
         QTRY_COMPARE_WITH_TIMEOUT(ready.count(), 1, 5000);
-        const QString bestMove = qvariant_cast<UsiMove>(ready.first().at(0)).toString();
-        QCOMPARE(ready.first().at(1).toString(), expectedPosition + QLatin1Char(' ') + bestMove);
+        const UsiMatchMove move = qvariant_cast<UsiMatchMove>(ready.first().at(0));
+        QCOMPARE(move.position, expectedPosition + QLatin1Char(' ') + move.move.toString());
     }
     void startOptionsAndNames()
     {
@@ -75,16 +75,13 @@ private slots:
         const MatchStartOptions options = GameStartOptionsBuilder::buildStartOptions(
             SfenUtils::hirateSfen(), data);
         MatchHarness h;
-        QSignalSpy prepared(h.mc.get(), &MatchCoordinator::gamePrepared);
         h.mc->start(options);
         QVERIFY(h.mc->players().humanVsHuman());
         QCOMPARE(h.mc->options().maxMoves, 128);
         QVERIFY(h.mc->options().autoSaveKifu);
         QCOMPARE(h.mc->options().kifuSaveDir, m_config.path());
-        QCOMPARE(prepared.count(), 1);
-        const auto announced = prepared.first().first().value<MatchStartOptions>();
-        QCOMPARE(announced.players.blackHumanName, data.humanName1);
-        QCOMPARE(announced.players.whiteHumanName, data.humanName2);
+        QCOMPARE(h.mc->players().blackHumanName, data.humanName1);
+        QCOMPARE(h.mc->players().whiteHumanName, data.humanName2);
     }
     void humanSideControlsFlip()
     {

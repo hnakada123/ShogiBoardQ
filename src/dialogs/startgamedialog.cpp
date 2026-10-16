@@ -108,8 +108,9 @@ void StartGameDialog::connectSignalsAndSlots()
             this, &StartGameDialog::handleAddEachMoveSecChanged);
 
     // フォント拡大縮小
-    connect(ui->pushButtonFontSizeUp, &QPushButton::clicked, this, &StartGameDialog::increaseFontSize);
-    connect(ui->pushButtonFontSizeDown, &QPushButton::clicked, this, &StartGameDialog::decreaseFontSize);
+    connect(ui->pushButtonFontSizeUp, &QPushButton::clicked, &m_fontHelper, &FontSizeHelper::increase);
+    connect(ui->pushButtonFontSizeDown, &QPushButton::clicked, &m_fontHelper, &FontSizeHelper::decrease);
+    connect(&m_fontHelper, &FontSizeHelper::fontSizeChanged, this, &StartGameDialog::applyFontSize);
 
     // 対局者種別（人間/エンジン）変更時にUIを切り替える
     connect(ui->comboBoxPlayer1, QOverload<int>::of(&QComboBox::currentIndexChanged),
@@ -219,42 +220,56 @@ void StartGameDialog::populatePlayerComboBoxes()
 }
 
 // ============================================================
-// Getter
+// 選んだ値
 // ============================================================
-
-bool StartGameDialog::isHuman1() const { return m_isHuman1; }
-bool StartGameDialog::isHuman2() const { return m_isHuman2; }
-bool StartGameDialog::isEngine1() const { return m_isEngine1; }
-bool StartGameDialog::isEngine2() const { return m_isEngine2; }
-const QString& StartGameDialog::engineName1() const { return m_engineName1; }
-const QString& StartGameDialog::engineName2() const { return m_engineName2; }
-const QString& StartGameDialog::humanName1() const { return m_humanName1; }
-const QString& StartGameDialog::humanName2() const { return m_humanName2; }
-int StartGameDialog::engineNumber1() const { return m_engineNumber1; }
-int StartGameDialog::engineNumber2() const { return m_engineNumber2; }
-int StartGameDialog::basicTimeHour1() const { return m_basicTimeHour1; }
-int StartGameDialog::basicTimeMinutes1() const { return m_basicTimeMinutes1; }
-int StartGameDialog::addEachMoveSec1() const { return m_addEachMoveSec1; }
-int StartGameDialog::byoyomiSec1() const { return m_byoyomiSec1; }
-int StartGameDialog::basicTimeHour2() const { return m_basicTimeHour2; }
-int StartGameDialog::basicTimeMinutes2() const { return m_basicTimeMinutes2; }
-int StartGameDialog::addEachMoveSec2() const { return m_addEachMoveSec2; }
-int StartGameDialog::byoyomiSec2() const { return m_byoyomiSec2; }
-const QString &StartGameDialog::startingPositionName() const { return m_startingPositionName; }
-int StartGameDialog::startingPositionNumber() const { return m_startingPositionNumber; }
 
 void StartGameDialog::forceCurrentPositionSelection()
 {
     ui->comboBoxStartingPosition->setCurrentIndex(0);
 }
+
 const QList<StartGameDialog::Engine> &StartGameDialog::engineList() const { return m_engineList; }
-int StartGameDialog::maxMoves() const { return m_maxMoves; }
-int StartGameDialog::consecutiveGames() const { return m_consecutiveGames; }
-bool StartGameDialog::isShowHumanInFront() const { return m_isShowHumanInFront; }
-bool StartGameDialog::isAutoSaveKifu() const { return m_isAutoSaveKifu; }
-const QString& StartGameDialog::kifuSaveDir() const { return m_kifuSaveDir; }
-bool StartGameDialog::isLoseOnTimeout() const { return m_isLoseOnTimeout; }
-bool StartGameDialog::isSwitchTurnEachGame() const { return m_isSwitchTurnEachGame; }
+
+StartGameDialogData StartGameDialog::data() const
+{
+    StartGameDialogData data;
+    // 対局者（コンボの 0 は人間、1 以降は登録エンジン）
+    const int player1 = ui->comboBoxPlayer1->currentIndex();
+    data.isHuman1 = player1 <= 0;
+    data.isEngine1 = !data.isHuman1;
+    data.engineNumber1 = data.isEngine1 ? player1 - 1 : -1;
+    data.engineName1 = data.isEngine1 ? ui->comboBoxPlayer1->currentText() : QString();
+    data.humanName1 = ui->lineEditHumanName1->text();
+    const int player2 = ui->comboBoxPlayer2->currentIndex();
+    data.isHuman2 = player2 <= 0;
+    data.isEngine2 = !data.isHuman2;
+    data.engineNumber2 = data.isEngine2 ? player2 - 1 : -1;
+    data.engineName2 = data.isEngine2 ? ui->comboBoxPlayer2->currentText() : QString();
+    data.humanName2 = ui->lineEditHumanName2->text();
+    for (const Engine& engine : m_engineList) data.engineList.append({engine.path});
+
+    // 持ち時間（「後手に異なる時間を設定」がなければ先手と同じ）
+    data.basicTimeHour1 = ui->basicTimeHour1->value();
+    data.basicTimeMinutes1 = ui->basicTimeMinutes1->value();
+    data.byoyomiSec1 = ui->byoyomiSec1->value();
+    data.addEachMoveSec1 = ui->addEachMoveSec1->value();
+    const bool separate = ui->groupBoxSecondPlayerTimeSettings->isChecked();
+    data.basicTimeHour2 = separate ? ui->basicTimeHour2->value() : data.basicTimeHour1;
+    data.basicTimeMinutes2 = separate ? ui->basicTimeMinutes2->value() : data.basicTimeMinutes1;
+    data.byoyomiSec2 = separate ? ui->byoyomiSec2->value() : data.byoyomiSec1;
+    data.addEachMoveSec2 = separate ? ui->addEachMoveSec2->value() : data.addEachMoveSec1;
+    data.isLoseOnTimeout = ui->checkBoxLoseOnTimeOut->isChecked();
+
+    data.startingPositionNumber = ui->comboBoxStartingPosition->currentIndex();
+    data.maxMoves = ui->spinBoxMaxMoves->value();
+    data.autoSaveKifu = ui->checkBoxAutoSaveKifu->isChecked();
+    data.kifuSaveDir = ui->lineEditKifuSaveDir->text();
+    data.isShowHumanInFront = ui->checkBoxShowHumanInFront->isChecked();
+    data.consecutiveGames = ui->spinBoxConsecutiveGames->value();
+    data.isSwitchTurnEachGame = ui->checkBoxSwitchTurnEachGame->isEnabled()
+                                && ui->checkBoxSwitchTurnEachGame->isChecked();
+    return data;
+}
 
 // ============================================================
 // パラメータ取得（OK押下時）
@@ -262,76 +277,10 @@ bool StartGameDialog::isSwitchTurnEachGame() const { return m_isSwitchTurnEachGa
 
 void StartGameDialog::onStartRequested()
 {
-    updateGameSettingsFromDialog();
     // 開始できない時間設定なら、設定を保存せずにダイアログを開いたままにする。
     if (!confirmTimeSettings()) return;
     saveGameSettings();
     accept();
-}
-
-void StartGameDialog::updateGameSettingsFromDialog()
-{
-    // 先手の設定を取得
-    int player1Index = ui->comboBoxPlayer1->currentIndex();
-    if (player1Index <= 0) {
-        m_isHuman1 = true;
-        m_isEngine1 = false;
-        m_engineNumber1 = -1;
-        m_engineName1 = "";
-    } else {
-        m_isHuman1 = false;
-        m_isEngine1 = true;
-        // インデックスから1を引いてエンジン番号を算出
-        m_engineNumber1 = player1Index - 1;
-        m_engineName1 = ui->comboBoxPlayer1->currentText();
-    }
-    m_humanName1 = ui->lineEditHumanName1->text();
-
-    // 後手の設定を取得
-    int player2Index = ui->comboBoxPlayer2->currentIndex();
-    if (player2Index <= 0) {
-        m_isHuman2 = true;
-        m_isEngine2 = false;
-        m_engineNumber2 = -1;
-        m_engineName2 = "";
-    } else {
-        m_isHuman2 = false;
-        m_isEngine2 = true;
-        m_engineNumber2 = player2Index - 1;
-        m_engineName2 = ui->comboBoxPlayer2->currentText();
-    }
-    m_humanName2 = ui->lineEditHumanName2->text();
-
-    m_basicTimeHour1 = ui->basicTimeHour1->value();
-    m_basicTimeMinutes1 = ui->basicTimeMinutes1->value();
-    m_byoyomiSec1 = ui->byoyomiSec1->value();
-    m_addEachMoveSec1 = ui->addEachMoveSec1->value();
-
-    // 「後手に異なる時間を設定」の有無で分岐
-    if (ui->groupBoxSecondPlayerTimeSettings->isChecked()) {
-        m_basicTimeHour2 = ui->basicTimeHour2->value();
-        m_basicTimeMinutes2 = ui->basicTimeMinutes2->value();
-        m_byoyomiSec2 = ui->byoyomiSec2->value();
-        m_addEachMoveSec2 = ui->addEachMoveSec2->value();
-    }
-    else {
-        // 先手の値をコピー
-        m_basicTimeHour2 = m_basicTimeHour1;
-        m_basicTimeMinutes2 = m_basicTimeMinutes1;
-        m_byoyomiSec2 = m_byoyomiSec1;
-        m_addEachMoveSec2 = m_addEachMoveSec1;
-    }
-
-    m_startingPositionName = ui->comboBoxStartingPosition->currentText();
-    m_startingPositionNumber = ui->comboBoxStartingPosition->currentIndex();
-    m_maxMoves = ui->spinBoxMaxMoves->value();
-    m_consecutiveGames = ui->spinBoxConsecutiveGames->value();
-    m_isShowHumanInFront = ui->checkBoxShowHumanInFront->isChecked();
-    m_isAutoSaveKifu = ui->checkBoxAutoSaveKifu->isChecked();
-    m_kifuSaveDir = ui->lineEditKifuSaveDir->text();
-    m_isLoseOnTimeout = ui->checkBoxLoseOnTimeOut->isChecked();
-    m_isSwitchTurnEachGame = ui->checkBoxSwitchTurnEachGame->isEnabled()
-                            && ui->checkBoxSwitchTurnEachGame->isChecked();
 }
 
 // ============================================================
@@ -377,16 +326,6 @@ void StartGameDialog::onSecondPlayerSettingsClicked()
 // ============================================================
 // フォント設定
 // ============================================================
-
-void StartGameDialog::increaseFontSize()
-{
-    if (m_fontHelper.increase()) applyFontSize();
-}
-
-void StartGameDialog::decreaseFontSize()
-{
-    if (m_fontHelper.decrease()) applyFontSize();
-}
 
 void StartGameDialog::applyFontSize()
 {
@@ -653,11 +592,10 @@ void StartGameDialog::resetSettingsToDefault()
 bool StartGameDialog::confirmTimeSettings()
 {
     using TimeControlValidator::Issue;
-    const TimeControlValidator::PlayerTime p1{m_basicTimeHour1, m_basicTimeMinutes1,
-                                              m_byoyomiSec1, m_addEachMoveSec1};
-    const TimeControlValidator::PlayerTime p2{m_basicTimeHour2, m_basicTimeMinutes2,
-                                              m_byoyomiSec2, m_addEachMoveSec2};
-    const bool hasEngine = m_isEngine1 || m_isEngine2;
+    const StartGameDialogData d = data();
+    const TimeControlValidator::PlayerTime p1{d.basicTimeHour1, d.basicTimeMinutes1, d.byoyomiSec1, d.addEachMoveSec1};
+    const TimeControlValidator::PlayerTime p2{d.basicTimeHour2, d.basicTimeMinutes2, d.byoyomiSec2, d.addEachMoveSec2};
+    const bool hasEngine = d.isEngine1 || d.isEngine2;
     const Issue issue = TimeControlValidator::validate(p1, p2, hasEngine);
 
     QString message;

@@ -48,7 +48,6 @@ inline const Setting<QSize> fontSettingsDialogSize{"SizeRelated/fontSettingsDial
 // --- UI状態 ---
 
 /// 最後に選択されたタブインデックス（デフォルト: 0＝対局情報）
-inline const Setting<int> lastSelectedTabIndex{"UI/lastSelectedTabIndex", 0};
 
 /// ツールバーの表示状態（デフォルト: true）
 inline const Setting<bool> toolbarVisible{"UI/toolbarVisible", true};

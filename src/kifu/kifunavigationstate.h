@@ -2,8 +2,7 @@
 #define KIFUNAVIGATIONSTATE_H
 
 /// @file kifunavigationstate.h
-/// @brief 棋譜ナビゲーション状態管理クラスの定義
-
+/// @brief 表示中の手（分岐ツリーのカーソル）と、分岐点ごとに選んだ子の記憶
 
 #include <QObject>
 #include <QHash>
@@ -15,165 +14,74 @@ class KifuBranchTree;
 class KifuBranchNode;
 
 /**
- * @brief 棋譜ナビゲーションの現在状態を管理するクラス
+ * @brief 表示中の手と、分岐点で選んだ子（表示中の手順）を持つ。棋譜の表示はここだけを正とする
  *
- * 現在位置と、分岐点での最後の選択を記憶する。
+ * 現在の手・手数・手順（ライン）・分岐候補は、すべてノード ID から導く（写しを持たない）。
+ * 変わるたびに changed() を1回出す。棋譜欄・分岐候補・分岐ツリー・盤・コメント欄・評価値グラフは
+ * changed() を受けて、ここから表示を作り直す。
+ *
+ * ツリーを作り直して表示中の手が無くなったときは、開始局面へ戻る。
  */
 class KifuNavigationState : public QObject
 {
     Q_OBJECT
 
 public:
-    explicit KifuNavigationState(QObject* parent = nullptr);
+    explicit KifuNavigationState(KifuBranchTree* tree, QObject* parent = nullptr);
 
-    /**
-     * @brief ツリーを設定
-     */
-    void setTree(KifuBranchTree* tree);
-
-    /**
-     * @brief ツリーを取得
-     */
     KifuBranchTree* tree() const { return m_tree; }
 
-    // === 現在位置 ===
-
-    /**
-     * @brief 現在のノードを取得
-     */
+    // --- 表示中の手 ---
     KifuBranchNode* currentNode() const;
-
-    /**
-     * @brief 現在の手数を取得
-     */
     int currentPly() const;
-
-    /**
-     * @brief 現在のラインインデックスを取得（0=本譜、1以降=分岐）
-     * 選択したノードIDの経路から、その時点の行番号を導出する。
-     */
-    int currentLineIndex() const;
-
-    /**
-     * @brief 表示行に対応する経路を選択（保存するのはノードID）
-     * 分岐を選択した時に呼び出す。分岐点より前に戻っても維持される。
-     */
-    void setPreferredLineIndex(int lineIndex);
-
-    /**
-     * @brief 経路の選択記憶を消去する
-     */
-    void resetPreferredLineIndex();
-
-    /**
-     * @brief 分岐点での子選択の記憶をクリア（本譜に戻る時に呼び出す）
-     *
-     * 分岐点での選択記憶（ノードIDで保持する経路）をクリアします。
-     * これにより、本譜に戻った後のナビゲーションで正しく本譜を辿ります。
-     */
-    void clearLineSelectionMemory();
-
-    /**
-     * @brief 現在の経路に対応する分岐行番号。本譜は -1（互換API）
-     */
-    int preferredLineIndex() const;
-
-    /// 選択した経路で次に進むノード。表示上の行番号には依存しない。
-    KifuBranchNode* nextNode(KifuBranchNode* node) const;
-    QList<KifuBranchNode*> selectedPath() const;
-
-    /**
-     * @brief 現在位置のSFENを取得
-     */
+    /// 表示中の局面（終局の行は直前の局面）。ツリーが空なら空文字
     QString currentSfen() const;
 
-    /**
-     * @brief 表示中の手順（選んでいる分岐の手順。終局行は除く）
-     *
-     * 局面列・指し手・棋譜の表記と表示中の手数をまとめて返す。対局中はライブの手も含む。
-     */
+    // --- 表示中の手順 ---
+    /// 開始局面から、分岐点で選んだ子をたどった手順の終わりまで
+    QList<KifuBranchNode*> selectedPath() const;
+    /// 表示中の手順の番号（0=本譜、1以降=分岐。KifuBranchTree::allLines() の添字）
+    int currentLineIndex() const;
+    /// 表示中の手順が本譜か。KifuBranchNode::isMainLine() は親の最初の子かしか見ないので、表示の判定にはこちらを使う
+    bool isOnMainLine() const;
+    /// 表示中の手順の、手数 currentPly までの手順（終局の行は除く。対局中はライブの手も含む）
     RecordLine currentRecordLine() const;
+    /// node の次に進む手（選んだ子。選んでいなければ最初の子）
+    KifuBranchNode* nextNode(const KifuBranchNode* node) const;
 
-    // === 状態設定 ===
+    // --- 分岐候補 ---
+    /// 表示中の手と同じ親を持つ手（兄弟が無ければ空）
+    QList<KifuBranchNode*> branchCandidatesAtCurrent() const;
+    /// 分岐候補欄に「本譜へ戻る」を出すか（分岐候補があり、本譜以外を表示しているとき）
+    bool offersBackToMainLine() const;
 
-    /**
-     * @brief 現在のノードを設定
-     */
+    // --- 変更（変わったときだけ changed() を1回出す） ---
+    /// node へ移り、開始局面から node までの経路を選んだ手順として記憶する
     void setCurrentNode(KifuBranchNode* node);
-
-    /**
-     * @brief ルートに移動
-     */
+    /// node へ移り、開始局面から lineEnd（node の子孫）までの経路を記憶する（分岐の手順を指定して移るとき）
+    void setCurrentNode(KifuBranchNode* node, KifuBranchNode* lineEnd);
+    /// 分岐点での選択を忘れて node へ移る（本譜に戻るとき・ツリーを作り直したとき）
+    void resetToNode(KifuBranchNode* node);
+    /// 選択を忘れて開始局面へ移る
     void goToRoot();
 
-    // === クエリ ===
-
-    /**
-     * @brief 現在のライン（棋譜欄に表示中のライン）が本譜かどうか
-     *
-     * currentLineIndex() == 0 と同義。優先ラインが設定されていればそれを反映する。
-     * KifuBranchNode::isMainLine() は「親の最初の子か」しか見ないため、
-     * 入れ子分岐の先頭子ノードでは本譜でなくても true になる。
-     * 表示上の「本譜」判定（「本譜へ戻る」の表示など）には必ずこちらを使う。
-     */
-    bool isOnMainLine() const;
-
-    /**
-     * @brief 進めるかどうか
-     */
-    bool canGoForward() const;
-
-    /**
-     * @brief 戻れるかどうか
-     */
-    bool canGoBack() const;
-
-    // === 分岐候補 ===
-
-    /**
-     * @brief 現在位置の分岐候補を取得
-     */
-    QList<KifuBranchNode*> branchCandidatesAtCurrent() const;
-
-    /**
-     * @brief 現在位置に分岐があるかどうか
-     */
-    bool hasBranchAtCurrent() const;
-
-    // === 分岐点での子選択の記憶 ===
-    // 「戻る→進む」で直前に通った分岐を辿れるよう、分岐点ごとに
-    // どの子（安定したノードID）を選んだかを記憶する。
-    // 引数と返値のインデックスは、呼び出した時点でノードIDから変換する。
-
-    /**
-     * @brief 分岐点で選んだ子を記憶
-     * @param branchPoint 分岐点のノード
-     * @param childIndex 選んだ子のインデックス（branchPoint->childAt() の添字）
-     */
-    void rememberChildSelection(KifuBranchNode* branchPoint, int childIndex);
-
-    /**
-     * @brief 分岐点で最後に選んだ子のインデックスを取得
-     * @param branchPoint 分岐点のノード
-     * @return 子のインデックス（未選択の場合は0=最初の子）
-     */
-    int lastSelectedChildAt(KifuBranchNode* branchPoint) const;
-
-    /**
-     * @brief ルートから指定ノードまでの経路上にある全分岐点で、経路が通る子を記憶する
-     * @param node 経路の終端ノード
-     *
-     * 「戻る→進む」でこのノードまでの経路を再び辿れるようにする。
-     */
-    void rememberPathSelections(KifuBranchNode* node);
+signals:
+    /// 表示中の手または表示中の手順が変わった
+    void changed();
 
 private:
+    void onTreeChanged();
+    void rememberPath(KifuBranchNode* node);
+    void apply(int nodeId, QHash<int, int> selections);
+
     KifuBranchTree* m_tree = nullptr;
     int m_currentNodeId = -1;
-
     // 分岐点のノードID → 選んだ子のノードID。並べ替えで意味が変わらない。
     // ライン番号はこの経路から表示時に導出し、別の状態として保持しない。
     QHash<int, int> m_selectedChildIds;
+    // 最後に changed() を出したときのツリーの構造の版。手を足してから表示中の手を移したときに、
+    // 後から届く treeChanged で同じ通知を繰り返さないために使う
+    quint64 m_notifiedRevision = 0;
 };
 
 #endif // KIFUNAVIGATIONSTATE_H

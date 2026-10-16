@@ -57,9 +57,10 @@ TsumeShogiSearchDialog::TsumeShogiSearchDialog(QWidget *parent)
     connect(ui->buttonBox, &QDialogButtonBox::accepted, this, &TsumeShogiSearchDialog::accept);
     connect(ui->buttonBox, &QDialogButtonBox::rejected, this, &TsumeShogiSearchDialog::reject);
     connect(ui->toolButtonFontIncrease, &QPushButton::clicked,
-            this, &TsumeShogiSearchDialog::onFontIncrease);
+            &m_fontHelper, &FontSizeHelper::increase);
     connect(ui->toolButtonFontDecrease, &QPushButton::clicked,
-            this, &TsumeShogiSearchDialog::onFontDecrease);
+            &m_fontHelper, &FontSizeHelper::decrease);
+    connect(&m_fontHelper, &FontSizeHelper::fontSizeChanged, this, &TsumeShogiSearchDialog::applyFontSize);
 
     updateEngineSelection();
     applyFontSize();
@@ -132,20 +133,10 @@ void TsumeShogiSearchDialog::done(int result)
     QDialog::done(result);
 }
 
-void TsumeShogiSearchDialog::onFontIncrease()
-{
-    if (m_fontHelper.increase()) applyFontSize();
-}
-
 void TsumeShogiSearchDialog::resizeEvent(QResizeEvent* event)
 {
     QDialog::resizeEvent(event);
     updateMinimumSize();
-}
-
-void TsumeShogiSearchDialog::onFontDecrease()
-{
-    if (m_fontHelper.decrease()) applyFontSize();
 }
 
 void TsumeShogiSearchDialog::applyFontSize()

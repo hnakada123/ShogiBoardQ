@@ -17,16 +17,10 @@ TsumeMateEngine::TsumeMateEngine(QObject* parent)
     , m_session(new UsiEngineSession(this))
 {
     m_session->setInitializationTimeoutMs(kInitializationTimeoutMs);
-    m_deadline.setSingleShot(true);
-    m_deadline.setTimerType(Qt::PreciseTimer);
-    connect(&m_deadline, &QTimer::timeout, this, &TsumeMateEngine::timedOut);
     connect(m_session, &UsiEngineSession::ready, this, &TsumeMateEngine::onReady);
     connect(m_session, &UsiEngineSession::errorOccurred, this, &TsumeMateEngine::onSessionError);
-    UsiProtocolHandler* handler = m_session->handler();
-    connect(handler, &UsiProtocolHandler::checkmateSolved, this, &TsumeMateEngine::onCheckmateSolved);
-    connect(handler, &UsiProtocolHandler::checkmateNoMate, this, &TsumeMateEngine::onCheckmateNoMate);
-    connect(handler, &UsiProtocolHandler::checkmateNotImplemented, this, &TsumeMateEngine::onCheckmateUndetermined);
-    connect(handler, &UsiProtocolHandler::checkmateUnknown, this, &TsumeMateEngine::onCheckmateUndetermined);
+    connect(m_session, &UsiEngineSession::searchTimedOut, this, &TsumeMateEngine::timedOut);
+    connect(m_session->handler(), &UsiProtocolHandler::checkmateReceived, this, &TsumeMateEngine::onCheckmate);
 }
 
 TsumeMateEngine::~TsumeMateEngine() { cancel(); }
@@ -49,7 +43,6 @@ void TsumeMateEngine::setExecutable(const QString& path)
 
 void TsumeMateEngine::cancel()
 {
-    m_deadline.stop();
     m_phase = Phase::Off;
     m_session->quit();
 }
@@ -76,11 +69,12 @@ void TsumeMateEngine::onReady()
 {
     if (m_phase != Phase::Starting) return;
     const UsiProtocolHandler* handler = m_session->handler();
+    const auto postSearchLevel = handler->reportedOption(QStringLiteral("PostSearchLevel"));
     const bool supported =
         handler->reportedEngineName().contains(QStringLiteral("KomoringHeights"), Qt::CaseInsensitive)
-        && handler->reportedOptionLine(QStringLiteral("PostSearchLevel")).contains(QStringLiteral("var MinLength"))
-        && !handler->reportedOptionLine(QStringLiteral("GenerateAllLegalMoves")).isEmpty()
-        && !handler->reportedOptionLine(QStringLiteral("RootIsAndNodeIfChecked")).isEmpty();
+        && postSearchLevel && postSearchLevel->comboValues.contains(QStringLiteral("MinLength"))
+        && handler->reportedOption(QStringLiteral("GenerateAllLegalMoves"))
+        && handler->reportedOption(QStringLiteral("RootIsAndNodeIfChecked"));
     if (!supported) {
         fail(tr("最短手数を確認できるKomoringHeightsを選択してください。"));
         return;
@@ -92,45 +86,41 @@ void TsumeMateEngine::onReady()
 void TsumeMateEngine::beginSearch()
 {
     m_phase = Phase::Searching;
-    UsiProtocolHandler* handler = m_session->handler();
-    handler->sendUsiNewGame();
-    handler->sendPosition(QStringLiteral("position sfen ") + m_sfen);
+    m_session->handler()->sendUsiNewGame();
     // Komoring 1.1.0 は時間制限で最短化を打ち切っても既発見の PV を返す場合がある。
-    // infinite + GUI 側の打切りで、自然終了した MinLength の結果だけを確定扱いする。
-    handler->sendGoMate(0, true);
-    m_deadline.start(m_milliseconds);
+    // go mate infinite で探させ、制限時間までに自然に終わった MinLength の結果だけを確定扱いにする
+    // （時間切れは stop を送らずにエンジンを終わらせる）
+    UsiSearchRequest search;
+    search.position = QStringLiteral("position sfen ") + m_sfen;
+    search.go = UsiGo::mate(0);
+    search.replyTimeoutMs = m_milliseconds;
+    m_session->search(search);
 }
 
 void TsumeMateEngine::finishSearch(const TsumeEvaluation& result)
 {
-    m_deadline.stop();
     m_phase = Phase::Idle;
     emit finished(result);
 }
 
-void TsumeMateEngine::onCheckmateSolved(const QStringList& pv)
+void TsumeMateEngine::onCheckmate(const UsiCheckmate& checkmate)
 {
     if (m_phase != Phase::Searching) return;
     TsumeEvaluation result;
-    result.status = TsumeEvaluation::Status::Mate;
-    result.pv = pv;
-    result.plies = static_cast<int>(pv.size());
-    finishSearch(result);
-}
-
-void TsumeMateEngine::onCheckmateNoMate()
-{
-    if (m_phase != Phase::Searching) return;
-    TsumeEvaluation result;
-    result.status = TsumeEvaluation::Status::NoMate;
-    finishSearch(result);
-}
-
-void TsumeMateEngine::onCheckmateUndetermined()
-{
-    if (m_phase != Phase::Searching) return;
-    TsumeEvaluation result;
-    result.detail = tr("エンジンが判定を完了できませんでした。時間を増やして再判定できます。");
+    switch (checkmate.result) {
+    case UsiCheckmate::Result::Mate:
+        result.status = TsumeEvaluation::Status::Mate;
+        result.pv = checkmate.pv;
+        result.plies = static_cast<int>(checkmate.pv.size());
+        break;
+    case UsiCheckmate::Result::NoMate:
+        result.status = TsumeEvaluation::Status::NoMate;
+        break;
+    case UsiCheckmate::Result::NotImplemented:
+    case UsiCheckmate::Result::Unknown:
+        result.detail = tr("エンジンが判定を完了できませんでした。時間を増やして再判定できます。");
+        break;
+    }
     finishSearch(result);
 }
 

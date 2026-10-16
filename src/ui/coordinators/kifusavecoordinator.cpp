@@ -82,10 +82,9 @@ QString saveViaDialog(QWidget* parent,
     GameSettings::lastKifuSaveDirectory.set(QFileInfo(path).absolutePath());
 
     // 選択されたファイルの拡張子で保存形式を判断
-    using KifuSaveFile::SaveFormat;
-    const SaveFormat format = KifuSaveFile::saveFormatForPath(path);
+    const KifuFormat format = KifuSaveFile::saveFormatForPath(path);
     switch (format) {
-    case SaveFormat::Ki2:
+    case KifuFormat::Ki2:
         if (hasTimeInfo && !confirmLossySave(
                 parent,
                 QObject::tr("KI2形式で保存"),
@@ -93,7 +92,7 @@ QString saveViaDialog(QWidget* parent,
             return QString();
         }
         break;
-    case SaveFormat::Csa:
+    case KifuFormat::Csa:
         if (hasBranches && !confirmLossySave(
                 parent,
                 QObject::tr("CSA形式で保存"),
@@ -101,9 +100,9 @@ QString saveViaDialog(QWidget* parent,
             return QString();
         }
         break;
-    case SaveFormat::Jkf:
+    case KifuFormat::Jkf:
         break;
-    case SaveFormat::Usen:
+    case KifuFormat::Usen:
         if (hasTimeInfo && !confirmLossySave(
                 parent,
                 QObject::tr("USEN形式で保存"),
@@ -112,7 +111,7 @@ QString saveViaDialog(QWidget* parent,
             return QString();
         }
         break;
-    case SaveFormat::Usi:
+    case KifuFormat::Usi:
         if (hasBranches && !confirmLossySave(
                 parent,
                 QObject::tr("USI形式で保存"),
@@ -126,7 +125,9 @@ QString saveViaDialog(QWidget* parent,
             return QString();
         }
         break;
-    case SaveFormat::Kif:
+    case KifuFormat::Kif:
+    case KifuFormat::Sfen:
+    case KifuFormat::Bod:
         break;
     }
 

@@ -4,12 +4,11 @@
 #include <QObject>
 #include <QPointer>
 #include "analysiscoordinator.h"
+#include "usimessages.h"
 #include "recordline.h"
 #include "thinkinginforow.h"
 
 class Usi;
-class UsiCommLogModel;
-class ShogiEngineThinkingModel;
 
 struct AnalysisRequest {
     RecordLine line;
@@ -24,18 +23,17 @@ class AnalysisJob : public QObject
 {
     Q_OBJECT
 public:
-    struct Dependencies {
-        Usi* engine = nullptr; ///< 指定時は借用。未指定ならこの実行が生成・所有する。
-        UsiCommLogModel* log = nullptr;
-        ShogiEngineThinkingModel* thinking = nullptr;
+    struct Deps {
+        Usi* engine = nullptr; ///< 使うエンジン（必須。借用。思考情報・通信ログの表示は持ち主が結ぶ）
     };
-    AnalysisJob(AnalysisRequest request, const Dependencies& deps, QObject* parent = nullptr);
+    AnalysisJob(AnalysisRequest request, const Deps& deps, QObject* parent = nullptr);
     ~AnalysisJob() override;
     bool start();
     void stop();
     QString error() const { return m_error; }
     const RecordLine& line() const { return m_request.line; }
     AnalysisCoordinator* coordinator() { return &m_coordinator; }
+    Usi* engine() const;
     bool isRunning() const { return m_state == State::Initializing || m_state == State::Analyzing; }
 
 signals:
@@ -49,7 +47,8 @@ signals:
 private slots:
     void onInitialized();
     void onPositionPrepared(int ply, const QString& sfen);
-    void onBestMove();
+    void onSearchRequested(const QString& positionCommand, int thinkMs);
+    void onBestMove(const UsiBestMove& result);
     void onInfo(const UsiInfo& info);
     void onThinkingInfo(const ThinkingInfoRow& row);
     void onFinished(AnalysisCoordinator::Mode mode);

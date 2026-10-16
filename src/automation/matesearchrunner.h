@@ -6,6 +6,8 @@
 
 #include <QElapsedTimer>
 #include <QObject>
+
+#include "usimessages.h"
 #include <QString>
 #include <QStringList>
 #include <QTimer>
@@ -44,23 +46,18 @@ signals:
 
 private slots:
     void onSessionReady();
-    void onSolved(const QStringList& pv);
-    void onNoMate();
-    void onNotImplemented();
-    void onUnknown();
-    void onSafetyTimeout();
+    void onCheckmate(const UsiCheckmate& result);
+    void onNoResponse();
     void onSessionError(const QString& message);
 
 private:
     void finish(Status status, const QStringList& pv);
 
     UsiEngineSession* m_session = nullptr; ///< QObject parent 所有
-    QTimer m_safetyTimer;
     QElapsedTimer m_elapsed;
     bool m_done = false;
     bool m_searchStarted = false;
     Request m_request;
-    bool m_stopSent = false;
 };
 
 #endif // MATESEARCHRUNNER_H

@@ -2,30 +2,18 @@
 /// @brief USEN形式棋譜コンバータクラスの実装 - 公開API
 
 #include "usentosfenconverter.h"
+#include "terminalcodes.h"
 #include "parsecommon.h"
 #include "sfenreplay.h"
 #include "shogiboard.h"
 #include "sfenutils.h"
 
 #include <utility>
-#include <QFile>
-#include <QTextStream>
 #include "logcategories.h"
 
 // ============================================================================
 // 公開メソッド
 // ============================================================================
-
-QString UsenToSfenConverter::detectInitialSfenFromFile(const QString& usenPath, QString* detectedLabel)
-{
-    QString content;
-    QString warn;
-    if (!readUsenFile(usenPath, content, &warn)) {
-        if (detectedLabel) *detectedLabel = QStringLiteral("平手(既定)");
-        return SfenUtils::hirateSfen();
-    }
-    return detectInitialSfenFromText(content, detectedLabel);
-}
 
 QString UsenToSfenConverter::detectInitialSfenFromText(const QString& text, QString* detectedLabel)
 {
@@ -62,31 +50,6 @@ QString UsenToSfenConverter::detectInitialSfenFromText(const QString& text, QStr
 
     if (detectedLabel) *detectedLabel = QStringLiteral("局面指定");
     return sfen;
-}
-
-QStringList UsenToSfenConverter::convertFile(const QString& usenPath, QString* errorMessage)
-{
-    KifParseResult result;
-    return parseWithVariations(usenPath, result, errorMessage) ? result.mainline.usiMoves() : QStringList();
-}
-
-QList<KifDisplayItem> UsenToSfenConverter::extractMovesWithTimes(const QString& usenPath, QString* errorMessage)
-{
-    KifParseResult result;
-    return parseWithVariations(usenPath, result, errorMessage) ? result.mainline.displayItems() : QList<KifDisplayItem>();
-}
-
-bool UsenToSfenConverter::parseWithVariations(const QString& usenPath,
-                                               KifParseResult& out,
-                                               QString* errorMessage)
-{
-    out = KifParseResult{};
-
-    QString content;
-    if (!readUsenFile(usenPath, content, errorMessage)) {
-        return false;
-    }
-    return parseText(content, out, errorMessage);
 }
 
 bool UsenToSfenConverter::parseText(const QString& text, KifParseResult& out, QString* errorMessage)
@@ -129,84 +92,47 @@ bool UsenToSfenConverter::parseText(const QString& text, KifParseResult& out, QS
         main.disp.append(KifuParseCommon::createMoveDisplayItem(static_cast<int>(i) + 1, {}));
     if (!mainTerminal.isEmpty()) {
         main.disp.append(KifuParseCommon::createUsiTerminalDisplayItem(
-            static_cast<int>(mainUsiMoves.size()) + 1, terminalFromCode(mainTerminal), initialSfen, mainUsiMoves.size()));
+            static_cast<int>(mainUsiMoves.size()) + 1, TerminalCodes::fromUsen(mainTerminal), initialSfen, mainUsiMoves.size()));
         main.endsWithTerminal = true;
     }
     if (!main.resolve(out.mainline, errorMessage)) return false;
 
-    // 分岐のデコード
-    // USEN形式では各分岐は「直前に記述された手順」からの派生として扱う。
-    // lastLineUsiMoves は直前に記述された手順の全USI指し手列を保持する。
-    QStringList lastLineUsiMoves = mainUsiMoves;
-    QStringList lastLineSfens = out.mainline.sfenList();
-    QList<int> lastLineOwners(mainUsiMoves.size(), -1);
-
+    // 分岐のデコード。USEN の分岐は「直前に記述された手順」から派生する（KIF の「変化：N手」と同じ）
     for (const auto& var : std::as_const(variations)) {
         const int startPly = var.first;
-        const QString& varUsen = var.second;
-
         QString varTerminal;
-        const auto decodedVariation = decodeUsenMovesStrict(varUsen, &varTerminal);
+        const auto decodedVariation = decodeUsenMovesStrict(var.second, &varTerminal);
         if (decodedVariation.invalidCount > 0) {
             if (errorMessage) *errorMessage = decodedVariation.firstError;
             out = KifParseResult{};
             return false;
         }
-        const QStringList varUsiMoves = decodedVariation.moves;
-
-        // 直前の手順から分岐点までの指し手を取得
-        const int offset = startPly - 1;  // 0-indexed
-        if (offset < 0 || offset > lastLineUsiMoves.size()) {
+        const QStringList& varUsiMoves = decodedVariation.moves;
+        const auto base = out.latestBranchPoint(startPly);
+        if (!base) {
             if (errorMessage) *errorMessage = QStringLiteral("USEN: invalid variation start: %1").arg(startPly);
             out = KifParseResult{};
             return false;
         }
-        QStringList prefixMoves;
-        for (int i = 0; i < offset && i < lastLineUsiMoves.size(); ++i) {
-            prefixMoves.append(lastLineUsiMoves[i]);
-        }
 
-        KifVariation kifVar;
-        kifVar.startPly = startPly;
-        kifVar.parentVariation = offset > 0 ? lastLineOwners.at(offset - 1) : -1;
         KifuParseCommon::KifLineDraft branch;
         branch.startPly = startPly;
-        branch.baseSfen = lastLineSfens.at(offset);
-        branch.previousUsi = prefixMoves.isEmpty() ? QString() : prefixMoves.last();
+        branch.baseSfen = base->sfen;
+        branch.previousUsi = base->previousUsi;
         branch.usiMoves = varUsiMoves;
         for (qsizetype i = 0; i < varUsiMoves.size(); ++i)
             branch.disp.append(KifuParseCommon::createMoveDisplayItem(startPly + static_cast<int>(i), {}));
         if (!varTerminal.isEmpty()) {
             branch.disp.append(KifuParseCommon::createUsiTerminalDisplayItem(
-                startPly + static_cast<int>(varUsiMoves.size()), terminalFromCode(varTerminal), branch.baseSfen, varUsiMoves.size()));
+                startPly + static_cast<int>(varUsiMoves.size()), TerminalCodes::fromUsen(varTerminal), branch.baseSfen, varUsiMoves.size()));
             branch.endsWithTerminal = true;
         }
-        if (!branch.resolve(kifVar.line, errorMessage)) return false;
-        lastLineSfens = lastLineSfens.mid(0, offset) + kifVar.line.sfenList();
-
-        const int index = static_cast<int>(out.variations.size());
-        out.variations.push_back(kifVar);
-
-        // 直前の手順を更新: prefix + 今回の分岐の指し手
-        lastLineUsiMoves = prefixMoves + varUsiMoves;
-        lastLineOwners = lastLineOwners.mid(0, offset);
-        lastLineOwners.append(QList<int>(varUsiMoves.size(), index));
+        KifLine line;
+        if (!branch.resolve(line, errorMessage)) return false;
+        out.addVariation(*base, std::move(line));
     }
 
     return true;
-}
-
-QList<KifGameInfoItem> UsenToSfenConverter::extractGameInfo(const QString& filePath)
-{
-    // USENは基本的にメタ情報を含まない
-    Q_UNUSED(filePath)
-    return QList<KifGameInfoItem>();
-}
-
-QMap<QString, QString> UsenToSfenConverter::extractGameInfoMap(const QString& filePath)
-{
-    Q_UNUSED(filePath)
-    return QMap<QString, QString>();
 }
 
 // ============================================================
@@ -217,32 +143,6 @@ namespace {
 
 // base36文字セット
 static constexpr QStringView kBase36Chars = u"0123456789abcdefghijklmnopqrstuvwxyz";
-
-// 終局理由コードのマッピング (スライド Image 5より)
-struct TerminalInfo {
-    const char* code;
-    TerminalType type;
-};
-
-static const TerminalInfo kTerminalCodes[] = {
-    {"i", TerminalType::IllegalLoss},
-    {"r", TerminalType::Resign},
-    {"t", TerminalType::Timeout},
-    {"p", TerminalType::Interrupt},
-    {"j", TerminalType::Impasse},
-    {nullptr, TerminalType::None}
-};
-
-// 終局コードかどうかを判定
-static bool isTerminalCode(const QString& code)
-{
-    for (int i = 0; kTerminalCodes[i].code != nullptr; ++i) {
-        if (code == QString::fromLatin1(kTerminalCodes[i].code)) {
-            return true;
-        }
-    }
-    return false;
-}
 
 // 段番号から行文字へ (1-9 -> 'a'-'i')
 inline QChar rankToChar(int r) {
@@ -291,36 +191,6 @@ inline QChar dropTypeToUsiChar(int typeCode) {
 // ============================================================================
 // デコード・パースメソッド
 // ============================================================================
-
-TerminalType UsenToSfenConverter::terminalFromCode(const QString& code)
-{
-    for (int i = 0; kTerminalCodes[i].code != nullptr; ++i) {
-        if (code == QString::fromLatin1(kTerminalCodes[i].code)) {
-            return kTerminalCodes[i].type;
-        }
-    }
-    return TerminalType::Error;
-}
-
-bool UsenToSfenConverter::readUsenFile(const QString& filePath, QString& content, QString* warn)
-{
-    QFile file(filePath);
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        if (warn) *warn = QStringLiteral("ファイルを開けません: %1").arg(filePath);
-        return false;
-    }
-
-    QTextStream in(&file);
-    content = in.readAll().trimmed();
-    file.close();
-
-    if (content.isEmpty()) {
-        if (warn) *warn = QStringLiteral("ファイルが空です");
-        return false;
-    }
-
-    return true;
-}
 
 bool UsenToSfenConverter::parseUsenString(const QString& usen,
                                            QString& mainlineUsen,
@@ -371,7 +241,7 @@ bool UsenToSfenConverter::parseUsenString(const QString& usen,
         if (lastDot >= 0) {
             const QString possibleTerminal = movesAndTerminal.mid(lastDot + 1);
             // 1文字の終局コードかチェック
-            if (possibleTerminal.isEmpty() || isTerminalCode(possibleTerminal)) {
+            if (possibleTerminal.isEmpty() || TerminalCodes::isUsenCode(possibleTerminal)) {
                 terminal = possibleTerminal;
                 moves = movesAndTerminal.left(lastDot);
             }
@@ -431,7 +301,7 @@ UsenDecodeResult UsenToSfenConverter::decodeUsenMovesStrict(const QString& usenS
     const qsizetype lastDot = movesStr.lastIndexOf(QChar('.'));
     if (lastDot >= 0) {
         const QString possibleTerminal = movesStr.mid(lastDot + 1);
-        if (possibleTerminal.isEmpty() || isTerminalCode(possibleTerminal)) {
+        if (possibleTerminal.isEmpty() || TerminalCodes::isUsenCode(possibleTerminal)) {
             if (terminalOut) *terminalOut = possibleTerminal;
             movesStr = movesStr.left(lastDot);
         }

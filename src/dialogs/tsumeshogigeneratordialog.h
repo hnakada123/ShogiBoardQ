@@ -55,8 +55,6 @@ private slots:
     void onSaveToFile();
     void onCopySelected();
     void onCopyAll();
-    void onFontIncrease();
-    void onFontDecrease();
     void onRestoreDefaults();
     void onResultTableClicked(const QModelIndex& index);
     void onResultTableActivated(const QModelIndex& index);

@@ -79,13 +79,83 @@ struct KifVariation {
     int parentVariation = -1; ///< 分岐元の手順。-1 は本譜、それ以外は variations の先行要素
 };
 
+/// 変化の分岐元（どの手順の、どの局面から分かれるか）
+struct KifBranchPoint {
+    int parentVariation = -1;  ///< 分岐元の手順。-1 は本譜
+    int startPly = 1;          ///< 変化の最初の手の手数
+    QString sfen;              ///< 変化の最初の手を指す前の局面
+    QString previousUsi;       ///< その局面に至った手（「同」の解決用。開始局面なら空）
+};
+
 /**
- * @brief KIFパース結果（本譜＋変化）を格納する構造体
+ * @brief 取り込んだ棋譜（本譜＋変化）
  *
+ * 変化は addVariation で分岐元（KifBranchPoint）と一緒に足す。分岐元はいつも先に書かれた手順なので、
+ * variations の並びのまま木にできる。
  */
 struct KifParseResult {
     KifLine mainline;                  ///< 本譜
-    QList<KifVariation> variations;  ///< 変化リスト
+    QList<KifVariation> variations;  ///< 変化リスト（書かれた順）
+
+    /// 手順（-1 は本譜）
+    const KifLine& lineAt(int variation) const
+    {
+        return variation < 0 ? mainline : variations.at(variation).line;
+    }
+
+    /// 手順 parent の startPly 手目の手の前で分かれる分岐元（手順がその手の前まで届かなければ nullopt）
+    std::optional<KifBranchPoint> branchPoint(int parent, int startPly) const
+    {
+        if (parent < -1 || parent >= variations.size() || startPly < 1) return std::nullopt;
+        const KifLine& line = lineAt(parent);
+        const int offset = startPly - firstPlyOf(parent);  // 手順の中で、分岐の前に指した手の数
+        if (offset < 0 || offset > line.moveCount()) return std::nullopt;
+        KifBranchPoint point;
+        point.parentVariation = parent;
+        point.startPly = startPly;
+        point.sfen = line.sfenAt(offset);
+        if (offset > 0) {
+            point.previousUsi = line.entries.at(offset - 1).move.move.toString();
+        } else if (parent >= 0) {
+            // 手順の最初の手の前で分かれるなら、直前の手は分岐元の手順にある
+            const KifVariation& variation = variations.at(parent);
+            if (const auto up = branchPoint(variation.parentVariation, variation.startPly)) point.previousUsi = up->previousUsi;
+        }
+        return point;
+    }
+
+    /**
+     * @brief 「変化：N手」の分岐元（KIF・KI2・USEN のように、変化を分岐元の後に並べる形式）
+     *
+     * N-1 手目の指し手を持つ手順のうち最後に書かれたものから分かれる（同じ手数から始まる兄弟の変化は
+     * 分岐元にならない）。N=1 なら本譜の開始局面から。どの手順も N-1 手目まで届かなければ nullopt
+     */
+    std::optional<KifBranchPoint> latestBranchPoint(int startPly) const
+    {
+        if (startPly < 1) return std::nullopt;
+        for (int i = static_cast<int>(variations.size()) - 1; i >= 0; --i) {
+            const KifVariation& variation = variations.at(i);
+            if (variation.startPly < startPly && startPly - variation.startPly <= variation.line.moveCount())
+                return branchPoint(i, startPly);
+        }
+        return branchPoint(-1, startPly);
+    }
+
+    /// 手順の最初の手の手数（-1 は本譜）
+    int firstPlyOf(int variation) const
+    {
+        return variation < 0 ? mainline.startPly : variations.at(variation).startPly;
+    }
+
+    /// 変化を足す（line は from.sfen から始まる手順）
+    void addVariation(const KifBranchPoint& from, KifLine line)
+    {
+        KifVariation variation;
+        variation.startPly = from.startPly;
+        variation.parentVariation = from.parentVariation;
+        variation.line = std::move(line);
+        variations.append(std::move(variation));
+    }
 };
 
 #endif // KIFPARSETYPES_H

@@ -12,6 +12,8 @@
 #include <QElapsedTimer>
 #include <QFutureWatcher>
 #include <QObject>
+
+#include "usimessages.h"
 #include <QSet>
 #include <QStringList>
 #include <QTimer>
@@ -67,11 +69,8 @@ signals:
 
 private slots:
     void onEngineInitialized();
-    void onCheckmateSolved(const QStringList& pv);
-    void onCheckmateNoMate();
-    void onCheckmateNotImplemented();
-    void onCheckmateUnknown();
-    void onSafetyTimeout();
+    void onCheckmate(const UsiCheckmate& result);
+    void onNoResponse();
     void onProgressTimerTimeout();
     void onBatchReady();
     void onEngineError(const QString& message);
@@ -98,7 +97,9 @@ private:
     void processResult(bool found, const QStringList& pv = {});
     bool registerFoundPosition(const QString& sfen, const QStringList& pv);
     void rejectInconclusiveTrim();
-    bool consumeStaleResponse();
+    void onMate(const QStringList& pv);
+    void onNoMate();
+    void onUndetermined();
     void advanceAfterFailure();
     void cleanup();
     void startVerification(const QString& sfen, Phase origin);
@@ -113,7 +114,7 @@ private:
     void startTrimmingPhase(const QString& sfen, const QStringList& pv);
     void tryNextTrimCandidate();
     void sendTrimmingCheck(const QString& modifiedSfen);
-    /// position と go mate を送る
+    /// go mate で探す（制限時間を過ぎても応答がなければ stop を送り、その応答は不明として扱う）
     void sendMateSearch(const QString& positionStr, int timeLimitMs);
     void finishTrimmingPhase();
 
@@ -127,10 +128,8 @@ private:
     Phase m_phase = Phase::Idle; ///< 現在のフェーズ
     bool m_starting = false;                 ///< start() のエンジン初期化中（イベントループが回る）
     bool m_stopRequestedDuringStart = false; ///< エンジン初期化中に stop() が要求された
-    bool m_awaitingStopResponse = false;     ///< 安全タイマー発火後、stop への応答待ち
 
     QElapsedTimer m_elapsedTimer; ///< 全体経過時間
-    QTimer m_safetyTimer;         ///< エンジン無応答ガードタイマー
     QTimer m_progressTimer;       ///< プログレス更新タイマー
 
     // バッチ生成用状態

@@ -325,54 +325,41 @@ void EvaluationChartWidget::setFloating(bool floating) { Q_UNUSED(floating) }
 // 生の評価データ保持・詰みと範囲外表示・バッチ更新
 // ============================================================
 
-void EvaluationChartWidget::appendScore(int side, int ply, int cp, bool invert, const QString& mate)
+void EvaluationChartWidget::appendScore(int side, int ply, const UsiScore& blackScore)
 {
-    if (ply < 0 || (cp == std::numeric_limits<int>::min() && mate.isEmpty())) return;
-    Score score;
-    score.cp = cp == std::numeric_limits<int>::min() ? 0 : (invert ? -cp : cp);
-    score.mate = mate;
-    if (!mate.isEmpty()) {
-        const bool winning = mate.startsWith(QLatin1Char('+')) || mate.toLongLong() > 0;
-        score.cp = (winning != invert) ? 1 : -1;
-    }
-    m_scores[side].insert(ply, score);
+    if (ply < 0 || blackScore.isNone()) return;
+    m_scores[side].insert(ply, blackScore);
     m_scoresChanged = true;
 }
 
-void EvaluationChartWidget::appendScoreP1(int ply, int cp, bool invert, const QString& mate)
+void EvaluationChartWidget::appendScoreP1(int ply, const UsiScore& blackScore)
 {
-    appendScore(0, ply, cp, invert, mate);
+    appendScore(0, ply, blackScore);
     setCurrentPly(ply);
 }
 
-void EvaluationChartWidget::appendScoreP2(int ply, int cp, bool invert, const QString& mate)
+void EvaluationChartWidget::appendScoreP2(int ply, const UsiScore& blackScore)
 {
-    appendScore(1, ply, cp, invert, mate);
+    appendScore(1, ply, blackScore);
     setCurrentPly(ply);
 }
 
 qreal EvaluationChartWidget::displayedValue(const Score& score) const
 {
-    if (!score.mate.isEmpty()) {
-        // mate 0 は既に詰んだ側。+/- は手数不明の詰み。
-        const bool winning = score.cp > 0;
-        return winning ? yAxisLimit() : -yAxisLimit();
-    }
-    return qBound(-yAxisLimit(), score.cp, yAxisLimit());
+    // 詰みは勝ち側の端に描く（mate 0 は手番側が既に詰んでいる）
+    if (score.isMate()) return score.mateSign() > 0 ? yAxisLimit() : -yAxisLimit();
+    return qBound(-yAxisLimit(), score.value, yAxisLimit());
 }
 
 QString EvaluationChartWidget::scoreText(const Score& score) const
 {
-    if (!score.mate.isEmpty()) {
-        const bool winning = score.cp > 0;
-        const QString side = winning ? tr("先手") : tr("後手");
-        bool numeric = false;
-        const qlonglong distance = score.mate.toLongLong(&numeric);
-        return numeric ? tr("%1勝ち・詰みまで%2手").arg(side).arg(qAbs(distance))
-                       : tr("%1勝ち・詰み").arg(side);
+    if (score.isMate()) {
+        const QString side = score.mateSign() > 0 ? tr("先手") : tr("後手");
+        return score.mateCountKnown ? tr("%1勝ち・詰みまで%2手").arg(side).arg(qAbs(score.value))
+                                    : tr("%1勝ち・詰み").arg(side);
     }
-    const QString value = score.cp > 0 ? QStringLiteral("+%1").arg(score.cp) : QString::number(score.cp);
-    return qAbs(qint64(score.cp)) > yAxisLimit() ? tr("%1（表示範囲外）").arg(value) : value;
+    const QString value = score.value > 0 ? QStringLiteral("+%1").arg(score.value) : QString::number(score.value);
+    return qAbs(qint64(score.value)) > yAxisLimit() ? tr("%1（表示範囲外）").arg(value) : value;
 }
 
 QString EvaluationChartWidget::seriesName(int side) const
@@ -400,7 +387,7 @@ void EvaluationChartWidget::refreshData()
     for (const auto& scores : m_scores) {
         for (auto it = scores.cbegin(); it != scores.cend(); ++it) {
             maxPly = qMax(maxPly, it.key());
-            if (it->mate.isEmpty()) maxCp = qMax(maxCp, qAbs(it->cp));
+            if (!it->isMate()) maxCp = qMax(maxCp, qAbs(it->value));
         }
     }
     const int yLimitBefore = yAxisLimit();
@@ -431,7 +418,7 @@ void EvaluationChartWidget::updatePresentation()
         const auto selected = m_scores[side].constFind(m_currentPly);
         if (selected != m_scores[side].cend()) values.append(tr("%1：%2").arg(seriesName(side), scoreText(*selected)));
         for (auto it = m_scores[side].cbegin(); it != m_scores[side].cend(); ++it) {
-            const bool edge = !it->mate.isEmpty() || qAbs(qint64(it->cp)) > yAxisLimit();
+            const bool edge = it->isMate() || qAbs(qint64(it->value)) > yAxisLimit();
             const bool highlight = it.key() == m_currentPly || (m_hoverSide == side && m_hoverPly == it.key());
             if (edge || highlight || m_scores[side].size() <= 40)
                 m_chartView->markers.append({QPointF(it.key(), displayedValue(*it)),
@@ -507,24 +494,24 @@ void EvaluationChartWidget::setEngine2Name(const QString& name)
     updatePresentation();
 }
 
-void EvaluationChartWidget::bufferScore(int side, int ply, int cp, bool invert, const QString& mate)
+void EvaluationChartWidget::bufferScore(int side, int ply, const UsiScore& blackScore)
 {
-    m_pending.append({side, ply, cp, invert, mate});
+    m_pending.append({side, ply, blackScore});
     if (!m_flushTimer->isActive()) m_flushTimer->start(100);
 }
-void EvaluationChartWidget::appendScoreP1Buffered(int ply, int cp, bool invert, const QString& mate)
+void EvaluationChartWidget::appendScoreP1Buffered(int ply, const UsiScore& blackScore)
 {
-    bufferScore(0, ply, cp, invert, mate);
+    bufferScore(0, ply, blackScore);
 }
-void EvaluationChartWidget::appendScoreP2Buffered(int ply, int cp, bool invert, const QString& mate)
+void EvaluationChartWidget::appendScoreP2Buffered(int ply, const UsiScore& blackScore)
 {
-    bufferScore(1, ply, cp, invert, mate);
+    bufferScore(1, ply, blackScore);
 }
 void EvaluationChartWidget::flushPendingScores()
 {
     if (m_pending.isEmpty()) return;
     for (const auto& point : std::as_const(m_pending)) {
-        appendScore(point.side, point.ply, point.cp, point.invert, point.mate);
+        appendScore(point.side, point.ply, point.score);
         m_maxVisitedPly = qMax(m_maxVisitedPly, point.ply);
     }
     // バッファには直前の局面の評価値が入る。閲覧・解析中の現在手数は

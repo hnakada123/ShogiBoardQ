@@ -12,30 +12,20 @@
 // （CsaGameCoordinator が TestAppGameSession を friend にしている）
 #include "appstate.h"
 #include "csagamecoordinator.h"
-#include "csagamewiring.h"
 #include "gamesession.h"
-#include "gamestartcoordinator.h"
+#include "gamerecordmodel.h"
+#include "kifunavigationstate.h"
 #include "mainwindow.h"
 #include "mainwindowcomposer.h"
 #include "matchcoordinator.h"
 #include "humanturnpolicy.h"
-#include "replaycontroller.h"
+#include "kifubranchnode.h"
+#include "kifubranchtree.h"
 #include "settingscommon.h"
 #include "sfenutils.h"
 #include "shogiclock.h"
 #include "shogigamecontroller.h"
 #include "startgamedialog.h"
-#include "timecontrolcontroller.h"
-
-/// 対局開始の調整役が出すシグナルの順を記録する
-class StartSignalRecorder : public QObject
-{
-    Q_OBJECT
-public:
-    QStringList events;
-public slots:
-    void onPreStartCleanup() { events.append(QStringLiteral("cleanup")); }
-};
 
 class TestAppGameSession : public QObject
 {
@@ -132,34 +122,27 @@ private slots:
         MainWindow window;
         auto& p = window.composer().parts();
         startFromDialog(window);
-        CsaGameCoordinator csa;
-        p.csaGameWiring->setCoordinator(&csa);
+        // 通信対局中の投了・中断は通信対局の司令塔へ送り、ローカル対局は終わらせない
         window.composer().state().activity.setActivity(AppActivityState::Activity::DuringCsaGame);
         p.gameSession->resign();
         p.gameSession->breakOff();
         QVERIFY(!p.match->gameOverState().isOver);
-        p.csaGameWiring->setCoordinator(nullptr);
     }
 
-    /// 通信対局の盤上の着手は、そのときの司令塔の手番で受け付ける。司令塔は最初の通信対局を始めるときに
-    /// 作られるが、判定の依存を更新し直さなくても後から作られたものを使う
-    void csaHumanTurnUsesCurrentCoordinator()
+    /// 通信対局の盤上の着手は、司令塔の状態（対局中・人間の手番）のときだけ受け付ける
+    void csaHumanTurnFollowsCoordinatorState()
     {
         ShogiGameController gc;
         AppActivityState activity;
         activity.setActivity(AppActivityState::Activity::DuringCsaGame);
-        std::unique_ptr<CsaGameCoordinator> csa;
-        CsaGameWiring csaWiring(CsaGameWiring::Dependencies{});
-        HumanTurnPolicy policy;
+        auto csa = std::make_unique<CsaGameCoordinator>();
         HumanTurnPolicy::Deps deps;
         deps.activity = &activity;
         deps.gameController = &gc;
-        deps.csaGameWiring = &csaWiring;
-        policy.updateDeps(deps);
+        deps.csaGame = csa.get();
+        HumanTurnPolicy policy(deps);
         QVERIFY(!policy.isHumanTurnNow());
 
-        csa = std::make_unique<CsaGameCoordinator>();
-        csaWiring.setCoordinator(csa.get());
         csa->m_gameState = CsaGameCoordinator::GameState::InGame;
         csa->m_playerType = CsaGameCoordinator::PlayerType::Human;
         csa->m_client->m_isMyTurn = true;
@@ -172,7 +155,6 @@ private slots:
         csa->m_playerType = CsaGameCoordinator::PlayerType::Human;
         csa->m_gameState = CsaGameCoordinator::GameState::GameOver;
         QVERIFY(!policy.isHumanTurnNow());
-        csaWiring.setCoordinator(nullptr);
     }
 
     void startDialogCancellationKeepsGame()
@@ -180,13 +162,16 @@ private slots:
         humanVsHumanSettings();
         MainWindow window;
         auto& p = window.composer().parts();
-        QSignalSpy cleanup(p.gameStart, &GameStartCoordinator::requestPreStartCleanup);
+        QSignalSpy treeChanged(p.branchTree, &KifuBranchTree::treeChanged);
+        const int rootId = p.branchTree->root()->nodeId();
         m_acceptDialog = false;
         m_dialogSeen = false;
         QTimer::singleShot(0, this, &TestAppGameSession::respondToStartDialog);
         p.gameSession->startGameFromDialog();
         QVERIFY(m_dialogSeen);
-        QCOMPARE(cleanup.count(), 0);
+        // 棋譜は作り直さない
+        QCOMPARE(treeChanged.count(), 0);
+        QCOMPARE(p.branchTree->root()->nodeId(), rootId);
         QCOMPARE(window.composer().state().activity.activity(), AppActivityState::Activity::Idle);
         QVERIFY(!p.match->gameOverState().isOver);
     }
@@ -197,40 +182,35 @@ private slots:
         humanVsHumanSettings();
         MainWindow window;
         auto& p = window.composer().parts();
-        StartSignalRecorder recorder;
-        connect(p.gameStart, &GameStartCoordinator::requestPreStartCleanup,
-                &recorder, &StartSignalRecorder::onPreStartCleanup);
+        QSignalSpy treeChanged(p.branchTree, &KifuBranchTree::treeChanged);
         startFromDialog(window);
-        QCOMPARE(recorder.events, QStringList({QStringLiteral("cleanup")}));
+        QCOMPARE(treeChanged.count(), 1);
+        QCOMPARE(p.branchTree->nodeCount(), 1);
         QVERIFY(p.match->players().humanVsHuman());
         QCOMPARE(p.match->record().startSfen, SfenUtils::hirateSfen());
         QCOMPARE(window.composer().state().activity.activity(), AppActivityState::Activity::DuringGame);
     }
 
-    void newGameStartsMatchClockFromLiveOrReplay_data()
+    /// 棋譜をたどっている途中から新しい対局を始めても、対局の時計を動かす
+    void newGameStartsMatchClockWhileBrowsing()
     {
-        QTest::addColumn<bool>("replay");
-        QTest::newRow("live") << false;
-        QTest::newRow("replay") << true;
-    }
-
-    void newGameStartsMatchClockFromLiveOrReplay()
-    {
-        QFETCH(bool, replay);
         humanVsHumanSettings(5);
         MainWindow window;
         auto& p = window.composer().parts();
-        p.replayController->setReplayMode(replay);
+        KifuBranchNode* first = p.branchTree->addMove(p.branchTree->root(), ShogiMove(), QStringLiteral("▲７六歩(77)"),
+                                                      QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL w - 2"));
+        p.navState->setCurrentNode(first);
+        p.gameRecord->clearDirty();
         startFromDialog(window);
-        ShogiClock* clock = p.timeController->clock();
+        ShogiClock* clock = p.clock;
         QCOMPARE(p.match->clock(), clock);
         QVERIFY(clock->remainingMs(Turn::Black) > 0);
-        // 棋譜再生から開始した場合も、新しい対局の時計を動かす。
         QVERIFY(clock->isRunning());
         QCOMPARE(window.composer().state().activity.activity(), AppActivityState::Activity::DuringGame);
         QVERIFY(p.match->players().humanVsHuman());
         QCOMPARE(p.match->record().startSfen, SfenUtils::hirateSfen());
         p.gameSession->breakOff();
+        p.gameRecord->clearDirty();
     }
 };
 

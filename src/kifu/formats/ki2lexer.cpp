@@ -71,7 +71,7 @@ bool parseResultLine(const QString& line, TerminalType& terminal, int& moveCount
 {
     const QRegularExpressionMatch m = resultPatternCaptureRe().match(line);
     if (!m.hasMatch()) return false;
-    moveCount = KifuParseCommon::flexDigitsToIntNoDetach(m.captured(1));
+    moveCount = ShogiNotation::numberFromDigits(m.captured(1));
 
     // 「まで77手で千日手」などは終局語の表で読む。「先手の勝ち」だけの行は投了とみなす
     terminal = TerminalTypes::findWord(line);

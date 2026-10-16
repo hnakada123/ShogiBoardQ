@@ -2,210 +2,108 @@
 #define LIVEGAMESESSION_H
 
 /// @file livegamesession.h
-/// @brief ライブ対局セッション管理クラスの定義
-
+/// @brief 対局中の手を分岐ツリーへ書き、表示中の手を最新の手に合わせる
 
 #include <QObject>
 #include <QList>
-#include <QStringList>
 #include <QSet>
 
-#include "kifubranchnode.h"
-#include "kifdisplayitem.h"
-#include "shogimove.h"
 #include "recordentry.h"
 
+class KifuBranchNode;
 class KifuBranchTree;
+class KifuNavigationState;
 
 /**
- * @brief ライブ対局のセッションを管理するクラス
+ * @brief 対局（ローカル・通信）の手順を分岐ツリーへ即時に書く
  *
- * 指し手を分岐ツリーへ即時追加し、全データが揃ってから通知する。
- * 途中開始・待った・既存手の再利用を管理し、commit でセッションを終了する。
+ * 対局の開始局面（分岐点）から指した手をツリーに足し、表示中の手（KifuNavigationState）を
+ * 最新の手へ動かす。表示は KifuNavigationState の変化を受けた部品が合わせる。
+ * 途中局面からの対局・待った・既存手の再利用を扱い、commit / discard で終わる。
  */
 class LiveGameSession : public QObject
 {
     Q_OBJECT
 
 public:
-    explicit LiveGameSession(QObject* parent = nullptr);
+    LiveGameSession(KifuBranchTree* tree, KifuNavigationState* navState, QObject* parent = nullptr);
 
-    /**
-     * @brief ツリーを設定
-     */
-    void setTree(KifuBranchTree* tree);
+    // === 開始 ===
 
-    // === セッション開始 ===
-
-    /**
-     * @brief 任意の局面から対局を開始
-     * @param branchPoint 分岐起点（nullptr = ルートから開始）
-     */
+    /// branchPoint（nullptr なら開始局面）から対局を始める。終局の行からは始められない
     void startFromNode(KifuBranchNode* branchPoint);
-
-    /**
-     * @brief 開始局面から対局を開始（新規対局）
-     */
-    void startFromRoot();
+    void startFromRoot() { startFromNode(nullptr); }
+    static bool canStartFrom(const KifuBranchNode* node);
 
     // === 状態 ===
 
-    /**
-     * @brief セッションがアクティブかどうか
-     */
     bool isActive() const { return m_active; }
-
-    /**
-     * @brief 分岐起点を取得（nullptrなら開始局面から）
-     */
+    /// 対局を始めた分岐点（開始局面から始めたら nullptr）
     KifuBranchNode* branchPoint() const { return m_branchPoint; }
-
-    /**
-     * @brief ライブ対局で最後に追加（または既存手の指し直しで再利用）されたノードを取得
-     */
-    KifuBranchNode* liveNode() const { return m_liveParent; }
-
-    /**
-     * @brief 分岐起点の手数を取得
-     */
+    /// 対局の最新の手（まだ指していなければ開始した局面のノード）
+    KifuBranchNode* liveNode() const;
+    /// 対局を始めた局面の手数
     int anchorPly() const;
-
-    /**
-     * @brief 分岐起点の局面SFENを取得
-     */
-    QString anchorSfen() const;
-
-    // === 開始可否チェック ===
-
-    /**
-     * @brief 指定ノードから対局を開始できるかどうか
-     * @param node チェックするノード
-     * @return 終局手でなければtrue
-     */
-    static bool canStartFrom(KifuBranchNode* node);
-
-    // === 指し手追加 ===
-
-    /**
-     * @brief さらに指し手を追加できるかどうか（セッション中で、まだ終局手を追加していない）
-     */
+    /// 対局で指した手の数（終局の行を含む）
+    int moveCount() const { return static_cast<int>(m_entries.size()); }
+    /// 手を足せるか（対局中で、終局の行をまだ書いていない）
     bool canAddMove() const { return m_active && !m_hasTerminal; }
 
+    // === 追記 ===
+
     /**
-     * @brief 指し手を追加
-     * @param move 指し手
-     * @param displayText 表示テキスト（投了・中断などの終局手もこの経路で追加する）
-     * @param sfen この手を指した後のSFEN
-     * @param elapsed 消費時間
+     * @brief 確定した行（指した手・終局）をツリーに足し、表示中の手をその行へ動かす
      *
-     * 終局手を追加すると canAddMove() が false になり、以降の追加は無視される。
+     * 同じ手が既に子にあればそのノードを使う（指し直しで同じ手の分岐を作らない）。
+     * 終局の行を足すと canAddMove() が false になる。
      */
     void appendRecord(const RecordEntry& entry);
-    RecordTime continuedTime(const RecordTime& time) const;
-
-    void addMove(const ShogiMove& move, const QString& displayText,
-                 const QString& sfen, const QString& elapsed);
-
     /**
-     * @brief 時計の消費時間表記を、棋譜の累計に続けた表記へ直す
-     * @param clockElapsed 時計が出した "mm:ss/HH:MM:SS"（累計は対局開始から）
+     * @brief 時計の消費時間を、棋譜の累計に続けた時間へ直す
      *
      * 累計は、棋譜上で同じ側が直前に指した手の累計＋今回の消費時間にする。
      * 棋譜の途中から対局しても、累計が 0 から数え直されない。
      */
-    QString continuedElapsedText(const QString& clockElapsed) const;
-
+    RecordTime continuedTime(const RecordTime& time) const;
     /// このセッションで新しく作る最初のノードに付けるコメントを設定する（開始後に呼ぶ）
     void setFirstMoveNote(const QString& note);
 
-    /// 対局開始位置を越えず、指定手数を取り消せるか。
-    bool canUndoMoves(int count) const;
+    // === 待った ===
 
-    /// セッション履歴を巻き戻す（待った）。取り消した手順はツリーに分岐として残す。
-    /// 次に別の手を指すと、その手順が取り消した手順より本譜側に並ぶ。
+    /// 対局開始位置を越えず、指定手数を取り消せるか
+    bool canUndoMoves(int count) const;
+    /// 手を取り消す。取り消した手順はツリーに分岐として残し、次に別の手を指すとその手順より本譜側に並べる
     bool undoMoves(int count);
 
     // === 確定・破棄 ===
 
-    /**
-     * @brief 現在のセッションをKifuBranchTreeに確定
-     * @return 新しい分岐の終端ノード
-     */
+    /// 対局を終える（足した手はツリーに残る）。最後の手のノードを返す（手が無ければ nullptr）
     KifuBranchNode* commit();
-
-    /**
-     * @brief セッションを破棄（何も変更しない）
-     */
+    /// 対局をやめる（足した手はツリーに残る）
     void discard();
 
-    // === 一時データアクセス ===
-
-    /**
-     * @brief 追加した手数
-     */
-    int moveCount() const { return static_cast<int>(m_entries.size()); }
-
-    /**
-     * @brief 総手数（anchorPly + moveCount）
-     */
-    int totalPly() const;
-
-    /**
-     * @brief 追加した手のリストを取得
-     */
-    QList<KifDisplayItem> moves() const;
-
-    /**
-     * @brief 最新局面のSFENを取得
-     */
-    QString currentSfen() const;
-
-    /**
-     * @brief 現在のライブ対局が属するラインインデックスを取得
-     */
-    int currentLineIndex() const;
-
 signals:
-    /**
-     * @brief セッションが開始された
-     */
-    void sessionStarted(KifuBranchNode* branchPoint);
+    /// 対局を始めた・終えた
+    void activeChanged();
 
-    /**
-     * @brief 指し手が追加された
-     */
-    void moveAdded(int ply, const QString& displayText);
-
-    /// 履歴とツリーの巻き戻し完了。棋譜欄・ツリー・選択位置を同期する。
-    void movesUndone();
-
-    /**
-     * @brief セッションが確定された
-     */
-    void sessionCommitted(KifuBranchNode* newLineEnd);
-
-    /**
-     * @brief セッションが破棄された
-     */
-    void sessionDiscarded();
+private slots:
+    void onTreeChanged();
 
 private:
-    /// 指した手のノードを、待ったで取り消した兄弟より前（本譜側）へ移す。
     void placeBeforeUndoneSiblings(KifuBranchNode* node);
-
     void reset();
 
+    KifuBranchTree* m_tree = nullptr;
+    KifuNavigationState* m_navState = nullptr;
     bool m_active = false;
     bool m_hasTerminal = false;
     KifuBranchNode* m_branchPoint = nullptr;
-    KifuBranchTree* m_tree = nullptr;
-    KifuBranchNode* m_liveParent = nullptr;  // ツリー内の現在位置を追跡（リアルタイム更新用）
-
-    QList<RecordEntry> m_entries;
-    QString m_anchorSfen;
-    QSet<int> m_createdNodeIds;  ///< このセッションが追加したノード（既存手の再利用は含めない）
-    QSet<int> m_undoneNodeIds;   ///< 待ったで取り消した、このセッションの手順の先頭ノード
-    QString m_firstMoveNote;     ///< 次に新しく作るノードへ付けるコメント（棋譜の途中から続けた対局の情報）
+    int m_anchorNodeId = -1;                 ///< 対局を始めた局面のノード（消えたら記録をやめる）
+    KifuBranchNode* m_liveParent = nullptr;  ///< 最後に足した手（まだなければ nullptr）
+    QList<RecordEntry> m_entries;            ///< 対局で足した行（待ったで巻き戻す）
+    QSet<int> m_createdNodeIds;              ///< このセッションで新しく作ったノード
+    QSet<int> m_undoneNodeIds;               ///< 待ったで取り消した手順の先頭のノード
+    QString m_firstMoveNote;                 ///< 次に新しく作るノードへ付けるコメント（棋譜の途中から続けた対局の情報）
 };
 
 #endif // LIVEGAMESESSION_H

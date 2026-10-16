@@ -8,6 +8,7 @@
 #include <QString>
 
 #include "gamemodestrategy.h"
+#include "usimatchhandler.h"
 
 /**
  * @brief 人間とエンジンの対局。エンジンは E1 の枠に置き、engineSide の手番を指す
@@ -25,7 +26,7 @@ public:
 
 private slots:
     void onEngineInitialized();
-    void onEngineMoveReady(const UsiMove& move, const QString& position, const QString& ponder);
+    void onEngineMoveReady(const UsiMatchMove& move);
 
 private:
     void requestEngineMove();

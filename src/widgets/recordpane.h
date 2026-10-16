@@ -42,7 +42,8 @@ public:
 
 signals:
     void mainRowChanged(int row);
-    void branchActivated(const QModelIndex&);
+    /// 分岐候補欄の行を選んだ（クリック・Enter）
+    void branchRowActivated(int row);
     /// 分岐候補欄の右クリック（row は候補の行、行が無ければ -1）
     void branchContextMenuRequested(int row, const QPoint& globalPos);
     void bookmarkEditRequested();
@@ -79,7 +80,7 @@ private slots:
     void onBranchToggled(bool expanded);
     void onKifuRowsInserted(const QModelIndex& parent, int first, int last);
     void onKifuCurrentRowChanged(const QModelIndex& cur, const QModelIndex& prev);
-    void onBranchCurrentRowChanged(const QModelIndex& current, const QModelIndex& previous);
+
     void connectKifuCurrentRowChanged();  ///< currentRowChanged 接続を再構築
 
     /// 分岐候補欄のマウスクリック（QAbstractItemView::clicked）
@@ -94,7 +95,6 @@ private slots:
 private:
     QMetaObject::Connection m_connRowChanged;
     QMetaObject::Connection m_connRowsInserted;
-    QMetaObject::Connection m_connBranchCurrentRow;
 
     // シングルクリックで activated も発火する環境で、同じ行に対する
     // clicked → activated の二重処理を防ぐ（同一イベントループ周回内のみ有効）

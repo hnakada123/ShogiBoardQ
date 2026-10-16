@@ -27,21 +27,23 @@
 
 | 段階 | ファイル | 内容 |
 |---|---|---|
-| 生成 | `mainwindowcomposer_create.cpp` | モデル → 画面の骨格 → 盤・時計 → 棋譜欄・解析タブ → 分岐ツリー → 対局者情報・ドック → 残りのサービス |
-| 依存の注入 | `mainwindowcomposer_wire.cpp`・`mainwindowcomposer_game.cpp` | 共通基盤 → CSA 通信対局 → 棋譜 → UI → ダイアログ → 対局（司令塔 `MatchCoordinator` のシグナルは `connectMatchSignals()` でつなぐ） |
-| 接続と初期表示 | `mainwindowcomposer_finalize.cpp` | シグナル接続、初期局面、ウィンドウとドックの復元 |
+| 生成 | `mainwindowcomposer_create.cpp` | 棋譜の正本とモデル・画面の骨格（`createRecordAndModels`）→ 盤・時計（`createBoard`）→ 棋譜欄・ドックの中身と棋譜の表示・編集（`createPanels`）→ 対局・検討・通信対局の司令塔（`createMatchAndAnalysis`）→ 表示とドック（`createPresentersAndDocks`）→ UI 状態・棋譜のファイル・対局のセッション（`createSessions`）→ 利用者の操作（`createControllers`） |
+| シグナル接続 | `mainwindowcomposer_wire.cpp` | 棋譜（`connectRecord`）→ 盤（`connectBoard`）→ 対局（`connectGame`）→ 検討・思考・メニュー・通知（`connectAnalysisAndUi`。メニュー・ツールバーの項目は `MenuActionsWiring::wire()` でつなぐ） |
+| 初期表示 | `mainwindowcomposer.cpp` | `finalizeUi()` が盤・棋譜欄・対局者名を表示し、ウィンドウの大きさとドックの配置を復元する |
 
-依存は「全部作ってから結ぶ」。互いを参照する部品（検討タブの制御 `ConsiderationUiController` とダイアログの司令塔 `DialogCoordinator` など）も、
-作成順を気にせず結べる。
+自動化 API のサーバーは `mainwindowcomposer_automation.cpp` の `startAutomationServer()` が作る。
+
+依存は各部品のコンストラクタに `Deps` で渡すので、部品は依存する部品より後に作る（作った後に `set*` で注入しない）。
+部品どうしのシグナルは全部作ってからつなぐので、シグナルでつながるだけの部品どうしは作る順を気にしなくてよい。
 
 ## 規則
 
-1. 新しい部品は `MainWindowComponents` にメンバを足し、`createServices()` などで1回だけ作る。
+1. 新しい部品は `MainWindowComponents` にメンバを足し、`mainwindowcomposer_create.cpp` の該当する段階（`createSessions()` など）で1回だけ作る。
 2. 依存は部品のポインタで渡す。`std::function<X*()>` のゲッターや `ensure*` コールバックは使わない。
 3. 状態は `AppState` に置く。部品のメンバに状態のコピーを持たない（例: アプリが何をしているかは `AppState::activity`、
    最後に始めた対局の対局者は `AppState::players` だけ）。
-4. `std::function` は、上位へ操作を委ねる「フック」にだけ使う（例: `CsaGameWiring::Dependencies::saveKifuToPath`、
-   `HumanTurnPolicy::Deps::canRecordVariationMove`）。部品の取得には使わない。司令塔（`MatchCoordinator`）は
+4. `std::function` は、上位へ操作を委ねる「フック」にだけ使う（例: `CsaGameSession::Deps::prepareRecord`、
+   `KifuFileController::Deps::clearUiBeforeKifuLoad`）。部品の取得には使わない。司令塔（`MatchCoordinator`）は
    フックを持たず、シグナルと `MatchRecordSink`（対局の手順の受け手。実体は `GameSession`）で知らせる。
 5. 層の境界をまたぐときだけ関数で受け取る。例: `AutomationContext` は dialogs 層の
    メニューウィンドウを触れないので、お気に入りの取得・設定を関数で受け取る。
@@ -51,6 +53,6 @@
 
 ## 例外
 
-- `CsaGameWiring` は最初の CSA 通信対局で司令塔（`CsaGameCoordinator`）を作る。部品は `coordinator()` で
-  そのときの司令塔を返すので、使う側は `CsaGameWiring*` を持つ。
+- `MatchCoordinator` は手順の受け手の `GameSession` より先に作るので、受け手だけは `createSessions()` で
+  `setRecordSink()` によって渡す。
 - `AutomationServer` は `--automation` 指定時だけ `startAutomationServer()` で作る。

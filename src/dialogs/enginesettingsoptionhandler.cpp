@@ -41,6 +41,50 @@ const char* kLabelBoldStyle =
     "QLabel { color: palette(text); font-weight: bold; "
     "background: transparent; padding: 4px 0px 2px 0px; }";
 
+/// 押すと入る・切れるボタン（USI の button 型）。入っているかで見た目を変える
+class OptionToggleButton : public QPushButton
+{
+public:
+    OptionToggleButton(const QString& text, QWidget* parent) : QPushButton(text, parent)
+    {
+        setAutoDefault(false);
+        setCheckable(true);
+        connect(this, &QPushButton::toggled, this, &OptionToggleButton::restyle);
+        restyle(false);
+    }
+
+private:
+    void restyle(bool checked) { applyButtonToggleStyle(this, checked); }
+};
+
+/// ファイル・フォルダを選んで入力欄に入れるボタン
+class PathSelectButton : public QPushButton
+{
+public:
+    PathSelectButton(QLineEdit* target, EngineSettings::FileType fileType, QWidget* parent)
+        : QPushButton(parent), m_target(target), m_fileType(fileType)
+    {
+        setAutoDefault(false);
+        setStyleSheet(ButtonStyles::fileOperation());
+        setText(fileType == EngineSettings::FileType::Directory
+                    ? EngineSettingsOptionHandler::tr("フォルダ・ディレクトリの選択")
+                    : EngineSettingsOptionHandler::tr("ファイルの選択"));
+        connect(this, &QPushButton::clicked, this, &PathSelectButton::selectPath);
+    }
+
+private:
+    void selectPath()
+    {
+        const QString selected = m_fileType == EngineSettings::FileType::Directory
+            ? QFileDialog::getExistingDirectory(window(), EngineSettingsOptionHandler::tr("フォルダ・ディレクトリの選択"))
+            : QFileDialog::getOpenFileName(window(), EngineSettingsOptionHandler::tr("ファイルの選択"));
+        if (!selected.isEmpty()) m_target->setText(QDir::toNativeSeparators(selected));
+    }
+
+    QLineEdit* m_target;
+    EngineSettings::FileType m_fileType;
+};
+
 } // namespace
 
 EngineSettingsOptionHandler::EngineSettingsOptionHandler(QWidget* parentWidget, QObject* parent)
@@ -102,8 +146,9 @@ void EngineSettingsOptionHandler::buildOptionWidgets(QVBoxLayout* layout)
         categoryOptionsMap[category].append(qMakePair(static_cast<int>(i), option));
     }
 
-    // m_engineOptionWidgetsList のサイズを事前に確保
-    m_engineOptionWidgetsList.resize(m_optionList.size());
+    // 入力欄は m_optionList と同じ並びで持つ
+    m_editors.clear();
+    m_editors.resize(m_optionList.size());
 
     // 定義された順序でカテゴリを処理
     QList<EngineOptionCategory> categoryOrder = EngineOptionDescriptions::allCategories();
@@ -123,233 +168,147 @@ void EngineSettingsOptionHandler::buildOptionWidgets(QVBoxLayout* layout)
             int optionIndex = pair.first;
             const EngineOption& option = pair.second;
 
-            createWidgetForOption(option, optionIndex, groupLayout);
-            m_engineOptionWidgetsList[optionIndex] = m_optionWidgets;
+            m_editors[optionIndex] = createEditor(option, groupLayout);
         }
 
         layout->addWidget(groupBox);
     }
-
-    // 各ボタンが押されているかどうかを確認し、ボタンの色を設定する。
-    changeStatusColorTypeButton();
 }
 
-// 各ボタンが押されているかどうかを確認し、ボタンの色を設定する。
-void EngineSettingsOptionHandler::changeStatusColorTypeButton()
-{
-    if (m_optionList.size() != m_engineOptionWidgetsList.size()) {
-        qWarning() << "changeStatusColorTypeButton: リストサイズ不一致";
-        return;
-    }
+// ============================================================
+// 入力欄
+// ============================================================
 
-    for (qsizetype i = 0; i < m_engineOptionWidgetsList.size(); i++) {
-        if (m_optionList.at(i).type == OptionTypeButton) {
-            m_engineOptionWidgetsList.at(i).selectionButton->setProperty("index", i);
-            connect(m_engineOptionWidgetsList.at(i).selectionButton, &QPushButton::clicked, this, &EngineSettingsOptionHandler::changeColorTypeButton);
-        }
-    }
+QLabel* EngineSettingsOptionHandler::addNameLabel(const QString& text, QVBoxLayout* layout)
+{
+    auto* label = new QLabel(text, m_parentWidget);
+    label->setStyleSheet(kLabelBoldStyle);
+    label->setWordWrap(true);
+    layout->addWidget(label);
+    return label;
 }
 
-// ボタンが押された場合、ボタンの色を変える。
-void EngineSettingsOptionHandler::changeColorTypeButton()
+void EngineSettingsOptionHandler::addHelpDescription(const QString& optionName, QVBoxLayout* layout)
 {
-    QPushButton* pButton = qobject_cast<QPushButton *>(sender());
-    if (!pButton) {
-        qWarning() << "changeColorTypeButton: sender is not a QPushButton";
-        return;
-    }
-
-    int index = qvariant_cast<int>(pButton->property("index"));
-
-    if (index < 0 || index >= m_engineOptionWidgetsList.size()) {
-        qWarning() << "changeColorTypeButton: invalid index" << index;
-        return;
-    }
-
-    applyButtonToggleStyle(m_engineOptionWidgetsList.at(index).selectionButton,
-                           m_engineOptionWidgetsList.at(index).selectionButton->isChecked());
+    const QString description = EngineOptionDescriptions::description(m_engineName, optionName);
+    if (description.isEmpty()) return;
+    auto* label = new QLabel(description, m_parentWidget);
+    label->setWordWrap(true);
+    label->setStyleSheet("QLabel { color: palette(text); padding: 2px 0px 6px 0px; background: transparent; }");
+    layout->addWidget(label);
 }
 
-// オプションの説明ラベルを作成してレイアウトに追加する。
-void EngineSettingsOptionHandler::createHelpDescriptionLabel(const QString& optionName, QVBoxLayout* layout)
+EngineSettingsOptionHandler::OptionEditor EngineSettingsOptionHandler::createEditor(const EngineOption& option,
+                                                                                    QVBoxLayout* layout)
 {
-    QString description = EngineOptionDescriptions::description(m_engineName, optionName);
-
-    if (!description.isEmpty()) {
-        m_optionWidgets.helpDescriptionLabel = new QLabel(description, m_parentWidget);
-        m_optionWidgets.helpDescriptionLabel->setWordWrap(true);
-        m_optionWidgets.helpDescriptionLabel->setStyleSheet(
-            "QLabel { color: palette(text); padding: 2px 0px 6px 0px; "
-            "background: transparent; }");
-        layout->addWidget(m_optionWidgets.helpDescriptionLabel);
-    } else {
-        m_optionWidgets.helpDescriptionLabel = nullptr;
-    }
+    if (option.type == OptionTypeFilename || option.type == OptionTypeString) return createTextBox(option, layout);
+    if (option.type == OptionTypeSpin) return createSpinBox(option, layout);
+    if (option.type == OptionTypeCheck) return createCheckBox(option, layout);
+    if (option.type == OptionTypeButton) return createButton(option, layout);
+    if (option.type == OptionTypeCombo) return createComboBox(option, layout);
+    return {};
 }
 
-// エンジンオプションのためのテキストボックスを作成する。
-void EngineSettingsOptionHandler::createTextBox(const EngineOption& option, QVBoxLayout* layout, int optionIndex)
+EngineSettingsOptionHandler::OptionEditor EngineSettingsOptionHandler::createTextBox(const EngineOption& option,
+                                                                                     QVBoxLayout* layout)
 {
-    m_optionWidgets.optionNameLabel = new QLabel(tr("%1（既定値 %2）").arg(option.name, option.defaultValue), m_parentWidget);
-    m_optionWidgets.optionNameLabel->setStyleSheet(kLabelBoldStyle);
-    m_optionWidgets.optionNameLabel->setWordWrap(true);
-    layout->addWidget(m_optionWidgets.optionNameLabel);
+    QLabel* name = addNameLabel(tr("%1（既定値 %2）").arg(option.name, option.defaultValue), layout);
+    addHelpDescription(option.name, layout);
 
-    createHelpDescriptionLabel(option.name, layout);
+    auto* lineEdit = new QLineEdit(m_parentWidget);
+    lineEdit->setText(option.currentValue);
+    lineEdit->setObjectName(option.name);
+    lineEdit->setAccessibleName(option.name);
+    name->setBuddy(lineEdit);
+    layout->addWidget(lineEdit);
 
-    // テキスト入力用のLineEditを作成する。
-    m_optionWidgets.lineEdit = new QLineEdit(m_parentWidget);
-
-    m_optionWidgets.lineEdit->setText(option.currentValue);
-    layout->addWidget(m_optionWidgets.lineEdit);
-
-    // オプション名に"Dir"、"File"、"Log"が含まれる場合のみファイル/フォルダ選択ボタンを表示する。
-    if (option.name.contains("Dir", Qt::CaseInsensitive) ||
-        option.name.contains("File", Qt::CaseInsensitive) ||
-        option.name.contains("Log", Qt::CaseInsensitive)) {
-
-        m_optionWidgets.selectionButton = new QPushButton(m_parentWidget);
-        m_optionWidgets.selectionButton->setAutoDefault(false);
-        m_optionWidgets.selectionButton->setStyleSheet(ButtonStyles::fileOperation());
-
-        EngineSettings::FileType fileType = EngineSettings::FileType::File;
-        if (option.name.contains("Dir", Qt::CaseInsensitive)) {
-            m_optionWidgets.selectionButton->setText(tr("フォルダ・ディレクトリの選択"));
-            fileType = EngineSettings::FileType::Directory;
-        } else {
-            m_optionWidgets.selectionButton->setText(tr("ファイルの選択"));
-        }
-
-        m_optionWidgets.selectionButton->setProperty("index", optionIndex);
-        m_optionWidgets.selectionButton->setProperty("fileType", static_cast<int>(fileType));
-        connect(m_optionWidgets.selectionButton, &QPushButton::clicked, this, &EngineSettingsOptionHandler::openFile);
-        layout->addWidget(m_optionWidgets.selectionButton);
-    } else {
-        m_optionWidgets.selectionButton = nullptr;
+    // オプション名に "Dir"・"File"・"Log" を含むときだけ、ファイル・フォルダを選ぶボタンを出す
+    const bool directory = option.name.contains(QLatin1String("Dir"), Qt::CaseInsensitive);
+    if (directory || option.name.contains(QLatin1String("File"), Qt::CaseInsensitive)
+        || option.name.contains(QLatin1String("Log"), Qt::CaseInsensitive)) {
+        layout->addWidget(new PathSelectButton(
+            lineEdit, directory ? EngineSettings::FileType::Directory : EngineSettings::FileType::File, m_parentWidget));
     }
-
-    m_optionWidgets.lineEdit->setObjectName(option.name);
-    m_optionWidgets.lineEdit->setAccessibleName(option.name);
-    m_optionWidgets.optionNameLabel->setBuddy(m_optionWidgets.lineEdit);
+    return {std::bind(&QLineEdit::setText, lineEdit, std::placeholders::_1), std::bind(&QLineEdit::text, lineEdit)};
 }
 
-// エンジンオプションのためのスピンボックスを作成する。
-void EngineSettingsOptionHandler::createSpinBox(const EngineOption& option, QVBoxLayout* layout)
+EngineSettingsOptionHandler::OptionEditor EngineSettingsOptionHandler::createSpinBox(const EngineOption& option,
+                                                                                     QVBoxLayout* layout)
 {
-    m_optionWidgets.optionNameLabel = new QLabel(tr("%1").arg(option.name), m_parentWidget);
-    m_optionWidgets.optionNameLabel->setStyleSheet(kLabelBoldStyle);
-    m_optionWidgets.optionNameLabel->setWordWrap(true);
-    layout->addWidget(m_optionWidgets.optionNameLabel);
+    QLabel* name = addNameLabel(option.name, layout);
+    addHelpDescription(option.name, layout);
 
-    createHelpDescriptionLabel(option.name, layout);
+    // 入力できる範囲の説明
+    auto* range = new QLabel(option.name == QLatin1String("USI_Hash")
+                                 ? tr("%1 以上の値を入力してください。（既定値: %2）").arg(option.min, option.defaultValue)
+                                 : tr("%1 から %2 までの値を入力してください。（既定値: %3）")
+                                       .arg(option.min, option.max, option.defaultValue),
+                             m_parentWidget);
+    range->setStyleSheet("QLabel { color: palette(text); background: transparent; }");
+    range->setWordWrap(true);
+    layout->addWidget(range);
 
-    // 入力値制限についてのラベルを作成する。
-    if (option.name == "USI_Hash") {
-        m_optionWidgets.optionDescriptionLabel = new QLabel(tr("%1 以上の値を入力してください。（既定値: %2）")
-                                    .arg(option.min, option.defaultValue), m_parentWidget);
-    } else {
-        m_optionWidgets.optionDescriptionLabel = new QLabel(tr("%1 から %2 までの値を入力してください。（既定値: %3）")
-                                    .arg(option.min, option.max, option.defaultValue), m_parentWidget);
-    }
-    m_optionWidgets.optionDescriptionLabel->setStyleSheet(
-        "QLabel { color: palette(text); background: transparent; }");
-
-    m_optionWidgets.integerSpinBox = new LongLongSpinBox(m_parentWidget);
-    m_optionWidgets.integerSpinBox->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-
-    m_optionWidgets.integerSpinBox->setSpinBoxRange(option.min.toLongLong(), option.max.toLongLong());
-    m_optionWidgets.integerSpinBox->setSpinBoxValue(option.currentValue.toLongLong());
-    m_optionWidgets.integerSpinBox->setFocusPolicy(Qt::StrongFocus);
-    m_optionWidgets.integerSpinBox->installEventFilter(this);
-
-    m_optionWidgets.optionDescriptionLabel->setWordWrap(true);
-    layout->addWidget(m_optionWidgets.optionDescriptionLabel);
-    layout->addWidget(m_optionWidgets.integerSpinBox);
-
-    m_optionWidgets.integerSpinBox->setObjectName(option.name);
-    m_optionWidgets.integerSpinBox->setAccessibleName(option.name);
-    m_optionWidgets.optionNameLabel->setBuddy(m_optionWidgets.integerSpinBox);
+    auto* spinBox = new LongLongSpinBox(m_parentWidget);
+    spinBox->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    spinBox->setSpinBoxRange(option.min.toLongLong(), option.max.toLongLong());
+    spinBox->setSpinBoxValue(option.currentValue.toLongLong());
+    spinBox->setFocusPolicy(Qt::StrongFocus);
+    spinBox->installEventFilter(this);
+    spinBox->setObjectName(option.name);
+    spinBox->setAccessibleName(option.name);
+    name->setBuddy(spinBox);
+    layout->addWidget(spinBox);
+    return {[spinBox](const QString& value) { spinBox->setSpinBoxValue(value.toLongLong()); },
+            [spinBox]() { return QString::number(spinBox->value()); }};
 }
 
-// エンジンオプションのためのチェックボックスを作成する。
-void EngineSettingsOptionHandler::createCheckBox(const EngineOption& option, QVBoxLayout* layout)
+EngineSettingsOptionHandler::OptionEditor EngineSettingsOptionHandler::createCheckBox(const EngineOption& option,
+                                                                                      QVBoxLayout* layout)
 {
-    m_optionWidgets.optionCheckBox = new QCheckBox(m_parentWidget);
-
-
-    m_optionWidgets.optionCheckBox->setText(tr("%1（既定値 %2）").arg(option.name, option.defaultValue));
-    m_optionWidgets.optionCheckBox->setChecked(option.currentValue == "true");
-    layout->addWidget(m_optionWidgets.optionCheckBox);
-
-    createHelpDescriptionLabel(option.name, layout);
-
-    m_optionWidgets.optionCheckBox->setObjectName(option.name);
+    auto* checkBox = new QCheckBox(tr("%1（既定値 %2）").arg(option.name, option.defaultValue), m_parentWidget);
+    checkBox->setChecked(option.currentValue == QLatin1String("true"));
+    checkBox->setObjectName(option.name);
+    layout->addWidget(checkBox);
+    addHelpDescription(option.name, layout);
+    return {[checkBox](const QString& value) { checkBox->setChecked(value == QLatin1String("true")); },
+            [checkBox]() { return checkBox->isChecked() ? QStringLiteral("true") : QStringLiteral("false"); }};
 }
 
-// エンジンオプションのためのボタンを作成する。
-void EngineSettingsOptionHandler::createButton(const EngineOption& option, QVBoxLayout* layout)
+EngineSettingsOptionHandler::OptionEditor EngineSettingsOptionHandler::createButton(const EngineOption& option,
+                                                                                    QVBoxLayout* layout)
 {
-    m_optionWidgets.selectionButton = new QPushButton(option.name, m_parentWidget);
-    m_optionWidgets.selectionButton->setAutoDefault(false);
-    m_optionWidgets.selectionButton->setCheckable(true);
-    m_optionWidgets.selectionButton->setChecked(option.currentValue == "on");
-
-    applyButtonToggleStyle(m_optionWidgets.selectionButton, m_optionWidgets.selectionButton->isChecked());
-
-    layout->addWidget(m_optionWidgets.selectionButton);
-
-    createHelpDescriptionLabel(option.name, layout);
-
-    m_optionWidgets.selectionButton->setObjectName(option.name);
+    auto* button = new OptionToggleButton(option.name, m_parentWidget);
+    button->setChecked(option.currentValue == QLatin1String("on"));
+    button->setObjectName(option.name);
+    layout->addWidget(button);
+    addHelpDescription(option.name, layout);
+    return {[button](const QString& value) { button->setChecked(value == QLatin1String("on")); },
+            [button]() { return button->isChecked() ? QStringLiteral("on") : QString(); }};
 }
 
-// エンジンオプションのためのコンボボックスを作成する。
-void EngineSettingsOptionHandler::createComboBox(const EngineOption& option, QVBoxLayout* layout)
+EngineSettingsOptionHandler::OptionEditor EngineSettingsOptionHandler::createComboBox(const EngineOption& option,
+                                                                                      QVBoxLayout* layout)
 {
-    m_optionWidgets.optionNameLabel = new QLabel(tr("%1（既定値 %2）").arg(option.name, option.defaultValue), m_parentWidget);
-    m_optionWidgets.optionNameLabel->setStyleSheet(kLabelBoldStyle);
-    m_optionWidgets.optionNameLabel->setWordWrap(true);
-    layout->addWidget(m_optionWidgets.optionNameLabel);
+    QLabel* name = addNameLabel(tr("%1（既定値 %2）").arg(option.name, option.defaultValue), layout);
+    addHelpDescription(option.name, layout);
 
-    createHelpDescriptionLabel(option.name, layout);
-
-    m_optionWidgets.comboBox = new QComboBox(m_parentWidget);
-    m_optionWidgets.comboBox->setFocusPolicy(Qt::StrongFocus);
-    m_optionWidgets.comboBox->installEventFilter(this);
-    m_optionWidgets.comboBox->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
-    m_optionWidgets.comboBox->setMinimumContentsLength(20);
-
-
-    for (const QString& value : option.valueList) {
-        m_optionWidgets.comboBox->addItem(value);
-    }
-
-    int currentIndex = m_optionWidgets.comboBox->findText(option.currentValue);
-    if (currentIndex != -1) {
-        m_optionWidgets.comboBox->setCurrentIndex(currentIndex);
-    }
-
-    layout->addWidget(m_optionWidgets.comboBox);
-
-    m_optionWidgets.comboBox->setObjectName(option.name);
-    m_optionWidgets.comboBox->setAccessibleName(option.name);
-    m_optionWidgets.optionNameLabel->setBuddy(m_optionWidgets.comboBox);
-}
-
-// オプションのタイプに応じたUIコンポーネントを作成し、レイアウトに追加する。
-void EngineSettingsOptionHandler::createWidgetForOption(const EngineOption& option, int optionIndex, QVBoxLayout* targetLayout)
-{
-    if (option.type == OptionTypeFilename || option.type == OptionTypeString) {
-        createTextBox(option, targetLayout, optionIndex);
-    } else if (option.type == OptionTypeSpin) {
-        createSpinBox(option, targetLayout);
-    } else if (option.type == OptionTypeCheck) {
-        createCheckBox(option, targetLayout);
-    } else if (option.type == OptionTypeButton) {
-        createButton(option, targetLayout);
-    } else if (option.type == OptionTypeCombo) {
-        createComboBox(option, targetLayout);
-    }
+    auto* comboBox = new QComboBox(m_parentWidget);
+    comboBox->setFocusPolicy(Qt::StrongFocus);
+    comboBox->installEventFilter(this);
+    comboBox->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
+    comboBox->setMinimumContentsLength(20);
+    comboBox->addItems(option.valueList);
+    const int current = comboBox->findText(option.currentValue);
+    if (current != -1) comboBox->setCurrentIndex(current);
+    comboBox->setObjectName(option.name);
+    comboBox->setAccessibleName(option.name);
+    name->setBuddy(comboBox);
+    layout->addWidget(comboBox);
+    return {[comboBox](const QString& value) {
+                const int index = comboBox->findText(value);
+                if (index != -1) comboBox->setCurrentIndex(index);
+            },
+            std::bind(&QComboBox::currentText, comboBox)};
 }
 
 // カテゴリ別の折りたたみ可能なグループボックスを作成する。
@@ -359,51 +318,11 @@ CollapsibleGroupBox* EngineSettingsOptionHandler::createCategoryGroupBox(EngineO
     return new CollapsibleGroupBox(categoryName, m_parentWidget);
 }
 
-// ファイル・ディレクトリ選択ダイアログを表示する。
-void EngineSettingsOptionHandler::openFile()
-{
-    QPushButton* pButton = qobject_cast<QPushButton*>(sender());
-    int index = qvariant_cast<int>(pButton->property("index"));
-    int fileType = qvariant_cast<int>(pButton->property("fileType"));
-
-    QString selectedPath;
-    if (fileType == static_cast<int>(EngineSettings::FileType::Directory)) {
-        selectedPath = QFileDialog::getExistingDirectory(m_parentWidget, tr("フォルダ・ディレクトリの選択"));
-    } else {
-        selectedPath = QFileDialog::getOpenFileName(m_parentWidget, tr("ファイルの選択"));
-    }
-
-    if (!selectedPath.isEmpty()) {
-        m_engineOptionWidgetsList.at(index).lineEdit->setText(QDir::toNativeSeparators(selectedPath));
-    }
-}
-
 // エンジンオプションを既定値に戻す。
 void EngineSettingsOptionHandler::restoreDefaultOptions()
 {
-    for (qsizetype i = 0; i < m_optionList.size(); ++i) {
-        const auto& option = m_optionList[i];
-        if (option.name == QLatin1String("USI_Ponder")) continue;
-        auto& widget = m_engineOptionWidgetsList[i];
-
-        if (option.type == OptionTypeFilename || option.type == OptionTypeString) {
-            widget.lineEdit->setText(option.defaultValue);
-        } else if (option.type == OptionTypeSpin) {
-            widget.integerSpinBox->setSpinBoxValue(option.defaultValue.toLongLong());
-        } else if (option.type == OptionTypeCheck) {
-            widget.optionCheckBox->setChecked(option.defaultValue == "true");
-        } else if (option.type == OptionTypeButton) {
-            bool isChecked = option.defaultValue == "on";
-            widget.selectionButton->setChecked(isChecked);
-            applyButtonToggleStyle(widget.selectionButton, isChecked);
-        } else if (option.type == OptionTypeCombo) {
-            widget.comboBox->clear();
-            for (const auto& value : option.valueList) {
-                widget.comboBox->addItem(value);
-            }
-            int index = widget.comboBox->findText(option.defaultValue);
-            if (index != -1) widget.comboBox->setCurrentIndex(index);
-        }
+    for (qsizetype i = 0; i < m_optionList.size() && i < m_editors.size(); ++i) {
+        if (m_editors.at(i).setValue) m_editors.at(i).setValue(m_optionList.at(i).defaultValue);
     }
 }
 
@@ -427,32 +346,15 @@ void EngineSettingsOptionHandler::saveOptionsToSettings()
 // ウィジェットの現在値を読み取り設定ファイルに保存する。
 void EngineSettingsOptionHandler::writeEngineOptions()
 {
-    if (m_optionList.size() != m_engineOptionWidgetsList.size()) {
-        qWarning() << "writeEngineOptions: リストサイズ不一致 - "
-                   << "m_optionList:" << m_optionList.size()
-                   << "m_engineOptionWidgetsList:" << m_engineOptionWidgetsList.size();
+    if (m_optionList.size() != m_editors.size()) {
+        qWarning() << "writeEngineOptions: リストサイズ不一致 - m_optionList:" << m_optionList.size()
+                   << "m_editors:" << m_editors.size();
         return;
     }
-
-    for (qsizetype i = 0; i < m_optionList.size(); i++) {
-        EngineOption option = m_optionList.at(i);
-        if (option.name == QLatin1String("USI_Ponder")) continue;
-
-        if (option.type == OptionTypeFilename || option.type == OptionTypeString) {
-            option.currentValue = m_engineOptionWidgetsList.at(i).lineEdit->text();
-        } else if (option.type == OptionTypeSpin) {
-            option.currentValue = QString::number(m_engineOptionWidgetsList.at(i).integerSpinBox->value());
-        } else if (option.type == OptionTypeCheck) {
-            option.currentValue = m_engineOptionWidgetsList.at(i).optionCheckBox->isChecked() ? "true" : "false";
-        } else if (option.type == OptionTypeButton) {
-            option.currentValue = m_engineOptionWidgetsList.at(i).selectionButton->isChecked() ? "on" : "";
-        } else if (option.type == OptionTypeCombo) {
-            option.currentValue = m_engineOptionWidgetsList.at(i).comboBox->currentText();
-        }
-
-        m_optionList.replace(i, option);
+    // 入力欄のないオプション（GUI 共通の USI_Ponder）は読んだ値のまま書く
+    for (qsizetype i = 0; i < m_optionList.size(); ++i) {
+        if (m_editors.at(i).value) m_optionList[i].currentValue = m_editors.at(i).value();
     }
-
     saveOptionsToSettings();
 }
 

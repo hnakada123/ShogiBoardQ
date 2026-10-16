@@ -8,7 +8,6 @@
 #include "sfenutils.h"
 #include "kifuexportcommon.h"
 
-#include <QRegularExpression>
 #include <QStringView>
 
 // ========================================
@@ -36,34 +35,24 @@ using KifuExportCommon::buildEndingLine;
 using KifuExportCommon::fwColonLine;
 using KifuExportCommon::removeTurnMarker;
 
-// ヘルパ関数: KIF形式の時間文字列にフォーマット（括弧付き）
-// 仕様: ( m:ss/HH:MM:SS) 形式
-static QString formatKifTime(const QString& rawTimeText)
+// ヘルパ関数: 一手の消費時間を KIF 形式（( m:ss/HH:MM:SS)）にする
+static QString formatKifTime(const RecordTime& time)
 {
-    // KIFの時間は整数秒。CSA V3のミリ秒はこの形式への出力時だけ切り捨てる。
-    static const QRegularExpression fractionRe(QStringLiteral("\\.\\d+"));
-    const QString timeText = QString(rawTimeText).remove(fractionRe);
-    // 既に括弧付きならそのまま返す
-    if (timeText.startsWith(QLatin1Char('('))) return timeText;
-    // 空なら既定値
-    if (timeText.isEmpty()) return KifFormat::kDefaultTime.toString();
-
-    // mm:ss/HH:MM:SS 形式を解析して ( m:ss/HH:MM:SS) 形式に変換
-    const QStringList parts = timeText.split(QLatin1Char('/'));
-    if (parts.size() == 2) {
-        QString moveTime = parts[0];  // mm:ss
-        QString totalTime = parts[1]; // HH:MM:SS
-
-        // 分の先頭ゼロを除去（例: "00:00" → " 0:00", "01:30" → " 1:30"）
-        if (moveTime.length() >= 2 && moveTime.at(0) == QLatin1Char('0')) {
-            moveTime = QStringLiteral(" %1").arg(moveTime.mid(1));
-        }
-
-        return QStringLiteral("(%1/%2)").arg(moveTime, totalTime);
+    if (!time.valid) {
+        // 読めなかった表記は、そのまま括弧で囲んで残す。時間が無ければ既定値
+        const QString text = time.importedText.trimmed();
+        if (text.isEmpty()) return KifFormat::kDefaultTime.toString();
+        return text.startsWith(QLatin1Char('(')) ? text : QStringLiteral("( %1)").arg(text);
     }
-
-    // 解析できない場合はそのまま括弧で囲む
-    return QStringLiteral("( %1)").arg(timeText);
+    // KIF の時間は整数秒（ミリ秒は切り捨てる）。分は2桁の幅で右寄せ
+    const qint64 elapsed = time.elapsedMs / 1000;
+    const qint64 total = time.totalMs / 1000;
+    return QStringLiteral("(%1:%2/%3:%4:%5)")
+        .arg(elapsed / 60, 2, 10, QLatin1Char(' '))
+        .arg(elapsed % 60, 2, 10, QLatin1Char('0'))
+        .arg(total / 3600, 2, 10, QLatin1Char('0'))
+        .arg((total / 60) % 60, 2, 10, QLatin1Char('0'))
+        .arg(total % 60, 2, 10, QLatin1Char('0'));
 }
 
 // ヘルパ関数: ノードが次の兄弟を持つか（Kifu for Windows準拠の '+' マーク判定）
@@ -105,7 +94,7 @@ static void outputMoveNodes(const QList<KifuBranchNode*>& nodes, int fromPly, QS
         if (moveText.isEmpty()) continue;
 
         // 分岐マーク: Kifu for Windows 準拠で、親の子リストで自分より後ろに兄弟がいれば '+'
-        out << formatKifMoveLine(node->ply(), removeTurnMarker(moveText), formatKifTime(node->timeText()),
+        out << formatKifMoveLine(node->ply(), removeTurnMarker(moveText), formatKifTime(node->time()),
                                  hasNextSibling(node));
 
         // しおり・コメント出力（指し手の後に）

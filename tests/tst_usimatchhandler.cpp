@@ -3,7 +3,7 @@
 #include <QFile>
 #include <algorithm>
 
-#include "usiinfoparser.h"
+#include "usilineparser.h"
 #include "boardcoordinates.h"
 #include "engineprocessmanager.h"
 #include "usiprotocolhandler.h"
@@ -12,7 +12,7 @@
 #include "timecontrol_test_helper.h"
 #include "shogiclock.h"
 #include "shogigamecontroller.h"
-#include "thinkinginfopresenter.h"
+#include "thinkinginfoformatter.h"
 #include "settingscommon.h"
 #include "enginepondersettings.h"
 #include "usi.h"
@@ -26,13 +26,14 @@ public:
     ShogiClock clock;
     ShogiGameController game;
     EngineProcessManager process;
-    UsiProtocolHandler protocol;
-    ThinkingInfoPresenter presenter;
+    UsiProtocolHandler protocol{&process};
+    ThinkingInfoFormatter formatter;
     UsiMatchHandler match{&protocol};
     QStringList commands;
     QString position = QStringLiteral("position startpos moves 7g7f");
     QString ponder;
     int errors = 0;
+    int resigns = 0;
     int byoyomi = 5000;
     int completed = 0;
     QPoint lastTo{-1, -1};
@@ -42,29 +43,37 @@ public:
         QString initial = SfenUtils::hirateSfen();
         game.newGame(initial);
         game.setCurrentPlayer(Turn::White);
-        protocol.setProcessManager(&process);
-        connect(&protocol, &UsiProtocolHandler::positionChanged, &presenter, &ThinkingInfoPresenter::setBaseSfen);
-        match.setHooks({[this] { ++errors; protocol.cancelCurrentOperation(); },
-            [this](const UsiMove& move, const QString& result, const QString& nextPonder) {
-                lastTo = BoardCoordinates::toSquare(move);
-                position = result;
-                ponder = nextPonder;
-                ++completed;
-            },
-            [this](const UsiTimingParams& timing, Turn sideToMove, bool pondering) {
-                return matchSearchSnapshot(&clock, sideToMove, timing, pondering);
-            },
-            [this] { clock.finishTurn(); return !clock.isGameOver(); }});
-        connect(&protocol, &UsiProtocolHandler::bestMoveReceived, this, &MatchHarness::acceptMove);
+        match.setClock(&clock);
+        connect(&protocol, &UsiProtocolHandler::positionChanged, &formatter, &ThinkingInfoFormatter::setBaseSfen);
+        connect(&match, &UsiMatchHandler::moveReady, this, &MatchHarness::acceptMove);
+        connect(&match, &UsiMatchHandler::timedOut, this, &MatchHarness::onTimeout);
+        connect(&match, &UsiMatchHandler::resigned, this, &MatchHarness::onResigned);
         connect(&process, &EngineProcessManager::commandSent, this, &MatchHarness::recordCommand);
     }
     ~MatchHarness() override
     {
-        protocol.sendQuit();
         process.stopProcessAsync();
         QFile::remove(SettingsCommon::settingsFilePath());
     }
-    void acceptMove() { match.onBestMoveReceived(); }
+    void acceptMove(const UsiMatchMove& move)
+    {
+        lastTo = BoardCoordinates::toSquare(move.move);
+        position = move.position;
+        ponder = move.ponderPosition;
+        ++completed;
+    }
+    void onTimeout()
+    {
+        ++errors;
+        protocol.cancelCurrentOperation();
+    }
+    void onResigned(Turn) { ++resigns; }
+    bool isPondering() const
+    {
+        return protocol.isSearching() && protocol.searchKind() == UsiProtocolHandler::SearchKind::Ponder;
+    }
+    /// 先読みで予想している相手の手
+    QString predictedMove() const { return protocol.searchCandidate().predictedMove; }
     void recordCommand(const QString& command) { commands.append(command); }
     bool start(const QString& path, bool ponderEnabled = true)
     {
@@ -202,7 +211,7 @@ private slots:
         expected.append({QStringLiteral("isready"), QStringLiteral("usinewgame")});
         QCOMPARE(h.commands, expected);
         QCOMPARE(h.reply(), QPoint(8, 4));
-        QCOMPARE(h.protocol.currentPhase() == UsiProtocolHandler::SearchPhase::Ponder, expectPonder);
+        QCOMPARE(h.isPondering(), expectPonder);
         QCOMPARE(h.commands.last().startsWith(QStringLiteral("go ponder ")), expectPonder);
         QCOMPARE(h.errors, 0);
     }
@@ -290,7 +299,7 @@ private slots:
         QCOMPARE(h.commands.count(QStringLiteral("setoption name USI_Ponder value true")), 1);
         QVERIFY(!h.commands.contains(QStringLiteral("setoption name USI_Ponder value false")));
         QCOMPARE(h.reply(), QPoint(8, 4));
-        QCOMPARE(h.protocol.currentPhase(), UsiProtocolHandler::SearchPhase::Ponder);
+        QVERIFY(h.isPondering());
     }
     void ponderTransition_data()
     {
@@ -316,7 +325,7 @@ private slots:
             QVERIFY(h.initialize(mockPath()));
         }
         QCOMPARE(h.reply(), QPoint(8, 4));
-        QCOMPARE(h.protocol.predictedMove(), QStringLiteral("2g2f"));
+        QCOMPARE(h.predictedMove(), QStringLiteral("2g2f"));
         QVERIFY(h.commands.last().startsWith(QStringLiteral("go ponder btime ")));
         QVERIFY(h.commands.last().contains(QStringLiteral("byoyomi 4750")));
         h.commands.clear();
@@ -339,12 +348,12 @@ private slots:
         MatchHarness h;
         QVERIFY(h.start(mockPath()));
         QCOMPARE(h.reply(), QPoint(8, 4));
-        QVERIFY(h.protocol.currentPhase() == UsiProtocolHandler::SearchPhase::Ponder);
+        QVERIFY(h.isPondering());
         // 通信した局面（7g7f後）から、bestmoveと予測手を進めた局面。表示中の盤には依存しない。
-        QCOMPARE(h.presenter.baseSfen(),
+        QCOMPARE(h.protocol.searchCandidate().baseSfen,
                  QStringLiteral("lnsgkgsnl/1r5b1/p1ppppppp/1p7/9/2P4P1/PP1PPPP1P/1B5R1/LNSGKGSNL w - 4"));
-        QSignalSpy rows(&h.presenter, &ThinkingInfoPresenter::thinkingInfoUpdated);
-        h.presenter.processInfo(*UsiInfoParser::parse(QStringLiteral("info depth 1 score cp 0 pv 8d8e 2f2e 8e8f")));
+        QSignalSpy rows(&h.formatter, &ThinkingInfoFormatter::thinkingInfoUpdated);
+        h.formatter.processInfo(*UsiLineParser::parseInfo(QStringLiteral("info depth 1 score cp 0 pv 8d8e 2f2e 8e8f")));
         QCOMPARE(rows.count(), 1);
         const auto row = qvariant_cast<ThinkingInfoRow>(rows.at(0).at(0));
         QCOMPARE(row.pvKanji, QStringLiteral("△８五歩(84)▲２五歩(26)△８六歩(85)"));
@@ -373,7 +382,6 @@ private slots:
         MatchHarness h;
         QVERIFY(h.start(mockPath()));
         QCOMPARE(h.reply(), QPoint(8, 4));
-        QSignalSpy resign(&h.protocol, &UsiProtocolHandler::bestMoveResignReceived);
         QSignalSpy stopped(&h.protocol, &UsiProtocolHandler::bestMoveReceived);
         h.protocol.sendStop();
         if (responseReceived) QTRY_COMPARE_WITH_TIMEOUT(stopped.count(), 1, 2000);
@@ -381,7 +389,7 @@ private slots:
         h.humanMove(QStringLiteral("2g2f")); // 元の予測に一致しても新しい探索が必要
         QCOMPARE(h.reply(), QPoint(3, 4));
         QCOMPARE(h.errors, 0);
-        QCOMPARE(resign.count(), 0);
+        QCOMPARE(h.resigns, 0);
         QVERIFY(h.commands.first().startsWith(QStringLiteral("position ")));
         QVERIFY(h.commands.at(1).startsWith(QStringLiteral("go btime ")));
         QVERIFY(!h.commands.contains(QStringLiteral("ponderhit")));
@@ -394,7 +402,7 @@ private slots:
         QString sfen = SfenUtils::hirateSfen();
         game.newGame(sfen);
         game.setCurrentPlayer(Turn::White);
-        Usi engine(nullptr, nullptr);
+        Usi engine;
         QSignalSpy initialized(&engine, &Usi::engineInitialized);
         QSignalSpy moves(&engine, &Usi::matchMoveReady);
         QVERIFY(engine.startEngine(mockPath(), QStringLiteral("MatchTest")));
@@ -407,15 +415,15 @@ private slots:
         position += QStringLiteral(" moves 7g7f");
         engine.requestMatchMove(position, {}, timing);
         QTRY_COMPARE_WITH_TIMEOUT(moves.count(), 1, 5000);
-        QCOMPARE(moves.first().at(0).value<UsiMove>().to, (BoardSquare{8, 4}));
-        position = moves.first().at(1).toString();
-        const QString ponder = moves.first().at(2).toString();
+        QCOMPARE(moves.first().at(0).value<UsiMatchMove>().move.to, (BoardSquare{8, 4}));
+        position = moves.first().at(0).value<UsiMatchMove>().position;
+        const QString ponder = moves.first().at(0).value<UsiMatchMove>().ponderPosition;
         position += QStringLiteral(" 2g2f");
         QCOMPARE(position, ponder);
         engine.requestMatchMove(position, ponder, timing);
         QTRY_COMPARE_WITH_TIMEOUT(moves.count(), 2, 5000);
-        QCOMPARE(moves.last().at(0).value<UsiMove>().to, (BoardSquare{3, 4}));
-        engine.cleanupEngineProcessAndThread();
+        QCOMPARE(moves.last().at(0).value<UsiMatchMove>().move.to, (BoardSquare{3, 4}));
+        engine.quit();
     }
     void actualDeadlineRejectsLateMove()
     {
@@ -445,13 +453,13 @@ private slots:
         MatchHarness h;
         QVERIFY(h.start(engine));
         QVERIFY(h.reply() != QPoint(-1, -1));
-        QVERIFY(!h.protocol.predictedMove().isEmpty());
+        QVERIFY(!h.predictedMove().isEmpty());
         h.commands.clear();
-        h.humanMove(h.protocol.predictedMove());
+        h.humanMove(h.predictedMove());
         QVERIFY(h.reply() != QPoint(-1, -1));
         QCOMPARE(h.commands.first(), QStringLiteral("ponderhit"));
         // 先読みと異なる合法な歩突き。最初の予測手は通常2g2fなど。
-        const QString predicted = h.protocol.predictedMove();
+        const QString predicted = h.predictedMove();
         if (!predicted.isEmpty()) {
             const QString move = h.position.contains(QStringLiteral("5g5f"))
                 || predicted == QStringLiteral("5g5f") ? QStringLiteral("9g9f") : QStringLiteral("5g5f");
@@ -493,19 +501,19 @@ private slots:
         QVERIFY(h.initialize(engine));
         QCOMPARE(h.commands.contains(QStringLiteral("setoption name USI_Ponder value true")), sendUnreported);
         QVERIFY(h.reply() != QPoint(-1, -1));
-        QVERIFY(!h.protocol.predictedMove().isEmpty());
+        QVERIFY(!h.predictedMove().isEmpty());
         QVERIFY(h.commands.last().startsWith(QStringLiteral("go ponder ")));
         QTest::qWait(100); // 相手の手番中に実際に先読みさせる
         h.commands.clear();
-        h.humanMove(h.protocol.predictedMove());
+        h.humanMove(h.predictedMove());
         QVERIFY(h.reply() != QPoint(-1, -1));
         QCOMPARE(h.commands.first(), QStringLiteral("ponderhit"));
-        QVERIFY(!h.protocol.predictedMove().isEmpty());
+        QVERIFY(!h.predictedMove().isEmpty());
         QVERIFY(h.commands.last().startsWith(QStringLiteral("go ponder ")));
         QTest::qWait(100);
         h.commands.clear();
         const QString move = h.position.contains(QStringLiteral("5g5f"))
-            || h.protocol.predictedMove() == QLatin1String("5g5f") ? QStringLiteral("9g9f") : QStringLiteral("5g5f");
+            || h.predictedMove() == QLatin1String("5g5f") ? QStringLiteral("9g9f") : QStringLiteral("5g5f");
         h.humanMove(move);
         QVERIFY(h.reply() != QPoint(-1, -1));
         QCOMPARE(h.commands.first(), QStringLiteral("stop"));

@@ -2,117 +2,52 @@
 #define KIFUBRANCHLISTMODEL_H
 
 /// @file kifubranchlistmodel.h
-/// @brief 分岐候補欄のリストモデルクラスの定義
+/// @brief 分岐候補欄のモデル（行は表示中の手の兄弟ノードと「本譜へ戻る」）
 
-#include <QVariant>
+#include <QAbstractTableModel>
 #include <QList>
-#include "abstractlistmodel.h"
-#include "kifubranchdisplay.h"
-#include "kifdisplayitem.h"
+
+class KifuBranchNode;
+class KifuBranchTree;
 
 /**
- * @brief 分岐候補欄のリストモデル
+ * @brief 分岐候補欄のモデル
  *
- * 棋譜の分岐候補手を管理し、表示する。
- * 末尾に「本譜へ戻る」行を任意で追加できる。
- * 内部に分岐グラフ（Node）を保持し、アクティブノードの追跡も行う。
- *
+ * 行は表示中の手と同じ親を持つ手（KifuNavigationState::branchCandidatesAtCurrent()）で、
+ * 本譜以外を表示しているときは末尾に「本譜へ戻る」を付ける（KifuNavigationState::offersBackToMainLine()）。
+ * 行の並びは KifuNavigationController::selectBranchCandidateRow() と同じ。
  */
-class KifuBranchListModel : public AbstractListModel<KifuBranchDisplay>
+class KifuBranchListModel : public QAbstractTableModel
 {
     Q_OBJECT
+
 public:
-    explicit KifuBranchListModel(QObject *parent = nullptr);
+    explicit KifuBranchListModel(const KifuBranchTree* tree, QObject* parent = nullptr);
 
-    // --- QAbstractTableModel オーバーライド ---
-
-    int columnCount(const QModelIndex &parent = QModelIndex()) const override;
-    int rowCount(const QModelIndex &parent = QModelIndex()) const override;
-    QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
+    int rowCount(const QModelIndex& parent = QModelIndex()) const override;
+    int columnCount(const QModelIndex& parent = QModelIndex()) const override;
+    QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override;
     QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
 
-    // --- 候補操作 API ---
+    /// 候補・強調する行・「本譜へ戻る」を表示する
+    void setCandidates(const QList<KifuBranchNode*>& candidates, int currentRow, bool backToMain);
 
-    /// 候補をクリアする（「本譜へ戻る」行も非表示にする）
-    void clearBranchCandidates();
+    /// 「本譜へ戻る」を除いた候補の数
+    int candidateCount() const { return static_cast<int>(m_nodeIds.size()); }
+    bool hasBackToMainRow() const { return m_backToMain; }
+    bool isBackToMainRow(int row) const { return m_backToMain && row == candidateCount(); }
+    int currentHighlightRow() const { return m_currentRow; }
 
-    /// KIF表示用データから候補を一括設定する
-    void setBranchCandidatesFromKif(const QList<KifDisplayItem>& rows);
-
-    /// 末尾の「本譜へ戻る」行の表示/非表示を設定する
-    void setHasBackToMainRow(bool enabled);
-    bool hasBackToMainRow() const;
-
-    /// 指定行が「本譜へ戻る」行かどうか
-    bool isBackToMainRow(int row) const;
-
-    /// 表示行のラベルを返す
-    QString labelAt(int row) const {
-        if (row < 0 || row >= rowCount()) return {};
-        return data(index(row, 0), Qt::DisplayRole).toString();
-    }
-
-    /// 「本譜へ戻る」を除いた実質の候補数
-    int branchCandidateCount() const {
-        int n = rowCount();
-        return n - (m_hasBackToMainRow ? 1 : 0);
-    }
-
-    /// 「本譜へ戻る」を除いた最初の候補の行インデックス（なければ -1）
-    int firstBranchRowIndex() const {
-        return branchCandidateCount() > 0 ? 0 : -1;
-    }
-
-    // --- ハイライト ---
-
-    /// 現在ハイライトする行を設定する（棋譜欄と連動）
-    void setCurrentHighlightRow(int row);
-    int currentHighlightRow() const;
-
-    // --- カスタムロール ---
-
-    /// カスタムロール定義
-    enum Roles {
-        DispCountRole = Qt::UserRole + 1,  ///< 行ごとの最大手数（0..N）
-    };
-
-    // --- 全消去 ---
-
-    /// 候補リストと分岐グラフを全消去する
-    void clear();
-
-    /// clearBranchCandidates() の別名（KifuDisplayCoordinator 経路で使用）
-    void resetBranchCandidates();
-
-    /// setBranchCandidatesFromKif() の別名（KifuDisplayCoordinator 経路で使用）
-    void updateBranchCandidates(const QList<KifDisplayItem>& rows);
+    /// 全行を描き直す（表記を変えた）
+    void refreshAll();
 
 private:
-    bool m_hasBackToMainRow = false;        ///< 末尾に「本譜へ戻る」を表示するか
-    int m_currentHighlightRow = 0;          ///< 現在ハイライトする行
+    QString moveText(const KifuBranchNode* node, bool fullOrigin) const;
 
-private:
-    /// 分岐グラフのノード
-    struct Node {
-        int vid = -1;                       ///< 変化番号（0=本譜, 1..=変化）
-        int ply = 0;                        ///< グローバル手数
-        int row = 0;                        ///< 表示行
-        int prevId = -1;                    ///< 直前ノードID
-        QList<int> nextIds;               ///< 直後ノードIDリスト（分岐なら複数）
-    };
-
-    int m_activeNodeId = -1;                ///< 現在アクティブなノードID
-
-    QList<Node> m_nodes;                  ///< ノード配列（nodeId = index）
-
-private:
-    void setActiveNode(int nodeId);
-    bool graphFallbackToPly(int targetPly, bool preferPrev);
-
-    QHash<int, QByteArray> roleNames() const override;
-
-    /// 指定行の最大手数を算出する
-    int rowMaxPly(int row) const;
+    const KifuBranchTree* m_tree = nullptr;
+    QList<int> m_nodeIds;
+    bool m_backToMain = false;
+    int m_currentRow = -1;
 };
 
 #endif // KIFUBRANCHLISTMODEL_H

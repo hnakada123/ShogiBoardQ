@@ -7,6 +7,7 @@
 #include <QJsonObject>
 #include <QTemporaryFile>
 
+#include "kifu_file_helper.h"
 #include "gamerecordmodel.h"
 #include "jkftosfenconverter.h"
 #include "kifparsetypes.h"
@@ -39,7 +40,7 @@ bool readJkf(const QByteArray& json, KifParseResult& result, QString* error)
 {
     QTemporaryFile file;
     if (!KifuTestHelper::writeToTempFile(file, json, QStringLiteral("jkf"))) return false;
-    return JkfToSfenConverter::parseWithVariations(file.fileName(), result, error);
+    return KifuFile::parse<JkfToSfenConverter>(file.fileName(), result, error);
 }
 
 QString jsonText(const QJsonValue& value)
@@ -107,8 +108,8 @@ private slots:
         GameRecordModel::ExportContext ctx;
         ctx.startSfen = tree.root()->sfen();
         const auto exportAll = [&] {
-            return QList<QStringList>{model.toKifLines(ctx), model.toKi2Lines(ctx), model.toCsaLines(ctx, {}),
-                model.toJkfLines(ctx), model.toUsiLines(ctx, {}), model.toUsenLines(ctx, {})};
+            return QList<QStringList>{model.toKifLines(ctx), model.toKi2Lines(ctx), model.toCsaLines(ctx),
+                model.toJkfLines(ctx), model.toUsiLines(ctx), model.toUsenLines(ctx)};
         };
         const auto original = exportAll();
         node->setDisplayText(QStringLiteral("display text has no result or side"));
@@ -116,7 +117,7 @@ private slots:
         node->setDisplayText({});
         QCOMPARE(exportAll(), original);
         if (static_cast<TerminalType>(terminal) == TerminalType::IllegalWin) {
-            QVERIFY(model.toCsaLines(ctx, {}).contains(white ? QStringLiteral("%+ILLEGAL_ACTION")
+            QVERIFY(model.toCsaLines(ctx).contains(white ? QStringLiteral("%+ILLEGAL_ACTION")
                                                          : QStringLiteral("%-ILLEGAL_ACTION")));
             QVERIFY(model.toKi2Lines(ctx).contains(white ? QStringLiteral("まで0手で後手の反則勝ち")
                                                        : QStringLiteral("まで0手で先手の反則勝ち")));

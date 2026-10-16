@@ -23,8 +23,6 @@ public:
     ~JishogiScoreDialog() override;
 
 private slots:
-    void decreaseFontSize();
-    void increaseFontSize();
     void copyReport();
 
 private:

@@ -10,17 +10,18 @@
 #include <QPointer>
 
 #include "usimove.h"
+#include "usimatchhandler.h"
 #include "usitimingparams.h"
 
+class EngineLifecycleManager;
 class Usi;
-class UsiCommLogModel;
-class ShogiEngineThinkingModel;
 
 /**
- * @brief CSA通信対局用のUSIエンジンライフサイクル管理クラス
+ * @brief CSA通信対局で自分の手を指すエンジン
  *
- * エンジンの初期化・思考指示・終了を担当する。
- * CsaGameCoordinatorからエンジン関連の責務を分離。
+ * エンジンはローカルの対局・検討と同じ枠 E1（EngineLifecycleManager）に置く。思考情報・通信ログの表示は
+ * 枠のエンジンを結ぶ側（EngineDisplayPresenter）が行う。手番は持たせない（投了・宣言勝ちはここで受け取り、
+ * ローカルの対局の司令塔には届かない）。
  */
 class CsaEngineController : public QObject
 {
@@ -30,8 +31,6 @@ public:
     struct InitParams {
         QString enginePath;
         QString engineName;
-        UsiCommLogModel* commLog = nullptr;
-        ShogiEngineThinkingModel* thinkingModel = nullptr;
     };
 
     struct ThinkingParams {
@@ -43,11 +42,10 @@ public:
         UsiMove move;  ///< エンジンの指し手（成り・不成を含む）
         bool resign = false;
         bool valid = false;
-        int scoreCp = 0;
-        QString scoreMate;
+        UsiScore score;  ///< 自分から見た評価値
     };
 
-    explicit CsaEngineController(QObject* parent = nullptr);
+    explicit CsaEngineController(EngineLifecycleManager* engines, QObject* parent = nullptr);
     ~CsaEngineController() override;
 
     void initialize(const InitParams& params);
@@ -58,8 +56,8 @@ public:
     void sendQuit();
     void cleanup();
 
-    Usi* engine() const { return m_engine; }
-    bool isInitialized() const { return m_engine != nullptr; }
+    Usi* engine() const;
+    bool isInitialized() const { return !m_engine.isNull(); }
 
 signals:
     void initialized();
@@ -72,16 +70,15 @@ signals:
 private slots:
     void onEngineInitialized();
     void onEngineError(const QString& message);
-    void onMatchMoveReady(const UsiMove& move, const QString& position, const QString& ponder);
+    void onMatchMoveReady(const UsiMatchMove& move);
     void onEngineResign();
     void onEngineWinDeclaration();
 
 private:
+    EngineLifecycleManager* m_engines = nullptr;  ///< 非所有（エンジンは枠が持つ）
     QString m_engineName;
-    Usi* m_engine = nullptr;
+    QPointer<Usi> m_engine;
     QString m_ponderPosition; ///< 次の手番まで保持する予測局面
-    QPointer<UsiCommLogModel> m_engineCommLog;
-    QPointer<ShogiEngineThinkingModel> m_engineThinking;
 };
 
 #endif // CSAENGINECONTROLLER_H

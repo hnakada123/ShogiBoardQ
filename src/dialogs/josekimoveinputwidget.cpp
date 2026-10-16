@@ -4,7 +4,7 @@
 #include "josekimoveinputwidget.h"
 #include "applicationfonts.h"
 #include "kifupresentation.h"
-#include "josekipresenter.h"
+#include "josekitablemodel.h"
 #include "sfenreplay.h"
 #include "shogiboard.h"
 
@@ -241,7 +241,7 @@ void JosekiMoveInputWidget::updatePreview()
     m_usiLabel->setText(usi);
     ShogiBoard position;
     m_previewLabel->setText(!m_currentSfen.isEmpty() && position.trySetSfen(m_currentSfen)
-        ? JosekiPresenter::usiMoveToJapanese(usi, m_currentSfen)
+        ? JosekiTableModel::moveText(usi, m_currentSfen)
         : (KifuPresentation::options().notation == KifuPresentation::Notation::Western
                ? usi : usiToJapanese(usi)));
     emit moveChanged();

@@ -5,9 +5,8 @@
 /// @brief 分岐ツリーの右クリックメニューから分岐を編集するコントローラの定義
 
 #include <QObject>
-#include <functional>
 
-class BranchTreeManager;
+class GameRecordModel;
 class KifuBranchNode;
 class KifuBranchTree;
 class KifuNavigationController;
@@ -32,16 +31,12 @@ class BranchTreeEditController : public QObject
 
 public:
     struct Deps {
-        KifuBranchTree* tree = nullptr;
-        KifuNavigationState* navState = nullptr;
-        KifuNavigationController* navController = nullptr;
-        LiveGameSession* liveSession = nullptr;
+        KifuBranchTree* tree = nullptr;                  ///< 棋譜の正本（必須）
+        KifuNavigationState* navState = nullptr;         ///< 表示中の手（必須）
+        KifuNavigationController* navController = nullptr; ///< 移る前の確認（必須）
+        LiveGameSession* liveSession = nullptr;          ///< 対局中は編集しない（必須）
+        GameRecordModel* gameRecord = nullptr;           ///< 編集したら未保存にする（必須）
         QWidget* parentWidget = nullptr;                 ///< 確認ダイアログの親
-        std::function<void()> markGameRecordDirty;       ///< 棋譜を未保存にする
-        /// 棋譜が空のとき、盤上で指した最初の手の開始局面（SFEN または "startpos"）
-        std::function<QString()> startPositionSfen;
-        /// ツリーのルートを作ったときに呼ぶ（棋譜モデル・表示へツリーを登録する）
-        std::function<void()> treeRootCreated;
     };
 
     /// 操作の種類（メニュー項目の data）
@@ -52,12 +47,7 @@ public:
         DeleteFromHere,
     };
 
-    explicit BranchTreeEditController(QObject* parent = nullptr);
-
-    void updateDeps(const Deps& deps);
-
-    /// 分岐ツリーの右クリックメニューに接続する
-    void attach(BranchTreeManager* manager);
+    explicit BranchTreeEditController(const Deps& deps, QObject* parent = nullptr);
 
     /// 編集できる状態か（棋譜があり、対局中でない）
     bool canEdit() const;
@@ -97,7 +87,6 @@ private:
     /// menu に node を対象とする編集操作を追加する
     void addEditActions(QMenu* menu, KifuBranchNode* node);
     bool confirmDeletion(KifuBranchNode* node) const;
-    void refreshAfterEdit(KifuBranchNode* current);
 
     Deps m_deps;
     int m_menuTargetNodeId = -1;   ///< 表示中のメニューの対象ノード

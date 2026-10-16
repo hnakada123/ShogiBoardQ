@@ -3,6 +3,7 @@
 
 #include "jkfexporter.h"
 #include "jkfformatter.h"
+#include "terminalcodes.h"
 #include "jkfmoveparser.h"
 #include "gamerecordmodel.h"
 #include "kifparsetypes.h"
@@ -109,7 +110,7 @@ static QJsonArray buildJkfMoves(const KifuBranchNode* first, ShogiBoard& board, 
 
         QJsonObject entry;
         if (node->isTerminal()) {
-            const QString special = JkfFormatter::terminalToJkfSpecial(node->terminalType(), node->terminalSide());
+            const QString special = TerminalCodes::csaSpecial(node->terminalType(), node->terminalSide(), true);
             if (!special.isEmpty()) entry[QStringLiteral("special")] = special;
         } else {
             const UsiMove move = node->move().move;

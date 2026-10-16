@@ -17,7 +17,7 @@
  *
  * 棋譜は1回だけ行に分けて読み、本譜と各変化を1回の走査で KifParseResult にする
  * （表示用の指し手と USI の指し手は同じ走査で作るので、並びが必ずそろう）。
- * ファイル版の関数は文字コードを判別して読み、テキスト版の関数に渡す。
+ * ファイルは KifuLoadParser が文字コードを判別して読み、テキスト版の関数に渡す。
  */
 class KifToSfenConverter
 {
@@ -36,19 +36,10 @@ public:
     // ---- 行に分けたテキスト ----
 
     static QString detectInitialSfenFromLines(const QStringList& lines, QString* detectedLabel = nullptr);
-    [[nodiscard]] static bool parseLines(const QStringList& lines, KifParseResult& out, QString* errorMessage = nullptr);
+    /// 行に分けた棋譜を読む。detectedLabel には手合割の名前（局面図なら "BOD"）を返す
+    [[nodiscard]] static bool parseLines(const QStringList& lines, KifParseResult& out, QString* errorMessage = nullptr,
+                                         QString* detectedLabel = nullptr);
     static QList<KifGameInfoItem> extractGameInfoFromLines(const QStringList& lines);
-
-    // ---- ファイル（読み込んでテキスト版に渡す） ----
-
-    static QString detectInitialSfenFromFile(const QString& kifPath, QString* detectedLabel = nullptr);
-    /// 本譜のUSI列のみ（parseWithVariations の本譜）
-    static QStringList convertFile(const QString& kifPath, QString* errorMessage = nullptr);
-    /// 本譜の「指し手＋時間」（parseWithVariations の本譜）
-    static QList<KifDisplayItem> extractMovesWithTimes(const QString& kifPath, QString* errorMessage = nullptr);
-    [[nodiscard]] static bool parseWithVariations(const QString& kifPath, KifParseResult& out, QString* errorMessage = nullptr);
-    static QList<KifGameInfoItem> extractGameInfo(const QString& filePath);
-    static QMap<QString, QString> extractGameInfoMap(const QString& filePath);
 
     // ---- 局面 ----
 

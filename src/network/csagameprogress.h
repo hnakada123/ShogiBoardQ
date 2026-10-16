@@ -90,9 +90,8 @@ struct CsaGameProgress {
      * @param blackToMove 終局した局面で先手の手番か（連続王手の千日手の手番側）
      * @param consumedMs 終局行の消費時間
      *
-     * 終局原因を TerminalType に対応させ、終局行を行った手番側の印と消費時間を付ける。
-     * 入玉宣言勝ちは宣言した勝者、連続王手の千日手は終局した局面の手番側の行になる。
-     * 千日手・持将棋・最大手数・中断は手番の印を付けない。
+     * 終局原因を TerminalType に対応させ、終局行を行った側（RecordEntry::endingSide。ローカルの対局と同じ規則）の
+     * 印と消費時間を付ける。
      */
     RecordEntry endRecord(CsaClient::GameResult result, CsaClient::GameEndCause cause,
                           bool blackToMove, int consumedMs) const;

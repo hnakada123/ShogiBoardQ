@@ -22,7 +22,9 @@
 #include "sfenvalidationservice.h"
 #include "shogiboard.h"
 #include "shogigamecontroller.h"
+#include "boardchromewidget.h"
 #include "shogiview.h"
+#include "shogiviewhighlighting.h"
 
 /// 駒をつまんで動かすときの部分再描画を検証する。
 /// ドラッグ中は駒の周囲だけを描き直し、それでも画面が全体を描き直したときと一致すること。
@@ -67,11 +69,10 @@ class TestBoardDragRepaint : public QObject
             controller = std::make_unique<BoardInteractionController>(&view, &gc);
             controller->setLegalMovesVisible(true);
             // 対局中と同じく、対局者名・時計・手番表示・直前の指し手を表示する
-            view.setBlackPlayerName(QStringLiteral("先手"));
-            view.setWhitePlayerName(QStringLiteral("後手"));
-            view.setBlackClockText(QStringLiteral("00:08:31"));
-            view.setWhiteClockText(QStringLiteral("00:07:12"));
-            view.setActiveSide(true);
+            view.chrome()->setBlackPlayerName(QStringLiteral("先手"));
+            view.chrome()->setWhitePlayerName(QStringLiteral("後手"));
+            view.chrome()->setBlackClockText(QStringLiteral("00:08:31"));
+            view.chrome()->setWhiteClockText(QStringLiteral("00:07:12"));
             controller->showMoveHighlights(QPoint(3, 3), QPoint(3, 4));
             view.show();
         }
@@ -273,7 +274,7 @@ private slots:
         // クリックを直接送っているため、つまんだ位置はマウスカーソルの位置と一致しない。
         // 最初の移動は計測から外す。
         ui.controller->onLeftClick(QPoint(7, 7));
-        QVERIFY(ui.view.highlightCount() > 0);
+        QVERIFY(ui.view.highlighting()->highlightCount() > 0);
         const QPointF start(ui.view.width() * 0.4, ui.view.height() * 0.5);
         ui.moveTo(start);
 
@@ -305,7 +306,7 @@ private slots:
         ui.controller->onLeftClick(QPoint(7, 7));
         QCoreApplication::processEvents();
         ui.view.removeEventFilter(&spy);
-        QVERIFY(ui.view.highlightCount() > 2);
+        QVERIFY(ui.view.highlighting()->highlightCount() > 2);
 
         // 銀の選択・移動先4マス・つまんだマス・持ち上げた駒で、マス10個分に収まる
         QVERIFY(!spy.regionRects.isEmpty());
@@ -427,6 +428,11 @@ private slots:
         ui.view.removeEventFilter(&spy);
         QRegion repainted;
         for (const QRect& rect : std::as_const(spy.regionRects)) repainted += rect;
+        // 手番が替わる局面なので、対局者のカード（手番の印）は描き直してよい
+        for (const bool black : {true, false}) {
+            const QRect card = ui.view.chrome()->visibleCardRect(black);
+            repainted -= QRect(ui.view.chrome()->mapTo(&ui.view, card.topLeft()), card.size());
+        }
         qint64 area = 0;
         for (const QRect& rect : repainted) area += qint64(rect.width()) * rect.height();
         const QSize fs = ui.view.fieldSize();
@@ -441,8 +447,8 @@ private slots:
         QCoreApplication::processEvents();
         QCOMPARE(stalePixels(ui), 0);
 
-        // 通知の無い変更（全部の駒を駒箱へ）と全体の描き直しの後でも、違うマスを描き直す
-        ui.view.returnAllPiecesToBox();
+        // 全部の駒を駒箱へ戻した後でも、違うマスを描き直す
+        ui.gc.board()->resetGameBoard();
         QCoreApplication::processEvents();
         ui.gc.board()->setSfen(sfen());
         QCoreApplication::processEvents();
@@ -686,9 +692,8 @@ private slots:
         // 前の行で動かした局面から始めても同じになるよう、局面と表示を戻してから外観を変える
         ui.gc.board()->setSfen(sfen());
         ui.controller->showMoveHighlights(QPoint(3, 3), QPoint(3, 4));
-        ui.view.setActiveSide(true);
-        ui.view.setBlackClockText(QStringLiteral("00:08:31"));
-        ui.view.setWhiteClockText(QStringLiteral("00:07:12"));
+        ui.view.chrome()->setBlackClockText(QStringLiteral("00:08:31"));
+        ui.view.chrome()->setWhiteClockText(QStringLiteral("00:07:12"));
         applyAppearance(kind, index);
         settle();
         QCOMPARE(stalePixels(ui), 0);
@@ -712,10 +717,9 @@ private slots:
             ++ply;
             ui.controller->onMoveApplied(f, t, ok);
             ui.controller->showMoveHighlights(f, t);
-            ui.view.setActiveSide(ply % 2 == 1);
             const QString seconds = QStringLiteral("%1").arg(ply % 60, 2, 10, QLatin1Char('0'));
-            ui.view.setBlackClockText(QStringLiteral("00:08:") + seconds);
-            ui.view.setWhiteClockText(QStringLiteral("00:07:") + seconds);
+            ui.view.chrome()->setBlackClockText(QStringLiteral("00:08:") + seconds);
+            ui.view.chrome()->setWhiteClockText(QStringLiteral("00:07:") + seconds);
             settle();
             QCOMPARE(stalePixels(ui), 0);
         }

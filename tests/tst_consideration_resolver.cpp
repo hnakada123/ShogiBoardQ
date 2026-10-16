@@ -27,7 +27,7 @@ ShogiMove move(const char* usi, Turn mover, Piece moving)
 /// 平手から ▲７六歩 △３四歩 ▲２六歩 の本譜と、2手目の分岐 △８四歩
 struct SampleTree {
     KifuBranchTree tree;
-    KifuNavigationState nav;
+    KifuNavigationState nav{&tree};
     KifuBranchNode* ply1 = nullptr;
     KifuBranchNode* ply2 = nullptr;
     KifuBranchNode* ply3 = nullptr;
@@ -44,7 +44,6 @@ struct SampleTree {
                             QStringLiteral("▲２六歩(27)"), kAfter26);
         branch2 = tree.addMove(ply1, move("8c8d", Turn::White, Piece::WhitePawn),
                                QStringLiteral("△８四歩(83)"), kAfter84);
-        nav.setTree(&tree);
     }
 
     RecordLine lineAt(KifuBranchNode* node)
@@ -158,8 +157,7 @@ void TestConsiderationResolver::nonHirateStart_usesSfenCommand()
     tree.setRootSfen(start);
     KifuBranchNode* drop = tree.addMove(tree.root(), move("G*5c", Turn::Black, Piece::BlackGold),
                                         QStringLiteral("▲５三金打"), after);
-    KifuNavigationState nav;
-    nav.setTree(&tree);
+    KifuNavigationState nav(&tree);
     nav.setCurrentNode(drop);
     const RecordLine line = nav.currentRecordLine();
     const auto r = ConsiderationPositionResolver::resolve(line, line.currentPly);
@@ -175,8 +173,7 @@ void TestConsiderationResolver::dropMove_destinationIsDropSquare()
     tree.setRootSfen(start);
     KifuBranchNode* drop = tree.addMove(tree.root(), move("G*5c", Turn::Black, Piece::BlackGold),
                                         QStringLiteral("▲５三金打"), after);
-    KifuNavigationState nav;
-    nav.setTree(&tree);
+    KifuNavigationState nav(&tree);
     nav.setCurrentNode(drop);
     const auto r = ConsiderationPositionResolver::resolve(nav.currentRecordLine(), 1);
 
