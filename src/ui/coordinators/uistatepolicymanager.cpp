@@ -7,7 +7,6 @@
 #include "recordpane.h"
 #include "branchtreemanager.h"
 #include "considerationtabmanager.h"
-#include "boardinteractioncontroller.h"
 
 #include <QAction>
 #include "logcategories.h"
@@ -97,7 +96,6 @@ constexpr Rule kRules[] = {
     // --- ウィジェット ---
     {E::WidgetNavigation,       kBrowsing,    Off::Disable},
     {E::WidgetBranchTree,       kBrowsing,    Off::Disable},
-    {E::WidgetBoardClick,       in(S::Idle) | kPlaying, Off::Disable},  // 対局中の手番は盤の側で判定する
     {E::WidgetConsiderationStart, kAllStates & ~kPlaying, Off::Disable},
 };
 
@@ -246,9 +244,6 @@ void UiStatePolicyManager::applyPolicy(UiElement element, Policy policy)
         break;
     case UiElement::WidgetBranchTree:
         if (m_deps.branchTree) m_deps.branchTree->setBranchTreeClickEnabled(enabled);
-        break;
-    case UiElement::WidgetBoardClick:
-        if (m_deps.boardController) m_deps.boardController->setMoveInputEnabled(enabled);
         break;
     case UiElement::WidgetConsiderationStart:
         if (m_deps.consideration) m_deps.consideration->setStartConsiderationEnabled(enabled);

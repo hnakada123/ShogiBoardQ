@@ -63,27 +63,6 @@ class ShogiView : public QWidget
     Q_PROPERTY(QSize fieldSize READ fieldSize WRITE setFieldSize NOTIFY fieldSizeChanged)
 
 public:
-    // ──────────────────────────── ハイライト ─────────────────────────────
-    /// 1 マスの矩形ハイライト（色つき）。描くのは ShogiViewHighlighting（非所有で持つ）
-    class FieldHighlight
-    {
-    public:
-        enum class Purpose { Move, LegalDestination };
-
-        FieldHighlight(int file, int rank, QColor color, Purpose purpose = Purpose::Move)
-            : m_field(file, rank), m_color(color), m_purpose(purpose) {}
-
-        int file()        const { return m_field.x(); }
-        int rank()        const { return m_field.y(); }
-        QColor color()    const { return m_color; }
-        Purpose purpose() const { return m_purpose; }
-
-    private:
-        QPoint m_field;  // (file, rank)
-        QColor m_color;
-        Purpose m_purpose;
-    };
-
     // ───────────────────────────── コンストラクタ ─────────────────────────────
     explicit ShogiView(QWidget *parent = nullptr);
     const BoardColors& boardColors() const { return m_boardColors; }
@@ -189,7 +168,8 @@ public:
     // ハイライト/矢印の管理クラスへのアクセサ
     ShogiViewHighlighting* highlighting() const;
 
-    void relayoutEditExitButton();
+    /// 「編集終了」ボタンを出す・隠す（押すと chrome()->editExitRequested）
+    void setEditExitButtonVisible(bool visible);
 
 public slots:
     // Q_PROPERTY 用 setter（レイアウト更新・ラベル再配置を含む）
@@ -205,7 +185,6 @@ signals:
     void fieldSizeChanged(QSize fieldSize);  // setFieldSize 内で発火
     void clicked(const QPoint&);             // 左クリック
     void rightClicked(const QPoint&);        // 右クリック
-    void highlightsCleared();                // removeHighlightAllData() で発火
 
 protected:
     // ───────────────────────────── QWidget オーバライド ─────────────────────

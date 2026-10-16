@@ -15,7 +15,7 @@ class KifuFileController;
 class MainWindowActions;
 class MainWindowAppearanceController;
 class PieceSoundPlayer;
-class PositionEditCoordinator;
+class PositionEditSession;
 class SettingsResetController;
 class TsumeSearchController;
 
@@ -23,7 +23,7 @@ class TsumeSearchController;
  * @brief メニュー・ツールバーの QAction を処理する部品のスロットへつなぐ
  *
  * 接続だけを行う。言語・表記のメニューは LanguageController、局面編集中の盤のメニューは
- * PositionEditCoordinator、ドックの配置のメニューは DockUiCoordinator がつなぐ。
+ * PositionEditSession、ドックの配置のメニューは DockUiCoordinator がつなぐ。
  */
 namespace MenuActionsWiring {
 
@@ -35,7 +35,7 @@ struct Deps {
     KifuFileController* kifuFiles = nullptr;           ///< 開く・保存・貼り付け・棋譜と局面のコピー
     GameSession* session = nullptr;                    ///< 対局の開始・投了・中断・待った・即指し
     AnalysisSession* analysis = nullptr;               ///< 詰み探索の中止
-    PositionEditCoordinator* positionEdit = nullptr;   ///< 局面編集の終了
+    PositionEditSession* positionEdit = nullptr;   ///< 局面編集の終了
     KifuAnalysisController* kifuAnalysis = nullptr;    ///< 棋譜解析
     TsumeSearchController* tsumeSearch = nullptr;      ///< 詰み探索
     MainWindowAppearanceController* appearance = nullptr; ///< 盤の反転・拡大・縮小、ツールバー

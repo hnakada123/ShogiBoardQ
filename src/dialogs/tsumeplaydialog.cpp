@@ -215,7 +215,7 @@ void TsumePlayDialog::buildBoardControls(QVBoxLayout* layout)
     m_interaction->setLegalMovesVisible(AppSettings::legalMovesVisible());
     connect(m_view, &ShogiView::clicked, m_interaction, &BoardInteractionController::onLeftClick);
     connect(m_view, &ShogiView::rightClicked, m_interaction, &BoardInteractionController::onRightClick);
-    connect(m_interaction, &BoardInteractionController::moveRequested, this, &TsumePlayDialog::requestMove);
+    m_interaction->setInputRoute(this);
 
     m_replayUi.modeButton = new QStackedWidget(this);
     m_replayUi.modeButton->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Fixed);
@@ -281,7 +281,13 @@ void TsumePlayDialog::selectProblem()
     m_view->chrome()->setWhitePlayerName(black ? QStringLiteral("Hayanagi") : tr("あなた"));
 }
 
-void TsumePlayDialog::requestMove(const QPoint& from, const QPoint& to)
+bool TsumePlayDialog::acceptsInput() const
+{
+    // 正解手順の再生中・エンジンの手番などは盤で指せない
+    return !m_reviewing && m_session->state() == TsumeGameSession::State::Ready;
+}
+
+void TsumePlayDialog::submit(const QPoint& from, const QPoint& to)
 {
     if (m_reviewing) {
         m_view->endDrag();
@@ -343,7 +349,7 @@ void TsumePlayDialog::updateState()
     cancelPendingOutcome();
     using State = TsumeGameSession::State;
     const auto state = m_session->state();
-    m_interaction->setMoveInputEnabled(!m_reviewing && state == State::Ready);
+    if (!acceptsInput()) m_interaction->cancelPendingClick();
     m_actionUi.restart->setEnabled(!m_reviewing && !m_problem.sfen.isEmpty());
     m_actionUi.undo->setEnabled(!m_reviewing && m_session->canUndo());
     m_actionUi.stop->setEnabled(m_reviewing ? m_solution->loading() : state == State::Thinking);

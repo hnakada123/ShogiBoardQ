@@ -54,7 +54,10 @@ public:
     /// 盤面を変更せず、クリック操作の合法性と成り・不成を確定する。
     std::optional<UsiMove> prepareMove(const QPoint& from, const QPoint& to);
 
-    /// エンジン・通信対局の指し手を合法手か確かめて指す。反則手は盤を変えずに nullopt
+    /// 手番の側の合法手か（成り・不成も指し手どおりに判定する）
+    bool isLegal(const UsiMove& move) const;
+
+    /// エンジン・通信対局・定跡の指し手を合法手か確かめて指す。反則手は盤を変えずに nullopt
     std::optional<RecordEntry> applyMove(const UsiMove& move, BoardSquare previousTo);
 
     /// 確かめ済みの手、またはサーバーが裁定する手を指す。盤面に適用できない手は変更せず nullopt
@@ -82,18 +85,11 @@ public:
     using PromotionChooser = std::function<bool()>;
     void setPromotionChooser(PromotionChooser chooser);
 
-    /**
-     * @brief 強制成りモードを設定する（定跡手からの着手時に使用）
-     * @param force true=強制モード有効、false=無効（通常のダイアログ表示）
-     * @param promote 強制モード時の成り/不成（true=成り、false=不成）
-     */
-    void setForcedPromotion(bool force, bool promote = false);
-
 public slots:
     /**
      * @brief SFEN文字列から新規対局を準備する
      *
-     * 盤を指定SFENの局面にし、成りの指定と直前の手を消す。手番は SFEN の手番になる。
+     * 盤を指定SFENの局面にし、直前の手を消す。手番は SFEN の手番になる。
      */
     void newGame(const QString& startSfen);
 
@@ -109,8 +105,6 @@ private:
 
     PromotionChooser m_promotionChooser; ///< 成り・不成の選び方
     UsiMove m_lastMove;                  ///< 直前に指した手
-    bool m_forcedPromotionMode = false;  ///< 強制成りモード有効フラグ（定跡手用）
-    bool m_forcedPromotionValue = false; ///< 強制成りモード時の成り/不成の値
 
     /// 成り・不成それぞれで合法手か
     LegalMoveStatus legalStatus(const UsiMove& move, Turn mover) const;

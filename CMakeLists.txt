@@ -212,8 +212,6 @@ set(SRC_APP
     src/app/dockcreationservice.h
     src/app/gamesession.cpp
     src/app/gamesession.h
-    src/app/humanturnpolicy.cpp
-    src/app/humanturnpolicy.h
     src/app/mainwindow.cpp
     src/app/mainwindow.h
     src/app/mainwindowactions.cpp
@@ -527,10 +525,11 @@ set(SRC_NAVIGATION
 set(SRC_BOARD
     src/board/boardimageexporter.cpp
     src/board/boardimageexporter.h
+    src/board/boardinputroute.h
     src/board/boardinteractioncontroller.cpp
     src/board/boardinteractioncontroller.h
-    src/board/positioneditcontroller.cpp
-    src/board/positioneditcontroller.h
+    src/board/positioneditsession.cpp
+    src/board/positioneditsession.h
 )
 
 set(SRC_UI
@@ -540,6 +539,8 @@ set(SRC_UI
     src/ui/controllers/branchtreeeditcontroller.h
     src/ui/controllers/considerationuicontroller.cpp
     src/ui/controllers/considerationuicontroller.h
+    src/ui/controllers/humanturnpolicy.cpp
+    src/ui/controllers/humanturnpolicy.h
     src/ui/controllers/imageexportcontroller.cpp
     src/ui/controllers/imageexportcontroller.h
     src/ui/controllers/jishogiscoredialogcontroller.cpp
@@ -582,8 +583,6 @@ set(SRC_UI
     src/ui/coordinators/kifuloadcoordinator.h
     src/ui/coordinators/kifusavecoordinator.cpp
     src/ui/coordinators/kifusavecoordinator.h
-    src/ui/coordinators/positioneditcoordinator.cpp
-    src/ui/coordinators/positioneditcoordinator.h
     src/ui/coordinators/promotionflow.cpp
     src/ui/coordinators/promotionflow.h
     src/ui/coordinators/uistatepolicymanager.cpp

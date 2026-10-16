@@ -35,7 +35,7 @@
 #include "menuactionswiring.h"
 #include "piecesoundplayer.h"
 #include "playerinfopresenter.h"
-#include "positioneditcoordinator.h"
+#include "positioneditsession.h"
 #include "pvclickcontroller.h"
 #include "recordpane.h"
 #include "shogigamecontroller.h"
@@ -130,12 +130,10 @@ void MainWindowComposer::connectBoard()
     // 定跡ウィンドウで選んだ手は盤で指した手と同じに扱う
 
     // 局面編集（棋譜は編集した局面だけになる）
-    PositionEditCoordinator* edit = m_c.posEditCoordinator;
-    connect(edit, &PositionEditCoordinator::positionEditingStarted,
-            m_c.actions, &MainWindowActions::resetRecordForEditedPosition);
-    connect(edit, &PositionEditCoordinator::positionEditingStarted, m_c.evalGraph, &EvaluationGraphPresenter::clear);
-    connect(edit, &PositionEditCoordinator::positionEditingFinished,
-            m_c.actions, &MainWindowActions::resetRecordForEditedPosition);
+    PositionEditSession* edit = m_c.positionEdit;
+    connect(edit, &PositionEditSession::editingStarted, m_c.actions, &MainWindowActions::resetRecordForEditedPosition);
+    connect(edit, &PositionEditSession::editingStarted, m_c.evalGraph, &EvaluationGraphPresenter::clear);
+    connect(edit, &PositionEditSession::editingFinished, m_c.actions, &MainWindowActions::resetRecordForEditedPosition);
 }
 
 // ---------------------------------------------------------------------------
@@ -198,7 +196,7 @@ void MainWindowComposer::connectAnalysisAndUi()
     md.kifuFiles = m_c.kifuFileController;
     md.session = m_c.gameSession;
     md.analysis = analysis;
-    md.positionEdit = m_c.posEditCoordinator;
+    md.positionEdit = m_c.positionEdit;
     md.kifuAnalysis = m_c.kifuAnalysis;
     md.tsumeSearch = m_c.tsumeSearch;
     md.appearance = m_c.appearance;

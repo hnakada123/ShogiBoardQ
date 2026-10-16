@@ -3,6 +3,7 @@
 
 #include <QDialog>
 #include <QTimer>
+#include "boardinputroute.h"
 #include "tsumecollection.h"
 #include "tsumegamesession.h"
 #include "fontsizehelper.h"
@@ -20,8 +21,8 @@ class QPushButton;
 class QSpinBox;
 class QPlainTextEdit;
 
-/// 一覧で選んだ1問を、既存の ShogiView で解く画面。
-class TsumePlayDialog : public QDialog
+/// 一覧で選んだ1問を、既存の ShogiView で解く画面。盤で指した手の行き先（BoardInputRoute）は解答の受け付け
+class TsumePlayDialog : public QDialog, private BoardInputRoute
 {
     Q_OBJECT
 public:
@@ -42,9 +43,14 @@ signals:
 protected:
     void done(int result) override;
 
+private:
+    // --- BoardInputRoute（盤で指した手） ---
+    bool acceptsInput() const override;
+    bool isEditing() const override { return false; }
+    void submit(const QPoint& from, const QPoint& to) override;
+
 private slots:
     void selectProblem();
-    void requestMove(const QPoint& from, const QPoint& to);
     void updatePosition(const QString& sfen, const QString& move);
     void onSessionPositionChanged(const QString& sfen, const QString& move);
     void updateState();

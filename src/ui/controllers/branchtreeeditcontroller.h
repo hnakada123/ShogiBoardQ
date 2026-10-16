@@ -6,6 +6,8 @@
 
 #include <QObject>
 
+#include "usimove.h"
+
 class KifuBranchNode;
 class KifuBranchTree;
 class KifuNavigationController;
@@ -71,6 +73,9 @@ public:
      */
     bool recordBoardMove(QPoint& from, QPoint& to, ShogiGameController* gc);
 
+    /// 成り・不成まで決まった手（定跡の手など）を、recordBoardMove と同じく変化として記録する
+    bool recordMove(const UsiMove& move, ShogiGameController* gc);
+
 public slots:
     /// BranchTreeManager::nodeContextMenuAboutToShow に接続する
     void onNodeContextMenuAboutToShow(int row, int ply, QMenu* menu);
@@ -82,6 +87,10 @@ private slots:
 
 private:
     KifuBranchNode* nodeAt(int row, int ply) const;
+    /// 盤上の手を指す局面（表示中の手。終局の行なら直前の手）。盤をその局面にする。無ければ nullptr
+    KifuBranchNode* prepareRecordParent(ShogiGameController* gc) const;
+    /// parent の局面で move を指して記録する
+    bool addMove(KifuBranchNode* parent, const UsiMove& move, ShogiGameController* gc);
     /// menu に node を対象とする編集操作を追加する
     void addEditActions(QMenu* menu, KifuBranchNode* node);
     bool confirmDeletion(KifuBranchNode* node) const;

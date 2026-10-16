@@ -12,7 +12,6 @@ class QAction;
 class RecordPane;
 class BranchTreeManager;
 class ConsiderationTabManager;
-class BoardInteractionController;
 
 namespace Ui { class MainWindow; }
 
@@ -85,7 +84,6 @@ public:
         // --- ウィジェット ---
         WidgetNavigation,      ///< ナビゲーションボタン + 棋譜欄クリック
         WidgetBranchTree,      ///< 分岐ツリークリック
-        WidgetBoardClick,      ///< 盤面クリック（指し手入力）
         WidgetConsiderationStart, ///< 検討ドック「検討開始」ボタン
 
         Count  ///< 要素数（番兵）
@@ -97,7 +95,6 @@ public:
         RecordPane* recordPane = nullptr;
         BranchTreeManager* branchTree = nullptr;              ///< 分岐ツリーのクリック
         ConsiderationTabManager* consideration = nullptr;     ///< 検討ドックの「検討開始」
-        BoardInteractionController* boardController = nullptr;
         std::function<bool()> localGameHasHuman;  ///< ローカル対局に人間が参加しているか（待った・投了・入玉宣言）
         std::function<bool()> canResumeGame;      ///< 中断した対局を再開できるか（司令塔に問い合わせる）
         AppActivityState* activity = nullptr;

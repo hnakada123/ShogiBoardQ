@@ -61,8 +61,8 @@ public:
     /// 駒箱の先後切り替えボタンを置く（空なら隠す）
     void placePieceBoxSelector(const QRect& selector);
     void setPieceBoxSide(Turn side);
-    /// 「編集終了」ボタンを作って置き直す（表示は呼び出し側）
-    void relayoutEditExitButton();
+    /// 「編集終了」ボタンを出す・隠す（局面編集の間だけ出す。押すと editExitRequested）
+    void setEditExitButtonVisible(bool visible);
 
     // ──────────────── 名前・時計 ────────────────
     void setBlackPlayerName(const QString& name);
@@ -86,6 +86,8 @@ public:
 
 signals:
     void pieceBoxSideClicked(Turn side);
+    /// 「編集終了」ボタンを押した
+    void editExitRequested();
 
 protected:
     bool eventFilter(QObject* obj, QEvent* ev) override;
@@ -101,6 +103,8 @@ private:
     void refreshPlayerStyles();
     void updateMask();
     QPushButton* ensureEditExitButton();
+    /// 「編集終了」ボタンを作って置き直す
+    void relayoutEditExitButton();
     void fitEditExitButtonFont(QPushButton* btn, int maxWidth);
 
     // 先手・後手の順

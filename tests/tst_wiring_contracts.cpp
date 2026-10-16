@@ -87,8 +87,8 @@ private slots:
         QString error;
         QVERIFY2(startGame(p, data, &error), qPrintable(error));
         connect(p.gameController, &ShogiGameController::moveCommitted, this, &TestWiringContracts::observeMove);
-        p.boardMoves->onMoveRequested(QPoint(7, 7), QPoint(7, 6));
-        p.boardMoves->onMoveRequested(QPoint(3, 3), QPoint(3, 4));
+        p.boardMoves->submit(QPoint(7, 7), QPoint(7, 6));
+        p.boardMoves->submit(QPoint(3, 3), QPoint(3, 4));
         QCOMPARE(m_consistentMoves, 2);
         QCOMPARE(p.match->record().moveCount(), 2);
         QCOMPARE(p.navState->currentSfen(), p.match->record().lastSfen());

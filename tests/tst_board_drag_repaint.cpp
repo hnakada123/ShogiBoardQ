@@ -13,6 +13,7 @@
 #include "boardappearance.h"
 #include "boardappearancecatalog.h"
 #include "boardconstants.h"
+#include "boardinputroute.h"
 #include "boardinteractioncontroller.h"
 #include "gamesettings.h"
 #include "pieceimageprovider.h"
@@ -55,7 +56,16 @@ class TestBoardDragRepaint : public QObject
         }
     };
 
+    /// 盤で指した手の行き先（指した手はテストが盤に反映する）
+    struct TestRoute : BoardInputRoute {
+        bool editing = false;
+        bool acceptsInput() const override { return true; }
+        bool isEditing() const override { return editing; }
+        void submit(const QPoint&, const QPoint&) override {}
+    };
+
     struct BoardUi {
+        TestRoute route;
         ShogiGameController gc;
         ShogiView view;
         std::unique_ptr<BoardInteractionController> controller;
@@ -68,6 +78,7 @@ class TestBoardDragRepaint : public QObject
             view.setFixedSize(view.sizeHint());
             controller = std::make_unique<BoardInteractionController>(&view, &gc);
             controller->setLegalMovesVisible(true);
+            controller->setInputRoute(&route);
             // 対局中と同じく、対局者名・時計・手番表示・直前の指し手を表示する
             view.chrome()->setBlackPlayerName(QStringLiteral("先手"));
             view.chrome()->setWhitePlayerName(QStringLiteral("後手"));
@@ -78,6 +89,16 @@ class TestBoardDragRepaint : public QObject
         }
 
         ~BoardUi() { controller->clearAllHighlights(); }
+
+        /// 全ての層のハイライトのマスの数
+        int highlightCount() const
+        {
+            int count = 0;
+            for (const auto layer : {BoardHighlightLayer::LastMoveFrom, BoardHighlightLayer::LastMoveTo,
+                                     BoardHighlightLayer::Selection, BoardHighlightLayer::LegalDestinations})
+                count += static_cast<int>(view.highlighting()->highlights(layer).size());
+            return count;
+        }
 
         void moveTo(const QPointF& pos)
         {
@@ -274,7 +295,7 @@ private slots:
         // クリックを直接送っているため、つまんだ位置はマウスカーソルの位置と一致しない。
         // 最初の移動は計測から外す。
         ui.controller->onLeftClick(QPoint(7, 7));
-        QVERIFY(ui.view.highlighting()->highlightCount() > 0);
+        QVERIFY(ui.highlightCount() > 0);
         const QPointF start(ui.view.width() * 0.4, ui.view.height() * 0.5);
         ui.moveTo(start);
 
@@ -306,7 +327,7 @@ private slots:
         ui.controller->onLeftClick(QPoint(7, 7));
         QCoreApplication::processEvents();
         ui.view.removeEventFilter(&spy);
-        QVERIFY(ui.view.highlighting()->highlightCount() > 2);
+        QVERIFY(ui.highlightCount() > 2);
 
         // 銀の選択・移動先4マス・つまんだマス・持ち上げた駒で、マス10個分に収まる
         QVERIFY(!spy.regionRects.isEmpty());
@@ -498,7 +519,7 @@ private slots:
 
         // 局面編集: 盤→駒台、駒台→相手の駒台、駒箱→盤、盤→駒箱、成りの切り替え
         ui.view.setPositionEditMode(true);
-        ui.controller->setMode(BoardInteractionController::Mode::Edit);
+        ui.route.editing = true;
         QCoreApplication::processEvents();
         // 5五に打った角を駒箱へ入れてから、別のマスへ出す
         int bishopRank = 0;

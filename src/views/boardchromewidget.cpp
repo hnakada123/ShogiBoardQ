@@ -226,8 +226,8 @@ void BoardChromeWidget::setBoardLayout(const BoardLayout& layout)
     // 手番の札は盤が置かれているときだけ出す。盤より先に手番を受け取ったときは、盤が置かれた時点で出す
     const bool hasBoard = m_layout.blackStand.isValid() || m_layout.whiteStand.isValid();
     if (hasBoard != hadBoard) refreshPlayerStyles();
-    // 「編集終了」ボタンは局面編集の間だけ表示する。表示する処理（PositionEditController::
-    // showEditExitButtonOnBoard）は表示の直前に配置し直すので、隠れている間は配置と
+    // 「編集終了」ボタンは局面編集の間だけ表示する。表示する処理（setEditExitButtonVisible）は
+    // 表示の直前に配置し直すので、隠れている間は配置と
     // 文字の大きさ合わせを省く（手番が替わるたびにも呼ばれる）
     if (m_editExitButton && !m_editExitButton->isHidden()) relayoutEditExitButton();
     updateMask();
@@ -417,8 +417,20 @@ QPushButton* BoardChromeWidget::ensureEditExitButton()
     shadow->setColor(QColor(0, 0, 0, 70));
     btn->setGraphicsEffect(shadow);
     btn->raise();
+    connect(btn, &QPushButton::clicked, this, &BoardChromeWidget::editExitRequested);
     m_editExitButton = btn;
     return btn;
+}
+
+void BoardChromeWidget::setEditExitButtonVisible(bool visible)
+{
+    if (!visible) {
+        if (m_editExitButton) m_editExitButton->hide();
+        return;
+    }
+    relayoutEditExitButton();
+    m_editExitButton->show();
+    m_editExitButton->raise();
 }
 
 void BoardChromeWidget::relayoutEditExitButton()

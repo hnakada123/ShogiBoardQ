@@ -68,8 +68,6 @@ public:
 private slots:
     /// 局面送りで表示する手数が変わった
     void onPlyChanged(int ply);
-    /// ShogiView のハイライト配列がクリアされたときに所有ポインタを同期する
-    void onHighlightsCleared();
 
 private:
     /// UIを構築
@@ -78,8 +76,6 @@ private:
     void updatePlyDisplay();
     /// 現在の手のハイライトを更新
     void updateMoveHighlights();
-    /// ハイライトをクリア
-    void clearMoveHighlights();
 
 protected:
     /// ウィンドウを閉じる際にサイズを保存
@@ -90,10 +86,6 @@ private:
 
     BoardViewerWidget* m_viewer = nullptr;  ///< 盤・拡大縮小・回転・局面送り
     QLabel* m_pvLabel = nullptr;
-
-    // ハイライト用
-    std::unique_ptr<ShogiView::FieldHighlight> m_fromHighlight;  ///< 移動元ハイライト
-    std::unique_ptr<ShogiView::FieldHighlight> m_toHighlight;    ///< 移動先ハイライト
 };
 
 #endif // PVBOARDDIALOG_H

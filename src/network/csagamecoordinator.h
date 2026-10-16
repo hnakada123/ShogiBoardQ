@@ -212,7 +212,8 @@ signals:
     void engineScoreUpdated(const UsiScore& score, int ply);
 
 public slots:
-    void onHumanMove(const QPoint& from, const QPoint& to);
+    /// 人間が盤で選んだ手をサーバーへ送る（盤は確認を受けてから動かす）
+    void onHumanMove(const UsiMove& move);
     void onResign();
 
 private slots:

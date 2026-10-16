@@ -44,23 +44,15 @@ QImage BoardImageRenderer::render(const QString& sfen, const Options& options, Q
     view.applyBoardAndRender(&board);
     view.resize(view.sizeHint());
 
-    // ハイライトは非所有なので描画が終わるまで保持する
-    std::unique_ptr<ShogiView::FieldHighlight> fromHighlight;
-    std::unique_ptr<ShogiView::FieldHighlight> toHighlight;
     if (const auto move = UsiMove::parse(options.lastMoveUsi)) {
-        toHighlight = std::make_unique<ShogiView::FieldHighlight>(move->to.file, move->to.rank,
-                                                                  QColor(255, 165, 0, 140));
-        view.highlighting()->addHighlight(toHighlight.get());
+        view.highlighting()->setHighlights(BoardHighlightLayer::LastMoveTo, {QPoint(move->to.file, move->to.rank)});
         // 駒打ちは移動元を強調しない
-        if (!move->isDrop()) {
-            fromHighlight = std::make_unique<ShogiView::FieldHighlight>(move->from.file, move->from.rank,
-                                                                        QColor(255, 80, 80, 70));
-            view.highlighting()->addHighlight(fromHighlight.get());
-        }
+        if (!move->isDrop())
+            view.highlighting()->setHighlights(BoardHighlightLayer::LastMoveFrom,
+                                               {QPoint(move->from.file, move->from.rank)});
     }
 
     QImage image = view.toImage();
-    view.highlighting()->removeHighlightAllData();
     if (image.isNull() && error) *error = QStringLiteral("Rendering produced an empty image");
     return image;
 }

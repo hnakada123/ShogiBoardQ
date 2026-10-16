@@ -115,14 +115,14 @@ CsaGameCoordinator::TurnState CsaGameCoordinator::turnState() const
     return m_client->isMyTurn() ? TurnState::MyTurn : TurnState::OpponentTurn;
 }
 
-void CsaGameCoordinator::onHumanMove(const QPoint& from, const QPoint& to)
+void CsaGameCoordinator::onHumanMove(const UsiMove& move)
 {
+    // 成り選択のモーダル処理中に対局が終了することもあるので、届いた時点の状態で確かめる
     if (m_gameState != GameState::InGame || !isMyTurn() || !isHumanPlayer() || !m_gameController)
         return;
-    const auto move = m_gameController->prepareMove(from, to);
-    // 成り選択のモーダル処理中に対局が終了することもある。
-    if (!move || m_gameState != GameState::InGame || !isMyTurn()) return;
-    const QString csaMove = CsaMoveConverter::toCsa(*move, m_progress.isBlackSide ? Turn::Black : Turn::White,
+    // 盤は動かさない（サーバーの確認を受けてから指す）。合法手だけを送る
+    if (!m_gameController->isLegal(move)) return;
+    const QString csaMove = CsaMoveConverter::toCsa(move, m_progress.isBlackSide ? Turn::Black : Turn::White,
                                                     m_gameController->board()->position());
     if (!csaMove.isEmpty() && m_client->sendMove(csaMove)) emit turnChanged(false);
 }

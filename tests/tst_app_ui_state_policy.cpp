@@ -563,19 +563,6 @@ private slots:
         verifyDisabled(p, S::DuringAnalysis, E::WidgetBranchTree, "WidgetBranchTree");
     }
 
-    /// WidgetBoardClick: Idle, DuringGame, DuringCsaGame で有効
-    void widgetBoardClick_enabledForInteraction()
-    {
-        Policy p;
-        verifyEnabled(p, S::Idle, E::WidgetBoardClick, "WidgetBoardClick");
-        verifyEnabled(p, S::DuringGame, E::WidgetBoardClick, "WidgetBoardClick");
-        verifyEnabled(p, S::DuringCsaGame, E::WidgetBoardClick, "WidgetBoardClick");
-        verifyDisabled(p, S::DuringAnalysis, E::WidgetBoardClick, "WidgetBoardClick");
-        verifyDisabled(p, S::DuringTsumeSearch, E::WidgetBoardClick, "WidgetBoardClick");
-        verifyDisabled(p, S::DuringConsideration, E::WidgetBoardClick, "WidgetBoardClick");
-        verifyDisabled(p, S::DuringPositionEdit, E::WidgetBoardClick, "WidgetBoardClick");
-    }
-
     /// WidgetConsiderationStart: 対局中/CSA中のみ無効
     void widgetConsiderationStart_disabledDuringGames()
     {

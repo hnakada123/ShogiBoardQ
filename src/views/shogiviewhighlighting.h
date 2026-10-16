@@ -6,10 +6,19 @@
 
 #include "shogiview.h"
 
-#include <QColor>
 #include <QList>
+#include <QPoint>
+#include <array>
 
 class QPainter;
+
+/// 盤のハイライトの層。色と描く順は層で決まる（呼び出し側は色を渡さない）
+enum class BoardHighlightLayer {
+    LastMoveFrom,       ///< 直前の手の移動元
+    LastMoveTo,         ///< 直前の手の移動先
+    Selection,          ///< つまんでいる駒
+    LegalDestinations,  ///< つまんでいる駒の合法な移動先
+};
 
 /// 盤面のハイライト描画・矢印描画を担当するクラス（対局者カードの手番表示は BoardChromeWidget）。
 /// ShogiView が値メンバとして所有し、描画時やスタイル変更時に委譲する。
@@ -18,15 +27,16 @@ class ShogiViewHighlighting : public QObject
     Q_OBJECT
 
 public:
+    static constexpr int kLayerCount = 4;
+
     explicit ShogiViewHighlighting(ShogiView* view, QObject* parent = nullptr);
 
-    // ──────────────── ハイライト管理 ────────────────
-    // ハイライト配列は非所有。寿命は呼び出し側（Controller/Dialog）が管理する。
-    void addHighlight(const ShogiView::FieldHighlight* hl);
-    void removeHighlight(const ShogiView::FieldHighlight* hl);
-    void removeHighlightAllData();
-    const ShogiView::FieldHighlight* highlight(int index) const { return m_highlights.at(index); }
-    int highlightCount() const { return static_cast<int>(m_highlights.size()); }
+    // ──────────────── ハイライト ────────────────
+    /// 層のマスを置き換える（変わったマスだけ描き直す）
+    void setHighlights(BoardHighlightLayer layer, const QList<QPoint>& squares);
+    /// 全ての層を消す
+    void clearHighlights();
+    const QList<QPoint>& highlights(BoardHighlightLayer layer) const;
 
     // ──────────────── 矢印管理 ────────────────
     void setArrows(const QList<ShogiView::Arrow>& arrows);
@@ -40,16 +50,14 @@ public:
     /// 矢印（線・矢じり・順位の丸印）が掛かる範囲。描き直す範囲を矢印の分だけに絞るために使う
     QRect arrowsPaintRect(const QList<ShogiView::Arrow>& arrows) const;
 
-signals:
-    void highlightsCleared();
-
 private:
-    void updateHighlightArea(const ShogiView::FieldHighlight* hl);
+    /// マスを描き直す（座標が盤の外なら盤全体）
+    void updateSquares(const QList<QPoint>& squares);
 
     ShogiView* m_view;
 
     // ハイライト/矢印データ
-    QList<const ShogiView::FieldHighlight*> m_highlights;
+    std::array<QList<QPoint>, kLayerCount> m_layers;
     QList<ShogiView::Arrow> m_arrows;
 };
 

@@ -3,6 +3,7 @@
 
 #include "boardinteractioncontroller.h"
 #include "boardcoordinates.h"
+#include "boardinputroute.h"
 
 #include "shogiview.h"
 #include "shogiviewhighlighting.h"
@@ -11,9 +12,6 @@
 #include "shogitypes.h"
 #include "appsettings.h"
 #include "enginemovevalidator.h"
-#include <QColor>
-#include <QClipboard>
-#include <QApplication>
 #include "logcategories.h"
 
 // ======================================================================
@@ -31,11 +29,24 @@ BoardInteractionController::BoardInteractionController(ShogiView* view,
         return;
     }
 
-    // ShogiView 側でハイライト参照配列がクリアされた場合、
-    // 本クラスの所有ポインタも同期してリセットする。
-    connect(m_view, &ShogiView::highlightsCleared, this, &BoardInteractionController::onHighlightsCleared);
     // 手番が替わったら（指した・手番だけを変えた）、つまんでいた駒と行き先の表示をやめる
     connect(m_gc->board(), &ShogiBoard::turnChanged, this, &BoardInteractionController::cancelPendingClick);
+}
+
+void BoardInteractionController::setInputRoute(BoardInputRoute* route)
+{
+    if (m_route != route) cancelPendingClick();
+    m_route = route;
+}
+
+bool BoardInteractionController::acceptsInput() const
+{
+    return m_route && m_route->acceptsInput();
+}
+
+bool BoardInteractionController::isEditing() const
+{
+    return m_route && m_route->isEditing();
 }
 
 // ======================================================================
@@ -44,16 +55,9 @@ BoardInteractionController::BoardInteractionController(ShogiView* view,
 
 void BoardInteractionController::onLeftClick(const QPoint& pt)
 {
-    // 指し手入力が無効な場合はクリックを無視
-    if (!m_moveInputEnabled && m_mode != Mode::Edit) {
-        qCDebug(lcBoard) << "onLeftClick ignored: move input disabled";
-        return;
-    }
-
-    // 編集モード以外では、人間の手番かどうかをチェック
-    // コールバックがtrueを返すと人間の手番、falseなら相手の手番なのでクリックを無視
-    if (m_mode != Mode::Edit && m_isHumanTurnCb && !m_isHumanTurnCb()) {
-        qCDebug(lcBoard) << "onLeftClick ignored: not human's turn";
+    // 人間が指せる手番でなければ（行き先が受け付けなければ）クリックを無視する
+    if (!acceptsInput()) {
+        qCDebug(lcBoard) << "onLeftClick ignored: input not accepted";
         return;
     }
 
@@ -88,7 +92,7 @@ void BoardInteractionController::onLeftClick(const QPoint& pt)
         return;
     }
 
-    // モードに関わらず「移動要求」を発火（適用は呼び元が行う）
+    // 行き先へ渡す（指すのは行き先。結果は onMoveApplied で返る）
     const QPoint from = m_clickPoint;
     const QPoint to   = pt;
     clearLegalMoveHighlights();
@@ -96,7 +100,7 @@ void BoardInteractionController::onLeftClick(const QPoint& pt)
     // 成/不成ダイアログ表示中もドラッグ状態を維持するため、ここではドラッグを終了しない。
     // ShogiGameController 側で昇格判定後に endDragSignal を emit し、
     // それが ShogiView::endDrag() につながっている（合成ルートが接続する）。
-    emit moveRequested(from, to);
+    m_route->submit(from, to);
 }
 
 void BoardInteractionController::onRightClick(const QPoint& pt)
@@ -108,9 +112,7 @@ void BoardInteractionController::onRightClick(const QPoint& pt)
     }
 
     // 編集モード時のみ成/不成トグル
-    if (m_mode == Mode::Edit) {
-        togglePiecePromotionOnClick(pt);
-    }
+    if (isEditing()) togglePiecePromotionOnClick(pt);
 }
 
 void BoardInteractionController::onMoveApplied(const QPoint& from, const QPoint& to, bool success)
@@ -121,44 +123,25 @@ void BoardInteractionController::onMoveApplied(const QPoint& from, const QPoint&
         return;
     }
 
-    // 合法手：直前の移動元を薄い赤、移動先を黄色でハイライト
-    if (m_selectedField2) deleteHighlight(m_selectedField2);
-    addNewHighlight(m_selectedField2, from, QColor(255, 0, 0, 50));
-
-    updateHighlight(m_movedField, to, QColor(255, 255, 0));
-
-    // 選択（オレンジ）は消すが、直前手の赤/黄は残す
-    resetSelectionAndHighlight();
+    // 合法手：直前の手の移動元・移動先を出し、選択は消す
+    showMoveHighlights(from, to);
+    clearSelectionHighlight();
 }
 
 void BoardInteractionController::showMoveHighlights(const QPoint& from, const QPoint& to)
 {
-    // from が有効な座標かチェック（盤上: 1-9, 駒台: 10-11）
+    // from が有効な座標かチェック（盤上: 1-9, 駒台: 10-11）。駒打ちで座標が取れなければ移動元は出さない
     const bool validFrom = (from.x() >= 1 && from.x() <= 11 && from.y() >= 1 && from.y() <= 9);
-    if (validFrom) {
-        updateHighlight(m_selectedField2, from, QColor(255, 0, 0, 50));
-    } else {
-        // 駒打ちで座標が取得できなかった場合など、移動元ハイライトを削除
-        deleteHighlight(m_selectedField2);
-    }
-    updateHighlight(m_movedField, to, QColor(255, 255, 0));
+    ShogiViewHighlighting* highlighting = m_view->highlighting();
+    highlighting->setHighlights(BoardHighlightLayer::LastMoveFrom, validFrom ? QList<QPoint>{from} : QList<QPoint>{});
+    highlighting->setHighlights(BoardHighlightLayer::LastMoveTo, {to});
 }
 
 void BoardInteractionController::clearAllHighlights()
 {
     cancelPendingClick();
-    deleteHighlight(m_selectedField2);
-    deleteHighlight(m_movedField);
-}
-
-void BoardInteractionController::onHighlightsCleared()
-{
-    // ShogiView 側の参照配列がクリアされたので、所有ポインタも同期して破棄する。
-    m_selectedField.reset();
-    m_selectedField2.reset();
-    m_movedField.reset();
-    m_legalMoveHighlights.clear();
-    cancelPendingClick();
+    m_view->highlighting()->setHighlights(BoardHighlightLayer::LastMoveFrom, {});
+    m_view->highlighting()->setHighlights(BoardHighlightLayer::LastMoveTo, {});
 }
 
 void BoardInteractionController::cancelPendingClick()
@@ -171,8 +154,8 @@ void BoardInteractionController::clearSelectionHighlight()
     clearLegalMoveHighlights();
     m_waitingSecondClick = false;
     m_clickPoint = QPoint();
-    deleteHighlight(m_selectedField); // 選択（オレンジ）だけ消す
-    // m_selectedField2（赤）と m_movedField（黄）は残す
+    // 選択だけ消し、直前の手のハイライトは残す
+    m_view->highlighting()->setHighlights(BoardHighlightLayer::Selection, {});
 }
 
 // ======================================================================
@@ -186,8 +169,8 @@ void BoardInteractionController::selectPieceAndHighlight(const QPoint& field)
     const int rank = field.y();
     const Piece value = board->pieceCharacter(file, rank);
 
-    // 盤編集モードでないとき、相手の駒台は触らせない
-    if (!m_view->positionEditMode()) {
+    // 局面編集でないとき、相手の駒台は触らせない
+    if (!isEditing()) {
         const Turn turn = m_gc->currentPlayer();
         const bool isMyStand = (turn == Turn::Black && file == kBlackStandFile)
                                || (turn == Turn::White && file == kWhiteStandFile);
@@ -211,12 +194,9 @@ void BoardInteractionController::selectPieceAndHighlight(const QPoint& field)
         return;
     }
 
-    // 選択状態を保持＆オレンジハイライト表示
+    // 選択状態を保持してハイライトする
     m_clickPoint = field;
-
-    if (m_selectedField) deleteHighlight(m_selectedField);
-    m_selectedField = std::make_unique<ShogiView::FieldHighlight>(file, rank, QColor(255, 128, 0, 70));
-    m_view->highlighting()->addHighlight(m_selectedField.get());
+    m_view->highlighting()->setHighlights(BoardHighlightLayer::Selection, {field});
 
     // 対局開始で盤モデルが差し替わるため、選択時に現在の盤へ接続する。
     connect(board, &ShogiBoard::boardReset,
@@ -235,71 +215,37 @@ void BoardInteractionController::setLegalMovesVisible(bool visible)
 
 void BoardInteractionController::clearLegalMoveHighlights()
 {
-    for (auto& highlight : m_legalMoveHighlights) deleteHighlight(highlight);
-    m_legalMoveHighlights.clear();
+    if (m_view) m_view->highlighting()->setHighlights(BoardHighlightLayer::LegalDestinations, {});
 }
 
 void BoardInteractionController::refreshLegalMoveHighlights()
 {
     clearLegalMoveHighlights();
-    if (!m_legalMovesVisible || !m_waitingSecondClick || !m_moveInputEnabled
-        || m_mode == Mode::Edit || !m_view || m_view->positionEditMode()
-        || !m_gc || !m_view->board() || m_clickPoint.isNull()
-        || (m_isHumanTurnCb && !m_isHumanTurnCb())) return;
+    if (!m_legalMovesVisible || !m_waitingSecondClick || m_clickPoint.isNull() || !m_view || !m_view->board()
+        || !m_gc || isEditing() || !acceptsInput()) return;
 
     auto* board = m_view->board();
     const auto position = EngineMoveValidator::load(board->position(), m_gc->currentPlayer());
     if (!position.synced) return;
 
     // 局面の読み込みは1回だけ行い、成り・不成のどちらかが合法なマスを表示する。
+    QList<QPoint> destinations;
     for (int rank = 1; rank <= 9; ++rank) {
         for (int file = 1; file <= 9; ++file) {
             const auto move = BoardCoordinates::usiMoveFromSquares(m_clickPoint, QPoint(file, rank), false);
             if (!move) continue;
             const auto status = EngineMoveValidator::legalStatus(position, *move);
-            if (!status.nonPromotingMoveExists && !status.promotingMoveExists) continue;
-            auto highlight = std::make_unique<ShogiView::FieldHighlight>(
-                file, rank, QColor(65, 155, 225, 105),
-                ShogiView::FieldHighlight::Purpose::LegalDestination);
-            m_view->highlighting()->addHighlight(highlight.get());
-            m_legalMoveHighlights.push_back(std::move(highlight));
+            if (status.nonPromotingMoveExists || status.promotingMoveExists) destinations.append(QPoint(file, rank));
         }
     }
-}
-
-void BoardInteractionController::updateHighlight(std::unique_ptr<ShogiView::FieldHighlight>& hl,
-                                                 const QPoint& field,
-                                                 const QColor& color)
-{
-    if (hl) deleteHighlight(hl);
-    addNewHighlight(hl, field, color);
-}
-
-void BoardInteractionController::deleteHighlight(std::unique_ptr<ShogiView::FieldHighlight>& hl)
-{
-    if (!hl) return;
-    m_view->highlighting()->removeHighlight(hl.get());
-    hl.reset();
-}
-
-void BoardInteractionController::addNewHighlight(std::unique_ptr<ShogiView::FieldHighlight>& hl,
-                                                 const QPoint& pos,
-                                                 const QColor& color)
-{
-    hl = std::make_unique<ShogiView::FieldHighlight>(pos.x(), pos.y(), color);
-    m_view->highlighting()->addHighlight(hl.get());
-}
-
-void BoardInteractionController::resetSelectionAndHighlight()
-{
-    clearSelectionHighlight();
+    m_view->highlighting()->setHighlights(BoardHighlightLayer::LegalDestinations, destinations);
 }
 
 void BoardInteractionController::finalizeDrag()
 {
     if (m_view) m_view->endDrag();
     m_waitingSecondClick = false;
-    resetSelectionAndHighlight();
+    clearSelectionHighlight();
 }
 
 void BoardInteractionController::togglePiecePromotionOnClick(const QPoint& field)
@@ -314,5 +260,5 @@ void BoardInteractionController::togglePiecePromotionOnClick(const QPoint& field
 
     m_gc->switchPiecePromotionStatusOnRightClick(file, rank);
 
-    resetSelectionAndHighlight();
+    clearSelectionHighlight();
 }

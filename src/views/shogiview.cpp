@@ -38,8 +38,6 @@ ShogiView::ShogiView(QWidget *parent)
             this, &ShogiView::refreshBoardColors);
     connect(&BoardAppearance::instance(), &BoardAppearance::visualsChanged,
             this, &ShogiView::refreshBoardVisuals);
-    connect(m_highlighting, &ShogiViewHighlighting::highlightsCleared,
-            this, &ShogiView::highlightsCleared);
 
     setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 
@@ -401,10 +399,10 @@ void ShogiView::relayoutChrome()
     relayoutPieceBoxSideSelector();
 }
 
-void ShogiView::relayoutEditExitButton()
+void ShogiView::setEditExitButtonVisible(bool visible)
 {
-    relayoutChrome();
-    m_chrome->relayoutEditExitButton();
+    if (visible) relayoutChrome();
+    m_chrome->setEditExitButtonVisible(visible);
 }
 
 void ShogiView::setNameFontScale(double scale)

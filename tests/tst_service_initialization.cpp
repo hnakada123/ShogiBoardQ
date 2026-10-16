@@ -17,7 +17,7 @@
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
 #include "kifunavigationstate.h"
-#include "positioneditcoordinator.h"
+#include "positioneditsession.h"
 #include "kifuanalysiscontroller.h"
 #include "tsumesearchcontroller.h"
 #include "boardmovecontroller.h"
@@ -92,17 +92,17 @@ private slots:
         QCOMPARE(window.findChildren<BoardMoveController*>().size(), 1);
         QCOMPARE(window.findChildren<CsaGameCoordinator*>().size(), 1);
         QCOMPARE(window.findChildren<CsaGameSession*>().size(), 1);
-        QCOMPARE(window.findChildren<PositionEditCoordinator*>().size(), 1);
+        QCOMPARE(window.findChildren<PositionEditSession*>().size(), 1);
         QCOMPARE(window.findChildren<PvClickController*>().size(), 1);
         QCOMPARE(window.findChildren<KifuAnalysisController*>().size(), 1);
         QCOMPARE(window.findChildren<TsumeSearchController*>().size(), 1);
         QCOMPARE(window.findChildren<ConsiderationUiController*>().size(), 1);
         QCOMPARE(window.findChildren<CommentCoordinator*>().size(), 1);
-        auto* editing = window.findChild<PositionEditCoordinator*>();
-        QSignalSpy started(editing, &PositionEditCoordinator::positionEditingStarted);
-        QSignalSpy finished(editing, &PositionEditCoordinator::positionEditingFinished);
+        auto* editing = window.findChild<PositionEditSession*>();
+        QSignalSpy started(editing, &PositionEditSession::editingStarted);
+        QSignalSpy finished(editing, &PositionEditSession::editingFinished);
         parts.actions->beginPositionEditing();
-        parts.posEditCoordinator->finishPositionEditing();
+        parts.positionEdit->finish();
         QCOMPARE(started.count(), 1);
         QCOMPARE(finished.count(), 1);
     }
@@ -164,8 +164,8 @@ private slots:
         QVERIFY(parts.document);
         parts.document->markUnsavedContent();
 
-        auto* editing = window.findChild<PositionEditCoordinator*>();
-        QSignalSpy started(editing, &PositionEditCoordinator::positionEditingStarted);
+        auto* editing = window.findChild<PositionEditSession*>();
+        QSignalSpy started(editing, &PositionEditSession::editingStarted);
 
         answerMessageBox(QMessageBox::RejectRole);
         parts.actions->beginPositionEditing();
@@ -177,7 +177,7 @@ private slots:
         parts.actions->beginPositionEditing();
         QVERIFY(m_answered);
         QCOMPARE(started.count(), 1);
-        parts.posEditCoordinator->finishPositionEditing();
+        parts.positionEdit->finish();
     }
 
     /// 盤・分岐ナビゲーション・棋譜解析の結果は、起動時に合成ルートが1回だけ作って MainWindow が持つ。

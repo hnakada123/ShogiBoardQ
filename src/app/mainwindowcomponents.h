@@ -28,8 +28,7 @@ class UsiCommLogModel;
 class BoardInteractionController;
 class BoardMoveController;
 class BoardSyncPresenter;
-class PositionEditController;
-class PositionEditCoordinator;
+class PositionEditSession;
 class ShogiClock;
 class ShogiGameController;
 class ShogiView;
@@ -143,8 +142,7 @@ struct MainWindowComponents {
     BoardInteractionController* boardController = nullptr;
     BoardMoveController* boardMoves = nullptr;          ///< 盤で指した手を動作状態に応じて処理する
     BoardSyncPresenter* boardSync = nullptr;            ///< 盤を表示中の手に合わせる
-    PositionEditController* posEdit = nullptr;
-    PositionEditCoordinator* posEditCoordinator = nullptr;
+    PositionEditSession* positionEdit = nullptr;
     ShogiClock* clock = nullptr;
     TimeDisplayPresenter* timePresenter = nullptr;
 

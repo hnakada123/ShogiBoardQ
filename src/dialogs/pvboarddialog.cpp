@@ -56,10 +56,7 @@ PvBoardDialog::PvBoardDialog(const QString& baseSfen,
     QTimer::singleShot(0, m_viewer, &BoardViewerWidget::fitToBoard);
 }
 
-PvBoardDialog::~PvBoardDialog()
-{
-    clearMoveHighlights();
-}
+PvBoardDialog::~PvBoardDialog() = default;
 
 void PvBoardDialog::setKanjiPv(const QString& kanjiPv)
 {
@@ -116,7 +113,6 @@ void PvBoardDialog::buildUi()
                                      BoardViewerWidget::ButtonLabels::Symbols, nullptr, this);
     m_viewer->setNavigationToolTips(tr("最初の局面に戻る"), tr("1手戻る"), tr("1手進む"), tr("最後の局面まで進む"));
     connect(m_viewer, &BoardViewerWidget::currentIndexChanged, this, &PvBoardDialog::onPlyChanged);
-    connect(m_viewer->view(), &ShogiView::highlightsCleared, this, &PvBoardDialog::onHighlightsCleared);
     mainLayout->addWidget(m_viewer, 1);
 
     // 閉じるボタン
@@ -151,41 +147,16 @@ void PvBoardDialog::updatePlyDisplay()
     m_viewer->setPositionText(plyText);
 }
 
-void PvBoardDialog::clearMoveHighlights()
-{
-    ShogiView* view = m_viewer->view();
-    if (m_fromHighlight) {
-        view->highlighting()->removeHighlight(m_fromHighlight.get());
-        m_fromHighlight.reset();
-    }
-    if (m_toHighlight) {
-        view->highlighting()->removeHighlight(m_toHighlight.get());
-        m_toHighlight.reset();
-    }
-}
-
-void PvBoardDialog::onHighlightsCleared()
-{
-    m_fromHighlight.reset();
-    m_toHighlight.reset();
-}
-
 void PvBoardDialog::updateMoveHighlights()
 {
-    clearMoveHighlights();
+    ShogiViewHighlighting* highlighting = m_viewer->view()->highlighting();
     const PvHighlightCoords coords = m_controller->computeHighlightCoords();
-    if (!coords.valid) return;
-
-    if (coords.hasFrom) {
-        m_fromHighlight = std::make_unique<ShogiView::FieldHighlight>(
-            coords.fromFile, coords.fromRank, QColor(255, 0, 0, 50));
-        m_viewer->view()->highlighting()->addHighlight(m_fromHighlight.get());
-    }
-    if (coords.hasTo) {
-        m_toHighlight = std::make_unique<ShogiView::FieldHighlight>(
-            coords.toFile, coords.toRank, QColor(255, 255, 0));
-        m_viewer->view()->highlighting()->addHighlight(m_toHighlight.get());
-    }
+    const bool from = coords.valid && coords.hasFrom;
+    const bool to = coords.valid && coords.hasTo;
+    highlighting->setHighlights(BoardHighlightLayer::LastMoveFrom,
+                                from ? QList<QPoint>{QPoint(coords.fromFile, coords.fromRank)} : QList<QPoint>{});
+    highlighting->setHighlights(BoardHighlightLayer::LastMoveTo,
+                                to ? QList<QPoint>{QPoint(coords.toFile, coords.toRank)} : QList<QPoint>{});
 }
 
 void PvBoardDialog::closeEvent(QCloseEvent* event)
