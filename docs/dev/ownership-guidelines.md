@@ -40,7 +40,7 @@ Q1: QObject 派生クラスか？
 - `MainWindowComposer` が生成するオブジェクト → MainWindow（`&m_window`）を親に指定
 
 ```cpp
-// Good — parent ownership（EngineLifecycleManager::createEngine()）
+// Good — parent ownership（EngineLifecycleManager::acquire()）
 auto* engine = new Usi(this);
 
 // Good — 合成ルートでの生成（mainwindowcomposer_create.cpp、MainWindow を親に指定）
@@ -128,7 +128,7 @@ m_dialogs = new DialogLauncher(deps, m_deps.parentWidget);
 
 | オブジェクト | 再生成タイミング | 所有者 |
 |-------------|-----------------|--------|
-| `Usi`（エンジン） | 対局・検討・詰み探索の開始ごと（`EngineLifecycleManager::createEngine()` で作り、`destroySeat()` で `deleteLater`） | `EngineLifecycleManager` (QObject parent) |
+| `Usi`（エンジン） | 対局・検討・詰み探索・棋譜解析・通信対局の開始ごと（`EngineLifecycleManager::acquire()` で作り、使う側には move-only の `EngineLease` を渡す。リースを手放す・ほかの持ち主が枠を取る・`destroyEngines()` で `destroySeat()` が `deleteLater`） | `EngineLifecycleManager` (QObject parent)。使う権利は `EngineLease` の持ち主 |
 | `QProcess` (エンジン) | エンジン起動/停止ごと | `EngineProcessManager`（`std::unique_ptr`。停止時は終了を見届けるオブジェクトへ移す） |
 
 `MatchCoordinator`・`GameSession`・`KifuLoadCoordinator` は再生成しない。

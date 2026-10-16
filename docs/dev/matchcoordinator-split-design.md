@@ -33,7 +33,7 @@ struct Deps {
 ```
 
 - 司令塔は `MainWindowComposer::createMatchAndAnalysis()`（`src/app/mainwindowcomposer_create.cpp`）が起動時に一度だけ作り、作り直さない。時計 `ShogiClock` とエンジンの枠 `EngineLifecycleManager` も合成ルートが作り、エンジンの枠は検討・詰み探索（`AnalysisSession`）と共有する。
-- コンストラクタは、エンジンの投了・入玉宣言勝ち・エラー（`EngineLifecycleManager::engineResigned`・`engineDeclaredWin`・`engineError`。エラーは `QueuedConnection`）と時計の `ShogiClock::playerTimeOut` を自分のスロットにつなぐ。時計の `timeUpdated` は受けない（表示は `TimeDisplayPresenter` が時計から直接受ける）。
+- コンストラクタは、エンジンの投了・入玉宣言勝ち・エラー（`EngineLifecycleManager::engineResigned`・`engineDeclaredWin`・`engineError`。起動の失敗は開始の処理から戻った後に届くので、エラーも直接つなぐ）と時計の `ShogiClock::playerTimeOut` を自分のスロットにつなぐ。時計の `timeUpdated` は受けない（表示は `TimeDisplayPresenter` が時計から直接受ける）。
 - 棋譜の受け手は `MainWindowComposer::createSessions()` が `setRecordSink(GameSession)` で設定する。司令塔のシグナルの受け先は `MainWindowComposer::connectGame()`（`src/app/mainwindowcomposer_wire.cpp`）がつなぐ（6章）。
 - 司令塔は Hooks（コールバックの構造体）を持たない。手番のコピーも持たず、手番は盤の手番（`ShogiGameController::currentPlayer()`）だけを使う。
 

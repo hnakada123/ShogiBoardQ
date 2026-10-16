@@ -79,8 +79,8 @@ EngineLease EngineLifecycleManager::acquire(QObject* owner, int slot, std::optio
     if (side) {
         // 対局のエンジンは対局の時計から持ち時間を読む（通信対局のエンジンはサーバーの残り時間を読む）
         engine->setMatchTimeSource(&m_clockTime);
-        // 対局のエンジンの投了・宣言勝ちと、起動の失敗や異常終了を知らせる（起動の失敗は startEngine の中で
-        // 届くことがある）。検討・詰み探索のエンジンのエラーは、使う側（AnalysisSession）が直接受け取る
+        // 対局のエンジンの投了・宣言勝ちと、起動の失敗や異常終了を知らせる（起動の失敗は startEngine から
+        // 戻った後に届く）。検討・詰み探索のエンジンのエラーは、使う側（AnalysisSession）が直接受け取る
         connect(engine, &Usi::resigned, this, &EngineLifecycleManager::engineResigned);
         connect(engine, &Usi::declaredWin, this, &EngineLifecycleManager::engineDeclaredWin);
         connect(engine, &Usi::errorOccurred, this, &EngineLifecycleManager::engineError);

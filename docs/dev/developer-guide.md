@@ -96,6 +96,8 @@
 | 2026-10-16 | 局面集ファイルの1行の規則 `PositionCollectionFile`・最近使ったファイルの `RecentFileList`／`RecentFilesMenu`（監査 3章）と、棋譜の書き出しの共有部品 `KifuNodeReplay`・`UsenCodec`・`UsiPosition::commandFor()`・`KifExporter::appendHeaderLines()` に合わせて §1.5・§2.5・§8.9・§8.11・第18章を更新（`UsenToSfenConverter::decodeUsenMoves()`・`decodeUsenMovesStrict()` は `UsenCodec::decodeMoves()` に移した） |
 | 2026-10-16 | 読み筋盤の値 `PvLine`、詰将棋を解く画面の状態の表と記録の移動、自動化 API の UI 操作の予約（監査 3章）に合わせて §1.5・§3.5・§6.1・§6.8・§10.5・§11.3・§14.5.1・第18章を更新（`PvBoardController` を削除し、読み筋の値 `PvLine`（`pvline.h`）と表示する手数を持つ `BoardViewerWidget` に。1関数だけの `PromotionFlow` を `PromoteDialog::ask()` にまとめて削除し、§6.8 を書き直し。`TsumePlayDialog` の `Mode` と `controlStates()` の表、挑戦・正答の記録は `TsumeGameSession`。応答の後の UI 操作は `AutomationInteractions::queue()` で予約して `ui.interaction` で結果を引き、マウス入力は `AutomationInput`、部品の読み書きは `AutomationWidgetAdapters` の表） |
 | 2026-10-16 | `KifuPresentation` を kifu へ移し、`src/common` の見た目の部品を新しい層 `src/style` に分けたのに合わせて §1.5・§1.6・§3.1・§3.2・§11.2・§16.4・§17.1・第18章を更新（`KifuPresentation` は `src/kifu/kifupresentation.h`。日本語の指し手は `KifMoveText`、段の漢数字は `ShogiNotation`、英語表記で移動元を付けるかは KI2 と同じ判定（`Ki2MoveNotation::annotate()` の `sources`）。表示言語と表記の設定は services の `NotationStyle`（`notationstyle.h`）に置き、`ApplicationTranslations` が設定する。`applicationfonts`・`applicationstyle`・`applicationrendering`・`buttonstyles`・`tablestyles`・`movefont` は `src/style/`（analysis・network・navigation と models の間の層）、`tablemodelutils` は widgets、`jishogicalculator` は core、`tsumepositionutil.h` は analysis へ移動。`TsumePositionUtil::buildPositionWithMoves()` を削除） |
+| 2026-10-16 | 定跡のデータを値型 `JosekiBook` にし、定跡手を局面の合法手から選ぶようにしたのに合わせて §1.5・§11.3・第18章を更新（`JosekiRepository`・`josekiioresult.h` を削除。`JosekiBook`（`src/kifu/josekibook.h`）は局面のキー `JosekiBook::positionKey()` から `JosekiPosition`（登録したときの SFEN・定跡手）を引く map 1つで、最後の定跡手を消すと局面も消える。読み書きは `JosekiBookFile::load()`・`save()`、マージで登録した印は `JosekiMoveKey`（`QSet`）。`JosekiMoveInputWidget` は局面の合法手を棋譜の表記で並べた一覧、`JosekiMoveDialog` の受け渡しは `setEntry()`・`entry()`。テストは `tst_joseki_book`） |
+| 2026-10-16 | エンジンの起動の失敗を非同期だけで知らせ、枠のエンジンをリースで持つようにしたのに合わせて §3.4・§6.1・§6.2・§6.3・§6.9・§7.2・§7.5・§7.9・§9.3・§9.4・§9.6・§9.10・§12.3・§14.3・§15.4・第18章を更新（`UsiEngineSession::startAsync()`・`probeAsync()`・`Usi::startEngine()`・`MateOracle::start()` などは値を返さず、失敗は戻った後に `errorOccurred` で届く。`EngineLifecycleManager::createEngine()`・`destroyEngine()` を `acquire()` と move-only の `EngineLease` に置き換え、枠を取り上げた前の持ち主には `engineRevoked` で知らせる。`AnalysisSession::stop()` は自分のエンジンだけを手放し、「新規」は `GameSession::Deps::engines` の `destroyEngines(false)` で全部止める） |
 
 <!-- chapter-0-end -->
 
@@ -372,10 +374,10 @@ src/
 │   ├── gameinfokeys.h              #   対局情報の項目のキー
 │   ├── considerationpositionresolver.cpp/.h # 検討する局面の決定
 │   ├── kifparsetypes.h             #   棋譜の読み込み結果の型（KifParseResult・KifuParseOutcome・ParseOptions）
-│   ├── josekirepository.cpp/.h     #   定跡ファイル（YANEURAOU-DB2016）の解析・保存とデータ保持
-│   ├── josekibooksession.cpp/.h    #   開いている定跡ファイル（データ・変更状態・読み書き）
+│   ├── josekibook.cpp/.h           #   定跡のデータの値型 JosekiBook（局面のキー→JosekiPosition の map 1つ）と、定跡ファイル（YANEURAOU-DB2016）の読み書き JosekiBookFile::load/save（ワーカースレッドから呼べる）
+│   ├── josekibooksession.cpp/.h    #   開いている定跡ファイル（JosekiBook の値・変更状態・読み書き）
 │   ├── josekimergeentries.cpp/.h   #   棋譜から定跡にマージする指し手の一覧
-│   ├── josekitypes.h, josekiioresult.h # 定跡の値型と、読み書きの結果（スレッド間の値オブジェクト）
+│   ├── josekitypes.h               #   定跡手の値型 JosekiMove・定跡手の見分け方 JosekiMoveKey（局面のキーと USI の指し手の組）・マージの候補
 │   └── formats/                    #   形式ごとの変換器（テキストを読む。ファイルは KifuLoadParser が読んで渡す）
 │       ├── kiftosfenconverter.cpp/.h   #   KIF の parse()（ki2・csa・jkf・usen・usi の *tosfenconverter も形式ごとに parse() を1つ持つ）
 │       ├── kiftextparser.cpp/.h        #   KIF・KI2 で共有する読み取り（行の分類・変化の区切り・開始局面）
@@ -540,7 +542,7 @@ src/
 │   ├── josekitablemodel.cpp/.h     #   定跡ウィンドウの表のモデル（データは kifu/josekibooksession）
 │   ├── josekifilecontroller.cpp/.h #   定跡ファイルの操作（開く・新規・保存・最近使ったファイル）
 │   ├── josekimergedialog.cpp/.h    #   定跡結合ダイアログ
-│   └── josekimovedialog.cpp/.h     #   定跡移動ダイアログ（josekimoveinputwidget が入力部）
+│   └── josekimovedialog.cpp/.h     #   定跡手の追加・編集ダイアログ（setEntry()/entry()。入力部の josekimoveinputwidget は局面の合法手の一覧から選ぶ）
 │
 ├── ui/                             # UI層
 │   ├── presenters/                 #   表示への反映
@@ -1367,7 +1369,7 @@ graph LR
 | 棋譜解析（`KifuAnalysisController`） | 解析用 | — |
 | CSA 通信対局（`CsaEngineController`） | 対局用 | — |
 
-どの用途も、エンジンは `EngineLifecycleManager::createEngine()` で枠に作り、思考情報と通信ログの表示は `EngineDisplayPresenter` が枠のエンジンに結ぶ。
+どの用途も、エンジンは `EngineLifecycleManager::acquire(owner, slot, side, name)` で枠に作り、使う側は返された move-only の `EngineLease` を持っている間だけエンジンを使う（`engine()`。手放す `reset()`・破棄で枠を空け、持ち主には知らせない）。ほかの持ち主が同じ枠を取った・`destroyEngines()` で全部の枠を破棄したときは、前の持ち主に `engineRevoked(owner)` で知らせ、そのリースは空になる（枠に入っているかは `holds(engine)`）。リースを持つのは `AnalysisSession`・`KifuAnalysisController`・`CsaEngineController`・`HumanVsEngineStrategy`・`EngineVsEngineStrategy`。思考情報と通信ログの表示は `EngineDisplayPresenter` が枠のエンジンに結ぶ。
 
 **3. メニュー・ボタンの有効/無効**
 
@@ -2671,7 +2673,7 @@ game 層
 | **MatchCoordinator** | `matchcoordinator.h/.cpp` | 対局の司令塔。対局の手順（`RecordLine`）を持ち、一手の確定（時計・棋譜・千日手・最大手数）、終局の判定と記録、待った、中断と再開を受け持つ |
 | **GameModeStrategy** | `gamemodestrategy.h`、`humanvshumanstrategy`・`humanvsenginestrategy`・`enginevsenginestrategy` の `.h/.cpp` | 対局モード別に、手番ごとに誰が指すかを決める。司令塔への依頼は `MatchStrategyHost` を通す |
 | **MatchSessionState** | `matchsessionstate.h` | 開始の設定（`MatchStartOptions`）・対局者（`MatchPlayers`）・終局状態を持つ（エンジンの先読みの局面は `UsiMatchHandler` だけが持つ） |
-| **EngineLifecycleManager** | `enginelifecyclemanager.h/.cpp` | エンジンの枠 E1・E2 の生成・起動・破棄と、手番との対応（対局・検討・棋譜解析・CSA 通信対局で共有）。エンジンの投了・入玉宣言を手番の知らせにする |
+| **EngineLifecycleManager** | `enginelifecyclemanager.h/.cpp` | エンジンの枠 E1・E2 の生成・起動・破棄と、手番との対応（対局・検討・棋譜解析・CSA 通信対局で共有）。使う側には `acquire()` で move-only の `EngineLease` を渡し、枠をほかの持ち主に取られた前の持ち主には `engineRevoked` で知らせる。エンジンの投了・入玉宣言を手番の知らせにする |
 | **ShogiGameController** | `shogigamecontroller.h/.cpp` | 対局の盤を持ち、指し手の合法性の検証と適用、棋譜の表記を行う（「同」の基準は呼び出し側が手順から渡す） |
 | **GameStartOptionsBuilder** | `gamestartoptionsbuilder.h/.cpp` | 対局開始ダイアログの値と表示中の手順から、開始の計画（`GameStartPlan`）を作る。状態を持たない |
 | **ConsecutiveGameSeries** | `consecutivegameseries.h/.cpp` | エンジン同士の連続対局の局数と、次局の計画 |
@@ -2832,8 +2834,8 @@ beginPlay()
 | Strategy | 処理内容 |
 |---------|---------|
 | `HumanVsHumanStrategy` | 何も準備しない。人間の考慮時間を `QElapsedTimer` で測る（`armTurnTimerIfNeeded()`） |
-| `HumanVsEngineStrategy` | 前のエンジンを破棄→E1 の枠にエンジンを作る（`createEngine(1, エンジンの手番, 名前)`）→起動（初期化は非同期）。初手がエンジンで初期化中なら、`setWaitingForEngines(true)` で時計を止めて待つ |
-| `EngineVsEngineStrategy` | E1（先手）・E2（後手）にエンジンを作って起動→両方の初期化が済んでいれば、手番の側のエンジンに思考を依頼（初期化中なら時計を止めて待つ） |
+| `HumanVsEngineStrategy` | 前のエンジンを破棄→E1 の枠にエンジンを作ってリースを持つ（`acquire(this, 1, エンジンの手番, 名前)`）→起動（初期化は非同期。起動の失敗は戻った後に `engineError` で届く）。初手がエンジンで初期化中なら、`setWaitingForEngines(true)` で時計を止めて待つ |
+| `EngineVsEngineStrategy` | E1（先手）・E2（後手）にエンジンを作って（`acquire()`。リースは `m_black`・`m_white`）起動→両方の初期化が済んでいれば、手番の側のエンジンに思考を依頼（初期化中なら時計を止めて待つ） |
 
 #### 主要シグナル
 
@@ -2886,7 +2888,7 @@ sequenceDiagram
     alt 両方人間
         MC->>MC: HumanVsHumanStrategy::start()
     else 人間対エンジン
-        MC->>USI: HumanVsEngineStrategy::start()<br/>createEngine(1, エンジンの手番) → startEngine()
+        MC->>USI: HumanVsEngineStrategy::start()<br/>acquire(this, 1, エンジンの手番) → startEngine()
     else エンジン同士
         MC->>USI: EngineVsEngineStrategy::start()<br/>E1・E2 を起動
     end
@@ -3191,6 +3193,7 @@ MatchCoordinator::gameInterrupted
 |-----------|------|
 | `state` | `AppState`（動作状態） |
 | `match` / `analysis` / `consecutive` / `csaGame` / `reset` | 対局の司令塔（必須）・検討（「新規」で止める）・連続対局・通信対局の司令塔（必須）・棋譜と表示の作り直し |
+| `engines` | エンジンの枠（`EngineLifecycleManager`。省略可）。「新規」で対局・棋譜解析のエンジンも `destroyEngines(false)` で止める（`AnalysisSession::stop()` は自分のエンジンしか手放さないため） |
 | `navState` / `liveSession` / `document` | 表示中の手（現在局面からの開始・再開）・対局の手順の書き先（分岐ツリー）・棋譜の文書（対局者・持ち時間・開始と終了の日時・対局情報） |
 | `clock` / `timePresenter` / `playerInfo` | 時計（必須）・時計の表示・盤の対局者名の表示 |
 | `kifuFileController` / `shogiView` / `appearance` | 未保存の棋譜の確認と棋譜の自動保存・手前に表示している側・「人を手前に表示する」の盤の反転 |
@@ -3423,7 +3426,7 @@ stateDiagram-v2
 
 #### 非同期初期化シーケンス
 
-`Usi::startEngine(path, name)` は起動の要求を受け付けたかを返す（パスが空、起動できないときは false と `errorOccurred`）。
+`Usi::startEngine(path, name)` は値を返さない。起動の失敗（パスが空・実行できない・起動できない）は、必ずこの呼び出しから戻った後のイベントループで `errorOccurred` として届く（`UsiEngineSession::startAsync()` が同期では決して知らせない。知らせる前に `quit()`・次の起動をしたら、その失敗は知らせない）。このため使う側は起動の途中の再入（`startEngine()` の中でエラーの処理が走ること）に備えなくてよい。`MateOracle::start()`・`EngineAnalysisRunner::start()`・`MateSearchRunner::start()` も同じく値を返さない（`TsumeVerificationRunner::start()` は SFEN が詰将棋の局面でないときだけ false を返す）。
 中では `UsiEngineSession::startAsync()` が、そのエンジンの保存した設定を `UsiProtocolHandler::setLaunchOptions(EngineProfileStore::launchOptions(name))` で渡し、
 `EngineProcessManager::startProcessAsync()` で起動する。`processStarted` の後、`UsiProtocolHandler::initializeEngineAsync()` が
 `usi` → `usiok` → `setoption` → `isready` → `readyok` → `usinewgame` の順に進める。
@@ -3431,7 +3434,7 @@ stateDiagram-v2
 成功は `UsiProtocolHandler::initializationFinished(true)` → `UsiEngineSession::ready` → `Usi::engineInitialized`、失敗は `UsiEngineSession::errorOccurred` → `Usi::errorOccurred` で通知する。
 初期化中の要求（対局の思考・検討・詰み探索・setoption・USI コンソールの入力）は `UsiEngineSession::whenReady()` と `search()` が保管し、初期化完了後に順に送る。
 キャンセル（`cancelCurrentOperation()`）時は保留要求とタイマーを破棄し、遅れて届いた結果も知らせない。
-エンジンの登録には、起動して usi〜usiok だけ行う `probeAsync()` を使う（7.9節）。
+エンジンの登録には、起動して usi〜usiok だけ行う `probeAsync()` を使う（7.9節。失敗の知らせ方は `startAsync()` と同じ）。
 
 ### 7.3 EngineProcessManager — プロセス管理
 
@@ -3581,7 +3584,7 @@ explicit Usi(QObject* parent = nullptr);
 
 | メソッド | 用途 |
 |---------|------|
-| `startEngine(path, name)` | エンジンを起動して初期化を始める（完了は `engineInitialized`、失敗は `errorOccurred`） |
+| `startEngine(path, name)` | エンジンを起動して初期化を始める（値は返さない。完了は `engineInitialized`、失敗は戻った後に `errorOccurred`） |
 | `requestMatchMove(position)` | 対局の思考を依頼する（`position` は `UsiPosition`。時間は `setMatchTimeSource()` で渡した出どころから読む。先読みの当たり・外れは `UsiMatchHandler` が判断する。指し手は `matchMoveReady`） |
 | `forgetPonder()` | 先読みの局面を捨てる（待ったなどで局面が戻ったとき） |
 | `requestImmediateMove()` | 対局中の「すぐ指させる」（準備中に頼まれた探索の後で stop を送る） |
@@ -3858,6 +3861,7 @@ updateByMultipv(row, maxMultiPV)
   │
   ├── 2. EngineRegistrationHandler::startRegistration(filePath)
   │     └── m_probe（UsiEngineSession）の probeAsync() でエンジンを起動する
+  │           （起動できなければ、戻った後に errorOccurred → onProbeError で失敗を出す）
   │
   ├── 3. 起動して usi を送る（UsiProtocolHandler が usiok まで進める）
   │     ├── processStarted → onProbeStarted()（進捗「USI通信中...」）
@@ -4947,7 +4951,7 @@ struct AnalysisRequest {
 #### 1手の解析サイクル
 
 ```
-start() → Usi::startEngine(path, name)
+start() → Usi::startEngine(path, name)（起動できなければ、戻った後に Usi::errorOccurred → onError）
   ▼ Usi::engineInitialized
 analyzePly(startPly)
   │
@@ -5040,8 +5044,8 @@ struct AnalysisOptions {
 
 #### 検討モードと対局エンジンの関係
 
-検討のセッション `AnalysisSession` は、対局の司令塔と同じエンジンの枠（`EngineLifecycleManager` の E1）にエンジンを作る（`createEngine(1, ...)`。対局と検討は同時には動かない）。開始すると動作状態を `DuringConsideration`（詰み探索は `DuringTsumeSearch`）にし、`Usi::startEngine()` でエンジンを起動してから、検討なら `Usi::startConsideration()`（position・MultiPV の setoption・`go infinite`、時間指定があればタイマーで `stop`）、詰み探索なら `Usi::startMateSearch()` で探索を始める。
-探索が終わると次の局面を待つ（`considerationWaitingStarted`）。局面や候補手の数が変わると探索をやり直し（`updatePosition()`・`updateMultiPV()`。やり直しの前に `considerationResultsCleared` で検討の表を消す）、`stop()` でエンジンを破棄して `considerationModeEnded` を出す。検討中に表示中の手が変わったときは、`AnalysisSession` 自身が `KifuNavigationState::changed` を受けて `followDisplayedPosition()` で検討をやり直す（9.5 参照）。
+検討のセッション `AnalysisSession` は、対局の司令塔と同じエンジンの枠（`EngineLifecycleManager` の E1）にエンジンを作り、そのリース（`EngineLease`）を持つ（`acquire(this, 1, std::nullopt, name)`。対局と検討は同時には動かない）。開始すると動作状態を `DuringConsideration`（詰み探索は `DuringTsumeSearch`）にし、`Usi::startEngine()` でエンジンを起動してから（起動の失敗は戻った後に `onEngineError` で届くので、開始中の状態や失敗の覚え書きは持たない）、検討なら `Usi::startConsideration()`（position・MultiPV の setoption・`go infinite`、時間指定があればタイマーで `stop`）、詰み探索なら `Usi::startMateSearch()` で探索を始める。
+探索が終わると次の局面を待つ（`considerationWaitingStarted`）。局面や候補手の数が変わると探索をやり直し（`updatePosition()`・`updateMultiPV()`。やり直しの前に `considerationResultsCleared` で検討の表を消す）、`stop()` で自分のリースだけを手放して `considerationModeEnded` を出す（検討・詰み探索をしていなければ何もしない。ほかの処理のエンジンには触れない）。ほかの処理（棋譜解析・対局など）が枠を取ったときは `EngineLifecycleManager::engineRevoked` を受けて（`onEngineRevoked()`）同じく `stop()` で終える。検討中に表示中の手が変わったときは、`AnalysisSession` 自身が `KifuNavigationState::changed` を受けて `followDisplayedPosition()` で検討をやり直す（9.5 参照）。
 
 ### 9.5 ConsiderationUiController — 検討モードのUI制御
 
@@ -5153,7 +5157,7 @@ showDialogAndStart()
         │
         ├── 解析範囲を手順の手数に収める、前回の解析を止めて結果・評価値グラフをクリア
         ├── resultsDock を表示して前に出す、resultsPanel->beginAnalysis()
-        ├── 枠 E1 に Usi を作り（createEngine(1, ...)）、AnalysisJob を作成
+        ├── 枠 E1 に Usi を作ってリースを持ち（acquire(this, 1, ...) → m_lease）、AnalysisJob を作成
         ├── ジョブのシグナルを接続
         │     ├── plyStarted → onPlyStarted
         │     ├── plyAnalyzed → onPlyAnalyzed
@@ -5162,7 +5166,7 @@ showDialogAndStart()
         ├── AnalysisResultHandler を作る（参照: モデル・手順・結果ドック・対局者名・盤の向き）
         ├── 動作状態を DuringAnalysis にする
         └── AnalysisJob::start() → Usi::startEngine(path, name)
-              │
+              │   （起動の失敗は戻った後に errorOccurred → onEngineError で届く。同期の失敗の分岐はない）
               ▼ （以下、AnalysisJob の解析サイクル。9.3 参照）
               ┌─────────────────────────────────────────┐
               │ plyStarted(ply) → onPlyStarted()         │
@@ -5371,14 +5375,14 @@ analysis層の機能は、エンジンの使い方が2つに分かれている�
   │
   └── KifuAnalysisController → AnalysisJob
         │
-        ├── 枠 E1 に作った Usi を AnalysisJob::Deps で渡す（借用）
+        ├── 枠 E1 に作った Usi を AnalysisJob::Deps で渡す（借用。リースは KifuAnalysisController が持つ）
         ├── 局面ごとに Usi::search（position + go infinite、思考時間で stop）を頼む
         └── 独自の position/go infinite/stop サイクルを実行
 ```
 
-**検討・詰将棋探索**: `AnalysisSession` が、対局の司令塔（`MatchCoordinator`）と共有するエンジンの枠（`EngineLifecycleManager` の E1）でエンジンを管理する。対局と同じ枠を使うため、エンジンの起動・初期化・シャットダウンが統一されており、思考情報・通信ログも E1 のモデルに出る。対局と検討は同時には動かない（`AnalysisSession` は始めるときに枠のエンジンを破棄する）。
+**検討・詰将棋探索**: `AnalysisSession` が、対局の司令塔（`MatchCoordinator`）と共有するエンジンの枠（`EngineLifecycleManager` の E1）でエンジンを管理する。対局と同じ枠を使うため、エンジンの起動・初期化・シャットダウンが統一されており、思考情報・通信ログも E1 のモデルに出る。対局と検討は同時には動かない（`AnalysisSession` は始めるときに枠のエンジンを破棄し、ほかの持ち主には `engineRevoked` で知らせる。自分の枠をほかの処理に取られたら `engineRevoked` を受けてセッションを終える）。
 
-**棋譜解析**: 複数局面を逐次解析する必要があり、`AnalysisJob` が独自の position/go/stop サイクルを制御する。エンジンは `KifuAnalysisController` が枠 E1 に作り（`createEngine(1, ...)`）`AnalysisJob` に渡す（テストでは `Deps::engine` で注入できる）。`AnalysisJob` は解析が終わると `Usi::quit()` でエンジンを終わらせ、思考情報・通信ログの表示は枠 E1 の持ち主が結ぶ。
+**棋譜解析**: 複数局面を逐次解析する必要があり、`AnalysisJob` が独自の position/go/stop サイクルを制御する。エンジンは `KifuAnalysisController` が枠 E1 に作ってリースを持ち（`acquire(this, 1, ...)`）、`AnalysisJob` に渡す（テストでは `Deps::engine` で注入できる）。検討・対局などに枠を取られたら `engineRevoked` を受けて（`onEngineRevoked()`）解析を止める。`AnalysisJob` は解析が終わると `Usi::quit()` でエンジンを終わらせ、思考情報・通信ログの表示は枠 E1 の持ち主が結ぶ。
 
 ### 9.11 詰みの問い合わせ（MateOracle）と詰将棋の生成
 
@@ -6297,8 +6301,8 @@ Urgency::Warn5  → 強い警告色（残5秒・秒読み）
 | PvBoardDialog | QDialog | なし | 読み筋（PV）再生ウィンドウ（ShogiView を内蔵、ナビゲーションボタン付き）。読み筋の値は `PvLine`（`pvline.h`。各手数の局面 `positions()`・手の表記 `moveText(ply)`・読み筋全体の表記 `displayPv()`・直前の手のハイライト `highlight(ply)`）で、表示する手数は `BoardViewerWidget` だけが持つ |
 | KifuPasteDialog | QDialog | なし | クリップボードからの棋譜テキスト取り込み（形式自動判定） |
 | JosekiWindow | QWidget | なし | 定跡データベースの表示・編集・マージ（独立ウィンドウ） |
-| JosekiMoveDialog | QDialog | なし | 定跡手の追加・編集（やねうら王形式、USIプレビュー） |
-| JosekiMergeDialog | QDialog | なし | 棋譜データから定跡ファイルへのマージ（個別・一括登録） |
+| JosekiMoveDialog | QDialog | なし | 定跡手の追加・編集（やねうら王形式）。指し手は局面の合法手を棋譜の表記で並べた一覧から選び（`JosekiMoveInputWidget`。一覧は `moveInputCombo`）、予想応手は着手後の局面の合法手と先頭の「なし」から選ぶ（`nextMoveInputCombo`）。値は `setEntry(const JosekiMove&)`・`entry()` で受け渡し、編集モードでは渡した指し手を変えない |
+| JosekiMergeDialog | QDialog | なし | 棋譜データから定跡ファイルへのマージ（個別・一括登録）。登録済みの印は `setRegisteredMoves(QSet<JosekiMoveKey>)`（`JosekiBookSession::mergeRegisteredMoves()` の値） |
 | MenuWindow | QWidget | なし | メニュー項目のボタン一覧表示（お気に入り・カテゴリ別タブ） |
 
 ---
@@ -6799,7 +6803,7 @@ struct Deps {
 };
 ```
 
-盤のビュー・棋譜欄・ハイライトの部品は持たない。盤への着手は `ShogiGameController`、棋譜行は `recordEntryReady`、移動元・移動先のハイライトは `moveHighlightRequested`、通信ログは `csaCommLogAppended` で知らせる。エンジンで指すときは `CsaEngineController` が `EngineLifecycleManager::createEngine(1, …)` で枠 E1 にエンジンを作り（`InitParams::timeSource` に司令塔自身を渡し、`Usi::setMatchTimeSource()` でつなぐ）、終局の `sendGameOver()`・`sendQuit()` で枠を空けて片付ける（`cleanup()`）。同じ接続の次の対局条件（`onGameSummaryReceived()`）は、エンジンが思考を頼める状態（`isReady()`）でなければ起動し直し、起動して初期化している間（`isStarting()`）は readyok を待ってから同意する（`onEngineControllerInitialized()`）。それ以外はすぐ同意する。思考の依頼は `thinkAsync(const UsiPosition&)` で、時間は渡さない。思考情報・USI通信ログのモデルは枠が持つ。
+盤のビュー・棋譜欄・ハイライトの部品は持たない。盤への着手は `ShogiGameController`、棋譜行は `recordEntryReady`、移動元・移動先のハイライトは `moveHighlightRequested`、通信ログは `csaCommLogAppended` で知らせる。エンジンで指すときは `CsaEngineController` が `EngineLifecycleManager::acquire(this, 1, …)` で枠 E1 にエンジンを作ってリース（`m_lease`）を持ち（`InitParams::timeSource` に司令塔自身を渡し、`Usi::setMatchTimeSource()` でつなぐ）、終局の `sendGameOver()`・`sendQuit()` でリースを手放して片付ける（`cleanup()`）。通信対局の最中にほかの処理が枠を取ったとき（`engineRevoked`）は、エンジンの異常と同じくエラーとして知らせる（`onEngineRevoked()` → `onEngineError()`）。同じ接続の次の対局条件（`onGameSummaryReceived()`）は、エンジンが思考を頼める状態（`isReady()`）でなければ起動し直し、起動して初期化している間（`isStarting()`）は readyok を待ってから同意する（`onEngineControllerInitialized()`）。それ以外はすぐ同意する。思考の依頼は `thinkAsync(const UsiPosition&)` で、時間は渡さない。思考情報・USI通信ログのモデルは枠が持つ。
 
 ### 12.4 CsaGameSession — CSA通信対局の画面への反映
 
@@ -7497,7 +7501,7 @@ MainWindow のメンバは `ui`・`m_composer`・`m_skipCloseConfirmation`（自
 
 `MainWindowComposer` は部品を依存する部品より後に作り、依存はコンストラクタの `Deps` で渡す。共通の規則は [4.2節](#42-合成ルートでの組み立て) を参照。
 
-- **依存はポインタで渡す**: 部品は `Deps` 構造体で、ほかの部品のポインタを受け取る。たとえば `GameSession::Deps` は `state`・`match`・`analysis`・`consecutive`・`reset`・`navState`・`liveSession` などをポインタで持つ。生成前の部品を指すための `std::function<X*()>` のゲッターは使わない。
+- **依存はポインタで渡す**: 部品は `Deps` 構造体で、ほかの部品のポインタを受け取る。たとえば `GameSession::Deps` は `state`・`match`・`analysis`・`engines`・`consecutive`・`reset`・`navState`・`liveSession` などをポインタで持つ。生成前の部品を指すための `std::function<X*()>` のゲッターは使わない。
 - **状態は AppState を指す**: 共有状態を使う部品は `AppState*` を受け取り（`GameSession`・`AutomationContext`）、使うときに読む。棋譜に付く状態（対局者・上書き保存先・対局情報）を使う部品は棋譜の文書 `KifuDocument*` を受け取る（`GameSession`・`KifuFileController`・`PlayerInfoPresenter`・`PvClickController`・`KifuAnalysisController`・`MatchCoordinator`・`AutomationContext` など。読むだけの部品は `const`）。動作状態だけを使う部品は `&m_state.activity`（`AppActivityState*`）を受け取る（`MatchCoordinator`・`AnalysisSession`・`UiStatePolicyManager`・`HumanTurnPolicy`・`BoardMoveController`・`CsaGameSession` など）。
 - **作った後に渡すもの**: 司令塔（`MatchCoordinator`）は棋譜の受け手の `GameSession` より先に作るので、受け手だけ `createSessions()` で `setRecordSink()` によって渡す。ほかに、`KifuNavigationController::setLeaveGuard()`・`ShogiGameController::setPromotionChooser()` が、できあがった部品の判定関数を受け取る。盤の操作の行き先（`BoardInteractionController::setInputRoute()`）は、`BoardMoveController` が自分のコンストラクタで自分を渡す。
 - **`std::function` はフックだけ**: 上位へ問い合わせ・操作を委ねるフック（`KifuFileController::Deps::clearUiBeforeKifuLoad`、`UiStatePolicyManager::Deps` の `localGameHasHuman`・`canResumeGame`、`JosekiWindowController::Deps::isHumanTurnNow` など）と、層の境界をまたぐ関数（`AutomationContext` のお気に入りの取得・設定）にだけ使う。司令塔（`MatchCoordinator`）はフックを持たず、シグナルと棋譜の受け手（`MatchRecordSink`）で上位に知らせる（[4.3節](#43-シグナルと-stdfunction-コールバック)）。
@@ -7909,7 +7913,7 @@ sequenceDiagram
     CTM-->>CUI: startConsiderationRequested → startConsideration()
     Note over CUI: 検討タブの設定（settings()）を読み、表示中の手順（分岐ツリー）から<br/>ConsiderationPositionResolver で検討する局面と直前の手を決め、<br/>AnalysisOptions を作る
     CUI->>AS: start(AnalysisOptions)
-    AS->>USI: createEngine(1, ...) → startEngine(enginePath, engineName)（E1 の枠）
+    AS->>USI: acquire(this, 1, ...) → startEngine(enginePath, engineName)（E1 の枠のリース）
     Note over USI: エンジンプロセス起動<br/>usi → usiok<br/>isready → readyok
     AS->>USI: startConsideration(position, byoyomiMs, multiPV)
     Note over USI: setoption MultiPV を送信<br/>position ... を送信<br/>go infinite を送信（時間制限は stopAfterMs）
@@ -7947,7 +7951,7 @@ sequenceDiagram
     User->>CTM: 開始/中止ボタンクリック（RunState が Running・Waiting）
     CTM-->>CUI: stopConsiderationRequested → stopConsideration()
     CUI->>AS: stop()
-    AS->>USI: 探索を取り消し、エンジンを破棄（EngineLifecycleManager）
+    AS->>USI: 探索を取り消し、自分のリースを手放す（EngineLease::reset。枠を空ける）
     AS-->>EDP: considerationModeEnded シグナル（動作状態はアイドルへ）
     EDP->>CTM: setRunState(Idle)（経過時間を止め、ボタンを「検討開始」に戻す）
     Note over CTM: CandidateArrowPresenter も considerationModeEnded を受けて矢印を消す
@@ -9230,7 +9234,8 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | EngineAnalysisRunner | C | automation | 登録エンジンで1局面を一定時間解析する実行器（CLI・自動化 API と共有） | 第7章 |
 | EngineDisplayPresenter | C | ui/presenters | エンジンの表示の持ち主（枠 E1・E2 とモデルの結び・検討の表示・2つ目のエンジン欄・評価値グラフの系列名・表示の消去） | 第9章, 第10章 |
 | EngineInfoWidget | C | widgets | エンジン情報表示ウィジェット（列幅を自分で保存） | 第11章 |
-| EngineLifecycleManager | C | game | エンジンの枠 E1・E2 の生成・起動・破棄と手番との対応（対局・検討・棋譜解析・通信対局で共有） | 第6章 |
+| EngineLease | C | game | 枠のエンジンを使う権利（move-only。`EngineLifecycleManager::acquire()` が返し、手放すと枠を空ける） | 第6章 |
+| EngineLifecycleManager | C | game | エンジンの枠 E1・E2 の生成・起動・破棄と手番との対応（対局・検討・棋譜解析・通信対局で共有。使う側には `EngineLease` を渡し、取り上げたら `engineRevoked`） | 第6章 |
 | EngineListSettings | NS | services | 登録エンジン一覧の検索（名前・パス）と機能ごとに選んだエンジンの保存 | 第7章 |
 | EngineMoveValidator | C | core | 合法手判定・合法手の一覧 | 第2章, 第5章 |
 | EngineOptionDescriptions | C | engine | USIエンジンオプション説明データベース | 第7章 |
@@ -9272,9 +9277,11 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | JishogiScoreDialog | C | dialogs | 持将棋の点数ダイアログ（`showFor()` が局面から点数と王手を計算して開く） | 第10章 |
 | JkfExporter | C | kifu/formats | JKF形式の書き出し | 第8章 |
 | JkfToSfenConverter | C | kifu/formats | JKF形式→SFEN変換器 | 第8章 |
-| JosekiBookSession | C | kifu | 開いている定跡ファイル（データ・変更状態・読み書き） | 第8章, 第11章 |
+| JosekiBook | C | kifu | 定跡のデータの値型（局面のキー `positionKey()` から `JosekiPosition`（登録したときの SFEN・定跡手）を引く map 1つ。マージで登録した印は `JosekiMoveKey` の集合）。読み書きは `JosekiBookFile::load()`・`save()` | 第8章, 第11章 |
+| JosekiBookSession | C | kifu | 開いている定跡ファイル（`JosekiBook` の値・変更状態・読み書き） | 第8章, 第11章 |
 | JosekiMergeDialog | C | dialogs | 定跡結合ダイアログ | 第11章 |
-| JosekiMoveDialog | C | dialogs | 定跡手入力ダイアログ | 第11章 |
+| JosekiMoveDialog | C | dialogs | 定跡手入力ダイアログ（値は `setEntry()`・`entry()`） | 第11章 |
+| JosekiMoveInputWidget | C | dialogs | 定跡手の入力欄（局面の合法手を棋譜の表記で並べた一覧。データは USI） | 第11章 |
 | JosekiWindow | C | dialogs | 定跡管理ウィンドウ | 第11章 |
 | JosekiWindowController | C | ui/controllers | 定跡ウィンドウの表示・更新と、選んだ定跡手の着手の要求 | 第10章 |
 | Ki2Exporter | C | kifu/formats | KI2形式の書き出し | 第8章 |
@@ -9478,7 +9485,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | gamechannel | 第6章 | 対局相手の窓口 `GameChannel`（投了・中断・即指し・入玉宣言をローカル対局と通信対局で同じ操作に）とローカル対局の実装 `LocalGameChannel` |
 | matchautosave | 第6章 | 終局した棋譜の自動保存の指定（ローカル対局・通信対局で同じ） |
 | gamemodestrategy | 第6章 | 対局モード別の Strategy（実装は humanvs*strategy・enginevsenginestrategy） |
-| enginelifecyclemanager | 第6章 | エンジンの枠 E1・E2 の生成・起動・破棄（対局・検討・棋譜解析・通信対局で共有） |
+| enginelifecyclemanager | 第6章 | エンジンの枠 E1・E2 の生成・起動・破棄（対局・検討・棋譜解析・通信対局で共有）と枠のリース `EngineLease` |
 | shogigamecontroller | 第6章 | 対局フロー制御（指し手の検証と盤への適用） |
 | timecontrolutil | 第12章 | 持ち時間の時計への適用 |
 | consecutivegameseries | 第6章 | エンジン同士の連続対局（局数・手番の入れ替え・次局の計画） |
@@ -9528,7 +9535,8 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | considerationpositionresolver | 第9章 | 検討する局面と直前の手の決定 |
 | kifreader | 第8章 | KIFファイル読み込み |
 | kifparsetypes | 第8章 | パース型定義（`KifParseResult`・`KifuParseOutcome`・`ParseOptions`・`ParseReport`） |
-| josekibooksession | 第8章, 第11章 | 開いている定跡ファイル（データ・変更状態・読み書き） |
+| josekibook | 第8章, 第11章 | 定跡のデータの値型 `JosekiBook` と定跡ファイルの読み書き `JosekiBookFile` |
+| josekibooksession | 第8章, 第11章 | 開いている定跡ファイル（`JosekiBook` の値・変更状態・読み書き） |
 | kifuformat | 第8章 | 棋譜の形式（読み込み・保存・変換で共通の enum）と判定 |
 | kifuloadparser | 第8章 | 棋譜の読み込み口（ファイルの文字コードの判別と、形式ごとの変換器への振り分け） |
 | recordentry | 第8章 | 棋譜の1行（指した手か終局） |
@@ -9732,6 +9740,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | josekiwindow | 第11章 | 定跡ウィンドウ |
 | josekimergedialog | 第11章 | 定跡結合 |
 | josekimovedialog | 第11章 | 定跡手入力 |
+| josekimoveinputwidget | 第11章 | 定跡手の入力欄（局面の合法手の一覧） |
 | enginesettingsoptionhandler | 第11章 | エンジン設定オプションのウィジェット生成・データ管理 |
 | jishogiscoredialog | 第10章 | 持将棋の点数ダイアログ |
 | josekitablemodel | 第11章 | 定跡の表のモデル（データは `JosekiBookSession`） |

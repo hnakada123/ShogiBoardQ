@@ -174,7 +174,7 @@ Strategy は対局開始時（と再開時）に `MatchCoordinator::createStrate
 
 Strategy は `MatchStrategyHost`（`src/game/gamemodestrategy.h`。`MatchCoordinator` が private に実装する）を通して、エンジンの枠（`engines()`）・盤の手番（`sideToMove()`）・手数（`currentPly()`）・終局したか（`isGameOver()`）を読み、一手の確定（`completeHumanMove()`・`applyEngineMove()`）、エンジンへの思考の依頼（`requestEngineMove(side)`）、エンジンの初期化を待つ間の時計の停止（`setWaitingForEngines()`）、人間の考慮時間の記録（`recordConsiderationTime()`）を司令塔に頼む。Strategy は手番ごとに誰が指すかだけを決める。
 
-エンジンは `EngineLifecycleManager`（`src/game/enginelifecyclemanager.cpp`）の枠（E1・E2。思考情報と通信ログの表示先）に置き、枠ごとにどちらの手番を指すかを覚える（`createEngine(slot, side, name)`、`engineFor(side)`）。`EngineLifecycleManager` は合成ルートが対局の時計を渡して作り、司令塔（`MatchCoordinator::Deps::engines`）と検討・詰み探索（`AnalysisSession`）が共有する。人間対エンジンでは、エンジンは手番によらず E1 に置く。
+エンジンは `EngineLifecycleManager`（`src/game/enginelifecyclemanager.cpp`）の枠（E1・E2。思考情報と通信ログの表示先）に置き、枠ごとにどちらの手番を指すかを覚える（`acquire(owner, slot, side, name)`、`engineFor(side)`）。`acquire()` は move-only の `EngineLease` を返し、Strategy はそれを持っている間だけエンジンを使う（手放すと枠を空ける。ほかの持ち主が同じ枠を取った・`destroyEngines()` で全部の枠を破棄したときは、前の持ち主に `engineRevoked(owner)` で知らせる）。`EngineLifecycleManager` は合成ルートが対局の時計を渡して作り、司令塔（`MatchCoordinator::Deps::engines`）・検討・詰み探索（`AnalysisSession`）・棋譜解析・通信対局が共有する。人間対エンジンでは、エンジンは手番によらず E1 に置く。
 
 エンジンへの思考依頼は非同期である。依頼した関数はすぐに戻り、指し手は `Usi::matchMoveReady(const UsiMatchMove&)` シグナルで Strategy の `onEngineMoveReady()` に届く。`UsiMatchMove`（`src/engine/usimatchhandler.h`）は、指した側・指し手・考えた時間・最善の読み筋の評価値を持つ。先読みの局面は `UsiMatchHandler` だけが持ち、`UsiMatchMove` には載せない。
 
@@ -208,7 +208,7 @@ MatchCoordinator::completeMove(played, engineScore)
 
 人間が指した後、エンジンに思考を依頼し、届いた指し手を司令塔に指させる。
 
-`start()` は前の対局のエンジンを破棄し（`destroyEngines()`）、`createEngine(1, m_engineSide, name)` でエンジンを E1 に作り、`Usi::engineInitialized` と `Usi::matchMoveReady` を自分のスロットにつないでから `startEngine()` で起動する。
+`start()` は前の対局のエンジンを破棄し（`destroyEngines()`）、`acquire(this, 1, m_engineSide, name)` でエンジンを E1 に作ってリース（`m_engine`）を持ち、`Usi::engineInitialized` と `Usi::matchMoveReady` を自分のスロットにつないでから `startEngine()` で起動する。起動の失敗は `start()` から戻った後に `Usi::errorOccurred` で届く。
 
 #### 人間の着手後: onHumanMove()
 
@@ -292,7 +292,7 @@ EvEの対局は、エンジンの指し手を受けるたびに `QTimer::singleS
 
 ```
 EngineVsEngineStrategy::start()
-    ├─ 前のエンジンを破棄し、createEngine(1, Black) と createEngine(2, White) で作る
+    ├─ 前のエンジンを破棄し、acquire(this, 1, Black) と acquire(this, 2, White) で作る（リースは m_black・m_white）
     ├─ 両エンジンの engineInitialized → kickNextTurn、matchMoveReady → onEngineMoveReady を接続
     ├─ startEngine() で両エンジンを起動
     └─ kickNextTurn()（エンジンはまだ初期化中なので、待つ状態にして戻る）
@@ -321,7 +321,7 @@ onEngineMoveReady(move)   ← Usi::matchMoveReady
 
 **ファイル:** `src/core/shogiclock.cpp`
 
-`ShogiClock` は先手・後手の状態（残り時間・考慮時間・総考慮時間・秒読みに入っているか）を `SideState` にまとめて持ち、API はすべて `Turn` で受ける。50ms ごとの tick（`updateClock()`）で、時計の手番の側の残り時間と考慮時間を進める。時計は合成ルート（`MainWindowComposer::createBoard()`）が作り、司令塔（`MatchCoordinator::Deps::clock`）・`EngineLifecycleManager`（コンストラクタ）・`GameSession`・`TimeDisplayPresenter` に渡す。`EngineLifecycleManager` はこの時計を読む時間の出どころ `ClockTimeSource`（`src/engine/matchtimesource.h`）を持ち、`createEngine()` が手番を持つエンジンに `Usi::setMatchTimeSource()` でつなぐ。対局を始めるときは `GameSession::startGame()` が `TimeControlUtil::applyToClock()` で持ち時間の決まりと開始局面の手番を時計に入れ、棋譜の文書（`KifuDocument::beginMatch()`）が `MatchTimeRecord`（`src/kifu/matchtimerecord.h`。対局情報と棋譜に書く持ち時間と開始・終了の日時）に記録する。持ち時間の決まりと表示の仕様は [時間設定の仕様](game-time-control-spec.md) を参照。
+`ShogiClock` は先手・後手の状態（残り時間・考慮時間・総考慮時間・秒読みに入っているか）を `SideState` にまとめて持ち、API はすべて `Turn` で受ける。50ms ごとの tick（`updateClock()`）で、時計の手番の側の残り時間と考慮時間を進める。時計は合成ルート（`MainWindowComposer::createBoard()`）が作り、司令塔（`MatchCoordinator::Deps::clock`）・`EngineLifecycleManager`（コンストラクタ）・`GameSession`・`TimeDisplayPresenter` に渡す。`EngineLifecycleManager` はこの時計を読む時間の出どころ `ClockTimeSource`（`src/engine/matchtimesource.h`）を持ち、`acquire()` が手番を持つエンジンに `Usi::setMatchTimeSource()` でつなぐ。対局を始めるときは `GameSession::startGame()` が `TimeControlUtil::applyToClock()` で持ち時間の決まりと開始局面の手番を時計に入れ、棋譜の文書（`KifuDocument::beginMatch()`）が `MatchTimeRecord`（`src/kifu/matchtimerecord.h`。対局情報と棋譜に書く持ち時間と開始・終了の日時）に記録する。持ち時間の決まりと表示の仕様は [時間設定の仕様](game-time-control-spec.md) を参照。
 
 ### 3.1 時間計測の仕組み
 
@@ -610,7 +610,7 @@ UsiMatchHandler::onBestMoveReceived()
     （手番の探索の結果だけを扱う。外れた先読みの結果は使わない）
     ↓  emit resigned(探索した手番)   … 時計を精算する前に知らせる
 Usi::resigned(side)
-    ↓  （EngineLifecycleManager::createEngine() が、手番を持つエンジンだけ接続）
+    ↓  （EngineLifecycleManager::acquire() が、手番を持つエンジンだけ接続）
 EngineLifecycleManager::engineResigned(side)
     ↓  （MatchCoordinator のコンストラクタが接続）
 MatchCoordinator::handleEngineResign(side)   ← side はエンジンの手番（Turn）
@@ -994,9 +994,9 @@ MatchCoordinator::handleEngineIllegalMove(Turn side)
 Usi::errorOccurred(message)
     （UsiMatchHandler::timedOut を受けた Usi::onMatchTimeout() の "Timeout waiting for bestmove." もここに出る。
       時計の時間切れで終局していれば timedOut は出さない）
-    ↓  （EngineLifecycleManager::createEngine() が、手番を持つエンジンだけ接続）
+    ↓  （EngineLifecycleManager::acquire() が、手番を持つエンジンだけ接続）
 EngineLifecycleManager::engineError
-    ↓  （MatchCoordinator のコンストラクタが QueuedConnection で接続。開始処理を終えてから中断する）
+    ↓  （MatchCoordinator のコンストラクタが直接接続。起動の失敗は開始の処理から戻った後に届くので、そのまま中断してよい）
 MatchCoordinator::handleEngineError(msg)
     ├─ 終局済み・Strategy が無いなら何もしない
     ├─ 両枠のエンジンの今の処理を取り消す（Usi::cancelCurrentOperation()）
