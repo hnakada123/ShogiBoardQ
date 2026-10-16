@@ -2,34 +2,32 @@
 #define TSUMESHOGIGENERATOR_H
 
 /// @file tsumeshogigenerator.h
-/// @brief 詰将棋局面自動生成オーケストレータの定義
+/// @brief 詰将棋局面の自動生成（候補の待ち行列・問い合わせの中継・結果の集計）
 
+#include "tsumecandidatejob.h"
 #include "tsumeshogicandidatescreener.h"
 #include "tsumeshogipositiongenerator.h"
-#include "tsumeshogiverifier.h"
-#include "usimove.h"
 
 #include <QElapsedTimer>
 #include <QFutureWatcher>
 #include <QObject>
-
-#include "usimessages.h"
 #include <QSet>
 #include <QStringList>
 #include <QTimer>
-#include <QList>
+#include <memory>
 
 #include "threadtypes.h"
 
-class UsiEngineSession;
+class MateOracle;
+class MateQueryLoop;
 
 /**
- * @brief 詰将棋局面自動生成のオーケストレーション
+ * @brief 詰将棋局面の自動生成
  *
- * ランダム局面生成→内蔵探索による事前選別→エンジン詰み探索→結果フィルタリングのループを制御する。
- * 有効局面発見後は不要駒トリミングを行い、全ての1枚除去の判定が完了した局面だけを出力する。
- * 判定不能・中断時は採択しない。大域的な最少駒数を保証するものではない。
- * エンジンとは画面を持たない接続（UsiEngineSession）でつなぎ、signal-drivenループで次々に局面を送信する。
+ * ワーカースレッドでランダム局面を作って内蔵探索で候補を選び（バッチ）、候補を1つずつ TsumeCandidateJob で
+ * 採択か棄却まで進める。エンジンへの問い合わせは MateOracle、問い合わせの順序は MateQueryLoop が受け持つ。
+ * このクラスは候補の待ち行列・問い合わせの中継・結果の集計（重複の除外・上限・進捗）だけを行う。
+ * 判定できない・中断した候補は採択しない。大域的な最少駒数を保証するものではない。
  */
 class TsumeshogiGenerator : public QObject
 {
@@ -51,16 +49,12 @@ public:
 
     void start(const Settings& settings);
     void stop();
-    bool isRunning() const;
-
-    /// 正規化済みの先手攻方SFENから、玉以外の盤上駒・攻方持駒を1枚ずつ玉方持駒へ移した局面。
-    /// 生成時のトリミングと保存済み問題集の再検査で同じ除去操作を使用する。
-    static QStringList onePieceRemovedPositions(const QString& sfen);
+    bool isRunning() const { return m_running; }
 
 signals:
     void positionFound(const QString& sfen, const QStringList& pv);
     void progressUpdated(int tried, int found, qint64 elapsedMs);
-    void searchPhaseStarted();                       ///< 探索フェーズに入った（開始時・トリミング完了時）
+    void searchPhaseStarted();                       ///< 探索フェーズに入った（開始時・候補の検査や除去を終えたとき）
     void trimmingProgress(int candidate, int total); ///< トリミング中の候補進捗（candidate は 1 始まり）
     void verificationProgress(int queries);
     void verificationStatsUpdated(int rejected, int inconclusive);
@@ -68,98 +62,53 @@ signals:
     void errorOccurred(const QString& message);
 
 private slots:
-    void onEngineInitialized();
-    void onCheckmate(const UsiCheckmate& result);
+    void onEngineReady();
+    void onQueryStarted();
+    void onCandidateFinished();
+    void onUnsupported();
     void onNoResponse();
+    void onEngineError(const QString& message);
     void onProgressTimerTimeout();
     void onBatchReady();
-    void onEngineError(const QString& message);
-    void continueVerification();
 
 private:
     friend class TestTsumeshogiVerification;
-    /// 状態機械
-    enum class Phase { Idle, Searching, Trimming, Verifying };
 
-    /// 除去候補
-    struct TrimCandidate {
-        enum Location { Board, Hand };
-        Location location = Board;
-        BoardSquare square;          ///< Board時: 除く駒のマス
-        Piece piece = Piece::None;   ///< 除く駒（盤上は先後・成りを含む。持駒は先手の生駒）
-    };
-
-    // バッチ生成
+    /// エンジンとの接続（MateOracle）と問い合わせの順序（MateQueryLoop）を作ってつなぐ
+    void createOracle();
     void startBatchGeneration();
-
-    // 検索フェーズ
-    void generateAndSendNext();
-    void processResult(bool found, const QStringList& pv = {});
-    bool registerFoundPosition(const QString& sfen, const QStringList& pv);
-    void rejectInconclusiveTrim();
-    void onMate(const QStringList& pv);
-    void onNoMate();
-    void onUndetermined();
-    void advanceAfterFailure();
+    void startNextCandidate();
+    /// 候補の棄却の数を集計に足す（増えたら知らせる）
+    void reportCandidateStats();
+    void publish(const TsumeCandidateJob::Outcome& outcome);
+    /// 生成を終える（finished を出す）
+    void finish();
     void cleanup();
-    void startVerification(const QString& sfen, Phase origin);
-    void submitVerification(TsumeshogiVerifier::Reply reply, const QStringList& pv = {});
-    void finishVerification();
 
-    // トリミング操作
-    static QList<TrimCandidate> enumerateRemovablePieces(const QString& sfen);
-    static QString removePieceFromSfen(const QString& sfen, const TrimCandidate& candidate);
-
-    // トリミングフェーズ制御
-    void startTrimmingPhase(const QString& sfen, const QStringList& pv);
-    void tryNextTrimCandidate();
-    void sendTrimmingCheck(const QString& modifiedSfen);
-    /// 局面（SFEN）を go mate で探す（制限時間を過ぎても応答がなければ stop を送り、その応答は不明として扱う）
-    void sendMateSearch(const QString& sfen, int timeLimitMs);
-    void finishTrimmingPhase();
-
-    UsiEngineSession* m_engine = nullptr; ///< 詰み探索エンジンとの接続（parent ownership。破棄は cleanup() の deleteLater）
     Settings m_settings;
+    bool m_running = false;
 
-    QString m_currentSfen;       ///< 現在探索中のSFEN文字列
+    MateOracle* m_oracle = nullptr;      ///< parent ownership。後始末は cleanup() の deleteLater
+    MateQueryLoop* m_loop = nullptr;     ///< m_oracle の子
+    std::unique_ptr<TsumeCandidateJob> m_job;   ///< 調べている候補
+    int m_jobRejectedReported = 0;       ///< m_job の棄却のうち集計に足した数
+    int m_jobInconclusiveReported = 0;
+
     int m_generatedCount = 0;    ///< 生成して内蔵探索で選別した局面数（候補以外を含む）
     int m_foundCount = 0;        ///< 発見局面数
     QSet<QString> m_foundSfens;  ///< 発見済みSFEN（重複排除用）
-    Phase m_phase = Phase::Idle; ///< 現在のフェーズ
-    bool m_starting = false;                 ///< start() のエンジン初期化中（イベントループが回る）
-    bool m_stopRequestedDuringStart = false; ///< エンジン初期化中に stop() が要求された
+    int m_verificationRejected = 0;
+    int m_verificationInconclusive = 0;
+    int m_screenUnknownCount = 0; ///< 事前選別が時間切れで未確定のままキューに積んだ局面数
 
     QElapsedTimer m_elapsedTimer; ///< 全体経過時間
     QTimer m_progressTimer;       ///< プログレス更新タイマー
 
-    // バッチ生成用状態
+    // バッチ生成
     QFutureWatcher<TsumeshogiCandidateScreener::Batch> m_batchWatcher; ///< バッチ生成の非同期監視
     QStringList m_positionQueue;                 ///< 事前選別を通った候補局面のキュー
     CancelFlag m_cancelFlag;                     ///< バッチ生成のキャンセルフラグ
     bool m_waitingForPositions = false;          ///< キュー空で生成待ちフラグ
-
-    // 余詰検査。問い合わせは通常のUSIループで行い、UIスレッドを待機させない。
-    TsumeshogiVerifier m_verifier;
-    QTimer m_verificationStepTimer;
-    QElapsedTimer m_verificationElapsed;
-    Phase m_verificationOrigin = Phase::Searching;
-    QString m_verificationSfen;
-    bool m_verificationAwaiting = false;
-    int m_verificationQueries = 0;
-    int m_verificationRejected = 0;
-    int m_verificationInconclusive = 0;
-    int m_screenUnknownCount = 0; ///< 事前選別が時間切れで未確定のままキューに積んだ局面数
-    QString m_verifiedSfen;       ///< 全検査を通った正確な局面とPVの組
-    QStringList m_verifiedPv;
-
-    // トリミング用状態
-    QString m_trimBaseSfen;                  ///< トリミング元のSFEN
-    QStringList m_trimBasePv;                ///< トリミング元のPV
-    QList<TrimCandidate> m_trimCandidates; ///< 除去候補リスト
-    int m_trimCandidateIndex = 0;            ///< 現在試行中の候補インデックス
-    QString m_trimTestSfen;                  ///< 現在テスト中の除去済みSFEN
-    bool m_trimComplete = false;            ///< 最終局面の全1枚除去を確定判定済み
-    bool m_trimProvenInTarget = false;      ///< 除去後の最短手数を内蔵探索で証明済み
 };
 
 #endif // TSUMESHOGIGENERATOR_H

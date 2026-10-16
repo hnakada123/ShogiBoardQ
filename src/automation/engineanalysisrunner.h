@@ -64,7 +64,6 @@ private:
     QElapsedTimer m_elapsed;
     QMap<int, UsiInfo> m_latest;
     bool m_done = false;
-    bool m_searchStarted = false;
     Request m_request;
 };
 

@@ -26,7 +26,6 @@ bool EngineAnalysisRunner::start(const Request& request, QString* error)
     m_latest.clear();
     m_done = false;
     m_request = request;
-    m_searchStarted = false;
     m_elapsed.invalidate();
     return m_session->startAsync(request.enginePath, request.engineName, error);
 }
@@ -34,7 +33,6 @@ bool EngineAnalysisRunner::start(const Request& request, QString* error)
 void EngineAnalysisRunner::onSessionReady()
 {
     if (m_done) return;
-    m_searchStarted = true;
     m_session->handler()->sendSetOption(QStringLiteral("MultiPV"), QString::number(qMax(1, m_request.multiPv)));
     UsiSearchRequest search;
     search.position = m_request.position;
@@ -48,7 +46,8 @@ void EngineAnalysisRunner::onSessionReady()
 void EngineAnalysisRunner::stop()
 {
     if (m_done) return;
-    if (!m_searchStarted) {
+    // 初期化が終わる前（探索を送る前）なら、そのまま終える
+    if (m_session->isInitializing()) {
         finish({}, {});
         return;
     }

@@ -3,26 +3,23 @@
 
 #include "matesearchrunner.h"
 
-#include "usienginesession.h"
-#include "usiprotocolhandler.h"
-
 MateSearchRunner::MateSearchRunner(QObject* parent)
     : QObject(parent)
-    , m_session(new UsiEngineSession(this))
+    , m_oracle(new MateOracle(this))
 {
-    connect(m_session, &UsiEngineSession::ready, this, &MateSearchRunner::onSessionReady);
-    connect(m_session, &UsiEngineSession::errorOccurred, this, &MateSearchRunner::onSessionError);
-    connect(m_session, &UsiEngineSession::searchTimedOut, this, &MateSearchRunner::onNoResponse);
-    connect(m_session->handler(), &UsiProtocolHandler::checkmateReceived, this, &MateSearchRunner::onCheckmate);
+    connect(m_oracle, &MateOracle::ready, this, &MateSearchRunner::onReady);
+    connect(m_oracle, &MateOracle::answered, this, &MateSearchRunner::onAnswered);
+    connect(m_oracle, &MateOracle::timedOut, this, &MateSearchRunner::onNoResponse);
+    connect(m_oracle, &MateOracle::errorOccurred, this, &MateSearchRunner::onEngineError);
 }
 
-QString MateSearchRunner::statusName(Status status)
+QString MateSearchRunner::kindName(MateAnswer::Kind kind)
 {
-    switch (status) {
-    case Status::Mate: return QStringLiteral("mate");
-    case Status::NoMate: return QStringLiteral("nomate");
-    case Status::Unknown: return QStringLiteral("unknown");
-    case Status::NotImplemented: return QStringLiteral("notimplemented");
+    switch (kind) {
+    case MateAnswer::Kind::Mate: return QStringLiteral("mate");
+    case MateAnswer::Kind::NoMate: return QStringLiteral("nomate");
+    case MateAnswer::Kind::Unknown: return QStringLiteral("unknown");
+    case MateAnswer::Kind::Unsupported: return QStringLiteral("notimplemented");
     }
     return QStringLiteral("unknown");
 }
@@ -30,57 +27,45 @@ QString MateSearchRunner::statusName(Status status)
 bool MateSearchRunner::start(const Request& request, QString* error)
 {
     m_done = false;
-    m_request = request;
-    m_searchStarted = false;
     m_elapsed.invalidate();
-    return m_session->startAsync(request.enginePath, request.engineName, error);
+    if (!m_oracle->start(request.enginePath, request.engineName, error)) return false;
+    // 問い合わせは初期化が終わってから送られる
+    m_oracle->ask(request.position, qMax(100, request.timeMs));
+    return true;
 }
 
-void MateSearchRunner::onSessionReady()
+void MateSearchRunner::onReady()
 {
-    if (m_done) return;
-    m_searchStarted = true;
-    m_session->search(UsiSearchRequest::mate(m_request.position, qMax(100, m_request.timeMs)));
     m_elapsed.start();
 }
 
 void MateSearchRunner::stop()
 {
-    if (m_done) return;
-    if (!m_searchStarted) {
-        finish(Status::Unknown, {});
-        return;
-    }
-    m_session->stop();
+    if (!m_done) m_oracle->stop();
 }
 
-void MateSearchRunner::onCheckmate(const UsiCheckmate& result)
+void MateSearchRunner::onAnswered(const MateAnswer& answer)
 {
-    switch (result.result) {
-    case UsiCheckmate::Result::Mate: finish(Status::Mate, result.pv); return;
-    case UsiCheckmate::Result::NoMate: finish(Status::NoMate, {}); return;
-    case UsiCheckmate::Result::NotImplemented: finish(Status::NotImplemented, {}); return;
-    case UsiCheckmate::Result::Unknown: finish(Status::Unknown, {}); return;
-    }
+    finish(answer);
 }
 
 void MateSearchRunner::onNoResponse()
 {
-    finish(Status::Unknown, {});
+    finish({MateAnswer::Kind::Unknown, {}});
 }
 
-void MateSearchRunner::onSessionError(const QString& message)
+void MateSearchRunner::onEngineError(const QString& message)
 {
     if (m_done) return;
     m_done = true;
-    m_session->quit();
+    m_oracle->quit();
     emit errorOccurred(message);
 }
 
-void MateSearchRunner::finish(Status status, const QStringList& pv)
+void MateSearchRunner::finish(const MateAnswer& answer)
 {
     if (m_done) return;
     m_done = true;
-    m_session->quit();
-    emit finished(status, pv);
+    m_oracle->quit();
+    emit finished(answer);
 }

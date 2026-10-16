@@ -1,7 +1,7 @@
 /// @file tsumeshogi_diversity_sampler.cpp
 /// @brief 問題集補充用の未検証候補をJSONLに出力する。採択判断はPython収集側で一元管理する。
 #include "tsumeshogi_seedmutation.h"
-#include "tsumeshogigenerator.h"
+#include "tsumecandidatejob.h"
 #include <position.h>
 #include <tsume.h>
 #include <QCoreApplication>
@@ -202,7 +202,7 @@ int main(int argc, char** argv)
             const auto document = QJsonDocument::fromJson(QByteArray::fromStdString(line), &error);
             if (error.error != QJsonParseError::NoError || !document.isObject()) return 2;
             const auto sfen = document.object().value(QStringLiteral("sfen")).toString();
-            const auto positions = TsumeshogiGenerator::onePieceRemovedPositions(sfen);
+            const auto positions = TsumeCandidateJob::onePieceRemovedPositions(sfen);
             std::cout << QJsonDocument(QJsonArray::fromStringList(positions)).toJson(QJsonDocument::Compact).toStdString() << std::endl;
         }
         return 0;

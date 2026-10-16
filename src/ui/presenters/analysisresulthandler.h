@@ -9,20 +9,17 @@
 #include <QString>
 #include <optional>
 
-#include "usiinfo.h"
-#include <QStringList>
+#include "analysisjob.h"
 #include "recordline.h"
 
 class KifuAnalysisListModel;
-class KifuRecordListModel;
-class AnalysisCoordinator;
 class AnalysisResultsPanel;
 
 /**
- * @brief 解析結果の蓄積・確定・読み筋表示を担当するハンドラ
+ * @brief 棋譜解析の1局面の結果（PlyAnalysis）を結果の表の1行にする
  *
- * 棋譜解析の結果（評価値・読み筋）を表へ確定させる（KifuAnalysisController が解析1回ごとに作る）。
- * 一時結果の保持、bestmove受信時の確定処理、読み筋ダイアログ表示を行う。
+ * KifuAnalysisController が解析1回ごとに作る。評価値は先手から見た値に直し、直前の行との増減と
+ * 候補手（前の行の読み筋の初手）を添える。結果の行のダブルクリックで読み筋の盤面ダイアログも出す。
  */
 class AnalysisResultHandler
 {
@@ -32,7 +29,6 @@ public:
     struct Refs {
         KifuAnalysisListModel* analysisModel = nullptr;  ///< 解析結果モデル（非所有）
         const RecordLine* line = nullptr;               ///< 実行が所有する解析対象
-        AnalysisCoordinator* coord = nullptr;            ///< 解析コーディネータ（非所有）
         AnalysisResultsPanel* presenter = nullptr;   ///< 結果表示プレゼンタ（非所有）
         QString blackPlayerName;                         ///< 先手名
         QString whitePlayerName;                         ///< 後手名
@@ -42,37 +38,17 @@ public:
     /// 解析1回分の参照を受け取る（参照先は解析の実行が持つ）
     explicit AnalysisResultHandler(const Refs& refs);
 
-    /// 解析中の局面（ply）の info を覚える（bestmove で確定する）。最善の読み筋（multipv 1）の行だけを使う
-    void updatePending(int ply, const UsiInfo& info);
-
-    /// 漢字PVを一時保存する（multipv 1 の読み筋だけを使う）
-    void updatePendingPvKanji(const QString& pvKanjiStr, int multipv = 1);
-
-    /// 保留中の解析結果をモデルへ確定反映する
-    void commitPendingResult();
+    /**
+     * @brief 1局面の結果を表に足す
+     * @return 先手から見た評価値（定跡・評価値なしは None。評価値グラフの点に使う）
+     */
+    UsiScore append(const PlyAnalysis& result);
 
     /// 結果行ダブルクリック時に読み筋盤面ダイアログを表示する
     void showPvBoardDialog(int row);
 
-    /// 最後に確定した手数を返す
-    int lastCommittedPly() const { return m_lastCommittedPly; }
-
-    /// 最後に確定した評価値（先手から見た値。定跡・未取得は None）
-    const UsiScore& lastCommittedScore() const { return m_lastCommittedScore; }
-
-    /// 確定結果の手数をリセットする
-    void resetLastCommitted() { m_lastCommittedPly = -1; }
-
 private:
     Refs m_refs;
-
-    int m_pendingPly = -1;         ///< 一時結果の対象手数（bestmoveで確定）
-    UsiScore m_pendingScore;       ///< 一時結果の評価値（手番側から見た値）
-    QString m_pendingPv;           ///< 一時結果のUSI PV
-    QString m_pendingPvKanji;      ///< 一時結果の漢字PV
-
-    int m_lastCommittedPly = -1;       ///< 最後に確定した手数（GUI同期用）
-    UsiScore m_lastCommittedScore;     ///< 最後に確定した評価値（先手から見た値）
     std::optional<int> m_previousCp;   ///< 直前の結果の評価値（増減の計算。比べられなければ nullopt）
 };
 

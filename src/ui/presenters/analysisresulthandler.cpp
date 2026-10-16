@@ -4,7 +4,6 @@
 #include "analysisresulthandler.h"
 #include "evaluationseries.h"
 
-#include "analysiscoordinator.h"
 #include "kifuanalysislistmodel.h"
 #include "kifuanalysisresultsdisplay.h"
 #include "sfenutils.h"
@@ -17,27 +16,6 @@
 #include "pvboarddialog.h"
 
 namespace {
-QString sanitizeUsiPv(const QString& rawPv, bool isBook)
-{
-    if (isBook) {
-        return QString();
-    }
-
-    QString usiPv = rawPv;
-    const qsizetype parenPos = usiPv.indexOf(QLatin1Char('('));
-    if (parenPos > 0) {
-        usiPv = usiPv.left(parenPos).trimmed();
-    }
-    // 詰んだ局面で返る resign / win は指し手ではないため、候補手や読み筋の盤面表示に使わない
-    QStringList moves;
-    const QStringList tokens = usiPv.split(QLatin1Char(' '), Qt::SkipEmptyParts);
-    for (const QString& token : tokens) {
-        if (token == QLatin1String("resign") || token == QLatin1String("win")) break;
-        moves.append(token);
-    }
-    return moves.join(QLatin1Char(' '));
-}
-
 QString resolveMoveLabel(const AnalysisResultHandler::Refs& refs, int ply)
 {
     if (ply == 0) return QObject::tr("=== 開始局面 ===");
@@ -60,69 +38,14 @@ AnalysisResultHandler::AnalysisResultHandler(const Refs& refs)
 {
 }
 
-void AnalysisResultHandler::updatePending(int ply, const UsiInfo& info)
+UsiScore AnalysisResultHandler::append(const PlyAnalysis& result)
 {
-    // bestmove で確定するまで、最新の info で上書きし続ける。
-    // 漢字の読み筋（updatePendingPvKanji）は思考情報の整形から届くので、ここでは消さない
-    if (m_pendingPly != ply) {
-        m_pendingScore = {};
-        m_pendingPv.clear();
-    }
-    m_pendingPly = ply;
-    // エンジン設定で MultiPV を2以上にしていても、結果は最善の読み筋で確定する
-    if (info.multipv > 1) return;
-    if (info.hasScore()) m_pendingScore = info.score;
-    if (info.hasPv()) m_pendingPv = info.pv.join(QLatin1Char(' '));
-}
+    const int ply = result.ply;
+    if (!m_refs.analysisModel || ply < 0) return {};
 
-void AnalysisResultHandler::updatePendingPvKanji(const QString& pvKanjiStr, int multipv)
-{
-    if (multipv > 1) return;
-    // ThinkingInfoPresenterからの漢字PVを保存（思考タブと同じ内容を棋譜解析結果に使用）
-    m_pendingPvKanji = pvKanjiStr;
-    qCDebug(lcAnalysis).noquote() << "saved pvKanjiStr=" << pvKanjiStr.left(50);
-}
-
-void AnalysisResultHandler::commitPendingResult()
-{
-    if (!m_refs.analysisModel) {
-        qCDebug(lcAnalysis).noquote() << "commitPendingResult: analysisModel is null";
-        return;
-    }
-
-    // m_pendingPlyが-1の場合は定跡（infoなしでbestmoveが来た）
-    // m_coordから現在のplyを取得
-    int ply = m_pendingPly;
-    bool isBook = false;
-    if (ply < 0 && m_refs.coord) {
-        ply = m_refs.coord->currentPly();
-        isBook = true;
-        qCDebug(lcAnalysis).noquote() << "book move detected, ply=" << ply;
-    }
-
-    if (ply < 0) {
-        qCDebug(lcAnalysis).noquote() << "commitPendingResult skipped: ply=" << ply;
-        return;
-    }
-
-    const UsiScore score = isBook ? UsiScore{} : m_pendingScore;
-    const QString usiPv = sanitizeUsiPv(m_pendingPv, isBook);
-
-    // 漢字PVがあればそれを使用、なければUSI形式PV、定跡なら「定跡」
-    QString pv;
-    if (isBook) {
-        pv = tr("（定跡）");
-    } else if (!m_pendingPvKanji.isEmpty()) {
-        pv = m_pendingPvKanji;
-    } else {
-        pv = m_pendingPv;
-    }
-
-    // 一時保存をリセット
-    m_pendingPly = -1;
-    m_pendingScore = {};
-    m_pendingPv.clear();
-    m_pendingPvKanji.clear();
+    const UsiScore score = result.book ? UsiScore{} : result.score;
+    const QString usiPv = result.book ? QString() : result.usiPv.join(QLatin1Char(' '));
+    const QString pv = result.book ? tr("（定跡）") : result.pvKanji;
 
     const QString moveLabel = resolveMoveLabel(m_refs, ply);
 
@@ -140,7 +63,7 @@ void AnalysisResultHandler::commitPendingResult()
         m_previousCp.reset();
     }
 
-    qCDebug(lcAnalysis).noquote() << "commitPendingResult: ply=" << ply << "moveLabel=" << moveLabel << "pv=" << pv.left(30);
+    qCDebug(lcAnalysis).noquote() << "append: ply=" << ply << "moveLabel=" << moveLabel << "pv=" << pv.left(30);
 
     auto* resultItem = new KifuAnalysisResultsDisplay(moveLabel, blackScore, difference, pv);
 
@@ -182,9 +105,7 @@ void AnalysisResultHandler::commitPendingResult()
 
     m_refs.analysisModel->appendItem(resultItem);
 
-    // グラフには次の局面の準備のときに足す
-    m_lastCommittedPly = ply;
-    m_lastCommittedScore = blackScore;
+    return blackScore;
 }
 
 // ============================================================

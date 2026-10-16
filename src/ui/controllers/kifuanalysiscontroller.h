@@ -7,6 +7,7 @@
 #include <QObject>
 #include <QPointer>
 #include <memory>
+#include <optional>
 
 #include "analysisjob.h"
 
@@ -74,11 +75,9 @@ public slots:
     void stop();
 
 private slots:
-    void onPositionPrepared(int ply, const QString& sfen);
-    void onProgress(int ply, const UsiInfo& info);
-    void onResultReady();
-    void onThinkingInfoUpdated(const ThinkingInfoRow& row);
-    void onFinished(AnalysisCoordinator::Mode mode);
+    void onPlyStarted(int ply);
+    void onPlyAnalyzed(const PlyAnalysis& result);
+    void onFinished(bool completed);
     void onEngineError(const QString& message);
     void onResultRowSelected(int row);
     void onResultRowDoubleClicked(int row);
@@ -97,6 +96,12 @@ private:
     QPointer<AnalysisResultsPanel> m_resultsPanel;
     std::unique_ptr<AnalysisResultHandler> m_resultHandler;
     std::unique_ptr<AnalysisJob> m_job;
+    /// 解析を終えた局面の評価値（先手から見た値）。次の局面に移るときにグラフに足す
+    struct PendingPlot {
+        int ply = 0;
+        UsiScore score;
+    };
+    std::optional<PendingPlot> m_pendingPlot;
     int m_lineIndex = 0;
     int m_startPly = 0;
     bool m_running = false;

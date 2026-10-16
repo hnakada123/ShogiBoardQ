@@ -3,7 +3,8 @@
 
 #include "analysisjob.h"
 
-#include "thinkinginfoformatter.h"
+#include "logcategories.h"
+#include "pvnotationformatter.h"
 #include "usi.h"
 #include "usienginesession.h"
 
@@ -26,23 +27,62 @@ QList<UsiPosition> positionsOf(const RecordLine& line)
 
 } // namespace
 
+// ============================================================
+// 1局面の結果
+// ============================================================
+
+void PlyAnalysisCollector::begin(int ply, const UsiPosition& position)
+{
+    m_ply = ply;
+    m_position = position;
+    m_anyInfo = false;
+    m_bestPv.clear();
+}
+
+void PlyAnalysisCollector::addInfo(const UsiInfo& info)
+{
+    m_anyInfo = true;
+    // エンジン設定で MultiPV を2以上にしていても、結果は最善の読み筋で確定する
+    if (info.multipv <= 1 && info.hasPv()) m_bestPv = info.pv;
+}
+
+PlyAnalysis PlyAnalysisCollector::finish(const UsiBestMove& bestMove) const
+{
+    PlyAnalysis result;
+    result.ply = m_ply;
+    result.book = !m_anyInfo;
+    if (result.book) return result;
+    result.score = bestMove.score;
+
+    PvNotationFormatter formatter;
+    formatter.setPosition(m_position.sfen());
+    const std::optional<UsiMove>& last = m_position.lastMove();
+    formatter.setPreviousMove(last ? last->to : BoardSquare{});
+    UsiInfo pv;
+    pv.pv = m_bestPv;
+    formatter.format(pv);
+    result.pvKanji = formatter.pvKanjiStr();
+    if (result.pvKanji.isEmpty()) result.pvKanji = m_bestPv.join(QLatin1Char(' '));
+    result.usiPv = formatter.pvUsiStr().split(QLatin1Char(' '), Qt::SkipEmptyParts);
+    return result;
+}
+
+// ============================================================
+// 解析の進行
+// ============================================================
+
 AnalysisJob::AnalysisJob(AnalysisRequest request, const Deps& deps, QObject* parent)
-    : QObject(parent), m_request(std::move(request)), m_coordinator({positionsOf(m_request.line)}), m_engine(deps.engine)
+    : QObject(parent)
+    , m_request(std::move(request))
+    , m_positions(positionsOf(m_request.line))
+    , m_engine(deps.engine)
 {
     Q_ASSERT(m_engine);
     m_engine->setLogIdentity(QStringLiteral("E1"), {}, m_request.engineName);
-    m_coordinator.setOptions(m_request.options);
-    connect(&m_coordinator, &AnalysisCoordinator::requestSetOption, m_engine, &Usi::sendSetOptionCommand);
-    connect(&m_coordinator, &AnalysisCoordinator::requestSearch, this, &AnalysisJob::onSearchRequested);
-    connect(&m_coordinator, &AnalysisCoordinator::requestStop, m_engine, &Usi::stop);
-    connect(&m_coordinator, &AnalysisCoordinator::positionPrepared, this, &AnalysisJob::onPositionPrepared);
-    connect(&m_coordinator, &AnalysisCoordinator::analysisProgress, this, &AnalysisJob::progress);
-    connect(&m_coordinator, &AnalysisCoordinator::analysisFinished, this, &AnalysisJob::onFinished);
     connect(m_engine, &Usi::engineInitialized, this, &AnalysisJob::onInitialized);
     connect(m_engine, &Usi::errorOccurred, this, &AnalysisJob::onError);
     connect(m_engine->protocol(), &UsiProtocolHandler::bestMoveReceived, this, &AnalysisJob::onBestMove);
     connect(m_engine->protocol(), &UsiProtocolHandler::infoReceived, this, &AnalysisJob::onInfo);
-    connect(m_engine->thinking(), &ThinkingInfoFormatter::thinkingInfoUpdated, this, &AnalysisJob::onThinkingInfo);
 }
 
 Usi* AnalysisJob::engine() const
@@ -55,19 +95,22 @@ AnalysisJob::~AnalysisJob()
     if (m_engine) {
         disconnect(m_engine, nullptr, this, nullptr);
         disconnect(m_engine->protocol(), nullptr, this, nullptr);
-        disconnect(m_engine->thinking(), nullptr, this, nullptr);
     }
     if (isRunning() && m_engine) m_engine->quit();
 }
 
 bool AnalysisJob::start()
 {
-    if (m_state != State::Ready || !m_engine) return false;
-    const auto& line = m_request.line;
-    if (line.isEmpty()) return false;
+    if (m_state != State::Ready || !m_engine || m_positions.isEmpty()) return false;
+    // 範囲を手順に収める（終わりの -1 は末尾まで）
+    const int last = static_cast<int>(m_positions.size()) - 1;
+    AnalysisRequest::Options& options = m_request.options;
+    if (options.endPly < 0 || options.endPly > last) options.endPly = last;
+    options.startPly = qBound(0, options.startPly, options.endPly);
+
     m_state = State::Initializing;
     if (!m_engine->startEngine(m_request.enginePath, m_request.engineName)) {
-        onFinished(AnalysisCoordinator::Idle);
+        finish(false);
         return false;
     }
     if (!m_engine->isInitializing()) onInitialized();
@@ -78,56 +121,56 @@ void AnalysisJob::onInitialized()
 {
     if (m_state != State::Initializing) return;
     m_state = State::Analyzing;
-    m_coordinator.startAnalyzeRange();
+    analyzePly(m_request.options.startPly);
+}
+
+void AnalysisJob::analyzePly(int ply)
+{
+    m_ply = ply;
+    const UsiPosition& position = m_positions.at(ply);
+    qCDebug(lcAnalysis).noquote() << "analyzePly: ply=" << ply << "position=" << position.command();
+    m_collector.begin(ply, position);
+    emit plyStarted(ply);
+    if (m_state != State::Analyzing || !m_engine) return;
+    UsiSearchRequest request;
+    request.position = position;
+    request.go = UsiGo::infinite();
+    request.stopAfterMs = m_request.options.movetimeMs;
+    m_engine->search(request);
 }
 
 void AnalysisJob::stop()
 {
     if (!isRunning()) return;
-    m_coordinator.stop();
-    onFinished(AnalysisCoordinator::Idle); // 初期化中は coordinator がまだ動いていない。
-}
-
-void AnalysisJob::onPositionPrepared(int ply, const QString& sfen)
-{
-    if (!m_engine || m_state != State::Analyzing) return;
-    emit positionPrepared(ply, sfen);
-}
-
-void AnalysisJob::onSearchRequested(const UsiPosition& position, int thinkMs)
-{
-    if (!m_engine) return;
-    UsiSearchRequest request;
-    request.position = position;
-    request.go = UsiGo::infinite();
-    request.stopAfterMs = thinkMs;
-    m_engine->search(request);
-}
-
-void AnalysisJob::onBestMove(const UsiBestMove& /*result*/)
-{
-    if (m_state != State::Analyzing || !m_engine) return;
-    // bestmove の直前に届いた読み筋は、思考情報の整形（Usi が先に bestmove を受けて溜めた info を処理する）を終えている
-    emit resultReady();
-    if (m_state == State::Analyzing) m_coordinator.onEngineBestmoveReceived();
+    if (m_state == State::Analyzing && m_engine) m_engine->stop();
+    finish(false);
 }
 
 void AnalysisJob::onInfo(const UsiInfo& info)
 {
-    if (m_state == State::Analyzing) m_coordinator.onEngineInfo(info);
+    if (m_state == State::Analyzing) m_collector.addInfo(info);
 }
 
-void AnalysisJob::onThinkingInfo(const ThinkingInfoRow& row)
+void AnalysisJob::onBestMove(const UsiBestMove& result)
 {
-    if (m_state == State::Analyzing) emit thinkingInfoUpdated(row);
+    if (m_state != State::Analyzing || !m_engine) return;
+    // 定跡（info なしで bestmove が来た）でも次へ進む。結果の表に定跡と書くかは結果の表の側が決める
+    emit plyAnalyzed(m_collector.finish(result));
+    if (m_state != State::Analyzing) return;
+    if (m_ply >= m_request.options.endPly) {
+        finish(true);
+        return;
+    }
+    analyzePly(m_ply + 1);
 }
 
-void AnalysisJob::onFinished(AnalysisCoordinator::Mode mode)
+void AnalysisJob::finish(bool completed)
 {
     if (!isRunning()) return;
     m_state = State::Finished;
+    m_ply = -1;
     if (m_engine) m_engine->quit();
-    emit finished(mode);
+    emit finished(completed);
 }
 
 void AnalysisJob::onError(const QString& message)

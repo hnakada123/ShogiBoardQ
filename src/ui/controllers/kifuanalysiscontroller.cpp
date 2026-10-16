@@ -98,6 +98,7 @@ bool KifuAnalysisController::start(AnalysisRequest request)
         : qBound(request.options.startPly, request.options.endPly, last);
     stop();
     m_resultHandler.reset();
+    m_pendingPlot.reset();
     m_job.reset();
     m_stoppedByUser = false;
     m_lineIndex = request.lineIndex;
@@ -120,17 +121,14 @@ bool KifuAnalysisController::start(AnalysisRequest request)
     // 解析のエンジンは枠 E1 に置く（思考情報・通信ログは E1 の表示に出る）
     Usi* engine = m_deps.engine ? m_deps.engine : m_deps.engines->createEngine(1, std::nullopt, request.engineName);
     m_job = std::make_unique<AnalysisJob>(request, AnalysisJob::Deps{engine});
-    connect(m_job.get(), &AnalysisJob::progress, this, &KifuAnalysisController::onProgress);
-    connect(m_job.get(), &AnalysisJob::positionPrepared, this, &KifuAnalysisController::onPositionPrepared);
-    connect(m_job.get(), &AnalysisJob::resultReady, this, &KifuAnalysisController::onResultReady);
-    connect(m_job.get(), &AnalysisJob::thinkingInfoUpdated, this, &KifuAnalysisController::onThinkingInfoUpdated);
+    connect(m_job.get(), &AnalysisJob::plyStarted, this, &KifuAnalysisController::onPlyStarted);
+    connect(m_job.get(), &AnalysisJob::plyAnalyzed, this, &KifuAnalysisController::onPlyAnalyzed);
     connect(m_job.get(), &AnalysisJob::errorOccurred, this, &KifuAnalysisController::onEngineError);
     connect(m_job.get(), &AnalysisJob::finished, this, &KifuAnalysisController::onFinished);
 
     AnalysisResultHandler::Refs refs;
     refs.analysisModel = m_deps.analysisModel;
     refs.line = &m_job->line();
-    refs.coord = m_job->coordinator();
     refs.presenter = m_resultsPanel;
     if (const KifuDocument* document = m_deps.document) {
         refs.blackPlayerName = document->headerPlayerName(Turn::Black);
@@ -169,45 +167,34 @@ void KifuAnalysisController::finishRun()
 // 解析の進み具合
 // ============================================================
 
-void KifuAnalysisController::onPositionPrepared(int ply, const QString& /*sfen*/)
+void KifuAnalysisController::onPlyStarted(int ply)
 {
     publishCommittedEvaluation();
     // 解析している手を棋譜欄・盤に出す
     if (m_deps.navController) m_deps.navController->goToLine(m_lineIndex, ply);
 }
 
-void KifuAnalysisController::onProgress(int ply, const UsiInfo& info)
+void KifuAnalysisController::onPlyAnalyzed(const PlyAnalysis& result)
 {
-    m_resultHandler->updatePending(ply, info);
-}
-
-void KifuAnalysisController::onResultReady()
-{
-    m_resultHandler->commitPendingResult();
-}
-
-void KifuAnalysisController::onThinkingInfoUpdated(const ThinkingInfoRow& row)
-{
-    if (!row.pvKanji.isEmpty()) m_resultHandler->updatePendingPvKanji(row.pvKanji, row.multipv);
+    const UsiScore blackScore = m_resultHandler->append(result);
+    // グラフには次の局面に移るときに足す（定跡など評価値のない結果は表には残し、グラフには足さない）
+    if (!blackScore.isNone()) m_pendingPlot = PendingPlot{result.ply, blackScore};
 }
 
 void KifuAnalysisController::publishCommittedEvaluation()
 {
-    if (!m_resultHandler || m_resultHandler->lastCommittedPly() < 0) return;
-    // 定跡など評価値のない結果は表には残し、グラフには足さない
-    const UsiScore& score = m_resultHandler->lastCommittedScore();
-    if (!score.isNone() && m_deps.evalGraph)
-        m_deps.evalGraph->plotAnalysisScore(m_resultHandler->lastCommittedPly(), score);
-    m_resultHandler->resetLastCommitted();
+    if (!m_pendingPlot) return;
+    if (m_deps.evalGraph) m_deps.evalGraph->plotAnalysisScore(m_pendingPlot->ply, m_pendingPlot->score);
+    m_pendingPlot.reset();
 }
 
-void KifuAnalysisController::onFinished(AnalysisCoordinator::Mode mode)
+void KifuAnalysisController::onFinished(bool completed)
 {
-    qCDebug(lcAnalysis).noquote() << "analysis finished, stoppedByUser=" << m_stoppedByUser;
+    qCDebug(lcAnalysis).noquote() << "analysis finished, completed=" << completed << "stoppedByUser=" << m_stoppedByUser;
     publishCommittedEvaluation();
-    const bool completed = m_running && !m_stoppedByUser && mode == AnalysisCoordinator::RangePositions;
+    const bool reportComplete = m_running && !m_stoppedByUser && completed;
     finishRun();
-    if (completed && m_resultsPanel) m_resultsPanel->showAnalysisComplete(m_deps.analysisModel->rowCount());
+    if (reportComplete && m_resultsPanel) m_resultsPanel->showAnalysisComplete(m_deps.analysisModel->rowCount());
 }
 
 void KifuAnalysisController::onEngineError(const QString& message)

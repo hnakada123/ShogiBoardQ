@@ -772,10 +772,10 @@ add_shogi_test(tst_tsumeshogi_export_header
 )
 
 # ============================================================
-# Unit: AnalysisCoordinator + AnalysisResultHandler テスト
+# Unit: 棋譜解析の1局面の結果（PlyAnalysisCollector・AnalysisResultHandler）テスト
 # ============================================================
-add_shogi_test(tst_analysis_coordinator tst_analysis_coordinator.cpp)
-target_link_libraries(tst_analysis_coordinator PRIVATE shogiboardq_static)
+add_shogi_test(tst_analysis_results tst_analysis_results.cpp)
+target_link_libraries(tst_analysis_results PRIVATE shogiboardq_static)
 
 # ============================================================
 # Unit: ConsiderationPositionResolver テスト
@@ -947,12 +947,19 @@ target_compile_definitions(tst_tsume_play PRIVATE HAYANAGI_EXECUTABLE="$<TARGET_
 add_dependencies(tst_tsume_play hayanagi mock_tsume_engine)
 
 # 生成時の唯一解検査と、通常・停止・エラー経路の採択条件
+# MateOracle はスタブの接続でつなぐ。ソースの隣の本物のヘッダーを拾わないよう、写しを作ってから組み込む
+configure_file(${SRC}/engine/mateoracle.cpp ${CMAKE_CURRENT_BINARY_DIR}/tsumeshogi_stubbed/mateoracle.cpp COPYONLY)
 add_shogi_test(tst_tsumeshogi_verification
     tst_tsumeshogi_verification.cpp
     tsumeshogi_stubs/usienginesession.h
     tsumeshogi_stubs/usiprotocolhandler.h
     ${SRC}/analysis/tsumeshogiverifier.cpp
+    ${SRC}/analysis/tsumeverificationjob.cpp
+    ${SRC}/analysis/tsumecandidatejob.cpp
     ${SRC}/analysis/tsumeshogigenerator.cpp
+    ${CMAKE_CURRENT_BINARY_DIR}/tsumeshogi_stubbed/mateoracle.cpp
+    ${SRC}/engine/mateoracle.h
+    ${SRC}/engine/matequeryloop.cpp
     ${SRC}/analysis/tsumeshogipositiongenerator.cpp
     ${SRC}/analysis/tsumeshogicandidatescreener.cpp
     ${SRC}/common/logcategories.cpp

@@ -3,6 +3,8 @@
 
 #include "analysissession.h"
 
+#include "mateoracle.h"
+
 #include "appactivitystate.h"
 #include "enginelifecyclemanager.h"
 #include "kifubranchnode.h"
@@ -225,17 +227,18 @@ void AnalysisSession::finalizeTsumeSearch(const QString& resultMessage)
 
 void AnalysisSession::onCheckmate(const UsiCheckmate& result)
 {
-    switch (result.result) {
-    case UsiCheckmate::Result::Mate:
-        finalizeTsumeSearch(tr("詰みあり（手順 %1 手）").arg(result.pv.size()));
+    const MateAnswer answer = MateAnswer::fromCheckmate(result);
+    switch (answer.kind) {
+    case MateAnswer::Kind::Mate:
+        finalizeTsumeSearch(tr("詰みあり（手順 %1 手）").arg(answer.pv.size()));
         return;
-    case UsiCheckmate::Result::NoMate:
+    case MateAnswer::Kind::NoMate:
         finalizeTsumeSearch(tr("詰みなし"));
         return;
-    case UsiCheckmate::Result::NotImplemented:
+    case MateAnswer::Kind::Unsupported:
         finalizeTsumeSearch(tr("（エンジン側）未実装"));
         return;
-    case UsiCheckmate::Result::Unknown:
+    case MateAnswer::Kind::Unknown:
         finalizeTsumeSearch(tr("時間内に詰みを判定できませんでした"));
         return;
     }
