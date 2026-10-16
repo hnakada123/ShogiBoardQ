@@ -53,7 +53,7 @@ void PieceSoundPlayer::setVolume(int percent)
     if (m_volume == clamped) return;
 
     m_volume = clamped;
-    AppSettings::setPieceSoundVolume(clamped);
+    AppSettings::pieceSoundVolume.set(clamped);
     applyVolume();
     emit volumeChanged(clamped);
 }
@@ -64,7 +64,7 @@ void PieceSoundPlayer::setTone(const PieceSoundTone& tone)
     if (m_tone == clamped) return;
 
     m_tone = clamped;
-    AppSettings::setPieceSoundTone(clamped);
+    AppSettings::pieceSoundTone.set(clamped);
     updateSource();
     emit toneChanged(clamped);
 }

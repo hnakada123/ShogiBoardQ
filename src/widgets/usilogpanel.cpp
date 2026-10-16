@@ -388,5 +388,5 @@ void UsiLogPanel::updateSendButton()
 
 void UsiLogPanel::onTargetChanged(int index)
 {
-    AnalysisSettings::setUsiLogCommandTarget(index);
+    AnalysisSettings::usiLogCommandTarget.set(index);
 }

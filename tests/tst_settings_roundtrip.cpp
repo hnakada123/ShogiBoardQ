@@ -70,6 +70,80 @@ private slots:
         QCOMPARE(fontSize(), fontSize.defaultValue());
     }
 
+    /// BoundedSetting: 保存した範囲外の値も、読むときに範囲へ収めること
+    void boundedSettingClampsStoredValue()
+    {
+        const BoundedSetting<int>& target = AnalysisSettings::usiLogCommandTarget;
+        SettingsCommon::openSettings().setValue(QLatin1String(target.key()), 9);
+        QCOMPARE(target(), 2);
+        target.set(-3);
+        QCOMPARE(SettingsCommon::openSettings().value(QLatin1String(target.key())).toInt(), 0);
+        target.remove();
+        QCOMPARE(target(), 0);
+    }
+
+    /// StructSetting: 項目ごとのキーに保存し、保存していない項目は構造体の既定値のままにすること
+    void structSettingUsesFieldKeys()
+    {
+        QSettings& s = SettingsCommon::openSettings();
+        s.remove(QStringLiteral("TsumePlay"));
+        s.setValue(QStringLiteral("TsumePlay/squareSize"), 50);
+        const TsumeshogiSettings::PlayPreferences partial = TsumeshogiSettings::playPreferences();
+        QCOMPARE(partial.squareSize, 50);
+        QCOMPARE(partial.size, TsumeshogiSettings::PlayPreferences{}.size);
+        QCOMPARE(partial.timeoutSec, TsumeshogiSettings::PlayPreferences{}.timeoutSec);
+
+        TsumeshogiSettings::PlayPreferences preferences;
+        preferences.timeoutSec = 30;
+        TsumeshogiSettings::playPreferences.set(preferences);
+        QCOMPARE(s.value(QStringLiteral("TsumePlay/timeout")).toInt(), 30);
+        QCOMPARE(TsumeshogiSettings::playPreferences().squareSize, preferences.squareSize);
+        s.remove(QStringLiteral("TsumePlay"));
+    }
+
+    /// ListSetting: 配列（size と 番号/項目）で保存し、実行時に決めたキーでも読み書きできること
+    void listSettingUsesArrayFormat()
+    {
+        const ListSetting<int> widths(QStringLiteral("RoundtripTest/widths"), "width");
+        QVERIFY(widths().isEmpty());
+        widths.set({40, 0, 120});
+        QSettings& s = SettingsCommon::openSettings();
+        QCOMPARE(s.value(QStringLiteral("RoundtripTest/widths/size")).toInt(), 3);
+        QCOMPARE(s.value(QStringLiteral("RoundtripTest/widths/3/width")).toInt(), 120);
+        QCOMPARE(widths(), QList<int>({40, 0, 120}));
+        s.remove(QStringLiteral("RoundtripTest"));
+    }
+
+    /// StructListSetting: CSA の接続先の履歴が従来の配列の形式で読み書きできること
+    void structListSettingKeepsCsaHistoryFormat()
+    {
+        QSettings& s = SettingsCommon::openSettings();
+        s.remove(QStringLiteral("CsaServerHistory"));
+        // 以前の版が書いた形式（port・useTls のない要素は既定値で読む）
+        s.beginWriteArray(QStringLiteral("CsaServerHistory"), 2);
+        s.setArrayIndex(0);
+        s.setValue(QStringLiteral("host"), QStringLiteral("wdoor.c.u-tokyo.ac.jp"));
+        s.setValue(QStringLiteral("port"), 4081);
+        s.setValue(QStringLiteral("useTls"), true);
+        s.setValue(QStringLiteral("id"), QStringLiteral("alice"));
+        s.setArrayIndex(1);
+        s.setValue(QStringLiteral("host"), QStringLiteral("localhost"));
+        s.endArray();
+
+        const QList<NetworkSettings::CsaServerHistoryEntry> history = NetworkSettings::csaServerHistory();
+        QCOMPARE(history.size(), 2);
+        QCOMPARE(history.at(0).host, QStringLiteral("wdoor.c.u-tokyo.ac.jp"));
+        QCOMPARE(history.at(0).useTls, true);
+        QCOMPARE(history.at(0).id, QStringLiteral("alice"));
+        QCOMPARE(history.at(1).host, QStringLiteral("localhost"));
+        QCOMPARE(history.at(1).port, 4081);
+        QCOMPARE(history.at(1).useTls, false);
+
+        NetworkSettings::csaServerHistory.set({history.at(1)});
+        QCOMPARE(NetworkSettings::csaServerHistory(), QList<NetworkSettings::CsaServerHistoryEntry>({history.at(1)}));
+        s.remove(QStringLiteral("CsaServerHistory"));
+    }
+
     // ========================================
     // AppSettings: UI状態
     // ========================================
@@ -97,16 +171,16 @@ private slots:
         // 既定値は 30 %（標準の駒音はこの音量を前提に調整されている）
         QCOMPARE(AppSettings::pieceSoundVolume(), 30);
 
-        AppSettings::setPieceSoundVolume(35);
+        AppSettings::pieceSoundVolume.set(35);
         QCOMPARE(AppSettings::pieceSoundVolume(), 35);
 
         // 範囲外は 0〜100 に丸める
-        AppSettings::setPieceSoundVolume(150);
+        AppSettings::pieceSoundVolume.set(150);
         QCOMPARE(AppSettings::pieceSoundVolume(), 100);
-        AppSettings::setPieceSoundVolume(-5);
+        AppSettings::pieceSoundVolume.set(-5);
         QCOMPARE(AppSettings::pieceSoundVolume(), 0);
 
-        AppSettings::setPieceSoundVolume(100);
+        AppSettings::pieceSoundVolume.set(100);
         QCOMPARE(AppSettings::pieceSoundVolume(), 100);
     }
 
@@ -117,17 +191,17 @@ private slots:
         tone.lowDb = 3;
         tone.midDb = -6;
         tone.highDb = 9;
-        AppSettings::setPieceSoundTone(tone);
+        AppSettings::pieceSoundTone.set(tone);
         QVERIFY(AppSettings::pieceSoundTone() == tone);
 
         // 範囲外は ±12 に丸める
         tone.pitchSemitones = 30;
         tone.highDb = -40;
-        AppSettings::setPieceSoundTone(tone);
+        AppSettings::pieceSoundTone.set(tone);
         QCOMPARE(AppSettings::pieceSoundTone().pitchSemitones, PieceSoundTone::kMaxSemitones);
         QCOMPARE(AppSettings::pieceSoundTone().highDb, -PieceSoundTone::kMaxGainDb);
 
-        AppSettings::setPieceSoundTone(PieceSoundTone{});
+        AppSettings::pieceSoundTone.set(PieceSoundTone{});
         QVERIFY(AppSettings::pieceSoundTone().isDefault());
     }
 
@@ -614,7 +688,7 @@ private slots:
         QCOMPARE(JosekiSettings::josekiWindowRecentFiles(), recentFiles);
 
         QList<int> colWidths = {50, 120, 80, 200};
-        JosekiSettings::setJosekiWindowColumnWidths(colWidths);
+        JosekiSettings::josekiWindowColumnWidths.set(colWidths);
         QCOMPARE(JosekiSettings::josekiWindowColumnWidths(), colWidths);
     }
 
@@ -676,7 +750,7 @@ private slots:
         collection.page = 7;
         collection.filter = 3;
         collection.timeoutSec = 30;
-        TsumeshogiSettings::setCollectionPreferences(collection);
+        TsumeshogiSettings::collectionPreferences.set(collection);
         const auto restored = TsumeshogiSettings::collectionPreferences();
         QCOMPARE(restored.size, collection.size);
         QCOMPARE(restored.lastFile, collection.lastFile);

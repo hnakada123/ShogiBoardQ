@@ -90,6 +90,28 @@ inline const Setting<QString> csaGameName{"CsaGameSettings/gameName", QString()}
 /// shogi-server の手番の希望（0: 指定なし、1: 先手、2: 後手。デフォルト: 0）
 inline const Setting<int> csaTurnPreference{"CsaGameSettings/turnPreference", 0};
 
+/// CSA 通信対局の接続先の履歴の1件
+struct CsaServerHistoryEntry {
+    QString host;
+    int port = 4081;
+    bool useTls = false;
+    QString id;
+
+    bool operator==(const CsaServerHistoryEntry& other) const
+    {
+        return host == other.host && port == other.port && useTls == other.useTls && id == other.id;
+    }
+};
+
+/// CSA 通信対局の接続先の履歴（新しい順。最大 kCsaServerHistoryLimit 件）
+inline const StructListSetting<CsaServerHistoryEntry> csaServerHistory{
+    "CsaServerHistory",
+    {SettingField<CsaServerHistoryEntry>::of("host", &CsaServerHistoryEntry::host),
+     SettingField<CsaServerHistoryEntry>::of("port", &CsaServerHistoryEntry::port),
+     SettingField<CsaServerHistoryEntry>::of("useTls", &CsaServerHistoryEntry::useTls),
+     SettingField<CsaServerHistoryEntry>::of("id", &CsaServerHistoryEntry::id)}};
+inline constexpr int kCsaServerHistoryLimit = 10;
+
 } // namespace NetworkSettings
 
 #endif // NETWORKSETTINGS_H

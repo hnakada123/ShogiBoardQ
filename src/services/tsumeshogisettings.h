@@ -21,8 +21,14 @@ struct PlayPreferences {
     int squareSize = 42;
     bool boardRotated = false; // 攻方を下にした標準の向きから回転しているか
 };
-PlayPreferences playPreferences();
-void setPlayPreferences(const PlayPreferences& preferences);
+/// 詰将棋を解くダイアログの設定（既定値は PlayPreferences の既定値）
+inline const StructSetting<PlayPreferences> playPreferences{
+    {SettingField<PlayPreferences>::of("TsumePlay/size", &PlayPreferences::size),
+     SettingField<PlayPreferences>::of("TsumePlay/file", &PlayPreferences::lastFile),
+     SettingField<PlayPreferences>::of("TsumePlay/index", &PlayPreferences::problemIndex),
+     SettingField<PlayPreferences>::of("TsumePlay/timeout", &PlayPreferences::timeoutSec),
+     SettingField<PlayPreferences>::of("TsumePlay/squareSize", &PlayPreferences::squareSize),
+     SettingField<PlayPreferences>::of("TsumePlay/boardRotated", &PlayPreferences::boardRotated)}};
 
 struct CollectionPreferences {
     QSize size{1100, 800};
@@ -32,8 +38,14 @@ struct CollectionPreferences {
     int filter = 0;
     int timeoutSec = 5;
 };
-CollectionPreferences collectionPreferences();
-void setCollectionPreferences(const CollectionPreferences& preferences);
+/// 詰将棋問題一覧の設定（既定値は CollectionPreferences の既定値）
+inline const StructSetting<CollectionPreferences> collectionPreferences{
+    {SettingField<CollectionPreferences>::of("TsumeCollection/size", &CollectionPreferences::size),
+     SettingField<CollectionPreferences>::of("TsumeCollection/file", &CollectionPreferences::lastFile),
+     SettingField<CollectionPreferences>::of("TsumeCollection/pageSize", &CollectionPreferences::pageSize),
+     SettingField<CollectionPreferences>::of("TsumeCollection/page", &CollectionPreferences::page),
+     SettingField<CollectionPreferences>::of("TsumeCollection/filter", &CollectionPreferences::filter),
+     SettingField<CollectionPreferences>::of("TsumeCollection/timeout", &CollectionPreferences::timeoutSec)}};
 /// 判定エンジンの選択（EngineListSettings::tsumeCollectionSelection）を以前の版の形から移す
 void migrateCollectionEngineSelection();
 

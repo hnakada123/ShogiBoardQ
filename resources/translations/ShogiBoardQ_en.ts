@@ -2915,47 +2915,47 @@ Discard the changes and move?</translation>
         <translation type="vanished">Input Error</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="407"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="345"/>
         <source>新しい接続先</source>
         <translation>New connection</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="132"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="130"/>
         <source>KIF (Shift_JIS, .kif)</source>
         <translation>KIF (Shift_JIS, .kif)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="133"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="131"/>
         <source>KIF (UTF-8, .kifu)</source>
         <translation>KIF (UTF-8, .kifu)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="134"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="132"/>
         <source>KI2 (.ki2)</source>
         <translation>KI2 (.ki2)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="135"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="133"/>
         <source>CSA (.csa)</source>
         <translation>CSA (.csa)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="136"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="134"/>
         <source>JKF (.jkf)</source>
         <translation>JKF (.jkf)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="137"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="135"/>
         <source>USI (.usi)</source>
         <translation>USI (.usi)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="143"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="141"/>
         <source>「設定」→「エンジン設定」からエンジンを登録してください。</source>
         <translation>Register an engine under Settings → Engine Settings.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="148"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="146"/>
         <source>接続先ホストを入力してください。</source>
         <translation>Please enter the host address.</translation>
     </message>
@@ -2964,47 +2964,47 @@ Discard the changes and move?</translation>
         <translation type="vanished">For a local connection, enter a loopback IP address such as 127.0.0.1 or ::1.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="149"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="147"/>
         <source>IDを入力してください。</source>
         <translation>Please enter the ID.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="150"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="148"/>
         <source>パスワードを入力してください。</source>
         <translation>Please enter the password.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="153"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="151"/>
         <source>接続先ホスト・ID・パスワードに空白や改行は使用できません。</source>
         <translation>Host, ID and password cannot contain whitespace or line breaks.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="159"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="157"/>
         <source>IDは英数字・「_」・「-」のみを使い、32文字以内で入力してください。</source>
         <translation>The ID may contain only letters, digits, &quot;_&quot; and &quot;-&quot;, up to 32 characters.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="163"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="161"/>
         <source>パスワードは半角の英数字・記号のみを使い、32文字以内で入力してください。</source>
         <translation>The password may contain only ASCII letters, digits and symbols, up to 32 characters.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="167"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="165"/>
         <source>ゲーム名は「名前-持時間-秒読み」の形式で入力してください（例: floodgate-300-10F）。</source>
         <translation>Enter the game name as name-time-byoyomi (e.g. floodgate-300-10F).</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="170"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="168"/>
         <source>棋譜の自動保存先フォルダを指定してください。</source>
         <translation>Choose the folder for automatically saved records.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="192"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="190"/>
         <source>接続後、対局相手を待ちます。</source>
         <translation>After connecting, wait for an opponent.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="244"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="242"/>
         <source>棋譜の自動保存先</source>
         <translation>Folder for automatically saved records</translation>
     </message>

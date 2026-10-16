@@ -30,39 +30,6 @@ void setPieceStyle(const QString& style)
 
 // --- 駒音 ---
 
-int pieceSoundVolume()
-{
-    QSettings& s = SettingsCommon::openSettings();
-    return qBound(0, s.value(SettingsKeys::kPieceSoundVolume, 30).toInt(), 100);
-}
-
-void setPieceSoundVolume(int percent)
-{
-    QSettings& s = SettingsCommon::openSettings();
-    s.setValue(SettingsKeys::kPieceSoundVolume, qBound(0, percent, 100));
-}
-
-PieceSoundTone pieceSoundTone()
-{
-    QSettings& s = SettingsCommon::openSettings();
-    PieceSoundTone tone;
-    tone.pitchSemitones = s.value(SettingsKeys::kPieceSoundPitch, 0).toInt();
-    tone.lowDb = s.value(SettingsKeys::kPieceSoundEqLow, 0).toInt();
-    tone.midDb = s.value(SettingsKeys::kPieceSoundEqMid, 0).toInt();
-    tone.highDb = s.value(SettingsKeys::kPieceSoundEqHigh, 0).toInt();
-    return tone.clamped();
-}
-
-void setPieceSoundTone(const PieceSoundTone& tone)
-{
-    const PieceSoundTone t = tone.clamped();
-    QSettings& s = SettingsCommon::openSettings();
-    s.setValue(SettingsKeys::kPieceSoundPitch, t.pitchSemitones);
-    s.setValue(SettingsKeys::kPieceSoundEqLow, t.lowDb);
-    s.setValue(SettingsKeys::kPieceSoundEqMid, t.midDb);
-    s.setValue(SettingsKeys::kPieceSoundEqHigh, t.highDb);
-}
-
 // --- 盤面の配色 ---
 
 namespace {
@@ -113,31 +80,31 @@ void setBoardColors(const BoardColors& colors)
     }
 }
 
+namespace {
+const StructSetting<BoardVisuals>& visualsSetting()
+{
+    static const StructSetting<BoardVisuals> setting{
+        {SettingField<BoardVisuals>::of(SettingsKeys::kBoardWoodGrain, &BoardVisuals::woodGrain),
+         SettingField<BoardVisuals>::of(SettingsKeys::kStandWoodGrain, &BoardVisuals::standWoodGrain),
+         SettingField<BoardVisuals>::of(SettingsKeys::kBoardPieceShadow, &BoardVisuals::pieceShadow),
+         SettingField<BoardVisuals>::of(SettingsKeys::kBoardPieceScale, &BoardVisuals::pieceScale)},
+        &BoardVisuals::normalized};
+    return setting;
+}
+} // namespace
+
 BoardVisuals boardVisuals()
 {
-    auto& s = SettingsCommon::openSettings();
-    const BoardVisuals defaults;
-    return BoardVisuals{s.value(SettingsKeys::kBoardWoodGrain, defaults.woodGrain).toBool(),
-                        s.value(SettingsKeys::kBoardPieceShadow, defaults.pieceShadow).toBool(),
-                        s.value(SettingsKeys::kBoardPieceScale, defaults.pieceScale).toInt(),
-                        s.value(SettingsKeys::kStandWoodGrain,
-                                s.value(SettingsKeys::kBoardWoodGrain, defaults.woodGrain)).toBool()}.normalized();
+    BoardVisuals visuals = visualsSetting()();
+    // 駒台の木目を分ける前の版は、将棋盤の木目の設定だけを保存していた
+    if (!StructSetting<BoardVisuals>::isSaved(SettingsKeys::kStandWoodGrain)) visuals.standWoodGrain = visuals.woodGrain;
+    return visuals;
 }
 
 void setBoardVisuals(const BoardVisuals& visuals)
 {
-    auto& s = SettingsCommon::openSettings();
-    const auto normalized = visuals.normalized();
-    s.setValue(SettingsKeys::kBoardWoodGrain, normalized.woodGrain);
-    s.setValue(SettingsKeys::kStandWoodGrain, normalized.standWoodGrain);
-    s.setValue(SettingsKeys::kBoardPieceShadow, normalized.pieceShadow);
-    s.setValue(SettingsKeys::kBoardPieceScale, normalized.pieceScale);
+    visualsSetting().set(visuals);
 }
-
-namespace {
-/// 駒の絞り込みの最後の項目（項目の位置は PieceStyleCatalog::Family の値。0 は「すべて」）
-constexpr int kLastPieceFilter = static_cast<int>(PieceStyleCatalog::Family::Count) - 1;
-} // namespace
 
 QString appearanceSection()
 {
@@ -153,17 +120,6 @@ QString appearanceSection()
 void setAppearanceSection(const QString& id)
 {
     SettingsCommon::openSettings().setValue(SettingsKeys::kAppearanceSection, id);
-}
-
-int appearancePieceFilter()
-{
-    return qBound(0, SettingsCommon::openSettings().value(SettingsKeys::kAppearancePieceFilter, 0).toInt(),
-                  kLastPieceFilter);
-}
-
-void setAppearancePieceFilter(int index)
-{
-    SettingsCommon::openSettings().setValue(SettingsKeys::kAppearancePieceFilter, qBound(0, index, kLastPieceFilter));
 }
 
 // --- メインウィンドウ ---

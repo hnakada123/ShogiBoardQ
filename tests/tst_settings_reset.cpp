@@ -68,7 +68,7 @@ private slots:
     {
         QVERIFY(SettingsCommon::resetAllSettings());
         AppSettings::language.set(QStringLiteral("en"));
-        AppSettings::setPieceSoundVolume(80);
+        AppSettings::pieceSoundVolume.set(80);
         // エンジン設定など共有インスタンスを使わない書き込みも対象にする。
         QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
         settings.setValue(QStringLiteral("Engines/size"), 1);

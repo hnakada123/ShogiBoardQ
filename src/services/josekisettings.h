@@ -37,8 +37,7 @@ inline const Setting<bool> josekiWindowDisplayEnabled{"JosekiWindow/displayEnabl
 inline const Setting<bool> josekiWindowSfenDetailVisible{"JosekiWindow/sfenDetailVisible", false};
 
 /// 定跡ウィンドウのテーブル列幅
-QList<int> josekiWindowColumnWidths();
-void setJosekiWindowColumnWidths(const QList<int>& widths);
+inline const ListSetting<int> josekiWindowColumnWidths{QStringLiteral("JosekiWindow/columnWidths"), "width"};
 
 /// 定跡手編集ダイアログのフォントサイズ（デフォルト: 10）
 inline const Setting<int> josekiMoveDialogFontSize{"JosekiWindow/moveDialogFontSize", 10};

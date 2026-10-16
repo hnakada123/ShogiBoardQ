@@ -15,6 +15,7 @@
 #include "boardcolors.h"
 #include "boardvisuals.h"
 #include "piecesoundtone.h"
+#include "piecestylecatalog.h"
 #include "setting.h"
 
 class QWidget;
@@ -76,12 +77,15 @@ void setPieceStyle(const QString& style);
 inline const Setting<bool> pieceSoundEnabled{"Sound/pieceSoundEnabled", true};
 
 /// 駒音の音量 0〜100 %（デフォルト: 30。範囲外の値は丸める）
-int pieceSoundVolume();
-void setPieceSoundVolume(int percent);
+inline const BoundedSetting<int> pieceSoundVolume{"Sound/pieceSoundVolume", 30, 0, 100};
 
 /// 駒音の音質（音の高さ・3バンドEQ。デフォルト: すべて 0。範囲外の値は丸める）
-PieceSoundTone pieceSoundTone();
-void setPieceSoundTone(const PieceSoundTone& tone);
+inline const StructSetting<PieceSoundTone> pieceSoundTone{
+    {SettingField<PieceSoundTone>::of("Sound/pieceSoundPitch", &PieceSoundTone::pitchSemitones),
+     SettingField<PieceSoundTone>::of("Sound/pieceSoundEqLow", &PieceSoundTone::lowDb),
+     SettingField<PieceSoundTone>::of("Sound/pieceSoundEqMid", &PieceSoundTone::midDb),
+     SettingField<PieceSoundTone>::of("Sound/pieceSoundEqHigh", &PieceSoundTone::highDb)},
+    &PieceSoundTone::clamped};
 
 /// 盤面の配色（不正な色は標準色に戻す）
 BoardColors boardColors();
@@ -93,8 +97,8 @@ inline const Setting<int> boardColorDialogTab{"UI/boardColorDialogTab", 5};
 QString appearanceSection();
 void setAppearanceSection(const QString& id);
 /// 外観ダイアログの駒の絞り込み（PieceStyleCatalog::Family の値。0 は「すべて」）
-int appearancePieceFilter();
-void setAppearancePieceFilter(int index);
+inline const BoundedSetting<int> appearancePieceFilter{
+    "UI/appearancePieceFilter", 0, 0, static_cast<int>(PieceStyleCatalog::Family::Count) - 1};
 inline const Setting<QSize> boardColorDialogSize{"SizeRelated/boardColorDialogSize", QSize(1180, 800)};
 inline const Setting<QSize> boardColorPickerSize{"SizeRelated/boardColorPickerSize", QSize()};
 

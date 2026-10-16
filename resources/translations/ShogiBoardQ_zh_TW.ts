@@ -2622,47 +2622,47 @@
         <translation>取消</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="407"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="345"/>
         <source>新しい接続先</source>
         <translation>新連線</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="132"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="130"/>
         <source>KIF (Shift_JIS, .kif)</source>
         <translation>KIF（Shift_JIS，.kif）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="133"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="131"/>
         <source>KIF (UTF-8, .kifu)</source>
         <translation>KIF（UTF-8，.kifu）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="134"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="132"/>
         <source>KI2 (.ki2)</source>
         <translation>KI2（.ki2）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="135"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="133"/>
         <source>CSA (.csa)</source>
         <translation>CSA（.csa）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="136"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="134"/>
         <source>JKF (.jkf)</source>
         <translation>JKF（.jkf）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="137"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="135"/>
         <source>USI (.usi)</source>
         <translation>USI（.usi）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="143"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="141"/>
         <source>「設定」→「エンジン設定」からエンジンを登録してください。</source>
         <translation>請在「設定 → 引擎設定」中註冊引擎。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="148"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="146"/>
         <source>接続先ホストを入力してください。</source>
         <translation>請輸入主機位址。</translation>
     </message>
@@ -2671,47 +2671,47 @@
         <translation type="vanished">本機連線請指定127.0.0.1或::1等迴路IP位址。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="149"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="147"/>
         <source>IDを入力してください。</source>
         <translation>請輸入 ID。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="150"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="148"/>
         <source>パスワードを入力してください。</source>
         <translation>請輸入密碼。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="153"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="151"/>
         <source>接続先ホスト・ID・パスワードに空白や改行は使用できません。</source>
         <translation>主機、ID 和密碼不能包含空白或換行。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="159"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="157"/>
         <source>IDは英数字・「_」・「-」のみを使い、32文字以内で入力してください。</source>
         <translation>ID 只能使用英數字、「_」與「-」，且不超過 32 個字元。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="163"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="161"/>
         <source>パスワードは半角の英数字・記号のみを使い、32文字以内で入力してください。</source>
         <translation>密碼只能使用半形英數字與符號，且不超過 32 個字元。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="167"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="165"/>
         <source>ゲーム名は「名前-持時間-秒読み」の形式で入力してください（例: floodgate-300-10F）。</source>
         <translation>請以「名稱-持時-讀秒」的格式輸入遊戲名稱（例：floodgate-300-10F）。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="170"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="168"/>
         <source>棋譜の自動保存先フォルダを指定してください。</source>
         <translation>請指定自動儲存棋譜的資料夾。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="192"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="190"/>
         <source>接続後、対局相手を待ちます。</source>
         <translation>連線後請等待對手。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="244"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="242"/>
         <source>棋譜の自動保存先</source>
         <translation>自動儲存棋譜的資料夾</translation>
     </message>

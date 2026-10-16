@@ -93,7 +93,7 @@ BoardColorDialog::~BoardColorDialog()
     AppSettings::boardColorDialogTab.set(m_tabs->currentIndex());
     const int section = m_sections->currentIndex();
     if (section >= 0 && section < m_sectionIds.size()) AppSettings::setAppearanceSection(m_sectionIds.at(section));
-    AppSettings::setAppearancePieceFilter(m_pieceFilter->currentIndex());
+    AppSettings::appearancePieceFilter.set(m_pieceFilter->currentIndex());
 }
 
 void BoardColorDialog::createColorPages()
