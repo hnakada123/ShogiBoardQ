@@ -76,6 +76,8 @@ private:
 
     /// 人間が盤で指せる手番か（盤のクリックと定跡手で使う。終了処理の後は false）
     bool isHumanTurnNow() const;
+    /// 検討の候補手の矢印を盤に出すか（検討タブの設定）
+    bool showConsiderationArrows() const;
 
     MainWindow& m_window;
     Ui::MainWindow& m_ui;

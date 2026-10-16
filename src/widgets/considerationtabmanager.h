@@ -5,9 +5,9 @@
 /// @brief 検討ドックの中身（ツールバー・エンジン情報・候補手の表）
 
 #include <QObject>
-#include <QMetaObject>
 #include <QString>
 
+#include "considerationsettings.h"
 #include "fontsizehelper.h"
 #include "shogienginethinkingmodel.h"
 
@@ -28,13 +28,25 @@ class ThinkingTableView;
 /**
  * @brief 検討タブのUI構築・状態管理を担うマネージャ
  *
- * ドックの中身は buildUi() で作る。候補手の数・時間・エンジンの選択などの設定の保存・復元も担当する。
+ * ドックの中身は buildUi() で作る。
+ * - 設定（エンジン・時間・候補手の数・矢印）は ConsiderationSettings を正本として持ち、利用者が変えると
+ *   保存して settingsChanged で知らせる。ウィジェットはその値を出すだけ
+ * - 実行の状態（RunState）は検討の表示の持ち主（EngineDisplayPresenter）が設定する。開始/中止のボタンは
+ *   状態に応じて startConsiderationRequested か stopConsiderationRequested を出す
  */
 class ConsiderationTabManager : public QObject
 {
     Q_OBJECT
 
 public:
+    /// 検討の実行の状態（ボタンの表示・経過時間・時間設定の可否が決まる）
+    enum class RunState {
+        Idle,       ///< 検討していない（ボタンは「検討開始」、経過時間は 0）
+        Running,    ///< 局面を探索している（経過時間を数える。時間設定は変えられない）
+        Waiting,    ///< 時間切れで次の局面を待っている（経過時間を止め、ボタンは「検討中止」のまま）
+    };
+    Q_ENUM(RunState)
+
     explicit ConsiderationTabManager(QObject* parent = nullptr);
     ~ConsiderationTabManager() override;
 
@@ -53,39 +65,17 @@ public:
     void setConsiderationThinkingModel(ShogiEngineThinkingModel* m);
     ShogiEngineThinkingModel* considerationModel() const { return m_considerationModel; }
 
-    // 候補手の数
-    int considerationMultiPV() const;
-    void setConsiderationMultiPV(int value);
+    /// 検討の条件（正本）
+    const ConsiderationSettings& settings() const { return m_settings; }
+    /// 検討の条件を変える（画面に出して保存し、変わったら settingsChanged を出す）
+    void setSettings(const ConsiderationSettings& settings);
 
-    // 時間設定
-    void setConsiderationTimeLimit(bool unlimited, int byoyomiSec);
-    bool isUnlimitedTime() const;
-    int byoyomiSec() const;
-
-    // エンジン名設定
+    /// 検討しているエンジンの名前（情報欄に出す）
     void setConsiderationEngineName(const QString& name);
 
-    // エンジン選択
-    int selectedEngineIndex() const;
-    QString selectedEngineName() const;
-
-    // 矢印表示
-    bool isShowArrowsChecked() const;
-
-    // エンジンリスト読み込み
-    void loadEngineList();
-
-    // 設定の保存・復元
-    void loadConsiderationTabSettings();
-    void saveConsiderationTabSettings();
-
-    // 経過時間タイマー制御
-    void startElapsedTimer();
-    void stopElapsedTimer();
-    void resetElapsedTimer();
-
-    // 検討実行状態の設定（ボタン表示切替用）
-    void setConsiderationRunning(bool running);
+    /// 実行の状態（Running にするたびに経過時間を数え直す）
+    void setRunState(ConsiderationTabManager::RunState state);
+    RunState runState() const { return m_runState; }
 
     // 検討開始ボタンの有効/無効（検討中は中止操作を優先して無効化しない）
     void setStartConsiderationEnabled(bool enabled);
@@ -94,43 +84,38 @@ public:
     int considerationFontSize() const { return m_considerationFontSize.fontSize(); }
 
 signals:
-    // 検討タブの候補手の数変更シグナル
-    void considerationMultiPVChanged(int value);
-
-    // 検討中止シグナル
-    void stopConsiderationRequested();
-
-    // 検討開始シグナル
+    /// 検討の条件が変わった（利用者の操作・setSettings）
+    void settingsChanged(const ConsiderationSettings& settings);
+    /// 開始/中止のボタンを押した（検討していないとき）
     void startConsiderationRequested();
-
+    /// 開始/中止のボタンを押した（検討しているとき）
+    void stopConsiderationRequested();
     // エンジン設定ボタンが押されたシグナル
     void engineSettingsRequested(int engineNumber, const QString& engineName);
-
-    // 思考時間設定が変更されたシグナル
-    void considerationTimeSettingsChanged(bool unlimited, int byoyomiSec);
-
-    // 矢印表示設定が変更されたシグナル
-    void showArrowsChanged(bool checked);
-
-    // 検討中にエンジン選択が変更されたシグナル
-    void considerationEngineChanged(int index, const QString& name);
 
     // 読み筋の行の「盤面」ボタンが押された
     void pvRowClicked(ShogiEngineThinkingModel* model, int row);
 
 private slots:
-    void onMultiPVComboBoxChanged(int index);
-    void onEngineComboBoxChanged(int index);
+    /// 画面の値から検討の条件を読み直す（利用者がどれかの設定を変えた）
+    void onControlChanged();
+    void onRunButtonClicked();
     void onEngineSettingsClicked();
-    void onTimeSettingChanged();
     void onElapsedTimerTick();
 
 private:
     void buildToolbarControls(QWidget* parentWidget);
     void layoutToolbar();
     void buildConsiderationView(QWidget* parentWidget);
+    /// エンジンの一覧を設定から読み、検討の条件を復元して、変更の通知をつなぐ
+    void loadEnginesAndSettings();
+    /// 検討の条件を画面に出す（通知は出さない）
+    void showSettings();
+    void saveSettings() const;
     void applyFontSize();
     void updateTimeControls();
+    void updateRunButton();
+    void resetElapsedTime();
 
     // 検討タブ用UI
     EngineInfoWidget* m_considerationInfo = nullptr;
@@ -148,15 +133,14 @@ private:
     QLabel* m_elapsedTimeLabel = nullptr;
     QTimer* m_elapsedTimer = nullptr;
     int m_elapsedSeconds = 0;
-    int m_considerationTimeLimitSec = 0;
     QLabel* m_multiPVLabel = nullptr;
     QComboBox* m_multiPVComboBox = nullptr;
     QToolButton* m_btnStopConsideration = nullptr;
     QCheckBox* m_showArrowsCheckBox = nullptr;
     FontSizeHelper m_considerationFontSize;   ///< 検討タブの文字の大きさ（変更のたびに保存する）
-    bool m_considerationRunning = false;
+    ConsiderationSettings m_settings;
+    RunState m_runState = RunState::Idle;
     bool m_startConsiderationEnabled = true;
-    QMetaObject::Connection m_stopButtonConnection;
 };
 
 #endif // CONSIDERATIONTABMANAGER_H

@@ -15,6 +15,9 @@
 #include "gamesettings.h"
 #include "gameinfokeys.h"
 #include "playerinfopresenter.h"
+#include "enginedisplaypresenter.h"
+#include "enginelifecyclemanager.h"
+#include "shogiclock.h"
 #include "kifubranchtree.h"
 #include "kifudocument.h"
 #include "kifuexport.h"
@@ -377,18 +380,20 @@ private slots:
         QCOMPARE(views.size(), 2);
         KifuBranchTree tree;
         KifuDocument document(&tree);
-        AppActivityState activity;
-        PlayerInfoPresenter::Deps deps;
+        // 2つ目のエンジン欄は、文書の対局者から EngineDisplayPresenter が決める
+        ShogiClock clock;
+        EngineLifecycleManager lifecycle(&clock);
+        EngineDisplayPresenter::Deps deps;
+        deps.engines = &lifecycle;
         deps.document = &document;
-        deps.activity = &activity;
-        deps.thinking = &tab;
-        PlayerInfoPresenter wiring(deps);
+        deps.thinkingPanel = &tab;
+        EngineDisplayPresenter displays(deps);
         MatchPlayers engines;
         engines.blackIsEngine = true;
         engines.whiteIsEngine = true;
         engines.blackEngineName = QStringLiteral("Engine A");
         engines.whiteEngineName = QStringLiteral("Engine B");
-        wiring.showPlayers(engines);
+        document.beginMatch(engines, {}, false);
         QVERIFY(tab.info1()->isVisibleTo(page));
         QVERIFY(tab.info2()->isVisibleTo(page));
         QVERIFY(views.at(0)->isVisibleTo(page));
@@ -398,10 +403,10 @@ private slots:
         humanEngine.whiteIsEngine = true;
         humanEngine.blackHumanName = QStringLiteral("Human");
         humanEngine.whiteEngineName = QStringLiteral("Engine B");
-        wiring.showPlayers(humanEngine);
+        document.beginMatch(humanEngine, {}, false);
         QVERIFY(!tab.info2()->isVisibleTo(page));
         QVERIFY(!views.at(1)->isVisibleTo(page));
-        wiring.showPlayers(engines);
+        document.beginMatch(engines, {}, false);
         QVERIFY(tab.info2()->isVisibleTo(page));
         QVERIFY(views.at(1)->isVisibleTo(page));
     }

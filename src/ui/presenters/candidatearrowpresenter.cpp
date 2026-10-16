@@ -33,8 +33,17 @@ CandidateArrowPresenter::CandidateArrowPresenter(const Deps& deps, QObject* pare
     // 終局すると動作状態が待機に戻るので、終局もこの通知で分かる
     if (deps.activity) connect(deps.activity, &AppActivityState::changed, this, &CandidateArrowPresenter::scheduleRefresh);
     if (deps.analysis) {
+        // 検討の開始・終了で、検討の読み筋と対局のエンジンの読みのどちらを描くかが変わる
+        connect(deps.analysis, &AnalysisSession::considerationSearchStarted,
+                this, &CandidateArrowPresenter::scheduleRefresh);
         connect(deps.analysis, &AnalysisSession::considerationModeEnded,
-                this, &CandidateArrowPresenter::endConsideration);
+                this, &CandidateArrowPresenter::scheduleRefresh);
+    }
+    if (ShogiEngineThinkingModel* model = deps.consideration) {
+        connect(model, &QAbstractItemModel::rowsInserted, this, &CandidateArrowPresenter::scheduleRefresh);
+        connect(model, &QAbstractItemModel::rowsRemoved, this, &CandidateArrowPresenter::scheduleRefresh);
+        connect(model, &QAbstractItemModel::dataChanged, this, &CandidateArrowPresenter::scheduleRefresh);
+        connect(model, &QAbstractItemModel::modelReset, this, &CandidateArrowPresenter::scheduleRefresh);
     }
     if (deps.engines) {
         connect(deps.engines, &EngineLifecycleManager::enginesChanged, this, &CandidateArrowPresenter::bindEngines);
@@ -56,32 +65,10 @@ void CandidateArrowPresenter::bindEngines()
     scheduleRefresh();
 }
 
-void CandidateArrowPresenter::setConsiderationState(bool active, bool show, ShogiEngineThinkingModel* model)
-{
-    m_considerationActive = active;
-    m_showConsideration = show;
-    if (m_considerationModel != model) {
-        if (m_considerationModel) disconnect(m_considerationModel, nullptr, this, nullptr);
-        m_considerationModel = model;
-        if (model) {
-            connect(model, &QAbstractItemModel::rowsInserted, this, &CandidateArrowPresenter::scheduleRefresh);
-            connect(model, &QAbstractItemModel::rowsRemoved, this, &CandidateArrowPresenter::scheduleRefresh);
-            connect(model, &QAbstractItemModel::dataChanged, this, &CandidateArrowPresenter::scheduleRefresh);
-            connect(model, &QAbstractItemModel::modelReset, this, &CandidateArrowPresenter::scheduleRefresh);
-        }
-    }
-    scheduleRefresh();
-}
-
-void CandidateArrowPresenter::endConsideration()
-{
-    m_considerationActive = false;
-    scheduleRefresh();
-}
-
 bool CandidateArrowPresenter::considerationActive() const
 {
-    return m_considerationActive && (!m_sources.analysis || m_sources.analysis->isConsidering());
+    // 中止した後は、残っている読み筋から矢印を作り直さない
+    return m_sources.analysis && m_sources.analysis->isConsidering();
 }
 
 void CandidateArrowPresenter::scheduleRefresh()
@@ -151,9 +138,10 @@ void CandidateArrowPresenter::refresh()
     if (board) {
         const QString sfen = board->position().toSfen(board->currentPlayer(), 1);
         if (considerationActive()) {
-            if (m_showConsideration && m_considerationModel) {
-                for (int row = 0; row < m_considerationModel->rowCount(); ++row) {
-                    const auto* record = m_considerationModel->recordAt(row);
+            const bool show = !m_sources.showConsiderationArrows || m_sources.showConsiderationArrows();
+            if (ShogiEngineThinkingModel* model = m_sources.consideration; show && model) {
+                for (int row = 0; row < model->rowCount(); ++row) {
+                    const auto* record = model->recordAt(row);
                     if (!record || positionKey(record->baseSfen()) != positionKey(sfen)) continue;
                     const auto move = record->usiPv().simplified().section(QLatin1Char(' '), 0, 0);
                     if (auto arrow = arrowForMove(move, record->baseSfen(), record->multipv()))

@@ -36,276 +36,177 @@ ConsiderationTabManager::~ConsiderationTabManager()
 {
 }
 
-// ===================== 候補手の数 =====================
+// ===================== 検討の条件 =====================
 
-int ConsiderationTabManager::considerationMultiPV() const
+void ConsiderationTabManager::setSettings(const ConsiderationSettings& settings)
 {
-    if (m_multiPVComboBox) {
-        return m_multiPVComboBox->currentData().toInt();
-    }
-    return 1;
+    ConsiderationSettings next = settings;
+    next.multiPV = qBound(1, next.multiPV, 10);
+    next.byoyomiSec = qBound(1, next.byoyomiSec, 3600);
+    if (next == m_settings) return;
+    m_settings = next;
+    showSettings();
+    saveSettings();
+    emit settingsChanged(m_settings);
 }
 
-void ConsiderationTabManager::setConsiderationMultiPV(int value)
+void ConsiderationTabManager::onControlChanged()
 {
-    if (m_multiPVComboBox) {
-        int index = qBound(0, value - 1, m_multiPVComboBox->count() - 1);
-        m_multiPVComboBox->setCurrentIndex(index);
-    }
-}
-
-// ===================== 時間設定 =====================
-
-void ConsiderationTabManager::setConsiderationTimeLimit(bool unlimited, int byoyomiSecVal)
-{
-    // 利用者が選んだときと同じく、変更は設定に保存して知らせる（onTimeSettingChanged）
-    if (m_unlimitedTimeRadioButton && m_considerationTimeRadioButton && m_byoyomiSecSpinBox) {
-        if (!unlimited) m_byoyomiSecSpinBox->setValue(byoyomiSecVal);
-        (unlimited ? m_unlimitedTimeRadioButton : m_considerationTimeRadioButton)->setChecked(true);
-    }
-    m_considerationTimeLimitSec = unlimited ? 0 : byoyomiSecVal;
+    // 画面の値を読み直し、変わった条件を保存して知らせる
+    ConsiderationSettings next = m_settings;
+    if (m_engineComboBox) next.engineName = m_engineComboBox->currentText();
+    if (m_unlimitedTimeRadioButton) next.unlimitedTime = m_unlimitedTimeRadioButton->isChecked();
+    if (m_byoyomiSecSpinBox) next.byoyomiSec = m_byoyomiSecSpinBox->value();
+    if (m_multiPVComboBox) next.multiPV = m_multiPVComboBox->currentData().toInt();
+    if (m_showArrowsCheckBox) next.showArrows = m_showArrowsCheckBox->isChecked();
     updateTimeControls();
+    if (next == m_settings) return;
+    m_settings = next;
+    saveSettings();
+    emit settingsChanged(m_settings);
 }
 
-bool ConsiderationTabManager::isUnlimitedTime() const
+void ConsiderationTabManager::showSettings()
 {
-    if (m_unlimitedTimeRadioButton) {
-        return m_unlimitedTimeRadioButton->isChecked();
-    }
-    return true;
-}
-
-int ConsiderationTabManager::byoyomiSec() const
-{
-    if (m_byoyomiSecSpinBox) {
-        return m_byoyomiSecSpinBox->value();
-    }
-    return 20;
-}
-
-// ===================== エンジン名・選択 =====================
-
-void ConsiderationTabManager::setConsiderationEngineName(const QString& name)
-{
-    if (m_considerationInfo) {
-        m_considerationInfo->setDisplayNameFallback(name);
-    }
-}
-
-int ConsiderationTabManager::selectedEngineIndex() const
-{
-    if (m_engineComboBox) {
-        return m_engineComboBox->currentIndex();
-    }
-    return 0;
-}
-
-QString ConsiderationTabManager::selectedEngineName() const
-{
-    if (m_engineComboBox) {
-        return m_engineComboBox->currentText();
-    }
-    return QString();
-}
-
-// ===================== 矢印表示 =====================
-
-bool ConsiderationTabManager::isShowArrowsChecked() const
-{
-    if (m_showArrowsCheckBox) {
-        return m_showArrowsCheckBox->isChecked();
-    }
-    return true;
-}
-
-// ===================== エンジンリスト =====================
-
-void ConsiderationTabManager::loadEngineList()
-{
-    if (!m_engineComboBox) return;
-
-    const QSignalBlocker blocker(m_engineComboBox);
-    const QString selectedName = m_engineComboBox->currentText();
-    m_engineComboBox->clear();
-
-    const QList<EngineListSettings::EngineEntry> engines = EngineListSettings::loadEngines();
-    for (qsizetype i = 0; i < engines.size(); ++i) {
-        m_engineComboBox->addItem(engines.at(i).name);
-        m_engineComboBox->setItemData(static_cast<int>(i), engines.at(i).name, Qt::ToolTipRole);
-    }
-    // 選び直した一覧でも、前に選んでいたエンジン（無ければ保存した選択）を選ぶ
-    const int previousIndex = m_engineComboBox->findText(selectedName);
-    if (m_engineComboBox->count() > 0) {
-        const int saved = EngineListSettings::restoreSelection(EngineListSettings::considerationSelection(), engines);
-        m_engineComboBox->setCurrentIndex(previousIndex >= 0 ? previousIndex : qMax(0, saved));
-    }
-}
-
-// ===================== 設定の保存・復元 =====================
-
-void ConsiderationTabManager::loadConsiderationTabSettings()
-{
-    // 復元中の変更通知で、未復元の設定を初期値へ上書きしない。
     const QSignalBlocker engineBlocker(m_engineComboBox);
     const QSignalBlocker unlimitedBlocker(m_unlimitedTimeRadioButton);
     const QSignalBlocker timedBlocker(m_considerationTimeRadioButton);
     const QSignalBlocker secondsBlocker(m_byoyomiSecSpinBox);
     const QSignalBlocker multiPVBlocker(m_multiPVComboBox);
-    const int engineIndex = EngineListSettings::restoreSelection(EngineListSettings::considerationSelection(),
-                                                                 EngineListSettings::loadEngines());
-    if (m_engineComboBox && engineIndex >= 0 && engineIndex < m_engineComboBox->count()) {
-        m_engineComboBox->setCurrentIndex(engineIndex);
-    }
-
-    const bool unlimitedTime = AnalysisSettings::considerationUnlimitedTime();
-    const int byoyomiSecVal = AnalysisSettings::considerationByoyomiSec();
-
-    if (m_unlimitedTimeRadioButton && m_considerationTimeRadioButton && m_byoyomiSecSpinBox) {
-        if (unlimitedTime) {
-            m_unlimitedTimeRadioButton->setChecked(true);
-        } else {
-            m_considerationTimeRadioButton->setChecked(true);
-        }
-        m_byoyomiSecSpinBox->setValue(byoyomiSecVal > 0 ? byoyomiSecVal : 20);
-    }
-
-    m_considerationTimeLimitSec = unlimitedTime ? 0 : byoyomiSec();
-    updateTimeControls();
-
-    const int multiPV = AnalysisSettings::considerationMultiPV();
-    if (m_multiPVComboBox && multiPV >= 1 && multiPV <= 10) {
-        m_multiPVComboBox->setCurrentIndex(multiPV - 1);
-    }
-}
-
-void ConsiderationTabManager::saveConsiderationTabSettings()
-{
+    const QSignalBlocker arrowsBlocker(m_showArrowsCheckBox);
     if (m_engineComboBox) {
-        EngineListSettings::saveSelection(EngineListSettings::considerationSelection(), m_engineComboBox->currentText());
+        const int index = m_engineComboBox->findText(m_settings.engineName);
+        if (index >= 0) m_engineComboBox->setCurrentIndex(index);
     }
-
-    if (m_unlimitedTimeRadioButton && m_byoyomiSecSpinBox) {
-        AnalysisSettings::considerationUnlimitedTime.set(m_unlimitedTimeRadioButton->isChecked());
-        AnalysisSettings::considerationByoyomiSec.set(m_byoyomiSecSpinBox->value());
-    }
-
-    if (m_multiPVComboBox) {
-        AnalysisSettings::considerationMultiPV.set(m_multiPVComboBox->currentData().toInt());
-    }
+    if (m_unlimitedTimeRadioButton && m_considerationTimeRadioButton)
+        (m_settings.unlimitedTime ? m_unlimitedTimeRadioButton : m_considerationTimeRadioButton)->setChecked(true);
+    if (m_byoyomiSecSpinBox) m_byoyomiSecSpinBox->setValue(m_settings.byoyomiSec);
+    if (m_multiPVComboBox) m_multiPVComboBox->setCurrentIndex(m_settings.multiPV - 1);
+    if (m_showArrowsCheckBox) m_showArrowsCheckBox->setChecked(m_settings.showArrows);
+    updateTimeControls();
 }
 
-// ===================== 経過時間タイマー =====================
-
-void ConsiderationTabManager::startElapsedTimer()
+void ConsiderationTabManager::saveSettings() const
 {
-    if (m_elapsedTimer) {
-        m_elapsedSeconds = 0;
-        if (m_elapsedTimeLabel) {
-            m_elapsedTimeLabel->setText(tr("経過: 0:00"));
+    if (!m_settings.engineName.isEmpty())
+        EngineListSettings::saveSelection(EngineListSettings::considerationSelection(), m_settings.engineName);
+    AnalysisSettings::considerationUnlimitedTime.set(m_settings.unlimitedTime);
+    AnalysisSettings::considerationByoyomiSec.set(m_settings.byoyomiSec);
+    AnalysisSettings::considerationMultiPV.set(m_settings.multiPV);
+}
+
+void ConsiderationTabManager::loadEnginesAndSettings()
+{
+    // エンジンの一覧（登録順）。保存した選択を復元する
+    const QList<EngineListSettings::EngineEntry> engines = EngineListSettings::loadEngines();
+    if (m_engineComboBox) {
+        const QSignalBlocker blocker(m_engineComboBox);
+        m_engineComboBox->clear();
+        for (qsizetype i = 0; i < engines.size(); ++i) {
+            m_engineComboBox->addItem(engines.at(i).name);
+            m_engineComboBox->setItemData(static_cast<int>(i), engines.at(i).name, Qt::ToolTipRole);
         }
-        m_elapsedTimer->start();
     }
+    const int engineIndex = EngineListSettings::restoreSelection(EngineListSettings::considerationSelection(), engines);
+    if (engineIndex >= 0 && engineIndex < engines.size()) m_settings.engineName = engines.at(engineIndex).name;
+    else if (!engines.isEmpty()) m_settings.engineName = engines.first().name;
+    m_settings.unlimitedTime = AnalysisSettings::considerationUnlimitedTime();
+    const int seconds = AnalysisSettings::considerationByoyomiSec();
+    m_settings.byoyomiSec = seconds > 0 ? seconds : 20;
+    m_settings.multiPV = qBound(1, AnalysisSettings::considerationMultiPV(), 10);
+    showSettings();
+
+    // 利用者がどれを変えても、画面の値から条件を読み直す
+    connect(m_engineComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &ConsiderationTabManager::onControlChanged);
+    connect(m_unlimitedTimeRadioButton, &QRadioButton::toggled, this, &ConsiderationTabManager::onControlChanged);
+    connect(m_considerationTimeRadioButton, &QRadioButton::toggled, this, &ConsiderationTabManager::onControlChanged);
+    connect(m_byoyomiSecSpinBox, QOverload<int>::of(&QSpinBox::valueChanged),
+            this, &ConsiderationTabManager::onControlChanged);
+    connect(m_multiPVComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &ConsiderationTabManager::onControlChanged);
+    connect(m_showArrowsCheckBox, &QCheckBox::toggled, this, &ConsiderationTabManager::onControlChanged);
 }
 
-void ConsiderationTabManager::stopElapsedTimer()
+// ===================== エンジン名 =====================
+
+void ConsiderationTabManager::setConsiderationEngineName(const QString& name)
 {
-    if (m_elapsedTimer) {
-        m_elapsedTimer->stop();
-    }
+    if (m_considerationInfo) m_considerationInfo->setDisplayNameFallback(name);
 }
 
-void ConsiderationTabManager::resetElapsedTimer()
+// ===================== 実行の状態 =====================
+
+void ConsiderationTabManager::setRunState(RunState state)
 {
-    if (m_elapsedTimer) {
-        m_elapsedTimer->stop();
+    qCDebug(lcUi).noquote() << "[ConsiderationTabManager::setRunState]" << static_cast<int>(state);
+    m_runState = state;
+    switch (state) {
+    case RunState::Idle:
+        resetElapsedTime();
+        break;
+    case RunState::Running:
+        // 局面ごと・候補手の数を変えるたびに数え直す
+        resetElapsedTime();
+        if (m_elapsedTimer) m_elapsedTimer->start();
+        break;
+    case RunState::Waiting:
+        if (m_elapsedTimer) m_elapsedTimer->stop();
+        break;
     }
-    m_elapsedSeconds = 0;
-    if (m_elapsedTimeLabel) {
-        m_elapsedTimeLabel->setText(tr("経過: 0:00"));
-    }
-}
-
-// ===================== 検討実行状態 =====================
-
-void ConsiderationTabManager::setConsiderationRunning(bool running)
-{
-    qCDebug(lcUi).noquote() << "[ConsiderationTabManager::setConsiderationRunning] ENTER running=" << running;
-
-    m_considerationRunning = running;
     // 時間設定は開始時にエンジンへ渡す。実行中に表示だけ変更されないよう固定する。
     updateTimeControls();
+    updateRunButton();
+}
 
-    if (!m_btnStopConsideration) {
-        qCDebug(lcUi).noquote() << "[ConsiderationTabManager::setConsiderationRunning] button is null, returning";
-        return;
-    }
+void ConsiderationTabManager::updateRunButton()
+{
+    if (!m_btnStopConsideration) return;
+    const bool running = m_runState != RunState::Idle;
+    m_btnStopConsideration->setText(running ? tr("検討中止") : tr("検討開始"));
+    m_btnStopConsideration->setToolTip(running ? tr("検討を中止してエンジンを停止します") : tr("検討を開始します"));
+    // 検討中は中止操作を優先して無効化しない
+    m_btnStopConsideration->setEnabled(running || m_startConsiderationEnabled);
+}
 
-    m_btnStopConsideration->setEnabled(false);
-    qCDebug(lcUi).noquote() << "[ConsiderationTabManager::setConsiderationRunning] reconnecting button handler";
-    if (m_stopButtonConnection) {
-        QObject::disconnect(m_stopButtonConnection);
-        m_stopButtonConnection = {};
-    }
-
-    if (running) {
-        qCDebug(lcUi).noquote() << "[ConsiderationTabManager::setConsiderationRunning] setting button to '検討中止'";
-        m_btnStopConsideration->setText(tr("検討中止"));
-        m_btnStopConsideration->setToolTip(tr("検討を中止してエンジンを停止します"));
-        m_stopButtonConnection = connect(
-            m_btnStopConsideration, &QToolButton::clicked,
-            this, &ConsiderationTabManager::stopConsiderationRequested);
-        m_btnStopConsideration->setEnabled(true);
-    } else {
-        qCDebug(lcUi).noquote() << "[ConsiderationTabManager::setConsiderationRunning] setting button to '検討開始'";
-        m_btnStopConsideration->setText(tr("検討開始"));
-        m_btnStopConsideration->setToolTip(tr("検討を開始します"));
-        m_stopButtonConnection = connect(
-            m_btnStopConsideration, &QToolButton::clicked,
-            this, &ConsiderationTabManager::startConsiderationRequested);
-        m_btnStopConsideration->setEnabled(m_startConsiderationEnabled);
-        qCDebug(lcUi).noquote() << "[ConsiderationTabManager] button state updated immediately"
-                                << "enabled=" << m_startConsiderationEnabled;
-    }
-
-    qCDebug(lcUi).noquote() << "[ConsiderationTabManager::setConsiderationRunning] EXIT";
+void ConsiderationTabManager::onRunButtonClicked()
+{
+    if (m_runState == RunState::Idle) emit startConsiderationRequested();
+    else emit stopConsiderationRequested();
 }
 
 void ConsiderationTabManager::setStartConsiderationEnabled(bool enabled)
 {
     m_startConsiderationEnabled = enabled;
-
-    // 検討中は「検討中止」操作を優先して無効化しない
-    if (!m_considerationRunning && m_btnStopConsideration) {
-        m_btnStopConsideration->setEnabled(enabled);
-    }
+    updateRunButton();
 }
 
-// ===================== スロット =====================
+// ===================== 経過時間 =====================
 
-void ConsiderationTabManager::onMultiPVComboBoxChanged(int index)
+void ConsiderationTabManager::resetElapsedTime()
 {
-    Q_UNUSED(index);
-    if (m_multiPVComboBox) {
-        saveConsiderationTabSettings();
-        int value = m_multiPVComboBox->currentData().toInt();
-        emit considerationMultiPVChanged(value);
-    }
+    if (m_elapsedTimer) m_elapsedTimer->stop();
+    m_elapsedSeconds = 0;
+    if (m_elapsedTimeLabel) m_elapsedTimeLabel->setText(tr("経過: 0:00"));
 }
 
-void ConsiderationTabManager::onEngineComboBoxChanged(int index)
+void ConsiderationTabManager::onElapsedTimerTick()
 {
-    qCDebug(lcUi).noquote() << "[ConsiderationTabManager::onEngineComboBoxChanged] index=" << index
-                       << "m_considerationRunning=" << m_considerationRunning;
-
-    saveConsiderationTabSettings();
-
-    if (m_considerationRunning && m_engineComboBox) {
-        const QString engineName = m_engineComboBox->currentText();
-        qCDebug(lcUi).noquote() << "[ConsiderationTabManager::onEngineComboBoxChanged] emitting considerationEngineChanged"
-                           << "index=" << index << "name=" << engineName;
-        emit considerationEngineChanged(index, engineName);
+    m_elapsedSeconds++;
+    // 時間を決めた検討は、その秒数で止める
+    const int limit = m_settings.unlimitedTime ? 0 : m_settings.byoyomiSec;
+    if (limit > 0 && m_elapsedSeconds >= limit) {
+        if (m_elapsedTimer) m_elapsedTimer->stop();
+        m_elapsedSeconds = limit;
+    }
+    if (m_elapsedTimeLabel) {
+        m_elapsedTimeLabel->setText(tr("経過: %1:%2")
+            .arg(m_elapsedSeconds / 60)
+            .arg(m_elapsedSeconds % 60, 2, 10, QLatin1Char('0')));
     }
 }
+
+// ===================== 設定の操作 =====================
 
 void ConsiderationTabManager::onEngineSettingsClicked()
 {
@@ -327,46 +228,15 @@ void ConsiderationTabManager::onEngineSettingsClicked()
     emit engineSettingsRequested(engineNumber, engineName);
 }
 
-void ConsiderationTabManager::onTimeSettingChanged()
-{
-    updateTimeControls();
-    saveConsiderationTabSettings();
-
-    const bool unlimited = isUnlimitedTime();
-    const int sec = byoyomiSec();
-    m_considerationTimeLimitSec = unlimited ? 0 : sec;
-
-    emit considerationTimeSettingsChanged(unlimited, sec);
-}
-
 void ConsiderationTabManager::updateTimeControls()
 {
-    if (m_unlimitedTimeRadioButton) m_unlimitedTimeRadioButton->setEnabled(!m_considerationRunning);
-    if (m_considerationTimeRadioButton) m_considerationTimeRadioButton->setEnabled(!m_considerationRunning);
-    const bool enabled = !m_considerationRunning && !isUnlimitedTime();
+    const bool idle = m_runState == RunState::Idle;
+    const bool unlimited = !m_unlimitedTimeRadioButton || m_unlimitedTimeRadioButton->isChecked();
+    if (m_unlimitedTimeRadioButton) m_unlimitedTimeRadioButton->setEnabled(idle);
+    if (m_considerationTimeRadioButton) m_considerationTimeRadioButton->setEnabled(idle);
+    const bool enabled = idle && !unlimited;
     if (m_byoyomiSecSpinBox) m_byoyomiSecSpinBox->setEnabled(enabled);
     if (m_byoyomiSecUnitLabel) m_byoyomiSecUnitLabel->setEnabled(enabled);
-}
-
-void ConsiderationTabManager::onElapsedTimerTick()
-{
-    m_elapsedSeconds++;
-
-    if (m_considerationTimeLimitSec > 0 && m_elapsedSeconds >= m_considerationTimeLimitSec) {
-        if (m_elapsedTimer) {
-            m_elapsedTimer->stop();
-        }
-        m_elapsedSeconds = m_considerationTimeLimitSec;
-    }
-
-    const int minutes = m_elapsedSeconds / 60;
-    const int seconds = m_elapsedSeconds % 60;
-
-    if (m_elapsedTimeLabel) {
-        m_elapsedTimeLabel->setText(tr("経過: %1:%2")
-            .arg(minutes)
-            .arg(seconds, 2, 10, QLatin1Char('0')));
-    }
 }
 
 // ============================================================
@@ -392,6 +262,7 @@ void ConsiderationTabManager::buildConsiderationUi(QWidget* parentWidget)
 {
     buildToolbarControls(parentWidget);
     layoutToolbar();
+    loadEnginesAndSettings();
     buildConsiderationView(parentWidget);
 
     // 保存されている文字の大きさを適用
@@ -438,8 +309,6 @@ void ConsiderationTabManager::buildToolbarControls(QWidget* parentWidget)
     m_engineComboBox->setMinimumWidth(150);
     m_engineComboBox->setMinimumContentsLength(24);
     m_engineComboBox->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
-    connect(m_engineComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
-            this, &ConsiderationTabManager::onEngineComboBoxChanged);
 
     // エンジン設定ボタン
     m_btnEngineSettings = new QPushButton(tr("エンジン設定"), m_considerationToolbar);
@@ -454,15 +323,11 @@ void ConsiderationTabManager::buildToolbarControls(QWidget* parentWidget)
     m_unlimitedTimeRadioButton = new QRadioButton(tr("時間無制限"), m_considerationToolbar);
     m_unlimitedTimeRadioButton->setObjectName(QStringLiteral("considerationUnlimited"));
     m_unlimitedTimeRadioButton->setToolTip(tr("時間制限なしで検討します"));
-    connect(m_unlimitedTimeRadioButton, &QRadioButton::toggled,
-            this, &ConsiderationTabManager::onTimeSettingChanged);
 
     // 検討時間ラジオボタン
     m_considerationTimeRadioButton = new QRadioButton(tr("検討時間"), m_considerationToolbar);
     m_considerationTimeRadioButton->setObjectName(QStringLiteral("considerationTimed"));
     m_considerationTimeRadioButton->setToolTip(tr("指定した秒数まで検討します"));
-    connect(m_considerationTimeRadioButton, &QRadioButton::toggled,
-            this, &ConsiderationTabManager::onTimeSettingChanged);
 
     // 検討時間スピンボックス
     m_byoyomiSecSpinBox = new QSpinBox(m_considerationToolbar);
@@ -470,8 +335,6 @@ void ConsiderationTabManager::buildToolbarControls(QWidget* parentWidget)
     m_byoyomiSecSpinBox->setRange(1, 3600);
     m_byoyomiSecSpinBox->setValue(20);
     m_byoyomiSecSpinBox->setToolTip(tr("検討時間（秒）を指定します"));
-    connect(m_byoyomiSecSpinBox, QOverload<int>::of(&QSpinBox::valueChanged),
-            this, &ConsiderationTabManager::onTimeSettingChanged);
 
     // 「秒まで」ラベル
     m_byoyomiSecUnitLabel = new QLabel(tr("秒まで"), m_considerationToolbar);
@@ -502,8 +365,6 @@ void ConsiderationTabManager::buildToolbarControls(QWidget* parentWidget)
     m_showArrowsCheckBox->setObjectName(QStringLiteral("considerationArrows"));
     m_showArrowsCheckBox->setToolTip(tr("最善手の矢印を盤面に表示します"));
     m_showArrowsCheckBox->setChecked(true);
-    connect(m_showArrowsCheckBox, &QCheckBox::toggled,
-            this, &ConsiderationTabManager::showArrowsChanged);
 
     // 検討開始/中止ボタン（初期状態は「検討開始」）
     m_btnStopConsideration = new QToolButton(m_considerationToolbar);
@@ -511,8 +372,7 @@ void ConsiderationTabManager::buildToolbarControls(QWidget* parentWidget)
     m_btnStopConsideration->setText(tr("検討開始"));
     m_btnStopConsideration->setToolTip(tr("検討を開始します"));
     m_btnStopConsideration->setStyleSheet(ButtonStyles::primaryAction());
-    m_stopButtonConnection = connect(m_btnStopConsideration, &QToolButton::clicked,
-                                    this, &ConsiderationTabManager::startConsiderationRequested);
+    connect(m_btnStopConsideration, &QToolButton::clicked, this, &ConsiderationTabManager::onRunButtonClicked);
 }
 
 void ConsiderationTabManager::layoutToolbar()
@@ -534,14 +394,6 @@ void ConsiderationTabManager::layoutToolbar()
               m_byoyomiSecSpinBox, m_byoyomiSecUnitLabel});
     addGroup({m_multiPVLabel, m_multiPVComboBox, m_showArrowsCheckBox});
     addGroup({m_elapsedTimeLabel, m_btnStopConsideration});
-
-    // コンボボックスの値変更シグナルを接続
-    connect(m_multiPVComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
-            this, &ConsiderationTabManager::onMultiPVComboBoxChanged);
-
-    // エンジンリストを読み込み、設定を復元
-    loadEngineList();
-    loadConsiderationTabSettings();
 }
 
 void ConsiderationTabManager::buildConsiderationView(QWidget* parentWidget)

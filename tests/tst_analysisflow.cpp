@@ -371,14 +371,16 @@ private slots:
         ConsiderationTabManager tab;
         tab.setConsiderationThinkingModel(&considerationModel);
         tab.buildConsiderationUi(&panel);
-        tab.setConsiderationTimeLimit(false, 15);
-        tab.setConsiderationMultiPV(4);
+        ConsiderationSettings settings = tab.settings();
+        settings.unlimitedTime = false;
+        settings.byoyomiSec = 15;
+        settings.multiPV = 4;
+        tab.setSettings(settings);
 
         ConsiderationUiController::Deps deps;
         deps.considerationTabManager = &tab;
         deps.session = &h.session;
         deps.navState = &nav;
-        deps.considerationModel = &considerationModel;
         ConsiderationUiController controller(deps);
         controller.startConsideration();
 
@@ -386,9 +388,7 @@ private slots:
         QVERIFY(h.session.isConsidering());
         QVERIFY(h.session.engine());
         // 設定を書き戻さない（タブの値はそのまま）
-        QCOMPARE(tab.considerationMultiPV(), 4);
-        QVERIFY(!tab.isUnlimitedTime());
-        QCOMPARE(tab.byoyomiSec(), 15);
+        QCOMPARE(tab.settings(), settings);
         auto* process = h.session.engine()->findChild<EngineProcessManager*>();
         QVERIFY(process);
         QSignalSpy commands(process, &EngineProcessManager::commandSent);
