@@ -42,7 +42,7 @@ private:
             return QJsonValue(a + b);
         });
         dispatcher.registerMethod(QStringLiteral("fail"), [](const QJsonObject&) -> QJsonValue {
-            throw AutomationError(AutomationErrorCode::NotAllowed, QStringLiteral("nope"), QStringLiteral("try something else"));
+            throw AutomationError(ErrorKind::NotAllowed, QStringLiteral("nope"), QStringLiteral("try something else"));
         });
         dispatcher.registerMethod(QStringLiteral("crash"), [](const QJsonObject&) -> QJsonValue {
             throw std::runtime_error("boom");
@@ -219,6 +219,8 @@ private slots:
         QCOMPARE(error.value(QStringLiteral("code")).toInt(), AutomationErrorCode::NotAllowed);
         QCOMPARE(error.value(QStringLiteral("message")).toString(), QStringLiteral("nope"));
         QCOMPARE(error.value(QStringLiteral("data")).toObject().value(QStringLiteral("hint")).toString(), QStringLiteral("try something else"));
+        // 分類の語も添える（CLI と MCP サーバーが同じ語を使う）
+        QCOMPARE(error.value(QStringLiteral("data")).toObject().value(QStringLiteral("slug")).toString(), QStringLiteral("not_allowed"));
         QCOMPARE(fail.value(QStringLiteral("id")).toInt(), 9);
 
         const QJsonObject crash = parse(dispatcher.handleLine(R"({"jsonrpc":"2.0","id":10,"method":"crash"})"));

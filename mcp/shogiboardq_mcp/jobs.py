@@ -268,7 +268,7 @@ class JobManager:
     def get(self, job_id: str) -> Job:
         job = self._jobs.get(job_id)
         if job is None:
-            raise ToolError("job_not_found", f"Unknown job_id {job_id!r}. Jobs expire 30 minutes after they finish.")
+            raise ToolError("not_found", f"Unknown job_id {job_id!r}. Jobs expire 30 minutes after they finish.")
         return job
 
     def list(self) -> list[Job]:

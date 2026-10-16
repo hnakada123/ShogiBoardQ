@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any
 
 from . import paths
+from .environment import environment, error_slug
 from .errors import ToolError
 
 log = logging.getLogger(__name__)
@@ -24,22 +25,14 @@ log = logging.getLogger(__name__)
 CALL_TIMEOUT = 30.0
 LAUNCH_TIMEOUT = 30.0
 EXIT_TIMEOUT = 3.0
-MAX_RESPONSE_BYTES = 8 * 1024 * 1024  # Match the automation protocol's message budget.
 
 
 class AppError(ToolError):
     """A JSON-RPC error returned by the application."""
 
     def __init__(self, rpc_code: int, message: str, data: dict | None = None):
-        slug = {
-            -32601: "method_not_found",
-            -32602: "invalid_params",
-            -32001: "not_allowed",
-            -32002: "invalid_state",
-            -32003: "file_error",
-            -32004: "unsaved_changes",
-            -32005: "not_found",
-        }.get(rpc_code, "app_error")
+        # The application names the error kind in data.slug (the same words as shogiboardq-cli).
+        slug = (data or {}).get("slug") or error_slug(rpc_code)
         super().__init__(slug, message, data)
         self.rpc_code = rpc_code
 
@@ -66,19 +59,24 @@ class AppClient:
         endpoint = paths.read_endpoint()
         if endpoint and isinstance(endpoint.get("socket"), str):
             candidates.append(endpoint["socket"])
-        candidates.append(paths.default_socket_path())
+        try:
+            candidates.append(paths.default_socket_path())
+        except ToolError as exc:  # shogiboardq-cli is needed to compute the default location
+            log.info("default automation socket unavailable: %s", exc.message)
         seen: set[str] = set()
         return [c for c in candidates if not (c in seen or seen.add(c))]
 
     async def _open(self, socket_path: str) -> tuple[asyncio.StreamReader, asyncio.StreamWriter]:
+        # Responses can be as large as the application's message limit (kifu text included).
+        limit = int(environment()["max_message_bytes"])
         if sys.platform.startswith("win"):
             loop = asyncio.get_running_loop()
-            reader = asyncio.StreamReader(limit=MAX_RESPONSE_BYTES)
+            reader = asyncio.StreamReader(limit=limit)
             protocol = asyncio.StreamReaderProtocol(reader)
             transport, _ = await loop.create_pipe_connection(lambda: protocol, socket_path)  # type: ignore[attr-defined]
             writer = asyncio.StreamWriter(transport, protocol, reader, loop)
             return reader, writer
-        return await asyncio.open_unix_connection(socket_path, limit=MAX_RESPONSE_BYTES)
+        return await asyncio.open_unix_connection(socket_path, limit=limit)
 
     async def connect(self) -> None:
         if self.is_connected():
@@ -200,7 +198,7 @@ class AppClient:
                 await self.close()
                 if isinstance(exc, asyncio.TimeoutError):
                     raise ToolError(
-                        "app_timeout",
+                        "timeout",
                         f"ShogiBoardQ did not answer {method} within {timeout:.0f} s. A modal dialog may be open; "
                         "use list_dialogs / capture_screenshot to inspect it.",
                     ) from exc
@@ -220,7 +218,7 @@ class AppClient:
                 line = await self._reader.readline()
             except ValueError as exc:
                 await self.close()
-                raise ToolError("app_response_too_large", "Application response exceeds 8 MiB. "
+                raise ToolError("app_response_too_large", f"Application response exceeds {environment()['max_message_bytes']} bytes. "
                                 "Reduce max_widgets, max_rows or max_chars and try again.") from exc
             if not line:
                 raise ConnectionError("connection closed by ShogiBoardQ")

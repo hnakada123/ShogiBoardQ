@@ -316,7 +316,7 @@ QWidget* findWidget(QWidget* root, const QString& nameOrSelector)
     QWidget* found = nullptr;
     for (auto* widget : std::as_const(candidates)) {
         if (widget->objectName() != nameOrSelector && selector(widget) != nameOrSelector) continue;
-        if (found) throw AutomationError(AutomationErrorCode::InvalidParams,
+        if (found) throw AutomationError(ErrorKind::InvalidArgument,
             QStringLiteral("Ambiguous widget name; use its selector from widget.text"));
         found = widget;
     }
@@ -329,7 +329,7 @@ QWidget* requireWidget(const AutomationContext& context, const QJsonObject& para
     const QString name = AutomationParams::requireString(params, QStringLiteral("widget"));
     QWidget* widget = findWidget(window, name);
     if (!widget || (interactive && widget->window() != window))
-        throw AutomationError(AutomationErrorCode::NotFound, QStringLiteral("No widget in target window: %1").arg(name));
+        throw AutomationError(ErrorKind::NotFound, QStringLiteral("No widget in target window: %1").arg(name));
     if (interactive) requireInteractive(widget);
     return widget;
 }
@@ -339,7 +339,7 @@ QWidget* requireWindow(const AutomationContext& context, const QString& target)
     if (target.isEmpty() || target == QLatin1String("main")) return context.mainWindow;
     QWidget* window = AutomationWidgets::findWindow(target);
     if (!window) {
-        throw AutomationError(AutomationErrorCode::NotFound, QStringLiteral("No open window matches \"%1\"").arg(target),
+        throw AutomationError(ErrorKind::NotFound, QStringLiteral("No open window matches \"%1\"").arg(target),
                               QStringLiteral("Use dialog.list to see the open windows"));
     }
     return window;
@@ -356,11 +356,11 @@ bool isSensitive(const QWidget* widget)
 void requireInteractive(QWidget* widget, bool allowPopup, bool allowSensitiveWrite)
 {
     if (isSensitive(widget) && !(allowSensitiveWrite && qobject_cast<QLineEdit*>(widget)))
-        throw AutomationError(AutomationErrorCode::NotAllowed, QStringLiteral("Sensitive controls are not accessible through automation"));
+        throw AutomationError(ErrorKind::NotAllowed, QStringLiteral("Sensitive controls are not accessible through automation"));
     if (widget) {
         const QString action = widgetActionName(widget);
         if (!action.isEmpty() && !AutomationActionPolicy::isAllowed(action))
-            throw AutomationError(AutomationErrorCode::NotAllowed, QStringLiteral("Menu button action is not allowed"));
+            throw AutomationError(ErrorKind::NotAllowed, QStringLiteral("Menu button action is not allowed"));
     }
     QWidget* modal = QApplication::activeModalWidget();
     bool blocked = modal != nullptr;
@@ -368,7 +368,7 @@ void requireInteractive(QWidget* widget, bool allowPopup, bool allowSensitiveWri
         if (parent == modal) { blocked = false; break; }
     }
     if (!widget || !widget->isVisible() || !widget->isEnabled() || blocked) {
-        throw AutomationError(AutomationErrorCode::InvalidState,
+        throw AutomationError(ErrorKind::InvalidState,
                               QStringLiteral("The target is hidden, disabled or blocked by another dialog"));
     }
     // QFileDialogの補完はディレクトリ読込後にも開く。同じウィンドウ内の操作なら、
@@ -383,7 +383,7 @@ void requireInteractive(QWidget* widget, bool allowPopup, bool allowSensitiveWri
             }
         }
         if (QApplication::activePopupWidget())
-            throw AutomationError(AutomationErrorCode::InvalidState, QStringLiteral("Another popup is active"));
+            throw AutomationError(ErrorKind::InvalidState, QStringLiteral("Another popup is active"));
     }
 }
 

@@ -3,12 +3,14 @@
 
 #include <QtTest>
 #include <QJsonArray>
+#include <QSet>
 
 #include "automationcommands.h"
 #include "automationcontext.h"
 #include "automationdispatcher.h"
 #include "automationmethodspecs.h"
 #include "clicommandspecs.h"
+#include "errorkinds.h"
 #include "paramspec.h"
 
 using namespace ParamSpecs;
@@ -102,6 +104,24 @@ private slots:
         for (const OperationSpec& spec : AutomationMethodSpecs::all()) specified << spec.name;
         specified.sort();
         QCOMPARE(dispatcher.methodNames(), specified);
+    }
+
+    /// エラーの分類は、語が重ならず、表の並びが ErrorKind と同じ
+    void errorKindsHaveUniqueWords()
+    {
+        const QJsonArray kinds = ErrorKinds::toJson();
+        QCOMPARE(kinds.size(), static_cast<qsizetype>(ErrorKind::RenderError) + 1);
+        QSet<QString> slugs;
+        for (int i = 0; i < kinds.size(); ++i) {
+            const auto kind = static_cast<ErrorKind>(i);
+            const QJsonObject entry = kinds.at(i).toObject();
+            QCOMPARE(entry.value(QStringLiteral("slug")).toString(), ErrorKinds::slug(kind));
+            QCOMPARE(entry.value(QStringLiteral("rpc_code")).toInt(), ErrorKinds::rpcCode(kind));
+            QVERIFY(!slugs.contains(ErrorKinds::slug(kind)));
+            slugs.insert(ErrorKinds::slug(kind));
+        }
+        QCOMPARE(ErrorKinds::slug(ErrorKind::FileExists), QStringLiteral("file_exists"));
+        QCOMPARE(AutomationError(ErrorKind::InvalidContent, QString()).code(), AutomationErrorCode::InvalidContent);
     }
 
     /// 表にあるメソッドは、呼ぶ前に引数を検査し既定値を補う

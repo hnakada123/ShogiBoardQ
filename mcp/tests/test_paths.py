@@ -16,7 +16,7 @@ def test_relative_paths_are_rejected(monkeypatch, tmp_path):
     monkeypatch.setenv("SHOGIBOARDQ_ALLOWED_DIRS", str(tmp_path))
     with pytest.raises(ToolError) as info:
         paths.resolve_read_path("relative.kif")
-    assert info.value.code == "invalid_path"
+    assert info.value.code == "invalid_argument"
 
 
 def test_paths_outside_allowed_dirs_are_rejected(monkeypatch, tmp_path):
@@ -28,7 +28,7 @@ def test_paths_outside_allowed_dirs_are_rejected(monkeypatch, tmp_path):
     monkeypatch.setenv("SHOGIBOARDQ_ALLOWED_DIRS", str(allowed))
     with pytest.raises(ToolError) as info:
         paths.resolve_read_path(str(outside / "x.kif"))
-    assert info.value.code == "path_not_allowed"
+    assert info.value.code == "not_allowed"
     with pytest.raises(ToolError):
         paths.resolve_write_path(str(outside / "new.kif"), overwrite=False)
 
@@ -61,7 +61,9 @@ def test_default_allowed_dir_is_home(monkeypatch):
     assert paths.allowed_dirs() == [Path.home().resolve()]
 
 
-def test_socket_and_endpoint_locations(monkeypatch, tmp_path):
+def test_socket_and_endpoint_locations(monkeypatch, tmp_path, cli_path):
+    # The locations come from shogiboardq-cli environment, which computes them like the application.
+    monkeypatch.setenv("SHOGIBOARDQ_CLI", str(cli_path))
     monkeypatch.setenv("SHOGIBOARDQ_AUTOMATION_SOCKET", "/tmp/custom.sock")
     assert paths.default_socket_path() == "/tmp/custom.sock"
     monkeypatch.delenv("SHOGIBOARDQ_AUTOMATION_SOCKET")
@@ -76,7 +78,7 @@ def test_socket_and_endpoint_locations(monkeypatch, tmp_path):
     monkeypatch.setenv("SHOGIBOARDQ_CONFIG_HOME", str(tmp_path))
     assert paths.endpoint_file() == tmp_path / "ShogiBoardQ" / "automation-endpoint.json"
     assert paths.read_endpoint() is None
-    (tmp_path / "ShogiBoardQ").mkdir()
+    (tmp_path / "ShogiBoardQ").mkdir(exist_ok=True)
     paths.endpoint_file().write_text('{"socket": "/x/y.sock", "pid": 1}', encoding="utf-8")
     assert paths.read_endpoint() == {"socket": "/x/y.sock", "pid": 1}
 
@@ -97,7 +99,7 @@ def test_output_symlink_cannot_escape_allowed_directory(monkeypatch, tmp_path, e
     monkeypatch.setenv("SHOGIBOARDQ_ALLOWED_DIRS", str(allowed))
     with pytest.raises(ToolError) as error:
         paths.resolve_write_path(str(link), overwrite)
-    assert error.value.code == "path_not_allowed"
+    assert error.value.code == "not_allowed"
     assert target.read_bytes() == b"unchanged" if existing else not target.exists()
 
 

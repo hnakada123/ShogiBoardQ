@@ -24,7 +24,7 @@ namespace {
 void requireAbsolutePath(const QString& path)
 {
     if (!QFileInfo(path).isAbsolute()) {
-        throw AutomationError(AutomationErrorCode::FileError, QStringLiteral("Path must be absolute: %1").arg(path));
+        throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("Path must be absolute: %1").arg(path));
     }
 }
 
@@ -39,7 +39,7 @@ KifuFileController* requireFileController(const AutomationContext& context)
 {
     KifuFileController* controller = context.kifuFileController;
     if (!controller) {
-        throw AutomationError(AutomationErrorCode::InternalError, QStringLiteral("Kifu controller is unavailable"));
+        throw AutomationError(ErrorKind::InternalError, QStringLiteral("Kifu controller is unavailable"));
     }
     return controller;
 }
@@ -47,7 +47,7 @@ KifuFileController* requireFileController(const AutomationContext& context)
 void requireSavedOrDiscard(KifuFileController* controller, bool discard)
 {
     if (controller->hasUnsavedChanges() && !discard) {
-        throw AutomationError(AutomationErrorCode::UnsavedChanges,
+        throw AutomationError(ErrorKind::UnsavedChanges,
                               QStringLiteral("The current record has unsaved changes"),
                               QStringLiteral("Save it with kifu.save or pass discard_unsaved=true"));
     }
@@ -71,7 +71,7 @@ void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, 
         const QString path = params.value(QStringLiteral("path")).toString();
         const QString text = params.value(QStringLiteral("text")).toString();
         if (path.isEmpty() == text.isEmpty()) {
-            throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("Pass exactly one of \"path\" or \"text\""));
+            throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("Pass exactly one of \"path\" or \"text\""));
         }
         KifuFileController* controller = requireFileController(context);
         requireSavedOrDiscard(controller, params.value(QStringLiteral("discard_unsaved")).toBool());
@@ -81,7 +81,7 @@ void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, 
         if (!path.isEmpty()) {
             requireAbsolutePath(path);
             if (!QFileInfo::exists(path)) {
-                throw AutomationError(AutomationErrorCode::FileError, QStringLiteral("File not found: %1").arg(path));
+                throw AutomationError(ErrorKind::NotFound, QStringLiteral("File not found: %1").arg(path));
             }
             ok = controller->loadKifuFile(path);
         } else {
@@ -89,7 +89,7 @@ void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, 
         }
         if (!ok || !capture.errors().isEmpty()) {
             const QString detail = capture.errors().join(QLatin1Char('\n'));
-            throw AutomationError(AutomationErrorCode::NotFound,
+            throw AutomationError(ErrorKind::InvalidContent,
                                   detail.isEmpty() ? QStringLiteral("The record could not be loaded")
                                                    : QStringLiteral("The record could not be loaded: %1").arg(detail),
                                   QStringLiteral("Check the format of the record"));
@@ -107,18 +107,18 @@ void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, 
         requireAbsolutePath(path);
         const QFileInfo info(path);
         if (info.exists() && !overwrite) {
-            throw AutomationError(AutomationErrorCode::FileError, QStringLiteral("File already exists: %1").arg(path),
+            throw AutomationError(ErrorKind::FileExists, QStringLiteral("File already exists: %1").arg(path),
                                   QStringLiteral("Pass overwrite=true to replace it"));
         }
         if (!info.dir().exists()) {
-            throw AutomationError(AutomationErrorCode::FileError, QStringLiteral("Directory does not exist: %1").arg(info.dir().path()));
+            throw AutomationError(ErrorKind::NotFound, QStringLiteral("Directory does not exist: %1").arg(info.dir().path()));
         }
         KifuFileController* controller = requireFileController(context);
         QString error;
         if (!controller->saveKifuToPath(path, &error)) {
             const QString message = error.isEmpty() ? QStringLiteral("Saving failed: %1").arg(path)
                                                     : QStringLiteral("Saving failed: %1: %2").arg(path, error);
-            throw AutomationError(AutomationErrorCode::FileError, message,
+            throw AutomationError(ErrorKind::FileError, message,
                                   KifuSaveFile::usesShiftJisForPath(path)
                                       ? QStringLiteral("Use a .kifu or .ki2u path to save as UTF-8")
                                       : QString());
@@ -173,11 +173,11 @@ void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, 
 
         const auto kifuFormat = KifuFormats::fromName(format);
         if (!kifuFormat || !KifuFormats::isSavable(*kifuFormat)) {
-            throw AutomationError(AutomationErrorCode::InvalidParams,
+            throw AutomationError(ErrorKind::InvalidArgument,
                                   QStringLiteral("format must be one of moves, kif, ki2, csa, jkf, usen, usi"));
         }
         if (!context.document) {
-            throw AutomationError(AutomationErrorCode::InternalError, QStringLiteral("Kifu document is unavailable"));
+            throw AutomationError(ErrorKind::InternalError, QStringLiteral("Kifu document is unavailable"));
         }
         const QStringList lines = KifuExport::lines(*context.document, *kifuFormat);
         result[QStringLiteral("text")] = lines.join(QLatin1Char('\n')) + (lines.isEmpty() ? QString() : QStringLiteral("\n"));
@@ -189,12 +189,12 @@ void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, 
         const int ply = params.value(QStringLiteral("ply")).toInt();
         const int total = qMax(0, static_cast<int>(currentLinePositions(context).size()) - 1);
         if (ply > total) {
-            throw AutomationError(AutomationErrorCode::InvalidParams,
+            throw AutomationError(ErrorKind::InvalidArgument,
                                   QStringLiteral("ply %1 is beyond the last move (%2)").arg(ply).arg(total));
         }
         KifuNavigationController* nav = context.navigationController;
         if (!nav || !context.branchTree || context.branchTree->isEmpty()) {
-            throw AutomationError(AutomationErrorCode::InvalidState, QStringLiteral("No record is loaded"),
+            throw AutomationError(ErrorKind::InvalidState, QStringLiteral("No record is loaded"),
                                   QStringLiteral("Load a record with kifu.load first"));
         }
         nav->goToPly(ply);

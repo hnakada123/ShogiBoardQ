@@ -31,20 +31,20 @@ void AutomationCommands::registerPositionCommands(AutomationDispatcher& dispatch
         const bool discard = params.value(QStringLiteral("discard_unsaved")).toBool();
         const SfenValidation validation = SfenValidationService::validate(sfen);
         if (!validation.valid) {
-            throw AutomationError(AutomationErrorCode::InvalidParams,
+            throw AutomationError(ErrorKind::InvalidArgument,
                                   QStringLiteral("Invalid SFEN: %1").arg(validation.errors.join(QStringLiteral("; "))));
         }
         KifuFileController* controller = context.kifuFileController;
         if (!controller) {
-            throw AutomationError(AutomationErrorCode::InternalError, QStringLiteral("Kifu controller is unavailable"));
+            throw AutomationError(ErrorKind::InternalError, QStringLiteral("Kifu controller is unavailable"));
         }
         if (controller->hasUnsavedChanges() && !discard) {
-            throw AutomationError(AutomationErrorCode::UnsavedChanges,
+            throw AutomationError(ErrorKind::UnsavedChanges,
                                   QStringLiteral("The current record has unsaved changes"),
                                   QStringLiteral("Save it with kifu.save or pass discard_unsaved=true"));
         }
         if (!controller->applySfenPosition(validation.normalizedSfen)) {
-            throw AutomationError(AutomationErrorCode::InvalidState, QStringLiteral("The position could not be applied"));
+            throw AutomationError(ErrorKind::InvalidState, QStringLiteral("The position could not be applied"));
         }
         QJsonObject result;
         result[QStringLiteral("sfen")] = currentSfen(context);

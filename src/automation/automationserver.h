@@ -27,6 +27,9 @@ class AutomationServer : public QObject
     Q_OBJECT
 
 public:
+    /// 1 メッセージ（1 行）の上限（棋譜テキストを含む。MCP サーバーは shogiboardq-cli environment で読む）
+    static constexpr qsizetype kMaxMessageBytes = 8 * 1024 * 1024;
+
     explicit AutomationServer(QObject* parent = nullptr);
     ~AutomationServer() override;
 

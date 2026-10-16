@@ -16,7 +16,6 @@
 
 namespace {
 
-using CliOutput::kInvalidArgument;
 constexpr qint64 kProgressIntervalMs = 1000;
 
 /// 生成の進捗・発見局面を JSON Lines で書く中継役
@@ -66,7 +65,7 @@ public slots:
     }
     void onError(const QString& message)
     {
-        m_exitCode = CliOutput::failEvent(QStringLiteral("engine_error"), message);
+        m_exitCode = CliOutput::failEvent(ErrorKind::EngineError, message);
     }
 
 private:
@@ -118,7 +117,7 @@ public slots:
     }
     void onError(const QString& message)
     {
-        m_exitCode = CliOutput::fail(QStringLiteral("engine_error"), message);
+        m_exitCode = CliOutput::fail(ErrorKind::EngineError, message);
         m_loop->quit();
     }
 
@@ -139,10 +138,10 @@ int CliCommands::generateTsume(const QStringList& args)
 
     QString error;
     const auto engine = CliArgs::resolveEngine(*params, &error);
-    if (!engine) return CliOutput::failEvent(QStringLiteral("engine_not_found"), error);
+    if (!engine) return CliOutput::failEvent(ErrorKind::EngineNotFound, error);
     // 範囲と既定値は CliCommandSpecs の表で決まる
     const int targetMoves = params->value(QStringLiteral("target_moves")).toInt();
-    if (targetMoves % 2 == 0) return CliOutput::failEvent(kInvalidArgument, QStringLiteral("--target-moves must be odd"));
+    if (targetMoves % 2 == 0) return CliOutput::failEvent(ErrorKind::InvalidArgument, QStringLiteral("--target-moves must be odd"));
     const int maxPositions = params->value(QStringLiteral("max_positions")).toInt();
     const int timeoutMs = params->value(QStringLiteral("timeout_ms")).toInt();
     const int maxAttack = params->value(QStringLiteral("max_attack")).toInt();
@@ -197,13 +196,13 @@ int CliCommands::verifyTsume(const QStringList& args)
 
     QString error;
     const auto engine = CliArgs::resolveEngine(*params, &error);
-    if (!engine) return CliOutput::fail(QStringLiteral("engine_not_found"), error);
+    if (!engine) return CliOutput::fail(ErrorKind::EngineNotFound, error);
     const int targetMoves = params->value(QStringLiteral("target_moves")).toInt();
-    if (targetMoves % 2 == 0) return CliOutput::fail(kInvalidArgument, QStringLiteral("--target-moves must be odd"));
+    if (targetMoves % 2 == 0) return CliOutput::fail(ErrorKind::InvalidArgument, QStringLiteral("--target-moves must be odd"));
     const int timeoutMs = params->value(QStringLiteral("timeout_ms")).toInt();
 
     const SfenValidation validation = SfenValidationService::validate(params->value(QStringLiteral("sfen")).toString());
-    if (!validation.valid) return CliOutput::fail(kInvalidArgument, QStringLiteral("Invalid SFEN: %1").arg(validation.errors.join(QStringLiteral("; "))));
+    if (!validation.valid) return CliOutput::fail(ErrorKind::InvalidArgument, QStringLiteral("Invalid SFEN: %1").arg(validation.errors.join(QStringLiteral("; "))));
 
     TsumeVerificationRunner runner;
     QEventLoop loop;
@@ -221,7 +220,7 @@ int CliCommands::verifyTsume(const QStringList& args)
     request.timeoutMs = timeoutMs;
     request.allowFinalMoveAlternatives = !params->value(QStringLiteral("no_final_alternatives")).toBool();
 
-    if (!runner.start(request, &error)) return CliOutput::fail(QStringLiteral("engine_error"), error);
+    if (!runner.start(request, &error)) return CliOutput::fail(ErrorKind::EngineError, error);
     loop.exec();
     return reporter.exitCode();
 }

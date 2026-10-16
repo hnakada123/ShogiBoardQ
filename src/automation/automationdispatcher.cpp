@@ -33,16 +33,16 @@ QJsonObject AutomationDispatcher::makeResult(const QJsonValue& id, const QJsonVa
     return response;
 }
 
-QJsonObject AutomationDispatcher::makeError(const QJsonValue& id, int code, const QString& message, const QString& hint)
+QJsonObject AutomationDispatcher::makeError(const QJsonValue& id, ErrorKind kind, const QString& message,
+                                            const QString& hint)
 {
     QJsonObject error;
-    error[QStringLiteral("code")] = code;
+    error[QStringLiteral("code")] = ErrorKinds::rpcCode(kind);
     error[QStringLiteral("message")] = message;
-    if (!hint.isEmpty()) {
-        QJsonObject data;
-        data[QStringLiteral("hint")] = hint;
-        error[QStringLiteral("data")] = data;
-    }
+    QJsonObject data;
+    data[QStringLiteral("slug")] = ErrorKinds::slug(kind);
+    if (!hint.isEmpty()) data[QStringLiteral("hint")] = hint;
+    error[QStringLiteral("data")] = data;
     QJsonObject response;
     response[QStringLiteral("jsonrpc")] = QStringLiteral("2.0");
     response[QStringLiteral("id")] = id.isUndefined() ? QJsonValue(QJsonValue::Null) : id;
@@ -59,13 +59,13 @@ QByteArray AutomationDispatcher::handleLine(const QByteArray& line) const
     const QJsonDocument document = QJsonDocument::fromJson(trimmed, &parseError);
     QJsonObject response;
     if (parseError.error != QJsonParseError::NoError) {
-        response = makeError(QJsonValue::Null, AutomationErrorCode::ParseError,
+        response = makeError(QJsonValue::Null, ErrorKind::InvalidJson,
                              QStringLiteral("Parse error: %1").arg(parseError.errorString()));
     } else if (document.isArray()) {
-        response = makeError(QJsonValue::Null, AutomationErrorCode::InvalidRequest,
+        response = makeError(QJsonValue::Null, ErrorKind::InvalidRequest,
                              QStringLiteral("Batch requests are not supported; send one request per line"));
     } else if (!document.isObject()) {
-        response = makeError(QJsonValue::Null, AutomationErrorCode::InvalidRequest,
+        response = makeError(QJsonValue::Null, ErrorKind::InvalidRequest,
                              QStringLiteral("A JSON-RPC request must be an object"));
     } else {
         response = handleRequest(document.object());
@@ -80,22 +80,22 @@ QJsonObject AutomationDispatcher::handleRequest(const QJsonObject& request) cons
     const bool isNotification = !request.contains(QStringLiteral("id"));
 
     if (request.value(QStringLiteral("jsonrpc")).toString() != QLatin1String("2.0")) {
-        return makeError(id, AutomationErrorCode::InvalidRequest, QStringLiteral("jsonrpc must be \"2.0\""));
+        return makeError(id, ErrorKind::InvalidRequest, QStringLiteral("jsonrpc must be \"2.0\""));
     }
     const QJsonValue methodValue = request.value(QStringLiteral("method"));
     if (!methodValue.isString() || methodValue.toString().isEmpty()) {
-        return makeError(id, AutomationErrorCode::InvalidRequest, QStringLiteral("method must be a non-empty string"));
+        return makeError(id, ErrorKind::InvalidRequest, QStringLiteral("method must be a non-empty string"));
     }
     const QJsonValue paramsValue = request.value(QStringLiteral("params"));
     if (!paramsValue.isUndefined() && !paramsValue.isNull() && !paramsValue.isObject()) {
-        return makeError(id, AutomationErrorCode::InvalidParams, QStringLiteral("params must be an object"));
+        return makeError(id, ErrorKind::InvalidArgument, QStringLiteral("params must be an object"));
     }
 
     const QString method = methodValue.toString();
     const auto it = m_handlers.constFind(method);
     if (it == m_handlers.constEnd()) {
         if (isNotification) return {};
-        return makeError(id, AutomationErrorCode::MethodNotFound,
+        return makeError(id, ErrorKind::UnknownOperation,
                          QStringLiteral("Unknown method \"%1\"").arg(method),
                          QStringLiteral("Available methods: %1").arg(methodNames().join(QStringLiteral(", "))));
     }
@@ -104,7 +104,7 @@ QJsonObject AutomationDispatcher::handleRequest(const QJsonObject& request) cons
     // 実行すると、途中の処理が前提にしている状態を別の要求が作り直してしまう。
     if (m_activeHandlers > 0) {
         if (isNotification) return {};
-        return makeError(id, AutomationErrorCode::InvalidState,
+        return makeError(id, ErrorKind::InvalidState,
                          QStringLiteral("Another request is still running"),
                          QStringLiteral("Wait for the previous response before sending the next request"));
     }
@@ -118,7 +118,7 @@ QJsonObject AutomationDispatcher::handleRequest(const QJsonObject& request) cons
         const std::optional<QJsonObject> validated = ParamSpecs::validate(*spec, params, &error);
         if (!validated) {
             if (isNotification) return {};
-            return makeError(id, AutomationErrorCode::InvalidParams, error,
+            return makeError(id, ErrorKind::InvalidArgument, error,
                              QStringLiteral("Run shogiboardq-cli describe for the parameters of %1").arg(method));
         }
         params = *validated;
@@ -130,10 +130,10 @@ QJsonObject AutomationDispatcher::handleRequest(const QJsonObject& request) cons
         response = makeResult(id, result);
     } catch (const AutomationError& error) {
         qCDebug(lcApp) << "automation" << method << "failed:" << error.code() << error.message();
-        response = makeError(id, error.code(), error.message(), error.hint());
+        response = makeError(id, error.kind(), error.message(), error.hint());
     } catch (const std::exception& error) {
         qCWarning(lcApp) << "automation" << method << "threw:" << error.what();
-        response = makeError(id, AutomationErrorCode::InternalError,
+        response = makeError(id, ErrorKind::InternalError,
                              QStringLiteral("Internal error: %1").arg(QString::fromUtf8(error.what())));
     }
     return isNotification ? QJsonObject() : response;

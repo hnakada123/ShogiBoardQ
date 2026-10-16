@@ -44,7 +44,7 @@ QPoint squareClickPosition(ShogiView* view, const QPoint& square)
         }
     }
     if (area.isEmpty() || view->clickedSquare(area.center()) != square) {
-        throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("Square is not displayed on this board"));
+        throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("Square is not displayed on this board"));
     }
     return area.center();
 }
@@ -59,7 +59,7 @@ void AutomationCommands::registerUiCommands(AutomationDispatcher& dispatcher, co
         const int file = params.value(QStringLiteral("file")).toInt();
         const int rank = params.value(QStringLiteral("rank")).toInt();
         if ((file == 10 && rank > 8) || (file == 11 && rank < 2)) {
-            throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("Invalid hand piece coordinate"));
+            throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("Invalid hand piece coordinate"));
         }
         const QString button = params.value(QStringLiteral("button")).toString();
         QWidget* window = requireWindow(context, target);
@@ -70,7 +70,7 @@ void AutomationCommands::registerUiCommands(AutomationDispatcher& dispatcher, co
                 if (candidate->window() == window && candidate->isVisible()) { view = candidate; break; }
             }
         }
-        if (!view) throw AutomationError(AutomationErrorCode::NotFound, QStringLiteral("No visible board in the target window"));
+        if (!view) throw AutomationError(ErrorKind::NotFound, QStringLiteral("No visible board in the target window"));
         requireInteractive(view);
         const QPoint square(file, rank);
         squareClickPosition(view, square); // 不正な座標は応答前に拒否する。
@@ -98,12 +98,12 @@ void AutomationCommands::registerUiCommands(AutomationDispatcher& dispatcher, co
         const QString target = params.value(QStringLiteral("target")).toString();
         QWidget* window = requireWindow(context, target);
         if (!qobject_cast<QDialog*>(window)) {
-            throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("Target must be an open dialog"));
+            throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("Target must be an open dialog"));
         }
         const QString widget = params.value(QStringLiteral("widget")).toString();
         const QString text = params.value(QStringLiteral("text")).toString();
         if (widget.isEmpty() == text.isEmpty()) {
-            throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("Specify exactly one of widget or text"));
+            throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("Specify exactly one of widget or text"));
         }
         const int index = params.value(QStringLiteral("index")).toInt();
         QList<QAbstractButton*> matches;
@@ -114,7 +114,7 @@ void AutomationCommands::registerUiCommands(AutomationDispatcher& dispatcher, co
                     || (!text.isEmpty() && button->text() == text)))
                 matches.append(button);
         }
-        if (index >= matches.size()) throw AutomationError(AutomationErrorCode::NotFound, QStringLiteral("No matching visible button"));
+        if (index >= matches.size()) throw AutomationError(ErrorKind::NotFound, QStringLiteral("No matching visible button"));
         auto* button = matches[index];
         requireInteractive(button);
         AutomationDeferredCall::schedule([button]() {
@@ -147,15 +147,15 @@ void AutomationCommands::registerUiCommands(AutomationDispatcher& dispatcher, co
     dispatcher.registerMethod(QStringLiteral("action.trigger"), [context](const QJsonObject& params) {
         const QString name = params.value(QStringLiteral("name")).toString();
         if (!AutomationActionPolicy::isAllowed(name)) {
-            throw AutomationError(AutomationErrorCode::NotAllowed, QStringLiteral("Action \"%1\" is not allowed").arg(name),
+            throw AutomationError(ErrorKind::NotAllowed, QStringLiteral("Action \"%1\" is not allowed").arg(name),
                                   QStringLiteral("Use action.list for the allowed actions"));
         }
         QAction* action = findAction(context, name);
         if (!action) {
-            throw AutomationError(AutomationErrorCode::NotFound, QStringLiteral("Action \"%1\" does not exist").arg(name));
+            throw AutomationError(ErrorKind::NotFound, QStringLiteral("Action \"%1\" does not exist").arg(name));
         }
         if (!action->isEnabled()) {
-            throw AutomationError(AutomationErrorCode::InvalidState,
+            throw AutomationError(ErrorKind::InvalidState,
                                   QStringLiteral("Action \"%1\" is disabled in the current state").arg(name));
         }
         requireInteractive(context.mainWindow);
@@ -182,14 +182,14 @@ void AutomationCommands::registerUiCommands(AutomationDispatcher& dispatcher, co
             for (auto* edit : edits) {
                 if (edit->isVisible() && AutomationWidgets::isSensitive(edit)
                     && edit->echoMode() == QLineEdit::Normal && !edit->text().isEmpty())
-                    throw AutomationError(AutomationErrorCode::NotAllowed,
+                    throw AutomationError(ErrorKind::NotAllowed,
                                           QStringLiteral("Hide sensitive text before taking a screenshot"));
             }
         }
         ScreenshotService service(context.mainWindow);
         if (!outputDir.isEmpty()) {
             if (!QFileInfo(outputDir).isAbsolute()) {
-                throw AutomationError(AutomationErrorCode::FileError, QStringLiteral("output_dir must be absolute"));
+                throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("output_dir must be absolute"));
             }
             service.setOutputDirectory(outputDir);
         }
@@ -198,7 +198,7 @@ void AutomationCommands::registerUiCommands(AutomationDispatcher& dispatcher, co
         const QString path = window == context.mainWindow ? service.captureMainWindow(label)
                                                            : service.captureWidget(window, label);
         if (path.isEmpty()) {
-            throw AutomationError(AutomationErrorCode::InternalError, QStringLiteral("Capturing the screenshot failed"));
+            throw AutomationError(ErrorKind::InternalError, QStringLiteral("Capturing the screenshot failed"));
         }
         const QImage image(path);
         QJsonObject result;
@@ -224,7 +224,7 @@ void AutomationCommands::registerUiCommands(AutomationDispatcher& dispatcher, co
         const QString target = params.value(QStringLiteral("target")).toString();
         QWidget* window = AutomationWidgets::findWindow(target);
         if (!window || window == context.mainWindow) {
-            throw AutomationError(AutomationErrorCode::NotFound, QStringLiteral("No open dialog matches \"%1\"").arg(target));
+            throw AutomationError(ErrorKind::NotFound, QStringLiteral("No open dialog matches \"%1\"").arg(target));
         }
         requireInteractive(window);
         // モーダルダイアログの exec() を抜けさせるため、応答後に閉じる
@@ -253,7 +253,7 @@ void AutomationCommands::registerUiCommands(AutomationDispatcher& dispatcher, co
         result[QStringLiteral("window")] = AutomationWidgets::describeWindow(window, window == context.mainWindow);
         result[QStringLiteral("widgets")] = AutomationWidgets::describeWidgets(window, widget, maxRows, maxWidgets, children);
         if (!widget.isEmpty() && result.value(QStringLiteral("widgets")).toArray().isEmpty()) {
-            throw AutomationError(AutomationErrorCode::NotFound, QStringLiteral("No readable widget named \"%1\"").arg(widget));
+            throw AutomationError(ErrorKind::NotFound, QStringLiteral("No readable widget named \"%1\"").arg(widget));
         }
         return result;
     });

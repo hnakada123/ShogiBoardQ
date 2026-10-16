@@ -26,7 +26,7 @@ QMenu* menuFor(QWidget* widget)
     QMenu* menu = qobject_cast<QMenu*>(widget);
     if (auto* button = qobject_cast<QPushButton*>(widget)) menu = button->menu();
     if (auto* button = qobject_cast<QToolButton*>(widget)) menu = button->menu();
-    if (!menu) throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("Widget must be a menu or a menu button"));
+    if (!menu) throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("Widget must be a menu or a menu button"));
     return menu;
 }
 
@@ -60,7 +60,7 @@ void requireMenuInteractive(QWidget* window, QWidget* source, QMenu* menu)
 {
     QWidget* popup = QApplication::activePopupWidget();
     if (popup && popup != menu && !menu->isAncestorOf(popup))
-        throw AutomationError(AutomationErrorCode::InvalidState, QStringLiteral("Another popup is active"));
+        throw AutomationError(ErrorKind::InvalidState, QStringLiteral("Another popup is active"));
     AutomationWidgets::requireInteractive(window, true);
     if (!qobject_cast<QMenu*>(source)) AutomationWidgets::requireInteractive(source, true);
 }
@@ -74,7 +74,7 @@ QGraphicsItem* branchNode(QGraphicsView* view, int id)
             if (value.isValid() && value.toInt() == id && item->isVisible()) return item;
         }
     }
-    throw AutomationError(AutomationErrorCode::NotFound, QStringLiteral("Branch node no longer exists; read widget.text again"));
+    throw AutomationError(ErrorKind::NotFound, QStringLiteral("Branch node no longer exists; read widget.text again"));
 }
 
 } // namespace
@@ -101,15 +101,15 @@ void AutomationCommands::registerNavigationCommands(AutomationDispatcher& dispat
             const int index = AutomationParams::requireInt(indexParam, QStringLiteral("index"), 0, static_cast<int>(current->actions().size()) - 1);
             action = current->actions().at(index);
             if (!action->isVisible() || !action->isEnabled() || action->isSeparator())
-                throw AutomationError(AutomationErrorCode::InvalidState, QStringLiteral("Menu item is hidden or disabled"));
+                throw AutomationError(ErrorKind::InvalidState, QStringLiteral("Menu item is hidden or disabled"));
             parents.append(action);
             if (i + 1 < path.size()) {
-                if (!action->menu()) throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("Path does not name a submenu"));
+                if (!action->menu()) throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("Path does not name a submenu"));
                 current = action->menu();
             }
         }
         if (action->menu() || !isAllowed(current, action))
-            throw AutomationError(AutomationErrorCode::NotAllowed, QStringLiteral("Menu action is not allowed"));
+            throw AutomationError(ErrorKind::NotAllowed, QStringLiteral("Menu action is not allowed"));
         const QPointer<QAction> guarded(action);
         const QPointer<QMenu> parentMenu(current);
         const QPointer<QWidget> guardedWindow(window);
@@ -132,17 +132,17 @@ void AutomationCommands::registerNavigationCommands(AutomationDispatcher& dispat
 
     dispatcher.registerMethod(QStringLiteral("menu.favorites"), [context](const QJsonObject& params) {
         if (!context.menuFavorites || !context.availableMenuActions || !context.setMenuFavorites)
-            throw AutomationError(AutomationErrorCode::NotFound, QStringLiteral("Menu window is not available"));
+            throw AutomationError(ErrorKind::NotFound, QStringLiteral("Menu window is not available"));
         const QStringList available = context.availableMenuActions();
         if (available.isEmpty())
-            throw AutomationError(AutomationErrorCode::NotFound, QStringLiteral("Menu window is not available"));
+            throw AutomationError(ErrorKind::NotFound, QStringLiteral("Menu window is not available"));
         if (params.contains(QStringLiteral("actions"))) {
             AutomationWidgets::requireInteractive(context.mainWindow);
             QStringList names;
             const QJsonArray requested = params.value(QStringLiteral("actions")).toArray();
             for (const auto& name : requested) {
                 if (!name.isString() || !available.contains(name.toString()) || names.contains(name.toString()))
-                    throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("Unknown or duplicate favorite action"));
+                    throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("Unknown or duplicate favorite action"));
                 names.append(name.toString());
             }
             context.setMenuFavorites(names);
@@ -153,7 +153,7 @@ void AutomationCommands::registerNavigationCommands(AutomationDispatcher& dispat
 
     dispatcher.registerMethod(QStringLiteral("branch.click"), [context](const QJsonObject& params) {
         auto* view = qobject_cast<QGraphicsView*>(AutomationWidgets::requireWidget(context, params));
-        if (!view) throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("Widget must be a branch graphics view"));
+        if (!view) throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("Widget must be a branch graphics view"));
         const int id = params.value(QStringLiteral("id")).toInt();
         branchNode(view, id);
         AutomationDeferredCall::schedule([view, id]() {

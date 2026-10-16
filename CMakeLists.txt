@@ -913,6 +913,8 @@ set(SRC_AUTOMATION
     src/automation/engineanalysisrunner.h
     src/automation/enginecatalog.cpp
     src/automation/enginecatalog.h
+    src/automation/errorkinds.cpp
+    src/automation/errorkinds.h
     src/automation/kifuconversionservice.cpp
     src/automation/kifuconversionservice.h
     src/automation/matesearchrunner.cpp

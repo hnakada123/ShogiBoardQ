@@ -19,8 +19,8 @@ std::optional<QJsonObject> CliArgs::parse(const QString& command, const QStringL
     QString error;
     std::optional<QJsonObject> params = CliCommandSpecs::parse(*spec, args, &error);
     if (!params) {
-        const int code = events ? CliOutput::failEvent(CliOutput::kInvalidArgument, error)
-                                : CliOutput::fail(CliOutput::kInvalidArgument, error);
+        const int code = events ? CliOutput::failEvent(ErrorKind::InvalidArgument, error)
+                                : CliOutput::fail(ErrorKind::InvalidArgument, error);
         if (exitCode) *exitCode = code;
     }
     return params;
@@ -80,24 +80,24 @@ std::optional<EngineListSettings::EngineEntry> CliArgs::resolveEngine(const QJso
     return entry;
 }
 
-bool CliArgs::checkOutputPath(const QString& path, bool overwrite, QString* error)
+std::optional<ErrorKind> CliArgs::checkOutputPath(const QString& path, bool overwrite, QString* error)
 {
     const QFileInfo info(path);
     if (path.isEmpty() || !info.isAbsolute()) {
         if (error) *error = QStringLiteral("Output path must be absolute");
-        return false;
-    }
-    if (info.exists() && !overwrite) {
-        if (error) *error = QStringLiteral("Output file already exists (pass --overwrite to replace it): %1").arg(path);
-        return false;
+        return ErrorKind::InvalidArgument;
     }
     if (info.exists() && info.isDir()) {
         if (error) *error = QStringLiteral("Output path is a directory: %1").arg(path);
-        return false;
+        return ErrorKind::FileError;
+    }
+    if (info.exists() && !overwrite) {
+        if (error) *error = QStringLiteral("Output file already exists (pass --overwrite to replace it): %1").arg(path);
+        return ErrorKind::FileExists;
     }
     if (!info.dir().exists()) {
         if (error) *error = QStringLiteral("Output directory does not exist: %1").arg(info.dir().path());
-        return false;
+        return ErrorKind::NotFound;
     }
-    return true;
+    return std::nullopt;
 }

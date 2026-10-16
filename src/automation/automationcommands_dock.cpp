@@ -32,14 +32,14 @@ Qt::DockWidgetArea parseArea(const QString& name)
                       Qt::TopDockWidgetArea, Qt::BottomDockWidgetArea}) {
         if (areaName(area) == name) return area;
     }
-    throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("area must be left, right, top or bottom"));
+    throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("area must be left, right, top or bottom"));
 }
 
 QDockWidget* findDock(QMainWindow* window, const QString& name)
 {
     const auto matches = window->findChildren<QDockWidget*>(name, Qt::FindDirectChildrenOnly);
     if (matches.size() != 1) {
-        throw AutomationError(AutomationErrorCode::NotFound, QStringLiteral("Expected one dock named \"%1\"").arg(name));
+        throw AutomationError(ErrorKind::NotFound, QStringLiteral("Expected one dock named \"%1\"").arg(name));
     }
     return matches.first();
 }
@@ -49,7 +49,7 @@ void requireOperation(QMainWindow* window, QDockWidget* dock, const QString& ope
 {
     AutomationWidgets::requireInteractive(window);
     if (!dock || !dock->isEnabled()) {
-        throw AutomationError(AutomationErrorCode::InvalidState, QStringLiteral("Dock is unavailable or disabled"));
+        throw AutomationError(ErrorKind::InvalidState, QStringLiteral("Dock is unavailable or disabled"));
     }
     if (operation == QLatin1String("show")) return;
     if (operation == QLatin1String("hide")) {
@@ -64,7 +64,7 @@ void requireOperation(QMainWindow* window, QDockWidget* dock, const QString& ope
             && relative->features().testFlag(QDockWidget::DockWidgetMovable)
             && dock->isAreaAllowed(window->dockWidgetArea(relative))) return;
     }
-    throw AutomationError(AutomationErrorCode::InvalidState,
+    throw AutomationError(ErrorKind::InvalidState,
                           QStringLiteral("Dock operation is locked, disallowed or has no visible docked relative"));
 }
 
@@ -90,7 +90,7 @@ void AutomationCommands::registerDockCommands(AutomationDispatcher& dispatcher, 
     dispatcher.registerMethod(QStringLiteral("dock.list"), [context](const QJsonObject&) {
         QJsonArray docks;
         auto* window = context.mainWindow;
-        if (!window) throw AutomationError(AutomationErrorCode::InvalidState, QStringLiteral("No main window"));
+        if (!window) throw AutomationError(ErrorKind::InvalidState, QStringLiteral("No main window"));
         const auto dockWidgets = window->findChildren<QDockWidget*>(QString(), Qt::FindDirectChildrenOnly);
         for (auto* dock : dockWidgets) {
             QJsonArray tabs;
@@ -125,7 +125,7 @@ void AutomationCommands::registerDockCommands(AutomationDispatcher& dispatcher, 
 
     dispatcher.registerMethod(QStringLiteral("dock.configure"), [context](const QJsonObject& params) {
         auto* window = context.mainWindow;
-        if (!window) throw AutomationError(AutomationErrorCode::InvalidState, QStringLiteral("No main window"));
+        if (!window) throw AutomationError(ErrorKind::InvalidState, QStringLiteral("No main window"));
         // 型と範囲は AutomationMethodSpecs の表で検査済み。ここでは操作ごとの組み合わせだけを確かめる
         auto* dock = findDock(window, params.value(QStringLiteral("widget")).toString());
         const QString operation = params.value(QStringLiteral("operation")).toString();
@@ -134,19 +134,19 @@ void AutomationCommands::registerDockCommands(AutomationDispatcher& dispatcher, 
         if (operation == QLatin1String("dock")) area = parseArea(AutomationParams::requireString(params, QStringLiteral("area")));
         if (operation == QLatin1String("tabify")) {
             relative = findDock(window, AutomationParams::requireString(params, QStringLiteral("relative_to")));
-            if (relative == dock) throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("Cannot tabify a dock with itself"));
+            if (relative == dock) throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("Cannot tabify a dock with itself"));
         }
         QRect geometry;
         QPoint destination;
         if (operation == QLatin1String("drag")) {
             if (!params.contains(QStringLiteral("x")) || !params.contains(QStringLiteral("y"))) {
-                throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("drag requires integer x and y"));
+                throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("drag requires integer x and y"));
             }
             destination = QPoint(params.value(QStringLiteral("x")).toInt(), params.value(QStringLiteral("y")).toInt());
         }
         if (params.contains(QStringLiteral("geometry"))) {
             if (operation != QLatin1String("float")) {
-                throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("geometry is only valid for float"));
+                throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("geometry is only valid for float"));
             }
             const auto obj = params.value(QStringLiteral("geometry")).toObject();
             geometry = QRect(obj.value(QStringLiteral("x")).toInt(), obj.value(QStringLiteral("y")).toInt(),
@@ -155,7 +155,7 @@ void AutomationCommands::registerDockCommands(AutomationDispatcher& dispatcher, 
         if ((params.contains(QStringLiteral("area")) && operation != QLatin1String("dock"))
             || (params.contains(QStringLiteral("relative_to")) && operation != QLatin1String("tabify"))
             || ((params.contains(QStringLiteral("x")) || params.contains(QStringLiteral("y"))) && operation != QLatin1String("drag"))) {
-            throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("Unexpected parameter for dock operation"));
+            throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("Unexpected parameter for dock operation"));
         }
         requireOperation(window, dock, operation, area, relative);
         AutomationDeferredCall::schedule([window, dock, operation, area, relative, geometry, destination]() {
