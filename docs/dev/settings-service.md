@@ -76,7 +76,7 @@ getter と setter の組やキー定数は手で書かない。値の範囲を�
 | `JosekiSettings` | `josekisettings.h/.cpp` | 定跡ウィンドウ、定跡手編集・定跡マージダイアログ |
 | `TsumeshogiSettings` | `tsumeshogisettings.h/.cpp` | 詰将棋局面生成ダイアログ、詰将棋の問題一覧・対局画面 |
 | `EngineDialogSettings` | `enginedialogsettings.h` | エンジン設定・エンジン登録ダイアログ |
-| `DockSettings` | `docksettings.h/.cpp` | ドックのフローティング・ジオメトリ・表示状態、ドックの固定、名前付きレイアウト |
+| `DockSettings` | `docksettings.h/.cpp` | ドック1つの状態 `DockState`（フローティング・表示状態・ジオメトリ。全12個のドックを `dockState(group, defaultVisible)` / `setDockState(group, state)` で読み書き）、ドックの固定、名前付きレイアウト |
 
 ### GUI共通フォント（`AppSettings::uiFontFamily`）
 
@@ -266,9 +266,9 @@ INI ファイル内のキーは `グループ名/キー名` の形式で、宣�
 
 | 処理 | 関数 |
 |---|---|
-| 値の範囲を絞る | `AppSettings::pieceSoundVolume`（0〜100）、`AnalysisSettings::usiLogCommandTarget`（0〜2）、`AppSettings::appearancePieceFilter`（0〜7） |
-| 複数のキーを構造体にまとめる | `AppSettings::boardColors`、`AppSettings::boardVisuals`、`AppSettings::pieceSoundTone`、`TsumeshogiSettings::collectionPreferences` / `playPreferences` |
-| 古い保存値の引き継ぎ・不正値の補正 | `AppSettings::appearanceSection`（旧版の番号を名前に読み替える）、`AppSettings::pieceStyle`（一覧にない値・廃止したセットは `standard` に戻す） |
+| 値の範囲を絞る | `AppSettings::pieceSoundVolume`（0〜100）、`AnalysisSettings::usiLogCommandTarget`（0〜2）、`AppSettings::appearancePieceFilter`（0〜`PieceStyleCatalog::Family::Count` − 1。値は分類 `Family` で、0 は「すべて」） |
+| 複数のキーを構造体にまとめる | `AppSettings::boardColors`、`AppSettings::boardVisuals`、`AppSettings::pieceSoundTone`、`TsumeshogiSettings::collectionPreferences` / `playPreferences`、`DockSettings::dockState` / `setDockState`（キーは `<グループ>/floating`・`/visible`・`/geometry`。グループは `DockRegistry` の表の `settingsGroup`） |
+| 古い保存値の引き継ぎ・不正値の補正 | `AppSettings::appearanceSection`（外観ダイアログのタブの id を文字列で返す。旧版のタブの番号は id に読み替える）、`AppSettings::pieceStyle`（`PieceStyleCatalog` にない値・廃止したセットは `standard` に戻す） |
 | リスト・配列 | `AnalysisSettings::engineInfoColumnWidths` / `thinkingViewColumnWidths` / `kifuAnalysisColumnWidths`、`JosekiSettings::josekiWindowColumnWidths`、`DockSettings::savedDockLayoutNames` / `saveDockLayout` / `loadDockLayout` / `deleteDockLayout` |
 
 関数は namespace のドメイン別ヘッダーに宣言し、`.cpp` で `SettingsCommon::openSettings()` を使って実装する。キーは `settingskeys.h` の定数に置く。

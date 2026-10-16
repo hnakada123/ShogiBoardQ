@@ -89,6 +89,7 @@
 | 2026-10-16 | 盤の入力・局面編集・ハイライトの整理（監査 R7）に合わせて §1.5・§3.4・§3.5・§3.6・§4.2・§4.4・§4.5・§5.4・§6.1・§6.6・§6.8・§6.9・§10・§11.1・§12.3・§13.5・§13.6・§13.9・§14.2・§14.3・§14.6・§15.2・§18 を更新（盤で指した手の行き先 `BoardInputRoute`、`BoardInteractionController` の `Mode`・`moveRequested`・手番のコールバックの削除、`PositionEditController`・`PositionEditCoordinator` を `PositionEditSession` に統合、`HumanTurnPolicy` を `src/ui/controllers/` へ移動、ハイライトを層 `BoardHighlightLayer` ごとの値に、`setForcedPromotion()` の削除と定跡の手の `playUsiMove()`） |
 | 2026-10-16 | 思考の表と棋譜解析の結果の表の行を値で持つようにしたのに合わせて §1.5・§7.8・§7.10・§9.6・§9.8・§9.9・§10.2・§11.2・§18.3・§18.4 を更新（`AbstractListModel`・`KifuAnalysisResultsDisplay` を削除。行は `ShogiInfoRecord`・`KifuAnalysisRow` の値、表の部品は `PvTableView`、指し手の書体の規則は `MoveFont`） |
 | 2026-10-16 | 局面送りと編集のボタンを `QAction` の組で共有したのに合わせて §1.5・§11.2・§13.1・§18.3・§18.4 を更新（`KifuNavigationController` が局面送りの6つの `QAction`（`Step`・`action()`）を持ち、棋譜欄と評価値グラフのボタンを `bindButtons()` で結ぶ。`connectButtons()`・`RecordPane::setArrowButtonsEnabled()`・`setNavigationEnabled()`・`arrowButtonsEnabledChanged`・`EvaluationChartWidget::setNavigationEnabled()` を削除し、`UiStatePolicyManager` は `setStepActionsEnabled()` と `RecordPane::setKifuViewEnabled()` で切り替える。元に戻す〜貼り付けは標準ショートカット付きの `EditActions`（`src/widgets/`）にし、コメント欄と対局情報で使う） |
+| 2026-10-16 | 駒のセットの表とドックの表（監査 R10-1・R10-2）に合わせて §1.5・§4.4・§9.8・§10.4・§10.5・§11.2・§12.5・§14.2・§14.5.2・§14.6・§14.7・§17.4・§18.3・§18.4 を更新（駒のセットの表 `PieceStyleCatalog`・外観の値 `AppearanceState` を足し、`AppSettings::availablePieceStyles()`・`BoardColorPresets::pieceStyleName()` を削除。ドックは `DockRegistry`（`ui/coordinators/dockregistry.h`）の表から作り・置き・状態を保存し、`DockCreationService`・`DockUiCoordinator`・`DockWidgets`・`DockLayoutManager::DockType`／`registerDock()` を削除。ドックの状態は全12個を `DockSettings::DockState` で保存。メニューウィンドウ・定跡ウィンドウはコントローラのコンストラクタで作る） |
 
 <!-- chapter-0-end -->
 
@@ -285,8 +286,7 @@ src/
 │   ├── mainwindowactions.cpp/.h    #   1つの部品では済まない操作（新規・局面編集の開始・終了）
 │   ├── menuactionswiring.cpp/.h    #   メニュー/ツールバーの QAction を処理する部品へつなぐ
 │   ├── gamesession.cpp/.h          #   対局の開始・終局・再開と、対局の手順の棋譜への追記（MatchRecordSink）。ローカル対局と通信対局の棋譜を開始から終局・自動保存まで1本の流れで扱う
-│   ├── sessionresetcoordinator.cpp/.h # 対局の開始前・新規・局面編集・棋譜の読み込み前に棋譜と表示を作り直す
-│   └── dockcreationservice.cpp/.h  #   ドックの生成と配置
+│   └── sessionresetcoordinator.cpp/.h # 対局の開始前・新規・局面編集・棋譜の読み込み前に棋譜と表示を作り直す
 │
 ├── core/                           # 純粋なゲームロジック（Qt GUI非依存）
 │   ├── shogitypes.h                #   手番（Turn）と駒（Piece。種類＋後手なら16。並びは fmv と同じ）
@@ -548,8 +548,8 @@ src/
 │   └── coordinators/               #   複数の部品にまたがる UI の流れ
 │       ├── uistatepolicymanager.cpp/.h  # 動作状態ごとのメニュー・ボタンの有効/無効（コンパイル時の表）
 │       ├── dialoglauncher.cpp/.h        # メニューから開くダイアログの起動
-│       ├── docklayoutmanager.cpp/.h     # ドックレイアウト管理
-│       ├── dockuicoordinator.cpp/.h     # ドックの表示メニュー
+│       ├── dockregistry.cpp/.h          # ドックの表（DockSpec）から作成・規定の配置・状態の保存と復元
+│       ├── docklayoutmanager.cpp/.h     # 名前付きレイアウト・起動時のレイアウト・ドックの固定
 │       ├── commentcoordinator.cpp/.h    # コメント機能の調整
 │       ├── kifuloadcoordinator.cpp/.h   # 棋譜ファイル・貼り付け・局面を読み、分岐ツリーを作り直す
 │       ├── kifufilecontroller.cpp/.h    # 棋譜の文書とファイル（開く・保存・上書き・自動保存・貼り付け・クリップボードへのコピー）
@@ -571,6 +571,9 @@ src/
 │   ├── apppaths.h                  #   設定・データ・キャッシュの置き場所
 │   ├── applicationtranslations.cpp/.h # 起動時の言語と翻訳の読み込み
 │   ├── boardappearance.cpp/.h      #   全盤面に共通する配色（boardappearancecatalog・boardcolorpresets が既定値）
+│   ├── boardappearancecatalog.cpp/.h #  盤・駒台・対局者情報・背景の見本と、おすすめの組み合わせ（Combination）
+│   ├── appearancestate.cpp/.h      #   外観（駒のセット・配色・見た目）をまとめた値 AppearanceState（current()・apply()）
+│   ├── piecestylecatalog.cpp/.h    #   駒のセットの表 PieceStyleCatalog（ID・分類・表示名・画像の場所）
 │   ├── pieceimageprovider.cpp/.h   #   全盤面で共有する駒画像
 │   ├── piecesoundplayer.cpp/.h     #   駒音の再生（piecesoundprocessor・piecesoundtone が音質の加工）
 │   ├── screenshotservice.cpp/.h    #   スクリーンショットの PNG 保存
@@ -1725,7 +1728,7 @@ ud.canResumeGame = std::bind(&MatchCoordinator::canResumeInterruptedGame, m_c.ma
 |-------|---------|------|
 | `MenuActionsWiring` | `app/menuactionswiring.h` | メニュー/ツールバーの QAction を処理する部品のスロットへ接続する（ファイル・編集・対局などのメニューごとに関数を分ける） |
 
-言語・表記のメニューは `LanguageController`、局面編集中の盤のメニューは `PositionEditSession`、ドックの配置のメニューは `DockUiCoordinator` が、それぞれ自分でつなぐ。CSA通信対局の開始と画面への反映は `CsaGameSession`（`ui/coordinators/`）、メニューから開くダイアログの起動は `DialogLauncher`（`ui/coordinators/dialoglauncher.h`）、盤の対局者名の表示は `PlayerInfoPresenter`、エンジンの表示（思考・検討・通信ログ・2つ目のエンジン欄・評価値グラフの系列名）は `EngineDisplayPresenter`（どちらも `ui/presenters/`）が自分でつなぐ。検討タブの操作は `ConsiderationUiController` が検討のセッションへ伝え、定跡ウィンドウ・メニューウィンドウは配線だけでなく表示も持つので、Controller（`JosekiWindowController`・`MenuWindowController`、`ui/controllers/`）にしている。
+言語・表記のメニューは `LanguageController`、局面編集中の盤のメニューは `PositionEditSession`、ドックの配置のメニューは `DockLayoutManager`（`wireMenuActions()`）が、それぞれ自分でつなぐ。CSA通信対局の開始と画面への反映は `CsaGameSession`（`ui/coordinators/`）、メニューから開くダイアログの起動は `DialogLauncher`（`ui/coordinators/dialoglauncher.h`）、盤の対局者名の表示は `PlayerInfoPresenter`、エンジンの表示（思考・検討・通信ログ・2つ目のエンジン欄・評価値グラフの系列名）は `EngineDisplayPresenter`（どちらも `ui/presenters/`）が自分でつなぐ。検討タブの操作は `ConsiderationUiController` が検討のセッションへ伝え、定跡ウィンドウ・メニューウィンドウは配線だけでなく表示も持つので、Controller（`JosekiWindowController`・`MenuWindowController`、`ui/controllers/`）にしている。
 
 #### 典型的な構造
 
@@ -5211,7 +5214,7 @@ showDialogAndStart()
 
 **ソース**: `src/widgets/analysisresultspanel.h`, `src/widgets/analysisresultspanel.cpp`
 
-棋譜解析結果を表示するドックの中身である。`QWidget` の派生で、部品はコンストラクタで作る。列幅管理、自動スクロール、フォントサイズ調整を担当する。合成ルートが作った `AnalysisResultsPanel` を、`DockCreationService` がそのままドックに入れる。結果のモデルは `setModel(KifuAnalysisListModel*)` で1度だけ結ぶ（同じモデルなら何もしない）。自分の入ったドックは知らず、表示もしない。解析を始めたときにドックを出して前に出すのは `KifuAnalysisController`（`Deps::resultsDock`）である。
+棋譜解析結果を表示するドックの中身である。`QWidget` の派生で、部品はコンストラクタで作る。列幅管理、自動スクロール、フォントサイズ調整を担当する。合成ルートが作った `AnalysisResultsPanel` を、`DockRegistry`（`ui/coordinators/dockregistry.h`）がそのままドックに入れる。結果のモデルは `setModel(KifuAnalysisListModel*)` で1度だけ結ぶ（同じモデルなら何もしない）。自分の入ったドックは知らず、表示もしない。解析を始めたときにドックを出して前に出すのは `KifuAnalysisController`（`Deps::resultsDock`）である。
 
 #### UIコンポーネント構成
 
@@ -5250,7 +5253,7 @@ QDockWidget
 
 #### フォントサイズの永続化
 
-A-/A+ ボタンで8pt〜24ptの範囲でフォントサイズを調整でき、変更のたびに `AnalysisSettings::kifuAnalysisFontSize`（`KifuAnalysis/fontSize`）へ保存される。大きさは `FontSizeHelper` が持ち、ボタンは `FontSizeControl` で結ぶ。未保存のときは 10pt から始め、範囲外の保存値は 8〜24 に収める。列幅は、見出しの `TableHeaderView::sectionResizedByUser`（利用者がドラッグしたときだけ）を受けて `AnalysisSettings::kifuAnalysisColumnWidths()` / `setKifuAnalysisColumnWidths()` で保存・復元する。ドックの位置・大きさ・浮動・表示は、ほかのドックと同じく `DockSettings::kifuAnalysisResultsDockGeometry` などに保存し、起動時に `DockCreationService::restoreDockState()` が戻す。
+A-/A+ ボタンで8pt〜24ptの範囲でフォントサイズを調整でき、変更のたびに `AnalysisSettings::kifuAnalysisFontSize`（`KifuAnalysis/fontSize`）へ保存される。大きさは `FontSizeHelper` が持ち、ボタンは `FontSizeControl` で結ぶ。未保存のときは 10pt から始め、範囲外の保存値は 8〜24 に収める。列幅は、見出しの `TableHeaderView::sectionResizedByUser`（利用者がドラッグしたときだけ）を受けて `AnalysisSettings::kifuAnalysisColumnWidths()` / `setKifuAnalysisColumnWidths()` で保存・復元する。ドックの位置・大きさ・浮動・表示は、ほかのドックと同じく `DockRegistry::saveStates()` が `DockSettings::setDockState()` で保存し（グループは `KifuAnalysisResultsDock`）、起動時に `DockRegistry::createAll()` が `DockSettings::dockState()` から戻す。
 
 ### 9.9 KifuAnalysisListModel — 解析結果テーブルモデル
 
@@ -5728,7 +5731,7 @@ void wire(const Deps& deps);
 
 **ソース**: `src/app/menuactionswiring.h`, `src/app/menuactionswiring.cpp`
 
-`Ui::MainWindow` が持つ全ての `QAction`（ファイル操作、対局、盤操作、解析、表示など）を、担当するクラスのスロットに接続する。`MainWindowComposer::connectAnalysisAndUi()` が起動時に1回だけ `wire()` を呼ぶ。言語・表記のメニューは `LanguageController`、局面編集中の盤のメニューは `PositionEditSession`、ドックの配置のメニューは `DockUiCoordinator::wireLayoutMenu()` がつなぐ。
+`Ui::MainWindow` が持つ全ての `QAction`（ファイル操作、対局、盤操作、解析、表示など）を、担当するクラスのスロットに接続する。`MainWindowComposer::connectAnalysisAndUi()` が起動時に1回だけ `wire()` を呼ぶ。言語・表記のメニューは `LanguageController`、局面編集中の盤のメニューは `PositionEditSession`、ドックの配置のメニューは、同じ `connectAnalysisAndUi()` が `DockLayoutManager::wireMenuActions()` を呼んでつなぐ。
 
 ```
 wire()
@@ -5838,8 +5841,8 @@ Coordinators は、複数のオブジェクトをまたぐ複雑な処理フロ�
 | `PromotionFlow` | `promotionflow.h` | 成り・不成の選択ダイアログ（6.8 節） |
 | `UiStatePolicyManager` | `uistatepolicymanager.h` | 動作状態（`AppActivityState`）ごとのメニュー・ボタンの有効・無効・非表示 |
 | `AboutCoordinator` | `aboutcoordinator.h` | バージョン情報ダイアログとプロジェクトWebサイトの表示 |
-| `DockLayoutManager` | `docklayoutmanager.h` | ドックウィジェットのレイアウト管理、保存・復元・ロック（メニューへの接続は `DockUiCoordinator::wireLayoutMenu()`） |
-| `DockUiCoordinator` | `dockuicoordinator.h` | ドックのレイアウトのメニュー項目を `DockLayoutManager` につなぐ（`wireLayoutMenu()`） |
+| `DockRegistry` | `dockregistry.h` | ドックの表（`DockSpec`）から12個のドックを作り、規定の場所に置き、浮動・表示・位置を保存・復元する |
+| `DockLayoutManager` | `docklayoutmanager.h` | 名前付きレイアウトの保存・復元・削除、起動時のレイアウト、ドックの固定（メニューへの接続は `wireMenuActions()`） |
 
 #### DialogLauncher — ダイアログ統合窓口
 
@@ -5899,37 +5902,55 @@ KifuFileController::chooseAndLoadKifuFile() など（画面からの読み込み
 | `onEngineScoreUpdated` | 自分のエンジンの評価値を `EvaluationGraphPresenter::plotEngineScore(自分の側, ply, score)` で描く（ローカル対局のエンジンの手と同じ符号の扱い） |
 | `onGameEnded` | 動作状態を `Idle` に戻して結果のダイアログとステータスバーで知らせる（棋譜の確定・終了日時・自動保存は `GameSession::onCsaGameEnded()` が済ませている） |
 
+#### DockRegistry — ドックの表
+
+**ソース**: `src/ui/coordinators/dockregistry.h`, `src/ui/coordinators/dockregistry.cpp`
+
+メインウィンドウのドックを1つの表（`DockRegistry::specs()`）から作り、置き、状態を保存する。ドックを足すときは `DockId` と表に1行足し、中身の部品を `createAll()` に渡す。
+
+**ドック** (`DockRegistry::DockId`。並びは表の並びと同じ):
+
+| `DockId` | objectName | 規定の場所 | 規定で表示 | 保存のグループ |
+|----------|-----------|-----------|-----------|---------------|
+| `Record` | `RecordPaneDock` | 右 | する（前面） | `RecordPaneDock` |
+| `GameInfo` | `GameInfoDock` | 下 | する | `GameInfoDock` |
+| `Thinking` | `ThinkingDock` | 下 | する（前面） | `ThinkingDock` |
+| `Consideration` | `ConsiderationDock` | 下 | する | `ConsiderationDock` |
+| `UsiLog` | `UsiLogDock` | 下 | する | `UsiLogDock` |
+| `CsaLog` | `CsaLogDock` | 下 | する | `CsaLogDock` |
+| `Comment` | `CommentDock` | 下 | する | `CommentDock` |
+| `BranchTree` | `BranchTreeDock` | 下 | する | `BranchTreeDock` |
+| `EvalChart` | `EvalChartDock` | 下 | する | `EvalChartDock` |
+| `Menu` | `MenuWindowDock` | 右 | しない | `MenuWindowDock` |
+| `Joseki` | `JosekiWindowDock` | 下 | しない | `JosekiWindowDock` |
+| `AnalysisResults` | `AnalysisResultsDock` | 下 | しない | `KifuAnalysisResultsDock` |
+
+表の1行（`DockSpec`）は、objectName・題名（「表示」メニューの項目も同じ）・規定の場所（`area`）・規定で表示するか（`defaultVisible`）・規定の配置で前面に出すか（`raised`）・中身を `LayoutBoundaryWidget` で包むか（`layoutBoundary`）・中身の描き直しをドックとウィンドウまで広げないか（`opaqueContent`）・最小の高さ（`minimumHeight`）・規定の幅（`defaultWidth`）・状態を保存する設定のグループ（`settingsGroup`）を持つ。
+
+| メソッド | 説明 |
+|---------|------|
+| `createAll(contents)` | 表の順にドックを作って「表示」メニューに表示の切り替えを足し、規定の場所に置き、保存した状態（浮動・表示・位置）を戻す。`Contents` は `DockId` の順の中身の部品（`nullptr` のドックは作らない） |
+| `dock(id)`・`docks()` | 作ったドック（作っていなければ `nullptr`）・作ったドックすべて（表の順） |
+| `resetToDefault()` | 起動時と同じ規定の配置に戻す（浮動を解いて置き直し、表示・前面・幅を表の値にする） |
+| `saveStates()` | すべてのドックの浮動・表示・位置を `DockSettings::setDockState()` で保存する |
+
+規定の配置は表の並びで決まる。同じ場所のドックは、その場所で表の前にあるドックのタブに後ろから重ねる（右は棋譜にメニュー、下は対局情報から棋譜解析までを1つのタブにまとめる）。起動時の配置と「ドックレイアウトをリセット」は同じ関数（`placeAll()`）で作る。状態はすべてのドックで同じ方式で、`<グループ>/floating`・`<グループ>/visible`・`<グループ>/geometry` に保存する（12.5 節の `DockSettings::DockState`）。
+
 #### DockLayoutManager — ドックレイアウト管理
 
 **ソース**: `src/ui/coordinators/docklayoutmanager.h`, `src/ui/coordinators/docklayoutmanager.cpp`
 
-`QMainWindow` のドックウィジェットレイアウトを管理する。レイアウトの保存・復元・ロック機能を提供し、ユーザーが自由にカスタマイズしたウィンドウ配置を永続化する。
-
-**管理するドック種別** (`DockType` enum):
-
-| ドック | 説明 |
-|--------|------|
-| `Menu` | メニューウィンドウ |
-| `Joseki` | 定跡ウィンドウ |
-| `Record` | 棋譜ペイン |
-| `GameInfo` | 対局情報 |
-| `Thinking` | エンジン思考情報 |
-| `Consideration` | 検討モデル |
-| `UsiLog` | USI通信ログ |
-| `CsaLog` | CSA通信ログ |
-| `Comment` | コメント |
-| `BranchTree` | 分岐ツリー |
-| `EvalChart` | 評価値グラフ |
-| `AnalysisResults` | 棋譜解析結果 |
+`QMainWindow` のドックの配置のうち、名前付きレイアウトの保存・復元・削除、起動時のレイアウト、ドックの固定を受け持つ。コンストラクタは `DockLayoutManager(QMainWindow*, DockRegistry*, QObject*)` で、扱うドックは `DockRegistry::docks()` から取る。規定の配置へのリセットと状態の保存は `DockRegistry` に任せる。
 
 | メソッド群 | 説明 |
 |-----------|------|
 | `saveLayoutAs()` | 現在のレイアウトに名前をつけて保存 |
 | `restoreLayout(name)` | 名前付きレイアウトを復元 |
-| `resetToDefault()` | デフォルトレイアウトにリセット |
+| `resetToDefault()` | デフォルトレイアウトにリセット（`DockRegistry::resetToDefault()`） |
 | `setAsStartupLayout(name)` | 起動時に自動適用するレイアウトを設定 |
 | `setDocksLocked(locked)` | ドックの移動・リサイズを禁止/許可 |
-| `wireMenuActions(...)` | メニューアクションとの接続（起動時は `DockUiCoordinator::wireLayoutMenu()` から呼ぶ） |
+| `saveDockStates()` | すべてのドックの状態を保存（`DockRegistry::saveStates()`） |
+| `wireMenuActions(...)` | メニューアクションとの接続（起動時に `MainWindowComposer::connectAnalysisAndUi()` から呼ぶ） |
 
 #### AboutCoordinator — バージョン情報
 
@@ -6107,7 +6128,7 @@ Urgency::Warn5  → 強い警告色（残5秒・秒読み）
 | MenuWindow | QWidget | メニューのドック（棋譜ドックとタブにまとめる。`src/dialogs/`） | メニュー項目をボタン形式で表示（タブ付き、お気に入り、カスタマイズモード）。作るのは `MenuWindowController` |
 | MenuButtonWidget | QWidget | MenuWindow 内 | QAction をアイコン＋テキストで表示するカスタムボタン、D&D対応 |
 
-ドックのパネル（RecordPane・ThinkingPanel・GameInfoPane・ConsiderationTabManager・UsiLogPanel・CsaLogPanel・CommentEditorPanel・AnalysisResultsPanel・BranchTreeManager）は、どれも `QWidget` の派生で、部品をコンストラクタで作りきる。外から後で中身を作らせる公開の関数（以前の `buildUi()` など）や、中身を返す関数（以前の `containerWidget()` など）は持たない。`DockCreationService` はパネルそのものをドックに入れる。
+ドックのパネル（RecordPane・ThinkingPanel・GameInfoPane・ConsiderationTabManager・UsiLogPanel・CsaLogPanel・CommentEditorPanel・AnalysisResultsPanel・BranchTreeManager）は、どれも `QWidget` の派生で、部品をコンストラクタで作りきる。外から後で中身を作らせる公開の関数（以前の `buildUi()` など）や、中身を返す関数（以前の `containerWidget()` など）は持たない。`DockRegistry::createAll()` はパネルそのものをドックに入れる。
 
 #### 汎用部品
 
@@ -6833,7 +6854,7 @@ layout1=@ByteArray(<QMainWindow::saveState() のバイト列>)
 | `KifuAnalysis` | 棋譜解析設定 | 思考時間、エンジン名、解析範囲 |
 | `GameSettings` | 対局開始ダイアログ | 対局者・持ち時間・開始局面・最大手数など前回の対局条件 |
 | `CsaGameSettings` | CSA通信対局ダイアログ | 対局者、接続先、接続の維持・連続対局・自動保存などの詳細設定 |
-| `*Dock` | ドック状態 | フローティング、ジオメトリ、表示状態 |
+| `*Dock` | ドック状態 | 全12個のドックのフローティング、ジオメトリ、表示状態（グループ名は `DockRegistry` の表の `settingsGroup`） |
 | `CustomDockLayouts` | カスタムレイアウト | 名前付きレイアウトの保存 |
 | `MenuWindow` | メニューウィンドウ | お気に入り、サイズ、ボタンサイズ |
 | `Engines`・エンジン名 | エンジン登録情報 | 登録一覧とUSIオプション（§7.9。宣言の表を使わない） |
@@ -6866,7 +6887,7 @@ AnalysisSettings::usiLogFontSize.remove();               // 保存値を消す
 
 #### 関数として書く項目
 
-値の範囲を絞る（`AppSettings::pieceSoundVolume` など）、複数のキーを構造体にまとめる（`AppSettings::boardColors` など）、古い保存値を引き継ぐ（`AppSettings::appearanceSection`）、リスト・配列で保存する（`AnalysisSettings::engineInfoColumnWidths(ThinkingTable)`・ドックレイアウトなど）。列幅は `TableHeaderView::sectionResizedByUser`（利用者がドラッグしたときだけ）を受けて、`EngineInfoWidget`・`ThinkingTableView` などが自分で保存する（思考・検討の表は `AnalysisSettings::ThinkingTable` の `Engine1`・`Engine2`・`Consideration` ごと）項目だけは、ドメイン別ヘッダーに関数を宣言し、`.cpp` で `SettingsCommon::openSettings()` を使って実装する。キーは `settingskeys.h` に置く。補助ダイアログの文字の大きさと大きさは、関数ではなく `appsettings.h` に宣言を1行ずつ書く（`AppSettings::promotionDialogFontSize`・`promotionDialogSize`・`messageBoxFontSize`・`bookmarkDialogFontSize` など。キーは `DialogAppearance/<id>/fontSize`（既定値 0）・`DialogAppearance/<id>/size`（既定値 `QSize()`）。既定値 0 は、未保存ならダイアログの元の大きさから始めるという意味）。
+値の範囲を絞る（`AppSettings::pieceSoundVolume` など）、複数のキーを構造体にまとめる（`AppSettings::boardColors`・`DockSettings::dockState` など）、古い保存値を引き継ぐ（`AppSettings::appearanceSection`）、リスト・配列で保存する（`AnalysisSettings::engineInfoColumnWidths(ThinkingTable)`・ドックレイアウトなど）。列幅は `TableHeaderView::sectionResizedByUser`（利用者がドラッグしたときだけ）を受けて、`EngineInfoWidget`・`ThinkingTableView` などが自分で保存する（思考・検討の表は `AnalysisSettings::ThinkingTable` の `Engine1`・`Engine2`・`Consideration` ごと）項目だけは、ドメイン別ヘッダーに関数を宣言し、`.cpp` で `SettingsCommon::openSettings()` を使って実装する。キーは `settingskeys.h` に置く。補助ダイアログの文字の大きさと大きさは、関数ではなく `appsettings.h` に宣言を1行ずつ書く（`AppSettings::promotionDialogFontSize`・`promotionDialogSize`・`messageBoxFontSize`・`bookmarkDialogFontSize` など。キーは `DialogAppearance/<id>/fontSize`（既定値 0）・`DialogAppearance/<id>/size`（既定値 `QSize()`）。既定値 0 は、未保存ならダイアログの元の大きさから始めるという意味）。
 
 ```cpp
 // src/services/analysissettings.cpp より
@@ -7419,11 +7440,11 @@ MainWindow のメンバは `ui`・`m_composer`・`m_skipCloseConfirmation`（自
 | 棋譜の正本 | `branchTree`（`KifuBranchTree`）・`navState`（`KifuNavigationState`）・`liveGameSession`・`kifuNavController`・`document`（`KifuDocument`。分岐ツリーの直後に作る） |
 | モデル | `kifuRecord`・`kifuBranch`・`thinking1/2`・`consideration`・`analysis`・`commLog1/2` |
 | 盤・時計 | `gameController`（`ShogiGameController`）・`shogiView`・`boardController`（`BoardInteractionController`）・`boardMoves`（`BoardMoveController`）・`boardSync`（`BoardSyncPresenter`）・`positionEdit`（`PositionEditSession`）・`clock`・`timePresenter` |
-| 画面部品 | `recordPane`・`thinkingPanel`・`considerationTab`・`usiLog`・`csaLog`・`commentEditor`・`branchTreeView`・`evalChart`・`gameInfoPane`・`docks`（`DockWidgets`、12 個のドック） |
+| 画面部品 | `recordPane`・`thinkingPanel`・`considerationTab`・`usiLog`・`csaLog`・`commentEditor`・`branchTreeView`・`evalChart`・`gameInfoPane`・`dockRegistry`（`DockRegistry`。12 個のドックは `dock(DockId)` で引く） |
 | 棋譜の表示と編集 | `kifuDisplay`（`KifuDisplayPresenter`）・`branchEdit`（`BranchTreeEditController`）・`commentCoordinator` |
 | 対局・検討・通信対局 | `engines`（`EngineLifecycleManager`。エンジンの枠 E1・E2 を対局・検討・棋譜解析・CSA 通信対局で共有）・`match`（`MatchCoordinator`）・`analysisSession`（`AnalysisSession`）・`consecutiveGames`（`ConsecutiveGameSeries`）・`csaGame`（`CsaGameCoordinator`）・`gameSession`（`GameSession`。対局の棋譜の受け手）・`csaSession`（`CsaGameSession`）・`humanTurnPolicy`・`sessionReset`（`SessionResetCoordinator`） |
 | 棋譜のファイル | `kifuLoadCoordinator`・`kifuFileController` |
-| 表示 | `appearance`・`playerInfo`（`PlayerInfoPresenter`）・`engineDisplay`・`evalGraph`・`arrows`（`CandidateArrowPresenter`）・`analysisResults`・`dockCreationService`・`dockLayoutManager`・`uiStatePolicy`・`notificationService` |
+| 表示 | `appearance`・`playerInfo`（`PlayerInfoPresenter`）・`engineDisplay`・`evalGraph`・`arrows`（`CandidateArrowPresenter`）・`analysisResults`・`dockLayoutManager`・`uiStatePolicy`・`notificationService` |
 | 利用者の操作 | `actions`（`MainWindowActions`）・`dialogLauncher`・`kifuAnalysis`・`tsumeSearch`・`considerationUi`・`pvClickController`・`usiCommandController`・`joseki`・`menuWindowController`・`languageController`・`images`・`settingsReset` など |
 | 自動化 | `automationServer`（`--automation` 指定時だけ） |
 
@@ -7495,41 +7516,32 @@ MainWindow::MainWindow()
 
 部品は `AutomationContext` に詰めて渡す（部品のポインタと、状態として `AppState`・`KifuNavigationState`）。メソッドの実装（`automationcommands_*.cpp`）は MainWindow を知らない。設計は [MCP サーバーの設計](mcp-server.md) を参照。外部からアプリを操作するときは、この自動化 API を使う。
 
-#### 14.5.2 DockCreationService
+#### 14.5.2 DockRegistry（ドックの作成）
 
-**ファイル**: `src/app/dockcreationservice.h/.cpp`
+**ファイル**: `src/ui/coordinators/dockregistry.h/.cpp`、`src/app/mainwindowcomposer_create.cpp`（`createDocks()`）
 
-MainWindow からドックウィジェットの生成ロジックを分離したクラス。12 種類のドック（評価値グラフ、棋譜欄、対局情報、思考、検討、USI ログ、CSA ログ、コメント、分岐ツリー、メニューウィンドウ、定跡ウィンドウ、棋譜解析結果）の作成・設定復元・メニュー登録を担当する。ドックの中身（`ThinkingPanel`・`ConsiderationTabManager`・`UsiLogPanel`・`CsaLogPanel`・`CommentEditorPanel`・`BranchTreeManager`・`AnalysisResultsPanel` など）は、どれもコンストラクタで部品を作りきる `QWidget` で、合成ルートが先に作る。`DockCreationService` はパネルそのものをドックに入れるだけである（`setupDock(dock, panel, ...)`・`setWidget(panel)`）。棋譜解析の結果のドックを解析の開始時に出すのは `KifuAnalysisController`（`Deps::resultsDock`）である。
+12 個のドック（棋譜、対局情報、思考、検討、USI 通信ログ、CSA 通信ログ、棋譜コメント、分岐ツリー、評価値グラフ、メニュー、定跡、棋譜解析）の名前・規定の配置・状態の保存は `DockRegistry` の表で決まる（表の中身は 10.5 節の「DockRegistry — ドックの表」）。ドックの中身（`RecordPane`・`ThinkingPanel`・`ConsiderationTabManager`・`UsiLogPanel`・`CsaLogPanel`・`CommentEditorPanel`・`BranchTreeManager`・`AnalysisResultsPanel` など）は、どれもコンストラクタで部品を作りきる `QWidget` で、合成ルートが先に作る。メニューウィンドウと定跡ウィンドウも、`MenuWindowController`・`JosekiWindowController` がコンストラクタで作る。`DockRegistry::createAll()` はパネルそのものをドックに入れるだけである。棋譜解析の結果のドックを解析の開始時に出すのは `KifuAnalysisController`（`Deps::resultsDock`）である。
 
-```
-DockCreationService
-  ├─ createEvalChartDock()        → 評価値グラフドック
-  ├─ createRecordPaneDock()       → 棋譜欄ドック
-  ├─ createAnalysisDocks()        → 解析系ドック一括生成
-  │     ├─ 対局情報、思考、検討
-  │     ├─ USIログ、CSAログ
-  │     └─ コメント、分岐ツリー
-  ├─ createMenuWindowDock()       → メニューウィンドウドック
-  ├─ createJosekiWindowDock()     → 定跡ウィンドウドック
-  └─ createAnalysisResultsDock()  → 棋譜解析結果ドック
-```
-
-**依存設定**: コンストラクタの `Deps` 構造体で渡す。`MainWindowComposer::createPresentersAndDocks()` が組み立てる。
+`MainWindowComposer::createPresentersAndDocks()` の最後に呼ぶ `createDocks()` は、中身の部品を `DockId` の順に `DockRegistry::Contents` に詰めて渡すだけである。
 
 ```cpp
-DockCreationService::Deps dd;
-dd.mainWindow = &m_window;
-dd.displayMenu = m_ui.Display;
-dd.evalChart = m_c.evalChart;
-dd.recordPane = m_c.recordPane;
-dd.thinking = m_c.thinkingPanel;
-dd.consideration = m_c.considerationTab;
+using Id = DockRegistry::DockId;
+DockRegistry::Contents contents{};
+put(Id::Record, m_c.recordPane);
+put(Id::GameInfo, m_c.gameInfoPane);
 // ...
-m_c.dockCreationService = new DockCreationService(dd, &m_window);
-createDocks();   // 各ドックを作り、DockLayoutManager に登録する
+put(Id::Menu, m_c.menuWindowController->menuWindow());
+put(Id::Joseki, m_c.joseki->josekiWindow());
+put(Id::AnalysisResults, m_c.analysisResults);
+m_c.dockRegistry = new DockRegistry(&m_window, m_ui.Display, &m_window);
+m_c.dockRegistry->createAll(contents);
+// メニューウィンドウの分類に、ドックの表示の切り替えも入れる
+m_c.menuWindowController->collectCategoriesFromMenuBar();
+// ...（評価値グラフの浮動・定跡ウィンドウのドックをつなぐ）
+m_c.dockLayoutManager = new DockLayoutManager(&m_window, m_c.dockRegistry, &m_window);
 ```
 
-各 `create*()` メソッドは共通のヘルパー `setupDockFeatures()`, `addToggleActionToMenu()`, `restoreDockState()` を使い、ドック機能設定・メニュー登録・状態復元を統一的に処理する。
+ドックを使う部品には `m_c.dockRegistry->dock(DockRegistry::DockId::AnalysisResults)` のように1つずつ渡す（`KifuAnalysisController::Deps::resultsDock`・`DialogLauncher::Deps::menuWindowDock`）。
 
 #### 14.5.3 CommentCoordinator
 
@@ -7549,7 +7561,7 @@ createDocks();   // 各ドックを作り、DockLayoutManager に登録する
 
 ### 14.6 操作の受け口（MainWindowActions）
 
-MainWindow はスロットを持たない。メニュー・盤・棋譜欄の操作は、処理する部品のスロットへ直接つなぐ。メニュー・ツールバーの項目のつなぎ込みは `MenuActionsWiring::wire()`（`src/app/menuactionswiring.h`）が起動時に1回だけ行う（言語・表記のメニューは `LanguageController`、局面編集中の盤のメニューは `PositionEditSession`、ドック配置のメニューは `DockUiCoordinator` がつなぐ）。たとえば待ったは `GameSession` のスロットへ、棋譜の保存は `KifuFileController` へ、ダイアログの表示は `DialogLauncher` へ直接つなぐ。
+MainWindow はスロットを持たない。メニュー・盤・棋譜欄の操作は、処理する部品のスロットへ直接つなぐ。メニュー・ツールバーの項目のつなぎ込みは `MenuActionsWiring::wire()`（`src/app/menuactionswiring.h`）が起動時に1回だけ行う（言語・表記のメニューは `LanguageController`、局面編集中の盤のメニューは `PositionEditSession`、ドック配置のメニューは `DockLayoutManager::wireMenuActions()` がつなぐ）。たとえば待ったは `GameSession` のスロットへ、棋譜の保存は `KifuFileController` へ、ダイアログの表示は `DialogLauncher` へ直接つなぐ。
 
 1つの部品では完結しないものだけ、`MainWindowActions`（`src/app/mainwindowactions.h`）のスロットが受ける。部品は `MainWindowActions::Deps` でポインタとして受け取る（すべて非所有）。
 
@@ -7584,7 +7596,7 @@ MainWindow は `.ui` の保持と閉じるときの処理だけを持ち、ロ�
 | `GameSession` | 対局の開始・投了・中断と再開・入玉宣言・待った・終局後の表示、対局の棋譜の追記（ローカル対局・通信対局の棋譜と自動保存） |
 | `CsaGameSession` | CSA 通信対局の開始と、進行の画面への反映 |
 | `SessionResetCoordinator` | 対局の開始前・新規・局面編集・棋譜の読み込み前に、棋譜と表示を作り直す |
-| `DockCreationService` | ドックウィジェットの生成・設定復元・メニュー登録 |
+| `DockRegistry` | ドックの表からの作成・規定の配置・状態の保存と復元（`DockLayoutManager` は名前付きレイアウト・起動時のレイアウト・固定） |
 | `CommentCoordinator` | 表示中の手のコメント・しおりの表示と編集 |
 | `ConsiderationUiController` | 検討タブの操作（開始・中止・エンジン変更・候補手の数）を検討のセッションへ伝える |
 | `PlayerInfoPresenter` | 盤の対局者名の表示 |
@@ -8676,7 +8688,7 @@ connect(m_c.kifuTagController, &KifuTagController::saveRequested,
 
 #### 部品が内部に持つ下位の部品の接続
 
-部品が内部に下位の部品を持つ場合は、下位の部品を作るところで、そのシグナルを接続する。app 層の外の部品が自分の中に持つ下位の部品は、必要になったときに作ってよい（実例: `MenuWindowController::ensureMenuWindow()`・`JosekiWindowController::ensureJosekiWindow()` は、ウィンドウを初めて出すときに作ってシグナルをつなぐ）。app 層の部品は、合成ルートが起動時に作る。
+部品が内部に下位の部品を持つ場合は、下位の部品を作るところで、そのシグナルを接続する。app 層の外の部品が自分の中に持つ下位の部品は、必要になったときに作ってよい（下の例）。起動時から要る下位の部品は、持ち主のコンストラクタで作ってつなぐ（実例: `MenuWindowController`・`JosekiWindowController` は、起動時にドックへ入れるメニューウィンドウ・定跡ウィンドウをコンストラクタで作ってシグナルをつなぐ）。app 層の部品は、合成ルートが起動時に作る。
 
 ```cpp
 void KifuTagController::ensureTagEditor()
@@ -9107,6 +9119,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | AnalysisSettings | NS | services | 解析・検討の設定の宣言の表 | 第9章, 第12章 |
 | AppActivityState | C | common | アプリの動作状態（待機・対局・解析・検討・詰み探索・通信対局・局面編集）の正本 | 第3章, 第14章 |
 | ApplicationTranslations | C | services | 起動時の言語の決定と翻訳ファイルの読み込み | 第16章 |
+| AppearanceState | S | services | 外観（駒のセット・配色・見た目）をまとめた値（`current()`・`apply()`） | 第12章 |
 | AppPaths | NS | services | 設定・データ・キャッシュの置き場所（環境変数で別の場所へ切り替えられる） | 第12章 |
 | AppSettings | NS | services | アプリ全般の設定の宣言の表（`Setting<T>`） | 第12章 |
 | AppState | S | common | 部品どうしで共有する状態の唯一の置き場（動作状態・最後に始めた対局の対局者・上書き保存先） | 第14章 |
@@ -9153,10 +9166,9 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | DialogLauncher | C | ui/coordinators | メニューから開くダイアログの起動 | 第10章 |
 | DialogFontScale | C | widgets | ダイアログの A-/A+ と保存（全ダイアログ共通。元の大きさからの差で拡大・縮小する） | 第11章, 第17章 |
 | DialogUtils | NS | widgets | ダイアログの大きさの保存・復元、文字の大きさの適用 | 第11章 |
-| DockCreationService | C | app | ドックウィジェット生成サービス | 第14章 |
-| DockLayoutManager | C | ui/coordinators | ドックレイアウト状態の管理 | 第10章 |
-| DockSettings | NS | services | ドック配置の設定の宣言の表 | 第12章 |
-| DockUiCoordinator | C | ui/coordinators | ドック配置のメニュー（リセット・保存・ロック・保存済み配置）の接続 | 第10章 |
+| DockLayoutManager | C | ui/coordinators | 名前付きレイアウト・起動時のレイアウト・ドックの固定 | 第10章 |
+| DockRegistry | C | ui/coordinators | ドックの表（`DockSpec`）からの作成・規定の配置・状態の保存と復元 | 第10章, 第14章 |
+| DockSettings | NS | services | ドックの状態（`DockState`。浮動・表示・位置）・固定・名前付きレイアウトの設定 | 第12章 |
 | EditActions | C | widgets | 元に戻す〜貼り付けの5つの `QAction`（標準ショートカット・ツールチップ・ボタン。コメント欄・対局情報で共通） | 第11章 |
 | ElideLabel | C | widgets | テキスト省略表示ラベル | 第11章 |
 | EngineAnalysisRunner | C | automation | 登録エンジンで1局面を一定時間解析する実行器（CLI・自動化 API と共有） | 第7章 |
@@ -9280,6 +9292,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | ParseOptions | S | kifu | 読めない手・指せない手・パスの扱い（手順を打ち切るか、棋譜全体を失敗にするか） | 第8章 |
 | ParseReport | C | kifu | 読み込み中の警告と失敗の記録（`ParseOptions` に従って読めない手を扱う） | 第8章 |
 | PieceSoundPlayer | C | services | 駒音（駒を指したときの効果音）の再生 | 第10章 |
+| PieceStyleCatalog | C | services | 駒のセットの表（ID・分類 `Family`・表示名・画像の場所） | 第12章 |
 | PlayerInfoPresenter | C | ui/presenters | 盤の対局者名を出す | 第10章, 第12章 |
 | PlayerChoice | S | game | 対局開始ダイアログで選んだ対局者1人（人間かエンジンか・名前・エンジン・時間。`startgamedatabridge.h`） | 第6章 |
 | PlayerSetupWidget | C | widgets | 対局開始ダイアログの対局者1人の欄（「人間」と登録エンジンのコンボ・名前・「エンジン設定」。`EngineSelector` を使う） | 第11章 |
@@ -9557,7 +9570,8 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 |---------|--------|------|
 | dialoglauncher | 第10章 | メニューから開くダイアログの起動 |
 | uistatepolicymanager | 第10章, 第14章 | 動作状態ごとの UI の有効・無効 |
-| docklayoutmanager | 第10章 | ドックレイアウト |
+| dockregistry | 第10章, 第14章 | ドックの表からの作成・規定の配置・状態の保存と復元 |
+| docklayoutmanager | 第10章 | 名前付きレイアウト・起動時のレイアウト・ドックの固定 |
 | promotionflow | 第6章 | 成/不成フロー |
 | aboutcoordinator | 第10章 | バージョン情報 |
 | commentcoordinator | 第14章 | コメント調整 |
@@ -9565,7 +9579,6 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | kifufilecontroller | 第8章 | 棋譜の開く・保存・上書き・自動保存・貼り付け・クリップボードへのコピー |
 | kifusavecoordinator | 第8章 | 棋譜保存の確認・保存ダイアログ |
 | csagamesession | 第10章, 第12章 | 通信対局の開始（待機ダイアログ）と、進行の画面への反映（棋譜・自動保存は gamesession） |
-| dockuicoordinator | 第10章 | ドック配置のメニュー（リセット・保存・ロック・保存済み配置）の接続 |
 
 #### views/（第11章）
 
@@ -9670,6 +9683,8 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | engineoption | 第7章 | USIオプション1つの値（`EngineOption`） |
 | enginelistsettings | 第7章 | 登録エンジン一覧の検索（名前・パス）と機能ごとに選んだエンジンの保存 |
 | piecesoundplayer | 第10章 | 駒音（駒を指したときの効果音）の再生 |
+| piecestylecatalog | 第12章 | 駒のセットの表（ID・分類・表示名・画像の場所） |
+| appearancestate | 第12章 | 外観（駒のセット・配色・見た目）をまとめた値 |
 | uinotificationservice | 第4章 | エラー通知ダイアログの表示 |
 
 #### common/（第4章, 第12章）
@@ -9693,7 +9708,6 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | mainwindowcomponents | 第14章 | 部品の一覧 |
 | mainwindowactions | 第14章, 第15章 | メニュー・盤・棋譜欄からの利用者操作の振り分け先 |
 | gamesession | 第6章, 第15章 | 対局の開始・終局・再開と、対局の手順の棋譜への追記（`MatchRecordSink`）。ローカル対局と通信対局の棋譜を開始から終局・自動保存まで1本の流れで扱う |
-| dockcreationservice | 第14章 | ドック生成サービス |
 | menuactionswiring | 第4章, 第10章 | メニュー・ツールバーの項目を、処理する部品へつなぐ（シグナルの接続だけ） |
 | sessionresetcoordinator | 第6章 | 対局の開始前・新規・局面編集・棋譜の読み込み前に、棋譜と表示を作り直す |
 
