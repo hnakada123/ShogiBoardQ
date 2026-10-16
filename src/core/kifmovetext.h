@@ -24,6 +24,19 @@ struct Notes {
 };
 
 /**
+ * @brief 成ることもできた手か（成れる駒が、敵陣に入る・敵陣から出る・敵陣の中で動く）
+ * @param moving 動かした駒（成る前の駒。色で敵陣を決める）
+ *
+ * 成る手・駒打ちは false。成らなかった手が true なら、KIF・KI2 では「不成」と書く。
+ */
+inline bool couldPromote(Piece moving, const UsiMove& move)
+{
+    if (move.isDrop() || move.promote || promote(moving) == moving) return false;
+    const auto inZone = [black = isBlackPiece(moving)](int rank) { return black ? rank <= 3 : rank >= 7; };
+    return inZone(move.from.rank) || inZone(move.to.rank);
+}
+
+/**
  * @brief KIF 形式の指し手の文字列を out の後ろに足す
  *
  * 引数は format と同じ。読み筋のように手を続けて書くとき、手ごとに文字列を作らずに済む。

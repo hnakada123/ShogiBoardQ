@@ -24,6 +24,8 @@ public:
     void clearEnd() { m_endDateTime = QDateTime(); }
     /// 開始日時を消す（対局を始める準備）
     void clearStart() { m_startDateTime = QDateTime(); }
+    /// 記録をすべて消す（別の棋譜を読み込んだ。前の対局の持ち時間・日時を書き出しに使わない）
+    void clear() { *this = MatchTimeRecord(); }
 
     const TimeControl& timeControl() const { return m_timeControl; }
     bool hasTimeControl() const { return !m_timeControl.isUnlimited(); }

@@ -438,6 +438,7 @@ add_shogi_test(tst_enginepondersettings
     ${SRC}/widgets/dialogutils.cpp
     ${SRC}/widgets/fontsizehelper.cpp
     ${SRC}/common/logcategories.cpp
+    ${SRC}/services/enginelistsettings.cpp
     ${SRC}/services/enginepondersettings.cpp
     ${SRC}/services/settingscommon.cpp
 )

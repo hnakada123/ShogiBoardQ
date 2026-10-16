@@ -2,6 +2,7 @@
 /// @brief EngineRegistrationHandler のオプション解析と実行時キャンセルテスト
 
 // private メンバへは EngineRegistrationHandler の friend 宣言（SHOGIBOARDQ_TESTING 時のみ有効）経由でアクセスする
+#include "enginesettingsconstants.h"
 #include "engineregistrationhandler.h"
 #include "engineregistrationdialog.h"
 #include <QSettings>
@@ -156,7 +157,7 @@ private slots:
         QCOMPARE(engines.at(1).path, QStringLiteral("/engines/b/YaneuraOu"));
         // オプションは登録名ごとに保存する
         QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-        QCOMPARE(settings.beginReadArray(QStringLiteral("YaneuraOu NNUE (2)")), 2);  // Threads と補った USI_Hash
+        QCOMPARE(settings.beginReadArray(EngineSettingsConstants::engineOptionsGroup(QStringLiteral("YaneuraOu NNUE (2)"))), 2);  // Threads と補った USI_Hash
         settings.endArray();
         QCOMPARE(handler.uniqueRegisteredName(QStringLiteral("YaneuraOu NNUE")), QStringLiteral("YaneuraOu NNUE (3)"));
         QCOMPARE(handler.uniqueRegisteredName(QStringLiteral("Other")), QStringLiteral("Other"));

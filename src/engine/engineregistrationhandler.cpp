@@ -344,7 +344,7 @@ void EngineRegistrationHandler::saveEngineOptionsToSettings() const
     }
 
     QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-    settings.beginWriteArray(m_engineIdName);
+    settings.beginWriteArray(engineOptionsGroup(m_engineIdName));
 
     for (qsizetype i = 0; i < m_engineOptions.size(); i++) {
         settings.setArrayIndex(static_cast<int>(i));
@@ -369,11 +369,11 @@ void EngineRegistrationHandler::removeEnginesGroup() const
     settings.endGroup();
 }
 
-// 設定ファイルからエンジン名グループを削除する。
+// 設定ファイルからエンジンごとの設定のグループ（EngineOptions の下）を削除する。
 void EngineRegistrationHandler::removeEngineNameGroup(const QString& removeEngineName) const
 {
     QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-    settings.beginGroup(removeEngineName);
+    settings.beginGroup(engineOptionsGroup(removeEngineName));
     settings.remove("");
     settings.endGroup();
 }

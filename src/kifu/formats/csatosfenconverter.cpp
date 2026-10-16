@@ -265,7 +265,8 @@ bool CsaToSfenConverter::parseText(const QString& text, KifParseResult& out, QSt
     CsaParseState st{line, board, board.currentPlayer(), warn};
     st.openingItem = KifuParseCommon::createOpeningDisplayItem(QString(), QString());
 
-    for (qsizetype i = idx; i < lines.size(); ++i) {
+    bool stopped = false;  // 読めない手で手順を打ち切った
+    for (qsizetype i = idx; i < lines.size() && !stopped; ++i) {
         QString s = lines.at(i);
         if (s.isEmpty()) continue;
         s = s.trimmed();
@@ -287,10 +288,22 @@ bool CsaToSfenConverter::parseText(const QString& text, KifParseResult& out, QSt
             } else if (CsaLexer::isMoveLine(token)) {
                 const Turn mover = (token.at(0) == QLatin1Char('+')) ? Turn::Black : Turn::White;
 
+                // 手番と違う符号の手・読めない手・局面に合わない手は、その手の手前で手順を打ち切る（KIF と同じ）
                 QString usi, pretty;
-                if (!CsaLexer::parseMoveLine(token, mover, st.board, st.previousTo, usi, pretty, st.warn)) {
-                    if (st.warn) *st.warn += QStringLiteral("Failed to parse move: %1\n").arg(token);
-                    continue;
+                QString detail;
+                if (mover != st.turn) {
+                    detail = QStringLiteral("Not the side to move: %1").arg(token);
+                } else if (!CsaLexer::parseMoveLine(token, mover, st.board, st.previousTo, usi, pretty, &detail)) {
+                    detail = detail.trimmed();
+                    if (detail.isEmpty()) detail = token;
+                }
+                if (!detail.isEmpty()) {
+                    if (st.warn) {
+                        *st.warn += QStringLiteral("CSA: cannot read move %1: %2\n").arg(st.moveCount + 1).arg(detail)
+                                    + KifuParseCommon::truncationNotice(st.moveCount + 1);
+                    }
+                    stopped = true;
+                    break;
                 }
 
                 ensureOpeningItemAdded(st);

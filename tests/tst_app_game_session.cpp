@@ -12,6 +12,8 @@
 // （CsaGameCoordinator が TestAppGameSession を friend にしている）
 #include "appstate.h"
 #include "csagamecoordinator.h"
+#include "csagamesession.h"
+#include "livegamesession.h"
 #include "gamesession.h"
 #include "gamerecordmodel.h"
 #include "kifunavigationstate.h"
@@ -210,6 +212,25 @@ private slots:
         QVERIFY(p.match->players().humanVsHuman());
         QCOMPARE(p.match->record().startSfen, SfenUtils::hirateSfen());
         p.gameSession->breakOff();
+        p.gameRecord->clearDirty();
+    }
+
+    /// 通信対局が終わったら、ローカル対局と同じくライブ記録を確定する（B5）。
+    /// 確定しないと、盤で変化を指せず、分岐の編集も評価値グラフの追従も止まったままになる
+    void csaGameEndCommitsLiveRecord()
+    {
+        humanVsHumanSettings();
+        MainWindow window;
+        auto& p = window.composer().parts();
+        // サーバーとのやり取りの代わりに、司令塔の知らせを直接出す
+        emit p.csaGame->gameStarted(QStringLiteral("Sente"), QStringLiteral("Gote"), {});
+        QVERIFY(p.liveGameSession->isActive());
+        QCOMPARE(window.composer().state().activity.activity(), AppActivityState::Activity::DuringCsaGame);
+
+        emit p.csaGame->gameEnded(CsaClient::GameResult::Win, CsaClient::GameEndCause::Resign, 0);
+        QVERIFY(!p.liveGameSession->isActive());
+        QVERIFY(p.timeRecord.endDateTime().isValid());
+        QCOMPARE(window.composer().state().activity.activity(), AppActivityState::Activity::Idle);
         p.gameRecord->clearDirty();
     }
 };

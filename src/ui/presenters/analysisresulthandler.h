@@ -42,11 +42,11 @@ public:
     /// 解析1回分の参照を受け取る（参照先は解析の実行が持つ）
     explicit AnalysisResultHandler(const Refs& refs);
 
-    /// 解析中の局面（ply）の info を覚える（bestmove で確定する）
+    /// 解析中の局面（ply）の info を覚える（bestmove で確定する）。最善の読み筋（multipv 1）の行だけを使う
     void updatePending(int ply, const UsiInfo& info);
 
-    /// 漢字PVを一時保存する
-    void updatePendingPvKanji(const QString& pvKanjiStr);
+    /// 漢字PVを一時保存する（multipv 1 の読み筋だけを使う）
+    void updatePendingPvKanji(const QString& pvKanjiStr, int multipv = 1);
 
     /// 保留中の解析結果をモデルへ確定反映する
     void commitPendingResult();

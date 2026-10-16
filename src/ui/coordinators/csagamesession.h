@@ -57,7 +57,7 @@ public:
         QWidget* parentWidget = nullptr;                   ///< 待機・結果ダイアログの親
         /// 棋譜と対局情報を開始局面・対局者名で作り直し、ライブ記録を始める
         std::function<void(const QString& startSfen, const QString& blackName, const QString& whiteName)> prepareRecord;
-        /// 終局日時を記録して対局情報に反映する
+        /// ライブ記録を確定し、終局日時を記録して対局情報に反映する
         std::function<void()> recordGameEnd;
     };
 

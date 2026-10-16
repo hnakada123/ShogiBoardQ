@@ -82,6 +82,7 @@ private slots:
     void onEngineError(const QString& message);
     void onCheckmate(const UsiCheckmate& result);
     void onTsumeBestMoveReceived(const UsiBestMove& result);
+    void onSearchTimedOut();
     void onConsiderationBestMoveReceived(const UsiBestMove& result);
     void restartConsiderationDeferred();
 

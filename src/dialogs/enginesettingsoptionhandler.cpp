@@ -99,7 +99,7 @@ void EngineSettingsOptionHandler::readEngineOptions()
     m_optionList.clear();
 
     QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-    int size = settings.beginReadArray(m_engineName);
+    int size = settings.beginReadArray(engineOptionsGroup(m_engineName));
 
     for (int i = 0; i < size; i++) {
         settings.setArrayIndex(i);
@@ -331,7 +331,7 @@ void EngineSettingsOptionHandler::saveOptionsToSettings()
 {
     QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
 
-    settings.beginWriteArray(m_engineName);
+    settings.beginWriteArray(engineOptionsGroup(m_engineName));
 
     int index = 0;
     for (const auto& option : std::as_const(m_optionList)) {

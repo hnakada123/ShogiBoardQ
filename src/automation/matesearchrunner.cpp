@@ -6,11 +6,6 @@
 #include "usienginesession.h"
 #include "usiprotocolhandler.h"
 
-namespace {
-constexpr int kSafetyMarginMs = 5000;   ///< 制限時間を過ぎても応答がなければ stop を送る
-constexpr int kStopResponseMs = 3000;   ///< stop の後に応答を待つ上限
-}
-
 MateSearchRunner::MateSearchRunner(QObject* parent)
     : QObject(parent)
     , m_session(new UsiEngineSession(this))
@@ -45,13 +40,7 @@ void MateSearchRunner::onSessionReady()
 {
     if (m_done) return;
     m_searchStarted = true;
-    const int timeMs = qMax(100, m_request.timeMs);
-    UsiSearchRequest search;
-    search.position = m_request.positionCommand;
-    search.go = UsiGo::mate(timeMs);
-    search.stopAfterMs = timeMs + kSafetyMarginMs;
-    search.replyTimeoutMs = kStopResponseMs;
-    m_session->search(search);
+    m_session->search(UsiSearchRequest::mate(m_request.positionCommand, qMax(100, m_request.timeMs)));
     m_elapsed.start();
 }
 

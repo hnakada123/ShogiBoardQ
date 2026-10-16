@@ -84,8 +84,10 @@ bool parseKifBlock(const QStringList& lines, qsizetype begin, qsizetype end,
             QString usi;
             if (!KifLexer::convertMoveLine(rest, usi, prevToFile, prevToRank)) {
                 if (warn) {
-                    *warn += QStringLiteral("KIF: cannot parse move %1: %2\n")
-                                 .arg(moveIndex + 1).arg(lines.at(n).trimmed());
+                    *warn += rest == QStringLiteral("パス")
+                        ? QStringLiteral("KIF: ") + passNotice(moveIndex + 1)
+                        : QStringLiteral("KIF: cannot parse move %1: %2\n").arg(moveIndex + 1).arg(lines.at(n).trimmed())
+                              + truncationNotice(moveIndex + 1);
                 }
                 ended = true;
                 break;

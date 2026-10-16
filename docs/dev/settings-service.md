@@ -272,10 +272,11 @@ settings.endArray();
 | ファイル | 関数 | データ |
 |---|---|---|
 | `src/services/enginelistsettings.cpp` | `EngineListSettings::loadEngines()` | `[Engines]` 配列（登録エンジンの名前・パス・作者）の読み込み |
-| `src/engine/engineregistrationhandler.cpp` | `saveEnginesToSettingsFile()`・`saveEngineOptionsToSettings()`・`removeEnginesGroup()`・`removeEngineNameGroup()` | 登録一覧と、エンジン名グループのオプション配列の書き込み・削除 |
+| `src/engine/engineregistrationhandler.cpp` | `saveEnginesToSettingsFile()`・`saveEngineOptionsToSettings()`・`removeEnginesGroup()`・`removeEngineNameGroup()` | 登録一覧と、エンジンごとのグループ（`EngineOptions/<名前>`）のオプション配列の書き込み・削除 |
 | `src/dialogs/enginesettingsoptionhandler.cpp` | `readEngineOptions()`・`saveOptionsToSettings()` | エンジン設定ダイアログでのオプション配列の読み書き |
 | `src/engine/usiprotocolhandler.cpp` | `loadEngineOptions()` | エンジン起動時にオプション配列を読み、`setoption` を組み立てる |
-| `src/services/enginepondersettings.cpp` | `EnginePonderSettings::load()`・`save()` | エンジン名グループの GUI 先読み設定と `USI_Ponder` の保存値の同期 |
+| `src/services/enginepondersettings.cpp` | `EnginePonderSettings::load()`・`save()` | エンジンごとのグループの GUI 先読み設定と `USI_Ponder` の保存値の同期 |
+| `src/services/enginelistsettings.cpp` | `EngineListSettings::migrateLegacyOptionGroups()` | 以前の版の、エンジン名の最上位グループからの移行（起動時） |
 | `src/dialogs/csagamedialog.cpp` | `loadServerHistory()`・`saveServerHistory()` | CSA通信対局の接続履歴 `CsaServerHistory` 配列（最大10件） |
 
 列幅（`AnalysisSettings::engineInfoColumnWidths` など）とドックレイアウト名の一覧（`DockSettings::savedDockLayoutNames`）は、共有の `QSettings` で開いた配列・グループを同じ関数の中ですぐ閉じている。
@@ -296,7 +297,17 @@ INI キー名は `src/services/enginesettingsconstants.h` に定数として定�
 1\author=...
 size=1
 
-[YaneuraOu]           ← エンジン名がグループ名（USIオプションの配列）
+[EngineOptions]       ← エンジンごとの設定（グループ名は engineOptionsGroup(名前)）
+YaneuraOu\1\name=Threads
+...
+```
+
+エンジンごとの設定は `EngineSettingsConstants::engineOptionsGroup(名前)`（`EngineOptions/<名前>`）のグループに置く。
+名前の `%`・`/`・`\` はエスケープするので、`General` や `/` を含む名前でもほかの設定と衝突しない。
+グループの中身は次のとおり（INI では `[EngineOptions]` の下に `YaneuraOu\1\name=...` の形で並ぶ）。
+
+```
+1\name=Threads
 1\name=Threads
 1\type=spin
 1\default=...
@@ -308,6 +319,10 @@ size=...
 gui\ponderEnabled=true
 gui\sendUnreportedPonderOption=true
 ```
+
+以前の版はエンジン名をそのまま最上位のグループ名にしていた。GUI と `shogiboardq-cli` は起動時に
+`EngineListSettings::migrateLegacyOptionGroups()` を呼び、登録済みエンジンの配列（`size` と番号付きのキー）と
+`gui/...` の設定だけを `EngineOptions` の下へ移す（同じ名前のグループにあるほかの設定には触れない）。
 
 登録一覧を読むときは `EngineListSettings::loadEngines()` を使う。名前とパスの変換は `pathForName()` / `nameForPath()`。
 

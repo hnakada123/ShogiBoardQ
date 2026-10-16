@@ -74,6 +74,8 @@ public:
     // --- 通信対局 ---
     /// 通信対局の棋譜を、サーバーの開始局面と対局者名で作り直してライブ記録を始める
     void beginCsaGameRecord(const QString& startSfen, const QString& blackName, const QString& whiteName);
+    /// 通信対局が終わった（ライブ記録を確定し、終局時刻を記録する。ローカル対局の終局と同じ後始末）
+    void endCsaGameRecord();
     /// 終局時刻を記録して対局情報に反映する
     void recordGameEndTime();
     /// 対局者を下手・上手と呼ぶか（駒落ちで、対局情報の見出しが下手・上手のとき）
@@ -92,6 +94,8 @@ public slots:
     void resetToInitialState();
     /// 中断した対局を再開できなくする（棋譜を変えたとき・別の対局を始めたとき）
     void discardInterruptedGame();
+    /// 棋譜を読み込んだ。前の対局の対局者・持ち時間・開始と終了の日時を、保存や表示に使わないよう消す
+    void forgetFinishedMatch();
 
     // --- 司令塔から ---
     void onGameEnded(const MatchCoordinator::GameEndInfo& info);

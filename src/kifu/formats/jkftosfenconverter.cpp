@@ -170,7 +170,7 @@ QString JkfToSfenConverter::buildInitialSfen(const QJsonObject& root, QString* d
     }
 
     const Handicaps::Handicap* handicap = Handicaps::byJkfPreset(preset);
-    if (detectedLabel) *detectedLabel = handicap ? QString(QStringView(handicap->label)) : preset;
+    if (detectedLabel) *detectedLabel = handicap ? Handicaps::labelOf(*handicap) : preset;
     // 知らない preset は開始局面が分からない
     return handicap ? QString::fromLatin1(handicap->sfen) : QString();
 }

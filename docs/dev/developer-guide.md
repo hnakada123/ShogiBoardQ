@@ -3796,19 +3796,21 @@ USI プロトコルの `option` コマンドで報告される情報を格納す
 1\path=/path/to/yaneuraou
 1\author=...
 
-[YaneuraOu]           ← エンジン名がグループ名
-1\name=Threads
-1\value=4
-1\type=spin
-2\name=Hash
-2\value=256
-2\type=spin
-3\name=USI_Ponder
-3\value=true
-3\type=check
+[EngineOptions]       ← エンジンごとの設定（EngineOptions/<エスケープした名前>）
+YaneuraOu\1\name=Threads
+YaneuraOu\1\value=4
+YaneuraOu\1\type=spin
+YaneuraOu\2\name=Hash
+YaneuraOu\2\value=256
+YaneuraOu\2\type=spin
+YaneuraOu\3\name=USI_Ponder
+YaneuraOu\3\value=true
+YaneuraOu\3\type=check
 ```
 
-`UsiProtocolHandler::loadEngineOptions()` が起動時にこの設定を読み込み、`setoption` コマンド群を構築する。エンジンが報告していないオプションは送らない。`USI_Ponder` だけはここでは送らず、GUI の先読み設定（`EnginePonderSettings`。エンジン名グループの `gui/ponderEnabled` など）から初期化時に一度だけ送る（通知を省略する設定で、エンジンも報告していなければ送らない）。
+グループ名は `EngineSettingsConstants::engineOptionsGroup()` で作る（`%`・`/`・`\` をエスケープする）。以前の版のエンジン名の最上位グループは、起動時に `EngineListSettings::migrateLegacyOptionGroups()` が移す。
+
+`UsiProtocolHandler::loadEngineOptions()` が起動時にこの設定を読み込み、`setoption` コマンド群を構築する。エンジンが報告していないオプションは送らない。`USI_Ponder` だけはここでは送らず、GUI の先読み設定（`EnginePonderSettings`。エンジンごとのグループの `gui/ponderEnabled` など）から初期化時に一度だけ送る（通知を省略する設定で、エンジンも報告していなければ送らない）。
 
 ### 7.10 UsiCommLogModel と UsiModelBinding — 情報欄・通信ログ
 

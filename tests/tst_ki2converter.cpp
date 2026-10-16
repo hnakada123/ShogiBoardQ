@@ -65,22 +65,21 @@ private slots:
         QCOMPARE(KifuFile::displayItems<Ki2ToSfenConverter>(file.fileName()).size(), 4);
     }
 
-    void failedMoveRejectsWholeRecord()
+    /// 読めない手があれば、その手の手前までを読み、警告に読んだ手数を書く（KIF・CSA と同じ）
+    void failedMoveTruncatesTheRecord()
     {
         QTemporaryFile file;
         QVERIFY(KifuTestHelper::writeToTempFile(file, QStringLiteral(
             "手合割：平手\n▲７六歩 △５五銀 ▲２六歩\n").toUtf8(), QStringLiteral("ki2")));
         KifParseResult result;
         QString error;
-        QVERIFY(!KifuFile::parse<Ki2ToSfenConverter>(file.fileName(), result, &error));
-        QVERIFY(!error.isEmpty());
-        QVERIFY(result.mainline.displayItems().isEmpty());
-        QVERIFY(result.mainline.usiMoves().isEmpty());
-        QVERIFY(KifuFile::usiMoves<Ki2ToSfenConverter>(file.fileName()).isEmpty());
-        QVERIFY(KifuFile::displayItems<Ki2ToSfenConverter>(file.fileName()).isEmpty());
+        QVERIFY(KifuFile::parse<Ki2ToSfenConverter>(file.fileName(), result, &error));
+        QVERIFY2(error.contains(QStringLiteral("cannot parse move 2")), qPrintable(error));
+        QVERIFY2(error.contains(QStringLiteral("read up to move 1")), qPrintable(error));
+        QCOMPARE(result.mainline.usiMoves(), QStringList({"7g7f"}));
+        QCOMPARE(result.mainline.displayItems().size(), 2);
     }
 
-    /// 成駒の名前（成銀・成桂・成香）は成駒の移動。同じマスへ動ける生駒があっても成駒を選ぶ
     void promotedMinorPiece_data()
     {
         QTest::addColumn<QString>("sfen");

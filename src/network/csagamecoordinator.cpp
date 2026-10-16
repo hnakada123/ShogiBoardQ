@@ -324,15 +324,8 @@ void CsaGameCoordinator::onClientGameEnded(CsaClient::GameResult result, CsaClie
             qCDebug(lcNetwork).noquote() << "Using saved resign consumed time (my resign):" << actualConsumedTimeMs << "ms";
         } else if (cause == CsaClient::GameEndCause::Resign &&
                    result == CsaClient::GameResult::Win && m_clock) {
-            const qint64 opponentClockRemainingMs = m_clock->remainingMs(isBlackSide ? Turn::White : Turn::Black);
-            const int opponentInitialTimeMs = m_progress.summary.totalTimeMs(!isBlackSide);
-            const int opponentPreviousConsumedMs = m_progress.totalMs(!isBlackSide);
-
-            actualConsumedTimeMs = static_cast<int>(
-                static_cast<qint64>(opponentInitialTimeMs)
-                - opponentClockRemainingMs
-                - opponentPreviousConsumedMs);
-            if (actualConsumedTimeMs < 0) actualConsumedTimeMs = 0;
+            // 相手の手番が始まってから投了までの時間（残り時間から逆算すると、加算・秒読みで狂う）
+            actualConsumedTimeMs = static_cast<int>(m_clock->considerationMs(isBlackSide ? Turn::White : Turn::Black));
 
             qCDebug(lcNetwork).noquote() << "Calculated opponent resign consumed time:" << actualConsumedTimeMs << "ms";
         }

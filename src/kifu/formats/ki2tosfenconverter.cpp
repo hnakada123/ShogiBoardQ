@@ -68,7 +68,7 @@ bool parseKi2Block(const QStringList& lines, const QString& baseSfen, int startP
 {
     ShogiBoard board;
     if (!board.trySetSfen(baseSfen)) {
-        if (error) *error = QStringLiteral("KI2: invalid start position: %1").arg(baseSfen);
+        if (error) *error += QStringLiteral("KI2: invalid start position: %1\n").arg(baseSfen);
         return false;
     }
     Turn mover = board.currentPlayer();
@@ -95,22 +95,30 @@ bool parseKi2Block(const QStringList& lines, const QString& baseSfen, int startP
                 line.endsWithTerminal = true;
                 break;
             }
-            std::optional<UsiMove> usi;
-            if (!move.contains(QStringLiteral("パス"))) {
-                const auto parsed = Ki2Lexer::parseMoveText(move);
-                usi = parsed ? Ki2MoveNotation::resolve(*parsed, board, mover, previousTo) : std::nullopt;
-                if (!usi || !board.applyUsiMove(*usi, mover)) {
-                    if (error) *error = QStringLiteral("KI2: cannot parse move %1: %2").arg(ply + 1).arg(move);
-                    return false;
-                }
-                previousTo = usi->to;
+            // パス・読めない手・局面に合わない手は、その手の手前で手順を打ち切る（KIF と同じ）
+            if (move.contains(QStringLiteral("パス"))) {
+                if (error) *error += QStringLiteral("KI2: ") + KifuParseCommon::passNotice(ply + 1);
+                gameEnded = true;
+                break;
             }
+            const auto parsed = Ki2Lexer::parseMoveText(move);
+            const std::optional<UsiMove> usi =
+                parsed ? Ki2MoveNotation::resolve(*parsed, board, mover, previousTo) : std::nullopt;
+            if (!usi || !board.applyUsiMove(*usi, mover)) {
+                if (error) {
+                    *error += QStringLiteral("KI2: cannot parse move %1: %2\n").arg(ply + 1).arg(move)
+                              + KifuParseCommon::truncationNotice(ply + 1);
+                }
+                gameEnded = true;
+                break;
+            }
+            previousTo = usi->to;
             if (!firstMoveFound) {
                 firstMoveFound = true;
                 line.disp.append(KifuParseCommon::createOpeningDisplayItem(openingComment, openingBookmark));
             }
             KifuParseCommon::flushCommentToLastItem(comment, line.disp);
-            line.usiMoves.append(usi ? usi->toString() : QStringLiteral("pass"));
+            line.usiMoves.append(usi->toString());
             line.disp.append(KifuParseCommon::createMoveDisplayItem(++ply, buildKi2PrettyMove(move, usi, mover == Turn::Black ? QStringLiteral("▲") : QStringLiteral("△"))));
             mover = (mover == Turn::Black) ? Turn::White : Turn::Black;
         }
@@ -144,8 +152,8 @@ bool Ki2ToSfenConverter::parseLines(const QStringList& lines, KifParseResult& ou
         const int start = ShogiNotation::numberFromDigits(match.captured(1));
         const auto base = parsed.latestBranchPoint(start);
         if (!base) {
-            if (errorMessage) *errorMessage = QStringLiteral("KI2: invalid variation start: %1").arg(start);
-            return false;
+            if (errorMessage) *errorMessage += QStringLiteral("KI2: invalid variation start: %1\n").arg(start);
+            continue;
         }
         // 変化の最初の手の「同」は、分岐する前の手の移動先
         BoardSquare previousTo;

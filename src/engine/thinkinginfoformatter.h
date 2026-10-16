@@ -33,8 +33,9 @@ public:
 
     /// 直前の指し手の行き先（読み筋の最初の手の「同」の判定）
     void setPreviousMove(int fileTo, int rankTo);
-    /// 読み筋を表示する局面に至った指し手（USI 形式。読み筋の盤の強調）
-    void setLastUsiMove(const QString& move) { m_lastUsiMove = move; }
+    /// 読み筋を表示する局面に至った指し手（USI 形式。読み筋の盤の強調）。
+    /// その移動先を「同」の基準にする（先読み中は予想手が局面に至った手）
+    void setLastUsiMove(const QString& move);
 
     /// info を処理してシグナルを発行（バッファを通さない）
     void processInfo(const UsiInfo& info);

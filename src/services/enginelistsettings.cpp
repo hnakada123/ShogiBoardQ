@@ -8,6 +8,7 @@
 #include "settingskeys.h"
 
 #include <QFileInfo>
+#include <QRegularExpression>
 #include <QSettings>
 
 QList<EngineListSettings::EngineEntry> EngineListSettings::loadEngines()
@@ -111,4 +112,41 @@ void EngineListSettings::saveSelection(const SelectionKeys& keys, const QString&
     if (keys.name) settings.setValue(keys.name, engineName);
     if (keys.legacyIndex) settings.remove(keys.legacyIndex);
     if (keys.legacyPath) settings.remove(keys.legacyPath);
+}
+
+int EngineListSettings::migrateLegacyOptionGroups()
+{
+    using namespace EngineSettingsConstants;
+
+    QSettings& settings = SettingsCommon::openSettings();
+    // 以前の版の配列の要素は "1/name" の形、GUI の設定は "gui/..." の形で置かれていた
+    static const QRegularExpression kArrayElement(QStringLiteral("^\\d+/"));
+    int migrated = 0;
+    const QList<EngineEntry> engines = loadEngines();
+    for (const EngineEntry& engine : engines) {
+        // エンジン一覧と同じ名前のグループは、以前の版でも一覧と混ざって読めない
+        if (engine.name.isEmpty() || engine.name == QLatin1String(EnginesGroupName)) continue;
+        const QString target = engineOptionsGroup(engine.name);
+        if (settings.contains(target + QStringLiteral("/size"))) continue;
+
+        settings.beginGroup(engine.name);
+        const QStringList keys = settings.allKeys();
+        QList<QPair<QString, QVariant>> values;
+        for (const QString& key : keys) {
+            if (key == QLatin1String("size") || kArrayElement.match(key).hasMatch()
+                || key.startsWith(QLatin1String("gui/"))) {
+                values.append({key, settings.value(key)});
+            }
+        }
+        settings.endGroup();
+        if (values.isEmpty()) continue;
+
+        for (const auto& value : std::as_const(values)) {
+            settings.setValue(target + QLatin1Char('/') + value.first, value.second);
+            settings.remove(engine.name + QLatin1Char('/') + value.first);
+        }
+        ++migrated;
+    }
+    if (migrated > 0) settings.sync();
+    return migrated;
 }

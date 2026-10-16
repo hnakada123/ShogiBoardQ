@@ -104,6 +104,8 @@ signals:
     void engineInitialized();
     void errorOccurred(const QString& message);
     void searchCandidateChanged();
+    /// 探索（詰み探索など）が打ち切りの後も答えなかった
+    void searchTimedOut();
     /// 対局で指した（UsiMatchHandler::moveReady）
     void matchMoveReady(const UsiMatchMove& move);
     /// 対局の手番の探索に投了で答えた

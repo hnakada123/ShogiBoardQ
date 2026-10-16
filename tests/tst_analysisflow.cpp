@@ -34,6 +34,7 @@
 #include "shogiclock.h"
 #include "shogienginethinkingmodel.h"
 #include "test_replay.h"
+#include "usienginesession.h"
 #include "usi.h"
 #include "usicommlogmodel.h"
 #include "usimodelbinding.h"
@@ -183,6 +184,28 @@ private slots:
         QCOMPARE(positions.size(), 0);
         QCOMPARE(finished.size(), 1);
         QVERIFY(!job.isRunning());
+    }
+
+    /// 詰み探索に答えないエンジンは、制限時間＋余裕で stop し、その後も答えなければ打ち切る（U3）
+    void unresponsiveMateSearchIsAbandoned()
+    {
+        qputenv("SBQ_MATCH_IGNORE_MATE", "1");
+        AnalysisHarness h;
+        AnalysisOptions options;
+        options.mode = AnalysisOptions::Mode::Tsume;
+        options.enginePath = mockEngine();
+        options.engineName = QStringLiteral("SilentMate");
+        options.positionStr = QStringLiteral("position sfen 7k1/9/9/9/9/9/9/9/K8 b RS 1");
+        options.byoyomiMs = 100;
+        QSignalSpy messages(&h.session, &AnalysisSession::messageRequested);
+        QSignalSpy ended(&h.session, &AnalysisSession::tsumeSearchModeEnded);
+        QVERIFY(h.session.start(options));
+        const int limitMs = 100 + UsiSearchRequest::kMateStopMarginMs + UsiSearchRequest::kStopReplyMs;
+        QTRY_VERIFY_WITH_TIMEOUT(messages.count() == 1, limitMs + 4000);
+        qunsetenv("SBQ_MATCH_IGNORE_MATE");
+        QVERIFY(messages.last().at(1).toString().contains(QStringLiteral("応答")));
+        QCOMPARE(ended.count(), 1);
+        QCOMPARE(h.activity.activity(), AppActivityState::Activity::Idle);
     }
 
     void considerationRestartCoalescesAndStopCancelsQueuedWork()

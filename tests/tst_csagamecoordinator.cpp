@@ -372,6 +372,31 @@ private slots:
         QCOMPARE(h.coordinator.gameState(), CsaGameCoordinator::GameState::GameOver);
     }
 
+    /// 相手の投了に消費時間が付いていなければ、相手の手番が始まってからの時間を数える（U4）。
+    /// 加算のある対局でも、残り時間から逆算して 0 にしない
+    void opponentResignWithoutTimeUsesElapsedTurnTime()
+    {
+        Harness h;
+        QSignalSpy records(&h.coordinator, &CsaGameCoordinator::recordEntryReady);
+        QSignalSpy ended(&h.coordinator, &CsaGameCoordinator::gameEnded);
+        QVERIFY(h.start("-"));
+        h.server.send("+7776FU,T2");
+        QTRY_COMPARE(records.size(), 1);
+        h.playHumanMove(QStringLiteral("3c3d"), QPoint(3, 3), QPoint(3, 4));
+        QVERIFY(h.server.waitForLine(QStringLiteral("-3334FU")));
+        h.server.send("-3334FU,T1");
+        QTRY_COMPARE(records.size(), 2);
+        QTest::qWait(1200);
+        h.server.send("%TORYO");
+        h.server.send("#RESIGN");
+        h.server.send("#WIN");
+        QTRY_COMPARE(ended.size(), 1);
+        const RecordEntry ending = entryAt(records, 2);
+        QCOMPARE(ending.terminal, TerminalType::Resign);
+        QVERIFY2(ending.time.elapsedMs >= 1000 && ending.time.elapsedMs < 5000,
+                 qPrintable(QString::number(ending.time.elapsedMs)));
+    }
+
     /// 終局行の組み立ては値型だけで決まる（消費時間は終局行を行った側の累計に足す）
     void progressEndRecordUsesMoverTotals()
     {

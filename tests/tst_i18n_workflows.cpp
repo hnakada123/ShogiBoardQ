@@ -5,6 +5,7 @@
 #include <QLabel>
 #include <QLibraryInfo>
 #include "kifupresentation.h"
+#include "handicaps.h"
 #include "applicationfonts.h"
 #include "applicationtranslations.h"
 #include "appsettings.h"
@@ -433,6 +434,28 @@ private slots:
             const auto japanese = KifuConversionService::convert(request);
             QCOMPARE(localized.lines, japanese.lines);
             KifuPresentation::configure(language, notation, false);
+        }
+        qApp->removeTranslator(&translator);
+    }
+
+    void handicapNamesAreTranslated_data()
+    {
+        QTest::addColumn<QString>("language");
+        for (const auto* language : {"en", "zh_CN", "zh_TW"}) QTest::newRow(language) << QString::fromLatin1(language);
+    }
+
+    /// 対局情報の手合割は、手合割の表（Handicaps::kAll）のどの名前も表示言語に訳す（B4）
+    void handicapNamesAreTranslated()
+    {
+        QFETCH(QString, language);
+        QTranslator translator;
+        QVERIFY(translator.load(QStringLiteral(TRANSLATIONS_DIR "/ShogiBoardQ_") + language + ".qm"));
+        qApp->installTranslator(&translator);
+        for (const Handicaps::Handicap& handicap : Handicaps::kAll) {
+            const QString label = Handicaps::labelOf(handicap);
+            QVERIFY2(!translator.translate("KifuPresentation", handicap.label).isEmpty(), qPrintable(label));
+            if (language == QLatin1String("en"))
+                QVERIFY2(KifuPresentation::infoValue(QStringLiteral("手合割"), label) != label, qPrintable(label));
         }
         qApp->removeTranslator(&translator);
     }

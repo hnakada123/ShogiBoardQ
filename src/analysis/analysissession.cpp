@@ -53,6 +53,7 @@ bool AnalysisSession::start(const AnalysisOptions& opt)
     m_engine = engine;
     m_restartTimer.stop();
     connect(engine, &Usi::errorOccurred, this, &AnalysisSession::onEngineError);
+    connect(engine, &Usi::searchTimedOut, this, &AnalysisSession::onSearchTimedOut);
 
     m_positionStr = opt.positionStr;
     m_byoyomiMs = opt.byoyomiMs;
@@ -249,6 +250,11 @@ void AnalysisSession::onCheckmate(const UsiCheckmate& result)
         finalizeTsumeSearch(tr("時間内に詰みを判定できませんでした"));
         return;
     }
+}
+
+void AnalysisSession::onSearchTimedOut()
+{
+    finalizeTsumeSearch(tr("エンジンが応答しなかったため、詰み探索を打ち切りました"));
 }
 
 void AnalysisSession::onTsumeBestMoveReceived(const UsiBestMove& /*result*/)

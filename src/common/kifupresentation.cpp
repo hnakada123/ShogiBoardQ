@@ -1,4 +1,5 @@
 #include "kifupresentation.h"
+#include "handicaps.h"
 #include "sfenreplay.h"
 #include "shogiboard.h"
 #include "terminaltype.h"
@@ -246,16 +247,12 @@ QString infoKey(const QString& canonical)
 QString infoValue(const QString& key, const QString& raw)
 {
     if (key == QStringLiteral("手合割")) {
-        static const char* const handicaps[] = {
-            QT_TRANSLATE_NOOP("KifuPresentation", "平手"), QT_TRANSLATE_NOOP("KifuPresentation", "香落ち"),
-            QT_TRANSLATE_NOOP("KifuPresentation", "右香落ち"), QT_TRANSLATE_NOOP("KifuPresentation", "角落ち"),
-            QT_TRANSLATE_NOOP("KifuPresentation", "飛車落ち"), QT_TRANSLATE_NOOP("KifuPresentation", "飛香落ち"),
-            QT_TRANSLATE_NOOP("KifuPresentation", "二枚落ち"), QT_TRANSLATE_NOOP("KifuPresentation", "四枚落ち"),
-            QT_TRANSLATE_NOOP("KifuPresentation", "三枚落ち"), QT_TRANSLATE_NOOP("KifuPresentation", "五枚落ち"),
-            QT_TRANSLATE_NOOP("KifuPresentation", "左五枚落ち"), QT_TRANSLATE_NOOP("KifuPresentation", "局面指定"),
-            QT_TRANSLATE_NOOP("KifuPresentation", "六枚落ち"), QT_TRANSLATE_NOOP("KifuPresentation", "八枚落ち"),
-            QT_TRANSLATE_NOOP("KifuPresentation", "十枚落ち"), QT_TRANSLATE_NOOP("KifuPresentation", "その他")};
-        for (const char* value : handicaps) if (raw == QString::fromUtf8(value)) return translated(value);
+        // 手合割の名前は core の表（Handicaps::kAll）と同じ語。表にない「局面指定」「その他」だけここに書く
+        for (const Handicaps::Handicap& handicap : Handicaps::kAll)
+            if (raw == Handicaps::labelOf(handicap)) return translated(handicap.label);
+        static const char* const others[] = {
+            QT_TRANSLATE_NOOP("KifuPresentation", "局面指定"), QT_TRANSLATE_NOOP("KifuPresentation", "その他")};
+        for (const char* value : others) if (raw == QString::fromUtf8(value)) return translated(value);
     }
     if (key == QStringLiteral("持ち時間") && raw == QStringLiteral("無制限"))
         return translated(QT_TRANSLATE_NOOP("KifuPresentation", "無制限"));
