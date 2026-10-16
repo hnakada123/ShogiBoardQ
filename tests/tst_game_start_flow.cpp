@@ -85,14 +85,17 @@ struct TestHarness {
     }
 };
 
-/// 人間どうしの対局開始ダイアログの値
-static StartGameDialogData humanDialog(int startingPosition)
+/// 人間どうしの対局開始ダイアログの値（手合割の表 Handicaps::kAll の添字。-1 は現在の局面）
+static StartGameDialogData humanDialog(int handicapIndex)
 {
     StartGameDialogData data;
-    data.startingPositionNumber = startingPosition;
-    data.isHuman1 = data.isHuman2 = true;
+    data.startingHandicap = handicapIndex < 0 ? nullptr : &Handicaps::kAll[handicapIndex];
     return data;
 }
+
+/// 秒（分・時間）からミリ秒
+static constexpr qint64 seconds(qint64 value) { return value * 1000; }
+static constexpr qint64 minutes(qint64 value) { return seconds(value * 60); }
 
 class TestGameStartFlow : public QObject
 {
@@ -114,7 +117,7 @@ private slots:
     void plan_rejectsInvalidPositionBeforeAnyChange()
     {
         GameStartRequest request;
-        request.dialogData = humanDialog(0);
+        request.dialogData = humanDialog(-1);
         request.recordLine.startSfen = QStringLiteral("9/9/9/9/9/9/9/9/9 b - 1");
         QString error;
         QVERIFY(!GameStartOptionsBuilder::plan(request, &error).has_value());
@@ -125,8 +128,8 @@ private slots:
     void plan_choosesStartPosition()
     {
         GameStartRequest request;
-        request.dialogData = humanDialog(1);
-        request.dialogData.basicTimeMinutes1 = 5;
+        request.dialogData = humanDialog(0);
+        request.dialogData.players[0].time.mainMs = minutes(5);
         request.startNodeId = 42;
         QString error;
         std::optional<GameStartPlan> plan = GameStartOptionsBuilder::plan(request, &error);
@@ -136,7 +139,7 @@ private slots:
         QCOMPARE(plan->options.sfenStart, kHirateSfen);
         QCOMPARE(plan->time.rules.black.mainMs, 300000LL);
 
-        request.dialogData.startingPositionNumber = 0;
+        request.dialogData.startingHandicap = nullptr;
         request.recordLine.startSfen = QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 w - 1");
         plan = GameStartOptionsBuilder::plan(request, &error);
         QVERIFY2(plan.has_value(), qPrintable(error));
@@ -150,8 +153,8 @@ private slots:
     {
         TestHarness h;
         GameStartRequest request;
-        request.dialogData = humanDialog(1);
-        request.dialogData.basicTimeMinutes1 = 5;
+        request.dialogData = humanDialog(0);
+        request.dialogData.players[0].time.mainMs = minutes(5);
         QString error;
         const std::optional<GameStartPlan> plan = GameStartOptionsBuilder::plan(request, &error);
         QVERIFY2(plan.has_value(), qPrintable(error));
@@ -172,8 +175,8 @@ private slots:
     {
         QFETCH(bool, loseOnTimeout);
         StartGameDialogData data;
-        data.byoyomiSec1 = 60;
-        data.byoyomiSec2 = 120;
+        data.players[0].time.byoyomiMs = seconds(60);
+        data.players[1].time.byoyomiMs = seconds(120);
         data.isLoseOnTimeout = loseOnTimeout;
 
         const MatchTimeSettings time = GameStartOptionsBuilder::buildTimeSettings(data);
@@ -193,41 +196,25 @@ private slots:
 
     void players_fromDialog_data()
     {
-        QTest::addColumn<bool>("human1");
-        QTest::addColumn<bool>("engine1");
-        QTest::addColumn<bool>("human2");
-        QTest::addColumn<bool>("engine2");
         QTest::addColumn<bool>("blackIsEngine");
         QTest::addColumn<bool>("whiteIsEngine");
-        QTest::newRow("human-human") << true << false << true << false << false << false;
-        QTest::newRow("human-engine") << true << false << false << true << false << true;
-        QTest::newRow("engine-human") << false << true << true << false << true << false;
-        QTest::newRow("engine-engine") << false << true << false << true << true << true;
-        // 両方に印があるときは人間とする
-        QTest::newRow("both-marked") << true << true << true << true << false << false;
+        QTest::newRow("human-human") << false << false;
+        QTest::newRow("human-engine") << false << true;
+        QTest::newRow("engine-human") << true << false;
+        QTest::newRow("engine-engine") << true << true;
     }
 
     void players_fromDialog()
     {
-        QFETCH(bool, human1);
-        QFETCH(bool, engine1);
-        QFETCH(bool, human2);
-        QFETCH(bool, engine2);
         QFETCH(bool, blackIsEngine);
         QFETCH(bool, whiteIsEngine);
         StartGameDialogData data;
-        data.isHuman1 = human1;
-        data.isEngine1 = engine1;
-        data.isHuman2 = human2;
-        data.isEngine2 = engine2;
-        data.humanName1 = QStringLiteral("下手さん");
-        data.humanName2 = QStringLiteral("上手さん");
-        data.engineList = {StartGameDialogData::Engine{QStringLiteral("/a")},
-                           StartGameDialogData::Engine{QStringLiteral("/b")}};
-        data.engineNumber1 = 0;
-        data.engineNumber2 = 1;
-        data.engineName1 = QStringLiteral("A");
-        data.engineName2 = QStringLiteral("B");
+        data.players[0].kind = blackIsEngine ? PlayerChoice::Kind::Engine : PlayerChoice::Kind::Human;
+        data.players[1].kind = whiteIsEngine ? PlayerChoice::Kind::Engine : PlayerChoice::Kind::Human;
+        data.players[0].humanName = QStringLiteral("下手さん");
+        data.players[1].humanName = QStringLiteral("上手さん");
+        data.players[0].engine = {QStringLiteral("A"), QStringLiteral("/a"), QString()};
+        data.players[1].engine = {QStringLiteral("B"), QStringLiteral("/b"), QString()};
         const MatchPlayers players = GameStartOptionsBuilder::playersFromDialog(data);
         QCOMPARE(players.blackIsEngine, blackIsEngine);
         QCOMPARE(players.whiteIsEngine, whiteIsEngine);
@@ -239,9 +226,8 @@ private slots:
     void players_doNotDependOnSideToMove()
     {
         StartGameDialogData data;
-        data.isHuman1 = true;
-        data.isEngine2 = true;
-        const QString handicap = GameStartOptionsBuilder::startingPositionSfen(7);
+        data.players[1].kind = PlayerChoice::Kind::Engine;
+        const QString handicap = QString::fromLatin1(Handicaps::byLabel(u"二枚落ち")->sfen);
         const MatchStartOptions opt = GameStartOptionsBuilder::buildStartOptions(handicap, data);
         QCOMPARE(opt.sfenStart, handicap);
         QVERIFY(opt.players.isHuman(Turn::Black));
@@ -278,7 +264,7 @@ private slots:
         QVERIFY(!GameStartOptionsBuilder::validateKings(sfen, &why));
         QVERIFY(!why.isEmpty());
         GameStartRequest request;
-        request.dialogData = humanDialog(0);
+        request.dialogData = humanDialog(-1);
         request.recordLine.startSfen = sfen;
         QString error;
         QVERIFY(!GameStartOptionsBuilder::plan(request, &error).has_value());
@@ -291,9 +277,8 @@ private slots:
         QTest::newRow("startpos") << QStringLiteral("startpos");
         QTest::newRow("kings-only-black") << QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b - 1");
         QTest::newRow("kings-only-white") << QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 w - 1");
-        for (int preset = 1; preset <= GameStartOptionsBuilder::kStartingPositionCount; ++preset) {
-            QTest::newRow(qPrintable(QStringLiteral("preset-%1").arg(preset)))
-                << GameStartOptionsBuilder::startingPositionSfen(preset);
+        for (const Handicaps::Handicap& handicap : Handicaps::kAll) {
+            QTest::newRow(handicap.jkfPreset) << QString::fromLatin1(handicap.sfen);
         }
     }
 
@@ -301,7 +286,7 @@ private slots:
     {
         QFETCH(QString, sfen);
         GameStartRequest request;
-        request.dialogData = humanDialog(0);
+        request.dialogData = humanDialog(-1);
         request.recordLine.startSfen = sfen;
         QString error;
         const std::optional<GameStartPlan> plan = GameStartOptionsBuilder::plan(request, &error);
@@ -359,9 +344,11 @@ private slots:
     void time_byoyomiPriorityOverIncrement()
     {
         StartGameDialogData data;
-        data.basicTimeMinutes1 = data.basicTimeMinutes2 = 10;
-        data.byoyomiSec1 = data.byoyomiSec2 = 30;
-        data.addEachMoveSec1 = data.addEachMoveSec2 = 10;
+        for (PlayerChoice& player : data.players) {
+            player.time.mainMs = minutes(10);
+            player.time.byoyomiMs = seconds(30);
+            player.time.incrementMs = seconds(10);
+        }
         const MatchTimeSettings time = GameStartOptionsBuilder::buildTimeSettings(data);
         QVERIFY2(time.rules.usesByoyomi(), "byoyomi should be used when both specified");
         QCOMPARE(time.rules.black.byoyomiMs, 30000LL);
@@ -373,8 +360,10 @@ private slots:
     void time_incrementOnlyWhenNoByoyomi()
     {
         StartGameDialogData data;
-        data.basicTimeMinutes1 = data.basicTimeMinutes2 = 10;
-        data.addEachMoveSec1 = data.addEachMoveSec2 = 5;
+        for (PlayerChoice& player : data.players) {
+            player.time.mainMs = minutes(10);
+            player.time.incrementMs = seconds(5);
+        }
         const MatchTimeSettings time = GameStartOptionsBuilder::buildTimeSettings(data);
         QVERIFY2(!time.rules.usesByoyomi(), "byoyomi should not be used");
         QCOMPARE(time.rules.black.incrementMs, 5000LL);
@@ -385,7 +374,7 @@ private slots:
     void time_unlimitedOnlyWhenAllZero()
     {
         StartGameDialogData data;
-        data.basicTimeHour1 = data.basicTimeHour2 = 1;
+        data.players[0].time.mainMs = data.players[1].time.mainMs = minutes(60);
         QVERIFY(!GameStartOptionsBuilder::buildTimeSettings(data).rules.isUnlimited());
 
         TestHarness h;
@@ -399,10 +388,10 @@ private slots:
     void time_asymmetric()
     {
         StartGameDialogData data;
-        data.basicTimeHour1 = 1;
-        data.byoyomiSec1 = 60;
-        data.basicTimeMinutes2 = 30;
-        data.byoyomiSec2 = 30;
+        data.players[0].time.mainMs = minutes(60);
+        data.players[0].time.byoyomiMs = seconds(60);
+        data.players[1].time.mainMs = minutes(30);
+        data.players[1].time.byoyomiMs = seconds(30);
         const MatchTimeSettings time = GameStartOptionsBuilder::buildTimeSettings(data);
         QCOMPARE(time.rules.black.byoyomiMs, 60000LL);
         QCOMPARE(time.rules.white.byoyomiMs, 30000LL);

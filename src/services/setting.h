@@ -48,6 +48,9 @@ public:
     /// 値を保存する
     void set(const T& v) const { SettingsCommon::openSettings().setValue(QLatin1String(m_key), QVariant::fromValue(v)); }
 
+    /// 値を保存しているか
+    bool isSaved() const { return SettingsCommon::openSettings().contains(QLatin1String(m_key)); }
+
     /// 保存した値を消す（以後は既定値を返す）
     void remove() const { SettingsCommon::openSettings().remove(QLatin1String(m_key)); }
 

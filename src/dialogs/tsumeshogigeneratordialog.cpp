@@ -62,6 +62,7 @@ TsumeshogiGeneratorDialog::TsumeshogiGeneratorDialog(QWidget* parent)
     m_engineSelector = new EngineSelector({m_settingsUi.engine, m_settingsUi.engineSettings, nullptr}, engineOptions, this);
     connect(m_engineSelector, &EngineSelector::settingsRequested,
             this, &TsumeshogiGeneratorDialog::showEngineSettingsDialog);
+    bindSettings();
     loadSettings();
     DialogUtils::restoreDialogSize(this, TsumeshogiSettings::tsumeshogiGeneratorDialogSize());
 
@@ -125,37 +126,36 @@ void TsumeshogiGeneratorDialog::connectDialogSignals()
             this, &TsumeshogiGeneratorDialog::onVerificationStatsUpdated);
 }
 
+void TsumeshogiGeneratorDialog::bindSettings()
+{
+    // 生成の条件（「既定値に戻す」の対象）と、表示の設定
+    m_conditionsForm.add(m_settingsUi.targetMoves, TsumeshogiSettings::tsumeshogiGeneratorTargetMoves);
+    m_conditionsForm.add(m_settingsUi.maxAttack, TsumeshogiSettings::tsumeshogiGeneratorMaxAttackPieces);
+    m_conditionsForm.add(m_settingsUi.maxDefend, TsumeshogiSettings::tsumeshogiGeneratorMaxDefendPieces);
+    m_conditionsForm.add(m_settingsUi.attackRange, TsumeshogiSettings::tsumeshogiGeneratorAttackRange);
+    m_conditionsForm.add(m_settingsUi.timeout, TsumeshogiSettings::tsumeshogiGeneratorTimeoutSec);
+    m_conditionsForm.add(m_settingsUi.maxPositions, TsumeshogiSettings::tsumeshogiGeneratorMaxPositions);
+    m_conditionsForm.add(m_settingsUi.allowFinalAlternatives,
+                         TsumeshogiSettings::tsumeshogiGeneratorAllowFinalMoveAlternatives);
+    m_displayForm.add(m_resultsUi.includePv, TsumeshogiSettings::tsumeshogiGeneratorIncludePv);
+    m_displayForm.add(m_settingsUi.help, TsumeshogiSettings::tsumeshogiGeneratorHelpExpanded);
+}
+
 void TsumeshogiGeneratorDialog::loadSettings()
 {
+    m_conditionsForm.load();
+    m_displayForm.load();
     // 旧バージョンで偶数が保存されていた場合に備えて奇数に補正する
-    int targetMoves = TsumeshogiSettings::tsumeshogiGeneratorTargetMoves();
-    if (targetMoves % 2 == 0) {
-        targetMoves = qMax(1, targetMoves - 1);
-    }
-    m_settingsUi.targetMoves->setValue(targetMoves);
-    m_settingsUi.maxAttack->setValue(TsumeshogiSettings::tsumeshogiGeneratorMaxAttackPieces());
-    m_settingsUi.maxDefend->setValue(TsumeshogiSettings::tsumeshogiGeneratorMaxDefendPieces());
-    m_settingsUi.attackRange->setValue(TsumeshogiSettings::tsumeshogiGeneratorAttackRange());
-    m_settingsUi.timeout->setValue(TsumeshogiSettings::tsumeshogiGeneratorTimeoutSec());
-    m_settingsUi.maxPositions->setValue(TsumeshogiSettings::tsumeshogiGeneratorMaxPositions());
-    m_resultsUi.includePv->setChecked(TsumeshogiSettings::tsumeshogiGeneratorIncludePv());
-    m_settingsUi.allowFinalAlternatives->setChecked(TsumeshogiSettings::tsumeshogiGeneratorAllowFinalMoveAlternatives());
-    m_settingsUi.help->setChecked(TsumeshogiSettings::tsumeshogiGeneratorHelpExpanded());
+    const int targetMoves = m_settingsUi.targetMoves->value();
+    if (targetMoves % 2 == 0) m_settingsUi.targetMoves->setValue(qMax(1, targetMoves - 1));
 }
 
 void TsumeshogiGeneratorDialog::saveSettings()
 {
     DialogUtils::saveDialogSize(this, TsumeshogiSettings::tsumeshogiGeneratorDialogSize);
     m_engineSelector->saveSelection();
-    TsumeshogiSettings::tsumeshogiGeneratorTargetMoves.set(m_settingsUi.targetMoves->value());
-    TsumeshogiSettings::tsumeshogiGeneratorMaxAttackPieces.set(m_settingsUi.maxAttack->value());
-    TsumeshogiSettings::tsumeshogiGeneratorMaxDefendPieces.set(m_settingsUi.maxDefend->value());
-    TsumeshogiSettings::tsumeshogiGeneratorAttackRange.set(m_settingsUi.attackRange->value());
-    TsumeshogiSettings::tsumeshogiGeneratorTimeoutSec.set(m_settingsUi.timeout->value());
-    TsumeshogiSettings::tsumeshogiGeneratorMaxPositions.set(m_settingsUi.maxPositions->value());
-    TsumeshogiSettings::tsumeshogiGeneratorIncludePv.set(m_resultsUi.includePv->isChecked());
-    TsumeshogiSettings::tsumeshogiGeneratorAllowFinalMoveAlternatives.set(m_settingsUi.allowFinalAlternatives->isChecked());
-    TsumeshogiSettings::tsumeshogiGeneratorHelpExpanded.set(m_settingsUi.help->isChecked());
+    m_conditionsForm.save();
+    m_displayForm.save();
 }
 
 void TsumeshogiGeneratorDialog::onStartClicked()
@@ -312,13 +312,8 @@ void TsumeshogiGeneratorDialog::onCopyAll()
 void TsumeshogiGeneratorDialog::onRestoreDefaults()
 {
     if (m_running) return;
-    m_settingsUi.targetMoves->setValue(3);
-    m_settingsUi.maxAttack->setValue(4);
-    m_settingsUi.maxDefend->setValue(1);
-    m_settingsUi.attackRange->setValue(3);
-    m_settingsUi.timeout->setValue(5);
-    m_settingsUi.maxPositions->setValue(10);
-    m_settingsUi.allowFinalAlternatives->setChecked(true);
+    // 既定値は設定の宣言の表のもの
+    m_conditionsForm.reset();
 }
 
 void TsumeshogiGeneratorDialog::onResultTableClicked(const QModelIndex& index)

@@ -82,8 +82,6 @@ private slots:
         QCOMPARE(state.activity.activity(), AppActivityState::Activity::Idle);
         QCOMPARE(p.document->players(), MatchPlayers());
         StartGameDialogData data;
-        data.startingPositionNumber = 1;
-        data.isHuman1 = data.isHuman2 = true;
         QString error;
         QVERIFY2(startGame(p, data, &error), qPrintable(error));
         connect(p.gameController, &ShogiGameController::moveCommitted, this, &TestWiringContracts::observeMove);
@@ -111,11 +109,9 @@ private slots:
         m_endWasCommitted = false;
         connect(p.match, &MatchCoordinator::gameEnded, this, &TestWiringContracts::observeEnd);
         StartGameDialogData data;
-        data.startingPositionNumber = 1;
-        data.isHuman1 = data.isHuman2 = true;
-        data.basicTimeMinutes1 = 3;
-        data.humanName1 = QStringLiteral("太郎");
-        data.humanName2 = QStringLiteral("花子");
+        data.players[0].time.mainMs = 3 * 60 * 1000;
+        data.players[0].humanName = QStringLiteral("太郎");
+        data.players[1].humanName = QStringLiteral("花子");
         QString error;
         QVERIFY2(startGame(p, data, &error), qPrintable(error));
         QCOMPARE(p.uiStatePolicy->currentState(), UiStatePolicyManager::AppState::DuringGame);
@@ -153,8 +149,6 @@ private slots:
         MainWindow window;
         auto& p = window.composer().parts();
         StartGameDialogData data;
-        data.startingPositionNumber = 1;
-        data.isHuman1 = data.isHuman2 = true;
         data.consecutiveGames = 3;
         data.isSwitchTurnEachGame = true;
         QString error;

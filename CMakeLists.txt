@@ -691,6 +691,8 @@ set(SRC_WIDGETS
     src/widgets/numericrightaligncommadelegate.h
     src/widgets/opaquebackground.cpp
     src/widgets/opaquebackground.h
+    src/widgets/playersetupwidget.cpp
+    src/widgets/playersetupwidget.h
     src/widgets/pvtextdelegate.h
     src/widgets/recordhighlightdelegate.cpp
     src/widgets/recordhighlightdelegate.h
@@ -698,6 +700,8 @@ set(SRC_WIDGETS
     src/widgets/recordpane.h
     src/widgets/recordpaneappearancemanager.cpp
     src/widgets/recordpaneappearancemanager.h
+    src/widgets/settingsformbinding.cpp
+    src/widgets/settingsformbinding.h
     src/widgets/tablebuttondelegate.h
     src/widgets/tableheaderview.cpp
     src/widgets/tableheaderview.h
@@ -705,6 +709,8 @@ set(SRC_WIDGETS
     src/widgets/thinkingpanel.h
     src/widgets/thinkingtableview.cpp
     src/widgets/thinkingtableview.h
+    src/widgets/timecontroleditor.cpp
+    src/widgets/timecontroleditor.h
     src/widgets/tsumepositionpreview.cpp
     src/widgets/tsumepositionpreview.h
     src/widgets/usilogpanel.cpp

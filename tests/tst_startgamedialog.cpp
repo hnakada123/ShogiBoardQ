@@ -100,9 +100,8 @@ private slots:
         StartGameDialog dialog;
         QCOMPARE(widget<QComboBox>(dialog, "comboBoxPlayer2")->currentIndex(), 0);
         accept(dialog);
-        QVERIFY(dialog.data().isHuman2);
-        QVERIFY(!dialog.data().isEngine2);
-        QCOMPARE(dialog.data().engineNumber2, -1);
+        QVERIFY(dialog.data().players[1].isHuman());
+        QVERIFY(dialog.data().players[1].engine.name.isEmpty());
     }
 
     void deletedEngineFallsBackToHuman_data()
@@ -126,7 +125,7 @@ private slots:
         // 後手の既定は登録済みのエンジンなので、時間無制限にならないよう秒読みを設定する。
         widget<QSpinBox>(dialog, "byoyomiSec1")->setValue(30);
         accept(dialog);
-        QVERIFY(player == 1 ? dialog.data().isHuman1 : dialog.data().isHuman2);
+        QVERIFY(dialog.data().players[player == 1 ? 0 : 1].isHuman());
     }
 
     void engineSelectionSurvivesRegistrationOrderChange()
@@ -141,8 +140,8 @@ private slots:
         setEngines({QStringLiteral("second")});
         StartGameDialog reopened;
         accept(reopened);
-        QCOMPARE(reopened.data().engineName2, QStringLiteral("second"));
-        QCOMPARE(reopened.data().engineNumber2, 0);
+        QCOMPARE(reopened.data().players[1].engine.name, QStringLiteral("second"));
+        QCOMPARE(reopened.data().players[1].engine.path, QStringLiteral("/engines/second"));
     }
 
     void resetRestoresCommonTime()
@@ -153,7 +152,7 @@ private slots:
         QVERIFY(!widget<QGroupBox>(dialog, "groupBoxSecondPlayerTimeSettings")->isChecked());
         widget<QSpinBox>(dialog, "basicTimeMinutes1")->setValue(5);
         accept(dialog);
-        QCOMPARE(dialog.data().basicTimeMinutes2, 5);
+        QCOMPARE(dialog.data().players[1].time.mainMs, 5 * 60 * 1000);
     }
 
     void minuteOrLongerTimeSurvivesSave_data()
@@ -175,8 +174,11 @@ private slots:
             widget<QSpinBox>(dialog, second)->setValue(120);
             widget<QCheckBox>(dialog, "checkBoxLoseOnTimeOut")->setChecked(false);
             accept(dialog);
-            QCOMPARE(increment ? dialog.data().addEachMoveSec1 : dialog.data().byoyomiSec1, 60);
-            QCOMPARE(increment ? dialog.data().addEachMoveSec2 : dialog.data().byoyomiSec2, 120);
+            const auto seconds = [increment](const PlayerChoice& player) {
+                return (increment ? player.time.incrementMs : player.time.byoyomiMs) / 1000;
+            };
+            QCOMPARE(seconds(dialog.data().players[0]), 60);
+            QCOMPARE(seconds(dialog.data().players[1]), 120);
             QVERIFY(!dialog.data().isLoseOnTimeout);
         }
         StartGameDialog reopened;
@@ -299,9 +301,15 @@ private slots:
         QFETCH(QList<int>, white);
         QFETCH(bool, hasEngine);
         QFETCH(TimeControlValidator::Issue, expected);
-        const TimeControlValidator::PlayerTime p1{black.at(0), black.at(1), black.at(2), black.at(3)};
-        const TimeControlValidator::PlayerTime p2{white.at(0), white.at(1), white.at(2), white.at(3)};
-        QCOMPARE(TimeControlValidator::validate(p1, p2, hasEngine), expected);
+        // 列は 時間・分・秒読み（秒）・加算（秒）
+        const auto side = [](const QList<int>& values) {
+            TimeControlSide time;
+            time.mainMs = (values.at(0) * 3600LL + values.at(1) * 60LL) * 1000;
+            time.byoyomiMs = values.at(2) * 1000LL;
+            time.incrementMs = values.at(3) * 1000LL;
+            return time;
+        };
+        QCOMPARE(TimeControlValidator::validate(side(black), side(white), hasEngine), expected);
     }
 
     /// 時間を指定する（側は 1=先手、2=後手）
@@ -358,8 +366,8 @@ private slots:
         widget<QSpinBox>(dialog, "byoyomiSec1")->setValue(30);
         QVERIFY(acceptExpectingWarning(dialog).isEmpty());
         QCOMPARE(dialog.result(), int(QDialog::Accepted));
-        QVERIFY(dialog.data().isEngine2);
-        QCOMPARE(dialog.data().byoyomiSec2, 30);
+        QVERIFY(dialog.data().players[1].isEngine());
+        QCOMPARE(dialog.data().players[1].time.byoyomiMs, 30 * 1000);
     }
 
     void humanUnlimitedGameStarts()
@@ -368,7 +376,7 @@ private slots:
         setTime(dialog, 1, 0, 0, 0);
         QVERIFY(acceptExpectingWarning(dialog).isEmpty());
         QCOMPARE(dialog.result(), int(QDialog::Accepted));
-        QCOMPARE(dialog.data().byoyomiSec1 + dialog.data().addEachMoveSec1 + dialog.data().basicTimeMinutes1, 0);
+        QVERIFY(!dialog.data().players[0].time.hasLimit());
     }
 
     void oneSideWithoutTimeIsNotStarted()
@@ -384,7 +392,7 @@ private slots:
         widget<QSpinBox>(dialog, "byoyomiSec2")->setValue(10);
         QVERIFY(acceptExpectingWarning(dialog).isEmpty());
         QCOMPARE(dialog.result(), int(QDialog::Accepted));
-        QCOMPARE(dialog.data().byoyomiSec2, 10);
+        QCOMPARE(dialog.data().players[1].time.byoyomiMs, 10 * 1000);
     }
 };
 

@@ -63,6 +63,8 @@ public:
 
     /// 名前で選ぶ（一覧に無ければ変えない）
     void select(const QString& name);
+    /// 内蔵エンジンの項目を選ぶ（その項目が無ければ変えない）
+    void selectBuiltin();
     /// 選んだエンジンを保存する（内蔵の項目なら空の名前）
     void saveSelection() const;
     /// コンボと「設定」ボタンを操作できるか（対局の実行中などに止める）

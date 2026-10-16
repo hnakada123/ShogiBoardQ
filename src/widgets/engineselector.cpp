@@ -99,6 +99,11 @@ void EngineSelector::select(const QString& name)
     if (index >= 0) m_combo->setCurrentIndex(index + (m_options.builtinLabel.isEmpty() ? 0 : 1));
 }
 
+void EngineSelector::selectBuiltin()
+{
+    if (!m_options.builtinLabel.isEmpty()) m_combo->setCurrentIndex(0);
+}
+
 void EngineSelector::saveSelection() const
 {
     if (!m_options.keys.name) return;

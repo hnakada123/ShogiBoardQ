@@ -69,9 +69,9 @@ struct Player {
     Setting<bool> isHuman;
     Setting<bool> isEngine;          ///< isHuman の反対。旧版との互換のため保存だけする
     Setting<QString> humanName;      ///< 未保存なら読む側で翻訳した「You」を補う
-    Setting<int> engineNumber;       ///< 登録一覧の番号（名前・パスが一致するときだけ使う）
-    Setting<QString> engineName;
-    Setting<QString> enginePath;
+    Setting<int> engineNumber;       ///< 以前の版の登録一覧の番号（名前が無いときだけ読む）
+    Setting<QString> engineName;     ///< エンジンの名前（id name）
+    Setting<QString> enginePath;     ///< 以前の版の実行ファイルのパス（名前が無いときだけ読む）
     Setting<int> basicTimeHour;
     Setting<int> basicTimeMinutes;
     Setting<int> byoyomiSec;
@@ -95,9 +95,10 @@ inline const Player player2{
 /// 後手／上手の持ち時間を先手と別に設定するか
 inline const Setting<bool> separateSecondPlayerTime{"GameSettings/isGroupBoxSecondPlayerTimeSettingsChecked", false};
 
-/// 開始局面の番号（デフォルト: 1 = 平手）。範囲外なら名前で選び直す
-inline const Setting<int> startingPositionNumber{"GameSettings/startingPositionNumber", 1};
+/// 開始局面の手合割の名前（Handicaps の名前。空なら現在の局面。デフォルト: 平手）
 inline const Setting<QString> startingPositionName{"GameSettings/startingPositionName", QStringLiteral("平手")};
+/// 以前の版の開始局面の番号（0=現在の局面、1..14=以前の一覧の並び）。読むだけで、保存すると消す
+inline const Setting<int> startingPositionNumber{"GameSettings/startingPositionNumber", 1};
 
 /// 最大手数（デフォルト: 1000）
 inline const Setting<int> maxMoves{"GameSettings/maxMoves", 1000};
