@@ -46,7 +46,7 @@ CSA の読み込み（`CsaLexer`）も、開始局面（PI・P1〜P9・P+/P-・0
 思考情報の読み筋の漢字化（`PvNotationFormatter`）も、思考を始めた局面（`ThinkingInfoFormatter::setSearchPosition` が探索の `UsiPosition` から決める）を
 `Position` に持ち、info 行ごとに作業用の局面へ写して（値の代入）指し手を進め、`KifMoveText::append` で書く。
 読み筋の最初の手の「同」の基準は、探索の局面に至った手（`UsiPosition::lastMove()`。先読み中は予想した相手の手）の移動先である。
-詰将棋の局面生成（`TsumeshogiPositionGenerator`）と駒を1枚除く処理（`TsumeshogiGenerator`）も `Position` で局面を持つ。
+詰将棋の局面生成（`TsumeshogiPositionGenerator`）と駒を1枚除く処理（`TsumeCandidateJob`）も `Position` で局面を持つ。
 
 2つの局面の差分（`SfenDiffUtils`、`src/core/sfendiffutils.h`。局面は `Position::fromSfenLike()` で読む）から手を求めるのは、
 読み筋の盤（`PvBoardController`、`src/dialogs`）だけである。読み筋の手を進めた前後の局面を比べて、移動元と移動先を強調する。

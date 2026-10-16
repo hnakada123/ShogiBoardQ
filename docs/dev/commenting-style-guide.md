@@ -275,13 +275,11 @@ enum class ConnectionState {
 フィールドごとに `///<` で意味を記述する。設計オプションの場合はデフォルト値の意図も補足する。
 
 ```cpp
-/// 解析オプション
+/// 棋譜解析の範囲と思考時間
 struct Options {
-    int  startPly   = 0;     ///< 解析開始手数（0以上）
-    int  endPly     = -1;    ///< 解析終了手数（-1は末尾まで）
-    int  movetimeMs = 1000;  ///< 1局面あたりの思考時間（ms）
-    int  multiPV    = 1;     ///< MultiPVの本数
-    bool centerTree = true;  ///< 解析進捗時にツリーをセンタリングするか
+    int startPly = 0;       ///< 解析を始める手数（0以上）
+    int endPly = -1;        ///< 解析を終える手数（-1 は末尾まで）
+    int movetimeMs = 1000;  ///< 1局面の思考時間（ms）
 };
 ```
 
@@ -297,15 +295,14 @@ struct Options {
 public:
     // --- 初期化 ---
 
-    /// 分岐ツリーを設定する（参照を保持、所有しない）
-    void setBranchTree(KifuBranchTree* tree);
+    AnalysisJob(AnalysisRequest request, const Deps& deps, QObject* parent = nullptr);
 
     // --- 操作 API ---
 
-    /// 指定範囲を順次解析する
-    void startAnalyzeRange();
+    /// 範囲の局面を順に解析する
+    bool start();
 
-    /// 現在の解析を中断する
+    /// 解析をやめる（finished(false) を出す）
     void stop();
 ```
 
@@ -316,7 +313,7 @@ public:
 // 初期化
 // ============================================================
 
-AnalysisCoordinator::AnalysisCoordinator(const Deps& d, QObject* parent)
+AnalysisJob::AnalysisJob(AnalysisRequest request, const Deps& deps, QObject* parent)
     : QObject(parent)
 {
     ...
@@ -326,7 +323,7 @@ AnalysisCoordinator::AnalysisCoordinator(const Deps& d, QObject* parent)
 // 操作 API
 // ============================================================
 
-void AnalysisCoordinator::startAnalyzeRange()
+bool AnalysisJob::start()
 {
     ...
 }

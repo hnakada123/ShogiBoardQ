@@ -14,7 +14,7 @@
 | 601〜1000 | 優勢 | 先手：優勢 / 後手：優勢 |
 | 1001以上 | 勝勢 | 先手：勝勢 / 後手：勝勢 |
 
-- 評価値は先手視点（正=先手有利、負=後手有利）。後手番の局面ではエンジンの評価値の符号を反転して記録する（`AnalysisResultHandler::commitPendingResult()`）
+- 評価値は先手視点（正=先手有利、負=後手有利）。エンジンの評価値（`PlyAnalysis::score`。手番側から見た値）を、後手番の局面では符号を反転して記録する（`AnalysisResultHandler::append()`）
 - 「互角」の場合は先手/後手の接頭辞なし
 - それ以外は評価値の符号に応じて「先手」または「後手」を付け、`tr("%1：%2")` で「先手：優勢」のように表示する
 - 評価値が「-」（定跡・評価値なし）のときは空欄
@@ -30,6 +30,6 @@
 
 ## 実装箇所
 
-- **関数**: `getJudgementString()` (`src/analysis/kifuanalysislistmodel.cpp`)
+- **関数**: `KifuAnalysisListModel::judgementText()` (`src/models/kifuanalysislistmodel.cpp`)
 - **表示**: `KifuAnalysisListModel::data()` のカラム4（「形勢」列）で呼び出される
-- **テスト**: `tests/tst_analysis_coordinator.cpp` の `mateJudgement`
+- **テスト**: `tests/tst_analysis_results.cpp` の `mateJudgement`（符号の反転は `mateScoresKeepTheirSide`）

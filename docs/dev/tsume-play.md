@@ -176,7 +176,7 @@ SHA-256が変わるため通常の解析に戻る。ファイル名や外部のJ
 - `TsumePositionPreview`: 表示中のページにのみ作る、軽量な盤面・持駒表示。
 - `TsumePlayDialog` / `TsumeGameSession`: 入力と対局状態、応手選択、保留・待った。
 - `TsumeSolutionReplay`: 検証済みの正解手順の取得と、対局状態から独立した手順再生。
-- `TsumeMateEngine`: ほかの機能と同じ `UsiEngineSession`（USI の手順と設定の送り方）で動かす詰み判定。`TsumePositionAnalyzer`: 判定方式選択とキャッシュ。
+- `TsumeMateEngine`: ほかの詰み探索と同じ `MateOracle`（`UsiEngineSession` で USI の手順と設定を送る）の `askWithin()` で動かす詰み判定。`TsumePositionAnalyzer`: 判定方式選択とキャッシュ。
 - `TsumeProgressStore`: 設定ファイルとは独立したSQLite集計と解析キャッシュ。
 - `TsumeshogiSettings`（`src/services/tsumeshogisettings.h`）: UI設定を保存する。文字サイズは宣言の表の `Setting<int>`（`tsumePlayFontSize`・`tsumeCollectionFontSize`）、画面サイズや最後に開いたファイルなど複数のキーをまとめる項目は構造体を読み書きする関数（`playPreferences()` / `collectionPreferences()`）。
 
@@ -189,7 +189,7 @@ KomoringHeightsは `PostSearchLevel=MinLength`、`GenerateAllLegalMoves=true`、
 利用者が設定したスレッド数とハッシュが使われていなかった。
 
 KomoringHeights 1.1.0では最短化の途中で時間制限に達しても発見済み手順を返す場合があるため、
-`go mate infinite` を送り、GUI側のタイマーで打ち切る。自然終了した結果だけを確定とし、
+`go mate infinite` を送り、期限（`MateOracle::askWithin()`）までに答えなければ stop を送らずに打ち切る。自然終了した結果だけを確定とし、
 停止・時間切れ時の部分的な読み筋を最短手数として採用しない。
 [KomoringHeightsのオプション](https://github.com/komori-n/KomoringHeights/blob/main/source/engine/user-engine/docs/EngineOptions.txt)
 と [USI仕様](https://shogidokoro2.stars.ne.jp/usi.html)を参照。

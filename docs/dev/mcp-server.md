@@ -36,7 +36,7 @@ shogiboardq_mcp（Python, 公式 mcp SDK）           mcp/shogiboardq_mcp/
 shogiboardq-cli            ShogiBoardQ --automation
 （QApplication offscreen）  （GUI 本体。src/automation/ のサーバーが受け付ける）
    │                        │
-   └── 共通の非 GUI クラス ──┘  src/automation/ のサービス、kifu/formats、engine/UsiEngineSession、analysis/Tsume*
+   └── 共通の非 GUI クラス ──┘  src/automation/ のサービス、kifu/formats、engine/UsiEngineSession・MateOracle、analysis/Tsume*
 ```
 
 | 層 | 役割 | 実装 |

@@ -280,6 +280,13 @@
 - `AnalysisCoordinator`（276行）は削除する。
 - テスト: `tst_tsumeshogi_generator`（51件）、`tst_tsumeshogi_verification`（friend で内部を触っているので書き直し）、`tst_tsume_search`、`mock_mate_engine`、`tst_analysis_coordinator`（530行。AnalysisJob のテストへ移す）、`tst_analysisflow`（410行）、`mcp/tests`。
 
+**状態: 済（b625d5eb）**。案から変えた点:
+- `MateOracle`（`src/engine/mateoracle.h`）は go mate の問い合わせだけを受け持ち、打ち切りの方針は既存の `UsiSearchRequest::mate`（制限時間＋5秒で stop、その後3秒待つ）の1か所に残した。stop の後の答えを不明にするのは `MateAnswer::fromCheckmate` の1か所。KomoringHeights の「go mate infinite を期限まで待ち、stop は送らない」は `askWithin` にした。
+- GUI の詰み探索（`AnalysisSession`）は、思考情報の表示を出すために `Usi` のまま探索し、答えの変換だけ `MateAnswer::fromCheckmate` を使う。`EngineAnalysisRunner` は go mate ではないので `MateOracle` には載せず、初期化前の停止の扱いだけ他の実行器と揃えた。
+- 引き出し型の問い合わせ元は `MateQuerySource`（`nextQuery`・`submit(answer, elapsedMs)`・`isDone`）で、回すのは `MateQueryLoop`（`src/engine/matequeryloop.h`）。余詰検査の総予算と1回の上限（`kQueryMaxMs`）は `TsumeVerificationJob`（`src/analysis/tsumeverificationjob.h`）が持ち、総予算は答えにかかった時間の合計で数える（エンジンなしで試せる）。
+- 候補1つ分は `TsumeCandidateJob`（`src/analysis/tsumecandidatejob.h`。段階は `Stage`）。1枚除いた局面の作り方（`onePieceRemovedPositions`）もここへ移した。
+- `AnalysisCoordinator` は削除した。1局面の結果は `PlyAnalysisCollector` が info と bestmove から作り、`AnalysisJob` が `plyStarted`・`plyAnalyzed(PlyAnalysis)`・`finished(bool completed)` を出す。読み筋の漢字表記はこの集め役が探索した局面の上で作る（思考情報の整形の接続順に頼らない）。テストだけが使っていた1局面の解析と MultiPV の指定は削除した。評価値グラフの点は従来どおり次の局面に移るときに足す。
+
 ### R6. エンジンの表示（思考・検討・通信ログ・評価値グラフ・矢印）に持ち主がない（ui・widgets・models）
 
 **問題**

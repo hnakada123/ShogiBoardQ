@@ -93,9 +93,11 @@ cmake --build build --target translations
 
 - **analysis/**: 解析機能（GUI に依存しない）
   - `analysissession.cpp/.h` - 検討・詰み探索のセッション
-  - `analysiscoordinator.cpp/.h`・`analysisjob` - 棋譜解析
+  - `analysisjob.cpp/.h` - 棋譜解析1回（`AnalysisJob`）。1局面の結果 `PlyAnalysis` は `PlyAnalysisCollector` が multipv 1 の info と bestmove から作る
+  - `tsumecandidatejob.cpp/.h`・`tsumeverificationjob.cpp/.h` - 詰将棋の候補1つの処理（手数の確認・唯一解の検査・要らない駒の除去）と、総予算つきの唯一解の検査（引き出し型の `MateQuerySource`。生成と CLI の検査で共通）
+  - `tsumeshogigenerator.cpp/.h` - 詰将棋の生成（候補の待ち行列・問い合わせの中継・結果の集計）
   - `tsumecollectionsession.cpp/.h` - 詰将棋集の進捗・解析待ちの管理
-  - `sfenvalidationservice`・`tsumeshogigenerator` など
+  - `sfenvalidationservice` など
 
 - **engine/**: USI (Universal Shogi Interface) エンジン連携（対局の仕組みに依存しない）
   - `usi.cpp/.h` - GUI から使うエンジン1台の窓口
@@ -103,6 +105,8 @@ cmake --build build --target translations
   - `usiprotocolhandler.cpp/.h` - USI protocol implementation
   - `thinkinginfoformatter.cpp/.h`・`enginesearchstatus.h` - info を思考の表の行と探索状況 `EngineSearchStatus`（数値のまま。info 1行ごとに `searchStatusUpdated` で1回送り、書式は表示する側が決める）にする
   - `usilineparser.cpp/.h` - 受信行（info・bestmove・checkmate・option・id）を型付きの値にする
+  - `mateoracle.cpp/.h` - 詰みの問い合わせ（go mate）の部品 `MateOracle` と答え `MateAnswer`（`UsiCheckmate` からの変換は `MateAnswer::fromCheckmate` だけ）
+  - `matequeryloop.cpp/.h` - 引き出し型の問い合わせ元 `MateQuerySource` を `MateOracle` で回す `MateQueryLoop`
   - `engineprocessmanager.cpp/.h` - Engine process lifecycle
   - `usimatchhandler.cpp/.h` - 対局・解析での USI のやり取り（position/go/bestmove）
   - `matchtimesource.cpp/.h` - エンジンの思考に使う時間の出どころ `MatchTimeSource`（ローカル対局は対局時計の `ClockTimeSource`、通信対局はサーバーの残り時間を返す `CsaGameCoordinator`、時計のない場合は `FixedTimeSource`）
@@ -134,7 +138,7 @@ cmake --build build --target translations
   - `automationserver.cpp/.h` - QLocalServer で改行区切り JSON-RPC 2.0 を待ち受け
   - `automationdispatcher.cpp/.h` - JSON-RPC 解析とメソッド表（GUI 非依存）
   - `automationcommands_*.cpp` - app / position / kifu / ui の各メソッド、`automationactionpolicy` は QAction 許可リスト
-  - `kifuconversionservice`, `boardimagerenderer`, `engineanalysisrunner`, `matesearchrunner`, `tsumeverificationrunner` - CLI と共有するサービス（局面の検証は `analysis/sfenvalidationservice`）
+  - `kifuconversionservice`, `boardimagerenderer`, `engineanalysisrunner`, `matesearchrunner`, `tsumeverificationrunner`（詰みの問い合わせは `MateOracle`） - CLI と共有するサービス（局面の検証は `analysis/sfenvalidationservice`）
 - **cli/**: `shogiboardq-cli`（GUI を起動しない JSON 出力コマンド。`mcp/` の MCP サーバーが呼び出す）
 - **widgets/**: Custom Qt widgets
   - `thinkingpanel`・`thinkingtableview`（思考の表。対局と検討タブで共用）・`engineinfowidget`（探索状況の書式はここで決める）, `gameinfopane`（対局情報。中身は `models/gameinfoeditmodel`）, `recordpane`, `considerationtabmanager`（検討タブ。設定 `ConsiderationSettings`（`considerationsettings.h`）を正本として持ち、開始/中止のボタンは実行の状態 `RunState` で決まる）, `evaluationchartwidget`（評価値グラフ。`EvaluationSeries` を描くだけ）, `analysisresultspanel`
