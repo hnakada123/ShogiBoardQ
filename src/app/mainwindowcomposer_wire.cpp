@@ -15,8 +15,8 @@
 #include "considerationtabmanager.h"
 #include "considerationuicontroller.h"
 #include "dialoglauncher.h"
-#include "dockuicoordinator.h"
 #include "errorbus.h"
+#include "docklayoutmanager.h"
 #include "evaluationchartwidget.h"
 #include "evaluationgraphpresenter.h"
 #include "gameinfopane.h"
@@ -203,8 +203,9 @@ void MainWindowComposer::connectAnalysisAndUi()
     md.pieceSound = m_c.pieceSoundPlayer;
     md.settingsReset = m_c.settingsReset;
     MenuActionsWiring::wire(md);
-    DockUiCoordinator::wireLayoutMenu(m_c.dockLayoutManager, m_ui.actionResetDockLayout, m_ui.actionSaveDockLayout,
-                                      m_ui.actionLockDocks, m_ui.menuSavedLayouts);
+    m_c.dockLayoutManager->wireMenuActions(m_ui.actionResetDockLayout, m_ui.actionSaveDockLayout,
+                                           /*clearStartupLayout*/ nullptr, m_ui.actionLockDocks,
+                                           m_ui.menuSavedLayouts);
 
     connect(&ErrorBus::instance(), &ErrorBus::messagePosted,
             m_c.notificationService, &UiNotificationService::displayMessage);

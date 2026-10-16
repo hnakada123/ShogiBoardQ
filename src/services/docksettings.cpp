@@ -8,6 +8,24 @@
 
 namespace DockSettings {
 
+DockState dockState(const QString& group, bool defaultVisible)
+{
+    const QSettings& s = SettingsCommon::openSettings();
+    DockState state;
+    state.floating = s.value(group + QStringLiteral("/floating"), false).toBool();
+    state.visible = s.value(group + QStringLiteral("/visible"), defaultVisible).toBool();
+    state.geometry = s.value(group + QStringLiteral("/geometry")).toByteArray();
+    return state;
+}
+
+void setDockState(const QString& group, const DockState& state)
+{
+    QSettings& s = SettingsCommon::openSettings();
+    s.setValue(group + QStringLiteral("/floating"), state.floating);
+    s.setValue(group + QStringLiteral("/visible"), state.visible);
+    s.setValue(group + QStringLiteral("/geometry"), state.geometry);
+}
+
 // 保存されているカスタムドックレイアウト名のリストを取得
 QStringList savedDockLayoutNames()
 {

@@ -9,7 +9,7 @@
 #include <functional>
 #include <tuple>
 
-#include "dockcreationservice.h"
+#include "dockregistry.h"
 #include "branchtreemanager.h"
 #include "commenteditorpanel.h"
 #include "considerationtabmanager.h"
@@ -317,18 +317,18 @@ private slots:
         CsaLogPanel csaLog;
         CommentEditorPanel comment;
         BranchTreeManager branchTree;
-        DockCreationService::Deps deps;
-        deps.mainWindow = &window;
-        deps.displayMenu = &menu;
-        deps.thinking = &thinking;
-        deps.consideration = &consideration;
-        deps.usiLog = &usiLog;
-        deps.csaLog = &csaLog;
-        deps.comment = &comment;
-        deps.branchTree = &branchTree;
-        DockCreationService service(deps);
-        service.createAnalysisDocks();
-        for (QDockWidget* dock : {service.thinkingDock(), service.considerationDock()}) {
+        using Id = DockRegistry::DockId;
+        DockRegistry::Contents contents{};
+        const auto put = [&contents](Id id, QWidget* content) { contents.at(static_cast<std::size_t>(id)) = content; };
+        put(Id::Thinking, &thinking);
+        put(Id::Consideration, &consideration);
+        put(Id::UsiLog, &usiLog);
+        put(Id::CsaLog, &csaLog);
+        put(Id::Comment, &comment);
+        put(Id::BranchTree, &branchTree);
+        DockRegistry registry(&window, &menu);
+        registry.createAll(contents);
+        for (QDockWidget* dock : {registry.dock(Id::Thinking), registry.dock(Id::Consideration)}) {
             QVERIFY(dock);
             auto* boundary = qobject_cast<LayoutBoundaryWidget*>(dock->widget());
             QVERIFY2(boundary, qPrintable(dock->objectName()));
@@ -336,7 +336,7 @@ private slots:
             QVERIFY(!boundary->content()->findChildren<EngineInfoWidget*>().isEmpty());
         }
         // ほかのドックの中身は、そのままドックに置く
-        QVERIFY(!qobject_cast<LayoutBoundaryWidget*>(service.usiLogDock()->widget()));
+        QVERIFY(!qobject_cast<LayoutBoundaryWidget*>(registry.dock(Id::UsiLog)->widget()));
     }
 };
 

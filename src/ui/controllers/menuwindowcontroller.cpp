@@ -12,16 +12,9 @@
 
 MenuWindowController::MenuWindowController(const Deps& deps, QObject* parent)
     : QObject(parent)
-    , m_parentWidget(deps.parentWidget)
     , m_menuBar(deps.menuBar)
+    , m_menuWindow(new MenuWindow(deps.parentWidget))
 {
-}
-
-void MenuWindowController::ensureMenuWindow()
-{
-    if (m_menuWindow) return;
-
-    m_menuWindow = new MenuWindow(m_parentWidget);
 
     // シグナルを接続
     connect(m_menuWindow, &MenuWindow::actionTriggered,
@@ -29,16 +22,12 @@ void MenuWindowController::ensureMenuWindow()
     connect(m_menuWindow, &MenuWindow::favoritesChanged,
             this, &MenuWindowController::favoritesChanged);
 
-    // カテゴリ情報を収集して設定
+    // カテゴリ情報を収集して設定（ドックの表示の切り替えはドックを作った後に collectCategoriesFromMenuBar() で足す）
     collectCategoriesFromMenuBar();
-
-    qCDebug(lcUi) << "MenuWindow created and connected";
 }
 
 void MenuWindowController::displayMenuWindow()
 {
-    ensureMenuWindow();
-
     // ウィンドウを表示する
     m_menuWindow->show();
     m_menuWindow->raise();
@@ -47,7 +36,7 @@ void MenuWindowController::displayMenuWindow()
 
 void MenuWindowController::collectCategoriesFromMenuBar()
 {
-    if (!m_menuBar || !m_menuWindow) return;
+    if (!m_menuBar) return;
 
     QList<MenuWindow::CategoryInfo> categories;
 

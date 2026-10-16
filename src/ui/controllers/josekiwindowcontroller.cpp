@@ -23,13 +23,6 @@ JosekiWindowController::JosekiWindowController(const Deps& deps, QObject* parent
     , m_boardMoves(deps.boardMoves)
 {
     Q_ASSERT(m_gameController && m_navState && m_boardMoves);
-    connect(m_navState, &KifuNavigationState::changed, this, &JosekiWindowController::updateJosekiWindow);
-}
-
-void JosekiWindowController::ensureJosekiWindow()
-{
-    if (m_josekiWindow) return;
-
     m_josekiWindow = new JosekiWindow(m_parentWidget);
 
     // 定跡手選択シグナルを接続
@@ -42,8 +35,7 @@ void JosekiWindowController::ensureJosekiWindow()
     // 棋譜データ要求シグナルを接続
     connect(m_josekiWindow, &JosekiWindow::requestKifuDataForMerge,
             this, &JosekiWindowController::onRequestKifuDataForMerge);
-
-    qCDebug(lcUi) << "JosekiWindow created and connected";
+    connect(m_navState, &KifuNavigationState::changed, this, &JosekiWindowController::updateJosekiWindow);
 }
 
 void JosekiWindowController::attachDock(QDockWidget* dock)
@@ -67,7 +59,7 @@ void JosekiWindowController::updateJosekiWindow()
 {
     // 定跡ウィンドウが存在し、表示されている場合のみ更新。タブの裏に回ったドックの中身は
     // isVisible() が真のままなので、ドックが前面にあるかも見る（1手ごとに呼ばれる）
-    if (!m_josekiWindow || !m_josekiWindow->isVisible()) {
+    if (!m_josekiWindow->isVisible()) {
         return;
     }
     if (m_dockWidget && !m_dockShown) return;
@@ -94,29 +86,24 @@ void JosekiWindowController::onJosekiMoveSelected(const QString& usiMove)
     }
     // 最後に表示を更新した後で終局・手番交代していれば、着手ボタンを消して何もしない
     if (!determineHumanCanPlay()) {
-        if (m_josekiWindow) m_josekiWindow->setHumanCanPlay(false);
+        m_josekiWindow->setHumanCanPlay(false);
         return;
     }
 
     const auto move = UsiMove::parse(usiMove);
     if (!move) {
         qCWarning(lcUi) << "onJosekiMoveSelected: invalid move format";
-        if (m_josekiWindow) m_josekiWindow->showMoveFailed(usiMove);
+        m_josekiWindow->showMoveFailed(usiMove);
         return;
     }
     // 定跡手は成り・不成が決まっているので、成りの選択を出さずにそのまま指す
     const bool moveSuccess = m_boardMoves->playUsiMove(*move);
     qCDebug(lcUi) << "Move result: success=" << moveSuccess;
-    if (m_josekiWindow && !moveSuccess) m_josekiWindow->showMoveFailed(usiMove);
+    if (!moveSuccess) m_josekiWindow->showMoveFailed(usiMove);
 }
 
 void JosekiWindowController::onRequestKifuDataForMerge()
 {
-    if (!m_josekiWindow) {
-        qCWarning(lcUi) << "onRequestKifuDataForMerge: m_josekiWindow is null";
-        return;
-    }
-
     // 表示中の手順（分岐を選んでいればその分岐）の局面・指し手・表記をそろえて渡す
     const RecordLine line = m_navState ? m_navState->currentRecordLine() : RecordLine{};
     qCDebug(lcUi) << "onRequestKifuDataForMerge: moves=" << line.moveCount()

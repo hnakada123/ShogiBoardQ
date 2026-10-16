@@ -9,6 +9,7 @@
 #include <QList>
 #include <QDockWidget>
 
+class DockRegistry;
 class QMainWindow;
 class QMenu;
 
@@ -16,7 +17,7 @@ class QMenu;
  * @brief ドックウィジェットのレイアウト管理を担当するクラス
  *
  * 責務:
- * - デフォルトレイアウトへのリセット
+ * - デフォルトレイアウトへのリセット（DockRegistry の表の配置）
  * - レイアウトの保存/復元
  * - 起動時レイアウトの設定
  * - ドックのロック/アンロック
@@ -27,33 +28,8 @@ class DockLayoutManager : public QObject
     Q_OBJECT
 
 public:
-    /**
-     * @brief ドックの種類を示す列挙型
-     */
-    enum class DockType {
-        Menu,            // メニューウィンドウ
-        Joseki,          // 定跡ウィンドウ
-        Record,          // 棋譜
-        GameInfo,        // 対局情報
-        Thinking,        // 思考
-        Consideration,   // 検討
-        UsiLog,          // USIログ
-        CsaLog,          // CSAログ
-        Comment,         // コメント
-        BranchTree,      // 分岐ツリー
-        EvalChart,       // 評価値グラフ
-        AnalysisResults, // 棋譜解析結果
-        Count            // ドックの数
-    };
-
-    explicit DockLayoutManager(QMainWindow* mainWindow, QObject* parent = nullptr);
-
-    /**
-     * @brief ドックウィジェットを登録する
-     * @param type ドックの種類
-     * @param dock ドックウィジェット
-     */
-    void registerDock(DockType type, QDockWidget* dock);
+    /// docks のドックの配置を扱う（ドックの表・規定の配置・状態の保存は DockRegistry）
+    DockLayoutManager(QMainWindow* mainWindow, DockRegistry* docks, QObject* parent = nullptr);
 
     /**
      * @brief 保存済みレイアウトメニューを設定する
@@ -122,7 +98,7 @@ public:
     void setDocksLocked(bool locked);
 
     /**
-     * @brief ドックの状態（浮動/可視/ジオメトリ）を設定サービスへ保存
+     * @brief すべてのドックの状態（浮動/可視/ジオメトリ）を保存
      */
     void saveDockStates();
 
@@ -131,13 +107,6 @@ private:
      * @brief すべてのドックを表示状態にする（復元前の準備）
      */
     void showAllDocks();
-
-    /**
-     * @brief 指定したドックを取得する
-     * @param type ドックの種類
-     * @return ドックウィジェット（未登録の場合はnullptr）
-     */
-    QDockWidget* dock(DockType type) const;
 
     /// sender() の QAction::data() からレイアウト名を取得して restoreLayout を呼ぶ
     void onRestoreLayoutTriggered();
@@ -148,7 +117,7 @@ private:
 
     QMainWindow* m_mainWindow = nullptr;
     QMenu* m_savedLayoutsMenu = nullptr;
-    QList<QDockWidget*> m_docks;
+    DockRegistry* m_docks = nullptr;
 };
 
 #endif // DOCKLAYOUTMANAGER_H

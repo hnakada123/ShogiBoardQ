@@ -64,7 +64,7 @@ class KifuLoadCoordinator;
 class AnalysisResultsPanel;
 class CandidateArrowPresenter;
 class CommentCoordinator;
-class DockCreationService;
+class DockRegistry;
 class DockLayoutManager;
 class EngineDisplayPresenter;
 class EvaluationGraphPresenter;
@@ -95,22 +95,6 @@ class AutomationServer;
 #ifdef QT_DEBUG
 class DebugScreenshotShortcut;
 #endif
-
-/// ドックウィジェット群
-struct DockWidgets {
-    QDockWidget* evalChart = nullptr;
-    QDockWidget* recordPane = nullptr;
-    QDockWidget* gameInfo = nullptr;
-    QDockWidget* thinking = nullptr;
-    QDockWidget* consideration = nullptr;
-    QDockWidget* usiLog = nullptr;
-    QDockWidget* csaLog = nullptr;
-    QDockWidget* comment = nullptr;
-    QDockWidget* branchTree = nullptr;
-    QDockWidget* menuWindow = nullptr;
-    QDockWidget* josekiWindow = nullptr;
-    QDockWidget* analysisResults = nullptr;
-};
 
 /**
  * @brief 起動時に MainWindowComposer が依存順に作る部品の一覧
@@ -156,7 +140,7 @@ struct MainWindowComponents {
     BranchTreeManager* branchTreeView = nullptr;        ///< 分岐ツリードック
     EvaluationChartWidget* evalChart = nullptr;
     GameInfoPane* gameInfoPane = nullptr;
-    DockWidgets docks;
+    DockRegistry* dockRegistry = nullptr;  ///< ドック（表・作成・規定の配置・状態の保存）
 
     // --- 棋譜の表示と編集 ---
     KifuDisplayPresenter* kifuDisplay = nullptr;        ///< 棋譜欄・分岐候補・分岐ツリー
@@ -185,7 +169,6 @@ struct MainWindowComponents {
     EvaluationGraphPresenter* evalGraph = nullptr;
     CandidateArrowPresenter* arrows = nullptr;          ///< 候補手の矢印
     AnalysisResultsPanel* analysisResults = nullptr;
-    DockCreationService* dockCreationService = nullptr;
     DockLayoutManager* dockLayoutManager = nullptr;
     UiStatePolicyManager* uiStatePolicy = nullptr;
     UiNotificationService* notificationService = nullptr;

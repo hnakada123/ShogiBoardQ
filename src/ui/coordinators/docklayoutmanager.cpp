@@ -6,6 +6,7 @@
 #include "dialogutils.h"
 #include "docklayoutmanager.h"
 #include "docksettings.h"
+#include "dockregistry.h"
 
 #include <QMainWindow>
 #include <QMenu>
@@ -15,19 +16,12 @@
 
 #include "logcategories.h"
 
-DockLayoutManager::DockLayoutManager(QMainWindow* mainWindow, QObject* parent)
+DockLayoutManager::DockLayoutManager(QMainWindow* mainWindow, DockRegistry* docks, QObject* parent)
     : QObject(parent)
     , m_mainWindow(mainWindow)
-    , m_docks(static_cast<int>(DockType::Count), nullptr)
+    , m_docks(docks)
 {
-}
-
-void DockLayoutManager::registerDock(DockType type, QDockWidget* dock)
-{
-    const int index = static_cast<int>(type);
-    if (index >= 0 && index < m_docks.size()) {
-        m_docks[index] = dock;
-    }
+    Q_ASSERT(m_mainWindow && m_docks);
 }
 
 void DockLayoutManager::setSavedLayoutsMenu(QMenu* menu)
@@ -35,94 +29,15 @@ void DockLayoutManager::setSavedLayoutsMenu(QMenu* menu)
     m_savedLayoutsMenu = menu;
 }
 
-QDockWidget* DockLayoutManager::dock(DockType type) const
-{
-    const int index = static_cast<int>(type);
-    if (index >= 0 && index < m_docks.size()) {
-        return m_docks[index];
-    }
-    return nullptr;
-}
-
 void DockLayoutManager::showAllDocks()
 {
-    for (QDockWidget* d : std::as_const(m_docks)) {
-        if (d) {
-            d->setVisible(true);
-        }
-    }
+    const QList<QDockWidget*> docks = m_docks->docks();
+    for (QDockWidget* d : docks) d->setVisible(true);
 }
 
 void DockLayoutManager::resetToDefault()
 {
-    if (!m_mainWindow) return;
-
-    auto* menuDock = dock(DockType::Menu);
-    auto* josekiDock = dock(DockType::Joseki);
-    auto* recordDock = dock(DockType::Record);
-    auto* gameInfoDock = dock(DockType::GameInfo);
-    auto* thinkingDock = dock(DockType::Thinking);
-    auto* considerationDock = dock(DockType::Consideration);
-    auto* usiLogDock = dock(DockType::UsiLog);
-    auto* csaLogDock = dock(DockType::CsaLog);
-    auto* commentDock = dock(DockType::Comment);
-    auto* branchTreeDock = dock(DockType::BranchTree);
-    auto* evalChartDock = dock(DockType::EvalChart);
-    auto* analysisResultsDock = dock(DockType::AnalysisResults);
-
-    // すべてのドックをフローティング解除
-    for (QDockWidget* d : std::as_const(m_docks)) {
-        if (d) {
-            d->setFloating(false);
-        }
-    }
-
-    // まず全てのドックをいったん削除
-    for (QDockWidget* d : std::as_const(m_docks)) {
-        if (d) m_mainWindow->removeDockWidget(d);
-    }
-
-    // 起動時（DockCreationService）と同じ配置に戻す。
-    // 右: 棋譜。メニューは棋譜とタブにまとめる（既定は非表示）
-    if (recordDock) {
-        m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, recordDock);
-        recordDock->setVisible(true);
-    }
-    if (menuDock) {
-        m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, menuDock);
-        if (recordDock) m_mainWindow->tabifyDockWidget(recordDock, menuDock);
-        menuDock->setVisible(false);
-    }
-
-    // 下: 起動時と同じ順にタブ化する。定跡と棋譜解析は既定で非表示
-    const QList<QDockWidget*> bottomDocks = {
-        gameInfoDock, thinkingDock, considerationDock, usiLogDock, csaLogDock,
-        commentDock, branchTreeDock, evalChartDock, josekiDock, analysisResultsDock
-    };
-    QDockWidget* prevDock = nullptr;
-    for (QDockWidget* d : bottomDocks) {
-        if (!d) continue;
-        if (!prevDock) {
-            m_mainWindow->addDockWidget(Qt::BottomDockWidgetArea, d);
-        } else {
-            m_mainWindow->tabifyDockWidget(prevDock, d);
-        }
-        d->setVisible(d != josekiDock && d != analysisResultsDock);
-        prevDock = d;
-    }
-
-    // 起動時と同じく思考タブと棋譜を前面にする
-    if (thinkingDock) {
-        thinkingDock->raise();
-    }
-    if (recordDock) {
-        recordDock->raise();
-    }
-
-    // ドックのサイズを調整
-    if (recordDock) {
-        m_mainWindow->resizeDocks({recordDock}, {350}, Qt::Horizontal);
-    }
+    m_docks->resetToDefault();
 }
 
 void DockLayoutManager::saveLayoutAs()
@@ -318,11 +233,10 @@ void DockLayoutManager::setDocksLocked(bool locked)
         ? QDockWidget::DockWidgetClosable  // 固定時は閉じるのみ許可
         : (QDockWidget::DockWidgetClosable | QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable);
 
-    for (QDockWidget* d : std::as_const(m_docks)) {
-        if (d) {
-            d->setAllowedAreas(areas);
-            d->setFeatures(features);
-        }
+    const QList<QDockWidget*> docks = m_docks->docks();
+    for (QDockWidget* d : docks) {
+        d->setAllowedAreas(areas);
+        d->setFeatures(features);
     }
 }
 
@@ -352,39 +266,5 @@ void DockLayoutManager::onDeleteLayoutTriggered()
 
 void DockLayoutManager::saveDockStates()
 {
-    // 必要なドックのみ保存（従来MainWindowが行っていたもの）
-    auto saveIf = [](QDockWidget* dock,
-                     const Setting<bool>& floating,
-                     const Setting<bool>& visible,
-                     const Setting<QByteArray>& geometry) {
-        if (!dock) return;
-        floating.set(dock->isFloating());
-        visible.set(dock->isVisible());
-        geometry.set(dock->saveGeometry());
-    };
-
-    saveIf(dock(DockType::EvalChart),
-           DockSettings::evalChartDockFloating,
-           DockSettings::evalChartDockVisible,
-           DockSettings::evalChartDockGeometry);
-
-    saveIf(dock(DockType::Record),
-           DockSettings::recordPaneDockFloating,
-           DockSettings::recordPaneDockVisible,
-           DockSettings::recordPaneDockGeometry);
-
-    saveIf(dock(DockType::Menu),
-           DockSettings::menuWindowDockFloating,
-           DockSettings::menuWindowDockVisible,
-           DockSettings::menuWindowDockGeometry);
-
-    saveIf(dock(DockType::Joseki),
-           DockSettings::josekiWindowDockFloating,
-           DockSettings::josekiWindowDockVisible,
-           DockSettings::josekiWindowDockGeometry);
-
-    saveIf(dock(DockType::AnalysisResults),
-           DockSettings::kifuAnalysisResultsDockFloating,
-           DockSettings::kifuAnalysisResultsDockVisible,
-           DockSettings::kifuAnalysisResultsDockGeometry);
+    m_docks->saveStates();
 }

@@ -30,6 +30,7 @@
 #include "dialoglauncher.h"
 #include "kifuanalysislistmodel.h"
 #include "boardsyncpresenter.h"
+#include "dockregistry.h"
 #include "kifudisplaypresenter.h"
 #include "kifunavigationcontroller.h"
 #include "livegamesession.h"
@@ -239,7 +240,7 @@ private slots:
         window.show();
         QVERIFY(QTest::qWaitForWindowExposed(&window));
         auto& parts = window.composer().parts();
-        QDockWidget* dock = parts.docks.menuWindow;
+        QDockWidget* dock = parts.dockRegistry->dock(DockRegistry::DockId::Menu);
         QVERIFY(dock);
         const bool wasVisible = dock->isVisible();
 
@@ -247,7 +248,7 @@ private slots:
         QCOMPARE(dock->isVisible(), !wasVisible);
         parts.dialogLauncher->displayMenuWindow();
         QCOMPARE(dock->isVisible(), wasVisible);
-        QCOMPARE(parts.docks.menuWindow, dock);
+        QCOMPARE(parts.dockRegistry->dock(DockRegistry::DockId::Menu), dock);
     }
 
 private:
