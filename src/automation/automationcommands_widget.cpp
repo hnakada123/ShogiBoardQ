@@ -2,32 +2,21 @@
 /// @brief 検討タブなどの通常UI操作を自動化APIへ公開する
 
 #include "automationcommands.h"
+#include "automationinput.h"
+#include "automationinteractions.h"
 #include "automationparams.h"
+#include "automationwidgetadapters.h"
 #include "automationwidgets.h"
 
 #include <QAbstractButton>
 #include <QApplication>
-#include <QComboBox>
-#include <QCompleter>
-#include <QColorDialog>
-#include <QDoubleSpinBox>
-#include <QGroupBox>
-#include <QListView>
-#include <QSlider>
 #include <QClipboard>
 #include <QDockWidget>
 #include <QImage>
 #include <QKeyEvent>
 #include <QLineEdit>
-#include <QMouseEvent>
 #include <QPersistentModelIndex>
-#include <QPointer>
-#include <QPlainTextEdit>
-#include <QSpinBox>
 #include <QTableView>
-#include <QTabWidget>
-#include <QTextEdit>
-#include <cmath>
 
 namespace {
 
@@ -36,26 +25,71 @@ QWidget* targetWidget(const AutomationContext& context, const QJsonObject& param
     return AutomationWidgets::requireWidget(context, params, requireVisible);
 }
 
-QJsonObject queued(QWidget* widget)
+QJsonObject named(QWidget* widget)
 {
-    return {{QStringLiteral("queued"), true}, {QStringLiteral("object_name"), widget->objectName()}};
+    return {{QStringLiteral("object_name"), widget->objectName()}};
 }
 
-void clickCell(QTableView* table, const QPersistentModelIndex& index)
+/// セルが表示されていて有効か（editable なら編集もできるか）。そうでなければ AutomationError
+void requireCell(QTableView* table, const QPersistentModelIndex& index, bool editable)
 {
     AutomationWidgets::requireInteractive(table);
-    if (!index.isValid() || !(index.flags() & Qt::ItemIsEnabled)
-        || table->isRowHidden(index.row()) || table->isColumnHidden(index.column())) return;
+    if (!index.isValid() || !(index.flags() & Qt::ItemIsEnabled) || (editable && !(index.flags() & Qt::ItemIsEditable))
+        || table->isRowHidden(index.row()) || table->isColumnHidden(index.column()))
+        throw AutomationError(ErrorKind::InvalidState, editable ? QStringLiteral("Cell is read-only, hidden or disabled")
+                                                                : QStringLiteral("Cell is hidden or disabled"));
+}
+
+/// table のセルの入力欄を開いて text を入れる（commit なら Enter で確定する）
+void editCell(QTableView* table, const QPersistentModelIndex& index, const QString& text, bool commit)
+{
+    table->scrollTo(index);
+    table->setCurrentIndex(index);
+    table->setFocus();
+    table->edit(index);
+    auto* editor = qobject_cast<QLineEdit*>(QApplication::focusWidget());
+    // ダイアログを閉じた直後など、ウィンドウが非アクティブだと
+    // 生成済みのdelegate入力欄にもフォーカスが移らないことがある。
+    if (!editor || !table->isAncestorOf(editor)) {
+        editor = nullptr;
+        const auto edits = table->findChildren<QLineEdit*>();
+        for (auto* candidate : edits) {
+            if (candidate->isVisibleTo(table)) { editor = candidate; break; }
+        }
+    }
+    if (!editor || !table->isAncestorOf(editor) || editor->isReadOnly())
+        throw AutomationError(ErrorKind::InvalidState, QStringLiteral("The cell did not open a text editor"));
+    if (AutomationWidgets::isSensitive(editor))
+        throw AutomationError(ErrorKind::NotAllowed, QStringLiteral("Sensitive controls are not accessible through automation"));
+    editor->setText(text);
+    if (commit) {
+        QKeyEvent enter(QEvent::KeyPress, Qt::Key_Return, Qt::NoModifier);
+        QApplication::sendEvent(editor, &enter);
+    }
+}
+
+/// table のセルを通常のマウス入力でクリックする
+void clickCell(QTableView* table, const QPersistentModelIndex& index)
+{
     table->scrollTo(index);
     const QRect rect = table->visualRect(index);
-    if (rect.isEmpty()) return;
-    QWidget* viewport = table->viewport();
-    const QPointF pos(rect.center());
-    const QPointF global(viewport->mapToGlobal(pos.toPoint()));
-    QMouseEvent press(QEvent::MouseButtonPress, pos, global, Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
-    QMouseEvent release(QEvent::MouseButtonRelease, pos, global, Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
-    QApplication::sendEvent(viewport, &press);
-    QApplication::sendEvent(viewport, &release);
+    if (rect.isEmpty()) throw AutomationError(ErrorKind::InvalidState, QStringLiteral("Cell is not displayed"));
+    AutomationInput::sendClick(table->viewport(), rect.center());
+}
+
+QTableView* requireTable(const AutomationContext& context, const QJsonObject& params)
+{
+    auto* table = qobject_cast<QTableView*>(targetWidget(context, params));
+    if (!table || !table->model())
+        throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("Widget must be a table with a model"));
+    return table;
+}
+
+QPersistentModelIndex requireIndex(QTableView* table, const QJsonObject& params)
+{
+    const int row = AutomationParams::requireInt(params, QStringLiteral("row"), 0, table->model()->rowCount() - 1);
+    const int column = AutomationParams::requireInt(params, QStringLiteral("column"), 0, table->model()->columnCount() - 1);
+    return QPersistentModelIndex(table->model()->index(row, column));
 }
 
 } // namespace
@@ -63,47 +97,15 @@ void clickCell(QTableView* table, const QPersistentModelIndex& index)
 void AutomationCommands::registerWidgetCommands(AutomationDispatcher& dispatcher, const AutomationContext& context)
 {
     dispatcher.registerMethod(QStringLiteral("widget.editCell"), [context](const QJsonObject& params) {
-        auto* table = qobject_cast<QTableView*>(targetWidget(context, params));
-        if (!table || !table->model())
-            throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("Widget must be a table with a model"));
-        const int row = AutomationParams::requireInt(params, QStringLiteral("row"), 0, table->model()->rowCount() - 1);
-        const int column = AutomationParams::requireInt(params, QStringLiteral("column"), 0, table->model()->columnCount() - 1);
+        auto* table = requireTable(context, params);
+        const QPersistentModelIndex index = requireIndex(table, params);
         const QString text = params.value(QStringLiteral("text")).toString();
         const bool commit = params.value(QStringLiteral("commit")).toBool();
-        const QPersistentModelIndex index(table->model()->index(row, column));
-        if (!(index.flags() & Qt::ItemIsEditable) || !(index.flags() & Qt::ItemIsEnabled)
-            || table->isRowHidden(row) || table->isColumnHidden(column))
-            throw AutomationError(ErrorKind::InvalidState, QStringLiteral("Cell is read-only, hidden or disabled"));
-        AutomationDeferredCall::schedule([table, index, text, commit]() {
-            try {
-                AutomationWidgets::requireInteractive(table);
-                if (!index.isValid() || !(index.flags() & Qt::ItemIsEditable)
-                    || !(index.flags() & Qt::ItemIsEnabled)
-                    || table->isRowHidden(index.row()) || table->isColumnHidden(index.column())) return;
-                table->scrollTo(index);
-                table->setCurrentIndex(index);
-                table->setFocus();
-                table->edit(index);
-                auto* editor = qobject_cast<QLineEdit*>(QApplication::focusWidget());
-                // ダイアログを閉じた直後など、ウィンドウが非アクティブだと
-                // 生成済みのdelegate入力欄にもフォーカスが移らないことがある。
-                if (!editor || !table->isAncestorOf(editor)) {
-                    editor = nullptr;
-                    const auto edits = table->findChildren<QLineEdit*>();
-                    for (auto* candidate : edits) {
-                        if (candidate->isVisibleTo(table)) { editor = candidate; break; }
-                    }
-                }
-                if (!editor || !table->isAncestorOf(editor) || editor->isReadOnly()
-                    || AutomationWidgets::isSensitive(editor)) return;
-                editor->setText(text);
-                if (commit) {
-                    QKeyEvent enter(QEvent::KeyPress, Qt::Key_Return, Qt::NoModifier);
-                    QApplication::sendEvent(editor, &enter);
-                }
-            } catch (const AutomationError&) { }
-        }, table);
-        return queued(table);
+        requireCell(table, index, true);
+        return AutomationInteractions::queue(
+            {table, [table, index]() { requireCell(table, index, true); },
+             [table, index, text, commit]() { editCell(table, index, text, commit); }},
+            named(table));
     });
 
     dispatcher.registerMethod(QStringLiteral("clipboard.get"), [](const QJsonObject& params) {
@@ -122,24 +124,21 @@ void AutomationCommands::registerWidgetCommands(AutomationDispatcher& dispatcher
         auto* dock = qobject_cast<QDockWidget*>(targetWidget(context, params, false));
         if (!dock) throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("Widget must be a dock"));
         AutomationWidgets::requireInteractive(dock->parentWidget());
-        AutomationDeferredCall::schedule([dock]() {
-            try {
-                AutomationWidgets::requireInteractive(dock->parentWidget());
-                dock->show();
-                dock->raise();
-            } catch (const AutomationError&) { }
-        }, dock);
-        return queued(dock);
+        return AutomationInteractions::queue(
+            {dock, [dock]() { AutomationWidgets::requireInteractive(dock->parentWidget()); },
+             [dock]() {
+                 dock->show();
+                 dock->raise();
+             }},
+            named(dock));
     });
 
     dispatcher.registerMethod(QStringLiteral("widget.click"), [context](const QJsonObject& params) {
         auto* button = qobject_cast<QAbstractButton*>(targetWidget(context, params));
         if (!button) throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("Widget must be a button"));
-        AutomationDeferredCall::schedule([button]() {
-            try { AutomationWidgets::requireInteractive(button); button->click(); }
-            catch (const AutomationError&) { }
-        }, button);
-        return queued(button);
+        return AutomationInteractions::queue(
+            {button, [button]() { AutomationWidgets::requireInteractive(button); }, [button]() { button->click(); }},
+            named(button));
     });
 
     dispatcher.registerMethod(QStringLiteral("widget.setValue"), [context](const QJsonObject& params) {
@@ -148,121 +147,21 @@ void AutomationCommands::registerWidgetCommands(AutomationDispatcher& dispatcher
                 params.value(QStringLiteral("target")).toString()))
             throw AutomationError(ErrorKind::NotAllowed, QStringLiteral("Widget belongs to another window"));
         AutomationWidgets::requireInteractive(widget, false, true);
-        const QJsonValue value = params.value(QStringLiteral("value"));
-        const bool submit = params.value(QStringLiteral("submit")).toBool();
-        if (submit && !qobject_cast<QLineEdit*>(widget))
+        if (params.value(QStringLiteral("submit")).toBool() && !qobject_cast<QLineEdit*>(widget))
             throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("submit requires a line edit"));
-        std::function<void()> apply;
-        if (auto* picker = qobject_cast<QColorDialog*>(widget)) {
-            const QColor color(value.toString());
-            if (!value.isString() || !color.isValid())
-                throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("value must be a valid color"));
-            apply = [picker, color]() { picker->setCurrentColor(color); };
-        } else if (auto* combo = qobject_cast<QComboBox*>(widget)) {
-            const int index = value.isString() ? combo->findText(value.toString(), Qt::MatchExactly)
-                : AutomationParams::requireInt(params, QStringLiteral("value"), 0, combo->count() - 1);
-            if (index < 0) throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("No matching combo item"));
-            apply = [combo, index]() {
-                QPointer<QComboBox> guard(combo);
-                const QString text = combo->itemText(index);
-                combo->setCurrentIndex(index);
-                if (!guard) return;
-                Q_EMIT combo->activated(index);
-                if (guard) Q_EMIT combo->textActivated(text);
-            };
-        } else if (auto* lineEdit = qobject_cast<QLineEdit*>(widget)) {
-            if (lineEdit->isReadOnly())
-                throw AutomationError(ErrorKind::InvalidState, QStringLiteral("Text field is read-only or protected"));
-            if (!value.isString()) throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("value must be text"));
-            const QString text = value.toString();
-            if (text.size() > lineEdit->maxLength())
-                throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("Text exceeds the field limit"));
-            apply = [lineEdit, text, submit]() {
-                if (lineEdit->isReadOnly()) return;
-                QPointer<QLineEdit> guard(lineEdit);
-                lineEdit->selectAll();
-                lineEdit->insert(text); // ユーザー編集と同じtextEditedも発行する（色入力等）。
-                // 全文を一度に指定する操作では、補完候補が次のボタン操作を遮らないよう閉じる。
-                if (guard && lineEdit->completer() && lineEdit->completer()->popup())
-                    lineEdit->completer()->popup()->hide();
-                if (submit && guard) {
-                    QKeyEvent enter(QEvent::KeyPress, Qt::Key_Return, Qt::NoModifier);
-                    QApplication::sendEvent(lineEdit, &enter);
-                }
-            };
-        } else if (auto* plainEdit = qobject_cast<QPlainTextEdit*>(widget)) {
-            if (plainEdit->isReadOnly()) throw AutomationError(ErrorKind::InvalidState, QStringLiteral("Text field is read-only"));
-            if (!value.isString()) throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("value must be text"));
-            apply = [plainEdit, value]() { plainEdit->setPlainText(value.toString()); };
-        } else if (auto* richEdit = qobject_cast<QTextEdit*>(widget)) {
-            if (richEdit->isReadOnly()) throw AutomationError(ErrorKind::InvalidState, QStringLiteral("Text field is read-only"));
-            if (!value.isString()) throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("value must be text"));
-            apply = [richEdit, value]() { richEdit->setPlainText(value.toString()); };
-        } else if (auto* spin = qobject_cast<QSpinBox*>(widget)) {
-            if (spin->isReadOnly()) throw AutomationError(ErrorKind::InvalidState, QStringLiteral("Spin box is read-only"));
-            const int number = AutomationParams::requireInt(params, QStringLiteral("value"), spin->minimum(), spin->maximum());
-            apply = [spin, number]() { spin->setValue(number); };
-        } else if (auto* doubleSpin = qobject_cast<QDoubleSpinBox*>(widget)) {
-            const double number = value.toDouble();
-            if (doubleSpin->isReadOnly()) throw AutomationError(ErrorKind::InvalidState, QStringLiteral("Spin box is read-only"));
-            if (!value.isDouble() || !std::isfinite(number) || number < doubleSpin->minimum() || number > doubleSpin->maximum())
-                throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("value is outside the spin box range"));
-            apply = [doubleSpin, number]() { doubleSpin->setValue(number); };
-        } else if (auto* slider = qobject_cast<QSlider*>(widget)) {
-            const int number = AutomationParams::requireInt(params, QStringLiteral("value"), slider->minimum(), slider->maximum());
-            apply = [slider, number]() { slider->setValue(number); };
-        } else if (auto* group = qobject_cast<QGroupBox*>(widget); group && group->isCheckable()) {
-            if (!value.isBool()) throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("value must be boolean"));
-            apply = [group, value]() { group->setChecked(value.toBool()); };
-        } else if (auto* list = qobject_cast<QListView*>(widget); list && list->model()) {
-            const int row = AutomationParams::requireInt(params, QStringLiteral("value"), 0, list->model()->rowCount() - 1);
-            const QPersistentModelIndex index(list->model()->index(row, 0));
-            if (!(index.flags() & Qt::ItemIsEnabled) || !(index.flags() & Qt::ItemIsSelectable) || list->isRowHidden(row))
-                throw AutomationError(ErrorKind::InvalidState, QStringLiteral("List item is hidden or disabled"));
-            apply = [list, index]() {
-                if (!index.isValid() || !(index.flags() & Qt::ItemIsEnabled) || list->isRowHidden(index.row())) return;
-                list->setCurrentIndex(index);
-                list->selectionModel()->select(index, QItemSelectionModel::ClearAndSelect);
-                list->scrollTo(index);
-            };
-        } else if (auto* button = qobject_cast<QAbstractButton*>(widget); button && button->isCheckable()) {
-            if (!value.isBool()) throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("value must be boolean"));
-            const bool checked = value.toBool();
-            if (!checked && button->autoExclusive()) {
-                throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("Select another radio button instead"));
-            }
-            apply = [button, checked]() { if (button->isChecked() != checked) button->click(); };
-        } else if (auto* tabs = qobject_cast<QTabWidget*>(widget)) {
-            const int index = AutomationParams::requireInt(params, QStringLiteral("value"), 0, tabs->count() - 1);
-            if (!tabs->isTabEnabled(index) || !tabs->isTabVisible(index)) {
-                throw AutomationError(ErrorKind::InvalidState, QStringLiteral("Tab is hidden or disabled"));
-            }
-            apply = [tabs, index]() { tabs->setCurrentIndex(index); };
-        } else {
-            throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("Unsupported widget type"));
-        }
-        AutomationDeferredCall::schedule([widget, apply]() {
-            try { AutomationWidgets::requireInteractive(widget, false, true); apply(); }
-            catch (const AutomationError&) { }
-        }, widget);
-        return queued(widget);
+        // 型ごとの検査と書き方は AutomationWidgetAdapters の表
+        const std::function<void()> write = AutomationWidgetAdapters::writer(widget, params);
+        return AutomationInteractions::queue(
+            {widget, [widget]() { AutomationWidgets::requireInteractive(widget, false, true); }, write}, named(widget));
     });
 
     dispatcher.registerMethod(QStringLiteral("widget.clickCell"), [context](const QJsonObject& params) {
-        auto* table = qobject_cast<QTableView*>(targetWidget(context, params));
-        if (!table || !table->model()) {
-            throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("Widget must be a table with a model"));
-        }
-        const int row = AutomationParams::requireInt(params, QStringLiteral("row"), 0, table->model()->rowCount() - 1);
-        const int column = AutomationParams::requireInt(params, QStringLiteral("column"), 0, table->model()->columnCount() - 1);
-        const QPersistentModelIndex index(table->model()->index(row, column));
-        if (table->isRowHidden(row) || table->isColumnHidden(column) || !(index.flags() & Qt::ItemIsEnabled)) {
-            throw AutomationError(ErrorKind::InvalidState, QStringLiteral("Cell is hidden or disabled"));
-        }
-        AutomationDeferredCall::schedule([table, index]() {
-            try { clickCell(table, index); }
-            catch (const AutomationError&) { }
-        }, table);
-        return queued(table);
+        auto* table = requireTable(context, params);
+        const QPersistentModelIndex index = requireIndex(table, params);
+        requireCell(table, index, false);
+        return AutomationInteractions::queue(
+            {table, [table, index]() { requireCell(table, index, false); },
+             [table, index]() { clickCell(table, index); }},
+            named(table));
     });
 }

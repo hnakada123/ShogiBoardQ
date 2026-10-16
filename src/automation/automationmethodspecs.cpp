@@ -116,6 +116,10 @@ const QList<OperationSpec>& AutomationMethodSpecs::all()
         {QStringLiteral("branch.click"), QStringLiteral("Click a branch tree node."),
          {target(), widget().withDefault(QStringLiteral("branchTreeView")),
           integer(QStringLiteral("id"), QStringLiteral("Node id from widget.text."), 1, 1000000000).require()}},
+        {QStringLiteral("ui.interaction"),
+         QStringLiteral("State of a queued UI operation: pending, running, done, failed (with error) or cancelled."),
+         {integer(QStringLiteral("id"), QStringLiteral("The interaction number returned by the queued operation."), 1,
+                  2147483647).require()}},
     };
     return table;
 }

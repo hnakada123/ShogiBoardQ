@@ -42,7 +42,7 @@ class AppTools:
         return (result["text"] or f"Clipboard image: {result['image_width']} x {result['image_height']}"), result
 
     async def edit_table_cell(self, args: dict[str, Any]) -> Result:
-        result = await self.client.call("widget.editCell", args)
+        result = await self.client.call_queued("widget.editCell", args)
         return f"Queued table edit: {result['object_name']}.", result
 
     async def set_position(self, args: dict[str, Any]) -> Result:
@@ -110,19 +110,19 @@ class AppTools:
         return "Allowed actions:\n" + "\n".join(lines), result
 
     async def trigger_action(self, args: dict[str, Any]) -> Result:
-        result = await self.client.call("action.trigger", {"name": args["name"]})
+        result = await self.client.call_queued("action.trigger", {"name": args["name"]})
         return f"Triggered {result.get('name')}.", result
 
     async def click_board_square(self, args: dict[str, Any]) -> Result:
-        result = await self.client.call("board.click", args)
+        result = await self.client.call_queued("board.click", args)
         return f"Queued board click on {result['target']}: file {result['file']}, rank {result['rank']}.", result
 
     async def click_dialog_button(self, args: dict[str, Any]) -> Result:
-        result = await self.client.call("dialog.clickButton", args)
+        result = await self.client.call_queued("dialog.clickButton", args)
         return f"Queued button click: {result['text']}.", result
 
     async def show_dock(self, args: dict[str, Any]) -> Result:
-        result = await self.client.call("widget.showDock", args)
+        result = await self.client.call_queued("widget.showDock", args)
         return f"Queued dock display: {result['object_name']}.", result
 
     async def list_docks(self, args: dict[str, Any]) -> Result:
@@ -133,19 +133,19 @@ class AppTools:
         return "\n".join(lines), result
 
     async def configure_dock(self, args: dict[str, Any]) -> Result:
-        result = await self.client.call("dock.configure", args)
+        result = await self.client.call_queued("dock.configure", args)
         return f"Queued dock operation: {result['object_name']}.", result
 
     async def click_widget(self, args: dict[str, Any]) -> Result:
-        result = await self.client.call("widget.click", args)
+        result = await self.client.call_queued("widget.click", args)
         return f"Queued click: {result['object_name']}.", result
 
     async def set_widget_value(self, args: dict[str, Any]) -> Result:
-        result = await self.client.call("widget.setValue", args)
+        result = await self.client.call_queued("widget.setValue", args)
         return f"Queued value change: {result['object_name']}.", result
 
     async def click_table_cell(self, args: dict[str, Any]) -> Result:
-        result = await self.client.call("widget.clickCell", args)
+        result = await self.client.call_queued("widget.clickCell", args)
         return f"Queued cell click: {result['object_name']}.", result
 
     async def list_menu_actions(self, args: dict[str, Any]) -> Result:
@@ -153,7 +153,7 @@ class AppTools:
         return json.dumps(result, ensure_ascii=False), result
 
     async def select_menu_action(self, args: dict[str, Any]) -> Result:
-        result = await self.client.call("menu.select", args)
+        result = await self.client.call_queued("menu.select", args)
         return f"Queued menu action: {result['text']}.", result
 
     async def menu_favorites(self, args: dict[str, Any]) -> Result:
@@ -161,7 +161,7 @@ class AppTools:
         return json.dumps(result, ensure_ascii=False), result
 
     async def click_branch_node(self, args: dict[str, Any]) -> Result:
-        result = await self.client.call("branch.click", args)
+        result = await self.client.call_queued("branch.click", args)
         return f"Queued branch node click: {result['id']}.", result
 
     async def capture_screenshot(self, args: dict[str, Any]) -> Result:
@@ -180,7 +180,7 @@ class AppTools:
         return ("Open windows:\n" + "\n".join(lines)) if lines else "No windows are open.", result
 
     async def close_dialog(self, args: dict[str, Any]) -> Result:
-        result = await self.client.call("dialog.close", {"target": args["target"]})
+        result = await self.client.call_queued("dialog.close", {"target": args["target"]})
         return f"Closed {result.get('object_name') or result.get('title') or args['target']}.", result
 
     async def get_widget_text(self, args: dict[str, Any]) -> Result:

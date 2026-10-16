@@ -133,7 +133,7 @@ def test_mapped_parameters_match(described, key):
 def test_every_called_method_and_option_exists(described):
     # Automation methods called by the MCP handlers, and CLI commands they run, are in the tables.
     sources = "".join(p.read_text(encoding="utf-8") for p in PACKAGE_DIR.glob("handlers_*.py"))
-    for method in set(re.findall(r'client\.call\("([a-zA-Z]+\.[a-zA-Z]+)"', sources)):
+    for method in set(re.findall(r'client\.call(?:_queued)?\("([a-zA-Z]+\.[a-zA-Z]+)"', sources)):
         assert method in described["method"], method
     for command, options in re.findall(r'\[\s*"([a-z-]+)",((?:\s*"--[a-z-]+"[^\]]*?)*)', sources):
         if command not in described["command"]:

@@ -6,39 +6,16 @@
 #include "automationdispatcher.h"
 #include "automationparams.h"
 #include "automationactionpolicy.h"
-#include "branchtreeitemroles.h"
-#include "shogiboard.h"
-#include "shogiview.h"
+#include "automationwidgetadapters.h"
 
 #include <QAbstractButton>
 #include <QAction>
-#include <QAbstractItemModel>
 #include <QApplication>
-#include <QCheckBox>
-#include <QComboBox>
+#include <QAbstractItemView>
 #include <QCompleter>
-#include <QColorDialog>
-#include <QGraphicsView>
-#include <QGraphicsScene>
-#include <QGraphicsItem>
 #include <QDialog>
-#include <QDockWidget>
-#include <QDoubleSpinBox>
-#include <QGroupBox>
-#include <QHeaderView>
-#include <QLabel>
 #include <QLineEdit>
-#include <QListWidget>
 #include <QMainWindow>
-#include <QPlainTextEdit>
-#include <QProgressBar>
-#include <QSpinBox>
-#include <QSlider>
-#include <QMenu>
-#include <QTabWidget>
-#include <QTableView>
-#include <QTextEdit>
-#include <QTreeWidget>
 #include <QToolButton>
 
 namespace {
@@ -48,167 +25,6 @@ QString widgetActionName(QWidget* widget)
     if (auto* button = qobject_cast<QToolButton*>(widget); button && button->defaultAction())
         return button->defaultAction()->objectName();
     return widget->property("automationAction").toString();
-}
-
-QJsonArray tableRows(const QAbstractItemModel* model, const QHeaderView* header, int maxRows)
-{
-    QJsonArray rows;
-    if (!model) return rows;
-    const int columns = model->columnCount();
-    QJsonArray head;
-    for (int c = 0; c < columns; ++c) {
-        head.append(model->headerData(c, Qt::Horizontal).toString());
-    }
-    Q_UNUSED(header)
-    rows.append(head);
-    const int count = qMin(model->rowCount(), maxRows);
-    for (int r = 0; r < count; ++r) {
-        QJsonArray row;
-        for (int c = 0; c < columns; ++c) {
-            row.append(model->index(r, c).data(Qt::DisplayRole).toString());
-        }
-        rows.append(row);
-    }
-    return rows;
-}
-
-bool describeOne(QWidget* w, int maxRows, QJsonObject& obj)
-{
-    if (auto* picker = qobject_cast<QColorDialog*>(w)) {
-        obj[QStringLiteral("color")] = picker->currentColor().name(QColor::HexArgb);
-        return true;
-    }
-    if (auto* menu = qobject_cast<QMenu*>(w)) {
-        obj[QStringLiteral("text")] = menu->title();
-        return true;
-    }
-    if (auto* graphics = qobject_cast<QGraphicsView*>(w)) {
-        QJsonArray nodes;
-        if (graphics->scene()) {
-            const auto items = graphics->scene()->items(Qt::AscendingOrder);
-            for (auto* item : items) {
-                const QVariant id = item->data(BranchTreeItemRoles::NodeId);
-                if (!id.isValid() || nodes.size() >= maxRows) continue;
-                nodes.append(QJsonObject{{QStringLiteral("id"), id.toInt()},
-                    {QStringLiteral("row"), item->data(BranchTreeItemRoles::Row).toInt()},
-                    {QStringLiteral("ply"), item->data(BranchTreeItemRoles::Ply).toInt()}});
-            }
-        }
-        obj[QStringLiteral("nodes")] = nodes;
-        return true;
-    }
-    if (auto* dock = qobject_cast<QDockWidget*>(w)) {
-        obj[QStringLiteral("text")] = dock->windowTitle();
-        obj[QStringLiteral("floating")] = dock->isFloating();
-        return true;
-    }
-    if (auto* board = qobject_cast<ShogiView*>(w)) {
-        obj[QStringLiteral("flipped")] = board->flipMode();
-        obj[QStringLiteral("square_size")] = board->squareSize();
-        if (board->board()) obj[QStringLiteral("board_sfen")] = board->board()->position().boardSfen();
-        QJsonArray arrows;
-        for (const auto& arrow : board->arrows()) {
-            arrows.append(QJsonObject{{QStringLiteral("from_file"), arrow.fromFile},
-                {QStringLiteral("from_rank"), arrow.fromRank}, {QStringLiteral("to_file"), arrow.toFile},
-                {QStringLiteral("to_rank"), arrow.toRank}, {QStringLiteral("priority"), arrow.priority},
-                {QStringLiteral("drop_piece"), QString(pieceLetter(arrow.dropPiece))}});
-        }
-        obj[QStringLiteral("arrows")] = arrows;
-        return true;
-    }
-    if (auto* view = qobject_cast<QTableView*>(w)) {
-        obj[QStringLiteral("rows")] = tableRows(view->model(), view->horizontalHeader(), maxRows);
-        obj[QStringLiteral("row_count")] = view->model() ? view->model()->rowCount() : 0;
-        return true;
-    }
-    if (auto* list = qobject_cast<QListWidget*>(w)) {
-        QJsonArray items;
-        for (int i = 0; i < qMin(list->count(), maxRows); ++i) items.append(list->item(i)->text());
-        obj[QStringLiteral("items")] = items;
-        obj[QStringLiteral("row_count")] = list->count();
-        obj[QStringLiteral("current_index")] = list->currentRow();
-        return true;
-    }
-    if (auto* tree = qobject_cast<QTreeWidget*>(w)) {
-        QJsonArray items;
-        for (int i = 0; i < qMin(tree->topLevelItemCount(), maxRows); ++i) {
-            QStringList cells;
-            for (int c = 0; c < tree->columnCount(); ++c) cells.append(tree->topLevelItem(i)->text(c));
-            items.append(cells.join(QStringLiteral(" | ")));
-        }
-        obj[QStringLiteral("items")] = items;
-        return true;
-    }
-    if (auto* combo = qobject_cast<QComboBox*>(w)) {
-        QJsonArray items;
-        for (int i = 0; i < qMin(combo->count(), maxRows); ++i) items.append(combo->itemText(i));
-        obj[QStringLiteral("text")] = combo->currentText();
-        obj[QStringLiteral("current_index")] = combo->currentIndex();
-        obj[QStringLiteral("items")] = items;
-        return true;
-    }
-    if (auto* tabs = qobject_cast<QTabWidget*>(w)) {
-        QJsonArray items;
-        for (int i = 0; i < tabs->count(); ++i) items.append(tabs->tabText(i));
-        obj[QStringLiteral("text")] = tabs->tabText(tabs->currentIndex());
-        obj[QStringLiteral("current_index")] = tabs->currentIndex();
-        obj[QStringLiteral("items")] = items;
-        return true;
-    }
-    if (auto* label = qobject_cast<QLabel*>(w)) {
-        const QVariant fullText = label->property("fullText");
-        const QString text = fullText.isValid() ? fullText.toString() : label->text();
-        if (text.isEmpty()) return false;
-        obj[QStringLiteral("text")] = text;
-        return true;
-    }
-    if (auto* edit = qobject_cast<QLineEdit*>(w)) {
-        obj[QStringLiteral("text")] = !AutomationWidgets::isSensitive(edit)
-            ? edit->text() : QStringLiteral("*****");
-        obj[QStringLiteral("placeholder")] = edit->placeholderText();
-        return true;
-    }
-    if (auto* edit = qobject_cast<QTextEdit*>(w)) {
-        obj[QStringLiteral("text")] = edit->toPlainText();
-        return true;
-    }
-    if (auto* edit = qobject_cast<QPlainTextEdit*>(w)) {
-        obj[QStringLiteral("text")] = edit->toPlainText();
-        return true;
-    }
-    if (auto* spin = qobject_cast<QSpinBox*>(w)) {
-        obj[QStringLiteral("value")] = spin->value();
-        obj[QStringLiteral("text")] = spin->text();
-        return true;
-    }
-    if (auto* spin = qobject_cast<QDoubleSpinBox*>(w)) {
-        obj[QStringLiteral("value")] = spin->value();
-        obj[QStringLiteral("text")] = spin->text();
-        return true;
-    }
-    if (auto* slider = qobject_cast<QSlider*>(w)) {
-        obj[QStringLiteral("value")] = slider->value();
-        obj[QStringLiteral("minimum")] = slider->minimum();
-        obj[QStringLiteral("maximum")] = slider->maximum();
-        return true;
-    }
-    if (auto* progress = qobject_cast<QProgressBar*>(w)) {
-        obj[QStringLiteral("value")] = progress->value();
-        obj[QStringLiteral("text")] = progress->text();
-        return true;
-    }
-    if (auto* group = qobject_cast<QGroupBox*>(w)) {
-        if (group->title().isEmpty()) return false;
-        obj[QStringLiteral("text")] = group->title();
-        if (group->isCheckable()) obj[QStringLiteral("checked")] = group->isChecked();
-        return true;
-    }
-    if (auto* button = qobject_cast<QAbstractButton*>(w)) {
-        obj[QStringLiteral("text")] = button->text();
-        if (button->isCheckable()) obj[QStringLiteral("checked")] = button->isChecked();
-        return true;
-    }
-    return false;
 }
 
 } // namespace
@@ -274,7 +90,7 @@ QJsonArray AutomationWidgets::describeWidgets(QWidget* root, const QString& obje
         if (array.size() >= maxWidgets) break;
         if (objectName.isEmpty() && !w->isVisible()) continue;
         QJsonObject obj;
-        if (!describeOne(w, maxRows, obj)) continue;
+        if (!AutomationWidgetAdapters::describe(w, maxRows, obj)) continue;
         obj[QStringLiteral("object_name")] = w->objectName();
         obj[QStringLiteral("selector")] = selector(w);
         obj[QStringLiteral("parent_selector")] = w->parent() ? selector(w->parent()) : QString();

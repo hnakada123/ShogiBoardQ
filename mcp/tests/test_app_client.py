@@ -62,3 +62,44 @@ async def test_shutdown_does_not_quit_connected_external_app(monkeypatch):
     monkeypatch.setattr(client, "_quit_connected", unexpected_quit)
     monkeypatch.setattr(client, "is_connected", lambda: True)
     await client.shutdown()
+
+
+def _fake_queued_app(monkeypatch, client, states):
+    """Answer a queued UI call, then each ui.interaction poll from ``states``."""
+    polls = iter(states)
+
+    async def fake_call(method, params=None, timeout=app_client.CALL_TIMEOUT):
+        if method == "widget.click":
+            return {"queued": True, "interaction": 7, "object_name": "button"}
+        assert method == "ui.interaction" and params == {"id": 7}
+        return next(polls)
+
+    monkeypatch.setattr(client, "call", fake_call)
+
+
+async def test_call_queued_waits_until_the_operation_ran(monkeypatch):
+    client = app_client.AppClient()
+    _fake_queued_app(monkeypatch, client, [{"interaction": 7, "state": "pending"},
+                                           {"interaction": 7, "state": "done"}])
+    result = await client.call_queued("widget.click", {"widget": "button"})
+    assert result == {"queued": True, "interaction": 7, "object_name": "button", "state": "done"}
+
+
+async def test_call_queued_returns_an_operation_that_opened_a_modal_dialog(monkeypatch):
+    client = app_client.AppClient()
+    _fake_queued_app(monkeypatch, client, [{"interaction": 7, "state": "running"}])
+    assert (await client.call_queued("widget.click"))["state"] == "running"
+
+
+@pytest.mark.parametrize("state", ["failed", "cancelled"])
+async def test_call_queued_raises_a_failure_at_run_time(monkeypatch, state):
+    # Runtime failures are not swallowed: the application's error kind reaches the MCP client.
+    client = app_client.AppClient()
+    error = {"code": -32002, "message": "The target is hidden, disabled or blocked by another dialog",
+             "data": {"slug": "invalid_state"}}
+    _fake_queued_app(monkeypatch, client, [{"interaction": 7, "state": state, "error": error}])
+    with pytest.raises(app_client.AppError) as raised:
+        await client.call_queued("widget.click")
+    assert raised.value.code == "invalid_state"
+    assert raised.value.rpc_code == -32002
+    assert "blocked" in raised.value.message

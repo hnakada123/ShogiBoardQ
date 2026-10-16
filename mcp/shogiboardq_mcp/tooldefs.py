@@ -139,6 +139,16 @@ TSUME_STATUS_OUTPUT = {
 }
 
 
+# Output of tools whose operation the application performs after answering (AppClient.call_queued).
+QUEUED_OUTPUT = {
+    "interaction": {"type": "integer", "description": "Number of the queued operation in the application."},
+    "state": {"type": "string", "enum": ["pending", "running", "done"],
+              "description": "done: performed; running: it opened a modal dialog that is still open; "
+                             "pending: not run yet within the wait."},
+}
+QUEUED_NOTE = (" The tool waits until the queued operation has run: a failure at run time (the target became "
+               "hidden, disabled, blocked by a dialog or was closed) is returned as an error.")
+
 # Generic GUI control tools: refused unless SHOGIBOARDQ_ALLOW_UNRESTRICTED_UI=1 (checked in server.dispatch_tool).
 UNRESTRICTED_TOOLS: set[str] = set()
 
@@ -161,6 +171,10 @@ def _tool(
     schema = dict(input_schema)
     schema.setdefault("type", "object")
     schema.setdefault("additionalProperties", False)
+    if output_schema and "queued" in output_schema.get("properties", {}):
+        # The application answers before it performs a UI operation; AppClient.call_queued then waits for it.
+        output_schema = {**output_schema, "properties": {**output_schema["properties"], **QUEUED_OUTPUT}}
+        description += QUEUED_NOTE
     return types.Tool(
         name=name,
         title=title,

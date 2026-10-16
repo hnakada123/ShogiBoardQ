@@ -2,6 +2,8 @@
 /// @brief ドックの配置・表示状態の検査と操作
 
 #include "automationcommands.h"
+#include "automationinput.h"
+#include "automationinteractions.h"
 #include "automationparams.h"
 #include "automationwidgets.h"
 
@@ -10,7 +12,6 @@
 #include <QDockWidget>
 #include <QJsonArray>
 #include <QMainWindow>
-#include <QMouseEvent>
 #include <QPointer>
 
 namespace {
@@ -73,14 +74,7 @@ void dragTitleBar(QDockWidget* dock, const QPoint& destination)
     // ドッキング中の Qt タイトルバーへ通常のマウス入力を送る。
     // フローティング後のOSネイティブ装飾はこの操作の対象外。
     const QPoint start = dock->mapToGlobal(QPoint(dock->width() / 2, dock->widget()->geometry().top() / 2));
-    const auto send = [dock](QEvent::Type type, const QPoint& global, Qt::MouseButton button, Qt::MouseButtons buttons) {
-        QMouseEvent event(type, QPointF(dock->mapFromGlobal(global)), QPointF(global), button, buttons, Qt::NoModifier);
-        QApplication::sendEvent(dock, &event);
-    };
-    send(QEvent::MouseButtonPress, start, Qt::LeftButton, Qt::LeftButton);
-    send(QEvent::MouseMove, start + QPoint(QApplication::startDragDistance() + 10, 0), Qt::NoButton, Qt::LeftButton);
-    send(QEvent::MouseMove, destination, Qt::NoButton, Qt::LeftButton);
-    send(QEvent::MouseButtonRelease, destination, Qt::LeftButton, Qt::NoButton);
+    AutomationInput::sendDrag(dock, {start, start + QPoint(QApplication::startDragDistance() + 10, 0), destination});
 }
 
 } // namespace
@@ -158,9 +152,9 @@ void AutomationCommands::registerDockCommands(AutomationDispatcher& dispatcher, 
             throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("Unexpected parameter for dock operation"));
         }
         requireOperation(window, dock, operation, area, relative);
-        AutomationDeferredCall::schedule([window, dock, operation, area, relative, geometry, destination]() {
-            try {
-                requireOperation(window, dock, operation, area, relative);
+        return AutomationInteractions::queue(
+            {dock, [window, dock, operation, area, relative]() { requireOperation(window, dock, operation, area, relative); },
+             [window, dock, operation, area, relative, geometry, destination]() {
                 if (operation == QLatin1String("hide")) { dock->close(); return; }
                 if (operation == QLatin1String("drag")) { dragTitleBar(dock, destination); return; }
                 if (operation == QLatin1String("float")) {
@@ -175,8 +169,7 @@ void AutomationCommands::registerDockCommands(AutomationDispatcher& dispatcher, 
                 }
                 dock->show();
                 dock->raise();
-            } catch (const AutomationError&) { }
-        }, dock);
-        return QJsonObject{{QStringLiteral("queued"), true}, {QStringLiteral("object_name"), dock->objectName()}};
+            }},
+            QJsonObject{{QStringLiteral("object_name"), dock->objectName()}});
     });
 }

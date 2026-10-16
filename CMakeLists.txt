@@ -911,6 +911,12 @@ set(SRC_AUTOMATION
     src/automation/automationserver.cpp
     src/automation/automationserver.h
     src/automation/automationwidgets.cpp
+    src/automation/automationwidgetadapters.cpp
+    src/automation/automationwidgetadapters.h
+    src/automation/automationinteractions.cpp
+    src/automation/automationinteractions.h
+    src/automation/automationinput.cpp
+    src/automation/automationinput.h
     src/automation/automationwidgets.h
     src/automation/boardimagerenderer.cpp
     src/automation/boardimagerenderer.h

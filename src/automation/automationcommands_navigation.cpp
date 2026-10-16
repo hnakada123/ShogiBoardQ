@@ -2,6 +2,8 @@
 /// @brief メニュー項目、お気に入り、分岐ツリーの自動化操作
 
 #include "automationcommands.h"
+#include "automationinput.h"
+#include "automationinteractions.h"
 #include "automationactionpolicy.h"
 #include "automationparams.h"
 #include "automationwidgets.h"
@@ -14,7 +16,6 @@
 #include <QGraphicsView>
 #include <QMainWindow>
 #include <QMenu>
-#include <QMouseEvent>
 #include <QPointer>
 #include <QPushButton>
 #include <QToolButton>
@@ -114,20 +115,24 @@ void AutomationCommands::registerNavigationCommands(AutomationDispatcher& dispat
         const QPointer<QMenu> parentMenu(current);
         const QPointer<QWidget> guardedWindow(window);
         const QPointer<QMenu> guardedMenu(menu);
-        AutomationDeferredCall::schedule([guardedWindow, source, guardedMenu, guarded, parentMenu, parents]() {
-            try {
-                if (!guardedWindow || !guardedMenu) return;
-                requireMenuInteractive(guardedWindow, source, guardedMenu);
-                for (const auto& parent : parents)
-                    if (!parent || !parent->isEnabled() || !parent->isVisible()) return;
-                if (!guarded || !parentMenu || !isAllowed(parentMenu, guarded)) return;
-                const QList<QMenu*> submenus = guardedMenu->findChildren<QMenu*>();
-                for (auto* submenu : submenus) submenu->hide();
-                guardedMenu->hide();
-                guarded->trigger();
-            } catch (const AutomationError&) { }
-        }, source);
-        return QJsonObject{{QStringLiteral("queued"), true}, {QStringLiteral("text"), action->text()}};
+        const auto check = [guardedWindow, source, guardedMenu, guarded, parentMenu, parents]() {
+            if (!guardedWindow || !guardedMenu)
+                throw AutomationError(ErrorKind::InvalidState, QStringLiteral("The menu was closed"));
+            requireMenuInteractive(guardedWindow, source, guardedMenu);
+            for (const auto& parent : parents)
+                if (!parent || !parent->isEnabled() || !parent->isVisible())
+                    throw AutomationError(ErrorKind::InvalidState, QStringLiteral("Menu item became hidden or disabled"));
+            if (!guarded || !parentMenu || !isAllowed(parentMenu, guarded))
+                throw AutomationError(ErrorKind::NotAllowed, QStringLiteral("Menu action is not allowed"));
+        };
+        const auto perform = [guardedMenu, guarded]() {
+            const QList<QMenu*> submenus = guardedMenu->findChildren<QMenu*>();
+            for (auto* submenu : submenus) submenu->hide();
+            guardedMenu->hide();
+            guarded->trigger();
+        };
+        return AutomationInteractions::queue({source, check, perform},
+                                             QJsonObject{{QStringLiteral("text"), action->text()}});
     });
 
     dispatcher.registerMethod(QStringLiteral("menu.favorites"), [context](const QJsonObject& params) {
@@ -156,20 +161,13 @@ void AutomationCommands::registerNavigationCommands(AutomationDispatcher& dispat
         if (!view) throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("Widget must be a branch graphics view"));
         const int id = params.value(QStringLiteral("id")).toInt();
         branchNode(view, id);
-        AutomationDeferredCall::schedule([view, id]() {
-            try {
-                AutomationWidgets::requireInteractive(view);
-                auto* item = branchNode(view, id);
-                view->ensureVisible(item);
-                const QPointF pos(view->mapFromScene(item->sceneBoundingRect().center()));
-                auto* viewport = view->viewport();
-                const QPointF global(viewport->mapToGlobal(pos.toPoint()));
-                QMouseEvent press(QEvent::MouseButtonPress, pos, global, Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
-                QMouseEvent release(QEvent::MouseButtonRelease, pos, global, Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
-                QApplication::sendEvent(viewport, &press);
-                QApplication::sendEvent(viewport, &release);
-            } catch (const AutomationError&) { }
-        }, view);
-        return QJsonObject{{QStringLiteral("queued"), true}, {QStringLiteral("id"), id}};
+        return AutomationInteractions::queue(
+            {view, [view]() { AutomationWidgets::requireInteractive(view); },
+             [view, id]() {
+                 auto* item = branchNode(view, id);
+                 view->ensureVisible(item);
+                 AutomationInput::sendClick(view->viewport(), view->mapFromScene(item->sceneBoundingRect().center()));
+             }},
+            QJsonObject{{QStringLiteral("id"), id}});
     });
 }
