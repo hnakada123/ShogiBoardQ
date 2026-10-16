@@ -652,6 +652,14 @@
 
 **規模**: C++ 約12ファイル、Python 5ファイル（`tooldefs.py` は854行）。Python のデコレータ化だけなら小さく始められる。
 
+**状態: 済（828b0407）**。案から変えた点:
+- 表は `ParamSpec`/`OperationSpec`（`src/automation/paramspec.h`）。CLI の表は `CliCommandSpecs`（`src/cli/clicommandspecs.h`）、自動化 API の表は `AutomationMethodSpecs`（`src/automation/automationmethodspecs.h`）。CLI のオプション名は引数名の `_` を `-` にしたもの。使い方の文も表から作る。
+- 自動化 API は `AutomationDispatcher` が呼ぶ前に表で検査し（知らない引数・型・範囲・選択肢・必須）、既定値を補う。表に登録したメソッドと実際のメソッドが一致することは `tst_param_specs` で確かめる。表の行の数など、開いている画面で範囲が決まる引数だけはメソッドで検査する（`AutomationParams::requireInt` が残る）。
+- MCP のスキーマは describe から組み立てず、`mcp/tests/test_param_specs.py` が describe の出力と比べる（そのまま渡すツールは引数名・必須・型・選択肢・既定値・範囲がすべて同じ。CLI に渡すツールは対応表で比べ、真偽の反転と秒→ミリ秒の換算も扱う）。この検査で見つかった食い違いはそろえた（analyze の秒数・generate-tsume の上限の既定値、max_moves と ply の上限、mate の sfen、行と列の上限など）。
+- Python はデコレータにせず、スキーマの既定値をサーバーが呼び出し前に補い（ハンドラの既定値のリテラルは削除）、制限付きのツールは `_tool(..., unrestricted=True)` の宣言で検査する（`_require_unrestricted_ui()` の7回の呼び出しは削除）。
+- 対象を指す引数名は `target` にそろえた（自動化 API の `dialog` と、MCP の click_dialog_button・close_dialog・get_widget_text の `dialog`）。MCP のクライアントは引数名を変える必要がある。
+- CLI の `kInvalidArgument` の定義は `CliOutput` の1つにした。同じ形の Reporter クラス4つは、出すイベントがそれぞれ違うので残した。
+
 #### R10-4. エラーの分類
 
 **問題**

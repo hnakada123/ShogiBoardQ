@@ -66,11 +66,14 @@ ShogiBoardQ の機能を [Model Context Protocol (MCP)](https://modelcontextprot
 | `capture_screenshot` | メインウィンドウ／ダイアログのスクリーンショット |
 | `list_dialogs` / `get_widget_text` | 開いているダイアログ、テキスト・テーブル・盤面内容とウィジェット座標 |
 
+操作するウィンドウ・ダイアログは、どのツールも `target`（objectName・selector・タイトルの一部）で指定します。
+`click_dialog_button` と `close_dialog` では必須で、ほかのツールでは省略するとメインウィンドウ（`main`）を指します。
+
 リソース: `shogiboardq://position/current`（SFEN）、`shogiboardq://kifu/current`（KIF）、`shogiboardq://engines`（JSON）。
 
 詰将棋対局では `click_board_square(target="tsumePlayDialog", file=3, rank=3)`、
 続けて `file=5, rank=3` と指定すると３三から５三へクリックします。座標は盤の回転に依存しません。
-成り選択は `click_dialog_button(dialog="成りの選択", text="成る")` で回答します。
+成り選択は `click_dialog_button(target="成りの選択", text="成る")` で回答します。
 駒台は先手が `file=10`・`rank=1..8`（歩・香・桂・銀・金・角・飛・玉）、
 後手が `file=11`・`rank=9..2`（同順）です。`button="right"` は選択を取り消します。
 ボタンは `widget`（objectName）か `text`（表示文字列の完全一致）で指定し、
@@ -141,7 +144,7 @@ trigger_action(name="actionResetDockLayout")
 
 ## 無名の部品・メニュー・棋譜全体解析
 
-`get_widget_text` と `list_dialogs` が返す `selector` を `widget` / `target` / `dialog` に指定すると、
+`get_widget_text` と `list_dialogs` が返す `selector` を `widget` / `target` に指定すると、
 名前のないボタンや入力欄も操作できます。同名の部品が複数ある場合も selector を使ってください。
 ダイアログ再生成・再起動後には取り直します。`include_children=true` で指定部品内を列挙できます。
 
@@ -371,6 +374,10 @@ SHOGIBOARDQ_TEST_USI_ENGINE=$PWD/build/Hayanagi/hayanagi \
 SHOGIBOARDQ_TEST_MATE_ENGINE=$PWD/build/tests/mock_mate_engine \
 python3 -m pytest -q mcp/tests
 ```
+
+`test_param_specs.py` は `shogiboardq-cli describe` が出す CLI のコマンドと自動化 API のメソッドの引数の表
+（JSON Schema）と、各ツールの `inputSchema` の型・選択肢・既定値・範囲が一致することを検査します。
+CLI や自動化 API の引数を変えたときは、`tooldefs.py` のスキーマも合わせてください。
 
 実際の shogi-server と ShogiHome を使うCSA対局テストの環境構築・実行方法は、
 [CSA検証記録](../docs/dev/csa-game-mcp-audit-2026-09-27.md) を参照してください。

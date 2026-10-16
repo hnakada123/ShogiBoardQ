@@ -90,6 +90,7 @@
 | 2026-10-16 | 思考の表と棋譜解析の結果の表の行を値で持つようにしたのに合わせて §1.5・§7.8・§7.10・§9.6・§9.8・§9.9・§10.2・§11.2・§18.3・§18.4 を更新（`AbstractListModel`・`KifuAnalysisResultsDisplay` を削除。行は `ShogiInfoRecord`・`KifuAnalysisRow` の値、表の部品は `PvTableView`、指し手の書体の規則は `MoveFont`） |
 | 2026-10-16 | 局面送りと編集のボタンを `QAction` の組で共有したのに合わせて §1.5・§11.2・§13.1・§18.3・§18.4 を更新（`KifuNavigationController` が局面送りの6つの `QAction`（`Step`・`action()`）を持ち、棋譜欄と評価値グラフのボタンを `bindButtons()` で結ぶ。`connectButtons()`・`RecordPane::setArrowButtonsEnabled()`・`setNavigationEnabled()`・`arrowButtonsEnabledChanged`・`EvaluationChartWidget::setNavigationEnabled()` を削除し、`UiStatePolicyManager` は `setStepActionsEnabled()` と `RecordPane::setKifuViewEnabled()` で切り替える。元に戻す〜貼り付けは標準ショートカット付きの `EditActions`（`src/widgets/`）にし、コメント欄と対局情報で使う） |
 | 2026-10-16 | 駒のセットの表とドックの表（監査 R10-1・R10-2）に合わせて §1.5・§4.4・§9.8・§10.4・§10.5・§11.2・§12.5・§14.2・§14.5.2・§14.6・§14.7・§17.4・§18.3・§18.4 を更新（駒のセットの表 `PieceStyleCatalog`・外観の値 `AppearanceState` を足し、`AppSettings::availablePieceStyles()`・`BoardColorPresets::pieceStyleName()` を削除。ドックは `DockRegistry`（`ui/coordinators/dockregistry.h`）の表から作り・置き・状態を保存し、`DockCreationService`・`DockUiCoordinator`・`DockWidgets`・`DockLayoutManager::DockType`／`registerDock()` を削除。ドックの状態は全12個を `DockSettings::DockState` で保存。メニューウィンドウ・定跡ウィンドウはコントローラのコンストラクタで作る） |
+| 2026-10-16 | CLI・自動化 API・MCP の引数を1つの表から扱うようにしたのに合わせて §1.3・§1.5・§1.8・§14.5.1・第18章を更新（引数の表の部品 `ParamSpec`・`OperationSpec`（`paramspec.h`）、自動化 API の表 `AutomationMethodSpecs`（`AutomationDispatcher` が呼ぶ前に検査し既定値を補う）、CLI の表 `CliCommandSpecs`（オプションの登録・使い方の文・JSON への変換）、表を JSON Schema で出す `shogiboardq-cli describe`） |
 
 <!-- chapter-0-end -->
 
@@ -151,6 +152,8 @@ ninja -C build
 
 # GUI を起動しない JSON 出力のコマンド（mcp/ の MCP サーバーが使う）
 ./build/shogiboardq-cli version
+# CLI の全コマンドと自動化 API の全メソッドの引数（範囲・既定値）を JSON Schema で出す
+./build/shogiboardq-cli describe
 ```
 
 #### 静的解析付きビルド
@@ -595,7 +598,9 @@ src/
 │
 ├── automation/                     # 自動化 API（--automation）と、CLI と共有する GUI 非依存のサービス
 │   ├── automationserver.cpp/.h     #   QLocalServer で改行区切りの JSON-RPC 2.0 を待ち受け
-│   ├── automationdispatcher.cpp/.h #   JSON-RPC の解析とメソッド表（GUI 非依存）
+│   ├── automationdispatcher.cpp/.h #   JSON-RPC の解析とメソッド表（GUI 非依存）。呼ぶ前に引数を表で検査し既定値を補う
+│   ├── paramspec.cpp/.h            #   引数の表の部品 ParamSpec・OperationSpec（JSON Schema の出力と検査。CLI・自動化 API・MCP で共有）
+│   ├── automationmethodspecs.cpp/.h #  自動化 API の全メソッドの引数の表 AutomationMethodSpecs
 │   ├── automationcommands_*.cpp    #   app・position・kifu・ui・dock・navigation・widget などのメソッド
 │   ├── automationactionpolicy.cpp/.h # 実行してよい QAction の許可リスト
 │   ├── automationwidgets.cpp/.h    #   ウィンドウ列挙・ウィジェット内容取得
@@ -608,8 +613,9 @@ src/
 │
 └── cli/                            # shogiboardq-cli（GUI を起動しない JSON 出力コマンド。mcp/ が使う）
     ├── main.cpp                    #   エントリーポイント
-    ├── clicommands_*.cpp/.h        #   各コマンド
-    ├── cliargs.cpp/.h              #   引数の解釈（局面・エンジン・数値）
+    ├── clicommands_*.cpp/.h        #   各コマンド（describe は引数の表を JSON Schema で出す）
+    ├── clicommandspecs.cpp/.h      #   全コマンドの引数の表 CliCommandSpecs（オプションの登録・使い方の文・JSON への変換と検査）
+    ├── cliargs.cpp/.h              #   表で読んだ引数の解釈（parse()・局面 resolvePosition()・エンジン resolveEngine()）
     ├── clioutput.cpp/.h            #   JSON 出力
     └── clistopwatcher.cpp/.h       #   長時間コマンドの停止要求の監視
 ```
@@ -684,7 +690,7 @@ tests/
 └── gui/                            # GUI シナリオ・GUI フロー・エンジン終了のハーネス
 ```
 
-`tst_*.cpp` は126本で、`add_shogi_test` で1本ずつ登録する。ほかに、MCP サーバーの Python テスト `tst_mcp_python`、詰将棋の検査の Python テストなども `ctest` に登録する。実行方法は次のとおり。
+`tst_*.cpp` は128本で、`add_shogi_test` で1本ずつ登録する。ほかに、MCP サーバーの Python テスト `tst_mcp_python`、詰将棋の検査の Python テストなども `ctest` に登録する。実行方法は次のとおり。
 
 - 単体テスト: `ctest --test-dir build -j8 -E tst_mcp_python`
 - MCP サーバーのテスト: `python3 -m pytest -q mcp/tests`（`mcp/tests/`）
@@ -7514,7 +7520,9 @@ MainWindow::MainWindow()
 
 `ShogiBoardQ --automation` で起動したときだけ、`MainWindowComposer::startAutomationServer()`（`MainWindow::startAutomationServer()` から呼ぶ）が作る（親は MainWindow）。`QLocalServer` で改行区切りの JSON-RPC 2.0 を待ち受け、局面・棋譜・UI の操作を外部から行えるようにする。MCP サーバー（`mcp/`）と GUI のテスト（`tests/gui/`）がこれを使う。
 
-部品は `AutomationContext` に詰めて渡す（部品のポインタと、状態として `AppState`・`KifuNavigationState`）。メソッドの実装（`automationcommands_*.cpp`）は MainWindow を知らない。設計は [MCP サーバーの設計](mcp-server.md) を参照。外部からアプリを操作するときは、この自動化 API を使う。
+部品は `AutomationContext` に詰めて渡す（部品のポインタと、状態として `AppState`・`KifuNavigationState`）。メソッドの実装（`automationcommands_*.cpp`）は MainWindow を知らない。
+
+メソッドの引数は `AutomationMethodSpecs`（`src/automation/automationmethodspecs.h`）の表に、名前・型・必須・範囲・既定値・選択肢を `ParamSpec`（`src/automation/paramspec.h`）で1行ずつ宣言する。`AutomationDispatcher::handleRequest()` はメソッドを呼ぶ前に `ParamSpecs::validate()` で引数を検査し（知らない引数・必須の欠け・型・範囲・選択肢の誤りは `-32602`）、既定値を補った引数をメソッドに渡す。メソッドは補われた値を読むだけで、`AutomationParams`（`requireString`・`optionalInt`・`requireInt`）は範囲が画面の状態で決まる引数（表の行・列など）にだけ使う。CLI の引数も同じ部品の表 `CliCommandSpecs`（`src/cli/clicommandspecs.h`）で宣言し、`shogiboardq-cli describe` が両方の表を JSON Schema として出す。MCP サーバーのツールのスキーマがこの表と一致することは `mcp/tests/test_param_specs.py` が検査する。引数を足すときは表に1行足し、MCP のツール（`mcp/shogiboardq_mcp/tooldefs.py`）のスキーマも合わせる。設計は [MCP サーバーの設計](mcp-server.md) を参照。外部からアプリを操作するときは、この自動化 API を使う。
 
 #### 14.5.2 DockRegistry（ドックの作成）
 
@@ -9126,7 +9134,8 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | AppToolTipFilter | C | widgets | アプリ全体のツールチップフィルタ | 第11章 |
 | AutomationActionPolicy | NS | automation | 自動化 API が実行してよい QAction の許可リスト | 第14章 |
 | AutomationContext | S | automation | 自動化 API のメソッド実装に渡すアプリ側の状態と部品 | 第14章 |
-| AutomationDispatcher | C | automation | JSON-RPC 2.0 の解析とメソッド表（GUI 非依存） | 第14章 |
+| AutomationDispatcher | C | automation | JSON-RPC 2.0 の解析とメソッド表（GUI 非依存）。呼ぶ前に引数を `AutomationMethodSpecs` で検査し既定値を補う | 第14章 |
+| AutomationMethodSpecs | NS | automation | 自動化 API の全メソッドの引数の表（`all()`・`find()`） | 第14章 |
 | AutomationServer | C | automation | 自動化 API のローカルソケットサーバー（改行区切り JSON-RPC 2.0） | 第4章, 第14章 |
 | BoardChromeWidget | C | views | 盤の周りの対局者カード（名前・時計・手番の札）と編集用ボタン | 第11章 |
 | BoardCoordinates | NS | core | 盤面表示の座標（駒台は筋10・11、駒箱は筋12）と駒・USI の指し手の対応 | 第5章 |
@@ -9143,6 +9152,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | BranchTreeManager | C | widgets | 分岐ツリーの表示（構築・ハイライト・クリック検出） | 第11章, 第13章 |
 | CandidateArrowPresenter | C | ui/presenters | 検討と対局のエンジンの読みを盤上の矢印にする | 第9章, 第10章 |
 | ChangeEngineSettingsDialog | C | dialogs | エンジン設定変更ダイアログ | 第11章 |
+| CliCommandSpecs | NS | cli | `shogiboardq-cli` の全コマンドの引数の表（オプション名は引数名の `_` を `-` にしたもの。`parse()`・`usage()`） | 第14章 |
 | ClockTimeSource | C | engine | ローカル対局の対局時計から読むエンジンの時間の出どころ（`MatchTimeSource` の実装。`EngineLifecycleManager` が持つ） | 第7章 |
 | CollapsibleGroupBox | C | widgets | 折りたたみ可能なグループボックス | 第11章 |
 | CommentCoordinator | C | ui/coordinators | コメント編集の統合調整 | 第14章 |
@@ -9289,6 +9299,8 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | MoveFont | NS | common | 指し手・読み筋の書体の規則（表のモデルの FontRole と `KifuMoveDelegate` で共通。ヘッダーオンリー） | 第11章 |
 | NumericRightAlignCommaDelegate | C | widgets | 数値右寄せカンマ区切りデリゲート | 第11章 |
 | NyugyokuDeclarationHandler | C | ui/controllers | 利用者の入玉宣言（確認・宣言・結果の表示。`GameChannel` 経由でローカル対局・通信対局に共通） | 第10章 |
+| OperationSpec | S | automation | 操作1つ（CLI のコマンド・自動化 API のメソッド）の名前・説明・引数の表 | 第14章 |
+| ParamSpec | S | automation | 引数1つの仕様（名前・型・必須・範囲・既定値・選択肢・説明）。`ParamSpecs::inputSchema()`・`validate()` で JSON Schema の出力と検査を行う | 第14章 |
 | ParseOptions | S | kifu | 読めない手・指せない手・パスの扱い（手順を打ち切るか、棋譜全体を失敗にするか） | 第8章 |
 | ParseReport | C | kifu | 読み込み中の警告と失敗の記録（`ParseOptions` に従って読めない手を扱う） | 第8章 |
 | PieceSoundPlayer | C | services | 駒音（駒を指したときの効果音）の再生 | 第10章 |
@@ -9717,11 +9729,13 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 |---------|--------|------|
 | automationactionpolicy | 第14章 | 自動化 API が実行してよい QAction の許可リスト |
 | automationdispatcher | 第14章 | JSON-RPC 2.0 の解析とメソッド表（GUI 非依存） |
+| automationmethodspecs | 第14章 | 自動化 API の全メソッドの引数の表 |
 | automationserver | 第4章, 第14章 | 自動化 API のローカルソケットサーバー（改行区切り JSON-RPC 2.0） |
 | boardimagerenderer | 第13章 | 盤面画像の描画（GUI を起動しない CLI・自動化 API と共有） |
 | engineanalysisrunner | 第7章 | 登録エンジンで1局面を一定時間解析する実行器（CLI・自動化 API と共有） |
 | kifuconversionservice | 第8章 | 棋譜ファイル・文字列を各形式へ変換する GUI 非依存サービス（CLI・自動化 API と共有） |
 | matesearchrunner | 第9章 | 登録エンジンで詰みを探す実行器（CLI・自動化 API と共有） |
+| paramspec | 第14章 | 引数の表の部品（`ParamSpec`・`OperationSpec`）と JSON Schema の出力・検査（CLI・自動化 API・MCP で共有） |
 | tsumeverificationrunner | 第9章 | 詰将棋の検証の実行器（CLI・自動化 API と共有） |
 
 #### cli/（第14章）
@@ -9729,6 +9743,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | ファイル | 解説章 | 内容 |
 |---------|--------|------|
 | main / cliargs / clioutput / clicommands_* | 第14章 | `shogiboardq-cli`（GUI を起動しない JSON 出力コマンド。MCP サーバーが呼び出す） |
+| clicommandspecs | 第14章 | 全コマンドの引数の表（オプションの登録・使い方の文・JSON への変換と検査） |
 
 #### resources/（第1章, 第16章）
 

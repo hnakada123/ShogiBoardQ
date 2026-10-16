@@ -92,13 +92,13 @@ shogiboardq-cli            ShogiBoardQ --automation
 | `list_actions` | `trigger_action` で実行できる動作の一覧（有効・チェック状態付き） | なし | `action.list` |
 | `trigger_action` | `QAction` の objectName を許可リスト内で実行（応答後に実行するのでモーダルダイアログでも返る） | `name` | `action.trigger` |
 | `click_board_square` | 盤面・駒台へマウスクリックを送る（回転に依存しない論理座標） | `target`、`file`、`rank`、`button` | `board.click` |
-| `click_dialog_button` | ダイアログのボタンを押す。問題カード・成り選択にも対応 | `dialog`、`widget` または `text`、`index` | `dialog.clickButton` |
+| `click_dialog_button` | ダイアログのボタンを押す。問題カード・成り選択にも対応 | `target`、`widget` または `text`、`index` | `dialog.clickButton` |
 | `list_docks` | 非表示を含む全ドックの配置・タブ・表示領域・固定状態 | なし | `dock.list` |
 | `configure_dock` | 表示、閉じる、浮動化、四方向配置、タブ化、タイトルバードラッグ | `widget`、`operation`、`area?`、`relative_to?`、`geometry?`、`x?`、`y?` | `dock.configure` |
 | `capture_screenshot` | メインウィンドウまたは指定ダイアログを PNG 保存 | `target`、`output_dir` | `screenshot.capture` |
 | `list_dialogs` | 開いているトップレベルウィンドウ／ダイアログ | なし | `dialog.list` |
-| `close_dialog` | ダイアログを閉じる（`QDialog::reject`）。エラーのメッセージボックスの片付けにも使う | `dialog` | `dialog.close` |
-| `get_widget_text` | ダイアログ内のラベル・入力欄・テーブル内容 | `dialog`、`widget`、`max_rows`、`max_widgets`、`include_children` | `widget.text` |
+| `close_dialog` | ダイアログを閉じる（`QDialog::reject`）。エラーのメッセージボックスの片付けにも使う | `target` | `dialog.close` |
+| `get_widget_text` | ダイアログ（`target` 省略時はメインウィンドウ）内のラベル・入力欄・テーブル内容 | `target`（既定 `main`）、`widget`、`max_rows`、`max_widgets`、`include_children` | `widget.text` |
 | `set_widget_value` | コンボ・スピン・スライダー・チェック・グループ・リスト・タブ・色・テキスト欄の変更。単一行入力は `submit=true` で Enter も送信 | `target`、`widget`、`value`、`submit?` | `widget.setValue` |
 | `list_menu_actions` / `select_menu_action` | 定跡・局面集の履歴、定跡マージ、保存済みレイアウトの動的メニュー | `target?`、`widget`、選択時 `path` | `menu.items` / `menu.select` |
 | `menu_favorites` | お気に入りの取得、登録・解除・並べ替えと保存 | `actions?`（省略時は取得） | `menu.favorites` |
@@ -122,7 +122,7 @@ MCPの汎用GUI操作は `SHOGIBOARDQ_ALLOW_UNRESTRICTED_UI=1` の明示指定�
 `gameInfoTable` は対局情報テーブル。`commit=false` は入力中の状態を維持する。
 `get_widget_text` は省略表示ラベルの `fullText` プロパティにも対応するため、
 `blackNameLabel` / `whiteNameLabel` で盤面の対局者名を全文取得できる。
-`get_position` と `get_app_state.total_plies`、`goto_ply` の上限は閲覧中の分岐に従い、
+`get_position` と `get_app_state.total_plies`、`goto_ply` の上限は閲覧中の分岐に従い（スキーマの上限は 100000）、
 `get_kifu` は本譜を返す。`get_kifu.truncated` は指定範囲の続きが省略されている場合に true。
 `widget.showDock` は非表示のドックを開くため、親ウィンドウの操作可否を検査する。
 
@@ -141,7 +141,7 @@ MCPの汎用GUI操作は `SHOGIBOARDQ_ALLOW_UNRESTRICTED_UI=1` の明示指定�
 ### 無名の部品と拡張操作
 
 `get_widget_text` / `list_dialogs` は `selector`（例: `@widget-42`）を返す。
-`widget` と `target` / `dialog` に指定でき、無名・同名の部品を区別する。
+`widget` と `target` に指定でき、無名・同名の部品を区別する。
 セレクターは対象の寿命中だけ有効で、ダイアログ再生成・アプリ再起動後は再取得する。
 `get_widget_text(widget=..., include_children=true)` で対象内に絞って列挙できる。
 `max_widgets` は最大3000（既定300）、`max_rows` は表・リスト・分岐ノードの取得上限。
@@ -183,20 +183,22 @@ shogiboardq-cli <command> [options]
 | コマンド | 主なオプション | 出力 |
 |---|---|---|
 | `version` | - | `{"ok":true,"version":"2026.09.25"}` |
+| `describe` | - | `{ok, commands:[{name, summary, input_schema}], methods:[{name, summary, input_schema}]}`（CLI の全コマンドと自動化 API の全メソッドの引数の表を JSON Schema で出す） |
 | `convert-kifu` | `--input PATH` / `--text STR`、`--input-format auto\|kif\|ki2\|csa\|jkf\|usi\|usen`、`--output-format kif\|ki2\|csa\|jkf\|usi\|usen\|sfen`、`--output PATH`、`--overwrite` | `{ok, input_format, output_format, text \| output_path, initial_sfen, ply_count, usi_moves[], sfens[], moves[], game_info[], has_branches, line_count, warnings[]}`。`moves[]` は本譜の各行（`{ply, text, usi, time, comment, bookmark}`。終局の行は `usi` なし、`time`・`comment`・`bookmark` は空なら省く）で、`KifuConversionService::Result::mainline`（`RecordLine`。`KifuBranchTree::exportLine(0)`）から作る。`text` は GUI の保存・コピーと同じ書き出しの表（`KifuExport::lines(tree, metadata, format)`）で作る |
 | `validate-sfen` | `--sfen SFEN` | `{ok, valid, normalized_sfen, turn, hands{black,white}, in_check, legal_move_count, kings{black,white}, errors[]}` |
 | `list-engines` | - | `{ok, engines:[{name,path,author,exists}]}` |
-| `analyze` | `--engine NAME --sfen SFEN [--moves "7g7f 3c3d"] --seconds N --multipv M` | JSON Lines: `started` → `info`（読み筋更新ごと）→ `result{bestmove, ponder, lines[]}` |
-| `mate` | `--engine NAME --sfen SFEN [--moves ...] --seconds N` | JSON Lines: `started` → `result{status: mate\|nomate\|unknown\|notimplemented, pv[], plies}` |
-| `generate-tsume` | `--engine NAME --target-moves N --max-positions K --timeout-ms T --max-attack A --max-defend D --attack-range R [--no-remaining-to-hand] [--no-final-alternatives]` | JSON Lines: `started` → `progress`（約 1 秒ごと）→ `position{sfen,pv}`（発見ごと）→ `finished{found,generated,elapsed_ms}`。stdin に `stop` を受け取ると停止 |
-| `verify-tsume` | `--engine NAME --sfen SFEN --target-moves N [--timeout-ms T] [--no-final-alternatives]` | `{ok, status: unique\|multiple\|nomate\|wrong_length\|unknown\|invalid, pv[], queries, elapsed_ms}` |
-| `render-board` | `--sfen SFEN --output PATH.png [--square-size 50] [--flip] [--last-move 7g7f] [--overwrite]` | `{ok, output_path, width, height}` |
+| `analyze` | `--engine NAME [--sfen SFEN] [--moves "7g7f 3c3d"] [--seconds N] [--multipv M] [--stdin-control]`（`--sfen` 既定 `startpos`、`--seconds` 1-600 既定 10、`--multipv` 1-10 既定 1） | JSON Lines: `started` → `info`（読み筋更新ごと）→ `result{bestmove, ponder, lines[]}` |
+| `mate` | `--engine NAME --sfen SFEN [--moves ...] [--seconds N] [--stdin-control]`（`--sfen` 必須、`--seconds` 1-600 既定 10） | JSON Lines: `started` → `result{status: mate\|nomate\|unknown\|notimplemented, pv[], plies}` |
+| `generate-tsume` | `--engine NAME [--target-moves N] [--max-positions K] [--timeout-ms T] [--max-attack A] [--max-defend D] [--attack-range R] [--no-remaining-to-hand] [--no-final-alternatives] [--stdin-control]`（既定: 手数 3（1-19）、件数 5（1-100）、5000 ms（500-60000）、攻め方 4（1-10）、玉方 1（0-10）、範囲 3（1-8）） | JSON Lines: `started` → `progress`（約 1 秒ごと）→ `position{sfen,pv}`（発見ごと）→ `finished{found,generated,elapsed_ms}`。stdin に `stop` を受け取ると停止 |
+| `verify-tsume` | `--engine NAME --sfen SFEN --target-moves N [--timeout-ms T] [--no-final-alternatives]`（手数 1-39、`--timeout-ms` 1000-120000 既定 15000） | `{ok, status: unique\|multiple\|nomate\|wrong_length\|unknown\|invalid, pv[], queries, elapsed_ms}` |
+| `render-board` | `[--sfen SFEN] --output PATH.png [--square-size 50] [--flip] [--last-move 7g7f] [--black-name NAME] [--white-name NAME] [--overwrite]`（`--square-size` 20-150） | `{ok, output_path, width, height}` |
 
 共通仕様:
 
+- オプションは引数の表 `CliCommandSpecs`（`src/cli/clicommandspecs.{h,cpp}`）に1か所で宣言する。オプション名は引数名の `_` を `-` にしたもの（`max_positions` → `--max-positions`）。`CliArgs::parse(command, args, events, exitCode)` が表からオプションを登録し、コマンドラインを検査済みの JSON（既定値を補ったもの）にする。真偽値はフラグ（指定すれば true）、文字列の配列（`--moves`）は空白区切りの1つの値。知らないオプション・必須の欠け・範囲外・選択肢外は `invalid_argument`。各コマンドはこの JSON を読み、局面は `CliArgs::resolvePosition(params)`、エンジンは `CliArgs::resolveEngine(params)` で解決する。引数なし・`--help` のときの使い方の文（`CliCommandSpecs::usage()`）も同じ表から作る。範囲と既定値の一覧は `shogiboardq-cli describe` で確かめる。
 - エラーは `{"ok":false,"error":{"code":"invalid_argument"|"engine_not_found"|"engine_error"|"io_error"|"internal","message":"..."}}` を標準出力に書いて終了コード 1。JSON Lines コマンドでは `{"event":"error",...}` を出してから終了する。
 - エンジンは設定ファイル（`SettingsCommon::settingsFilePath()`）の `[Engines]` に登録済みの名前だけを受け付ける（`EngineListSettings::loadEngines()`）。任意パスは受け付けない。エンジンのオプションは GUI と同じく設定ファイルの値を適用する（`UsiEngineSession::startAsync()` が `EngineProfileStore::launchOptions()` で読み、`UsiProtocolHandler::setLaunchOptions()` に渡す）。
-- 局面は `--sfen`（`startpos` も可）と `--moves`（USI 手を空白区切り）で指定し、`CliArgs::resolvePosition()` が `UsiPosition::fromMoves()` で探索させる局面（`CliPosition::position`）にする（読めない手・指せない手は `invalid_argument`）。エンジンには `UsiPosition::command()`（平手なら `position startpos moves ...`、それ以外は `position sfen ... moves ...`）を送る。
+- 局面は `--sfen`（`startpos` も可）と `--moves`（USI 手を空白区切り）で指定し、`CliArgs::resolvePosition(params)` が `UsiPosition::fromMoves()` で探索させる局面（`CliPosition::position`）にする（読めない手・指せない手は `invalid_argument`）。エンジンには `UsiPosition::command()`（平手なら `position startpos moves ...`、それ以外は `position sfen ... moves ...`）を送る。
 - `--output` の既存ファイルは `--overwrite` が無ければ拒否する。ディレクトリ制限は MCP サーバー側で行う（CLI 単体では行わない）。
 - 長時間コマンドは `SIGTERM`/`SIGINT` でも停止処理（エンジンへの `quit`）を行って終了する（Windows は stdin の `stop` のみ）。
 - JSON の出力と棋譜の形式は表示言語に依存しない。`render-board` だけは、GUI と同じ表示言語・棋譜表記・書体の設定（`ApplicationTranslations`・`ApplicationFonts`）を描画前に適用し、「手番」などの表示と段の表記（一〜九／a〜i）を GUI に合わせる。
@@ -236,11 +238,13 @@ ShogiBoardQ --automation [--automation-socket PATH]
 | `action.list` | - | `{actions:[{name,text,enabled,checked,checkable}]}` | - |
 | `action.trigger` | `{name}` | `{name, triggered:true}`（応答後に実行） | `-32001` 許可リスト外、`-32002` 無効状態、`-32005` 存在しない |
 | `board.click` | `{target?, file, rank, button?: "left"\|"right"}` | `{target, file, rank, queued:true}`（応答後に実行） | `-32602` 不正座標、`-32002` 操作不可、`-32005` 盤なし |
-| `dialog.clickButton` | `{dialog, widget? または text?, index?}` | `{object_name, text, queued:true}`（応答後に実行） | `-32602` 不正引数、`-32002` 操作不可、`-32005` ボタンなし |
+| `dialog.clickButton` | `{target, widget? または text?, index?}` | `{object_name, text, queued:true}`（応答後に実行） | `-32602` 不正引数、`-32002` 操作不可、`-32005` ボタンなし |
 | `screenshot.capture` | `{target?: "main"\|objectName\|タイトル, output_dir?}` | `{path, width, height}` | `-32005` 対象なし |
 | `dialog.list` | - | `{windows:[{object_name,class,title,visible,modal,active,main,width,height}]}` | - |
-| `dialog.close` | `{dialog}` | `{closed:true, object_name, title}`（応答後に閉じる） | `-32005` 対象なし |
-| `widget.text` | `{dialog?, widget?, max_rows?}` | `{widgets:[{object_name,class,text?,items?,rows?}]}` | `-32005` 対象なし |
+| `dialog.close` | `{target}` | `{closed:true, object_name, title}`（応答後に閉じる） | `-32005` 対象なし |
+| `widget.text` | `{target?, widget?, max_rows?, max_widgets?, include_children?}` | `{widgets:[{object_name,class,text?,items?,rows?}]}` | `-32005` 対象なし |
+
+引数はメソッドごとの表 `AutomationMethodSpecs`（`src/automation/automationmethodspecs.{h,cpp}`）に宣言する。`AutomationDispatcher::handleRequest()` はメソッドを呼ぶ前に `ParamSpecs::validate()` で表と照らし、知らない引数・必須の欠け・型違い・範囲外・選択肢外を `-32602`（`error.data.hint` は `shogiboardq-cli describe` の案内）で返し、既定値を補った引数をメソッドに渡す。各メソッドは補われた値を読むだけで、`AutomationParams`（`requireString`・`optionalInt`・`requireInt`）は範囲が画面の状態で決まる引数（表の行・列、コンボやスピンの値など）や操作によって必須になる引数（`dock.configure` の `area`・`relative_to`）にだけ使う。表は `shogiboardq-cli describe` の `methods` に JSON Schema として出る。
 
 エラーコード: JSON-RPC 標準（`-32700` parse、`-32600` invalid request、`-32601` method not found、`-32602` invalid params、`-32603` internal）に加え、`-32001` not allowed、`-32002` invalid state、`-32003` file error、`-32004` unsaved changes、`-32005` not found。`error.data.hint` に対処方法を入れる。
 
@@ -253,7 +257,9 @@ ShogiBoardQ --automation [--automation-socket PATH]
 | クラス | ファイル | 責務 |
 |---|---|---|
 | `AutomationServer` | `src/automation/automationserver.{h,cpp}` | `QLocalServer` の待ち受け、接続ごとの行バッファ、応答の書き出し、エンドポイント情報の作成・削除 |
-| `AutomationDispatcher` | `src/automation/automationdispatcher.{h,cpp}` | JSON-RPC 2.0 の解析・検証、メソッド表、エラー応答の生成（GUI 非依存で単体テスト可能） |
+| `AutomationDispatcher` | `src/automation/automationdispatcher.{h,cpp}` | JSON-RPC 2.0 の解析・検証、メソッド表、呼ぶ前の引数の検査（`AutomationMethodSpecs`）、エラー応答の生成（GUI 非依存で単体テスト可能） |
+| `ParamSpec` / `OperationSpec` | `src/automation/paramspec.{h,cpp}` | 引数1つの仕様（名前・型・必須・範囲・既定値・選択肢・説明）と操作1つの仕様。`ParamSpecs::inputSchema()`・`toJson()`（JSON Schema）と `validate()`（知らない引数の拒否・必須・型・範囲・選択肢の検査と既定値の補完）。CLI・自動化 API・MCP で共有する |
+| `AutomationMethodSpecs` | `src/automation/automationmethodspecs.{h,cpp}` | 自動化 API の全メソッドの引数の表（`all()`・`find()`） |
 | `AutomationContext` | `src/automation/automationcontext.h` | MainWindow 側の依存を注入する Deps 構造体。部品と状態（`AppState`・棋譜の文書 `KifuDocument`・`KifuNavigationState`）は非所有ポインタで受け取り、関数で受け取るのは dialogs 層のメニューウィンドウのお気に入りと終了要求だけ |
 | `AutomationCommands*` | `src/automation/automationcommands_{app,position,kifu,navigation,ui,widget,dock}.cpp` | 各メソッドの実装。既存の `KifuFileController` / `KifuNavigationController` / `UiStatePolicyManager` / `ScreenshotService` を呼ぶ。`kifu.get` の形式指定のテキストは `KifuExport::lines(*document, format)`、`moves` は分岐ツリーから作り、`app.state` の `kifu_file`・`engines`・`play_mode` は `KifuDocument::filePath()`・`players()` を読む |
 | `AutomationActionPolicy` | `src/automation/automationactionpolicy.{h,cpp}` | `QAction` の許可リスト |
@@ -284,7 +290,9 @@ mcp/
 
 - 低レベル `mcp.server.lowlevel.Server` を使い、`CallToolResult` に `content`（要約テキスト）と `structuredContent` を両方入れる。`outputSchema` は SDK が検証する。`structuredContent` を無視するクライアントでもテキストだけで使える。
 - ツール定義は `annotations`（`readOnlyHint` / `destructiveHint` / `idempotentHint` / `openWorldHint`）を付ける。
-- 引数は `inputSchema` で検証され（SDK）、追加で `paths.py` がパス方針を検査する。
+- 引数は `inputSchema` で検証され（SDK）、追加で `paths.py` がパス方針を検査する。SDK はスキーマの既定値を補わないので、`server.with_defaults()` が呼び出し前に補い、ハンドラは既定値のリテラルを持たない。
+- 汎用GUI操作のツールは `tooldefs._tool(..., unrestricted=True)` で宣言し（`UNRESTRICTED_TOOLS` に入る）、`dispatch_tool` が `server.require_unrestricted_ui()` でまとめて検査する（`SHOGIBOARDQ_ALLOW_UNRESTRICTED_UI=1` でなければ `not_allowed`）。
+- MCP のツールの引数で CLI のオプションや自動化 API の引数に渡すものは、型・選択肢・既定値・範囲を `shogiboardq-cli describe` の表と合わせる（`mcp/tests/test_param_specs.py` が検査する）。
 - 環境変数:
 
 | 変数 | 意味 |
@@ -343,7 +351,7 @@ CLI が GUI 本体と同じクラスを使えるように、`CMakeLists.txt` の
 | ディレクトリ | 内容 |
 |---|---|
 | `src/automation/` | 共通サービス（`KifuConversionService`、`BoardImageRenderer`、`EngineCatalog`、`EngineAnalysisRunner`、`MateSearchRunner`、`TsumeVerificationRunner`。局面の検証は `src/analysis/` の `SfenValidationService`）と自動化 API（`AutomationServer` ほか） |
-| `src/cli/` | `shogiboardq-cli` のエントリーポイントとコマンド実装（`CliCommands*`）。JSON 出力と stdin の `stop` 監視 |
+| `src/cli/` | `shogiboardq-cli` のエントリーポイントとコマンド実装（`CliCommands*`）、コマンドの引数の表 `CliCommandSpecs` と引数の解釈 `CliArgs`。JSON 出力と stdin の `stop` 監視 |
 | `mcp/` | Python パッケージとテスト |
 
 `src/automation/` は `app/`・`dialogs/`・`widgets/` に依存しない（`views/ShogiView` は盤面画像のために使う）。レイヤー依存テスト（`tst_layer_dependencies`）にルールを追加する。
@@ -353,6 +361,7 @@ CLI が GUI 本体と同じクラスを使えるように、`CMakeLists.txt` の
 | テスト | 種別 | 内容 |
 |---|---|---|
 | `tst_automation_dispatcher` | C++（Qt Test） | JSON-RPC の解析・エラーコード・メソッド表 |
+| `tst_param_specs` | C++ | 引数の表の検査（既定値の補完・知らない引数・範囲・型の拒否）、JSON Schema の出力、CLI のオプションの変換、登録した全メソッドに表があること、ディスパッチャが呼ぶ前に検査すること |
 | `tst_kifu_conversion_service` | C++ | fixtures の KIF/KI2/CSA/JKF/USI/USEN を相互変換し、手順・初期局面・SFEN 列を検証 |
 | `tst_sfen_validation_service` | C++ | 妥当／不正な SFEN、王手検出、合法手数 |
 | `tst_usilineparser` | C++ | `info` 行などの受信行の解析（`src/engine/usilineparser`。multipv、score cp/mate、bound、pv、info string、崩れた行）と JSON 出力 |
@@ -360,7 +369,7 @@ CLI が GUI 本体と同じクラスを使えるように、`CMakeLists.txt` の
 | `mock_mate_engine` | 補助実行ファイル | `go mate <ms>` に Hayanagi の詰み探索で答える USI エンジン（生成・余詰検査・詰み探索の結合テスト用） |
 | `tst_mcp_python` | pytest（CTest から実行） | `mcp` SDK のクライアントで stdio サーバーを起動し、段階 1 ツール（CLI）と段階 2 ツール（`QT_QPA_PLATFORM=offscreen` で起動したアプリ）を呼ぶ。エンジンは `hayanagi`（解析）と `mock_mate_engine`（詰み）を一時設定ファイルに登録して使う |
 
-`tst_mcp_python` は Python3 と `mcp`・`pytest` が見つかるときだけ登録される。実エンジンでの確認は `SHOGIBOARDQ_TEST_KOMORING` があれば追加で行う。
+`tst_mcp_python` は Python3 と `mcp`・`pytest` が見つかるときだけ登録される。`mcp/tests/test_param_specs.py` は `shogiboardq-cli describe` の表と MCP のツールのスキーマ（そのまま渡すツールは引数名・必須・型・選択肢・既定値・範囲、名前や向きを変えて渡すツールは対応する引数ごと）を比べ、ハンドラが呼ぶメソッドとオプションが表にあることも確かめる。実エンジンでの確認は `SHOGIBOARDQ_TEST_KOMORING` があれば追加で行う。
 
 `mcp/tests/test_csa_game.py` は実際の shogi-server を使い、接続ダイアログ・盤面・終局・棋譜保存を stdio MCP 経由で検証する。
 `SHOGIBOARDQ_TEST_CSA_SERVER` にサーバースクリプトを指定する。実エンジン対局は `SHOGIBOARDQ_TEST_USI_ENGINE`、
