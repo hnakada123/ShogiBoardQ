@@ -48,14 +48,8 @@ void TsumeshogiGenerator::start(const Settings& settings)
     emit verificationStatsUpdated(0, 0);
 
     createOracle();
-    QString startError;
-    if (!m_oracle->start(settings.enginePath, settings.engineName, &startError)) {
-        // 起動できなかった理由は接続が知らせる（無いときは接続と同じ文言にする）
-        emit errorOccurred(startError.isEmpty()
-                               ? QCoreApplication::translate("Usi", "Failed to start engine: %1").arg(settings.enginePath)
-                               : startError);
-        finish();
-    }
+    // 起動できなかったときは、戻った後に onEngineError で届く
+    m_oracle->start(settings.enginePath, settings.engineName);
 }
 
 void TsumeshogiGenerator::createOracle()

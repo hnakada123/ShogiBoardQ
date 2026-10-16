@@ -15,6 +15,7 @@ CsaEngineController::CsaEngineController(EngineLifecycleManager* engines, QObjec
     : QObject(parent)
     , m_engines(engines)
 {
+    connect(m_engines, &EngineLifecycleManager::engineRevoked, this, &CsaEngineController::onEngineRevoked);
 }
 
 CsaEngineController::~CsaEngineController()
@@ -45,7 +46,8 @@ void CsaEngineController::initialize(const InitParams& params)
         return;
     }
 
-    m_engine = m_engines->createEngine(1, std::nullopt, params.engineName);
+    m_lease = m_engines->acquire(this, 1, std::nullopt, params.engineName);
+    m_engine = m_lease.engine();
     m_engine->setLogIdentity(QStringLiteral("E1"), QStringLiteral("CSA"), params.engineName);
     m_engine->setMatchTimeSource(params.timeSource);
 
@@ -54,7 +56,7 @@ void CsaEngineController::initialize(const InitParams& params)
     connect(m_engine, &Usi::errorOccurred, this, &CsaEngineController::onEngineError);
     connect(m_engine, &Usi::resigned, this, &CsaEngineController::onEngineResign);
     connect(m_engine, &Usi::declaredWin, this, &CsaEngineController::onEngineWinDeclaration);
-    (void)m_engine->startEngine(enginePath, params.engineName);
+    m_engine->startEngine(enginePath, params.engineName);
 }
 
 void CsaEngineController::onEngineInitialized()
@@ -116,11 +118,16 @@ void CsaEngineController::sendQuit()
 
 void CsaEngineController::cleanup()
 {
-    if (Usi* engine = std::exchange(m_engine, nullptr)) {
-        disconnect(engine, nullptr, this, nullptr);
-        // 枠を空ける（quit を送り、後で破棄する。思考情報・通信ログの表示は残す）
-        m_engines->destroyEngine(engine);
-    }
+    if (Usi* engine = std::exchange(m_engine, nullptr)) disconnect(engine, nullptr, this, nullptr);
+    // 枠を空ける（quit を送り、後で破棄する。思考情報・通信ログの表示は残す）
+    m_lease.reset();
+}
+
+void CsaEngineController::onEngineRevoked(QObject* owner)
+{
+    if (owner != this || !m_engine) return;
+    // 通信対局の最中にほかの処理が枠を取った。エンジンの異常と同じく知らせる
+    onEngineError(tr("エンジンを別の処理が使い始めたため、通信対局のエンジンを止めました"));
 }
 
 void CsaEngineController::onEngineResign()

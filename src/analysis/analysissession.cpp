@@ -20,6 +20,7 @@ AnalysisSession::AnalysisSession(const Deps& deps, QObject* parent)
     connect(&m_restartTimer, &QTimer::timeout, this, &AnalysisSession::restartConsiderationDeferred);
     if (m_deps.navState)
         connect(m_deps.navState, &KifuNavigationState::changed, this, &AnalysisSession::followDisplayedPosition);
+    connect(m_deps.engines, &EngineLifecycleManager::engineRevoked, this, &AnalysisSession::onEngineRevoked);
 }
 
 Usi* AnalysisSession::engine() const
@@ -38,20 +39,20 @@ bool AnalysisSession::isShutdownInProgress() const
 
 bool AnalysisSession::start(const AnalysisOptions& opt)
 {
-    if (m_state == State::Starting || m_state == State::CancelStarting || isShutdownInProgress()) return false;
+    if (isShutdownInProgress()) return false;
 
-    // 前のセッションは知らせずに終え、エンジンを破棄してから新しいセッションを始める
+    // 前のセッションは知らせずに終え、ほかの処理のエンジンも止めて（持ち主には知らせる）から始める
     endSession();
     m_deps.engines->destroyEngines();
-    m_state = State::Starting;
-    m_startupError.clear();
+    m_state = State::Searching;
     m_engineName = opt.engineName;
     m_mode = opt.mode == AnalysisOptions::Mode::Tsume ? Mode::Tsume : Mode::Consideration;
     m_deps.activity->setActivity(m_mode == Mode::Tsume ? AppActivityState::Activity::DuringTsumeSearch
                                                       : AppActivityState::Activity::DuringConsideration);
 
     // エンジンは E1 の枠に置く（対局の手番は持たない）
-    Usi* engine = m_deps.engines->createEngine(1, std::nullopt, opt.engineName);
+    m_lease = m_deps.engines->acquire(this, 1, std::nullopt, opt.engineName);
+    Usi* engine = m_lease.engine();
     m_engine = engine;
     m_restartTimer.stop();
     connect(engine, &Usi::errorOccurred, this, &AnalysisSession::onEngineError);
@@ -69,17 +70,8 @@ bool AnalysisSession::start(const AnalysisOptions& opt)
                 this, &AnalysisSession::onConsiderationBestMoveReceived);
     }
 
-    const bool accepted = engine->startEngine(opt.enginePath, opt.engineName);
-    const bool cancelled = m_state == State::CancelStarting;
-    m_state = State::Searching;
-    if (cancelled) {
-        stop();
-        return false;
-    }
-    if (!accepted || !m_startupError.isEmpty()) {
-        onEngineError(m_startupError.isEmpty() ? opt.enginePath : m_startupError);
-        return false;
-    }
+    // 起動できなければ、戻った後に onEngineError が届く（探索の要求は初期化の後で送られる）
+    engine->startEngine(opt.enginePath, opt.engineName);
     emit engineNamesChanged(opt.engineName, QString());
     if (m_mode == Mode::Consideration) emit considerationResultsCleared();
     startSearch();
@@ -99,19 +91,21 @@ void AnalysisSession::startSearch()
 
 void AnalysisSession::stop()
 {
-    if (m_state == State::Starting || m_state == State::CancelStarting) {
-        m_state = State::CancelStarting;
-        if (m_engine) m_engine->cancelCurrentOperation();
-        return;
-    }
     if (isShutdownInProgress()) return;
+    // 自分のエンジンだけを止める（検討していなければ何もしない。ほかの処理のエンジンには触れない）
     m_deps.engines->setShutdownInProgress(true);
     const Mode previous = endSession();
-    m_deps.engines->destroyEngines(false);
     m_deps.engines->setShutdownInProgress(false);
+    if (previous == Mode::None) return;
     m_deps.activity->setActivity(AppActivityState::Activity::Idle);
     if (previous == Mode::Consideration) emit considerationModeEnded();
     if (previous == Mode::Tsume) emit tsumeSearchModeEnded();
+}
+
+void AnalysisSession::onEngineRevoked(QObject* owner)
+{
+    // ほかの処理がエンジンの枠を取った（棋譜解析・対局の開始など）。セッションを終えたことを知らせる
+    if (owner == this) stop();
 }
 
 AnalysisSession::Mode AnalysisSession::endSession()
@@ -125,15 +119,13 @@ AnalysisSession::Mode AnalysisSession::endSession()
         disconnect(m_engine->protocol(), nullptr, this, nullptr);
     }
     m_engine.clear();
+    // 枠を空ける（quit を送る。思考情報・通信ログの表示は残す）
+    m_lease.reset();
     return previous;
 }
 
 void AnalysisSession::onEngineError(const QString& message)
 {
-    if (m_state == State::Starting || m_state == State::CancelStarting) {
-        m_startupError = message;
-        return;
-    }
     const Mode previous = m_mode;
     if (previous == Mode::None) return;
     stop();

@@ -33,12 +33,13 @@ MateOracle::~MateOracle()
     quit();
 }
 
-bool MateOracle::start(const QString& enginePath, const QString& engineName, QString* error)
+void MateOracle::start(const QString& enginePath, const QString& engineName)
 {
     m_asking = false;
     m_ready = false;
-    m_started = m_session->startAsync(enginePath, engineName, error);
-    return m_started;
+    m_started = true;
+    // 起動の失敗は、戻った後に errorOccurred で届く
+    m_session->startAsync(enginePath, engineName);
 }
 
 void MateOracle::quit()

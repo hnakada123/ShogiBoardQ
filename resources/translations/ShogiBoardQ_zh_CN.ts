@@ -164,48 +164,48 @@
 <context>
     <name>AnalysisSession</name>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="140"/>
-        <location filename="../../src/analysis/analysissession.cpp" line="225"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="132"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="217"/>
         <source>詰み探索</source>
         <translation>搜索诘棋</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="140"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="132"/>
         <source>検討</source>
         <translation>研究</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="141"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="133"/>
         <source>エンジンエラー: %1</source>
         <translation>引擎错误：%1</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="233"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="225"/>
         <source>詰みあり（手順 %1 手）</source>
         <translation>找到诘棋（%1 手）</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="236"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="228"/>
         <source>詰みなし</source>
         <translation>无诘</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="239"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="231"/>
         <source>（エンジン側）未実装</source>
         <translation>（引擎）尚未实现</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="242"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="234"/>
         <source>時間内に詰みを判定できませんでした</source>
         <translation>未能在限定时间内判定诘棋</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="249"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="241"/>
         <source>エンジンが応答しなかったため、詰み探索を打ち切りました</source>
         <translation>引擎没有响应，已中止搜索诘棋。</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="254"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="246"/>
         <source>探索が完了しました</source>
         <translation>搜索完成</translation>
     </message>
@@ -1957,14 +1957,19 @@
 <context>
     <name>CsaEngineController</name>
     <message>
-        <location filename="../../src/network/csaenginecontroller.cpp" line="44"/>
+        <location filename="../../src/network/csaenginecontroller.cpp" line="45"/>
         <source>エンジンパスが指定されていません</source>
         <translation>未指定引擎路径</translation>
     </message>
     <message>
-        <location filename="../../src/network/csaenginecontroller.cpp" line="62"/>
+        <location filename="../../src/network/csaenginecontroller.cpp" line="64"/>
         <source>エンジン %1 を起動しました</source>
         <translation>引擎 %1 已启动</translation>
+    </message>
+    <message>
+        <location filename="../../src/network/csaenginecontroller.cpp" line="130"/>
+        <source>エンジンを別の処理が使い始めたため、通信対局のエンジンを止めました</source>
+        <translation>其他处理开始使用引擎，因此已停止通信对局的引擎</translation>
     </message>
 </context>
 <context>
@@ -3737,38 +3742,37 @@
         <translation>正在启动引擎...</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineregistrationhandler.cpp" line="111"/>
-        <location filename="../../src/engine/engineregistrationhandler.cpp" line="154"/>
+        <location filename="../../src/engine/engineregistrationhandler.cpp" line="152"/>
         <source>エンジンの起動に失敗しました: %1</source>
         <translation>启动引擎失败：%1</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineregistrationhandler.cpp" line="130"/>
+        <location filename="../../src/engine/engineregistrationhandler.cpp" line="128"/>
         <source>USI通信中...</source>
         <translation>正在进行 USI 通信...</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineregistrationhandler.cpp" line="142"/>
+        <location filename="../../src/engine/engineregistrationhandler.cpp" line="140"/>
         <source>エンジン名(id name)を取得できませんでした</source>
         <translation>无法获取引擎名称 (id name)</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineregistrationhandler.cpp" line="153"/>
+        <location filename="../../src/engine/engineregistrationhandler.cpp" line="151"/>
         <source>エンジンからの応答がタイムアウトしました</source>
         <translation>引擎响应超时</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineregistrationhandler.cpp" line="237"/>
+        <location filename="../../src/engine/engineregistrationhandler.cpp" line="235"/>
         <source>USI_Hash option added.</source>
         <translation>已添加 USI_Hash 选项。</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineregistrationhandler.cpp" line="251"/>
+        <location filename="../../src/engine/engineregistrationhandler.cpp" line="249"/>
         <source>オプション行の形式が無効です。</source>
         <translation>选项行格式无效。</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineregistrationhandler.cpp" line="271"/>
+        <location filename="../../src/engine/engineregistrationhandler.cpp" line="269"/>
         <source>重複したエンジンオプションが見つかりました。</source>
         <translation>发现重复的引擎选项。</translation>
     </message>
@@ -4411,12 +4415,12 @@ ABC abc 0123456789</translation>
 <context>
     <name>GameSession</name>
     <message>
-        <location filename="../../src/app/gamesession.cpp" line="191"/>
+        <location filename="../../src/app/gamesession.cpp" line="192"/>
         <source>無制限</source>
         <translation>无限制</translation>
     </message>
     <message>
-        <location filename="../../src/app/gamesession.cpp" line="193"/>
+        <location filename="../../src/app/gamesession.cpp" line="194"/>
         <source>対局：▲%1 △%2（%3 開始、持ち時間 %4）</source>
         <translation>对局：▲%1 △%2（%3 开始，用时 %4）</translation>
     </message>
@@ -4615,12 +4619,12 @@ ABC abc 0123456789</translation>
 <context>
     <name>JosekiBook</name>
     <message>
-        <location filename="../../src/kifu/josekibook.cpp" line="134"/>
+        <location filename="../../src/kifu/josekibook.cpp" line="135"/>
         <source>ファイルを開けませんでした: %1</source>
         <translation>无法打开文件：%1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/josekibook.cpp" line="204"/>
+        <location filename="../../src/kifu/josekibook.cpp" line="205"/>
         <source>このファイルはやねうら王定跡フォーマット(YANEURAOU-DB2016)ではありません。
 ヘッダー行（#YANEURAOU-DB2016 等）が見つかりませんでした。
 
@@ -4631,7 +4635,7 @@ ABC abc 0123456789</translation>
 文件：%1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/josekibook.cpp" line="211"/>
+        <location filename="../../src/kifu/josekibook.cpp" line="212"/>
         <source>定跡ファイルにSFEN行が見つかりませんでした。
 
 やねうら王定跡フォーマットでは「sfen 」で始まる局面行が必要です。
@@ -4644,7 +4648,7 @@ YaneuraOu 定跡格式需要以“sfen ”开头的局面行。
 文件：%1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/josekibook.cpp" line="218"/>
+        <location filename="../../src/kifu/josekibook.cpp" line="219"/>
         <source>定跡ファイルに有効な指し手行が見つかりませんでした。
 
 やねうら王定跡フォーマットでは指し手行に少なくとも5つのフィールド
@@ -4659,13 +4663,13 @@ YaneuraOu 定跡格式的着法行至少需要 5 个字段
 文件：%1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/josekibook.cpp" line="239"/>
-        <location filename="../../src/kifu/josekibook.cpp" line="263"/>
+        <location filename="../../src/kifu/josekibook.cpp" line="240"/>
+        <location filename="../../src/kifu/josekibook.cpp" line="264"/>
         <source>ファイルを保存できませんでした: %1</source>
         <translation>无法保存文件：%1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/josekibook.cpp" line="258"/>
+        <location filename="../../src/kifu/josekibook.cpp" line="259"/>
         <source>ファイル書き込み中にエラーが発生しました: %1</source>
         <translation>写入文件时发生错误：%1</translation>
     </message>
@@ -5769,23 +5773,23 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>KifuAnalysisController</name>
     <message>
-        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="49"/>
-        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="92"/>
+        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="51"/>
+        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="94"/>
         <source>解析対象の棋譜データが不正です。</source>
         <translation>用于分析的棋谱数据无效。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="62"/>
+        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="64"/>
         <source>エンジン選択が不正です。</source>
         <translation>引擎选择无效。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="148"/>
+        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="152"/>
         <source>エンジン初期化に失敗しました。エンジン設定を確認してください。</source>
         <translation>引擎初始化失败。请检查引擎设置。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="208"/>
+        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="218"/>
         <source>エンジンエラー: %1</source>
         <translation>引擎错误：%1</translation>
     </message>
@@ -7694,72 +7698,72 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>MatchCoordinator</name>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="330"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="329"/>
         <source>対局中断</source>
         <translation>对局已中断</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="330"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="329"/>
         <source>エンジンエラー: %1</source>
         <translation>引擎错误：%1</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="360"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="359"/>
         <source>対局終了</source>
         <translation>对局结束</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="399"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="398"/>
         <source>下手</source>
         <translation>下手</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="399"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="398"/>
         <source>先手</source>
         <translation>先手</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="400"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="399"/>
         <source>上手</source>
         <translation>上手</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="400"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="399"/>
         <source>後手</source>
         <translation>后手</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="406"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="405"/>
         <source>%1の投了。%2の勝ちです。</source>
         <translation>%1认输。%2获胜。</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="408"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="407"/>
         <source>%1の時間切れ。%2の勝ちです。</source>
         <translation>%1超时。%2获胜。</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="410"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="409"/>
         <source>最大手数に達しました。持将棋です。</source>
         <translation>已达到最大手数。持将棋（和棋）。</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="412"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="411"/>
         <source>%1の反則負け。%2の勝ちです。</source>
         <translation>%1犯规。%2获胜。</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="414"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="413"/>
         <source>千日手が成立しました。</source>
         <translation>千日手成立（重复局面和棋）。</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="416"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="415"/>
         <source>%1の連続王手の千日手。%2の勝ちです。</source>
         <translation>%1连续王手千日手。%2获胜。</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="421"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="420"/>
         <source>対局が終了しました。</source>
         <translation>对局已结束。</translation>
     </message>
@@ -10570,27 +10574,27 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>TsumeMateEngine</name>
     <message>
-        <location filename="../../src/engine/tsumemateengine.cpp" line="80"/>
+        <location filename="../../src/engine/tsumemateengine.cpp" line="78"/>
         <source>最短手数を確認できるKomoringHeightsを選択してください。</source>
         <translation>请选择支持验证最短诘棋手数的 KomoringHeights 版本。</translation>
     </message>
     <message>
-        <location filename="../../src/engine/tsumemateengine.cpp" line="118"/>
+        <location filename="../../src/engine/tsumemateengine.cpp" line="116"/>
         <source>エンジンが判定を完了できませんでした。時間を増やして再判定できます。</source>
         <translation>引擎未能完成搜索。请增加时间后重试。</translation>
     </message>
     <message>
-        <location filename="../../src/engine/tsumemateengine.cpp" line="65"/>
+        <location filename="../../src/engine/tsumemateengine.cpp" line="133"/>
         <source>判定エンジンを実行できません: %1</source>
         <translation>无法运行诘棋引擎：%1</translation>
     </message>
     <message>
-        <location filename="../../src/engine/tsumemateengine.cpp" line="133"/>
+        <location filename="../../src/engine/tsumemateengine.cpp" line="136"/>
         <source>判定エンジンが終了しました。実行ファイルを確認してください。</source>
         <translation>诘棋引擎已退出。请检查其可执行文件。</translation>
     </message>
     <message>
-        <location filename="../../src/engine/tsumemateengine.cpp" line="138"/>
+        <location filename="../../src/engine/tsumemateengine.cpp" line="141"/>
         <source>制限時間内に判定が完了しませんでした。不詰とは判定していません。</source>
         <translation>搜索未在时限内完成。这并不代表无诘。</translation>
     </message>
@@ -11045,12 +11049,12 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>TsumeshogiGenerator</name>
     <message>
-        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="195"/>
+        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="189"/>
         <source>エンジンが詰み探索に対応していません。</source>
         <translation>该引擎不支持诘棋搜索。</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="204"/>
+        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="198"/>
         <source>エンジンが応答しないため生成を中止しました。</source>
         <translation>引擎无响应，已终止生成。</translation>
     </message>
@@ -11479,23 +11483,23 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>Usi</name>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="58"/>
+        <location filename="../../src/engine/usienginesession.cpp" line="64"/>
         <source>Engine file path is empty.</source>
         <translation>引擎文件路径为空。</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="102"/>
+        <location filename="../../src/engine/usi.cpp" line="93"/>
         <source>Timeout waiting for bestmove.</source>
         <translation>等待 bestmove 超时。</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usienginesession.cpp" line="104"/>
+        <location filename="../../src/engine/usienginesession.cpp" line="122"/>
         <source>Engine exited unexpectedly.</source>
         <translation>引擎意外退出。</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="55"/>
-        <location filename="../../src/engine/usienginesession.cpp" line="98"/>
+        <location filename="../../src/engine/usienginesession.cpp" line="80"/>
+        <location filename="../../src/engine/usienginesession.cpp" line="116"/>
         <source>Failed to start engine: %1</source>
         <translation>启动引擎失败：%1</translation>
     </message>

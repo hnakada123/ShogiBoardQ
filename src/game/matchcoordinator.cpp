@@ -40,9 +40,8 @@ MatchCoordinator::MatchCoordinator(const Deps& deps, QObject* parent)
 
     connect(m_engines, &EngineLifecycleManager::engineResigned, this, &MatchCoordinator::handleEngineResign);
     connect(m_engines, &EngineLifecycleManager::engineDeclaredWin, this, &MatchCoordinator::handleEngineWin);
-    // 起動の失敗は対局開始の処理中に届くことがあるため、開始処理を終えてから中断する
-    connect(m_engines, &EngineLifecycleManager::engineError,
-            this, &MatchCoordinator::handleEngineError, Qt::QueuedConnection);
+    // 起動の失敗は開始の処理から戻った後に届く（Usi::startEngine）ので、そのまま中断してよい
+    connect(m_engines, &EngineLifecycleManager::engineError, this, &MatchCoordinator::handleEngineError);
     connect(m_clock, &ShogiClock::playerTimeOut, this, &MatchCoordinator::handlePlayerTimeOut);
 }
 

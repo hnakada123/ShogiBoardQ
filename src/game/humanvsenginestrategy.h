@@ -9,6 +9,7 @@
 
 #include "gamemodestrategy.h"
 #include "usimatchhandler.h"
+#include "enginelifecyclemanager.h"
 
 /**
  * @brief 人間とエンジンの対局。エンジンは E1 の枠に置き、engineSide の手番を指す
@@ -35,6 +36,7 @@ private:
     Turn m_engineSide;             ///< エンジンの手番（人間はその相手）
     QString m_enginePath;
     QString m_engineName;
+    EngineLease m_engine;          ///< 枠 E1 のエンジン（次の対局の司令塔が戦略を作り直すときに手放す）
     bool m_waitingForMove = false;
     bool m_initialMoveRequested = false;
 };

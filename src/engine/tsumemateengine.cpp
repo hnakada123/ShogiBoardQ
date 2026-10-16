@@ -60,10 +60,8 @@ void TsumeMateEngine::search(const QString& sfen, int milliseconds)
     m_phase = Phase::Starting;
     // 登録済みなら保存済みの設定を送る（名前で設定を引く）。最短手数の確認に必要な値だけ上書きする
     m_oracle->session()->handler()->setSessionOptions(requiredOptions());
-    QString error;
-    if (!m_oracle->start(m_executable, EngineListSettings::nameForPath(m_executable), &error)) {
-        fail(tr("判定エンジンを実行できません: %1").arg(error.isEmpty() ? m_executable : error));
-    }
+    // 起動できなかったときは、戻った後に onSessionError で届く
+    m_oracle->start(m_executable, EngineListSettings::nameForPath(m_executable));
 }
 
 void TsumeMateEngine::onReady()
@@ -127,9 +125,14 @@ void TsumeMateEngine::fail(const QString& message)
     emit finished({TsumeEvaluation::Status::Unknown, 0, {}, message});
 }
 
-void TsumeMateEngine::onSessionError(const QString&)
+void TsumeMateEngine::onSessionError(const QString& message)
 {
     if (m_phase == Phase::Off) return;
+    // 初期化が終わる前の失敗は、起動できなかったとして理由を出す
+    if (m_phase == Phase::Starting) {
+        fail(tr("判定エンジンを実行できません: %1").arg(message.isEmpty() ? m_executable : message));
+        return;
+    }
     fail(tr("判定エンジンが終了しました。実行ファイルを確認してください。"));
 }
 

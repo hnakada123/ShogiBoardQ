@@ -21,13 +21,14 @@ EngineAnalysisRunner::EngineAnalysisRunner(QObject* parent)
     connect(m_session->handler(), &UsiProtocolHandler::bestMoveReceived, this, &EngineAnalysisRunner::onBestMove);
 }
 
-bool EngineAnalysisRunner::start(const Request& request, QString* error)
+void EngineAnalysisRunner::start(const Request& request)
 {
     m_latest.clear();
     m_done = false;
     m_request = request;
     m_elapsed.invalidate();
-    return m_session->startAsync(request.enginePath, request.engineName, error);
+    // 起動の失敗は errorOccurred で届く
+    m_session->startAsync(request.enginePath, request.engineName);
 }
 
 void EngineAnalysisRunner::onSessionReady()

@@ -415,6 +415,7 @@ void MainWindowComposer::createSessions()
     gd.state = &m_state;
     gd.match = m_c.match;
     gd.analysis = m_c.analysisSession;
+    gd.engines = m_c.engines;
     gd.consecutive = m_c.consecutiveGames;
     gd.reset = m_c.sessionReset.get();
     gd.navState = m_c.navState;

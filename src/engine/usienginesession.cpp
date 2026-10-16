@@ -3,6 +3,8 @@
 
 #include "usienginesession.h"
 
+#include <utility>
+
 #include <QCoreApplication>
 #include <QPointer>
 
@@ -40,34 +42,50 @@ UsiEngineSession::~UsiEngineSession()
 // 起動と終了
 // ============================================================
 
-bool UsiEngineSession::startAsync(const QString& enginePath, const QString& engineName, QString* error)
+void UsiEngineSession::startAsync(const QString& enginePath, const QString& engineName)
 {
     quit();
     m_probeOnly = false;
     m_handler->setLaunchOptions(EngineProfileStore::launchOptions(engineName));
-    return launch(enginePath, error);
+    launch(enginePath);
 }
 
-bool UsiEngineSession::probeAsync(const QString& enginePath, QString* error)
+void UsiEngineSession::probeAsync(const QString& enginePath)
 {
     quit();
     m_probeOnly = true;
-    return launch(enginePath, error);
+    launch(enginePath);
 }
 
-bool UsiEngineSession::launch(const QString& enginePath, QString* error)
+void UsiEngineSession::launch(const QString& enginePath)
 {
     m_lastError.clear();
+    if (enginePath.isEmpty()) {
+        m_lastError = QCoreApplication::translate("Usi", "Engine file path is empty.");
+        failLaunch(enginePath);
+        return;
+    }
     m_handler->beginStartup();
     m_startTimer.start(m_initializationTimeoutMs);
-    m_insideStart = true;
+    m_launching = true;
     const bool accepted = m_process->startProcessAsync(enginePath);
-    m_insideStart = false;
-    if (!accepted) {
-        quit();
-        if (error) *error = m_lastError;
-    }
-    return accepted;
+    m_launching = false;
+    if (!accepted || !m_lastError.isEmpty()) failLaunch(enginePath);
+}
+
+void UsiEngineSession::failLaunch(const QString& enginePath)
+{
+    quit();
+    if (m_lastError.isEmpty())
+        m_lastError = QCoreApplication::translate("Usi", "Failed to start engine: %1").arg(enginePath);
+    m_launchFailurePending = true;
+    QMetaObject::invokeMethod(this, &UsiEngineSession::reportLaunchFailure, Qt::QueuedConnection);
+}
+
+void UsiEngineSession::reportLaunchFailure()
+{
+    if (!std::exchange(m_launchFailurePending, false)) return;
+    emit errorOccurred(m_lastError);
 }
 
 void UsiEngineSession::onProcessStarted()
@@ -106,6 +124,7 @@ void UsiEngineSession::onProcessExited()
 
 void UsiEngineSession::quit()
 {
+    m_launchFailurePending = false;
     m_startTimer.stop();
     clearSearchTimers();
     m_pending.clear();
@@ -133,7 +152,7 @@ void UsiEngineSession::onHandlerError(const QString& message)
 {
     qCWarning(lcEngine) << "UsiEngineSession error:" << message;
     m_lastError = message;
-    if (m_insideStart) return;
+    if (m_launching) return;
     quit();
     emit errorOccurred(message);
 }

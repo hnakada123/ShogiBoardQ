@@ -11,8 +11,8 @@
 
 #include "usimove.h"
 #include "usimatchhandler.h"
+#include "enginelifecyclemanager.h"
 
-class EngineLifecycleManager;
 class MatchTimeSource;
 class Usi;
 
@@ -76,11 +76,14 @@ private slots:
     void onMatchMoveReady(const UsiMatchMove& move);
     void onEngineResign();
     void onEngineWinDeclaration();
+    /// ほかの処理がエンジンの枠を取った
+    void onEngineRevoked(QObject* owner);
 
 private:
     EngineLifecycleManager* m_engines = nullptr;  ///< 非所有（エンジンは枠が持つ）
     QString m_engineName;
-    QPointer<Usi> m_engine;
+    EngineLease m_lease;       ///< 枠 E1 のエンジンを使う権利
+    QPointer<Usi> m_engine;    ///< m_lease のエンジン（取り上げられたら null）
 };
 
 #endif // CSAENGINECONTROLLER_H

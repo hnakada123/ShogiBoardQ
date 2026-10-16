@@ -66,10 +66,16 @@ public:
     explicit UsiEngineSession(QObject* parent = nullptr);
     ~UsiEngineSession() override;
 
-    /// 起動要求の受付を返す。完了は ready、失敗は errorOccurred で通知する
-    [[nodiscard]] bool startAsync(const QString& enginePath, const QString& engineName, QString* error = nullptr);
-    /// 起動して usi〜usiok だけ行う（エンジンの登録。名前・作者・オプションは handler() に残る）
-    [[nodiscard]] bool probeAsync(const QString& enginePath, QString* error = nullptr);
+    /**
+     * @brief エンジンを起動して初期化する。完了は ready、失敗は errorOccurred で知らせる
+     *
+     * 失敗（パスが空・実行できない・起動できない）は、同期では決して知らせない。必ずこの呼び出しから
+     * 戻った後のイベントループで errorOccurred にする（使う側は起動の途中の再入に備えなくてよい）。
+     * 知らせる前に quit()・次の起動をしたら、その失敗は知らせない。
+     */
+    void startAsync(const QString& enginePath, const QString& engineName);
+    /// 起動して usi〜usiok だけ行う（エンジンの登録。名前・作者・オプションは handler() に残る）。失敗の知らせ方は startAsync と同じ
+    void probeAsync(const QString& enginePath);
     /// 起動から readyok までの待ち時間（既定 5000ms。大きなハッシュを確保するエンジンなどで延ばす）
     void setInitializationTimeoutMs(int timeoutMs) { m_initializationTimeoutMs = qMax(1, timeoutMs); }
     /// プロセスを止める（quit を送り、応答がなければ強制終了する）
@@ -105,17 +111,22 @@ private slots:
     void onHandlerError(const QString& message);
     void onStopTimer();
     void onSearchFinished();
+    void reportLaunchFailure();
 
 private:
-    bool launch(const QString& enginePath, QString* error);
+    void launch(const QString& enginePath);
+    /// 起動の失敗を、呼び出しから戻った後に errorOccurred で知らせる
+    void failLaunch(const QString& enginePath);
     void startRequestedSearch(const UsiSearchRequest& request);
     void clearSearchTimers();
 
     EngineProcessManager* m_process = nullptr; ///< QObject parent 所有
     UsiProtocolHandler* m_handler = nullptr;   ///< QObject parent 所有
     QString m_lastError;
-    /// startAsync の中で同期的に届いたエラーは、errorOccurred ではなく戻り値で返す
-    bool m_insideStart = false;
+    /// プロセスを起動している間（このとき届いたエラーは覚えるだけにし、戻った後に知らせる）
+    bool m_launching = false;
+    /// 起動の失敗をまだ知らせていない（quit・次の起動で取り消す）
+    bool m_launchFailurePending = false;
     bool m_probeOnly = false;   ///< usiok で初期化を終える
     QTimer m_startTimer;
     int m_initializationTimeoutMs = 5000;

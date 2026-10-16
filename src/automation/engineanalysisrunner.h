@@ -37,7 +37,7 @@ public:
     explicit EngineAnalysisRunner(QObject* parent = nullptr);
 
     /// エンジンを起動して解析を始める。失敗時は false と error
-    [[nodiscard]] bool start(const Request& request, QString* error = nullptr);
+    void start(const Request& request);
     /// 早期停止（bestmove を待って finished を発行する）
     void stop();
 

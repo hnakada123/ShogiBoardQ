@@ -24,14 +24,13 @@ QString MateSearchRunner::kindName(MateAnswer::Kind kind)
     return QStringLiteral("unknown");
 }
 
-bool MateSearchRunner::start(const Request& request, QString* error)
+void MateSearchRunner::start(const Request& request)
 {
     m_done = false;
     m_elapsed.invalidate();
-    if (!m_oracle->start(request.enginePath, request.engineName, error)) return false;
-    // 問い合わせは初期化が終わってから送られる
+    // 起動の失敗は errorOccurred で届く。問い合わせは初期化が終わってから送られる
+    m_oracle->start(request.enginePath, request.engineName);
     m_oracle->ask(request.position, qMax(100, request.timeMs));
-    return true;
 }
 
 void MateSearchRunner::onReady()

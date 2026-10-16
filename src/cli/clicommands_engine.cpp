@@ -133,7 +133,7 @@ int CliCommands::analyze(const QStringList& args)
     started[QStringLiteral("multipv")] = multiPv;
     CliOutput::printEvent(QStringLiteral("started"), started);
 
-    if (!runner.start(request, &error)) return CliOutput::failEvent(ErrorKind::EngineError, error);
+    runner.start(request);
     loop.exec();
     return reporter.exitCode();
 }
@@ -169,7 +169,7 @@ int CliCommands::mate(const QStringList& args)
     started[QStringLiteral("seconds")] = seconds;
     CliOutput::printEvent(QStringLiteral("started"), started);
 
-    if (!runner.start(request, &error)) return CliOutput::failEvent(ErrorKind::EngineError, error);
+    runner.start(request);
     loop.exec();
     return reporter.exitCode();
 }

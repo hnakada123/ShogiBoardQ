@@ -15,6 +15,7 @@
 #include "shogigamecontroller.h"
 #include "shogiboard.h"
 #include "usi.h"
+#include "usienginesession.h"
 #include "engineprocessmanager.h"
 #include "usiprotocolhandler.h"
 #include "engineprofilestore.h"
@@ -79,6 +80,68 @@ class TestBackgroundTasks : public QObject
     QTimer m_heartbeat;
     int m_ticks = 0;
 private slots:
+    /// 起動の失敗は同期では知らせない（呼び出しから戻った後に1回だけ）。知らせる前に quit すれば知らせない
+    void engineStartFailureIsReportedAfterReturning()
+    {
+        UsiEngineSession session;
+        QSignalSpy errors(&session, &UsiEngineSession::errorOccurred);
+        session.startAsync(QStringLiteral("/nonexistent/engine"), QString());
+        QCOMPARE(errors.count(), 0);
+        QTRY_COMPARE(errors.count(), 1);
+        QVERIFY(errors.first().at(0).toString().contains(QStringLiteral("/nonexistent/engine")));
+
+        session.startAsync(QString(), QString());
+        QCOMPARE(errors.count(), 1);
+        session.quit();
+        QTest::qWait(20);
+        QCOMPARE(errors.count(), 1);
+
+        Usi engine;
+        QSignalSpy usiErrors(&engine, &Usi::errorOccurred);
+        engine.startEngine(QString(), QString());
+        QCOMPARE(usiErrors.count(), 0);
+        QTRY_COMPARE(usiErrors.count(), 1);
+    }
+
+    /// 枠のエンジンは持ち主のリースで使う。ほかの持ち主が同じ枠を取ると前の持ち主に知らせ、手放しても知らせない
+    void engineLeaseRevokesPreviousOwner()
+    {
+        ShogiClock clock;
+        EngineLifecycleManager engines(&clock);
+        QObject first;
+        QObject second;
+        QSignalSpy revoked(&engines, &EngineLifecycleManager::engineRevoked);
+        QSignalSpy changed(&engines, &EngineLifecycleManager::enginesChanged);
+
+        EngineLease a = engines.acquire(&first, 1, std::nullopt, QStringLiteral("A"));
+        QVERIFY(a.engine());
+        QCOMPARE(engines.engineInSlot(1), a.engine());
+        EngineLease b = engines.acquire(&second, 1, std::nullopt, QStringLiteral("B"));
+        QCOMPARE(revoked.count(), 1);
+        QCOMPARE(revoked.first().at(0).value<QObject*>(), &first);
+        QVERIFY(!a.engine());
+        QCOMPARE(engines.engineInSlot(1), b.engine());
+
+        // 取り上げられたリースを手放しても、今の持ち主の枠には触れない
+        a.reset();
+        QCOMPARE(engines.engineInSlot(1), b.engine());
+
+        // 手放すと枠が空く（自分には知らせない）。移したリースは元が空になる
+        EngineLease moved = std::move(b);
+        QVERIFY(!b.engine());
+        QVERIFY(moved.engine());
+        moved.reset();
+        QVERIFY(!engines.engineInSlot(1));
+        QCOMPARE(revoked.count(), 1);
+
+        // 全部の枠を破棄すると、持ち主に知らせる
+        EngineLease c = engines.acquire(&first, 2, Turn::Black, QStringLiteral("C"));
+        engines.destroyEngines(false);
+        QCOMPARE(revoked.count(), 2);
+        QVERIFY(!c.engine());
+        QVERIFY(changed.count() >= 5);
+    }
+
     void tick() { ++m_ticks; }
     void initTestCase()
     {
@@ -241,7 +304,7 @@ private slots:
         const int ticks = m_ticks;
         QElapsedTimer elapsed;
         elapsed.start();
-        QVERIFY(engine.startEngine(QStringLiteral(MOCK_USI_EXECUTABLE), engineName));
+        engine.startEngine(QStringLiteral(MOCK_USI_EXECUTABLE), engineName);
         engine.sendSetOptionCommand(QStringLiteral("ReplyDelay"), QStringLiteral("250"));
         FixedTimeSource matchTime(TestTime::byoyomiTiming(5000, 300000, 0));
         engine.setMatchTimeSource(&matchTime);
@@ -265,7 +328,7 @@ private slots:
         game.setCurrentPlayer(Turn::White);
         Usi engine;
         QSignalSpy moves(&engine, &Usi::matchMoveReady);
-        QVERIFY(engine.startEngine(QStringLiteral(MOCK_USI_EXECUTABLE), engineName));
+        engine.startEngine(QStringLiteral(MOCK_USI_EXECUTABLE), engineName);
         FixedTimeSource matchTime(TestTime::byoyomiTiming(5000, 300000, 0));
         engine.setMatchTimeSource(&matchTime);
         engine.requestMatchMove(*UsiPosition::parse(u"position startpos moves 7g7f"));
@@ -293,7 +356,7 @@ private slots:
         QSignalSpy moves(&engine, &Usi::matchMoveReady);
         QSignalSpy resigns(&engine, &Usi::resigned);
         QSignalSpy errors(&engine, &Usi::errorOccurred);
-        QVERIFY(engine.startEngine(QStringLiteral(MOCK_USI_EXECUTABLE), engineName));
+        engine.startEngine(QStringLiteral(MOCK_USI_EXECUTABLE), engineName);
         FixedTimeSource matchTime(TestTime::byoyomiTiming(5000, 300000, 0));
         engine.setMatchTimeSource(&matchTime);
         const UsiPosition first = *UsiPosition::parse(u"position startpos moves 7g7f");
@@ -320,7 +383,7 @@ private slots:
         Usi engine;
         QSignalSpy ready(&engine, &Usi::engineInitialized);
         QSignalSpy moves(&engine, &Usi::matchMoveReady);
-        QVERIFY(engine.startEngine(QStringLiteral(MOCK_USI_EXECUTABLE), engineName));
+        engine.startEngine(QStringLiteral(MOCK_USI_EXECUTABLE), engineName);
         QTRY_COMPARE(ready.size(), 1);
         engine.sendSetOptionCommand(QStringLiteral("ReplyDelay"), QStringLiteral("300"));
         FixedTimeSource matchTime(TestTime::byoyomiTiming(5000, 300000, 0));
@@ -362,8 +425,10 @@ private slots:
         match.start(opt);
         game.setCurrentPlayer(Turn::White);
         // エンジンの枠に、後手（と先手）を指すエンジンを置く
-        Usi* engine1 = engines.createEngine(1, Turn::White, engineName);
-        Usi* engine2 = bothEngines ? engines.createEngine(2, Turn::Black, engineName) : nullptr;
+        EngineLease lease1 = engines.acquire(this, 1, Turn::White, engineName);
+        EngineLease lease2 = bothEngines ? engines.acquire(this, 2, Turn::Black, engineName) : EngineLease();
+        Usi* engine1 = lease1.engine();
+        Usi* engine2 = lease2.engine();
         QSignalSpy ready1(engine1, &Usi::engineInitialized);
         QSignalSpy moves1(engine1, &Usi::matchMoveReady);
         std::unique_ptr<QSignalSpy> ready2;
@@ -421,8 +486,10 @@ private slots:
         // 負けた側のエンジンは思考中、勝った側のエンジンは先読み中
         const Turn loser = loserIsBlack ? Turn::Black : Turn::White;
         const Turn winner = loserIsBlack ? Turn::White : Turn::Black;
-        Usi* thinking = engines.createEngine(loserIsBlack ? 1 : 2, loser, engineName);
-        Usi* pondering = engines.createEngine(loserIsBlack ? 2 : 1, winner, engineName);
+        EngineLease thinkingLease = engines.acquire(this, loserIsBlack ? 1 : 2, loser, engineName);
+        EngineLease ponderingLease = engines.acquire(this, loserIsBlack ? 2 : 1, winner, engineName);
+        Usi* thinking = thinkingLease.engine();
+        Usi* pondering = ponderingLease.engine();
         QSignalSpy thinkingReady(thinking, &Usi::engineInitialized);
         QSignalSpy ponderingReady(pondering, &Usi::engineInitialized);
         QSignalSpy thinkingMoves(thinking, &Usi::matchMoveReady);
@@ -484,7 +551,8 @@ private slots:
         for (const std::optional<Turn> loser : {std::optional<Turn>(loserIsBlack ? Turn::Black : Turn::White),
                                                 std::optional<Turn>()}) {
             EngineLifecycleManager engines(&clock);
-            Usi* engine = engines.createEngine(1, engineIsBlack ? Turn::Black : Turn::White, engineName);
+            EngineLease lease = engines.acquire(this, 1, engineIsBlack ? Turn::Black : Turn::White, engineName);
+            Usi* engine = lease.engine();
             CommLogRecorder recorder(engine);
             QSignalSpy ready(engine, &Usi::engineInitialized);
             engines.startEngine(engine, QStringLiteral(MOCK_USI_EXECUTABLE), engineName);
@@ -507,7 +575,7 @@ private slots:
         Usi engine;
         QSignalSpy errors(&engine, &Usi::errorOccurred);
         QSignalSpy moves(&engine, &Usi::matchMoveReady);
-        QVERIFY(engine.startEngine(QStringLiteral(MOCK_USI_EXECUTABLE), engineName));
+        engine.startEngine(QStringLiteral(MOCK_USI_EXECUTABLE), engineName);
         FixedTimeSource matchTime(TestTime::byoyomiTiming(5000, 300000, 0));
         engine.setMatchTimeSource(&matchTime);
         engine.requestMatchMove(*UsiPosition::parse(u"position startpos moves 7g7f"));
