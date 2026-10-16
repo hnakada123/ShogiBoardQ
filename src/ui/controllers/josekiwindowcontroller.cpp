@@ -104,15 +104,8 @@ void JosekiWindowController::onJosekiMoveSelected(const QString& usiMove)
         if (m_josekiWindow) m_josekiWindow->showMoveFailed(usiMove);
         return;
     }
-    const Turn mover = m_gameController->currentPlayer();
-    const QPoint from = BoardCoordinates::fromSquare(*move, mover);
-    const QPoint to = BoardCoordinates::toSquare(*move);
-
-    // 定跡手は成り・不成が決まっているので、成りの選択を出さない
-    m_gameController->setForcedPromotion(true, move->promote);
-    const bool moveSuccess = m_boardMoves->playMove(from, to);
-    // 着手処理に到達しなかった場合も指定を解除する
-    m_gameController->setForcedPromotion(false);
+    // 定跡手は成り・不成が決まっているので、成りの選択を出さずにそのまま指す
+    const bool moveSuccess = m_boardMoves->playUsiMove(*move);
     qCDebug(lcUi) << "Move result: success=" << moveSuccess;
     if (m_josekiWindow && !moveSuccess) m_josekiWindow->showMoveFailed(usiMove);
 }

@@ -5,7 +5,7 @@
 
 #include "gamesession.h"
 #include "kifufilecontroller.h"
-#include "positioneditcoordinator.h"
+#include "positioneditsession.h"
 #include "sessionresetcoordinator.h"
 #include "shogiboard.h"
 #include "shogigamecontroller.h"
@@ -27,14 +27,12 @@ void MainWindowActions::beginPositionEditing()
     // やめたときは中断した対局も残す
     if (!m_deps.kifuFileController->confirmDiscardUnsaved()) return;
     m_deps.gameSession->discardInterruptedGame();
-    m_deps.positionEdit->beginPositionEditing();
+    m_deps.positionEdit->begin();
 }
 
-void MainWindowActions::resetRecordForEditedPosition()
+void MainWindowActions::resetRecordForEditedPosition(const QString& sfen)
 {
-    ShogiBoard* board = m_deps.gameController->board();
-    board->setMoveNumber(1);
-    m_deps.reset->resetToNewRecord(board->toSfen());
+    m_deps.reset->resetToNewRecord(sfen);
 }
 
 void MainWindowActions::resetToInitialState()

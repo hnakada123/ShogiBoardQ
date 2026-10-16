@@ -10054,12 +10054,12 @@ Are you sure you want to declare?</translation>
         <translation>Principal Variation Display</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="74"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="71"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="75"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="72"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
@@ -10080,37 +10080,37 @@ Are you sure you want to declare?</translation>
         <translation type="vanished">Flip the board</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="117"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="114"/>
         <source>最初の局面に戻る</source>
         <translation>Go to First Position</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="117"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="114"/>
         <source>1手戻る</source>
         <translation>Go Back 1 Move</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="117"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="114"/>
         <source>1手進む</source>
         <translation>Go Forward 1 Move</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="117"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="114"/>
         <source>最後の局面まで進む</source>
         <translation>Go to Last Position</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="123"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="119"/>
         <source>閉じる</source>
         <translation>Close</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="144"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="140"/>
         <source>手数: %1 / %2</source>
         <translation>Move: %1 / %2</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="146"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="142"/>
         <source> (開始局面)</source>
         <translation> (Initial Position)</translation>
     </message>
@@ -11351,7 +11351,7 @@ Choose a file with one SFEN position per line.</translation>
         <translation type="vanished">Place white pieces (does not change the side to move)</translation>
     </message>
     <message>
-        <location filename="../../src/views/shogiview.cpp" line="902"/>
+        <location filename="../../src/views/shogiview.cpp" line="900"/>
         <source>駒箱</source>
         <translation>Piece Box</translation>
     </message>
@@ -12334,17 +12334,17 @@ This cannot be undone. Reset history?</translation>
         <translation type="vanished">Restart</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="466"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="472"/>
         <source>一手戻す</source>
         <translation>Undo your last move</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="479"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="485"/>
         <source>探索中止</source>
         <translation>Stop search</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="480"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="486"/>
         <source>再判定</source>
         <translation>Retry search</translation>
     </message>
@@ -12354,7 +12354,7 @@ This cannot be undone. Reset history?</translation>
         <translation>Back to problems</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="465"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="471"/>
         <source>最初から解き直す</source>
         <translation>Restart puzzle</translation>
     </message>
@@ -12376,12 +12376,12 @@ This cannot be undone. Reset history?</translation>
         <translation>Problem %1 — Checking the mate length…</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="362"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="368"/>
         <source>詰みと玉方の応手を確認しています…</source>
         <translation>Checking for mate and the defending move…</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="390"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="396"/>
         <source>判定が完了していません。不正解とは判定していません。時間を増やして再判定してください。</source>
         <translation>The search is incomplete. Your move has not been marked incorrect. Increase the time and retry.</translation>
     </message>
@@ -12430,32 +12430,32 @@ This cannot be undone. Reset history?</translation>
         <translation type="vanished">Hayanagi (defender)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="298"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="304"/>
         <source>成りの選択</source>
         <translation>Promotion</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="298"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="304"/>
         <source>成りますか？</source>
         <translation>Promote this piece?</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="299"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="305"/>
         <source>成る</source>
         <translation>Promote</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="300"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="306"/>
         <source>成らない</source>
         <translation>Do not promote</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="355"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="361"/>
         <source>第%1問 — %2手詰 ／ 玉方: Hayanagi</source>
         <translation>Problem %1 — Mate in %2 plies / Defender: Hayanagi</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="360"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="366"/>
         <source>あなたの手番です。残り%1手以内で詰ませてください。</source>
         <translation>Your turn. Mate within the remaining %1 plies.</translation>
     </message>
@@ -12464,37 +12464,37 @@ This cannot be undone. Reset history?</translation>
         <translation type="vanished">Hayanagi is searching…</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="363"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="369"/>
         <source>判定を中断しました。判定時間を増やして「再判定」するか、一手戻してください。</source>
         <translation>Search paused. Increase the search time and retry, or undo your last move.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="366"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="372"/>
         <source>正答済み ／ 挑戦%1回・正答%2回</source>
         <translation>Solved / Attempts: %1, solves: %2</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="367"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="373"/>
         <source>未正答 ／ 挑戦%1回</source>
         <translation>Unsolved / Attempts: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="368"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="374"/>
         <source>履歴を保存できません: %1</source>
         <translation>Could not save progress: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="380"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="386"/>
         <source>正解です。玉方を詰ませました！</source>
         <translation>Correct! You have checkmated the defending king.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="387"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="393"/>
         <source>この応手で詰みを防がれました。王手を続けても詰みません。</source>
         <translation>This reply prevents mate. No sequence of checks can force mate.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="388"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="394"/>
         <source>この応手により、残り%1手以内では詰みません。一手戻して考え直してください。</source>
         <translation>This reply prevents mate within the remaining %1 plies. Undo your last move and try again.</translation>
     </message>
@@ -12503,18 +12503,18 @@ This cannot be undone. Reset history?</translation>
         <translation type="vanished">The time or depth limit (31 plies) was reached. This does not mean your move is wrong.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="393"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="399"/>
         <source>この局面は王手の連続で詰ませられません。別の問題を選んでください。</source>
         <translation>There is no forced mate by consecutive checks in this position. Choose another problem.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="416"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="422"/>
         <source>王手になる合法手を指してください。二歩・打ち歩詰め・自玉の王手放置はできません。</source>
         <translation>Make a legal checking move. Double pawns, pawn-drop mate, and leaving your own king in check are not allowed.</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="132"/>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="553"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="559"/>
         <source>正解手順:</source>
         <translation>Solution:</translation>
     </message>
@@ -12523,17 +12523,17 @@ This cannot be undone. Reset history?</translation>
         <translation type="vanished">First</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="436"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="442"/>
         <source>1手戻る</source>
         <translation>Previous move</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="437"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="443"/>
         <source>1手進む</source>
         <translation>Next move</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="438"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="444"/>
         <source>詰み局面へ</source>
         <translation>Final mate</translation>
     </message>
@@ -12543,33 +12543,33 @@ This cannot be undone. Reset history?</translation>
         <translation>Resume play</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="435"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="441"/>
         <source>開始局面へ</source>
         <translation>Initial position</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="555"/>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="556"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="561"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="562"/>
         <source>正解手順を確認中…</source>
         <translation>Checking solution…</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="557"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="563"/>
         <source>正解手順を取得しています。探索中止または対局に戻る操作で中断できます。</source>
         <translation>Finding a solution. Use Stop or Resume play to cancel.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="562"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="568"/>
         <source>正解手順: %1 / %2手</source>
         <translation>Solution: %1 / %2 plies</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="563"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="569"/>
         <source>正解手順の一例を再生中です。「対局に戻る」で元の局面から続けられます。</source>
         <translation>Viewing one solution. Select Resume play to continue from your original position.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="566"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="572"/>
         <source>正解手順: 未確認</source>
         <translation>Solution: unverified</translation>
     </message>

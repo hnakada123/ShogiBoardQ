@@ -1739,9 +1739,9 @@ private slots:
         }
         const QString before = boardSfen();
         const auto hand = board()->board()->position().handsSfen();
-        QSignalSpy moves(window->findChild<BoardInteractionController*>(), &BoardInteractionController::moveRequested);
         QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, squarePoint(5, 5));
-        QCOMPARE(moves.count(), 0);
+        // 空のマスはつまめない（選択のハイライトも出ない）
+        QVERIFY(board()->highlighting()->highlights(BoardHighlightLayer::Selection).isEmpty());
         QCOMPARE(boardSfen(), before);
         QCOMPARE(board()->board()->position().handsSfen(), hand);
         // 次の選択・移動が通常どおり成立することも確認する。
@@ -2556,13 +2556,7 @@ private slots:
     void legalMoveHighlights()
     {
         const auto destinations = [this]() {
-            QList<QPoint> points;
-            for (int i = 0; i < board()->highlighting()->highlightCount(); ++i) {
-                const ShogiView::FieldHighlight* hl = board()->highlighting()->highlight(i);
-                if (hl->purpose() == ShogiView::FieldHighlight::Purpose::LegalDestination)
-                    points.append(QPoint(hl->file(), hl->rank()));
-            }
-            return points;
+            return board()->highlighting()->highlights(BoardHighlightLayer::LegalDestinations);
         };
         QVERIFY(action("actionLegalMoves"));
         QVERIFY(action("actionLegalMoves")->isChecked());

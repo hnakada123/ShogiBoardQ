@@ -166,6 +166,22 @@ private slots:
         QVERIFY(!policy.isHumanTurnNow());
     }
 
+    /// 棋譜解析・詰み探索・検討の間は、盤で指せない（盤の操作の行き先が受け付けない）
+    void busyStatesRejectBoardInput()
+    {
+        ShogiGameController gc;
+        AppActivityState activity;
+        HumanTurnPolicy::Deps deps;
+        deps.activity = &activity;
+        deps.gameController = &gc;
+        HumanTurnPolicy policy(deps);
+        for (const auto state : {AppActivityState::Activity::DuringAnalysis, AppActivityState::Activity::DuringTsumeSearch,
+                                 AppActivityState::Activity::DuringConsideration}) {
+            activity.setActivity(state);
+            QVERIFY(!policy.isHumanTurnNow());
+        }
+    }
+
     void startDialogCancellationKeepsGame()
     {
         humanVsHumanSettings();
@@ -322,7 +338,7 @@ private slots:
         MainWindow window;
         auto& p = window.composer().parts();
         startFromDialog(window);
-        p.boardMoves->onMoveRequested(QPoint(7, 7), QPoint(7, 6));
+        p.boardMoves->submit(QPoint(7, 7), QPoint(7, 6));
         QCOMPARE(p.match->record().moveCount(), 1);
         p.gameSession->breakOff();
         QVERIFY(p.match->canResumeInterruptedGame());

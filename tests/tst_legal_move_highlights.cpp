@@ -3,6 +3,7 @@
 #include <QTemporaryDir>
 
 #include "appsettings.h"
+#include "boardinputroute.h"
 #include "boardinteractioncontroller.h"
 #include "settingscommon.h"
 #include "sfenutils.h"
@@ -16,7 +17,17 @@ class TestLegalMoveHighlights : public QObject
     Q_OBJECT
     QTemporaryDir m_config;
 
+    /// 盤で指した手の行き先（受け付けるか・局面編集中かをテストが決める）
+    struct TestRoute : BoardInputRoute {
+        bool accepting = true;
+        bool editing = false;
+        bool acceptsInput() const override { return accepting; }
+        bool isEditing() const override { return editing; }
+        void submit(const QPoint&, const QPoint&) override {}
+    };
+
     struct BoardUi {
+        TestRoute route;
         ShogiGameController gc;
         ShogiView view;
         std::unique_ptr<BoardInteractionController> controller;
@@ -29,6 +40,7 @@ class TestLegalMoveHighlights : public QObject
             view.setFixedSize(view.sizeHint());
             controller = std::make_unique<BoardInteractionController>(&view, &gc);
             controller->setLegalMovesVisible(true);
+            controller->setInputRoute(&route);
             QObject::connect(&view, &ShogiView::clicked, controller.get(), &BoardInteractionController::onLeftClick);
             QObject::connect(&view, &ShogiView::rightClicked, controller.get(), &BoardInteractionController::onRightClick);
             view.show();
@@ -38,13 +50,7 @@ class TestLegalMoveHighlights : public QObject
 
         QList<QPoint> destinations() const
         {
-            QList<QPoint> result;
-            for (int i = 0; i < view.highlighting()->highlightCount(); ++i) {
-                const ShogiView::FieldHighlight* hl = view.highlighting()->highlight(i);
-                if (hl->purpose() == ShogiView::FieldHighlight::Purpose::LegalDestination)
-                    result.append(QPoint(hl->file(), hl->rank()));
-            }
-            return result;
+            return view.highlighting()->highlights(BoardHighlightLayer::LegalDestinations);
         }
 
         void click(const QPoint& square, Qt::MouseButton button = Qt::LeftButton)
@@ -178,7 +184,10 @@ private slots:
         QVERIFY(AppSettings::legalMovesVisible());
         ui.click(QPoint(7, 7));
         QVERIFY(ui.destinations().isEmpty());
-        QCOMPARE(ui.view.highlighting()->highlightCount(), 2); // 直前手の色は残す
+        // 直前手のハイライトは残す
+        QVERIFY(ui.view.highlighting()->highlights(BoardHighlightLayer::Selection).isEmpty());
+        QCOMPARE(ui.view.highlighting()->highlights(BoardHighlightLayer::LastMoveFrom), QList<QPoint>{QPoint(3, 3)});
+        QCOMPARE(ui.view.highlighting()->highlights(BoardHighlightLayer::LastMoveTo), QList<QPoint>{QPoint(3, 4)});
         ui.click(QPoint(7, 7));
         ui.click(QPoint(5, 5), Qt::RightButton);
         QVERIFY(ui.destinations().isEmpty());
@@ -200,24 +209,34 @@ private slots:
         if (operation == "applied" || operation == "rejected")
             ui.controller->onMoveApplied(QPoint(7, 7), QPoint(7, 6), operation == "applied");
         else if (operation == "clear") ui.controller->clearAllHighlights();
-        else if (operation == "view-clear") ui.view.highlighting()->removeHighlightAllData();
+        else if (operation == "view-clear") ui.view.highlighting()->clearHighlights();
         else if (operation == "reset") ui.gc.board()->setSfen(SfenUtils::hirateSfen());
         else if (operation == "turn") ui.gc.setCurrentPlayer(Turn::White);
-        else if (operation == "disable") ui.controller->setMoveInputEnabled(false);
-        else if (operation == "edit") ui.controller->setMode(BoardInteractionController::Mode::Edit);
+        else if (operation == "disable") ui.controller->setInputRoute(nullptr);
+        else if (operation == "edit") {
+            TestRoute editRoute;
+            editRoute.editing = true;
+            ui.controller->setInputRoute(&editRoute);
+            QVERIFY(ui.destinations().isEmpty());
+            ui.controller->setInputRoute(&ui.route);
+        }
         QVERIFY(ui.destinations().isEmpty());
     }
 
     void inputRestrictions()
     {
         BoardUi ui(SfenUtils::hirateSfen());
-        ui.controller->setMode(BoardInteractionController::Mode::Edit);
+        // 局面編集では合法な移動先を出さない
+        ui.route.editing = true;
         ui.click(QPoint(7, 7));
         QVERIFY(ui.destinations().isEmpty());
-        ui.controller->setMode(BoardInteractionController::Mode::HumanVsEngine);
-        ui.controller->setIsHumanTurnCallback([] { return false; });
+        ui.click(QPoint(7, 7));
+        // 行き先が受け付けない（人間の手番でない）ときはつまめない
+        ui.route.editing = false;
+        ui.route.accepting = false;
         ui.click(QPoint(7, 7));
         QVERIFY(ui.destinations().isEmpty());
+        QVERIFY(ui.view.highlighting()->highlights(BoardHighlightLayer::Selection).isEmpty());
     }
 };
 

@@ -139,12 +139,11 @@ struct Harness {
     }
 
     /// 確認前の盤面は変えず、指し手の要求だけを渡す。
-    void playHumanMove(const QString& usi, const QPoint& from, const QPoint& to)
+    void playHumanMove(const QString& usi)
     {
         const auto move = UsiMove::parse(usi);
         QVERIFY(move.has_value());
-        gc.setForcedPromotion(true, move->promote);
-        coordinator.onHumanMove(from, to);
+        coordinator.onHumanMove(*move);
     }
 
 };
@@ -221,7 +220,7 @@ private slots:
         QSignalSpy records(&h.coordinator, &CsaGameCoordinator::recordEntryReady);
         QVERIFY(h.start("+"));
         const QString initial = h.line().startSfen;
-        h.playHumanMove(QStringLiteral("7g7f"), QPoint(7, 7), QPoint(7, 6));
+        h.playHumanMove(QStringLiteral("7g7f"));
         QVERIFY(h.server.waitForLine(QStringLiteral("+7776FU")));
         h.server.send("#ILLEGAL_MOVE");
         h.server.send("#LOSE");
@@ -246,7 +245,7 @@ private slots:
         HumanTurnPolicy policy(deps);
         // 通信対局中に盤で指した手は、BoardMoveController がそのまま司令塔へ送る
         QVERIFY(policy.isHumanTurnNow());
-        h.coordinator.onHumanMove(QPoint(7, 7), QPoint(7, 6));
+        h.coordinator.onHumanMove(*UsiMove::parse(u"7g7f"));
         QVERIFY(h.server.waitForLine(QStringLiteral("+7776FU")));
         QCOMPARE(h.coordinator.turnState(), CsaGameCoordinator::TurnState::AwaitingConfirmation);
         QVERIFY(!policy.isHumanTurnNow());
@@ -254,8 +253,8 @@ private slots:
         QCOMPARE(h.gc.currentPlayer(), Turn::Black);
         QCOMPARE(h.gc.board()->pieceCharacter(7, 7), Piece::BlackPawn);
         // UI の許可判定を通らない追加要求も、履歴や盤面を変更しない。
-        h.coordinator.onHumanMove(QPoint(2, 7), QPoint(2, 6));
-        h.coordinator.onHumanMove(QPoint(3, 3), QPoint(3, 4));
+        h.coordinator.onHumanMove(*UsiMove::parse(u"2g2f"));
+        h.coordinator.onHumanMove(*UsiMove::parse(u"3c3d"));
         QCOMPARE(h.moveCount(), 0);
         h.server.send("+7776FU,T5");
         QTRY_COMPARE(h.coordinator.progress().moveCount(), 1);
@@ -289,7 +288,7 @@ private slots:
         QCOMPARE(h.coordinator.whiteRemainingMs(), 600000);
         QCOMPARE(h.moveCount(), 0);
 
-        h.playHumanMove(QStringLiteral("7g7f"), QPoint(7, 7), QPoint(7, 6));
+        h.playHumanMove(QStringLiteral("7g7f"));
         QVERIFY(h.server.waitForLine(QStringLiteral("+7776FU")));
         h.server.send("+7776FU,T5");
         QTRY_COMPARE(records.size(), 1);
@@ -418,7 +417,7 @@ private slots:
         QVERIFY(h.start("-"));
         h.server.send("+7776FU,T2");
         QTRY_COMPARE(records.size(), 1);
-        h.playHumanMove(QStringLiteral("3c3d"), QPoint(3, 3), QPoint(3, 4));
+        h.playHumanMove(QStringLiteral("3c3d"));
         QVERIFY(h.server.waitForLine(QStringLiteral("-3334FU")));
         h.server.send("-3334FU,T1");
         QTRY_COMPARE(records.size(), 2);
@@ -531,7 +530,7 @@ private slots:
         QCOMPARE(first->parent()->sfen(), h.line().sfenAt(0));
 
         // 自分（後手）の手：人間の操作で盤を動かしてから送る
-        h.playHumanMove(QStringLiteral("3c3d"), QPoint(3, 3), QPoint(3, 4));
+        h.playHumanMove(QStringLiteral("3c3d"));
         QVERIFY(h.server.waitForLine(QStringLiteral("-3334FU")));
         h.server.send("-3334FU,T2");
         QTRY_COMPARE(live.moveCount(), 2);

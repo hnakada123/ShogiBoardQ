@@ -684,14 +684,15 @@ private slots:
         }
     }
 
-    void gameController_forcedPromotionDoesNotLeak_data()
+    void gameController_clickAsksPromotionOnlyWhenBothLegal_data()
     {
         QTest::addColumn<bool>("illegalAttempt");
         QTest::newRow("ordinary-book-move") << false;
         QTest::newRow("illegal-book-move") << true;
     }
 
-    void gameController_forcedPromotionDoesNotLeak()
+    /// 盤のクリックは、成り・不成の両方が合法なときだけ成りの選び方に聞く
+    void gameController_clickAsksPromotionOnlyWhenBothLegal()
     {
         QFETCH(bool, illegalAttempt);
         ShogiGameController gc;
@@ -699,7 +700,6 @@ private slots:
         gc.newGame(initial);
         int promotionQuestions = 0;
         gc.setPromotionChooser([&promotionQuestions] { ++promotionQuestions; return false; });
-        gc.setForcedPromotion(true, false);
         if (illegalAttempt) {
             QPoint empty(7, 6), dest(7, 5);
             QVERIFY(!gc.validateAndMove(empty, dest, {}));
@@ -713,14 +713,15 @@ private slots:
         QCOMPARE(promotionQuestions, 1);
     }
 
-    void gameController_forcedPromotionIsApplied_data()
+    void gameController_bookMoveKeepsItsPromotion_data()
     {
         QTest::addColumn<bool>("promote");
         QTest::newRow("promote") << true;
         QTest::newRow("do-not-promote") << false;
     }
 
-    void gameController_forcedPromotionIsApplied()
+    /// 成り・不成まで決まった手（定跡の手）は、成りの選択を出さずにそのとおり指す
+    void gameController_bookMoveKeepsItsPromotion()
     {
         QFETCH(bool, promote);
         ShogiGameController gc;
@@ -728,9 +729,9 @@ private slots:
         gc.newGame(initial);
         int promotionQuestions = 0;
         gc.setPromotionChooser([&promotionQuestions] { ++promotionQuestions; return false; });
-        gc.setForcedPromotion(true, promote);
-        QPoint from(8, 8), to(2, 2);
-        const std::optional<RecordEntry> played = gc.validateAndMove(from, to, {});
+        const UsiMove move = *UsiMove::parse(promote ? u"8h2b+" : u"8h2b");
+        QVERIFY(gc.isLegal(move));
+        const std::optional<RecordEntry> played = gc.applyMove(move, {});
         QVERIFY(played);
         QCOMPARE(promotionQuestions, 0);
         QCOMPARE(played->move.isPromotion(), promote);

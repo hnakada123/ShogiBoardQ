@@ -14,7 +14,7 @@
 #include "mainwindowactions.h"
 #include "mainwindowappearancecontroller.h"
 #include "piecesoundplayer.h"
-#include "positioneditcoordinator.h"
+#include "positioneditsession.h"
 #include "settingsresetcontroller.h"
 #include "tsumesearchcontroller.h"
 
@@ -54,7 +54,7 @@ void wireEditMenu(const Deps& d)
     QObject::connect(ui->actionCopyBoardToClipboard, &QAction::triggered, d.images, &ImageExportController::copyBoardToClipboard);
     QObject::connect(ui->actionCopyEvalGraphToClipboard, &QAction::triggered, d.images, &ImageExportController::copyEvalGraphToClipboard);
     QObject::connect(ui->actionStartEditPosition, &QAction::triggered, d.actions, &MainWindowActions::beginPositionEditing);
-    QObject::connect(ui->actionEndEditPosition, &QAction::triggered, d.positionEdit, &PositionEditCoordinator::finishPositionEditing);
+    QObject::connect(ui->actionEndEditPosition, &QAction::triggered, d.positionEdit, &PositionEditSession::finish);
 }
 
 void wireGameMenu(const Deps& d)

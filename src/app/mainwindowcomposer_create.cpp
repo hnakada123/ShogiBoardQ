@@ -56,8 +56,7 @@
 #include "nyugyokudeclarationhandler.h"
 #include "piecesoundplayer.h"
 #include "playerinfopresenter.h"
-#include "positioneditcontroller.h"
-#include "positioneditcoordinator.h"
+#include "positioneditsession.h"
 #include "pvclickcontroller.h"
 #include "recordpane.h"
 #include "sessionresetcoordinator.h"
@@ -138,7 +137,6 @@ void MainWindowComposer::createBoard()
     ad.timePresenter = m_c.timePresenter;
     m_c.appearance = new MainWindowAppearanceController(ad, &m_window);
 
-    m_c.posEdit = new PositionEditController(&m_window);
     m_c.boardController = new BoardInteractionController(m_c.shogiView, m_c.gameController, &m_window);
     m_ui.actionLegalMoves->setChecked(AppSettings::legalMovesVisible());
     m_c.boardController->setLegalMovesVisible(m_ui.actionLegalMoves->isChecked());
@@ -200,7 +198,8 @@ void MainWindowComposer::createPanels()
 
     // 局面編集中は棋譜を移らない。未更新のコメントは破棄してよいか確かめる
     m_c.kifuNavController->setLeaveGuard([this]() {
-        return !m_c.shogiView->positionEditMode() && m_c.commentCoordinator->confirmLeaveEditingMove();
+        return !m_state.activity.is(AppActivityState::Activity::DuringPositionEdit)
+            && m_c.commentCoordinator->confirmLeaveEditingMove();
     });
 }
 
@@ -241,30 +240,30 @@ void MainWindowComposer::createMatchAndAnalysis()
     hd.csaGame = m_c.csaGame;
     hd.branchEdit = m_c.branchEdit;
     m_c.humanTurnPolicy = std::make_unique<HumanTurnPolicy>(hd);
-    m_c.boardController->setIsHumanTurnCallback(std::bind(&MainWindowComposer::isHumanTurnNow, this));
 
-    BoardMoveController::Deps bd;
-    bd.view = m_c.shogiView;
-    bd.gameController = m_c.gameController;
-    bd.board = m_c.boardController;
-    bd.activity = &m_state.activity;
-    bd.match = m_c.match;
-    bd.positionEdit = m_c.posEdit;
-    bd.branchEdit = m_c.branchEdit;
-    m_c.boardMoves = new BoardMoveController(bd, &m_window);
-
-    PositionEditCoordinator::Deps pd;
+    PositionEditSession::Deps pd;
     pd.view = m_c.shogiView;
     pd.gameController = m_c.gameController;
-    pd.boardController = m_c.boardController;
-    pd.posEdit = m_c.posEdit;
+    pd.board = m_c.boardController;
     pd.navState = m_c.navState;
     pd.activity = &m_state.activity;
     pd.actions.returnAllPiecesToStand = m_ui.actionReturnAllPiecesToStand;
     pd.actions.setHiratePosition = m_ui.actionSetHiratePosition;
     pd.actions.setTsumePosition = m_ui.actionSetTsumePosition;
     pd.actions.changeTurn = m_ui.actionChangeTurn;
-    m_c.posEditCoordinator = new PositionEditCoordinator(pd, &m_window);
+    m_c.positionEdit = new PositionEditSession(pd, &m_window);
+
+    // 盤で指した手の行き先（動作状態ごとに、受け付けるか・どう処理するかを決める）
+    BoardMoveController::Deps bd;
+    bd.view = m_c.shogiView;
+    bd.gameController = m_c.gameController;
+    bd.board = m_c.boardController;
+    bd.activity = &m_state.activity;
+    bd.match = m_c.match;
+    bd.positionEdit = m_c.positionEdit;
+    bd.branchEdit = m_c.branchEdit;
+    bd.turnPolicy = m_c.humanTurnPolicy.get();
+    m_c.boardMoves = new BoardMoveController(bd, &m_window);
 }
 
 // ---------------------------------------------------------------------------
@@ -395,7 +394,6 @@ void MainWindowComposer::createSessions()
     ud.recordPane = m_c.recordPane;
     ud.branchTree = m_c.branchTreeView;
     ud.consideration = m_c.considerationTab;
-    ud.boardController = m_c.boardController;
     ud.localGameHasHuman = [this]() {
         return m_c.match->isHumanSide(Turn::Black) || m_c.match->isHumanSide(Turn::White);
     };
@@ -522,7 +520,7 @@ void MainWindowComposer::createControllers()
     ad.window = &m_window;
     ad.gameController = m_c.gameController;
     ad.gameSession = m_c.gameSession;
-    ad.positionEdit = m_c.posEditCoordinator;
+    ad.positionEdit = m_c.positionEdit;
     ad.kifuFileController = m_c.kifuFileController;
     ad.reset = m_c.sessionReset.get();
     m_c.actions = new MainWindowActions(ad, &m_window);

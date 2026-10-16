@@ -443,7 +443,6 @@ bool MatchCoordinator::undoTwoPlies()
 
         // 盤面と手番を戻す（「同」表記の基準は手順の最後の手から導く）
         m_gc->board()->setSfen(m_record.sfenAt(targetPly));
-        m_gc->setForcedPromotion(false);
         m_record.entries.resize(targetPly);
 
         // 時計を取り消した自分の手を指し始めたときへ戻し、考慮時間は今から測り直す

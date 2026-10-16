@@ -38,7 +38,6 @@ void ShogiGameController::newGame(const QString& startSfen)
     qCDebug(lcGame) << "ShogiGameController::newGame:" << startSfen;
 
     board()->setSfen(startSfen);
-    setForcedPromotion(false);
 
     m_lastMove = UsiMove{};
 }
@@ -52,11 +51,6 @@ void ShogiGameController::setPromotionChooser(PromotionChooser chooser)
     m_promotionChooser = std::move(chooser);
 }
 
-void ShogiGameController::setForcedPromotion(bool force, bool promote)
-{
-    m_forcedPromotionMode = force;
-    m_forcedPromotionValue = promote;
-}
 
 // ============================================================
 // 手番管理
@@ -89,10 +83,6 @@ std::optional<RecordEntry> ShogiGameController::validateAndMove(QPoint& outFrom,
 
 std::optional<UsiMove> ShogiGameController::prepareMove(const QPoint& outFrom, const QPoint& outTo)
 {
-    // 成れない手や不合法手でも、この着手の成り指定を後続の手に持ち越さない。
-    const bool forcedPromotionMode = std::exchange(m_forcedPromotionMode, false);
-    const bool forcedPromotionValue = std::exchange(m_forcedPromotionValue, false);
-
     const int fileFrom = outFrom.x();
     const int rankFrom = outFrom.y();
     const bool boardFrom = fileFrom >= 1 && fileFrom <= BoardConstants::kBoardSize
@@ -120,12 +110,10 @@ std::optional<UsiMove> ShogiGameController::prepareMove(const QPoint& outFrom, c
     }
 
     // 成り・不成のどちらが合法かで決める。両方とも合法なら対局者に選ばせる
-    // （定跡の手は成り・不成が決まっているので選ばせない）。
     const LegalMoveStatus status = legalStatus(*candidate, mover);
     UsiMove move = *candidate;
     if (status.promotingMoveExists && status.nonPromotingMoveExists) {
-        move.promote = forcedPromotionMode ? forcedPromotionValue
-                                           : (m_promotionChooser ? m_promotionChooser() : false);
+        move.promote = m_promotionChooser ? m_promotionChooser() : false;
     } else if (status.promotingMoveExists) {
         move.promote = true;
     } else if (!status.nonPromotingMoveExists) {
@@ -137,15 +125,21 @@ std::optional<UsiMove> ShogiGameController::prepareMove(const QPoint& outFrom, c
     return move;
 }
 
+bool ShogiGameController::isLegal(const UsiMove& move) const
+{
+    if (!move.isValid()) return false;
+    const LegalMoveStatus status = legalStatus(move, currentPlayer());
+    return move.promote ? status.promotingMoveExists : status.nonPromotingMoveExists;
+}
+
 std::optional<RecordEntry> ShogiGameController::applyMove(const UsiMove& move, BoardSquare previousTo)
 {
     if (!move.isValid()) {
         qCWarning(lcGame).noquote() << "applyMove: rejected" << move.toString();
         return std::nullopt;
     }
-    // エンジンの手も、人間の手と同じく合法手か確かめる（成り・不成も指し手どおりに判定する）
-    const LegalMoveStatus status = legalStatus(move, currentPlayer());
-    if (move.promote ? !status.promotingMoveExists : !status.nonPromotingMoveExists) {
+    // エンジンの手も、人間の手と同じく合法手か確かめる
+    if (!isLegal(move)) {
         qCWarning(lcGame).noquote() << "applyMove: illegal move" << move.toString();
         return std::nullopt;
     }

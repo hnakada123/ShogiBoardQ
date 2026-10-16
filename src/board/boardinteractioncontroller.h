@@ -6,61 +6,35 @@
 
 #include <QObject>
 #include <QPoint>
-#include <QColor>
-#include <functional>
-#include <memory>
-#include <vector>
 #include "shogiview.h"
 #include "boardconstants.h"
 
+class BoardInputRoute;
 class ShogiGameController;
 
 /**
- * @brief 盤面上のマウス操作（駒選択・移動要求・成/不成トグル）とハイライト描画を制御する
+ * @brief 盤面上のマウス操作（駒選択・移動先の指定・成/不成トグル）とハイライトを制御する
  *
- * 2クリック方式の駒移動、選択ハイライト（オレンジ）、直前手ハイライト（赤/黄）を管理する。
- * 人間の手番判定はコールバックで外部から注入できる。
+ * 2クリック方式で移動元・移動先を決め、行き先（BoardInputRoute）へ渡す。つまめるか・局面編集中かは
+ * 行き先に問い合わせる。選択・直前の手・合法な移動先のハイライトは盤の層（BoardHighlightLayer）に出す。
  */
 class BoardInteractionController : public QObject
 {
     Q_OBJECT
 public:
-    // --- モード定義 ---
-    enum class Mode {
-        HumanVsHuman, ///< 対人対局
-        HumanVsEngine, ///< 対エンジン対局
-        Edit ///< 局面編集
-    };
-
     explicit BoardInteractionController(ShogiView* view,
                                         ShogiGameController* gc,
                                         QObject* parent = nullptr);
 
-    void setMode(Mode m)
-    {
-        if (m_mode != m) cancelPendingClick();
-        m_mode = m;
-    }
-    Mode mode() const { return m_mode; }
-
-    /// 指し手入力の有効/無効を設定する（UiStatePolicyManagerから呼ばれる）
-    void setMoveInputEnabled(bool enabled)
-    {
-        m_moveInputEnabled = enabled;
-        if (!enabled) cancelPendingClick();
-    }
+    /// 盤で指した手の行き先（非所有。無ければクリックを受け付けない）
+    void setInputRoute(BoardInputRoute* route);
 
     /// 選択した駒の合法な移動先を表示し、設定を保存する。
     void setLegalMovesVisible(bool visible);
 
-    // --- 人間の手番判定コールバック ---
-    /// trueを返すと人間の手番、falseなら相手の手番としてクリックを無視する
-    using IsHumanTurnCallback = std::function<bool()>;
-    void setIsHumanTurnCallback(IsHumanTurnCallback cb) { m_isHumanTurnCb = std::move(cb); }
-
     // --- ハイライト操作 ---
 
-    /// 選択中（オレンジ）のみを消し、直前手の赤/黄は残す
+    /// 選択中のみを消し、直前手のハイライトは残す
     void clearSelectionHighlight();
 
     /// 局面移動等で直前手ハイライトだけを反映する
@@ -69,10 +43,10 @@ public:
     /// すべてのハイライトを削除する
     void clearAllHighlights();
 
-    /// 2クリック入力の途中状態をキャンセルする（新規時用）
+public slots:
+    /// 2クリック入力の途中状態をキャンセルする（新規・動作状態や手番が変わったとき）
     void cancelPendingClick();
 
-public slots:
     /// 左クリック: 駒選択→移動先指定の2クリック処理
     void onLeftClick(const QPoint& pt);
 
@@ -82,19 +56,10 @@ public slots:
     /// 着手適用結果の通知を受けてハイライトを更新する
     void onMoveApplied(const QPoint& from, const QPoint& to, bool success);
 
-    /// ShogiView::highlightsCleared() からの通知でポインタをnullにする（ダングリング防止）
-    void onHighlightsCleared();
-
-signals:
-    void moveRequested(const QPoint& from, const QPoint& to); ///< 着手要求（→ MainWindow / Coordinator）
-
 private:
-    // --- ハイライト系ヘルパ ---
+    bool acceptsInput() const;
+    bool isEditing() const;
     void selectPieceAndHighlight(const QPoint& field);
-    void updateHighlight(std::unique_ptr<ShogiView::FieldHighlight>& hl, const QPoint& field, const QColor& color);
-    void deleteHighlight(std::unique_ptr<ShogiView::FieldHighlight>& hl);
-    void addNewHighlight(std::unique_ptr<ShogiView::FieldHighlight>& hl, const QPoint& pos, const QColor& color);
-    void resetSelectionAndHighlight();
     void finalizeDrag();
     void refreshLegalMoveHighlights();
     void clearLegalMoveHighlights();
@@ -106,22 +71,12 @@ private:
     // --- メンバ変数 ---
     ShogiView* m_view = nullptr; ///< 盤面ビュー（非所有）
     ShogiGameController* m_gc = nullptr; ///< ゲームコントローラ（非所有）
-
-    Mode m_mode = Mode::HumanVsHuman; ///< 現在の操作モード
-    bool m_moveInputEnabled = true;      ///< 指し手入力の有効/無効
+    BoardInputRoute* m_route = nullptr;  ///< 指した手の行き先（非所有）
     bool m_legalMovesVisible = true;     ///< 合法な移動先の表示
-    IsHumanTurnCallback m_isHumanTurnCb; ///< 人間の手番判定コールバック
 
     // --- クリック状態 ---
     QPoint m_clickPoint; ///< 現在選択中のマス座標
     bool   m_waitingSecondClick = false; ///< 2クリック目待ちフラグ
-
-    // --- ハイライトポインタ（所有） ---
-    // ShogiView 側は非所有参照のみ保持するため、寿命管理は本クラスが行う。
-    std::unique_ptr<ShogiView::FieldHighlight> m_selectedField;  ///< 選択中（オレンジ）
-    std::unique_ptr<ShogiView::FieldHighlight> m_selectedField2; ///< 直前の移動元（赤）
-    std::unique_ptr<ShogiView::FieldHighlight> m_movedField;     ///< 移動先（黄）
-    std::vector<std::unique_ptr<ShogiView::FieldHighlight>> m_legalMoveHighlights;
 };
 
 #endif // BOARDINTERACTIONCONTROLLER_H

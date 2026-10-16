@@ -8470,12 +8470,12 @@ OKを選択すると保存先が指定できます。</translation>
         <translation>読み筋表示</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="74"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="71"/>
         <source>先手</source>
         <translation>先手</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="75"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="72"/>
         <source>後手</source>
         <translation>後手</translation>
     </message>
@@ -8496,37 +8496,37 @@ OKを選択すると保存先が指定できます。</translation>
         <translation type="vanished">盤面を回転する</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="117"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="114"/>
         <source>最初の局面に戻る</source>
         <translation>最初の局面に戻る</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="117"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="114"/>
         <source>1手戻る</source>
         <translation>1手戻る</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="117"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="114"/>
         <source>1手進む</source>
         <translation>1手進む</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="117"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="114"/>
         <source>最後の局面まで進む</source>
         <translation>最後の局面まで進む</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="123"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="119"/>
         <source>閉じる</source>
         <translation>閉じる</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="144"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="140"/>
         <source>手数: %1 / %2</source>
         <translation>手数: %1 / %2</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="146"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="142"/>
         <source> (開始局面)</source>
         <translation> (開始局面)</translation>
     </message>
@@ -9625,7 +9625,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">後手の駒を配置（手番は変更しません）</translation>
     </message>
     <message>
-        <location filename="../../src/views/shogiview.cpp" line="902"/>
+        <location filename="../../src/views/shogiview.cpp" line="900"/>
         <source>駒箱</source>
         <translation>駒箱</translation>
     </message>
@@ -10572,17 +10572,17 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">最初から</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="466"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="472"/>
         <source>一手戻す</source>
         <translation>一手戻す</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="479"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="485"/>
         <source>探索中止</source>
         <translation>探索中止</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="480"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="486"/>
         <source>再判定</source>
         <translation>再判定</translation>
     </message>
@@ -10592,7 +10592,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>一覧に戻る</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="465"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="471"/>
         <source>最初から解き直す</source>
         <translation>最初から解き直す</translation>
     </message>
@@ -10614,12 +10614,12 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>第%1問 — 詰み手数を確認しています…</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="362"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="368"/>
         <source>詰みと玉方の応手を確認しています…</source>
         <translation>詰みと玉方の応手を確認しています…</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="390"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="396"/>
         <source>判定が完了していません。不正解とは判定していません。時間を増やして再判定してください。</source>
         <translation>判定が完了していません。不正解とは判定していません。時間を増やして再判定してください。</translation>
     </message>
@@ -10668,32 +10668,32 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">Hayanagi（玉方）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="298"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="304"/>
         <source>成りの選択</source>
         <translation>成りの選択</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="298"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="304"/>
         <source>成りますか？</source>
         <translation>成りますか？</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="299"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="305"/>
         <source>成る</source>
         <translation>成る</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="300"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="306"/>
         <source>成らない</source>
         <translation>成らない</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="355"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="361"/>
         <source>第%1問 — %2手詰 ／ 玉方: Hayanagi</source>
         <translation>第%1問 — %2手詰 ／ 玉方: Hayanagi</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="360"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="366"/>
         <source>あなたの手番です。残り%1手以内で詰ませてください。</source>
         <translation>あなたの手番です。残り%1手以内で詰ませてください。</translation>
     </message>
@@ -10702,37 +10702,37 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">Hayanagiが判定しています…</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="363"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="369"/>
         <source>判定を中断しました。判定時間を増やして「再判定」するか、一手戻してください。</source>
         <translation>判定を中断しました。判定時間を増やして「再判定」するか、一手戻してください。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="366"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="372"/>
         <source>正答済み ／ 挑戦%1回・正答%2回</source>
         <translation>正答済み ／ 挑戦%1回・正答%2回</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="367"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="373"/>
         <source>未正答 ／ 挑戦%1回</source>
         <translation>未正答 ／ 挑戦%1回</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="368"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="374"/>
         <source>履歴を保存できません: %1</source>
         <translation>履歴を保存できません: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="380"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="386"/>
         <source>正解です。玉方を詰ませました！</source>
         <translation>正解です。玉方を詰ませました！</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="387"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="393"/>
         <source>この応手で詰みを防がれました。王手を続けても詰みません。</source>
         <translation>この応手で詰みを防がれました。王手を続けても詰みません。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="388"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="394"/>
         <source>この応手により、残り%1手以内では詰みません。一手戻して考え直してください。</source>
         <translation>この応手により、残り%1手以内では詰みません。一手戻して考え直してください。</translation>
     </message>
@@ -10741,18 +10741,18 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">制限時間または探索上限（31手）に達したため判定できませんでした。不正解とは判定していません。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="393"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="399"/>
         <source>この局面は王手の連続で詰ませられません。別の問題を選んでください。</source>
         <translation>この局面は王手の連続で詰ませられません。別の問題を選んでください。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="416"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="422"/>
         <source>王手になる合法手を指してください。二歩・打ち歩詰め・自玉の王手放置はできません。</source>
         <translation>王手になる合法手を指してください。二歩・打ち歩詰め・自玉の王手放置はできません。</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="132"/>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="553"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="559"/>
         <source>正解手順:</source>
         <translation>正解手順:</translation>
     </message>
@@ -10761,17 +10761,17 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">最初に戻る</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="436"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="442"/>
         <source>1手戻る</source>
         <translation>1手戻る</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="437"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="443"/>
         <source>1手進む</source>
         <translation>1手進む</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="438"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="444"/>
         <source>詰み局面へ</source>
         <translation>詰み局面へ</translation>
     </message>
@@ -10781,33 +10781,33 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>対局に戻る</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="435"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="441"/>
         <source>開始局面へ</source>
         <translation>開始局面へ</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="555"/>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="556"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="561"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="562"/>
         <source>正解手順を確認中…</source>
         <translation>正解手順を確認中…</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="557"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="563"/>
         <source>正解手順を取得しています。探索中止または対局に戻る操作で中断できます。</source>
         <translation>正解手順を取得しています。探索中止または対局に戻る操作で中断できます。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="562"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="568"/>
         <source>正解手順: %1 / %2手</source>
         <translation>正解手順: %1 / %2手</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="563"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="569"/>
         <source>正解手順の一例を再生中です。「対局に戻る」で元の局面から続けられます。</source>
         <translation>正解手順の一例を再生中です。「対局に戻る」で元の局面から続けられます。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="566"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="572"/>
         <source>正解手順: 未確認</source>
         <translation>正解手順: 未確認</translation>
     </message>

@@ -13,36 +13,42 @@ ShogiViewHighlighting::ShogiViewHighlighting(ShogiView* view, QObject* parent)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ハイライト管理
+// ハイライト
 // ─────────────────────────────────────────────────────────────────────────────
 
-void ShogiViewHighlighting::addHighlight(const ShogiView::FieldHighlight* hl)
+void ShogiViewHighlighting::setHighlights(BoardHighlightLayer layer, const QList<QPoint>& squares)
 {
-    m_highlights.append(hl);
-    updateHighlightArea(hl);
+    QList<QPoint>& current = m_layers[static_cast<std::size_t>(layer)];
+    if (current == squares) return;
+    // 駒を選ぶたびに合法な移動先を数十マス足し引きするので、前と後のマスだけを描き直す
+    updateSquares(current);
+    current = squares;
+    updateSquares(current);
 }
 
-void ShogiViewHighlighting::removeHighlight(const ShogiView::FieldHighlight* hl)
+void ShogiViewHighlighting::clearHighlights()
 {
-    m_highlights.removeOne(hl);
-    updateHighlightArea(hl);
+    for (std::size_t layer = 0; layer < m_layers.size(); ++layer) {
+        updateSquares(m_layers[layer]);
+        m_layers[layer].clear();
+    }
 }
 
-// ハイライトのマスだけを描き直す。駒を選ぶたびに合法な移動先を数十マス足し引きするため、
-// そのたびに盤全体を描き直さない。
-void ShogiViewHighlighting::updateHighlightArea(const ShogiView::FieldHighlight* hl)
+const QList<QPoint>& ShogiViewHighlighting::highlights(BoardHighlightLayer layer) const
 {
-    const QRect rect = hl ? m_view->fieldRect(QPoint(hl->file(), hl->rank())) : QRect();
-    if (rect.isEmpty()) m_view->update();
-    else m_view->update(rect);
+    return m_layers[static_cast<std::size_t>(layer)];
 }
 
-void ShogiViewHighlighting::removeHighlightAllData()
+void ShogiViewHighlighting::updateSquares(const QList<QPoint>& squares)
 {
-    // ハイライトの寿命は呼び出し側が管理するため、ここでは参照だけ破棄する。
-    m_highlights.clear();
-    emit highlightsCleared();
-    m_view->update();
+    for (const QPoint& square : squares) {
+        const QRect rect = m_view->fieldRect(square);
+        if (rect.isEmpty()) {
+            m_view->update();
+            return;
+        }
+        m_view->update(rect);
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -97,28 +103,32 @@ void ShogiViewHighlighting::drawHighlights(QPainter& painter, const QRegion& dir
 {
     if (!m_view->board()) return;
 
+    // 層ごとの色。移動元は木の盤になじむ黄緑系、移動先・選択は橙系、合法な移動先は青で縁取る。
+    // マスの内側だけを塗り、盤の罫線と駒の視認性を保つ
+    struct LayerStyle {
+        QColor fill;
+        QColor border;   ///< 無効なら縁取らない
+    };
+    static const std::array<LayerStyle, kLayerCount> kStyles{{
+        {QColor(145, 163, 96, 155), QColor()},           // LastMoveFrom
+        {QColor(238, 147, 68, 165), QColor()},           // LastMoveTo
+        {QColor(238, 147, 68, 165), QColor()},           // Selection
+        {QColor(65, 155, 225, 105), QColor(35, 105, 165, 200)},   // LegalDestinations
+    }};
+
     painter.save();
-    for (int i = 0; i < highlightCount(); ++i) {
-        const ShogiView::FieldHighlight* fhl = highlight(i);
-        if (!fhl) continue;
-        const QRect rect = m_view->fieldRect(QPoint(fhl->file(), fhl->rank()));
-        if (rect.isNull() || !dirty.intersects(rect)) continue;
-
-        const QColor originalColor = fhl->color();
-
-        // 移動元は木の盤になじむ黄緑系、移動先・選択表示は橙系に揃える。
-        // マスの内側だけを塗り、盤の罫線と駒の視認性を保つ。
-        const bool source = originalColor.red() > 200 && originalColor.green() < 100
-            && originalColor.blue() < 150;
-        const bool legalDestination = fhl->purpose() == ShogiView::FieldHighlight::Purpose::LegalDestination;
-        const QColor fill = legalDestination ? originalColor
-            : source ? QColor(145, 163, 96, 155) : QColor(238, 147, 68, 165);
-        const QRect inner = rect.adjusted(1, 1, -1, -1);
-        painter.fillRect(inner, fill);
-        if (legalDestination) {
-            painter.setPen(QPen(QColor(35, 105, 165, 200), 2));
-            painter.setBrush(Qt::NoBrush);
-            painter.drawRect(inner.adjusted(1, 1, -1, -1));
+    for (std::size_t layer = 0; layer < m_layers.size(); ++layer) {
+        const LayerStyle& style = kStyles[layer];
+        for (const QPoint& square : m_layers[layer]) {
+            const QRect rect = m_view->fieldRect(square);
+            if (rect.isNull() || !dirty.intersects(rect)) continue;
+            const QRect inner = rect.adjusted(1, 1, -1, -1);
+            painter.fillRect(inner, style.fill);
+            if (style.border.isValid()) {
+                painter.setPen(QPen(style.border, 2));
+                painter.setBrush(Qt::NoBrush);
+                painter.drawRect(inner.adjusted(1, 1, -1, -1));
+            }
         }
     }
     painter.restore();
