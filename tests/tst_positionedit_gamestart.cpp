@@ -38,8 +38,8 @@ private slots:
         p.branchTree->setRootSfen(edited);
         p.navState->goToRoot();
         GameStartRequest request;
-        request.dialogData.startingPositionNumber = preset;
-        request.dialogData.isHuman1 = request.dialogData.isHuman2 = true;
+        // 0 は現在の局面、1 は平手
+        request.dialogData.startingHandicap = preset == 0 ? nullptr : &Handicaps::kAll[0];
         request.recordLine = p.navState->currentRecordLine();
         request.startNodeId = p.branchTree->root()->nodeId();
         QString error;

@@ -72,12 +72,11 @@ private slots:
     void startOptionsAndNames()
     {
         StartGameDialogData data;
-        data.humanName1 = QStringLiteral("先手名");
-        data.humanName2 = QStringLiteral("後手名");
+        data.players[0].humanName = QStringLiteral("先手名");
+        data.players[1].humanName = QStringLiteral("後手名");
         data.maxMoves = 128;
         data.autoSaveKifu = true;
         data.kifuSaveDir = m_config.path();
-        data.isHuman1 = data.isHuman2 = true;
         const MatchStartOptions options = GameStartOptionsBuilder::buildStartOptions(
             SfenUtils::hirateSfen(), data);
         MatchHarness h;
@@ -87,18 +86,17 @@ private slots:
         QVERIFY(h.mc->options().autoSave.isActive());
         QCOMPARE(h.mc->options().autoSave.dir, m_config.path());
         QCOMPARE(h.mc->options().autoSave.extension, QStringLiteral("kifu"));
-        QCOMPARE(h.mc->players().blackHumanName, data.humanName1);
-        QCOMPARE(h.mc->players().whiteHumanName, data.humanName2);
+        QCOMPARE(h.mc->players().blackHumanName, data.players[0].humanName);
+        QCOMPARE(h.mc->players().whiteHumanName, data.players[1].humanName);
     }
     void humanSideControlsFlip()
     {
         StartGameDialogData data;
-        data.isHuman1 = false;
-        data.isHuman2 = true;
+        data.players[0].kind = PlayerChoice::Kind::Engine;
         data.isShowHumanInFront = true;
         QVERIFY(GameStartOptionsBuilder::needsHumanAtBottomFlip(data, Turn::Black));
         QVERIFY(!GameStartOptionsBuilder::needsHumanAtBottomFlip(data, Turn::White));
-        data.isHuman1 = true;
+        data.players[0].kind = PlayerChoice::Kind::Human;
         QVERIFY(!GameStartOptionsBuilder::needsHumanAtBottomFlip(data, Turn::Black));
     }
 };

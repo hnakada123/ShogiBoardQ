@@ -129,7 +129,7 @@ void GameSession::startGameFromDialog()
 
     GameStartRequest request;
     request.dialogData = dlg.data();
-    if (request.dialogData.startingPositionNumber != 0 && !m_deps.kifuFileController->confirmDiscardUnsaved()) return;
+    if (!request.dialogData.startsFromCurrentPosition() && !m_deps.kifuFileController->confirmDiscardUnsaved()) return;
 
     // 表示中の手から始める
     request.recordLine = m_deps.navState->currentRecordLine();

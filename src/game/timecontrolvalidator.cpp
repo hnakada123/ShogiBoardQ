@@ -7,18 +7,18 @@ namespace TimeControlValidator {
 
 namespace {
 
-bool hasTime(const PlayerTime& p, bool useByoyomi)
+bool hasTime(const TimeControlSide& p, bool useByoyomi)
 {
-    if (p.hours > 0 || p.minutes > 0) return true;
-    // 秒読みと加算は排他。どちらかに秒読みがあれば加算は対局に使わない（GameStartOptionsBuilder と同じ）。
-    return useByoyomi ? p.byoyomiSec > 0 : p.incrementSec > 0;
+    if (p.mainMs > 0) return true;
+    // 秒読みと加算は排他。どちらかに秒読みがあれば加算は対局に使わない（TimeControl::normalized と同じ）。
+    return useByoyomi ? p.byoyomiMs > 0 : p.incrementMs > 0;
 }
 
 } // namespace
 
-Issue validate(const PlayerTime& p1, const PlayerTime& p2, bool hasEngine)
+Issue validate(const TimeControlSide& p1, const TimeControlSide& p2, bool hasEngine)
 {
-    const bool useByoyomi = p1.byoyomiSec > 0 || p2.byoyomiSec > 0;
+    const bool useByoyomi = p1.byoyomiMs > 0 || p2.byoyomiMs > 0;
     const bool limited1 = hasTime(p1, useByoyomi);
     const bool limited2 = hasTime(p2, useByoyomi);
 

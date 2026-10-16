@@ -46,16 +46,13 @@ public:
 
     /// StartGameDialogData から時間の決まりを組み立てる（秒読みと加算が両方あれば秒読みを使う）
     static MatchTimeSettings buildTimeSettings(const StartGameDialogData& data);
-    /// ダイアログで選んだ対局者（人間・エンジンと名前）。人間とエンジンの両方に印があれば人間とする
+    /// ダイアログで選んだ対局者（人間・エンジンと名前）
     static MatchPlayers playersFromDialog(const StartGameDialogData& data);
     /// 対局開始ダイアログの設定から、対局の開始の設定を作る
     static MatchStartOptions buildStartOptions(const QString& startSfen, const StartGameDialogData& dlg);
     /// 「人を手前に表示する」で盤を反転するか（人間対エンジンで、人間の側が手前でないとき）
     static bool needsHumanAtBottomFlip(const StartGameDialogData& dlg, Turn bottomSide);
 
-    /// 手合割インデックス（1=平手, 2=香落ち, …, 14=十枚落ち）から純SFENを返す
-    static QString startingPositionSfen(int index);
-    static constexpr int kStartingPositionCount = 14;
     /// "startpos" や空文字列を平手SFENに正規化する
     static QString canonicalizeSfen(const QString& sfen);
 };

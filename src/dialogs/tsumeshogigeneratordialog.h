@@ -5,6 +5,7 @@
 /// @brief 詰将棋局面生成ダイアログクラスの定義
 
 #include "enginelistsettings.h"
+#include "settingsformbinding.h"
 #include <QDateTime>
 #include <QDialog>
 #include <QList>
@@ -74,6 +75,8 @@ private:
     void buildProgressSection(QVBoxLayout* mainLayout);
     void buildResultsSection(QVBoxLayout* mainLayout);
     void connectDialogSignals();
+    /// 入力欄と設定の対応を作る
+    void bindSettings();
     void loadSettings();
     void saveSettings();
     /// 表の行の高さ・見た目を今の文字に合わせる
@@ -134,6 +137,8 @@ private:
     // エンジンリスト
     /// エンジンの選択（コンボ・設定ボタン。QObject parent 所有）
     EngineSelector* m_engineSelector = nullptr;
+    SettingsFormBinding m_conditionsForm;  ///< 生成の条件の欄と設定（「既定値に戻す」の対象）
+    SettingsFormBinding m_displayForm;     ///< 表示の欄（読み筋を含める・説明を開く）と設定
 
     // ジェネレータ（parent ownership。ダイアログと同寿命で、開始のたびに再利用する）
     TsumeshogiGenerator* m_generator = nullptr;

@@ -3810,12 +3810,12 @@
 <context>
     <name>EngineSelector</name>
     <message>
-        <location filename="../../src/widgets/engineselector.cpp" line="128"/>
+        <location filename="../../src/widgets/engineselector.cpp" line="133"/>
         <source>エラー</source>
         <translation>エラー</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineselector.cpp" line="128"/>
+        <location filename="../../src/widgets/engineselector.cpp" line="133"/>
         <source>将棋エンジンが選択されていません。</source>
         <translation>将棋エンジンが選択されていません。</translation>
     </message>
@@ -4501,7 +4501,7 @@ ABC abc 0123456789</translation>
 <context>
     <name>GameStartOptionsBuilder</name>
     <message>
-        <location filename="../../src/game/gamestartoptionsbuilder.cpp" line="53"/>
+        <location filename="../../src/game/gamestartoptionsbuilder.cpp" line="52"/>
         <source>対局を開始できません。
 通常の対局には、先手と後手の王・玉を盤上に1枚ずつ配置してください。
 現在の枚数：先手 %1枚、後手 %2枚
@@ -8411,6 +8411,35 @@ OKを選択すると保存先が指定できます。</translation>
     </message>
 </context>
 <context>
+    <name>PlayerSetupWidget</name>
+    <message>
+        <location filename="../../src/widgets/playersetupwidget.cpp" line="48"/>
+        <source>対局者</source>
+        <translation>対局者</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/playersetupwidget.cpp" line="57"/>
+        <source>名前</source>
+        <translation>名前</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/playersetupwidget.cpp" line="62"/>
+        <source>エンジン設定</source>
+        <translation>エンジン設定</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/playersetupwidget.cpp" line="87"/>
+        <source>人間</source>
+        <translation>人間</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/playersetupwidget.cpp" line="120"/>
+        <location filename="../../src/widgets/playersetupwidget.cpp" line="152"/>
+        <source>You</source>
+        <translation>あなた</translation>
+    </message>
+</context>
+<context>
     <name>PreStartCleanupHandler</name>
     <message>
         <source>=== 開始局面 ===</source>
@@ -9619,415 +9648,361 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
     </message>
     <message>
         <location filename="../../src/dialogs/startgamedialog.ui" line="79"/>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="593"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="414"/>
         <source>先手／下手</source>
         <translation>先手／下手</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="58"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="109"/>
         <source>対局開始</source>
         <translation>対局開始</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="60"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="111"/>
         <source>設定を保存して対局を開始します。</source>
         <translation>設定を保存して対局を開始します。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="213"/>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="214"/>
         <source>人間</source>
-        <translation>人間</translation>
+        <translation type="vanished">人間</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="595"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="416"/>
         <source>%1の持ち時間・秒読み・加算がすべて0秒です。
 片方の対局者だけを時間無制限にすることはできません。両方の対局者に時間を設定してください。</source>
         <translation>%1の持ち時間・秒読み・加算がすべて0秒です。
 片方の対局者だけを時間無制限にすることはできません。両方の対局者に時間を設定してください。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="598"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="419"/>
         <source>%1の持ち時間・秒読み・加算がすべて0秒です。
 片方の対局者だけを時間無制限にすることはできません。両方の対局者に時間を設定するか、時間無制限で対局する場合は両方とも0秒にしてください。</source>
         <translation>%1の持ち時間・秒読み・加算がすべて0秒です。
 片方の対局者だけを時間無制限にすることはできません。両方の対局者に時間を設定するか、時間無制限で対局する場合は両方とも0秒にしてください。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="604"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="425"/>
         <source>エンジンが参加する対局は、時間無制限（持ち時間・秒読み・加算がすべて0秒）にできません。
 エンジンは使える時間を0秒と受け取り、ほとんど考えずに指してしまいます。持ち時間・秒読み・加算のいずれかを設定してください。</source>
         <translation>エンジンが参加する対局は、時間無制限（持ち時間・秒読み・加算がすべて0秒）にできません。
 エンジンは使える時間を0秒と受け取り、ほとんど考えずに指してしまいます。持ち時間・秒読み・加算のいずれかを設定してください。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="609"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="430"/>
         <source>時間設定</source>
         <translation>時間設定</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="298"/>
         <source>情報</source>
-        <translation>情報</translation>
+        <translation type="vanished">情報</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="298"/>
         <source>人間が選択されています。</source>
-        <translation>人間が選択されています。</translation>
+        <translation type="vanished">人間が選択されています。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="304"/>
         <source>エラー</source>
-        <translation>エラー</translation>
+        <translation type="vanished">エラー</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="304"/>
         <source>将棋エンジンが選択されていません。</source>
-        <translation>将棋エンジンが選択されていません。</translation>
+        <translation type="vanished">将棋エンジンが選択されていません。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="380"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="315"/>
         <source>先手／下手の時間設定</source>
         <translation>先手／下手の時間設定</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="386"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="321"/>
         <source>設定を保存しました</source>
         <translation>設定を保存しました</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="400"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="335"/>
         <source>棋譜保存先を選択</source>
         <translation>棋譜保存先を選択</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="145"/>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="313"/>
         <source>名前</source>
-        <translation>名前</translation>
+        <translation type="vanished">名前</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="197"/>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="365"/>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="497"/>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="509"/>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="543"/>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="557"/>
         <source>You</source>
-        <translation>あなた</translation>
+        <translation type="vanished">あなた</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="220"/>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="388"/>
         <source>エンジン設定</source>
-        <translation>エンジン設定</translation>
+        <translation type="vanished">エンジン設定</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="247"/>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="593"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="87"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="414"/>
         <source>後手／上手</source>
         <translation>後手／上手</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="449"/>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="585"/>
         <source> 時間</source>
-        <translation> 時間</translation>
+        <translation type="vanished"> 時間</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="452"/>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="588"/>
         <source>持ち時間（時間）</source>
-        <translation>持ち時間（時間）</translation>
+        <translation type="vanished">持ち時間（時間）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="468"/>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="604"/>
         <source> 分</source>
-        <translation> 分</translation>
+        <translation type="vanished"> 分</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="471"/>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="607"/>
         <source>持ち時間（分）</source>
-        <translation>持ち時間（分）</translation>
+        <translation type="vanished">持ち時間（分）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="501"/>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="534"/>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="637"/>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="670"/>
         <source> 秒</source>
-        <translation> 秒</translation>
+        <translation type="vanished"> 秒</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="513"/>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="537"/>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="649"/>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="673"/>
         <source>1手ごとの加算</source>
-        <translation>1手ごとの加算</translation>
+        <translation type="vanished">1手ごとの加算</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="545"/>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="380"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="103"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="315"/>
         <source>共通の時間設定</source>
         <translation>共通の時間設定</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="681"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="117"/>
         <source>後手／上手に異なる時間を設定</source>
         <translation>後手／上手に異なる時間を設定</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="431"/>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="567"/>
         <source>持ち時間</source>
-        <translation>持ち時間</translation>
+        <translation type="vanished">持ち時間</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="684"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="120"/>
         <source>チェックを外すと、両者に共通の時間設定を使います。</source>
         <translation>チェックを外すと、両者に共通の時間設定を使います。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="693"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="129"/>
         <source>秒読みと加算は両者とも同じ方式です。一方を設定すると、もう一方は両者とも0になります。</source>
         <translation>秒読みと加算は両者とも同じ方式です。一方を設定すると、もう一方は両者とも0になります。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="703"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="139"/>
         <source>対局条件</source>
         <translation>対局条件</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="715"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="151"/>
         <source>開始局面</source>
         <translation>開始局面</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="729"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="157"/>
         <source>現在の局面</source>
         <translation>現在の局面</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="734"/>
         <source>平手</source>
-        <translation>平手</translation>
+        <translation type="vanished">平手</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="739"/>
         <source>香落ち</source>
-        <translation>香落ち</translation>
+        <translation type="vanished">香落ち</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="744"/>
         <source>右香落ち</source>
-        <translation>右香落ち</translation>
+        <translation type="vanished">右香落ち</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="749"/>
         <source>角落ち</source>
-        <translation>角落ち</translation>
+        <translation type="vanished">角落ち</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="754"/>
         <source>飛車落ち</source>
-        <translation>飛車落ち</translation>
+        <translation type="vanished">飛車落ち</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="759"/>
         <source>飛香落ち</source>
-        <translation>飛香落ち</translation>
+        <translation type="vanished">飛香落ち</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="764"/>
         <source>二枚落ち</source>
-        <translation>二枚落ち</translation>
+        <translation type="vanished">二枚落ち</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="769"/>
         <source>三枚落ち</source>
-        <translation>三枚落ち</translation>
+        <translation type="vanished">三枚落ち</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="774"/>
         <source>四枚落ち</source>
-        <translation>四枚落ち</translation>
+        <translation type="vanished">四枚落ち</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="779"/>
         <source>五枚落ち</source>
-        <translation>五枚落ち</translation>
+        <translation type="vanished">五枚落ち</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="784"/>
         <source>左五枚落ち</source>
-        <translation>左五枚落ち</translation>
+        <translation type="vanished">左五枚落ち</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="789"/>
         <source>六枚落ち</source>
-        <translation>六枚落ち</translation>
+        <translation type="vanished">六枚落ち</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="794"/>
         <source>八枚落ち</source>
-        <translation>八枚落ち</translation>
+        <translation type="vanished">八枚落ち</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="799"/>
         <source>十枚落ち</source>
-        <translation>十枚落ち</translation>
+        <translation type="vanished">十枚落ち</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="807"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="164"/>
         <source>最大手数</source>
         <translation>最大手数</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="826"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="183"/>
         <source> 手</source>
         <translation> 手</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="829"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="186"/>
         <source>無制限</source>
         <translation>無制限</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="836"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="193"/>
         <source>連続対局</source>
         <translation>連続対局</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="858"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="215"/>
         <source> 局</source>
         <translation> 局</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="861"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="218"/>
         <source>エンジン同士の対局で利用できます。</source>
         <translation>エンジン同士の対局で利用できます。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="868"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="225"/>
         <source>持将棋</source>
         <translation>持将棋</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="885"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="242"/>
         <source>なし</source>
         <translation>なし</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="890"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="247"/>
         <source>24点法</source>
         <translation>24点法</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="895"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="252"/>
         <source>27点法</source>
         <translation>27点法</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="903"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="260"/>
         <source>人を手前に表示する</source>
         <translation>人を手前に表示する</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="910"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="267"/>
         <source>時間切れを負けにする</source>
         <translation>時間切れを負けにする</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="920"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="277"/>
         <source>エンジン同士で2局以上対局する場合に利用できます。</source>
         <translation>エンジン同士で2局以上対局する場合に利用できます。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="930"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="287"/>
         <source>棋譜の保存</source>
         <translation>棋譜の保存</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="939"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="296"/>
         <source>自動保存する</source>
         <translation>自動保存する</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="964"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="321"/>
         <source>棋譜の保存先</source>
         <translation>棋譜の保存先</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="971"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="328"/>
         <source>参照...</source>
         <translation>参照...</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="974"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="331"/>
         <source>棋譜の保存先フォルダを選択します。</source>
         <translation>棋譜の保存先フォルダを選択します。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="1006"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="363"/>
         <source>A-</source>
         <translation>A-</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="1009"/>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="1012"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="366"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="369"/>
         <source>文字を小さくする</source>
         <translation>文字を小さくする</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="1025"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="382"/>
         <source>A+</source>
         <translation>A+</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="97"/>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="265"/>
         <source>対局者</source>
-        <translation>対局者</translation>
+        <translation type="vanished">対局者</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="480"/>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="504"/>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="616"/>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="640"/>
         <source>秒読み</source>
-        <translation>秒読み</translation>
+        <translation type="vanished">秒読み</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="917"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="274"/>
         <source>1局ごとに手番を入れ替える</source>
         <translation>1局ごとに手番を入れ替える</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="961"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="318"/>
         <source>保存先を選択...</source>
         <translation>保存先を選択...</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="986"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="343"/>
         <source>↔ 先後入れ替え</source>
         <translation>↔ 先後入れ替え</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="1028"/>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="1031"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="385"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="388"/>
         <source>文字を大きくする</source>
         <translation>文字を大きくする</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="1053"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="410"/>
         <source>設定のみ保存</source>
         <translation>設定のみ保存</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="993"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="350"/>
         <source>初期設定に戻す</source>
         <translation>初期設定に戻す</translation>
     </message>
@@ -10165,6 +10140,52 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <location filename="../../src/widgets/thinkingpanel.cpp" line="135"/>
         <source> ／ 青の破線：先読み側</source>
         <translation> ／ 青の破線：先読み側</translation>
+    </message>
+</context>
+<context>
+    <name>TimeControlEditor</name>
+    <message>
+        <location filename="../../src/widgets/timecontroleditor.cpp" line="39"/>
+        <source> 時間</source>
+        <translation> 時間</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/timecontroleditor.cpp" line="39"/>
+        <source>持ち時間（時間）</source>
+        <translation>持ち時間（時間）</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/timecontroleditor.cpp" line="40"/>
+        <source> 分</source>
+        <translation> 分</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/timecontroleditor.cpp" line="40"/>
+        <source>持ち時間（分）</source>
+        <translation>持ち時間（分）</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/timecontroleditor.cpp" line="41"/>
+        <location filename="../../src/widgets/timecontroleditor.cpp" line="42"/>
+        <source> 秒</source>
+        <translation> 秒</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/timecontroleditor.cpp" line="41"/>
+        <location filename="../../src/widgets/timecontroleditor.cpp" line="49"/>
+        <source>秒読み</source>
+        <translation>秒読み</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/timecontroleditor.cpp" line="42"/>
+        <location filename="../../src/widgets/timecontroleditor.cpp" line="50"/>
+        <source>1手ごとの加算</source>
+        <translation>1手ごとの加算</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/timecontroleditor.cpp" line="48"/>
+        <source>持ち時間</source>
+        <translation>持ち時間</translation>
     </message>
 </context>
 <context>
@@ -11023,22 +11044,22 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>詰将棋局面生成</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="550"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="545"/>
         <source>エンジン設定</source>
         <translation>エンジン設定</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="553"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="548"/>
         <source>エンジン:</source>
         <translation>エンジン:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="561"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="556"/>
         <source>設定...</source>
         <translation>設定...</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="577"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="572"/>
         <source>※ エンジンは最短手順を返す設定で使用してください（KomoringHeights の場合: PostSearchLevel = MinLength）</source>
         <translation>※ エンジンは最短手順を返す設定で使用してください（KomoringHeights の場合: PostSearchLevel = MinLength）</translation>
     </message>
@@ -11047,227 +11068,227 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">全変化・最終手の余詰を検査します。成・不成を含め、別の詰め方がある局面や判定不能の局面は出力しません。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="579"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="574"/>
         <source>主手順の攻手が一意な局面だけを出力します（成・不成も区別）。玉方が早く詰む変化での別の詰め方は許容し、判定不能の局面は出力しません。</source>
         <translation>主手順の攻手が一意な局面だけを出力します（成・不成も区別）。玉方が早く詰む変化での別の詰め方は許容し、判定不能の局面は出力しません。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="628"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="623"/>
         <source>最終手の複数解を許容する</source>
         <translation>最終手の複数解を許容する</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="630"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="625"/>
         <source>オンにすると、主手順の最終手に複数の詰手があっても採択します（1手詰の初手は除く）。オフにすると最終手も一意な局面だけを出力します。</source>
         <translation>オンにすると、主手順の最終手に複数の詰手があっても採択します（1手詰の初手は除く）。オフにすると最終手も一意な局面だけを出力します。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="585"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="580"/>
         <source>生成設定</source>
         <translation>生成設定</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="564"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="559"/>
         <source>最短手順を返す詰将棋エンジンを使用してください。</source>
         <translation>最短手順を返す詰将棋エンジンを使用してください。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="570"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="565"/>
         <source>エンジン設定・採択条件について</source>
         <translation>エンジン設定・採択条件について</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="603"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="598"/>
         <source> 手詰</source>
         <translation> 手詰</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="604"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="599"/>
         <source>目標手数:</source>
         <translation>目標手数:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="605"/>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="609"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="600"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="604"/>
         <source> 枚</source>
         <translation> 枚</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="605"/>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="609"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="600"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="604"/>
         <source> 枚</source>
         <comment>1 のとき</comment>
         <translation> 枚</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="607"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="602"/>
         <source>攻方の盤上の駒と持駒の合計枚数の上限です。</source>
         <translation>攻方の盤上の駒と持駒の合計枚数の上限です。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="608"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="603"/>
         <source>攻め駒上限:</source>
         <translation>攻め駒上限:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="611"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="606"/>
         <source>玉を除く、玉方の盤上の駒の枚数の上限です。</source>
         <translation>玉を除く、玉方の盤上の駒の枚数の上限です。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="612"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="607"/>
         <source>守り駒上限:</source>
         <translation>守り駒上限:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="613"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="608"/>
         <source> 局面</source>
         <translation> 局面</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="613"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="608"/>
         <source> 局面</source>
         <comment>1 のとき</comment>
         <translation> 局面</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="617"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="612"/>
         <source>採択した局面がこの件数に達すると終了します。0 は停止するまで生成を続けます。</source>
         <translation>採択した局面がこの件数に達すると終了します。0 は停止するまで生成を続けます。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="624"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="619"/>
         <source> マス（玉中心）</source>
         <translation> マス（玉中心）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="624"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="619"/>
         <source> マス（玉中心）</source>
         <comment>1 のとき</comment>
         <translation> マス（玉中心）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="626"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="621"/>
         <source>配置範囲:</source>
         <translation>配置範囲:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="621"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="616"/>
         <source> 秒</source>
         <translation> 秒</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="622"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="617"/>
         <source>候補・駒除去後の詰み探索と、それぞれの余詰検査全体に使う時間です。検査時間を超えた局面は採択しません。</source>
         <translation>候補・駒除去後の詰み探索と、それぞれの余詰検査全体に使う時間です。検査時間を超えた局面は採択しません。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="623"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="618"/>
         <source>探索時間/局面:</source>
         <translation>探索時間/局面:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="616"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="611"/>
         <source>無制限</source>
         <translation>無制限</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="618"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="613"/>
         <source>生成上限:</source>
         <translation>生成上限:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="644"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="639"/>
         <source>開始</source>
         <translation>開始</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="648"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="643"/>
         <source>停止</source>
         <translation>停止</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="680"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="675"/>
         <source>結果一覧</source>
         <translation>結果一覧</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="687"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="682"/>
         <source>#</source>
         <translation>#</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="687"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="682"/>
         <source>SFEN</source>
         <translation>SFEN</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="687"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="682"/>
         <source>手数</source>
         <translation>手数</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="687"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="682"/>
         <source>盤面</source>
         <translation>盤面</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="633"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="628"/>
         <source>既定値に戻す</source>
         <translation>既定値に戻す</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="635"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="630"/>
         <source>生成設定を既定値に戻します。</source>
         <translation>生成設定を既定値に戻します。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="646"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="641"/>
         <source>現在の結果をクリアして、新しく生成を開始します。</source>
         <translation>現在の結果をクリアして、新しく生成を開始します。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="650"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="645"/>
         <source>生成を停止します。採択済みの局面は保存・コピーできます。</source>
         <translation>生成を停止します。採択済みの局面は保存・コピーできます。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="663"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="658"/>
         <source>生成上限に対する採択局面数</source>
         <translation>生成上限に対する採択局面数</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="686"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="681"/>
         <source>生成した詰将棋局面</source>
         <translation>生成した詰将棋局面</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="711"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="706"/>
         <source>手順も出力</source>
         <translation>手順も出力</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="713"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="708"/>
         <source>ファイル保存・コピー時に、SFEN の後ろに USI 形式の詰み手順（moves ...）を付加します</source>
         <translation>ファイル保存・コピー時に、SFEN の後ろに USI 形式の詰み手順（moves ...）を付加します</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="718"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="713"/>
         <source>選択した局面をコピー（Ctrl+C）。Ctrl・Shift キーで複数選択できます。</source>
         <translation>選択した局面をコピー（Ctrl+C）。Ctrl・Shift キーで複数選択できます。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="723"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="718"/>
         <source>ファイル保存</source>
         <translation>ファイル保存</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="716"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="711"/>
         <source>選択コピー</source>
         <translation>選択コピー</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="720"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="715"/>
         <source>全コピー</source>
         <translation>全コピー</translation>
     </message>
@@ -11280,12 +11301,12 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">文字サイズを拡大</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="740"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="735"/>
         <source>閉じる</source>
         <translation>閉じる</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="71"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="72"/>
         <source>設定メニューで詰将棋エンジンを登録してください。</source>
         <translation>設定メニューで詰将棋エンジンを登録してください。</translation>
     </message>
@@ -11357,67 +11378,67 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>ファイルを保存できませんでした: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="342"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="337"/>
         <source>攻方</source>
         <translation>攻方</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="342"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="337"/>
         <source>玉方</source>
         <translation>玉方</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="356"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="351"/>
         <source>条件に合う局面を探索しています。
 採択した局面から順に表示します。</source>
         <translation>条件に合う局面を探索しています。
 採択した局面から順に表示します。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="357"/>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="703"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="352"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="698"/>
         <source>生成した局面がここに表示されます。
 設定を確認して「開始」を押してください。</source>
         <translation>生成した局面がここに表示されます。
 設定を確認して「開始」を押してください。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="367"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="362"/>
         <source>%v / %m 局面</source>
         <translation>%v / %m 局面</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="367"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="362"/>
         <source>%1 局面（無制限）</source>
         <translation>%1 局面（無制限）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="71"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="72"/>
         <source>待機中</source>
         <translation>待機中</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="440"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="435"/>
         <source>探索中</source>
         <translation>探索中</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="445"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="440"/>
         <source>トリミング中（候補 %1/%2）</source>
         <translation>トリミング中（候補 %1/%2）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="450"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="445"/>
         <source>余詰検査中（問い合わせ %1 回）</source>
         <translation>余詰検査中（問い合わせ %1 回）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="455"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="450"/>
         <source>検査で除外: %1 局面（うち判定不能: %2 局面）</source>
         <translation>検査で除外: %1 局面（うち判定不能: %2 局面）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="461"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="456"/>
         <source>状態: %1</source>
         <translation>状態: %1</translation>
     </message>

@@ -4,24 +4,26 @@
 /// @file startgamedialog.h
 /// @brief 対局開始ダイアログクラスの定義
 
-#include "enginelistsettings.h"
 #include <QDialog>
-#include <QComboBox>
 
+#include <array>
 #include <memory>
 
+#include "settingsformbinding.h"
 #include "startgamedatabridge.h"
 
 namespace Ui {
 class StartGameDialog;
 }
 
+class PlayerSetupWidget;
+class TimeControlEditor;
+
 /**
- * @brief 対局開始時のパラメータを収集するダイアログ
+ * @brief 対局開始時の条件を選ぶダイアログ
  *
- * 対局者（人間/エンジン）の選択、持ち時間設定、開始局面選択、
- * 連続対局設定などをユーザーから取得し、StartGameDialogのプロパティとして保持する。
- *
+ * 先手・後手それぞれの対局者（PlayerSetupWidget）と時間（TimeControlEditor）、開始局面・最大手数・
+ * 連続対局・棋譜の自動保存を選ぶ。選んだ条件は data() で値として渡す。
  */
 class StartGameDialog : public QDialog
 {
@@ -34,38 +36,22 @@ public:
     /// 画面で選んだ対局の条件（「後手に異なる時間を設定」がなければ後手の時間は先手と同じ）
     StartGameDialogData data() const;
 
-    /// 開始局面コンボボックスを「現在の局面」(index 0) に強制設定する
+    /// 開始局面を「現在の局面」にする
     void forceCurrentPositionSelection();
-
-    // --- エンジン情報 ---
-
-    /// エンジンの名前とディレクトリを格納する構造体
-    /// 登録済みエンジン（名前・実行ファイル・作者）
-    using Engine = EngineListSettings::EngineEntry;
-
-    const QList<StartGameDialog::Engine>& engineList() const;
 
 private:
     std::unique_ptr<Ui::StartGameDialog> ui; ///< UIオブジェクト
 
-    QList<Engine> m_engineList;              ///< 登録エンジンのリスト
+    std::array<PlayerSetupWidget*, 2> m_players{};  ///< 先手／下手・後手／上手の対局者（親が所有）
+    std::array<TimeControlEditor*, 2> m_times{};    ///< 先手／下手・後手／上手の時間（親が所有）
+    SettingsFormBinding m_form;                     ///< 対局者・時間・開始局面以外の欄と設定の対応
 
-    // --- 初期化・設定 ---
-
-    /// 設定ファイルからエンジンの名前とディレクトリを読み込む
-    void loadEngineConfigurations();
-
-    /// 対局者コンボボックスに人間＋エンジンリストを反映する
-    void populatePlayerComboBoxes();
-
-    /// エンジン設定ダイアログを表示する共通処理
-    /// @param playerNumber 対局者番号（1=先手, 2=後手）
-    void showEngineSettingsDialog(int playerNumber);
-
-    /// 対局者コンボボックスの選択に応じてUIを更新する
-    /// @param playerNumber 対局者番号（1=先手, 2=後手）
-    /// @param index コンボボックスのインデックス（0=人間, 1以上=エンジン）
-    void updatePlayerUI(int playerNumber, int index);
+    /// 対局者・時間の欄を作り、グループに入れる
+    void buildPlayerSections();
+    /// 開始局面の一覧（「現在の局面」と手合割の表）
+    void populateStartingPositions();
+    /// 入力欄と設定の対応を作る
+    void bindSettings();
 
     /// ダイアログ内のUIパーツとスロットを結線する（コンストラクタから呼ばれる）
     void connectSignalsAndSlots();
@@ -81,11 +67,8 @@ private slots:
     /// 対局開始ボタン押下時に、時間設定を確認してから設定を保存しダイアログを閉じる
     void onStartRequested();
 
-    /// 先手側のエンジン設定ダイアログを表示する
-    void onFirstPlayerSettingsClicked();
-
-    /// 後手側のエンジン設定ダイアログを表示する
-    void onSecondPlayerSettingsClicked();
+    /// 選んだエンジンの設定ダイアログを表示する
+    void showEngineSettingsDialog(const EngineListSettings::EngineEntry& engine);
 
     /// 先後の対局者設定を入れ替える
     void swapSides();
@@ -98,18 +81,6 @@ private slots:
 
     /// 設定を初期値にリセットする
     void resetSettingsToDefault();
-
-    /// 秒読み値変更時に加算時間を0にする（秒読みと加算は排他）
-    void handleByoyomiSecChanged(int value);
-
-    /// 加算時間値変更時に秒読みを0にする（秒読みと加算は排他）
-    void handleAddEachMoveSecChanged(int value);
-
-    /// 先手側の対局者選択変更時にUIを更新する
-    void onPlayer1SelectionChanged(int index);
-
-    /// 後手側の対局者選択変更時にUIを更新する
-    void onPlayer2SelectionChanged(int index);
 
     /// 棋譜保存ディレクトリ選択ダイアログを表示する
     void onSelectKifuDirClicked();

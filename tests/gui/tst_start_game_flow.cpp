@@ -356,8 +356,8 @@ private slots:
         child<QSpinBox>(d,"basicTimeMinutes2")->setValue(0);
         child<QSpinBox>(d,"byoyomiSec2")->setValue(3);
         accept(d);
-        QCOMPARE(d.data().basicTimeMinutes1,5); QCOMPARE(d.data().byoyomiSec1,10);
-        QCOMPARE(d.data().basicTimeMinutes2,0); QCOMPARE(d.data().byoyomiSec2,3);
+        QCOMPARE(d.data().players[0].time.mainMs,5 * 60000); QCOMPARE(d.data().players[0].time.byoyomiMs,10000);
+        QCOMPARE(d.data().players[1].time.mainMs,0); QCOMPARE(d.data().players[1].time.byoyomiMs,3000);
         StartGameDialog reopened;
         QCOMPARE(child<QSpinBox>(reopened,"byoyomiSec2")->value(),3);
         QVERIFY(child<QGroupBox>(reopened,"groupBoxSecondPlayerTimeSettings")->isChecked());
@@ -417,7 +417,7 @@ private slots:
         child<QSpinBox>(d,"byoyomiSec1")->setValue(10);
         child<QSpinBox>(d,"byoyomiSec2")->setValue(3);
         accept(d);
-        QCOMPARE(d.data().basicTimeMinutes2,5); QCOMPARE(d.data().byoyomiSec2,10);
+        QCOMPARE(d.data().players[1].time.mainMs,5 * 60000); QCOMPARE(d.data().players[1].time.byoyomiMs,10000);
     }
     void swapTimesAndNames() {
         StartGameDialog d;
@@ -428,8 +428,8 @@ private slots:
         child<QSpinBox>(d,"byoyomiSec2")->setValue(3);
         child<QPushButton>(d,"pushButtonSwapSides")->click();
         accept(d);
-        QCOMPARE(d.data().humanName1,"B"); QCOMPARE(d.data().humanName2,"A");
-        QCOMPARE(d.data().byoyomiSec1,3); QCOMPARE(d.data().byoyomiSec2,10);
+        QCOMPARE(d.data().players[0].humanName,"B"); QCOMPARE(d.data().players[1].humanName,"A");
+        QCOMPARE(d.data().players[0].time.byoyomiMs,3000); QCOMPARE(d.data().players[1].time.byoyomiMs,10000);
     }
     void cancelDoesNotSaveGameSettings() {
         StartGameDialog d;
@@ -452,9 +452,9 @@ private slots:
         auto* p2 = child<QComboBox>(d,"comboBoxPlayer2");
         qInfo() << "no engines: count=" << p2->count() << "index=" << p2->currentIndex();
         accept(d);
-        qInfo() << "accepted: isHuman2=" << d.data().isHuman2 << "isEngine2=" << d.data().isEngine2 << "engineNumber2=" << d.data().engineNumber2;
+        qInfo() << "accepted: player2 human=" << d.data().players[1].isHuman() << "engine=" << d.data().players[1].engine.name;
         QCOMPARE(p2->currentIndex(),0);
-        QVERIFY(d.data().isHuman2);
+        QVERIFY(d.data().players[1].isHuman());
     }
     void resetClearsSeparateTimeFlag() {
         StartGameDialog d;
@@ -643,7 +643,7 @@ private slots:
             expectedBoard = QStringLiteral("4k4/9/9/9/9/9/9/9/4K4");
             editPosition(expectedBoard, whiteToMove);
         } else {
-            expectedBoard = GameStartOptionsBuilder::startingPositionSfen(preset).section(' ', 0, 0);
+            expectedBoard = QString::fromLatin1(Handicaps::kAll[preset - 1].sfen).section(' ', 0, 0);
         }
         requestedPreset = preset;
         startWindowGame();
@@ -673,7 +673,7 @@ private slots:
         auto* match = window->composer().parts().match;
         QVERIFY(match);
         auto* board = window->findChild<ShogiView*>()->board();
-        const QString handicap = GameStartOptionsBuilder::startingPositionSfen(2).section(' ',0,0);
+        const QString handicap = QString::fromLatin1(Handicaps::kAll[2 - 1].sfen).section(' ',0,0);
         QCOMPARE(board->position().boardSfen(),handicap);
         match->handleBreakOff();
         settings.setValue("GameSettings/startingPositionNumber",1);
@@ -682,7 +682,7 @@ private slots:
         requestedPreset = 1;
         startWindowGame();
         requestedPreset = -1;
-        const QString hirate = GameStartOptionsBuilder::startingPositionSfen(1).section(' ',0,0);
+        const QString hirate = QString::fromLatin1(Handicaps::kAll[1 - 1].sfen).section(' ',0,0);
         QCOMPARE(window->findChild<ShogiView*>()->board()->position().boardSfen(),hirate);
     }
     void humanGameHonorsMaxMoves() {

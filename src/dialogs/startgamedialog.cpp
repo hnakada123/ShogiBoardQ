@@ -6,17 +6,72 @@
 #include "ui_startgamedialog.h"
 #include "changeenginesettingsdialog.h"
 #include "gamesettings.h"
-#include "enginelistsettings.h"
 #include "buttonstyles.h"
 #include "dialogutils.h"
+#include "playersetupwidget.h"
+#include "timecontroleditor.h"
+#include <QCoreApplication>
 #include <QMessageBox>
 #include <QDir>
 #include <QFileDialog>
 #include <QStandardPaths>
-#include <QAbstractItemView>
 #include <QTimer>
 #include <utility>
 #include "timecontrolvalidator.h"
+
+namespace {
+namespace Saved = GameSettings::StartGame;
+
+QString defaultKifuSaveDir()
+{
+    return QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+}
+
+constexpr qint64 kSecondMs = 1000;
+
+/// 保存した時間（時間・分・秒で保存している）
+TimeControlSide savedTime(const Saved::Player& saved)
+{
+    TimeControlSide time;
+    time.mainMs = (static_cast<qint64>(saved.basicTimeHour()) * 3600 + saved.basicTimeMinutes() * 60) * kSecondMs;
+    time.byoyomiMs = saved.byoyomiSec() * kSecondMs;
+    time.incrementMs = saved.addEachMoveSec() * kSecondMs;
+    return time;
+}
+
+void saveTime(const Saved::Player& saved, const TimeControlSide& time)
+{
+    saved.basicTimeHour.set(static_cast<int>(time.mainMs / (3600 * kSecondMs)));
+    saved.basicTimeMinutes.set(static_cast<int>(time.mainMs % (3600 * kSecondMs) / (60 * kSecondMs)));
+    saved.byoyomiSec.set(static_cast<int>(time.byoyomiMs / kSecondMs));
+    saved.addEachMoveSec.set(static_cast<int>(time.incrementMs / kSecondMs));
+}
+
+TimeControlSide defaultTime(const Saved::Player& saved)
+{
+    TimeControlSide time;
+    time.mainMs = (static_cast<qint64>(saved.basicTimeHour.defaultValue()) * 3600
+                   + saved.basicTimeMinutes.defaultValue() * 60) * kSecondMs;
+    time.byoyomiMs = saved.byoyomiSec.defaultValue() * kSecondMs;
+    time.incrementMs = saved.addEachMoveSec.defaultValue() * kSecondMs;
+    return time;
+}
+
+/// 以前の版が保存した開始局面の番号（0=現在の局面、1..14 はこの並び）の手合割。範囲外なら平手
+const Handicaps::Handicap* legacyStartingPosition(int number)
+{
+    static constexpr const char16_t* kLegacyOrder[] = {
+        u"平手", u"香落ち", u"右香落ち", u"角落ち", u"飛車落ち", u"飛香落ち", u"二枚落ち",
+        u"三枚落ち", u"四枚落ち", u"五枚落ち", u"左五枚落ち", u"六枚落ち", u"八枚落ち", u"十枚落ち",
+    };
+    if (number == 0) return nullptr;
+    const int index = number >= 1 && number <= static_cast<int>(std::size(kLegacyOrder)) ? number - 1 : 0;
+    return Handicaps::byLabel(QStringView(kLegacyOrder[index]));
+}
+
+/// 「現在の局面」の項目の値（手合割の項目は Handicaps::kAll の添字）
+constexpr int kCurrentPosition = -1;
+} // namespace
 
 // ============================================================
 // 初期化
@@ -35,15 +90,11 @@ StartGameDialog::StartGameDialog(QWidget *parent)
     ui->buttonLayout->insertWidget(0, ui->pushButtonFontSizeUp);
     ui->buttonLayout->insertWidget(0, ui->pushButtonFontSizeDown);
 
-    // グリッドレイアウトの列ストレッチを設定（ラベル列は伸びず、コントロール列が伸びる）
-    ui->gridLayoutPlayer1->setColumnStretch(0, 0);
-    ui->gridLayoutPlayer1->setColumnStretch(1, 1);
-    ui->gridLayoutPlayer2->setColumnStretch(0, 0);
-    ui->gridLayoutPlayer2->setColumnStretch(1, 1);
+    buildPlayerSections();
+    populateStartingPositions();
+    bindSettings();
 
     // ボタンの配色を設定
-    ui->pushButtonEngineSettings1->setStyleSheet(ButtonStyles::secondaryNeutral());
-    ui->pushButtonEngineSettings2->setStyleSheet(ButtonStyles::secondaryNeutral());
     ui->pushButtonSwapSides->setStyleSheet(ButtonStyles::secondaryNeutral());
     ui->pushButtonSaveSettingsOnly->setStyleSheet(ButtonStyles::secondaryNeutral());
     ui->pushButtonResetToDefault->setStyleSheet(ButtonStyles::dangerStop());
@@ -67,8 +118,6 @@ StartGameDialog::StartGameDialog(QWidget *parent)
     fontOptions.increase = ui->pushButtonFontSizeUp;
     DialogFontScale::install(this, GameSettings::startGameDialogFontSize, fontOptions);
 
-    loadEngineConfigurations();
-    populatePlayerComboBoxes();
     loadGameSettings();
     connectSignalsAndSlots();
     updateTimeSettingsTitle();
@@ -83,6 +132,48 @@ StartGameDialog::~StartGameDialog()
     DialogUtils::saveDialogSize(this, GameSettings::startGameDialogSize);
 }
 
+void StartGameDialog::buildPlayerSections()
+{
+    const std::array<QGroupBox*, 2> playerGroups{ui->groupBox, ui->groupBox_2};
+    const std::array<QGroupBox*, 2> timeGroups{ui->groupBox_7, ui->groupBoxSecondPlayerTimeSettings};
+    const std::array<const Saved::Player*, 2> saved{&Saved::player1, &Saved::player2};
+    for (std::size_t i = 0; i < 2; ++i) {
+        const int side = static_cast<int>(i) + 1;
+        m_players[i] = new PlayerSetupWidget(side, *saved[i], playerGroups[i]);
+        playerGroups[i]->layout()->addWidget(m_players[i]);
+        m_times[i] = new TimeControlEditor(side, timeGroups[i]);
+        timeGroups[i]->layout()->addWidget(m_times[i]);
+    }
+    // 対局者・時間の欄は .ui の後の部品より前に Tab で回る
+    QWidget::setTabOrder(m_players[1], m_times[0]);
+    QWidget::setTabOrder(m_times[0], ui->groupBoxSecondPlayerTimeSettings);
+    QWidget::setTabOrder(ui->groupBoxSecondPlayerTimeSettings, m_times[1]);
+    QWidget::setTabOrder(m_times[1], ui->comboBoxStartingPosition);
+}
+
+void StartGameDialog::populateStartingPositions()
+{
+    // 手合割の表（Handicaps::kAll）から作る。表示は棋譜の手合割と同じ訳
+    ui->comboBoxStartingPosition->addItem(tr("現在の局面"), kCurrentPosition);
+    for (int i = 0; i < static_cast<int>(std::size(Handicaps::kAll)); ++i) {
+        ui->comboBoxStartingPosition->addItem(
+            QCoreApplication::translate("KifuPresentation", Handicaps::kAll[i].label), i);
+    }
+}
+
+void StartGameDialog::bindSettings()
+{
+    m_form.add(ui->groupBoxSecondPlayerTimeSettings, Saved::separateSecondPlayerTime);
+    m_form.add(ui->spinBoxMaxMoves, Saved::maxMoves);
+    m_form.add(ui->spinBoxConsecutiveGames, Saved::consecutiveGames);
+    m_form.add(ui->checkBoxShowHumanInFront, Saved::showHumanInFront);
+    m_form.add(ui->checkBoxAutoSaveKifu, Saved::autoSaveKifu);
+    m_form.add(ui->lineEditKifuSaveDir, Saved::kifuSaveDir, &defaultKifuSaveDir);
+    m_form.add(ui->checkBoxLoseOnTimeOut, Saved::loseOnTimeout);
+    m_form.add(ui->checkBoxSwitchTurnEachGame, Saved::switchTurnEachGame);
+    m_form.add(ui->comboBoxJishogi, Saved::jishogiRule);
+}
+
 // ============================================================
 // シグナル接続
 // ============================================================
@@ -90,10 +181,10 @@ StartGameDialog::~StartGameDialog()
 void StartGameDialog::connectSignalsAndSlots()
 {
     // エンジン設定ボタン・先後入れ替え・リセット・保存
-    connect(ui->pushButtonEngineSettings1, &QPushButton::clicked, this,
-            &StartGameDialog::onFirstPlayerSettingsClicked);
-    connect(ui->pushButtonEngineSettings2, &QPushButton::clicked, this,
-            &StartGameDialog::onSecondPlayerSettingsClicked);
+    for (PlayerSetupWidget* player : m_players) {
+        connect(player, &PlayerSetupWidget::engineSettingsRequested, this, &StartGameDialog::showEngineSettingsDialog);
+        connect(player, &PlayerSetupWidget::kindChanged, this, &StartGameDialog::updateConsecutiveGamesEnabled);
+    }
     connect(ui->pushButtonSwapSides, &QPushButton::clicked, this, &StartGameDialog::swapSides);
     connect(ui->pushButtonResetToDefault, &QPushButton::clicked, this, &StartGameDialog::resetSettingsToDefault);
     connect(ui->pushButtonSaveSettingsOnly, &QPushButton::clicked, this, &StartGameDialog::saveSettingsOnly);
@@ -102,21 +193,13 @@ void StartGameDialog::connectSignalsAndSlots()
     connect(ui->buttonBox, &QDialogButtonBox::accepted, this, &StartGameDialog::onStartRequested);
     connect(ui->buttonBox, &QDialogButtonBox::rejected, this, &StartGameDialog::reject);
 
-    // 秒読みと加算時間は排他制約（一方に値が入ると他方を0にする）
-    connect(ui->byoyomiSec1, QOverload<int>::of(&QSpinBox::valueChanged),
-            this, &StartGameDialog::handleByoyomiSecChanged);
-    connect(ui->addEachMoveSec1, QOverload<int>::of(&QSpinBox::valueChanged),
-            this, &StartGameDialog::handleAddEachMoveSecChanged);
-    connect(ui->byoyomiSec2, QOverload<int>::of(&QSpinBox::valueChanged),
-            this, &StartGameDialog::handleByoyomiSecChanged);
-    connect(ui->addEachMoveSec2, QOverload<int>::of(&QSpinBox::valueChanged),
-            this, &StartGameDialog::handleAddEachMoveSecChanged);
-
-    // 対局者種別（人間/エンジン）変更時にUIを切り替える
-    connect(ui->comboBoxPlayer1, QOverload<int>::of(&QComboBox::currentIndexChanged),
-            this, &StartGameDialog::onPlayer1SelectionChanged);
-    connect(ui->comboBoxPlayer2, QOverload<int>::of(&QComboBox::currentIndexChanged),
-            this, &StartGameDialog::onPlayer2SelectionChanged);
+    // 秒読みと加算は両者で同じ方式にする（一方に値が入ると、両者のもう一方を0にする）
+    TimeControlEditor* firstTime = m_times.front();
+    TimeControlEditor* secondTime = m_times.back();
+    connect(firstTime, &TimeControlEditor::byoyomiEntered, secondTime, &TimeControlEditor::clearIncrement);
+    connect(secondTime, &TimeControlEditor::byoyomiEntered, firstTime, &TimeControlEditor::clearIncrement);
+    connect(firstTime, &TimeControlEditor::incrementEntered, secondTime, &TimeControlEditor::clearByoyomi);
+    connect(secondTime, &TimeControlEditor::incrementEntered, firstTime, &TimeControlEditor::clearByoyomi);
 
     // 棋譜保存先ディレクトリ選択
     connect(ui->pushButtonSelectKifuDir, &QPushButton::clicked, this, &StartGameDialog::onSelectKifuDirClicked);
@@ -128,96 +211,31 @@ void StartGameDialog::connectSignalsAndSlots()
 }
 
 // ============================================================
-// UIハンドラ
-// ============================================================
-
-void StartGameDialog::handleByoyomiSecChanged(int value)
-{
-    // 秒読みと加算時間は排他: 秒読みが入ったら加算時間を0に
-    if (value > 0) {
-        ui->addEachMoveSec1->setValue(0);
-        ui->addEachMoveSec2->setValue(0);
-    }
-}
-
-void StartGameDialog::handleAddEachMoveSecChanged(int value)
-{
-    // 秒読みと加算時間は排他: 加算時間が入ったら秒読みを0に
-    if (value > 0) {
-        ui->byoyomiSec1->setValue(0);
-        ui->byoyomiSec2->setValue(0);
-    }
-}
-
-// ============================================================
 // 先後入れ替え
 // ============================================================
 
 void StartGameDialog::swapSides()
 {
-    int player1Index = ui->comboBoxPlayer1->currentIndex();
-    int player2Index = ui->comboBoxPlayer2->currentIndex();
-    ui->comboBoxPlayer1->setCurrentIndex(player2Index);
-    ui->comboBoxPlayer2->setCurrentIndex(player1Index);
-
-    updatePlayerUI(1, player2Index);
-    updatePlayerUI(2, player1Index);
-
-    QString temp = ui->lineEditHumanName1->text();
-    ui->lineEditHumanName1->setText(ui->lineEditHumanName2->text());
-    ui->lineEditHumanName2->setText(temp);
+    const PlayerChoice first = m_players[0]->choice();
+    m_players[0]->setChoice(m_players[1]->choice());
+    m_players[1]->setChoice(first);
 
     // 「後手に異なる時間を設定」が有効な場合のみ持ち時間も入れ替え
     if (ui->groupBoxSecondPlayerTimeSettings->isChecked()) {
-        int tempInt = ui->basicTimeHour1->value();
-        ui->basicTimeHour1->setValue(ui->basicTimeHour2->value());
-        ui->basicTimeHour2->setValue(tempInt);
-
-        tempInt = ui->basicTimeMinutes1->value();
-        ui->basicTimeMinutes1->setValue(ui->basicTimeMinutes2->value());
-        ui->basicTimeMinutes2->setValue(tempInt);
-
-        tempInt = ui->byoyomiSec1->value();
-        ui->byoyomiSec1->setValue(ui->byoyomiSec2->value());
-        ui->byoyomiSec2->setValue(tempInt);
-
-        tempInt = ui->addEachMoveSec1->value();
-        ui->addEachMoveSec1->setValue(ui->addEachMoveSec2->value());
-        ui->addEachMoveSec2->setValue(tempInt);
+        const TimeControlSide firstTime = m_times[0]->value();
+        m_times[0]->setValue(m_times[1]->value());
+        m_times[1]->setValue(firstTime);
     }
 }
 
 // ============================================================
-// エンジン設定読み込み
+// エンジン設定ダイアログ
 // ============================================================
 
-void StartGameDialog::loadEngineConfigurations()
+void StartGameDialog::showEngineSettingsDialog(const EngineListSettings::EngineEntry& engine)
 {
-    m_engineList.clear();
-    const QList<EngineListSettings::EngineEntry> engines = EngineListSettings::loadEngines();
-    for (const auto& entry : engines) {
-        Engine engine;
-        engine.name = entry.name;
-        engine.path = entry.path;
-        engine.author = entry.author;
-        m_engineList.append(engine);
-    }
-}
-
-void StartGameDialog::populatePlayerComboBoxes()
-{
-    ui->comboBoxPlayer1->clear();
-    ui->comboBoxPlayer2->clear();
-
-    // インデックス0は「人間」
-    ui->comboBoxPlayer1->addItem(tr("人間"));
-    ui->comboBoxPlayer2->addItem(tr("人間"));
-
-    // インデックス1以降にエンジンを追加
-    foreach (const Engine& engine, m_engineList) {
-        ui->comboBoxPlayer1->addItem(engine.name);
-        ui->comboBoxPlayer2->addItem(engine.name);
-    }
+    ChangeEngineSettingsDialog dialog(engine, this);
+    dialog.exec();
 }
 
 // ============================================================
@@ -229,39 +247,19 @@ void StartGameDialog::forceCurrentPositionSelection()
     ui->comboBoxStartingPosition->setCurrentIndex(0);
 }
 
-const QList<StartGameDialog::Engine> &StartGameDialog::engineList() const { return m_engineList; }
-
 StartGameDialogData StartGameDialog::data() const
 {
     StartGameDialogData data;
-    // 対局者（コンボの 0 は人間、1 以降は登録エンジン）
-    const int player1 = ui->comboBoxPlayer1->currentIndex();
-    data.isHuman1 = player1 <= 0;
-    data.isEngine1 = !data.isHuman1;
-    data.engineNumber1 = data.isEngine1 ? player1 - 1 : -1;
-    data.engineName1 = data.isEngine1 ? ui->comboBoxPlayer1->currentText() : QString();
-    data.humanName1 = ui->lineEditHumanName1->text();
-    const int player2 = ui->comboBoxPlayer2->currentIndex();
-    data.isHuman2 = player2 <= 0;
-    data.isEngine2 = !data.isHuman2;
-    data.engineNumber2 = data.isEngine2 ? player2 - 1 : -1;
-    data.engineName2 = data.isEngine2 ? ui->comboBoxPlayer2->currentText() : QString();
-    data.humanName2 = ui->lineEditHumanName2->text();
-    for (const Engine& engine : m_engineList) data.engineList.append({engine.path});
-
-    // 持ち時間（「後手に異なる時間を設定」がなければ先手と同じ）
-    data.basicTimeHour1 = ui->basicTimeHour1->value();
-    data.basicTimeMinutes1 = ui->basicTimeMinutes1->value();
-    data.byoyomiSec1 = ui->byoyomiSec1->value();
-    data.addEachMoveSec1 = ui->addEachMoveSec1->value();
     const bool separate = ui->groupBoxSecondPlayerTimeSettings->isChecked();
-    data.basicTimeHour2 = separate ? ui->basicTimeHour2->value() : data.basicTimeHour1;
-    data.basicTimeMinutes2 = separate ? ui->basicTimeMinutes2->value() : data.basicTimeMinutes1;
-    data.byoyomiSec2 = separate ? ui->byoyomiSec2->value() : data.byoyomiSec1;
-    data.addEachMoveSec2 = separate ? ui->addEachMoveSec2->value() : data.addEachMoveSec1;
+    for (std::size_t i = 0; i < 2; ++i) {
+        data.players[i] = m_players[i]->choice();
+        // 「後手に異なる時間を設定」がなければ先手と同じ
+        data.players[i].time = m_times[separate ? i : std::size_t{0}]->value();
+    }
     data.isLoseOnTimeout = ui->checkBoxLoseOnTimeOut->isChecked();
 
-    data.startingPositionNumber = ui->comboBoxStartingPosition->currentIndex();
+    const int position = ui->comboBoxStartingPosition->currentData().toInt();
+    data.startingHandicap = position == kCurrentPosition ? nullptr : &Handicaps::kAll[position];
     data.maxMoves = ui->spinBoxMaxMoves->value();
     data.autoSaveKifu = ui->checkBoxAutoSaveKifu->isChecked();
     data.kifuSaveDir = ui->lineEditKifuSaveDir->text();
@@ -285,76 +283,13 @@ void StartGameDialog::onStartRequested()
 }
 
 // ============================================================
-// エンジン設定ダイアログ
+// 表示の更新
 // ============================================================
-
-void StartGameDialog::showEngineSettingsDialog(int playerNumber)
-{
-    QComboBox* comboBox = (playerNumber == 1) ? ui->comboBoxPlayer1 : ui->comboBoxPlayer2;
-    int currentIndex = comboBox->currentIndex();
-
-    // 人間が選択されている場合（インデックス0）は何もしない
-    if (currentIndex == 0) {
-        QMessageBox::information(this, tr("情報"), tr("人間が選択されています。"));
-        return;
-    }
-
-    const int engineIndex = currentIndex - 1;
-    if (engineIndex < 0 || engineIndex >= m_engineList.size()) {
-        QMessageBox::critical(this, tr("エラー"), tr("将棋エンジンが選択されていません。"));
-        return;
-    }
-    // 作者名も見出しに出す
-    ChangeEngineSettingsDialog dialog(m_engineList.at(engineIndex), this);
-    dialog.exec();
-}
-
-void StartGameDialog::onFirstPlayerSettingsClicked()
-{
-    showEngineSettingsDialog(1);
-}
-
-void StartGameDialog::onSecondPlayerSettingsClicked()
-{
-    showEngineSettingsDialog(2);
-}
-
-// ============================================================
-// 対局者選択UI更新
-// ============================================================
-
-void StartGameDialog::updatePlayerUI(int playerNumber, int index)
-{
-    // QStackedWidgetのページ: 0=人間名入力欄, 1=エンジン設定ボタン
-    if (playerNumber == 1) {
-        const int pageIndex = (index == 0) ? 0 : 1;
-        ui->stackedWidgetPlayer1->setCurrentIndex(pageIndex);
-        ui->stackedWidgetLabel1->setCurrentIndex(pageIndex);
-    } else {
-        const int pageIndex = (index == 0) ? 0 : 1;
-        ui->stackedWidgetPlayer2->setCurrentIndex(pageIndex);
-        ui->stackedWidgetLabel2->setCurrentIndex(pageIndex);
-    }
-}
-
-void StartGameDialog::onPlayer1SelectionChanged(int index)
-{
-    updatePlayerUI(1, index);
-    updateConsecutiveGamesEnabled();
-}
-
-void StartGameDialog::onPlayer2SelectionChanged(int index)
-{
-    updatePlayerUI(2, index);
-    updateConsecutiveGamesEnabled();
-}
 
 void StartGameDialog::updateConsecutiveGamesEnabled()
 {
     // 両方がエンジンの場合のみ連続対局を有効にする
-    bool isEngine1 = (ui->comboBoxPlayer1->currentIndex() > 0);
-    bool isEngine2 = (ui->comboBoxPlayer2->currentIndex() > 0);
-    bool enableConsecutive = (isEngine1 && isEngine2);
+    const bool enableConsecutive = m_players[0]->isEngine() && m_players[1]->isEngine();
 
     ui->spinBoxConsecutiveGames->setEnabled(enableConsecutive);
     ui->label_19->setEnabled(enableConsecutive);
@@ -392,7 +327,7 @@ void StartGameDialog::onSelectKifuDirClicked()
     // 空の場合はドキュメントフォルダをデフォルトに
     QString currentDir = ui->lineEditKifuSaveDir->text();
     if (currentDir.isEmpty()) {
-        currentDir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+        currentDir = defaultKifuSaveDir();
     }
 
     QString selectedDir = QFileDialog::getExistingDirectory(
@@ -408,167 +343,55 @@ void StartGameDialog::onSelectKifuDirClicked()
 }
 
 // ============================================================
-// 対局開始ダイアログ - 設定保存・読込・リセット
-// ============================================================
-
-namespace {
-namespace Saved = GameSettings::StartGame;
-
-QString defaultKifuSaveDir()
-{
-    return QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
-}
-
-int savedPlayerIndex(const Saved::Player& saved, const QList<StartGameDialog::Engine>& engines)
-{
-    if (saved.isHuman()) return 0;
-
-    const int number = saved.engineNumber();
-    const QString name = saved.engineName();
-    const QString path = saved.enginePath();
-    const auto matches = [&](const StartGameDialog::Engine& engine) {
-        return !path.isEmpty() ? engine.path == path : engine.name == name;
-    };
-    if (number >= 0 && number < engines.size()
-        && ((name.isEmpty() && path.isEmpty()) || matches(engines.at(number)))) {
-        return number + 1;
-    }
-    // 登録順が変わっても同じエンジンを選び、削除済みなら人間へ戻す。
-    for (qsizetype i = 0; i < engines.size(); ++i) {
-        if (matches(engines.at(i))) return static_cast<int>(i) + 1;
-    }
-    return 0;
-}
-
-/// 対局者の選択を保存する。インデックス0は「人間」、1以上はエンジン
-void savePlayer(const Saved::Player& saved, int playerIndex, const QString& humanName,
-                const QString& engineName, const QList<StartGameDialog::Engine>& engines)
-{
-    const bool isHuman = (playerIndex <= 0);
-    saved.isHuman.set(isHuman);
-    saved.isEngine.set(!isHuman);
-    saved.humanName.set(humanName);
-    if (!isHuman) {
-        saved.engineNumber.set(playerIndex - 1);
-        saved.engineName.set(engineName);
-        saved.enginePath.set(engines.at(playerIndex - 1).path);
-    }
-}
-} // namespace
-
-// ============================================================
-// 設定保存・読込
+// 設定保存・読込・既定値
 // ============================================================
 
 void StartGameDialog::saveGameSettings()
 {
-    // 先手／下手の設定を保存
-    savePlayer(Saved::player1, ui->comboBoxPlayer1->currentIndex(), ui->lineEditHumanName1->text(),
-               ui->comboBoxPlayer1->currentText(), m_engineList);
-    Saved::player1.basicTimeHour.set(ui->basicTimeHour1->value());
-    Saved::player1.basicTimeMinutes.set(ui->basicTimeMinutes1->value());
-    Saved::player1.byoyomiSec.set(ui->byoyomiSec1->value());
-    Saved::player1.addEachMoveSec.set(ui->addEachMoveSec1->value());
-
-    // 後手／上手の設定を保存
-    Saved::separateSecondPlayerTime.set(ui->groupBoxSecondPlayerTimeSettings->isChecked());
-    savePlayer(Saved::player2, ui->comboBoxPlayer2->currentIndex(), ui->lineEditHumanName2->text(),
-               ui->comboBoxPlayer2->currentText(), m_engineList);
-    Saved::player2.basicTimeHour.set(ui->basicTimeHour2->value());
-    Saved::player2.basicTimeMinutes.set(ui->basicTimeMinutes2->value());
-    Saved::player2.byoyomiSec.set(ui->byoyomiSec2->value());
-    Saved::player2.addEachMoveSec.set(ui->addEachMoveSec2->value());
-
-    Saved::startingPositionName.set(ui->comboBoxStartingPosition->currentText());
-    Saved::startingPositionNumber.set(ui->comboBoxStartingPosition->currentIndex());
-    Saved::maxMoves.set(ui->spinBoxMaxMoves->value());
-    Saved::consecutiveGames.set(ui->spinBoxConsecutiveGames->value());
-    Saved::showHumanInFront.set(ui->checkBoxShowHumanInFront->isChecked());
-    Saved::autoSaveKifu.set(ui->checkBoxAutoSaveKifu->isChecked());
-    Saved::kifuSaveDir.set(ui->lineEditKifuSaveDir->text());
-    Saved::loseOnTimeout.set(ui->checkBoxLoseOnTimeOut->isChecked());
-    Saved::switchTurnEachGame.set(ui->checkBoxSwitchTurnEachGame->isChecked());
-    Saved::jishogiRule.set(ui->comboBoxJishogi->currentIndex());
+    const std::array<const Saved::Player*, 2> saved{&Saved::player1, &Saved::player2};
+    for (std::size_t i = 0; i < 2; ++i) {
+        m_players[i]->save();
+        saveTime(*saved[i], m_times[i]->value());
+    }
+    // 開始局面は手合割の名前で保存する（「現在の局面」は空）
+    const int position = ui->comboBoxStartingPosition->currentData().toInt();
+    Saved::startingPositionName.set(position == kCurrentPosition ? QString()
+                                                                 : Handicaps::labelOf(Handicaps::kAll[position]));
+    Saved::startingPositionNumber.remove();
+    m_form.save();
 }
 
 void StartGameDialog::loadGameSettings()
 {
-    // 先手／下手の設定を読み込む
-    ui->lineEditHumanName1->setText(Saved::player1.humanName.valueOr(tr("You")));
-    ui->comboBoxPlayer1->setCurrentIndex(savedPlayerIndex(Saved::player1, m_engineList));
-    updatePlayerUI(1, ui->comboBoxPlayer1->currentIndex());
+    const std::array<const Saved::Player*, 2> saved{&Saved::player1, &Saved::player2};
+    for (std::size_t i = 0; i < 2; ++i) m_times[i]->setValue(savedTime(*saved[i]));
+    m_form.load();
 
-    ui->basicTimeHour1->setValue(Saved::player1.basicTimeHour());
-    ui->basicTimeMinutes1->setValue(Saved::player1.basicTimeMinutes());
-    ui->byoyomiSec1->setValue(Saved::player1.byoyomiSec());
-    ui->addEachMoveSec1->setValue(Saved::player1.addEachMoveSec());
-
-    // 後手／上手の設定を読み込む
-    ui->groupBoxSecondPlayerTimeSettings->setChecked(Saved::separateSecondPlayerTime());
-
-    ui->lineEditHumanName2->setText(Saved::player2.humanName.valueOr(tr("You")));
-    ui->comboBoxPlayer2->setCurrentIndex(savedPlayerIndex(Saved::player2, m_engineList));
-    updatePlayerUI(2, ui->comboBoxPlayer2->currentIndex());
-
-    ui->basicTimeHour2->setValue(Saved::player2.basicTimeHour());
-    ui->basicTimeMinutes2->setValue(Saved::player2.basicTimeMinutes());
-    ui->byoyomiSec2->setValue(Saved::player2.byoyomiSec());
-    ui->addEachMoveSec2->setValue(Saved::player2.addEachMoveSec());
-
-    const int savedStartingIndex = Saved::startingPositionNumber();
-    if (savedStartingIndex >= 0 && savedStartingIndex < ui->comboBoxStartingPosition->count()) {
-        ui->comboBoxStartingPosition->setCurrentIndex(savedStartingIndex);
+    // 開始局面: 手合割の名前（空は現在の局面）。以前の版は番号（と表示した名前）で保存していた
+    const Handicaps::Handicap* handicap = &Handicaps::kAll[0];
+    if (Saved::startingPositionNumber.isSaved()) {
+        handicap = legacyStartingPosition(Saved::startingPositionNumber());
     } else {
-        ui->comboBoxStartingPosition->setCurrentText(Saved::startingPositionName());
+        const QString name = Saved::startingPositionName();
+        handicap = name.isEmpty() ? nullptr : Handicaps::byLabel(name);
+        if (!handicap && !name.isEmpty()) handicap = &Handicaps::kAll[0];
     }
-    ui->spinBoxMaxMoves->setValue(Saved::maxMoves());
-    ui->spinBoxConsecutiveGames->setValue(Saved::consecutiveGames());
-    ui->checkBoxShowHumanInFront->setChecked(Saved::showHumanInFront());
-    ui->checkBoxAutoSaveKifu->setChecked(Saved::autoSaveKifu());
-    // デフォルトの棋譜保存先はドキュメントフォルダ
-    ui->lineEditKifuSaveDir->setText(Saved::kifuSaveDir.valueOr(defaultKifuSaveDir()));
-    ui->checkBoxLoseOnTimeOut->setChecked(Saved::loseOnTimeout());
-    ui->checkBoxSwitchTurnEachGame->setChecked(Saved::switchTurnEachGame());
-    ui->comboBoxJishogi->setCurrentIndex(Saved::jishogiRule());
+    ui->comboBoxStartingPosition->setCurrentIndex(
+        handicap ? ui->comboBoxStartingPosition->findData(static_cast<int>(handicap - Handicaps::kAll)) : 0);
 
     updateConsecutiveGamesEnabled();
 }
 
 void StartGameDialog::resetSettingsToDefault()
 {
-    ui->groupBoxSecondPlayerTimeSettings->setChecked(Saved::separateSecondPlayerTime.defaultValue());
-    // 先手: 人間をデフォルトに
-    ui->comboBoxPlayer1->setCurrentIndex(0);
-    updatePlayerUI(1, 0);
-    ui->lineEditHumanName1->setText(tr("You"));
-    ui->basicTimeHour1->setValue(Saved::player1.basicTimeHour.defaultValue());
-    ui->basicTimeMinutes1->setValue(Saved::player1.basicTimeMinutes.defaultValue());
-    ui->byoyomiSec1->setValue(Saved::player1.byoyomiSec.defaultValue());
-    ui->addEachMoveSec1->setValue(Saved::player1.addEachMoveSec.defaultValue());
-
-    // 後手: 最初のエンジンをデフォルトに（なければ人間）
-    if (ui->comboBoxPlayer2->count() > 1) {
-        ui->comboBoxPlayer2->setCurrentIndex(1);
-        updatePlayerUI(2, 1);
-    } else {
-        ui->comboBoxPlayer2->setCurrentIndex(0);
-        updatePlayerUI(2, 0);
-    }
-    ui->lineEditHumanName2->setText(tr("You"));
-    ui->basicTimeHour2->setValue(Saved::player2.basicTimeHour.defaultValue());
-    ui->basicTimeMinutes2->setValue(Saved::player2.basicTimeMinutes.defaultValue());
-    ui->byoyomiSec2->setValue(Saved::player2.byoyomiSec.defaultValue());
-    ui->addEachMoveSec2->setValue(Saved::player2.addEachMoveSec.defaultValue());
-
-    ui->comboBoxStartingPosition->setCurrentIndex(Saved::startingPositionNumber.defaultValue());
-    ui->spinBoxMaxMoves->setValue(Saved::maxMoves.defaultValue());
-    ui->spinBoxConsecutiveGames->setValue(Saved::consecutiveGames.defaultValue());
-    ui->checkBoxShowHumanInFront->setChecked(Saved::showHumanInFront.defaultValue());
-    ui->checkBoxAutoSaveKifu->setChecked(Saved::autoSaveKifu.defaultValue());
-    ui->lineEditKifuSaveDir->setText(defaultKifuSaveDir());
-    ui->checkBoxLoseOnTimeOut->setChecked(Saved::loseOnTimeout.defaultValue());
-    ui->checkBoxSwitchTurnEachGame->setChecked(Saved::switchTurnEachGame.defaultValue());
-    ui->comboBoxJishogi->setCurrentIndex(Saved::jishogiRule.defaultValue());
+    // 先手は人間、後手は先頭の登録エンジン（無ければ人間）
+    m_players[0]->reset(false);
+    m_players[1]->reset(true);
+    m_times[0]->setValue(defaultTime(Saved::player1));
+    m_times[1]->setValue(defaultTime(Saved::player2));
+    m_form.reset();
+    // 開始局面は平手
+    ui->comboBoxStartingPosition->setCurrentIndex(1);
 }
 
 // ============================================================
@@ -579,10 +402,8 @@ bool StartGameDialog::confirmTimeSettings()
 {
     using TimeControlValidator::Issue;
     const StartGameDialogData d = data();
-    const TimeControlValidator::PlayerTime p1{d.basicTimeHour1, d.basicTimeMinutes1, d.byoyomiSec1, d.addEachMoveSec1};
-    const TimeControlValidator::PlayerTime p2{d.basicTimeHour2, d.basicTimeMinutes2, d.byoyomiSec2, d.addEachMoveSec2};
-    const bool hasEngine = d.isEngine1 || d.isEngine2;
-    const Issue issue = TimeControlValidator::validate(p1, p2, hasEngine);
+    const bool hasEngine = d.hasEngine();
+    const Issue issue = TimeControlValidator::validate(d.players[0].time, d.players[1].time, hasEngine);
 
     QString message;
     switch (issue) {

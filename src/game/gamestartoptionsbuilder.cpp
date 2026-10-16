@@ -5,7 +5,6 @@
 
 #include <QCoreApplication>
 
-#include "handicaps.h"
 #include "logcategories.h"
 #include "sfenutils.h"
 
@@ -16,10 +15,10 @@
 std::optional<GameStartPlan> GameStartOptionsBuilder::plan(const GameStartRequest& request, QString* error)
 {
     const StartGameDialogData& dlg = request.dialogData;
-    const bool fromCurrent = dlg.startingPositionNumber == 0;
+    const bool fromCurrent = dlg.startsFromCurrentPosition();
     RecordLine line = fromCurrent ? request.recordLine : RecordLine{};
     if (line.startSfen.isEmpty()) {
-        line.startSfen = canonicalizeSfen(fromCurrent ? QString() : startingPositionSfen(dlg.startingPositionNumber));
+        line.startSfen = canonicalizeSfen(fromCurrent ? QString() : QString::fromLatin1(dlg.startingHandicap->sfen));
     } else {
         line.startSfen = canonicalizeSfen(line.startSfen);
     }
@@ -66,18 +65,9 @@ bool GameStartOptionsBuilder::validateKings(const QString& sfen, QString* whyNot
 
 MatchTimeSettings GameStartOptionsBuilder::buildTimeSettings(const StartGameDialogData& data)
 {
-    const auto minutesToMs = [](int hours, int minutes) {
-        return qMax<qint64>(0, (static_cast<qint64>(hours) * 3600 + minutes * 60) * 1000);
-    };
-    const auto secondsToMs = [](int seconds) { return qMax<qint64>(0, static_cast<qint64>(seconds) * 1000); };
-
     TimeControl rules;
-    rules.black.mainMs = minutesToMs(data.basicTimeHour1, data.basicTimeMinutes1);
-    rules.white.mainMs = minutesToMs(data.basicTimeHour2, data.basicTimeMinutes2);
-    rules.black.byoyomiMs = secondsToMs(data.byoyomiSec1);
-    rules.white.byoyomiMs = secondsToMs(data.byoyomiSec2);
-    rules.black.incrementMs = secondsToMs(data.addEachMoveSec1);
-    rules.white.incrementMs = secondsToMs(data.addEachMoveSec2);
+    rules.black = data.players[0].time;
+    rules.white = data.players[1].time;
 
     MatchTimeSettings tc;
     tc.loseOnTimeout = data.isLoseOnTimeout;
@@ -99,31 +89,16 @@ MatchTimeSettings GameStartOptionsBuilder::buildTimeSettings(const StartGameDial
 
 MatchPlayers GameStartOptionsBuilder::playersFromDialog(const StartGameDialogData& data)
 {
+    const PlayerChoice& black = data.players[0];
+    const PlayerChoice& white = data.players[1];
     MatchPlayers players;
-    // 人間とエンジンの両方に印があるときは人間とする（ダイアログは排他だが、設定の読み違いに備える）
-    players.blackIsEngine = data.isEngine1 && !data.isHuman1;
-    players.whiteIsEngine = data.isEngine2 && !data.isHuman2;
-    players.blackHumanName = data.humanName1;
-    players.whiteHumanName = data.humanName2;
-    const auto& engines = data.engineList;
-    if (data.engineNumber1 >= 0 && data.engineNumber1 < engines.size()) players.blackEngineName = data.engineName1;
-    if (data.engineNumber2 >= 0 && data.engineNumber2 < engines.size()) players.whiteEngineName = data.engineName2;
+    players.blackIsEngine = black.isEngine();
+    players.whiteIsEngine = white.isEngine();
+    players.blackHumanName = black.humanName;
+    players.whiteHumanName = white.humanName;
+    if (black.isEngine()) players.blackEngineName = black.engine.name;
+    if (white.isEngine()) players.whiteEngineName = white.engine.name;
     return players;
-}
-
-// ============================================================
-// 開始局面プリセット
-// ============================================================
-
-QString GameStartOptionsBuilder::startingPositionSfen(int index)
-{
-    // 対局開始ダイアログの「開始局面」の並び（1=平手, 2=香落ち, …, 14=十枚落ち）
-    static constexpr const char16_t* kPositions[kStartingPositionCount] = {
-        u"平手", u"香落ち", u"右香落ち", u"角落ち", u"飛車落ち", u"飛香落ち", u"二枚落ち",
-        u"三枚落ち", u"四枚落ち", u"五枚落ち", u"左五枚落ち", u"六枚落ち", u"八枚落ち", u"十枚落ち",
-    };
-    const int idx = qBound(1, index, kStartingPositionCount) - 1;
-    return QString::fromLatin1(Handicaps::byLabel(QStringView(kPositions[idx]))->sfen);
 }
 
 // ============================================================
@@ -148,9 +123,8 @@ MatchStartOptions GameStartOptionsBuilder::buildStartOptions(const QString& star
     MatchStartOptions opt;
     opt.players = playersFromDialog(dlg);
     opt.sfenStart = startSfen;
-    const auto& engines = dlg.engineList;
-    if (dlg.engineNumber1 >= 0 && dlg.engineNumber1 < engines.size()) opt.enginePath1 = engines.at(dlg.engineNumber1).path;
-    if (dlg.engineNumber2 >= 0 && dlg.engineNumber2 < engines.size()) opt.enginePath2 = engines.at(dlg.engineNumber2).path;
+    if (dlg.players[0].isEngine()) opt.enginePath1 = dlg.players[0].engine.path;
+    if (dlg.players[1].isEngine()) opt.enginePath2 = dlg.players[1].engine.path;
     opt.maxMoves = dlg.maxMoves;
     opt.autoSave.enabled = dlg.autoSaveKifu;
     opt.autoSave.dir = dlg.kifuSaveDir;
@@ -161,7 +135,7 @@ MatchStartOptions GameStartOptionsBuilder::buildStartOptions(const QString& star
 bool GameStartOptionsBuilder::needsHumanAtBottomFlip(const StartGameDialogData& dlg, Turn bottomSide)
 {
     // 人間とエンジンの対局だけが対象（人間同士・エンジン同士はそのまま）
-    if (!dlg.isShowHumanInFront || dlg.isHuman1 == dlg.isHuman2) return false;
-    const Turn humanSide = dlg.isHuman1 ? Turn::Black : Turn::White;
+    if (!dlg.isShowHumanInFront || dlg.players[0].isHuman() == dlg.players[1].isHuman()) return false;
+    const Turn humanSide = dlg.players[0].isHuman() ? Turn::Black : Turn::White;
     return humanSide != bottomSide;
 }

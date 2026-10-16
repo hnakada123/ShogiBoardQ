@@ -426,6 +426,10 @@ add_shogi_test(tst_startgamedialog
     ${SRC}/dialogs/changeenginesettingsdialog.ui
     ${SRC}/dialogs/enginesettingsoptionhandler.cpp
     ${SRC}/engine/engineoptiondescriptions.cpp
+    ${SRC}/widgets/engineselector.cpp
+    ${SRC}/widgets/playersetupwidget.cpp
+    ${SRC}/widgets/settingsformbinding.cpp
+    ${SRC}/widgets/timecontroleditor.cpp
     ${SRC}/widgets/collapsiblegroupbox.cpp
     ${SRC}/widgets/longlongspinbox.cpp
     ${SRC}/widgets/dialogutils.cpp
