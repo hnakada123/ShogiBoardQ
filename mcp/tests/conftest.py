@@ -121,8 +121,8 @@ def result_data(result):
     return text, result.structured_content, bool(result.is_error)
 
 
-async def message_box(session, text: str, timeout: float = 8.0) -> str:
-    """Wait for a QMessageBox whose texts contain ``text`` and return its selector.
+async def message_box(session, text: str, timeout: float = 8.0, window_class: str = "QMessageBox") -> str:
+    """Wait for a QMessageBox (or another ``window_class``) whose texts contain ``text`` and return its selector.
 
     Message boxes have no object name, and Qt on macOS ignores their window titles,
     so find them by class and text, and address them by selector instead of title.
@@ -132,11 +132,11 @@ async def message_box(session, text: str, timeout: float = 8.0) -> str:
     while True:
         _, dialogs, _ = result_data(await session.call_tool("list_dialogs", {}))
         for window in (dialogs or {}).get("windows", []):
-            if window["class"] != "QMessageBox":
+            if window["class"] != window_class:
                 continue
             # The box may close between the two calls; then keep waiting.
             _, content, error = result_data(await session.call_tool("get_widget_text", {"target": window["selector"]}))
             if not error and text in str(content):
                 return window["selector"]
-        assert loop.time() < deadline, f"No message box containing {text!r}: {dialogs}"
+        assert loop.time() < deadline, f"No {window_class} containing {text!r}: {dialogs}"
         await asyncio.sleep(0.05)
