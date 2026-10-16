@@ -429,6 +429,8 @@ set(SRC_ANALYSIS
     src/analysis/tsumecandidatejob.h
     src/analysis/tsumecollection.cpp
     src/analysis/tsumecollection.h
+    src/analysis/positioncollectionfile.cpp
+    src/analysis/positioncollectionfile.h
     src/analysis/tsumecollectionsession.cpp
     src/analysis/tsumecollectionsession.h
     src/analysis/tsumecollectionwriter.cpp
@@ -663,6 +665,8 @@ set(SRC_WIDGETS
     src/widgets/flowlayout.h
     src/widgets/fontsizecontrol.cpp
     src/widgets/fontsizecontrol.h
+    src/widgets/recentfilesmenu.cpp
+    src/widgets/recentfilesmenu.h
     src/widgets/editactions.cpp
     src/widgets/editactions.h
     src/widgets/fontsizehelper.cpp
@@ -869,6 +873,8 @@ set(SRC_COMMON
     src/common/errorbus.h
     src/common/jishogicalculator.cpp
     src/common/jishogicalculator.h
+    src/common/recentfilelist.cpp
+    src/common/recentfilelist.h
     src/common/kifupresentation.cpp
     src/common/kifupresentation.h
     src/common/logcategories.cpp

@@ -7,6 +7,8 @@
 #include <QFutureWatcher>
 #include <QList>
 #include <QObject>
+
+#include "recentfilelist.h"
 #include <QSet>
 #include <QString>
 #include <QStringList>
@@ -69,7 +71,7 @@ public:
 
     // --- 最近使ったファイル ---
 
-    const QStringList &recentFiles() const { return m_recentFiles; }
+    const QStringList &recentFiles() const { return m_recentFiles.files(); }
     void setRecentFiles(const QStringList &files);
     void addRecentFile(const QString &filePath);
     void removeRecentFile(const QString &filePath);
@@ -122,7 +124,7 @@ private:
     std::unique_ptr<JosekiRepository> m_repository;
     QString m_filePath;
     bool m_modified = false;
-    QStringList m_recentFiles;
+    RecentFileList m_recentFiles{kMaxRecentFiles};
     bool m_busy = false;
     QFutureWatcher<JosekiLoadResult> m_loadWatcher;
     QFutureWatcher<JosekiSaveResult> m_saveWatcher;
