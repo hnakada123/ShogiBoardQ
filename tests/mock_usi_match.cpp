@@ -34,6 +34,8 @@ int main()
             ponderEnabled = line == "setoption name USI_Ponder value true";
         }
         else if (line.find("setoption name ReplyDelay value ") == 0) delay = std::stoi(line.substr(32));
+        // 詰み探索に答えないエンジン（stop にも答えない）
+        else if (std::getenv("SBQ_MATCH_IGNORE_MATE") && (line.find("go mate") == 0 || line == "stop")) continue;
         else if (line.find("go ponder") == 0) { join(); pondering = true; }
         else if (line == "stop") {
             if (const char* delayMs = std::getenv("SBQ_MATCH_STOP_DELAY_MS"))

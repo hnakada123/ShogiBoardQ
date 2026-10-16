@@ -9,6 +9,7 @@
 #include "applicationstyle.h"
 #include "applicationtranslations.h"
 #include "dialogfontscale.h"
+#include "enginelistsettings.h"
 #include "settingsresetcontroller.h"
 
 #include <QApplication>
@@ -66,6 +67,8 @@ int main(int argc, char *argv[])
     QApplication a(argc, argv);
     a.setApplicationName("ShogiBoardQ");
     a.setApplicationVersion(QStringLiteral(APP_VERSION));
+    // 以前の版の設定ファイルにあるエンジンごとの設定を、今の保存先へ移す
+    EngineListSettings::migrateLegacyOptionGroups();
     // 2倍表示の大きな盤でも駒画像がキャッシュに収まるようにする。
     ApplicationRendering::reservePixmapCacheForPieces();
 

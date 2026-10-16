@@ -94,6 +94,8 @@ void MainWindowComposer::connectRecord()
     // 読み込み・書き出し
     KifuLoadCoordinator* loader = m_c.kifuLoadCoordinator;
     connect(loader, &KifuLoadCoordinator::gameInfoLoaded, m_c.playerInfo, &PlayerInfoPresenter::onGameInfoLoaded);
+    // 読み込んだ棋譜に、前の対局の対局者・持ち時間・日時を残さない
+    connect(loader, &KifuLoadCoordinator::gameInfoLoaded, m_c.gameSession, &GameSession::forgetFinishedMatch);
     connect(loader, &KifuLoadCoordinator::errorOccurred,
             m_c.notificationService, &UiNotificationService::displayErrorMessage);
     connect(loader, &KifuLoadCoordinator::loadFinished,

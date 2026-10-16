@@ -68,12 +68,15 @@ void AnalysisResultHandler::updatePending(int ply, const UsiInfo& info)
         m_pendingPv.clear();
     }
     m_pendingPly = ply;
+    // エンジン設定で MultiPV を2以上にしていても、結果は最善の読み筋で確定する
+    if (info.multipv > 1) return;
     if (info.hasScore()) m_pendingScore = info.score;
     if (info.hasPv()) m_pendingPv = info.pv.join(QLatin1Char(' '));
 }
 
-void AnalysisResultHandler::updatePendingPvKanji(const QString& pvKanjiStr)
+void AnalysisResultHandler::updatePendingPvKanji(const QString& pvKanjiStr, int multipv)
 {
+    if (multipv > 1) return;
     // ThinkingInfoPresenterからの漢字PVを保存（思考タブと同じ内容を棋譜解析結果に使用）
     m_pendingPvKanji = pvKanjiStr;
     qCDebug(lcAnalysis).noquote() << "saved pvKanjiStr=" << pvKanjiStr.left(50);

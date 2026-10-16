@@ -85,7 +85,7 @@ PositionInfo describePosition(const QString &sfen)
     }
     if (info.ply == 1) {
         if (const Handicaps::Handicap *handicap = Handicaps::byBoard(sfen))
-            info.handicap = QString(QStringView(handicap->label));
+            info.handicap = Handicaps::labelOf(*handicap);
     }
     return info;
 }

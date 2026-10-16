@@ -6,6 +6,7 @@
 
 #include "clicommands.h"
 #include "clioutput.h"
+#include "enginelistsettings.h"
 
 #include <QApplication>
 #include <QHash>
@@ -52,6 +53,8 @@ int main(int argc, char* argv[])
     // 設定ファイル（登録エンジン・盤面配色・駒画像）の場所を GUI と揃える
     app.setApplicationName(QStringLiteral("ShogiBoardQ"));
     app.setApplicationVersion(QStringLiteral(APP_VERSION));
+    // 以前の版の設定ファイルにあるエンジンごとの設定を、今の保存先へ移す（GUI と同じ）
+    EngineListSettings::migrateLegacyOptionGroups();
 
     return CliCommands::run(app.arguments());
 }

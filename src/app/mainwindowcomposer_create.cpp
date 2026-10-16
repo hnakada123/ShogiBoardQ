@@ -494,7 +494,7 @@ void MainWindowComposer::createSessions()
     cd.parentWidget = &m_window;
     cd.prepareRecord = std::bind(&GameSession::beginCsaGameRecord, m_c.gameSession,
                                  std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
-    cd.recordGameEnd = std::bind(&GameSession::recordGameEndTime, m_c.gameSession);
+    cd.recordGameEnd = std::bind(&GameSession::endCsaGameRecord, m_c.gameSession);
     m_c.csaSession = new CsaGameSession(cd, &m_window);
 }
 

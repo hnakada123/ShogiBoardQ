@@ -35,6 +35,17 @@ struct MoveDestination {
     bool isSameAsPrev;
 };
 
+/**
+ * @brief 読めない手・指せない手の扱い（全形式で同じ）
+ *
+ * 読めない手（表記が解釈できない・局面に合わない）や指せない手があれば、その手順はその手の手前で打ち切り、
+ * 警告に理由と「何手目まで読んだか」を書いて読み込みを続ける。パスも対応していない手として同じに扱う。
+ * ply はその手の手数
+ */
+QString truncationNotice(int ply);
+/// パスの手で手順を打ち切ったときの警告（truncationNotice を含む）
+QString passNotice(int ply);
+
 // 改行区切りで追記（buf が空でなければ '\n' を挿入してから text を追加）
 void appendLine(QString& buf, const QString& text);
 

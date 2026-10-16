@@ -4,6 +4,7 @@
 /// @file enginesettingsconstants.h
 /// @brief エンジン設定のINIファイルキー定数の定義
 
+#include <QString>
 
 /**
  * @brief エンジン設定の永続化に使用するINIファイルのキー名定数
@@ -22,7 +23,31 @@ static constexpr char EngineNameKey[] = "name";        ///< エンジン名キ�
 static constexpr char EnginePathKey[] = "path";        ///< エンジンファイルパスキー
 static constexpr char EngineAuthorKey[] = "author";    ///< エンジン作者キー
 
-// エンジン名グループ内に保存するGUI設定（USIオプション配列とは独立）
+// --- エンジンごとの設定 ---
+
+/// エンジンごとの設定（USIオプションの配列と GUI の設定）を置く親グループ
+static constexpr char EngineOptionsGroupName[] = "EngineOptions";
+
+/**
+ * @brief エンジンごとの設定を置くグループ（"EngineOptions/<エスケープした名前>"）
+ *
+ * エンジンの id name をそのままグループ名にすると、ほかの設定のグループ（General など）と衝突し、
+ * "/" を含む名前は入れ子のグループになる。"%"・"/"・"\" をエスケープして親グループの下に置く。
+ */
+inline QString engineOptionsGroup(const QString& engineName)
+{
+    QString escaped;
+    escaped.reserve(engineName.size());
+    for (const QChar ch : engineName) {
+        if (ch == QLatin1Char('%')) escaped += QStringLiteral("%25");
+        else if (ch == QLatin1Char('/')) escaped += QStringLiteral("%2F");
+        else if (ch == QLatin1Char('\\')) escaped += QStringLiteral("%5C");
+        else escaped += ch;
+    }
+    return QLatin1String(EngineOptionsGroupName) + QLatin1Char('/') + escaped;
+}
+
+// エンジンごとのグループ内に保存するGUI設定（USIオプション配列とは独立）
 static constexpr char EngineGuiPonderEnabledKey[] = "gui/ponderEnabled";
 static constexpr char EngineSendUnreportedPonderKey[] = "gui/sendUnreportedPonderOption";
 

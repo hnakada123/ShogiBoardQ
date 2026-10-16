@@ -38,7 +38,7 @@ QString mapHandicapToSfen(const QString& label)
 QString handicapLabelForSfen(const QString& sfen)
 {
     const Handicaps::Handicap* handicap = Handicaps::byBoard(sfen);
-    return handicap ? QString(QStringView(handicap->label)) : QString();
+    return handicap ? Handicaps::labelOf(*handicap) : QString();
 }
 
 } // namespace NotationUtils

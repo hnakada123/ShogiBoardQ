@@ -12,6 +12,7 @@
 #include "gamerecordmodel.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
+#include "kifuexportcontroller.h"
 #include "kifufilecontroller.h"
 #include "kifuloadcoordinator.h"
 #include "kifunavigationstate.h"
@@ -69,6 +70,36 @@ private slots:
         // 読み込んだら開始局面を表示し、棋譜欄は本譜を出す
         QCOMPARE(p.navState->currentNode(), p.branchTree->root());
         QCOMPARE(p.kifuRecord->rowCount(), static_cast<int>(p.branchTree->mainLine().size()));
+    }
+
+    /// 対局の後に別の棋譜を読み込んだら、前の対局の対局者・持ち時間・開始日時を書き出しに使わない（B6・B7）
+    void loadedKifuForgetsPreviousMatch()
+    {
+        MainWindow window;
+        auto& p = window.composer().parts();
+        // 時間のある対局を終えた状態（対局者と持ち時間・開始日時の記録が残っている）
+        MatchPlayers players;
+        players.blackHumanName = QStringLiteral("前の先手");
+        players.whiteHumanName = QStringLiteral("前の後手");
+        window.composer().state().players = players;
+        TimeControl timeControl;
+        timeControl.black.mainMs = timeControl.white.mainMs = 600000;
+        timeControl.black.incrementMs = timeControl.white.incrementMs = 10000;
+        p.timeRecord.begin(timeControl);
+        p.timeRecord.recordEnd();
+
+        // 対局者名も開始日時もない棋譜
+        QVERIFY(p.kifuFileController->loadKifuText(QStringLiteral("V2.2\nPI\n+\n+7776FU\n-3334FU\n")));
+        QVERIFY(window.composer().state().players.blackHumanName.isEmpty());
+        QVERIFY(!p.timeRecord.hasTimeControl());
+        QVERIFY(!p.timeRecord.startDateTime().isValid());
+        QVERIFY(!p.timeRecord.endDateTime().isValid());
+
+        const QString csa = p.kifuExportController->exportLines(KifuFormat::Csa).join(QLatin1Char('\n'));
+        QVERIFY2(!csa.contains(QStringLiteral("$TIME")), qPrintable(csa));
+        QVERIFY2(!csa.contains(QStringLiteral("$START_TIME")), qPrintable(csa));
+        QVERIFY2(!csa.contains(QStringLiteral("前の先手")), qPrintable(csa));
+        QVERIFY2(!csa.contains(QStringLiteral("前の後手")), qPrintable(csa));
     }
 
     /// 分岐とコメントも分岐ツリーに入る

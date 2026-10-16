@@ -10,6 +10,7 @@
 #include "engineprocessmanager.h"
 #include "thinkinginfoformatter.h"
 #include "usiinfo.h"
+#include "usilineparser.h"
 #include "usiprotocolhandler.h"
 
 namespace {
@@ -435,6 +436,21 @@ private slots:
     }
 
     /// info 行を出さずに checkmate だけを返すエンジンでも、思考の表に詰み手順の行を残す
+    /// 先読み中の読み筋の「同」は、予想手（探索の局面に至った手）の移動先を基準にする（U2）
+    void ponderPvUsesPredictedMoveForSameSquare()
+    {
+        ThinkingInfoFormatter formatter;
+        // 相手が前に指した手の移動先（9三）。自分が指した後、相手の予想手 5d5e を指した局面で先読みする
+        formatter.setPreviousMove(9, 3);
+        formatter.setBaseSfen(QStringLiteral("4k4/9/9/9/4p4/9/9/4R4/4K4 b - 2"));
+        formatter.setLastUsiMove(QStringLiteral("5d5e"));
+        QSignalSpy rows(&formatter, &ThinkingInfoFormatter::thinkingInfoUpdated);
+        formatter.processInfo(*UsiLineParser::parseInfo(QStringLiteral("info depth 3 score cp 500 pv 5h5e 5a4b")));
+        QCOMPARE(rows.count(), 1);
+        const auto row = qvariant_cast<ThinkingInfoRow>(rows.at(0).at(0));
+        QVERIFY2(row.pvKanji.startsWith(QStringLiteral("▲同飛(58)")), qPrintable(row.pvKanji));
+    }
+
     void checkmate_solved_addsThinkingRow()
     {
         UsiProtocolHandler handler;

@@ -4,6 +4,7 @@
 #include "thinkinginfoformatter.h"
 #include "kifupresentation.h"
 #include "pvnotationformatter.h"
+#include "usimove.h"
 
 #include <QTimer>
 #include <memory>
@@ -30,6 +31,12 @@ void ThinkingInfoFormatter::setPreviousMove(int fileTo, int rankTo)
 {
     m_previousFileTo = fileTo;
     m_previousRankTo = rankTo;
+}
+
+void ThinkingInfoFormatter::setLastUsiMove(const QString& move)
+{
+    m_lastUsiMove = move;
+    if (const auto usi = UsiMove::parse(move)) setPreviousMove(usi->to.file, usi->to.rank);
 }
 
 void ThinkingInfoFormatter::setBaseSfen(const QString& sfen)

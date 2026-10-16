@@ -24,6 +24,29 @@ struct UsiSearchRequest {
     /// 結果を待つ時間。stopAfterMs があれば stop の後から、なければ go の後から数える（0 は待ち続ける）。
     /// 過ぎたら searchTimedOut を知らせる
     int replyTimeoutMs = 0;
+
+    /// 制限時間を過ぎても答えない詰み探索に stop を送るまでの余裕
+    static constexpr int kMateStopMarginMs = 5000;
+    /// stop を送った後に結果を待つ上限
+    static constexpr int kStopReplyMs = 3000;
+
+    /**
+     * @brief 詰み探索（go mate）の依頼
+     *
+     * 制限時間があれば、制限時間＋余裕で stop を送り、その後も答えなければ searchTimedOut を知らせる。
+     * 制限時間が 0 以下（go mate infinite）なら打ち切らない（利用者が止める）
+     */
+    static UsiSearchRequest mate(const QString& position, int timeLimitMs)
+    {
+        UsiSearchRequest request;
+        request.position = position;
+        request.go = UsiGo::mate(timeLimitMs);
+        if (timeLimitMs > 0) {
+            request.stopAfterMs = timeLimitMs + kMateStopMarginMs;
+            request.replyTimeoutMs = kStopReplyMs;
+        }
+        return request;
+    }
 };
 
 /**

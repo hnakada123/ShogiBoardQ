@@ -197,7 +197,7 @@ void KifuAnalysisController::onResultReady()
 
 void KifuAnalysisController::onThinkingInfoUpdated(const ThinkingInfoRow& row)
 {
-    if (!row.pvKanji.isEmpty()) m_resultHandler->updatePendingPvKanji(row.pvKanji);
+    if (!row.pvKanji.isEmpty()) m_resultHandler->updatePendingPvKanji(row.pvKanji, row.multipv);
 }
 
 void KifuAnalysisController::publishCommittedEvaluation()

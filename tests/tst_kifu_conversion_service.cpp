@@ -5,6 +5,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QRegularExpression>
 
 #include "kifuconversionservice.h"
 #include "sfenutils.h"
@@ -40,15 +41,15 @@ private:
     }
 
 private slots:
-    void unreplayableMoveIsRejected_data()
+    /// 指せない手があれば、その手の手前までを読み、警告に理由と読んだ手数を書く（どの形式も同じ）
+    void unreplayableMoveTruncatesTheLine_data()
     {
         QTest::addColumn<QString>("text");
         QTest::addColumn<int>("format");
         QTest::newRow("usi-empty-source") << QStringLiteral("position startpos moves 7g7f 3c3d 7g7e") << int(Format::Usi);
         QTest::newRow("kif-empty-source") << QStringLiteral("手合割：平手\n手数----指手---------消費時間--\n1 ７六歩(77)\n2 ３四歩(33)\n3 ７五歩(77)\n") << int(Format::Kif);
-        QTest::newRow("kif-variation-empty-source") << QStringLiteral("手合割：平手\n手数----指手---------消費時間--\n1 ７六歩(77)\n2 ３四歩(33)\n変化：3手\n3 ７五歩(77)\n") << int(Format::Kif);
     }
-    void unreplayableMoveIsRejected()
+    void unreplayableMoveTruncatesTheLine()
     {
         QFETCH(QString, text);
         QFETCH(int, format);
@@ -57,13 +58,120 @@ private slots:
         request.inputFormat = static_cast<Format>(format);
         request.outputFormat = Format::Sfen;
         const auto result = KifuConversionService::convert(request);
-        QVERIFY(!result.ok);
-        QVERIFY(result.error.contains(QStringLiteral("3")));
-        QVERIFY(result.error.contains(QStringLiteral("Source square is empty")));
-        QVERIFY(result.lines.isEmpty());
+        QVERIFY2(result.ok, qPrintable(result.error));
+        QCOMPARE(result.usiMoves, (QStringList{QStringLiteral("7g7f"), QStringLiteral("3c3d")}));
+        const QString warnings = result.warnings.join(QLatin1Char('\n'));
+        QVERIFY2(warnings.contains(QStringLiteral("Source square is empty")), qPrintable(warnings));
+        QVERIFY2(warnings.contains(QStringLiteral("read up to move 2")), qPrintable(warnings));
         const auto loaded = KifuLoadParser::parseText(text);
-        QVERIFY(!loaded.success);
-        QVERIFY(!loaded.error.isEmpty());
+        QVERIFY(loaded.success);
+        QVERIFY(!loaded.warning.isEmpty());
+    }
+
+    /// 変化の最初の手から指せなければ、その変化は手のない変化になる（本譜は残す）
+    void unreplayableVariationKeepsMainline()
+    {
+        KifuConversionService::Request request;
+        request.text = QStringLiteral("手合割：平手\n手数----指手---------消費時間--\n1 ７六歩(77)\n2 ３四歩(33)\n変化：3手\n3 ７五歩(77)\n");
+        request.inputFormat = Format::Kif;
+        request.outputFormat = Format::Sfen;
+        const auto result = KifuConversionService::convert(request);
+        QVERIFY2(result.ok, qPrintable(result.error));
+        QCOMPARE(result.usiMoves, (QStringList{QStringLiteral("7g7f"), QStringLiteral("3c3d")}));
+        QVERIFY(result.warnings.join(QLatin1Char('\n')).contains(QStringLiteral("Cannot restore move 3")));
+    }
+
+    /// パスの手があれば、その手の手前までを読み、パスに対応していないと警告する（B1）
+    void passMoveTruncatesTheLine_data()
+    {
+        QTest::addColumn<QString>("text");
+        QTest::addColumn<int>("format");
+        QTest::addColumn<QStringList>("moves");
+        QTest::newRow("kif") << QStringLiteral("手合割：平手\n手数----指手---------消費時間--\n   1 ７六歩(77)\n   2 パス\n   3 ２六歩(27)\n")
+                             << int(Format::Kif) << QStringList{QStringLiteral("7g7f")};
+        QTest::newRow("ki2") << QStringLiteral("手合割：平手\n▲７六歩 △３四歩 ▲パス △８四歩\n")
+                             << int(Format::Ki2) << QStringList{QStringLiteral("7g7f"), QStringLiteral("3c3d")};
+        QTest::newRow("kif-variation") << QStringLiteral("手合割：平手\n手数----指手---------消費時間--\n   1 ７六歩(77)\n   2 ３四歩(33)\n"
+                                                         "変化：2手\n   2 ８四歩(83)\n   3 パス\n")
+                                       << int(Format::Kif) << QStringList{QStringLiteral("7g7f"), QStringLiteral("3c3d")};
+    }
+    void passMoveTruncatesTheLine()
+    {
+        QFETCH(QString, text);
+        QFETCH(int, format);
+        QFETCH(QStringList, moves);
+        KifuConversionService::Request request;
+        request.text = text;
+        request.inputFormat = static_cast<Format>(format);
+        request.outputFormat = Format::Kif;
+        const auto result = KifuConversionService::convert(request);
+        QVERIFY2(result.ok, qPrintable(result.error));
+        QCOMPARE(result.usiMoves, moves);
+        const QString warnings = result.warnings.join(QLatin1Char('\n'));
+        QVERIFY2(warnings.contains(QStringLiteral("is a pass")), qPrintable(warnings));
+        const auto loaded = KifuLoadParser::parseText(text);
+        QVERIFY(loaded.success);
+        QVERIFY(loaded.warning.contains(QStringLiteral("is a pass")));
+    }
+
+    /// 同じ手順なら、どの形式から読んでも KIF の指し手の表記は同じ（「同　銀(31)」「２二角不成(88)」）（B2）
+    void kifMoveTextDoesNotDependOnSource_data()
+    {
+        QTest::addColumn<QString>("text");
+        QTest::addColumn<int>("format");
+        QTest::newRow("ki2") << QStringLiteral("手合割：平手\n▲７六歩 △３四歩 ▲２二角不成 △同銀 ▲５八金右\n") << int(Format::Ki2);
+        QTest::newRow("usi") << QStringLiteral("position startpos moves 7g7f 3c3d 8h2b 3a2b 4i5h") << int(Format::Usi);
+        QTest::newRow("csa") << QStringLiteral("V2.2\nPI\n+\n+7776FU\n-3334FU\n+8822KA\n-3122GI\n+4958KI\n") << int(Format::Csa);
+        QTest::newRow("kif") << QStringLiteral("手合割：平手\n手数----指手---------消費時間--\n1 ７六歩(77)\n2 ３四歩(33)\n"
+                                               "3 ２二角不成(88)\n4 同銀(31)\n5 ５八金右(49)\n") << int(Format::Kif);
+    }
+    void kifMoveTextDoesNotDependOnSource()
+    {
+        QFETCH(QString, text);
+        QFETCH(int, format);
+        KifuConversionService::Request request;
+        request.text = text;
+        request.inputFormat = static_cast<Format>(format);
+        request.outputFormat = Format::Kif;
+        const auto result = KifuConversionService::convert(request);
+        QVERIFY2(result.ok, qPrintable(result.error));
+        QStringList moveLines;
+        for (const QString& line : result.lines)
+            if (QRegularExpression(QStringLiteral("^\\s+\\d+ ")).match(line).hasMatch()) moveLines << line.simplified();
+        QCOMPARE(moveLines, (QStringList{
+            QStringLiteral("1 ７六歩(77) ( 0:00/00:00:00)"), QStringLiteral("2 ３四歩(33) ( 0:00/00:00:00)"),
+            QStringLiteral("3 ２二角不成(88) ( 0:00/00:00:00)"), QStringLiteral("4 同 銀(31) ( 0:00/00:00:00)"),
+            QStringLiteral("5 ５八金(49) ( 0:00/00:00:00)")}));
+    }
+
+    /// CSA で局面に合わない手・手番と違う符号の手は、その手の手前までを読む（B3）。後の手で手番がずれない
+    void csaUnreadableMoveTruncatesTheRecord_data()
+    {
+        QTest::addColumn<QString>("text");
+        QTest::addColumn<QString>("reason");
+        QTest::newRow("no-piece") << QStringLiteral("V2.2\nPI\n+\n+7776FU\n-3334FU\n+1112HI\n-8384FU\n+2726FU\n%TORYO\n")
+                                  << QStringLiteral("does not match the position");
+        QTest::newRow("wrong-side") << QStringLiteral("V2.2\nPI\n+\n+7776FU\n-3334FU\n-8384FU\n+2726FU\n%TORYO\n")
+                                    << QStringLiteral("Not the side to move");
+    }
+    void csaUnreadableMoveTruncatesTheRecord()
+    {
+        QFETCH(QString, text);
+        QFETCH(QString, reason);
+        KifuConversionService::Request request;
+        request.text = text;
+        request.inputFormat = Format::Csa;
+        request.outputFormat = Format::Csa;
+        const auto result = KifuConversionService::convert(request);
+        QVERIFY2(result.ok, qPrintable(result.error));
+        QCOMPARE(result.usiMoves, (QStringList{QStringLiteral("7g7f"), QStringLiteral("3c3d")}));
+        const QString warnings = result.warnings.join(QLatin1Char('\n'));
+        QVERIFY2(warnings.contains(reason), qPrintable(warnings));
+        QVERIFY2(warnings.contains(QStringLiteral("read up to move 2")), qPrintable(warnings));
+        // 打ち切った後の手も終局も書かない
+        QVERIFY(!result.lines.contains(QStringLiteral("+8384FU")));
+        QVERIFY(!result.lines.contains(QStringLiteral("-8384FU")));
+        QVERIFY(!result.lines.contains(QStringLiteral("%TORYO")));
     }
 
     void transposedPositionsKeepVariationParent_data()

@@ -11,11 +11,16 @@ namespace KifuParseCommon {
 bool KifLineDraft::resolve(KifLine& out, QString* error) const
 {
     const auto replay = SfenReplay::replay(baseSfen, usiMoves);
-    if (!replay.success()) {
-        if (error) *error += replay.failedPly > 0
-            ? QStringLiteral("Cannot restore move %1: %2\n").arg(startPly + replay.failedPly - 1).arg(replay.error)
-            : replay.error + QLatin1Char('\n');
+    if (replay.failedPly == 0) {
+        if (error) *error += replay.error + QLatin1Char('\n');
         return false;
+    }
+    // 指せない手があれば、その手の手前までを読む（読めない手と同じ扱い）
+    const bool truncated = !replay.success();
+    if (truncated && error) {
+        const int ply = startPly + replay.failedPly - 1;
+        *error += QStringLiteral("Cannot restore move %1: %2\n").arg(ply).arg(replay.error)
+                  + truncationNotice(ply);
     }
     KifLine result;
     result.startPly = startPly;
@@ -25,7 +30,7 @@ bool KifLineDraft::resolve(KifLine& out, QString* error) const
         result.opening = disp.first();
         first = 1;
     }
-    if (disp.size() - first != usiMoves.size() + (endsWithTerminal ? 1 : 0)) {
+    if (!truncated && disp.size() - first != usiMoves.size() + (endsWithTerminal ? 1 : 0)) {
         if (error) *error += QStringLiteral("Move and display counts differ at ply %1\n").arg(startPly);
         return false;
     }
@@ -45,7 +50,7 @@ bool KifLineDraft::resolve(KifLine& out, QString* error) const
         result.entries.append(record);
         previousTo = usi.to;
     }
-    if (endsWithTerminal) {
+    if (endsWithTerminal && !truncated) {
         const auto& item = disp.last();
         TerminalType type = item.terminalType;
         if (type == TerminalType::None) {
@@ -60,6 +65,17 @@ bool KifLineDraft::resolve(KifLine& out, QString* error) const
     }
     out = std::move(result);
     return true;
+}
+
+QString truncationNotice(int ply)
+{
+    return ply > 1 ? QStringLiteral("The record was read up to move %1.\n").arg(ply - 1)
+                   : QStringLiteral("No moves were read from this line.\n");
+}
+
+QString passNotice(int ply)
+{
+    return QStringLiteral("Move %1 is a pass, which is not supported.\n").arg(ply) + truncationNotice(ply);
 }
 
 void appendLine(QString& buf, const QString& text)

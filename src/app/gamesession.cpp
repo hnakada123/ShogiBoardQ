@@ -282,6 +282,19 @@ void GameSession::onGameEnded(const MatchCoordinator::GameEndInfo& info)
     recordGameEndTime();
 }
 
+void GameSession::forgetFinishedMatch()
+{
+    m_deps.state->players = {};
+    m_deps.timeRecord->clear();
+}
+
+void GameSession::endCsaGameRecord()
+{
+    // 終局行は司令塔が追記済み。確定しないと、変化の手・分岐の編集・評価値グラフの追従が止まったままになる
+    m_deps.liveSession->commit();
+    recordGameEndTime();
+}
+
 void GameSession::recordGameEndTime()
 {
     m_deps.timeRecord->recordEnd();

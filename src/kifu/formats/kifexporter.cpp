@@ -7,6 +7,8 @@
 #include "logcategories.h"
 #include "sfenutils.h"
 #include "kifuexportcommon.h"
+#include "kifubranchnode.h"
+#include "kifmovetext.h"
 
 #include <QStringView>
 
@@ -75,6 +77,20 @@ static QString formatKifMoveLine(int moveNo, const QString& kifMove, const QStri
         .arg(moveNoStr, kifMove.leftJustified(KifFormat::kMoveTextWidth), time, branchMark);
 }
 
+// ヘルパ関数: 指し手から KIF の表記を作る（「同　銀(31)」「２二角不成(88)」）。
+// 読み込んだ原文（displayText）は形式ごとに書き方が違うので使わない。指し手が無いノードだけ原文に頼る
+static QString kifMoveText(const KifuBranchNode* node)
+{
+    const ShogiMove move = node->move();
+    if (!move.isValid()) return node->displayText().trimmed();
+    BoardSquare previousTo;
+    if (const KifuBranchNode* parent = node->parent(); parent && parent->isActualMove())
+        previousTo = parent->move().move.to;
+    KifMoveText::Notes notes;
+    notes.declinedPromotion = KifMoveText::couldPromote(move.movingPiece, move.move);
+    return KifMoveText::format(move.mover(), move.movingPiece, move.move, previousTo, notes);
+}
+
 // ========================================
 // 分岐出力用ヘルパ
 // ========================================
@@ -89,7 +105,7 @@ static void outputMoveNodes(const QList<KifuBranchNode*>& nodes, int fromPly, QS
 
         QString moveText = node->isTerminal()
             ? RecordEntry::ending(node->terminalType(), node->terminalSide()).displayText
-            : node->displayText().trimmed();
+            : kifMoveText(node);
         if (node->terminalType() == TerminalType::Timeout) moveText = QStringLiteral("切れ負け");
         if (moveText.isEmpty()) continue;
 

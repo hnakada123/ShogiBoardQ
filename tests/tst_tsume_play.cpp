@@ -546,7 +546,7 @@ private slots:
         const QList<QPair<QString, QString>> saved{{QStringLiteral("Threads"), QStringLiteral("4")},
                                                    {QStringLiteral("USI_Hash"), QStringLiteral("1024")},
                                                    {QStringLiteral("PostSearchLevel"), QStringLiteral("None")}};
-        settings.beginWriteArray(name, static_cast<int>(saved.size()));
+        settings.beginWriteArray(engineOptionsGroup(name), static_cast<int>(saved.size()));
         for (qsizetype i = 0; i < saved.size(); ++i) {
             settings.setArrayIndex(static_cast<int>(i));
             settings.setValue(EngineOptionNameKey, saved.at(i).first);

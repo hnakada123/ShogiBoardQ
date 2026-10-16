@@ -14,8 +14,9 @@ namespace EnginePonderSettings {
 Preferences load(const QString& engineName)
 {
     QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
+    const QString group = engineOptionsGroup(engineName);
     Preferences prefs;
-    const int count = settings.beginReadArray(engineName);
+    const int count = settings.beginReadArray(group);
     for (int i = 0; i < count; ++i) {
         settings.setArrayIndex(i);
         if (settings.value(EngineOptionNameKey).toString() == QLatin1String("USI_Ponder")) {
@@ -26,7 +27,7 @@ Preferences load(const QString& engineName)
     }
     settings.endArray();
 
-    settings.beginGroup(engineName);
+    settings.beginGroup(group);
     prefs.enabled = settings.value(EngineGuiPonderEnabledKey, prefs.enabled).toBool();
     prefs.sendUnreportedOption = settings.value(EngineSendUnreportedPonderKey, true).toBool();
     settings.endGroup();
@@ -36,13 +37,14 @@ Preferences load(const QString& engineName)
 void save(const QString& engineName, bool enabled, bool sendUnreportedOption)
 {
     QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-    settings.beginGroup(engineName);
+    const QString group = engineOptionsGroup(engineName);
+    settings.beginGroup(group);
     settings.setValue(EngineGuiPonderEnabledKey, enabled);
     settings.setValue(EngineSendUnreportedPonderKey, sendUnreportedOption);
     settings.endGroup();
 
     // 既存オプションだけを同期する。未報告のオプション行は捏造しない。
-    const int count = settings.beginReadArray(engineName);
+    const int count = settings.beginReadArray(group);
     for (int i = 0; i < count; ++i) {
         settings.setArrayIndex(i);
         if (settings.value(EngineOptionNameKey).toString() == QLatin1String("USI_Ponder")) {

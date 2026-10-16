@@ -6,6 +6,7 @@
 
 #include <QString>
 #include <QStringView>
+#include <QtGlobal>
 
 #include "sfenutils.h"
 
@@ -13,36 +14,39 @@ namespace Handicaps {
 
 /// 手合割1つ
 struct Handicap {
-    const char16_t* label;  ///< 名前（KIF の「手合割：」の値）
+    const char* label;      ///< 名前（KIF の「手合割：」の値。UTF-8。表示は KifuPresentation が訳す）
     const char* jkfPreset;  ///< JKF の initial.preset
     const char* sfen;       ///< 開始局面（駒落ちは上手＝後手の手番）
 };
 
 inline constexpr Handicap kAll[] = {
-    {u"平手", "HIRATE", SfenUtils::kHirateSfen},
-    {u"香落ち", "KY", "lnsgkgsn1/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-    {u"右香落ち", "KY_R", "1nsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-    {u"角落ち", "KA", "lnsgkgsnl/1r7/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-    {u"飛車落ち", "HI", "lnsgkgsnl/7b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-    {u"飛香落ち", "HIKY", "lnsgkgsn1/7b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-    {u"二枚落ち", "2", "lnsgkgsnl/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-    {u"三枚落ち", "3", "lnsgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-    {u"四枚落ち", "4", "1nsgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-    {u"五枚落ち", "5", "2sgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-    {u"左五枚落ち", "5_L", "1nsgkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-    {u"六枚落ち", "6", "2sgkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-    {u"左七枚落ち", "7_L", "2sgkg3/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-    {u"右七枚落ち", "7_R", "3gkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-    {u"八枚落ち", "8", "3gkg3/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-    {u"十枚落ち", "10", "4k4/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
+    {QT_TRANSLATE_NOOP("KifuPresentation", "平手"), "HIRATE", SfenUtils::kHirateSfen},
+    {QT_TRANSLATE_NOOP("KifuPresentation", "香落ち"), "KY", "lnsgkgsn1/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
+    {QT_TRANSLATE_NOOP("KifuPresentation", "右香落ち"), "KY_R", "1nsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
+    {QT_TRANSLATE_NOOP("KifuPresentation", "角落ち"), "KA", "lnsgkgsnl/1r7/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
+    {QT_TRANSLATE_NOOP("KifuPresentation", "飛車落ち"), "HI", "lnsgkgsnl/7b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
+    {QT_TRANSLATE_NOOP("KifuPresentation", "飛香落ち"), "HIKY", "lnsgkgsn1/7b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
+    {QT_TRANSLATE_NOOP("KifuPresentation", "二枚落ち"), "2", "lnsgkgsnl/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
+    {QT_TRANSLATE_NOOP("KifuPresentation", "三枚落ち"), "3", "lnsgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
+    {QT_TRANSLATE_NOOP("KifuPresentation", "四枚落ち"), "4", "1nsgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
+    {QT_TRANSLATE_NOOP("KifuPresentation", "五枚落ち"), "5", "2sgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
+    {QT_TRANSLATE_NOOP("KifuPresentation", "左五枚落ち"), "5_L", "1nsgkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
+    {QT_TRANSLATE_NOOP("KifuPresentation", "六枚落ち"), "6", "2sgkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
+    {QT_TRANSLATE_NOOP("KifuPresentation", "左七枚落ち"), "7_L", "2sgkg3/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
+    {QT_TRANSLATE_NOOP("KifuPresentation", "右七枚落ち"), "7_R", "3gkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
+    {QT_TRANSLATE_NOOP("KifuPresentation", "八枚落ち"), "8", "3gkg3/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
+    {QT_TRANSLATE_NOOP("KifuPresentation", "十枚落ち"), "10", "4k4/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
 };
+
+/// 手合割の名前（KIF の「手合割：」の値）
+inline QString labelOf(const Handicap& handicap) { return QString::fromUtf8(handicap.label); }
 
 /// 名前の手合割（前後の空白は無視する）。なければ nullptr
 inline const Handicap* byLabel(QStringView label)
 {
     const QStringView key = label.trimmed();
     for (const Handicap& handicap : kAll) {
-        if (key == QStringView(handicap.label)) return &handicap;
+        if (key == QString::fromUtf8(handicap.label)) return &handicap;
     }
     return nullptr;
 }

@@ -5,6 +5,7 @@
 
 #include "enginepondersettings.h"
 #include "engineprocessmanager.h"
+#include "enginesettingsconstants.h"
 #include "logcategories.h"
 #include "settingscommon.h"
 #include "sfenreplay.h"
@@ -42,7 +43,7 @@ void UsiProtocolHandler::loadEngineOptions(const QString& engineName)
     m_sendUnreportedPonderOption = ponder.sendUnreportedOption;
 
     QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-    const int count = settings.beginReadArray(engineName);
+    const int count = settings.beginReadArray(EngineSettingsConstants::engineOptionsGroup(engineName));
     for (int i = 0; i < count; ++i) {
         settings.setArrayIndex(i);
         const QString name = settings.value("name").toString();

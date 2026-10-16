@@ -73,6 +73,7 @@ private slots:
     // --- AnalysisResultHandler ---
     void updatePending_storesData();
     void commitPendingResult_updatesLastCommitted();
+    void commitPendingResult_usesBestLineWithMultiPv();
     void commitPendingResult_bookMove_clearsUsiPv();
     void commitPendingResult_resignIsNotAMove();
     void resetLastCommitted_forgetsCommittedPly();
@@ -380,6 +381,27 @@ void TestAnalysisCoordinator::commitPendingResult_updatesLastCommitted()
 
     // モデルに1行追加されている
     QCOMPARE(model.rowCount(), 1);
+}
+
+/// エンジン設定の MultiPV が2以上でも、1局面の結果は最善の読み筋（multipv 1）で確定する（U1）
+void TestAnalysisCoordinator::commitPendingResult_usesBestLineWithMultiPv()
+{
+    KifuAnalysisListModel model;
+    AnalysisResultHandler::Refs refs;
+    refs.analysisModel = &model;
+    AnalysisResultHandler handler(refs);
+
+    // 深さごとに multipv 1, 2 の順で届き、bestmove の直前の行は2番目の読み筋
+    handler.updatePending(2, info("info depth 10 multipv 1 score cp 200 pv 7g7f 3c3d"));
+    handler.updatePending(2, info("info depth 10 multipv 2 score cp -300 pv 2g2f 8c8d"));
+    handler.updatePendingPvKanji(QStringLiteral("▲７六歩(77)△３四歩(33)"), 1);
+    handler.updatePendingPvKanji(QStringLiteral("▲２六歩(27)△８四歩(83)"), 2);
+    handler.commitPendingResult();
+
+    QCOMPARE(handler.lastCommittedScore().value, 200);
+    QCOMPARE(model.rowCount(), 1);
+    QCOMPARE(model.item(0)->usiPv(), QStringLiteral("7g7f 3c3d"));
+    QCOMPARE(model.item(0)->principalVariation(), QStringLiteral("▲７六歩(77)△３四歩(33)"));
 }
 
 void TestAnalysisCoordinator::commitPendingResult_bookMove_clearsUsiPv()

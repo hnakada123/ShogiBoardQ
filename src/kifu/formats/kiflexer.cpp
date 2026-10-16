@@ -251,11 +251,6 @@ bool usiDestination(const QString& usi, int& toFile, int& toRank)
 bool convertMoveLine(const QString& moveText, QString& usi,
                      int& prevToFile, int& prevToRank)
 {
-    if (moveText == QStringLiteral("パス")) {
-        usi = QStringLiteral("pass");
-        return true;
-    }
-
     static const auto& kMods = *[]() {
         static const QRegularExpression r(QStringLiteral("[右左上下引寄直行]+"));
         return &r;

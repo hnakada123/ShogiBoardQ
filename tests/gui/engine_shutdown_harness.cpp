@@ -12,6 +12,7 @@
 #include <QTemporaryDir>
 #include <QTimer>
 #include <cstdio>
+#include "enginesettingsconstants.h"
 #include "mainwindow.h"
 #include "mainwindowcomposer.h"
 #include "applicationfonts.h"
@@ -271,7 +272,7 @@ int main(int argc, char** argv)
         {"OwnBook", "false"}, {"BookEnable", "false"}, {"BookFile", "no_book"},
         {"USI_OwnBook", "false"}, {"BookMaxPly", "0"}, {"MaxBookPly", "0"}
     };
-    settings.beginWriteArray(name, static_cast<int>(options.size()));
+    settings.beginWriteArray(EngineSettingsConstants::engineOptionsGroup(name), static_cast<int>(options.size()));
     for (int i = 0; i < options.size(); ++i) {
         settings.setArrayIndex(i);
         settings.setValue("name", options[i].first);
