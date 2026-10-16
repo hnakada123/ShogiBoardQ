@@ -63,7 +63,7 @@
 - エンジンの初期化・接続（USI isready → readyok）
 - `HumanTurnPolicy::isHumanTurnNow()` が先手の手番で `true` を返すか
 - 時計への持ち時間の適用（`GameSession::startGame()` が `TimeControlUtil::applyToClock()` で `ShogiClock` に設定し、`KifuDocument::beginMatch()` が `MatchTimeRecord::begin()` で対局情報用に記録する）
-- エンジン名の表示（`PlayerInfoPresenter::showPlayers`）
+- 対局者名・エンジン名の表示（盤の対局者名は `PlayerInfoPresenter::showPlayers`、評価値グラフの系列名と思考タブの2つ目のエンジン欄は `KifuDocument::playersChanged` → `EngineDisplayPresenter`）
 
 ---
 
@@ -215,7 +215,7 @@
 **重点確認ポイント:**
 - `GameSession::resetToInitialState()` の実行順序（「新規」は `MainWindowActions::resetToInitialState()` が未保存の確認をしてから呼ぶ）:
   1. 検討・詰み探索（`AnalysisSession::stop()`）と通信対局（`CsaGameCoordinator::stopGame()`）を止め、司令塔の終局状態・連続対局・中断した対局を消す
-  2. `SessionResetCoordinator::clearBeforeKifuLoad()` — 通信ログ・思考情報・検討・解析結果・評価値グラフを消す
+  2. `SessionResetCoordinator::clearBeforeKifuLoad()` — 通信ログ・思考情報・検討・解析結果（`EngineDisplayPresenter::clearAll()`）と評価値グラフを消す
   3. `SessionResetCoordinator::resetToNewRecord()` — 読み込み途中の棋譜を捨て（`KifuLoadCoordinator::cancelLoad()`）、`KifuDocument::startNew()` で平手の開始局面だけの棋譜にする。文書の置き換えで対局情報は既定の項目になり、対局者・持ち時間・終局日時・上書き保存先も消え、盤の対局者名は対局情報の初期値（「先手」「後手」）に戻る（`headerReset` → `PlayerInfoPresenter::syncBoardNamesWithGameInfo()`）
   4. 動作状態を `Idle` に戻す
 - `AppState::activity` が `Idle` に戻り、`KifuDocument::players()` が空・`KifuDocument::filePath()` が空になるか

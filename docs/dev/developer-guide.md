@@ -85,6 +85,7 @@
 | 2026-10-16 | 局面の値 `Position`（`shogiposition.h`）とエンジンに探索させる局面 `UsiPosition`（`usiposition.h`）を足したのに合わせて §1.5・§2.1〜§2.4・§5.1・§5.2（`Position` と `ShogiBoard` に書き直し）・§5.4・§6.2・§6.6・§7.4〜§7.7・§8・§9.3〜§9.7・§10.6・§12.3・§13.6・§13.8・第15章・第18章を更新（`Piece` は種類＋後手なら16、`piecerules.h`、`RecordLine::usiPosition()`、先読みの局面は `UsiMatchHandler` だけが持つ、「同」の基準は呼び出し側が手順から渡す） |
 | 2026-10-16 | 棋譜の読み込みの作り直しに合わせて §1.5・§2.5・§5.1・§5.2・§5.8・§8.1・§8.2・§8.4・§8.5・§8.7・§8.11・§13.8・§13.9・§15.3・§18.3・§18.4 を更新（形式ごとの変換器は `parse()` を1つだけ持ち `KifuParseOutcome` を返す、KIF・KI2 は `KifTextParser`・`KifMoveGrammar` を共有、手順は全形式で `KifLineBuilder` が組み立てる、読めない手の扱いは `ParseOptions`・`ParseReport`、手順の型は `RecordLine` だけ（`KifLine`・`KifDisplayItem` を削除）、`KifuBranchTree::exportLine()`、ノードの setter を削除して `record()` を直接変える、`SfenReplay` は `applyLenient()`・`positionAfter()` だけ） |
 | 2026-10-16 | 棋譜の文書 `KifuDocument`（`kifudocument.h`）と形式ごとの書き出しの表 `KifuExport`（`kifuexport.h`）に合わせて §1.5・§3.4・§3.5・§4.4・§4.5・§6.1・§6.3・§6.5・§6.9・§8.1・§8.2・§8.4・§8.5・§8.7〜§8.9・§9.6・§10.2〜§10.5・§12.4・§12.7・§14.2・§14.3・§14.5・§14.7・§15.1・§15.3・§18 を更新（`GameRecordModel`・`KifuExportController` を削除。対局情報・対局者・持ち時間・上書き保存先は文書が持ち、`AppState` は動作状態だけ。未保存は保存した時点との比較で求める。`MatchTimeRecord` を `src/kifu/` に移した） |
+| 2026-10-16 | エンジンの表示の持ち主を `EngineDisplayPresenter` に1つにしたのに合わせて §1.5・§3.3・§4.1・§4.2・§4.4・§4.5・§6.5・§6.9・§7.1・§7.6・§7.10・§8.5・§9.1・§9.2・§9.4〜§9.6・§10.2〜§10.4・§11.2・§12.7・§14.4・§14.7・§15.1・§15.4・第18章を更新（探索状況は `EngineSearchStatus` で info 1行ごとに1回送り、書式は `EngineInfoWidget` が決める。`UsiCommLogModel` は状況＋`statusChanged` と `logLineAppended`。評価値グラフの点は `EvaluationSeries` に置き、書き手は `EvaluationGraphPresenter` だけ。検討タブは `ConsiderationSettings` を正本として持ち、実行の状態 `RunState` は `EngineDisplayPresenter` が `AnalysisSession` の知らせから設定する。検討中かどうかの正本は `AnalysisSession::isConsidering()`。`ConsiderationUiController` は操作を伝えるだけ、`PlayerInfoPresenter` は盤の対局者名だけ、`SessionResetCoordinator` は表示の消去を `EngineDisplayPresenter::clearAll()` に任せる） |
 
 <!-- chapter-0-end -->
 
@@ -391,6 +392,7 @@ src/
 │   ├── engineregistrationhandler.cpp/.h # エンジン登録（ワーカースレッドでの起動・USI オプションの解析・設定の保存）
 │   ├── thinkinginfoformatter.cpp/.h #  info 行を思考の表・情報欄に出す値に整える
 │   ├── thinkinginforow.h           #   思考の表・検討の表の1行分の表示データ
+│   ├── enginesearchstatus.h        #   探索状況（探索中の手・深さ・ノード数・NPS・ハッシュ使用率）の値。info 1行ごとに1回送る
 │   ├── pvnotationformatter.cpp/.h  #   読み筋の漢字表記
 │   ├── tsumemateengine.cpp/.h      #   詰み判定エンジン（KomoringHeights）
 │   ├── engineoptiondescriptions.cpp/.h # エンジンオプション説明
@@ -427,7 +429,8 @@ src/
 │   ├── kifuanalysisresultsdisplay.cpp/.h # 棋譜解析結果の表の1行
 │   ├── shogienginethinkingmodel.cpp/.h # 思考の表のモデル
 │   ├── shogiinforecord.cpp/.h      #   思考の表の1行（エンジンの info 1件）
-│   ├── usicommlogmodel.cpp/.h      #   USI通信ログ・エンジン情報のモデル
+│   ├── usicommlogmodel.cpp/.h      #   エンジン1台の情報欄（エンジン名・探索状況・予想手）と通信ログの行の知らせ
+│   ├── evaluationseries.cpp/.h     #   評価値グラフの点（先手から見た評価値の列が2本・系列名・解析した手順の番号）
 │   └── gameinfoeditmodel.cpp/.h    #   対局情報の表の中身と編集の履歴・未反映の判定
 │
 ├── views/                          # 盤の描画と入力
@@ -445,13 +448,14 @@ src/
 │   ├── recordpaneappearancemanager.cpp/.h # 棋譜欄の外観
 │   ├── thinkingpanel.cpp/.h        #   思考ドックの中身（エンジン2つ分の情報と思考の表）
 │   ├── thinkingtableview.cpp/.h    #   思考の表（対局のエンジン2つと検討タブで共用）
-│   ├── engineinfowidget.cpp/.h     #   エンジン情報ウィジェット
-│   ├── considerationtabmanager.cpp/.h # 検討タブ
+│   ├── engineinfowidget.cpp/.h     #   エンジン情報ウィジェット（探索状況の数値の書式はここで決める）
+│   ├── considerationtabmanager.cpp/.h # 検討タブ（設定 ConsiderationSettings を正本として持ち、実行の状態 RunState で開始/中止のボタンを切り替える）
+│   ├── considerationsettings.h     #   検討タブの設定の値（エンジン・時間・候補手の数・矢印）
 │   ├── analysisresultspanel.cpp/.h #   棋譜解析の結果ドックの中身
 │   ├── gameinfopane.cpp/.h         #   対局情報ドックの中身（ツールバー＋表。中身は models/gameinfoeditmodel）
 │   ├── branchtreemanager.cpp/.h    #   分岐ツリーの表示（KifuBranchTree を読むだけの観察者。描画は branchtreemanager_draw.cpp）
 │   ├── branchtreelayout.cpp/.h     #   分岐ツリーの行の折りたたみと段の割り当て
-│   ├── evaluationchartwidget.cpp/.h #  評価値グラフ（evaluationchartview・evaluationchartconfigurator と組）
+│   ├── evaluationchartwidget.cpp/.h #  評価値グラフ（EvaluationSeries を描くだけ。evaluationchartview・evaluationchartconfigurator と組）
 │   ├── usilogpanel.cpp/.h          #   USI通信ログパネル（CSA は csalogpanel）
 │   ├── commenteditorpanel.cpp/.h   #   棋譜コメント編集パネル
 │   ├── tableheaderview.cpp/.h      #   表の見出し。列幅は利用者がドラッグしたときだけ sectionResizedByUser で保存する
@@ -505,17 +509,17 @@ src/
 │   ├── presenters/                 #   表示への反映
 │   │   ├── boardsyncpresenter.cpp/.h   # 表示中の手の局面に盤を合わせ、指し手のハイライトと手番を示す
 │   │   ├── kifudisplaypresenter.cpp/.h # 棋譜欄・分岐候補欄・分岐ツリーに、表示中の手と手順を映す
-│   │   ├── playerinfopresenter.cpp/.h  # 対局者名・エンジン名と対局情報の表示
+│   │   ├── playerinfopresenter.cpp/.h  # 盤の対局者名の表示
 │   │   ├── timedisplaypresenter.cpp/.h # 時計の表示
-│   │   ├── evaluationgraphpresenter.cpp/.h # 評価値グラフ
+│   │   ├── evaluationgraphpresenter.cpp/.h # 評価値グラフの点（EvaluationSeries）の書き手
 │   │   ├── candidatearrowpresenter.cpp/.h  # 候補手の矢印
-│   │   ├── enginedisplaypresenter.cpp/.h   # 枠 E1・E2 のエンジンの思考情報と通信ログの表示
+│   │   ├── enginedisplaypresenter.cpp/.h   # エンジンの表示の持ち主（枠 E1・E2 とモデルの結び・検討の表示・2つ目のエンジン欄・系列名・消去）
 │   │   ├── usimodelbinding.cpp/.h      # エンジン1台とモデルを結ぶ
 │   │   └── analysisresulthandler.cpp/.h # 棋譜解析結果の受け取り
 │   ├── controllers/                #   利用者操作の処理
 │   │   ├── boardmovecontroller.cpp/.h      # 盤で指した手を動作状態に応じて処理する
 │   │   ├── mainwindowappearancecontroller.cpp/.h # 盤の拡大・縮小・反転とウィンドウの外観
-│   │   ├── considerationuicontroller.cpp/.h # 検討タブの操作と検討中の表示
+│   │   ├── considerationuicontroller.cpp/.h # 検討タブの操作を検討のセッションへ伝える
 │   │   ├── kifuanalysiscontroller.cpp/.h   # 棋譜解析の開始・中止と進行の表示
 │   │   ├── tsumesearchcontroller.cpp/.h    # 詰み探索の開始・中止
 │   │   ├── branchtreeeditcontroller.cpp/.h # 分岐ツリーの編集と盤上の変化の記録
@@ -1243,6 +1247,7 @@ graph LR
 | **対局開始** | `GameStartOptionsBuilder`（game/） | 対局開始ダイアログの値の解釈。ダイアログは `DialogLauncher` が開く |
 | **棋譜と表示のリセット** | `SessionResetCoordinator` | 対局の開始前・新規・局面編集・棋譜の読み込み前に、棋譜と表示を作り直す |
 | **検討・詰み探索** | `AnalysisSession` | 1つのエンジンで局面を調べるセッション |
+| **エンジンの表示** | `EngineDisplayPresenter` | 枠 E1・E2 のエンジンとモデルの結び、検討の表示、2つ目のエンジン欄と評価値グラフの系列名、表示の消去を1か所で受け持つ |
 | **棋譜読込** | `KifuLoadCoordinator` | 棋譜ファイル・貼り付け・局面を読み、分岐ツリーを作り直す（読み込みの実体は `KifuLoadParser`） |
 | **棋譜の表示** | `KifuNavigationState`・`KifuDisplayPresenter`・`BoardSyncPresenter` | 表示中の手を1か所で持ち、変わるたびに棋譜欄・分岐・盤が自分で合わせる |
 | **ゲーム制御** | `ShogiGameController` | 指し手の適用、成り判定、合法手チェック、手番 |
@@ -1490,13 +1495,9 @@ class ConsiderationUiController : public QObject {
 public:
     struct Deps {
         QWidget* parentWidget = nullptr;                             ///< エンジン設定ダイアログの親
-        ConsiderationTabManager* considerationTabManager = nullptr;  ///< 検討タブ
-        EngineInfoWidget* thinkingInfo1 = nullptr;                   ///< 思考タブの1つ目のエンジン欄
-        CandidateArrowPresenter* arrows = nullptr;                   ///< 候補手の矢印
-        AnalysisSession* session = nullptr;                          ///< 検討のセッション
+        ConsiderationTabManager* considerationTabManager = nullptr;  ///< 検討タブ（必須、非所有）
+        AnalysisSession* session = nullptr;                          ///< 検討のセッション（必須、非所有）
         const KifuNavigationState* navState = nullptr;               ///< 検討する局面（表示中の手）
-        ShogiEngineThinkingModel* considerationModel = nullptr;     ///< 検討タブの思考情報（空なら検討タブから取る）
-        UsiCommLogModel* commLogModel = nullptr;                     ///< E1 の通信ログ
     };
 
     explicit ConsiderationUiController(const Deps& deps, QObject* parent = nullptr);
@@ -1612,7 +1613,7 @@ m_c.analysisSession = new AnalysisSession(sd, &m_window);
 
 #### 部品の中で持つ下位部品
 
-部品が自分の中に持つ下位の部品は、部品自身が作ってよい。たとえば `ThinkingPanel`（思考ドックの中身）は2つのエンジン欄 `EngineInfoWidget` と思考の表 `ThinkingTableView` をコンストラクタで作る。合成ルートは `thinkingPanel->info1()` でそれを読み、`ConsiderationUiController` の `Deps` に渡す:
+部品が自分の中に持つ下位の部品は、部品自身が作ってよい。たとえば `ThinkingPanel`（思考ドックの中身）は2つのエンジン欄 `EngineInfoWidget` と思考の表 `ThinkingTableView` をコンストラクタで作る。合成ルートは `ThinkingPanel` を `EngineDisplayPresenter` の `Deps` に渡し、エンジン欄は `EngineDisplayPresenter` が `info1()`・`info2()` で読む:
 
 ```cpp
 // src/widgets/thinkingpanel.cpp
@@ -1622,8 +1623,8 @@ m_view1 = new ThinkingTableView(AnalysisSettings::ThinkingTable::Engine1, this);
 ```
 
 ```cpp
-// src/app/mainwindowcomposer_create.cpp（createControllers）
-cw.thinkingInfo1 = m_c.thinkingPanel->info1();
+// src/app/mainwindowcomposer_create.cpp（createPresentersAndDocks）
+ed.thinkingPanel = m_c.thinkingPanel;
 ```
 
 app 層（`src/app/`）には `ensure*` の形の遅延生成を置かない。
@@ -1709,7 +1710,7 @@ ud.canResumeGame = std::bind(&MatchCoordinator::canResumeInterruptedGame, m_c.ma
 |-------|---------|------|
 | `MenuActionsWiring` | `app/menuactionswiring.h` | メニュー/ツールバーの QAction を処理する部品のスロットへ接続する（ファイル・編集・対局などのメニューごとに関数を分ける） |
 
-言語・表記のメニューは `LanguageController`、局面編集中の盤のメニューは `PositionEditCoordinator`、ドックの配置のメニューは `DockUiCoordinator` が、それぞれ自分でつなぐ。CSA通信対局の開始と画面への反映は `CsaGameSession`（`ui/coordinators/`）、メニューから開くダイアログの起動は `DialogLauncher`（`ui/coordinators/dialoglauncher.h`）、対局者名とエンジン名の表示は `PlayerInfoPresenter`（`ui/presenters/`）が受け持つ。検討タブ・定跡ウィンドウ・メニューウィンドウは配線だけでなく表示も持つので、Controller（`ConsiderationUiController`・`JosekiWindowController`・`MenuWindowController`、`ui/controllers/`）にしている。
+言語・表記のメニューは `LanguageController`、局面編集中の盤のメニューは `PositionEditCoordinator`、ドックの配置のメニューは `DockUiCoordinator` が、それぞれ自分でつなぐ。CSA通信対局の開始と画面への反映は `CsaGameSession`（`ui/coordinators/`）、メニューから開くダイアログの起動は `DialogLauncher`（`ui/coordinators/dialoglauncher.h`）、盤の対局者名の表示は `PlayerInfoPresenter`、エンジンの表示（思考・検討・通信ログ・2つ目のエンジン欄・評価値グラフの系列名）は `EngineDisplayPresenter`（どちらも `ui/presenters/`）が自分でつなぐ。検討タブの操作は `ConsiderationUiController` が検討のセッションへ伝え、定跡ウィンドウ・メニューウィンドウは配線だけでなく表示も持つので、Controller（`JosekiWindowController`・`MenuWindowController`、`ui/controllers/`）にしている。
 
 #### 典型的な構造
 
@@ -1855,7 +1856,7 @@ public slots:
 };
 ```
 
-**PlayerInfoPresenter** — 対局者名・エンジン名を、盤・通信ログの見出し・思考タブ・検討タブ・評価値グラフに出す（対局者と対局情報は棋譜の文書 `KifuDocument` が持ち、このクラスは読むだけ）:
+**PlayerInfoPresenter** — 盤の対局者名を出す（対局者と対局情報は棋譜の文書 `KifuDocument` が持ち、このクラスは読むだけ。エンジンの表示は `EngineDisplayPresenter`）:
 
 ```cpp
 // src/ui/presenters/playerinfopresenter.h（抜粋）
@@ -1866,18 +1867,37 @@ public:
     struct Deps {
         const KifuDocument* document = nullptr;      ///< 対局者と対局情報（必須、非所有）
         const AppActivityState* activity = nullptr;  ///< 対局中か（必須、非所有）
-        // ... 盤・思考タブ・検討タブ・評価値グラフ・通信ログ E1/E2
+        ShogiView* shogiView = nullptr;
     };
 
-    /// 対局中の対局者（KifuDocument::players()）を、盤の名前・通信ログの見出し・思考タブ・評価値グラフに出す
+    /// 対局中なら対局者（KifuDocument::players()）の名前を、対局していなければ対局情報の名前を盤に出す
     void showMatchPlayers();
-    /// 対局者を出す（対局を始めるとき。GameSession から）
+    /// 対局者の名前を盤に出す（対局を始めるとき。GameSession から）
     void showPlayers(const MatchPlayers& players);
 
 public slots:
     void syncBoardNamesWithGameInfo();                                 // 対局情報の名前を盤に出す（KifuDocument::headerReset から）
     void onGameInfoUpdated(const QList<KifGameInfoItem>& items);       // 対局情報欄で反映した名前を盤に出す
-    void onAnalysisEngineNamesChanged(const QString& engine1, const QString& engine2);  // 検討・詰み探索のエンジン名
+};
+```
+
+**EngineDisplayPresenter** — エンジンの表示の持ち主。枠 E1・E2 のエンジンを思考の表・情報欄・通信ログのモデルと結び（`UsiModelBinding`）、検討タブの実行の状態（`ConsiderationTabManager::setRunState()`）・情報欄・検討の表への読み筋を検討のセッション（`AnalysisSession`）の知らせだけから決める。2つ目のエンジン欄と評価値グラフの系列名は文書の対局者（`KifuDocument::playersChanged`）から、検討・詰み探索ではそのエンジン（`AnalysisSession::engineNamesChanged`）から決める。棋譜を作り直すときの表示の消去は `clearAll()`（`SessionResetCoordinator` が呼ぶ）:
+
+```cpp
+// src/ui/presenters/enginedisplaypresenter.h（抜粋）
+
+class EngineDisplayPresenter : public QObject {
+    Q_OBJECT
+public:
+    struct Deps {
+        EngineLifecycleManager* engines = nullptr;        ///< エンジンの枠（必須）
+        AnalysisSession* analysis = nullptr;              ///< 検討・詰み探索のセッション
+        const KifuDocument* document = nullptr;           ///< 対局者（2つ目のエンジン欄・系列名）
+        // ... 通信ログ・思考の表（E1/E2）・検討の表・棋譜解析の結果・思考ドック・検討ドック・評価値グラフ・ログ窓
+    };
+
+    /// 前の対局・検討・解析のエンジンの表示を消す（通信ログ・思考情報・検討・解析結果・エンジン名）
+    void clearAll();
 };
 ```
 
@@ -2891,7 +2911,7 @@ struct MatchTimeSettings {
 
 ### 6.5 SessionResetCoordinator — 棋譜と表示の作り直し
 
-`SessionResetCoordinator`（app 層）は、対局の開始前・新規・局面編集・棋譜の読み込み前に、棋譜（棋譜の文書 `KifuDocument`）とエンジン・解析の表示を作り直す処理を1か所にまとめる。棋譜の作り直しは文書の置き換え（`KifuDocument::startNew()`）で、対局情報・対局の記録・上書き保存先も一緒に消える。棋譜欄・分岐・盤・コメントは、ツリーと表示中の手が変わると各部品が自分で合わせるので、ここでは触らない。ここで消すのは、ツリーから作られない表示（通信ログ・思考情報・検討・解析結果・評価値グラフ）と記録だけである。
+`SessionResetCoordinator`（app 層）は、対局の開始前・新規・局面編集・棋譜の読み込み前に、棋譜（棋譜の文書 `KifuDocument`）とエンジン・解析の表示を作り直す処理を1か所にまとめる。棋譜の作り直しは文書の置き換え（`KifuDocument::startNew()`）で、対局情報・対局の記録・上書き保存先も一緒に消える。棋譜欄・分岐・盤・コメントは、ツリーと表示中の手が変わると各部品が自分で合わせるので、ここでは触らない。ここで消すのは、ツリーから作られない表示（評価値グラフと、通信ログ・思考情報・検討・解析結果などのエンジンの表示）だけである。エンジンの表示の消去は持ち主の `EngineDisplayPresenter::clearAll()` に任せる。`Deps` は `document`・`liveSession`・`kifuLoader`・`evalGraph`・`engineDisplay` の5つ。
 
 **ソース**: `src/app/sessionresetcoordinator.h`, `src/app/sessionresetcoordinator.cpp`
 
@@ -2901,7 +2921,7 @@ struct MatchTimeSettings {
 |---------|-----------|------|
 | `prepareGameStart(preparation)` | `GameSession::startGame()` | 対局を始める局面に棋譜を整え、ライブ対局を始める。始めたノードを返す |
 | `resetToNewRecord(sfen, keepHeader = false)` | 連続対局の次局（`GameSession::startNextGame()`）、「新規」（`GameSession::resetToInitialState()`）、局面編集、通信対局の開始（`GameSession::onCsaGameStarted()`） | 読み込み途中の棋譜を捨て、ライブ対局を破棄して、局面 `sfen` だけの新しい棋譜にする（`KifuDocument::startNew()`）。`keepHeader` なら利用者が対局情報に書きかけた内容を残す（通信対局の開始） |
-| `clearBeforeKifuLoad()` | 棋譜の読み込み前、「新規」 | 前の対局の通信ログ・思考情報・評価値グラフを消す |
+| `clearBeforeKifuLoad()` | 棋譜の読み込み前、「新規」 | 前の対局の通信ログ・思考情報・検討・解析結果（`EngineDisplayPresenter::clearAll()`）と評価値グラフを消す |
 
 #### prepareGameStart() の処理フロー
 
@@ -2917,8 +2937,9 @@ prepareGameStart(preparation)
   │                   （前の棋譜の対局情報・対局の記録・上書き保存先は残さない）
   │    （始まっていたライブ対局のセッションは先に破棄する）
   │
-  ├── clearEngineDisplays()
-  │     通信ログ・予測手・探索手・検討・棋譜解析の表の初期化、思考ドック・検討タブのエンジン名のクリア
+  ├── EngineDisplayPresenter::clearAll()
+  │     通信ログ・情報欄・思考の表・検討・棋譜解析の表の初期化、思考ドック・検討タブのエンジン名のクリア、
+  │     検討タブの実行の状態を Idle に
   │
   ├── 評価値グラフ
   │     ├── 現在の局面から → 開始ノードの手数までにする（trimToPly）
@@ -3111,7 +3132,7 @@ MatchCoordinator::gameInterrupted
 | `state` | `AppState`（動作状態） |
 | `match` / `analysis` / `consecutive` / `csaGame` / `reset` | 対局の司令塔（必須）・検討（「新規」で止める）・連続対局・通信対局の司令塔（必須）・棋譜と表示の作り直し |
 | `navState` / `liveSession` / `document` | 表示中の手（現在局面からの開始・再開）・対局の手順の書き先（分岐ツリー）・棋譜の文書（対局者・持ち時間・開始と終了の日時・対局情報） |
-| `clock` / `timePresenter` / `playerInfo` | 時計（必須）・時計の表示・対局者の表示 |
+| `clock` / `timePresenter` / `playerInfo` | 時計（必須）・時計の表示・盤の対局者名の表示 |
 | `kifuFileController` / `shogiView` / `appearance` | 未保存の棋譜の確認と棋譜の自動保存・手前に表示している側・「人を手前に表示する」の盤の反転 |
 | `nyugyoku` | 利用者の入玉宣言（`NyugyokuDeclarationHandler`） |
 
@@ -3258,7 +3279,7 @@ engine層は **単一責任原則（SRP）** に基づき、以下の3つのク�
 │             │               │                       │
 │QProcess管理 │USIコマンド     │info の表示用の整形     │
 │起動/終了    │送受信         │読み筋漢字変換         │
-│1行ずつ送受信│状態機械       │情報欄の値の整形       │
+│1行ずつ送受信│状態機械       │探索状況の値           │
 │             │受信行の型付け │                       │
 └──────────┴──────────────────┴────────────────────────┘
 ```
@@ -3270,7 +3291,7 @@ engine層は **単一責任原則（SRP）** に基づき、以下の3つのク�
 | `EngineProcessManager` | `src/engine/engineprocessmanager.h/.cpp` | QProcess の起動・終了と、標準出力/エラーの1行ずつの受信、コマンドの送信 |
 | `UsiProtocolHandler` | `src/engine/usiprotocolhandler.h/.cpp` | エンジン1台の状態機械（`State`）。状態に合う USI コマンドだけを送り、受信行を `UsiLineParser` で型付きの値にしてシグナルで知らせる |
 | `UsiLineParser` | `src/engine/usilineparser.h/.cpp` | 受信行（info・bestmove・checkmate・option・id）を型付きの値にする関数群。アプリの中でエンジンの受信行を読む場所はここだけ |
-| `ThinkingInfoFormatter` | `src/engine/thinkinginfoformatter.h/.cpp` | 解析済みの info（`UsiInfo`）を思考の表の行（`ThinkingInfoRow`）と情報欄の値に整える。漢字読み筋の生成を含む。表示する側には触れない |
+| `ThinkingInfoFormatter` | `src/engine/thinkinginfoformatter.h/.cpp` | 解析済みの info（`UsiInfo`）を思考の表の行（`ThinkingInfoRow`）と情報欄の探索状況（`EngineSearchStatus`）にする。漢字読み筋の生成を含む。表示する側には触れない |
 | `UsiEngineSession` | `src/engine/usienginesession.h/.cpp` | プロセスと状態機械を束ね、起動・初期化（usi〜readyok）・探索1回の依頼・終了を行う。GUI の `Usi` と自動化・CLI が共用し、思考タブを使わない詰将棋の局面生成（`TsumeshogiGenerator`）や詰み判定（`TsumeMateEngine`）も直接使う |
 | `UsiMatchHandler` | `src/engine/usimatchhandler.h/.cpp` | 対局の position/go/bestmove、先読み（ponder）、持ち時間の間に bestmove が届かないときの通知 |
 
@@ -3285,9 +3306,9 @@ EngineProcessManager::onReadyReadStdout()
     ├──────────────────────────────────────┐
     ▼                                      ▼
 UsiProtocolHandler::onDataReceived()    UsiModelBinding::onLineReceived()
-    │                                      │ （通信ログに「◀ E1: ...」を追加）
+    │                                      │ （通信ログの行「◀ E1: ...」を知らせる）
     │                                      ▼
-    │                                   UsiCommLogModel
+    │                                   UsiCommLogModel::appendLogLine() → logLineAppended
     │
     ├─ "bestmove" → UsiLineParser::parseBestMove()
     │              emit bestMoveReceived(UsiBestMove)
@@ -3301,12 +3322,12 @@ UsiProtocolHandler::onDataReceived()    UsiModelBinding::onLineReceived()
     │                   ▼
     │              processInfo(UsiInfo)
     │                   │ emit thinkingInfoUpdated(ThinkingInfoRow)
-    │                   │ emit searchedMoveUpdated など（情報欄の値）
+    │                   │ emit searchStatusUpdated(EngineSearchStatus)（情報欄の値。info 1行に1回）
     │                   ▼
     │              UsiModelBinding
     │                   ├─ ShogiEngineThinkingModel::prependRow()
     │                   ├─ ShogiEngineThinkingModel::updateByMultipv()
-    │                   └─ UsiCommLogModel::setSearchedMove() など
+    │                   └─ UsiCommLogModel::updateStatus()
     │
     ├─ "readyok" → handleReadyOk()  → initializationFinished(true)
     └─ "usiok"   → handleUsiOk()
@@ -3555,7 +3576,7 @@ UsiMatchHandler → Usi
 
 **ソース**: `src/engine/thinkinginfoformatter.h`, `src/engine/thinkinginfoformatter.cpp`
 
-解析済みの info（`UsiInfo`）を、思考の表の1行（`ThinkingInfoRow`）と情報欄の値（探索中の手・深さ・ノード数・NPS・ハッシュ使用率）に整えてシグナルで知らせる。表示する側のモデルやウィジェットには触れず、翻訳する文字列も作らない（評価値の「3手詰」などの文字列は表のモデルが作る）。
+解析済みの info（`UsiInfo`）を、思考の表の1行（`ThinkingInfoRow`）と情報欄の探索状況（`EngineSearchStatus`。探索中の手・深さ・ノード数・NPS・ハッシュ使用率）にしてシグナルで知らせる。探索状況は数値のまま info 1行ごとに1回 `searchStatusUpdated` で送り、書式（3桁区切り・百分率）は表示する側（`EngineInfoWidget`）が決める。表示する側のモデルやウィジェットには触れず、翻訳する文字列も作らない（評価値の「3手詰」などの文字列は表のモデルが作る）。
 
 #### info のバッファリング
 
@@ -3588,12 +3609,13 @@ processInfo(info)
   ├── 2. format(info) で読み筋・探索手を漢字表記にする
   │     └── 盤面コピー上で指し手をシミュレートし、漢字読み筋を生成
   │
-  ├── 3. 情報欄の値のシグナルを発行（UsiModelBinding が UsiCommLogModel に入れる）
-  │     ├── searchedMoveUpdated  → 探索手（表記の設定に合わせた表示。手ごとに作った表示を覚えておく）
-  │     ├── searchDepthUpdated   → 深さ（depth/seldepth）
-  │     ├── nodeCountUpdated     → ノード数（カンマ区切り）
-  │     ├── npsUpdated           → NPS（カンマ区切り）
-  │     └── hashUsageUpdated     → ハッシュ使用率（hashfull の千分率を % で表示。無ければ空）
+  ├── 3. EngineSearchStatus を作って searchStatusUpdated を発行
+  │     （UsiModelBinding が UsiCommLogModel::updateStatus() で前の値に重ねる）
+  │     ├── searchedMove → 探索手（表記の設定に合わせた表示。手ごとに作った表示を覚えておく）
+  │     ├── depth・seldepth → 深さ
+  │     ├── nodes・nps   → ノード数・NPS
+  │     └── hashfull     → ハッシュ使用率（パーミル。無ければ -1）
+  │     info に含まれなかった項目は -1・空で、受け手は前の値を残す（EngineSearchStatus::merge）
   │
   └── 4. ThinkingInfoRow を作って thinkingInfoUpdated を発行
         ├── 時間・深さ・ノード数・評価値・読み筋がすべて空なら発行しない
@@ -3606,7 +3628,7 @@ processInfo(info)
 
 #### 通信ログの整形
 
-送信・受信・エラーの各ログは、`UsiModelBinding` がエンジンタグ付きのフォーマットで整形して `UsiCommLogModel` に渡す。
+送信・受信・エラーの各ログは、`UsiModelBinding` がエンジンタグ付きのフォーマットで整形して `UsiCommLogModel::appendLogLine()` に渡す。モデルは行を溜めず、`logLineAppended` で `UsiLogPanel` に知らせる。
 
 ```
 ▶ E1: position startpos moves 7g7f     （送信：▶）
@@ -3841,20 +3863,16 @@ YaneuraOu\3\type=check
 
 **ソース**: `src/models/usicommlogmodel.h/.cpp`, `src/ui/presenters/usimodelbinding.h/.cpp`
 
-`UsiCommLogModel` は USI エンジンの情報欄の値と通信ログを保持し、`Q_PROPERTY` バインディングで GUI ウィジェット（`EngineInfoWidget`, `UsiLogPanel`）に自動反映するモデルである。
+`UsiCommLogModel` はエンジン1台の情報欄の値（エンジン名・探索状況・予想手）を持ち、通信ログの行を知らせるモデルである。探索状況は `EngineSearchStatus`（`src/engine/enginesearchstatus.h`）の数値のまま持ち、書式（3桁区切り・百分率）は表示する側の `EngineInfoWidget` が決める。通信ログの行は溜めず、届くたびに `logLineAppended` で `UsiLogPanel` に知らせる。
 
-#### プロパティ一覧
+#### 値とシグナル
 
-| プロパティ | 変更シグナル | 説明 |
+| 値・操作 | シグナル | 説明 |
 |-----------|------------|------|
-| `engineName` | `engineNameChanged` | エンジン名 |
-| `predictiveMove` | `predictiveMoveChanged` | 予想手（ponder手） |
-| `searchedMove` | `searchedMoveChanged` | 現在探索中の手 |
-| `searchDepth` | `searchDepthChanged` | 探索深さ |
-| `nodeCount` | `nodeCountChanged` | ノード数 |
-| `nodesPerSecond` | `nodesPerSecondChanged` | NPS |
-| `hashUsage` | `hashUsageChanged` | ハッシュ使用率 |
-| `usiCommLog` | `usiCommLogChanged` | 通信ログ行 |
+| `engineName()` / `setEngineName()` | `engineNameChanged` | エンジン名 |
+| `status()` / `updateStatus()`・`setStatus()` | `statusChanged` | 探索状況（探索中の手・深さ・ノード数・NPS・ハッシュ使用率）。`updateStatus()` は info に含まれた項目だけを前の値に重ねる（`EngineSearchStatus::merge`） |
+| `predictedMove()` / `setPredictedMove()` | `statusChanged` | 予想手（相手の手の予想。表記済み） |
+| `appendLogLine(line)` | `logLineAppended(line)` | 通信ログの1行 |
 
 #### UsiModelBinding — エンジンとモデルを結ぶ
 
@@ -3864,26 +3882,26 @@ YaneuraOu\3\type=check
 |----------------|--------|
 | `ThinkingInfoFormatter::thinkingInfoUpdated` | 思考の表 `prependRow()`、検討の表 `updateByMultipv()` |
 | `ThinkingInfoFormatter::clearThinkingInfoRequested` | 思考の表 `clearAllItems()` |
-| `searchedMoveUpdated`・`searchDepthUpdated`・`nodeCountUpdated`・`npsUpdated`・`hashUsageUpdated` | `UsiCommLogModel` の各 setter |
-| `EngineProcessManager::commandSent`・`dataReceived`・`stderrReceived` | `appendUsiCommLog()`（`▶`・`◀`・`⚠` とエンジンタグを付ける） |
-| `UsiProtocolHandler::bestMoveReceived` | 予想手の表示（指した後の局面の表記で `setPredictiveMove()`） |
+| `ThinkingInfoFormatter::searchStatusUpdated` | `UsiCommLogModel::updateStatus()` |
+| `EngineProcessManager::commandSent`・`dataReceived`・`stderrReceived` | `appendLogLine()`（`▶`・`◀`・`⚠` とエンジンタグを付ける） |
+| `UsiProtocolHandler::bestMoveReceived` | 予想手の表示（指した後の局面の表記で `setPredictedMove()`） |
 
 #### 更新の流れ
 
 ```
 ThinkingInfoFormatter           UsiModelBinding              UsiCommLogModel
   │                                │                            │
-  │ emit searchedMoveUpdated(...)  │                            │
+  │ emit searchStatusUpdated(...)  │                            │
   │ ─────────────────────────────▶ │                            │
-  │                                │ setSearchedMove(...)       │
+  │                                │ updateStatus(status)       │
   │                                │ ──────────────────────────▶│
-  │                                │                            │ emit searchedMoveChanged()
-  │                                │                            │ ──────────▶ GUI更新
+  │                                │                            │ emit statusChanged()
+  │                                │                            │ ──────────▶ EngineInfoWidget が書式を付けて表示
 ```
 
-各 setter は値が実際に変更された場合のみシグナルを発火する（変更検出パターン）。`clear()` メソッドは全プロパティを空にし、対局開始時のリセットに使用される。
+各 setter は値が実際に変わった場合だけシグナルを出す（変更検出パターン）。`clear()` はエンジン名・探索状況・予想手を消し、表示の消去（`EngineDisplayPresenter`）で使う。
 
-`appendUsiCommLog()` は通信ログの1行を設定する。`UsiModelBinding` が送受信コマンドにエンジンタグ（`▶ E1:`, `◀ E1:`）を付与した文字列を渡す。
+`appendLogLine()` は通信ログの1行を知らせる。`UsiModelBinding` が送受信コマンドにエンジンタグ（`▶ E1:`, `◀ E1:`）を付与した文字列を渡す。
 
 ### 7.11 クラス関係図
 
@@ -4376,7 +4394,7 @@ KifuDocument::setComment(node, comment)
 | `headerReset(items, beforeMatchStart)` | `GameInfoPane::setGameInfo`・`PlayerInfoPresenter::syncBoardNamesWithGameInfo` | 対局情報を置き換えた（`beforeMatchStart` なら対局を始める前の案内を出す） |
 | `headerValueSet(key, value)` | `GameInfoPane::updateGameInfoValue` | 対局情報に自動で値を書いた（終了日時など） |
 | `saved()` | `GameInfoPane::applyChanges` | 保存した・ファイルから読み込んだ（対局情報欄の未反映の表示を消す） |
-| `playersChanged()` | — | 対局者が変わった（対局の開始・棋譜の置き換え） |
+| `playersChanged()` | `EngineDisplayPresenter`（自分でつなぐ。2つ目のエンジン欄・評価値グラフの系列名） | 対局者が変わった（対局の開始・棋譜の置き換え） |
 | `commentChanged(nodeId, comment)` / `bookmarkChanged(nodeId, bookmark)` | `KifuRecordListModel::refreshNode`（コメントは `CommentCoordinator::showCurrentComment` も） | ノードのコメント・しおりが変わった |
 
 逆向きに、`GameInfoPane::gameInfoEdited(items)` → `KifuDocument::editHeader`、`GameInfoPane::gameInfoUpdated(items)` → `PlayerInfoPresenter::onGameInfoUpdated`（盤の対局者名）をつなぐ。
@@ -4797,7 +4815,7 @@ analysis層にはダイアログを知らない部分（`AnalysisSession`・`Ana
 | **結果表示** | 検討タブにリアルタイム表示、盤面に矢印オーバーレイ | 結果一覧テーブル（ドックウィジェット）、評価値グラフ | 詰みの有無のメッセージ（思考情報は E1 の表示にも出る） |
 | **MultiPV** | 対応（複数候補手を同時表示、検討中に変更可） | `AnalysisCoordinator::Options::multiPV` を `setoption name MultiPV` で送る（ダイアログからは1） | 非対応（1手順のみ） |
 | **開始・操作** | `ConsiderationUiController` | `KifuAnalysisController` + `AnalysisJob` | `TsumeSearchController` |
-| **結果の表示部品** | `ConsiderationTabManager`・`CandidateArrowPresenter` | `AnalysisResultsPanel` | なし（結果はメッセージで知らせる） |
+| **結果の表示部品** | `ConsiderationTabManager`（`EngineDisplayPresenter` が状態を設定）・`CandidateArrowPresenter` | `AnalysisResultsPanel` | なし（結果はメッセージで知らせる） |
 
 ### 9.2 全体構成
 
@@ -4805,7 +4823,8 @@ analysis層にはダイアログを知らない部分（`AnalysisSession`・`Ana
 ┌─────────────────────────────────────────────────────────────────────────┐
 │  ui/controllers・ui/presenters・widgets                                  │
 │                                                                         │
-│  ConsiderationUiController   検討タブの操作、経過時間、MultiPV、矢印     │
+│  ConsiderationUiController   検討タブの操作（開始・中止・条件の変更）    │
+│  EngineDisplayPresenter      検討タブの実行の状態・情報欄・検討の表      │
 │  TsumeSearchController       詰み探索の条件ダイアログと開始              │
 │        │                                                                │
 │        └── AnalysisSession::start(AnalysisOptions)                       │
@@ -4917,7 +4936,7 @@ info 行の解釈は `UsiLineParser`（第7章）が行い、このクラスは�
 **ソース**: `src/ui/controllers/considerationuicontroller.h/.cpp`（開始）、`src/analysis/analysissession.h/.cpp`（セッション）、`src/analysis/analysisoptions.h`
 
 検討モード（Consideration）は AnalysisCoordinator を使わず、検討のセッション `AnalysisSession` が1つのエンジンで局面を調べる。棋譜解析との大きな違いである。
-検討タブの「検討開始」→ `ConsiderationUiController::startConsideration()` の順に呼ばれ、ここで検討タブの設定から `AnalysisOptions` を作って `AnalysisSession::start()` に渡す（開始の要求は `MainWindowComposer` が `ConsiderationTabManager` から `startConsideration` へつなぐ）。
+検討タブの開始/中止のボタン（検討していないとき）→ `ConsiderationTabManager::startConsiderationRequested` → `ConsiderationUiController::startConsideration()` の順に呼ばれ、ここで検討タブの設定（`ConsiderationTabManager::settings()`。`ConsiderationSettings`）から `AnalysisOptions` を作って `AnalysisSession::start()` に渡す（タブのシグナルは `ConsiderationUiController` が自分でつなぐ）。
 
 #### 検討モードの開始フロー
 
@@ -4927,7 +4946,7 @@ ConsiderationUiController::startConsideration()
   ├── 1. バリデーション
   │     ├── session / navState / 検討タブが無い → return
   │     ├── エンジンの破棄中（AnalysisSession::isShutdownInProgress） → 無視
-  │     └── 検討タブでエンジンが選ばれていない → ErrorBus でエラー通知して return
+  │     └── 検討タブの設定（settings().engineName）でエンジンが選ばれていない → ErrorBus でエラー通知して return
   │
   ├── 2. エンジンパス取得
   │     └── EngineListSettings::loadEngines() の登録一覧から
@@ -4939,10 +4958,11 @@ ConsiderationUiController::startConsideration()
   │           検討する局面（UsiPosition。直前の手を含む）を決める
   │
   ├── 4. 秒読み設定
-  │     └── 無制限なら byoyomiMs = 0、そうでなければ秒 × 1000
+  │     └── ConsiderationSettings::byoyomiMs()（無制限なら 0、そうでなければ秒 × 1000）
   │
-  └── 5. 検討タブの思考情報モデルと通信ログをつなぎ、AnalysisSession::start(AnalysisOptions)
-        成功したら検討タブを「検討中」の表示にする
+  └── 5. AnalysisSession::start(AnalysisOptions)
+        検討タブ・思考タブの表示は、探索が始まったとき（considerationSearchStarted）に
+        EngineDisplayPresenter が切り替える
 ```
 
 #### AnalysisOptions 構造体
@@ -4967,42 +4987,47 @@ struct AnalysisOptions {
 
 ### 9.5 ConsiderationUiController — 検討モードのUI制御
 
-**ソース**: `src/ui/controllers/considerationuicontroller.h`, `src/ui/controllers/considerationuicontroller.cpp`
+**ソース**: `src/ui/controllers/considerationuicontroller.h`, `src/ui/controllers/considerationuicontroller.cpp`, `src/widgets/considerationtabmanager.h`, `src/widgets/considerationsettings.h`, `src/ui/presenters/enginedisplaypresenter.h`
 
-検討タブ（`ConsiderationTabManager`）の操作を検討のセッション（`AnalysisSession`）へ伝え、検討の状態（ボタン表示、経過時間、MultiPV、矢印表示）を検討タブと盤へ出すコントローラである。合成ルートが起動時に1つだけ作る（`MainWindowComponents::considerationUi`）。
+検討タブ（`ConsiderationTabManager`）の操作を検討のセッション（`AnalysisSession`）へ伝えるだけのコントローラである。検討の表示（ボタン・経過時間・情報欄・検討の表）と矢印には触れない。合成ルートが起動時に1つだけ作る（`MainWindowComponents::considerationUi`）。
+
+検討の状態は次の3か所に分けて持つ。
+
+| 何を | 正本 | 説明 |
+|------|------|------|
+| 検討の条件（エンジン・時間・候補手の数・矢印） | `ConsiderationTabManager::settings()`（`ConsiderationSettings`） | 利用者が変えると保存して `settingsChanged` を出す。ウィジェットはこの値を出すだけ |
+| 検討中かどうか | `AnalysisSession::isConsidering()` | 表示・矢印・コントローラはここだけを見る |
+| 検討タブの実行の状態 | `ConsiderationTabManager::RunState`（`Idle`・`Running`・`Waiting`） | `EngineDisplayPresenter` がセッションの知らせから `setRunState()` で設定する |
 
 #### UI状態遷移
 
 ```
-startConsideration()               … 検討タブの「検討開始」
-  │ AnalysisSession::start(AnalysisOptions)
+（開始/中止のボタン。RunState が Idle なら startConsiderationRequested、それ以外は stopConsiderationRequested）
+
+startConsiderationRequested → ConsiderationUiController::startConsideration()
+  │ settings() から AnalysisOptions を作り AnalysisSession::start(AnalysisOptions)
   ▼
-attachModels()
-  │ 検討タブと思考タブに思考情報モデルと通信ログをつなぐ
-  ▼
-setConsiderationRunning(true)      … ボタンを「検討中止」に切替
-  │ 経過時間は AnalysisSession::considerationSearchStarted
-  │ （探索の開始・やり直し）のたびに数え直す
+AnalysisSession::considerationSearchStarted → EngineDisplayPresenter
+  │ E1 の読み筋を検討の表へ（UsiModelBinding::setConsideration）、検討タブと思考タブの情報欄に E1 のモデル、
+  │ setRunState(Running)（ボタンは「検討中止」、経過時間を数え直す）
   │
   ├── （ユーザーが棋譜ナビゲーション）
   │     └── KifuNavigationState::changed → AnalysisSession::followDisplayedPosition()
   │           updatePosition() で検討する局面を切り替え
   │
-  ├── （ユーザーがMultiPV変更）
-  │     └── onMultiPVChanged() → AnalysisSession::updateMultiPV()
+  ├── （ユーザーが検討の条件を変更） settingsChanged → ConsiderationUiController::onSettingsChanged()
+  │     ├── エンジンが変わった → 中止して新しいエンジンで始め直す
+  │     └── 候補手の数が変わった → AnalysisSession::updateMultiPV()
   │
-  ├── （ユーザーがエンジンを変更）
-  │     └── onEngineChanged() → 中止して新しいエンジンで始め直す
+  ├── considerationWaitingStarted → setRunState(Waiting)   … 時間切れで次の局面を待つ（経過時間を止める）
   │
-  ├── onWaitingStarted()           … 時間切れで次の局面を待つ（タイマーだけ止める）
-  │
-  └── onModeEnded()                … AnalysisSession::considerationModeEnded
-        タイマー停止、ボタンを「検討開始」に戻す、矢印を更新
+  └── stopConsiderationRequested → AnalysisSession::stop()
+        considerationModeEnded → EngineDisplayPresenter が setRunState(Idle)（ボタンを「検討開始」に戻す）
 ```
 
 #### 矢印表示のロジック
 
-`updateArrows()` は、検討中かどうか・矢印表示の設定・検討モデルを `CandidateArrowPresenter::setConsiderationState()` に渡すだけで、矢印は `CandidateArrowPresenter`（`src/ui/presenters/candidatearrowpresenter.h/.cpp`。合成ルートが盤に対して1つ作る）が描く。
+検討の矢印は `CandidateArrowPresenter`（`src/ui/presenters/candidatearrowpresenter.h/.cpp`。合成ルートが盤に対して1つ作る）が描く。検討中かどうかは `AnalysisSession::isConsidering()` から、読み筋は `Deps::consideration`（検討の表のモデル）から、表示するかは `Deps::showConsiderationArrows`（検討タブの設定 `showArrows` を読む関数）から読む。検討の開始・終了、モデルの変化、検討タブの `settingsChanged` で描き直す。
 
 ```
 CandidateArrowPresenter::refresh()
@@ -5023,7 +5048,7 @@ CandidateArrowPresenter::refresh()
 
 #### 棋譜ナビゲーション中の検討位置更新
 
-ユーザーが棋譜欄・ナビゲーションボタン・分岐ツリーで局面を移ると、表示中のノードを持つ `KifuNavigationState` が `changed()` を出す。`AnalysisSession` はこれを `followDisplayedPosition()` で受け、検討中なら表示中のノードの SFEN と、局面に至った手（実際の指し手のとき）から `UsiPosition::fromSfen(node->sfen(), lastMove)` を作って `updatePosition()` を呼ぶ。同じ局面（`UsiPosition` の値の比較）なら何もせず、違えば検討の表を消して探索をやり直す。やり直しのたびに `considerationSearchStarted` が出て、検討タブの経過時間が数え直される。
+ユーザーが棋譜欄・ナビゲーションボタン・分岐ツリーで局面を移ると、表示中のノードを持つ `KifuNavigationState` が `changed()` を出す。`AnalysisSession` はこれを `followDisplayedPosition()` で受け、検討中なら表示中のノードの SFEN と、局面に至った手（実際の指し手のとき）から `UsiPosition::fromSfen(node->sfen(), lastMove)` を作って `updatePosition()` を呼ぶ。同じ局面（`UsiPosition` の値の比較）なら何もせず、違えば検討の表を消して探索をやり直す。やり直しのたびに `considerationSearchStarted` が出て、`EngineDisplayPresenter` が検討タブを `Running` にし直すので経過時間が数え直される。
 検討の開始時は `ConsiderationPositionResolver::resolve(line, row, fallbackSfen)`（`src/kifu/considerationpositionresolver.h/.cpp`）が表示中の手順（`KifuNavigationState::currentRecordLine()`）から検討する局面（`UsiPosition`。読み筋の「同」の判定に使う直前の手を含む）を決める。
 
 ### 9.6 KifuAnalysisController — 棋譜解析の全体フロー
@@ -5049,7 +5074,8 @@ CandidateArrowPresenter::refresh()
 | `document` | `const KifuDocument*` | — | 読み筋盤面ダイアログに出す対局者名（対局情報の名前。`KifuDocument::headerPlayerName()`） |
 | `shogiView` | `const ShogiView*` | — | 読み筋盤面ダイアログの向きを本体の盤に合わせる |
 | `navController` | `KifuNavigationController*` | — | 解析中・結果の行を選んだ手へ棋譜を移す（`goToLine`） |
-| `evalChart` | `EvaluationChartWidget*` | — | 評価値グラフ |
+| `evalChart` | `EvaluationChartWidget*` | — | 評価値グラフ（点のクリックで解析結果の行へ移る） |
+| `evalGraph` | `EvaluationGraphPresenter*` | — | 評価値グラフの点（解析した局面の評価値を足す） |
 | `engine` | `Usi*` | 任意 | 使うエンジン（テスト用。無ければ解析ごとに枠 E1 に作る） |
 
 エラーは `ErrorBus` で知らせる（コールバックは持たない）。
@@ -5398,11 +5424,11 @@ Presenters は「Model → View」の単方向データフローを担当する�
 |-----------|--------|------|
 | `BoardSyncPresenter` | `boardsyncpresenter.h` | 盤面表示の同期。表示中の手の局面を盤に合わせ、その手をハイライトする |
 | `KifuDisplayPresenter` | `kifudisplaypresenter.h` | 棋譜欄・分岐候補欄・分岐ツリーに、表示中の手と手順を映す |
-| `PlayerInfoPresenter` | `playerinfopresenter.h` | 対局者名・エンジン名と対局情報を、盤・対局情報ドック・通信ログの見出し・思考タブ・評価値グラフに出す |
+| `PlayerInfoPresenter` | `playerinfopresenter.h` | 盤の対局者名を出す（対局中は対局者、対局していなければ対局情報の名前） |
 | `TimeDisplayPresenter` | `timedisplaypresenter.h` | 対局時計の表示。残り時間の表示と、秒読み時の緊急表示を行う |
-| `EvaluationGraphPresenter` | `evaluationgraphpresenter.h` | 対局中のエンジンの評価値と、表示中の手数を評価値グラフに出す |
+| `EvaluationGraphPresenter` | `evaluationgraphpresenter.h` | 評価値グラフの点（`EvaluationSeries`）を持つ唯一の書き手。対局・通信対局・棋譜解析の評価値と、表示中の手数を評価値グラフに出す |
 | `CandidateArrowPresenter` | `candidatearrowpresenter.h` | 対局と検討の候補手の矢印を盤に描く（第9章） |
-| `EngineDisplayPresenter` | `enginedisplaypresenter.h` | エンジンの枠 E1・E2 に入ったエンジンを、思考ドック・検討ドック・USI通信ログのモデルと結ぶ |
+| `EngineDisplayPresenter` | `enginedisplaypresenter.h` | エンジンの表示の持ち主。枠 E1・E2 のエンジンとモデルの結び、検討の表示（実行の状態・情報欄・検討の表）、2つ目のエンジン欄と評価値グラフの系列名、表示の消去（`clearAll()`） |
 | `UsiModelBinding` | `usimodelbinding.h` | エンジン1台（`Usi`）の思考情報・情報欄の値・通信ログを、表示のモデルへ反映する。エンジンを親にして作り、エンジンと一緒に破棄される |
 | `AnalysisResultHandler` | `analysisresulthandler.h` | 棋譜解析の結果の蓄積・確定・読み筋表示（第9章） |
 
@@ -5463,19 +5489,18 @@ KifuNavigationState::changed
 
 **ソース**: `src/ui/presenters/playerinfopresenter.h`, `src/ui/presenters/playerinfopresenter.cpp`
 
-対局者名・エンジン名を表示先へ反映するプレゼンターである（表示だけ）。表示先は、盤の対局者名、通信ログの見出し（E1・E2）、思考タブの2つ目のエンジン欄、検討タブ、評価値グラフ。対局者（`MatchPlayers`、[5.6節](#56-matchplayers--対局者)）と対局情報は棋譜の文書（`KifuDocument`、8.5節）が持ち、このクラスは読むだけで書き換えない。盤の対局者名は、対局中は対局者、対局していなければ対局情報の名前（初期値は「先手」「後手」）にする。
+盤の対局者名を出すプレゼンターである（表示だけ）。対局者（`MatchPlayers`、[5.6節](#56-matchplayers--対局者)）と対局情報は棋譜の文書（`KifuDocument`、8.5節）が持ち、このクラスは読むだけで書き換えない。盤の対局者名は、対局中は対局者、対局していなければ対局情報の名前（初期値は「先手」「後手」）にする。エンジンの表示（通信ログの見出し・2つ目のエンジン欄・検討タブ・評価値グラフの系列名）は `EngineDisplayPresenter` が受け持つ。
 
-`Deps` は `document`（`const KifuDocument*`）と `activity`（`const AppActivityState*`。対局中か）が必須で、ほかに `shogiView`・`thinking`・`consideration`・`evalGraph`・`logModel1`・`logModel2`（表示先）を受け取る。
+`Deps` は `document`（`const KifuDocument*`）・`activity`（`const AppActivityState*`。対局中か）・`shogiView` の3つ。
 
 | メソッド・スロット | 説明 |
 |------------------|------|
-| `showPlayers(players)` | 対局者を出す（`GameSession::startGame()` が `KifuDocument::beginMatch()` の後に呼ぶ。動作状態が対局中になる前） |
-| `showMatchPlayers()` | 対局中なら文書の対局者（`KifuDocument::players()`）を出す。対局していなければエンジン名を消し、盤には対局情報の名前を出す |
+| `showPlayers(players)` | 対局者の名前を盤に出す（`GameSession::startGame()` が `KifuDocument::beginMatch()` の後に呼ぶ。動作状態が対局中になる前） |
+| `showMatchPlayers()` | 対局中なら文書の対局者（`KifuDocument::players()`）の名前を、対局していなければ対局情報の名前を盤に出す |
 | `syncBoardNamesWithGameInfo()` | 対局情報の名前（`KifuDocument::headerPlayerName()`）を盤に出す（`KifuDocument::headerReset` から。棋譜の置き換え・対局の開始） |
 | `onGameInfoUpdated(items)` | 対局情報欄で反映した対局情報の名前を盤に出す（`GameInfoPane::gameInfoUpdated` から） |
-| `onAnalysisEngineNamesChanged(engine1, engine2)` | 検討・詰み探索のエンジン名を検討タブ・思考タブ・評価値グラフに出す（`AnalysisSession::engineNamesChanged` から） |
 
-対局情報（開始日時・対局者・手合割・持ち時間・終了日時）を作るのは文書（`KifuDocument::beginMatch()`・`recordMatchEnd()`）で、手合割は開始局面から `KifuExportMetadataBuilder::handicapLabel()` で求め、駒落ちなら対局情報の見出しを下手・上手にする。対局情報欄（`GameInfoPane`）は合成ルートが作り、文書の対局情報を編集する画面としてつなぐ（8.5節）。通信ログの見出し（E1・E2）にどのエンジン名を出すかは 12.7 節を参照。
+対局情報（開始日時・対局者・手合割・持ち時間・終了日時）を作るのは文書（`KifuDocument::beginMatch()`・`recordMatchEnd()`）で、手合割は開始局面から `KifuExportMetadataBuilder::handicapLabel()` で求め、駒落ちなら対局情報の見出しを下手・上手にする。対局情報欄（`GameInfoPane`）は合成ルートが作り、文書の対局情報を編集する画面としてつなぐ（8.5節）。エンジン名をどこに出すかは 12.7 節を参照。
 
 #### TimeDisplayPresenter — 対局時計
 
@@ -5506,21 +5531,35 @@ ShogiClock::timeUpdated()（tick・状態の変化・ShogiClock::notifyTimeUpdat
 
 **ソース**: `src/ui/presenters/evaluationgraphpresenter.h`, `src/ui/presenters/evaluationgraphpresenter.cpp`
 
-対局中のエンジンの評価値を `EvaluationChartWidget` に描き、棋譜をたどるときは縦線を表示中の手数に合わせる。
+評価値グラフの点（`EvaluationSeries`、`src/models/evaluationseries.h`）を持ち、点を足す・消す・系列の名前を付けるのはこのクラスだけである。グラフ（`EvaluationChartWidget`）は `setSeries()` で渡された点を描くだけで、点の追加・削除・名前の変化はモデルのシグナル（`scoreAdded`・`scoresTrimmed`・`labelsChanged`）で受ける。棋譜をたどるときは縦線を表示中の手数に合わせる。
+
+`EvaluationSeries` は評価値を先手から見た値で持つ（系列は2本）。エンジンの評価値はそれを出した側から見た値なので、先手から見た値への直しは `EvaluationSeries::blackView()` の1か所だけで行う。棋譜解析の点なら、解析した手順の番号（`analysisLineIndex()`）も持つ。
 
 | メソッド | 説明 |
 |---------|------|
-| `plotEngineScore(side, ply, score)` | エンジンが指した手の評価値を描く（`MatchCoordinator::engineMovePlayed` からつなぐ。通信対局の自分のエンジンの評価値も `CsaGameSession` が自分の側で呼ぶ）。先手の手は1つ目の系列（P1）、後手の手は2つ目の系列（P2）に描く。USI エンジンは手番側から見た評価値を出すので、後手の値は `UsiScore::negated()` で先手から見た値にする |
+| `plotEngineScore(side, ply, score)` | エンジンが指した手の評価値を足す（`MatchCoordinator::engineMovePlayed` からつなぐ。通信対局の自分のエンジンの評価値も `CsaGameSession` が自分の側で呼ぶ）。先手の手は1つ目の系列、後手の手は2つ目の系列に置く。`score` は指した側から見た値で、先手から見た値への直しは `EvaluationSeries` が行う |
+| `beginAnalysis(engineName, lineIndex)` | 棋譜解析を始める（点を消し、1つ目の系列名を解析のエンジン名にし、解析する手順の番号を付ける。`KifuAnalysisController` から） |
+| `plotAnalysisScore(ply, blackScore)` | 棋譜解析の ply 手目の評価値（先手から見た値）を1つ目の系列に足す |
 | `showCurrentPly()` | 縦線を表示中の手の手数に合わせる（`KifuNavigationState::changed` から）。対局中の手は評価値の点を足すときに描くので動かさない |
 | `trimToPly(maxPly)` | 指定手数より後の点を消す（待った・途中局面からの再開。`MatchCoordinator::movesUndone` から） |
 | `clear()` | グラフを空にする（局面編集の開始時など） |
-| `setEngine1Name()` / `setEngine2Name()` | 凡例のエンジン名（`PlayerInfoPresenter` が設定する） |
+| `setEngine1Name()` / `setEngine2Name()` | 系列名（凡例のエンジン名。`EngineDisplayPresenter` が設定する） |
+| `series()` | グラフの点（グラフ・テストが読む） |
 
 グラフの横軸の長さは、表示中の手順の行数（終局行を含む）- 1 と現在の手数の大きいほうから求める。
 
 #### EngineDisplayPresenter と UsiModelBinding — エンジンの表示
 
 エンジンは表示のモデルに触れない。`EngineDisplayPresenter`（`enginedisplaypresenter.h`）が、エンジンの枠（`EngineLifecycleManager`）にエンジンが入るたびに `UsiModelBinding` を作り、エンジンのシグナルを思考の表（先頭に足す）・検討の表（multipv の行を更新する）・情報欄と通信ログ（`UsiCommLogModel`）へ反映する。検討の間は E1 のエンジンの読み筋を検討の表にも出す（候補手の数は `AnalysisSession` に合わせる）。
+
+`EngineDisplayPresenter` はエンジンの表示の持ち主で、ほかの部品はエンジンの表示を直接変えない。
+
+| 表示 | 決め方 |
+|------|--------|
+| 思考の表・情報欄・通信ログ（E1・E2） | 枠にエンジンが入るたびに `UsiModelBinding` で結ぶ（`EngineLifecycleManager::enginesChanged`）。枠の表示の消去の要求（`displayClearRequested`）で通信ログ・情報欄・思考の表を消す |
+| 検討タブ（実行の状態・情報欄・検討の表） | `AnalysisSession` の知らせだけから決める。`considerationSearchStarted` で E1 の読み筋を検討の表へ出し、検討タブと思考タブの情報欄を E1 のモデルにして `setRunState(Running)`、`considerationWaitingStarted` で `Waiting`、`considerationModeEnded` で `Idle`、`considerationResultsCleared` で検討の表を消す。検討中かどうかの正本は `AnalysisSession::isConsidering()` |
+| 2つ目のエンジン欄・評価値グラフの系列名 | 対局では文書の対局者（`KifuDocument::playersChanged`）から決める（2つ目のエンジン欄はエンジン同士の対局だけ、系列名は先手・後手のエンジン名）。検討・詰み探索では `AnalysisSession::engineNamesChanged` から（2つ目のエンジン欄を隠し、1つ目の系列名・検討タブ・思考タブのエンジン名をそのエンジンにする） |
+| 表示の消去 | `clearAll()` が通信ログ・情報欄・思考の表・検討の表・棋譜解析の結果・USI/CSA の通信ログ窓・エンジン名を消し、検討タブを `Idle` に戻す（`SessionResetCoordinator` が棋譜を作り直すときに呼ぶ） |
 
 ### 10.3 Controllers — UIイベント処理
 
@@ -5533,7 +5572,7 @@ Controllers は「View → Model」方向のイベント処理を担当する。
 | Controller | ソース | 責務 | 主な操作対象 |
 |-----------|--------|------|------------|
 | `BoardMoveController` | `boardmovecontroller.h` | 盤上で指した手を、動作状態に合わせて処理する（局面編集・棋譜の変化の記録・通信対局・対局） | `BoardInteractionController`, `ShogiGameController`, `MatchCoordinator` |
-| `ConsiderationUiController` | `considerationuicontroller.h` | 検討タブの操作（開始・中止・エンジン変更・候補手の数）と、検討中の経過時間・矢印の表示 | `ConsiderationTabManager`, `AnalysisSession` |
+| `ConsiderationUiController` | `considerationuicontroller.h` | 検討タブの操作（開始・中止・エンジン設定・条件の変更）を検討のセッションへ伝える。表示には触れない | `ConsiderationTabManager`, `AnalysisSession` |
 | `KifuAnalysisController` | `kifuanalysiscontroller.h` | 棋譜解析の条件ダイアログ、解析の進み具合の表示、結果の行の選択（第9章） | `AnalysisJob`, `AnalysisResultsPanel`, `EvaluationChartWidget` |
 | `TsumeSearchController` | `tsumesearchcontroller.h` | 詰み探索の条件ダイアログと探索の開始（第9章） | `AnalysisSession` |
 | `LanguageController` | `languagecontroller.h` | 表示言語・棋譜表記の切り替えと再起動の案内 | `QAction`（言語・表記メニュー） |
@@ -5597,7 +5636,7 @@ onPvRowClicked(ShogiEngineThinkingModel* model, row)
 
 | Controller | 説明 |
 |-----------|------|
-| `ConsiderationUiController` | 検討タブの操作（開始 `startConsideration()`・中止・エンジン変更・エンジン設定・候補手の数）を検討のセッション（`AnalysisSession`）へ伝える。検討中は経過時間を数えてボタンを「検討中止」にし、盤の候補手の矢印を更新する（第9章） |
+| `ConsiderationUiController` | 検討タブの操作（開始 `startConsideration()`・中止・エンジン変更・エンジン設定・候補手の数）を検討のセッション（`AnalysisSession`）へ伝える。検討タブの表示（ボタン・経過時間）は `EngineDisplayPresenter`、盤の候補手の矢印は `CandidateArrowPresenter` が受け持つ（第9章） |
 | `KifuAnalysisController`・`TsumeSearchController` | 棋譜解析と詰み探索の条件ダイアログを出して始める（第9章）。メニューの項目は `MenuActionsWiring` がつなぐ |
 | `LanguageController` | 言語メニュー（システム・日本語・英語・簡体字・繁体字）と棋譜表記のメニューを処理し、言語を変えたら再起動を案内する |
 | `UsiCommandController` | `UsiLogPanel` の手動コマンド入力欄からのUSIコマンドを、エンジンの枠（`EngineLifecycleManager` の E1・E2）のエンジンに送る。エンジン未起動時は通信ログにエラーを表示する |
@@ -5686,17 +5725,27 @@ wire()
 
 **ソース**: `src/ui/controllers/considerationuicontroller.h`, `src/ui/controllers/considerationuicontroller.cpp`
 
-検討モードの UI は Wiring クラスを持たない。検討タブの操作を受けるのは `ConsiderationUiController`（10.3 節）で、検討タブからの接続は `MainWindowComposer::connectAnalysisAndUi()` が行う。検討そのもの（エンジンの起動・局面の送り直し）は `AnalysisSession`（第9章）が持つ。
+検討モードの UI は Wiring クラスを持たない。検討タブの操作を受けるのは `ConsiderationUiController`（10.3 節）で、検討タブからの接続は自分のコンストラクタで行う。検討の表示は `EngineDisplayPresenter`（10.2 節）が `AnalysisSession` のシグナルを自分でつなぐ。検討そのもの（エンジンの起動・局面の送り直し）は `AnalysisSession`（第9章）が持つ。`MainWindowComposer::connectAnalysisAndUi()` がつなぐのは知らせの表示と矢印の描き直しだけである。
 
 ```
-ConsiderationTabManager::startConsiderationRequested → startConsideration()
-  └── 検討タブの設定から AnalysisOptions を作り、AnalysisSession::start()
+ConsiderationUiController のコンストラクタ
+  ├── ConsiderationTabManager::startConsiderationRequested → startConsideration()
+  │     └── 検討タブの設定（settings()）から AnalysisOptions を作り、AnalysisSession::start()
+  ├── ConsiderationTabManager::stopConsiderationRequested → AnalysisSession::stop()
+  ├── ConsiderationTabManager::engineSettingsRequested → onEngineSettingsRequested()
+  └── ConsiderationTabManager::settingsChanged → onSettingsChanged()
+        （検討中なら、エンジンが変われば中止して始め直し、候補手の数が変われば updateMultiPV()）
 
-ConsiderationTabManager::engineSettingsRequested → onEngineSettingsRequested()
-ConsiderationTabManager::considerationEngineChanged → onEngineChanged()（検討中なら中止して新しいエンジンで始め直す）
-AnalysisSession::considerationSearchStarted → ConsiderationTabManager::startElapsedTimer（経過時間を数え直す）
-AnalysisSession::considerationModeEnded / considerationWaitingStarted → タイマーとボタンを戻し、矢印を更新
-AnalysisSession::messageRequested → UiNotificationService::showInformation（結果やエラーの知らせ）
+EngineDisplayPresenter のコンストラクタ
+  ├── AnalysisSession::considerationSearchStarted   → 検討の表と情報欄をつなぎ、setRunState(Running)（経過時間を数え直す）
+  ├── AnalysisSession::considerationWaitingStarted  → setRunState(Waiting)
+  ├── AnalysisSession::considerationModeEnded       → setRunState(Idle)
+  ├── AnalysisSession::considerationResultsCleared  → 検討の表を消す
+  └── AnalysisSession::engineNamesChanged           → 検討タブ・思考タブのエンジン名、評価値グラフの系列名
+
+MainWindowComposer::connectAnalysisAndUi()
+  ├── AnalysisSession::messageRequested → UiNotificationService::showInformation（結果やエラーの知らせ）
+  └── ConsiderationTabManager::settingsChanged → CandidateArrowPresenter::scheduleRefresh（矢印の表示の設定）
 ```
 
 棋譜ナビゲーションで局面が変わったときは、`AnalysisSession` が `KifuNavigationState::changed` を受けて検討中の局面をエンジンに送り直す。
@@ -5724,12 +5773,11 @@ CsaGameSession のコンストラクタ
 
 **ソース**: `src/ui/presenters/playerinfopresenter.h`, `src/ui/presenters/playerinfopresenter.cpp`
 
-対局者情報には Wiring クラスがない。`PlayerInfoPresenter`（10.2 節）は棋譜の文書（`KifuDocument`）の対局者と対局情報を読み、知らせの受け手として直接つながる。対局情報ドック（`GameInfoPane`）は合成ルートが作り、文書の対局情報を編集する画面としてつなぐ（8.5 節）。
+対局者情報には Wiring クラスがない。`PlayerInfoPresenter`（10.2 節）は棋譜の文書（`KifuDocument`）の対局者と対局情報を読み、知らせの受け手として直接つながる。エンジン名の表示（2つ目のエンジン欄・評価値グラフの系列名）は `EngineDisplayPresenter` が `KifuDocument::playersChanged`・`AnalysisSession::engineNamesChanged` を自分でつなぐ。対局情報ドック（`GameInfoPane`）は合成ルートが作り、文書の対局情報を編集する画面としてつなぐ（8.5 節）。
 
 | 接続 | つなぐ場所 |
 |------|-----------|
 | `GameSession::beginMatchRecord()` が `KifuDocument::beginMatch()` の後に `showPlayers(players)` を呼ぶ（ローカル対局・通信対局で共通。通信対局はサーバーが知らせた対局者名） | `GameSession`（`src/app/gamesession.cpp`） |
-| `AnalysisSession::engineNamesChanged` → `onAnalysisEngineNamesChanged()` | `MainWindowComposer::connectAnalysisAndUi()` |
 | `KifuDocument::headerReset` → `syncBoardNamesWithGameInfo()` | `MainWindowComposer::connectRecord()` |
 | `GameInfoPane::gameInfoUpdated` → `onGameInfoUpdated()` | `MainWindowComposer::connectRecord()` |
 
@@ -6046,11 +6094,11 @@ Urgency::Warn5  → 強い警告色（残5秒・秒読み）
 | RecordPane | QWidget | 棋譜ドック（既定は右側） | 棋譜一覧（QTableView。指し手・消費時間・しおり・コメントの列と、列の表示の切り替え）＋分岐候補一覧（折りたたみ可）＋ナビゲーションボタン＋文字サイズ・しおり編集のボタン。コメントの編集欄は持たない（棋譜コメントのドック） |
 | ThinkingPanel | QWidget | 思考ドック | 対局・棋譜解析のエンジン2つ分の情報欄（`EngineInfoWidget`）と思考の表（`ThinkingTableView`）、文字の大きさのボタン、対局中の候補手の矢印の表示設定。2つ目のエンジンは `setSecondEngineVisible()` で出す。読み筋の「盤面」ボタンは `pvRowClicked(ShogiEngineThinkingModel*, int)` で通知する |
 | ThinkingTableView | QTableView 系 | 思考ドック・検討ドック | 思考の表。対局のエンジン2つと検討タブで共用し、列幅・数値の書式・「盤面」ボタンを受け持つ |
-| ConsiderationTabManager | QObject | 検討ドック | 検討タブの操作（エンジン選択・時間・MultiPV・矢印の表示・停止）と表を作る。呼び出し側が直接この部品を使う |
+| ConsiderationTabManager | QObject | 検討ドック | 検討タブの操作（エンジン選択・時間・MultiPV・矢印の表示・開始/中止）と表を作る。設定は `ConsiderationSettings` を正本として持ち（`settings()`・`setSettings()`・`settingsChanged`）、開始/中止のボタンと経過時間は実行の状態 `RunState`（`Idle`・`Running`・`Waiting`。`EngineDisplayPresenter` が `setRunState()` で設定する）で決まる |
 | UsiLogPanel / CsaLogPanel / CommentEditorPanel | QObject | USI通信ログ・CSA通信ログ・棋譜コメントの各ドック | 各ドックの中身を作る。`CsaLogPanel` は CSA通信対局の待機ダイアログ（`CsaWaitingDialog`）のログ窓にも使う |
 | BranchTreeManager | QObject | 分岐ツリーのドック | 分岐ツリーを QGraphicsView に描く（`KifuBranchTree` を読むだけの観察者）。構築・入力は `branchtreemanager.cpp`、描画は `branchtreemanager_draw.cpp`。行（変化）の折りたたみと段の割り当ては値型 `BranchTreeLayout`（`branchtreelayout.h/.cpp`）が計算する |
-| EvaluationChartWidget | QWidget | MainWindow 下部（QDockWidget） | Qt Charts による評価値グラフ（2エンジン対応、ゼロライン、カーソル線） |
-| EngineInfoWidget | QWidget | 思考・検討のページ内（エンジンごとの情報欄） | `UsiCommLogModel` の値を1行の表に出す（エンジン名・予想手・探索手・深さ・ノード数・探索局面数/秒・ハッシュ使用率。予想手の列は隠せる）。列幅は保存する |
+| EvaluationChartWidget | QWidget | MainWindow 下部（QDockWidget） | Qt Charts による評価値グラフ（2エンジン対応、ゼロライン、カーソル線）。点は `setSeries()` で渡された `EvaluationSeries`（書き手は `EvaluationGraphPresenter`）を描くだけ |
+| EngineInfoWidget | QWidget | 思考・検討のページ内（エンジンごとの情報欄） | `UsiCommLogModel` の値を1行の表に出す（エンジン名・予想手・探索手・深さ・ノード数・探索局面数/秒・ハッシュ使用率。予想手の列は隠せる）。探索状況（`EngineSearchStatus`）の数値の書式（3桁区切り・百分率）はここで決める。列幅は保存する |
 | GameInfoPane | QWidget | 対局情報ドック（思考などのドックとタブにまとめる） | 対局情報のツールバー（元に戻す・切り取り・行の追加・反映など）＋ QTableView。中身・編集の履歴・未反映の判定は `GameInfoEditModel`（`src/models/`）。合成ルートが作り、棋譜の文書（`KifuDocument`）の対局情報を編集する画面としてつなぐ（文書の `headerReset` で中身を入れ、表が変わると `gameInfoEdited` で文書に返す） |
 | KifuAnalysisResultsDisplay | QObject | モデルデータ（`src/models/`） | 棋譜解析結果の保持（指し手・候補手・評価値・評価値の差・読み筋（漢字・USI）・局面SFEN） |
 | AnalysisResultsPanel | QObject | 棋譜解析の結果ドック | 結果の表・停止ボタン・文字の大きさ。列幅は自分で保存する |
@@ -6310,7 +6358,7 @@ network層はCSA（Computer Shogi Association）プロトコルによるネッ�
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-手番・時計表示の同期（12.6）は `src/views/boardchromewidget`・`src/ui/presenters/timedisplaypresenter`、対局者名の表示（12.7）は `src/ui/presenters/playerinfopresenter`、持ち時間の適用（12.8）は `src/game/timecontrolutil` にある。
+手番・時計表示の同期（12.6）は `src/views/boardchromewidget`・`src/ui/presenters/timedisplaypresenter`、対局者名の表示（12.7）は `src/ui/presenters/playerinfopresenter`・`enginedisplaypresenter`、持ち時間の適用（12.8）は `src/game/timecontrolutil` にある。
 
 ### 12.2 CsaClient — CSAプロトコルクライアント
 
@@ -6799,15 +6847,15 @@ MyDialog::~MyDialog()
 
 対局中の時計の値は、`TimeDisplayPresenter` が `ShogiClock::timeUpdated` を直接受けて（`showClock()`）時計から読む。司令塔は中継しない。着手の確定では司令塔が時計の通知を止めてまとめて値を変え、その後で `ShogiClock::notifyTimeUpdated()` を呼ぶ。通信対局でも、サーバーの残り時間を写した同じ時計を同じ経路で表示する。`TimeDisplayPresenter` は時計の文字を `view->chrome()->setBlackClockText()` などで出し、残り時間に応じた警告（`BoardChromeWidget::Urgency` の `Warn10`・`Warn5`）を `setUrgency()` で反映する。盤を反転したときなどは `refresh()` で最後の値から描き直す。人間同士の対局の考慮時間の計測は、対局モード別の Strategy（`HumanVsHumanStrategy`）が持つ。
 
-### 12.7 対局者名の表示（PlayerInfoPresenter）
+### 12.7 対局者名の表示（PlayerInfoPresenter・EngineDisplayPresenter）
 
-**ソース**: `src/ui/presenters/playerinfopresenter.h/.cpp`（クラスの概要は 10.2 節）
+**ソース**: `src/ui/presenters/playerinfopresenter.h/.cpp`、`src/ui/presenters/enginedisplaypresenter.h/.cpp`（クラスの概要は 10.2 節）
 
-対局者名・エンジン名をどこに出すかは、`PlayerInfoPresenter` が対局者（`MatchPlayers`、[5.6節](#56-matchplayers--対局者)）から決める。対局中（動作状態が `DuringGame`）は最後に始めた対局の対局者（`KifuDocument::players()`）を出し、対局していなければエンジン名を消す（`PlayerInfoPresenter::showMatchPlayers()`）。
+盤の対局者名は `PlayerInfoPresenter` が対局者（`MatchPlayers`、[5.6節](#56-matchplayers--対局者)）から決める。対局中（動作状態が `DuringGame`）は最後に始めた対局の対局者（`KifuDocument::players()`）を出し、対局していなければ対局情報の名前を出す（`PlayerInfoPresenter::showMatchPlayers()`）。エンジン名（通信ログの見出し・2つ目のエンジン欄・評価値グラフの系列名・検討タブ）は `EngineDisplayPresenter` が決める。
 
 #### 通信ログの見出し（E1・E2）
 
-2つの通信ログ（E1=上段, E2=下段）の見出しにどのエンジン名を出すかは、エンジンの枠（`EngineLifecycleManager` の E1・E2）と同じ規則で決める。
+2つの通信ログ（E1=上段, E2=下段）の見出しには、その枠（`EngineLifecycleManager` の E1・E2）に入ったエンジンの名前を出す（`UsiModelBinding` が結ぶときに `UsiCommLogModel::setEngineName()` する）。
 
 | 対局者 | E1 | E2 |
 |-------|----|----|
@@ -6816,7 +6864,7 @@ MyDialog::~MyDialog()
 | エンジン（先手・下手） vs 人間（後手・上手） | 先手のエンジン | (空) |
 | エンジン vs エンジン（平手・駒落ちとも） | 先手（下手）のエンジン | 後手（上手）のエンジン |
 
-人間対エンジンでは、エンジンが後手でも E1 に置く。思考タブの2つ目のエンジン欄はエンジン同士の対局だけ表示する。評価値グラフは、どの対局でも先手のエンジンを P1、後手のエンジンを P2 として描く（`EvaluationGraphPresenter::setEngine1Name()`・`setEngine2Name()`）。検討・詰み探索のエンジンは E1 だけを使う（`onAnalysisEngineNamesChanged()`）。
+人間対エンジンでは、エンジンが後手でも E1 に置く。思考タブの2つ目のエンジン欄はエンジン同士の対局だけ表示する。評価値グラフは、どの対局でも先手のエンジンを1つ目、後手のエンジンを2つ目の系列として描く（`EngineDisplayPresenter` が `KifuDocument::playersChanged` を受けて `EvaluationGraphPresenter::setEngine1Name()`・`setEngine2Name()` を呼ぶ）。検討・詰み探索のエンジンは E1 だけを使う（`AnalysisSession::engineNamesChanged` → `EngineDisplayPresenter`）。
 
 ### 12.8 TimeControlUtil — 持ち時間設定のユーティリティ
 
@@ -7315,7 +7363,7 @@ MainWindow::MainWindow()
      ├─ createBoard()                  // ShogiGameController と ShogiView、時計と時間表示、外観コントローラ、盤の操作（BoardInteractionController）
      ├─ createPanels()                 // 棋譜欄・ドックの中身（思考・検討・通信ログ・コメント・分岐ツリー）・評価値グラフ・対局情報、棋譜の表示と編集
      ├─ createMatchAndAnalysis()       // エンジンの枠・司令塔・検討・通信対局の司令塔、人間の手番の判定、盤の着手（BoardMoveController）、局面編集
-     ├─ createPresentersAndDocks()     // 評価値グラフ・候補手の矢印・対局者情報、メニューウィンドウ・定跡ウィンドウ・棋譜解析結果、ドックの生成と配置
+     ├─ createPresentersAndDocks()     // 評価値グラフ・エンジンの表示（EngineDisplayPresenter。評価値グラフの後）・候補手の矢印・対局者情報、メニューウィンドウ・定跡ウィンドウ・棋譜解析結果、ドックの生成と配置
      ├─ createSessions()               // UI 状態ポリシー・通知・駒音、棋譜の読み込み・保存、GameSession、CsaGameSession
      ├─ createControllers()            // 言語・読み筋クリック・検討・棋譜解析・詰み探索・MainWindowActions・DialogLauncher など
      │
@@ -7442,8 +7490,9 @@ MainWindow は `.ui` の保持と閉じるときの処理だけを持ち、ロ�
 | `SessionResetCoordinator` | 対局の開始前・新規・局面編集・棋譜の読み込み前に、棋譜と表示を作り直す |
 | `DockCreationService` | ドックウィジェットの生成・設定復元・メニュー登録 |
 | `CommentCoordinator` | 表示中の手のコメント・しおりの表示と編集 |
-| `ConsiderationUiController` | 検討タブの操作（開始・中止・エンジン変更・候補手の数）と検討中の表示 |
-| `PlayerInfoPresenter` | 対局者名・エンジン名と対局情報の表示 |
+| `ConsiderationUiController` | 検討タブの操作（開始・中止・エンジン変更・候補手の数）を検討のセッションへ伝える |
+| `PlayerInfoPresenter` | 盤の対局者名の表示 |
+| `EngineDisplayPresenter` | エンジンの表示（思考・検討・通信ログ・2つ目のエンジン欄・評価値グラフの系列名）とその消去 |
 | `KifuNavigationController` / `KifuNavigationState` | 棋譜を移る操作と、表示中の手 |
 | `KifuDisplayPresenter` / `BoardSyncPresenter` | 表示中の手に合わせた棋譜欄・分岐ツリー・盤の表示 |
 | `BoardMoveController` | 盤で指した手の振り分け |
@@ -7498,7 +7547,7 @@ sequenceDiagram
     Note over GS: 時計に持ち時間を設定（TimeControlUtil::applyToClock）<br/>→ 時計の表示
     GS->>DOC: beginMatch(players, time, continuesRecord)
     Note over DOC: 対局者・持ち時間・開始日時を記録し、<br/>対局情報を作り直す（headerReset → 対局情報欄・盤の対局者名）
-    GS->>GS: PlayerInfoPresenter::showPlayers()<br/>（対局者名・エンジン名の表示）
+    GS->>GS: PlayerInfoPresenter::showPlayers()<br/>（盤の対局者名。エンジンの表示は playersChanged を受けた EngineDisplayPresenter）
     GS->>MC: start(MatchStartOptions)
     Note over MC: 動作状態を DuringGame にし、<br/>盤を開始局面にする
     MC->>ST: 対局者の組で Strategy を作って start()
@@ -7689,6 +7738,7 @@ sequenceDiagram
     participant User as ユーザー
     participant CTM as ConsiderationTabManager
     participant CUI as ConsiderationUiController
+    participant EDP as EngineDisplayPresenter
     participant AS as AnalysisSession
     participant USI as Usi
     participant TIF as ThinkingInfoFormatter
@@ -7696,15 +7746,17 @@ sequenceDiagram
     participant SETM as ShogiEngineThinkingModel
     participant NS as KifuNavigationState
 
-    User->>CTM: 検討ボタンクリック
+    User->>CTM: 開始/中止ボタンクリック（RunState が Idle）
     CTM-->>CUI: startConsiderationRequested → startConsideration()
-    Note over CUI: 検討タブの設定を読み、表示中の手順（分岐ツリー）から<br/>ConsiderationPositionResolver で検討する局面と直前の手を決め、<br/>AnalysisOptions を作る
+    Note over CUI: 検討タブの設定（settings()）を読み、表示中の手順（分岐ツリー）から<br/>ConsiderationPositionResolver で検討する局面と直前の手を決め、<br/>AnalysisOptions を作る
     CUI->>AS: start(AnalysisOptions)
     AS->>USI: createEngine(1, ...) → startEngine(enginePath, engineName)（E1 の枠）
     Note over USI: エンジンプロセス起動<br/>usi → usiok<br/>isready → readyok
     AS->>USI: startConsideration(position, byoyomiMs, multiPV)
     Note over USI: setoption MultiPV を送信<br/>position ... を送信<br/>go infinite を送信（時間制限は stopAfterMs）
-    AS-->>CTM: considerationSearchStarted シグナル（経過時間を数え直す）
+    AS-->>EDP: considerationSearchStarted シグナル
+    EDP->>CTM: setRunState(Running)（経過時間を数え直す）
+    Note over EDP: E1 の読み筋を検討の表へ（UsiModelBinding::setConsideration）、<br/>検討タブ・思考タブの情報欄を E1 のモデルに
 
     loop エンジン思考中
         USI-->>TIF: info行受信
@@ -7718,8 +7770,9 @@ sequenceDiagram
     alt 時間制限あり
         USI->>USI: 制限時間で stop送信
         USI-->>AS: bestMoveReceived シグナル
-        AS-->>CUI: considerationWaitingStarted シグナル
-        Note over CUI: 経過時間を止めて次の局面を待つ<br/>（ボタンは「検討中止」のまま）
+        AS-->>EDP: considerationWaitingStarted シグナル
+        EDP->>CTM: setRunState(Waiting)
+        Note over CTM: 経過時間を止めて次の局面を待つ<br/>（ボタンは「検討中止」のまま）
     end
 
     alt ユーザーが局面を移動
@@ -7727,38 +7780,40 @@ sequenceDiagram
         NS-->>AS: changed() シグナル → followDisplayedPosition()
         AS->>AS: updatePosition(UsiPosition::fromSfen(node->sfen(), lastMove))
         AS->>USI: stop → bestmove待ち
-        AS-->>CTM: considerationResultsCleared シグナル（表を消す）
+        AS-->>EDP: considerationResultsCleared シグナル（検討の表を消す）
         AS->>USI: startConsideration(newPosition, ...)
         Note over AS: 新しい局面で検討を再開
     end
 
-    User->>CTM: 検討中止ボタンクリック
+    User->>CTM: 開始/中止ボタンクリック（RunState が Running・Waiting）
     CTM-->>CUI: stopConsiderationRequested → stopConsideration()
     CUI->>AS: stop()
     AS->>USI: 探索を取り消し、エンジンを破棄（EngineLifecycleManager）
-    AS-->>CUI: considerationModeEnded シグナル（動作状態はアイドルへ）
-    Note over CUI: 経過時間を止め、ボタンを戻し<br/>矢印を消す
+    AS-->>EDP: considerationModeEnded シグナル（動作状態はアイドルへ）
+    EDP->>CTM: setRunState(Idle)（経過時間を止め、ボタンを「検討開始」に戻す）
+    Note over CTM: CandidateArrowPresenter も considerationModeEnded を受けて矢印を消す
 ```
 
 **主要クラスの役割:**
 
 | クラス | 責務 |
 |--------|------|
-| `ConsiderationTabManager` | 検討ドックの中身（`src/widgets/`）。エンジン選択・時間設定・MultiPV設定・検討開始/中止ボタン。設定の保存・復元も担う |
-| `ConsiderationUiController` | 検討タブの開始・中止・エンジン変更・候補手の数を検討のセッションへ伝え、経過時間・ボタン・矢印の表示を合わせる（`src/ui/controllers/`） |
+| `ConsiderationTabManager` | 検討ドックの中身（`src/widgets/`）。エンジン選択・時間設定・MultiPV設定・矢印・開始/中止ボタン。設定は `ConsiderationSettings` を正本として持ち（`settings()`・`setSettings()`・`settingsChanged`）、保存・復元も担う。ボタンと経過時間は実行の状態（`RunState`）で決まる |
+| `ConsiderationUiController` | 検討タブの開始・中止・条件の変更（エンジン・候補手の数）・エンジン設定を検討のセッションへ伝える。表示には触れない（`src/ui/controllers/`） |
+| `EngineDisplayPresenter` | 検討タブの実行の状態・情報欄・検討の表への読み筋を、`AnalysisSession` の知らせだけから決める（`src/ui/presenters/`） |
 | `ConsiderationPositionResolver` | 表示中の手順から検討する局面（`UsiPosition`。直前の手を含む）を決める（`src/kifu/`） |
 | `AnalysisSession` | 検討・詰み探索のセッション。E1 の枠にエンジンを作り、局面や候補手の数が変わるたびに探索をやり直す。検討中は `KifuNavigationState::changed` を受けて表示中の局面を追う（`src/analysis/`） |
 | `Usi` | エンジンへのposition/goコマンド送信、info行の受信 |
-| `ThinkingInfoFormatter` | info行を解析し、評価値・読み筋（漢字変換含む）を `ThinkingInfoRow` にしてシグナルで通知（`src/engine/`） |
+| `ThinkingInfoFormatter` | info行を解析し、評価値・読み筋（漢字変換含む）を `ThinkingInfoRow` に、探索状況を `EngineSearchStatus` にしてシグナルで通知（`src/engine/`） |
 | `UsiModelBinding` | エンジン1台のシグナルを受けて、思考の表・検討の表・情報欄・通信ログのモデルを更新する（`src/ui/presenters/`） |
 | `ShogiEngineThinkingModel` | 思考情報の表示モデル（MultiPV対応。`src/models/`） |
-| `CandidateArrowPresenter` | 検討の表のモデルの候補手から盤の矢印を描く（`src/ui/presenters/`） |
+| `CandidateArrowPresenter` | 検討中（`AnalysisSession::isConsidering()`）なら、検討の表のモデルの候補手から盤の矢印を描く（`src/ui/presenters/`） |
 
 **補足:**
-- 検討モードのMultiPVは動的に変更可能。`ConsiderationTabManager::considerationMultiPVChanged` → `ConsiderationUiController::onMultiPVChanged()` → `AnalysisSession::updateMultiPV()` の経路で伝わり、探索をやり直す
+- 検討モードのMultiPVは動的に変更可能。`ConsiderationTabManager::settingsChanged` → `ConsiderationUiController::onSettingsChanged()` → `AnalysisSession::updateMultiPV()` の経路で伝わり、探索をやり直す
 - 局面変更・MultiPV変更のやり直しは `AnalysisSession` の状態（`State`）で1つにまとめる。探索中なら stop を送って bestmove を待ち（`StoppingSearch`）、それから新しい局面で go を送る（`RestartQueued`）ので、二重に再開しない
-- 矢印表示は `ConsiderationUiController::updateArrows()` が `CandidateArrowPresenter::setConsiderationState()` に検討中かどうか・表示の有無・検討タブのモデルを渡し、`CandidateArrowPresenter` がモデルの候補手から `ShogiView` に矢印を描く
-- 検討中にエンジンを変えると、`ConsiderationUiController::onEngineChanged()` が検討を止めて新しいエンジンで始め直す
+- 矢印表示は `CandidateArrowPresenter` が、検討中かどうかを `AnalysisSession::isConsidering()` から、表示の有無を検討タブの設定（`Deps::showConsiderationArrows`）から、候補手を検討の表のモデル（`Deps::consideration`）から読み、`ShogiView` に矢印を描く
+- 検討中にエンジンを変えると、`ConsiderationUiController::onSettingsChanged()` が検討を止めて新しいエンジンで始め直す
 
 ---
 
@@ -8975,8 +9030,9 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | CommentCoordinator | C | ui/coordinators | コメント編集の統合調整 | 第14章 |
 | ConsecutiveGameSeries | C | game | エンジン同士の連続対局（局数・手番の入れ替え・次局の計画） | 第6章 |
 | ConsiderationPositionResolver | C | kifu | 表示中の手順から検討する局面と直前の手を決める | 第9章 |
-| ConsiderationTabManager | C | widgets | 検討ドックの中身（ツールバー・エンジン情報・候補手の表） | 第9章, 第11章 |
-| ConsiderationUiController | C | ui/controllers | 検討タブの開始・中止・エンジン変更・候補手の数と、検討中の経過時間・矢印 | 第9章, 第10章 |
+| ConsiderationSettings | S | widgets | 検討タブの設定の値（エンジン・時間・候補手の数・矢印） | 第9章 |
+| ConsiderationTabManager | C | widgets | 検討ドックの中身（ツールバー・エンジン情報・候補手の表）。設定の正本と実行の状態（`RunState`）を持つ | 第9章, 第11章 |
+| ConsiderationUiController | C | ui/controllers | 検討タブの開始・中止・条件の変更・エンジン設定を検討のセッションへ伝える | 第9章, 第10章 |
 | CsaClient | C | network | CSAプロトコル通信クライアント | 第12章 |
 | CsaEngineController | C | network | 通信対局でエンジンが指すときの Usi の起動と思考 | 第12章 |
 | CsaExporter | C | kifu/formats | CSA形式の書き出し | 第8章 |
@@ -8997,7 +9053,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | DockUiCoordinator | C | ui/coordinators | ドック配置のメニュー（リセット・保存・ロック・保存済み配置）の接続 | 第10章 |
 | ElideLabel | C | widgets | テキスト省略表示ラベル | 第11章 |
 | EngineAnalysisRunner | C | automation | 登録エンジンで1局面を一定時間解析する実行器（CLI・自動化 API と共有） | 第7章 |
-| EngineDisplayPresenter | C | ui/presenters | 対局・検討のエンジン（枠 E1・E2）の思考情報と通信ログの表示 | 第10章 |
+| EngineDisplayPresenter | C | ui/presenters | エンジンの表示の持ち主（枠 E1・E2 とモデルの結び・検討の表示・2つ目のエンジン欄・評価値グラフの系列名・表示の消去） | 第9章, 第10章 |
 | EngineInfoWidget | C | widgets | エンジン情報表示ウィジェット（列幅を自分で保存） | 第11章 |
 | EngineLifecycleManager | C | game | エンジンの枠 E1・E2 の生成・起動・破棄と手番との対応（対局・検討・棋譜解析・通信対局で共有） | 第6章 |
 | EngineListSettings | NS | services | 設定ファイルの登録エンジン一覧の読み書き | 第7章 |
@@ -9008,12 +9064,14 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | EngineProcessManager | C | engine | エンジンプロセスのライフサイクル管理 | 第7章 |
 | EngineRegistrationDialog | C | dialogs | エンジン登録・設定ダイアログ | 第11章 |
 | EngineRegistrationHandler | C | engine | エンジン登録のワーカースレッド管理・USI解析・設定の永続化 | 第7章 |
+| EngineSearchStatus | S | engine | エンジンの探索状況（探索中の手・深さ・ノード数・NPS・ハッシュ使用率）の値 | 第7章 |
 | EngineSettingsConstants | NS | services | エンジン設定の定数定義 | 第7章 |
 | EngineSettingsOptionHandler | C | dialogs | エンジン設定オプションのウィジェット生成・データ管理 | 第11章 |
 | EngineVsEngineStrategy | C | game | エンジン対エンジンの Strategy | 第6章 |
 | ErrorBus | C | common | アプリ全体のエラー通知イベントバス（シングルトン） | 第4章, 第12章 |
-| EvaluationChartWidget | C | widgets | 評価値グラフチャートウィジェット | 第11章 |
-| EvaluationGraphPresenter | C | ui/presenters | 対局中の評価値と表示中の手数を評価値グラフに出す | 第10章 |
+| EvaluationChartWidget | C | widgets | 評価値グラフチャートウィジェット（`EvaluationSeries` を描くだけ） | 第11章 |
+| EvaluationGraphPresenter | C | ui/presenters | 評価値グラフの点の書き手（対局・通信対局・棋譜解析）と表示中の手数 | 第10章 |
+| EvaluationSeries | C | models | 評価値グラフの点（先手から見た評価値の列が2本・系列名・解析した手順の番号） | 第10章 |
 | FixedTimeSource | C | engine | 決まった残り時間を返すエンジンの時間の出どころ（時計のない対局・テスト） | 第7章 |
 | FlowLayout | C | widgets | フロー（折り返し）レイアウトマネージャ | 第11章 |
 | FontSizeHelper | C | widgets | 文字の大きさ（A-/A+）の状態・範囲・保存と変更の通知 | 第11章 |
@@ -9108,7 +9166,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | ParseOptions | S | kifu | 読めない手・指せない手・パスの扱い（手順を打ち切るか、棋譜全体を失敗にするか） | 第8章 |
 | ParseReport | C | kifu | 読み込み中の警告と失敗の記録（`ParseOptions` に従って読めない手を扱う） | 第8章 |
 | PieceSoundPlayer | C | services | 駒音（駒を指したときの効果音）の再生 | 第10章 |
-| PlayerInfoPresenter | C | ui/presenters | 対局者名・エンジン名と対局情報を盤・対局情報ドック・通信ログ見出し・思考タブ・評価値グラフに出す | 第10章, 第12章 |
+| PlayerInfoPresenter | C | ui/presenters | 盤の対局者名を出す | 第10章, 第12章 |
 | Position | C | core | 局面の値（盤・持ち駒・手番・手数）。SFEN の読み書きと指し手の適用 | 第2章, 第5章 |
 | PositionEditController | C | board | 局面編集モードの制御 | 第13章 |
 | PositionEditCoordinator | C | ui/coordinators | 局面編集の統合調整 | 第10章 |
@@ -9143,7 +9201,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | TableButtonDelegate | C | widgets | 表のセルを控えめなボタンとして描画する（読み筋の盤面・定跡手の着手と編集など） | 第11章 |
 | TableHeaderView | C | widgets | 表の見出し。列幅は利用者がドラッグしたときだけ `sectionResizedByUser` で知らせて保存する | 第11章 |
 | TerminalCodes | NS | kifu/formats | 棋譜形式ごとの終局の符号（CSA・JKF・USI・USEN） | 第8章 |
-| ThinkingInfoFormatter | C | engine | エンジンの info 行を、思考の表・情報欄に出す値（`ThinkingInfoRow`）に整える | 第7章 |
+| ThinkingInfoFormatter | C | engine | エンジンの info 行を、思考の表の行（`ThinkingInfoRow`）と探索状況（`EngineSearchStatus`）にする | 第7章 |
 | ThinkingInfoRow | S | engine | 思考タブの1行分の表示データ | 第7章 |
 | ThinkingPanel | C | widgets | 思考ドックの中身（エンジン2つ分の情報と思考の表、候補手の矢印の表示設定） | 第11章 |
 | ThinkingTableView | C | widgets | 思考の表（対局のエンジン2つと検討タブで共用。列幅・数値の書式・「盤面」ボタン） | 第11章 |
@@ -9163,7 +9221,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | Usi | C | engine | GUI から使う USI エンジン1台の窓口（型付きの送信メソッド） | 第7章 |
 | UsiBestMove | S | engine | エンジンが返した bestmove の値型 | 第7章 |
 | UsiCommandController | C | ui/controllers | USIエンジンコマンド送信の制御 | 第10章 |
-| UsiCommLogModel | C | models | USI通信ログ・エンジン情報モデル | 第7章, 第11章 |
+| UsiCommLogModel | C | models | エンジン1台の情報欄（エンジン名・探索状況・予想手）と通信ログの行の知らせ | 第7章, 第11章 |
 | UsiEngineSession | C | engine | USI エンジン1台への接続（起動・初期化・探索・終了）。GUI と CLI が共用する | 第7章 |
 | UsiExporter | C | kifu/formats | USI形式の書き出し | 第8章 |
 | UsiInfo | S | engine | info 行を解析した値（UsiScore を含む） | 第7章 |
@@ -9243,8 +9301,9 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | usienginesession | 第7章 | USI エンジン1台への接続（起動・初期化・探索・終了）。GUI と CLI が共用する |
 | usilineparser | 第7章 | エンジンからの受信行（info・bestmove・checkmate・option・id）を型付きの値にする |
 | engineregistrationhandler | 第7章 | エンジン登録のワーカースレッド管理・USI解析・設定の永続化 |
-| thinkinginfoformatter | 第7章 | エンジンの info 行を、思考の表・情報欄に出す値（`ThinkingInfoRow`）に整える |
+| thinkinginfoformatter | 第7章 | エンジンの info 行を、思考の表の行（`ThinkingInfoRow`）と探索状況（`EngineSearchStatus`）にする |
 | thinkinginforow | 第7章 | 思考タブの1行分の表示データ |
+| enginesearchstatus | 第7章 | 探索状況（探索中の手・深さ・ノード数・NPS・ハッシュ使用率）の値 |
 | usiinfo | 第7章 | info 行を解析した値（`UsiScore` を含む） |
 
 #### kifu/（第8章）
@@ -9337,20 +9396,20 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | ファイル | 解説章 | 内容 |
 |---------|--------|------|
 | boardsyncpresenter | 第10章 | 表示中の手の局面に盤を合わせ、ハイライトと手番を示す |
-| playerinfopresenter | 第10章, 第12章 | 対局者名・エンジン名と対局情報の表示 |
+| playerinfopresenter | 第10章, 第12章 | 盤の対局者名の表示 |
 | timedisplaypresenter | 第10章 | 時間表示更新（`ShogiClock::timeUpdated` を直接受ける） |
 | analysisresulthandler | 第9章, 第10章 | 棋譜解析の結果の蓄積・確定・読み筋表示 |
 | candidatearrowpresenter | 第9章, 第10章 | 検討と対局のエンジンの読みを盤上の矢印にする |
 | kifudisplaypresenter | 第10章 | 棋譜欄・分岐候補欄・分岐ツリーに、表示中の手と手順を映す |
-| enginedisplaypresenter | 第10章 | 対局・検討のエンジン（枠 E1・E2）の思考情報と通信ログの表示 |
-| evaluationgraphpresenter | 第10章 | 対局中の評価値と表示中の手数を評価値グラフに出す |
+| enginedisplaypresenter | 第9章, 第10章 | エンジンの表示の持ち主（枠 E1・E2 とモデルの結び・検討の表示・2つ目のエンジン欄・系列名・表示の消去） |
+| evaluationgraphpresenter | 第10章 | 評価値グラフの点の書き手と表示中の手数 |
 | usimodelbinding | 第7章, 第10章 | エンジン1台の思考情報・通信ログを、表示のモデルへ反映する |
 
 #### ui/controllers/（第10章）
 
 | ファイル | 解説章 | 内容 |
 |---------|--------|------|
-| considerationuicontroller | 第9章, 第10章 | 検討タブの操作と検討中の表示 |
+| considerationuicontroller | 第9章, 第10章 | 検討タブの操作を検討のセッションへ伝える |
 | josekiwindowcontroller | 第10章 | 定跡ウィンドウ |
 | menuwindowcontroller | 第10章 | メニューウィンドウ |
 | jishogiscoredialogcontroller | 第10章 | 持将棋点数ダイアログ |
@@ -9400,8 +9459,8 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | recordpane | 第11章 | 棋譜ペイン |
 | branchtreemanager | 第11章, 第13章 | 分岐ツリーの表示（branchtreemanager.cpp と描画の branchtreemanager_draw.cpp） |
 | branchtreelayout | 第11章 | 分岐ツリーの行の折りたたみと段の割り当て |
-| evaluationchartwidget | 第11章 | 評価値チャート |
-| engineinfowidget | 第11章 | エンジン情報（列幅を自分で保存） |
+| evaluationchartwidget | 第11章 | 評価値チャート（`EvaluationSeries` を描くだけ） |
+| engineinfowidget | 第11章 | エンジン情報（探索状況の書式を決める。列幅を自分で保存） |
 | menubuttonwidget | 第11章 | メニューボタン |
 | collapsiblegroupbox | 第11章 | 折りたたみボックス |
 | elidelabel | 第11章 | テキスト省略ラベル |
@@ -9413,7 +9472,8 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | dialogutils | 第11章, 第17章 | ダイアログの大きさの保存・復元など |
 | fontsizehelper | 第11章, 第17章 | A-/A+ のフォントサイズ調整 |
 | analysisresultspanel | 第9章, 第11章 | 棋譜解析の結果ドックの中身（結果の表・停止ボタン・文字の大きさ） |
-| considerationtabmanager | 第9章, 第11章 | 検討ドックの中身（ツールバー・エンジン情報・候補手の表） |
+| considerationtabmanager | 第9章, 第11章 | 検討ドックの中身（ツールバー・エンジン情報・候補手の表。設定の正本と実行の状態） |
+| considerationsettings | 第9章 | 検討タブの設定の値（エンジン・時間・候補手の数・矢印） |
 | gameinfopane | 第11章 | 対局情報ドックの中身（ツールバー＋表） |
 | tableheaderview | 第11章 | 表の見出し。列幅は利用者がドラッグしたときだけ `sectionResizedByUser` で知らせて保存する |
 | thinkingpanel | 第11章 | 思考ドックの中身（エンジン2つ分の情報と思考の表、候補手の矢印の表示設定） |
@@ -9458,7 +9518,8 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | gameinfoeditmodel | 第11章 | 対局情報の表の中身・編集の履歴・未反映の判定 |
 | shogienginethinkingmodel | 第7章 | 思考結果モデル |
 | shogiinforecord | 第7章, 第8章 | 思考情報レコード |
-| usicommlogmodel | 第7章 | 通信ログモデル |
+| usicommlogmodel | 第7章 | 情報欄（エンジン名・探索状況・予想手）と通信ログの行の知らせ |
+| evaluationseries | 第10章 | 評価値グラフの点（先手から見た評価値の列が2本） |
 
 #### services/（第12章）
 

@@ -321,6 +321,13 @@
 - 表示の持ち主の整理は8〜9ファイル約800行、探索状況の中継は5ファイル約900行。
 - テスト: `tst_candidate_arrows`・`tst_wiring_analysistab`・`tst_thinking_display_updates`・`tst_evaluationchart`・`tst_analysisflow`・`tst_preset_gamestart_cleanup`。
 
+**状態: 済（0dac64de・f0b1d80c）**。案から変えた点:
+- 評価値は手数ごとの値の列 `EvaluationSeries`（`src/models/evaluationseries.h`）にした（node ID ではなく手数。グラフの横軸と棋譜解析の結果が手数で引くため）。書き手は `EvaluationGraphPresenter` の1つで、対局のエンジンの値は `plotEngineScore`、棋譜解析の値は `plotAnalysisScore` で書く。先手から見た値への符号の処理は `EvaluationSeries::blackView` の1か所。グラフ（`EvaluationChartWidget`）は系列の変更の知らせを受けて描くだけで、点は100msまとめてから描く。
+- 探索状況は `EngineSearchStatus`（`src/engine/enginesearchstatus.h`）を info 1行につき1回送る（`ThinkingInfoFormatter::searchStatusUpdated`）。3桁区切りなどの書式は表示の側（`EngineInfoWidget`）で決める。通信ログの1行は `UsiCommLogModel::logLineAppended` で送る。
+- エンジンの表示の持ち主は既存の `EngineDisplayPresenter` に集めた。検討中かは `AnalysisSession::isConsidering()` だけを正本にし、検討タブの実行の状態（`ConsiderationTabManager::RunState`）はセッションの知らせから決める。2つ目のエンジン欄と評価値グラフの系列名は文書の対局者（`KifuDocument::playersChanged`）から決める。
+- 矢印を出すかは検討タブの設定（`ConsiderationSettings::showArrows`）の1つで、`CandidateArrowPresenter` はフック `showConsiderationArrows` で読む。
+- `SessionResetCoordinator` の Deps は5個（文書・ライブ記録・読み込み・評価値グラフ・エンジンの表示）になった。
+
 ### R7. 盤の操作の判定・局面編集・ハイライト（board・views・ui）
 
 **問題**

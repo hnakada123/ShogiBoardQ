@@ -183,7 +183,7 @@ struct MainWindowComponents {
     // --- 表示 ---
     MainWindowAppearanceController* appearance = nullptr;
     PlayerInfoPresenter* playerInfo = nullptr;
-    EngineDisplayPresenter* engineDisplay = nullptr;   ///< 枠のエンジンの思考情報・通信ログの表示
+    EngineDisplayPresenter* engineDisplay = nullptr;   ///< エンジンの表示（思考・検討・通信ログ・2つ目のエンジン欄・系列名）の持ち主
     EvaluationGraphPresenter* evalGraph = nullptr;
     CandidateArrowPresenter* arrows = nullptr;          ///< 候補手の矢印
     AnalysisResultsPanel* analysisResults = nullptr;
