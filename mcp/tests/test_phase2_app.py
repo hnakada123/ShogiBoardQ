@@ -230,7 +230,9 @@ async def test_tsume_board_clicks(app_env, tmp_path):
                 await asyncio.sleep(0.1)
                 text, _, error = await _call(session, "click_board_square", target="tsumePlayDialog", file=1, rank=1)
                 assert error and "blocked" in text
-                await call("click_dialog_button", target=await message_box(session, "成りますか"), text="成る")
+                # 成りの確認は主画面と同じ PromoteDialog
+                promote = await message_box(session, "成りますか", window_class="PromoteDialog")
+                await call("click_dialog_button", target=promote, text="成る")
             await asyncio.sleep(0.1)
             assert "残り3手" in await wait_ready()
             moved = await board()
