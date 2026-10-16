@@ -3,83 +3,53 @@
 
 #include "thinkingtableview.h"
 
-#include "kifumovedelegate.h"
-#include "numericrightaligncommadelegate.h"
-#include "pvtextdelegate.h"
 #include "shogienginethinkingmodel.h"
-#include "tablebuttondelegate.h"
 #include "tablemodelutils.h"
 #include "tableheaderview.h"
-#include "tablestyles.h"
 
 #include <QFontMetrics>
 #include <QHeaderView>
-#include <QItemSelectionModel>
 
 using Column = ShogiEngineThinkingModel::Column;
 
+namespace {
+PvTableView::Columns thinkingColumns()
+{
+    PvTableView::Columns columns;
+    columns.numeric = {Column::TimeColumn, Column::DepthColumn, Column::NodesColumn, Column::ScoreColumn};
+    columns.board = Column::BoardColumn;
+    columns.pv = Column::PvColumn;
+    return columns;
+}
+} // namespace
+
 ThinkingTableView::ThinkingTableView(AnalysisSettings::ThinkingTable table, QWidget* parent)
-    : IncrementalTableView(parent)
+    : PvTableView(thinkingColumns(), 4, parent)
     , m_table(table)
 {
-    setStyleSheet(TableStyles::thinking());
-    setShowGrid(false);
-    setMouseTracking(true);
-    setWordWrap(false);
-    setSelectionBehavior(QAbstractItemView::SelectRows);
-    setSelectionMode(QAbstractItemView::SingleSelection);
-    setEditTriggers(QAbstractItemView::NoEditTriggers);
-    setHorizontalScrollMode(QAbstractItemView::ScrollPerPixel);
     // 思考を始めるたびに表を消すので、縦のスクロールバーが毎回消えては現れ、そのたびに
     // 表示領域と最後の列の幅が変わって、表と見出しの全体を描き直していた。常に出しておく。
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
-
-    auto* numeric = new NumericRightAlignCommaDelegate(this);
-    for (const int column : {Column::TimeColumn, Column::DepthColumn, Column::NodesColumn, Column::ScoreColumn})
-        setItemDelegateForColumn(column, numeric);
-    setItemDelegateForColumn(Column::BoardColumn, new TableButtonDelegate(this));
-    setItemDelegateForColumn(Column::PvColumn, new PvTextDelegate(this));
 
     auto* header = static_cast<TableHeaderView*>(horizontalHeader());
     header->setDefaultSectionSize(100);
     header->setMinimumSectionSize(24);
     header->setStretchLastSection(true);
-    verticalHeader()->setVisible(false);
-    verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
-    verticalHeader()->setDefaultSectionSize(KifuMoveDelegate::textHeight(font()) + 4);
 
     connect(header, &TableHeaderView::sectionResizedByUser, this, &ThinkingTableView::onSectionResizedByUser);
-    connect(this, &QTableView::clicked, this, &ThinkingTableView::onClicked);
+    connect(this, &PvTableView::boardRequested, this, &ThinkingTableView::onBoardRequested);
 }
 
 void ThinkingTableView::setThinkingModel(ShogiEngineThinkingModel* model)
 {
     m_model = model;
     TableModelUtils::setModel(this, model);
-    applyColumnWidths();
+    fitColumns();
 }
 
-void ThinkingTableView::setFontPointSize(int pointSize)
+void ThinkingTableView::onBoardRequested(int row)
 {
-    QFont font;
-    font.setPointSize(pointSize);
-    setFont(font);
-    setStyleSheet(TableStyles::thinking(pointSize));
-    verticalHeader()->setDefaultSectionSize(KifuMoveDelegate::textHeight(this->font()) + 4);
-    applyColumnWidths();
-}
-
-void ThinkingTableView::clearRowSelection()
-{
-    if (auto* selection = selectionModel()) {
-        selection->clearSelection();
-        selection->setCurrentIndex(QModelIndex(), QItemSelectionModel::NoUpdate);
-    }
-}
-
-void ThinkingTableView::onClicked(const QModelIndex& index)
-{
-    if (m_model && index.isValid() && index.column() == Column::BoardColumn) emit pvRowClicked(m_model, index.row());
+    if (m_model) emit pvRowClicked(m_model, row);
 }
 
 void ThinkingTableView::onSectionResizedByUser(int logicalIndex)
@@ -91,7 +61,7 @@ void ThinkingTableView::onSectionResizedByUser(int logicalIndex)
     AnalysisSettings::setThinkingViewColumnWidths(m_table, widths);
 }
 
-void ThinkingTableView::applyColumnWidths()
+void ThinkingTableView::fitColumns()
 {
     if (!m_model) return;
     const QFontMetrics metrics(font());

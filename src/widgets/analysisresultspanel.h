@@ -5,7 +5,7 @@
 /// @brief 棋譜解析の結果ドックの中身（結果の表・停止ボタン・文字の大きさ）
 
 #include <QWidget>
-#include <QTableView>
+#include "pvtableview.h"
 #include <QHeaderView>
 
 #include "fontsizehelper.h"
@@ -33,7 +33,7 @@ public:
     void setModel(KifuAnalysisListModel* model);
 
     /// 結果テーブルビューを返す
-    QTableView* view() const { return m_view; }
+    PvTableView* view() const { return m_view; }
 
     /// 解析中止ボタンの有効/無効を切り替える
     void setStopButtonEnabled(bool enabled);
@@ -70,8 +70,8 @@ private slots:
     /// レイアウト変更時に再配置を行う
     void onLayoutChanged();
 
-    /// テーブルクリック時に行選択通知を行う
-    void onTableClicked(const QModelIndex& index);
+    /// 「盤面」が押された（解析中でなければ rowDoubleClicked で知らせる）
+    void onBoardRequested(int row);
 
     /// 選択行変更時に通知を行う
     void onTableSelectionChanged(const QModelIndex& current, const QModelIndex& previous);
@@ -89,7 +89,7 @@ private:
     void applyFontSize(int size);
     void updateProgress();
 
-    QTableView* m_view = nullptr;           ///< 解析結果テーブル
+    PvTableView* m_view = nullptr;          ///< 解析結果テーブル（読み筋の表）
     QHeaderView* m_header = nullptr;        ///< テーブルヘッダー
     QPushButton* m_stopButton = nullptr;    ///< 中止ボタン
     QPushButton* m_fontDecrease = nullptr;

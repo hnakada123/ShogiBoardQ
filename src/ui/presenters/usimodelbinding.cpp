@@ -51,7 +51,7 @@ void UsiModelBinding::onThinkingRow(const ThinkingInfoRow& row)
 
 void UsiModelBinding::onThinkingCleared()
 {
-    if (m_thinking) m_thinking->clearAllItems();
+    if (m_thinking) m_thinking->clear();
 }
 
 void UsiModelBinding::onSearchStatus(const EngineSearchStatus& status)

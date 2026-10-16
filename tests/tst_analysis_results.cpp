@@ -10,7 +10,7 @@
 #include "analysisjob.h"
 #include "analysisresulthandler.h"
 #include "kifuanalysislistmodel.h"
-#include "kifuanalysisresultsdisplay.h"
+#include "kifuanalysisrow.h"
 #include "usilineparser.h"
 
 namespace {
@@ -137,7 +137,7 @@ private slots:
         // ply=3 は後手番なので先手から見た値に符号を直す
         QCOMPARE(handler.append(result(3, UsiScore::cp(80), {QStringLiteral("3c3d")})).value, -80);
         QCOMPARE(model.rowCount(), 2);
-        QCOMPARE(model.item(0)->usiPv(), QStringLiteral("7g7f"));
+        QCOMPARE(model.row(0)->usiPv, QStringLiteral("7g7f"));
     }
 
     void bookResultHasNoScoreOrPv()
@@ -150,8 +150,8 @@ private slots:
         book.ply = 1;
         book.book = true;
         QVERIFY(handler.append(book).isNone());
-        QCOMPARE(model.item(0)->principalVariation(), QStringLiteral("（定跡）"));
-        QCOMPARE(model.item(0)->usiPv(), QString());
+        QCOMPARE(model.row(0)->pv, QStringLiteral("（定跡）"));
+        QCOMPARE(model.row(0)->usiPv, QString());
     }
 
     void mateScoresKeepTheirSide()
@@ -175,20 +175,20 @@ private slots:
         refs.analysisModel = &model;
         AnalysisResultHandler handler(refs);
         handler.append(result(0, UsiScore::cp(120), {QStringLiteral("7g7f")}));
-        QVERIFY(!model.item(0)->evaluationDifference());
+        QVERIFY(!model.row(0)->evaluationDifference);
         QCOMPARE(model.index(0, 5).data().toString(), QStringLiteral("-"));
         handler.append(result(1, UsiScore::cp(-160), {QStringLiteral("3c3d")}));
-        QCOMPARE(model.item(1)->evaluationDifference(), std::optional<int>(40));
+        QCOMPARE(model.row(1)->evaluationDifference, std::optional<int>(40));
         QCOMPARE(model.index(1, 5).data().toString(), QStringLiteral("40"));
         QVERIFY(handler.append(result(2, UsiScore{}, {QStringLiteral("2g2f")})).isNone());
-        QVERIFY(model.item(2)->evaluation().isNone());
+        QVERIFY(model.row(2)->evaluation.isNone());
         QCOMPARE(model.index(2, 3).data().toString(), QStringLiteral("-"));
-        QVERIFY(!model.item(2)->evaluationDifference());
+        QVERIFY(!model.row(2)->evaluationDifference);
         QVERIFY(model.index(2, 4).data().toString().isEmpty());
         handler.append(result(3, UsiScore::cp(-200), {QStringLiteral("8c8d")}));
-        QVERIFY(!model.item(3)->evaluationDifference());
+        QVERIFY(!model.row(3)->evaluationDifference);
         handler.append(result(4, UsiScore::mate(-3), {QStringLiteral("7g7f")}));
-        QVERIFY(!model.item(4)->evaluationDifference());
+        QVERIFY(!model.row(4)->evaluationDifference);
     }
 
     void mateJudgement_data()
@@ -208,7 +208,9 @@ private slots:
         QFETCH(QString, score);
         QFETCH(QString, judgement);
         KifuAnalysisListModel model;
-        model.appendItem(new KifuAnalysisResultsDisplay(QString(), mateScore(score), std::nullopt, QString()));
+        KifuAnalysisRow row;
+        row.evaluation = mateScore(score);
+        model.appendRow(row);
         QCOMPARE(model.index(0, 3).data().toString(), score);
         QCOMPARE(model.index(0, 4).data().toString(), judgement);
     }

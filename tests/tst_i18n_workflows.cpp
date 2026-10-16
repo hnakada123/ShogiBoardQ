@@ -39,7 +39,7 @@
 #include "sfenutils.h"
 #include "analysisresulthandler.h"
 #include "kifuanalysislistmodel.h"
-#include "kifuanalysisresultsdisplay.h"
+#include "kifuanalysisrow.h"
 #include "kifuanalysisdialog.h"
 #include "test_replay.h"
 
@@ -274,8 +274,10 @@ private slots:
         QCOMPARE(model.index(1, 1).data().toString(), QStringLiteral("△P-3d"));
         QCOMPARE(model.index(1, 2).data().toString(), QStringLiteral("◯"));
         // Equal labels must not create a match between different positions.
-        model.item(1)->candidateSfen = history.last();
-        QVERIFY(model.index(1, 2).data().toString().isEmpty());
+        KifuAnalysisRow otherPosition = *model.row(1);
+        otherPosition.candidateSfen = history.last();
+        model.appendRow(otherPosition);
+        QVERIFY(model.index(2, 2).data().toString().isEmpty());
     }
 
     void importDisplayAndExport_data()
@@ -340,8 +342,8 @@ private slots:
         row.pvKanji = QStringLiteral("▲７六歩(77)△３四歩(33)");
         row.usiPv = QStringLiteral("7g7f 3c3d");
         row.baseSfen = imported.initialSfen;
-        auto* info = new ShogiInfoRecord(row);
-        thinking.appendItem(info);
+        thinking.appendRow(row);
+        const ShogiInfoRecord* info = thinking.recordAt(0);
         const QString pv = thinking.data(thinking.index(0, 5), Qt::DisplayRole).toString();
         QCOMPARE(pv, western ? QStringLiteral("▲P-7f △P-3d") : info->pv());
         // 表示用の読み筋は覚えておくが、表記の設定を変えたら作り直す
@@ -355,20 +357,31 @@ private slots:
             shorter.usiPv = QStringLiteral("7g7f");
             QCOMPARE(ShogiInfoRecord(shorter).displayPv(), QStringLiteral("▲P-7f"));
         }
-        // 棋譜解析の結果の行も同じ。元の値（外から直接書き換える beforeSfen を含む）が変われば作り直す
-        KifuAnalysisResultsDisplay result(QStringLiteral("▲７六歩(77)"), UsiScore::cp(10), 0, info->pv());
+        // 棋譜解析の結果の表も同じ（表記の設定を変えたら作り直す）
+        KifuAnalysisListModel results;
+        KifuAnalysisRow result;
+        result.move = QStringLiteral("▲７六歩(77)");
+        result.evaluation = UsiScore::cp(10);
+        result.evaluationDifference = 0;
+        result.pv = info->pv();
         result.beforeSfen = imported.initialSfen;
-        result.setLastUsiMove(QStringLiteral("7g7f"));
-        result.setSfen(imported.initialSfen);
-        result.setUsiPv(QStringLiteral("7g7f 3c3d"));
-        QCOMPARE(result.displayMove(), western ? QStringLiteral("▲P-7f") : QStringLiteral("▲７六歩(77)"));
-        QCOMPARE(result.displayPv(), pv);
-        result.setLastUsiMove(QStringLiteral("2g2f"));
-        QCOMPARE(result.displayMove(), western ? QStringLiteral("▲P-2f") : QStringLiteral("▲７六歩(77)"));
+        result.lastUsiMove = QStringLiteral("7g7f");
+        result.sfen = imported.initialSfen;
+        result.usiPv = QStringLiteral("7g7f 3c3d");
+        results.appendRow(result);
+        const auto cell = [&results](int row, int column) { return results.index(row, column).data().toString(); };
+        QCOMPARE(cell(0, KifuAnalysisListModel::MoveColumn), western ? QStringLiteral("▲P-7f") : QStringLiteral("▲７六歩(77)"));
+        QCOMPARE(cell(0, KifuAnalysisListModel::PvColumn), pv);
+        // 行ごとに、その行の値から表記を作る
+        result.lastUsiMove = QStringLiteral("2g2f");
+        results.appendRow(result);
+        QCOMPARE(cell(1, KifuAnalysisListModel::MoveColumn), western ? QStringLiteral("▲P-2f") : QStringLiteral("▲７六歩(77)"));
         result.beforeSfen.clear();
-        QCOMPARE(result.displayMove(), western ? QStringLiteral("2g2f") : QStringLiteral("▲７六歩(77)"));
-        result.setUsiPv(QStringLiteral("7g7f"));
-        QCOMPARE(result.displayPv(), western ? QStringLiteral("▲P-7f") : info->pv());
+        results.appendRow(result);
+        QCOMPARE(cell(2, KifuAnalysisListModel::MoveColumn), western ? QStringLiteral("2g2f") : QStringLiteral("▲７六歩(77)"));
+        result.usiPv = QStringLiteral("7g7f");
+        results.appendRow(result);
+        QCOMPARE(cell(3, KifuAnalysisListModel::PvColumn), western ? QStringLiteral("▲P-7f") : info->pv());
         // UIの書体と棋譜の書体を分け、ビュー個別の文字サイズを維持する。
         QFont viewFont = QApplication::font();
         viewFont.setPointSize(19);

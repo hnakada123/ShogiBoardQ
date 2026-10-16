@@ -5,7 +5,6 @@
 #include "fontsizecontrol.h"
 #include "tableheaderview.h"
 #include "tablemodelutils.h"
-#include "kifumovedelegate.h"
 #include "logcategories.h"
 #include "buttonstyles.h"
 #include <QTableView>
@@ -17,12 +16,13 @@
 #include <QLabel>
 #include <QProgressBar>
 #include "elidelabel.h"
-#include "tablestyles.h"
-#include "tablebuttondelegate.h"
-#include "pvtextdelegate.h"
 #include "analysissettings.h"
-#include "numericrightaligncommadelegate.h"
 #include "kifuanalysislistmodel.h"
+
+namespace {
+/// 幅を内容に合わせ、利用者が変えた幅を保存する列（読み筋より前の列）
+constexpr int kSizedColumns = KifuAnalysisListModel::PvColumn;
+} // namespace
 
 AnalysisResultsPanel::AnalysisResultsPanel(QWidget* parent)
     : QWidget(parent)
@@ -36,7 +36,12 @@ AnalysisResultsPanel::AnalysisResultsPanel(QWidget* parent)
     m_reflowTimer->setInterval(0);
     connect(m_reflowTimer, &QTimer::timeout, this, &AnalysisResultsPanel::reflowNow);
 
-    m_view = new QTableView(this);
+    // 読み筋の表（思考の表と共通）。評価値と差は数値の列
+    PvTableView::Columns columns;
+    columns.numeric = {KifuAnalysisListModel::EvaluationColumn, KifuAnalysisListModel::DifferenceColumn};
+    columns.board = KifuAnalysisListModel::BoardColumn;
+    columns.pv = KifuAnalysisListModel::PvColumn;
+    m_view = new PvTableView(columns, 10, this);
     m_view->setObjectName(QStringLiteral("analysisResultsTable"));
 
     // ヘッダー表示用に空のモデルを作成（起動時からヘッダーを表示するため）
@@ -44,39 +49,12 @@ AnalysisResultsPanel::AnalysisResultsPanel(QWidget* parent)
     TableModelUtils::setModel(m_view, emptyModel);
 
     m_view->setAlternatingRowColors(true);
-    m_view->setWordWrap(false);
-    m_view->verticalHeader()->setVisible(false);
-    m_view->setSelectionBehavior(QAbstractItemView::SelectRows);
-    m_view->setSelectionMode(QAbstractItemView::SingleSelection);
     m_view->setTextElideMode(Qt::ElideRight);
-
-    m_view->setStyleSheet(TableStyles::thinking());
-    m_view->setShowGrid(false);
-    m_view->setMouseTracking(true);
-    m_view->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    m_view->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-    m_view->setHorizontalScrollMode(QAbstractItemView::ScrollPerPixel);
     m_view->setAccessibleName(tr("棋譜解析結果"));
+    // 盤面列のクリック・Enter で読み筋表示ウィンドウを開く
+    connect(m_view, &PvTableView::boardRequested, this, &AnalysisResultsPanel::onBoardRequested);
 
-    // 盤面列（列6）のクリックで読み筋表示ウィンドウを開く
-    connect(m_view, &QTableView::clicked, this, &AnalysisResultsPanel::onTableClicked);
-
-    // Enterでも盤面列の読み筋を開ける。
-    connect(m_view, &QTableView::activated, this, &AnalysisResultsPanel::onTableClicked);
-
-    // 数値デリゲートを評価値と差の列に設定
-    auto* numDelegate = new NumericRightAlignCommaDelegate(m_view);
-    m_view->setItemDelegateForColumn(3, numDelegate); // 評価値
-    m_view->setItemDelegateForColumn(5, numDelegate); // 差
-
-    // 思考タブと共通の盤面表示ボタン
-    auto* boardBtnDelegate = new TableButtonDelegate(m_view);
-    m_view->setItemDelegateForColumn(6, boardBtnDelegate); // 盤面
-
-    // 読み筋の列は表示幅より長くなりがちなので、思考タブと同じく描く文字列を短くして描く
-    m_view->setItemDelegateForColumn(7, new PvTextDelegate(m_view)); // 読み筋
-
-    auto* header = TableHeaderView::install(m_view);
+    auto* header = static_cast<TableHeaderView*>(m_view->horizontalHeader());
     m_header = header;
     m_header->setMinimumSectionSize(30);
     m_header->setDefaultSectionSize(30);
@@ -85,7 +63,7 @@ AnalysisResultsPanel::AnalysisResultsPanel(QWidget* parent)
     setupHeaderConfiguration();
 
     m_columnWidths = AnalysisSettings::kifuAnalysisColumnWidths();
-    if (m_columnWidths.size() != 7) m_columnWidths = QList<int>(7, 0);
+    if (m_columnWidths.size() != kSizedColumns) m_columnWidths = QList<int>(kSizedColumns, 0);
     // 利用者が見出しの境目をドラッグしたときだけ保存する（内容に合わせた自動の幅は保存しない）
     connect(header, &TableHeaderView::sectionResizedByUser, this, &AnalysisResultsPanel::saveColumnWidth);
 
@@ -171,19 +149,20 @@ void AnalysisResultsPanel::setupHeaderConfiguration()
 {
     m_header->setSectionResizeMode(QHeaderView::Interactive);
     m_header->setStretchLastSection(true);
-    m_header->resizeSection(7, 320);
+    m_header->resizeSection(KifuAnalysisListModel::PvColumn, 320);
 }
 
 void AnalysisResultsPanel::reflowNow()
 {
     // ユーザーが調整した列幅を保ち、自動列だけを内容に合わせて広げる。
-    static const int minWidths[] = {140, 120, 50, 85, 110, 85, 60};
+    // 読み筋より前の列の最小幅（読み筋の列は残りの幅に伸ばす）
+    static constexpr int minWidths[kSizedColumns] = {140, 120, 50, 85, 110, 85, 60};
     QAbstractItemModel* model = m_view->model();
     const int rowCount = model ? model->rowCount() : 0;
     // 列幅は広がる一方なので、足した・変わった行だけ測れば全行を測り直した結果と同じになる。
     // 解析中は1局面ごとに行が増え、全行を測り直すと1行あたりの処理が行数に比例して伸びていた。
     const bool measureAll = m_reflowAllRows || m_reflowFromRow < 0 || rowCount == 0;
-    for (int col = 0; col < 7; ++col) {
+    for (int col = 0; col < kSizedColumns; ++col) {
         int width = m_columnWidths.value(col);
         if (width <= 0) {
             const int previousWidth = m_header->sectionSize(col);
@@ -207,7 +186,7 @@ void AnalysisResultsPanel::reflowNow()
 
 void AnalysisResultsPanel::saveColumnWidth(int column, int, int newSize)
 {
-    if (column < 0 || column >= 7) return;
+    if (column < 0 || column >= kSizedColumns) return;
     m_columnWidths[column] = newSize;
     AnalysisSettings::setKifuAnalysisColumnWidths(m_columnWidths);
 }
@@ -263,22 +242,12 @@ void AnalysisResultsPanel::setStopButtonEnabled(bool enabled)
     }
 }
 
-void AnalysisResultsPanel::onTableClicked(const QModelIndex& index)
+void AnalysisResultsPanel::onBoardRequested(int row)
 {
-    if (!index.isValid()) return;
-
-    // 解析中はクリックを無視
-    if (m_isAnalyzing) {
-        return;
-    }
-
-    // 盤面列（列6）のみ反応
-    if (index.column() != 6) {
-        return;
-    }
-
-    qCDebug(lcAnalysis).noquote() << "onTableClicked: row=" << index.row();
-    Q_EMIT rowDoubleClicked(index.row());
+    // 解析中は盤面を開かない
+    if (m_isAnalyzing) return;
+    qCDebug(lcAnalysis).noquote() << "onBoardRequested: row=" << row;
+    Q_EMIT rowDoubleClicked(row);
 }
 
 void AnalysisResultsPanel::onTableSelectionChanged(const QModelIndex& current, const QModelIndex& /*previous*/)
@@ -327,12 +296,7 @@ void AnalysisResultsPanel::showAnalysisComplete(int totalMoves)
 
 void AnalysisResultsPanel::applyFontSize(int size)
 {
-    QFont font = m_view->font();
-    font.setPointSize(size);
-    m_view->setFont(font);
-    m_view->setStyleSheet(TableStyles::thinking(font.pointSize()));
-    m_view->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
-    m_view->verticalHeader()->setDefaultSectionSize(KifuMoveDelegate::textHeight(m_view->font()) + 10);
+    m_view->setFontPointSize(size);
     m_reflowAllRows = true;
     m_reflowTimer->start();
 }

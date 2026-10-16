@@ -33,8 +33,8 @@ private slots:
         view1.setThinkingModel(&first);
         view2.setThinkingModel(&second);
         for (int i = 0; i < 100; ++i) {
-            first.clearAllItems();
-            second.clearAllItems();
+            first.clear();
+            second.clear();
         }
         QCOMPARE(view1.findChildren<NumericRightAlignCommaDelegate*>().size(), 1);
         QCOMPARE(view2.findChildren<NumericRightAlignCommaDelegate*>().size(), 1);

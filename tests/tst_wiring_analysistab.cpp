@@ -78,7 +78,7 @@ private slots:
         row.pvKanji = QStringLiteral("▲７六歩");
         row.usiPv = QStringLiteral("7g7f");
         row.baseSfen = SfenUtils::hirateSfen();
-        p.thinking1->appendItem(new ShogiInfoRecord(row));
+        p.thinking1->appendRow(row);
         emit p.thinkingPanel->pvRowClicked(p.thinking1, 0);
         PvBoardDialog* board = nullptr;
         const auto widgets = QApplication::topLevelWidgets();

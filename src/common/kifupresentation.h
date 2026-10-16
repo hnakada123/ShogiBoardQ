@@ -15,6 +15,8 @@ struct Options {
 QString resolveLanguage(const QString& setting, const QString& systemLocale);
 void configure(const QString& language, const QString& notation, bool alwaysOrigin);
 Options options();
+/// 表記の設定（configure）を変えるたびに増える番号。表示用の文字列を覚えた側は、番号が変わったら作り直す
+int revision();
 QString rankLabel(int rank);
 QString usiMove(const ShogiMove& move);
 QString move(const QString& beforeSfen, const QString& usi, Options style,

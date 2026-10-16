@@ -293,13 +293,6 @@ add_shogi_test(tst_navigation tst_navigation.cpp)
 target_link_libraries(tst_navigation PRIVATE shogiboardq_static)
 
 # ============================================================
-# Unit 7b: Generic List Model Ownership
-# ============================================================
-add_shogi_test(tst_abstractlistmodel
-    tst_abstractlistmodel.cpp
-)
-
-# ============================================================
 # Unit 7c: KifuBranchListModel
 # ============================================================
 add_shogi_test(tst_kifubranchlistmodel tst_kifubranchlistmodel.cpp)

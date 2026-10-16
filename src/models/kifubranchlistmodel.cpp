@@ -2,6 +2,7 @@
 /// @brief 分岐候補欄のモデルの実装
 
 #include "kifubranchlistmodel.h"
+#include "movefont.h"
 #include "applicationfonts.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
@@ -53,9 +54,7 @@ QVariant KifuBranchListModel::data(const QModelIndex& index, int role) const
             f.setBold(true);
             return f;
         }
-        if (node->isActualMove() && KifuPresentation::options().notation == KifuPresentation::Notation::Japanese)
-            return ApplicationFonts::japaneseFont(QFont());
-        return QVariant();
+        return node->isActualMove() ? MoveFont::role() : QVariant();
     }
     case Qt::BackgroundRole: {
         static const QBrush kCurrentBg(TableStyles::selectionBackground());

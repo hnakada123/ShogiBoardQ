@@ -7,6 +7,7 @@
 #include <QWindow>
 #include <cmath>
 #include <functional>
+#include <limits>
 
 #include "analysissettings.h"
 #include "thinkingtableview.h"
@@ -26,6 +27,9 @@
 /// 行の追加で変わった所だけを描き直す表（棋譜欄・思考表）が、全体を描き直したときと
 /// 同じ画面になること。整数倍率では描き直す範囲が追加した行の付近に収まること。
 /// 小数倍率（QT_SCALE_FACTOR=1.25 で同じテストを実行）では全体を描き直す経路を使う。
+/// 思考の表に足すときに、古い行を消さない
+constexpr int kUnlimitedRows = std::numeric_limits<int>::max();
+
 class TestIncrementalTableView : public QObject
 {
     Q_OBJECT
@@ -149,7 +153,7 @@ class TestIncrementalTableView : public QObject
         QVERIFY2(stalePixels(view) == 0, qPrintable(label));
     }
 
-    static ShogiInfoRecord* thinkingRecord(int i)
+    static ThinkingInfoRow thinkingRecord(int i)
     {
         QString pv;
         for (int m = 0; m < 6 + i % 9; ++m)
@@ -160,7 +164,7 @@ class TestIncrementalTableView : public QObject
         row.nodes = qint64(i) * 12345;
         row.score = UsiScore::cp((i * 37) % 900 - 300);
         row.pvKanji = pv;
-        return new ShogiInfoRecord(row);
+        return row;
     }
 
 private slots:
@@ -247,7 +251,7 @@ private slots:
         // （そのときは Qt が全体を描き直す）。先に数行入れておく。
         // 縦のスクロールバーも先に出しておく（出たときは表示領域の幅が変わり、全体を描き直す）
         int next = 0;
-        for (; next < 14; ++next) model.prependItem(thinkingRecord(next));
+        for (; next < 14; ++next) model.prependRow(thinkingRecord(next), kUnlimitedRows);
         view.show();
         QVERIFY(QTest::qWaitForWindowExposed(&view));
         settle();
@@ -256,28 +260,28 @@ private slots:
         for (int step = 0; step < 30; ++step) {
             const int count = step % 5 == 4 ? 2 : 1;
             verifyStep(view, [&] {
-                for (int i = 0; i < count; ++i) model.prependItem(thinkingRecord(next++));
+                for (int i = 0; i < count; ++i) model.prependRow(thinkingRecord(next++), kUnlimitedRows);
                 model.trimToMaxRows(500);
             }, 0.4, QStringLiteral("prepend step %1").arg(step));
             if (QTest::currentTestFailed()) return;
         }
         // 行を選んだまま足す（選んだ行は一緒に下がる）
         verifyStep(view, [&] { view.selectRow(2); }, 1.01, QStringLiteral("select"));
-        verifyStep(view, [&] { model.prependItem(thinkingRecord(next++)); }, 0.4, QStringLiteral("prepend with selection"));
+        verifyStep(view, [&] { model.prependRow(thinkingRecord(next++), kUnlimitedRows); }, 0.4, QStringLiteral("prepend with selection"));
         // 下へスクロールしているときは全体を描き直す
         verifyStep(view, [&] { view.verticalScrollBar()->setValue(5); }, 1.01, QStringLiteral("scroll"));
-        verifyStep(view, [&] { model.prependItem(thinkingRecord(next++)); }, 1.01, QStringLiteral("prepend while scrolled"));
+        verifyStep(view, [&] { model.prependRow(thinkingRecord(next++), kUnlimitedRows); }, 1.01, QStringLiteral("prepend while scrolled"));
         verifyStep(view, [&] { view.verticalScrollBar()->setValue(0); }, 1.01, QStringLiteral("scroll back"));
         // 上限を超えた行の削除: 消える行が表示領域より下なら、足した行の分だけを描き直す
         QVERIFY(view.rowViewportPosition(20) >= view.viewport()->height());
         verifyStep(view, [&] {
-            model.prependItem(thinkingRecord(next++));
+            model.prependRow(thinkingRecord(next++), kUnlimitedRows);
             model.trimToMaxRows(20);
         }, 0.4, QStringLiteral("trim below view"));
         for (int step = 0; step < 5; ++step) {
             verifyStep(view, [&] {
-                model.prependItem(thinkingRecord(next++));
-                model.prependItem(thinkingRecord(next++));
+                model.prependRow(thinkingRecord(next++), kUnlimitedRows);
+                model.prependRow(thinkingRecord(next++), kUnlimitedRows);
                 model.trimToMaxRows(20);
             }, 0.4, QStringLiteral("prepend and trim step %1").arg(step));
             if (QTest::currentTestFailed()) return;
@@ -295,16 +299,16 @@ private slots:
         }
         // 消える行が見えているときと、下へスクロールしているときは全体を描き直す
         verifyStep(view, [&] {
-            model.prependItem(thinkingRecord(next++));
+            model.prependRow(thinkingRecord(next++), kUnlimitedRows);
             model.trimToMaxRows(4);
         }, 1.01, QStringLiteral("trim visible rows"));
-        for (int i = 0; i < 20; ++i) model.prependItem(thinkingRecord(next++));
+        for (int i = 0; i < 20; ++i) model.prependRow(thinkingRecord(next++), kUnlimitedRows);
         settle();
         verifyStep(view, [&] { view.verticalScrollBar()->setValue(3); }, 1.01, QStringLiteral("scroll before trim"));
         verifyStep(view, [&] { model.trimToMaxRows(22); }, 1.01, QStringLiteral("trim while scrolled"));
         verifyStep(view, [&] { view.verticalScrollBar()->setValue(0); }, 1.01, QStringLiteral("scroll back before clear"));
-        verifyStep(view, [&] { model.clearAllItems(); }, 1.01, QStringLiteral("clear"));
-        verifyStep(view, [&] { model.prependItem(thinkingRecord(next++)); }, 1.01, QStringLiteral("first row"));
+        verifyStep(view, [&] { model.clear(); }, 1.01, QStringLiteral("clear"));
+        verifyStep(view, [&] { model.prependRow(thinkingRecord(next++), kUnlimitedRows); }, 1.01, QStringLiteral("first row"));
     }
 
     // 思考表は手ごとに消して足し直すので、縦のスクロールバーが出入りし、表示領域の幅と
@@ -323,8 +327,8 @@ private slots:
         reference.setGeometry(0, 140, 900, 130);
         window.resize(900, 270);
         int next = 0;
-        model.prependItem(thinkingRecord(next));
-        referenceModel.prependItem(thinkingRecord(next++));
+        model.prependRow(thinkingRecord(next), kUnlimitedRows);
+        referenceModel.prependRow(thinkingRecord(next++), kUnlimitedRows);
         window.show();
         QVERIFY(QTest::qWaitForWindowExposed(&window));
         settle();
@@ -335,9 +339,9 @@ private slots:
                 view.viewport()->installEventFilter(&spy);
                 for (ShogiEngineThinkingModel* target : {&model, &referenceModel}) {
                     if (fill) {
-                        for (int i = 0; i < 8; ++i) target->prependItem(thinkingRecord(next + i));
+                        for (int i = 0; i < 8; ++i) target->prependRow(thinkingRecord(next + i), kUnlimitedRows);
                     } else {
-                        target->clearAllItems();
+                        target->clear();
                     }
                 }
                 if (fill) next += 8;
@@ -395,9 +399,9 @@ private slots:
         settle();
         // 読み筋の列の日本語フォントは初めて使うときに読み込まれ、表の文字設定が変わる
         // （そのときは Qt が全体を描き直す）。先に1行入れて消しておく。
-        model1.prependItem(thinkingRecord(0));
+        model1.prependRow(thinkingRecord(0), kUnlimitedRows);
         settle();
-        model1.clearAllItems();
+        model1.clear();
         settle();
         QVERIFY(view1.verticalScrollBar()->isVisible());
         const int viewportWidth = view1.viewport()->width();
@@ -410,7 +414,7 @@ private slots:
                 PaintSpy headerSpy;
                 view1.viewport()->installEventFilter(&viewportSpy);
                 view1.horizontalHeader()->viewport()->installEventFilter(&headerSpy);
-                model1.prependItem(thinkingRecord(next++));
+                model1.prependRow(thinkingRecord(next++), kUnlimitedRows);
                 settle();
                 view1.viewport()->removeEventFilter(&viewportSpy);
                 view1.horizontalHeader()->viewport()->removeEventFilter(&headerSpy);
@@ -426,7 +430,7 @@ private slots:
                 QVERIFY2(headerSpy.region.isEmpty(), qPrintable(label + QStringLiteral(": header repainted")));
                 QVERIFY2(stalePixels(view1) == 0, qPrintable(label));
             }
-            model1.clearAllItems();
+            model1.clear();
             settle();
             QVERIFY(view1.verticalScrollBar()->isVisible());
             QCOMPARE(view1.columnWidth(5), lastWidth);
@@ -453,9 +457,9 @@ private slots:
         const QList<int> saved = AnalysisSettings::thinkingViewColumnWidths(AnalysisSettings::ThinkingTable::Engine1);
 
         const int lastWidth = view1.columnWidth(5);
-        for (int i = 0; i < 8; ++i) model1.prependItem(thinkingRecord(i));
+        for (int i = 0; i < 8; ++i) model1.prependRow(thinkingRecord(i), kUnlimitedRows);
         settle();
-        model1.clearAllItems();
+        model1.clear();
         settle();
         view1.resize(700, 130);
         settle();
@@ -532,7 +536,7 @@ private slots:
         view.setStyleSheet(TableStyles::thinking());
         view.verticalHeader()->setVisible(false);
         view.resize(900, 260);
-        for (int i = 0; i < 8; ++i) model.prependItem(thinkingRecord(i));
+        for (int i = 0; i < 8; ++i) model.prependRow(thinkingRecord(i), kUnlimitedRows);
         view.show();
         QVERIFY(QTest::qWaitForWindowExposed(&view));
         settle();
@@ -540,7 +544,7 @@ private slots:
         PaintSpy spy;
         view.viewport()->installEventFilter(&spy);
         view.setItemDelegateForColumn(2, numeric);
-        model.prependItem(thinkingRecord(100));
+        model.prependRow(thinkingRecord(100), kUnlimitedRows);
         settle();
         view.viewport()->removeEventFilter(&spy);
         const qint64 whole = qint64(view.viewport()->width()) * view.viewport()->height();

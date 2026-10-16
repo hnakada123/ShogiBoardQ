@@ -67,7 +67,7 @@ void EngineDisplayPresenter::clearEngineOutput()
         if (log) log->clear();
     }
     for (ShogiEngineThinkingModel* thinking : {m_deps.thinking1, m_deps.thinking2}) {
-        if (thinking) thinking->clearAllItems();
+        if (thinking) thinking->clear();
     }
 }
 
@@ -75,7 +75,7 @@ void EngineDisplayPresenter::clearAll()
 {
     clearEngineOutput();
     clearConsideration();
-    if (m_deps.analysisModel) m_deps.analysisModel->clearAllItems();
+    if (m_deps.analysisModel) m_deps.analysisModel->clear();
     if (UsiLogPanel* log = m_deps.usiLog) log->clear();
     if (CsaLogPanel* log = m_deps.csaLog) log->clear();
     if (ThinkingPanel* panel = m_deps.thinkingPanel) {
@@ -121,7 +121,7 @@ void EngineDisplayPresenter::onConsiderationModeEnded()
 
 void EngineDisplayPresenter::clearConsideration()
 {
-    if (m_deps.consideration) m_deps.consideration->clearAllItems();
+    if (m_deps.consideration) m_deps.consideration->clear();
 }
 
 // ============================================================
