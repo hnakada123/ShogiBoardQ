@@ -50,7 +50,7 @@ private slots:
         AutomationCommands::registerWidgetCommands(dispatcher, context);
         const QString target = AutomationWidgets::selector(&dialog);
         const auto text = call(dispatcher, QStringLiteral("widget.text"),
-            {{QStringLiteral("dialog"), target}, {QStringLiteral("widget"), QStringLiteral("lineEditPassword")}});
+            {{QStringLiteral("target"), target}, {QStringLiteral("widget"), QStringLiteral("lineEditPassword")}});
         QVERIFY(!text.contains(QStringLiteral("error")));
         QCOMPARE(text[QStringLiteral("result")].toObject()[QStringLiteral("widgets")].toArray().first()
                      .toObject()[QStringLiteral("text")].toString(), QStringLiteral("*****"));

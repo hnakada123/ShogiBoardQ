@@ -135,7 +135,7 @@ async def message_box(session, text: str, timeout: float = 8.0) -> str:
             if window["class"] != "QMessageBox":
                 continue
             # The box may close between the two calls; then keep waiting.
-            _, content, error = result_data(await session.call_tool("get_widget_text", {"dialog": window["selector"]}))
+            _, content, error = result_data(await session.call_tool("get_widget_text", {"target": window["selector"]}))
             if not error and text in str(content):
                 return window["selector"]
         assert loop.time() < deadline, f"No message box containing {text!r}: {dialogs}"

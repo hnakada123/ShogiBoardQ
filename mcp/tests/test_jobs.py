@@ -7,6 +7,8 @@ import sys
 
 import pytest
 
+from shogiboardq_mcp.server import with_defaults
+
 from shogiboardq_mcp import jobs
 from shogiboardq_mcp.errors import ToolError
 from shogiboardq_mcp.handlers_kifu_analysis import KifuAnalysisTools
@@ -66,11 +68,13 @@ async def test_sequence_failure_preserves_previous_scores_and_pagination(monkeyp
     try:
         await asyncio.wait_for(job.task, 5)
         assert job.state == "failed" and "engine disconnected" in job.error
-        _, status = await KifuAnalysisTools(manager, None).status({"job_id": job.id, "max_pv_moves": 1})
+        _, status = await KifuAnalysisTools(manager, None).status(
+            with_defaults("kifu_analysis_status", {"job_id": job.id, "max_pv_moves": 1}))
         assert status["partial"] and status["completed"] == 1
         assert status["positions"][0]["score_cp_black"] == -42
         assert status["positions"][0]["lines"][0]["pv"] == ["7g7f"]
-        _, empty_page = await KifuAnalysisTools(manager, None).status({"job_id": job.id, "offset": 1})
+        _, empty_page = await KifuAnalysisTools(manager, None).status(
+            with_defaults("kifu_analysis_status", {"job_id": job.id, "offset": 1}))
         assert empty_page["positions"] == [] and not empty_page["truncated"]
         assert not job.is_active() and job.process is None
     finally:

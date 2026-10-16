@@ -68,8 +68,8 @@ void AutomationCommands::registerWidgetCommands(AutomationDispatcher& dispatcher
             throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("Widget must be a table with a model"));
         const int row = AutomationParams::requireInt(params, QStringLiteral("row"), 0, table->model()->rowCount() - 1);
         const int column = AutomationParams::requireInt(params, QStringLiteral("column"), 0, table->model()->columnCount() - 1);
-        const QString text = AutomationParams::optionalString(params, QStringLiteral("text"));
-        const bool commit = AutomationParams::optionalBool(params, QStringLiteral("commit"), true);
+        const QString text = params.value(QStringLiteral("text")).toString();
+        const bool commit = params.value(QStringLiteral("commit")).toBool();
         const QPersistentModelIndex index(table->model()->index(row, column));
         if (!(index.flags() & Qt::ItemIsEditable) || !(index.flags() & Qt::ItemIsEnabled)
             || table->isRowHidden(row) || table->isColumnHidden(column))
@@ -107,7 +107,7 @@ void AutomationCommands::registerWidgetCommands(AutomationDispatcher& dispatcher
     });
 
     dispatcher.registerMethod(QStringLiteral("clipboard.get"), [](const QJsonObject& params) {
-        const int maxChars = AutomationParams::optionalInt(params, QStringLiteral("max_chars"), 30000, 1, 1000000);
+        const int maxChars = params.value(QStringLiteral("max_chars")).toInt();
         const auto* clipboard = QApplication::clipboard();
         const QString text = clipboard->text();
         const QImage image = clipboard->image();
@@ -145,16 +145,13 @@ void AutomationCommands::registerWidgetCommands(AutomationDispatcher& dispatcher
     dispatcher.registerMethod(QStringLiteral("widget.setValue"), [context](const QJsonObject& params) {
         QWidget* widget = targetWidget(context, params, false);
         if (widget->window() != AutomationWidgets::requireWindow(context,
-                AutomationParams::optionalString(params, QStringLiteral("target"))))
+                params.value(QStringLiteral("target")).toString()))
             throw AutomationError(AutomationErrorCode::NotAllowed, QStringLiteral("Widget belongs to another window"));
         AutomationWidgets::requireInteractive(widget, false, true);
         const QJsonValue value = params.value(QStringLiteral("value"));
-        const bool submit = AutomationParams::optionalBool(params, QStringLiteral("submit"), false);
+        const bool submit = params.value(QStringLiteral("submit")).toBool();
         if (submit && !qobject_cast<QLineEdit*>(widget))
             throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("submit requires a line edit"));
-        if (value.isNull() || value.isUndefined()) {
-            throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("value is required and must not be null"));
-        }
         std::function<void()> apply;
         if (auto* picker = qobject_cast<QColorDialog*>(widget)) {
             const QColor color(value.toString());

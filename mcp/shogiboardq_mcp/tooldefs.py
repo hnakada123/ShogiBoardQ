@@ -139,6 +139,10 @@ TSUME_STATUS_OUTPUT = {
 }
 
 
+# Generic GUI control tools: refused unless SHOGIBOARDQ_ALLOW_UNRESTRICTED_UI=1 (checked in server.dispatch_tool).
+UNRESTRICTED_TOOLS: set[str] = set()
+
+
 def _tool(
     name: str,
     title: str,
@@ -150,7 +154,10 @@ def _tool(
     destructive: bool = False,
     idempotent: bool = False,
     open_world: bool = False,
+    unrestricted: bool = False,
 ) -> types.Tool:
+    if unrestricted:
+        UNRESTRICTED_TOOLS.add(name)
     schema = dict(input_schema)
     schema.setdefault("type", "object")
     schema.setdefault("additionalProperties", False)
@@ -509,8 +516,8 @@ PHASE2_TOOLS: list[types.Tool] = [
             "properties": {
                 "format": {"type": "string", "enum": ["moves", *KIFU_FORMATS], "default": "moves"},
                 "line": {"type": "string", "enum": ["current", "main"], "default": "current"},
-                "from_ply": {"type": "integer", "minimum": 1, "default": 1},
-                "max_moves": {"type": "integer", "minimum": 1, "maximum": 2000, "default": 200},
+                "from_ply": {"type": "integer", "minimum": 1, "maximum": 100000, "default": 1},
+                "max_moves": {"type": "integer", "minimum": 1, "maximum": 100000, "default": 200},
                 "max_chars": {"type": "integer", "minimum": 1000, "maximum": 500_000, "default": 30000},
             }
         },
@@ -524,7 +531,7 @@ PHASE2_TOOLS: list[types.Tool] = [
         "goto_ply",
         "Go to ply",
         "Navigate the record shown in ShogiBoardQ to the given ply (0 = start position) on the current line.",
-        {"properties": {"ply": {"type": "integer", "minimum": 0, "maximum": 10000}}, "required": ["ply"]},
+        {"properties": {"ply": {"type": "integer", "minimum": 0, "maximum": 100000}}, "required": ["ply"]},
         {"type": "object", "properties": {"ply": {"type": "integer"}, "sfen": {"type": "string"}}, "required": ["ply"]},
         idempotent=True,
     ),
@@ -547,6 +554,7 @@ PHASE2_TOOLS: list[types.Tool] = [
         "list_dialogs and get_widget_text.",
         {"properties": {"name": {"type": "string", "pattern": "^action[A-Za-z0-9_]+$"}}, "required": ["name"]},
         {"type": "object", "properties": {"name": {"type": "string"}, "triggered": {"type": "boolean"}}, "required": ["name", "triggered"]},
+        unrestricted=True,
     ),
     _tool(
         "click_board_square",
@@ -575,13 +583,14 @@ PHASE2_TOOLS: list[types.Tool] = [
         "match, such as tsumeProblemCard in the problem collection. The click is queued so that modal "
         "dialogs return immediately. A dialog blocked by another modal window cannot be clicked.",
         {"properties": {
-            "dialog": {"type": "string", "minLength": 1},
+            "target": {"type": "string", "minLength": 1, "description": "Dialog object name, selector or title substring."},
             "widget": {"type": "string", "minLength": 1},
             "text": {"type": "string", "minLength": 1},
             "index": {"type": "integer", "minimum": 0, "maximum": 1000, "default": 0},
-        }, "required": ["dialog"], "oneOf": [{"required": ["widget"]}, {"required": ["text"]}]},
+        }, "required": ["target"], "oneOf": [{"required": ["widget"]}, {"required": ["text"]}]},
         {"type": "object", "properties": {"queued": {"type": "boolean"}, "object_name": {"type": "string"},
             "text": {"type": "string"}}, "required": ["queued", "object_name", "text"]},
+        unrestricted=True,
     ),
     _tool(
         "list_docks", "List dock panels",
@@ -639,6 +648,7 @@ PHASE2_TOOLS: list[types.Tool] = [
                         "widget": {"type": "string", "minLength": 1}}, "required": ["widget"]},
         {"type": "object", "properties": {"queued": {"type": "boolean"}, "object_name": {"type": "string"}},
          "required": ["queued", "object_name"]},
+        unrestricted=True,
     ),
     _tool(
         "get_clipboard", "Read clipboard",
@@ -657,11 +667,13 @@ PHASE2_TOOLS: list[types.Tool] = [
         "By default Enter commits the edit; commit=false leaves the editor open. Read-only or modally blocked cells are refused.",
         {"properties": {"target": {"type": "string", "default": "main"},
                         "widget": {"type": "string", "minLength": 1},
-                        "row": {"type": "integer", "minimum": 0}, "column": {"type": "integer", "minimum": 0},
+                        "row": {"type": "integer", "minimum": 0, "maximum": 1_000_000_000},
+                        "column": {"type": "integer", "minimum": 0, "maximum": 1_000_000_000},
                         "text": {"type": "string", "maxLength": 32767}, "commit": {"type": "boolean", "default": True}},
          "required": ["widget", "row", "column", "text"]},
         {"type": "object", "properties": {"queued": {"type": "boolean"}, "object_name": {"type": "string"}},
          "required": ["queued", "object_name"]},
+        unrestricted=True,
     ),
     _tool(
         "set_widget_value", "Set widget value",
@@ -678,6 +690,7 @@ PHASE2_TOOLS: list[types.Tool] = [
                         "submit": {"type": "boolean", "default": False}}, "required": ["widget", "value"]},
         {"type": "object", "properties": {"queued": {"type": "boolean"}, "object_name": {"type": "string"}},
          "required": ["queued", "object_name"]},
+        unrestricted=True,
     ),
     _tool(
         "click_table_cell", "Click table cell",
@@ -686,10 +699,11 @@ PHASE2_TOOLS: list[types.Tool] = [
         "into view; hidden, disabled and modally blocked cells are refused. Returns when queued.",
         {"properties": {"target": {"type": "string", "default": "main"},
                         "widget": {"type": "string", "minLength": 1},
-                        "row": {"type": "integer", "minimum": 0},
-                        "column": {"type": "integer", "minimum": 0}}, "required": ["widget", "row", "column"]},
+                        "row": {"type": "integer", "minimum": 0, "maximum": 1_000_000_000},
+                        "column": {"type": "integer", "minimum": 0, "maximum": 1_000_000_000}}, "required": ["widget", "row", "column"]},
         {"type": "object", "properties": {"queued": {"type": "boolean"}, "object_name": {"type": "string"}},
          "required": ["queued", "object_name"]},
+        unrestricted=True,
     ),
     _tool(
         "capture_screenshot",
@@ -720,7 +734,8 @@ PHASE2_TOOLS: list[types.Tool] = [
         "Close dialog",
         "Close an open dialog (reject it) identified by its object name, selector or window title substring. Use it to "
         "dismiss dialogs opened by trigger_action or error message boxes.",
-        {"properties": {"dialog": {"type": "string", "minLength": 1}}, "required": ["dialog"]},
+        {"properties": {"target": {"type": "string", "minLength": 1, "description": "Dialog object name, selector or title substring."}},
+         "required": ["target"]},
         {"type": "object", "properties": {"closed": {"type": "boolean"}, "object_name": {"type": "string"}, "title": {"type": "string"}},
          "required": ["closed"]},
         idempotent=True,
@@ -729,12 +744,12 @@ PHASE2_TOOLS: list[types.Tool] = [
         "get_widget_text",
         "Get widget text",
         "Read labels, text fields, combo boxes, check boxes, lists, tables and boards inside an open dialog (or the main "
-        "window when dialog is omitted). Restrict to one widget by object name or selector. Intended for verifying "
+        "window when target is omitted). Restrict to one widget by object name or selector. Intended for verifying "
         "what the GUI shows. Widgets include geometry relative to the target window; boards include board_sfen "
         "(board pieces only), flipped, square_size and candidate arrows. Combo boxes and tabs include current_index.",
         {
             "properties": {
-                "dialog": {"type": "string", "description": "Dialog object name or title substring; omit for the main window."},
+                "target": {"type": "string", "default": "main", "description": "'main', or a dialog object name, selector or title substring."},
                 "widget": {"type": "string", "description": "Object name or selector of a widget to read. Returned selectors also identify unnamed widgets in click_widget and set_widget_value; reacquire after reopening a dialog."},
                 "max_rows": {"type": "integer", "minimum": 1, "maximum": 1000, "default": 50, "description": "Row limit for tables and lists."},
                 "max_widgets": {"type": "integer", "minimum": 1, "maximum": 3000, "default": 300},
@@ -766,6 +781,7 @@ PHASE2_TOOLS += [
                         "path": {"type": "array", "items": {"type": "integer", "minimum": 0}, "minItems": 1, "maxItems": 10}},
          "required": ["widget", "path"]},
         {"type": "object", "properties": {"queued": {"type": "boolean"}, "text": {"type": "string"}}, "required": ["queued", "text"]},
+        unrestricted=True,
     ),
     _tool(
         "menu_favorites", "Get or replace menu favorites",
@@ -782,7 +798,7 @@ PHASE2_TOOLS += [
         "Scrolls to the node and follows the normal GUI navigation path. Refresh node ids after reloading a record.",
         {"properties": {"target": {"type": "string", "default": "main"},
                         "widget": {"type": "string", "minLength": 1, "default": "branchTreeView"},
-                        "id": {"type": "integer", "minimum": 1}}, "required": ["widget", "id"]},
+                        "id": {"type": "integer", "minimum": 1, "maximum": 1_000_000_000}}, "required": ["id"]},
         {"type": "object", "properties": {"queued": {"type": "boolean"}, "id": {"type": "integer"}}, "required": ["queued", "id"]},
     ),
 ]

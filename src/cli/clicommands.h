@@ -17,6 +17,7 @@ namespace CliCommands {
 int run(const QStringList& arguments);
 
 int version(const QStringList& args);
+int describe(const QStringList& args);
 int listEngines(const QStringList& args);
 int validateSfen(const QStringList& args);
 int convertKifu(const QStringList& args);

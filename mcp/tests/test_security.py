@@ -7,7 +7,8 @@ import pytest
 
 from shogiboardq_mcp.app_client import AppClient, AppError
 from shogiboardq_mcp.errors import ToolError
-from shogiboardq_mcp.handlers_app import AppTools
+from shogiboardq_mcp.server import require_unrestricted_ui, with_defaults
+from shogiboardq_mcp.tooldefs import ALL_TOOLS, UNRESTRICTED_TOOLS
 
 pytestmark = pytest.mark.anyio
 
@@ -17,16 +18,18 @@ pytestmark = pytest.mark.anyio
     ("trigger_action", {"name": "actionSaveAs"}),
     ("set_widget_value", {"target": "QFileDialog", "widget": "fileNameEdit", "value": "/outside.kif"}),
     ("click_widget", {"widget": "openButton"}),
-    ("click_dialog_button", {"dialog": "QFileDialog", "text": "Open"}),
+    ("click_dialog_button", {"target": "QFileDialog", "text": "Open"}),
     ("click_table_cell", {"widget": "table", "row": 0, "column": 0}),
     ("edit_table_cell", {"widget": "table", "row": 0, "column": 0, "text": "x"}),
     ("select_menu_action", {"widget": "recentFiles", "path": [0]}),
 ])
 async def test_restricted_gui_rejects_before_connecting(monkeypatch, tool, args):
     monkeypatch.delenv("SHOGIBOARDQ_ALLOW_UNRESTRICTED_UI", raising=False)
-    app = AppTools(None)  # Rejection must happen before any RPC or auto-launch.
+    # The server checks the declared tools before calling any handler (no RPC or auto-launch).
+    assert tool in UNRESTRICTED_TOOLS
+    assert set(with_defaults(tool, args)) <= set(next(t for t in ALL_TOOLS if t.name == tool).input_schema["properties"])
     with pytest.raises(ToolError) as error:
-        await getattr(app, tool)(args)
+        require_unrestricted_ui()
     assert error.value.code == "not_allowed"
 
 
@@ -54,17 +57,17 @@ async def test_protected_password_cannot_be_revealed(monkeypatch, app_path, tmp_
         assert target
         await client.call("widget.setValue", {"target": target, "widget": "lineEditPassword", "value": "audit-secret"})
         await asyncio.sleep(0.05)
-        result = await client.call("widget.text", {"dialog": target, "widget": "lineEditPassword"})
+        result = await client.call("widget.text", {"target": target, "widget": "lineEditPassword"})
         assert result["widgets"][0]["text"] == "*****"
         for method, params in [
             ("widget.setValue", {"target": target, "widget": "checkBoxShowPassword", "value": True}),
             ("widget.click", {"target": target, "widget": "checkBoxShowPassword"}),
-            ("dialog.clickButton", {"dialog": target, "widget": "checkBoxShowPassword"}),
+            ("dialog.clickButton", {"target": target, "widget": "checkBoxShowPassword"}),
         ]:
             with pytest.raises(AppError) as error:
                 await client.call(method, params)
             assert error.value.code == "not_allowed"
-        assert "audit-secret" not in str(await client.call("widget.text", {"dialog": target}))
-        await client.call("dialog.close", {"dialog": target})
+        assert "audit-secret" not in str(await client.call("widget.text", {"target": target}))
+        await client.call("dialog.close", {"target": target})
     finally:
         await client.shutdown()

@@ -40,7 +40,7 @@ async def test_manual_usi_command_reaches_running_engine(server_env):
         await call(session, "set_widget_value", target="StartGameDialog", widget="comboBoxPlayer1", value=0)
         await call(session, "set_widget_value", target="StartGameDialog", widget="comboBoxPlayer2", value=1)
         await call(session, "set_widget_value", target="StartGameDialog", widget="byoyomiSec1", value=30)
-        await call(session, "click_dialog_button", dialog="StartGameDialog", text="対局開始")
+        await call(session, "click_dialog_button", target="StartGameDialog", text="対局開始")
 
         async def engine_ready():
             state = await call(session, "get_app_state")

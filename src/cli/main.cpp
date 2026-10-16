@@ -19,6 +19,7 @@ int CliCommands::run(const QStringList& arguments)
     using Handler = std::function<int(const QStringList&)>;
     static const QHash<QString, Handler> handlers = {
         {QStringLiteral("version"), &CliCommands::version},
+        {QStringLiteral("describe"), &CliCommands::describe},
         {QStringLiteral("list-engines"), &CliCommands::listEngines},
         {QStringLiteral("validate-sfen"), &CliCommands::validateSfen},
         {QStringLiteral("convert-kifu"), &CliCommands::convertKifu},

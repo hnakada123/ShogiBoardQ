@@ -10,15 +10,13 @@
 #include "tsumeshogigenerator.h"
 #include "tsumeverificationrunner.h"
 
-#include <QCommandLineParser>
-#include <QLatin1StringView>
 #include <QElapsedTimer>
 #include <QEventLoop>
 #include <QJsonArray>
 
 namespace {
 
-constexpr QLatin1StringView kInvalidArgument("invalid_argument");
+using CliOutput::kInvalidArgument;
 constexpr qint64 kProgressIntervalMs = 1000;
 
 /// 生成の進捗・発見局面を JSON Lines で書く中継役
@@ -135,50 +133,33 @@ private:
 
 int CliCommands::generateTsume(const QStringList& args)
 {
-    QCommandLineParser parser;
-    parser.setSingleDashWordOptionMode(QCommandLineParser::ParseAsLongOptions);
-    CliArgs::addEngineOption(parser);
-    CliArgs::addStdinControlOption(parser);
-    parser.addOption({QStringLiteral("target-moves"), QStringLiteral("Mate length in plies (odd, 1-19)."), QStringLiteral("n"), QStringLiteral("3")});
-    parser.addOption({QStringLiteral("max-positions"), QStringLiteral("Stop after this many positions (1-100)."), QStringLiteral("n"), QStringLiteral("10")});
-    parser.addOption({QStringLiteral("timeout-ms"), QStringLiteral("Engine time per candidate/trim/verification (500-60000)."), QStringLiteral("ms"), QStringLiteral("5000")});
-    parser.addOption({QStringLiteral("max-attack"), QStringLiteral("Maximum attacking pieces on board and in hand (1-10)."), QStringLiteral("n"), QStringLiteral("4")});
-    parser.addOption({QStringLiteral("max-defend"), QStringLiteral("Maximum defending pieces other than the king (0-10)."), QStringLiteral("n"), QStringLiteral("1")});
-    parser.addOption({QStringLiteral("attack-range"), QStringLiteral("Placement range around the king (1-8)."), QStringLiteral("n"), QStringLiteral("3")});
-    parser.addOption({QStringLiteral("no-remaining-to-hand"), QStringLiteral("Do not give unused pieces to the defender's hand.")});
-    parser.addOption({QStringLiteral("no-final-alternatives"), QStringLiteral("Reject positions whose final mating move has alternatives.")});
-    if (!parser.parse(QStringList{QStringLiteral("shogiboardq-cli")} + args)) {
-        return CliOutput::failEvent(kInvalidArgument, parser.errorText());
-    }
+    int exitCode = 0;
+    const auto params = CliArgs::parse(QStringLiteral("generate-tsume"), args, true, &exitCode);
+    if (!params) return exitCode;
 
     QString error;
-    const auto engine = CliArgs::resolveEngine(parser, &error);
+    const auto engine = CliArgs::resolveEngine(*params, &error);
     if (!engine) return CliOutput::failEvent(QStringLiteral("engine_not_found"), error);
-    const auto targetMoves = CliArgs::intOption(parser, QStringLiteral("target-moves"), 3, 1, 19, &error);
-    if (!targetMoves) return CliOutput::failEvent(kInvalidArgument, error);
-    if (*targetMoves % 2 == 0) return CliOutput::failEvent(kInvalidArgument, QStringLiteral("--target-moves must be odd"));
-    const auto maxPositions = CliArgs::intOption(parser, QStringLiteral("max-positions"), 10, 1, 100, &error);
-    if (!maxPositions) return CliOutput::failEvent(kInvalidArgument, error);
-    const auto timeoutMs = CliArgs::intOption(parser, QStringLiteral("timeout-ms"), 5000, 500, 60000, &error);
-    if (!timeoutMs) return CliOutput::failEvent(kInvalidArgument, error);
-    const auto maxAttack = CliArgs::intOption(parser, QStringLiteral("max-attack"), 4, 1, 10, &error);
-    if (!maxAttack) return CliOutput::failEvent(kInvalidArgument, error);
-    const auto maxDefend = CliArgs::intOption(parser, QStringLiteral("max-defend"), 1, 0, 10, &error);
-    if (!maxDefend) return CliOutput::failEvent(kInvalidArgument, error);
-    const auto attackRange = CliArgs::intOption(parser, QStringLiteral("attack-range"), 3, 1, 8, &error);
-    if (!attackRange) return CliOutput::failEvent(kInvalidArgument, error);
+    // 範囲と既定値は CliCommandSpecs の表で決まる
+    const int targetMoves = params->value(QStringLiteral("target_moves")).toInt();
+    if (targetMoves % 2 == 0) return CliOutput::failEvent(kInvalidArgument, QStringLiteral("--target-moves must be odd"));
+    const int maxPositions = params->value(QStringLiteral("max_positions")).toInt();
+    const int timeoutMs = params->value(QStringLiteral("timeout_ms")).toInt();
+    const int maxAttack = params->value(QStringLiteral("max_attack")).toInt();
+    const int maxDefend = params->value(QStringLiteral("max_defend")).toInt();
+    const int attackRange = params->value(QStringLiteral("attack_range")).toInt();
 
     TsumeshogiGenerator::Settings settings;
     settings.enginePath = engine->path;
     settings.engineName = engine->name;
-    settings.targetMoves = *targetMoves;
-    settings.timeoutMs = *timeoutMs;
-    settings.maxPositionsToFind = *maxPositions;
-    settings.allowFinalMoveAlternatives = !parser.isSet(QStringLiteral("no-final-alternatives"));
-    settings.posGenSettings.maxAttackPieces = *maxAttack;
-    settings.posGenSettings.maxDefendPieces = *maxDefend;
-    settings.posGenSettings.attackRange = *attackRange;
-    settings.posGenSettings.addRemainingToDefenderHand = !parser.isSet(QStringLiteral("no-remaining-to-hand"));
+    settings.targetMoves = targetMoves;
+    settings.timeoutMs = timeoutMs;
+    settings.maxPositionsToFind = maxPositions;
+    settings.allowFinalMoveAlternatives = !params->value(QStringLiteral("no_final_alternatives")).toBool();
+    settings.posGenSettings.maxAttackPieces = maxAttack;
+    settings.posGenSettings.maxDefendPieces = maxDefend;
+    settings.posGenSettings.attackRange = attackRange;
+    settings.posGenSettings.addRemainingToDefenderHand = !params->value(QStringLiteral("no_remaining_to_hand")).toBool();
 
     TsumeshogiGenerator generator;
     QEventLoop loop;
@@ -188,17 +169,17 @@ int CliCommands::generateTsume(const QStringList& args)
     QObject::connect(&generator, &TsumeshogiGenerator::verificationStatsUpdated, &reporter, &GenerateReporter::onVerificationStats);
     QObject::connect(&generator, &TsumeshogiGenerator::finished, &reporter, &GenerateReporter::onFinished);
     QObject::connect(&generator, &TsumeshogiGenerator::errorOccurred, &reporter, &GenerateReporter::onError);
-    CliStopWatcher watcher(parser.isSet(QStringLiteral("stdin-control")));
+    CliStopWatcher watcher(params->value(QStringLiteral("stdin_control")).toBool());
     QObject::connect(&watcher, &CliStopWatcher::stopRequested, &reporter, &GenerateReporter::onStopRequested);
 
     QJsonObject started;
     started[QStringLiteral("engine")] = engine->name;
-    started[QStringLiteral("target_moves")] = *targetMoves;
-    started[QStringLiteral("max_positions")] = *maxPositions;
-    started[QStringLiteral("timeout_ms")] = *timeoutMs;
-    started[QStringLiteral("max_attack_pieces")] = *maxAttack;
-    started[QStringLiteral("max_defend_pieces")] = *maxDefend;
-    started[QStringLiteral("attack_range")] = *attackRange;
+    started[QStringLiteral("target_moves")] = targetMoves;
+    started[QStringLiteral("max_positions")] = maxPositions;
+    started[QStringLiteral("timeout_ms")] = timeoutMs;
+    started[QStringLiteral("max_attack_pieces")] = maxAttack;
+    started[QStringLiteral("max_defend_pieces")] = maxDefend;
+    started[QStringLiteral("attack_range")] = attackRange;
     started[QStringLiteral("add_remaining_to_defender_hand")] = settings.posGenSettings.addRemainingToDefenderHand;
     started[QStringLiteral("allow_final_move_alternatives")] = settings.allowFinalMoveAlternatives;
     CliOutput::printEvent(QStringLiteral("started"), started);
@@ -210,34 +191,23 @@ int CliCommands::generateTsume(const QStringList& args)
 
 int CliCommands::verifyTsume(const QStringList& args)
 {
-    QCommandLineParser parser;
-    parser.setSingleDashWordOptionMode(QCommandLineParser::ParseAsLongOptions);
-    CliArgs::addEngineOption(parser);
-    parser.addOption({QStringLiteral("sfen"), QStringLiteral("Tsume position (attacker to move)."), QStringLiteral("sfen")});
-    parser.addOption({QStringLiteral("target-moves"), QStringLiteral("Expected mate length in plies (odd, 1-39)."), QStringLiteral("n")});
-    parser.addOption({QStringLiteral("timeout-ms"), QStringLiteral("Total engine time budget (1000-120000)."), QStringLiteral("ms"), QStringLiteral("15000")});
-    parser.addOption({QStringLiteral("no-final-alternatives"), QStringLiteral("Treat alternatives on the final mating move as a cook.")});
-    if (!parser.parse(QStringList{QStringLiteral("shogiboardq-cli")} + args)) {
-        return CliOutput::fail(kInvalidArgument, parser.errorText());
-    }
+    int exitCode = 0;
+    const auto params = CliArgs::parse(QStringLiteral("verify-tsume"), args, false, &exitCode);
+    if (!params) return exitCode;
 
     QString error;
-    const auto engine = CliArgs::resolveEngine(parser, &error);
+    const auto engine = CliArgs::resolveEngine(*params, &error);
     if (!engine) return CliOutput::fail(QStringLiteral("engine_not_found"), error);
-    if (!parser.isSet(QStringLiteral("sfen"))) return CliOutput::fail(kInvalidArgument, QStringLiteral("--sfen is required"));
-    if (!parser.isSet(QStringLiteral("target-moves"))) return CliOutput::fail(kInvalidArgument, QStringLiteral("--target-moves is required"));
-    const auto targetMoves = CliArgs::intOption(parser, QStringLiteral("target-moves"), 3, 1, 39, &error);
-    if (!targetMoves) return CliOutput::fail(kInvalidArgument, error);
-    if (*targetMoves % 2 == 0) return CliOutput::fail(kInvalidArgument, QStringLiteral("--target-moves must be odd"));
-    const auto timeoutMs = CliArgs::intOption(parser, QStringLiteral("timeout-ms"), 15000, 1000, 120000, &error);
-    if (!timeoutMs) return CliOutput::fail(kInvalidArgument, error);
+    const int targetMoves = params->value(QStringLiteral("target_moves")).toInt();
+    if (targetMoves % 2 == 0) return CliOutput::fail(kInvalidArgument, QStringLiteral("--target-moves must be odd"));
+    const int timeoutMs = params->value(QStringLiteral("timeout_ms")).toInt();
 
-    const SfenValidation validation = SfenValidationService::validate(parser.value(QStringLiteral("sfen")));
+    const SfenValidation validation = SfenValidationService::validate(params->value(QStringLiteral("sfen")).toString());
     if (!validation.valid) return CliOutput::fail(kInvalidArgument, QStringLiteral("Invalid SFEN: %1").arg(validation.errors.join(QStringLiteral("; "))));
 
     TsumeVerificationRunner runner;
     QEventLoop loop;
-    VerifyReporter reporter(&loop, validation.normalizedSfen, *targetMoves);
+    VerifyReporter reporter(&loop, validation.normalizedSfen, targetMoves);
     QObject::connect(&runner, &TsumeVerificationRunner::finished, &reporter, &VerifyReporter::onFinished);
     QObject::connect(&runner, &TsumeVerificationRunner::errorOccurred, &reporter, &VerifyReporter::onError);
     CliStopWatcher watcher(false);
@@ -247,9 +217,9 @@ int CliCommands::verifyTsume(const QStringList& args)
     request.enginePath = engine->path;
     request.engineName = engine->name;
     request.sfen = validation.normalizedSfen;
-    request.targetMoves = *targetMoves;
-    request.timeoutMs = *timeoutMs;
-    request.allowFinalMoveAlternatives = !parser.isSet(QStringLiteral("no-final-alternatives"));
+    request.targetMoves = targetMoves;
+    request.timeoutMs = timeoutMs;
+    request.allowFinalMoveAlternatives = !params->value(QStringLiteral("no_final_alternatives")).toBool();
 
     if (!runner.start(request, &error)) return CliOutput::fail(QStringLiteral("engine_error"), error);
     loop.exec();

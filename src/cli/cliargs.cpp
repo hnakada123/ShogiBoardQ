@@ -3,39 +3,33 @@
 
 #include "cliargs.h"
 
+#include "clicommandspecs.h"
+#include "clioutput.h"
 #include "enginecatalog.h"
 #include "sfenvalidationservice.h"
 
 #include <QDir>
 #include <QFileInfo>
-#include <QRegularExpression>
+#include <QJsonArray>
 
-void CliArgs::addPositionOptions(QCommandLineParser& parser)
+std::optional<QJsonObject> CliArgs::parse(const QString& command, const QStringList& args, bool events, int* exitCode)
 {
-    parser.addOption({QStringLiteral("sfen"),
-                      QStringLiteral("Start position as SFEN, or 'startpos'."), QStringLiteral("sfen"),
-                      QStringLiteral("startpos")});
-    parser.addOption({QStringLiteral("moves"),
-                      QStringLiteral("USI moves applied after the start position, space separated."),
-                      QStringLiteral("moves")});
+    const OperationSpec* spec = CliCommandSpecs::find(command);
+    Q_ASSERT(spec);
+    QString error;
+    std::optional<QJsonObject> params = CliCommandSpecs::parse(*spec, args, &error);
+    if (!params) {
+        const int code = events ? CliOutput::failEvent(CliOutput::kInvalidArgument, error)
+                                : CliOutput::fail(CliOutput::kInvalidArgument, error);
+        if (exitCode) *exitCode = code;
+    }
+    return params;
 }
 
-void CliArgs::addEngineOption(QCommandLineParser& parser)
-{
-    parser.addOption({QStringLiteral("engine"),
-                      QStringLiteral("Name of a USI engine registered in ShogiBoardQ."), QStringLiteral("name")});
-}
-
-void CliArgs::addStdinControlOption(QCommandLineParser& parser)
-{
-    parser.addOption({QStringLiteral("stdin-control"),
-                      QStringLiteral("Stop when a line 'stop' arrives on stdin or stdin is closed.")});
-}
-
-std::optional<CliPosition> CliArgs::resolvePosition(const QCommandLineParser& parser, QString* error)
+std::optional<CliPosition> CliArgs::resolvePosition(const QJsonObject& params, QString* error)
 {
     CliPosition position;
-    const QString sfenArg = parser.value(QStringLiteral("sfen")).trimmed();
+    const QString sfenArg = params.value(QStringLiteral("sfen")).toString().trimmed();
     const SfenValidation validation = SfenValidationService::validate(sfenArg.isEmpty() ? QStringLiteral("startpos") : sfenArg);
     if (!validation.valid) {
         if (error) *error = QStringLiteral("Invalid SFEN: %1").arg(validation.errors.join(QStringLiteral("; ")));
@@ -43,8 +37,8 @@ std::optional<CliPosition> CliArgs::resolvePosition(const QCommandLineParser& pa
     }
     position.startSfen = validation.normalizedSfen;
 
-    static const QRegularExpression ws(QStringLiteral("\\s+"));
-    position.moves = parser.value(QStringLiteral("moves")).split(ws, Qt::SkipEmptyParts);
+    const QJsonArray moveArray = params.value(QStringLiteral("moves")).toArray();
+    for (const QJsonValue& move : moveArray) position.moves << move.toString();
     QString applyError;
     position.finalSfen = SfenValidationService::applyUsiMoves(position.startSfen, position.moves, &applyError);
     if (position.finalSfen.isEmpty()) {
@@ -70,9 +64,9 @@ std::optional<CliPosition> CliArgs::resolvePosition(const QCommandLineParser& pa
     return position;
 }
 
-std::optional<EngineListSettings::EngineEntry> CliArgs::resolveEngine(const QCommandLineParser& parser, QString* error)
+std::optional<EngineListSettings::EngineEntry> CliArgs::resolveEngine(const QJsonObject& params, QString* error)
 {
-    const QString name = parser.value(QStringLiteral("engine")).trimmed();
+    const QString name = params.value(QStringLiteral("engine")).toString().trimmed();
     if (name.isEmpty()) {
         if (error) *error = QStringLiteral("--engine is required");
         return std::nullopt;
@@ -84,19 +78,6 @@ std::optional<EngineListSettings::EngineEntry> CliArgs::resolveEngine(const QCom
         return std::nullopt;
     }
     return entry;
-}
-
-std::optional<int> CliArgs::intOption(const QCommandLineParser& parser, const QString& name, int defaultValue,
-                                      int minimum, int maximum, QString* error)
-{
-    if (!parser.isSet(name)) return defaultValue;
-    bool ok = false;
-    const int value = parser.value(name).toInt(&ok);
-    if (!ok || value < minimum || value > maximum) {
-        if (error) *error = QStringLiteral("--%1 must be an integer between %2 and %3").arg(name).arg(minimum).arg(maximum);
-        return std::nullopt;
-    }
-    return value;
 }
 
 bool CliArgs::checkOutputPath(const QString& path, bool overwrite, QString* error)

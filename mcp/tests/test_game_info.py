@@ -156,7 +156,7 @@ async def test_reset_cancel_preserves_pending_edits(kifu_env, tmp_path):
         _, _, error = result_data(await session.call_tool("edit_table_cell", dict(
             widget="gameInfoTable", row=1, column=1, text="モーダル背後の編集")))
         assert error
-        await ui.call("click_dialog_button", dialog=box, text="キャンセル")
+        await ui.call("click_dialog_button", target=box, text="キャンセル")
         assert ["先手", "消えてはいけない名前"] in await ui.rows()
 
 
@@ -222,7 +222,7 @@ async def test_floating_dock_edits_survive_hide(kifu_env, tmp_path):
         await ui.open()
         await ui.call("configure_dock", widget="GameInfoDock", operation="float",
                       geometry=dict(x=50, y=50, width=800, height=500))
-        rows = (await ui.call("get_widget_text", dialog="GameInfoDock", widget="gameInfoTable"))["widgets"][0]["rows"][1:]
+        rows = (await ui.call("get_widget_text", target="GameInfoDock", widget="gameInfoTable"))["widgets"][0]["rows"][1:]
         row = next(i for i, cells in enumerate(rows) if cells[0] == "先手")
         await ui.call("edit_table_cell", target="GameInfoDock", widget="gameInfoTable", row=row, column=1, text="浮動ウィンドウの編集")
         await ui.call("configure_dock", widget="GameInfoDock", operation="hide")
@@ -244,7 +244,7 @@ async def test_game_end_preserves_active_metadata(kifu_env, tmp_path):
         for widget in ("comboBoxPlayer1", "comboBoxPlayer2"):
             await ui.call("set_widget_value", target="StartGameDialog", widget=widget, value=0)
         await ui.call("set_widget_value", target="StartGameDialog", widget="checkBoxAutoSaveKifu", value=True)
-        await ui.call("click_dialog_button", dialog="StartGameDialog", text="対局開始")
+        await ui.call("click_dialog_button", target="StartGameDialog", text="対局開始")
         await ui.wait("get_app_state", lambda d: d["ui_state"] == "game")
         await ui.call("click_board_square", file=7, rank=7)
         await ui.call("click_board_square", file=7, rank=6)
@@ -252,7 +252,7 @@ async def test_game_end_preserves_active_metadata(kifu_env, tmp_path):
         await ui.call("show_dock", widget="GameInfoDock")
         await ui.edit("先手", "終局直前の入力", commit=False)
         await ui.call("trigger_action", name="actionResign")
-        await ui.call("close_dialog", dialog=await ui.message_box("投了"))
+        await ui.call("close_dialog", target=await ui.message_box("投了"))
         state = await ui.wait("get_app_state", lambda d: bool(d["kifu_file"]))
         assert "終局直前の入力" in Path(state["kifu_file"]).read_text(encoding="utf-8")
         assert any(key == "終了日時" and value for key, value in await ui.rows())
@@ -291,14 +291,14 @@ async def test_current_position_game_keeps_record_start(kifu_env, tmp_path, sour
         await ui.dialog("対局")
         for widget in ("comboBoxPlayer1", "comboBoxPlayer2", "comboBoxStartingPosition"):
             await ui.call("set_widget_value", target="StartGameDialog", widget=widget, value=0)
-        await ui.call("click_dialog_button", dialog="StartGameDialog", text="対局開始")
+        await ui.call("click_dialog_button", target="StartGameDialog", text="対局開始")
         state = await ui.wait("get_app_state", lambda d: d["ui_state"] == "game")
         assert (state["current_ply"], state["sfen"]) == (ply, current)
         await ui.call("trigger_action", name="actionBreakOffGame")
         state = await ui.wait("get_app_state", lambda d: d["ui_state"] == "idle" or d["dialogs"])
         for window in (await ui.call("list_dialogs"))["windows"]:
             if window["class"] == "QMessageBox":
-                await ui.call("close_dialog", dialog=window["selector"])
+                await ui.call("close_dialog", target=window["selector"])
         await ui.wait("get_app_state", lambda d: d["ui_state"] == "idle")
         assert (await ui.call("goto_ply", ply=0))["sfen"] == start
         assert (await ui.call("get_app_state"))["total_plies"] == ply + 1

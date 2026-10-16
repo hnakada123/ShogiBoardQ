@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import copy
 import json
 import logging
+import os
 from collections.abc import Awaitable, Callable
 from typing import Any
 
@@ -19,9 +21,33 @@ from .handlers_app import AppTools
 from .handlers_cli import CliTools
 from .handlers_kifu_analysis import KifuAnalysisTools
 from .jobs import JobManager
-from .tooldefs import ALL_TOOLS, RESOURCES
+from .tooldefs import ALL_TOOLS, RESOURCES, UNRESTRICTED_TOOLS
 
 log = logging.getLogger(__name__)
+
+# The mcp SDK does not apply schema defaults, so they are filled here once instead of in every handler.
+TOOL_DEFAULTS: dict[str, dict[str, Any]] = {
+    tool.name: {key: prop["default"] for key, prop in tool.input_schema.get("properties", {}).items() if "default" in prop}
+    for tool in ALL_TOOLS
+}
+
+
+def with_defaults(name: str, arguments: dict[str, Any] | None) -> dict[str, Any]:
+    """Return the arguments with the tool's schema defaults filled in for missing keys."""
+    args = dict(arguments or {})
+    for key, value in TOOL_DEFAULTS.get(name, {}).items():
+        args.setdefault(key, copy.deepcopy(value))
+    return args
+
+
+def require_unrestricted_ui() -> None:
+    # Generic widget actions can open files, enable auto-save, register engines,
+    # or accept dialogs. They cannot enforce a filesystem allowlist.
+    if os.environ.get("SHOGIBOARDQ_ALLOW_UNRESTRICTED_UI") != "1":
+        raise ToolError("not_allowed", "Generic GUI control is disabled in restricted mode. "
+                        "Use dedicated position/kifu tools. The operator may set "
+                        "SHOGIBOARDQ_ALLOW_UNRESTRICTED_UI=1 to grant full GUI control; "
+                        "GUI operations then have the application's filesystem permissions.")
 
 Handler = Callable[[dict[str, Any]], Awaitable[tuple[str, dict[str, Any]]]]
 ToolOutcome = tuple[str, dict[str, Any]] | types.CallToolResult
@@ -102,7 +128,9 @@ def build_server() -> tuple[Server, JobManager, AppClient]:
         if handler is None:
             return _error_result("unknown_tool", f"Unknown tool {name!r}")
         try:
-            return await handler(arguments or {})
+            if name in UNRESTRICTED_TOOLS:
+                require_unrestricted_ui()
+            return await handler(with_defaults(name, arguments))
         except ToolError as exc:
             log.info("tool %s failed: %s", name, exc)
             return _error_result(exc.code, exc.message, exc.data)

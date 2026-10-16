@@ -46,6 +46,7 @@ private:
  * @brief 改行区切り JSON-RPC 2.0 のリクエストを解析し、登録済みメソッドへ振り分ける
  *
  * バッチリクエストは未対応（Invalid Request）。通知（id 無し）には応答しない。
+ * AutomationMethodSpecs の表にあるメソッドは、呼ぶ前に引数を検査して既定値を補う。
  * メソッド実装は `AutomationError` を投げてエラー応答にできる。
  */
 class AutomationDispatcher

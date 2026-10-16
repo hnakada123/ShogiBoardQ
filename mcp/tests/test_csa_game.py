@@ -119,7 +119,7 @@ class CsaUI:
         for widget, value in defaults.items():
             await self.call("set_widget_value", target=dialog, widget=widget, value=value)
         await self.call("set_widget_value", target=dialog, widget="tabWidget", value=0)
-        await self.call("click_dialog_button", dialog=dialog, widget="pushButtonStart")
+        await self.call("click_dialog_button", target=dialog, widget="pushButtonStart")
         return await self.dialog("CsaWaitingDialog")
 
     async def move(self, usi, decline_promotion=False):
@@ -131,12 +131,12 @@ class CsaUI:
             await self.call("click_board_square", file=int(file), rank=ord(rank)-ord("a")+1)
         if usi.endswith("+") or decline_promotion:
             dialog = await self.dialog("PromoteDialog")
-            await self.call("click_dialog_button", dialog=dialog, text="成る" if usi.endswith("+") else "成らない")
+            await self.call("click_dialog_button", target=dialog, text="成る" if usi.endswith("+") else "成らない")
 
     async def dismiss_end(self):
         dialog = await self.dialog("QMessageBox")
-        data = await self.call("get_widget_text", dialog=dialog)
-        await self.call("close_dialog", dialog=dialog)
+        data = await self.call("get_widget_text", target=dialog)
+        await self.call("close_dialog", target=dialog)
         await self.wait_state(ui_state="idle", play_mode="not_started")
         return str(data)
 
@@ -224,7 +224,7 @@ async def test_wait_cancel_and_retry(csa_env, csa_server):
         before = await ui.call("get_position")
         for _ in range(2):
             dialog = await ui.connect(csa_server[0])
-            await ui.call("click_dialog_button", dialog=dialog, text="対局キャンセル")
+            await ui.call("click_dialog_button", target=dialog, text="対局キャンセル")
             await ui.wait_state(ui_state="idle", play_mode="not_started")
             assert await ui.call("get_position") == before
 
@@ -251,8 +251,8 @@ async def test_waiting_log_and_mcp_enter(csa_env, csa_server):
         ui = CsaUI(session)
         dialog = await ui.connect(csa_server[0])
         await asyncio.sleep(0.2)
-        await ui.call("click_dialog_button", dialog=dialog, text="通信ログ")
-        log = await ui.call("get_widget_text", dialog="csaWaitingLogWindow", widget="csaLogView")
+        await ui.call("click_dialog_button", target=dialog, text="通信ログ")
+        log = await ui.call("get_widget_text", target="csaWaitingLogWindow", widget="csaLogView")
         text = log["widgets"][0]["text"]
         assert "LOGIN:BoardQ OK" in text
         assert "audit-secret" not in text
@@ -272,7 +272,7 @@ async def test_connection_form_feedback(csa_env, tmp_path, language, font_size):
         dialog = await ui.dialog("CsaGameDialog")
 
         async def widget(name):
-            return (await ui.call("get_widget_text", dialog=dialog, widget=name))["widgets"][0]
+            return (await ui.call("get_widget_text", target=dialog, widget=name))["widgets"][0]
 
         assert not (await widget("pushButtonStart"))["enabled"]
         assert not (await widget("comboBoxEngine"))["enabled"]
@@ -286,7 +286,7 @@ async def test_connection_form_feedback(csa_env, tmp_path, language, font_size):
         await ui.call("set_widget_value", target=dialog, widget="lineEditId", value="bad id")
         assert not (await widget("pushButtonStart"))["enabled"]
         assert ("空白" if language == "ja_JP" else "whitespace") in (await widget("labelValidation"))["text"]
-        await ui.call("close_dialog", dialog=dialog)
+        await ui.call("close_dialog", target=dialog)
 
 
 async def test_log_send_buttons_and_disconnect(csa_env, csa_server, tmp_path):
@@ -299,19 +299,19 @@ async def test_log_send_buttons_and_disconnect(csa_env, csa_server, tmp_path):
         assert not before["widgets"][0]["enabled"]
         await ui.call("capture_screenshot", output_dir=str(tmp_path / "disconnected"))
         dialog = await ui.connect(csa_server[0])
-        await ui.call("click_dialog_button", dialog=dialog, text="通信ログ")
+        await ui.call("click_dialog_button", target=dialog, text="通信ログ")
         await ui.call("set_widget_value", target="csaWaitingLogWindow", widget="csaCommandInput",
                       value="%%WHO")
         await ui.call("click_widget", target="csaWaitingLogWindow", widget="csaSendButton")
         deadline = asyncio.get_running_loop().time() + 5
         while True:
-            data = await ui.call("get_widget_text", dialog="csaWaitingLogWindow", widget="csaLogView")
+            data = await ui.call("get_widget_text", target="csaWaitingLogWindow", widget="csaLogView")
             if "##[WHO]" in data["widgets"][0]["text"]:
                 break
             assert asyncio.get_running_loop().time() < deadline
             await asyncio.sleep(0.05)
         await ui.call("capture_screenshot", target="csaWaitingLogWindow", output_dir=str(tmp_path / "waiting"))
-        await ui.call("close_dialog", dialog="csaWaitingLogWindow")
+        await ui.call("close_dialog", target="csaWaitingLogWindow")
         peer = await Peer.connect(csa_server[0])
         try:
             await peer.start()
@@ -355,7 +355,7 @@ async def test_server_adjudicates_declarations(csa_env, csa_server, action, comm
             if command == "%KACHI":
                 # The declaration is confirmed first, as in local games.
                 dialog = await ui.dialog("QMessageBox")
-                await ui.call("click_dialog_button", dialog=dialog, text="宣言する")
+                await ui.call("click_dialog_button", target=dialog, text="宣言する")
             # shogi-server rejects CHUDAN and a declaration at the initial position.
             await peer.until("#WIN")
             assert "反則" in await ui.dismiss_end()
@@ -555,7 +555,7 @@ async def test_engine_error_ends_game(csa_env, csa_server, tmp_path):
             text = await ui.dismiss_end()
             assert "中断" in text, text
             error = await ui.dialog("QMessageBox")
-            await ui.call("close_dialog", dialog=error)
+            await ui.call("close_dialog", target=error)
             await peer.until("#WIN")
             state = await ui.wait_state(ui_state="idle", play_mode="not_started")
             assert state.get("csa", {}).get("state") != "InGame", state
@@ -888,9 +888,9 @@ async def test_declaration_confirm_names_handicap_sides(csa_env, position, side,
             await ui.wait_state(ui_state="csa_game")
             await ui.call("trigger_action", name="actionNyugyokuDeclaration")
             dialog = await ui.dialog("QMessageBox")
-            text = str(await ui.call("get_widget_text", dialog=dialog))
+            text = str(await ui.call("get_widget_text", target=dialog))
             assert f"{declarer}が入玉宣言を行います" in text, text
-            await ui.call("close_dialog", dialog=dialog)
+            await ui.call("close_dialog", target=dialog)
             await peer.send("#CHUDAN")
             assert "中断" in await ui.dismiss_end()
         finally:
@@ -905,7 +905,7 @@ async def test_connection_refused_recovers(csa_env):
         ui = CsaUI(session)
         await ui.connect(port)
         dialog = await ui.dialog("QMessageBox")
-        await ui.call("close_dialog", dialog=dialog)
+        await ui.call("close_dialog", target=dialog)
         await ui.wait_state(ui_state="idle", play_mode="not_started")
 
 
@@ -1071,8 +1071,8 @@ async def test_games_continue_on_the_same_connection(csa_env, tmp_path):
             await peer.until("AGREE second")
             await peer.send("START:second")
             dialog = await ui.dialog("QMessageBox")
-            assert "時間切れ" in str(await ui.call("get_widget_text", dialog=dialog))
-            await ui.call("close_dialog", dialog=dialog)
+            assert "時間切れ" in str(await ui.call("get_widget_text", target=dialog))
+            await ui.call("close_dialog", target=dialog)
             await ui.wait_state(ui_state="csa_game", play_mode="csa_network", total_plies=0)
             await ui.move("7g7f")
             await peer.until("+7776FU")
@@ -1123,7 +1123,7 @@ async def test_cancel_before_agree_sends_reject_then_logout(csa_env, tmp_path):
             await peer.send(fake_summary(game_id="pending"))
             await asyncio.sleep(1.0)
             assert not any(l.startswith("AGREE") for l in peer.lines), peer.lines
-            await ui.call("click_dialog_button", dialog=dialog, text="対局キャンセル")
+            await ui.call("click_dialog_button", target=dialog, text="対局キャンセル")
             await peer.until("REJECT pending")
             await peer.until("LOGOUT")
             await peer.send("LOGOUT:completed")
@@ -1203,7 +1203,7 @@ async def test_game_limit_logs_out_after_last_game(csa_env, tmp_path):
                 await peer.send("#TIME_UP\n#WIN")
                 # Non-modal result box between games; modal after the last one.
                 dialog = await ui.dialog("QMessageBox")
-                await ui.call("close_dialog", dialog=dialog)
+                await ui.call("close_dialog", target=dialog)
             await peer.until("LOGOUT")
             await peer.send("LOGOUT:completed")
             assert await peer_closed(peer)
@@ -1230,7 +1230,7 @@ async def test_reconnects_after_server_disconnect(csa_env):
             await ui.wait_state(ui_state="csa_game")
             await peer.send("#TIME_UP\n#WIN")
             dialog = await ui.dialog("QMessageBox")
-            await ui.call("close_dialog", dialog=dialog)
+            await ui.call("close_dialog", target=dialog)
         finally:
             await peer.close()
         # The second login arrives on its own after the reconnect delay.
@@ -1266,7 +1266,7 @@ async def test_auto_flip_follows_assigned_side(csa_env):
             assert state["board_flipped"] is True, state
             await peer.send("#CHUDAN")
             dialog = await ui.dialog("QMessageBox")
-            await ui.call("close_dialog", dialog=dialog)
+            await ui.call("close_dialog", target=dialog)
             await peer.send(fake_summary(game_id="black", your_turn="+"))
             await peer.until("AGREE black")
             await peer.send("START:black")
@@ -1274,7 +1274,7 @@ async def test_auto_flip_follows_assigned_side(csa_env):
             assert state["board_flipped"] is False, state
             await peer.send("#CHUDAN")
             dialog = await ui.dialog("QMessageBox")
-            await ui.call("close_dialog", dialog=dialog)
+            await ui.call("close_dialog", target=dialog)
         finally:
             await peer.close()
 

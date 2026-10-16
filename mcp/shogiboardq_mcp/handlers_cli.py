@@ -36,7 +36,7 @@ class CliTools:
     # ------------------------------------------------------------------ simple tools
     async def convert_kifu(self, args: dict[str, Any]) -> Result:
         cli_args = ["convert-kifu", "--output-format", args["output_format"],
-                    "--input-format", args.get("input_format", "auto")]
+                    "--input-format", args["input_format"]]
         # Check both paths before creating the temporary file, so a rejected path leaves nothing behind.
         input_path = None
         if args.get("input_path"):
@@ -49,7 +49,7 @@ class CliTools:
             if input_path is None:
                 # Long records do not fit on a command line; hand the text over as a temporary file.
                 suffix = {"auto": ".txt", "kif": ".kif", "ki2": ".ki2", "csa": ".csa", "jkf": ".jkf",
-                          "usi": ".usi", "usen": ".usen"}[args.get("input_format", "auto")]
+                          "usi": ".usi", "usen": ".usen"}[args["input_format"]]
                 fd, name = tempfile.mkstemp(prefix="shogiboardq-mcp-", suffix=suffix)
                 temp_path = Path(name)
                 with os.fdopen(fd, "w", encoding="utf-8") as fh:
@@ -83,7 +83,7 @@ class CliTools:
             structured["truncated"] = False
             text_lines.append(f"Written to {output_path}")
         else:
-            text, truncated = fmt.truncate_text(result.get("text", ""), int(args.get("max_chars", 30000)))
+            text, truncated = fmt.truncate_text(result.get("text", ""), int(args["max_chars"]))
             structured["text"] = text
             structured["truncated"] = truncated
             text_lines.append("")
@@ -123,7 +123,7 @@ class CliTools:
     async def render_board_image(self, args: dict[str, Any]) -> Result:
         output_path = paths.resolve_write_path(args["output_path"], bool(args.get("overwrite")))
         cli_args = ["render-board", "--sfen", args.get("sfen") or "startpos", "--output", str(output_path),
-                    "--square-size", str(args.get("square_size", 50))]
+                    "--square-size", str(args["square_size"])]
         if args.get("flip"):
             cli_args.append("--flip")
         if args.get("last_move"):
@@ -139,10 +139,10 @@ class CliTools:
         return f"Board image written to {result['output_path']} ({result['width']}x{result['height']} px).", structured
 
     async def verify_tsume(self, args: dict[str, Any]) -> Result:
-        timeout_s = int(args.get("timeout_seconds", 15))
+        timeout_s = int(args["timeout_seconds"])
         cli_args = ["verify-tsume", "--engine", args["engine"], "--sfen", args["sfen"],
                     "--target-moves", str(args["target_moves"]), "--timeout-ms", str(timeout_s * 1000)]
-        if not args.get("allow_final_move_alternatives", True):
+        if not args["allow_final_move_alternatives"]:
             cli_args.append("--no-final-alternatives")
         result = await run_cli(cli_args, timeout=timeout_s + 30)
         structured = {k: result[k] for k in ("status", "pv", "queries", "elapsed_ms", "sfen", "target_moves") if k in result}
@@ -159,8 +159,8 @@ class CliTools:
 
     # ------------------------------------------------------------------ jobs
     async def analyze_position(self, args: dict[str, Any]) -> Result:
-        seconds = int(args.get("seconds", 10))
-        multipv = int(args.get("multipv", 1))
+        seconds = int(args["seconds"])
+        multipv = int(args["multipv"])
         cli_args = ["analyze", "--engine", args["engine"], *self._position_args(args),
                     "--seconds", str(seconds), "--multipv", str(multipv)]
         summary = {"engine": args["engine"], "seconds": seconds, "multipv": multipv,
@@ -213,13 +213,13 @@ class CliTools:
         return "\n".join(text), status
 
     async def analysis_status(self, args: dict[str, Any]) -> Result:
-        return self._analysis_status(self.jobs.get(args["job_id"]), int(args.get("max_pv_moves", 12)), final=False)
+        return self._analysis_status(self.jobs.get(args["job_id"]), int(args["max_pv_moves"]), final=False)
 
     async def analysis_result(self, args: dict[str, Any]) -> Result:
-        return self._analysis_status(self.jobs.get(args["job_id"]), int(args.get("max_pv_moves", 12)), final=True)
+        return self._analysis_status(self.jobs.get(args["job_id"]), int(args["max_pv_moves"]), final=True)
 
     async def search_mate(self, args: dict[str, Any]) -> Result:
-        seconds = int(args.get("seconds", 10))
+        seconds = int(args["seconds"])
         cli_args = ["mate", "--engine", args["engine"], *self._position_args(args), "--seconds", str(seconds)]
         summary = {"engine": args["engine"], "seconds": seconds, "sfen": args["sfen"], "moves": args.get("moves") or []}
         job = await self.jobs.start("mate", cli_args, summary)
@@ -254,24 +254,24 @@ class CliTools:
         return "\n".join(text), status
 
     async def generate_tsume(self, args: dict[str, Any]) -> Result:
-        target = int(args.get("target_moves", 3))
+        target = int(args["target_moves"])
         if target % 2 == 0:
             raise ToolError("invalid_argument", "target_moves must be odd (1, 3, 5, …)")
         cli_args = [
             "generate-tsume", "--engine", args["engine"],
             "--target-moves", str(target),
-            "--max-positions", str(int(args.get("max_positions", 5))),
-            "--timeout-ms", str(int(args.get("timeout_ms", 5000))),
-            "--max-attack", str(int(args.get("max_attack_pieces", 4))),
-            "--max-defend", str(int(args.get("max_defend_pieces", 1))),
-            "--attack-range", str(int(args.get("attack_range", 3))),
+            "--max-positions", str(int(args["max_positions"])),
+            "--timeout-ms", str(int(args["timeout_ms"])),
+            "--max-attack", str(int(args["max_attack_pieces"])),
+            "--max-defend", str(int(args["max_defend_pieces"])),
+            "--attack-range", str(int(args["attack_range"])),
         ]
-        if not args.get("add_remaining_to_defender_hand", True):
+        if not args["add_remaining_to_defender_hand"]:
             cli_args.append("--no-remaining-to-hand")
-        if not args.get("allow_final_move_alternatives", True):
+        if not args["allow_final_move_alternatives"]:
             cli_args.append("--no-final-alternatives")
         summary = {"engine": args["engine"], "target_moves": target,
-                   "max_positions": int(args.get("max_positions", 5))}
+                   "max_positions": int(args["max_positions"])}
         job = await self.jobs.start("tsume_generation", cli_args, summary)
         return (
             f"Started tsume generation job {job.id} ({target}-ply problems, up to {summary['max_positions']}) with "
@@ -301,7 +301,7 @@ class CliTools:
         return "\n".join(text), status
 
     async def tsume_generation_status(self, args: dict[str, Any]) -> Result:
-        return self._tsume_status(self.jobs.get(args["job_id"]), int(args.get("max_positions", 20)))
+        return self._tsume_status(self.jobs.get(args["job_id"]), int(args["max_positions"]))
 
     async def stop_tsume_generation(self, args: dict[str, Any]) -> Result:
         job = await self.jobs.stop(args["job_id"])

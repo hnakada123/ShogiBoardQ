@@ -22,12 +22,12 @@ class KifuAnalysisTools:
         })
         sfens = record["sfens"]
         moves = record["usi_moves"]
-        start = int(args.get("from_ply", 0))
+        start = int(args["from_ply"])
         end = int(args.get("to_ply", len(moves)))
         if start < 0 or end < start or end >= len(sfens) or end > len(moves):
             raise ToolError("invalid_argument", "Requested ply range is outside the main line")
-        seconds = int(args.get("seconds_per_position", 1))
-        multipv = int(args.get("multipv", 1))
+        seconds = int(args["seconds_per_position"])
+        multipv = int(args["multipv"])
         def steps():
             for ply in range(start, end + 1):
                 # Build history lazily, keeping memory linear in the record length.
@@ -49,9 +49,9 @@ class KifuAnalysisTools:
         if job.kind != "kifu_analysis":
             raise ToolError("invalid_argument", "job_id must refer to a kifu analysis job")
         positions = job.data.get("positions", [])
-        offset = int(args.get("offset", 0))
-        limit = int(args.get("max_positions", 100))
-        max_pv = int(args.get("max_pv_moves", 12))
+        offset = int(args["offset"])
+        limit = int(args["max_positions"])
+        max_pv = int(args["max_pv_moves"])
         page = []
         for position in positions[offset:offset + limit]:
             item = dict(position)

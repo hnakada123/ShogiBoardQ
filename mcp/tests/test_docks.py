@@ -75,7 +75,7 @@ async def test_dock_float_move_tab_close_and_reopen(dock_env, tmp_path):
                 # Floating controls still work when their window is selected explicitly.
                 await ui.call("set_widget_value", target=name, widget="considerationTimed", value=True)
                 await ui.call("set_widget_value", target=name, widget="considerationSeconds", value=17)
-                widgets = (await ui.call("get_widget_text", dialog=name, widget="considerationSeconds"))["widgets"]
+                widgets = (await ui.call("get_widget_text", target=name, widget="considerationSeconds"))["widgets"]
                 assert widgets[0]["value"] == 17
             await ui.configure(name, "hide")
             dock = await ui.wait(name, hidden=True, exposed=False)
@@ -174,4 +174,4 @@ async def test_invalid_and_modally_blocked_operations(dock_env):
         assert dialogs
         await ui.error("configure_dock", widget="ThinkingDock", operation="float")
         await ui.error("trigger_action", name="actionResetDockLayout")
-        await ui.call("close_dialog", dialog=dialogs[0]["selector"])
+        await ui.call("close_dialog", target=dialogs[0]["selector"])

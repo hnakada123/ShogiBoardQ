@@ -90,12 +90,9 @@ void AutomationCommands::registerNavigationCommands(AutomationDispatcher& dispat
     dispatcher.registerMethod(QStringLiteral("menu.select"), [context](const QJsonObject& params) {
         auto* source = AutomationWidgets::requireWidget(context, params, false);
         QMenu* menu = menuFor(source);
-        QWidget* window = AutomationWidgets::requireWindow(context, AutomationParams::optionalString(params, QStringLiteral("target")));
+        QWidget* window = AutomationWidgets::requireWindow(context, params.value(QStringLiteral("target")).toString());
         requireMenuInteractive(window, source, menu);
-        const QJsonValue pathValue = params.value(QStringLiteral("path"));
-        if (!pathValue.isArray() || pathValue.toArray().isEmpty() || pathValue.toArray().size() > 10)
-            throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("path must contain 1-10 menu indices"));
-        const QJsonArray path = pathValue.toArray();
+        const QJsonArray path = params.value(QStringLiteral("path")).toArray();
         QAction* action = nullptr;
         QMenu* current = menu;
         QList<QPointer<QAction>> parents;
@@ -141,10 +138,8 @@ void AutomationCommands::registerNavigationCommands(AutomationDispatcher& dispat
             throw AutomationError(AutomationErrorCode::NotFound, QStringLiteral("Menu window is not available"));
         if (params.contains(QStringLiteral("actions"))) {
             AutomationWidgets::requireInteractive(context.mainWindow);
-            const auto value = params.value(QStringLiteral("actions"));
-            if (!value.isArray()) throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("actions must be an array"));
             QStringList names;
-            const QJsonArray requested = value.toArray();
+            const QJsonArray requested = params.value(QStringLiteral("actions")).toArray();
             for (const auto& name : requested) {
                 if (!name.isString() || !available.contains(name.toString()) || names.contains(name.toString()))
                     throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("Unknown or duplicate favorite action"));
@@ -159,7 +154,7 @@ void AutomationCommands::registerNavigationCommands(AutomationDispatcher& dispat
     dispatcher.registerMethod(QStringLiteral("branch.click"), [context](const QJsonObject& params) {
         auto* view = qobject_cast<QGraphicsView*>(AutomationWidgets::requireWidget(context, params));
         if (!view) throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("Widget must be a branch graphics view"));
-        const int id = AutomationParams::requireInt(params, QStringLiteral("id"), 1, 1000000000);
+        const int id = params.value(QStringLiteral("id")).toInt();
         branchNode(view, id);
         AutomationDeferredCall::schedule([view, id]() {
             try {
