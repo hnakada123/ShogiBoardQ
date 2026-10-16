@@ -2,6 +2,7 @@
 #include <QSettings>
 #include <QTemporaryDir>
 
+#include "piecestylecatalog.h"
 #include "appsettings.h"
 #include "pieceimageprovider.h"
 #include "settingscommon.h"
@@ -29,7 +30,7 @@ private slots:
     void variantSelectionAndPersistence_data()
     {
         QTest::addColumn<QString>("selectedStyle");
-        for (const auto& style : AppSettings::availablePieceStyles()) {
+        for (const auto& style : PieceStyleCatalog::ids()) {
             if (style != QStringLiteral("standard")) QTest::newRow(qPrintable(style)) << style;
         }
     }
@@ -89,18 +90,46 @@ private slots:
     void standardAndVariantsAreAvailable()
     {
         QCOMPARE(AppSettings::pieceStyle(), QStringLiteral("standard"));
-        QCOMPARE(AppSettings::availablePieceStyles().size(), 40);
-        QVERIFY(AppSettings::availablePieceStyles().contains(QStringLiteral("sengoku")));
-        QCOMPARE(AppSettings::availablePieceStyles().first(), QStringLiteral("standard"));
+        QCOMPARE(PieceStyleCatalog::ids().size(), 40);
+        QVERIFY(PieceStyleCatalog::ids().contains(QStringLiteral("sengoku")));
+        QCOMPARE(PieceStyleCatalog::ids().first(), QStringLiteral("standard"));
         for (const auto& removed : {"clear", "wood", "ivory", "dark"})
             QVERIFY(!QFile::exists(QStringLiteral(":/pieces/%1/Sente_fu45.svg").arg(QLatin1String(removed))));
+    }
+
+    /// 駒のセットの表は、ID と表示名が重ならず、どの分類にも1つ以上あり、標準の駒だけが「すべて」にだけ出る
+    void catalogIsConsistent()
+    {
+        using Family = PieceStyleCatalog::Family;
+        QSet<QString> ids;
+        QSet<QString> names;
+        int perFamily[static_cast<int>(Family::Count)] = {};
+        for (const auto& entry : PieceStyleCatalog::entries()) {
+            const QString id = QString::fromLatin1(entry.id);
+            QVERIFY2(!ids.contains(id), entry.id);
+            ids.insert(id);
+            const QString name = PieceStyleCatalog::displayName(id);
+            QVERIFY2(!names.contains(name), qPrintable(name));
+            names.insert(name);
+            QCOMPARE(PieceStyleCatalog::family(id), entry.family);
+            ++perFamily[static_cast<int>(entry.family)];
+            QVERIFY(QFile::exists(PieceStyleCatalog::resourcePrefix(id) + QStringLiteral("Sente_fu45.svg")));
+        }
+        QCOMPARE(perFamily[static_cast<int>(Family::Standard)], 1);
+        for (int family = 1; family < static_cast<int>(Family::Count); ++family) {
+            QVERIFY(perFamily[family] > 0);
+            QVERIFY(!PieceStyleCatalog::familyName(static_cast<Family>(family)).isEmpty());
+        }
+        QCOMPARE(PieceStyleCatalog::displayName(QStringLiteral("unknown")),
+                 PieceStyleCatalog::displayName(PieceStyleCatalog::standardId()));
+        QCOMPARE(PieceStyleCatalog::resourcePrefix(QStringLiteral("../unknown")), QStringLiteral(":/pieces/"));
     }
 
     void allResourcesRender()
     {
         const QStringList names = {"fu", "kyou", "kei", "gin", "kin", "kaku", "hi", "ou",
                                    "gyoku", "to", "narikyou", "narikei", "narigin", "uma", "ryuu"};
-        for (const auto& style : AppSettings::availablePieceStyles()) {
+        for (const auto& style : PieceStyleCatalog::ids()) {
             const QString prefix = style == QStringLiteral("standard")
                 ? QStringLiteral(":/pieces/") : QStringLiteral(":/pieces/%1/").arg(style);
             for (const QString& side : {QStringLiteral("Sente_"), QStringLiteral("Gote_")}) {
@@ -148,7 +177,7 @@ private slots:
         QFETCH(QString, family);
         auto& provider = PieceImageProvider::instance();
         int count = 0;
-        for (const auto& style : AppSettings::availablePieceStyles()) {
+        for (const auto& style : PieceStyleCatalog::ids()) {
             if (!style.startsWith(family)) continue;
             ++count;
             // 絵柄・欧文が読み込めず、五角形だけ表示される退行も検出する。
@@ -186,7 +215,7 @@ private slots:
         QList<Piece> types;
         for (const Turn side : {Turn::Black, Turn::White})
             for (int kind = 0; kind < kPieceKindCount; ++kind) types << makePiece(side, static_cast<PieceKind>(kind));
-        for (const auto& style : AppSettings::availablePieceStyles()) {
+        for (const auto& style : PieceStyleCatalog::ids()) {
             provider.setStyle(style);
             const QString prefix = style == QStringLiteral("standard")
                 ? QStringLiteral(":/pieces/") : QStringLiteral(":/pieces/%1/").arg(style);

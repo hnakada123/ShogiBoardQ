@@ -4,6 +4,7 @@
 #include "appsettings.h"
 #include "settingscommon.h"
 #include "settingskeys.h"
+#include "piecestylecatalog.h"
 #include <QSettings>
 #include <QWidget>
 
@@ -11,50 +12,20 @@ namespace AppSettings {
 
 // --- UI状態 ---
 
-QStringList availablePieceStyles()
-{
-    return {QStringLiteral("standard"),
-            QStringLiteral("torafu_light"), QStringLiteral("torafu_silk"), QStringLiteral("torafu_amber"),
-            QStringLiteral("torafu_red"), QStringLiteral("torafu_gold"), QStringLiteral("wood_pale"),
-            QStringLiteral("wood_classic"), QStringLiteral("wood_amber"), QStringLiteral("wood_bamboo"),
-            QStringLiteral("wood_walnut"), QStringLiteral("tint_linen"), QStringLiteral("tint_sakura"),
-            QStringLiteral("tint_celadon"), QStringLiteral("tint_moon"), QStringLiteral("tint_wisteria"),
-            QStringLiteral("deep_ebony"), QStringLiteral("deep_navy"), QStringLiteral("deep_green"),
-            QStringLiteral("deep_grape"), QStringLiteral("deep_gold"), QStringLiteral("sengoku"),
-            QStringLiteral("chess_facet_wood"),
-            QStringLiteral("chess_facet_paper"),
-            QStringLiteral("chess_facet_slate"),
-            QStringLiteral("chess_atelier_wood"),
-            QStringLiteral("chess_atelier_paper"),
-            QStringLiteral("chess_atelier_slate"),
-            QStringLiteral("chess_ribbon_wood"),
-            QStringLiteral("chess_ribbon_paper"),
-            QStringLiteral("chess_ribbon_slate"),
-            QStringLiteral("alphabet_sei_wood"),
-            QStringLiteral("alphabet_sei_paper"),
-            QStringLiteral("alphabet_sei_slate"),
-            QStringLiteral("alphabet_rin_wood"),
-            QStringLiteral("alphabet_rin_paper"),
-            QStringLiteral("alphabet_rin_slate"),
-            QStringLiteral("alphabet_sumi_wood"),
-            QStringLiteral("alphabet_sumi_paper"),
-            QStringLiteral("alphabet_sumi_slate")};
-}
-
 QString pieceStyle()
 {
     auto& settings = SettingsCommon::openSettings();
-    const QString style = settings.value(SettingsKeys::kPieceStyle, QStringLiteral("standard")).toString();
-    if (availablePieceStyles().contains(style)) return style;
+    const QString style = settings.value(SettingsKeys::kPieceStyle, PieceStyleCatalog::standardId()).toString();
+    if (PieceStyleCatalog::contains(style)) return style;
     // 糸柾（wood_straight）と廃止済みの旧セットは、糸柾を採用した標準セットへ移行する。
-    settings.setValue(SettingsKeys::kPieceStyle, QStringLiteral("standard"));
-    return QStringLiteral("standard");
+    settings.setValue(SettingsKeys::kPieceStyle, PieceStyleCatalog::standardId());
+    return PieceStyleCatalog::standardId();
 }
 
 void setPieceStyle(const QString& style)
 {
     SettingsCommon::openSettings().setValue(SettingsKeys::kPieceStyle,
-        availablePieceStyles().contains(style) ? style : QStringLiteral("standard"));
+        PieceStyleCatalog::contains(style) ? style : PieceStyleCatalog::standardId());
 }
 
 // --- 駒音 ---
@@ -164,42 +135,35 @@ void setBoardVisuals(const BoardVisuals& visuals)
 }
 
 namespace {
-/// 外観ダイアログのタブの保存名（タブの並び順）
-const QStringList& appearanceSectionNames()
-{
-    static const QStringList names{
-        QStringLiteral("pieces"), QStringLiteral("board"), QStringLiteral("background"),
-        QStringLiteral("stand"), QStringLiteral("information"), QStringLiteral("details")};
-    return names;
-}
-}
+/// 駒の絞り込みの最後の項目（項目の位置は PieceStyleCatalog::Family の値。0 は「すべて」）
+constexpr int kLastPieceFilter = static_cast<int>(PieceStyleCatalog::Family::Count) - 1;
+} // namespace
 
-int appearanceSection()
+QString appearanceSection()
 {
     const auto saved = SettingsCommon::openSettings().value(SettingsKeys::kAppearanceSection, "pieces").toString();
-    const int index = static_cast<int>(appearanceSectionNames().indexOf(saved));
-    if (index >= 0) return index;
-    // 背景タブの追加前に保存した番号も、同じ項目を開くよう引き継ぐ。
+    // 背景タブの追加前は、タブの番号（駒・将棋盤・駒台・対局者情報・詳細）で保存していた
     bool ok = false;
     const int legacy = saved.toInt(&ok);
-    if (!ok || legacy < 0 || legacy > 4) return 0;
-    return legacy < 2 ? legacy : legacy + 1;
+    if (!ok) return saved;
+    static const char* const kLegacySections[] = {"pieces", "board", "stand", "information", "details"};
+    return legacy >= 0 && legacy < 5 ? QString::fromLatin1(kLegacySections[legacy]) : QStringLiteral("pieces");
 }
 
-void setAppearanceSection(int index)
+void setAppearanceSection(const QString& id)
 {
-    SettingsCommon::openSettings().setValue(SettingsKeys::kAppearanceSection,
-                                            appearanceSectionNames().at(qBound(0, index, 5)));
+    SettingsCommon::openSettings().setValue(SettingsKeys::kAppearanceSection, id);
 }
 
 int appearancePieceFilter()
 {
-    return qBound(0, SettingsCommon::openSettings().value(SettingsKeys::kAppearancePieceFilter, 0).toInt(), 7);
+    return qBound(0, SettingsCommon::openSettings().value(SettingsKeys::kAppearancePieceFilter, 0).toInt(),
+                  kLastPieceFilter);
 }
 
 void setAppearancePieceFilter(int index)
 {
-    SettingsCommon::openSettings().setValue(SettingsKeys::kAppearancePieceFilter, qBound(0, index, 7));
+    SettingsCommon::openSettings().setValue(SettingsKeys::kAppearancePieceFilter, qBound(0, index, kLastPieceFilter));
 }
 
 // --- メインウィンドウ ---

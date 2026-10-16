@@ -56,6 +56,7 @@ set(SETTINGS_SOURCES
     ${SRC}/services/settingscommon.cpp
     ${SRC}/services/analysissettings.cpp
     ${SRC}/services/appsettings.cpp
+    ${SRC}/services/piecestylecatalog.cpp
     ${SRC}/services/docksettings.cpp
     ${SRC}/services/enginelistsettings.cpp
     ${SRC}/services/engineprofilestore.cpp
@@ -649,6 +650,7 @@ add_shogi_test(tst_settings_reset
     ${SRC}/widgets/dialogutils.cpp
     ${SRC}/services/settingscommon.cpp
     ${SRC}/services/appsettings.cpp
+    ${SRC}/services/piecestylecatalog.cpp
 )
 set_tests_properties(tst_settings_reset PROPERTIES TIMEOUT 20)
 
@@ -839,6 +841,7 @@ add_shogi_test(tst_piece_images
     tst_piece_images.cpp
     ${SRC}/services/pieceimageprovider.cpp
     ${SRC}/services/appsettings.cpp
+    ${SRC}/services/piecestylecatalog.cpp
     ${SRC}/services/settingscommon.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../resources/shogiboardq.qrc
 )
@@ -1144,6 +1147,7 @@ add_shogi_test(tst_evaluationchart
     ${SRC}/widgets/fontsizehelper.cpp
     ${SRC}/widgets/dialogutils.cpp
     ${SRC}/services/appsettings.cpp
+    ${SRC}/services/piecestylecatalog.cpp
     ${SRC}/services/analysissettings.cpp
     ${SRC}/services/settingscommon.cpp
 )

@@ -1,5 +1,6 @@
 #include "pieceimageprovider.h"
 #include "appsettings.h"
+#include "piecestylecatalog.h"
 #include <QCoreApplication>
 #include <QPointer>
 
@@ -21,7 +22,7 @@ QString PieceImageProvider::style() const
 
 void PieceImageProvider::setStyle(const QString& newStyle)
 {
-    if (!AppSettings::availablePieceStyles().contains(newStyle)) return;
+    if (!PieceStyleCatalog::contains(newStyle)) return;
     if (newStyle == style()) return;
     AppSettings::setPieceStyle(newStyle);
     emit styleChanged();
@@ -42,10 +43,7 @@ QIcon PieceImageProvider::iconForStyle(Piece piece, const QString& currentStyle,
     const PieceKind kind = pieceKind(piece);
     const char* name = (kind == PieceKind::King && isWhitePiece(piece)) ? "gyoku" : kNames[static_cast<int>(kind)];
 
-    const QString selected = AppSettings::availablePieceStyles().contains(currentStyle)
-        ? currentStyle : QStringLiteral("standard");
-    const QString prefix = selected == QStringLiteral("standard")
-        ? QStringLiteral(":/pieces/") : QStringLiteral(":/pieces/%1/").arg(selected);
+    const QString prefix = PieceStyleCatalog::resourcePrefix(currentStyle);
     const QString side = isBlackPiece(piece) != flipped
         ? QStringLiteral("Sente_") : QStringLiteral("Gote_");
     const QString path = prefix + side + QLatin1String(name) + QStringLiteral("45.svg");

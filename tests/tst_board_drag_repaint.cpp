@@ -9,6 +9,7 @@
 #include <QWindow>
 #include <QtMath>
 
+#include "piecestylecatalog.h"
 #include "appsettings.h"
 #include "boardappearance.h"
 #include "boardappearancecatalog.h"
@@ -242,7 +243,7 @@ class TestBoardDragRepaint : public QObject
         BoardVisuals visuals = m_defaultVisuals;
         QString style = m_defaultPieceStyle;
         if (kind == kPieceKind) {
-            style = AppSettings::availablePieceStyles().at(index);
+            style = PieceStyleCatalog::ids().at(index);
         } else if (kind == kVisualsKind) {
             visuals = visualsVariant(visuals, index);
         } else {
@@ -682,7 +683,7 @@ private slots:
         QTest::addColumn<int>("kind");
         QTest::addColumn<int>("index");
         static const char* const kComponentTags[] = {"board", "stand", "information", "background"};
-        const QStringList styles = AppSettings::availablePieceStyles();
+        const QStringList styles = PieceStyleCatalog::ids();
         for (const bool flipped : {false, true}) {
             const char* suffix = flipped ? "-flipped" : "";
             for (int kind = 0; kind < kComponentKinds; ++kind) {

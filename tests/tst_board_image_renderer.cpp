@@ -19,6 +19,8 @@
 #include <QtMath>
 #include <cmath>
 
+#include "piecestylecatalog.h"
+#include "appearancestate.h"
 #include "boardimagerenderer.h"
 #include "boardappearance.h"
 #include "boardcolordialog.h"
@@ -122,6 +124,34 @@ private slots:
         QCOMPARE(restoredDialog.findChild<QComboBox*>("boardThemeCombo")->currentIndex(), 0);
     }
 
+    /// おすすめの組み合わせは、ある駒のセットとある見本だけを指し、当てはめるとその組み合わせとして選ばれる
+    void combinationsReferToCatalog()
+    {
+        using Catalog = BoardAppearanceCatalog;
+        const auto& combinations = Catalog::combinations();
+        QVERIFY(!combinations.isEmpty());
+        QSet<QString> names;
+        for (int i = 0; i < combinations.size(); ++i) {
+            const auto& combination = combinations.at(i);
+            const QString name = Catalog::combinationName(combination);
+            QVERIFY2(!names.contains(name), qPrintable(name));
+            names.insert(name);
+            QVERIFY2(PieceStyleCatalog::contains(QString::fromLatin1(combination.pieceStyle)), combination.pieceStyle);
+            for (int c = 0; c < Catalog::kComponentCount; ++c) {
+                const char* key = combination.samples.at(static_cast<std::size_t>(c));
+                QVERIFY2(Catalog::indexOf(static_cast<Catalog::Component>(c), QString::fromUtf8(key)) >= 0, key);
+            }
+            AppearanceState start;
+            start.pieceStyle = QStringLiteral("deep_navy");
+            start.visuals.pieceScale = 95;
+            const AppearanceState state = Catalog::applied(combination, start);
+            QCOMPARE(state.pieceStyle, QString::fromLatin1(combination.pieceStyle));
+            QCOMPARE(state.visuals.pieceScale, 95);
+            QCOMPARE(Catalog::combinationIndex(state), i);
+        }
+        QCOMPARE(Catalog::combinationIndex(AppearanceState{}), 0);  // 標準・榧と畳
+    }
+
     void componentSamplesAreIndependent()
     {
         using Component = BoardAppearanceCatalog::Component;
@@ -187,7 +217,7 @@ private slots:
         auto* preview = dialog.findChild<BoardAppearancePreview*>();
         auto* combination = dialog.findChild<QComboBox*>("appearanceCombination");
         QVERIFY(pieces && preview && combination);
-        QCOMPARE(pieces->count(), AppSettings::availablePieceStyles().size());
+        QCOMPARE(pieces->count(), PieceStyleCatalog::ids().size());
         for (const auto* list : dialog.findChildren<QListWidget*>()) {
             for (int i = 0; i < list->count(); ++i) {
                 const auto icon = list->item(i)->icon();

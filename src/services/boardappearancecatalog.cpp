@@ -167,3 +167,77 @@ bool BoardAppearanceCatalog::matches(Component component, const BoardAppearanceS
     apply(component, sample, candidateColors, candidateVisuals);
     return candidateColors == colors && candidateVisuals == visuals;
 }
+
+int BoardAppearanceCatalog::selectedIndex(Component component, const AppearanceState& state)
+{
+    const QList<BoardAppearanceSample> list = samples(component);
+    int selected = -1;
+    for (int i = 0; i < list.size(); ++i)
+        if (matches(component, list.at(i), state.colors, state.visuals)) selected = i;
+    return selected;
+}
+
+const QList<BoardAppearanceCatalog::Combination>& BoardAppearanceCatalog::combinations()
+{
+    // 並びは Component（将棋盤・駒台・対局者情報・背景）
+    static const QList<Combination> table = {
+        {QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "標準・榧と畳"), "standard", {"榧", "木肌", "若草", "畳"}},
+        {QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "淡虎斑・白榧"), "torafu_light", {"白榧", "白榧", "生成り", "白緑"}},
+        {QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "黒檀・月白"), "deep_ebony", {"月白", "月白", "銀鼠", "青鼠"}},
+        {QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "白木・墨夜"), "wood_pale", {"墨夜", "墨夜", "墨", "墨夜"}},
+        {QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "青磁・白磁"), "tint_celadon", {"白桐", "白桐", "白磁", "柳鼠"}},
+        {QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "葡萄・藤鼠"), "deep_grape", {"藤鼠", "藤鼠", "藤霞", "藤鼠"}},
+        {QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "Facet（木肌）"), "chess_facet_wood", {"チェス・木肌", "チェス・木肌", "生成り", "チェス・木肌"}},
+        {QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "Facet（白）"), "chess_facet_paper", {"チェス・白", "チェス・白", "白磁", "チェス・白"}},
+        {QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "Facet（墨）"), "chess_facet_slate", {"チェス・墨", "チェス・墨", "墨", "チェス・墨"}},
+        {QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "Atelier（木肌）"), "chess_atelier_wood", {"チェス・木肌", "チェス・木肌", "生成り", "チェス・木肌"}},
+        {QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "Atelier（白）"), "chess_atelier_paper", {"チェス・白", "チェス・白", "白磁", "チェス・白"}},
+        {QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "Atelier（墨）"), "chess_atelier_slate", {"チェス・墨", "チェス・墨", "墨", "チェス・墨"}},
+        {QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "Ribbon（木肌）"), "chess_ribbon_wood", {"チェス・木肌", "チェス・木肌", "生成り", "チェス・木肌"}},
+        {QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "Ribbon（白）"), "chess_ribbon_paper", {"チェス・白", "チェス・白", "白磁", "チェス・白"}},
+        {QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "Ribbon（墨）"), "chess_ribbon_slate", {"チェス・墨", "チェス・墨", "墨", "チェス・墨"}},
+        {QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "端正（木肌）"), "alphabet_sei_wood", {"欧文・木肌", "欧文・木肌", "生成り", "欧文・木肌"}},
+        {QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "端正（白）"), "alphabet_sei_paper", {"欧文・白", "欧文・白", "白磁", "欧文・白"}},
+        {QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "端正（墨）"), "alphabet_sei_slate", {"欧文・墨", "欧文・墨", "墨", "欧文・墨"}},
+        {QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "凛（木肌）"), "alphabet_rin_wood", {"欧文・木肌", "欧文・木肌", "生成り", "欧文・木肌"}},
+        {QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "凛（白）"), "alphabet_rin_paper", {"欧文・白", "欧文・白", "白磁", "欧文・白"}},
+        {QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "凛（墨）"), "alphabet_rin_slate", {"欧文・墨", "欧文・墨", "墨", "欧文・墨"}},
+        {QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "墨（木肌）"), "alphabet_sumi_wood", {"欧文・木肌", "欧文・木肌", "生成り", "欧文・木肌"}},
+        {QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "墨（白）"), "alphabet_sumi_paper", {"欧文・白", "欧文・白", "白磁", "欧文・白"}},
+        {QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "墨（墨）"), "alphabet_sumi_slate", {"欧文・墨", "欧文・墨", "墨", "欧文・墨"}},
+    };
+    return table;
+}
+
+QString BoardAppearanceCatalog::combinationName(const Combination& combination)
+{
+    return tr(combination.name);
+}
+
+AppearanceState BoardAppearanceCatalog::applied(const Combination& combination, AppearanceState state)
+{
+    for (int i = 0; i < kComponentCount; ++i) {
+        const auto component = static_cast<Component>(i);
+        const int row = indexOf(component, QString::fromUtf8(combination.samples.at(static_cast<std::size_t>(i))));
+        if (row >= 0) apply(component, samples(component).at(row), state.colors, state.visuals);
+    }
+    state.pieceStyle = QString::fromLatin1(combination.pieceStyle);
+    return state;
+}
+
+int BoardAppearanceCatalog::combinationIndex(const AppearanceState& state)
+{
+    int selected = -1;
+    const QList<Combination>& table = combinations();
+    for (int i = 0; i < table.size(); ++i) {
+        const Combination& combination = table.at(i);
+        bool same = state.pieceStyle == QLatin1String(combination.pieceStyle);
+        for (int c = 0; same && c < kComponentCount; ++c) {
+            const auto component = static_cast<Component>(c);
+            same = selectedIndex(component, state)
+                == indexOf(component, QString::fromUtf8(combination.samples.at(static_cast<std::size_t>(c))));
+        }
+        if (same) selected = i;
+    }
+    return selected;
+}
