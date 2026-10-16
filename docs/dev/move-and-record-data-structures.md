@@ -39,6 +39,8 @@ KI2 の読み書き（`Ki2MoveNotation`）も、局面は `Position`、指し手
 反則手を書いた棋譜のために、合法手で決まらない手だけは駒の動きだけで決める（`EngineMoveValidator::pseudoLegalMoves`）。
 JKF の書き出し（`JkfExporter`・`JkfFormatter`）も、分岐ツリーのノードの手を局面（`Position`）に適用しながら、局面と指し手から
 `piece`・`capture`・`promote`・`same`・`relative` を決める（7.6）。終局はノードの終局の種類（`TerminalType`）から `special` にする。
+KI2 と JKF の書き出しは、ノードを指す前の局面と一緒にたどる処理を `KifuNodeReplay`（`src/kifu/formats/kifunodereplay.h`）で共有する
+（`board()`・`mover()`・`previousTo()` を読んで書き、`advance(node)` で進める。指せない手はノードの SFEN から局面を取り直し、変化は `branchFrom(parent)` でたどる）。
 
 CSA の読み込み（`CsaLexer`）も、開始局面（PI・P1〜P9・P+/P-・00AL）を `Position` に組み立て（`parseStartPos()`）、指し手の行を局面の上の
 `UsiMove` にする（`parseMoveLine()`。盤は変えない）。移動元の駒と指し手の駒種が合わない手は読まない。局面への適用は `KifLineBuilder::addMove()` が行い、
@@ -563,6 +565,7 @@ CommentCoordinator::onCommentUpdated(moveIndex, text)
 
 書き出しは分岐ツリーを直接読む。CSA・USI は本譜（`KifuBranchTree::mainLine()`、USI は `mainRecordLine().usiMoves()`）、
 USEN は本譜と各ライン（`allLines()`）のノードの指し手から書く。
+形式をまたいで共有する部品: KIF・KI2 の先頭（文字コード宣言・対局情報・盤面図）は `KifExporter::appendHeaderLines()`、USEN の符号（指し手の3文字・開始局面・手順）は読み込みと書き出しで `UsenCodec`（`src/kifu/formats/usencodec.h`）、USI の position 文字列は `UsiPosition::commandFor(startSfen, moves)`（`UsiPosition::command()` と共有）。
 「USI形式（現在の指し手まで）」のコピーは、`KifuFileController`（`src/ui/coordinators`）が表示中の手順（`KifuNavigationState::selectedPath()`）を
 表示中の手数で切り、`KifuBranchTree::toRecordLine()` にして指し手を取る。
 
@@ -875,7 +878,7 @@ JSON 形式で棋譜を表現。分岐対応。
 }
 ```
 
-書き出し（`JkfExporter`）は、分岐ツリーのノードの指し手（USI）を開始局面から局面の値（`Position`）に適用しながら、
+書き出し（`JkfExporter`）は、分岐ツリーのノードの指し手（USI）を開始局面から局面の値（`Position`）に適用しながら（`KifuNodeReplay`）、
 指す前の局面と指し手で `move` を作る（`JkfFormatter::moveToJkf`）。棋譜欄の表示の文字列は使わない。
 
 | 項目 | 決め方 |

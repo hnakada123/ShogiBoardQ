@@ -345,7 +345,7 @@ Python側は監査記録 `audit.jsonl` を即時保存し、同じ検証器の�
 - 未登録時の開始、生成中の設定変更・既定値への復帰、結果がない状態での保存・コピー、未選択時の選択コピーは無効にする。再開始時には前回の結果と進捗をリセットする。
 - 盤面列のクリック、行のダブルクリック、Enterキーで盤面と手順を開く。選択コピーはCtrl+Cにも対応し、複数選択した結果を表示順に出力する。結果追加時の自動スクロールは最下部を閲覧している場合だけ行う。
 - 「手順も出力」を有効にすると、ファイル保存・コピーの各行が `<SFEN> moves <USI手順>` になる。無効時は SFEN のみで、SFEN集ダイアログ等の1行1SFEN形式と互換。
-- 「ファイル保存」は先頭に `# ` 始まりのコメント行で ShogiBoardQ のバージョン（`APP_VERSION`）、生成開始日時、生成設定（エンジン、目標手数、攻め駒上限、守り駒上限、配置範囲、探索時間/局面、生成上限、余詰検査）を記録する（`TsumeshogiExportHeaderBuilder::build`）。設定と日時は「開始」時に `m_lastRunSettings` / `m_lastRunStartedAt` に控えたものを使うので、生成後に設定欄を変えても保存内容は変わらない。コピーにはヘッダを付けない。`TsumeCollection::parse` と `SfenCollectionDialog::parseSfenLines` は `#` 始まりの行を読み飛ばす。
+- 「ファイル保存」は先頭に `# ` 始まりのコメント行で ShogiBoardQ のバージョン（`APP_VERSION`）、生成開始日時、生成設定（エンジン、目標手数、攻め駒上限、守り駒上限、配置範囲、探索時間/局面、生成上限、余詰検査）を記録する（`TsumeshogiExportHeaderBuilder::build`）。設定と日時は「開始」時に `m_lastRunSettings` / `m_lastRunStartedAt` に控えたものを使うので、生成後に設定欄を変えても保存内容は変わらない。コピーにはヘッダを付けない。詰将棋問題一覧（`TsumeCollection::parse`）と局面集ビューア（`SfenCollectionDialog`）は同じ1行の規則 `PositionCollectionFile::parse`（`src/analysis/positioncollectionfile.h`）で読み、`#` 始まりの行を読み飛ばす。SFEN に添えた `moves <USI手順>` はどちらも参考手順として扱う（position コマンドの指し手だけを指した後の局面にする）。
 - ファイル保存は `TsumeCollectionWriter::save()` が `QSaveFile` で書き込み完了を確認してから置き換える。閉じる・Escでも生成を停止して設定を保存する。
 - ジェネレータ（`TsumeshogiGenerator`）はダイアログの子として1つだけ生成し、開始のたびに再利用する。`start()` が状態を初期化し、エンジンとの接続（`MateOracle`。画面の思考情報は使わない）は開始ごとに生成・終了時に `deleteLater` で破棄する。
 
@@ -396,7 +396,7 @@ Python側は監査記録 `audit.jsonl` を即時保存し、同じ検証器の�
 （`3+P5/k8/9/9/1G+R6/9/9/9/9 b Sr2b3g3s4n4l17p 1`）で合格を検査する。
 この方針検査では、深さ5で詰みが見つからない局面を不詰と答える代用エンジンを使い、実機照合は `komoringIntegration()` で行う。
 `tests/tst_tsumeshogi_export_header.cpp` はファイル保存のコメントヘッダ（各行が `# ` 始まりの1行であること、バージョン・生成日時・各設定の表記、生成上限0の「無制限」と最終手厳格時の表記）を検査し、
-`tests/tst_sfen_collection.cpp` は局面集ビューアがコメント行を読み飛ばすことを検査する。
+`tests/tst_sfen_collection.cpp` は局面集ビューアがコメント行を読み飛ばすことを、`tests/tst_position_collection_file.cpp` は1行の規則（コメント・`startpos`・position コマンドの指し手と参考手順・読めない行）と最近使ったファイルの一覧を検査する。
 
 通常の回帰テストには外部エンジンのインストールは不要。
 KomoringHeights 1.1.0 の実機照合は、次の任意テストで再現できる。

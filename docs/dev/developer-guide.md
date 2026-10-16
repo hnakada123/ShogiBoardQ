@@ -93,6 +93,7 @@
 | 2026-10-16 | CLI・自動化 API・MCP の引数を1つの表から扱うようにしたのに合わせて §1.3・§1.5・§1.8・§14.5.1・第18章を更新（引数の表の部品 `ParamSpec`・`OperationSpec`（`paramspec.h`）、自動化 API の表 `AutomationMethodSpecs`（`AutomationDispatcher` が呼ぶ前に検査し既定値を補う）、CLI の表 `CliCommandSpecs`（オプションの登録・使い方の文・JSON への変換）、表を JSON Schema で出す `shogiboardq-cli describe`） |
 | 2026-10-16 | エラーの分類を1つの表にしたのに合わせて §1.3・§1.5・§14.5.1・第18章を更新（分類 `ErrorKind` と語（slug）・JSON-RPC のコードの表 `ErrorKinds`（`errorkinds.h`）を CLI の `CliOutput::fail()`・`failEvent()` と `AutomationError` で共有し、JSON-RPC のエラーに `error.data.slug` を付ける。場所と上限・分類を出す `shogiboardq-cli environment`） |
 | 2026-10-16 | 設定の宣言の型（`BoundedSetting`・`StructSetting`・`ListSetting`・`StructListSetting`）と、使われていない API の削除（監査 3章・4章）に合わせて §1.5・§10・§11・§12.5・§17.5・第18章を更新（駒音・詰将棋・列幅・CSA の接続先の履歴の設定を宣言にし、`JishogiScoreDialogController` を `JishogiScoreDialog::showFor()` に、`ElideLabel` を省略表示だけに、`fitBoardToWidget()` の記述を `resizeEvent()` に直す） |
+| 2026-10-16 | 局面集ファイルの1行の規則 `PositionCollectionFile`・最近使ったファイルの `RecentFileList`／`RecentFilesMenu`（監査 3章）と、棋譜の書き出しの共有部品 `KifuNodeReplay`・`UsenCodec`・`UsiPosition::commandFor()`・`KifExporter::appendHeaderLines()` に合わせて §1.5・§2.5・§8.9・§8.11・第18章を更新（`UsenToSfenConverter::decodeUsenMoves()`・`decodeUsenMovesStrict()` は `UsenCodec::decodeMoves()` に移した） |
 
 <!-- chapter-0-end -->
 
@@ -379,7 +380,9 @@ src/
 │       ├── kiflexer.cpp/.h             #   KIF の字句解析（手数・消費時間・BOD。ki2lexer・csalexer も同様）
 │       ├── ki2movenotation.cpp/.h      #   KI2 の指し手から移動元を決める
 │       ├── jkfmoveparser.cpp/.h        #   JKF の指し手・初期局面・時間
-│       ├── kifexporter.cpp/.h          #   KIF の書き出し（ki2・csa・jkf・usen・usi の *exporter も同様）
+│       ├── kifexporter.cpp/.h          #   KIF の書き出し（ki2・csa・jkf・usen・usi の *exporter も同様。KIF・KI2 の先頭は appendHeaderLines で共有）
+│       ├── kifunodereplay.cpp/.h       #   分岐ツリーのノードを指す前の局面と一緒にたどる（KifuNodeReplay。KI2・JKF の書き出しで共有）
+│       ├── usencodec.cpp/.h            #   USEN の符号表（指し手の3文字・開始局面・手順の符号化と復号。読み込みと書き出しで共有）
 │       ├── csaformatter.cpp/.h, jkfformatter.cpp/.h # CSA・JKF の文字列生成
 │       ├── terminalcodes.cpp/.h        #   棋譜形式ごとの終局の符号（読みと書きで同じ表）
 │       ├── notationutils.cpp/.h, parsecommon.cpp/.h # 変換器で共有する補助（行の判定・対局情報・時間の文字列）
@@ -416,7 +419,8 @@ src/
 │   ├── tsumeshogigenerator.cpp/.h  #   詰将棋局面の自動生成（候補の待ち行列・問い合わせの中継・結果の集計。候補の生成・選別・検証・書き出しは tsumeshogi* に分ける）
 │   ├── tsumecandidatejob.cpp/.h    #   詰将棋の候補1つの処理（手数の確認・唯一解の検査・要らない駒の除去）
 │   ├── tsumeverificationjob.cpp/.h #   総予算つきの唯一解の検査（生成と CLI の余詰検査で共通）
-│   ├── tsumecollection.cpp/.h      #   詰将棋問題集のファイルの読み込みと検証
+│   ├── positioncollectionfile.cpp/.h # 局面集ファイル（1行1局面）の規則（局面集ビューアと詰将棋問題一覧で共有）
+│   ├── tsumecollection.cpp/.h      #   詰将棋問題集のファイルの読み込みと検証（1行の規則は PositionCollectionFile）
 │   ├── tsumecollectionsession.cpp/.h #  開いている詰将棋の局面集（問題・挑戦状況・絞り込み・手数の判定）
 │   ├── tsumecollectionwriter.cpp/.h #  詰将棋局面の一覧の書き出し
 │   ├── tsumeprogressstore.cpp/.h   #   詰将棋問題集の解答状況の保存
@@ -480,6 +484,7 @@ src/
 │   ├── editactions.cpp/.h          #   元に戻す〜貼り付けの QAction の組（標準ショートカット。コメント欄・対局情報で共通）
 │   ├── dialogfontscale.cpp/.h      #   ダイアログの A-/A+ と保存（全ダイアログ共通）
 │   ├── engineselector.cpp/.h       #   登録エンジンを選ぶ部品（コンボ・「設定」ボタン・未登録の案内・選択の保存）
+│   ├── recentfilesmenu.cpp/.h      #   「履歴」ボタンのメニュー（最近使ったファイル・履歴をクリア。定跡ウィンドウ・局面集ビューアで共通）
 │   ├── playersetupwidget.cpp/.h    #   対局開始ダイアログの対局者1人の欄（人間かエンジンか・名前・「エンジン設定」）
 │   ├── timecontroleditor.cpp/.h    #   片方の対局者の持ち時間・秒読み・加算の欄（TimeControlSide で読み書き）
 │   ├── settingsformbinding.cpp/.h  #   入力欄と設定の宣言（Setting<T>）の対応の表（読み込み・保存・既定値に戻す）
@@ -514,7 +519,7 @@ src/
 │   ├── fontsettingsdialog.cpp/.h   #   GUI 共通の書体
 │   ├── piecesoundsettingsdialog.cpp/.h # 駒音の設定
 │   ├── jishogiscoredialog.cpp/.h   #   持将棋の点数
-│   ├── sfencollectiondialog.cpp/.h #   SFEN局面集ビューア
+│   ├── sfencollectiondialog.cpp/.h #   SFEN局面集ビューア（1行の規則は analysis の PositionCollectionFile、履歴は RecentFileList・RecentFilesMenu）
 │   ├── pvboarddialog.cpp/.h        #   読み筋盤面ダイアログ（局面の進め方は pvboardcontroller）
 │   ├── kifupastedialog.cpp/.h      #   棋譜貼り付けダイアログ
 │   ├── menuwindow.cpp/.h           #   メニューウィンドウ
@@ -596,6 +601,7 @@ src/
 │   ├── boardcolors.h, boardvisuals.h, buttonstyles.h, tablestyles.h # 配色とスタイルシート
 │   ├── logcategories.cpp/.h        #   ログカテゴリ
 │   ├── errorbus.cpp/.h             #   エラー通知バス
+│   ├── recentfilelist.cpp/.h       #   最近使ったファイルの一覧（新しい順・重複なし・上限つき。定跡・局面集で共通）
 │   ├── jishogicalculator.cpp/.h    #   持将棋点数計算
 │   └── tsumepositionutil.cpp/.h    #   詰将棋局面ユーティリティ
 │
@@ -1107,7 +1113,7 @@ ShogiBoardQは6種類の棋譜フォーマットを読み込める（局面だ�
 | KIF・KI2 | `KifToSfenConverter::parse()`・`Ki2ToSfenConverter::parse()`（どちらも `KifTextParser::parse(text, Dialect::Kif / Dialect::Ki2, options)` を呼ぶ） |
 | CSA | `CsaToSfenConverter::parse()`（CSA の文字コード宣言を見てファイルを読む `readFileText()` も持つ。手合割の名前も CSA の変換器が決める） |
 | JKF | `JkfToSfenConverter::parse()`（JSON は1回だけ解析する） |
-| USEN | `UsenToSfenConverter::parse()`（指し手の列だけを読む `decodeUsenMoves()`・`decodeUsenMovesStrict()` も持つ） |
+| USEN | `UsenToSfenConverter::parse()`（指し手の3文字・開始局面・手順の復号は `UsenCodec`（`usencodec.h`）。書き出しの `UsenExporter` と同じ符号表） |
 | USI・SFEN | `UsiToSfenConverter::parse()`（指し手のない局面だけのテキストは `positionOnly` に入れる） |
 | BOD | `KifTextParser::parseBod()`（局面図だけのテキスト。局面を `positionOnly` に入れる） |
 
@@ -4605,7 +4611,16 @@ onLoadFinished() → applyLoadResult(result)            ← メインスレッ�
 | `CsaExporter` | CSA | なし | コンピュータ将棋協会形式。本譜のみ |
 | `JkfExporter` | JKF | あり | JSON棋譜フォーマット |
 | `UsenExporter` | USEN | あり | URLセーフ短縮形式 |
-| `UsiExporter` | USI | なし | position コマンド文字列。本譜のみ（`KifuBranchTree::mainRecordLine().usiMoves()`） |
+| `UsiExporter` | USI | なし | position コマンド文字列。本譜のみ（`KifuBranchTree::mainRecordLine().usiMoves()`）。文字列は `UsiPosition::commandFor(startSfen, moves)`（`UsiPosition::command()` と共有） |
+
+形式をまたいで共有する部品:
+
+| 部品 | 使う側 | 内容 |
+|------|--------|------|
+| `KifExporter::appendHeaderLines(ctx, out, HeaderOptions)` | KIF・KI2 | 先頭（文字コード宣言・対局情報・平手でない開始局面の盤面図）。KI2 は `HeaderOptions::consumedTime = false` で消費時間を書かない。戻り値は駒落ちの呼び方（下手・上手）で書くか |
+| `KifuNodeReplay`（`kifunodereplay.h`） | KI2・JKF | 手順のノードを指す前の局面と一緒にたどる。`board()`・`mover()`・`previousTo()`（「同」の判定）を読んで書き、`advance(node)` で進める。指せない手はノードの SFEN から局面を取り直す。変化は `branchFrom(parent)` の写しでたどる |
+| `UsenCodec`（`usencodec.h`） | USEN の読み込み・書き出し | 指し手の3文字（`encodeMove`・`decodeMove`）・開始局面（`encodePosition`・`decodePosition`）・1本の手順（`decodeMoves` が `UsenDecodeResult` を返す） |
+| `UsiPosition::commandFor(startSfen, moves)` | USI | 開始局面が空か平手なら `position startpos`、それ以外は `position sfen ...` |
 
 #### KifuExportMetadata — 書き出しの文脈
 
@@ -4736,7 +4751,7 @@ KifuNavigationState
 | `Ki2ToSfenConverter` | KI2 (.ki2) | 移動元座標省略形式。盤面状態を追跡し「右」「左」「直」等の修飾語から移動元を推測（`KifTextParser` で読む） | あり |
 | `CsaToSfenConverter` | CSA (.csa) | コンピュータ将棋協会形式。PI/P1..P9による初期局面、`+`/`-` による指し手、`$` による対局情報を解析 | なし |
 | `JkfToSfenConverter` | JKF (.jkf) | JSON棋譜フォーマット。`header` / `initial` / `moves` の3セクション構造。分岐は `forks` 配列で表現 | あり |
-| `UsenToSfenConverter` | USEN (.usen) | URLセーフ短縮形式。base36エンコードされた指し手列（3文字=1手）。`~(startPly).` で分岐区切り | あり |
+| `UsenToSfenConverter` | USEN (.usen) | URLセーフ短縮形式。base36エンコードされた指し手列（3文字=1手。符号表は `UsenCodec`）。`~(startPly).` で分岐区切り | あり |
 | `UsiToSfenConverter` | USI (.usi) | USI position コマンド文字列。`startpos moves ...` または `sfen ... moves ...` 形式 | なし |
 
 終局語は `TerminalCodes`（`formats/terminalcodes.h`）、手合割の名前と開始局面は `Handicaps`（`core/handicaps.h`）の表を共有する。
@@ -4750,7 +4765,7 @@ KifuNavigationState
 static KifuParseOutcome parse(QStringView text, const ParseOptions& options = {});
 ```
 
-`KifuLoadParser::parseContent()` は `KifuFormat` から関数を引く表（`parserFor()`）でこの `parse()` を選び、結果（8.4 の `KifuParseOutcome`）を `KifuLoadResult` に写す（貼り付けも同じ経路で、一時ファイルは作らない）。BOD（局面図だけのテキスト）は `KifTextParser::parseBod()` が読む。そのほかに公開している関数は、CSA の文字コード宣言を見てファイルを読む `CsaToSfenConverter::readFileText()` と、USEN の指し手の列だけを読む `UsenToSfenConverter::decodeUsenMoves()`・`decodeUsenMovesStrict()` だけである。USEN は対局情報を持たない。指し手のない USI・SFEN は `UsiToSfenConverter::parse()` が局面を `positionOnly` に入れる。CSA の手合割の名前（「平手」「局面指定」）も CSA の変換器が決める。
+`KifuLoadParser::parseContent()` は `KifuFormat` から関数を引く表（`parserFor()`）でこの `parse()` を選び、結果（8.4 の `KifuParseOutcome`）を `KifuLoadResult` に写す（貼り付けも同じ経路で、一時ファイルは作らない）。BOD（局面図だけのテキスト）は `KifTextParser::parseBod()` が読む。そのほかに公開している関数は、CSA の文字コード宣言を見てファイルを読む `CsaToSfenConverter::readFileText()` と、USEN の開始局面を読む `UsenToSfenConverter::initialSfenOf()` だけである（USEN の符号の復号は `UsenCodec::decodeMoves()`・`decodePosition()` が受け持つ）。USEN は対局情報を持たない。指し手のない USI・SFEN は `UsiToSfenConverter::parse()` が局面を `positionOnly` に入れる。CSA の手合割の名前（「平手」「局面指定」）も CSA の変換器が決める。
 
 形式ごとの部品:
 
@@ -4797,8 +4812,8 @@ static KifuParseOutcome parse(QStringView text, const ParseOptions& options = {}
    駒の動きだけで決めた手（`EngineMoveValidator::pseudoLegalMoves()`）から選ぶ
 3. 決まった `UsiMove` を `KifLineBuilder::addMove()` で局面に適用し、棋譜の1行を作る
 
-書き出し（`Ki2Exporter`）は、分岐ツリーのノードの手（`ShogiMove::move` の `UsiMove`）と局面から `Ki2MoveNotation::format()` で
-KI2 の文字列を作る。修飾語は日本将棋連盟の棋譜の表記方法に合わせる（動作の上・引・寄を優先し、区別できなければ右・左。
+書き出し（`Ki2Exporter`）は、分岐ツリーのノードの手（`ShogiMove::move` の `UsiMove`）と局面（`KifuNodeReplay` でたどる指す前の局面）から `Ki2MoveNotation::format()` で
+KI2 の文字列を作る。本譜と変化の指し手の行は同じループ（`appendKi2Moves`）で書く。修飾語は日本将棋連盟の棋譜の表記方法に合わせる（動作の上・引・寄を優先し、区別できなければ右・左。
 金・銀が真っ直ぐ上がるときは直。飛・角・竜・馬は直を使わない。3枚以上は「左上」のように位置・動作の順）。
 
 ### 8.12 補助クラス
@@ -9266,6 +9281,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | KifuLoadCoordinator | C | ui/coordinators | 棋譜ファイル・貼り付け・局面を読み、棋譜の文書（`KifuDocument`）を置き換える（読み込みの実体は `KifuLoadParser`） | 第8章, 第15章 |
 | KifuLoadParser | NS | kifu | 棋譜の読み込み口（ファイルの文字コードの判別と、形式ごとの変換器への振り分け） | 第8章 |
 | KifuNavigationController | C | navigation | 棋譜ナビゲーション操作（局面送りの6つの QAction と棋譜欄・評価値グラフのボタンの結び付け・分岐）の処理 | 第13章 |
+| KifuNodeReplay | C | kifu/formats | 手順のノードを指す前の局面と一緒にたどる（KI2・JKF の書き出しで共有） | 第8章 |
 | KifuNavigationState | C | kifu | 表示中のノードと手順。変わると `changed()` を出す | 第8章, 第13章 |
 | KifuParseOutcome | S | kifu | 形式ごとの `parse()` が返す1回の解析の結果（棋譜・開始局面・手合割・対局情報・警告） | 第8章 |
 | KifuPasteDialog | C | dialogs | 棋譜ペーストダイアログ | 第11章 |
@@ -9316,6 +9332,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | PlyAnalysis | S | analysis | 棋譜解析の1局面の結果（評価値・読み筋・定跡か） | 第9章 |
 | PlyAnalysisCollector | C | analysis | 1局面の info と bestmove から `PlyAnalysis` を作る | 第9章 |
 | Position | C | core | 局面の値（盤・持ち駒・手番・手数）。SFEN の読み書きと指し手の適用 | 第2章, 第5章 |
+| PositionCollectionFile | NS | analysis | 局面集ファイル（1行1局面）の規則。局面集ビューアと詰将棋問題一覧で共有 | 第9章, 第11章 |
 | PositionEditSession | C | board | 局面編集の開始・終了・編集メニュー・編集中の着手（編集中かは動作状態で決まる） | 第13章 |
 | PromoteDialog | C | dialogs | 成/不成確認ダイアログ | 第11章 |
 | PromotionFlow | C | ui/coordinators | 成/不成選択フロー | 第6章 |
@@ -9323,6 +9340,8 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | PvClickController | C | ui/controllers | 読み筋クリックの制御 | 第10章 |
 | PvNotationFormatter | C | engine | UsiInfo の読み筋・探索手を局面の上で漢字表記にする | 第7章 |
 | PvTableView | C | widgets | 読み筋の表（数値の列・「盤面」ボタン・読み筋の描き方。思考の表と棋譜解析の結果の表で使う） | 第11章 |
+| RecentFileList | C | common | 最近使ったファイルの一覧（新しい順・重複なし・上限つき） | 第11章 |
+| RecentFilesMenu | C | widgets | 「履歴」ボタンのメニュー（ファイル・履歴をクリア）を作り、選ばれた項目を知らせる | 第11章 |
 | RecordEntry | S | kifu | 棋譜の1行（指した手か終局） | 第8章 |
 | RecordLine | S | kifu | 1本の手順の値（局面列・指し手・表記・表示中の手数。末尾に終局行を持てる。読み込み結果の本譜・変化にも使う） | 第8章 |
 | RecordPane | C | widgets | 棋譜ペインウィジェット | 第11章 |
@@ -9369,6 +9388,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | TsumeVerificationRunner | C | automation | 詰将棋の検証の実行器（CLI・自動化 API と共有） | 第9章 |
 | UiNotificationService | C | services | エラー通知ダイアログの表示 | 第4章 |
 | UiStatePolicyManager | C | ui/coordinators | 動作状態ごとのメニュー・ボタンの有効・無効（コンパイル時の表） | 第6章, 第10章, 第14章 |
+| UsenCodec | NS | kifu/formats | USEN の符号（指し手の3文字・開始局面・手順）の符号化と復号 | 第8章 |
 | UsenExporter | C | kifu/formats | USEN形式の書き出し | 第8章 |
 | UsenToSfenConverter | C | kifu/formats | USEN形式→SFEN変換器 | 第8章 |
 | Usi | C | engine | GUI から使う USI エンジン1台の窓口（型付きの送信メソッド） | 第7章 |
@@ -9502,6 +9522,8 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | kiftextparser | 第8章 | KIF・KI2 で共有する読み取り |
 | kifmovegrammar | 第8章 | KIF・KI2 の指し手の文法 |
 | kiflinebuilder | 第8章 | 1本の手順の組み立て（全形式で共通） |
+| kifunodereplay | 第8章 | 手順のノードを局面と一緒にたどる（KI2・JKF の書き出し） |
+| usencodec | 第8章 | USEN の符号化と復号 |
 | terminalcodes | 第8章 | 棋譜形式ごとの終局の符号（CSA・JKF・USI・USEN） |
 | usenexporter | 第8章 | USEN形式の書き出し |
 | usiexporter | 第8章 | USI形式の書き出し |
@@ -9514,6 +9536,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | analysisoptions | 第9章 | 検討・詰み探索の開始オプション |
 | analysisjob | 第9章 | 棋譜解析1回（`AnalysisJob`）と1局面の結果（`PlyAnalysis`・`PlyAnalysisCollector`） |
 | sfenvalidationservice | 第9章 | SFEN 文字列の妥当性検査（GUI 非依存） |
+| positioncollectionfile | 第9章 | 局面集ファイル（1行1局面）の規則 |
 | tsumecollectionsession | 第9章 | 詰将棋集の進捗・解析待ちの管理 |
 | tsumeshogigenerator | 第9章 | 詰将棋局面の自動生成（候補の待ち行列・問い合わせの中継・結果の集計） |
 | tsumecandidatejob | 第9章 | 詰将棋の候補1つの処理（手数の確認・唯一解の検査・要らない駒の除去） |
@@ -9630,6 +9653,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | editactions | 第11章 | 元に戻す〜貼り付けの QAction の組 |
 | dialogfontscale | 第11章, 第17章 | ダイアログの A-/A+ と保存 |
 | engineselector | 第11章 | 登録エンジンを選ぶ部品 |
+| recentfilesmenu | 第11章 | 「履歴」ボタンのメニュー |
 | playersetupwidget | 第11章 | 対局開始ダイアログの対局者1人の欄 |
 | timecontroleditor | 第11章 | 片方の対局者の持ち時間・秒読み・加算の欄 |
 | settingsformbinding | 第11章 | 入力欄と設定の宣言の対応の表 |
@@ -9711,6 +9735,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | appactivitystate | 第3章, 第14章 | アプリの動作状態（`AppActivityState`） |
 | movefont | 第11章 | 指し手・読み筋の書体の規則 |
 | errorbus | 第4章, 第12章 | エラー通知バス |
+| recentfilelist | 第11章 | 最近使ったファイルの一覧 |
 | jishogicalculator | 第12章 | 持将棋点数計算 |
 | tsumepositionutil | 第9章, 第12章 | 詰将棋局面ユーティリティ |
 
