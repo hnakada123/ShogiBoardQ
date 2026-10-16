@@ -81,10 +81,10 @@ class TestBoardDragRepaint : public QObject
             controller->setLegalMovesVisible(true);
             controller->setInputRoute(&route);
             // 対局中と同じく、対局者名・時計・手番表示・直前の指し手を表示する
-            view.chrome()->setBlackPlayerName(QStringLiteral("先手"));
-            view.chrome()->setWhitePlayerName(QStringLiteral("後手"));
-            view.chrome()->setBlackClockText(QStringLiteral("00:08:31"));
-            view.chrome()->setWhiteClockText(QStringLiteral("00:07:12"));
+            view.chrome()->card(Turn::Black)->setName(QStringLiteral("先手"));
+            view.chrome()->card(Turn::White)->setName(QStringLiteral("後手"));
+            view.chrome()->card(Turn::Black)->setClockText(QStringLiteral("00:08:31"));
+            view.chrome()->card(Turn::White)->setClockText(QStringLiteral("00:07:12"));
             controller->showMoveHighlights(QPoint(3, 3), QPoint(3, 4));
             view.show();
         }
@@ -452,7 +452,7 @@ private slots:
         for (const QRect& rect : std::as_const(spy.regionRects)) repainted += rect;
         // 手番が替わる局面なので、対局者のカード（手番の印）は描き直してよい
         for (const bool black : {true, false}) {
-            const QRect card = ui.view.chrome()->visibleCardRect(black);
+            const QRect card = ui.view.chrome()->card(black ? Turn::Black : Turn::White)->geometry();
             repainted -= QRect(ui.view.chrome()->mapTo(&ui.view, card.topLeft()), card.size());
         }
         qint64 area = 0;
@@ -714,8 +714,8 @@ private slots:
         // 前の行で動かした局面から始めても同じになるよう、局面と表示を戻してから外観を変える
         ui.gc.board()->setSfen(sfen());
         ui.controller->showMoveHighlights(QPoint(3, 3), QPoint(3, 4));
-        ui.view.chrome()->setBlackClockText(QStringLiteral("00:08:31"));
-        ui.view.chrome()->setWhiteClockText(QStringLiteral("00:07:12"));
+        ui.view.chrome()->card(Turn::Black)->setClockText(QStringLiteral("00:08:31"));
+        ui.view.chrome()->card(Turn::White)->setClockText(QStringLiteral("00:07:12"));
         applyAppearance(kind, index);
         settle();
         QCOMPARE(stalePixels(ui), 0);
@@ -740,8 +740,8 @@ private slots:
             ui.controller->onMoveApplied(f, t, ok);
             ui.controller->showMoveHighlights(f, t);
             const QString seconds = QStringLiteral("%1").arg(ply % 60, 2, 10, QLatin1Char('0'));
-            ui.view.chrome()->setBlackClockText(QStringLiteral("00:08:") + seconds);
-            ui.view.chrome()->setWhiteClockText(QStringLiteral("00:07:") + seconds);
+            ui.view.chrome()->card(Turn::Black)->setClockText(QStringLiteral("00:08:") + seconds);
+            ui.view.chrome()->card(Turn::White)->setClockText(QStringLiteral("00:07:") + seconds);
             settle();
             QCOMPARE(stalePixels(ui), 0);
         }

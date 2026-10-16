@@ -12,10 +12,10 @@
 #include <QMap>
 #include <QPoint>
 #include <QRect>
+#include <QSize>
 
 class QPainter;
 class ShogiBoard;
-class ShogiViewLayout;
 
 /// ドラッグ操作の状態（つまんだ駒・位置・持駒の一時的な枚数）と、持ち上げた駒の描画を担当するクラス。
 /// QObject を継承せず、ShogiView が値メンバとして保持する。
@@ -29,10 +29,9 @@ public:
                    const QPoint& cursorWidgetPos);
     void endDrag();
     /// ドラッグ中の駒（icon は dragPiece() の画像）をポインタの位置に描く
-    void drawDraggingPiece(QPainter& painter, const ShogiViewLayout& layout,
-                           const QIcon& icon, const BoardVisuals& visuals) const;
+    void drawDraggingPiece(QPainter& painter, QSize field, const QIcon& icon, const BoardVisuals& visuals) const;
     /// ドラッグ中の駒が塗る範囲（ウィジェット座標）。ドラッグ中でなければ空。
-    QRect draggingPieceRect(const ShogiViewLayout& layout, const BoardVisuals& visuals) const;
+    QRect draggingPieceRect(QSize field, const BoardVisuals& visuals) const;
 
     // ───────────────────────── ドラッグ位置更新 ─────────────────────
     void updateDragPos(const QPoint& pos);
@@ -51,7 +50,8 @@ public:
     const QMap<Piece, int>& tempPieceStandCounts() const { return m_tempPieceStandCounts; }
 
 private:
-    QRect draggingCellRect(const ShogiViewLayout& layout) const;
+    /// ドラッグ座標を中心に据えた1マス分の矩形
+    QRect draggingCellRect(QSize field) const;
 
     bool   m_positionEditMode = false;
 

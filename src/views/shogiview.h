@@ -13,21 +13,20 @@
 // 設計メモ：
 //  * QPainter の state 汚染を最小化するため、描画ヘルパは極力ローカルで save/restore する方針
 //  * 駒台の疑似座標として file=10/11 を使用（左/右のスタンド列）
+//  * 盤・駒台・座標の文字の位置は BoardGeometry（ウィジェット座標の値）を1度だけ計算して読む
 //  * 対局者カード（名前・時計・手番の札）と編集用ボタンは BoardChromeWidget が持つ。
 //    本クラスは盤・駒台の位置を渡すだけで、名前・時計・手番の操作は chrome() へ転送する
 // ─────────────────────────────────────────────────────────────────────────────
 
 #include "boardchromewidget.h"
+#include "boardgeometry.h"
 #include "boardstaticlayer.h"
-#include "elidelabel.h"
 #include "shogigamecontroller.h"
 #include "shogiviewinteraction.h"
-#include "shogiviewlayout.h"
 #include "boardcolors.h"
 #include "boardvisuals.h"
 
 #include <QIcon>
-#include <QHash>
 #include <QMap>
 #include <QPixmap>
 #include <QPointer>
@@ -59,8 +58,7 @@ class ShogiView : public QWidget
     friend class TestBoardDragRepaint;
 #endif
 
-    // Q_PROPERTY: QML/Qt Designer 等からマスサイズ（正方）をバインド可能にする
-    Q_PROPERTY(QSize fieldSize READ fieldSize WRITE setFieldSize NOTIFY fieldSizeChanged)
+    Q_PROPERTY(QSize fieldSize READ fieldSize NOTIFY fieldSizeChanged)
 
 public:
     // ───────────────────────────── コンストラクタ ─────────────────────────────
@@ -73,20 +71,15 @@ public:
     ShogiBoard* board() const;          // 現在のモデル
 
     // ───────────────────────────── 盤サイズ系 ────────────────────────────────
-    QSize fieldSize() const;            // 1マスの QSize（正方形推奨）
+    QSize fieldSize() const { return m_geometry.fieldSize(); }   // 1マスの大きさ（縦長）
     QSize sizeHint() const override;        // レイアウト用の推奨サイズ
     QSize minimumSizeHint() const override;  // 最小サイズ
-    void updateBoardSize();             // m_squareSize を反映して再配置（ユーティリティ）
 
-    // 盤/ラベル座標計算（反転考慮）
-    QRect calculateSquareRectangleBasedOnBoardState(int file, int rank) const;
-
-    // キャッシュ済みマス矩形（描画用：レイアウト変更時に自動再構築）
-    QRect cachedFieldRect(int file, int rank) const;
-    void  invalidateFieldRectCache();
+    /// 盤・駒台・座標の文字の位置（ウィジェット座標）
+    const BoardGeometry& boardGeometry() const { return m_geometry; }
 
     // 駒（成駒は生駒）を置く駒台セルのウィジェット座標
-    QRect standPieceRect(Piece piece) const;
+    QRect standPieceRect(Piece piece) const { return m_geometry.standCell(piece); }
 
     // 盤・駒台（疑似座標 file=10/11）・駒箱（file=12）のマスのウィジェット座標。該当しなければ空
     QRect fieldRect(const QPoint& field) const;
@@ -125,8 +118,8 @@ public:
 
     // ───────────────────────────── 操作/状態切替 ────────────────────────────
 
-    int  squareSize() const;                     // m_squareSize（px）
-    void setSquareSize(int size);                // m_squareSize を設定してレイアウト再計算
+    int  squareSize() const { return m_geometry.squareSize(); }   // マスの幅（px）
+    void setSquareSize(int size);                // マスの幅を変えて盤の位置を計算し直す
     void setPositionEditMode(bool positionEditMode); // 局面編集モードON/OFF
     bool positionEditMode() const;
 
@@ -135,16 +128,15 @@ public:
     Turn pieceBoxSide() const { return m_interaction.pieceBoxSide(); }
     void setPieceBoxSide(Turn side);
 
-    bool flipMode() const;                    // 反転表示か
+    bool flipMode() const { return m_geometry.flipped(); }       // 反転表示か
     void setFlipMode(bool newFlipMode);          // 反転表示の切替（駒の画像も向きを合わせる）
 
     // ドラッグ操作
     void startDrag(const QPoint &from);
     void endDrag();
 
-    // レイアウト調整パラメータ
-    void setStandGapCols(double cols);      // 盤‐駒台の横ギャップ（列数 0.0〜2.0）
-    void setNameFontScale(double scale);    // 0.2〜1.0 程度
+    // 対局者名の大きさ（マスの高さに対する比。0.2〜1.0）
+    void setNameFontScale(double scale);
 
     // 対局者カード・時計・手番の札・編集用ボタン
     BoardChromeWidget* chrome() const { return m_chrome; }
@@ -172,9 +164,7 @@ public:
     void setEditExitButtonVisible(bool visible);
 
 public slots:
-    // Q_PROPERTY 用 setter（レイアウト更新・ラベル再配置を含む）
-    void setFieldSize(QSize fieldSize);
-    // 盤拡大/縮小（m_squareSize を ±1）
+    // 盤拡大/縮小（マスの幅を ±1）
     // emitSignal=falseの場合、fieldSizeChangedシグナルを発火しない
     // （イベントフィルターで処理する場合に使用）
     void enlargeBoard(bool emitSignal = true);
@@ -182,7 +172,7 @@ public slots:
 
 signals:
     void positionChanged();
-    void fieldSizeChanged(QSize fieldSize);  // setFieldSize 内で発火
+    void fieldSizeChanged(QSize fieldSize);  // マスの大きさを変えた（拡大・縮小）
     void clicked(const QPoint&);             // 左クリック
     void rightClicked(const QPoint&);        // 右クリック
 
@@ -197,14 +187,11 @@ protected:
 private:
     // ───────────────────────────── 描画ヘルパ（盤/駒/ラベル） ────────────────
     void drawRanksAndFiles(QPainter* painter) const;           // 段・筋の番号
-    void drawFile(QPainter* painter, int file) const;          // 筋ラベル 1 本
-    void drawRank(QPainter* painter, int rank) const;          // 段ラベル 1 本
 
     void drawPieces(QPainter* painter);                        // 盤の全駒
     void drawPiece(QPainter* painter, int file, int rank);
 
     // 駒台の持駒と枚数、局面編集中の駒箱
-    QRect standCellRect(bool black, const QPoint& base) const;  // 駒台の基準マスに対応するセル
     void drawStandPieces(QPainter* painter);
     void drawStandPieceIcon(QPainter* painter, const QRect& cell, Piece piece) const;
     void drawPieceBoxBackground(QPainter* painter);
@@ -215,12 +202,9 @@ private:
     /// 盤・駒台の位置を BoardChromeWidget に渡して、カード・駒箱の切り替えを置き直す
     void relayoutChrome();
 
-    // レイアウト委譲ヘルパ（m_board 経由で盤サイズを渡す）
-    QRect blackStandBoundingRect() const;
-    QRect whiteStandBoundingRect() const;
-    int   boardRightPx() const;
-    void  recalcLayoutParams();
-    void  applyBoardScaleChange(bool emitSignal);
+    /// 盤の位置を計算し直す（マスの大きさ・反転・盤を変えたとき）
+    void  rebuildGeometry(int squareSize, bool flipped);
+    void  applyBoardScaleChange(int squareSize, bool emitSignal);
 
 private:
     // ───────────────────────────── 内部状態（モデル/描画/入力） ────────────────
@@ -234,8 +218,8 @@ private:
     // モデル
     QPointer<ShogiBoard> m_board;       // 局面。寿命は外部管理（QPointerで安全）
 
-    // レイアウト計算を委譲するクラス
-    ShogiViewLayout m_layout;
+    // 盤・駒台・座標の文字の位置
+    BoardGeometry m_geometry;
 
     // リソース（駒アイコン）
     QMap<Piece, QIcon>  m_pieces;       // 駒 → QIcon
@@ -261,10 +245,6 @@ private:
 
     // 背景・木肌と縁・影・罫線・駒台・星（局面によらない部分）を描いた画像
     BoardStaticLayer m_staticLayer;
-
-    // マス矩形キャッシュ（レイアウト変更時に無効化、描画時に遅延再構築）
-    mutable QHash<quint64, QRect> m_fieldRectCache;
-    mutable bool m_fieldRectCacheValid = false;
 
     // 入力/ドラッグ（ShogiViewInteraction に委譲）
     ShogiViewInteraction m_interaction;

@@ -451,11 +451,11 @@ private slots:
         deps.shogiView = &view;
         PlayerInfoPresenter wiring(deps);
         connect(&document, &KifuDocument::headerReset, &wiring, &PlayerInfoPresenter::syncBoardNamesWithGameInfo);
-        QCOMPARE(view.chrome()->blackNameLabel()->fullText(), QStringLiteral("▲先手"));
-        QCOMPARE(view.chrome()->whiteNameLabel()->fullText(), QStringLiteral("▽後手"));
+        QCOMPARE(view.chrome()->card(Turn::Black)->nameLabel()->fullText(), QStringLiteral("▲先手"));
+        QCOMPARE(view.chrome()->card(Turn::White)->nameLabel()->fullText(), QStringLiteral("▽後手"));
         // 対局していないときの表示でも対局情報の名前を残す
         wiring.showMatchPlayers();
-        QCOMPARE(view.chrome()->blackNameLabel()->fullText(), QStringLiteral("▲先手"));
+        QCOMPARE(view.chrome()->card(Turn::Black)->nameLabel()->fullText(), QStringLiteral("▲先手"));
         QCOMPARE(document.headerPlayerName(Turn::Black), QStringLiteral("先手"));
 
         // 対局後の「新規」でも前の対局者名を残さない
@@ -463,10 +463,10 @@ private slots:
         humans.blackHumanName = QStringLiteral("太郎");
         humans.whiteHumanName = QStringLiteral("花子");
         wiring.showPlayers(humans);
-        QCOMPARE(view.chrome()->blackNameLabel()->fullText(), QStringLiteral("▲太郎"));
+        QCOMPARE(view.chrome()->card(Turn::Black)->nameLabel()->fullText(), QStringLiteral("▲太郎"));
         document.startNew(SfenUtils::hirateSfen());
-        QCOMPARE(view.chrome()->blackNameLabel()->fullText(), QStringLiteral("▲先手"));
-        QCOMPARE(view.chrome()->whiteNameLabel()->fullText(), QStringLiteral("▽後手"));
+        QCOMPARE(view.chrome()->card(Turn::Black)->nameLabel()->fullText(), QStringLiteral("▲先手"));
+        QCOMPARE(view.chrome()->card(Turn::White)->nameLabel()->fullText(), QStringLiteral("▽後手"));
     }
 
     /// 対局を始めると、文書が対局情報を作り直して対局情報欄に出す（入力中のセルと利用者の項目は残す）

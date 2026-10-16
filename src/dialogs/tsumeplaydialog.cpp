@@ -274,8 +274,8 @@ void TsumePlayDialog::selectProblem()
     m_session->start(m_problem.sfen);
     const bool black = m_session->attackerIsBlack();
     applyBoardOrientation();
-    m_view->chrome()->setBlackPlayerName(black ? tr("あなた") : QStringLiteral("Hayanagi"));
-    m_view->chrome()->setWhitePlayerName(black ? QStringLiteral("Hayanagi") : tr("あなた"));
+    m_view->chrome()->card(Turn::Black)->setName(black ? tr("あなた") : QStringLiteral("Hayanagi"));
+    m_view->chrome()->card(Turn::White)->setName(black ? QStringLiteral("Hayanagi") : tr("あなた"));
 }
 
 bool TsumePlayDialog::acceptsInput() const

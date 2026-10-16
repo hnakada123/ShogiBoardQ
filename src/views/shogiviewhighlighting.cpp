@@ -2,7 +2,6 @@
 /// @brief 将棋盤面のハイライト・矢印の実装
 
 #include "shogiviewhighlighting.h"
-#include "shogiviewlayout.h"
 
 #include <QPainter>
 
@@ -134,7 +133,7 @@ void ShogiViewHighlighting::drawHighlights(QPainter& painter, const QRegion& dir
     painter.restore();
 }
 
-void ShogiViewHighlighting::drawArrows(QPainter& painter, const ShogiViewLayout& layout)
+void ShogiViewHighlighting::drawArrows(QPainter& painter)
 {
     if (m_arrows.isEmpty()) return;
 
@@ -142,19 +141,19 @@ void ShogiViewHighlighting::drawArrows(QPainter& painter, const ShogiViewLayout&
     painter.setRenderHint(QPainter::Antialiasing, true);
 
     for (const ShogiView::Arrow& arrow : std::as_const(m_arrows)) {
-        const QPoint offset(layout.offsetX(), layout.offsetY());
-        const QRect toRect = m_view->cachedFieldRect(arrow.toFile, arrow.toRank).translated(offset);
+        const BoardGeometry& geometry = m_view->boardGeometry();
+        const QRect toRect = geometry.square(arrow.toFile, arrow.toRank);
         // 駒打ちは該当する駒台セルを始点とし、盤上の移動と同じ矢印で描く。
         const QRect fromRect = (arrow.fromFile == 0 || arrow.fromRank == 0)
-            ? m_view->standPieceRect(arrow.dropPiece)
-            : m_view->cachedFieldRect(arrow.fromFile, arrow.fromRank).translated(offset);
+            ? geometry.standCell(arrow.dropPiece)
+            : geometry.square(arrow.fromFile, arrow.fromRank);
         if (fromRect.isEmpty() || toRect.isEmpty()) continue;
 
         const QPointF from(fromRect.center());
         const QPointF to(toRect.center());
 
-        const int arrowWidth = qMax(3, layout.squareSize() / 12);
-        const int arrowHeadSize = qMax(10, layout.squareSize() / 4);
+        const int arrowWidth = qMax(3, geometry.squareSize() / 12);
+        const int arrowHeadSize = qMax(10, geometry.squareSize() / 4);
 
         QColor color = arrow.color;
 
@@ -187,7 +186,7 @@ void ShogiViewHighlighting::drawArrows(QPainter& painter, const ShogiViewLayout&
         if (arrow.priority >= 1 && m_arrows.size() >= 2) {
             QPointF center((from.x() + to.x()) / 2.0, (from.y() + to.y()) / 2.0);
 
-            const int fontSize = qMax(10, layout.squareSize() / 4);
+            const int fontSize = qMax(10, geometry.squareSize() / 4);
             QFont font = painter.font();
             font.setPointSize(fontSize);
             font.setBold(true);

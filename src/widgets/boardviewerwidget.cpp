@@ -36,8 +36,8 @@ BoardViewerWidget::BoardViewerWidget(Features features, ButtonLabels labels, Sho
     setObjectName(QStringLiteral("boardViewer"));
     // 盤上の文字・対局者名は ShogiView がマスの大きさに合わせて調整する（ダイアログの文字サイズの対象外）
     m_view->setProperty("dialogFontScaleExcluded", true);
-    m_view->chrome()->setBlackPlayerName(tr("先手"));
-    m_view->chrome()->setWhitePlayerName(tr("後手"));
+    m_view->chrome()->card(Turn::Black)->setName(tr("先手"));
+    m_view->chrome()->card(Turn::White)->setName(tr("後手"));
 
     // 部品を何も持たない見本用は、盤とモデルだけを持つ。配置は呼び出し側が決め、
     // ShogiView::applyBoardAndRender() で局面を渡して画像に描いて使う
@@ -223,9 +223,6 @@ void BoardViewerWidget::fitToBoard()
         if (m_features & FitWindowOnZoom) window()->adjustSize();
         return;
     }
-    m_view->updateBoardSize();
-    // updateBoardSize() は時計ラベルを再表示するため、再度隠す
-    m_view->chrome()->setClockEnabled(false);
     // スクロール領域の中の盤は自動では大きさが変わらないため、マスの大きさに合わせる
     m_view->resize(m_view->sizeHint());
     if (!(m_features & FitWindowOnZoom)) return;

@@ -717,37 +717,36 @@ Analyzed moves: %1</translation>
 <context>
     <name>BoardChromeWidget</name>
     <message>
-        <location filename="../../src/views/boardchromewidget.cpp" line="194"/>
         <source>手番</source>
-        <translation>Turn</translation>
+        <translation type="vanished">Turn</translation>
     </message>
     <message>
-        <location filename="../../src/views/boardchromewidget.cpp" line="327"/>
+        <location filename="../../src/views/boardchromewidget.cpp" line="158"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/views/boardchromewidget.cpp" line="327"/>
+        <location filename="../../src/views/boardchromewidget.cpp" line="158"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
     <message>
-        <location filename="../../src/views/boardchromewidget.cpp" line="328"/>
+        <location filename="../../src/views/boardchromewidget.cpp" line="159"/>
         <source>先手の駒を配置（手番は変更しません）</source>
         <translation>Place black pieces (does not change the side to move)</translation>
     </message>
     <message>
-        <location filename="../../src/views/boardchromewidget.cpp" line="328"/>
+        <location filename="../../src/views/boardchromewidget.cpp" line="159"/>
         <source>後手の駒を配置（手番は変更しません）</source>
         <translation>Place white pieces (does not change the side to move)</translation>
     </message>
     <message>
-        <location filename="../../src/views/boardchromewidget.cpp" line="403"/>
+        <location filename="../../src/views/boardchromewidget.cpp" line="234"/>
         <source>編集終了</source>
         <translation>End Edit</translation>
     </message>
     <message>
-        <location filename="../../src/views/boardchromewidget.cpp" line="405"/>
+        <location filename="../../src/views/boardchromewidget.cpp" line="236"/>
         <source>局面編集を終了し、この局面を開始局面にします</source>
         <translation>Finish editing and use this position as the starting position</translation>
     </message>
@@ -10380,6 +10379,14 @@ Are you sure you want to declare?</translation>
     </message>
 </context>
 <context>
+    <name>PlayerCard</name>
+    <message>
+        <location filename="../../src/views/playercard.cpp" line="114"/>
+        <source>手番</source>
+        <translation>Turn</translation>
+    </message>
+</context>
+<context>
     <name>PlayerInfoController</name>
     <message>
         <source>先手</source>
@@ -11855,7 +11862,7 @@ Choose a file with one SFEN position per line.</translation>
         <translation type="vanished">Place white pieces (does not change the side to move)</translation>
     </message>
     <message>
-        <location filename="../../src/views/shogiview.cpp" line="900"/>
+        <location filename="../../src/views/shogiview.cpp" line="741"/>
         <source>駒箱</source>
         <translation>Piece Box</translation>
     </message>

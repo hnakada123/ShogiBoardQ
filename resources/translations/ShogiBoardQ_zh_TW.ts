@@ -681,37 +681,36 @@
 <context>
     <name>BoardChromeWidget</name>
     <message>
-        <location filename="../../src/views/boardchromewidget.cpp" line="194"/>
         <source>手番</source>
-        <translation>行棋方</translation>
+        <translation type="vanished">行棋方</translation>
     </message>
     <message>
-        <location filename="../../src/views/boardchromewidget.cpp" line="327"/>
+        <location filename="../../src/views/boardchromewidget.cpp" line="158"/>
         <source>先手</source>
         <translation>先手</translation>
     </message>
     <message>
-        <location filename="../../src/views/boardchromewidget.cpp" line="327"/>
+        <location filename="../../src/views/boardchromewidget.cpp" line="158"/>
         <source>後手</source>
         <translation>後手</translation>
     </message>
     <message>
-        <location filename="../../src/views/boardchromewidget.cpp" line="328"/>
+        <location filename="../../src/views/boardchromewidget.cpp" line="159"/>
         <source>先手の駒を配置（手番は変更しません）</source>
         <translation>放置先手棋子（不改變行棋方）</translation>
     </message>
     <message>
-        <location filename="../../src/views/boardchromewidget.cpp" line="328"/>
+        <location filename="../../src/views/boardchromewidget.cpp" line="159"/>
         <source>後手の駒を配置（手番は変更しません）</source>
         <translation>放置後手棋子（不改變行棋方）</translation>
     </message>
     <message>
-        <location filename="../../src/views/boardchromewidget.cpp" line="403"/>
+        <location filename="../../src/views/boardchromewidget.cpp" line="234"/>
         <source>編集終了</source>
         <translation>結束編輯</translation>
     </message>
     <message>
-        <location filename="../../src/views/boardchromewidget.cpp" line="405"/>
+        <location filename="../../src/views/boardchromewidget.cpp" line="236"/>
         <source>局面編集を終了し、この局面を開始局面にします</source>
         <translation>結束局面編輯，並將此局面作為初始局面</translation>
     </message>
@@ -8503,6 +8502,14 @@ OKを選択すると保存先が指定できます。</source>
     </message>
 </context>
 <context>
+    <name>PlayerCard</name>
+    <message>
+        <location filename="../../src/views/playercard.cpp" line="114"/>
+        <source>手番</source>
+        <translation>行棋方</translation>
+    </message>
+</context>
+<context>
     <name>PlayerInfoController</name>
     <message>
         <source>先手</source>
@@ -9776,7 +9783,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">放置後手棋子（不改變行棋方）</translation>
     </message>
     <message>
-        <location filename="../../src/views/shogiview.cpp" line="900"/>
+        <location filename="../../src/views/shogiview.cpp" line="741"/>
         <source>駒箱</source>
         <translation>棋子盒</translation>
     </message>

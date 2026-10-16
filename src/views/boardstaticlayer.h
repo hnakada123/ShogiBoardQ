@@ -14,7 +14,7 @@
 #include <QSize>
 
 class QPainter;
-class ShogiViewLayout;
+class BoardGeometry;
 
 /**
  * @brief 背景・盤の木肌と縁・影・罫線・星・駒台の木肌を描いた画像
@@ -30,7 +30,7 @@ class BoardStaticLayer
 {
 public:
     /// 画像を貼る（条件が変わっていれば作り直してから貼る）
-    void draw(QPainter& painter, QSize widgetSize, const ShogiViewLayout& layout, int files, int ranks,
+    void draw(QPainter& painter, QSize widgetSize, const BoardGeometry& geometry,
               const BoardColors& colors, const BoardVisuals& visuals);
     /// 今の画像の識別子。作り直すと変わり、1つ前の画像に戻すと元の値に戻る
     qint64 cacheKey() const { return m_image.cacheKey(); }
@@ -45,7 +45,7 @@ private:
         QRect blackStand;
         QRect whiteStand;
         QSize fieldSize;
-        QPoint offset;
+        QRect cells;        // 盤のマス目
         QColor background;
         QColor board;
         QColor stand;
@@ -55,7 +55,7 @@ private:
         bool operator==(const Key& other) const;
     };
 
-    static void paint(QPainter& painter, const Key& key, const ShogiViewLayout& layout, int files, int ranks);
+    static void paint(QPainter& painter, const Key& key, const BoardGeometry& geometry);
 
     QPixmap m_image;
     Key m_key;

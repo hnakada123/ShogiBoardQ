@@ -269,8 +269,8 @@ private slots:
         p.csaGame->m_progress.summary.blackName = QStringLiteral("Sente");
         p.csaGame->m_progress.summary.whiteName = QStringLiteral("Gote");
         emit p.csaGame->gameStarted(QStringLiteral("Sente"), QStringLiteral("Gote"), {});
-        QCOMPARE(p.shogiView->chrome()->blackNameLabel()->fullText(), QStringLiteral("▲Sente"));
-        QCOMPARE(p.shogiView->chrome()->whiteNameLabel()->fullText(), QStringLiteral("▽Gote"));
+        QCOMPARE(p.shogiView->chrome()->card(Turn::Black)->nameLabel()->fullText(), QStringLiteral("▲Sente"));
+        QCOMPARE(p.shogiView->chrome()->card(Turn::White)->nameLabel()->fullText(), QStringLiteral("▽Gote"));
         QCOMPARE(p.document->headerPlayerName(Turn::Black), QStringLiteral("Sente"));
         QCOMPARE(p.document->players().name(Turn::White), QStringLiteral("Gote"));
         emit p.csaGame->gameEnded(CsaClient::GameResult::Win, CsaClient::GameEndCause::Resign, 0);

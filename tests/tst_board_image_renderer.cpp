@@ -29,22 +29,19 @@
 #include "pieceimageprovider.h"
 #include "settingscommon.h"
 #include "shogiboard.h"
+#include <QRegion>
+
+#include "boardgeometry.h"
 #include "shogiview.h"
-#include "shogiviewlayout.h"
 #include "appsettings.h"
 #include "boardappearancecatalog.h"
 #include "boardappearancepreview.h"
 #include "candidatearrowpresenter.h"
 
 namespace {
-ShogiViewLayout viewLayout(const ShogiView& view)
+BoardGeometry viewLayout(const ShogiView& view)
 {
-    ShogiViewLayout layout;
-    layout.setSquareSize(view.squareSize());
-    layout.setStandGapCols(0.7);
-    layout.setFlipMode(view.flipMode());
-    layout.recalcLayoutParams(view.font());
-    return layout;
+    return view.boardGeometry();
 }
 
 QImage renderView(ShogiView& view, qreal dpr)
@@ -78,6 +75,57 @@ class TestBoardImageRenderer : public QObject
     QTemporaryDir m_config;
 
 private slots:
+    /// 盤の位置の値は、マス・駒台のセル・座標の文字の帯をウィジェット座標で持ち、反転しても全体の位置を変えない
+    void geometryIsComputedOnceInWidgetCoordinates()
+    {
+        for (const int size : {20, 50, 53, 150}) {
+            BoardGeometry::Params params;
+            params.squareSize = size;
+            const BoardGeometry normal(params);
+            params.flipped = true;
+            const BoardGeometry flipped(params);
+            QCOMPARE(flipped.surface(), normal.surface());
+            QCOMPARE(flipped.board(), normal.board());
+            QCOMPARE(flipped.viewSize(), normal.viewSize());
+            QCOMPARE(normal.fieldSize(), QSize(size, qRound(size * BoardGeometry::kSquareAspectRatio)));
+            for (const BoardGeometry* geometry : {&normal, &flipped}) {
+                for (int file = 1; file <= 9; ++file) {
+                    for (int rank = 1; rank <= 9; ++rank) {
+                        const QRect cell = geometry->square(file, rank);
+                        QVERIFY(geometry->board().contains(cell));
+                        QCOMPARE(geometry->squareAt(cell.center()), QPoint(file, rank));
+                    }
+                }
+                QVERIFY(geometry->square(0, 1).isEmpty());
+                QVERIFY(geometry->squareAt(geometry->board().topLeft() - QPoint(1, 1)).isNull());
+                // 駒台の8セルは駒台の中で重ならず、成駒は生駒のセル
+                for (const Turn side : {Turn::Black, Turn::White}) {
+                    QRegion cells;
+                    for (const Piece piece : BoardGeometry::standPieces(side)) {
+                        const QRect cell = geometry->standCell(piece);
+                        QVERIFY(geometry->stand(side).contains(cell));
+                        QVERIFY(!cells.intersects(cell));
+                        cells += cell;
+                    }
+                    QCOMPARE(geometry->standCell(side == Turn::Black ? Piece::BlackDragon : Piece::WhiteDragon),
+                             geometry->standCell(side == Turn::Black ? Piece::BlackRook : Piece::WhiteRook));
+                }
+                QVERIFY(!geometry->board().intersects(geometry->rankLabel(1)));
+                QVERIFY(!geometry->board().intersects(geometry->fileLabel(1)));
+            }
+            // 手前の駒台では王が右上・歩が左下。向こうの駒台はそれを180度回す
+            const QRect blackStand = normal.stand(Turn::Black);
+            QCOMPARE(normal.standCell(Piece::BlackKing).topLeft(), blackStand.topLeft() + QPoint(size, 0));
+            QCOMPARE(normal.standCell(Piece::BlackPawn).bottomLeft(), blackStand.bottomLeft());
+            const QRect whiteStand = normal.stand(Turn::White);
+            QCOMPARE(normal.standCell(Piece::WhiteKing).bottomLeft(), whiteStand.bottomLeft());
+            QCOMPARE(flipped.standCell(Piece::WhiteKing).topLeft(), flipped.stand(Turn::White).topLeft() + QPoint(size, 0));
+            // 反転すると駒台の位置が入れ替わる（盤の右下にあるのは手前の駒台）
+            QVERIFY(blackStand.left() > normal.board().right());
+            QVERIFY(flipped.stand(Turn::White).left() > flipped.board().right());
+        }
+    }
+
     void initTestCase()
     {
         QVERIFY(m_config.isValid());
@@ -210,7 +258,7 @@ private slots:
         model.resetGameBoard();
         ShogiView live;
         live.applyBoardAndRender(&model);
-        live.chrome()->setBlackClockText(QStringLiteral("03:21"));
+        live.chrome()->card(Turn::Black)->setClockText(QStringLiteral("03:21"));
         const auto position = model.position().boardSfen();
         BoardColorDialog dialog;
         auto* pieces = dialog.findChild<QListWidget*>("appearancePieces");
@@ -240,7 +288,7 @@ private slots:
         QCOMPARE(preview->findChild<ShogiView*>()->piece(Piece::BlackKing).pixmap(90).toImage(),
                  QIcon(":/pieces/deep_ebony/Gote_ou45.svg").pixmap(90).toImage());
         QCOMPARE(model.position().boardSfen(), position);
-        QCOMPARE(live.chrome()->blackClockLabel()->text(), QStringLiteral("03:21"));
+        QCOMPARE(live.chrome()->card(Turn::Black)->clockLabel()->text(), QStringLiteral("03:21"));
         QVERIFY(!live.flipMode());
         dialog.findChild<QPushButton*>("restoreOpeningAppearanceButton")->click();
         QVERIFY(live.boardColors() == BoardColors{});
@@ -397,13 +445,13 @@ private slots:
                 view.setFlipMode(flipped);
                 const auto layout = viewLayout(view);
                 QCOMPARE(view.sizeHint(), normalSize);
-                QCOMPARE(layout.boardSurfaceRect(9, 9), normalLayout.boardSurfaceRect(9, 9));
-                QCOMPARE(layout.offsetX(), normalLayout.offsetX());
-                QCOMPARE(layout.offsetY(), normalLayout.offsetY());
-                QCOMPARE(flipped ? layout.blackStandBoundingRect(9, 9) : layout.whiteStandBoundingRect(9, 9),
-                         normalLayout.whiteStandBoundingRect(9, 9));
-                QCOMPARE(flipped ? layout.whiteStandBoundingRect(9, 9) : layout.blackStandBoundingRect(9, 9),
-                         normalLayout.blackStandBoundingRect(9, 9));
+                QCOMPARE(layout.surface(), normalLayout.surface());
+                QCOMPARE(layout.board().left(), normalLayout.board().left());
+                QCOMPARE(layout.board().top(), normalLayout.board().top());
+                QCOMPARE(flipped ? layout.stand(Turn::Black) : layout.stand(Turn::White),
+                         normalLayout.stand(Turn::White));
+                QCOMPARE(flipped ? layout.stand(Turn::White) : layout.stand(Turn::Black),
+                         normalLayout.stand(Turn::Black));
                 for (const qreal dpr : {1.0, 1.25, 2.0}) {
                     const auto image = renderView(view, dpr);
                     const int x = image.width() / 2;
@@ -420,8 +468,8 @@ private slots:
                 // 反転後も、盤上の81マスは表示位置で選択できる。
                 for (int file = 1; file <= 9; ++file) {
                     for (int rank = 1; rank <= 9; ++rank) {
-                        const QRect cell = view.calculateSquareRectangleBasedOnBoardState(file, rank);
-                        QCOMPARE(view.clickedSquare(cell.center() + QPoint(layout.boardLeftPx(), layout.offsetY())), QPoint(file, rank));
+                        const QRect cell = layout.square(file, rank);
+                        QCOMPARE(view.clickedSquare(cell.center()), QPoint(file, rank));
                     }
                 }
             }
@@ -467,7 +515,7 @@ private slots:
                 }
                 const auto after = renderView(view, dpr);
                 for (const bool black : {true, false}) {
-                    const QRect stand = black ? layout.blackStandBoundingRect(9, 9) : layout.whiteStandBoundingRect(9, 9);
+                    const QRect stand = black ? layout.stand(Turn::Black) : layout.stand(Turn::White);
                     const auto bounds = changedBounds(before, after, stand, dpr);
                     QVERIFY(!bounds.isEmpty());
                     const qreal woodInset = qMax(1.0, squareSize * 0.035);
@@ -506,7 +554,7 @@ private slots:
             model.incrementPieceOnStand(Piece::WhiteBishop);
             const auto after = renderView(view, 2);
             for (const bool black : {true, false}) {
-                const QRect stand = black ? layout.blackStandBoundingRect(9, 9) : layout.whiteStandBoundingRect(9, 9);
+                const QRect stand = black ? layout.stand(Turn::Black) : layout.stand(Turn::White);
                 const int w = view.fieldSize().width(), h = view.fieldSize().height();
                 const bool bottom = black != flipped;
                 const QRect cell(stand.topLeft() + QPoint(bottom ? w : 0, bottom ? h : 2 * h), QSize(w, h));
@@ -561,7 +609,7 @@ private slots:
         QCOMPARE(view.clickedSquare(source.center()), QPoint(black ? 10 : 11, standRank));
         const auto layout = viewLayout(view);
         const QPointF from(source.center());
-        const QPointF to(view.cachedFieldRect(5, 5).translated(layout.offsetX(), layout.offsetY()).center());
+        const QPointF to(layout.square(5, 5).center());
         // 駒台の駒に始点が隠れず、打ち先まで実際に線が描かれていることを確認する。
         for (const qreal progress : {0.0, 0.4, 0.6, 0.8}) {
             const QPoint point = (from + (to - from) * progress).toPoint();
