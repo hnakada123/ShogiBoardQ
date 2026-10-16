@@ -14,8 +14,8 @@ namespace fmv {
 
 struct UndoState {
     Move move{};
-    char movedPieceBefore = ' ';
-    char capturedPiece = ' ';
+    Piece movedPieceBefore = Piece::None;
+    Piece capturedPiece = Piece::None;
     Square kingSquareBefore[2]{kInvalidSquare, kInvalidSquare};
     std::uint64_t zobristBefore = 0ULL;
 };
@@ -23,8 +23,15 @@ struct UndoState {
 class EnginePosition
 {
 public:
-    /// 盤面配列: board[rank*9+file] = 駒char（' '=空）
-    std::array<char, kSquareNb> board{};
+    static constexpr std::array<Piece, kSquareNb> emptyBoard() noexcept
+    {
+        std::array<Piece, kSquareNb> squares{};
+        for (Piece& piece : squares) piece = Piece::None;
+        return squares;
+    }
+
+    /// 盤面配列: board[rank*9+file] = 駒（None=空）。アプリの Position と同じ符号
+    std::array<Piece, kSquareNb> board = emptyBoard();
 
     /// 全駒の占有ビットボード
     Bitboard81 occupied;

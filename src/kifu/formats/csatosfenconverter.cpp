@@ -8,11 +8,10 @@
 #include "csaformatter.h"
 #include "csalexer.h"
 #include "gameinfokeys.h"
-#include "kifdisplayitem.h"
-#include "parsecommon.h"
+#include "kiflinebuilder.h"
 #include "terminalcodes.h"
 #include "shiftjiscodec.h"
-#include "shogiboard.h"
+#include "shogiposition.h"
 
 #include <QFile>
 #include <QStringDecoder>
@@ -100,16 +99,15 @@ QStringList CsaToSfenConverter::splitStatements(const QString& rawText, QString*
 }
 
 // ============================================================
-// 対局情報抽出
+// 対局情報
 // ============================================================
 
-QList<KifGameInfoItem> CsaToSfenConverter::extractGameInfoFromText(const QString& text)
+namespace {
+
+QList<KifGameInfoItem> gameInfoOf(const QStringList& lines)
 {
     QList<KifGameInfoItem> items;
-    QString warn;
-    const QStringList lines = splitStatements(text, &warn);
-
-    for (const QString& rawLine : std::as_const(lines)) {
+    for (const QString& rawLine : lines) {
         const QString line = rawLine.trimmed();
         if (line.isEmpty()) continue;
 
@@ -136,204 +134,91 @@ QList<KifGameInfoItem> CsaToSfenConverter::extractGameInfoFromText(const QString
     return items;
 }
 
-// ============================================================
-// メインパーサ ヘルパ
-// ============================================================
-
-namespace {
-
-// parse() のループ状態を束ねる構造体
-struct CsaParseState {
-    KifuParseCommon::KifLineDraft& line;
-    ShogiBoard& board;
-    Turn turn;
-    QString* warn;
-    BoardSquare previousTo{};   ///< 直前の手の移動先（「同」の判定に使う）
-    qint64 cumMs[2] = {0, 0};
-    int lastMover = -1;
-    bool lastDispIsResult = false;
-    int lastResultDispIndex = -1;
-    int lastResultSideIdx = -1;
-    int moveCount = 0;
-    bool firstMoveFound = false;
-    QStringList pendingComments{};
-    KifDisplayItem openingItem{};
-};
-
-// 開始局面エントリをまだ追加していなければ追加し、pendingCommentsを処理する
-static void ensureOpeningItemAdded(CsaParseState& st)
+/// 指し手・終局・コメント・消費時間の行を順に手順へ足す（読めない手があれば、そこで読むのをやめる）
+void readMoves(const QStringList& lines, qsizetype begin, KifLineBuilder& builder, ParseReport& report)
 {
-    if (st.firstMoveFound) {
-        if (!st.pendingComments.isEmpty() && st.line.disp.size() > 1) {
-            QString& dst = st.line.disp.last().comment;
-            if (!dst.isEmpty()) dst += QLatin1Char('\n');
-            dst += st.pendingComments.join(QStringLiteral("\n"));
-            st.pendingComments.clear();
+    for (qsizetype i = begin; i < lines.size(); ++i) {
+        const QString token = lines.at(i).trimmed();
+        if (token.isEmpty()) continue;
+
+        if (token.startsWith(QLatin1Char('\''))) {
+            const QString comment = CsaLexer::normalizeCsaCommentLine(token);
+            if (!comment.isNull()) builder.appendComment(comment);
+        } else if (CsaLexer::isTurnMarker(token)) {
+            continue;  // 手番は局面が持つ
+        } else if (token.startsWith(QLatin1Char('%'))) {
+            const Turn side = builder.sideToMove();
+            TerminalType terminal = TerminalCodes::fromCsaSpecial(token, side);
+            if (terminal == TerminalType::None) terminal = TerminalType::Error;
+            builder.addTerminal(terminal, side);
+        } else if (token.startsWith(QLatin1Char('T'))) {
+            // 直前の行（指し手か終局）の消費時間。累計は手番ごとに足す
+            const auto elapsed = CsaLexer::parseTimeTokenMs(token);
+            if (!elapsed) {
+                report.warn(QStringLiteral("Failed to parse time token: %1").arg(token));
+            } else if (const auto mover = builder.lastMover()) {
+                builder.setLastTime(builder.timeFor(*mover, *elapsed));
+            }
+        } else if (CsaLexer::isMoveLine(token)) {
+            if (builder.ended()) continue;
+            const Turn mover = (token.at(0) == QLatin1Char('+')) ? Turn::Black : Turn::White;
+            const int ply = builder.nextPly();
+
+            // 手番と違う符号の手・読めない手・局面に合わない手は、その手の手前で手順を打ち切る（全形式で同じ）
+            QString detail;
+            std::optional<UsiMove> move;
+            if (mover != builder.sideToMove()) {
+                detail = QStringLiteral("Not the side to move: %1").arg(token);
+            } else {
+                move = CsaLexer::parseMoveLine(token, mover, builder.position(), &detail);
+            }
+            if (!move) {
+                report.rejectMove(ply, QStringLiteral("CSA: cannot read move %1: %2").arg(ply).arg(detail));
+                builder.stop();
+                return;
+            }
+            if (!builder.addMove(*move, KifLineBuilder::zeroTime(), {}, Position::DropRule::RequireHand)) {
+                // 駒台にない駒を打つ手（CSA は持ち駒を確かめる）
+                report.rejectMove(ply, QStringLiteral("CSA: cannot read move %1: Move does not match the position: %2 (%3)")
+                                           .arg(ply).arg(token, builder.lastError()));
+                builder.stop();
+                return;
+            }
         }
-        return;
-    }
-    st.firstMoveFound = true;
-    st.openingItem.comment = st.pendingComments.isEmpty()
-        ? QString()
-        : st.pendingComments.join(QStringLiteral("\n"));
-    st.line.disp.append(st.openingItem);
-    st.pendingComments.clear();
-}
-
-static void handleCsaComment(const QString& token, CsaParseState& st)
-{
-    const QString norm = CsaLexer::normalizeCsaCommentLine(token);
-    if (norm.isNull()) return;
-
-    if (st.lastDispIsResult && st.lastResultDispIndex >= 0 &&
-        st.lastResultDispIndex < st.line.disp.size()) {
-        QString& dst = st.line.disp[st.lastResultDispIndex].comment;
-        if (!dst.isEmpty()) dst += QLatin1Char('\n');
-        dst += norm;
-    } else {
-        st.pendingComments.append(norm);
-    }
-}
-
-static void handleCsaTurnMarker(const QString& token, CsaParseState& st)
-{
-    st.turn = (token.at(0) == QLatin1Char('+'))
-        ? Turn::Black : Turn::White;
-    st.lastDispIsResult = false;
-    st.lastResultDispIndex = -1;
-    st.lastResultSideIdx = -1;
-}
-
-static void handleCsaResultCode(const QString& token, CsaParseState& st)
-{
-    ensureOpeningItemAdded(st);
-
-    TerminalType terminal = TerminalCodes::fromCsaSpecial(token, st.turn);
-    if (terminal == TerminalType::None) terminal = TerminalType::Error;
-    st.line.disp.append(KifuParseCommon::createTerminalDisplayItem(st.moveCount + 1, terminal, st.turn));
-
-    st.lastDispIsResult = true;
-    st.lastResultDispIndex = static_cast<int>(st.line.disp.size() - 1);
-    st.lastResultSideIdx = (st.turn == Turn::Black) ? 0 : 1;
-    st.line.endsWithTerminal = true;
-}
-
-static void handleCsaTimeToken(const QString& token, CsaParseState& st)
-{
-    const auto moveMsOpt = CsaLexer::parseTimeTokenMs(token);
-    if (!moveMsOpt) {
-        if (st.warn) *st.warn += QStringLiteral("Failed to parse time token: %1\n").arg(token);
-        return;
-    }
-    const qint64 moveMs = *moveMsOpt;
-
-    if (st.lastDispIsResult && st.lastResultDispIndex >= 0 &&
-        st.lastResultDispIndex < st.line.disp.size()) {
-        if (st.lastResultSideIdx >= 0) {
-            st.cumMs[st.lastResultSideIdx] += moveMs;
-            st.line.disp[st.lastResultDispIndex].timeText =
-                CsaLexer::composeTimeText(moveMs, st.cumMs[st.lastResultSideIdx]);
-        } else {
-            st.line.disp[st.lastResultDispIndex].timeText = CsaLexer::composeTimeText(moveMs, 0);
-        }
-    } else if (!st.line.disp.isEmpty() && st.lastMover >= 0) {
-        st.cumMs[st.lastMover] += moveMs;
-        st.line.disp.last().timeText = CsaLexer::composeTimeText(moveMs, st.cumMs[st.lastMover]);
     }
 }
 
 } // namespace
 
 // ============================================================
-// メインパーサ
+// 解析
 // ============================================================
 
-bool CsaToSfenConverter::parseText(const QString& text, KifParseResult& out, QString* warn)
+KifuParseOutcome CsaToSfenConverter::parse(QStringView text, const ParseOptions& options)
 {
-    const QStringList lines = splitStatements(text, warn);
+    KifuParseOutcome outcome;
+    ParseReport report(options);
+    QString splitWarning;
+    const QStringList lines = splitStatements(text.toString(), &splitWarning);
+    if (!splitWarning.isEmpty()) report.warn(splitWarning);
 
-    KifuParseCommon::KifLineDraft line;
-    out.variations.clear();
-
-    int idx = 0;
-    ShogiBoard board;
-    if (!CsaLexer::parseStartPos(lines, idx, line.baseSfen, board)) {
-        if (warn) *warn += QStringLiteral("Failed to parse start position.\n");
-        return false;
+    int index = 0;
+    Position start;
+    if (!CsaLexer::parseStartPos(lines, index, start)) {
+        report.fail(QStringLiteral("Failed to parse start position."));
+        outcome.warning = report.warnings();
+        return outcome;
     }
 
-    CsaParseState st{line, board, board.currentPlayer(), warn};
-    st.openingItem = KifuParseCommon::createOpeningDisplayItem(QString(), QString());
+    KifLineBuilder builder(start);
+    readMoves(lines, index, builder, report);
+    outcome.warning = report.warnings();
+    if (report.failed()) return outcome;
 
-    bool stopped = false;  // 読めない手で手順を打ち切った
-    for (qsizetype i = idx; i < lines.size() && !stopped; ++i) {
-        QString s = lines.at(i);
-        if (s.isEmpty()) continue;
-        s = s.trimmed();
-        if (s.isEmpty()) continue;
-
-        const QStringList tokens{s}; // splitStatements で展開済み
-        for (const QString& tokenRaw : std::as_const(tokens)) {
-            const QString token = tokenRaw.trimmed();
-            if (token.isEmpty()) continue;
-
-            if (token.startsWith(QLatin1Char('\''))) {
-                handleCsaComment(token, st);
-            } else if (CsaLexer::isTurnMarker(token)) {
-                handleCsaTurnMarker(token, st);
-            } else if (token.startsWith(QLatin1Char('%'))) {
-                handleCsaResultCode(token, st);
-            } else if (token.startsWith(QLatin1Char('T'))) {
-                handleCsaTimeToken(token, st);
-            } else if (CsaLexer::isMoveLine(token)) {
-                const Turn mover = (token.at(0) == QLatin1Char('+')) ? Turn::Black : Turn::White;
-
-                // 手番と違う符号の手・読めない手・局面に合わない手は、その手の手前で手順を打ち切る（KIF と同じ）
-                QString usi, pretty;
-                QString detail;
-                if (mover != st.turn) {
-                    detail = QStringLiteral("Not the side to move: %1").arg(token);
-                } else if (!CsaLexer::parseMoveLine(token, mover, st.board, st.previousTo, usi, pretty, &detail)) {
-                    detail = detail.trimmed();
-                    if (detail.isEmpty()) detail = token;
-                }
-                if (!detail.isEmpty()) {
-                    if (st.warn) {
-                        *st.warn += QStringLiteral("CSA: cannot read move %1: %2\n").arg(st.moveCount + 1).arg(detail)
-                                    + KifuParseCommon::truncationNotice(st.moveCount + 1);
-                    }
-                    stopped = true;
-                    break;
-                }
-
-                ensureOpeningItemAdded(st);
-
-                st.line.usiMoves.append(usi);
-                ++st.moveCount;
-                st.line.disp.append(
-                    KifuParseCommon::createMoveDisplayItem(st.moveCount, pretty));
-
-                st.lastMover = (mover == Turn::Black) ? 0 : 1;
-                st.lastDispIsResult = false;
-                st.lastResultDispIndex = -1;
-                st.lastResultSideIdx = -1;
-                st.turn = (mover == Turn::Black) ? Turn::White : Turn::Black;
-            }
-        }
-    }
-
-    if (!st.firstMoveFound) {
-        st.openingItem.comment = st.pendingComments.isEmpty()
-            ? QString() : st.pendingComments.join(QStringLiteral("\n"));
-        st.line.disp.append(st.openingItem);
-        st.pendingComments.clear();
-    }
-
-    if (!st.pendingComments.isEmpty() && !st.line.disp.isEmpty()) {
-        QString& dst = st.line.disp.last().comment;
-        if (!dst.isEmpty()) dst += QLatin1Char('\n');
-        dst += st.pendingComments.join(QStringLiteral("\n"));
-    }
-
-    return line.resolve(out.mainline, warn);
+    outcome.record.mainline = builder.take();
+    outcome.initialSfen = outcome.record.mainline.startSfen;
+    outcome.teaiLabel = start == Position::hirate() ? QStringLiteral("平手") : QStringLiteral("局面指定");
+    outcome.gameInfo = gameInfoOf(lines);
+    outcome.success = true;
+    return outcome;
 }

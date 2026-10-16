@@ -28,8 +28,9 @@ public:
 
     // --- ノード識別 ---
 
-    /// この行（指した手か終局）とコメント・しおり
+    /// この行（指した手か終局）とコメント・しおり。変えるときも record() の値を直接変える
     const RecordEntry& record() const { return m_record; }
+    RecordEntry& record() { return m_record; }
 
     int nodeId() const { return m_nodeId; }
     void setNodeId(int id) { m_nodeId = id; }
@@ -41,34 +42,27 @@ public:
     void setPly(int ply) { m_ply = ply; }
     void setRecord(const RecordEntry& record) { m_record = record; }
 
+    // --- 行の値（record() の各項目を読む） ---
+
     /// 表示テキストを取得（例: "▲７六歩(77)"）
     QString displayText() const { return m_record.displayText; }
-    void setDisplayText(const QString& text) { m_record.displayText = text; }
 
     /// この局面のSFENを取得
     QString sfen() const { return m_record.sfen; }
-    void setSfen(const QString& sfen) { m_record.sfen = sfen; }
 
     /// この手を表すShogiMoveを取得（ply=0や終局手は無効）
     ShogiMove move() const { return m_record.move; }
-    void setMove(const ShogiMove& move) { m_record.move = move; }
 
     QString comment() const { return m_record.comment; }
-    void setComment(const QString& comment) { m_record.comment = comment; }
 
     QString bookmark() const { return m_record.bookmark; }
-    void setBookmark(const QString& bookmark) { m_record.bookmark = bookmark; }
 
     QString timeText() const { return m_record.time.toText(); }
     const RecordTime& time() const { return m_record.time; }
-    void setTime(const RecordTime& time) { m_record.time = time; }
-    void setTimeText(const QString& time) { m_record.time = RecordTime::fromText(time); }
 
     TerminalType terminalType() const { return m_record.terminal; }
-    void setTerminalType(TerminalType type) { m_record.terminal = type; }
 
     Turn terminalSide() const { return m_record.mover; }
-    void setTerminalSide(Turn side) { m_record.mover = side; }
 
     // --- ツリー構造 ---
 

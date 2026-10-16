@@ -40,7 +40,13 @@ void ShogiViewInteraction::startDrag(const QPoint &from, ShogiBoard* board,
 
     // 【駒台の一時枚数マップを作成】
     // 画面上はドラッグで 1 枚減った見え方にするため、つまみ上げた分をデクリメント。
-    m_tempPieceStandCounts = board->pieceStand();
+    m_tempPieceStandCounts.clear();
+    for (const Turn side : {Turn::Black, Turn::White}) {
+        for (int kind = 0; kind < kHandKindCount; ++kind) {
+            const Piece piece = makePiece(side, static_cast<PieceKind>(kind));
+            m_tempPieceStandCounts.insert(piece, board->pieceStandCount(piece));
+        }
+    }
     if (from.x() == 10 || from.x() == 11) {
         m_tempPieceStandCounts[m_dragPiece]--;        // 一時的に在庫を減らす
     }

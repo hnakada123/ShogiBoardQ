@@ -183,7 +183,7 @@ shogiboardq-cli <command> [options]
 | コマンド | 主なオプション | 出力 |
 |---|---|---|
 | `version` | - | `{"ok":true,"version":"2026.09.25"}` |
-| `convert-kifu` | `--input PATH` / `--text STR`、`--input-format auto\|kif\|ki2\|csa\|jkf\|usi\|usen`、`--output-format kif\|ki2\|csa\|jkf\|usi\|usen\|sfen`、`--output PATH`、`--overwrite` | `{ok, output_format, text \| output_path, initial_sfen, ply_count, usi_moves[], sfens[], warnings[]}` |
+| `convert-kifu` | `--input PATH` / `--text STR`、`--input-format auto\|kif\|ki2\|csa\|jkf\|usi\|usen`、`--output-format kif\|ki2\|csa\|jkf\|usi\|usen\|sfen`、`--output PATH`、`--overwrite` | `{ok, input_format, output_format, text \| output_path, initial_sfen, ply_count, usi_moves[], sfens[], moves[], game_info[], has_branches, line_count, warnings[]}`。`moves[]` は本譜の各行（`{ply, text, usi, time, comment, bookmark}`。終局の行は `usi` なし、`time`・`comment`・`bookmark` は空なら省く）で、`KifuConversionService::Result::mainline`（`RecordLine`。`GameRecordModel::collectMainlineForExport()`）から作る |
 | `validate-sfen` | `--sfen SFEN` | `{ok, valid, normalized_sfen, turn, hands{black,white}, in_check, legal_move_count, kings{black,white}, errors[]}` |
 | `list-engines` | - | `{ok, engines:[{name,path,author,exists}]}` |
 | `analyze` | `--engine NAME --sfen SFEN [--moves "7g7f 3c3d"] --seconds N --multipv M` | JSON Lines: `started` → `info`（読み筋更新ごと）→ `result{bestmove, ponder, lines[]}` |
@@ -196,7 +196,7 @@ shogiboardq-cli <command> [options]
 
 - エラーは `{"ok":false,"error":{"code":"invalid_argument"|"engine_not_found"|"engine_error"|"io_error"|"internal","message":"..."}}` を標準出力に書いて終了コード 1。JSON Lines コマンドでは `{"event":"error",...}` を出してから終了する。
 - エンジンは設定ファイル（`SettingsCommon::settingsFilePath()`）の `[Engines]` に登録済みの名前だけを受け付ける（`EngineListSettings::loadEngines()`）。任意パスは受け付けない。エンジンのオプションは GUI と同じく設定ファイルの値を適用する（`UsiEngineSession::startAsync()` が `UsiProtocolHandler::loadEngineOptions()` で読む）。
-- 局面は `--sfen`（`startpos` も可）と `--moves`（USI 手を空白区切り）で指定し、`position sfen ... moves ...` を組み立てる。
+- 局面は `--sfen`（`startpos` も可）と `--moves`（USI 手を空白区切り）で指定し、`CliArgs::resolvePosition()` が `UsiPosition::fromMoves()` で探索させる局面（`CliPosition::position`）にする（読めない手・指せない手は `invalid_argument`）。エンジンには `UsiPosition::command()`（平手なら `position startpos moves ...`、それ以外は `position sfen ... moves ...`）を送る。
 - `--output` の既存ファイルは `--overwrite` が無ければ拒否する。ディレクトリ制限は MCP サーバー側で行う（CLI 単体では行わない）。
 - 長時間コマンドは `SIGTERM`/`SIGINT` でも停止処理（エンジンへの `quit`）を行って終了する（Windows は stdin の `stop` のみ）。
 - JSON の出力と棋譜の形式は表示言語に依存しない。`render-board` だけは、GUI と同じ表示言語・棋譜表記・書体の設定（`ApplicationTranslations`・`ApplicationFonts`）を描画前に適用し、「手番」などの表示と段の表記（一〜九／a〜i）を GUI に合わせる。

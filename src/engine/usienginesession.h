@@ -12,13 +12,14 @@
 #include <vector>
 
 #include "usigotime.h"
+#include "usiposition.h"
 
 class EngineProcessManager;
 class UsiProtocolHandler;
 
 /// 探索1回の依頼
 struct UsiSearchRequest {
-    QString position;          ///< position コマンド（空なら送らない）
+    UsiPosition position;      ///< 探索する局面（空なら position コマンドを送らない）
     UsiGo go;                  ///< go の種類と時間
     int stopAfterMs = 0;       ///< この時間が過ぎたら stop を送る（0 は送らない）
     /// 結果を待つ時間。stopAfterMs があれば stop の後から、なければ go の後から数える（0 は待ち続ける）。
@@ -36,7 +37,7 @@ struct UsiSearchRequest {
      * 制限時間があれば、制限時間＋余裕で stop を送り、その後も答えなければ searchTimedOut を知らせる。
      * 制限時間が 0 以下（go mate infinite）なら打ち切らない（利用者が止める）
      */
-    static UsiSearchRequest mate(const QString& position, int timeLimitMs)
+    static UsiSearchRequest mate(const UsiPosition& position, int timeLimitMs)
     {
         UsiSearchRequest request;
         request.position = position;

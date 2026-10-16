@@ -12,8 +12,7 @@
 struct InterruptedGameState {
     MatchStartOptions options;
     ShogiClock::Snapshot clock;
-    RecordLine record;           ///< 中断までの対局の手順
-    BoardSquare previousTo;      ///< 「同」表記の基準（直前の手の移動先）
+    RecordLine record;           ///< 中断までの対局の手順（「同」表記の基準もここから導く）
 };
 
 #endif

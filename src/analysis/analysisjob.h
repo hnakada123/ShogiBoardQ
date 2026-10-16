@@ -47,7 +47,7 @@ signals:
 private slots:
     void onInitialized();
     void onPositionPrepared(int ply, const QString& sfen);
-    void onSearchRequested(const QString& positionCommand, int thinkMs);
+    void onSearchRequested(const UsiPosition& position, int thinkMs);
     void onBestMove(const UsiBestMove& result);
     void onInfo(const UsiInfo& info);
     void onThinkingInfo(const ThinkingInfoRow& row);

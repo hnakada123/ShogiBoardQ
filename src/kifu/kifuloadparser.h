@@ -5,7 +5,7 @@
 /// @brief 棋譜の読み込み口（ファイルの文字コードの判別と、形式ごとの変換器への振り分け）
 
 #include "kifuformat.h"
-#include "kiftosfenconverter.h"
+#include "kifparsetypes.h"
 #include "threadtypes.h"
 #include "shogimove.h"
 

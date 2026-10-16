@@ -93,6 +93,11 @@
 - `UsiPosition`: 約15ファイル（engine 5、game 5、analysis 3、network 2、kifu の `RecordLine`）。
 - テスト: `tst_shogiboard`（636行）・`tst_sfenreplay`・変換器のテスト6本・`tst_fmvlegalcore`・`tst_fmvconverter`・`tst_usimatchhandler`・`tst_usiprotocolhandler`・`tst_gamestrategy`・`tst_matchcoordinator`。
 
+**状態: 済（R1・R2 の段階のコミット）**。案から変えた点:
+- `UsiPosition` は engine ではなく core に置いた（`src/core/usiposition.h`）。kifu の `RecordLine::usiPosition(ply)` が作るので、層の規則（kifu は engine を include しない）に合わせた。直前の手（`lastMove`）は手順と別に持ち、局面だけを送る検討（`position sfen ...`）でも「同」の基準を持てる。
+- 「同」の基準の写し（`ShogiGameController::m_previousTo`・`InterruptedGameState::previousTo`・CSA の上書き）は、手順を持つ呼び出し側が指すたびに渡す形にした（`validateAndMove`・`applyMove`・`applyRecordedMove` の `previousTo`、`MatchCoordinator::lastMoveDestination()`）。
+- 使う箇所のなかった `UsiMatchMove::position`・`ponderPosition` は削除した。エンジンの指した手が局面に指せないときは、先読みせずに対局の側の反則の処理へ渡す（従来どおり）。
+
 ### R2. 棋譜の読み込みの中間表現と変換器（kifu/formats）。B1・B2・B3 の原因
 
 **問題**
@@ -138,6 +143,12 @@
 - 取り込み側の約13ファイル＋`kifuloadparser`（約2,500行のうち1,000行前後を書き換え）。1手の型の整理は kifu のヘッダー6本、ツリー・ノード、Exporter 6本、CLI・自動化の2〜3ファイルに及ぶ。
 - テスト: 変換器のテスト6本（約3,700行）が回帰を守る。`tst_gamerecordmodel`（1,224行）・`tst_jkfexporter`・`tst_kifu_comment_sync` は `KifDisplayItem` に依存しているので、書き換えが要る。
 - R1 の `Position` と同時に進めるのが効率的。
+
+**状態: 済（R1・R2 の段階のコミット）**。案から変えた点:
+- KIF・KI2 は `KifTextParser`（`src/kifu/formats/kiftextparser.h`）が両方を読む。手数で始まる KIF の行と手番の印で始まる KI2 の行をどちらの形式でも読み、形式で違うのは KI2 の「まで…」の行・対局情報の終わりの見分け方・警告の見出しだけ。指し手の文法は `KifMoveGrammar`（`Ki2Lexer::parseMoveText` に移動元 "(xy)" を足したもの）。
+- 失敗の方針は `ParseOptions`（既定は手順を打ち切って続ける、`FailRecord` で全体を失敗）と `ParseReport` に置いた。パスは未対応の手として同じ方針で扱う。
+- `RecordEntry::mover` は残した（終局の行は指し手を持たないので、記録した側をこの欄で持つ）。
+- `KifuBranchNode` の転送 setter の代わりに、書き換えは `record()`（非 const）で行う。
 
 ### R3. 棋譜に付く情報が1つの文書にまとまっていない（kifu・widgets・ui・app）。B6・B7 の原因
 

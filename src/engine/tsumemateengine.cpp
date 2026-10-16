@@ -91,7 +91,7 @@ void TsumeMateEngine::beginSearch()
     // go mate infinite で探させ、制限時間までに自然に終わった MinLength の結果だけを確定扱いにする
     // （時間切れは stop を送らずにエンジンを終わらせる）
     UsiSearchRequest search;
-    search.position = QStringLiteral("position sfen ") + m_sfen;
+    search.position = UsiPosition::parse(m_sfen).value_or(UsiPosition{});
     search.go = UsiGo::mate(0);
     search.replyTimeoutMs = m_milliseconds;
     m_session->search(search);

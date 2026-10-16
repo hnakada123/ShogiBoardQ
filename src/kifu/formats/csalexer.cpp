@@ -2,10 +2,7 @@
 /// @brief CSA形式の字句解析・指し手解析・コメント/時間の実装・局面解析
 
 #include "csalexer.h"
-#include "kifmovetext.h"
-#include "parsecommon.h"
-#include "shogiboard.h"
-#include "sfenutils.h"
+#include "shogiposition.h"
 #include "shoginotation.h"
 #include <QMap>
 #include <QString>
@@ -79,27 +76,26 @@ std::optional<CsaMoveToken> parseCsaMoveToken(const QString& token)
     return CsaMoveToken{BoardSquare{fx, fy}, BoardSquare{tx, ty}, piece};
 }
 
-bool parseMoveLine(const QString& line, Turn mover, ShogiBoard& board, BoardSquare& previousTo,
-                   QString& usiMoveOut, QString& prettyOut, QString* warn)
+std::optional<UsiMove> parseMoveLine(const QString& line, Turn mover, const Position& board, QString* detail)
 {
     const qsizetype comma = line.indexOf(QLatin1Char(','));
     const QString token = (comma >= 0) ? line.left(comma) : line;
 
     const auto csa = parseCsaMoveToken(token);
     if (!csa) {
-        if (warn) *warn += QStringLiteral("Malformed move token: %1\n").arg(token);
-        return false;
+        if (detail) *detail = QStringLiteral("Malformed move token: %1").arg(token);
+        return std::nullopt;
     }
 
     const bool isDrop = (csa->from == BoardSquare{0, 0});
     if (!csa->to.isValid()
         || (isDrop && (isPromoted(csa->piece) || csa->piece == Piece::BlackKing))) {
-        if (warn) *warn += QStringLiteral("Invalid destination or drop piece: %1\n").arg(token);
-        return false;
+        if (detail) *detail = QStringLiteral("Invalid destination or drop piece: %1").arg(token);
+        return std::nullopt;
     }
     if (!isDrop && !csa->from.isValid()) {
-        if (warn) *warn += QStringLiteral("Source out of range: %1\n").arg(token);
-        return false;
+        if (detail) *detail = QStringLiteral("Source out of range: %1").arg(token);
+        return std::nullopt;
     }
 
     // 指し手と動かす駒（駒打ちは打つ駒、盤上の移動は成る前の駒）。成りは移動元の駒と指し手の駒種から決まる
@@ -116,15 +112,11 @@ bool parseMoveLine(const QString& line, Turn mover, ShogiBoard& board, BoardSqua
         move.promote = (before != csa->piece && promote(before) == csa->piece);
         if (!belongsTo(moving, mover) || (before != csa->piece && !move.promote)) moving = Piece::None;
     }
-    if (moving == Piece::None || belongsTo(board.pieceAt(move.to), mover) || !board.applyUsiMove(move, mover)) {
-        if (warn) *warn += QStringLiteral("Move does not match the position: %1\n").arg(token);
-        return false;
+    if (moving == Piece::None || belongsTo(board.pieceAt(move.to), mover)) {
+        if (detail) *detail = QStringLiteral("Move does not match the position: %1").arg(token);
+        return std::nullopt;
     }
-
-    usiMoveOut = move.toString();
-    prettyOut = KifMoveText::format(mover, moving, move, previousTo);
-    previousTo = move.to;
-    return true;
+    return move;
 }
 
 // --- コメント・時間 ---
@@ -171,20 +163,10 @@ std::optional<qint64> parseTimeTokenMs(const QString& token)
     return sec * 1000 + milli;
 }
 
-QString composeTimeText(qint64 moveMs, qint64 cumMs)
-{
-    auto fraction = [](qint64 ms) {
-        return ms % 1000 == 0 ? QString()
-            : QStringLiteral(".%1").arg(ms % 1000, 3, 10, QLatin1Char('0'));
-    };
-    return KifuParseCommon::formatTimeMS(moveMs) + fraction(moveMs) + QLatin1Char('/')
-        + KifuParseCommon::formatTimeHMS(cumMs) + fraction(cumMs);
-}
-
 } // namespace CsaLexer
 
 // ============================================================
-// CSA形式の初期局面（PI・P行・00AL）を盤（ShogiBoard）に組み立てる実装
+// CSA形式の初期局面（PI・P行・00AL）を局面（Position）に組み立てる実装
 // ============================================================
 
 namespace CsaLexer {
@@ -240,7 +222,7 @@ static QStringList tokenizePRow(const QString& raw)
 
 // --- P行（初期局面）解析 ---
 
-bool applyPRowLine(const QString& raw, ShogiBoard& board)
+bool applyPRowLine(const QString& raw, Position& board)
 {
     if (raw.size() < 2 || raw.at(0) != QLatin1Char('P')) return false;
     const int row = raw.at(1).isDigit() ? raw.at(1).digitValue() : -1;
@@ -263,7 +245,7 @@ bool applyPRowLine(const QString& raw, ShogiBoard& board)
     return true;
 }
 
-bool applyPPlusMinusLine(const QString& raw, ShogiBoard& board, std::optional<Turn>& allRemainingTo)
+bool applyPPlusMinusLine(const QString& raw, Position& board, std::optional<Turn>& allRemainingTo)
 {
     if (raw.size() < 2 || raw.at(0) != QLatin1Char('P')) return false;
     const QChar sign = raw.at(1);
@@ -290,7 +272,7 @@ bool applyPPlusMinusLine(const QString& raw, ShogiBoard& board, std::optional<Tu
         if (file == 0 && rank == 0) {
             // 持駒は生駒で数える（玉は持駒にしない）
             const Piece inHand = demote(piece);
-            if (inHand != Piece::None && toBlack(inHand) != Piece::BlackKing) board.addStandPiece(inHand);
+            if (inHand != Piece::None && toBlack(inHand) != Piece::BlackKing) board.addToHand(inHand);
         } else {
             const BoardSquare square{file, rank};
             if (!square.isValid()) continue;
@@ -301,21 +283,21 @@ bool applyPPlusMinusLine(const QString& raw, ShogiBoard& board, std::optional<Tu
     return matched > 0;
 }
 
-void giveRemainingPiecesTo(ShogiBoard& board, Turn side)
+void giveRemainingPiecesTo(Position& board, Turn side)
 {
     const QMap<Piece, int> remaining = board.pieceBox();
     for (auto it = remaining.cbegin(); it != remaining.cend(); ++it) {
         if (it.key() == Piece::BlackKing || it.value() <= 0) continue;
-        board.addStandPiece(side == Turn::Black ? it.key() : toWhite(it.key()), it.value());
+        board.addToHand(side == Turn::Black ? it.key() : toWhite(it.key()), it.value());
     }
 }
 
 // --- 開始局面解析 ---
 
-bool parseStartPos(const QStringList& lines, int& idx, QString& baseSfen, ShogiBoard& board)
+bool parseStartPos(const QStringList& lines, int& idx, Position& board)
 {
     // CSAでは配置が省略された駒は駒箱に残る。PIだけが平手配置を指定する。
-    board.resetGameBoard();
+    board = Position();
     Turn stm = Turn::Black;
     std::optional<Turn> allRemainingTo;
 
@@ -327,7 +309,7 @@ bool parseStartPos(const QStringList& lines, int& idx, QString& baseSfen, ShogiB
 
         if (raw.startsWith(QLatin1String("PI"))) {
             // 平手から、指定された駒（駒落ち）を除く
-            (void)board.trySetSfen(SfenUtils::hirateSfen());
+            board = Position::hirate();
             const QString removed = raw.mid(2);
             if (removed.size() % 4 != 0) return false;
             for (qsizetype pos = 0; pos < removed.size(); pos += 4) {
@@ -362,9 +344,8 @@ bool parseStartPos(const QStringList& lines, int& idx, QString& baseSfen, ShogiB
 
     if (allRemainingTo) giveRemainingPiecesTo(board, *allRemainingTo);
 
-    board.setCurrentPlayer(stm);
-    baseSfen = board.convertBoardToSfen() + QLatin1Char(' ') + turnToSfen(stm) + QLatin1Char(' ')
-               + board.convertStandToSfen() + QStringLiteral(" 1");
+    board.setSideToMove(stm);
+    board.setMoveNumber(1);
     return true;
 }
 

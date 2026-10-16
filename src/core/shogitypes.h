@@ -8,6 +8,7 @@
 #include <QLatin1Char>
 #include <QDebug>
 #include <optional>
+#include <cstdint>
 
 /// 手番を表す型安全な列挙型
 enum class Turn { Black, White };
@@ -66,177 +67,162 @@ inline QString gameOverResultToString(GameOverResult r)
 // 駒型定義
 // ============================================================
 
-/// 駒を表す型安全な列挙型
-/// 文字値は内部SFEN表現に対応（大文字=先手、小文字=後手）
-enum class Piece : char {
-    // 先手（大文字）
-    BlackPawn = 'P', BlackLance = 'L', BlackKnight = 'N', BlackSilver = 'S',
-    BlackGold = 'G', BlackBishop = 'B', BlackRook = 'R', BlackKing = 'K',
-    BlackPromotedPawn = 'Q', BlackPromotedLance = 'M', BlackPromotedKnight = 'O',
-    BlackPromotedSilver = 'T', BlackHorse = 'C', BlackDragon = 'U',
-    // 後手（小文字）
-    WhitePawn = 'p', WhiteLance = 'l', WhiteKnight = 'n', WhiteSilver = 's',
-    WhiteGold = 'g', WhiteBishop = 'b', WhiteRook = 'r', WhiteKing = 'k',
-    WhitePromotedPawn = 'q', WhitePromotedLance = 'm', WhitePromotedKnight = 'o',
-    WhitePromotedSilver = 't', WhiteHorse = 'c', WhiteDragon = 'u',
+/**
+ * @brief 駒の種類（色を持たない）
+ *
+ * 並びは合法手生成（fmv::PieceType）と同じ。生駒の8種（玉まで）の後に、成駒6種を元の駒と同じ順に置く。
+ * 持ち駒の欄の番号は、生駒の種類の値（歩0〜玉7）をそのまま使う。
+ */
+enum class PieceKind : std::uint8_t {
+    Pawn = 0, Lance, Knight, Silver, Gold, Bishop, Rook, King,
+    ProPawn, ProLance, ProKnight, ProSilver, Horse, Dragon,
+};
+/// 駒の種類の数
+inline constexpr int kPieceKindCount = 14;
+/// 持ち駒（駒台）に置ける駒の種類の数（歩〜玉。局面編集では玉も駒台に置ける）
+inline constexpr int kHandKindCount = 8;
+
+/**
+ * @brief 駒（色と種類）
+ *
+ * 値は「種類の値（PieceKind）＋ 後手なら 16」。成る・戻す・先後の反転は値の計算で行う。
+ * None は駒のないマス。SFEN の文字との変換は charToPiece・pieceLetter・pieceSfen で行う。
+ */
+enum class Piece : std::uint8_t {
+    // 先手
+    BlackPawn = 0, BlackLance, BlackKnight, BlackSilver, BlackGold, BlackBishop, BlackRook, BlackKing,
+    BlackPromotedPawn, BlackPromotedLance, BlackPromotedKnight, BlackPromotedSilver, BlackHorse, BlackDragon,
+    // 後手
+    WhitePawn = 16, WhiteLance, WhiteKnight, WhiteSilver, WhiteGold, WhiteBishop, WhiteRook, WhiteKing,
+    WhitePromotedPawn, WhitePromotedLance, WhitePromotedKnight, WhitePromotedSilver, WhiteHorse, WhiteDragon,
     // 空
-    None = ' '
+    None = 0xFF
 };
 
-/// QChar → Piece 変換（無効文字は None）
-inline Piece charToPiece(QChar ch)
+namespace PieceCode {
+inline constexpr std::uint8_t kWhiteBit = 16;   ///< 後手の駒の印
+inline constexpr std::uint8_t kKindMask = 15;   ///< 種類の部分
+inline constexpr std::uint8_t value(Piece p) { return static_cast<std::uint8_t>(p); }
+} // namespace PieceCode
+
+/// 色と種類から駒を作る
+constexpr Piece makePiece(Turn side, PieceKind kind)
 {
-    switch (ch.unicode()) {
-    case 'P': return Piece::BlackPawn;
-    case 'L': return Piece::BlackLance;
-    case 'N': return Piece::BlackKnight;
-    case 'S': return Piece::BlackSilver;
-    case 'G': return Piece::BlackGold;
-    case 'B': return Piece::BlackBishop;
-    case 'R': return Piece::BlackRook;
-    case 'K': return Piece::BlackKing;
-    case 'Q': return Piece::BlackPromotedPawn;
-    case 'M': return Piece::BlackPromotedLance;
-    case 'O': return Piece::BlackPromotedKnight;
-    case 'T': return Piece::BlackPromotedSilver;
-    case 'C': return Piece::BlackHorse;
-    case 'U': return Piece::BlackDragon;
-    case 'p': return Piece::WhitePawn;
-    case 'l': return Piece::WhiteLance;
-    case 'n': return Piece::WhiteKnight;
-    case 's': return Piece::WhiteSilver;
-    case 'g': return Piece::WhiteGold;
-    case 'b': return Piece::WhiteBishop;
-    case 'r': return Piece::WhiteRook;
-    case 'k': return Piece::WhiteKing;
-    case 'q': return Piece::WhitePromotedPawn;
-    case 'm': return Piece::WhitePromotedLance;
-    case 'o': return Piece::WhitePromotedKnight;
-    case 't': return Piece::WhitePromotedSilver;
-    case 'c': return Piece::WhiteHorse;
-    case 'u': return Piece::WhiteDragon;
-    default:  return Piece::None;
-    }
+    return static_cast<Piece>(static_cast<std::uint8_t>(kind) | (side == Turn::White ? PieceCode::kWhiteBit : 0));
 }
 
-/// Piece → QChar 変換
-inline QChar pieceToChar(Piece p)
+/// 駒の種類（None に対しては呼ばない）
+constexpr PieceKind pieceKind(Piece p)
 {
-    return QLatin1Char(static_cast<char>(p));
+    return static_cast<PieceKind>(PieceCode::value(p) & PieceCode::kKindMask);
 }
 
 /// 先手の駒か判定
-inline bool isBlackPiece(Piece p)
+constexpr bool isBlackPiece(Piece p)
 {
-    const char c = static_cast<char>(p);
-    return c >= 'A' && c <= 'Z';
+    return p != Piece::None && (PieceCode::value(p) & PieceCode::kWhiteBit) == 0;
 }
 
 /// 後手の駒か判定
-inline bool isWhitePiece(Piece p)
+constexpr bool isWhitePiece(Piece p)
 {
-    const char c = static_cast<char>(p);
-    return c >= 'a' && c <= 'z';
+    return p != Piece::None && (PieceCode::value(p) & PieceCode::kWhiteBit) != 0;
 }
+
+/// 駒の持ち主（None に対しては呼ばない）
+constexpr Turn pieceSide(Piece p) { return isWhitePiece(p) ? Turn::White : Turn::Black; }
 
 /// 成駒か判定
-inline bool isPromoted(Piece p)
+constexpr bool isPromoted(Piece p)
 {
-    switch (p) {
-    case Piece::BlackPromotedPawn:    case Piece::BlackPromotedLance:
-    case Piece::BlackPromotedKnight:  case Piece::BlackPromotedSilver:
-    case Piece::BlackHorse:           case Piece::BlackDragon:
-    case Piece::WhitePromotedPawn:    case Piece::WhitePromotedLance:
-    case Piece::WhitePromotedKnight:  case Piece::WhitePromotedSilver:
-    case Piece::WhiteHorse:           case Piece::WhiteDragon:
-        return true;
-    default:
-        return false;
-    }
+    return p != Piece::None && pieceKind(p) >= PieceKind::ProPawn;
 }
 
-/// 駒を成る（成れない駒はそのまま返す）
-inline Piece promote(Piece p)
+/// 成れる駒か（歩・香・桂・銀・角・飛の生駒）
+constexpr bool isPromotable(Piece p)
 {
-    switch (p) {
-    case Piece::BlackPawn:   return Piece::BlackPromotedPawn;
-    case Piece::BlackLance:  return Piece::BlackPromotedLance;
-    case Piece::BlackKnight: return Piece::BlackPromotedKnight;
-    case Piece::BlackSilver: return Piece::BlackPromotedSilver;
-    case Piece::BlackBishop: return Piece::BlackHorse;
-    case Piece::BlackRook:   return Piece::BlackDragon;
-    case Piece::WhitePawn:   return Piece::WhitePromotedPawn;
-    case Piece::WhiteLance:  return Piece::WhitePromotedLance;
-    case Piece::WhiteKnight: return Piece::WhitePromotedKnight;
-    case Piece::WhiteSilver: return Piece::WhitePromotedSilver;
-    case Piece::WhiteBishop: return Piece::WhiteHorse;
-    case Piece::WhiteRook:   return Piece::WhiteDragon;
-    default: return p;
-    }
+    if (p == Piece::None) return false;
+    const PieceKind kind = pieceKind(p);
+    return kind <= PieceKind::Rook && kind != PieceKind::Gold;
+}
+
+/// 駒を成る（成れない駒はそのまま返す）。歩〜銀は 8、角・飛は 7 先が成駒
+constexpr Piece promote(Piece p)
+{
+    if (!isPromotable(p)) return p;
+    return static_cast<Piece>(PieceCode::value(p) + (pieceKind(p) <= PieceKind::Silver ? 8 : 7));
 }
 
 /// 成駒を元に戻す（非成駒はそのまま返す）
-inline Piece demote(Piece p)
+constexpr Piece demote(Piece p)
 {
-    switch (p) {
-    case Piece::BlackPromotedPawn:    return Piece::BlackPawn;
-    case Piece::BlackPromotedLance:   return Piece::BlackLance;
-    case Piece::BlackPromotedKnight:  return Piece::BlackKnight;
-    case Piece::BlackPromotedSilver:  return Piece::BlackSilver;
-    case Piece::BlackHorse:           return Piece::BlackBishop;
-    case Piece::BlackDragon:          return Piece::BlackRook;
-    case Piece::WhitePromotedPawn:    return Piece::WhitePawn;
-    case Piece::WhitePromotedLance:   return Piece::WhiteLance;
-    case Piece::WhitePromotedKnight:  return Piece::WhiteKnight;
-    case Piece::WhitePromotedSilver:  return Piece::WhiteSilver;
-    case Piece::WhiteHorse:           return Piece::WhiteBishop;
-    case Piece::WhiteDragon:          return Piece::WhiteRook;
-    default: return p;
-    }
+    if (!isPromoted(p)) return p;
+    return static_cast<Piece>(PieceCode::value(p) - (pieceKind(p) <= PieceKind::ProSilver ? 8 : 7));
 }
 
 /// 後手駒を先手駒に変換（成り状態を保持、先手駒・Noneはそのまま）
-inline Piece toBlack(Piece p)
+constexpr Piece toBlack(Piece p)
 {
-    switch (p) {
-    case Piece::WhitePawn:           return Piece::BlackPawn;
-    case Piece::WhiteLance:          return Piece::BlackLance;
-    case Piece::WhiteKnight:         return Piece::BlackKnight;
-    case Piece::WhiteSilver:         return Piece::BlackSilver;
-    case Piece::WhiteGold:           return Piece::BlackGold;
-    case Piece::WhiteBishop:         return Piece::BlackBishop;
-    case Piece::WhiteRook:           return Piece::BlackRook;
-    case Piece::WhiteKing:           return Piece::BlackKing;
-    case Piece::WhitePromotedPawn:   return Piece::BlackPromotedPawn;
-    case Piece::WhitePromotedLance:  return Piece::BlackPromotedLance;
-    case Piece::WhitePromotedKnight: return Piece::BlackPromotedKnight;
-    case Piece::WhitePromotedSilver: return Piece::BlackPromotedSilver;
-    case Piece::WhiteHorse:          return Piece::BlackHorse;
-    case Piece::WhiteDragon:         return Piece::BlackDragon;
-    default: return p;
-    }
+    return p == Piece::None ? p : static_cast<Piece>(PieceCode::value(p) & ~PieceCode::kWhiteBit);
 }
 
 /// 先手駒を後手駒に変換（成り状態を保持、後手駒・Noneはそのまま）
-inline Piece toWhite(Piece p)
+constexpr Piece toWhite(Piece p)
 {
-    switch (p) {
-    case Piece::BlackPawn:           return Piece::WhitePawn;
-    case Piece::BlackLance:          return Piece::WhiteLance;
-    case Piece::BlackKnight:         return Piece::WhiteKnight;
-    case Piece::BlackSilver:         return Piece::WhiteSilver;
-    case Piece::BlackGold:           return Piece::WhiteGold;
-    case Piece::BlackBishop:         return Piece::WhiteBishop;
-    case Piece::BlackRook:           return Piece::WhiteRook;
-    case Piece::BlackKing:           return Piece::WhiteKing;
-    case Piece::BlackPromotedPawn:   return Piece::WhitePromotedPawn;
-    case Piece::BlackPromotedLance:  return Piece::WhitePromotedLance;
-    case Piece::BlackPromotedKnight: return Piece::WhitePromotedKnight;
-    case Piece::BlackPromotedSilver: return Piece::WhitePromotedSilver;
-    case Piece::BlackHorse:          return Piece::WhiteHorse;
-    case Piece::BlackDragon:         return Piece::WhiteDragon;
-    default: return p;
+    return p == Piece::None ? p : static_cast<Piece>(PieceCode::value(p) | PieceCode::kWhiteBit);
+}
+
+/// 先後を入れ替えた駒（Noneはそのまま）
+constexpr Piece flipSide(Piece p)
+{
+    return p == Piece::None ? p : static_cast<Piece>(PieceCode::value(p) ^ PieceCode::kWhiteBit);
+}
+
+/// 指定の側の駒にする（成り状態を保持）
+constexpr Piece toSide(Piece p, Turn side) { return side == Turn::Black ? toBlack(p) : toWhite(p); }
+
+/// 取った駒を持ち駒にしたときの駒（相手の色の生駒）
+constexpr Piece capturedToHand(Piece captured) { return flipSide(demote(captured)); }
+
+/// SFEN の駒の文字（PLNSGBRK。大文字は先手、小文字は後手）を生駒にする。それ以外は None
+inline Piece charToPiece(QChar ch)
+{
+    PieceKind kind;
+    switch (ch.toUpper().unicode()) {
+    case u'P': kind = PieceKind::Pawn; break;
+    case u'L': kind = PieceKind::Lance; break;
+    case u'N': kind = PieceKind::Knight; break;
+    case u'S': kind = PieceKind::Silver; break;
+    case u'G': kind = PieceKind::Gold; break;
+    case u'B': kind = PieceKind::Bishop; break;
+    case u'R': kind = PieceKind::Rook; break;
+    case u'K': kind = PieceKind::King; break;
+    default: return Piece::None;
     }
+    return makePiece(ch.isLower() ? Turn::White : Turn::Black, kind);
+}
+
+/// 駒の SFEN の文字（成駒は元の駒の文字。大文字は先手、小文字は後手。None は空白）
+inline QChar pieceLetter(Piece p)
+{
+    if (p == Piece::None) return QLatin1Char(' ');
+    static constexpr char kLetters[] = "PLNSGBRK";
+    const char letter = kLetters[static_cast<int>(pieceKind(demote(p)))];
+    return QLatin1Char(isWhitePiece(p) ? static_cast<char>(letter - 'A' + 'a') : letter);
+}
+
+/// 駒の SFEN の表記（成駒は "+P" の形。None は空）
+inline QString pieceSfen(Piece p)
+{
+    if (p == Piece::None) return {};
+    return isPromoted(p) ? QStringLiteral("+") + pieceLetter(p) : QString(pieceLetter(p));
+}
+
+/// ログ出力用（SFEN の表記。None は "-"）
+inline QDebug operator<<(QDebug debug, Piece p)
+{
+    QDebugStateSaver saver(debug);
+    return debug.noquote().nospace() << (p == Piece::None ? QStringLiteral("-") : pieceSfen(p));
 }
 
 #endif // SHOGITYPES_H

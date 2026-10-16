@@ -103,11 +103,7 @@ bool PositionEditController::beginPositionEditing(const BeginEditContext& c)
     // 表示中の局面を編集する
     QString baseSfen = c.displayedSfen;
     if (baseSfen.isEmpty()) {
-        baseSfen = QStringLiteral("%1 %2 %3 %4")
-                       .arg(board->convertBoardToSfen(),
-                            turnToSfen(board->currentPlayer()),
-                            board->convertStandToSfen(),
-                            QString::number(1));
+        baseSfen = board->position().toSfen(board->currentPlayer(), 1);
     }
 
     // 最小SFENへ正規化し、手番/手数を強制上書き
@@ -137,15 +133,8 @@ QString PositionEditController::finishPositionEditing(const PositionEditControll
 
     ShogiBoard* board = c.view->board();
 
-    // GC の手番を SFEN 文字列に変換（編集中に手番変更された値を反映）
-    const QString bw = (c.gc->currentPlayer() == Turn::White)
-                           ? QStringLiteral("w")
-                           : QStringLiteral("b");
-    const QString sfenNow = QStringLiteral("%1 %2 %3 %4")
-                                .arg(board->convertBoardToSfen(),
-                                     bw,
-                                     board->convertStandToSfen(),
-                                     QString::number(1));
+    // GC の手番（編集中に手番変更された値）で、編集した局面の SFEN にする
+    const QString sfenNow = board->position().toSfen(c.gc->currentPlayer(), 1);
 
     // 盤面へ反映し、描画
     resetEditInteraction(c.view, c.bic);

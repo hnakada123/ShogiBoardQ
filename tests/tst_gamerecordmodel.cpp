@@ -13,7 +13,7 @@
 #include "kifubranchtree.h"
 #include "kifubranchnode.h"
 #include "kifunavigationstate.h"
-#include "kifdisplayitem.h"
+#include "notationutils.h"
 #include "kiftosfenconverter.h"
 #include "ki2tosfenconverter.h"
 #include "csatosfenconverter.h"
@@ -209,9 +209,9 @@ private slots:
         else if (format == "usi") parsed = KifuFile::parse<UsiToSfenConverter>(file.fileName(), result, &error);
         else parsed = KifuFile::parse<UsenToSfenConverter>(file.fileName(), result, &error);
         QVERIFY2(parsed, qPrintable(error));
-        QCOMPARE(result.mainline.baseSfen, initial);
+        QCOMPARE(result.mainline.startSfen, initial);
         QCOMPARE(result.mainline.usiMoves(), usi);
-        QCOMPARE(TestReplay::buildSfenRecord(result.mainline.baseSfen, result.mainline.usiMoves(), false).last(), tip->sfen());
+        QCOMPARE(TestReplay::buildSfenRecord(result.mainline.startSfen, result.mainline.usiMoves(), false).last(), tip->sfen());
     }
 
     void kifBodUsesDeclaredTurn_data()
@@ -237,12 +237,10 @@ private slots:
         QTemporaryFile file;
         QVERIFY(KifuTestHelper::writeToTempFile(file, text.toUtf8(), QStringLiteral("kif")));
         QCOMPARE(KifuFile::initialSfen<KifToSfenConverter>(file.fileName()), initial);
-        const auto items = KifuFile::displayItems<KifToSfenConverter>(file.fileName());
-        QCOMPARE(items.size(), 3);
-        QCOMPARE(items[1].ply, 1);
-        QVERIFY(items[1].prettyMove.startsWith(QStringLiteral("△")));
-        QCOMPARE(items[2].ply, 2);
-        QCOMPARE(items[2].prettyMove, QStringLiteral("▲投了"));
+        const RecordLine line = KifuFile::mainline<KifToSfenConverter>(file.fileName());
+        QCOMPARE(line.entries.size(), 2);
+        QVERIFY(line.entries[0].displayText.startsWith(QStringLiteral("△")));
+        QCOMPARE(line.entries[1].displayText, QStringLiteral("▲投了"));
     }
 
     void declarationWinnerIsSideToMove_data()
@@ -288,7 +286,7 @@ private slots:
     {
         QFETCH(QString, format);
         QFETCH(int, moveCount);
-        const QString initial = KifToSfenConverter::mapHandicapToSfen(QStringLiteral("角落ち"));
+        const QString initial = NotationUtils::mapHandicapToSfen(QStringLiteral("角落ち"));
         KifuBranchTree tree;
         tree.setRootSfen(initial);
         auto* tip = tree.root();
@@ -317,12 +315,12 @@ private slots:
             : KifuFile::parse<Ki2ToSfenConverter>(file.fileName(), result, &error);
         QVERIFY2(ok, qPrintable(error));
         QCOMPARE(result.mainline.usiMoves().size(), moveCount);
-        QCOMPARE(result.mainline.displayItems()[1].ply, 1);
-        QVERIFY(result.mainline.displayItems()[1].prettyMove.startsWith(QStringLiteral("△")));
+        QCOMPARE(result.mainline.startPly, 1);
+        QVERIFY(result.mainline.entries[0].displayText.startsWith(QStringLiteral("△")));
         QCOMPARE(result.variations.size(), 1);
         QCOMPARE(result.variations[0].line.usiMoves(), QStringList({"8c8d"}));
-        QCOMPARE(result.variations[0].line.displayItems()[0].ply, 1);
-        QVERIFY(result.variations[0].line.displayItems()[0].prettyMove.startsWith(QStringLiteral("△")));
+        QCOMPARE(result.variations[0].line.startPly, 1);
+        QVERIFY(result.variations[0].line.entries[0].displayText.startsWith(QStringLiteral("△")));
     }
 
     void usenWhiteToMoveBranchDrop()
@@ -380,7 +378,7 @@ private slots:
         QString error;
         QVERIFY2(KifuFile::parse<JkfToSfenConverter>(file.fileName(), result, &error), qPrintable(error));
         QCOMPARE(result.mainline.usiMoves(), QStringList({"4f5e"}));
-        QCOMPARE(result.mainline.sfenList().last(), tree.mainLine().last()->sfen());
+        QCOMPARE(result.mainline.sfens().last(), tree.mainLine().last()->sfen());
     }
 
     void csaTimeUsesMinutesAndSeconds()
@@ -668,7 +666,7 @@ private slots:
         QVERIFY2(ok, qPrintable(error));
         QStringList expected = {QStringLiteral("7g7f"), QStringLiteral("3c3d")};
         if (!branch) expected.append(newUsi);
-        QCOMPARE(result.mainline.baseSfen, kHirateSfen);
+        QCOMPARE(result.mainline.startSfen, kHirateSfen);
         QCOMPARE(result.mainline.usiMoves(), expected);
         QCOMPARE(model.collectMainlineUsiForExport(), expected);
 
@@ -719,14 +717,14 @@ private slots:
         QFETCH(QString, openingText);
         KifuBranchTree tree;
         tree.setRootSfen(kHirateSfen);
-        tree.root()->setDisplayText(openingText);
-        tree.root()->setComment(QStringLiteral("opening comment"));
+        tree.root()->record().displayText = openingText;
+        tree.root()->record().comment = QStringLiteral("opening comment");
         auto* first = addTestMove(tree, tree.root(), QStringLiteral("7g7f"),
                                  QStringLiteral("▲７六歩(77)"), QStringLiteral("00:12/00:00:12"));
-        first->setComment(QStringLiteral("first comment"));
+        first->record().comment = QStringLiteral("first comment");
         auto* last = addTestMove(tree, first, QStringLiteral("3c3d"),
                                 QStringLiteral("△３四歩(33)"), QStringLiteral("00:34/00:00:34"));
-        last->setComment(QStringLiteral("last comment"));
+        last->record().comment = QStringLiteral("last comment");
 
         GameRecordModel model;
         model.setBranchTree(&tree);
@@ -750,13 +748,13 @@ private slots:
         else ok = KifuFile::parse<JkfToSfenConverter>(tmp.fileName(), result, &error);
         QVERIFY2(ok, qPrintable(error));
         QCOMPARE(result.mainline.usiMoves(), expectedMoves);
-        QVERIFY(result.mainline.displayItems().size() >= 3);
-        QCOMPARE(result.mainline.displayItems()[0].comment.trimmed(), QStringLiteral("opening comment"));
-        QCOMPARE(result.mainline.displayItems()[1].comment.trimmed(), QStringLiteral("first comment"));
-        QCOMPARE(result.mainline.displayItems()[2].comment.trimmed(), QStringLiteral("last comment"));
+        QVERIFY(result.mainline.entries.size() >= 2);
+        QCOMPARE(result.mainline.openingComment.trimmed(), QStringLiteral("opening comment"));
+        QCOMPARE(result.mainline.entries[0].comment.trimmed(), QStringLiteral("first comment"));
+        QCOMPARE(result.mainline.entries[1].comment.trimmed(), QStringLiteral("last comment"));
         if (format != QStringLiteral("ki2")) {
-            QVERIFY(result.mainline.displayItems()[1].timeText.contains(QStringLiteral("00:12")));
-            QVERIFY(result.mainline.displayItems()[2].timeText.contains(QStringLiteral("00:34")));
+            QVERIFY(result.mainline.entries[0].time.toText().contains(QStringLiteral("00:12")));
+            QVERIFY(result.mainline.entries[1].time.toText().contains(QStringLiteral("00:34")));
         }
     }
 
@@ -811,8 +809,8 @@ private slots:
         QCOMPARE(result.variations.size(), 4);
         QCOMPARE(result.variations[2].startPly, 3);
         QCOMPARE(result.variations[2].line.usiMoves(), QStringList({"9g9f"}));
-        QCOMPARE(result.variations[2].line.baseSfen, alternateSecond->sfen());
-        QCOMPARE(result.variations[2].line.sfenList().size(), 2);
+        QCOMPARE(result.variations[2].line.startSfen, alternateSecond->sfen());
+        QCOMPARE(result.variations[2].line.sfens().size(), 2);
     }
 
     void jkfForks_sameDestinationUsesParentMove()
@@ -1198,9 +1196,9 @@ private slots:
         KifParseResult result;
         QString error;
         QVERIFY2(KifuFile::parse<Ki2ToSfenConverter>(ki2.fileName(), result, &error), qPrintable(error));
-        QVERIFY(result.mainline.displayItems().last().prettyMove.contains(QStringLiteral("詰み")));
+        QVERIFY(result.mainline.entries.last().displayText.contains(QStringLiteral("詰み")));
         QCOMPARE(result.variations.size(), 1);
-        QCOMPARE(result.variations.at(0).line.displayItems().last().terminalType, TerminalType::Timeout);
+        QCOMPARE(result.variations.at(0).line.entries.last().terminal, TerminalType::Timeout);
     }
 
     // 手合割：駒落ちの初期配置は名前で、それ以外の局面は「その他」

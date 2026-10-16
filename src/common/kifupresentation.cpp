@@ -1,7 +1,7 @@
 #include "kifupresentation.h"
 #include "handicaps.h"
 #include "sfenreplay.h"
-#include "shogiboard.h"
+#include "shogiposition.h"
 #include "terminaltype.h"
 
 #include <QCoreApplication>
@@ -18,22 +18,21 @@ QString translated(const char* source)
 }
 
 /// マスの駒を SFEN のトークン（成駒は "+P" の形）にする。file: 1..9、row: 0..8（範囲外・空きは空）
-QString tokenAt(const ShogiBoard& board, int file, int row)
+QString tokenAt(const Position& board, int file, int row)
 {
     const Piece piece = board.pieceAt(BoardSquare{file, row + 1});
     if (piece == Piece::None) return {};
-    if (isPromoted(piece)) return QStringLiteral("+") + pieceToChar(demote(piece));
-    return QString(pieceToChar(piece));
+    return pieceSfen(piece);
 }
 
-QString tokenAtFileRank(const ShogiBoard& board, int file, QChar rankLetter)
+QString tokenAtFileRank(const Position& board, int file, QChar rankLetter)
 {
     return tokenAt(board, file, rankLetter.toLower().unicode() - u'a');
 }
 
 // Candidate origins use movement geometry and intervening pieces. Including an
 // extra origin for a pinned candidate is harmless and keeps notation unambiguous.
-bool reaches(const ShogiBoard& board, const QString& token,
+bool reaches(const Position& board, const QString& token,
              int file, int rank, int destFile, int destRank)
 {
     const int dx = destFile - file;
@@ -79,7 +78,7 @@ bool isUsiMove(QStringView usi)
     return file(usi.at(0)) && rank(usi.at(1)) && file(usi.at(2)) && rank(usi.at(3));
 }
 
-QString format(const ShogiBoard& board, const QString& usi, Options style, bool side)
+QString format(const Position& board, const QString& usi, Options style, bool side)
 {
     if (!isUsiMove(usi)) return status(usi);
     const bool drop = usi.at(1) == QLatin1Char('*');
@@ -87,7 +86,7 @@ QString format(const ShogiBoard& board, const QString& usi, Options style, bool 
     const QString token = drop ? QString(usi.at(0)) : tokenAtFileRank(board, usi.at(0).digitValue(), usi.at(1));
     if (token.isEmpty()) return usi; // Incomplete input: never invent a piece.
     const QString piece = token.toUpper();
-    QString result = side ? (board.currentPlayer() == Turn::Black ? QStringLiteral("▲") : QStringLiteral("△")) : QString();
+    QString result = side ? (board.sideToMove() == Turn::Black ? QStringLiteral("▲") : QStringLiteral("△")) : QString();
     if (style.notation == Notation::Japanese) {
         static const QStringList names = {QStringLiteral("歩"), QStringLiteral("香"), QStringLiteral("桂"), QStringLiteral("銀"), QStringLiteral("金"), QStringLiteral("角"), QStringLiteral("飛"), QStringLiteral("玉")};
         static const QStringList promoted = {QStringLiteral("と"), QStringLiteral("成香"), QStringLiteral("成桂"), QStringLiteral("成銀"), QStringLiteral("金"), QStringLiteral("馬"), QStringLiteral("龍"), QStringLiteral("玉")};
@@ -122,7 +121,7 @@ QString format(const ShogiBoard& board, const QString& usi, Options style, bool 
     if (usi.endsWith('+')) result += QLatin1Char('+');
     else if (!piece.startsWith('+') && QStringLiteral("PLNSBR").contains(piece)) {
         const int fromRank = usi.at(1).unicode() - 'a';
-        if (board.currentPlayer() == Turn::Black ? (fromRank <= 2 || dr <= 2) : (fromRank >= 6 || dr >= 6)) result += QLatin1Char('=');
+        if (board.sideToMove() == Turn::Black ? (fromRank <= 2 || dr <= 2) : (fromRank >= 6 || dr >= 6)) result += QLatin1Char('=');
     }
     return result;
 }
@@ -162,16 +161,16 @@ QString usiMove(const ShogiMove& move)
 
 QString move(const QString& beforeSfen, const QString& usi, Options style, bool includeSide)
 {
-    ShogiBoard board;
-    if (beforeSfen.isEmpty() || !board.trySetSfen(beforeSfen)) return usi;
+    Position board;
+    if (beforeSfen.isEmpty() || !board.assignSfen(beforeSfen)) return usi;
     return format(board, usi, style, includeSide);
 }
 
 QString pv(const QString& beforeSfen, const QString& usiMoves, const QString& japanese, bool fullOrigin)
 {
     if (current.notation == Notation::Japanese && !japanese.isEmpty()) return japanese;
-    ShogiBoard board;
-    if (beforeSfen.isEmpty() || !board.trySetSfen(beforeSfen)) return usiMoves.isEmpty() ? status(japanese) : usiMoves;
+    Position board;
+    if (beforeSfen.isEmpty() || !board.assignSfen(beforeSfen)) return usiMoves.isEmpty() ? status(japanese) : usiMoves;
     Options style = current;
     style.alwaysOrigin = fullOrigin || style.alwaysOrigin;
     QStringList result;

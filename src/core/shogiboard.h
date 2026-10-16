@@ -2,48 +2,66 @@
 #define SHOGIBOARD_H
 
 /// @file shogiboard.h
-/// @brief 将棋盤の状態管理クラスの定義
+/// @brief 表示に使う盤（局面の値 Position を1つ持ち、変更を知らせる）
 
 #include <QObject>
-#include <QList>
 #include <QMap>
-#include <optional>
+
+#include "shogiposition.h"
 #include "shogitypes.h"
 #include "usimove.h"
 
 /**
- * @brief 将棋盤の盤面データと駒台を管理するクラス
+ * @brief 画面に出す盤（局面の値を1つ持ち、変更をシグナルで知らせる包み）
  *
- * 81マスの駒配置データと両手番の駒台を保持し、
- * SFEN文字列との相互変換、駒の移動・成り・打ち等の操作を提供する。
- *
+ * 局面そのもの（盤・持ち駒・手番・手数・SFEN）は Position が持つ。計算のための一時的な局面には
+ * Position を使い、この QObject は作らない。ここに残すのは、表示の座標（駒台は筋10・11、駒箱は筋12）での
+ * 読み出しと、局面編集の操作（駒台・駒箱との出し入れ、成りの切り替え、先後の反転）だけ。
  */
 class ShogiBoard : public QObject
 {
     Q_OBJECT
 
 public:
-    explicit ShogiBoard(int ranks = 9, int files = 9, QObject *parent = nullptr);
+    explicit ShogiBoard(QObject* parent = nullptr);
+
+    // --- 局面 ---
+
+    /// 今の局面
+    const Position& position() const { return m_position; }
+    /// 局面を丸ごと置き換える（boardReset で知らせる）
+    void setPosition(const Position& position);
+
+    /**
+     * @brief SFEN文字列で盤面全体を更新する
+     *
+     * 不正な場合は盤面を変更せず、エラーを通知する（ErrorBus）。
+     */
+    void setSfen(const QString& sfenStr);
+
+    /**
+     * @brief SFEN文字列で盤面全体を更新する（不正でも通知しない）
+     * @param error 不正だったときの理由（任意）
+     * @return 盤面を更新したら true。不正な場合は盤面を変更せず false
+     */
+    bool trySetSfen(const QString& sfenStr, QString* error = nullptr);
+
+    /// 局面全体（盤・手番・持駒・手数）の SFEN
+    QString toSfen() const { return m_position.toSfen(); }
 
     // --- 盤面アクセス ---
 
-    /// 指定マスの駒を返す（盤上・駒台共通）
+    /// 指定マスの駒を返す（盤上は筋1〜9。駒台の筋10・11は、そのセルに置く駒の種類）
     Piece pieceCharacter(const int file, const int rank) const;
 
     /// 盤上のマスの駒（盤外のマスは None）
-    Piece pieceAt(BoardSquare square) const;
+    Piece pieceAt(BoardSquare square) const { return m_position.pieceAt(square); }
 
     /// 盤上のマスの駒を置き換える（局面の組み立て用。成りの補正も駒台の増減もしない。盤外のマスは無視する）
     void setPieceAt(BoardSquare square, Piece piece);
 
-    /// 盤面データ（81マスの駒配列）を返す
-    const QList<Piece>& boardData() const { return m_boardData; }
-
-    /// 駒台データを返す
-    const QMap<Piece, int>& pieceStand() const { return m_pieceStand; }
-
-    /// 指定駒の駒台枚数を返す（存在しない場合は0）
-    int pieceStandCount(Piece piece) const;
+    /// 指定駒の駒台枚数を返す
+    int pieceStandCount(Piece piece) const { return m_position.handCount(piece); }
 
     /// 盤上・両駒台にない未使用駒を、生駒・先手向きで数える（標準40枚との差分）。
     QMap<Piece, int> pieceBox() const;
@@ -55,57 +73,20 @@ public:
     /// 指定駒を駒台から1枚消費する（存在しない/0枚時は false）
     bool consumeStandPiece(Piece piece);
 
-    int ranks() const { return m_ranks; }
-    int files() const { return m_files; }
-    Turn currentPlayer() const;
+    int ranks() const { return Position::kRanks; }
+    int files() const { return Position::kFiles; }
+    Turn currentPlayer() const { return m_position.sideToMove(); }
 
     /// 手番のみを更新する（盤面・持ち駒は変更しない。局面編集の手番変更などに使う）
     void setCurrentPlayer(Turn turn);
 
     /// 次に指す手の手数（SFEN の4つ目の欄）
-    int moveNumber() const { return m_moveNumber; }
-    void setMoveNumber(int moveNumber) { m_moveNumber = qMax(1, moveNumber); }
-
-    // --- SFEN変換 ---
-
-    /**
-     * @brief SFEN文字列をパースし、各要素に分解する（副作用なし）
-     * @param sfenStr 盤面＋手番＋駒台＋手数を含むSFEN文字列
-     * @return パース成功時は SfenComponents、失敗時は std::nullopt
-     */
-    [[nodiscard]] static std::optional<SfenComponents> parseSfen(const QString& sfenStr);
-
-    /**
-     * @brief SFEN文字列で盤面全体を更新する
-     * @param sfenStr 盤面＋手番＋駒台＋手数を含むSFEN文字列
-     *
-     * 文法チェックを行い、不正な場合は盤面を変更せず、エラーを通知する（ErrorBus）。
-     */
-    void setSfen(const QString& sfenStr);
-
-    /**
-     * @brief SFEN文字列で盤面全体を更新する（不正でも通知しない）
-     * @param error 不正だったときの理由（任意）
-     * @return 盤面を更新したら true。不正な場合は盤面を変更せず false
-     */
-    bool trySetSfen(const QString& sfenStr, QString* error = nullptr);
-
-    /// 別の盤の局面（盤・駒台・手番）を写す。
-    /// 盤の大きさと駒台の駒の種類が同じなら、確保し直さずに上書きする（読み筋の変換で info 行ごとに使う）
-    void copyPositionFrom(const ShogiBoard& other);
-
-    /// 盤面をSFEN形式の文字列に変換する
-    QString convertBoardToSfen() const;
-
-    /// 駒台をSFEN形式の文字列に変換する
-    QString convertStandToSfen() const;
-
-    /// 局面全体（盤・手番・持駒・手数）の SFEN
-    QString toSfen() const;
+    int moveNumber() const { return m_position.moveNumber(); }
+    void setMoveNumber(int moveNumber) { m_position.setMoveNumber(moveNumber); }
 
     // --- 駒操作 ---
 
-    /// 指定マスへ駒を移動する（配置データのみ更新）
+    /// 指定マスへ駒を移動する（配置データのみ更新。行き所のない段へ置いた歩・香・桂は成る）
     void movePieceToSquare(Piece selectedPiece, const int fileFrom, const int rankFrom,
                            const int fileTo, const int rankTo, const bool promote);
 
@@ -117,11 +98,11 @@ public:
      *
      * 合法手かどうかは確かめない（対局で確かめてから指す経路は ShogiGameController::applyMove）。
      * 移動元が空、駒台に打つ駒がない、打つ先が埋まっている指し手は適用せず false を返す。
-     * @param mover 指す側（駒打ちの駒の色を決める）
+     * @param mover 指す側（手番をこの側にしてから指す）
      */
     bool applyUsiMove(const UsiMove& move, Turn mover);
     /// 手番側の手として適用する
-    bool applyUsiMove(const UsiMove& move) { return applyUsiMove(move, m_currentPlayer); }
+    bool applyUsiMove(const UsiMove& move) { return applyUsiMove(move, currentPlayer()); }
 
     /// 局面編集用: 指定マスの駒を成/不成に切り替える
     void promoteOrDemotePiece(const int fileFrom, const int rankFrom);
@@ -145,9 +126,6 @@ public:
     /// 盤上・両駒台を空にして、全駒を駒箱に戻す（局面編集用）
     void resetGameBoard();
 
-    /// 駒台を全て0枚にリセットする
-    void initStand();
-
     /// 先後の配置を反転する
     void flipSides();
 
@@ -166,21 +144,9 @@ signals:
     void turnChanged(Turn turn);
 
 private:
-    int m_ranks;                    ///< 盤の段数（9）
-    int m_files;                    ///< 盤の筋数（9）
-    QList<Piece> m_boardData;     ///< 81マスの駒データ
-    QMap<Piece, int> m_pieceStand;  ///< 駒台データ（駒 → 枚数）。玉を含む先後16種を常に持つ
-    Turn m_currentPlayer = Turn::Black; ///< 現在の手番
-    int m_moveNumber = 1;               ///< 次に指す手の手数
-
-    // --- 内部操作 ---
     void setData(const int file, const int rank, const Piece value);
-    void advanceTurn(Turn mover);
-    void initBoard();
-    bool setDataInternal(const int file, const int rank, const Piece value);
-    Piece convertPieceChar(const Piece c) const;
-    Piece convertPromotedPieceToOriginal(const Piece dest) const;
-    QString convertPieceToSfen(const Piece piece) const;
+
+    Position m_position;
 };
 
 #endif // SHOGIBOARD_H

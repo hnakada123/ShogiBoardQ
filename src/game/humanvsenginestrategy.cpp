@@ -32,7 +32,6 @@ void HumanVsEngineStrategy::start()
 void HumanVsEngineStrategy::onHumanMove(const RecordEntry& played)
 {
     if (!m_host.completeHumanMove(played)) return;
-    if (Usi* engine = m_host.engines().engineFor(m_engineSide)) engine->setPreviousMove(played.move.move.to);
     if (m_host.sideToMove() == m_engineSide) requestEngineMove();
 }
 

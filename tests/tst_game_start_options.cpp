@@ -3,6 +3,7 @@
 #include <QTemporaryDir>
 #include "gamestartoptionsbuilder.h"
 #include "match_test_helper.h"
+#include "engineprocessmanager.h"
 #include "usi.h"
 #include "test_replay.h"
 
@@ -56,12 +57,17 @@ private slots:
         QVERIFY(engine);
         QSignalSpy initialized(engine, &Usi::engineInitialized);
         QSignalSpy ready(engine, &Usi::matchMoveReady);
+        QSignalSpy sent(engine->process(), &EngineProcessManager::commandSent);
         h.engines.startEngine(engine, MatchHarness::mockEnginePath(), QStringLiteral("StartTest"));
         QTRY_COMPARE_WITH_TIMEOUT(initialized.count(), 1, 5000);
         h.mc->strategyHost().requestEngineMove(Turn::White);
         QTRY_COMPARE_WITH_TIMEOUT(ready.count(), 1, 5000);
-        const UsiMatchMove move = qvariant_cast<UsiMatchMove>(ready.first().at(0));
-        QCOMPARE(move.position, expectedPosition + QLatin1Char(' ') + move.move.toString());
+        QStringList positions;
+        for (const QList<QVariant>& args : std::as_const(sent)) {
+            const QString command = args.at(0).toString();
+            if (command.startsWith(QStringLiteral("position "))) positions << command;
+        }
+        QCOMPARE(positions, QStringList{expectedPosition});
     }
     void startOptionsAndNames()
     {

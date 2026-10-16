@@ -99,7 +99,7 @@ void TsumeVerificationRunner::step()
     emit progress(++m_queries);
     // 制限時間を過ぎても応答がなければ stop を送り、その応答（打ち切った探索の結果）は不明として扱う
     UsiSearchRequest search;
-    search.position = QStringLiteral("position sfen ") + sfen;
+    search.position = UsiPosition::parse(sfen).value_or(UsiPosition{});
     search.go = UsiGo::mate(timeout);
     search.stopAfterMs = timeout + kSafetyMarginMs;
     search.replyTimeoutMs = kStopResponseMs;

@@ -9,6 +9,7 @@
 #include "kifuexportcommon.h"
 #include "kifubranchnode.h"
 #include "kifmovetext.h"
+#include "shogiposition.h"
 
 #include <QStringView>
 
@@ -208,34 +209,13 @@ QStringList KifExporter::exportLines(const GameRecordModel& model,
 
 QStringList KifExporter::sfenToBodLines(const QString& sfen, bool handicapNames)
 {
-    const QString trimmed = sfen.trimmed();
-    if (trimmed.isEmpty()) {
-        return {};
-    }
-
-    const QStringList parts = trimmed.split(QLatin1Char(' '), Qt::SkipEmptyParts);
-    if (parts.size() < 3) {
-        return {};
-    }
-
-    const QString& boardSfen = parts.at(0);
-    const QString& turnSfen = parts.at(1);
-    const QString& handSfen = parts.at(2);
-
+    const std::optional<Position> position = Position::fromSfenLike(sfen);
     // 平手ならBODは不要
-    if (SfenUtils::isHirateBoardSfen(boardSfen)
-        && handSfen == QStringLiteral("-")
-        && turnSfen == QStringLiteral("b")) {
+    if (!position || (position->boardSfen() == SfenUtils::hirateBoardSfen() && position->handsEmpty()
+                      && position->sideToMove() == Turn::Black)) {
         return {};
     }
-
-    // BodTextGenerator は手数フィールドを期待するため、3要素SFENは " ... 1" を補う。
-    QString normalizedSfen = trimmed;
-    if (parts.size() == 3) {
-        normalizedSfen += QStringLiteral(" 1");
-    }
-
-    const QString bodText = BodTextGenerator::generate(normalizedSfen, 0, QString(), handicapNames);
+    const QString bodText = BodTextGenerator::generate(position->toSfen(), 0, QString(), handicapNames);
     if (bodText.isEmpty()) {
         return {};
     }

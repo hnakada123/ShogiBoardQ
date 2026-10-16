@@ -9,8 +9,25 @@
 
 #include <utility>
 
+namespace {
+
+/// 手順の各局面（[0] が開始局面）。局面だけを送り、そこに至った手を読み筋の「同」の判定に使う
+QList<UsiPosition> positionsOf(const RecordLine& line)
+{
+    QList<UsiPosition> positions;
+    if (line.isEmpty()) return positions;
+    positions.reserve(line.moveCount() + 1);
+    for (int ply = 0; ply <= line.moveCount(); ++ply) {
+        const std::optional<UsiMove> lastMove = ply > 0 ? std::optional<UsiMove>(line.usiMove(ply)) : std::nullopt;
+        positions << UsiPosition::fromSfen(line.sfenAt(ply), lastMove).value_or(UsiPosition{});
+    }
+    return positions;
+}
+
+} // namespace
+
 AnalysisJob::AnalysisJob(AnalysisRequest request, const Deps& deps, QObject* parent)
-    : QObject(parent), m_request(std::move(request)), m_coordinator({m_request.line.sfens()}), m_engine(deps.engine)
+    : QObject(parent), m_request(std::move(request)), m_coordinator({positionsOf(m_request.line)}), m_engine(deps.engine)
 {
     Q_ASSERT(m_engine);
     m_engine->setLogIdentity(QStringLiteral("E1"), {}, m_request.engineName);
@@ -74,18 +91,14 @@ void AnalysisJob::stop()
 void AnalysisJob::onPositionPrepared(int ply, const QString& sfen)
 {
     if (!m_engine || m_state != State::Analyzing) return;
-    // 読み筋の「同」の判定と盤の強調は、この局面に至った手から
-    const auto move = m_request.line.usiMove(ply);
-    m_engine->setLastUsiMove(move.toString());
-    m_engine->setPreviousMove(move.to);
     emit positionPrepared(ply, sfen);
 }
 
-void AnalysisJob::onSearchRequested(const QString& positionCommand, int thinkMs)
+void AnalysisJob::onSearchRequested(const UsiPosition& position, int thinkMs)
 {
     if (!m_engine) return;
     UsiSearchRequest request;
-    request.position = positionCommand;
+    request.position = position;
     request.go = UsiGo::infinite();
     request.stopAfterMs = thinkMs;
     m_engine->search(request);

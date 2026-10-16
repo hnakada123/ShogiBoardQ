@@ -7,11 +7,11 @@
 #include <QString>
 #include <optional>
 
-#include "ki2lexer.h"
+#include "kifmovegrammar.h"
 #include "shogitypes.h"
 #include "usimove.h"
 
-class ShogiBoard;
+class Position;
 
 /**
  * @brief KI2 の指し手の文字列（"▲５二金右"）と USI の指し手の対応
@@ -27,13 +27,13 @@ namespace Ki2MoveNotation {
 
 /**
  * @brief 局面の上で、KI2 の指し手の文字列が表す指し手を1つに決める
- * @param text 指し手の文字列を分けたもの（Ki2Lexer::parseMoveText）
+ * @param text 指し手の文字列を分けたもの（KifMoveGrammar::parseMoveText）
  * @param board 指す前の局面
  * @param mover 指す側
  * @param previousTo 直前の手の移動先（「同」で使う）
  * @return 決まった指し手。候補がない・修飾語で1つに絞れないときは nullopt
  */
-[[nodiscard]] std::optional<UsiMove> resolve(const Ki2Lexer::MoveText& text, const ShogiBoard& board,
+[[nodiscard]] std::optional<UsiMove> resolve(const KifMoveGrammar::MoveText& text, const Position& board,
                                              Turn mover, BoardSquare previousTo);
 
 /// 局面の上の指し手に、KI2 で付ける語
@@ -51,7 +51,7 @@ struct Annotation {
  * 修飾語・「打」は、同じ駒で同じマスへ動ける駒がほかにあるときだけ付ける。
  * JKF の relative も、この修飾語を記号にしたもの。
  */
-Annotation annotate(const ShogiBoard& board, Turn mover, const UsiMove& move);
+Annotation annotate(const Position& board, Turn mover, const UsiMove& move);
 
 /**
  * @brief 局面と指し手から KI2 の指し手の文字列を作る（"▲５二金右"・"△同　銀成"・"▲５五角打"）
@@ -62,7 +62,7 @@ Annotation annotate(const ShogiBoard& board, Turn mover, const UsiMove& move);
  *
  * 修飾語・「打」・「不成」は必要なときだけ付ける。
  */
-QString format(const ShogiBoard& board, Turn mover, const UsiMove& move, BoardSquare previousTo);
+QString format(const Position& board, Turn mover, const UsiMove& move, BoardSquare previousTo);
 
 } // namespace Ki2MoveNotation
 

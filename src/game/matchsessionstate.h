@@ -3,7 +3,6 @@
 
 #include "matchtypes.h"
 #include "startoptions.h"
-#include <array>
 
 /// 対局の設定と終了状態の所有者。変更は対局上の操作として行い、内部フィールドを公開しない。
 class MatchSessionState
@@ -14,7 +13,6 @@ public:
         m_options = options;
         m_started = true;
         m_over = {};
-        clearPonder();
     }
     /// 一度でも対局を始めたか
     bool started() const { return m_started; }
@@ -38,16 +36,11 @@ public:
         m_over.moveAppended = true;
         return true;
     }
-    /// side の手番のエンジンが先読みしている局面
-    const QString& ponder(Turn side) const { return m_ponder.at(side == Turn::White ? 1 : 0); }
-    void setPonder(Turn side, const QString& position) { m_ponder.at(side == Turn::White ? 1 : 0) = position; }
-    void clearPonder() { m_ponder = {}; }
 
 private:
     MatchStartOptions m_options;
     bool m_started = false;
     MatchGameOverState m_over;
-    std::array<QString, 2> m_ponder;
 };
 
 #endif

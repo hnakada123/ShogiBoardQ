@@ -11,7 +11,7 @@
 #include <QList>
 #include <QDateTime>
 
-#include "kifdisplayitem.h"
+#include "recordline.h"
 #include "kifuexportmetadata.h"
 #include "kifparsetypes.h"
 #include "kifubranchtree.h"
@@ -134,7 +134,7 @@ public:
     /**
      * @brief 本譜の表示データを収集（エクスポート用）
      */
-    QList<KifDisplayItem> collectMainlineForExport() const;
+    RecordLine collectMainlineForExport() const;
 
     /// 本譜ツリーの局面列からUSI指し手を収集する（終局手は含めない）。
     QStringList collectMainlineUsiForExport() const;

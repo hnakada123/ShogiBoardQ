@@ -34,7 +34,7 @@ public:
     };
 
     struct ThinkingParams {
-        QString positionCmd;
+        UsiPosition position;    ///< 探索する局面（対局の開始局面から今までの手順）
         UsiTimingParams timing;  ///< 残り時間（USI の btime/wtime の意味）・決まり・遅延・余裕
     };
 
@@ -78,7 +78,6 @@ private:
     EngineLifecycleManager* m_engines = nullptr;  ///< 非所有（エンジンは枠が持つ）
     QString m_engineName;
     QPointer<Usi> m_engine;
-    QString m_ponderPosition; ///< 次の手番まで保持する予測局面
 };
 
 #endif // CSAENGINECONTROLLER_H

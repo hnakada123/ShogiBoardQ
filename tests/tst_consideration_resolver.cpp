@@ -53,6 +53,18 @@ struct SampleTree {
     }
 };
 
+/// 局面に至った直前の手（USI。無ければ空）
+QString lastUsi(const UsiPosition& position)
+{
+    return position.lastMove() ? position.lastMove()->toString() : QString();
+}
+
+/// 直前の手の移動先（読み筋の「同」の基準。無ければ無効なマス）
+BoardSquare previousTo(const UsiPosition& position)
+{
+    return position.lastMove() ? position.lastMove()->to : BoardSquare{};
+}
+
 } // namespace
 
 class TestConsiderationResolver : public QObject
@@ -79,10 +91,10 @@ void TestConsiderationResolver::startPosition_hasNoPreviousMove()
     const auto r = ConsiderationPositionResolver::resolve(line, line.currentPly);
 
     QCOMPARE(line.currentPly, 0);
-    QCOMPARE(r.position, QStringLiteral("position startpos"));
-    QCOMPARE(r.previousTo.file, 0);
-    QCOMPARE(r.previousTo.rank, 0);
-    QVERIFY(r.lastUsiMove.isEmpty());
+    QCOMPARE(r.command(), QStringLiteral("position startpos"));
+    QCOMPARE(previousTo(r).file, 0);
+    QCOMPARE(previousTo(r).rank, 0);
+    QVERIFY(lastUsi(r).isEmpty());
 }
 
 void TestConsiderationResolver::midGame_usesMovesUpToDisplayedPly()
@@ -92,7 +104,7 @@ void TestConsiderationResolver::midGame_usesMovesUpToDisplayedPly()
     const auto r = ConsiderationPositionResolver::resolve(line, line.currentPly);
 
     QCOMPARE(line.currentPly, 2);
-    QCOMPARE(r.position, QStringLiteral("position startpos moves 7g7f 3c3d"));
+    QCOMPARE(r.command(), QStringLiteral("position startpos moves 7g7f 3c3d"));
 }
 
 void TestConsiderationResolver::previousMove_isTheMoveJustPlayed()
@@ -102,9 +114,9 @@ void TestConsiderationResolver::previousMove_isTheMoveJustPlayed()
     const RecordLine line = t.lineAt(t.ply2);
     const auto r = ConsiderationPositionResolver::resolve(line, line.currentPly);
 
-    QCOMPARE(r.lastUsiMove, QStringLiteral("3c3d"));
-    QCOMPARE(r.previousTo.file, 3);
-    QCOMPARE(r.previousTo.rank, 4);
+    QCOMPARE(lastUsi(r), QStringLiteral("3c3d"));
+    QCOMPARE(previousTo(r).file, 3);
+    QCOMPARE(previousTo(r).rank, 4);
 }
 
 void TestConsiderationResolver::rowOutOfRange_isClamped()
@@ -113,12 +125,12 @@ void TestConsiderationResolver::rowOutOfRange_isClamped()
     const RecordLine line = t.lineAt(t.ply3);
 
     const auto before = ConsiderationPositionResolver::resolve(line, -5);
-    QCOMPARE(before.position, QStringLiteral("position startpos"));
-    QVERIFY(before.lastUsiMove.isEmpty());
+    QCOMPARE(before.command(), QStringLiteral("position startpos"));
+    QVERIFY(lastUsi(before).isEmpty());
 
     const auto after = ConsiderationPositionResolver::resolve(line, 99);
-    QCOMPARE(after.position, QStringLiteral("position startpos moves 7g7f 3c3d 2g2f"));
-    QCOMPARE(after.lastUsiMove, QStringLiteral("2g2f"));
+    QCOMPARE(after.command(), QStringLiteral("position startpos moves 7g7f 3c3d 2g2f"));
+    QCOMPARE(lastUsi(after), QStringLiteral("2g2f"));
 }
 
 void TestConsiderationResolver::branch_usesDisplayedBranch()
@@ -129,10 +141,10 @@ void TestConsiderationResolver::branch_usesDisplayedBranch()
 
     QCOMPARE(line.currentPly, 2);
     QCOMPARE(line.sfenAt(2), kAfter84);
-    QCOMPARE(r.position, QStringLiteral("position startpos moves 7g7f 8c8d"));
-    QCOMPARE(r.lastUsiMove, QStringLiteral("8c8d"));
-    QCOMPARE(r.previousTo.file, 8);
-    QCOMPARE(r.previousTo.rank, 4);
+    QCOMPARE(r.command(), QStringLiteral("position startpos moves 7g7f 8c8d"));
+    QCOMPARE(lastUsi(r), QStringLiteral("8c8d"));
+    QCOMPARE(previousTo(r).file, 8);
+    QCOMPARE(previousTo(r).rank, 4);
 }
 
 void TestConsiderationResolver::terminalMove_isNotPartOfLine()
@@ -145,8 +157,8 @@ void TestConsiderationResolver::terminalMove_isNotPartOfLine()
     QCOMPARE(line.displayTexts().size(), 3);
     QCOMPARE(line.currentPly, 3);
     const auto r = ConsiderationPositionResolver::resolve(line, line.currentPly);
-    QCOMPARE(r.position, QStringLiteral("position startpos moves 7g7f 3c3d 2g2f"));
-    QCOMPARE(r.lastUsiMove, QStringLiteral("2g2f"));
+    QCOMPARE(r.command(), QStringLiteral("position startpos moves 7g7f 3c3d 2g2f"));
+    QCOMPARE(lastUsi(r), QStringLiteral("2g2f"));
 }
 
 void TestConsiderationResolver::nonHirateStart_usesSfenCommand()
@@ -162,7 +174,7 @@ void TestConsiderationResolver::nonHirateStart_usesSfenCommand()
     const RecordLine line = nav.currentRecordLine();
     const auto r = ConsiderationPositionResolver::resolve(line, line.currentPly);
 
-    QCOMPARE(r.position, QStringLiteral("position sfen ") + start + QStringLiteral(" moves G*5c"));
+    QCOMPARE(r.command(), QStringLiteral("position sfen ") + start + QStringLiteral(" moves G*5c"));
 }
 
 void TestConsiderationResolver::dropMove_destinationIsDropSquare()
@@ -177,30 +189,30 @@ void TestConsiderationResolver::dropMove_destinationIsDropSquare()
     nav.setCurrentNode(drop);
     const auto r = ConsiderationPositionResolver::resolve(nav.currentRecordLine(), 1);
 
-    QCOMPARE(r.lastUsiMove, QStringLiteral("G*5c"));
-    QCOMPARE(r.previousTo.file, 5);
-    QCOMPARE(r.previousTo.rank, 3);
+    QCOMPARE(lastUsi(r), QStringLiteral("G*5c"));
+    QCOMPARE(previousTo(r).file, 5);
+    QCOMPARE(previousTo(r).rank, 3);
 }
 
 void TestConsiderationResolver::emptyLine_usesFallbackSfen()
 {
     const QString sfen = QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b G 1");
-    QCOMPARE(ConsiderationPositionResolver::resolve(RecordLine{}, 0, sfen).position,
+    QCOMPARE(ConsiderationPositionResolver::resolve(RecordLine{}, 0, sfen).command(),
              QStringLiteral("position sfen ") + sfen);
-    QCOMPARE(ConsiderationPositionResolver::resolve(RecordLine{}, 0, QStringLiteral("position sfen ") + sfen).position,
+    QCOMPARE(ConsiderationPositionResolver::resolve(RecordLine{}, 0, QStringLiteral("position sfen ") + sfen).command(),
              QStringLiteral("position sfen ") + sfen);
-    QCOMPARE(ConsiderationPositionResolver::resolve(RecordLine{}, 0, QStringLiteral("startpos")).position,
+    QCOMPARE(ConsiderationPositionResolver::resolve(RecordLine{}, 0, QStringLiteral("startpos")).command(),
              QStringLiteral("position startpos"));
-    QCOMPARE(ConsiderationPositionResolver::resolve(RecordLine{}, 0, kHirate).position,
+    QCOMPARE(ConsiderationPositionResolver::resolve(RecordLine{}, 0, kHirate).command(),
              QStringLiteral("position startpos"));
 }
 
 void TestConsiderationResolver::emptyLine_withoutFallback_isStartpos()
 {
     const auto r = ConsiderationPositionResolver::resolve(RecordLine{}, 3);
-    QCOMPARE(r.position, QStringLiteral("position startpos"));
-    QVERIFY(r.lastUsiMove.isEmpty());
-    QCOMPARE(r.previousTo.file, 0);
+    QCOMPARE(r.command(), QStringLiteral("position startpos"));
+    QVERIFY(lastUsi(r).isEmpty());
+    QCOMPARE(previousTo(r).file, 0);
 }
 
 QTEST_MAIN(TestConsiderationResolver)

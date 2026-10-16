@@ -4,7 +4,6 @@
 #include "cliargs.h"
 
 #include "enginecatalog.h"
-#include "sfenutils.h"
 #include "sfenvalidationservice.h"
 
 #include <QDir>
@@ -53,13 +52,21 @@ std::optional<CliPosition> CliArgs::resolvePosition(const QCommandLineParser& pa
         return std::nullopt;
     }
 
-    const bool hirate = SfenUtils::isHirateStart(position.startSfen)
-                        && position.startSfen.endsWith(QStringLiteral(" 1"));
-    position.positionCommand = hirate ? QStringLiteral("position startpos")
-                                      : QStringLiteral("position sfen ") + position.startSfen;
-    if (!position.moves.isEmpty()) {
-        position.positionCommand += QStringLiteral(" moves ") + position.moves.join(QLatin1Char(' '));
+    QList<UsiMove> moves;
+    for (const QString& text : std::as_const(position.moves)) {
+        const std::optional<UsiMove> move = UsiMove::parse(text);
+        if (!move) {
+            if (error) *error = QStringLiteral("Invalid USI move: %1").arg(text);
+            return std::nullopt;
+        }
+        moves << *move;
     }
+    const std::optional<UsiPosition> usi = UsiPosition::fromMoves(position.startSfen, moves);
+    if (!usi) {
+        if (error) *error = QStringLiteral("Moves cannot be applied to the start position");
+        return std::nullopt;
+    }
+    position.position = *usi;
     return position;
 }
 

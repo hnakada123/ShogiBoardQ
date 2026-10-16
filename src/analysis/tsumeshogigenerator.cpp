@@ -9,7 +9,7 @@
 #include <QtConcurrentRun>
 
 #include <atomic>
-#include "shogiboard.h"
+#include "shogiposition.h"
 #include <algorithm>
 
 namespace {
@@ -94,10 +94,10 @@ void TsumeshogiGenerator::start(const Settings& settings)
     if (!m_engine->isInitializing()) onEngineInitialized();
 }
 
-void TsumeshogiGenerator::sendMateSearch(const QString& positionStr, int timeLimitMs)
+void TsumeshogiGenerator::sendMateSearch(const QString& sfen, int timeLimitMs)
 {
     UsiSearchRequest search;
-    search.position = positionStr;
+    search.position = UsiPosition::parse(sfen).value_or(UsiPosition{});
     search.go = UsiGo::mate(timeLimitMs);
     search.stopAfterMs = timeLimitMs + kSafetyMarginMs;
     search.replyTimeoutMs = kStopResponseTimeoutMs;
@@ -295,11 +295,7 @@ void TsumeshogiGenerator::generateAndSendNext()
         startBatchGeneration();
     }
 
-    // position コマンド用の文字列を構築
-    QString positionStr = QStringLiteral("position sfen ") + m_currentSfen;
-
-    // エンジンに送信
-    sendMateSearch(positionStr, m_settings.timeoutMs);
+    sendMateSearch(m_currentSfen, m_settings.timeoutMs);
 
     // 安全タイマーを設定
 }
@@ -494,9 +490,7 @@ void TsumeshogiGenerator::tryNextTrimCandidate()
 
 void TsumeshogiGenerator::sendTrimmingCheck(const QString& modifiedSfen)
 {
-    QString positionStr = QStringLiteral("position sfen ") + modifiedSfen;
-    sendMateSearch(positionStr, m_settings.timeoutMs);
-
+    sendMateSearch(modifiedSfen, m_settings.timeoutMs);
 }
 
 void TsumeshogiGenerator::finishTrimmingPhase()
@@ -514,24 +508,15 @@ void TsumeshogiGenerator::finishTrimmingPhase()
 // TsumeshogiGenerator の駒を1枚除いた局面の作成（トリミング）の実装
 // ============================================================
 
-namespace {
-
-/// 局面の SFEN（手番は攻方=先手、手数は1に固定。詰将棋は常に攻方の手番から始まる）
-QString tsumeSfen(ShogiBoard& board)
-{
-    return board.convertBoardToSfen() + QStringLiteral(" b ") + board.convertStandToSfen() + QStringLiteral(" 1");
-}
-
-} // namespace
-
 QList<TsumeshogiGenerator::TrimCandidate>
 TsumeshogiGenerator::enumerateRemovablePieces(const QString& sfen)
 {
     QList<TrimCandidate> candidates;
-    ShogiBoard board;
-    if (!board.trySetSfen(sfen)) {
+    const std::optional<Position> position = Position::fromSfen(sfen);
+    if (!position) {
         return candidates;
     }
+    const Position& board = *position;
 
     // 盤上の駒を列挙（玉以外）。上の段から、段の中は9筋から順に並べる。
     // 守方持駒は除去対象外だが、盤上の守方駒は除去可
@@ -552,7 +537,7 @@ TsumeshogiGenerator::enumerateRemovablePieces(const QString& sfen)
         Piece::BlackPawn, Piece::BlackLance, Piece::BlackKnight, Piece::BlackSilver,
         Piece::BlackGold, Piece::BlackBishop, Piece::BlackRook};
     for (const Piece piece : kHandOrder) {
-        if (board.pieceStandCount(piece) > 0) {
+        if (board.handCount(piece) > 0) {
             candidates.append(TrimCandidate{TrimCandidate::Hand, BoardSquare{}, piece});
         }
     }
@@ -564,24 +549,26 @@ TsumeshogiGenerator::enumerateRemovablePieces(const QString& sfen)
 QString TsumeshogiGenerator::removePieceFromSfen(
     const QString& sfen, const TrimCandidate& candidate)
 {
-    ShogiBoard board;
-    if (!board.trySetSfen(sfen)) {
+    std::optional<Position> position = Position::fromSfen(sfen);
+    if (!position) {
         return sfen;
     }
+    Position& board = *position;
 
     // 駒の総数を維持: 除去した駒は後手持駒に移動（生駒に戻す）
     const Piece toDefenderHand = toWhite(toBlack(demote(candidate.piece)));
     if (candidate.location == TrimCandidate::Board) {
         if (board.pieceAt(candidate.square) == candidate.piece) {
             board.setPieceAt(candidate.square, Piece::None);
-            board.addStandPiece(toDefenderHand);
+            board.addToHand(toDefenderHand);
         }
-    } else if (board.consumeStandPiece(candidate.piece)) {
+    } else if (board.takeFromHand(candidate.piece)) {
         // 攻方持駒から1枚除去 → 後手持駒に移動
-        board.addStandPiece(toDefenderHand);
+        board.addToHand(toDefenderHand);
     }
 
-    return tsumeSfen(board);
+    // 手番は攻方=先手、手数は1に固定（詰将棋は常に攻方の手番から始まる）
+    return board.toSfen(Turn::Black, 1);
 }
 
 QStringList TsumeshogiGenerator::onePieceRemovedPositions(const QString& sfen)

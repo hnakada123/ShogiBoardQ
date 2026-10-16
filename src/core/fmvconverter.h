@@ -4,13 +4,13 @@
 /// @file fmvconverter.h
 /// @brief Qt型 ←→ エンジン内部型の境界変換
 
-#include <QMap>
-#include <QList>
 
 #include "shogitypes.h"
 #include "fmvposition.h"
 #include "fmvtypes.h"
 #include "usimove.h"
+
+class Position;
 
 namespace fmv {
 
@@ -23,9 +23,7 @@ struct ConvertedMove {
 class Converter
 {
 public:
-    static bool toEnginePosition(EnginePosition& out,
-                                 const QList<Piece>& boardData,
-                                 const QMap<Piece, int>& pieceStand);
+    static bool toEnginePosition(EnginePosition& out, const Position& position);
 
     /// USI の指し手を内部の指し手にする（成りの指定は見ず、成れる手は両方を入れる）。
     /// 移動元が手番の駒でない、打つ駒を持っていない指し手は false

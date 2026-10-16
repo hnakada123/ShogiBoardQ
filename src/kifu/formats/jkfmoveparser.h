@@ -8,7 +8,9 @@
 #include <QJsonObject>
 #include <QString>
 #include <QStringView>
+#include <optional>
 
+#include "kifmovetext.h"
 #include "shogitypes.h"
 #include "usimove.h"
 
@@ -28,19 +30,20 @@ QString buildSfenFromInitialData(const QJsonObject& data, int moveNumber = 1);
 
 // === 指し手変換 ===
 
-/// JKF move オブジェクトからUSI形式指し手文字列を生成
-/// prevToX, prevToY は更新される
-QString convertMoveToUsi(const QJsonObject& move, int& prevToX, int& prevToY);
+/// JKF move オブジェクトの指し手（to・piece・from・promote）。読めなければ nullopt
+std::optional<UsiMove> toUsiMove(const QJsonObject& move);
 
-/// JKF move オブジェクトの指し手の表記（KIF 形式に、relative の修飾語と「不成」を加える）
-/// @param previousTo 直前の手の移動先（同じマスなら「同」と書く）
-QString convertMoveToPretty(const QJsonObject& move, Turn mover, const UsiMove& usi, BoardSquare previousTo);
+/// JKF move オブジェクトの、棋譜欄の表記に残す修飾（relative の修飾語と、promote: false の「不成」）
+KifMoveText::Notes notesOf(const QJsonObject& move);
 
 // === 時間解析 ===
 
-/// JKF time オブジェクトから時間文字列を生成（mm:ss/HH:MM:SS形式）
-/// cumSec は累計消費時間で更新される
-QString formatTimeText(const QJsonObject& timeObj, qint64& cumSec);
+/// JKF time オブジェクトの消費時間
+struct Time {
+    qint64 elapsedMs = 0;              ///< now
+    std::optional<qint64> totalMs;     ///< total（書いていなければ nullopt。累計は読む側が足す）
+};
+Time timeOf(const QJsonObject& timeObj);
 
 // === コメント・修飾語 ===
 

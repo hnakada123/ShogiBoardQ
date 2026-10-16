@@ -14,14 +14,19 @@ USI の指し手と1対1の値型と、座標・表記の対応表は1か所に�
 |---|---|---|
 | `UsiMove` / `BoardSquare` | `src/core/usimove.h` | USI の指し手（"7g7f"・"8h2b+"・"P*5e"）と1対1の値。成りも指し手の一部として持つ。`UsiMove::parse()` と `toString()` が USI の読み書きの唯一の実装 |
 | `BoardCoordinates` | `src/core/boardcoordinates.h` | 盤面表示の座標（1始まり、駒台は筋10・11、駒箱は筋12）と駒・`UsiMove` の対応。駒台の段と駒の並びはここだけで決める |
-| `ShogiBoard::applyUsiMove()` | `src/core/shogiboard.cpp` | `UsiMove` を盤と駒台に適用する（合法性は見ない）。読み筋の盤・局面列の再生（`SfenReplay`）・棋譜の読み書き・対局の着手の確定（`ShogiGameController`）が使う |
+| `Position::apply()` | `src/core/shogiposition.cpp` | `UsiMove` を局面の値に適用する（合法性は見ない）。読み筋の漢字化・1手の再生（`SfenReplay`）・棋譜の読み込み（`KifLineBuilder`）と書き出しが使う。駒打ちの扱いは `DropRule`（`RequireHand`・棋譜の読み込み用の `Lenient`） |
+| `ShogiBoard::applyUsiMove()` | `src/core/shogiboard.cpp` | 表示の盤に `Position::apply()` で指し、変わったマス・駒台・手番を知らせる。対局の着手の確定（`ShogiGameController::commitMove()`）が使う |
 | `ShogiGameController::applyMove()` | `src/game/shogigamecontroller.cpp` | 対局で指す。エンジンの手は合法手か確かめ、反則手は盤を変えずに断る（`std::nullopt`）。通信対局の手（サーバーが裁定する）は `applyRecordedMove()`、盤のクリック操作は `validateAndMove()` が成りを選ばせてから同じ確定処理を通る。どれも指した手を `RecordEntry`（4.4）で返す |
 | `ShogiNotation` | `src/core/shoginotation.h` | 全角の筋・漢数字の段、駒の名前（指し手用は成香・成桂・成銀を2文字、局面図用は杏・圭・全）、CSA の駒種 |
-| `KifMoveText::format()` | `src/core/kifmovetext.h` | 「▲７六歩(77)」「△同　銀(31)」「▲５五角打」の形の指し手。対局の棋譜・棋譜の読み込み（USI・USEN・CSA・JKF）・通信対局・定跡・詰将棋の読み筋が使う |
-| `SfenReplay` | `src/core/sfenreplay.h` | 開始局面から USI の手を順に指して局面列を作る（合法手かは確かめない。棋譜の読み込み用）。局面は `ShogiBoard` で持つ |
+| `KifMoveText::format()` | `src/core/kifmovetext.h` | 「▲７六歩(77)」「△同　銀(31)」「▲５五角打」の形の指し手。対局の棋譜・棋譜の読み込み（全形式。`KifLineBuilder` が指し手から作る）・通信対局・定跡・詰将棋の読み筋が使う |
+| `SfenReplay` | `src/core/sfenreplay.h` | 局面に USI の1手を指す（`applyLenient()`・`positionAfter()`。合法手かは確かめない）。局面は `Position` で持つ |
+| `KifLineBuilder` | `src/kifu/formats/kiflinebuilder.h` | 棋譜の読み込みで1本の手順（`RecordLine`）を組み立てる（全形式で共通。9.3）。手を指したその場で局面を進めて `RecordEntry` を作る |
+| `UsiPosition` | `src/core/usiposition.h` | エンジンに探索させる局面（開始局面・指し手の列・指した後の局面・直前の手）。`command()` が position コマンドを作り、`RecordLine::usiPosition()` が手順から作る |
 
-SFEN の持ち駒は、盤（`ShogiBoard::convertStandToSfen`）も含めて標準の並び（先手の飛角金銀桂香歩、続いて後手）で書く。
-棋譜ファイルやほかのソフトの SFEN は並びが違うことがあるので、局面を比べるキーは `SfenUtils::normalizeSfenKey()`（持ち駒を並べ直す）で作る。
+局面の値は `Position`（`src/core/shogiposition.h`。盤81マス・持ち駒・手番・手数）で、SFEN の読み書きと指し手の適用はここだけで行う。
+表示の盤 `ShogiBoard` はこの値を1つ持ち（`position()`）、変更をシグナルで知らせる包みである。計算のための一時的な局面には `Position` を使う。
+SFEN の持ち駒は標準の並び（先手の飛角金銀桂香歩、続いて後手。`PieceRules::kHandOrder`）で書く（`Position::handsSfen()`）。
+棋譜ファイルやほかのソフトの SFEN は並びが違うことがあるので、局面を比べるキーは `SfenUtils::normalizeSfenKey()`（読めれば `Position::positionKey()`）で作る。
 
 エンジンの指し手は `Usi::matchMoveReady(const UsiMatchMove&)`（指した側・指し手・考えた時間・評価値をまとめた値）で届く。
 成り・不成は `UsiMove` の一部として持ち、指し手とは別の成りのフラグは無い。
@@ -29,22 +34,24 @@ SFEN の持ち駒は、盤（`ShogiBoard::convertStandToSfen`）も含めて標�
 棋譜の書き出し・自動化 API・定跡のマージに使う USI の指し手は、SFEN の差分から推測せず、
 分岐ツリーのノードの手（`ShogiMove::move`。`UsiMove` をそのまま持つ）から作る（4.4 の `RecordLine`）。
 表記の関数は `ShogiNotation` と `KifMoveText` にある。
-KI2 の読み書き（`Ki2MoveNotation`）も、盤は `ShogiBoard`、指し手は `UsiMove` で扱う。読み込みは局面の合法手
-（`EngineMoveValidator::legalMoves`）から指し手を選び、書き出しは分岐ツリーのノードの手と局面から修飾語・「打」・「不成」を決める。
+KI2 の読み書き（`Ki2MoveNotation`）も、局面は `Position`、指し手は `UsiMove` で扱う。読み込みは KIF と同じ文法（`KifMoveGrammar`。KIF の手は「KI2 の手＋移動元 `(xy)`」）で
+指し手の文字列を分け、移動元が書いてなければ局面の合法手（`EngineMoveValidator::legalMoves`）から指し手を選び、書き出しは分岐ツリーのノードの手と局面から修飾語・「打」・「不成」を決める。
 反則手を書いた棋譜のために、合法手で決まらない手だけは駒の動きだけで決める（`EngineMoveValidator::pseudoLegalMoves`）。
-JKF の書き出し（`JkfExporter`・`JkfFormatter`）も、分岐ツリーのノードの手を盤に適用しながら、局面と指し手から
+JKF の書き出し（`JkfExporter`・`JkfFormatter`）も、分岐ツリーのノードの手を局面（`Position`）に適用しながら、局面と指し手から
 `piece`・`capture`・`promote`・`same`・`relative` を決める（7.6）。終局はノードの終局の種類（`TerminalType`）から `special` にする。
 
-CSA の読み込み（`CsaLexer`）も、開始局面（PI・P1〜P9・P+/P-・00AL）を `ShogiBoard` に組み立て、指し手を `UsiMove` として
-盤に適用する。移動元の駒と指し手の駒種が合わない手・持っていない駒を打つ手は読まない。
-思考情報の読み筋の漢字化（`PvNotationFormatter`）も、思考を始めた局面（`ThinkingInfoFormatter::setBaseSfen`）を
-`ShogiBoard` に持ち、info 行ごとに作業用の盤へ写して（`ShogiBoard::copyPositionFrom`）指し手を進め、`KifMoveText::append` で書く。
-詰将棋の局面生成（`TsumeshogiPositionGenerator`）と駒を1枚除く処理（`TsumeshogiGenerator`）も `ShogiBoard` で局面を持つ。
+CSA の読み込み（`CsaLexer`）も、開始局面（PI・P1〜P9・P+/P-・00AL）を `Position` に組み立て（`parseStartPos()`）、指し手の行を局面の上の
+`UsiMove` にする（`parseMoveLine()`。盤は変えない）。移動元の駒と指し手の駒種が合わない手は読まない。局面への適用は `KifLineBuilder::addMove()` が行い、
+持っていない駒を打つ手は指さない（`Position::DropRule::RequireHand`）。
+思考情報の読み筋の漢字化（`PvNotationFormatter`）も、思考を始めた局面（`ThinkingInfoFormatter::setSearchPosition` が探索の `UsiPosition` から決める）を
+`Position` に持ち、info 行ごとに作業用の局面へ写して（値の代入）指し手を進め、`KifMoveText::append` で書く。
+読み筋の最初の手の「同」の基準は、探索の局面に至った手（`UsiPosition::lastMove()`。先読み中は予想した相手の手）の移動先である。
+詰将棋の局面生成（`TsumeshogiPositionGenerator`）と駒を1枚除く処理（`TsumeshogiGenerator`）も `Position` で局面を持つ。
 
-2つの局面の差分（`SfenDiffUtils`、`src/core/sfendiffutils.h`。盤は `ShogiBoard` で読む）から手を求めるのは、
+2つの局面の差分（`SfenDiffUtils`、`src/core/sfendiffutils.h`。局面は `Position::fromSfenLike()` で読む）から手を求めるのは、
 読み筋の盤（`PvBoardController`、`src/dialogs`）だけである。読み筋の手を進めた前後の局面を比べて、移動元と移動先を強調する。
 棋譜をたどるときの盤のハイライト（`BoardSyncPresenter`）は、表示中のノードの指し手（`KifuBranchNode::move()`）から求める（6.5.2）。
-待ったの後の「同」の基準は、対局の手順の手の移動先（`RecordLine::destinationOf()`）から決める（`MatchCoordinator::undoTwoPlies()`）。
+対局で次の手の「同」の基準は、対局の手順の最後の手の移動先（`MatchCoordinator::lastMoveDestination()` = `RecordLine::destinationOf(currentPly())`）から決め、指すたびに `ShogiGameController` に渡す。待った（`MatchCoordinator::undoTwoPlies()`）や中断の再開の後も、手順から導くので写しを直す処理は無い。
 
 ---
 
@@ -84,20 +91,21 @@ struct ShogiMove {
 
 ### 1.3 駒の表現（Piece）
 
-`movingPiece` と `capturedPiece` は `Piece`（`src/core/shogitypes.h`）で駒種と先後を表す。`Piece` の値は1文字で、**大文字 = 先手の駒、小文字 = 後手の駒**。駒がないときは `Piece::None`（`' '`）。
+`movingPiece` と `capturedPiece` は `Piece`（`src/core/shogitypes.h`）で駒種と先後を表す。`Piece` の値は**駒の種類 `PieceKind` の値 ＋ 後手なら 16** で、駒がないときは `Piece::None`（`0xFF`）。`PieceKind` の並び（歩0・香1・桂2・銀3・金4・角5・飛6・玉7、と8・成香9・成桂10・成銀11・馬12・龍13）は合法手生成の `fmv::PieceType` と同じで、合法手生成の盤も同じ値を使う。成る・戻す・先後の反転（`promote()`・`demote()`・`flipSide()`）は値の計算だけの `constexpr` 関数である。
 
 | 駒種 | 先手（生駒） | 先手（成駒） | 後手（生駒） | 後手（成駒） |
 |---|---|---|---|---|
-| 玉 / 王 | `BlackKing`（`K`） | — | `WhiteKing`（`k`） | — |
-| 飛車 / 龍 | `BlackRook`（`R`） | `BlackDragon`（`U`） | `WhiteRook`（`r`） | `WhiteDragon`（`u`） |
-| 角行 / 馬 | `BlackBishop`（`B`） | `BlackHorse`（`C`） | `WhiteBishop`（`b`） | `WhiteHorse`（`c`） |
-| 金将 | `BlackGold`（`G`） | — | `WhiteGold`（`g`） | — |
-| 銀将 / 成銀 | `BlackSilver`（`S`） | `BlackPromotedSilver`（`T`） | `WhiteSilver`（`s`） | `WhitePromotedSilver`（`t`） |
-| 桂馬 / 成桂 | `BlackKnight`（`N`） | `BlackPromotedKnight`（`O`） | `WhiteKnight`（`n`） | `WhitePromotedKnight`（`o`） |
-| 香車 / 成香 | `BlackLance`（`L`） | `BlackPromotedLance`（`M`） | `WhiteLance`（`l`） | `WhitePromotedLance`（`m`） |
-| 歩兵 / と金 | `BlackPawn`（`P`） | `BlackPromotedPawn`（`Q`） | `WhitePawn`（`p`） | `WhitePromotedPawn`（`q`） |
+| 玉 / 王 | `BlackKing`（7） | — | `WhiteKing`（23） | — |
+| 飛車 / 龍 | `BlackRook`（6） | `BlackDragon`（13） | `WhiteRook`（22） | `WhiteDragon`（29） |
+| 角行 / 馬 | `BlackBishop`（5） | `BlackHorse`（12） | `WhiteBishop`（21） | `WhiteHorse`（28） |
+| 金将 | `BlackGold`（4） | — | `WhiteGold`（20） | — |
+| 銀将 / 成銀 | `BlackSilver`（3） | `BlackPromotedSilver`（11） | `WhiteSilver`（19） | `WhitePromotedSilver`（27） |
+| 桂馬 / 成桂 | `BlackKnight`（2） | `BlackPromotedKnight`（10） | `WhiteKnight`（18） | `WhitePromotedKnight`（26） |
+| 香車 / 成香 | `BlackLance`（1） | `BlackPromotedLance`（9） | `WhiteLance`（17） | `WhitePromotedLance`（25） |
+| 歩兵 / と金 | `BlackPawn`（0） | `BlackPromotedPawn`（8） | `WhitePawn`（16） | `WhitePromotedPawn`（24） |
 
-> **注意**: SFEN では成駒を `+R`・`+B` などの2文字で書く。`Piece` の成駒の1文字（`R→U`、`B→C` など）は内部の値で、SFEN の文字列には出さない。SFEN との変換は `ShogiBoard`（`src/core/shogiboard.cpp`）が行い、文字との変換は `charToPiece()`・`pieceToChar()` を使う。
+> **注意**: SFEN では成駒を `+R`・`+B` などの2文字で書く。SFEN との変換は `Position`（`src/core/shogiposition.cpp`）が行い、駒と文字の変換は `charToPiece()`（SFEN の駒の文字 `PLNSGBRK` を生駒にする）・`pieceLetter()`（成駒は元の駒の文字）・`pieceSfen()`（成駒は `+P` の形）を使う。
+> 行き所のない段・成れる段・持ち駒を書き出す順は `src/core/piecerules.h`（`PieceRules`）に1か所でまとめる。
 
 ### 1.4 データ例
 
@@ -342,32 +350,6 @@ private:
   `KifuNavigationState::offersBackToMainLine()`（分岐候補があり、本譜以外を表示しているとき）で決める
 - 行の並びは `KifuNavigationController::selectBranchCandidateRow()`（6.3.4）と同じ
 
-### 3.3 KifDisplayItem（読み込み・書き出し用の1行）
-
-**ファイル**: `src/kifu/kifdisplayitem.h`
-
-棋譜の1行を文字列で持つ値。棋譜欄では使わない。棋譜の読み込みの途中（コメントや終局の行の組み立て、開始局面の行 `KifLine::opening`）と、
-ラインの表示用の手順の取り出し（`KifuBranchTree::displayItemsForLine()`・`GameRecordModel::collectMainlineForExport()`。自動化 API・CLI の棋譜変換が使う）に使う。
-
-```cpp
-struct KifDisplayItem {
-    QString prettyMove;   // 表示用テキスト（例: "▲７六歩"）
-    QString timeText;     // 消費時間テキスト
-    QString comment;      // コメント
-    QString bookmark;     // しおり
-    int     ply = 0;      // 手数（0始まり）
-
-    // 表示と保存で共有する局面・終局の情報
-    QString beforeSfen;                              // 指す前の局面
-    QString usiMove;                                 // 指し手（USI。終局手は空）
-    bool terminal = false;                           // 終局手か
-    TerminalType terminalType = TerminalType::None;
-    Turn terminalSide = Turn::Black;                 // 終局を記録した側
-};
-```
-
-`Q_DECLARE_METATYPE` により、シグナル/スロット引数として `KifDisplayItem`・`QList<KifDisplayItem>` を受け渡し可能。
-
 ---
 
 ## 4. ナビゲーション状態（KifuNavigationState）
@@ -441,7 +423,8 @@ class KifuNavigationState : public QObject {
 ほかの機能が手順を使うときは、局面列や指し手列を別々の一覧から探さずに、`RecordLine`（`src/kifu/recordline.h`、ヘッダーだけ）を受け取る。
 
 棋譜の1行は `RecordEntry`（`src/kifu/recordentry.h`）で表す。指した手と終局の行のどちらにも使い、
-分岐ツリーのノード（2.1）・対局（`MatchCoordinator`）・棋譜の読み込み（`KifLine`、9.1）が同じ型で受け渡す。
+分岐ツリーのノード（2.1）・対局（`MatchCoordinator`）・棋譜の読み込み（`RecordLine`、9.1）が同じ型で受け渡す。
+手順の型は `RecordLine` の1つで、棋譜の読み込みの本譜・変化、書き出し、表示中の手順、対局の手順のすべてに使う（文字列で1行を持つ別の型は無い）。
 
 ```cpp
 struct RecordEntry {
@@ -463,11 +446,16 @@ struct RecordEntry {
 
 struct RecordLine {
     QString startSfen;           // 開始局面（完全な SFEN）
-    QList<RecordEntry> entries;  // entries[i] は i+1 手目（終局の行は含めない）
+    int startPly = 1;            // 最初の手の手数（変化は分岐した手の手数）
+    QString openingComment;      // 開始局面のコメント（本譜だけ）
+    QString openingBookmark;     // 開始局面のしおり（本譜だけ）
+    QList<RecordEntry> entries;  // entries[i] は i+1 手目。末尾は終局の行のことがある
     int currentPly = 0;          // 表示中の手数（0 は開始局面）
 
     bool isEmpty() const;                          // 開始局面が無い
-    int moveCount() const;
+    bool endsWithTerminal() const;                 // 終局の行で終わるか
+    const RecordEntry* terminal() const;           // 終局の行（なければ nullptr）
+    int moveCount() const;                         // 指した手の数（終局の行は数えない）
     QString sfenAt(int ply) const;                 // ply 手目の後の局面（0 は開始局面）
     QString lastSfen() const;                      // 最後の局面（手が無ければ開始局面）
     QStringList sfens() const;                     // 開始局面と各手の後の局面
@@ -477,8 +465,8 @@ struct RecordLine {
     UsiMove usiMove(int ply) const;                // ply 手目の指し手（範囲外は無効な値）
     QStringList usiMoves(int upToPly = -1) const;  // upToPly 手目までの USI の指し手（-1 は最後まで）
     BoardSquare destinationOf(int ply) const;      // ply 手目の移動先
-    RecordLine upTo(int ply) const;                // ply 手目までの手順（currentPly も ply に合わせる）
-    QString positionCommand(int ply) const;        // ply 手目の後の position コマンド（平手なら startpos）
+    RecordLine upTo(int ply) const;                // ply 手目までの手順（終局の行は含めない。currentPly も ply に合わせる）
+    UsiPosition usiPosition(int ply) const;        // ply 手目の後の局面をエンジンに送る値（command() は平手なら startpos）
     static RecordLine fromPositions(const QStringList& sfens, const QList<ShogiMove>& moves);
 };
 ```
@@ -492,8 +480,9 @@ struct RecordLine {
 | `KifuBranchTree::mainRecordLine()` | 本譜の手順（`currentPly` は0） |
 | `KifuBranchTree::toRecordLine(nodes, currentPly)` | 任意のノード列（ライン・`pathToNode()` の結果など）。static |
 | `MatchCoordinator::record()` | 対局の手順（対局を始めた手順に、対局で指した手を足したもの） |
+| `KifuBranchTree::exportLine(lineIndex)` | ラインの手順。末尾の終局行と、開始局面のコメント・しおり（`openingComment`・`openingBookmark`）も含む。書き出し・CLI 用（`GameRecordModel::collectMainlineForExport()` は本譜のこれ） |
 
-どれも終局行（投了・中断など）を含まない。棋譜欄の行は終局行を含むので、棋譜欄の行数と `sfens().size()` は一致しないことがある。
+`exportLine()` と棋譜の読み込み結果（9.1）のほかは終局行（投了・中断など）を含まない。棋譜欄の行は終局行を含むので、棋譜欄の行数と `sfens().size()` は一致しないことがある。
 
 **誰が何を持つか**:
 
@@ -533,7 +522,7 @@ class GameRecordModel : public QObject {
 CommentCoordinator::onCommentUpdated(moveIndex, text)
     │
     └─→ GameRecordModel::setComment(表示中のノード, text)
-          ├─ node->setComment(text)      // 棋譜の正本に書く（同じ文なら何もしない）
+          ├─ node->record().comment = text  // 棋譜の正本に書く（同じ文なら何もしない）
           ├─ m_isDirty = true
           └─ emit commentChanged(nodeId, text)
                ├─ KifuRecordListModel::refreshNode(nodeId)   // そのノードの行だけ描き直す
@@ -544,7 +533,8 @@ CommentCoordinator::onCommentUpdated(moveIndex, text)
 `GameRecordModel::setBookmark()` がノードに書いて `bookmarkChanged` を出し、棋譜欄がその行を描き直す。
 別の手へ移る前に、未更新のコメントを破棄してよいかを `CommentCoordinator::confirmLeaveEditingMove()` で確かめる（6.3）。
 棋譜を読み込んだときは、コメント・しおりは `KifuBranchTreeBuilder` がツリーを作るときに各行の `RecordEntry` と一緒にノードへ入る
-（開始局面のコメント・しおりは `KifLine::opening` から）。
+（開始局面のコメント・しおりは本譜の `RecordLine::openingComment`・`openingBookmark` から）。
+ノードには項目ごとの setter は無く、変えるときは `KifuBranchNode::record()`（const でない版）の値を直接変える。
 
 ### 5.3 出力形式
 
@@ -791,7 +781,7 @@ KifuNavigationState::setCurrentNode() / resetToNode() / goToRoot()
 - 対局開始時に、表示中の手順（`MatchStartOptions::recordLine`）を開始する手数まで切って作る（`MatchCoordinator::start()`、8.2）
 - 一手を確定するたびに、`MatchCoordinator` が手順に行を足し、同じ行を `MatchRecordSink::appendRecord()` で渡して分岐ツリーに積む。
   待ったでは末尾2手を取り除き、`MatchRecordSink::undoRecords(2)` で分岐ツリー側も戻す（8.5）
-- 千日手の判定（`RecordLine::sfens()`）、エンジンへの `position`（`RecordLine::positionCommand()`）、待ったの後の「同」の基準（`destinationOf()`）、
+- 千日手の判定（`RecordLine::sfens()`）、エンジンに探索させる局面（`RecordLine::usiPosition()`）、次の手の「同」の基準（`destinationOf()`。待った・再開の後も同じ）、
   中断の保存（`InterruptedGameState::record`）はこの手順を使う
 
 GUI部品の表示（盤面・棋譜欄のクリックなど）は、この手順ではなく分岐ツリーから読む。
@@ -872,7 +862,7 @@ JSON 形式で棋譜を表現。分岐対応。
 }
 ```
 
-書き出し（`JkfExporter`）は、分岐ツリーのノードの指し手（USI）を開始局面から盤（`ShogiBoard`）に適用しながら、
+書き出し（`JkfExporter`）は、分岐ツリーのノードの指し手（USI）を開始局面から局面の値（`Position`）に適用しながら、
 指す前の局面と指し手で `move` を作る（`JkfFormatter::moveToJkf`）。棋譜欄の表示の文字列は使わない。
 
 | 項目 | 決め方 |
@@ -914,13 +904,14 @@ URL セーフな短い文字列で棋譜を表現。分岐対応。
    → KifuLoadParser::parseFile()（ワーカースレッド）
        ├─ KifuFormats::detectFile() で形式を決める
        ├─ readFileText() で文字コードを判別して1回読む
-       └─ parseContent() → KifToSfenConverter::parseLines()
+       └─ parseContent() → KifToSfenConverter::parse()（KifTextParser::parse(text, Dialect::Kif)）
    → KifuLoadCoordinator::onLoadFinished() → applyLoadResult(result)
      （同期版の loadFile()・loadText() も applyLoadResult() を通る）
 
-2. KIF の変換器が KifParseResult を作る（KifuLoadResult::record）
-   （行に分けて1回の走査で本譜と各変化を読む。表示データと USI の指し手は同じ行から作るので並びがずれない）
-     ├─ mainline: KifLine（本譜の行 RecordEntry の並び。USI の指し手・局面列は行から作る）
+2. KIF の変換器が KifuParseOutcome を返し、parseContent() が KifuLoadResult に写す（棋譜は KifuLoadResult::record）
+   （行に分けて1回の走査で本譜と各変化を読む。手順ごとに KifLineBuilder が手を指しながら RecordEntry を作るので、
+     表記・USI の指し手・局面の並びがずれない。読めない手は ParseOptions に従い、既定ではその手の手前で打ち切る）
+     ├─ mainline: RecordLine（本譜の行 RecordEntry の並び。末尾に終局の行。開始局面のコメント・しおりは openingComment・openingBookmark）
      └─ variations: QList<KifVariation>（変化。分岐元の手順 parentVariation と手数は
         KifParseResult::latestBranchPoint() で決め、addVariation() で足す。
         KIF/KI2/USEN は「変化：N手」の N-1 手目を持つ手順のうち最後に書かれたもの、
@@ -980,7 +971,7 @@ SFENの手数欄とツリー上の手数も混同しない。
 `GameStartOptionsBuilder::plan()` は `GameStartPreparation::Mode::NewGame` と開始局面（`rootSfen`。手合割の局面）を計画に入れる。
 `SessionResetCoordinator::prepareGameStart()` がツリーをその局面で作り直し（`KifuBranchTree::setRootSfen()`）、
 ルートからライブ対局を始める。
-`MatchSessionState` が開始オプション（対局者を含む）・終局状態・エンジンの先読みの局面をまとめて所有する。
+`MatchSessionState` が開始オプション（対局者を含む）・終局状態をまとめて所有する（エンジンの先読みの局面はエンジンの `UsiMatchHandler` だけが持つ）。
 持ち時間は `GameSession::startGame()` で一度だけ時計に設定し（`TimeControlUtil::applyToClock()`）、
 `MatchTimeRecord::begin()` が持ち時間と開始日時を記録する。`TimeDisplayPresenter` は時計の残り時間を表示するだけにする。
 
@@ -1065,30 +1056,16 @@ root → 1手目 → ... → 4手目 → 5手目(指し直し) → ... → 8手�
 
 ## 9. 補足: パース用データ構造
 
-### 9.1 KifParseResult / KifLine / KifVariation
+### 9.1 KifParseResult / KifVariation / KifuParseOutcome
 
 **ファイル**: `src/kifu/kifparsetypes.h`
 
-KIF/KI2/CSA 等の棋譜を読み込んだときのパース結果を格納する中間構造。
+KIF/KI2/CSA 等の棋譜を読み込んだときのパース結果を格納する中間構造。手順は `RecordLine`（4.4）で持ち、読み込み用の別の手順の型は無い。
 
 ```cpp
-struct KifLine {
-    int startPly = 1;                       // 開始手数
-    QString baseSfen;                       // 分岐開始局面SFEN
-    std::optional<KifDisplayItem> opening;  // 開始局面の行（コメント・しおり）
-    QList<RecordEntry> entries;             // 指した手と終局の行（4.4）
-
-    bool endsWithTerminal() const;               // 終局手で終わるか
-    int moveCount() const;                       // 指した手の数（終局の行を除く）
-    QString sfenAt(int offset) const;            // offset 手指した後の局面（0 は baseSfen）
-    QStringList usiMoves() const;                // USI指し手列（entries から作る）
-    QStringList sfenList() const;                // 局面列（baseSfen と各手の後の局面）
-    QList<KifDisplayItem> displayItems() const;  // 表示用データ（entries から作る）
-};
-
 struct KifVariation {
     int startPly = 1;          // 変化開始手数
-    KifLine line;              // 変化の手順
+    RecordLine line;           // 変化の手順（line.startPly == startPly）
     int parentVariation = -1;  // 分岐元の手順。-1=本譜、その他=先に書かれた変化の添字
 };
 
@@ -1096,21 +1073,37 @@ struct KifBranchPoint {        // 変化の分岐元
     int parentVariation = -1;  // 分岐元の手順（-1 は本譜）
     int startPly = 1;          // 変化の最初の手の手数
     QString sfen;              // 変化の最初の手を指す前の局面
-    QString previousUsi;       // その局面に至った手（「同」の解決用。開始局面なら空）
+    std::optional<UsiMove> previousMove;  // その局面に至った手（「同」の解決用。開始局面なら nullopt）
 };
 
 struct KifParseResult {
-    KifLine mainline;                  // 本譜
+    RecordLine mainline;               // 本譜（開始局面のコメント・しおりは openingComment・openingBookmark）
     QList<KifVariation> variations;    // 変化リスト（書かれた順。分岐元は先に並ぶ）
 
+    const RecordLine& lineAt(int variation) const;                              // 手順（-1 は本譜）
     std::optional<KifBranchPoint> branchPoint(int parent, int startPly) const;  // 手順 parent の startPly 手目の前の分岐元
     std::optional<KifBranchPoint> latestBranchPoint(int startPly) const;        // 「変化：N手」の分岐元
-    void addVariation(const KifBranchPoint& from, KifLine line);               // 変化を足す
+    int firstPlyOf(int variation) const;                                        // 手順の最初の手の手数
+    void addVariation(const KifBranchPoint& from, RecordLine line);             // 変化を足す
+};
+
+struct KifuParseOutcome {              // 形式ごとの parse() が返す1回の解析の結果
+    bool success = false;
+    KifParseResult record;
+    QString initialSfen;               // 開始局面（record.mainline.startSfen と同じ）
+    QString teaiLabel;                 // 手合割の名前（局面図なら "BOD"、USI・CSA は「平手」「局面指定」）
+    QList<KifGameInfoItem> gameInfo;   // 対局情報（書かれた順）
+    QString warning;                   // 警告（失敗したときは理由）
+    QString positionOnly;              // 指し手のない局面だけの棋譜（USI・SFEN・BOD）の局面
 };
 ```
 
 パース後、この `KifParseResult` から `KifuBranchTree` が構築される（`KifuBranchTreeBuilder::addKifLineToTree()` が `entries` の各行を `addRecord()` で積む）。
-指し手列・局面列・表示データは `entries` から作るので、別々の一覧として持たず、並びがずれない。
+指し手列・局面列・表記は `entries` から作るので、別々の一覧として持たず、並びがずれない。
+
+読めない手（表記が解釈できない・局面に合わない）・指せない手・パスの扱いは `ParseOptions` の1か所で決める。
+既定の `UnreadableMove::TruncateLine` はその手の手前で手順を打ち切って警告に「何手目まで読んだか」を書き、
+`FailRecord` は棋譜全体を読めなかったことにする。変換器は読み込み中の警告と失敗を `ParseReport`（`warn()`・`rejectMove()`・`rejectPass()`・`fail()`）に記録する。
 
 ### 9.2 KifGameInfoItem
 
@@ -1125,4 +1118,44 @@ struct KifGameInfoItem {
 };
 ```
 
-ラインごとの表示データと局面列は、分岐ツリーから `KifuBranchTree::displayItemsForLine()`・`sfenListForLine()` で取る。
+ラインごとの手順と局面列は、分岐ツリーから `KifuBranchTree::exportLine()`（`RecordLine`）・`sfenListForLine()` で取る。
+
+### 9.3 KifLineBuilder（1本の手順の組み立て）
+
+**ファイル**: `src/kifu/formats/kiflinebuilder.h`
+
+棋譜の読み込みで1本の手順（本譜か変化）を組み立てる部品。全形式（KIF・KI2・CSA・JKF・USEN・USI）のパーサが、読んだ順に次の関数を呼ぶ。
+手を指したその場で局面（`Position`）を進めて `RecordEntry` を作るので、表示の指し手と USI の指し手を別々に積んで突き合わせることはない。
+手番・「同」の基準（直前の手。変化は分岐元の `KifBranchPoint::previousMove`）・両者の累計の消費時間はこの部品が持つ。
+
+```cpp
+class KifLineBuilder {
+public:
+    enum class LineKind { Mainline, Variation };  // 最初の手より前のコメント・しおりを開始局面に付けるか、最初の手に付けるか
+    explicit KifLineBuilder(const Position& start, int startPly = 1,
+                            std::optional<UsiMove> previous = std::nullopt, LineKind kind = LineKind::Mainline);
+
+    bool addMove(const UsiMove& move, const RecordTime& time = zeroTime(),
+                 const KifMoveText::Notes& notes = {},
+                 Position::DropRule rule = Position::DropRule::Lenient);   // 指せなければ何も変えずに false
+    void addTerminal(TerminalType type, Turn side, const RecordTime& time = zeroTime());
+    void appendComment(const QString& text);    // 最後の行（手がまだなければ開始局面・変化の最初の手）
+    void appendBookmark(const QString& text);
+    RecordTime timeFor(Turn side, qint64 elapsedMs, std::optional<qint64> totalMs = std::nullopt);  // 累計を足した消費時間
+    void setLastTime(const RecordTime& time);   // 最後の行の消費時間を置き換える
+    void stop();                                // 手順を打ち切る（読めない手の後）
+    const QString& lastError() const;           // 指せなかった理由（"Source square is empty: 7g7e" など）
+    QString cannotRestore(const QString& format, int ply) const;  // "KIF: Cannot restore move 3: ..."
+    RecordLine take();                          // 組み立てた手順
+};
+```
+
+- 棋譜欄の表記は、取り込んだ原文を写さず、いつも指し手と直前の手から `KifMoveText::format()` で作る。
+  棋譜に書かれていた相対位置の修飾語（「右」「上」など）・「不成」は `KifMoveText::Notes` で渡して残す（KIF・KI2・JKF）。
+- 打つ駒が持ち駒にない手は既定で指す（`Position::DropRule::Lenient`）。CSA だけは `RequireHand` で指し、持っていない駒を打つ手は読まない。
+- CSA の T 行・JKF の time は、1手の消費時間（ミリ秒）から `timeFor()` が累計を足して `RecordTime::fromMilliseconds()` で作る（文字列を経由しない）。
+- 指せなかった手の警告は、全形式で `cannotRestore()` の同じ文面にする（扱いは 9.1 の `ParseOptions`）。
+
+KIF と KI2 は `KifTextParser::parse(text, Dialect)`（`src/kifu/formats/kiftextparser.h`）が同じ処理で読む。行の分類（ヘッダ・局面図・コメント・しおり）、
+「変化：N手」の区切り、開始局面（BOD・手合割・手番の行）、指し手の文法（`KifMoveGrammar::parseMoveText()`・`resolve()`）を共有し、
+手数で始まる KIF の行と手番の印で始まる KI2 の行をどちらの形式でも読む。`Dialect` で違うのは、KI2 の「まで…」の結果の行、対局情報の終わりの見分け方、警告の見出しだけ。

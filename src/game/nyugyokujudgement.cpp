@@ -6,7 +6,7 @@
 #include "enginemovevalidator.h"
 #include "jishogicalculator.h"
 #include "gamesettings.h"
-#include "shogiboard.h"
+#include "shogiposition.h"
 
 int NyugyokuJudgement::configuredRule()
 {
@@ -19,12 +19,12 @@ QString NyugyokuJudgement::declarerName(bool declarerIsSente, bool handicapNames
     return declarerIsSente ? tr("先手") : tr("後手");
 }
 
-NyugyokuJudgement::Result NyugyokuJudgement::judge(const ShogiBoard& board, bool declarerIsSente, int rule,
+NyugyokuJudgement::Result NyugyokuJudgement::judge(const Position& position, bool declarerIsSente, int rule,
                                                    bool handicapNames)
 {
-    const auto points = JishogiCalculator::calculate(board.boardData(), board.pieceStand());
+    const auto points = JishogiCalculator::calculate(position);
     const auto& score = declarerIsSente ? points.sente : points.gote;
-    const bool inCheck = EngineMoveValidator::isInCheck(board, declarerIsSente ? Turn::Black : Turn::White);
+    const bool inCheck = EngineMoveValidator::isInCheck(position, declarerIsSente ? Turn::Black : Turn::White);
 
     const bool kingInEnemyTerritory = score.kingInEnemyTerritory;
     const bool enoughPieces = score.piecesInEnemyTerritory >= 10;
@@ -79,11 +79,11 @@ NyugyokuJudgement::Result NyugyokuJudgement::judge(const ShogiBoard& board, bool
     return result;
 }
 
-NyugyokuJudgement::Result NyugyokuJudgement::judgeEngineDeclaration(const ShogiBoard& board, bool declarerIsSente,
+NyugyokuJudgement::Result NyugyokuJudgement::judgeEngineDeclaration(const Position& position, bool declarerIsSente,
                                                                     bool handicapNames)
 {
     const int configured = configuredRule();
-    Result result = judge(board, declarerIsSente, configured == Rule24 ? Rule24 : Rule27, handicapNames);
+    Result result = judge(position, declarerIsSente, configured == Rule24 ? Rule24 : Rule27, handicapNames);
     if (configured != Rule24 && configured != Rule27) {
         result.message = tr("持将棋ルールが「なし」のため、27点法で判定しました。") + QStringLiteral("\n\n")
                          + result.message;

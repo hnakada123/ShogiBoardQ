@@ -156,7 +156,7 @@ QString TsumeshogiPositionGenerator::generateOnce()
 
 void TsumeshogiPositionGenerator::clearState()
 {
-    m_board.resetGameBoard();
+    m_board = Position();
     for (int i = 0; i < PieceTypeCount; ++i) {
         m_usedCounts[i] = 0;
     }
@@ -201,7 +201,7 @@ void TsumeshogiPositionGenerator::usePiece(PieceType pt)
 
 void TsumeshogiPositionGenerator::addToAttackerHand(PieceType pt)
 {
-    m_board.addStandPiece(kBlackPieces[pt]);
+    m_board.addToHand(kBlackPieces[pt]);
     usePiece(pt);
 }
 
@@ -239,9 +239,8 @@ bool TsumeshogiPositionGenerator::isKingInCheck() const
 
 bool TsumeshogiPositionGenerator::isDefenderKingInCheck(const QString& sfen)
 {
-    ShogiBoard board;
-    if (!board.trySetSfen(sfen)) return false;
-    return EngineMoveValidator::isInCheck(board, Turn::White);
+    const std::optional<Position> position = Position::fromSfen(sfen);
+    return position && EngineMoveValidator::isInCheck(*position, Turn::White);
 }
 
 QString TsumeshogiPositionGenerator::buildSfen()
@@ -249,13 +248,12 @@ QString TsumeshogiPositionGenerator::buildSfen()
     // 後手持駒（守方）: 未使用駒を全て追加する
     if (m_settings.addRemainingToDefenderHand) {
         for (int pt = 0; pt < PieceTypeCount; ++pt) {
-            m_board.addStandPiece(toWhite(kBlackPieces[pt]), kMaxCounts[pt] - m_usedCounts[pt]);
+            m_board.addToHand(toWhite(kBlackPieces[pt]), kMaxCounts[pt] - m_usedCounts[pt]);
         }
     }
 
     // 手番は先手（攻方）、手数は1
-    return m_board.convertBoardToSfen() + QStringLiteral(" b ") + m_board.convertStandToSfen()
-           + QStringLiteral(" 1");
+    return m_board.toSfen(Turn::Black, 1);
 }
 
 QStringList TsumeshogiPositionGenerator::generateBatch(

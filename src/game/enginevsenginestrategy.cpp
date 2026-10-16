@@ -50,9 +50,6 @@ void EngineVsEngineStrategy::onEngineMoveReady(const UsiMatchMove& move)
 {
     if (!m_waitingForMove || m_host.isGameOver() || move.side != m_host.sideToMove()) return;
     m_waitingForMove = false;
-    // 相手のエンジンにも直前の手の行き先を知らせる（読み筋の「同」の判定に使う）
-    if (Usi* receiver = m_host.engines().engineFor(opponent(move.side)))
-        receiver->setPreviousMove(move.move.to);
     if (!m_host.applyEngineMove(move)) return;
     QTimer::singleShot(0, this, &EngineVsEngineStrategy::kickNextTurn);
 }

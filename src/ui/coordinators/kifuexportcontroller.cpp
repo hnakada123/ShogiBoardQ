@@ -261,15 +261,12 @@ QString KifuExportController::boardSfen() const
     // 局面編集による変更も含め、盤に出している局面・手番・持ち駒をコピーする
     const ShogiBoard* board = m_deps.gameController ? m_deps.gameController->board() : nullptr;
     if (!board) return m_deps.navState ? m_deps.navState->currentSfen() : QString();
-    QString stand = board->convertStandToSfen();
-    if (stand.isEmpty()) stand = QStringLiteral("-");
     // 手数は表示中の手の局面の手数（無ければ表示中の手数の次）
     const int ply = m_deps.navState ? m_deps.navState->currentPly() : 0;
     bool ok = false;
     int moveNumber = m_deps.navState ? m_deps.navState->currentSfen().section(QLatin1Char(' '), 3, 3).toInt(&ok) : 0;
     if (!ok) moveNumber = ply + 1;
-    return QStringLiteral("%1 %2 %3 %4")
-        .arg(board->convertBoardToSfen(), turnToSfen(board->currentPlayer()), stand, QString::number(moveNumber));
+    return board->position().toSfen(board->currentPlayer(), moveNumber);
 }
 
 bool KifuExportController::copySfenToClipboard()

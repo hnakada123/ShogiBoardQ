@@ -3,125 +3,11 @@
 
 #include "fmvposition.h"
 
-#include <cctype>
-
 namespace fmv {
-
-namespace {
-
-constexpr char kEmpty = ' ';
-
-struct PieceInfo {
-    Color color = Color::Black;
-    PieceType type = PieceType::PieceTypeNb;
-    bool valid = false;
-};
-
-PieceInfo charToPieceInfo(char c) noexcept
-{
-    PieceInfo info;
-    if (c >= 'A' && c <= 'Z') {
-        info.color = Color::Black;
-    } else if (c >= 'a' && c <= 'z') {
-        info.color = Color::White;
-    } else {
-        return info; // invalid
-    }
-
-    char upper = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
-    switch (upper) {
-    case 'P': info.type = PieceType::Pawn;      break;
-    case 'L': info.type = PieceType::Lance;     break;
-    case 'N': info.type = PieceType::Knight;    break;
-    case 'S': info.type = PieceType::Silver;    break;
-    case 'G': info.type = PieceType::Gold;      break;
-    case 'B': info.type = PieceType::Bishop;    break;
-    case 'R': info.type = PieceType::Rook;      break;
-    case 'K': info.type = PieceType::King;      break;
-    case 'Q': info.type = PieceType::ProPawn;   break;
-    case 'M': info.type = PieceType::ProLance;  break;
-    case 'O': info.type = PieceType::ProKnight; break;
-    case 'T': info.type = PieceType::ProSilver; break;
-    case 'C': info.type = PieceType::Horse;     break;
-    case 'U': info.type = PieceType::Dragon;    break;
-    default: return info; // invalid
-    }
-
-    info.valid = true;
-    return info;
-}
-
-char pieceInfoToChar(Color color, PieceType type) noexcept
-{
-    char c = kEmpty;
-    switch (type) {
-    case PieceType::Pawn:      c = 'P'; break;
-    case PieceType::Lance:     c = 'L'; break;
-    case PieceType::Knight:    c = 'N'; break;
-    case PieceType::Silver:    c = 'S'; break;
-    case PieceType::Gold:      c = 'G'; break;
-    case PieceType::Bishop:    c = 'B'; break;
-    case PieceType::Rook:      c = 'R'; break;
-    case PieceType::King:      c = 'K'; break;
-    case PieceType::ProPawn:   c = 'Q'; break;
-    case PieceType::ProLance:  c = 'M'; break;
-    case PieceType::ProKnight: c = 'O'; break;
-    case PieceType::ProSilver: c = 'T'; break;
-    case PieceType::Horse:     c = 'C'; break;
-    case PieceType::Dragon:    c = 'U'; break;
-    default: return kEmpty;
-    }
-    if (color == Color::White) {
-        c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-    }
-    return c;
-}
-
-PieceType promotePieceType(PieceType pt) noexcept
-{
-    switch (pt) {
-    case PieceType::Pawn:   return PieceType::ProPawn;
-    case PieceType::Lance:  return PieceType::ProLance;
-    case PieceType::Knight: return PieceType::ProKnight;
-    case PieceType::Silver: return PieceType::ProSilver;
-    case PieceType::Bishop: return PieceType::Horse;
-    case PieceType::Rook:   return PieceType::Dragon;
-    default: return pt;
-    }
-}
-
-PieceType demotePieceType(PieceType pt) noexcept
-{
-    switch (pt) {
-    case PieceType::ProPawn:   return PieceType::Pawn;
-    case PieceType::ProLance:  return PieceType::Lance;
-    case PieceType::ProKnight: return PieceType::Knight;
-    case PieceType::ProSilver: return PieceType::Silver;
-    case PieceType::Horse:     return PieceType::Bishop;
-    case PieceType::Dragon:    return PieceType::Rook;
-    default: return pt;
-    }
-}
-
-HandType pieceTypeToHandType(PieceType pt) noexcept
-{
-    switch (pt) {
-    case PieceType::Pawn:      case PieceType::ProPawn:   return HandType::Pawn;
-    case PieceType::Lance:     case PieceType::ProLance:  return HandType::Lance;
-    case PieceType::Knight:    case PieceType::ProKnight: return HandType::Knight;
-    case PieceType::Silver:    case PieceType::ProSilver: return HandType::Silver;
-    case PieceType::Gold:      return HandType::Gold;
-    case PieceType::Bishop:    case PieceType::Horse:     return HandType::Bishop;
-    case PieceType::Rook:      case PieceType::Dragon:    return HandType::Rook;
-    default: return HandType::HandTypeNb;
-    }
-}
-
-} // namespace
 
 void EnginePosition::clear() noexcept
 {
-    board.fill(kEmpty);
+    board.fill(Piece::None);
     occupied = {};
     colorOcc[0] = {};
     colorOcc[1] = {};
@@ -150,24 +36,20 @@ void EnginePosition::rebuildBitboards() noexcept
     kingSq[1] = kInvalidSquare;
 
     for (int sq = 0; sq < kSquareNb; ++sq) {
-        char c = board[static_cast<std::size_t>(sq)];
-        if (c == kEmpty) {
-            continue;
-        }
-
-        PieceInfo info = charToPieceInfo(c);
-        if (!info.valid) {
+        const Piece piece = board[static_cast<std::size_t>(sq)];
+        if (piece == Piece::None) {
             continue;
         }
 
         auto s = static_cast<Square>(sq);
-        int ci = static_cast<int>(info.color);
+        int ci = static_cast<int>(colorOf(piece));
+        const PieceType type = typeOf(piece);
 
         occupied.set(s);
         colorOcc[ci].set(s);
-        pieceOcc[ci][static_cast<int>(info.type)].set(s);
+        pieceOcc[ci][static_cast<int>(type)].set(s);
 
-        if (info.type == PieceType::King) {
+        if (type == PieceType::King) {
             kingSq[ci] = s;
         }
     }
@@ -186,11 +68,11 @@ bool EnginePosition::doMove(const Move& move, Color side, UndoState& undo) noexc
     if (move.kind == MoveKind::Drop) {
         // 打ち
         Square to = move.to;
-        undo.movedPieceBefore = kEmpty;
-        undo.capturedPiece = kEmpty;
+        undo.movedPieceBefore = Piece::None;
+        undo.capturedPiece = Piece::None;
 
         // 持ち駒を減らす
-        HandType ht = pieceTypeToHandType(move.piece);
+        HandType ht = handTypeOf(move.piece);
         auto hti = static_cast<std::size_t>(ht);
         if (ht == HandType::HandTypeNb || hand[ci][hti] <= 0) {
             return false;
@@ -198,8 +80,7 @@ bool EnginePosition::doMove(const Move& move, Color side, UndoState& undo) noexc
         --hand[ci][hti];
 
         // 盤面に配置
-        char pieceChar = pieceInfoToChar(side, move.piece);
-        board[to] = pieceChar;
+        board[to] = pieceOf(side, move.piece);
         occupied.set(to);
         colorOcc[ci].set(to);
         pieceOcc[ci][static_cast<int>(move.piece)].set(to);
@@ -211,52 +92,47 @@ bool EnginePosition::doMove(const Move& move, Color side, UndoState& undo) noexc
     Square from = move.from;
     Square to = move.to;
 
-    char movingChar = board[from];
-    undo.movedPieceBefore = movingChar;
-    char capturedChar = board[to];
-    undo.capturedPiece = capturedChar;
+    const Piece moving = board[from];
+    undo.movedPieceBefore = moving;
+    const Piece captured = board[to];
+    undo.capturedPiece = captured;
 
-    PieceInfo movingInfo = charToPieceInfo(movingChar);
-    if (!movingInfo.valid) {
+    if (moving == Piece::None) {
         return false;
     }
+    const PieceType movingType = typeOf(moving);
 
     // 移動元をクリア
-    board[from] = kEmpty;
+    board[from] = Piece::None;
     occupied.clear(from);
     colorOcc[ci].clear(from);
-    pieceOcc[ci][static_cast<int>(movingInfo.type)].clear(from);
+    pieceOcc[ci][static_cast<int>(movingType)].clear(from);
 
     // 取る駒の処理
-    if (capturedChar != kEmpty) {
-        PieceInfo capInfo = charToPieceInfo(capturedChar);
-        if (capInfo.valid) {
-            int oi = static_cast<int>(opposite(side));
-            occupied.clear(to);
-            colorOcc[oi].clear(to);
-            pieceOcc[oi][static_cast<int>(capInfo.type)].clear(to);
+    if (captured != Piece::None) {
+        int oi = static_cast<int>(opposite(side));
+        occupied.clear(to);
+        colorOcc[oi].clear(to);
+        pieceOcc[oi][static_cast<int>(typeOf(captured))].clear(to);
 
-            // 持ち駒に追加（成り解除して）
-            PieceType basePt = demotePieceType(capInfo.type);
-            HandType ht = pieceTypeToHandType(basePt);
-            if (ht != HandType::HandTypeNb) {
-                ++hand[ci][static_cast<std::size_t>(ht)];
-            }
+        // 持ち駒に追加（成り解除して）
+        HandType ht = handTypeOf(typeOf(captured));
+        if (ht != HandType::HandTypeNb) {
+            ++hand[ci][static_cast<std::size_t>(ht)];
         }
     }
 
     // 成り処理
-    PieceType placedType = move.promote ? promotePieceType(movingInfo.type) : movingInfo.type;
-    char placedChar = pieceInfoToChar(side, placedType);
+    PieceType placedType = move.promote ? promotedType(movingType) : movingType;
 
     // 移動先に配置
-    board[to] = placedChar;
+    board[to] = pieceOf(side, placedType);
     occupied.set(to);
     colorOcc[ci].set(to);
     pieceOcc[ci][static_cast<int>(placedType)].set(to);
 
     // 玉の位置更新
-    if (movingInfo.type == PieceType::King) {
+    if (movingType == PieceType::King) {
         kingSq[ci] = to;
     }
 
@@ -273,13 +149,13 @@ void EnginePosition::undoMove(const UndoState& undo, Color side) noexcept
         Square to = move.to;
 
         // 盤面から除去
-        board[to] = kEmpty;
+        board[to] = Piece::None;
         occupied.clear(to);
         colorOcc[ci].clear(to);
         pieceOcc[ci][static_cast<int>(move.piece)].clear(to);
 
         // 持ち駒を戻す
-        HandType ht = pieceTypeToHandType(move.piece);
+        HandType ht = handTypeOf(move.piece);
         if (ht != HandType::HandTypeNb) {
             ++hand[ci][static_cast<std::size_t>(ht)];
         }
@@ -292,42 +168,36 @@ void EnginePosition::undoMove(const UndoState& undo, Color side) noexcept
     Square to = move.to;
 
     // 現在toにある駒の情報
-    char currentPieceChar = board[to];
-    PieceInfo currentInfo = charToPieceInfo(currentPieceChar);
+    const Piece current = board[to];
 
     // toから除去
-    if (currentInfo.valid) {
-        board[to] = kEmpty;
+    if (current != Piece::None) {
+        board[to] = Piece::None;
         occupied.clear(to);
         colorOcc[ci].clear(to);
-        pieceOcc[ci][static_cast<int>(currentInfo.type)].clear(to);
+        pieceOcc[ci][static_cast<int>(typeOf(current))].clear(to);
     }
 
     // fromに元の駒を戻す
     board[from] = undo.movedPieceBefore;
-    PieceInfo origInfo = charToPieceInfo(undo.movedPieceBefore);
-    if (origInfo.valid) {
+    if (undo.movedPieceBefore != Piece::None) {
         occupied.set(from);
         colorOcc[ci].set(from);
-        pieceOcc[ci][static_cast<int>(origInfo.type)].set(from);
+        pieceOcc[ci][static_cast<int>(typeOf(undo.movedPieceBefore))].set(from);
     }
 
     // 取った駒を復元
-    if (undo.capturedPiece != kEmpty) {
-        PieceInfo capInfo = charToPieceInfo(undo.capturedPiece);
-        if (capInfo.valid) {
-            int oi = static_cast<int>(opposite(side));
-            board[to] = undo.capturedPiece;
-            occupied.set(to);
-            colorOcc[oi].set(to);
-            pieceOcc[oi][static_cast<int>(capInfo.type)].set(to);
+    if (undo.capturedPiece != Piece::None) {
+        int oi = static_cast<int>(opposite(side));
+        board[to] = undo.capturedPiece;
+        occupied.set(to);
+        colorOcc[oi].set(to);
+        pieceOcc[oi][static_cast<int>(typeOf(undo.capturedPiece))].set(to);
 
-            // 持ち駒から除去
-            PieceType basePt = demotePieceType(capInfo.type);
-            HandType ht = pieceTypeToHandType(basePt);
-            if (ht != HandType::HandTypeNb) {
-                --hand[ci][static_cast<std::size_t>(ht)];
-            }
+        // 持ち駒から除去
+        HandType ht = handTypeOf(typeOf(undo.capturedPiece));
+        if (ht != HandType::HandTypeNb) {
+            --hand[ci][static_cast<std::size_t>(ht)];
         }
     }
 

@@ -10,7 +10,7 @@
 #include "shogitypes.h"
 #include "usimove.h"
 
-class ShogiBoard;
+class Position;
 
 /**
  * @brief CSA の指し手と USI の指し手の変換（盤は読むだけで動かさない）
@@ -21,11 +21,11 @@ class ShogiBoard;
 namespace CsaMoveConverter {
 
 /// 指し手の CSA の表記（"+7776FU"・"-0055KA"）。指す前の盤で駒を読む。動かす駒がなければ空
-QString toCsa(const UsiMove& move, Turn mover, const ShogiBoard& board);
+QString toCsa(const UsiMove& move, Turn mover, const Position& board);
 
 /// CSA の指し手を、指す前の盤での USI の指し手にする（成りは盤の駒と CSA の駒種を比べて決める）。
 /// 書式・手番・駒が盤と合わなければ nullopt
-std::optional<UsiMove> toUsi(const QString& csaMove, const ShogiBoard& board);
+std::optional<UsiMove> toUsi(const QString& csaMove, const Position& board);
 
 } // namespace CsaMoveConverter
 

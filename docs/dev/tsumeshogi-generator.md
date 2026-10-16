@@ -85,9 +85,9 @@ TsumeshogiGeneratorDialog
 
 ### 盤面内部表現
 
-局面は `ShogiBoard`（`m_board`）で持つ。盤の駒は `ShogiBoard::setPieceAt` で置き、攻方の持駒は盤の駒台に置く。
-未使用駒は SFEN を作る直前に守方の駒台に置き、SFEN は `ShogiBoard::convertBoardToSfen` と `convertStandToSfen` で書く。
-王手の検証には盤（`m_board`）をそのまま `EngineMoveValidator::isInCheck()` に渡す。
+局面は値の型 `Position`（`m_board`）で持つ。盤の駒は `Position::setPieceAt` で置き、攻方の持駒は `Position::addToHand` で足す。
+未使用駒は SFEN を作る直前に守方の持駒に足し、SFEN は `Position::toSfen(Turn::Black, 1)`（攻方の手番・1手目）で書く。
+王手の検証には局面（`m_board`）をそのまま `EngineMoveValidator::isInCheck()` に渡す。
 
 ## 事前選別 (TsumeshogiCandidateScreener)
 
@@ -201,7 +201,7 @@ SFEN重複排除は唯一性検査と独立して行う。`registerFoundPosition
 | `m_progressTimer` | UI進捗更新 | 500ms（リピート） |
 | `m_verificationStepTimer` | 余詰検査の続行 | 0ms（シングルショット） |
 
-探索は `TsumeshogiGenerator::sendMateSearch()` が `UsiSearchRequest`（`go` は `UsiGo::mate()`）にまとめて `UsiEngineSession::search()` に頼む。
+探索は `TsumeshogiGenerator::sendMateSearch(sfen, ms)` が `UsiSearchRequest`（局面は `UsiPosition::parse(sfen)`、`go` は `UsiGo::mate()`）にまとめて `UsiEngineSession::search()` に頼む。
 stop を送った後に届いた応答は `UsiCheckmate::stopped` が付き、結果として扱わない。
 
 エンジンの応答が遅れた場合、停止・応答待ちの時間だけ総予算を超えることがある。
@@ -301,7 +301,7 @@ Python側は監査記録 `audit.jsonl` を即時保存し、同じ検証器の�
 
 ## 駒を1枚除いた局面（トリミング）
 
-トリミング処理では、SFEN を `ShogiBoard` に読み、駒を1枚除いて守方（後手）の持駒にしたあと、`ShogiBoard` から SFEN を書き出す
+トリミング処理では、SFEN を局面の値 `Position` に読み、駒を1枚除いて守方（後手）の持駒にしたあと、`Position::toSfen(Turn::Black, 1)` で SFEN を書き出す
 （`TsumeshogiGenerator::removePieceFromSfen()`）。手番は先手、手数は1に固定する。
 
 除去候補（`TrimCandidate`）の並び:

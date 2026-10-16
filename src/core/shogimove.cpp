@@ -7,7 +7,7 @@ QDebug operator<<(QDebug dbg, const ShogiMove& move)
 {
     QDebugStateSaver saver(dbg);
     dbg.nospace() << "ShogiMove(" << move.move.toString()
-                  << " moving=" << pieceToChar(move.movingPiece)
-                  << " captured=" << pieceToChar(move.capturedPiece) << ")";
+                  << " moving=" << move.movingPiece
+                  << " captured=" << move.capturedPiece << ")";
     return dbg;
 }

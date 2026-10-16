@@ -29,7 +29,7 @@ bool belongsTo(Piece piece, Turn side)
 
 void PvNotationFormatter::setPosition(const QString& sfen)
 {
-    m_hasPosition = !sfen.isEmpty() && m_position.trySetSfen(sfen);
+    m_hasPosition = !sfen.isEmpty() && m_position.assignSfen(sfen);
     if (!m_hasPosition && !sfen.isEmpty()) {
         qCWarning(lcEngine) << "読み筋の局面を読めません:" << sfen.left(80);
     }
@@ -40,11 +40,11 @@ void PvNotationFormatter::setPreviousMove(BoardSquare to)
     m_previousTo = to;
 }
 
-Piece PvNotationFormatter::movingPiece(const ShogiBoard& board, const UsiMove& move, Turn mover)
+Piece PvNotationFormatter::movingPiece(const Position& board, const UsiMove& move, Turn mover)
 {
     if (move.isDrop()) {
         const Piece piece = move.dropPieceFor(mover);
-        if (board.pieceAt(move.to) != Piece::None || board.pieceStandCount(piece) <= 0) return Piece::None;
+        if (board.pieceAt(move.to) != Piece::None || board.handCount(piece) <= 0) return Piece::None;
         return piece;
     }
     const Piece piece = board.pieceAt(move.from);
@@ -61,7 +61,7 @@ QString PvNotationFormatter::convertCurrMoveToKanjiNotation(QStringView str) con
     const std::optional<UsiMove> move = UsiMove::parse(str);
     if (!m_hasPosition || !move) return QString();
 
-    const Turn mover = m_position.currentPlayer();
+    const Turn mover = m_position.sideToMove();
     const Piece moving = movingPiece(m_position, *move, mover);
     if (moving == Piece::None) return QString();
 
@@ -94,8 +94,8 @@ void PvNotationFormatter::formatPv(const QStringList& pv)
     m_pvKanjiStr.reserve(moveCount * 10);
     m_pvUsiStr.reserve(moveCount * 6);
 
-    m_pvBoard.copyPositionFrom(m_position);
-    Turn mover = m_position.currentPlayer();
+    m_pvBoard = m_position;
+    Turn mover = m_position.sideToMove();
     BoardSquare previousTo = m_previousTo;
 
     for (qsizetype i = 0; i < pv.size(); ++i) {
@@ -141,7 +141,7 @@ void PvNotationFormatter::formatPv(const QStringList& pv)
             m_searchedUsi = token;
         }
 
-        m_pvBoard.applyUsiMove(*move, mover);
+        m_pvBoard.applyAs(*move, mover);
         previousTo = move->to;
         mover = (mover == Turn::Black) ? Turn::White : Turn::Black;
     }

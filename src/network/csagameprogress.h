@@ -57,8 +57,8 @@ struct CsaGameProgress {
     int moveCount() const { return record.moveCount(); }
     /// 直前の手の移動先（「同」の判定用。手が無ければ無効な升）
     BoardSquare previousTo() const { return record.destinationOf(record.moveCount()); }
-    /// エンジンへ渡す今の局面の position コマンド
-    QString positionCommand() const { return record.positionCommand(record.moveCount()); }
+    /// エンジンに探索させる今の局面（開始局面からの手順）
+    UsiPosition usiPosition() const { return record.usiPosition(record.moveCount()); }
 
     int totalMs(bool black) const { return black ? blackTotalMs : whiteTotalMs; }
     int remainingMs(bool black) const { return black ? blackRemainingMs : whiteRemainingMs; }

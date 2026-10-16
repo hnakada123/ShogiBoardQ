@@ -4,7 +4,7 @@
 #include "csamoveconverter.h"
 
 #include "shoginotation.h"
-#include "shogiboard.h"
+#include "shogiposition.h"
 
 namespace {
 
@@ -17,7 +17,7 @@ QString squareText(BoardSquare square)
 
 namespace CsaMoveConverter {
 
-QString toCsa(const UsiMove& move, Turn mover, const ShogiBoard& board)
+QString toCsa(const UsiMove& move, Turn mover, const Position& board)
 {
     if (!move.isValid()) return {};
     Piece after = Piece::None;
@@ -34,13 +34,13 @@ QString toCsa(const UsiMove& move, Turn mover, const ShogiBoard& board)
     return sign + squareText(move.isDrop() ? BoardSquare{} : move.from) + squareText(move.to) + code;
 }
 
-std::optional<UsiMove> toUsi(const QString& csaMove, const ShogiBoard& board)
+std::optional<UsiMove> toUsi(const QString& csaMove, const Position& board)
 {
     if (csaMove.size() < 7) return std::nullopt;
     const QChar sign = csaMove.at(0);
     if (sign != QLatin1Char('+') && sign != QLatin1Char('-')) return std::nullopt;
     const Turn mover = sign == QLatin1Char('+') ? Turn::Black : Turn::White;
-    if (mover != board.currentPlayer()) return std::nullopt;
+    if (mover != board.sideToMove()) return std::nullopt;
 
     const BoardSquare from{csaMove.at(1).digitValue(), csaMove.at(2).digitValue()};
     const BoardSquare to{csaMove.at(3).digitValue(), csaMove.at(4).digitValue()};
@@ -53,7 +53,7 @@ std::optional<UsiMove> toUsi(const QString& csaMove, const ShogiBoard& board)
         // 打てるのは持ち駒にある玉以外の生駒
         if (isPromoted(after) || after == Piece::BlackKing) return std::nullopt;
         move.drop = after;
-        if (board.pieceStandCount(move.dropPieceFor(mover)) <= 0) return std::nullopt;
+        if (board.handCount(move.dropPieceFor(mover)) <= 0) return std::nullopt;
     } else {
         // 成る手は、盤の生駒が CSA では成った駒になっている
         move.from = from;

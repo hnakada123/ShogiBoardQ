@@ -18,6 +18,7 @@
 #include "usigotime.h"
 #include "usiinfo.h"
 #include "usimessages.h"
+#include "usiposition.h"
 
 class EngineProcessManager;
 
@@ -108,11 +109,11 @@ public:
 
     /**
      * @brief 局面を送って探索を始める（全種類の go の入口）
-     * @param position position コマンド（空なら送らない）
+     * @param position 探索する局面（空なら position コマンドを送らない）
      *
      * 探索の文脈（経過時間・評価値・候補手）をここで新しくする。先読みは直前の bestmove の ponder の手を予想とする。
      */
-    void startSearch(const QString& position, const UsiGo& go);
+    void startSearch(const UsiPosition& position, const UsiGo& go);
     /// 探索中なら stop を送る（停止待ちの間はもう一度は送らない）
     void sendStop();
     /// 先読みが当たった。先読みの探索を本探索にする（停止待ち・回収済みなら送らない）
@@ -135,8 +136,8 @@ signals:
     void searchCandidateChanged();
     /// 探索を始めた（思考情報を消す）
     void searchStarted();
-    /// 読み筋を表示する局面（探索の局面）が変わった
-    void positionChanged(const QString& sfen);
+    /// 読み筋を表示する局面（探索の局面と、そこに至った直前の手）が変わった
+    void positionChanged(const UsiPosition& position);
     /// 初期化（readyok まで）が終わった。失敗したときは先に errorOccurred が届く
     void initializationFinished(bool success);
 

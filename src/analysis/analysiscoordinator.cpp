@@ -127,15 +127,11 @@ void AnalysisCoordinator::sendAnalyzeForPly(int ply)
         return;
     }
 
-    const QString sfen = m_deps.positions.at(ply);
+    const UsiPosition position = m_deps.positions.at(ply);
+    qCDebug(lcAnalysis).noquote() << "sendAnalyzeForPly: ply=" << ply << "posCmd=" << position.command();
 
-    // startpos・position コマンドはそのまま、それ以外は "position sfen ..." で送る
-    const QString positionCommand = sfen == QStringLiteral("startpos") || sfen.startsWith(QStringLiteral("position "))
-        ? sfen : QStringLiteral("position sfen %1").arg(sfen);
-    qCDebug(lcAnalysis).noquote() << "sendAnalyzeForPly: ply=" << ply << "posCmd=" << positionCommand;
-
-    emit positionPrepared(ply, sfen);
-    if (m_running) emit requestSearch(positionCommand, m_opt.movetimeMs);
+    emit positionPrepared(ply, position.sfen());
+    if (m_running) emit requestSearch(position, m_opt.movetimeMs);
 }
 
 

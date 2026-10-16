@@ -20,30 +20,17 @@ ThinkingInfoFormatter::ThinkingInfoFormatter(QObject* parent)
 ThinkingInfoFormatter::~ThinkingInfoFormatter() = default;
 
 // ============================================================
-// 依存関係設定
+// 探索の局面
 // ============================================================
 
-// ============================================================
-// 状態設定
-// ============================================================
-
-void ThinkingInfoFormatter::setPreviousMove(int fileTo, int rankTo)
+void ThinkingInfoFormatter::setSearchPosition(const UsiPosition& position)
 {
-    m_previousFileTo = fileTo;
-    m_previousRankTo = rankTo;
-}
-
-void ThinkingInfoFormatter::setLastUsiMove(const QString& move)
-{
-    m_lastUsiMove = move;
-    if (const auto usi = UsiMove::parse(move)) setPreviousMove(usi->to.file, usi->to.rank);
-}
-
-void ThinkingInfoFormatter::setBaseSfen(const QString& sfen)
-{
-    m_baseSfen = sfen;
+    m_baseSfen = position.sfen();
+    const std::optional<UsiMove>& last = position.lastMove();
+    m_lastUsiMove = last ? last->toString() : QString();
+    m_previousTo = last ? last->to : BoardSquare{};
     // 読み筋の手番の印（▲△）は、この局面の手番から決まる
-    m_formatter->setPosition(sfen);
+    m_formatter->setPosition(m_baseSfen);
 }
 
 // ============================================================
@@ -70,7 +57,7 @@ void ThinkingInfoFormatter::flushInfoBuffer()
 void ThinkingInfoFormatter::processInfo(const UsiInfo& info)
 {
     // 読み筋・探索手を、思考を始めた局面の上で漢字表記にする
-    m_formatter->setPreviousMove(BoardSquare{m_previousFileTo, m_previousRankTo});
+    m_formatter->setPreviousMove(m_previousTo);
     m_formatter->format(info);
 
     emitSearchedHand();

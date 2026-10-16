@@ -72,7 +72,7 @@ struct Harness : QObject {
     bool coherentUndo = false;
 
     const RecordLine& line() const { return match->record(); }
-    QString position() const { return line().positionCommand(line().moveCount()); }
+    QString position() const { return line().usiPosition(line().moveCount()).command(); }
 
     /// 待ったを知らせた時点で、手順・ライブ対局・表示中の手が揃っている
     void observeUndo(int ply)
@@ -131,7 +131,7 @@ struct Harness : QObject {
     {
         const auto move = UsiMove::parse(usi);
         if (!move) return false;
-        const std::optional<RecordEntry> played = gc.applyMove(*move);
+        const std::optional<RecordEntry> played = gc.applyMove(*move, match->lastMoveDestination());
         if (!played) return false;
         match->onHumanMove(*played);
         return true;
@@ -189,7 +189,7 @@ private slots:
         QCOMPARE(h.line().lastSfen(), targetSfen);
         // 取り消した手はツリーに残し、棋譜欄は現在手までを表示する。
         QCOMPARE(h.tree.nodeCount(), count + 1);
-        QCOMPARE(h.tree.displayItemsForLine(0).size(), count + 1);
+        QCOMPARE(h.tree.exportLine(0).entries.size(), count);
         QVERIFY(h.tree.nodeAt(undoneId) != nullptr);
         // 戻した局面までの指し手は、分岐ツリー（棋譜の正本）の表示中の手順から取れる
         const RecordLine line = h.state.currentRecordLine();
@@ -228,8 +228,8 @@ private slots:
         QCOMPARE(h.tree.lineCount(), 2);
         QCOMPARE(h.tree.mainLine().size(), 3);
         QCOMPARE(h.tree.mainLine().last(), h.session.liveNode());
-        QCOMPARE(h.tree.root()->childAt(1)->displayText(), h.tree.displayItemsForLine(1).at(1).prettyMove);
-        QCOMPARE(h.tree.displayItemsForLine(1).size(), opening.size() + 1);
+        QCOMPARE(h.tree.root()->childAt(1)->displayText(), h.tree.exportLine(1).entries.at(0).displayText);
+        QCOMPARE(h.tree.exportLine(1).entries.size(), opening.size());
     }
 
     // 「待った」で、時計も取り消した自分の手を指し始めたときへ戻る。続けて使うと2手ずつ戻る。
@@ -300,8 +300,8 @@ private slots:
         KifuBranchNode* branchPoint = h.tree.findByPlyOnMainLine(4);
         QCOMPARE(branchPoint->childCount(), 2);
         QCOMPARE(branchPoint->childAt(1), undoneHead);
-        QCOMPARE(h.tree.displayItemsForLine(1).at(5).prettyMove, undoneText);
-        QCOMPARE(h.tree.displayItemsForLine(1).size(), 7);
+        QCOMPARE(h.tree.exportLine(1).entries.at(4).displayText, undoneText);
+        QCOMPARE(h.tree.exportLine(1).entries.size(), 6);
         QCOMPARE(h.record.rowCount(), 7);
         // 分岐のある手は棋譜欄で「+」付きになる。
         QVERIFY(h.record.data(h.record.index(5, 0)).toString().endsWith(QLatin1Char('+')));

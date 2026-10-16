@@ -55,11 +55,9 @@ bool AnalysisSession::start(const AnalysisOptions& opt)
     connect(engine, &Usi::errorOccurred, this, &AnalysisSession::onEngineError);
     connect(engine, &Usi::searchTimedOut, this, &AnalysisSession::onSearchTimedOut);
 
-    m_positionStr = opt.positionStr;
+    m_position = opt.position;
     m_byoyomiMs = opt.byoyomiMs;
     m_multiPV = opt.multiPV;
-    m_previousTo = opt.previousTo;
-    m_lastUsiMove = opt.lastUsiMove;
     const UsiProtocolHandler* protocol = engine->protocol();
     if (m_mode == Mode::Tsume) {
         connect(protocol, &UsiProtocolHandler::checkmateReceived, this, &AnalysisSession::onCheckmate);
@@ -89,13 +87,11 @@ bool AnalysisSession::start(const AnalysisOptions& opt)
 void AnalysisSession::startSearch()
 {
     if (!m_engine) return;
-    m_engine->setPreviousMove(m_previousTo);
-    m_engine->setLastUsiMove(m_lastUsiMove);
     if (m_mode == Mode::Tsume) {
-        m_engine->startMateSearch(m_positionStr, m_byoyomiMs);
+        m_engine->startMateSearch(m_position, m_byoyomiMs);
         return;
     }
-    m_engine->startConsideration(m_positionStr, m_byoyomiMs, m_multiPV);
+    m_engine->startConsideration(m_position, m_byoyomiMs, m_multiPV);
     emit considerationSearchStarted();
 }
 
@@ -161,22 +157,15 @@ void AnalysisSession::followDisplayedPosition()
     const KifuBranchNode* node = m_deps.navState->currentNode();
     if (!node || node->sfen().isEmpty()) return;
     // 局面に至った手（読み筋の「同」の判定と、矢印の基準）
-    BoardSquare previousTo;
-    QString lastUsiMove;
-    if (node->isActualMove()) {
-        previousTo = node->move().move.to;
-        lastUsiMove = node->move().move.toString();
-    }
-    updatePosition(QStringLiteral("position sfen ") + node->sfen(), previousTo, lastUsiMove);
+    const std::optional<UsiMove> lastMove =
+        node->isActualMove() ? std::optional<UsiMove>(node->move().move) : std::nullopt;
+    if (const auto position = UsiPosition::fromSfen(node->sfen(), lastMove)) updatePosition(*position);
 }
 
-bool AnalysisSession::updatePosition(const QString& positionStr, BoardSquare previousTo, const QString& lastUsiMove)
+bool AnalysisSession::updatePosition(const UsiPosition& position)
 {
-
-    if (m_mode != Mode::Consideration || m_positionStr == positionStr) return false;
-    m_positionStr = positionStr;
-    m_previousTo = previousTo;
-    m_lastUsiMove = lastUsiMove;
+    if (m_mode != Mode::Consideration || m_position == position) return false;
+    m_position = position;
     requestConsiderationRestart();
     return true;
 }

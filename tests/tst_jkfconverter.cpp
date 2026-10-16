@@ -2,8 +2,8 @@
 #include <QCoreApplication>
 
 #include "kifu_file_helper.h"
+#include "jkfmoveparser.h"
 #include "jkftosfenconverter.h"
-#include "kifdisplayitem.h"
 #include "kifparsetypes.h"
 #include "kifu_test_helper.h"
 
@@ -44,9 +44,9 @@ private slots:
         QCOMPARE(moves, kExpectedUsiMoves);
     }
 
-    void mapPresetToSfen_hirate()
+    void presetToSfen_hirate()
     {
-        QString sfen = JkfToSfenConverter::mapPresetToSfen(QStringLiteral("HIRATE"));
+        QString sfen = JkfMoveParser::presetToSfen(QStringLiteral("HIRATE"));
         QCOMPARE(sfen, kHirateSfen);
     }
 
@@ -254,13 +254,13 @@ private slots:
     }
 
     // ========================================
-    // Normal: mapPresetToSfen for various handicaps
+    // Normal: presetToSfen for various handicaps
     // ========================================
 
-    void mapPresetToSfen_unknown()
+    void presetToSfen_unknown()
     {
         // Unknown presets use the documented hirate fallback.
-        QString sfen = JkfToSfenConverter::mapPresetToSfen(QStringLiteral("UNKNOWN_PRESET"));
+        QString sfen = JkfMoveParser::presetToSfen(QStringLiteral("UNKNOWN_PRESET"));
         QCOMPARE(sfen, kHirateSfen);
     }
 
@@ -316,8 +316,8 @@ private slots:
             QStringLiteral("jkf")));
 
         QString error;
-        const QList<KifDisplayItem> disp = KifuFile::displayItems<JkfToSfenConverter>(tmp.fileName(), &error);
-        QVERIFY(disp.size() >= 2); // 開始局面 + 1手以上
+        const RecordLine line = KifuFile::mainline<JkfToSfenConverter>(tmp.fileName(), &error);
+        QVERIFY(!line.entries.isEmpty()); // 1手以上
         QVERIFY(error.contains(QStringLiteral("out-of-range color")));
     }
 
@@ -340,7 +340,7 @@ private slots:
         QString error;
         const bool ok = KifuFile::parse<JkfToSfenConverter>(tmp.fileName(), result, &error);
         QVERIFY(ok);
-        QVERIFY(!result.mainline.displayItems().isEmpty());
+        QVERIFY(!result.mainline.entries.isEmpty());
         QVERIFY(error.contains(QStringLiteral("out-of-range color")));
     }
     // ========================================

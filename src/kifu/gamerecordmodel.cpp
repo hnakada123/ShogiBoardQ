@@ -37,7 +37,7 @@ void GameRecordModel::setBranchTree(KifuBranchTree* tree)
 void GameRecordModel::setComment(KifuBranchNode* node, const QString& text)
 {
     if (!node || node->comment() == text) return;
-    node->setComment(text);
+    node->record().comment = text;
     m_isDirty = true;
     emit commentChanged(node->nodeId(), text);
 }
@@ -45,7 +45,7 @@ void GameRecordModel::setComment(KifuBranchNode* node, const QString& text)
 void GameRecordModel::setBookmark(KifuBranchNode* node, const QString& text)
 {
     if (!node || node->bookmark() == text) return;
-    node->setBookmark(text);
+    node->record().bookmark = text;
     m_isDirty = true;
     emit bookmarkChanged(node->nodeId(), text);
 }
@@ -59,9 +59,9 @@ QStringList GameRecordModel::toKifLines(const ExportContext& ctx) const
     return KifExporter::exportLines(*this, ctx);
 }
 
-QList<KifDisplayItem> GameRecordModel::collectMainlineForExport() const
+RecordLine GameRecordModel::collectMainlineForExport() const
 {
-    return m_branchTree ? m_branchTree->displayItemsForLine(0) : QList<KifDisplayItem>();
+    return m_branchTree ? m_branchTree->exportLine(0) : RecordLine{};
 }
 
 QStringList GameRecordModel::collectMainlineUsiForExport() const

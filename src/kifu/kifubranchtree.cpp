@@ -3,6 +3,7 @@
 /// @brief 分岐ツリーデータモデルクラスの実装
 
 #include "kifubranchtree.h"
+#include "sfenutils.h"
 #include <algorithm>
 #include <memory>
 #include "kifubranchnode.h"
@@ -47,8 +48,8 @@ void KifuBranchTree::setRootSfen(const QString& sfen)
 
     m_root = createNode();
     m_root->setPly(0);
-    m_root->setDisplayText(tr("開始局面"));
-    m_root->setSfen(sfen);
+    m_root->record().displayText = tr("開始局面");
+    m_root->record().sfen = sfen;
 
     notifyTreeChanged();
 }
@@ -387,37 +388,28 @@ void KifuBranchTree::setComment(int nodeId, const QString& comment)
 {
     KifuBranchNode* node = nodeAt(nodeId);
     if (node != nullptr) {
-        node->setComment(comment);
+        node->record().comment = comment;
     }
 }
 
 // === データ抽出（ResolvedRow互換）===
 
-QList<KifDisplayItem> KifuBranchTree::displayItemsForLine(int lineIndex) const
+RecordLine KifuBranchTree::exportLine(int lineIndex) const
 {
-    QList<KifDisplayItem> result;
+    RecordLine result;
+    const QList<BranchLine> lines = allLines();
+    if (lineIndex < 0 || lineIndex >= lines.size()) return result;
 
-    QList<BranchLine> lines = allLines();
-    if (lineIndex < 0 || lineIndex >= lines.size()) {
-        return result;
+    for (const KifuBranchNode* node : std::as_const(lines.at(lineIndex).nodes)) {
+        if (node->ply() == 0) {
+            result.startSfen = node->sfen();
+            result.openingComment = node->comment();
+            result.openingBookmark = node->bookmark();
+        } else {
+            result.entries << node->record();
+        }
     }
-
-    const BranchLine& line = lines.at(lineIndex);
-    for (KifuBranchNode* node : std::as_const(line.nodes)) {
-        KifDisplayItem item;
-        item.prettyMove = node->displayText();
-        item.beforeSfen = node->parent() ? node->parent()->sfen() : QString();
-        item.usiMove = node->isTerminal() ? QString() : KifuPresentation::usiMove(node->move());
-        item.terminal = node->isTerminal();
-        item.terminalType = node->terminalType();
-        item.terminalSide = node->terminalSide();
-        item.comment = node->comment();
-        item.bookmark = node->bookmark();
-        item.timeText = node->timeText();
-        item.ply = node->ply();
-        result.append(item);
-    }
-
+    result.currentPly = result.moveCount();
     return result;
 }
 
@@ -523,41 +515,12 @@ KifuBranchNode* KifuBranchTree::variationHead(KifuBranchNode* node)
 
 namespace {
 
-/// 持ち駒フィールドを駒種ごとの枚数に分解し、並び順に依存しない形へ正規化する。
-/// 以前の版の盤は駒種ごとに先後を交互に書いていたので、文字列のままでは
-/// 同じ持ち駒でも一致しないことがある（その版で保存した局面も比べられるようにする）。
-QString normalizeHands(const QString& hands)
-{
-    QMap<QChar, int> counts;
-    int pending = 0;
-    for (const QChar ch : hands) {
-        if (ch.isDigit()) {
-            pending = pending * 10 + ch.digitValue();
-        } else if (ch != QLatin1Char('-')) {
-            counts[ch] += (pending > 0) ? pending : 1;
-            pending = 0;
-        }
-    }
-
-    QString out;
-    for (auto it = counts.cbegin(); it != counts.cend(); ++it) {
-        if (it.value() > 1) {
-            out += QString::number(it.value());
-        }
-        out += it.key();
-    }
-    return out.isEmpty() ? QStringLiteral("-") : out;
-}
-
-/// 手数を除いた局面（盤面・手番・正規化した持ち駒）を比較用キーにする。
-/// 盤面・手番・持ち駒が揃っていない不完全な SFEN は空文字を返す。
+/// 手数を除いた局面（盤面・手番・持ち駒。持ち駒の並びは問わない）を比較用キーにする。
+/// 局面として読めない文字列は、最初の3つの欄。盤面・手番・持ち駒が揃っていなければ空文字を返す。
 QString positionKey(const QString& sfen)
 {
-    const QStringList parts = sfen.split(QLatin1Char(' '), Qt::SkipEmptyParts);
-    if (parts.size() < 3) {
-        return QString();
-    }
-    return parts.at(0) + QLatin1Char(' ') + parts.at(1) + QLatin1Char(' ') + normalizeHands(parts.at(2));
+    if (sfen.split(QLatin1Char(' '), Qt::SkipEmptyParts).size() < 3) return QString();
+    return SfenUtils::normalizeSfenKey(sfen);
 }
 
 /// 手数を除いた局面（盤面・手番・持ち駒）が一致するか。どちらかが不完全なら false

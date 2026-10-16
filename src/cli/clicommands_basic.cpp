@@ -51,18 +51,19 @@ QJsonArray gameInfoToJson(const QList<KifGameInfoItem>& items)
     return array;
 }
 
-QJsonArray movesToJson(const QList<KifDisplayItem>& items, const QStringList& usiMoves)
+/// 本譜の各行（指し手と終局）。指し手の行には USI の指し手を添える
+QJsonArray movesToJson(const RecordLine& line)
 {
     QJsonArray array;
-    for (const auto& item : items) {
-        if (item.ply <= 0) continue;
+    for (qsizetype i = 0; i < line.entries.size(); ++i) {
+        const RecordEntry& entry = line.entries.at(i);
         QJsonObject obj;
-        obj[QStringLiteral("ply")] = item.ply;
-        obj[QStringLiteral("text")] = item.prettyMove;
-        if (item.ply - 1 < usiMoves.size()) obj[QStringLiteral("usi")] = usiMoves.at(item.ply - 1);
-        if (!item.timeText.isEmpty()) obj[QStringLiteral("time")] = item.timeText;
-        if (!item.comment.isEmpty()) obj[QStringLiteral("comment")] = item.comment;
-        if (!item.bookmark.isEmpty()) obj[QStringLiteral("bookmark")] = item.bookmark;
+        obj[QStringLiteral("ply")] = line.startPly + static_cast<int>(i);
+        obj[QStringLiteral("text")] = entry.displayText;
+        if (!entry.isTerminal()) obj[QStringLiteral("usi")] = entry.move.move.toString();
+        if (const QString time = entry.time.toText(); !time.isEmpty()) obj[QStringLiteral("time")] = time;
+        if (!entry.comment.isEmpty()) obj[QStringLiteral("comment")] = entry.comment;
+        if (!entry.bookmark.isEmpty()) obj[QStringLiteral("bookmark")] = entry.bookmark;
         array.append(obj);
     }
     return array;
@@ -152,7 +153,7 @@ int CliCommands::convertKifu(const QStringList& args)
     obj[QStringLiteral("ply_count")] = static_cast<int>(result.usiMoves.size());
     obj[QStringLiteral("usi_moves")] = QJsonArray::fromStringList(result.usiMoves);
     obj[QStringLiteral("sfens")] = QJsonArray::fromStringList(result.sfens);
-    obj[QStringLiteral("moves")] = movesToJson(result.moves, result.usiMoves);
+    obj[QStringLiteral("moves")] = movesToJson(result.mainline);
     obj[QStringLiteral("game_info")] = gameInfoToJson(result.gameInfo);
     obj[QStringLiteral("has_branches")] = result.hasBranches;
     obj[QStringLiteral("warnings")] = QJsonArray::fromStringList(result.warnings);

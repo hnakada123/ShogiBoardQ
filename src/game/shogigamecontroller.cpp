@@ -22,7 +22,7 @@
 
 ShogiGameController::ShogiGameController(QObject* parent)
     : QObject(parent)
-    , m_board(std::make_unique<ShogiBoard>(9, 9))
+    , m_board(std::make_unique<ShogiBoard>())
 {
 }
 
@@ -40,8 +40,6 @@ void ShogiGameController::newGame(const QString& startSfen)
     board()->setSfen(startSfen);
     setForcedPromotion(false);
 
-    // 前の対局の最終手の移動先が残ると「同」表記が誤表示されるためリセット
-    m_previousTo = BoardSquare{};
     m_lastMove = UsiMove{};
 }
 
@@ -75,30 +73,18 @@ void ShogiGameController::setCurrentPlayer(Turn player)
 }
 
 // ============================================================
-// 棋譜文字列変換
-// ============================================================
-
-QString ShogiGameController::convertMoveToKanjiStr(Turn mover, Piece moving, const UsiMove& move)
-{
-    // 前手と同じマスへの移動は「同」表記にする
-    const QString text = KifMoveText::format(mover, moving, move, m_previousTo);
-    m_previousTo = move.to;
-    return text;
-}
-
-// ============================================================
 // 指し手検証・盤面更新
 // ============================================================
 
 LegalMoveStatus ShogiGameController::legalStatus(const UsiMove& move, Turn mover) const
 {
-    return EngineMoveValidator::legalStatus(*board(), mover, move);
+    return EngineMoveValidator::legalStatus(board()->position(), mover, move);
 }
 
-std::optional<RecordEntry> ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo)
+std::optional<RecordEntry> ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, BoardSquare previousTo)
 {
     const auto move = prepareMove(outFrom, outTo);
-    return move ? applyRecordedMove(*move) : std::nullopt;
+    return move ? applyRecordedMove(*move, previousTo) : std::nullopt;
 }
 
 std::optional<UsiMove> ShogiGameController::prepareMove(const QPoint& outFrom, const QPoint& outTo)
@@ -151,7 +137,7 @@ std::optional<UsiMove> ShogiGameController::prepareMove(const QPoint& outFrom, c
     return move;
 }
 
-std::optional<RecordEntry> ShogiGameController::applyMove(const UsiMove& move)
+std::optional<RecordEntry> ShogiGameController::applyMove(const UsiMove& move, BoardSquare previousTo)
 {
     if (!move.isValid()) {
         qCWarning(lcGame).noquote() << "applyMove: rejected" << move.toString();
@@ -163,16 +149,16 @@ std::optional<RecordEntry> ShogiGameController::applyMove(const UsiMove& move)
         qCWarning(lcGame).noquote() << "applyMove: illegal move" << move.toString();
         return std::nullopt;
     }
-    return commitMove(move);
+    return commitMove(move, previousTo);
 }
 
-std::optional<RecordEntry> ShogiGameController::applyRecordedMove(const UsiMove& move)
+std::optional<RecordEntry> ShogiGameController::applyRecordedMove(const UsiMove& move, BoardSquare previousTo)
 {
     if (!move.isValid()) return std::nullopt;
-    return commitMove(move);
+    return commitMove(move, previousTo);
 }
 
-std::optional<RecordEntry> ShogiGameController::commitMove(const UsiMove& move)
+std::optional<RecordEntry> ShogiGameController::commitMove(const UsiMove& move, BoardSquare previousTo)
 {
     const Turn mover = currentPlayer();
     const Piece moving = move.isDrop() ? move.dropPieceFor(mover) : board()->pieceAt(move.from);
@@ -186,7 +172,7 @@ std::optional<RecordEntry> ShogiGameController::commitMove(const UsiMove& move)
         return std::nullopt;
     }
     RecordEntry entry = RecordEntry::played(ShogiMove(move, moving, captured),
-                                            convertMoveToKanjiStr(mover, moving, move), board()->toSfen());
+                                            KifMoveText::format(mover, moving, move, previousTo), board()->toSfen());
     m_lastMove = move;
     return entry;
 }

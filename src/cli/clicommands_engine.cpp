@@ -24,7 +24,7 @@ QJsonObject startedFields(const EngineListSettings::EngineEntry& engine, const C
     QJsonObject obj;
     obj[QStringLiteral("engine")] = engine.name;
     obj[QStringLiteral("engine_path")] = engine.path;
-    obj[QStringLiteral("position")] = position.positionCommand;
+    obj[QStringLiteral("position")] = position.position.command();
     obj[QStringLiteral("start_sfen")] = position.startSfen;
     obj[QStringLiteral("sfen")] = position.finalSfen;
     obj[QStringLiteral("moves")] = QJsonArray::fromStringList(position.moves);
@@ -138,7 +138,7 @@ int CliCommands::analyze(const QStringList& args)
     EngineAnalysisRunner::Request request;
     request.enginePath = engine->path;
     request.engineName = engine->name;
-    request.positionCommand = position->positionCommand;
+    request.position = position->position;
     request.thinkMs = *seconds * 1000;
     request.multiPv = *multiPv;
 
@@ -184,7 +184,7 @@ int CliCommands::mate(const QStringList& args)
     MateSearchRunner::Request request;
     request.enginePath = engine->path;
     request.engineName = engine->name;
-    request.positionCommand = position->positionCommand;
+    request.position = position->position;
     request.timeMs = *seconds * 1000;
 
     QJsonObject started = startedFields(*engine, *position);

@@ -34,8 +34,8 @@ struct RecordRows {
                            const QString& bookmark = QString(), const ShogiMove& move = ShogiMove())
     {
         KifuBranchNode* node = tree.addMoveQuiet(path.last(), move, text, path.last()->sfen(), time);
-        node->setComment(comment);
-        node->setBookmark(bookmark);
+        node->record().comment = comment;
+        node->record().bookmark = bookmark;
         path.append(node);
         model.setPath(path);
         return node;

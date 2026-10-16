@@ -7,6 +7,7 @@
 #include <QList>
 #include <QMap>
 #include <QString>
+#include "shogiposition.h"
 #include "shogitypes.h"
 
 /**
@@ -36,9 +37,8 @@ public:
 
     // --- 公開API ---
 
-    /// 盤面データと駒台データから点数を計算する
-    static JishogiResult calculate(const QList<Piece>& boardData,
-                                   const QMap<Piece, int>& pieceStand);
+    /// 局面（盤と持ち駒）から点数を計算する
+    static JishogiResult calculate(const Position& position);
 
     /// 宣言条件を満たしているか（玉が敵陣、敵陣に10枚以上、王手がかかっていない）
     /// @param kingInCheck 玉が王手されているかどうか

@@ -58,7 +58,7 @@ public:
      * @brief 検討中に局面を変える
      * @return true: やり直しを始めた, false: 検討中でないか同じ局面
      */
-    bool updatePosition(const QString& positionStr, BoardSquare previousTo, const QString& lastUsiMove);
+    bool updatePosition(const UsiPosition& position);
 
 public slots:
     /// 検討中なら、表示中の手の局面で検討をやり直す
@@ -104,11 +104,9 @@ private:
     QString m_startupError;
     QString m_engineName;                         ///< 使っているエンジンの名前
     QTimer m_restartTimer;                       ///< 停止時に取り消す再開要求
-    QString m_positionStr;                        ///< 検討中の position 文字列
+    UsiPosition m_position;                       ///< 検討・詰み探索する局面
     int m_byoyomiMs = 0;                          ///< 検討の時間制限（ms）
     int m_multiPV = 1;                            ///< 検討の候補手数
-    BoardSquare m_previousTo;                     ///< 局面に至った手の移動先
-    QString m_lastUsiMove;                        ///< 局面に至った手（USI形式）
 };
 
 #endif // ANALYSISSESSION_H

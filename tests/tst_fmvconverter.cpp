@@ -20,7 +20,7 @@ private slots:
         board.setSfen(kHirateSfen);
 
         fmv::EnginePosition pos;
-        bool ok = fmv::Converter::toEnginePosition(pos, board.boardData(), board.pieceStand());
+        bool ok = fmv::Converter::toEnginePosition(pos, board.position());
         QVERIFY(ok);
 
         // 先手玉の位置（8段目の4筋: rank=8, file=4 → sq=76）
@@ -51,7 +51,7 @@ private slots:
         board.setSfen(sfen);
 
         fmv::EnginePosition pos;
-        fmv::Converter::toEnginePosition(pos, board.boardData(), board.pieceStand());
+        fmv::Converter::toEnginePosition(pos, board.position());
 
         // 先手の持ち歩
         QCOMPARE(pos.hand[0][static_cast<std::size_t>(fmv::HandType::Pawn)], 1);
@@ -65,7 +65,7 @@ private slots:
         board.setSfen(kHirateSfen);
 
         fmv::EnginePosition pos;
-        fmv::Converter::toEnginePosition(pos, board.boardData(), board.pieceStand());
+        fmv::Converter::toEnginePosition(pos, board.position());
 
         // 7六歩（内部の升は0始まり）
         const UsiMove sm = UsiMove::fromString(u"7g7f");
@@ -88,7 +88,7 @@ private slots:
         board.setSfen(sfen);
 
         fmv::EnginePosition pos;
-        fmv::Converter::toEnginePosition(pos, board.boardData(), board.pieceStand());
+        fmv::Converter::toEnginePosition(pos, board.position());
 
         // 先手銀打ち
         const UsiMove sm = UsiMove::fromString(u"S*5e");
@@ -109,7 +109,7 @@ private slots:
         board.setSfen(sfen);
 
         fmv::EnginePosition pos;
-        fmv::Converter::toEnginePosition(pos, board.boardData(), board.pieceStand());
+        fmv::Converter::toEnginePosition(pos, board.position());
 
         // 5四歩→5三: 3段目は敵陣なので成り可
         const UsiMove sm = UsiMove::fromString(u"5d5c");

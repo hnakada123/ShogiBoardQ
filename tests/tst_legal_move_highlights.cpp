@@ -118,12 +118,10 @@ private slots:
         QFETCH(QList<QPoint>, expected);
         QFETCH(bool, flipped);
         BoardUi ui(sfen, flipped);
-        const auto before = ui.gc.board()->boardData();
-        const auto hand = ui.gc.board()->pieceStand();
+        const Position before = ui.gc.board()->position();
         ui.click(from);
         QCOMPARE(ui.destinations(), expected);
-        QCOMPARE(ui.gc.board()->boardData(), before);
-        QCOMPARE(ui.gc.board()->pieceStand(), hand);
+        QCOMPARE(ui.gc.board()->position(), before);
     }
 
     void drops_data()

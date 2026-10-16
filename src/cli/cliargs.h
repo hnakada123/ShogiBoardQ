@@ -10,12 +10,13 @@
 #include <optional>
 
 #include "enginelistsettings.h"
+#include "usiposition.h"
 
 /// `--sfen` / `--moves` から組み立てた局面
 struct CliPosition {
     QString startSfen;        ///< 正規化した開始局面（startpos は平手 SFEN に展開）
     QStringList moves;        ///< USI 手順
-    QString positionCommand;  ///< エンジンに送る "position ..." 文字列
+    UsiPosition position;     ///< エンジンに探索させる局面
     QString finalSfen;        ///< 手順適用後の SFEN
 };
 

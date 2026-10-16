@@ -13,6 +13,7 @@
 #include "thinkinginforow.h"
 #include "usiinfo.h"
 #include "usimessages.h"
+#include "usiposition.h"
 
 class PvNotationFormatter;
 
@@ -31,20 +32,15 @@ public:
     explicit ThinkingInfoFormatter(QObject* parent = nullptr);
     ~ThinkingInfoFormatter() override;
 
-    /// 直前の指し手の行き先（読み筋の最初の手の「同」の判定）
-    void setPreviousMove(int fileTo, int rankTo);
-    /// 読み筋を表示する局面に至った指し手（USI 形式。読み筋の盤の強調）。
-    /// その移動先を「同」の基準にする（先読み中は予想手が局面に至った手）
-    void setLastUsiMove(const QString& move);
-
     /// info を処理してシグナルを発行（バッファを通さない）
     void processInfo(const UsiInfo& info);
 
 public slots:
     /// まとめて処理するために溜めている info を処理する
     void flushInfoBuffer();
-    /// 読み筋を表示する局面（探索の局面）
-    void setBaseSfen(const QString& sfen);
+    /// 読み筋を表示する局面（探索の局面）。そこに至った直前の手を、読み筋の最初の手の「同」の基準と
+    /// 盤の強調に使う（先読み中は予想した相手の手が直前の手）
+    void setSearchPosition(const UsiPosition& position);
     /// info を受信（50ms ごとにまとめて処理する）
     void onInfoReceived(const UsiInfo& info);
     /// 探索を始めた。溜めている info を捨て、思考情報を消すよう知らせる
@@ -65,10 +61,9 @@ private:
     void emitSearchedHand();
     void emitStatus(const UsiInfo& info);
 
-    int m_previousFileTo = 0;           ///< 前回の指し手の筋
-    int m_previousRankTo = 0;           ///< 前回の指し手の段
-    QString m_baseSfen;                 ///< 思考開始時の局面SFEN
-    QString m_lastUsiMove;
+    BoardSquare m_previousTo;           ///< 探索の局面に至った手の移動先（「同」の基準）
+    QString m_baseSfen;                 ///< 探索の局面の SFEN
+    QString m_lastUsiMove;              ///< 探索の局面に至った手（USI 形式）
     QLocale m_locale;                   ///< 3桁区切りの表示（English）
 
     // 探索手の欄の表示。同じ手が何度も届く（MultiPV では候補の数だけの手が繰り返し届く）ので、

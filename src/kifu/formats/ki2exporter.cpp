@@ -7,7 +7,7 @@
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
 #include "sfenutils.h"
-#include "shogiboard.h"
+#include "shogiposition.h"
 #include "logcategories.h"
 #include "kifuexportcommon.h"
 
@@ -31,9 +31,9 @@ static QStringList ki2MoveTexts(const QList<KifuBranchNode*>& nodes, const QStri
 {
     QStringList out;
     out.reserve(nodes.size());
-    ShogiBoard board;
-    bool synced = board.trySetSfen(startSfen) || (!nodes.isEmpty() && board.trySetSfen(nodes.first()->sfen()));
-    Turn mover = board.currentPlayer();
+    Position board;
+    bool synced = board.assignSfen(startSfen) || (!nodes.isEmpty() && board.assignSfen(nodes.first()->sfen()));
+    Turn mover = board.sideToMove();
     BoardSquare previousTo;
     for (const KifuBranchNode* node : nodes) {
         if (node->ply() == 0 || node->isTerminal()) {
@@ -45,7 +45,7 @@ static QStringList ki2MoveTexts(const QList<KifuBranchNode*>& nodes, const QStri
         QString text;
         if (synced && move.isValid()) {
             if (needsText) text = Ki2MoveNotation::format(board, mover, move, previousTo);
-            synced = board.applyUsiMove(move, mover);
+            synced = board.applyAs(move, mover);
         } else {
             synced = false;
         }
@@ -54,8 +54,8 @@ static QStringList ki2MoveTexts(const QList<KifuBranchNode*>& nodes, const QStri
         } else {
             static const QRegularExpression fromPosPattern(QStringLiteral("\\([0-9０-９]+[0-9０-９]+\\)$"));
             if (needsText) text = node->displayText().trimmed().remove(fromPosPattern);
-            synced = board.trySetSfen(node->sfen());
-            mover = board.currentPlayer();
+            synced = board.assignSfen(node->sfen());
+            mover = board.sideToMove();
         }
         previousTo = move.isValid() ? move.to : BoardSquare{};
         out << text;

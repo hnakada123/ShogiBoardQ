@@ -205,10 +205,9 @@ bool BranchTreeEditController::recordBoardMove(QPoint& from, QPoint& to, ShogiGa
     // 合法判定・成りの確認・指し手表記の生成は対局と同じ処理を使う
     gc->board()->setSfen(parent->sfen());
 
-    gc->setPreviousMoveDestination(parent->isActualMove() ? parent->move().move.to : BoardSquare{});
-
-    // 成り・不成は利用者に確認する
-    const std::optional<RecordEntry> played = gc->validateAndMove(from, to);
+    // 成り・不成は利用者に確認する。「同」表記の基準は指す局面に至った手
+    const std::optional<RecordEntry> played =
+        gc->validateAndMove(from, to, parent->isActualMove() ? parent->move().move.to : BoardSquare{});
     if (!played) return false;
 
     // 足した手へ移ってからツリーの変更を知らせる（盤は指した後の局面のまま、表示は1回だけ描き直す）

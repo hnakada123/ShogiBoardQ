@@ -4,41 +4,35 @@
 /// @file jkftosfenconverter.h
 /// @brief JKF形式棋譜コンバータクラスの定義
 
-#include <QString>
-#include <QStringList>
-#include <QList>
-#include <QMap>
-#include <QJsonObject>
 #include <QJsonArray>
+#include <QJsonObject>
+#include <QList>
+#include <QString>
+#include <QStringView>
 
-#include "kifdisplayitem.h"
 #include "kifparsetypes.h"
 
+class Position;
+
 /**
- * @brief JSON棋譜フォーマット(JKF)ファイルを解析し、GUIに必要なデータを取得するクラス
+ * @brief JSON棋譜フォーマット(JKF)の棋譜を読む
  *
  * JKF仕様: https://github.com/na2hiro/json-kifu-format
  *
- * 指し手変換・初期局面構築は JkfMoveParser 名前空間に委譲し、
- * 本クラスはファイルI/O・パーサ状態管理・オーケストレーションを担当する。
+ * JSON は1回だけ解析し、棋譜・開始局面・手合割の名前・対局情報をまとめて返す。
+ * 指し手・初期局面の変換は JkfMoveParser、手順の組み立ては KifLineBuilder に任せる。
  */
 class JkfToSfenConverter
 {
 public:
-    static QString mapPresetToSfen(const QString& preset);
-
-    // テキスト（貼り付けた棋譜など）
-    static QString detectInitialSfenFromText(const QString& text, QString* detectedLabel = nullptr);
-    [[nodiscard]] static bool parseText(const QString& text, KifParseResult& out, QString* errorMessage = nullptr);
-    static QList<KifGameInfoItem> extractGameInfoFromText(const QString& text);
+    /// 棋譜を読む。手合割の名前は preset の手合割（OTHER は「任意局面」）
+    static KifuParseOutcome parse(QStringView text, const ParseOptions& options = {});
 
 private:
     static bool parseJson(const QByteArray& data, QJsonObject& root, QString* warn);
-    static bool parseRoot(const QJsonObject& root, KifParseResult& out, QString* errorMessage);
     static QList<KifGameInfoItem> gameInfoFromRoot(const QJsonObject& root);
     static QString buildInitialSfen(const QJsonObject& root, QString* detectedLabel = nullptr);
-    static bool parseMovesArray(const QJsonArray& movesArray, const QString& baseSfen,
-                                KifParseResult& out, QString* warn);
+    static bool readRecord(const QJsonArray& moves, const Position& start, KifParseResult& out, ParseReport& report);
 };
 
 #endif // JKFTOSFENCONVERTER_H

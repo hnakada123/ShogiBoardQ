@@ -164,7 +164,7 @@ private:
         if (lastNotice == QStringLiteral("成りますか？") && dialog && !promotionPreviewRect.isEmpty()) {
             auto* view = dialog->findChild<ShogiView*>();
             promotionPreview = view->grab(promotionPreviewRect).toImage();
-            promotionSfen = view->board()->convertBoardToSfen();
+            promotionSfen = view->board()->position().boardSfen();
             dialog->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/tsume-promotion.png"));
         }
         if (lastNotice.contains(QStringLiteral("応手")) && dialog) {
@@ -227,7 +227,7 @@ private slots:
         } else {
             QVERIFY(!positions.isEmpty());
             QCOMPARE(positions.first().at(1).toString(), move);
-            QCOMPARE(view->board()->convertBoardToSfen(), session->sfen().section(QLatin1Char(' '), 0, 0));
+            QCOMPARE(view->board()->position().boardSfen(), session->sfen().section(QLatin1Char(' '), 0, 0));
         }
         dialog = nullptr;
     }
@@ -445,7 +445,7 @@ private slots:
         QVERIFY(replyTimer.isValid());
         // 応手後の盤面が反映されても通知はまだ出ず、GUIは操作可能なまま。
         auto* board = window.findChild<ShogiView*>()->board();
-        QCOMPARE(board->convertBoardToSfen(), session->sfen().section(QLatin1Char(' '), 0, 0));
+        QCOMPARE(board->position().boardSfen(), session->sfen().section(QLatin1Char(' '), 0, 0));
         QVERIFY(lastNotice.isEmpty());
         QTest::qWait(600);
         QVERIFY(lastNotice.isEmpty());
@@ -559,7 +559,7 @@ private slots:
         shogi::Position expected;
         QVERIFY(expected.set_sfen(problem.sfen.toStdString(), true));
         QVERIFY(expected.apply_usi_move("3c5c+"));
-        QCOMPARE(board->convertBoardToSfen(), QString::fromStdString(expected.to_sfen()).section(QLatin1Char(' '), 0, 0));
+        QCOMPARE(board->position().boardSfen(), QString::fromStdString(expected.to_sfen()).section(QLatin1Char(' '), 0, 0));
         clickMove(QStringLiteral("1c4c")); // 再生中の盤クリックでは対局も再生位置も進めない。
         QCOMPARE(session->sfen(), saved);
         QCOMPARE(replay->currentPly(), 1);
@@ -571,7 +571,7 @@ private slots:
         QTest::mouseClick(first, Qt::LeftButton);
         QCOMPARE(replay->currentPly(), 0);
         QVERIFY(!first->isEnabled() && !previous->isEnabled());
-        QCOMPARE(board->convertBoardToSfen(), problem.sfen.section(QLatin1Char(' '), 0, 0));
+        QCOMPARE(board->position().boardSfen(), problem.sfen.section(QLatin1Char(' '), 0, 0));
         QTest::mouseClick(last, Qt::LeftButton);
         QCOMPARE(replay->currentPly(), 5);
         QVERIFY(!next->isEnabled() && !last->isEnabled());
@@ -586,7 +586,7 @@ private slots:
         QVERIFY(restart->isVisible() && undo->isVisible() && showSolution->isVisible());
         QVERIFY(restart->isEnabled() && showSolution->isEnabled());
         QVERIFY(!stop->isVisible() && !retry->isVisible());
-        QCOMPARE(board->convertBoardToSfen(), saved.section(QLatin1Char(' '), 0, 0));
+        QCOMPARE(board->position().boardSfen(), saved.section(QLatin1Char(' '), 0, 0));
         QCOMPARE(session->remainingPlies(), 3);
         QVERIFY(window.findChild<QPushButton*>(QStringLiteral("tsumeUndo"))->isEnabled());
         clickMove(QStringLiteral("1c4c"));
@@ -676,7 +676,7 @@ private slots:
         QVERIFY(!stop->isVisible() && !retry->isVisible() && !resume->isVisible());
         QTest::qWait(2100);
         auto* board = window.findChild<ShogiView*>()->board();
-        QCOMPARE(board->convertBoardToSfen(), problems[0].sfen.section(QLatin1Char(' '), 0, 0));
+        QCOMPARE(board->position().boardSfen(), problems[0].sfen.section(QLatin1Char(' '), 0, 0));
         QCOMPARE(session->state(), TsumeGameSession::State::Ready);
         QVERIFY(lastNotice.isEmpty());
         auto* solutionText = window.findChild<QPlainTextEdit*>(QStringLiteral("tsumeSolutionText"));

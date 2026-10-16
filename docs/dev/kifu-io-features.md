@@ -23,11 +23,13 @@
 
 ### 読めない手・指せない手・パス
 
-どの形式も同じ扱いにする（`KifuParseCommon::truncationNotice()`）。
+どの形式も同じ扱いにする。扱いは `ParseOptions`（`src/kifu/kifparsetypes.h`）の1か所で決め、変換器は読み込み中の `ParseReport` に記録する（`rejectMove()`・`rejectPass()`）。
+読み込み（`KifuLoadParser`）は既定の `UnreadableMove::TruncateLine` で読む（`FailRecord` にすると、棋譜全体を読めなかったことにする）。
 
 - 表記が読めない手、局面に合わない手、手番と違う符号の手（CSA）、指せない手があれば、その手順はその手の手前で打ち切り、
-  読み込みは成功として続ける。警告に理由と「何手目まで読んだか」（`The record was read up to move N.`）を書き、画面には警告として出す。
-- パスの手（KIF・KI2 の「パス」）も、対応していない手として同じに打ち切る（`passNotice()`）。
+  読み込みは成功として続ける。警告に理由と「何手目まで読んだか」（`The record was read up to move N.`。`ParseReport::truncationNotice()`）を書き、画面には警告として出す。
+  指せない手の理由は全形式で同じ文面にする（`KifLineBuilder::cannotRestore()`。例: `KIF: Cannot restore move 3: Source square is empty: 7g7e`）。
+- パスの手（KIF・KI2 の「パス」）も、対応していない手として同じに打ち切る（`ParseReport::rejectPass()`）。
 - 変化の手順も同じ。変化の最初の手から読めなければ、その変化は手のない変化になる（本譜は残す）。
 - 開始局面が読めないときだけ、読み込みを失敗にする。
 
@@ -56,8 +58,10 @@ USEN Files (*.usen)
   - 読んだ棋譜の対局情報は `gameInfoLoaded` で知らせる
 - **`KifuLoadParser`** (`src/kifu/kifuloadparser.h/.cpp`) — GUI を含まない読み込み口（結果は値 `KifuLoadResult`）
   - `parseFile(path)` — ファイルを1回だけ読み（`readFileText()`：CSA は CSA の文字コード宣言、それ以外は自動判別）、`parseContent()` に渡す
-  - `parseContent(content, format)` — 形式ごとの変換器に振り分ける。指し手のない USI・SFEN と BOD は局面だけを `positionOnly` に返す
-- 各形式の変換器（`src/kifu/formats/*tosfenconverter`）はテキストを読むだけで、ファイルは読まない（`parseText` / `detectInitialSfenFromText` / `extractGameInfoFromText`。KIF・KI2 は行に分けた後の `parseLines` / `extractGameInfoFromLines` も持つ）
+  - `parseContent(content, format)` — `KifuFormat` から形式ごとの `parse()` を表（`parserFor()`）で選んで呼び、結果（`KifuParseOutcome`）を `KifuLoadResult` に写す。指し手のない USI・SFEN と BOD は局面だけを `positionOnly` に返す
+- 各形式の変換器（`src/kifu/formats/*tosfenconverter`）はテキストを読むだけで、ファイルは読まない。形式ごとに1つの関数 `parse(text, options)` だけを持ち、1回の解析で棋譜（本譜・変化）・開始局面・手合割の名前・対局情報・警告を `KifuParseOutcome` に入れて返す（`KifToSfenConverter::parse` / `Ki2ToSfenConverter::parse` / `CsaToSfenConverter::parse` / `JkfToSfenConverter::parse` / `UsenToSfenConverter::parse` / `UsiToSfenConverter::parse`。BOD は `KifTextParser::parseBod`）
+  - KIF・KI2 は `KifTextParser::parse(text, Dialect::Kif / Dialect::Ki2)` が同じ処理で読む（行の分類・「変化：N手」の区切り・コメント・しおり・開始局面・指し手の文法 `KifMoveGrammar`）。KIF の手は「KI2 の手＋移動元 `(xy)`」として読み、移動元が書いてなければ局面の合法手から決める
+  - どの形式も、手順は `KifLineBuilder` で組み立てる。手を読んだその場で局面を進めて棋譜の行（`RecordEntry`）を作り、棋譜欄の表記は原文を写さずに指し手から `KifMoveText::format()` で作る（書かれていた修飾語・「不成」は残す）
 
 ---
 

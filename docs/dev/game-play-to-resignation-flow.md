@@ -117,7 +117,7 @@ std::optional<RecordEntry> ShogiGameController::validateAndMove(QPoint& outFrom,
 | 成り判定 | 下の「成り判定の詳細」のとおり。どちらも不合法なら `nullopt` を返し、盤は変えない |
 | ドラッグ終了 | `emit endDragSignal()`（→ `ShogiView::endDrag()`） |
 | 盤面更新 | `commitMove()` → `ShogiBoard::applyUsiMove(move, mover)` で駒の移動・取得を反映し、手番を相手に移す（SFEN の手数も1つ進む。手番が替わると `ShogiBoard::turnChanged` が出る。3.5） |
-| 棋譜の行 | `RecordEntry::played(ShogiMove(move, moving, captured), 棋譜文字列, board()->toSfen())`。棋譜文字列は `convertMoveToKanjiStr()`（`KifMoveText::format()`）で日本語表記にする（例: `"▲７六歩(77)"`。直前の手と同じマスなら「同」） |
+| 棋譜の行 | `RecordEntry::played(ShogiMove(move, moving, captured), 棋譜文字列, board()->toSfen())`。棋譜文字列は `KifMoveText::format(mover, moving, move, previousTo)` で日本語表記にする（例: `"▲７六歩(77)"`。呼び出し側が渡した直前の手の移動先 `previousTo` と同じマスなら「同」。対局では `MatchCoordinator::lastMoveDestination()`） |
 | 直前の手 | `m_lastMove` を更新する（`lastMove()` で読める） |
 
 着手確定の知らせ `moveCommitted` はここでは出さない。司令塔が一手を確定し終えてから `notifyMoveCommitted()` で出す（4.4）。
@@ -177,7 +177,7 @@ Strategy は `MatchStrategyHost`（`src/game/gamemodestrategy.h`。`MatchCoordin
 
 エンジンは `EngineLifecycleManager`（`src/game/enginelifecyclemanager.cpp`）の枠（E1・E2。思考情報と通信ログの表示先）に置き、枠ごとにどちらの手番を指すかを覚える（`createEngine(slot, side, name)`、`engineFor(side)`）。`EngineLifecycleManager` は合成ルートが対局の時計を渡して作り、司令塔（`MatchCoordinator::Deps::engines`）と検討・詰み探索（`AnalysisSession`）が共有する。人間対エンジンでは、エンジンは手番によらず E1 に置く。
 
-エンジンへの思考依頼は非同期である。依頼した関数はすぐに戻り、指し手は `Usi::matchMoveReady(const UsiMatchMove&)` シグナルで Strategy の `onEngineMoveReady()` に届く。`UsiMatchMove`（`src/engine/usimatchhandler.h`）は、指した側・指し手・指した後の position・先読みを始めた局面・考えた時間・最善の読み筋の評価値を持つ。
+エンジンへの思考依頼は非同期である。依頼した関数はすぐに戻り、指し手は `Usi::matchMoveReady(const UsiMatchMove&)` シグナルで Strategy の `onEngineMoveReady()` に届く。`UsiMatchMove`（`src/engine/usimatchhandler.h`）は、指した側・指し手・考えた時間・最善の読み筋の評価値を持つ。先読みの局面は `UsiMatchHandler` だけが持ち、`UsiMatchMove` には載せない。
 
 ### 2.1 一手の確定: MatchCoordinator::completeMove()
 
@@ -216,23 +216,21 @@ MatchCoordinator::completeMove(played, engineScore)
 ```
 HumanVsEngineStrategy::onHumanMove(played)
     ├─ (1) 一手を確定: host.completeHumanMove(played)（2.1）→ false（終局）なら return
-    ├─ (2) エンジンに直前の手の移動先を知らせる（読み筋の「同」表記用）
-    │      engine->setPreviousMove(played.move.move.to)
-    └─ (3) 盤の手番がエンジンなら思考を依頼（非同期）
+    └─ (2) 盤の手番がエンジンなら思考を依頼（非同期）
            m_waitingForMove = true
            host.requestEngineMove(m_engineSide)
 ```
 
-`MatchCoordinator::requestEngineMove(side)` は、`engineFor(side)->requestMatchMove(m_record.positionCommand(currentPly()), m_session.ponder(side), {})` を呼ぶ。`position` は確定済みの対局の手順から作り、ponder は前の bestmove で先読みを始めた局面（`MatchSessionState::ponder(side)`）である。思考時間はエンジンにつないだ対局時計から、思考を始める時点で求める（3.4）。
+`MatchCoordinator::requestEngineMove(side)` は、`engineFor(side)->requestMatchMove(m_record.usiPosition(currentPly()), {})` を呼ぶ。探索させる局面（`UsiPosition`）は確定済みの対局の手順から作る。局面に至った直前の手（`UsiPosition::lastMove()`）がエンジン側に届き、読み筋の「同」表記と盤の強調に使われる（エンジンに直前の手を別に知らせる呼び出しは無い）。先読みの当たり・外れは `UsiMatchHandler` が自分の持つ先読みの局面と比べて判断する。思考時間はエンジンにつないだ対局時計から、思考を始める時点で求める（3.4）。
 
 #### USI通信の詳細
 
 思考の依頼と bestmove の受け取りは `src/engine/usi.cpp`、`src/engine/usimatchhandler.cpp`、`src/engine/usiprotocolhandler.cpp` にある。
 
-1. `Usi::requestMatchMove(position, ponder, timing)`: エンジンが初期化中なら、終わるまで依頼を保留する（`UsiEngineSession::whenReady()`）。`UsiMatchHandler::requestMove()` を呼ぶ。
-2. `UsiMatchHandler::requestMove()`: `position` の局面から探索する手番を求める。時計が終局していれば何もしない。先読み（`go ponder`）中なら、予想が当たれば `ponderhit` を送り、外れなら `stop` を送って先読みの bestmove を受けてから探索し直す。そうでなければ `startAsyncSearch()` を呼ぶ。
-3. `UsiMatchHandler::startAsyncSearch()`: `position` と `go`（`UsiGoTimeCalculator` が求めた時間、3.4）を送り、応答待ちのタイマー（時間切れのある対局では今の手に使える残り時間）を始める。
-4. bestmove 受信: `UsiProtocolHandler::handleBestMove()` が行を `UsiBestMove` にし、考慮時間（`go` または `ponderhit` からの経過）と最善の読み筋の評価値を添えて `bestMoveReceived` を出す。`UsiMatchHandler::onBestMoveReceived()` は、`resign`・`win` なら探索した手番を添えて `resigned`・`declaredWin` を出す（5.4、8.5）。通常の手なら `ShogiClock::finishTurn()` で時計を精算し（時計が終局していればここで止める）、指し手・指した後の position・考慮時間・評価値を `UsiMatchMove` にまとめ、予想手があれば先読み（`go ponder`）を始めてから `moveReady` を出す（`Usi::matchMoveReady` に中継）。
+1. `Usi::requestMatchMove(position, timing)`: エンジンが初期化中なら、終わるまで依頼を保留する（`UsiEngineSession::whenReady()`）。`UsiMatchHandler::requestMove()` を呼ぶ。
+2. `UsiMatchHandler::requestMove()`: 探索する手番は `position.sideToMove()` で求める。時計が終局していれば何もしない。先読み（`go ponder`）中なら、頼まれた局面が先読みの局面（`m_ponder`）と値として等しければ `ponderhit` を送り、外れなら `stop` を送って先読みの bestmove を受けてから探索し直す（どちらの場合も先読みの局面は捨てる）。そうでなければ `startAsyncSearch()` を呼ぶ。
+3. `UsiMatchHandler::startAsyncSearch()`: `position.command()` と `go`（`UsiGoTimeCalculator` が求めた時間、3.4）を送り、応答待ちのタイマー（時間切れのある対局では今の手に使える残り時間）を始める。
+4. bestmove 受信: `UsiProtocolHandler::handleBestMove()` が行を `UsiBestMove` にし、考慮時間（`go` または `ponderhit` からの経過）と最善の読み筋の評価値を添えて `bestMoveReceived` を出す。`UsiMatchHandler::onBestMoveReceived()` は、`resign`・`win` なら探索した手番を添えて `resigned`・`declaredWin` を出す（5.4、8.5）。通常の手なら `ShogiClock::finishTurn()` で時計を精算し（時計が終局していればここで止める）、指し手・考慮時間・評価値を `UsiMatchMove` にまとめる。指し手を局面に指せれば（`UsiPosition::withMove()`）、予想手があれば予想手まで指した局面を先読みの局面にして先読み（`go ponder`）を始める。指せない手（反則）なら先読みはしない。どちらも `moveReady` を出し（`Usi::matchMoveReady` に中継）、指せない手は対局の側が反則手として扱う。
 
 #### エンジンの指し手: onEngineMoveReady()
 
@@ -245,9 +243,8 @@ HumanVsEngineStrategy::onEngineMoveReady(move)
 
 MatchCoordinator::applyEngineMove(move)
     ├─ 終局済み・棋譜に書けないなら false
-    ├─ gc->applyMove(move.move)（合法手か確かめて指す）
+    ├─ gc->applyMove(move.move, lastMoveDestination())（合法手か確かめて指す。「同」の基準は手順の最後の手の移動先）
     │      └─ 反則手: handleEngineIllegalMove(move.side) → false（8.6）
-    ├─ 先読みの局面を覚える: m_session.setPonder(move.side, move.ponderPosition)
     ├─ エンジンの考慮時間を時計に渡す: clock->setMeasuredConsiderationTime(move.side, move.elapsedMs)
     └─ completeMove(played, move.score)（2.1。評価値グラフへの追記を含む）
 ```
@@ -311,15 +308,13 @@ kickNextTurn()            ← beginPlay() の startInitialMoveIfNeeded() から�
 
 onEngineMoveReady(move)   ← Usi::matchMoveReady
     ├─ (1) 思考待ちで、終局しておらず、move.side が盤の手番か確かめる
-    ├─ (2) 相手エンジンに直前の手の移動先を知らせる
-    │      receiver->setPreviousMove(move.move.to)
-    ├─ (3) host.applyEngineMove(move)（2.2）
+    ├─ (2) host.applyEngineMove(move)（2.2）
     │      └─ false（反則手・千日手・最大手数・終局）なら return
-    └─ (4) 次のターンをスケジュール
+    └─ (3) 次のターンをスケジュール
            QTimer::singleShot(0, this, &EngineVsEngineStrategy::kickNextTurn)
 ```
 
-`QTimer::singleShot(0, ...)` により、Qtのイベントループに制御を返してから次のターンを始める。思考の依頼も非同期なので、エンジンが考えている間も UI は止まらない。`position` は人間対エンジンと同じく、司令塔が対局の手順から作る。時計は `setWaitingForEngines()` が止め・動かすが、`beginPlay()` より前（対局の準備中）は動かさない。
+`QTimer::singleShot(0, ...)` により、Qtのイベントループに制御を返してから次のターンを始める。思考の依頼も非同期なので、エンジンが考えている間も UI は止まらない。探索させる局面（`UsiPosition`）は人間対エンジンと同じく、司令塔が対局の手順から作る。相手エンジンの読み筋の「同」の基準も、その局面の直前の手（`lastMove()`）から決まる。時計は `setWaitingForEngines()` が止め・動かすが、`beginPlay()` より前（対局の準備中）は動かさない。
 
 ---
 
@@ -501,9 +496,9 @@ entries[1] ...
 
 - `MatchCoordinator::start()` が `MatchStartOptions::recordLine` の `currentPly` までを手順にする（後続の手は捨てる）。
 - `completeMove()` が確定した手を末尾に足す。行の SFEN は `ShogiGameController::commitMove()` が指した後の盤から作る（`ShogiBoard::applyUsiMove()` が SFEN の手数を1つ進める）。
-- エンジンへの `position` は `m_record.positionCommand(currentPly())`、千日手の判定は `m_record.sfens()` から作る。待った（`undoTwoPlies()`）は末尾の2手を取り除く。
+- エンジンに探索させる局面は `m_record.usiPosition(currentPly())`、次の手の「同」表記の基準は `lastMoveDestination()`（`m_record.destinationOf(currentPly())`）、千日手の判定は `m_record.sfens()` から作る。待った（`undoTwoPlies()`）は末尾の2手を取り除き、両方のエンジンに `Usi::forgetPonder()` で先読みの局面を捨てさせる。
 
-対局の設定・対局者・最大手数・終局状態・先読みの局面は `MatchSessionState`（`src/game/matchsessionstate.h`）が持つ。
+対局の設定・対局者・最大手数・終局状態は `MatchSessionState`（`src/game/matchsessionstate.h`）が持つ。先読みの局面はエンジンの `UsiMatchHandler` だけが持つ。
 
 ### 4.2 棋譜行の追記
 
@@ -882,8 +877,8 @@ MatchCoordinator::handleBreakOff()
     ├─ (1) 終局済みチェック
     │
     ├─ (2) 再開用に対局の状態を保存（captureInterruptedGame()）
-    │      ShogiClock::pauseAndSnapshot() で時計を止めて状態を写し、開始の設定・対局の手順・
-    │      「同」表記の基準を InterruptedGameState に入れる
+    │      ShogiClock::pauseAndSnapshot() で時計を止めて状態を写し、開始の設定・対局の手順を
+    │      InterruptedGameState に入れる（「同」表記の基準は再開後も手順の最後の手から導く）
     │
     ├─ (3) 時計を止めたときの精算で時間切れが確定していれば return
     │

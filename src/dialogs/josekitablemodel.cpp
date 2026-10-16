@@ -6,7 +6,7 @@
 #include "kifmovetext.h"
 #include "kifupresentation.h"
 #include "sfenreplay.h"
-#include "shogiboard.h"
+#include "shogiposition.h"
 
 #include <QLocale>
 
@@ -22,9 +22,9 @@ QString JosekiTableModel::moveText(const QString &usiMove, const QString &sfen)
     if (KifuPresentation::options().notation == KifuPresentation::Notation::Western)
         return KifuPresentation::move(sfen, usiMove, KifuPresentation::options());
 
-    ShogiBoard board;
-    (void)board.trySetSfen(sfen);
-    const Turn mover = board.currentPlayer();
+    Position board;
+    (void)board.assignSfen(sfen);
+    const Turn mover = board.sideToMove();
     const auto move = UsiMove::parse(usiMove);
     if (!move) return (mover == Turn::Black ? QStringLiteral("▲") : QStringLiteral("△")) + usiMove;
     const Piece moving = move->isDrop() ? move->dropPieceFor(mover) : board.pieceAt(move->from);

@@ -7,7 +7,7 @@
 #include "fmvconverter.h"
 #include "fmvlegalcore.h"
 #include "fmvlegalcore_internal.h"
-#include "shogiboard.h"
+#include "shogiposition.h"
 
 namespace {
 fmv::LegalCore& legalCore()
@@ -19,19 +19,17 @@ fmv::LegalCore& legalCore()
 
 // ---- 局面の読み込み ----
 
-EngineMoveValidator::Context EngineMoveValidator::load(const QList<Piece>& boardData,
-                                                       const QMap<Piece, int>& pieceStand,
-                                                       Turn turn)
+EngineMoveValidator::Context EngineMoveValidator::load(const Position& position, Turn turn)
 {
     Context ctx;
     ctx.turn = turn;
-    ctx.synced = fmv::Converter::toEnginePosition(ctx.pos, boardData, pieceStand);
+    ctx.synced = fmv::Converter::toEnginePosition(ctx.pos, position);
     return ctx;
 }
 
-EngineMoveValidator::Context EngineMoveValidator::load(const ShogiBoard& board, Turn turn)
+EngineMoveValidator::Context EngineMoveValidator::load(const Position& position)
 {
-    return load(board.boardData(), board.pieceStand(), turn);
+    return load(position, position.sideToMove());
 }
 
 // ---- 読み込んだ局面への問い合わせ ----
@@ -98,7 +96,7 @@ QList<UsiMove> EngineMoveValidator::pseudoLegalMoves(const Context& ctx)
         if (!pos.colorOcc[ci].test(fromSq)) {
             continue;
         }
-        const fmv::PieceType pt = fmv::detail::charToPieceType(pos.board[fromSq]);
+        const fmv::PieceType pt = fmv::detail::typeAt(pos, fromSq);
         if (pt == fmv::PieceType::PieceTypeNb) {
             continue;
         }
@@ -148,34 +146,31 @@ int EngineMoveValidator::checkCount(const Context& ctx)
 
 // ---- 1回だけ問い合わせるときの省略形 ----
 
-LegalMoveStatus EngineMoveValidator::legalStatus(const ShogiBoard& board, Turn turn, const UsiMove& move)
+LegalMoveStatus EngineMoveValidator::legalStatus(const Position& position, Turn turn, const UsiMove& move)
 {
-    return legalStatus(load(board, turn), move);
+    return legalStatus(load(position, turn), move);
 }
 
-QList<UsiMove> EngineMoveValidator::legalMoves(const ShogiBoard& board, Turn turn)
+QList<UsiMove> EngineMoveValidator::legalMoves(const Position& position, Turn turn)
 {
-    return legalMoves(load(board, turn));
+    return legalMoves(load(position, turn));
 }
 
-QList<UsiMove> EngineMoveValidator::pseudoLegalMoves(const ShogiBoard& board, Turn turn)
+QList<UsiMove> EngineMoveValidator::pseudoLegalMoves(const Position& position, Turn turn)
 {
-    return pseudoLegalMoves(load(board, turn));
+    return pseudoLegalMoves(load(position, turn));
 }
 
-bool EngineMoveValidator::isInCheck(const ShogiBoard& board, Turn turn)
+bool EngineMoveValidator::isInCheck(const Position& position, Turn turn)
 {
-    return checkCount(load(board, turn)) > 0;
+    return checkCount(load(position, turn)) > 0;
 }
 
 #ifdef SHOGIBOARDQ_TESTING
-bool EngineMoveValidator::syncContext(SimulationContext& simulation,
-                                      const QList<Piece>& boardData,
-                                      const QMap<Piece, int>& pieceStand,
-                                      Turn turn)
+bool EngineMoveValidator::syncContext(SimulationContext& simulation, const Position& position, Turn turn)
 {
     simulation.undoSize = 0;
-    simulation.context = load(boardData, pieceStand, turn);
+    simulation.context = load(position, turn);
     return simulation.context.synced;
 }
 

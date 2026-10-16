@@ -3,7 +3,6 @@
 
 #include "kifu_file_helper.h"
 #include "usentosfenconverter.h"
-#include "kifdisplayitem.h"
 #include "kifparsetypes.h"
 #include "terminalcodes.h"
 #include "kifu_test_helper.h"
@@ -49,7 +48,9 @@ private slots:
         QVERIFY(result.mainline.usiMoves().isEmpty());
         QVERIFY(result.variations.isEmpty());
         QVERIFY(KifuFile::usiMoves<UsenToSfenConverter>(file.fileName()).isEmpty());
-        QVERIFY(KifuFile::displayItems<UsenToSfenConverter>(file.fileName()).isEmpty());
+        const RecordLine line = KifuFile::mainline<UsenToSfenConverter>(file.fileName());
+        QVERIFY(line.isEmpty());
+        QVERIFY(line.entries.isEmpty());
     }
 
     void detectInitialSfen()
@@ -109,8 +110,8 @@ private slots:
             fixturePath(QStringLiteral("test_handicap.usen")), res, &error);
         QVERIFY2(ok, qPrintable(error));
 
-        // baseSfen が駒落ち局面であること
-        QCOMPARE(res.mainline.baseSfen,
+        // 開始局面が駒落ち局面であること
+        QCOMPARE(res.mainline.startSfen,
                  QStringLiteral("1nsgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"));
 
         // 11手の指し手 + 投了が含まれること
@@ -232,9 +233,10 @@ private slots:
     void extractMovesWithTimes_nonExistentFile()
     {
         QString error;
-        QList<KifDisplayItem> items = KifuFile::displayItems<UsenToSfenConverter>(
+        const RecordLine line = KifuFile::mainline<UsenToSfenConverter>(
             fixturePath(QStringLiteral("nonexistent.usen")), &error);
-        QVERIFY(items.isEmpty());
+        QVERIFY(line.isEmpty());
+        QVERIFY(line.entries.isEmpty());
     }
 
     // ========================================
@@ -367,7 +369,7 @@ private slots:
 
         (void)KifuFile::initialSfen<UsenToSfenConverter>(tmp.fileName());
         (void)KifuFile::gameInfo<UsenToSfenConverter>(tmp.fileName());
-        (void)KifuFile::displayItems<UsenToSfenConverter>(tmp.fileName(), &error);
+        (void)KifuFile::mainline<UsenToSfenConverter>(tmp.fileName(), &error);
 
         KifuTestHelper::verifyParsedRecord(success, result, error);
     }

@@ -8,16 +8,14 @@
 
 namespace fmv {
 
-using detail::charToPieceType;
+using detail::typeAt;
 using detail::givesDirectPawnCheck;
-using detail::isDropDeadSquare;
-using detail::isMandatoryPromotion;
+using detail::isDeadSquare;
 using detail::isPromotable;
 using detail::isPromotionZone;
 
 namespace {
 
-constexpr char kEmpty = ' ';
 
 } // namespace
 
@@ -38,7 +36,7 @@ LegalMoveStatus LegalCore::checkMoveVariants(EnginePosition& pos, Color side, co
     Move probe = candidate;
     const int toRank = squareRank(probe.to);
     // 強制成りでは成った手を、それ以外では不成の手を代表として検証する。
-    probe.promote = probe.kind == MoveKind::Board && isMandatoryPromotion(side, probe.piece, toRank);
+    probe.promote = probe.kind == MoveKind::Board && isDeadSquare(side, probe.piece, toRank);
     if (!isLegalAfterDoUndo(pos, side, probe)) {
         return {};
     }
@@ -129,7 +127,7 @@ bool LegalCore::isPseudoLegal(const EnginePosition& pos, Color side, const Move&
         }
 
         // 行き所なし
-        if (isDropDeadSquare(side, m.piece, toRank)) {
+        if (isDeadSquare(side, m.piece, toRank)) {
             return false;
         }
 
@@ -142,8 +140,7 @@ bool LegalCore::isPseudoLegal(const EnginePosition& pos, Color side, const Move&
     }
 
     // from に自分の駒があるか
-    char fromChar = pos.board[m.from];
-    if (fromChar == kEmpty) {
+    if (pos.board[m.from] == Piece::None) {
         return false;
     }
     if (!pos.colorOcc[ci].test(m.from)) {
@@ -151,7 +148,7 @@ bool LegalCore::isPseudoLegal(const EnginePosition& pos, Color side, const Move&
     }
 
     // 駒種チェック
-    PieceType fromType = charToPieceType(fromChar);
+    PieceType fromType = typeAt(pos, m.from);
     if (fromType != m.piece) {
         return false;
     }
@@ -168,7 +165,7 @@ bool LegalCore::isPseudoLegal(const EnginePosition& pos, Color side, const Move&
     }
 
     // 強制成り
-    if (isMandatoryPromotion(side, m.piece, toRank)) {
+    if (isDeadSquare(side, m.piece, toRank)) {
         return false;
     }
 

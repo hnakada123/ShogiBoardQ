@@ -10,7 +10,7 @@
 #include "gamerecordmodel.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
-#include "kifdisplayitem.h"
+#include "recordline.h"
 
 static const QString kHirateSfen =
     QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
@@ -50,9 +50,9 @@ private slots:
 
         QCOMPARE(tree.mainLine().at(1)->comment(), QStringLiteral("初手のコメント"));
         QCOMPARE(tree.mainLine().at(2)->bookmark(), QStringLiteral("重要局面"));
-        const QList<KifDisplayItem> exported = model.collectMainlineForExport();
-        QCOMPARE(exported.at(1).comment, QStringLiteral("初手のコメント"));
-        QCOMPARE(exported.at(2).bookmark, QStringLiteral("重要局面"));
+        const RecordLine exported = model.collectMainlineForExport();
+        QCOMPARE(exported.entries.at(0).comment, QStringLiteral("初手のコメント"));
+        QCOMPARE(exported.entries.at(1).bookmark, QStringLiteral("重要局面"));
     }
 
     /// 同じ手数でも、分岐のノードと本譜のノードの注釈は別々に持つ
@@ -73,18 +73,18 @@ private slots:
         QCOMPARE(branch->comment(), QStringLiteral("分岐コメント"));
         QCOMPARE(branch->bookmark(), QStringLiteral("分岐しおり"));
         QCOMPARE(main->comment(), QStringLiteral("本譜コメント"));
-        QCOMPARE(model.collectMainlineForExport().at(2).comment, QStringLiteral("本譜コメント"));
-        QCOMPARE(model.collectMainlineForExport().at(2).bookmark, QStringLiteral("本譜しおり"));
+        QCOMPARE(model.collectMainlineForExport().entries.at(1).comment, QStringLiteral("本譜コメント"));
+        QCOMPARE(model.collectMainlineForExport().entries.at(1).bookmark, QStringLiteral("本譜しおり"));
 
         model.setComment(main, {});
         model.setBookmark(main, {});
         QCOMPARE(branch->comment(), QStringLiteral("分岐コメント"));
-        QVERIFY(model.collectMainlineForExport().at(2).comment.isEmpty());
-        QVERIFY(model.collectMainlineForExport().at(2).bookmark.isEmpty());
+        QVERIFY(model.collectMainlineForExport().entries.at(1).comment.isEmpty());
+        QVERIFY(model.collectMainlineForExport().entries.at(1).bookmark.isEmpty());
 
         // 分岐の手前の共通の手は本譜の書き出しにも入る
         model.setComment(tree.mainLine().at(1), QStringLiteral("共通の親"));
-        QCOMPARE(model.collectMainlineForExport().at(1).comment, QStringLiteral("共通の親"));
+        QCOMPARE(model.collectMainlineForExport().entries.at(0).comment, QStringLiteral("共通の親"));
     }
 
     /// 追加・変更・空文字での削除

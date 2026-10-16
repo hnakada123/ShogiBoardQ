@@ -7,6 +7,7 @@
 #include <QString>
 #include <QStringList>
 
+#include "shogiposition.h"
 #include "shogitypes.h"
 
 /// SFEN文字列の正規化・変換ユーティリティ
@@ -61,51 +62,17 @@ inline QString normalizePositionLikeSfen(const QString& positionLike)
 }
 
 /**
- * @brief SFEN の持ち駒欄を標準の並びに直す
+ * @brief 比較用キー（`board turn stand`。手数を含めない）へ正規化する
  *
- * 標準は先手の駒をすべて書いてから後手の駒を書き、どちらも飛・角・金・銀・桂・香・歩の順。
- * 以前のこのアプリは先後を駒の種類ごとに交互に書いていた（例 "BbPp"）ので、比較の前にそろえる。
- * 読めない欄はそのまま返す。
+ * 局面として読めれば Position::positionKey()（持ち駒は標準の並び）。以前のこのアプリが書いた、
+ * 先後を駒の種類ごとに交互に書いた持ち駒（例 "BbPp"）も同じキーになる。
+ * 局面として読めない文字列は、前後の空白を除いた最初の3つの欄を返す。
  */
-inline QString canonicalHands(const QString& hands)
-{
-    if (hands == QStringLiteral("-")) return hands;
-    static const QString order = QStringLiteral("RBGSNLP");
-    int counts[2][7] = {};
-    int number = 0;
-    for (const QChar ch : hands) {
-        if (ch.isDigit()) {
-            number = number * 10 + ch.digitValue();
-            continue;
-        }
-        const qsizetype kind = order.indexOf(ch.toUpper());
-        if (kind < 0) return hands;
-        counts[ch.isUpper() ? 0 : 1][kind] += (number > 0) ? number : 1;
-        number = 0;
-    }
-    if (number > 0) return hands;
-    QString out;
-    for (int side = 0; side < 2; ++side) {
-        for (int kind = 0; kind < 7; ++kind) {
-            const int n = counts[side][kind];
-            if (n <= 0) continue;
-            if (n > 1) out += QString::number(n);
-            out += side == 0 ? order.at(kind) : order.at(kind).toLower();
-        }
-    }
-    return out.isEmpty() ? QStringLiteral("-") : out;
-}
-
-/// 比較用キー（`board turn stand`、持ち駒は標準の並び）へ正規化する
 inline QString normalizeSfenKey(const QString& sfenLike)
 {
-    QString normalized = normalizePositionLikeSfen(sfenLike);
-    QStringList parts = normalized.split(QLatin1Char(' '), Qt::SkipEmptyParts);
-    if (parts.size() >= 3) {
-        parts[2] = canonicalHands(parts.at(2));
-        return parts.mid(0, 3).join(QLatin1Char(' '));
-    }
-    return normalized;
+    const QString normalized = normalizePositionLikeSfen(sfenLike);
+    if (const auto position = Position::fromSfenLike(normalized)) return position->positionKey();
+    return normalized.section(QLatin1Char(' '), 0, 2, QString::SectionSkipEmpty);
 }
 
 /// 平手初期局面（`startpos` / 完全SFEN / `position ...`）かを判定する

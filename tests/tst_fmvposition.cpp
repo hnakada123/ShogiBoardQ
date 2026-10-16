@@ -37,7 +37,7 @@ private slots:
         board.setSfen(kHirateSfen);
 
         fmv::EnginePosition pos;
-        fmv::Converter::toEnginePosition(pos, board.boardData(), board.pieceStand());
+        fmv::Converter::toEnginePosition(pos, board.position());
         fmv::EnginePosition original = pos;
 
         // 7六歩: from=(6,6), to=(6,5)
@@ -53,8 +53,8 @@ private slots:
         QVERIFY(ok);
 
         // 移動元は空、移動先に歩
-        QCOMPARE(pos.board[fmv::toSquare(6, 6)], ' ');
-        QCOMPARE(pos.board[fmv::toSquare(6, 5)], 'P');
+        QCOMPARE(pos.board[fmv::toSquare(6, 6)], Piece::None);
+        QCOMPARE(pos.board[fmv::toSquare(6, 5)], Piece::BlackPawn);
         verifyBitboardConsistency(pos);
 
         // undo
@@ -71,7 +71,7 @@ private slots:
         board.setSfen(sfen);
 
         fmv::EnginePosition pos;
-        fmv::Converter::toEnginePosition(pos, board.boardData(), board.pieceStand());
+        fmv::Converter::toEnginePosition(pos, board.position());
         fmv::EnginePosition original = pos;
 
         // 5五歩が5四の相手歩を取る: (4,4)→(4,3)
@@ -86,8 +86,8 @@ private slots:
         bool ok = pos.doMove(move, fmv::Color::Black, undo);
         QVERIFY(ok);
 
-        QCOMPARE(pos.board[fmv::toSquare(4, 3)], 'P');
-        QCOMPARE(pos.board[fmv::toSquare(4, 4)], ' ');
+        QCOMPARE(pos.board[fmv::toSquare(4, 3)], Piece::BlackPawn);
+        QCOMPARE(pos.board[fmv::toSquare(4, 4)], Piece::None);
         // 持ち駒に歩が追加
         QCOMPARE(pos.hand[0][static_cast<std::size_t>(fmv::HandType::Pawn)], 1);
         verifyBitboardConsistency(pos);
@@ -107,7 +107,7 @@ private slots:
         board.setSfen(sfen);
 
         fmv::EnginePosition pos;
-        fmv::Converter::toEnginePosition(pos, board.boardData(), board.pieceStand());
+        fmv::Converter::toEnginePosition(pos, board.position());
         fmv::EnginePosition original = pos;
 
         // (4,3)→(4,2) 成り
@@ -123,7 +123,7 @@ private slots:
         QVERIFY(ok);
 
         // 成り歩（と金）
-        QCOMPARE(pos.board[fmv::toSquare(4, 2)], 'Q');
+        QCOMPARE(pos.board[fmv::toSquare(4, 2)], Piece::BlackPromotedPawn);
         verifyBitboardConsistency(pos);
 
         // undo → 元に戻る
@@ -139,7 +139,7 @@ private slots:
         board.setSfen(sfen);
 
         fmv::EnginePosition pos;
-        fmv::Converter::toEnginePosition(pos, board.boardData(), board.pieceStand());
+        fmv::Converter::toEnginePosition(pos, board.position());
         fmv::EnginePosition original = pos;
 
         // 銀打ち: (4,4)
@@ -154,7 +154,7 @@ private slots:
         bool ok = pos.doMove(move, fmv::Color::Black, undo);
         QVERIFY(ok);
 
-        QCOMPARE(pos.board[fmv::toSquare(4, 4)], 'S');
+        QCOMPARE(pos.board[fmv::toSquare(4, 4)], Piece::BlackSilver);
         QCOMPARE(pos.hand[0][static_cast<std::size_t>(fmv::HandType::Silver)], 0);
         verifyBitboardConsistency(pos);
 
@@ -171,7 +171,7 @@ private slots:
         board.setSfen(kHirateSfen);
 
         fmv::EnginePosition pos;
-        fmv::Converter::toEnginePosition(pos, board.boardData(), board.pieceStand());
+        fmv::Converter::toEnginePosition(pos, board.position());
         fmv::EnginePosition original = pos;
 
         // 数手進める

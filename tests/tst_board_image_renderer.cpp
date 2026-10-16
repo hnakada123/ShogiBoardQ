@@ -181,7 +181,7 @@ private slots:
         ShogiView live;
         live.applyBoardAndRender(&model);
         live.chrome()->setBlackClockText(QStringLiteral("03:21"));
-        const auto position = model.convertBoardToSfen();
+        const auto position = model.position().boardSfen();
         BoardColorDialog dialog;
         auto* pieces = dialog.findChild<QListWidget*>("appearancePieces");
         auto* preview = dialog.findChild<BoardAppearancePreview*>();
@@ -195,7 +195,7 @@ private slots:
                          icon.pixmap(142, 86, QIcon::Selected).toImage());
             }
         }
-        QCOMPARE(preview->findChild<ShogiBoard*>()->convertBoardToSfen(),
+        QCOMPARE(preview->findChild<ShogiBoard*>()->position().boardSfen(),
                  QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL"));
         const auto original = preview->image();
         QVERIFY(QMetaObject::invokeMethod(combination, "activated", Q_ARG(int, 2)));
@@ -209,7 +209,7 @@ private slots:
         QVERIFY(preview->image() != middle);
         QCOMPARE(preview->findChild<ShogiView*>()->piece(Piece::BlackKing).pixmap(90).toImage(),
                  QIcon(":/pieces/deep_ebony/Gote_ou45.svg").pixmap(90).toImage());
-        QCOMPARE(model.convertBoardToSfen(), position);
+        QCOMPARE(model.position().boardSfen(), position);
         QCOMPARE(live.chrome()->blackClockLabel()->text(), QStringLiteral("03:21"));
         QVERIFY(!live.flipMode());
         dialog.findChild<QPushButton*>("restoreOpeningAppearanceButton")->click();
@@ -284,7 +284,7 @@ private slots:
             image.setDevicePixelRatio(dpr);
             image.fill(Qt::transparent);
             QPainter painter(&image);
-            PiecePainter::draw(painter, PieceImageProvider::instance().icon('K'), QRect(20, 20, 60, 66),
+            PiecePainter::draw(painter, PieceImageProvider::instance().icon(Piece::BlackKing), QRect(20, 20, 60, 66),
                                {true, shadow, scale});
             return image;
         };
@@ -308,8 +308,8 @@ private slots:
     // 駒画像は条件（駒・大きさ・倍率・影）ごとに作って使い回し、キャッシュから消えたら作り直す
     void pieceImagesAreReusedPerCondition()
     {
-        const QIcon king = PieceImageProvider::instance().icon('K');
-        const QIcon pawn = PieceImageProvider::instance().icon('P');
+        const QIcon king = PieceImageProvider::instance().icon(Piece::BlackKing);
+        const QIcon pawn = PieceImageProvider::instance().icon(Piece::BlackPawn);
         const BoardVisuals shadowed{true, true, 100};
         const BoardVisuals flat{true, false, 100};
         for (const qreal dpr : {1.0, 1.25, 2.0}) {

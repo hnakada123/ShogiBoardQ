@@ -252,6 +252,9 @@ set(SRC_CORE
     src/core/kifmovetext.h
     src/core/legalmovestatus.h
     src/core/matchplayers.h
+    src/core/piecerules.h
+    src/core/shogiposition.cpp
+    src/core/shogiposition.h
     src/core/recordtime.h
     src/core/sfendiffutils.h
     src/core/sfenreplay.cpp
@@ -269,6 +272,8 @@ set(SRC_CORE
     src/core/terminaltype.h
     src/core/timecontrol.h
     src/core/usimove.h
+    src/core/usiposition.cpp
+    src/core/usiposition.h
     src/core/usiscore.cpp
     src/core/usiscore.h
 )
@@ -345,6 +350,12 @@ set(SRC_KIFU
     src/kifu/formats/kifexporter.h
     src/kifu/formats/kiflexer.cpp
     src/kifu/formats/kiflexer.h
+    src/kifu/formats/kiflinebuilder.cpp
+    src/kifu/formats/kiflinebuilder.h
+    src/kifu/formats/kifmovegrammar.cpp
+    src/kifu/formats/kifmovegrammar.h
+    src/kifu/formats/kiftextparser.cpp
+    src/kifu/formats/kiftextparser.h
     src/kifu/formats/kiftosfenconverter.cpp
     src/kifu/formats/kiftosfenconverter.h
     src/kifu/formats/kifuexportcommon.cpp
@@ -353,8 +364,6 @@ set(SRC_KIFU
     src/kifu/formats/notationutils.h
     src/kifu/formats/parsecommon.cpp
     src/kifu/formats/parsecommon.h
-    src/kifu/formats/parsemoveformat.cpp
-    src/kifu/formats/parsemoveformat.h
     src/kifu/formats/sfencsapositionconverter.cpp
     src/kifu/formats/sfencsapositionconverter.h
     src/kifu/formats/terminalcodes.cpp
@@ -378,7 +387,6 @@ set(SRC_KIFU
     src/kifu/josekirepository.cpp
     src/kifu/josekirepository.h
     src/kifu/josekitypes.h
-    src/kifu/kifdisplayitem.h
     src/kifu/kifparsetypes.h
     src/kifu/kifreader.cpp
     src/kifu/kifreader.h

@@ -20,7 +20,8 @@ class ShogiBoard;
 /**
  * @brief 対局で使う盤（ShogiBoard）を持ち、指し手を確かめて盤に指す
  *
- * 合法手の判定、成り・不成の選択、棋譜の表記（「同」を含む）を受け持つ。
+ * 合法手の判定、成り・不成の選択、棋譜の表記を受け持つ。「同」表記の基準（局面に至った手の移動先）は
+ * 手順を持つ呼び出し側が指すたびに渡す（盤の局面に写しを持たない）。
  * 指した手は棋譜の1行（RecordEntry）として返し、対局の手順への追加は呼び出し側（司令塔・通信対局）が行う。
  */
 class ShogiGameController : public QObject
@@ -39,28 +40,25 @@ public:
     /// 盤の手番を変える（局面編集の手番変更・検討する局面の手番）
     void setCurrentPlayer(Turn player);
 
-    /// 「同」表記の基準（局面に至った手の移動先。開始局面は無効値）を復元する
-    void setPreviousMoveDestination(BoardSquare square) { m_previousTo = square; }
-    BoardSquare previousMoveDestination() const { return m_previousTo; }
-
     // --- 指し手処理 ---
 
     /**
      * @brief 盤のクリック操作（表示の座標）による着手を検証し、合法手であれば指す
      *
      * 成り・不成の両方が合法なら、成りの選び方（setPromotionChooser）で対局者に選ばせる。
+     * @param previousTo 局面に至った手の移動先（「同」表記の基準。開始局面は無効なマス）
      * @return 指した手（盤に指せなければ nullopt）
      */
-    std::optional<RecordEntry> validateAndMove(QPoint& outFrom, QPoint& outTo);
+    std::optional<RecordEntry> validateAndMove(QPoint& outFrom, QPoint& outTo, BoardSquare previousTo);
 
     /// 盤面を変更せず、クリック操作の合法性と成り・不成を確定する。
     std::optional<UsiMove> prepareMove(const QPoint& from, const QPoint& to);
 
     /// エンジン・通信対局の指し手を合法手か確かめて指す。反則手は盤を変えずに nullopt
-    std::optional<RecordEntry> applyMove(const UsiMove& move);
+    std::optional<RecordEntry> applyMove(const UsiMove& move, BoardSquare previousTo);
 
     /// 確かめ済みの手、またはサーバーが裁定する手を指す。盤面に適用できない手は変更せず nullopt
-    std::optional<RecordEntry> applyRecordedMove(const UsiMove& move);
+    std::optional<RecordEntry> applyRecordedMove(const UsiMove& move, BoardSquare previousTo);
 
     /// 直前に指した手（指せたときに更新する）
     const UsiMove& lastMove() const { return m_lastMove; }
@@ -95,7 +93,7 @@ public slots:
     /**
      * @brief SFEN文字列から新規対局を準備する
      *
-     * 盤を指定SFENの局面にし、成りの指定と「同」表記の基準を消す。手番は SFEN の手番になる。
+     * 盤を指定SFENの局面にし、成りの指定と直前の手を消す。手番は SFEN の手番になる。
      */
     void newGame(const QString& startSfen);
 
@@ -114,16 +112,11 @@ private:
     bool m_forcedPromotionMode = false;  ///< 強制成りモード有効フラグ（定跡手用）
     bool m_forcedPromotionValue = false; ///< 強制成りモード時の成り/不成の値
 
-    BoardSquare m_previousTo;  ///< 1手前の移動先（「同」表記判定用）
-
-    /// 指し手を漢字の棋譜文字列に変換する（例: "▲７六歩(77)"）
-    QString convertMoveToKanjiStr(Turn mover, Piece moving, const UsiMove& move);
-
     /// 成り・不成それぞれで合法手か
     LegalMoveStatus legalStatus(const UsiMove& move, Turn mover) const;
 
     /// 盤に指して手番を渡し、指した手を棋譜の1行にする
-    std::optional<RecordEntry> commitMove(const UsiMove& move);
+    std::optional<RecordEntry> commitMove(const UsiMove& move, BoardSquare previousTo);
 };
 
 #endif // SHOGIGAMECONTROLLER_H
