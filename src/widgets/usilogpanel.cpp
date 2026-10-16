@@ -121,15 +121,15 @@ void UsiLogPanel::setModels(UsiCommLogModel* log1, UsiCommLogModel* log2)
     m_log2 = log2;
 
     if (m_log1) {
-        connect(m_log1, &UsiCommLogModel::usiCommLogChanged,
-                this, &UsiLogPanel::onLog1Changed, Qt::UniqueConnection);
+        connect(m_log1, &UsiCommLogModel::logLineAppended,
+                this, &UsiLogPanel::onLog1Line, Qt::UniqueConnection);
         connect(m_log1, &UsiCommLogModel::engineNameChanged,
                 this, &UsiLogPanel::onEngine1NameChanged, Qt::UniqueConnection);
         onEngine1NameChanged();
     }
     if (m_log2) {
-        connect(m_log2, &UsiCommLogModel::usiCommLogChanged,
-                this, &UsiLogPanel::onLog2Changed, Qt::UniqueConnection);
+        connect(m_log2, &UsiCommLogModel::logLineAppended,
+                this, &UsiLogPanel::onLog2Line, Qt::UniqueConnection);
         connect(m_log2, &UsiCommLogModel::engineNameChanged,
                 this, &UsiLogPanel::onEngine2NameChanged, Qt::UniqueConnection);
         onEngine2NameChanged();
@@ -366,18 +366,14 @@ void UsiLogPanel::onEngine2NameChanged()
     }
 }
 
-void UsiLogPanel::onLog1Changed()
+void UsiLogPanel::onLog1Line(const QString& line)
 {
-    if (m_logView && m_log1) {
-        appendColoredLog(m_log1->usiCommLog(), QColor(0x20, 0x60, 0xa0));
-    }
+    if (m_logView) appendColoredLog(line, QColor(0x20, 0x60, 0xa0));
 }
 
-void UsiLogPanel::onLog2Changed()
+void UsiLogPanel::onLog2Line(const QString& line)
 {
-    if (m_logView && m_log2) {
-        appendColoredLog(m_log2->usiCommLog(), QColor(0xa0, 0x20, 0x60));
-    }
+    if (m_logView) appendColoredLog(line, QColor(0xa0, 0x20, 0x60));
 }
 
 void UsiLogPanel::onWrapToggled(bool checked)

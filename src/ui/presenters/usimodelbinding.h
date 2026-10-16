@@ -7,6 +7,7 @@
 #include <QObject>
 #include <QPointer>
 
+#include "enginesearchstatus.h"
 #include "thinkinginforow.h"
 #include "usimessages.h"
 
@@ -40,11 +41,7 @@ public:
 private slots:
     void onThinkingRow(const ThinkingInfoRow& row);
     void onThinkingCleared();
-    void onSearchedMove(const QString& move);
-    void onDepth(const QString& depth);
-    void onNodes(const QString& nodes);
-    void onNps(const QString& nps);
-    void onHashUsage(const QString& hashUsage);
+    void onSearchStatus(const EngineSearchStatus& status);
     void onCommandSent(const QString& command);
     void onLineReceived(const QString& line);
     void onStderrReceived(const QString& line);

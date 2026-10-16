@@ -2,7 +2,7 @@
 #define EVALUATIONGRAPHPRESENTER_H
 
 /// @file evaluationgraphpresenter.h
-/// @brief 対局中の評価値と表示中の手数を評価値グラフに出す
+/// @brief 評価値グラフの点（対局・通信対局のエンジンの手・棋譜解析）と表示中の手数
 
 #include <QObject>
 #include <QString>
@@ -11,14 +11,17 @@
 #include "usiscore.h"
 
 class EvaluationChartWidget;
+class EvaluationSeries;
 class KifuNavigationState;
 class LiveGameSession;
 
 /**
- * @brief 対局中のエンジンの評価値を評価値グラフに描く
+ * @brief 評価値グラフの点（EvaluationSeries）の書き手
  *
- * エンジンが指した手ごとに、その手番のエンジンが最後に出した評価値をグラフへ足す。
- * 先手のエンジンは P1、後手のエンジンは P2（先手から見た値に符号を反転）として描く。
+ * 点を足す・消す・系列の名前を付けるのはこのクラスだけで、グラフ（EvaluationChartWidget）は点を描くだけ。
+ * - 対局・通信対局: エンジンが指した手ごとに、その手番のエンジンが最後に出した評価値を足す
+ *   （先手のエンジンは1つ目、後手のエンジンは2つ目の系列。先手から見た値への直しは EvaluationSeries）
+ * - 棋譜解析: 解析した局面の評価値（先手から見た値）を1つ目の系列に足す
  */
 class EvaluationGraphPresenter : public QObject
 {
@@ -35,8 +38,15 @@ public:
     explicit EvaluationGraphPresenter(const Deps& deps, QObject* parent = nullptr);
     ~EvaluationGraphPresenter() override;
 
+    /// グラフの点（グラフ・テストが読む）
+    const EvaluationSeries* series() const { return m_series; }
+
     void setEngine1Name(const QString& name);
     void setEngine2Name(const QString& name);
+    /// 棋譜解析を始める（点を消し、解析のエンジン名と解析する手順の番号を付ける）
+    void beginAnalysis(const QString& engineName, int lineIndex);
+    /// 棋譜解析の ply 手目の評価値（先手から見た値）を足す
+    void plotAnalysisScore(int ply, const UsiScore& blackScore);
 
     /// グラフを空にする
     void clear();
@@ -62,8 +72,7 @@ private:
     const KifuNavigationState* m_navState = nullptr;
     const LiveGameSession* m_liveSession = nullptr;
 
-    QString m_engine1Name;
-    QString m_engine2Name;
+    EvaluationSeries* m_series = nullptr;   ///< グラフの点（このクラスが持ち、書く）
 };
 
 #endif // EVALUATIONGRAPHPRESENTER_H

@@ -12,6 +12,7 @@
 #include <QTimer>
 #include "evaluationchartwidget.h"
 #include "evaluationchartview.h"
+#include "evaluationseries.h"
 #include "analysissettings.h"
 #include "settingscommon.h"
 
@@ -27,6 +28,26 @@ UsiScore mateScore(const QString& text)
     }
     return UsiScore::mate(text.toInt());
 }
+/// 評価値グラフと、それが描く点（点は EvaluationSeries に書き、グラフは描くだけ）
+class TestChart : public EvaluationChartWidget
+{
+public:
+    TestChart() { setSeries(&m_points); }
+    EvaluationSeries& points() { return m_points; }
+    /// 対局のエンジンの手と同じく、点を足して表示中の手をその手にする
+    void appendScoreP1(int ply, const UsiScore& blackScore) { m_points.setScore(0, ply, Turn::Black, blackScore); setCurrentPly(ply); }
+    void appendScoreP2(int ply, const UsiScore& blackScore) { m_points.setScore(1, ply, Turn::Black, blackScore); setCurrentPly(ply); }
+    /// 棋譜解析と同じく、点だけを足す（グラフは少し待ってから描く）
+    void appendScoreP1Buffered(int ply, const UsiScore& blackScore) { m_points.setScore(0, ply, Turn::Black, blackScore); }
+    void appendScoreP2Buffered(int ply, const UsiScore& blackScore) { m_points.setScore(1, ply, Turn::Black, blackScore); }
+    void clearAll() { m_points.clear(); }
+    void trimToPly(int maxPly) { m_points.trimToPly(maxPly); }
+    int countP1() const { return m_points.count(0); }
+    int countP2() const { return m_points.count(1); }
+
+private:
+    EvaluationSeries m_points;
+};
 } // namespace
 
 class TestEvaluationChart : public QObject
@@ -74,7 +95,7 @@ private slots:
 
     void automaticRangeExcludesMate()
     {
-        EvaluationChartWidget widget;
+        TestChart widget;
         widget.appendScoreP1(1, UsiScore::cp(120));
         widget.appendScoreP1(10, UsiScore::cp(450));
         widget.appendScoreP1(11, UsiScore::mate(5));
@@ -97,7 +118,7 @@ private slots:
 
     void fixedRangePreservesRawScores()
     {
-        EvaluationChartWidget widget;
+        TestChart widget;
         widget.setYAxisLimit(1000);
         widget.setXAxisLimit(20);
         widget.appendScoreP1(2, UsiScore::cp(4500));
@@ -132,7 +153,7 @@ private slots:
         QFETCH(QString, mate);
         QFETCH(bool, invert);
         QFETCH(int, direction);
-        EvaluationChartWidget widget;
+        TestChart widget;
         const UsiScore score = mateScore(mate);
         widget.appendScoreP2(12, invert ? score.negated() : score);
         QCOMPARE(series(widget, 1)->at(0).y(), double(direction * widget.yAxisLimit()));
@@ -142,7 +163,7 @@ private slots:
 
     void resizeKeepsLabelsReadable()
     {
-        EvaluationChartWidget widget;
+        TestChart widget;
         widget.setRecordLength(120);
         widget.resize(1200, 400);
         widget.show();
@@ -158,7 +179,7 @@ private slots:
 
     void pendingScoresRespectUndoAndTrim()
     {
-        EvaluationChartWidget widget;
+        TestChart widget;
         widget.appendScoreP1Buffered(1, UsiScore::cp(100));
         widget.appendScoreP1Buffered(2, UsiScore::cp(200));
         widget.appendScoreP2Buffered(3, UsiScore::cp(300));
@@ -166,9 +187,6 @@ private slots:
         widget.flushPendingScores();
         QCOMPARE(widget.countP1(), 1);
         QCOMPARE(widget.countP2(), 0);
-        widget.appendScoreP1Buffered(2, UsiScore::cp(200));
-        widget.removeLastP1();
-        QCOMPARE(widget.countP1(), 1);
         widget.appendScoreP1Buffered(1, UsiScore::cp(500));
         widget.flushPendingScores();
         QCOMPARE(widget.countP1(), 1);
@@ -181,7 +199,7 @@ private slots:
 
     void pendingScoresPreserveNavigation()
     {
-        EvaluationChartWidget widget;
+        TestChart widget;
         widget.appendScoreP1Buffered(4, UsiScore::cp(100));
         widget.setCurrentPly(5); // 次の局面を解析中。
         widget.flushPendingScores();
@@ -198,12 +216,12 @@ private slots:
     // 現在の手の線と表示だけを更新する。結果は作り直した場合と同じ
     void currentPlyMoveKeepsSeries()
     {
-        const auto fill = [](EvaluationChartWidget& widget) {
+        const auto fill = [](TestChart& widget) {
             widget.resize(900, 360);
             for (int ply = 1; ply <= 14; ++ply) widget.appendScoreP1(ply, UsiScore::cp(ply * 173 - 900));
             widget.appendScoreP2(15, mateScore(QStringLiteral("+")));
         };
-        EvaluationChartWidget widget;
+        TestChart widget;
         fill(widget);
         widget.show();
         QVERIFY(QTest::qWaitForWindowExposed(&widget));
@@ -219,7 +237,7 @@ private slots:
         QCOMPARE(widget.currentPly(), 9);
 
         // 作り直した場合（新しく作って同じ手へ移動）と、点・現在の手の印・表示・線が同じ
-        EvaluationChartWidget rebuilt;
+        TestChart rebuilt;
         fill(rebuilt);
         rebuilt.trimToPly(15);
         rebuilt.setCurrentPly(9);
@@ -260,7 +278,7 @@ private slots:
     void settingsPersistAndCancel()
     {
         {
-            EvaluationChartWidget widget;
+            TestChart widget;
             widget.resize(1000, 420);
             widget.show();
             QTest::qWait(30);
@@ -290,7 +308,7 @@ private slots:
 
     void navigationAndHover()
     {
-        EvaluationChartWidget widget;
+        TestChart widget;
         widget.resize(1000, 400);
         widget.appendScoreP1(5, UsiScore::cp(4500));
         widget.setYAxisLimit(1000);
@@ -316,7 +334,7 @@ private slots:
 
     void navigationButtons()
     {
-        EvaluationChartWidget widget;
+        TestChart widget;
         widget.resize(1000, 400);
         widget.show();
         QTest::qWait(30);
@@ -363,10 +381,10 @@ private slots:
 
     void analysisNavigationKeepsSourceLineUntilCleared()
     {
-        EvaluationChartWidget widget;
+        TestChart widget;
         widget.resize(1000, 400);
         widget.appendScoreP1(3, UsiScore::cp(50));
-        widget.setAnalysisLineIndex(2);
+        widget.points().setAnalysisLineIndex(2);
         widget.show();
         QTest::qWait(30);
         auto* chartView = view(widget);
@@ -388,10 +406,10 @@ private slots:
     void renderExamples()
     {
         const QString directory = qEnvironmentVariable("EVAL_CHART_SCREENSHOTS");
-        EvaluationChartWidget widget;
+        TestChart widget;
         widget.resize(1100, 400);
-        widget.setEngine1Name(QStringLiteral("Hayanagi 1.5.0"));
-        widget.setEngine2Name(QStringLiteral("YaneuraOu"));
+        widget.points().setName(0, QStringLiteral("Hayanagi 1.5.0"));
+        widget.points().setName(1, QStringLiteral("YaneuraOu"));
         const QList<int> scores{50, 90, 30, -100, -220, -120, 80, 350, 270, 500, 850, 600, 250, -80, -330, -570, -420, -800, -900, -750};
         for (qsizetype i = 0; i < scores.size(); ++i) {
             widget.appendScoreP1(static_cast<int>(i * 2 + 1), UsiScore::cp(scores[i]));

@@ -47,13 +47,9 @@ protected:
 
 private slots:
     void onNameChanged();
-    void onPredChanged();
-    void onSearchedChanged();
-    void onDepthChanged();
-    void onNodesChanged();
-    void onNpsChanged();
-    void onHashChanged();
-    
+    /// 探索状況・予想手を出す（数値の書式はここで決める）
+    void onStatusChanged();
+
     // 利用者が列幅を変えたら保存する
     void onSectionResizedByUser();
 

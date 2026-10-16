@@ -463,6 +463,7 @@ set(SRC_ENGINE
     src/engine/engineoptiondescriptions.cpp
     src/engine/engineoptiondescriptions.h
     src/engine/engineoptions.h
+    src/engine/enginesearchstatus.h
     src/engine/engineprocessmanager.cpp
     src/engine/engineprocessmanager.h
     src/engine/engineregistrationhandler.cpp
@@ -780,6 +781,8 @@ set(SRC_MODELS
     src/models/shogienginethinkingmodel.h
     src/models/shogiinforecord.cpp
     src/models/shogiinforecord.h
+    src/models/evaluationseries.cpp
+    src/models/evaluationseries.h
     src/models/usicommlogmodel.cpp
     src/models/usicommlogmodel.h
 )

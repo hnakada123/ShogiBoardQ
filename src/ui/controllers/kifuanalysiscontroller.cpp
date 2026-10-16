@@ -8,6 +8,7 @@
 #include "appactivitystate.h"
 #include "errorbus.h"
 #include "evaluationchartwidget.h"
+#include "evaluationgraphpresenter.h"
 #include "kifuanalysisdialog.h"
 #include "kifuanalysislistmodel.h"
 #include "kifudocument.h"
@@ -114,11 +115,7 @@ bool KifuAnalysisController::start(AnalysisRequest request)
     m_resultsPanel->beginAnalysis(request.options.endPly - request.options.startPly + 1, request.engineName);
 
     // 評価値グラフは解析の結果だけにする（条件ダイアログをやめたときは消さない）
-    if (EvaluationChartWidget* chart = m_deps.evalChart) {
-        chart->clearAll();
-        chart->setEngine1Name(request.engineName);
-        chart->setAnalysisLineIndex(request.lineIndex);
-    }
+    if (EvaluationGraphPresenter* graph = m_deps.evalGraph) graph->beginAnalysis(request.engineName, request.lineIndex);
 
     // 解析のエンジンは枠 E1 に置く（思考情報・通信ログは E1 の表示に出る）
     Usi* engine = m_deps.engine ? m_deps.engine : m_deps.engines->createEngine(1, std::nullopt, request.engineName);
@@ -199,8 +196,8 @@ void KifuAnalysisController::publishCommittedEvaluation()
     if (!m_resultHandler || m_resultHandler->lastCommittedPly() < 0) return;
     // 定跡など評価値のない結果は表には残し、グラフには足さない
     const UsiScore& score = m_resultHandler->lastCommittedScore();
-    if (!score.isNone() && m_deps.evalChart)
-        m_deps.evalChart->appendScoreP1Buffered(m_resultHandler->lastCommittedPly(), score);
+    if (!score.isNone() && m_deps.evalGraph)
+        m_deps.evalGraph->plotAnalysisScore(m_resultHandler->lastCommittedPly(), score);
     m_resultHandler->resetLastCommitted();
 }
 

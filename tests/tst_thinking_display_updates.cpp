@@ -44,6 +44,19 @@ inline ShogiInfoRecord* thinkingRow(qint64 timeMs, int depth, qint64 nodes, cons
     return new ShogiInfoRecord(row);
 }
 
+/// 情報欄の全部の項目がある探索状況
+static EngineSearchStatus fullStatus()
+{
+    EngineSearchStatus status;
+    status.searchedMove = QStringLiteral("▲２三歩成(24)");
+    status.depth = 12;
+    status.seldepth = 18;
+    status.nodes = 123456789;
+    status.nps = 1234567;
+    status.hashfull = 125;
+    return status;
+}
+
 class TestThinkingDisplayUpdates : public QObject
 {
     Q_OBJECT
@@ -352,12 +365,8 @@ private slots:
                 // エンジン情報の表（指し手の列は KifuMoveDelegate）
                 UsiCommLogModel log;
                 log.setEngineName(QStringLiteral("YaneuraOu NNUE 9.10"));
-                log.setPredictiveMove(QStringLiteral("△同　歩(23)"));
-                log.setSearchedMove(QStringLiteral("▲２三歩成(24)"));
-                log.setSearchDepth(QStringLiteral("12/18"));
-                log.setNodeCount(QStringLiteral("123,456,789"));
-                log.setNodesPerSecond(QStringLiteral("1,234,567"));
-                log.setHashUsage(QStringLiteral("12.5%"));
+                log.setPredictedMove(QStringLiteral("△同　歩(23)"));
+                log.setStatus(fullStatus());
                 // 列幅を保存した値で狭くすると、折り返す設定の表で2行になる・はみ出す値ができる（Qt に描かせる）
                 const auto renderInfo = [&](bool qtText, bool narrow) {
                     EngineInfoWidget info(AnalysisSettings::ThinkingTable::Engine1);
@@ -423,21 +432,20 @@ private slots:
         auto* table = info.findChild<QTableWidget*>(QStringLiteral("engineInfoTable"));
         QVERIFY(table != nullptr);
 
-        log.setNodeCount(QStringLiteral("12,345"));
+        EngineSearchStatus nodesOnly;
+        nodesOnly.nodes = 12345;
+        log.updateStatus(nodesOnly);
         QCoreApplication::processEvents();
         QSignalSpy changed(table->model(), &QAbstractItemModel::dataChanged);
-        log.setNodeCount(QStringLiteral("12,345"));
+        log.updateStatus(nodesOnly);
         QCOMPARE(changed.count(), 0);
 
         // 値ごとに計算すると、表の幅を値の数だけ変える（そのたびに親のレイアウトを計算し直す）
         EventCounter resizes(QEvent::Resize);
         table->installEventFilter(&resizes);
         const int widthBefore = table->width();
-        log.setSearchedMove(QStringLiteral("▲２三歩成(24)"));
-        log.setSearchDepth(QStringLiteral("12/18"));
-        log.setNodeCount(QStringLiteral("123,456,789"));
-        log.setNodesPerSecond(QStringLiteral("1,234,567"));
-        log.setHashUsage(QStringLiteral("12.5%"));
+        // info 1行の探索状況は1回で届く
+        log.updateStatus(fullStatus());
         QCoreApplication::processEvents();
         QCoreApplication::processEvents();
         QVERIFY(table->width() > widthBefore);
@@ -462,8 +470,10 @@ private slots:
             return table->horizontalHeader()->sizeHint().height() + table->verticalHeader()->defaultSectionSize()
                 + 2 * table->frameWidth();
         };
-        log.setSearchedMove(QStringLiteral("▲２三歩成(24)"));
-        log.setNodeCount(QStringLiteral("123,456,789"));
+        EngineSearchStatus status;
+        status.searchedMove = QStringLiteral("▲２三歩成(24)");
+        status.nodes = 123456789;
+        log.setStatus(status);
         QCoreApplication::processEvents();
         QCoreApplication::processEvents();
         QCOMPARE(table->height(), expectedHeight());
@@ -478,7 +488,8 @@ private slots:
         QCOMPARE(table->height(), expectedHeight());
 
         // 値が同じ幅に戻れば、列幅も戻る
-        log.setNodeCount(QStringLiteral("1"));
+        status.nodes = 1;
+        log.setStatus(status);
         QCoreApplication::processEvents();
         QCoreApplication::processEvents();
         QVERIFY(table->columnWidth(4) < QFontMetrics(table->font()).horizontalAdvance(QStringLiteral("123,456,789")) + 20);

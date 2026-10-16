@@ -15,6 +15,7 @@ class AnalysisResultsPanel;
 class AppActivityState;
 class EngineLifecycleManager;
 class EvaluationChartWidget;
+class EvaluationGraphPresenter;
 class KifuDocument;
 class KifuAnalysisDialog;
 class KifuAnalysisListModel;
@@ -51,7 +52,8 @@ public:
         const KifuDocument* document = nullptr;   ///< 対局者名（対局情報）
         const ShogiView* shogiView = nullptr;               ///< 読み筋の盤の向きを本体の盤に合わせる
         KifuNavigationController* navController = nullptr;  ///< 解析中・結果の行を選んだ手へ棋譜を移す
-        EvaluationChartWidget* evalChart = nullptr;         ///< 評価値グラフ
+        EvaluationChartWidget* evalChart = nullptr;         ///< 評価値グラフ（点のクリックで解析結果の行へ移る）
+        EvaluationGraphPresenter* evalGraph = nullptr;      ///< 評価値グラフの点（解析した局面の評価値）
         Usi* engine = nullptr;                              ///< 使うエンジン（テスト用。無ければ解析ごとに枠 E1 に作る）
     };
 

@@ -12,7 +12,6 @@
 
 ThinkingInfoFormatter::ThinkingInfoFormatter(QObject* parent)
     : QObject(parent)
-    , m_locale(QLocale::English)
     , m_formatter(std::make_unique<PvNotationFormatter>())
 {
 }
@@ -60,8 +59,14 @@ void ThinkingInfoFormatter::processInfo(const UsiInfo& info)
     m_formatter->setPreviousMove(m_previousTo);
     m_formatter->format(info);
 
-    emitSearchedHand();
-    emitStatus(info);
+    EngineSearchStatus status;
+    status.searchedMove = searchedMoveLabel();
+    status.depth = info.depth;
+    status.seldepth = info.depth >= 0 ? info.seldepth : -1;
+    status.nodes = info.nodes;
+    status.nps = info.nps;
+    status.hashfull = info.hashfull;
+    emit searchStatusUpdated(status);
 
     ThinkingInfoRow row;
     row.timeMs = info.timeMs;
@@ -98,10 +103,10 @@ void ThinkingInfoFormatter::presentCheckmate(const UsiCheckmate& result)
 // 情報欄
 // ============================================================
 
-void ThinkingInfoFormatter::emitSearchedHand()
+QString ThinkingInfoFormatter::searchedMoveLabel()
 {
     const QString hand = m_formatter->searchedHand();
-    if (hand.isEmpty()) return;
+    if (hand.isEmpty()) return {};
 
     // info ごとに呼ばれ、同じ手が何度も届く。英語表記では局面を読み直して表記を作るので、
     // 局面と表記の設定が同じ間は、手ごとに作った表示を使う
@@ -118,23 +123,8 @@ void ThinkingInfoFormatter::emitSearchedHand()
     const QString usi = m_formatter->searchedUsi();
     const QString key = hand + QChar(0) + usi;
     const auto it = m_searchedLabels.constFind(key);
-    if (it != m_searchedLabels.cend()) {
-        emit searchedMoveUpdated(it.value());
-        return;
-    }
+    if (it != m_searchedLabels.cend()) return it.value();
     const QString label = KifuPresentation::label(hand, m_baseSfen, usi);
     m_searchedLabels.insert(key, label);
-    emit searchedMoveUpdated(label);
-}
-
-void ThinkingInfoFormatter::emitStatus(const UsiInfo& info)
-{
-    if (info.depth >= 0) {
-        QString depth = QString::number(info.depth);
-        if (info.seldepth >= 0) depth += QLatin1Char('/') + QString::number(info.seldepth);
-        emit searchDepthUpdated(depth);
-    }
-    if (info.nodes >= 0) emit nodeCountUpdated(m_locale.toString(info.nodes));
-    if (info.nps >= 0) emit npsUpdated(m_locale.toString(info.nps));
-    emit hashUsageUpdated(info.hashfull < 0 ? QString() : QString::number(info.hashfull / 10) + QLatin1Char('%'));
+    return label;
 }

@@ -1101,6 +1101,7 @@ target_link_libraries(tst_memory_lifecycle PRIVATE shogiboardq_static)
 add_shogi_test(tst_evaluationchart
     tst_evaluationchart.cpp
     ${SRC}/widgets/evaluationchartwidget.cpp
+    ${SRC}/models/evaluationseries.cpp
     ${SRC}/widgets/evaluationchartview.cpp
     ${SRC}/widgets/evaluationchartconfigurator.cpp
     ${SRC}/core/usiscore.cpp

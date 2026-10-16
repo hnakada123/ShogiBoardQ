@@ -68,6 +68,8 @@
 #include "kifudocument.h"
 #include "evaluationchartwidget.h"
 #include "evaluationchartview.h"
+#include "evaluationgraphpresenter.h"
+#include "evaluationseries.h"
 #include "branchtreemanager.h"
 #include "settingscommon.h"
 #include "appsettings.h"
@@ -568,14 +570,14 @@ private slots:
         first.setEngineName(QStringLiteral("Hayanagi 1.5.0"));
         second.setEngineName(QStringLiteral("Engine 2"));
         panel->setModels(&first, &second);
-        first.appendUsiCommLog(QStringLiteral("▶ E1: position startpos moves 7g7f 3c3d 2g2f 8c8d"));
-        first.appendUsiCommLog(QStringLiteral("▶ E1: go btime 278000 wtime 280000 byoyomi 3000"));
+        first.appendLogLine(QStringLiteral("▶ E1: position startpos moves 7g7f 3c3d 2g2f 8c8d"));
+        first.appendLogLine(QStringLiteral("▶ E1: go btime 278000 wtime 280000 byoyomi 3000"));
         for (int i = 1; i <= 9; ++i) {
-            first.appendUsiCommLog(QStringLiteral("◀ E1: info depth %1 seldepth %2 score cp -16 nodes %3 time %4 nps 313918 hashfull 45 pv 2h5h 3a4b 2g2f 8c8d 7g7f")
+            first.appendLogLine(QStringLiteral("◀ E1: info depth %1 seldepth %2 score cp -16 nodes %3 time %4 nps 313918 hashfull 45 pv 2h5h 3a4b 2g2f 8c8d 7g7f")
                 .arg(i).arg(i + 3).arg(i * 35801).arg(i * 100));
         }
-        first.appendUsiCommLog(QStringLiteral("◀ E1: bestmove 2h5h"));
-        second.appendUsiCommLog(QStringLiteral("◀ E2: readyok"));
+        first.appendLogLine(QStringLiteral("◀ E1: bestmove 2h5h"));
+        second.appendLogLine(QStringLiteral("◀ E2: readyok"));
         QTest::qWait(50);
         auto* view = dock->findChild<QPlainTextEdit*>("usiLogView");
         auto* input = dock->findChild<QLineEdit*>("usiCommandInput");
@@ -1612,19 +1614,20 @@ private slots:
         auto* evalChart = window->composer().parts().evalChart; QVERIFY(evalChart);
         const int xAxisLimit = evalChart->xAxisLimit();
         const int yAxisLimit = evalChart->yAxisLimit();
-        evalChart->appendScoreP1(1, UsiScore::cp(150));
-        evalChart->appendScoreP2(2, UsiScore::cp(-200));
-        evalChart->appendScoreP1Buffered(3, UsiScore::cp(250));
-        evalChart->appendScoreP2Buffered(4, UsiScore::cp(-300));
-        QVERIFY(evalChart->countP1() > 0);
-        QVERIFY(evalChart->countP2() > 0);
+        // 対局のエンジンの手の点と、描画待ちの点（棋譜解析と同じく少し待ってから描く点）を足す
+        EvaluationGraphPresenter* evalGraph = window->composer().parts().evalGraph; QVERIFY(evalGraph);
+        evalGraph->plotEngineScore(Turn::Black, 1, UsiScore::cp(150));
+        evalGraph->plotEngineScore(Turn::White, 2, UsiScore::cp(200));
+        evalGraph->plotAnalysisScore(3, UsiScore::cp(250));
+        QVERIFY(evalChart->series()->count(0) > 0);
+        QVERIFY(evalChart->series()->count(1) > 0);
 
         startPositionEdit();
         QVERIFY(board()->positionEditMode());
         // 描画待ちの評価値も破棄し、編集開始後にグラフが復活しないことを確認する。
         evalChart->flushPendingScores();
-        QCOMPARE(evalChart->countP1(), 0);
-        QCOMPARE(evalChart->countP2(), 0);
+        QCOMPARE(evalChart->series()->count(0), 0);
+        QCOMPARE(evalChart->series()->count(1), 0);
         QCOMPARE(evalChart->currentPly(), 0);
         QCOMPARE(evalChart->xAxisLimit(), xAxisLimit);
         QCOMPARE(evalChart->yAxisLimit(), yAxisLimit);
@@ -3105,14 +3108,14 @@ private slots:
         QVERIFY(graph);
         graph->setAutomaticRange(true);
         graph->setLabelFontSize(10);
-        graph->setEngine1Name(QStringLiteral("Hayanagi 1.5.0"));
-        graph->setEngine2Name(QStringLiteral("YaneuraOu"));
+        window->composer().parts().evalGraph->setEngine1Name(QStringLiteral("Hayanagi 1.5.0"));
+        window->composer().parts().evalGraph->setEngine2Name(QStringLiteral("YaneuraOu"));
         for (int ply = 1; ply <= 40; ++ply) {
             const int score = (ply < 20 ? ply * 45 : (40 - ply) * 75 - 850);
-            if (ply % 2 == 1) graph->appendScoreP1(ply, UsiScore::cp(score));
-            else graph->appendScoreP2(ply, UsiScore::cp(score - 70));
+            if (ply % 2 == 1) window->composer().parts().evalGraph->plotEngineScore(Turn::Black, ply, UsiScore::cp(score));
+            else window->composer().parts().evalGraph->plotEngineScore(Turn::White, ply, UsiScore::cp(score - 70).negated());
         }
-        graph->appendScoreP2(42, UsiScore::mate(-7));
+        window->composer().parts().evalGraph->plotEngineScore(Turn::White, 42, UsiScore::mate(-7).negated());
         graph->setCurrentPly(42);
         for (auto* dock : window->findChildren<QDockWidget*>()) {
             if (dock->widget() == graph) { dock->show(); dock->raise(); }
@@ -3177,8 +3180,8 @@ private slots:
         QCOMPARE(progress->maximum(), lastPly + 1); // 投了は着手後の局面ではない。
         QTRY_VERIFY_WITH_TIMEOUT(!action("actionCancelAnalyzeKifu")->isEnabled(), 8000);
         QCOMPARE(results->model()->rowCount(), lastPly + 1);
-        QTRY_COMPARE(graph->countP1(), lastPly + 1);
-        QCOMPARE(graph->countP2(), 0);
+        QTRY_COMPARE(graph->series()->count(0), lastPly + 1);
+        QCOMPARE(graph->series()->count(1), 0);
         auto* chartView = static_cast<EvaluationChartView*>(graph->chartViewWidget());
         QLineSeries* scores = nullptr;
         for (auto* series : chartView->chart()->series()) {
@@ -3243,8 +3246,8 @@ private slots:
         click("actionAnalyzeKifu");
         QTRY_VERIFY_WITH_TIMEOUT(!action("actionCancelAnalyzeKifu")->isEnabled(), 5000);
         QCOMPARE(results->model()->rowCount(), 1);
-        QTRY_COMPARE(graph->countP1(), 1);
-        QCOMPARE(graph->countP2(), 0);
+        QTRY_COMPARE(graph->series()->count(0), 1);
+        QCOMPARE(graph->series()->count(1), 0);
         QCOMPARE(scores->at(0).x(), double(lastPly));
         QCOMPARE(recordView->currentIndex().row(), lastPly);
         QCOMPARE(graph->currentPly(), lastPly);
@@ -3292,7 +3295,7 @@ private slots:
         armDialog("auto");
         click("actionAnalyzeKifu");
         auto* graph = window->composer().parts().evalChart;
-        QTRY_COMPARE(graph->countP1(), 2);
+        QTRY_COMPARE(graph->series()->count(0), 2);
         auto* chartView = static_cast<EvaluationChartView*>(graph->chartViewWidget());
         QLineSeries* scores = nullptr;
         for (auto* series : chartView->chart()->series()) {
@@ -3318,14 +3321,14 @@ private slots:
     {
         sampleGame();
         auto* graph = window->composer().parts().evalChart;
-        graph->appendScoreP1(1, UsiScore::cp(75));
-        graph->appendScoreP2(2, UsiScore::cp(-120));
+        window->composer().parts().evalGraph->plotEngineScore(Turn::Black, 1, UsiScore::cp(75));
+        window->composer().parts().evalGraph->plotEngineScore(Turn::White, 2, UsiScore::cp(-120).negated());
         graph->setCurrentPly(2);
         armDialog("auto");
         click("actionAnalyzeKifu");
         QCOMPARE(dialogClass, QStringLiteral("KifuAnalysisDialog"));
-        QCOMPARE(graph->countP1(), 1);
-        QCOMPARE(graph->countP2(), 1);
+        QCOMPARE(graph->series()->count(0), 1);
+        QCOMPARE(graph->series()->count(1), 1);
         QCOMPARE(graph->currentPly(), 2);
     }
 
@@ -3912,11 +3915,14 @@ private slots:
         manager->setConsiderationEngineName(QStringLiteral("YaneuraOu NNUE 9.10git 64ZEN2"));
         auto* summary = new UsiCommLogModel(window.get());
         summary->setEngineName(QStringLiteral("YaneuraOu NNUE 9.10git 64ZEN2"));
-        summary->setSearchedMove(QStringLiteral("▲７六歩(77)"));
-        summary->setSearchDepth(QStringLiteral("22/40"));
-        summary->setNodeCount(QStringLiteral("29,113,787"));
-        summary->setNodesPerSecond(QStringLiteral("2,645,265"));
-        summary->setHashUsage(QStringLiteral("14%"));
+        EngineSearchStatus summaryStatus;
+        summaryStatus.searchedMove = QStringLiteral("▲７六歩(77)");
+        summaryStatus.depth = 22;
+        summaryStatus.seldepth = 40;
+        summaryStatus.nodes = 29113787;
+        summaryStatus.nps = 2645265;
+        summaryStatus.hashfull = 140;
+        summary->setStatus(summaryStatus);
         manager->considerationInfo()->setModel(summary);
         QTest::qWait(80);
         QCOMPARE(model->headerData(0, Qt::Horizontal).toString(), QStringLiteral("時間(ms)"));
@@ -3968,12 +3974,15 @@ private slots:
         UsiCommLogModel model;
         EngineInfoWidget info(AnalysisSettings::ThinkingTable::Engine1);
         model.setEngineName(QStringLiteral("Hayanagi 1.5.0"));
-        model.setPredictiveMove(QStringLiteral("▲７六歩(77)"));
-        model.setSearchedMove(QStringLiteral("△３四歩(33)"));
-        model.setSearchDepth(QStringLiteral("12/18"));
-        model.setNodeCount(QStringLiteral("1,234,567"));
-        model.setNodesPerSecond(QStringLiteral("456,789"));
-        model.setHashUsage(QStringLiteral("12%"));
+        model.setPredictedMove(QStringLiteral("▲７六歩(77)"));
+        EngineSearchStatus status;
+        status.searchedMove = QStringLiteral("△３四歩(33)");
+        status.depth = 12;
+        status.seldepth = 18;
+        status.nodes = 1234567;
+        status.nps = 456789;
+        status.hashfull = 120;
+        model.setStatus(status);
         info.setModel(&model);
         info.resize(1200, info.height());
         info.show();

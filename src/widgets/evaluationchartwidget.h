@@ -16,6 +16,7 @@ class QGridLayout;
 
 class QPushButton;
 class EvaluationChartConfigurator;
+class EvaluationSeries;
 
 class EvaluationChartWidget : public QWidget
 {
@@ -25,19 +26,11 @@ public:
     ~EvaluationChartWidget() override;
     QWidget* chartViewWidget() const;
 
-    /// 先手から見た評価値を ply 手目に描く（P1 は 1つ目の系列、P2 は 2つ目の系列）。評価値なしは描かない
-    void appendScoreP1(int ply, const UsiScore& blackScore);
-    void appendScoreP2(int ply, const UsiScore& blackScore);
-    /// 少し待ってからまとめて描く（棋譜解析で1局面ずつ届くとき）
-    void appendScoreP1Buffered(int ply, const UsiScore& blackScore);
-    void appendScoreP2Buffered(int ply, const UsiScore& blackScore);
+    /// 描く評価値の列（非所有。設定するまでは自分の空の列を描く）。グラフは列を描くだけで書き換えない
+    void setSeries(const EvaluationSeries* series);
+    const EvaluationSeries* series() const { return m_evaluation; }
+    /// 足された点をすぐ描く（点は少し待ってからまとめて描く。棋譜解析で1局面ずつ届くとき）
     void flushPendingScores();
-    void clearAll();
-    void removeLastP1();
-    void removeLastP2();
-    void trimToPly(int maxPly);
-    int countP1() const;
-    int countP2() const;
 
     int yAxisLimit() const;
     int yAxisInterval() const;
@@ -50,11 +43,8 @@ public:
     void setXAxisInterval(int interval);
     void setLabelFontSize(int size);
     void setAutomaticRange(bool automatic);
-    void setEngine1Name(const QString& name);
-    void setEngine2Name(const QString& name);
     void setCurrentPly(int ply);
     void setRecordLength(int plies);
-    void setAnalysisLineIndex(int lineIndex);
     int currentPly() const { return m_currentPly; }
 
     // 棋譜欄と同じ6つのナビゲーションボタン（KifuNavigationController に接続する）
@@ -86,16 +76,13 @@ private slots:
     void applyXAxisSettings();
     void applyFontSize();
     void onPlotAreaChanged();
+    void onScoreAdded(int series, int ply);
+    void onScoresTrimmed(int maxPly);
+    void onLabelsChanged();
 
 private:
     enum NavButton { NavFirst, NavBack10, NavPrev, NavNext, NavFwd10, NavLast, NavButtonCount };
-    /// 先手から見た評価値。描くときに表示範囲へ丸めても、元の値を持つ
     using Score = UsiScore;
-    struct PendingScore {
-        int side;
-        int ply;
-        UsiScore score;
-    };
     void setupAxes();
     void setupChart();
     void setupSeries();
@@ -108,17 +95,14 @@ private:
     void refreshData();
     void showCurrentPly();
     void updatePresentation();
-    void appendScore(int side, int ply, const UsiScore& blackScore);
-    void bufferScore(int side, int ply, const UsiScore& blackScore);
-    void removeLast(int side);
     qreal displayedValue(const Score& score) const;
     QString scoreText(const Score& score) const;
     QString seriesName(int side) const;
+    const QMap<int, Score>& scores(int side) const;
     void setupTooltip();
     void hoverAt(const QPoint& position);
     void clearHover();
 
-    int m_analysisLineIndex = -1; // -1: 対局中のグラフ、0以上: 解析対象のライン
     QChart* m_chart = nullptr;
     QLineSeries* m_series[2] = {};
     QLineSeries* m_zeroLine = nullptr;
@@ -134,15 +118,15 @@ private:
     QWidget* m_navBar = nullptr;
     QPushButton* m_navButtons[NavButtonCount] = {};
     bool m_navBarWrapped = false; // 幅が足りず、ナビゲーションボタンを2行目に置いている
-    QString m_engineNames[2];
-    QMap<int, Score> m_scores[2];
     int m_currentPly = 0;
     int m_maxVisitedPly = 0;
     bool m_scoresChanged = true;  // refreshData の後に点を足したか（足した後は表示範囲と点を作り直す）
     int m_hoverSide = -1;
     int m_hoverPly = -1;
-    QList<PendingScore> m_pending;
     QTimer* m_flushTimer = nullptr;
+    EvaluationSeries* m_ownSeries = nullptr;          ///< 列が設定されるまで描く空の列
+    const EvaluationSeries* m_evaluation = nullptr;   ///< 描く評価値の列（非所有）
+    int m_pendingMaxPly = 0;   ///< まだ描いていない点の最大の手数
 };
 
 #endif

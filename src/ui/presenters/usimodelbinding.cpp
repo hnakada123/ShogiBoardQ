@@ -25,11 +25,7 @@ UsiModelBinding::UsiModelBinding(Usi* engine, const Models& models)
     const ThinkingInfoFormatter* thinking = engine->thinking();
     connect(thinking, &ThinkingInfoFormatter::thinkingInfoUpdated, this, &UsiModelBinding::onThinkingRow);
     connect(thinking, &ThinkingInfoFormatter::clearThinkingInfoRequested, this, &UsiModelBinding::onThinkingCleared);
-    connect(thinking, &ThinkingInfoFormatter::searchedMoveUpdated, this, &UsiModelBinding::onSearchedMove);
-    connect(thinking, &ThinkingInfoFormatter::searchDepthUpdated, this, &UsiModelBinding::onDepth);
-    connect(thinking, &ThinkingInfoFormatter::nodeCountUpdated, this, &UsiModelBinding::onNodes);
-    connect(thinking, &ThinkingInfoFormatter::npsUpdated, this, &UsiModelBinding::onNps);
-    connect(thinking, &ThinkingInfoFormatter::hashUsageUpdated, this, &UsiModelBinding::onHashUsage);
+    connect(thinking, &ThinkingInfoFormatter::searchStatusUpdated, this, &UsiModelBinding::onSearchStatus);
     const EngineProcessManager* process = engine->process();
     connect(process, &EngineProcessManager::commandSent, this, &UsiModelBinding::onCommandSent);
     connect(process, &EngineProcessManager::dataReceived, this, &UsiModelBinding::onLineReceived);
@@ -58,34 +54,14 @@ void UsiModelBinding::onThinkingCleared()
     if (m_thinking) m_thinking->clearAllItems();
 }
 
-void UsiModelBinding::onSearchedMove(const QString& move)
+void UsiModelBinding::onSearchStatus(const EngineSearchStatus& status)
 {
-    if (m_commLog) m_commLog->setSearchedMove(move);
-}
-
-void UsiModelBinding::onDepth(const QString& depth)
-{
-    if (m_commLog) m_commLog->setSearchDepth(depth);
-}
-
-void UsiModelBinding::onNodes(const QString& nodes)
-{
-    if (m_commLog) m_commLog->setNodeCount(nodes);
-}
-
-void UsiModelBinding::onNps(const QString& nps)
-{
-    if (m_commLog) m_commLog->setNodesPerSecond(nps);
-}
-
-void UsiModelBinding::onHashUsage(const QString& hashUsage)
-{
-    if (m_commLog) m_commLog->setHashUsage(hashUsage);
+    if (m_commLog) m_commLog->updateStatus(status);
 }
 
 void UsiModelBinding::appendLog(const QString& mark, const QString& text)
 {
-    if (m_commLog) m_commLog->appendUsiCommLog(mark + QLatin1Char(' ') + m_engineTag + QStringLiteral(": ") + text);
+    if (m_commLog) m_commLog->appendLogLine(mark + QLatin1Char(' ') + m_engineTag + QStringLiteral(": ") + text);
 }
 
 void UsiModelBinding::onCommandSent(const QString& command)
@@ -113,5 +89,5 @@ void UsiModelBinding::onBestMove(const UsiBestMove& result)
         if (!afterBest.isEmpty())
             prediction = KifuPresentation::move(afterBest, result.ponder, KifuPresentation::options());
     }
-    m_commLog->setPredictiveMove(prediction);
+    m_commLog->setPredictedMove(prediction);
 }

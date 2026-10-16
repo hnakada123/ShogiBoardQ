@@ -2,6 +2,7 @@
 /// @brief 解析結果ハンドラクラスの実装
 
 #include "analysisresulthandler.h"
+#include "evaluationseries.h"
 
 #include "analysiscoordinator.h"
 #include "kifuanalysislistmodel.h"
@@ -129,8 +130,8 @@ void AnalysisResultHandler::commitPendingResult()
         ? SfenUtils::normalizePositionLikeSfen(m_refs.line->sfenAt(ply)) : QString();
     const bool isGoteTurn = position.isEmpty() ? ply % 2 == 1
         : position.section(QLatin1Char(' '), 1, 1) == QStringLiteral("w");
-    // エンジンは手番側から見た評価値を出すので、後手番の局面では反転して先手から見た値にする
-    const UsiScore blackScore = isGoteTurn ? score.negated() : score;
+    // エンジンは手番側から見た評価値を出す（先手から見た値への直しは評価値グラフの点と同じ規則）
+    const UsiScore blackScore = EvaluationSeries::blackView(isGoteTurn ? Turn::White : Turn::Black, score);
     std::optional<int> difference;
     if (blackScore.isCp()) {
         if (m_previousCp) difference = blackScore.value - *m_previousCp;
