@@ -91,6 +91,7 @@
 | 2026-10-16 | 局面送りと編集のボタンを `QAction` の組で共有したのに合わせて §1.5・§11.2・§13.1・§18.3・§18.4 を更新（`KifuNavigationController` が局面送りの6つの `QAction`（`Step`・`action()`）を持ち、棋譜欄と評価値グラフのボタンを `bindButtons()` で結ぶ。`connectButtons()`・`RecordPane::setArrowButtonsEnabled()`・`setNavigationEnabled()`・`arrowButtonsEnabledChanged`・`EvaluationChartWidget::setNavigationEnabled()` を削除し、`UiStatePolicyManager` は `setStepActionsEnabled()` と `RecordPane::setKifuViewEnabled()` で切り替える。元に戻す〜貼り付けは標準ショートカット付きの `EditActions`（`src/widgets/`）にし、コメント欄と対局情報で使う） |
 | 2026-10-16 | 駒のセットの表とドックの表（監査 R10-1・R10-2）に合わせて §1.5・§4.4・§9.8・§10.4・§10.5・§11.2・§12.5・§14.2・§14.5.2・§14.6・§14.7・§17.4・§18.3・§18.4 を更新（駒のセットの表 `PieceStyleCatalog`・外観の値 `AppearanceState` を足し、`AppSettings::availablePieceStyles()`・`BoardColorPresets::pieceStyleName()` を削除。ドックは `DockRegistry`（`ui/coordinators/dockregistry.h`）の表から作り・置き・状態を保存し、`DockCreationService`・`DockUiCoordinator`・`DockWidgets`・`DockLayoutManager::DockType`／`registerDock()` を削除。ドックの状態は全12個を `DockSettings::DockState` で保存。メニューウィンドウ・定跡ウィンドウはコントローラのコンストラクタで作る） |
 | 2026-10-16 | CLI・自動化 API・MCP の引数を1つの表から扱うようにしたのに合わせて §1.3・§1.5・§1.8・§14.5.1・第18章を更新（引数の表の部品 `ParamSpec`・`OperationSpec`（`paramspec.h`）、自動化 API の表 `AutomationMethodSpecs`（`AutomationDispatcher` が呼ぶ前に検査し既定値を補う）、CLI の表 `CliCommandSpecs`（オプションの登録・使い方の文・JSON への変換）、表を JSON Schema で出す `shogiboardq-cli describe`） |
+| 2026-10-16 | エラーの分類を1つの表にしたのに合わせて §1.3・§1.5・§14.5.1・第18章を更新（分類 `ErrorKind` と語（slug）・JSON-RPC のコードの表 `ErrorKinds`（`errorkinds.h`）を CLI の `CliOutput::fail()`・`failEvent()` と `AutomationError` で共有し、JSON-RPC のエラーに `error.data.slug` を付ける。場所と上限・分類を出す `shogiboardq-cli environment`） |
 
 <!-- chapter-0-end -->
 
@@ -154,6 +155,8 @@ ninja -C build
 ./build/shogiboardq-cli version
 # CLI の全コマンドと自動化 API の全メソッドの引数（範囲・既定値）を JSON Schema で出す
 ./build/shogiboardq-cli describe
+# 自動化 API の既定のソケット・エンドポイントファイル・設定ファイルの場所、1メッセージの上限、エラーの分類を出す
+./build/shogiboardq-cli environment
 ```
 
 #### 静的解析付きビルド
@@ -599,6 +602,7 @@ src/
 ├── automation/                     # 自動化 API（--automation）と、CLI と共有する GUI 非依存のサービス
 │   ├── automationserver.cpp/.h     #   QLocalServer で改行区切りの JSON-RPC 2.0 を待ち受け
 │   ├── automationdispatcher.cpp/.h #   JSON-RPC の解析とメソッド表（GUI 非依存）。呼ぶ前に引数を表で検査し既定値を補う
+│   ├── errorkinds.cpp/.h           #   エラーの分類 ErrorKind と語（slug）・JSON-RPC のコードの表（CLI・自動化 API・MCP で共有）
 │   ├── paramspec.cpp/.h            #   引数の表の部品 ParamSpec・OperationSpec（JSON Schema の出力と検査。CLI・自動化 API・MCP で共有）
 │   ├── automationmethodspecs.cpp/.h #  自動化 API の全メソッドの引数の表 AutomationMethodSpecs
 │   ├── automationcommands_*.cpp    #   app・position・kifu・ui・dock・navigation・widget などのメソッド
@@ -613,10 +617,10 @@ src/
 │
 └── cli/                            # shogiboardq-cli（GUI を起動しない JSON 出力コマンド。mcp/ が使う）
     ├── main.cpp                    #   エントリーポイント
-    ├── clicommands_*.cpp/.h        #   各コマンド（describe は引数の表を JSON Schema で出す）
+    ├── clicommands_*.cpp/.h        #   各コマンド（describe は引数の表を JSON Schema で、environment は場所・上限・エラーの分類を出す）
     ├── clicommandspecs.cpp/.h      #   全コマンドの引数の表 CliCommandSpecs（オプションの登録・使い方の文・JSON への変換と検査）
     ├── cliargs.cpp/.h              #   表で読んだ引数の解釈（parse()・局面 resolvePosition()・エンジン resolveEngine()）
-    ├── clioutput.cpp/.h            #   JSON 出力
+    ├── clioutput.cpp/.h            #   JSON 出力（失敗は fail(ErrorKind, ...)・failEvent(ErrorKind, ...)）
     └── clistopwatcher.cpp/.h       #   長時間コマンドの停止要求の監視
 ```
 
@@ -7524,6 +7528,8 @@ MainWindow::MainWindow()
 
 メソッドの引数は `AutomationMethodSpecs`（`src/automation/automationmethodspecs.h`）の表に、名前・型・必須・範囲・既定値・選択肢を `ParamSpec`（`src/automation/paramspec.h`）で1行ずつ宣言する。`AutomationDispatcher::handleRequest()` はメソッドを呼ぶ前に `ParamSpecs::validate()` で引数を検査し（知らない引数・必須の欠け・型・範囲・選択肢の誤りは `-32602`）、既定値を補った引数をメソッドに渡す。メソッドは補われた値を読むだけで、`AutomationParams`（`requireString`・`optionalInt`・`requireInt`）は範囲が画面の状態で決まる引数（表の行・列など）にだけ使う。CLI の引数も同じ部品の表 `CliCommandSpecs`（`src/cli/clicommandspecs.h`）で宣言し、`shogiboardq-cli describe` が両方の表を JSON Schema として出す。MCP サーバーのツールのスキーマがこの表と一致することは `mcp/tests/test_param_specs.py` が検査する。引数を足すときは表に1行足し、MCP のツール（`mcp/shogiboardq_mcp/tooldefs.py`）のスキーマも合わせる。設計は [MCP サーバーの設計](mcp-server.md) を参照。外部からアプリを操作するときは、この自動化 API を使う。
 
+エラーの分類は `ErrorKind`（`src/automation/errorkinds.h`）の表1つで決める。メソッドは `AutomationError(ErrorKind, message, hint)` を投げ、`AutomationDispatcher::makeError()` が `error.code` に分類の JSON-RPC のコード（`ErrorKinds::rpcCode()`）、`error.data.slug` に分類の語（`ErrorKinds::slug()`）を入れる。CLI の失敗（`CliOutput::fail(ErrorKind, message)`・`failEvent()`）も同じ語を `code` に書くので、同じ失敗はどの経路でも同じ語になる（既存ファイルへの書き込みは `file_exists`、引数の誤りは `invalid_argument`、知らないメソッド・コマンドは `unknown_operation`、棋譜が読めないときは `parse_error`）。`shogiboardq-cli environment` は既定のソケット（`AutomationServer::defaultSocketPath()`）・エンドポイントファイル（`endpointFilePath()`）・設定ファイルの場所、1メッセージの上限（`AutomationServer::kMaxMessageBytes`）と分類の表（`ErrorKinds::toJson()`）を出し、MCP サーバーはこれを読んで値を写さない。分類の一覧は [MCP サーバーの設計](mcp-server.md#エラーの分類) を参照。
+
 #### 14.5.2 DockRegistry（ドックの作成）
 
 **ファイル**: `src/ui/coordinators/dockregistry.h/.cpp`、`src/app/mainwindowcomposer_create.cpp`（`createDocks()`）
@@ -9199,6 +9205,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | EngineSettingsOptionHandler | C | dialogs | エンジン設定オプションのウィジェット生成・データ管理 | 第11章 |
 | EngineVsEngineStrategy | C | game | エンジン対エンジンの Strategy | 第6章 |
 | ErrorBus | C | common | アプリ全体のエラー通知イベントバス（シングルトン） | 第4章, 第12章 |
+| ErrorKinds | NS | automation | CLI・自動化 API・MCP で共有するエラーの分類（enum `ErrorKind`）と、語（slug）・JSON-RPC のコードの表（`slug()`・`rpcCode()`・`toJson()`） | 第14章 |
 | EvaluationChartWidget | C | widgets | 評価値グラフチャートウィジェット（`EvaluationSeries` を描くだけ） | 第11章 |
 | EvaluationGraphPresenter | C | ui/presenters | 評価値グラフの点の書き手（対局・通信対局・棋譜解析）と表示中の手数 | 第10章 |
 | EvaluationSeries | C | models | 評価値グラフの点（先手から見た評価値の列が2本・系列名・解析した手順の番号） | 第10章 |
@@ -9733,6 +9740,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | automationserver | 第4章, 第14章 | 自動化 API のローカルソケットサーバー（改行区切り JSON-RPC 2.0） |
 | boardimagerenderer | 第13章 | 盤面画像の描画（GUI を起動しない CLI・自動化 API と共有） |
 | engineanalysisrunner | 第7章 | 登録エンジンで1局面を一定時間解析する実行器（CLI・自動化 API と共有） |
+| errorkinds | 第14章 | エラーの分類 `ErrorKind` と語・JSON-RPC のコードの表（CLI・自動化 API・MCP で共有） |
 | kifuconversionservice | 第8章 | 棋譜ファイル・文字列を各形式へ変換する GUI 非依存サービス（CLI・自動化 API と共有） |
 | matesearchrunner | 第9章 | 登録エンジンで詰みを探す実行器（CLI・自動化 API と共有） |
 | paramspec | 第14章 | 引数の表の部品（`ParamSpec`・`OperationSpec`）と JSON Schema の出力・検査（CLI・自動化 API・MCP で共有） |

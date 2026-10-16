@@ -28,6 +28,10 @@ ShogiBoardQ の機能を [Model Context Protocol (MCP)](https://modelcontextprot
 | `SHOGIBOARDQ_QUIT_APP_ON_EXIT` | `1` のとき、サーバーが起動したアプリをサーバー終了時に閉じ、終了を待ちます。応答しない場合はその子プロセスだけを強制終了します（既定は残す） |
 | `SHOGIBOARDQ_MCP_DEBUG` | `1` で詳細ログを標準エラーに出します |
 
+起動中のアプリの接続先（既定のソケット・`automation-endpoint.json`）と1メッセージの上限は、
+`shogiboardq-cli environment` がアプリと同じ計算で出す値を使います（環境変数の組ごとに1回だけ実行します）。
+そのため、アプリを操作するツールにも `shogiboardq-cli` が見つかる必要があります。
+
 ## ツール一覧
 
 アプリを起動しなくても使えるもの（`shogiboardq-cli` 経由）:
@@ -340,6 +344,14 @@ Windows と macOS には Xvfb がありません。MCP サーバーの環境変�
 専用のフォルダに向けます。普段のアプリを `--automation` 付きで起動している場合は、`SHOGIBOARDQ_AUTOMATION_SOCKET` で
 別の接続先を指定してください。画面の見た目は、普段と異なることがあります。
 
+## エラー
+
+ツールが失敗すると `isError: true` の結果に `Error (語): メッセージ` を返します。語は CLI・自動化 API と共通の
+エラーの分類（`invalid_argument`・`not_allowed`・`not_found`・`file_exists`・`parse_error`・`unsaved_changes`・
+`engine_not_found`・`engine_error` など。一覧は `shogiboardq-cli environment` の `error_kinds`）で、
+MCP サーバーだけの失敗には `app_unavailable`・`cli_not_found`・`timeout` などを使います。
+分類の表は [docs/dev/mcp-server.md](../docs/dev/mcp-server.md#エラーの分類) を参照してください。
+
 ## 安全性
 
 - 自動化 API は `ShogiBoardQ --automation` を付けたときだけ有効で、ソケットは所有者のみアクセスできます。ネットワークには公開しません。
@@ -378,6 +390,8 @@ python3 -m pytest -q mcp/tests
 `test_param_specs.py` は `shogiboardq-cli describe` が出す CLI のコマンドと自動化 API のメソッドの引数の表
 （JSON Schema）と、各ツールの `inputSchema` の型・選択肢・既定値・範囲が一致することを検査します。
 CLI や自動化 API の引数を変えたときは、`tooldefs.py` のスキーマも合わせてください。
+`test_environment.py` は `shogiboardq-cli environment` の出力と、MCP サーバーが使うエラーの語が
+分類の表（または MCP サーバーだけの語の一覧）にあることを検査します。
 
 実際の shogi-server と ShogiHome を使うCSA対局テストの環境構築・実行方法は、
 [CSA検証記録](../docs/dev/csa-game-mcp-audit-2026-09-27.md) を参照してください。

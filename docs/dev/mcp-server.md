@@ -184,6 +184,7 @@ shogiboardq-cli <command> [options]
 |---|---|---|
 | `version` | - | `{"ok":true,"version":"2026.09.25"}` |
 | `describe` | - | `{ok, commands:[{name, summary, input_schema}], methods:[{name, summary, input_schema}]}`（CLI の全コマンドと自動化 API の全メソッドの引数の表を JSON Schema で出す） |
+| `environment` | - | `{ok, version, socket_path, endpoint_file, settings_file, max_message_bytes, error_kinds:[{slug, rpc_code}]}`（自動化 API の既定のソケット・エンドポイントファイル・設定ファイルの場所と1メッセージの上限を、アプリと同じ計算（`AutomationServer::defaultSocketPath()`・`endpointFilePath()`・`SettingsCommon::settingsFilePath()`・`AutomationServer::kMaxMessageBytes`）で出し、エラーの分類の表（`ErrorKinds::toJson()`）を添える。MCP サーバーはこれを読んで値を写さない） |
 | `convert-kifu` | `--input PATH` / `--text STR`、`--input-format auto\|kif\|ki2\|csa\|jkf\|usi\|usen`、`--output-format kif\|ki2\|csa\|jkf\|usi\|usen\|sfen`、`--output PATH`、`--overwrite` | `{ok, input_format, output_format, text \| output_path, initial_sfen, ply_count, usi_moves[], sfens[], moves[], game_info[], has_branches, line_count, warnings[]}`。`moves[]` は本譜の各行（`{ply, text, usi, time, comment, bookmark}`。終局の行は `usi` なし、`time`・`comment`・`bookmark` は空なら省く）で、`KifuConversionService::Result::mainline`（`RecordLine`。`KifuBranchTree::exportLine(0)`）から作る。`text` は GUI の保存・コピーと同じ書き出しの表（`KifuExport::lines(tree, metadata, format)`）で作る |
 | `validate-sfen` | `--sfen SFEN` | `{ok, valid, normalized_sfen, turn, hands{black,white}, in_check, legal_move_count, kings{black,white}, errors[]}` |
 | `list-engines` | - | `{ok, engines:[{name,path,author,exists}]}` |
@@ -196,7 +197,7 @@ shogiboardq-cli <command> [options]
 共通仕様:
 
 - オプションは引数の表 `CliCommandSpecs`（`src/cli/clicommandspecs.{h,cpp}`）に1か所で宣言する。オプション名は引数名の `_` を `-` にしたもの（`max_positions` → `--max-positions`）。`CliArgs::parse(command, args, events, exitCode)` が表からオプションを登録し、コマンドラインを検査済みの JSON（既定値を補ったもの）にする。真偽値はフラグ（指定すれば true）、文字列の配列（`--moves`）は空白区切りの1つの値。知らないオプション・必須の欠け・範囲外・選択肢外は `invalid_argument`。各コマンドはこの JSON を読み、局面は `CliArgs::resolvePosition(params)`、エンジンは `CliArgs::resolveEngine(params)` で解決する。引数なし・`--help` のときの使い方の文（`CliCommandSpecs::usage()`）も同じ表から作る。範囲と既定値の一覧は `shogiboardq-cli describe` で確かめる。
-- エラーは `{"ok":false,"error":{"code":"invalid_argument"|"engine_not_found"|"engine_error"|"io_error"|"internal","message":"..."}}` を標準出力に書いて終了コード 1。JSON Lines コマンドでは `{"event":"error",...}` を出してから終了する。
+- エラーは `CliOutput::fail(ErrorKind, message)` が `{"ok":false,"error":{"code":語,"message":"..."}}` を標準出力に書いて終了コード 1。JSON Lines コマンドでは `CliOutput::failEvent(ErrorKind, message)` が `{"event":"error","code":語,"message":"..."}` を出してから終了する。`code` はエラーの分類（[エラーの分類](#エラーの分類)）の語で、CLI が使うのは `invalid_argument`（引数の誤り・読めない局面）、`unknown_operation`（知らないコマンド）、`engine_not_found`、`engine_error`、`parse_error`（`convert-kifu` の棋譜が読めない）、`render_error`、出力ファイルの問題（`CliArgs::checkOutputPath()` が分類を返す。相対パスは `invalid_argument`、既存ファイルで `--overwrite` なしは `file_exists`、ディレクトリを指すときと書き込みの失敗は `file_error`、親ディレクトリがないときは `not_found`）。
 - エンジンは設定ファイル（`SettingsCommon::settingsFilePath()`）の `[Engines]` に登録済みの名前だけを受け付ける（`EngineListSettings::loadEngines()`）。任意パスは受け付けない。エンジンのオプションは GUI と同じく設定ファイルの値を適用する（`UsiEngineSession::startAsync()` が `EngineProfileStore::launchOptions()` で読み、`UsiProtocolHandler::setLaunchOptions()` に渡す）。
 - 局面は `--sfen`（`startpos` も可）と `--moves`（USI 手を空白区切り）で指定し、`CliArgs::resolvePosition(params)` が `UsiPosition::fromMoves()` で探索させる局面（`CliPosition::position`）にする（読めない手・指せない手は `invalid_argument`）。エンジンには `UsiPosition::command()`（平手なら `position startpos moves ...`、それ以外は `position sfen ... moves ...`）を送る。
 - `--output` の既存ファイルは `--overwrite` が無ければ拒否する。ディレクトリ制限は MCP サーバー側で行う（CLI 単体では行わない）。
@@ -215,10 +216,11 @@ ShogiBoardQ --automation [--automation-socket PATH]
 
 | 項目 | 値 |
 |---|---|
-| ソケットパス（Linux/macOS） | `--automation-socket` → 環境変数 `SHOGIBOARDQ_AUTOMATION_SOCKET` → `QStandardPaths::RuntimeLocation`（`$XDG_RUNTIME_DIR`）`/shogiboardq/automation.sock`。Unix ドメインソケットの制限により 100 バイト以内 |
-| ソケット名（Windows） | `shogiboardq-automation-<ユーザー名>`（名前付きパイプ） |
-| エンドポイント情報 | `QStandardPaths::AppConfigLocation/automation-endpoint.json`（`{"socket":..., "pid":..., "version":...}`）。起動時に書き、終了時に削除する。MCP サーバーはこれを読んで接続先を決める |
+| ソケットパス（Linux/macOS） | `--automation-socket` → 環境変数 `SHOGIBOARDQ_AUTOMATION_SOCKET` → `QStandardPaths::RuntimeLocation`（`$XDG_RUNTIME_DIR`。取れなければ一時ディレクトリ）`/shogiboardq/automation.sock`（`AutomationServer::defaultSocketPath()`）。Unix ドメインソケットの制限により 100 バイト以内 |
+| ソケット名（Windows） | 環境変数 `SHOGIBOARDQ_AUTOMATION_SOCKET` → `shogiboardq-automation-<ユーザー名>`（名前付きパイプ） |
+| エンドポイント情報 | 設定ファイル（`SettingsCommon::settingsFilePath()`）と同じフォルダの `automation-endpoint.json`（`AutomationServer::endpointFilePath()`。`{"socket":..., "pid":..., "version":...}`）。起動時に書き、終了時に削除する。MCP サーバーはこれを読んで接続先を決める |
 | プロトコル | 改行区切りの JSON-RPC 2.0（1 行 1 メッセージ、UTF-8）。バッチは未対応（`-32600`） |
+| メッセージの上限 | 1 メッセージ 8 MiB（`AutomationServer::kMaxMessageBytes`。棋譜テキストを含む）。超えると `-32600`（`invalid_request`）を返して切断する |
 | スレッド | すべてメインスレッド。1 リクエストを同期処理して応答する |
 
 ### メソッド一覧
@@ -231,33 +233,56 @@ ShogiBoardQ --automation [--automation-socket PATH]
 | `app.quit` | - | `{ok:true}`（応答後に終了。テストハーネス用で MCP ツールには出さない） | - |
 | `position.get` | - | `{sfen, start_sfen, ply, moves[]}` | - |
 | `position.set` | `{sfen, discard_unsaved?}` | `{sfen}` | `-32602` 不正 SFEN、`-32004` 未保存 |
-| `kifu.load` | `{path?, text?, discard_unsaved?}` | `{total_plies, start_sfen, kifu_file, warnings?}` | `-32003` パス、`-32004` 未保存、`-32005` 読込失敗（理由をメッセージに含め、エラーダイアログは出さない） |
-| `kifu.save` | `{path, overwrite?}` | `{path, format}` | `-32003` パス／既存ファイル／.kif・.ki2 に Shift_JIS で表せない文字（確認ダイアログは出さず、文字を示して `.kifu`・`.ki2u` を案内） |
+| `kifu.load` | `{path?, text?, discard_unsaved?}` | `{total_plies, start_sfen, kifu_file, warnings?}` | `-32602` 相対パス・`path` と `text` の一方だけを渡していない、`-32005` ファイルなし、`-32004` 未保存、`-32006`（`parse_error`）読込失敗（理由をメッセージに含め、エラーダイアログは出さない） |
+| `kifu.save` | `{path, overwrite?}` | `{path, format}` | `-32602` 相対パス、`-32003`（`file_exists`）既存ファイル、`-32005` ディレクトリなし、`-32003`（`file_error`）書き込みの失敗・.kif・.ki2 に Shift_JIS で表せない文字（確認ダイアログは出さず、文字を示して `.kifu`・`.ki2u` を案内） |
 | `kifu.get` | `{format?, line?: "current"\|"main", from_ply?, max_moves?, max_chars?}` | `{format, total_plies, line, moves:[{ply,text,usi,time,comment}], text?, truncated}`（`moves` は表示中の手順。`line="main"` で本譜） | - |
 | `kifu.goto` | `{ply}` | `{ply, sfen}` | `-32602` 範囲外 |
 | `action.list` | - | `{actions:[{name,text,enabled,checked,checkable}]}` | - |
 | `action.trigger` | `{name}` | `{name, triggered:true}`（応答後に実行） | `-32001` 許可リスト外、`-32002` 無効状態、`-32005` 存在しない |
 | `board.click` | `{target?, file, rank, button?: "left"\|"right"}` | `{target, file, rank, queued:true}`（応答後に実行） | `-32602` 不正座標、`-32002` 操作不可、`-32005` 盤なし |
 | `dialog.clickButton` | `{target, widget? または text?, index?}` | `{object_name, text, queued:true}`（応答後に実行） | `-32602` 不正引数、`-32002` 操作不可、`-32005` ボタンなし |
-| `screenshot.capture` | `{target?: "main"\|objectName\|タイトル, output_dir?}` | `{path, width, height}` | `-32005` 対象なし |
+| `screenshot.capture` | `{target?: "main"\|objectName\|タイトル, output_dir?}` | `{path, width, height}` | `-32602` 相対の `output_dir`、`-32005` 対象なし |
 | `dialog.list` | - | `{windows:[{object_name,class,title,visible,modal,active,main,width,height}]}` | - |
 | `dialog.close` | `{target}` | `{closed:true, object_name, title}`（応答後に閉じる） | `-32005` 対象なし |
 | `widget.text` | `{target?, widget?, max_rows?, max_widgets?, include_children?}` | `{widgets:[{object_name,class,text?,items?,rows?}]}` | `-32005` 対象なし |
 
 引数はメソッドごとの表 `AutomationMethodSpecs`（`src/automation/automationmethodspecs.{h,cpp}`）に宣言する。`AutomationDispatcher::handleRequest()` はメソッドを呼ぶ前に `ParamSpecs::validate()` で表と照らし、知らない引数・必須の欠け・型違い・範囲外・選択肢外を `-32602`（`error.data.hint` は `shogiboardq-cli describe` の案内）で返し、既定値を補った引数をメソッドに渡す。各メソッドは補われた値を読むだけで、`AutomationParams`（`requireString`・`optionalInt`・`requireInt`）は範囲が画面の状態で決まる引数（表の行・列、コンボやスピンの値など）や操作によって必須になる引数（`dock.configure` の `area`・`relative_to`）にだけ使う。表は `shogiboardq-cli describe` の `methods` に JSON Schema として出る。
 
-エラーコード: JSON-RPC 標準（`-32700` parse、`-32600` invalid request、`-32601` method not found、`-32602` invalid params、`-32603` internal）に加え、`-32001` not allowed、`-32002` invalid state、`-32003` file error、`-32004` unsaved changes、`-32005` not found。`error.data.hint` に対処方法を入れる。
-
 `action.trigger` の許可リストは `src/automation/automationactionpolicy.cpp` で管理する。終了（`actionQuit`）、上書き保存（`actionSave`）、Web サイトを開く動作は除外する。言語切替とドックレイアウト保存・初期化は許可する。言語はアプリ再起動後に反映する。
 
-モーダルダイアログを開く動作（`action.trigger`）、ダイアログを閉じる `dialog.close`、`app.quit` は、応答を書いた後に `AutomationDeferredCall` で次のイベントループ反復に実行する。これにより `QDialog::exec()` の入れ子ループ中でも呼び出し側が応答を受け取れ、続けて `dialog.list` / `widget.text` / `screenshot.capture` で内容を確認できる。`kifu.load` / `position.set` は未保存の変更があるとき `discard_unsaved` 無しでは `-32004` を返し、確認ダイアログは出さない。読み込み失敗の通知も `UiNotificationService::ScopedCapture` でダイアログを出さずに記録し、`-32005` の理由として返す。ハンドラの実行中（入れ子のイベントループ）に届いた別の要求は実行せず `-32002` を返し、処理中に切断したソケットはハンドラが戻ってから削除する。
+モーダルダイアログを開く動作（`action.trigger`）、ダイアログを閉じる `dialog.close`、`app.quit` は、応答を書いた後に `AutomationDeferredCall` で次のイベントループ反復に実行する。これにより `QDialog::exec()` の入れ子ループ中でも呼び出し側が応答を受け取れ、続けて `dialog.list` / `widget.text` / `screenshot.capture` で内容を確認できる。`kifu.load` / `position.set` は未保存の変更があるとき `discard_unsaved` 無しでは `-32004` を返し、確認ダイアログは出さない。読み込み失敗の通知も `UiNotificationService::ScopedCapture` でダイアログを出さずに記録し、`-32006`（`parse_error`）の理由として返す。ハンドラの実行中（入れ子のイベントループ）に届いた別の要求は実行せず `-32002` を返し、処理中に切断したソケットはハンドラが戻ってから削除する。
+
+### エラーの分類
+
+エラーの分類は `ErrorKind`（`src/automation/errorkinds.{h,cpp}`）の表1つで決め、CLI・自動化 API・MCP サーバーで同じ失敗は同じ語（slug）にする。`ErrorKinds::slug(kind)` が語、`ErrorKinds::rpcCode(kind)` が JSON-RPC のコード（`AutomationErrorCode` の値）を返し、`ErrorKinds::toJson()` が全分類を `shogiboardq-cli environment` の `error_kinds` に出す。
+
+| `ErrorKind` | 語（slug） | JSON-RPC のコード | 意味 |
+|---|---|---|---|
+| `InvalidJson` | `invalid_json` | `-32700` | 要求が JSON でない |
+| `InvalidRequest` | `invalid_request` | `-32600` | JSON-RPC の形が正しくない・バッチ・大きすぎる |
+| `UnknownOperation` | `unknown_operation` | `-32601` | 知らないメソッド・コマンド |
+| `InvalidArgument` | `invalid_argument` | `-32602` | 引数の誤り（相対パスを含む） |
+| `InternalError` | `internal_error` | `-32603` | 予期しない失敗 |
+| `NotAllowed` | `not_allowed` | `-32001` | 許可されない操作 |
+| `InvalidState` | `invalid_state` | `-32002` | 今の状態ではできない |
+| `FileError` | `file_error` | `-32003` | ファイルの読み書きの失敗 |
+| `FileExists` | `file_exists` | `-32003` | 上書きの許可なしに既存のファイルへ書こうとした |
+| `UnsavedChanges` | `unsaved_changes` | `-32004` | 未保存の変更がある |
+| `NotFound` | `not_found` | `-32005` | 対象（ファイル・ディレクトリ・ウィンドウ・部品など）が見つからない |
+| `InvalidContent` | `parse_error` | `-32006` | 棋譜や局面の中身が読めない |
+| `EngineNotFound` | `engine_not_found` | `-32005` | 登録エンジンが見つからない |
+| `EngineError` | `engine_error` | `-32007` | エンジンの起動・探索の失敗 |
+| `RenderError` | `render_error` | `-32603` | 盤面画像を描けない |
+
+メソッドの実装は `AutomationError(ErrorKind, message, hint)` を投げ、`AutomationDispatcher::makeError(id, kind, message, hint)` が `error.code` に分類のコード、`error.data.slug` に分類の語（常に付ける）、`error.data.hint` に対処方法（あれば）を入れる。コードは複数の分類で共有することがある（`-32003`・`-32005`・`-32603`）ので、分類は `error.data.slug` で見分ける。
 
 ### アプリ側のクラス構成
 
 | クラス | ファイル | 責務 |
 |---|---|---|
 | `AutomationServer` | `src/automation/automationserver.{h,cpp}` | `QLocalServer` の待ち受け、接続ごとの行バッファ、応答の書き出し、エンドポイント情報の作成・削除 |
-| `AutomationDispatcher` | `src/automation/automationdispatcher.{h,cpp}` | JSON-RPC 2.0 の解析・検証、メソッド表、呼ぶ前の引数の検査（`AutomationMethodSpecs`）、エラー応答の生成（GUI 非依存で単体テスト可能） |
+| `AutomationDispatcher` | `src/automation/automationdispatcher.{h,cpp}` | JSON-RPC 2.0 の解析・検証、メソッド表、呼ぶ前の引数の検査（`AutomationMethodSpecs`）、エラー応答の生成（`makeError()` が `error.data.slug` を付ける。GUI 非依存で単体テスト可能） |
+| `ErrorKind` / `ErrorKinds` | `src/automation/errorkinds.{h,cpp}` | エラーの分類と、語・JSON-RPC のコードの表（`slug()`・`rpcCode()`・`toJson()`）。CLI の `CliOutput::fail()`・`failEvent()` と `AutomationError` が使う |
 | `ParamSpec` / `OperationSpec` | `src/automation/paramspec.{h,cpp}` | 引数1つの仕様（名前・型・必須・範囲・既定値・選択肢・説明）と操作1つの仕様。`ParamSpecs::inputSchema()`・`toJson()`（JSON Schema）と `validate()`（知らない引数の拒否・必須・型・範囲・選択肢の検査と既定値の補完）。CLI・自動化 API・MCP で共有する |
 | `AutomationMethodSpecs` | `src/automation/automationmethodspecs.{h,cpp}` | 自動化 API の全メソッドの引数の表（`all()`・`find()`） |
 | `AutomationContext` | `src/automation/automationcontext.h` | MainWindow 側の依存を注入する Deps 構造体。部品と状態（`AppState`・棋譜の文書 `KifuDocument`・`KifuNavigationState`）は非所有ポインタで受け取り、関数で受け取るのは dialogs 層のメニューウィンドウのお気に入りと終了要求だけ |
@@ -282,8 +307,9 @@ mcp/
     handlers_app.py         段階 2 ツール（自動化 API 呼び出し）
     cli_backend.py          CLI の探索と実行（同期コマンド／ジョブ用サブプロセス）
     jobs.py                 ジョブ管理（状態、イベント、停止、期限切れ）
-    app_client.py           自動化 API クライアント（接続、再接続、アプリの自動起動）
-    paths.py                パス方針（絶対パス、許可ディレクトリ、上書き）とエンドポイント解決
+    app_client.py           自動化 API クライアント（接続、再接続、アプリの自動起動。アプリのエラーの語は data.slug）
+    environment.py          shogiboardq-cli environment の結果（環境変数の組ごとに1回読む）と、コードから語を引く error_slug()
+    paths.py                パス方針（絶対パス、許可ディレクトリ、上書き）とエンドポイント・既定のソケットの解決
     formatting.py           人が読むテキスト要約の生成
   tests/                    pytest（mcp SDK のクライアントで stdio 経由にツールを呼ぶ）
 ```
@@ -309,7 +335,9 @@ mcp/
 `XDG_CONFIG_HOME` などは Linux の Qt だけが見る。macOS・Windows では効かないので、テストや撮影で普段の設定を
 書き換えないよう、`SHOGIBOARDQ_*_HOME` も指定して隔離する（`mcp/tests/conftest.py`・`tests/gui/run.py`・`scripts/docs/launch.sh`）。
 
-- アプリへの接続は `automation-endpoint.json` → 既定パスの順に試し、失敗したら `SHOGIBOARDQ_EXECUTABLE` を起動して最大 30 秒待つ。接続断は次の呼び出しで再接続する。
+- ソケット・エンドポイントファイルの場所と1メッセージの上限は Python で計算せず、`environment.environment()` が `shogiboardq-cli environment` を実行して読む（結果は、場所を変える環境変数 `SHOGIBOARDQ_CONFIG_HOME`・`SHOGIBOARDQ_AUTOMATION_SOCKET`・`XDG_CONFIG_HOME`・`XDG_RUNTIME_DIR`・`HOME`・`LOCALAPPDATA`・`USERNAME`・`SHOGIBOARDQ_CLI`・`SHOGIBOARDQ_EXECUTABLE` の値の組ごとに1回だけ実行して覚える）。`paths.endpoint_file()` はその `endpoint_file`、`paths.default_socket_path()` は `SHOGIBOARDQ_AUTOMATION_SOCKET` があればその値、なければ `socket_path` を返す。自動化 API のソケットの読み込みの上限は `max_message_bytes`。
+- アプリへの接続は `SHOGIBOARDQ_AUTOMATION_SOCKET` → `automation-endpoint.json` の `socket` → 既定パスの順に試し、失敗したら `SHOGIBOARDQ_EXECUTABLE` を起動して最大 30 秒待つ。エンドポイントファイルと既定パスの場所、読み込みの上限は `shogiboardq-cli environment` から得るので、段階 2 ツールにも `shogiboardq-cli` が要る（実行できないときは、エンドポイントファイルと既定パスを候補から外す）。接続断は次の呼び出しで再接続する。
+- ツールのエラーは `ToolError(code, message, data)` で、`isError: true` の結果のテキスト `Error (code): message`（`data.hint` があれば `Hint: ...` を続ける）にする。`code` は [エラーの分類](#エラーの分類) と同じ語を使う（パスの誤りは `invalid_argument`、許可ディレクトリの外は `not_allowed`、ファイル・ディレクトリ・ジョブがないときは `not_found`、既存ファイルは `file_exists`）。CLI のエラーは CLI の `code` を、アプリのエラーは `error.data.slug`（なければ `environment()` の `error_kinds` でコードから引いた語。表にないコードは `app_error`）をそのまま返す。MCP サーバーだけが持つ失敗には `app_unavailable`・`app_disconnected`・`app_response_too_large`・`app_error`・`cli_not_found`・`cli_failed`・`job_failed`・`timeout`（アプリの応答待ちの時間切れ）・`too_many_jobs` を使う（`mcp/tests/test_environment.py` が、ソースの `ToolError` の語が分類の表かこの一覧にあることを検査する）。
 - 1 回の JSON-RPC 呼び出しには 30 秒のタイムアウトを置く（GUI がモーダルダイアログで止まっている場合に備える）。
 
 ## 6. ジョブの状態遷移
@@ -350,7 +378,7 @@ CLI が GUI 本体と同じクラスを使えるように、`CMakeLists.txt` の
 
 | ディレクトリ | 内容 |
 |---|---|
-| `src/automation/` | 共通サービス（`KifuConversionService`、`BoardImageRenderer`、`EngineCatalog`、`EngineAnalysisRunner`、`MateSearchRunner`、`TsumeVerificationRunner`。局面の検証は `src/analysis/` の `SfenValidationService`）と自動化 API（`AutomationServer` ほか） |
+| `src/automation/` | エラーの分類の表（`ErrorKind`・`ErrorKinds`）、共通サービス（`KifuConversionService`、`BoardImageRenderer`、`EngineCatalog`、`EngineAnalysisRunner`、`MateSearchRunner`、`TsumeVerificationRunner`。局面の検証は `src/analysis/` の `SfenValidationService`）と自動化 API（`AutomationServer` ほか） |
 | `src/cli/` | `shogiboardq-cli` のエントリーポイントとコマンド実装（`CliCommands*`）、コマンドの引数の表 `CliCommandSpecs` と引数の解釈 `CliArgs`。JSON 出力と stdin の `stop` 監視 |
 | `mcp/` | Python パッケージとテスト |
 
@@ -360,8 +388,8 @@ CLI が GUI 本体と同じクラスを使えるように、`CMakeLists.txt` の
 
 | テスト | 種別 | 内容 |
 |---|---|---|
-| `tst_automation_dispatcher` | C++（Qt Test） | JSON-RPC の解析・エラーコード・メソッド表 |
-| `tst_param_specs` | C++ | 引数の表の検査（既定値の補完・知らない引数・範囲・型の拒否）、JSON Schema の出力、CLI のオプションの変換、登録した全メソッドに表があること、ディスパッチャが呼ぶ前に検査すること |
+| `tst_automation_dispatcher` | C++（Qt Test） | JSON-RPC の解析・エラーコードと `error.data.slug`・メソッド表 |
+| `tst_param_specs` | C++ | 引数の表の検査（既定値の補完・知らない引数・範囲・型の拒否）、JSON Schema の出力、CLI のオプションの変換、登録した全メソッドに表があること、ディスパッチャが呼ぶ前に検査すること、エラーの分類の語が重ならず表の並びが `ErrorKind` と同じこと |
 | `tst_kifu_conversion_service` | C++ | fixtures の KIF/KI2/CSA/JKF/USI/USEN を相互変換し、手順・初期局面・SFEN 列を検証 |
 | `tst_sfen_validation_service` | C++ | 妥当／不正な SFEN、王手検出、合法手数 |
 | `tst_usilineparser` | C++ | `info` 行などの受信行の解析（`src/engine/usilineparser`。multipv、score cp/mate、bound、pv、info string、崩れた行）と JSON 出力 |
@@ -369,7 +397,7 @@ CLI が GUI 本体と同じクラスを使えるように、`CMakeLists.txt` の
 | `mock_mate_engine` | 補助実行ファイル | `go mate <ms>` に Hayanagi の詰み探索で答える USI エンジン（生成・余詰検査・詰み探索の結合テスト用） |
 | `tst_mcp_python` | pytest（CTest から実行） | `mcp` SDK のクライアントで stdio サーバーを起動し、段階 1 ツール（CLI）と段階 2 ツール（`QT_QPA_PLATFORM=offscreen` で起動したアプリ）を呼ぶ。エンジンは `hayanagi`（解析）と `mock_mate_engine`（詰み）を一時設定ファイルに登録して使う |
 
-`tst_mcp_python` は Python3 と `mcp`・`pytest` が見つかるときだけ登録される。`mcp/tests/test_param_specs.py` は `shogiboardq-cli describe` の表と MCP のツールのスキーマ（そのまま渡すツールは引数名・必須・型・選択肢・既定値・範囲、名前や向きを変えて渡すツールは対応する引数ごと）を比べ、ハンドラが呼ぶメソッドとオプションが表にあることも確かめる。実エンジンでの確認は `SHOGIBOARDQ_TEST_KOMORING` があれば追加で行う。
+`tst_mcp_python` は Python3 と `mcp`・`pytest` が見つかるときだけ登録される。`mcp/tests/test_param_specs.py` は `shogiboardq-cli describe` の表と MCP のツールのスキーマ（そのまま渡すツールは引数名・必須・型・選択肢・既定値・範囲、名前や向きを変えて渡すツールは対応する引数ごと）を比べ、ハンドラが呼ぶメソッドとオプションが表にあることも確かめる。`mcp/tests/test_environment.py` は `shogiboardq-cli environment` の出力（場所・上限・語の重ならない分類の表）と、MCP サーバーの語が分類の表と一致すること、`AppError` が `data.slug`（なければコード）から語を決めることを確かめる。実エンジンでの確認は `SHOGIBOARDQ_TEST_KOMORING` があれば追加で行う。
 
 `mcp/tests/test_csa_game.py` は実際の shogi-server を使い、接続ダイアログ・盤面・終局・棋譜保存を stdio MCP 経由で検証する。
 `SHOGIBOARDQ_TEST_CSA_SERVER` にサーバースクリプトを指定する。実エンジン対局は `SHOGIBOARDQ_TEST_USI_ENGINE`、
