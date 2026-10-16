@@ -178,7 +178,7 @@ SHA-256が変わるため通常の解析に戻る。ファイル名や外部のJ
 - `TsumeSolutionReplay`: 検証済みの正解手順の取得と、対局状態から独立した手順再生。
 - `TsumeMateEngine`: ほかの詰み探索と同じ `MateOracle`（`UsiEngineSession` で USI の手順と設定を送る）の `askWithin()` で動かす詰み判定。`TsumePositionAnalyzer`: 判定方式選択とキャッシュ。
 - `TsumeProgressStore`: 設定ファイルとは独立したSQLite集計と解析キャッシュ。
-- `TsumeshogiSettings`（`src/services/tsumeshogisettings.h`）: UI設定を保存する。文字サイズは宣言の表の `Setting<int>`（`tsumePlayFontSize`・`tsumeCollectionFontSize`）、画面サイズや最後に開いたファイルなど複数のキーをまとめる項目は構造体を読み書きする関数（`playPreferences()` / `collectionPreferences()`）。
+- `TsumeshogiSettings`（`src/services/tsumeshogisettings.h`）: UI設定を保存する。文字サイズは宣言の表の `Setting<int>`（`tsumePlayFontSize`・`tsumeCollectionFontSize`）、画面サイズや最後に開いたファイルなど複数のキーをまとめる項目は構造体の宣言 `StructSetting`（`playPreferences` / `collectionPreferences`。読むのは `playPreferences()`、書くのは `playPreferences.set(...)`。保存していない項目は `PlayPreferences`・`CollectionPreferences` の既定値）。
 
 KomoringHeightsは `PostSearchLevel=MinLength`、`GenerateAllLegalMoves=true`、
 `RootIsAndNodeIfChecked=false` を必須とする。エンジンには登録済みの設定（スレッド数・ハッシュなど、

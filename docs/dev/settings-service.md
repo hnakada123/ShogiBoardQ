@@ -3,8 +3,9 @@
 ShogiBoardQ のアプリケーション設定の永続化に関するガイド。
 
 設定項目は `Setting<T>`（`src/services/setting.h`）で**キーと既定値を1行で宣言**し、読み書きはその宣言を通す。
-getter と setter の組やキー定数は手で書かない。値の範囲を絞る、複数のキーを構造体にまとめる、配列で保存する、
-といった処理が要る項目だけを関数として書く。
+getter と setter の組やキー定数は手で書かない。値の範囲を絞る項目・構造体を複数のキーに保存する項目・配列で保存する項目も、
+`BoundedSetting<T>`・`StructSetting<T>`・`ListSetting<T>`・`StructListSetting<T>`（同じヘッダー）で宣言する。
+これらで表せない処理（以前の版の値の引き継ぎ、ほかの項目への代替など）が要る項目だけを関数として書く。
 
 ---
 
@@ -54,7 +55,7 @@ getter と setter の組やキー定数は手で書かない。値の範囲を�
 
 | ファイル | 内容 |
 |---|---|
-| `src/services/setting.h` | `Setting<T>`。設定ファイルの1項目（キーと既定値）を表し、読み書きの入口になる |
+| `src/services/setting.h` | `Setting<T>`。設定ファイルの1項目（キーと既定値）を表し、読み書きの入口になる。範囲付きの `BoundedSetting<T>`、構造体の `StructSetting<T>`（項目は `SettingField<T>`）、配列の `ListSetting<T>`・`StructListSetting<T>` も置く（[3章](#範囲付き構造体配列の宣言)） |
 | `src/services/settingscommon.h/.cpp` | 設定ファイルのパス（`settingsFilePath()`）、アプリ全体で共有する `QSettings`（`openSettings()`）、全設定の消去（`resetAllSettings()`） |
 | ドメイン別ヘッダー（下表） | 設定項目の宣言の表。処理が要る項目の関数宣言もここに置く |
 | `src/services/settingskeys.h` | 関数として書いた項目と、機能ごとのエンジン選択（`EngineListSettings`）が使うキー定数。宣言の表の項目はキーを宣言に直接書くので、新しい項目のためにここへ定数を足さない |
@@ -72,8 +73,8 @@ getter と setter の組やキー定数は手で書かない。値の範囲を�
 | `AppSettings` | `appsettings.h/.cpp` | 言語・指し手の表記、GUI共通フォント、UI状態、駒画像・駒音、盤の配色、メニューウィンドウ、メインウィンドウのサイズと盤のマスの大きさ、補助ダイアログの文字サイズ・大きさ（id ごと） |
 | `GameSettings` | `gamesettings.h` | 棋譜ファイルのディレクトリ、棋譜欄、コメント・対局情報タブ、対局開始ダイアログ（`GameSettings::StartGame`）、棋譜貼り付け、局面集、持将棋の点数ダイアログ |
 | `AnalysisSettings` | `analysissettings.h/.cpp` | 分岐ツリー、評価値グラフ、解析タブ（列幅・USIログ・思考タブ）、棋譜解析、検討、詰み探索、読み筋盤面 |
-| `NetworkSettings` | `networksettings.h` | CSA通信対局ダイアログ（対局者・接続先・詳細設定）、待機ダイアログ、通信ログ |
-| `JosekiSettings` | `josekisettings.h/.cpp` | 定跡ウィンドウ、定跡手編集・定跡マージダイアログ |
+| `NetworkSettings` | `networksettings.h` | CSA通信対局ダイアログ（対局者・接続先・詳細設定・接続先の履歴 `csaServerHistory`）、待機ダイアログ、通信ログ |
+| `JosekiSettings` | `josekisettings.h` | 定跡ウィンドウ、定跡手編集・定跡マージダイアログ |
 | `TsumeshogiSettings` | `tsumeshogisettings.h/.cpp` | 詰将棋局面生成ダイアログ、詰将棋の問題一覧・対局画面 |
 | `EngineDialogSettings` | `enginedialogsettings.h` | エンジン設定・エンジン登録ダイアログ |
 | `DockSettings` | `docksettings.h/.cpp` | ドック1つの状態 `DockState`（フローティング・表示状態・ジオメトリ。全12個のドックを `dockState(group, defaultVisible)` / `setDockState(group, state)` で読み書き）、ドックの固定、名前付きレイアウト |
@@ -136,6 +137,33 @@ GameSettings::commentFontSize.remove();                           // 保存値�
 | `defaultValue()` | 宣言した既定値。「既定値に戻す」ボタンや、範囲外の保存値を戻すときに使う |
 
 読み書きはすべて `SettingsCommon::openSettings()` の共有 `QSettings` を通る。
+
+### 範囲付き・構造体・配列の宣言
+
+`Setting<T>` の1行で書けない項目も、`setting.h` の次の型で1つの宣言にする。どれも読むのは `NS::name()`、書くのは `NS::name.set(value)`。
+
+| 型 | 保存の形 | 使っている宣言 |
+|---|---|---|
+| `BoundedSetting<T>(キー, 既定値, 最小, 最大)` | 1つのキー。読みも書きも `qBound` で範囲に収める（`minimum()`・`maximum()`） | `AppSettings::pieceSoundVolume`（0〜100）、`AppSettings::appearancePieceFilter`（0〜`PieceStyleCatalog::Family::Count` − 1。0 は「すべて」）、`AnalysisSettings::usiLogCommandTarget`（0〜2） |
+| `StructSetting<T>({項目...}, 整える関数)` | 構造体のメンバごとに1つのキー。項目は `SettingField<T>::of(キー, &T::メンバ)`。保存していない項目は `T{}` の既定値のまま。整える関数（省略可）は読んだ値と書く値の両方に掛ける。項目ごとの保存の有無は `StructSetting<T>::isSaved(キー)` | `AppSettings::pieceSoundTone`（`PieceSoundTone::clamped` で範囲に収める）、`TsumeshogiSettings::playPreferences`・`collectionPreferences` |
+| `ListSetting<T>(配列のキー, 要素のキー)` | QSettings の配列（`<配列のキー>/size` と `<配列のキー>/<番号>/<要素のキー>`）。配列のキーは実行時に作ってもよい | `JosekiSettings::josekiWindowColumnWidths`、`AnalysisSettings::engineInfoColumnWidths(ThinkingTable)`・`thinkingViewColumnWidths(ThinkingTable)`（表の番号でキーを作る関数の中で使う） |
+| `StructListSetting<T>(配列のキー, {項目...})` | 構造体の配列。要素ごとに `SettingField<T>` の項目を書く | `NetworkSettings::csaServerHistory`（`CsaServerHistoryEntry` の `host`・`port`・`useTls`・`id`。新しい順で最大 `kCsaServerHistoryLimit` = 10 件。件数を絞るのは `CsaGameDialog`） |
+
+```cpp
+// src/services/appsettings.h
+inline const BoundedSetting<int> pieceSoundVolume{"Sound/pieceSoundVolume", 30, 0, 100};
+inline const StructSetting<PieceSoundTone> pieceSoundTone{
+    {SettingField<PieceSoundTone>::of("Sound/pieceSoundPitch", &PieceSoundTone::pitchSemitones),
+     SettingField<PieceSoundTone>::of("Sound/pieceSoundEqLow", &PieceSoundTone::lowDb),
+     /* ... */},
+    &PieceSoundTone::clamped};
+
+// 使う側
+AppSettings::pieceSoundVolume.set(percent);              // 範囲外なら 0〜100 に収めて保存
+const PieceSoundTone tone = AppSettings::pieceSoundTone();
+```
+
+`ListSetting`・`StructListSetting` は共有の `QSettings` で配列を開き、同じ呼び出しの中で閉じる（[6章](#6-qsettings-を直接開く場合配列グループのデータ)）。
 
 ### 既定値が実行時に決まる項目
 
@@ -207,7 +235,7 @@ CLAUDE.md の「Settings Update Guidelines」と同じ手順。
 1. ドメイン別ヘッダーに `inline const Setting<T> name{"Group/key", 既定値};` を1行足す
 2. 読むときは `NS::name()`、書くときは `NS::name.set(value)`、既定値は `NS::name.defaultValue()`。既定値が翻訳文や実行時の場所で決まる項目は、宣言の既定値を空にして `NS::name.valueOr(tr("..."))` で読む
 3. ダイアログのコンストラクタで読み込み、デストラクタ・`done()`・`closeEvent` で保存する。ウィンドウサイズは `DialogUtils::restoreDialogSize` / `saveDialogSize`（または `DialogFontScale::Options::size`）、A-/A+ は `DialogFontScale::install(this, 宣言, options)` に宣言をそのまま渡す
-4. 値の範囲を絞る、複数のキーを構造体にまとめる、配列で保存する、といった処理が要る項目だけを関数として `.cpp` に書く（[5章](#5-関数として書く項目)）
+4. 値の範囲を絞る項目は `BoundedSetting<T>`、構造体を項目ごとのキーに保存する項目は `StructSetting<T>`、配列で保存する項目は `ListSetting<T>`・`StructListSetting<T>` で宣言する（[3章](#範囲付き構造体配列の宣言)）。これらで表せない処理（以前の版の値の引き継ぎ・ほかの項目への代替・独自の保存形式など）が要る項目だけを関数として `.cpp` に書く（[5章](#5-関数として書く項目)）
 
 ### 実装例
 
@@ -262,35 +290,33 @@ INI ファイル内のキーは `グループ名/キー名` の形式で、宣�
 
 ## 5. 関数として書く項目
 
-宣言の表に書けないのは、保存・読み出しのときに処理が要る項目だけ。現在の関数は次のとおり。
+宣言の表（`Setting<T>` と [3章](#範囲付き構造体配列の宣言) の型）に書けないのは、保存・読み出しのときにそれ以上の処理が要る項目だけ。現在の関数は次のとおり。
 
 | 処理 | 関数 |
 |---|---|
-| 値の範囲を絞る | `AppSettings::pieceSoundVolume`（0〜100）、`AnalysisSettings::usiLogCommandTarget`（0〜2）、`AppSettings::appearancePieceFilter`（0〜`PieceStyleCatalog::Family::Count` − 1。値は分類 `Family` で、0 は「すべて」） |
-| 複数のキーを構造体にまとめる | `AppSettings::boardColors`、`AppSettings::boardVisuals`、`AppSettings::pieceSoundTone`、`TsumeshogiSettings::collectionPreferences` / `playPreferences`、`DockSettings::dockState` / `setDockState`（キーは `<グループ>/floating`・`/visible`・`/geometry`。グループは `DockRegistry` の表の `settingsGroup`） |
-| 古い保存値の引き継ぎ・不正値の補正 | `AppSettings::appearanceSection`（外観ダイアログのタブの id を文字列で返す。旧版のタブの番号は id に読み替える）、`AppSettings::pieceStyle`（`PieceStyleCatalog` にない値・廃止したセットは `standard` に戻す） |
-| リスト・配列 | `AnalysisSettings::engineInfoColumnWidths` / `thinkingViewColumnWidths` / `kifuAnalysisColumnWidths`、`JosekiSettings::josekiWindowColumnWidths`、`DockSettings::savedDockLayoutNames` / `saveDockLayout` / `loadDockLayout` / `deleteDockLayout` |
+| 古い保存値の引き継ぎ・不正値の補正 | `AppSettings::appearanceSection`（外観ダイアログのタブの id を文字列で返す。旧版のタブの番号は id に読み替える）、`AppSettings::pieceStyle`（`PieceStyleCatalog` にない値・廃止したセットは `standard` に戻す）、`TsumeshogiSettings::migrateCollectionEngineSelection`（判定エンジンの `"@hayanagi"` を空の名前に直す） |
+| 未保存の項目をほかの項目で代える | `AppSettings::boardVisuals` / `setBoardVisuals`（中身は `StructSetting<BoardVisuals>`。駒台の木目 `standWoodGrain` が未保存なら、それを分ける前の版の将棋盤の木目 `woodGrain` を使う） |
+| 独自の保存形式 | `AppSettings::boardColors` / `setBoardColors`（色を `#RRGGBB`・`#AARRGGBB` の文字列で保存し、不正な色は標準色に戻す）、`AnalysisSettings::kifuAnalysisColumnWidths` / `setKifuAnalysisColumnWidths`（1つのキーに `QVariantList` で保存）、`DockSettings::dockState` / `setDockState`（グループ名を引数で受ける。キーは `<グループ>/floating`・`/visible`・`/geometry`。グループは `DockRegistry` の表の `settingsGroup`。表示の既定値も引数で受ける） |
+| キーを実行時に作る | `AnalysisSettings::engineInfoColumnWidths` / `thinkingViewColumnWidths`（表 `ThinkingTable` の番号でキーを作り、`ListSetting<int>` で読み書きする） |
+| グループの中の名前の一覧 | `DockSettings::savedDockLayoutNames` / `saveDockLayout` / `loadDockLayout` / `deleteDockLayout` |
+| 複数の宣言をまとめて読み書きする | `AppSettings::loadWindowSize` / `saveWindowAndBoard` |
 
 関数は namespace のドメイン別ヘッダーに宣言し、`.cpp` で `SettingsCommon::openSettings()` を使って実装する。キーは `settingskeys.h` の定数に置く。
 
 補助ダイアログ（成り・しおり・駒音・メッセージボックスなど）の文字の大きさと大きさも、関数ではなく `appsettings.h` の宣言の表に1行ずつ書く（`AppSettings::promotionDialogFontSize`・`promotionDialogSize`・`messageBoxFontSize`・`bookmarkDialogFontSize` など）。キーは `DialogAppearance/<id>/fontSize`（既定値 0）・`DialogAppearance/<id>/size`（既定値 `QSize()`）で、以前の版と同じ。既定値 0 は「未保存ならダイアログの元の大きさから始める」の意味。
 
 ```cpp
-// src/services/appsettings.cpp
-int pieceSoundVolume()
+// src/services/appsettings.cpp（宣言の型を使い、代替の処理だけを関数に書く）
+BoardVisuals boardVisuals()
 {
-    QSettings& s = SettingsCommon::openSettings();
-    return qBound(0, s.value(SettingsKeys::kPieceSoundVolume, 30).toInt(), 100);
-}
-
-void setPieceSoundVolume(int percent)
-{
-    QSettings& s = SettingsCommon::openSettings();
-    s.setValue(SettingsKeys::kPieceSoundVolume, qBound(0, percent, 100));
+    BoardVisuals visuals = visualsSetting()();   // StructSetting<BoardVisuals>
+    // 駒台の木目を分ける前の版は、将棋盤の木目の設定だけを保存していた
+    if (!StructSetting<BoardVisuals>::isSaved(SettingsKeys::kStandWoodGrain)) visuals.standWoodGrain = visuals.woodGrain;
+    return visuals;
 }
 ```
 
-範囲や形式を変える関数を足したら、範囲外の値・旧形式の値を含めて `tst_settings_roundtrip` に往復のテストを書く（`appSettings_pieceSoundVolume`・`appSettings_appearanceSection` など）。
+範囲や形式を変える宣言・関数を足したら、範囲外の値・旧形式の値を含めて `tst_settings_roundtrip` に往復のテストを書く（`appSettings_pieceSoundVolume`・`appSettings_boardVisuals`・`appSettings_appearanceSection` など）。
 
 ---
 
@@ -307,16 +333,15 @@ const int size = settings.beginReadArray(EnginesGroupName);
 settings.endArray();
 ```
 
-現在この形で開いているのは次の2ファイルだけ。
+現在この形で開いているのは次のファイルだけ。
 
 | ファイル | 関数 | データ |
 |---|---|---|
 | `src/services/engineprofilestore.cpp` | `EngineProfileStore::loadEngines()`・`saveEngines()`・`loadOptions()`・`saveOptions()`・`removeEngine()`・`loadPonder()`・`savePonder()` | 登録一覧の `[Engines]` 配列と、エンジンごとのグループ（`EngineOptions/<名前>`）のオプション配列・GUI 先読み設定（[7章](#7-エンジンの登録情報enginesettingsconstants)） |
-| `src/dialogs/csagamedialog.cpp` | `loadServerHistory()`・`saveServerHistory()` | CSA通信対局の接続履歴 `CsaServerHistory` 配列（最大10件） |
 
 以前の版のエンジン名の最上位グループからの移行（`EngineProfileStore::migrateLegacyOptionGroups()`、起動時）は共有の `QSettings` を使う。
 
-列幅（`AnalysisSettings::engineInfoColumnWidths` など）とドックレイアウト名の一覧（`DockSettings::savedDockLayoutNames`）は、共有の `QSettings` で開いた配列・グループを同じ関数の中ですぐ閉じている。
+`ListSetting<T>`・`StructListSetting<T>`（列幅の `AnalysisSettings::engineInfoColumnWidths`・`JosekiSettings::josekiWindowColumnWidths`、CSA通信対局の接続先の履歴 `NetworkSettings::csaServerHistory` など）とドックレイアウト名の一覧（`DockSettings::savedDockLayoutNames`）は、共有の `QSettings` で開いた配列・グループを同じ呼び出しの中ですぐ閉じている。
 
 単独の値を読み書きするために `QSettings` を直接開かない。宣言の表に1行足す。
 
@@ -443,7 +468,11 @@ GUI設定を保存すると、既存の `USI_Ponder` オプションの保存値
 |---|---|
 | `declaredDefaultsBeforeSaving` | 未保存の項目が宣言した既定値を返すこと（保存する前に実行する） |
 | `settingWritesDeclaredKeyAndRemoveRestoresDefault` | `set()` が宣言したキーへ書き、`remove()` で既定値へ戻ること |
-| `appSettings_*`・`analysisSettings_*`・`gameSettings_*` など | ドメインごとの往復。関数として書いた項目は範囲外の値・旧形式の値も確かめる |
+| `boundedSettingClampsStoredValue` | `BoundedSetting` が範囲外の保存値を読むときも書くときも範囲に収めること |
+| `structSettingUsesFieldKeys` | `StructSetting` が項目ごとのキーに書き、保存していない項目は構造体の既定値のままにすること |
+| `listSettingUsesArrayFormat` | `ListSetting` が配列の形式で書き、実行時に作ったキーでも読み書きできること |
+| `structListSettingKeepsCsaHistoryFormat` | `StructListSetting` の `csaServerHistory` が以前の版の配列の形式を読めること |
+| `appSettings_*`・`analysisSettings_*`・`gameSettings_*` など | ドメインごとの往復。範囲や形式を変える項目は範囲外の値・旧形式の値も確かめる |
 
 ほかのテストで設定ファイルを使うときは、設定に触れる前に `SHOGIBOARDQ_CONFIG_HOME` を一時ディレクトリに向ける（`tst_startgamedialog`・`tst_nyugyoku_judgement`・`tst_engineprofilestore`・`tst_engineselector` など）。
 `tst_engineselector` は、機能ごとに選んだエンジンの保存・復元（名前・以前の版の番号・詰将棋問題一覧の `"@hayanagi"` とパス）を確かめる。
