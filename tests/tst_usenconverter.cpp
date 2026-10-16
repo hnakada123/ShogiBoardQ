@@ -3,6 +3,7 @@
 
 #include "kifu_file_helper.h"
 #include "usentosfenconverter.h"
+#include "usencodec.h"
 #include "kifparsetypes.h"
 #include "terminalcodes.h"
 #include "kifu_test_helper.h"
@@ -27,6 +28,37 @@ private:
     }
 
 private slots:
+    /// 符号表は読み書きで1つ（UsenCodec）。盤上の手・成り・7種の駒打ちが往復すること
+    void codecMoveRoundTrip_data()
+    {
+        QTest::addColumn<QString>("usi");
+        for (const char* move : {"7g7f", "1a9i", "9i1a+", "8h2b+", "P*5e", "L*1a", "N*9i", "S*5e", "G*5e", "B*5e", "R*5e"})
+            QTest::newRow(move) << QString::fromLatin1(move);
+    }
+    void codecMoveRoundTrip()
+    {
+        QFETCH(QString, usi);
+        const QString code = UsenCodec::encodeMove(usi);
+        QCOMPARE(code.size(), 3);
+        QCOMPARE(UsenCodec::decodeMove(code), usi);
+    }
+    void codecRejectsUnknownCodes()
+    {
+        QVERIFY(UsenCodec::encodeMove(QStringLiteral("K*5e")).isEmpty());
+        QVERIFY(UsenCodec::encodeMove(QStringLiteral("0a1b")).isEmpty());
+        QVERIFY(UsenCodec::decodeMove(u"zzz").isEmpty());
+        QVERIFY(UsenCodec::decodeMove(u"7k").isEmpty());
+    }
+    void codecPositionRoundTrip()
+    {
+        const QString sfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSG+KGSNL w 2P 1");
+        const QString usen = UsenCodec::encodePosition(sfen + QStringLiteral(" "));
+        QCOMPARE(usen, QStringLiteral("lnsgkgsnl_1r5b1_ppppppppp_9_9_9_PPPPPPPPP_1B5R1_LNSGzKGSNL.w.2P"));
+        QCOMPARE(UsenCodec::decodePosition(usen), sfen);
+        QVERIFY(UsenCodec::encodePosition(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"))
+                    .isEmpty());
+    }
+
     void invalidMovesRejectWholeRecord_data()
     {
         QTest::addColumn<QString>("text");
@@ -76,7 +108,7 @@ private slots:
         QString usen = QStringLiteral("~0.7ku2jm6y236e5t24be9qc");
         // Extract move portion (after "~0.")
         QString moveStr = usen.mid(3);
-        QStringList decoded = UsenToSfenConverter::decodeUsenMoves(usen);
+        QStringList decoded = UsenCodec::decodeMoves(usen).moves;
         QCOMPARE(decoded.size(), 7);
         QCOMPARE(decoded, kExpectedUsiMoves);
     }
@@ -174,7 +206,7 @@ private slots:
 
     void decodeUsenMoves_empty()
     {
-        QStringList decoded = UsenToSfenConverter::decodeUsenMoves(QString());
+        QStringList decoded = UsenCodec::decodeMoves(QString()).moves;
         QCOMPARE(decoded.size(), 0);
     }
 
@@ -185,7 +217,7 @@ private slots:
     void decodeUsenMoves_invalidChars()
     {
         // Characters outside base36 range
-        QStringList decoded = UsenToSfenConverter::decodeUsenMoves(QStringLiteral("~0.!!!"));
+        QStringList decoded = UsenCodec::decodeMoves(QStringLiteral("~0.!!!")).moves;
         QVERIFY(decoded.isEmpty());
     }
 
@@ -196,7 +228,7 @@ private slots:
     void decodeUsenMoves_truncated()
     {
         // Only 1 or 2 chars (incomplete 3-char move encoding)
-        QStringList decoded = UsenToSfenConverter::decodeUsenMoves(QStringLiteral("~0.7k"));
+        QStringList decoded = UsenCodec::decodeMoves(QStringLiteral("~0.7k")).moves;
         QVERIFY(decoded.isEmpty());
     }
 
@@ -247,8 +279,8 @@ private slots:
     {
         // Test decoding with terminal output parameter
         QString terminal;
-        QStringList decoded = UsenToSfenConverter::decodeUsenMoves(
-            QStringLiteral("~0.7ku2jm6y236e5t24be9qc.r"), &terminal);
+        QStringList decoded = UsenCodec::decodeMoves(
+            QStringLiteral("~0.7ku2jm6y236e5t24be9qc.r"), &terminal).moves;
         QCOMPARE(decoded.size(), 7);
         // Terminal code should be "r" (resign)
         QCOMPARE(terminal, QStringLiteral("r"));
@@ -277,9 +309,9 @@ private slots:
         QFETCH(QString, usenInput);
 
         // Must not crash regardless of input
-        QStringList decoded = UsenToSfenConverter::decodeUsenMoves(usenInput);
+        QStringList decoded = UsenCodec::decodeMoves(usenInput).moves;
         QVERIFY(decoded.isEmpty());
-        const auto strict = UsenToSfenConverter::decodeUsenMovesStrict(usenInput);
+        const auto strict = UsenCodec::decodeMoves(usenInput);
         if (usenInput != QStringLiteral("~0.")) {
             QVERIFY(strict.invalidCount > 0);
             QVERIFY(!strict.firstError.isEmpty());
@@ -292,7 +324,7 @@ private slots:
     void decodeUsenMovesStrict_validInput()
     {
         const QString usen = QStringLiteral("~0.7ku2jm6y236e5t24be9qc");
-        UsenDecodeResult result = UsenToSfenConverter::decodeUsenMovesStrict(usen);
+        UsenDecodeResult result = UsenCodec::decodeMoves(usen);
         QCOMPARE(result.invalidCount, 0);
         QVERIFY(result.firstError.isEmpty());
         QCOMPARE(result.moves.size(), 7);
@@ -308,7 +340,7 @@ private slots:
         // 不正なbase36があれば、部分的な指し手列も下流へ渡さない。
         // 続く "7ku" は正常 (7g7f)
         const QString usen = QStringLiteral("~0.!!!7ku");
-        UsenDecodeResult result = UsenToSfenConverter::decodeUsenMovesStrict(usen);
+        UsenDecodeResult result = UsenCodec::decodeMoves(usen);
         QCOMPARE(result.invalidCount, 1);
         QVERIFY(!result.firstError.isEmpty());
         QVERIFY(result.moves.isEmpty());
@@ -321,7 +353,7 @@ private slots:
     void decodeUsenMovesStrict_allInvalid()
     {
         const QString usen = QStringLiteral("~0.!!!@@@");
-        UsenDecodeResult result = UsenToSfenConverter::decodeUsenMovesStrict(usen);
+        UsenDecodeResult result = UsenCodec::decodeMoves(usen);
         QCOMPARE(result.invalidCount, 2);
         QVERIFY(!result.firstError.isEmpty());
         // firstError は最初のエラーのみ
@@ -336,7 +368,7 @@ private slots:
     void decodeUsenMovesStrict_withTerminal()
     {
         QString terminal;
-        UsenDecodeResult result = UsenToSfenConverter::decodeUsenMovesStrict(
+        UsenDecodeResult result = UsenCodec::decodeMoves(
             QStringLiteral("~0.7ku2jm.r"), &terminal);
         QCOMPARE(result.invalidCount, 0);
         QVERIFY(result.firstError.isEmpty());

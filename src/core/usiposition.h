@@ -61,6 +61,14 @@ public:
     /// エンジンに送る position コマンド（空なら空文字）
     QString command() const;
 
+    /**
+     * @brief 開始局面と指し手の列を position コマンドの文字列にする（指し手が指せるかは確かめない）
+     *
+     * 開始局面が空か平手（手数 1）なら "position startpos"、それ以外は書かれた SFEN のまま
+     * "position sfen ..." にする。command() と棋譜の USI 形式の書き出しが共有する。
+     */
+    static QString commandFor(const QString& startSfen, const QStringList& moves);
+
     friend bool operator==(const UsiPosition& a, const UsiPosition& b)
     {
         if (a.m_valid != b.m_valid) return false;

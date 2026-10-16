@@ -9,6 +9,7 @@
 #include "kifparsetypes.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
+#include "kifunodereplay.h"
 #include "sfenutils.h"
 #include "shogiposition.h"
 #include "logcategories.h"
@@ -72,38 +73,24 @@ static QJsonObject buildJkfInitial(const QString& startSfen)
     return initial;
 }
 
-// 盤の局面の SFEN（変化の手順を別の盤で続けるため。手数は使わない）
-static QString positionSfen(Position& board, Turn mover)
-{
-    return board.toSfen(mover, 1);
-}
-
 /**
  * @brief first から最初の子をたどった手順を JKF の moves の要素の列にする
- * @param board first を指す前の局面。指し手を適用して進める
- * @param synced board がノードの局面と合っているか
- * @param mover first を指す側
- * @param previousTo 直前の手の移動先（same を決める）
+ * @param replay first を指す前の局面。指し手を適用して進める
  *
  * 指し手は、ノードの指し手（USI）と局面から作る。分岐点では、親の2番目以降の子からの手順を、
  * 代わられる手（先頭の子）の要素の forks に入れる。局面に合わない指し手のノードは書かず、
  * 局面をノードから取り直して続ける。
  */
-static QJsonArray buildJkfMoves(const KifuBranchNode* first, Position& board, bool synced, Turn mover,
-                                BoardSquare previousTo)
+static QJsonArray buildJkfMoves(const KifuBranchNode* first, KifuNodeReplay replay)
 {
     QJsonArray moves;
     for (const KifuBranchNode* node = first; node != nullptr; node = node->childAt(0)) {
-        // この手に代わる手順。指す前の局面から別の盤で続ける
+        // この手に代わる手順。指す前の局面から別にたどる
         QJsonArray forks;
         const KifuBranchNode* parent = node->parent();
         if (parent != nullptr && parent->childAt(0) == node && parent->hasBranch()) {
-            const QString before = synced ? positionSfen(board, mover) : parent->sfen();
             for (int i = 1; i < parent->childCount(); ++i) {
-                Position forkBoard;
-                const bool forkSynced = forkBoard.assignSfen(before);
-                const QJsonArray fork = buildJkfMoves(parent->childAt(i), forkBoard, forkSynced,
-                                                      forkSynced ? forkBoard.sideToMove() : mover, previousTo);
+                const QJsonArray fork = buildJkfMoves(parent->childAt(i), replay.branchFrom(parent));
                 if (!fork.isEmpty()) forks.append(fork);
             }
         }
@@ -114,18 +101,14 @@ static QJsonArray buildJkfMoves(const KifuBranchNode* first, Position& board, bo
             if (!special.isEmpty()) entry[QStringLiteral("special")] = special;
         } else {
             const UsiMove move = node->move().move;
-            const bool applicable = synced && move.isValid();
-            if (applicable) entry[QStringLiteral("move")] = JkfFormatter::moveToJkf(board, mover, move, previousTo);
-            if (applicable && board.applyAs(move, mover)) {
-                mover = (mover == Turn::Black) ? Turn::White : Turn::Black;
-            } else {
+            if (replay.canWrite(node))
+                entry[QStringLiteral("move")] =
+                    JkfFormatter::moveToJkf(replay.board(), replay.mover(), move, replay.previousTo());
+            if (!replay.advance(node)) {
                 qCWarning(lcKifu).noquote() << "toJkfLines: skipped a move that does not fit the position: ply="
                                             << node->ply() << "usi=" << move.toString();
                 entry = QJsonObject();
-                synced = board.assignSfen(node->sfen());
-                mover = synced ? board.sideToMove() : ((mover == Turn::Black) ? Turn::White : Turn::Black);
             }
-            previousTo = move.to;
         }
 
         if (entry.isEmpty()) continue;
@@ -166,9 +149,7 @@ QStringList JkfExporter::exportLines(const KifuBranchTree& recordTree, const Kif
         const QJsonArray comments = commentLines(rootNode->comment());
         if (!comments.isEmpty()) opening[QStringLiteral("comments")] = comments;
 
-        Position board;
-        const bool synced = board.assignSfen(startSfen) || board.assignSfen(rootNode->sfen());
-        movesArray = buildJkfMoves(rootNode->childAt(0), board, synced, board.sideToMove(), BoardSquare{});
+        movesArray = buildJkfMoves(rootNode->childAt(0), KifuNodeReplay(startSfen, rootNode->sfen()));
     }
     movesArray.prepend(opening);
 

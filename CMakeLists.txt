@@ -371,6 +371,10 @@ set(SRC_KIFU
     src/kifu/formats/sfencsapositionconverter.h
     src/kifu/formats/terminalcodes.cpp
     src/kifu/formats/terminalcodes.h
+    src/kifu/formats/kifunodereplay.cpp
+    src/kifu/formats/kifunodereplay.h
+    src/kifu/formats/usencodec.cpp
+    src/kifu/formats/usencodec.h
     src/kifu/formats/usenexporter.cpp
     src/kifu/formats/usenexporter.h
     src/kifu/formats/usentosfenconverter.cpp

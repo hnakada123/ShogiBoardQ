@@ -3,6 +3,8 @@
 
 #include "usiposition.h"
 
+#include "sfenutils.h"
+
 UsiPosition::UsiPosition(const Position& start, std::optional<UsiMove> lastMove)
     : m_valid(true)
     , m_start(start)
@@ -79,8 +81,14 @@ std::optional<UsiPosition> UsiPosition::withMove(const UsiMove& move) const
 QString UsiPosition::command() const
 {
     if (!m_valid) return {};
-    QString text = m_start == Position::hirate() ? QStringLiteral("position startpos")
-                                                 : QStringLiteral("position sfen ") + m_start.toSfen();
-    if (!m_moves.isEmpty()) text += QStringLiteral(" moves ") + m_moves.join(QLatin1Char(' '));
+    return commandFor(m_start == Position::hirate() ? QString() : m_start.toSfen(), m_moves);
+}
+
+QString UsiPosition::commandFor(const QString& startSfen, const QStringList& moves)
+{
+    const QString start = startSfen.trimmed();
+    QString text = (start.isEmpty() || start == SfenUtils::hirateSfen()) ? QStringLiteral("position startpos")
+                                                                         : QStringLiteral("position sfen ") + start;
+    if (!moves.isEmpty()) text += QStringLiteral(" moves ") + moves.join(QLatin1Char(' '));
     return text;
 }
