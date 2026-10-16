@@ -467,7 +467,7 @@ private slots:
         const QString sfen = SfenUtils::hirateSfen();
         merge.setKifuData({{1, sfen, QStringLiteral("7g7f"), QStringLiteral("▲７六歩"), true}});
         QVERIFY(all->isEnabled());
-        merge.setRegisteredMoves({sfen.section(QLatin1Char(' '), 0, 2) + QStringLiteral(":7g7f")});
+        merge.setRegisteredMoves({JosekiMoveKey{sfen.section(QLatin1Char(' '), 0, 2), QStringLiteral("7g7f")}});
         QVERIFY(!all->isEnabled());
         QVERIFY(!table->cellWidget(0, 2)->isEnabled());
         merge.setRegisteredMoves({});

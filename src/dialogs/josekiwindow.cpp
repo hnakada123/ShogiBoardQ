@@ -552,18 +552,12 @@ void JosekiWindow::editMoveAt(int row)
 
     const JosekiMove current = m_model->moves().at(row);
     JosekiMoveDialog dialog(this, true);
-    dialog.setMove(current.move);
-    dialog.setNextMove(current.nextMove);
     dialog.setCurrentSfen(m_currentSfen);
-    dialog.setValue(current.value);
-    dialog.setDepth(current.depth);
-    dialog.setFrequency(current.frequency);
-    dialog.setComment(current.comment);
+    dialog.setEntry(current);
     dialog.setEditMoveDisplay(JosekiTableModel::moveText(current.move, m_currentSfen));
     if (dialog.exec() != QDialog::Accepted) return;
 
-    const JosekiMove updated{current.move, dialog.nextMove(), dialog.value(),
-                             dialog.depth(), dialog.frequency(), dialog.comment()};
+    const JosekiMove updated = dialog.entry();
     if (m_session->updateMove(m_currentSfen, updated)) updateJosekiDisplay();
 }
 
@@ -596,8 +590,7 @@ void JosekiWindow::onAddMoveButtonClicked()
     dialog.setCurrentSfen(targetSfen);
     if (dialog.exec() != QDialog::Accepted) return;
 
-    const JosekiMove newMove{dialog.move(), dialog.nextMove(), dialog.value(),
-                             dialog.depth(), dialog.frequency(), dialog.comment()};
+    const JosekiMove newMove = dialog.entry();
     if (m_session->hasMove(targetSfen, newMove.move)
         && !DialogUtils::confirmAction(this, tr("確認"),
                 tr("指し手「%1」は既に登録されています。\n上書きしますか？")

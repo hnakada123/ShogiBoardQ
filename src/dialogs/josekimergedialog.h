@@ -50,9 +50,9 @@ public:
     
     /**
      * @brief 登録済みの指し手セットを設定する
-     * @param registeredMoves 登録済みの「正規化SFEN:USI指し手」のセット
+     * @param registeredMoves 登録済みの指し手（局面のキーと USI の指し手の組）
      */
-    void setRegisteredMoves(const QSet<QString> &registeredMoves);
+    void setRegisteredMoves(const QSet<JosekiMoveKey> &registeredMoves);
 
     /// 指し手を定跡に登録する関数（登録して定跡ファイルに保存できたら true）
     using Registrar = std::function<bool(const QList<KifuMergeEntry> &entries)>;
@@ -92,12 +92,8 @@ private:
     /// 指し手を登録する（登録して保存できたら true）
     bool registerEntries(const QList<KifuMergeEntry> &entries);
     
-    /**
-     * @brief SFENを正規化（手数を除去）
-     * @param sfen 元のSFEN
-     * @return 正規化されたSFEN
-     */
-    QString normalizeSfen(const QString &sfen) const;
+    /// 指し手の見分け方（局面のキー・USI の指し手。JosekiBook と同じ）
+    static JosekiMoveKey moveKey(const KifuMergeEntry &entry);
     
     /**
      * @brief 登録済みかどうかを確認する
@@ -117,7 +113,7 @@ private:
     QLabel *m_autoSaveLabel = nullptr;           ///< 自動保存説明ラベル
 
     QList<KifuMergeEntry> m_entries; ///< 棋譜エントリ
-    QSet<QString> m_registeredMoves;   ///< 登録済みの指し手セット（「正規化SFEN:USI指し手」形式）
+    QSet<JosekiMoveKey> m_registeredMoves; ///< 登録済みの指し手（局面のキーと USI の指し手の組）
     Registrar m_registrar;
     QButtonGroup *m_registerButtons = nullptr;  ///< 行の「登録」ボタン（id が行）
 };

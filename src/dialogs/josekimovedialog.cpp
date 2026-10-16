@@ -25,6 +25,7 @@
 
 JosekiMoveDialog::JosekiMoveDialog(QWidget *parent, bool isEdit)
     : QDialog(parent)
+    , m_isEdit(isEdit)
 {
     setupUi(isEdit);
 
@@ -45,16 +46,14 @@ void JosekiMoveDialog::setupUi(bool isEdit)
     mainLayout->addWidget(m_positionLabel);
 
     // === 指し手入力ウィジェット ===（編集モードでは非表示）
-    m_moveInput = new JosekiMoveInputWidget(tr("指し手"), false, this);
+    m_moveInput = new JosekiMoveInputWidget(QStringLiteral("moveInput"), tr("指し手"), false, this);
     if (isEdit) {
         m_moveInput->hide();
     }
-    m_moveInput->setObjectName(QStringLiteral("moveInput"));
     mainLayout->addWidget(m_moveInput);
 
     // === 予想応手入力ウィジェット ===
-    m_nextMoveInput = new JosekiMoveInputWidget(tr("予想応手"), true, this);
-    m_nextMoveInput->setObjectName(QStringLiteral("nextMoveInput"));
+    m_nextMoveInput = new JosekiMoveInputWidget(QStringLiteral("nextMoveInput"), tr("予想応手"), true, this);
 
     // === 編集対象の定跡手表示 ===（編集モードのみ）
     m_editMoveLabel = new QLabel(this);
@@ -174,7 +173,6 @@ void JosekiMoveDialog::setupUi(bool isEdit)
 namespace {
 bool isLegalMove(const QString &sfen, const QString &usi)
 {
-    if (!JosekiMoveInputWidget::isValidUsiMove(usi)) return false;
     const auto move = UsiMove::parse(usi);
     const std::optional<Position> board = Position::fromSfen(sfen);
     if (!move || !board) return false;
@@ -182,21 +180,18 @@ bool isLegalMove(const QString &sfen, const QString &usi)
 }
 } // namespace
 
+QString JosekiMoveDialog::move() const
+{
+    return m_isEdit ? m_editMove : m_moveInput->usiMove();
+}
+
 QString JosekiMoveDialog::inputError() const
 {
-    if (!JosekiMoveInputWidget::isValidUsiMove(move()))
-        return tr("移動元と移動先を別のマスに設定してください。");
+    // 追加では合法手からしか選べない。編集で渡された指し手は局面に合わないことがある（ファイルの手）
+    if (move().isEmpty()) return tr("指し手を選んでください。");
     if (!m_currentSfen.isEmpty() && !isLegalMove(m_currentSfen, move()))
         return tr("指し手が現在の局面の合法手ではありません。移動元・移動先・成りを確認してください。");
-    if (nextMove() != QStringLiteral("none")) {
-        if (!JosekiMoveInputWidget::isValidUsiMove(nextMove()))
-            return tr("予想応手の移動元と移動先を別のマスに設定してください。");
-        if (!m_currentSfen.isEmpty()) {
-            const QString after = SfenReplay::positionAfter(m_currentSfen, move());
-            if (after.isEmpty() || !isLegalMove(after, nextMove()))
-                return tr("予想応手が着手後の局面の合法手ではありません。");
-        }
-    }
+    if (m_nextMoveInput->usiMove().isEmpty()) return tr("予想応手を選ぶか、「なし」を選んでください。");
     return {};
 }
 
@@ -206,11 +201,11 @@ void JosekiMoveDialog::updateValidation()
     m_moveErrorLabel->setText(error);
     m_moveErrorLabel->setVisible(!error.isEmpty());
     m_buttonBox->button(QDialogButtonBox::Ok)->setEnabled(error.isEmpty());
+    // 予想応手は着手後の局面の合法手から選ぶ
     const QString after = (!m_currentSfen.isEmpty() && isLegalMove(m_currentSfen, move()))
         ? SfenReplay::positionAfter(m_currentSfen, move()) : QString();
-    const bool validMove = !after.isEmpty();
     m_nextMoveInput->setCurrentSfen(after);
-    m_nextMoveInput->setEnabled(m_currentSfen.isEmpty() || validMove);
+    m_nextMoveInput->setEnabled(!after.isEmpty());
 }
 
 void JosekiMoveDialog::validateInput()
@@ -240,64 +235,30 @@ void JosekiMoveDialog::setCurrentSfen(const QString &sfen)
     updateValidation();
 }
 
-void JosekiMoveDialog::setNextMove(const QString &move)
+void JosekiMoveDialog::setEntry(const JosekiMove &entry)
 {
-    m_nextMoveInput->setUsiMove(move);
+    if (m_isEdit) m_editMove = entry.move;
+    m_moveInput->setUsiMove(entry.move);
+    // 予想応手は指し手の後の局面で選び直す（updateValidation がその局面を渡す）
+    m_nextMoveInput->setUsiMove(entry.nextMove.isEmpty() ? QStringLiteral("none") : entry.nextMove);
+    m_valueSpinBox->setValue(entry.value);
+    m_depthSpinBox->setValue(entry.depth);
+    m_frequencySpinBox->setValue(entry.frequency);
+    m_commentEdit->setText(entry.comment);
+    updateValidation();
 }
 
-QString JosekiMoveDialog::move() const
+JosekiMove JosekiMoveDialog::entry() const
 {
-    return m_moveInput->usiMove();
-}
-
-void JosekiMoveDialog::setMove(const QString &move)
-{
-    m_moveInput->setUsiMove(move);
-}
-
-QString JosekiMoveDialog::nextMove() const
-{
-    return m_nextMoveInput->usiMove();
-}
-
-int JosekiMoveDialog::value() const
-{
-    return m_valueSpinBox->value();
-}
-
-void JosekiMoveDialog::setValue(int value)
-{
-    m_valueSpinBox->setValue(value);
-}
-
-int JosekiMoveDialog::depth() const
-{
-    return m_depthSpinBox->value();
-}
-
-void JosekiMoveDialog::setDepth(int depth)
-{
-    m_depthSpinBox->setValue(depth);
-}
-
-int JosekiMoveDialog::frequency() const
-{
-    return m_frequencySpinBox->value();
-}
-
-void JosekiMoveDialog::setFrequency(int frequency)
-{
-    m_frequencySpinBox->setValue(frequency);
-}
-
-QString JosekiMoveDialog::comment() const
-{
-    return m_commentEdit->text().trimmed();
-}
-
-void JosekiMoveDialog::setComment(const QString &comment)
-{
-    m_commentEdit->setText(comment);
+    JosekiMove result;
+    result.move = move();
+    result.nextMove = m_nextMoveInput->usiMove();
+    if (result.nextMove.isEmpty()) result.nextMove = QStringLiteral("none");
+    result.value = m_valueSpinBox->value();
+    result.depth = m_depthSpinBox->value();
+    result.frequency = m_frequencySpinBox->value();
+    result.comment = m_commentEdit->text().trimmed();
+    return result;
 }
 
 void JosekiMoveDialog::setEditMoveDisplay(const QString &japaneseMove)

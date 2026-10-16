@@ -2,442 +2,131 @@
 /// @brief 定跡手入力ウィジェットクラスの実装
 
 #include "josekimoveinputwidget.h"
-#include "applicationfonts.h"
-#include "kifupresentation.h"
-#include "josekitablemodel.h"
-#include "sfenreplay.h"
+
+#include "enginemovevalidator.h"
+#include "kifmovetext.h"
 #include "shogiposition.h"
 
-#include <QButtonGroup>
 #include <QComboBox>
-#include <QHBoxLayout>
-#include <QGridLayout>
 #include <QLabel>
-#include <QAbstractItemView>
-#include <QRadioButton>
-#include <QRegularExpression>
 #include <QSignalBlocker>
 #include <QVBoxLayout>
 
 #include <algorithm>
-#include <array>
 
-// 筋の表示用（1-9）
-static constexpr std::array<QStringView, 9> kFileLabels = {
-    u"１", u"２", u"３", u"４", u"５", u"６", u"７", u"８", u"９"
+namespace {
+
+struct LegalMove {
+    UsiMove move;
+    Piece moving = Piece::None;
+    QString text;
 };
 
-// 駒種の表示用
-static constexpr std::array<QStringView, 7> kPieceLabels = {
-    u"歩", u"香", u"桂", u"銀", u"金", u"角", u"飛"
-};
-
-// 駒種のUSI形式
-static constexpr std::array<QStringView, 7> kPieceUsi = {
-    u"P", u"L", u"N", u"S", u"G", u"B", u"R"
-};
-
-JosekiMoveInputWidget::JosekiMoveInputWidget(const QString &title, bool hasNoneOption, QWidget *parent)
-    : QGroupBox(title, parent)
+/// 局面の合法手を、駒の種類・移動先・移動元の順に並べて表記を付ける
+QList<LegalMove> legalMovesOf(const QString &sfen)
 {
-    setupUi(hasNoneOption);
-    onInputModeChanged();
-    updatePreview();
+    const std::optional<Position> board = Position::fromSfen(sfen);
+    if (!board) return {};
+    const Turn mover = board->sideToMove();
+    QList<LegalMove> result;
+    const QList<UsiMove> moves = EngineMoveValidator::legalMoves(*board, mover);
+    for (const UsiMove &move : moves) {
+        const Piece moving = move.isDrop() ? move.dropPieceFor(mover) : board->pieceAt(move.from);
+        if (moving == Piece::None) continue;
+        KifMoveText::Notes notes;
+        notes.declinedPromotion = KifMoveText::couldPromote(moving, move);
+        result.append({move, moving, KifMoveText::format(mover, moving, move, {}, notes)});
+    }
+    std::sort(result.begin(), result.end(), [](const LegalMove &a, const LegalMove &b) {
+        const auto key = [](const LegalMove &m) {
+            return std::make_tuple(static_cast<int>(toBlack(demote(m.moving))), m.move.isDrop(), m.move.to.file,
+                                   m.move.to.rank, m.move.from.file, m.move.from.rank, m.move.promote);
+        };
+        return key(a) < key(b);
+    });
+    return result;
 }
 
-void JosekiMoveInputWidget::setupUi(bool hasNoneOption)
+} // namespace
+
+JosekiMoveInputWidget::JosekiMoveInputWidget(const QString &name, const QString &title, bool hasNoneOption,
+                                             QWidget *parent)
+    : QGroupBox(title, parent)
+    , m_hasNoneOption(hasNoneOption)
 {
-    QVBoxLayout *layout = new QVBoxLayout(this);
+    // 予想応手は「なし」から始める
+    if (hasNoneOption) m_requested = QStringLiteral("none");
+    setObjectName(name);
     setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
+    auto *layout = new QVBoxLayout(this);
 
-    // ラジオボタン
-    QHBoxLayout *radioLayout = new QHBoxLayout();
+    m_combo = new QComboBox(this);
+    m_combo->setObjectName(name + QStringLiteral("Combo"));
+    m_combo->setPlaceholderText(tr("局面がありません"));
+    m_combo->setMaxVisibleItems(20);
+    connect(m_combo, &QComboBox::currentIndexChanged, this, &JosekiMoveInputWidget::onCurrentIndexChanged);
+    layout->addWidget(m_combo);
 
-    m_boardRadio = new QRadioButton(tr("盤上の駒を動かす"), this);
-    m_dropRadio = new QRadioButton(tr("持ち駒を打つ"), this);
-
-    m_typeGroup = new QButtonGroup(this);
-    m_typeGroup->addButton(m_boardRadio, 0);
-    m_typeGroup->addButton(m_dropRadio, 1);
-
-    radioLayout->addWidget(m_boardRadio);
-    radioLayout->addWidget(m_dropRadio);
-
-    if (hasNoneOption) {
-        m_noneRadio = new QRadioButton(tr("なし"), this);
-        m_typeGroup->addButton(m_noneRadio, 2);
-        radioLayout->addWidget(m_noneRadio);
-        m_noneRadio->setChecked(true);
-    } else {
-        m_boardRadio->setChecked(true);
-    }
-
-    radioLayout->addStretch();
-    layout->addLayout(radioLayout);
-
-    // 入力エリアコンテナ
-    m_inputWidget = new QWidget(this);
-    QVBoxLayout *inputLayout = new QVBoxLayout(m_inputWidget);
-    inputLayout->setContentsMargins(0, 0, 0, 0);
-
-    // 盤上移動用ウィジェット
-    m_boardWidget = new QWidget(m_inputWidget);
-    auto* boardLayout = new QGridLayout(m_boardWidget);
-    boardLayout->setContentsMargins(0, 0, 0, 0);
-
-    QLabel *fromLabel = new QLabel(tr("移動元:"), m_boardWidget);
-    m_fromFileCombo = new QComboBox(m_boardWidget);
-    m_fromRankCombo = new QComboBox(m_boardWidget);
-
-    for (int i = 0; i < 9; ++i) {
-        m_fromFileCombo->addItem(kFileLabels[static_cast<size_t>(i)].toString(), i + 1);
-    }
-    for (int i = 0; i < 9; ++i) {
-        m_fromRankCombo->addItem(KifuPresentation::rankLabel(i + 1), QChar('a' + i));
-    }
-
-    QLabel *toLabel = new QLabel(tr("移動先:"), m_boardWidget);
-    m_toFileCombo = new QComboBox(m_boardWidget);
-    m_toRankCombo = new QComboBox(m_boardWidget);
-
-    for (int i = 0; i < 9; ++i) {
-        m_toFileCombo->addItem(kFileLabels[static_cast<size_t>(i)].toString(), i + 1);
-    }
-    for (int i = 0; i < 9; ++i) {
-        m_toRankCombo->addItem(KifuPresentation::rankLabel(i + 1), QChar('a' + i));
-    }
-
-    QLabel *promoteLabel = new QLabel(tr("成り:"), m_boardWidget);
-    m_promoteCombo = new QComboBox(m_boardWidget);
-    m_promoteCombo->addItem(tr("不成"), 0);
-    m_promoteCombo->addItem(tr("成"), 1);
-
-    boardLayout->addWidget(fromLabel, 0, 0);
-    boardLayout->addWidget(m_fromFileCombo, 0, 1);
-    boardLayout->addWidget(m_fromRankCombo, 0, 2);
-    boardLayout->addWidget(toLabel, 1, 0);
-    boardLayout->addWidget(m_toFileCombo, 1, 1);
-    boardLayout->addWidget(m_toRankCombo, 1, 2);
-    boardLayout->addWidget(promoteLabel, 0, 3);
-    boardLayout->addWidget(m_promoteCombo, 0, 4);
-    boardLayout->setColumnStretch(5, 1);
-    fromLabel->setBuddy(m_fromFileCombo);
-    toLabel->setBuddy(m_toFileCombo);
-    promoteLabel->setBuddy(m_promoteCombo);
-
-    inputLayout->addWidget(m_boardWidget);
-
-    // 駒打ち用ウィジェット
-    m_dropWidget = new QWidget(m_inputWidget);
-    QHBoxLayout *dropLayout = new QHBoxLayout(m_dropWidget);
-    dropLayout->setContentsMargins(0, 0, 0, 0);
-
-    QLabel *pieceLabel = new QLabel(tr("駒種:"), m_dropWidget);
-    m_dropPieceCombo = new QComboBox(m_dropWidget);
-    for (size_t i = 0; i < kPieceLabels.size(); ++i) {
-        m_dropPieceCombo->addItem(KifuPresentation::options().notation == KifuPresentation::Notation::Western
-            ? kPieceUsi[i].toString() : kPieceLabels[i].toString(), kPieceUsi[i].toString());
-    }
-
-    QLabel *dropToLabel = new QLabel(tr("打ち先:"), m_dropWidget);
-    m_dropToFileCombo = new QComboBox(m_dropWidget);
-    m_dropToRankCombo = new QComboBox(m_dropWidget);
-
-    for (int i = 0; i < 9; ++i) {
-        m_dropToFileCombo->addItem(kFileLabels[static_cast<size_t>(i)].toString(), i + 1);
-    }
-    for (int i = 0; i < 9; ++i) {
-        m_dropToRankCombo->addItem(KifuPresentation::rankLabel(i + 1), QChar('a' + i));
-    }
-
-    dropLayout->addWidget(pieceLabel);
-    dropLayout->addWidget(m_dropPieceCombo);
-    dropLayout->addSpacing(10);
-    dropLayout->addWidget(dropToLabel);
-    dropLayout->addWidget(m_dropToFileCombo);
-    dropLayout->addWidget(m_dropToRankCombo);
-    dropLayout->addStretch();
-
-    inputLayout->addWidget(m_dropWidget);
-    m_dropWidget->hide();
-
-    layout->addWidget(m_inputWidget);
-
-    // プレビュー行
-    QHBoxLayout *previewLayout = new QHBoxLayout();
-    QLabel *previewTitleLabel = new QLabel(tr("プレビュー:"), this);
     m_previewLabel = new QLabel(this);
     m_previewLabel->setObjectName(QStringLiteral("movePreview"));
-    // プレビューは本文より 2pt 大きい太字（ダイアログの文字の大きさに合わせて拡大・縮小する）
+    m_previewLabel->setTextFormat(Qt::PlainText);
     QFont previewFont = m_previewLabel->font();
     previewFont.setPointSize(previewFont.pointSize() + 2);
     previewFont.setBold(true);
     m_previewLabel->setFont(previewFont);
-    const bool japaneseNotation = KifuPresentation::options().notation == KifuPresentation::Notation::Japanese;
-    const QList<QWidget*> japaneseWidgets{m_previewLabel, m_fromRankCombo, m_toRankCombo,
-                                         m_dropToRankCombo, m_dropPieceCombo};
-    for (QWidget* widget : japaneseWidgets) {
-        ApplicationFonts::useJapaneseFont(widget, japaneseNotation);
-        if (auto* combo = qobject_cast<QComboBox*>(widget))
-            ApplicationFonts::useJapaneseFont(combo->view(), japaneseNotation);
-    }
+    layout->addWidget(m_previewLabel);
 
-    QLabel *usiTitleLabel = new QLabel(tr("USI形式:"), this);
-    m_usiLabel = new QLabel(this);
-    m_usiLabel->setStyleSheet(QStringLiteral("color: #666;"));
-    m_usiLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
-
-    previewLayout->addWidget(previewTitleLabel);
-    previewLayout->addWidget(m_previewLabel);
-    previewLayout->addSpacing(20);
-    previewLayout->addWidget(usiTitleLabel);
-    previewLayout->addWidget(m_usiLabel);
-    previewLayout->addStretch();
-
-    layout->addLayout(previewLayout);
-
-    // シグナル・スロット接続
-    connect(m_typeGroup, &QButtonGroup::idClicked, this, &JosekiMoveInputWidget::onInputModeChanged);
-    connect(m_fromFileCombo, &QComboBox::currentIndexChanged, this, &JosekiMoveInputWidget::onComboChanged);
-    connect(m_fromRankCombo, &QComboBox::currentIndexChanged, this, &JosekiMoveInputWidget::onComboChanged);
-    connect(m_toFileCombo, &QComboBox::currentIndexChanged, this, &JosekiMoveInputWidget::onComboChanged);
-    connect(m_toRankCombo, &QComboBox::currentIndexChanged, this, &JosekiMoveInputWidget::onComboChanged);
-    connect(m_dropPieceCombo, &QComboBox::currentIndexChanged, this, &JosekiMoveInputWidget::onComboChanged);
-    connect(m_promoteCombo, &QComboBox::currentIndexChanged, this, &JosekiMoveInputWidget::onComboChanged);
-    connect(m_dropToFileCombo, &QComboBox::currentIndexChanged, this, &JosekiMoveInputWidget::onComboChanged);
-    connect(m_dropToRankCombo, &QComboBox::currentIndexChanged, this, &JosekiMoveInputWidget::onComboChanged);
-}
-
-void JosekiMoveInputWidget::onInputModeChanged()
-{
-    int id = m_typeGroup->checkedId();
-    bool isNone = (id == 2);
-    bool isDrop = (id == 1);
-
-    if (m_noneRadio) {
-        m_inputWidget->setVisible(!isNone);
-    }
-
-    if (!isNone) {
-        m_boardWidget->setVisible(!isDrop);
-        m_dropWidget->setVisible(isDrop);
-    }
-
-    updatePreview();
-}
-
-void JosekiMoveInputWidget::onComboChanged()
-{
-    updatePreview();
-}
-
-void JosekiMoveInputWidget::updatePreview()
-{
-    int id = m_typeGroup->checkedId();
-
-    if (id == 2) {
-        m_usiLabel->setText(QStringLiteral("none"));
-        m_previewLabel->setText(tr("なし"));
-        emit moveChanged();
-        return;
-    }
-
-    QString usi = buildUsiMove();
-    m_usiLabel->setText(usi);
-    m_previewLabel->setText(!m_currentSfen.isEmpty() && Position::fromSfen(m_currentSfen)
-        ? JosekiTableModel::moveText(usi, m_currentSfen)
-        : (KifuPresentation::options().notation == KifuPresentation::Notation::Western
-               ? usi : usiToJapanese(usi)));
-    emit moveChanged();
+    populate();
 }
 
 QString JosekiMoveInputWidget::usiMove() const
 {
-    int id = m_typeGroup->checkedId();
-
-    if (id == 2) {
-        return QStringLiteral("none");
-    }
-
-    return buildUsiMove();
+    return m_combo->currentData().toString();
 }
 
 void JosekiMoveInputWidget::setUsiMove(const QString &usiMove)
 {
-    // コンボを一括設定する間の中間状態は通知しない。
-    QSignalBlocker blocker(this);
-    if (usiMove == QStringLiteral("none") || usiMove.isEmpty()) {
-        if (m_noneRadio) {
-            m_noneRadio->setChecked(true);
-            onInputModeChanged();
-        }
-        blocker.unblock();
-        emit moveChanged();
-        return;
-    }
-
-    setComboFromUsi(usiMove);
-    blocker.unblock();
-    emit moveChanged();
+    m_requested = usiMove;
+    selectRequested();
 }
 
 void JosekiMoveInputWidget::setCurrentSfen(const QString &sfen)
 {
-    if (m_currentSfen == sfen) return;
+    if (sfen == m_currentSfen) return;
     m_currentSfen = sfen;
-    QSignalBlocker blocker(this);
-    updatePreview();
+    populate();
 }
 
-QString JosekiMoveInputWidget::buildUsiMove() const
+void JosekiMoveInputWidget::populate()
 {
-    int id = m_typeGroup->checkedId();
-    bool isDrop = (id == 1);
-
-    if (isDrop) {
-        // 駒打ち: P*5e形式
-        QString piece = m_dropPieceCombo->currentData().toString();
-        int toFile = m_dropToFileCombo->currentData().toInt();
-        QChar toRank = m_dropToRankCombo->currentData().toChar();
-
-        return piece + QStringLiteral("*") + QString::number(toFile) + toRank;
-    } else {
-        // 盤上移動: 7g7f形式
-        int fromFile = m_fromFileCombo->currentData().toInt();
-        QChar fromRank = m_fromRankCombo->currentData().toChar();
-        int toFile = m_toFileCombo->currentData().toInt();
-        QChar toRank = m_toRankCombo->currentData().toChar();
-        bool promote = m_promoteCombo->currentData().toInt() == 1;
-
-        QString result = QString::number(fromFile) + fromRank +
-                         QString::number(toFile) + toRank;
-        if (promote) {
-            result += QStringLiteral("+");
+    {
+        const QSignalBlocker blocker(m_combo);
+        m_combo->clear();
+        if (m_hasNoneOption) m_combo->addItem(tr("なし"), QStringLiteral("none"));
+        if (!m_currentSfen.isEmpty()) {
+            const QList<LegalMove> moves = legalMovesOf(m_currentSfen);
+            for (const LegalMove &move : moves) m_combo->addItem(move.text, move.move.toString());
         }
-        return result;
+        m_combo->setEnabled(m_combo->count() > 0);
     }
+    selectRequested();
 }
 
-void JosekiMoveInputWidget::setComboFromUsi(const QString &usiMove)
+void JosekiMoveInputWidget::selectRequested()
 {
-    if (usiMove.isEmpty()) return;
-
-    // 駒打ちパターン: P*5e
-    if (usiMove.size() >= 4 && usiMove.at(1) == QChar('*')) {
-        m_dropRadio->setChecked(true);
-
-        QChar piece = usiMove.at(0);
-        int toFile = usiMove.at(2).toLatin1() - '0';
-        int toRank = usiMove.at(3).toLatin1() - 'a';
-
-        // 駒種を設定
-        auto it = std::find(kPieceUsi.begin(), kPieceUsi.end(), QStringView(&piece, 1));
-        if (it != kPieceUsi.end()) {
-            m_dropPieceCombo->setCurrentIndex(static_cast<int>(std::distance(kPieceUsi.begin(), it)));
-        }
-
-        m_dropToFileCombo->setCurrentIndex(toFile - 1);
-        m_dropToRankCombo->setCurrentIndex(toRank);
-
-        onInputModeChanged();
-        return;
+    const int index = m_requested.isEmpty() ? -1 : m_combo->findData(m_requested);
+    {
+        const QSignalBlocker blocker(m_combo);
+        m_combo->setCurrentIndex(index);
     }
-
-    // 通常移動パターン: 7g7f, 7g7f+
-    if (usiMove.size() >= 4) {
-        m_boardRadio->setChecked(true);
-
-        int fromFile = usiMove.at(0).toLatin1() - '0';
-        int fromRank = usiMove.at(1).toLatin1() - 'a';
-        int toFile = usiMove.at(2).toLatin1() - '0';
-        int toRank = usiMove.at(3).toLatin1() - 'a';
-        bool promotes = (usiMove.size() >= 5 && usiMove.at(4) == QChar('+'));
-
-        m_fromFileCombo->setCurrentIndex(fromFile - 1);
-        m_fromRankCombo->setCurrentIndex(fromRank);
-        m_toFileCombo->setCurrentIndex(toFile - 1);
-        m_toRankCombo->setCurrentIndex(toRank);
-        m_promoteCombo->setCurrentIndex(promotes ? 1 : 0);
-
-        onInputModeChanged();
-    }
+    onCurrentIndexChanged();
 }
 
-bool JosekiMoveInputWidget::isValidUsiMove(const QString &move)
+void JosekiMoveInputWidget::onCurrentIndexChanged()
 {
-    if (move.isEmpty()) {
-        return false;
-    }
-
-    // 駒打ち形式: X*YZ (例: P*5e)
-    static QRegularExpression dropPattern(QStringLiteral("^[PLNSGBR]\\*[1-9][a-i]$"));
-    if (dropPattern.match(move).hasMatch()) {
-        return true;
-    }
-
-    // 通常移動形式: XYZW または XYZW+ (例: 7g7f, 8h2b+)
-    static QRegularExpression movePattern(QStringLiteral("^[1-9][a-i][1-9][a-i]\\+?$"));
-    return movePattern.match(move).hasMatch() && move.left(2) != move.mid(2, 2);
-}
-
-QString JosekiMoveInputWidget::usiToJapanese(const QString &usiMove)
-{
-    if (usiMove.isEmpty() || usiMove == QStringLiteral("none")) {
-        return tr("なし");
-    }
-
-    // 全角数字
-    static const QString zenkakuDigits = QStringLiteral(" １２３４５６７８９");
-    // 漢数字
-    static const QString kanjiRanks = QStringLiteral(" 一二三四五六七八九");
-
-    // 駒打ちパターン: P*5e
-    if (usiMove.size() >= 4 && usiMove.at(1) == QChar('*')) {
-        QChar pieceChar = usiMove.at(0);
-        int toFile = usiMove.at(2).toLatin1() - '0';
-        int toRank = usiMove.at(3).toLatin1() - 'a' + 1;
-
-        QString pieceKanji;
-        switch (pieceChar.toLatin1()) {
-        case 'P': pieceKanji = QStringLiteral("歩"); break;
-        case 'L': pieceKanji = QStringLiteral("香"); break;
-        case 'N': pieceKanji = QStringLiteral("桂"); break;
-        case 'S': pieceKanji = QStringLiteral("銀"); break;
-        case 'G': pieceKanji = QStringLiteral("金"); break;
-        case 'B': pieceKanji = QStringLiteral("角"); break;
-        case 'R': pieceKanji = QStringLiteral("飛"); break;
-        default: pieceKanji = QString(pieceChar); break;
-        }
-
-        QString result;
-        if (toFile >= 1 && toFile <= 9) result += zenkakuDigits.at(toFile);
-        if (toRank >= 1 && toRank <= 9) result += kanjiRanks.at(toRank);
-        result += pieceKanji + QStringLiteral("打");
-
-        return result;
-    }
-
-    // 通常移動パターン: 7g7f, 7g7f+
-    if (usiMove.size() >= 4) {
-        int fromFile = usiMove.at(0).toLatin1() - '0';
-        int fromRank = usiMove.at(1).toLatin1() - 'a' + 1;
-        int toFile = usiMove.at(2).toLatin1() - '0';
-        int toRank = usiMove.at(3).toLatin1() - 'a' + 1;
-        bool promotes = (usiMove.size() >= 5 && usiMove.at(4) == QChar('+'));
-
-        QString result;
-        if (toFile >= 1 && toFile <= 9) result += zenkakuDigits.at(toFile);
-        if (toRank >= 1 && toRank <= 9) result += kanjiRanks.at(toRank);
-
-        // 移動元の情報
-        result += QStringLiteral("(") + QString::number(fromFile) + QString::number(fromRank) + QStringLiteral(")");
-
-        if (promotes) {
-            result += QStringLiteral("成");
-        }
-
-        return result;
-    }
-
-    return usiMove;
+    const QString move = usiMove();
+    // 利用者が選び直したら、局面が変わってもその手を選ぶ
+    if (!move.isEmpty()) m_requested = move;
+    m_previewLabel->setText(m_combo->currentIndex() >= 0 ? m_combo->currentText() : QString());
+    emit moveChanged();
 }

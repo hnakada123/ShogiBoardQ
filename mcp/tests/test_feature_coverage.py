@@ -258,9 +258,8 @@ async def test_joseki_add_edit_save_delete_and_merge(coverage_env, tmp_path):
         await ui.call("show_dock", widget="JosekiWindowDock")
         await ui.click("＋追加", root="JosekiWindowDock")
         dialog = await ui.dialog("JosekiMoveDialog")
-        combos = [w for w in await ui.widgets(dialog) if w["class"] == "QComboBox"]
-        for combo, value in zip(combos[:4], (6, 6, 6, 5), strict=True):
-            await ui.call("set_widget_value", target=dialog, widget=combo["selector"], value=value)
+        # 指し手は局面の合法手の一覧から選ぶ（表記は棋譜と同じ）
+        await ui.call("set_widget_value", target=dialog, widget="moveInputCombo", value="▲７六歩(77)")
         await ui.click("追加", dialog)
         assert (await ui.read("josekiTable"))["row_count"] == 1
         # 「着手」「編集」「削除」は表の中のボタンの列（列 1・4・5）
