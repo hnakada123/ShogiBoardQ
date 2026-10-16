@@ -19,6 +19,7 @@
 
 class AppActivityState;
 class EngineLifecycleManager;
+class KifuDocument;
 class MatchRecordSink;
 class ShogiClock;
 class ShogiGameController;
@@ -48,6 +49,8 @@ public:
         ShogiClock* clock = nullptr;                ///< 対局の時計（必須、非所有）
         AppActivityState* activity = nullptr;       ///< アプリの動作状態（必須、非所有）
         EngineLifecycleManager* engines = nullptr;  ///< エンジンの枠 E1・E2（必須、非所有。検討と共有する）
+        /// 棋譜の文書（終局の知らせ・入玉宣言で対局者を下手・上手と呼ぶかを対局情報から決める。非所有）
+        const KifuDocument* document = nullptr;
     };
 
     explicit MatchCoordinator(const Deps& deps, QObject* parent = nullptr);
@@ -80,9 +83,8 @@ public:
     const MatchPlayers& players() const { return m_session.players(); }
     bool isHumanSide(Turn side) const;
 
-    /// 終局の知らせで対局者を下手・上手と呼ぶか（駒落ちで、対局情報の見出しが下手・上手のとき）
-    void setHandicapNames(bool handicapNames) { m_handicapNames = handicapNames; }
-    bool usesHandicapNames() const { return m_handicapNames; }
+    /// 終局の知らせ・入玉宣言で対局者を下手・上手と呼ぶか（駒落ちで、対局情報の見出しが下手・上手のとき）
+    bool usesHandicapNames() const;
 
     const InterruptedGameState* interruptedGame() const { return m_interruptedGame.get(); }
     void discardInterruptedGame();
@@ -192,11 +194,11 @@ private:
     AppActivityState* m_activity = nullptr;
     MatchRecordSink* m_sink = nullptr;
     EngineLifecycleManager* m_engines = nullptr;
+    const KifuDocument* m_document = nullptr;
     std::unique_ptr<GameModeStrategy> m_strategy;
     MatchSessionState m_session;
     RecordLine m_record;
     std::unique_ptr<InterruptedGameState> m_interruptedGame;
-    bool m_handicapNames = false;
     bool m_playing = false;             ///< beginPlay から終局まで（時計を動かしてよい）
     bool m_waitingForEngines = false;   ///< エンジンの初期化を待っている（時計を止めておく）
 };

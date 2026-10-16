@@ -18,7 +18,7 @@
 #include "branchtreemanager.h"
 #include "commentcoordinator.h"
 #include "commenteditorpanel.h"
-#include "gamerecordmodel.h"
+#include "kifudocument.h"
 #include "kifubranchlistmodel.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
@@ -566,17 +566,16 @@ private slots:
         layout->addWidget(editor.buildCommentUi(&host));
         auto* edit = host.findChild<QTextEdit*>(QStringLiteral("kifuCommentEdit"));
         QVERIFY(edit != nullptr);
-        GameRecordModel record;
-        record.setBranchTree(&h.tree);
+        KifuDocument document(&h.tree);
         CommentCoordinator::Deps deps;
         deps.editor = &editor;
         deps.navState = &h.state;
-        deps.gameRecord = &record;
+        deps.document = &document;
         CommentCoordinator comments(deps);
 
         KifuBranchNode* node3 = h.tree.findByPlyOnMainLine(3);
-        record.setComment(node3, QStringLiteral("テストコメント"));
-        record.setComment(h.scenario.branchFirstNode, QStringLiteral("変化のコメント"));
+        document.setComment(node3, QStringLiteral("テストコメント"));
+        document.setComment(h.scenario.branchFirstNode, QStringLiteral("変化のコメント"));
 
         h.nav.goToNode(node3);
         QCOMPARE(edit->toPlainText(), QStringLiteral("テストコメント"));
@@ -585,7 +584,7 @@ private slots:
         emit h.branchTreeManager.branchNodeActivated(h.scenario.branchLineIndex, 3);
         QCOMPARE(edit->toPlainText(), QStringLiteral("変化のコメント"));
         // 表示中の手のコメントを書き換えると、コメント欄も変わる
-        record.setComment(h.scenario.branchFirstNode, QStringLiteral("書き換えた"));
+        document.setComment(h.scenario.branchFirstNode, QStringLiteral("書き換えた"));
         QCOMPARE(edit->toPlainText(), QStringLiteral("書き換えた"));
     }
 };

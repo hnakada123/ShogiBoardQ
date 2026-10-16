@@ -15,8 +15,8 @@
 /**
  * @brief 棋譜の読み込み（KIF/KI2/CSA/JKF/USI/USEN/SFEN/BOD）と書き出し（KIF/KI2/CSA/JKF/USI/USEN と SFEN 列）
  *
- * 読み込みは GUI と同じ KifuLoadParser で行い、`KifuBranchTree` と `GameRecordModel` を
- * 一時的に組み立てて既存のエクスポータで出力する。ウィジェットは使わない。
+ * 読み込みは GUI と同じ KifuLoadParser で行い、`KifuBranchTree` を一時的に組み立てて、
+ * GUI の保存と同じ書き出しの表（`KifuExport::lines`）で出力する。ウィジェットは使わない。
  */
 class KifuConversionService
 {

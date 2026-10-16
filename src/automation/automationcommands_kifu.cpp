@@ -5,10 +5,10 @@
 #include "kifunavigationstate.h"
 #include "automationdispatcher.h"
 #include "automationparams.h"
-#include "gamerecordmodel.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
-#include "kifuexportcontroller.h"
+#include "kifudocument.h"
+#include "kifuexport.h"
 #include "kifufilecontroller.h"
 #include "kifunavigationcontroller.h"
 #include "kifusavefile.h"
@@ -59,7 +59,7 @@ QJsonObject loadResult(const AutomationContext& context)
     result[QStringLiteral("total_plies")] = totalPlies(context);
     const QStringList record = AutomationCommands::currentLinePositions(context);
     result[QStringLiteral("start_sfen")] = record.isEmpty() ? QString() : record.first();
-    result[QStringLiteral("kifu_file")] = context.state ? context.state->saveFileName : QString();
+    result[QStringLiteral("kifu_file")] = context.document ? context.document->filePath() : QString();
     return result;
 }
 
@@ -138,10 +138,10 @@ void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, 
         result[QStringLiteral("total_plies")] = totalPlies(context);
 
         if (format == QLatin1String("moves")) {
-            GameRecordModel* model = context.gameRecordModel;
+            const KifuBranchTree* tree = context.branchTree;
             QJsonArray moves;
             bool truncated = false;
-            if (model) {
+            if (tree) {
                 // 既定は表示中の手順（分岐を表示中なら分岐）。line="main" で本譜を返す。
                 const QString lineParam = AutomationParams::optionalString(
                     params, QStringLiteral("line"), QStringLiteral("current")).toLower();
@@ -149,10 +149,9 @@ void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, 
                     throw AutomationError(AutomationErrorCode::InvalidParams,
                                           QStringLiteral("line must be \"current\" or \"main\""));
                 }
-                const KifuBranchTree* tree = model->branchTree();
                 const int lineIndex = (lineParam == QLatin1String("main") || !context.navState)
                                           ? 0 : context.navState->currentLineIndex();
-                const QList<BranchLine> lines = (tree && !tree->isEmpty()) ? tree->allLines() : QList<BranchLine>();
+                const QList<BranchLine> lines = !tree->isEmpty() ? tree->allLines() : QList<BranchLine>();
                 const BranchLine line = (lineIndex >= 0 && lineIndex < lines.size()) ? lines.at(lineIndex) : BranchLine();
                 result[QStringLiteral("line")] = lineIndex >= 0 && lineIndex < lines.size() ? lineIndex : 0;
                 result[QStringLiteral("total_plies")] = static_cast<int>(KifuBranchTree::toRecordLine(line.nodes).usiMoves().size());
@@ -181,11 +180,10 @@ void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, 
             throw AutomationError(AutomationErrorCode::InvalidParams,
                                   QStringLiteral("format must be one of moves, kif, ki2, csa, jkf, usen, usi"));
         }
-        KifuExportController* exporter = context.kifuExportController;
-        if (!exporter) {
-            throw AutomationError(AutomationErrorCode::InternalError, QStringLiteral("Kifu exporter is unavailable"));
+        if (!context.document) {
+            throw AutomationError(AutomationErrorCode::InternalError, QStringLiteral("Kifu document is unavailable"));
         }
-        const QStringList lines = exporter->exportLines(*kifuFormat);
+        const QStringList lines = KifuExport::lines(*context.document, *kifuFormat);
         result[QStringLiteral("text")] = lines.join(QLatin1Char('\n')) + (lines.isEmpty() ? QString() : QStringLiteral("\n"));
         result[QStringLiteral("truncated")] = false;
         return result;

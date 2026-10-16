@@ -17,6 +17,12 @@
 struct KifGameInfoItem {
     QString key;    ///< キーワード（例: "開始日時"）
     QString value;  ///< 内容（例: "2025/03/02 09:00"）
+
+    friend bool operator==(const KifGameInfoItem& a, const KifGameInfoItem& b)
+    {
+        return a.key == b.key && a.value == b.value;
+    }
+    friend bool operator!=(const KifGameInfoItem& a, const KifGameInfoItem& b) { return !(a == b); }
 };
 
 // --- 分岐用データ構造 ---

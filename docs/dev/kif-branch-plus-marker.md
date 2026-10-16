@@ -82,13 +82,13 @@ root → ▲７六歩 → △３四歩 → ▲２六歩 → △８四歩 → ▲
 
 ## 実装
 
-`src/kifu/gamerecordmodel.cpp` の `hasNextSibling()` 関数で統一的に判定:
+KIF の書き出し（`src/kifu/formats/kifexporter.cpp`）の `hasNextSibling()` 関数で統一的に判定:
 
 ```cpp
 static bool hasNextSibling(KifuBranchNode* node)
 {
     if (node == nullptr || node->parent() == nullptr) return false;
-    const QVector<KifuBranchNode*>& siblings = node->parent()->children();
+    const QList<KifuBranchNode*>& siblings = node->parent()->children();
     const auto myIndex = siblings.indexOf(node);
     return myIndex >= 0 && myIndex < siblings.size() - 1;
 }

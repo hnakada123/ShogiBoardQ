@@ -480,7 +480,7 @@ struct RecordLine {
 | `KifuBranchTree::mainRecordLine()` | 本譜の手順（`currentPly` は0） |
 | `KifuBranchTree::toRecordLine(nodes, currentPly)` | 任意のノード列（ライン・`pathToNode()` の結果など）。static |
 | `MatchCoordinator::record()` | 対局の手順（対局を始めた手順に、対局で指した手を足したもの） |
-| `KifuBranchTree::exportLine(lineIndex)` | ラインの手順。末尾の終局行と、開始局面のコメント・しおり（`openingComment`・`openingBookmark`）も含む。書き出し・CLI 用（`GameRecordModel::collectMainlineForExport()` は本譜のこれ） |
+| `KifuBranchTree::exportLine(lineIndex)` | ラインの手順。末尾の終局行と、開始局面のコメント・しおり（`openingComment`・`openingBookmark`）も含む。書き出し・CLI 用（CLI の変換結果の本譜 `KifuConversionService::Result::mainline` は `exportLine(0)`） |
 
 `exportLine()` と棋譜の読み込み結果（9.1）のほかは終局行（投了・中断など）を含まない。棋譜欄の行は終局行を含むので、棋譜欄の行数と `sfens().size()` は一致しないことがある。
 
@@ -495,24 +495,34 @@ struct RecordLine {
 
 ---
 
-## 5. 中央管理（GameRecordModel）
+## 5. 棋譜の文書（KifuDocument）
 
-**ファイル**: `src/kifu/gamerecordmodel.h`
+**ファイル**: `src/kifu/kifudocument.h`
 
-棋譜（分岐ツリー）の編集・未保存の印・書き出しの窓口。コメント・しおりの正本は分岐ツリーのノードにあり、
-このクラスは書き込みの窓口として未保存の印を付け、書いたノードを知らせる。書き出しは形式ごとの Exporter に任せる。
+開いている棋譜の文書。分岐ツリー・対局情報・対局の記録・ファイルの紐づけを1つにまとめ、コメント・しおりの書き込みと書き出し・保存の窓口になる。
+コメント・しおりの正本は分岐ツリーのノードにあり、このクラスはノードに書いて、書いたノードを知らせる。書き出しは `KifuExport`（5.3）が形式ごとの Exporter に任せる。
 
 ### 5.1 内部データ
 
 ```cpp
-class GameRecordModel : public QObject {
-    bool            m_isDirty = false;       // 未保存の変更があるか
-    KifuBranchTree* m_branchTree = nullptr;  // 棋譜の正本（非所有）
+class KifuDocument : public QObject {
+    KifuBranchTree*        m_tree = nullptr;   // 棋譜の正本（非所有。合成ルートが持ち、文書は中身を置き換える）
+    QList<KifGameInfoItem> m_header;           // 対局情報（対局情報欄はこれを編集する画面）
+    MatchPlayers           m_players;          // 最後に始めた対局の対局者
+    MatchTimeRecord        m_timeRecord;       // 持ち時間と開始・終了の日時（src/kifu/matchtimerecord.h）
+    QString                m_filePath;         // 上書き保存先
+    quint64                m_annotationRevision = 0;  // コメント・しおりの変更の回数
+    SavedState             m_saved;            // 保存（読み込み）した時点のツリーの revision・コメントの回数・対局情報
+    bool                   m_unsavedContent = false;  // 貼り付けた棋譜などファイルにない内容
 };
 ```
 
-棋譜の追記（対局の手・待ったの取り消し・待機中に盤で指した変化・分岐の編集）や貼り付けた棋譜の取り込みは、
-それぞれの処理が `markDirty()` で未保存として記録する。保存・ファイルの読み込み・新規では `clearDirty()` で消す。
+未保存かどうか（`isModified()`）は変更のたびに印を付けず、ツリーの `revision()`・コメントとしおりの変更の回数・対局情報が
+保存した時点（`m_saved`）と違うか、ファイルにない内容を読み込んだか（`markUnsavedContent()`）で求める。
+棋譜の追記（対局の手・待機中に盤で指した変化・分岐の編集）はツリーの revision が進むので、それだけで未保存になる（待ったで取り消した手も、対局で足したときに revision が進んでいる）。
+保存とファイルの読み込みは `markSaved(path)` で今の内容を保存した時点にする。
+新規・読み込み・局面の反映は文書を丸ごと置き換える操作（`startNew()`・`replaceWithRecord()`・`replaceWithPosition()`）で、
+前の棋譜の対局者・持ち時間・上書き保存先を消し、置き換えた内容を変更なしとする。
 
 ### 5.2 コメント・しおりの書き込み
 
@@ -521,16 +531,16 @@ class GameRecordModel : public QObject {
 ```
 CommentCoordinator::onCommentUpdated(moveIndex, text)
     │
-    └─→ GameRecordModel::setComment(表示中のノード, text)
+    └─→ KifuDocument::setComment(表示中のノード, text)
           ├─ node->record().comment = text  // 棋譜の正本に書く（同じ文なら何もしない）
-          ├─ m_isDirty = true
+          ├─ ++m_annotationRevision         // 保存した時点と違うので未保存になる
           └─ emit commentChanged(nodeId, text)
                ├─ KifuRecordListModel::refreshNode(nodeId)   // そのノードの行だけ描き直す
                └─ CommentCoordinator::showCurrentComment()   // コメント欄
 ```
 
 しおり（棋譜欄の「しおり」ボタン → `CommentCoordinator::onBookmarkEditRequested()`）も同じで、
-`GameRecordModel::setBookmark()` がノードに書いて `bookmarkChanged` を出し、棋譜欄がその行を描き直す。
+`KifuDocument::setBookmark()` がノードに書いて `bookmarkChanged` を出し、棋譜欄がその行を描き直す。
 別の手へ移る前に、未更新のコメントを破棄してよいかを `CommentCoordinator::confirmLeaveEditingMove()` で確かめる（6.3）。
 棋譜を読み込んだときは、コメント・しおりは `KifuBranchTreeBuilder` がツリーを作るときに各行の `RecordEntry` と一緒にノードへ入る
 （開始局面のコメント・しおりは本譜の `RecordLine::openingComment`・`openingBookmark` から）。
@@ -538,20 +548,22 @@ CommentCoordinator::onCommentUpdated(moveIndex, text)
 
 ### 5.3 出力形式
 
-GameRecordModel は以下の形式へのエクスポートメソッドを提供する:
+書き出しは `KifuExport`（`src/kifu/kifuexport.h`）の形式ごとの関数の表で選ぶ。`KifuExport::lines(document, format)` は
+`metadataOf(document)` で書き出しの文脈（`KifuExportMetadata`：対局情報・開始局面・対局者・持ち時間・開始と終了の日時）を作り、
+`format` の Exporter の `exportLines(const KifuBranchTree&, const KifuExportMetadata&)` を呼ぶ。GUI の保存・コピーと CLI の変換で同じ表を使う。
 
-| メソッド | 形式 | 分岐対応 |
+| Exporter（`src/kifu/formats/`） | 形式 | 分岐対応 |
 |---|---|---|
-| `toKifLines()` | KIF形式 | あり |
-| `toKi2Lines()` | KI2形式 | あり |
-| `toCsaLines()` | CSA形式 | なし（本譜のみ） |
-| `toJkfLines()` | JKF（JSON）形式 | あり |
-| `toUsenLines()` | USEN形式 | あり |
-| `toUsiLines()` | USI position コマンド形式 | なし（本譜のみ） |
+| `KifExporter` | KIF形式（SFEN・BOD を指定したときもこれ） | あり |
+| `Ki2Exporter` | KI2形式 | あり |
+| `CsaExporter` | CSA形式 | なし（本譜のみ） |
+| `JkfExporter` | JKF（JSON）形式 | あり |
+| `UsenExporter` | USEN形式 | あり |
+| `UsiExporter` | USI position コマンド形式 | なし（本譜のみ） |
 
 書き出しは分岐ツリーを直接読む。CSA・USI は本譜（`KifuBranchTree::mainLine()`、USI は `mainRecordLine().usiMoves()`）、
 USEN は本譜と各ライン（`allLines()`）のノードの指し手から書く。
-「USI形式（現在の指し手まで）」のコピーは、`KifuExportController`（`src/ui/coordinators`）が表示中の手順（`KifuNavigationState::selectedPath()`）を
+「USI形式（現在の指し手まで）」のコピーは、`KifuFileController`（`src/ui/coordinators`）が表示中の手順（`KifuNavigationState::selectedPath()`）を
 表示中の手数で切り、`KifuBranchTree::toRecordLine()` にして指し手を取る。
 
 ---
@@ -734,7 +746,7 @@ KifuNavigationState::setCurrentNode() / resetToNode() / goToRoot()
 | データストア | 管理対象 | 役割 |
 |---|---|---|
 | **KifuBranchTree** | ツリー構造・指し手・SFEN・コメント・しおり・消費時間 | 棋譜データの正本（Single Source of Truth） |
-| **GameRecordModel** | コメント・しおりの編集・未保存の印 | 編集操作を受け付け、表示中の手のノードに書く（セクション5.2参照） |
+| **KifuDocument** | 対局情報・対局の記録・上書き保存先・コメントとしおりの書き込み | 編集操作を受け付け、表示中の手のノードに書く。未保存かどうかは保存した時点との比較で求める（セクション5参照） |
 | **KifuNavigationState** | 表示中の手・分岐選択記憶 | どのラインのどの手にいるかの状態管理（棋譜のカーソル） |
 
 #### 6.5.2 各GUI部品のデータ取得経路
@@ -767,7 +779,7 @@ KifuNavigationState::setCurrentNode() / resetToNode() / goToRoot()
 
 **読み取り**: 4つのGUI部品はいずれも KifuBranchTree のノードからデータを読み取る。棋譜欄・分岐候補欄のモデルは行のノード ID だけを持ち、表示のたびにノードを読む。分岐ツリー欄は構造が変わったときに描き直し、将棋盤はノードの SFEN を使う。GUI部品が指し手や表記の写しを長期保持することはない。
 
-**書き込み**: コメント・しおりの編集は GameRecordModel 経由で行われ、表示中の手のノードに書いたあと、変更シグナルで棋譜欄の行とコメント欄を更新する（セクション5.2）。
+**書き込み**: コメント・しおりの編集は KifuDocument 経由で行われ、表示中の手のノードに書いたあと、変更シグナルで棋譜欄の行とコメント欄を更新する（セクション5.2）。
 対局の指し手は、`MatchCoordinator` が確定した行（`RecordEntry`）を棋譜の受け手（`MatchRecordSink`。実体は `GameSession`）に渡し、
 `LiveGameSession::appendRecord()` が `KifuBranchTree::addRecord()` でツリーにノードを追加する（8.6）。
 
@@ -919,7 +931,8 @@ URL セーフな短い文字列で棋譜を表現。分岐対応。
 
 3. KifuLoadCoordinator::applyRecord()
    a. 指し手も局面図（BOD・配置）もなければ失敗
-   b. KifuBranchTreeBuilder::buildFromKifParseResult(tree, record, initialSfen)
+   b. KifuDocument::replaceWithRecord(record, initialSfen, result.gameInfo)
+      → KifuBranchTreeBuilder::buildFromKifParseResult(tree, record, initialSfen)
       ├─ 変化の分岐元が先に書かれた手順で、分岐の手の前まで続いているかを確かめる
       │  （だめならツリーを変えずに false）
       ├─ beginBatchUpdate() → tree->clear() + tree->setRootSfen(initialSfen)
@@ -929,14 +942,18 @@ URL セーフな短い文字列で棋譜を表現。分岐対応。
       │    分岐元の手順の経路を startPly 手目の前までで切り、その末尾に変化の行を積む。
       │    同一SFENの別経路とは混同しない
       └─ endBatchUpdate()  // treeChanged を1回だけ出す
-   c. emit gameInfoLoaded(result.gameInfo) → PlayerInfoPresenter::onGameInfoLoaded()（対局情報・対局者名）
+   c. 文書の後始末（KifuDocument::finishReplacement()）: 対局情報を読んだものにし、前の対局者・持ち時間・
+      上書き保存先を消し、今の内容を保存した時点とする
+      → emit headerReset(header) → GameInfoPane::setGameInfo()（対局情報欄）・
+        PlayerInfoPresenter::syncBoardNamesWithGameInfo()（盤の対局者名）
 
 4. 表示
    treeChanged → KifuNavigationState::onTreeChanged()
      表示中のノードが消えたので goToRoot() → changed()
      → KifuDisplayPresenter（棋譜欄は本譜の行、分岐候補欄、分岐ツリー欄）
      → BoardSyncPresenter（開始局面の盤）・CommentCoordinator（開始局面のコメント）など
-   loadFinished(true) → KifuFileController::onAsyncLoadFinished()（上書き保存先を設定し、未保存の印を消す）
+   loadFinished(true) → KifuFileController::onAsyncLoadFinished() → finishLoad()
+                        （ファイルなら KifuDocument::markSaved(path) で上書き保存先にする。貼り付けた棋譜は markUnsavedContent()）
                       → UiStatePolicyManager::enableNavigationIfAllowed()
 ```
 
@@ -947,7 +964,7 @@ URL セーフな短い文字列で棋譜を表現。分岐対応。
 | `KifuBranchTree` | 本譜＋全分岐を含む完全なN分木（棋譜の正本）。コメント・しおりもノードに入っている |
 | `KifuNavigationState` | ルートノードを指し、手数0・分岐選択の記憶なし（表示中の手順は本譜） |
 | `KifuRecordListModel` | 本譜のノード列（開始局面＋各手の行） |
-| `GameRecordModel` | 未保存の印なし（貼り付けた棋譜は未保存） |
+| `KifuDocument` | 対局情報は読んだもの、対局者・持ち時間は空。ファイルなら上書き保存先にし変更なし（貼り付けた棋譜は未保存） |
 | 対局の手順（`MatchCoordinator::record()`） | 読み込みでは変わらない。対局開始時に表示中の手順から作る（8.2） |
 
 ### 8.2 棋譜読み込み後、途中局面から対局した場合
@@ -973,7 +990,7 @@ SFENの手数欄とツリー上の手数も混同しない。
 ルートからライブ対局を始める。
 `MatchSessionState` が開始オプション（対局者を含む）・終局状態をまとめて所有する（エンジンの先読みの局面はエンジンの `UsiMatchHandler` だけが持つ）。
 持ち時間は `GameSession::startGame()` で一度だけ時計に設定し（`TimeControlUtil::applyToClock()`）、
-`MatchTimeRecord::begin()` が持ち時間と開始日時を記録する。`TimeDisplayPresenter` は時計の残り時間を表示するだけにする。
+`KifuDocument::beginMatch()` が対局者と、持ち時間・開始日時（`MatchTimeRecord::begin()`）を記録する。`TimeDisplayPresenter` は時計の残り時間を表示するだけにする。
 
 連続対局の次局（`GameSession::startNextGame()`）は、`SessionResetCoordinator::resetToNewRecord()` で独立した棋譜にしてから同じ手順で始める。
 「新規」（`GameSession::resetToInitialState()`）は `resetToNewRecord()` で平手の開始局面だけの棋譜にし、ライブ対局を始めない。
@@ -1012,7 +1029,7 @@ root → 1手目 → ... → 20手目 → 21手目(前回本譜) → ... → 80�
       │       └─ KifuNavigationState::setCurrentNode(4手目のノード)
       │            → changed() で棋譜欄（4手目まで）・盤・コメント欄などが合わせる
       └─ emit movesUndone(4) → EvaluationGraphPresenter::trimToPly(4)
-   （待ったができたら GameSession が GameRecordModel::markDirty() で未保存にする）
+   （未保存の印は付けない。取り消した手は対局でツリーに足したノードなので、ツリーの revision が進んでいて未保存になっている）
 
 2. 別の5手目を指す
    MatchRecordSink::appendRecord() → LiveGameSession::appendRecord(...)

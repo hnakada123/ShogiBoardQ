@@ -5,7 +5,7 @@
 #include "jkfformatter.h"
 #include "terminalcodes.h"
 #include "jkfmoveparser.h"
-#include "gamerecordmodel.h"
+#include "kifuexportmetadata.h"
 #include "kifparsetypes.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
@@ -36,11 +36,11 @@ static QJsonArray commentLines(const QString& comment)
 }
 
 // JKF形式のヘッダ部分を構築
-static QJsonObject buildJkfHeader(const GameRecordModel::ExportContext& ctx)
+static QJsonObject buildJkfHeader(const KifuExportMetadata& ctx)
 {
     QJsonObject header;
 
-    const QList<KifGameInfoItem> items = GameRecordModel::collectGameInfo(ctx);
+    const QList<KifGameInfoItem> items = KifuExportMetadataBuilder::collect(ctx);
     for (const auto& item : std::as_const(items)) {
         const QString key = item.key.trimmed();
         const QString val = item.value.trimmed();
@@ -143,8 +143,7 @@ static QJsonArray buildJkfMoves(const KifuBranchNode* first, Position& board, bo
 // JkfExporter 本体
 // ========================================
 
-QStringList JkfExporter::exportLines(const GameRecordModel& model,
-                                     const GameRecordModel::ExportContext& ctx)
+QStringList JkfExporter::exportLines(const KifuBranchTree& recordTree, const KifuExportMetadata& ctx)
 {
     QStringList out;
 
@@ -161,7 +160,7 @@ QStringList JkfExporter::exportLines(const GameRecordModel& model,
     // 3) moves（先頭は開始局面。本譜の手順と、分岐点ごとの forks）
     QJsonObject opening;
     QJsonArray movesArray;
-    const KifuBranchTree* tree = model.branchTree();
+    const KifuBranchTree* tree = &recordTree;
     if (tree != nullptr && !tree->isEmpty()) {
         const KifuBranchNode* rootNode = tree->root();
         const QJsonArray comments = commentLines(rootNode->comment());

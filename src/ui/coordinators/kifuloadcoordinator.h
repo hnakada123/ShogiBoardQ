@@ -11,21 +11,22 @@
 
 #include "kifuloadparser.h"
 
-class KifuBranchTree;
+class KifuDocument;
 
 /**
  * @brief 棋譜を読み、棋譜の正本（分岐ツリー）を作り直す
  *
- * 読む処理（KifuLoadParser）はワーカースレッドで行い、結果をメインスレッドでツリーに載せる。
+ * 読む処理（KifuLoadParser）はワーカースレッドで行い、結果をメインスレッドで文書（KifuDocument）に載せる。
+ * 文書は丸ごと置き換わる（前の棋譜の対局情報・対局者・持ち時間・上書き保存先は残らない）。
  * 表示（棋譜欄・分岐・盤）は、ツリーが変わると表示中の手（KifuNavigationState）が開始局面へ戻り、
- * それを受けた部品が合わせる。対局情報は gameInfoLoaded() で知らせる。
+ * それを受けた部品が合わせる。
  */
 class KifuLoadCoordinator : public QObject
 {
     Q_OBJECT
 
 public:
-    explicit KifuLoadCoordinator(KifuBranchTree* tree, QObject* parent = nullptr);
+    explicit KifuLoadCoordinator(KifuDocument* document, QObject* parent = nullptr);
     ~KifuLoadCoordinator() override;
 
     // --- 非同期（画面からの読み込み。終わったら loadFinished） ---
@@ -45,8 +46,6 @@ public:
 signals:
     void loadFinished(bool success);
     void errorOccurred(const QString& errorMessage);
-    /// 読んだ棋譜の対局情報（局面だけを読んだときは空）
-    void gameInfoLoaded(const QList<KifGameInfoItem>& items);
 
 private slots:
     void onLoadFinished();
@@ -56,7 +55,7 @@ private:
     bool applyLoadResult(const KifuLoadResult& result);
     bool applyRecord(const KifuLoadResult& result);
 
-    KifuBranchTree* m_tree = nullptr;                      ///< 棋譜の正本（非所有）
+    KifuDocument* m_document = nullptr;                    ///< 開いている棋譜（非所有）
     QFutureWatcher<KifuLoadResult>* m_loadWatcher = nullptr;
     CancelFlag m_loadCancel;
 };

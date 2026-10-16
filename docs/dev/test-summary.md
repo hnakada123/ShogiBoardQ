@@ -33,7 +33,7 @@
 24. `tst_navigation`
 25. `tst_abstractlistmodel`
 26. `tst_kifubranchlistmodel`
-27. `tst_gamerecordmodel`
+27. `tst_kifudocument`
 28. `tst_jkfexporter`
 29. `tst_kifusavecoordinator`
 30. `tst_kifu_comment_sync`

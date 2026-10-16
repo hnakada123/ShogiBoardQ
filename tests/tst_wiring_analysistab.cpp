@@ -11,7 +11,7 @@
 #include "considerationtabmanager.h"
 #include "thinkingpanel.h"
 #include "usilogpanel.h"
-#include "gamerecordmodel.h"
+#include "kifudocument.h"
 #include "kifubranchtree.h"
 #include "kifunavigationstate.h"
 #include "kifunavigationcontroller.h"
@@ -56,8 +56,8 @@ private slots:
         QCOMPARE(p.navState->currentNode(), node);
         emit p.commentEditor->commentUpdated(1, QStringLiteral("実物の配線によるコメント"));
         QCOMPARE(node->comment(), QStringLiteral("実物の配線によるコメント"));
-        QVERIFY(p.gameRecord->isDirty());
-        p.gameRecord->clearDirty();
+        QVERIFY(p.document->isModified());
+        p.document->markSaved(QString());
     }
     void usiCommandReportsUnavailableEngine()
     {

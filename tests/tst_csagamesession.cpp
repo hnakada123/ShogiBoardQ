@@ -93,7 +93,7 @@ private slots:
         deps.activity = &activity;
         deps.recordSink = &sink;
         deps.statusBar = &status;
-        deps.prepareRecord = [&prepared, &activity](const QString&, const QString&, const QString&) {
+        deps.prepareRecord = [&prepared, &activity](const QString&, const QString&, const QString&, const TimeControl&) {
             QCOMPARE(activity.activity(), AppActivityState::Activity::Idle);
             ++prepared;
         };

@@ -14,7 +14,7 @@
 #include "branchtreeeditcontroller.h"
 #include "branchtreelayout.h"
 #include "branchtreemanager.h"
-#include "gamerecordmodel.h"
+#include "kifudocument.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
 #include "kifudisplaypresenter.h"
@@ -66,28 +66,26 @@ struct EditHarness {
     KifuNavigationState state;
     KifuNavigationController nav;
     LiveGameSession live;
-    GameRecordModel record;
+    KifuDocument document;   ///< 未保存かどうか（ツリーの変更で決まる）
     BranchTreeEditController controller;
 
     explicit EditHarness(KifuBranchTree& tree)
         : state(&tree)
         , nav(&state)
         , live(&tree, &state)
-        , controller(deps(tree, state, nav, live, record))
+        , document(&tree)
+        , controller(deps(tree, state, nav, live))
     {
-        record.setBranchTree(&tree);
     }
 
     static BranchTreeEditController::Deps deps(KifuBranchTree& tree, KifuNavigationState& state,
-                                               KifuNavigationController& nav, LiveGameSession& live,
-                                               GameRecordModel& record)
+                                               KifuNavigationController& nav, LiveGameSession& live)
     {
         BranchTreeEditController::Deps d;
         d.tree = &tree;
         d.navState = &state;
         d.navController = &nav;
         d.liveSession = &live;
-        d.gameRecord = &record;
         return d;
     }
 };
@@ -176,7 +174,7 @@ private slots:
 
         QVERIFY(h.controller.apply(BranchTreeEditController::Operation::DeleteFromHere, f.b2, false));
         QCOMPARE(h.state.currentNode(), f.main.at(1));
-        QVERIFY(h.record.isDirty());
+        QVERIFY(h.document.isModified());
         QCOMPARE(f.main.at(1)->childCount(), 1);
         // 表示中の手の移動と削除をまとめて1回だけ知らせる
         QCOMPARE(changed.count(), 1);
@@ -196,7 +194,7 @@ private slots:
         QCOMPARE(m_confirmActionText, BranchTreeEditController::tr("削除する"));
         QVERIFY(m_confirmDefaultIsCancel);
         QCOMPARE(f.tree.nodeCount(), before);
-        QVERIFY(!h.record.isDirty());
+        QVERIFY(!h.document.isModified());
     }
 
     // 削除の確認の手は、分岐ツリーと同じ表記（英語式の表記なら P-7f）で示す
@@ -271,16 +269,16 @@ private slots:
         QVERIFY(h.state.currentNode()->displayText().contains(QStringLiteral("７六歩")));
         QCOMPARE(gc.board()->toSfen(), h.state.currentSfen());
         QCOMPARE(changed.count(), 1);
-        QVERIFY(h.record.isDirty());
+        QVERIFY(h.document.isModified());
 
         // 同じ手を指し直しても重複した変化は作らない
-        h.record.clearDirty();
+        h.document.markSaved(QString());
         h.nav.goToNode(tree.root());
         from = QPoint(7, 7);
         to = QPoint(7, 6);
         QVERIFY(h.controller.recordBoardMove(from, to, &gc));
         QCOMPARE(tree.root()->childCount(), 1);
-        QVERIFY(!h.record.isDirty());
+        QVERIFY(!h.document.isModified());
 
         // 違う手は新しい変化になる
         h.nav.goToNode(tree.root());
@@ -288,7 +286,7 @@ private slots:
         to = QPoint(2, 6);
         QVERIFY(h.controller.recordBoardMove(from, to, &gc));
         QCOMPARE(tree.root()->childCount(), 2);
-        QVERIFY(h.record.isDirty());
+        QVERIFY(h.document.isModified());
         QCOMPARE(h.state.currentLineIndex(), 1);
 
         // 後手番の局面（▲２六歩の後）で先手の駒は動かせず、記録もしない

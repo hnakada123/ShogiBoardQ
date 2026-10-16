@@ -223,7 +223,7 @@ private slots:
         // 駒落ちでは入玉宣言結果の説明も宣言側を下手・上手と呼ぶ
         MatchHarness h;
         h.mc->start(humanVsHuman(blackWin));
-        h.mc->setHandicapNames(true);
+        h.useHandicapNames(true);
         setRule(NyugyokuJudgement::Rule27);
         emit h.engines.engineDeclaredWin(Turn::Black);
         QVERIFY(h.mc->isGameOver());
@@ -317,7 +317,7 @@ private slots:
         QFETCH(QString, message);
         MatchHarness h;
         h.start(humanVsHuman());
-        h.mc->setHandicapNames(handicapNames);
+        h.useHandicapNames(handicapNames);
         if (cause == int(MatchCoordinator::Cause::Timeout)) {
             h.mc->handlePlayerTimeOut(Turn::White);
         } else {

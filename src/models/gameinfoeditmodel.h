@@ -48,13 +48,9 @@ public:
     bool isDirty() const;
     /// 今の内容を反映済みにする
     void markApplied();
-    /// 反映済みの内容に戻し、履歴を消す（QAbstractItemModel::revert は表の入力の取り消しで呼ばれるので別の名前）
-    void discardChanges();
 
     /// 自動で決まる値を書く。項目が無ければ末尾に足す（その項目名は編集できない）
     void setAutomaticValue(const QString& key, const QString& value);
-    /// 対局者名を書き換える（駒落ちの下手・上手の行も）
-    void setPlayerNames(const QString& blackName, const QString& whiteName);
 
     /// 末尾に項目名も編集できる空の行を足し、その行番号を返す
     int appendRow();

@@ -3,10 +3,10 @@
 
 #include "kifuconversionservice.h"
 
-#include "gameinfokeys.h"
-#include "gamerecordmodel.h"
+#include "kifubranchnode.h"
 #include "kifubranchtree.h"
 #include "kifubranchtreebuilder.h"
+#include "kifuexport.h"
 #include "kifuloadparser.h"
 
 #include <QFileInfo>
@@ -48,39 +48,27 @@ KifuConversionService::Result KifuConversionService::convert(const Request& requ
     result.gameInfo = loaded.gameInfo;
     result.hasBranches = !loaded.record.variations.isEmpty();
 
-    // 一時的な分岐ツリーと棋譜モデルを組み立てて既存のエクスポータで出力する
+    // 一時的な分岐ツリーを組み立てて、GUI と同じ書き出しの表で出力する
     KifuBranchTree tree;
     if (!KifuBranchTreeBuilder::buildFromKifParseResult(&tree, loaded.record, loaded.initialSfen)) {
         result.error = QStringLiteral("Invalid variation parent or starting ply");
         return result;
     }
-    GameRecordModel model;
-    model.setBranchTree(&tree);
 
-    result.initialSfen = model.initialSfenForExport(loaded.initialSfen);
+    result.initialSfen = tree.root() ? tree.root()->sfen() : loaded.initialSfen;
     result.sfens = tree.sfenListForLine(0);
-    result.mainline = model.collectMainlineForExport();
-    result.usiMoves = model.collectMainlineUsiForExport();
+    result.mainline = tree.exportLine(0);
+    result.usiMoves = tree.isEmpty() ? QStringList() : tree.mainRecordLine().usiMoves();
 
-    GameRecordModel::ExportContext ctx;
-    ctx.gameInfoItems = loaded.gameInfo;
-    ctx.startSfen = result.initialSfen;
-    for (const auto& item : std::as_const(loaded.gameInfo)) {
-        if (item.key == GameInfoKeys::kBlackPlayer || item.key == GameInfoKeys::kShitatePlayer)
-            ctx.players.blackHumanName = item.value;
-        if (item.key == GameInfoKeys::kWhitePlayer || item.key == GameInfoKeys::kUwatePlayer)
-            ctx.players.whiteHumanName = item.value;
-    }
-
-    switch (request.outputFormat) {
-    case KifuFormat::Kif: result.lines = model.toKifLines(ctx); break;
-    case KifuFormat::Ki2: result.lines = model.toKi2Lines(ctx); break;
-    case KifuFormat::Csa: result.lines = model.toCsaLines(ctx); break;
-    case KifuFormat::Jkf: result.lines = model.toJkfLines(ctx); break;
-    case KifuFormat::Usi: result.lines = model.toUsiLines(ctx); break;
-    case KifuFormat::Usen: result.lines = model.toUsenLines(ctx); break;
-    case KifuFormat::Sfen: result.lines = result.sfens; break;
-    case KifuFormat::Bod: break;
+    if (request.outputFormat == KifuFormat::Sfen) {
+        result.lines = result.sfens;
+    } else {
+        KifuExportMetadata metadata;
+        metadata.gameInfoItems = loaded.gameInfo;
+        metadata.startSfen = result.initialSfen;
+        metadata.players.blackHumanName = KifuExportMetadataBuilder::playerName(loaded.gameInfo, Turn::Black);
+        metadata.players.whiteHumanName = KifuExportMetadataBuilder::playerName(loaded.gameInfo, Turn::White);
+        result.lines = KifuExport::lines(tree, metadata, request.outputFormat);
     }
     result.ok = true;
     return result;

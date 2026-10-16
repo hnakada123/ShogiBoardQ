@@ -31,7 +31,6 @@
 #include "evaluationchartwidget.h"
 #include "evaluationgraphpresenter.h"
 #include "gameinfopane.h"
-#include "gamerecordmodel.h"
 #include "gamesession.h"
 #include "humanturnpolicy.h"
 #include "imageexportcontroller.h"
@@ -42,7 +41,7 @@
 #include "kifubranchlistmodel.h"
 #include "kifubranchtree.h"
 #include "kifudisplaypresenter.h"
-#include "kifuexportcontroller.h"
+#include "kifudocument.h"
 #include "kifufilecontroller.h"
 #include "kifuloadcoordinator.h"
 #include "kifunavigationcontroller.h"
@@ -95,8 +94,7 @@ void MainWindowComposer::createRecordAndModels()
     m_c.navState = new KifuNavigationState(m_c.branchTree, &m_window);
     m_c.liveGameSession = new LiveGameSession(m_c.branchTree, m_c.navState, &m_window);
     m_c.kifuNavController = new KifuNavigationController(m_c.navState, &m_window);
-    m_c.gameRecord = new GameRecordModel(&m_window);
-    m_c.gameRecord->setBranchTree(m_c.branchTree);
+    m_c.document = new KifuDocument(m_c.branchTree, &m_window);
 
     m_c.kifuRecord = new KifuRecordListModel(m_c.branchTree, &m_window);
     m_c.kifuBranch = new KifuBranchListModel(m_c.branchTree, &m_window);
@@ -187,7 +185,7 @@ void MainWindowComposer::createPanels()
     CommentCoordinator::Deps cd;
     cd.editor = m_c.commentEditor;
     cd.navState = m_c.navState;
-    cd.gameRecord = m_c.gameRecord;
+    cd.document = m_c.document;
     cd.parentWidget = &m_window;
     cd.statusBar = m_ui.statusbar;
     m_c.commentCoordinator = new CommentCoordinator(cd, &m_window);
@@ -197,7 +195,6 @@ void MainWindowComposer::createPanels()
     ed.navState = m_c.navState;
     ed.navController = m_c.kifuNavController;
     ed.liveSession = m_c.liveGameSession;
-    ed.gameRecord = m_c.gameRecord;
     ed.parentWidget = &m_window;
     m_c.branchEdit = new BranchTreeEditController(ed, &m_window);
 
@@ -220,6 +217,7 @@ void MainWindowComposer::createMatchAndAnalysis()
     md.gc = m_c.gameController;
     md.clock = m_c.clock;
     md.activity = &m_state.activity;
+    md.document = m_c.document;
     md.engines = m_c.engines;
     m_c.match = new MatchCoordinator(md, &m_window);
 
@@ -297,14 +295,9 @@ void MainWindowComposer::createPresentersAndDocks()
     m_c.arrows = new CandidateArrowPresenter(ad, &m_window);
 
     PlayerInfoPresenter::Deps pd;
-    pd.parentWidget = &m_window;
-    pd.gameInfo = m_c.gameInfoPane;
+    pd.document = m_c.document;
+    pd.activity = &m_state.activity;
     pd.shogiView = m_c.shogiView;
-    pd.state = &m_state;
-    pd.timeRecord = &m_c.timeRecord;
-    pd.tree = m_c.branchTree;
-    pd.gameRecord = m_c.gameRecord;
-    pd.liveGameSession = m_c.liveGameSession;
     pd.thinking = m_c.thinkingPanel;
     pd.consideration = m_c.considerationTab;
     pd.evalGraph = m_c.evalGraph;
@@ -411,25 +404,12 @@ void MainWindowComposer::createSessions()
     m_ui.actionPieceSound->setChecked(m_c.pieceSoundPlayer->isEnabled());
 
     // 棋譜の読み込み・保存
-    m_c.kifuLoadCoordinator = new KifuLoadCoordinator(m_c.branchTree, &m_window);
-
-    KifuExportController::Deps ed;
-    ed.parentWidget = &m_window;
-    ed.gameRecord = m_c.gameRecord;
-    ed.gameInfoPane = m_c.gameInfoPane;
-    ed.timeRecord = &m_c.timeRecord;
-    ed.gameController = m_c.gameController;
-    ed.state = &m_state;
-    ed.navState = m_c.navState;
-    m_c.kifuExportController = new KifuExportController(ed, &m_window);
+    m_c.kifuLoadCoordinator = new KifuLoadCoordinator(m_c.document, &m_window);
 
     SessionResetCoordinator::Deps rd;
-    rd.tree = m_c.branchTree;
+    rd.document = m_c.document;
     rd.liveSession = m_c.liveGameSession;
     rd.kifuLoader = m_c.kifuLoadCoordinator;
-    rd.gameRecord = m_c.gameRecord;
-    rd.gameInfo = m_c.gameInfoPane;
-    rd.timeRecord = &m_c.timeRecord;
     rd.evalGraph = m_c.evalGraph;
     rd.commLog1 = m_c.commLog1;
     rd.commLog2 = m_c.commLog2;
@@ -445,12 +425,10 @@ void MainWindowComposer::createSessions()
 
     KifuFileController::Deps fd;
     fd.parentWidget = &m_window;
-    fd.statusBar = m_ui.statusbar;
-    fd.gameInfo = m_c.gameInfoPane;
-    fd.state = &m_state;
-    fd.gameRecord = m_c.gameRecord;
-    fd.exportController = m_c.kifuExportController;
+    fd.document = m_c.document;
     fd.loadCoordinator = m_c.kifuLoadCoordinator;
+    fd.gameController = m_c.gameController;
+    fd.navState = m_c.navState;
     fd.clearUiBeforeKifuLoad = std::bind(&SessionResetCoordinator::clearBeforeKifuLoad, m_c.sessionReset.get());
     m_c.kifuFileController = new KifuFileController(fd, &m_window);
 
@@ -463,9 +441,8 @@ void MainWindowComposer::createSessions()
     gd.reset = m_c.sessionReset.get();
     gd.navState = m_c.navState;
     gd.liveSession = m_c.liveGameSession;
-    gd.gameRecord = m_c.gameRecord;
+    gd.document = m_c.document;
     gd.clock = m_c.clock;
-    gd.timeRecord = &m_c.timeRecord;
     gd.timePresenter = m_c.timePresenter;
     gd.playerInfo = m_c.playerInfo;
     gd.uiStatePolicy = m_c.uiStatePolicy;
@@ -481,7 +458,6 @@ void MainWindowComposer::createSessions()
     cd.coordinator = m_c.csaGame;
     cd.activity = &m_state.activity;
     cd.recordSink = m_c.gameSession;
-    cd.timeRecord = &m_c.timeRecord;
     cd.shogiView = m_c.shogiView;
     cd.boardController = m_c.boardController;
     cd.boardMoves = m_c.boardMoves;
@@ -493,7 +469,8 @@ void MainWindowComposer::createSessions()
     cd.statusBar = m_ui.statusbar;
     cd.parentWidget = &m_window;
     cd.prepareRecord = std::bind(&GameSession::beginCsaGameRecord, m_c.gameSession,
-                                 std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+                                 std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
+                                 std::placeholders::_4);
     cd.recordGameEnd = std::bind(&GameSession::endCsaGameRecord, m_c.gameSession);
     m_c.csaSession = new CsaGameSession(cd, &m_window);
 }
@@ -520,7 +497,7 @@ void MainWindowComposer::createControllers()
 
     PvClickController::Deps pv;
     pv.navState = m_c.navState;
-    pv.state = &m_state;
+    pv.document = m_c.document;
     pv.shogiView = m_c.shogiView;
     m_c.pvClickController = new PvClickController(pv, &m_window);
     m_c.usiCommandController = new UsiCommandController({m_c.engines, m_c.usiLog}, &m_window);
@@ -545,7 +522,7 @@ void MainWindowComposer::createControllers()
     kd.engines = m_c.engines;
     kd.navState = m_c.navState;
     kd.recordModel = m_c.kifuRecord;
-    kd.gameInfo = m_c.gameInfoPane;
+    kd.document = m_c.document;
     kd.shogiView = m_c.shogiView;
     kd.navController = m_c.kifuNavController;
     kd.evalChart = m_c.evalChart;
@@ -575,7 +552,7 @@ void MainWindowComposer::createControllers()
     dl.csaGame = m_c.csaGame;
     dl.csaSession = m_c.csaSession;
     dl.pieceSoundPlayer = m_c.pieceSoundPlayer;
-    dl.usesHandicapNames = std::bind(&GameSession::usesHandicapNames, m_c.gameSession);
+    dl.usesHandicapNames = std::bind(&KifuDocument::usesHandicapNames, m_c.document);
     dl.menuWindowDock = m_c.docks.menuWindow;
     m_c.dialogLauncher = new DialogLauncher(dl, &m_window);
     // 成り・不成を選べる着手では、成りダイアログで対局者に選ばせる

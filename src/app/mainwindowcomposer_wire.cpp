@@ -19,13 +19,13 @@
 #include "errorbus.h"
 #include "evaluationchartwidget.h"
 #include "evaluationgraphpresenter.h"
-#include "gamerecordmodel.h"
+#include "gameinfopane.h"
 #include "gamesession.h"
 #include "boardinteractioncontroller.h"
 #include "boardmovecontroller.h"
 #include "josekiwindowcontroller.h"
 #include "kifudisplaypresenter.h"
-#include "kifuexportcontroller.h"
+#include "kifudocument.h"
 #include "kifufilecontroller.h"
 #include "kifuloadcoordinator.h"
 #include "kifunavigationcontroller.h"
@@ -88,21 +88,31 @@ void MainWindowComposer::connectRecord()
             m_c.commentCoordinator, &CommentCoordinator::onCommentUpdated);
     connect(pane, &RecordPane::bookmarkEditRequested,
             m_c.commentCoordinator, &CommentCoordinator::onBookmarkEditRequested);
-    connect(m_c.gameRecord, &GameRecordModel::commentChanged, m_c.kifuRecord, &KifuRecordListModel::refreshNode);
-    connect(m_c.gameRecord, &GameRecordModel::bookmarkChanged, m_c.kifuRecord, &KifuRecordListModel::refreshNode);
+    KifuDocument* document = m_c.document;
+    connect(document, &KifuDocument::commentChanged, m_c.kifuRecord, &KifuRecordListModel::refreshNode);
+    connect(document, &KifuDocument::bookmarkChanged, m_c.kifuRecord, &KifuRecordListModel::refreshNode);
+
+    // 対局情報（対局情報欄は文書の対局情報を編集する画面）
+    GameInfoPane* gameInfo = m_c.gameInfoPane;
+    document->setHooks({std::bind(&GameInfoPane::commitPendingEditor, gameInfo)});
+    connect(document, &KifuDocument::headerReset, gameInfo, &GameInfoPane::setGameInfo);
+    connect(document, &KifuDocument::headerValueSet, gameInfo, &GameInfoPane::updateGameInfoValue);
+    connect(document, &KifuDocument::saved, gameInfo, &GameInfoPane::applyChanges);
+    connect(gameInfo, &GameInfoPane::gameInfoEdited, document, &KifuDocument::editHeader);
+    // 盤の対局者名は、対局していなければ対局情報に合わせる
+    connect(document, &KifuDocument::headerReset, m_c.playerInfo, &PlayerInfoPresenter::syncBoardNamesWithGameInfo);
+    connect(gameInfo, &GameInfoPane::gameInfoUpdated, m_c.playerInfo, &PlayerInfoPresenter::onGameInfoUpdated);
+    gameInfo->setGameInfo(document->header(), true);
 
     // 読み込み・書き出し
     KifuLoadCoordinator* loader = m_c.kifuLoadCoordinator;
-    connect(loader, &KifuLoadCoordinator::gameInfoLoaded, m_c.playerInfo, &PlayerInfoPresenter::onGameInfoLoaded);
-    // 読み込んだ棋譜に、前の対局の対局者・持ち時間・日時を残さない
-    connect(loader, &KifuLoadCoordinator::gameInfoLoaded, m_c.gameSession, &GameSession::forgetFinishedMatch);
     connect(loader, &KifuLoadCoordinator::errorOccurred,
             m_c.notificationService, &UiNotificationService::displayErrorMessage);
     connect(loader, &KifuLoadCoordinator::loadFinished,
             m_c.uiStatePolicy, &UiStatePolicyManager::enableNavigationIfAllowed);
     connect(m_c.dialogLauncher, &DialogLauncher::sfenCollectionPositionSelected,
             m_c.kifuFileController, &KifuFileController::onSfenCollectionPositionSelected);
-    connect(m_c.kifuExportController, &KifuExportController::statusMessage, m_ui.statusbar, &QStatusBar::showMessage);
+    connect(m_c.kifuFileController, &KifuFileController::statusMessage, m_ui.statusbar, &QStatusBar::showMessage);
 }
 
 // ---------------------------------------------------------------------------
@@ -196,7 +206,6 @@ void MainWindowComposer::connectAnalysisAndUi()
     md.actions = m_c.actions;
     md.dialogs = m_c.dialogLauncher;
     md.kifuFiles = m_c.kifuFileController;
-    md.kifuExport = m_c.kifuExportController;
     md.session = m_c.gameSession;
     md.analysis = analysis;
     md.positionEdit = m_c.posEditCoordinator;

@@ -212,12 +212,13 @@ docs/dev/developer-guide.md に第8章「kifu層：棋譜管理」を作成し�
 - src/kifu/kifubranchnode.h
 - src/kifu/kifubranchtree.h
 - src/kifu/kifubranchtreebuilder.h
-- src/kifu/gamerecordmodel.h
+- src/kifu/kifudocument.h
+- src/kifu/kifuexport.h
 - src/kifu/livegamesession.h
 - src/kifu/kifuloadcoordinator.h
 - src/kifu/kifusavecoordinator.h
 - src/kifu/kifuioservice.h
-- src/kifu/kifuexportcontroller.h
+- src/ui/coordinators/kifufilecontroller.h
 - src/kifu/kifunavigationstate.h
 - src/kifu/kifutypes.h
 - src/kifu/kifdisplayitem.h
@@ -225,10 +226,10 @@ docs/dev/developer-guide.md に第8章「kifu層：棋譜管理」を作成し�
 記述してほしい内容:
 - KifuBranchTree/KifuBranchNode: 分岐ツリーのデータ構造図（Mermaid図で木構造を図示）、ノードの持つ情報
 - KifuBranchTreeBuilder: ツリー構築の流れ
-- GameRecordModel: 棋譜データモデルの責務、コメント管理、エクスポート機能
+- KifuDocument: 棋譜の文書の責務（対局情報・対局の記録・上書き保存先）、コメント管理、未保存の判定
 - LiveGameSession: リアルタイム記録セッション、commit/discardパターンの解説
 - KifuLoadCoordinator: ファイル読み込みフロー（ファイル選択 → パース → ツリー構築 → UI反映）
-- KifuSaveCoordinator/KifuExportController: 保存・エクスポートの流れ
+- KifuSaveCoordinator/KifuFileController/KifuExport: 保存・エクスポートの流れ
 - KifuNavigationState: 現在位置の追跡、分岐の記憶
 - フォーマット変換器一覧表（KIF, KI2, CSA, JKF, USEN, USI → SFEN）
 
@@ -465,7 +466,7 @@ docs/dev/developer-guide.md に第15章「機能フロー詳解」を作成し�
 以下の5つのユースケースについて、それぞれMermaidシーケンス図と簡潔な説明文を記述してください。
 
 1. 対局開始フロー: MenuWindow → StartGameDialog → GameStartCoordinator → PreStartCleanupHandler → MatchCoordinator → Usi
-2. 指し手実行フロー: BoardClick → BoardInteractionController → FastMoveValidator → ShogiBoard → ShogiView → GameRecordModel → Usi（エンジン手番の場合）
+2. 指し手実行フロー: BoardClick → BoardInteractionController → FastMoveValidator → ShogiBoard → ShogiView → LiveGameSession（KifuBranchTree への追記） → Usi（エンジン手番の場合）
 3. 棋譜読み込みフロー: File選択 → KifuLoadCoordinator → KifReader → フォーマット変換 → KifuBranchTree構築 → UI反映
 4. 検討モードフロー: 検討ボタン → ConsiderationWiring → ConsiderationFlowController → MatchCoordinator → Usi → ThinkingInfoPresenter → UI表示
 5. CSA通信対局フロー: CsaGameDialog → CsaClient → サーバ接続 → ログイン → 対局開始 → 指し手交換 → 対局終了

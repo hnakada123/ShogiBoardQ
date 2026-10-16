@@ -31,13 +31,12 @@ void MainWindowComposer::startAutomationServer(const QString& socketPath)
     ctx.shogiView = m_c.shogiView;
     ctx.branchTree = m_c.branchTree;
     ctx.state = &m_state;
+    ctx.document = m_c.document;
     ctx.analysis = m_c.analysisSession;
     ctx.navState = m_c.navState;
     ctx.navigationController = m_c.kifuNavController;
     ctx.uiStatePolicy = m_c.uiStatePolicy;
     ctx.kifuFileController = m_c.kifuFileController;
-    ctx.kifuExportController = m_c.kifuExportController;
-    ctx.gameRecordModel = m_c.gameRecord;
     ctx.csaGame = m_c.csaGame;
     ctx.menuFavorites = [this]() {
         const MenuWindow* menu = m_c.menuWindowController->menuWindow();

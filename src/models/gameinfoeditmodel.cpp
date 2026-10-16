@@ -25,15 +25,6 @@ auto findKey(Entries& entries, const QString& key)
 {
     return std::find_if(entries.begin(), entries.end(), [&key](const auto& entry) { return entry.key == key; });
 }
-
-template <typename Entries>
-void setPlayerNamesIn(Entries& entries, const QString& blackName, const QString& whiteName)
-{
-    for (auto& entry : entries) {
-        if (isBlackPlayerKey(entry.key)) entry.value = blackName;
-        else if (isWhitePlayerKey(entry.key)) entry.value = whiteName;
-    }
-}
 } // namespace
 
 GameInfoEditModel::GameInfoEditModel(QObject* parent)
@@ -136,11 +127,6 @@ void GameInfoEditModel::markApplied()
     emit editStateChanged();
 }
 
-void GameInfoEditModel::discardChanges()
-{
-    setItems(m_applied, m_beforeMatchStart);
-}
-
 void GameInfoEditModel::setAutomaticValue(const QString& key, const QString& value)
 {
     const auto current = findKey(m_rows, key);
@@ -161,16 +147,6 @@ void GameInfoEditModel::setAutomaticValue(const QString& key, const QString& val
     const auto applied = findKey(m_applied, key);
     if (applied == m_applied.end()) m_applied.append({key, value});
     else applied->value = value;
-    emit editStateChanged();
-}
-
-void GameInfoEditModel::setPlayerNames(const QString& blackName, const QString& whiteName)
-{
-    setPlayerNamesIn(m_rows, blackName, whiteName);
-    // 自動で合わせた名前は、ほかの項目の元に戻す・やり直すで古い名前に戻さない
-    for (Rows& state : m_history) setPlayerNamesIn(state, blackName, whiteName);
-    setPlayerNamesIn(m_applied, blackName, whiteName);
-    if (!m_rows.isEmpty()) emit dataChanged(index(0, ValueColumn), index(rowCount() - 1, ValueColumn));
     emit editStateChanged();
 }
 

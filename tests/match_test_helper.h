@@ -11,6 +11,9 @@
 
 #include "appactivitystate.h"
 #include "enginelifecyclemanager.h"
+#include "gameinfokeys.h"
+#include "kifubranchtree.h"
+#include "kifudocument.h"
 #include "matchcoordinator.h"
 #include "matchrecordsink.h"
 #include "usimatchhandler.h"
@@ -43,8 +46,10 @@ public:
     bool acceptRecords = true;
 };
 
-/// 対局の司令塔とその部品（盤・時計・動作状態・エンジンの枠・棋譜の受け手）
+/// 対局の司令塔とその部品（盤・時計・動作状態・エンジンの枠・棋譜の文書と受け手）
 struct MatchHarness {
+    KifuBranchTree tree;
+    KifuDocument document{&tree};   ///< 対局者を下手・上手と呼ぶかを対局情報から決める
     ShogiGameController gc;
     ShogiClock clock;
     AppActivityState activity;
@@ -61,6 +66,7 @@ struct MatchHarness {
         deps.clock = &clock;
         deps.activity = &activity;
         deps.engines = &engines;
+        deps.document = &document;
         mc = std::make_unique<MatchCoordinator>(deps);
         mc->setRecordSink(&sink);
         messages = std::make_unique<QSignalSpy>(mc.get(), &MatchCoordinator::gameOverMessage);
@@ -100,6 +106,13 @@ struct MatchHarness {
         if (!played) return false;
         mc->onHumanMove(*played);
         return true;
+    }
+
+    /// 対局情報の対局者の見出しを、駒落ちの下手・上手か平手の先手・後手にする
+    void useHandicapNames(bool handicap)
+    {
+        document.editHeader({{handicap ? GameInfoKeys::kShitatePlayer : GameInfoKeys::kBlackPlayer,
+                              QStringLiteral("対局者")}});
     }
 
     int messageCount() const { return static_cast<int>(messages->count()); }

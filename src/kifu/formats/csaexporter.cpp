@@ -6,7 +6,7 @@
 #include "csaformatter.h"
 #include "kifuexportcommon.h"
 #include "gameinfokeys.h"
-#include "gamerecordmodel.h"
+#include "kifuexportmetadata.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
 #include "kifparsetypes.h"
@@ -36,7 +36,7 @@ static void appendCsaComments(const QString& comment, QStringList& out)
 // CsaExporter 本体
 // ========================================
 
-QStringList CsaExporter::exportLines(const GameRecordModel& model, const GameRecordModel::ExportContext& ctx)
+QStringList CsaExporter::exportLines(const KifuBranchTree& recordTree, const KifuExportMetadata& ctx)
 {
     QStringList out;
 
@@ -47,7 +47,7 @@ QStringList CsaExporter::exportLines(const GameRecordModel& model, const GameRec
     out << QStringLiteral("V3.0");
 
     // 3) 棋譜情報を先に収集（対局者名もここから取得）
-    const QList<KifGameInfoItem> header = GameRecordModel::collectGameInfo(ctx);
+    const QList<KifGameInfoItem> header = KifuExportMetadataBuilder::collect(ctx);
 
     // 4) 対局者名（駒落ちの下手は先手、上手は後手）
     const auto isBlackKey = [](const QString& key) {
@@ -68,7 +68,7 @@ QStringList CsaExporter::exportLines(const GameRecordModel& model, const GameRec
     }
     if (blackPlayer.isEmpty() || whitePlayer.isEmpty()) {
         QString resolvedBlack, resolvedWhite;
-        GameRecordModel::resolvePlayerNames(ctx, resolvedBlack, resolvedWhite);
+        KifuExportMetadataBuilder::resolvePlayerNames(ctx, resolvedBlack, resolvedWhite);
         if (blackPlayer.isEmpty()) blackPlayer = resolvedBlack;
         if (whitePlayer.isEmpty()) whitePlayer = resolvedWhite;
     }
@@ -155,7 +155,7 @@ QStringList CsaExporter::exportLines(const GameRecordModel& model, const GameRec
     }
 
     // 7) 本譜の指し手（分岐ツリーの各手の指し手・指した側・消費時間・終局をそのまま書く）
-    const KifuBranchTree* tree = model.branchTree();
+    const KifuBranchTree* tree = &recordTree;
     const QList<KifuBranchNode*> line = (tree && !tree->isEmpty()) ? tree->mainLine() : QList<KifuBranchNode*>();
     if (!line.isEmpty()) appendCsaComments(line.first()->comment(), out);   // 開始局面のコメント
 

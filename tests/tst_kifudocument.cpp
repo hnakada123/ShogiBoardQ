@@ -9,7 +9,8 @@
 #include "bodtextgenerator.h"
 #include "csaformatter.h"
 
-#include "gamerecordmodel.h"
+#include "kifudocument.h"
+#include "kifuexport.h"
 #include "kifubranchtree.h"
 #include "kifubranchnode.h"
 #include "kifunavigationstate.h"
@@ -21,9 +22,11 @@
 #include "usitosfenconverter.h"
 #include "usentosfenconverter.h"
 #include "livegamesession.h"
-#include "kifuexportcontroller.h"
+#include "kifufilecontroller.h"
+#include "kifuloadcoordinator.h"
+#include "shogiboard.h"
+#include "shogigamecontroller.h"
 #include "matchtimerecord.h"
-#include "appstate.h"
 #include "kifunavigationstate.h"
 #include "kifuexportmetadata.h"
 #include "kifu_test_helper.h"
@@ -34,7 +37,27 @@
 static const QString kHirateSfen =
     QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
 
-class TestGameRecordModel : public QObject
+/// 棋譜の文書とファイル・コピーの部品（ダイアログを出さない操作だけを使う）
+struct FileHarness {
+    FileHarness(KifuBranchTree* tree, const KifuNavigationState* nav)
+        : document(tree)
+        , loader(&document)
+    {
+        KifuFileController::Deps deps;
+        deps.document = &document;
+        deps.loadCoordinator = &loader;
+        deps.gameController = &gc;
+        deps.navState = nav;
+        controller = std::make_unique<KifuFileController>(deps);
+    }
+
+    KifuDocument document;
+    KifuLoadCoordinator loader;
+    ShogiGameController gc;
+    std::unique_ptr<KifuFileController> controller;
+};
+
+class TestKifuDocument : public QObject
 {
     Q_OBJECT
 
@@ -49,7 +72,7 @@ private:
     }
 
     /// 7手の本譜（指し手は表記だけ）を作り、モデルに渡す
-    static void setupBasicModel(GameRecordModel& model, KifuBranchTree& tree)
+    static void setupBasicTree(KifuBranchTree& tree)
     {
         tree.setRootSfen(kHirateSfen);
         ShogiMove move;
@@ -63,7 +86,6 @@ private:
         for (qsizetype i = 0; i < moves.size(); ++i) {
             current = tree.addMove(current, move, moves.at(i), QStringLiteral("sfen%1").arg(i + 1));
         }
-        model.setBranchTree(&tree);
     }
 
 private slots:
@@ -104,21 +126,19 @@ private slots:
         tree.setRootSfen(kHirateSfen);
         auto* tip = tree.root();
         for (int i = 0; i < usi.size(); ++i) tip = addTestMove(tree, tip, usi[i], pretty[i]);
-        GameRecordModel model;
-        model.setBranchTree(&tree);
-        GameRecordModel::ExportContext context;
+        KifuExportMetadata context;
         context.startSfen = kHirateSfen;
         // 読み込んだ棋譜（日時の記載なし）の対局情報をそのまま渡す（画面・CLI の変換と同じ）
         context.gameInfoProvided = true;
         context.gameInfoItems = {{QStringLiteral("先手"), QStringLiteral("鈴木")},
                                  {QStringLiteral("後手"), QStringLiteral("山田")}};
-        const QString csa = model.toCsaLines(context).join(QLatin1Char('\n'));
+        const QString csa = KifuExport::lines(tree, context, KifuFormat::Csa).join(QLatin1Char('\n'));
         QVERIFY2(!csa.contains(QStringLiteral("$START_TIME")), qPrintable(csa));
         QVERIFY2(!csa.contains(QStringLiteral("$END_TIME")), qPrintable(csa));
 
         // このアプリで対局した開始時刻が分かる場合は記録する
         context.gameStartDateTime = QDateTime(QDate(2026, 10, 5), QTime(9, 30, 0));
-        const QString live = model.toCsaLines(context).join(QLatin1Char('\n'));
+        const QString live = KifuExport::lines(tree, context, KifuFormat::Csa).join(QLatin1Char('\n'));
         QVERIFY2(live.contains(QStringLiteral("$START_TIME:2026/10/05 09:30:00")), qPrintable(live));
         QVERIFY(!live.contains(QStringLiteral("$END_TIME")));
     }
@@ -130,18 +150,16 @@ private slots:
         KifuBranchTree tree;
         tree.setRootSfen(kHirateSfen);
         addTestMove(tree, tree.root(), usi.first(), QStringLiteral("▲７六歩(77)"));
-        GameRecordModel model;
-        model.setBranchTree(&tree);
-        GameRecordModel::ExportContext context;
+        KifuExportMetadata context;
         context.startSfen = kHirateSfen;
         context.gameInfoProvided = true;
         context.gameInfoItems = {{QStringLiteral("持ち時間"), QStringLiteral("無制限")}};
-        const QString csa = model.toCsaLines(context).join(QLatin1Char('\n'));
+        const QString csa = KifuExport::lines(tree, context, KifuFormat::Csa).join(QLatin1Char('\n'));
         QVERIFY2(!csa.contains(QStringLiteral("$TIME")), qPrintable(csa));
         QVERIFY2(csa.contains(QStringLiteral("+7776FU")), qPrintable(csa));
 
         context.gameInfoItems = {{QStringLiteral("持ち時間"), QStringLiteral("10:00+10")}};
-        const QString timed = model.toCsaLines(context).join(QLatin1Char('\n'));
+        const QString timed = KifuExport::lines(tree, context, KifuFormat::Csa).join(QLatin1Char('\n'));
         QVERIFY2(timed.contains(QStringLiteral("$TIME:600+10+0")), qPrintable(timed));
     }
 
@@ -156,11 +174,9 @@ private slots:
         tree.setRootSfen(initial);
         auto* tip = tree.root();
         for (int i = 0; i < usi.size(); ++i) tip = addTestMove(tree, tip, usi[i], pretty[i]);
-        GameRecordModel model;
-        model.setBranchTree(&tree);
-        GameRecordModel::ExportContext context;
+        KifuExportMetadata context;
         context.startSfen = initial;
-        const QStringList lines = model.toKi2Lines(context);
+        const QStringList lines = KifuExport::lines(tree, context, KifuFormat::Ki2);
         const QString text = lines.join(QLatin1Char('\n'));
         QVERIFY2(text.contains(QStringLiteral("▲５七金打")), qPrintable(text));  // 5八の金も5七へ動ける
         QVERIFY2(text.contains(QStringLiteral("▲１五金")), qPrintable(text));
@@ -186,17 +202,15 @@ private slots:
         tree.setRootSfen(initial);
         auto* tip = tree.root();
         for (int i = 0; i < usi.size(); ++i) tip = addTestMove(tree, tip, usi[i], pretty[i]);
-        GameRecordModel model;
-        model.setBranchTree(&tree);
-        GameRecordModel::ExportContext context;
+        KifuExportMetadata context;
         context.startSfen = initial;
         QStringList output;
-        if (format == "kif") output = model.toKifLines(context);
-        else if (format == "ki2") output = model.toKi2Lines(context);
-        else if (format == "csa") output = model.toCsaLines(context);
-        else if (format == "jkf") output = model.toJkfLines(context);
-        else if (format == "usi") output = model.toUsiLines(context);
-        else output = model.toUsenLines(context);
+        if (format == "kif") output = KifuExport::lines(tree, context, KifuFormat::Kif);
+        else if (format == "ki2") output = KifuExport::lines(tree, context, KifuFormat::Ki2);
+        else if (format == "csa") output = KifuExport::lines(tree, context, KifuFormat::Csa);
+        else if (format == "jkf") output = KifuExport::lines(tree, context, KifuFormat::Jkf);
+        else if (format == "usi") output = KifuExport::lines(tree, context, KifuFormat::Usi);
+        else output = KifuExport::lines(tree, context, KifuFormat::Usen);
         QTemporaryFile file;
         QVERIFY(KifuTestHelper::writeToTempFile(file, output.join(QLatin1Char('\n')).toUtf8(), format));
         KifParseResult result;
@@ -263,11 +277,9 @@ private slots:
         // 記号のない行は手番側（▲７六歩の次なので後手）
         tree.addTerminalMove(tip, TerminalType::DeclarationWin,
                              terminal.startsWith(QStringLiteral("▲")) ? Turn::Black : Turn::White);
-        GameRecordModel model;
-        model.setBranchTree(&tree);
-        GameRecordModel::ExportContext ctx;
+        KifuExportMetadata ctx;
         ctx.startSfen = kHirateSfen;
-        const QStringList lines = model.toKifLines(ctx);
+        const QStringList lines = KifuExport::lines(tree, ctx, KifuFormat::Kif);
         // KIF も Kifu for Windows と同じく、入玉宣言は終局の種類を明記する
         QVERIFY2(lines.contains(QStringLiteral("まで1手で%1の入玉勝ち").arg(winner)), qPrintable(lines.join('\n')));
     }
@@ -294,11 +306,9 @@ private slots:
         if (moveCount >= 2) tip = addTestMove(tree, tip, QStringLiteral("7g7f"), QStringLiteral("▲７六歩(77)"));
         tree.addTerminalMove(tip, TerminalType::Resign, moveCount % 2 == 0 ? Turn::White : Turn::Black);
         addTestMove(tree, tree.root(), QStringLiteral("8c8d"), QStringLiteral("△８四歩(83)"));
-        GameRecordModel model;
-        model.setBranchTree(&tree);
-        GameRecordModel::ExportContext ctx;
+        KifuExportMetadata ctx;
         ctx.startSfen = initial;
-        const QStringList lines = format == QStringLiteral("kif") ? model.toKifLines(ctx) : model.toKi2Lines(ctx);
+        const QStringList lines = format == QStringLiteral("kif") ? KifuExport::lines(tree, ctx, KifuFormat::Kif) : KifuExport::lines(tree, ctx, KifuFormat::Ki2);
         // 駒落ちは柿木形式と同じく、局面図の持駒・手番と終局行も下手・上手で書く（下で読み込み直す）
         QVERIFY(lines.contains(QStringLiteral("まで%1手で%2の勝ち").arg(moveCount)
             .arg(moveCount % 2 == 0 ? QStringLiteral("下手") : QStringLiteral("上手"))));
@@ -331,12 +341,10 @@ private slots:
         tree.setRootSfen(initial);
         addTestMove(tree, tree.root(), QStringLiteral("3c3d"), QStringLiteral("△３四歩(33)"));
         addTestMove(tree, tree.root(), QStringLiteral("P*5e"), QStringLiteral("△５五歩打"));
-        GameRecordModel model;
-        model.setBranchTree(&tree);
-        GameRecordModel::ExportContext ctx;
+        KifuExportMetadata ctx;
         ctx.startSfen = initial;
         QTemporaryFile file;
-        QVERIFY(KifuTestHelper::writeToTempFile(file, model.toUsenLines(ctx)
+        QVERIFY(KifuTestHelper::writeToTempFile(file, KifuExport::lines(tree, ctx, KifuFormat::Usen)
             .join(QLatin1Char('\n')).toUtf8(), QStringLiteral("usen")));
         KifParseResult result;
         QString error;
@@ -365,11 +373,9 @@ private slots:
         KifuBranchTree tree;
         tree.setRootSfen(initial);
         addTestMove(tree, tree.root(), QStringLiteral("4f5e"), QStringLiteral("▲５五%1(46)").arg(kanji));
-        GameRecordModel model;
-        model.setBranchTree(&tree);
-        GameRecordModel::ExportContext ctx;
+        KifuExportMetadata ctx;
         ctx.startSfen = initial;
-        const QByteArray json = model.toJkfLines(ctx).join(QLatin1Char('\n')).toUtf8();
+        const QByteArray json = KifuExport::lines(tree, ctx, KifuFormat::Jkf).join(QLatin1Char('\n')).toUtf8();
         const auto moves = QJsonDocument::fromJson(json).object()[QStringLiteral("moves")].toArray();
         QCOMPARE(moves[1].toObject()[QStringLiteral("move")].toObject()[QStringLiteral("piece")].toString(), code);
         QTemporaryFile file;
@@ -430,21 +436,21 @@ private slots:
     /// 駒落ちの棋譜は柿木形式と同じく対局者を下手・上手で書き、CSA では下手が先手（N+）になる
     void handicapHeaderUsesShitateUwate()
     {
-        GameRecordModel model;
-        GameRecordModel::ExportContext ctx;
+        KifuBranchTree tree;
+        KifuExportMetadata ctx;
         ctx.startSfen = QStringLiteral("lnsgkgsnl/1r7/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");  // 角落ち
         ctx.players.blackIsEngine = true;
         ctx.players.whiteIsEngine = true;
         ctx.players.blackEngineName = QStringLiteral("下手エンジン");
         ctx.players.whiteEngineName = QStringLiteral("上手エンジン");
         ctx.timeControl = TimeControl{{60000, 2000, 0}, {120000, 3000, 0}};
-        const QString kif = model.toKifLines(ctx).join(QLatin1Char('\n'));
+        const QString kif = KifuExport::lines(tree, ctx, KifuFormat::Kif).join(QLatin1Char('\n'));
         QVERIFY2(kif.contains(QStringLiteral("下手：下手エンジン")), qPrintable(kif));
         QVERIFY(kif.contains(QStringLiteral("上手：上手エンジン")));
         QVERIFY(!kif.contains(QStringLiteral("先手：")));
         QVERIFY(!kif.contains(QStringLiteral("後手：")));
         QVERIFY(kif.contains(QStringLiteral("持ち時間：下手 01:00+2 / 上手 02:00+3")));
-        const QString csa = model.toCsaLines(ctx).join(QLatin1Char('\n'));
+        const QString csa = KifuExport::lines(tree, ctx, KifuFormat::Csa).join(QLatin1Char('\n'));
         QVERIFY2(csa.contains(QStringLiteral("N+下手エンジン")), qPrintable(csa));
         QVERIFY(csa.contains(QStringLiteral("N-上手エンジン")));
         QVERIFY(csa.contains(QStringLiteral("$TIME+:60+2+0")));
@@ -454,17 +460,17 @@ private slots:
         // 平手は従来どおり先手・後手
         ctx.startSfen = kHirateSfen;
         ctx.timeControl.white = ctx.timeControl.black;
-        const QString hirate = model.toKifLines(ctx).join(QLatin1Char('\n'));
+        const QString hirate = KifuExport::lines(tree, ctx, KifuFormat::Kif).join(QLatin1Char('\n'));
         QVERIFY(hirate.contains(QStringLiteral("先手：下手エンジン")));
         QVERIFY(hirate.contains(QStringLiteral("持ち時間：01:00+2")));
-        QVERIFY(model.toCsaLines(ctx).contains(QStringLiteral("$TIME:60+2+0")));
+        QVERIFY(KifuExport::lines(tree, ctx, KifuFormat::Csa).contains(QStringLiteral("$TIME:60+2+0")));
 
         // 読み込んだ棋譜の見出しが先手・後手なら、駒落ちでも局面図をその呼び方にそろえる
         ctx.startSfen = QStringLiteral("lnsgkgsnl/1r7/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
         ctx.gameInfoProvided = true;
         ctx.gameInfoItems = {{QStringLiteral("先手"), QStringLiteral("A")}, {QStringLiteral("後手"), QStringLiteral("B")},
                              {QStringLiteral("手合割"), QStringLiteral("角落ち")}};
-        const QString keepsHeader = model.toKifLines(ctx).join(QLatin1Char('\n'));
+        const QString keepsHeader = KifuExport::lines(tree, ctx, KifuFormat::Kif).join(QLatin1Char('\n'));
         QVERIFY2(keepsHeader.contains(QStringLiteral("後手の持駒：なし")), qPrintable(keepsHeader));
         QVERIFY(keepsHeader.contains(QStringLiteral("後手番")));
         QVERIFY(!keepsHeader.contains(QStringLiteral("上手の持駒")));
@@ -479,18 +485,16 @@ private slots:
         tree.setRootSfen(initial);
         auto* tip = addTestMove(tree, tree.root(), QStringLiteral("3c3d"), QStringLiteral("△３四歩(33)"));
         tree.addTerminalMove(tip, TerminalType::Timeout, Turn::Black);
-        GameRecordModel model;
-        model.setBranchTree(&tree);
-        GameRecordModel::ExportContext ctx;
+        KifuExportMetadata ctx;
         ctx.startSfen = initial;
-        const QStringList kif = model.toKifLines(ctx);
+        const QStringList kif = KifuExport::lines(tree, ctx, KifuFormat::Kif);
         QVERIFY2(kif.contains(QStringLiteral("まで1手で時間切れにより上手の勝ち")), qPrintable(kif.join(QLatin1Char('\n'))));
-        const QStringList ki2 = model.toKi2Lines(ctx);
+        const QStringList ki2 = KifuExport::lines(tree, ctx, KifuFormat::Ki2);
         QVERIFY2(ki2.contains(QStringLiteral("まで1手で時間切れにより上手の勝ち")), qPrintable(ki2.join(QLatin1Char('\n'))));
         QVERIFY(!ki2.contains(QStringLiteral("▲時間切れ")));
-        QVERIFY(model.toUsiLines(ctx).join(QLatin1Char('\n')).endsWith(QStringLiteral("3c3d timeout")));
-        QVERIFY(model.toUsenLines(ctx).join(QLatin1Char('\n')).trimmed().endsWith(QStringLiteral(".t")));
-        QVERIFY(model.toJkfLines(ctx).join(QLatin1Char('\n')).contains(QStringLiteral("\"special\":\"TIME_UP\"")));
+        QVERIFY(KifuExport::lines(tree, ctx, KifuFormat::Usi).join(QLatin1Char('\n')).endsWith(QStringLiteral("3c3d timeout")));
+        QVERIFY(KifuExport::lines(tree, ctx, KifuFormat::Usen).join(QLatin1Char('\n')).trimmed().endsWith(QStringLiteral(".t")));
+        QVERIFY(KifuExport::lines(tree, ctx, KifuFormat::Jkf).join(QLatin1Char('\n')).contains(QStringLiteral("\"special\":\"TIME_UP\"")));
     }
 
     /// 駒落ちの呼び方（下手・上手）で書いた局面図の持駒も読み込める
@@ -528,21 +532,16 @@ private slots:
         QFETCH(QString, startSfen);
         QFETCH(QString, move);
         QFETCH(QStringList, lines);
-        // 局面は棋譜の正本（分岐ツリー）の表示中の手順から取る
+        // 局面は棋譜の正本（分岐ツリー）の表示中の手順から取る。
+        // 対局情報のない局面の棋譜なので、呼び方は開始局面の手合割で決まる
         KifuBranchTree tree;
-        tree.setRootSfen(startSfen);
-        addTestMove(tree, tree.root(), move, QStringLiteral("1手目"));
-        GameRecordModel model;
-        model.setBranchTree(&tree);
-        AppState state;
         KifuNavigationState nav(&tree);
+        FileHarness files(&tree, &nav);
+        files.document.replaceWithPosition(startSfen);
+        addTestMove(tree, tree.root(), move, QStringLiteral("1手目"));
         nav.setCurrentNode(tree.findByPlyOnMainLine(1));
-        KifuExportController::Deps deps;
-        deps.gameRecord = &model;
-        deps.state = &state;
-        deps.navState = &nav;
-        KifuExportController exporter(deps);
-        QVERIFY(exporter.copyBodToClipboard());
+        files.gc.board()->setSfen(nav.currentSfen());
+        QVERIFY(files.controller->copyBodToClipboard());
         const QStringList bod = QApplication::clipboard()->text().split(QLatin1Char('\n'));
         for (const QString& line : std::as_const(lines)) {
             QVERIFY2(bod.contains(line), qPrintable(bod.join(QLatin1Char('\n'))));
@@ -554,42 +553,38 @@ private slots:
     {
         KifuBranchTree tree;
         tree.setRootSfen(kHirateSfen);
-        GameRecordModel model;
-        model.setBranchTree(&tree);
         const TimeControl timeControl{{630000, 30000, 5000}, {630000, 30000, 5000}};
-        MatchTimeRecord timeRecord;
-        timeRecord.begin(timeControl);
-        timeRecord.recordEnd();
-        KifuExportController::Deps deps;
-        deps.gameRecord = &model;
-        deps.timeRecord = &timeRecord;
-        KifuExportController exporter(deps);
+        KifuNavigationState nav(&tree);
+        FileHarness files(&tree, &nav);
+        files.document.beginMatch(MatchPlayers{}, timeControl, false);
+        files.document.recordMatchEnd();
+        const MatchTimeRecord& timeRecord = files.document.timeRecord();
+        const QString end = timeRecord.endDateTime().toString(QStringLiteral("yyyy/MM/dd HH:mm:ss"));
 
-        GameRecordModel::ExportContext ctx;
-        ctx.startSfen = kHirateSfen;
-        ctx.timeControl = timeControl;
-        ctx.gameStartDateTime = timeRecord.startDateTime();
-        ctx.gameEndDateTime = timeRecord.endDateTime();
-        QVERIFY(exporter.copyKifToClipboard());
-        QCOMPARE(QApplication::clipboard()->text(), model.toKifLines(ctx).join(QLatin1Char('\n')));
-        QVERIFY(exporter.copyKi2ToClipboard());
-        QCOMPARE(QApplication::clipboard()->text(), model.toKi2Lines(ctx).join(QLatin1Char('\n')));
-        QVERIFY(QApplication::clipboard()->text().contains(
-            timeRecord.endDateTime().toString(QStringLiteral("yyyy/MM/dd HH:mm:ss"))));
+        QVERIFY(files.controller->copyKifToClipboard());
+        QCOMPARE(QApplication::clipboard()->text(),
+                 KifuExport::lines(files.document, KifuFormat::Kif).join(QLatin1Char('\n')));
+        QVERIFY(QApplication::clipboard()->text().contains(QStringLiteral("持ち時間：10:30")));
+        QVERIFY(QApplication::clipboard()->text().contains(end));
+        QVERIFY(files.controller->copyKi2ToClipboard());
+        QVERIFY(QApplication::clipboard()->text().contains(end));
+        QVERIFY(files.controller->copyCsaToClipboard());
+        const QString csa = QApplication::clipboard()->text();
+        QVERIFY2(csa.contains(QStringLiteral("$START_TIME:")) && csa.contains(QStringLiteral("$END_TIME:")), qPrintable(csa));
     }
 
     void removedGameInfoStaysEmptyOnExport()
     {
-        GameRecordModel model;
-        GameRecordModel::ExportContext ctx;
+        KifuBranchTree tree;
+        KifuExportMetadata ctx;
         ctx.gameInfoProvided = true;
         ctx.startSfen = kHirateSfen;
-        const QString kif = model.toKifLines(ctx).join(QLatin1Char('\n'));
+        const QString kif = KifuExport::lines(tree, ctx, KifuFormat::Kif).join(QLatin1Char('\n'));
         QVERIFY(!kif.contains(QStringLiteral("開始日時：")));
         QVERIFY(!kif.contains(QStringLiteral("先手：")));
         QVERIFY(!kif.contains(QStringLiteral("後手：")));
         ctx.gameInfoProvided = false;
-        QVERIFY(model.toKifLines(ctx).join(QLatin1Char('\n')).contains(QStringLiteral("開始日時：")));
+        QVERIFY(KifuExport::lines(tree, ctx, KifuFormat::Kif).join(QLatin1Char('\n')).contains(QStringLiteral("開始日時：")));
     }
 
     void removedGameInfoPreservesCustomPosition()
@@ -597,16 +592,14 @@ private slots:
         const QString initial = QStringLiteral("4k4/9/9/9/4p4/4+S4/9/9/4K4 w Pp 1");
         KifuBranchTree tree;
         tree.setRootSfen(initial);
-        GameRecordModel model;
-        model.setBranchTree(&tree);
-        GameRecordModel::ExportContext ctx;
+        KifuExportMetadata ctx;
         ctx.gameInfoProvided = true;
         ctx.startSfen = initial;
         QTemporaryFile kif;
-        QVERIFY(KifuTestHelper::writeToTempFile(kif, model.toKifLines(ctx).join(QLatin1Char('\n')).toUtf8(), QStringLiteral("kif")));
+        QVERIFY(KifuTestHelper::writeToTempFile(kif, KifuExport::lines(tree, ctx, KifuFormat::Kif).join(QLatin1Char('\n')).toUtf8(), QStringLiteral("kif")));
         QCOMPARE(KifuFile::initialSfen<KifToSfenConverter>(kif.fileName()), initial);
         QTemporaryFile ki2;
-        QVERIFY(KifuTestHelper::writeToTempFile(ki2, model.toKi2Lines(ctx).join(QLatin1Char('\n')).toUtf8(), QStringLiteral("ki2")));
+        QVERIFY(KifuTestHelper::writeToTempFile(ki2, KifuExport::lines(tree, ctx, KifuFormat::Ki2).join(QLatin1Char('\n')).toUtf8(), QStringLiteral("ki2")));
         QCOMPARE(KifuFile::initialSfen<Ki2ToSfenConverter>(ki2.fileName()), initial);
     }
 
@@ -642,17 +635,10 @@ private slots:
                                                  RecordTime::fromText(QStringLiteral("00:05/00:00:05"))));
         QVERIFY(session.commit());
 
-        GameRecordModel model;
-        model.setBranchTree(&tree);
-        AppState state;
-        KifuExportController::Deps deps;
-        deps.gameRecord = &model;
-        deps.state = &state;
-        deps.navState = &nav;
-        KifuExportController exporter(deps);
-        if (format == QStringLiteral("csa")) QVERIFY(exporter.copyCsaToClipboard());
-        else if (format == QStringLiteral("usi")) QVERIFY(exporter.copyUsiToClipboard());
-        else QVERIFY(exporter.copyUsenToClipboard());
+        FileHarness files(&tree, &nav);
+        if (format == QStringLiteral("csa")) QVERIFY(files.controller->copyCsaToClipboard());
+        else if (format == QStringLiteral("usi")) QVERIFY(files.controller->copyUsiToClipboard());
+        else QVERIFY(files.controller->copyUsenToClipboard());
 
         QTemporaryFile tmp;
         const QByteArray text = QApplication::clipboard()->text().toUtf8();
@@ -668,11 +654,11 @@ private slots:
         if (!branch) expected.append(newUsi);
         QCOMPARE(result.mainline.startSfen, kHirateSfen);
         QCOMPARE(result.mainline.usiMoves(), expected);
-        QCOMPARE(model.collectMainlineUsiForExport(), expected);
+        QCOMPARE(tree.mainRecordLine().usiMoves(), expected);
 
         // 現在手までのUSIコピーでは、本譜の先頭から指定手数に制限する。
         nav.setCurrentNode(tree.findByPlyOnMainLine(1));
-        QVERIFY(exporter.copyUsiCurrentToClipboard());
+        QVERIFY(files.controller->copyUsiCurrentToClipboard());
         QCOMPARE(QApplication::clipboard()->text(), QStringLiteral("position startpos moves 7g7f"));
     }
 
@@ -682,18 +668,13 @@ private slots:
         tree.setRootSfen(kHirateSfen);
         auto* first = addTestMove(tree, tree.root(), QStringLiteral("7g7f"), QStringLiteral("▲７六歩(77)"));
         tree.addTerminalMove(first, TerminalType::Resign, Turn::White);
-        GameRecordModel model;
-        model.setBranchTree(&tree);
-        QCOMPARE(model.collectMainlineUsiForExport(), QStringList({QStringLiteral("7g7f")}));
+        QCOMPARE(tree.mainRecordLine().usiMoves(), QStringList({QStringLiteral("7g7f")}));
 
         // 開始局面だけの本譜を書き出す（対局用の一覧など、ほかの指し手の出どころは無い）。
         tree.setRootSfen(kHirateSfen);
-        AppState state;
-        KifuExportController::Deps deps;
-        deps.gameRecord = &model;
-        deps.state = &state;
-        KifuExportController exporter(deps);
-        QVERIFY(exporter.copyUsiToClipboard());
+        KifuNavigationState nav(&tree);
+        FileHarness files(&tree, &nav);
+        QVERIFY(files.controller->copyUsiToClipboard());
         QCOMPARE(QApplication::clipboard()->text(), QStringLiteral("position startpos"));
     }
 
@@ -726,16 +707,14 @@ private slots:
                                 QStringLiteral("△３四歩(33)"), QStringLiteral("00:34/00:00:34"));
         last->record().comment = QStringLiteral("last comment");
 
-        GameRecordModel model;
-        model.setBranchTree(&tree);
-        GameRecordModel::ExportContext ctx;
+        KifuExportMetadata ctx;
         ctx.startSfen = kHirateSfen;
         const QStringList expectedMoves = {QStringLiteral("7g7f"), QStringLiteral("3c3d")};
         QStringList output;
-        if (format == QStringLiteral("kif")) output = model.toKifLines(ctx);
-        else if (format == QStringLiteral("ki2")) output = model.toKi2Lines(ctx);
-        else if (format == QStringLiteral("csa")) output = model.toCsaLines(ctx);
-        else output = model.toJkfLines(ctx);
+        if (format == QStringLiteral("kif")) output = KifuExport::lines(tree, ctx, KifuFormat::Kif);
+        else if (format == QStringLiteral("ki2")) output = KifuExport::lines(tree, ctx, KifuFormat::Ki2);
+        else if (format == QStringLiteral("csa")) output = KifuExport::lines(tree, ctx, KifuFormat::Csa);
+        else output = KifuExport::lines(tree, ctx, KifuFormat::Jkf);
 
         QTemporaryFile tmp;
         QVERIFY(KifuTestHelper::writeToTempFile(tmp, output.join(QLatin1Char('\n')).toUtf8(), format));
@@ -770,11 +749,9 @@ private slots:
         addTestMove(tree, alternateSecond, QStringLiteral("1g1f"), QStringLiteral("▲１六歩(17)"));
         addTestMove(tree, second, QStringLiteral("1g1f"), QStringLiteral("▲１六歩(17)"));
 
-        GameRecordModel model;
-        model.setBranchTree(&tree);
-        GameRecordModel::ExportContext ctx;
+        KifuExportMetadata ctx;
         ctx.startSfen = kHirateSfen;
-        const QByteArray json = model.toJkfLines(ctx).join(QLatin1Char('\n')).toUtf8();
+        const QByteArray json = KifuExport::lines(tree, ctx, KifuFormat::Jkf).join(QLatin1Char('\n')).toUtf8();
         const auto moves = QJsonDocument::fromJson(json).object()[QStringLiteral("moves")].toArray();
         QCOMPARE(moves.size(), 4);
         QVERIFY(!moves[0].toObject().contains(QStringLiteral("forks")));
@@ -797,14 +774,14 @@ private slots:
 
         // 分岐内の分岐も、代替される子の手に forks を付ける。
         addTestMove(tree, alternateSecond, QStringLiteral("9g9f"), QStringLiteral("▲９六歩(97)"));
-        const auto nestedMoves = QJsonDocument::fromJson(model.toJkfLines(ctx).join(QLatin1Char('\n')).toUtf8())
+        const auto nestedMoves = QJsonDocument::fromJson(KifuExport::lines(tree, ctx, KifuFormat::Jkf).join(QLatin1Char('\n')).toUtf8())
             .object()[QStringLiteral("moves")].toArray();
         const auto secondFork = nestedMoves[2].toObject()[QStringLiteral("forks")].toArray()[0].toArray();
         QCOMPARE(secondFork.size(), 2);
         QVERIFY(!secondFork[0].toObject().contains(QStringLiteral("forks")));
         QCOMPARE(secondFork[1].toObject()[QStringLiteral("forks")].toArray().size(), 1);
         QTemporaryFile nestedFile;
-        QVERIFY(KifuTestHelper::writeToTempFile(nestedFile, model.toJkfLines(ctx).join(QLatin1Char('\n')).toUtf8(), QStringLiteral("jkf")));
+        QVERIFY(KifuTestHelper::writeToTempFile(nestedFile, KifuExport::lines(tree, ctx, KifuFormat::Jkf).join(QLatin1Char('\n')).toUtf8(), QStringLiteral("jkf")));
         QVERIFY2(KifuFile::parse<JkfToSfenConverter>(nestedFile.fileName(), result, &error), qPrintable(error));
         QCOMPARE(result.variations.size(), 4);
         QCOMPARE(result.variations[2].startPly, 3);
@@ -822,12 +799,10 @@ private slots:
         auto* capture = addTestMove(tree, second, QStringLiteral("8h2b+"), QStringLiteral("▲２二角成(88)"));
         addTestMove(tree, capture, QStringLiteral("8b2b"), QStringLiteral("△同　飛(82)"));
         addTestMove(tree, capture, QStringLiteral("3a2b"), QStringLiteral("△同　銀(31)"));
-        GameRecordModel model;
-        model.setBranchTree(&tree);
-        GameRecordModel::ExportContext ctx;
+        KifuExportMetadata ctx;
         ctx.startSfen = kHirateSfen;
         QTemporaryFile tmp;
-        QVERIFY(KifuTestHelper::writeToTempFile(tmp, model.toJkfLines(ctx).join(QLatin1Char('\n')).toUtf8(),
+        QVERIFY(KifuTestHelper::writeToTempFile(tmp, KifuExport::lines(tree, ctx, KifuFormat::Jkf).join(QLatin1Char('\n')).toUtf8(),
                                                QStringLiteral("jkf")));
         KifParseResult result;
         QString error;
@@ -837,69 +812,218 @@ private slots:
         QCOMPARE(result.variations[0].line.usiMoves(), QStringList({QStringLiteral("3a2b")}));
     }
 
-    // === Comment Management ===
+    // === 文書（コメント・しおり・未保存・置き換え） ===
 
     void setComment_roundTrip()
     {
-        GameRecordModel model;
         KifuBranchTree tree;
-        setupBasicModel(model, tree);
+        setupBasicTree(tree);
+        KifuDocument document(&tree);
 
-        model.setComment(tree.mainLine().at(1), QStringLiteral("初手のコメント"));
+        document.setComment(tree.mainLine().at(1), QStringLiteral("初手のコメント"));
         QCOMPARE(tree.mainLine().at(1)->comment(), QStringLiteral("初手のコメント"));
     }
 
     void commentChanged_signal()
     {
-        GameRecordModel model;
         KifuBranchTree tree;
-        setupBasicModel(model, tree);
+        setupBasicTree(tree);
+        KifuDocument document(&tree);
 
-        QSignalSpy spy(&model, &GameRecordModel::commentChanged);
+        QSignalSpy spy(&document, &KifuDocument::commentChanged);
         QVERIFY(spy.isValid());
 
-        model.setComment(tree.mainLine().at(2), QStringLiteral("テストコメント"));
+        document.setComment(tree.mainLine().at(2), QStringLiteral("テストコメント"));
+        QCOMPARE(spy.count(), 1);
+        // 同じコメントは書き換えない
+        document.setComment(tree.mainLine().at(2), QStringLiteral("テストコメント"));
         QCOMPARE(spy.count(), 1);
     }
 
-    // === Bookmark Management ===
-
     void setBookmark_roundTrip()
     {
-        GameRecordModel model;
         KifuBranchTree tree;
-        setupBasicModel(model, tree);
+        setupBasicTree(tree);
+        KifuDocument document(&tree);
 
-        model.setBookmark(tree.mainLine().at(3), QStringLiteral("重要局面"));
+        QSignalSpy spy(&document, &KifuDocument::bookmarkChanged);
+        document.setBookmark(tree.mainLine().at(3), QStringLiteral("重要局面"));
         QCOMPARE(tree.mainLine().at(3)->bookmark(), QStringLiteral("重要局面"));
+        QCOMPARE(spy.count(), 1);
     }
 
-    // === Dirty Flag ===
-
-    void dirty_flag()
+    /// 未保存かどうかは、ツリー・コメント・対局情報が保存した時点と違うかで決まる
+    void modifiedComparesWithSavedState()
     {
-        GameRecordModel model;
         KifuBranchTree tree;
-        setupBasicModel(model, tree);
+        setupBasicTree(tree);
+        KifuDocument document(&tree);
+        QVERIFY(!document.isModified());
 
-        QVERIFY(!model.isDirty());
-        model.setComment(tree.mainLine().at(1), QStringLiteral("comment"));
-        QVERIFY(model.isDirty());
-        model.clearDirty();
-        QVERIFY(!model.isDirty());
+        document.setComment(tree.mainLine().at(1), QStringLiteral("comment"));
+        QVERIFY(document.isModified());
+        document.markSaved(QStringLiteral("/tmp/a.kif"));
+        QVERIFY(!document.isModified());
+        QCOMPARE(document.filePath(), QStringLiteral("/tmp/a.kif"));
+
+        // 手を足すと未保存
+        addTestMove(tree, tree.root(), QStringLiteral("2g2f"), QStringLiteral("▲２六歩(27)"));
+        QVERIFY(document.isModified());
+        document.markSaved(QStringLiteral("/tmp/a.kif"));
+
+        // 対局情報を編集して元に戻せば、未保存ではない
+        QList<KifGameInfoItem> header = document.header();
+        const QList<KifGameInfoItem> original = header;
+        header.append({QStringLiteral("棋戦"), QStringLiteral("テスト棋戦")});
+        document.editHeader(header);
+        QVERIFY(document.isModified());
+        document.editHeader(original);
+        QVERIFY(!document.isModified());
+
+        // 保存形式が拡張子で決まらないファイルは上書き保存先にしない
+        document.markSaved(QStringLiteral("/tmp/a.sfen"));
+        QVERIFY(document.filePath().isEmpty());
+    }
+
+    /// 指し手のない棋譜の対局情報だけを書いても（対局の前に棋戦・場所を書いた）、保存を促さない
+    void headerOnlyEditOfEmptyRecordIsNotModified()
+    {
+        KifuBranchTree tree;
+        tree.setRootSfen(kHirateSfen);
+        KifuDocument document(&tree);
+        QList<KifGameInfoItem> header = document.header();
+        header.append({QStringLiteral("棋戦"), QStringLiteral("練習対局")});
+        document.editHeader(header);
+        QVERIFY(!document.isModified());
+
+        // 新しい対局の棋譜にしても、書いた対局情報は残る
+        document.startNew(kHirateSfen, true);
+        QCOMPARE(document.header(), header);
+
+        // 指し手を指した後は未保存
+        addTestMove(tree, tree.root(), QStringLiteral("7g7f"), QStringLiteral("▲７六歩(77)"));
+        QVERIFY(document.isModified());
+    }
+
+    /// 対局情報を読む前に、対局情報欄の入力中のセルを確定させる
+    void headerFlushesPendingEdits()
+    {
+        KifuBranchTree tree;
+        setupBasicTree(tree);
+        KifuDocument document(&tree);
+        QList<KifGameInfoItem> pending = document.header();
+        pending.append({QStringLiteral("場所"), QStringLiteral("将棋会館")});
+        document.setHooks({[&document, pending]() { document.editHeader(pending); }});
+
+        QVERIFY(document.isModified());
+        QCOMPARE(document.header(), pending);
+    }
+
+    /// 貼り付けた棋譜はファイルにないので未保存で、上書き保存先も持たない
+    void unsavedContentHasNoFile()
+    {
+        KifuBranchTree tree;
+        setupBasicTree(tree);
+        KifuDocument document(&tree);
+        document.markSaved(QStringLiteral("/tmp/a.kif"));
+        document.markUnsavedContent();
+        QVERIFY(document.isModified());
+        QVERIFY(document.filePath().isEmpty());
+        document.markSaved(QStringLiteral("/tmp/b.kifu"));
+        QVERIFY(!document.isModified());
+    }
+
+    /// 読み込み・新規は文書を置き換えるので、前の対局者・持ち時間・上書き保存先が残らない
+    void replacementForgetsPreviousMatch()
+    {
+        KifuBranchTree tree;
+        setupBasicTree(tree);
+        KifuDocument document(&tree);
+        MatchPlayers players;
+        players.blackIsEngine = true;
+        players.blackEngineName = QStringLiteral("Engine A");
+        players.whiteHumanName = QStringLiteral("人間");
+        document.beginMatch(players, TimeControl{{60000, 0, 0}, {60000, 0, 0}}, false);
+        document.recordMatchEnd();
+        document.markSaved(QStringLiteral("/tmp/a.kif"));
+        QCOMPARE(document.headerPlayerName(Turn::Black), QStringLiteral("Engine A"));
+        QVERIFY(document.timeRecord().startDateTime().isValid());
+
+        QSignalSpy reset(&document, &KifuDocument::headerReset);
+        QSignalSpy playersChanged(&document, &KifuDocument::playersChanged);
+        KifParseResult record;
+        record.mainline.startSfen = kHirateSfen;
+        const QList<KifGameInfoItem> header = {{QStringLiteral("先手"), QStringLiteral("読み込んだ先手")}};
+        QVERIFY(document.replaceWithRecord(record, kHirateSfen, header));
+        QCOMPARE(reset.count(), 1);
+        QCOMPARE(playersChanged.count(), 1);
+        QVERIFY(document.players().blackEngineName.isEmpty());
+        QVERIFY(!document.timeRecord().startDateTime().isValid());
+        QVERIFY(document.filePath().isEmpty());
+        QVERIFY(!document.isModified());
+        QCOMPARE(document.header(), header);
+        QCOMPARE(document.headerPlayerName(Turn::Black), QStringLiteral("読み込んだ先手"));
+
+        // 新規は既定の対局情報。keepHeader なら書きかけの対局情報を残す
+        document.startNew(kHirateSfen, true);
+        QCOMPARE(document.header(), header);
+        document.startNew(kHirateSfen);
+        QCOMPARE(document.header(), KifuDocument::defaultHeader());
+        QCOMPARE(tree.mainLine().size(), 1);
+    }
+
+    /// 対局を始めると、対局情報を対局者・手合割・持ち時間で作り直し、利用者が入力した項目は残す
+    void beginMatchRebuildsHeaderKeepingUserItems()
+    {
+        KifuBranchTree tree;
+        tree.setRootSfen(kHirateSfen);
+        KifuDocument document(&tree);
+        QList<KifGameInfoItem> header = document.header();
+        for (auto& item : header) {
+            if (item.key == QStringLiteral("棋戦")) item.value = QStringLiteral("練習対局");
+        }
+        document.editHeader(header);
+
+        MatchPlayers players;
+        players.blackHumanName = QStringLiteral("先手さん");
+        players.whiteHumanName = QStringLiteral("後手さん");
+        document.beginMatch(players, TimeControl{}, false);
+        const QList<KifGameInfoItem> items = document.header();
+        auto valueOf = [&items](const QString& key) {
+            for (const auto& item : items) {
+                if (item.key == key) return item.value;
+            }
+            return QString();
+        };
+        QCOMPARE(valueOf(QStringLiteral("先手")), QStringLiteral("先手さん"));
+        QCOMPARE(valueOf(QStringLiteral("後手")), QStringLiteral("後手さん"));
+        QCOMPARE(valueOf(QStringLiteral("持ち時間")), QStringLiteral("無制限"));
+        QCOMPARE(valueOf(QStringLiteral("棋戦")), QStringLiteral("練習対局"));
+        QVERIFY(!valueOf(QStringLiteral("開始日時")).isEmpty());
+
+        // 終了日時は自動で書くので、未保存の理由にしない
+        document.markSaved(QStringLiteral("/tmp/a.kif"));
+        document.recordMatchEnd();
+        QVERIFY(!document.isModified());
+        QVERIFY(!document.header().isEmpty());
+
+        // 棋譜の途中から続ける対局は、対局情報を書き換えない
+        const QList<KifGameInfoItem> before = document.header();
+        document.beginMatch(players, TimeControl{}, true);
+        document.recordMatchEnd();
+        QCOMPARE(document.header(), before);
     }
 
     // === Export: KIF ===
 
     void toKifLines()
     {
-        GameRecordModel model;
         KifuBranchTree tree;
-        setupBasicModel(model, tree);
+        setupBasicTree(tree);
 
-        GameRecordModel::ExportContext ctx;
+        KifuExportMetadata ctx;
         ctx.startSfen = kHirateSfen;
-        auto lines = model.toKifLines(ctx);
+        auto lines = KifuExport::lines(tree, ctx, KifuFormat::Kif);
         QVERIFY(!lines.isEmpty());
 
         // Should contain "手合割：平手"
@@ -917,13 +1041,12 @@ private slots:
 
     void toKi2Lines()
     {
-        GameRecordModel model;
         KifuBranchTree tree;
-        setupBasicModel(model, tree);
+        setupBasicTree(tree);
 
-        GameRecordModel::ExportContext ctx;
+        KifuExportMetadata ctx;
         ctx.startSfen = kHirateSfen;
-        auto lines = model.toKi2Lines(ctx);
+        auto lines = KifuExport::lines(tree, ctx, KifuFormat::Ki2);
         QVERIFY(!lines.isEmpty());
 
         // Should contain ▲ or △ markers
@@ -947,12 +1070,10 @@ private slots:
         const QStringList usi = {"7g7f", "3c3d", "2g2f", "8c8d", "2f2e", "8d8e", "6i7h"};
         auto* tip = tree.root();
         for (const QString& move : usi) tip = addTestMove(tree, tip, move, move);
-        GameRecordModel model;
-        model.setBranchTree(&tree);
 
-        GameRecordModel::ExportContext ctx;
+        KifuExportMetadata ctx;
         ctx.startSfen = kHirateSfen;
-        auto lines = model.toJkfLines(ctx);
+        auto lines = KifuExport::lines(tree, ctx, KifuFormat::Jkf);
         QVERIFY(!lines.isEmpty());
 
         // Should be valid JSON
@@ -972,11 +1093,10 @@ private slots:
 
     void toUsenLines()
     {
-        GameRecordModel model;
         KifuBranchTree tree;
-        setupBasicModel(model, tree);
+        setupBasicTree(tree);
 
-        GameRecordModel::ExportContext ctx;
+        KifuExportMetadata ctx;
         ctx.startSfen = kHirateSfen;
         QStringList usiMoves = {
             QStringLiteral("7g7f"), QStringLiteral("3c3d"),
@@ -984,7 +1104,7 @@ private slots:
             QStringLiteral("2f2e"), QStringLiteral("8d8e"),
             QStringLiteral("6i7h")
         };
-        auto lines = model.toUsenLines(ctx);
+        auto lines = KifuExport::lines(tree, ctx, KifuFormat::Usen);
         QVERIFY(!lines.isEmpty());
         // USEN output typically starts with "~0."
         QVERIFY(lines.first().startsWith(QStringLiteral("~")));
@@ -1060,12 +1180,10 @@ private slots:
                      QStringLiteral("( 0:00/00:00:02)"));
 
         // モデルセットアップ
-        GameRecordModel model;
-        model.setBranchTree(&tree);
 
-        GameRecordModel::ExportContext ctx;
+        KifuExportMetadata ctx;
         ctx.startSfen = kHirateSfen;
-        auto lines = model.toKifLines(ctx);
+        auto lines = KifuExport::lines(tree, ctx, KifuFormat::Kif);
 
         // '+' マーク付き行と '+' マークなし行を検証するヘルパー
         auto findLine = [&lines](const QString& keyword) -> QString {
@@ -1156,14 +1274,12 @@ private slots:
         addTestMove(tree, m1, QStringLiteral("3c3d"), QStringLiteral("△３四歩(33)"));
         // ２手目の変化：後手の金は 41・61 のどちらも 52 へ動ける
         addTestMove(tree, m1, QStringLiteral("4a5b"), QStringLiteral("△５二金(41)"));
-        GameRecordModel model;
-        model.setBranchTree(&tree);
-        GameRecordModel::ExportContext ctx;
+        KifuExportMetadata ctx;
         ctx.gameInfoProvided = true;
         ctx.startSfen = kHirateSfen;
 
         QTemporaryFile ki2;
-        QVERIFY(KifuTestHelper::writeToTempFile(ki2, model.toKi2Lines(ctx).join(QLatin1Char('\n')).toUtf8(),
+        QVERIFY(KifuTestHelper::writeToTempFile(ki2, KifuExport::lines(tree, ctx, KifuFormat::Ki2).join(QLatin1Char('\n')).toUtf8(),
                                                 QStringLiteral("ki2u")));
         KifParseResult result;
         QString error;
@@ -1182,12 +1298,10 @@ private slots:
         tree.addTerminalMove(m2, TerminalType::Checkmate, Turn::Black);
         auto* v2 = addTestMove(tree, m1, QStringLiteral("8c8d"), QStringLiteral("△８四歩(83)"));
         tree.addTerminalMove(v2, TerminalType::Timeout, Turn::Black);
-        GameRecordModel model;
-        model.setBranchTree(&tree);
-        GameRecordModel::ExportContext ctx;
+        KifuExportMetadata ctx;
         ctx.gameInfoProvided = true;
         ctx.startSfen = kHirateSfen;
-        const QString text = model.toKi2Lines(ctx).join(QLatin1Char('\n'));
+        const QString text = KifuExport::lines(tree, ctx, KifuFormat::Ki2).join(QLatin1Char('\n'));
         QVERIFY2(text.contains(QStringLiteral("まで2手で詰み")), qPrintable(text));
         QVERIFY2(text.contains(QStringLiteral("時間切れ")), qPrintable(text));
 
@@ -1218,5 +1332,5 @@ private slots:
     }
 };
 
-QTEST_MAIN(TestGameRecordModel)
-#include "tst_gamerecordmodel.moc"
+QTEST_MAIN(TestKifuDocument)
+#include "tst_kifudocument.moc"

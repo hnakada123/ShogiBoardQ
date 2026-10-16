@@ -15,7 +15,7 @@
 #include "csagamesession.h"
 #include "livegamesession.h"
 #include "gamesession.h"
-#include "gamerecordmodel.h"
+#include "kifudocument.h"
 #include "kifunavigationstate.h"
 #include "mainwindow.h"
 #include "mainwindowcomposer.h"
@@ -202,7 +202,7 @@ private slots:
         KifuBranchNode* first = p.branchTree->addMove(p.branchTree->root(), ShogiMove(), QStringLiteral("▲７六歩(77)"),
                                                       QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL w - 2"));
         p.navState->setCurrentNode(first);
-        p.gameRecord->clearDirty();
+        p.document->markSaved(QString());
         startFromDialog(window);
         ShogiClock* clock = p.clock;
         QCOMPARE(p.match->clock(), clock);
@@ -212,7 +212,7 @@ private slots:
         QVERIFY(p.match->players().humanVsHuman());
         QCOMPARE(p.match->record().startSfen, SfenUtils::hirateSfen());
         p.gameSession->breakOff();
-        p.gameRecord->clearDirty();
+        p.document->markSaved(QString());
     }
 
     /// 通信対局が終わったら、ローカル対局と同じくライブ記録を確定する（B5）。
@@ -229,9 +229,9 @@ private slots:
 
         emit p.csaGame->gameEnded(CsaClient::GameResult::Win, CsaClient::GameEndCause::Resign, 0);
         QVERIFY(!p.liveGameSession->isActive());
-        QVERIFY(p.timeRecord.endDateTime().isValid());
+        QVERIFY(p.document->timeRecord().endDateTime().isValid());
         QCOMPARE(window.composer().state().activity.activity(), AppActivityState::Activity::Idle);
-        p.gameRecord->clearDirty();
+        p.document->markSaved(QString());
     }
 };
 

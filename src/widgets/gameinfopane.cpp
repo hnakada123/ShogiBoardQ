@@ -4,7 +4,6 @@
 #include "gameinfopane.h"
 
 #include "buttonstyles.h"
-#include "dialogutils.h"
 #include "flowlayout.h"
 #include "gameinfoeditmodel.h"
 #include "gameinfokeys.h"
@@ -22,10 +21,8 @@
 #include <QItemSelectionModel>
 #include <QLabel>
 #include <QLineEdit>
-#include <QMessageBox>
 #include <QMimeData>
 #include <QPushButton>
-#include <QSet>
 #include <QShortcut>
 #include <QStyledItemDelegate>
 #include <QTableView>
@@ -117,6 +114,11 @@ GameInfoPane::GameInfoPane(QWidget* parent)
     connect(m_model, &QAbstractItemModel::rowsRemoved, this, &GameInfoPane::updateTablePresentation);
     connect(m_model, &QAbstractItemModel::dataChanged, this, &GameInfoPane::updateTablePresentation);
     connect(m_model, &GameInfoEditModel::editStateChanged, this, &GameInfoPane::updateEditingIndicator);
+    // 表の中身の変更（編集・行の追加と削除・元に戻す）を文書へ知らせる
+    connect(m_model, &QAbstractItemModel::dataChanged, this, &GameInfoPane::notifyEdited);
+    connect(m_model, &QAbstractItemModel::rowsInserted, this, &GameInfoPane::notifyEdited);
+    connect(m_model, &QAbstractItemModel::rowsRemoved, this, &GameInfoPane::notifyEdited);
+    connect(m_model, &QAbstractItemModel::modelReset, this, &GameInfoPane::notifyEdited);
     connect(m_table->selectionModel(), &QItemSelectionModel::selectionChanged,
             this, &GameInfoPane::updateEditingIndicator);
     connect(m_table->selectionModel(), &QItemSelectionModel::currentChanged,
@@ -144,53 +146,14 @@ void GameInfoPane::setGameInfo(const QList<KifGameInfoItem>& items, bool beforeM
     m_model->setItems(items, beforeMatchStart);
 }
 
-void GameInfoPane::resetGameInfo()
-{
-    // 対局者は名前が決まるまで、将棋盤の名前欄と同じく「先手」「後手」と呼ぶ
-    setGameInfo({{GameInfoKeys::kGameDate, {}},
-                 {GameInfoKeys::kStartDateTime, {}},
-                 {GameInfoKeys::kBlackPlayer, tr("先手")},
-                 {GameInfoKeys::kWhitePlayer, tr("後手")},
-                 {GameInfoKeys::kHandicap, QStringLiteral("平手")},
-                 {GameInfoKeys::kTimeControl, {}},
-                 {GameInfoKeys::kEvent, {}},
-                 {GameInfoKeys::kSite, {}},
-                 {GameInfoKeys::kNote, {}}}, true);
-}
-
-void GameInfoPane::setGameInfoForMatch(const QList<KifGameInfoItem>& automaticItems)
-{
-    commitPendingEditor();
-    QList<KifGameInfoItem> items = automaticItems;
-    // 対局者の見出しは平手（先手・後手）と駒落ち（下手・上手）で変わるため、前の対局の行を残さない。
-    QSet<QString> replacedKeys = {GameInfoKeys::kEndDateTime, QStringLiteral("消費時間"),
-                                 QStringLiteral("結果"),
-                                 GameInfoKeys::kBlackPlayer, GameInfoKeys::kWhitePlayer,
-                                 GameInfoKeys::kShitatePlayer, GameInfoKeys::kUwatePlayer};
-    for (const auto& item : automaticItems) replacedKeys.insert(item.key);
-    QSet<QString> retainedKeys;
-    const QList<KifGameInfoItem> currentItems = gameInfo();
-    for (const auto& item : currentItems) {
-        const QString key = item.key.trimmed();
-        if (key.isEmpty() || replacedKeys.contains(key)) continue;
-        items.append(item);
-        retainedKeys.insert(key);
-    }
-    for (const auto& key : {GameInfoKeys::kEvent, GameInfoKeys::kSite, GameInfoKeys::kNote}) {
-        if (!retainedKeys.contains(key)) items.append({key, {}});
-    }
-    setGameInfo(items);
-}
-
 QList<KifGameInfoItem> GameInfoPane::gameInfo() const
 {
     return m_model->items();
 }
 
-void GameInfoPane::updatePlayerNames(const QString& blackName, const QString& whiteName)
+void GameInfoPane::notifyEdited()
 {
-    commitPendingEditor();
-    m_model->setPlayerNames(blackName, whiteName);
+    emit gameInfoEdited(m_model->items());
 }
 
 void GameInfoPane::updateGameInfoValue(const QString& key, const QString& value)
@@ -219,21 +182,6 @@ void GameInfoPane::commitPendingEditor()
         emit delegate->commitData(editor);
         emit delegate->closeEditor(editor, QAbstractItemDelegate::NoHint);
     }
-}
-
-bool GameInfoPane::confirmDiscardUnsaved()
-{
-    commitPendingEditor();
-    if (!m_model->isDirty()) return true;
-
-    const bool discard = DialogUtils::confirmAction(
-        this,
-        tr("未保存の対局情報"),
-        tr("対局情報が編集されていますが、まだ更新されていません。\n"
-           "変更を破棄して続行しますか？"),
-        tr("破棄して続行"), QMessageBox::Warning);
-    if (discard) m_model->discardChanges();
-    return discard;
 }
 
 void GameInfoPane::applyChanges()

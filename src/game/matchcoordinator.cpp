@@ -3,6 +3,8 @@
 
 #include "matchcoordinator.h"
 
+#include "kifudocument.h"
+
 #include <QSignalBlocker>
 #include <limits>
 
@@ -33,6 +35,7 @@ MatchCoordinator::MatchCoordinator(const Deps& deps, QObject* parent)
     , m_clock(deps.clock)
     , m_activity(deps.activity)
     , m_engines(deps.engines)
+    , m_document(deps.document)
 {
     Q_ASSERT(m_gc && m_clock && m_activity && m_engines);
 
@@ -116,6 +119,11 @@ void MatchCoordinator::createStrategy(const StartOptions& opt)
         m_strategy = std::make_unique<HumanVsHumanStrategy>(strategyHost());
     }
     m_strategy->start();
+}
+
+bool MatchCoordinator::usesHandicapNames() const
+{
+    return m_document && m_document->usesHandicapNames();
 }
 
 bool MatchCoordinator::isHumanSide(Turn side) const
@@ -259,7 +267,7 @@ void MatchCoordinator::handleEngineWin(Turn side)
     // エンジンの入玉宣言（bestmove win）も人間の宣言と同じく、盤面から条件と点数を判定する。
     // 条件を満たさなければ宣言したエンジンの負け、24点法の24〜30点は持将棋。
     const NyugyokuJudgement::Result result =
-        NyugyokuJudgement::judgeEngineDeclaration(m_gc->board()->position(), side == Turn::Black, m_handicapNames);
+        NyugyokuJudgement::judgeEngineDeclaration(m_gc->board()->position(), side == Turn::Black, usesHandicapNames());
     handleNyugyokuDeclaration(side, result.success, result.isDraw);
     // 人間の宣言は宣言の結果ダイアログで知らせる。エンジンの宣言はここで判定結果を知らせる
     if (isGameOver()) emit gameOverMessage(NyugyokuJudgement::resultTitle(), result.message);
@@ -402,8 +410,8 @@ void MatchCoordinator::appendTerminalRecord(const GameEndInfo& info)
 QString MatchCoordinator::resultMessage(const GameEndInfo& info) const
 {
     // 駒落ちは棋譜の局面図・終局行と同じく下手・上手と呼ぶ
-    const QString blackJP = m_handicapNames ? tr("下手") : tr("先手");
-    const QString whiteJP = m_handicapNames ? tr("上手") : tr("後手");
+    const QString blackJP = usesHandicapNames() ? tr("下手") : tr("先手");
+    const QString whiteJP = usesHandicapNames() ? tr("上手") : tr("後手");
     const QString loserJP = (info.loser == Turn::Black) ? blackJP : whiteJP;
     const QString winnerJP = (info.loser == Turn::Black) ? whiteJP : blackJP;
 

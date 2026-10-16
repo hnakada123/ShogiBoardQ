@@ -6,7 +6,6 @@
 
 #include <QObject>
 
-class GameRecordModel;
 class KifuBranchNode;
 class KifuBranchTree;
 class KifuNavigationController;
@@ -35,7 +34,6 @@ public:
         KifuNavigationState* navState = nullptr;         ///< 表示中の手（必須）
         KifuNavigationController* navController = nullptr; ///< 移る前の確認（必須）
         LiveGameSession* liveSession = nullptr;          ///< 対局中は編集しない（必須）
-        GameRecordModel* gameRecord = nullptr;           ///< 編集したら未保存にする（必須）
         QWidget* parentWidget = nullptr;                 ///< 確認ダイアログの親
     };
 

@@ -45,7 +45,8 @@
 #include "recordpane.h"
 #include "gameinfopane.h"
 #include "gameinfokeys.h"
-#include "gamerecordmodel.h"
+#include "kifudocument.h"
+#include "kifuexport.h"
 #include <QTableView>
 #include <QTableWidget>
 #include "../game_info_table_helper.h"
@@ -503,7 +504,7 @@ private slots:
         GameInfoTable table{controller->tableView()};
         QCOMPARE(table.rowCount(), 9);
         QVERIFY(table.text(1, 1).isEmpty());
-        // 対局者は名前が決まるまで「先手」「後手」（GameInfoPane::resetGameInfo）
+        // 対局者は名前が決まるまで「先手」「後手」（KifuDocument::defaultHeader）
         QCOMPARE(table.text(2, 1), QStringLiteral("先手"));
         QCOMPARE(table.text(3, 1), QStringLiteral("後手"));
         table.setText(6, 1, QStringLiteral("練習対局"));
@@ -532,12 +533,9 @@ private slots:
         QCOMPARE(table.text(7, 1), QStringLiteral("自宅"));
         QCOMPARE(table.text(8, 1), QStringLiteral("更新ボタンを押す前の備考"));
         QVERIFY(!controller->isDirty());
-        auto* record = window->findChild<GameRecordModel*>();
-        QVERIFY(record);
-        GameRecordModel::ExportContext context;
-        context.gameInfoItems = controller->gameInfo();
-        context.gameInfoProvided = true;
-        const QString kif = record->toKifLines(context).join(QLatin1Char('\n'));
+        // 書き出しは文書の対局情報（入力中だったセルも確定して入っている）
+        const QString kif = KifuExport::lines(*window->composer().parts().document, KifuFormat::Kif)
+                                .join(QLatin1Char('\n'));
         QVERIFY(kif.contains(QStringLiteral("棋戦：練習対局")));
         QVERIFY(kif.contains(QStringLiteral("場所：自宅")));
         QVERIFY(kif.contains(QStringLiteral("備考：更新ボタンを押す前の備考")));
@@ -653,7 +651,7 @@ private slots:
                  qPrintable(messages.join('\n')));
         QVERIFY(window->composer().parts().match->clock()->isRunning());
         QCOMPARE(window->composer().state().activity.activity(), AppActivityState::Activity::DuringGame);
-        QVERIFY(window->composer().state().players.humanVsHuman());
+        QVERIFY(window->composer().parts().document->players().humanVsHuman());
         auto* view = window->findChild<ShogiView*>();
         QCOMPARE(view->board()->position().boardSfen(), expectedBoard);
         if (preset == 0) {
@@ -809,7 +807,7 @@ private slots:
         settings.setValue("GameSettings/basicTimeMinutes2", 3);
         settings.sync();
         startWindowGame();
-        const auto first = window->composer().parts().timeRecord.timeControl();
+        const auto first = window->composer().parts().document->timeRecord().timeControl();
         QCOMPARE(first.black.mainMs, qint64(300000));
         QCOMPARE(first.white.mainMs, qint64(180000));
         GameInfoTable table{window->findChild<GameInfoPane*>()->tableView()};
@@ -817,7 +815,7 @@ private slots:
         dialogTimer.start(10);
         QTRY_COMPARE_WITH_TIMEOUT(window->composer().parts().consecutiveGames->currentGameNumber(), 2, 5000);
         dialogTimer.stop();
-        const auto second = window->composer().parts().timeRecord.timeControl();
+        const auto second = window->composer().parts().document->timeRecord().timeControl();
         QCOMPARE(second.black.mainMs, qint64(180000));
         QCOMPARE(second.white.mainMs, qint64(300000));
         QTRY_COMPARE(gameInfoValue(table, GameInfoKeys::kTimeControl), QStringLiteral("先手 03:00 / 後手 05:00"));
@@ -846,18 +844,13 @@ private slots:
         QCOMPARE(gameInfoValue(table, GameInfoKeys::kTimeControl), QStringLiteral("下手 01:00+2 / 上手 02:00+3"));
         for (const auto& item : controller->gameInfo())
             QVERIFY(item.key != GameInfoKeys::kBlackPlayer && item.key != GameInfoKeys::kWhitePlayer);
-        // 見出しは対局情報から書き出すので、指し手のない棋譜モデルで足りる
-        GameRecordModel record;
-        GameRecordModel::ExportContext context;
-        context.gameInfoItems = controller->gameInfo();
-        context.gameInfoProvided = true;
-        context.startSfen = window->composer().parts().branchTree->root()->sfen();
-        const QString kif = record.toKifLines(context).join(QLatin1Char('\n'));
+        const KifuDocument& document = *window->composer().parts().document;
+        const QString kif = KifuExport::lines(document, KifuFormat::Kif).join(QLatin1Char('\n'));
         QVERIFY2(kif.contains(QStringLiteral("下手：下手さん")), qPrintable(kif));
         QVERIFY(kif.contains(QStringLiteral("上手：上手さん")));
         QVERIFY(kif.contains(QStringLiteral("持ち時間：下手 01:00+2 / 上手 02:00+3")));
         QVERIFY(!kif.contains(QStringLiteral("先手：")));
-        const QString csa = record.toCsaLines(context).join(QLatin1Char('\n'));
+        const QString csa = KifuExport::lines(document, KifuFormat::Csa).join(QLatin1Char('\n'));
         QVERIFY2(csa.contains(QStringLiteral("N+下手さん")), qPrintable(csa));
         QVERIFY(csa.contains(QStringLiteral("N-上手さん")));
         QVERIFY(csa.contains(QStringLiteral("$TIME+:60+2+0")));

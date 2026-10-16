@@ -10,7 +10,7 @@
 
 #include "shogienginethinkingmodel.h"
 
-struct AppState;
+class KifuDocument;
 class KifuNavigationState;
 class ShogiView;
 
@@ -26,7 +26,7 @@ class PvClickController : public QObject
 public:
     struct Deps {
         const KifuNavigationState* navState = nullptr;      ///< 表示中の手順（読み筋の局面に至った手を探す）
-        const AppState* state = nullptr;                    ///< 対局者名
+        const KifuDocument* document = nullptr;             ///< 対局者名（最後に始めた対局の対局者）
         const ShogiView* shogiView = nullptr;               ///< 盤の反転状態
     };
 

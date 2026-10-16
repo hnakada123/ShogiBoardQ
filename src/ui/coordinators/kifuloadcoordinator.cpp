@@ -3,17 +3,17 @@
 
 #include "kifuloadcoordinator.h"
 #include "kifubranchtree.h"
-#include "kifubranchtreebuilder.h"
+#include "kifudocument.h"
 #include "logcategories.h"
 
 #include <QtConcurrentRun>
 #include <utility>
 
-KifuLoadCoordinator::KifuLoadCoordinator(KifuBranchTree* tree, QObject* parent)
+KifuLoadCoordinator::KifuLoadCoordinator(KifuDocument* document, QObject* parent)
     : QObject(parent)
-    , m_tree(tree)
+    , m_document(document)
 {
-    Q_ASSERT(m_tree);
+    Q_ASSERT(m_document);
 }
 
 KifuLoadCoordinator::~KifuLoadCoordinator()
@@ -94,8 +94,7 @@ bool KifuLoadCoordinator::loadPositionFromSfen(const QString& sfenStr)
         return false;
     }
     // 局面だけの棋譜にする（表示中の手は開始局面へ戻る）
-    m_tree->setRootSfen(sfen);
-    emit gameInfoLoaded({});
+    m_document->replaceWithPosition(sfen);
     return true;
 }
 
@@ -125,13 +124,12 @@ bool KifuLoadCoordinator::applyRecord(const KifuLoadResult& result)
         return false;
     }
 
-    // ツリーを作り直す（変更の通知は作り終えてから1回）。表示中の手は開始局面へ戻る
-    if (!KifuBranchTreeBuilder::buildFromKifParseResult(m_tree, res, result.initialSfen)) {
+    // 文書を読んだ棋譜で置き換える（ツリーの変更の通知は作り終えてから1回）。表示中の手は開始局面へ戻る
+    if (!m_document->replaceWithRecord(res, result.initialSfen, result.gameInfo)) {
         emit errorOccurred(tr("棋譜の分岐元または開始手数が不正です。"));
         return false;
     }
     qCDebug(lcKifu).noquote() << "kifu loaded:" << result.filePath << "teai=" << result.teaiLabel
-                              << "nodes=" << m_tree->nodeCount() << "lines=" << m_tree->lineCount();
-    emit gameInfoLoaded(result.gameInfo);
+                              << "nodes=" << m_document->tree()->nodeCount() << "lines=" << m_document->tree()->lineCount();
     return true;
 }

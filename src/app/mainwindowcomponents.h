@@ -7,11 +7,10 @@
 #include <QDockWidget>
 #include <memory>
 
-#include "matchtimerecord.h"
 
 // 棋譜の正本と表示
 class BranchTreeEditController;
-class GameRecordModel;
+class KifuDocument;
 class KifuBranchTree;
 class KifuDisplayPresenter;
 class KifuNavigationController;
@@ -59,7 +58,6 @@ class MatchCoordinator;
 class SessionResetCoordinator;
 
 // 棋譜のファイル
-class KifuExportController;
 class KifuFileController;
 class KifuLoadCoordinator;
 
@@ -127,7 +125,7 @@ struct MainWindowComponents {
     KifuNavigationState* navState = nullptr;
     LiveGameSession* liveGameSession = nullptr;
     KifuNavigationController* kifuNavController = nullptr;
-    GameRecordModel* gameRecord = nullptr;              ///< コメント・しおりの編集と書き出し
+    KifuDocument* document = nullptr;                   ///< 開いている棋譜（対局情報・対局の記録・保存先）
 
     // --- モデル ---
     KifuRecordListModel* kifuRecord = nullptr;
@@ -148,7 +146,6 @@ struct MainWindowComponents {
     PositionEditController* posEdit = nullptr;
     PositionEditCoordinator* posEditCoordinator = nullptr;
     ShogiClock* clock = nullptr;
-    MatchTimeRecord timeRecord;                         ///< 持ち時間と対局の開始・終了日時
     TimeDisplayPresenter* timePresenter = nullptr;
 
     // --- 画面部品 ---
@@ -181,7 +178,6 @@ struct MainWindowComponents {
 
     // --- 棋譜のファイル ---
     KifuLoadCoordinator* kifuLoadCoordinator = nullptr;
-    KifuExportController* kifuExportController = nullptr;
     KifuFileController* kifuFileController = nullptr;
 
     // --- 表示 ---

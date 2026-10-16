@@ -69,7 +69,7 @@ m_loadWatcher->setFuture(QtConcurrent::run([input, text, cancel]() {
 }));
 
 // Bad: ポインタや参照を渡す
-void loadInWorker(GameRecordModel* model);  // 禁止
+void loadInWorker(KifuDocument* document);  // 禁止
 ```
 
 - `QString`, `QList`, `QMap` 等の暗黙的共有型はコピーコストが低い

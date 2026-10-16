@@ -65,7 +65,7 @@
 #include "tablestyles.h"
 #include "kifurecordlistmodel.h"
 #include "kifubranchtree.h"
-#include "gamerecordmodel.h"
+#include "kifudocument.h"
 #include "evaluationchartwidget.h"
 #include "evaluationchartview.h"
 #include "branchtreemanager.h"
@@ -1602,9 +1602,9 @@ private slots:
                           view->visualRect(selected).center());
         QTRY_COMPARE(view->currentIndex().row(), selectedRow);
 
-        auto* gameRecord = window->findChild<GameRecordModel*>(); QVERIFY(gameRecord);
-        gameRecord->setComment(0, QStringLiteral("Previous opening comment"));
-        gameRecord->setBookmark(0, QStringLiteral("Previous opening bookmark"));
+        KifuDocument* document = window->composer().parts().document; QVERIFY(document);
+        document->setComment(document->tree()->root(), QStringLiteral("Previous opening comment"));
+        document->setBookmark(document->tree()->root(), QStringLiteral("Previous opening bookmark"));
         const QString beforeBoard = boardSfen();
         const QString beforeHand = board()->board()->position().handsSfen();
         const Turn beforeTurn = board()->board()->currentPlayer();
@@ -1655,7 +1655,8 @@ private slots:
         QVERIFY(!board()->positionEditMode());
         QCOMPARE(model->rowCount(), 1);
         QCOMPARE(model->currentHighlightRow(), 0);
-        auto* tree = gameRecord->branchTree(); QVERIFY(tree); QVERIFY(tree->root());
+        auto* tree = document->tree(); QVERIFY(tree); QVERIFY(tree->root());
+        QVERIFY(tree->root()->comment().isEmpty());
         QCOMPARE(tree->root()->sfen(), editedSfen);
         QCOMPARE(tree->root()->childCount(), 0);
         const QString exported = copy("actionCopyUSIAll");
@@ -2212,8 +2213,7 @@ private slots:
         armDialog("messages");
         paste(savedKif);
         QVERIFY2(dialogMessages.isEmpty(), qPrintable(dialogMessages.join('\n')));
-        auto* loadedRecord = window->findChild<GameRecordModel*>(); QVERIFY(loadedRecord);
-        QCOMPARE(loadedRecord->branchTree()->root()->sfen(), edited);
+        QCOMPARE(window->composer().parts().branchTree->root()->sfen(), edited);
         QVERIFY(copy("actionCopyUSIAll").contains(edited));
         QCOMPARE(copy("actionCopySFEN").trimmed(), edited);
         auto* gc = window->findChild<ShogiGameController*>(); QVERIFY(gc);

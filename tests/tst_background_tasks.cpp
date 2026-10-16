@@ -28,13 +28,15 @@
 #include "kifunavigationstate.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
+#include "kifudocument.h"
 
 namespace {
 /// 読み込んだ棋譜は分岐ツリー（棋譜の正本）に入る
 struct KifuHarness {
     KifuBranchTree tree;
     KifuNavigationState nav{&tree};
-    KifuLoadCoordinator loader{&tree};
+    KifuDocument document{&tree};
+    KifuLoadCoordinator loader{&document};
 
     QStringList positions() const
     {

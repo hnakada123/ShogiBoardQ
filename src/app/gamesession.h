@@ -15,12 +15,11 @@ struct AppState;
 class AnalysisSession;
 class ConsecutiveGameSeries;
 class CsaGameCoordinator;
-class GameRecordModel;
+class KifuDocument;
 class KifuFileController;
 class KifuNavigationState;
 class LiveGameSession;
 class MainWindowAppearanceController;
-class MatchTimeRecord;
 class PlayerInfoPresenter;
 class SessionResetCoordinator;
 class ShogiClock;
@@ -41,18 +40,17 @@ class GameSession : public QObject, public MatchRecordSink
 
 public:
     struct Deps {
-        AppState* state = nullptr;                          ///< 対局者・上書き保存先・動作状態
+        AppState* state = nullptr;                          ///< 動作状態
         MatchCoordinator* match = nullptr;                  ///< ローカル対局の司令塔
         AnalysisSession* analysis = nullptr;                ///< 検討・詰み探索（「新規」で止める）
         ConsecutiveGameSeries* consecutive = nullptr;  ///< 連続対局
         SessionResetCoordinator* reset = nullptr;           ///< 棋譜と表示の作り直し
         KifuNavigationState* navState = nullptr;            ///< 表示中の手（現在局面からの開始・再開）
         LiveGameSession* liveSession = nullptr;             ///< 対局の手順の書き先
-        GameRecordModel* gameRecord = nullptr;              ///< 未保存の印
+        KifuDocument* document = nullptr;                   ///< 棋譜の文書（対局者・持ち時間・開始と終了の日時・対局情報）
         ShogiClock* clock = nullptr;                        ///< 対局の時計
-        MatchTimeRecord* timeRecord = nullptr;              ///< 持ち時間と開始・終了の日時
         TimeDisplayPresenter* timePresenter = nullptr;      ///< 時計の表示
-        PlayerInfoPresenter* playerInfo = nullptr;          ///< 対局者・対局情報の表示
+        PlayerInfoPresenter* playerInfo = nullptr;          ///< 対局者の表示
         UiStatePolicyManager* uiStatePolicy = nullptr;      ///< 「再開」を出すか
         KifuFileController* kifuFileController = nullptr;   ///< 未保存の棋譜の確認
         ShogiView* shogiView = nullptr;                     ///< 手前に表示している側
@@ -72,14 +70,13 @@ public:
     bool startGame(const GameStartPlan& plan, bool beginSeries);
 
     // --- 通信対局 ---
-    /// 通信対局の棋譜を、サーバーの開始局面と対局者名で作り直してライブ記録を始める
-    void beginCsaGameRecord(const QString& startSfen, const QString& blackName, const QString& whiteName);
+    /// 通信対局の棋譜を、サーバーの開始局面・対局者名・持ち時間で作り直してライブ記録を始める
+    void beginCsaGameRecord(const QString& startSfen, const QString& blackName, const QString& whiteName,
+                            const TimeControl& timeControl);
     /// 通信対局が終わった（ライブ記録を確定し、終局時刻を記録する。ローカル対局の終局と同じ後始末）
     void endCsaGameRecord();
     /// 終局時刻を記録して対局情報に反映する
     void recordGameEndTime();
-    /// 対局者を下手・上手と呼ぶか（駒落ちで、対局情報の見出しが下手・上手のとき）
-    bool usesHandicapNames() const;
 
 public slots:
     // --- 利用者の操作 ---
@@ -94,8 +91,6 @@ public slots:
     void resetToInitialState();
     /// 中断した対局を再開できなくする（棋譜を変えたとき・別の対局を始めたとき）
     void discardInterruptedGame();
-    /// 棋譜を読み込んだ。前の対局の対局者・持ち時間・開始と終了の日時を、保存や表示に使わないよう消す
-    void forgetFinishedMatch();
 
     // --- 司令塔から ---
     void onGameEnded(const MatchCoordinator::GameEndInfo& info);
@@ -107,6 +102,8 @@ public slots:
 private:
     bool isCsaGameActive() const;
     QString recordStartSfen() const;
+    /// 読み込んだ棋譜の途中から続けた対局の対局者・日時を、分岐の最初の手のメモにする
+    void noteContinuedMatch(const MatchPlayers& players);
 
     Deps m_deps;
     int m_interruptedNodeId = -1;

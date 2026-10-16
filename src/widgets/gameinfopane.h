@@ -22,6 +22,8 @@ class QToolButton;
 /**
  * @brief 対局情報の表と、その編集の操作（元に戻す・切り取り・行の追加・反映など）
  *
+ * 棋譜の文書（KifuDocument）の対局情報を編集する画面。表の中身が変わるたびに gameInfoEdited で
+ * 文書に知らせ、文書が対局情報を置き換えたら setGameInfo で表を作り直す。
  * 表の中身・履歴・未反映かどうかは GameInfoEditModel が持つ。このクラスは表の見た目
  * （項目名の列幅・行の高さ・文字の大きさ）と、ボタン・ショートカットの操作を受け持つ。
  * 「対局情報更新」で編集を確定すると gameInfoUpdated を出す。
@@ -37,16 +39,10 @@ public:
     QTableView* tableView() const { return m_table; }
     GameInfoEditModel* model() const { return m_model; }
 
-    /// 対局情報を設定する（棋譜の読み込みなど。編集の履歴は消す）
+    /// 対局情報を設定する（文書が対局情報を置き換えた。編集の履歴は消す）
     void setGameInfo(const QList<KifGameInfoItem>& items, bool beforeMatchStart = false);
-    /// 未開始の対局用に基本項目を用意する
-    void resetGameInfo();
-    /// 日時・対局者・時間設定を更新し、入力済みの棋戦・場所などを引き継ぐ
-    void setGameInfoForMatch(const QList<KifGameInfoItem>& automaticItems);
     QList<KifGameInfoItem> gameInfo() const;
 
-    /// 対局者名を更新する（編集中の他の項目と履歴は保つ）
-    void updatePlayerNames(const QString& blackName, const QString& whiteName);
     /// 終了日時などを自動で更新する（編集中の他の項目と履歴は保つ）
     void updateGameInfoValue(const QString& key, const QString& value);
 
@@ -54,8 +50,6 @@ public:
     bool isDirty() const;
     /// 入力中のセルを確定する（保存・確認の前に使う）
     void commitPendingEditor();
-    /// 未反映の変更があれば破棄してよいか確かめる。続けてよければ true（破棄した内容は戻す）
-    bool confirmDiscardUnsaved();
 
     int fontSize() const { return m_fontSize.fontSize(); }
     void setFontSize(int size) { m_fontSize.setFontSize(size); }
@@ -74,10 +68,14 @@ public slots:
     void applyChanges();
 
 signals:
+    /// 「対局情報更新」で編集を確定した
     void gameInfoUpdated(const QList<KifGameInfoItem>& items);
+    /// 表の中身が変わった（文書の対局情報を合わせる）
+    void gameInfoEdited(const QList<KifGameInfoItem>& items);
 
 private slots:
     void updateEditingIndicator();
+    void notifyEdited();
     void observeEditor();
     void updateTablePresentation();
     void applyFontSize();

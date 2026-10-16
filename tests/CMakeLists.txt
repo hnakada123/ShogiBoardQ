@@ -308,8 +308,8 @@ target_link_libraries(tst_kifubranchlistmodel PRIVATE shogiboardq_static)
 # ============================================================
 # Unit 8: GameRecordModel
 # ============================================================
-add_shogi_test(tst_gamerecordmodel tst_gamerecordmodel.cpp)
-target_link_libraries(tst_gamerecordmodel PRIVATE shogiboardq_static)
+add_shogi_test(tst_kifudocument tst_kifudocument.cpp)
+target_link_libraries(tst_kifudocument PRIVATE shogiboardq_static)
 
 # JKF の書き出し（分岐ツリーの指し手と局面から作る）と読み込みの往復
 add_shogi_test(tst_jkfexporter tst_jkfexporter.cpp)

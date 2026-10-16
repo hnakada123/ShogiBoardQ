@@ -27,7 +27,7 @@
 
 | 段階 | ファイル | 内容 |
 |---|---|---|
-| 生成 | `mainwindowcomposer_create.cpp` | 棋譜の正本とモデル・画面の骨格（`createRecordAndModels`）→ 盤・時計（`createBoard`）→ 棋譜欄・ドックの中身と棋譜の表示・編集（`createPanels`）→ 対局・検討・通信対局の司令塔（`createMatchAndAnalysis`）→ 表示とドック（`createPresentersAndDocks`）→ UI 状態・棋譜のファイル・対局のセッション（`createSessions`）→ 利用者の操作（`createControllers`） |
+| 生成 | `mainwindowcomposer_create.cpp` | 棋譜の正本（分岐ツリー）・棋譜の文書（`KifuDocument`）とモデル・画面の骨格（`createRecordAndModels`）→ 盤・時計（`createBoard`）→ 棋譜欄・ドックの中身と棋譜の表示・編集（`createPanels`）→ 対局・検討・通信対局の司令塔（`createMatchAndAnalysis`）→ 表示とドック（`createPresentersAndDocks`）→ UI 状態・棋譜のファイル・対局のセッション（`createSessions`）→ 利用者の操作（`createControllers`） |
 | シグナル接続 | `mainwindowcomposer_wire.cpp` | 棋譜（`connectRecord`）→ 盤（`connectBoard`）→ 対局（`connectGame`）→ 検討・思考・メニュー・通知（`connectAnalysisAndUi`。メニュー・ツールバーの項目は `MenuActionsWiring::wire()` でつなぐ） |
 | 初期表示 | `mainwindowcomposer.cpp` | `finalizeUi()` が盤・棋譜欄・対局者名を表示し、ウィンドウの大きさとドックの配置を復元する |
 
@@ -40,8 +40,9 @@
 
 1. 新しい部品は `MainWindowComponents` にメンバを足し、`mainwindowcomposer_create.cpp` の該当する段階（`createSessions()` など）で1回だけ作る。
 2. 依存は部品のポインタで渡す。`std::function<X*()>` のゲッターや `ensure*` コールバックは使わない。
-3. 状態は `AppState` に置く。部品のメンバに状態のコピーを持たない（例: アプリが何をしているかは `AppState::activity`、
-   最後に始めた対局の対局者は `AppState::players` だけ）。
+3. 動作状態は `AppState` に置く。部品のメンバに状態のコピーを持たない（例: アプリが何をしているかは `AppState::activity` だけ）。
+   棋譜に付く状態は棋譜の文書 `KifuDocument` が持つ（最後に始めた対局の対局者は `KifuDocument::players()`、
+   上書き保存先は `KifuDocument::filePath()` だけ）。
 4. `std::function` は、上位へ操作を委ねる「フック」にだけ使う（例: `CsaGameSession::Deps::prepareRecord`、
    `KifuFileController::Deps::clearUiBeforeKifuLoad`）。部品の取得には使わない。司令塔（`MatchCoordinator`）は
    フックを持たず、シグナルと `MatchRecordSink`（対局の手順の受け手。実体は `GameSession`）で知らせる。
