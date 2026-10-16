@@ -574,9 +574,9 @@
 - **駒セットの情報が5か所以上に分かれている。**
   - ID の一覧: `appsettings.cpp:36-64`（40個）。
   - ID から表示名を引く処理: `boardcolorpresets.cpp:45-126`（40分岐の if 連鎖。配色プリセットのクラスに入っている）。
-  - 分類: `boardcolordialog.cpp:567-568` の分類名8つと、`693-695` の同じ順の接頭辞（`"torafu_"` など。分類は接頭辞の文字列一致で決める）。分類番号は `appsettings.cpp:217-225` で `qBound(0,…,7)` と手書き。
+  - 分類: `boardcolordialog.cpp:567-568` の分類名8つと、`694-695`（メモの初版では 693-695）の同じ順の接頭辞（`"torafu_"` など。分類は接頭辞の文字列一致で決める）。分類番号は `appsettings.cpp:217-225` で `qBound(0,…,7)` と手書き。
   - おすすめの組み合わせ: `boardcolordialog.cpp:389-414`。盤などの見本は日本語名（`"白榧"`）をキーにして指す。
-  - 資源のパス: `pieceimageprovider.cpp:84-90`（standard だけ特別扱い）と qrc。
+  - 資源のパス: `pieceimageprovider.cpp:56-59`（メモの初版では 84-90。standard だけ特別扱い）と qrc。
 - **足し忘れてもビルドが通る。** 駒セットを1つ足すときにどこかを忘れると、表示名が「標準の駒」になる・分類から漏れる・保存値が standard に戻される（`appsettings.cpp:67-73`）といった目立たない不具合になる。
 - **外観ダイアログ（`boardcolordialog.cpp` 785行）の作りも複雑。**
   - 選び方が4系統あり（配色プリセット・テーマ・おすすめの組み合わせ・部品ごとの見本）、それぞれが選択状態を合わせる関数（`syncPresetSelection`・`syncThemeSelection`・`syncCatalog`）を持つ。
@@ -591,6 +591,12 @@
 - タブは `struct Section { QString id; Component; QListWidget* }` の配列で持ち、保存は id で行う。
 
 **規模とテスト**: services 3〜4ファイル、dialogs 1。テストは `tst_piece_images` と `tst_dialog_appearance` の一部。
+
+**状態: 済（80aa1e03）**。案から変えた点:
+- `PieceStyleCatalog`（`src/services/piecestylecatalog.h`）の表は `{id, Family, 表示名}`。画像のパスは表の分類（標準の駒だけ `:/pieces/`）から決め、絞り込みの項目と上限も `Family` から作る。表の整合（ID と表示名が重ならない・どの分類にも1つ以上ある・画像がある）は `tst_piece_images::catalogIsConsistent` で確かめる。
+- 盤などの見本は新しい ID を足さず、今の「変わらない名前」（翻訳前の名前。`BoardAppearanceSample::key`）で指すままにした。代わりに、おすすめの組み合わせを `BoardAppearanceCatalog::combinations()` に移し、すべての組み合わせが存在する駒のセットと見本を指し、当てはめるとその組み合わせとして選ばれることを `tst_board_image_renderer::combinationsReferToCatalog` で確かめる（足し忘れ・書き間違いはテストで分かる）。
+- 外観は `AppearanceState`（`src/services/appearancestate.h`）の値で読み、変えて `apply()` で戻す。テーマ・組み合わせ・部品の見本の選択状態は、この値から `BoardAppearanceCatalog::selectedIndex`・`combinationIndex` で求める（選択状態を合わせる関数は残したが、それぞれの比べ方は1つにした）。
+- タブは id の表から作り、`m_sectionIds` で id とタブの位置を対応させる。保存は id（`AppSettings::appearanceSection()` は id を返し、旧版のタブ番号は id に読み替える）。部品の一覧は `Component` を添字にした配列にした。
 
 #### R10-2. ドックの定義
 
@@ -610,6 +616,13 @@
 **書き直し案**: `DockSpec{id, objectName, title, area, tabifyWith, defaultVisible, layoutBoundary, persist}` の表を1つ作り、`DockRegistry` がこの表だけを見て作成・登録・規定の配置・保存・復元を行う。保存は全ドックで同じ方式にする。
 
 **規模とテスト**: 6ファイル、約1,050行を約450行に減らせる見込み。テストは `tst_dock_layout`・`tst_layout_boundary_widget`・`tst_settings_roundtrip`。
+
+**状態: 済（7d829071）**。案から変えた点:
+- 表は `DockRegistry::DockSpec`（`src/ui/coordinators/dockregistry.h`）。`tabifyWith` の代わりに、同じ場所のドックは表で前にあるドックのタブに後ろから重ねる（表の並びがタブの並び）。中身の扱い（`LayoutBoundaryWidget` で包む・描き直しを広げない・最小の高さ）と、前面に出すか・リセット時の幅も表に持つ。起動時の配置とリセットは同じ `placeAll()` で作る。
+- `DockLayoutManager` は名前付きレイアウト・起動時のレイアウト・固定だけを受け持ち、ドックの一覧・リセット・保存は `DockRegistry` に任せる。`DockCreationService`・`DockUiCoordinator`・`DockWidgets`・`DockType` は削除した。
+- 保存は全12個のドックで `DockSettings::dockState`/`setDockState`（グループごとの floating・visible・geometry）。既にあった5つのドックのキーは変えていない。下段の7つも、閉じたまま・浮動のまま次回に戻るようになった。
+- メニューウィンドウと定跡ウィンドウは各コントローラのコンストラクタで作る。メニューウィンドウの分類は、ドックを作った後に集め直す（「表示」メニューのドックの切り替えも入る）。
+- 行数は8ファイル 1,128行から6ファイル 785行（表と、表から作る処理を `DockRegistry` に置いたため、見込みほどは減っていない）。
 
 #### R10-3. MCP・CLI・自動化 API の引数仕様
 

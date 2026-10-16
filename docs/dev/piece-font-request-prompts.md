@@ -142,10 +142,10 @@ HTMLとSVG：
 | [駒セットの説明](../../resources/images/pieces/README.md) | 採用済みセット、生成方法、ライセンス |
 | [アルファベット駒の生成スクリプト](../../scripts/generate_alphabet_pieces.py) | 字形のパス化、高さ・余白・字幅の計算、配色 |
 | [Qtリソース](../../resources/shogiboardq.qrc) | 現標準駒の参照先、新規SVGの登録 |
-| [アプリ設定](../../src/services/appsettings.cpp) | `availablePieceStyles()`、駒の選択保存、分類の保存範囲 |
-| [駒の表示名](../../src/services/boardcolorpresets.cpp) | `pieceStyleName()`と翻訳対象の表示名 |
-| [外観画面のカタログ](../../src/dialogs/boardcolordialog_catalog.cpp) | 分類・絞り込み・おすすめの組み合わせ |
-| [盤・駒台・背景の見本](../../src/services/boardappearancecatalog.cpp) | 既存配色の再利用、新しい配色の追加 |
+| [駒のセットの表](../../src/services/piecestylecatalog.cpp) | `PieceStyleCatalog` の ID・分類（`Family`）・翻訳対象の表示名。ID の一覧・表示名・絞り込みの分類・画像のパスはすべてこの表から引く |
+| [アプリ設定](../../src/services/appsettings.cpp) | 駒の選択保存（表にない ID は `standard` に戻す）、絞り込みの保存範囲（`Family::Count` から決まる） |
+| [外観画面](../../src/dialogs/boardcolordialog.cpp) | 駒の一覧・分類の絞り込み・おすすめの組み合わせの選択 |
+| [盤・駒台・背景の見本](../../src/services/boardappearancecatalog.cpp) | 既存配色の再利用、新しい配色の追加、おすすめの組み合わせ（`combinations()`） |
 | [画像プロバイダー](../../src/services/pieceimageprovider.cpp) | 駒種・先後・反転とリソースの対応 |
 | [駒画像テスト](../../tests/tst_piece_images.cpp) | リソース、描画、輪郭、成駒、反転、設定保存 |
 | [GUIテスト](../../tests/gui/tst_gui_functional.cpp) | 外観画面の操作、持駒、設定復元、実画面の保存 |
@@ -153,7 +153,7 @@ HTMLとSVG：
 
 新規セットには重複しないIDを付け、追加セットのリソースは `:/pieces/<ID>/` に登録します。
 既存の設定値が別の駒や配色を指すことがないよう、既存IDとカタログの順序を保って追加します。
-分類を増やす場合は、画面だけでなく `appearancePieceFilter()` と `setAppearancePieceFilter()` の保存範囲も確認します。
+分類を増やす場合は、`PieceStyleCatalog::Family` の `Count` の前に足し、`familyName()` に絞り込みの表示名を足します（`appearancePieceFilter()` と `setAppearancePieceFilter()` の保存範囲は `Family::Count` から決まります）。
 
 採用するSVGと再生成スクリプトはGit管理対象に置き、再生成が無視対象の `design/` に依存しないようにします。
 現在の `generate_alphabet_pieces.py` は端正・凛・墨の既存9セットを出力するものです。新書体の生成では、既存セットの出力を変えずに拡張するか、新しいスクリプトを用意します。
@@ -169,7 +169,7 @@ ctest --test-dir build --output-on-failure -R '^tst_(piece_images|board_image_re
 ```
 
 GUIでは `pieceVariants:<新規ID>` で各セットを確認します。
-新しいおすすめの組み合わせを追加した場合は `pieceCombinations` のテストデータも追加します。
+新しいおすすめの組み合わせを追加した場合は `pieceCombinations` のテストデータも追加します（組み合わせが表にある駒のセットと見本を指していることは `tst_board_image_renderer` の `combinationsReferToCatalog` が確かめます）。
 既存の `pieceCombinations:alphabet` は端正・凛・墨を対象にしているため、新しいセットも検証されると仮定しないでください。
 
 ## 今回採用した書体の記録
