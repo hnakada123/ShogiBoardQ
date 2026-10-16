@@ -576,7 +576,7 @@ USEN は本譜と各ライン（`allLines()`）のノードの指し手から書
 |---|---|---|---|
 | **棋譜欄** | `RecordPane` 内の `QTableView` | `KifuRecordListModel` | 表示中の手順。クリックで手に移動 |
 | **分岐候補欄** | `RecordPane` 内の `QTableView` | `KifuBranchListModel` | 表示中の手の分岐候補 |
-| **分岐ツリー欄** | `BranchTreeManager`（分岐ツリードックの `QGraphicsView`。`buildView()` で作る） | — (直接描画) | ツリーのグラフィカル表示 |
+| **分岐ツリー欄** | `BranchTreeManager`（分岐ツリードックの中身の `QWidget`。描く `QGraphicsView`（`view()`）をコンストラクタで作る） | — (直接描画) | ツリーのグラフィカル表示 |
 | **将棋盤** | `ShogiView` | `ShogiBoard`（`ShogiGameController` の盤） | 盤面表示 |
 
 ### 6.2 Signal/Slot 接続図

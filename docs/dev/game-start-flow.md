@@ -10,7 +10,7 @@
 
 | 値 | 用途 |
 |---|---|
-| `dialogData` | 対局者、手合割、時間設定、最大手数、自動保存、連続対局など（`StartGameDialogData`） |
+| `dialogData` | 対局者2人（`PlayerChoice`。人間かエンジンか・名前・エンジン・時間）、開始局面の手合割（`startingHandicap`。`nullptr` なら現在の局面）、最大手数、自動保存、連続対局など（`StartGameDialogData`、`src/game/startgamedatabridge.h`） |
 | `recordLine` | 表示中の手順の開始局面・指し手・現在手数（`KifuNavigationState::currentRecordLine()` の `RecordLine`） |
 | `startNodeId` | 分岐ツリーで表示中のノードのID |
 | `bottomSide` | 盤の手前に表示している側（`ShogiView::flipMode()` から求める）。人間を手前に表示するときの判定に使う |
@@ -29,7 +29,7 @@
 
 ## 検証と適用の順序
 
-1. `GameStartOptionsBuilder::plan()` が現在局面またはプリセットから開始する手順を決定する。現在局面では `recordLine.currentPly` までを取り（`RecordLine::upTo()`）、後続の手を除く。プリセットでは `GameStartOptionsBuilder::startingPositionSfen()` の局面だけの手順にする。
+1. `GameStartOptionsBuilder::plan()` が現在局面またはプリセットから開始する手順を決定する。現在局面では `recordLine.currentPly` までを取り（`RecordLine::upTo()`）、後続の手を除く。プリセットでは、ダイアログで選んだ手合割（`StartGameDialogData::startingHandicap`。`Handicaps::kAll` の1つ）の局面だけの手順にする。現在局面から始めるかは `startsFromCurrentPosition()`（`startingHandicap` が `nullptr`）で決まる。
 2. 開始局面の玉を検証する（`GameStartOptionsBuilder::validateKings()`：先手・後手の玉が盤上に1枚ずつ）。不正なら計画を作らず、棋譜・時計・エンジンに触れずに理由を返す。
 3. 同じ `plan()` が `buildStartOptions()` で `MatchStartOptions` を、`buildTimeSettings()` で時間設定を作り、`options.recordLine` に決定した手順を入れる。`preparation.mode` は `GameStartPreparation::Mode::NewGame` か `CurrentPosition` のいずれかで、表示用のSFENから推測しない。`flipBoard` は `needsHumanAtBottomFlip()` が決める。
 4. 計画ができたら `GameSession::startGame()` が次の順に1つの関数で適用する。まず `SessionResetCoordinator::prepareGameStart()`（`src/app/sessionresetcoordinator.cpp`）で棋譜を開始局面に整え、ライブ対局のセッションを始める（`LiveGameSession::startFromNode()`。表示中の手が開始局面になる）。新規ならツリーを開始局面で作り直し、現在局面なら指定ノードまでの手順を残す。終局ノードが選択されていれば親を起点とし、末尾の中断ノードは取り除く。指定ノードが無ければ、同じ局面を探し直さずに何も始めない。ツリーから作られない表示（通信ログ・思考情報・検討・解析結果）はエンジンの表示の持ち主 `EngineDisplayPresenter::clearAll()` で消し、評価値グラフは現在局面からならその手数までに切り、新規なら消す。

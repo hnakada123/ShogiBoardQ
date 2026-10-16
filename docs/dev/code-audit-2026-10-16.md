@@ -499,6 +499,11 @@
 
 **規模とテスト**: dialogs 3ファイル（.ui 約600行減）、game 2、app 1。`tst_startgamedialog`・`tst_game_start_flow`・`tst_game_start_options`・`tst_wiring_contracts`・`tests/gui/tst_start_game_flow`・`scripts/docs/shoot_tables.py` が部品名を参照しているので、objectName は残す。
 
+**状態: 済（a90f603c）**。案から変えた点:
+- `PlayerSetupWidget`・`TimeControlEditor`・`SettingsFormBinding`（設定と入力欄の対応の表）は `src/widgets` に置いた。対局者のコンボは以前と同じく「人間」とエンジンを1つのコンボに並べ、R9-2 の `EngineSelector` の内蔵の項目を「人間」に使う。保存したエンジンが削除されていれば人間に戻す（以前と同じ）。
+- `PlayerChoice` の時間は `TimeControlSide`（ミリ秒）にし、時間設定の検証（`TimeControlValidator`）も同じ型を受け取る。開始局面は `Handicaps::Handicap*`（nullptr は現在の局面）で渡し、手合割の名前で保存する。以前の版の番号は以前の並びとして読むだけにした。
+- `SettingsFormBinding` は詰将棋生成ダイアログにも使い、「既定値に戻す」は設定の宣言の既定値を使う（直書きの既定値を消した）。CSA の対局ダイアログは項目ごとの変換（パスワード・履歴）が多いので使わなかった。
+
 #### R9-4. ドックのパネルの作り方が2系統ある
 
 **問題**
@@ -516,6 +521,10 @@
 **書き直し案**: パネルをすべて QWidget の派生にし、コンストラクタで部品を作りきる（null チェックは消える）。パネルからドックの操作とモデルの差し替えを取り除く。
 
 **規模とテスト**: widgets の6クラス（約2,800行）と `DockCreationService`。テストは `tst_usilogpanel`・`tst_csalogpanel`・`tst_wiring_analysistab` ほか4本。
+
+**状態: 済（5cd05642）**。案から変えた点:
+- クラス名（`ConsiderationTabManager`・`BranchTreeManager`）は変えていない。分岐ツリーは描く `QGraphicsView` を子に持つ（`view()`）。
+- 棋譜解析の結果のドックは、解析を始めたときに `KifuAnalysisController`（Deps の `resultsDock`）が出す。結果の表のモデルは `setModel` で1度だけ結ぶ。解析中は最後に確定した行を選んで見せ、その間の選択・盤面の表示の通知は無視する（選択モードは切り替えない）。
 
 #### R9-5. 思考の表と解析結果の表のモデル
 

@@ -130,6 +130,7 @@ GameSettings::commentFontSize.remove();                           // 保存値�
 | `value()` / `operator()()` | 保存した値。未保存なら宣言の既定値 |
 | `valueOr(fallback)` | 保存した値。未保存なら `fallback`。既定値が翻訳文や実行時の場所で決まる項目に使う |
 | `set(v)` | 値を保存する |
+| `isSaved()` | 値が保存されているか（以前の版のキーが残っているかを確かめるときなどに使う） |
 | `remove()` | 保存した値を消す |
 | `key()` | INI のキー |
 | `defaultValue()` | 宣言した既定値。「既定値に戻す」ボタンや、範囲外の保存値を戻すときに使う |
@@ -141,10 +142,10 @@ GameSettings::commentFontSize.remove();                           // 保存値�
 宣言の既定値を空にしておき、読む側で `valueOr()` に渡す。
 
 ```cpp
-// src/dialogs/startgamedialog.cpp
-namespace Saved = GameSettings::StartGame;
-ui->lineEditHumanName1->setText(Saved::player1.humanName.valueOr(tr("You")));
-ui->lineEditKifuSaveDir->setText(Saved::kifuSaveDir.valueOr(defaultKifuSaveDir()));  // ドキュメントフォルダ
+// src/widgets/playersetupwidget.cpp（m_saved は GameSettings::StartGame::player1 か player2）
+m_humanName->setText(m_saved.humanName.valueOr(tr("You")));
+// src/dialogs/startgamedialog.cpp（SettingsFormBinding に既定の文字の関数を渡す。ドキュメントフォルダ）
+m_form.add(ui->lineEditKifuSaveDir, Saved::kifuSaveDir, &defaultKifuSaveDir);
 ```
 
 ### 同じ形の項目をまとめる
@@ -153,11 +154,40 @@ ui->lineEditKifuSaveDir->setText(Saved::kifuSaveDir.valueOr(defaultKifuSaveDir()
 対局開始ダイアログの対局者ごとの項目は `GameSettings::StartGame::Player` にまとめ、`player1`（先手／下手）と `player2`（後手／上手）を宣言している。
 
 ```cpp
-Saved::player1.byoyomiSec.set(ui->byoyomiSec1->value());
-const QString name = saved.engineName();  // savedPlayerIndex(const Saved::Player& saved, ...) は player1・player2 を同じ関数で読む
+// src/dialogs/startgamedialog.cpp: saveTime(const Saved::Player& saved, ...) は player1・player2 を同じ関数で書く
+saved.byoyomiSec.set(static_cast<int>(time.byoyomiMs / kSecondMs));
 ```
 
-`GameSettings::StartGame` の項目はダイアログ（`startgamedialog.cpp`）のほか、`NyugyokuJudgement::configuredRule()`（`jishogiRule`）も読む。
+対局者の欄（`PlayerSetupWidget`）は、作るときにその対局者の `Player` を受け取り、人間かエンジンか（`isHuman`。旧版との互換のため `isEngine` も書く）・名前（`humanName`）・エンジン（`engineName`）を読み書きする。
+エンジンは名前で保存する（`EngineSelector` の保存先に `engineName` を渡す）。名前が無い以前の版の値だけ、`engineNumber`・`enginePath` を読む。保存したエンジンが削除されていれば人間に戻す。
+時間（`basicTimeHour`・`basicTimeMinutes`・`byoyomiSec`・`addEachMoveSec`）はダイアログが `TimeControlSide` との間で変換して読み書きする。
+
+開始局面は手合割の名前（`Handicaps` の名前）で `startingPositionName` に保存する。空なら現在の局面。
+以前の版は、以前の一覧の並びの番号（0=現在の局面、1=平手 … 14=十枚落ち）を `startingPositionNumber` に保存していた。
+ダイアログはこのキーが残っていれば（`isSaved()`）先にそれを読み、保存するときに消す（`remove()`）。
+
+`GameSettings::StartGame` の項目はダイアログ（`startgamedialog.cpp`・`playersetupwidget.cpp`）のほか、`NyugyokuJudgement::configuredRule()`（`jishogiRule`）も読む。
+
+### 入力欄と設定の対応の表（SettingsFormBinding）
+
+ダイアログの入力欄ごとに読み込み・保存・既定値に戻すを3回書かず、`SettingsFormBinding`（`src/widgets/settingsformbinding.h`）に欄と宣言を1度だけ `add()` する。
+`load()` は保存した値を入れ、`save()` は欄の値を保存し、`reset()` は宣言の既定値を入れる（保存はしない）。
+
+| 欄 | 宣言の型 |
+|---|---|
+| `QSpinBox` | `Setting<int>` |
+| `QAbstractButton`（チェックボックス・ラジオボタン）・`QGroupBox`（チェックできるグループ） | `Setting<bool>` |
+| `QComboBox`（選んだ位置） | `Setting<int>` |
+| `QLineEdit` | `Setting<QString>`（既定の文字の関数を渡せる。未保存のときと既定値に戻すときに使う） |
+
+```cpp
+// src/dialogs/startgamedialog.cpp
+m_form.add(ui->spinBoxMaxMoves, Saved::maxMoves);
+m_form.add(ui->checkBoxAutoSaveKifu, Saved::autoSaveKifu);
+m_form.load();
+```
+
+対局開始ダイアログ（対局者・時間・開始局面以外の欄）と詰将棋生成ダイアログ（生成の条件の欄と表示の欄）が使う。詰将棋生成ダイアログの「既定値に戻す」は、生成の条件の表の `reset()` で宣言の既定値に戻す。
 
 ### 範囲を読む側で確かめる項目
 
@@ -356,7 +386,7 @@ const QString path = index >= 0 ? engines.at(index).path : QString();
 
 | 用途 | ファイル |
 |---|---|
-| 登録一覧の読み込み（`loadEngines()`） | `widgets/engineselector.cpp`（下の「機能ごとに選んだエンジン」）、`startgamedialog.cpp`、`considerationuicontroller.cpp`、`engineregistrationhandler.cpp`、`automation/enginecatalog.cpp` |
+| 登録一覧の読み込み（`loadEngines()`） | `widgets/engineselector.cpp`（下の「機能ごとに選んだエンジン」）、`considerationuicontroller.cpp`、`engineregistrationhandler.cpp`、`automation/enginecatalog.cpp` |
 | 登録一覧とオプションの書き込み・削除 | `engineregistrationhandler.cpp`（エンジン登録ダイアログ。`EngineProfileStore::saveEngines()`・`saveOptions()`・`removeEngine()`） |
 | オプションの読み書き | `enginesettingsoptionhandler.cpp`（エンジン設定ダイアログ。`readEngineOptions()` が `loadOptions()`、`writeEngineOptions()` が一覧全体を `saveOptions()` で書く） |
 | 起動時のオプション送信 | `usienginesession.cpp` の `startAsync()` が `EngineProfileStore::launchOptions()` を `UsiProtocolHandler::setLaunchOptions()` に渡す。`UsiProtocolHandler` は設定ファイルを開かない（`USI_Ponder` は除き、GUI の先読み設定から初期化時に一度だけ送る） |
@@ -374,6 +404,7 @@ const QString path = index >= 0 ? engines.at(index).path : QString();
 | 詰将棋生成 | `tsumeshogiGeneratorSelection()` | `TsumeshogiGenerator/engineName` | `TsumeshogiGenerator/engineIndex` |
 | CSA通信対局 | `csaGameSelection()` | `CsaGameSettings/engineName` | `CsaGameSettings/engineNumber` |
 | 詰将棋問題一覧の判定 | `tsumeCollectionSelection()` | `TsumeCollection/engineName`（内蔵の Hayanagi なら空の文字列） | `TsumeCollection/engine`（パス） |
+| 対局開始の対局者 | `GameSettings::StartGame::player1`・`player2` の宣言（`PlayerSetupWidget` が `SelectionKeys` にする） | `GameSettings/engineName1`・`engineName2` | `GameSettings/engineNumber1`・`engineNumber2`（番号）、`enginePath1`・`enginePath2`（パス） |
 
 キーは `settingskeys.h` の定数（`kCsaEngineName`・`kCsaEngineNumber`・`kTsumeCollectionEngineName` など）に置く。
 CSA通信対局のキーは以前の版と同じで、`NetworkSettings` には宣言しない。
@@ -383,7 +414,7 @@ CSA通信対局のキーは以前の版と同じで、`NetworkSettings` には�
 これらの機能の画面は、コンボ・「設定」ボタン・未登録の案内を `EngineSelector`（`src/widgets/engineselector.h`）に結び、`Options::keys` に上の関数の値を渡す。
 `EngineSelector` は作るときに保存した選択を戻し（保存が無ければ先頭の登録エンジン）、`saveSelection()` で保存する。
 検討タブだけは、設定の正本 `ConsiderationSettings` を保存するときに `saveSelection(considerationSelection(), 名前)` を自分で呼ぶ。
-対局開始ダイアログ（`StartGameDialog`）は `EngineSelector` をまだ使っていない。
+対局開始ダイアログ（`StartGameDialog`）も、対局者の欄（`PlayerSetupWidget`）が `EngineSelector` を使う。コンボの先頭の内蔵の項目を「人間」にし、保存先は `GameSettings::StartGame::player1`・`player2` の `engineName`・`engineNumber`・`enginePath` である。
 
 詰将棋問題一覧の判定エンジンは、内蔵の Hayanagi の項目（`Options::builtinLabel`）と、名前に KomoringHeights を含む登録エンジンだけを出す。
 以前の版は `TsumeCollection/engine` にパスを保存し、内蔵の Hayanagi は `"@hayanagi"` と書いていた。

@@ -60,11 +60,14 @@ sed -i 's/^mainWindowSize=.*/mainWindowSize=@Size(1920 1080)/' "$S/cfg/ShogiBoar
 
 | キー | 意味 | 検証で使った値 |
 |---|---|---|
-| `isHuman1` / `isEngine2` | 先手=人間、後手=エンジン | `true` / `true` |
-| `engineNumber2` | `[Engines]` の **0 始まり**の index | `1`（Gikou 2） |
+| `isHuman1` / `isHuman2` | 先手=人間、後手=エンジン | `true` / `false` |
+| `engineName2` | 後手のエンジンの名前（`[Engines]` に登録した名前） | `Gikou 2` |
 | `byoyomiSec2` | エンジンの秒読み | `3`（約3秒以内に応手） |
 | `basicTimeMinutes1` / `byoyomiSec1` | 人間側の持ち時間 | `5` / `10` |
-| `startingPositionNumber` | 開始局面 | `0`（現在の局面） |
+| `startingPositionName` | 開始局面の手合割の名前（空なら現在の局面） | 空（現在の局面） |
+
+`engineName2` が無い以前の版の ini は、`engineNumber2`（`[Engines]` の **0 始まり**の index）を読む。
+以前の版の `startingPositionNumber`（0=現在の局面、1 以上は以前の一覧の並び）が残っていれば、`startingPositionName` より先にそれを読む。ダイアログで保存すると消える。
 
 エンジンは `[Engines]` に登録済みのものを使う。Gikou 2（`/home/nakada/shogi/Gikou/release`）は応手が速く検証向き。
 アプリはエンジンの作業ディレクトリを自動で設定するので、評価ファイル等の配置は登録済みなら問題ない。
