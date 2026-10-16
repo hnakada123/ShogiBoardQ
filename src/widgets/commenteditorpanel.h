@@ -10,6 +10,7 @@
 
 #include "fontsizehelper.h"
 
+class EditActions;
 class QTextEdit;
 class QToolButton;
 class QPushButton;
@@ -65,11 +66,6 @@ private slots:
     void applyCommentFontSize(int size);
     void onUpdateCommentClicked();
     void onCommentTextChanged();
-    void onCommentUndo();
-    void onCommentRedo();
-    void onCommentCut();
-    void onCommentCopy();
-    void onCommentPaste();
     void updatePasteAvailability();
 
 private:
@@ -84,11 +80,7 @@ private:
     QWidget* m_commentToolbar = nullptr;
     QToolButton* m_btnFontIncrease = nullptr;
     QToolButton* m_btnFontDecrease = nullptr;
-    QToolButton* m_btnCommentUndo = nullptr;
-    QToolButton* m_btnCommentRedo = nullptr;
-    QToolButton* m_btnCommentCut = nullptr;
-    QToolButton* m_btnCommentCopy = nullptr;
-    QToolButton* m_btnCommentPaste = nullptr;
+    EditActions* m_editActions = nullptr;  ///< 元に戻す〜貼り付け（ボタンと標準ショートカット）
     QPushButton* m_btnUpdateComment = nullptr;
     QLabel* m_editingLabel = nullptr;
     QLabel* m_positionLabel = nullptr;

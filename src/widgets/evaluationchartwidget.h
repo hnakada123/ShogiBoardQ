@@ -47,7 +47,7 @@ public:
     void setRecordLength(int plies);
     int currentPly() const { return m_currentPly; }
 
-    // 棋譜欄と同じ6つのナビゲーションボタン（KifuNavigationController に接続する）
+    // 棋譜欄と同じ6つのナビゲーションボタン（KifuNavigationController::bindButtons で QAction に結び付ける）
     QPushButton* firstButton() const { return m_navButtons[NavFirst]; }
     QPushButton* back10Button() const { return m_navButtons[NavBack10]; }
     QPushButton* prevButton() const { return m_navButtons[NavPrev]; }
@@ -68,8 +68,6 @@ protected:
 
 public slots:
     void setFloating(bool floating);
-    /// ナビゲーションボタンの有効/無効を切り替える（棋譜欄の矢印ボタンに合わせる）
-    void setNavigationEnabled(bool on);
 
 private slots:
     void applyYAxisSettings();

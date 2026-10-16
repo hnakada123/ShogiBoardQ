@@ -6,27 +6,53 @@
 #include "kifubranchnode.h"
 #include "kifunavigationstate.h"
 
-#include <QPushButton>
+#include <QAbstractButton>
+#include <QAction>
 
 KifuNavigationController::KifuNavigationController(KifuNavigationState* state, QObject* parent)
     : QObject(parent)
     , m_state(state)
 {
+    struct Spec {
+        QString text;
+        void (KifuNavigationController::*slot)();
+    };
+    const Spec specs[StepCount] = {
+        {tr("最初に戻る"), &KifuNavigationController::onFirstClicked},
+        {tr("10手戻る"), &KifuNavigationController::onBack10Clicked},
+        {tr("1手戻る"), &KifuNavigationController::onPrevClicked},
+        {tr("1手進む"), &KifuNavigationController::onNextClicked},
+        {tr("10手進む"), &KifuNavigationController::onFwd10Clicked},
+        {tr("最後に進む"), &KifuNavigationController::onLastClicked},
+    };
+    for (std::size_t i = 0; i < m_actions.size(); ++i) {
+        const Spec& spec = specs[i];
+        auto* action = new QAction(spec.text, this);
+        connect(action, &QAction::triggered, this, spec.slot);
+        m_actions[i] = action;
+    }
 }
 
-void KifuNavigationController::connectButtons(const Buttons& buttons)
+void KifuNavigationController::bindButtons(const Buttons& buttons)
 {
-    const std::pair<QPushButton*, void (KifuNavigationController::*)()> pairs[] = {
-        {buttons.first, &KifuNavigationController::onFirstClicked},
-        {buttons.back10, &KifuNavigationController::onBack10Clicked},
-        {buttons.prev, &KifuNavigationController::onPrevClicked},
-        {buttons.next, &KifuNavigationController::onNextClicked},
-        {buttons.fwd10, &KifuNavigationController::onFwd10Clicked},
-        {buttons.last, &KifuNavigationController::onLastClicked},
-    };
-    for (const auto& [button, slot] : pairs) {
-        if (button) connect(button, &QPushButton::clicked, this, slot);
+    for (std::size_t i = 0; i < buttons.size(); ++i) {
+        QAbstractButton* button = buttons[i];
+        QAction* stepAction = m_actions[i];
+        if (!button) continue;
+        connect(button, &QAbstractButton::clicked, stepAction, &QAction::trigger);
+        connect(stepAction, &QAction::enabledChanged, button, &QWidget::setEnabled);
+        button->setEnabled(stepAction->isEnabled());
     }
+}
+
+void KifuNavigationController::setStepActionsEnabled(bool on)
+{
+    for (QAction* const stepAction : m_actions) stepAction->setEnabled(on);
+}
+
+bool KifuNavigationController::stepActionsEnabled() const
+{
+    return m_actions.front()->isEnabled();
 }
 
 // ============================================================

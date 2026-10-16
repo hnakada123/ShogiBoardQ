@@ -372,23 +372,9 @@ void RecordPane::setModels(KifuRecordListModel* recModel, KifuBranchListModel* b
 QTableView* RecordPane::kifuView() const { return m_kifu; }
 QTableView* RecordPane::branchView() const { return m_branch; }
 
-void RecordPane::setArrowButtonsEnabled(bool on)
-{
-    const QList<QPushButton*> btns = {m_btn1, m_btn2, m_btn3, m_btn4, m_btn5, m_btn6};
-    for (QPushButton* const b : std::as_const(btns))
-        if (b) b->setEnabled(on);
-    emit arrowButtonsEnabledChanged(on);
-}
-
 void RecordPane::setKifuViewEnabled(bool on)
 {
     m_appearanceManager.setKifuViewEnabled(m_kifu, on, m_navigationDisabled);
-}
-
-void RecordPane::setNavigationEnabled(bool on)
-{
-    setArrowButtonsEnabled(on);
-    setKifuViewEnabled(on);
 }
 
 void RecordPane::onKifuRowsInserted(const QModelIndex& parent, int first, int last)

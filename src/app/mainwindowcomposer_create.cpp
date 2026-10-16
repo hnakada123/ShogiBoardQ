@@ -392,6 +392,7 @@ void MainWindowComposer::createSessions()
     UiStatePolicyManager::Deps ud;
     ud.ui = &m_ui;
     ud.recordPane = m_c.recordPane;
+    ud.navigation = m_c.kifuNavController;
     ud.branchTree = m_c.branchTreeView;
     ud.consideration = m_c.considerationTab;
     ud.localGameHasHuman = [this]() {

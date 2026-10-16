@@ -3,6 +3,7 @@
 
 #include "commenteditorpanel.h"
 #include "fontsizecontrol.h"
+#include "editactions.h"
 #include "dialogutils.h"
 #include "buttonstyles.h"
 #include "gamesettings.h"
@@ -22,7 +23,7 @@
 #include <QUrl>
 #include <QMessageBox>
 #include <QSizePolicy>
-#include <QIcon>
+#include <QAction>
 #include <QApplication>
 #include <QClipboard>
 #include <QMimeData>
@@ -68,16 +69,21 @@ CommentEditorPanel::CommentEditorPanel(QWidget* parent)
 
     connect(m_comment, &QTextEdit::textChanged,
             this, &CommentEditorPanel::onCommentTextChanged);
-    connect(m_comment, &QTextEdit::undoAvailable, m_btnCommentUndo, &QToolButton::setEnabled);
-    connect(m_comment, &QTextEdit::redoAvailable, m_btnCommentRedo, &QToolButton::setEnabled);
-    connect(m_comment, &QTextEdit::copyAvailable, m_btnCommentCut, &QToolButton::setEnabled);
-    connect(m_comment, &QTextEdit::copyAvailable, m_btnCommentCopy, &QToolButton::setEnabled);
+    QAction* undo = m_editActions->action(EditActions::Undo);
+    QAction* redo = m_editActions->action(EditActions::Redo);
+    QAction* cut = m_editActions->action(EditActions::Cut);
+    QAction* copy = m_editActions->action(EditActions::Copy);
+    connect(undo, &QAction::triggered, m_comment, &QTextEdit::undo);
+    connect(redo, &QAction::triggered, m_comment, &QTextEdit::redo);
+    connect(cut, &QAction::triggered, m_comment, &QTextEdit::cut);
+    connect(copy, &QAction::triggered, m_comment, &QTextEdit::copy);
+    connect(m_editActions->action(EditActions::Paste), &QAction::triggered, m_comment, &QTextEdit::paste);
+    connect(m_comment, &QTextEdit::undoAvailable, undo, &QAction::setEnabled);
+    connect(m_comment, &QTextEdit::redoAvailable, redo, &QAction::setEnabled);
+    connect(m_comment, &QTextEdit::copyAvailable, cut, &QAction::setEnabled);
+    connect(m_comment, &QTextEdit::copyAvailable, copy, &QAction::setEnabled);
     connect(QApplication::clipboard(), &QClipboard::dataChanged,
             this, &CommentEditorPanel::updatePasteAvailability);
-    m_btnCommentUndo->setEnabled(false);
-    m_btnCommentRedo->setEnabled(false);
-    m_btnCommentCut->setEnabled(false);
-    m_btnCommentCopy->setEnabled(false);
     updatePasteAvailability();
     updateEditingIndicator();
 
@@ -318,35 +324,10 @@ void CommentEditorPanel::onCommentTextChanged()
     }
 }
 
-void CommentEditorPanel::onCommentUndo()
-{
-    m_comment->undo();
-}
-
-void CommentEditorPanel::onCommentRedo()
-{
-    m_comment->redo();
-}
-
-void CommentEditorPanel::onCommentCut()
-{
-    m_comment->cut();
-}
-
-void CommentEditorPanel::onCommentCopy()
-{
-    m_comment->copy();
-}
-
-void CommentEditorPanel::onCommentPaste()
-{
-    m_comment->paste();
-}
-
 void CommentEditorPanel::updatePasteAvailability()
 {
     const QMimeData* mime = QApplication::clipboard()->mimeData();
-    m_btnCommentPaste->setEnabled(mime && mime->hasText());
+    m_editActions->setEnabled(EditActions::Paste, mime && mime->hasText());
 }
 
 // ===================== Private helpers =====================
@@ -364,40 +345,14 @@ void CommentEditorPanel::buildCommentToolbar(QWidget* parentWidget)
     m_btnFontDecrease->setFixedSize(28, 24);
     m_btnFontIncrease->setFixedSize(28, 24);
 
-    m_btnCommentUndo = new QToolButton(m_commentToolbar);
-    m_btnCommentUndo->setIcon(QIcon(QStringLiteral(":/images/actions/editUndo.svg")));
-    m_btnCommentUndo->setToolTip(tr("元に戻す (Ctrl+Z)"));
-    m_btnCommentUndo->setFixedSize(28, 24);
-    m_btnCommentUndo->setStyleSheet(ButtonStyles::undoRedo());
-    connect(m_btnCommentUndo, &QToolButton::clicked, this, &CommentEditorPanel::onCommentUndo);
-
-    m_btnCommentRedo = new QToolButton(m_commentToolbar);
-    m_btnCommentRedo->setIcon(QIcon(QStringLiteral(":/images/actions/editRedo.svg")));
-    m_btnCommentRedo->setToolTip(tr("やり直す (Ctrl+Y)"));
-    m_btnCommentRedo->setFixedSize(28, 24);
-    m_btnCommentRedo->setStyleSheet(ButtonStyles::undoRedo());
-    connect(m_btnCommentRedo, &QToolButton::clicked, this, &CommentEditorPanel::onCommentRedo);
-
-    m_btnCommentCut = new QToolButton(m_commentToolbar);
-    m_btnCommentCut->setIcon(QIcon(QStringLiteral(":/images/actions/editCut.svg")));
-    m_btnCommentCut->setToolTip(tr("切り取り (Ctrl+X)"));
-    m_btnCommentCut->setFixedSize(28, 24);
-    m_btnCommentCut->setStyleSheet(ButtonStyles::editOperation());
-    connect(m_btnCommentCut, &QToolButton::clicked, this, &CommentEditorPanel::onCommentCut);
-
-    m_btnCommentCopy = new QToolButton(m_commentToolbar);
-    m_btnCommentCopy->setIcon(QIcon(QStringLiteral(":/images/actions/editCopy.svg")));
-    m_btnCommentCopy->setToolTip(tr("コピー (Ctrl+C)"));
-    m_btnCommentCopy->setFixedSize(28, 24);
-    m_btnCommentCopy->setStyleSheet(ButtonStyles::editOperation());
-    connect(m_btnCommentCopy, &QToolButton::clicked, this, &CommentEditorPanel::onCommentCopy);
-
-    m_btnCommentPaste = new QToolButton(m_commentToolbar);
-    m_btnCommentPaste->setIcon(QIcon(QStringLiteral(":/images/actions/editPaste.svg")));
-    m_btnCommentPaste->setToolTip(tr("貼り付け (Ctrl+V)"));
-    m_btnCommentPaste->setFixedSize(28, 24);
-    m_btnCommentPaste->setStyleSheet(ButtonStyles::editOperation());
-    connect(m_btnCommentPaste, &QToolButton::clicked, this, &CommentEditorPanel::onCommentPaste);
+    m_editActions = new EditActions(this);
+    QToolButton* editButtons[EditActions::KindCount] = {};
+    for (int kind = 0; kind < EditActions::KindCount; ++kind) {
+        QToolButton* button = m_editActions->createButton(static_cast<EditActions::Kind>(kind), m_commentToolbar);
+        button->setFixedSize(28, 24);
+        button->setStyleSheet(kind <= EditActions::Redo ? ButtonStyles::undoRedo() : ButtonStyles::editOperation());
+        editButtons[kind] = button;
+    }
 
     m_editingLabel = new QLabel(tr("修正中"), m_commentToolbar);
     m_editingLabel->setStyleSheet(QStringLiteral("QLabel { color: red; font-weight: bold; }"));
@@ -412,11 +367,7 @@ void CommentEditorPanel::buildCommentToolbar(QWidget* parentWidget)
 
     toolbarLayout->addWidget(m_btnFontDecrease);
     toolbarLayout->addWidget(m_btnFontIncrease);
-    toolbarLayout->addWidget(m_btnCommentUndo);
-    toolbarLayout->addWidget(m_btnCommentRedo);
-    toolbarLayout->addWidget(m_btnCommentCut);
-    toolbarLayout->addWidget(m_btnCommentCopy);
-    toolbarLayout->addWidget(m_btnCommentPaste);
+    for (QToolButton* const button : editButtons) toolbarLayout->addWidget(button);
     toolbarLayout->addSpacing(8);
     toolbarLayout->addWidget(m_btnUpdateComment);
     toolbarLayout->addSpacing(8);

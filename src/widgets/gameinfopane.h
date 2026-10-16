@@ -12,6 +12,7 @@
 #include "fontsizehelper.h"
 #include "kifparsetypes.h"  // KifGameInfoItem
 
+class EditActions;
 class GameInfoEditModel;
 class QLabel;
 class QLineEdit;
@@ -96,11 +97,7 @@ private:
     QTableView* m_table = nullptr;
     QToolButton* m_btnFontIncrease = nullptr;
     QToolButton* m_btnFontDecrease = nullptr;
-    QToolButton* m_btnUndo = nullptr;
-    QToolButton* m_btnRedo = nullptr;
-    QToolButton* m_btnCut = nullptr;
-    QToolButton* m_btnCopy = nullptr;
-    QToolButton* m_btnPaste = nullptr;
+    EditActions* m_editActions = nullptr;  ///< 元に戻す〜貼り付け（ボタンと標準ショートカット）
     QToolButton* m_btnAddRow = nullptr;
     QToolButton* m_btnRemoveRow = nullptr;
     QLabel* m_editingLabel = nullptr;

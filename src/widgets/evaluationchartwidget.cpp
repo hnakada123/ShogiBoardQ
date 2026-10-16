@@ -205,8 +205,6 @@ void EvaluationChartWidget::updateNavigationPlacement()
     else m_toolbarLayout->addWidget(m_navBar, 0, 1);
 }
 
-void EvaluationChartWidget::setNavigationEnabled(bool on) { m_navBar->setEnabled(on); }
-
 QWidget* EvaluationChartWidget::chartViewWidget() const { return m_chartView; }
 int EvaluationChartWidget::yAxisLimit() const { return m_configurator->yAxisLimit(); }
 int EvaluationChartWidget::yAxisInterval() const { return m_configurator->yAxisInterval(); }

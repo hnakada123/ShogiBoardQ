@@ -5,6 +5,7 @@
 
 #include "ui_mainwindow.h"
 #include "recordpane.h"
+#include "kifunavigationcontroller.h"
 #include "branchtreemanager.h"
 #include "considerationtabmanager.h"
 
@@ -222,7 +223,7 @@ void UiStatePolicyManager::refreshResumeAvailability()
 void UiStatePolicyManager::enableNavigationIfAllowed()
 {
     if (!isEnabled(UiElement::WidgetNavigation)) return;
-    if (m_deps.recordPane) m_deps.recordPane->setArrowButtonsEnabled(true);
+    if (m_deps.navigation) m_deps.navigation->setStepActionsEnabled(true);
 }
 
 // ======================================================================
@@ -240,7 +241,8 @@ void UiStatePolicyManager::applyPolicy(UiElement element, Policy policy)
     const bool enabled = policy == Policy::Enabled;
     switch (element) {
     case UiElement::WidgetNavigation:
-        if (m_deps.recordPane) m_deps.recordPane->setNavigationEnabled(enabled);
+        if (m_deps.recordPane) m_deps.recordPane->setKifuViewEnabled(enabled);
+        if (m_deps.navigation) m_deps.navigation->setStepActionsEnabled(enabled);
         break;
     case UiElement::WidgetBranchTree:
         if (m_deps.branchTree) m_deps.branchTree->setBranchTreeClickEnabled(enabled);

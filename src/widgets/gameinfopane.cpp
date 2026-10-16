@@ -2,6 +2,7 @@
 /// @brief 対局情報ドックの中身の実装
 
 #include "gameinfopane.h"
+#include "editactions.h"
 #include "fontsizecontrol.h"
 
 #include "buttonstyles.h"
@@ -15,6 +16,7 @@
 #include "tablestyles.h"
 
 #include <QAbstractItemDelegate>
+#include <QAction>
 #include <QApplication>
 #include <QClipboard>
 #include <QHBoxLayout>
@@ -101,11 +103,6 @@ GameInfoPane::GameInfoPane(QWidget* parent)
         shortcut->setContext(Qt::WidgetWithChildrenShortcut);
         connect(shortcut, &QShortcut::activated, this, slot);
     };
-    addShortcut(QKeySequence::Undo, &GameInfoPane::undo);
-    addShortcut(QKeySequence::Redo, &GameInfoPane::redo);
-    addShortcut(QKeySequence::Cut, &GameInfoPane::cut);
-    addShortcut(QKeySequence::Copy, &GameInfoPane::copy);
-    addShortcut(QKeySequence::Paste, &GameInfoPane::paste);
     for (const auto key : {Qt::Key_Return, Qt::Key_Enter})
         addShortcut(QKeySequence(Qt::CTRL | key), &GameInfoPane::applyChanges);
 
@@ -338,27 +335,32 @@ void GameInfoPane::buildToolbar()
     m_btnFontDecrease = button(fonts, QStringLiteral("gameInfoFontDecrease"), {}, {}, {});
     m_btnFontIncrease = button(fonts, QStringLiteral("gameInfoFontIncrease"), {}, {}, {});
     new FontSizeControl(m_btnFontDecrease, m_btnFontIncrease, &m_fontSize);
+    // 元に戻す〜貼り付けは標準ショートカット付きの QAction（コメント欄と同じ部品）
+    m_editActions = new EditActions(this);
+    const auto editButton = [this](QHBoxLayout* layout, EditActions::Kind kind, const QString& name) {
+        QToolButton* result = m_editActions->createButton(kind, layout->parentWidget());
+        result->setObjectName(name);
+        result->setStyleSheet(ButtonStyles::panelToolButton());
+        result->setMinimumSize(32, 28);
+        result->setIconSize(QSize(18, 18));
+        layout->addWidget(result);
+    };
     auto* history = group();
-    m_btnUndo = button(history, QStringLiteral("gameInfoUndo"), {}, tr("元に戻す (Ctrl+Z)"),
-        QStringLiteral("editUndo"));
-    m_btnRedo = button(history, QStringLiteral("gameInfoRedo"), {}, tr("やり直す (Ctrl+Y)"),
-        QStringLiteral("editRedo"));
+    editButton(history, EditActions::Undo, QStringLiteral("gameInfoUndo"));
+    editButton(history, EditActions::Redo, QStringLiteral("gameInfoRedo"));
     auto* clipboard = group();
-    m_btnCut = button(clipboard, QStringLiteral("gameInfoCut"), {}, tr("切り取り (Ctrl+X)"),
-        QStringLiteral("editCut"));
-    m_btnCopy = button(clipboard, QStringLiteral("gameInfoCopy"), {}, tr("コピー (Ctrl+C)"),
-        QStringLiteral("editCopy"));
-    m_btnPaste = button(clipboard, QStringLiteral("gameInfoPaste"), {}, tr("貼り付け (Ctrl+V)"),
-        QStringLiteral("editPaste"));
+    editButton(clipboard, EditActions::Cut, QStringLiteral("gameInfoCut"));
+    editButton(clipboard, EditActions::Copy, QStringLiteral("gameInfoCopy"));
+    editButton(clipboard, EditActions::Paste, QStringLiteral("gameInfoPaste"));
     auto* rows = group();
     m_btnAddRow = button(rows, QStringLiteral("gameInfoAddRow"), tr("行を追加"), tr("新しい行を追加する"), {});
     m_btnRemoveRow = button(rows, QStringLiteral("gameInfoRemoveRow"), tr("行を削除"),
         tr("選択行を削除する（元に戻す操作で復元できます）"), {});
-    connect(m_btnUndo, &QToolButton::clicked, this, &GameInfoPane::undo);
-    connect(m_btnRedo, &QToolButton::clicked, this, &GameInfoPane::redo);
-    connect(m_btnCut, &QToolButton::clicked, this, &GameInfoPane::cut);
-    connect(m_btnCopy, &QToolButton::clicked, this, &GameInfoPane::copy);
-    connect(m_btnPaste, &QToolButton::clicked, this, &GameInfoPane::paste);
+    connect(m_editActions->action(EditActions::Undo), &QAction::triggered, this, &GameInfoPane::undo);
+    connect(m_editActions->action(EditActions::Redo), &QAction::triggered, this, &GameInfoPane::redo);
+    connect(m_editActions->action(EditActions::Cut), &QAction::triggered, this, &GameInfoPane::cut);
+    connect(m_editActions->action(EditActions::Copy), &QAction::triggered, this, &GameInfoPane::copy);
+    connect(m_editActions->action(EditActions::Paste), &QAction::triggered, this, &GameInfoPane::paste);
     connect(m_btnAddRow, &QToolButton::clicked, this, &GameInfoPane::addRow);
     connect(m_btnRemoveRow, &QToolButton::clicked, this, &GameInfoPane::removeRow);
 
@@ -413,12 +415,12 @@ void GameInfoPane::updateEditingIndicator()
     const bool pending = editor && m_table->currentIndex().isValid() && editor->text() != cellText;
     const bool hasText = editor ? editor->hasSelectedText()
                                 : selected && !cell.data(Qt::EditRole).toString().isEmpty();
-    m_btnUndo->setEnabled(m_model->canUndo() || pending);
-    m_btnRedo->setEnabled(!pending && m_model->canRedo());
-    m_btnCopy->setEnabled(hasText);
-    m_btnCut->setEnabled(editable && hasText);
+    m_editActions->setEnabled(EditActions::Undo, m_model->canUndo() || pending);
+    m_editActions->setEnabled(EditActions::Redo, !pending && m_model->canRedo());
+    m_editActions->setEnabled(EditActions::Copy, hasText);
+    m_editActions->setEnabled(EditActions::Cut, editable && hasText);
     const auto* mime = QApplication::clipboard()->mimeData();
-    m_btnPaste->setEnabled(editable && mime && mime->hasText());
+    m_editActions->setEnabled(EditActions::Paste, editable && mime && mime->hasText());
     m_btnRemoveRow->setEnabled(selected);
     const bool dirty = isDirty();
     m_btnUpdate->setEnabled(dirty);

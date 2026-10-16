@@ -371,12 +371,6 @@ private slots:
         widget.resize(1000, 400);
         QTest::qWait(30);
         QCOMPARE(rect(widget.chartViewWidget()).top(), wideChartTop);
-
-        // 棋譜欄の矢印ボタンと同じく、対局中などは無効にできる。
-        widget.setNavigationEnabled(false);
-        for (auto* button : buttons) QVERIFY(!button->isEnabled());
-        widget.setNavigationEnabled(true);
-        for (auto* button : buttons) QVERIFY(button->isEnabled());
     }
 
     void analysisNavigationKeepsSourceLineUntilCleared()

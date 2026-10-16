@@ -9,6 +9,7 @@
 #include <QCoreApplication>
 #include <QGraphicsItem>
 #include <QGraphicsView>
+#include <QPushButton>
 #include <QScrollBar>
 #include <QTableView>
 #include <QTextEdit>
@@ -18,6 +19,7 @@
 #include "branchtreemanager.h"
 #include "commentcoordinator.h"
 #include "commenteditorpanel.h"
+#include "evaluationchartwidget.h"
 #include "kifudocument.h"
 #include "kifubranchlistmodel.h"
 #include "kifubranchnode.h"
@@ -501,6 +503,43 @@ private slots:
         h.nav.onNextClicked();
         QCOMPARE(asked, 5);
         QCOMPARE(h.state.currentPly(), 4);
+    }
+
+    /// 棋譜欄と評価値グラフの局面送りのボタンは同じ QAction に結び付き、
+    /// どちらを押しても同じように移り、有効・無効もそろって変わる
+    void stepButtons_shareActions()
+    {
+        UiHarness h;
+        EvaluationChartWidget chart;
+        h.nav.bindButtons({h.recordPane.firstButton(), h.recordPane.back10Button(), h.recordPane.prevButton(),
+                           h.recordPane.nextButton(), h.recordPane.fwd10Button(), h.recordPane.lastButton()});
+        h.nav.bindButtons({chart.firstButton(), chart.back10Button(), chart.prevButton(),
+                           chart.nextButton(), chart.fwd10Button(), chart.lastButton()});
+        h.nav.goToPly(2);
+
+        h.recordPane.nextButton()->click();
+        QCOMPARE(h.state.currentPly(), 3);
+        chart.nextButton()->click();
+        QCOMPARE(h.state.currentPly(), 4);
+        chart.firstButton()->click();
+        QCOMPARE(h.state.currentPly(), 0);
+        h.recordPane.lastButton()->click();
+        const int lastPly = h.state.currentPly();
+        QVERIFY(lastPly > 4);
+
+        const QList<QPushButton*> buttons = {h.recordPane.firstButton(), h.recordPane.lastButton(),
+                                             chart.prevButton(), chart.fwd10Button()};
+        h.nav.setStepActionsEnabled(false);
+        QVERIFY(!h.nav.stepActionsEnabled());
+        for (QPushButton* const button : buttons) QVERIFY(!button->isEnabled());
+        chart.firstButton()->click();
+        QCOMPARE(h.state.currentPly(), lastPly);
+
+        h.nav.setStepActionsEnabled(true);
+        for (QPushButton* const button : buttons) QVERIFY(button->isEnabled());
+        h.nav.action(KifuNavigationController::Back10)->trigger();
+        QCOMPARE(h.state.currentPly(), qMax(0, lastPly - 10));
+        VERIFY_CONSISTENT(h);
     }
 
     /// 分岐ツリーは非表示の間はスクロールせず、表示したときに現在の手を
