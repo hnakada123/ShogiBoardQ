@@ -109,12 +109,9 @@ bool AnalysisJob::start()
     options.startPly = qBound(0, options.startPly, options.endPly);
 
     m_state = State::Initializing;
-    if (!m_engine->startEngine(m_request.enginePath, m_request.engineName)) {
-        finish(false);
-        return false;
-    }
-    if (!m_engine->isInitializing()) onInitialized();
-    return isRunning();
+    // 初期化が終われば onInitialized、起動できなければ戻った後に onError が届く
+    m_engine->startEngine(m_request.enginePath, m_request.engineName);
+    return true;
 }
 
 void AnalysisJob::onInitialized()

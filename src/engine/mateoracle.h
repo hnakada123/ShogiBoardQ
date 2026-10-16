@@ -50,8 +50,8 @@ public:
     explicit MateOracle(QObject* parent = nullptr);
     ~MateOracle() override;
 
-    /// 起動を頼む（完了は ready、失敗は errorOccurred。即座の失敗は false と error）
-    [[nodiscard]] bool start(const QString& enginePath, const QString& engineName, QString* error = nullptr);
+    /// 起動を頼む（完了は ready、失敗は戻った後に errorOccurred）
+    void start(const QString& enginePath, const QString& engineName);
     /// エンジンを止める（以後の応答は知らせない）
     void quit();
     /// 起動して初期化を終えたか

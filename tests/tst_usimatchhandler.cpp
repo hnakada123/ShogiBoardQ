@@ -405,7 +405,7 @@ private slots:
         Usi engine;
         QSignalSpy initialized(&engine, &Usi::engineInitialized);
         QSignalSpy moves(&engine, &Usi::matchMoveReady);
-        QVERIFY(engine.startEngine(mockPath(), QStringLiteral("MatchTest")));
+        engine.startEngine(mockPath(), QStringLiteral("MatchTest"));
         QTRY_COMPARE_WITH_TIMEOUT(initialized.count(), 1, 5000);
         // 時計がないので、残り時間と秒読みを決まった値で渡す
         UsiTimingParams timing;

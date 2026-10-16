@@ -106,10 +106,8 @@ void EngineRegistrationHandler::startRegistration(const QString& filePath)
     }
     setRegistrationInProgress(true);
     emit progressUpdated(tr("エンジンを起動中..."));
-    if (!m_probe->probeAsync(QFileInfo(filePath).absoluteFilePath())) {
-        setRegistrationInProgress(false);
-        setError(tr("エンジンの起動に失敗しました: %1").arg(filePath));
-    }
+    // 起動できなかったときは、戻った後に onProbeError で届く
+    m_probe->probeAsync(QFileInfo(filePath).absoluteFilePath());
 }
 
 void EngineRegistrationHandler::cancelRegistration()

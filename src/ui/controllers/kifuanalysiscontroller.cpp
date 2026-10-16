@@ -27,6 +27,8 @@ KifuAnalysisController::KifuAnalysisController(const Deps& deps, QObject* parent
     , m_deps(deps)
 {
     Q_ASSERT(m_deps.activity && m_deps.analysisModel);
+    if (m_deps.engines)
+        connect(m_deps.engines, &EngineLifecycleManager::engineRevoked, this, &KifuAnalysisController::onEngineRevoked);
     if (m_deps.evalChart) {
         connect(m_deps.evalChart, &EvaluationChartWidget::analysisPlyClicked,
                 this, &KifuAnalysisController::onAnalysisPlyClicked);
@@ -124,7 +126,8 @@ bool KifuAnalysisController::start(AnalysisRequest request)
     if (EvaluationGraphPresenter* graph = m_deps.evalGraph) graph->beginAnalysis(request.engineName, request.lineIndex);
 
     // 解析のエンジンは枠 E1 に置く（思考情報・通信ログは E1 の表示に出る）
-    Usi* engine = m_deps.engine ? m_deps.engine : m_deps.engines->createEngine(1, std::nullopt, request.engineName);
+    if (!m_deps.engine) m_lease = m_deps.engines->acquire(this, 1, std::nullopt, request.engineName);
+    Usi* engine = m_deps.engine ? m_deps.engine : m_lease.engine();
     m_job = std::make_unique<AnalysisJob>(request, AnalysisJob::Deps{engine});
     connect(m_job.get(), &AnalysisJob::plyStarted, this, &KifuAnalysisController::onPlyStarted);
     connect(m_job.get(), &AnalysisJob::plyAnalyzed, this, &KifuAnalysisController::onPlyAnalyzed);
@@ -144,8 +147,9 @@ bool KifuAnalysisController::start(AnalysisRequest request)
 
     m_running = true;
     m_deps.activity->setActivity(AppActivityState::Activity::DuringAnalysis);
+    // エンジンの起動の失敗は、戻った後に onEngineError で届く（ここで二重に出さない）
     if (!m_job->start()) {
-        if (m_job->error().isEmpty()) showError(tr("エンジン初期化に失敗しました。エンジン設定を確認してください。"));
+        showError(tr("エンジン初期化に失敗しました。エンジン設定を確認してください。"));
         finishRun();
         return false;
     }
@@ -157,6 +161,12 @@ void KifuAnalysisController::stop()
     if (!m_running) return;
     m_stoppedByUser = true;
     if (m_job) m_job->stop();
+}
+
+void KifuAnalysisController::onEngineRevoked(QObject* owner)
+{
+    // ほかの処理（検討・対局など）がエンジンの枠を取った。解析を止める
+    if (owner == this) stop();
 }
 
 void KifuAnalysisController::finishRun()

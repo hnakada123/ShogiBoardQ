@@ -38,6 +38,7 @@ public:
     explicit TsumeVerificationRunner(QObject* parent = nullptr);
     ~TsumeVerificationRunner() override;
 
+    /// SFEN が詰将棋の局面でなければ false と error。エンジンの起動の失敗は戻った後に errorOccurred で届く
     [[nodiscard]] bool start(const Request& request, QString* error = nullptr);
     void abort();
 

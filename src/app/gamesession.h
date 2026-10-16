@@ -16,6 +16,7 @@
 
 struct AppState;
 class AnalysisSession;
+class EngineLifecycleManager;
 class ConsecutiveGameSeries;
 class CsaGameChannel;
 class CsaGameCoordinator;
@@ -52,6 +53,7 @@ public:
         AppState* state = nullptr;                          ///< 動作状態
         MatchCoordinator* match = nullptr;                  ///< ローカル対局の司令塔
         AnalysisSession* analysis = nullptr;                ///< 検討・詰み探索（「新規」で止める）
+        EngineLifecycleManager* engines = nullptr;          ///< エンジンの枠（「新規」で全部止める。省略可）
         ConsecutiveGameSeries* consecutive = nullptr;  ///< 連続対局
         SessionResetCoordinator* reset = nullptr;           ///< 棋譜と表示の作り直し
         KifuNavigationState* navState = nullptr;            ///< 表示中の手（現在局面からの開始・再開）

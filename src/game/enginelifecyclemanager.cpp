@@ -6,6 +6,9 @@
 #include "logcategories.h"
 #include "usi.h"
 
+#include <algorithm>
+#include <utility>
+
 EngineLifecycleManager::EngineLifecycleManager(ShogiClock* clock, QObject* parent)
     : QObject(parent)
     , m_clockTime(clock)
@@ -18,10 +21,55 @@ EngineLifecycleManager::~EngineLifecycleManager() = default;
 // 生成・起動
 // ============================================================
 
-Usi* EngineLifecycleManager::createEngine(int slot, std::optional<Turn> side, const QString& engineName)
+// ============================================================
+// リース
+// ============================================================
+
+EngineLease::EngineLease(EngineLifecycleManager* manager, Usi* engine)
+    : m_manager(manager)
+    , m_engine(engine)
+{
+}
+
+EngineLease::~EngineLease()
+{
+    reset();
+}
+
+EngineLease::EngineLease(EngineLease&& other) noexcept
+    : m_manager(std::exchange(other.m_manager, nullptr))
+    , m_engine(std::exchange(other.m_engine, nullptr))
+{
+}
+
+EngineLease& EngineLease::operator=(EngineLease&& other) noexcept
+{
+    if (this != &other) {
+        reset();
+        m_manager = std::exchange(other.m_manager, nullptr);
+        m_engine = std::exchange(other.m_engine, nullptr);
+    }
+    return *this;
+}
+
+Usi* EngineLease::engine() const
+{
+    // 取り上げられたエンジンは枠から外れている（破棄は後で行われるので、ポインタだけでは分からない）
+    return m_manager && m_engine && m_manager->holds(m_engine) ? m_engine.data() : nullptr;
+}
+
+void EngineLease::reset()
+{
+    if (Usi* engine = this->engine()) m_manager->release(engine);
+    m_manager.clear();
+    m_engine.clear();
+}
+
+EngineLease EngineLifecycleManager::acquire(QObject* owner, int slot, std::optional<Turn> side,
+                                            const QString& engineName)
 {
     Seat& target = seat(slot);
-    destroySeat(target, false);
+    destroySeat(target, false, target.owner != owner);
 
     const QString displayName = engineName.isEmpty() ? QStringLiteral("Engine") : engineName;
     auto* engine = new Usi(this);
@@ -40,14 +88,15 @@ Usi* EngineLifecycleManager::createEngine(int slot, std::optional<Turn> side, co
 
     target.engine = engine;
     target.side = side;
+    target.owner = owner;
     emit enginesChanged();
-    return engine;
+    return EngineLease(this, engine);
 }
 
 void EngineLifecycleManager::startEngine(Usi* engine, const QString& enginePath, const QString& engineName)
 {
-    // 失敗は Usi::errorOccurred で知らせる
-    if (engine) (void)engine->startEngine(enginePath, engineName);
+    // 失敗は戻った後に Usi::errorOccurred で届く
+    if (engine) engine->startEngine(enginePath, engineName);
 }
 
 // ============================================================
@@ -102,27 +151,34 @@ void EngineLifecycleManager::notifyGameOver(std::optional<Turn> loser)
     }
 }
 
-void EngineLifecycleManager::destroySeat(Seat& target, bool clearThinking)
+void EngineLifecycleManager::destroySeat(Seat& target, bool clearThinking, bool notifyOwner)
 {
     Usi* engine = std::exchange(target.engine, nullptr);
+    const QPointer<QObject> owner = std::exchange(target.owner, nullptr);
     target.side.reset();
     if (!engine) return;
     disconnect(engine, nullptr, this, nullptr);
     engine->quit(clearThinking);
     engine->deleteLater();
     emit enginesChanged();
+    if (notifyOwner && owner) emit engineRevoked(owner);
 }
 
-void EngineLifecycleManager::destroyEngine(Usi* engine)
+void EngineLifecycleManager::release(Usi* engine)
 {
     for (Seat& s : m_seats) {
-        if (engine && s.engine == engine) destroySeat(s, false);
+        if (engine && s.engine == engine) destroySeat(s, false, false);
     }
+}
+
+bool EngineLifecycleManager::holds(const Usi* engine) const
+{
+    return engine && std::any_of(m_seats.cbegin(), m_seats.cend(), [engine](const Seat& s) { return s.engine == engine; });
 }
 
 void EngineLifecycleManager::destroyEngines(bool clearDisplay)
 {
     qCDebug(lcGame).noquote() << "destroyEngines called, clearDisplay=" << clearDisplay;
-    for (Seat& s : m_seats) destroySeat(s, clearDisplay);
+    for (Seat& s : m_seats) destroySeat(s, clearDisplay, true);
     if (clearDisplay) emit displayClearRequested();
 }

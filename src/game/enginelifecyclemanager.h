@@ -5,6 +5,7 @@
 /// @brief 対局で指すエンジンの生成・起動・破棄と、手番との対応
 
 #include <QObject>
+#include <QPointer>
 #include <QString>
 #include <array>
 #include <optional>
@@ -14,6 +15,39 @@
 
 class Usi;
 class ShogiClock;
+class EngineLifecycleManager;
+
+/**
+ * @brief 枠のエンジンを使う権利（move-only）
+ *
+ * EngineLifecycleManager::acquire が返す。持ち主はこれを持っている間だけ engine() を使う。
+ * 手放す（reset・破棄）と、枠のエンジンを止めて枠を空ける（思考情報・通信ログの表示は残す）。
+ * ほかの持ち主が同じ枠を取った・全部の枠を破棄したときは、前の持ち主に
+ * EngineLifecycleManager::engineRevoked で知らせ、このリースは空になる（engine() が nullptr）。
+ */
+class EngineLease
+{
+public:
+    EngineLease() = default;
+    ~EngineLease();
+    EngineLease(const EngineLease&) = delete;
+    EngineLease& operator=(const EngineLease&) = delete;
+    EngineLease(EngineLease&& other) noexcept;
+    EngineLease& operator=(EngineLease&& other) noexcept;
+
+    /// 使えるエンジン（取り上げられた・手放したら nullptr）
+    Usi* engine() const;
+    explicit operator bool() const { return engine() != nullptr; }
+    /// 手放す（枠を空ける）
+    void reset();
+
+private:
+    friend class EngineLifecycleManager;
+    EngineLease(EngineLifecycleManager* manager, Usi* engine);
+
+    QPointer<EngineLifecycleManager> m_manager;
+    QPointer<Usi> m_engine;
+};
 
 /**
  * @brief 対局で指すエンジン（最大2つ）を持ち、手番との対応を管理する
@@ -32,10 +66,14 @@ public:
     explicit EngineLifecycleManager(ShogiClock* clock, QObject* parent = nullptr);
     ~EngineLifecycleManager() override;
 
-    /// 枠（1=E1、2=E2）にエンジンを作り、side の手番を指させる（前にあったエンジンは破棄する）。
-    /// 手番を持つエンジンだけが対局の時計を読み、投了・宣言勝ちを知らせる。
-    /// 検討・詰み探索・棋譜解析・通信対局のエンジンは手番を持たない（side は nullopt）
-    Usi* createEngine(int slot, std::optional<Turn> side, const QString& engineName);
+    /**
+     * @brief 枠（1=E1、2=E2）にエンジンを作り、owner に使わせる
+     *
+     * side の手番を指させる（前にあったエンジンは破棄し、その持ち主に engineRevoked で知らせる）。
+     * 手番を持つエンジンだけが対局の時計を読み、投了・宣言勝ちを知らせる。
+     * 検討・詰み探索・棋譜解析・通信対局のエンジンは手番を持たない（side は nullopt）
+     */
+    [[nodiscard]] EngineLease acquire(QObject* owner, int slot, std::optional<Turn> side, const QString& engineName);
     /// 作ったエンジンのプロセスを起動して初期化する（初期化は非同期）
     void startEngine(Usi* engine, const QString& enginePath, const QString& engineName);
 
@@ -46,10 +84,10 @@ public:
     /// 手番を指すエンジンの枠（エンジンが指さない手番は 0）
     int slotFor(Turn side) const;
 
-    /// 全エンジンを破棄する（clearDisplay なら思考情報・通信ログの表示も消すよう知らせる）
+    /// 全エンジンを破棄する（持ち主には engineRevoked で知らせる。clearDisplay なら思考情報・通信ログの表示も消すよう知らせる）
     void destroyEngines(bool clearDisplay = true);
-    /// engine が入っている枠を空ける（思考情報・通信ログの表示は残す。枠になければ何もしない）
-    void destroyEngine(Usi* engine);
+    /// engine が枠に入っているか
+    bool holds(const Usi* engine) const;
 
     /**
      * @brief 終局をエンジンに知らせて終了させる
@@ -68,6 +106,8 @@ public:
 signals:
     /// 枠のエンジンが変わった（作った・破棄した）
     void enginesChanged();
+    /// owner のエンジンを取り上げた（ほかの持ち主が同じ枠を取った・全部の枠を破棄した）。owner のリースは空になる
+    void engineRevoked(QObject* owner);
     /// 前のエンジンの思考情報・通信ログの表示を消す（新しい対局・検討を始める）
     void displayClearRequested();
     /// side の手番を指すエンジンが投了した
@@ -78,13 +118,19 @@ signals:
     void engineError(const QString& message);
 
 private:
+    friend class EngineLease;
+
     struct Seat {
         Usi* engine = nullptr;
         std::optional<Turn> side;
+        QPointer<QObject> owner;
     };
     Seat& seat(int slot) { return m_seats[static_cast<size_t>(slot == 2 ? 1 : 0)]; }
     const Seat& seat(int slot) const { return m_seats[static_cast<size_t>(slot == 2 ? 1 : 0)]; }
-    void destroySeat(Seat& seat, bool clearThinking);
+    /// 枠を空ける。notifyOwner なら持ち主に engineRevoked で知らせる
+    void destroySeat(Seat& seat, bool clearThinking, bool notifyOwner);
+    /// リースを手放したとき（持ち主には知らせない）
+    void release(Usi* engine);
 
     ClockTimeSource m_clockTime;   ///< 対局のエンジンが持ち時間を読む対局時計
     std::array<Seat, 2> m_seats;

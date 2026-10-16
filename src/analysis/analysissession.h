@@ -10,19 +10,20 @@
 #include <QTimer>
 
 #include "analysisoptions.h"
+#include "enginelifecyclemanager.h"
 #include "usimessages.h"
 
 class AppActivityState;
-class EngineLifecycleManager;
 class KifuNavigationState;
 class Usi;
 
 /**
  * @brief 検討・詰み探索のセッション
  *
- * エンジンを E1 の枠に作って局面を調べる。検討は局面や候補手の数が変わるたびに探索をやり直し、
+ * エンジンを E1 の枠に借りて（EngineLease）局面を調べる。検討は局面や候補手の数が変わるたびに探索をやり直し、
  * 詰み探索は結果が出たら終わる。開始・停止・やり直しを1つの状態遷移として扱う。
- * 対局（MatchCoordinator）とはエンジンの枠だけを共有する（同時には動かない）。
+ * 対局（MatchCoordinator）・棋譜解析とはエンジンの枠だけを共有する（同時には動かない）。ほかの処理が枠を取ったら
+ * セッションを終え、終わったことを知らせる。
  */
 class AnalysisSession : public QObject
 {
@@ -37,9 +38,9 @@ public:
 
     explicit AnalysisSession(const Deps& deps, QObject* parent = nullptr);
 
-    /// 検討・詰み探索を始める（前のセッションのエンジンは破棄する）
+    /// 検討・詰み探索を始める（前のセッションと、ほかの処理のエンジンは破棄する）。起動の失敗は後で知らせる
     bool start(const AnalysisOptions& opt);
-    /// 終わらせてエンジンを破棄する（思考情報の表示は残す）
+    /// 終わらせて自分のエンジンを手放す（思考情報の表示は残す）。検討・詰み探索をしていなければ何もしない
     void stop();
 
     bool isConsidering() const { return m_mode == Mode::Consideration; }
@@ -85,10 +86,11 @@ private slots:
     void onSearchTimedOut();
     void onConsiderationBestMoveReceived(const UsiBestMove& result);
     void restartConsiderationDeferred();
+    void onEngineRevoked(QObject* owner);
 
 private:
     enum class Mode { None, Consideration, Tsume };
-    enum class State { Idle, Starting, CancelStarting, Searching, StoppingSearch, RestartQueued, Waiting };
+    enum class State { Idle, Searching, StoppingSearch, RestartQueued, Waiting };
 
     void startSearch();
     /// セッションを終える（知らせない）。終えたモードを返す
@@ -98,10 +100,10 @@ private:
     void requestConsiderationRestart();
 
     Deps m_deps;
-    QPointer<Usi> m_engine;
+    EngineLease m_lease;                          ///< 枠 E1 のエンジンを使う権利
+    QPointer<Usi> m_engine;                       ///< m_lease のエンジン
     Mode m_mode = Mode::None;
     State m_state = State::Idle;
-    QString m_startupError;
     QString m_engineName;                         ///< 使っているエンジンの名前
     QTimer m_restartTimer;                       ///< 停止時に取り消す再開要求
     UsiPosition m_position;                       ///< 検討・詰み探索する局面

@@ -2,6 +2,7 @@
 /// @brief 対局の利用者の操作・開始の手順・棋譜の行・終局と中断の後処理
 
 #include "gamesession.h"
+#include "enginelifecyclemanager.h"
 
 #include "analysissession.h"
 #include "appstate.h"
@@ -272,6 +273,8 @@ void GameSession::resetToInitialState()
 {
     m_deps.analysis->stop();
     if (m_deps.csaGame) m_deps.csaGame->stopGame();
+    // 対局・棋譜解析のエンジンも止める（思考情報の表示は作り直しで消す）
+    if (m_deps.engines) m_deps.engines->destroyEngines(false);
     m_deps.match->clearGameOverState();
     m_deps.consecutive->reset();
     discardInterruptedGame();

@@ -112,9 +112,7 @@ class TestTsumeshogiVerification : public QObject
         generator.m_settings.timeoutMs = 5000;
         generator.m_running = true;
         generator.createOracle();
-        const bool started = generator.m_oracle->start(QString(), QString());   // スタブはすぐに起動する
-        Q_ASSERT(started);
-        Q_UNUSED(started)
+        generator.m_oracle->start(QString(), QString());   // スタブはすぐに起動する
         generator.m_cancelFlag = makeCancelFlag();
         generator.m_elapsedTimer.start();
     }

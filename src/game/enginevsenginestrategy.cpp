@@ -20,8 +20,10 @@ void EngineVsEngineStrategy::start()
 {
     EngineLifecycleManager& seats = m_host.engines();
     seats.destroyEngines();
-    Usi* black = seats.createEngine(1, Turn::Black, m_engines.blackName);
-    Usi* white = seats.createEngine(2, Turn::White, m_engines.whiteName);
+    m_black = seats.acquire(this, 1, Turn::Black, m_engines.blackName);
+    m_white = seats.acquire(this, 2, Turn::White, m_engines.whiteName);
+    Usi* black = m_black.engine();
+    Usi* white = m_white.engine();
     for (Usi* engine : {black, white}) {
         connect(engine, &Usi::engineInitialized, this, &EngineVsEngineStrategy::kickNextTurn);
         connect(engine, &Usi::matchMoveReady, this, &EngineVsEngineStrategy::onEngineMoveReady);

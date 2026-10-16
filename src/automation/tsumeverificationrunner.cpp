@@ -48,7 +48,9 @@ bool TsumeVerificationRunner::start(const Request& request, QString* error)
         return false;
     }
     m_elapsed.invalidate();
-    return m_oracle->start(request.enginePath, request.engineName, error);
+    // エンジンの起動の失敗は errorOccurred で届く
+    m_oracle->start(request.enginePath, request.engineName);
+    return true;
 }
 
 void TsumeVerificationRunner::onReady()

@@ -53,7 +53,8 @@ private slots:
         QCOMPARE(h.gc.currentPlayer(), Turn::White);
 
         // 手番（後手）のエンジンに、選んだ手順の局面で思考させる
-        Usi* engine = h.engines.createEngine(1, Turn::White, QStringLiteral("StartTest"));
+        EngineLease lease = h.engines.acquire(this, 1, Turn::White, QStringLiteral("StartTest"));
+        Usi* engine = lease.engine();
         QVERIFY(engine);
         QSignalSpy initialized(engine, &Usi::engineInitialized);
         QSignalSpy ready(engine, &Usi::matchMoveReady);

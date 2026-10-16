@@ -51,20 +51,11 @@ void Usi::setLogIdentity(const QString& engineTag, const QString& sideTag, const
     m_session->process()->setLogIdentity(engineTag, sideTag, engineName);
 }
 
-bool Usi::startEngine(const QString& engineFile, const QString& engineName)
+void Usi::startEngine(const QString& engineFile, const QString& engineName)
 {
-    if (engineFile.isEmpty()) {
-        quit();
-        emit errorOccurred(tr("Engine file path is empty."));
-        return false;
-    }
+    // 起動の失敗は、この呼び出しから戻った後に errorOccurred で知らせる（UsiEngineSession::startAsync）
     m_matchHandler->cancelAsync();
-    QString error;
-    if (!m_session->startAsync(engineFile, engineName, &error)) {
-        emit errorOccurred(error);
-        return false;
-    }
-    return true;
+    m_session->startAsync(engineFile, engineName);
 }
 
 bool Usi::isInitializing() const

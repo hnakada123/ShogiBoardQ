@@ -10,12 +10,12 @@
 #include <optional>
 
 #include "analysisjob.h"
+#include "enginelifecyclemanager.h"
 
 class AnalysisResultHandler;
 class AnalysisResultsPanel;
 class QDockWidget;
 class AppActivityState;
-class EngineLifecycleManager;
 class EvaluationChartWidget;
 class EvaluationGraphPresenter;
 class KifuDocument;
@@ -81,6 +81,7 @@ private slots:
     void onPlyAnalyzed(const PlyAnalysis& result);
     void onFinished(bool completed);
     void onEngineError(const QString& message);
+    void onEngineRevoked(QObject* owner);
     void onResultRowSelected(int row);
     void onResultRowDoubleClicked(int row);
     /// 評価値グラフの解析の点をクリックした
@@ -98,6 +99,7 @@ private:
     QPointer<AnalysisResultsPanel> m_resultsPanel;
     std::unique_ptr<AnalysisResultsPanel> m_ownedResultsPanel;   ///< 結果の表を渡されなかったときに作ったもの
     std::unique_ptr<AnalysisResultHandler> m_resultHandler;
+    EngineLease m_lease;                       ///< 枠 E1 のエンジンを使う権利（テスト用のエンジンを渡されたときは使わない）
     std::unique_ptr<AnalysisJob> m_job;
     /// 解析を終えた局面の評価値（先手から見た値）。次の局面に移るときにグラフに足す
     struct PendingPlot {

@@ -29,7 +29,7 @@ class UsiEngineSession : public QObject
     Q_OBJECT
 public:
     explicit UsiEngineSession(QObject* parent = nullptr) : QObject(parent), m_handler(new UsiProtocolHandler(this)) {}
-    bool startAsync(const QString&, const QString&, QString* = nullptr) { return true; }
+    void startAsync(const QString&, const QString&) {}
     bool isInitializing() const { return false; }
     void setInitializationTimeoutMs(int) {}
     void cancelCurrentOperation() {}

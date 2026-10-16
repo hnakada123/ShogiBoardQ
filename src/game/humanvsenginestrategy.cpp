@@ -23,7 +23,8 @@ void HumanVsEngineStrategy::start()
 
     // 前の対局のエンジンは破棄する。人間対エンジンではエンジンは常に E1 の枠に置く
     m_host.engines().destroyEngines();
-    Usi* engine = m_host.engines().createEngine(1, m_engineSide, m_engineName);
+    m_engine = m_host.engines().acquire(this, 1, m_engineSide, m_engineName);
+    Usi* engine = m_engine.engine();
     connect(engine, &Usi::engineInitialized, this, &HumanVsEngineStrategy::onEngineInitialized);
     connect(engine, &Usi::matchMoveReady, this, &HumanVsEngineStrategy::onEngineMoveReady);
     m_host.engines().startEngine(engine, m_enginePath, m_engineName);

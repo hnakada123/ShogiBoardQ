@@ -29,7 +29,7 @@ public:
 
     explicit MateSearchRunner(QObject* parent = nullptr);
 
-    [[nodiscard]] bool start(const Request& request, QString* error = nullptr);
+    void start(const Request& request);
     /// 早期停止（答えを待って finished を発行する。打ち切った探索の答えは unknown）
     void stop();
     qint64 elapsedMs() const { return m_elapsed.isValid() ? m_elapsed.elapsed() : 0; }

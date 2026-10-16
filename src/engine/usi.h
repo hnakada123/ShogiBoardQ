@@ -51,9 +51,11 @@ public:
 
     /**
      * @brief エンジンを起動して初期化（usi〜readyok）を始める
-     * @return 起動の要求を受け付けたか。初期化の完了は engineInitialized、失敗は errorOccurred で通知する
+     *
+     * 初期化の完了は engineInitialized、失敗は errorOccurred で知らせる。失敗は同期では知らせない
+     * （この呼び出しから戻った後に届く）ので、呼び出し側は起動の途中の再入に備えなくてよい。
      */
-    [[nodiscard]] bool startEngine(const QString& engineFile, const QString& engineName);
+    void startEngine(const QString& engineFile, const QString& engineName);
     bool isInitializing() const;
     /// プロセスが動いているか
     bool isRunning() const;
