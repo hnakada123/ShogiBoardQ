@@ -2,10 +2,10 @@
 /// @brief 定跡ウィンドウの表示・更新と、定跡手の着手の実装
 
 #include "josekiwindowcontroller.h"
-#include "appstate.h"
 
 #include "logcategories.h"
 
+#include "boardmovecontroller.h"
 #include "josekiwindow.h"
 #include "shogigamecontroller.h"
 #include "boardcoordinates.h"
@@ -14,13 +14,16 @@
 #include <QDockWidget>
 #include <functional>
 
-JosekiWindowController::JosekiWindowController(const Dependencies& deps, QObject* parent)
+JosekiWindowController::JosekiWindowController(const Deps& deps, QObject* parent)
     : QObject(parent)
     , m_parentWidget(deps.parentWidget)
     , m_gameController(deps.gameController)
-    , m_state(deps.state)
     , m_navState(deps.navState)
+    , m_isHumanTurnNow(deps.isHumanTurnNow)
+    , m_boardMoves(deps.boardMoves)
 {
+    Q_ASSERT(m_gameController && m_navState && m_boardMoves);
+    connect(m_navState, &KifuNavigationState::changed, this, &JosekiWindowController::updateJosekiWindow);
 }
 
 void JosekiWindowController::ensureJosekiWindow()
@@ -69,12 +72,9 @@ void JosekiWindowController::updateJosekiWindow()
     }
     if (m_dockWidget && !m_dockShown) return;
 
-    if (!m_state) return;
-
-    // 現在の局面のSFENを定跡ウィンドウに設定する。人間が着手可能かどうかは、定跡ウィンドウが
-    // 表示を作り直すたびに setHumanCanPlayProvider の判定で問い合わせる（ここで setHumanCanPlay を
-    // 呼ぶと、手番が替わるたびに表を2回作り直していた）
-    m_josekiWindow->setCurrentSfen(m_state->currentSfenStr);
+    // 表示中の手の局面を定跡ウィンドウに設定する。人間が着手可能かどうかは、定跡ウィンドウが
+    // 表示を作り直すたびに setHumanCanPlayProvider の判定で問い合わせる
+    m_josekiWindow->setCurrentSfen(m_navState->currentSfen());
 }
 
 bool JosekiWindowController::determineHumanCanPlay() const
@@ -101,33 +101,20 @@ void JosekiWindowController::onJosekiMoveSelected(const QString& usiMove)
     const auto move = UsiMove::parse(usiMove);
     if (!move) {
         qCWarning(lcUi) << "onJosekiMoveSelected: invalid move format";
-        if (m_josekiWindow) {
-            m_josekiWindow->onMoveResult(false, usiMove);
-        }
+        if (m_josekiWindow) m_josekiWindow->showMoveFailed(usiMove);
         return;
     }
-    const Turn mover = m_gameController ? m_gameController->currentPlayer() : Turn::Black;
+    const Turn mover = m_gameController->currentPlayer();
     const QPoint from = BoardCoordinates::fromSquare(*move, mover);
     const QPoint to = BoardCoordinates::toSquare(*move);
 
-    // 定跡手からの着手の場合、成り/不成が決まっているので強制成りモードを設定
-    Q_EMIT forcedPromotionRequested(true, move->promote);
-
-    // 着手できたかは局面が変わったかで判定する
-    const QString sfenBefore = m_state ? m_state->currentSfenStr : QString();
-
-    // 指し手実行を要求
-    Q_EMIT moveRequested(from, to);
-    // 上位の入力ガードで着手処理に到達しなかった場合も指定を解除する。
-    Q_EMIT forcedPromotionRequested(false, false);
-
-    const bool moveSuccess = m_state && m_state->currentSfenStr != sfenBefore;
+    // 定跡手は成り・不成が決まっているので、成りの選択を出さない
+    m_gameController->setForcedPromotion(true, move->promote);
+    const bool moveSuccess = m_boardMoves->playMove(from, to);
+    // 着手処理に到達しなかった場合も指定を解除する
+    m_gameController->setForcedPromotion(false);
     qCDebug(lcUi) << "Move result: success=" << moveSuccess;
-
-    // 定跡ウィンドウに結果を通知（失敗時のみ）
-    if (m_josekiWindow && !moveSuccess) {
-        m_josekiWindow->onMoveResult(false, usiMove);
-    }
+    if (m_josekiWindow && !moveSuccess) m_josekiWindow->showMoveFailed(usiMove);
 }
 
 void JosekiWindowController::onRequestKifuDataForMerge()

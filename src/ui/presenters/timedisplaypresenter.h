@@ -4,7 +4,6 @@
 /// @file timedisplaypresenter.h
 /// @brief 時刻表示プレゼンタクラスの定義
 
-
 #include <QObject>
 #include <QString>
 
@@ -17,10 +16,7 @@ class TimeDisplayPresenter : public QObject
 {
     Q_OBJECT
 public:
-    explicit TimeDisplayPresenter(ShogiView* view, QObject* parent = nullptr);
-
-    // ShogiClock を設定（秒読み状態の判定に使用）
-    void setClock(ShogiClock* clock);
+    TimeDisplayPresenter(ShogiView* view, const ShogiClock* clock, QObject* parent = nullptr);
 
     /// 最後に受け取った残り時間と手番で表示を描き直す（盤を反転したときなど）。まだ受け取っていなければ何もしない
     void refresh();
@@ -36,7 +32,7 @@ private:
 
 private:
     ShogiView*  m_view  = nullptr;
-    ShogiClock* m_clock = nullptr;
+    const ShogiClock* m_clock = nullptr;
     qint64      m_lastBlackMs = 0;
     qint64      m_lastWhiteMs = 0;
     Turn        m_lastSideToMove = Turn::Black;

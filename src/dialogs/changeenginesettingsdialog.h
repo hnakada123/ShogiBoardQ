@@ -64,10 +64,8 @@ private slots:
     void restoreDefaultSettings();
 
     // フォントサイズを増加する。
-    void increaseFontSize();
 
     // フォントサイズを減少する。
-    void decreaseFontSize();
 };
 
 #endif // CHANGEENGINESETTINGSDIALOG_H

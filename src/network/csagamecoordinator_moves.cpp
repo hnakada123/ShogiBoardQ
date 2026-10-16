@@ -4,6 +4,7 @@
 #include "csagamecoordinator.h"
 
 #include "csamoveconverter.h"
+#include "kifmovetext.h"
 #include "logcategories.h"
 #include "shogiboard.h"
 #include "shogiclock.h"
@@ -113,17 +114,27 @@ void CsaGameCoordinator::syncClockAfterMove(bool startMyTurnClock)
 // ============================================================
 
 
-void CsaGameCoordinator::finishMove(const QString& csaMove, const RecordEntry& played, bool isPromotion,
-                                    int consumedTimeMs, const QPoint& from, const QPoint& to, bool nowMyTurn)
+std::optional<RecordEntry> CsaGameCoordinator::playCsaMove(const QString& csaMove)
+{
+    ShogiBoard* board = m_gameController ? m_gameController->board() : nullptr;
+    if (!board) return std::nullopt;
+    const std::optional<UsiMove> move = CsaMoveConverter::toUsi(csaMove, *board);
+    if (!move) return std::nullopt;
+    const BoardSquare previousTo = m_progress.previousTo();
+    std::optional<RecordEntry> played = m_gameController->applyRecordedMove(*move);
+    if (played) played->displayText = KifMoveText::format(played->mover, played->move.movingPiece, *move, previousTo);
+    return played;
+}
+
+void CsaGameCoordinator::finishMove(const RecordEntry& played, int consumedTimeMs, const QPoint& from,
+                                    const QPoint& to, bool nowMyTurn)
 {
     CsaGameProgress& p = m_progress;
-    const bool isBlackMove = (csaMove[0] == QLatin1Char('+'));
+    const bool isBlackMove = played.mover == Turn::Black;
     p.recordMoveTime(isBlackMove, consumedTimeMs);
     syncClockAfterMove(nowMyTurn);
 
-
-    const QString prettyMove = CsaMoveConverter::csaToPretty(csaMove, isPromotion, p.previousTo());
-    RecordEntry entry = p.moveRecord(isBlackMove, prettyMove, consumedTimeMs);
+    RecordEntry entry = p.moveRecord(isBlackMove, played.displayText, consumedTimeMs);
     entry.move = played.move;
     entry.sfen = played.sfen;
     p.record.entries.append(entry);
@@ -147,17 +158,16 @@ bool CsaGameCoordinator::applyConfirmedMove(const QString& move, int consumedTim
         deferVerdict(problem, tr("サーバーからの指し手を解釈できません: %1").arg(move));
         return false;
     }
-    // 盤面・手番の通知は、棋譜と時計まで確定した後にまとめて送る。
+    // 時計の通知は、棋譜と時計まで確定した後にまとめて送る。
     const QSignalBlocker clockNotifications(m_clock);
-    const auto update = m_gameController->positionUpdate();
-    const bool isPromotion = CsaMoveConverter::isPromotionMove(move, m_gameController->board());
-    const std::optional<RecordEntry> played = CsaMoveConverter::applyMoveToBoard(move, m_gameController);
+
+    const std::optional<RecordEntry> played = playCsaMove(move);
     if (!played) {
         deferVerdict(tr("指し手の適用に失敗しました: %1").arg(move),
                      tr("サーバーからの指し手を盤面に適用できません: %1").arg(move));
         return false;
     }
-    finishMove(move, *played, isPromotion, consumedTimeMs, from, to, nowMyTurn);
+    finishMove(*played, consumedTimeMs, from, to, nowMyTurn);
     return true;
 }
 
@@ -197,7 +207,7 @@ void CsaGameCoordinator::startEngineThinking()
 
 void CsaGameCoordinator::onEngineThinkingFinished(const CsaEngineController::ThinkingResult& result)
 {
-    if (sender() != m_engineController || !isMyTurn()) return;
+    if (!isMyTurn()) return;
     if (m_gameState != GameState::InGame) return;
 
     if (result.resign) {
@@ -219,7 +229,7 @@ void CsaGameCoordinator::onEngineThinkingFinished(const CsaEngineController::Thi
 
     // CSA形式の指し手は、盤面を更新する前の駒から作る
     const bool black = m_progress.isBlackSide;
-    const QString csaMove = CsaMoveConverter::usiToCsa(result.move.toString(), black, board);
+    const QString csaMove = CsaMoveConverter::toCsa(result.move, black ? Turn::Black : Turn::White, *board);
     if (csaMove.isEmpty()) {
         emit logMessage(tr("指し手の駒種変換に失敗しました"), true);
         return;
@@ -229,6 +239,6 @@ void CsaGameCoordinator::onEngineThinkingFinished(const CsaEngineController::Thi
 
     if (m_client->sendMove(csaMove)) {
         emit turnChanged(false);
-        emit engineScoreUpdated(result.scoreCp, m_progress.moveCount() + 1, result.scoreMate);
+        emit engineScoreUpdated(result.score, m_progress.moveCount() + 1);
     }
 }

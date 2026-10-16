@@ -21,12 +21,9 @@ public:
      * @brief CSA形式の行リストを生成
      * @param model 棋譜データモデル
      * @param ctx 出力コンテキスト（ヘッダ情報等）
-     * @param usiMoves USI形式の指し手リスト
      * @return CSA形式の行リスト
      */
-    static QStringList exportLines(const GameRecordModel& model,
-                                   const GameRecordModel::ExportContext& ctx,
-                                   const QStringList& usiMoves);
+    static QStringList exportLines(const GameRecordModel& model, const GameRecordModel::ExportContext& ctx);
 };
 
 #endif // CSAEXPORTER_H

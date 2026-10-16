@@ -13,49 +13,34 @@
 #include <QPoint>
 
 
-struct AppState;
+class BoardMoveController;
 class JosekiWindow;
 class KifuNavigationState;
 class QDockWidget;
 class ShogiGameController;
 
 /**
- * @brief 定跡ウィンドウを作って表示中の局面に合わせ、選んだ定跡手を盤への着手として要求する
+ * @brief 定跡ウィンドウを作って表示中の手の局面に合わせ、選んだ定跡手を盤への着手として要求する
  *
- * 責務:
- * - JosekiWindowの生成・表示管理
- * - 定跡手選択シグナルの処理（USI→QPoint変換）
- * - 棋譜データの収集と提供
- * - humanCanPlayの判定
- *
- * 本クラスは定跡ウィンドウ関連の処理を一元管理し、
- * MainWindowの肥大化を防ぐ。
+ * 表示中の手（KifuNavigationState）が変わるたびに、定跡ウィンドウが前面にあれば局面を合わせる。
  */
 class JosekiWindowController : public QObject
 {
     Q_OBJECT
 
 public:
-    /**
-     * @brief 依存オブジェクト構造体
-     */
-    struct Dependencies {
+    struct Deps {
         QWidget* parentWidget = nullptr;
-        ShogiGameController* gameController = nullptr;
-        const AppState* state = nullptr;  ///< 表示中の局面（非所有）
-        /// 表示中の手順（分岐ツリー）。棋譜のマージに使う
+        ShogiGameController* gameController = nullptr;  ///< 定跡手の成り・不成を指定する（非所有）
+        /// 表示中の手。定跡ウィンドウの局面と、棋譜のマージに使う（非所有）
         const KifuNavigationState* navState = nullptr;
+        /// 盤面クリックと同じ「人間が今指せるか」の判定
+        std::function<bool()> isHumanTurnNow;
+        /// 定跡手を盤に指す（盤の操作と同じ処理。必須）
+        BoardMoveController* boardMoves = nullptr;
     };
 
-    /// 盤面クリックと同じ「人間が今指せるか」の判定
-    void setHumanTurnCheck(std::function<bool()> isHumanTurnNow) { m_isHumanTurnNow = std::move(isHumanTurnNow); }
-
-    /**
-     * @brief コンストラクタ
-     * @param deps 依存オブジェクト
-     * @param parent 親オブジェクト
-     */
-    explicit JosekiWindowController(const Dependencies& deps, QObject* parent = nullptr);
+    explicit JosekiWindowController(const Deps& deps, QObject* parent = nullptr);
 
     /**
      * @brief デストラクタ
@@ -88,21 +73,6 @@ public:
      */
     void attachDock(QDockWidget* dock);
 
-signals:
-    /**
-     * @brief 指し手実行を要求
-     * @param from 移動元座標
-     * @param to 移動先座標
-     */
-    void moveRequested(const QPoint& from, const QPoint& to);
-
-    /**
-     * @brief 強制成りモードを設定
-     * @param forced 強制するかどうか
-     * @param promote 成るかどうか
-     */
-    void forcedPromotionRequested(bool forced, bool promote);
-
 private slots:
     /**
      * @brief 定跡手選択時の処理
@@ -119,22 +89,15 @@ private slots:
     void onDockVisibilityChanged(bool visible);
 
 private:
-
-
-
-    /**
-     * @brief 人間が着手可能かどうかを判定
-     * @return 着手可能時true
-     */
+    /// 人間が今指せるか（盤面クリックと同じ判定）
     bool determineHumanCanPlay() const;
-
 
     // 依存オブジェクト
     QWidget* m_parentWidget = nullptr;
     ShogiGameController* m_gameController = nullptr;
-    const AppState* m_state = nullptr;
     const KifuNavigationState* m_navState = nullptr;
     std::function<bool()> m_isHumanTurnNow;  ///< 人間が今指せるか
+    BoardMoveController* m_boardMoves = nullptr;
 
     // 内部オブジェクト
     JosekiWindow* m_josekiWindow = nullptr;

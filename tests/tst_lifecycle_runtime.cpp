@@ -19,7 +19,7 @@ private slots:
 /// HumanTurnPolicy の Deps 未設定時に全メソッドがクラッシュせずデフォルト値を返すことを確認
 void TestLifecycleRuntime::testPlayModePolicyServiceWithNullDeps()
 {
-    HumanTurnPolicy policy;
+    HumanTurnPolicy policy({});
 
     QCOMPARE(policy.isHumanTurnNow(), false);
     QCOMPARE(policy.isGameActivelyInProgress(), false);

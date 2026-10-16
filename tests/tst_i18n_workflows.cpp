@@ -12,17 +12,18 @@
 #include "kifubranchtreebuilder.h"
 #include "kifubranchtree.h"
 #include "gamerecordmodel.h"
-#include "gamerecordpresenter.h"
 #include "appstate.h"
 #include "gamesession.h"
-#include "kifudisplaycoordinator.h"
+#include "kifudisplaypresenter.h"
 #include "kifunavigationstate.h"
 #include "livegamesession.h"
 #include "kifurecordlistmodel.h"
 #include "kifubranchlistmodel.h"
-#include "gameinfopanecontroller.h"
+#include "gameinfopane.h"
+#include "game_info_table_helper.h"
 #include "shogienginethinkingmodel.h"
 #include "shogiinforecord.h"
+#include "usilineparser.h"
 #include "pvboardcontroller.h"
 #include "pvboarddialog.h"
 #include "csagameprogress.h"
@@ -180,34 +181,33 @@ private slots:
                 {KifuPresentation::Notation::Japanese, false});
             node = tree.addMove(node, moves.at(i), japanese, history.at(i + 1));
         }
-        LiveGameSession session;
-        session.setTree(&tree);
-        session.startFromNode(node);
-        KifuRecordListModel rows;
-        GameRecordPresenter presenter({&rows, nullptr});
-        presenter.presentGameRecord(tree.displayItemsForLine(0));
-        KifuNavigationState navigation;
-        navigation.setTree(&tree);
+        KifuNavigationState navigation(&tree);
+        LiveGameSession session(&tree, &navigation);
+        KifuRecordListModel rows(&tree);
+        KifuBranchListModel branches(&tree);
+        KifuDisplayPresenter::Deps displayDeps;
+        displayDeps.navState = &navigation;
+        displayDeps.liveSession = &session;
+        displayDeps.recordModel = &rows;
+        displayDeps.branchModel = &branches;
+        KifuDisplayPresenter display(displayDeps);
         navigation.setCurrentNode(node);
-        KifuDisplayCoordinator display(&tree, &navigation, nullptr);
-        display.setRecordModel(&rows);
-        display.setLiveGameSession(&session);
-        display.wireSignals();
+        session.startFromNode(node);
         // 棋譜の受け手（本体と同じ GameSession。追記に使う部品だけ渡す）
         AppState state;
         GameRecordModel recordModel;
-        GameSession service;
         GameSession::Deps deps;
         deps.state = &state;
+        deps.navState = &navigation;
         deps.liveSession = &session;
         deps.gameRecord = &recordModel;
-        service.setDeps(deps);
+        GameSession service(deps);
         const QString terminal = (plies == 2 ? QStringLiteral("▲") : QStringLiteral("△"))
             + QStringLiteral("時間切れ");
         service.appendRecord(RecordEntry::ending(TerminalType::Timeout,
             plies == 2 ? Turn::Black : Turn::White, RecordTime::fromMilliseconds(1000, 1000)));
         const auto index = rows.index(plies + 1, 0);
-        QVERIFY(rows.item(plies + 1)->usiMove.isEmpty());
+        QVERIFY(rows.nodeAt(plies + 1)->isTerminal());
         QVERIFY(index.data().toString().endsWith(KifuPresentation::status(terminal)));
         if (language == "en") QVERIFY(index.data().toString().endsWith("Time loss"));
         auto* end = session.liveNode();
@@ -215,8 +215,8 @@ private slots:
         QCOMPARE(end->move().movingPiece, Piece::None);
         QCOMPARE(end->sfen(), node->sfen());
         QVERIFY(!session.canAddMove());
-        QVERIFY(session.moves().last().terminal);
-        QVERIFY(session.moves().last().usiMove.isEmpty());
+        QVERIFY(end->isTerminal());
+        QVERIFY(!end->isActualMove());
         GameRecordModel record;
         record.setBranchTree(&tree);
         GameRecordModel::ExportContext context;
@@ -240,19 +240,18 @@ private slots:
         QVERIFY(!history.last().isEmpty());
         QStringList moves{QStringLiteral("3c3d")};
         KifuAnalysisListModel model;
-        AnalysisResultHandler handler;
         AnalysisResultHandler::Refs refs;
         refs.analysisModel = &model;
         RecordLine line = RecordLine::fromPositions(history, TestReplay::buildGameMoves(initial, moves));
         refs.line = &line;
-        handler.setRefs(refs);
+        AnalysisResultHandler handler(refs);
         KifuPresentation::configure("en", "auto", false);
-        handler.updatePending(0, 100, 0, "3c3d 7g7f");
+        handler.updatePending(0, *UsiLineParser::parseInfo(QStringLiteral("info score cp 100 pv 3c3d 7g7f")));
         handler.commitPendingResult();
-        QCOMPARE(model.item(0)->evaluationValue(), QStringLiteral("-100"));
-        handler.updatePending(1, 200, 0, "7g7f");
+        QCOMPARE(model.index(0, 3).data().toString(), QStringLiteral("-100"));
+        handler.updatePending(1, *UsiLineParser::parseInfo(QStringLiteral("info score cp 200 pv 7g7f")));
         handler.commitPendingResult();
-        QCOMPARE(model.item(1)->evaluationValue(), QStringLiteral("200"));
+        QCOMPARE(model.index(1, 3).data().toString(), QStringLiteral("200"));
         QCOMPARE(model.index(1, 1).data().toString(), QStringLiteral("△P-3d"));
         QCOMPARE(model.index(1, 2).data().toString(), QStringLiteral("◯"));
         // Equal labels must not create a match between different positions.
@@ -301,40 +300,46 @@ private slots:
         const bool western = KifuPresentation::options().notation == KifuPresentation::Notation::Western;
         ApplicationFonts::initialize({}, language);
 
-        KifuRecordListModel rows;
-        GameRecordPresenter presenter({&rows, nullptr});
-        presenter.presentGameRecord(tree.displayItemsForLine(0));
+        KifuRecordListModel rows(&tree);
+        rows.setPath(tree.mainLine());
         QVERIFY(rows.data(rows.index(1, 0), Qt::DisplayRole).toString().contains(
             western ? QStringLiteral("▲P-7f") : QStringLiteral("７六歩")));
         QVERIFY(rows.data(rows.index(3, 0), Qt::DisplayRole).toString().contains(
             western ? QStringLiteral("Bx2b+") : QStringLiteral("角成")));
-        QVERIFY(rows.item(1)->currentMove().contains(QStringLiteral("７六歩")));
-        QCOMPARE(rows.item(1)->comment(), QStringLiteral("日本語の注釈 <tag>"));
+        QVERIFY(rows.nodeAt(1)->displayText().contains(QStringLiteral("７六歩")));
+        QCOMPARE(rows.data(rows.index(1, KifuRecordListModel::CommentColumn)).toString(),
+                 QStringLiteral("日本語の注釈 <tag>"));
 
-        KifuBranchListModel branches;
-        branches.setBranchCandidatesFromKif({tree.displayItemsForLine(0).at(3)});
+        KifuBranchListModel branches(&tree);
+        branches.setCandidates({tree.mainLine().at(3)}, -1, false);
         if (western) QVERIFY(branches.data(branches.index(0, 0), Qt::DisplayRole).toString().endsWith('+'));
 
         ShogiEngineThinkingModel thinking;
-        auto* info = new ShogiInfoRecord("10", "5", "100", "25", QStringLiteral("▲７六歩(77)△３四歩(33)"));
-        info->setUsiPv("7g7f 3c3d");
-        info->setBaseSfen(imported.initialSfen);
+        ThinkingInfoRow row;
+        row.timeMs = 10;
+        row.depth = 5;
+        row.nodes = 100;
+        row.score = UsiScore::cp(25);
+        row.pvKanji = QStringLiteral("▲７六歩(77)△３四歩(33)");
+        row.usiPv = QStringLiteral("7g7f 3c3d");
+        row.baseSfen = imported.initialSfen;
+        auto* info = new ShogiInfoRecord(row);
         thinking.appendItem(info);
         const QString pv = thinking.data(thinking.index(0, 5), Qt::DisplayRole).toString();
         QCOMPARE(pv, western ? QStringLiteral("▲P-7f △P-3d") : info->pv());
-        // 表示用の読み筋は覚えておくが、表記の設定や読み筋を変えたら作り直す
+        // 表示用の読み筋は覚えておくが、表記の設定を変えたら作り直す
         KifuPresentation::configure(language, western ? QStringLiteral("japanese") : QStringLiteral("western"), true);
         QCOMPARE(info->displayPv(), western ? info->pv() : QStringLiteral("▲P7g-7f △P3c-3d"));
         KifuPresentation::configure(language, notation, false);
         QCOMPARE(info->displayPv(), pv);
         if (western) {
             QCOMPARE(info->displayPv(true), QStringLiteral("▲P7g-7f △P3c-3d"));
-            info->setUsiPv(QStringLiteral("7g7f"));
-            QCOMPARE(info->displayPv(), QStringLiteral("▲P-7f"));
-            info->setUsiPv(QStringLiteral("7g7f 3c3d"));
+            ThinkingInfoRow shorter = row;
+            shorter.usiPv = QStringLiteral("7g7f");
+            QCOMPARE(ShogiInfoRecord(shorter).displayPv(), QStringLiteral("▲P-7f"));
         }
         // 棋譜解析の結果の行も同じ。元の値（外から直接書き換える beforeSfen を含む）が変われば作り直す
-        KifuAnalysisResultsDisplay result(QStringLiteral("▲７六歩(77)"), QStringLiteral("10"), QStringLiteral("0"), info->pv());
+        KifuAnalysisResultsDisplay result(QStringLiteral("▲７六歩(77)"), UsiScore::cp(10), 0, info->pv());
         result.beforeSfen = imported.initialSfen;
         result.setLastUsiMove(QStringLiteral("7g7f"));
         result.setSfen(imported.initialSfen);
@@ -389,23 +394,22 @@ private slots:
         for (const auto& ending : endings) {
             QCOMPARE(csa.endRecord(CsaClient::GameResult::Lose, ending.first, false, 0).terminal, ending.second);
         }
-        // 入玉宣言は宣言した勝者の印を付け（保存時に勝者を判定するため）、点数による引き分けは持将棋
+        // 入玉宣言は宣言した勝者の印を付け（保存時に勝者を判定するため）、点数による引き分けは手番側の持将棋
         QCOMPARE(csa.endRecord(CsaClient::GameResult::Lose, Cause::Jishogi, false, 0).displayText,
                  QStringLiteral("△入玉勝ち"));
         QCOMPARE(csa.endRecord(CsaClient::GameResult::Draw, Cause::Jishogi, false, 0).displayText,
-                 QStringLiteral("持将棋"));
+                 QStringLiteral("△持将棋"));
 
-        GameInfoPaneController metadata;
-        QScopedPointer<QWidget> container(metadata.containerWidget());
+        GameInfoPane metadata;
         metadata.setGameInfo(imported.gameInfo);
-        auto* table = metadata.tableWidget();
-        QCOMPARE(table->item(0, 0)->text(), QStringLiteral("先手"));
-        QCOMPARE(table->item(0, 1)->text(), QStringLiteral("佐藤 一郎"));
-        QCOMPARE(table->item(0, 0)->data(Qt::AccessibleTextRole).toString(), KifuPresentation::infoKey("先手"));
+        GameInfoTable table{metadata.tableView()};
+        QCOMPARE(table.text(0, 0), QStringLiteral("先手"));
+        QCOMPARE(table.text(0, 1), QStringLiteral("佐藤 一郎"));
+        QCOMPARE(table.accessibleText(0, 0), KifuPresentation::infoKey("先手"));
         QCOMPARE(metadata.gameInfo().size(), imported.gameInfo.size());
         context.gameInfoItems = metadata.gameInfo();
         QCOMPARE(record.toKifLines(context), expected);
-        table->item(0, 1)->setText(QStringLiteral("編集した名前"));
+        table.setText(0, 1, QStringLiteral("編集した名前"));
         metadata.undo();
         QCOMPARE(metadata.gameInfo().first().value, QStringLiteral("佐藤 一郎"));
         metadata.redo();
@@ -418,7 +422,7 @@ private slots:
         QCOMPARE(reread.record.mainline.usiMoves(), imported.record.mainline.usiMoves());
 
         // All existing save formats must be independent of presentation settings.
-        using Format = KifuConversionService::Format;
+        using Format = KifuFormat;
         for (auto format : {Format::Kif, Format::Ki2, Format::Csa, Format::Jkf, Format::Usi, Format::Usen}) {
             KifuConversionService::Request request;
             request.text = kif;

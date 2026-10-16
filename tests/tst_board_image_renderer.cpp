@@ -32,7 +32,7 @@
 #include "appsettings.h"
 #include "boardappearancecatalog.h"
 #include "boardappearancepreview.h"
-#include "candidatearrowcontroller.h"
+#include "candidatearrowpresenter.h"
 
 namespace {
 ShogiViewLayout viewLayout(const ShogiView& view)
@@ -180,7 +180,7 @@ private slots:
         model.resetGameBoard();
         ShogiView live;
         live.applyBoardAndRender(&model);
-        live.setBlackClockText(QStringLiteral("03:21"));
+        live.chrome()->setBlackClockText(QStringLiteral("03:21"));
         const auto position = model.convertBoardToSfen();
         BoardColorDialog dialog;
         auto* pieces = dialog.findChild<QListWidget*>("appearancePieces");
@@ -207,10 +207,10 @@ private slots:
         const auto middle = preview->image();
         preview->setFlipped(true);
         QVERIFY(preview->image() != middle);
-        QCOMPARE(preview->findChild<ShogiView*>()->piece('K').pixmap(90).toImage(),
+        QCOMPARE(preview->findChild<ShogiView*>()->piece(Piece::BlackKing).pixmap(90).toImage(),
                  QIcon(":/pieces/deep_ebony/Gote_ou45.svg").pixmap(90).toImage());
         QCOMPARE(model.convertBoardToSfen(), position);
-        QCOMPARE(live.blackClockLabel()->text(), QStringLiteral("03:21"));
+        QCOMPARE(live.chrome()->blackClockLabel()->text(), QStringLiteral("03:21"));
         QVERIFY(!live.flipMode());
         dialog.findChild<QPushButton*>("restoreOpeningAppearanceButton")->click();
         QVERIFY(live.boardColors() == BoardColors{});
@@ -520,7 +520,7 @@ private slots:
         view.configureFixedSizing(50);
         view.applyBoardAndRender(&model);
         view.setFlipMode(flipped);
-        auto arrow = CandidateArrowController::arrowForMove(QStringLiteral("%1*5e").arg(piece), sfen, 1);
+        auto arrow = CandidateArrowPresenter::arrowForMove(QStringLiteral("%1*5e").arg(piece), sfen, 1);
         QVERIFY(arrow);
         arrow->color = QColor(255, 0, 255);
         view.setArrows({*arrow});

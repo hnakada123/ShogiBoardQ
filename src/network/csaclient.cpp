@@ -80,6 +80,36 @@ bool CsaClient::isWaitingState(ConnectionState state)
         || state == ConnectionState::GameOver;
 }
 
+QString CsaClient::gameResultText(GameResult result)
+{
+    switch (result) {
+    case GameResult::Win:      return tr("勝ち");
+    case GameResult::Lose:     return tr("負け");
+    case GameResult::Draw:     return tr("引き分け");
+    case GameResult::Censored: return tr("打ち切り");
+    case GameResult::Chudan:   return tr("中断");
+    case GameResult::Unknown:  break;
+    }
+    return tr("不明");
+}
+
+QString CsaClient::gameEndCauseText(GameEndCause cause)
+{
+    switch (cause) {
+    case GameEndCause::Resign:         return tr("投了");
+    case GameEndCause::TimeUp:         return tr("時間切れ");
+    case GameEndCause::IllegalMove:    return tr("反則");
+    case GameEndCause::Sennichite:     return tr("千日手");
+    case GameEndCause::OuteSennichite: return tr("連続王手の千日手");
+    case GameEndCause::Jishogi:        return tr("入玉宣言");
+    case GameEndCause::MaxMoves:       return tr("手数制限");
+    case GameEndCause::Chudan:         return tr("中断");
+    case GameEndCause::IllegalAction:  return tr("不正行為");
+    case GameEndCause::Unknown:        break;
+    }
+    return tr("不明");
+}
+
 // ============================================================
 // 初期化
 // ============================================================

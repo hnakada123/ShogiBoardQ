@@ -11,11 +11,17 @@
 #include <QScreen>
 #include <QWidget>
 
-LanguageController::LanguageController(QObject* parent)
+LanguageController::LanguageController(const Deps& deps, QObject* parent)
     : QObject(parent)
     , m_actionGroup(new QActionGroup(this))
+    , m_parentWidget(deps.parentWidget)
 {
     m_actionGroup->setExclusive(true);
+    setActions(deps.systemLanguage, deps.japanese, deps.english, deps.chineseSimplified, deps.chineseTraditional);
+    if (deps.notationAuto && deps.notationJapanese && deps.notationWestern && deps.notationOrigin && deps.notationHelp) {
+        setNotationActions(deps.notationAuto, deps.notationJapanese, deps.notationWestern, deps.notationOrigin,
+                           deps.notationHelp);
+    }
 }
 
 void LanguageController::setActions(QAction* systemAction, QAction* japaneseAction, QAction* englishAction,
@@ -52,11 +58,6 @@ void LanguageController::setActions(QAction* systemAction, QAction* japaneseActi
     if (m_traditionalAction) connect(m_traditionalAction, &QAction::triggered, this, &LanguageController::onChineseTraditionalTriggered);
     // 初期状態を設定
     updateMenuState();
-}
-
-void LanguageController::setParentWidget(QWidget* parent)
-{
-    m_parentWidget = parent;
 }
 
 void LanguageController::updateMenuState()

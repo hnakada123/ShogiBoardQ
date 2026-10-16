@@ -4,18 +4,16 @@
 /// @file csawaitingdialog.h
 /// @brief CSA接続待機ダイアログクラスの定義
 
-
 #include <QDialog>
 #include "csagamecoordinator.h"
 #include "fontsizehelper.h"
 
 QT_BEGIN_NAMESPACE
+class CsaLogPanel;
 class QLabel;
 class QPushButton;
 class QToolButton;
 class QProgressBar;
-class QPlainTextEdit;
-class QLineEdit;
 QT_END_NAMESPACE
 
 /**
@@ -86,31 +84,10 @@ private slots:
      */
     void onCsaCommLogAppended(const QString& line);
 
-    /**
-     * @brief コマンド入力でEnterが押された時の処理
-     */
-    void onCommandEntered();
+    /// 通信ログの窓で入力したコマンドをサーバーへ送る
+    void onRawCommandRequested(const QString& command);
+    /// 接続中だけコマンドを送れるようにする
     void updateCommandState();
-
-    /**
-     * @brief ログウィンドウのフォントサイズを大きくする
-     */
-    void onLogFontIncrease();
-
-    /**
-     * @brief ログウィンドウのフォントサイズを小さくする
-     */
-    void onLogFontDecrease();
-
-    /**
-     * @brief ダイアログのフォントサイズを大きくする
-     */
-    void onFontIncrease();
-
-    /**
-     * @brief ダイアログのフォントサイズを小さくする
-     */
-    void onFontDecrease();
 
 private:
     /**
@@ -136,11 +113,6 @@ private:
     void createLogWindow();
 
     /**
-     * @brief ログウィンドウのフォントサイズを適用する
-     */
-    void applyLogFontSize();
-
-    /**
      * @brief ダイアログのフォントサイズを適用する
      */
     void applyFontSize();
@@ -158,21 +130,9 @@ private:
     QToolButton* m_btnFontDecrease = nullptr;    ///< A-ボタン
     FontSizeHelper m_fontHelper;                   ///< ダイアログのフォントサイズヘルパー
 
-    // 通信ログウィンドウ
-    QDialog* m_logWindow = nullptr;               ///< 通信ログウィンドウ
-    QPlainTextEdit* m_logTextEdit = nullptr;      ///< 通信ログテキスト表示
-    QStringList m_logLines;                      ///< ログ画面を開く前の通信も保持
-
-    // フォントサイズ調整ボタン（ログウィンドウ）
-    QToolButton* m_btnLogFontIncrease = nullptr;  ///< ログA+ボタン
-    QToolButton* m_btnLogFontDecrease = nullptr;  ///< ログA-ボタン
-    FontSizeHelper m_logFontHelper;                ///< ログウィンドウのフォントサイズヘルパー
-
-    QPushButton* m_logCloseButton = nullptr;        ///< ログウィンドウ閉じるボタン
-
-    // コマンド入力UI
-    QPushButton* m_btnSendToServer = nullptr;     ///< CSAサーバーへ送信ボタン
-    QLineEdit* m_commandInput = nullptr;          ///< コマンド入力欄
+    // 通信ログウィンドウ（中身は CSA 通信ログのドックと同じ部品。ダイアログを作ったときから受信を記録する）
+    QDialog* m_logWindow = nullptr;
+    CsaLogPanel* m_logPanel = nullptr;
 };
 
 #endif // CSAWAITINGDIALOG_H

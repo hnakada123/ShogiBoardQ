@@ -2,119 +2,50 @@
 #define KIFUDISPLAYPRESENTER_H
 
 /// @file kifudisplaypresenter.h
-/// @brief 棋譜表示データ構築・一致性検証プレゼンタの定義
+/// @brief 棋譜欄・分岐候補欄・分岐ツリーに、表示中の手と手順を映す
 
+#include <QObject>
 
-#include "branchtreemanager.h"
-
-#include <QString>
-#include <QList>
-#include <QSet>
-#include <functional>
-
-class KifuBranchTree;
-class KifuBranchNode;
+class BranchTreeManager;
+class KifuBranchListModel;
 class KifuNavigationState;
 class KifuRecordListModel;
-class KifuBranchListModel;
-class RecordPane;
-struct BranchLine;
+class LiveGameSession;
+class QTableView;
 
 /**
- * @brief 棋譜表示データの構築と一致性検証を担当するプレゼンタ
+ * @brief 表示中の手（KifuNavigationState）が変わるたびに、棋譜欄・分岐候補欄・分岐ツリーを合わせる
  *
- * KifuDisplayCoordinatorから分離された責務:
- * - 棋譜欄モデルの構築（populateRecordModel, populateRecordModelFromPath）
- * - 分岐マーク計算（populateBranchMarks）
- * - 表示一致性検証（captureDisplaySnapshot, verifyDisplayConsistencyDetailed等）
+ * 表示する手順は、対局中は対局の最新の手まで（その先にある以前の手順は出さない）、
+ * それ以外は選んでいる手順の終わりまで。状態の写しは持たず、毎回 KifuNavigationState から作る。
  */
-class KifuDisplayPresenter
+class KifuDisplayPresenter : public QObject
 {
+    Q_OBJECT
+
 public:
-    struct Refs {
-        KifuBranchTree* tree = nullptr;
-        KifuNavigationState* state = nullptr;
-        KifuRecordListModel* recordModel = nullptr;
-        KifuBranchListModel* branchModel = nullptr;
-        BranchTreeManager* branchTreeManager = nullptr;
-        std::function<QString()> boardSfenProvider;
+    struct Deps {
+        KifuNavigationState* navState = nullptr;      ///< 表示中の手（必須）
+        LiveGameSession* liveSession = nullptr;       ///< 対局中の手順（必須）
+        KifuRecordListModel* recordModel = nullptr;   ///< 棋譜欄（必須）
+        KifuBranchListModel* branchModel = nullptr;   ///< 分岐候補欄（必須）
+        QTableView* recordView = nullptr;             ///< 棋譜欄の表（選択と表示位置を合わせる）
+        BranchTreeManager* treeView = nullptr;        ///< 分岐ツリーの図
     };
 
-    struct TrackingState {
-        int lastLineIndex = 0;
-        int expectedTreeLineIndex = 0;
-        int expectedTreePly = 0;
-        /// ライブ対局セッション中か。対局中の棋譜欄は現在の手までしか表示しない
-        /// （既存ラインの続きは隠す）ため、行数の期待値が変わる
-        bool liveSessionActive = false;
-    };
+    explicit KifuDisplayPresenter(const Deps& deps, QObject* parent = nullptr);
 
-    struct DisplaySnapshot {
-        int stateLineIndex = -1;
-        int statePly = -1;
-        bool stateOnMainLine = true;
-        bool liveSessionActive = false;
-        int trackedLineIndex = -1;
-        int modelLineIndex = -1;
-        int modelRowCount = -1;
-        int modelHighlightRow = -1;
-        int expectedTreeLineIndex = -1;
-        int expectedTreePly = -1;
-        int treeHighlightLineIndex = -1;
-        int treeHighlightPly = -1;
-        int branchCandidateCount = -1;
-        bool hasBackToMainRow = false;
-        QString stateSfen;
-        QString stateSfenNormalized;
-        QString boardSfen;
-        QString boardSfenNormalized;
-        QString displayedMoveAtPly;
-        QString expectedMoveAtPly;
-    };
-
-    using BoardSfenProvider = std::function<QString()>;
-
-    KifuDisplayPresenter();
-
-    void updateRefs(const Refs& refs);
-
-    // === 棋譜欄モデル構築 ===
-
-    /**
-     * @brief 現在のラインから棋譜欄モデルを構築する
-     */
-    /// 現在のラインで棋譜欄を作る。全行を作り直したときは true（末尾に手を足しただけなら false）
-    bool populateRecordModel();
-    void presentLiveNode(KifuBranchNode* node);
-
-    /**
-     * @brief 指定パスから棋譜欄モデルを構築する
-     * @param path ノードパス
-     * @param highlightPly ハイライトする手数
-     * @return ハイライトすべき行番号
-     */
-    int populateRecordModelFromPath(const QList<KifuBranchNode*>& path, int highlightPly);
-
-    /**
-     * @brief 分岐マークを計算して棋譜欄モデルに設定する
-     */
-    void populateBranchMarks();
-
-    // === 一致性検証 ===
-
-    DisplaySnapshot captureDisplaySnapshot(const TrackingState& tracking) const;
-    bool verifyDisplayConsistencyDetailed(const TrackingState& tracking, QString* reason = nullptr) const;
-    bool verifyDisplayConsistency(const TrackingState& tracking) const;
-    QString consistencyReport(const TrackingState& tracking) const;
-
-    // === アクセサ ===
-
-    int lastModelLineIndex() const { return m_lastModelLineIndex; }
-    void setLastModelLineIndex(int index) { m_lastModelLineIndex = index; }
+public slots:
+    /// 表示中の手・手順・ツリーに合わせて描き直す
+    void refresh();
+    /// 表示（表記・言語）だけを描き直す
+    void refreshLabels();
 
 private:
-    Refs m_refs;
-    int m_lastModelLineIndex = -1;
+    void selectCurrentRow(int row);
+
+    Deps m_deps;
+    quint64 m_markedRevision = 0;   ///< 棋譜欄の分岐の印を合わせたときの KifuBranchTree::revision()
 };
 
 #endif // KIFUDISPLAYPRESENTER_H

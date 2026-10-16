@@ -9,6 +9,10 @@
 #include <QRect>
 #include <QSize>
 
+#include "shogitypes.h"
+
+#include <array>
+
 /// 盤面・駒台・ラベルの座標/寸法を算出する純粋なレイアウトクラス。
 /// QObject を継承せず、描画やウィジェット操作には一切関与しない。
 /// ShogiView が値メンバとして保持し、描画時に座標を問い合わせる。
@@ -29,6 +33,8 @@ public:
     /// 盤座標 (file, rank) → マス1つ分の矩形（ウィジェット座標ではなく盤ローカル）
     QRect calculateSquareRectangleBasedOnBoardState(int file, int rank,
                                                     int boardFiles, int boardRanks) const;
+    /// calculateSquareRectangleBasedOnBoardState の逆。盤ローカルの点があるマス。盤の外なら QPoint()
+    QPoint squareAt(const QPoint& boardLocal, int boardFiles, int boardRanks) const;
 
     /// 段番号/筋番号ラベル描画用の矩形
     QRect calculateRectangleForRankOrFileLabel(int file, int rank,
@@ -43,10 +49,12 @@ public:
     /// 駒台のセル。駒台は盤の基準マス（筋 1・2、先手は段 6〜9、後手は段 1〜4）を駒台側へ
     /// 水平にずらして描く。baseField はその基準マスの矩形（盤の余白を足す前）
     QRect standCellRect(bool black, const QRect& baseField) const;
-    /// 駒台の基準マスに置く駒文字（先手は大文字、後手は小文字）。駒台のセルでなければ空白
-    static QChar standPieceAt(bool black, int file, int rank);
-    /// 駒台の疑似座標（筋 10/11、段 1〜9）に対応する基準マス。対応しなければ (0, 0)
-    static QPoint standBaseCell(bool black, int pseudoRank);
+    /// 駒台の基準マスに置く駒。駒台のセルでなければ Piece::None
+    static Piece standPieceAt(bool black, int file, int rank);
+    /// 駒（成駒は生駒）を置く駒台の基準マス。駒台に置けない駒なら QPoint()
+    static QPoint standBaseCellOf(Piece piece);
+    /// 駒台の基準マス8つ（先手は筋1・2、段6〜9。後手は筋1・2、段1〜4）
+    static std::array<QPoint, 8> standBaseCells(bool black);
 
     /// 駒箱は反転によらず左上から王・飛・角・金・銀・桂・香・歩の2列4段。
     static QRect pieceBoxCellRect(const QRect& box, int rank);

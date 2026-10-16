@@ -8,7 +8,7 @@
 #include <QObject>
 #include <QStringList>
 #include <QList>
-#include <QTimer>
+
 #include <limits>
 
 #include "usiinfo.h"
@@ -53,9 +53,6 @@ public:
 
     explicit AnalysisCoordinator(const Deps& d, QObject* parent = nullptr);
 
-    /// 依存オブジェクトを更新する
-    void setDeps(const Deps& d);
-
     /// 解析オプションを設定する
     void setOptions(const Options& opt);
 
@@ -78,30 +75,30 @@ signals:
     /// setoption の送信を要求する（→ Usi::sendSetOptionCommand）
     void requestSetOption(const QString& name, const QString& value);
 
-    /// 局面の探索開始（position + go infinite）を要求する（→ Usi::sendPositionAndGoInfinite）
-    void requestSearch(const QString& positionCommand);
+    /// 局面の探索を頼む（position + go infinite を送り、thinkMs 後に stop を送る）
+    void requestSearch(const QString& positionCommand, int thinkMs);
 
-    /// 探索の停止を要求する（→ Usi::sendStopCommand）
+    /// 探索の停止を頼む（解析をやめたとき）
     void requestStop();
 
-    /// 解析終了を通知する（→ AnalysisFlowController::onAnalysisFinished）
+    /// 解析終了を通知する（AnalysisJob が受ける）
     void analysisFinished(AnalysisCoordinator::Mode mode);
 
-    /// 解析進捗を通知する（→ AnalysisFlowController::onAnalysisProgress）
+    /// 解析進捗を通知する（AnalysisJob が受ける）
     void analysisProgress(int ply, const UsiInfo& info);
 
-    /// 解析対象局面の準備完了を通知する（→ AnalysisFlowController::onPositionPrepared）
+    /// 解析対象局面の準備完了を通知する（AnalysisJob が受ける）
     /// 表示用通知。受信者がいなくても探索を開始する。
     void positionPrepared(int ply, const QString& positionCmd);
 
 public:
-    // --- AnalysisFlowController から呼ばれるメソッド ---
+    // --- AnalysisJob から呼ばれるメソッド ---
 
-    /// エンジンの info を受け取る（AnalysisFlowController::onInfoReceivedから呼出）
+    /// エンジンの info を受け取る
     void onEngineInfo(const UsiInfo& info);
 
-    /// エンジンの`bestmove ...`を受け取る（AnalysisFlowController::onBestMoveReceivedから呼出）
-    void onEngineBestmoveReceived(const QString& line);
+    /// エンジンの bestmove を受け取った（次の局面へ進む）
+    void onEngineBestmoveReceived();
 
 private:
     Deps    m_deps;                  ///< 依存オブジェクト
@@ -110,20 +107,12 @@ private:
     Mode m_mode = Idle;              ///< 現在の解析モード
     bool m_running = false;          ///< 解析実行中フラグ
     int  m_currentPly = -1;          ///< 現在解析中の手数
-    QString m_pendingPosCmd;         ///< `sendGoCommand()`待機中の`position`コマンド
-
-    QTimer m_stopTimer;                         ///< `go infinite`後に`stop`送信するタイマー
 
     // --- 内部処理 ---
     void startRange();
     void startSingle(int ply);
     void nextPlyOrFinish();
     void sendAnalyzeForPly(int ply);
-    void sendGoCommand();
-
-private slots:
-    /// stopタイマー満了時に`stop`を送信する
-    void onStopTimerTimeout();
 };
 
 #endif // ANALYSISCOORDINATOR_H

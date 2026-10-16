@@ -5,6 +5,8 @@
 #include <QStringView>
 #include "usimove.h"
 #include "parsecommon.h"
+#include "shoginotation.h"
+#include "terminalcodes.h"
 #include "terminaltype.h"
 #include "shogitypes.h"
 
@@ -13,6 +15,14 @@ class TestParseCommon : public QObject
     Q_OBJECT
 
 private slots:
+    // 数字・駒の名前の読み取り（ShogiNotation）
+    void notationDigits_data();
+    void notationDigits();
+    void numberFromDigits_data();
+    void numberFromDigits();
+    void kanjiNumeralValue();
+    void findPieceName_data();
+    void findPieceName();
     // ---- isKifCommentLine ----
     void isKifCommentLine_ascii();
     void isKifCommentLine_fullwidth();
@@ -55,34 +65,12 @@ private slots:
     void toGameInfoMap_duplicateKey();
 
     // ---- digit parsing ----
-    void asciiDigitToInt_valid();
-    void asciiDigitToInt_invalid();
-    void zenkakuDigitToInt_valid();
-    void zenkakuDigitToInt_invalid();
-    void flexDigitToIntNoDetach_ascii();
-    void flexDigitToIntNoDetach_zenkaku();
-    void flexDigitToIntNoDetach_invalid();
-    void flexDigitsToIntNoDetach_multiDigit();
-    void flexDigitsToIntNoDetach_empty();
-    void flexDigitsToIntNoDetach_mixed();
 
     // ---- coordinate parsing ----
-    void parseDigit_valid();
-    void parseDigit_invalid();
 
     // ---- terminal words ----
 
     // ---- mapKanjiPiece ----
-    void mapKanjiPiece_pawn();
-    void mapKanjiPiece_promotedPawn();
-    void mapKanjiPiece_bishop();
-    void mapKanjiPiece_promotedBishop();
-    void mapKanjiPiece_rook();
-    void mapKanjiPiece_promotedRook();
-    void mapKanjiPiece_king();
-    void mapKanjiPiece_unknown();
-    void mapKanjiPiece_minorPieces_data();
-    void mapKanjiPiece_minorPieces();
 
     // ---- helper functions ----
     void appendLine_empty();
@@ -107,13 +95,8 @@ private slots:
     // ---- containsAnyTerminal ----
 
     // ---- table-driven: mapKanjiPiece abnormal ----
-    void mapKanjiPiece_abnormal_data();
-    void mapKanjiPiece_abnormal();
 
     // ---- table-driven: flexDigitsToIntNoDetach abnormal ----
-    void flexDigitsToIntNoDetach_abnormal_data();
-    void flexDigitsToIntNoDetach_abnormal();
-
 
     // ---- table-driven: coordinate parsing boundary ----
     void parseCoordinate_boundary_data();
@@ -160,25 +143,6 @@ void TestParseCommon::isBookmarkLine_normalLine()
 }
 
 // ==== csaSpecialToTerminal ====
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 // ==== formatTimeMS ====
 
@@ -266,178 +230,92 @@ void TestParseCommon::toGameInfoMap_duplicateKey()
 
 // ==== digit parsing ====
 
-void TestParseCommon::asciiDigitToInt_valid()
-{
-    QCOMPARE(KifuParseCommon::asciiDigitToInt(QChar('0')), 0);
-    QCOMPARE(KifuParseCommon::asciiDigitToInt(QChar('5')), 5);
-    QCOMPARE(KifuParseCommon::asciiDigitToInt(QChar('9')), 9);
-}
-
-void TestParseCommon::asciiDigitToInt_invalid()
-{
-    QCOMPARE(KifuParseCommon::asciiDigitToInt(QChar('a')), 0);
-    QCOMPARE(KifuParseCommon::asciiDigitToInt(QChar('Z')), 0);
-    QCOMPARE(KifuParseCommon::asciiDigitToInt(QChar(' ')), 0);
-}
-
-void TestParseCommon::zenkakuDigitToInt_valid()
-{
-    QCOMPARE(KifuParseCommon::zenkakuDigitToInt(QChar(u'０')), 0);
-    QCOMPARE(KifuParseCommon::zenkakuDigitToInt(QChar(u'５')), 5);
-    QCOMPARE(KifuParseCommon::zenkakuDigitToInt(QChar(u'９')), 9);
-}
-
-void TestParseCommon::zenkakuDigitToInt_invalid()
-{
-    QCOMPARE(KifuParseCommon::zenkakuDigitToInt(QChar('5')), 0);
-    QCOMPARE(KifuParseCommon::zenkakuDigitToInt(QChar('A')), 0);
-}
-
-void TestParseCommon::flexDigitToIntNoDetach_ascii()
-{
-    QCOMPARE(KifuParseCommon::flexDigitToIntNoDetach(QChar('7')), 7);
-}
-
-void TestParseCommon::flexDigitToIntNoDetach_zenkaku()
-{
-    QCOMPARE(KifuParseCommon::flexDigitToIntNoDetach(QChar(u'７')), 7);
-}
-
-void TestParseCommon::flexDigitToIntNoDetach_invalid()
-{
-    QCOMPARE(KifuParseCommon::flexDigitToIntNoDetach(QChar('X')), 0);
-}
-
-void TestParseCommon::flexDigitsToIntNoDetach_multiDigit()
-{
-    QCOMPARE(KifuParseCommon::flexDigitsToIntNoDetach(QStringLiteral("123")), 123);
-}
-
-void TestParseCommon::flexDigitsToIntNoDetach_empty()
-{
-    QCOMPARE(KifuParseCommon::flexDigitsToIntNoDetach(QString()), 0);
-}
-
-void TestParseCommon::flexDigitsToIntNoDetach_mixed()
-{
-    // Mixed ASCII and zenkaku digits
-    QCOMPARE(KifuParseCommon::flexDigitsToIntNoDetach(QStringLiteral("1２3")), 123);
-}
-
 // ==== coordinate parsing ====
 
-void TestParseCommon::parseDigit_valid()
+// ==== 数字・駒の名前（ShogiNotation） ====
+
+void TestParseCommon::notationDigits_data()
 {
-    QCOMPARE(KifuParseCommon::parseDigit(QChar('0')), std::optional<int>(0));
-    QCOMPARE(KifuParseCommon::parseDigit(QChar('9')), std::optional<int>(9));
+    QTest::addColumn<QChar>("ch");
+    QTest::addColumn<int>("value");
+    QTest::newRow("ascii-0") << QChar('0') << 0;
+    QTest::newRow("ascii-9") << QChar('9') << 9;
+    QTest::newRow("zenkaku-0") << QChar(u'０') << 0;
+    QTest::newRow("zenkaku-7") << QChar(u'７') << 7;
+    QTest::newRow("letter") << QChar('a') << -1;
+    QTest::newRow("space") << QChar(' ') << -1;
+    QTest::newRow("kanji") << QChar(u'五') << -1;
 }
 
-void TestParseCommon::parseDigit_invalid()
+void TestParseCommon::notationDigits()
 {
-    QCOMPARE(KifuParseCommon::parseDigit(QChar('a')), std::nullopt);
-    QCOMPARE(KifuParseCommon::parseDigit(QChar(' ')), std::nullopt);
+    QFETCH(QChar, ch);
+    QFETCH(int, value);
+    QCOMPARE(ShogiNotation::digitValue(ch), value);
 }
 
-
-
-
-
-
-
-
-// ==== mapKanjiPiece ====
-
-void TestParseCommon::mapKanjiPiece_pawn()
+void TestParseCommon::numberFromDigits_data()
 {
-    const auto result = KifuParseCommon::mapKanjiPiece(QStringLiteral("歩"));
-    QVERIFY(result.has_value());
-    QCOMPARE(result->base, Piece::BlackPawn);
-    QVERIFY(!result->promoted);
+    QTest::addColumn<QString>("input");
+    QTest::addColumn<int>("value");
+    QTest::newRow("multi-digit") << QStringLiteral("123") << 123;
+    QTest::newRow("empty") << QString() << 0;
+    QTest::newRow("mixed-width") << QStringLiteral("1２3") << 123;
+    QTest::newRow("all-spaces") << QStringLiteral("   ") << 0;
+    QTest::newRow("negative-sign") << QStringLiteral("-123") << 123;
+    QTest::newRow("special-chars") << QStringLiteral("!@#") << 0;
+    QTest::newRow("leading-zeros") << QStringLiteral("007") << 7;
 }
 
-void TestParseCommon::mapKanjiPiece_promotedPawn()
+void TestParseCommon::numberFromDigits()
 {
-    const auto result = KifuParseCommon::mapKanjiPiece(QStringLiteral("と"));
-    QVERIFY(result.has_value());
-    QCOMPARE(result->base, Piece::BlackPawn);
-    QVERIFY(result->promoted);
+    QFETCH(QString, input);
+    QFETCH(int, value);
+    QCOMPARE(ShogiNotation::numberFromDigits(input), value);
 }
 
-void TestParseCommon::mapKanjiPiece_bishop()
+void TestParseCommon::kanjiNumeralValue()
 {
-    const auto result = KifuParseCommon::mapKanjiPiece(QStringLiteral("角"));
-    QVERIFY(result.has_value());
-    QCOMPARE(result->base, Piece::BlackBishop);
-    QVERIFY(!result->promoted);
+    QCOMPARE(ShogiNotation::kanjiNumeralValue(QChar(u'〇')), 0);
+    QCOMPARE(ShogiNotation::kanjiNumeralValue(QChar(u'零')), 0);
+    QCOMPARE(ShogiNotation::kanjiNumeralValue(QChar(u'一')), 1);
+    QCOMPARE(ShogiNotation::kanjiNumeralValue(QChar(u'九')), 9);
+    QCOMPARE(ShogiNotation::kanjiNumeralValue(QChar(u'十')), -1);
+    QCOMPARE(ShogiNotation::kanjiNumeralValue(QChar('1')), -1);
 }
 
-void TestParseCommon::mapKanjiPiece_promotedBishop()
-{
-    const auto result = KifuParseCommon::mapKanjiPiece(QStringLiteral("馬"));
-    QVERIFY(result.has_value());
-    QCOMPARE(result->base, Piece::BlackBishop);
-    QVERIFY(result->promoted);
-}
-
-void TestParseCommon::mapKanjiPiece_rook()
-{
-    const auto result = KifuParseCommon::mapKanjiPiece(QStringLiteral("飛"));
-    QVERIFY(result.has_value());
-    QCOMPARE(result->base, Piece::BlackRook);
-    QVERIFY(!result->promoted);
-}
-
-void TestParseCommon::mapKanjiPiece_promotedRook()
-{
-    const auto result = KifuParseCommon::mapKanjiPiece(QStringLiteral("龍"));
-    QVERIFY(result.has_value());
-    QCOMPARE(result->base, Piece::BlackRook);
-    QVERIFY(result->promoted);
-}
-
-void TestParseCommon::mapKanjiPiece_king()
-{
-    const auto result = KifuParseCommon::mapKanjiPiece(QStringLiteral("玉"));
-    QVERIFY(result.has_value());
-    QCOMPARE(result->base, Piece::BlackKing);
-    QVERIFY(!result->promoted);
-}
-
-void TestParseCommon::mapKanjiPiece_unknown()
-{
-    QVERIFY(!KifuParseCommon::mapKanjiPiece(QStringLiteral("X")).has_value());
-}
-
-void TestParseCommon::mapKanjiPiece_minorPieces_data()
+void TestParseCommon::findPieceName_data()
 {
     QTest::addColumn<QString>("text");
-    QTest::addColumn<Piece>("base");
-    QTest::addColumn<bool>("promoted");
-    const QStringList names = {QStringLiteral("銀"), QStringLiteral("桂"), QStringLiteral("香")};
-    const QStringList aliases = {QStringLiteral("全"), QStringLiteral("圭"), QStringLiteral("杏")};
-    const Piece pieces[] = {Piece::BlackSilver, Piece::BlackKnight, Piece::BlackLance};
-    for (int i = 0; i < 3; ++i) {
-        const QString& name = names[i];
-        QTest::newRow(qPrintable(name)) << name << pieces[i] << false;
-        QTest::newRow(qPrintable(name + QStringLiteral("成")))
-            << name + QStringLiteral("成") << pieces[i] << false;
-        QTest::newRow(qPrintable(name + QStringLiteral("不成")))
-            << name + QStringLiteral("不成") << pieces[i] << false;
-        QTest::newRow(qPrintable(QStringLiteral("成") + name))
-            << QStringLiteral("成") + name << pieces[i] << true;
-        QTest::newRow(qPrintable(aliases[i])) << aliases[i] << pieces[i] << true;
-    }
+    QTest::addColumn<Piece>("piece");
+    QTest::newRow("pawn") << QStringLiteral("歩") << Piece::BlackPawn;
+    QTest::newRow("tokin") << QStringLiteral("と") << Piece::BlackPromotedPawn;
+    QTest::newRow("horse") << QStringLiteral("馬") << Piece::BlackHorse;
+    QTest::newRow("dragon") << QStringLiteral("龍") << Piece::BlackDragon;
+    QTest::newRow("dragon-alias") << QStringLiteral("竜") << Piece::BlackDragon;
+    QTest::newRow("king") << QStringLiteral("玉") << Piece::BlackKing;
+    QTest::newRow("king-alias") << QStringLiteral("王") << Piece::BlackKing;
+    QTest::newRow("promoted-silver") << QStringLiteral("成銀") << Piece::BlackPromotedSilver;
+    QTest::newRow("promoted-silver-alias") << QStringLiteral("全") << Piece::BlackPromotedSilver;
+    QTest::newRow("promoted-knight-alias") << QStringLiteral("圭") << Piece::BlackPromotedKnight;
+    QTest::newRow("promoted-lance-alias") << QStringLiteral("杏") << Piece::BlackPromotedLance;
+    // 指し手の行から読む（「成」「不成」「打」は駒ではない）
+    QTest::newRow("move-line") << QStringLiteral("７六歩(77)") << Piece::BlackPawn;
+    QTest::newRow("move-promotes") << QStringLiteral("２二角成(88)") << Piece::BlackBishop;
+    QTest::newRow("move-declines") << QStringLiteral("４三銀不成(54)") << Piece::BlackSilver;
+    QTest::newRow("move-same-promoted") << QStringLiteral("同　成桂(33)") << Piece::BlackPromotedKnight;
+    QTest::newRow("move-drop") << QStringLiteral("５五香打") << Piece::BlackLance;
+    QTest::newRow("empty") << QString() << Piece::None;
+    QTest::newRow("ascii") << QStringLiteral("P") << Piece::None;
+    QTest::newRow("digit") << QStringLiteral("1") << Piece::None;
+    QTest::newRow("promote-only") << QStringLiteral("成") << Piece::None;
 }
 
-void TestParseCommon::mapKanjiPiece_minorPieces()
+void TestParseCommon::findPieceName()
 {
     QFETCH(QString, text);
-    QFETCH(Piece, base);
-    QFETCH(bool, promoted);
-    const auto result = KifuParseCommon::mapKanjiPiece(text);
-    QVERIFY(result.has_value());
-    QCOMPARE(result->base, base);
-    QCOMPARE(result->promoted, promoted);
+    QFETCH(Piece, piece);
+    QCOMPARE(ShogiNotation::findPieceName(text), piece);
 }
 
 // ==== helper functions ====
@@ -534,9 +412,6 @@ void TestParseCommon::isBodHandsLine_normal()
 
 // ==== USI piece conversion ====
 
-
-
-
 // ==== formatTimeHMS negative ====
 
 void TestParseCommon::formatTimeHMS_negative()
@@ -546,46 +421,6 @@ void TestParseCommon::formatTimeHMS_negative()
 }
 
 // ==== table-driven: mapKanjiPiece abnormal ====
-
-void TestParseCommon::mapKanjiPiece_abnormal_data()
-{
-    QTest::addColumn<QString>("input");
-    QTest::addColumn<bool>("expectedResult");
-
-    QTest::newRow("empty_string") << QString() << false;
-    QTest::newRow("ascii_letter_P") << QStringLiteral("P") << false;
-    QTest::newRow("number_digit") << QStringLiteral("1") << false;
-    QTest::newRow("multi_char_invalid") << QStringLiteral("XX") << false;
-}
-
-void TestParseCommon::mapKanjiPiece_abnormal()
-{
-    QFETCH(QString, input);
-    QFETCH(bool, expectedResult);
-
-    QCOMPARE(KifuParseCommon::mapKanjiPiece(input).has_value(), expectedResult);
-}
-
-// ==== table-driven: flexDigitsToIntNoDetach abnormal ====
-
-void TestParseCommon::flexDigitsToIntNoDetach_abnormal_data()
-{
-    QTest::addColumn<QString>("input");
-    QTest::addColumn<int>("expectedValue");
-
-    QTest::newRow("all_spaces") << QStringLiteral("   ") << 0;
-    QTest::newRow("negative_sign") << QStringLiteral("-123") << 123;
-    QTest::newRow("special_chars") << QStringLiteral("!@#") << 0;
-    QTest::newRow("leading_zeros") << QStringLiteral("007") << 7;
-}
-
-void TestParseCommon::flexDigitsToIntNoDetach_abnormal()
-{
-    QFETCH(QString, input);
-    QFETCH(int, expectedValue);
-
-    QCOMPARE(KifuParseCommon::flexDigitsToIntNoDetach(input), expectedValue);
-}
 
 // ==== table-driven: coordinate parsing boundary ====
 
@@ -618,7 +453,6 @@ void TestParseCommon::parseCoordinate_boundary()
     QCOMPARE(square.has_value(), fileValid && rankValid);
 }
 
-
 void TestParseCommon::csaSpecialToTerminal_data()
 {
     QTest::addColumn<QString>("code");
@@ -646,19 +480,19 @@ void TestParseCommon::csaSpecialToTerminal()
 {
     QFETCH(QString, code);
     QFETCH(int, type);
-    QCOMPARE(int(KifuParseCommon::csaSpecialToTerminal(code, Turn::Black)), type);
+    QCOMPARE(int(TerminalCodes::fromCsaSpecial(code, Turn::Black)), type);
 }
 
 void TestParseCommon::csaSpecial_illegalActionDependsOnSide()
 {
     // 不正を行った側が手番側なら反則負け、相手なら手番側の反則勝ち
-    QCOMPARE(KifuParseCommon::csaSpecialToTerminal(QStringLiteral("%+ILLEGAL_ACTION"), Turn::Black),
+    QCOMPARE(TerminalCodes::fromCsaSpecial(QStringLiteral("%+ILLEGAL_ACTION"), Turn::Black),
              TerminalType::IllegalLoss);
-    QCOMPARE(KifuParseCommon::csaSpecialToTerminal(QStringLiteral("%+ILLEGAL_ACTION"), Turn::White),
+    QCOMPARE(TerminalCodes::fromCsaSpecial(QStringLiteral("%+ILLEGAL_ACTION"), Turn::White),
              TerminalType::IllegalWin);
-    QCOMPARE(KifuParseCommon::csaSpecialToTerminal(QStringLiteral("%-ILLEGAL_ACTION"), Turn::Black),
+    QCOMPARE(TerminalCodes::fromCsaSpecial(QStringLiteral("%-ILLEGAL_ACTION"), Turn::Black),
              TerminalType::IllegalWin);
-    QCOMPARE(KifuParseCommon::csaSpecialToTerminal(QStringLiteral("%-ILLEGAL_ACTION"), Turn::White),
+    QCOMPARE(TerminalCodes::fromCsaSpecial(QStringLiteral("%-ILLEGAL_ACTION"), Turn::White),
              TerminalType::IllegalLoss);
 }
 

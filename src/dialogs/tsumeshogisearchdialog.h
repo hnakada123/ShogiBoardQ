@@ -38,8 +38,6 @@ protected:
 private slots:
     void showEngineSettingsDialog();
     void updateEngineSelection();
-    void onFontIncrease();
-    void onFontDecrease();
     void updateMinimumSize();
 
 private:

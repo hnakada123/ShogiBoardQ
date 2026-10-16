@@ -64,7 +64,7 @@ bool playMoves(MatchHarness& h, const QStringList& moves)
 {
     bool continuing = true;
     for (const QString& usi : moves) {
-        continuing = h.mc->strategyHost().applyEngineMove(*UsiMove::parse(usi), h.gc.currentPlayer(), 1000);
+        continuing = h.mc->strategyHost().applyEngineMove(engineMove(usi, h.gc.currentPlayer()));
     }
     return continuing;
 }

@@ -6,6 +6,7 @@
 #include "sfenvalidationservice.h"
 #include "shogiboard.h"
 #include "shogiview.h"
+#include "shogiviewhighlighting.h"
 #include "usimove.h"
 
 #include <QApplication>
@@ -36,12 +37,11 @@ QImage BoardImageRenderer::render(const QString& sfen, const Options& options, Q
 
     ShogiView view;
     view.setFlipMode(options.flip);
-    view.setClockEnabled(false);
-    view.setBlackPlayerName(options.blackName);
-    view.setWhitePlayerName(options.whiteName);
+    view.chrome()->setClockEnabled(false);
+    view.chrome()->setBlackPlayerName(options.blackName);
+    view.chrome()->setWhitePlayerName(options.whiteName);
     view.configureFixedSizing(options.squareSize);
     view.applyBoardAndRender(&board);
-    view.setActiveSide(board.currentPlayer() == Turn::Black);
     view.resize(view.sizeHint());
 
     // ハイライトは非所有なので描画が終わるまで保持する
@@ -50,17 +50,17 @@ QImage BoardImageRenderer::render(const QString& sfen, const Options& options, Q
     if (const auto move = UsiMove::parse(options.lastMoveUsi)) {
         toHighlight = std::make_unique<ShogiView::FieldHighlight>(move->to.file, move->to.rank,
                                                                   QColor(255, 165, 0, 140));
-        view.addHighlight(toHighlight.get());
+        view.highlighting()->addHighlight(toHighlight.get());
         // 駒打ちは移動元を強調しない
         if (!move->isDrop()) {
             fromHighlight = std::make_unique<ShogiView::FieldHighlight>(move->from.file, move->from.rank,
                                                                         QColor(255, 80, 80, 70));
-            view.addHighlight(fromHighlight.get());
+            view.highlighting()->addHighlight(fromHighlight.get());
         }
     }
 
     QImage image = view.toImage();
-    view.removeHighlightAllData();
+    view.highlighting()->removeHighlightAllData();
     if (image.isNull() && error) *error = QStringLiteral("Rendering produced an empty image");
     return image;
 }

@@ -98,14 +98,14 @@ class ShogiView : public QGraphicsView
 
 ```cpp
 /**
- * @brief USIプロトコル通信を管理するファサードクラス
+ * @brief GUI から使う USI エンジン1台の窓口
  *
- * 内部実装を以下のクラスに委譲する:
- * - EngineProcessManager: QProcessの管理
- * - UsiProtocolHandler: USIプロトコルの送受信
- * - ThinkingInfoPresenter: GUIへの表示更新
+ * 対局・検討・棋譜解析・詰み探索の要求を受け、次の部品に頼む:
+ * - UsiEngineSession: プロセス・状態機械（UsiProtocolHandler）・探索1回の依頼
+ * - UsiMatchHandler: 対局の position/go/bestmove（先読みを含む）
+ * - ThinkingInfoFormatter: info を思考の表の行と情報欄の値にする
  *
- * @note 既存コードとの後方互換性を維持するためのインターフェース層。
+ * 思考の表・通信ログのモデルには触れない。表示する側は thinking() と process() のシグナルを受ける。
  */
 class Usi : public QObject
 ```
@@ -116,12 +116,12 @@ class Usi : public QObject
 
 ```cpp
 /**
- * @brief 棋譜ナビゲーション同期コーディネータ
+ * @brief 表示中の手（KifuNavigationState）が変わるたびに、棋譜欄・分岐候補欄・分岐ツリーを合わせる
  *
- * 移動要求を KifuNavigationController に委譲し、完了後の定跡・検討表示を更新する。
- * Deps構造体で必要なオブジェクトを受け取り、updateDeps()で再設定可能。
+ * 依存はコンストラクタで Deps 構造体にまとめて受け取る（各メンバのコメントに必須かどうかを書く）。
+ * 状態の写しは持たず、毎回 KifuNavigationState から作る。
  */
-class KifuNavigationCoordinator : public QObject
+class KifuDisplayPresenter : public QObject
 ```
 
 ---
@@ -244,7 +244,7 @@ Qt でポインタを保持する場合、**所有（親子関係）か参照か
 これはメモリリークやダングリングポインタの防止に直結する。
 
 ```cpp
-    QPointer<EngineAnalysisTab> m_analysisTab;  ///< 解析タブへの参照（非所有）
+    QPointer<ShogiView> m_view;                 ///< 盤への参照（非所有）
     QTimer* m_timer = nullptr;                  ///< 思考タイマー（thisが親、所有）
 ```
 
@@ -425,20 +425,20 @@ m_timer->stop();
 ```cpp
 // .h の例
 /**
- * @brief 対局開始フローを司るコーディネータ
+ * @brief 対局の利用者の操作を受け、対局の司令塔（MatchCoordinator）・通信対局へ頼む
  *
  * @todo remove コメントスタイルガイド適用済み
  */
-class GameStartCoordinator : public QObject
+class GameSession : public QObject, public MatchRecordSink
 
 // .cpp の例（ファイルヘッダー）
-/// @file gamestartcoordinator.cpp
-/// @brief 対局開始コーディネータクラスの実装
+/// @file gamesession.cpp
+/// @brief 対局の開始・終局・再開の実装
 /// @todo remove コメントスタイルガイド適用済み
 
 // .cpp の例（関数定義の直前）
 /// @todo remove コメントスタイルガイド適用済み
-void GameStartCoordinator::start(const StartParams& params)
+bool GameSession::startGame(const GameStartPlan& plan, bool beginSeries)
 {
     ...
 }

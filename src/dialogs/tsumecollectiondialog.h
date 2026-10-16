@@ -1,9 +1,6 @@
 #ifndef TSUMECOLLECTIONDIALOG_H
 #define TSUMECOLLECTIONDIALOG_H
 
-#include "tsumecollection.h"
-#include "tsumeevaluation.h"
-#include "tsumeprogressstore.h"
 #include "fontsizehelper.h"
 #include <QDialog>
 #include <QHash>
@@ -11,8 +8,8 @@
 #include <QTimer>
 #include <memory>
 
+class TsumeCollectionSession;
 class TsumePlayDialog;
-class TsumePositionAnalyzer;
 class QComboBox;
 class QSpinBox;
 class QLabel;
@@ -47,40 +44,29 @@ private slots:
     void startProblem();
     void playPreviousProblem();
     void playNextProblem();
-    void analyzeNext();
-    void analysisFinished(const TsumeEvaluation& result);
+    void timeoutChanged(int seconds);
+    void updateCards();
     void reanalyzePage();
     void resetCollectionProgress();
     void resetAllProgress();
-    void onFontIncrease();
-    void onFontDecrease();
 private:
     void buildUi();
     void playProblemAt(int position, int timeoutSec);
-    void refreshProgress();
+    void showStoreError();
     void resetProgress(bool allCollections);
     void rebuildPage();
     void arrangeCards();
     void updateCard(QPushButton* card);
-    void cancelAnalysis();
     void savePreferences();
     void applyFontSize();
     FontSizeHelper m_fontHelper;
     QToolButton* m_fontDecrease = nullptr;
     QToolButton* m_fontIncrease = nullptr;
     QString lengthText(int index) const;
-    QString m_file;
-    QList<TsumeProblem> m_problems;
-    QStringList m_ids;
-    QList<int> m_filtered;
-    QList<int> m_queue;
+    /// 局面集・挑戦状況・手数の判定（QObject parent 所有）
+    TsumeCollectionSession* m_session = nullptr;
+    QList<int> m_filtered;      // 絞り込んだ問題の添字（表示の並び）
     QList<QPushButton*> m_cards;
-    QHash<QString, TsumeProgressStore::Progress> m_progress;
-    QHash<QString, TsumeEvaluation> m_results;
-    std::unique_ptr<TsumeProgressStore> m_store;
-    TsumePositionAnalyzer* m_analyzer = nullptr;
-    QTimer m_analysisTimer;
-    int m_pending = -1;
     bool m_playing = false;
     QPointer<TsumePlayDialog> m_play;
     int m_playPosition = -1;   // 対局中の問題の m_filtered 内での位置

@@ -14,16 +14,11 @@ EngineAnalysisRunner::EngineAnalysisRunner(QObject* parent)
     : QObject(parent)
     , m_session(new UsiEngineSession(this))
 {
-    m_thinkTimer.setSingleShot(true);
-    m_noResponseTimer.setSingleShot(true);
-    connect(&m_thinkTimer, &QTimer::timeout, this, &EngineAnalysisRunner::onThinkTimeout);
-    connect(&m_noResponseTimer, &QTimer::timeout, this, &EngineAnalysisRunner::onNoResponse);
     connect(m_session, &UsiEngineSession::ready, this, &EngineAnalysisRunner::onSessionReady);
     connect(m_session, &UsiEngineSession::errorOccurred, this, &EngineAnalysisRunner::onSessionError);
-    connect(m_session->handler(), &UsiProtocolHandler::infoReceived,
-            this, &EngineAnalysisRunner::onInfo);
-    connect(m_session->handler(), &UsiProtocolHandler::bestMoveReceived,
-            this, &EngineAnalysisRunner::onBestMove);
+    connect(m_session, &UsiEngineSession::searchTimedOut, this, &EngineAnalysisRunner::onNoResponse);
+    connect(m_session->handler(), &UsiProtocolHandler::infoReceived, this, &EngineAnalysisRunner::onInfo);
+    connect(m_session->handler(), &UsiProtocolHandler::bestMoveReceived, this, &EngineAnalysisRunner::onBestMove);
 }
 
 bool EngineAnalysisRunner::start(const Request& request, QString* error)
@@ -40,44 +35,37 @@ void EngineAnalysisRunner::onSessionReady()
 {
     if (m_done) return;
     m_searchStarted = true;
-    const auto& request = m_request;
-
-    UsiProtocolHandler* handler = m_session->handler();
-    handler->sendSetOption(QStringLiteral("MultiPV"), QString::number(qMax(1, request.multiPv)));
-    handler->sendPosition(request.positionCommand);
-    handler->sendGoInfinite();
+    m_session->handler()->sendSetOption(QStringLiteral("MultiPV"), QString::number(qMax(1, m_request.multiPv)));
+    UsiSearchRequest search;
+    search.position = m_request.positionCommand;
+    search.go = UsiGo::infinite();
+    search.stopAfterMs = qMax(100, m_request.thinkMs);
+    search.replyTimeoutMs = kBestmoveGraceMs;
+    m_session->search(search);
     m_elapsed.start();
-    m_thinkTimer.start(qMax(100, request.thinkMs));
 }
 
 void EngineAnalysisRunner::stop()
 {
     if (m_done) return;
-    if (!m_searchStarted) { finish({}, {}); return; }
-    m_thinkTimer.stop();
-    onThinkTimeout();
+    if (!m_searchStarted) {
+        finish({}, {});
+        return;
+    }
+    m_session->stop();
 }
 
 void EngineAnalysisRunner::onInfo(const UsiInfo& info)
 {
-    if (m_done) return;
-    if (!info.hasPv()) return;
+    if (m_done || !info.hasPv()) return;
     m_latest.insert(info.multipv, info);
     emit lineUpdated(info);
 }
 
-void EngineAnalysisRunner::onThinkTimeout()
-{
-    if (m_done || !m_session->isRunning()) return;
-    m_session->handler()->sendStop();
-    m_noResponseTimer.start(kBestmoveGraceMs);
-}
-
-void EngineAnalysisRunner::onBestMove()
+void EngineAnalysisRunner::onBestMove(const UsiBestMove& result)
 {
     if (m_done) return;
-    UsiProtocolHandler* handler = m_session->handler();
-    finish(handler->bestMove(), handler->predictedMove());
+    finish(result.move, result.ponder);
 }
 
 void EngineAnalysisRunner::onNoResponse()
@@ -92,8 +80,6 @@ void EngineAnalysisRunner::onSessionError(const QString& message)
 {
     if (m_done) return;
     m_done = true;
-    m_thinkTimer.stop();
-    m_noResponseTimer.stop();
     m_session->quit();
     emit errorOccurred(message);
 }
@@ -101,8 +87,6 @@ void EngineAnalysisRunner::onSessionError(const QString& message)
 void EngineAnalysisRunner::finish(const QString& bestmove, const QString& ponder)
 {
     m_done = true;
-    m_thinkTimer.stop();
-    m_noResponseTimer.stop();
     m_session->quit();
     emit finished(bestmove, ponder);
 }

@@ -1,225 +1,199 @@
+/// @file tst_ui_display_consistency.cpp
+/// @brief 表示中の手（KifuNavigationState）と、棋譜欄・分岐候補欄・分岐ツリー・コメント欄の表示が揃うことのテスト
+///
+/// 表示する部品は状態の写しを持たず、表示中の手が変わるたびにそこから作り直す。
+/// ここでは本体と同じ部品（KifuDisplayPresenter・CommentCoordinator）を組み立て、
+/// 操作・対局の追記・ツリーの変更のあとに、各表示が表示中の手と一致するかを確かめる。
+
 #include <QtTest>
 #include <QCoreApplication>
-#include <QGraphicsView>
 #include <QGraphicsItem>
+#include <QGraphicsView>
 #include <QScrollBar>
 #include <QTableView>
+#include <QTextEdit>
+#include <QVBoxLayout>
+#include <memory>
 
-#include "kifubranchtree.h"
-#include "kifunavigationstate.h"
-#include "kifunavigationcontroller.h"
-#include "kifudisplaycoordinator.h"
-#include "kifurecordlistmodel.h"
-#include "kifubranchlistmodel.h"
-#include "kifudisplay.h"
-#include "recordpane.h"
 #include "branchtreemanager.h"
-#include "shogiboard.h"
-#include "shogimove.h"
+#include "commentcoordinator.h"
+#include "commenteditorpanel.h"
+#include "gamerecordmodel.h"
+#include "kifubranchlistmodel.h"
+#include "kifubranchnode.h"
+#include "kifubranchtree.h"
+#include "kifudisplaypresenter.h"
+#include "kifunavigationcontroller.h"
+#include "kifunavigationstate.h"
+#include "kifupresentation.h"
+#include "kifurecordlistmodel.h"
 #include "livegamesession.h"
-#include "recordnavigationhandler.h"
+#include "record_rows_helper.h"
+#include "recordpane.h"
+#include "shogimove.h"
 #include "test_replay.h"
 
 static const QString kHirateSfen =
     QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
 
-static QString buildCurrentBoardSfen(ShogiBoard* board)
+namespace {
+
+/// 本譜5手（▲７六歩 △３四歩 ▲２六歩 △８四歩 ▲２五歩）と、2手目から分かれる変化3手（▲６六歩 △８四歩 ▲６五歩）
+struct Scenario {
+    int branchLineIndex = -1;
+    KifuBranchNode* branchFirstNode = nullptr;   ///< 変化の3手目 ▲６六歩
+    KifuBranchNode* branchLeafNode = nullptr;    ///< 変化の5手目 ▲６五歩
+};
+
+Scenario buildScenarioTree(KifuBranchTree& tree)
 {
-    if (board == nullptr) {
+    Scenario scenario;
+    tree.setRootSfen(kHirateSfen);
+    const QStringList mainUsi = {QStringLiteral("7g7f"), QStringLiteral("3c3d"), QStringLiteral("2g2f"),
+                                 QStringLiteral("8c8d"), QStringLiteral("2f2e")};
+    const QStringList mainText = {QStringLiteral("▲７六歩(77)"), QStringLiteral("△３四歩(33)"),
+                                  QStringLiteral("▲２六歩(27)"), QStringLiteral("△８四歩(83)"),
+                                  QStringLiteral("▲２五歩(26)")};
+    const QStringList mainSfens = TestReplay::buildSfenRecord(kHirateSfen, mainUsi, false);
+    KifuBranchNode* current = tree.root();
+    for (int i = 0; i < mainUsi.size(); ++i)
+        current = tree.addMove(current, ShogiMove(), mainText.at(i), mainSfens.at(i + 1));
+
+    KifuBranchNode* branchParent = tree.findByPlyOnMainLine(2);
+    const QStringList branchUsi = {QStringLiteral("6g6f"), QStringLiteral("8c8d"), QStringLiteral("6f6e")};
+    const QStringList branchText = {QStringLiteral("▲６六歩(67)"), QStringLiteral("△８四歩(83)"),
+                                    QStringLiteral("▲６五歩(66)")};
+    const QStringList branchSfens = TestReplay::buildSfenRecord(branchParent->sfen(), branchUsi, false);
+    current = branchParent;
+    for (int i = 0; i < branchUsi.size(); ++i) {
+        current = tree.addMove(current, ShogiMove(), branchText.at(i), branchSfens.at(i + 1));
+        if (i == 0) scenario.branchFirstNode = current;
+    }
+    scenario.branchLeafNode = current;
+    scenario.branchLineIndex = tree.findLineIndexForNode(current).value_or(-1);
+    return scenario;
+}
+
+/// 本体と同じ組み立ての、棋譜の表示に関わる部品一式
+struct UiHarness {
+    KifuBranchTree tree;
+    KifuNavigationState state{&tree};
+    KifuNavigationController nav{&state};
+    LiveGameSession live{&tree, &state};
+    KifuRecordListModel recordModel{&tree};
+    KifuBranchListModel branchModel{&tree};
+    RecordPane recordPane{nullptr};
+    QGraphicsView branchTreeView;
+    BranchTreeManager branchTreeManager;
+    std::unique_ptr<KifuDisplayPresenter> display;
+    Scenario scenario;
+
+    UiHarness()
+    {
+        scenario = buildScenarioTree(tree);
+        recordPane.setModels(&recordModel, &branchModel);
+        branchTreeManager.setView(&branchTreeView);
+        KifuDisplayPresenter::Deps deps;
+        deps.navState = &state;
+        deps.liveSession = &live;
+        deps.recordModel = &recordModel;
+        deps.branchModel = &branchModel;
+        deps.recordView = recordPane.kifuView();
+        deps.treeView = &branchTreeManager;
+        display = std::make_unique<KifuDisplayPresenter>(deps);
+        // 本体（MainWindowComposer::wireKifu）と同じ接続
+        QObject::connect(&recordPane, &RecordPane::mainRowChanged, &nav, &KifuNavigationController::selectRecordRow);
+        QObject::connect(&recordPane, &RecordPane::branchRowActivated,
+                         &nav, &KifuNavigationController::selectBranchCandidateRow);
+        QObject::connect(&branchTreeManager, &BranchTreeManager::branchNodeActivated,
+                         &nav, &KifuNavigationController::selectBranchTreeNode);
+        QObject::connect(&nav, &KifuNavigationController::navigationRejected,
+                         display.get(), &KifuDisplayPresenter::refresh);
+        display->refresh();
+    }
+
+    /// 対局の1手（表記と局面だけ）
+    void play(const QString& text, const QString& usi)
+    {
+        const QString sfen = TestReplay::buildSfenRecord(live.liveNode()->sfen(), {usi}, false).at(1);
+        live.appendRecord(RecordEntry::played(ShogiMove(), text, sfen));
+    }
+
+    /// 表示が表示中の手と揃っているか（揃っていれば空文字、違えば理由）
+    QString inconsistency() const
+    {
+        const KifuBranchNode* current = state.currentNode();
+        const QList<KifuBranchNode*> path = live.isActive() ? tree.pathToNode(live.liveNode()) : state.selectedPath();
+        if (recordModel.rowCount() != path.size())
+            return QStringLiteral("棋譜欄の行数 %1 != 手順 %2").arg(recordModel.rowCount()).arg(path.size());
+        for (int row = 0; row < path.size(); ++row) {
+            if (recordModel.nodeAt(row) != path.at(row)) return QStringLiteral("棋譜欄の %1 行目が手順と違う").arg(row);
+        }
+        const int row = static_cast<int>(path.indexOf(current));
+        if (recordModel.currentHighlightRow() != row)
+            return QStringLiteral("棋譜欄の強調 %1 != %2").arg(recordModel.currentHighlightRow()).arg(row);
+        if (recordPane.kifuView()->currentIndex().row() != row)
+            return QStringLiteral("棋譜欄の選択 %1 != %2").arg(recordPane.kifuView()->currentIndex().row()).arg(row);
+        const QList<KifuBranchNode*> candidates = state.branchCandidatesAtCurrent();
+        if (branchModel.candidateCount() != candidates.size()) return QStringLiteral("分岐候補の数が違う");
+        if (branchModel.hasBackToMainRow() != state.offersBackToMainLine()) return QStringLiteral("「本譜へ戻る」が違う");
+        if (branchModel.currentHighlightRow() != candidates.indexOf(current)) return QStringLiteral("分岐候補の強調が違う");
+        const int treeNode = branchTreeManager.nodeIdFor(branchTreeManager.lastHighlightedRow(),
+                                                         branchTreeManager.lastHighlightedPly());
+        if (!current || treeNode != current->nodeId()) return QStringLiteral("分岐ツリーの強調が表示中の手と違う");
         return QString();
     }
-    QString standPart = board->convertStandToSfen();
-    if (standPart.isEmpty()) {
-        standPart = QStringLiteral("-");
+
+    /// 棋譜欄で分岐の印（＋）の付いた行
+    QSet<int> markedRows() const
+    {
+        QSet<int> rows;
+        for (int row = 1; row < recordModel.rowCount(); ++row) {
+            if (recordModel.data(recordModel.index(row, KifuRecordListModel::MoveColumn)).toString()
+                    .endsWith(KifuPresentation::branchMark()))
+                rows.insert(row);
+        }
+        return rows;
     }
-    const QString turnPart = turnToSfen(board->currentPlayer());
-    return QStringLiteral("%1 %2 %3 1")
-        .arg(board->convertBoardToSfen(), turnPart, standPart);
-}
+};
+
+} // namespace
+
+#define VERIFY_CONSISTENT(h) \
+    do { const QString why = (h).inconsistency(); QVERIFY2(why.isEmpty(), qPrintable(why)); } while (false)
 
 class TestUiDisplayConsistency : public QObject
 {
     Q_OBJECT
 
-private:
-    struct Scenario {
-        int branchLineIndex = -1;
-        KifuBranchNode* branchFirstNode = nullptr;
-        KifuBranchNode* branchLeafNode = nullptr;
-    };
-
-    static Scenario buildScenarioTree(KifuBranchTree& tree)
-    {
-        Scenario scenario;
-        tree.setRootSfen(kHirateSfen);
-
-        const QStringList mainUsiMoves = {
-            QStringLiteral("7g7f"),
-            QStringLiteral("3c3d"),
-            QStringLiteral("2g2f"),
-            QStringLiteral("8c8d"),
-            QStringLiteral("2f2e"),
-        };
-        const QStringList mainDisplayMoves = {
-            QStringLiteral("▲７六歩(77)"),
-            QStringLiteral("△３四歩(33)"),
-            QStringLiteral("▲２六歩(27)"),
-            QStringLiteral("△８四歩(83)"),
-            QStringLiteral("▲２五歩(26)"),
-        };
-
-        const QStringList mainSfens =
-            TestReplay::buildSfenRecord(kHirateSfen, mainUsiMoves, /*hasTerminal=*/false);
-        if (mainSfens.size() != mainUsiMoves.size() + 1) {
-            qWarning("buildScenarioTree: main SFEN record size mismatch");
-            return scenario;
-        }
-
-        ShogiMove dummyMove;
-        auto* current = tree.root();
-        QList<KifuBranchNode*> mainNodes;
-        mainNodes.append(current);  // ply 0
-        for (int i = 0; i < mainUsiMoves.size(); ++i) {
-            current = tree.addMove(current, dummyMove, mainDisplayMoves.at(i), mainSfens.at(i + 1));
-            if (current == nullptr) {
-                qWarning("buildScenarioTree: failed to add main move");
-                return scenario;
-            }
-            mainNodes.append(current);
-        }
-
-        // ply 2（2手目後）から分岐を追加
-        const QString branchBaseSfen = mainSfens.at(2);
-        const QStringList branchUsiMoves = {
-            QStringLiteral("6g6f"),
-            QStringLiteral("8c8d"),
-            QStringLiteral("6f6e"),
-        };
-        const QStringList branchDisplayMoves = {
-            QStringLiteral("▲６六歩(67)"),
-            QStringLiteral("△８四歩(83)"),
-            QStringLiteral("▲６五歩(66)"),
-        };
-        const QStringList branchSfens =
-            TestReplay::buildSfenRecord(branchBaseSfen, branchUsiMoves, /*hasTerminal=*/false);
-        if (branchSfens.size() != branchUsiMoves.size() + 1) {
-            qWarning("buildScenarioTree: branch SFEN record size mismatch");
-            return scenario;
-        }
-
-        auto* branchParent = mainNodes.at(2);  // ply 2
-        if (branchParent == nullptr) {
-            qWarning("buildScenarioTree: branch parent is null");
-            return scenario;
-        }
-
-        current = branchParent;
-        for (int i = 0; i < branchUsiMoves.size(); ++i) {
-            current = tree.addMove(current, dummyMove, branchDisplayMoves.at(i), branchSfens.at(i + 1));
-            if (current == nullptr) {
-                qWarning("buildScenarioTree: failed to add branch move");
-                return scenario;
-            }
-            if (i == 0) {
-                scenario.branchFirstNode = current;  // ply 3 の分岐ノード
-            }
-        }
-
-        scenario.branchLeafNode = current;  // ply 5
-        scenario.branchLineIndex = tree.findLineIndexForNode(current).value_or(-1);
-        return scenario;
-    }
-
-    struct UiHarness {
-        KifuBranchTree tree;
-        KifuNavigationState state;
-        KifuNavigationController nav;
-        KifuRecordListModel recordModel;
-        KifuBranchListModel branchModel;
-        RecordPane recordPane;
-        BranchTreeManager branchTreeManager;
-        QGraphicsView branchTreeView;
-        KifuDisplayCoordinator coordinator;
-        ShogiBoard board;
-        Scenario scenario;
-
-        UiHarness()
-            : recordPane(nullptr)
-            , coordinator(&tree, &state, &nav)
-            , board(9, 9, nullptr)
-        {
-            scenario = buildScenarioTree(tree);
-            nav.setTreeAndState(&tree, &state);
-
-            recordPane.setModels(&recordModel, &branchModel);
-            branchTreeManager.setView(&branchTreeView);
-
-            coordinator.setRecordPane(&recordPane);
-            coordinator.setRecordModel(&recordModel);
-            coordinator.setBranchModel(&branchModel);
-            coordinator.setBranchTreeManager(&branchTreeManager);
-            coordinator.setBoardSfenProvider([this]() {
-                return buildCurrentBoardSfen(&board);
-            });
-            QObject::connect(
-                &coordinator, &KifuDisplayCoordinator::boardWithHighlightsRequired,
-                &coordinator, [this](const QString& currentSfen, const QString&) {
-                    board.setSfen(currentSfen);
-                });
-
-            coordinator.wireSignals();
-
-            board.setSfen(kHirateSfen);
-            coordinator.onTreeChanged();
-        }
-    };
-
 private slots:
-    void liveRecordSelectionDoesNotNavigate_data()
+    /// 表示を表示中の手に合わせるとき（行が減る・増える・対局で手が足される）、棋譜欄の選択の変化を
+    /// 利用者が行を選んだ操作として知らせない（知らせると、その行へ移り直してしまう）
+    void displayUpdatesDoNotReportRowSelection()
     {
-        QTest::addColumn<bool>("ended");
-        QTest::newRow("discarded") << false;
-        QTest::newRow("terminal-recorded") << true;
-    }
-
-    void liveRecordSelectionDoesNotNavigate()
-    {
-        QFETCH(bool, ended);
         UiHarness h;
-        LiveGameSession session;
-        session.setTree(&h.tree);
-        h.coordinator.setLiveGameSession(&session);
+        QSignalSpy rows(&h.recordPane, &RecordPane::mainRowChanged);
         h.nav.goToNode(h.scenario.branchLeafNode);
-        session.startFromNode(h.scenario.branchLeafNode);
-        RecordNavigationHandler handler;
-        handler.updateDeps({&h.state, &h.coordinator, &session});
-        QSignalSpy navigated(&h.nav, &KifuNavigationController::navigationCompleted);
-        handler.onMainRowChanged(0);
-        QCOMPARE(h.state.currentNode(), h.scenario.branchLeafNode);
-        QCOMPARE(navigated.size(), 0);
-        if (ended) {
-            // 通信対局では終局後もセッションを保持するが、棋譜の閲覧は可能。
-            auto terminal = RecordEntry::ending(TerminalType::Resign, Turn::White);
-            terminal.sfen = h.scenario.branchLeafNode->sfen();
-            session.appendRecord(terminal);
-        } else {
-            session.discard();
-        }
-        handler.onMainRowChanged(0);
-        QCOMPARE(h.state.currentNode(), h.tree.root());
-        QCOMPARE(navigated.size(), 1);
-        QString reason;
-        QVERIFY2(h.coordinator.verifyDisplayConsistencyDetailed(&reason), qPrintable(reason));
+        h.nav.goBack(2);
+        h.nav.goToMainLineAtCurrentPly();
+        h.nav.goToLast();
+        h.live.startFromNode(h.state.currentNode());
+        h.play(QStringLiteral("△８五歩(84)"), QStringLiteral("8d8e"));
+        h.live.discard();
+        h.nav.goToNode(h.scenario.branchFirstNode);
+        QCOMPARE(rows.count(), 0);
+        QCOMPARE(h.state.currentNode(), h.scenario.branchFirstNode);
+        VERIFY_CONSISTENT(h);
     }
 
     /// 棋譜欄の指し手列の幅は、末尾に行を足すたびに全行を測り直した場合と同じになる
     /// （1手ごとに全行を測り直さず、足した行だけ測って今の幅と比べるため）
     void kifuColumnWidthMatchesFullMeasure()
     {
-        KifuRecordListModel model;
-        KifuBranchListModel branchModel;
+        RecordRows rows;
+        KifuBranchListModel branchModel(&rows.tree);
         RecordPane pane(nullptr);
-        pane.setModels(&model, &branchModel);
+        pane.setModels(&rows.model, &branchModel);
         pane.resize(420, 320);
         pane.show();
         QVERIFY(QTest::qWaitForWindowExposed(&pane));
@@ -229,7 +203,7 @@ private slots:
                                    QStringLiteral("▲２二角成(88)"), QStringLiteral("△同　銀(31)"),
                                    QStringLiteral("▲３三角打"), QStringLiteral("△投了")};
         for (int i = 0; i < 30; ++i) {
-            model.appendItem(new KifuDisplay(moves.at(i % moves.size()), QStringLiteral("00:01/00:00:10")));
+            rows.append(moves.at(i % moves.size()), QStringLiteral("00:01/00:00:10"));
             const int incremental = kifu->columnWidth(0);
             kifu->resizeColumnToContents(0);
             QCOMPARE(incremental, kifu->columnWidth(0));
@@ -237,468 +211,275 @@ private slots:
         }
     }
 
-    void branchLine_consistencyIncludesBoardRecordAndTree()
+    void branchLine_isShownEverywhere()
     {
         UiHarness h;
         QVERIFY(h.scenario.branchLineIndex > 0);
-        QVERIFY(h.scenario.branchLeafNode != nullptr);
         h.nav.goToNode(h.scenario.branchLeafNode);
-        QCoreApplication::processEvents();
-
-        QString reason;
-        QVERIFY2(
-            h.coordinator.verifyDisplayConsistencyDetailed(&reason),
-            qPrintable(reason + QStringLiteral("\n") + h.coordinator.consistencyReport()));
-
-        const auto snapshot = h.coordinator.captureDisplaySnapshot();
-        QCOMPARE(snapshot.stateLineIndex, h.scenario.branchLineIndex);
-        QCOMPARE(snapshot.statePly, h.scenario.branchLeafNode->ply());
-        QCOMPARE(snapshot.modelHighlightRow, h.scenario.branchLeafNode->ply());
-        QCOMPARE(snapshot.treeHighlightLineIndex, h.scenario.branchLineIndex);
-        QCOMPARE(snapshot.treeHighlightPly, h.scenario.branchLeafNode->ply());
-        QCOMPARE(snapshot.boardSfenNormalized, snapshot.stateSfenNormalized);
-        QVERIFY(snapshot.displayedMoveAtPly.contains(snapshot.expectedMoveAtPly));
+        VERIFY_CONSISTENT(h);
+        QCOMPARE(h.state.currentLineIndex(), h.scenario.branchLineIndex);
+        QCOMPARE(h.recordModel.currentHighlightRow(), h.scenario.branchLeafNode->ply());
+        QCOMPARE(h.branchTreeManager.lastHighlightedPly(), h.scenario.branchLeafNode->ply());
+        QVERIFY(h.recordModel.data(h.recordModel.index(5, KifuRecordListModel::MoveColumn)).toString()
+                    .contains(QStringLiteral("６五歩")));
     }
 
-    void branchLine_goBackOneMove_staysConsistent()
+    void branchLine_goBackOneMove_staysOnTheBranch()
     {
         UiHarness h;
-        QVERIFY(h.scenario.branchLineIndex > 0);
-        QVERIFY(h.scenario.branchLeafNode != nullptr);
         h.nav.goToNode(h.scenario.branchLeafNode);
         h.nav.goBack(1);
-        QCoreApplication::processEvents();
-
-        QString reason;
-        QVERIFY2(
-            h.coordinator.verifyDisplayConsistencyDetailed(&reason),
-            qPrintable(reason + QStringLiteral("\n") + h.coordinator.consistencyReport()));
-
-        const auto snapshot = h.coordinator.captureDisplaySnapshot();
-        QCOMPARE(snapshot.stateLineIndex, h.scenario.branchLineIndex);
-        QCOMPARE(snapshot.statePly, h.scenario.branchLeafNode->ply() - 1);
-        QCOMPARE(snapshot.treeHighlightLineIndex, h.scenario.branchLineIndex);
-        QCOMPARE(snapshot.treeHighlightPly, h.scenario.branchLeafNode->ply() - 1);
+        VERIFY_CONSISTENT(h);
+        QCOMPARE(h.state.currentLineIndex(), h.scenario.branchLineIndex);
+        QCOMPARE(h.state.currentPly(), h.scenario.branchLeafNode->ply() - 1);
+        // 戻っても、棋譜欄は変化の終わりまで出したまま
+        QCOMPARE(h.recordModel.rowCount(), h.scenario.branchLeafNode->ply() + 1);
     }
 
-    // 入れ子分岐の先頭子ノードで、ボタン操作経路と棋譜欄クリック経路の両方で
-    // 「本譜へ戻る」が表示され、一致性検証も通ること
+    /// 入れ子分岐の先頭の子でも、ボタン操作と棋譜欄の行の選択のどちらでも「本譜へ戻る」が出る
     void nestedBranchFirstChild_showsBackToMainRowOnBothPaths()
     {
         UiHarness h;
-        QVERIFY(h.scenario.branchFirstNode != nullptr);
-        QVERIFY(h.scenario.branchLeafNode != nullptr);
-
-        // 分岐ライン上の ply 4 ノードに、ply 5 の別手を追加して入れ子分岐を作る。
-        // これにより branchLeafNode は「親の最初の子」だが本譜ではないノードになる。
+        // 変化の4手目に5手目の別の手を足して入れ子分岐を作る。変化の5手目は「親の最初の子」だが本譜ではない
         KifuBranchNode* ply4 = h.scenario.branchFirstNode->childAt(0);
-        QVERIFY(ply4 != nullptr);
         QCOMPARE(ply4->childAt(0), h.scenario.branchLeafNode);
-        const QStringList nestedSfens =
-            TestReplay::buildSfenRecord(ply4->sfen(), { QStringLiteral("5g5f") }, false);
-        QCOMPARE(nestedSfens.size(), 2);
-        ShogiMove dummyMove;
-        QVERIFY(h.tree.addMove(ply4, dummyMove, QStringLiteral("▲５六歩(57)"), nestedSfens.at(1)) != nullptr);
+        const QStringList nestedSfens = TestReplay::buildSfenRecord(ply4->sfen(), {QStringLiteral("5g5f")}, false);
+        QVERIFY(h.tree.addMove(ply4, ShogiMove(), QStringLiteral("▲５六歩(57)"), nestedSfens.at(1)));
         QVERIFY(h.scenario.branchLeafNode->isMainLine());
-
         const int leafLineIndex = h.tree.findLineIndexForNode(h.scenario.branchLeafNode).value_or(-1);
         QVERIFY(leafLineIndex > 0);
 
-        // 経路1: ナビゲーション操作（KifuNavigationController → applyBranchCandidates）
+        // 経路1: ナビゲーション操作
         h.nav.goToNode(h.scenario.branchLeafNode);
-        QCoreApplication::processEvents();
         QCOMPARE(h.state.currentLineIndex(), leafLineIndex);
         QVERIFY(!h.state.isOnMainLine());
-        QCOMPARE(h.branchModel.branchCandidateCount(), 2);
+        QCOMPARE(h.branchModel.candidateCount(), 2);
         QVERIFY(h.branchModel.hasBackToMainRow());
-        QString reason;
-        QVERIFY2(h.coordinator.verifyDisplayConsistencyDetailed(&reason),
-                 qPrintable(reason + QStringLiteral("\n") + h.coordinator.consistencyReport()));
+        VERIFY_CONSISTENT(h);
 
-        // 経路2: 棋譜欄の行変更（onPositionChanged → 共通ナビゲーション）
+        // 経路2: 棋譜欄の行の選択
         h.nav.goToNode(ply4);
-        QCoreApplication::processEvents();
-        QVERIFY(!h.branchModel.hasBackToMainRow());   // ply 4 は分岐候補なし
-        // 行選択の要求だけで盤面・ハイライトも同期される。
-        h.coordinator.onPositionChanged(leafLineIndex, h.scenario.branchLeafNode->ply(), QString());
+        QVERIFY(!h.branchModel.hasBackToMainRow());   // 4手目は分岐候補なし
+        emit h.recordPane.mainRowChanged(h.scenario.branchLeafNode->ply());
         QCOMPARE(h.state.currentNode(), h.scenario.branchLeafNode);
-        QCOMPARE(h.branchModel.branchCandidateCount(), 2);
+        QCOMPARE(h.branchModel.candidateCount(), 2);
         QVERIFY(h.branchModel.hasBackToMainRow());
-        QVERIFY2(h.coordinator.verifyDisplayConsistencyDetailed(&reason),
-                 qPrintable(reason + QStringLiteral("\n") + h.coordinator.consistencyReport()));
+        VERIFY_CONSISTENT(h);
 
-        // 本譜側の同手数ノード（分岐点の最初の子）では両経路とも非表示
+        // 本譜側の同じ手数（分岐点の最初の子）では出さない
         h.nav.goToMainLineAtCurrentPly();
-        QCoreApplication::processEvents();
         QVERIFY(h.state.isOnMainLine());
         QVERIFY(!h.branchModel.hasBackToMainRow());
+        VERIFY_CONSISTENT(h);
     }
 
-    // 分岐候補欄: シングルクリックで clicked と activated の両方が発火する環境でも
-    // branchActivated は1回だけ発火し、キーボード起因の activated 単独は従来どおり発火すること
-    void branchView_clickThenActivateEmitsBranchActivatedOnce()
+    /// 分岐候補欄: シングルクリックで clicked と activated の両方が出る環境でも行の選択は1回だけ知らせ、
+    /// キーボードによる activated だけのときも知らせる
+    void branchView_clickThenActivateEmitsOnce()
     {
         UiHarness h;
-        QList<KifDisplayItem> items;
-        items.append(KifDisplayItem(QStringLiteral("▲２六歩(27)")));
-        items.append(KifDisplayItem(QStringLiteral("▲６六歩(67)")));
-        h.branchModel.updateBranchCandidates(items);
+        h.branchModel.setCandidates({h.tree.findByPlyOnMainLine(3), h.scenario.branchFirstNode}, 0, false);
         QTableView* view = h.recordPane.branchView();
         QVERIFY(view != nullptr);
         const QModelIndex idx0 = h.branchModel.index(0, 0);
         const QModelIndex idx1 = h.branchModel.index(1, 0);
 
-        QSignalSpy spy(&h.recordPane, &RecordPane::branchActivated);
-
-        // マウスクリック: clicked → activated が同一イベント内で連続発火
+        QSignalSpy spy(&h.recordPane, &RecordPane::branchRowActivated);
         emit view->clicked(idx0);
         emit view->activated(idx0);
         QCOMPARE(spy.count(), 1);
 
-        // 別の行の activated はガード対象外
         emit view->activated(idx1);
         QCOMPARE(spy.count(), 2);
 
-        // イベントループが回ればガードは解除され、Enter キーなど activated 単独でも発火する
         QTest::qWait(1);
         emit view->activated(idx0);
         QCOMPARE(spy.count(), 3);
     }
 
-    // ライブ対局中の1手追加では盤面更新要求を出さず（盤面は対局ロジックが更新済み）、
-    // ナビゲーション状態・棋譜欄・分岐ツリー・分岐候補のハイライトだけを最新手に同期すること。
-    // 対局終了後の「戻る→進む」で最新手の経路を辿れること。
-    void liveGameMove_doesNotReloadBoardButSyncsHighlights()
+    /// 対局で手を足すと、表示中の手がその手へ移り、棋譜欄・分岐ツリー・分岐候補が合う。
+    /// 対局を終えたあと、戻る→進むで対局の手順をたどれる
+    void liveGameMove_followsTheNewMove()
     {
         UiHarness h;
-        LiveGameSession session;
-        session.setTree(&h.tree);
-        h.coordinator.setLiveGameSession(&session);
-
-        // 本譜3手目（▲２六歩）から対局開始。本譜の4手目は△８四歩なので別の手で分岐を作る
         KifuBranchNode* start = h.tree.findByPlyOnMainLine(3);
-        QVERIFY(start != nullptr);
         h.nav.goToNode(start);
-        QCoreApplication::processEvents();
-        session.startFromNode(start);
-        QVERIFY(session.isActive());
+        h.live.startFromNode(start);
+        QVERIFY(h.live.isActive());
 
-        QSignalSpy boardSpy(&h.coordinator, &KifuDisplayCoordinator::boardWithHighlightsRequired);
-        QSignalSpy sfenSpy(&h.coordinator, &KifuDisplayCoordinator::boardSfenChanged);
-
-        const QString sfen4 =
-            TestReplay::buildSfenRecord(start->sfen(), { QStringLiteral("4a3b") }, false).at(1);
-        // 実アプリでは対局ロジックが盤面を更新し、GameRecordPresenter が棋譜欄に行を追加してから
-        // LiveGameSession に手が入る。ここではその2つを模倣する。
-        h.board.setSfen(sfen4);
-        h.recordModel.appendItem(new KifuDisplay(QStringLiteral("   4 △３二金(41)"), QStringLiteral("0:01"),
-                                                 QString(), QString(), &h.recordModel));
-        ShogiMove dummyMove;
-        session.addMove(dummyMove, QStringLiteral("△３二金(41)"), sfen4, QStringLiteral("0:01"));
-        QCoreApplication::processEvents();
-
-        QCOMPARE(boardSpy.count(), 0);   // 盤面の再設定要求は出ない
-        QCOMPARE(sfenSpy.count(), 0);
-
-        KifuBranchNode* live = session.liveNode();
-        QVERIFY(live != nullptr);
+        // 本譜の4手目は△８四歩なので、別の手で分岐を作る
+        QSignalSpy changed(&h.state, &KifuNavigationState::changed);
+        h.play(QStringLiteral("△３二金(41)"), QStringLiteral("4a3b"));
+        QCOMPARE(changed.count(), 1);   // 1手につき1回だけ描き直す
+        KifuBranchNode* live = h.live.liveNode();
         QCOMPARE(live->ply(), 4);
         QCOMPARE(h.state.currentNode(), live);
         QVERIFY(!h.state.isOnMainLine());
         QCOMPARE(h.recordModel.currentHighlightRow(), 4);
         QCOMPARE(h.branchTreeManager.lastHighlightedPly(), 4);
-        QCOMPARE(h.branchTreeManager.lastHighlightedRow(), h.state.currentLineIndex());
-        QCOMPARE(h.branchModel.branchCandidateCount(), 2);   // △８四歩 / △３二金
+        QCOMPARE(h.branchModel.candidateCount(), 2);   // △８四歩 / △３二金
         QVERIFY(h.branchModel.hasBackToMainRow());
+        VERIFY_CONSISTENT(h);
 
-        QString reason;
-        QVERIFY2(h.coordinator.verifyDisplayConsistencyDetailed(&reason),
-                 qPrintable(reason + QStringLiteral("\n") + h.coordinator.consistencyReport()));
-
-        // 2手目以降も同様
-        const QString sfen5 =
-            TestReplay::buildSfenRecord(sfen4, { QStringLiteral("2f2e") }, false).at(1);
-        h.board.setSfen(sfen5);
-        h.recordModel.appendItem(new KifuDisplay(QStringLiteral("   5 ▲２五歩(26)"), QStringLiteral("0:02"),
-                                                 QString(), QString(), &h.recordModel));
-        session.addMove(dummyMove, QStringLiteral("▲２五歩(26)"), sfen5, QStringLiteral("0:02"));
-        QCoreApplication::processEvents();
-        QCOMPARE(boardSpy.count(), 0);
-        QCOMPARE(h.state.currentNode(), session.liveNode());
+        h.play(QStringLiteral("▲２五歩(26)"), QStringLiteral("2f2e"));
+        QCOMPARE(h.state.currentNode(), h.live.liveNode());
         QCOMPARE(h.recordModel.currentHighlightRow(), 5);
-        QVERIFY2(h.coordinator.verifyDisplayConsistencyDetailed(&reason),
-                 qPrintable(reason + QStringLiteral("\n") + h.coordinator.consistencyReport()));
+        VERIFY_CONSISTENT(h);
 
-        // 対局終了後: 戻る→進むで最新手の経路（△３二金→▲２五歩）を辿る
-        KifuBranchNode* end = session.commit();
+        KifuBranchNode* end = h.live.commit();
         QVERIFY(end != nullptr);
-        QCoreApplication::processEvents();
         h.nav.goBack(2);
         QCOMPARE(h.state.currentNode(), start);
         h.nav.goForward(2);
         QCOMPARE(h.state.currentNode(), end);
     }
 
-    // ライブ対局中の「+」マークは表示中ラインの経路だけから決まり、
-    // 別ラインにある同じ手数の分岐を拾わないこと。新たな分岐点ができれば付くこと。
+    /// 棋譜欄の分岐の印（＋）は表示中の手順の分岐点だけに付き、別の手順の同じ手数の分岐は拾わない。
+    /// 対局で新しい分岐点ができれば付く
     void liveGameBranchMarks_followDisplayedPathOnly()
     {
         UiHarness h;
-        // 分岐ライン（▲６六歩）の3手目ノードに4手目の別手を足して入れ子分岐を作る。
-        // これで「4手目に分岐点があるが、本譜の4手目ノードは分岐ではない」状態になる。
-        KifuBranchNode* a3 = h.scenario.branchFirstNode;   // ply 3 ▲６六歩
-        QVERIFY(a3 != nullptr);
-        const QString nestedSfen =
-            TestReplay::buildSfenRecord(a3->sfen(), { QStringLiteral("4a3b") }, false).at(1);
-        ShogiMove dummyMove;
-        QVERIFY(h.tree.addMove(a3, dummyMove, QStringLiteral("△３二金(41)"), nestedSfen) != nullptr);
-        QCOMPARE(a3->childCount(), 2);
+        // 変化の3手目に4手目の別の手を足す（4手目に分岐点があるが、本譜の4手目は分岐ではない）
+        KifuBranchNode* a3 = h.scenario.branchFirstNode;
+        const QString nestedSfen = TestReplay::buildSfenRecord(a3->sfen(), {QStringLiteral("4a3b")}, false).at(1);
+        QVERIFY(h.tree.addMove(a3, ShogiMove(), QStringLiteral("△３二金(41)"), nestedSfen));
 
-        LiveGameSession session;
-        session.setTree(&h.tree);
-        h.coordinator.setLiveGameSession(&session);
-
-        // 本譜5手目（▲２五歩、本譜の末尾）から対局開始
         KifuBranchNode* start = h.tree.findByPlyOnMainLine(5);
-        QVERIFY(start != nullptr);
         QCOMPARE(start->childCount(), 0);
         h.nav.goToNode(start);
-        QCoreApplication::processEvents();
-        session.startFromNode(start);
+        h.live.startFromNode(start);
+        QCOMPARE(h.markedRows(), QSet<int>{3});
 
-        // 開始時点: 経路上の分岐点は3手目（本譜▲２六歩 vs 分岐▲６六歩）だけ
-        QVERIFY(h.recordModel.branchPlyMarks() == QSet<int>{3});
-
-        const QString sfen6 =
-            TestReplay::buildSfenRecord(start->sfen(), { QStringLiteral("8d8e") }, false).at(1);
-        h.board.setSfen(sfen6);
-        h.recordModel.appendItem(new KifuDisplay(QStringLiteral("   6 △８五歩(84)"), QStringLiteral("0:01"),
-                                                 QString(), QString(), &h.recordModel));
-        session.addMove(dummyMove, QStringLiteral("△８五歩(84)"), sfen6, QStringLiteral("0:01"));
-        QCoreApplication::processEvents();
-
-        // 4手目の分岐は分岐ライン側のものなので、表示中の本譜4手目には「+」を付けない
-        QVERIFY(h.recordModel.branchPlyMarks() == QSet<int>{3});
+        h.play(QStringLiteral("△８五歩(84)"), QStringLiteral("8d8e"));
+        QCOMPARE(h.markedRows(), QSet<int>{3});
         QCOMPARE(h.recordModel.currentHighlightRow(), 6);
 
-        // 本譜4手目（△８四歩）の局面から別の手を指すと、5手目に新しい分岐点ができる
-        QVERIFY(session.commit() != nullptr);
-        QCoreApplication::processEvents();
+        // 本譜4手目の局面から別の手を指すと、5手目に新しい分岐点ができる
+        QVERIFY(h.live.commit() != nullptr);
         KifuBranchNode* main4 = h.tree.findByPlyOnMainLine(4);
-        QVERIFY(main4 != nullptr);
         h.nav.goToNode(main4);
-        QCoreApplication::processEvents();
-
-        LiveGameSession session2;
-        session2.setTree(&h.tree);
-        h.coordinator.setLiveGameSession(&session2);
-        session2.startFromNode(main4);
-        QVERIFY(h.recordModel.branchPlyMarks() == QSet<int>{3});
-
-        const QString sfen5b =
-            TestReplay::buildSfenRecord(main4->sfen(), { QStringLiteral("6g6f") }, false).at(1);
-        h.board.setSfen(sfen5b);
-        h.recordModel.appendItem(new KifuDisplay(QStringLiteral("   5 ▲６六歩(67)"), QStringLiteral("0:01"),
-                                                 QString(), QString(), &h.recordModel));
-        session2.addMove(dummyMove, QStringLiteral("▲６六歩(67)"), sfen5b, QStringLiteral("0:01"));
-        QCoreApplication::processEvents();
-
-        QVERIFY(h.recordModel.branchPlyMarks() == (QSet<int>{3, 5}));
+        h.live.startFromNode(main4);
+        QCOMPARE(h.markedRows(), QSet<int>{3});
+        h.play(QStringLiteral("▲６六歩(67)"), QStringLiteral("6g6f"));
+        QCOMPARE(h.markedRows(), (QSet<int>{3, 5}));
         QCOMPARE(h.recordModel.currentHighlightRow(), 5);
-        QString reason;
-        QVERIFY2(h.coordinator.verifyDisplayConsistencyDetailed(&reason),
-                 qPrintable(reason + QStringLiteral("\n") + h.coordinator.consistencyReport()));
+        VERIFY_CONSISTENT(h);
+        h.live.discard();
     }
 
-    // 途中局面からの対局中に既存の続きと同じ手を指し直すと、現在ノードは既存ライン上に
-    // 留まる（ノード再利用）。棋譜欄は現在の手までしか表示しないので、ラインの長さとの
-    // 行数比較では誤って不一致になる。対局中は現在手数+1 を期待値とすること。
-    void liveGameReplayOnExistingLine_consistencyUsesCurrentPlyAsRowCount()
+    /// 途中局面からの対局で既存の続きと同じ手を指し直すと、既存の手を使う。
+    /// 対局中の棋譜欄は対局の最新の手まで（既存の続きは出さない）、終われば手順の終わりまで出す
+    void liveGameReplayOnExistingLine_showsMovesUpToTheLiveMove()
     {
         UiHarness h;
-        LiveGameSession session;
-        session.setTree(&h.tree);
-        h.coordinator.setLiveGameSession(&session);
-
-        // 本譜2手目（△３四歩）から対局開始。本譜はこの先3手続く（3,4,5手目）
         KifuBranchNode* start = h.tree.findByPlyOnMainLine(2);
         KifuBranchNode* main3 = h.tree.findByPlyOnMainLine(3);
-        QVERIFY(start != nullptr && main3 != nullptr);
-        QCOMPARE(h.tree.allLines().at(0).nodes.size(), 6);
         h.nav.goToNode(start);
-        QCoreApplication::processEvents();
-        session.startFromNode(start);
+        h.live.startFromNode(start);
         QCOMPARE(h.recordModel.rowCount(), 3);   // 開始局面〜2手目
 
-        // 本譜3手目と同じ▲２六歩を指し直す → 既存ノードを再利用し、ライン0のまま
-        h.board.setSfen(main3->sfen());
-        h.recordModel.appendItem(new KifuDisplay(QStringLiteral("   3 ▲２六歩(27)"), QStringLiteral("0:01"),
-                                                 QString(), QString(), &h.recordModel));
-        ShogiMove dummyMove;
-        session.addMove(dummyMove, QStringLiteral("▲２六歩(27)"), main3->sfen(), QStringLiteral("0:01"));
-        QCoreApplication::processEvents();
-
-        QCOMPARE(session.liveNode(), main3);
+        h.live.appendRecord(RecordEntry::played(ShogiMove(), QStringLiteral("▲２六歩(27)"), main3->sfen()));
+        QCOMPARE(h.live.liveNode(), main3);
         QCOMPARE(h.state.currentLineIndex(), 0);
-        QCOMPARE(h.recordModel.rowCount(), 4);   // 既存の続き（4,5手目）は表示しない
+        QCOMPARE(h.recordModel.rowCount(), 4);
         QCOMPARE(h.recordModel.currentHighlightRow(), 3);
+        VERIFY_CONSISTENT(h);
 
-        QString reason;
-        QVERIFY2(h.coordinator.verifyDisplayConsistencyDetailed(&reason),
-                 qPrintable(reason + QStringLiteral("\n") + h.coordinator.consistencyReport()));
-        QVERIFY(h.coordinator.captureDisplaySnapshot().liveSessionActive);
-
-        // 対局終了後は通常の検証（ラインの長さ基準）に戻る
-        QVERIFY(session.commit() != nullptr);
-        QCoreApplication::processEvents();
-        QVERIFY(!h.coordinator.captureDisplaySnapshot().liveSessionActive);
-        QCOMPARE(h.recordModel.rowCount(), 6);   // 続きを含む本譜全体が再表示される
-        QVERIFY2(h.coordinator.verifyDisplayConsistencyDetailed(&reason),
-                 qPrintable(reason + QStringLiteral("\n") + h.coordinator.consistencyReport()));
+        QVERIFY(h.live.commit() != nullptr);
+        QCOMPARE(h.recordModel.rowCount(), 6);   // 続きを含む本譜全体
+        VERIFY_CONSISTENT(h);
     }
 
-    // ライブ対局中の分岐ツリー更新: 既存ライン末尾への追加は差分描画、
-    // 指し直しによるノード再利用は何もしない、新規ラインの発生時だけ全再構築する
+    /// 対局中の分岐ツリー: 手順の末尾への追加は描き足すだけ、既存の手の再利用は何もしない、
+    /// 新しい手順ができたときだけ全体を作り直す
     void liveGameMoves_updateBranchTreeIncrementally()
     {
         UiHarness h;
-        LiveGameSession session;
-        session.setTree(&h.tree);
-        h.coordinator.setLiveGameSession(&session);
-        ShogiMove dummyMove;
-
-        // (1) 本譜の末尾（5手目）から2手延長 → 差分追加のみ
+        // (1) 本譜の末尾（5手目）から2手延長 → 描き足すだけ
         KifuBranchNode* main5 = h.tree.findByPlyOnMainLine(5);
-        QVERIFY(main5 != nullptr && main5->childCount() == 0);
         h.nav.goToNode(main5);
-        QCoreApplication::processEvents();
-        session.startFromNode(main5);
+        h.live.startFromNode(main5);
         const int rebuildsBefore = h.branchTreeManager.rebuildCount();
         const int rowsBefore = h.branchTreeManager.rowCount();
 
-        const QString sfen6 = TestReplay::buildSfenRecord(main5->sfen(), { QStringLiteral("8d8e") }, false).at(1);
-        h.board.setSfen(sfen6);
-        h.recordModel.appendItem(new KifuDisplay(QStringLiteral("   6 △８五歩(84)"), QString(), QString(), QString(), &h.recordModel));
-        session.addMove(dummyMove, QStringLiteral("△８五歩(84)"), sfen6, QString());
-        QCoreApplication::processEvents();
+        h.play(QStringLiteral("△８五歩(84)"), QStringLiteral("8d8e"));
         QCOMPARE(h.branchTreeManager.rebuildCount(), rebuildsBefore);
         QCOMPARE(h.branchTreeManager.rowCount(), rowsBefore);
         QVERIFY(h.branchTreeManager.nodeIdFor(0, 6) > 0);
         QCOMPARE(h.branchTreeManager.rowDispCount(0), 7);
-        QCOMPARE(h.branchTreeManager.lastHighlightedRow(), 0);
         QCOMPARE(h.branchTreeManager.lastHighlightedPly(), 6);
 
-        const QString sfen7 = TestReplay::buildSfenRecord(sfen6, { QStringLiteral("6i7h") }, false).at(1);
-        h.board.setSfen(sfen7);
-        h.recordModel.appendItem(new KifuDisplay(QStringLiteral("   7 ▲７八金(69)"), QString(), QString(), QString(), &h.recordModel));
-        session.addMove(dummyMove, QStringLiteral("▲７八金(69)"), sfen7, QString());
-        QCoreApplication::processEvents();
+        h.play(QStringLiteral("▲７八金(69)"), QStringLiteral("6i7h"));
         QCOMPARE(h.branchTreeManager.rebuildCount(), rebuildsBefore);
         QVERIFY(h.branchTreeManager.nodeIdFor(0, 7) > 0);
         QCOMPARE(h.branchTreeManager.lastHighlightedPly(), 7);
-        QString reason;
-        QVERIFY2(h.coordinator.verifyDisplayConsistencyDetailed(&reason),
-                 qPrintable(reason + QStringLiteral("\n") + h.coordinator.consistencyReport()));
+        VERIFY_CONSISTENT(h);
+        QVERIFY(h.live.commit() != nullptr);
 
-        // 終局（commit）時は従来どおり全再構築
-        QVERIFY(session.commit() != nullptr);
-        QCoreApplication::processEvents();
-        QCOMPARE(h.branchTreeManager.rebuildCount(), rebuildsBefore + 1);
-        QVERIFY(h.branchTreeManager.nodeIdFor(0, 7) > 0);
-
-        // (2) 本譜2手目から本譜3手目と同じ手を指し直す → ノード再利用、再構築も追加も無し
+        // (2) 本譜2手目から本譜3手目と同じ手を指し直す → 既存の手を使い、作り直しも描き足しも無し
         KifuBranchNode* main2 = h.tree.findByPlyOnMainLine(2);
         KifuBranchNode* main3 = h.tree.findByPlyOnMainLine(3);
         h.nav.goToNode(main2);
-        QCoreApplication::processEvents();
-        LiveGameSession session2;
-        session2.setTree(&h.tree);
-        h.coordinator.setLiveGameSession(&session2);
-        session2.startFromNode(main2);
+        h.live.startFromNode(main2);
         const int rebuilds2 = h.branchTreeManager.rebuildCount();
-        h.board.setSfen(main3->sfen());
-        h.recordModel.appendItem(new KifuDisplay(QStringLiteral("   3 ▲２六歩(27)"), QString(), QString(), QString(), &h.recordModel));
-        session2.addMove(dummyMove, QStringLiteral("▲２六歩(27)"), main3->sfen(), QString());
-        QCoreApplication::processEvents();
-        QCOMPARE(session2.liveNode(), main3);
+        h.live.appendRecord(RecordEntry::played(ShogiMove(), QStringLiteral("▲２六歩(27)"), main3->sfen()));
+        QCOMPARE(h.live.liveNode(), main3);
         QCOMPARE(h.branchTreeManager.rebuildCount(), rebuilds2);
         QCOMPARE(h.branchTreeManager.lastHighlightedPly(), 3);
 
-        // (3) 本譜3手目の局面から別の手 → 新規ライン: 全再構築で行が増える。続く手は差分追加
-        const QString sfen4b = TestReplay::buildSfenRecord(main3->sfen(), { QStringLiteral("4a3b") }, false).at(1);
-        h.board.setSfen(sfen4b);
-        h.recordModel.appendItem(new KifuDisplay(QStringLiteral("   4 △３二金(41)"), QString(), QString(), QString(), &h.recordModel));
-        session2.addMove(dummyMove, QStringLiteral("△３二金(41)"), sfen4b, QString());
-        QCoreApplication::processEvents();
+        // (3) 本譜3手目の局面から別の手 → 新しい手順なので作り直して行が増える。続く手は描き足すだけ
+        h.play(QStringLiteral("△３二金(41)"), QStringLiteral("4a3b"));
         QCOMPARE(h.branchTreeManager.rebuildCount(), rebuilds2 + 1);
         QCOMPARE(h.branchTreeManager.rowCount(), rowsBefore + 1);
-        const int newLine = h.tree.findLineIndexForNode(session2.liveNode()).value_or(-1);
+        const int newLine = h.tree.findLineIndexForNode(h.live.liveNode()).value_or(-1);
         QVERIFY(newLine > 0);
         QVERIFY(h.branchTreeManager.nodeIdFor(newLine, 4) > 0);
-        QCOMPARE(h.branchTreeManager.lastHighlightedRow(), newLine);
 
-        const QString sfen5b = TestReplay::buildSfenRecord(sfen4b, { QStringLiteral("2f2e") }, false).at(1);
-        h.board.setSfen(sfen5b);
-        h.recordModel.appendItem(new KifuDisplay(QStringLiteral("   5 ▲２五歩(26)"), QString(), QString(), QString(), &h.recordModel));
-        session2.addMove(dummyMove, QStringLiteral("▲２五歩(26)"), sfen5b, QString());
-        QCoreApplication::processEvents();
-        QCOMPARE(h.branchTreeManager.rebuildCount(), rebuilds2 + 1);   // 差分追加のみ
+        h.play(QStringLiteral("▲２五歩(26)"), QStringLiteral("2f2e"));
+        QCOMPARE(h.branchTreeManager.rebuildCount(), rebuilds2 + 1);
         QVERIFY(h.branchTreeManager.nodeIdFor(newLine, 5) > 0);
         QCOMPARE(h.branchTreeManager.rowDispCount(newLine), 6);
         QCOMPARE(h.branchTreeManager.lastHighlightedPly(), 5);
-        QVERIFY2(h.coordinator.verifyDisplayConsistencyDetailed(&reason),
-                 qPrintable(reason + QStringLiteral("\n") + h.coordinator.consistencyReport()));
+        VERIFY_CONSISTENT(h);
+        h.live.discard();
     }
 
-    // 対局外で盤上の手を記録したとき（treeChanged による更新）も、手順の末尾に1手足すだけなら
-    // 分岐ツリーはその手を描き足すだけにする。新しい変化ができたときは作り直す
+    /// 対局外でツリーに手を足したとき（盤上の着手の記録・分岐の編集）も、手順の末尾に1手足すだけなら
+    /// 分岐ツリーは描き足すだけにする。新しい変化ができたときは作り直す
     void treeChangedAppendsMoveWithoutRebuild()
     {
         UiHarness h;
         KifuBranchNode* main5 = h.tree.findByPlyOnMainLine(5);
-        QVERIFY(main5 != nullptr && main5->childCount() == 0);
         h.nav.goToNode(main5);
-        QCoreApplication::processEvents();
         const int rebuildsBefore = h.branchTreeManager.rebuildCount();
         const int rowsBefore = h.branchTreeManager.rowCount();
 
-        const QString sfen6 = TestReplay::buildSfenRecord(main5->sfen(), { QStringLiteral("8d8e") }, false).at(1);
+        const QString sfen6 = TestReplay::buildSfenRecord(main5->sfen(), {QStringLiteral("8d8e")}, false).at(1);
         KifuBranchNode* added = h.tree.addMove(main5, ShogiMove(), QStringLiteral("△８五歩(84)"), sfen6);
         QVERIFY(added != nullptr);
         h.nav.goToNode(added);
-        QCoreApplication::processEvents();
         QCOMPARE(h.branchTreeManager.rebuildCount(), rebuildsBefore);
         QCOMPARE(h.branchTreeManager.rowCount(), rowsBefore);
-        QVERIFY(h.branchTreeManager.nodeIdFor(0, 6) > 0);
         QCOMPARE(h.branchTreeManager.rowDispCount(0), 7);
         QCOMPARE(h.branchTreeManager.lastHighlightedPly(), 6);
-        QString reason;
-        QVERIFY2(h.coordinator.verifyDisplayConsistencyDetailed(&reason),
-                 qPrintable(reason + QStringLiteral("\n") + h.coordinator.consistencyReport()));
+        VERIFY_CONSISTENT(h);
 
         KifuBranchNode* main3 = h.tree.findByPlyOnMainLine(3);
-        const QString sfen4b = TestReplay::buildSfenRecord(main3->sfen(), { QStringLiteral("4a3b") }, false).at(1);
+        const QString sfen4b = TestReplay::buildSfenRecord(main3->sfen(), {QStringLiteral("4a3b")}, false).at(1);
         KifuBranchNode* branch = h.tree.addMove(main3, ShogiMove(), QStringLiteral("△３二金(41)"), sfen4b);
         QVERIFY(branch != nullptr);
         h.nav.goToNode(branch);
-        QCoreApplication::processEvents();
         QCOMPARE(h.branchTreeManager.rebuildCount(), rebuildsBefore + 1);
         QCOMPARE(h.branchTreeManager.rowCount(), rowsBefore + 1);
-        QVERIFY2(h.coordinator.verifyDisplayConsistencyDetailed(&reason),
-                 qPrintable(reason + QStringLiteral("\n") + h.coordinator.consistencyReport()));
+        VERIFY_CONSISTENT(h);
     }
 
-    /// 移動前の確認（未更新のコメントの破棄）でやめたときは、ボタン・分岐候補・分岐ツリーの
-    /// どの操作でも移動せず、クリックで変わった強調も現在の手に戻す
+    /// 移る前の確認（未更新のコメントの破棄）でやめたときは、ボタン・分岐候補・分岐ツリーの
+    /// どの操作でも移らず、クリックで変わった強調も表示中の手に戻す
     void leaveGuard_cancelKeepsPositionAndHighlights()
     {
         UiHarness h;
-        h.nav.goToPly(2);   // 3手目に分岐がある局面（本譜）
-        QCoreApplication::processEvents();
-        QCOMPARE(h.state.currentPly(), 2);
-        h.nav.goForward(1);
-        QCoreApplication::processEvents();
-        QCOMPARE(h.state.currentPly(), 3);
+        h.nav.goToPly(3);   // 3手目に分岐がある（本譜）
         QCOMPARE(h.branchModel.currentHighlightRow(), 0);
 
         int asked = 0;
@@ -707,22 +488,18 @@ private slots:
 
         h.nav.onNextClicked();
         h.nav.onFirstClicked();
-        h.branchModel.setCurrentHighlightRow(1);   // 分岐候補をクリックしたときと同じ
-        h.coordinator.onBranchCandidateActivated(h.branchModel.index(1, 0));
+        emit h.recordPane.branchRowActivated(1);
         h.branchTreeManager.highlightBranchTreeAt(h.scenario.branchLineIndex, 3, false);
-        h.nav.handleBranchNodeActivated(h.scenario.branchLineIndex, 3);
-        QCoreApplication::processEvents();
+        emit h.branchTreeManager.branchNodeActivated(h.scenario.branchLineIndex, 3);
 
         QCOMPARE(asked, 4);
         QCOMPARE(h.state.currentPly(), 3);
         QCOMPARE(h.state.currentLineIndex(), 0);
         QCOMPARE(h.branchModel.currentHighlightRow(), 0);
-        QCOMPARE(h.branchTreeManager.lastHighlightedRow(), 0);
-        QCOMPARE(h.branchTreeManager.lastHighlightedPly(), 3);
+        VERIFY_CONSISTENT(h);
 
         allow = true;
         h.nav.onNextClicked();
-        QCoreApplication::processEvents();
         QCOMPARE(asked, 5);
         QCOMPARE(h.state.currentPly(), 4);
     }
@@ -763,134 +540,53 @@ private slots:
         QCOMPARE(h.branchTreeView.horizontalScrollBar()->value(), x);
     }
 
-    void detectsTreeHighlightMismatch()
+    /// 棋譜欄の行の選択は、表示中の手順のその手へ移る（ボタンと同じく1回だけ知らせる）。
+    /// 無い行は別の手順の同じ手数へ移らない
+    void rowSelectionMovesWithinTheShownLine()
     {
         UiHarness h;
-        QVERIFY(h.scenario.branchLeafNode != nullptr);
-        h.nav.goToNode(h.scenario.branchLeafNode);
-        QCoreApplication::processEvents();
-
-        h.branchTreeManager.highlightBranchTreeAt(0, 0, /*centerOn=*/false);
-
-        QString reason;
-        QVERIFY(!h.coordinator.verifyDisplayConsistencyDetailed(&reason));
-        QVERIFY(reason.contains(QStringLiteral("分岐ツリーハイライト")));
+        h.nav.goToNode(h.scenario.branchFirstNode);
+        QSignalSpy changed(&h.state, &KifuNavigationState::changed);
+        emit h.recordPane.mainRowChanged(h.scenario.branchLeafNode->ply());
+        QCOMPARE(changed.count(), 1);
+        QCOMPARE(h.state.currentNode(), h.scenario.branchLeafNode);
+        VERIFY_CONSISTENT(h);
+        h.nav.selectRecordRow(999);
+        QCOMPARE(changed.count(), 1);
+        QCOMPARE(h.state.currentNode(), h.scenario.branchLeafNode);
     }
 
-    void rowSelectionUsesTheSameNodeNavigation()
+    /// コメント欄は、どの操作で移っても表示中の手のコメントを出す（空なら空のまま）
+    void commentFollowsTheCurrentMove()
     {
         UiHarness h;
-        QVERIFY(h.scenario.branchFirstNode != nullptr);
-        // 初期状態では本譜が棋譜欄に表示されている状態
-        QCOMPARE(h.state.currentLineIndex(), 0);
+        QWidget host;
+        auto* layout = new QVBoxLayout(&host);
+        CommentEditorPanel editor;
+        layout->addWidget(editor.buildCommentUi(&host));
+        auto* edit = host.findChild<QTextEdit*>(QStringLiteral("kifuCommentEdit"));
+        QVERIFY(edit != nullptr);
+        GameRecordModel record;
+        record.setBranchTree(&h.tree);
+        CommentCoordinator::Deps deps;
+        deps.editor = &editor;
+        deps.navState = &h.state;
+        deps.gameRecord = &record;
+        CommentCoordinator comments(deps);
 
-        // 行選択でも矢印と同じ通知を一度だけ出し、表示中のラインを含めて同期する。
-        QSignalSpy completed(&h.nav, &KifuNavigationController::navigationCompleted);
-        const auto branchLine = h.tree.findLineIndexForNode(h.scenario.branchFirstNode);
-        QVERIFY(branchLine.has_value() && *branchLine > 0);
-        h.coordinator.onPositionChanged(
-            *branchLine,
-            h.scenario.branchFirstNode->ply(),
-            h.scenario.branchFirstNode->sfen());
+        KifuBranchNode* node3 = h.tree.findByPlyOnMainLine(3);
+        record.setComment(node3, QStringLiteral("テストコメント"));
+        record.setComment(h.scenario.branchFirstNode, QStringLiteral("変化のコメント"));
 
-        QString reason;
-        QVERIFY2(h.coordinator.verifyDisplayConsistencyDetailed(&reason), qPrintable(reason));
-        QCOMPARE(completed.count(), 1);
-        QCOMPARE(h.state.currentNode(), h.scenario.branchFirstNode);
-        // 存在しない行は他の分岐の同手数へ飛ばない。
-        h.coordinator.onPositionChanged(*branchLine, 999, {});
-        QCOMPARE(completed.count(), 1);
-        QCOMPARE(h.state.currentNode(), h.scenario.branchFirstNode);
-    }
-
-    // コメント表示テスト: goToNode（矢印キーナビゲーション）経路でコメントが通知されることを確認
-    void commentUpdateRequired_emittedOnGoToNode()
-    {
-        UiHarness h;
-        // ply 3 のノードにコメントを設定
-        QList<BranchLine> lines = h.tree.allLines();
-        QVERIFY(!lines.isEmpty());
-        QVERIFY(lines.at(0).nodes.size() > 3);
-        KifuBranchNode* node3 = lines.at(0).nodes.at(3);
-        QVERIFY(node3 != nullptr);
-        node3->setComment(QStringLiteral("テストコメント"));
-
-        // commentUpdateRequired シグナルを監視
-        QSignalSpy spy(&h.coordinator, &KifuDisplayCoordinator::commentUpdateRequired);
-
-        // ノードへナビゲート
         h.nav.goToNode(node3);
-        QCoreApplication::processEvents();
-
-        // シグナルが発火されたことを確認
-        QVERIFY2(spy.count() > 0,
-                 qPrintable(QStringLiteral("commentUpdateRequired not emitted (goToNode path). count=%1")
-                            .arg(spy.count())));
-
-        // コメント内容を確認（最後に発火されたシグナルを使用）
-        const QList<QVariant> lastArgs = spy.last();
-        const int emittedPly = lastArgs.at(0).toInt();
-        const QString emittedComment = lastArgs.at(1).toString();
-        QCOMPARE(emittedPly, 3);
-        QVERIFY2(emittedComment.contains(QStringLiteral("テストコメント")),
-                 qPrintable(QStringLiteral("Expected comment containing 'テストコメント' but got: '%1'")
-                            .arg(emittedComment)));
-    }
-
-    // コメント表示テスト: onPositionChanged（棋譜欄行選択）経路でコメントが通知されることを確認
-    void commentUpdateRequired_emittedOnPositionChanged()
-    {
-        UiHarness h;
-        // ply 2 のノードにコメントを設定
-        QList<BranchLine> lines = h.tree.allLines();
-        QVERIFY(!lines.isEmpty());
-        QVERIFY(lines.at(0).nodes.size() > 2);
-        KifuBranchNode* node2 = lines.at(0).nodes.at(2);
-        QVERIFY(node2 != nullptr);
-        node2->setComment(QStringLiteral("行選択コメント"));
-
-        // commentUpdateRequired シグナルを監視
-        QSignalSpy spy(&h.coordinator, &KifuDisplayCoordinator::commentUpdateRequired);
-
-        // onPositionChanged を直接呼び出し（棋譜欄行選択パス）
-        h.coordinator.onPositionChanged(0, 2, node2->sfen());
-        QCoreApplication::processEvents();
-
-        // シグナルが発火されたことを確認
-        QVERIFY2(spy.count() > 0,
-                 qPrintable(QStringLiteral("commentUpdateRequired not emitted (onPositionChanged path). count=%1")
-                            .arg(spy.count())));
-
-        // コメント内容を確認
-        const QList<QVariant> lastArgs = spy.last();
-        const int emittedPly = lastArgs.at(0).toInt();
-        const QString emittedComment = lastArgs.at(1).toString();
-        QCOMPARE(emittedPly, 2);
-        QVERIFY2(emittedComment.contains(QStringLiteral("行選択コメント")),
-                 qPrintable(QStringLiteral("Expected comment containing '行選択コメント' but got: '%1'")
-                            .arg(emittedComment)));
-    }
-
-    // 空コメントは説明文を本文に混ぜず空のまま通知する。
-    void commentUpdateRequired_emitsEmptyComment()
-    {
-        UiHarness h;
-        // ply 1 のノードはコメントなし
-        QList<BranchLine> lines = h.tree.allLines();
-        QVERIFY(!lines.isEmpty());
-        QVERIFY(lines.at(0).nodes.size() > 1);
-        KifuBranchNode* node1 = lines.at(0).nodes.at(1);
-        QVERIFY(node1 != nullptr);
-        QVERIFY(node1->comment().isEmpty());
-
-        QSignalSpy spy(&h.coordinator, &KifuDisplayCoordinator::commentUpdateRequired);
-
-        h.coordinator.onPositionChanged(0, 1, node1->sfen());
-        QCoreApplication::processEvents();
-
-        QVERIFY2(spy.count() > 0,
-                 "commentUpdateRequired not emitted for empty comment node");
-        QCOMPARE(spy.last().at(1).toString(), QString());
+        QCOMPARE(edit->toPlainText(), QStringLiteral("テストコメント"));
+        emit h.recordPane.mainRowChanged(1);
+        QVERIFY(edit->toPlainText().isEmpty());
+        emit h.branchTreeManager.branchNodeActivated(h.scenario.branchLineIndex, 3);
+        QCOMPARE(edit->toPlainText(), QStringLiteral("変化のコメント"));
+        // 表示中の手のコメントを書き換えると、コメント欄も変わる
+        record.setComment(h.scenario.branchFirstNode, QStringLiteral("書き換えた"));
+        QCOMPARE(edit->toPlainText(), QStringLiteral("書き換えた"));
     }
 };
 

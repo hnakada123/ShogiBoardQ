@@ -2,7 +2,7 @@
 #define BRANCHTREEMANAGER_H
 
 /// @file branchtreemanager.h
-/// @brief EngineAnalysisTab から分離した分岐ツリー管理クラスの定義
+/// @brief 分岐ツリードックの描画・強調・クリック
 
 #include <QObject>
 
@@ -32,8 +32,7 @@ class QPen;
 /**
  * @brief 分岐ツリーのグラフ構築・ハイライト・クリック検出を担うマネージャ
  *
- * EngineAnalysisTab から分岐ツリー描画の責務を分離したクラス。
- * QGraphicsView は外部（createBranchTreePage）で作成し、setView() で受け取る。
+ * 描く QGraphicsView は buildView() で作る（テストでは setView() で渡してもよい）。
  *
  * 棋譜の分岐構造は KifuBranchTree を読むだけで、自分では手順や局面を持たない（読み取り専用の観察者）。
  * 各ノードの図形には KifuBranchNode の ID（ROLE_NODE_ID）を持たせ、手のつながり・表示内容・
@@ -68,6 +67,8 @@ public:
 
     // --- QGraphicsView 受け取り ---
     void setView(QGraphicsView* view);
+    /// 分岐ツリードックの中身（ツリーを描く QGraphicsView）を作って受け取る
+    QGraphicsView* buildView(QWidget* parent);
 
     // --- 公開API ---
     /**
@@ -78,6 +79,14 @@ public:
      * それ以外（表記・コメントの変更や分岐の追加など）は全体を作り直す。
      */
     void setBranchTree(KifuBranchTree* tree);
+    /**
+     * @brief ツリーに合わせる
+     *
+     * 前回合わせてからツリーの構造が変わっていなければ何もしない。手順の末尾に1手足しただけなら、
+     * その手を描き足す（appendNode）。それ以外は全体を作り直す。
+     */
+    void syncWithTree(KifuBranchTree* tree);
+
     void highlightBranchTreeAt(int row, int ply, bool centerOn = false);
 
     /// 描画済みの行（ライン）数

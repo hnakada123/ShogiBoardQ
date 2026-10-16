@@ -12,7 +12,7 @@
  * @brief エラー通知表示を一元管理するサービス
  *
  * MainWindow から displayErrorMessage / onErrorBusOccurred のロジックを分離し、
- * ErrorBus / KifuLoadCoordinator / CsaGameWiring からのエラー通知を受け取る。
+ * ErrorBus / KifuLoadCoordinator / CSA 通信対局の司令塔からのエラー通知を受け取る。
  */
 class UiNotificationService : public QObject
 {
@@ -50,13 +50,13 @@ public:
         ScopedCapture* m_previous = nullptr;
     };
 
-    explicit UiNotificationService(QObject* parent = nullptr);
-
-    void updateDeps(const Deps& deps);
+    explicit UiNotificationService(const Deps& deps, QObject* parent = nullptr);
 
 public slots:
     void displayErrorMessage(const QString& message);
     void displayMessage(ErrorBus::ErrorLevel level, const QString& message);
+    /// 題名付きの知らせ（終局・検討の終了・詰み探索の結果）
+    void showInformation(const QString& title, const QString& message);
 
 private:
     Deps m_deps;

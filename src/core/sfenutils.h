@@ -7,6 +7,8 @@
 #include <QString>
 #include <QStringList>
 
+#include "shogitypes.h"
+
 /// SFEN文字列の正規化・変換ユーティリティ
 namespace SfenUtils {
 
@@ -28,6 +30,12 @@ inline QString hirateBoardSfen()
 inline QString hirateSfen()
 {
     return QString::fromLatin1(kHirateSfen);
+}
+
+/// SFEN の手番（"w" なら後手、それ以外は先手）
+inline Turn sideToMove(const QString& sfen)
+{
+    return sfen.section(QLatin1Char(' '), 1, 1, QString::SectionSkipEmpty) == QLatin1String("w") ? Turn::White : Turn::Black;
 }
 
 /// "startpos" を標準初期配置のSFEN文字列に展開する（既にSFENならそのまま返す）

@@ -138,8 +138,9 @@ QHBoxLayout* JishogiScoreDialog::createButtons()
     close->setStyleSheet(ButtonStyles::primaryAction());
     close->setDefault(true);
     buttons->addWidget(close);
-    connect(m_fontDecrease, &QPushButton::clicked, this, &JishogiScoreDialog::decreaseFontSize);
-    connect(m_fontIncrease, &QPushButton::clicked, this, &JishogiScoreDialog::increaseFontSize);
+    connect(m_fontDecrease, &QPushButton::clicked, &m_fontHelper, &FontSizeHelper::decrease);
+    connect(m_fontIncrease, &QPushButton::clicked, &m_fontHelper, &FontSizeHelper::increase);
+    connect(&m_fontHelper, &FontSizeHelper::fontSizeChanged, this, &JishogiScoreDialog::applyFontSize);
     connect(copy, &QPushButton::clicked, this, &JishogiScoreDialog::copyReport);
     connect(close, &QPushButton::clicked, this, &QDialog::accept);
     return buttons;
@@ -221,16 +222,6 @@ void JishogiScoreDialog::applyFontSize()
     }
     m_fontSizeLabel->setText(tr("%1 pt").arg(m_fontHelper.fontSize()));
     DialogUtils::updateFontButtons(this, m_fontHelper.fontSize(), kMinFontSize, kMaxFontSize);
-}
-
-void JishogiScoreDialog::decreaseFontSize()
-{
-    if (m_fontHelper.decrease()) applyFontSize();
-}
-
-void JishogiScoreDialog::increaseFontSize()
-{
-    if (m_fontHelper.increase()) applyFontSize();
 }
 
 void JishogiScoreDialog::copyReport()

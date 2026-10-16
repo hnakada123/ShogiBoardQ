@@ -89,7 +89,7 @@ CSAパスワードは表示状態に関係なく読み取り時に伏せ字と�
 スクリーンショットを拒否します。
 
 ```text
-set_widget_value(target="csaWaitingLogWindow", widget="csaWaitingCommandInput", value="LOGOUT", submit=true)
+set_widget_value(target="csaWaitingLogWindow", widget="csaCommandInput", value="LOGOUT", submit=true)
 ```
 
 検討タブは次のように操作できます。値変更・クリックは通常のUIシグナルを通り、

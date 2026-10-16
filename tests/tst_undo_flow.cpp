@@ -14,11 +14,10 @@
 #include "kifubranchtree.h"
 #include "kifunavigationstate.h"
 #include "kifunavigationcontroller.h"
-#include "kifudisplaycoordinator.h"
-#include "gamerecordpresenter.h"
+#include "kifudisplaypresenter.h"
 #include "kifurecordlistmodel.h"
 #include "kifubranchlistmodel.h"
-#include "kifudisplay.h"
+#include "kifubranchnode.h"
 #include "recordpane.h"
 #include "branchtreemanager.h"
 #include "shogigamecontroller.h"
@@ -54,17 +53,16 @@ private:
 /// 人間対人間の対局を、本物の司令塔・ライブ対局のセッション・棋譜欄・分岐ツリーで進める
 struct Harness : QObject {
     KifuBranchTree tree;
-    KifuNavigationState state;
-    KifuNavigationController nav;
-    KifuRecordListModel record;
-    KifuBranchListModel branches;
+    KifuNavigationState state{&tree};
+    KifuNavigationController nav{&state};
+    KifuRecordListModel record{&tree};
+    KifuBranchListModel branches{&tree};
     RecordPane pane;
     QGraphicsView treeView;
     BranchTreeManager treeManager;
-    KifuDisplayCoordinator display{&tree, &state, &nav};
     ShogiGameController gc;
-    LiveGameSession session;
-    GameRecordPresenter presenter{{&record, &pane}};
+    LiveGameSession session{&tree, &state};
+    std::unique_ptr<KifuDisplayPresenter> display;
     ShogiClock clock;
     AppActivityState activity;
     EngineLifecycleManager engines{&clock};
@@ -76,32 +74,31 @@ struct Harness : QObject {
     const RecordLine& line() const { return match->record(); }
     QString position() const { return line().positionCommand(line().moveCount()); }
 
-    void observeUndo()
+    /// 待ったを知らせた時点で、手順・ライブ対局・表示中の手が揃っている
+    void observeUndo(int ply)
     {
-        coherentUndo = session.currentSfen() == line().lastSfen()
-            && session.totalPly() == line().moveCount()
+        highlightPly = ply;
+        coherentUndo = session.liveNode()->sfen() == line().lastSfen()
+            && session.liveNode()->ply() == line().moveCount()
             && state.currentNode() == session.liveNode();
     }
-    void observeHighlight(int ply) { highlightPly = ply; }
 
     Harness()
     {
         const QString initial = SfenUtils::hirateSfen();
         tree.setRootSfen(initial);
-        nav.setTreeAndState(&tree, &state);
         pane.setModels(&record, &branches);
         treeManager.setView(&treeView);
-        display.setRecordPane(&pane);
-        display.setRecordModel(&record);
-        display.setBranchModel(&branches);
-        display.setBranchTreeManager(&treeManager);
-        display.setBoardSfenProvider([this]() { return gc.board()->toSfen(); });
-        display.setLiveGameSession(&session);
-        display.wireSignals();
-        display.onTreeChanged();
-        session.setTree(&tree);
+        KifuDisplayPresenter::Deps dd;
+        dd.navState = &state;
+        dd.liveSession = &session;
+        dd.recordModel = &record;
+        dd.branchModel = &branches;
+        dd.recordView = pane.kifuView();
+        dd.treeView = &treeManager;
+        display = std::make_unique<KifuDisplayPresenter>(dd);
+        display->refresh();
         session.startFromRoot();
-        QObject::connect(&session, &LiveGameSession::movesUndone, this, &Harness::observeUndo);
 
         MatchCoordinator::Deps deps;
         deps.gc = &gc;
@@ -110,7 +107,7 @@ struct Harness : QObject {
         deps.engines = &engines;
         match = std::make_unique<MatchCoordinator>(deps);
         match->setRecordSink(&sink);
-        QObject::connect(match.get(), &MatchCoordinator::movesUndone, this, &Harness::observeHighlight);
+        QObject::connect(match.get(), &MatchCoordinator::movesUndone, this, &Harness::observeUndo);
         startFrom(RecordLine{initial, {}, 0});
     }
 
@@ -134,7 +131,6 @@ struct Harness : QObject {
     {
         const auto move = UsiMove::parse(usi);
         if (!move) return false;
-        const auto update = gc.positionUpdate();
         const std::optional<RecordEntry> played = gc.applyMove(*move);
         if (!played) return false;
         match->onHumanMove(*played);
@@ -157,12 +153,17 @@ class TestUndoFlow : public QObject
         QCOMPARE(h.record.currentHighlightRow(), ply);
         QCOMPARE(h.pane.kifuView()->currentIndex().row(), ply);
         QCOMPARE(h.state.currentPly(), ply);
-        QCOMPARE(h.session.totalPly(), ply);
-        QCOMPARE(h.session.currentSfen(), h.line().lastSfen());
+        QCOMPARE(h.session.liveNode()->ply(), ply);
+        QCOMPARE(h.state.currentSfen(), h.line().lastSfen());
         QCOMPARE(h.gc.board()->toSfen(), h.line().lastSfen());
         QCOMPARE(h.treeManager.lastHighlightedPly(), ply);
-        QString reason;
-        QVERIFY2(h.display.verifyDisplayConsistencyDetailed(&reason), qPrintable(reason));
+        // 分岐より前の共有の手は親の行に描くので、行ではなく強調したノードで比べる
+        QCOMPARE(h.treeManager.nodeIdFor(h.treeManager.lastHighlightedRow(), h.treeManager.lastHighlightedPly()),
+                 h.state.currentNode()->nodeId());
+        // 棋譜欄の各行は、表示中の手までの手順のノード
+        const QList<KifuBranchNode*> path = h.tree.pathToNode(h.state.currentNode());
+        for (int row = 0; row < h.record.rowCount(); ++row) QCOMPARE(h.record.nodeAt(row), path.at(row));
+        QCOMPARE(h.branches.candidateCount(), static_cast<int>(h.state.branchCandidatesAtCurrent().size()));
     }
 
 private slots:
@@ -408,7 +409,7 @@ private slots:
         for (const QString& move : opening) QVERIFY(h.play(move));
         QVERIFY(h.undo());
         QVERIFY(h.play(QStringLiteral("2h2d")));
-        QVERIFY(h.record.item(9)->currentMove().contains(QStringLiteral("同")));
+        QVERIFY(h.record.nodeAt(9)->displayText().contains(QStringLiteral("同")));
     }
 };
 

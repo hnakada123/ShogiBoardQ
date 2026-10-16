@@ -12,15 +12,14 @@
 #include "shogitypes.h"
 
 class Usi;
-class UsiCommLogModel;
-class ShogiEngineThinkingModel;
 class ShogiClock;
 
 /**
  * @brief 対局で指すエンジン（最大2つ）を持ち、手番との対応を管理する
  *
  * エンジンは表示の枠（E1・E2。思考情報と通信ログの表示先）に置き、どちらの手番を指すかを覚える。
- * 人間対エンジンではエンジンは常に E1 に置く（後手を指すときも）。
+ * 人間対エンジンではエンジンは常に E1 に置く（後手を指すときも）。表示のモデルには触れない
+ * （表示する側が enginesChanged を受けて枠のエンジンとモデルを結ぶ）。
  * エンジンの投了・入玉宣言勝ちは、指している手番の知らせ（engineResigned・engineDeclaredWin）にする。
  */
 class EngineLifecycleManager : public QObject
@@ -28,23 +27,13 @@ class EngineLifecycleManager : public QObject
     Q_OBJECT
 
 public:
-    /// 思考情報・通信ログの表示先（E1・E2）
-    struct Models {
-        UsiCommLogModel* comm1 = nullptr;
-        ShogiEngineThinkingModel* think1 = nullptr;
-        UsiCommLogModel* comm2 = nullptr;
-        ShogiEngineThinkingModel* think2 = nullptr;
-    };
-
     /// clock: 対局の時計（エンジンが探索の時間を読む）
     explicit EngineLifecycleManager(ShogiClock* clock, QObject* parent = nullptr);
     ~EngineLifecycleManager() override;
 
-    void setModels(const Models& models);
-    const Models& models() const { return m_models; }
-
     /// 枠（1=E1、2=E2）にエンジンを作り、side の手番を指させる（前にあったエンジンは破棄する）。
-    /// 検討・詰み探索のエンジンは手番を持たない（side は nullopt）
+    /// 手番を持つエンジンだけが対局の時計を読み、投了・宣言勝ちを知らせる。
+    /// 検討・詰み探索・棋譜解析・通信対局のエンジンは手番を持たない（side は nullopt）
     Usi* createEngine(int slot, std::optional<Turn> side, const QString& engineName);
     /// 作ったエンジンのプロセスを起動して初期化する（初期化は非同期）
     void startEngine(Usi* engine, const QString& enginePath, const QString& engineName);
@@ -56,8 +45,10 @@ public:
     /// 手番を指すエンジンの枠（エンジンが指さない手番は 0）
     int slotFor(Turn side) const;
 
-    /// 全エンジンを破棄する（clearModels なら思考情報・通信ログの表示も消す）
-    void destroyEngines(bool clearModels = true);
+    /// 全エンジンを破棄する（clearDisplay なら思考情報・通信ログの表示も消すよう知らせる）
+    void destroyEngines(bool clearDisplay = true);
+    /// engine が入っている枠を空ける（思考情報・通信ログの表示は残す。枠になければ何もしない）
+    void destroyEngine(Usi* engine);
 
     /**
      * @brief 終局をエンジンに知らせて終了させる
@@ -74,17 +65,16 @@ public:
     void setShutdownInProgress(bool inProgress) { m_shutdownInProgress = inProgress; }
 
 signals:
+    /// 枠のエンジンが変わった（作った・破棄した）
     void enginesChanged();
+    /// 前のエンジンの思考情報・通信ログの表示を消す（新しい対局・検討を始める）
+    void displayClearRequested();
     /// side の手番を指すエンジンが投了した
     void engineResigned(Turn side);
     /// side の手番を指すエンジンが入玉宣言勝ちを宣言した
     void engineDeclaredWin(Turn side);
     /// 対局のエンジン（手番を持つエンジン）の起動の失敗・異常終了
     void engineError(const QString& message);
-
-private slots:
-    void onEngineResign();
-    void onEngineWin();
 
 private:
     struct Seat {
@@ -93,11 +83,9 @@ private:
     };
     Seat& seat(int slot) { return m_seats[static_cast<size_t>(slot == 2 ? 1 : 0)]; }
     const Seat& seat(int slot) const { return m_seats[static_cast<size_t>(slot == 2 ? 1 : 0)]; }
-    std::optional<Turn> sideOf(const QObject* engine) const;
     void destroySeat(Seat& seat, bool clearThinking);
 
     ShogiClock* m_clock = nullptr;
-    Models m_models;
     std::array<Seat, 2> m_seats;
     bool m_shutdownInProgress = false;
 };

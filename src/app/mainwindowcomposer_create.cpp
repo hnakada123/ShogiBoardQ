@@ -1,324 +1,376 @@
 /// @file mainwindowcomposer_create.cpp
-/// @brief 部品の生成。モデル → 画面の骨格 → 盤 → 画面部品とドック → サービスの順
+/// @brief 部品の生成。依存する部品が先にできている順に、起動時に1回だけ作る
 
 #include "mainwindowcomposer.h"
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
-#include "analysisresultspresenter.h"
+#include "analysisresultspanel.h"
 #include "analysissession.h"
-#include "analysistabwiring.h"
 #include "appsettings.h"
 #include "boardinteractioncontroller.h"
-#include "boardloadservice.h"
-#include "boardsetupcontroller.h"
+#include "boardmovecontroller.h"
 #include "boardsyncpresenter.h"
-#include "branchnavigationwiring.h"
+#include "branchtreeeditcontroller.h"
+#include "branchtreemanager.h"
+#include "candidatearrowpresenter.h"
 #include "commentcoordinator.h"
-#include "consecutivegamescontroller.h"
+#include "commenteditorpanel.h"
+#include "consecutivegameseries.h"
+#include "considerationtabmanager.h"
 #include "considerationuicontroller.h"
-#include "dialogcoordinatorwiring.h"
+#include "csagamecoordinator.h"
+#include "csagamesession.h"
+#include "csalogpanel.h"
+#include "dialoglauncher.h"
 #include "dockcreationservice.h"
 #include "docklayoutmanager.h"
 #include "docksettings.h"
-#include "dockuicoordinator.h"
+#include "enginedisplaypresenter.h"
 #include "enginelifecyclemanager.h"
-#include "engineanalysistab.h"
-#include "considerationtabmanager.h"
 #include "evaluationchartwidget.h"
-#include "evaluationgraphcontroller.h"
-#include "gamerecordloadservice.h"
+#include "evaluationgraphpresenter.h"
+#include "gameinfopane.h"
 #include "gamerecordmodel.h"
-#include "gamerecordpresenter.h"
 #include "gamesession.h"
-#include "gamestartcoordinator.h"
+#include "humanturnpolicy.h"
+#include "imageexportcontroller.h"
 #include "jishogiscoredialogcontroller.h"
 #include "josekiwindowcontroller.h"
+#include "kifuanalysiscontroller.h"
 #include "kifuanalysislistmodel.h"
 #include "kifubranchlistmodel.h"
 #include "kifubranchtree.h"
-#include "kifudisplaycoordinator.h"
+#include "kifudisplaypresenter.h"
 #include "kifuexportcontroller.h"
 #include "kifufilecontroller.h"
+#include "kifuloadcoordinator.h"
 #include "kifunavigationcontroller.h"
-#include "kifunavigationcoordinator.h"
 #include "kifunavigationstate.h"
 #include "kifurecordlistmodel.h"
 #include "languagecontroller.h"
 #include "livegamesession.h"
+#include "mainwindowactions.h"
 #include "mainwindowappearancecontroller.h"
 #include "matchcoordinator.h"
 #include "menuwindowcontroller.h"
 #include "nyugyokudeclarationhandler.h"
 #include "piecesoundplayer.h"
 #include "playerinfopresenter.h"
-#include "humanturnpolicy.h"
 #include "positioneditcontroller.h"
 #include "positioneditcoordinator.h"
-#include "prestartcleanuphandler.h"
 #include "pvclickcontroller.h"
-#include "recordnavigationhandler.h"
 #include "recordpane.h"
-#include "recordpanewiring.h"
-#include "replaycontroller.h"
+#include "sessionresetcoordinator.h"
+#include "settingsresetcontroller.h"
 #include "sfenutils.h"
+#include "shogiclock.h"
 #include "shogienginethinkingmodel.h"
 #include "shogigamecontroller.h"
 #include "shogiview.h"
-#include "timecontrolcontroller.h"
+#include "thinkingpanel.h"
 #include "timedisplaypresenter.h"
-#include "turnstatesyncservice.h"
+#include "tsumesearchcontroller.h"
 #include "uinotificationservice.h"
 #include "uistatepolicymanager.h"
 #include "usicommandcontroller.h"
 #include "usicommlogmodel.h"
-#include "logcategories.h"
+#include "usilogpanel.h"
+#ifdef QT_DEBUG
+#include "debugscreenshotshortcut.h"
+#endif
 
 #include <QAction>
-#include <QPushButton>
+#include <functional>
 
 // ---------------------------------------------------------------------------
-// モデル
+// 棋譜の正本とモデル・画面の骨格
 // ---------------------------------------------------------------------------
 
-void MainWindowComposer::createModels()
+void MainWindowComposer::createRecordAndModels()
 {
-    // Lifetime: MainWindow の子（親が破棄する）。起動時に1回だけ作る
+    // 棋譜の正本。起動時から平手の開始局面を持ち、空のツリーにはしない
+    m_c.branchTree = new KifuBranchTree(&m_window);
+    m_c.branchTree->setRootSfen(SfenUtils::hirateSfen());
+    m_c.navState = new KifuNavigationState(m_c.branchTree, &m_window);
+    m_c.liveGameSession = new LiveGameSession(m_c.branchTree, m_c.navState, &m_window);
+    m_c.kifuNavController = new KifuNavigationController(m_c.navState, &m_window);
+    m_c.gameRecord = new GameRecordModel(&m_window);
+    m_c.gameRecord->setBranchTree(m_c.branchTree);
+
+    m_c.kifuRecord = new KifuRecordListModel(m_c.branchTree, &m_window);
+    m_c.kifuBranch = new KifuBranchListModel(m_c.branchTree, &m_window);
     m_c.commLog1 = new UsiCommLogModel(&m_window);
     m_c.commLog2 = new UsiCommLogModel(&m_window);
+    m_c.thinking1 = new ShogiEngineThinkingModel(&m_window);
+    m_c.thinking2 = new ShogiEngineThinkingModel(&m_window);
     // 検討タブの思考情報モデル。検討・読み筋表示・矢印が同じものを使う
     m_c.consideration = new ShogiEngineThinkingModel(&m_window);
     // 棋譜解析の結果。解析を始めるたびに中身を消して使い回す
     m_c.analysis = new KifuAnalysisListModel(&m_window);
-    m_c.kifuRecord = new KifuRecordListModel(&m_window);
-    m_c.kifuBranch = new KifuBranchListModel(&m_window);
 
     m_ui.setupUi(&m_window);
-}
-
-// ---------------------------------------------------------------------------
-// 画面の骨格（central / toolbar）
-// ---------------------------------------------------------------------------
-
-void MainWindowComposer::setupUiSkeleton()
-{
     // 同じエリア内でドックを左右に分割できるようにする
     m_window.setDockNestingEnabled(true);
-
-    m_c.appearanceController = std::make_unique<MainWindowAppearanceController>();
-    m_c.appearanceController->setupCentralWidgetContainer(m_ui.centralwidget);
-    m_c.central = m_c.appearanceController->central();
-    m_c.appearanceController->configureToolBarFromUi(m_ui.toolBar, m_ui.actionToolBar);
 }
 
 // ---------------------------------------------------------------------------
-// 盤・ゲームコントローラ・時計
+// 盤・時計・盤の操作
 // ---------------------------------------------------------------------------
 
-void MainWindowComposer::createBoardAndGameController()
+void MainWindowComposer::createBoard()
 {
+    // 盤は起動から終了まで1つ。局面は表示中の手（KifuNavigationState）に合わせて入れ替える
     m_c.gameController = new ShogiGameController(&m_window);
+    m_c.gameController->newGame(m_c.branchTree->root()->sfen());
     m_c.shogiView = new ShogiView(&m_window);
     m_c.shogiView->setNameFontScale(0.30);
+    m_c.shogiView->setBoard(m_c.gameController->board());
 
-    // 盤モデルの初期化。"startpos ..." なら完全 SFEN に正規化する
-    QString start = m_state.startSfenStr;
-    if (start.isEmpty()) {
-        start = SfenUtils::hirateSfen();
-    } else if (start.startsWith(QLatin1String("startpos"))) {
-        start = SfenUtils::normalizeStart(start);
-    }
-    m_c.gameController->newGame(start);
-    if (m_c.shogiView->board() != m_c.gameController->board()) {
-        m_c.shogiView->setBoard(m_c.gameController->board());
-    }
+    m_c.clock = new ShogiClock(&m_window);
+    m_c.timePresenter = new TimeDisplayPresenter(m_c.shogiView, m_c.clock, &m_window);
 
-    // 時間表示と時計
-    m_c.timePresenter = new TimeDisplayPresenter(m_c.shogiView, &m_window);
-    m_c.timeController = new TimeControlController(&m_window);
-    m_c.timeController->setTimeDisplayPresenter(m_c.timePresenter);
-    m_c.timeController->ensureClock();
-    m_c.timePresenter->setClock(m_c.timeController->clock());
-
-    // 局面編集と盤操作
-    m_c.posEdit = new PositionEditController(&m_window);
-    m_c.boardSetupController = new BoardSetupController(&m_window);
-    m_c.boardSetupController->setShogiView(m_c.shogiView);
-    m_c.boardSetupController->setGameController(m_c.gameController);
-    m_c.boardSetupController->setPositionEditController(m_c.posEdit);
-    m_c.boardSetupController->setActivityState(&m_state.activity);
-    m_c.boardSetupController->setupBoardInteractionController();
-    m_c.boardController = m_c.boardSetupController->boardController();
-
-    if (m_c.boardController) {
-        QAction* action = m_ui.actionLegalMoves;
-        action->setChecked(AppSettings::legalMovesVisible());
-        m_c.boardController->setLegalMovesVisible(action->isChecked());
-        connect(action, &QAction::toggled,
-                m_c.boardController, &BoardInteractionController::setLegalMovesVisible);
-    }
-}
-
-// ---------------------------------------------------------------------------
-// 棋譜欄・盤の配置・解析タブ
-// ---------------------------------------------------------------------------
-
-void MainWindowComposer::createPanelsAndDocks()
-{
-    m_c.commentCoordinator = new CommentCoordinator(&m_window);
-
-    // 棋譜欄
-    RecordPaneWiring::Deps rp;
-    rp.parent = m_c.central;
-    rp.recordModel = m_c.kifuRecord;
-    rp.branchModel = m_c.kifuBranch;
-    rp.commentCoordinator = m_c.commentCoordinator;
-    m_c.recordPaneWiring = new RecordPaneWiring(rp, &m_window);
-    m_c.recordPaneWiring->buildUiAndWire();
-    m_c.recordPane = m_c.recordPaneWiring->pane();
-
-    m_c.dockCreationService = std::make_unique<DockCreationService>(&m_window);
-    m_c.dockCreationService->setDisplayMenu(m_ui.Display);
-    m_c.dockCreationService->setRecordPane(m_c.recordPane);
-    m_c.docks.recordPane = m_c.dockCreationService->createRecordPaneDock();
-
-    // 盤をセントラルに配置する（司令塔はまだ無いので後で updateDeps し直す）
+    // セントラルウィジェットに盤を置き、ツールバーを整える
     MainWindowAppearanceController::Deps ad;
+    ad.window = &m_window;
+    ad.centralWidget = m_ui.centralwidget;
+    ad.toolBar = m_ui.toolBar;
+    ad.toolBarAction = m_ui.actionToolBar;
     ad.shogiView = m_c.shogiView;
     ad.timePresenter = m_c.timePresenter;
-    m_c.appearanceController->updateDeps(ad);
-    m_c.appearanceController->setupBoardInCenter();
+    m_c.appearance = new MainWindowAppearanceController(ad, &m_window);
 
-    // エンジン解析タブ（思考モデル1・2はここで作られる）
-    AnalysisTabWiring::Deps at;
-    at.centralParent = m_c.central;
-    m_c.analysisWiring = new AnalysisTabWiring(at, &m_window);
-    m_c.analysisWiring->buildUiAndWire();
-    m_c.analysisTab = m_c.analysisWiring->analysisTab();
-    m_c.tab = m_c.analysisWiring->tab();
-    m_c.thinking1 = m_c.analysisWiring->thinking1();
-    m_c.thinking2 = m_c.analysisWiring->thinking2();
-    if (Q_UNLIKELY(!m_c.analysisTab) || Q_UNLIKELY(!m_c.thinking1) || Q_UNLIKELY(!m_c.thinking2)) {
-        qCWarning(lcApp, "createPanelsAndDocks: analysis wiring produced null components");
-    }
-    if (m_c.analysisTab) {
-        m_c.analysisTab->considerationTabManager()->setConsiderationThinkingModel(m_c.consideration);
-    }
+    m_c.posEdit = new PositionEditController(&m_window);
+    m_c.boardController = new BoardInteractionController(m_c.shogiView, m_c.gameController, &m_window);
+    m_ui.actionLegalMoves->setChecked(AppSettings::legalMovesVisible());
+    m_c.boardController->setLegalMovesVisible(m_ui.actionLegalMoves->isChecked());
 }
 
 // ---------------------------------------------------------------------------
-// 分岐ナビゲーション（棋譜の正本）
+// 棋譜欄・ドックの中身・評価値グラフと、棋譜の表示・編集
 // ---------------------------------------------------------------------------
 
-void MainWindowComposer::createBranchNavigation()
+void MainWindowComposer::createPanels()
 {
-    m_c.branchTree = new KifuBranchTree(&m_window);
-    m_c.navState = new KifuNavigationState(&m_window);
-    m_c.navState->setTree(m_c.branchTree);
-    m_c.kifuNavController = new KifuNavigationController(&m_window);
-    m_c.kifuNavController->setTreeAndState(m_c.branchTree, m_c.navState);
-    m_c.liveGameSession = new LiveGameSession(&m_window);
-    m_c.liveGameSession->setTree(m_c.branchTree);
-    m_c.displayCoordinator = new KifuDisplayCoordinator(
-        m_c.branchTree, m_c.navState, m_c.kifuNavController, &m_window);
-}
+    m_c.recordPane = new RecordPane(m_c.appearance->central());
+    m_c.recordPane->setModels(m_c.kifuRecord, m_c.kifuBranch);
 
-// ---------------------------------------------------------------------------
-// 棋譜モデル・対局者情報・解析ドック・評価値グラフ
-// ---------------------------------------------------------------------------
+    // ドックの中身（ドックへの配置は createDocks）
+    m_c.thinkingPanel = new ThinkingPanel(&m_window);
+    m_c.thinkingPanel->setModels(m_c.thinking1, m_c.thinking2, m_c.commLog1, m_c.commLog2);
+    m_c.considerationTab = new ConsiderationTabManager(&m_window);
+    m_c.considerationTab->setConsiderationThinkingModel(m_c.consideration);
+    m_c.usiLog = new UsiLogPanel(&m_window);
+    m_c.usiLog->setModels(m_c.commLog1, m_c.commLog2);
+    m_c.csaLog = new CsaLogPanel(&m_window);
+    m_c.commentEditor = new CommentEditorPanel(&m_window);
+    m_c.branchTreeView = new BranchTreeManager(&m_window);
 
-void MainWindowComposer::createRecordAndPlayerInfo()
-{
-    GameRecordPresenter::Deps pd;
-    pd.model = m_c.kifuRecord;
-    pd.recordPane = m_c.recordPane;
-    m_c.recordPresenter = new GameRecordPresenter(pd, &m_window);
-
-    // 棋譜モデル（コメント・しおりの保存先と書き出し）。中身は分岐ツリーから読む
-    m_c.gameRecord = new GameRecordModel(&m_window);
-    m_c.gameRecord->setBranchTree(m_c.branchTree);
-    m_c.gameRecord->setNavigationState(m_c.navState);
-
-    PlayerInfoPresenter::Deps pw;
-    pw.parentWidget = &m_window;
-    pw.tabWidget = m_c.tab;
-    pw.shogiView = m_c.shogiView;
-    pw.state = &m_state;
-    pw.timeController = m_c.timeController;
-    pw.gameRecord = m_c.gameRecord;
-    pw.liveGameSession = m_c.liveGameSession;
-    m_c.playerInfo = new PlayerInfoPresenter(pw, &m_window);
-    m_c.playerInfo->setAnalysisTab(m_c.analysisTab);
-    m_c.playerInfo->addGameInfoTabAtStartup();
-    m_c.gameInfoController = m_c.playerInfo->gameInfoController();
-
-    // 解析用ドック（対局情報・思考・検討・USIログ・CSAログ・コメント・分岐ツリー）
-    m_c.dockCreationService->setAnalysisTab(m_c.analysisTab);
-    m_c.dockCreationService->setGameInfoController(m_c.gameInfoController);
-    m_c.dockCreationService->setModels(m_c.thinking1, m_c.thinking2, m_c.commLog1, m_c.commLog2);
-    m_c.dockCreationService->createAnalysisDocks();
-    m_c.docks.gameInfo = m_c.dockCreationService->gameInfoDock();
-    m_c.docks.thinking = m_c.dockCreationService->thinkingDock();
-    m_c.docks.consideration = m_c.dockCreationService->considerationDock();
-    m_c.docks.usiLog = m_c.dockCreationService->usiLogDock();
-    m_c.docks.csaLog = m_c.dockCreationService->csaLogDock();
-    m_c.docks.comment = m_c.dockCreationService->commentDock();
-    m_c.docks.branchTree = m_c.dockCreationService->branchTreeDock();
-
-    // 評価値グラフ。ナビゲーションボタンは棋譜欄のボタンと同じ操作をし、有効/無効も棋譜欄に合わせる
     m_c.evalChart = new EvaluationChartWidget(&m_window);
-    KifuNavigationController::Buttons buttons;
-    buttons.first = m_c.evalChart->firstButton();
-    buttons.back10 = m_c.evalChart->back10Button();
-    buttons.prev = m_c.evalChart->prevButton();
-    buttons.next = m_c.evalChart->nextButton();
-    buttons.fwd10 = m_c.evalChart->fwd10Button();
-    buttons.last = m_c.evalChart->lastButton();
-    m_c.kifuNavController->connectButtons(buttons);
-    connect(m_c.recordPane, &RecordPane::arrowButtonsEnabledChanged,
-            m_c.evalChart, &EvaluationChartWidget::setNavigationEnabled);
-    m_c.evalChart->setNavigationEnabled(m_c.recordPane->firstButton()->isEnabled());
-    m_c.dockCreationService->setEvalChart(m_c.evalChart);
-    m_c.docks.evalChart = m_c.dockCreationService->createEvalChartDock();
+    m_c.gameInfoPane = new GameInfoPane(&m_window);
 
-    m_ui.actionLockDocks->setChecked(DockSettings::docksLocked());
+    KifuDisplayPresenter::Deps dd;
+    dd.navState = m_c.navState;
+    dd.liveSession = m_c.liveGameSession;
+    dd.recordModel = m_c.kifuRecord;
+    dd.branchModel = m_c.kifuBranch;
+    dd.recordView = m_c.recordPane->kifuView();
+    dd.treeView = m_c.branchTreeView;
+    m_c.kifuDisplay = new KifuDisplayPresenter(dd, &m_window);
+
+    BoardSyncPresenter::Deps bs;
+    bs.gc = m_c.gameController;
+    bs.bic = m_c.boardController;
+    bs.navState = m_c.navState;
+    m_c.boardSync = new BoardSyncPresenter(bs, &m_window);
+
+    CommentCoordinator::Deps cd;
+    cd.editor = m_c.commentEditor;
+    cd.navState = m_c.navState;
+    cd.gameRecord = m_c.gameRecord;
+    cd.parentWidget = &m_window;
+    cd.statusBar = m_ui.statusbar;
+    m_c.commentCoordinator = new CommentCoordinator(cd, &m_window);
+
+    BranchTreeEditController::Deps ed;
+    ed.tree = m_c.branchTree;
+    ed.navState = m_c.navState;
+    ed.navController = m_c.kifuNavController;
+    ed.liveSession = m_c.liveGameSession;
+    ed.gameRecord = m_c.gameRecord;
+    ed.parentWidget = &m_window;
+    m_c.branchEdit = new BranchTreeEditController(ed, &m_window);
+
+    // 局面編集中は棋譜を移らない。未更新のコメントは破棄してよいか確かめる
+    m_c.kifuNavController->setLeaveGuard([this]() {
+        return !m_c.shogiView->positionEditMode() && m_c.commentCoordinator->confirmLeaveEditingMove();
+    });
 }
 
 // ---------------------------------------------------------------------------
-// メニュー・定跡・解析結果のドックと配置管理
+// 対局・検討・通信対局の司令塔と、盤を操作できるかの判定
 // ---------------------------------------------------------------------------
 
-void MainWindowComposer::createSecondaryDocks()
+void MainWindowComposer::createMatchAndAnalysis()
 {
-    MenuWindowController::Dependencies md;
-    md.parentWidget = &m_window;
-    md.menuBar = m_window.menuBar();
-    m_c.menuWindowController = new MenuWindowController(md, &m_window);
-    m_c.dockCreationService->setMenuWiring(m_c.menuWindowController);
-    m_c.docks.menuWindow = m_c.dockCreationService->createMenuWindowDock();
+    // エンジンの枠（E1・E2）は対局と検討で共有する（同時には動かない）
+    m_c.engines = new EngineLifecycleManager(m_c.clock, &m_window);
 
-    // 定跡ウィンドウ。人間の手番かどうかは HumanTurnPolicy に聞く（wireGame で渡す）
-    JosekiWindowController::Dependencies jd;
+    MatchCoordinator::Deps md;
+    md.gc = m_c.gameController;
+    md.clock = m_c.clock;
+    md.activity = &m_state.activity;
+    md.engines = m_c.engines;
+    m_c.match = new MatchCoordinator(md, &m_window);
+
+    AnalysisSession::Deps sd;
+    sd.engines = m_c.engines;
+    sd.activity = &m_state.activity;
+    sd.navState = m_c.navState;
+    m_c.analysisSession = new AnalysisSession(sd, &m_window);
+    m_c.consecutiveGames = new ConsecutiveGameSeries(&m_window);
+
+    // 枠のエンジンの思考情報・通信ログを思考・検討・USI通信ログの表示に出す
+    EngineDisplayPresenter::Deps ed;
+    ed.engines = m_c.engines;
+    ed.analysis = m_c.analysisSession;
+    ed.commLog1 = m_c.commLog1;
+    ed.commLog2 = m_c.commLog2;
+    ed.thinking1 = m_c.thinking1;
+    ed.thinking2 = m_c.thinking2;
+    ed.consideration = m_c.consideration;
+    m_c.engineDisplay = new EngineDisplayPresenter(ed, &m_window);
+
+    CsaGameCoordinator::Deps cd;
+    cd.gameController = m_c.gameController;
+    cd.clock = m_c.clock;
+    cd.engines = m_c.engines;
+    m_c.csaGame = new CsaGameCoordinator(cd, &m_window);
+
+    HumanTurnPolicy::Deps hd;
+    hd.activity = &m_state.activity;
+    hd.gameController = m_c.gameController;
+    hd.match = m_c.match;
+    hd.csaGame = m_c.csaGame;
+    hd.branchEdit = m_c.branchEdit;
+    m_c.humanTurnPolicy = std::make_unique<HumanTurnPolicy>(hd);
+    m_c.boardController->setIsHumanTurnCallback(std::bind(&MainWindowComposer::isHumanTurnNow, this));
+
+    BoardMoveController::Deps bd;
+    bd.view = m_c.shogiView;
+    bd.gameController = m_c.gameController;
+    bd.board = m_c.boardController;
+    bd.activity = &m_state.activity;
+    bd.match = m_c.match;
+    bd.positionEdit = m_c.posEdit;
+    bd.branchEdit = m_c.branchEdit;
+    m_c.boardMoves = new BoardMoveController(bd, &m_window);
+
+    PositionEditCoordinator::Deps pd;
+    pd.view = m_c.shogiView;
+    pd.gameController = m_c.gameController;
+    pd.boardController = m_c.boardController;
+    pd.posEdit = m_c.posEdit;
+    pd.navState = m_c.navState;
+    pd.activity = &m_state.activity;
+    pd.actions.returnAllPiecesToStand = m_ui.actionReturnAllPiecesToStand;
+    pd.actions.setHiratePosition = m_ui.actionSetHiratePosition;
+    pd.actions.setTsumePosition = m_ui.actionSetTsumePosition;
+    pd.actions.changeTurn = m_ui.actionChangeTurn;
+    m_c.posEditCoordinator = new PositionEditCoordinator(pd, &m_window);
+}
+
+// ---------------------------------------------------------------------------
+// 表示（評価値グラフ・矢印・対局者情報）とドック
+// ---------------------------------------------------------------------------
+
+void MainWindowComposer::createPresentersAndDocks()
+{
+    m_c.evalGraph = new EvaluationGraphPresenter({m_c.evalChart, m_c.navState, m_c.liveGameSession}, &m_window);
+
+    CandidateArrowPresenter::Deps ad;
+    ad.view = m_c.shogiView;
+    ad.match = m_c.match;
+    ad.engines = m_c.engines;
+    ad.activity = &m_state.activity;
+    ad.analysis = m_c.analysisSession;
+    m_c.arrows = new CandidateArrowPresenter(ad, &m_window);
+
+    PlayerInfoPresenter::Deps pd;
+    pd.parentWidget = &m_window;
+    pd.gameInfo = m_c.gameInfoPane;
+    pd.shogiView = m_c.shogiView;
+    pd.state = &m_state;
+    pd.timeRecord = &m_c.timeRecord;
+    pd.tree = m_c.branchTree;
+    pd.gameRecord = m_c.gameRecord;
+    pd.liveGameSession = m_c.liveGameSession;
+    pd.thinking = m_c.thinkingPanel;
+    pd.consideration = m_c.considerationTab;
+    pd.evalGraph = m_c.evalGraph;
+    pd.logModel1 = m_c.commLog1;
+    pd.logModel2 = m_c.commLog2;
+    m_c.playerInfo = new PlayerInfoPresenter(pd, &m_window);
+
+    m_c.menuWindowController = new MenuWindowController({&m_window, m_window.menuBar()}, &m_window);
+
+    // 定跡ウィンドウ。定跡手を指せるかは盤のクリックと同じ判定を使う
+    JosekiWindowController::Deps jd;
     jd.parentWidget = &m_window;
     jd.gameController = m_c.gameController;
-    jd.state = &m_state;
     jd.navState = m_c.navState;
-    m_c.josekiController = std::make_unique<JosekiWindowController>(jd);
-    m_c.dockCreationService->setJosekiController(m_c.josekiController.get());
-    m_c.docks.josekiWindow = m_c.dockCreationService->createJosekiWindowDock();
-    // ドックが前面に出ている間だけ更新する
-    if (m_c.docks.josekiWindow) m_c.josekiController->attachDock(m_c.docks.josekiWindow);
+    jd.isHumanTurnNow = std::bind(&MainWindowComposer::isHumanTurnNow, this);
+    jd.boardMoves = m_c.boardMoves;
+    m_c.joseki = new JosekiWindowController(jd, &m_window);
 
-    m_c.analysisPresenter = std::make_unique<AnalysisResultsPresenter>();
-    m_c.dockCreationService->setAnalysisPresenter(m_c.analysisPresenter.get());
-    m_c.docks.analysisResults = m_c.dockCreationService->createAnalysisResultsDock();
+    m_c.analysisResults = new AnalysisResultsPanel(&m_window);
 
-    // 全ドック作成後にアクティブタブを設定
+    DockCreationService::Deps dd;
+    dd.mainWindow = &m_window;
+    dd.displayMenu = m_ui.Display;
+    dd.evalChart = m_c.evalChart;
+    dd.recordPane = m_c.recordPane;
+    dd.thinking = m_c.thinkingPanel;
+    dd.consideration = m_c.considerationTab;
+    dd.usiLog = m_c.usiLog;
+    dd.csaLog = m_c.csaLog;
+    dd.comment = m_c.commentEditor;
+    dd.branchTree = m_c.branchTreeView;
+    dd.gameInfo = m_c.gameInfoPane;
+    dd.analysisResults = m_c.analysisResults;
+    dd.menuWindow = m_c.menuWindowController;
+    dd.joseki = m_c.joseki;
+    m_c.dockCreationService = new DockCreationService(dd, &m_window);
+    createDocks();
+}
+
+void MainWindowComposer::createDocks()
+{
+    DockCreationService* docks = m_c.dockCreationService;
+    // 作る順で、同じ場所に重ねたドックのタブの並びが決まる
+    m_c.docks.recordPane = docks->createRecordPaneDock();
+    docks->createAnalysisDocks();
+    m_c.docks.gameInfo = docks->gameInfoDock();
+    m_c.docks.thinking = docks->thinkingDock();
+    m_c.docks.consideration = docks->considerationDock();
+    m_c.docks.usiLog = docks->usiLogDock();
+    m_c.docks.csaLog = docks->csaLogDock();
+    m_c.docks.comment = docks->commentDock();
+    m_c.docks.branchTree = docks->branchTreeDock();
+    m_c.docks.evalChart = docks->createEvalChartDock();
+    m_c.docks.menuWindow = docks->createMenuWindowDock();
+    m_c.docks.josekiWindow = docks->createJosekiWindowDock();
+    // 定跡ウィンドウはドックが前面に出ている間だけ更新する
+    if (m_c.docks.josekiWindow) m_c.joseki->attachDock(m_c.docks.josekiWindow);
+    m_c.docks.analysisResults = docks->createAnalysisResultsDock();
+
+    // 重ねたドックのうち、前面に出すタブ
     if (m_c.docks.thinking) m_c.docks.thinking->raise();
     if (m_c.docks.recordPane) m_c.docks.recordPane->raise();
+    m_ui.actionLockDocks->setChecked(DockSettings::docksLocked());
 
-    m_c.dockLayoutManager = std::make_unique<DockLayoutManager>(&m_window);
-    auto* layout = m_c.dockLayoutManager.get();
+    m_c.dockLayoutManager = new DockLayoutManager(&m_window, &m_window);
+    DockLayoutManager* layout = m_c.dockLayoutManager;
     layout->registerDock(DockLayoutManager::DockType::Menu, m_c.docks.menuWindow);
     layout->registerDock(DockLayoutManager::DockType::Joseki, m_c.docks.josekiWindow);
     layout->registerDock(DockLayoutManager::DockType::Record, m_c.docks.recordPane);
@@ -332,90 +384,207 @@ void MainWindowComposer::createSecondaryDocks()
     layout->registerDock(DockLayoutManager::DockType::EvalChart, m_c.docks.evalChart);
     layout->registerDock(DockLayoutManager::DockType::AnalysisResults, m_c.docks.analysisResults);
     layout->setSavedLayoutsMenu(m_ui.menuSavedLayouts);
-    DockUiCoordinator::wireLayoutMenu(layout, m_ui.actionResetDockLayout, m_ui.actionSaveDockLayout,
-                                      m_ui.actionLockDocks, m_ui.menuSavedLayouts);
 }
 
 // ---------------------------------------------------------------------------
-// 残りのサービス・コントローラ（依存は wire* で結ぶ）
+// 共通基盤・棋譜のファイル・対局のセッション
 // ---------------------------------------------------------------------------
 
-void MainWindowComposer::createServices()
+void MainWindowComposer::createSessions()
 {
-    // 共通基盤
-    m_c.uiStatePolicy = new UiStatePolicyManager(&m_window);
-    m_c.notificationService = new UiNotificationService(&m_window);
-    m_c.kifuNavCoordinator = std::make_unique<KifuNavigationCoordinator>();
-    m_c.evalGraphController = std::make_unique<EvaluationGraphController>();
-    m_c.languageController = std::make_unique<LanguageController>();
-    m_c.jishogiController = std::make_unique<JishogiScoreDialogController>();
-    m_c.nyugyokuHandler = std::make_unique<NyugyokuDeclarationHandler>();
+    // UI 状態ポリシー。待った・投了・入玉宣言を人間が参加する対局だけにするため、司令塔の対局者の組を見る
+    UiStatePolicyManager::Deps ud;
+    ud.ui = &m_ui;
+    ud.recordPane = m_c.recordPane;
+    ud.branchTree = m_c.branchTreeView;
+    ud.consideration = m_c.considerationTab;
+    ud.boardController = m_c.boardController;
+    ud.localGameHasHuman = [this]() {
+        return m_c.match->isHumanSide(Turn::Black) || m_c.match->isHumanSide(Turn::White);
+    };
+    ud.activity = &m_state.activity;
+    m_c.uiStatePolicy = new UiStatePolicyManager(ud, &m_window);
+    m_c.notificationService = new UiNotificationService({&m_window}, &m_window);
     m_c.pieceSoundPlayer = new PieceSoundPlayer(&m_window);
-    m_c.humanTurnPolicy = std::make_unique<HumanTurnPolicy>();
+    // メニュー「駒音」はチェックマークを見せるためアイコンを出さず、設定のオン・オフを映す
+    m_ui.actionPieceSound->setIconVisibleInMenu(false);
+    m_ui.actionPieceSound->setChecked(m_c.pieceSoundPlayer->isEnabled());
 
-    BoardSyncPresenter::Deps bs;
-    bs.gc = m_c.gameController;
-    bs.view = m_c.shogiView;
-    bs.bic = m_c.boardController;
-    bs.navState = m_c.navState;
-    m_c.boardSync = new BoardSyncPresenter(bs, &m_window);
+    // 棋譜の読み込み・保存
+    m_c.kifuLoadCoordinator = new KifuLoadCoordinator(m_c.branchTree, &m_window);
 
-    // 対局・検討。エンジンの枠（E1・E2）は対局と検討で共有する（同時には動かない）
-    m_c.engines = new EngineLifecycleManager(m_c.timeController->clock(), &m_window);
-    EngineLifecycleManager::Models engineModels;
-    engineModels.comm1 = m_c.commLog1;
-    engineModels.think1 = m_c.thinking1;
-    engineModels.comm2 = m_c.commLog2;
-    engineModels.think2 = m_c.thinking2;
-    m_c.engines->setModels(engineModels);
+    KifuExportController::Deps ed;
+    ed.parentWidget = &m_window;
+    ed.gameRecord = m_c.gameRecord;
+    ed.gameInfoPane = m_c.gameInfoPane;
+    ed.timeRecord = &m_c.timeRecord;
+    ed.gameController = m_c.gameController;
+    ed.state = &m_state;
+    ed.navState = m_c.navState;
+    m_c.kifuExportController = new KifuExportController(ed, &m_window);
 
-    MatchCoordinator::Deps md;
-    md.gc = m_c.gameController;
-    md.clock = m_c.timeController->clock();
-    md.activity = &m_state.activity;
-    md.engines = m_c.engines;
-    m_c.match = new MatchCoordinator(md, &m_window);
-    m_c.boardSetupController->setMatchCoordinator(m_c.match);
+    SessionResetCoordinator::Deps rd;
+    rd.tree = m_c.branchTree;
+    rd.liveSession = m_c.liveGameSession;
+    rd.kifuLoader = m_c.kifuLoadCoordinator;
+    rd.gameRecord = m_c.gameRecord;
+    rd.gameInfo = m_c.gameInfoPane;
+    rd.timeRecord = &m_c.timeRecord;
+    rd.evalGraph = m_c.evalGraph;
+    rd.commLog1 = m_c.commLog1;
+    rd.commLog2 = m_c.commLog2;
+    rd.thinking1 = m_c.thinking1;
+    rd.thinking2 = m_c.thinking2;
+    rd.consideration = m_c.consideration;
+    rd.analysisModel = m_c.analysis;
+    rd.thinkingPanel = m_c.thinkingPanel;
+    rd.considerationTab = m_c.considerationTab;
+    rd.usiLog = m_c.usiLog;
+    rd.csaLog = m_c.csaLog;
+    m_c.sessionReset = std::make_unique<SessionResetCoordinator>(rd);
 
-    AnalysisSession::Deps sd;
-    sd.engines = m_c.engines;
-    sd.activity = &m_state.activity;
-    m_c.analysisSession = new AnalysisSession(sd, &m_window);
+    KifuFileController::Deps fd;
+    fd.parentWidget = &m_window;
+    fd.statusBar = m_ui.statusbar;
+    fd.gameInfo = m_c.gameInfoPane;
+    fd.state = &m_state;
+    fd.gameRecord = m_c.gameRecord;
+    fd.exportController = m_c.kifuExportController;
+    fd.loadCoordinator = m_c.kifuLoadCoordinator;
+    fd.clearUiBeforeKifuLoad = std::bind(&SessionResetCoordinator::clearBeforeKifuLoad, m_c.sessionReset.get());
+    m_c.kifuFileController = new KifuFileController(fd, &m_window);
 
-    GameStartCoordinator::Deps gd;
+    // 対局の利用者の操作と、対局の手順の書き先
+    GameSession::Deps gd;
+    gd.state = &m_state;
     gd.match = m_c.match;
-    m_c.gameStart = new GameStartCoordinator(gd, &m_window);
-    m_c.gameSession = new GameSession(&m_window);
-    m_c.turnStateSync = std::make_unique<TurnStateSyncService>();
-    m_c.replayController = new ReplayController(&m_window);
-    m_c.consecutiveGamesController = new ConsecutiveGamesController(&m_window);
+    gd.analysis = m_c.analysisSession;
+    gd.consecutive = m_c.consecutiveGames;
+    gd.reset = m_c.sessionReset.get();
+    gd.navState = m_c.navState;
+    gd.liveSession = m_c.liveGameSession;
+    gd.gameRecord = m_c.gameRecord;
+    gd.clock = m_c.clock;
+    gd.timeRecord = &m_c.timeRecord;
+    gd.timePresenter = m_c.timePresenter;
+    gd.playerInfo = m_c.playerInfo;
+    gd.uiStatePolicy = m_c.uiStatePolicy;
+    gd.kifuFileController = m_c.kifuFileController;
+    gd.shogiView = m_c.shogiView;
+    gd.appearance = m_c.appearance;
+    gd.csaGame = m_c.csaGame;
+    m_c.gameSession = new GameSession(gd, &m_window);
+    // 司令塔は手順の書き先（GameSession）より先に作るので、ここで渡す
+    m_c.match->setRecordSink(m_c.gameSession);
 
-    PreStartCleanupHandler::Dependencies pc;
-    pc.boardController = m_c.boardController;
-    pc.shogiView = m_c.shogiView;
-    pc.kifuRecordModel = m_c.kifuRecord;
-    pc.kifuBranchModel = m_c.kifuBranch;
-    pc.lineEditModel1 = m_c.commLog1;
-    pc.lineEditModel2 = m_c.commLog2;
-    pc.timeController = m_c.timeController;
-    pc.evalGraphController = m_c.evalGraphController.get();
-    pc.recordPane = m_c.recordPane;
-    pc.liveGameSession = m_c.liveGameSession;
-    pc.branchTree = m_c.branchTree;
-    pc.navState = m_c.navState;
-    m_c.preStartCleanupHandler = new PreStartCleanupHandler(pc, &m_window);
+    CsaGameSession::Deps cd;
+    cd.coordinator = m_c.csaGame;
+    cd.activity = &m_state.activity;
+    cd.recordSink = m_c.gameSession;
+    cd.timeRecord = &m_c.timeRecord;
+    cd.shogiView = m_c.shogiView;
+    cd.boardController = m_c.boardController;
+    cd.boardMoves = m_c.boardMoves;
+    cd.csaLog = m_c.csaLog;
+    cd.evalChart = m_c.evalChart;
+    cd.notifications = m_c.notificationService;
+    cd.kifuFiles = m_c.kifuFileController;
+    cd.appearance = m_c.appearance;
+    cd.statusBar = m_ui.statusbar;
+    cd.parentWidget = &m_window;
+    cd.prepareRecord = std::bind(&GameSession::beginCsaGameRecord, m_c.gameSession,
+                                 std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+    cd.recordGameEnd = std::bind(&GameSession::recordGameEndTime, m_c.gameSession);
+    m_c.csaSession = new CsaGameSession(cd, &m_window);
+}
 
-    // 棋譜
-    m_c.gameRecordLoadService = std::make_unique<GameRecordLoadService>();
-    m_c.branchNavWiring = std::make_unique<BranchNavigationWiring>();
-    m_c.kifuFileController = new KifuFileController(&m_window);
-    m_c.kifuExportController = std::make_unique<KifuExportController>(&m_window);
+// ---------------------------------------------------------------------------
+// 利用者の操作（メニュー・検討・読み筋・ダイアログ）
+// ---------------------------------------------------------------------------
 
-    // UI
-    m_c.pvClickController = new PvClickController(&m_window);
-    m_c.usiCommandController = std::make_unique<UsiCommandController>();
-    m_c.dialogCoordinatorWiring = new DialogCoordinatorWiring(&m_window);
-    m_c.recordNavHandler = new RecordNavigationHandler(&m_window);
-    m_c.posEditCoordinator = new PositionEditCoordinator(&m_window);
-    m_c.boardLoadService = new BoardLoadService(&m_window);
+void MainWindowComposer::createControllers()
+{
+    LanguageController::Deps ld;
+    ld.parentWidget = &m_window;
+    ld.systemLanguage = m_ui.actionLanguageSystem;
+    ld.japanese = m_ui.actionLanguageJapanese;
+    ld.english = m_ui.actionLanguageEnglish;
+    ld.chineseSimplified = m_ui.actionLanguageChineseSimplified;
+    ld.chineseTraditional = m_ui.actionLanguageChineseTraditional;
+    ld.notationAuto = m_ui.actionNotationAuto;
+    ld.notationJapanese = m_ui.actionNotationJapanese;
+    ld.notationWestern = m_ui.actionNotationWestern;
+    ld.notationOrigin = m_ui.actionNotationOrigin;
+    ld.notationHelp = m_ui.actionNotationHelp;
+    m_c.languageController = new LanguageController(ld, &m_window);
+
+    PvClickController::Deps pv;
+    pv.navState = m_c.navState;
+    pv.state = &m_state;
+    pv.shogiView = m_c.shogiView;
+    m_c.pvClickController = new PvClickController(pv, &m_window);
+    m_c.usiCommandController = new UsiCommandController({m_c.engines, m_c.usiLog}, &m_window);
+
+    ConsiderationUiController::Deps cw;
+    cw.parentWidget = &m_window;
+    cw.considerationTabManager = m_c.considerationTab;
+    cw.thinkingInfo1 = m_c.thinkingPanel->info1();
+    cw.arrows = m_c.arrows;
+    cw.session = m_c.analysisSession;
+    cw.navState = m_c.navState;
+    cw.considerationModel = m_c.consideration;
+    cw.commLogModel = m_c.commLog1;
+    m_c.considerationUi = new ConsiderationUiController(cw, &m_window);
+
+    // 棋譜解析・詰み探索（メニューから始める）
+    KifuAnalysisController::Deps kd;
+    kd.parentWidget = &m_window;
+    kd.activity = &m_state.activity;
+    kd.analysisModel = m_c.analysis;
+    kd.resultsPanel = m_c.analysisResults;
+    kd.engines = m_c.engines;
+    kd.navState = m_c.navState;
+    kd.recordModel = m_c.kifuRecord;
+    kd.gameInfo = m_c.gameInfoPane;
+    kd.shogiView = m_c.shogiView;
+    kd.navController = m_c.kifuNavController;
+    kd.evalChart = m_c.evalChart;
+    m_c.kifuAnalysis = new KifuAnalysisController(kd, &m_window);
+    m_c.tsumeSearch = new TsumeSearchController({&m_window, m_c.navState, m_c.analysisSession}, &m_window);
+
+    // 複数の部品にまたがる利用者の操作（局面編集の開始・新規・終了）
+    MainWindowActions::Deps ad;
+    ad.window = &m_window;
+    ad.gameController = m_c.gameController;
+    ad.gameSession = m_c.gameSession;
+    ad.positionEdit = m_c.posEditCoordinator;
+    ad.kifuFileController = m_c.kifuFileController;
+    ad.reset = m_c.sessionReset.get();
+    m_c.actions = new MainWindowActions(ad, &m_window);
+
+    // メニューから開くダイアログ
+    m_c.jishogiController = new JishogiScoreDialogController(&m_window);
+    m_c.nyugyokuHandler = new NyugyokuDeclarationHandler(m_c.gameController, m_c.match, &m_window);
+    DialogLauncher::Deps dl;
+    dl.parentWidget = &m_window;
+    dl.kifuFileController = m_c.kifuFileController;
+    dl.activity = &m_state.activity;
+    dl.shogiView = m_c.shogiView;
+    dl.jishogiController = m_c.jishogiController;
+    dl.nyugyokuHandler = m_c.nyugyokuHandler;
+    dl.csaGame = m_c.csaGame;
+    dl.csaSession = m_c.csaSession;
+    dl.pieceSoundPlayer = m_c.pieceSoundPlayer;
+    dl.usesHandicapNames = std::bind(&GameSession::usesHandicapNames, m_c.gameSession);
+    dl.menuWindowDock = m_c.docks.menuWindow;
+    m_c.dialogLauncher = new DialogLauncher(dl, &m_window);
+    // 成り・不成を選べる着手では、成りダイアログで対局者に選ばせる
+    m_c.gameController->setPromotionChooser(std::bind(&DialogLauncher::choosePromotion, m_c.dialogLauncher));
+
+    m_c.images = new ImageExportController({&m_window, m_c.shogiView, m_c.evalChart}, &m_window);
+    m_c.settingsReset = new SettingsResetController(&m_window);
+#ifdef QT_DEBUG
+    // デバッグ用スクリーンショット（F12 で /tmp/shogiboardq-debug/ に PNG 保存）
+    m_c.debugScreenshot = new DebugScreenshotShortcut(&m_window, &m_window);
+#endif
 }

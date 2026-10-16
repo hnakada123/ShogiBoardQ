@@ -54,12 +54,6 @@ signals:
     /// コメント更新シグナル
     void commentUpdated(int moveIndex, const QString& newComment);
 
-    /// 開始局面へ適用リクエスト
-    void requestApplyStart();
-
-    /// 本譜の ply 手へ適用リクエスト
-    void requestApplyMainAtPly(int ply);
-
 protected:
     bool eventFilter(QObject* obj, QEvent* ev) override;
 

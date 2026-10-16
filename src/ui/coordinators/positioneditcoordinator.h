@@ -2,87 +2,53 @@
 #define POSITIONEDITCOORDINATOR_H
 
 /// @file positioneditcoordinator.h
-/// @brief 局面編集コーディネータクラスの定義
-
+/// @brief 局面編集の開始・終了（盤の編集モード・動作状態・「編集終了」ボタン・編集メニュー）
 
 #include <QObject>
-#include <QString>
-#include <QStringList>
-#include <functional>
 
-struct AppState;
-class KifuNavigationState;
-class ShogiView;
-class ShogiGameController;
+class AppActivityState;
 class BoardInteractionController;
+class KifuNavigationState;
 class PositionEditController;
-class MatchCoordinator;
-class ReplayController;
 class QAction;
-class UiStatePolicyManager;
+class ShogiGameController;
+class ShogiView;
 
 /**
- * @brief PositionEditCoordinator - 局面編集の調整クラス
+ * @brief 局面編集を始めて終える流れを受け持つ
  *
- * MainWindowから局面編集の開始/終了処理を分離したクラス。
- * 以下の責務を担当:
- * - 編集開始時のコンテキスト構築とUI設定
- * - 編集終了時のコンテキスト構築と後処理
- * - 編集用アクションの接続
+ * 盤の編集そのものは PositionEditController、棋譜を編集した局面だけにするのは受け手
+ * （positionEditingStarted / positionEditingFinished を受けた MainWindowActions）が行う。
  */
 class PositionEditCoordinator : public QObject
 {
     Q_OBJECT
 
 public:
-    explicit PositionEditCoordinator(QObject* parent = nullptr);
-    ~PositionEditCoordinator() override;
-
-    // --------------------------------------------------------
-    // 依存オブジェクトの設定
-    // --------------------------------------------------------
-    void setShogiView(ShogiView* view);
-    void setGameController(ShogiGameController* gc);
-    void setBoardController(BoardInteractionController* bic);
-    void setPositionEditController(PositionEditController* posEdit);
-    void setMatchCoordinator(MatchCoordinator* match);
-    void setReplayController(ReplayController* replay);
-
-    // --------------------------------------------------------
-    // 状態の参照
-    // --------------------------------------------------------
-    /// 表示中の手数（分岐ツリーのカーソル）
-    void setNavigationState(const KifuNavigationState* state);
-    /// 表示中の局面を読み、編集の開始・終了で開始局面を書く
-    void setAppState(AppState* state);
-
-    /// 編集の開始・終了でメニューの状態を切り替える先
-    void setUiStatePolicy(UiStatePolicyManager* policy) { m_uiStatePolicy = policy; }
-
-    // --------------------------------------------------------
-    // 編集用アクションの設定
-    // --------------------------------------------------------
+    /// 編集メニューの項目（編集中だけ使う）
     struct EditActions {
-        QAction* actionReturnAllPiecesToStand = nullptr;
-        QAction* actionSetHiratePosition = nullptr;
-        QAction* actionSetTsumePosition = nullptr;
-        QAction* actionChangeTurn = nullptr;
+        QAction* returnAllPiecesToStand = nullptr;
+        QAction* setHiratePosition = nullptr;
+        QAction* setTsumePosition = nullptr;
+        QAction* changeTurn = nullptr;
     };
-    void setEditActions(const EditActions& actions);
 
-    // --------------------------------------------------------
-    // 局面編集処理
-    // --------------------------------------------------------
+    struct Deps {
+        ShogiView* view = nullptr;                          ///< 盤（必須）
+        ShogiGameController* gameController = nullptr;      ///< 盤の局面と手番（必須）
+        BoardInteractionController* boardController = nullptr; ///< 盤の操作モード
+        PositionEditController* posEdit = nullptr;          ///< 盤の編集（必須）
+        const KifuNavigationState* navState = nullptr;      ///< 表示中の手（編集する局面。必須）
+        AppActivityState* activity = nullptr;               ///< 動作状態（必須）
+        EditActions actions;
+    };
 
-    /**
-     * @brief 局面編集を開始
-     */
-    void beginPositionEditing();
+    explicit PositionEditCoordinator(const Deps& deps, QObject* parent = nullptr);
 
 public slots:
-    /**
-     * @brief 局面編集を終了
-     */
+    /// 表示中の局面で局面編集を始める
+    void beginPositionEditing();
+    /// 局面編集を終える
     void finishPositionEditing();
 
 signals:
@@ -90,23 +56,7 @@ signals:
     void positionEditingFinished();
 
 private:
-    ShogiView* m_shogiView = nullptr;
-    ShogiGameController* m_gameController = nullptr;
-    BoardInteractionController* m_boardController = nullptr;
-    PositionEditController* m_posEdit = nullptr;
-    MatchCoordinator* m_match = nullptr;
-    ReplayController* m_replayController = nullptr;
-
-    const KifuNavigationState* m_navState = nullptr;
-    AppState* m_state = nullptr;
-
-    EditActions m_editActions;
-
-    // 編集終了ボタンの接続管理
-    QMetaObject::Connection m_exitBtnConnection;
-
-    // コールバック
-    UiStatePolicyManager* m_uiStatePolicy = nullptr;
+    Deps m_deps;
 };
 
 #endif // POSITIONEDITCOORDINATOR_H

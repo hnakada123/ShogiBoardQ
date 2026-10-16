@@ -10,7 +10,7 @@
 #include "sfenutils.h"
 #include "kifuloadparser.h"
 
-using Format = KifuConversionService::Format;
+using Format = KifuFormat;
 
 class TestKifuConversionService : public QObject
 {
@@ -22,7 +22,7 @@ private:
         return QCoreApplication::applicationDirPath() + QStringLiteral("/fixtures/") + name;
     }
 
-    static KifuConversionService::Result convertFile(const QString& name, Format output, Format input = Format::Auto)
+    static KifuConversionService::Result convertFile(const QString& name, Format output, std::optional<KifuFormat> input = std::nullopt)
     {
         KifuConversionService::Request request;
         request.inputPath = fixture(name);
@@ -136,7 +136,7 @@ private slots:
         for (const QString& file : files) {
             for (Format output : outputs) {
                 const auto result = convertFile(file, output);
-                QVERIFY2(result.ok, qPrintable(file + QStringLiteral(" -> ") + KifuConversionService::formatName(output)
+                QVERIFY2(result.ok, qPrintable(file + QStringLiteral(" -> ") + KifuFormats::name(output)
                                                + QStringLiteral(": ") + result.error));
                 QVERIFY2(result.usiMoves == basicMoves(), qPrintable(file + QStringLiteral(": ") + result.usiMoves.join(QLatin1Char(' '))));
                 QVERIFY(!result.lines.isEmpty());
@@ -197,8 +197,8 @@ private slots:
         both.outputFormat = Format::Kif;
         QVERIFY(!KifuConversionService::convert(both).ok);
 
-        QVERIFY(!KifuConversionService::parseFormat(QStringLiteral("pgn")).has_value());
-        QCOMPARE(KifuConversionService::formatFromPath(QStringLiteral("/tmp/a.KI2U")), Format::Ki2);
+        QVERIFY(!KifuFormats::fromName(QStringLiteral("pgn")).has_value());
+        QCOMPARE(KifuFormats::fromPath(QStringLiteral("/tmp/a.KI2U")), Format::Ki2);
     }
 };
 

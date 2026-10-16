@@ -22,6 +22,27 @@ struct UsiGoTime {
     QString toCommand(bool ponder) const;
 };
 
+/// go コマンド（探索の種類と時間）
+struct UsiGo {
+    enum class Kind {
+        Clock,     ///< 対局の手番の探索（go btime ... wtime ...）
+        Ponder,    ///< 先読み（go ponder btime ...）
+        Infinite,  ///< stop まで探索する（検討・棋譜解析）
+        Mate,      ///< 詰み探索（go mate <ms> / go mate infinite）
+    };
+    Kind kind = Kind::Infinite;
+    UsiGoTime time;       ///< Clock・Ponder の持ち時間
+    int mateTimeMs = 0;   ///< Mate の制限時間（0 以下は infinite）
+
+    static UsiGo clock(const UsiGoTime& t) { return {Kind::Clock, t, 0}; }
+    static UsiGo ponder(const UsiGoTime& t) { return {Kind::Ponder, t, 0}; }
+    static UsiGo infinite() { return {Kind::Infinite, {}, 0}; }
+    static UsiGo mate(int timeMs) { return {Kind::Mate, {}, timeMs}; }
+
+    /// 送る go コマンド
+    QString command() const;
+};
+
 /**
  * @brief go の時間を求める入力
  *

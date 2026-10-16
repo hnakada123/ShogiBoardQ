@@ -2,77 +2,31 @@
 #define CSAMOVECONVERTER_H
 
 /// @file csamoveconverter.h
-/// @brief CSA/USI/SFEN形式変換ユーティリティクラスの定義
+/// @brief CSA の指し手（"+7776FU"）と USI の指し手の変換
 
-#include <QCoreApplication>
 #include <QString>
-#include <QStringList>
-#include <QPoint>
-
-#include "shogitypes.h"
-#include "csaclient.h"
-#include "recordentry.h"
-
 #include <optional>
 
-class ShogiGameController;
-struct ShogiMove;
+#include "shogitypes.h"
+#include "usimove.h"
+
 class ShogiBoard;
 
 /**
- * @brief CSA/USI/SFEN形式変換ユーティリティクラス
+ * @brief CSA の指し手と USI の指し手の変換（盤は読むだけで動かさない）
  *
- * CSAプロトコルの指し手・駒表現と、USI/SFEN/漢字表記の相互変換を行う。
- * すべてのメソッドは静的で、状態を持たない。
+ * CSA の駒種は指した後の駒（成る手は成った駒）なので、どちらの向きも指す前の盤の駒を読む。
+ * 駒の名前・CSA の駒種の対応は ShogiNotation の表を使う。
  */
-class CsaMoveConverter
-{
-    Q_DECLARE_TR_FUNCTIONS(CsaMoveConverter)
+namespace CsaMoveConverter {
 
-public:
-    /// CSA形式の指し手をUSI形式に変換する
-    static QString csaToUsi(const QString& csaMove);
+/// 指し手の CSA の表記（"+7776FU"・"-0055KA"）。指す前の盤で駒を読む。動かす駒がなければ空
+QString toCsa(const UsiMove& move, Turn mover, const ShogiBoard& board);
 
-    /// USI形式の指し手をCSA形式に変換する
-    static QString usiToCsa(const QString& usiMove, bool isBlack, ShogiBoard* board);
+/// CSA の指し手を、指す前の盤での USI の指し手にする（成りは盤の駒と CSA の駒種を比べて決める）。
+/// 書式・手番・駒が盤と合わなければ nullopt
+std::optional<UsiMove> toUsi(const QString& csaMove, const ShogiBoard& board);
 
-    /// 盤面座標からCSA形式の指し手に変換する
-    static QString boardToCSA(const QPoint& from, const QPoint& to, bool promote,
-                              bool isBlackSide, ShogiBoard* board);
-
-    /// 駒（Piece enum）をCSA形式の駒文字に変換する
-    static QString pieceCharToCsa(Piece piece, bool promote);
-
-    /// CSA駒記号をUSI駒記号に変換する
-    static QString csaPieceToUsi(const QString& csaPiece);
-
-    /// USI駒記号をCSA駒記号に変換する
-    static QString usiPieceToCsa(const QString& usiPiece, bool promoted);
-
-    /// CSA駒記号を漢字に変換する
-    static QString csaPieceToKanji(const QString& csaPiece);
-
-    /// CSA の指し手（"+2822UM" など）が成る手か。盤は指す前の局面（移動元の駒が成っていなければ成る手）
-    static bool isPromotionMove(const QString& csaMove, ShogiBoard* board);
-
-    /// CSA駒種から駒台インデックスを取得する
-    static int pieceTypeFromCsa(const QString& csaPiece);
-
-    /// CSA駒種をPiece enumに変換する
-    static Piece csaPieceToSfenPiece(const QString& csaPiece, bool isBlack);
-
-    /// CSA形式の指し手を表示用文字列に変換する
-    /// @param previousTo 直前の手の移動先（「同」の判定用。初手は無効な升）
-    static QString csaToPretty(const QString& csaMove, bool isPromotion, BoardSquare previousTo);
-
-    /// 対局結果をローカライズ済み文字列に変換する
-    static QString gameResultToString(CsaClient::GameResult result);
-
-    /// 終局原因をローカライズ済み文字列に変換する
-    static QString gameEndCauseToString(CsaClient::GameEndCause cause);
-
-    /// CSA形式の指し手を盤面に適用する（ビュー更新は行わない）。指した手を返し、指せなければ nullopt
-    static std::optional<RecordEntry> applyMoveToBoard(const QString& csaMove, ShogiGameController* gc);
-};
+} // namespace CsaMoveConverter
 
 #endif // CSAMOVECONVERTER_H

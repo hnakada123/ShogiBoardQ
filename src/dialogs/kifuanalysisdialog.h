@@ -74,10 +74,8 @@ private slots:
     void updateMinimumSize();
     
     // フォントサイズ拡大
-    void onFontIncrease();
     
     // フォントサイズ縮小
-    void onFontDecrease();
 
 private:
     // UI

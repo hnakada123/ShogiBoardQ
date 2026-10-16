@@ -5,9 +5,10 @@
 #include "csaexporter.h"
 #include "jkfexporter.h"
 #include "ki2exporter.h"
+#include "kifubranchnode.h"
 #include "kifubranchtree.h"
-#include "kifunavigationstate.h"
 #include "kifexporter.h"
+
 #include "usenexporter.h"
 #include "usiexporter.h"
 
@@ -33,128 +34,20 @@ void GameRecordModel::setBranchTree(KifuBranchTree* tree)
     qCDebug(lcKifu).noquote() << "setBranchTree:" << (tree ? "valid" : "null");
 }
 
-void GameRecordModel::setNavigationState(KifuNavigationState* state)
+void GameRecordModel::setComment(KifuBranchNode* node, const QString& text)
 {
-    m_navState = state;
-    qCDebug(lcKifu).noquote() << "setNavigationState:" << (state ? "valid" : "null");
+    if (!node || node->comment() == text) return;
+    node->setComment(text);
+    m_isDirty = true;
+    emit commentChanged(node->nodeId(), text);
 }
 
-void GameRecordModel::initializeFromDisplayItems(const QList<KifDisplayItem>& disp, int rowCount)
+void GameRecordModel::setBookmark(KifuBranchNode* node, const QString& text)
 {
-    m_comments.clear();
-    m_bookmarks.clear();
-    const auto mainline = m_branchTree ? m_branchTree->mainLine() : QList<KifuBranchNode*>();
-    if (!hasBranchTree()) {
-        m_comments.resize(qMax(0, rowCount));
-        m_bookmarks.resize(qMax(0, rowCount));
-    }
-    for (qsizetype i = 0; i < disp.size() && i < rowCount; ++i) {
-        if (i < mainline.size()) {
-            mainline[i]->setComment(disp[i].comment);
-            mainline[i]->setBookmark(disp[i].bookmark);
-        } else if (!hasBranchTree()) {
-            m_comments[i] = disp[i].comment;
-            m_bookmarks[i] = disp[i].bookmark;
-        }
-    }
-
-    m_isDirty = false;
-
-    qCDebug(lcKifu).noquote() << "initializeFromDisplayItems:"
-                              << " disp.size=" << disp.size()
-                              << " rowCount=" << rowCount
-                              << " m_comments.size=" << m_comments.size();
-}
-
-void GameRecordModel::clear()
-{
-    m_comments.clear();
-    m_bookmarks.clear();
-    m_isDirty = false;
-
-    qCDebug(lcKifu).noquote() << "clear";
-}
-
-// ========================================
-// コメント操作
-// ========================================
-
-void GameRecordModel::setComment(int ply, const QString& text)
-{
-    if (ply < 0) return;
-    auto* node = nodeForCurrentLine(ply);
-    if (hasBranchTree() && !node) return;
-    const QString old = comment(ply);
-    if (node) {
-        node->setComment(text);
-    } else {
-        if (m_comments.size() <= ply) m_comments.resize(ply + 1);
-        m_comments[ply] = text;
-    }
-    if (old != text) {
-        m_isDirty = true;
-        emit commentChanged(ply, text);
-    }
-}
-
-QString GameRecordModel::comment(int ply) const
-{
-    if (const auto* node = nodeForCurrentLine(ply)) return node->comment();
-    if (!hasBranchTree() && ply >= 0 && ply < m_comments.size()) return m_comments[ply];
-    return {};
-}
-
-void GameRecordModel::setBookmark(int ply, const QString& text)
-{
-    if (ply < 0) return;
-    auto* node = nodeForCurrentLine(ply);
-    if (hasBranchTree() && !node) return;
-    const QString old = bookmark(ply);
-    if (node) {
-        node->setBookmark(text);
-    } else {
-        if (m_bookmarks.size() <= ply) m_bookmarks.resize(ply + 1);
-        m_bookmarks[ply] = text;
-    }
-    if (old != text) {
-        m_isDirty = true;
-        emit bookmarkChanged(ply, text);
-    }
-}
-
-QString GameRecordModel::bookmark(int ply) const
-{
-    if (const auto* node = nodeForCurrentLine(ply)) return node->bookmark();
-    if (!hasBranchTree() && ply >= 0 && ply < m_bookmarks.size()) return m_bookmarks[ply];
-    return {};
-}
-
-bool GameRecordModel::hasBranchTree() const
-{
-    return m_branchTree && !m_branchTree->isEmpty();
-}
-
-int GameRecordModel::activeRow() const
-{
-    // 新システム: KifuNavigationState から現在のラインインデックスを取得
-    if (m_navState != nullptr) {
-        return m_navState->currentLineIndex();
-    }
-    return 0;
-}
-
-// ========================================
-// 内部ヘルパ：表示中の分岐ノードの取得
-// ========================================
-
-KifuBranchNode* GameRecordModel::nodeForCurrentLine(int ply) const
-{
-    if (!m_branchTree || m_branchTree->isEmpty() || ply < 0) return nullptr;
-    const auto lines = m_branchTree->allLines();
-    const int lineIndex = activeRow();
-    if (lineIndex < 0 || lineIndex >= lines.size()) return nullptr;
-    const auto& nodes = lines[lineIndex].nodes;
-    return ply < nodes.size() ? nodes[ply] : nullptr;
+    if (!node || node->bookmark() == text) return;
+    node->setBookmark(text);
+    m_isDirty = true;
+    emit bookmarkChanged(node->nodeId(), text);
 }
 
 // ========================================
@@ -205,9 +98,9 @@ QStringList GameRecordModel::toKi2Lines(const ExportContext& ctx) const
 // CSA形式出力（CsaExporter へ委譲）
 // ========================================
 
-QStringList GameRecordModel::toCsaLines(const ExportContext& ctx, const QStringList& usiMoves) const
+QStringList GameRecordModel::toCsaLines(const ExportContext& ctx) const
 {
-    return CsaExporter::exportLines(*this, ctx, usiMoves);
+    return CsaExporter::exportLines(*this, ctx);
 }
 
 // ========================================
@@ -219,21 +112,20 @@ QStringList GameRecordModel::toJkfLines(const ExportContext& ctx) const
     return JkfExporter::exportLines(*this, ctx);
 }
 
-
 // ========================================
 // USEN形式出力（UsenExporter へ委譲）
 // ========================================
 
-QStringList GameRecordModel::toUsenLines(const ExportContext& ctx, const QStringList& usiMoves) const
+QStringList GameRecordModel::toUsenLines(const ExportContext& ctx) const
 {
-    return UsenExporter::exportLines(*this, ctx, usiMoves);
+    return UsenExporter::exportLines(*this, ctx);
 }
 
 // ========================================
 // USI形式出力（UsiExporter へ委譲）
 // ========================================
 
-QStringList GameRecordModel::toUsiLines(const ExportContext& ctx, const QStringList& usiMoves) const
+QStringList GameRecordModel::toUsiLines(const ExportContext& ctx) const
 {
-    return UsiExporter::exportLines(*this, ctx, usiMoves);
+    return UsiExporter::exportLines(*this, ctx);
 }

@@ -2,24 +2,29 @@
 /// @brief CSA通信対局用エンジンコントローラの実装
 
 #include "csaenginecontroller.h"
+#include "enginelifecyclemanager.h"
 #include "enginelistsettings.h"
 #include "usi.h"
 #include "usitimingparams.h"
-#include "usicommlogmodel.h"
-#include "shogienginethinkingmodel.h"
 #include "shogigamecontroller.h"
 #include "logcategories.h"
 
 #include <utility>
 
-CsaEngineController::CsaEngineController(QObject* parent)
+CsaEngineController::CsaEngineController(EngineLifecycleManager* engines, QObject* parent)
     : QObject(parent)
+    , m_engines(engines)
 {
 }
 
 CsaEngineController::~CsaEngineController()
 {
     cleanup();
+}
+
+Usi* CsaEngineController::engine() const
+{
+    return m_engine;
 }
 
 void CsaEngineController::initialize(const InitParams& params)
@@ -40,45 +45,14 @@ void CsaEngineController::initialize(const InitParams& params)
         return;
     }
 
-    // USI通信ログモデル：外部注入を優先し、内部生成時は親子所有に統一する
-    if (params.commLog) {
-        if (m_engineCommLog && m_engineCommLog != params.commLog
-            && m_engineCommLog->parent() == this) {
-            m_engineCommLog->deleteLater();
-        }
-        m_engineCommLog = params.commLog;
-        m_engineCommLog->clear();
-    } else if (!m_engineCommLog || m_engineCommLog->parent() != this) {
-        m_engineCommLog = new UsiCommLogModel(this);
-    } else {
-        m_engineCommLog->clear();
-    }
-
-    // 思考モデルも同様に、外部注入または QObject 親子所有に寄せる
-    if (params.thinkingModel) {
-        if (m_engineThinking && m_engineThinking != params.thinkingModel
-            && m_engineThinking->parent() == this) {
-            m_engineThinking->deleteLater();
-        }
-        m_engineThinking = params.thinkingModel;
-        m_engineThinking->clearAllItems();
-    } else if (!m_engineThinking || m_engineThinking->parent() != this) {
-        m_engineThinking = new ShogiEngineThinkingModel(this);
-    } else {
-        m_engineThinking->clearAllItems();
-    }
-
-    m_engine = new Usi(m_engineCommLog, m_engineThinking, this);
+    m_engine = m_engines->createEngine(1, std::nullopt, params.engineName);
+    m_engine->setLogIdentity(QStringLiteral("E1"), QStringLiteral("CSA"), params.engineName);
 
     connect(m_engine, &Usi::matchMoveReady, this, &CsaEngineController::onMatchMoveReady);
     connect(m_engine, &Usi::engineInitialized, this, &CsaEngineController::onEngineInitialized);
     connect(m_engine, &Usi::errorOccurred, this, &CsaEngineController::onEngineError);
-    connect(m_engine, &Usi::bestMoveResignReceived,
-            this, &CsaEngineController::onEngineResign);
-    connect(m_engine, &Usi::bestMoveWinReceived,
-            this, &CsaEngineController::onEngineWinDeclaration);
-
-    m_engine->setLogIdentity(QStringLiteral("[E1]"), QStringLiteral("CSA"), params.engineName);
+    connect(m_engine, &Usi::resigned, this, &CsaEngineController::onEngineResign);
+    connect(m_engine, &Usi::declaredWin, this, &CsaEngineController::onEngineWinDeclaration);
     (void)m_engine->startEngine(enginePath, params.engineName);
 }
 
@@ -101,40 +75,34 @@ void CsaEngineController::thinkAsync(const ThinkingParams& params)
     m_engine->requestMatchMove(params.positionCmd, m_ponderPosition, params.timing);
 }
 
-void CsaEngineController::onMatchMoveReady(const UsiMove& move, const QString&, const QString& ponder)
+void CsaEngineController::onMatchMoveReady(const UsiMatchMove& move)
 {
-    if (!m_engine || sender() != m_engine) return;
-    m_ponderPosition = ponder;
+    if (!m_engine) return;
+    m_ponderPosition = move.ponderPosition;
     ThinkingResult result;
-    result.move = move;
-    result.valid = move.isValid();
-    result.scoreCp = m_engine->lastScoreCp();
-    result.scoreMate = m_engine->lastScoreMate();
+    result.move = move.move;
+    result.valid = move.move.isValid();
+    result.score = move.score;
     emit thinkingFinished(result);
 }
 
 void CsaEngineController::stopThinking()
 {
-    if (m_engine) m_engine->sendStopCommand();
+    if (m_engine) m_engine->stop();
 }
 
 void CsaEngineController::sendGameOver(bool win)
 {
     m_ponderPosition.clear();
     if (!m_engine) return;
-    if (win) {
-        m_engine->sendGameOverWinAndQuitCommands();
-    } else {
-        m_engine->sendGameOverLoseAndQuitCommands();
-    }
+    m_engine->sendGameOverCommand(win ? GameOverResult::Win : GameOverResult::Lose);
+    m_engine->quit();
 }
 
 void CsaEngineController::sendQuit()
 {
     m_ponderPosition.clear();
-    if (m_engine) {
-        m_engine->sendQuitCommand();
-    }
+    if (m_engine) m_engine->quit();
 }
 
 void CsaEngineController::cleanup()
@@ -142,9 +110,8 @@ void CsaEngineController::cleanup()
     m_ponderPosition.clear();
     if (Usi* engine = std::exchange(m_engine, nullptr)) {
         disconnect(engine, nullptr, this, nullptr);
-        // QObjectの子破棄中にプロセス待ちのイベントループへ入らないよう、先に停止する。
-        engine->cleanupEngineProcessAndThread(false);
-        engine->deleteLater();
+        // 枠を空ける（quit を送り、後で破棄する。思考情報・通信ログの表示は残す）
+        m_engines->destroyEngine(engine);
     }
 }
 

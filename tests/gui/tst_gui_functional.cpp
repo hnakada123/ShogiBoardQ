@@ -46,12 +46,15 @@
 #include <QToolBar>
 #include <QToolButton>
 #include <QTableWidget>
+#include "../game_info_table_helper.h"
+#include "../header_drag_helper.h"
 #include <QTranslator>
 #include <QTemporaryDir>
 #include <QTabWidget>
 #include <QVBoxLayout>
 #include "mainwindow.h"
 #include "mainwindowcomposer.h"
+#include "boardchromewidget.h"
 #include "shogiview.h"
 #include "shogiviewlayout.h"
 #include "shogiviewhighlighting.h"
@@ -77,7 +80,7 @@
 #include "boardcolordialog.h"
 #include "boardappearancecatalog.h"
 #include "boardappearancepreview.h"
-#include "engineanalysistab.h"
+#include "thinkingpanel.h"
 #include "engineinfowidget.h"
 #include "usicommlogmodel.h"
 #include "usilogpanel.h"
@@ -92,10 +95,11 @@
 #include "enginelistsettings.h"
 #include "commenteditorpanel.h"
 #include "considerationtabmanager.h"
-#include "gameinfopanecontroller.h"
+#include "thinkingtableview.h"
+#include "gameinfopane.h"
 #include "analysissettings.h"
 #include "kifuanalysisdialog.h"
-#include "analysisresultspresenter.h"
+#include "analysisresultspanel.h"
 #include "kifuanalysislistmodel.h"
 #include "shogienginethinkingmodel.h"
 #include "shogiinforecord.h"
@@ -482,7 +486,7 @@ private slots:
         if (!QFontDatabase::families().contains(chosen)) QSKIP("Noto Serif CJK JP is required.");
         sampleGame();
         const int recordSize = record()->kifuView()->font().pointSize();
-        const int clockSize = board()->blackClockLabel()->font().pointSize();
+        const int clockSize = board()->chrome()->blackClockLabel()->font().pointSize();
         const auto* tree = window->findChild<BranchTreeManager*>();
         QVERIFY(tree);
         const int row = tree->lastHighlightedRow();
@@ -498,8 +502,8 @@ private slots:
         QCOMPARE(window->menuBar()->font().family(), chosen);
         QCOMPARE(record()->kifuView()->font().family(), chosen);
         QCOMPARE(record()->kifuView()->font().pointSize(), recordSize);
-        QCOMPARE(board()->blackClockLabel()->font().family(), chosen);
-        QCOMPARE(board()->blackClockLabel()->font().pointSize(), clockSize);
+        QCOMPARE(board()->chrome()->blackClockLabel()->font().family(), chosen);
+        QCOMPARE(board()->chrome()->blackClockLabel()->font().pointSize(), clockSize);
         QCOMPARE(tree->lastHighlightedRow(), row);
         QCOMPARE(tree->lastHighlightedPly(), ply);
         auto* log = window->findChild<QPlainTextEdit*>(QStringLiteral("usiLogView"));
@@ -697,16 +701,16 @@ private slots:
         QVERIFY(!hasKifuPasteDialog());
         QCOMPARE(AppSettings::pieceStyle(), QStringLiteral("standard"));
         const auto pawn = QIcon(":/pieces/Sente_fu45.svg").pixmap(90).toImage();
-        QCOMPARE(board()->piece('P').pixmap(90).toImage(), pawn);
+        QCOMPARE(board()->piece(Piece::BlackPawn).pixmap(90).toImage(), pawn);
         ShogiView secondary;
-        QCOMPARE(secondary.piece('P').pixmap(90).toImage(), pawn);
+        QCOMPARE(secondary.piece(Piece::BlackPawn).pixmap(90).toImage(), pawn);
         QCOMPARE(boardSfen(), initial);
         snapshot("pieces-standard");
 
         click("actionFlipBoard");
-        QCOMPARE(board()->piece('K').pixmap(90).toImage(),
+        QCOMPARE(board()->piece(Piece::BlackKing).pixmap(90).toImage(),
                  QIcon(":/pieces/Gote_ou45.svg").pixmap(90).toImage());
-        QCOMPARE(board()->piece('k').pixmap(90).toImage(),
+        QCOMPARE(board()->piece(Piece::WhiteKing).pixmap(90).toImage(),
                  QIcon(":/pieces/Sente_gyoku45.svg").pixmap(90).toImage());
         selectPieceStyle(QStringLiteral("standard"));
         QVERIFY(board()->flipMode());
@@ -717,7 +721,7 @@ private slots:
         window.reset();
         window = std::make_unique<MainWindow>();
         window->show();
-        QCOMPARE(board()->piece('P').pixmap(90).toImage(), pawn);
+        QCOMPARE(board()->piece(Piece::BlackPawn).pixmap(90).toImage(), pawn);
 
         // 成駒・持ち駒・駒打ち矢印も標準の駒で描画する。
         board()->board()->setSfen(QStringLiteral(
@@ -727,11 +731,11 @@ private slots:
         ShogiView::Arrow drop;
         drop.toFile = 5;
         drop.toRank = 5;
-        drop.dropPiece = 'P';
+        drop.dropPiece = Piece::BlackPawn;
         board()->setArrows({drop});
         const auto position = board()->toImage();
         QVERIFY(!position.isNull());
-        board()->setPieces();
+        board()->applyBoardAndRender(board()->board()); // 駒の画像を読み直しても同じ絵になる
         QCOMPARE(board()->toImage(), position);
         snapshot("pieces-standard-promoted-and-hand");
     }
@@ -745,22 +749,22 @@ private slots:
     {
         QFETCH(QString, style);
         ShogiView secondary;
-        const auto standardPawn = board()->piece('P').pixmap(90).toImage();
+        const auto standardPawn = board()->piece(Piece::BlackPawn).pixmap(90).toImage();
         selectPieceStyle(style);
         QCOMPARE(AppSettings::pieceStyle(), style);
         QVERIFY(!hasKifuPasteDialog());
         const QString prefix = QStringLiteral(":/pieces/%1/").arg(style);
         const auto pawn = QIcon(prefix + "Sente_fu45.svg").pixmap(90).toImage();
         QVERIFY(pawn != standardPawn);
-        QCOMPARE(board()->piece('P').pixmap(90).toImage(), pawn);
-        QCOMPARE(secondary.piece('P').pixmap(90).toImage(), pawn);
+        QCOMPARE(board()->piece(Piece::BlackPawn).pixmap(90).toImage(), pawn);
+        QCOMPARE(secondary.piece(Piece::BlackPawn).pixmap(90).toImage(), pawn);
         QVERIFY(board()->boardColors() == BoardColors{});
         QCOMPARE(boardSfen(), initial);
         QVERIFY(board()->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/pieces-%1.png").arg(style)));
 
         click("actionFlipBoard");
-        QCOMPARE(board()->piece('K').pixmap(90).toImage(), QIcon(prefix + "Gote_ou45.svg").pixmap(90).toImage());
-        QCOMPARE(board()->piece('k').pixmap(90).toImage(), QIcon(prefix + "Sente_gyoku45.svg").pixmap(90).toImage());
+        QCOMPARE(board()->piece(Piece::BlackKing).pixmap(90).toImage(), QIcon(prefix + "Gote_ou45.svg").pixmap(90).toImage());
+        QCOMPARE(board()->piece(Piece::WhiteKing).pixmap(90).toImage(), QIcon(prefix + "Sente_gyoku45.svg").pixmap(90).toImage());
         QVERIFY(board()->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/pieces-%1-flipped.png").arg(style)));
         selectPieceStyle(QStringLiteral("standard"));
         selectPieceStyle(style);
@@ -770,7 +774,7 @@ private slots:
         window.reset();
         window = std::make_unique<MainWindow>();
         window->show();
-        QCOMPARE(board()->piece('P').pixmap(90).toImage(), pawn);
+        QCOMPARE(board()->piece(Piece::BlackPawn).pixmap(90).toImage(), pawn);
 
         // 開いている配色ダイアログの表示名・見本も選択した駒に追従する。
         openAppearanceDetails();
@@ -796,7 +800,7 @@ private slots:
         ShogiView::Arrow drop;
         drop.toFile = 5;
         drop.toRank = 5;
-        drop.dropPiece = 'P';
+        drop.dropPiece = Piece::BlackPawn;
         board()->setArrows({drop});
         const auto variantImage = board()->toImage();
         QVERIFY(!variantImage.isNull());
@@ -1210,8 +1214,8 @@ private slots:
         QVERIFY(picker);
         const QStringList names = {"backgroundColorButton", "boardColorButton", "standColorButton", "gridColorButton"};
         const QList<QColor> values = {custom.background, custom.board, custom.stand, custom.grid};
-        board()->setUrgencyVisuals(ShogiView::Urgency::Warn5);
-        const QString activeStyle = board()->blackClockLabel()->styleSheet();
+        board()->chrome()->setUrgency(ShogiView::Urgency::Warn5);
+        const QString activeStyle = board()->chrome()->blackClockLabel()->styleSheet();
         for (qsizetype i = 0; i < names.size(); ++i) {
             auto* button = dialog->findChild<QPushButton*>(names.at(i));
             QVERIFY(button);
@@ -1228,8 +1232,8 @@ private slots:
         QVERIFY(board()->boardColors() == custom);
         QVERIFY(secondary.boardColors() == custom);
         QVERIFY(AppSettings::boardColors() == custom);
-        QCOMPARE(board()->blackClockLabel()->styleSheet(), activeStyle);
-        QCOMPARE(board()->whiteClockLabel()->palette().color(QPalette::WindowText), BoardColors{}.clockText);
+        QCOMPARE(board()->chrome()->blackClockLabel()->styleSheet(), activeStyle);
+        QCOMPARE(board()->chrome()->whiteClockLabel()->palette().color(QPalette::WindowText), BoardColors{}.clockText);
         QCOMPARE(boardSfen(), initial);
         dialog->resize(580, 360);
         dialog->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/board-colors-dialog.png"));
@@ -1320,7 +1324,7 @@ private slots:
             {"clockCriticalTextColorButton", &BoardColors::clockCriticalText, QColor("#aa2961"), 4}
         };
         auto expected = board()->boardColors();
-        board()->setActiveSide(true);
+        board()->chrome()->setActiveSide(Turn::Black);
         for (const auto& choice : choices) {
             tabs->setCurrentIndex(choice.tab);
             auto* button = dialog->findChild<QPushButton*>(QLatin1String(choice.button));
@@ -1339,11 +1343,11 @@ private slots:
             QVERIFY(secondary.boardColors() == expected);
             QCOMPARE(button->text(), choice.color.name().toUpper());
         }
-        QCOMPARE(board()->blackNameLabel()->palette().color(QPalette::WindowText), expected.nameText);
-        QCOMPARE(board()->blackClockLabel()->palette().color(QPalette::WindowText), expected.clockText);
+        QCOMPARE(board()->chrome()->blackNameLabel()->palette().color(QPalette::WindowText), expected.nameText);
+        QCOMPARE(board()->chrome()->blackClockLabel()->palette().color(QPalette::WindowText), expected.clockText);
         QCOMPARE(board()->findChild<QLabel*>("turnLabelBlack")->palette().color(QPalette::WindowText), expected.turnText);
-        board()->setUrgencyVisuals(ShogiView::Urgency::Warn5);
-        QCOMPARE(board()->blackClockLabel()->palette().color(QPalette::WindowText), expected.clockCriticalText);
+        board()->chrome()->setUrgency(ShogiView::Urgency::Warn5);
+        QCOMPARE(board()->chrome()->blackClockLabel()->palette().color(QPalette::WindowText), expected.clockCriticalText);
         snapshot("board-information-colors");
         dialog->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/board-information-colors-dialog.png"));
 
@@ -1363,7 +1367,7 @@ private slots:
         expected.grid = preset.grid;
         QVERIFY(board()->boardColors() == expected);
         QCOMPARE(combo->currentIndex(), 0);
-        QCOMPARE(board()->blackClockLabel()->palette().color(QPalette::WindowText), expected.clockCriticalText);
+        QCOMPARE(board()->chrome()->blackClockLabel()->palette().color(QPalette::WindowText), expected.clockCriticalText);
 
         // 半透明の保存、キャンセル、プリセットの選択表示を確認する。
         tabs->setCurrentIndex(3);
@@ -1393,7 +1397,7 @@ private slots:
         window = std::make_unique<MainWindow>();
         window->show();
         QVERIFY(board()->boardColors() == expected);
-        QCOMPARE(board()->whiteNameLabel()->palette().color(QPalette::WindowText), expected.nameText);
+        QCOMPARE(board()->chrome()->whiteNameLabel()->palette().color(QPalette::WindowText), expected.nameText);
         openAppearanceDetails();
         dialog = window->findChild<BoardColorDialog*>();
         QVERIFY(dialog);
@@ -1608,10 +1612,10 @@ private slots:
         auto* evalChart = window->composer().parts().evalChart; QVERIFY(evalChart);
         const int xAxisLimit = evalChart->xAxisLimit();
         const int yAxisLimit = evalChart->yAxisLimit();
-        evalChart->appendScoreP1(1, 150);
-        evalChart->appendScoreP2(2, -200);
-        evalChart->appendScoreP1Buffered(3, 250);
-        evalChart->appendScoreP2Buffered(4, -300);
+        evalChart->appendScoreP1(1, UsiScore::cp(150));
+        evalChart->appendScoreP2(2, UsiScore::cp(-200));
+        evalChart->appendScoreP1Buffered(3, UsiScore::cp(250));
+        evalChart->appendScoreP2Buffered(4, UsiScore::cp(-300));
         QVERIFY(evalChart->countP1() > 0);
         QVERIFY(evalChart->countP2() > 0);
 
@@ -2551,7 +2555,7 @@ private slots:
         const auto destinations = [this]() {
             QList<QPoint> points;
             for (int i = 0; i < board()->highlighting()->highlightCount(); ++i) {
-                auto* hl = static_cast<ShogiView::FieldHighlight*>(board()->highlight(i));
+                const ShogiView::FieldHighlight* hl = board()->highlighting()->highlight(i);
                 if (hl->purpose() == ShogiView::FieldHighlight::Purpose::LegalDestination)
                     points.append(QPoint(hl->file(), hl->rank()));
             }
@@ -2593,8 +2597,8 @@ private slots:
         armDialog("game"); click("actionStartGame"); QVERIFY(dialogHandled);
         QVERIFY(action("actionUndoMove")->isEnabled());
         QVERIFY(action("actionResign")->isEnabled());
-        QVERIFY(board()->blackNameLabel()->fullText().contains("Audit Black"));
-        QVERIFY(board()->whiteNameLabel()->fullText().contains("Audit White"));
+        QVERIFY(board()->chrome()->blackNameLabel()->fullText().contains("Audit Black"));
+        QVERIFY(board()->chrome()->whiteNameLabel()->fullText().contains("Audit White"));
         QVERIFY(record()->isNavigationDisabled());
         QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, squarePoint(7, 7));
         QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, squarePoint(7, 6));
@@ -2711,10 +2715,15 @@ private slots:
         for (auto* view : window->findChildren<QTableView*>()) {
             auto* thinking = qobject_cast<ShogiEngineThinkingModel*>(view->model());
             if (!thinking) continue;
-            auto* info = new ShogiInfoRecord("123", "8", "10000", "35", QStringLiteral("▲７六歩(77)△３四歩(33)▲２二角成(88)"));
-            info->setUsiPv(QStringLiteral("7g7f 3c3d 8h2b+"));
-            info->setBaseSfen(initial + QStringLiteral(" b - 1"));
-            thinking->appendItem(info);
+            ThinkingInfoRow row;
+            row.timeMs = 123000;
+            row.depth = 8;
+            row.nodes = 10000;
+            row.score = UsiScore::cp(35);
+            row.pvKanji = QStringLiteral("▲７六歩(77)△３四歩(33)▲２二角成(88)");
+            row.usiPv = QStringLiteral("7g7f 3c3d 8h2b+");
+            row.baseSfen = initial + QStringLiteral(" b - 1");
+            thinking->appendItem(new ShogiInfoRecord(row));
         }
         QTest::qWait(100);
         snapshot(QStringLiteral("i18n-%1-%2").arg(language, notation));
@@ -2791,8 +2800,8 @@ private slots:
         QPushButton* open = nullptr;
         for (auto* b : jw->findChildren<QPushButton*>()) if (b->text() == QStringLiteral("開く")) open = b;
         QVERIFY(open); armDialog("file", f.fileName()); QTest::mouseClick(open, Qt::LeftButton);
-        auto* table = jw->findChild<QTableWidget*>(); QVERIFY(table);
-        QTRY_COMPARE_WITH_TIMEOUT(table->rowCount(), 1, 2000);
+        auto* table = jw->findChild<QTableView*>(QStringLiteral("josekiTable")); QVERIFY(table);
+        QTRY_COMPARE_WITH_TIMEOUT(table->model()->rowCount(), 1, 2000);
         QPushButton* add = nullptr;
         QPushButton* save = nullptr;
         for (auto* button : jw->findChildren<QPushButton*>()) {
@@ -2802,13 +2811,14 @@ private slots:
         QVERIFY(add && save);
         armDialog("joseki-add");
         QTest::mouseClick(add, Qt::LeftButton);
-        QCOMPARE(table->rowCount(), 2);
-        QTRY_VERIFY(table->cellWidget(0, 4)->isVisible());
+        QCOMPARE(table->model()->rowCount(), 2);
         QCoreApplication::processEvents();
+        // 「編集」はボタンとして描いた列（列 4）
         armDialog("joseki-edit");
-        QTest::mouseClick(table->cellWidget(0, 4), Qt::LeftButton);
+        QTest::mouseClick(table->viewport(), Qt::LeftButton, Qt::NoModifier,
+                          table->visualRect(table->model()->index(0, 4)).center());
         QVERIFY(dialogHandled);
-        QCOMPARE(table->item(0, 3)->text(), QStringLiteral("△８四歩(83)"));
+        QCOMPARE(table->model()->index(0, 3).data().toString(), QStringLiteral("△８四歩(83)"));
         QVERIFY(save->isEnabled());
         QTest::mouseClick(save, Qt::LeftButton);
         QTRY_VERIFY(table->isEnabled());
@@ -2880,7 +2890,7 @@ private slots:
             QTRY_VERIFY_WITH_TIMEOUT(qApp->findChildren<QProcess*>().isEmpty(), 7000);
             QTest::qWait(550); // 遅延した列幅設定と deleteLater も完了させる。
             QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
-            for (auto* engine : window->findChildren<Usi*>()) QVERIFY(!engine->isEngineRunning());
+            for (auto* engine : window->findChildren<Usi*>()) QVERIFY(!engine->isRunning());
             QMap<QString, int> counts;
             for (auto* object : window->findChildren<QObject*>())
                 ++counts[QString::fromLatin1(object->metaObject()->className())];
@@ -2905,7 +2915,7 @@ private slots:
         armDialog("gameEngineWhite"); click("actionStartGame"); QVERIFY(record()->isNavigationDisabled());
         QVERIFY(action("actionUndoMove")->isEnabled());
         QVERIFY(action("actionResign")->isEnabled());
-        QVERIFY(board()->whiteNameLabel()->fullText().contains("Audit USI"));
+        QVERIFY(board()->chrome()->whiteNameLabel()->fullText().contains("Audit USI"));
         QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, squarePoint(7, 7));
         QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, squarePoint(7, 6));
         QTRY_COMPARE_WITH_TIMEOUT(record()->kifuView()->model()->rowCount(), 3, 5000);
@@ -3099,10 +3109,10 @@ private slots:
         graph->setEngine2Name(QStringLiteral("YaneuraOu"));
         for (int ply = 1; ply <= 40; ++ply) {
             const int score = (ply < 20 ? ply * 45 : (40 - ply) * 75 - 850);
-            if (ply % 2 == 1) graph->appendScoreP1(ply, score);
-            else graph->appendScoreP2(ply, score - 70);
+            if (ply % 2 == 1) graph->appendScoreP1(ply, UsiScore::cp(score));
+            else graph->appendScoreP2(ply, UsiScore::cp(score - 70));
         }
-        graph->appendScoreP2(42, -31111, false, QStringLiteral("-7"));
+        graph->appendScoreP2(42, UsiScore::mate(-7));
         graph->setCurrentPly(42);
         for (auto* dock : window->findChildren<QDockWidget*>()) {
             if (dock->widget() == graph) { dock->show(); dock->raise(); }
@@ -3308,8 +3318,8 @@ private slots:
     {
         sampleGame();
         auto* graph = window->composer().parts().evalChart;
-        graph->appendScoreP1(1, 75);
-        graph->appendScoreP2(2, -120);
+        graph->appendScoreP1(1, UsiScore::cp(75));
+        graph->appendScoreP2(2, UsiScore::cp(-120));
         graph->setCurrentPly(2);
         armDialog("auto");
         click("actionAnalyzeKifu");
@@ -3390,7 +3400,7 @@ private slots:
     void engineAnalysisLayout()
     {
         KifuAnalysisListModel model;
-        AnalysisResultsPresenter presenter;
+        AnalysisResultsPanel presenter;
         QWidget* container = presenter.containerWidget();
         container->setParent(window.get(), Qt::Window);
         container->resize(1100, 480);
@@ -3402,11 +3412,11 @@ private slots:
         auto* status = container->findChild<QLabel*>("analysisStatusLabel");
         QVERIFY(table && progress && status);
         QCOMPARE(progress->maximum(), 24);
-        table->setColumnWidth(0, 200);
+        HeaderDrag::resizeSection(table->horizontalHeader(), 0, 200);
         const QString pv = QStringLiteral("▲７六歩(77)△３四歩(33)▲２六歩(27)△８四歩(83)▲２五歩(26)△８五歩(84)▲７七角(88)");
         for (int row = 0; row < 24; ++row) {
             auto* item = new KifuAnalysisResultsDisplay(
-                QStringLiteral("%1 ▲７六歩(77)").arg(row), QString::number(row * 25), QStringLiteral("25"), pv);
+                QStringLiteral("%1 ▲７六歩(77)").arg(row), UsiScore::cp(row * 25), 25, pv);
             item->setCandidateMove(QStringLiteral("▲７六歩(77)"));
             model.appendItem(item);
         }
@@ -3417,7 +3427,7 @@ private slots:
         QVERIFY(status->text().contains(QStringLiteral("解析完了")));
         QVERIFY(table->model()->index(0, 7).data(Qt::ToolTipRole).toString().contains(pv));
         QVERIFY(container->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/analysis-layout.png")));
-        QSignalSpy boardRequests(&presenter, &AnalysisResultsPresenter::rowDoubleClicked);
+        QSignalSpy boardRequests(&presenter, &AnalysisResultsPanel::rowDoubleClicked);
         table->setCurrentIndex(model.index(0, 6));
         table->setFocus();
         QTest::keyClick(table, Qt::Key_Return);
@@ -3435,7 +3445,7 @@ private slots:
         QVERIFY(table->verticalHeader()->defaultSectionSize() > oldHeight);
         QCOMPARE(table->columnWidth(0), 200);
         {
-            AnalysisResultsPresenter restored;
+            AnalysisResultsPanel restored;
             QWidget* restoredContainer = restored.containerWidget();
             restoredContainer->setParent(window.get(), Qt::Window);
             restored.showWithModel(&model);
@@ -3574,71 +3584,71 @@ private slots:
     void gameInfoPresentation()
     {
         auto* dock = window->findChild<QDockWidget*>("GameInfoDock");
-        auto* controller = window->findChild<GameInfoPaneController*>();
-        auto* table = window->findChild<QTableWidget*>("gameInfoTable");
+        auto* controller = window->findChild<GameInfoPane*>();
+        GameInfoTable table{window->findChild<QTableView*>("gameInfoTable")};
         auto* apply = window->findChild<QPushButton*>("gameInfoApply");
-        QVERIFY(dock && controller && table && apply);
+        QVERIFY(dock && controller && table.view && apply);
         window->resize(1400, 1120);
         dock->show(); dock->raise();
         QTest::qWait(50);
         QVERIFY(!apply->isEnabled());
-        QCOMPARE(table->rowCount(), 9);
-        QVERIFY(table->item(1, 1)->text().isEmpty());
-        QCOMPARE(table->item(2, 1)->text(), QStringLiteral("先手"));
-        QCOMPARE(table->item(3, 1)->text(), QStringLiteral("後手"));
-        QVERIFY(table->item(5, 1)->text().isEmpty());
-        QVERIFY(table->item(1, 1)->data(Qt::AccessibleTextRole).toString().contains(QStringLiteral("未開始")));
+        QCOMPARE(table.rowCount(), 9);
+        QVERIFY(table.text(1, 1).isEmpty());
+        QCOMPARE(table.text(2, 1), QStringLiteral("先手"));
+        QCOMPARE(table.text(3, 1), QStringLiteral("後手"));
+        QVERIFY(table.text(5, 1).isEmpty());
+        QVERIFY(table.accessibleText(1, 1).contains(QStringLiteral("未開始")));
         snapshot("game-info-startup");
         const QString initialKif = copy("actionCopyKIF");
         QVERIFY(!initialKif.contains(QStringLiteral("未開始")));
         QVERIFY(!initialKif.contains(QStringLiteral("未設定")));
 
-        table->setColumnWidth(0, 160);
+        HeaderDrag::resizeSection(table.view->horizontalHeader(), 0, 160);
         armDialog("file", QStringLiteral(REPO "/tests/fixtures/test_synthetic_comments.kif"));
         click("actionOpenKifuFile");
         QVERIFY(dialogHandled);
         QTRY_VERIFY(record()->kifuView()->model()->rowCount() > 90);
         dock->show(); dock->raise();
-        QCOMPARE(table->columnWidth(0), 160);
+        QCOMPARE(table.view->columnWidth(0), 160);
         QVERIFY(!apply->isEnabled());
         QTest::qWait(50);
         snapshot("game-info-loaded");
 
         int noteRow = -1;
-        for (int row = 0; row < table->rowCount(); ++row)
-            if (table->item(row, 0)->text() == QStringLiteral("備考")) noteRow = row;
+        for (int row = 0; row < table.rowCount(); ++row)
+            if (table.text(row, 0) == QStringLiteral("備考")) noteRow = row;
         QVERIFY(noteRow >= 0);
         window->activateWindow();
-        table->setFocus();
-        QTRY_VERIFY(table->hasFocus());
-        table->setCurrentCell(noteRow, 1);
-        table->scrollToItem(table->currentItem());
-        table->editItem(table->currentItem());
+        table.view->setFocus();
+        QTRY_VERIFY(table.view->hasFocus());
+        table.setCurrentCell(noteRow, 1);
+        table.view->scrollTo(table.view->currentIndex());
+        table.editCurrent();
         auto* editor = qobject_cast<QLineEdit*>(QApplication::focusWidget());
         QVERIFY(editor);
         const QString note = QStringLiteral("長い備考も、ウィンドウの幅に合わせて折り返して表示します。会場や対局条件などの情報を編集できます。");
         editor->setText(note);
         QVERIFY(apply->isEnabled());
         QTest::mouseClick(apply, Qt::LeftButton);
-        QCOMPARE(table->item(noteRow, 1)->text(), note);
+        QCOMPARE(table.text(noteRow, 1), note);
         QVERIFY(!apply->isEnabled());
         const QString saved = copy("actionCopyKIF");
         QVERIFY(saved.contains(QStringLiteral("備考：") + note));
         armDialog("discard");
         click("actionNewGame");
-        QCOMPARE(table->rowCount(), 9);
-        QVERIFY(table->item(1, 1)->text().isEmpty());
-        QCOMPARE(table->item(2, 1)->text(), QStringLiteral("先手"));
-        QVERIFY(table->item(8, 1)->text().isEmpty());
+        QCOMPARE(table.rowCount(), 9);
+        QVERIFY(table.text(1, 1).isEmpty());
+        QCOMPARE(table.text(2, 1), QStringLiteral("先手"));
+        QVERIFY(table.text(8, 1).isEmpty());
         // 読み込んだ棋譜の対局者名を将棋盤に残さない
-        QVERIFY(board()->blackNameLabel()->fullText().endsWith(QStringLiteral("先手")));
-        QVERIFY(board()->whiteNameLabel()->fullText().endsWith(QStringLiteral("後手")));
+        QVERIFY(board()->chrome()->blackNameLabel()->fullText().endsWith(QStringLiteral("先手")));
+        QVERIFY(board()->chrome()->whiteNameLabel()->fullText().endsWith(QStringLiteral("後手")));
         QVERIFY(!controller->isDirty());
         paste(saved);
         dock->show(); dock->raise();
-        QCOMPARE(table->columnWidth(0), 160);
+        QCOMPARE(table.view->columnWidth(0), 160);
         QVERIFY(!controller->isDirty());
-        QCOMPARE(table->item(noteRow, 1)->text(), note);
+        QCOMPARE(table.text(noteRow, 1), note);
 
         dock->setFloating(true);
         dock->resize(460, 560);
@@ -3653,7 +3663,7 @@ private slots:
         QVERIFY(dock->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/game-info-narrow.png")));
         controller->setFontSize(16);
         QTest::qWait(50);
-        QVERIFY(table->rowHeight(noteRow) > table->rowHeight(0));
+        QVERIFY(table.view->rowHeight(noteRow) > table.view->rowHeight(0));
         QVERIFY(dock->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/game-info-large-font.png")));
     }
 
@@ -3850,8 +3860,8 @@ private slots:
         QTRY_COMPARE(record()->kifuView()->currentIndex().row(), 1);
         const QString movedPosition = boardSfen();
         QVERIFY(movedPosition != originalPosition);
-        board()->setBlackPlayerName(QStringLiteral("Hayanagi 1.5.0"));
-        board()->setWhitePlayerName(QStringLiteral("将棋盤Q テスト対局者"));
+        board()->chrome()->setBlackPlayerName(QStringLiteral("Hayanagi 1.5.0"));
+        board()->chrome()->setWhitePlayerName(QStringLiteral("将棋盤Q テスト対局者"));
         snapshot("branch-panel-collapsed");
         QTest::mouseClick(toggle, Qt::LeftButton);
         QVERIFY(record()->branchView()->isVisible());
@@ -3889,10 +3899,14 @@ private slots:
 
         const QString pv = QStringLiteral("▲７六歩(77)△３四歩(33)▲２六歩(27)△８四歩(83)▲２五歩(26)△８五歩(84)▲７七角(88)△３二金(41)");
         for (int rank = 1; rank <= 6; ++rank) {
-            auto* info = new ShogiInfoRecord(QStringLiteral("11006"), QStringLiteral("22"),
-                QStringLiteral("29113787"), QString::number(150 - rank * 10), pv + pv);
-            info->setMultipv(rank);
-            model->updateByMultipv(info, 6);
+            ThinkingInfoRow row;
+            row.timeMs = 11006;
+            row.depth = 22;
+            row.nodes = 29113787;
+            row.score = UsiScore::cp(150 - rank * 10);
+            row.pvKanji = pv + pv;
+            row.multipv = rank;
+            model->updateByMultipv(row, 6);
         }
         manager->setConsiderationMultiPV(6);
         manager->setConsiderationEngineName(QStringLiteral("YaneuraOu NNUE 9.10git 64ZEN2"));
@@ -3919,9 +3933,9 @@ private slots:
         for (auto* dialog : window->findChildren<QDialog*>()) dialog->close();
         snapshot("consideration-layout");
 
-        view->setColumnWidth(2, 180);
+        HeaderDrag::resizeSection(view->horizontalHeader(), 2, 180);
         auto* infoTable = manager->considerationInfo()->findChild<QTableWidget*>(); QVERIFY(infoTable);
-        infoTable->setColumnWidth(0, 290);
+        HeaderDrag::resizeSection(infoTable->horizontalHeader(), 0, 290);
         if (action("actionLockDocks")->isChecked()) click("actionLockDocks");
         dock->setFloating(true);
         dock->resize(660, 460);
@@ -3937,7 +3951,7 @@ private slots:
         QCOMPARE(manager->considerationFontSize(), AnalysisSettings::considerationFontSize());
         for (int col = 0; col < 5; ++col)
             QVERIFY(view->columnWidth(col) >= view->fontMetrics().horizontalAdvance(model->headerData(col, Qt::Horizontal).toString()));
-        QCOMPARE(AnalysisSettings::thinkingViewColumnWidths(2).at(2), 180);
+        QCOMPARE(AnalysisSettings::thinkingViewColumnWidths(AnalysisSettings::ThinkingTable::Consideration).at(2), 180);
 
         QWidget restoredPanel;
         new QVBoxLayout(&restoredPanel);
@@ -3952,7 +3966,7 @@ private slots:
     void engineInfoLayout()
     {
         UsiCommLogModel model;
-        EngineInfoWidget info;
+        EngineInfoWidget info(AnalysisSettings::ThinkingTable::Engine1);
         model.setEngineName(QStringLiteral("Hayanagi 1.5.0"));
         model.setPredictiveMove(QStringLiteral("▲７六歩(77)"));
         model.setSearchedMove(QStringLiteral("△３四歩(33)"));

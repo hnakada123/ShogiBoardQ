@@ -13,11 +13,23 @@
 #include "enginelifecyclemanager.h"
 #include "matchcoordinator.h"
 #include "matchrecordsink.h"
+#include "usimatchhandler.h"
 #include "sfenreplay.h"
 #include "sfenutils.h"
 #include "shogiboard.h"
 #include "shogiclock.h"
 #include "shogigamecontroller.h"
+
+/// エンジンが指した手（指した側・考えた時間・評価値）
+inline UsiMatchMove engineMove(const QString& usi, Turn side, qint64 elapsedMs = 1000, const UsiScore& score = {})
+{
+    UsiMatchMove move;
+    move.side = side;
+    move.move = *UsiMove::parse(usi);
+    move.elapsedMs = elapsedMs;
+    move.score = score;
+    return move;
+}
 
 /// 司令塔が書いた棋譜の行を覚える受け手
 class RecordingSink final : public MatchRecordSink {
@@ -84,7 +96,6 @@ struct MatchHarness {
     {
         const auto move = UsiMove::parse(usi);
         if (!move) return false;
-        const auto update = gc.positionUpdate();
         const std::optional<RecordEntry> played = gc.applyMove(*move);
         if (!played) return false;
         mc->onHumanMove(*played);

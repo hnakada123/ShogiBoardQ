@@ -2,32 +2,19 @@
 #define MAINWINDOWACTIONS_H
 
 /// @file mainwindowactions.h
-/// @brief 起動後の利用者操作（メニュー・盤・棋譜欄から呼ばれる）
+/// @brief 複数の部品にまたがる利用者の操作（局面編集の開始・新規・終了）
 
 #include <QObject>
-#include <QPoint>
 
-#include "mainwindowresetservice.h"
-#include "shogitypes.h"
-
-struct AppState;
-class BoardInteractionController;
-class BoardSetupController;
-class BranchNavigationWiring;
-class CommentCoordinator;
 class GameSession;
-class JosekiWindowController;
-class KifuDisplayCoordinator;
 class KifuFileController;
 class PositionEditCoordinator;
 class QWidget;
-class RecordNavigationHandler;
+class SessionResetCoordinator;
 class ShogiGameController;
-class ShogiView;
-class UiStatePolicyManager;
 
 /**
- * @brief メニュー・盤・棋譜欄の操作を、担当の部品へ振り分ける
+ * @brief 1つの部品では完結しない利用者の操作をまとめる
  *
  * 部品は MainWindowComposer が起動時に全部作ってから渡す（すべて非所有）。
  */
@@ -38,36 +25,19 @@ class MainWindowActions : public QObject
 public:
     struct Deps {
         QWidget* window = nullptr;                          ///< 閉じる対象のウィンドウ
-        BoardSetupController* boardSetup = nullptr;
-        BoardInteractionController* boardController = nullptr;
-        BranchNavigationWiring* branchWiring = nullptr;
-        ShogiGameController* gameController = nullptr;
-        ShogiView* view = nullptr;
-        UiStatePolicyManager* uiPolicy = nullptr;
+        ShogiGameController* gameController = nullptr;      ///< 編集した局面
         GameSession* gameSession = nullptr;
         PositionEditCoordinator* positionEdit = nullptr;
-        CommentCoordinator* comments = nullptr;
-        KifuDisplayCoordinator* displayCoordinator = nullptr;
-        RecordNavigationHandler* recordNavigation = nullptr;
         KifuFileController* kifuFileController = nullptr;  ///< 未保存の棋譜の確認
-        JosekiWindowController* josekiController = nullptr;
-        AppState* state = nullptr;
-        MainWindowResetService::ModelResetDeps editedPositionReset;
+        SessionResetCoordinator* reset = nullptr;          ///< 編集した局面だけの棋譜にする
     };
 
-    explicit MainWindowActions(Deps deps, QObject* parent = nullptr);
-
-    /// 対局・解析などをしていない待機中で、盤上の着手を棋譜の変化として記録できるか
-    bool canRecordVariationMove() const;
-    /// 盤上の着手を、表示中の手の次の手（変化）として記録する
-    bool recordVariationMove(QPoint& from, QPoint& to);
+    explicit MainWindowActions(const Deps& deps, QObject* parent = nullptr);
 
 public slots:
-    void handleMoveRequested(const QPoint& from, const QPoint& to);
-    void handleMoveCommitted();
-    void onRecordPaneMainRowChanged(int row);
+    /// 局面編集を始める（棋譜は開始局面だけになるので、未保存の棋譜を先に確認する）
     void beginPositionEditing();
-    void finishPositionEditing();
+    /// 盤の局面を開始局面とする棋譜にする（局面編集の開始・終了）
     void resetRecordForEditedPosition();
     /// 「新規」。未保存の棋譜を確認してから初期状態に戻す
     void resetToInitialState();

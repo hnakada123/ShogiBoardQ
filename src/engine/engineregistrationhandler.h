@@ -4,14 +4,12 @@
 /// @file engineregistrationhandler.h
 /// @brief エンジン登録ハンドラクラスの定義（ワーカースレッド管理・USI解析・設定永続化）
 
-#include "threadtypes.h"
 #include <QObject>
 #include <QSettings>
 #include "engineoptions.h"
 #include "enginelistsettings.h"
 
-class QThread;
-class EngineRegistrationWorker;
+class UsiEngineSession;
 
 /// エンジン登録の実行処理を担当するハンドラ
 ///
@@ -45,7 +43,7 @@ public:
     /// エンジンパスが有効かどうかを検証する
     bool validateEnginePath(const QString& filePath) const;
 
-    /// エンジン登録処理を開始する（ワーカースレッドで非同期実行）
+    /// エンジン登録を始める（起動して usi〜usiok で名前とオプションを聞く。結果はシグナルで知らせる）
     void startRegistration(const QString& filePath);
 
     /// 進行中の登録処理をキャンセルする
@@ -70,19 +68,14 @@ signals:
     /// 進捗通知
     void progressUpdated(const QString& status);
 
-    /// ワーカーへの登録開始シグナル（内部使用）
-    void requestRegistration(const QString& filePath);
-
 private slots:
-    void onWorkerRegistered(const QString& engineName,
-                            const QString& engineAuthor,
-                            const QStringList& optionLines);
-    void onWorkerFailed(const QString& errorMessage);
-    void onWorkerCanceled();
+    void onProbeStarted();
+    void onProbeReady();
+    void onProbeError(const QString& message);
 
 private:
-    // ワーカースレッド管理
-    void ensureWorkerThread();
+    /// エンジンが報告した名前・作者・オプションで登録する
+    void registerEngine(const QString& engineName, const QString& engineAuthor, const QStringList& optionLines);
     void setRegistrationInProgress(bool inProgress);
 
     // USIプロトコル解析
@@ -105,10 +98,8 @@ private:
     // エラー設定＋シグナル送出
     void setError(const QString& message);
 
-    // ワーカースレッド
-    QThread* m_workerThread = nullptr;
-    EngineRegistrationWorker* m_worker = nullptr;
-    CancelFlag m_cancelFlag;
+    UsiEngineSession* m_probe = nullptr;   ///< 登録するエンジンへの接続（QObject parent 所有）
+    bool m_processStarted = false;         ///< 登録するエンジンのプロセスが起動した
     bool m_registrationInProgress = false;
 
     // 状態

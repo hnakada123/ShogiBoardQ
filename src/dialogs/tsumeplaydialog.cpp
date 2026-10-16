@@ -158,8 +158,9 @@ void TsumePlayDialog::buildUi()
     fontIncrease->setText(QStringLiteral("A+"));
     fontIncrease->setToolTip(tr("文字サイズを拡大"));
     fontIncrease->setStyleSheet(ButtonStyles::fontButton());
-    connect(fontDecrease, &QToolButton::clicked, this, &TsumePlayDialog::onFontDecrease);
-    connect(fontIncrease, &QToolButton::clicked, this, &TsumePlayDialog::onFontIncrease);
+    connect(fontDecrease, &QToolButton::clicked, &m_fontHelper, &FontSizeHelper::decrease);
+    connect(fontIncrease, &QToolButton::clicked, &m_fontHelper, &FontSizeHelper::increase);
+    connect(&m_fontHelper, &FontSizeHelper::fontSizeChanged, this, &TsumePlayDialog::applyFontSize);
     buttons->addWidget(fontDecrease);
     buttons->addWidget(fontIncrease);
     buttons->addStretch();
@@ -203,7 +204,7 @@ void TsumePlayDialog::buildBoardControls(QVBoxLayout* layout)
                                      BoardViewerWidget::ButtonLabels::Symbols, m_game->board(), this);
     m_view = m_viewer->view();
     m_view->setObjectName(QStringLiteral("tsumeBoard"));
-    m_view->setMouseClickMode(true);
+
     m_viewer->reduceButton()->setObjectName(QStringLiteral("tsumeReduceBoard"));
     m_viewer->enlargeButton()->setObjectName(QStringLiteral("tsumeEnlargeBoard"));
     m_viewer->flipButton()->setObjectName(QStringLiteral("tsumeFlipBoard"));
@@ -250,16 +251,6 @@ void TsumePlayDialog::onFlipToggled(bool flipped)
     m_boardRotated = flipped != !m_session->attackerIsBlack();
 }
 
-void TsumePlayDialog::onFontIncrease()
-{
-    if (m_fontHelper.increase()) applyFontSize();
-}
-
-void TsumePlayDialog::onFontDecrease()
-{
-    if (m_fontHelper.decrease()) applyFontSize();
-}
-
 void TsumePlayDialog::applyFontSize()
 {
     // 盤上の文字・対局者名は ShogiView がマスの大きさに合わせて調整する。
@@ -286,8 +277,8 @@ void TsumePlayDialog::selectProblem()
     m_session->start(m_problem.sfen);
     const bool black = m_session->attackerIsBlack();
     applyBoardOrientation();
-    m_view->setBlackPlayerName(black ? tr("あなた") : QStringLiteral("Hayanagi"));
-    m_view->setWhitePlayerName(black ? QStringLiteral("Hayanagi") : tr("あなた"));
+    m_view->chrome()->setBlackPlayerName(black ? tr("あなた") : QStringLiteral("Hayanagi"));
+    m_view->chrome()->setWhitePlayerName(black ? QStringLiteral("Hayanagi") : tr("あなた"));
 }
 
 void TsumePlayDialog::requestMove(const QPoint& from, const QPoint& to)
@@ -328,7 +319,6 @@ void TsumePlayDialog::updatePosition(const QString& sfen, const QString& move)
     m_game->board()->setSfen(sfen);
     const bool blackTurn = sfen.section(QLatin1Char(' '), 1, 1) == QStringLiteral("b");
     m_game->setCurrentPlayer(blackTurn ? Turn::Black : Turn::White);
-    m_view->setActiveSide(blackTurn);
     if (move.isEmpty()) m_interaction->clearAllHighlights();
     else {
         // 直前の手は、今の手番の相手が指した手

@@ -1,14 +1,15 @@
 /// @file tst_app_ui_state_policy.cpp
 /// @brief UiStatePolicyManager の状態遷移・ポリシーテーブル検証テスト
 ///
-/// UiStatePolicyManager は deps が null でも安全に動作する設計のため、
-/// 実インスタンスを生成してポリシーテーブルの正確性と状態遷移を検証する。
+/// UI の状態は動作状態（AppActivityState）が決め、UiStatePolicyManager はそれに従って
+/// メニュー・ボタンの有効・無効を切り替える。部品が無くても動くので、表の正しさと追従を確かめる。
 
 #include <QtTest>
 #include <QSignalSpy>
 #include <QMainWindow>
 #include "ui_mainwindow.h"
 
+#include "appactivitystate.h"
 #include "uistatepolicymanager.h"
 
 class TestAppUiStatePolicy : public QObject
@@ -19,23 +20,34 @@ private:
     using S = UiStatePolicyManager::AppState;
     using E = UiStatePolicyManager::UiElement;
 
+    /// 動作状態と、それに従う UI 状態ポリシー
+    struct Policy {
+        AppActivityState activity;
+        UiStatePolicyManager mgr;
+        explicit Policy(UiStatePolicyManager::Deps deps = {}) : mgr(withActivity(deps, &activity)) {}
+        void set(S state) { activity.setActivity(state); }
+        static UiStatePolicyManager::Deps withActivity(UiStatePolicyManager::Deps deps, AppActivityState* activity)
+        {
+            deps.activity = activity;
+            return deps;
+        }
+    };
+
     /// 指定状態で指定要素が有効であることを検証するヘルパ
-    void verifyEnabled(UiStatePolicyManager& mgr, S state, E element,
-                       const char* elementName)
+    void verifyEnabled(Policy& p, S state, E element, const char* elementName)
     {
-        mgr.applyState(state);
-        QVERIFY2(mgr.isEnabled(element),
+        p.set(state);
+        QVERIFY2(p.mgr.isEnabled(element),
                  qPrintable(QStringLiteral("%1 should be enabled in state %2")
                                 .arg(QLatin1String(elementName))
                                 .arg(static_cast<int>(state))));
     }
 
     /// 指定状態で指定要素が無効であることを検証するヘルパ
-    void verifyDisabled(UiStatePolicyManager& mgr, S state, E element,
-                        const char* elementName)
+    void verifyDisabled(Policy& p, S state, E element, const char* elementName)
     {
-        mgr.applyState(state);
-        QVERIFY2(!mgr.isEnabled(element),
+        p.set(state);
+        QVERIFY2(!p.mgr.isEnabled(element),
                  qPrintable(QStringLiteral("%1 should be disabled in state %2")
                                 .arg(QLatin1String(elementName))
                                 .arg(static_cast<int>(state))));
@@ -45,24 +57,19 @@ private slots:
     void sharedActivityDrivesPolicy()
     {
         AppActivityState activity;
-        UiStatePolicyManager manager;
         UiStatePolicyManager::Deps deps;
         deps.activity = &activity;
         deps.localGameHasHuman = [] { return true; };
-        manager.updateDeps(deps);
+        UiStatePolicyManager manager(deps);
         QSignalSpy changed(&manager, &UiStatePolicyManager::stateChanged);
         activity.setActivity(AppActivityState::Activity::DuringGame);
         QCOMPARE(manager.currentState(), S::DuringGame);
         QVERIFY(manager.isEnabled(E::GameUndo));
         QCOMPARE(changed.count(), 1);
-        manager.transitionToDuringConsideration();
+        activity.setActivity(S::DuringConsideration);
         QCOMPARE(activity.activity(), AppActivityState::Activity::DuringConsideration);
         QVERIFY(!manager.isEnabled(E::GameUndo));
         QCOMPARE(changed.count(), 2);
-        manager.transitionToIdle();
-        QCOMPARE(activity.activity(), AppActivityState::Activity::Idle);
-        manager.transitionToDuringGame();
-        QCOMPARE(activity.activity(), AppActivityState::Activity::DuringGame);
     }
 
     void settingsResetOnlyEnabledWhileIdle()
@@ -71,14 +78,13 @@ private slots:
         Ui::MainWindow ui;
         ui.setupUi(&window);
         QVERIFY(ui.Setting->actions().contains(ui.actionResetSettings));
-        UiStatePolicyManager manager;
         UiStatePolicyManager::Deps deps;
         deps.ui = &ui;
-        manager.updateDeps(deps);
+        Policy p(deps);
         for (const auto state : {S::DuringGame, S::DuringCsaGame, S::DuringAnalysis,
                                 S::DuringTsumeSearch, S::DuringConsideration,
                                 S::DuringPositionEdit, S::Idle}) {
-            manager.applyState(state);
+            p.set(state);
             QCOMPARE(ui.actionResetSettings->isEnabled(), state == S::Idle);
         }
     }
@@ -101,12 +107,12 @@ private slots:
         QMainWindow window;
         Ui::MainWindow ui;
         ui.setupUi(&window);
-        UiStatePolicyManager manager;
         UiStatePolicyManager::Deps deps;
         deps.ui = &ui;
-        manager.updateDeps(deps);
+        Policy p(deps);
+        UiStatePolicyManager& manager = p.mgr;
         for (const auto state : {S::Idle, S::DuringGame, S::DuringCsaGame, S::DuringAnalysis}) {
-            manager.applyState(state);
+            p.set(state);
             const bool canCopyRecord = manager.isEnabled(E::EditCopyKifu);
             for (auto* action : {ui.actionCopyKIF, ui.actionCopyKI2, ui.actionCopyCSA,
                                   ui.actionCopyJKF, ui.actionCopyUSIAll, ui.actionCopyUSEN})
@@ -123,100 +129,57 @@ private slots:
     /// 初期状態が Idle であること
     void initialStateIsIdle()
     {
-        UiStatePolicyManager mgr;
+        Policy p;
+        UiStatePolicyManager& mgr = p.mgr;
         QCOMPARE(mgr.currentState(), S::Idle);
     }
 
     // ================================================================
-    // 状態遷移スロットテスト
+    // 動作状態への追従
     // ================================================================
 
-    /// transitionToIdle() が状態を Idle に遷移させること
-    void transitionToIdleSlot()
+    /// どの動作状態に変えても、ポリシーはその状態になる
+    void policyFollowsEveryActivity()
     {
-        UiStatePolicyManager mgr;
-        mgr.applyState(S::DuringGame);
-        mgr.transitionToIdle();
-        QCOMPARE(mgr.currentState(), S::Idle);
-    }
-
-    /// transitionToDuringGame() が状態を DuringGame に遷移させること
-    void transitionToDuringGameSlot()
-    {
-        UiStatePolicyManager mgr;
-        mgr.transitionToDuringGame();
-        QCOMPARE(mgr.currentState(), S::DuringGame);
-    }
-
-    /// transitionToDuringAnalysis() が状態を DuringAnalysis に遷移させること
-    void transitionToDuringAnalysisSlot()
-    {
-        UiStatePolicyManager mgr;
-        mgr.transitionToDuringAnalysis();
-        QCOMPARE(mgr.currentState(), S::DuringAnalysis);
-    }
-
-    /// transitionToDuringCsaGame() が状態を DuringCsaGame に遷移させること
-    void transitionToDuringCsaGameSlot()
-    {
-        UiStatePolicyManager mgr;
-        mgr.transitionToDuringCsaGame();
-        QCOMPARE(mgr.currentState(), S::DuringCsaGame);
-    }
-
-    /// transitionToDuringTsumeSearch() が状態を DuringTsumeSearch に遷移させること
-    void transitionToDuringTsumeSearchSlot()
-    {
-        UiStatePolicyManager mgr;
-        mgr.transitionToDuringTsumeSearch();
-        QCOMPARE(mgr.currentState(), S::DuringTsumeSearch);
-    }
-
-    /// transitionToDuringConsideration() が状態を DuringConsideration に遷移させること
-    void transitionToDuringConsiderationSlot()
-    {
-        UiStatePolicyManager mgr;
-        mgr.transitionToDuringConsideration();
-        QCOMPARE(mgr.currentState(), S::DuringConsideration);
-    }
-
-    /// transitionToDuringPositionEdit() が状態を DuringPositionEdit に遷移させること
-    void transitionToDuringPositionEditSlot()
-    {
-        UiStatePolicyManager mgr;
-        mgr.transitionToDuringPositionEdit();
-        QCOMPARE(mgr.currentState(), S::DuringPositionEdit);
+        Policy p;
+        for (const auto state : {S::DuringGame, S::DuringAnalysis, S::DuringCsaGame, S::DuringTsumeSearch,
+                                S::DuringConsideration, S::DuringPositionEdit, S::Idle}) {
+            p.set(state);
+            QCOMPARE(p.mgr.currentState(), state);
+        }
     }
 
     // ================================================================
     // stateChanged シグナルテスト
     // ================================================================
 
-    /// applyState() が stateChanged シグナルを発火すること
-    void applyStateEmitsStateChanged()
+    /// 動作状態が変わると stateChanged を出すこと
+    void activityChangeEmitsStateChanged()
     {
-        UiStatePolicyManager mgr;
+        Policy p;
+        UiStatePolicyManager& mgr = p.mgr;
         QSignalSpy spy(&mgr, &UiStatePolicyManager::stateChanged);
         QVERIFY(spy.isValid());
 
-        mgr.applyState(S::DuringGame);
+        p.set(S::DuringGame);
         QCOMPARE(spy.count(), 1);
 
         const auto args = spy.takeFirst();
         QCOMPARE(args.at(0).value<UiStatePolicyManager::AppState>(), S::DuringGame);
     }
 
-    /// 遷移スロットも stateChanged シグナルを発火すること
-    void transitionSlotsEmitStateChanged()
+    /// 状態ごとに stateChanged を出すこと
+    void eachActivityChangeEmitsStateChanged()
     {
-        UiStatePolicyManager mgr;
+        Policy p;
+        UiStatePolicyManager& mgr = p.mgr;
         QSignalSpy spy(&mgr, &UiStatePolicyManager::stateChanged);
         QVERIFY(spy.isValid());
 
-        mgr.transitionToDuringAnalysis();
+        p.set(S::DuringAnalysis);
         QCOMPARE(spy.count(), 1);
 
-        mgr.transitionToIdle();
+        p.set(S::Idle);
         QCOMPARE(spy.count(), 2);
     }
 
@@ -227,33 +190,36 @@ private slots:
     /// Idle → DuringGame → Idle の遷移サイクルが正しく動作すること
     void idleGameIdleCycle()
     {
-        UiStatePolicyManager mgr;
+        Policy p;
+        UiStatePolicyManager& mgr = p.mgr;
         QCOMPARE(mgr.currentState(), S::Idle);
 
-        mgr.transitionToDuringGame();
+        p.set(S::DuringGame);
         QCOMPARE(mgr.currentState(), S::DuringGame);
 
-        mgr.transitionToIdle();
+        p.set(S::Idle);
         QCOMPARE(mgr.currentState(), S::Idle);
     }
 
     /// Idle → DuringAnalysis → Idle の遷移サイクルが正しく動作すること
     void idleAnalysisIdleCycle()
     {
-        UiStatePolicyManager mgr;
+        Policy p;
+        UiStatePolicyManager& mgr = p.mgr;
         QCOMPARE(mgr.currentState(), S::Idle);
 
-        mgr.transitionToDuringAnalysis();
+        p.set(S::DuringAnalysis);
         QCOMPARE(mgr.currentState(), S::DuringAnalysis);
 
-        mgr.transitionToIdle();
+        p.set(S::Idle);
         QCOMPARE(mgr.currentState(), S::Idle);
     }
 
     /// 全7状態を順に遷移して戻れること
     void fullStateCycle()
     {
-        UiStatePolicyManager mgr;
+        Policy p;
+        UiStatePolicyManager& mgr = p.mgr;
         QSignalSpy spy(&mgr, &UiStatePolicyManager::stateChanged);
 
         const QList<S> allStates = {
@@ -263,13 +229,14 @@ private slots:
         };
 
         for (S state : std::as_const(allStates)) {
-            mgr.applyState(state);
+            p.set(state);
             QCOMPARE(mgr.currentState(), state);
         }
 
-        QCOMPARE(spy.count(), allStates.size());
+        // 最初の Idle は今の状態と同じなので知らせない
+        QCOMPARE(spy.count(), allStates.size() - 1);
 
-        mgr.transitionToIdle();
+        p.set(S::Idle);
         QCOMPARE(mgr.currentState(), S::Idle);
     }
 
@@ -280,63 +247,63 @@ private slots:
     /// FileNew: Idle のみ有効
     void fileNew_enabledOnlyInIdle()
     {
-        UiStatePolicyManager mgr;
-        verifyEnabled(mgr, S::Idle, E::FileNew, "FileNew");
-        verifyDisabled(mgr, S::DuringGame, E::FileNew, "FileNew");
-        verifyDisabled(mgr, S::DuringAnalysis, E::FileNew, "FileNew");
-        verifyDisabled(mgr, S::DuringCsaGame, E::FileNew, "FileNew");
-        verifyDisabled(mgr, S::DuringTsumeSearch, E::FileNew, "FileNew");
-        verifyDisabled(mgr, S::DuringConsideration, E::FileNew, "FileNew");
-        verifyDisabled(mgr, S::DuringPositionEdit, E::FileNew, "FileNew");
+        Policy p;
+        verifyEnabled(p, S::Idle, E::FileNew, "FileNew");
+        verifyDisabled(p, S::DuringGame, E::FileNew, "FileNew");
+        verifyDisabled(p, S::DuringAnalysis, E::FileNew, "FileNew");
+        verifyDisabled(p, S::DuringCsaGame, E::FileNew, "FileNew");
+        verifyDisabled(p, S::DuringTsumeSearch, E::FileNew, "FileNew");
+        verifyDisabled(p, S::DuringConsideration, E::FileNew, "FileNew");
+        verifyDisabled(p, S::DuringPositionEdit, E::FileNew, "FileNew");
     }
 
     /// FileOpen: Idle のみ有効
     void fileOpen_enabledOnlyInIdle()
     {
-        UiStatePolicyManager mgr;
-        verifyEnabled(mgr, S::Idle, E::FileOpen, "FileOpen");
-        verifyDisabled(mgr, S::DuringGame, E::FileOpen, "FileOpen");
-        verifyDisabled(mgr, S::DuringAnalysis, E::FileOpen, "FileOpen");
+        Policy p;
+        verifyEnabled(p, S::Idle, E::FileOpen, "FileOpen");
+        verifyDisabled(p, S::DuringGame, E::FileOpen, "FileOpen");
+        verifyDisabled(p, S::DuringAnalysis, E::FileOpen, "FileOpen");
     }
 
     /// FileSave: Idle, TsumeSearch, Consideration で有効
     void fileSave_enabledInIdleAndReadonlyStates()
     {
-        UiStatePolicyManager mgr;
-        verifyEnabled(mgr, S::Idle, E::FileSave, "FileSave");
-        verifyEnabled(mgr, S::DuringTsumeSearch, E::FileSave, "FileSave");
-        verifyEnabled(mgr, S::DuringConsideration, E::FileSave, "FileSave");
-        verifyDisabled(mgr, S::DuringGame, E::FileSave, "FileSave");
-        verifyDisabled(mgr, S::DuringAnalysis, E::FileSave, "FileSave");
-        verifyDisabled(mgr, S::DuringCsaGame, E::FileSave, "FileSave");
-        verifyDisabled(mgr, S::DuringPositionEdit, E::FileSave, "FileSave");
+        Policy p;
+        verifyEnabled(p, S::Idle, E::FileSave, "FileSave");
+        verifyEnabled(p, S::DuringTsumeSearch, E::FileSave, "FileSave");
+        verifyEnabled(p, S::DuringConsideration, E::FileSave, "FileSave");
+        verifyDisabled(p, S::DuringGame, E::FileSave, "FileSave");
+        verifyDisabled(p, S::DuringAnalysis, E::FileSave, "FileSave");
+        verifyDisabled(p, S::DuringCsaGame, E::FileSave, "FileSave");
+        verifyDisabled(p, S::DuringPositionEdit, E::FileSave, "FileSave");
     }
 
     /// FileSaveBoardImage: 常に有効
     void fileSaveBoardImage_alwaysEnabled()
     {
-        UiStatePolicyManager mgr;
+        Policy p;
         const QList<S> allStates = {
             S::Idle, S::DuringGame, S::DuringAnalysis,
             S::DuringCsaGame, S::DuringTsumeSearch,
             S::DuringConsideration, S::DuringPositionEdit
         };
         for (S state : std::as_const(allStates)) {
-            verifyEnabled(mgr, state, E::FileSaveBoardImage, "FileSaveBoardImage");
+            verifyEnabled(p, state, E::FileSaveBoardImage, "FileSaveBoardImage");
         }
     }
 
     /// FileQuit: 常に有効
     void fileQuit_alwaysEnabled()
     {
-        UiStatePolicyManager mgr;
+        Policy p;
         const QList<S> allStates = {
             S::Idle, S::DuringGame, S::DuringAnalysis,
             S::DuringCsaGame, S::DuringTsumeSearch,
             S::DuringConsideration, S::DuringPositionEdit
         };
         for (S state : std::as_const(allStates)) {
-            verifyEnabled(mgr, state, E::FileQuit, "FileQuit");
+            verifyEnabled(p, state, E::FileQuit, "FileQuit");
         }
     }
 
@@ -347,53 +314,53 @@ private slots:
     /// EditCopyKifu: Idle, TsumeSearch, Consideration で有効
     void editCopyKifu_enabledInReadonlyStates()
     {
-        UiStatePolicyManager mgr;
-        verifyEnabled(mgr, S::Idle, E::EditCopyKifu, "EditCopyKifu");
-        verifyEnabled(mgr, S::DuringTsumeSearch, E::EditCopyKifu, "EditCopyKifu");
-        verifyEnabled(mgr, S::DuringConsideration, E::EditCopyKifu, "EditCopyKifu");
-        verifyDisabled(mgr, S::DuringGame, E::EditCopyKifu, "EditCopyKifu");
-        verifyDisabled(mgr, S::DuringAnalysis, E::EditCopyKifu, "EditCopyKifu");
+        Policy p;
+        verifyEnabled(p, S::Idle, E::EditCopyKifu, "EditCopyKifu");
+        verifyEnabled(p, S::DuringTsumeSearch, E::EditCopyKifu, "EditCopyKifu");
+        verifyEnabled(p, S::DuringConsideration, E::EditCopyKifu, "EditCopyKifu");
+        verifyDisabled(p, S::DuringGame, E::EditCopyKifu, "EditCopyKifu");
+        verifyDisabled(p, S::DuringAnalysis, E::EditCopyKifu, "EditCopyKifu");
     }
 
     /// EditCopyPosition: 常に有効
     void editCopyPosition_alwaysEnabled()
     {
-        UiStatePolicyManager mgr;
-        verifyEnabled(mgr, S::Idle, E::EditCopyPosition, "EditCopyPosition");
-        verifyEnabled(mgr, S::DuringGame, E::EditCopyPosition, "EditCopyPosition");
-        verifyEnabled(mgr, S::DuringAnalysis, E::EditCopyPosition, "EditCopyPosition");
+        Policy p;
+        verifyEnabled(p, S::Idle, E::EditCopyPosition, "EditCopyPosition");
+        verifyEnabled(p, S::DuringGame, E::EditCopyPosition, "EditCopyPosition");
+        verifyEnabled(p, S::DuringAnalysis, E::EditCopyPosition, "EditCopyPosition");
     }
 
     /// EditPasteKifu: Idle のみ有効
     void editPasteKifu_enabledOnlyInIdle()
     {
-        UiStatePolicyManager mgr;
-        verifyEnabled(mgr, S::Idle, E::EditPasteKifu, "EditPasteKifu");
-        verifyDisabled(mgr, S::DuringGame, E::EditPasteKifu, "EditPasteKifu");
-        verifyDisabled(mgr, S::DuringConsideration, E::EditPasteKifu, "EditPasteKifu");
+        Policy p;
+        verifyEnabled(p, S::Idle, E::EditPasteKifu, "EditPasteKifu");
+        verifyDisabled(p, S::DuringGame, E::EditPasteKifu, "EditPasteKifu");
+        verifyDisabled(p, S::DuringConsideration, E::EditPasteKifu, "EditPasteKifu");
     }
 
     /// EditStartPosition: Idle のみ Shown、それ以外 Hidden
     void editStartPosition_shownOnlyInIdle()
     {
-        UiStatePolicyManager mgr;
-        verifyEnabled(mgr, S::Idle, E::EditStartPosition, "EditStartPosition");
-        verifyDisabled(mgr, S::DuringGame, E::EditStartPosition, "EditStartPosition");
-        verifyDisabled(mgr, S::DuringPositionEdit, E::EditStartPosition, "EditStartPosition");
+        Policy p;
+        verifyEnabled(p, S::Idle, E::EditStartPosition, "EditStartPosition");
+        verifyDisabled(p, S::DuringGame, E::EditStartPosition, "EditStartPosition");
+        verifyDisabled(p, S::DuringPositionEdit, E::EditStartPosition, "EditStartPosition");
     }
 
     /// 局面編集系要素: DuringPositionEdit のみ Shown
     void positionEditElements_shownOnlyDuringEdit()
     {
-        UiStatePolicyManager mgr;
+        Policy p;
         const QList<E> editElements = {
             E::EditEndPosition, E::EditSetHirate, E::EditSetTsume,
             E::EditReturnAllToStand, E::EditChangeTurn
         };
         for (E elem : std::as_const(editElements)) {
-            verifyEnabled(mgr, S::DuringPositionEdit, elem, "PositionEditElement");
-            verifyDisabled(mgr, S::Idle, elem, "PositionEditElement");
-            verifyDisabled(mgr, S::DuringGame, elem, "PositionEditElement");
+            verifyEnabled(p, S::DuringPositionEdit, elem, "PositionEditElement");
+            verifyDisabled(p, S::Idle, elem, "PositionEditElement");
+            verifyDisabled(p, S::DuringGame, elem, "PositionEditElement");
         }
     }
 
@@ -404,24 +371,23 @@ private slots:
     /// GameStart: Idle のみ有効
     void gameStart_enabledOnlyInIdle()
     {
-        UiStatePolicyManager mgr;
-        verifyEnabled(mgr, S::Idle, E::GameStart, "GameStart");
-        verifyDisabled(mgr, S::DuringGame, E::GameStart, "GameStart");
-        verifyDisabled(mgr, S::DuringCsaGame, E::GameStart, "GameStart");
+        Policy p;
+        verifyEnabled(p, S::Idle, E::GameStart, "GameStart");
+        verifyDisabled(p, S::DuringGame, E::GameStart, "GameStart");
+        verifyDisabled(p, S::DuringCsaGame, E::GameStart, "GameStart");
     }
 
     /// GameResign: DuringGame, DuringCsaGame のみ有効
     void gameResign_enabledDuringGameOrCsa()
     {
-        UiStatePolicyManager mgr;
         UiStatePolicyManager::Deps deps;
         deps.localGameHasHuman = []() { return true; };
-        mgr.updateDeps(deps);
-        verifyEnabled(mgr, S::DuringGame, E::GameResign, "GameResign");
-        verifyEnabled(mgr, S::DuringCsaGame, E::GameResign, "GameResign");
-        verifyDisabled(mgr, S::Idle, E::GameResign, "GameResign");
-        verifyDisabled(mgr, S::DuringAnalysis, E::GameResign, "GameResign");
-        verifyDisabled(mgr, S::DuringTsumeSearch, E::GameResign, "GameResign");
+        Policy p(deps);
+        verifyEnabled(p, S::DuringGame, E::GameResign, "GameResign");
+        verifyEnabled(p, S::DuringCsaGame, E::GameResign, "GameResign");
+        verifyDisabled(p, S::Idle, E::GameResign, "GameResign");
+        verifyDisabled(p, S::DuringAnalysis, E::GameResign, "GameResign");
+        verifyDisabled(p, S::DuringTsumeSearch, E::GameResign, "GameResign");
     }
 
     void localHumanActions_followPlayers_data()
@@ -438,22 +404,24 @@ private slots:
         QMainWindow window;
         Ui::MainWindow ui;
         ui.setupUi(&window);
-        UiStatePolicyManager mgr;
         UiStatePolicyManager::Deps deps;
         deps.ui = &ui;
-        mgr.updateDeps(deps);
-        mgr.transitionToDuringGame();
-        QVERIFY(!mgr.isEnabled(E::GameUndo));
-        QVERIFY(!ui.actionUndoMove->isEnabled());
-        QVERIFY(!mgr.isEnabled(E::GameResign));
-        QVERIFY(!ui.actionResign->isEnabled());
+        {
+            Policy noPlayers(deps);
+            noPlayers.set(S::DuringGame);
+            QVERIFY(!noPlayers.mgr.isEnabled(E::GameUndo));
+            QVERIFY(!ui.actionUndoMove->isEnabled());
+            QVERIFY(!noPlayers.mgr.isEnabled(E::GameResign));
+            QVERIFY(!ui.actionResign->isEnabled());
+        }
 
         deps.localGameHasHuman = [&hasHuman]() { return hasHuman; };
-        mgr.updateDeps(deps);
+        Policy p(deps);
+        UiStatePolicyManager& mgr = p.mgr;
         for (const auto state : {S::Idle, S::DuringGame, S::DuringCsaGame, S::DuringAnalysis,
                                 S::DuringTsumeSearch, S::DuringConsideration,
                                 S::DuringPositionEdit, S::Idle}) {
-            mgr.applyState(state);
+            p.set(state);
             const bool expected = state == S::DuringGame && hasHuman;
             QCOMPARE(mgr.isEnabled(E::GameUndo), expected);
             QCOMPARE(ui.actionUndoMove->isEnabled(), expected);
@@ -470,12 +438,12 @@ private slots:
 
         // 次の対局では最新の対局者で有効・無効を再判定する。
         hasHuman = true;
-        mgr.transitionToDuringGame();
+        p.set(S::DuringGame);
         QVERIFY(ui.actionUndoMove->isEnabled());
         QVERIFY(ui.actionResign->isEnabled());
-        mgr.transitionToIdle();
+        p.set(S::Idle);
         hasHuman = false;
-        mgr.transitionToDuringGame();
+        p.set(S::DuringGame);
         QVERIFY(!ui.actionUndoMove->isEnabled());
         QVERIFY(!ui.actionResign->isEnabled());
     }
@@ -483,74 +451,73 @@ private slots:
     /// GameMakeImmediate: DuringGame, DuringCsaGame で有効
     void gameMakeImmediate_enabledDuringGameOrCsa()
     {
-        UiStatePolicyManager mgr;
-        verifyEnabled(mgr, S::DuringGame, E::GameMakeImmediate, "GameMakeImmediate");
-        verifyEnabled(mgr, S::DuringCsaGame, E::GameMakeImmediate, "GameMakeImmediate");
-        verifyDisabled(mgr, S::Idle, E::GameMakeImmediate, "GameMakeImmediate");
+        Policy p;
+        verifyEnabled(p, S::DuringGame, E::GameMakeImmediate, "GameMakeImmediate");
+        verifyEnabled(p, S::DuringCsaGame, E::GameMakeImmediate, "GameMakeImmediate");
+        verifyDisabled(p, S::Idle, E::GameMakeImmediate, "GameMakeImmediate");
     }
 
     /// GameBreakOff: DuringGame, DuringCsaGame で有効
     void gameBreakOff_enabledDuringGameOrCsa()
     {
-        UiStatePolicyManager mgr;
-        verifyEnabled(mgr, S::DuringGame, E::GameBreakOff, "GameBreakOff");
-        verifyEnabled(mgr, S::DuringCsaGame, E::GameBreakOff, "GameBreakOff");
-        verifyDisabled(mgr, S::Idle, E::GameBreakOff, "GameBreakOff");
+        Policy p;
+        verifyEnabled(p, S::DuringGame, E::GameBreakOff, "GameBreakOff");
+        verifyEnabled(p, S::DuringCsaGame, E::GameBreakOff, "GameBreakOff");
+        verifyDisabled(p, S::Idle, E::GameBreakOff, "GameBreakOff");
     }
 
     /// GameAnalyzeKifu: Idle のみ有効
     void gameAnalyzeKifu_enabledOnlyInIdle()
     {
-        UiStatePolicyManager mgr;
-        verifyEnabled(mgr, S::Idle, E::GameAnalyzeKifu, "GameAnalyzeKifu");
-        verifyDisabled(mgr, S::DuringGame, E::GameAnalyzeKifu, "GameAnalyzeKifu");
-        verifyDisabled(mgr, S::DuringAnalysis, E::GameAnalyzeKifu, "GameAnalyzeKifu");
+        Policy p;
+        verifyEnabled(p, S::Idle, E::GameAnalyzeKifu, "GameAnalyzeKifu");
+        verifyDisabled(p, S::DuringGame, E::GameAnalyzeKifu, "GameAnalyzeKifu");
+        verifyDisabled(p, S::DuringAnalysis, E::GameAnalyzeKifu, "GameAnalyzeKifu");
     }
 
     /// GameCancelAnalysis: DuringAnalysis のみ有効
     void gameCancelAnalysis_enabledOnlyDuringAnalysis()
     {
-        UiStatePolicyManager mgr;
-        verifyEnabled(mgr, S::DuringAnalysis, E::GameCancelAnalysis, "GameCancelAnalysis");
-        verifyDisabled(mgr, S::Idle, E::GameCancelAnalysis, "GameCancelAnalysis");
-        verifyDisabled(mgr, S::DuringGame, E::GameCancelAnalysis, "GameCancelAnalysis");
+        Policy p;
+        verifyEnabled(p, S::DuringAnalysis, E::GameCancelAnalysis, "GameCancelAnalysis");
+        verifyDisabled(p, S::Idle, E::GameCancelAnalysis, "GameCancelAnalysis");
+        verifyDisabled(p, S::DuringGame, E::GameCancelAnalysis, "GameCancelAnalysis");
     }
 
     /// GameTsumeSearch: Idle のみ有効
     void gameTsumeSearch_enabledOnlyInIdle()
     {
-        UiStatePolicyManager mgr;
-        verifyEnabled(mgr, S::Idle, E::GameTsumeSearch, "GameTsumeSearch");
-        verifyDisabled(mgr, S::DuringTsumeSearch, E::GameTsumeSearch, "GameTsumeSearch");
+        Policy p;
+        verifyEnabled(p, S::Idle, E::GameTsumeSearch, "GameTsumeSearch");
+        verifyDisabled(p, S::DuringTsumeSearch, E::GameTsumeSearch, "GameTsumeSearch");
     }
 
     /// GameStopTsumeSearch: DuringTsumeSearch のみ有効
     void gameStopTsumeSearch_enabledOnlyDuringTsumeSearch()
     {
-        UiStatePolicyManager mgr;
-        verifyEnabled(mgr, S::DuringTsumeSearch, E::GameStopTsumeSearch, "GameStopTsumeSearch");
-        verifyDisabled(mgr, S::Idle, E::GameStopTsumeSearch, "GameStopTsumeSearch");
+        Policy p;
+        verifyEnabled(p, S::DuringTsumeSearch, E::GameStopTsumeSearch, "GameStopTsumeSearch");
+        verifyDisabled(p, S::Idle, E::GameStopTsumeSearch, "GameStopTsumeSearch");
     }
 
     /// GameNyugyokuDeclaration: DuringGame（人間が参加する対局）, DuringCsaGame のみ有効
     void gameNyugyokuDeclaration_enabledDuringGameOrCsa()
     {
-        UiStatePolicyManager mgr;
         UiStatePolicyManager::Deps deps;
         deps.localGameHasHuman = []() { return true; };
-        mgr.updateDeps(deps);
-        verifyEnabled(mgr, S::DuringGame, E::GameNyugyokuDeclaration, "GameNyugyokuDeclaration");
-        verifyEnabled(mgr, S::DuringCsaGame, E::GameNyugyokuDeclaration, "GameNyugyokuDeclaration");
-        verifyDisabled(mgr, S::Idle, E::GameNyugyokuDeclaration, "GameNyugyokuDeclaration");
+        Policy p(deps);
+        verifyEnabled(p, S::DuringGame, E::GameNyugyokuDeclaration, "GameNyugyokuDeclaration");
+        verifyEnabled(p, S::DuringCsaGame, E::GameNyugyokuDeclaration, "GameNyugyokuDeclaration");
+        verifyDisabled(p, S::Idle, E::GameNyugyokuDeclaration, "GameNyugyokuDeclaration");
     }
 
     /// GameJishogiScore: 常に有効
     void gameJishogiScore_alwaysEnabled()
     {
-        UiStatePolicyManager mgr;
-        verifyEnabled(mgr, S::Idle, E::GameJishogiScore, "GameJishogiScore");
-        verifyEnabled(mgr, S::DuringGame, E::GameJishogiScore, "GameJishogiScore");
-        verifyEnabled(mgr, S::DuringCsaGame, E::GameJishogiScore, "GameJishogiScore");
+        Policy p;
+        verifyEnabled(p, S::Idle, E::GameJishogiScore, "GameJishogiScore");
+        verifyEnabled(p, S::DuringGame, E::GameJishogiScore, "GameJishogiScore");
+        verifyEnabled(p, S::DuringCsaGame, E::GameJishogiScore, "GameJishogiScore");
     }
 
     // ================================================================
@@ -560,12 +527,12 @@ private slots:
     /// SettingsEngine: Idle, DuringConsideration のみ有効
     void settingsEngine_enabledInIdleOrConsideration()
     {
-        UiStatePolicyManager mgr;
-        verifyEnabled(mgr, S::Idle, E::SettingsEngine, "SettingsEngine");
-        verifyEnabled(mgr, S::DuringConsideration, E::SettingsEngine, "SettingsEngine");
-        verifyDisabled(mgr, S::DuringGame, E::SettingsEngine, "SettingsEngine");
-        verifyDisabled(mgr, S::DuringAnalysis, E::SettingsEngine, "SettingsEngine");
-        verifyDisabled(mgr, S::DuringCsaGame, E::SettingsEngine, "SettingsEngine");
+        Policy p;
+        verifyEnabled(p, S::Idle, E::SettingsEngine, "SettingsEngine");
+        verifyEnabled(p, S::DuringConsideration, E::SettingsEngine, "SettingsEngine");
+        verifyDisabled(p, S::DuringGame, E::SettingsEngine, "SettingsEngine");
+        verifyDisabled(p, S::DuringAnalysis, E::SettingsEngine, "SettingsEngine");
+        verifyDisabled(p, S::DuringCsaGame, E::SettingsEngine, "SettingsEngine");
     }
 
     // ================================================================
@@ -575,51 +542,51 @@ private slots:
     /// WidgetNavigation: Idle, TsumeSearch, Consideration で有効
     void widgetNavigation_enabledInReadonlyStates()
     {
-        UiStatePolicyManager mgr;
-        verifyEnabled(mgr, S::Idle, E::WidgetNavigation, "WidgetNavigation");
-        verifyEnabled(mgr, S::DuringTsumeSearch, E::WidgetNavigation, "WidgetNavigation");
-        verifyEnabled(mgr, S::DuringConsideration, E::WidgetNavigation, "WidgetNavigation");
-        verifyDisabled(mgr, S::DuringGame, E::WidgetNavigation, "WidgetNavigation");
-        verifyDisabled(mgr, S::DuringAnalysis, E::WidgetNavigation, "WidgetNavigation");
-        verifyDisabled(mgr, S::DuringCsaGame, E::WidgetNavigation, "WidgetNavigation");
-        verifyDisabled(mgr, S::DuringPositionEdit, E::WidgetNavigation, "WidgetNavigation");
+        Policy p;
+        verifyEnabled(p, S::Idle, E::WidgetNavigation, "WidgetNavigation");
+        verifyEnabled(p, S::DuringTsumeSearch, E::WidgetNavigation, "WidgetNavigation");
+        verifyEnabled(p, S::DuringConsideration, E::WidgetNavigation, "WidgetNavigation");
+        verifyDisabled(p, S::DuringGame, E::WidgetNavigation, "WidgetNavigation");
+        verifyDisabled(p, S::DuringAnalysis, E::WidgetNavigation, "WidgetNavigation");
+        verifyDisabled(p, S::DuringCsaGame, E::WidgetNavigation, "WidgetNavigation");
+        verifyDisabled(p, S::DuringPositionEdit, E::WidgetNavigation, "WidgetNavigation");
     }
 
     /// WidgetBranchTree: Idle, TsumeSearch, Consideration で有効
     void widgetBranchTree_enabledInReadonlyStates()
     {
-        UiStatePolicyManager mgr;
-        verifyEnabled(mgr, S::Idle, E::WidgetBranchTree, "WidgetBranchTree");
-        verifyEnabled(mgr, S::DuringTsumeSearch, E::WidgetBranchTree, "WidgetBranchTree");
-        verifyEnabled(mgr, S::DuringConsideration, E::WidgetBranchTree, "WidgetBranchTree");
-        verifyDisabled(mgr, S::DuringGame, E::WidgetBranchTree, "WidgetBranchTree");
-        verifyDisabled(mgr, S::DuringAnalysis, E::WidgetBranchTree, "WidgetBranchTree");
+        Policy p;
+        verifyEnabled(p, S::Idle, E::WidgetBranchTree, "WidgetBranchTree");
+        verifyEnabled(p, S::DuringTsumeSearch, E::WidgetBranchTree, "WidgetBranchTree");
+        verifyEnabled(p, S::DuringConsideration, E::WidgetBranchTree, "WidgetBranchTree");
+        verifyDisabled(p, S::DuringGame, E::WidgetBranchTree, "WidgetBranchTree");
+        verifyDisabled(p, S::DuringAnalysis, E::WidgetBranchTree, "WidgetBranchTree");
     }
 
     /// WidgetBoardClick: Idle, DuringGame, DuringCsaGame で有効
     void widgetBoardClick_enabledForInteraction()
     {
-        UiStatePolicyManager mgr;
-        verifyEnabled(mgr, S::Idle, E::WidgetBoardClick, "WidgetBoardClick");
-        verifyEnabled(mgr, S::DuringGame, E::WidgetBoardClick, "WidgetBoardClick");
-        verifyEnabled(mgr, S::DuringCsaGame, E::WidgetBoardClick, "WidgetBoardClick");
-        verifyDisabled(mgr, S::DuringAnalysis, E::WidgetBoardClick, "WidgetBoardClick");
-        verifyDisabled(mgr, S::DuringTsumeSearch, E::WidgetBoardClick, "WidgetBoardClick");
-        verifyDisabled(mgr, S::DuringConsideration, E::WidgetBoardClick, "WidgetBoardClick");
-        verifyDisabled(mgr, S::DuringPositionEdit, E::WidgetBoardClick, "WidgetBoardClick");
+        Policy p;
+        verifyEnabled(p, S::Idle, E::WidgetBoardClick, "WidgetBoardClick");
+        verifyEnabled(p, S::DuringGame, E::WidgetBoardClick, "WidgetBoardClick");
+        verifyEnabled(p, S::DuringCsaGame, E::WidgetBoardClick, "WidgetBoardClick");
+        verifyDisabled(p, S::DuringAnalysis, E::WidgetBoardClick, "WidgetBoardClick");
+        verifyDisabled(p, S::DuringTsumeSearch, E::WidgetBoardClick, "WidgetBoardClick");
+        verifyDisabled(p, S::DuringConsideration, E::WidgetBoardClick, "WidgetBoardClick");
+        verifyDisabled(p, S::DuringPositionEdit, E::WidgetBoardClick, "WidgetBoardClick");
     }
 
     /// WidgetConsiderationStart: 対局中/CSA中のみ無効
     void widgetConsiderationStart_disabledDuringGames()
     {
-        UiStatePolicyManager mgr;
-        verifyEnabled(mgr, S::Idle, E::WidgetConsiderationStart, "WidgetConsiderationStart");
-        verifyDisabled(mgr, S::DuringGame, E::WidgetConsiderationStart, "WidgetConsiderationStart");
-        verifyDisabled(mgr, S::DuringCsaGame, E::WidgetConsiderationStart, "WidgetConsiderationStart");
-        verifyEnabled(mgr, S::DuringAnalysis, E::WidgetConsiderationStart, "WidgetConsiderationStart");
-        verifyEnabled(mgr, S::DuringTsumeSearch, E::WidgetConsiderationStart, "WidgetConsiderationStart");
-        verifyEnabled(mgr, S::DuringConsideration, E::WidgetConsiderationStart, "WidgetConsiderationStart");
-        verifyEnabled(mgr, S::DuringPositionEdit, E::WidgetConsiderationStart, "WidgetConsiderationStart");
+        Policy p;
+        verifyEnabled(p, S::Idle, E::WidgetConsiderationStart, "WidgetConsiderationStart");
+        verifyDisabled(p, S::DuringGame, E::WidgetConsiderationStart, "WidgetConsiderationStart");
+        verifyDisabled(p, S::DuringCsaGame, E::WidgetConsiderationStart, "WidgetConsiderationStart");
+        verifyEnabled(p, S::DuringAnalysis, E::WidgetConsiderationStart, "WidgetConsiderationStart");
+        verifyEnabled(p, S::DuringTsumeSearch, E::WidgetConsiderationStart, "WidgetConsiderationStart");
+        verifyEnabled(p, S::DuringConsideration, E::WidgetConsiderationStart, "WidgetConsiderationStart");
+        verifyEnabled(p, S::DuringPositionEdit, E::WidgetConsiderationStart, "WidgetConsiderationStart");
     }
 
     // ================================================================
@@ -629,7 +596,8 @@ private slots:
     /// 全7状態で全UI要素にポリシーが定義されていること（isEnabled がクラッシュしない）
     void allStatesHavePoliciesForAllElements()
     {
-        UiStatePolicyManager mgr;
+        Policy p;
+        UiStatePolicyManager& mgr = p.mgr;
         const QList<S> allStates = {
             S::Idle, S::DuringGame, S::DuringAnalysis,
             S::DuringCsaGame, S::DuringTsumeSearch,
@@ -637,7 +605,7 @@ private slots:
         };
 
         for (S state : std::as_const(allStates)) {
-            mgr.applyState(state);
+            p.set(state);
             // Count sentinel を除く全要素について isEnabled がクラッシュしないこと
             for (int e = 0; e < static_cast<int>(E::Count); ++e) {
                 const auto element = static_cast<E>(e);
@@ -654,13 +622,14 @@ private slots:
     /// 解析開始/中止が排他的であること
     void analyzeAndCancelAreMutuallyExclusive()
     {
-        UiStatePolicyManager mgr;
+        Policy p;
+        UiStatePolicyManager& mgr = p.mgr;
 
-        mgr.applyState(S::Idle);
+        p.set(S::Idle);
         QVERIFY(mgr.isEnabled(E::GameAnalyzeKifu));
         QVERIFY(!mgr.isEnabled(E::GameCancelAnalysis));
 
-        mgr.applyState(S::DuringAnalysis);
+        p.set(S::DuringAnalysis);
         QVERIFY(!mgr.isEnabled(E::GameAnalyzeKifu));
         QVERIFY(mgr.isEnabled(E::GameCancelAnalysis));
     }
@@ -668,13 +637,14 @@ private slots:
     /// 詰み探索開始/停止が排他的であること
     void tsumeSearchAndStopAreMutuallyExclusive()
     {
-        UiStatePolicyManager mgr;
+        Policy p;
+        UiStatePolicyManager& mgr = p.mgr;
 
-        mgr.applyState(S::Idle);
+        p.set(S::Idle);
         QVERIFY(mgr.isEnabled(E::GameTsumeSearch));
         QVERIFY(!mgr.isEnabled(E::GameStopTsumeSearch));
 
-        mgr.applyState(S::DuringTsumeSearch);
+        p.set(S::DuringTsumeSearch);
         QVERIFY(!mgr.isEnabled(E::GameTsumeSearch));
         QVERIFY(mgr.isEnabled(E::GameStopTsumeSearch));
     }
@@ -682,13 +652,14 @@ private slots:
     /// 局面編集開始/終了が排他的であること
     void positionEditStartAndEndAreMutuallyExclusive()
     {
-        UiStatePolicyManager mgr;
+        Policy p;
+        UiStatePolicyManager& mgr = p.mgr;
 
-        mgr.applyState(S::Idle);
+        p.set(S::Idle);
         QVERIFY(mgr.isEnabled(E::EditStartPosition));
         QVERIFY(!mgr.isEnabled(E::EditEndPosition));
 
-        mgr.applyState(S::DuringPositionEdit);
+        p.set(S::DuringPositionEdit);
         QVERIFY(!mgr.isEnabled(E::EditStartPosition));
         QVERIFY(mgr.isEnabled(E::EditEndPosition));
     }

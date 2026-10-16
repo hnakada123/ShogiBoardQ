@@ -4,7 +4,6 @@
 #include "humanvshumanstrategy.h"
 
 #include "logcategories.h"
-#include "shogiclock.h"
 
 HumanVsHumanStrategy::HumanVsHumanStrategy(MatchStrategyHost& host)
     : m_host(host)
@@ -14,7 +13,6 @@ HumanVsHumanStrategy::HumanVsHumanStrategy(MatchStrategyHost& host)
 void HumanVsHumanStrategy::start()
 {
     qCDebug(lcGame) << "[Match] Start HvH";
-    m_host.refreshBoardAndTurn();
 }
 
 void HumanVsHumanStrategy::onHumanMove(const RecordEntry& played)
@@ -41,6 +39,6 @@ void HumanVsHumanStrategy::finishTurnTimer(Turn mover)
 {
     if (!m_turnTimerArmed) return;
     const qint64 ms = m_turnTimer.isValid() ? m_turnTimer.elapsed() : 0;
-    if (ShogiClock* clock = m_host.clock()) clock->setMeasuredConsiderationTime(mover, ms);
+    m_host.recordConsiderationTime(mover, ms);
     disarmTurnTimer();
 }

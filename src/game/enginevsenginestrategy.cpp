@@ -7,8 +7,6 @@
 
 #include "enginelifecyclemanager.h"
 #include "logcategories.h"
-#include "shogiclock.h"
-#include "shogigamecontroller.h"
 #include "usi.h"
 
 EngineVsEngineStrategy::EngineVsEngineStrategy(MatchStrategyHost& host, Engines engines, QObject* parent)
@@ -30,13 +28,6 @@ void EngineVsEngineStrategy::start()
     }
     seats.startEngine(black, m_engines.blackPath, m_engines.blackName);
     seats.startEngine(white, m_engines.whitePath, m_engines.whiteName);
-
-    // 初手から時計を動かす（駒落ちでは後手番から始まる。手番は GC が SFEN に従う）
-    if (ShogiClock* clock = m_host.clock()) {
-        clock->startClock();
-        qCDebug(lcGame) << "Clock started";
-    }
-    m_host.refreshBoardAndTurn();
     kickNextTurn();
 }
 
@@ -47,30 +38,21 @@ void EngineVsEngineStrategy::kickNextTurn()
     Usi* white = m_host.engines().engineFor(Turn::White);
     if (!black || !white) return;
 
-    if (black->isInitializing() || white->isInitializing()) {
-        m_waitingInitialization = true;
-        if (ShogiClock* clock = m_host.clock()) clock->stopClock();
-        return;
-    }
-    if (m_waitingInitialization) {
-        m_waitingInitialization = false;
-        if (ShogiClock* clock = m_host.clock()) clock->startClock();
-    }
+    // どちらかのエンジンの初期化を待つ間は、持ち時間を減らさない
+    const bool initializing = black->isInitializing() || white->isInitializing();
+    m_host.setWaitingForEngines(initializing);
+    if (initializing) return;
     m_waitingForMove = true;
-    m_host.requestEngineMove(m_host.gameController()->currentPlayer());
+    m_host.requestEngineMove(m_host.sideToMove());
 }
 
-void EngineVsEngineStrategy::onEngineMoveReady(const UsiMove& move, const QString& /*position*/, const QString& ponder)
+void EngineVsEngineStrategy::onEngineMoveReady(const UsiMatchMove& move)
 {
-    if (!m_waitingForMove || m_host.isGameOver()) return;
-    const Turn mover = m_host.gameController()->currentPlayer();
-    Usi* engine = m_host.engines().engineFor(mover);
-    if (sender() != engine) return;
+    if (!m_waitingForMove || m_host.isGameOver() || move.side != m_host.sideToMove()) return;
     m_waitingForMove = false;
-    m_host.setEnginePonder(mover, ponder);
     // 相手のエンジンにも直前の手の行き先を知らせる（読み筋の「同」の判定に使う）
-    if (Usi* receiver = m_host.engines().engineFor(mover == Turn::Black ? Turn::White : Turn::Black))
-        receiver->setPreviousMove(move.to);
-    if (!m_host.applyEngineMove(move, mover, engine->lastBestmoveElapsedMs())) return;
+    if (Usi* receiver = m_host.engines().engineFor(opponent(move.side)))
+        receiver->setPreviousMove(move.move.to);
+    if (!m_host.applyEngineMove(move)) return;
     QTimer::singleShot(0, this, &EngineVsEngineStrategy::kickNextTurn);
 }

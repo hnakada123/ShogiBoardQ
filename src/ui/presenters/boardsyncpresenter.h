@@ -2,57 +2,41 @@
 #define BOARDSYNCPRESENTER_H
 
 /// @file boardsyncpresenter.h
-/// @brief 盤面同期プレゼンタクラスの定義
-
+/// @brief 盤を表示中の手の局面に合わせ、その手と手番を示す
 
 #include <QObject>
-#include <QPoint>
-#include <QString>
 
-#include "recordline.h"
-
-class ShogiGameController;
-class ShogiView;
 class BoardInteractionController;
 class KifuNavigationState;
+class ShogiGameController;
 
 /**
- * @brief 棋譜の局面を盤に描き、直前の手をハイライトする
+ * @brief 表示中の手（KifuNavigationState）が変わるたびに、盤をその局面に合わせる
  *
- * 局面は棋譜の正本（分岐ツリーの表示中の手順）から取る。対局中も、対局の手順は
- * LiveGameSession が分岐ツリーに積んでいるので同じ経路で描ける。
+ * 盤（ShogiGameController の盤）は棋譜をたどるときも対局中も同じ1つで、表示中の手の局面と違うときだけ
+ * 局面を入れ替える（対局中は対局の盤が先に最新の手を指しているので入れ替えない）。
+ * 手のハイライトはノードの指し手から作る（手番の表示は盤のビューが盤の手番から作る）。
  */
 class BoardSyncPresenter : public QObject
 {
     Q_OBJECT
+
 public:
     struct Deps {
-        ShogiGameController* gc = nullptr;
-        ShogiView* view = nullptr;
-        BoardInteractionController* bic = nullptr;
-        const KifuNavigationState* navState = nullptr;   ///< 表示中の手順（分岐ツリー）
+        ShogiGameController* gc = nullptr;             ///< 盤（必須）
+        BoardInteractionController* bic = nullptr;     ///< ハイライトとクリック待ち（必須）
+
+        const KifuNavigationState* navState = nullptr; ///< 表示中の手（必須）
     };
 
-    explicit BoardSyncPresenter(const Deps& deps, QObject* parent=nullptr);
+    explicit BoardSyncPresenter(const Deps& deps, QObject* parent = nullptr);
 
-    /// 表示中の手順の ply 手目の局面を盤に描き、その手をハイライトする（ply=0 と終局行はハイライト無し）
-    void syncBoardAndHighlightsAtRow(int ply) const;
-
-    /**
-     * @brief 指定した局面を盤に描き、直前の局面との差分から手をハイライトする（分岐ナビゲーション用）
-     * @param currentSfen 現在の局面SFEN
-     * @param prevSfen 直前の局面SFEN（空の場合はハイライトクリア）
-     */
-    void loadBoardWithHighlights(const QString& currentSfen, const QString& prevSfen) const;
+public slots:
+    /// 盤・手のハイライト・手番の表示を表示中の手に合わせる
+    void syncToCurrentNode();
 
 private:
-    void applyBoard(const QString& sfen) const;
-    void showMoveHighlight(const QString& prevSfen, const QString& currentSfen) const;
-
-    ShogiGameController* m_gc;
-    ShogiView* m_view;
-    BoardInteractionController* m_bic;
-    const KifuNavigationState* m_navState = nullptr;
+    Deps m_deps;
 };
 
 #endif // BOARDSYNCPRESENTER_H

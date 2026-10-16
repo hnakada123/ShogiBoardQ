@@ -47,18 +47,19 @@ cmake --build build --target translations
   - `mainwindowcomposer.cpp/.h` - 合成ルート。起動時に全部品を依存順に作り、依存を注入し、シグナルをつなぐ（実装は `mainwindowcomposer_*.cpp` に段階ごとに分割）。設計: `docs/dev/composition-root.md`
   - `mainwindowcomponents.h` - 合成ルートが作る部品の一覧。状態は `src/common/appstate.h` の `AppState` に1つだけ置く（部品には `AppState*` を渡し、個々のフィールドへのポインタは渡さない）
   - `mainwindowactions.cpp/.h` - メニュー・盤・棋譜欄からの利用者操作の振り分け先
+  - `menuactionswiring.cpp/.h` - メニュー・ツールバーの項目と処理する部品の接続
   - `gamesession.cpp/.h` - 対局の開始・終局・再開と、対局の手順の棋譜への追記（`MatchRecordSink`）
+  - `sessionresetcoordinator.cpp/.h` - 対局の開始前・新規・局面編集・棋譜の読み込み前に、棋譜と表示を作り直す
   - `humanturnpolicy.cpp/.h` - 盤を人間が操作できる手番か・対局が進行中かの判定
-  - `turnstatesyncservice.cpp/.h` - 手番同期（TurnManager/GC/View/時計）
-  - `boardloadservice.cpp/.h` - SFEN盤面適用・ハイライト同期
-  - `kifunavigationcoordinator.cpp/.h` - 棋譜ナビゲーション同期
-  - `uiactionswiring` と `file/game/edit/viewactionswiring` - メニュー項目と処理の接続
+  - `dockcreationservice.cpp/.h` - ドックの生成と配置
 
 - **core/**: 純粋なゲームロジック（Qt GUI非依存）
   - `shogiboard.cpp/.h` - Board state and piece management（指し手の適用は `applyUsiMove` だけ）
   - `shogimove.cpp/.h`・`usimove.h` - Move representation
   - `enginemovevalidator.cpp/.h` - Move legality validation（`fmv::Converter` を境界に `fmvlegalcore` のビットボード合法手生成を使う）
   - `sfenreplay.cpp/.h` - 指し手列から局面列を作る
+  - `boardcoordinates.h` - 盤面表示の座標（駒台は筋10・11、駒箱は筋12）と駒・USI の指し手の対応
+  - `handicaps.h` - 手合割の表（名前・JKF の preset・開始局面）
   - `matchplayers.h` - 対局者（先手・後手を人間とエンジンのどちらが指すかと名前）
   - `shogiclock.cpp/.h` - Game clock
   - `shoginotation.h` - 筋・段・駒の表記（漢字・全角・CSA）
@@ -66,27 +67,32 @@ cmake --build build --target translations
 - **game/**: ゲーム進行・対局管理（GUI に依存しない）
   - `matchcoordinator.cpp/.h` - 対局の司令塔（開始・着手・終局・待った・中断と再開）。手順は `record()`、対局者は `players()`
   - `humanvshumanstrategy` / `humanvsenginestrategy` / `enginevsenginestrategy` - 対局者の組ごとの進め方（`MatchStrategyHost` 経由）
-  - `enginelifecyclemanager.cpp/.h` - エンジンの枠 E1・E2（対局と検討で共有）
+  - `enginelifecyclemanager.cpp/.h` - エンジンの枠 E1・E2（対局・検討・棋譜解析・CSA 通信対局で共有）
+  - `consecutivegameseries.cpp/.h` - エンジン同士の連続対局（局数・手番の入れ替え・次局の計画）
   - `shogigamecontroller.cpp/.h` - Game flow control
-  - `gamestartcoordinator.cpp/.h`・`gamestartoptionsbuilder` - 対局開始ダイアログの値の解釈と開始
-  - `turnmanager.cpp/.h` - Turn management
+  - `gamestartoptionsbuilder` - 対局開始ダイアログの値の解釈
 
 - **kifu/**: 棋譜関連（GUI に依存しない）
   - `gamerecordmodel.cpp/.h` - Kifu data model
   - `recordline.h`・`recordentry.h` - 1本の手順と1手の記録
+  - `kifuformat.cpp/.h` - 棋譜の形式（読み込み・保存・変換で共通の1つの enum）と判定
+  - `kifuloadparser.cpp/.h` - 棋譜の読み込み口（ファイルの文字コードの判別と形式ごとの変換器への振り分け）
   - `kifuioservice.cpp/.h`・`kifusavefile.cpp/.h` - Kifu file I/O
-  - **formats/**: Format converters
+  - `josekibooksession.cpp/.h` - 開いている定跡ファイル（データ・変更状態・読み書き）
+  - **formats/**: Format converters（テキストを読む。ファイルは `KifuLoadParser` が読んで渡す）
     - `kiftosfenconverter`, `ki2tosfenconverter`, `csatosfenconverter`, etc.
 
 - **analysis/**: 解析機能（GUI に依存しない）
   - `analysissession.cpp/.h` - 検討・詰み探索のセッション
   - `analysiscoordinator.cpp/.h`・`analysisjob` - 棋譜解析
+  - `tsumecollectionsession.cpp/.h` - 詰将棋集の進捗・解析待ちの管理
   - `sfenvalidationservice`・`tsumeshogigenerator` など
 
 - **engine/**: USI (Universal Shogi Interface) エンジン連携（対局の仕組みに依存しない）
   - `usi.cpp/.h` - GUI から使うエンジン1台の窓口
   - `usienginesession.cpp/.h` - 起動と初期化（usi〜readyok）。GUI と CLI の実行器が共有する
   - `usiprotocolhandler.cpp/.h` - USI protocol implementation
+  - `usilineparser.cpp/.h` - 受信行（info・bestmove・checkmate・option・id）を型付きの値にする
   - `engineprocessmanager.cpp/.h` - Engine process lifecycle
   - `usimatchhandler.cpp/.h` - 対局・解析での USI のやり取り（position/go/bestmove）
 
@@ -104,16 +110,14 @@ cmake --build build --target translations
 
 - **ui/**: UI層
   - **presenters/**: 表示への反映
-    - `playerinfopresenter`（対局者名・対局情報）, `gamerecordpresenter`, `boardsyncpresenter`, etc.
-  - **controllers/**: UI event handlers
-    - `boardsetupcontroller`, `considerationuicontroller`, `josekiwindowcontroller`, `menuwindowcontroller`, `replaycontroller`, etc.
-  - **wiring/**: 部品どうしのシグナル接続
-    - `csagamewiring`, `analysistabwiring`, `branchnavigationwiring`, etc.
+    - `playerinfopresenter`（対局者名・対局情報）, `kifudisplaypresenter`（棋譜欄・分岐）, `boardsyncpresenter`（盤と手番）, `candidatearrowpresenter`, etc.
+  - **controllers/**: 利用者操作の処理
+    - `boardmovecontroller`, `considerationuicontroller`, `josekiwindowcontroller`, `menuwindowcontroller`, `pvclickcontroller`, etc.
   - **coordinators/**: 複数の部品にまたがる UI の流れ
-    - `dialogcoordinator`, `dialoglauncher`, `kifuloadcoordinator`, `kifusavecoordinator`, `analysisflowcontroller`, `recordnavigationhandler`, `positioneditcoordinator`, etc.
-  - `uistatepolicymanager` - 動作状態ごとのメニュー・ボタンの有効/無効（コンパイル時の表）
+    - `dialoglauncher`, `kifuloadcoordinator`, `kifufilecontroller`, `kifuexportcontroller`, `csagamesession`, `positioneditcoordinator`, etc.
+    - `uistatepolicymanager` - 動作状態ごとのメニュー・ボタンの有効/無効（コンパイル時の表）
 
-- **views/**: Qt Graphics View for board rendering (`shogiview.cpp/.h`)
+- **views/**: 盤の描画と入力（`shogiview.cpp/.h`）。対局者カード・時計は `boardchromewidget`、局面によらない部分の画像は `boardstaticlayer`、配置は `shogiviewlayout`、ドラッグは `shogiviewinteraction`、ハイライトと矢印は `shogiviewhighlighting`
 - **automation/**: 自動化 API（`ShogiBoardQ --automation`）と、CLI・MCP サーバーが共有する GUI 非依存サービス（設計: `docs/dev/mcp-server.md`）
   - `automationserver.cpp/.h` - QLocalServer で改行区切り JSON-RPC 2.0 を待ち受け
   - `automationdispatcher.cpp/.h` - JSON-RPC 解析とメソッド表（GUI 非依存）
@@ -121,6 +125,9 @@ cmake --build build --target translations
   - `kifuconversionservice`, `boardimagerenderer`, `engineanalysisrunner`, `matesearchrunner`, `tsumeverificationrunner` - CLI と共有するサービス（局面の検証は `analysis/sfenvalidationservice`）
 - **cli/**: `shogiboardq-cli`（GUI を起動しない JSON 出力コマンド。`mcp/` の MCP サーバーが呼び出す）
 - **widgets/**: Custom Qt widgets
+  - `thinkingpanel`・`thinkingtableview`（思考の表。対局と検討タブで共用）・`engineinfowidget`, `gameinfopane`（対局情報。中身は `models/gameinfoeditmodel`）, `recordpane`, `considerationtabmanager`, `analysisresultspanel`
+  - `tableheaderview` - 表の見出し。列幅は利用者がドラッグしたときだけ `sectionResizedByUser` で保存する
+  - `fontsizehelper` - A-/A+ の文字の大きさ（範囲・保存・変更の通知）
 - **dialogs/**: Dialog implementations (with co-located .ui files)
 - **models/**: Qt models for lists and data binding
 - **services/**: Cross-cutting services (settings, time keeping)

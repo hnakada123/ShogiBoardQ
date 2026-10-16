@@ -28,10 +28,7 @@ namespace KifLexer {
 /// KIF時間正規表現: ( m:ss / H:MM:SS )
 const QRegularExpression& kifTimeRe();
 
-/// 変化行検出（キャプチャなし）: "変化：12手" など
-const QRegularExpression& variationHeaderRe();
-
-/// 変化行検出（キャプチャあり）: 手数をキャプチャ
+/// 変化の行（"変化：12手" など。KIF と KI2 で同じ）。1番目のキャプチャが手数
 const QRegularExpression& variationHeaderCaptureRe();
 
 // === 時間解析 ===

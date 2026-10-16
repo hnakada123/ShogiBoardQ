@@ -5,20 +5,11 @@
 #include "logcategories.h"
 
 #include <limits>
-#include <utility>
 
 AnalysisCoordinator::AnalysisCoordinator(const Deps& d, QObject* parent)
     : QObject(parent)
     , m_deps(d)
 {
-    m_stopTimer.setSingleShot(true);
-    connect(&m_stopTimer, &QTimer::timeout,
-            this, &AnalysisCoordinator::onStopTimerTimeout);
-}
-
-void AnalysisCoordinator::setDeps(const Deps& d)
-{
-    m_deps = d;
 }
 
 void AnalysisCoordinator::setOptions(const Options& opt)
@@ -77,8 +68,6 @@ void AnalysisCoordinator::startAnalyzeSingle(int ply)
 void AnalysisCoordinator::stop()
 {
     if (!m_running) return;
-
-    m_stopTimer.stop();
 
     // USI の明示停止
     emit requestStop();
@@ -140,29 +129,13 @@ void AnalysisCoordinator::sendAnalyzeForPly(int ply)
 
     const QString sfen = m_deps.positions.at(ply);
 
-    // 1) position sfen ... の形式でコマンドを準備
-    //    startpos の場合はそのまま、それ以外は "position sfen ..." で送る
-    if (sfen == QStringLiteral("startpos") || sfen.startsWith(QStringLiteral("position "))) {
-        m_pendingPosCmd = sfen;
-    } else {
-        m_pendingPosCmd = QStringLiteral("position sfen %1").arg(sfen);
-    }
-    qCDebug(lcAnalysis).noquote() << "sendAnalyzeForPly: ply=" << ply << "posCmd=" << m_pendingPosCmd;
+    // startpos・position コマンドはそのまま、それ以外は "position sfen ..." で送る
+    const QString positionCommand = sfen == QStringLiteral("startpos") || sfen.startsWith(QStringLiteral("position "))
+        ? sfen : QStringLiteral("position sfen %1").arg(sfen);
+    qCDebug(lcAnalysis).noquote() << "sendAnalyzeForPly: ply=" << ply << "posCmd=" << positionCommand;
 
     emit positionPrepared(ply, sfen);
-    sendGoCommand();
-}
-
-void AnalysisCoordinator::sendGoCommand()
-{
-    if (!m_running) return;
-    if (m_pendingPosCmd.isEmpty()) return;
-
-    qCDebug(lcAnalysis).noquote() << "sendGoCommand: sending position and go infinite commands";
-
-    const QString positionCommand = std::exchange(m_pendingPosCmd, QString());
-    m_stopTimer.start(m_opt.movetimeMs);
-    emit requestSearch(positionCommand);
+    if (m_running) emit requestSearch(positionCommand, m_opt.movetimeMs);
 }
 
 
@@ -177,28 +150,9 @@ void AnalysisCoordinator::onEngineInfo(const UsiInfo& info)
     emit analysisProgress(m_currentPly, info);
 }
 
-void AnalysisCoordinator::onEngineBestmoveReceived(const QString& /*line*/)
+void AnalysisCoordinator::onEngineBestmoveReceived()
 {
     if (!m_running) return;
-
-    // 定跡の場合（info行なしでbestmoveが来た場合）でも結果を通知
-    // m_currentPly は sendAnalyzeForPly_ で設定済み
-    // 通常の解析では onEngineInfo でanalysisProgressが発行済みだが、
-    // 定跡の場合は発行されていないので、空の結果を通知
-    // （AnalysisFlowController側で定跡かどうかを判断できるようにする）
-
-    // 次の局面へ進む前に前局面の停止タイマーを解除する。
-    m_stopTimer.stop();
+    // 定跡（info なしで bestmove が来た）でも次へ進む。結果の表に定跡と書くかは KifuAnalysisController が決める
     nextPlyOrFinish();
-}
-
-void AnalysisCoordinator::onStopTimerTimeout()
-{
-    if (!m_running) return;
-
-    qCDebug(lcAnalysis).noquote() << "onStopTimerTimeout: sending stop command after"
-                                  << m_opt.movetimeMs << "ms";
-
-    // stopコマンドを送信（bestmoveが返ってきたらonEngineBestmoveReceived_で処理される）
-    emit requestStop();
 }

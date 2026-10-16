@@ -7,26 +7,17 @@
 #include "kifparsetypes.h"
 #include "kifdisplayitem.h"
 
-bool KifuBranchTreeBuilder::validateVariations(const KifParseResult& result)
-{
-    // 不正な親指定では、既存の棋譜を変えない。親は本譜か先に定義された変化。
-    for (qsizetype i = 0; i < result.variations.size(); ++i) {
-        const auto& variation = result.variations.at(i);
-        const int parent = variation.parentVariation;
-        if (parent < -1 || parent >= i || variation.startPly < 1) return false;
-        const KifLine& line = parent < 0 ? result.mainline : result.variations.at(parent).line;
-        const int firstPly = parent < 0 ? 1 : result.variations.at(parent).startPly;
-        if (variation.startPly - 1 > firstPly - 1 + line.moveCount()) return false;
-    }
-
-    return true;
-}
-
 bool KifuBranchTreeBuilder::buildFromKifParseResult(KifuBranchTree* tree,
                                                    const KifParseResult& result,
                                                    const QString& startSfen)
 {
-    if (!tree || !validateVariations(result)) return false;
+    if (!tree) return false;
+    // 分岐元は本譜か先に書かれた変化で、その手順が分岐の手の前まで続いている
+    for (qsizetype i = 0; i < result.variations.size(); ++i) {
+        const KifVariation& variation = result.variations.at(i);
+        if (variation.parentVariation >= i || !result.branchPoint(variation.parentVariation, variation.startPly))
+            return false;
+    }
 
     tree->beginBatchUpdate();
     tree->clear();

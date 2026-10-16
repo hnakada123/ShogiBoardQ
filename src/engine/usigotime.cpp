@@ -17,6 +17,18 @@ QString UsiGoTime::toCommand(bool ponder) const
     return command;
 }
 
+QString UsiGo::command() const
+{
+    switch (kind) {
+    case Kind::Clock: return time.toCommand(false);
+    case Kind::Ponder: return time.toCommand(true);
+    case Kind::Infinite: return QStringLiteral("go infinite");
+    case Kind::Mate:
+        return mateTimeMs > 0 ? QStringLiteral("go mate %1").arg(mateTimeMs) : QStringLiteral("go mate infinite");
+    }
+    return QStringLiteral("go infinite");
+}
+
 namespace UsiGoTimeCalculator {
 namespace {
 

@@ -2,111 +2,50 @@
 #define COMMENTCOORDINATOR_H
 
 /// @file commentcoordinator.h
-/// @brief コメントコーディネータクラスの定義
-
+/// @brief 表示中の手のコメント・しおりの表示と編集
 
 #include <QObject>
 #include <QString>
-#include <QStringList>
 
-class KifuNavigationState;
 class CommentEditorPanel;
-class RecordPane;
 class GameRecordModel;
-class GameRecordPresenter;
-class KifuRecordListModel;
+class KifuNavigationState;
 class QStatusBar;
+class QWidget;
 
 /**
- * @brief コメント処理コーディネーター
+ * @brief 表示中の手（KifuNavigationState）のコメントをコメント欄に出し、編集をその手のノードに書く
  *
- * MainWindowからコメント関連のロジックを分離したクラス。
- * コメントの表示更新、保存、同期処理を担当する。
+ * コメント・しおりの正本は分岐ツリーのノード。書き込みは GameRecordModel を通す（未保存の印と通知のため）。
  */
 class CommentCoordinator : public QObject
 {
     Q_OBJECT
 
 public:
-    explicit CommentCoordinator(QObject* parent = nullptr);
+    struct Deps {
+        CommentEditorPanel* editor = nullptr;        ///< コメント欄（必須）
+        KifuNavigationState* navState = nullptr;     ///< 表示中の手（必須）
+        GameRecordModel* gameRecord = nullptr;       ///< ノードへの書き込み（必須）
+        QWidget* parentWidget = nullptr;             ///< しおりの入力ダイアログの親
+        QStatusBar* statusBar = nullptr;             ///< 書き込んだ知らせ
+    };
 
-    // 依存オブジェクトの設定
-    void setCommentEditor(CommentEditorPanel* editor) { m_commentEditor = editor; }
-    void setRecordPane(RecordPane* pane) { m_recordPane = pane; }
-    void setGameRecordModel(GameRecordModel* model) { m_gameRecord = model; }
-    void setRecordPresenter(GameRecordPresenter* presenter) { m_recordPresenter = presenter; }
-    void setStatusBar(QStatusBar* bar) { m_statusBar = bar; }
-    /// 表示中の手数（コメントを書き込む手）は分岐ツリーのカーソルから取る
-    void setNavigationState(KifuNavigationState* state) { m_navState = state; }
-    void setKifuRecordListModel(KifuRecordListModel* model) { m_kifuRecordModel = model; }
+    explicit CommentCoordinator(const Deps& deps, QObject* parent = nullptr);
 
-    /**
-     * @brief コメントを解析タブのコメントエディタに配信
-     * @param text コメントテキスト
-     * @param asHtml HTMLとして配信する場合はtrue
-     */
-    void broadcastComment(const QString& text, bool asHtml);
-
-    /**
-     * @brief 棋譜行変更リクエストを処理する
-     *
-     * 未更新のコメントの確認は、棋譜欄の行変更でナビゲーションする前に
-     * confirmLeaveEditingMove() で済ませている。まだ編集中（確認でキャンセルされた）の
-     * ときは、選んだ行のコメントで上書きしない。それ以外はコメントを配信する。
-     *
-     * @param row 遷移先の行番号
-     * @param comment 遷移先行のコメント
-     * @return true: コメントを配信した, false: 編集中のため配信しなかった
-     */
-    bool handleRecordRowChangeRequest(int row, const QString& comment);
-
-    /**
-     * @brief 別の手へ移る前に、未更新のコメントを破棄してよいか確認する
-     * @return true: 移ってよい（未更新のコメントがない、または破棄を選んだ）, false: 移動をやめる
-     */
+    /// 別の手へ移る前に、未更新のコメントを破棄してよいか確認する（やめたら false）
     bool confirmLeaveEditingMove();
 
 public slots:
-    /**
-     * @brief コメント更新スロット（UIからの更新）
-     * @param moveIndex 手数インデックス
-     * @param newComment 新しいコメント
-     */
+    /// 表示中の手のコメントをコメント欄に出す
+    void showCurrentComment();
+    /// コメント欄の「コメント更新」
     void onCommentUpdated(int moveIndex, const QString& newComment);
-
-    /**
-     * @brief GameRecordModel::commentChanged スロット
-     */
-    void onGameRecordCommentChanged(int ply, const QString& comment);
-
-    /**
-     * @brief しおり編集リクエストスロット（RecordPaneのボタンから呼ばれる）
-     */
+    /// 棋譜欄の「しおり」ボタン（表示中の手のしおりを編集する）
     void onBookmarkEditRequested();
 
-    /**
-     * @brief GameRecordModel::bookmarkChanged の表示更新
-     * @param ply 手数
-     * @param bookmark しおり
-     */
-    void onBookmarkChanged(int ply, const QString& bookmark);
-
-    /**
-     * @brief ナビゲーション起因のコメント表示更新
-     * @param ply 手数インデックス（コメント欄が編集する手）
-     * @param comment コメントテキスト
-     * @param asHtml HTMLとして配信する場合はtrue
-     */
-    void onNavigationCommentUpdate(int ply, const QString& comment, bool asHtml);
-
 private:
-    CommentEditorPanel* m_commentEditor = nullptr;
-    RecordPane* m_recordPane = nullptr;
-    GameRecordModel* m_gameRecord = nullptr;
-    GameRecordPresenter* m_recordPresenter = nullptr;
-    QStatusBar* m_statusBar = nullptr;
-    KifuNavigationState* m_navState = nullptr;
-    KifuRecordListModel* m_kifuRecordModel = nullptr;
+    Deps m_deps;
 };
 
 #endif // COMMENTCOORDINATOR_H

@@ -47,7 +47,6 @@ private slots:
     void declaredDefaultsBeforeSaving()
     {
         QCOMPARE(AppSettings::language(), QStringLiteral("system"));
-        QCOMPARE(AppSettings::lastSelectedTabIndex(), 0);
         QCOMPARE(AppSettings::toolbarVisible(), true);
         QCOMPARE(AppSettings::menuWindowSize(), QSize(500, 400));
         QCOMPARE(AppSettings::menuWindowFavorites(), QStringList());
@@ -74,15 +73,6 @@ private slots:
     // ========================================
     // AppSettings: UI状態
     // ========================================
-
-    void appSettings_lastSelectedTabIndex()
-    {
-        AppSettings::lastSelectedTabIndex.set(3);
-        QCOMPARE(AppSettings::lastSelectedTabIndex(), 3);
-
-        AppSettings::lastSelectedTabIndex.set(0);
-        QCOMPARE(AppSettings::lastSelectedTabIndex(), 0);
-    }
 
     void appSettings_toolbarVisible()
     {
@@ -395,12 +385,12 @@ private slots:
     void analysisSettings_columnWidths()
     {
         QList<int> widths = {100, 200, 150};
-        AnalysisSettings::setEngineInfoColumnWidths(0, widths);
-        QCOMPARE(AnalysisSettings::engineInfoColumnWidths(0), widths);
+        AnalysisSettings::setEngineInfoColumnWidths(AnalysisSettings::ThinkingTable::Engine1, widths);
+        QCOMPARE(AnalysisSettings::engineInfoColumnWidths(AnalysisSettings::ThinkingTable::Engine1), widths);
 
         QList<int> thinkWidths = {80, 120, 200, 50};
-        AnalysisSettings::setThinkingViewColumnWidths(1, thinkWidths);
-        QCOMPARE(AnalysisSettings::thinkingViewColumnWidths(1), thinkWidths);
+        AnalysisSettings::setThinkingViewColumnWidths(AnalysisSettings::ThinkingTable::Engine2, thinkWidths);
+        QCOMPARE(AnalysisSettings::thinkingViewColumnWidths(AnalysisSettings::ThinkingTable::Engine2), thinkWidths);
     }
 
     // ========================================

@@ -2,34 +2,43 @@
 #define USIMATCHHANDLER_H
 
 /// @file usimatchhandler.h
-/// @brief 対局通信フロー・盤面データ管理を担当するハンドラクラスの定義
+/// @brief 対局での position/go/bestmove のやり取り（先読みを含む）
 
 #include <QObject>
 #include <QTimer>
-#include <QPoint>
 #include <QString>
-#include <QStringList>
-#include <QList>
-#include <functional>
 
-#include "usitimingparams.h"
 #include "usigotime.h"
+#include "usimessages.h"
 #include "usimove.h"
+#include "usitimingparams.h"
 
-class ThinkingInfoPresenter;
-class UsiProtocolHandler;
 class ShogiClock;
+class UsiProtocolHandler;
+
+/// 対局でエンジンが指した手
+struct UsiMatchMove {
+    Turn side = Turn::Black;   ///< 指した側
+    UsiMove move;              ///< 指し手（成り・不成を含む）
+    QString position;          ///< 指した後の局面の position コマンド
+    QString ponderPosition;    ///< 先読みを始めた局面（予想した相手の手まで。先読みしなければ空）
+    qint64 elapsedMs = 0;      ///< 考えた時間（go または ponderhit から bestmove まで）
+    UsiScore score;            ///< 最善の読み筋の最後の評価値（指した側から見た値）
+};
+
+Q_DECLARE_METATYPE(UsiMatchMove)
 
 /**
- * @brief 対局通信フロー・盤面データ管理を担当するハンドラクラス
+ * @brief 対局での position/go/bestmove のやり取り（先読みを含む）
  *
- * Usiファサードクラスから対局通信処理（ポンダー制御含む）と
- * 盤面データ管理（クローン・SFEN計算）を分離したもの。
- *
- * エラー・着手通知はHooksコールバック経由で行う。
+ * 手番のたびに時計から持ち時間を読んで go を送り、持ち時間の間に bestmove が届かなければ知らせる。
+ * 指した後は、予想した相手の手で先読みを始める。予想が当たれば ponderhit、外れれば stop で回収してから次の go を送る。
+ * 結果（指し手・投了・宣言勝ち）には指した側を添えて知らせる。
  */
 class UsiMatchHandler : public QObject
 {
+    Q_OBJECT
+
 public:
     struct SearchTiming {
         UsiGoTimeInput input;
@@ -37,50 +46,46 @@ public:
         bool expired = false;
     };
 
-    /// コールバック定義（Usiファサードからの注入用）
-    struct Hooks {
-        std::function<void()> onBestmoveTimeout; ///< bestmoveタイムアウト時の処理
-        std::function<void(const UsiMove&, const QString&, const QString&)> onMoveReady = {};
-        /// 時計から探索の時間を読む（sideToMove: エンジンの手番。先読みでも自分の手番）
-        std::function<SearchTiming(const UsiTimingParams&, Turn sideToMove, bool pondering)> readTiming = {};
-        std::function<bool()> finishTurn = {}; ///< 時計を確定し、有効な応答ならtrue
+    explicit UsiMatchHandler(UsiProtocolHandler* protocolHandler, QObject* parent = nullptr);
 
-    };
+    /// 持ち時間を読む対局時計（無ければ requestMove の timing をそのまま使う）
+    void setClock(ShogiClock* clock) { m_clock = clock; }
 
-    explicit UsiMatchHandler(UsiProtocolHandler* protocolHandler);
-    void setHooks(const Hooks& hooks);
-    void onBestMoveReceived();
+    /// 手番の探索を頼む。先読み中なら当たり・外れを判断する
     void requestMove(const QString& position, const QString& ponder, const UsiTimingParams& timing);
     void cancelAsync();
 
-    // --- 最終指し手管理 ---
+signals:
+    void moveReady(const UsiMatchMove& move);
+    void resigned(Turn side);
+    void declaredWin(Turn side);
+    /// 持ち時間の間に bestmove が届かなかった
+    void timedOut();
+    void errorOccurred(const QString& message);
+    /// 読み筋を表示する局面に至った手が変わった（USI 形式）
+    void lastMoveChanged(const QString& move);
 
-    QString lastUsiMove() const;
-    void setLastUsiMove(const QString& move);
+private slots:
+    void onBestMoveReceived(const UsiBestMove& result);
+    void onSearchTimeout();
 
 private:
     void startAsyncSearch();
-    void onSearchTimeout();
-    SearchTiming searchTiming(const UsiTimingParams& timing, bool pondering = false) const;
-    static constexpr int kUnlimitedSearchTimeoutMs = 30 * 60 * 1000; ///< 無制限対局の安全上限
+    void startPondering(const UsiBestMove& result);
+    SearchTiming searchTiming(bool pondering = false) const;
+    /// 時計の手番を確定する。時間切れなら false
+    bool finishTurn();
+
     enum class Pending { None, PonderStop, Move };
     Pending m_pending = Pending::None;
     QString m_position;
     QString m_ponder;
     UsiTimingParams m_timing;
+    Turn m_sideToMove = Turn::Black;   ///< 手番の探索の手番（m_position の局面から一度だけ求める）
     QTimer m_responseTimer;
 
-    void startPonderingAfterBestMove(QString& positionStr, QString& positionPonderStr,
-                                   const UsiTimingParams& timing);
-    void appendBestMoveAndStartPondering(QString& positionStr, QString& positionPonderStr,
-                                        const UsiTimingParams& timing);
-
     UsiProtocolHandler* m_protocolHandler = nullptr;
-
-    // --- 状態 ---
-
-    QString m_lastUsiMove;
-    Hooks m_hooks;
+    ShogiClock* m_clock = nullptr;
 };
 
 #endif // USIMATCHHANDLER_H

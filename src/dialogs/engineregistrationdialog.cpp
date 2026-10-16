@@ -97,8 +97,9 @@ void EngineRegistrationDialog::initializeSignals() const
     connect(ui->closeButton, &QPushButton::clicked, this, &QDialog::accept);
 
     // フォントサイズ変更ボタンの接続
-    connect(ui->fontIncreaseButton, &QPushButton::clicked, this, &EngineRegistrationDialog::increaseFontSize);
-    connect(ui->fontDecreaseButton, &QPushButton::clicked, this, &EngineRegistrationDialog::decreaseFontSize);
+    connect(ui->fontIncreaseButton, &QPushButton::clicked, &m_fontHelper, &FontSizeHelper::increase);
+    connect(ui->fontDecreaseButton, &QPushButton::clicked, &m_fontHelper, &FontSizeHelper::decrease);
+    connect(&m_fontHelper, &FontSizeHelper::fontSizeChanged, this, &EngineRegistrationDialog::applyFontSize);
 
     // ハンドラシグナルの接続
     connect(m_handler.get(), &EngineRegistrationHandler::engineRegistered, this, &EngineRegistrationDialog::onEngineRegistered);
@@ -249,18 +250,6 @@ void EngineRegistrationDialog::updateSelectionState()
         : ui->engineListWidget->count() == 0
             ? tr("エンジンが登録されていません。「追加」からエンジンの実行ファイルを選んでください。")
             : tr("エンジンを選んで「設定」を押すと、思考設定を変更できます。ダブルクリックでも開けます。"));
-}
-
-// フォントサイズを増加する
-void EngineRegistrationDialog::increaseFontSize()
-{
-    if (m_fontHelper.increase()) applyFontSize();
-}
-
-// フォントサイズを減少する
-void EngineRegistrationDialog::decreaseFontSize()
-{
-    if (m_fontHelper.decrease()) applyFontSize();
 }
 
 // すべてのウィジェットにフォントサイズを適用する

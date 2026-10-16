@@ -36,7 +36,6 @@ set(TEST_INCLUDES
     ${SRC}/ui/controllers
     ${SRC}/ui/coordinators
     ${SRC}/ui/presenters
-    ${SRC}/ui/wiring
     ${SRC}/views
     ${SRC}/widgets
     ${SRC}/dialogs
@@ -227,9 +226,9 @@ add_shogi_test(tst_app_paths
     ${SRC}/services/settingscommon.cpp
 )
 
-add_shogi_test(tst_kifu_file_reader
-    tst_kifu_file_reader.cpp
-    ${SRC}/kifu/kifufilereader.cpp
+add_shogi_test(tst_kifuformat
+    tst_kifuformat.cpp
+    ${SRC}/kifu/kifuformat.cpp
     ${SRC}/kifu/kifreader.cpp
     ${SRC}/kifu/shiftjiscodec.cpp
     ${SRC}/kifu/formats/bodtextgenerator.cpp
@@ -290,14 +289,9 @@ add_shogi_test(tst_abstractlistmodel
 # ============================================================
 # Unit 7c: KifuBranchListModel
 # ============================================================
-add_shogi_test(tst_kifubranchlistmodel
-    tst_kifubranchlistmodel.cpp
-    ${SRC}/models/kifubranchlistmodel.cpp
-    ${SRC}/models/kifubranchdisplay.cpp
-    ${SRC}/common/logcategories.cpp
-    ${SRC}/common/errorbus.cpp
-    ${SRC}/core/shogiboard.cpp
-)
+add_shogi_test(tst_kifubranchlistmodel tst_kifubranchlistmodel.cpp)
+target_link_libraries(tst_kifubranchlistmodel PRIVATE shogiboardq_static)
+
 
 # ============================================================
 # Unit 8: GameRecordModel
@@ -315,6 +309,9 @@ target_link_libraries(tst_jkfexporter PRIVATE shogiboardq_static)
 add_shogi_test(tst_kifusavecoordinator
     tst_kifusavecoordinator.cpp
     ${SRC}/kifu/kifusavefile.cpp
+    ${SRC}/kifu/kifuformat.cpp
+    ${SRC}/kifu/kifreader.cpp
+    ${SRC}/common/logcategories.cpp
     ${SRC}/ui/coordinators/kifusavecoordinator.cpp
     ${SRC}/kifu/kifuioservice.cpp
     ${SRC}/kifu/shiftjiscodec.cpp
@@ -338,12 +335,11 @@ target_link_libraries(tst_josekiwindow PRIVATE shogiboardq_static)
 # ============================================================
 add_shogi_test(tst_positionedit_gamestart tst_positionedit_gamestart.cpp ${CMAKE_SOURCE_DIR}/resources/shogiboardq.qrc)
 target_link_libraries(tst_positionedit_gamestart PRIVATE shogiboardq_static)
-target_link_libraries(tst_positionedit_gamestart PRIVATE shogiboardq_static)
 
 # ============================================================
 # Unit 10b: Preset Game Start → Cleanup Flow
 # ============================================================
-add_shogi_test(tst_preset_gamestart_cleanup tst_preset_gamestart_cleanup.cpp)
+add_shogi_test(tst_preset_gamestart_cleanup tst_preset_gamestart_cleanup.cpp ${CMAKE_SOURCE_DIR}/resources/shogiboardq.qrc)
 target_link_libraries(tst_preset_gamestart_cleanup PRIVATE shogiboardq_static)
 
 # ============================================================
@@ -645,12 +641,8 @@ target_link_libraries(tst_app_game_session PRIVATE shogiboardq_static)
 # ============================================================
 # Unit 24: App Kifu Load (棋譜ロードフロー構造契約)
 # ============================================================
-add_shogi_test(tst_app_kifu_load
-    tst_app_kifu_load.cpp
-)
-target_compile_definitions(tst_app_kifu_load PRIVATE
-    SOURCE_DIR="${CMAKE_SOURCE_DIR}"
-)
+add_shogi_test(tst_app_kifu_load tst_app_kifu_load.cpp ${CMAKE_SOURCE_DIR}/resources/shogiboardq.qrc)
+target_link_libraries(tst_app_kifu_load PRIVATE shogiboardq_static)
 
 # ============================================================
 # Unit 25: App UI State Policy (UiStatePolicyManager 状態遷移テスト)
@@ -665,7 +657,7 @@ set_target_properties(tst_app_ui_state_policy PROPERTIES
 # ============================================================
 # Unit 26: App Branch Navigation (BranchNavigationWiring の配線を実物の部品で確かめる)
 # ============================================================
-add_shogi_test(tst_app_branch_navigation tst_app_branch_navigation.cpp)
+add_shogi_test(tst_app_branch_navigation tst_app_branch_navigation.cpp ${CMAKE_SOURCE_DIR}/resources/shogiboardq.qrc)
 target_link_libraries(tst_app_branch_navigation PRIVATE shogiboardq_static)
 
 # ============================================================
@@ -703,12 +695,12 @@ target_compile_definitions(tst_app_error_handling PRIVATE
 )
 
 # ============================================================
-# Unit 31: CsaGameWiring 配線テスト（本体のシグナル・状態遷移）
+# Unit 31: CsaGameSession（司令塔のシグナルの届け先・動作状態の切り替え）
 # ============================================================
-add_shogi_test(tst_wiring_csagame
-    tst_wiring_csagame.cpp
+add_shogi_test(tst_csagamesession
+    tst_csagamesession.cpp
 )
-target_link_libraries(tst_wiring_csagame PRIVATE shogiboardq_static)
+target_link_libraries(tst_csagamesession PRIVATE shogiboardq_static)
 
 # ============================================================
 # Unit 31b: CsaGameCoordinator 指し手進行・棋譜行（偽 CSA サーバー）
@@ -725,26 +717,6 @@ add_shogi_test(tst_wiring_analysistab tst_wiring_analysistab.cpp)
 target_link_libraries(tst_wiring_analysistab PRIVATE shogiboardq_static)
 
 # ============================================================
-# Unit 33: ConsiderationUiController 配線契約テスト（ソース解析型）
-# ============================================================
-add_shogi_test(tst_wiring_consideration
-    tst_wiring_consideration.cpp
-)
-target_compile_definitions(tst_wiring_consideration PRIVATE
-    SOURCE_DIR="${CMAKE_SOURCE_DIR}"
-)
-
-# ============================================================
-# Unit 34: PlayerInfoPresenter 配線契約テスト（ソース解析型）
-# ============================================================
-add_shogi_test(tst_wiring_playerinfo
-    tst_wiring_playerinfo.cpp
-)
-target_compile_definitions(tst_wiring_playerinfo PRIVATE
-    SOURCE_DIR="${CMAKE_SOURCE_DIR}"
-)
-
-# ============================================================
 # Unit 35: Lifecycle Scenario (全フェーズ構造的シナリオテスト)
 # ============================================================
 add_shogi_test(tst_lifecycle_scenario
@@ -752,16 +724,6 @@ add_shogi_test(tst_lifecycle_scenario
 )
 target_link_libraries(tst_lifecycle_scenario PRIVATE shogiboardq_static)
 target_sources(tst_lifecycle_scenario PRIVATE ${CMAKE_SOURCE_DIR}/resources/shogiboardq.qrc)
-
-# ============================================================
-# Unit 36: Wiring Slot Coverage (接続漏れ/重複検出テスト、ソース解析型)
-# ============================================================
-add_shogi_test(tst_wiring_slot_coverage
-    tst_wiring_slot_coverage.cpp
-)
-target_compile_definitions(tst_wiring_slot_coverage PRIVATE
-    SOURCE_DIR="${CMAKE_SOURCE_DIR}"
-)
 
 # ============================================================
 # Unit 37: Lifecycle Runtime (HumanTurnPolicy の Deps 未設定時の既定値)
@@ -842,6 +804,7 @@ add_shogi_test(tst_dock_layout
     ${SRC}/common/logcategories.cpp
     ${SRC}/ui/coordinators/docklayoutmanager.cpp
     ${SRC}/widgets/dialogfontscale.cpp
+    ${SRC}/widgets/fontsizehelper.cpp
     ${SRC}/widgets/dialogutils.cpp
     ${SETTINGS_SOURCES}
 )
@@ -875,6 +838,7 @@ add_shogi_test(tst_menu_window
 add_shogi_test(tst_language_controller
     tst_language_controller.cpp
     ${SRC}/widgets/dialogfontscale.cpp
+    ${SRC}/widgets/fontsizehelper.cpp
     ${SRC}/widgets/dialogutils.cpp
     ${SRC}/common/logcategories.cpp
     ${SRC}/ui/controllers/languagecontroller.cpp
@@ -915,13 +879,8 @@ target_link_libraries(engineregistration_test_engine PRIVATE Qt6::Core)
 
 add_shogi_test(tst_engineregistrationhandler
     tst_engineregistrationhandler.cpp
-    ${SRC}/engine/engineregistrationhandler.cpp
-    ${SRC}/engine/usioptionlineparser.cpp
-    ${SRC}/engine/engineregistrationworker.cpp
-    ${SRC}/services/enginelistsettings.cpp
-    ${SRC}/services/settingscommon.cpp
-    ${SRC}/common/logcategories.cpp
 )
+target_link_libraries(tst_engineregistrationhandler PRIVATE shogiboardq_static)
 target_compile_definitions(tst_engineregistrationhandler PRIVATE
     SOURCE_DIR="${CMAKE_SOURCE_DIR}"
 )
@@ -945,8 +904,8 @@ add_shogi_test(tst_piece_sound_processor
 )
 
 # 終局後の棋譜閲覧における手番ラベル・背景色の連動を実際のビューで検証する
-add_shogi_test(tst_turn_state_sync tst_turn_state_sync.cpp)
-target_link_libraries(tst_turn_state_sync PRIVATE shogiboardq_static)
+add_shogi_test(tst_board_turn_display tst_board_turn_display.cpp)
+target_link_libraries(tst_board_turn_display PRIVATE shogiboardq_static)
 
 # Benchmark: EngineMoveValidator compat vs Context (not a ctest target)
 add_executable(bench_movevalidator
@@ -1058,8 +1017,8 @@ add_shogi_test(tst_nyugyoku_judgement tst_nyugyoku_judgement.cpp)
 target_link_libraries(tst_nyugyoku_judgement PRIVATE shogiboardq_static)
 
 # info 行の解析（UsiInfoParser）と、読み筋の漢字表記（PvNotationFormatter）
-add_shogi_test(tst_usiinfoparser tst_usiinfoparser.cpp)
-target_link_libraries(tst_usiinfoparser PRIVATE shogiboardq_static)
+add_shogi_test(tst_usilineparser tst_usilineparser.cpp)
+target_link_libraries(tst_usilineparser PRIVATE shogiboardq_static)
 add_shogi_test(tst_pvnotationformatter tst_pvnotationformatter.cpp)
 target_link_libraries(tst_pvnotationformatter PRIVATE shogiboardq_static)
 
@@ -1131,7 +1090,9 @@ add_shogi_test(tst_evaluationchart
     ${SRC}/widgets/evaluationchartwidget.cpp
     ${SRC}/widgets/evaluationchartview.cpp
     ${SRC}/widgets/evaluationchartconfigurator.cpp
+    ${SRC}/core/usiscore.cpp
     ${SRC}/widgets/dialogfontscale.cpp
+    ${SRC}/widgets/fontsizehelper.cpp
     ${SRC}/widgets/dialogutils.cpp
     ${SRC}/services/appsettings.cpp
     ${SRC}/services/analysissettings.cpp
@@ -1153,7 +1114,7 @@ add_shogi_test(tst_usilogpanel
     ${SRC}/widgets/usilogpanel.cpp
     ${SRC}/widgets/fontsizehelper.cpp
     ${SRC}/widgets/elidelabel.cpp
-    ${SRC}/engine/usicommlogmodel.cpp
+    ${SRC}/models/usicommlogmodel.cpp
     ${SRC}/common/applicationfonts.cpp
     ${SRC}/common/logcategories.cpp
     ${SRC}/services/analysissettings.cpp

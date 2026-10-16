@@ -13,38 +13,46 @@ class QMenu;
 class QAction;
 class EvaluationChartWidget;
 #include "recordpane.h"
-class EngineAnalysisTab;
-class GameInfoPaneController;
-class AnalysisResultsPresenter;
+class GameInfoPane;
+class AnalysisResultsPanel;
 class MenuWindowController;
 class JosekiWindowController;
-class ShogiEngineThinkingModel;
-class UsiCommLogModel;
+class ThinkingPanel;
+class ConsiderationTabManager;
+class UsiLogPanel;
+class CsaLogPanel;
+class CommentEditorPanel;
+class BranchTreeManager;
 
 /**
- * @brief ドック作成サービス
+ * @brief メインウィンドウのドックを作る
  *
- * MainWindowからドック作成ロジックを分離したクラス。
- * 各種ドックウィジェットの作成、設定復元、メニュー登録を担当する。
+ * 各部品をドックに入れ、保存した位置・表示状態を戻し、「表示」メニューに表示の切り替えを足す。
  */
 class DockCreationService : public QObject
 {
     Q_OBJECT
 
 public:
-    explicit DockCreationService(QMainWindow* mainWindow, QObject* parent = nullptr);
+    /// ドックに入れる部品（無いものは、そのドックを作らないか空にする）
+    struct Deps {
+        QMainWindow* mainWindow = nullptr;                  ///< ドックを置くウィンドウ（必須）
+        QMenu* displayMenu = nullptr;                       ///< 「表示」メニュー（各ドックの表示切り替え）
+        EvaluationChartWidget* evalChart = nullptr;
+        RecordPane* recordPane = nullptr;
+        GameInfoPane* gameInfo = nullptr;
+        ThinkingPanel* thinking = nullptr;
+        ConsiderationTabManager* consideration = nullptr;
+        UsiLogPanel* usiLog = nullptr;
+        CsaLogPanel* csaLog = nullptr;
+        CommentEditorPanel* comment = nullptr;
+        BranchTreeManager* branchTree = nullptr;
+        AnalysisResultsPanel* analysisResults = nullptr;
+        MenuWindowController* menuWindow = nullptr;
+        JosekiWindowController* joseki = nullptr;
+    };
 
-    // 依存オブジェクトの設定
-    void setDisplayMenu(QMenu* menu) { m_displayMenu = menu; }
-    void setEvalChart(EvaluationChartWidget* chart) { m_evalChart = chart; }
-    void setRecordPane(RecordPane* pane) { m_recordPane = pane; }
-    void setAnalysisTab(EngineAnalysisTab* tab) { m_analysisTab = tab; }
-    void setGameInfoController(GameInfoPaneController* controller) { m_gameInfoController = controller; }
-    void setAnalysisPresenter(AnalysisResultsPresenter* presenter) { m_analysisPresenter = presenter; }
-    void setMenuWiring(MenuWindowController* wiring) { m_menuWiring = wiring; }
-    void setJosekiController(JosekiWindowController* wiring) { m_josekiController = wiring; }
-    void setModels(ShogiEngineThinkingModel* think1, ShogiEngineThinkingModel* think2,
-                   UsiCommLogModel* log1, UsiCommLogModel* log2);
+    explicit DockCreationService(const Deps& deps, QObject* parent = nullptr);
 
     // ドック作成メソッド
     QDockWidget* createEvalChartDock();
@@ -76,21 +84,9 @@ private:
                           bool wasFloating,
                           bool wasVisible);
 
+    const Deps m_deps;
     QMainWindow* m_mainWindow = nullptr;
     QMenu* m_displayMenu = nullptr;
-
-    // 依存オブジェクト
-    EvaluationChartWidget* m_evalChart = nullptr;
-    RecordPane* m_recordPane = nullptr;
-    EngineAnalysisTab* m_analysisTab = nullptr;
-    GameInfoPaneController* m_gameInfoController = nullptr;
-    AnalysisResultsPresenter* m_analysisPresenter = nullptr;
-    MenuWindowController* m_menuWiring = nullptr;
-    JosekiWindowController* m_josekiController = nullptr;
-    ShogiEngineThinkingModel* m_modelThinking1 = nullptr;
-    ShogiEngineThinkingModel* m_modelThinking2 = nullptr;
-    UsiCommLogModel* m_lineEditModel1 = nullptr;
-    UsiCommLogModel* m_lineEditModel2 = nullptr;
 
     // 作成されたドック
     QDockWidget* m_evalChartDock = nullptr;

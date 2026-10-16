@@ -1,26 +1,43 @@
 /// @file tst_usiprotocolhandler.cpp
-/// @brief UsiProtocolHandler のユニットテスト
+/// @brief UsiProtocolHandler（エンジン1台の状態と送受信）のユニットテスト
 ///
-/// USIプロトコルの解析ロジック（onDataReceived 経由）を QSignalSpy で検証する。
-/// エンジンプロセスの起動は不要。
+/// 受信行は onDataReceived で直接渡し、結果（bestmove・checkmate・info）と状態の移り変わりを検証する。
+/// 送ったコマンドは、テスト用エンジンを起動した EngineProcessManager の commandSent で確かめる。
 
 #include <QtTest>
 #include <QSignalSpy>
-#include <QMetaObject>
-#include <optional>
 
-#include "usiprotocolhandler.h"
-#include "thinkinginfopresenter.h"
 #include "engineprocessmanager.h"
+#include "thinkinginfoformatter.h"
 #include "usiinfo.h"
-
+#include "usiprotocolhandler.h"
 
 namespace {
-/// infoReceived の引数を取り出す
+
 UsiInfo infoAt(const QSignalSpy& spy, qsizetype index)
 {
     return qvariant_cast<UsiInfo>(spy.at(index).at(0));
 }
+
+UsiBestMove bestAt(const QSignalSpy& spy, qsizetype index)
+{
+    return qvariant_cast<UsiBestMove>(spy.at(index).at(0));
+}
+
+UsiCheckmate checkmateAt(const QSignalSpy& spy, qsizetype index)
+{
+    return qvariant_cast<UsiCheckmate>(spy.at(index).at(0));
+}
+
+UsiGoTime byoyomi(qint64 btime, qint64 byoyomiMs)
+{
+    UsiGoTime time;
+    time.btime = btime;
+    time.byoyomi = byoyomiMs;
+    time.useByoyomi = true;
+    return time;
+}
+
 } // namespace
 
 class TestUsiProtocolHandler : public QObject
@@ -38,26 +55,85 @@ private:
         return process.startProcessAsync(path) && (!started.isEmpty() || started.wait(5000));
     }
 
+    /// 初期化を終えて待機の状態にする
+    static void makeReady(UsiProtocolHandler& handler)
+    {
+        handler.initializeEngineAsync();
+        handler.onDataReceived(QStringLiteral("usiok"));
+        handler.onDataReceived(QStringLiteral("readyok"));
+    }
+
 private slots:
+    void initTestCase()
+    {
+        qRegisterMetaType<UsiInfo>();
+        qRegisterMetaType<UsiBestMove>();
+        qRegisterMetaType<UsiCheckmate>();
+    }
+
+    // ================================================================
+    // 状態
+    // ================================================================
+
+    void initialState()
+    {
+        UsiProtocolHandler handler;
+        QCOMPARE(handler.state(), UsiProtocolHandler::State::NotStarted);
+        QVERIFY(!handler.isInitializing());
+        QVERIFY(!handler.isSearching());
+        QVERIFY(!handler.isPonderEnabled());
+        QVERIFY(!handler.searchCandidate().active);
+    }
+
+    /// 起動から初期化・探索・停止・結果までを1つの状態で追う
+    void stateFollowsLifecycle()
+    {
+        UsiProtocolHandler handler;
+        handler.beginStartup();
+        QCOMPARE(handler.state(), UsiProtocolHandler::State::Starting);
+        QVERIFY(handler.isInitializing());
+        handler.initializeEngineAsync();
+        QCOMPARE(handler.state(), UsiProtocolHandler::State::Handshaking);
+        handler.onDataReceived(QStringLiteral("usiok"));
+        QCOMPARE(handler.state(), UsiProtocolHandler::State::Handshaking);
+        handler.onDataReceived(QStringLiteral("readyok"));
+        QCOMPARE(handler.state(), UsiProtocolHandler::State::Ready);
+
+        handler.startSearch(QStringLiteral("position startpos"), UsiGo::infinite());
+        QCOMPARE(handler.state(), UsiProtocolHandler::State::Searching);
+        QCOMPARE(handler.searchKind(), UsiProtocolHandler::SearchKind::Main);
+        handler.sendStop();
+        QCOMPARE(handler.state(), UsiProtocolHandler::State::Stopping);
+        handler.onDataReceived(QStringLiteral("bestmove 7g7f"));
+        QCOMPARE(handler.state(), UsiProtocolHandler::State::Ready);
+
+        handler.startSearch(QString(), UsiGo::mate(1000));
+        QCOMPARE(handler.searchKind(), UsiProtocolHandler::SearchKind::Mate);
+        handler.onDataReceived(QStringLiteral("checkmate nomate"));
+        QCOMPARE(handler.state(), UsiProtocolHandler::State::Ready);
+
+        handler.markStopped();
+        QCOMPARE(handler.state(), UsiProtocolHandler::State::NotStarted);
+    }
+
+    // ================================================================
+    // 探索と先読み
+    // ================================================================
+
     void ponderPreservesPredictionAndSendsTime()
     {
         EngineProcessManager process;
         QVERIFY(startProcess(process));
-        UsiProtocolHandler handler;
-        handler.setProcessManager(&process);
+        UsiProtocolHandler handler(&process);
         QSignalSpy commands(&process, &EngineProcessManager::commandSent);
         handler.onDataReceived(QStringLiteral("bestmove 8c8d ponder 2g2f"));
-        UsiGoTime goTime;
-        goTime.btime = 290000;
-        goTime.byoyomi = 4750;
-        goTime.useByoyomi = true;
-        handler.sendGoPonder(goTime);
-        QCOMPARE(handler.predictedMove(), QStringLiteral("2g2f"));
-        QCOMPARE(handler.currentPhase(), UsiProtocolHandler::SearchPhase::Ponder);
-        QCOMPARE(commands.last().at(0).toString(),
-                 QStringLiteral("go ponder btime 290000 wtime 0 byoyomi 4750"));
+        UsiGoTime goTime = byoyomi(290000, 4750);
+        handler.startSearch(QString(), UsiGo::ponder(goTime));
+        QCOMPARE(handler.searchCandidate().predictedMove, QStringLiteral("2g2f"));
+        QCOMPARE(handler.searchKind(), UsiProtocolHandler::SearchKind::Ponder);
+        QCOMPARE(commands.last().at(0).toString(), QStringLiteral("go ponder btime 290000 wtime 0 byoyomi 4750"));
         handler.sendPonderHit();
-        QCOMPARE(handler.currentPhase(), UsiProtocolHandler::SearchPhase::Main);
+        QCOMPARE(handler.searchKind(), UsiProtocolHandler::SearchKind::Main);
         QCOMPARE(commands.last().at(0).toString(), QStringLiteral("ponderhit"));
     }
 
@@ -65,38 +141,63 @@ private slots:
     {
         EngineProcessManager process;
         QVERIFY(startProcess(process));
-        UsiProtocolHandler handler;
-        handler.setProcessManager(&process);
+        UsiProtocolHandler handler(&process);
         QSignalSpy commands(&process, &EngineProcessManager::commandSent);
         UsiGoTime goTime;
         goTime.btime = 1000;
         goTime.wtime = 2000;
         goTime.binc = 300;
         goTime.winc = 400;
-        handler.sendGoPonder(goTime);
-        QCOMPARE(commands.last().at(0).toString(),
-                 QStringLiteral("go ponder btime 1000 wtime 2000 binc 300 winc 400"));
+        handler.startSearch(QString(), UsiGo::ponder(goTime));
+        QCOMPARE(commands.last().at(0).toString(), QStringLiteral("go ponder btime 1000 wtime 2000 binc 300 winc 400"));
     }
 
-    void discardedPonderResultDoesNotEndGame()
+    /// position を送ると読み筋の局面が変わり、go の種類ごとのコマンドを送る
+    void startSearchSendsPositionAndGo()
+    {
+        EngineProcessManager process;
+        QVERIFY(startProcess(process));
+        UsiProtocolHandler handler(&process);
+        QSignalSpy commands(&process, &EngineProcessManager::commandSent);
+        QSignalSpy positions(&handler, &UsiProtocolHandler::positionChanged);
+        QSignalSpy started(&handler, &UsiProtocolHandler::searchStarted);
+        handler.startSearch(QStringLiteral("position startpos moves 7g7f"), UsiGo::infinite());
+        QCOMPARE(commands.at(0).at(0).toString(), QStringLiteral("position startpos moves 7g7f"));
+        QCOMPARE(commands.at(1).at(0).toString(), QStringLiteral("go infinite"));
+        QCOMPARE(positions.count(), 1);
+        QVERIFY(positions.first().first().toString().contains(QStringLiteral(" w ")));
+        QCOMPARE(started.count(), 1);
+        handler.onDataReceived(QStringLiteral("bestmove 3c3d"));
+
+        // 詰み探索も同じ入口を通り、思考情報を消す
+        commands.clear();
+        handler.startSearch(QStringLiteral("position sfen 7k1/9/9/9/9/9/9/9/K8 b RS 1"), UsiGo::mate(3000));
+        QCOMPARE(commands.last().at(0).toString(), QStringLiteral("go mate 3000"));
+        QCOMPARE(started.count(), 2);
+        handler.onDataReceived(QStringLiteral("checkmate nomate"));
+        handler.startSearch(QString(), UsiGo::mate(0));
+        QCOMPARE(commands.last().at(0).toString(), QStringLiteral("go mate infinite"));
+    }
+
+    /// 外れた先読みを stop で回収した結果は、先読みの結果として知らせる（投了・宣言勝ちも対局の結果ではない）
+    void discardedPonderResultIsMarked()
     {
         UsiProtocolHandler handler;
-        QSignalSpy resign(&handler, &UsiProtocolHandler::bestMoveResignReceived);
-        QSignalSpy win(&handler, &UsiProtocolHandler::bestMoveWinReceived);
         QSignalSpy bestmove(&handler, &UsiProtocolHandler::bestMoveReceived);
-        handler.sendGoPonder({});
+        handler.startSearch(QString(), UsiGo::ponder({}));
         handler.sendStop();
         handler.onDataReceived(QStringLiteral("bestmove resign"));
         QCOMPARE(bestmove.count(), 1);
-        QCOMPARE(resign.count(), 0);
-        handler.sendGoPonder({});
-        handler.sendStop();
-        handler.onDataReceived(QStringLiteral("bestmove win"));
-        QCOMPARE(win.count(), 0);
-        handler.sendGoPonder({});
+        QVERIFY(bestAt(bestmove, 0).pondering);
+        QVERIFY(bestAt(bestmove, 0).stopped);
+        QCOMPARE(bestAt(bestmove, 0).special, SpecialMove::Resign);
+
+        // 当たった先読みは本探索の結果になる
+        handler.startSearch(QString(), UsiGo::ponder({}));
         handler.sendPonderHit();
         handler.onDataReceived(QStringLiteral("bestmove resign"));
-        QCOMPARE(resign.count(), 1);
+        QVERIFY(!bestAt(bestmove, 1).pondering);
+        QVERIFY(!bestAt(bestmove, 1).stopped);
     }
 
     void stoppedPonderCannotBeHit_data()
@@ -112,48 +213,40 @@ private slots:
         QFETCH(QString, result);
         EngineProcessManager process;
         QVERIFY(startProcess(process));
-        UsiProtocolHandler handler;
-        handler.setProcessManager(&process);
+        UsiProtocolHandler handler(&process);
         QSignalSpy commands(&process, &EngineProcessManager::commandSent);
-        QSignalSpy resign(&handler, &UsiProtocolHandler::bestMoveResignReceived);
-        QSignalSpy win(&handler, &UsiProtocolHandler::bestMoveWinReceived);
         QSignalSpy bestmove(&handler, &UsiProtocolHandler::bestMoveReceived);
         handler.onDataReceived(QStringLiteral("bestmove 8c8d ponder 2g2f"));
-        handler.sendGoPonder({});
+        handler.startSearch(QString(), UsiGo::ponder({}));
         commands.clear();
         handler.sendStop();
-        QCOMPARE(handler.currentPhase(), UsiProtocolHandler::SearchPhase::StoppingPonder);
+        QCOMPARE(handler.state(), UsiProtocolHandler::State::Stopping);
         handler.sendPonderHit(); // stopへの応答待ちの間も切り替えてはいけない
         handler.sendStop();
         QCOMPARE(commands.count(), 1);
         QCOMPARE(commands.first().at(0).toString(), QStringLiteral("stop"));
         handler.onDataReceived(result);
         QCOMPARE(bestmove.count(), 2);
-        QCOMPARE(handler.currentPhase(), UsiProtocolHandler::SearchPhase::Idle);
-        QVERIFY(handler.predictedMove().isEmpty());
+        QVERIFY(bestAt(bestmove, 1).pondering);
+        QCOMPARE(handler.state(), UsiProtocolHandler::State::Ready);
         handler.sendPonderHit(); // 回収済みの探索にも送らない
+        handler.sendStop();      // 探索していなければ stop も送らない
         QCOMPARE(commands.count(), 1);
-        QCOMPARE(resign.count(), 0);
-        QCOMPARE(win.count(), 0);
-        handler.sendGoDepth(1);
-        QCOMPARE(bestmove.count(), 2); // 新しい応答を受けるまでは通知しない
-        handler.onDataReceived(QStringLiteral("bestmove 3c3d"));
-        QCOMPARE(bestmove.count(), 3);
+        // 外れた先読みの ponder は次の先読みの予想にしない
+        handler.startSearch(QString(), UsiGo::ponder({}));
+        QVERIFY(handler.searchCandidate().predictedMove.isEmpty());
     }
 
     // ================================================================
-    // 1. info 行の解析
+    // info
     // ================================================================
 
-    void infoLine_depthScoreCpPv()
+    void infoLine_parsedAndForwarded()
     {
         UsiProtocolHandler handler;
         QSignalSpy spy(&handler, &UsiProtocolHandler::infoReceived);
-
-        const QString line = QStringLiteral(
-            "info depth 20 seldepth 30 score cp 150 nodes 1000000 nps 500000 pv 7g7f 3c3d 2g2f");
-        handler.onDataReceived(line);
-
+        handler.onDataReceived(QStringLiteral(
+            "info depth 20 seldepth 30 score cp 150 nodes 1000000 nps 500000 pv 7g7f 3c3d 2g2f"));
         QCOMPARE(spy.count(), 1);
         const UsiInfo info = infoAt(spy, 0);
         QCOMPARE(info.depth, 20);
@@ -161,327 +254,209 @@ private slots:
         QVERIFY(info.score.isCp());
         QCOMPARE(info.score.value, 150);
         QCOMPARE(info.nodes, 1000000LL);
-        QCOMPARE(info.nps, 500000LL);
         QCOMPARE(info.pv, QStringList({QStringLiteral("7g7f"), QStringLiteral("3c3d"), QStringLiteral("2g2f")}));
+
+        handler.onDataReceived(QStringLiteral("info string evaluation started"));
+        QCOMPARE(infoAt(spy, 1).string, QStringLiteral("evaluation started"));
+        QVERIFY(!infoAt(spy, 1).hasPv());
+        handler.onDataReceived(QStringLiteral("info depth 5 nodes 100"));
+        QVERIFY(!infoAt(spy, 2).hasScore());
     }
 
-    void infoLine_scoreMate()
+    /// 最善の読み筋（multipv 1）の最後の評価値と候補手を探索ごとに覚え、bestmove に添える
+    void bestmoveCarriesSearchScoreAndCandidate()
     {
         UsiProtocolHandler handler;
-        QSignalSpy spy(&handler, &UsiProtocolHandler::infoReceived);
+        QSignalSpy bestmove(&handler, &UsiProtocolHandler::bestMoveReceived);
+        handler.startSearch(QStringLiteral("position startpos"), UsiGo::infinite());
+        handler.onDataReceived(QStringLiteral("info depth 5 multipv 1 score cp 80 pv 2g2f 8c8d"));
+        handler.onDataReceived(QStringLiteral("info depth 5 multipv 2 score cp -40 pv 7g7f"));
+        QCOMPARE(handler.searchCandidate().move, QStringLiteral("2g2f"));
+        handler.onDataReceived(QStringLiteral("info depth 6 multipv 1 score mate 3 pv 2g2f"));
+        handler.onDataReceived(QStringLiteral("bestmove 2g2f ponder 8c8d"));
+        const UsiBestMove result = bestAt(bestmove, 0);
+        QCOMPARE(result.move, QStringLiteral("2g2f"));
+        QCOMPARE(result.ponder, QStringLiteral("8c8d"));
+        QVERIFY(result.score.isMate());
+        QCOMPARE(result.score.value, 3);
+        QVERIFY(result.baseSfen.startsWith(QStringLiteral("lnsgkgsnl")));
+        QVERIFY(!handler.searchCandidate().active);
 
-        const QString line = QStringLiteral(
-            "info depth 15 score mate 5 pv 5e5d 4a3b 5d5c");
-        handler.onDataReceived(line);
-
-        QCOMPARE(spy.count(), 1);
-        QVERIFY(infoAt(spy, 0).score.isMate());
-        QCOMPARE(infoAt(spy, 0).score.value, 5);
-        QCOMPARE(infoAt(spy, 0).pv.size(), 3);
-    }
-
-    void infoLine_multipv1()
-    {
-        UsiProtocolHandler handler;
-        QSignalSpy spy(&handler, &UsiProtocolHandler::infoReceived);
-
-        const QString line = QStringLiteral(
-            "info depth 10 multipv 1 score cp 100 pv 7g7f 3c3d");
-        handler.onDataReceived(line);
-
-        QCOMPARE(spy.count(), 1);
-        QCOMPARE(infoAt(spy, 0).multipv, 1);
-    }
-
-    void infoLine_multipv2()
-    {
-        UsiProtocolHandler handler;
-        QSignalSpy spy(&handler, &UsiProtocolHandler::infoReceived);
-
-        const QString line = QStringLiteral(
-            "info depth 10 multipv 2 score cp -50 pv 2g2f 8c8d");
-        handler.onDataReceived(line);
-
-        QCOMPARE(spy.count(), 1);
-        QCOMPARE(infoAt(spy, 0).multipv, 2);
-        QCOMPARE(infoAt(spy, 0).score.value, -50);
-    }
-
-    void infoLine_string()
-    {
-        // info string も info として通知し、本文は string に入る（読み筋にはしない）
-        UsiProtocolHandler handler;
-        QSignalSpy spy(&handler, &UsiProtocolHandler::infoReceived);
-
-        const QString line = QStringLiteral("info string evaluation started");
-        handler.onDataReceived(line);
-
-        QCOMPARE(spy.count(), 1);
-        QCOMPARE(infoAt(spy, 0).string, QStringLiteral("evaluation started"));
-        QVERIFY(!infoAt(spy, 0).hasPv());
-    }
-
-    void infoLine_noScore()
-    {
-        // score がない info 行でもシグナルは発行される
-        UsiProtocolHandler handler;
-        QSignalSpy spy(&handler, &UsiProtocolHandler::infoReceived);
-
-        const QString line = QStringLiteral("info depth 5 nodes 100");
-        handler.onDataReceived(line);
-
-        QCOMPARE(spy.count(), 1);
-        QCOMPARE(infoAt(spy, 0).depth, 5);
-        QVERIFY(!infoAt(spy, 0).hasScore());
-    }
-
-    // ================================================================
-    // 2. bestmove 行の解析
-    // ================================================================
-
-    void bestmove_normal()
-    {
-        UsiProtocolHandler handler;
-        QSignalSpy spyBest(&handler, &UsiProtocolHandler::bestMoveReceived);
-
+        // 次の探索では前の評価値を使わない
+        handler.startSearch(QString(), UsiGo::infinite());
         handler.onDataReceived(QStringLiteral("bestmove 7g7f"));
-
-        QCOMPARE(spyBest.count(), 1);
-        QCOMPARE(handler.bestMove(), QStringLiteral("7g7f"));
-        QVERIFY(!handler.isResignMove());
-        QVERIFY(!handler.isWinMove());
-        QVERIFY(handler.predictedMove().isEmpty());
+        QVERIFY(bestAt(bestmove, 1).score.isNone());
     }
 
-    void bestmove_withPonder()
+    // ================================================================
+    // bestmove
+    // ================================================================
+
+    void bestmove_variants_data()
     {
-        UsiProtocolHandler handler;
-        QSignalSpy spyBest(&handler, &UsiProtocolHandler::bestMoveReceived);
-
-        handler.onDataReceived(QStringLiteral("bestmove 7g7f ponder 3c3d"));
-
-        QCOMPARE(spyBest.count(), 1);
-        QCOMPARE(handler.bestMove(), QStringLiteral("7g7f"));
-        QCOMPARE(handler.predictedMove(), QStringLiteral("3c3d"));
+        QTest::addColumn<QString>("line");
+        QTest::addColumn<QString>("move");
+        QTest::addColumn<QString>("ponder");
+        QTest::addColumn<int>("special");
+        QTest::newRow("normal") << "bestmove 7g7f" << "7g7f" << "" << int(SpecialMove::None);
+        QTest::newRow("ponder") << "bestmove 7g7f ponder 3c3d" << "7g7f" << "3c3d" << int(SpecialMove::None);
+        QTest::newRow("promotion") << "bestmove 7g7f+" << "7g7f+" << "" << int(SpecialMove::None);
+        QTest::newRow("drop-ponder") << "bestmove P*5e ponder 5d5e" << "P*5e" << "5d5e" << int(SpecialMove::None);
+        QTest::newRow("tab") << "bestmove\t7g7f\tponder\t3c3d" << "7g7f" << "3c3d" << int(SpecialMove::None);
+        QTest::newRow("extra-tokens") << "bestmove 7g7f ponder 3c3d extra garbage" << "7g7f" << "3c3d"
+                                      << int(SpecialMove::None);
+        QTest::newRow("empty-ponder") << "bestmove 2g2f ponder " << "2g2f" << "" << int(SpecialMove::None);
+        QTest::newRow("non-usi") << "bestmove INVALID_MOVE" << "INVALID_MOVE" << "" << int(SpecialMove::None);
+        QTest::newRow("resign") << "bestmove resign" << "resign" << "" << int(SpecialMove::Resign);
+        QTest::newRow("win") << "bestmove win" << "win" << "" << int(SpecialMove::Win);
+        QTest::newRow("resign-upper") << "bestmove RESIGN" << "RESIGN" << "" << int(SpecialMove::Resign);
     }
 
-    void bestmove_resign()
+    void bestmove_variants()
     {
+        QFETCH(QString, line);
+        QFETCH(QString, move);
+        QFETCH(QString, ponder);
+        QFETCH(int, special);
         UsiProtocolHandler handler;
-        QSignalSpy spyBest(&handler, &UsiProtocolHandler::bestMoveReceived);
-        QSignalSpy spyResign(&handler, &UsiProtocolHandler::bestMoveResignReceived);
-
-        handler.onDataReceived(QStringLiteral("bestmove resign"));
-
-        QCOMPARE(spyBest.count(), 1);
-        QCOMPARE(spyResign.count(), 1);
-        QVERIFY(handler.isResignMove());
-        QCOMPARE(handler.bestMove(), QStringLiteral("resign"));
+        QSignalSpy bestmove(&handler, &UsiProtocolHandler::bestMoveReceived);
+        QSignalSpy errors(&handler, &UsiProtocolHandler::errorOccurred);
+        handler.onDataReceived(line);
+        QCOMPARE(bestmove.count(), 1);
+        QCOMPARE(errors.count(), 0);
+        const UsiBestMove result = bestAt(bestmove, 0);
+        QCOMPARE(result.move, move);
+        QCOMPARE(result.ponder, ponder);
+        QCOMPARE(int(result.special), special);
+        QCOMPARE(result.elapsedMs, 0); // go を送っていない
     }
 
-    void bestmove_win()
+    /// 指し手の語のない bestmove はエラーにする
+    void bestmove_withoutMoveIsError_data()
     {
-        UsiProtocolHandler handler;
-        QSignalSpy spyBest(&handler, &UsiProtocolHandler::bestMoveReceived);
-        QSignalSpy spyWin(&handler, &UsiProtocolHandler::bestMoveWinReceived);
-
-        handler.onDataReceived(QStringLiteral("bestmove win"));
-
-        QCOMPARE(spyBest.count(), 1);
-        QCOMPARE(spyWin.count(), 1);
-        QVERIFY(handler.isWinMove());
-        QCOMPARE(handler.bestMove(), QStringLiteral("win"));
+        QTest::addColumn<QString>("line");
+        QTest::newRow("no-token") << QStringLiteral("bestmove");
+        QTest::newRow("whitespace") << QStringLiteral("bestmove   ");
     }
 
-    void bestmove_resign_duplicateSuppressed()
+    void bestmove_withoutMoveIsError()
     {
-        // 2回目の resign は重複防止でシグナル発行されない
+        QFETCH(QString, line);
         UsiProtocolHandler handler;
-        QSignalSpy spyResign(&handler, &UsiProtocolHandler::bestMoveResignReceived);
-
-        handler.onDataReceived(QStringLiteral("bestmove resign"));
-        handler.onDataReceived(QStringLiteral("bestmove resign"));
-
-        QCOMPARE(spyResign.count(), 1);
+        QSignalSpy bestmove(&handler, &UsiProtocolHandler::bestMoveReceived);
+        QSignalSpy errors(&handler, &UsiProtocolHandler::errorOccurred);
+        handler.onDataReceived(line);
+        QCOMPARE(bestmove.count(), 0);
+        QCOMPARE(errors.count(), 1);
     }
 
-    void bestmove_win_duplicateSuppressed()
-    {
-        // 2回目の win は重複防止でシグナル発行されない
-        UsiProtocolHandler handler;
-        QSignalSpy spyWin(&handler, &UsiProtocolHandler::bestMoveWinReceived);
-
-        handler.onDataReceived(QStringLiteral("bestmove win"));
-        handler.onDataReceived(QStringLiteral("bestmove win"));
-
-        QCOMPARE(spyWin.count(), 1);
-    }
-
-    void bestmove_resign_squelched()
+    /// 取り消した探索に遅れて届いた結果は知らせない。次の探索の結果は知らせる
+    void cancelledSearchResultIsDropped()
     {
         UsiProtocolHandler handler;
-        handler.setSquelchResignLogging(true);
+        QSignalSpy bestmove(&handler, &UsiProtocolHandler::bestMoveReceived);
+        QSignalSpy checkmate(&handler, &UsiProtocolHandler::checkmateReceived);
+        handler.startSearch(QString(), UsiGo::infinite());
+        handler.cancelCurrentOperation();
+        // エンジンはまだ考えているので、取り消した後も stop は送る
+        QVERIFY(handler.isSearching());
+        handler.onDataReceived(QStringLiteral("bestmove 7g7f"));
+        QCOMPARE(bestmove.count(), 0);
+        QCOMPARE(handler.state(), UsiProtocolHandler::State::Ready);
 
-        QSignalSpy spyBest(&handler, &UsiProtocolHandler::bestMoveReceived);
-        QSignalSpy spyResign(&handler, &UsiProtocolHandler::bestMoveResignReceived);
+        handler.startSearch(QString(), UsiGo::mate(1000));
+        handler.cancelCurrentOperation();
+        handler.onDataReceived(QStringLiteral("checkmate nomate"));
+        QCOMPARE(checkmate.count(), 0);
 
-        handler.onDataReceived(QStringLiteral("bestmove resign"));
-
-        QCOMPARE(spyBest.count(), 1);
-        QCOMPARE(spyResign.count(), 0);
-        QVERIFY(handler.isResignMove());
-        QVERIFY(handler.isResignLoggingSquelched());
-    }
-
-    void bestmove_resign_squelchCleared_emitsAgain()
-    {
-        UsiProtocolHandler handler;
-        handler.setSquelchResignLogging(true);
-        handler.onDataReceived(QStringLiteral("bestmove resign"));
-
-        handler.setSquelchResignLogging(false);
-        handler.resetResignNotified();
-
-        QSignalSpy spyResign(&handler, &UsiProtocolHandler::bestMoveResignReceived);
-        handler.onDataReceived(QStringLiteral("bestmove resign"));
-
-        QCOMPARE(spyResign.count(), 1);
-    }
-
-    void bestmove_clearsPreviousPonder()
-    {
-        UsiProtocolHandler handler;
-
-        // 最初の bestmove で ponder あり
-        handler.onDataReceived(QStringLiteral("bestmove 7g7f ponder 3c3d"));
-        QCOMPARE(handler.predictedMove(), QStringLiteral("3c3d"));
-
-        // リセットして次の bestmove で ponder なし
-        handler.resetResignNotified();
+        handler.startSearch(QString(), UsiGo::infinite());
         handler.onDataReceived(QStringLiteral("bestmove 2g2f"));
-        QVERIFY(handler.predictedMove().isEmpty());
+        QCOMPARE(bestmove.count(), 1);
+        QCOMPARE(bestAt(bestmove, 0).move, QStringLiteral("2g2f"));
     }
 
-    // ================================================================
-    // 3. checkmate 行の解析
-    // ================================================================
-
-    void checkmate_solved()
+    /// 連続して届く bestmove はそのつど知らせる
+    void rapidBestmovesAreEachReported()
     {
         UsiProtocolHandler handler;
-        QSignalSpy spy(&handler, &UsiProtocolHandler::checkmateSolved);
-
-        handler.onDataReceived(QStringLiteral("checkmate 5e5d 4a3b 5d5c"));
-
-        QCOMPARE(spy.count(), 1);
-        const QStringList pv = spy.at(0).at(0).toStringList();
-        QCOMPARE(pv.size(), 3);
-        QCOMPARE(pv.at(0), QStringLiteral("5e5d"));
-        QCOMPARE(pv.at(1), QStringLiteral("4a3b"));
-        QCOMPARE(pv.at(2), QStringLiteral("5d5c"));
+        QSignalSpy bestmove(&handler, &UsiProtocolHandler::bestMoveReceived);
+        handler.onDataReceived(QStringLiteral("bestmove 7g7f ponder 3c3d"));
+        handler.onDataReceived(QStringLiteral("bestmove 2g2f ponder 8c8d"));
+        handler.onDataReceived(QStringLiteral("bestmove 5g5f"));
+        QCOMPARE(bestmove.count(), 3);
+        QCOMPARE(bestAt(bestmove, 2).move, QStringLiteral("5g5f"));
+        QVERIFY(bestAt(bestmove, 2).ponder.isEmpty());
     }
 
-    /// info 行を出さずに checkmate だけを返すエンジンでも、思考タブに詰み手順の行を残す
+    // ================================================================
+    // checkmate
+    // ================================================================
+
+    void checkmate_variants_data()
+    {
+        QTest::addColumn<QString>("line");
+        QTest::addColumn<int>("result");
+        QTest::addColumn<QStringList>("pv");
+        QTest::newRow("solved") << "checkmate 5e5d 4a3b 5d5c" << int(UsiCheckmate::Result::Mate)
+                                << QStringList{"5e5d", "4a3b", "5d5c"};
+        QTest::newRow("single") << "checkmate G*5b" << int(UsiCheckmate::Result::Mate) << QStringList{"G*5b"};
+        QTest::newRow("nomate") << "checkmate nomate" << int(UsiCheckmate::Result::NoMate) << QStringList{};
+        QTest::newRow("NOMATE") << "checkmate NOMATE" << int(UsiCheckmate::Result::NoMate) << QStringList{};
+        QTest::newRow("notimplemented") << "checkmate NotImplemented" << int(UsiCheckmate::Result::NotImplemented)
+                                        << QStringList{};
+        QTest::newRow("timeout") << "checkmate timeout" << int(UsiCheckmate::Result::Unknown) << QStringList{};
+        QTest::newRow("unknown") << "checkmate Unknown" << int(UsiCheckmate::Result::Unknown) << QStringList{};
+        QTest::newRow("empty") << "checkmate" << int(UsiCheckmate::Result::Unknown) << QStringList{};
+        QTest::newRow("whitespace") << "checkmate   " << int(UsiCheckmate::Result::Unknown) << QStringList{};
+    }
+
+    void checkmate_variants()
+    {
+        QFETCH(QString, line);
+        QFETCH(int, result);
+        QFETCH(QStringList, pv);
+        UsiProtocolHandler handler;
+        QSignalSpy checkmate(&handler, &UsiProtocolHandler::checkmateReceived);
+        handler.onDataReceived(line);
+        QCOMPARE(checkmate.count(), 1);
+        QCOMPARE(int(checkmateAt(checkmate, 0).result), result);
+        QCOMPARE(checkmateAt(checkmate, 0).pv, pv);
+    }
+
+    /// stop の後の checkmate は打ち切った探索の結果として知らせる
+    void checkmateAfterStopIsMarked()
+    {
+        UsiProtocolHandler handler;
+        QSignalSpy checkmate(&handler, &UsiProtocolHandler::checkmateReceived);
+        handler.startSearch(QString(), UsiGo::mate(0));
+        handler.sendStop();
+        handler.onDataReceived(QStringLiteral("checkmate 5e5d"));
+        QVERIFY(checkmateAt(checkmate, 0).stopped);
+    }
+
+    /// info 行を出さずに checkmate だけを返すエンジンでも、思考の表に詰み手順の行を残す
     void checkmate_solved_addsThinkingRow()
     {
-        // go mate の前に Usi が行う準備と同じく、探索局面を渡しておく
-        const QString sfen = QStringLiteral("7k1/9/9/9/9/9/9/9/K8 b RS 1");
-
         UsiProtocolHandler handler;
-        ThinkingInfoPresenter presenter;
-        presenter.setBaseSfen(sfen);
-        connect(&handler, &UsiProtocolHandler::checkmateSolved,
-                &presenter, &ThinkingInfoPresenter::presentCheckmate);
-        QSignalSpy rows(&presenter, &ThinkingInfoPresenter::thinkingInfoUpdated);
-        QSignalSpy solved(&handler, &UsiProtocolHandler::checkmateSolved);
+        ThinkingInfoFormatter formatter;
+        connect(&handler, &UsiProtocolHandler::positionChanged, &formatter, &ThinkingInfoFormatter::setBaseSfen);
+        connect(&handler, &UsiProtocolHandler::checkmateReceived, &formatter, &ThinkingInfoFormatter::presentCheckmate);
+        QSignalSpy rows(&formatter, &ThinkingInfoFormatter::thinkingInfoUpdated);
 
+        handler.startSearch(QStringLiteral("position sfen 7k1/9/9/9/9/9/9/9/K8 b RS 1"), UsiGo::mate(1000));
         handler.onDataReceived(QStringLiteral("checkmate S*1b 2a3a R*2a"));
 
         QCOMPARE(rows.count(), 1);
         const auto row = qvariant_cast<ThinkingInfoRow>(rows.at(0).at(0));
-        QVERIFY(row.score.contains(QStringLiteral("3")));                           // 詰み手数
-        QCOMPARE(row.pvKanji, QStringLiteral("▲１二銀打△３一玉(21)▲２一飛打"));    // 読み筋
-        QCOMPARE(row.usiPv, QStringLiteral("S*1b 2a3a R*2a"));                      // USI の読み筋
-        QCOMPARE(solved.count(), 1);
-    }
-
-    void checkmate_nomate()
-    {
-        UsiProtocolHandler handler;
-        QSignalSpy spy(&handler, &UsiProtocolHandler::checkmateNoMate);
-
-        handler.onDataReceived(QStringLiteral("checkmate nomate"));
-
-        QCOMPARE(spy.count(), 1);
-    }
-
-    void checkmate_timeout_emitsUnknown()
-    {
-        UsiProtocolHandler handler;
-        QSignalSpy spySolved(&handler, &UsiProtocolHandler::checkmateSolved);
-        QSignalSpy spyUnknown(&handler, &UsiProtocolHandler::checkmateUnknown);
-
-        // 時間切れは "timeout" を指し手とみなさず、結果不明として通知する
-        handler.onDataReceived(QStringLiteral("checkmate timeout"));
-
-        QCOMPARE(spySolved.count(), 0);
-        QCOMPARE(spyUnknown.count(), 1);
-    }
-
-    void checkmate_notimplemented()
-    {
-        UsiProtocolHandler handler;
-        QSignalSpy spy(&handler, &UsiProtocolHandler::checkmateNotImplemented);
-
-        handler.onDataReceived(QStringLiteral("checkmate notimplemented"));
-
-        QCOMPARE(spy.count(), 1);
-    }
-
-    void checkmate_unknown()
-    {
-        UsiProtocolHandler handler;
-        QSignalSpy spy(&handler, &UsiProtocolHandler::checkmateUnknown);
-
-        handler.onDataReceived(QStringLiteral("checkmate unknown"));
-
-        QCOMPARE(spy.count(), 1);
-    }
-
-    void checkmate_empty()
-    {
-        // "checkmate" のみ（手順なし）→ unknown
-        UsiProtocolHandler handler;
-        QSignalSpy spy(&handler, &UsiProtocolHandler::checkmateUnknown);
-
-        handler.onDataReceived(QStringLiteral("checkmate"));
-
-        QCOMPARE(spy.count(), 1);
+        QVERIFY(row.score.isMate());
+        QCOMPARE(row.score.value, 3);
+        QCOMPARE(row.pvKanji, QStringLiteral("▲１二銀打△３一玉(21)▲２一飛打"));
+        QCOMPARE(row.usiPv, QStringLiteral("S*1b 2a3a R*2a"));
     }
 
     // ================================================================
-    // 4. readyok / usiok
+    // 初期化
     // ================================================================
-
-    void readyok_received()
-    {
-        UsiProtocolHandler handler;
-        QSignalSpy spy(&handler, &UsiProtocolHandler::readyOkReceived);
-
-        handler.onDataReceived(QStringLiteral("readyok"));
-
-        QCOMPARE(spy.count(), 1);
-    }
-
-    void usiok_received()
-    {
-        UsiProtocolHandler handler;
-        QSignalSpy spy(&handler, &UsiProtocolHandler::usiOkReceived);
-
-        handler.onDataReceived(QStringLiteral("usiok"));
-
-        QCOMPARE(spy.count(), 1);
-    }
 
     void initializationRequiresFreshResponses()
     {
@@ -492,874 +467,43 @@ private slots:
         handler.initializeEngineAsync();
         handler.onDataReceived(QStringLiteral("readyok")); // usiok前の応答は完了扱いしない
         QCOMPARE(initialized.count(), 0);
-        handler.onDataReceived(QStringLiteral("usiok"));
+        handler.onDataReceived(QStringLiteral("  usiok"));
         QCOMPARE(initialized.count(), 0);
-        handler.onDataReceived(QStringLiteral("readyok"));
+        handler.onDataReceived(QStringLiteral("readyok "));
         QCOMPARE(initialized.count(), 1);
         QVERIFY(initialized.first().first().toBool());
         handler.onDataReceived(QStringLiteral("readyok"));
         QCOMPARE(initialized.count(), 1);
     }
 
-    // ================================================================
-    // 5. option name 行
-    // ================================================================
-
-    void optionName_parsed()
+    /// 登録の問い合わせは usiok で終える（isready を送らない）
+    void initializationUntilUsiOk()
     {
-        // option name 行はオプション名を記録するのみでシグナルは発行しない
-        UsiProtocolHandler handler;
-        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoReceived);
-        QSignalSpy spyBest(&handler, &UsiProtocolHandler::bestMoveReceived);
-
-        handler.onDataReceived(
-            QStringLiteral("option name USI_Ponder type check default false"));
-
-        // info や bestmove のシグナルは発行されない
-        QCOMPARE(spyInfo.count(), 0);
-        QCOMPARE(spyBest.count(), 0);
-    }
-
-    void optionAndIdName_recorded()
-    {
-        // usi〜usiok で報告されたオプションの定義行と id name を覚える
-        UsiProtocolHandler handler;
+        EngineProcessManager process;
+        QVERIFY(startProcess(process));
+        UsiProtocolHandler handler(&process);
+        QSignalSpy commands(&process, &EngineProcessManager::commandSent);
+        QSignalSpy initialized(&handler, &UsiProtocolHandler::initializationFinished);
+        handler.initializeEngineAsync(5000, true);
         handler.onDataReceived(QStringLiteral("id name Mock Engine 1.0"));
+        handler.onDataReceived(QStringLiteral("id author someone"));
         handler.onDataReceived(QStringLiteral("option name Multi PV type spin default 1 min 1 max 500"));
         handler.onDataReceived(QStringLiteral("option name Broken"));
-
+        handler.onDataReceived(QStringLiteral("usiok"));
+        QCOMPARE(initialized.count(), 1);
+        QCOMPARE(handler.state(), UsiProtocolHandler::State::Ready);
+        QCOMPARE(commands.count(), 1);
+        QCOMPARE(commands.first().first().toString(), QStringLiteral("usi"));
         QCOMPARE(handler.reportedEngineName(), QStringLiteral("Mock Engine 1.0"));
-        QCOMPARE(handler.reportedOptionLine(QStringLiteral("Multi PV")),
-                 QStringLiteral("option name Multi PV type spin default 1 min 1 max 500"));
-        QVERIFY(handler.reportedOptionLine(QStringLiteral("Broken")).isEmpty());
+        QCOMPARE(handler.reportedEngineAuthor(), QStringLiteral("someone"));
+        QCOMPARE(handler.reportedOptionLines(),
+                 QStringList({QStringLiteral("option name Multi PV type spin default 1 min 1 max 500"),
+                              QStringLiteral("option name Broken")}));
+        const auto multiPv = handler.reportedOption(QStringLiteral("Multi PV"));
+        QVERIFY(multiPv);
+        QCOMPARE(multiPv->maxValue, QStringLiteral("500"));
+        QVERIFY(!handler.reportedOption(QStringLiteral("Broken")));
     }
-
-    // ================================================================
-    // 6. 不正入力への耐性
-    // ================================================================
-
-    void invalidInput_emptyLine()
-    {
-        UsiProtocolHandler handler;
-        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoReceived);
-        QSignalSpy spyBest(&handler, &UsiProtocolHandler::bestMoveReceived);
-        QSignalSpy spyError(&handler, &UsiProtocolHandler::errorOccurred);
-
-        handler.onDataReceived(QString());
-
-        // 空行では何のシグナルも発行されない
-        QCOMPARE(spyInfo.count(), 0);
-        QCOMPARE(spyBest.count(), 0);
-        QCOMPARE(spyError.count(), 0);
-    }
-
-    void invalidInput_bestmoveNoToken()
-    {
-        // "bestmove" の後にトークンがない
-        UsiProtocolHandler handler;
-        QSignalSpy spyBest(&handler, &UsiProtocolHandler::bestMoveReceived);
-        QSignalSpy spyError(&handler, &UsiProtocolHandler::errorOccurred);
-
-        handler.onDataReceived(QStringLiteral("bestmove"));
-
-        // 不正フォーマットは bestMoveReceived を発行しない
-        QCOMPARE(spyBest.count(), 0);
-        // handleBestMoveLine でエラーシグナルが発行される
-        QCOMPARE(spyError.count(), 1);
-    }
-
-    void invalidInput_unknownCommand()
-    {
-        UsiProtocolHandler handler;
-        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoReceived);
-        QSignalSpy spyBest(&handler, &UsiProtocolHandler::bestMoveReceived);
-        QSignalSpy spyReady(&handler, &UsiProtocolHandler::readyOkReceived);
-        QSignalSpy spyUsi(&handler, &UsiProtocolHandler::usiOkReceived);
-
-        handler.onDataReceived(QStringLiteral("unknowncommand some data"));
-
-        // 未知のコマンドは全て無視される
-        QCOMPARE(spyInfo.count(), 0);
-        QCOMPARE(spyBest.count(), 0);
-        QCOMPARE(spyReady.count(), 0);
-        QCOMPARE(spyUsi.count(), 0);
-    }
-
-    void invalidInput_bestmoveOnlyWhitespace()
-    {
-        UsiProtocolHandler handler;
-        QSignalSpy spyError(&handler, &UsiProtocolHandler::errorOccurred);
-
-        handler.onDataReceived(QStringLiteral("bestmove   "));
-
-        // トークン分割後 "bestmove" のみ → エラー
-        QCOMPARE(spyError.count(), 1);
-    }
-
-    // ================================================================
-    // 7. タイムアウト後のドロップ
-    // ================================================================
-
-    void timeoutDeclared_dropsAllLines()
-    {
-        UsiProtocolHandler handler;
-        handler.markHardTimeout();
-
-        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoReceived);
-        QSignalSpy spyBest(&handler, &UsiProtocolHandler::bestMoveReceived);
-        QSignalSpy spyReady(&handler, &UsiProtocolHandler::readyOkReceived);
-
-        handler.onDataReceived(QStringLiteral("info depth 10 score cp 100"));
-        handler.onDataReceived(QStringLiteral("bestmove 7g7f"));
-        handler.onDataReceived(QStringLiteral("readyok"));
-
-        QCOMPARE(spyInfo.count(), 0);
-        QCOMPARE(spyBest.count(), 0);
-        QCOMPARE(spyReady.count(), 0);
-    }
-
-    void timeoutCleared_resumesProcessing()
-    {
-        UsiProtocolHandler handler;
-        handler.markHardTimeout();
-
-        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoReceived);
-        handler.onDataReceived(QStringLiteral("info depth 5"));
-        QCOMPARE(spyInfo.count(), 0);
-
-        handler.clearHardTimeout();
-        handler.onDataReceived(QStringLiteral("info depth 10"));
-        QCOMPARE(spyInfo.count(), 1);
-    }
-
-    // ================================================================
-    // 8. ProcessManager 再設定安全性
-    // ================================================================
-
-    void setProcessManager_samePointerDoesNotDuplicateConnection()
-    {
-        UsiProtocolHandler handler;
-        EngineProcessManager processManager;
-        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoReceived);
-
-        handler.setProcessManager(&processManager);
-        handler.setProcessManager(&processManager);
-
-        const bool invoked = QMetaObject::invokeMethod(
-            &processManager, "dataReceived", Qt::DirectConnection,
-            Q_ARG(QString, QStringLiteral("info depth 1 score cp 0")));
-        QVERIFY(invoked);
-
-        QCOMPARE(spyInfo.count(), 1);
-    }
-
-    void setProcessManager_switchDisconnectsOldManager()
-    {
-        UsiProtocolHandler handler;
-        EngineProcessManager oldManager;
-        EngineProcessManager newManager;
-        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoReceived);
-
-        handler.setProcessManager(&oldManager);
-        handler.setProcessManager(&newManager);
-
-        const bool oldInvoked = QMetaObject::invokeMethod(
-            &oldManager, "dataReceived", Qt::DirectConnection,
-            Q_ARG(QString, QStringLiteral("info depth 3")));
-        const bool newInvoked = QMetaObject::invokeMethod(
-            &newManager, "dataReceived", Qt::DirectConnection,
-            Q_ARG(QString, QStringLiteral("info depth 4")));
-        QVERIFY(oldInvoked);
-        QVERIFY(newInvoked);
-
-        QCOMPARE(spyInfo.count(), 1);
-        QCOMPARE(infoAt(spyInfo, 0).depth, 4);
-    }
-
-    // ================================================================
-    // 9. bestmove の指し手
-    // ================================================================
-
-    /// bestmove は成り・不成を含む指し手として読み、ゲーム制御の状態には触れない
-    void parseBestMove_keepsPromotion()
-    {
-        UsiProtocolHandler handler;
-        handler.onDataReceived(QStringLiteral("bestmove 8h2b+ ponder 3a2b"));
-        const auto move = handler.parseBestMove();
-        QVERIFY(move);
-        QCOMPARE(move->toString(), QStringLiteral("8h2b+"));
-        QVERIFY(move->promote);
-
-        handler.onDataReceived(QStringLiteral("bestmove P*5e"));
-        const auto drop = handler.parseBestMove();
-        QVERIFY(drop && drop->isDrop());
-        QCOMPARE(drop->drop, Piece::BlackPawn);
-    }
-
-    /// 特殊手は指し手にならず、エラーも出さない
-    void parseBestMove_specialMoveIsNotAMove()
-    {
-        UsiProtocolHandler handler;
-        QSignalSpy errors(&handler, &UsiProtocolHandler::errorOccurred);
-        handler.onDataReceived(QStringLiteral("bestmove resign"));
-        QVERIFY(!handler.parseBestMove());
-        QCOMPARE(errors.count(), 0);
-    }
-
-    /// 読めない bestmove はエラーにする
-    void parseBestMove_rejectsInvalidMove()
-    {
-        UsiProtocolHandler handler;
-        QSignalSpy errors(&handler, &UsiProtocolHandler::errorOccurred);
-        handler.onDataReceived(QStringLiteral("bestmove INVALID_MOVE_FORMAT"));
-        QVERIFY(!handler.parseBestMove());
-        QCOMPARE(errors.count(), 1);
-    }
-
-    // ================================================================
-    // 9. 初期状態
-    // ================================================================
-
-    void initialState()
-    {
-        UsiProtocolHandler handler;
-
-        QVERIFY(handler.bestMove().isEmpty());
-        QVERIFY(handler.predictedMove().isEmpty());
-        QVERIFY(!handler.isResignMove());
-        QVERIFY(!handler.isWinMove());
-        QVERIFY(!handler.isPonderEnabled());
-        QCOMPARE(handler.currentPhase(), UsiProtocolHandler::SearchPhase::Idle);
-        QVERIFY(!handler.isTimeoutDeclared());
-    }
-
-    // ================================================================
-    // 10. テーブル駆動: 異常入力パターン
-    // ================================================================
-
-    void invalidInput_abnormalLines_data()
-    {
-        QTest::addColumn<QString>("line");
-        QTest::addColumn<int>("expectedInfoCount");
-        QTest::addColumn<int>("expectedBestCount");
-        QTest::addColumn<int>("expectedErrorCount");
-
-        QTest::newRow("info_only_keyword")
-            << QStringLiteral("info")
-            << 1 << 0 << 0;
-        QTest::newRow("bestmove_ponder_no_target")
-            << QStringLiteral("bestmove 7g7f ponder")
-            << 0 << 1 << 0;
-        QTest::newRow("very_long_info_line")
-            << (QStringLiteral("info depth 99 score cp 0 pv ") + QString(10000, QChar('x')))
-            << 1 << 0 << 0;
-        QTest::newRow("option_no_name")
-            << QStringLiteral("option")
-            << 0 << 0 << 0;
-        QTest::newRow("multiple_bestmove_keywords")
-            << QStringLiteral("bestmove 7g7f bestmove 3c3d")
-            << 0 << 1 << 0;
-        QTest::newRow("leading_whitespace_bestmove")
-            << QStringLiteral("  bestmove 7g7f")
-            << 0 << 0 << 0;
-    }
-
-    void invalidInput_abnormalLines()
-    {
-        QFETCH(QString, line);
-        QFETCH(int, expectedInfoCount);
-        QFETCH(int, expectedBestCount);
-        QFETCH(int, expectedErrorCount);
-
-        UsiProtocolHandler handler;
-        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoReceived);
-        QSignalSpy spyBest(&handler, &UsiProtocolHandler::bestMoveReceived);
-        QSignalSpy spyError(&handler, &UsiProtocolHandler::errorOccurred);
-
-        handler.onDataReceived(line);
-
-        QCOMPARE(spyInfo.count(), expectedInfoCount);
-        QCOMPARE(spyBest.count(), expectedBestCount);
-        QCOMPARE(spyError.count(), expectedErrorCount);
-    }
-
-    // ================================================================
-    // 12. 異常系: bestmove の不正フォーマット
-    // ================================================================
-
-    void invalidBestmove_extraTokens()
-    {
-        UsiProtocolHandler handler;
-        QSignalSpy spyBest(&handler, &UsiProtocolHandler::bestMoveReceived);
-
-        // bestmove with extra garbage tokens after ponder
-        handler.onDataReceived(QStringLiteral("bestmove 7g7f ponder 3c3d extra garbage tokens"));
-
-        QCOMPARE(spyBest.count(), 1);
-        QCOMPARE(handler.bestMove(), QStringLiteral("7g7f"));
-        // Ponder should still be parsed correctly
-        QCOMPARE(handler.predictedMove(), QStringLiteral("3c3d"));
-    }
-
-    void invalidBestmove_nonUsiMove()
-    {
-        UsiProtocolHandler handler;
-        QSignalSpy spyBest(&handler, &UsiProtocolHandler::bestMoveReceived);
-
-        // bestmove with non-standard move token
-        handler.onDataReceived(QStringLiteral("bestmove INVALID_MOVE_FORMAT"));
-
-        QCOMPARE(spyBest.count(), 1);
-        // Should store whatever was given (validation is elsewhere)
-        QCOMPARE(handler.bestMove(), QStringLiteral("INVALID_MOVE_FORMAT"));
-    }
-
-    void invalidBestmove_emptyPonder()
-    {
-        // bestmove with "ponder" keyword but empty value (already tested above as
-        // "bestmove_ponder_no_target", but confirming no crash with trailing space)
-        UsiProtocolHandler handler;
-        QSignalSpy spyBest(&handler, &UsiProtocolHandler::bestMoveReceived);
-
-        handler.onDataReceived(QStringLiteral("bestmove 2g2f ponder "));
-
-        QCOMPARE(spyBest.count(), 1);
-        QCOMPARE(handler.bestMove(), QStringLiteral("2g2f"));
-    }
-
-    // ================================================================
-    // 13. 異常系: info 行の不正な score
-    // ================================================================
-
-    void invalidInfo_scoreMissingValue()
-    {
-        UsiProtocolHandler handler;
-        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoReceived);
-
-        // "score cp" with no numeric value
-        handler.onDataReceived(QStringLiteral("info depth 10 score cp"));
-
-        // info line is still forwarded (parsing is in presenter layer)
-        QCOMPARE(spyInfo.count(), 1);
-    }
-
-    void invalidInfo_scoreNonNumeric()
-    {
-        UsiProtocolHandler handler;
-        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoReceived);
-
-        // "score cp ABC" — non-numeric value
-        handler.onDataReceived(QStringLiteral("info depth 10 score cp ABC pv 7g7f"));
-
-        QCOMPARE(spyInfo.count(), 1);
-    }
-
-    void invalidInfo_scoreMateNegative()
-    {
-        UsiProtocolHandler handler;
-        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoReceived);
-
-        // "score mate -3" — negative mate (opponent has checkmate)
-        handler.onDataReceived(QStringLiteral("info depth 10 score mate -3 pv 5e5d"));
-
-        QCOMPARE(spyInfo.count(), 1);
-    }
-
-    // ================================================================
-    // 14. 異常系: option 行の不正な型
-    // ================================================================
-
-    void invalidOption_unknownType()
-    {
-        UsiProtocolHandler handler;
-        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoReceived);
-        QSignalSpy spyBest(&handler, &UsiProtocolHandler::bestMoveReceived);
-
-        handler.onDataReceived(
-            QStringLiteral("option name SomeOption type unknown_type default 42"));
-
-        // Should not emit info or bestmove signals
-        QCOMPARE(spyInfo.count(), 0);
-        QCOMPARE(spyBest.count(), 0);
-    }
-
-    void invalidOption_noType()
-    {
-        UsiProtocolHandler handler;
-        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoReceived);
-
-        handler.onDataReceived(QStringLiteral("option name SomeOption"));
-
-        // Should not crash and should not emit info
-        QCOMPARE(spyInfo.count(), 0);
-    }
-
-    void invalidOption_emptyName()
-    {
-        UsiProtocolHandler handler;
-        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoReceived);
-
-        handler.onDataReceived(QStringLiteral("option name  type check default false"));
-
-        // Should not crash
-        QCOMPARE(spyInfo.count(), 0);
-    }
-
-    // ================================================================
-    // 15. 異常系: 予期しないコマンドシーケンス
-    // ================================================================
-
-    void unexpectedSequence_bestmoveBeforeGo()
-    {
-        // bestmove without prior go — should still be processed
-        UsiProtocolHandler handler;
-        QSignalSpy spyBest(&handler, &UsiProtocolHandler::bestMoveReceived);
-
-        handler.onDataReceived(QStringLiteral("bestmove 7g7f"));
-
-        QCOMPARE(spyBest.count(), 1);
-        QCOMPARE(handler.bestMove(), QStringLiteral("7g7f"));
-    }
-
-    void unexpectedSequence_multipleUsiok()
-    {
-        // Multiple usiok responses should all emit signals
-        UsiProtocolHandler handler;
-        QSignalSpy spy(&handler, &UsiProtocolHandler::usiOkReceived);
-
-        handler.onDataReceived(QStringLiteral("usiok"));
-        handler.onDataReceived(QStringLiteral("usiok"));
-
-        QCOMPARE(spy.count(), 2);
-    }
-
-    void unexpectedSequence_multipleReadyok()
-    {
-        // Multiple readyok responses
-        UsiProtocolHandler handler;
-        QSignalSpy spy(&handler, &UsiProtocolHandler::readyOkReceived);
-
-        handler.onDataReceived(QStringLiteral("readyok"));
-        handler.onDataReceived(QStringLiteral("readyok"));
-
-        QCOMPARE(spy.count(), 2);
-    }
-
-    // ================================================================
-    // 16. テーブル駆動: チェックメイト異常行
-    // ================================================================
-
-    void checkmate_abnormalLines_data()
-    {
-        QTest::addColumn<QString>("line");
-
-        QTest::newRow("checkmate_whitespace_only")
-            << QStringLiteral("checkmate   ");
-        QTest::newRow("checkmate_with_garbage")
-            << QStringLiteral("checkmate !@#$%^&*");
-        QTest::newRow("checkmate_very_long_pv")
-            << (QStringLiteral("checkmate ") + QString(5000, QChar('x')));
-    }
-
-    void checkmate_abnormalLines()
-    {
-        QFETCH(QString, line);
-
-        UsiProtocolHandler handler;
-        // Must not crash regardless of checkmate line content
-        handler.onDataReceived(line);
-        QVERIFY(true);
-    }
-
-    // ================================================================
-    // 17. 異常系: checkmate の大文字小文字混在
-    // ================================================================
-
-    void checkmate_caseInsensitive_nomate()
-    {
-        // handleCheckmateLine は CaseInsensitive で比較する
-        UsiProtocolHandler handler;
-        QSignalSpy spy(&handler, &UsiProtocolHandler::checkmateNoMate);
-
-        handler.onDataReceived(QStringLiteral("checkmate NOMATE"));
-        QCOMPARE(spy.count(), 1);
-    }
-
-    void checkmate_caseInsensitive_notimplemented()
-    {
-        UsiProtocolHandler handler;
-        QSignalSpy spy(&handler, &UsiProtocolHandler::checkmateNotImplemented);
-
-        handler.onDataReceived(QStringLiteral("checkmate NotImplemented"));
-        QCOMPARE(spy.count(), 1);
-    }
-
-    void checkmate_caseInsensitive_unknown()
-    {
-        UsiProtocolHandler handler;
-        QSignalSpy spy(&handler, &UsiProtocolHandler::checkmateUnknown);
-
-        handler.onDataReceived(QStringLiteral("checkmate UNKNOWN"));
-        QCOMPARE(spy.count(), 1);
-    }
-
-    void checkmate_singleMovePv()
-    {
-        // 1手詰みの場合
-        UsiProtocolHandler handler;
-        QSignalSpy spy(&handler, &UsiProtocolHandler::checkmateSolved);
-
-        handler.onDataReceived(QStringLiteral("checkmate 5e5d"));
-
-        QCOMPARE(spy.count(), 1);
-        const QStringList pv = spy.at(0).at(0).toStringList();
-        QCOMPARE(pv.size(), 1);
-        QCOMPARE(pv.at(0), QStringLiteral("5e5d"));
-    }
-
-    // ================================================================
-    // 18. bestmove の特殊フォーマット
-    // ================================================================
-
-    void bestmove_withPromotion()
-    {
-        // 成り付きの手（7g7f+）
-        UsiProtocolHandler handler;
-        QSignalSpy spyBest(&handler, &UsiProtocolHandler::bestMoveReceived);
-
-        handler.onDataReceived(QStringLiteral("bestmove 7g7f+"));
-
-        QCOMPARE(spyBest.count(), 1);
-        QCOMPARE(handler.bestMove(), QStringLiteral("7g7f+"));
-        QVERIFY(!handler.isResignMove());
-        QVERIFY(!handler.isWinMove());
-    }
-
-    void bestmove_withDrop()
-    {
-        // 駒打ち（P*5e）
-        UsiProtocolHandler handler;
-        QSignalSpy spyBest(&handler, &UsiProtocolHandler::bestMoveReceived);
-
-        handler.onDataReceived(QStringLiteral("bestmove P*5e"));
-
-        QCOMPARE(spyBest.count(), 1);
-        QCOMPARE(handler.bestMove(), QStringLiteral("P*5e"));
-    }
-
-    void bestmove_tabSeparated()
-    {
-        // タブ区切りの bestmove（\s+ 正規表現で分割される）
-        UsiProtocolHandler handler;
-        QSignalSpy spyBest(&handler, &UsiProtocolHandler::bestMoveReceived);
-
-        handler.onDataReceived(QStringLiteral("bestmove\t7g7f\tponder\t3c3d"));
-
-        QCOMPARE(spyBest.count(), 1);
-        QCOMPARE(handler.bestMove(), QStringLiteral("7g7f"));
-        QCOMPARE(handler.predictedMove(), QStringLiteral("3c3d"));
-    }
-
-    void bestmove_withDropAndPonder()
-    {
-        // 駒打ち + ponder
-        UsiProtocolHandler handler;
-        QSignalSpy spyBest(&handler, &UsiProtocolHandler::bestMoveReceived);
-
-        handler.onDataReceived(QStringLiteral("bestmove P*5e ponder 5d5e"));
-
-        QCOMPARE(spyBest.count(), 1);
-        QCOMPARE(handler.bestMove(), QStringLiteral("P*5e"));
-        QCOMPARE(handler.predictedMove(), QStringLiteral("5d5e"));
-    }
-
-    // ================================================================
-    // 19. フェーズ・状態遷移テスト
-    // ================================================================
-
-    void phase_afterBestmove_returnsIdle()
-    {
-        UsiProtocolHandler handler;
-        handler.sendGoDepth(1);
-        QCOMPARE(handler.currentPhase(), UsiProtocolHandler::SearchPhase::Main);
-        handler.onDataReceived(QStringLiteral("bestmove 7g7f"));
-        QCOMPARE(handler.currentPhase(), UsiProtocolHandler::SearchPhase::Idle);
-    }
-
-    void specialMove_resetAfterResignThenNormal()
-    {
-        // resign → resetResignNotified → 通常手 → specialMove が None に戻る
-        UsiProtocolHandler handler;
-
-        handler.onDataReceived(QStringLiteral("bestmove resign"));
-        QVERIFY(handler.isResignMove());
-
-        handler.resetResignNotified();
-        handler.onDataReceived(QStringLiteral("bestmove 7g7f"));
-        QVERIFY(!handler.isResignMove());
-        QVERIFY(!handler.isWinMove());
-        QCOMPARE(handler.bestMove(), QStringLiteral("7g7f"));
-    }
-
-    void specialMove_winThenResign()
-    {
-        // win → resetWinNotified → resign
-        UsiProtocolHandler handler;
-
-        handler.onDataReceived(QStringLiteral("bestmove win"));
-        QVERIFY(handler.isWinMove());
-
-        handler.resetWinNotified();
-        handler.onDataReceived(QStringLiteral("bestmove resign"));
-        QVERIFY(handler.isResignMove());
-        QVERIFY(!handler.isWinMove());
-    }
-
-    void cancelOperation_incrementsSeq()
-    {
-        // cancelCurrentOperation の後、状態が適切にリセットされること
-        UsiProtocolHandler handler;
-
-        handler.onDataReceived(QStringLiteral("bestmove 7g7f"));
-        QCOMPARE(handler.bestMove(), QStringLiteral("7g7f"));
-
-        handler.cancelCurrentOperation();
-
-        // キャンセル後でも新しい bestmove は処理される
-        handler.onDataReceived(QStringLiteral("bestmove 2g2f"));
-        QCOMPARE(handler.bestMove(), QStringLiteral("2g2f"));
-    }
-
-    void lastBestmoveElapsedMs_withoutGo()
-    {
-        // go を送っていない状態での bestmove → 経過時間は 0
-        UsiProtocolHandler handler;
-        QCOMPARE(handler.lastBestmoveElapsedMs(), 0);
-
-        handler.onDataReceived(QStringLiteral("bestmove 7g7f"));
-        // goTimer が未起動のため 0 になる
-        QCOMPARE(handler.lastBestmoveElapsedMs(), 0);
-    }
-
-    // ================================================================
-    // 20. 異常系: 高速連続 bestmove
-    // ================================================================
-
-    void rapidBestmove_stateUpdatedCorrectly()
-    {
-        // 連続した bestmove で最後の状態が反映される
-        UsiProtocolHandler handler;
-        QSignalSpy spyBest(&handler, &UsiProtocolHandler::bestMoveReceived);
-
-        handler.onDataReceived(QStringLiteral("bestmove 7g7f ponder 3c3d"));
-        handler.onDataReceived(QStringLiteral("bestmove 2g2f ponder 8c8d"));
-        handler.onDataReceived(QStringLiteral("bestmove 5g5f"));
-
-        QCOMPARE(spyBest.count(), 3);
-        QCOMPARE(handler.bestMove(), QStringLiteral("5g5f"));
-        QVERIFY(handler.predictedMove().isEmpty());
-    }
-
-    // ================================================================
-    // 21. 異常系: option 行の様々なバリエーション
-    // ================================================================
-
-    void option_veryLongName()
-    {
-        UsiProtocolHandler handler;
-        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoReceived);
-
-        // 非常に長いオプション名でもクラッシュしない
-        QString longName = QString(1000, QChar('X'));
-        handler.onDataReceived(
-            QStringLiteral("option name %1 type check default false").arg(longName));
-
-        QCOMPARE(spyInfo.count(), 0);
-    }
-
-    void option_withSpacesInName()
-    {
-        // オプション名にスペースが含まれる場合（"Multi PV" 等）
-        UsiProtocolHandler handler;
-        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoReceived);
-
-        handler.onDataReceived(
-            QStringLiteral("option name Multi PV type spin default 1 min 1 max 500"));
-
-        // info シグナルは発行されない（option行として処理）
-        QCOMPARE(spyInfo.count(), 0);
-    }
-
-    // ================================================================
-    // 22. 異常系: タイムアウト中の全種類行ドロップ
-    // ================================================================
-
-    void timeoutDeclared_dropsCheckmate()
-    {
-        UsiProtocolHandler handler;
-        handler.markHardTimeout();
-
-        QSignalSpy spySolved(&handler, &UsiProtocolHandler::checkmateSolved);
-        QSignalSpy spyNoMate(&handler, &UsiProtocolHandler::checkmateNoMate);
-
-        handler.onDataReceived(QStringLiteral("checkmate 5e5d 4a3b"));
-        handler.onDataReceived(QStringLiteral("checkmate nomate"));
-
-        QCOMPARE(spySolved.count(), 0);
-        QCOMPARE(spyNoMate.count(), 0);
-    }
-
-    void timeoutDeclared_dropsOption()
-    {
-        UsiProtocolHandler handler;
-        handler.markHardTimeout();
-
-        QSignalSpy spyUsi(&handler, &UsiProtocolHandler::usiOkReceived);
-
-        handler.onDataReceived(QStringLiteral("option name USI_Ponder type check default false"));
-        handler.onDataReceived(QStringLiteral("usiok"));
-
-        QCOMPARE(spyUsi.count(), 0);
-    }
-
-    // ================================================================
-    // 23. テーブル駆動: bestmove 特殊手のバリエーション
-    // ================================================================
-
-    void bestmove_specialMoveVariants_data()
-    {
-        QTest::addColumn<QString>("moveToken");
-        QTest::addColumn<bool>("isResign");
-        QTest::addColumn<bool>("isWin");
-
-        QTest::newRow("resign")
-            << QStringLiteral("resign") << true << false;
-        QTest::newRow("win")
-            << QStringLiteral("win") << false << true;
-        QTest::newRow("normal_move")
-            << QStringLiteral("7g7f") << false << false;
-        QTest::newRow("drop_move")
-            << QStringLiteral("P*5e") << false << false;
-        QTest::newRow("promotion_move")
-            << QStringLiteral("8h2b+") << false << false;
-    }
-
-    void bestmove_specialMoveVariants()
-    {
-        QFETCH(QString, moveToken);
-        QFETCH(bool, isResign);
-        QFETCH(bool, isWin);
-
-        UsiProtocolHandler handler;
-        handler.onDataReceived(QStringLiteral("bestmove ") + moveToken);
-
-        QCOMPARE(handler.isResignMove(), isResign);
-        QCOMPARE(handler.isWinMove(), isWin);
-        QCOMPARE(handler.bestMove(), moveToken);
-    }
-
-    // ================================================================
-    // 24. 異常系: readyok / usiok にスペースが付属
-    // ================================================================
-
-    void readyok_withTrailingSpace()
-    {
-        // "readyok " は trimmed で比較されるため認識される
-        UsiProtocolHandler handler;
-        QSignalSpy spy(&handler, &UsiProtocolHandler::readyOkReceived);
-
-        handler.onDataReceived(QStringLiteral("readyok "));
-
-        QCOMPARE(spy.count(), 1);
-    }
-
-    void usiok_withLeadingSpace()
-    {
-        // " usiok" は line.startsWith で始まらないため info 等の行としては処理されず、
-        // trimmed で比較されるため usiok として認識される
-        UsiProtocolHandler handler;
-        QSignalSpy spy(&handler, &UsiProtocolHandler::usiOkReceived);
-
-        handler.onDataReceived(QStringLiteral(" usiok"));
-
-        QCOMPARE(spy.count(), 1);
-    }
-
-    // ================================================================
-    // 25. 異常系: info 行のフォーマットバリエーション
-    // ================================================================
-
-    void infoLine_emptyAfterKeyword()
-    {
-        // "info " の後に何もない
-        UsiProtocolHandler handler;
-        QSignalSpy spy(&handler, &UsiProtocolHandler::infoReceived);
-
-        handler.onDataReceived(QStringLiteral("info "));
-
-        QCOMPARE(spy.count(), 1);
-    }
-
-    void infoLine_withNullBytes()
-    {
-        // info行にNULLバイトが含まれる場合
-        UsiProtocolHandler handler;
-        QSignalSpy spy(&handler, &UsiProtocolHandler::infoReceived);
-
-        QString line = QStringLiteral("info depth 10");
-        line.insert(5, QChar('\0'));
-        handler.onDataReceived(line);
-
-        // startsWith("info") が成立すればシグナルは発行される
-        QCOMPARE(spy.count(), 1);
-    }
-
-    void infoLine_multipvLargeNumber()
-    {
-        // multipv の値が非常に大きい
-        UsiProtocolHandler handler;
-        QSignalSpy spy(&handler, &UsiProtocolHandler::infoReceived);
-
-        handler.onDataReceived(
-            QStringLiteral("info depth 1 multipv 999999 score cp 0 pv 7g7f"));
-
-        QCOMPARE(spy.count(), 1);
-    }
-
-    // ================================================================
-    // 26. 異常系: bestmove 前後の resign/win フラグリセット
-    // ================================================================
-
-    void bestmove_resignReset_allowsNewResign()
-    {
-        UsiProtocolHandler handler;
-        QSignalSpy spyResign(&handler, &UsiProtocolHandler::bestMoveResignReceived);
-
-        handler.onDataReceived(QStringLiteral("bestmove resign"));
-        QCOMPARE(spyResign.count(), 1);
-
-        // リセット後は再度 resign シグナルが発行される
-        handler.resetResignNotified();
-        handler.onDataReceived(QStringLiteral("bestmove resign"));
-        QCOMPARE(spyResign.count(), 2);
-    }
-
-    void bestmove_winReset_allowsNewWin()
-    {
-        UsiProtocolHandler handler;
-        QSignalSpy spyWin(&handler, &UsiProtocolHandler::bestMoveWinReceived);
-
-        handler.onDataReceived(QStringLiteral("bestmove win"));
-        QCOMPARE(spyWin.count(), 1);
-
-        handler.resetWinNotified();
-        handler.onDataReceived(QStringLiteral("bestmove win"));
-        QCOMPARE(spyWin.count(), 2);
-    }
-
-    // ================================================================
-    // 27. 非同期初期化のタイムアウトとキャンセル
-    // ================================================================
 
     void initializationTimeout_data()
     {
@@ -1380,6 +524,7 @@ private slots:
         QTRY_COMPARE_WITH_TIMEOUT(initialized.count(), 1, 1000);
         QVERIFY(!initialized.first().first().toBool());
         QCOMPARE(errors.count(), 1);
+        QCOMPARE(handler.state(), UsiProtocolHandler::State::NotStarted);
         handler.onDataReceived(QStringLiteral("usiok"));
         handler.onDataReceived(QStringLiteral("readyok"));
         QCOMPARE(initialized.count(), 1); // 期限後の応答を採用しない
@@ -1392,52 +537,59 @@ private slots:
         QSignalSpy errors(&handler, &UsiProtocolHandler::errorOccurred);
         handler.initializeEngineAsync(30);
         handler.cancelCurrentOperation();
+        QCOMPARE(handler.state(), UsiProtocolHandler::State::NotStarted);
         handler.onDataReceived(QStringLiteral("usiok"));
         handler.onDataReceived(QStringLiteral("readyok"));
         QTest::qWait(60);
         QCOMPARE(initialized.count(), 0);
         QCOMPARE(errors.count(), 0);
-        handler.initializeEngineAsync();
-        handler.onDataReceived(QStringLiteral("usiok"));
-        handler.onDataReceived(QStringLiteral("readyok"));
+        makeReady(handler);
         QCOMPARE(initialized.count(), 1);
         QVERIFY(initialized.first().first().toBool());
     }
 
     // ================================================================
-    // 28. API整合性・探索コンテキスト
+    // そのほかのコマンド・受信
     // ================================================================
 
-    void sendGoSearchmoves_emptyMoves_startsNewSearchContext()
+    void commandsAreFormatted()
     {
-        UsiProtocolHandler handler;
-        QSignalSpy spyBest(&handler, &UsiProtocolHandler::bestMoveReceived);
-
-        // 1) 既存探索を開始
-        handler.sendGoDepth(1);
-        // 2) キャンセルで世代を進める（activeSearchSeq は旧世代のまま）
-        handler.cancelCurrentOperation();
-        // 3) 空 searchmoves フォールバックで新探索を開始
-        handler.sendGoSearchmoves({}, true);
-
-        handler.onDataReceived(QStringLiteral("bestmove 7g7f"));
-
-        QCOMPARE(spyBest.count(), 1);
-        QCOMPARE(handler.bestMove(), QStringLiteral("7g7f"));
+        EngineProcessManager process;
+        QVERIFY(startProcess(process));
+        UsiProtocolHandler handler(&process);
+        QSignalSpy commands(&process, &EngineProcessManager::commandSent);
+        handler.sendSetOption(QStringLiteral("USI_Hash"), QStringLiteral("256"));
+        handler.sendGameOver(GameOverResult::Lose);
+        handler.sendConsoleCommand(QStringLiteral("d"));
+        QCOMPARE(commands.at(0).at(0).toString(), QStringLiteral("setoption name USI_Hash value 256"));
+        QCOMPARE(commands.at(1).at(0).toString(), QStringLiteral("gameover lose"));
+        QCOMPARE(commands.at(2).at(0).toString(), QStringLiteral("d"));
     }
 
-    void sendSetOption_typedOverload_callable()
+    void unknownAndEmptyLinesAreIgnored_data()
     {
-        UsiProtocolHandler handler;
+        QTest::addColumn<QString>("line");
+        QTest::newRow("empty") << QString();
+        QTest::newRow("whitespace") << QStringLiteral("   ");
+        QTest::newRow("unknown") << QStringLiteral("unknowncommand some data");
+        QTest::newRow("prefix") << QStringLiteral("bestmovex 7g7f");
+        QTest::newRow("binary") << QStringLiteral("\x01\x02\x03");
+        QTest::newRow("long") << QString(10000, QLatin1Char('x'));
+    }
 
-        // リンク欠落防止: 型付きオーバーロードが実装されていることを確認
-        handler.sendSetOption(QStringLiteral("USI_Ponder"),
-                              QStringLiteral("true"),
-                              QStringLiteral("check"));
-        handler.sendSetOption(QStringLiteral("Clear Hash"),
-                              QString(),
-                              QStringLiteral("button"));
-        QVERIFY(true);
+    void unknownAndEmptyLinesAreIgnored()
+    {
+        QFETCH(QString, line);
+        UsiProtocolHandler handler;
+        QSignalSpy info(&handler, &UsiProtocolHandler::infoReceived);
+        QSignalSpy bestmove(&handler, &UsiProtocolHandler::bestMoveReceived);
+        QSignalSpy checkmate(&handler, &UsiProtocolHandler::checkmateReceived);
+        QSignalSpy errors(&handler, &UsiProtocolHandler::errorOccurred);
+        handler.onDataReceived(line);
+        QCOMPARE(info.count(), 0);
+        QCOMPARE(bestmove.count(), 0);
+        QCOMPARE(checkmate.count(), 0);
+        QCOMPARE(errors.count(), 0);
     }
 };
 

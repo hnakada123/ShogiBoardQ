@@ -15,7 +15,7 @@
 
 /// 開始前の処理を、表示中の文字列から推測せず明示する。
 struct GameStartPreparation {
-    enum class Mode { NewGame, CurrentPosition, Reset };
+    enum class Mode { NewGame, CurrentPosition };
     Mode mode = Mode::NewGame;
     QString rootSfen;
     int startNodeId = -1; ///< CurrentPosition の開始ノード。-1 は棋譜のない単独局面

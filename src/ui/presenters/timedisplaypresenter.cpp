@@ -2,6 +2,7 @@
 /// @brief 時刻表示プレゼンタクラスの実装
 
 #include "timedisplaypresenter.h"
+#include "boardchromewidget.h"
 #include "shogiview.h"
 #include "shogiclock.h"
 #include "logcategories.h"
@@ -9,9 +10,9 @@
 namespace {
 
 /// 手番側の時計の緊急度（通常／残り10秒以下／秒読み中・残り5秒以下）を判定する
-ShogiView::Urgency urgencyFor(const ShogiClock* clock, qint64 ms, Turn side)
+BoardChromeWidget::Urgency urgencyFor(const ShogiClock* clock, qint64 ms, Turn side)
 {
-    using Urgency = ShogiView::Urgency;
+    using Urgency = BoardChromeWidget::Urgency;
     // 無制限対局には時間切れの警告を表示しない。
     if (clock && clock->isUnlimited()) return Urgency::Normal;
 
@@ -21,24 +22,21 @@ ShogiView::Urgency urgencyFor(const ShogiClock* clock, qint64 ms, Turn side)
         // 秒読みに入る前は、持ち時間が残り10秒以下で予告の警告にする。
         const bool inByoyomi = clock->byoyomiApplied(side) || ms <= 0;
         if (inByoyomi) return Urgency::Warn5;
-        return ms <= ShogiView::kWarn10Ms ? Urgency::Warn10 : Urgency::Normal;
+        return ms <= BoardChromeWidget::kWarn10Ms ? Urgency::Warn10 : Urgency::Normal;
     }
     // 秒読みが無い（切れ負け・加算）場合は、残り時間で2段階に警告する。
-    if (ms <= ShogiView::kWarn5Ms) return Urgency::Warn5;
-    if (ms <= ShogiView::kWarn10Ms) return Urgency::Warn10;
+    if (ms <= BoardChromeWidget::kWarn5Ms) return Urgency::Warn5;
+    if (ms <= BoardChromeWidget::kWarn10Ms) return Urgency::Warn10;
     return Urgency::Normal;
 }
 
 } // namespace
 
-TimeDisplayPresenter::TimeDisplayPresenter(ShogiView* view, QObject* parent)
-    : QObject(parent), m_view(view)
+TimeDisplayPresenter::TimeDisplayPresenter(ShogiView* view, const ShogiClock* clock, QObject* parent)
+    : QObject(parent)
+    , m_view(view)
+    , m_clock(clock)
 {
-}
-
-void TimeDisplayPresenter::setClock(ShogiClock* clock)
-{
-    m_clock = clock;
 }
 
 inline QString TimeDisplayPresenter::fmt_hhmmss(qint64 ms)
@@ -73,9 +71,9 @@ void TimeDisplayPresenter::onMatchTimeUpdated(qint64 blackMs, qint64 whiteMs, Tu
         // 無制限対局は残り時間ではなく累積消費時間なので、表示の意味を書き添える。
         // 文字数が変わるため、ラベルに収まる文字サイズへ合わせ直す。
         const bool unlimited = m_clock && m_clock->isUnlimited();
-        m_view->setBlackClockText(unlimited ? tr("消費 %1").arg(m_clock->timeString(Turn::Black))
+        m_view->chrome()->setBlackClockText(unlimited ? tr("消費 %1").arg(m_clock->timeString(Turn::Black))
                                             : fmt_hhmmss(blackMs));
-        m_view->setWhiteClockText(unlimited ? tr("消費 %1").arg(m_clock->timeString(Turn::White))
+        m_view->chrome()->setWhiteClockText(unlimited ? tr("消費 %1").arg(m_clock->timeString(Turn::White))
                                             : fmt_hhmmss(whiteMs));
     }
     updateUrgencyStyles(sideToMove);
@@ -91,10 +89,7 @@ void TimeDisplayPresenter::updateUrgencyStyles(Turn sideToMove)
 {
     if (!m_view) return;
 
-    // アクティブ側（先手=黒か）をビューへ通知
-    m_view->setActiveIsBlack(sideToMove == Turn::Black);
-
-    // 秒読み・残り時間から緊急度を決め、見た目の適用は ShogiView に一元化
+    // 手番の印は盤の手番が決める。ここでは手番側の残り時間から緊急度だけを決める
     const qint64 activeMs = (sideToMove == Turn::Black) ? m_lastBlackMs : m_lastWhiteMs;
-    m_view->setUrgencyVisuals(urgencyFor(m_clock, activeMs, sideToMove));
+    m_view->chrome()->setUrgency(urgencyFor(m_clock, activeMs, sideToMove));
 }

@@ -40,6 +40,29 @@ struct RecordEntry {
         return entry;
     }
 
+    /**
+     * @brief 終局の行を記録する側（印を付け、その行の消費時間を数える側）
+     * @param sideToMove 終局した局面の手番
+     * @param loser 負けた側（勝敗のない終局では使わない）
+     *
+     * 投了・時間切れ・反則負けは負けた側、入玉宣言勝ち・反則勝ちは勝った側、
+     * 千日手・持将棋・手数制限・中断などの勝敗のない終局は手番側。対局・通信対局・棋譜の読み込みで同じ規則
+     */
+    static Turn endingSide(TerminalType type, Turn sideToMove, Turn loser)
+    {
+        switch (type) {
+        case TerminalType::Resign:
+        case TerminalType::Timeout:
+        case TerminalType::IllegalLoss:
+            return loser;
+        case TerminalType::DeclarationWin:
+        case TerminalType::IllegalWin:
+            return loser == Turn::Black ? Turn::White : Turn::Black;
+        default:
+            return sideToMove;
+        }
+    }
+
     /// 終局の行。表記は終局語の表（TerminalTypes::label）から作る
     static RecordEntry ending(TerminalType type, Turn side, const RecordTime& time = {})
     {

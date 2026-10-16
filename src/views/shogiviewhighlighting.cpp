@@ -16,13 +16,13 @@ ShogiViewHighlighting::ShogiViewHighlighting(ShogiView* view, QObject* parent)
 // ハイライト管理
 // ─────────────────────────────────────────────────────────────────────────────
 
-void ShogiViewHighlighting::addHighlight(ShogiView::Highlight* hl)
+void ShogiViewHighlighting::addHighlight(const ShogiView::FieldHighlight* hl)
 {
     m_highlights.append(hl);
     updateHighlightArea(hl);
 }
 
-void ShogiViewHighlighting::removeHighlight(ShogiView::Highlight* hl)
+void ShogiViewHighlighting::removeHighlight(const ShogiView::FieldHighlight* hl)
 {
     m_highlights.removeOne(hl);
     updateHighlightArea(hl);
@@ -30,13 +30,9 @@ void ShogiViewHighlighting::removeHighlight(ShogiView::Highlight* hl)
 
 // ハイライトのマスだけを描き直す。駒を選ぶたびに合法な移動先を数十マス足し引きするため、
 // そのたびに盤全体を描き直さない。
-void ShogiViewHighlighting::updateHighlightArea(const ShogiView::Highlight* hl)
+void ShogiViewHighlighting::updateHighlightArea(const ShogiView::FieldHighlight* hl)
 {
-    QRect rect;
-    if (hl && hl->type() == ShogiView::FieldHighlight::Type) {
-        const auto* fhl = static_cast<const ShogiView::FieldHighlight*>(hl);
-        rect = m_view->fieldRect(QPoint(fhl->file(), fhl->rank()));
-    }
+    const QRect rect = hl ? m_view->fieldRect(QPoint(hl->file(), hl->rank())) : QRect();
     if (rect.isEmpty()) m_view->update();
     else m_view->update(rect);
 }
@@ -103,10 +99,8 @@ void ShogiViewHighlighting::drawHighlights(QPainter& painter, const QRegion& dir
 
     painter.save();
     for (int i = 0; i < highlightCount(); ++i) {
-        ShogiView::Highlight* hl = highlight(i);
-        if (!hl || hl->type() != ShogiView::FieldHighlight::Type) continue;
-
-        const auto* fhl = static_cast<ShogiView::FieldHighlight*>(hl);
+        const ShogiView::FieldHighlight* fhl = highlight(i);
+        if (!fhl) continue;
         const QRect rect = m_view->fieldRect(QPoint(fhl->file(), fhl->rank()));
         if (rect.isNull() || !dirty.intersects(rect)) continue;
 

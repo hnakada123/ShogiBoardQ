@@ -14,19 +14,17 @@ struct KifParseResult;
 struct KifLine;
 
 /**
- * @brief 既存データからKifuBranchTreeを構築するビルダークラス
+ * @brief 取り込んだ棋譜（KifParseResult）から分岐ツリーを作る
  */
 class KifuBranchTreeBuilder
 {
 public:
-    /// 既存の棋譜や表示を変更する前に、変化の親子関係と開始手数を検証する。
-    static bool validateVariations(const KifParseResult& result);
-
     /**
-     * @brief 既存のツリーにKifParseResultの内容を構築
+     * @brief ツリーを取り込んだ棋譜で作り直す
      * @param tree 対象ツリー（クリアして再構築）
-     * @param result パース結果
+     * @param result 取り込んだ棋譜。変化の分岐元は先に書かれた手順（KifParseResult::addVariation で足したもの）
      * @param startSfen 開始局面のSFEN
+     * @return 分岐元が先に書かれた手順でない変化があれば、ツリーを変えずに false
      */
     static bool buildFromKifParseResult(KifuBranchTree* tree,
                                         const KifParseResult& result,

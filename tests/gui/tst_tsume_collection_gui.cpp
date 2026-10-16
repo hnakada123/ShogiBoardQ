@@ -16,6 +16,7 @@
 #include <QToolButton>
 #include <QTranslator>
 #include "tsumecollectiondialog.h"
+#include "tsumeprogressstore.h"
 #include "tsumeplaydialog.h"
 #include "tsumepositionpreview.h"
 #include "tsumeshogisettings.h"

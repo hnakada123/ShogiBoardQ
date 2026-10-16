@@ -1,182 +1,69 @@
 /// @file commentcoordinator.cpp
-/// @brief コメントコーディネータクラスの実装
+/// @brief 表示中の手のコメント・しおりの表示と編集
 
-#include "dialogfontscale.h"
 #include "commentcoordinator.h"
-#include "kifunavigationstate.h"
-#include "logcategories.h"
-
-#include <QStatusBar>
-#include <QInputDialog>
-#include <QTableView>
-#include <QItemSelectionModel>
-
 #include "commenteditorpanel.h"
-#include "recordpane.h"
+#include "dialogfontscale.h"
 #include "gamerecordmodel.h"
-#include "gamerecordpresenter.h"
-#include "kifurecordlistmodel.h"
+#include "kifubranchnode.h"
+#include "kifunavigationstate.h"
 
-CommentCoordinator::CommentCoordinator(QObject* parent)
+#include <QInputDialog>
+#include <QStatusBar>
+
+CommentCoordinator::CommentCoordinator(const Deps& deps, QObject* parent)
     : QObject(parent)
+    , m_deps(deps)
 {
+    Q_ASSERT(m_deps.editor && m_deps.navState && m_deps.gameRecord);
+    connect(m_deps.navState, &KifuNavigationState::changed, this, &CommentCoordinator::showCurrentComment);
+    connect(m_deps.gameRecord, &GameRecordModel::commentChanged, this, &CommentCoordinator::showCurrentComment);
 }
 
-void CommentCoordinator::broadcastComment(const QString& text, bool asHtml)
+void CommentCoordinator::showCurrentComment()
 {
-    Q_UNUSED(asHtml)
-    // 表示中の手数（分岐ツリーのカーソル）をCommentEditorPanelに設定
-    if (m_commentEditor && m_navState) {
-        m_commentEditor->setCurrentMoveIndex(m_navState->currentPly());
-    }
-
-    // 棋譜のコメントはプレーンテキスト。表示用の整形で本文を書き換えない。
-    if (m_commentEditor) m_commentEditor->setCommentText(text);
-}
-
-bool CommentCoordinator::handleRecordRowChangeRequest(int row, const QString& comment)
-{
-    Q_UNUSED(row)
-    // 未更新のコメントはナビゲーションの前に confirmLeaveEditingMove() で確認済み。
-    // まだ編集中なら（確認でキャンセルされた）、選んだ行のコメントで上書きしない
-    if (m_commentEditor && m_commentEditor->hasUnsavedComment()) {
-        return false;
-    }
-
-    // コメント表示
-    broadcastComment(comment, true);
-    return true;
+    const KifuBranchNode* node = m_deps.navState->currentNode();
+    m_deps.editor->setCurrentMoveIndex(m_deps.navState->currentPly());
+    // 棋譜のコメントはプレーンテキスト。表示用の整形で本文を書き換えない
+    m_deps.editor->setCommentText(node ? node->comment() : QString());
 }
 
 bool CommentCoordinator::confirmLeaveEditingMove()
 {
-    return !m_commentEditor || m_commentEditor->confirmDiscardUnsavedComment();
+    return m_deps.editor->confirmDiscardUnsavedComment();
 }
 
-void CommentCoordinator::onCommentUpdated(int moveIndex, const QString& newComment)
+void CommentCoordinator::onCommentUpdated(int /*moveIndex*/, const QString& newComment)
 {
-    // 表示中の手数（分岐ツリーのカーソル）を優先する
-    // (コメント欄が持つ手数は broadcastComment() 経由でしか同期されないため)
-    const int effectiveIndex = m_navState ? m_navState->currentPly() : moveIndex;
-
-    qCDebug(lcApp).noquote()
-        << "onCommentUpdated"
-        << " signalIndex=" << moveIndex
-        << " effectiveIndex=" << effectiveIndex
-        << " newComment.len=" << newComment.size();
-
-    // 有効な手数インデックスかチェック
-    if (effectiveIndex < 0) {
-        qCWarning(lcApp).noquote() << "onCommentUpdated: invalid effectiveIndex";
-        return;
-    }
-
-    // GameRecordModel を使ってコメントを更新
-    if (m_gameRecord) {
-        m_gameRecord->setComment(effectiveIndex, newComment);
-    }
-
-    // ステータスバーに通知
-    if (m_statusBar) {
-        m_statusBar->showMessage(tr("コメントを更新しました（手数: %1）").arg(effectiveIndex), 3000);
-    }
-}
-
-void CommentCoordinator::onGameRecordCommentChanged(int ply, const QString& comment)
-{
-    // KifuRecordListModel の該当行を更新
-    if (m_kifuRecordModel != nullptr) {
-        auto* item = m_kifuRecordModel->item(ply);
-        if (item != nullptr) {
-            item->setComment(comment);
-            // dataChanged を発火して表示を更新
-            const QModelIndex tl = m_kifuRecordModel->index(ply, 3);  // コメント列
-            const QModelIndex br = m_kifuRecordModel->index(ply, 3);
-            emit m_kifuRecordModel->dataChanged(tl, br, { Qt::DisplayRole, Qt::ToolTipRole });
-        }
-    }
-
-    // 表示中のコメント欄（CommentEditorPanel）を更新
-    broadcastComment(comment, /*asHtml=*/true);
+    // コメント欄が編集しているのは表示中の手（移る前に未更新の確認を通している）
+    KifuBranchNode* node = m_deps.navState->currentNode();
+    if (!node) return;
+    m_deps.gameRecord->setComment(node, newComment);
+    if (m_deps.statusBar)
+        m_deps.statusBar->showMessage(tr("コメントを更新しました（手数: %1）").arg(node->ply()), 3000);
 }
 
 void CommentCoordinator::onBookmarkEditRequested()
 {
-    // 現在選択中の行（ply）を取得
-    int ply = -1;
-    if (m_recordPresenter) {
-        ply = m_recordPresenter->currentRow();
-    }
-    // プレゼンターから取得できない場合は RecordPane の kifuView から直接取得
-    if (ply < 0 && m_recordPane) {
-        if (auto* kifuView = m_recordPane->kifuView()) {
-            if (auto* sel = kifuView->selectionModel()) {
-                const QModelIndex idx = sel->currentIndex();
-                if (idx.isValid()) {
-                    ply = idx.row();
-                }
-            }
-        }
-    }
-    if (ply < 0) {
-        if (m_statusBar) {
-            m_statusBar->showMessage(tr("手を選択してください"), 3000);
-        }
+    KifuBranchNode* node = m_deps.navState->currentNode();
+    if (!node) {
+        if (m_deps.statusBar) m_deps.statusBar->showMessage(tr("手を選択してください"), 3000);
         return;
     }
 
-    // 現在のしおりテキストを取得
-    QString currentBookmark;
-    if (m_gameRecord) {
-        currentBookmark = m_gameRecord->bookmark(ply);
-    }
-
-    // 入力ダイアログを表示
-    QWidget* parentWidget = m_recordPane ? m_recordPane : qobject_cast<QWidget*>(parent());
-    QInputDialog dialog(parentWidget);
+    QInputDialog dialog(m_deps.parentWidget);
     dialog.setWindowTitle(tr("しおりを編集"));
-    dialog.setLabelText(tr("しおり名（手数: %1）:").arg(ply));
-    dialog.setTextValue(currentBookmark);
+    dialog.setLabelText(tr("しおり名（手数: %1）:").arg(node->ply()));
+    dialog.setTextValue(node->bookmark());
     dialog.ensurePolished();
     DialogFontScale::install(&dialog, QStringLiteral("bookmark"), true);
     if (dialog.exec() != QDialog::Accepted) return;
+
     const QString newBookmark = dialog.textValue();
-
-    // GameRecordModel に保存
-    if (m_gameRecord) {
-        m_gameRecord->setBookmark(ply, newBookmark);
-    }
-
-    // ステータスバーに通知
-    if (m_statusBar) {
-        if (newBookmark.isEmpty()) {
-            m_statusBar->showMessage(tr("しおりを削除しました（手数: %1）").arg(ply), 3000);
-        } else {
-            m_statusBar->showMessage(tr("しおりを設定しました（手数: %1）").arg(ply), 3000);
-        }
-    }
-}
-
-void CommentCoordinator::onNavigationCommentUpdate(int ply, const QString& comment, bool asHtml)
-{
-    // カーソルは通知の前に ply へ動いている
-    Q_UNUSED(ply)
-    broadcastComment(comment, asHtml);
-}
-
-void CommentCoordinator::onBookmarkChanged(int ply, const QString& bookmark)
-{
-    qCDebug(lcApp).noquote() << "onBookmarkChanged ply=" << ply;
-
-    // KifuRecordListModel の該当行を更新
-    if (m_kifuRecordModel != nullptr) {
-        auto* item = m_kifuRecordModel->item(ply);
-        if (item != nullptr) {
-            item->setBookmark(bookmark);
-            // dataChanged を発火して表示を更新
-            const QModelIndex tl = m_kifuRecordModel->index(ply, 2);  // しおり列
-            const QModelIndex br = m_kifuRecordModel->index(ply, 2);
-            emit m_kifuRecordModel->dataChanged(tl, br, { Qt::DisplayRole });
-        }
+    m_deps.gameRecord->setBookmark(node, newBookmark);
+    if (m_deps.statusBar) {
+        m_deps.statusBar->showMessage(newBookmark.isEmpty() ? tr("しおりを削除しました（手数: %1）").arg(node->ply())
+                                                            : tr("しおりを設定しました（手数: %1）").arg(node->ply()),
+                                      3000);
     }
 }

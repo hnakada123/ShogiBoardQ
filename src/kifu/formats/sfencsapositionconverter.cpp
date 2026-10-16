@@ -1,29 +1,16 @@
 #include "sfencsapositionconverter.h"
+#include "csalexer.h"
+#include "shogiboard.h"
 #include "shoginotation.h"
 #include "sfenutils.h"
-#include "parsecommon.h"
 
 #include <QChar>
-#include <QMap>
+#include <algorithm>
 #include <optional>
 #include <utility>
 
 namespace SfenCsaPositionConverter {
 namespace {
-
-/// CSA の駒種を SFEN のトークン（成駒は "+P" の形）にする。読めなければ空
-QString sfenTokenFromCode(bool isSente, const QString& piece)
-{
-    const Piece p = ShogiNotation::pieceFromCsaCode(piece, isSente ? Turn::Black : Turn::White);
-    if (p == Piece::None) return QString();
-    return isPromoted(p) ? QStringLiteral("+") + pieceToChar(demote(p)) : QString(pieceToChar(p));
-}
-
-/// 持ち駒の CSA の駒種を先手の駒（成駒は元の駒）にする。読めなければ Piece::None
-Piece csaHandPiece(const QString& piece)
-{
-    return demote(ShogiNotation::pieceFromCsaCode(piece));
-}
 
 QString csaCodeFromSfenPiece(QChar piece, bool promoted)
 {
@@ -31,171 +18,35 @@ QString csaCodeFromSfenPiece(QChar piece, bool promoted)
     return ShogiNotation::csaPieceCode(promoted ? promote(base) : base);
 }
 
-bool parsePiLine(const QString& line, QStringList* ranks)
-{
-    if (!ranks) return false;
-    *ranks = QStringList{
-        QStringLiteral("lnsgkgsnl"),
-        QStringLiteral("1r5b1"),
-        QStringLiteral("ppppppppp"),
-        QStringLiteral("9"),
-        QStringLiteral("9"),
-        QStringLiteral("9"),
-        QStringLiteral("PPPPPPPPP"),
-        QStringLiteral("1B5R1"),
-        QStringLiteral("LNSGKGSNL")
-    };
-
-    if (line.size() <= 2) {
-        return true;
-    }
-
-    // "PI82HI22KA" 形式（指定座標の駒を除去）に対応。
-    for (int i = 2; i + 3 < line.size(); i += 4) {
-        const int file = line.at(i).digitValue();
-        const int rank = line.at(i + 1).digitValue();
-        if (file < 1 || file > 9 || rank < 1 || rank > 9) continue;
-
-        QString rankStr = ranks->at(rank - 1);
-        QString expanded;
-        for (QChar ch : std::as_const(rankStr)) {
-            if (ch.isDigit()) {
-                expanded += QString(ch.digitValue(), QLatin1Char('1'));
-            } else {
-                expanded += ch;
-            }
-        }
-        const int idx = 9 - file;
-        if (idx >= 0 && idx < expanded.size()) {
-            expanded[idx] = QLatin1Char('1');
-        }
-
-        int empties = 0;
-        QString compressed;
-        for (QChar ch : std::as_const(expanded)) {
-            if (ch == QLatin1Char('1')) {
-                ++empties;
-                continue;
-            }
-            if (empties > 0) {
-                compressed += QString::number(empties);
-                empties = 0;
-            }
-            compressed += ch;
-        }
-        if (empties > 0) {
-            compressed += QString::number(empties);
-        }
-        (*ranks)[rank - 1] = compressed;
-    }
-
-    return true;
-}
-
 } // namespace
 
 std::optional<QString> fromCsaPositionLines(const QStringList& csaLines, QString* outError)
 {
-    if (outError) {
-        outError->clear();
-    }
-
+    if (outError) outError->clear();
     if (csaLines.isEmpty()) {
-        if (outError) {
-            *outError = QStringLiteral("empty csa lines; using default start position");
-        }
+        if (outError) *outError = QStringLiteral("empty csa lines; using default start position");
         return SfenUtils::hirateSfen();
     }
-
-    QStringList rankSfen(9, QStringLiteral("9"));
-    QMap<Piece, int> blackHands;
-    QMap<Piece, int> whiteHands;
-    QString turn = QStringLiteral("b");
-    bool hasBoardRows = false;
-
-    for (const QString& raw : csaLines) {
-        // 盤面行は3文字固定幅。末尾の空マス " * " を保持する。
-        QString line = raw;
-        while (line.endsWith(QLatin1Char('\r')) || line.endsWith(QLatin1Char('\n'))) line.chop(1);
-        if (line.isEmpty()) continue;
-
-        if (line.startsWith(QStringLiteral("P1")) || line.startsWith(QStringLiteral("P2")) ||
-            line.startsWith(QStringLiteral("P3")) || line.startsWith(QStringLiteral("P4")) ||
-            line.startsWith(QStringLiteral("P5")) || line.startsWith(QStringLiteral("P6")) ||
-            line.startsWith(QStringLiteral("P7")) || line.startsWith(QStringLiteral("P8")) ||
-            line.startsWith(QStringLiteral("P9"))) {
-            const int rank = QStringView{line}.mid(1, 1).toInt();
-            if (rank < 1 || rank > 9) continue;
-
-            QString row;
-            int empties = 0;
-            for (int i = 2; i + 2 < line.size(); i += 3) {
-                const QString chunk = line.mid(i, 3);
-                if (chunk == QStringLiteral(" * ")) {
-                    ++empties;
-                    continue;
-                }
-                const QChar side = chunk.at(0);
-                const QString piece = chunk.mid(1, 2);
-                const QString token = sfenTokenFromCode(side == QLatin1Char('+'), piece);
-                if (token.isEmpty()) continue;
-                if (empties > 0) {
-                    row += QString::number(empties);
-                    empties = 0;
-                }
-                row += token;
-            }
-            if (empties > 0) {
-                row += QString::number(empties);
-            }
-            if (row.isEmpty()) {
-                row = QStringLiteral("9");
-            }
-            rankSfen[rank - 1] = row;
-            hasBoardRows = true;
-            continue;
-        }
-
-        if (line.startsWith(QStringLiteral("P+")) || line.startsWith(QStringLiteral("P-"))) {
-            const bool isSente = line.at(1) == QLatin1Char('+');
-            QMap<Piece, int>& hands = isSente ? blackHands : whiteHands;
-            for (int i = 2; i + 3 < line.size(); i += 4) {
-                if (line.mid(i, 2) != QStringLiteral("00")) continue;
-                const QString piece = line.mid(i + 2, 2);
-                const Piece base = csaHandPiece(piece);
-                if (base != Piece::None) {
-                    hands[base] = hands.value(base, 0) + 1;
-                }
-            }
-            continue;
-        }
-
-        if (line.startsWith(QStringLiteral("PI"))) {
-            parsePiLine(line, &rankSfen);
-            hasBoardRows = true;
-            continue;
-        }
-
-        if (line == QStringLiteral("+")) {
-            turn = QStringLiteral("b");
-            continue;
-        }
-        if (line == QStringLiteral("-")) {
-            turn = QStringLiteral("w");
-            continue;
-        }
-    }
-
+    // 盤の行（PI か P1〜P9）がなければ局面を決められない
+    const bool hasBoardRows = std::any_of(csaLines.cbegin(), csaLines.cend(), [](const QString& raw) {
+        const QString line = raw.trimmed();
+        return line.startsWith(QLatin1String("PI"))
+            || (line.size() >= 2 && line.at(0) == QLatin1Char('P') && line.at(1) >= QLatin1Char('1')
+                && line.at(1) <= QLatin1Char('9'));
+    });
     if (!hasBoardRows) {
-        if (outError) {
-            *outError = QStringLiteral("no board rows found in csa position lines");
-        }
+        if (outError) *outError = QStringLiteral("no board rows found in csa position lines");
         return std::nullopt;
     }
-
-    const QString board = rankSfen.join(QLatin1Char('/'));
-    const QString hands = KifuParseCommon::buildHandsSfen(blackHands, whiteHands);
-    return QStringLiteral("%1 %2 %3 1").arg(board, turn, hands);
+    // 棋譜ファイルの開始局面と同じ読み方（CsaLexer）にする
+    ShogiBoard board;
+    QString sfen;
+    int index = 0;
+    if (!CsaLexer::parseStartPos(csaLines, index, sfen, board)) {
+        if (outError) *outError = QStringLiteral("invalid csa position lines");
+        return std::nullopt;
+    }
+    return sfen;
 }
 
 std::optional<QStringList> toCsaPositionLines(const QString& sfen, QString* outError)

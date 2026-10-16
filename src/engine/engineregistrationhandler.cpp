@@ -1,10 +1,12 @@
 /// @file engineregistrationhandler.cpp
-/// @brief エンジン登録ハンドラクラスの実装（ワーカースレッド管理・USI解析・設定永続化）
+/// @brief エンジン登録ハンドラクラスの実装（usi〜usiok の問い合わせ・オプションの解析・設定の保存）
 
 #include "engineregistrationhandler.h"
-#include "engineregistrationworker.h"
+#include "engineprocessmanager.h"
 #include "enginesettingsconstants.h"
-#include "usioptionlineparser.h"
+#include "usienginesession.h"
+#include "usilineparser.h"
+#include "usiprotocolhandler.h"
 #include "enginelistsettings.h"
 #include "settingscommon.h"
 #include "logcategories.h"
@@ -12,12 +14,12 @@
 #include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonDocument>
-#include <QThread>
 
 using namespace EngineSettingsConstants;
 
 namespace {
-constexpr int kWorkerQuitTimeoutMs = 3000;
+/// 起動から usiok までの待ち時間（オプションの多いエンジンは報告に時間がかかる）
+constexpr int kUsiOkTimeoutMs = 30000;
 
 QString normalizeEnginePath(const QString& filePath)
 {
@@ -32,30 +34,18 @@ QString normalizeEnginePath(const QString& filePath)
 
 EngineRegistrationHandler::EngineRegistrationHandler(QObject *parent)
     : QObject(parent)
+    , m_probe(new UsiEngineSession(this))
 {
+    m_probe->setInitializationTimeoutMs(kUsiOkTimeoutMs);
+    connect(m_probe->process(), &EngineProcessManager::processStarted, this, &EngineRegistrationHandler::onProbeStarted);
+    connect(m_probe, &UsiEngineSession::ready, this, &EngineRegistrationHandler::onProbeReady);
+    connect(m_probe, &UsiEngineSession::errorOccurred, this, &EngineRegistrationHandler::onProbeError);
 }
 
 EngineRegistrationHandler::~EngineRegistrationHandler()
 {
-    cancelRegistration();
-
-    if (m_workerThread) {
-        if (m_workerThread->isRunning()) {
-            m_workerThread->requestInterruption();
-            m_workerThread->quit();
-            if (!m_workerThread->wait(kWorkerQuitTimeoutMs)) {
-                qCCritical(lcUi)
-                    << "Engine registration worker thread did not stop within timeout."
-                    << "Detaching thread object instead of forcing termination.";
-                m_workerThread->setParent(nullptr);
-                connect(m_workerThread, &QThread::finished,
-                        m_workerThread, &QObject::deleteLater,
-                        Qt::UniqueConnection);
-                m_workerThread = nullptr;
-                m_worker = nullptr;
-            }
-        }
-    }
+    // 応答しないエンジンも、終了の監視へ引き渡して待たずに戻る
+    m_probe->quit();
 }
 
 // 設定ファイルからエンジンリストを読み込む。
@@ -102,48 +92,13 @@ bool EngineRegistrationHandler::validateEnginePath(const QString& filePath) cons
     return fi.exists() && fi.isFile() && fi.isExecutable();
 }
 
-// --- ワーカースレッド管理 ---
-
-void EngineRegistrationHandler::ensureWorkerThread()
-{
-    if (m_workerThread) return;
-
-    m_workerThread = new QThread(this);
-    m_worker = new EngineRegistrationWorker();
-    m_worker->moveToThread(m_workerThread);
-
-    connect(this, &EngineRegistrationHandler::requestRegistration,
-            m_worker, &EngineRegistrationWorker::registerEngine,
-            Qt::QueuedConnection);
-    connect(m_worker, &EngineRegistrationWorker::engineRegistered,
-            this, &EngineRegistrationHandler::onWorkerRegistered,
-            Qt::QueuedConnection);
-    connect(m_worker, &EngineRegistrationWorker::registrationFailed,
-            this, &EngineRegistrationHandler::onWorkerFailed,
-            Qt::QueuedConnection);
-    connect(m_worker, &EngineRegistrationWorker::registrationCanceled,
-            this, &EngineRegistrationHandler::onWorkerCanceled,
-            Qt::QueuedConnection);
-    connect(m_worker, &EngineRegistrationWorker::progressUpdated,
-            this, &EngineRegistrationHandler::progressUpdated,
-            Qt::QueuedConnection);
-    connect(m_workerThread, &QThread::finished,
-            m_worker, &QObject::deleteLater);
-
-    m_workerThread->start();
-}
-
 void EngineRegistrationHandler::setRegistrationInProgress(bool inProgress)
 {
     if (m_registrationInProgress == inProgress) return;
     m_registrationInProgress = inProgress;
-    if (!inProgress) {
-        m_cancelFlag.reset();
-    }
     emit registrationInProgressChanged(inProgress);
 }
 
-// エンジン登録処理を開始する（ワーカースレッドで非同期実行）。
 void EngineRegistrationHandler::startRegistration(const QString& filePath)
 {
     if (m_registrationInProgress) return;
@@ -153,22 +108,25 @@ void EngineRegistrationHandler::startRegistration(const QString& filePath)
     m_engineIdName.clear();
     m_engineIdAuthor.clear();
     m_optionLines.clear();
+    m_processStarted = false;
 
-    ensureWorkerThread();
-
-    m_cancelFlag = makeCancelFlag();
-    m_worker->setCancelFlag(m_cancelFlag);
-
+    if (!QFileInfo(filePath).isFile()) {
+        setError(tr("エンジンファイルが見つかりません: %1").arg(filePath));
+        return;
+    }
     setRegistrationInProgress(true);
-    emit requestRegistration(filePath);
+    emit progressUpdated(tr("エンジンを起動中..."));
+    if (!m_probe->probeAsync(QFileInfo(filePath).absoluteFilePath())) {
+        setRegistrationInProgress(false);
+        setError(tr("エンジンの起動に失敗しました: %1").arg(filePath));
+    }
 }
 
-// 進行中の登録処理をキャンセルする。
 void EngineRegistrationHandler::cancelRegistration()
 {
-    if (m_cancelFlag) {
-        m_cancelFlag->store(true);
-    }
+    if (!m_registrationInProgress) return;
+    m_probe->quit();
+    setRegistrationInProgress(false);
 }
 
 bool EngineRegistrationHandler::isRegistrationInProgress() const
@@ -176,10 +134,38 @@ bool EngineRegistrationHandler::isRegistrationInProgress() const
     return m_registrationInProgress;
 }
 
-// ワーカーからの登録成功通知を処理する。
-void EngineRegistrationHandler::onWorkerRegistered(const QString& engineName,
-                                                   const QString& engineAuthor,
-                                                   const QStringList& optionLines)
+void EngineRegistrationHandler::onProbeStarted()
+{
+    m_processStarted = true;
+    emit progressUpdated(tr("USI通信中..."));
+}
+
+void EngineRegistrationHandler::onProbeReady()
+{
+    const UsiProtocolHandler* handler = m_probe->handler();
+    const QString engineName = handler->reportedEngineName();
+    const QString engineAuthor = handler->reportedEngineAuthor();
+    const QStringList optionLines = handler->reportedOptionLines();
+    m_probe->quit();
+    if (engineName.trimmed().isEmpty()) {
+        setRegistrationInProgress(false);
+        setError(tr("エンジン名(id name)を取得できませんでした"));
+        return;
+    }
+    registerEngine(engineName, engineAuthor, optionLines);
+}
+
+void EngineRegistrationHandler::onProbeError(const QString& message)
+{
+    if (!m_registrationInProgress) return;
+    qCWarning(lcUi) << "engine registration failed:" << message;
+    setRegistrationInProgress(false);
+    setError(m_processStarted ? tr("エンジンからの応答がタイムアウトしました")
+                              : tr("エンジンの起動に失敗しました: %1").arg(m_fileName));
+}
+
+void EngineRegistrationHandler::registerEngine(const QString& engineName, const QString& engineAuthor,
+                                               const QStringList& optionLines)
 {
     // 同じ実行ファイルは登録前に断っている。別の実行ファイルが同じ id name を名乗る
     // （評価関数だけ違うビルドなど）ときは、登録名に番号を付けて別のエンジンとして登録する。
@@ -222,18 +208,6 @@ QString EngineRegistrationHandler::uniqueRegisteredName(const QString& idName) c
         const QString candidate = QStringLiteral("%1 (%2)").arg(idName).arg(number);
         if (!taken(candidate)) return candidate;
     }
-}
-
-// ワーカーからの登録失敗通知を処理する。
-void EngineRegistrationHandler::onWorkerFailed(const QString& errorMessage)
-{
-    setRegistrationInProgress(false);
-    setError(errorMessage);
-}
-
-void EngineRegistrationHandler::onWorkerCanceled()
-{
-    setRegistrationInProgress(false);
 }
 
 // 指定インデックスのエンジンを削除し設定を更新する。
@@ -283,13 +257,14 @@ void EngineRegistrationHandler::parseEngineOptionsFromUsiOutput()
 // 将棋エンジンから送信されたオプション行を解析し、エンジンオプションリストに追加する。
 void EngineRegistrationHandler::parseOptionLine(const QString& line)
 {
-    ParsedOptionLine parsed;
     QString parseError;
-    if (!parseUsiOptionLine(line, parsed, &parseError)) {
+    const std::optional<UsiOptionDeclaration> declaration = UsiLineParser::parseOption(line, &parseError);
+    if (!declaration) {
         qCWarning(lcUi) << "parseOptionLine: invalid option line:" << parseError << line;
         setError(tr("オプション行の形式が無効です。"));
         return;
     }
+    const UsiOptionDeclaration& parsed = *declaration;
 
     // 既存のオプションと重複しないことを確認
     auto it = std::find_if(m_engineOptions.begin(), m_engineOptions.end(), [&parsed](const EngineOption& option) {

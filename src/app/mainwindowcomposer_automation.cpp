@@ -8,7 +8,7 @@
 #include "automationcommands.h"
 #include "automationcontext.h"
 #include "automationserver.h"
-#include "csagamewiring.h"
+#include "csagamecoordinator.h"
 #include "menuwindow.h"
 #include "menuwindowcontroller.h"
 #include "logcategories.h"
@@ -36,9 +36,9 @@ void MainWindowComposer::startAutomationServer(const QString& socketPath)
     ctx.navigationController = m_c.kifuNavController;
     ctx.uiStatePolicy = m_c.uiStatePolicy;
     ctx.kifuFileController = m_c.kifuFileController;
-    ctx.kifuExportController = m_c.kifuExportController.get();
+    ctx.kifuExportController = m_c.kifuExportController;
     ctx.gameRecordModel = m_c.gameRecord;
-    ctx.csaGameWiring = m_c.csaGameWiring.get();
+    ctx.csaGame = m_c.csaGame;
     ctx.menuFavorites = [this]() {
         const MenuWindow* menu = m_c.menuWindowController->menuWindow();
         return menu ? menu->favorites() : QStringList{};

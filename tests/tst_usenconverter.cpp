@@ -1,9 +1,11 @@
 #include <QtTest>
 #include <QCoreApplication>
 
+#include "kifu_file_helper.h"
 #include "usentosfenconverter.h"
 #include "kifdisplayitem.h"
 #include "kifparsetypes.h"
+#include "terminalcodes.h"
 #include "kifu_test_helper.h"
 
 static const QString kHirateSfen =
@@ -42,17 +44,17 @@ private slots:
         QVERIFY(KifuTestHelper::writeToTempFile(file, text.toUtf8(), QStringLiteral("usen")));
         KifParseResult result;
         QString error;
-        QVERIFY(!UsenToSfenConverter::parseWithVariations(file.fileName(), result, &error));
+        QVERIFY(!KifuFile::parse<UsenToSfenConverter>(file.fileName(), result, &error));
         QVERIFY(!error.isEmpty());
         QVERIFY(result.mainline.usiMoves().isEmpty());
         QVERIFY(result.variations.isEmpty());
-        QVERIFY(UsenToSfenConverter::convertFile(file.fileName()).isEmpty());
-        QVERIFY(UsenToSfenConverter::extractMovesWithTimes(file.fileName()).isEmpty());
+        QVERIFY(KifuFile::usiMoves<UsenToSfenConverter>(file.fileName()).isEmpty());
+        QVERIFY(KifuFile::displayItems<UsenToSfenConverter>(file.fileName()).isEmpty());
     }
 
     void detectInitialSfen()
     {
-        QString sfen = UsenToSfenConverter::detectInitialSfenFromFile(
+        QString sfen = KifuFile::initialSfen<UsenToSfenConverter>(
             fixturePath(QStringLiteral("test_basic.usen")));
         QCOMPARE(sfen, kHirateSfen);
     }
@@ -60,7 +62,7 @@ private slots:
     void convertFile_sevenMoves()
     {
         QString error;
-        QStringList moves = UsenToSfenConverter::convertFile(
+        QStringList moves = KifuFile::usiMoves<UsenToSfenConverter>(
             fixturePath(QStringLiteral("test_basic.usen")), &error);
         QVERIFY2(error.isEmpty(), qPrintable(error));
         QCOMPARE(moves.size(), 7);
@@ -82,7 +84,7 @@ private slots:
     {
         // Verify USEN produces the same USI moves as other formats
         QString error;
-        QStringList usenMoves = UsenToSfenConverter::convertFile(
+        QStringList usenMoves = KifuFile::usiMoves<UsenToSfenConverter>(
             fixturePath(QStringLiteral("test_basic.usen")), &error);
         QVERIFY2(error.isEmpty(), qPrintable(error));
         QCOMPARE(usenMoves, kExpectedUsiMoves);
@@ -92,7 +94,7 @@ private slots:
     {
         // 駒落ち局面（四枚落ち）: 初期局面が ~ の前にエンコードされている
         QString label;
-        QString sfen = UsenToSfenConverter::detectInitialSfenFromFile(
+        QString sfen = KifuFile::initialSfen<UsenToSfenConverter>(
             fixturePath(QStringLiteral("test_handicap.usen")), &label);
         QCOMPARE(label, QStringLiteral("局面指定"));
         QCOMPARE(sfen, QStringLiteral("1nsgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"));
@@ -103,7 +105,7 @@ private slots:
         // 駒落ちUSENの本譜をパースし、指し手が正しくデコードされることを確認
         KifParseResult res;
         QString error;
-        bool ok = UsenToSfenConverter::parseWithVariations(
+        bool ok = KifuFile::parse<UsenToSfenConverter>(
             fixturePath(QStringLiteral("test_handicap.usen")), res, &error);
         QVERIFY2(ok, qPrintable(error));
 
@@ -126,7 +128,7 @@ private slots:
     void convertFile_nonExistentFile()
     {
         QString error;
-        QStringList moves = UsenToSfenConverter::convertFile(
+        QStringList moves = KifuFile::usiMoves<UsenToSfenConverter>(
             fixturePath(QStringLiteral("nonexistent.usen")), &error);
         QVERIFY(moves.isEmpty());
     }
@@ -135,7 +137,7 @@ private slots:
     {
         KifParseResult result;
         QString error;
-        bool ok = UsenToSfenConverter::parseWithVariations(
+        bool ok = KifuFile::parse<UsenToSfenConverter>(
             fixturePath(QStringLiteral("nonexistent.usen")), result, &error);
         QVERIFY(!ok);
     }
@@ -143,7 +145,7 @@ private slots:
     void detectInitialSfen_nonExistentFile()
     {
         QString label;
-        QString sfen = UsenToSfenConverter::detectInitialSfenFromFile(
+        QString sfen = KifuFile::initialSfen<UsenToSfenConverter>(
             fixturePath(QStringLiteral("nonexistent.usen")), &label);
         // Falls back to hirate
         QCOMPARE(sfen, kHirateSfen);
@@ -161,7 +163,7 @@ private slots:
         tmp.close();
 
         QString error;
-        QStringList moves = UsenToSfenConverter::convertFile(tmp.fileName(), &error);
+        QStringList moves = KifuFile::usiMoves<UsenToSfenConverter>(tmp.fileName(), &error);
         QVERIFY(moves.isEmpty());
     }
 
@@ -203,9 +205,9 @@ private slots:
 
     void terminalFromCode()
     {
-        QCOMPARE(UsenToSfenConverter::terminalFromCode(QStringLiteral("r")), TerminalType::Resign);
-        QCOMPARE(UsenToSfenConverter::terminalFromCode(QStringLiteral("t")), TerminalType::Timeout);
-        QCOMPARE(UsenToSfenConverter::terminalFromCode(QStringLiteral("xyz")), TerminalType::Error);
+        QCOMPARE(TerminalCodes::fromUsen(QStringLiteral("r")), TerminalType::Resign);
+        QCOMPARE(TerminalCodes::fromUsen(QStringLiteral("t")), TerminalType::Timeout);
+        QCOMPARE(TerminalCodes::fromUsen(QStringLiteral("xyz")), TerminalType::Error);
     }
 
     // ========================================
@@ -219,7 +221,7 @@ private slots:
         QVERIFY(tmp.open());
         tmp.close();
 
-        auto info = UsenToSfenConverter::extractGameInfo(tmp.fileName());
+        auto info = KifuFile::gameInfo<UsenToSfenConverter>(tmp.fileName());
         QVERIFY(info.isEmpty());
     }
 
@@ -230,7 +232,7 @@ private slots:
     void extractMovesWithTimes_nonExistentFile()
     {
         QString error;
-        QList<KifDisplayItem> items = UsenToSfenConverter::extractMovesWithTimes(
+        QList<KifDisplayItem> items = KifuFile::displayItems<UsenToSfenConverter>(
             fixturePath(QStringLiteral("nonexistent.usen")), &error);
         QVERIFY(items.isEmpty());
     }
@@ -358,14 +360,14 @@ private slots:
         QVERIFY(KifuTestHelper::writeToTempFile(tmp, fileContent, QStringLiteral("usen")));
 
         QString error;
-        (void)UsenToSfenConverter::convertFile(tmp.fileName(), &error);
+        (void)KifuFile::usiMoves<UsenToSfenConverter>(tmp.fileName(), &error);
 
         KifParseResult result;
-        const bool success = UsenToSfenConverter::parseWithVariations(tmp.fileName(), result, &error);
+        const bool success = KifuFile::parse<UsenToSfenConverter>(tmp.fileName(), result, &error);
 
-        (void)UsenToSfenConverter::detectInitialSfenFromFile(tmp.fileName());
-        (void)UsenToSfenConverter::extractGameInfo(tmp.fileName());
-        (void)UsenToSfenConverter::extractMovesWithTimes(tmp.fileName(), &error);
+        (void)KifuFile::initialSfen<UsenToSfenConverter>(tmp.fileName());
+        (void)KifuFile::gameInfo<UsenToSfenConverter>(tmp.fileName());
+        (void)KifuFile::displayItems<UsenToSfenConverter>(tmp.fileName(), &error);
 
         KifuTestHelper::verifyParsedRecord(success, result, error);
     }
@@ -381,10 +383,10 @@ private slots:
             tmp, KifuTestHelper::generateLongUsenContent(1500), QStringLiteral("usen")));
 
         QString error;
-        (void)UsenToSfenConverter::convertFile(tmp.fileName(), &error);
+        (void)KifuFile::usiMoves<UsenToSfenConverter>(tmp.fileName(), &error);
 
         KifParseResult result;
-        QVERIFY2(UsenToSfenConverter::parseWithVariations(tmp.fileName(), result, &error), qPrintable(error));
+        QVERIFY2(KifuFile::parse<UsenToSfenConverter>(tmp.fileName(), result, &error), qPrintable(error));
 
         QCOMPARE(result.mainline.moveCount(), 1500);
         KifuTestHelper::verifyParsedRecord(true, result, error);

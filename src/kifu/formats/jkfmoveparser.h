@@ -9,6 +9,9 @@
 #include <QString>
 #include <QStringView>
 
+#include "shogitypes.h"
+#include "usimove.h"
+
 namespace JkfMoveParser {
 
 // === プリセット・初期局面 ===
@@ -23,26 +26,15 @@ QString presetFromSfen(const QString& sfen);
 /// initial.data から局面SFENを構築（カスタム初期局面用）
 QString buildSfenFromInitialData(const QJsonObject& data, int moveNumber = 1);
 
-// === 駒種変換 ===
-
-/// CSA形式駒種文字列（"FU","KY"等）→ 内部コード（1〜14、0=不明）
-int pieceKindFromCsa(const QString& kind);
-
-/// 駒種コード → SFEN文字（先手=大文字, 後手=小文字）
-QChar pieceToSfenChar(int kind, bool isBlack);
-
-/// CSA形式駒種文字列 → 日本語漢字表記
-QString pieceKindToKanji(const QString& kind);
-
 // === 指し手変換 ===
 
 /// JKF move オブジェクトからUSI形式指し手文字列を生成
 /// prevToX, prevToY は更新される
 QString convertMoveToUsi(const QJsonObject& move, int& prevToX, int& prevToY);
 
-/// JKF move オブジェクトから日本語表記（▲△付き）を生成
-/// prevToX, prevToY は更新される
-QString convertMoveToPretty(const QJsonObject& move, int plyNumber, int& prevToX, int& prevToY);
+/// JKF move オブジェクトの指し手の表記（KIF 形式に、relative の修飾語と「不成」を加える）
+/// @param previousTo 直前の手の移動先（同じマスなら「同」と書く）
+QString convertMoveToPretty(const QJsonObject& move, Turn mover, const UsiMove& usi, BoardSquare previousTo);
 
 // === 時間解析 ===
 

@@ -6,25 +6,21 @@
 #include "logcategories.h"
 
 #include "enginelifecyclemanager.h"
-#include "engineanalysistab.h"
+#include "usilogpanel.h"
 #include "usi.h"
 
 #include <utility>
 
-UsiCommandController::UsiCommandController(QObject* parent)
+UsiCommandController::UsiCommandController(const Deps& deps, QObject* parent)
     : QObject(parent)
+    , m_deps(deps)
 {
-}
-
-void UsiCommandController::setAnalysisTab(EngineAnalysisTab* tab)
-{
-    m_analysisTab = tab;
 }
 
 void UsiCommandController::appendStatus(const QString& text)
 {
-    if (m_analysisTab) {
-        m_analysisTab->appendUsiLogStatus(text);
+    if (m_deps.usiLog) {
+        m_deps.usiLog->appendStatus(text);
     }
 }
 
@@ -32,11 +28,11 @@ void UsiCommandController::sendCommand(int target, const QString& command)
 {
     qCDebug(lcUi).noquote() << "sendCommand: target=" << target << "command=" << command;
 
-    Usi* usi1 = m_engines ? m_engines->engineInSlot(1) : nullptr;
-    Usi* usi2 = m_engines ? m_engines->engineInSlot(2) : nullptr;
+    Usi* usi1 = m_deps.engines ? m_deps.engines->engineInSlot(1) : nullptr;
+    Usi* usi2 = m_deps.engines ? m_deps.engines->engineInSlot(2) : nullptr;
 
     const auto sendIfReady = [this, &command](Usi* engine, const QString& label) {
-        if (engine && engine->isEngineRunning()) {
+        if (engine && engine->isRunning()) {
             engine->sendConsoleCommand(command);
             qCDebug(lcUi).noquote() << "Sent to" << label << ":" << command;
         } else {

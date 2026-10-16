@@ -2,16 +2,16 @@
 #define CONSIDERATIONTABMANAGER_H
 
 /// @file considerationtabmanager.h
-/// @brief EngineAnalysisTab から分離した検討タブ管理クラスの定義
+/// @brief 検討ドックの中身（ツールバー・エンジン情報・候補手の表）
 
 #include <QObject>
 #include <QMetaObject>
 #include <QString>
 
 #include "fontsizehelper.h"
+#include "shogienginethinkingmodel.h"
 
 class QWidget;
-class QTableView;
 class QToolButton;
 class QPushButton;
 class QLabel;
@@ -23,13 +23,12 @@ class QCheckBox;
 class QModelIndex;
 
 class EngineInfoWidget;
-class ShogiEngineThinkingModel;
+class ThinkingTableView;
 
 /**
  * @brief 検討タブのUI構築・状態管理を担うマネージャ
  *
- * EngineAnalysisTab から検討タブ関連の責務を分離したクラス。
- * UI構築は buildConsiderationUi() で行い、各種設定の保存・復元も担当する。
+ * ドックの中身は buildUi() で作る。候補手の数・時間・エンジンの選択などの設定の保存・復元も担当する。
  */
 class ConsiderationTabManager : public QObject
 {
@@ -39,12 +38,16 @@ public:
     explicit ConsiderationTabManager(QObject* parent = nullptr);
     ~ConsiderationTabManager() override;
 
+    /// 検討ドックの中身（ツールバー・情報・表）を作る
+    QWidget* buildUi(QWidget* parent);
     /// 検討タブのUIを構築し、ツールバー・情報・テーブルビューを parentWidget に配置する
     void buildConsiderationUi(QWidget* parentWidget);
+    /// 検討の表が model を出していれば選択を外す（読み筋ダイアログを閉じたとき）
+    void clearViewSelection(const ShogiEngineThinkingModel* model);
 
     // --- アクセサ ---
     EngineInfoWidget* considerationInfo() const { return m_considerationInfo; }
-    QTableView* considerationView() const { return m_considerationView; }
+    ThinkingTableView* considerationView() const { return m_considerationView; }
 
     // モデル設定
     void setConsiderationThinkingModel(ShogiEngineThinkingModel* m);
@@ -112,32 +115,26 @@ signals:
     // 検討中にエンジン選択が変更されたシグナル
     void considerationEngineChanged(int index, const QString& name);
 
-    // 読み筋がクリックされた時のシグナル（engineIndex=2: 検討タブ）
-    void pvRowClicked(int engineIndex, int row);
+    // 読み筋の行の「盤面」ボタンが押された
+    void pvRowClicked(ShogiEngineThinkingModel* model, int row);
 
 private slots:
-    void onConsiderationViewClicked(const QModelIndex& index);
-    void onConsiderationFontIncrease();
-    void onConsiderationFontDecrease();
     void onMultiPVComboBoxChanged(int index);
     void onEngineComboBoxChanged(int index);
     void onEngineSettingsClicked();
     void onTimeSettingChanged();
     void onElapsedTimerTick();
-    void saveViewColumnWidths(int logicalIndex);
-    void saveInfoColumnWidths();
 
 private:
     void buildToolbarControls(QWidget* parentWidget);
     void layoutToolbar();
     void buildConsiderationView(QWidget* parentWidget);
     void applyFontSize();
-    void applyViewColumnWidths();
     void updateTimeControls();
 
     // 検討タブ用UI
     EngineInfoWidget* m_considerationInfo = nullptr;
-    QTableView* m_considerationView = nullptr;
+    ThinkingTableView* m_considerationView = nullptr;
     ShogiEngineThinkingModel* m_considerationModel = nullptr;
     QWidget* m_considerationToolbar = nullptr;
     QToolButton* m_btnConsiderationFontDecrease = nullptr;

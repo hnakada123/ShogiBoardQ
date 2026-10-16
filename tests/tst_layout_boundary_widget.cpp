@@ -10,7 +10,12 @@
 #include <tuple>
 
 #include "dockcreationservice.h"
-#include "engineanalysistab.h"
+#include "branchtreemanager.h"
+#include "commenteditorpanel.h"
+#include "considerationtabmanager.h"
+#include "csalogpanel.h"
+#include "thinkingpanel.h"
+#include "usilogpanel.h"
 #include "engineinfowidget.h"
 #include "layoutboundarywidget.h"
 
@@ -306,10 +311,22 @@ private slots:
         QMainWindow window;
         window.setCentralWidget(new QWidget(&window));
         QMenu menu;
-        EngineAnalysisTab tab(&window);
-        DockCreationService service(&window);
-        service.setDisplayMenu(&menu);
-        service.setAnalysisTab(&tab);
+        ThinkingPanel thinking(&window);
+        ConsiderationTabManager consideration;
+        UsiLogPanel usiLog;
+        CsaLogPanel csaLog;
+        CommentEditorPanel comment;
+        BranchTreeManager branchTree;
+        DockCreationService::Deps deps;
+        deps.mainWindow = &window;
+        deps.displayMenu = &menu;
+        deps.thinking = &thinking;
+        deps.consideration = &consideration;
+        deps.usiLog = &usiLog;
+        deps.csaLog = &csaLog;
+        deps.comment = &comment;
+        deps.branchTree = &branchTree;
+        DockCreationService service(deps);
         service.createAnalysisDocks();
         for (QDockWidget* dock : {service.thinkingDock(), service.considerationDock()}) {
             QVERIFY(dock);

@@ -10,25 +10,23 @@
 #include <QMessageBox>
 #include <utility>
 
-#include "dialogcoordinator.h"
-#include "shogigamecontroller.h"
+#include "aboutcoordinator.h"
+#include "boardcolordialog.h"
+#include "fontsettingsdialog.h"
+#include "engineregistrationdialog.h"
+#include "promotionflow.h"
 #include "shogiview.h"
 #include "appactivitystate.h"
-#include "matchcoordinator.h"
 #include "jishogiscoredialogcontroller.h"
 #include "nyugyokudeclarationhandler.h"
 #include "nyugyokujudgement.h"
-#include "csagamewiring.h"
+#include "csagamesession.h"
 #include "csagamedialog.h"
 #include "csagamecoordinator.h"
 #include "dialogutils.h"
-#include "boardsetupcontroller.h"
-#include "analysisresultspresenter.h"
-#include "engineanalysistab.h"
 #include "sfencollectiondialog.h"
 #include "tsumeshogigeneratordialog.h"
 #include "tsumecollectiondialog.h"
-#include "evaluationchartwidget.h"
 #include "kifufilecontroller.h"
 #include "logcategories.h"
 
@@ -40,32 +38,23 @@ DialogLauncher::DialogLauncher(const Deps& deps, QObject* parent)
 
 void DialogLauncher::displayVersionInformation()
 {
-    auto* dc = m_deps.dialogCoordinator;
-    if (dc) {
-        dc->showVersionInformation();
-    }
+    AboutCoordinator::showVersionDialog(m_deps.parentWidget);
 }
 
 void DialogLauncher::openProjectWebsite()
 {
-    auto* dc = m_deps.dialogCoordinator;
-    if (dc) {
-        dc->openProjectWebsite();
-    }
+    AboutCoordinator::openProjectWebsite();
 }
 
 void DialogLauncher::displayEngineSettingsDialog()
 {
-    auto* dc = m_deps.dialogCoordinator;
-    if (dc) {
-        dc->showEngineSettingsDialog();
-    }
+    EngineRegistrationDialog dialog(m_deps.parentWidget);
+    dialog.exec();
 }
 
 bool DialogLauncher::choosePromotion()
 {
-    auto* dc = m_deps.dialogCoordinator;
-    return dc && dc->showPromotionDialog();
+    return PromotionFlow::askPromote(m_deps.parentWidget);
 }
 
 void DialogLauncher::displayJishogiScoreDialog()
@@ -86,7 +75,7 @@ void DialogLauncher::displayJishogiScoreDialog()
 
 void DialogLauncher::handleNyugyokuDeclaration()
 {
-    CsaGameCoordinator* csa = m_deps.csaGameWiring ? m_deps.csaGameWiring->coordinator() : nullptr;
+    CsaGameCoordinator* csa = m_deps.csaGame;
     if (m_deps.activity && m_deps.activity->is(AppActivityState::Activity::DuringCsaGame) && csa) {
         // 成否はサーバーが判定する。誤操作で負けないよう、ローカル対局と同じく確認する
         if (csa->isMyTurn()) {
@@ -115,20 +104,10 @@ void DialogLauncher::handleNyugyokuDeclaration()
         return;
     }
 
-    auto* nh = m_deps.nyugyokuHandler;
-    if (nh) {
-        auto* gc = m_deps.gameController;
-        auto* match = m_deps.match;
-        nh->setGameController(gc);
-        nh->setMatchCoordinator(match);
+    if (auto* nh = m_deps.nyugyokuHandler) {
         nh->handleDeclaration(m_deps.parentWidget, sv->board(),
                               m_deps.activity && m_deps.activity->is(AppActivityState::Activity::DuringGame));
     }
-}
-
-void DialogLauncher::displayTsumeShogiSearchDialog()
-{
-    if (auto* dc = m_deps.dialogCoordinator) dc->showTsumeSearchDialogFromContext();
 }
 
 void DialogLauncher::displayTsumePlayDialog()
@@ -148,7 +127,7 @@ void DialogLauncher::displayTsumeshogiGeneratorDialog()
 
 void DialogLauncher::displayMenuWindow()
 {
-    // ドックの表示/非表示をトグル（ドックが未作成ならゲッターが作る）
+    // ドックの表示/非表示をトグル
     QDockWidget* dock = m_deps.menuWindowDock;
     if (!dock) return;
     if (dock->isVisible()) {
@@ -172,39 +151,9 @@ void DialogLauncher::displayCsaGameDialog()
     // ダイアログを表示する
     if (dlg->exec() == QDialog::Accepted) {
         if (m_deps.kifuFileController && !m_deps.kifuFileController->confirmDiscardUnsaved()) return;
-        // CsaGameWiringを確保
-        auto* csaWiring = m_deps.csaGameWiring;
-        if (!csaWiring) {
-            qCWarning(lcUi).noquote() << "displayCsaGameDialog: CsaGameWiring is null";
-            return;
-        }
-
-        // BoardSetupControllerを確保して設定
-        auto* bsc = m_deps.boardSetupController;
-        csaWiring->setBoardSetupController(bsc);
-        auto* analysisTab = m_deps.analysisTab;
-        csaWiring->setAnalysisTab(analysisTab);
-
-        // CSA対局を開始（ロジックはCsaGameWiringに委譲）。司令塔は CsaGameWiring が作って持つ
-        if (!csaWiring->startCsaGame(dlg, m_deps.parentWidget)) return;
-
-        // CSA対局でエンジンを使用する場合、評価値グラフ更新用のシグナル接続
-        CsaGameCoordinator* coord = csaWiring->coordinator();
-        if (coord) {
-            connect(coord, &CsaGameCoordinator::engineScoreUpdated,
-                    this, &DialogLauncher::onCsaEngineScoreUpdatedInternal,
-                    Qt::UniqueConnection);
-        }
+        // 待機ダイアログを出して対局が始まるまで待つ（始まった後は CsaGameSession が進める）
+        if (m_deps.csaSession) m_deps.csaSession->startGame(dlg->selection());
     }
-}
-
-void DialogLauncher::displayKifuAnalysisDialog()
-{
-    qCDebug(lcUi).noquote() << "displayKifuAnalysisDialog START";
-
-
-    // コンテキスト（DialogCoordinatorWiring が起動時に設定）からパラメータを作ってダイアログを表示
-    if (auto* dc = m_deps.dialogCoordinator) dc->showKifuAnalysisDialogFromContext();
 }
 
 void DialogLauncher::displaySfenCollectionViewer()
@@ -224,31 +173,28 @@ void DialogLauncher::displaySfenCollectionViewer()
     dlg->show();
 }
 
-void DialogLauncher::onCsaEngineScoreUpdatedInternal(int scoreCp, int ply, const QString& mate)
-{
-    qCDebug(lcUi).noquote() << "onCsaEngineScoreUpdatedInternal: scoreCp=" << scoreCp << "ply=" << ply;
-
-    auto* evalChart = m_deps.evalChart;
-    if (!evalChart) {
-        qCDebug(lcUi).noquote() << "onCsaEngineScoreUpdatedInternal: evalChart is NULL";
-        return;
-    }
-
-    auto* csaCoord = m_deps.csaGameWiring ? m_deps.csaGameWiring->coordinator() : nullptr;
-    if (csaCoord) {
-        if (csaCoord->isBlackSide()) {
-            evalChart->appendScoreP1(ply, scoreCp, false, mate);
-        } else {
-            evalChart->appendScoreP2(ply, scoreCp, true, mate);
-        }
-    }
-}
-
 void DialogLauncher::displayPieceSoundSettingsDialog()
 {
     auto* player = m_deps.pieceSoundPlayer;
     if (!player) return;
 
     PieceSoundSettingsDialog dialog(player, m_deps.parentWidget);
+    dialog.exec();
+}
+
+void DialogLauncher::displayBoardAppearanceDialog()
+{
+    if (!m_boardColorDialog) {
+        m_boardColorDialog = new BoardColorDialog(m_deps.parentWidget);
+        m_boardColorDialog->setAttribute(Qt::WA_DeleteOnClose);
+    }
+    m_boardColorDialog->show();
+    m_boardColorDialog->raise();
+    m_boardColorDialog->activateWindow();
+}
+
+void DialogLauncher::displayFontSettingsDialog()
+{
+    FontSettingsDialog dialog(m_deps.parentWidget);
     dialog.exec();
 }

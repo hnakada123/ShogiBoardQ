@@ -11,16 +11,16 @@
 #include <algorithm>
 
 #include "csagamecoordinator.h"
-#include "boardsetupcontroller.h"
-#include "humanturnpolicy.h"
+#include "csagamesession.h"
 #include "enginelifecyclemanager.h"
-#include "matchcoordinator.h"
+#include "humanturnpolicy.h"
 #include "csagameprogress.h"
-#include "csagamewiring.h"
 #include "appstate.h"
 #include "gamerecordmodel.h"
 #include "gamesession.h"
 #include "kifubranchtree.h"
+#include "kifubranchnode.h"
+#include "kifunavigationstate.h"
 #include "livegamesession.h"
 #include "sfenutils.h"
 #include "shogiboard.h"
@@ -72,17 +72,13 @@ struct FakeCsaServer {
 struct Harness {
     ShogiGameController gc;
     ShogiClock clock;
-    CsaGameCoordinator coordinator;
+    EngineLifecycleManager engines{&clock};
+    CsaGameCoordinator coordinator{CsaGameCoordinator::Deps{&gc, &clock, &engines}};
     FakeCsaServer server;
 
     Harness()
     {
-        QString hirate = SfenUtils::hirateSfen();
-        gc.newGame(hirate);
-        CsaGameCoordinator::Dependencies deps;
-        deps.gameController = &gc;
-        deps.clock = &clock;
-        coordinator.setDependencies(deps);
+        gc.newGame(SfenUtils::hirateSfen());
     }
 
     /// 対局の手順（開始局面と、確認された手）
@@ -207,24 +203,14 @@ private slots:
         QVERIFY(h.start("+"));
         AppActivityState activity;
         activity.setActivity(AppActivityState::Activity::DuringCsaGame);
-        CsaGameWiring wiring(CsaGameWiring::Dependencies{});
-        wiring.setCoordinator(&h.coordinator);
-        HumanTurnPolicy policy;
         HumanTurnPolicy::Deps deps;
         deps.activity = &activity;
         deps.gameController = &h.gc;
-        deps.csaGameWiring = &wiring;
-        policy.updateDeps(deps);
-        EngineLifecycleManager engines(&h.clock);
-        MatchCoordinator match({&h.gc, &h.clock, &activity, &engines});
-        BoardSetupController input;
-        input.setGameController(&h.gc);
-        input.setMatchCoordinator(&match);
-        input.setActivityState(&activity);
-        connect(&input, &BoardSetupController::csaMoveRequested,
-                &h.coordinator, &CsaGameCoordinator::onHumanMove);
+        deps.csaGame = &h.coordinator;
+        HumanTurnPolicy policy(deps);
+        // 通信対局中に盤で指した手は、BoardMoveController がそのまま司令塔へ送る
         QVERIFY(policy.isHumanTurnNow());
-        input.onMoveRequested(QPoint(7, 7), QPoint(7, 6));
+        h.coordinator.onHumanMove(QPoint(7, 7), QPoint(7, 6));
         QVERIFY(h.server.waitForLine(QStringLiteral("+7776FU")));
         QCOMPARE(h.coordinator.turnState(), CsaGameCoordinator::TurnState::AwaitingConfirmation);
         QVERIFY(!policy.isHumanTurnNow());
@@ -232,8 +218,8 @@ private slots:
         QCOMPARE(h.gc.currentPlayer(), Turn::Black);
         QCOMPARE(h.gc.board()->pieceCharacter(7, 7), Piece::BlackPawn);
         // UI の許可判定を通らない追加要求も、履歴や盤面を変更しない。
-        input.onMoveRequested(QPoint(2, 7), QPoint(2, 6));
-        input.onMoveRequested(QPoint(3, 3), QPoint(3, 4));
+        h.coordinator.onHumanMove(QPoint(2, 7), QPoint(2, 6));
+        h.coordinator.onHumanMove(QPoint(3, 3), QPoint(3, 4));
         QCOMPARE(h.moveCount(), 0);
         h.server.send("+7776FU,T5");
         QTRY_COMPARE(h.coordinator.progress().moveCount(), 1);
@@ -243,7 +229,6 @@ private slots:
         h.server.send("-3334FU,T2");
         QTRY_VERIFY(policy.isHumanTurnNow());
         QCOMPARE(h.moveCount(), 2);
-        wiring.setCoordinator(nullptr);
     }
 
     void initTestCase()
@@ -346,7 +331,7 @@ private slots:
         QTest::newRow("timeout") << QByteArray("#TIME_UP") << QByteArray("#LOSE")
                                  << int(TerminalType::Timeout) << QStringLiteral("△時間切れ");
         QTest::newRow("sennichite") << QByteArray("#SENNICHITE") << QByteArray("#DRAW")
-                                    << int(TerminalType::Repetition) << QStringLiteral("千日手");
+                                    << int(TerminalType::Repetition) << QStringLiteral("△千日手");
         QTest::newRow("illegal") << QByteArray("#ILLEGAL_MOVE") << QByteArray("#WIN")
                                  << int(TerminalType::IllegalLoss) << QStringLiteral("▲反則負け");
         // 連続王手の千日手は終局した局面の手番側（後手番）の行。王手をかけていた先手の反則
@@ -355,9 +340,9 @@ private slots:
         QTest::newRow("jishogi-win") << QByteArray("#JISHOGI") << QByteArray("#WIN")
                                      << int(TerminalType::DeclarationWin) << QStringLiteral("△入玉勝ち");
         QTest::newRow("jishogi-draw") << QByteArray("#JISHOGI") << QByteArray("#DRAW")
-                                      << int(TerminalType::Impasse) << QStringLiteral("持将棋");
+                                      << int(TerminalType::Impasse) << QStringLiteral("△持将棋");
         QTest::newRow("max-moves") << QByteArray("#MAX_MOVES") << QByteArray("#CENSORED")
-                                   << int(TerminalType::MaxMoves) << QStringLiteral("最大手数到達");
+                                   << int(TerminalType::MaxMoves) << QStringLiteral("△最大手数到達");
     }
 
     void endCauseMapsToTerminalType()
@@ -405,7 +390,8 @@ private slots:
         const RecordEntry interrupted = progress.endRecord(CsaClient::GameResult::Chudan,
                                                            CsaClient::GameEndCause::Chudan, true, 0);
         QCOMPARE(interrupted.terminal, TerminalType::Interrupt);
-        QCOMPARE(interrupted.displayText, QStringLiteral("中断"));
+        // 勝敗のない終局は手番側の行（ローカルの対局・棋譜の読み込みと同じ）
+        QCOMPARE(interrupted.displayText, QStringLiteral("▲中断"));
     }
 
     /// 加算の扱いとエンジンへ渡す時間（手番側は今の手番の加算を除く）
@@ -434,57 +420,56 @@ private slots:
         QCOMPARE(progress.moveRecord(true, QStringLiteral("▲７六歩"), 70000).time.totalMs, 70000);
     }
 
-    /// 配線を通すと、棋譜（ライブ記録）には着手ごと・終局で1行ずつだけ入る
-    void wiringAppendsEachRecordOnce()
+    /// 通信対局のセッションを通すと、棋譜（ライブ記録）には着手ごと・終局で1行ずつだけ入る
+    void sessionAppendsEachRecordOnce()
     {
         Harness h;
         KifuBranchTree tree;
         tree.setRootSfen(SfenUtils::hirateSfen());
-        LiveGameSession live;
-        live.setTree(&tree);
+        KifuNavigationState nav(&tree);
+        LiveGameSession live(&tree, &nav);
         live.startFromRoot();
         // 棋譜の受け手（本体と同じ GameSession。追記に使う部品だけ渡す）
         AppState state;
         GameRecordModel gameRecord;
-        GameSession recordService;
         GameSession::Deps sd;
         sd.state = &state;
+        sd.navState = &nav;
         sd.liveSession = &live;
         sd.gameRecord = &gameRecord;
-        recordService.setDeps(sd);
+        GameSession recordService(sd);
 
-        CsaGameWiring::Dependencies wd;
-        wd.coordinator = &h.coordinator;
-        CsaGameWiring wiring(wd);
-        wiring.wireExternalSignals(nullptr, &recordService, nullptr);
-        wiring.wire();
-        wiring.wire();  // 二重に配線しても1回だけ届く
-        wiring.wireExternalSignals(nullptr, &recordService, nullptr);
+        AppActivityState activity;
+        CsaGameSession::Deps cd;
+        cd.coordinator = &h.coordinator;
+        cd.activity = &activity;
+        cd.recordSink = &recordService;
+        CsaGameSession session(cd);
         QSignalSpy sounds(&h.gc, &ShogiGameController::moveCommitted);
 
         QVERIFY(h.start("-"));
         h.server.send("+7776FU,T1");
-        QTRY_COMPARE(live.moves().size(), 1);
+        QTRY_COMPARE(live.moveCount(), 1);
         QCOMPARE(sounds.size(), 1);
-        QCOMPARE(state.currentSfenStr, h.line().lastSfen());
-        const KifDisplayItem first = live.moves().at(0);
-        QCOMPARE(first.usiMove, QStringLiteral("7g7f"));
-        QCOMPARE(first.beforeSfen, h.line().sfenAt(0));
+        QCOMPARE(nav.currentSfen(), h.line().lastSfen());
+        const KifuBranchNode* first = live.liveNode();
+        QCOMPARE(first->move().move.toString(), QStringLiteral("7g7f"));
+        QCOMPARE(first->parent()->sfen(), h.line().sfenAt(0));
 
         // 自分（後手）の手：人間の操作で盤を動かしてから送る
         h.playHumanMove(QStringLiteral("3c3d"), QPoint(3, 3), QPoint(3, 4));
         QVERIFY(h.server.waitForLine(QStringLiteral("-3334FU")));
         h.server.send("-3334FU,T2");
-        QTRY_COMPARE(live.moves().size(), 2);
-        QCOMPARE(live.moves().at(1).usiMove, QStringLiteral("3c3d"));
+        QTRY_COMPARE(live.moveCount(), 2);
+        QCOMPARE(live.liveNode()->move().move.toString(), QStringLiteral("3c3d"));
 
         h.server.send("%TORYO,T3");
         h.server.send("#RESIGN");
         h.server.send("#WIN");
         QTRY_COMPARE(h.coordinator.gameState(), CsaGameCoordinator::GameState::GameOver);
-        QCOMPARE(live.moves().size(), 3);
-        QVERIFY(live.moves().at(2).terminal);
-        QCOMPARE(live.moves().at(2).prettyMove, QStringLiteral("▲投了"));
+        QCOMPARE(live.moveCount(), 3);
+        QVERIFY(live.liveNode()->isTerminal());
+        QCOMPARE(live.liveNode()->displayText(), QStringLiteral("▲投了"));
         QCOMPARE(sounds.size(), 2);
     }
 };

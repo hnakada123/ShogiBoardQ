@@ -37,7 +37,6 @@
 #include <QMenu>
 #include <QTabWidget>
 #include <QTableView>
-#include <QTableWidget>
 #include <QTextEdit>
 #include <QTreeWidget>
 #include <QToolButton>
@@ -112,14 +111,9 @@ bool describeOne(QWidget* w, int maxRows, QJsonObject& obj)
             arrows.append(QJsonObject{{QStringLiteral("from_file"), arrow.fromFile},
                 {QStringLiteral("from_rank"), arrow.fromRank}, {QStringLiteral("to_file"), arrow.toFile},
                 {QStringLiteral("to_rank"), arrow.toRank}, {QStringLiteral("priority"), arrow.priority},
-                {QStringLiteral("drop_piece"), QString(arrow.dropPiece)}});
+                {QStringLiteral("drop_piece"), QString(pieceToChar(arrow.dropPiece))}});
         }
         obj[QStringLiteral("arrows")] = arrows;
-        return true;
-    }
-    if (auto* table = qobject_cast<QTableWidget*>(w)) {
-        obj[QStringLiteral("rows")] = tableRows(table->model(), table->horizontalHeader(), maxRows);
-        obj[QStringLiteral("row_count")] = table->rowCount();
         return true;
     }
     if (auto* view = qobject_cast<QTableView*>(w)) {

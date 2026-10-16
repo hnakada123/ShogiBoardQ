@@ -24,8 +24,7 @@ class UsiCommLogModel;
 /**
  * @brief USI通信ログの表示・操作を担うパネル
  *
- * EngineAnalysisTab から USI通信ログ関連の責務を分離したクラス。
- * ツールバー（フォントサイズ・エンジン名表示）、コマンド入力バー、
+ * USI通信ログドックの中身を buildUi() で作る。ツールバー（フォントサイズ・エンジン名表示）、コマンド入力バー、
  * ログ表示エリアを持つ。
  */
 class UsiLogPanel : public QObject
@@ -56,8 +55,6 @@ signals:
     void usiCommandRequested(int target, const QString& command);
 
 private slots:
-    void onFontIncrease();
-    void onFontDecrease();
     void onCommandEntered();
     void onEngine1NameChanged();
     void onEngine2NameChanged();

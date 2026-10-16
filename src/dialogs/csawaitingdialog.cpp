@@ -2,16 +2,14 @@
 /// @brief CSA接続待機ダイアログクラスの実装
 
 #include "csawaitingdialog.h"
+#include "csalogpanel.h"
 #include "buttonstyles.h"
-#include "applicationfonts.h"
 #include "dialogutils.h"
 
 #include <QLabel>
 #include <QPushButton>
 #include <QToolButton>
 #include <QProgressBar>
-#include <QPlainTextEdit>
-#include <QLineEdit>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include "logcategories.h"
@@ -26,7 +24,6 @@ CsaWaitingDialog::CsaWaitingDialog(CsaGameCoordinator* coordinator, QWidget* par
     : QDialog(parent)
     , m_coordinator(coordinator)
     , m_fontHelper(NetworkSettings::csaWaitingDialogFontSize, 8, 24, 1)
-    , m_logFontHelper(NetworkSettings::csaLogFontSize, 8, 24, 1)
 {
     qCDebug(lcUi) << "Constructor called, coordinator=" << coordinator;
     setupUi();
@@ -145,9 +142,10 @@ void CsaWaitingDialog::connectSignalsAndSlots()
     connect(m_showLogButton, &QPushButton::clicked,
             this, &CsaWaitingDialog::onShowLogClicked);
     connect(m_btnFontIncrease, &QToolButton::clicked,
-            this, &CsaWaitingDialog::onFontIncrease);
+            &m_fontHelper, &FontSizeHelper::increase);
     connect(m_btnFontDecrease, &QToolButton::clicked,
-            this, &CsaWaitingDialog::onFontDecrease);
+            &m_fontHelper, &FontSizeHelper::decrease);
+    connect(&m_fontHelper, &FontSizeHelper::fontSizeChanged, this, &CsaWaitingDialog::applyFontSize);
 
     if (m_coordinator) {
         qCDebug(lcUi) << "Connecting to coordinator signals...";
@@ -205,119 +203,22 @@ void CsaWaitingDialog::createLogWindow()
         m_logWindow->resize(kLogWindowDefaultSize);
     }
 
-    QVBoxLayout* layout = new QVBoxLayout(m_logWindow);
+    // 中身は対局中の CSA 通信ログのドックと同じ部品（文字の大きさの設定も共有する）
+    auto* layout = new QVBoxLayout(m_logWindow);
+    m_logPanel = new CsaLogPanel(m_logWindow);
+    layout->addWidget(m_logPanel->buildUi(m_logWindow));
+    connect(m_logPanel, &CsaLogPanel::csaRawCommandRequested, this, &CsaWaitingDialog::onRawCommandRequested);
 
-    QHBoxLayout* commandLayout = new QHBoxLayout();
-    m_commandInput = new QLineEdit(m_logWindow);
-    m_commandInput->setObjectName(QStringLiteral("csaWaitingCommandInput"));
-    m_commandInput->setPlaceholderText(tr("コマンドを入力してEnter"));
-    m_commandInput->setAccessibleName(tr("CSAコマンド"));
-    commandLayout->addWidget(m_commandInput, 1);
-    m_btnSendToServer = new QPushButton(tr("送信"), m_logWindow);
-    m_btnSendToServer->setObjectName(QStringLiteral("csaWaitingSendButton"));
-    m_btnSendToServer->setAutoDefault(false);
-    commandLayout->addWidget(m_btnSendToServer);
-    {
-        QFont cmdFont;
-        cmdFont.setPointSize(m_logFontHelper.fontSize());
-        m_btnSendToServer->setFont(cmdFont);
-        m_commandInput->setFont(cmdFont);
-    }
-
-    m_logTextEdit = new QPlainTextEdit(m_logWindow);
-    m_logTextEdit->setObjectName(QStringLiteral("csaWaitingLogView"));
-    m_logTextEdit->setReadOnly(true);
-    m_logTextEdit->setLineWrapMode(QPlainTextEdit::NoWrap);
-    m_logTextEdit->setMaximumBlockCount(5000);
-    m_logTextEdit->setPlainText(m_logLines.join(QLatin1Char('\n')));
-    QFont font = ApplicationFonts::monospaceFont();
-    font.setPointSize(m_logFontHelper.fontSize());
-    m_logTextEdit->setFont(font);
-
-    layout->addWidget(m_logTextEdit);
-    layout->addLayout(commandLayout);
-
-    QHBoxLayout* buttonLayout = new QHBoxLayout();
+    auto* buttonLayout = new QHBoxLayout();
     buttonLayout->addStretch();
-    QFont btnFont;
-    btnFont.setPointSize(m_logFontHelper.fontSize());
-
-    m_btnLogFontDecrease = new QToolButton(m_logWindow);
-    m_btnLogFontDecrease->setText(QStringLiteral("A-"));
-    m_btnLogFontDecrease->setToolTip(tr("フォントサイズを小さくする"));
-    m_btnLogFontDecrease->setFont(btnFont);
-    m_btnLogFontDecrease->setStyleSheet(ButtonStyles::fontButton());
-    connect(m_btnLogFontDecrease, &QToolButton::clicked,
-            this, &CsaWaitingDialog::onLogFontDecrease);
-    buttonLayout->addWidget(m_btnLogFontDecrease);
-
-    m_btnLogFontIncrease = new QToolButton(m_logWindow);
-    m_btnLogFontIncrease->setText(QStringLiteral("A+"));
-    m_btnLogFontIncrease->setToolTip(tr("フォントサイズを大きくする"));
-    m_btnLogFontIncrease->setFont(btnFont);
-    m_btnLogFontIncrease->setStyleSheet(ButtonStyles::fontButton());
-    connect(m_btnLogFontIncrease, &QToolButton::clicked,
-            this, &CsaWaitingDialog::onLogFontIncrease);
-    buttonLayout->addWidget(m_btnLogFontIncrease);
-
-    buttonLayout->addSpacing(10);
-
-    m_logCloseButton = new QPushButton(tr("閉じる"), m_logWindow);
-    m_logCloseButton->setAutoDefault(false);
-    m_logCloseButton->setDefault(false);
-    m_logCloseButton->setFocusPolicy(Qt::StrongFocus);
-    m_logCloseButton->setFont(btnFont);
-    connect(m_logCloseButton, &QPushButton::clicked,
-            m_logWindow, &QDialog::close);
-    buttonLayout->addWidget(m_logCloseButton);
-
-    buttonLayout->addStretch();
+    auto* closeButton = new QPushButton(tr("閉じる"), m_logWindow);
+    closeButton->setAutoDefault(false);
+    closeButton->setDefault(false);
+    connect(closeButton, &QPushButton::clicked, m_logWindow, &QDialog::close);
+    buttonLayout->addWidget(closeButton);
     layout->addLayout(buttonLayout);
 
-    m_logWindow->setLayout(layout);
     DialogUtils::standardizeDialog(m_logWindow);
-    applyLogFontSize();
-
-    connect(m_commandInput, &QLineEdit::returnPressed,
-            this, &CsaWaitingDialog::onCommandEntered);
-    connect(m_commandInput, &QLineEdit::textChanged,
-            this, &CsaWaitingDialog::updateCommandState);
-    connect(m_btnSendToServer, &QPushButton::clicked,
-            this, &CsaWaitingDialog::onCommandEntered);
-}
-void CsaWaitingDialog::applyLogFontSize()
-{
-    const int size = m_logFontHelper.fontSize();
-
-    if (m_logTextEdit) {
-        QFont font = m_logTextEdit->font();
-        font.setPointSize(size);
-        m_logTextEdit->setFont(font);
-    }
-    if (m_btnSendToServer) {
-        QFont font = m_btnSendToServer->font();
-        font.setPointSize(size);
-        m_btnSendToServer->setFont(font);
-    }
-
-    if (m_commandInput) {
-        QFont font = m_commandInput->font();
-        font.setPointSize(size);
-        m_commandInput->setFont(font);
-    }
-
-    QFont btnFont;
-    btnFont.setPointSize(size);
-    if (m_logCloseButton) {
-        m_logCloseButton->setFont(btnFont);
-    }
-    if (m_btnLogFontDecrease) {
-        m_btnLogFontDecrease->setFont(btnFont);
-    }
-    if (m_btnLogFontIncrease) {
-        m_btnLogFontIncrease->setFont(btnFont);
-    }
-    DialogUtils::updateFontButtons(m_logWindow, size);
 }
 
 void CsaWaitingDialog::onGameStateChanged(CsaGameCoordinator::GameState state)
@@ -367,48 +268,17 @@ void CsaWaitingDialog::onShowLogClicked()
 
 void CsaWaitingDialog::onCsaCommLogAppended(const QString& line)
 {
-    m_logLines.append(line);
-    if (m_logLines.size() > 5000) m_logLines.removeFirst();
-
-    if (m_logTextEdit) {
-        m_logTextEdit->appendPlainText(line);
-    }
+    m_logPanel->append(line);
 }
 
-void CsaWaitingDialog::onCommandEntered()
+void CsaWaitingDialog::onRawCommandRequested(const QString& command)
 {
-    if (!m_commandInput || !m_coordinator || !m_coordinator->isConnected()) return;
-
-    QString command = m_commandInput->text().trimmed();
-    if (command.isEmpty()) return;
-    m_coordinator->sendRawCommand(command);
-    m_commandInput->clear();
+    if (m_coordinator && m_coordinator->isConnected()) m_coordinator->sendRawCommand(command);
 }
 
 void CsaWaitingDialog::updateCommandState()
 {
-    const bool connected = m_coordinator && m_coordinator->isConnected();
-    m_commandInput->setEnabled(connected);
-    m_btnSendToServer->setEnabled(connected && !m_commandInput->text().trimmed().isEmpty());
-}
-void CsaWaitingDialog::onLogFontIncrease()
-{
-    if (m_logFontHelper.increase()) applyLogFontSize();
-}
-
-void CsaWaitingDialog::onLogFontDecrease()
-{
-    if (m_logFontHelper.decrease()) applyLogFontSize();
-}
-
-void CsaWaitingDialog::onFontIncrease()
-{
-    if (m_fontHelper.increase()) applyFontSize();
-}
-
-void CsaWaitingDialog::onFontDecrease()
-{
-    if (m_fontHelper.decrease()) applyFontSize();
+    m_logPanel->setConnected(m_coordinator && m_coordinator->isConnected());
 }
 
 void CsaWaitingDialog::applyFontSize()

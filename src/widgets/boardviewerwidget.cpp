@@ -36,19 +36,17 @@ BoardViewerWidget::BoardViewerWidget(Features features, ButtonLabels labels, Sho
     setObjectName(QStringLiteral("boardViewer"));
     // 盤上の文字・対局者名は ShogiView がマスの大きさに合わせて調整する（ダイアログの文字サイズの対象外）
     m_view->setProperty("dialogFontScaleExcluded", true);
-    m_view->setBlackPlayerName(tr("先手"));
-    m_view->setWhitePlayerName(tr("後手"));
+    m_view->chrome()->setBlackPlayerName(tr("先手"));
+    m_view->chrome()->setWhitePlayerName(tr("後手"));
 
     // 部品を何も持たない見本用は、盤とモデルだけを持つ。配置は呼び出し側が決め、
     // ShogiView::applyBoardAndRender() で局面を渡して画像に描いて使う
     const bool bare = !(features & (ZoomToolbar | Navigation | ScrollArea));
     if (bare) return;
 
-    m_view->setMouseClickMode(false);
     m_view->setNameFontScale(0.30);  // GUI本体と同じ対局者名の大きさ
-    m_view->setPieces();             // 駒画像を読み込んでから盤を設定する
     m_view->setBoard(m_board);
-    m_view->setClockEnabled(false);
+    m_view->chrome()->setClockEnabled(false);
     // Ctrl+ホイールの拡大・縮小は、ウィンドウを盤に合わせるためこちらで処理する
     m_view->installEventFilter(this);
 
@@ -166,10 +164,8 @@ void BoardViewerWidget::showCurrent()
     const QString sfen = currentSfen();
     if (!sfen.isEmpty()) {
         // 盤は変わったマスだけを描き直すので、全体の描き直しは頼まない
+        // 手番の印は盤の手番に従う
         m_board->setSfen(sfen);
-        const bool blackTurn = sfen.section(QLatin1Char(' '), 1, 1) != QStringLiteral("w");
-        m_view->setActiveSide(blackTurn);
-        m_view->updateTurnIndicator(blackTurn ? Turn::Black : Turn::White);
     }
     updateNavigationButtons();
     if (!sfen.isEmpty()) emit currentIndexChanged(m_index);
@@ -194,8 +190,6 @@ void BoardViewerWidget::setPositionText(const QString& text)
 void BoardViewerWidget::setFlipped(bool flipped)
 {
     m_view->setFlipMode(flipped);
-    if (flipped) m_view->setPiecesFlip();
-    else m_view->setPieces();
     m_view->update();
 }
 
@@ -231,7 +225,7 @@ void BoardViewerWidget::fitToBoard()
     }
     m_view->updateBoardSize();
     // updateBoardSize() は時計ラベルを再表示するため、再度隠す
-    m_view->setClockEnabled(false);
+    m_view->chrome()->setClockEnabled(false);
     // スクロール領域の中の盤は自動では大きさが変わらないため、マスの大きさに合わせる
     m_view->resize(m_view->sizeHint());
     if (!(m_features & FitWindowOnZoom)) return;

@@ -10,10 +10,11 @@
 #include <QTimer>
 
 #include "analysisoptions.h"
+#include "usimessages.h"
 
 class AppActivityState;
 class EngineLifecycleManager;
-class ShogiEngineThinkingModel;
+class KifuNavigationState;
 class Usi;
 
 /**
@@ -31,6 +32,7 @@ public:
     struct Deps {
         EngineLifecycleManager* engines = nullptr;  ///< エンジンの枠（必須、非所有）
         AppActivityState* activity = nullptr;       ///< アプリの動作状態（必須、非所有）
+        const KifuNavigationState* navState = nullptr; ///< 表示中の手（検討は表示中の局面を追う。非所有）
     };
 
     explicit AnalysisSession(const Deps& deps, QObject* parent = nullptr);
@@ -48,15 +50,25 @@ public:
     /// 検討・詰み探索に使っているエンジンの名前（使っていなければ空）
     QString engineName() const { return m_mode == Mode::None ? QString() : m_engineName; }
 
+    /// 検討の候補手の数（検討の表の行数）
+    int considerationMultiPV() const { return m_multiPV; }
     /// 検討中に候補手の数を変える
     void updateMultiPV(int multiPV);
     /**
-     * @brief 検討中に局面を変える（棋譜欄の別の手を選んだとき）
+     * @brief 検討中に局面を変える
      * @return true: やり直しを始めた, false: 検討中でないか同じ局面
      */
     bool updatePosition(const QString& positionStr, BoardSquare previousTo, const QString& lastUsiMove);
 
+public slots:
+    /// 検討中なら、表示中の手の局面で検討をやり直す
+    void followDisplayedPosition();
+
 signals:
+    /// 検討の探索を始めた（開始・局面や候補手の数を変えたやり直し。経過時間を数え直す）
+    void considerationSearchStarted();
+    /// 検討の表の候補手が古くなった（局面・候補手の数を変えた。表を消す）
+    void considerationResultsCleared();
     void considerationModeEnded();
     void tsumeSearchModeEnded();
     /// 検討の探索が終わり、次の局面を待っている（経過時間の表示を止める）
@@ -68,12 +80,9 @@ signals:
 
 private slots:
     void onEngineError(const QString& message);
-    void onCheckmateSolved(const QStringList& pv);
-    void onCheckmateNoMate();
-    void onCheckmateNotImplemented();
-    void onCheckmateUnknown();
-    void onTsumeBestMoveReceived();
-    void onConsiderationBestMoveReceived();
+    void onCheckmate(const UsiCheckmate& result);
+    void onTsumeBestMoveReceived(const UsiBestMove& result);
+    void onConsiderationBestMoveReceived(const UsiBestMove& result);
     void restartConsiderationDeferred();
 
 private:
@@ -81,7 +90,9 @@ private:
     enum class State { Idle, Starting, CancelStarting, Searching, StoppingSearch, RestartQueued, Waiting };
 
     void startSearch();
-    void endSession();
+    /// セッションを終える（知らせない）。終えたモードを返す
+    Mode endSession();
+
     void finalizeTsumeSearch(const QString& resultMessage);
     void requestConsiderationRestart();
 
@@ -95,7 +106,6 @@ private:
     QString m_positionStr;                        ///< 検討中の position 文字列
     int m_byoyomiMs = 0;                          ///< 検討の時間制限（ms）
     int m_multiPV = 1;                            ///< 検討の候補手数
-    ShogiEngineThinkingModel* m_considerationModel = nullptr; ///< 検討タブ用モデル（非所有）
     BoardSquare m_previousTo;                     ///< 局面に至った手の移動先
     QString m_lastUsiMove;                        ///< 局面に至った手（USI形式）
 };

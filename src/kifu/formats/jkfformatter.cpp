@@ -100,31 +100,4 @@ QJsonObject moveToJkf(const ShogiBoard& board, Turn mover, const UsiMove& move, 
     return result;
 }
 
-QString terminalToJkfSpecial(TerminalType type, Turn mover)
-{
-    switch (type) {
-    case TerminalType::Resign:         return QStringLiteral("TORYO");
-    case TerminalType::Checkmate:      return QStringLiteral("TSUMI");
-    case TerminalType::Repetition:     return QStringLiteral("SENNICHITE");
-    case TerminalType::PerpetualCheck: return QStringLiteral("OUTE_SENNICHITE");
-    case TerminalType::Impasse:        return QStringLiteral("JISHOGI");
-    case TerminalType::Timeout:        return QStringLiteral("TIME_UP");
-    // 手番側の反則勝ちは、相手（手番でない側）の反則
-    case TerminalType::IllegalWin:
-        return mover == Turn::Black ? QStringLiteral("-ILLEGAL_ACTION") : QStringLiteral("+ILLEGAL_ACTION");
-    case TerminalType::IllegalLoss:    return QStringLiteral("ILLEGAL_MOVE");
-    case TerminalType::Interrupt:      return QStringLiteral("CHUDAN");
-    case TerminalType::NoCheckmate:    return QStringLiteral("FUZUMI");
-    case TerminalType::DeclarationWin: return QStringLiteral("KACHI");
-    case TerminalType::Draw:           return QStringLiteral("HIKIWAKE");
-    case TerminalType::MaxMoves:       return QStringLiteral("MAX_MOVES");
-    case TerminalType::Error:          return QStringLiteral("ERROR");
-    case TerminalType::ForfeitWin:
-    case TerminalType::Forfeit:
-    case TerminalType::None:
-        break;
-    }
-    return {};
-}
-
 } // namespace JkfFormatter

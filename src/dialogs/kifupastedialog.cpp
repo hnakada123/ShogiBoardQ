@@ -154,9 +154,10 @@ void KifuPasteDialog::setupUi()
     connect(m_btnClear, &QPushButton::clicked,
             this, &KifuPasteDialog::onClearClicked);
     connect(m_btnFontSizeDown, &QPushButton::clicked,
-            this, &KifuPasteDialog::decreaseFontSize);
+            &m_fontHelper, &FontSizeHelper::decrease);
     connect(m_btnFontSizeUp, &QPushButton::clicked,
-            this, &KifuPasteDialog::increaseFontSize);
+            &m_fontHelper, &FontSizeHelper::increase);
+    connect(&m_fontHelper, &FontSizeHelper::fontSizeChanged, this, &KifuPasteDialog::applyFontSize);
     connect(m_textEdit, &QPlainTextEdit::textChanged,
             this, &KifuPasteDialog::updateInputActions);
     connect(QApplication::clipboard(), &QClipboard::dataChanged,
@@ -207,16 +208,6 @@ void KifuPasteDialog::onClearClicked()
         m_textEdit->clear();
         m_textEdit->setFocus();
     }
-}
-
-void KifuPasteDialog::increaseFontSize()
-{
-    if (m_fontHelper.increase()) applyFontSize();
-}
-
-void KifuPasteDialog::decreaseFontSize()
-{
-    if (m_fontHelper.decrease()) applyFontSize();
 }
 
 void KifuPasteDialog::updateInputActions()

@@ -9,32 +9,7 @@
 #include <QString>
 #include <QStringList>
 
-/**
- * @brief info 行の評価値（score cp / score mate とその境界）
- */
-struct UsiScore {
-    enum class Kind { None, Cp, Mate };
-    enum class Bound { None, Lower, Upper };
-
-    Kind kind = Kind::None;
-    Bound bound = Bound::None;
-    /// Cp なら評価値（centipawn）。Mate なら詰みまでの手数（正が手番側の勝ち、負が負け）。
-    /// 手数を省く "mate +" / "mate -" は 0
-    int value = 0;
-    /// Mate で手数が示されたか（"mate +" / "mate -" は false）
-    bool mateCountKnown = false;
-    /// Mate で手数のないときの勝ち負け（"mate +" が true）。手数があるときは value の符号と同じ
-    bool mateWin = false;
-
-    bool isCp() const { return kind == Kind::Cp; }
-    bool isMate() const { return kind == Kind::Mate; }
-
-    /// 詰みの表記。"3" / "-3" / "+" / "-"。Mate 以外は空
-    QString mateText() const;
-
-    /// 詰みの勝ち負け。+1 が手番側の勝ち、-1 が負け。"mate 0" と Mate 以外は 0
-    int mateSign() const;
-};
+#include "usiscore.h"
 
 /**
  * @brief USI エンジンの info 行を解析した結果

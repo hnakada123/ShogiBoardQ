@@ -16,19 +16,12 @@ namespace {
 
 } // namespace
 
-NyugyokuDeclarationHandler::NyugyokuDeclarationHandler(QObject* parent)
+NyugyokuDeclarationHandler::NyugyokuDeclarationHandler(ShogiGameController* gc, MatchCoordinator* match,
+                                                       QObject* parent)
     : QObject(parent)
+    , m_gameController(gc)
+    , m_match(match)
 {
-}
-
-void NyugyokuDeclarationHandler::setGameController(ShogiGameController* gc)
-{
-    m_gameController = gc;
-}
-
-void NyugyokuDeclarationHandler::setMatchCoordinator(MatchCoordinator* match)
-{
-    m_match = match;
 }
 
 bool NyugyokuDeclarationHandler::handleDeclaration(QWidget* parentWidget, ShogiBoard* board, bool inLocalGame)

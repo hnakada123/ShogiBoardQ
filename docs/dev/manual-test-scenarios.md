@@ -10,9 +10,9 @@
 
 | 指標 | 値 |
 |---|---|
-| `mainwindow.cpp` 行数 | 292 |
-| `mainwindow.h` 行数 | 263 |
-| `MainWindow::` メソッド数 | 30 |
+| `mainwindow.cpp` 行数 | 45 |
+| `mainwindow.h` 行数 | 48 |
+| `MainWindow::` メソッド数 | 5 |
 
 ---
 
@@ -37,7 +37,7 @@
 
 **重点確認ポイント:**
 - 対局者の組 `MatchPlayers`（`MatchCoordinator::players()`）が人間同士（`blackIsEngine`・`whiteIsEngine` とも false）になっているか
-- `AppState::players` の同期（`GameSession::onGamePrepared` 経由）と、`AppState::activity` が `DuringGame` になるか
+- `AppState::players` の記録（`GameSession::startGame()` → `PlayerInfoPresenter::onMatchPlayersResolved()`）と、`AppState::activity` が `DuringGame` になるか（`MatchCoordinator::start()`）
 - `UiStatePolicyManager` の状態遷移（`Idle` → `DuringGame`）
 - 時計表示の初期化（持ち時間設定がある場合）
 
@@ -54,15 +54,15 @@
 - 盤面が平手初期配置で表示される
 - 先手（人間）の対局者名が表示される
 - 後手（エンジン）のエンジン名が表示される
-- エンジンの思考出力がエンジン解析タブに表示される
+- エンジンの思考出力が思考ドックに表示される
 - 先手が人間の手番として操作可能になる
 - 持ち時間が設定通り表示される
 
 **重点確認ポイント:**
 - `MatchPlayers` で後手だけがエンジン（`whiteIsEngine`）になっているか
 - エンジンの初期化・接続（USI isready → readyok）
-- `isHumanTurnNow()` が先手の手番で `true` を返すか
-- `TimeControlController` への時間設定適用（`GameStartCoordinator::requestApplyTimeControl` → `GameSession::applyTimeControl`）
+- `HumanTurnPolicy::isHumanTurnNow()` が先手の手番で `true` を返すか
+- 時計への持ち時間の適用（`GameSession::startGame()` が `TimeControlUtil::applyToClock()` で `ShogiClock` に設定し、`MatchTimeRecord::begin()` で対局情報用に記録する）
 - エンジン名の表示（`PlayerInfoPresenter::onMatchPlayersResolved`）
 
 ---
@@ -85,12 +85,11 @@
 - 持ち時間がカウントダウンされる（設定時）
 
 **重点確認ポイント:**
-- `MatchCoordinator::completeMove()` が対局の手順（`MatchCoordinator::record()`）に積み、`MatchRecordSink::appendRecord` で棋譜の受け手に渡すフロー
-- `GameSession::appendRecord` → `LiveGameSession::appendRecord` による分岐ツリー（棋譜の正本）への指し手の記録（USI 形式の指し手はノードの手 `ShogiMove::toUsiMove()` から作る）
-- 表示中の手数（`KifuNavigationState::currentPly()`、分岐ツリーのカーソル）が最新手に合うこと（`KifuDisplayCoordinator::onLiveGameMoveAdded`）
-- `AppState::currentSfenStr` の更新（`GameSession::appendRecord` が指した手の `RecordEntry::sfen` から更新）
-- `onTurnManagerChanged` による手番切替の正確さ
-- 評価値グラフへのプロット追加（エンジン対局時）
+- 人間の手は `BoardMoveController` → `MatchCoordinator::onHumanMove()`、エンジンの手は Strategy → `MatchStrategyHost::applyEngineMove()` を通り、`MatchCoordinator::completeMove()` が対局の手順（`MatchCoordinator::record()`）に積み、`MatchRecordSink::appendRecord` で棋譜の受け手に渡すフロー
+- `GameSession::appendRecord` → `LiveGameSession::appendRecord` による分岐ツリー（棋譜の正本）への指し手の記録（USI 形式の指し手はノードの手 `ShogiMove::move`（`UsiMove`）から作る）
+- 表示中の手（`KifuNavigationState::currentNode()`）が最新手に移ること（`LiveGameSession::appendRecord` が移す）。棋譜欄・分岐ツリーは `KifuDisplayPresenter`、盤とハイライトは `BoardSyncPresenter` が `KifuNavigationState::changed` を受けて合わせる
+- 手番表示の切り替え（盤の手番 `ShogiBoard::turnChanged` → `BoardChromeWidget::setActiveSide`）
+- 評価値グラフへのプロット追加（エンジン対局時。`MatchCoordinator::engineMovePlayed` → `EvaluationGraphPresenter::plotEngineScore`）
 
 ---
 
@@ -112,12 +111,11 @@
 - 定跡ウィンドウが更新される（表示中の場合）
 
 **重点確認ポイント:**
-- `onRecordPaneMainRowChanged` → `RecordNavigationHandler::onMainRowChanged` のフロー
-- `KifuDisplayCoordinator::onPositionChanged` → `KifuNavigationController::goToLine` の委譲（分岐ツリーのカーソルを動かして盤面・棋譜欄・分岐ツリーに反映する）
-- `BoardSyncPresenter::loadBoardWithHighlights` による盤面更新
-- `setCurrentTurn()` による手番同期（非ライブモード: 盤面SFENから取得）
-- 盤面の局面が表示中の手順（分岐ツリー）から取られていること（`KifuDisplayCoordinator::onPositionChanged` が表示中のラインのノードへ移動する）
-- 表示中の手数（`KifuNavigationState::currentPly()`、分岐ツリーのカーソル）が選んだ行に合うこと（`KifuDisplayCoordinator::onPositionChanged`）
+- `RecordPane::mainRowChanged` → `KifuNavigationController::selectRecordRow()` のフロー（未保存コメントの確認 `confirmLeave()` の後、`KifuNavigationState::setCurrentNode()` で表示中の手を移す）
+- `BoardSyncPresenter::syncToCurrentNode()` による盤面とハイライトの更新（ノードの SFEN が盤と違うときだけ `ShogiBoard::setSfen()`）
+- 手番表示が盤の手番（`ShogiBoard::turnChanged`）から決まること
+- 盤面の局面が表示中の手順（分岐ツリーのノード）から取られていること
+- 表示中の手数（`KifuNavigationState::currentPly()`）が選んだ行に合い、棋譜欄の選択が `KifuDisplayPresenter::refresh()` で同じ行に戻ること
 
 ---
 
@@ -139,12 +137,11 @@
 - 本譜に戻ると棋譜欄が本譜表示に復帰する
 
 **重点確認ポイント:**
-- `BranchNavigationWiring::onBranchNodeActivated` → `KifuNavigationController::handleBranchNodeActivated` のフロー
-- `KifuNavigationController::branchNodeHandled` → `KifuNavigationCoordinator::handleBranchNodeHandled`
-- `BoardLoadService::loadFromSfen` による盤面更新
-- `BoardLoadService::loadWithHighlights`（`BoardSyncPresenter::loadBoardWithHighlights`）による盤面 + ハイライト更新
-- `syncNavStateToPly` による NavState の同期（現在ライン上のノード優先）
-- 分岐ナビ中に `onRecordPaneMainRowChanged` が不当な盤面上書きをしないか
+- `BranchTreeManager::branchNodeActivated` → `KifuNavigationController::selectBranchTreeNode()` → `goToLine()` のフロー（分岐前の共有ノードは表示中の手順のまま移る）
+- 分岐候補欄からの移動（`RecordPane::branchRowActivated` → `KifuNavigationController::selectBranchCandidateRow()`。「本譜へ戻る」は `goToMainLineAtCurrentPly()`）
+- `BoardSyncPresenter::syncToCurrentNode()` による盤面 + ハイライト更新
+- `KifuNavigationState::setCurrentNode(node, lineEnd)` が選んだ手順を覚え、以降の「進む」がその分岐をたどるか
+- 分岐ナビ中に棋譜欄の選択の変化（`RecordPane::mainRowChanged`）で別の手に移らないか（`KifuDisplayPresenter` が選択を表示中の手に合わせる）
 
 ---
 
@@ -165,12 +162,12 @@
 - 対局情報に終了日時が記録される
 
 **重点確認ポイント:**
-- `GameSession::onGameEnded` のフロー（ライブ対局のセッションの確定、時計の停止、終局日時の記録 `recordGameEndTime()`）
+- `MatchCoordinator::endGame()` のフロー（時計の停止、エンジンへの通知、終局手の追記、動作状態を `Idle` に戻して `gameEnded`）
 - `MatchCoordinator::appendTerminalRecord()` による終局手追記（`MatchRecordSink::appendRecord` 経由）
-- `LiveGameSession::commit()` が呼ばれるか
+- `GameSession::onGameEnded` で `LiveGameSession::commit()` が呼ばれ（中断以外）、終局日時が記録されるか（`recordGameEndTime()`）
 - `UiStatePolicyManager` の状態遷移（`DuringGame` → `Idle`）
-- `isGameActivelyInProgress()` が `false` を返すか
-- `GameOverState.isOver` の設定
+- `HumanTurnPolicy::isGameActivelyInProgress()` が `false` を返すか
+- `MatchCoordinator::gameOverState().isOver` の設定
 
 ### 5-B: 連続対局（エンジン vs エンジン）
 
@@ -187,11 +184,11 @@
 - 設定した回数で連続対局が終了する
 
 **重点確認ポイント:**
-- `GameSession::onGameEndProcessed` → `ConsecutiveGamesController::startNextGame()` → `GameSession::startNextGame` のフロー
-- `ConsecutiveGamesController::shouldStartNextGame()` の判定
-- `GameSession::prepareStart()`（`PreStartCleanupHandler::performCleanup()`）によるクリーンアップ
-- `m_lastTimeControl` の保持と再適用
-- 先後交替時の `MatchPlayers`（エンジン名）・エンジンのパス・持ち時間の入れ替え（`ConsecutiveGamesController::startNextGame()`）
+- `GameSession::onGameEndProcessed` → `ConsecutiveGameSeries::startNextGame()` → `nextGameReady` → `GameSession::startNextGame` のフロー
+- `ConsecutiveGameSeries::shouldStartNextGame()` の判定
+- `GameSession::startNextGame()` が `SessionResetCoordinator::resetToNewRecord()` で新しい棋譜にしてから `startGame()` を呼ぶか
+- 1局目の計画（`GameStartPlan`。持ち時間を含む）を `ConsecutiveGameSeries::beginSeries()` で保持し、次局で使い直すか
+- 先後交替時の `MatchPlayers`（エンジン名）・エンジンのパス・持ち時間の入れ替え（`ConsecutiveGameSeries::launchPreparedNextGame()`）
 
 ---
 
@@ -217,17 +214,14 @@
 
 **重点確認ポイント:**
 - `GameSession::resetToInitialState()` の実行順序（「新規」は `MainWindowActions::resetToInitialState()` が未保存の確認をしてから呼ぶ）:
-  1. `stopEnginesAndNetwork()` — 検討・詰み探索のエンジン/CSA/連続対局停止、司令塔の終局状態のクリア
-  2. `prepareStart()` — クリーンアップ（`PreStartCleanupHandler::performCleanup()`）+ UI クリア
-  3. `resetGameState()` — 動作状態を `Idle` に戻し、対局者・保存先をクリア
-  4. `resetModels()` — モデルリセット（ResetService委譲）
-  5. `resetUiState()` — UI状態リセット
+  1. 検討・詰み探索（`AnalysisSession::stop()`）と通信対局（`CsaGameCoordinator::stopGame()`）を止め、司令塔の終局状態・連続対局・中断した対局を消す
+  2. `SessionResetCoordinator::clearBeforeKifuLoad()` — 通信ログ・思考情報・検討・解析結果・評価値グラフを消す
+  3. `SessionResetCoordinator::resetToNewRecord()` — 読み込み途中の棋譜を捨て（`KifuLoadCoordinator::cancelLoad()`）、平手の開始局面だけの棋譜にし、対局情報・終局日時を消す
+  4. 動作状態を `Idle` に戻し、対局者・上書き保存先をクリアし、盤の対局者名を対局情報の初期値に戻す
 - `AppState::activity` が `Idle` に戻り、`AppState::players` が空になるか
-- `AppState::startSfenStr` が平手 SFEN に戻るか
-- `AppState::currentSfenStr` が平手 SFEN に戻るか
+- 分岐ツリーの開始局面（`KifuBranchTree::root()`）が平手 SFEN に戻り、表示中の手（`KifuNavigationState::currentSfen()`）も平手になるか
 - 司令塔の終局状態が `MatchCoordinator::clearGameOverState()` で消えるか（対局の手順 `MatchCoordinator::record()` は次の対局の開始で置き換わる）
-- `ReplayController` の状態がリセットされるか
-- `LiveGameSession` がリセットされるか
+- `LiveGameSession` が破棄（`discard()`）されるか
 - 再対局時に古い接続（signal/slot）が残っていないか
 
 ---
@@ -253,9 +247,9 @@
 - グラフの表示範囲が適切（先手有利を上、後手有利を下）
 
 **重点確認ポイント:**
-- `EvaluationGraphController::plotEngineScore` の呼び出し（`MatchCoordinator::engineMovePlayed` から）
-- `EvaluationGraphController::setCurrentPly` による縦線移動
-- 待った（`GameSession::undoTwoMoves`）時のプロット削除（`GameSession::onMovesUndone` → `EvaluationGraphController::trimToPly`）
+- `EvaluationGraphPresenter::plotEngineScore` の呼び出し（`MatchCoordinator::engineMovePlayed` から）
+- `EvaluationGraphPresenter::showCurrentPly` による縦線移動（`KifuNavigationState::changed` を受ける）
+- 待った（`GameSession::undoTwoMoves`）時のプロット削除（`MatchCoordinator::movesUndone` → `EvaluationGraphPresenter::trimToPly`）
 
 ### 7-B: コメント
 
@@ -271,8 +265,8 @@
 - 未保存コメントがある場合、行移動時に確認ダイアログが表示される
 
 **重点確認ポイント:**
-- `CommentCoordinator::broadcastComment` によるコメント表示
-- `CommentCoordinator::confirmLeaveEditingMove()` での未保存コメント確認ロジック（棋譜欄の行変更は `MainWindowActions::onRecordPaneMainRowChanged` から、分岐ツリー・ボタンでの移動は `KifuNavigationController::setLeaveGuard()` から呼ぶ）
+- `CommentCoordinator::showCurrentComment` によるコメント表示（`KifuNavigationState::changed`・`GameRecordModel::commentChanged` を受ける）
+- `CommentCoordinator::confirmLeaveEditingMove()` での未保存コメント確認ロジック（棋譜欄の行・分岐候補・分岐ツリー・ボタン・評価値グラフからの移動は、どれも `KifuNavigationController::setLeaveGuard()` に渡した確認を `confirmLeave()` で通る。移るのをやめたら `navigationRejected` で選択を表示中の手に戻す）
 - `GameRecordModel::commentChanged` シグナル
 - 分岐ツリーを正本とするコメントと棋譜欄・コメント欄の表示の一致
 
@@ -283,21 +277,21 @@
 以下の既知のリスクポイントを各フェーズ完了後に重点的に確認する:
 
 1. **棋譜ナビゲーションの経路**
-   - 棋譜欄・分岐ツリー・評価値グラフからの移動が、分岐ツリーのカーソル（`KifuNavigationController::goToLine`）を通って盤面・棋譜欄・分岐ツリーに反映されるか
+   - 棋譜欄・分岐ツリー・評価値グラフからの移動が、表示中の手（`KifuNavigationState`）を `KifuNavigationController` で動かすだけで盤面・棋譜欄・分岐ツリーに反映されるか（各部品が `KifuNavigationState::changed` を受けて合わせる）
    - 分岐ナビ中に棋譜欄の行選択の通知で盤面が古い局面に上書きされないか
 
 2. **対局の手順の置き場**
    - 対局中の手順は司令塔（`MatchCoordinator`、起動時に一度だけ作る）の `record()`（`RecordLine`）だけが持ち、ほかの部品が局面列へのポインタを持っていないか（評価値グラフは `MatchCoordinator::engineMovePlayed` で指した側と手数を受け取り、評価値はエンジンの枠 `EngineLifecycleManager` から読む）
-   - 盤面同期（`BoardSyncPresenter`）が対局の局面列ではなく、表示中の手順（`currentLine` = `KifuNavigationState::currentRecordLine()`）から盤面を描いているか
+   - 盤面同期（`BoardSyncPresenter`）が対局の局面列ではなく、表示中の手（`KifuNavigationState::currentNode()`）の局面から盤面を描いているか
 
-3. **`TurnManager` と `GameController` の同期順序**
-   - ライブ対局中は GC を単一ソースとしているか
-   - 棋譜ナビゲーション時は盤面SFEN を優先しているか
+3. **手番の置き場**
+   - 手番を盤（`ShogiBoard`）だけが持ち、`ShogiGameController::currentPlayer()`・手番表示・人間の手番の判定がどれも盤の手番から決まるか
+   - 棋譜ナビゲーション時は表示中の手の SFEN で盤が置き換わり、手番もそれに従うか
 
 4. **`KifuLoadCoordinator` の使い回し**
-   - 起動時に作った1つのインスタンス（`MainWindowComposer::wireKifu()` が `KifuLoadCoordinatorFactory::createAndWire()` で作る）で、2回目以降の読み込みも正しく反映されるか
+   - 起動時に作った1つのインスタンス（`MainWindowComposer::createSessions()` が作る）で、2回目以降の読み込みも正しく反映されるか
    - 読み込み中に別の棋譜を読み込んだとき、前の読み込みの結果が後から反映されないか（`KifuLoadCoordinator::startLoad()` が前のジョブを捨てる）
-   - 初期状態へのリセット（`GameSession::resetModels()` → `MainWindowResetService::resetModels()` → `resetBranchTreeForNewState()`）で、読み込み途中の棋譜が `cancelLoad()` で捨てられるか
+   - 初期状態へのリセット（`GameSession::resetToInitialState()` → `SessionResetCoordinator::resetToNewRecord()`）で、読み込み途中の棋譜が `KifuLoadCoordinator::cancelLoad()` で捨てられるか
 
 5. **`UiStatePolicyManager` の状態遷移**
    - 各シナリオで期待される状態遷移が正しく発生しているか

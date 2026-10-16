@@ -7,7 +7,6 @@
 #include <QObject>
 #include <QString>
 #include <QStringList>
-#include <functional>
 #include <QPointer>
 
 class ShogiView;
@@ -33,16 +32,7 @@ public:
         ShogiView*                 view = nullptr; ///< 盤面ビュー（必須・非所有）
         ShogiGameController*       gc   = nullptr; ///< ゲームコントローラ（必須・非所有）
         BoardInteractionController* bic = nullptr; ///< 操作コントローラ（任意・非所有）
-
-        QString currentSfen;     ///< 表示中の局面（空なら displayedSfen、それも空なら盤から作る）
-        QString displayedSfen;   ///< 表示中の局面（分岐ツリーのカーソル）
-        QString recordStartSfen; ///< 表示中の棋譜の開始局面（空なら編集する局面）
-
-        bool gameOver    = false; ///< 対局終了フラグ（任意）
-
-
-        std::function<void()> onShowEditExitButton; ///< 「編集終了」ボタン表示コールバック
-        std::function<void()> onEnterEditMenu; ///< 編集メニュー切替コールバック
+        QString displayedSfen;   ///< 表示中の局面（空なら盤から作る）
     };
 
     // --- 編集終了コンテキスト ---
@@ -52,15 +42,11 @@ public:
         ShogiView*                 view = nullptr; ///< 盤面ビュー（必須・非所有）
         ShogiGameController*       gc   = nullptr; ///< ゲームコントローラ（必須・非所有）
         BoardInteractionController* bic = nullptr; ///< 操作コントローラ（任意・非所有）
-
-
-        std::function<void()> onHideEditExitButton; ///< 「編集終了」ボタン非表示コールバック
-        std::function<void()> onLeaveEditMenu; ///< 編集メニュー復帰コールバック
     };
 
     // --- 編集ライフサイクル ---
-    /// 編集を始める。戻り値は開始局面（表示中の棋譜の開始局面。無ければ編集する局面）。始めなければ空
-    QString beginPositionEditing(const BeginEditContext& c);
+    /// 表示中の局面で編集を始める。始めたら true
+    bool beginPositionEditing(const BeginEditContext& c);
     /// 編集を終える。戻り値は編集した局面（新しい開始局面になる）。終えなければ空
     QString finishPositionEditing(const FinishEditContext& c);
 

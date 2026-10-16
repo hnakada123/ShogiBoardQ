@@ -94,7 +94,8 @@ void CsaLogPanel::buildToolbar()
     m_btnFontDecrease->setFixedSize(28, 24);
     m_btnFontDecrease->setStyleSheet(ButtonStyles::fontButton());
     connect(m_btnFontDecrease, &QToolButton::clicked,
-            this, &CsaLogPanel::onFontDecrease);
+            &m_fontSize, &FontSizeHelper::decrease);
+    connect(&m_fontSize, &FontSizeHelper::fontSizeChanged, this, &CsaLogPanel::applyFontSize);
 
     m_btnFontIncrease = new QToolButton(m_toolbar);
     m_btnFontIncrease->setText(QStringLiteral("A+"));
@@ -102,7 +103,7 @@ void CsaLogPanel::buildToolbar()
     m_btnFontIncrease->setFixedSize(28, 24);
     m_btnFontIncrease->setStyleSheet(ButtonStyles::fontButton());
     connect(m_btnFontIncrease, &QToolButton::clicked,
-            this, &CsaLogPanel::onFontIncrease);
+            &m_fontSize, &FontSizeHelper::increase);
 
     toolbarLayout->addWidget(m_btnFontDecrease);
     toolbarLayout->addWidget(m_btnFontIncrease);
@@ -203,16 +204,6 @@ void CsaLogPanel::applyFontSize()
     font.setPointSize(size);
     if (m_btnSendToServer) m_btnSendToServer->setFont(font);
     if (m_commandInput) m_commandInput->setFont(font);
-}
-
-void CsaLogPanel::onFontIncrease()
-{
-    if (m_fontSize.increase()) applyFontSize();
-}
-
-void CsaLogPanel::onFontDecrease()
-{
-    if (m_fontSize.decrease()) applyFontSize();
 }
 
 // ===================== イベント処理 =====================

@@ -1,222 +1,182 @@
 /// @file tst_app_branch_navigation.cpp
-/// @brief BranchNavigationWiring の配線を実物の部品で確かめるテスト
+/// @brief 棋譜を移る操作（ボタン・分岐ツリー・分岐候補欄）を、本体の合成ルートで組み立てた部品で確かめるテスト
 ///
-/// 分岐ツリー・表示中の手順・ナビゲーション・表示コーディネータ・ライブセッションは、
-/// アプリではレジストリが作って渡す。ここでも同じように組み立てて BranchNavigationWiring に渡し、
-/// ボタン操作・分岐ツリーのクリック・新規対局のリセットで起きることを確かめる。
+/// 操作は KifuNavigationController が表示中の手（KifuNavigationState）を動かすだけで、
+/// 盤・棋譜欄・分岐候補欄は表示中の手の変化を受けて自分で合わせる。
 
 #include <QtTest>
 #include <QPushButton>
 #include <QSignalSpy>
+#include <QTemporaryDir>
 
-#include "appstate.h"
-#include "branchnavigationwiring.h"
+#include "branchtreemanager.h"
 #include "gamerecordmodel.h"
 #include "kifubranchlistmodel.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
-#include "kifudisplaycoordinator.h"
+#include "kifufilecontroller.h"
 #include "kifunavigationcontroller.h"
 #include "kifunavigationstate.h"
 #include "kifurecordlistmodel.h"
 #include "livegamesession.h"
+#include "mainwindow.h"
+#include "mainwindowcomposer.h"
 #include "recordpane.h"
-#include "prestartcleanuphandler.h"
-#include "shogimove.h"
+#include "sessionresetcoordinator.h"
+#include "sfenutils.h"
+#include "shogiboard.h"
+#include "shogigamecontroller.h"
+#include "test_replay.h"
 
 namespace {
 
-const QString kHirateSfen =
-    QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
 const QString kNoLanceSfen =
     QStringLiteral("lnsgkgsn1/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
 
-/// アプリのレジストリと同じ組み立てをした分岐ナビゲーションの部品一式
-struct BranchNavigationParts {
-    KifuBranchTree tree;
-    KifuNavigationState navState;
-    KifuNavigationController navController;
-    LiveGameSession liveSession;
-    KifuDisplayCoordinator display{&tree, &navState, &navController};
-    KifuRecordListModel recordModel;
-    KifuBranchListModel branchModel;
-    RecordPane recordPane;
-    GameRecordModel gameRecord;
-    AppState state;
+/// 盤の局面（手数を除く）
+QString boardPosition(const MainWindowComponents& p)
+{
+    return p.gameController->board()->toSfen().section(QLatin1Char(' '), 0, 2);
+}
 
-    BranchNavigationParts()
-    {
-        // 本譜5手と、2手目から分かれる変化2手
-        tree.setRootSfen(kHirateSfen);
-        KifuBranchNode* node = tree.root();
-        for (int ply = 1; ply <= 5; ++ply) {
-            node = tree.addMove(node, ShogiMove(), QStringLiteral("move%1").arg(ply),
-                                QStringLiteral("sfen%1").arg(ply));
-        }
-        KifuBranchNode* branch = tree.addMove(tree.findByPlyOnMainLine(2), ShogiMove(),
-                                              QStringLiteral("branch3"), QStringLiteral("bsfen3"));
-        tree.addMove(branch, ShogiMove(), QStringLiteral("branch4"), QStringLiteral("bsfen4"));
-
-        navState.setTree(&tree);
-        navController.setTreeAndState(&tree, &navState);
-        liveSession.setTree(&tree);
-        recordPane.setModels(&recordModel, &branchModel);
-    }
-
-    BranchNavigationWiring::Deps deps()
-    {
-        BranchNavigationWiring::Deps d;
-        d.branchTree = &tree;
-        d.navState = &navState;
-        d.kifuNavController = &navController;
-        d.displayCoordinator = &display;
-        d.liveGameSession = &liveSession;
-        d.recordPane = &recordPane;
-        d.kifuRecordModel = &recordModel;
-        d.kifuBranchModel = &branchModel;
-        d.gameRecordModel = &gameRecord;
-        d.state = &state;
-        return d;
-    }
-};
+QString position(const QString& sfen)
+{
+    return sfen.section(QLatin1Char(' '), 0, 2);
+}
 
 } // namespace
 
 class TestAppBranchNavigation : public QObject
 {
     Q_OBJECT
+    QTemporaryDir m_config;
+
+    /// 本譜5手と、2手目から分かれる変化（△８四歩 ▲２六歩）を読み込む
+    static KifuBranchNode* loadRecord(MainWindowComponents& p)
+    {
+        if (!p.kifuFileController->loadKifuText(QStringLiteral("position startpos moves 7g7f 3c3d 2g2f 8c8d 2f2e")))
+            return nullptr;
+        KifuBranchNode* ply1 = p.branchTree->findByPlyOnMainLine(1);
+        const QStringList usi{QStringLiteral("8c8d"), QStringLiteral("2g2f")};
+        const QStringList sfens = TestReplay::buildSfenRecord(ply1->sfen(), usi, false);
+        const QList<ShogiMove> moves = TestReplay::buildGameMoves(ply1->sfen(), usi);
+        KifuBranchNode* branch2 = p.branchTree->addMove(ply1, moves.at(0), QStringLiteral("△８四歩(83)"), sfens.at(1));
+        p.branchTree->addMove(branch2, moves.at(1), QStringLiteral("▲２六歩(27)"), sfens.at(2));
+        p.gameRecord->clearDirty();
+        p.kifuNavController->goToFirst();
+        return branch2;
+    }
 
 private slots:
-    void navigationButtonsMoveTheCursorAndForwardSignals()
+    void initTestCase()
     {
-        BranchNavigationParts parts;
-        BranchNavigationWiring wiring;
-        wiring.updateDeps(parts.deps());
-        wiring.initialize();
-
-        QSignalSpy board(&wiring, &BranchNavigationWiring::boardWithHighlightsRequired);
-        QSignalSpy handled(&wiring, &BranchNavigationWiring::branchNodeHandled);
-        QSignalSpy plyChanged(&wiring, &BranchNavigationWiring::currentPlyChanged);
-
-        parts.recordPane.nextButton()->click();
-        QCOMPARE(parts.navState.currentPly(), 1);
-        QCOMPARE(board.count(), 1);
-        QCOMPARE(board.last().at(0).toString(), QStringLiteral("sfen1"));
-        QCOMPARE(board.last().at(1).toString(), kHirateSfen);
-        QCOMPARE(handled.count(), 1);
-        QCOMPARE(handled.last().at(0).toInt(), 1);
-        QCOMPARE(handled.last().at(1).toString(), QStringLiteral("sfen1"));
-        QVERIFY(!plyChanged.isEmpty());
-        QCOMPARE(plyChanged.last().at(0).toInt(), 1);
-
-        parts.recordPane.lastButton()->click();
-        QCOMPARE(parts.navState.currentPly(), 5);
-        parts.recordPane.prevButton()->click();
-        QCOMPARE(parts.navState.currentPly(), 4);
-        parts.recordPane.firstButton()->click();
-        QCOMPARE(parts.navState.currentNode(), parts.tree.root());
-        QCOMPARE(plyChanged.last().at(0).toInt(), 0);
+        QVERIFY(m_config.isValid());
+        qputenv("SHOGIBOARDQ_CONFIG_HOME", m_config.path().toUtf8());
     }
 
-    void initializeTwiceDoesNotDuplicateConnections()
+    void navigationButtonsMoveTheCursorAndTheBoard()
     {
-        BranchNavigationParts parts;
-        BranchNavigationWiring wiring;
-        wiring.updateDeps(parts.deps());
-        wiring.initialize();
-        wiring.initialize();
+        MainWindow window;
+        auto& p = window.composer().parts();
+        QVERIFY(loadRecord(p));
+        QSignalSpy changed(p.navState, &KifuNavigationState::changed);
 
-        QSignalSpy board(&wiring, &BranchNavigationWiring::boardWithHighlightsRequired);
-        QSignalSpy handled(&wiring, &BranchNavigationWiring::branchNodeHandled);
-        parts.recordPane.nextButton()->click();
+        p.recordPane->nextButton()->click();
+        QCOMPARE(p.navState->currentPly(), 1);
+        QCOMPARE(changed.count(), 1);
+        QCOMPARE(boardPosition(p), position(p.navState->currentSfen()));
+        QCOMPARE(p.kifuRecord->currentHighlightRow(), 1);
 
-        QCOMPARE(parts.navState.currentPly(), 1);
-        QCOMPARE(board.count(), 1);
-        QCOMPARE(handled.count(), 1);
+        p.recordPane->lastButton()->click();
+        QCOMPARE(p.navState->currentPly(), 5);
+        p.recordPane->prevButton()->click();
+        QCOMPARE(p.navState->currentPly(), 4);
+        QCOMPARE(boardPosition(p), position(p.navState->currentSfen()));
+        p.recordPane->firstButton()->click();
+        QCOMPARE(p.navState->currentNode(), p.branchTree->root());
+        QCOMPARE(boardPosition(p), position(SfenUtils::hirateSfen()));
+        QCOMPARE(p.kifuRecord->currentHighlightRow(), 0);
     }
 
-    void initializeWaitsUntilThePartsArePassed()
+    /// 分岐ツリーのノードをクリックすると、その手順のその手へ移り、盤・棋譜欄・分岐候補欄が合う
+    void branchTreeClickMovesToTheChosenLine()
     {
-        BranchNavigationParts parts;
-        BranchNavigationWiring wiring;
-        wiring.updateDeps({});
-        wiring.initialize();
-        QVERIFY(wiring.editController() == nullptr);
-        parts.recordPane.nextButton()->click();
-        QCOMPARE(parts.navState.currentPly(), 0);
+        MainWindow window;
+        auto& p = window.composer().parts();
+        KifuBranchNode* branch2 = loadRecord(p);
+        QVERIFY(branch2);
 
-        // 部品を受け取ってから初期化すれば配線される
-        wiring.updateDeps(parts.deps());
-        QVERIFY(wiring.editController() != nullptr);
-        wiring.initialize();
-        parts.recordPane.nextButton()->click();
-        QCOMPARE(parts.navState.currentPly(), 1);
+        emit p.branchTreeView->branchNodeActivated(1, 2);
+
+        QCOMPARE(p.navState->currentNode(), branch2);
+        QCOMPARE(p.navState->currentLineIndex(), 1);
+        QCOMPARE(boardPosition(p), position(branch2->sfen()));
+        QCOMPARE(p.kifuRecord->rowCount(), 4);   // 開始局面〜変化の終わり（3手目）
+        QCOMPARE(p.kifuRecord->currentHighlightRow(), 2);
+        QCOMPARE(p.kifuBranch->candidateCount(), 2);
+        QVERIFY(p.kifuBranch->hasBackToMainRow());
+        QCOMPARE(p.kifuBranch->currentHighlightRow(), 1);
     }
 
-    void branchNodeActivationMovesToTheChosenLine()
+    /// 分岐候補欄の行を選ぶと、その手へ移る。末尾の「本譜へ戻る」は本譜の同じ手数へ移る
+    void branchCandidateRowsSwitchLines()
     {
-        BranchNavigationParts parts;
-        BranchNavigationWiring wiring;
-        wiring.updateDeps(parts.deps());
-        wiring.initialize();
-        QSignalSpy handled(&wiring, &BranchNavigationWiring::branchNodeHandled);
+        MainWindow window;
+        auto& p = window.composer().parts();
+        KifuBranchNode* branch2 = loadRecord(p);
+        QVERIFY(branch2);
+        p.kifuNavController->goToPly(2);
+        QCOMPARE(p.kifuBranch->candidateCount(), 2);
+        QVERIFY(!p.kifuBranch->hasBackToMainRow());
 
-        wiring.onBranchNodeActivated(1, 3);
+        emit p.recordPane->branchRowActivated(1);
+        QCOMPARE(p.navState->currentNode(), branch2);
+        QVERIFY(p.kifuBranch->hasBackToMainRow());
 
-        QCOMPARE(parts.navState.currentNode()->sfen(), QStringLiteral("bsfen3"));
-        QCOMPARE(parts.navState.currentLineIndex(), 1);
-        QCOMPARE(handled.count(), 1);
-        QCOMPARE(handled.last().at(0).toInt(), 3);
-        QCOMPARE(handled.last().at(1).toString(), QStringLiteral("bsfen3"));
+        emit p.recordPane->branchRowActivated(2);
+        QCOMPARE(p.navState->currentNode(), p.branchTree->findByPlyOnMainLine(2));
+        QVERIFY(p.navState->isOnMainLine());
+        QCOMPARE(boardPosition(p), position(p.navState->currentSfen()));
     }
 
-    void branchNodeActivationWithoutControllerIsIgnored()
+    /// 棋譜欄の行を選ぶと、表示中の手順のその手へ移る
+    void recordRowSelectionMovesWithinTheShownLine()
     {
-        BranchNavigationWiring wiring;
-        QSignalSpy handled(&wiring, &BranchNavigationWiring::branchNodeHandled);
-        wiring.onBranchNodeActivated(0, 1);
-        wiring.onBranchTreeBuilt();
-        QCOMPARE(handled.count(), 0);
+        MainWindow window;
+        auto& p = window.composer().parts();
+        KifuBranchNode* branch2 = loadRecord(p);
+        QVERIFY(branch2);
+        p.kifuNavController->goToNode(branch2->childAt(0));
+
+        emit p.recordPane->mainRowChanged(2);
+        QCOMPARE(p.navState->currentNode(), branch2);
+        QCOMPARE(p.navState->currentLineIndex(), 1);
+        emit p.recordPane->mainRowChanged(0);
+        QCOMPARE(p.navState->currentNode(), p.branchTree->root());
+        // 開始局面へ戻っても、選んでいた変化の手順のまま
+        QCOMPARE(p.navState->currentLineIndex(), 1);
     }
 
-    void treeBuiltRebindsGameRecordModelAndCursor()
-    {
-        BranchNavigationParts parts;
-        BranchNavigationWiring wiring;
-        wiring.updateDeps(parts.deps());
-        wiring.initialize();
-        parts.navController.goToPly(3);
-        QVERIFY(parts.gameRecord.branchTree() == nullptr);
-
-        wiring.onBranchTreeBuilt();
-
-        QCOMPARE(parts.gameRecord.branchTree(), &parts.tree);
-        QCOMPARE(parts.navState.currentNode(), parts.tree.root());
-    }
-
+    /// 新しい対局の準備では、ライブ対局を捨てて新しい開始局面だけの棋譜にし、分岐の選択も忘れる
     void resetForNewGameDiscardsLiveSessionAndReturnsToRoot()
     {
-        BranchNavigationParts parts;
-        BranchNavigationWiring wiring;
-        wiring.updateDeps(parts.deps());
-        wiring.initialize();
-        parts.navController.goToLine(1, 4);
-        QCOMPARE(parts.navState.preferredLineIndex(), 1);
-        parts.liveSession.startFromRoot();
-        QVERIFY(parts.liveSession.isActive());
-        parts.state.startSfenStr = kNoLanceSfen;
+        MainWindow window;
+        auto& p = window.composer().parts();
+        QVERIFY(loadRecord(p));
+        p.kifuNavController->goToLine(1, 3);
+        QCOMPARE(p.navState->currentLineIndex(), 1);
+        p.liveGameSession->startFromRoot();
+        QVERIFY(p.liveGameSession->isActive());
 
-        PreStartCleanupHandler::Dependencies cleanupDeps;
-        cleanupDeps.liveGameSession = &parts.liveSession;
-        cleanupDeps.branchTree = &parts.tree;
-        cleanupDeps.navState = &parts.navState;
-        PreStartCleanupHandler cleanup(cleanupDeps);
-        cleanup.performCleanup({GameStartPreparation::Mode::NewGame, parts.state.startSfenStr, -1});
+        KifuBranchNode* root = p.sessionReset->prepareGameStart({GameStartPreparation::Mode::NewGame, kNoLanceSfen, -1});
 
-        QVERIFY(!parts.liveSession.isActive());
-        QCOMPARE(parts.tree.root()->sfen(), kNoLanceSfen);
-        QCOMPARE(parts.navState.currentNode(), parts.tree.root());
-        QCOMPARE(parts.navState.preferredLineIndex(), -1);
+        QCOMPARE(root, p.branchTree->root());
+        QCOMPARE(p.branchTree->root()->sfen(), kNoLanceSfen);
+        QCOMPARE(p.navState->currentNode(), p.branchTree->root());
+        QCOMPARE(p.navState->currentLineIndex(), 0);
+        QCOMPARE(boardPosition(p), position(kNoLanceSfen));
+        p.liveGameSession->discard();
+        p.gameRecord->clearDirty();
     }
 };
 

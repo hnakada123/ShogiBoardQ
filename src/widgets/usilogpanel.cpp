@@ -108,6 +108,9 @@ QWidget* UsiLogPanel::buildUi(QWidget* parent)
 
     applyFontSize();
     updateLogActions();
+    // 先に渡されたモデルのエンジン名を出す
+    onEngine1NameChanged();
+    onEngine2NameChanged();
 
     return m_container;
 }
@@ -212,7 +215,8 @@ void UsiLogPanel::buildToolbar()
     m_btnFontDecrease->setFixedSize(28, 24);
     m_btnFontDecrease->setAccessibleName(m_btnFontDecrease->toolTip());
     connect(m_btnFontDecrease, &QToolButton::clicked,
-            this, &UsiLogPanel::onFontDecrease);
+            &m_fontSize, &FontSizeHelper::decrease);
+    connect(&m_fontSize, &FontSizeHelper::fontSizeChanged, this, &UsiLogPanel::applyFontSize);
 
     m_btnFontIncrease = new QToolButton(m_toolbar);
     m_btnFontIncrease->setText(QStringLiteral("A+"));
@@ -220,7 +224,7 @@ void UsiLogPanel::buildToolbar()
     m_btnFontIncrease->setFixedSize(28, 24);
     m_btnFontIncrease->setAccessibleName(m_btnFontIncrease->toolTip());
     connect(m_btnFontIncrease, &QToolButton::clicked,
-            this, &UsiLogPanel::onFontIncrease);
+            &m_fontSize, &FontSizeHelper::increase);
 
     m_engine1Label = new ElideLabel(m_toolbar);
     m_engine1Label->setFullText(QStringLiteral("E1: ---"));
@@ -326,16 +330,6 @@ void UsiLogPanel::applyFontSize()
     m_commandInput->setFont(font);
     m_btnFontDecrease->setEnabled(size > 8);
     m_btnFontIncrease->setEnabled(size < 24);
-}
-
-void UsiLogPanel::onFontIncrease()
-{
-    if (m_fontSize.increase()) applyFontSize();
-}
-
-void UsiLogPanel::onFontDecrease()
-{
-    if (m_fontSize.decrease()) applyFontSize();
 }
 
 // ===================== イベント処理 =====================

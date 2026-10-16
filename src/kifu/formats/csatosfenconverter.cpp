@@ -5,9 +5,12 @@
 /// 本ファイルはファイルI/O・パーサ状態管理・オーケストレーションを担当する。
 
 #include "csatosfenconverter.h"
+#include "csaformatter.h"
 #include "csalexer.h"
+#include "gameinfokeys.h"
 #include "kifdisplayitem.h"
 #include "parsecommon.h"
+#include "terminalcodes.h"
 #include "shiftjiscodec.h"
 #include "shogiboard.h"
 
@@ -100,14 +103,6 @@ QStringList CsaToSfenConverter::splitStatements(const QString& rawText, QString*
 // 対局情報抽出
 // ============================================================
 
-QList<KifGameInfoItem> CsaToSfenConverter::extractGameInfo(const QString& filePath)
-{
-    QString text;
-    QString warn;
-    if (!readFileText(filePath, text, &warn)) return {};
-    return extractGameInfoFromText(text);
-}
-
 QList<KifGameInfoItem> CsaToSfenConverter::extractGameInfoFromText(const QString& text)
 {
     QList<KifGameInfoItem> items;
@@ -122,47 +117,20 @@ QList<KifGameInfoItem> CsaToSfenConverter::extractGameInfoFromText(const QString
         if (line.startsWith(QLatin1Char('P')) || line == QLatin1String("PI")) continue;
 
         if (line.startsWith(QLatin1String("N+"))) {
-            items.append({ QStringLiteral("先手"), line.mid(2).trimmed() });
+            items.append({ GameInfoKeys::kBlackPlayer, line.mid(2).trimmed() });
         } else if (line.startsWith(QLatin1String("N-"))) {
-            items.append({ QStringLiteral("後手"), line.mid(2).trimmed() });
+            items.append({ GameInfoKeys::kWhitePlayer, line.mid(2).trimmed() });
         } else if (line.startsWith(QLatin1Char('$'))) {
             const qsizetype colon = line.indexOf(QLatin1Char(':'));
             if (colon > 0) {
-                QString key = line.mid(1, colon - 1).trimmed();
+                const QString csaKey = line.mid(1, colon - 1).trimmed();
                 QString val = line.mid(colon + 1).trimmed();
-
-                if (key == QLatin1String("EVENT"))          key = QStringLiteral("棋戦");
-                else if (key == QLatin1String("SITE"))       key = QStringLiteral("場所");
-                else if (key == QLatin1String("START_TIME")) key = QStringLiteral("開始日時");
-                else if (key == QLatin1String("END_TIME"))   key = QStringLiteral("終了日時");
-                else if (key == QLatin1String("TIME_LIMIT")) key = QStringLiteral("持ち時間");
-                else if (key == QLatin1String("TIME"))       key = QStringLiteral("持ち時間(秒/加算)");
-                else if (key == QLatin1String("TIME+"))      key = QStringLiteral("先手:持ち時間(秒/加算)");
-                else if (key == QLatin1String("TIME-"))      key = QStringLiteral("後手:持ち時間(秒/加算)");
-                else if (key == QLatin1String("MAX_MOVES") || key == QLatin1String("SMAX_MOVES"))
-                    key = QStringLiteral("最大手数");
-                else if (key == QLatin1String("JISHOGI_POINTS")
-                         || key == QLatin1String("JISHOGI_POINT")
-                         || key == QLatin1String("JISHOGI"))
-                    key = QStringLiteral("持将棋点数");
-                else if (key == QLatin1String("OPENING"))    key = QStringLiteral("戦型");
-                else if (key == QLatin1String("NOTE")) {
-                    key = QStringLiteral("備考");
-                    QString decoded;
-                    for (qsizetype i = 0; i < val.size(); ++i) {
-                        if (val.at(i) == QLatin1Char('\\') && i + 1 < val.size()) {
-                            if (val.at(i + 1) == QLatin1Char('n')) { decoded += QLatin1Char('\n'); ++i; continue; }
-                            if (val.at(i + 1) == QLatin1Char('\\')) { decoded += QLatin1Char('\\'); ++i; continue; }
-                        }
-                        decoded += val.at(i);
-                    }
-                    val = decoded;
-                }
-
-                items.append({ key, val });
+                if (csaKey == QLatin1String("NOTE")) val = CsaFormatter::unescapeNote(val);
+                const QString key = CsaFormatter::gameInfoKeyFromCsa(csaKey);
+                items.append({ key.isEmpty() ? csaKey : key, val });
             }
         } else if (line.startsWith(QLatin1Char('V'))) {
-            items.append({ QStringLiteral("バージョン"), line });
+            items.append({ GameInfoKeys::kCsaVersion, line });
         }
     }
     return items;
@@ -240,7 +208,7 @@ static void handleCsaResultCode(const QString& token, CsaParseState& st)
 {
     ensureOpeningItemAdded(st);
 
-    TerminalType terminal = KifuParseCommon::csaSpecialToTerminal(token, st.turn);
+    TerminalType terminal = TerminalCodes::fromCsaSpecial(token, st.turn);
     if (terminal == TerminalType::None) terminal = TerminalType::Error;
     st.line.disp.append(KifuParseCommon::createTerminalDisplayItem(st.moveCount + 1, terminal, st.turn));
 
@@ -279,13 +247,6 @@ static void handleCsaTimeToken(const QString& token, CsaParseState& st)
 // ============================================================
 // メインパーサ
 // ============================================================
-
-bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QString* warn)
-{
-    QString text;
-    if (!readFileText(filePath, text, warn)) return false;
-    return parseText(text, out, warn);
-}
 
 bool CsaToSfenConverter::parseText(const QString& text, KifParseResult& out, QString* warn)
 {

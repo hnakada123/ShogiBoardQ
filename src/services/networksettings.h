@@ -5,7 +5,7 @@
 /// @brief CSAネットワーク設定の永続化
 ///
 /// CSA通信対局・待機・ログに関する設定を提供します。
-/// 呼び出し元: csawaitingdialog.cpp, csagamedialog.cpp, engineanalysistab.cpp（CSAログタブ共用）
+/// 呼び出し元: csawaitingdialog.cpp, csagamedialog.cpp, csalogpanel.cpp（CSA通信ログ）
 
 #include <QSize>
 #include <QString>

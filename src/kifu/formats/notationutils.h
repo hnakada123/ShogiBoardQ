@@ -2,27 +2,12 @@
 #define NOTATIONUTILS_H
 
 /// @file notationutils.h
-/// @brief 棋譜変換器間で共有される座標変換・数字変換・手合マップユーティリティ
+/// @brief 棋譜変換器で共有する USI 指し手の組み立てと手合割の名前（数字・駒の表記は ShogiNotation、手合割の表は Handicaps）
 
 #include <QChar>
 #include <QString>
 
 namespace NotationUtils {
-
-// === 漢数字変換 ===
-
-/// 漢数字1文字('一'〜'九') → int(1-9)。無効文字は 0 を返す。
-int kanjiDigitToInt(QChar c);
-
-// === 全角数字変換（int→全角） ===
-
-/// 整数(1-9) → 全角数字文字列("１"-"９")。範囲外は "？" を返す。
-QString intToZenkakuDigit(int d);
-
-// === 漢数字変換（int→漢字） ===
-
-/// 整数(1-9) → 漢数字文字列("一"-"九")。範囲外は "？" を返す。
-QString intToKanjiDigit(int d);
 
 // === SFEN 指し手フォーマット ===
 

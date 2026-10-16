@@ -1,42 +1,34 @@
 /// @file shogiview.cpp
-/// @brief 将棋盤ビューの状態・入力・マスの位置（描画は shogiview_draw.cpp）
+/// @brief 将棋盤ビュー（盤・駒台・駒箱の描画と入力、マスの位置）
 
 #include "shogiview.h"
-#include "shogiviewhighlighting.h"
-#include "shogiboard.h"
-#include "appsettings.h"
-#include "shogigamecontroller.h"
-#include "logcategories.h"
-#include "sfenutils.h"
-#include "pieceimageprovider.h"
-#include "boardappearance.h"
 
-#include <QColor>
-#include <QPainter>
-#include <QSizePolicy>
-#include <QLabel>
-#include <QMouseEvent>
-#include <QWheelEvent>
-#include <QCursor>
+#include "applicationfonts.h"
+#include "appsettings.h"
+#include "boardappearance.h"
 #include "boardconstants.h"
+#include "boardcoordinates.h"
 #include "boardsurfacepainter.h"
+#include "kifupresentation.h"
+#include "logcategories.h"
+#include "pieceimageprovider.h"
 #include "piecepainter.h"
+#include "shogiboard.h"
+#include "shogiviewhighlighting.h"
+
+#include <QCursor>
 #include <QFont>
 #include <QFontMetrics>
+#include <QMouseEvent>
+#include <QPaintEvent>
+#include <QPainter>
+#include <QSizePolicy>
+#include <QWheelEvent>
 #include <QtMath>
-#include <array>
-
-// Highlight基底クラスのデストラクタ（out-of-line定義でweak-vtables警告を回避）
-ShogiView::Highlight::~Highlight() {}
-
-// FieldHighlightクラスのデストラクタ
-ShogiView::FieldHighlight::~FieldHighlight() {}
 
 // コンストラクタ
 ShogiView::ShogiView(QWidget *parent)
     : QWidget(parent),
-    m_board(nullptr),
-    m_errorOccurred(false),
     m_highlighting(new ShogiViewHighlighting(this, this)),
     m_chrome(new BoardChromeWidget(this))
 {
@@ -101,6 +93,9 @@ void ShogiView::setBoard(ShogiBoard* board)
         connect(board, &ShogiBoard::boardReset,  this, &ShogiView::onBoardReset);
         connect(board, &ShogiBoard::dataChanged, this, &ShogiView::positionChanged);
         connect(board, &ShogiBoard::boardReset, this, &ShogiView::positionChanged);
+        // 対局者カードの手番の印は、盤の手番をそのまま示す
+        connect(board, &ShogiBoard::turnChanged, m_chrome, &BoardChromeWidget::setActiveSide);
+        m_chrome->setActiveSide(board->currentPlayer());
     }
 
     updateGeometry();
@@ -178,12 +173,6 @@ QRect ShogiView::calculateSquareRectangleBasedOnBoardState(const int file, const
         file, rank, m_board->files(), m_board->ranks());
 }
 
-QRect ShogiView::calculateRectangleForRankOrFileLabel(const int file, const int rank) const
-{
-    if (!m_board) return QRect();
-    return m_layout.calculateRectangleForRankOrFileLabel(file, rank, m_board->ranks());
-}
-
 void ShogiView::invalidateFieldRectCache()
 {
     m_fieldRectCacheValid = false;
@@ -211,17 +200,9 @@ QRect ShogiView::cachedFieldRect(const int file, const int rank) const
     return m_fieldRectCache.value(key);
 }
 
-int ShogiView::boardLeftPx() const { return m_layout.offsetX(); }
-
 int ShogiView::boardRightPx() const {
     const int files = m_board ? m_board->files() : 9;
     return m_layout.boardRightPx(files);
-}
-
-int ShogiView::standInnerEdgePx(bool rightSide) const
-{
-    const int files = m_board ? m_board->files() : 9;
-    return m_layout.standInnerEdgePx(rightSide, files);
 }
 
 QRect ShogiView::blackStandBoundingRect() const
@@ -256,23 +237,8 @@ void ShogiView::applyBoardScaleChange(bool emitSignal)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ハイライト管理
-// ─────────────────────────────────────────────────────────────────────────────
-
-void ShogiView::addHighlight(Highlight* hl)    { m_highlighting->addHighlight(hl); }
-void ShogiView::removeHighlight(Highlight* hl) { m_highlighting->removeHighlight(hl); }
-void ShogiView::removeHighlightAllData()        { m_highlighting->removeHighlightAllData(); }
-ShogiView::Highlight* ShogiView::highlight(int index) const { return m_highlighting->highlight(index); }
-int ShogiView::highlightCount() const           { return m_highlighting->highlightCount(); }
-
-// ─────────────────────────────────────────────────────────────────────────────
 // 操作/状態切替
 // ─────────────────────────────────────────────────────────────────────────────
-
-void ShogiView::setMouseClickMode(bool mouseClickMode)
-{
-    m_interaction.setMouseClickMode(mouseClickMode);
-}
 
 void ShogiView::setSquareSize(int size)
 {
@@ -303,11 +269,6 @@ void ShogiView::reduceBoard(bool emitSignal)
     applyBoardScaleChange(emitSignal);
 }
 
-void ShogiView::setErrorOccurred(bool newErrorOccurred)
-{
-    m_errorOccurred = newErrorOccurred;
-}
-
 void ShogiView::setPositionEditMode(bool positionEditMode)
 {
     if (m_interaction.positionEditMode() == positionEditMode) return;
@@ -334,39 +295,6 @@ void ShogiView::setFlipMode(bool newFlipMode)
     refreshPieceImages();
     // 名前の向きのマークとカードの上下も入れ替わる
     relayoutChrome();
-    update();
-}
-
-void ShogiView::returnAllPiecesToBox()
-{
-    removeHighlightAllData();
-    board()->resetGameBoard();
-    update();
-}
-
-void ShogiView::initializeToFlatStartingPosition()
-{
-    removeHighlightAllData();
-    board()->setSfen(SfenUtils::hirateSfen());
-
-    board()->initStand();
-    update();
-}
-
-void ShogiView::shogiProblemInitialPosition()
-{
-    removeHighlightAllData();
-
-    QString shogiProblemInitialSFENStr =
-        "5+r1kl/6p2/6Bpn/9/7P1/9/9/9/9 b RSb4g3s3n3l15p 1";
-    board()->setSfen(shogiProblemInitialSFENStr);
-
-    update();
-}
-
-void ShogiView::setRankFontScale(double scale)
-{
-    m_layout.setRankFontScale(scale);
     update();
 }
 
@@ -485,37 +413,6 @@ void ShogiView::setNameFontScale(double scale)
     relayoutChrome();
 }
 
-void ShogiView::updateTurnIndicator(Turn now)
-{
-    relayoutChrome();
-    m_chrome->updateTurnIndicator(now);
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 名前・時計・手番（BoardChromeWidget へ転送。新しいコードは chrome() を直接使う）
-// ─────────────────────────────────────────────────────────────────────────────
-
-void ShogiView::setBlackClockText(const QString& text) { m_chrome->setBlackClockText(text); }
-void ShogiView::setWhiteClockText(const QString& text) { m_chrome->setWhiteClockText(text); }
-QLabel* ShogiView::blackClockLabel() const { return m_chrome->blackClockLabel(); }
-QLabel* ShogiView::whiteClockLabel() const { return m_chrome->whiteClockLabel(); }
-void ShogiView::setClockEnabled(bool enabled) { m_chrome->setClockEnabled(enabled); }
-void ShogiView::setBlackPlayerName(const QString& name) { m_chrome->setBlackPlayerName(name); }
-void ShogiView::setWhitePlayerName(const QString& name) { m_chrome->setWhitePlayerName(name); }
-ElideLabel* ShogiView::blackNameLabel() const { return m_chrome->blackNameLabel(); }
-ElideLabel* ShogiView::whiteNameLabel() const { return m_chrome->whiteNameLabel(); }
-void ShogiView::setActiveSide(bool blackTurn) { m_chrome->setActiveSide(blackTurn); }
-void ShogiView::setHighlightStyle(const QColor& bgOn, const QColor& fgOn, const QColor& fgOff)
-{
-    m_chrome->setHighlightStyle(bgOn, fgOn, fgOff);
-}
-void ShogiView::clearTurnHighlight() { m_chrome->clearTurnHighlight(); }
-void ShogiView::setActiveIsBlack(bool activeIsBlack) { m_chrome->setActiveIsBlack(activeIsBlack); }
-void ShogiView::setGameOverStyleLock(bool locked) { m_chrome->setGameOverStyleLock(locked); }
-bool ShogiView::gameOverStyleLock() const { return m_chrome->gameOverStyleLock(); }
-void ShogiView::setUrgencyVisuals(Urgency u) { m_chrome->setUrgencyVisuals(u); }
-void ShogiView::applyClockUrgency(qint64 activeRemainMs) { m_chrome->applyClockUrgency(activeRemainMs); }
-
 // ============================================================
 // マウス・キーの入力
 // ============================================================
@@ -526,17 +423,41 @@ void ShogiView::applyClockUrgency(qint64 activeRemainMs) { m_chrome->applyClockU
 
 QPoint ShogiView::clickedSquare(const QPoint &clickPosition) const
 {
-    return m_interaction.clickedSquare(clickPosition, m_layout, m_board, pieceBoxRect());
-}
+    if (!m_board) return {};
 
-QPoint ShogiView::getClickedSquareInDefaultState(const QPoint& pos) const
-{
-    return m_interaction.getClickedSquareInDefaultState(pos, m_layout, m_board);
-}
+    // 駒箱（局面編集中だけ表示）。ドラッグ中はどのセルに落としても駒の種類の位置へ戻す
+    const QRect box = pieceBoxRect();
+    if (box.contains(clickPosition)) {
+        if (ShogiViewLayout::pieceBoxSideSelectorRect(box).contains(clickPosition)) return {};
+        for (int rank = 1; rank <= 8; ++rank) {
+            const bool matches = m_interaction.dragging()
+                ? m_board->pieceCharacter(BoardConstants::kPieceBoxFile, rank)
+                      == toBlack(demote(m_interaction.dragPiece()))
+                : pieceBoxCellRect(rank).contains(clickPosition);
+            if (matches) return QPoint(BoardConstants::kPieceBoxFile, rank);
+        }
+        return {};
+    }
 
-QPoint ShogiView::getClickedSquareInFlippedState(const QPoint& pos) const
-{
-    return m_interaction.getClickedSquareInFlippedState(pos, m_layout, m_board);
+    const QPoint boardLocal = clickPosition - QPoint(m_layout.offsetX(), m_layout.offsetY());
+    const QPoint square = m_layout.squareAt(boardLocal, m_board->files(), m_board->ranks());
+    if (!square.isNull()) return square;
+
+    for (const bool black : {true, false}) {
+        const QRect stand = black ? blackStandBoundingRect() : whiteStandBoundingRect();
+        if (!stand.contains(clickPosition)) continue;
+        // 局面編集中のドラッグは、駒台に落とせば駒の種類で置き場所が決まる
+        if (positionEditMode() && m_interaction.dragging()) {
+            const Piece dragged = demote(m_interaction.dragPiece());
+            if (dragged == Piece::None) return {};
+            return BoardCoordinates::standSquareOf(black ? toBlack(dragged) : toWhite(dragged));
+        }
+        for (const QPoint& base : ShogiViewLayout::standBaseCells(black)) {
+            if (standCellRect(black, base).contains(clickPosition))
+                return BoardCoordinates::standSquareOf(ShogiViewLayout::standPieceAt(black, base.x(), base.y()));
+        }
+    }
+    return {};
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -556,7 +477,6 @@ void ShogiView::mouseReleaseEvent(QMouseEvent *event)
         QPoint pt = clickedSquare(event->pos());
 
         if (pt.isNull()) return;
-        if (m_errorOccurred) return;
         emit clicked(pt);
     }
     else if (event->button() == Qt::RightButton) {
@@ -583,11 +503,6 @@ void ShogiView::resizeEvent(QResizeEvent* e)
     QWidget::resizeEvent(e);
     // 盤に重ねた対局者カードの層を同じ大きさにして置き直す
     relayoutChrome();
-}
-
-void ShogiView::fitBoardToWidget()
-{
-    // Fixed SizePolicy方式では使用しない
 }
 
 void ShogiView::wheelEvent(QWheelEvent* e)
@@ -634,19 +549,9 @@ void ShogiView::endDrag()
 // 駒画像管理
 // ─────────────────────────────────────────────────────────────────────────────
 
-QIcon ShogiView::piece(QChar type) const
+QIcon ShogiView::piece(Piece piece) const
 {
-    return m_pieces.value(type, QIcon());
-}
-
-void ShogiView::setPieces()
-{
-    loadPieceImages(false);
-}
-
-void ShogiView::setPiecesFlip()
-{
-    loadPieceImages(true);
+    return m_pieces.value(piece, QIcon());
 }
 
 void ShogiView::refreshPieceImages()
@@ -661,9 +566,10 @@ void ShogiView::loadPieceImages(bool flipped)
     bool changed = false;
     for (const QChar type : types) {
         const QIcon icon = provider.icon(type, flipped);
-        const auto current = m_pieces.constFind(type);
+        const Piece piece = charToPiece(type);
+        const auto current = m_pieces.constFind(piece);
         if (current != m_pieces.cend() && current->cacheKey() == icon.cacheKey()) continue;
-        m_pieces.insert(type, icon);
+        m_pieces.insert(piece, icon);
         changed = true;
     }
     // 画像が同じなら描き直さない（盤を読み込み直すたびに呼ばれるため）
@@ -674,19 +580,17 @@ void ShogiView::loadPieceImages(bool flipped)
 // マスと駒台・駒箱のセルの位置
 // ============================================================
 
-QRect ShogiView::standPieceRect(QChar pieceChar) const
+QRect ShogiView::standCellRect(bool black, const QPoint& base) const
 {
-    if (!m_board || pieceChar == QLatin1Char(' ')) return {};
+    return m_layout.standCellRect(black, cachedFieldRect(base.x(), base.y()));
+}
 
-    const bool black = pieceChar.isUpper();
-    const int firstRank = black ? 6 : 1;
-    for (int rank = firstRank; rank < firstRank + 4; ++rank) {
-        for (int file = 1; file <= 2; ++file) {
-            if (ShogiViewLayout::standPieceAt(black, file, rank) == pieceChar)
-                return m_layout.standCellRect(black, cachedFieldRect(file, rank));
-        }
-    }
-    return {};
+QRect ShogiView::standPieceRect(Piece piece) const
+{
+    if (!m_board) return {};
+    const QPoint base = ShogiViewLayout::standBaseCellOf(piece);
+    if (base.isNull()) return {};
+    return standCellRect(isBlackPiece(demote(piece)), base);
 }
 
 QRect ShogiView::fieldRect(const QPoint& field) const
@@ -696,13 +600,8 @@ QRect ShogiView::fieldRect(const QPoint& field) const
     const int rank = field.y();
     if (file == BoardConstants::kPieceBoxFile) return pieceBoxCellRect(rank);
 
-    if (file == BoardConstants::kBlackStandFile || file == BoardConstants::kWhiteStandFile) {
-        // 駒台の疑似座標 (10/11, 1..9) → 駒台描画で使う基準盤マス (file=1/2, rank)
-        const bool black = file == BoardConstants::kBlackStandFile;
-        const QPoint base = ShogiViewLayout::standBaseCell(black, rank);
-        if (base.x() == 0) return {};
-        return m_layout.standCellRect(black, cachedFieldRect(base.x(), base.y()));
-    }
+    if (file == BoardConstants::kBlackStandFile || file == BoardConstants::kWhiteStandFile)
+        return standPieceRect(BoardCoordinates::standPieceAt(file, rank));
 
     if (file < 1 || file > m_board->files() || rank < 1 || rank > m_board->ranks()) return {};
     return cachedFieldRect(file, rank).translated(m_layout.offsetX(), m_layout.offsetY());
@@ -725,7 +624,7 @@ void ShogiView::onBoardSquareChanged(int file, int rank)
 
 void ShogiView::onBoardStandChanged(Piece piece)
 {
-    const QRect cell = standPieceRect(pieceToChar(piece));
+    const QRect cell = standPieceRect(piece);
     if (cell.isEmpty()) {
         update(blackStandBoundingRect());
         update(whiteStandBoundingRect());
@@ -738,6 +637,8 @@ void ShogiView::onBoardStandChanged(Piece piece)
 void ShogiView::onBoardReset()
 {
     if (!m_board) return;
+    m_chrome->setActiveSide(m_board->currentPlayer());
+
     const int files = m_board->files();
     if (m_shownSquares.size() != qsizetype(files) * m_board->ranks()) {
         update();
@@ -749,12 +650,13 @@ void ShogiView::onBoardReset()
             if (!shown || *shown != m_board->pieceCharacter(file, rank)) update(fieldPaintRect(QPoint(file, rank)));
         }
     }
-    const QString standPieces = QStringLiteral("PLNSGBRKplnsgbrk");
-    for (const QChar pieceChar : standPieces) {
-        const Piece piece = charToPiece(pieceChar);
-        const auto shown = m_shownStandCounts.constFind(piece);
-        if (shown == m_shownStandCounts.cend() || shown.value() != m_board->pieceStandCount(piece))
-            update(standPieceRect(pieceChar));
+    for (const bool black : {true, false}) {
+        for (const QPoint& base : ShogiViewLayout::standBaseCells(black)) {
+            const Piece piece = ShogiViewLayout::standPieceAt(black, base.x(), base.y());
+            const auto shown = m_shownStandCounts.constFind(piece);
+            if (shown == m_shownStandCounts.cend() || shown.value() != m_board->pieceStandCount(piece))
+                update(standCellRect(black, base));
+        }
     }
     update(pieceBoxRect());
 }
@@ -792,3 +694,246 @@ void ShogiView::relayoutPieceBoxSideSelector()
     m_chrome->setPieceBoxSide(pieceBoxSide());
 }
 
+// ============================================================
+// 描画
+// ============================================================
+
+// 段・筋の番号（罫線と同じ色）
+void ShogiView::drawRanksAndFiles(QPainter* painter) const
+{
+    for (int r = 1; r <= m_board->ranks(); ++r) drawRank(painter, r);
+    for (int c = 1; c <= m_board->files(); ++c) drawFile(painter, c);
+}
+
+void ShogiView::drawPieces(QPainter* painter)
+{
+    // 段（r）を降順、筋（c）を昇順に走査し、各マスの駒を描画
+    for (int r = m_board->ranks(); r > 0; --r) {
+        for (int c = 1; c <= m_board->files(); ++c) {
+            drawPiece(painter, c, r);
+        }
+    }
+}
+
+bool ShogiView::paintRegionCovers(const QRect& rect) const
+{
+    if (m_paintRegion.rectCount() == 1) return m_paintRegion.boundingRect().contains(rect);
+    return QRegion(rect).subtracted(m_paintRegion).isEmpty();
+}
+
+void ShogiView::paintEvent(QPaintEvent* event)
+{
+    // 【安全弁】盤未設定の場合は盤を描かず、下地だけを塗る
+    // （親の下地を塗らない設定のため、何も描かないと前の内容が残る）。
+    if (!m_board) {
+        QPainter(this).fillRect(event->rect(), palette().color(QPalette::Window));
+        return;
+    }
+
+    // 描き直す範囲。各描画ヘルパはこの範囲に掛からない要素を省く。
+    m_paintRegion = event->region();
+
+    // 【ペインタ開始】このスコープでのみ QPainter を有効化。
+    QPainter painter(this);
+
+    // 【共通描画状態の一括設定】
+    painter.setRenderHint(QPainter::Antialiasing, false);
+    painter.setRenderHint(QPainter::TextAntialiasing, true);
+    painter.setRenderHint(QPainter::SmoothPixmapTransform, true);
+
+    // 【描画順序：背面 → 前面】
+    // 0)〜3) 背景・木肌と縁・影・罫線・駒台・星（変わらない部分は画像を貼る）
+    m_staticLayer.draw(painter, size(), m_layout, m_board->files(), m_board->ranks(), m_boardColors, m_boardVisuals);
+
+    // 局面編集中の駒箱
+    drawPieceBoxBackground(&painter);
+
+    // 4) ハイライト（選択/移動可能マスなど）
+    m_highlighting->drawHighlights(painter, m_paintRegion);
+
+    // 5) 盤上の駒
+    drawPieces(&painter);
+
+    // 6) 先手/後手の駒台にある「駒」と「枚数」を描画
+    drawStandPieces(&painter);
+    drawPieceBoxPieces(&painter);
+
+    // 6.5) 候補手の矢印（駒台からの始点も駒の上に重ねる）
+    m_highlighting->drawArrows(painter, m_layout);
+
+    // 7) 段・筋ラベル（最前面に近いレイヤに載せる）
+    drawRanksAndFiles(&painter);
+
+    // 8) 最前面：ドラッグ中の駒（マウス追従）。盤やラベルより上に重ねる。
+    m_interaction.drawDraggingPiece(painter, m_layout, piece(m_interaction.dragPiece()), m_boardVisuals);
+}
+
+void ShogiView::drawPiece(QPainter* painter, const int file, const int rank)
+{
+    // 【盤座標 → ウィジェット座標】（キャッシュ済み矩形を使用）
+    const QRect fieldRect = cachedFieldRect(file, rank);
+    QRect adjustedRect(fieldRect.left() + m_layout.offsetX(),
+                       fieldRect.top()  + m_layout.offsetY(),
+                       fieldRect.width(),
+                       fieldRect.height());
+
+    // 再描画範囲に掛からないマスは描かない（駒の影の張り出しを含めて判定する）
+    const QRect painted = fieldRect.isEmpty() ? QRect()
+        : adjustedRect | PiecePainter::paintedRect(adjustedRect, m_boardVisuals).toAlignedRect();
+    if (!intersectsPaintRegion(painted)) return;
+
+    // 【盤から駒種を取得】
+    const Piece pieceValue = m_board->pieceCharacter(file, rank);
+
+    // 【ドラッグ中の元マスは描かない】
+    const bool lifted = m_interaction.dragging() && QPoint(file, rank) == m_interaction.dragFrom();
+
+    // 画面に出た駒を記録する（局面を丸ごと替えたときに、違うマスだけを描き直すため）。
+    // 隣のマスを描き直すと、はみ出した影の分だけこのマスも一部が描き直される。記録と同じ駒なら
+    // 画面はそのままなので記録を保ち、違う駒のときは一部だけ新しくなったので不明にする。
+    const qsizetype index = qsizetype(rank - 1) * m_board->files() + (file - 1);
+    if (index < m_shownSquares.size()) {
+        std::optional<Piece>& shown = m_shownSquares[index];
+        if (lifted) shown.reset();
+        else if (paintRegionCovers(painted)) shown = pieceValue;
+        else if (shown != pieceValue) shown.reset();
+    }
+
+    // 【アイコン描画】
+    if (!lifted && pieceValue != Piece::None) {
+        const QIcon icon = piece(pieceValue);
+        if (!icon.isNull()) {
+            PiecePainter::draw(*painter, icon, adjustedRect, m_boardVisuals);
+        }
+    }
+}
+
+void ShogiView::drawRank(QPainter* painter, const int rank) const
+{
+    if (!m_board) return;
+    const QRect cell = cachedFieldRect(1, rank);
+    const int band = m_layout.coordinateBandPx();
+    const int x = flipMode() ? m_layout.offsetX() - band : boardRightPx();
+    const QRect label(x, cell.top() + m_layout.offsetY(), band, cell.height());
+    if (!intersectsPaintRegion(label)) return;
+    painter->save();
+    QFont f = painter->font();
+    if (KifuPresentation::options().notation == KifuPresentation::Notation::Japanese)
+        f = ApplicationFonts::japaneseFont(f);
+    f.setPixelSize(qMax(8, qRound(fieldSize().width() * 0.30 * m_layout.rankFontScale())));
+    f.setBold(false);
+    painter->setFont(f);
+    painter->setPen(m_boardColors.grid);
+    painter->drawText(label, Qt::AlignCenter, KifuPresentation::rankLabel(rank));
+    painter->restore();
+}
+
+void ShogiView::drawFile(QPainter* painter, const int file) const
+{
+    if (!m_board) return;
+    const QRect cell = cachedFieldRect(file, 1);
+    const int band = m_layout.coordinateBandPx();
+    const int y = flipMode() ? m_layout.offsetY() + fieldSize().height() * m_board->ranks()
+                            : m_layout.offsetY() - band;
+    const QRect label(cell.left() + m_layout.offsetX(), y, cell.width(), band);
+    if (!intersectsPaintRegion(label)) return;
+    painter->save();
+    QFont f = painter->font();
+    f.setPixelSize(qMax(8, qRound(fieldSize().width() * 0.30 * m_layout.rankFontScale())));
+    f.setBold(false);
+    painter->setFont(f);
+    painter->setPen(m_boardColors.grid);
+    painter->drawText(label, Qt::AlignCenter, QString::number(file));
+    painter->restore();
+}
+
+// ============================================================
+// 駒台の描画
+// ============================================================
+
+// 駒台のセル（盤の基準マスを駒台側へずらした位置）ごとに、持駒と枚数を描く。
+// 駒台の木肌は盤面の変わらない部分の画像（BoardStaticLayer）に含める。
+void ShogiView::drawStandPieces(QPainter* painter)
+{
+    for (const bool black : {true, false}) {
+        for (const QPoint& base : ShogiViewLayout::standBaseCells(black))
+            drawStandPieceIcon(painter, standCellRect(black, base),
+                               ShogiViewLayout::standPieceAt(black, base.x(), base.y()));
+    }
+}
+
+/**
+ * @brief 駒台の内側に駒・重なり・枚数表示を収める（最大3枚表示）。
+ */
+void ShogiView::drawStandPieceIcon(QPainter* painter, const QRect& adjustedRect, Piece pieceKey) const
+{
+    // 駒・枚数はセル内に切り抜いて描くため、セルが再描画範囲に掛からなければ省く。
+    if (!intersectsPaintRegion(adjustedRect)) return;
+    const bool lifting = m_interaction.dragging() && m_interaction.tempPieceStandCounts().contains(pieceKey);
+    const int count = lifting ? m_interaction.tempPieceStandCounts()[pieceKey] : m_board->pieceStandCount(pieceKey);
+    // 画面に出た枚数を記録する（持ち上げ中の一時的な枚数は局面と違うので記録しない）
+    if (lifting || !paintRegionCovers(adjustedRect)) m_shownStandCounts.remove(pieceKey);
+    else m_shownStandCounts.insert(pieceKey, count);
+    PiecePainter::drawStack(*painter, piece(pieceKey), count, adjustedRect.width(),
+                            m_layout.standPieceArea(adjustedRect), m_boardVisuals, m_boardColors);
+}
+
+// ============================================================
+// 駒箱の描画
+// ============================================================
+
+void ShogiView::drawPieceBoxBackground(QPainter* painter)
+{
+    const QRect box = pieceBoxRect();
+    if (box.isEmpty()) return;
+    // 駒箱は局面編集中だけ表示し、ラベルの文字も含むため、変わらない部分の画像には含めない。
+    const QRectF surface = m_layout.standSurfaceRect(box);
+    const QMarginsF shadow = BoardSurfacePainter::shadowMargins(fieldSize().width());
+    if (!intersectsPaintRegion(surface.marginsAdded(shadow).adjusted(-1, -1, 1, 1))) return;
+    BoardSurfacePainter::draw(*painter, surface, m_boardColors.stand, m_boardVisuals.standWoodGrain,
+                              fieldSize().width());
+    painter->save();
+    const QRect label = ShogiViewLayout::pieceBoxLabelRect(box);
+    QFont labelFont = painter->font();
+    labelFont.setPixelSize(qMax(1, label.height() - 2));
+    labelFont.setBold(true);
+    painter->setFont(labelFont);
+    painter->setPen(m_boardColors.grid);
+    painter->drawText(label, Qt::AlignCenter, tr("駒箱"));
+    painter->restore();
+}
+
+void ShogiView::drawPieceBoxPieces(QPainter* painter)
+{
+    if (pieceBoxRect().isEmpty()) return;
+    const auto counts = m_board->pieceBox();
+    for (int rank = 1; rank <= 8; ++rank) {
+        const Piece boxPiece = m_board->pieceCharacter(BoardConstants::kPieceBoxFile, rank);
+        int count = counts.value(boxPiece);
+        if (m_interaction.dragging() && m_interaction.dragFrom() == QPoint(BoardConstants::kPieceBoxFile, rank)) --count;
+        if (count <= 0) continue;
+        const Piece displayPiece = pieceBoxSide() == Turn::Black ? boxPiece : toWhite(boxPiece);
+        const QIcon icon = piece(displayPiece);
+        const QRect cell = pieceBoxCellRect(rank);
+        if (!intersectsPaintRegion(cell)) continue;
+        const int numberWidth = qMax(1, cell.width() * 3 / 10);
+        painter->save();
+        painter->setClipRect(cell, Qt::IntersectClip);
+        PiecePainter::draw(*painter, icon, cell.adjusted(1, 1, -numberWidth, -1), m_boardVisuals);
+        if (count >= 2) {
+            // 小さい駒箱では駒を重ねず、文字に重ならない専用欄へ枚数を表示する。
+            const QRect numberRect(cell.right() - numberWidth, cell.top(), numberWidth, cell.height() / 2);
+            const QString number = QString::number(count);
+            QFont countFont = painter->font();
+            int pixels = qMax(1, cell.height() / 3);
+            countFont.setBold(true);
+            countFont.setPixelSize(pixels);
+            while (pixels > 1 && QFontMetrics(countFont).horizontalAdvance(number) > numberWidth)
+                countFont.setPixelSize(--pixels);
+            painter->setFont(countFont);
+            painter->setPen(m_boardColors.grid);
+            painter->drawText(numberRect, Qt::AlignCenter, number);
+        }
+        painter->restore();
+    }
+}

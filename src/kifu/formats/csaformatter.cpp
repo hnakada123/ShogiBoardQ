@@ -2,6 +2,7 @@
 /// @brief CSA形式の文字列生成ヘルパ関数の実装
 
 #include "csaformatter.h"
+#include "gameinfokeys.h"
 #include "kifuexportcommon.h"
 
 #include <QRegularExpression>
@@ -12,49 +13,13 @@
 
 namespace CsaFormatter {
 
-QString extractCsaTimeToken(const QString& timeText)
+QString timeToken(const RecordTime& time)
 {
-    QString text = timeText.trimmed();
-
-    if (text.startsWith(QLatin1Char('('))) text = text.mid(1);
-    if (text.endsWith(QLatin1Char(')'))) text.chop(1);
-
-    const qsizetype slashIdx = text.indexOf(QLatin1Char('/'));
-    if (slashIdx < 0) return QStringLiteral("T0");
-
-    const QString moveTime = text.left(slashIdx).trimmed();
-    const QStringList parts = moveTime.split(QLatin1Char(':'));
-    if (parts.size() != 2) return QStringLiteral("T0");
-
-    bool ok1, ok2;
-    const qint64 minutes = parts[0].toLongLong(&ok1);
-    const int seconds = parts[1].section(QLatin1Char('.'), 0, 0).toInt(&ok2);
-    if (!ok1 || !ok2) return QStringLiteral("T0");
-    const qsizetype dot = parts[1].indexOf(QLatin1Char('.'));
-    const QString fraction = dot < 0 ? QString() : parts[1].mid(dot);
-    return QStringLiteral("T%1%2").arg(minutes * 60 + seconds).arg(fraction);
-}
-
-QString csaResultCode(TerminalType terminal, Turn side)
-{
-    switch (terminal) {
-    case TerminalType::Resign: return QStringLiteral("%TORYO");
-    case TerminalType::Interrupt: return QStringLiteral("%CHUDAN");
-    case TerminalType::PerpetualCheck:
-    case TerminalType::Repetition: return QStringLiteral("%SENNICHITE");
-    case TerminalType::Impasse: return QStringLiteral("%JISHOGI");
-    case TerminalType::Timeout: return QStringLiteral("%TIME_UP");
-    case TerminalType::IllegalWin: return side == Turn::Black
-        ? QStringLiteral("%-ILLEGAL_ACTION") : QStringLiteral("%+ILLEGAL_ACTION");
-    case TerminalType::IllegalLoss: return QStringLiteral("%ILLEGAL_MOVE");
-    case TerminalType::DeclarationWin: return QStringLiteral("%KACHI");
-    case TerminalType::Draw: return QStringLiteral("%HIKIWAKE");
-    case TerminalType::MaxMoves: return QStringLiteral("%MAX_MOVES");
-    case TerminalType::Checkmate: return QStringLiteral("%TSUMI");
-    case TerminalType::NoCheckmate: return QStringLiteral("%FUZUMI");
-    case TerminalType::Error: return QStringLiteral("%ERROR");
-    default: return {};
-    }
+    if (!time.valid) return QStringLiteral("T0");
+    const qint64 seconds = time.elapsedMs / 1000;
+    const qint64 millis = time.elapsedMs % 1000;
+    if (millis == 0) return QStringLiteral("T%1").arg(seconds);
+    return QStringLiteral("T%1.%2").arg(seconds).arg(millis, 3, 10, QLatin1Char('0'));
 }
 
 QString convertToCsaDateTime(const QString& dateTimeStr)
@@ -189,6 +154,72 @@ QStringList convertToCsaTimeLines(const QString& timeStr)
         }
     }
     return { convertToCsaTime(timeStr) };
+}
+
+namespace {
+
+struct CsaInfoKey {
+    const char* csa;
+    const QString& gameInfo;
+};
+
+// 読むときは語の最初の行、書くときは項目名の最初の行を使う（後ろの行は別名）
+const CsaInfoKey kInfoKeys[] = {
+    {"EVENT", GameInfoKeys::kEvent},
+    {"SITE", GameInfoKeys::kSite},
+    {"START_TIME", GameInfoKeys::kStartDateTime},
+    {"END_TIME", GameInfoKeys::kEndDateTime},
+    {"TIME_LIMIT", GameInfoKeys::kTimeControl},
+    {"TIME", GameInfoKeys::kCsaTime},
+    {"TIME+", GameInfoKeys::kCsaBlackTime},
+    {"TIME-", GameInfoKeys::kCsaWhiteTime},
+    {"MAX_MOVES", GameInfoKeys::kMaxMoves},
+    {"SMAX_MOVES", GameInfoKeys::kMaxMoves},
+    {"JISHOGI", GameInfoKeys::kJishogiPoints},
+    {"JISHOGI_POINTS", GameInfoKeys::kJishogiPoints},
+    {"JISHOGI_POINT", GameInfoKeys::kJishogiPoints},
+    {"JISHOGI", GameInfoKeys::kJishogi},
+    {"OPENING", GameInfoKeys::kOpening},
+    {"NOTE", GameInfoKeys::kNote},
+};
+
+} // namespace
+
+QString gameInfoKeyFromCsa(const QString& csaKey)
+{
+    for (const auto& entry : kInfoKeys) {
+        if (csaKey == QLatin1String(entry.csa)) return entry.gameInfo;
+    }
+    return {};
+}
+
+QString csaKeyFromGameInfo(const QString& gameInfoKey)
+{
+    for (const auto& entry : kInfoKeys) {
+        if (gameInfoKey == entry.gameInfo) return QString::fromLatin1(entry.csa);
+    }
+    return {};
+}
+
+QString escapeNote(const QString& note)
+{
+    QString value = note;
+    value.replace(QStringLiteral("\\"), QStringLiteral("\\\\"));
+    value.replace(QStringLiteral("\n"), QStringLiteral("\\n"));
+    return value;
+}
+
+QString unescapeNote(const QString& value)
+{
+    QString decoded;
+    for (qsizetype i = 0; i < value.size(); ++i) {
+        if (value.at(i) == QLatin1Char('\\') && i + 1 < value.size()) {
+            if (value.at(i + 1) == QLatin1Char('n')) { decoded += QLatin1Char('\n'); ++i; continue; }
+            if (value.at(i + 1) == QLatin1Char('\\')) { decoded += QLatin1Char('\\'); ++i; continue; }
+        }
+        decoded += value.at(i);
+    }
+    return decoded;
 }
 
 } // namespace CsaFormatter

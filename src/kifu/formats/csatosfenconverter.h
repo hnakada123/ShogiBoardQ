@@ -23,10 +23,6 @@ class CsaToSfenConverter
 public:
     // --- 公開API ---
 
-    /// ファイルを読み（文字コードは CSA の宣言から判別）、parseText に渡す
-    [[nodiscard]] static bool parse(const QString& filePath, KifParseResult& out, QString* warn);
-    static QList<KifGameInfoItem> extractGameInfo(const QString& filePath);
-
     /// テキスト（貼り付けた棋譜など）を解析する
     [[nodiscard]] static bool parseText(const QString& text, KifParseResult& out, QString* warn);
     static QList<KifGameInfoItem> extractGameInfoFromText(const QString& text);

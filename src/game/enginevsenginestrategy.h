@@ -8,6 +8,7 @@
 #include <QString>
 
 #include "gamemodestrategy.h"
+#include "usimatchhandler.h"
 
 /**
  * @brief エンジン同士の対局。先手は E1、後手は E2 の枠のエンジンが指す
@@ -31,13 +32,12 @@ public:
 
 private slots:
     void kickNextTurn();
-    void onEngineMoveReady(const UsiMove& move, const QString& position, const QString& ponder);
+    void onEngineMoveReady(const UsiMatchMove& move);
 
 private:
     MatchStrategyHost& m_host;
     Engines m_engines;
     bool m_waitingForMove = false;
-    bool m_waitingInitialization = false;
 };
 
 #endif // ENGINEVSENGINESTRATEGY_H

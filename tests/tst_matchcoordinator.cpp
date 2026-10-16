@@ -40,8 +40,7 @@ private slots:
     // === 終局の記録 ===
     void resign_recordsTerminalAndAnnounces();
     void resign_secondCallIgnored();
-    void clearGameOverState_clearsAndEmitsSignal();
-    void clearGameOverState_notOverNoSignal();
+    void clearGameOverState_clears();
     void breakOff_appendsTerminalOnceWithoutMessage();
     void playerTimeOut_recordsTimeout();
     void nyugyokuDeclaration_success_data();
@@ -108,9 +107,7 @@ void Tst_MatchCoordinator::initialState_notStartedAndNotOver()
 void Tst_MatchCoordinator::start_preparesHumanGame()
 {
     MatchHarness h;
-    QSignalSpy prepared(h.mc.get(), &MatchCoordinator::gamePrepared);
     h.startHumanVsHuman();
-    QCOMPARE(prepared.count(), 1);
     QVERIFY(h.mc->players().humanVsHuman());
     QCOMPARE(h.activity.activity(), AppActivityState::Activity::DuringGame);
     QCOMPARE(h.gc.currentPlayer(), Turn::Black);
@@ -144,9 +141,8 @@ void Tst_MatchCoordinator::humanMove_isRecordedAndAnnounced()
 {
     MatchHarness h;
     h.startHumanVsHuman();
-    QSignalSpy board(h.mc.get(), &MatchCoordinator::boardChanged);
-    QSignalSpy turn(h.mc.get(), &MatchCoordinator::turnChanged);
-    QSignalSpy highlight(h.mc.get(), &MatchCoordinator::moveHighlightRequested);
+    // 手番の正本は盤。盤が手番の変化を1回だけ知らせる
+    QSignalSpy turn(h.gc.board(), &ShogiBoard::turnChanged);
     QSignalSpy committed(&h.gc, &ShogiGameController::moveCommitted);
 
     QVERIFY(h.playHuman(QStringLiteral("7g7f")));
@@ -156,11 +152,10 @@ void Tst_MatchCoordinator::humanMove_isRecordedAndAnnounced()
     QCOMPARE(h.sink.records.size(), 1);
     QCOMPARE(h.sink.records.first().displayText, QStringLiteral("▲７六歩(77)"));
     QCOMPARE(h.sink.records.first().mover, Turn::Black);
-    QCOMPARE(board.count(), 1);
+    QCOMPARE(h.sink.records.first().move.move.to, (BoardSquare{7, 6}));
     QCOMPARE(turn.count(), 1);
     QCOMPARE(turn.first().first().value<Turn>(), Turn::White);
-    QCOMPARE(highlight.count(), 1);
-    QCOMPARE(highlight.first().at(1).toPoint(), QPoint(7, 6));
+    QCOMPARE(h.gc.currentPlayer(), Turn::White);
     QCOMPARE(committed.count(), 1);
     QCOMPARE(committed.first().at(1).toInt(), 1);
 }
@@ -183,7 +178,6 @@ void Tst_MatchCoordinator::resign_recordsTerminalAndAnnounces()
     MatchHarness h;
     h.startHumanVsHuman();
     QSignalSpy ended(h.mc.get(), &MatchCoordinator::gameEnded);
-    QSignalSpy state(h.mc.get(), &MatchCoordinator::gameOverStateChanged);
     QSignalSpy processed(h.mc.get(), &MatchCoordinator::gameEndProcessed);
 
     h.mc->handleResign();
@@ -194,8 +188,8 @@ void Tst_MatchCoordinator::resign_recordsTerminalAndAnnounces()
     QVERIFY(st.moveAppended);
     QCOMPARE(st.lastInfo.cause, MatchCoordinator::Cause::Resignation);
     QCOMPARE(st.lastInfo.loser, Turn::Black);
-    // 終局した → 終局の行を書いた、の2回知らせる
-    QCOMPARE(state.count(), 2);
+    // 終局したら動作状態は待機に戻る（終局を見る部品はこの変化で知る）
+    QCOMPARE(h.activity.activity(), AppActivityState::Activity::Idle);
     QCOMPARE(ended.count(), 1);
     const auto info = ended.first().first().value<MatchCoordinator::GameEndInfo>();
     QCOMPARE(info.cause, MatchCoordinator::Cause::Resignation);
@@ -222,26 +216,17 @@ void Tst_MatchCoordinator::resign_secondCallIgnored()
     QCOMPARE(h.mc->gameOverState().lastInfo.cause, MatchCoordinator::Cause::Resignation);
 }
 
-void Tst_MatchCoordinator::clearGameOverState_clearsAndEmitsSignal()
+void Tst_MatchCoordinator::clearGameOverState_clears()
 {
     MatchHarness h;
+    h.mc->clearGameOverState();   // 対局していなくても何も起きない
     h.startHumanVsHuman();
     h.mc->handleResign();
-    QSignalSpy state(h.mc.get(), &MatchCoordinator::gameOverStateChanged);
 
     h.mc->clearGameOverState();
 
     QVERIFY(!h.mc->gameOverState().isOver);
     QVERIFY(!h.mc->gameOverState().hasLast);
-    QCOMPARE(state.count(), 1);
-}
-
-void Tst_MatchCoordinator::clearGameOverState_notOverNoSignal()
-{
-    MatchHarness h;
-    QSignalSpy state(h.mc.get(), &MatchCoordinator::gameOverStateChanged);
-    h.mc->clearGameOverState();
-    QCOMPARE(state.count(), 0);
 }
 
 void Tst_MatchCoordinator::breakOff_appendsTerminalOnceWithoutMessage()
@@ -359,7 +344,7 @@ void Tst_MatchCoordinator::undoTwoPlies_onlyOnHumanTurn()
     // エンジン（後手）の手番では待ったできない
     QVERIFY(!h.mc->undoTwoPlies());
     QCOMPARE(h.mc->currentPly(), 3);
-    QVERIFY(h.mc->strategyHost().applyEngineMove(*UsiMove::parse(u"8c8d"), Turn::White, 1000));
+    QVERIFY(h.mc->strategyHost().applyEngineMove(engineMove(QStringLiteral("8c8d"), Turn::White)));
     QVERIFY(h.mc->undoTwoPlies());
     QCOMPARE(h.mc->currentPly(), 2);
     QVERIFY(h.sink.records.isEmpty());
@@ -390,7 +375,7 @@ void Tst_MatchCoordinator::humanVsEngine_engineResignLosesEngineSide()
     QSignalSpy ready(engine, &Usi::engineInitialized);
     QTRY_COMPARE_WITH_TIMEOUT(ready.count(), 1, 5000);
 
-    emit engine->bestMoveResignReceived();
+    emit engine->resigned(engineIsBlack ? Turn::Black : Turn::White);
 
     QVERIFY(h.mc->gameOverState().isOver);
     QCOMPARE(h.mc->gameOverState().lastInfo.cause, MatchCoordinator::Cause::Resignation);
@@ -407,7 +392,7 @@ void Tst_MatchCoordinator::humanVsEngine_engineWinIsJudgedOnBoard()
     QTRY_COMPARE_WITH_TIMEOUT(ready.count(), 1, 5000);
 
     // エンジンの入玉宣言（bestmove win）も盤面で判定する。初期局面では条件を満たさず宣言側の負け
-    emit engine->bestMoveWinReceived();
+    emit engine->declaredWin(Turn::Black);
     QCOMPARE(h.mc->gameOverState().lastInfo.cause, MatchCoordinator::Cause::IllegalMove);
     QCOMPARE(h.mc->gameOverState().lastInfo.loser, Turn::Black);
     QCOMPARE(h.messageCount(), 1);
@@ -422,7 +407,7 @@ void Tst_MatchCoordinator::humanVsEngine_engineWinIsJudgedOnBoard()
     QVERIFY(engine2);
     QSignalSpy ready2(engine2, &Usi::engineInitialized);
     QTRY_COMPARE_WITH_TIMEOUT(ready2.count(), 1, 5000);
-    emit engine2->bestMoveWinReceived();
+    emit engine2->declaredWin(Turn::Black);
     QCOMPARE(h2.mc->gameOverState().lastInfo.cause, MatchCoordinator::Cause::NyugyokuWin);
     QCOMPARE(h2.mc->gameOverState().lastInfo.loser, Turn::White);
     QCOMPARE(h2.sink.records.last().terminal, TerminalType::DeclarationWin);

@@ -11,6 +11,7 @@
 #include <QComboBox>
 #include <QCheckBox>
 #include <QList>
+#include <functional>
 
 #include "longlongspinbox.h"
 #include "engineoptions.h"
@@ -51,65 +52,40 @@ public:
     void writeEngineOptions();
 
 private:
-    // オプションUIのためのウィジェットを格納する構造体
-    struct OptionWidgets
-    {
-        QLineEdit* lineEdit = nullptr;
-        QLabel* optionNameLabel = nullptr;
-        QLabel* optionDescriptionLabel = nullptr;
-        QLabel* helpDescriptionLabel = nullptr;
-        LongLongSpinBox* integerSpinBox = nullptr;
-        QCheckBox* optionCheckBox = nullptr;
-        QPushButton* selectionButton = nullptr;
-        QComboBox* comboBox = nullptr;
+    /// オプション1つの入力欄。型ごとの値の読み書きを持つ（型で分けるのは作るときだけ）
+    struct OptionEditor {
+        std::function<void(const QString&)> setValue;  ///< 値を入力欄に出す
+        std::function<QString()> value;                ///< 入力欄の値（設定ファイルに書く形）
     };
 
     QWidget* m_parentWidget;
     QString m_engineName;
     QString m_engineAuthor;
     QList<EngineOption> m_optionList;
-    OptionWidgets m_optionWidgets;
-    QList<OptionWidgets> m_engineOptionWidgetsList;
+    /// m_optionList と同じ並びの入力欄（GUI 共通の USI_Ponder は空）
+    QList<OptionEditor> m_editors;
 
     // 設定ファイルにエンジンのオプション設定を保存する
     void saveOptionsToSettings();
 
-    // オプションのタイプに応じたUIコンポーネントを作成する
-    void createWidgetForOption(const EngineOption& option, int optionIndex, QVBoxLayout* targetLayout);
+    /// オプションの型に合った入力欄を作ってレイアウトに足す
+    OptionEditor createEditor(const EngineOption& option, QVBoxLayout* layout);
+    OptionEditor createTextBox(const EngineOption& option, QVBoxLayout* layout);
+    OptionEditor createSpinBox(const EngineOption& option, QVBoxLayout* layout);
+    OptionEditor createCheckBox(const EngineOption& option, QVBoxLayout* layout);
+    OptionEditor createButton(const EngineOption& option, QVBoxLayout* layout);
+    OptionEditor createComboBox(const EngineOption& option, QVBoxLayout* layout);
 
     // カテゴリ別の折りたたみ可能なグループボックスを作成する
     CollapsibleGroupBox* createCategoryGroupBox(EngineOptionCategory category);
 
-    // エンジンオプションのためのテキストボックスを作成する
-    void createTextBox(const EngineOption& option, QVBoxLayout* layout, int optionIndex);
-
-    // エンジンオプションのためのスピンボックスを作成する
-    void createSpinBox(const EngineOption& option, QVBoxLayout* layout);
-
-    // エンジンオプションのためのチェックボックスを作成する
-    void createCheckBox(const EngineOption& option, QVBoxLayout* layout);
-
-    // エンジンオプションのためのボタンを作成する
-    void createButton(const EngineOption& option, QVBoxLayout* layout);
-
-    // エンジンオプションのためのコンボボックスを作成する
-    void createComboBox(const EngineOption& option, QVBoxLayout* layout);
-
+    /// 太字のオプション名のラベルを足す
+    QLabel* addNameLabel(const QString& text, QVBoxLayout* layout);
     // オプションの説明ラベルを作成してレイアウトに追加する
-    void createHelpDescriptionLabel(const QString& optionName, QVBoxLayout* layout);
-
-    // 各ボタンが押されているかどうかを確認し、ボタンの色を設定する
-    void changeStatusColorTypeButton();
+    void addHelpDescription(const QString& optionName, QVBoxLayout* layout);
 
     // イベントフィルター（スピンボックス・コンボボックスのホイール操作抑止）
     bool eventFilter(QObject* obj, QEvent* e) override;
-
-private slots:
-    // ファイル・ディレクトリ選択ダイアログを表示する
-    void openFile();
-
-    // ボタンが押された場合、ボタンの色を変える
-    void changeColorTypeButton();
 };
 
 #endif // ENGINESETTINGSOPTIONHANDLER_H

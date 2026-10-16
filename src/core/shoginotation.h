@@ -65,6 +65,34 @@ inline int rankFromKanji(QChar ch)
     }
 }
 
+/// 半角・全角の数字1文字の値（0〜9。数字でなければ -1）
+inline int digitValue(QChar ch)
+{
+    const char16_t u = ch.unicode();
+    if (u >= u'0' && u <= u'9') return u - u'0';
+    if (u >= u'０' && u <= u'９') return u - u'０';
+    return -1;
+}
+
+/// 半角・全角の数字の並びを数にする（数字でない文字は飛ばす。数字がなければ 0）
+inline int numberFromDigits(QStringView text)
+{
+    int value = 0;
+    for (const QChar ch : text) {
+        const int digit = digitValue(ch);
+        if (digit >= 0) value = value * 10 + digit;
+    }
+    return value;
+}
+
+/// 漢数字1文字の値（〇・零は 0、一〜九は 1〜9。それ以外は -1）
+inline int kanjiNumeralValue(QChar ch)
+{
+    if (ch == u'〇' || ch == u'零') return 0;
+    const int value = rankFromKanji(ch);
+    return value > 0 ? value : -1;
+}
+
 // ============================================================
 // 駒の名前
 // ============================================================
@@ -124,6 +152,21 @@ inline Piece pieceFromName(QStringView name)
     };
     for (const auto& entry : table) {
         if (name == QStringView(entry.text)) return entry.piece;
+    }
+    return Piece::None;
+}
+
+/// 文字列の中で最初に出てくる駒の名前（成香などの2文字の名前を優先）を先手の駒にする。なければ None。
+/// 指し手の行（"７六歩(77)"、"同　成銀(42)"、"５五角打"）から駒を読むのに使う
+inline Piece findPieceName(QStringView text)
+{
+    for (qsizetype i = 0; i < text.size(); ++i) {
+        if (i + 1 < text.size()) {
+            const Piece twoChars = pieceFromName(text.mid(i, 2));
+            if (twoChars != Piece::None) return twoChars;
+        }
+        const Piece oneChar = pieceFromName(text.mid(i, 1));
+        if (oneChar != Piece::None) return oneChar;
     }
     return Piece::None;
 }

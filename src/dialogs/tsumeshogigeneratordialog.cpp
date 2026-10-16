@@ -36,7 +36,7 @@
 #include <utility>
 #include "buttonstyles.h"
 #include "countspinbox.h"
-#include "pvboardbuttondelegate.h"
+#include "tablebuttondelegate.h"
 #include <QFormLayout>
 #include <QGroupBox>
 #include <QShortcut>
@@ -89,8 +89,9 @@ void TsumeshogiGeneratorDialog::connectDialogSignals()
     connect(m_resultsUi.copySelected, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::onCopySelected);
     connect(m_resultsUi.copyAll, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::onCopyAll);
     connect(m_footerUi.close, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::close);
-    connect(m_footerUi.fontIncrease, &QToolButton::clicked, this, &TsumeshogiGeneratorDialog::onFontIncrease);
-    connect(m_footerUi.fontDecrease, &QToolButton::clicked, this, &TsumeshogiGeneratorDialog::onFontDecrease);
+    connect(m_footerUi.fontIncrease, &QToolButton::clicked, &m_fontHelper, &FontSizeHelper::increase);
+    connect(m_footerUi.fontDecrease, &QToolButton::clicked, &m_fontHelper, &FontSizeHelper::decrease);
+    connect(&m_fontHelper, &FontSizeHelper::fontSizeChanged, this, &TsumeshogiGeneratorDialog::applyFontSize);
     connect(m_settingsUi.restoreDefaults, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::onRestoreDefaults);
     connect(m_settingsUi.engineSettings, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::showEngineSettingsDialog);
     connect(m_resultsUi.table, &QTableWidget::clicked, this, &TsumeshogiGeneratorDialog::onResultTableClicked);
@@ -323,16 +324,6 @@ void TsumeshogiGeneratorDialog::onCopyAll()
         }
     }
     QApplication::clipboard()->setText(lines.join('\n'));
-}
-
-void TsumeshogiGeneratorDialog::onFontIncrease()
-{
-    if (m_fontHelper.increase()) applyFontSize();
-}
-
-void TsumeshogiGeneratorDialog::onFontDecrease()
-{
-    if (m_fontHelper.decrease()) applyFontSize();
 }
 
 void TsumeshogiGeneratorDialog::onRestoreDefaults()
@@ -726,7 +717,7 @@ void TsumeshogiGeneratorDialog::buildResultsSection(QVBoxLayout* mainLayout)
     m_resultsUi.table->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
     m_resultsUi.table->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
     m_resultsUi.table->horizontalHeader()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
-    m_resultsUi.table->setItemDelegateForColumn(2, new PvBoardButtonDelegate(m_resultsUi.table));
+    m_resultsUi.table->setItemDelegateForColumn(2, new TableButtonDelegate(m_resultsUi.table));
     m_resultsUi.table->verticalHeader()->setVisible(false);
     m_resultsUi.table->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_resultsUi.table->setSelectionMode(QAbstractItemView::ExtendedSelection);

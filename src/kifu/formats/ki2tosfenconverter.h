@@ -24,18 +24,13 @@ public:
     // テキスト（貼り付けた棋譜など）
     static QString detectInitialSfenFromText(const QString& text, QString* detectedLabel = nullptr);
     [[nodiscard]] static bool parseText(const QString& text, KifParseResult& out, QString* errorMessage = nullptr);
-    [[nodiscard]] static bool parseLines(const QStringList& lines, KifParseResult& out, QString* errorMessage = nullptr);
+    /// 行に分けた棋譜を読む。detectedLabel には手合割の名前（局面図なら "BOD"）を返す
+    [[nodiscard]] static bool parseLines(const QStringList& lines, KifParseResult& out, QString* errorMessage = nullptr,
+                                         QString* detectedLabel = nullptr);
     static QList<KifGameInfoItem> extractGameInfoFromText(const QString& text);
     static QList<KifGameInfoItem> extractGameInfoFromLines(const QStringList& lines);
 
-    // ファイル（文字コードを判別して読み、テキスト版に渡す）
-    static QString detectInitialSfenFromFile(const QString& ki2Path, QString* detectedLabel = nullptr);
-    static QStringList convertFile(const QString& ki2Path, QString* errorMessage = nullptr);
-    static QList<KifDisplayItem> extractMovesWithTimes(const QString& ki2Path, QString* errorMessage = nullptr);
-    [[nodiscard]] static bool parseWithVariations(const QString& ki2Path, KifParseResult& out, QString* errorMessage = nullptr);
     static QString mapHandicapToSfen(const QString& label);
-    static QList<KifGameInfoItem> extractGameInfo(const QString& filePath);
-    static QMap<QString, QString> extractGameInfoMap(const QString& filePath);
     [[nodiscard]] static bool buildInitialSfenFromBod(const QStringList& lines, QString& outSfen,
                                         QString* detectedLabel = nullptr, QString* warn = nullptr);
 };

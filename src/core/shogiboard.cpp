@@ -100,7 +100,9 @@ Turn ShogiBoard::currentPlayer() const
 
 void ShogiBoard::setCurrentPlayer(Turn turn)
 {
+    if (m_currentPlayer == turn) return;
     m_currentPlayer = turn;
+    emit turnChanged(turn);
 }
 
 // 指定した位置の駒を返す。
@@ -209,6 +211,7 @@ void ShogiBoard::advanceTurn(Turn mover)
 {
     m_currentPlayer = (mover == Turn::Black) ? Turn::White : Turn::Black;
     ++m_moveNumber;
+    emit turnChanged(m_currentPlayer);
 }
 
 void ShogiBoard::copyPositionFrom(const ShogiBoard& other)
@@ -346,6 +349,7 @@ void ShogiBoard::resetGameBoard()
 {
     initBoard();
     initStand();
+    emit boardReset();
 }
 
 // 先手の配置を後手の配置に変更し、後手の配置を先手の配置に変更する。

@@ -11,11 +11,15 @@
 
 #include "commenteditorpanel.h"
 #include "evaluationchartwidget.h"
-#include "evaluationgraphcontroller.h"
+#include "enginelifecyclemanager.h"
+#include "evaluationgraphpresenter.h"
+#include "shogiclock.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
 #include "kifudisplaypresenter.h"
 #include "kifunavigationstate.h"
+#include "kifubranchlistmodel.h"
+#include "livegamesession.h"
 #include "kifurecordlistmodel.h"
 #include "recordhighlightdelegate.h"
 #include "recordpaneappearancemanager.h"
@@ -77,63 +81,81 @@ private slots:
     {
         KifuBranchTree tree;
         KifuBranchNode* last = buildLine(tree, 120);
-        KifuNavigationState state;
-        state.setTree(&tree);
-        state.setCurrentNode(last);
-        KifuRecordListModel model;
-        KifuDisplayPresenter presenter;
-        KifuDisplayPresenter::Refs refs;
-        refs.tree = &tree;
-        refs.state = &state;
-        refs.recordModel = &model;
-        presenter.updateRefs(refs);
+        KifuRecordListModel model(&tree);
 
         QSignalSpy inserted(&model, &QAbstractItemModel::rowsInserted);
-        presenter.populateRecordModel();
+        QSignalSpy removed(&model, &QAbstractItemModel::rowsRemoved);
+        QSignalSpy reset(&model, &QAbstractItemModel::modelReset);
+        model.setPath(tree.pathToNode(last));
         QCOMPARE(model.rowCount(), 121);
         QCOMPARE(inserted.count(), 1);
-        QVERIFY(model.item(120)->currentMove().contains(QStringLiteral("８二飛")));
+        QVERIFY(model.data(model.index(120, KifuRecordListModel::MoveColumn)).toString()
+                    .contains(QStringLiteral("８二飛")));
 
         // 内容が変わっていなければ何もしない
         inserted.clear();
-        QSignalSpy reset(&model, &QAbstractItemModel::modelReset);
-        presenter.populateRecordModelFromPath(tree.pathToNode(last), 120);
+        model.setPath(tree.pathToNode(last));
         QCOMPARE(model.rowCount(), 121);
         QCOMPARE(inserted.count(), 0);
-        QCOMPARE(reset.count(), 0);
+        QCOMPARE(removed.count(), 0);
 
         // 末尾に1手増えたときは、その1行だけを足す（全行を作り直さない）
         KifuBranchNode* next = tree.addMoveQuiet(
             last, ShogiMove(UsiMove::fromString(u"2h3h"), Piece::BlackRook),
             QStringLiteral("▲３八飛(28)"), QStringLiteral("sfen-121"));
-        state.setCurrentNode(next);
-        presenter.populateRecordModel();
+        model.setPath(tree.pathToNode(next));
         QCOMPARE(model.rowCount(), 122);
-        QCOMPARE(reset.count(), 0);
         QCOMPARE(inserted.count(), 1);
         QCOMPARE(inserted.at(0).at(1).toInt(), 121);
         QCOMPARE(inserted.at(0).at(2).toInt(), 121);
-        QVERIFY(model.item(121)->currentMove().contains(QStringLiteral("３八飛")));
+        QVERIFY(model.data(model.index(121, KifuRecordListModel::MoveColumn)).toString()
+                    .contains(QStringLiteral("３八飛")));
 
-        // 途中までの手順に替わったときは作り直す
-        presenter.populateRecordModelFromPath(tree.pathToNode(tree.findByPlyOnMainLine(60)), 60);
+        // 途中までの手順に替わったときは、後ろの行だけを削る
+        model.setPath(tree.pathToNode(tree.findByPlyOnMainLine(60)));
         QCOMPARE(model.rowCount(), 61);
-        QCOMPARE(reset.count(), 1);
+        QCOMPARE(removed.count(), 1);
+        QCOMPARE(inserted.count(), 1);
+        QCOMPARE(reset.count(), 0);
     }
 
     // 分岐の印が変わらなければ、全行の変更通知（表全体の描き直し）を出さない
     void unchangedBranchMarksDoNotNotify()
     {
-        KifuRecordListModel model;
-        for (int i = 0; i < 10; ++i)
-            model.appendItem(new KifuDisplay(QStringLiteral("%1 ▲７六歩(77)").arg(i), QString(), QString(), &model));
+        KifuBranchTree tree;
+        KifuBranchNode* last = buildLine(tree, 10);
+        KifuNavigationState nav(&tree);
+        LiveGameSession live(&tree, &nav);
+        KifuRecordListModel model(&tree);
+        KifuBranchListModel branches(&tree);
+        KifuDisplayPresenter::Deps deps;
+        deps.navState = &nav;
+        deps.liveSession = &live;
+        deps.recordModel = &model;
+        deps.branchModel = &branches;
+        KifuDisplayPresenter presenter(deps);
+        nav.setCurrentNode(last);
+
         QSignalSpy changed(&model, &QAbstractItemModel::dataChanged);
-        model.setBranchPlyMarks({3});
-        QCOMPARE(changed.count(), 1);
-        model.setBranchPlyMarks({3});
-        QCOMPARE(changed.count(), 1);
-        model.setBranchPlyMarks({});
-        QCOMPARE(changed.count(), 2);
+        const auto wholeTableUpdates = [&changed, &model]() {
+            int count = 0;
+            for (const QList<QVariant>& args : std::as_const(changed)) {
+                if (args.at(0).toModelIndex().row() == 0
+                    && args.at(1).toModelIndex().row() == model.rowCount() - 1) ++count;
+            }
+            return count;
+        };
+        // 手を移るだけなら、強調する行だけを描き直す
+        for (int ply : {3, 7, 0, 10}) nav.setCurrentNode(tree.findByPlyOnMainLine(ply));
+        QCOMPARE(wholeTableUpdates(), 0);
+        QVERIFY(!changed.isEmpty());
+
+        // 分岐ができて「+」の印が変わったときだけ、全行を描き直す
+        tree.addMove(tree.findByPlyOnMainLine(4), ShogiMove(), QStringLiteral("▲９六歩(97)"),
+                     QStringLiteral("branch"));
+        QCOMPARE(wholeTableUpdates(), 1);
+        nav.setCurrentNode(tree.findByPlyOnMainLine(2));
+        QCOMPARE(wholeTableUpdates(), 1);
     }
 
     // コメント欄の手数の表示は手が進むたびに変わる。大きさを固定して、表示が変わっても
@@ -237,16 +259,22 @@ private slots:
     // 省略表示（…）にした場合とコメント列の絵が同じになる。
     void longCommentsRenderSameWhenCut()
     {
-        KifuRecordListModel model;
+        KifuBranchTree tree;
+        tree.setRootSfen(SfenUtils::hirateSfen());
         const QString sentence = QStringLiteral("ここで▲７六歩と突くのが本筋で、△３四歩なら角交換から持久戦になる。");
-        for (int row = 0; row < 14; ++row) {
-            model.appendItem(new KifuDisplay(QStringLiteral("%1 ▲７六歩(77)").arg(row),
-                                             QStringLiteral("00:01/00:00:%1").arg(row, 2, 10, QLatin1Char('0')),
-                                             sentence.repeated(1 + row % 5) + QStringLiteral(" (%1)").arg(row),
-                                             &model));
+        QList<KifuBranchNode*> path{tree.root()};
+        for (int row = 1; row < 14; ++row) {
+            KifuBranchNode* node = tree.addMove(path.last(), ShogiMove(), QStringLiteral("▲７六歩(77)"),
+                                                QStringLiteral("sfen-%1").arg(row),
+                                                QStringLiteral("00:01/00:00:%1").arg(row, 2, 10, QLatin1Char('0')));
+            node->setComment(sentence.repeated(1 + row % 5) + QStringLiteral(" (%1)").arg(row));
+            path.append(node);
         }
+        // 5手目を分岐にして、分岐の印の付いた行も比べる
+        tree.addMove(path.at(4), ShogiMove(), QStringLiteral("△３四歩(33)"), QStringLiteral("branch"));
+        KifuRecordListModel model(&tree);
+        model.setPath(path);
         model.setCurrentHighlightRow(3);
-        model.setBranchPlyMarks({5});
         for (const int commentWidth : {80, 240, 600}) {
             QTableView cut;
             QTableView plain;
@@ -279,12 +307,15 @@ private slots:
     // 1手ごとに目盛りを2回作り直すため、横軸は手数が10手の区切りを越えたときだけ変える。
     void graphAxisOnlyGrowsWhileMovesAreRecorded()
     {
+        KifuBranchTree tree;
+        buildLine(tree, 120);
+        KifuNavigationState nav(&tree);
+        LiveGameSession live(&tree, &nav);
         EvaluationChartWidget chart;
-        EvaluationGraphController controller;
-        controller.setEvalChart(&chart);
+        EvaluationGraphPresenter presenter({&chart, &nav, &live});
 
         QSignalSpy axis(&chart, &EvaluationChartWidget::xAxisSettingsChanged);
-        for (int ply = 1; ply <= 120; ++ply) controller.setCurrentPly(ply);
+        for (int ply = 1; ply <= 120; ++ply) nav.setCurrentNode(tree.findByPlyOnMainLine(ply));
 
         QVERIFY(!axis.isEmpty());
         int previous = 0;

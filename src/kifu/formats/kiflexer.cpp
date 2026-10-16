@@ -53,15 +53,6 @@ const QRegularExpression& kifTimeRe()
     return re;
 }
 
-const QRegularExpression& variationHeaderRe()
-{
-    static const auto& re = *[]() {
-        static const QRegularExpression r(QStringLiteral("^\\s*変化[:：]\\s*[0-9０-９]+\\s*手"));
-        return &r;
-    }();
-    return re;
-}
-
 const QRegularExpression& variationHeaderCaptureRe()
 {
     static const auto& re = *[]() {
@@ -75,12 +66,12 @@ const QRegularExpression& variationHeaderCaptureRe()
 
 QString normalizeTimeMatch(const QRegularExpressionMatch& m)
 {
-    const int mm = KifuParseCommon::flexDigitsToIntNoDetach(m.captured(1));
-    const int ss = KifuParseCommon::flexDigitsToIntNoDetach(m.captured(2));
+    const int mm = ShogiNotation::numberFromDigits(m.captured(1));
+    const int ss = ShogiNotation::numberFromDigits(m.captured(2));
     const bool hasCum = m.lastCapturedIndex() >= 5 && m.captured(3).size();
-    const int HH = hasCum ? KifuParseCommon::flexDigitsToIntNoDetach(m.captured(3)) : 0;
-    const int MM = hasCum ? KifuParseCommon::flexDigitsToIntNoDetach(m.captured(4)) : 0;
-    const int SS = hasCum ? KifuParseCommon::flexDigitsToIntNoDetach(m.captured(5)) : 0;
+    const int HH = hasCum ? ShogiNotation::numberFromDigits(m.captured(3)) : 0;
+    const int MM = hasCum ? ShogiNotation::numberFromDigits(m.captured(4)) : 0;
+    const int SS = hasCum ? ShogiNotation::numberFromDigits(m.captured(5)) : 0;
     auto z2 = [](int x){ return QStringLiteral("%1").arg(x, 2, 10, QLatin1Char('0')); };
     return z2(mm) + QLatin1Char(':') + z2(ss) + QLatin1Char('/') +
            z2(HH) + QLatin1Char(':') + z2(MM) + QLatin1Char(':') + z2(SS);
@@ -91,9 +82,9 @@ QString extractCumTimeFromMatch(const QRegularExpressionMatch& tm)
     auto z2 = [](int x){ return QStringLiteral("%1").arg(x, 2, 10, QLatin1Char('0')); };
     const bool hasCum = tm.lastCapturedIndex() >= 5 && tm.captured(3).size();
     if (!hasCum) return QStringLiteral("00:00:00");
-    const int HH = KifuParseCommon::flexDigitsToIntNoDetach(tm.captured(3));
-    const int MM = KifuParseCommon::flexDigitsToIntNoDetach(tm.captured(4));
-    const int SS = KifuParseCommon::flexDigitsToIntNoDetach(tm.captured(5));
+    const int HH = ShogiNotation::numberFromDigits(tm.captured(3));
+    const int MM = ShogiNotation::numberFromDigits(tm.captured(4));
+    const int SS = ShogiNotation::numberFromDigits(tm.captured(5));
     return z2(HH) + QLatin1Char(':') + z2(MM) + QLatin1Char(':') + z2(SS);
 }
 
@@ -198,10 +189,9 @@ std::optional<KifuParseCommon::MoveDestination> findDestination(const QString& l
     const QChar fch = m.capturedView(1).at(0);
     const QChar rch = m.capturedView(2).at(0);
 
-    const int toFile = KifuParseCommon::flexDigitToIntNoDetach(fch);
-    int r = NotationUtils::kanjiDigitToInt(rch);
-    if (r == 0) r = KifuParseCommon::flexDigitToIntNoDetach(rch);
-    const int toRank = r;
+    const int toFile = ShogiNotation::digitValue(fch);
+    const int toRank = ShogiNotation::rankFromKanji(rch) > 0 ? ShogiNotation::rankFromKanji(rch)
+                                                              : ShogiNotation::digitValue(rch);
 
     if (toFile >= 1 && toFile <= 9 && toRank >= 1 && toRank <= 9)
         return KifuParseCommon::MoveDestination{toFile, toRank, false};
@@ -211,9 +201,9 @@ std::optional<KifuParseCommon::MoveDestination> findDestination(const QString& l
 
 QChar pieceKanjiToUsiUpper(const QString& s)
 {
-    const auto result = KifuParseCommon::mapKanjiPiece(s);
-    if (!result) return QChar();
-    return pieceToChar(result->base);
+    const Piece piece = ShogiNotation::findPieceName(s);
+    if (piece == Piece::None) return QChar();
+    return pieceToChar(demote(piece));
 }
 
 bool isPromotionMoveText(const QString& line)
@@ -298,8 +288,8 @@ bool convertMoveLine(const QString& moveText, QString& usi,
         if (m.hasMatch() && m.lastCapturedIndex() >= 2) {
             const QChar a = m.capturedView(1).at(0);
             const QChar b = m.capturedView(2).at(0);
-            fromF = KifuParseCommon::flexDigitToIntNoDetach(a);
-            fromR = KifuParseCommon::flexDigitToIntNoDetach(b);
+            fromF = qMax(0, ShogiNotation::digitValue(a));
+            fromR = qMax(0, ShogiNotation::digitValue(b));
         }
     }
 
@@ -330,17 +320,6 @@ bool isSpaceLike(QChar ch)
     return ch.isSpace() || ch == QChar(0x3000);
 }
 
-int bodKanjiDigit(QChar c)
-{
-    switch (c.unicode()) {
-    case u'〇': case u'零': return 0;
-    case u'一': return 1; case u'二': return 2; case u'三': return 3;
-    case u'四': return 4; case u'五': return 5; case u'六': return 6;
-    case u'七': return 7; case u'八': return 8; case u'九': return 9;
-    default: return -1;
-    }
-}
-
 int parseKanjiNumberString(const QString& s)
 {
     if (s.isEmpty()) return -1;
@@ -348,20 +327,20 @@ int parseKanjiNumberString(const QString& s)
     if (idx >= 0) {
         int tens = 1;
         if (idx > 0) {
-            int d = bodKanjiDigit(s.at(0));
+            int d = ShogiNotation::kanjiNumeralValue(s.at(0));
             if (d <= 0) return -1;
             tens = d;
         }
         int ones = 0;
         if (idx + 1 < s.size()) {
-            int d = bodKanjiDigit(s.at(idx + 1));
+            int d = ShogiNotation::kanjiNumeralValue(s.at(idx + 1));
             if (d < 0) return -1;
             ones = d;
         }
         return tens * 10 + ones;
     }
     if (s.size() == 1) {
-        int d = bodKanjiDigit(s.at(0));
+        int d = ShogiNotation::kanjiNumeralValue(s.at(0));
         return (d >= 0) ? d : -1;
     }
     return -1;
@@ -479,15 +458,15 @@ QString rowTokensToSfen(const QStringList& tokens)
         const bool gote = tok.startsWith(QLatin1Char('v'));
         const QString body = gote ? tok.mid(1) : tok;
 
-        const auto pieceResult = KifuParseCommon::mapKanjiPiece(body);
-        if (!pieceResult) {
+        const Piece piece = ShogiNotation::pieceFromName(body);
+        if (piece == Piece::None) {
             ++empty; ++used;
             continue;
         }
 
         flushEmpty();
-        if (pieceResult->promoted) row += QLatin1Char('+');
-        row += pieceToChar(gote ? toWhite(pieceResult->base) : pieceResult->base);
+        if (isPromoted(piece)) row += QLatin1Char('+');
+        row += pieceToChar(gote ? toWhite(demote(piece)) : demote(piece));
         ++used;
     }
     while (used < 9) { ++empty; ++used; }
@@ -526,12 +505,11 @@ void parseBodHandsLine(const QString& line, QMap<Piece, int>& outCounts, bool is
         if (tok.isEmpty()) continue;
 
         QChar head = tok.at(0);
-        const auto pieceResult = KifuParseCommon::mapKanjiPiece(QString(head));
-        if (!pieceResult) continue;
-        if (pieceResult->base == Piece::BlackKing) continue;
+        const Piece piece = demote(ShogiNotation::pieceFromName(QStringView(&head, 1)));
+        if (piece == Piece::None || piece == Piece::BlackKing) continue;
 
         int cnt = parseCountSuffixFlexible(tok);
-        outCounts[pieceResult->base] += cnt;
+        outCounts[piece] += cnt;
     }
 }
 

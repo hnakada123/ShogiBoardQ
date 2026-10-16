@@ -9,6 +9,7 @@
 #include <QToolBar>
 #include <QToolButton>
 #include <QVBoxLayout>
+#include <QWheelEvent>
 #include <utility>
 
 #include "apptooltipfilter.h"
@@ -16,16 +17,18 @@
 #include "shogiview.h"
 #include "timedisplaypresenter.h"
 
-#include "logcategories.h"
-
-MainWindowAppearanceController::MainWindowAppearanceController(QObject* parent)
+MainWindowAppearanceController::MainWindowAppearanceController(const Deps& deps, QObject* parent)
     : QObject(parent)
+    , m_deps(deps)
+    , m_mainWindow(deps.window)
 {
-}
-
-void MainWindowAppearanceController::updateDeps(const Deps& deps)
-{
-    m_deps = deps;
+    Q_ASSERT(m_mainWindow && deps.centralWidget && m_deps.shogiView);
+    setupCentralWidgetContainer(deps.centralWidget);
+    configureToolBarFromUi(deps.toolBar, deps.toolBarAction);
+    setupBoardInCenter();
+    connect(m_deps.shogiView, &ShogiView::fieldSizeChanged, this, &MainWindowAppearanceController::fitCentralToBoard);
+    // Ctrl+ホイールで盤の大きさを変える
+    m_deps.shogiView->installEventFilter(this);
 }
 
 void MainWindowAppearanceController::setupCentralWidgetContainer(QWidget* centralWidget)
@@ -35,14 +38,20 @@ void MainWindowAppearanceController::setupCentralWidgetContainer(QWidget* centra
     m_centralLayout->setContentsMargins(0, 0, 0, 0);
     m_centralLayout->setSpacing(0);
 
-    m_mainWindow = qobject_cast<QMainWindow*>(centralWidget->parentWidget());
-    if (m_mainWindow) {
-        m_mainWindow->installEventFilter(this);
-    }
+    m_mainWindow->installEventFilter(this);
 }
 
 bool MainWindowAppearanceController::eventFilter(QObject* watched, QEvent* event)
 {
+    if (watched == m_deps.shogiView && event->type() == QEvent::Wheel) {
+        auto* wheelEvent = static_cast<QWheelEvent*>(event);
+        if (wheelEvent->modifiers() & Qt::ControlModifier) {
+            const int delta = wheelEvent->angleDelta().y();
+            if (delta > 0) m_deps.shogiView->enlargeBoard(true);
+            else if (delta < 0) m_deps.shogiView->reduceBoard(true);
+            return true;
+        }
+    }
     if (watched == m_mainWindow && event->type() == QEvent::WindowStateChange) {
         // 通常表示の固定幅が全画面表示・最大化時のサイズ変更を妨げないようにする。
         if (m_mainWindow->isFullScreen() || m_mainWindow->isMaximized()) {
@@ -86,7 +95,6 @@ void MainWindowAppearanceController::updateWindowWidth()
 
 void MainWindowAppearanceController::configureToolBarFromUi(QToolBar* toolBar, QAction* actionToolBar)
 {
-    m_toolBar = toolBar;
     if (!toolBar) return;
 
     toolBar->setIconSize(QSize(20, 20));
@@ -112,15 +120,13 @@ void MainWindowAppearanceController::configureToolBarFromUi(QToolBar* toolBar, Q
     }
 }
 
-void MainWindowAppearanceController::installAppToolTips(QMainWindow* mainWindow)
+void MainWindowAppearanceController::installAppToolTips()
 {
-    if (!mainWindow) return;
-
-    auto* tipFilter = new AppToolTipFilter(mainWindow);
+    auto* tipFilter = new AppToolTipFilter(m_mainWindow);
     tipFilter->setPointSizeF(12.0);
     tipFilter->setCompact(true);
 
-    const auto toolbars = mainWindow->findChildren<QToolBar*>();
+    const auto toolbars = m_mainWindow->findChildren<QToolBar*>();
     for (QToolBar* tb : std::as_const(toolbars)) {
         const auto buttons = tb->findChildren<QToolButton*>();
         for (QToolButton* b : std::as_const(buttons)) {
@@ -132,26 +138,8 @@ void MainWindowAppearanceController::installAppToolTips(QMainWindow* mainWindow)
 void MainWindowAppearanceController::setupBoardInCenter()
 {
     ShogiView* view = m_deps.shogiView;
-    if (!view) {
-        qCWarning(lcApp) << "setupBoardInCenter: m_shogiView is null!";
-        return;
-    }
-
-    if (!m_centralLayout) {
-        qCWarning(lcApp) << "setupBoardInCenter: m_centralLayout is null!";
-        return;
-    }
-
-    // 将棋盤をセントラルウィジェットに配置
     m_centralLayout->addWidget(view);
-
-    // セントラルウィジェットのサイズを将棋盤に合わせて固定
-    if (m_central) {
-        const QSize boardSize = view->sizeHint();
-        m_central->setFixedSize(boardSize);
-    }
-
-    // 将棋盤を表示
+    fitCentralToBoard();
     view->show();
 }
 
@@ -160,10 +148,10 @@ void MainWindowAppearanceController::setupNameAndClockFonts()
     ShogiView* view = m_deps.shogiView;
     if (!view) return;
 
-    auto* n1 = view->blackNameLabel();
-    auto* n2 = view->whiteNameLabel();
-    auto* c1 = view->blackClockLabel();
-    auto* c2 = view->whiteClockLabel();
+    auto* n1 = view->chrome()->blackNameLabel();
+    auto* n2 = view->chrome()->whiteNameLabel();
+    auto* c1 = view->chrome()->blackClockLabel();
+    auto* c2 = view->chrome()->whiteClockLabel();
     if (!n1 || !n2 || !c1 || !c2) return;
 
     QFont nameFont = view->font();
@@ -180,23 +168,9 @@ void MainWindowAppearanceController::setupNameAndClockFonts()
     c2->setFont(clockFont);
 }
 
-void MainWindowAppearanceController::onBoardSizeChanged(QSize fieldSize)
+void MainWindowAppearanceController::fitCentralToBoard()
 {
-    Q_UNUSED(fieldSize)
-
-    ShogiView* view = m_deps.shogiView;
-    if (m_central && view) {
-        const QSize boardSize = view->sizeHint();
-        m_central->setFixedSize(boardSize);
-    }
-}
-
-void MainWindowAppearanceController::performDeferredEvalChartResize()
-{
-    ShogiView* view = m_deps.shogiView;
-    if (view) {
-        onBoardSizeChanged(view->fieldSize());
-    }
+    m_central->setFixedSize(m_deps.shogiView->sizeHint());
 }
 
 void MainWindowAppearanceController::flipBoard()
@@ -204,11 +178,8 @@ void MainWindowAppearanceController::flipBoard()
     ShogiView* view = m_deps.shogiView;
     if (!view) return;
 
-    // 盤の表示向きをトグル
-    const bool flipped = !view->flipMode();
-    view->setFlipMode(flipped);
-    if (flipped) view->setPiecesFlip();
-    else         view->setPieces();
+    // 盤の表示向きをトグル（駒の画像も向きを合わせる）
+    view->setFlipMode(!view->flipMode());
 
     // 反転で付け直した手番・緊急度の見た目を、最後に受け取った時計の値で戻す
     if (TimeDisplayPresenter* tp = m_deps.timePresenter) tp->refresh();
@@ -232,14 +203,7 @@ void MainWindowAppearanceController::onActionShrinkBoardTriggered()
 
 void MainWindowAppearanceController::onToolBarVisibilityToggled(bool visible)
 {
-    if (m_toolBar) {
-        m_toolBar->setVisible(visible);
-    }
+    if (m_deps.toolBar) m_deps.toolBar->setVisible(visible);
     AppSettings::toolbarVisible.set(visible);
 }
 
-void MainWindowAppearanceController::onTabCurrentChanged(int index)
-{
-    AppSettings::lastSelectedTabIndex.set(index);
-    qCDebug(lcApp).noquote() << "onTabCurrentChanged: saved tab index =" << index;
-}

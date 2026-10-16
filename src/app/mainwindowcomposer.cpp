@@ -7,34 +7,17 @@
 
 #include "appsettings.h"
 #include "docklayoutmanager.h"
+#include "enginelifecyclemanager.h"
+#include "humanturnpolicy.h"
 #include "josekiwindow.h"
 #include "josekiwindowcontroller.h"
-#include "enginelifecyclemanager.h"
+#include "kifudisplaypresenter.h"
 #include "kifufilecontroller.h"
-#include "shogiview.h"
-
-// unique_ptr メンバの完全型（デストラクタ用）
-#include "analysisresultspresenter.h"
-#include "branchnavigationwiring.h"
-#include "csagamewiring.h"
-#include "dockcreationservice.h"
-#include "evaluationgraphcontroller.h"
-#include "gamerecordloadservice.h"
-#include "jishogiscoredialogcontroller.h"
-#include "kifuexportcontroller.h"
-#include "kifunavigationcoordinator.h"
-#include "languagecontroller.h"
-#include "mainwindowactions.h"
 #include "mainwindowappearancecontroller.h"
-#include "nyugyokudeclarationhandler.h"
-#include "humanturnpolicy.h"
-#include "turnstatesyncservice.h"
-#include "usicommandcontroller.h"
-#ifdef QT_DEBUG
-#include "debugscreenshotwiring.h"
-#endif
-
-#include <QTimer>
+#include "playerinfopresenter.h"
+#include "sessionresetcoordinator.h"
+#include "shogigamecontroller.h"
+#include "shogiview.h"
 
 MainWindowComposer::MainWindowComposer(MainWindow& window, Ui::MainWindow& ui)
     : QObject(nullptr)
@@ -47,27 +30,43 @@ MainWindowComposer::~MainWindowComposer() = default;
 
 void MainWindowComposer::compose()
 {
-    // 1) 生成。依存の少ないものから順に、起動時に1回だけ作る
-    createModels();
-    setupUiSkeleton();
-    createBoardAndGameController();
-    createPanelsAndDocks();
-    createBranchNavigation();
-    createRecordAndPlayerInfo();
-    createSecondaryDocks();
-    createServices();
+    // 1) 生成。依存する部品が先にできている順に、起動時に1回だけ作る
+    createRecordAndModels();
+    createBoard();
+    createPanels();
+    createMatchAndAnalysis();
+    createPresentersAndDocks();
+    createSessions();
+    createControllers();
 
-    // 2) 依存の注入。部品は全部できているので、相互参照も順序を気にせず結べる
-    wireFoundation();
-    wireCsaGame();
-    wireKifu();
-    wireUi();
-    wireDialogs();
-    wireGame();
+    // 2) 部品どうしのシグナル接続
+    connectRecord();
+    connectBoard();
+    connectGame();
+    connectAnalysisAndUi();
 
-    // 3) 部品どうしのシグナル接続と初期表示
-    connectSignals();
+    // 3) 初期表示
     finalizeUi();
+}
+
+void MainWindowComposer::finalizeUi()
+{
+    // 盤・棋譜欄・分岐・手番と対局者名の初期表示（対局は始めない。盤の対局者名は対局情報の初期値「先手」「後手」）
+    m_c.shogiView->applyBoardAndRender(m_c.gameController->board());
+    m_c.kifuDisplay->refresh();
+    m_c.playerInfo->showMatchPlayers();
+
+    // ウィンドウの大きさと、起動時のドックのレイアウト
+    AppSettings::loadWindowSize(&m_window);
+    m_c.dockLayoutManager->restoreStartupLayoutIfSet();
+
+    m_c.appearance->setupNameAndClockFonts();
+    m_c.appearance->installAppToolTips();
+}
+
+bool MainWindowComposer::isHumanTurnNow() const
+{
+    return m_c.humanTurnPolicy && m_c.humanTurnPolicy->isHumanTurnNow();
 }
 
 void MainWindowComposer::shutdown()
@@ -86,13 +85,13 @@ void MainWindowComposer::shutdown()
         m_c.engines->destroyEngines();
     }
 
-    // 終了処理中にモード判定を求められても、部品がない状態として扱う
+    // 終了処理中に盤がクリックされても、操作できない手番として扱う
     m_c.humanTurnPolicy.reset();
 }
 
 bool MainWindowComposer::confirmClose()
 {
     if (m_c.kifuFileController && !m_c.kifuFileController->confirmDiscardUnsaved()) return false;
-    JosekiWindow* joseki = m_c.josekiController ? m_c.josekiController->josekiWindow() : nullptr;
+    JosekiWindow* joseki = m_c.joseki ? m_c.joseki->josekiWindow() : nullptr;
     return !joseki || joseki->confirmClose();
 }

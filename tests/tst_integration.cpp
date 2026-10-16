@@ -2,6 +2,7 @@
 #include <QCoreApplication>
 #include <QRandomGenerator>
 
+#include "kifu_file_helper.h"
 #include "shogiboard.h"
 #include "enginemovevalidator.h"
 #include "shogimove.h"
@@ -107,7 +108,7 @@ private slots:
         // Load KIF with branches
         KifParseResult result;
         QString error;
-        bool ok = KifToSfenConverter::parseWithVariations(
+        bool ok = KifuFile::parse<KifToSfenConverter>(
             fixturePath(QStringLiteral("test_branch.kif")), result, &error);
 
         if (!ok) {
@@ -126,12 +127,10 @@ private slots:
                                    QStringLiteral("sfen_%1").arg(i));
         }
 
-        KifuNavigationState state;
-        state.setTree(&tree);
+        KifuNavigationState state(&tree);
         state.goToRoot();
 
-        KifuNavigationController controller;
-        controller.setTreeAndState(&tree, &state);
+        KifuNavigationController controller(&state);
 
         // Random navigation
         auto* rng = QRandomGenerator::global();
@@ -156,8 +155,8 @@ private slots:
         KifuBranchTree tree;
         tree.setRootSfen(kHirateSfen);
 
-        LiveGameSession session;
-        session.setTree(&tree);
+        KifuNavigationState nav(&tree);
+        LiveGameSession session(&tree, &nav);
 
         int prevLineCount = tree.lineCount();
 
@@ -167,10 +166,7 @@ private slots:
 
             ShogiMove move;
             for (int i = 0; i < 10; ++i) {
-                session.addMove(move,
-                               QStringLiteral("m%1_%2").arg(cycle).arg(i),
-                               QStringLiteral("s%1_%2").arg(cycle).arg(i),
-                               QString());
+                session.appendRecord(RecordEntry::played(ShogiMove(), QStringLiteral("m%1_%2").arg(cycle).arg(i), QStringLiteral("s%1_%2").arg(cycle).arg(i)));
             }
 
             session.commit();
@@ -218,7 +214,7 @@ private slots:
     {
         // 1. Load KIF
         QString error;
-        QStringList moves = KifToSfenConverter::convertFile(
+        QStringList moves = KifuFile::usiMoves<KifToSfenConverter>(
             fixturePath(QStringLiteral("test_basic.kif")), &error);
 
         if (moves.isEmpty()) {
@@ -243,12 +239,10 @@ private slots:
         QCOMPARE(tree.nodeCount(), 8); // root + 7
 
         // 3. Navigation
-        KifuNavigationState state;
-        state.setTree(&tree);
+        KifuNavigationState state(&tree);
         state.goToRoot();
 
-        KifuNavigationController controller;
-        controller.setTreeAndState(&tree, &state);
+        KifuNavigationController controller(&state);
 
         controller.goToLast();
         QCOMPARE(state.currentPly(), 7);
@@ -257,15 +251,11 @@ private slots:
         QCOMPARE(state.currentPly(), 0);
 
         // 4. LiveGameSession
-        LiveGameSession session;
-        session.setTree(&tree);
+        LiveGameSession session(&tree, &state);
         session.startFromRoot();
 
         for (int i = 0; i < 5; ++i) {
-            session.addMove(dummyMove,
-                           QStringLiteral("live%1").arg(i),
-                           QStringLiteral("livesfen%1").arg(i),
-                           QString());
+            session.appendRecord(RecordEntry::played(ShogiMove(), QStringLiteral("live%1").arg(i), QStringLiteral("livesfen%1").arg(i)));
         }
 
         auto* committed = session.commit();

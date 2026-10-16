@@ -1,16 +1,15 @@
 /// @file tst_kifu_comment_sync.cpp
-/// @brief 棋譜コメント・しおり同期のテスト
+/// @brief 棋譜コメント・しおりのテスト
 ///
-/// コメント・しおりが分岐ツリー（棋譜の正本）のノードに入り、書き出しと読み出しが
-/// そろうことをテストする。
+/// コメント・しおりは分岐ツリー（棋譜の正本）のノードにだけ入る。書き換えはノードを指定して行い、
+/// 書き出しはノードから読む。変わったときだけ未保存にして、ノード ID 付きで通知する。
 
 #include <QtTest>
 #include <QSignalSpy>
 
 #include "gamerecordmodel.h"
-#include "kifubranchtree.h"
 #include "kifubranchnode.h"
-#include "kifunavigationstate.h"
+#include "kifubranchtree.h"
 #include "kifdisplayitem.h"
 
 static const QString kHirateSfen =
@@ -21,576 +20,159 @@ class TestKifuCommentSync : public QObject
     Q_OBJECT
 
 private:
-    /// テスト用の基本セットアップ（7手の棋譜）
-    void setupBasicModel(GameRecordModel& model, KifuBranchTree& tree,
-                         KifuNavigationState& navState, QList<KifDisplayItem>& disp)
+    /// 7手の本譜を作り、モデルに渡す
+    static void setupBasicModel(GameRecordModel& model, KifuBranchTree& tree)
     {
         tree.setRootSfen(kHirateSfen);
-        ShogiMove move;
-        auto* current = tree.root();
-
-        QStringList moves = {
+        const QStringList moves = {
             QStringLiteral("▲７六歩"), QStringLiteral("△３四歩"),
             QStringLiteral("▲２六歩"), QStringLiteral("△８四歩"),
             QStringLiteral("▲２五歩"), QStringLiteral("△８五歩"),
             QStringLiteral("▲７八金")
         };
-
-        for (int i = 0; i < moves.size(); ++i) {
-            current = tree.addMove(current, move, moves[i],
-                                   QStringLiteral("sfen%1").arg(i + 1));
+        KifuBranchNode* current = tree.root();
+        for (qsizetype i = 0; i < moves.size(); ++i) {
+            current = tree.addMove(current, ShogiMove(), moves.at(i), QStringLiteral("sfen%1").arg(i + 1));
         }
-
-        disp.clear();
-        disp.append(KifDisplayItem(QStringLiteral("開始局面")));
-        for (int i = 0; i < moves.size(); ++i) {
-            disp.append(KifDisplayItem(moves[i], QString(), QString(), i + 1));
-        }
-
-        navState.setTree(&tree);
-        navState.goToRoot();
-
         model.setBranchTree(&tree);
-        model.setNavigationState(&navState);
-        model.initializeFromDisplayItems(disp, static_cast<int>(disp.size()));
     }
 
 private slots:
+    /// 本譜のノードに書いたコメント・しおりは、そのノードと本譜の書き出しに入る
+    void setComment_writesNodeAndExport()
+    {
+        GameRecordModel model;
+        KifuBranchTree tree;
+        setupBasicModel(model, tree);
+
+        model.setComment(tree.mainLine().at(1), QStringLiteral("初手のコメント"));
+        model.setBookmark(tree.mainLine().at(2), QStringLiteral("重要局面"));
+
+        QCOMPARE(tree.mainLine().at(1)->comment(), QStringLiteral("初手のコメント"));
+        QCOMPARE(tree.mainLine().at(2)->bookmark(), QStringLiteral("重要局面"));
+        const QList<KifDisplayItem> exported = model.collectMainlineForExport();
+        QCOMPARE(exported.at(1).comment, QStringLiteral("初手のコメント"));
+        QCOMPARE(exported.at(2).bookmark, QStringLiteral("重要局面"));
+    }
+
+    /// 同じ手数でも、分岐のノードと本譜のノードの注釈は別々に持つ
     void branchCommentsAndBookmarksStayOnTheirNodes()
     {
         GameRecordModel model;
         KifuBranchTree tree;
-        KifuNavigationState nav;
-        QList<KifDisplayItem> disp;
-        setupBasicModel(model, tree, nav, disp);
-        auto* main = tree.mainLine()[2];
-        auto* branch = tree.addMove(tree.mainLine()[1], ShogiMove(), QStringLiteral("△８四歩"), QStringLiteral("branch"));
-        model.setComment(2, QStringLiteral("本譜コメント"));
-        model.setBookmark(2, QStringLiteral("本譜しおり"));
-        nav.setCurrentNode(branch);
-        QCOMPARE(nav.currentLineIndex(), 1);
-        QVERIFY(model.comment(2).isEmpty());
-        QVERIFY(model.bookmark(2).isEmpty());
-        model.setComment(2, QStringLiteral("分岐コメント"));
-        model.setBookmark(2, QStringLiteral("分岐しおり"));
+        setupBasicModel(model, tree);
+        KifuBranchNode* main = tree.mainLine().at(2);
+        KifuBranchNode* branch = tree.addMove(tree.mainLine().at(1), ShogiMove(),
+                                              QStringLiteral("△８四歩"), QStringLiteral("branch"));
+        QVERIFY(branch);
+
+        model.setComment(main, QStringLiteral("本譜コメント"));
+        model.setBookmark(main, QStringLiteral("本譜しおり"));
+        model.setComment(branch, QStringLiteral("分岐コメント"));
+        model.setBookmark(branch, QStringLiteral("分岐しおり"));
         QCOMPARE(branch->comment(), QStringLiteral("分岐コメント"));
-        QCOMPARE(tree.mainLine()[2]->comment(), QStringLiteral("本譜コメント"));
-        QCOMPARE(tree.mainLine()[2]->bookmark(), QStringLiteral("本譜しおり"));
-        const auto exported = model.collectMainlineForExport();
-        QCOMPARE(exported[2].comment, QStringLiteral("本譜コメント"));
-        QCOMPARE(exported[2].bookmark, QStringLiteral("本譜しおり"));
-        nav.setCurrentNode(main);
-        QCOMPARE(model.comment(2), QStringLiteral("本譜コメント"));
-        QCOMPARE(model.bookmark(2), QStringLiteral("本譜しおり"));
-        model.setComment(2, {});
-        model.setBookmark(2, {});
-        nav.setCurrentNode(branch);
-        QCOMPARE(model.comment(2), QStringLiteral("分岐コメント"));
-        QVERIFY(model.collectMainlineForExport()[2].comment.isEmpty());
-        QVERIFY(model.collectMainlineForExport()[2].bookmark.isEmpty());
-        model.setComment(1, QStringLiteral("共通の親"));
-        QCOMPARE(model.collectMainlineForExport()[1].comment, QStringLiteral("共通の親"));
+        QCOMPARE(branch->bookmark(), QStringLiteral("分岐しおり"));
+        QCOMPARE(main->comment(), QStringLiteral("本譜コメント"));
+        QCOMPARE(model.collectMainlineForExport().at(2).comment, QStringLiteral("本譜コメント"));
+        QCOMPARE(model.collectMainlineForExport().at(2).bookmark, QStringLiteral("本譜しおり"));
+
+        model.setComment(main, {});
+        model.setBookmark(main, {});
+        QCOMPARE(branch->comment(), QStringLiteral("分岐コメント"));
+        QVERIFY(model.collectMainlineForExport().at(2).comment.isEmpty());
+        QVERIFY(model.collectMainlineForExport().at(2).bookmark.isEmpty());
+
+        // 分岐の手前の共通の手は本譜の書き出しにも入る
+        model.setComment(tree.mainLine().at(1), QStringLiteral("共通の親"));
+        QCOMPARE(model.collectMainlineForExport().at(1).comment, QStringLiteral("共通の親"));
     }
 
-
-    // ================================================================
-    // Scenario 1: Model と分岐ツリーの同期整合
-    // ================================================================
-
-    /// setComment で本譜のノードにコメントが入ること
-    void setComment_writesMainlineNode()
+    /// 追加・変更・空文字での削除
+    void setComment_addModifyAndDelete()
     {
         GameRecordModel model;
         KifuBranchTree tree;
-        KifuNavigationState navState;
-        QList<KifDisplayItem> disp;
-        setupBasicModel(model, tree, navState, disp);
+        setupBasicModel(model, tree);
+        KifuBranchNode* node = tree.mainLine().at(3);
 
-        model.setComment(1, QStringLiteral("初手のコメント"));
+        model.setComment(node, QStringLiteral("最初"));
+        QCOMPARE(node->comment(), QStringLiteral("最初"));
+        model.setComment(node, QStringLiteral("変更後"));
+        QCOMPARE(node->comment(), QStringLiteral("変更後"));
+        model.setComment(node, QString());
+        QVERIFY(node->comment().isEmpty());
 
-        // 本譜のノードに入っている
-        QCOMPARE(tree.mainLine()[1]->comment(), QStringLiteral("初手のコメント"));
-        // Model 内部とも一致
-        QCOMPARE(model.comment(1), QStringLiteral("初手のコメント"));
+        model.setBookmark(node, QStringLiteral("しおり"));
+        QCOMPARE(node->bookmark(), QStringLiteral("しおり"));
+        model.setBookmark(node, QString());
+        QVERIFY(node->bookmark().isEmpty());
     }
 
-    /// setBookmark で本譜のノードにしおりが入ること
-    void setBookmark_writesMainlineNode()
+    /// 変わったときだけノード ID 付きで通知し、未保存にする
+    void changesEmitNodeIdAndMarkDirty()
     {
         GameRecordModel model;
         KifuBranchTree tree;
-        KifuNavigationState navState;
-        QList<KifDisplayItem> disp;
-        setupBasicModel(model, tree, navState, disp);
-
-        model.setBookmark(2, QStringLiteral("重要局面"));
-
-        // 本譜のノードに入っている
-        QCOMPARE(tree.mainLine()[2]->bookmark(), QStringLiteral("重要局面"));
-        // Model 内部とも一致
-        QCOMPARE(model.bookmark(2), QStringLiteral("重要局面"));
-    }
-
-    /// setComment で KifuBranchTree ノードにもコメントが反映されること
-    void setComment_syncsToBranchTree()
-    {
-        GameRecordModel model;
-        KifuBranchTree tree;
-        KifuNavigationState navState;
-        QList<KifDisplayItem> disp;
-        setupBasicModel(model, tree, navState, disp);
-
-        model.setComment(3, QStringLiteral("分岐ノードのコメント"));
-
-        // BranchTree のノードにも反映されている
-        QList<BranchLine> lines = tree.allLines();
-        QVERIFY(!lines.isEmpty());
-        const BranchLine& mainLine = lines.at(0);
-        QVERIFY(mainLine.nodes.size() > 3);
-        QCOMPARE(mainLine.nodes[3]->comment(), QStringLiteral("分岐ノードのコメント"));
-    }
-
-    /// setBookmark で KifuBranchTree ノードにもしおりが反映されること
-    void setBookmark_syncsToBranchTree()
-    {
-        GameRecordModel model;
-        KifuBranchTree tree;
-        KifuNavigationState navState;
-        QList<KifDisplayItem> disp;
-        setupBasicModel(model, tree, navState, disp);
-
-        model.setBookmark(4, QStringLiteral("ブックマーク"));
-
-        // BranchTree のノードにも反映されている
-        QList<BranchLine> lines = tree.allLines();
-        QVERIFY(!lines.isEmpty());
-        const BranchLine& mainLine = lines.at(0);
-        QVERIFY(mainLine.nodes.size() > 4);
-        QCOMPARE(mainLine.nodes[4]->bookmark(), QStringLiteral("ブックマーク"));
-    }
-
-    // ================================================================
-    // Scenario 2: コメント更新の双方向反映
-    // ================================================================
-
-    /// コメントの追加・変更が正しく反映されること
-    void setComment_addAndModify()
-    {
-        GameRecordModel model;
-        KifuBranchTree tree;
-        KifuNavigationState navState;
-        QList<KifDisplayItem> disp;
-        setupBasicModel(model, tree, navState, disp);
-
-        // 追加
-        model.setComment(0, QStringLiteral("開始局面のコメント"));
-        QCOMPARE(model.comment(0), QStringLiteral("開始局面のコメント"));
-        QCOMPARE(tree.mainLine()[0]->comment(), QStringLiteral("開始局面のコメント"));
-
-        // 変更
-        model.setComment(0, QStringLiteral("変更後のコメント"));
-        QCOMPARE(model.comment(0), QStringLiteral("変更後のコメント"));
-        QCOMPARE(tree.mainLine()[0]->comment(), QStringLiteral("変更後のコメント"));
-    }
-
-    /// コメントの削除（空文字設定）が正しく反映されること
-    void setComment_deleteByEmptyString()
-    {
-        GameRecordModel model;
-        KifuBranchTree tree;
-        KifuNavigationState navState;
-        QList<KifDisplayItem> disp;
-        setupBasicModel(model, tree, navState, disp);
-
-        model.setComment(1, QStringLiteral("一時的なコメント"));
-        QCOMPARE(model.comment(1), QStringLiteral("一時的なコメント"));
-
-        // 空文字でコメント削除
-        model.setComment(1, QString());
-        QCOMPARE(model.comment(1), QString());
-        QCOMPARE(tree.mainLine()[1]->comment(), QString());
-    }
-
-    /// コメント変更時に commentChanged シグナルが発火すること
-    void setComment_emitsSignalOnChange()
-    {
-        GameRecordModel model;
-        KifuBranchTree tree;
-        KifuNavigationState navState;
-        QList<KifDisplayItem> disp;
-        setupBasicModel(model, tree, navState, disp);
-
-        QSignalSpy spy(&model, &GameRecordModel::commentChanged);
-        QVERIFY(spy.isValid());
-
-        model.setComment(2, QStringLiteral("新しいコメント"));
-        QCOMPARE(spy.count(), 1);
-        QCOMPARE(spy.at(0).at(0).toInt(), 2);
-        QCOMPARE(spy.at(0).at(1).toString(), QStringLiteral("新しいコメント"));
-    }
-
-    /// 同じコメントを再設定した場合はシグナルが発火しないこと
-    void setComment_noSignalOnSameValue()
-    {
-        GameRecordModel model;
-        KifuBranchTree tree;
-        KifuNavigationState navState;
-        QList<KifDisplayItem> disp;
-        setupBasicModel(model, tree, navState, disp);
-
-        model.setComment(1, QStringLiteral("同じコメント"));
-
-        QSignalSpy spy(&model, &GameRecordModel::commentChanged);
-        QVERIFY(spy.isValid());
-
-        // 同じ値を再設定
-        model.setComment(1, QStringLiteral("同じコメント"));
-        QCOMPARE(spy.count(), 0);
-    }
-
-    /// commentChanged が変更時に呼ばれること
-    void commentSignal_calledOnChange()
-    {
-        GameRecordModel model;
-        KifuBranchTree tree;
-        KifuNavigationState navState;
-        QList<KifDisplayItem> disp;
-        setupBasicModel(model, tree, navState, disp);
-
-        QSignalSpy spy(&model, &GameRecordModel::commentChanged);
-        model.setComment(3, QStringLiteral("通知テスト"));
-        QCOMPARE(spy.count(), 1);
-        QCOMPARE(spy.at(0).at(0).toInt(), 3);
-        QCOMPARE(spy.at(0).at(1).toString(), QStringLiteral("通知テスト"));
-    }
-
-    /// 同じ値の再設定時は commentChanged が呼ばれないこと
-    void commentSignal_notCalledOnSameValue()
-    {
-        GameRecordModel model;
-        KifuBranchTree tree;
-        KifuNavigationState navState;
-        QList<KifDisplayItem> disp;
-        setupBasicModel(model, tree, navState, disp);
-
-        model.setComment(1, QStringLiteral("固定コメント"));
-
-        QSignalSpy spy(&model, &GameRecordModel::commentChanged);
-        model.setComment(1, QStringLiteral("固定コメント"));
-        QCOMPARE(spy.count(), 0);
-    }
-
-    /// 複数手のコメントが独立して管理されること
-    void setComment_multipleMovesIndependent()
-    {
-        GameRecordModel model;
-        KifuBranchTree tree;
-        KifuNavigationState navState;
-        QList<KifDisplayItem> disp;
-        setupBasicModel(model, tree, navState, disp);
-
-        model.setComment(0, QStringLiteral("開始局面"));
-        model.setComment(1, QStringLiteral("1手目"));
-        model.setComment(5, QStringLiteral("5手目"));
-
-        QCOMPARE(model.comment(0), QStringLiteral("開始局面"));
-        QCOMPARE(model.comment(1), QStringLiteral("1手目"));
-        QCOMPARE(model.comment(2), QString());
-        QCOMPARE(model.comment(5), QStringLiteral("5手目"));
-
-        // 本譜のノードに入っている
-        QCOMPARE(tree.mainLine()[0]->comment(), QStringLiteral("開始局面"));
-        QCOMPARE(tree.mainLine()[1]->comment(), QStringLiteral("1手目"));
-        QCOMPARE(tree.mainLine()[2]->comment(), QString());
-        QCOMPARE(tree.mainLine()[5]->comment(), QStringLiteral("5手目"));
-    }
-
-    // ================================================================
-    // Scenario 3: しおり更新の双方向反映
-    // ================================================================
-
-    /// しおりの追加・変更が正しく反映されること
-    void setBookmark_addAndModify()
-    {
-        GameRecordModel model;
-        KifuBranchTree tree;
-        KifuNavigationState navState;
-        QList<KifDisplayItem> disp;
-        setupBasicModel(model, tree, navState, disp);
-
-        // 追加
-        model.setBookmark(1, QStringLiteral("重要"));
-        QCOMPARE(model.bookmark(1), QStringLiteral("重要"));
-        QCOMPARE(tree.mainLine()[1]->bookmark(), QStringLiteral("重要"));
-
-        // 変更
-        model.setBookmark(1, QStringLiteral("非常に重要"));
-        QCOMPARE(model.bookmark(1), QStringLiteral("非常に重要"));
-        QCOMPARE(tree.mainLine()[1]->bookmark(), QStringLiteral("非常に重要"));
-    }
-
-    /// しおりの削除（空文字設定）が正しく反映されること
-    void setBookmark_deleteByEmptyString()
-    {
-        GameRecordModel model;
-        KifuBranchTree tree;
-        KifuNavigationState navState;
-        QList<KifDisplayItem> disp;
-        setupBasicModel(model, tree, navState, disp);
-
-        model.setBookmark(2, QStringLiteral("一時マーク"));
-        QCOMPARE(model.bookmark(2), QStringLiteral("一時マーク"));
-
-        model.setBookmark(2, QString());
-        QCOMPARE(model.bookmark(2), QString());
-        QCOMPARE(tree.mainLine()[2]->bookmark(), QString());
-    }
-
-    /// bookmarkChanged が変更時に呼ばれること
-    void bookmarkSignal_calledOnChange()
-    {
-        GameRecordModel model;
-        KifuBranchTree tree;
-        KifuNavigationState navState;
-        QList<KifDisplayItem> disp;
-        setupBasicModel(model, tree, navState, disp);
-
-        QSignalSpy spy(&model, &GameRecordModel::bookmarkChanged);
-        model.setBookmark(4, QStringLiteral("しおりテスト"));
-        QCOMPARE(spy.count(), 1);
-        QCOMPARE(spy.at(0).at(0).toInt(), 4);
-        QCOMPARE(spy.at(0).at(1).toString(), QStringLiteral("しおりテスト"));
-    }
-
-    /// 同じ値の再設定時は bookmarkChanged が呼ばれないこと
-    void bookmarkSignal_notCalledOnSameValue()
-    {
-        GameRecordModel model;
-        KifuBranchTree tree;
-        KifuNavigationState navState;
-        QList<KifDisplayItem> disp;
-        setupBasicModel(model, tree, navState, disp);
-
-        model.setBookmark(1, QStringLiteral("固定しおり"));
-
-        QSignalSpy spy(&model, &GameRecordModel::bookmarkChanged);
-        model.setBookmark(1, QStringLiteral("固定しおり"));
-        QCOMPARE(spy.count(), 0);
-    }
-
-    /// しおりの追加が dirty フラグを立てること
-    void setBookmark_setsDirtyFlag()
-    {
-        GameRecordModel model;
-        KifuBranchTree tree;
-        KifuNavigationState navState;
-        QList<KifDisplayItem> disp;
-        setupBasicModel(model, tree, navState, disp);
-
-        QVERIFY(!model.isDirty());
-        model.setBookmark(1, QStringLiteral("しおり"));
-        QVERIFY(model.isDirty());
-    }
-
-    /// initializeFromDisplayItems がコメントを正しく読み込むこと
-    void initializeFromDisplayItems_loadsComments()
-    {
-        GameRecordModel model;
-        KifuBranchTree tree;
-        KifuNavigationState navState;
-
-        tree.setRootSfen(kHirateSfen);
-        auto* first = tree.addMove(tree.root(), ShogiMove(), QStringLiteral("▲７六歩"), QStringLiteral("sfen1"));
-        tree.addMove(first, ShogiMove(), QStringLiteral("△３四歩"), QStringLiteral("sfen2"));
-
-        QList<KifDisplayItem> disp;
-        disp.append(KifDisplayItem(QStringLiteral("開始局面"), QString(),
-                                   QStringLiteral("開始時コメント")));
-        KifDisplayItem item1(QStringLiteral("▲７六歩"), QString(),
-                             QStringLiteral("1手目コメント"), 1);
-        disp.append(item1);
-        KifDisplayItem item2(QStringLiteral("△３四歩"), QString(), QString(), 2);
-        disp.append(item2);
-
-        navState.setTree(&tree);
-        navState.goToRoot();
-        model.setBranchTree(&tree);
-        model.setNavigationState(&navState);
-        model.initializeFromDisplayItems(disp, static_cast<int>(disp.size()));
-
-        QCOMPARE(model.comment(0), QStringLiteral("開始時コメント"));
-        QCOMPARE(model.comment(1), QStringLiteral("1手目コメント"));
-        QCOMPARE(model.comment(2), QString());
-    }
-
-    /// initializeFromDisplayItems がしおりを正しく読み込むこと
-    void initializeFromDisplayItems_loadsBookmarks()
-    {
-        GameRecordModel model;
-        KifuBranchTree tree;
-        KifuNavigationState navState;
-
-        tree.setRootSfen(kHirateSfen);
-        auto* first = tree.addMove(tree.root(), ShogiMove(), QStringLiteral("▲７六歩"), QStringLiteral("sfen1"));
-        tree.addMove(first, ShogiMove(), QStringLiteral("△３四歩"), QStringLiteral("sfen2"));
-
-        QList<KifDisplayItem> disp;
-        {
-            KifDisplayItem item(QStringLiteral("開始局面"));
-            item.bookmark = QStringLiteral("開始しおり");
-            disp.append(item);
-        }
-        {
-            KifDisplayItem item(QStringLiteral("▲７六歩"), QString(), QString(), 1);
-            item.bookmark = QStringLiteral("1手目しおり");
-            disp.append(item);
-        }
-        disp.append(KifDisplayItem(QStringLiteral("△３四歩"), QString(), QString(), 2));
-
-        navState.setTree(&tree);
-        navState.goToRoot();
-        model.setBranchTree(&tree);
-        model.setNavigationState(&navState);
-        model.initializeFromDisplayItems(disp, static_cast<int>(disp.size()));
-
-        QCOMPARE(model.bookmark(0), QStringLiteral("開始しおり"));
-        QCOMPARE(model.bookmark(1), QStringLiteral("1手目しおり"));
-        QCOMPARE(model.bookmark(2), QString());
-    }
-
-    /// initializeFromDisplayItems 後は dirty フラグがクリアされていること
-    void initializeFromDisplayItems_clearsDirtyFlag()
-    {
-        GameRecordModel model;
-        KifuBranchTree tree;
-        KifuNavigationState navState;
-        QList<KifDisplayItem> disp;
-        setupBasicModel(model, tree, navState, disp);
-
-        // setupBasicModel 直後は dirty = false
-        QVERIFY(!model.isDirty());
-
-        // コメントを設定して dirty にする
-        model.setComment(1, QStringLiteral("test"));
-        QVERIFY(model.isDirty());
-
-        // 再初期化で dirty がクリアされる
-        model.initializeFromDisplayItems(disp, static_cast<int>(disp.size()));
-        QVERIFY(!model.isDirty());
-    }
-
-    /// clear() 後もコメントを分岐ツリーのノードに書けること
-    void clear_thenSetComment_nocrash()
-    {
-        GameRecordModel model;
-        KifuBranchTree tree;
-        KifuNavigationState navState;
-        QList<KifDisplayItem> disp;
-        setupBasicModel(model, tree, navState, disp);
-
-        model.clear();
-        QVERIFY(!model.isDirty());
-
-        // clear 後も分岐ツリーは残っているので、ノードに書き込む
-        model.setComment(0, QStringLiteral("クリア後コメント"));
-        QCOMPARE(model.comment(0), QStringLiteral("クリア後コメント"));
-        QCOMPARE(tree.mainLine()[0]->comment(), QStringLiteral("クリア後コメント"));
-    }
-
-    void annotationsWithoutTreeRemainEditable()
-    {
-        GameRecordModel model;
-        model.setComment(15, QStringLiteral("コメント"));
-        model.setBookmark(20, QStringLiteral("しおり"));
-        QCOMPARE(model.comment(15), QStringLiteral("コメント"));
-        QCOMPARE(model.bookmark(20), QStringLiteral("しおり"));
-        model.clear();
-        QVERIFY(model.comment(15).isEmpty());
-        QVERIFY(model.bookmark(20).isEmpty());
-        QVERIFY(!model.isDirty());
-    }
-
-    void missingBranchNodeDoesNotUseAnotherLinesAnnotation()
-    {
-        GameRecordModel model;
-        KifuBranchTree tree;
-        KifuNavigationState nav;
-        QList<KifDisplayItem> disp;
-        setupBasicModel(model, tree, nav, disp);
-        model.setComment(6, QStringLiteral("本譜のみ"));
-        model.setBookmark(6, QStringLiteral("本譜のしおり"));
-        auto* branch = tree.addMove(tree.mainLine()[1], ShogiMove(),
-                                   QStringLiteral("△８四歩"), QStringLiteral("branch"));
-        nav.setCurrentNode(branch);
-        QVERIFY(model.comment(6).isEmpty());
-        QVERIFY(model.bookmark(6).isEmpty());
-        model.clearDirty();
+        setupBasicModel(model, tree);
+        KifuBranchNode* node = tree.mainLine().at(4);
         QSignalSpy comments(&model, &GameRecordModel::commentChanged);
         QSignalSpy bookmarks(&model, &GameRecordModel::bookmarkChanged);
-        model.setComment(6, QStringLiteral("存在しない手"));
-        model.setBookmark(6, QStringLiteral("存在しない手"));
         QVERIFY(!model.isDirty());
+
+        model.setComment(node, QStringLiteral("コメント"));
+        QCOMPARE(comments.count(), 1);
+        QCOMPARE(comments.last().at(0).toInt(), node->nodeId());
+        QCOMPARE(comments.last().at(1).toString(), QStringLiteral("コメント"));
+        QVERIFY(model.isDirty());
+
+        model.clearDirty();
+        model.setComment(node, QStringLiteral("コメント"));
+        QCOMPARE(comments.count(), 1);
+        QVERIFY(!model.isDirty());
+
+        model.setBookmark(node, QStringLiteral("しおり"));
+        QCOMPARE(bookmarks.count(), 1);
+        QCOMPARE(bookmarks.last().at(0).toInt(), node->nodeId());
+        QVERIFY(model.isDirty());
+        model.clearDirty();
+        model.setBookmark(node, QStringLiteral("しおり"));
+        QCOMPARE(bookmarks.count(), 1);
+        QVERIFY(!model.isDirty());
+        QCOMPARE(comments.count(), 1);
+    }
+
+    /// 別の手の注釈、同じ手のコメントとしおりは互いに影響しない
+    void annotationsAreIndependent()
+    {
+        GameRecordModel model;
+        KifuBranchTree tree;
+        setupBasicModel(model, tree);
+        const QList<KifuBranchNode*> line = tree.mainLine();
+
+        model.setComment(line.at(1), QStringLiteral("1手目"));
+        model.setComment(line.at(3), QStringLiteral("3手目"));
+        model.setComment(line.at(7), QStringLiteral("7手目"));
+        model.setBookmark(line.at(3), QStringLiteral("しおり"));
+        model.setComment(line.at(3), QString());
+
+        QCOMPARE(line.at(1)->comment(), QStringLiteral("1手目"));
+        QVERIFY(line.at(3)->comment().isEmpty());
+        QCOMPARE(line.at(3)->bookmark(), QStringLiteral("しおり"));
+        QCOMPARE(line.at(7)->comment(), QStringLiteral("7手目"));
+        QVERIFY(line.at(2)->comment().isEmpty());
+    }
+
+    /// ノードが無ければ何もしない（未保存にもしない）
+    void nullNodeIsIgnored()
+    {
+        GameRecordModel model;
+        KifuBranchTree tree;
+        setupBasicModel(model, tree);
+        QSignalSpy comments(&model, &GameRecordModel::commentChanged);
+        model.setComment(nullptr, QStringLiteral("x"));
+        model.setBookmark(nullptr, QStringLiteral("x"));
         QCOMPARE(comments.count(), 0);
-        QCOMPARE(bookmarks.count(), 0);
-        nav.goToRoot();
-        // 開始局面に戻っても選択した分岐を表示する。本譜への切替は明示する。
-        QVERIFY(model.comment(6).isEmpty());
-        nav.clearLineSelectionMemory();
-        QCOMPARE(model.comment(6), QStringLiteral("本譜のみ"));
-        QCOMPARE(model.bookmark(6), QStringLiteral("本譜のしおり"));
-    }
-
-    /// 負の ply でコメント設定してもクラッシュしないこと
-    void setComment_negativePly_nocrash()
-    {
-        GameRecordModel model;
-        KifuBranchTree tree;
-        KifuNavigationState navState;
-        QList<KifDisplayItem> disp;
-        setupBasicModel(model, tree, navState, disp);
-
-        // 負の ply は無視される
-        model.setComment(-1, QStringLiteral("不正な手数"));
-        QCOMPARE(model.comment(-1), QString());
-    }
-
-    /// 負の ply でしおり設定してもクラッシュしないこと
-    void setBookmark_negativePly_nocrash()
-    {
-        GameRecordModel model;
-        KifuBranchTree tree;
-        KifuNavigationState navState;
-        QList<KifDisplayItem> disp;
-        setupBasicModel(model, tree, navState, disp);
-
-        model.setBookmark(-1, QStringLiteral("不正な手数"));
-        QCOMPARE(model.bookmark(-1), QString());
-    }
-
-    /// コメントとしおりが同一手で独立して管理されること
-    void commentAndBookmark_independentOnSamePly()
-    {
-        GameRecordModel model;
-        KifuBranchTree tree;
-        KifuNavigationState navState;
-        QList<KifDisplayItem> disp;
-        setupBasicModel(model, tree, navState, disp);
-
-        model.setComment(3, QStringLiteral("3手目コメント"));
-        model.setBookmark(3, QStringLiteral("3手目しおり"));
-
-        QCOMPARE(model.comment(3), QStringLiteral("3手目コメント"));
-        QCOMPARE(model.bookmark(3), QStringLiteral("3手目しおり"));
-        QCOMPARE(tree.mainLine()[3]->comment(), QStringLiteral("3手目コメント"));
-        QCOMPARE(tree.mainLine()[3]->bookmark(), QStringLiteral("3手目しおり"));
-
-        // コメント変更がしおりに影響しないこと
-        model.setComment(3, QStringLiteral("変更後コメント"));
-        QCOMPARE(model.bookmark(3), QStringLiteral("3手目しおり"));
-
-        // しおり変更がコメントに影響しないこと
-        model.setBookmark(3, QStringLiteral("変更後しおり"));
-        QCOMPARE(model.comment(3), QStringLiteral("変更後コメント"));
+        QVERIFY(!model.isDirty());
     }
 };
 

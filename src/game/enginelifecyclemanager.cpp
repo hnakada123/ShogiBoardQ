@@ -4,9 +4,7 @@
 #include "enginelifecyclemanager.h"
 
 #include "logcategories.h"
-#include "shogienginethinkingmodel.h"
 #include "usi.h"
-#include "usicommlogmodel.h"
 
 EngineLifecycleManager::EngineLifecycleManager(ShogiClock* clock, QObject* parent)
     : QObject(parent)
@@ -15,11 +13,6 @@ EngineLifecycleManager::EngineLifecycleManager(ShogiClock* clock, QObject* paren
 }
 
 EngineLifecycleManager::~EngineLifecycleManager() = default;
-
-void EngineLifecycleManager::setModels(const Models& models)
-{
-    m_models = models;
-}
 
 // ============================================================
 // 生成・起動
@@ -30,22 +23,20 @@ Usi* EngineLifecycleManager::createEngine(int slot, std::optional<Turn> side, co
     Seat& target = seat(slot);
     destroySeat(target, false);
 
-    UsiCommLogModel* comm = (slot == 2) ? m_models.comm2 : m_models.comm1;
-    ShogiEngineThinkingModel* think = (slot == 2) ? m_models.think2 : m_models.think1;
     const QString displayName = engineName.isEmpty() ? QStringLiteral("Engine") : engineName;
-    if (comm) comm->setEngineName(displayName);
-
-    auto* engine = new Usi(comm, think, this);
-    engine->setMatchClock(m_clock);
+    auto* engine = new Usi(this);
     const QString sideTag = !side ? QString()
         : (*side == Turn::Black ? QStringLiteral("black") : QStringLiteral("white"));
-    engine->setLogIdentity(slot == 2 ? QStringLiteral("[E2]") : QStringLiteral("[E1]"), sideTag, displayName);
-    engine->setSquelchResignLogging(false);
-    connect(engine, &Usi::bestMoveResignReceived, this, &EngineLifecycleManager::onEngineResign);
-    connect(engine, &Usi::bestMoveWinReceived, this, &EngineLifecycleManager::onEngineWin);
-    // 対局のエンジンの起動の失敗や異常終了を知らせる（起動の失敗は startEngine の中で届くことがある）。
-    // 検討・詰み探索のエンジンのエラーは、使う側（AnalysisSession）が直接受け取る
-    if (side) connect(engine, &Usi::errorOccurred, this, &EngineLifecycleManager::engineError);
+    engine->setLogIdentity(slot == 2 ? QStringLiteral("E2") : QStringLiteral("E1"), sideTag, displayName);
+    if (side) {
+        // 対局のエンジンは対局の時計から持ち時間を読む（通信対局のエンジンはサーバーの時間を自分で渡す）
+        engine->setMatchClock(m_clock);
+        // 対局のエンジンの投了・宣言勝ちと、起動の失敗や異常終了を知らせる（起動の失敗は startEngine の中で
+        // 届くことがある）。検討・詰み探索のエンジンのエラーは、使う側（AnalysisSession）が直接受け取る
+        connect(engine, &Usi::resigned, this, &EngineLifecycleManager::engineResigned);
+        connect(engine, &Usi::declaredWin, this, &EngineLifecycleManager::engineDeclaredWin);
+        connect(engine, &Usi::errorOccurred, this, &EngineLifecycleManager::engineError);
+    }
 
     target.engine = engine;
     target.side = side;
@@ -83,30 +74,12 @@ int EngineLifecycleManager::slotFor(Turn side) const
     return 0;
 }
 
-std::optional<Turn> EngineLifecycleManager::sideOf(const QObject* engine) const
-{
-    for (const Seat& s : m_seats) {
-        if (s.engine && s.engine == engine) return s.side;
-    }
-    return std::nullopt;
-}
-
-void EngineLifecycleManager::onEngineResign()
-{
-    if (const auto side = sideOf(sender())) emit engineResigned(*side);
-}
-
-void EngineLifecycleManager::onEngineWin()
-{
-    if (const auto side = sideOf(sender())) emit engineDeclaredWin(*side);
-}
-
 void EngineLifecycleManager::disconnectArbiterSignals()
 {
     for (const Seat& s : m_seats) {
         if (!s.engine) continue;
-        disconnect(s.engine, &Usi::bestMoveResignReceived, this, nullptr);
-        disconnect(s.engine, &Usi::bestMoveWinReceived, this, nullptr);
+        disconnect(s.engine, &Usi::resigned, this, nullptr);
+        disconnect(s.engine, &Usi::declaredWin, this, nullptr);
     }
 }
 
@@ -120,13 +93,12 @@ void EngineLifecycleManager::notifyGameOver(std::optional<Turn> loser)
         if (!s.engine || !s.side) continue;
         const GameOverResult result = !loser ? GameOverResult::Draw
             : (*loser == *s.side ? GameOverResult::Lose : GameOverResult::Win);
-        // 終局後の bestmove で着手・先読みを再開させない。quit に応答しない場合も
-        // 非同期の終了監視へ引き渡し、アプリを閉じるまでプロセスを残さない。
-        s.engine->setSquelchResignLogging(true);
+        // 終局後の bestmove で着手・先読みを再開させない（取り消した探索の結果は届かない）。
+        // quit に応答しない場合も非同期の終了監視へ引き渡し、アプリを閉じるまでプロセスを残さない
         s.engine->cancelCurrentOperation();
-        s.engine->sendStopCommand();
+        s.engine->stop();
         s.engine->sendGameOverCommand(result);
-        s.engine->cleanupEngineProcessAndThread(false);
+        s.engine->quit(false);
     }
 }
 
@@ -136,19 +108,21 @@ void EngineLifecycleManager::destroySeat(Seat& target, bool clearThinking)
     target.side.reset();
     if (!engine) return;
     disconnect(engine, nullptr, this, nullptr);
-    engine->cleanupEngineProcessAndThread(clearThinking);
+    engine->quit(clearThinking);
     engine->deleteLater();
     emit enginesChanged();
 }
 
-void EngineLifecycleManager::destroyEngines(bool clearModels)
+void EngineLifecycleManager::destroyEngine(Usi* engine)
 {
-    qCDebug(lcGame).noquote() << "destroyEngines called, clearModels=" << clearModels;
-    for (Seat& s : m_seats) destroySeat(s, clearModels);
-    if (clearModels) {
-        if (m_models.comm1) m_models.comm1->clear();
-        if (m_models.think1) m_models.think1->clearAllItems();
-        if (m_models.comm2) m_models.comm2->clear();
-        if (m_models.think2) m_models.think2->clearAllItems();
+    for (Seat& s : m_seats) {
+        if (engine && s.engine == engine) destroySeat(s, false);
     }
+}
+
+void EngineLifecycleManager::destroyEngines(bool clearDisplay)
+{
+    qCDebug(lcGame).noquote() << "destroyEngines called, clearDisplay=" << clearDisplay;
+    for (Seat& s : m_seats) destroySeat(s, clearDisplay);
+    if (clearDisplay) emit displayClearRequested();
 }

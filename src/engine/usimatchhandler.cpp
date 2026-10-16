@@ -1,47 +1,35 @@
 /// @file usimatchhandler.cpp
-/// @brief 対局通信フロー・盤面データ管理を担当するハンドラクラスの実装
+/// @brief 対局での position/go/bestmove のやり取りの実装
 
 #include "usimatchhandler.h"
+
 #include "logcategories.h"
-#include "usiprotocolhandler.h"
+#include "matchsearchsnapshot.h"
 #include "sfenreplay.h"
-#include "shogiboard.h"
+#include "shogiclock.h"
+#include "usiprotocolhandler.h"
+
 #include <limits>
 
 namespace {
 
-void ensureMovesKeyword(QString& s)
+/// position コマンドの末尾に " moves" がなければ足す
+QString withMovesKeyword(const QString& position)
 {
-    if (!s.contains(QStringLiteral(" moves"))) {
-        s = s.trimmed();
-        s += QStringLiteral(" moves");
-    }
+    if (position.contains(QStringLiteral(" moves"))) return position;
+    return position.trimmed() + QStringLiteral(" moves");
 }
 
 } // namespace
 
-UsiMatchHandler::UsiMatchHandler(UsiProtocolHandler* protocolHandler)
-    : m_protocolHandler(protocolHandler)
+UsiMatchHandler::UsiMatchHandler(UsiProtocolHandler* protocolHandler, QObject* parent)
+    : QObject(parent)
+    , m_protocolHandler(protocolHandler)
 {
     m_responseTimer.setSingleShot(true);
     m_responseTimer.setTimerType(Qt::PreciseTimer);
     connect(&m_responseTimer, &QTimer::timeout, this, &UsiMatchHandler::onSearchTimeout);
-}
-
-void UsiMatchHandler::setHooks(const Hooks& hooks)
-{
-    m_hooks = hooks;
-}
-
-QString UsiMatchHandler::lastUsiMove() const
-{
-    return m_lastUsiMove;
-}
-
-void UsiMatchHandler::setLastUsiMove(const QString& move)
-{
-    qCDebug(lcEngine) << "setLastUsiMove:" << move;
-    m_lastUsiMove = move;
+    connect(m_protocolHandler, &UsiProtocolHandler::bestMoveReceived, this, &UsiMatchHandler::onBestMoveReceived);
 }
 
 void UsiMatchHandler::cancelAsync()
@@ -54,77 +42,113 @@ void UsiMatchHandler::requestMove(const QString& position, const QString& ponder
 {
     cancelAsync();
     m_position = position;
-    if (searchTiming(timing).expired) return;
-    m_ponder = ponder;
+    m_sideToMove = SfenReplay::sfenFromPositionCommand(position).contains(QStringLiteral(" w "))
+        ? Turn::White : Turn::Black;
     m_timing = timing;
-    const auto phase = m_protocolHandler->currentPhase();
-    if (phase == UsiProtocolHandler::SearchPhase::Ponder
-        || phase == UsiProtocolHandler::SearchPhase::StoppingPonder) {
-        const bool hit = phase == UsiProtocolHandler::SearchPhase::Ponder
-            && m_protocolHandler->isPonderEnabled() && !m_protocolHandler->predictedMove().isEmpty()
-            && position.simplified() == ponder.simplified();
-        if (!hit) {
-            m_pending = Pending::PonderStop;
-            m_responseTimer.start(qMin(2000, searchTiming(timing).timeoutMs));
-            if (phase != UsiProtocolHandler::SearchPhase::StoppingPonder) m_protocolHandler->sendStop();
-            return;
-        }
-        m_lastUsiMove = position.section(QLatin1Char(' '), -1);
-        m_pending = Pending::Move;
-        m_responseTimer.start(searchTiming(timing).timeoutMs);
-        m_protocolHandler->sendPonderHit();
+    if (searchTiming().expired) return;
+    m_ponder = ponder;
+
+    using State = UsiProtocolHandler::State;
+    const bool pondering = m_protocolHandler->isSearching()
+        && m_protocolHandler->searchKind() == UsiProtocolHandler::SearchKind::Ponder;
+    if (!pondering) {
+        startAsyncSearch();
         return;
     }
-    startAsyncSearch();
+    // 先読みの予想が当たれば ponderhit で続ける。外れたら stop で回収してから探し直す
+    const bool hit = m_protocolHandler->state() == State::Searching && !ponder.isEmpty()
+        && position.simplified() == ponder.simplified();
+    if (!hit) {
+        m_pending = Pending::PonderStop;
+        m_responseTimer.start(qMin(2000, searchTiming().timeoutMs));
+        m_protocolHandler->sendStop();
+        return;
+    }
+    emit lastMoveChanged(position.section(QLatin1Char(' '), -1));
+    m_pending = Pending::Move;
+    m_responseTimer.start(searchTiming().timeoutMs);
+    m_protocolHandler->sendPonderHit();
 }
 
 void UsiMatchHandler::startAsyncSearch()
 {
-    const auto timing = searchTiming(m_timing);
-    if (timing.expired) { cancelAsync(); return; }
-    if (m_position.contains(QStringLiteral(" moves ")))
-        m_lastUsiMove = m_position.section(QLatin1Char(' '), -1);
-    const UsiGoTime goTime = UsiGoTimeCalculator::compute(timing.input);
+    const SearchTiming timing = searchTiming();
+    if (timing.expired) {
+        cancelAsync();
+        return;
+    }
+    if (m_position.contains(QStringLiteral(" moves "))) emit lastMoveChanged(m_position.section(QLatin1Char(' '), -1));
     m_pending = Pending::Move;
     m_responseTimer.start(timing.timeoutMs);
-    m_protocolHandler->sendPosition(m_position);
-    m_protocolHandler->sendGo(goTime);
+    m_protocolHandler->startSearch(m_position, UsiGo::clock(UsiGoTimeCalculator::compute(timing.input)));
 }
 
-void UsiMatchHandler::onBestMoveReceived()
+void UsiMatchHandler::onBestMoveReceived(const UsiBestMove& result)
 {
     if (m_pending == Pending::PonderStop) {
+        // 外れた先読みを回収した。手番の探索を始める
         m_responseTimer.stop();
         startAsyncSearch();
         return;
     }
-    if (m_pending != Pending::Move) return;
+    if (m_pending != Pending::Move || result.pondering) return;
     m_pending = Pending::None;
     m_responseTimer.stop();
-    if (m_hooks.finishTurn && !m_hooks.finishTurn()) return;
-    if (m_protocolHandler->specialMove() != SpecialMove::None) return;
-    const std::optional<UsiMove> move = m_protocolHandler->parseBestMove();
-    if (!move) return;
-    appendBestMoveAndStartPondering(m_position, m_ponder, m_timing);
-    // コールバック先で次の探索や破棄が起きても、参照中の結果は変化させない。
-    const auto position = m_position;
-    const auto ponder = m_ponder;
-    if (m_hooks.onMoveReady) m_hooks.onMoveReady(*move, position, ponder);
+    // 投了・宣言勝ちは時計を確定する前に知らせる（終局の処理が時計を止める）
+    if (result.special == SpecialMove::Resign) {
+        emit resigned(m_sideToMove);
+        return;
+    }
+    if (result.special == SpecialMove::Win) {
+        emit declaredWin(m_sideToMove);
+        return;
+    }
+    if (!finishTurn() || !result.isMove()) return;
+    const std::optional<UsiMove> move = UsiMove::parse(result.move.trimmed());
+    if (!move) {
+        emit errorOccurred(tr("Invalid bestmove format: \"%1\"").arg(result.move));
+        return;
+    }
+
+    UsiMatchMove played;
+    played.side = m_sideToMove;
+    played.move = *move;
+    played.position = withMovesKeyword(m_position) + QLatin1Char(' ') + result.move;
+    played.elapsedMs = result.elapsedMs;
+    played.score = result.score;
+    m_position = played.position;
+    startPondering(result);
+    played.ponderPosition = m_ponder;
+    emit moveReady(played);
 }
 
-UsiMatchHandler::SearchTiming UsiMatchHandler::searchTiming(const UsiTimingParams& timing, bool pondering) const
+void UsiMatchHandler::startPondering(const UsiBestMove& result)
 {
-    // エンジンの手番。先読みを始めるときは m_position に自分の指した手まで入っているので、その1手前の手番
-    const bool whiteToMove = SfenReplay::sfenFromPositionCommand(m_position).contains(QStringLiteral(" w "));
-    const Turn sideToMove = (whiteToMove != pondering) ? Turn::White : Turn::Black;
-    if (m_hooks.readTiming) return m_hooks.readTiming(timing, sideToMove, pondering);
+    m_ponder.clear();
+    if (result.ponder.isEmpty() || !m_protocolHandler->isPonderEnabled()) return;
+    m_ponder = m_position + QLatin1Char(' ') + result.ponder;
+    emit lastMoveChanged(result.ponder);
+    // 先読みの手番は自分の手の後（相手の手番）だが、持ち時間は自分のものを読む
+    m_protocolHandler->startSearch(m_ponder, UsiGo::ponder(UsiGoTimeCalculator::compute(searchTiming(true).input)));
+}
+
+bool UsiMatchHandler::finishTurn()
+{
+    if (!m_clock) return true;
+    m_clock->finishTurn();
+    return !m_clock->isGameOver();
+}
+
+UsiMatchHandler::SearchTiming UsiMatchHandler::searchTiming(bool pondering) const
+{
+    if (m_clock) return matchSearchSnapshot(m_clock, m_sideToMove, m_timing, pondering);
     SearchTiming result;
-    result.input.timeControl = timing.timeControl;
-    result.input.btimeMs = timing.btimeMs;
-    result.input.wtimeMs = timing.wtimeMs;
-    result.input.extraMs = timing.extraMs;
-    result.input.marginMs = timing.marginMs;
-    result.input.sideToMove = sideToMove;
+    result.input.timeControl = m_timing.timeControl;
+    result.input.btimeMs = m_timing.btimeMs;
+    result.input.wtimeMs = m_timing.wtimeMs;
+    result.input.extraMs = m_timing.extraMs;
+    result.input.marginMs = m_timing.marginMs;
+    result.input.sideToMove = m_sideToMove;
     result.timeoutMs = static_cast<int>(qBound(qint64(1), UsiGoTimeCalculator::budgetMs(result.input),
                                               qint64(std::numeric_limits<int>::max())));
     return result;
@@ -133,28 +157,6 @@ UsiMatchHandler::SearchTiming UsiMatchHandler::searchTiming(const UsiTimingParam
 void UsiMatchHandler::onSearchTimeout()
 {
     cancelAsync();
-    if (searchTiming(m_timing).expired) return;
-    if (!m_protocolHandler->isTimeoutDeclared() && m_hooks.onBestmoveTimeout) m_hooks.onBestmoveTimeout();
-}
-
-void UsiMatchHandler::startPonderingAfterBestMove(QString& positionStr, QString& positionPonderStr,
-                                                const UsiTimingParams& timing)
-{
-    const QString predictedMove = m_protocolHandler->predictedMove();
-    if (!predictedMove.isEmpty() && m_protocolHandler->isPonderEnabled()) {
-        ensureMovesKeyword(positionStr);
-        positionPonderStr = positionStr + " " + predictedMove;
-        m_lastUsiMove = predictedMove;
-        const UsiGoTime goTime = UsiGoTimeCalculator::compute(searchTiming(timing, true).input);
-        m_protocolHandler->sendPosition(positionPonderStr);
-        m_protocolHandler->sendGoPonder(goTime);
-    }
-}
-
-void UsiMatchHandler::appendBestMoveAndStartPondering(QString& positionStr, QString& positionPonderStr,
-                                                     const UsiTimingParams& timing)
-{
-    ensureMovesKeyword(positionStr);
-    positionStr += " " + m_protocolHandler->bestMove();
-    startPonderingAfterBestMove(positionStr, positionPonderStr, timing);
+    if (searchTiming().expired) return;
+    emit timedOut();
 }

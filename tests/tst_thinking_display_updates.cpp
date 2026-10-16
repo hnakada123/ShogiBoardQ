@@ -13,13 +13,13 @@
 
 #include "engineinfowidget.h"
 #include "kifubranchlistmodel.h"
-#include "kifudisplay.h"
+#include "record_rows_helper.h"
 #include "kifumovedelegate.h"
 #include "kifupresentation.h"
 #include "kifurecordlistmodel.h"
 #include "numericrightaligncommadelegate.h"
 #include "opaquebackground.h"
-#include "pvboardbuttondelegate.h"
+#include "tablebuttondelegate.h"
 #include "pvtextdelegate.h"
 #include "recordhighlightdelegate.h"
 #include "recordpane.h"
@@ -29,6 +29,21 @@
 #include "usicommlogmodel.h"
 
 /// 思考情報が届くたびの表示の更新が、余計な描き直しやレイアウトの再計算を起こさないことを検証する。
+
+/// 思考の表の1行（時間・深さ・ノード数・評価値・読み筋）
+inline ShogiInfoRecord* thinkingRow(qint64 timeMs, int depth, qint64 nodes, const UsiScore& score, const QString& pv,
+                                    const QString& usiPv = {})
+{
+    ThinkingInfoRow row;
+    row.timeMs = timeMs;
+    row.depth = depth;
+    row.nodes = nodes;
+    row.score = score;
+    row.pvKanji = pv;
+    row.usiPv = usiPv;
+    return new ShogiInfoRecord(row);
+}
+
 class TestThinkingDisplayUpdates : public QObject
 {
     Q_OBJECT
@@ -130,7 +145,7 @@ class TestThinkingDisplayUpdates : public QObject
         view.setModel(model);
         view.setStyleSheet(TableStyles::thinking());
         view.setShowGrid(false);
-        view.setItemDelegateForColumn(4, new PvBoardButtonDelegate(&view));
+        view.setItemDelegateForColumn(4, new TableButtonDelegate(&view));
         auto* numeric = new NumericRightAlignCommaDelegate(&view);
         for (int column = 0; column < 4; ++column) view.setItemDelegateForColumn(column, numeric);
         if (pvDelegate) view.setItemDelegateForColumn(5, new PvTextDelegate(&view));
@@ -230,9 +245,8 @@ private slots:
     {
         ShogiEngineThinkingModel model;
         for (int row = 0; row < 12; ++row) {
-            model.prependItem(new ShogiInfoRecord(QString::number(row * 13), QStringLiteral("%1/%2").arg(row).arg(row + 3),
-                                                  QString::number(row * 12345), QString::number(row * 37 - 200),
-                                                  longPv(2 + row * 3)));
+            model.prependItem(thinkingRow(row * 13, row, row * 12345, UsiScore::cp(row * 37 - 200),
+                                          longPv(2 + row * 3)));
         }
         for (const int pvWidth : {60, 180, 420, 900}) {
             QTableView plain;
@@ -263,8 +277,7 @@ private slots:
                                      QStringLiteral("△N-3c ▲R-2f △P*2e ▲R-2h △K-6b ")};
         for (int row = 0; row < 14; ++row) {
             const QString pv = row % 3 == 2 ? western.at(row % 2).repeated(1 + row % 4) : longPv(1 + row * 3);
-            model.prependItem(new ShogiInfoRecord(QString::number(row * 13), QString::number(row),
-                                                  QString::number(row * 12345), QString::number(row * 37 - 200), pv));
+            model.prependItem(thinkingRow(row * 13, row, row * 12345, UsiScore::cp(row * 37 - 200), pv));
         }
         enum State { Plain, Hover, Focus, Disabled, Active };
         for (const State state : {Plain, Hover, Focus, Disabled, Active}) {
@@ -319,9 +332,8 @@ private slots:
                 // 思考表の数値の列（右寄せ・3桁区切り。負の数・文字列の評価値を含む）
                 ShogiEngineThinkingModel thinking;
                 for (int row = 0; row < 12; ++row) {
-                    const QString score = row == 5 ? QStringLiteral("詰 15") : QString::number(row * 397 - 1800);
-                    thinking.prependItem(new ShogiInfoRecord(QString::number(row * 1.37, 'f', 1), QString::number(row * 3),
-                                                             QString::number(qint64(row) * 98765432), score, longPv(3)));
+                    const UsiScore score = row == 5 ? UsiScore::mate(15) : UsiScore::cp(row * 397 - 1800);
+                    thinking.prependItem(thinkingRow(row * 1370, row * 3, qint64(row) * 98765432, score, longPv(3)));
                 }
                 const auto renderThinking = [&](bool qtNumeric) {
                     QTableView view;
@@ -348,7 +360,7 @@ private slots:
                 log.setHashUsage(QStringLiteral("12.5%"));
                 // 列幅を保存した値で狭くすると、折り返す設定の表で2行になる・はみ出す値ができる（Qt に描かせる）
                 const auto renderInfo = [&](bool qtText, bool narrow) {
-                    EngineInfoWidget info;
+                    EngineInfoWidget info(AnalysisSettings::ThinkingTable::Engine1);
                     info.setModel(&log);
                     if (narrow) info.setColumnWidths({70, 60, 48, 40, 52, 70, 40});
                     info.resize(1000, 80);
@@ -370,19 +382,17 @@ private slots:
                 }
 
                 // 棋譜欄（指し手の書体・分岐の背景色・現在行・中央寄せの消費時間・しおり・長いコメント）
-                KifuRecordListModel record;
-                KifuBranchListModel branch;
-                record.appendItem(new KifuDisplay(QStringLiteral("=== 開始局面 ==="), QString(), &record));
+                RecordRows rows(startSfen);
+                KifuRecordListModel& record = rows.model;
+                KifuBranchListModel branch(&rows.tree);
                 for (int ply = 1; ply <= 14; ++ply) {
-                    auto* item = new KifuDisplay(QStringLiteral("▲７六歩(77)"),
-                                                 QStringLiteral("0:%1/0:00:%1").arg(ply, 2, 10, QLatin1Char('0')),
-                                                 ply % 4 == 1 ? longPv(8) : QString(),
-                                                 ply % 5 == 2 ? QStringLiteral("しおり%1").arg(ply) : QString(), &record);
-                    item->usiMove = QStringLiteral("7g7f");
-                    item->beforeSfen = startSfen;
-                    record.appendItem(item);
+                    rows.append(QStringLiteral("▲７六歩(77)"), QStringLiteral("0:%1/0:00:%1").arg(ply, 2, 10, QLatin1Char('0')),
+                                ply % 4 == 1 ? longPv(8) : QString(),
+                                ply % 5 == 2 ? QStringLiteral("しおり%1").arg(ply) : QString(),
+                                ShogiMove(UsiMove::fromString(u"7g7f"), Piece::BlackPawn));
                 }
-                record.setBranchPlyMarks({3, 7});
+                rows.markBranch(3);
+                rows.markBranch(7);
                 record.setCurrentHighlightRow(5);
                 const auto renderRecord = [&](bool qtText) {
                     RecordPane pane;
@@ -405,7 +415,7 @@ private slots:
     void engineInfoUpdatesAreCoalesced()
     {
         UsiCommLogModel log;
-        EngineInfoWidget info;
+        EngineInfoWidget info(AnalysisSettings::ThinkingTable::Engine1);
         info.setModel(&log);
         info.resize(900, 60);
         info.show();
@@ -441,7 +451,7 @@ private slots:
     void engineInfoGeometryFollowsFontSize()
     {
         UsiCommLogModel log;
-        EngineInfoWidget info;
+        EngineInfoWidget info(AnalysisSettings::ThinkingTable::Engine1);
         info.setModel(&log);
         info.resize(1400, 80);
         info.show();

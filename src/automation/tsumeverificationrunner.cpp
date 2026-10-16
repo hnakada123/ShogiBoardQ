@@ -19,16 +19,11 @@ TsumeVerificationRunner::TsumeVerificationRunner(QObject* parent)
     , m_session(new UsiEngineSession(this))
 {
     m_stepTimer.setSingleShot(true);
-    m_safetyTimer.setSingleShot(true);
     connect(&m_stepTimer, &QTimer::timeout, this, &TsumeVerificationRunner::step);
-    connect(&m_safetyTimer, &QTimer::timeout, this, &TsumeVerificationRunner::onSafetyTimeout);
     connect(m_session, &UsiEngineSession::ready, this, &TsumeVerificationRunner::onSessionReady);
     connect(m_session, &UsiEngineSession::errorOccurred, this, &TsumeVerificationRunner::onSessionError);
-    UsiProtocolHandler* handler = m_session->handler();
-    connect(handler, &UsiProtocolHandler::checkmateSolved, this, &TsumeVerificationRunner::onSolved);
-    connect(handler, &UsiProtocolHandler::checkmateNoMate, this, &TsumeVerificationRunner::onNoMate);
-    connect(handler, &UsiProtocolHandler::checkmateNotImplemented, this, &TsumeVerificationRunner::onNotImplemented);
-    connect(handler, &UsiProtocolHandler::checkmateUnknown, this, &TsumeVerificationRunner::onUnknown);
+    connect(m_session, &UsiEngineSession::searchTimedOut, this, &TsumeVerificationRunner::onNoResponse);
+    connect(m_session->handler(), &UsiProtocolHandler::checkmateReceived, this, &TsumeVerificationRunner::onCheckmate);
 }
 
 QString TsumeVerificationRunner::statusName(TsumeshogiVerifier::Status status)
@@ -51,7 +46,6 @@ bool TsumeVerificationRunner::start(const Request& request, QString* error)
     m_request = request;
     m_queries = 0;
     m_awaiting = false;
-    m_awaitingStop = false;
     m_done = false;
     m_verifier.start(request.sfen, request.targetMoves, {request.allowFinalMoveAlternatives});
     if (m_verifier.result().status == TsumeshogiVerifier::Status::Invalid) {
@@ -74,7 +68,7 @@ void TsumeVerificationRunner::abort()
     if (m_done) return;
     m_verifier.abort();
     if (m_awaiting) {
-        m_session->handler()->sendStop();
+        m_session->stop();
         return; // 応答を待って finish する
     }
     finish();
@@ -103,55 +97,51 @@ void TsumeVerificationRunner::step()
     const int timeout = static_cast<int>(std::min<qint64>(remaining, kQueryMaxMs));
     m_awaiting = true;
     emit progress(++m_queries);
-    UsiProtocolHandler* handler = m_session->handler();
-    handler->sendPosition(QStringLiteral("position sfen ") + sfen);
-    handler->sendGoMate(timeout);
-    m_safetyTimer.start(timeout + kSafetyMarginMs);
+    // 制限時間を過ぎても応答がなければ stop を送り、その応答（打ち切った探索の結果）は不明として扱う
+    UsiSearchRequest search;
+    search.position = QStringLiteral("position sfen ") + sfen;
+    search.go = UsiGo::mate(timeout);
+    search.stopAfterMs = timeout + kSafetyMarginMs;
+    search.replyTimeoutMs = kStopResponseMs;
+    m_session->search(search);
 }
 
 void TsumeVerificationRunner::submit(TsumeshogiVerifier::Reply reply, const QStringList& pv)
 {
     if (m_done || !m_awaiting) return;
     m_awaiting = false;
-    m_safetyTimer.stop();
-    if (m_awaitingStop) {
-        // 無応答後に届いた応答（stop への応答または遅延した応答）は結果として扱わない
-        m_awaitingStop = false;
-        m_verifier.submit(TsumeshogiVerifier::Reply::Unknown);
-    } else {
-        m_verifier.submit(reply, pv);
-    }
+    m_verifier.submit(reply, pv);
     m_stepTimer.start(0);
 }
 
-void TsumeVerificationRunner::onSolved(const QStringList& pv) { submit(TsumeshogiVerifier::Reply::Mate, pv); }
-void TsumeVerificationRunner::onNoMate() { submit(TsumeshogiVerifier::Reply::NoMate); }
-void TsumeVerificationRunner::onUnknown() { submit(TsumeshogiVerifier::Reply::Unknown); }
-
-void TsumeVerificationRunner::onNotImplemented()
+void TsumeVerificationRunner::onCheckmate(const UsiCheckmate& result)
 {
-    if (m_done) return;
-    m_done = true;
-    m_safetyTimer.stop();
-    m_session->quit();
-    emit errorOccurred(QStringLiteral("The engine does not support go mate"));
-}
-
-void TsumeVerificationRunner::onSafetyTimeout()
-{
-    if (m_done) return;
-    if (m_awaitingStop) {
-        // stop にも応答しない → エンジンが固まっているとみなす
-        m_done = true;
-        m_stepTimer.stop();
-        m_session->quit();
-        emit errorOccurred(QStringLiteral("The engine stopped responding during verification"));
+    // 無応答で stop を送った後の応答（打ち切った探索の結果）は結果として扱わない
+    if (result.stopped) {
+        submit(TsumeshogiVerifier::Reply::Unknown);
         return;
     }
-    // 応答が無い。stop を送って応答を待ち、届いた応答は Unknown として扱う
-    m_awaitingStop = true;
-    m_session->handler()->sendStop();
-    m_safetyTimer.start(kStopResponseMs);
+    switch (result.result) {
+    case UsiCheckmate::Result::Mate: submit(TsumeshogiVerifier::Reply::Mate, result.pv); return;
+    case UsiCheckmate::Result::NoMate: submit(TsumeshogiVerifier::Reply::NoMate); return;
+    case UsiCheckmate::Result::Unknown: submit(TsumeshogiVerifier::Reply::Unknown); return;
+    case UsiCheckmate::Result::NotImplemented:
+        if (m_done) return;
+        m_done = true;
+        m_session->quit();
+        emit errorOccurred(QStringLiteral("The engine does not support go mate"));
+        return;
+    }
+}
+
+void TsumeVerificationRunner::onNoResponse()
+{
+    // stop にも応答しない → エンジンが固まっているとみなす
+    if (m_done) return;
+    m_done = true;
+    m_stepTimer.stop();
+    m_session->quit();
+    emit errorOccurred(QStringLiteral("The engine stopped responding during verification"));
 }
 
 void TsumeVerificationRunner::onSessionError(const QString& message)
@@ -159,7 +149,6 @@ void TsumeVerificationRunner::onSessionError(const QString& message)
     if (m_done) return;
     m_done = true;
     m_stepTimer.stop();
-    m_safetyTimer.stop();
     m_session->quit();
     emit errorOccurred(message);
 }
@@ -169,7 +158,6 @@ void TsumeVerificationRunner::finish()
     if (m_done) return;
     m_done = true;
     m_stepTimer.stop();
-    m_safetyTimer.stop();
     m_session->quit();
     const auto& result = m_verifier.result();
     emit finished(result.status, result.pv, m_queries, m_elapsed.elapsed());

@@ -90,7 +90,7 @@ private slots:
         NetworkSettings::csaUseTls.remove();
         QVERIFY(!NetworkSettings::csaUseTls());
         CsaGameDialog local;
-        QVERIFY(!local.useTls());
+        QVERIFY(!(local.selection().start.transport == CsaClient::Transport::Tls));
         auto* transport = local.findChild<QComboBox*>(QStringLiteral("comboBoxTransport"));
         auto* warning = local.findChild<QLabel*>(QStringLiteral("labelPlaintextWarning"));
         QVERIFY(transport);
@@ -98,14 +98,14 @@ private slots:
         QCOMPARE(transport->currentIndex(), 0);
         QVERIFY(!warning->isHidden());
         transport->setCurrentIndex(1);
-        QVERIFY(local.useTls());
+        QVERIFY((local.selection().start.transport == CsaClient::Transport::Tls));
         QVERIFY(warning->isHidden());
         transport->setCurrentIndex(0);
-        QVERIFY(!local.useTls());
+        QVERIFY(!(local.selection().start.transport == CsaClient::Transport::Tls));
         QVERIFY(!warning->isHidden());
         NetworkSettings::csaUseTls.set(true);
         CsaGameDialog tls;
-        QVERIFY(tls.useTls());
+        QVERIFY((tls.selection().start.transport == CsaClient::Transport::Tls));
     }
 };
 

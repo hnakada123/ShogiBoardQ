@@ -15,9 +15,9 @@
 #include "kifusavefile.h"
 #include "kifuioservice.h"
 
-using KifuSaveFile::SaveFormat;
+using SaveFormat = KifuFormat;
 
-Q_DECLARE_METATYPE(KifuSaveFile::SaveFormat)
+Q_DECLARE_METATYPE(KifuFormat)
 
 class SaveDialogResponder : public QObject
 {

@@ -5,8 +5,6 @@
 
 #include "enginelifecyclemanager.h"
 #include "logcategories.h"
-#include "shogiclock.h"
-#include "shogigamecontroller.h"
 #include "usi.h"
 
 HumanVsEngineStrategy::HumanVsEngineStrategy(MatchStrategyHost& host, Turn engineSide, QString enginePath,
@@ -29,31 +27,26 @@ void HumanVsEngineStrategy::start()
     connect(engine, &Usi::engineInitialized, this, &HumanVsEngineStrategy::onEngineInitialized);
     connect(engine, &Usi::matchMoveReady, this, &HumanVsEngineStrategy::onEngineMoveReady);
     m_host.engines().startEngine(engine, m_enginePath, m_engineName);
-
-    // 盤描画は手番反映のあと（ハイライト/時計のズレ防止）
-    m_host.refreshBoardAndTurn();
 }
 
 void HumanVsEngineStrategy::onHumanMove(const RecordEntry& played)
 {
     if (!m_host.completeHumanMove(played)) return;
     if (Usi* engine = m_host.engines().engineFor(m_engineSide)) engine->setPreviousMove(played.move.move.to);
-    if (m_host.gameController()->currentPlayer() == m_engineSide) requestEngineMove();
+    if (m_host.sideToMove() == m_engineSide) requestEngineMove();
 }
 
-void HumanVsEngineStrategy::onEngineMoveReady(const UsiMove& move, const QString& /*position*/, const QString& ponder)
+void HumanVsEngineStrategy::onEngineMoveReady(const UsiMatchMove& move)
 {
-    Usi* engine = m_host.engines().engineFor(m_engineSide);
-    if (!m_waitingForMove || sender() != engine || m_host.isGameOver()) return;
+    if (!m_waitingForMove || move.side != m_engineSide || m_host.isGameOver()) return;
     m_waitingForMove = false;
-    m_host.setEnginePonder(m_engineSide, ponder);
-    m_host.applyEngineMove(move, m_engineSide, engine->lastBestmoveElapsedMs());
+    m_host.applyEngineMove(move);
 }
 
 void HumanVsEngineStrategy::onEngineInitialized()
 {
     if (!m_initialMoveRequested || m_host.isGameOver()) return;
-    if (ShogiClock* clock = m_host.clock()) clock->startClock();
+    m_host.setWaitingForEngines(false);
     startInitialMoveIfNeeded();
 }
 
@@ -61,13 +54,13 @@ void HumanVsEngineStrategy::startInitialMoveIfNeeded()
 {
     if (m_host.isGameOver() || m_waitingForMove) return;
     // 人間の初手は、相手エンジンの初期化中も計時を続ける。
-    if (m_host.gameController()->currentPlayer() != m_engineSide) return;
+    if (m_host.sideToMove() != m_engineSide) return;
 
     m_initialMoveRequested = true;
     Usi* engine = m_host.engines().engineFor(m_engineSide);
     if (engine && engine->isInitializing()) {
         // エンジンの初期化を待つ間は、エンジンの持ち時間を減らさない
-        if (ShogiClock* clock = m_host.clock()) clock->stopClock();
+        m_host.setWaitingForEngines(true);
         return;
     }
     requestEngineMove();

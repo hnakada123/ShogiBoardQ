@@ -146,8 +146,8 @@ private slots:
         QSignalSpy registered(&handler, &EngineRegistrationHandler::engineRegistered);
 
         handler.m_fileName = QStringLiteral("/engines/b/YaneuraOu");
-        handler.onWorkerRegistered(QStringLiteral("YaneuraOu NNUE"), QStringLiteral("author"),
-                                   {QStringLiteral("option name Threads type spin default 1 min 1 max 64")});
+        handler.registerEngine(QStringLiteral("YaneuraOu NNUE"), QStringLiteral("author"),
+                               {QStringLiteral("option name Threads type spin default 1 min 1 max 64")});
         QCOMPARE(registered.count(), 1);
         QCOMPARE(registered.first().first().toString(), QStringLiteral("YaneuraOu NNUE (2)"));
         const auto engines = EngineListSettings::loadEngines();

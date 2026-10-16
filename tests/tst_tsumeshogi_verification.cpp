@@ -110,14 +110,34 @@ class TestTsumeshogiVerification : public QObject
         generator.m_elapsedTimer.start();
     }
 
+    static UsiCheckmate mate(const QStringList& pv, bool stopped = false)
+    {
+        UsiCheckmate result;
+        result.result = UsiCheckmate::Result::Mate;
+        result.pv = pv;
+        result.stopped = stopped;
+        return result;
+    }
+    static UsiCheckmate noMate(bool stopped = false)
+    {
+        UsiCheckmate result;
+        result.result = UsiCheckmate::Result::NoMate;
+        result.stopped = stopped;
+        return result;
+    }
+    static UsiCheckmate unknown()
+    {
+        return {};
+    }
+
     /// 検査中の問い合わせに一律の応答を返して検査を終える
     static void answerVerification(TsumeshogiGenerator& generator, Reply reply)
     {
         for (int i = 0; i < 1000 && generator.m_phase == TsumeshogiGenerator::Phase::Verifying; ++i) {
             generator.continueVerification();
             if (!generator.m_verificationAwaiting) continue;
-            if (reply == Reply::NoMate) generator.onCheckmateNoMate();
-            else generator.onCheckmateUnknown();
+            if (reply == Reply::NoMate) generator.onCheckmate(noMate());
+            else generator.onCheckmate(unknown());
         }
     }
 
@@ -330,7 +350,7 @@ private slots:
         prepare(generator, kFinalTwo, 3);
         generator.m_settings.allowFinalMoveAlternatives = true;
         generator.m_settings.maxPositionsToFind = 0; // 出力後も探索を続け、エンジンとの接続を保持したまま確認する
-        generator.onCheckmateSolved({QStringLiteral("3c3b+"), QStringLiteral("2a1a"), QStringLiteral("3b2b")});
+        generator.onCheckmate(mate({QStringLiteral("3c3b+"), QStringLiteral("2a1a"), QStringLiteral("3b2b")}));
         int queries = 0;
         for (int i = 0; i < 1000 && generator.m_phase == TsumeshogiGenerator::Phase::Verifying; ++i) {
             generator.continueVerification();
@@ -338,8 +358,8 @@ private slots:
             ++queries;
             QStringList pv;
             const QString query = generator.m_engine->handler()->positions.last().mid(QStringLiteral("position sfen ").size());
-            if (scripted(query, pv) == Reply::Mate) generator.onCheckmateSolved(pv);
-            else generator.onCheckmateNoMate();
+            if (scripted(query, pv) == Reply::Mate) generator.onCheckmate(mate(pv));
+            else generator.onCheckmate(noMate());
         }
         // 香・成銀のどちらを除いても3手で詰まないので、除去局面は1つもエンジンに送られずに出力へ進む
         QCOMPARE(generator.m_phase, TsumeshogiGenerator::Phase::Searching);
@@ -362,15 +382,15 @@ private slots:
         QSignalSpy found(&generator, &TsumeshogiGenerator::positionFound);
         prepare(generator, kFinalTwo, 3);
         generator.m_settings.allowFinalMoveAlternatives = allow;
-        generator.onCheckmateSolved({QStringLiteral("3c3b+"), QStringLiteral("2a1a"), QStringLiteral("3b2b")});
+        generator.onCheckmate(mate({QStringLiteral("3c3b+"), QStringLiteral("2a1a"), QStringLiteral("3b2b")}));
         QCOMPARE(generator.m_phase, TsumeshogiGenerator::Phase::Verifying);
         for (int i = 0; i < 1000 && generator.m_phase == TsumeshogiGenerator::Phase::Verifying; ++i) {
             generator.continueVerification();
             if (!generator.m_verificationAwaiting) continue;
             QStringList pv;
             const QString query = generator.m_engine->handler()->positions.last().mid(QStringLiteral("position sfen ").size());
-            if (scripted(query, pv) == Reply::Mate) generator.onCheckmateSolved(pv);
-            else generator.onCheckmateNoMate();
+            if (scripted(query, pv) == Reply::Mate) generator.onCheckmate(mate(pv));
+            else generator.onCheckmate(noMate());
         }
         if (allow) {
             // 香・成銀の除去は内蔵探索で却下されるので、検査合格後にそのまま出力されて上限1で終了する
@@ -485,11 +505,11 @@ private slots:
         TsumeshogiGenerator generator;
         QSignalSpy found(&generator, &TsumeshogiGenerator::positionFound);
         prepare(generator, kUnique);
-        generator.onCheckmateSolved({QStringLiteral("N*2c")});
+        generator.onCheckmate(mate({QStringLiteral("N*2c")}));
         QCOMPARE(generator.m_phase, TsumeshogiGenerator::Phase::Verifying);
         generator.stop();
         generator.continueVerification();
-        generator.onCheckmateSolved({QStringLiteral("N*2c")});
+        generator.onCheckmate(mate({QStringLiteral("N*2c")}));
         QCOMPARE(found.size(), 0);
         QVERIFY(!generator.isRunning());
     }
@@ -498,14 +518,14 @@ private slots:
         TsumeshogiGenerator generator;
         QSignalSpy found(&generator, &TsumeshogiGenerator::positionFound);
         prepare(generator, kUniqueDecorated);
-        generator.onCheckmateSolved({QStringLiteral("N*2c")});
+        generator.onCheckmate(mate({QStringLiteral("N*2c")}));
         answerVerification(generator, Reply::NoMate); // 1二歩成などの別の王手を不詰として検査を通す
         QCOMPARE(generator.m_phase, TsumeshogiGenerator::Phase::Trimming);
         // 2一桂・2二桂の除去は内蔵探索で却下され、最初にエンジンへ送られるのは1二桂を除いた局面
         const int verificationQueries = static_cast<int>(generator.m_engine->handler()->positions.size()) - 1;
         QVERIFY(verificationQueries >= 1);
         QVERIFY(generator.m_trimTestSfen != kUniqueDecorated);
-        generator.onCheckmateSolved({QStringLiteral("N*2c")}); // 除去後の1手PVだけでは未検証
+        generator.onCheckmate(mate({QStringLiteral("N*2c")})); // 除去後の1手PVだけでは未検証
         QCOMPARE(generator.m_phase, TsumeshogiGenerator::Phase::Verifying);
         generator.stop();
         QCOMPARE(found.size(), 0);
@@ -515,10 +535,10 @@ private slots:
         TsumeshogiGenerator generator;
         QSignalSpy found(&generator, &TsumeshogiGenerator::positionFound);
         prepare(generator, kUniqueDecorated);
-        generator.onCheckmateSolved({QStringLiteral("N*2c")});
+        generator.onCheckmate(mate({QStringLiteral("N*2c")}));
         answerVerification(generator, Reply::NoMate);
         QCOMPARE(generator.m_phase, TsumeshogiGenerator::Phase::Trimming);
-        generator.onCheckmateSolved({QStringLiteral("N*2c")}); // 1二桂を除いた局面の候補PV
+        generator.onCheckmate(mate({QStringLiteral("N*2c")})); // 1二桂を除いた局面の候補PV
         answerVerification(generator, Reply::Unknown);            // 除去後の検査は判定不能
         // 「除去不能」と解釈せず、局面全体を採択から外して次の候補へ進む。
         QCOMPARE(generator.m_phase, TsumeshogiGenerator::Phase::Searching);
@@ -538,8 +558,7 @@ private slots:
         generator.startVerification(kSecond, TsumeshogiGenerator::Phase::Searching);
         generator.continueVerification();
         QVERIFY(generator.m_verificationAwaiting);
-        generator.m_awaitingStopResponse = true;
-        generator.onCheckmateSolved({QStringLiteral("N*2c")}); // stop後の遅延応答を捨てる
+        generator.onCheckmate(mate({QStringLiteral("N*2c")}, true)); // stop後の遅延応答を捨てる
         QVERIFY(!generator.m_verificationAwaiting);
         QVERIFY(generator.m_verifiedSfen.isEmpty());
         generator.m_settings.timeoutMs = 0; // 検査の総予算終了
@@ -553,7 +572,7 @@ private slots:
         TsumeshogiGenerator generator;
         QSignalSpy found(&generator, &TsumeshogiGenerator::positionFound);
         prepare(generator, kUniqueDecorated);
-        generator.onCheckmateSolved({QStringLiteral("N*2c")});
+        generator.onCheckmate(mate({QStringLiteral("N*2c")}));
         answerVerification(generator, Reply::NoMate);
         QCOMPARE(generator.m_phase, TsumeshogiGenerator::Phase::Trimming);
         QVERIFY(!generator.registerFoundPosition(kSecond, {QStringLiteral("N*2c")}));
@@ -588,8 +607,7 @@ private slots:
         if (exitPath == 1) generator.stop();
         if (exitPath == 2) generator.onEngineError(QStringLiteral("test error"));
         if (exitPath == 3) {
-            generator.m_awaitingStopResponse = true;
-            generator.onSafetyTimeout();
+            generator.onNoResponse();
         }
         QCOMPARE(found.size(), 0);
         generator.stop();
@@ -599,11 +617,11 @@ private slots:
         TsumeshogiGenerator generator;
         QSignalSpy found(&generator, &TsumeshogiGenerator::positionFound);
         prepare(generator, kUniqueDecorated);
-        generator.onCheckmateSolved({QStringLiteral("N*2c")});
+        generator.onCheckmate(mate({QStringLiteral("N*2c")}));
         answerVerification(generator, Reply::NoMate);
         QCOMPARE(generator.m_phase, TsumeshogiGenerator::Phase::Trimming);
         QVERIFY(generator.m_trimProvenInTarget);
-        generator.onCheckmateNoMate();
+        generator.onCheckmate(noMate());
         QCOMPARE(generator.m_phase, TsumeshogiGenerator::Phase::Searching);
         QCOMPARE(generator.m_verificationInconclusive, 1);
         QCOMPARE(found.size(), 0);
@@ -625,15 +643,14 @@ private slots:
         TsumeshogiGenerator generator;
         QSignalSpy found(&generator, &TsumeshogiGenerator::positionFound);
         prepare(generator, kUniqueDecorated);
-        generator.onCheckmateSolved({QStringLiteral("N*2c")});
+        generator.onCheckmate(mate({QStringLiteral("N*2c")}));
         answerVerification(generator, Reply::NoMate);
         QCOMPARE(generator.m_phase, TsumeshogiGenerator::Phase::Trimming);
         QCOMPARE(generator.m_verifiedSfen, kUniqueDecorated);
-        if (failure == 0) generator.onCheckmateUnknown();
-        if (failure == 1) generator.onCheckmateSolved({QStringLiteral("N*2c"), QStringLiteral("1a1b"), QStringLiteral("2c1a+")});
+        if (failure == 0) generator.onCheckmate(unknown());
+        if (failure == 1) generator.onCheckmate(mate({QStringLiteral("N*2c"), QStringLiteral("1a1b"), QStringLiteral("2c1a+")}));
         if (failure == 2) {
-            generator.m_awaitingStopResponse = true;
-            generator.onCheckmateNoMate();
+            generator.onCheckmate(noMate(true));
         }
         if (failure == 3) generator.onEngineError(QStringLiteral("test error"));
         if (failure == 4) generator.stop();

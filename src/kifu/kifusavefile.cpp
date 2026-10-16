@@ -14,17 +14,12 @@ namespace KifuSaveFile {
 
 namespace {
 
-/// 拡張子に対応する保存形式。認識できない拡張子は nullopt
-std::optional<SaveFormat> formatForExtension(const QString& path)
+/// 拡張子に対応する保存形式。保存できない拡張子は nullopt
+std::optional<KifuFormat> formatForExtension(const QString& path)
 {
-    const QString ext = QFileInfo(path).suffix().toLower();
-    if (ext == QStringLiteral("kif") || ext == QStringLiteral("kifu")) return SaveFormat::Kif;
-    if (ext == QStringLiteral("ki2") || ext == QStringLiteral("ki2u")) return SaveFormat::Ki2;
-    if (ext == QStringLiteral("csa"))  return SaveFormat::Csa;
-    if (ext == QStringLiteral("jkf"))  return SaveFormat::Jkf;
-    if (ext == QStringLiteral("usen")) return SaveFormat::Usen;
-    if (ext == QStringLiteral("usi"))  return SaveFormat::Usi;
-    return std::nullopt;
+    const auto format = KifuFormats::fromPath(path);
+    if (format && !KifuFormats::isSavable(*format)) return std::nullopt;
+    return format;
 }
 
 /// Shift_JIS で書き出す場合、先頭行の encoding 宣言を差し替えた行リストを返す
@@ -39,9 +34,9 @@ QStringList withShiftJisHeader(const QStringList& lines)
 
 } // namespace
 
-SaveFormat saveFormatForPath(const QString& path)
+KifuFormat saveFormatForPath(const QString& path)
 {
-    return formatForExtension(path).value_or(SaveFormat::Kif);
+    return formatForExtension(path).value_or(KifuFormat::Kif);
 }
 
 QString pathForSelectedFilter(const QString& path, const QString& selectedFilter)

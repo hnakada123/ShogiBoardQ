@@ -11,7 +11,7 @@
 
 #include <QRegularExpression>
 
-CsaGameCoordinator::CsaGameCoordinator(QObject* parent)
+CsaGameCoordinator::CsaGameCoordinator(const Deps& deps, QObject* parent)
     : QObject(parent)
     , m_client(new CsaClient(this))
     , m_reconnectTimer(new QTimer(this))
@@ -54,19 +54,14 @@ CsaGameCoordinator::CsaGameCoordinator(QObject* parent)
             this, &CsaGameCoordinator::onRawMessageReceived);
     connect(m_client, &CsaClient::rawMessageSent,
             this, &CsaGameCoordinator::onRawMessageSent);
+    m_gameController = deps.gameController;
+    m_clock = deps.clock;
+    m_engines = deps.engines;
 }
 
 CsaGameCoordinator::~CsaGameCoordinator()
 {
     cleanup();
-}
-
-void CsaGameCoordinator::setDependencies(const Dependencies& deps)
-{
-    m_gameController = deps.gameController;
-    m_clock = deps.clock;
-    m_usiCommLog = deps.usiCommLog;
-    m_engineThinking = deps.engineThinking;
 }
 
 void CsaGameCoordinator::startGame(const StartOptions& options)
@@ -128,8 +123,8 @@ void CsaGameCoordinator::onHumanMove(const QPoint& from, const QPoint& to)
     const auto move = m_gameController->prepareMove(from, to);
     // 成り選択のモーダル処理中に対局が終了することもある。
     if (!move || m_gameState != GameState::InGame || !isMyTurn()) return;
-    const QString csaMove = CsaMoveConverter::usiToCsa(move->toString(), m_progress.isBlackSide,
-                                                     m_gameController->board());
+    const QString csaMove = CsaMoveConverter::toCsa(*move, m_progress.isBlackSide ? Turn::Black : Turn::White,
+                                                    *m_gameController->board());
     if (!csaMove.isEmpty() && m_client->sendMove(csaMove)) emit turnChanged(false);
 }
 
@@ -343,8 +338,8 @@ void CsaGameCoordinator::onClientGameEnded(CsaClient::GameResult result, CsaClie
         }
     }
 
-    const QString resultStr = CsaMoveConverter::gameResultToString(result);
-    const QString causeStr = CsaMoveConverter::gameEndCauseToString(cause);
+    const QString resultStr = CsaClient::gameResultText(result);
+    const QString causeStr = CsaClient::gameEndCauseText(cause);
 
     emit logMessage(tr("対局終了: %1 (%2)").arg(resultStr, causeStr));
     setGameState(GameState::GameOver);

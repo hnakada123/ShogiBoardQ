@@ -10,6 +10,7 @@
 #include <QAction>
 #include <QContextMenuEvent>
 #include <QGraphicsView>
+#include <QPainter>
 #include <QGraphicsScene>
 #include <QGraphicsPathItem>
 #include <QGraphicsRectItem>
@@ -40,6 +41,20 @@ BranchTreeManager::~BranchTreeManager()
 }
 
 // ===================== ビュー受け取り =====================
+
+QGraphicsView* BranchTreeManager::buildView(QWidget* parent)
+{
+    auto* view = new QGraphicsView(parent);
+    view->setObjectName(QStringLiteral("branchTreeView"));
+    view->setRenderHint(QPainter::Antialiasing, true);
+    view->setRenderHint(QPainter::TextAntialiasing, true);
+    view->setRenderHint(QPainter::SmoothPixmapTransform, true);
+    view->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    view->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    view->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+    setView(view);
+    return view;
+}
 
 void BranchTreeManager::setView(QGraphicsView* view)
 {
@@ -87,6 +102,20 @@ void BranchTreeManager::setBranchTree(KifuBranchTree* tree)
     m_layout.collapsedHeads.intersect(heads);
 
     rebuildBranchTree();
+}
+
+void BranchTreeManager::syncWithTree(KifuBranchTree* tree)
+{
+    if (tree != nullptr && tree == m_tree) {
+        if (tree->revision() == m_syncedRevision && tree->nodeCount() == m_syncedNodeCount) return;
+        // 手順の末尾に1手足しただけなら、その手を描き足す（対局で1手ごとに作り直さない）。
+        // 新しい手順ができたとき（行の数が変わる）は行の並びが変わり得るので作り直す
+        if (tree->nodeCount() == m_syncedNodeCount + 1 && tree->revision() == m_syncedRevision + 1
+            && tree->lineCount() == rowCount() && appendNode(tree->newestNode())) {
+            return;
+        }
+    }
+    setBranchTree(tree);
 }
 
 void BranchTreeManager::syncRowsFromTree()

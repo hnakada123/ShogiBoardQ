@@ -6,8 +6,10 @@
 #include <QEvent>
 #include <QIcon>
 #include <QItemSelectionModel>
+#include <QMouseEvent>
 #include <QPaintEvent>
 #include <QPixmap>
+#include <QTableView>
 
 bool TableHeaderView::SizeKey::operator==(const SizeKey& other) const
 {
@@ -26,6 +28,41 @@ size_t qHash(const TableHeaderView::SizeKey& key, size_t seed)
 TableHeaderView::TableHeaderView(Qt::Orientation orientation, QWidget* parent)
     : QHeaderView(orientation, parent)
 {
+    connect(this, &QHeaderView::sectionResized, this, &TableHeaderView::onSectionResized);
+}
+
+TableHeaderView* TableHeaderView::install(QTableView* view)
+{
+    auto* header = new TableHeaderView(Qt::Horizontal, view);
+    header->setSectionsClickable(true);
+    header->setHighlightSections(true);
+    view->setHorizontalHeader(header);
+    return header;
+}
+
+// 境目のドラッグは押してから離すまで、ダブルクリック（内容に合わせる）はその処理の間に列幅が変わる
+void TableHeaderView::mousePressEvent(QMouseEvent* event)
+{
+    m_mouseOperating = true;
+    QHeaderView::mousePressEvent(event);
+}
+
+void TableHeaderView::mouseReleaseEvent(QMouseEvent* event)
+{
+    QHeaderView::mouseReleaseEvent(event);
+    m_mouseOperating = false;
+}
+
+void TableHeaderView::mouseDoubleClickEvent(QMouseEvent* event)
+{
+    m_mouseOperating = true;
+    QHeaderView::mouseDoubleClickEvent(event);
+    m_mouseOperating = false;
+}
+
+void TableHeaderView::onSectionResized(int logicalIndex, int oldSize, int newSize)
+{
+    if (m_mouseOperating) emit sectionResizedByUser(logicalIndex, oldSize, newSize);
 }
 
 // QHeaderView::sectionSizeFromContents が読む値（見出しのデータ・書体・見出しの大きさ・

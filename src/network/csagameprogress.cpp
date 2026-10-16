@@ -97,13 +97,12 @@ RecordEntry CsaGameProgress::endRecord(CsaClient::GameResult result, CsaClient::
 {
     using Cause = CsaClient::GameEndCause;
     const bool isDraw = (result == CsaClient::GameResult::Draw);
-    // 勝敗のない終局（中断など）は相手側を敗者として扱う（印は付けない）
+    const Turn sideToMove = blackToMove ? Turn::Black : Turn::White;
+    // 勝敗のない終局（中断など）の負けた側は使われない
     const bool iAmLoser = (result == CsaClient::GameResult::Lose);
-    const bool loserIsBlack = (iAmLoser == isBlackSide);
+    const Turn loser = (iAmLoser == isBlackSide) ? Turn::Black : Turn::White;
 
     TerminalType type = TerminalType::Interrupt;
-    bool side = loserIsBlack;
-    bool neutral = false;
     switch (cause) {
     case Cause::Resign: type = TerminalType::Resign; break;
     case Cause::TimeUp: type = TerminalType::Timeout; break;
@@ -111,27 +110,19 @@ RecordEntry CsaGameProgress::endRecord(CsaClient::GameResult result, CsaClient::
     case Cause::IllegalAction: type = TerminalType::IllegalLoss; break;
     case Cause::OuteSennichite:
         // 連続王手の千日手は終局した局面の手番側の行。王手をかけていた側が反則負け
-        side = blackToMove;
-        type = (loserIsBlack == blackToMove) ? TerminalType::IllegalLoss : TerminalType::IllegalWin;
+        type = (loser == sideToMove) ? TerminalType::IllegalLoss : TerminalType::IllegalWin;
         break;
-    case Cause::Sennichite: type = TerminalType::Repetition; neutral = true; break;
-    case Cause::Jishogi:
-        // 入玉宣言は宣言した勝者の行（保存時に勝者を判定するため）。点数による引き分けは持将棋
-        type = isDraw ? TerminalType::Impasse : TerminalType::DeclarationWin;
-        side = !loserIsBlack;
-        neutral = isDraw;
-        break;
-    case Cause::MaxMoves: type = TerminalType::MaxMoves; neutral = true; break;
-    default: neutral = true; break;
+    case Cause::Sennichite: type = TerminalType::Repetition; break;
+    // 入玉宣言は宣言した勝者の行。点数による引き分けは持将棋
+    case Cause::Jishogi: type = isDraw ? TerminalType::Impasse : TerminalType::DeclarationWin; break;
+    case Cause::MaxMoves: type = TerminalType::MaxMoves; break;
+    case Cause::Chudan:
+    case Cause::Unknown: break;
     }
 
-    // 消費時間は終局行を行った手番側（入玉宣言勝ちは宣言した勝者、連続王手の千日手は終局した局面の
-    // 手番側、それ以外は敗者）の累計に足す
-    const bool moverIsBlack = (cause == Cause::OuteSennichite) ? blackToMove
-        : (cause == Cause::Jishogi && !isDraw) ? !loserIsBlack : loserIsBlack;
+    // 消費時間は終局行を行った側の累計に足す
+    const Turn side = RecordEntry::endingSide(type, sideToMove, loser);
     const RecordTime time =
-        RecordTime::fromMilliseconds(consumedMs, qint64(totalMs(moverIsBlack)) + consumedMs);
-    RecordEntry entry = RecordEntry::ending(type, side ? Turn::Black : Turn::White, time);
-    if (neutral) entry.displayText.remove(0, 1);
-    return entry;
+        RecordTime::fromMilliseconds(consumedMs, qint64(totalMs(side == Turn::Black)) + consumedMs);
+    return RecordEntry::ending(type, side, time);
 }

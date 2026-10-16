@@ -18,16 +18,15 @@ QT_END_NAMESPACE
 /**
  * @brief 部品の生成・依存の注入・起動時の初期表示を一か所で行う
  *
- * 部品は compose() で全部作る。遅延生成（ensure*）も、作られていない部品を後から探す
- * ゲッターもない。依存は「全部作ってから結ぶ」ので、相互に参照し合う部品も
- * 作成順を気にせず結べる。状態は AppState に1つだけ置き、部品はそこへのポインタを受け取る。
+ * 部品は compose() で全部作る。遅延生成も、作られていない部品を後から探すゲッターもない。
+ * 部品は依存する部品が先にできている順に作り、依存はコンストラクタの Deps で渡す
+ * （作った後に set* で注入しない）。部品どうしのシグナルは全部作ってからつなぐ。
+ * 状態は AppState に1つだけ置き、部品はそこへのポインタを受け取る。
  *
  * 実装は次のファイルに分けている:
- * - mainwindowcomposer.cpp          起動・終了の手順と終了確認
- * - mainwindowcomposer_create.cpp   部品の生成（モデル → 画面 → 盤 → サービス）
- * - mainwindowcomposer_wire.cpp     棋譜・UI 系の依存の注入
- * - mainwindowcomposer_game.cpp     対局・検討・通信対局の依存の注入とシグナル接続
- * - mainwindowcomposer_finalize.cpp シグナル接続と初期表示
+ * - mainwindowcomposer.cpp            起動・終了の手順、初期表示、終了確認
+ * - mainwindowcomposer_create.cpp     部品の生成（棋譜とモデル → 盤 → 画面部品 → 司令塔 → 表示とドック → セッション → 操作）
+ * - mainwindowcomposer_wire.cpp       部品どうしのシグナル接続
  * - mainwindowcomposer_automation.cpp 自動化 API（--automation）
  */
 class MainWindowComposer : public QObject
@@ -57,30 +56,26 @@ public:
 
 private:
     // ===== 生成（mainwindowcomposer_create.cpp） =====
-    void createModels();
-    void setupUiSkeleton();
-    void createBoardAndGameController();
-    void createPanelsAndDocks();
-    void createBranchNavigation();
-    void createRecordAndPlayerInfo();
-    void createSecondaryDocks();
-    void createServices();
+    void createRecordAndModels();
+    void createBoard();
+    void createPanels();
+    void createMatchAndAnalysis();
+    void createPresentersAndDocks();
+    void createDocks();
+    void createSessions();
+    void createControllers();
 
-    // ===== 依存の注入（mainwindowcomposer_wire.cpp） =====
-    void wireFoundation();
-    void wireKifu();
-    void wireUi();
-    void wireDialogs();
+    // ===== シグナル接続（mainwindowcomposer_wire.cpp） =====
+    void connectRecord();
+    void connectBoard();
+    void connectGame();
+    void connectAnalysisAndUi();
 
-    // ===== 対局系（mainwindowcomposer_game.cpp） =====
-    void wireCsaGame();
-    void wireGame();
-    void connectMatchSignals();
-    void connectAnalysisSignals();
-
-    // ===== 接続と初期表示（mainwindowcomposer_finalize.cpp） =====
-    void connectSignals();
+    /// 盤・棋譜欄・対局者名の初期表示と、保存したウィンドウの大きさ・ドックの配置の復元
     void finalizeUi();
+
+    /// 人間が盤で指せる手番か（盤のクリックと定跡手で使う。終了処理の後は false）
+    bool isHumanTurnNow() const;
 
     MainWindow& m_window;
     Ui::MainWindow& m_ui;

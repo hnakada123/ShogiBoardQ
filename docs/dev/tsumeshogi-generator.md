@@ -26,7 +26,7 @@ TsumeshogiGeneratorDialog
   │    ├─ TsumeshogiCandidateScreener  ← 事前選別（ワーカースレッド。内部で TsumeshogiPositionGenerator を使用）
   │    │    └─ TsumeshogiPositionGenerator  ← ランダム局面生成
   │    ├─ TsumeshogiVerifier        ← 余詰検査（Hayanagiの合法手生成を利用）
-  │    └─ UsiEngineSession             ← エンジン通信（詰探索。position・go mate・stop を UsiProtocolHandler で送る）
+  │    └─ UsiEngineSession             ← エンジン通信（画面を持たない接続。search() で position・go mate を送り、期限を過ぎたら stop を送る）
   │
   signals: positionFound / progressUpdated / finished / errorOccurred
 ```
@@ -74,7 +74,7 @@ TsumeshogiGeneratorDialog
    - 段制約に違反する場合は自動で成駒に変換（金は不可なので再試行）
    - 同じ筋に同じ側の不成歩がある場合は二歩になるため別のマスを再試行
 3. **守り駒を配置** — 0〜maxDefendPieces枚（玉以外の後手駒、玉周辺2マス以内、二歩回避は攻め駒と同様）
-4. **王手検証** — 初期局面で後手玉に王手がかかっていないことを `EngineMoveValidator::checkIfKingInCheck` で検証
+4. **王手検証** — 初期局面で後手玉に王手がかかっていないことを `EngineMoveValidator::isInCheck` で検証
 5. **リトライ** — 王手がかかっている場合は最大100回再生成
 
 ### 詰将棋の慣例
@@ -87,7 +87,7 @@ TsumeshogiGeneratorDialog
 
 局面は `ShogiBoard`（`m_board`）で持つ。盤の駒は `ShogiBoard::setPieceAt` で置き、攻方の持駒は盤の駒台に置く。
 未使用駒は SFEN を作る直前に守方の駒台に置き、SFEN は `ShogiBoard::convertBoardToSfen` と `convertStandToSfen` で書く。
-王手の検証には盤の駒の配列（`ShogiBoard::boardData`）をそのまま使う。
+王手の検証には盤（`m_board`）をそのまま `EngineMoveValidator::isInCheck()` に渡す。
 
 ## 事前選別 (TsumeshogiCandidateScreener)
 
@@ -196,10 +196,13 @@ SFEN重複排除は唯一性検査と独立して行う。`registerFoundPosition
 
 | タイマー | 用途 | 間隔 |
 |---|---|---|
-| `m_safetyTimer` | エンジン無応答ガード | 各 `go mate` に指定した時間 + 5000ms（シングルショット） |
-| `m_safetyTimer`（stop 応答待ち） | 安全タイマー発火後に送った stop への応答待ち | 3000ms（シングルショット） |
+| `UsiSearchRequest::stopAfterMs`（`UsiEngineSession` の stop タイマー） | エンジン無応答ガード。期限を過ぎたら stop を送る | 各 `go mate` に指定した時間 + 5000ms（シングルショット） |
+| `UsiSearchRequest::replyTimeoutMs`（`UsiEngineSession` の応答待ち） | stop の後の応答待ち。過ぎたら `searchTimedOut` を受けてエンジン固着として生成を中止する | 3000ms（シングルショット） |
 | `m_progressTimer` | UI進捗更新 | 500ms（リピート） |
 | `m_verificationStepTimer` | 余詰検査の続行 | 0ms（シングルショット） |
+
+探索は `TsumeshogiGenerator::sendMateSearch()` が `UsiSearchRequest`（`go` は `UsiGo::mate()`）にまとめて `UsiEngineSession::search()` に頼む。
+stop を送った後に届いた応答は `UsiCheckmate::stopped` が付き、結果として扱わない。
 
 エンジンの応答が遅れた場合、停止・応答待ちの時間だけ総予算を超えることがある。
 予算超過後の結果を採択せず、既存の無応答ガードで安全に次へ進むか生成を終了する。
@@ -299,7 +302,7 @@ Python側は監査記録 `audit.jsonl` を即時保存し、同じ検証器の�
 ## 駒を1枚除いた局面（トリミング）
 
 トリミング処理では、SFEN を `ShogiBoard` に読み、駒を1枚除いて守方（後手）の持駒にしたあと、`ShogiBoard` から SFEN を書き出す
-（`tsumeshogigenerator_sfen.cpp`）。手番は先手、手数は1に固定する。
+（`TsumeshogiGenerator::removePieceFromSfen()`）。手番は先手、手数は1に固定する。
 
 除去候補（`TrimCandidate`）の並び:
 1. 盤上の駒（玉以外。攻方・守方とも）。上の段から、段の中は9筋から
@@ -316,7 +319,7 @@ Python側は監査記録 `audit.jsonl` を即時保存し、同じ検証器の�
 
 開始・停止と状態表示の下に、採択件数／生成上限の進捗バー、探索件数、経過時間、検査除外件数を表示する。無制限の場合は生成中のみ不定進捗表示とする。
 
-結果一覧は `# / SFEN / 盤面 / 手数` の4列で、メイン画面と共通の `TableStyles` / `PvBoardButtonDelegate` を使用する。出力オプション・コピー・保存は一覧の下、文字サイズと閉じるボタンは最下部に置く。UI構築は `tsumeshogigeneratordialog_ui.cpp`、設定と生成制御は `.cpp`、結果操作は `_actions.cpp` に分ける。
+結果一覧は `# / SFEN / 盤面 / 手数` の4列で、メイン画面と共通の `TableStyles` / `TableButtonDelegate` を使用する。出力オプション・コピー・保存は一覧の下、文字サイズと閉じるボタンは最下部に置く。UI構築・設定と生成制御・結果操作は `tsumeshogigeneratordialog.cpp` にまとめている。
 
 ### 設定の永続化
 
@@ -336,7 +339,7 @@ Python側は監査記録 `audit.jsonl` を即時保存し、同じ検証器の�
 - 盤面列のクリック、行のダブルクリック、Enterキーで盤面と手順を開く。選択コピーはCtrl+Cにも対応し、複数選択した結果を表示順に出力する。結果追加時の自動スクロールは最下部を閲覧している場合だけ行う。
 - 「手順も出力」を有効にすると、ファイル保存・コピーの各行が `<SFEN> moves <USI手順>` になる。無効時は SFEN のみで、SFEN集ダイアログ等の1行1SFEN形式と互換。
 - 「ファイル保存」は先頭に `# ` 始まりのコメント行で ShogiBoardQ のバージョン（`APP_VERSION`）、生成開始日時、生成設定（エンジン、目標手数、攻め駒上限、守り駒上限、配置範囲、探索時間/局面、生成上限、余詰検査）を記録する（`TsumeshogiExportHeaderBuilder::build`）。設定と日時は「開始」時に `m_lastRunSettings` / `m_lastRunStartedAt` に控えたものを使うので、生成後に設定欄を変えても保存内容は変わらない。コピーにはヘッダを付けない。`TsumeCollection::parse` と `SfenCollectionDialog::parseSfenLines` は `#` 始まりの行を読み飛ばす。
-- ファイル保存は `QSaveFile` で書き込み完了を確認してから置き換える。閉じる・Escでも生成を停止して設定を保存する。
+- ファイル保存は `TsumeCollectionWriter::save()` が `QSaveFile` で書き込み完了を確認してから置き換える。閉じる・Escでも生成を停止して設定を保存する。
 - ジェネレータ（`TsumeshogiGenerator`）はダイアログの子として1つだけ生成し、開始のたびに再利用する。`start()` が状態を初期化し、エンジンとの接続（`UsiEngineSession`。画面の思考情報は使わない）は開始ごとに生成・終了時に `deleteLater` で破棄する。
 
 ## 設定パラメータ一覧
@@ -367,7 +370,7 @@ Python側は監査記録 `audit.jsonl` を即時保存し、同じ検証器の�
 - 候補・除去探索の `checkmate` は一次フィルタを通して余詰検査へ進める。
 - 検査中の `checkmate` は長さがN手かにかかわらず、現在の問い合わせへの詰み応答として扱う。
 - 検査中の `nomate` はその攻手を否定するために使用し、`timeout` は判定不能として使用する。
-- 安全タイマーで送ったstopの後に来る応答は捨て、検査ではUnknownとして処理する。
+- 無応答ガードで送ったstopの後に来る応答（`UsiCheckmate::stopped`）は結果として使わず、検査ではUnknownとして処理する。
 - 終了時は検査続行タイマーを止め、問い合わせ・検証結果を破棄する。旧接続のシグナルは切断する。
 
 `tests/tst_tsumeshogi_verification.cpp` が第2・4問の初手、途中手、最終手、長い別解、

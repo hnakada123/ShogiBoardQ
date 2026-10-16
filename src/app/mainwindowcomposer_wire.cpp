@@ -1,356 +1,214 @@
 /// @file mainwindowcomposer_wire.cpp
-/// @brief 共通基盤・棋譜・UI・ダイアログ系の依存の注入
+/// @brief 部品どうしのシグナル接続（部品は全部できている）
 
 #include "mainwindowcomposer.h"
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
-#include "analysisresultspresenter.h"
 #include "analysissession.h"
-#include "analysistabwiring.h"
-#include "boardinteractioncontroller.h"
-#include "boardloadservice.h"
-#include "boardsetupcontroller.h"
-#include "boardsyncpresenter.h"
-#include "branchnavigationwiring.h"
+#include "branchtreeeditcontroller.h"
+#include "branchtreemanager.h"
+#include "candidatearrowpresenter.h"
 #include "commentcoordinator.h"
+#include "commenteditorpanel.h"
+#include "consecutivegameseries.h"
+#include "considerationtabmanager.h"
 #include "considerationuicontroller.h"
-#include "csagamewiring.h"
-#include "dialogcoordinatorwiring.h"
 #include "dialoglauncher.h"
-#include "engineanalysistab.h"
-#include "evaluationgraphcontroller.h"
-#include "gamerecordloadservice.h"
+#include "dockuicoordinator.h"
+#include "errorbus.h"
+#include "evaluationchartwidget.h"
+#include "evaluationgraphpresenter.h"
 #include "gamerecordmodel.h"
 #include "gamesession.h"
+#include "boardinteractioncontroller.h"
+#include "boardmovecontroller.h"
 #include "josekiwindowcontroller.h"
-#include "kifubranchtree.h"
+#include "kifudisplaypresenter.h"
 #include "kifuexportcontroller.h"
 #include "kifufilecontroller.h"
 #include "kifuloadcoordinator.h"
-#include "kifuloadcoordinatorfactory.h"
 #include "kifunavigationcontroller.h"
-#include "kifunavigationcoordinator.h"
-#include "kifunavigationstate.h"
-#include "languagecontroller.h"
-#include "livegamesession.h"
-#include "matchcoordinator.h"
+#include "kifurecordlistmodel.h"
 #include "mainwindowactions.h"
-#include "menuwindowcontroller.h"
-#include "nyugyokudeclarationhandler.h"
+#include "matchcoordinator.h"
+#include "menuactionswiring.h"
 #include "piecesoundplayer.h"
 #include "playerinfopresenter.h"
-#include "positioneditcontroller.h"
 #include "positioneditcoordinator.h"
 #include "pvclickcontroller.h"
-#include "recordnavigationhandler.h"
 #include "recordpane.h"
-#include "replaycontroller.h"
 #include "shogigamecontroller.h"
 #include "shogiview.h"
-#include "timecontrolcontroller.h"
-#include "turnstatesyncservice.h"
+#include "thinkingpanel.h"
+#include "timedisplaypresenter.h"
 #include "uinotificationservice.h"
 #include "uistatepolicymanager.h"
 #include "usicommandcontroller.h"
-#include "candidatearrowcontroller.h"
+#include "usilogpanel.h"
 
-#include <QAction>
-#include <functional>
+#include <QPushButton>
 #include <QStatusBar>
 
 // ---------------------------------------------------------------------------
-// 共通基盤（UI 状態・通知・評価値グラフ・言語・駒音）
+// 棋譜（移動・分岐・コメント・読み込み）
 // ---------------------------------------------------------------------------
 
-void MainWindowComposer::wireFoundation()
+void MainWindowComposer::connectRecord()
 {
-    // UI 状態ポリシー。待った・投了・入玉宣言を人間が参加する対局だけにするため、司令塔の対局者の組を見る
-    UiStatePolicyManager::Deps ud;
-    ud.ui = &m_ui;
-    ud.activity = &m_state.activity;
-    ud.recordPane = m_c.recordPane;
-    ud.analysisTab = m_c.analysisTab;
-    ud.boardController = m_c.boardController;
-    ud.localGameHasHuman = [this]() {
-        return m_c.match->isHumanSide(Turn::Black) || m_c.match->isHumanSide(Turn::White);
-    };
-    m_c.uiStatePolicy->updateDeps(ud);
+    KifuNavigationController* nav = m_c.kifuNavController;
+    RecordPane* pane = m_c.recordPane;
+    EvaluationChartWidget* chart = m_c.evalChart;
 
-    UiNotificationService::Deps nd;
-    nd.parentWidget = &m_window;
-    m_c.notificationService->updateDeps(nd);
+    // 棋譜を移る操作（棋譜欄と評価値グラフのボタン・行・分岐候補・分岐ツリー・グラフの点）
+    nav->connectButtons({pane->firstButton(), pane->back10Button(), pane->prevButton(),
+                         pane->nextButton(), pane->fwd10Button(), pane->lastButton()});
+    nav->connectButtons({chart->firstButton(), chart->back10Button(), chart->prevButton(),
+                         chart->nextButton(), chart->fwd10Button(), chart->lastButton()});
+    // 評価値グラフのボタンの有効・無効は棋譜欄のボタンに合わせる
+    connect(pane, &RecordPane::arrowButtonsEnabledChanged, chart, &EvaluationChartWidget::setNavigationEnabled);
+    chart->setNavigationEnabled(pane->firstButton()->isEnabled());
+    connect(pane, &RecordPane::mainRowChanged, nav, &KifuNavigationController::selectRecordRow);
+    connect(pane, &RecordPane::branchRowActivated, nav, &KifuNavigationController::selectBranchCandidateRow);
+    BranchTreeManager* tree = m_c.branchTreeView;
+    connect(tree, &BranchTreeManager::branchNodeActivated, nav, &KifuNavigationController::selectBranchTreeNode);
+    connect(chart, &EvaluationChartWidget::plyClicked, nav, &KifuNavigationController::selectPly);
+    // 移るのをやめたら、クリックした行の強調を表示中の手に戻す（選択の変更の処理を抜けてから）
+    connect(nav, &KifuNavigationController::navigationRejected,
+            m_c.kifuDisplay, &KifuDisplayPresenter::refresh, Qt::QueuedConnection);
 
-    // 評価値グラフ。表示中の手順の行数（終局行を含む）- 1 を長さとする
-    m_c.evalGraphController->setEvalChart(m_c.evalChart);
-    m_c.evalGraphController->setNavigation(m_c.branchTree, m_c.navState);
-    m_c.playerInfo->setEvalGraphController(m_c.evalGraphController.get());
-    m_c.playerInfo->setLogModels(m_c.commLog1, m_c.commLog2);
+    // 分岐の編集（分岐ツリーと分岐候補欄の右クリック）
+    connect(tree, &BranchTreeManager::nodeContextMenuAboutToShow,
+            m_c.branchEdit, &BranchTreeEditController::onNodeContextMenuAboutToShow);
+    connect(pane, &RecordPane::branchContextMenuRequested,
+            m_c.branchEdit, &BranchTreeEditController::onCandidateContextMenuRequested);
 
-    // コメント
-    CommentCoordinator* cc = m_c.commentCoordinator;
-    cc->setCommentEditor(m_c.analysisTab ? m_c.analysisTab->commentEditor() : nullptr);
-    cc->setRecordPane(m_c.recordPane);
-    cc->setRecordPresenter(m_c.recordPresenter);
-    cc->setStatusBar(m_ui.statusbar);
-    cc->setNavigationState(m_c.navState);
-    cc->setGameRecordModel(m_c.gameRecord);
-    cc->setKifuRecordListModel(m_c.kifuRecord);
+    // コメント・しおり（棋譜欄の行は書いたノードの行だけ描き直す）
+    connect(m_c.commentEditor, &CommentEditorPanel::commentUpdated,
+            m_c.commentCoordinator, &CommentCoordinator::onCommentUpdated);
+    connect(pane, &RecordPane::bookmarkEditRequested,
+            m_c.commentCoordinator, &CommentCoordinator::onBookmarkEditRequested);
+    connect(m_c.gameRecord, &GameRecordModel::commentChanged, m_c.kifuRecord, &KifuRecordListModel::refreshNode);
+    connect(m_c.gameRecord, &GameRecordModel::bookmarkChanged, m_c.kifuRecord, &KifuRecordListModel::refreshNode);
 
-    // 言語メニュー（相互排他）と表記
-    m_c.languageController->setParentWidget(&m_window);
-    m_c.languageController->setActions(
-        m_ui.actionLanguageSystem, m_ui.actionLanguageJapanese, m_ui.actionLanguageEnglish,
-        m_ui.actionLanguageChineseSimplified, m_ui.actionLanguageChineseTraditional);
-    m_c.languageController->setNotationActions(
-        m_ui.actionNotationAuto, m_ui.actionNotationJapanese,
-        m_ui.actionNotationWestern, m_ui.actionNotationOrigin, m_ui.actionNotationHelp);
-
-    // 駒音。メニュー「駒音」のチェック状態を設定と同期する
-    QAction* soundAction = m_ui.actionPieceSound;
-    soundAction->setIconVisibleInMenu(false);  // チェックマークを見せるためアイコンは非表示
-    soundAction->setChecked(m_c.pieceSoundPlayer->isEnabled());
+    // 読み込み・書き出し
+    KifuLoadCoordinator* loader = m_c.kifuLoadCoordinator;
+    connect(loader, &KifuLoadCoordinator::gameInfoLoaded, m_c.playerInfo, &PlayerInfoPresenter::onGameInfoLoaded);
+    connect(loader, &KifuLoadCoordinator::errorOccurred,
+            m_c.notificationService, &UiNotificationService::displayErrorMessage);
+    connect(loader, &KifuLoadCoordinator::loadFinished,
+            m_c.uiStatePolicy, &UiStatePolicyManager::enableNavigationIfAllowed);
+    connect(m_c.dialogLauncher, &DialogLauncher::sfenCollectionPositionSelected,
+            m_c.kifuFileController, &KifuFileController::onSfenCollectionPositionSelected);
+    connect(m_c.kifuExportController, &KifuExportController::statusMessage, m_ui.statusbar, &QStatusBar::showMessage);
 }
 
 // ---------------------------------------------------------------------------
-// 棋譜（ナビゲーション・分岐・読み込み・保存・定跡）
+// 盤（クリック・着手・局面編集・定跡手）
 // ---------------------------------------------------------------------------
 
-void MainWindowComposer::wireKifu()
+void MainWindowComposer::connectBoard()
 {
-    KifuNavigationCoordinator::Deps kd;
-    kd.shogiView = m_c.shogiView;
-    kd.navState = m_c.navState;
-    kd.navController = m_c.kifuNavController;
-    kd.state = &m_state;
-    kd.analysis = m_c.analysisSession;
-    kd.analysisTab = m_c.analysisTab;
-    kd.uiStatePolicy = m_c.uiStatePolicy;
-    kd.josekiController = m_c.josekiController.get();
-    m_c.kifuNavCoordinator->updateDeps(kd);
+    BoardInteractionController* board = m_c.boardController;
+    connect(m_c.shogiView, &ShogiView::clicked, board, &BoardInteractionController::onLeftClick);
+    connect(m_c.shogiView, &ShogiView::rightClicked, board, &BoardInteractionController::onRightClick);
+    connect(m_c.gameController, &ShogiGameController::endDragSignal, m_c.shogiView, &ShogiView::endDrag);
+    connect(m_c.gameController, &ShogiGameController::moveCommitted,
+            m_c.pieceSoundPlayer, &PieceSoundPlayer::playMoveSound);
+    // 定跡ウィンドウで選んだ手は盤で指した手と同じに扱う
 
-    BranchNavigationWiring::Deps bd;
-    bd.branchTree = m_c.branchTree;
-    bd.navState = m_c.navState;
-    bd.kifuNavController = m_c.kifuNavController;
-    bd.displayCoordinator = m_c.displayCoordinator;
-    bd.liveGameSession = m_c.liveGameSession;
-    bd.recordPane = m_c.recordPane;
-    bd.analysisTab = m_c.analysisTab;
-    bd.kifuRecordModel = m_c.kifuRecord;
-    bd.kifuBranchModel = m_c.kifuBranch;
-    bd.gameRecordModel = m_c.gameRecord;
-    bd.gameController = m_c.gameController;
-    bd.commentCoordinator = m_c.commentCoordinator;
-    bd.state = &m_state;
-    m_c.branchNavWiring->updateDeps(bd);
-    m_c.branchNavWiring->initialize();
-
-    GameRecordLoadService::Deps ld;
-    ld.recordPane = m_c.recordPane;
-    ld.recordPresenter = m_c.recordPresenter;
-    ld.gameRecord = m_c.gameRecord;
-    m_c.gameRecordLoadService->updateDeps(ld);
-
-    // 棋譜読み込み担当（1つだけ作り、全部の読み込みで使い回す）
-    KifuLoadCoordinatorFactory::Params p;
-    p.gameInfoController = m_c.gameInfoController;
-    p.recordPane = m_c.recordPane;
-    p.kifuRecordModel = m_c.kifuRecord;
-    p.kifuBranchModel = m_c.kifuBranch;
-    p.parent = &m_window;
-    p.branchTree = m_c.branchTree;
-    p.navState = m_c.navState;
-    p.analysisTab = m_c.analysisTab;
-    p.shogiView = m_c.shogiView;
-    p.recordLoad = m_c.gameRecordLoadService.get();
-    p.branchNavWiring = m_c.branchNavWiring.get();
-    p.kifuNavCoordinator = m_c.kifuNavCoordinator.get();
-    p.uiStatePolicy = m_c.uiStatePolicy;
-    p.playerInfo = m_c.playerInfo;
-    p.notificationService = m_c.notificationService;
-    m_c.kifuLoadCoordinator = KifuLoadCoordinatorFactory::createAndWire(p);
-
-    // 保存・書き出し
-    KifuExportController::Dependencies ed;
-    ed.gameRecord = m_c.gameRecord;
-    ed.kifuRecordModel = m_c.kifuRecord;
-    ed.gameInfoController = m_c.gameInfoController;
-    ed.timeController = m_c.timeController;
-    ed.gameController = m_c.gameController;
-    ed.state = &m_state;
-    ed.navState = m_c.navState;
-    m_c.kifuExportController->setDependencies(ed);
-
-    KifuFileController::Deps fd;
-    fd.parentWidget = &m_window;
-    fd.statusBar = m_ui.statusbar;
-    fd.gameInfo = m_c.gameInfoController;
-    fd.state = &m_state;
-    fd.gameRecord = m_c.gameRecord;
-    fd.exportController = m_c.kifuExportController.get();
-    fd.loadCoordinator = m_c.kifuLoadCoordinator;
-    fd.replayController = m_c.replayController;
-    fd.clearUiBeforeKifuLoad = std::bind(&GameSession::clearUiBeforeKifuLoad, m_c.gameSession);
-    m_c.kifuFileController->updateDeps(fd);
+    // 局面編集（棋譜は編集した局面だけになる）
+    PositionEditCoordinator* edit = m_c.posEditCoordinator;
+    connect(edit, &PositionEditCoordinator::positionEditingStarted,
+            m_c.actions, &MainWindowActions::resetRecordForEditedPosition);
+    connect(edit, &PositionEditCoordinator::positionEditingStarted, m_c.evalGraph, &EvaluationGraphPresenter::clear);
+    connect(edit, &PositionEditCoordinator::positionEditingFinished,
+            m_c.actions, &MainWindowActions::resetRecordForEditedPosition);
 }
 
 // ---------------------------------------------------------------------------
-// UI（盤の読み込み・局面編集・読み筋クリック・検討・USI コマンド・棋譜欄の行変更）
+// 対局（時計・評価値・終局・連続対局）
 // ---------------------------------------------------------------------------
 
-void MainWindowComposer::wireUi()
+void MainWindowComposer::connectGame()
 {
-    BoardLoadService::Deps bl;
-    bl.gc = m_c.gameController;
-    bl.view = m_c.shogiView;
-    bl.boardSync = m_c.boardSync;
-    bl.state = &m_state;
-    bl.turnSync = m_c.turnStateSync.get();
-    bl.kifuNav = m_c.kifuNavCoordinator.get();
-    m_c.boardLoadService->updateDeps(bl);
+    MatchCoordinator* match = m_c.match;
+    GameSession* session = m_c.gameSession;
 
-    // 盤操作
-    BoardSetupController* bsc = m_c.boardSetupController;
+    connect(match, &MatchCoordinator::timeUpdated, m_c.timePresenter, &TimeDisplayPresenter::onMatchTimeUpdated);
+    connect(match, &MatchCoordinator::engineMovePlayed, m_c.evalGraph, &EvaluationGraphPresenter::plotEngineScore);
+    connect(match, &MatchCoordinator::movesUndone, m_c.evalGraph, &EvaluationGraphPresenter::trimToPly);
 
-    // 局面編集
-    PositionEditCoordinator* pec = m_c.posEditCoordinator;
-    pec->setShogiView(m_c.shogiView);
-    pec->setGameController(m_c.gameController);
-    pec->setBoardController(m_c.boardController);
-    pec->setPositionEditController(m_c.posEdit);
-    pec->setMatchCoordinator(m_c.match);
-    pec->setReplayController(m_c.replayController);
-    pec->setNavigationState(m_c.navState);
-    pec->setAppState(&m_state);
-    pec->setUiStatePolicy(m_c.uiStatePolicy);
-    PositionEditCoordinator::EditActions actions;
-    actions.actionReturnAllPiecesToStand = m_ui.actionReturnAllPiecesToStand;
-    actions.actionSetHiratePosition = m_ui.actionSetHiratePosition;
-    actions.actionSetTsumePosition = m_ui.actionSetTsumePosition;
-    actions.actionChangeTurn = m_ui.actionChangeTurn;
-    pec->setEditActions(actions);
+    connect(match, &MatchCoordinator::gameEnded, session, &GameSession::onGameEnded);
+    connect(match, &MatchCoordinator::gameOverMessage, m_c.notificationService, &UiNotificationService::showInformation);
+    connect(match, &MatchCoordinator::autoSaveRequested,
+            m_c.kifuFileController, &KifuFileController::autoSaveKifuToFile);
+    connect(match, &MatchCoordinator::gameEndProcessed, session, &GameSession::onGameEndProcessed);
+    connect(match, &MatchCoordinator::gameInterrupted, session, &GameSession::onGameInterrupted);
 
-    // 読み筋クリック
+    connect(m_c.consecutiveGames, &ConsecutiveGameSeries::nextGameReady,
+            session, &GameSession::startNextGame);
+}
+
+// ---------------------------------------------------------------------------
+// 検討・思考・通信ログのドック・メニュー・通知
+// ---------------------------------------------------------------------------
+
+void MainWindowComposer::connectAnalysisAndUi()
+{
+    ConsiderationTabManager* consideration = m_c.considerationTab;
+    ThinkingPanel* thinking = m_c.thinkingPanel;
+    AnalysisSession* analysis = m_c.analysisSession;
+
+    // 検討（検討ドックの開始・エンジンの選択と設定、読み直しの経過時間）
+    connect(consideration, &ConsiderationTabManager::startConsiderationRequested,
+            m_c.considerationUi, &ConsiderationUiController::startConsideration);
+    connect(consideration, &ConsiderationTabManager::engineSettingsRequested,
+            m_c.considerationUi, &ConsiderationUiController::onEngineSettingsRequested);
+    connect(consideration, &ConsiderationTabManager::considerationEngineChanged,
+            m_c.considerationUi, &ConsiderationUiController::onEngineChanged);
+    connect(analysis, &AnalysisSession::considerationSearchStarted,
+            consideration, &ConsiderationTabManager::startElapsedTimer);
+    connect(analysis, &AnalysisSession::engineNamesChanged,
+            m_c.playerInfo, &PlayerInfoPresenter::onAnalysisEngineNamesChanged);
+    connect(analysis, &AnalysisSession::messageRequested,
+            m_c.notificationService, &UiNotificationService::showInformation);
+
+    // 候補手の矢印の表示状態を思考ドックの設定欄に出し、設定が変わったら描き直す
+    connect(m_c.arrows, &CandidateArrowPresenter::displayStateChanged, thinking, &ThinkingPanel::setArrowDisplayState);
+    connect(thinking, &ThinkingPanel::arrowSettingsChanged, m_c.arrows, &CandidateArrowPresenter::scheduleRefresh);
+
+    // 読み筋のクリック（思考の表と検討の表）。読み筋ダイアログを閉じたら、その表の選択を外す
     PvClickController* pv = m_c.pvClickController;
-    pv->setThinkingModels(m_c.thinking1, m_c.thinking2);
-    pv->setConsiderationModel(m_c.consideration);
-    PvClickController::StateRefs refs;
-    refs.state = &m_state;
-    refs.navState = m_c.navState;
-    pv->setStateRefs(refs);
-    pv->setShogiView(m_c.shogiView);
+    connect(thinking, &ThinkingPanel::pvRowClicked, pv, &PvClickController::onPvRowClicked);
+    connect(consideration, &ConsiderationTabManager::pvRowClicked, pv, &PvClickController::onPvRowClicked);
+    connect(pv, &PvClickController::pvDialogClosed, thinking, &ThinkingPanel::clearSelection);
+    connect(pv, &PvClickController::pvDialogClosed, consideration, &ConsiderationTabManager::clearViewSelection);
 
-    // USI コマンド送信
-    m_c.usiCommandController->setAnalysisTab(m_c.analysisTab);
-    // 候補手の矢印の表示状態を思考タブの設定欄に出し、設定が変わったら描き直す
-    CandidateArrowController* arrows = CandidateArrowController::forView(m_c.shogiView);
-    connect(arrows, &CandidateArrowController::displayStateChanged,
-            m_c.analysisTab, &EngineAnalysisTab::setArrowDisplayState);
-    connect(m_c.analysisTab, &EngineAnalysisTab::arrowSettingsChanged,
-            arrows, &CandidateArrowController::scheduleRefresh);
+    // USI コマンドの手入力
+    connect(m_c.usiLog, &UsiLogPanel::usiCommandRequested, m_c.usiCommandController, &UsiCommandController::sendCommand);
 
-    // 検討モード（ダイアログの司令塔は wireDialogs で渡す）
-    ConsiderationUiController::Deps cw;
-    cw.parentWidget = &m_window;
-    cw.considerationTabManager = m_c.analysisTab->considerationTabManager();
-    cw.thinkingInfo1 = m_c.analysisTab->info1();
-    cw.shogiView = m_c.shogiView;
-    cw.session = m_c.analysisSession;
-    cw.considerationModel = m_c.consideration;
-    cw.commLogModel = m_c.commLog1;
-    m_c.considerationUi = new ConsiderationUiController(cw, &m_window);
+    // メニュー・ツールバー
+    MenuActionsWiring::Deps md;
+    md.ui = &m_ui;
+    md.actions = m_c.actions;
+    md.dialogs = m_c.dialogLauncher;
+    md.kifuFiles = m_c.kifuFileController;
+    md.kifuExport = m_c.kifuExportController;
+    md.session = m_c.gameSession;
+    md.analysis = analysis;
+    md.positionEdit = m_c.posEditCoordinator;
+    md.kifuAnalysis = m_c.kifuAnalysis;
+    md.tsumeSearch = m_c.tsumeSearch;
+    md.appearance = m_c.appearance;
+    md.images = m_c.images;
+    md.boardController = m_c.boardController;
+    md.pieceSound = m_c.pieceSoundPlayer;
+    md.settingsReset = m_c.settingsReset;
+    MenuActionsWiring::wire(md);
+    DockUiCoordinator::wireLayoutMenu(m_c.dockLayoutManager, m_ui.actionResetDockLayout, m_ui.actionSaveDockLayout,
+                                      m_ui.actionLockDocks, m_ui.menuSavedLayouts);
 
-    // 棋譜欄の行変更
-    RecordNavigationHandler::Deps rd;
-    rd.navState = m_c.navState;
-    rd.displayCoordinator = m_c.displayCoordinator;
-    rd.liveSession = m_c.liveGameSession;
-    m_c.recordNavHandler->updateDeps(rd);
-
-    // 解析タブの外部シグナル
-    AnalysisTabWiring::ExternalSignalDeps ext;
-    ext.branchNavigationWiring = m_c.branchNavWiring.get();
-    ext.pvClickController = m_c.pvClickController;
-    ext.commentCoordinator = m_c.commentCoordinator;
-    ext.usiCommandController = m_c.usiCommandController.get();
-    ext.considerationUi = m_c.considerationUi;
-    m_c.analysisWiring->wireExternalSignals(ext);
-
-    // 起動後の利用者操作（着手・局面編集・待った・新規・棋譜欄の行変更）
-    MainWindowActions::Deps ad;
-    ad.window = &m_window;
-    ad.boardSetup = m_c.boardSetupController;
-    ad.boardController = m_c.boardController;
-    ad.branchWiring = m_c.branchNavWiring.get();
-    ad.gameController = m_c.gameController;
-    ad.view = m_c.shogiView;
-    ad.uiPolicy = m_c.uiStatePolicy;
-    ad.gameSession = m_c.gameSession;
-    ad.positionEdit = m_c.posEditCoordinator;
-    ad.comments = m_c.commentCoordinator;
-    ad.displayCoordinator = m_c.displayCoordinator;
-    ad.recordNavigation = m_c.recordNavHandler;
-    ad.kifuFileController = m_c.kifuFileController;
-    ad.josekiController = m_c.josekiController.get();
-    ad.state = &m_state;
-    ad.editedPositionReset.navState = m_c.navState;
-    ad.editedPositionReset.displayCoordinator = m_c.displayCoordinator;
-    ad.editedPositionReset.gameRecord = m_c.gameRecord;
-    ad.editedPositionReset.branchTree = m_c.branchTree;
-    ad.editedPositionReset.liveGameSession = m_c.liveGameSession;
-    m_c.actions = std::make_unique<MainWindowActions>(std::move(ad));
-    bsc->setVariationInputCallbacks(
-        [this]() { return m_c.actions->canRecordVariationMove(); },
-        [this](QPoint& from, QPoint& to) { return m_c.actions->recordVariationMove(from, to); });
-}
-
-// ---------------------------------------------------------------------------
-// ダイアログ（起動配線と、検討・詰み探索・棋譜解析の司令塔）
-// ---------------------------------------------------------------------------
-
-void MainWindowComposer::wireDialogs()
-{
-    DialogCoordinatorWiring::Deps dc;
-    dc.parentWidget = &m_window;
-    dc.analysisSession = m_c.analysisSession;
-    dc.gameController = m_c.gameController;
-    dc.state = &m_state;
-    dc.kifuRecordModel = m_c.kifuRecord;
-    dc.navState = m_c.navState;
-    dc.considerationModel = m_c.consideration;
-    dc.logModel = m_c.commLog1;
-    dc.thinkingModel = m_c.thinking1;
-    dc.analysisModel = m_c.analysis;
-    dc.gameInfoController = m_c.gameInfoController;
-    dc.evalChart = m_c.evalChart;
-    dc.presenter = m_c.analysisPresenter.get();
-    dc.shogiView = m_c.shogiView;
-    dc.considerationUi = m_c.considerationUi;
-    dc.uiStatePolicy = m_c.uiStatePolicy;
-    dc.analysisTab = m_c.analysisTab;
-    dc.kifuNavController = m_c.kifuNavController;
-    m_c.dialogCoordinatorWiring->wire(dc);
-    m_c.dialogCoordinator = m_c.dialogCoordinatorWiring->coordinator();
-    // 検討モードの配線とダイアログの司令塔は互いを参照する。両方できたのでここで渡す
-    m_c.considerationUi->setDialogCoordinator(m_c.dialogCoordinator);
-
-    DialogLauncher::Deps dl;
-    dl.parentWidget = &m_window;
-    dl.kifuFileController = m_c.kifuFileController;
-    dl.activity = &m_state.activity;
-    dl.dialogCoordinator = m_c.dialogCoordinator;
-    dl.gameController = m_c.gameController;
-    dl.match = m_c.match;
-    dl.shogiView = m_c.shogiView;
-    dl.jishogiController = m_c.jishogiController.get();
-    dl.nyugyokuHandler = m_c.nyugyokuHandler.get();
-    dl.csaGameWiring = m_c.csaGameWiring.get();
-    dl.boardSetupController = m_c.boardSetupController;
-    dl.analysisTab = m_c.analysisTab;
-    dl.evalChart = m_c.evalChart;
-    dl.pieceSoundPlayer = m_c.pieceSoundPlayer;
-    dl.usesHandicapNames = std::bind(&GameSession::usesHandicapNames, m_c.gameSession);
-    dl.menuWindowDock = m_c.docks.menuWindow;
-    m_c.dialogLauncher = new DialogLauncher(dl, &m_window);
+    connect(&ErrorBus::instance(), &ErrorBus::messagePosted,
+            m_c.notificationService, &UiNotificationService::displayMessage);
 }

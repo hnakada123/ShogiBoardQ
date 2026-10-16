@@ -1,6 +1,6 @@
 # developer-guide.md 作成用プロンプト集
 
-> 2026-10-15 注記: レジストリ層（`MainWindowServiceRegistry` など）と `TurnSyncBridge` は `MainWindowComposer`・`TurnStateSyncService` に置き換えた（[composition-root.md](composition-root.md)）。本文は当時の記録である。
+> 注記: 本文はマニュアルを書いた当時のクラス構成に基づくプロンプトの記録である。レジストリ層（`MainWindowServiceRegistry` など）は `MainWindowComposer` に置き換え、その後 `TurnStateSyncService`・`TurnManager`・`GameStartCoordinator`・`PreStartCleanupHandler`・各 FlowController なども統合・削除した。今の構成は [CLAUDE.md](../../CLAUDE.md) の Source Organization と [composition-root.md](composition-root.md) を見ること。
 
 各プロンプトを1セッションずつ実行してください。
 セッション間は `/clear` で区切ります。

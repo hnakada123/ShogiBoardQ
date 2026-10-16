@@ -205,7 +205,7 @@ BoardChromeWidget::BoardChromeWidget(QWidget* parent)
     }
 
     connect(&BoardAppearance::instance(), &BoardAppearance::colorsChanged,
-            this, &BoardChromeWidget::refreshBackgroundColors);
+            this, &BoardChromeWidget::refreshPlayerStyles);
 
     // 起動直後の見た目を整える
     refreshPlayerStyles();
@@ -219,9 +219,13 @@ BoardChromeWidget::BoardChromeWidget(QWidget* parent)
 void BoardChromeWidget::setBoardLayout(const BoardLayout& layout)
 {
     const bool flipChanged = m_layout.flipped != layout.flipped;
+    const bool hadBoard = m_layout.blackStand.isValid() || m_layout.whiteStand.isValid();
     m_layout = layout;
     if (flipChanged) refreshNameLabels();
     relayoutCards();
+    // 手番の札は盤が置かれているときだけ出す。盤より先に手番を受け取ったときは、盤が置かれた時点で出す
+    const bool hasBoard = m_layout.blackStand.isValid() || m_layout.whiteStand.isValid();
+    if (hasBoard != hadBoard) refreshPlayerStyles();
     // 「編集終了」ボタンは局面編集の間だけ表示する。表示する処理（PositionEditController::
     // showEditExitButtonOnBoard）は表示の直前に配置し直すので、隠れている間は配置と
     // 文字の大きさ合わせを省く（手番が替わるたびにも呼ばれる）
@@ -572,65 +576,19 @@ bool BoardChromeWidget::eventFilter(QObject* obj, QEvent* ev)
 // 手番・緊急度
 // ─────────────────────────────────────────────────────────────────────────────
 
-void BoardChromeWidget::setActiveSide(bool blackTurn)
+void BoardChromeWidget::setActiveSide(Turn side)
 {
-    qCDebug(lcView) << "setActiveSide: blackTurn=" << blackTurn;
-    m_blackActive = blackTurn;
-    m_urgency = Urgency::Normal;
-    setUrgencyVisuals(Urgency::Normal);
-}
-
-void BoardChromeWidget::updateTurnIndicator(Turn now)
-{
-    const bool black = now != Turn::White;
-    const Urgency urgency = m_blackActive == black ? m_urgency : Urgency::Normal;
-    m_blackActive = black;
-    setUrgencyVisuals(urgency);
-}
-
-void BoardChromeWidget::setHighlightStyle(const QColor& bgOn, const QColor& fgOn, const QColor& fgOff)
-{
-    m_highlightBg = bgOn;
-    m_highlightFgOn = fgOn;
-    m_highlightFgOff = fgOff;
-    setActiveSide(m_blackActive);
-}
-
-void BoardChromeWidget::clearTurnHighlight()
-{
-    if (m_gameOverStyleLock) return;
-    m_turnHighlightActive = false;
-    m_urgency = Urgency::Normal;
-    refreshPlayerStyles();
-}
-
-void BoardChromeWidget::setUrgencyVisuals(Urgency u)
-{
+    if (side != m_activeSide) m_urgency = Urgency::Normal;
+    m_activeSide = side;
     m_turnHighlightActive = true;
-    m_urgency = u;
-    qCDebug(lcView) << "setUrgencyVisuals: urgency=" << static_cast<int>(u) << "blackActive=" << m_blackActive;
     refreshPlayerStyles();
 }
 
-void BoardChromeWidget::applyClockUrgency(qint64 activeRemainMs)
+void BoardChromeWidget::setUrgency(Urgency u)
 {
-    Urgency next = Urgency::Normal;
-    if (activeRemainMs <= kWarn5Ms) next = Urgency::Warn5;
-    else if (activeRemainMs <= kWarn10Ms) next = Urgency::Warn10;
-    if (next != m_urgency) setUrgencyVisuals(next);
-}
-
-void BoardChromeWidget::refreshBackgroundColors()
-{
-    m_highlightBg = QColor();
-    m_highlightFgOn = QColor();
-    m_highlightFgOff = QColor();
-    if (m_turnHighlightActive) {
-        setUrgencyVisuals(m_urgency);
-    } else {
-        m_urgency = Urgency::Normal;
-        refreshPlayerStyles();
-    }
+    m_urgency = u;
+    m_turnHighlightActive = true;
+    refreshPlayerStyles();
 }
 
 void BoardChromeWidget::refreshPlayerStyles()
@@ -639,11 +597,10 @@ void BoardChromeWidget::refreshPlayerStyles()
     const bool hasBoard = m_layout.blackStand.isValid() || m_layout.whiteStand.isValid();
     for (std::size_t side = 0; side < 2; ++side) {
         const bool black = side == 0;
-        const bool active = m_turnHighlightActive && m_blackActive == black;
+        const bool active = m_turnHighlightActive && (m_activeSide == Turn::Black) == black;
         CachedStyleSheet* styleSheets = &m_playerStyleSheets[side * PlayerStyleCount];
-        const QColor overrideText = active ? m_highlightFgOn : m_highlightFgOff;
-        const QColor nameColor = overrideText.isValid() ? overrideText : colors.nameText;
-        QColor clockColor = overrideText.isValid() ? overrideText : colors.clockText;
+        const QColor nameColor = colors.nameText;
+        QColor clockColor = colors.clockText;
         if (active && m_urgency == Urgency::Warn10) clockColor = colors.clockWarningText;
         if (active && m_urgency == Urgency::Warn5) clockColor = colors.clockCriticalText;
         setLabelStyle(m_nameLabels[side], nameColor, colors.nameBackground, colors.nameBorder, false,
@@ -652,7 +609,7 @@ void BoardChromeWidget::refreshPlayerStyles()
                       styleSheets[ClockStyle]);
 
         QFrame* card = m_cards[side];
-        const QColor background = m_highlightBg.isValid() ? m_highlightBg : colors.cardBackground;
+        const QColor background = colors.cardBackground;
         const QColor border = active ? colors.activeCardBorder : colors.cardBorder;
         CachedStyleSheet& cardCache = styleSheets[CardStyle];
         if (cardCache.update({background.rgba(), border.rgba(), 0}, active ? 2 : 1)) {

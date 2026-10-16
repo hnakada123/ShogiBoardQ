@@ -27,8 +27,10 @@
 #include "settingscommon.h"
 #include "enginepondersettings.h"
 #include "csaenginecontroller.h"
+#include "enginelifecyclemanager.h"
+#include "shogiclock.h"
 #include "shogigamecontroller.h"
-#include "engineanalysistab.h"
+#include "thinkingpanel.h"
 #include "engineinfowidget.h"
 
 class TestPonderFlow : public QObject
@@ -144,11 +146,11 @@ private slots:
             if (dock->windowTitle() == QStringLiteral("思考")) { dock->show(); dock->raise(); }
         }
         QTest::qWait(30);
-        auto* analysisTab = m_window->findChild<EngineAnalysisTab*>();
-        QVERIFY(analysisTab);
-        QVERIFY(analysisTab->info1()->isVisible());
-        QCOMPARE(analysisTab->info2()->isVisible(), bothEngines);
-        const auto thinkingViews = analysisTab->info1()->parentWidget()
+        auto* thinkingPanel = m_window->findChild<ThinkingPanel*>();
+        QVERIFY(thinkingPanel);
+        QVERIFY(thinkingPanel->info1()->isVisible());
+        QCOMPARE(thinkingPanel->info2()->isVisible(), bothEngines);
+        const auto thinkingViews = thinkingPanel->info1()->parentWidget()
             ->findChildren<QTableView*>(QString(), Qt::FindDirectChildrenOnly);
         QCOMPARE(thinkingViews.size(), 2);
         QCOMPARE(thinkingViews.at(1)->isVisible(), bothEngines);
@@ -408,7 +410,9 @@ private slots:
     void csaPonder()
     {
         QFETCH(bool, hit);
-        CsaEngineController controller;
+        ShogiClock clock;
+        EngineLifecycleManager engines(&clock);
+        CsaEngineController controller(&engines);
         CsaEngineController::InitParams init;
         init.enginePath = QStringLiteral(AUDIT_DIR "/mock_usi.py");
         init.engineName = "Audit USI";

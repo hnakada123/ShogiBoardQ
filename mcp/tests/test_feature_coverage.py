@@ -263,7 +263,8 @@ async def test_joseki_add_edit_save_delete_and_merge(coverage_env, tmp_path):
             await ui.call("set_widget_value", target=dialog, widget=combo["selector"], value=value)
         await ui.click("追加", dialog)
         assert (await ui.read("josekiTable"))["row_count"] == 1
-        await ui.click("編集", root="JosekiWindowDock")
+        # 「着手」「編集」「削除」は表の中のボタンの列（列 1・4・5）
+        await ui.call("click_table_cell", widget="josekiTable", row=0, column=4)
         dialog = await ui.dialog("JosekiMoveDialog")
         edit = next(w for w in await ui.widgets(dialog) if w["class"] == "QLineEdit" and w.get("placeholder", "").startswith("コメント"))
         await ui.call("set_widget_value", target=dialog, widget=edit["selector"], value="MCP定跡")
@@ -277,7 +278,7 @@ async def test_joseki_add_edit_save_delete_and_merge(coverage_env, tmp_path):
                 break
             await asyncio.sleep(0.05)
         assert "7g7f" in book.read_text()
-        await ui.click("削除", root="JosekiWindowDock")
+        await ui.call("click_table_cell", widget="josekiTable", row=0, column=5)
         question = await ui.dialog("QMessageBox")
         yes = next(w for w in await ui.widgets(question) if w["class"] == "QPushButton" and w.get("text") == "削除する")
         await ui.call("click_widget", target=question, widget=yes["selector"])
@@ -332,8 +333,10 @@ async def test_joseki_play_outside_games_and_on_human_turn(coverage_env, tmp_pat
         await ui.file(book)
         await ui.rows("josekiTable", 1)
 
-        def play_buttons(widgets):
-            return [w for w in widgets if w["class"] == "QPushButton" and w.get("text") == "着手"]
+        async def can_play():
+            # 「着手」は表のボタンの列（列 1）。人間が指せないときは空になる
+            rows = (await ui.read("josekiTable"))["rows"]
+            return len(rows) > 1 and rows[1][1] == "着手"
 
         async def wait_moves():
             for _ in range(100):
@@ -344,9 +347,8 @@ async def test_joseki_play_outside_games_and_on_human_turn(coverage_env, tmp_pat
             return []
 
         # Outside a game the book move starts the record from the starting position.
-        buttons = play_buttons(await ui.widgets(root="JosekiWindowDock"))
-        assert buttons
-        await ui.call("click_widget", widget=buttons[0]["selector"])
+        assert await can_play()
+        await ui.call("click_table_cell", widget="josekiTable", row=0, column=1)
         assert await wait_moves() == ["7g7f"]
 
         game = await ui.open("actionStartGame", "StartGameDialog")
@@ -357,12 +359,12 @@ async def test_joseki_play_outside_games_and_on_human_turn(coverage_env, tmp_pat
         # The book move made the record unsaved, so a new game asks whether to save it first.
         await ui.click("破棄", await ui.dialog("QMessageBox"))
         for _ in range(100):
-            buttons = play_buttons(await ui.widgets(root="JosekiWindowDock"))
-            if buttons:
+            playable = await can_play()
+            if playable:
                 break
             await asyncio.sleep(0.05)
-        assert buttons
-        await ui.call("click_widget", widget=buttons[0]["selector"])
+        assert playable
+        await ui.call("click_table_cell", widget="josekiTable", row=0, column=1)
         assert await wait_moves() == ["7g7f"]
 
 

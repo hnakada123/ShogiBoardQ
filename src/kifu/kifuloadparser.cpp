@@ -13,30 +13,24 @@
 #include <QFileInfo>
 
 namespace {
-using Format = KifuFileReader::KifuFormat;
 bool canceled(const CancelFlag& cancel) { return cancel && cancel->load(); }
-
-Format formatForPath(const QString& path)
-{
-    return KifuFileReader::detectFileFormat(path);
-}
 }
 
-bool KifuLoadParser::readFileText(const QString& path, Format format, QString& outText, QString* warn)
+bool KifuLoadParser::readFileText(const QString& path, KifuFormat format, QString& outText, QString* warn)
 {
-    if (format == Format::CSA) return CsaToSfenConverter::readFileText(path, outText, warn);
+    if (format == KifuFormat::Csa) return CsaToSfenConverter::readFileText(path, outText, warn);
     QString encoding;
     return KifReader::readAllTextAuto(path, outText, &encoding, warn);
 }
 
-KifuLoadResult KifuLoadParser::parseFile(const QString& path, Format format, const CancelFlag& cancel)
+KifuLoadResult KifuLoadParser::parseFile(const QString& path, std::optional<KifuFormat> requested, const CancelFlag& cancel)
 {
     if (canceled(cancel)) {
         KifuLoadResult result;
         result.filePath = path;
         return result;
     }
-    if (format == Format::Unknown) format = formatForPath(path);
+    const KifuFormat format = requested ? *requested : KifuFormats::detectFile(path);
     QString text;
     QString warning;
     if (!readFileText(path, format, text, &warning)) {
@@ -53,38 +47,42 @@ KifuLoadResult KifuLoadParser::parseFile(const QString& path, Format format, con
     return result;
 }
 
-KifuLoadResult KifuLoadParser::parseContent(const QString& content, Format format, const CancelFlag& cancel,
+KifuLoadResult KifuLoadParser::parseContent(const QString& content, KifuFormat format, const CancelFlag& cancel,
                                             const QString& sourceName)
 {
     KifuLoadResult result;
+    result.format = format;
     if (canceled(cancel)) return result;
     auto& record = result.record;
     auto* warning = &result.warning;
     auto* label = &result.teaiLabel;
     switch (format) {
-    case Format::KI2:
-        result.initialSfen = Ki2ToSfenConverter::detectInitialSfenFromText(content, label);
-        result.success = Ki2ToSfenConverter::parseText(content, record, warning);
-        if (result.success) result.gameInfo = Ki2ToSfenConverter::extractGameInfoFromText(content);
+    case KifuFormat::Ki2: {
+        // 行に分けるのも局面図を読むのも1回だけ
+        const QStringList lines = KifReader::splitLines(content);
+        result.success = Ki2ToSfenConverter::parseLines(lines, record, warning, label);
+        result.initialSfen = record.mainline.baseSfen;
+        if (result.success) result.gameInfo = Ki2ToSfenConverter::extractGameInfoFromLines(lines);
         break;
-    case Format::CSA:
+    }
+    case KifuFormat::Csa:
         result.success = CsaToSfenConverter::parseText(content, record, warning);
         result.initialSfen = record.mainline.baseSfen;
         result.teaiLabel = SfenUtils::isHirateStart(result.initialSfen)
             ? QStringLiteral("平手") : QStringLiteral("局面指定");
         if (result.success) result.gameInfo = CsaToSfenConverter::extractGameInfoFromText(content);
         break;
-    case Format::JKF:
+    case KifuFormat::Jkf:
         result.initialSfen = JkfToSfenConverter::detectInitialSfenFromText(content, label);
         result.success = JkfToSfenConverter::parseText(content, record, warning);
         if (result.success) result.gameInfo = JkfToSfenConverter::extractGameInfoFromText(content);
         break;
-    case Format::USEN:
+    case KifuFormat::Usen:
         result.initialSfen = UsenToSfenConverter::detectInitialSfenFromText(content, label);
         result.success = UsenToSfenConverter::parseText(content, record, warning);
         break;
-    case Format::USI:
-    case Format::SFEN: {
+    case KifuFormat::Usi:
+    case KifuFormat::Sfen: {
         QString base;
         QStringList moves;
         QString terminal;
@@ -98,11 +96,22 @@ KifuLoadResult KifuLoadParser::parseContent(const QString& content, Format forma
         result.success = UsiToSfenConverter::parseText(content, record, warning);
         break;
     }
-    default:
-        result.initialSfen = KifToSfenConverter::detectInitialSfenFromText(content, label);
-        result.success = KifToSfenConverter::parseText(content, record, warning);
-        if (result.success) result.gameInfo = KifToSfenConverter::extractGameInfoFromText(content);
+    case KifuFormat::Bod:
+        // 局面図だけ（局面として読む）
+        result.success = KifToSfenConverter::buildInitialSfenFromBod(
+            content.split(QLatin1Char('\n')), result.positionOnly, label, warning)
+            && !result.positionOnly.isEmpty();
+        if (!result.success) {
+            result.error = QCoreApplication::translate("KifuLoadCoordinator", "BOD形式の解析に失敗しました。%1").arg(result.warning);
+        }
+        return result;
+    case KifuFormat::Kif: {
+        const QStringList lines = KifReader::splitLines(content);
+        result.success = KifToSfenConverter::parseLines(lines, record, warning, label);
+        result.initialSfen = record.mainline.baseSfen;
+        if (result.success) result.gameInfo = KifToSfenConverter::extractGameInfoFromLines(lines);
         break;
+    }
     }
     if (!result.success) {
         const QString detail = result.warning.isEmpty() ? QString() : QLatin1Char('\n') + result.warning;
@@ -125,18 +134,5 @@ KifuLoadResult KifuLoadParser::parseText(const QString& content, const CancelFla
         result.error = QCoreApplication::translate("KifuLoadCoordinator", "貼り付けるテキストが空です。");
         return result;
     }
-    const auto format = KifuFileReader::detectFormat(content);
-    if (format == Format::SFEN) {
-        result.success = true;
-        result.positionOnly = content.trimmed();
-        return result;
-    }
-    if (format == Format::BOD) {
-        result.success = KifToSfenConverter::buildInitialSfenFromBod(
-            content.split(QLatin1Char('\n')), result.positionOnly, &result.teaiLabel, &result.warning)
-            && !result.positionOnly.isEmpty();
-        if (!result.success) result.error = QCoreApplication::translate("KifuApplyService", "BOD形式の解析に失敗しました。%1").arg(result.warning);
-        return result;
-    }
-    return parseContent(content, format, cancel);
+    return parseContent(content, KifuFormats::detect(content), cancel);
 }

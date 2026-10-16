@@ -7,7 +7,8 @@
 #include <QList>
 
 struct BoardAppearanceSample {
-    QString name;
+    QString key;   ///< 変わらない名前（翻訳前の名前。おすすめの組み合わせが見本を指すのに使う）
+    QString name;  ///< 表示する名前
     BoardColors colors;
     bool woodGrain = true;
 };
@@ -19,6 +20,8 @@ class BoardAppearanceCatalog
 public:
     enum class Component { Board, Stand, Information, Background };
     static QList<BoardAppearanceSample> samples(Component component);
+    /// key の見本の並びの位置（無ければ -1）
+    static int indexOf(Component component, const QString& key);
     static void apply(Component component, const BoardAppearanceSample& sample,
                       BoardColors& colors, BoardVisuals& visuals);
     static bool matches(Component component, const BoardAppearanceSample& sample,

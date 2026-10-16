@@ -15,7 +15,6 @@
 #include "shogigamecontroller.h"
 #include "shogiboard.h"
 #include "usi.h"
-#include "usicommlogmodel.h"
 #include "engineprocessmanager.h"
 #include "usiprotocolhandler.h"
 #include "enginepondersettings.h"
@@ -34,15 +33,9 @@ namespace {
 /// 読み込んだ棋譜は分岐ツリー（棋譜の正本）に入る
 struct KifuHarness {
     KifuBranchTree tree;
-    KifuNavigationState nav;
-    KifuLoadCoordinator loader{nullptr, nullptr, nullptr, nullptr};
+    KifuNavigationState nav{&tree};
+    KifuLoadCoordinator loader{&tree};
 
-    KifuHarness()
-    {
-        nav.setTree(&tree);
-        loader.setBranchTree(&tree);
-        loader.setNavigationState(&nav);
-    }
     QStringList positions() const
     {
         QStringList out;
@@ -64,24 +57,16 @@ class CommLogRecorder : public QObject
 {
     Q_OBJECT
 public:
-    explicit CommLogRecorder(UsiCommLogModel* model) : m_model(model)
+    /// エンジンが送ったコマンドを記録する
+    explicit CommLogRecorder(const Usi* engine)
     {
-        connect(model, &UsiCommLogModel::usiCommLogChanged, this, &CommLogRecorder::record);
+        connect(engine->process(), &EngineProcessManager::commandSent, this, &CommLogRecorder::record);
     }
-    QStringList sentCommands() const
-    {
-        QStringList sent;
-        for (const QString& line : std::as_const(m_lines)) {
-            const qsizetype colon = line.indexOf(QStringLiteral(": "));
-            if (line.startsWith(QStringLiteral("▶ ")) && colon > 0) sent << line.mid(colon + 2);
-        }
-        return sent;
-    }
+    QStringList sentCommands() const { return m_sent; }
 public slots:
-    void record() { m_lines << m_model->usiCommLog(); }
+    void record(const QString& command) { m_sent << command; }
 private:
-    UsiCommLogModel* m_model;
-    QStringList m_lines;
+    QStringList m_sent;
 };
 
 class TestBackgroundTasks : public QObject
@@ -185,7 +170,7 @@ private slots:
     void failedLoadKeepsExistingRecord()
     {
         KifuHarness h;
-        QVERIFY(h.loader.loadKifuFromString(QStringLiteral("position startpos moves 7g7f")));
+        QVERIFY(h.loader.loadText(QStringLiteral("position startpos moves 7g7f")));
         const auto before = h.positions();
         QSignalSpy finished(&h.loader, &KifuLoadCoordinator::loadFinished);
         QSignalSpy errors(&h.loader, &KifuLoadCoordinator::errorOccurred);
@@ -195,24 +180,18 @@ private slots:
         QCOMPARE(errors.size(), 1);
         QCOMPARE(h.positions(), before);
     }
-    /// 局面の読み込みは、後から渡された分岐ツリー（棋譜の正本）に入る。
-    /// ツリーを渡されていなければ読み込まず、自分だけのツリーも作らない
+    /// 局面の読み込みは、渡された分岐ツリー（棋譜の正本）に入り、自分だけのツリーは作らない。
+    /// 表示中の手は作り直したツリーの開始局面になる
     void positionLoadUsesTheSharedTree()
     {
         const QString position = QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b G 1");
-        KifuLoadCoordinator loader{nullptr, nullptr, nullptr, nullptr};
-        QVERIFY(!loader.loadPositionFromSfen(position));
-        QVERIFY(loader.findChildren<KifuBranchTree*>().isEmpty());
-
-        KifuBranchTree tree;
-        KifuNavigationState nav;
-        nav.setTree(&tree);
-        loader.setBranchTree(&tree);
-        loader.setNavigationState(&nav);
-        QVERIFY(loader.loadPositionFromSfen(QStringLiteral("sfen ") + position));
-        QCOMPARE(tree.root()->sfen(), position);
-        QCOMPARE(nav.currentNode(), tree.root());
-        QVERIFY(loader.findChildren<KifuBranchTree*>().isEmpty());
+        KifuHarness h;
+        QVERIFY(h.loader.loadText(QStringLiteral("position startpos moves 7g7f")));
+        h.nav.setCurrentNode(h.tree.mainLine().constLast());
+        QVERIFY(h.loader.loadPositionFromSfen(QStringLiteral("sfen ") + position));
+        QCOMPARE(h.tree.root()->sfen(), position);
+        QCOMPARE(h.nav.currentNode(), h.tree.root());
+        QVERIFY(h.loader.findChildren<KifuBranchTree*>().isEmpty());
     }
     void destructionDoesNotWaitForParsing()
     {
@@ -252,7 +231,7 @@ private slots:
         QString initial = SfenUtils::hirateSfen();
         game.newGame(initial);
         game.setCurrentPlayer(Turn::White);
-        Usi engine(nullptr, nullptr);
+        Usi engine;
         QSignalSpy ready(&engine, &Usi::engineInitialized);
         QSignalSpy moves(&engine, &Usi::matchMoveReady);
         QSignalSpy errors(&engine, &Usi::errorOccurred);
@@ -270,8 +249,8 @@ private slots:
         QCOMPARE(ready.size(), 1);
         QCOMPARE(errors.size(), 0);
         QVERIFY(m_ticks > ticks + 5);
-        QCOMPARE(moves.first().at(0).value<UsiMove>().toString(), QStringLiteral("8c8d"));
-        QVERIFY(moves.first().at(1).toString().endsWith(QStringLiteral("7g7f 8c8d")));
+        QCOMPARE(moves.first().at(0).value<UsiMatchMove>().move.toString(), QStringLiteral("8c8d"));
+        QVERIFY(moves.first().at(0).value<UsiMatchMove>().position.endsWith(QStringLiteral("7g7f 8c8d")));
     }
     /// 準備中に「すぐ指させる」を押しても、保留中の position・go を捨てずにエンジンが指す
     void immediateMoveDuringInitializationKeepsPendingSearch()
@@ -281,7 +260,7 @@ private slots:
         QString initial = SfenUtils::hirateSfen();
         game.newGame(initial);
         game.setCurrentPlayer(Turn::White);
-        Usi engine(nullptr, nullptr);
+        Usi engine;
         QSignalSpy moves(&engine, &Usi::matchMoveReady);
         QVERIFY(engine.startEngine(QStringLiteral(MOCK_USI_EXECUTABLE), engineName));
         engine.requestMatchMove(QStringLiteral("position startpos moves 7g7f"), {},
@@ -289,7 +268,7 @@ private slots:
         QVERIFY(engine.isInitializing());
         engine.requestImmediateMove();
         QTRY_COMPARE(moves.size(), 1);
-        QCOMPARE(moves.first().at(0).value<UsiMove>().to, (BoardSquare{8, 4}));
+        QCOMPARE(moves.first().at(0).value<UsiMatchMove>().move.to, (BoardSquare{8, 4}));
     }
     void ponderSwitch_data()
     {
@@ -306,22 +285,22 @@ private slots:
         QString initial = SfenUtils::hirateSfen();
         game.newGame(initial);
         game.setCurrentPlayer(Turn::White);
-        Usi engine(nullptr, nullptr);
+        Usi engine;
         QSignalSpy moves(&engine, &Usi::matchMoveReady);
-        QSignalSpy resigns(&engine, &Usi::bestMoveResignReceived);
+        QSignalSpy resigns(&engine, &Usi::resigned);
         QSignalSpy errors(&engine, &Usi::errorOccurred);
         QVERIFY(engine.startEngine(QStringLiteral(MOCK_USI_EXECUTABLE), engineName));
         const UsiTimingParams timing = TestTime::byoyomiTiming(5000, 300000, 0);
         engine.requestMatchMove(QStringLiteral("position startpos moves 7g7f"), {}, timing);
         QTRY_COMPARE(moves.size(), 1);
-        const QString ponder = moves.first().at(2).toString();
+        const QString ponder = moves.first().at(0).value<UsiMatchMove>().ponderPosition;
         QVERIFY(ponder.endsWith(QStringLiteral("2g2f")));
-        const QString position = hit ? ponder : moves.first().at(1).toString() + QStringLiteral(" 6g6f");
+        const QString position = hit ? ponder : moves.first().at(0).value<UsiMatchMove>().position + QStringLiteral(" 6g6f");
         const int ticks = m_ticks;
         engine.requestMatchMove(position, ponder, timing);
         QCOMPARE(moves.size(), 1);
         QTRY_COMPARE(moves.size(), 2);
-        QCOMPARE(moves.last().at(0).value<UsiMove>().to, (BoardSquare{3, 4}));
+        QCOMPARE(moves.last().at(0).value<UsiMatchMove>().move.to, (BoardSquare{3, 4}));
         QCOMPARE(resigns.size(), 0); // 先読み停止時のresignは対局結果に使わない。
         QCOMPARE(errors.size(), 0);
         if (!hit) QVERIFY(m_ticks > ticks + 3);
@@ -332,7 +311,7 @@ private slots:
         QString initial = SfenUtils::hirateSfen();
         game.newGame(initial);
         game.setCurrentPlayer(Turn::White);
-        Usi engine(nullptr, nullptr);
+        Usi engine;
         QSignalSpy ready(&engine, &Usi::engineInitialized);
         QSignalSpy moves(&engine, &Usi::matchMoveReady);
         QVERIFY(engine.startEngine(QStringLiteral(MOCK_USI_EXECUTABLE), engineName));
@@ -345,7 +324,7 @@ private slots:
         QCOMPARE(moves.size(), 0);
         QElapsedTimer elapsed;
         elapsed.start();
-        engine.cleanupEngineProcessAndThread();
+        engine.quit();
         QVERIFY(elapsed.elapsed() < 200);
     }
     void gameOverCancelsLateMoveAndReapsBothEngines_data()
@@ -414,8 +393,8 @@ private slots:
 
         // アプリは開いたまま。quitを送るだけではこの期限で終了できない。
         QTest::qWait(4500);
-        QVERIFY(!engine1->isEngineRunning());
-        QVERIFY(!engine2 || !engine2->isEngineRunning());
+        QVERIFY(!engine1->isRunning());
+        QVERIFY(!engine2 || !engine2->isRunning());
         QCOMPARE(retiring.size(), bothEngines ? 2 : 1);
         for (const auto& process : retiring) QTRY_VERIFY_WITH_TIMEOUT(process.isNull(), 1500);
         QCOMPARE(moves1.size(), 0);
@@ -451,7 +430,7 @@ private slots:
         const QString position = QStringLiteral("position startpos moves 7g7f");
         pondering->requestMatchMove(position, {}, timing);
         QTRY_COMPARE(ponderingMoves.size(), 1);
-        QVERIFY(!ponderingMoves.first().at(2).toString().isEmpty());
+        QVERIFY(!ponderingMoves.first().at(0).value<UsiMatchMove>().ponderPosition.isEmpty());
         thinking->sendSetOptionCommand(QStringLiteral("ReplyDelay"), QStringLiteral("300"));
         thinking->requestMatchMove(position, {}, timing);
         QTest::qWait(30);
@@ -468,8 +447,8 @@ private slots:
         QCOMPARE(ponderingErrors.size(), 0);
         QCOMPARE(retiring.size(), 2);
         for (const auto& process : retiring) QTRY_VERIFY_WITH_TIMEOUT(process.isNull(), 5000);
-        QVERIFY(!thinking->isEngineRunning());
-        QVERIFY(!pondering->isEngineRunning());
+        QVERIFY(!thinking->isRunning());
+        QVERIFY(!pondering->isRunning());
         engines.destroyEngines();
     }
     void gameOverResultFollowsEngineSide_data()
@@ -496,11 +475,9 @@ private slots:
         // 終局の通知の後はエンジンを閉じるので、勝敗の通知ごとにエンジンを起動する（2回目は引き分け）
         for (const std::optional<Turn> loser : {std::optional<Turn>(loserIsBlack ? Turn::Black : Turn::White),
                                                 std::optional<Turn>()}) {
-            UsiCommLogModel log;
-            CommLogRecorder recorder(&log);
             EngineLifecycleManager engines(&clock);
-            engines.setModels({&log, nullptr, nullptr, nullptr});
             Usi* engine = engines.createEngine(1, engineIsBlack ? Turn::Black : Turn::White, engineName);
+            CommLogRecorder recorder(engine);
             QSignalSpy ready(engine, &Usi::engineInitialized);
             engines.startEngine(engine, QStringLiteral(MOCK_USI_EXECUTABLE), engineName);
             QTRY_COMPARE(ready.size(), 1);
@@ -519,7 +496,7 @@ private slots:
         QString initial = SfenUtils::hirateSfen();
         game.newGame(initial);
         game.setCurrentPlayer(Turn::White);
-        Usi engine(nullptr, nullptr);
+        Usi engine;
         QSignalSpy errors(&engine, &Usi::errorOccurred);
         QSignalSpy moves(&engine, &Usi::matchMoveReady);
         QVERIFY(engine.startEngine(QStringLiteral(MOCK_USI_EXECUTABLE), engineName));

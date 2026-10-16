@@ -3,37 +3,46 @@
 
 #include "playerinfopresenter.h"
 
-#include <QTabWidget>
-
-#include "appsettings.h"
 #include "appstate.h"
 #include "considerationtabmanager.h"
-#include "engineanalysistab.h"
+#include "thinkingpanel.h"
 #include "engineinfowidget.h"
-#include "evaluationgraphcontroller.h"
+#include "evaluationgraphpresenter.h"
 #include "gameinfokeys.h"
-#include "gameinfopanecontroller.h"
+#include "gameinfopane.h"
 #include "gamerecordmodel.h"
+#include "kifubranchnode.h"
+#include "kifubranchtree.h"
 #include "kifuexportmetadata.h"
 #include "livegamesession.h"
 #include "logcategories.h"
+#include "matchtimerecord.h"
 #include "shogiview.h"
-#include "timecontrolcontroller.h"
 #include "usicommlogmodel.h"
 
 PlayerInfoPresenter::PlayerInfoPresenter(const Deps& deps, QObject* parent)
     : QObject(parent)
     , m_parentWidget(deps.parentWidget)
-    , m_tabWidget(deps.tabWidget)
     , m_shogiView(deps.shogiView)
     , m_state(deps.state)
-    , m_timeController(deps.timeController)
+    , m_timeRecord(deps.timeRecord)
+    , m_tree(deps.tree)
     , m_gameRecord(deps.gameRecord)
     , m_liveGameSession(deps.liveGameSession)
-    , m_gameInfoController(new GameInfoPaneController(deps.parentWidget))
+    , m_thinking(deps.thinking)
+    , m_consideration(deps.consideration)
+    , m_evalGraphController(deps.evalGraph)
+    , m_logModel1(deps.logModel1)
+    , m_logModel2(deps.logModel2)
+    , m_gameInfoPane(deps.gameInfo)
 {
-    connect(m_gameInfoController, &GameInfoPaneController::gameInfoUpdated,
+    Q_ASSERT(m_gameInfoPane);
+    connect(m_gameInfoPane, &GameInfoPane::gameInfoUpdated,
             this, &PlayerInfoPresenter::onGameInfoUpdated);
+    if (m_thinking) m_thinking->setSecondEngineVisible(m_secondEngineVisible);
+    // 起動時の対局情報（対局者は「先手」「後手」）と盤の対局者名
+    m_gameInfoPane->resetGameInfo();
+    syncBoardNamesWithGameInfo();
 }
 
 PlayerInfoPresenter::~PlayerInfoPresenter() = default;
@@ -41,47 +50,6 @@ PlayerInfoPresenter::~PlayerInfoPresenter() = default;
 // --------------------------------------------------------
 // 後から作られる表示先
 // --------------------------------------------------------
-
-void PlayerInfoPresenter::setAnalysisTab(EngineAnalysisTab* analysisTab)
-{
-    m_analysisTab = analysisTab;
-    if (m_analysisTab) m_analysisTab->setSecondEngineVisible(m_secondEngineVisible);
-}
-
-void PlayerInfoPresenter::setEvalGraphController(EvaluationGraphController* controller)
-{
-    m_evalGraphController = controller;
-}
-
-void PlayerInfoPresenter::setLogModels(UsiCommLogModel* log1, UsiCommLogModel* log2)
-{
-    m_logModel1 = log1;
-    m_logModel2 = log2;
-}
-
-void PlayerInfoPresenter::addGameInfoTabAtStartup()
-{
-    // 対局情報はドックとして表示するため、起動時は初期データだけ用意する
-    m_gameInfoController->resetGameInfo();
-    syncBoardNamesWithGameInfo();
-
-    if (!m_tabWidget) return;
-
-    // 保存されたタブインデックスを復元
-    int savedIndex = AppSettings::lastSelectedTabIndex();
-    if (savedIndex >= 0 && savedIndex < m_tabWidget->count()) {
-        m_tabWidget->setCurrentIndex(savedIndex);
-    } else {
-        m_tabWidget->setCurrentIndex(0);
-    }
-
-    // タブ変更時にシグナルを発行
-    connect(m_tabWidget, &QTabWidget::currentChanged,
-            this, &PlayerInfoPresenter::tabCurrentChanged,
-            Qt::UniqueConnection);
-
-    qCDebug(lcUi) << "addGameInfoTabAtStartup: current tab restored without game-info tab insertion";
-}
 
 // --------------------------------------------------------
 // 対局者
@@ -101,8 +69,8 @@ void PlayerInfoPresenter::showPlayers(const MatchPlayers* players)
     // 将棋盤の対局者名・対局情報の先手・後手。対局していなければ対局情報の名前（初期値は「先手」「後手」）を出す
     if (players) {
         if (m_shogiView) {
-            m_shogiView->setBlackPlayerName(blackName);
-            m_shogiView->setWhitePlayerName(whiteName);
+            m_shogiView->chrome()->setBlackPlayerName(blackName);
+            m_shogiView->chrome()->setWhitePlayerName(whiteName);
         }
         updateGameInfoPlayerNames(blackName, whiteName);
     } else {
@@ -135,34 +103,39 @@ void PlayerInfoPresenter::showPlayers(const MatchPlayers* players)
 
 void PlayerInfoPresenter::updateGameInfoPlayerNames(const QString& blackName, const QString& whiteName)
 {
-    if (m_gameInfoController) m_gameInfoController->updatePlayerNames(blackName, whiteName);
+    if (m_gameInfoPane) m_gameInfoPane->updatePlayerNames(blackName, whiteName);
 }
 
 void PlayerInfoPresenter::setSecondEngineVisible(bool visible)
 {
     m_secondEngineVisible = visible;
-    if (m_analysisTab) m_analysisTab->setSecondEngineVisible(m_secondEngineVisible);
+    if (m_thinking) m_thinking->setSecondEngineVisible(m_secondEngineVisible);
 }
 
 void PlayerInfoPresenter::syncBoardNamesWithGameInfo()
 {
-    applyBoardNames(m_gameInfoController->gameInfo());
+    applyBoardNames(m_gameInfoPane->gameInfo());
 }
 
 void PlayerInfoPresenter::applyBoardNames(const QList<KifGameInfoItem>& items)
 {
-    QString black, white, shitate, uwate;
+    // 先手・後手が無ければ駒落ちの下手・上手、それも無ければ省略名
+    QString black, white, shitate, uwate, blackShort, whiteShort;
     for (const auto& item : items) {
-        if (item.key == GameInfoKeys::kBlackPlayer) black = item.value;
-        else if (item.key == GameInfoKeys::kWhitePlayer) white = item.value;
-        else if (item.key == GameInfoKeys::kShitatePlayer) shitate = item.value;
-        else if (item.key == GameInfoKeys::kUwatePlayer) uwate = item.value;
+        const QString value = item.value.trimmed();
+        if (item.key == GameInfoKeys::kBlackPlayer) black = value;
+        else if (item.key == GameInfoKeys::kWhitePlayer) white = value;
+        else if (item.key == GameInfoKeys::kShitatePlayer) shitate = value;
+        else if (item.key == GameInfoKeys::kUwatePlayer) uwate = value;
+        else if (item.key == GameInfoKeys::kBlackShortName) blackShort = value;
+        else if (item.key == GameInfoKeys::kWhiteShortName) whiteShort = value;
     }
     if (m_shogiView) {
-        if (black.isEmpty()) black = shitate.isEmpty() ? tr("先手") : shitate;
-        if (white.isEmpty()) white = uwate.isEmpty() ? tr("後手") : uwate;
-        m_shogiView->setBlackPlayerName(black);
-        m_shogiView->setWhitePlayerName(white);
+        if (black.isEmpty()) black = !shitate.isEmpty() ? shitate : !blackShort.isEmpty() ? blackShort : tr("先手");
+        if (white.isEmpty()) white = !uwate.isEmpty() ? uwate : !whiteShort.isEmpty() ? whiteShort : tr("後手");
+
+        m_shogiView->chrome()->setBlackPlayerName(black);
+        m_shogiView->chrome()->setWhitePlayerName(white);
     }
 }
 
@@ -182,12 +155,8 @@ void PlayerInfoPresenter::onAnalysisEngineNamesChanged(const QString& engine1, c
     }
 
     // 検討タブと思考タブにエンジン名を出す
-    if (m_analysisTab) {
-        m_analysisTab->considerationTabManager()->setConsiderationEngineName(engine1);
-        if (m_analysisTab->info1() && !engine1.isEmpty()) {
-            m_analysisTab->info1()->setDisplayNameFallback(engine1);
-        }
-    }
+    if (m_consideration) m_consideration->setConsiderationEngineName(engine1);
+    if (m_thinking && !engine1.isEmpty()) m_thinking->info1()->setDisplayNameFallback(engine1);
 }
 
 void PlayerInfoPresenter::onMatchPlayersResolved(const MatchPlayers& players)
@@ -197,27 +166,22 @@ void PlayerInfoPresenter::onMatchPlayersResolved(const MatchPlayers& players)
     const bool keepHeader = continuesExistingRecord();
     QList<KifGameInfoItem> recordHeader;
     if (keepHeader) {
-        m_gameInfoController->commitPendingEditor();
-        recordHeader = m_gameInfoController->gameInfo();
+        m_gameInfoPane->commitPendingEditor();
+        recordHeader = m_gameInfoPane->gameInfo();
     }
 
     m_state->players = players;
     showPlayers(&players);
 
     // 新しい対局が始まるので終了日時を消し、時計に設定した持ち時間と開始日時を対局情報に書く
-    TimeControl timeControl;
-    QDateTime start;
-    if (m_timeController) {
-        m_timeController->clearGameEndTime();
-        timeControl = m_timeController->timeControl();
-        start = m_timeController->gameStartDateTime();
-    }
+    const TimeControl timeControl = m_timeRecord ? m_timeRecord->timeControl() : TimeControl{};
+    const QDateTime start = m_timeRecord ? m_timeRecord->startDateTime() : QDateTime();
     const QString blackName = players.name(Turn::Black);
     const QString whiteName = players.name(Turn::White);
-    const QString handicap = KifuExportMetadataBuilder::handicapLabel(m_state->startSfenStr);
+    const QString handicap = KifuExportMetadataBuilder::handicapLabel(startSfen());
 
     if (keepHeader) {
-        m_gameInfoController->setGameInfo(recordHeader);
+        m_gameInfoPane->setGameInfo(recordHeader);
         m_keepRecordHeader = true;
         // 続けた対局の対局者・日時は分岐の最初の手のメモにする
         const QString timeText = !timeControl.isUnlimited()
@@ -237,9 +201,10 @@ void PlayerInfoPresenter::onMatchPlayersResolved(const MatchPlayers& players)
 // 対局情報
 // --------------------------------------------------------
 
-void PlayerInfoPresenter::setOriginalGameInfo(const QList<KifGameInfoItem>& items)
+void PlayerInfoPresenter::onGameInfoLoaded(const QList<KifGameInfoItem>& items)
 {
-    if (m_gameInfoController) m_gameInfoController->setOriginalGameInfo(items);
+    if (m_gameInfoPane) m_gameInfoPane->setGameInfo(items);
+    applyBoardNames(items);
 }
 
 void PlayerInfoPresenter::setGameInfoForMatchStart(const QDateTime& startDateTime,
@@ -273,21 +238,27 @@ void PlayerInfoPresenter::setGameInfoForMatchStart(const QDateTime& startDateTim
                                        timeControl, KifuExportMetadataBuilder::isHandicap(handicapLabel))
                                  : QStringLiteral("無制限")});
 
-    m_gameInfoController->setGameInfoForMatch(items);
+    m_gameInfoPane->setGameInfoForMatch(items);
 
     qCDebug(lcUi) << "setGameInfoForMatchStart: items=" << items.size()
                    << " hasTimeControl=" << hasTimeControl;
 }
 
+QString PlayerInfoPresenter::startSfen() const
+{
+    return m_tree && m_tree->root() ? m_tree->root()->sfen() : QString();
+}
+
 bool PlayerInfoPresenter::continuesExistingRecord() const
 {
+
     return m_liveGameSession != nullptr && m_liveGameSession->isActive() && m_liveGameSession->anchorPly() > 0;
 }
 
 void PlayerInfoPresenter::updateGameInfoWithEndTime(const QDateTime& endDateTime)
 {
-    if (!m_gameInfoController || m_keepRecordHeader) return;
-    m_gameInfoController->updateGameInfoValue(
+    if (!m_gameInfoPane || m_keepRecordHeader) return;
+    m_gameInfoPane->updateGameInfoValue(
         GameInfoKeys::kEndDateTime, endDateTime.toString(QStringLiteral("yyyy/MM/dd HH:mm:ss")));
 
     qCDebug(lcUi) << "updateGameInfoWithEndTime:"
@@ -296,16 +267,16 @@ void PlayerInfoPresenter::updateGameInfoWithEndTime(const QDateTime& endDateTime
 
 void PlayerInfoPresenter::updateGameInfoWithTimeControl(const TimeControl& timeControl)
 {
-    if (!m_gameInfoController || continuesExistingRecord()) return;
+    if (!m_gameInfoPane || continuesExistingRecord()) return;
     if (timeControl.isUnlimited()) {
-        m_gameInfoController->updateGameInfoValue(GameInfoKeys::kTimeControl, QStringLiteral("無制限"));
+        m_gameInfoPane->updateGameInfoValue(GameInfoKeys::kTimeControl, QStringLiteral("無制限"));
         return;
     }
 
     const bool handicap =
-        KifuExportMetadataBuilder::isHandicap(KifuExportMetadataBuilder::handicapLabel(m_state->startSfenStr));
+        KifuExportMetadataBuilder::isHandicap(KifuExportMetadataBuilder::handicapLabel(startSfen()));
     const QString timeStr = KifuExportMetadataBuilder::timeControlText(timeControl, handicap);
-    m_gameInfoController->updateGameInfoValue(GameInfoKeys::kTimeControl, timeStr);
+    m_gameInfoPane->updateGameInfoValue(GameInfoKeys::kTimeControl, timeStr);
 
     qCDebug(lcUi) << "updateGameInfoWithTimeControl:"
                    << timeStr;

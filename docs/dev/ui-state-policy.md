@@ -6,66 +6,47 @@
 
 `UiStatePolicyManager`（`src/ui/coordinators/uistatepolicymanager.h/.cpp`）は、アプリケーションの7つの状態に応じて、全UI要素のポリシーを一元管理する状態テーブル駆動型のクラスである。
 
-従来は `disableNavigationForGame()` / `enableNavigationAfterGame()` / `applyEditMenuEditingState()` など個別メソッドで分散管理していたが、本クラスに統合した。
-
 ## アプリケーション状態（AppState）
 
 状態は `AppActivityState::Activity`（`src/common/appactivitystate.h`）で、値は `AppState::activity` に1つだけ置く
-（`UiStatePolicyManager::AppState` はこの列挙の別名）。`UiStatePolicyManager` は `AppActivityState::changed` を受けて
-全UI要素にポリシーを適用し直すので、`MatchCoordinator`・`AnalysisSession`・`CsaGameWiring` などが
-`setActivity()` で状態を変えたときにも表示が切り替わる。
+（`UiStatePolicyManager::AppState` はこの列挙の別名）。状態は各部品が `AppActivityState::setActivity()` で直接切り替える。
+`UiStatePolicyManager` は `AppActivityState::changed` を受けて全UI要素にポリシーを適用し直すので、
+状態を変える側は `UiStatePolicyManager` を知らなくてよい。
 
-| 状態 | 説明 | 遷移トリガー |
+| 状態 | 説明 | この状態にする部品 |
 |---|---|---|
-| **Idle** | 待機状態（起動直後・各モード終了後） | 各モード終了シグナル |
-| **DuringGame** | 対局中 | `GameStartCoordinator::started` |
-| **DuringAnalysis** | 棋譜解析中 | `DialogCoordinator::analysisModeStarted` |
-| **DuringCsaGame** | CSA通信対局中 | `CsaGameCoordinator::gameStarted`（`CsaGameWiring::onGameStarted()`） |
-| **DuringTsumeSearch** | 詰み探索中 | `DialogCoordinator::tsumeSearchModeStarted` |
-| **DuringConsideration** | 検討中 | `DialogCoordinator::considerationModeStarted` |
-| **DuringPositionEdit** | 局面編集中 | `PositionEditCoordinator` のコールバック（`onEnterEditMenu`） |
+| **Idle** | 待機状態（起動直後・各モード終了後） | 各モードを終える部品・「新規」（`GameSession::resetToInitialState()`） |
+| **DuringGame** | 対局中 | `MatchCoordinator::start()`・`resumeInterruptedGame()` |
+| **DuringAnalysis** | 棋譜解析中 | `KifuAnalysisController::start()` |
+| **DuringCsaGame** | CSA通信対局中 | `CsaGameSession::onGameStarted()`（`CsaGameCoordinator::gameStarted` を受ける） |
+| **DuringTsumeSearch** | 詰み探索中 | `AnalysisSession::start()`（詰み探索のとき） |
+| **DuringConsideration** | 検討中 | `AnalysisSession::start()`（検討のとき） |
+| **DuringPositionEdit** | 局面編集中 | `PositionEditCoordinator::beginPositionEditing()` |
 
 ## 状態遷移図
 
 ```
-                    ┌─────────────────────────────────────────┐
-                    │                                         │
-                    │                 Idle                     │
-                    │           （待機状態）                    │
-                    │                                         │
-                    └──┬───┬───┬───┬───┬───┬──────────────────┘
-                       │   │   │   │   │   │
-          started      │   │   │   │   │   │  コールバック
-              ┌────────┘   │   │   │   │   └────────┐
-              ▼            │   │   │   │            ▼
-        ┌───────────┐      │   │   │   │    ┌───────────────┐
-        │ DuringGame │      │   │   │   │    │DuringPosition │
-        │ （対局中） │      │   │   │   │    │    Edit       │
-        └─────┬─────┘      │   │   │   │    │（局面編集中） │
-              │            │   │   │   │    └───────┬───────┘
-   gameEnded               │   │   │   │            │
-   gameOverStateChanged    │   │   │   │       コールバック
-              │            │   │   │   │            │
-              └─────►Idle◄─┘   │   │   └──◄─────────┘
-                     ▲  ▲      │   │
-    analysisModeEnded│  │      │   │considerationModeEnded
-                     │  │      │   │tsumeSearchModeEnded
-              ┌──────┘  └──┐   │   │
-              │            │   │   │
-        ┌───────────┐  ┌───────────┐  ┌───────────────┐
-        │  During   │  │  During   │  │    During     │
-        │ Analysis  │  │ CsaGame   │  │ TsumeSearch   │
-        │（解析中） │  │（CSA中）  │  │（詰み探索中） │
-        └───────────┘  └───────────┘  └───────────────┘
-                                           │
-                                      ┌────┘
-                                      ▼
-                               ┌───────────────┐
-                               │    During     │
-                               │Consideration  │
-                               │  （検討中）   │
-                               └───────────────┘
+Idle ──MatchCoordinator::start() / resumeInterruptedGame()────────► DuringGame
+     ◄─MatchCoordinator::endGame()（終局・中断・エンジンエラー）──
+
+Idle ──KifuAnalysisController::start()────────────────────────────► DuringAnalysis
+     ◄─KifuAnalysisController::finishRun()（完了・中止・エンジンエラー）
+
+Idle ──CsaGameSession::onGameStarted()────────────────────────────► DuringCsaGame
+     ◄─CsaGameSession::onGameEnded()
+
+Idle ──AnalysisSession::start()（詰み探索）────────────────────────► DuringTsumeSearch
+     ◄─AnalysisSession::stop()（探索完了・中止・エンジンエラー）
+
+Idle ──AnalysisSession::start()（検討）────────────────────────────► DuringConsideration
+     ◄─AnalysisSession::stop()（検討中止・エンジンエラー）
+
+Idle ──PositionEditCoordinator::beginPositionEditing()────────────► DuringPositionEdit
+     ◄─PositionEditCoordinator::finishPositionEditing()
 ```
+
+CSA通信対局は、待機ダイアログのキャンセル（`CsaGameSession::onWaitingCancelled()`）や対局が始まらなかったときも
+`CsaGameSession` が Idle に戻す。
 
 ## ポリシー（Policy）
 
@@ -150,33 +131,22 @@
   （`Deps::localGameHasHuman`。エンジン同士の対局では無効。CSA通信対局の投了・入玉宣言はこの条件を見ない）。
   再開は中断した対局があるときだけ有効（`setResumeAvailable()`）
 - 「ナビゲーションボタン」と「棋譜欄クリック」は `RecordPane::setNavigationEnabled()` で一括制御
-- 「分岐ツリークリック」は `EngineAnalysisTab::setBranchTreeClickEnabled()` で制御
-- 「盤面クリック」は `BoardInteractionController::setMoveInputEnabled()` で制御（対局中の手番チェックは `isHumanTurnCallback` で別途実施）
-- 「検討開始」ボタンは `EngineAnalysisTab::setConsiderationStartEnabled()` で制御（検討中は同ボタンが「検討中止」として動作するため有効のまま）
+- 「分岐ツリークリック」は `BranchTreeManager::setBranchTreeClickEnabled()` で制御
+- 「盤面クリック」は `BoardInteractionController::setMoveInputEnabled()` で制御（対局中の手番チェックは `setIsHumanTurnCallback()` で渡した `HumanTurnPolicy::isHumanTurnNow()` で別途実施）
+- 「検討開始」ボタンは `ConsiderationTabManager::setStartConsiderationEnabled()` で制御（検討中は同ボタンが「検討中止」として動作するため有効のまま）
 - 「表示メニュー」は全状態で常に有効のため省略
 
-## シグナル配線
+## 状態変化の伝わり方
 
 ```
-GameStartCoordinator::started ──────────► transitionToDuringGame()
-MatchCoordinator::gameOverStateChanged ─► GameSession::onGameOverStateChanged() → transitionToIdle()  （終局の行を棋譜に書いた後）
-MatchCoordinator::gameEnded ────────────► GameSession::onGameEnded() → transitionToIdle()
+各部品 ──setActivity()──► AppActivityState（AppState::activity）
+                              │ changed
+                              ▼
+                 UiStatePolicyManager::refreshActivity()
+                   → 全UI要素に effectivePolicy() を適用 → stateChanged
 
-DialogCoordinator::analysisModeStarted ─► transitionToDuringAnalysis()
-DialogCoordinator::analysisModeEnded ───► transitionToIdle()  （ダイアログキャンセル時 or 解析完了/中止時）
-
-DialogCoordinator::tsumeSearchModeStarted ► transitionToDuringTsumeSearch()
-DialogCoordinator::tsumeSearchModeEnded ──► transitionToIdle()  （ダイアログキャンセル時）
-AnalysisSession::tsumeSearchModeEnded ───► transitionToIdle()  （探索完了/中止時）
-
-DialogCoordinator::considerationModeStarted ► transitionToDuringConsideration()
-AnalysisSession::considerationModeEnded ───► transitionToIdle()
-
-CsaGameCoordinator::gameStarted ─► CsaGameWiring::onGameStarted() → transitionToDuringCsaGame()
-CsaGameCoordinator::gameEnded ───► CsaGameWiring::onGameEnded() → transitionToIdle()
-
-PositionEditCoordinator onEnterEditMenu ─► transitionToDuringPositionEdit()
-PositionEditCoordinator onLeaveEditMenu ─► transitionToIdle()
+GameSession ──setResumeAvailable()──► 「再開」だけ適用し直す
+KifuLoadCoordinator::loadFinished ──► enableNavigationIfAllowed()（ナビゲーションが許可されていれば矢印ボタンを有効化）
 ```
 
 ## エンジンエラー時の復旧パス
@@ -186,28 +156,28 @@ PositionEditCoordinator onLeaveEditMenu ─► transitionToIdle()
 ```
 【対局中】
   Usi::errorOccurred → EngineLifecycleManager::engineError
-    → MatchCoordinator::handleEngineError() → handleBreakOff() → gameEnded
-    → GameSession::onGameEnded() → transitionToIdle()
+    → MatchCoordinator::handleEngineError() → handleBreakOff() → endGame()
+    → setActivity(Idle) → gameEnded（GameSession::onGameEnded()）
 
 【棋譜解析中】
-  Usi::errorOccurred → AnalysisJob::errorOccurred → AnalysisFlowController::onEngineError()
-    → stop() → analysisStopped()
-    → DialogCoordinator::analysisModeEnded → transitionToIdle()
+  Usi::errorOccurred → AnalysisJob::onError() → stop() → finished
+    → KifuAnalysisController::onFinished() → finishRun() → setActivity(Idle)
+  （AnalysisJob::errorOccurred → KifuAnalysisController::onEngineError() がエラーを表示する）
 
 【詰み探索中】
   Usi::errorOccurred → AnalysisSession::onEngineError()
-    → stop() → tsumeSearchModeEnded → transitionToIdle()
+    → stop() → setActivity(Idle) → tsumeSearchModeEnded
 
 【検討中】
   Usi::errorOccurred → AnalysisSession::onEngineError()
-    → stop() → considerationModeEnded → transitionToIdle()
+    → stop() → setActivity(Idle) → considerationModeEnded
 ```
 
-**注意**: CSA通信対局は `CsaGameCoordinator` / `CsaGameWiring` が独自にエラー管理するため、`MatchCoordinator::handleEngineError()` では対象外。
+**注意**: CSA通信対局は `CsaGameCoordinator`（エンジンのエラーは `CsaEngineController::engineError` → `onEngineControllerError()`）と `CsaGameSession` が独自にエラー管理するため、`MatchCoordinator::handleEngineError()` では対象外。
 
 ## 設計上の注意点
 
 - **テーブル駆動**: UI要素を足すときは `UiElement` に値を足し、`kRules` に同じ順で規則を、メニュー項目なら `kActions` に対応する `QAction` を足す。`kRules` が全要素を宣言順に並べていることは `static_assert` で確かめる
-- **依存の注入**: 生成（`MainWindowComposer::createServices()`）の後、`MainWindowComposer::wireFoundation()` が `updateDeps()` で依存オブジェクトを渡す（[composition-root.md](composition-root.md)）。`Deps::localGameHasHuman` は司令塔の対局者（`MatchCoordinator::isHumanSide()`）から決める
+- **依存の注入**: `MainWindowComposer::createSessions()` がコンストラクタの `Deps` で依存オブジェクトを渡す（[composition-root.md](composition-root.md)）。`Deps::localGameHasHuman` は司令塔の対局者（`MatchCoordinator::isHumanSide()`）から決める。`Deps::activity` を渡さないと自分だけの動作状態を使う（テスト用）
 - **表示メニュー**: 全状態で常に有効のため、テーブルには含めていない
-- **対局中の盤面クリック**: 対局中も `setMoveInputEnabled(true)` のままにし、人間の手番かどうかは `BoardInteractionController` の `isHumanTurnCallback` が別途判定する
+- **対局中の盤面クリック**: 対局中も `setMoveInputEnabled(true)` のままにし、人間の手番かどうかは `BoardInteractionController::setIsHumanTurnCallback()` で渡した判定（`HumanTurnPolicy::isHumanTurnNow()`）が別途行う

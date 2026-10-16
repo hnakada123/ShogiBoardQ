@@ -2,33 +2,14 @@
 /// @brief JKF形式固有の指し手変換・初期局面構築・時間解析の実装
 
 #include "jkfmoveparser.h"
+#include "handicaps.h"
+#include "kifmovetext.h"
 #include "shoginotation.h"
 #include "notationutils.h"
 #include "parsecommon.h"
 #include "sfenutils.h"
 
 namespace {
-
-// JKF の手合割（initial.preset）と開始局面
-struct PresetEntry { const char* key; const char* sfen; };
-constexpr PresetEntry kPresets[] = {
-    {"HIRATE",  SfenUtils::kHirateSfen},
-    {"KY",      "lnsgkgsn1/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-    {"KY_R",    "1nsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-    {"KA",      "lnsgkgsnl/1r7/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-    {"HI",      "lnsgkgsnl/7b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-    {"HIKY",    "lnsgkgsn1/7b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-    {"2",       "lnsgkgsnl/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-    {"3",       "lnsgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-    {"4",       "1nsgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-    {"5",       "2sgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-    {"5_L",     "1nsgkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-    {"6",       "2sgkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-    {"7_L",     "2sgkg3/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-    {"7_R",     "3gkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-    {"8",       "3gkg3/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-    {"10",      "4k4/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-};
 
 // JKF の relative の記号と KI2 の修飾語（並びは修飾語にするときの順）
 struct RelativeEntry { char letter; char16_t modifier; };
@@ -44,24 +25,15 @@ namespace JkfMoveParser {
 
 QString presetToSfen(const QString& preset)
 {
-    for (const auto& p : kPresets) {
-        if (preset == QLatin1String(p.key)) {
-            return QString::fromLatin1(p.sfen);
-        }
-    }
-    return SfenUtils::hirateSfen();
+    const Handicaps::Handicap* handicap = Handicaps::byJkfPreset(preset);
+    return handicap ? QString::fromLatin1(handicap->sfen) : SfenUtils::hirateSfen();
 }
 
 QString presetFromSfen(const QString& sfen)
 {
     if (sfen.trimmed().isEmpty()) return QStringLiteral("HIRATE");
-    const QString key = SfenUtils::normalizeSfenKey(sfen);
-    for (const auto& p : kPresets) {
-        if (SfenUtils::normalizeSfenKey(QString::fromLatin1(p.sfen)) == key) {
-            return QString::fromLatin1(p.key);
-        }
-    }
-    return {};
+    const Handicaps::Handicap* handicap = Handicaps::bySfen(sfen);
+    return handicap ? QString::fromLatin1(handicap->jkfPreset) : QString();
 }
 
 QString buildSfenFromInitialData(const QJsonObject& data, int moveNumber)
@@ -79,15 +51,18 @@ QString buildSfenFromInitialData(const QJsonObject& data, int moveNumber)
             const auto cell = value.toObject();
             if (cell.isEmpty()) continue;
             const int side = cell[QStringLiteral("color")].toInt(-1);
-            if ((side != 0 && side != 1) || pieceKindFromCsa(cell[QStringLiteral("kind")].toString()) == 0) return {};
+            if ((side != 0 && side != 1)
+                || ShogiNotation::pieceFromCsaCode(cell[QStringLiteral("kind")].toString()) == Piece::None) return {};
         }
     }
     for (const auto& value : handsData) {
         if (!value.isObject()) return {};
         const auto hand = value.toObject();
         for (auto it = hand.begin(); it != hand.end(); ++it) {
-            const int piece = pieceKindFromCsa(it.key());
-            if (piece < 1 || piece > 7 || it.value().toInt(-1) < 0) return {};
+            // 持ち駒は玉以外の生駒
+            const Piece piece = ShogiNotation::pieceFromCsaCode(it.key());
+            if (piece == Piece::None || isPromoted(piece) || piece == Piece::BlackKing || it.value().toInt(-1) < 0)
+                return {};
         }
     }
 
@@ -109,13 +84,10 @@ QString buildSfenFromInitialData(const QJsonObject& data, int moveNumber)
                         rowStr += QString::number(emptyCount);
                         emptyCount = 0;
                     }
-                    const QString kind = cell[QStringLiteral("kind")].toString();
-                    const int cellColor = cell[QStringLiteral("color")].toInt();
-                    const int pieceCode = pieceKindFromCsa(kind);
-                    const bool promoted = (pieceCode >= 9 && pieceCode <= 14);
-
-                    if (promoted) rowStr += QLatin1Char('+');
-                    rowStr += pieceToSfenChar(pieceCode, cellColor == 0);
+                    const Turn owner = cell[QStringLiteral("color")].toInt() == 0 ? Turn::Black : Turn::White;
+                    const Piece piece = ShogiNotation::pieceFromCsaCode(cell[QStringLiteral("kind")].toString(), owner);
+                    if (isPromoted(piece)) rowStr += QLatin1Char('+');
+                    rowStr += pieceToChar(demote(piece));
                 }
             }
             if (emptyCount > 0) {
@@ -163,57 +135,6 @@ QString buildSfenFromInitialData(const QJsonObject& data, int moveNumber)
         .arg(boardStr, turnStr, handsStr, QString::number(moveNumber));
 }
 
-// --- 駒種変換 ---
-
-int pieceKindFromCsa(const QString& kind)
-{
-    if (kind == QStringLiteral("FU")) return 1;
-    if (kind == QStringLiteral("KY")) return 2;
-    if (kind == QStringLiteral("KE")) return 3;
-    if (kind == QStringLiteral("GI")) return 4;
-    if (kind == QStringLiteral("KI")) return 5;
-    if (kind == QStringLiteral("KA")) return 6;
-    if (kind == QStringLiteral("HI")) return 7;
-    if (kind == QStringLiteral("OU")) return 8;
-    if (kind == QStringLiteral("TO")) return 9;
-    if (kind == QStringLiteral("NY")) return 10;
-    if (kind == QStringLiteral("NK")) return 11;
-    if (kind == QStringLiteral("NG")) return 12;
-    if (kind == QStringLiteral("UM")) return 13;
-    if (kind == QStringLiteral("RY")) return 14;
-    return 0;
-}
-
-QChar pieceToSfenChar(int kind, bool isBlack)
-{
-    QChar c;
-    switch (kind) {
-    case 1:  c = QLatin1Char('P'); break;
-    case 2:  c = QLatin1Char('L'); break;
-    case 3:  c = QLatin1Char('N'); break;
-    case 4:  c = QLatin1Char('S'); break;
-    case 5:  c = QLatin1Char('G'); break;
-    case 6:  c = QLatin1Char('B'); break;
-    case 7:  c = QLatin1Char('R'); break;
-    case 8:  c = QLatin1Char('K'); break;
-    case 9:  c = QLatin1Char('P'); break;
-    case 10: c = QLatin1Char('L'); break;
-    case 11: c = QLatin1Char('N'); break;
-    case 12: c = QLatin1Char('S'); break;
-    case 13: c = QLatin1Char('B'); break;
-    case 14: c = QLatin1Char('R'); break;
-    default: return QChar();
-    }
-    if (!isBlack) c = c.toLower();
-    return c;
-}
-
-QString pieceKindToKanji(const QString& kind)
-{
-    const Piece piece = ShogiNotation::pieceFromCsaCode(kind);
-    return piece == Piece::None ? kind : ShogiNotation::movePieceName(piece);
-}
-
 // --- 指し手変換 ---
 
 QString convertMoveToUsi(const QJsonObject& move, int& prevToX, int& prevToY)
@@ -226,7 +147,7 @@ QString convertMoveToUsi(const QJsonObject& move, int& prevToX, int& prevToY)
     const int toX = to[QStringLiteral("x")].toInt();
     const int toY = to[QStringLiteral("y")].toInt();
     if (toX < 1 || toX > 9 || toY < 1 || toY > 9
-        || pieceKindFromCsa(move[QStringLiteral("piece")].toString()) == 0) return {};
+        || ShogiNotation::pieceFromCsaCode(move[QStringLiteral("piece")].toString()) == Piece::None) return {};
 
     QString usi;
 
@@ -251,65 +172,14 @@ QString convertMoveToUsi(const QJsonObject& move, int& prevToX, int& prevToY)
     return usi;
 }
 
-QString convertMoveToPretty(const QJsonObject& move, int plyNumber,
-                            int& prevToX, int& prevToY)
+QString convertMoveToPretty(const QJsonObject& move, Turn mover, const UsiMove& usi, BoardSquare previousTo)
 {
-    Q_UNUSED(plyNumber)
-    const QString teban = move[QStringLiteral("color")].toInt() == 1
-        ? QStringLiteral("△") : QStringLiteral("▲");
-
-    if (!move.contains(QStringLiteral("to"))) {
-        return teban + QStringLiteral("???");
-    }
-
-    const QJsonObject to = move[QStringLiteral("to")].toObject();
-    const int toX = to[QStringLiteral("x")].toInt();
-    const int toY = to[QStringLiteral("y")].toInt();
-
-    QString result = teban;
-
-    const bool isSame = move.contains(QStringLiteral("same")) && move[QStringLiteral("same")].toBool();
-    if (isSame) {
-        result += QStringLiteral("同　");
-    } else {
-        result += NotationUtils::intToZenkakuDigit(toX) + NotationUtils::intToKanjiDigit(toY);
-    }
-
-    const QString piece = move[QStringLiteral("piece")].toString();
-    result += pieceKindToKanji(piece);
-
-    bool isDrop = false;
-    if (move.contains(QStringLiteral("relative"))) {
-        const QString relative = move[QStringLiteral("relative")].toString();
-        if (relative.contains(QLatin1Char('H'))) {
-            isDrop = true;
-        }
-        result += relativeToModifier(relative);
-    }
-
-    if (!move.contains(QStringLiteral("from")) && !isDrop) {
-        result += QStringLiteral("打");
-    }
-
-    if (move[QStringLiteral("promote")].isBool()) {
-        if (move[QStringLiteral("promote")].toBool()) {
-            result += QStringLiteral("成");
-        } else {
-            result += QStringLiteral("不成");
-        }
-    }
-
-    if (move.contains(QStringLiteral("from"))) {
-        const QJsonObject from = move[QStringLiteral("from")].toObject();
-        const int fromX = from[QStringLiteral("x")].toInt();
-        const int fromY = from[QStringLiteral("y")].toInt();
-        result += QStringLiteral("(%1%2)").arg(fromX).arg(fromY);
-    }
-
-    prevToX = toX;
-    prevToY = toY;
-
-    return result;
+    KifMoveText::Notes notes;
+    notes.modifier = relativeToModifier(move[QStringLiteral("relative")].toString());
+    const QJsonValue promote = move[QStringLiteral("promote")];
+    notes.declinedPromotion = promote.isBool() && !promote.toBool();
+    const Piece moving = ShogiNotation::pieceFromCsaCode(move[QStringLiteral("piece")].toString());
+    return KifMoveText::format(mover, moving, usi, previousTo, notes);
 }
 
 // --- 時間解析 ---

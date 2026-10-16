@@ -1,4 +1,5 @@
 #include "dialogfontscale.h"
+#include "fontsizehelper.h"
 
 #include "appsettings.h"
 #include "dialogutils.h"
@@ -144,8 +145,11 @@ QFont DialogFontScale::messageBoxFont(const QFont& font)
 
 DialogFontScale::DialogFontScale(QDialog* dialog, const QString& settingsId, bool saveSize)
     : QWidget(dialog), m_dialog(dialog), m_settingsId(settingsId),
-      m_sizeLabel(new QLabel(this)), m_size(qMax(8, dialog->font().pointSize())), m_baseSize(m_size), m_saveSize(saveSize)
+      m_sizeLabel(new QLabel(this)), m_baseSize(qMax(8, dialog->font().pointSize())), m_saveSize(saveSize)
 {
+    m_fontSize = new FontSizeHelper({AppSettings::dialogFontSize(settingsId, m_baseSize), 8, 24, 1,
+                                     std::bind(&AppSettings::setDialogFontSize, settingsId, std::placeholders::_1)},
+                                    this);
     setObjectName(QStringLiteral("dialogFontScale"));
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     auto* row = new QHBoxLayout(this);
@@ -162,13 +166,14 @@ DialogFontScale::DialogFontScale(QDialog* dialog, const QString& settingsId, boo
     row->addWidget(m_sizeLabel);
     row->addWidget(increaseButton);
     row->addStretch();
-    connect(decreaseButton, &QPushButton::clicked, this, &DialogFontScale::decrease);
-    connect(increaseButton, &QPushButton::clicked, this, &DialogFontScale::increase);
+    connect(decreaseButton, &QPushButton::clicked, m_fontSize, &FontSizeHelper::decrease);
+    connect(increaseButton, &QPushButton::clicked, m_fontSize, &FontSizeHelper::increase);
+    connect(m_fontSize, &FontSizeHelper::fontSizeChanged, this, &DialogFontScale::applySize);
 
     if (attachToLayout()) {
         // メッセージボックスは既定のボタンの強調（アプリ共通のスタイル）を残す
         if (!qobject_cast<QMessageBox*>(dialog)) DialogUtils::standardizeDialog(dialog);
-        applySize(AppSettings::dialogFontSize(settingsId, m_size));
+        applySize(m_fontSize->fontSize());
     }
     if (saveSize) DialogUtils::restoreDialogSize(dialog, AppSettings::auxiliaryDialogSize(settingsId));
     dialog->installEventFilter(this);
@@ -214,16 +219,6 @@ bool DialogFontScale::attachToLayout()
     return true;
 }
 
-void DialogFontScale::increase()
-{
-    if (m_size < 24) applySize(m_size + 1);
-}
-
-void DialogFontScale::decrease()
-{
-    if (m_size > 8) applySize(m_size - 1);
-}
-
 void DialogFontScale::applySize(int size)
 {
     // 先に収集してから適用し、親からの伝播による二重拡大を防ぐ。
@@ -238,12 +233,10 @@ void DialogFontScale::applySize(int size)
         entry.first->setFont(font);
         if (auto* combo = qobject_cast<QComboBox*>(entry.first)) combo->view()->setFont(font);
     }
-    m_size = size;
     m_sizeLabel->setText(QStringLiteral("%1 pt").arg(size));
     DialogUtils::updateFontButtons(m_dialog, size);
     layout()->invalidate();
     setMinimumHeight(layout()->minimumSize().height());
-    AppSettings::setDialogFontSize(m_settingsId, size);
     if (m_dialog->layout()) {
         m_dialog->layout()->invalidate();
         m_dialog->layout()->activate();
@@ -282,12 +275,12 @@ bool DialogFontScale::eventFilter(QObject* watched, QEvent* event)
         && (event->type() == QEvent::LayoutRequest || event->type() == QEvent::Resize
             || event->type() == QEvent::Show)) {
         m_attached = false;
-        if (attachToLayout()) applySize(m_size);
+        if (attachToLayout()) applySize(m_fontSize->fontSize());
     }
     // QInputDialog は表示時にレイアウトを生成するため、その後で操作列を挿入する。
     if (watched == m_dialog && event->type() == QEvent::Show && !m_attached && attachToLayout()) {
         if (!qobject_cast<QMessageBox*>(m_dialog)) DialogUtils::standardizeDialog(m_dialog);
-        applySize(AppSettings::dialogFontSize(m_settingsId, m_size));
+        applySize(m_fontSize->fontSize());
         if (m_saveSize) DialogUtils::restoreDialogSize(m_dialog, AppSettings::auxiliaryDialogSize(m_settingsId));
         // 表示時の大きさは操作列を足す前に決まっているので、少なくとも追加後の推奨サイズまで広げる
         m_dialog->resize(m_dialog->size().expandedTo(m_dialog->sizeHint()));

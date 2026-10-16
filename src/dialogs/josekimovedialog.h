@@ -118,8 +118,6 @@ public slots:
 private slots:
     void validateInput();
     void updateValidation();
-    void onFontSizeIncrease();
-    void onFontSizeDecrease();
 
 private:
     void setupUi(bool isEdit);

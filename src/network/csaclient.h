@@ -290,6 +290,10 @@ public:
     /// 対局待ち状態（ログイン済みで対局中でない）か。終局後もここに含む
     static bool isWaitingState(ConnectionState state);
 
+    /// 対局結果・終局の原因の表示名（「勝ち」「投了」など）
+    static QString gameResultText(GameResult result);
+    static QString gameEndCauseText(GameEndCause cause);
+
 signals:
     /// 接続状態が変化した時に発行する（→ CsaGameCoordinator::onConnectionStateChanged）
     void connectionStateChanged(CsaClient::ConnectionState state);

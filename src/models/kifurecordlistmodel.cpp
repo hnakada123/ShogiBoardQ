@@ -1,93 +1,91 @@
 /// @file kifurecordlistmodel.cpp
-/// @brief 棋譜レコードリストモデルクラスの実装
+/// @brief 棋譜欄のモデルの実装
 
 #include "kifurecordlistmodel.h"
 #include "applicationfonts.h"
+#include "kifubranchnode.h"
+#include "kifubranchtree.h"
+#include "kifupresentation.h"
 #include "tablestyles.h"
-#include <QDebug> // 必要なら
-#include <QColor>
+
 #include <QBrush>
-#include <memory>
+#include <QColor>
+#include <QFont>
+#include <utility>
 
-KifuRecordListModel::KifuRecordListModel(QObject *parent)
-    : AbstractListModel<KifuDisplay>(parent)
+KifuRecordListModel::KifuRecordListModel(const KifuBranchTree* tree, QObject* parent)
+    : QAbstractTableModel(parent)
+    , m_tree(tree)
 {
 }
 
-int KifuRecordListModel::columnCount(const QModelIndex &parent) const
+int KifuRecordListModel::rowCount(const QModelIndex& parent) const
 {
-    Q_UNUSED(parent)
-    // 「指し手」「消費時間」「しおり」「コメント」の4列
-    return 4;
+    return parent.isValid() ? 0 : static_cast<int>(m_nodeIds.size());
 }
 
-QVariant KifuRecordListModel::data(const QModelIndex &index, int role) const
+int KifuRecordListModel::columnCount(const QModelIndex& parent) const
 {
-    if (!index.isValid()) return QVariant();
+    return parent.isValid() ? 0 : ColumnCount;
+}
 
-    const int row = index.row();
+KifuBranchNode* KifuRecordListModel::nodeAt(int row) const
+{
+    return row >= 0 && row < m_nodeIds.size() ? m_tree->nodeAt(m_nodeIds.at(row)) : nullptr;
+}
+
+bool KifuRecordListModel::isBranchRow(const KifuBranchNode* node) const
+{
+    return node->parent() != nullptr && node->parent()->hasBranch();
+}
+
+QString KifuRecordListModel::moveText(const KifuBranchNode* node, bool fullOrigin) const
+{
+    if (!node->parent()) return tr("=== 開始局面 ===");
+    const QString usi = node->isTerminal() ? QString() : KifuPresentation::usiMove(node->move());
+    return QString::number(node->ply()).rightJustified(4, QLatin1Char(' ')) + QLatin1Char(' ')
+        + KifuPresentation::moveLabel(node->displayText(), node->parent()->sfen(), usi, fullOrigin)
+        + (isBranchRow(node) ? KifuPresentation::branchMark() : QString());
+}
+
+QVariant KifuRecordListModel::data(const QModelIndex& index, int role) const
+{
+    const KifuBranchNode* node = index.isValid() ? nodeAt(index.row()) : nullptr;
+    if (!node) return QVariant();
     const int col = index.column();
-    if (row < 0 || row >= list.size()) return QVariant();
 
-    if (role == Qt::FontRole && col == 0 && !list[row]->usiMove.isEmpty()
-        && KifuPresentation::options().notation == KifuPresentation::Notation::Japanese)
-        return ApplicationFonts::japaneseFont(QFont());
-
-    if (role == Qt::ToolTipRole && col == 3) {
-        const QString comment = list[row]->comment();
-        if (comment.isEmpty()) return QVariant();
-        QString html = comment.toHtmlEscaped();
-        html.replace(QLatin1Char('\n'), QStringLiteral("<br/>"));
-        return QStringLiteral("<qt>%1</qt>").arg(html);
-    }
-
-    if (role == Qt::ToolTipRole && col == 0) return list[row]->displayMove(true);
-
-    // 背景色：現在行は淡い青、分岐ありの手はオレンジ系、その他は白色
-    if (role == Qt::BackgroundRole) {
-        // 現在行のハイライトを優先
-        if (row == m_currentHighlightRow) {
-            static const QBrush kCurrentBg(TableStyles::selectionBackground());
-            return kCurrentBg;
+    switch (role) {
+    case Qt::DisplayRole:
+        switch (col) {
+        case MoveColumn: return moveText(node, false);
+        case TimeColumn: return node->parent() ? node->timeText() : tr("（１手 / 合計）");
+        case BookmarkColumn: return node->bookmark();
+        case CommentColumn: return node->comment().simplified();
+        default: return QVariant();
         }
-        // 分岐ありの手はオレンジ系
-        if (row > 0 && m_branchPlySet.contains(row)) {
-            static const QBrush kOrangeBg(QColor(255, 224, 178));
-            return kOrangeBg;
-        }
-        // デフォルト背景色（白色）
-        static const QBrush kWhiteBg(QColor(0xff, 0xff, 0xff));  // #ffffff
-        return kWhiteBg;
-    }
-
-    // テキスト配置：消費時間列は中央揃え
-    if (role == Qt::TextAlignmentRole) {
-        if (col == 1) {
-            return Qt::AlignCenter;
+    case Qt::ToolTipRole:
+        if (col == MoveColumn) return moveText(node, true);
+        if (col == CommentColumn && !node->comment().isEmpty()) {
+            QString html = node->comment().toHtmlEscaped();
+            html.replace(QLatin1Char('\n'), QStringLiteral("<br/>"));
+            return QStringLiteral("<qt>%1</qt>").arg(html);
         }
         return QVariant();
+    case Qt::FontRole:
+        if (col == MoveColumn && node->isActualMove()
+            && KifuPresentation::options().notation == KifuPresentation::Notation::Japanese)
+            return ApplicationFonts::japaneseFont(QFont());
+        return QVariant();
+    case Qt::BackgroundRole: {
+        // 現在行は淡い青、分岐がある手はオレンジ系、その他は白
+        static const QBrush kCurrentBg(TableStyles::selectionBackground());
+        static const QBrush kBranchBg(QColor(255, 224, 178));
+        static const QBrush kWhiteBg(QColor(0xff, 0xff, 0xff));
+        if (index.row() == m_currentRow) return kCurrentBg;
+        return isBranchRow(node) ? kBranchBg : kWhiteBg;
     }
-
-    if (role != Qt::DisplayRole) return QVariant();
-
-    switch (col) {
-    case 0: {
-        // 指し手列：分岐ありなら末尾に '+' を付与（表示上のみ）
-        QString s = list[row]->displayMove();
-        if (row > 0 && m_branchPlySet.contains(row) && !s.endsWith(QLatin1Char('+')) && !s.endsWith(QStringLiteral(" [+]"))) {
-            s.append(KifuPresentation::options().notation == KifuPresentation::Notation::Western ? QStringLiteral(" [+]") : QStringLiteral("+"));
-        }
-        return s;
-    }
-    case 1:
-        // 消費時間列
-        return list[row]->timeSpent();
-    case 2:
-        // しおり列
-        return list[row]->bookmark();
-    case 3:
-        // コメント列
-        return list[row]->comment().simplified();
+    case Qt::TextAlignmentRole:
+        return col == TimeColumn ? QVariant(Qt::AlignCenter) : QVariant();
     default:
         return QVariant();
     }
@@ -96,107 +94,54 @@ QVariant KifuRecordListModel::data(const QModelIndex &index, int role) const
 QVariant KifuRecordListModel::headerData(int section, Qt::Orientation orientation, int role) const
 {
     if (role != Qt::DisplayRole) return QVariant();
-
-    if (orientation == Qt::Horizontal) {
-        switch (section) {
-        case 0: return tr("指し手");
-        case 1: return tr("消費時間");
-        case 2: return tr("しおり");
-        case 3: return tr("コメント");
-        default: return QVariant();
-        }
-    } else {
-        return QVariant(section + 1);
+    if (orientation == Qt::Vertical) return section + 1;
+    switch (section) {
+    case MoveColumn: return tr("指し手");
+    case TimeColumn: return tr("消費時間");
+    case BookmarkColumn: return tr("しおり");
+    case CommentColumn: return tr("コメント");
+    default: return QVariant();
     }
 }
 
-// 先頭に1件追加
-bool KifuRecordListModel::prependItem(KifuDisplay* item)
+void KifuRecordListModel::setPath(const QList<KifuBranchNode*>& path)
 {
-    if (!item) return false;
+    QList<int> ids;
+    ids.reserve(path.size());
+    for (const KifuBranchNode* node : path) ids.append(node->nodeId());
 
-    beginInsertRows(QModelIndex(), 0, 0);
-    list.insert(0, item);      // 先頭へ
-    endInsertRows();
-    return true;
-}
-
-// 末尾の1手（=1行）を削除
-bool KifuRecordListModel::removeLastItem()
-{
-    if (list.isEmpty()) return false;
-
-    const int last = static_cast<int>(list.size() - 1);
-    beginRemoveRows(QModelIndex(), last, last);
-
-    std::unique_ptr<KifuDisplay> ptr(list.takeLast());
-    endRemoveRows();
-
-    return true;
-}
-
-// 末尾から n 手（=n行）を一括削除
-bool KifuRecordListModel::removeLastItems(int n)
-{
-    if (n <= 0 || list.isEmpty()) return false;
-
-    const int toRemove = static_cast<int>(qMin(qsizetype(n), list.size()));
-    const int first = static_cast<int>(list.size()) - toRemove;
-    const int last  = static_cast<int>(list.size() - 1);
-
-    beginRemoveRows(QModelIndex(), first, last);
-
-    for (int i = 0; i < toRemove; ++i) {
-        std::unique_ptr<KifuDisplay> ptr(list.takeLast());
+    // 先頭から同じ行は残す。何も同じでなければ全行を足し直す（棋譜欄が全行の幅を測り直す）
+    qsizetype same = 0;
+    while (same < ids.size() && same < m_nodeIds.size() && ids.at(same) == m_nodeIds.at(same)) ++same;
+    if (same < m_nodeIds.size()) {
+        beginRemoveRows(QModelIndex(), static_cast<int>(same), static_cast<int>(m_nodeIds.size() - 1));
+        m_nodeIds.resize(same);
+        if (m_currentRow >= same) m_currentRow = -1;
+        endRemoveRows();
     }
-
-    endRemoveRows();
-    return true;
-}
-
-// 全項目をクリア（ハイライト行もリセット）
-void KifuRecordListModel::clearAllItems()
-{
-    // ハイライト行を -1 にリセット（次に setCurrentHighlightRow(0) が呼ばれた時に
-    // 正しく dataChanged が発火するようにするため）
-    m_currentHighlightRow = -1;
-
-    // 基底クラスの clearAllItems() を呼び出し
-    AbstractListModel<KifuDisplay>::clearAllItems();
-}
-
-// 分岐あり手の集合をセットし、表示更新
-void KifuRecordListModel::setBranchPlyMarks(const QSet<int>& ply1Set)
-{
-    // 手を指すたびに呼ばれるため、変わらなければ全行の描き直しを起こさない
-    if (ply1Set == m_branchPlySet) return;
-    m_branchPlySet = ply1Set;
-
-    if (rowCount() > 0) {
-        const QModelIndex tl = index(0, 0);
-        const QModelIndex br = index(rowCount() - 1, columnCount() - 1);
-        // 指し手の '+' 付与と背景色の両方を更新
-        emit dataChanged(tl, br, { Qt::DisplayRole, Qt::BackgroundRole });
+    if (same < ids.size()) {
+        beginInsertRows(QModelIndex(), static_cast<int>(same), static_cast<int>(ids.size() - 1));
+        m_nodeIds = ids;
+        endInsertRows();
     }
 }
 
-// ハイライトする現在行を設定
 void KifuRecordListModel::setCurrentHighlightRow(int row)
 {
-    if (m_currentHighlightRow == row) return;
-
-    const int oldRow = m_currentHighlightRow;
-    m_currentHighlightRow = row;
-
-    // 旧行と新行の背景色を更新
-    if (oldRow >= 0 && oldRow < rowCount()) {
-        const QModelIndex tl = index(oldRow, 0);
-        const QModelIndex br = index(oldRow, columnCount() - 1);
-        emit dataChanged(tl, br, { Qt::BackgroundRole });
+    if (m_currentRow == row) return;
+    const int oldRow = std::exchange(m_currentRow, row);
+    for (const int r : {oldRow, row}) {
+        if (r >= 0 && r < rowCount()) emit dataChanged(index(r, 0), index(r, ColumnCount - 1), {Qt::BackgroundRole});
     }
-    if (row >= 0 && row < rowCount()) {
-        const QModelIndex tl = index(row, 0);
-        const QModelIndex br = index(row, columnCount() - 1);
-        emit dataChanged(tl, br, { Qt::BackgroundRole });
-    }
+}
+
+void KifuRecordListModel::refreshNode(int nodeId)
+{
+    const int row = static_cast<int>(m_nodeIds.indexOf(nodeId));
+    if (row >= 0) emit dataChanged(index(row, 0), index(row, ColumnCount - 1));
+}
+
+void KifuRecordListModel::refreshAll()
+{
+    if (rowCount() > 0) emit dataChanged(index(0, 0), index(rowCount() - 1, ColumnCount - 1));
 }

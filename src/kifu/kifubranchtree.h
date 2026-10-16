@@ -206,6 +206,9 @@ public:
      */
     int nodeCount() const { return static_cast<int>(m_nodeById.size()); }
 
+    /// 最後に足したノード（ノード ID は使い回さないので、ID が最大のノード。消えていれば nullptr）
+    KifuBranchNode* newestNode() const { return nodeAt(m_nextNodeId - 1); }
+
     /**
      * @brief 構造変更（追加・削除・並べ替え・クリア）のたびに増える値
      *

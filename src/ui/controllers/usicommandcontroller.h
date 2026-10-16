@@ -10,23 +10,24 @@
 
 
 class EngineLifecycleManager;
-class EngineAnalysisTab;
+class UsiLogPanel;
 
 /**
  * @brief USI手動送信を担当するコントローラ
  *
- * MainWindowから送信ロジックを分離し、エンジン実行状態のチェックと
- * ログ出力を一箇所で扱う。
+ * 解析タブの USI コマンド欄から、動いているエンジンへコマンドを送り、送れたか・送れなかったかを
+ * 通信ログに残す。
  */
 class UsiCommandController : public QObject
 {
     Q_OBJECT
 public:
-    explicit UsiCommandController(QObject* parent = nullptr);
+    struct Deps {
+        EngineLifecycleManager* engines = nullptr;   ///< 送信先のエンジンの枠（E1・E2。対局・検討で共有）
+        UsiLogPanel* usiLog = nullptr;               ///< 送れなかった知らせを出す通信ログ
+    };
 
-    /// 送信先のエンジンの枠（E1・E2。対局・検討で共有）
-    void setEngines(EngineLifecycleManager* engines) { m_engines = engines; }
-    void setAnalysisTab(EngineAnalysisTab* tab);
+    explicit UsiCommandController(const Deps& deps, QObject* parent = nullptr);
 
 public slots:
     /**
@@ -39,8 +40,7 @@ public slots:
 private:
     void appendStatus(const QString& text);
 
-    EngineLifecycleManager* m_engines = nullptr;
-    EngineAnalysisTab* m_analysisTab = nullptr;
+    Deps m_deps;
 };
 
 #endif // USICOMMANDCONTROLLER_H

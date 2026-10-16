@@ -8,6 +8,7 @@
 #include "pvboardcontroller.h"
 #include "buttonstyles.h"
 #include "shogiview.h"
+#include "shogiviewhighlighting.h"
 #include "analysissettings.h"
 #include "dialogutils.h"
 #include "dialogfontscale.h"
@@ -70,8 +71,8 @@ void PvBoardDialog::setKanjiPv(const QString& kanjiPv)
 
 void PvBoardDialog::setPlayerNames(const QString& blackName, const QString& whiteName)
 {
-    m_viewer->view()->setBlackPlayerName(blackName.isEmpty() ? tr("先手") : blackName);
-    m_viewer->view()->setWhitePlayerName(whiteName.isEmpty() ? tr("後手") : whiteName);
+    m_viewer->view()->chrome()->setBlackPlayerName(blackName.isEmpty() ? tr("先手") : blackName);
+    m_viewer->view()->chrome()->setWhitePlayerName(whiteName.isEmpty() ? tr("後手") : whiteName);
 }
 
 void PvBoardDialog::setLastMove(const QString& lastMove)
@@ -154,11 +155,11 @@ void PvBoardDialog::clearMoveHighlights()
 {
     ShogiView* view = m_viewer->view();
     if (m_fromHighlight) {
-        view->removeHighlight(m_fromHighlight.get());
+        view->highlighting()->removeHighlight(m_fromHighlight.get());
         m_fromHighlight.reset();
     }
     if (m_toHighlight) {
-        view->removeHighlight(m_toHighlight.get());
+        view->highlighting()->removeHighlight(m_toHighlight.get());
         m_toHighlight.reset();
     }
 }
@@ -178,12 +179,12 @@ void PvBoardDialog::updateMoveHighlights()
     if (coords.hasFrom) {
         m_fromHighlight = std::make_unique<ShogiView::FieldHighlight>(
             coords.fromFile, coords.fromRank, QColor(255, 0, 0, 50));
-        m_viewer->view()->addHighlight(m_fromHighlight.get());
+        m_viewer->view()->highlighting()->addHighlight(m_fromHighlight.get());
     }
     if (coords.hasTo) {
         m_toHighlight = std::make_unique<ShogiView::FieldHighlight>(
             coords.toFile, coords.toRank, QColor(255, 255, 0));
-        m_viewer->view()->addHighlight(m_toHighlight.get());
+        m_viewer->view()->highlighting()->addHighlight(m_toHighlight.get());
     }
 }
 

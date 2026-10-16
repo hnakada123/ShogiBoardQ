@@ -4,6 +4,7 @@
 #include <QPointer>
 #include <QWidget>
 
+class FontSizeHelper;
 class QCoreApplication;
 class QDialog;
 class QLabel;
@@ -29,8 +30,6 @@ protected:
 
 private:
     DialogFontScale(QDialog* dialog, const QString& settingsId, bool saveSize);
-    void increase();
-    void decrease();
     void applySize(int size);
     void updateLayout();
     bool attachToLayout();
@@ -39,9 +38,9 @@ private:
     QDialog* m_dialog;
     QString m_settingsId;
     QLabel* m_sizeLabel;
+    FontSizeHelper* m_fontSize;  ///< 文字の大きさ（範囲と保存。A-/A+ をつなぐ）
     QPointer<QLayout> m_footer; ///< 文字サイズ操作と決定ボタンを並べる操作列（二段に折り返す）
     QPointer<QLayout> m_hostLayout; ///< 操作列を入れたダイアログのレイアウト（QMessageBox は作り直すことがある）
-    int m_size;
     int m_baseSize;
     bool m_saveSize;
     bool m_attached = false;

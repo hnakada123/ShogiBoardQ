@@ -12,9 +12,9 @@
 #include "shogiview.h"
 #include "uistatepolicymanager.h"
 #include "csagamecoordinator.h"
-#include "csagamewiring.h"
 #include "kifunavigationstate.h"
 #include "kifuexportmetadata.h"
+#include "sfenutils.h"
 #include <QMetaEnum>
 
 #include <QCoreApplication>
@@ -60,7 +60,7 @@ QString uiStateName(UiStatePolicyManager::AppState state)
 }
 
 /// 自動化 API の play_mode（動作状態と、対局中なら対局者の組。駒落ちの対局は handicap_ を付ける）
-QString playModeName(const AppState& state)
+QString playModeName(const AppState& state, const QString& startSfen)
 {
     using Activity = AppActivityState::Activity;
     switch (state.activity.activity()) {
@@ -77,7 +77,7 @@ QString playModeName(const AppState& state)
     const QString seats = players.engineVsEngine() ? QStringLiteral("engine_vs_engine")
                         : players.blackIsEngine  ? QStringLiteral("engine_vs_human")
                                                  : QStringLiteral("human_vs_engine");
-    const bool handicap = KifuExportMetadataBuilder::isHandicap(KifuExportMetadataBuilder::handicapLabel(state.startSfenStr));
+    const bool handicap = KifuExportMetadataBuilder::isHandicap(KifuExportMetadataBuilder::handicapLabel(startSfen));
     return handicap ? QStringLiteral("handicap_") + seats : seats;
 }
 
@@ -85,28 +85,16 @@ QString playModeName(const AppState& state)
 
 QStringList AutomationCommands::currentLinePositions(const AutomationContext& context)
 {
-    auto* model = context.gameRecordModel;
-    if (model && model->branchTree() && !model->branchTree()->isEmpty()) {
-        const auto lines = model->branchTree()->allLines();
-        const int line = model->activeRow();
-        if (line >= 0 && line < lines.size()) {
-            QStringList positions;
-            for (const auto* node : lines[line].nodes) positions.append(node->sfen());
-            return positions;
-        }
-    }
-    return {};
+    QStringList positions;
+    if (!context.navState) return positions;
+    const QList<KifuBranchNode*> path = context.navState->selectedPath();
+    for (const KifuBranchNode* node : path) positions.append(node->sfen());
+    return positions;
 }
 
 RecordLine AutomationCommands::currentRecordLine(const AutomationContext& context)
 {
-    auto* model = context.gameRecordModel;
-    if (!model || !model->branchTree() || model->branchTree()->isEmpty()) return {};
-    const auto lines = model->branchTree()->allLines();
-    const int line = model->activeRow();
-    if (line < 0 || line >= lines.size()) return {};
-    const int ply = context.currentPly();
-    return KifuBranchTree::toRecordLine(lines.at(line).nodes, ply);
+    return context.navState ? context.navState->currentRecordLine() : RecordLine();
 }
 
 int AutomationContext::currentPly() const
@@ -116,17 +104,9 @@ int AutomationContext::currentPly() const
 
 QString AutomationCommands::currentSfen(const AutomationContext& context)
 {
-    const QStringList record = currentLinePositions(context);
-    const int index = context.currentPly();
-    if (index >= 0 && index < record.size()) {
-        return record.at(index);
-    }
-    if (context.gameController && context.gameController->board()) {
-        ShogiBoard* board = context.gameController->board();
-        return board->convertBoardToSfen() + QLatin1Char(' ') + turnToSfen(board->currentPlayer())
-               + QLatin1Char(' ') + board->convertStandToSfen() + QStringLiteral(" 1");
-    }
-    return context.state ? context.state->currentSfenStr : QString();
+    const QString displayed = context.navState ? context.navState->currentSfen() : QString();
+    if (!displayed.isEmpty()) return displayed;
+    return context.gameController ? context.gameController->board()->toSfen() : QString();
 }
 
 void AutomationCommands::registerAll(AutomationDispatcher& dispatcher, const AutomationContext& context)
@@ -161,10 +141,12 @@ void AutomationCommands::registerAppCommands(AutomationDispatcher& dispatcher, c
         QJsonObject result;
         UiStatePolicyManager* policy = context.uiStatePolicy;
         result[QStringLiteral("ui_state")] = policy ? uiStateName(policy->currentState()) : QStringLiteral("unknown");
-        result[QStringLiteral("play_mode")] = context.state ? playModeName(*context.state) : QStringLiteral("unknown");
         const int ply = context.currentPly();
-        result[QStringLiteral("current_ply")] = ply;
         const QStringList record = currentLinePositions(context);
+        const QString startSfen = record.isEmpty() ? SfenUtils::hirateSfen() : record.first();
+        result[QStringLiteral("play_mode")] = context.state ? playModeName(*context.state, startSfen)
+                                                            : QStringLiteral("unknown");
+        result[QStringLiteral("current_ply")] = ply;
         result[QStringLiteral("total_plies")] = qMax(0, static_cast<int>(record.size()) - 1);
         result[QStringLiteral("kifu_file")] = context.state ? context.state->saveFileName : QString();
         auto* fileController = context.kifuFileController;
@@ -182,7 +164,9 @@ void AutomationCommands::registerAppCommands(AutomationDispatcher& dispatcher, c
             engines[QStringLiteral("white")] = context.state ? context.state->players.whiteEngineName : QString();
         }
         result[QStringLiteral("engines")] = engines;
-        if (auto* csa = context.csaGameWiring ? context.csaGameWiring->coordinator() : nullptr) {
+        // 通信対局を一度も始めていなければ（司令塔が待機のまま）出さない
+        const CsaGameCoordinator* csa = context.csaGame;
+        if (csa && csa->gameState() != CsaGameCoordinator::GameState::Idle) {
             result[QStringLiteral("csa")] = QJsonObject{
                 {QStringLiteral("state"), QString::fromLatin1(QMetaEnum::fromType<CsaGameCoordinator::GameState>()
                     .valueToKey(static_cast<quint64>(csa->gameState())))},

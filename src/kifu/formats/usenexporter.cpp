@@ -2,6 +2,8 @@
 /// @brief USEN形式棋譜エクスポータクラスの実装
 
 #include "usenexporter.h"
+#include "terminalcodes.h"
+#include "kifubranchnode.h"
 #include "kifubranchtree.h"
 #include "logcategories.h"
 #include "kifuexportcommon.h"
@@ -137,28 +139,11 @@ static QString sfenToUsenPosition(const QString& sfen)
     return usen;
 }
 
-static QString getUsenTerminalCode(TerminalType terminal)
-{
-    switch (terminal) {
-    case TerminalType::IllegalWin:
-    case TerminalType::IllegalLoss: return QStringLiteral("i");
-    case TerminalType::Resign: return QStringLiteral("r");
-    case TerminalType::Timeout: return QStringLiteral("t");
-    case TerminalType::Interrupt: return QStringLiteral("p");
-    case TerminalType::Impasse:
-    case TerminalType::PerpetualCheck:
-    case TerminalType::Repetition: return QStringLiteral("j");
-    default: return {};
-    }
-}
-
 // ========================================
 // エクスポート
 // ========================================
 
-QStringList UsenExporter::exportLines(const GameRecordModel& model,
-                                      const GameRecordModel::ExportContext& ctx,
-                                      const QStringList& usiMoves)
+QStringList UsenExporter::exportLines(const GameRecordModel& model, const GameRecordModel::ExportContext& ctx)
 {
     QStringList out;
 
@@ -169,20 +154,16 @@ QStringList UsenExporter::exportLines(const GameRecordModel& model,
     QString mainMoves;
     QString terminalCode;
 
-    // 本譜の指し手リストを取得
-    const QList<KifDisplayItem> disp = model.collectMainlineForExport();
-
-    // 各USI指し手をUSEN形式にエンコード
-    for (const QString& usi : std::as_const(usiMoves)) {
-        QString encoded = encodeUsiMoveToUsen(usi);
-        if (!encoded.isEmpty()) {
-            mainMoves += encoded;
+    // 本譜の各手（分岐ツリーのノード）をUSEN形式にエンコード
+    KifuBranchTree* branchTree = model.branchTree();
+    const QList<KifuBranchNode*> mainLine =
+        (branchTree && !branchTree->isEmpty()) ? branchTree->mainLine() : QList<KifuBranchNode*>();
+    for (const KifuBranchNode* node : mainLine) {
+        if (node->isTerminal()) {
+            terminalCode = TerminalCodes::usen(node->terminalType());
+            break;
         }
-    }
-
-    // 終局語のチェック
-    if (!disp.isEmpty()) {
-        terminalCode = getUsenTerminalCode(disp.last().terminalType);
+        if (node->isActualMove()) mainMoves += encodeUsiMoveToUsen(node->move().move.toString());
     }
 
     // 本譜のUSEN文字列を構築
@@ -194,8 +175,6 @@ QStringList UsenExporter::exportLines(const GameRecordModel& model,
     usen += QStringLiteral(".") + terminalCode;
 
     // 3) 分岐を追加
-    // 新システム: KifuBranchTree から出力
-    KifuBranchTree* branchTree = model.branchTree();
     if (branchTree != nullptr && !branchTree->isEmpty()) {
         QList<BranchLine> lines = branchTree->allLines();
         // lineIndex = 0 は本譜なのでスキップ、1以降が分岐
@@ -209,26 +188,14 @@ QStringList UsenExporter::exportLines(const GameRecordModel& model,
             QString branchMoves;
             QString branchTerminal;
 
-            // 分岐の表示アイテムと、分岐ツリーの各手の指し手
-            QList<KifDisplayItem> branchDisp = branchTree->displayItemsForLine(lineIdx);
-            const RecordLine record = KifuBranchTree::toRecordLine(line.nodes);
-
-            for (qsizetype i = line.branchPly; i < branchDisp.size(); ++i) {
-                const KifDisplayItem& item = branchDisp[i];
-
-                // 終局語チェック
-                if (item.terminalType != TerminalType::None) {
-                    branchTerminal = getUsenTerminalCode(item.terminalType);
+            // 分岐点より後の各手（分岐ツリーのノード）
+            for (qsizetype i = line.branchPly; i < line.nodes.size(); ++i) {
+                const KifuBranchNode* node = line.nodes.at(i);
+                if (node->isTerminal()) {
+                    branchTerminal = TerminalCodes::usen(node->terminalType());
                     break;
                 }
-
-                const QString usi = record.usiMove(static_cast<int>(i)).toString();
-                if (!usi.isEmpty()) {
-                    const QString encoded = encodeUsiMoveToUsen(usi);
-                    if (!encoded.isEmpty()) {
-                        branchMoves += encoded;
-                    }
-                }
+                if (node->isActualMove()) branchMoves += encodeUsiMoveToUsen(node->move().move.toString());
             }
 
             // 分岐のUSEN文字列を構築

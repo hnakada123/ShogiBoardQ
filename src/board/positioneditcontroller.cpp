@@ -3,6 +3,8 @@
 
 #include "positioneditcontroller.h"
 #include "shogiview.h"
+#include "shogiviewhighlighting.h"
+#include "sfenutils.h"
 #include "shogiboard.h"
 #include "shogigamecontroller.h"
 #include "boardinteractioncontroller.h"
@@ -21,6 +23,7 @@ namespace {
 void resetEditInteraction(ShogiView* view, BoardInteractionController* bic)
 {
     view->endDrag();
+    view->highlighting()->removeHighlightAllData();
     if (bic) {
         bic->cancelPendingClick();
         bic->clearAllHighlights();
@@ -84,15 +87,9 @@ static QString forceTurnAndPly(const QString& minimalSfen, QChar turnBW, int ply
 // 編集ライフサイクル
 // ======================================================================
 
-QString PositionEditController::beginPositionEditing(const BeginEditContext& c)
+bool PositionEditController::beginPositionEditing(const BeginEditContext& c)
 {
-    // 処理フロー:
-    // 1. 編集開始SFENを既存の棋譜/局面状態から決定
-    // 2. SFENを正規化して盤面に適用、編集モードへ遷移
-    // 3. ハイライト初期化、GC手番同期、UIコールバック呼び出し
-
-    if (!c.view || !c.gc) return {};
-    if (!c.view->board()) return {};
+    if (!c.view || !c.gc || !c.view->board()) return false;
 
     m_view = c.view;
     m_gc   = c.gc;
@@ -104,8 +101,7 @@ QString PositionEditController::beginPositionEditing(const BeginEditContext& c)
     const QChar desiredTurn = board->currentPlayer() == Turn::White ? QLatin1Char('w') : QLatin1Char('b');
 
     // 表示中の局面を編集する
-    QString baseSfen = c.currentSfen;
-    if (baseSfen.isEmpty()) baseSfen = c.displayedSfen;
+    QString baseSfen = c.displayedSfen;
     if (baseSfen.isEmpty()) {
         baseSfen = QStringLiteral("%1 %2 %3 %4")
                        .arg(board->convertBoardToSfen(),
@@ -122,11 +118,7 @@ QString PositionEditController::beginPositionEditing(const BeginEditContext& c)
     resetEditInteraction(c.view, c.bic);
     board->setSfen(adjusted);
     c.view->setPositionEditMode(true);
-    c.view->setMouseClickMode(true);
     c.view->update();
-
-    // メニュー切替（MainWindow へ通知）
-    if (c.onEnterEditMenu) c.onEnterEditMenu();
 
     // ハイライト等の初期化
     if (c.bic) {
@@ -136,15 +128,7 @@ QString PositionEditController::beginPositionEditing(const BeginEditContext& c)
     } else {
         m_prevBoardMode = -1;
     }
-
-    // GC の手番を盤へ同期
-    const Turn boardTurn = board->currentPlayer();
-    c.gc->setCurrentPlayer(boardTurn);
-
-    // 「編集終了」ボタン表示
-    if (c.onShowEditExitButton) c.onShowEditExitButton();
-
-    return c.recordStartSfen.isEmpty() ? adjusted : c.recordStartSfen;
+    return true;
 }
 
 QString PositionEditController::finishPositionEditing(const PositionEditController::FinishEditContext& c)
@@ -167,7 +151,6 @@ QString PositionEditController::finishPositionEditing(const PositionEditControll
     resetEditInteraction(c.view, c.bic);
     board->setSfen(sfenNow);
     c.view->setPositionEditMode(false);
-    c.view->setMouseClickMode(false);
     c.view->update();
 
     // UI 後片付け
@@ -179,12 +162,9 @@ QString PositionEditController::finishPositionEditing(const PositionEditControll
         }
         c.bic->clearAllHighlights();
     }
-    if (c.onHideEditExitButton) c.onHideEditExitButton();
-
-    // メニュー非表示（MainWindow 実装のコールバック）
-    if (c.onLeaveEditMenu) c.onLeaveEditMenu();
 
     // 編集セッションの参照を保持（アクション用スロットで利用）
+
     m_view = c.view;
     m_gc   = c.gc;
     m_bic  = c.bic;
@@ -200,21 +180,22 @@ void PositionEditController::resetPiecesToBox(ShogiView* view, BoardInteractionC
 {
     if (!view) return;
     resetEditInteraction(view, bic);
-    view->returnAllPiecesToBox();
+    view->board()->resetGameBoard();
 }
 
 void PositionEditController::setStandardStartPosition(ShogiView* view, BoardInteractionController* bic)
 {
     if (!view) return;
     resetEditInteraction(view, bic);
-    view->initializeToFlatStartingPosition();
+    view->board()->setSfen(SfenUtils::hirateSfen());
 }
 
 void PositionEditController::setTsumeShogiStartPosition(ShogiView* view, BoardInteractionController* bic)
 {
     if (!view) return;
     resetEditInteraction(view, bic);
-    view->shogiProblemInitialPosition();
+    // 詰将棋の初期局面の見本（使わない駒は玉方の持駒）
+    view->board()->setSfen(QStringLiteral("5+r1kl/6p2/6Bpn/9/7P1/9/9/9/9 b RSb4g3s3n3l15p 1"));
 }
 
 // ======================================================================

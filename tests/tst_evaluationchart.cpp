@@ -15,6 +15,20 @@
 #include "analysissettings.h"
 #include "settingscommon.h"
 
+namespace {
+/// エンジンの score mate の表記（"5"・"-5"・"+"・"-"・"0"）から、手番側から見た評価値を作る
+UsiScore mateScore(const QString& text)
+{
+    if (text == QLatin1String("+") || text == QLatin1String("-")) {
+        UsiScore score;
+        score.kind = UsiScore::Kind::Mate;
+        score.mateWin = text == QLatin1String("+");
+        return score;
+    }
+    return UsiScore::mate(text.toInt());
+}
+} // namespace
+
 class TestEvaluationChart : public QObject
 {
     Q_OBJECT
@@ -61,19 +75,19 @@ private slots:
     void automaticRangeExcludesMate()
     {
         EvaluationChartWidget widget;
-        widget.appendScoreP1(1, 120);
-        widget.appendScoreP1(10, 450);
-        widget.appendScoreP1(11, 31111, false, QStringLiteral("5"));
+        widget.appendScoreP1(1, UsiScore::cp(120));
+        widget.appendScoreP1(10, UsiScore::cp(450));
+        widget.appendScoreP1(11, UsiScore::mate(5));
         QCOMPARE(widget.yAxisLimit(), 1000);
         QCOMPARE(widget.xAxisLimit(), 20);
         QCOMPARE(series(widget)->at(2).y(), 1000.0);
         QVERIFY(view(widget)->summary.contains(QStringLiteral("5")));
         QVERIFY(view(widget)->summary.contains(QStringLiteral("先手勝ち")));
-        widget.appendScoreP1(21, 1800);
+        widget.appendScoreP1(21, UsiScore::cp(1800));
         QCOMPARE(widget.yAxisLimit(), 2000);
         QCOMPARE(widget.xAxisLimit(), 30);
         // 大きな通常評価値を勝手に詰みへ変換しない。
-        widget.appendScoreP1(22, 31111);
+        widget.appendScoreP1(22, UsiScore::cp(31111));
         QVERIFY(widget.yAxisLimit() >= 31111);
         QVERIFY(!view(widget)->summary.contains(QStringLiteral("詰み")));
         widget.clearAll();
@@ -86,8 +100,8 @@ private slots:
         EvaluationChartWidget widget;
         widget.setYAxisLimit(1000);
         widget.setXAxisLimit(20);
-        widget.appendScoreP1(2, 4500);
-        widget.appendScoreP2(3, 6500, true);
+        widget.appendScoreP1(2, UsiScore::cp(4500));
+        widget.appendScoreP2(3, UsiScore::cp(-6500));
         QCOMPARE(widget.yAxisLimit(), 1000);
         QCOMPARE(series(widget)->at(0).y(), 1000.0);
         QCOMPARE(series(widget, 1)->at(0).y(), -1000.0);
@@ -96,7 +110,7 @@ private slots:
         widget.setYAxisLimit(10000);
         QCOMPARE(series(widget)->at(0).y(), 4500.0);
         QCOMPARE(series(widget, 1)->at(0).y(), -6500.0);
-        widget.appendScoreP1(100, 0);
+        widget.appendScoreP1(100, UsiScore::cp(0));
         QCOMPARE(widget.xAxisLimit(), 20);
     }
 
@@ -119,7 +133,8 @@ private slots:
         QFETCH(bool, invert);
         QFETCH(int, direction);
         EvaluationChartWidget widget;
-        widget.appendScoreP2(12, 31111, invert, mate);
+        const UsiScore score = mateScore(mate);
+        widget.appendScoreP2(12, invert ? score.negated() : score);
         QCOMPARE(series(widget, 1)->at(0).y(), double(direction * widget.yAxisLimit()));
         QVERIFY(view(widget)->summary.contains(direction > 0 ? QStringLiteral("先手勝ち") : QStringLiteral("後手勝ち")));
         QVERIFY(view(widget)->markers.first().edge);
@@ -144,21 +159,21 @@ private slots:
     void pendingScoresRespectUndoAndTrim()
     {
         EvaluationChartWidget widget;
-        widget.appendScoreP1Buffered(1, 100);
-        widget.appendScoreP1Buffered(2, 200);
-        widget.appendScoreP2Buffered(3, 300);
+        widget.appendScoreP1Buffered(1, UsiScore::cp(100));
+        widget.appendScoreP1Buffered(2, UsiScore::cp(200));
+        widget.appendScoreP2Buffered(3, UsiScore::cp(300));
         widget.trimToPly(1);
         widget.flushPendingScores();
         QCOMPARE(widget.countP1(), 1);
         QCOMPARE(widget.countP2(), 0);
-        widget.appendScoreP1Buffered(2, 200);
+        widget.appendScoreP1Buffered(2, UsiScore::cp(200));
         widget.removeLastP1();
         QCOMPARE(widget.countP1(), 1);
-        widget.appendScoreP1Buffered(1, 500);
+        widget.appendScoreP1Buffered(1, UsiScore::cp(500));
         widget.flushPendingScores();
         QCOMPARE(widget.countP1(), 1);
         QCOMPARE(series(widget)->at(0).y(), 500.0);
-        widget.appendScoreP1Buffered(5, 100);
+        widget.appendScoreP1Buffered(5, UsiScore::cp(100));
         widget.clearAll();
         widget.flushPendingScores();
         QCOMPARE(widget.countP1(), 0);
@@ -167,12 +182,12 @@ private slots:
     void pendingScoresPreserveNavigation()
     {
         EvaluationChartWidget widget;
-        widget.appendScoreP1Buffered(4, 100);
+        widget.appendScoreP1Buffered(4, UsiScore::cp(100));
         widget.setCurrentPly(5); // 次の局面を解析中。
         widget.flushPendingScores();
         QCOMPARE(widget.currentPly(), 5);
         QCOMPARE(widget.countP1(), 1);
-        widget.appendScoreP1Buffered(5, 150);
+        widget.appendScoreP1Buffered(5, UsiScore::cp(150));
         widget.setCurrentPly(1); // 解析直後にユーザーが過去の手へ移動。
         widget.flushPendingScores();
         QCOMPARE(widget.currentPly(), 1);
@@ -185,8 +200,8 @@ private slots:
     {
         const auto fill = [](EvaluationChartWidget& widget) {
             widget.resize(900, 360);
-            for (int ply = 1; ply <= 14; ++ply) widget.appendScoreP1(ply, ply * 173 - 900);
-            widget.appendScoreP2(15, 0, false, QStringLiteral("+"));
+            for (int ply = 1; ply <= 14; ++ply) widget.appendScoreP1(ply, UsiScore::cp(ply * 173 - 900));
+            widget.appendScoreP2(15, mateScore(QStringLiteral("+")));
         };
         EvaluationChartWidget widget;
         fill(widget);
@@ -227,7 +242,7 @@ private slots:
 
         // 点を足したときは作り直す。記録が伸びただけ（対局中の棋譜欄の行追加）のときは、
         // 横の表示範囲は広げるが、点は変わらないので系列は作り直さない
-        widget.appendScoreP1(16, 50);
+        widget.appendScoreP1(16, UsiScore::cp(50));
         QCOMPARE(replaced.count(), 1);
         QCOMPARE(series(widget)->count(), 15);
         widget.setCurrentPly(16);
@@ -277,7 +292,7 @@ private slots:
     {
         EvaluationChartWidget widget;
         widget.resize(1000, 400);
-        widget.appendScoreP1(5, 4500);
+        widget.appendScoreP1(5, UsiScore::cp(4500));
         widget.setYAxisLimit(1000);
         widget.show();
         QTest::qWait(30);
@@ -350,7 +365,7 @@ private slots:
     {
         EvaluationChartWidget widget;
         widget.resize(1000, 400);
-        widget.appendScoreP1(3, 50);
+        widget.appendScoreP1(3, UsiScore::cp(50));
         widget.setAnalysisLineIndex(2);
         widget.show();
         QTest::qWait(30);
@@ -379,10 +394,10 @@ private slots:
         widget.setEngine2Name(QStringLiteral("YaneuraOu"));
         const QList<int> scores{50, 90, 30, -100, -220, -120, 80, 350, 270, 500, 850, 600, 250, -80, -330, -570, -420, -800, -900, -750};
         for (qsizetype i = 0; i < scores.size(); ++i) {
-            widget.appendScoreP1(static_cast<int>(i * 2 + 1), scores[i]);
-            widget.appendScoreP2(static_cast<int>(i * 2 + 2), scores[i] - 100);
+            widget.appendScoreP1(static_cast<int>(i * 2 + 1), UsiScore::cp(scores[i]));
+            widget.appendScoreP2(static_cast<int>(i * 2 + 2), UsiScore::cp(scores[i] - 100));
         }
-        widget.appendScoreP2(42, -31111, false, QStringLiteral("-7"));
+        widget.appendScoreP2(42, UsiScore::mate(-7));
         widget.setCurrentPly(25);
         widget.show();
         QTest::qWait(30);

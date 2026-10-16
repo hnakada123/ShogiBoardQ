@@ -18,6 +18,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 #include "boardchromewidget.h"
+#include "boardstaticlayer.h"
 #include "elidelabel.h"
 #include "shogigamecontroller.h"
 #include "shogiviewinteraction.h"
@@ -62,30 +63,21 @@ class ShogiView : public QWidget
     Q_PROPERTY(QSize fieldSize READ fieldSize WRITE setFieldSize NOTIFY fieldSizeChanged)
 
 public:
-    // ──────────────────────────── ハイライト種別 ─────────────────────────────
-    // 視覚強調を表す基底クラス。必要に応じて派生種別を追加可能。
-    class Highlight
+    // ──────────────────────────── ハイライト ─────────────────────────────
+    /// 1 マスの矩形ハイライト（色つき）。描くのは ShogiViewHighlighting（非所有で持つ）
+    class FieldHighlight
     {
     public:
-        Highlight() {}
-        virtual ~Highlight();
-        virtual int type() const { return 0; }  // 型識別子
-    };
-
-    // 1 マス単位の矩形ハイライト（色つき）
-    class FieldHighlight : public Highlight
-    {
-    public:
-        enum { Type = 1 };
         enum class Purpose { Move, LegalDestination };
+
         FieldHighlight(int file, int rank, QColor color, Purpose purpose = Purpose::Move)
             : m_field(file, rank), m_color(color), m_purpose(purpose) {}
-        ~FieldHighlight() override;
+
         int file()        const { return m_field.x(); }
         int rank()        const { return m_field.y(); }
         QColor color()    const { return m_color; }
         Purpose purpose() const { return m_purpose; }
-        int type() const override { return Type; }
+
     private:
         QPoint m_field;  // (file, rank)
         QColor m_color;
@@ -109,34 +101,24 @@ public:
 
     // 盤/ラベル座標計算（反転考慮）
     QRect calculateSquareRectangleBasedOnBoardState(int file, int rank) const;
-    QRect calculateRectangleForRankOrFileLabel(int file, int rank) const;
 
     // キャッシュ済みマス矩形（描画用：レイアウト変更時に自動再構築）
     QRect cachedFieldRect(int file, int rank) const;
     void  invalidateFieldRectCache();
 
-    // 駒文字（大文字は先手、小文字は後手）に対応する駒台セルのウィジェット座標
-    QRect standPieceRect(QChar piece) const;
+    // 駒（成駒は生駒）を置く駒台セルのウィジェット座標
+    QRect standPieceRect(Piece piece) const;
 
     // 盤・駒台（疑似座標 file=10/11）・駒箱（file=12）のマスのウィジェット座標。該当しなければ空
     QRect fieldRect(const QPoint& field) const;
 
     // ───────────────────────────── 駒画像管理 ────────────────────────────────
-    QIcon piece(QChar type) const;                // 駒文字 → アイコン取得
-    void  setPieces();                            // 通常向きの画像一括登録
-    void  setPiecesFlip();                        // 反転向きの画像一括登録
+    QIcon piece(Piece piece) const;               // 駒 → アイコン取得（盤の向きに合わせた画像）
 
     // ───────────────────────────── 入力座標変換 ──────────────────────────────
-    QPoint clickedSquare(const QPoint& clickPosition) const;            // エントリ
-    QPoint getClickedSquareInDefaultState(const QPoint& clickPosition) const; // 非反転
-    QPoint getClickedSquareInFlippedState(const QPoint& clickPosition) const; // 反転
-
-    // ───────────────────────────── ハイライト管理 ───────────────────────────
-    void addHighlight(Highlight *hl);            // 追加（非所有。寿命は呼び出し側が管理）
-    void removeHighlight(Highlight *hl);         // 1件削除
-    void removeHighlightAllData();               // 全削除
-    Highlight *highlight(int index) const;
-    int highlightCount() const;
+    /// ウィジェット座標の点がある盤・駒台（筋10/11）・駒箱（筋12）のマス。どこでもなければ QPoint()。
+    /// 局面編集中に駒をドラッグしているときは、駒台のどこに落としてもその駒の置き場所を返す
+    QPoint clickedSquare(const QPoint& clickPosition) const;
 
     // ───────────────────────────── 矢印表示（検討機能用） ─────────────────────
     // 盤上に矢印を描画するためのデータ構造
@@ -146,7 +128,7 @@ public:
         int toFile = 0;     // 移動先の筋（1-9）
         int toRank = 0;     // 移動先の段（1-9）
         int priority = 0;   // 優先順位（1が最善手、2以上で数字を表示）
-        QChar dropPiece = ' ';  // 駒打ちの場合の駒種（例: 'P', 'G' など）、通常の移動は空白
+        Piece dropPiece = Piece::None;  // 駒打ちの場合の打つ側の駒、通常の移動は None
         QColor color = QColor(255, 0, 0, 200);  // 半透明の赤
         Qt::PenStyle penStyle = Qt::SolidLine;
 
@@ -163,57 +145,30 @@ public:
     void clearArrows();                            // 矢印をクリア
 
     // ───────────────────────────── 操作/状態切替 ────────────────────────────
-    void setMouseClickMode(bool mouseClickMode); // クリック操作フラグ
+
     int  squareSize() const;                     // m_squareSize（px）
     void setSquareSize(int size);                // m_squareSize を設定してレイアウト再計算
     void setPositionEditMode(bool positionEditMode); // 局面編集モードON/OFF
     bool positionEditMode() const;
 
-    void returnAllPiecesToBox();       // 盤上・持ち駒をすべて駒箱へ戻す
     QRect pieceBoxRect() const;                  // 編集中のみ有効な、左下の駒箱
     QRect pieceBoxCellRect(int rank) const;
     Turn pieceBoxSide() const { return m_interaction.pieceBoxSide(); }
     void setPieceBoxSide(Turn side);
-    void initializeToFlatStartingPosition();     // 平手初期局面を適用
-    void shogiProblemInitialPosition();          // 問題用初期局面を適用
 
     bool flipMode() const;                    // 反転表示か
-    void setFlipMode(bool newFlipMode);          // 反転表示の切替
-
-    void setErrorOccurred(bool newErrorOccurred);// エラーフラグ
+    void setFlipMode(bool newFlipMode);          // 反転表示の切替（駒の画像も向きを合わせる）
 
     // ドラッグ操作
     void startDrag(const QPoint &from);
     void endDrag();
 
-    // 時計テキスト
-    void setBlackClockText(const QString& text);
-    void setWhiteClockText(const QString& text);
-    QLabel *blackClockLabel() const;
-    QLabel *whiteClockLabel() const;
-    
-    // 時計表示の有効/無効
-    void setClockEnabled(bool enabled);
-
-    // プレイヤー名
-    void setBlackPlayerName(const QString& name);
-    void setWhitePlayerName(const QString& name);
-    ElideLabel *blackNameLabel() const;
-    ElideLabel *whiteNameLabel() const;
-
     // レイアウト調整パラメータ
     void setStandGapCols(double cols);      // 盤‐駒台の横ギャップ（列数 0.0〜2.0）
     void setNameFontScale(double scale);    // 0.2〜1.0 程度
-    void setRankFontScale(double scale);    // 0.5〜1.2 程度
-
-    // 手番表示（true=先手手番, false=後手手番）
-    void setActiveSide(bool blackTurn);
 
     // 対局者カード・時計・手番の札・編集用ボタン
     BoardChromeWidget* chrome() const { return m_chrome; }
-
-    // 手番ハイライト配色（任意）
-    void setHighlightStyle(const QColor& bgOn, const QColor& fgOn, const QColor& fgOff);
 
     QImage toImage(qreal scale = 1.0);
 
@@ -223,14 +178,6 @@ public:
     // レイアウト都合の固定サイズ指定は外側の責務にするのが基本ですが、
     // まとめたいならこちらも用意可（任意）
     void configureFixedSizing(int squarePx = -1);
-
-    void clearTurnHighlight();
-
-    void setActiveIsBlack(bool activeIsBlack);
-
-    // 対局終了時のスタイル維持（trueの間はclearTurnHighlightを無視）
-    void setGameOverStyleLock(bool locked);
-    bool gameOverStyleLock() const;
 
     // ── 状態管理
     using Urgency = BoardChromeWidget::Urgency;
@@ -242,10 +189,6 @@ public:
     // ハイライト/矢印の管理クラスへのアクセサ
     ShogiViewHighlighting* highlighting() const;
 
-    void setUrgencyVisuals(Urgency u);
-
-    void updateTurnIndicator(Turn now);
-
     void relayoutEditExitButton();
 
 public slots:
@@ -256,9 +199,6 @@ public slots:
     // （イベントフィルターで処理する場合に使用）
     void enlargeBoard(bool emitSignal = true);
     void reduceBoard(bool emitSignal = true);
-
-    // 手番側の残り時間に応じて“名前/時計”の配色を切り替える
-    void applyClockUrgency(qint64 activeRemainMs);
 
 signals:
     void positionChanged();
@@ -276,44 +216,21 @@ protected:
     void wheelEvent(QWheelEvent* e) override;  // Ctrl+ホイールで拡大縮小
 
 private:
-    // ───────────────────────────── サイズ自動調整 ────────────────────────────
-    void fitBoardToWidget();  // ウィジェットサイズに合わせて将棋盤を自動調整
-
     // ───────────────────────────── 描画ヘルパ（盤/駒/ラベル） ────────────────
-    void drawFiles(QPainter* painter);                         // 全筋ラベル
+    void drawRanksAndFiles(QPainter* painter) const;           // 段・筋の番号
     void drawFile(QPainter* painter, int file) const;          // 筋ラベル 1 本
-    void drawRanks(QPainter* painter);                         // 全段ラベル
     void drawRank(QPainter* painter, int rank) const;          // 段ラベル 1 本
-
-    void drawBackground(QPainter* painter);
-    void drawStaticLayer(QPainter* painter);                   // 局面によらない部分（画像を貼る）
-    void drawBoardSurface(QPainter* painter);                  // 余白を含む一枚の木肌
-    void drawBoardFields(QPainter* painter);                   // 盤の全マス
 
     void drawPieces(QPainter* painter);                        // 盤の全駒
     void drawPiece(QPainter* painter, int file, int rank);
 
-    void drawFourStars(QPainter* painter);                     // 4隅の星（装飾）
-
-
-    // 駒台（駒・枚数：通常モード）
-    void drawBlackStandPiece(QPainter* painter, int file, int rank) const;
-    void drawWhiteStandPiece(QPainter* painter, int file, int rank) const;
-
-    // 表示モード別の駒台領域/駒描画
-    void drawNormalModeStand(QPainter* painter);
-    void drawPiecesBlackStandInNormalMode(QPainter* painter);
-    void drawPiecesWhiteStandInNormalMode(QPainter* painter);
-    void drawPiecesStandFeatures(QPainter* painter);
+    // 駒台の持駒と枚数、局面編集中の駒箱
+    QRect standCellRect(bool black, const QPoint& base) const;  // 駒台の基準マスに対応するセル
+    void drawStandPieces(QPainter* painter);
+    void drawStandPieceIcon(QPainter* painter, const QRect& cell, Piece piece) const;
     void drawPieceBoxBackground(QPainter* painter);
     void drawPieceBoxPieces(QPainter* painter);
     void relayoutPieceBoxSideSelector();
-
-    // ドラッグ中の駒描画は m_interaction に委譲
-
-    // 駒台の駒・枚数描画の共通ロジック
-    void drawStandPieceIcon(QPainter* painter, const QRect& adjustedRect, QChar value) const;
-    void drawCountedPiece(QPainter* painter, const QRect& rect, const QIcon& icon, int count) const;
 
     // ───────────────────────────── 対局者カードの配置 ──────────────────────
     /// 盤・駒台の位置を BoardChromeWidget に渡して、カード・駒箱の切り替えを置き直す
@@ -322,9 +239,7 @@ private:
     // レイアウト委譲ヘルパ（m_board 経由で盤サイズを渡す）
     QRect blackStandBoundingRect() const;
     QRect whiteStandBoundingRect() const;
-    int   boardLeftPx() const;
     int   boardRightPx() const;
-    int   standInnerEdgePx(bool rightSide) const;
     void  recalcLayoutParams();
     void  applyBoardScaleChange(bool emitSignal);
 
@@ -344,7 +259,7 @@ private:
     ShogiViewLayout m_layout;
 
     // リソース（駒アイコン）
-    QMap<QChar, QIcon>  m_pieces;       // 駒文字 → QIcon
+    QMap<Piece, QIcon>  m_pieces;       // 駒 → QIcon
 
     // paintEvent が描き直す範囲。ドラッグ中は駒の移動前後の周囲だけになるため、
     // 範囲に掛からない盤・駒・ラベルは描画命令ごと省く。
@@ -365,29 +280,8 @@ private:
     mutable QMap<Piece, int> m_shownStandCounts;
     bool paintRegionCovers(const QRect& rect) const;
 
-    // 背景・木肌と縁・影・罫線・駒台・星を描いた画像と、その作成条件
-    struct StaticLayerKey {
-        QSize size;
-        qreal dpr = 0;
-        QPointF phase;      // 物理画素に対する描画位置の端数
-        QRectF surface;
-        QRect blackStand;
-        QRect whiteStand;
-        QSize fieldSize;
-        QPoint offset;
-        QColor background;
-        QColor board;
-        QColor stand;
-        QColor grid;
-        bool woodGrain = false;
-        bool standWoodGrain = false;
-        bool operator==(const StaticLayerKey& other) const;
-    };
-    QPixmap m_staticLayer;
-    StaticLayerKey m_staticLayerKey;
-    // 1つ前の条件で作った画像。盤の回転・拡大と縮小を行き来するときに作り直さず使い回す
-    QPixmap m_spareStaticLayer;
-    StaticLayerKey m_spareStaticLayerKey;
+    // 背景・木肌と縁・影・罫線・駒台・星（局面によらない部分）を描いた画像
+    BoardStaticLayer m_staticLayer;
 
     // マス矩形キャッシュ（レイアウト変更時に無効化、描画時に遅延再構築）
     mutable QHash<quint64, QRect> m_fieldRectCache;
@@ -395,9 +289,6 @@ private:
 
     // 入力/ドラッグ（ShogiViewInteraction に委譲）
     ShogiViewInteraction m_interaction;
-
-    // エラー状態
-    bool   m_errorOccurred { false };
 
     // ハイライト/矢印の管理クラス
     ShogiViewHighlighting* m_highlighting = nullptr;

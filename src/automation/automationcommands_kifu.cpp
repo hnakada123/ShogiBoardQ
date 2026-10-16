@@ -2,6 +2,7 @@
 /// @brief 自動化 API の kifu.* メソッドの実装
 
 #include "automationcommands.h"
+#include "kifunavigationstate.h"
 #include "automationdispatcher.h"
 #include "automationparams.h"
 #include "gamerecordmodel.h"
@@ -148,32 +149,24 @@ void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, 
                     throw AutomationError(AutomationErrorCode::InvalidParams,
                                           QStringLiteral("line must be \"current\" or \"main\""));
                 }
-                QList<KifDisplayItem> items;
-                QStringList usi;
                 const KifuBranchTree* tree = model->branchTree();
-                const int lineIndex = (lineParam == QLatin1String("main")) ? 0 : model->activeRow();
+                const int lineIndex = (lineParam == QLatin1String("main") || !context.navState)
+                                          ? 0 : context.navState->currentLineIndex();
                 const QList<BranchLine> lines = (tree && !tree->isEmpty()) ? tree->allLines() : QList<BranchLine>();
-                if (lineIndex >= 0 && lineIndex < lines.size()) {
-                    items = tree->displayItemsForLine(lineIndex);
-                    usi = KifuBranchTree::toRecordLine(lines.at(lineIndex).nodes).usiMoves();
-                    result[QStringLiteral("line")] = lineIndex;
-                    result[QStringLiteral("total_plies")] = static_cast<int>(usi.size());
-                } else {
-                    items = model->collectMainlineForExport();
-                    usi = model->collectMainlineUsiForExport();
-                    result[QStringLiteral("line")] = 0;
-                }
+                const BranchLine line = (lineIndex >= 0 && lineIndex < lines.size()) ? lines.at(lineIndex) : BranchLine();
+                result[QStringLiteral("line")] = lineIndex >= 0 && lineIndex < lines.size() ? lineIndex : 0;
+                result[QStringLiteral("total_plies")] = static_cast<int>(KifuBranchTree::toRecordLine(line.nodes).usiMoves().size());
                 int emitted = 0;
-                for (const KifDisplayItem& item : std::as_const(items)) {
-                    if (item.ply < fromPly) continue;
+                for (const KifuBranchNode* node : std::as_const(line.nodes)) {
+                    if (node->ply() < fromPly) continue;
                     if (emitted >= maxMoves) { truncated = true; break; }
                     QJsonObject move;
-                    move[QStringLiteral("ply")] = item.ply;
-                    move[QStringLiteral("text")] = item.prettyMove;
-                    if (item.ply >= 1 && item.ply - 1 < usi.size()) move[QStringLiteral("usi")] = usi.at(item.ply - 1);
-                    if (!item.timeText.isEmpty()) move[QStringLiteral("time")] = item.timeText;
-                    if (!item.comment.isEmpty()) move[QStringLiteral("comment")] = item.comment;
-                    if (!item.bookmark.isEmpty()) move[QStringLiteral("bookmark")] = item.bookmark;
+                    move[QStringLiteral("ply")] = node->ply();
+                    move[QStringLiteral("text")] = node->displayText();
+                    if (node->isActualMove()) move[QStringLiteral("usi")] = node->move().move.toString();
+                    if (!node->timeText().isEmpty()) move[QStringLiteral("time")] = node->timeText();
+                    if (!node->comment().isEmpty()) move[QStringLiteral("comment")] = node->comment();
+                    if (!node->bookmark().isEmpty()) move[QStringLiteral("bookmark")] = node->bookmark();
                     moves.append(move);
                     ++emitted;
                 }
@@ -183,15 +176,8 @@ void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, 
             return result;
         }
 
-        static const QHash<QString, KifuSaveFile::SaveFormat> formats = {
-            {QStringLiteral("kif"), KifuSaveFile::SaveFormat::Kif},
-            {QStringLiteral("ki2"), KifuSaveFile::SaveFormat::Ki2},
-            {QStringLiteral("csa"), KifuSaveFile::SaveFormat::Csa},
-            {QStringLiteral("jkf"), KifuSaveFile::SaveFormat::Jkf},
-            {QStringLiteral("usen"), KifuSaveFile::SaveFormat::Usen},
-            {QStringLiteral("usi"), KifuSaveFile::SaveFormat::Usi},
-        };
-        if (!formats.contains(format)) {
+        const auto kifuFormat = KifuFormats::fromName(format);
+        if (!kifuFormat || !KifuFormats::isSavable(*kifuFormat)) {
             throw AutomationError(AutomationErrorCode::InvalidParams,
                                   QStringLiteral("format must be one of moves, kif, ki2, csa, jkf, usen, usi"));
         }
@@ -199,7 +185,7 @@ void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, 
         if (!exporter) {
             throw AutomationError(AutomationErrorCode::InternalError, QStringLiteral("Kifu exporter is unavailable"));
         }
-        const QStringList lines = exporter->exportLines(formats.value(format));
+        const QStringList lines = exporter->exportLines(*kifuFormat);
         result[QStringLiteral("text")] = lines.join(QLatin1Char('\n')) + (lines.isEmpty() ? QString() : QStringLiteral("\n"));
         result[QStringLiteral("truncated")] = false;
         return result;

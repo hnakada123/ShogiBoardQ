@@ -6,6 +6,8 @@
 
 #include <QElapsedTimer>
 #include <QObject>
+
+#include "usimessages.h"
 #include <QString>
 #include <QStringList>
 #include <QTimer>
@@ -48,11 +50,8 @@ signals:
 private slots:
     void onSessionReady();
     void step();
-    void onSolved(const QStringList& pv);
-    void onNoMate();
-    void onNotImplemented();
-    void onUnknown();
-    void onSafetyTimeout();
+    void onCheckmate(const UsiCheckmate& result);
+    void onNoResponse();
     void onSessionError(const QString& message);
 
 private:
@@ -63,11 +62,9 @@ private:
     TsumeshogiVerifier m_verifier;
     Request m_request;
     QTimer m_stepTimer;
-    QTimer m_safetyTimer;
     QElapsedTimer m_elapsed;
     int m_queries = 0;
     bool m_awaiting = false;
-    bool m_awaitingStop = false; ///< 無応答で stop を送り、その応答を待っている
     bool m_done = false;
 };
 
