@@ -84,6 +84,7 @@
 | 2026-10-16 | クラス構成の整理に合わせて全章を更新（手番は `ShogiBoard` だけが持ち、`TurnManager`・`TurnStateSyncService` を削除。対局開始は `GameSession`＋`GameStartOptionsBuilder`、開始前の棋譜の準備は `SessionResetCoordinator`、メニューの接続は `MenuActionsWiring`。棋譜の表示は `KifuDisplayPresenter`・`BoardSyncPresenter`、読み込みは `KifuLoadCoordinator`＋`KifuLoadParser`（変換器はテキスト版だけ）。思考の表は `ThinkingTableView`、対局情報は `GameInfoPane`＋`GameInfoEditModel`、USI の受信行は `UsiLineParser`、形式は `KifuFormat` に一本化） |
 | 2026-10-16 | 局面の値 `Position`（`shogiposition.h`）とエンジンに探索させる局面 `UsiPosition`（`usiposition.h`）を足したのに合わせて §1.5・§2.1〜§2.4・§5.1・§5.2（`Position` と `ShogiBoard` に書き直し）・§5.4・§6.2・§6.6・§7.4〜§7.7・§8・§9.3〜§9.7・§10.6・§12.3・§13.6・§13.8・第15章・第18章を更新（`Piece` は種類＋後手なら16、`piecerules.h`、`RecordLine::usiPosition()`、先読みの局面は `UsiMatchHandler` だけが持つ、「同」の基準は呼び出し側が手順から渡す） |
 | 2026-10-16 | 棋譜の読み込みの作り直しに合わせて §1.5・§2.5・§5.1・§5.2・§5.8・§8.1・§8.2・§8.4・§8.5・§8.7・§8.11・§13.8・§13.9・§15.3・§18.3・§18.4 を更新（形式ごとの変換器は `parse()` を1つだけ持ち `KifuParseOutcome` を返す、KIF・KI2 は `KifTextParser`・`KifMoveGrammar` を共有、手順は全形式で `KifLineBuilder` が組み立てる、読めない手の扱いは `ParseOptions`・`ParseReport`、手順の型は `RecordLine` だけ（`KifLine`・`KifDisplayItem` を削除）、`KifuBranchTree::exportLine()`、ノードの setter を削除して `record()` を直接変える、`SfenReplay` は `applyLenient()`・`positionAfter()` だけ） |
+| 2026-10-16 | 棋譜の文書 `KifuDocument`（`kifudocument.h`）と形式ごとの書き出しの表 `KifuExport`（`kifuexport.h`）に合わせて §1.5・§3.4・§3.5・§4.4・§4.5・§6.1・§6.3・§6.5・§6.9・§8.1・§8.2・§8.4・§8.5・§8.7〜§8.9・§9.6・§10.2〜§10.5・§12.4・§12.7・§14.2・§14.3・§14.5・§14.7・§15.1・§15.3・§18 を更新（`GameRecordModel`・`KifuExportController` を削除。対局情報・対局者・持ち時間・上書き保存先は文書が持ち、`AppState` は動作状態だけ。未保存は保存した時点との比較で求める。`MatchTimeRecord` を `src/kifu/` に移した） |
 
 <!-- chapter-0-end -->
 
@@ -315,7 +316,6 @@ src/
 │   ├── matchrecordsink.h           #   対局の棋譜の受け手（司令塔が確定した行を書き込む先）
 │   ├── matchsessionstate.h         #   対局の設定・終局状態
 │   ├── matchtypes.h                #   終局の原因・終局情報・終局状態の型
-│   ├── matchtimerecord.cpp/.h      #   対局の持ち時間と開始・終了の日時（対局情報と棋譜に書く記録）
 │   ├── matchtimesettings.h         #   対局の時間の決まり（持ち時間・秒読み・加算と、時間切れの扱い）
 │   ├── gamemodestrategy.h          #   対局者の組別の Strategy と、Strategy が司令塔に頼む操作（MatchStrategyHost）
 │   ├── humanvshumanstrategy.cpp/.h #   人間対人間の進め方
@@ -335,7 +335,8 @@ src/
 │   └── consecutivegameseries.cpp/.h # エンジン同士の連続対局（局数・手番の入れ替え・次局の計画）
 │
 ├── kifu/                           # 棋譜管理（GUI に依存しない）
-│   ├── gamerecordmodel.cpp/.h      #   棋譜データモデル（コメント・しおりの編集と書き出し）
+│   ├── kifudocument.cpp/.h         #   開いている棋譜の文書（分岐ツリー・対局情報・対局の記録・上書き保存先）
+│   ├── matchtimerecord.cpp/.h      #   対局の持ち時間と開始・終了の日時（棋譜の文書が持ち、対局情報と棋譜に書く）
 │   ├── kifubranchnode.cpp/.h       #   分岐ノード
 │   ├── kifubranchtree.cpp/.h       #   分岐ツリー（棋譜の正本）
 │   ├── kifubranchtreebuilder.cpp/.h #  分岐ツリー構築
@@ -349,6 +350,7 @@ src/
 │   ├── kifusavefile.cpp/.h         #   ファイルへの書き出し
 │   ├── kifuioservice.cpp/.h        #   棋譜ファイルI/O
 │   ├── shiftjiscodec.cpp/.h        #   Shift_JIS（CP932）の変換
+│   ├── kifuexport.cpp/.h           #   形式ごとの書き出しの表（KifuExport::lines。GUI と CLI で共通）
 │   ├── kifuexportmetadata.cpp/.h   #   棋譜出力のヘッダー（対局者・手合割など）
 │   ├── gameinfokeys.h              #   対局情報の項目のキー
 │   ├── considerationpositionresolver.cpp/.h # 検討する局面の決定
@@ -530,9 +532,8 @@ src/
 │       ├── dockuicoordinator.cpp/.h     # ドックの表示メニュー
 │       ├── commentcoordinator.cpp/.h    # コメント機能の調整
 │       ├── kifuloadcoordinator.cpp/.h   # 棋譜ファイル・貼り付け・局面を読み、分岐ツリーを作り直す
-│       ├── kifufilecontroller.cpp/.h    # 棋譜ファイルの操作（開く・保存・上書き・貼り付け・自動保存）
+│       ├── kifufilecontroller.cpp/.h    # 棋譜の文書とファイル（開く・保存・上書き・自動保存・貼り付け・クリップボードへのコピー）
 │       ├── kifusavecoordinator.cpp/.h   # 棋譜の保存ダイアログ・未保存の確認
-│       ├── kifuexportcontroller.cpp/.h  # 棋譜の書き出し（保存・上書き・自動保存・クリップボード）
 │       ├── csagamesession.cpp/.h        # CSA通信対局の開始と進行の画面への反映・自動保存
 │       ├── positioneditcoordinator.cpp/.h # 局面編集
 │       ├── promotionflow.cpp/.h         # 成/不成の選択ダイアログ
@@ -1255,7 +1256,7 @@ graph LR
 | 何を表すか | 型 | 置き場 |
 |-----------|-----|-------|
 | アプリがいま何をしているか | `AppActivityState::Activity`（`src/common/appactivitystate.h`） | `AppState::activity`（`src/common/appstate.h`） |
-| 対局の先手・後手を人間とエンジンのどちらが指すかと、その名前 | `MatchPlayers`（`src/core/matchplayers.h`） | 対局中の正本は `MatchCoordinator::players()`。`AppState::players` は最後に始めた対局の対局者 |
+| 対局の先手・後手を人間とエンジンのどちらが指すかと、その名前 | `MatchPlayers`（`src/core/matchplayers.h`） | 対局中の正本は `MatchCoordinator::players()`。棋譜の文書の `KifuDocument::players()` は最後に始めた対局の対局者（棋譜を置き換えると空になる） |
 
 #### 動作状態（Activity）の値
 
@@ -1282,7 +1283,7 @@ graph LR
 | `engineVsEngine()` / `humanVsHuman()` | エンジン同士／人間同士か |
 | `name(side)` | その手番を指す側の名前（エンジンならエンジンの名前） |
 
-対局の条件は `MatchStartOptions::players` で司令塔に渡す。平手か駒落ちかは対局者に持たず、開始局面から判定する（`KifuExportMetadataBuilder::handicapLabel()`）。`AppState::currentMatchPlayers()` は、ローカル対局中（`DuringGame`）だけ対局者を返し、それ以外では `nullptr` を返す（検討・解析・通信対局のエンジンは対局者ではない）。
+対局の条件は `MatchStartOptions::players` で司令塔に渡す。平手か駒落ちかは対局者に持たず、開始局面から判定する（`KifuExportMetadataBuilder::handicapLabel()`）。対局者として表示するのはローカル対局中（`DuringGame`）だけで、`PlayerInfoPresenter::showMatchPlayers()` が動作状態を見て `KifuDocument::players()` を出すか決める（検討・解析・通信対局のエンジンは対局者ではない）。
 
 #### 動作状態と対局者による動作分岐
 
@@ -1401,13 +1402,13 @@ sequenceDiagram
     KFC->>KLC: loadFileAsync(path)
     KLC->>KLP: parseFile(path)<br/>(文字コードと形式の判別)
     KLP-->>KLC: KifuLoadResult<br/>(初期局面 + 本譜・変化 + 対局情報)
-    KLC->>TREE: KifuBranchTreeBuilder::<br/>buildFromKifParseResult()
+    KLC->>TREE: KifuDocument::replaceWithRecord()<br/>→ KifuBranchTreeBuilder::<br/>buildFromKifParseResult()
     KLC-->>KFC: loadFinished(success)
     TREE-->>NAV: treeChanged
     NAV-->>VIEW: changed()<br/>(開始局面へ戻る)
 ```
 
-棋譜ファイルは6種類のフォーマット（KIF/KI2/CSA/JKF/USEN/USI）のいずれかを `KifuFormats::detectFile()` が自動判別し、`KifuLoadParser` が文字コードを判別して読んで、対応する変換器（`*ToSfenConverter`）で内部表現（SFEN + 指し手列、本譜と変化）に統一変換する。ファイルの読み込みと変換はワーカースレッドで行い、結果の値（`KifuLoadResult`）だけをメインスレッドに渡す。`KifuLoadCoordinator` が受け取った結果で分岐ツリーを作り直すと、表示中の手は開始局面へ戻り、棋譜欄・盤・コメントは `KifuNavigationState::changed()` を受けて各自で合わせる。対局情報は `gameInfoLoaded` で対局情報ドックへ渡す。
+棋譜ファイルは6種類のフォーマット（KIF/KI2/CSA/JKF/USEN/USI）のいずれかを `KifuFormats::detectFile()` が自動判別し、`KifuLoadParser` が文字コードを判別して読んで、対応する変換器（`*ToSfenConverter`）で内部表現（SFEN + 指し手列、本譜と変化）に統一変換する。ファイルの読み込みと変換はワーカースレッドで行い、結果の値（`KifuLoadResult`）だけをメインスレッドに渡す。`KifuLoadCoordinator` が受け取った結果で棋譜の文書（`KifuDocument`。分岐ツリーと対局情報）を置き換えると、表示中の手は開始局面へ戻り、棋譜欄・盤・コメントは `KifuNavigationState::changed()` を受けて各自で合わせる。対局情報は文書の `headerReset` で対局情報ドックへ届く。
 
 ### 3.6 アーキテクチャの設計判断
 
@@ -1731,8 +1732,7 @@ struct Deps {
     Ui::MainWindow* ui = nullptr;
     MainWindowActions* actions = nullptr;               ///< 新規・終了・局面編集の開始
     DialogLauncher* dialogs = nullptr;
-    KifuFileController* kifuFiles = nullptr;           ///< 開く・保存・貼り付け
-    KifuExportController* kifuExport = nullptr;        ///< 棋譜・局面のコピー
+    KifuFileController* kifuFiles = nullptr;           ///< 開く・保存・貼り付け・棋譜と局面のコピー
     GameSession* session = nullptr;                    ///< 対局の開始・投了・中断・待った・即指し
     AnalysisSession* analysis = nullptr;               ///< 詰み探索の中止
     // ... 局面編集・棋譜解析・詰み探索・外観・画像・盤・駒音・設定の初期化（すべてポインタ）
@@ -1852,7 +1852,7 @@ public slots:
 };
 ```
 
-**PlayerInfoPresenter** — 対局者名・エンジン名と対局情報を、盤・対局情報ドック・通信ログの見出し・思考タブ・評価値グラフに出す:
+**PlayerInfoPresenter** — 対局者名・エンジン名を、盤・通信ログの見出し・思考タブ・検討タブ・評価値グラフに出す（対局者と対局情報は棋譜の文書 `KifuDocument` が持ち、このクラスは読むだけ）:
 
 ```cpp
 // src/ui/presenters/playerinfopresenter.h（抜粋）
@@ -1860,12 +1860,20 @@ public slots:
 class PlayerInfoPresenter : public QObject {
     Q_OBJECT
 public:
-    /// 対局中の対局者（AppState::players）を、盤の名前・通信ログの見出し・思考タブ・評価値グラフに出す
+    struct Deps {
+        const KifuDocument* document = nullptr;      ///< 対局者と対局情報（必須、非所有）
+        const AppActivityState* activity = nullptr;  ///< 対局中か（必須、非所有）
+        // ... 盤・思考タブ・検討タブ・評価値グラフ・通信ログ E1/E2
+    };
+
+    /// 対局中の対局者（KifuDocument::players()）を、盤の名前・通信ログの見出し・思考タブ・評価値グラフに出す
     void showMatchPlayers();
+    /// 対局者を出す（対局を始めるとき。GameSession から）
+    void showPlayers(const MatchPlayers& players);
 
 public slots:
-    void onGameInfoLoaded(const QList<KifGameInfoItem>& items);       // 棋譜を読んだ（対局情報欄に出す）
-    void onMatchPlayersResolved(const MatchPlayers& players);         // 対局者が決まった（GameSession から）
+    void syncBoardNamesWithGameInfo();                                 // 対局情報の名前を盤に出す（KifuDocument::headerReset から）
+    void onGameInfoUpdated(const QList<KifGameInfoItem>& items);       // 対局情報欄で反映した名前を盤に出す
     void onAnalysisEngineNamesChanged(const QString& engine1, const QString& engine2);  // 検討・詰み探索のエンジン名
 };
 ```
@@ -1878,7 +1886,7 @@ public slots:
 
 #### Coordinator の実例
 
-**KifuLoadCoordinator** — 棋譜ファイル・貼り付け・局面を読み、分岐ツリーを作り直す
+**KifuLoadCoordinator** — 棋譜ファイル・貼り付け・局面を読み、棋譜の文書（`KifuDocument`）を置き換える
 **PositionEditCoordinator** — 局面編集を始めて終える流れ（盤・メニューの操作）を受け持つ
 
 #### 命名ガイドライン
@@ -2598,7 +2606,7 @@ game 層
 
 手番は独立したクラスでは持たず、盤（`ShogiBoard`）だけが持つ（6.7節）。
 
-ほかに、終局の型（`matchtypes.h`）、開始の設定（`startoptions.h` の `MatchStartOptions`・`GameStartPreparation`）、時間の決まり（`matchtimesettings.h` の `MatchTimeSettings`）と対局ごとの持ち時間・日時の記録（`MatchTimeRecord`）、棋譜の受け手のインターフェース（`matchrecordsink.h`）、中断した対局の状態（`interruptedgamestate.h`）、対局開始ダイアログの値の入れ物（`startgamedatabridge.h`）、千日手の検出（`sennichitedetector`）、入玉宣言の判定（`nyugyokujudgement`）、局面編集の駒の移動ルール（`piecemoverules`）、持ち時間の時計への適用と検証（`timecontrolutil`・`timecontrolvalidator`）がある。
+ほかに、終局の型（`matchtypes.h`）、開始の設定（`startoptions.h` の `MatchStartOptions`・`GameStartPreparation`）、時間の決まり（`matchtimesettings.h` の `MatchTimeSettings`）、棋譜の受け手のインターフェース（`matchrecordsink.h`）、中断した対局の状態（`interruptedgamestate.h`）、対局開始ダイアログの値の入れ物（`startgamedatabridge.h`）、千日手の検出（`sennichitedetector`）、入玉宣言の判定（`nyugyokujudgement`）、局面編集の駒の移動ルール（`piecemoverules`）、持ち時間の時計への適用と検証（`timecontrolutil`・`timecontrolvalidator`）がある。
 
 ### 6.2 MatchCoordinator — 司令塔
 
@@ -2777,6 +2785,7 @@ sequenceDiagram
     participant GS as GameSession
     participant GSB as GameStartOptionsBuilder
     participant SRC as SessionResetCoordinator
+    participant DOC as KifuDocument
     participant MC as MatchCoordinator
     participant GC as ShogiGameController
     participant Clock as ShogiClock
@@ -2790,7 +2799,10 @@ sequenceDiagram
     Note over SRC: 分岐ツリーを開始局面に整え、<br/>ログ・思考情報・評価値グラフを消し、<br/>LiveGameSession::startFromNode(node)
     GS->>GS: 盤の反転, ConsecutiveGameSeries::beginSeries(plan)
     GS->>Clock: TimeControlUtil::applyToClock()
-    GS->>GS: MatchTimeRecord::begin(), 時計表示,<br/>PlayerInfoPresenter::onMatchPlayersResolved()
+    GS->>GS: 時計表示
+    GS->>DOC: beginMatch(players, time, continuesRecord)
+    Note over DOC: 対局者・持ち時間・開始日時を記録し、<br/>対局情報を作り直す（headerReset）
+    GS->>GS: PlayerInfoPresenter::showPlayers(players)
     GS->>MC: start(plan.options)
 
     MC->>MC: clearGameOverState(), MatchSessionState::begin()
@@ -2804,7 +2816,7 @@ sequenceDiagram
         MC->>USI: EngineVsEngineStrategy::start()<br/>E1・E2 を起動
     end
 
-    GS->>MC: setHandicapNames(), discardInterruptedGame()
+    GS->>GS: discardInterruptedGame()
     GS->>MC: beginPlay()
     MC->>Clock: startClock()
     Note over MC: 初手がエンジン手番なら思考を依頼
@@ -2876,7 +2888,7 @@ struct MatchTimeSettings {
 
 ### 6.5 SessionResetCoordinator — 棋譜と表示の作り直し
 
-`SessionResetCoordinator`（app 層）は、対局の開始前・新規・局面編集・棋譜の読み込み前に、棋譜（分岐ツリー）とエンジン・解析の表示を作り直す処理を1か所にまとめる。棋譜欄・分岐・盤・コメントは、ツリーと表示中の手が変わると各部品が自分で合わせるので、ここでは触らない。ここで消すのは、ツリーから作られない表示（通信ログ・思考情報・検討・解析結果・評価値グラフ）と記録だけである。
+`SessionResetCoordinator`（app 層）は、対局の開始前・新規・局面編集・棋譜の読み込み前に、棋譜（棋譜の文書 `KifuDocument`）とエンジン・解析の表示を作り直す処理を1か所にまとめる。棋譜の作り直しは文書の置き換え（`KifuDocument::startNew()`）で、対局情報・対局の記録・上書き保存先も一緒に消える。棋譜欄・分岐・盤・コメントは、ツリーと表示中の手が変わると各部品が自分で合わせるので、ここでは触らない。ここで消すのは、ツリーから作られない表示（通信ログ・思考情報・検討・解析結果・評価値グラフ）と記録だけである。
 
 **ソース**: `src/app/sessionresetcoordinator.h`, `src/app/sessionresetcoordinator.cpp`
 
@@ -2885,7 +2897,7 @@ struct MatchTimeSettings {
 | メソッド | 呼び出し元 | 内容 |
 |---------|-----------|------|
 | `prepareGameStart(preparation)` | `GameSession::startGame()` | 対局を始める局面に棋譜を整え、ライブ対局を始める。始めたノードを返す |
-| `resetToNewRecord(sfen)` | 連続対局の次局（`GameSession::startNextGame()`）、「新規」（`GameSession::resetToInitialState()`）、局面編集、通信対局の棋譜の準備（`GameSession::beginCsaGameRecord()`） | 局面 `sfen` だけの新しい棋譜にする |
+| `resetToNewRecord(sfen, keepHeader = false)` | 連続対局の次局（`GameSession::startNextGame()`）、「新規」（`GameSession::resetToInitialState()`）、局面編集、通信対局の棋譜の準備（`GameSession::beginCsaGameRecord()`） | 読み込み途中の棋譜を捨て、ライブ対局を破棄して、局面 `sfen` だけの新しい棋譜にする（`KifuDocument::startNew()`）。`keepHeader` なら利用者が対局情報に書きかけた内容を残す（通信対局の開始） |
 | `clearBeforeKifuLoad()` | 棋譜の読み込み前、「新規」 | 前の対局の通信ログ・思考情報・評価値グラフを消す |
 
 #### prepareGameStart() の処理フロー
@@ -2898,7 +2910,8 @@ prepareGameStart(preparation)
   │     │                     （startNodeId があるのにノードが無ければ、別の分岐や同じSFENを探し直さず nullptr を返して何もしない）
   │     ├── 終局の行（投了など）を選んでいたら直前の手を開始ノードにする。
   │     │   末尾の「中断」の行は、子が無ければ取り除く
-  │     └── NewGame → 分岐ツリーを rootSfen で作り直し、ルートを開始ノードにする
+  │     └── NewGame → KifuDocument::startNew(rootSfen) で新しい棋譜にし、ルートを開始ノードにする
+  │                   （前の棋譜の対局情報・対局の記録・上書き保存先は残さない）
   │    （始まっていたライブ対局のセッションは先に破棄する）
   │
   ├── clearEngineDisplays()
@@ -2907,8 +2920,6 @@ prepareGameStart(preparation)
   ├── 評価値グラフ
   │     ├── 現在の局面から → 開始ノードの手数までにする（trimToPly）
   │     └── 新規対局      → 全消去
-  │
-  ├── MatchTimeRecord::clearStart()   … 前の対局の開始日時を消す
   │
   └── LiveGameSession::startFromNode(node)
         ライブ対局のセッションを開始する。表示中の手が開始ノードになる
@@ -3056,11 +3067,11 @@ public:
 | 責務 | 内容 |
 |------|------|
 | **利用者の操作** | `startGameFromDialog()`・`resign()`・`breakOff()`・`makeEngineMoveNow()`・`undoTwoMoves()`・`resumeInterruptedGame()`。通信対局中は `CsaGameCoordinator` に、それ以外は `MatchCoordinator` に頼む |
-| **対局の開始** | `startGameFromDialog()`（ダイアログ → `GameStartOptionsBuilder::plan()`）と `startGame(plan, beginSeries)`（棋譜を整える → 時計と持ち時間 → 対局者の表示 → `MatchCoordinator::start()` → `beginPlay()`）。連続対局の次局は `startNextGame(plan)` |
+| **対局の開始** | `startGameFromDialog()`（ダイアログ → `GameStartOptionsBuilder::plan()`）と `startGame(plan, beginSeries)`（棋譜を整える → 時計 → 棋譜の文書に対局者・持ち時間・開始日時を記録して対局情報を作る `KifuDocument::beginMatch()` → 対局者の表示 → `MatchCoordinator::start()` → `beginPlay()`）。連続対局の次局は `startNextGame(plan)` |
 | **棋譜の受け手** | `MatchRecordSink` の `canAppendRecord()`・`appendRecord()`・`canUndoRecords()`・`undoRecords()`。行は `LiveGameSession` に追記する（通信対局の行もここへ届く） |
-| **終局後処理** | `onGameEnded()`（ライブ対局のセッションの確定、終局時刻の記録）・`onGameEndProcessed()`（連続対局の次局の予約） |
+| **終局後処理** | `onGameEnded()`（ライブ対局のセッションの確定、終局時刻の記録 `KifuDocument::recordMatchEnd()`）・`onGameEndProcessed()`（連続対局の次局の予約） |
 | **中断と再開** | `onGameInterrupted()`・`discardInterruptedGame()`・`resumeInterruptedGame()` |
-| **リセット** | 「新規」の `resetToInitialState()`、通信対局の棋譜の準備 `beginCsaGameRecord()`・終局時刻の記録 `recordGameEndTime()` |
+| **リセット** | 「新規」の `resetToInitialState()`、通信対局の棋譜の準備 `beginCsaGameRecord(startSfen, black, white, timeControl)`（対局情報に書きかけた内容を残して棋譜を作り直し、`beginMatch()` で記録する）・終局時刻の記録 `recordGameEndTime()` |
 
 #### シグナル接続
 
@@ -3089,17 +3100,17 @@ MatchCoordinator::gameInterrupted
 
 | フィールド | 用途 |
 |-----------|------|
-| `state` | `AppState`（対局者・上書き保存先・動作状態） |
+| `state` | `AppState`（動作状態） |
 | `match` / `analysis` / `consecutive` / `csaGame` / `reset` | 対局の司令塔・検討（「新規」で止める）・連続対局・通信対局・棋譜と表示の作り直し |
-| `navState` / `liveSession` / `gameRecord` | 表示中の手（現在局面からの開始・再開）・対局の手順の書き先（分岐ツリー）・未保存の印 |
-| `clock` / `timeRecord` / `timePresenter` / `playerInfo` | 時計・持ち時間と開始・終了の日時・時計の表示・対局者と対局情報の表示 |
+| `navState` / `liveSession` / `document` | 表示中の手（現在局面からの開始・再開）・対局の手順の書き先（分岐ツリー）・棋譜の文書（対局者・持ち時間・開始と終了の日時・対局情報） |
+| `clock` / `timePresenter` / `playerInfo` | 時計・時計の表示・対局者の表示 |
 | `uiStatePolicy` / `kifuFileController` / `shogiView` / `appearance` | 「再開」の表示・未保存の棋譜の確認・手前に表示している側・「人を手前に表示する」の盤の反転 |
 
 #### 中断と再開
 
 中断は司令塔の `handleBreakOff()` が `captureInterruptedGame()` で手順・時計を `InterruptedGameState` に保存してから終局として記録し、`gameInterrupted` を出す。`GameSession::onGameInterrupted()` は中断の行のノードを覚え、`UiStatePolicyManager::setResumeAvailable(true)` で「対局再開」を使えるようにする。棋譜を変えたとき（`KifuBranchTree::treeChanged`）、別の対局を始めたとき（`startGame()`）、「新規」にしたときは `discardInterruptedGame()` で捨てる。
 
-`GameSession::resumeInterruptedGame()` は、中断の行の親ノードへ表示中の手を戻し（`KifuNavigationState::resetToNode()`）、ライブ対局のセッションを破棄して中断の行を除いてから、そのノードでセッションを開始し直す。終局時刻を消したあと、`MatchCoordinator::resumeInterruptedGame()` が手順・盤・時計を復元して（「同」表記の基準は手順の最後の手から導く） Strategy を作り直し、続く `MatchCoordinator::beginPlay()` が時計の始動と初手の要求を行う。
+`GameSession::resumeInterruptedGame()` は、中断の行の親ノードへ表示中の手を戻し（`KifuNavigationState::resetToNode()`）、ライブ対局のセッションを破棄して中断の行を除いてから、そのノードでセッションを開始し直す。終局時刻を消したあと（`KifuDocument::clearMatchEnd()`）、`MatchCoordinator::resumeInterruptedGame()` が手順・盤・時計を復元して（「同」表記の基準は手順の最後の手から導く） Strategy を作り直し、続く `MatchCoordinator::beginPlay()` が時計の始動と初手の要求を行う。
 
 #### 人間/エンジンの判定（HumanTurnPolicy / MatchPlayers）
 
@@ -3923,7 +3934,7 @@ ThinkingInfoFormatter           UsiModelBinding              UsiCommLogModel
 
 kifu層（`src/kifu/`）は、棋譜の分岐管理・ナビゲーション状態・形式の変換・ファイルの読み書きを担当するレイヤーである。棋譜の「1局の記録全体」を扱い、棋譜の1行（`RecordEntry`：core層の `ShogiMove`・局面SFEN・消費時間・終局・コメント）を組み合わせて分岐ツリーという上位構造を構築する。
 
-棋譜の読み込み・保存・書き出しの画面側の流れ（`KifuFileController`・`KifuLoadCoordinator`・`KifuSaveCoordinator`・`KifuExportController`）は `src/ui/coordinators/` にある。kifu層はダイアログやウィジェットを知らない（層の規則）ため ui 層に置いているが、棋譜の話題なので本章で扱う。
+棋譜の読み込み・保存・書き出しの画面側の流れ（`KifuFileController`・`KifuLoadCoordinator`・`KifuSaveCoordinator`）は `src/ui/coordinators/` にある。kifu層はダイアログやウィジェットを知らない（層の規則）ため ui 層に置いているが、棋譜の話題なので本章で扱う。
 
 ### 8.1 全体構成
 
@@ -3932,10 +3943,10 @@ kifu層（`src/kifu/`）は、棋譜の分岐管理・ナビゲーション状�
 │                     kifu 層（src/kifu/）                         │
 │                                                                 │
 │  ┌─────────────────────┐   ┌─────────────────────────────┐      │
-│  │  KifuBranchTree     │   │  GameRecordModel            │      │
-│  │  ┌───────────────┐  │   │  コメント・しおりの編集、     │      │
-│  │  │KifuBranchNode │  │   │  棋譜出力                    │      │
-│  │  │ ply,          │  │   │  （KIF/KI2/CSA/JKF/USEN/USI）│      │
+│  │  KifuBranchTree     │   │  KifuDocument               │      │
+│  │  ┌───────────────┐  │   │  開いている棋譜の文書：       │      │
+│  │  │KifuBranchNode │  │   │  対局情報・対局の記録・       │      │
+│  │  │ ply,          │  │   │  上書き保存先・未保存の判定   │      │
 │  │  │ RecordEntry   │  │   └──────────┬──────────────────┘      │
 │  │  └───────────────┘  │              │ 参照                    │
 │  └──────────┬──────────┘              │                         │
@@ -3956,11 +3967,11 @@ kifu層（`src/kifu/`）は、棋譜の分岐管理・ナビゲーション状�
 │  │  保存形式の判定・書込 │   │  既定ファイル名・ファイル書込 │      │
 │  └─────────────────────┘   └─────────────────────────────┘      │
 │                                                                 │
-│  ┌─────────────────────┐                                        │
-│  │KifuFormat           │                                        │
-│  │  棋譜の形式（enum）と │                                        │
-│  │  判定（KifuFormats） │                                        │
-│  └─────────────────────┘                                        │
+│  ┌─────────────────────┐   ┌─────────────────────────────┐      │
+│  │KifuFormat           │   │  KifuExport                 │      │
+│  │  棋譜の形式（enum）と │   │  形式ごとの書き出しの表       │      │
+│  │  判定（KifuFormats） │   │  （KIF/KI2/CSA/JKF/USEN/USI）│      │
+│  └─────────────────────┘   └─────────────────────────────┘      │
 │                                                                 │
 │  ┌─────────────────────────────────────────────────────────┐    │
 │  │ formats/  フォーマット変換器（テキストを読む）             │    │
@@ -3974,9 +3985,12 @@ kifu層（`src/kifu/`）は、棋譜の分岐管理・ナビゲーション状�
 
 画面側の流れ（src/ui/coordinators/）:
   KifuFileController ─┬→ KifuLoadCoordinator ─→ KifuLoadParser（kifu。パース）
-                      │                         → 分岐ツリーを作り直す（表示は KifuNavigationState::changed を受けた部品が合わせる）
-                      └→ KifuExportController ─┬→ KifuSaveCoordinator（保存ダイアログ）→ KifuSaveFile（kifu）
-                                               └→ クリップボードへのコピー
+                      │                         → KifuDocument を置き換える（分岐ツリーの作り直し。表示は
+                      │                           KifuNavigationState::changed を受けた部品が合わせる）
+                      ├→ KifuExport（kifu。形式ごとの行）
+                      ├→ KifuSaveCoordinator（保存ダイアログ）→ KifuSaveFile（kifu）
+                      ├→ KifuDocument::markSaved（保存した時点・上書き保存先）
+                      └→ クリップボードへのコピー
 ```
 
 ### 8.2 KifuBranchTree / KifuBranchNode — 分岐ツリー
@@ -4134,8 +4148,7 @@ struct RecordLine {
 | `KifuNavigationState::currentRecordLine()` | 表示中の手順（選んでいる分岐。対局中はライブの手も含む） |
 | `KifuBranchTree::mainRecordLine()` | 本譜の手順 |
 | `KifuBranchTree::toRecordLine(nodes, currentPly)` | 任意のノード列（static） |
-| `KifuBranchTree::exportLine(lineIndex)` | ライン（終局行と開始局面のコメント・しおりを含む。書き出し・CLI 用） |
-| `GameRecordModel::collectMainlineForExport()` | 書き出す本譜（自動化 API・CLI の棋譜変換が使う） |
+| `KifuBranchTree::exportLine(lineIndex)` | ライン（終局行と開始局面のコメント・しおりを含む。書き出し・CLI 用。CLI の棋譜変換の本譜は `exportLine(0)`） |
 | `MatchCoordinator::record()` | ローカル対局で指した手順 |
 | `CsaGameProgress::record` | 通信対局で指した手順 |
 
@@ -4269,67 +4282,93 @@ struct KifuParseOutcome {
 
 **ソース**: `src/kifu/kifparsetypes.h`
 
-棋譜ヘッダーの1項目（`key` 例: `"開始日時"`、`value` 例: `"2025/03/02 09:00"`）。形式ごとの `parse()` が `KifuParseOutcome::gameInfo` に入れ、対局情報ドックと棋譜出力（8.5 の `KifuExportMetadata::gameInfoItems`）で使う。
+棋譜ヘッダーの1項目（`key` 例: `"開始日時"`、`value` 例: `"2025/03/02 09:00"`）。形式ごとの `parse()` が `KifuParseOutcome::gameInfo` に入れ、棋譜の文書の対局情報（8.5）と棋譜出力（8.9 の `KifuExportMetadata::gameInfoItems`）で使う。
 
-### 8.5 GameRecordModel — 棋譜データの中央管理
+### 8.5 KifuDocument — 開いている棋譜の文書
 
-**ソース**: `src/kifu/gamerecordmodel.h/.cpp`
+**ソース**: `src/kifu/kifudocument.h/.cpp`、`src/kifu/matchtimerecord.h/.cpp`
 
-`KifuBranchTree` を正本として、コメント・しおりの編集、未保存の印、各種フォーマットへの出力の窓口を担当する。出力は形式ごとの Exporter（`KifExporter`・`Ki2Exporter`・`CsaExporter`・`JkfExporter`・`UsenExporter`・`UsiExporter`）に任せる。
+開いている棋譜の文書（`QObject`）。書き出しと保存に使う情報をまとめて持つ。
 
-#### 責務
+| 持つもの | 内容 |
+|---------|------|
+| 分岐ツリー | 棋譜の正本（`tree()`）。オブジェクトは合成ルートが作って持ち、文書は非所有のポインタで受け取って中身を置き換える |
+| 対局情報 | ヘッダー（`header()`。`QList<KifGameInfoItem>`）。対局情報欄（`GameInfoPane`）はこれを編集する画面 |
+| 対局の記録 | 最後に始めた対局の対局者（`players()`。`MatchPlayers`）と、持ち時間・開始と終了の日時（`timeRecord()`。`MatchTimeRecord`） |
+| ファイルの紐づけ | 上書き保存先（`filePath()`）と、保存した時点の状態 |
 
-1. **コメント・しおり管理**: 渡されたノードに書き込み、変更シグナルで表示へ通知（棋譜欄の表示用の一覧には書かない）
-2. **変更追跡**: `isDirty()` で未保存の変更を検出。棋譜の追記・取り込み・編集は `markDirty()` で未保存として記録し、保存すると `clearDirty()` で戻す
-3. **棋譜出力**: 6つのフォーマットへの変換メソッドを提供
+合成ルートは `createRecordAndModels()` で分岐ツリーの直後に文書を作る（`MainWindowComponents::document`）。
 
-#### データフロー
+#### 置き換えの操作
+
+新規・読み込み・局面の反映は、文書の中身を丸ごと置き換える。置き換えると前の棋譜の対局者・持ち時間・上書き保存先は消え、置き換えた内容を変更なしとする。前の対局の情報が読み込んだ棋譜に混ざることはない。
+
+| メソッド | 使う場面 | 対局情報 |
+|---------|---------|---------|
+| `startNew(sfen, keepHeader = false)` | 新規・局面編集・連続対局の次局・通信対局の開始（`SessionResetCoordinator::resetToNewRecord()`） | 既定の項目（`defaultHeader()`。対局者は「先手」「後手」）。`keepHeader` なら今の対局情報を残す（通信対局の開始） |
+| `replaceWithRecord(record, startSfen, header)` | 棋譜の読み込み（`KifuLoadCoordinator`）。分岐元が不正ならツリーを変えずに false | 読んだ対局情報 |
+| `replaceWithPosition(sfen)` | SFEN・BOD・指し手のない USI の読み込み、局面集から反映した局面 | 空 |
+
+置き換えるたびに `headerReset(items, beforeMatchStart)` と `playersChanged()` を出す。
+
+#### 対局の記録
+
+| メソッド | 呼ぶ側 | 内容 |
+|---------|-------|------|
+| `beginMatch(players, timeControl, continuesRecord)` | `GameSession::startGame()`・`beginCsaGameRecord()` | 対局者と持ち時間を記録し、開始日時を今にする。対局情報を対局日・開始日時・対局者・手合割・持ち時間で作り直す（棋戦・場所・備考など利用者が入力した項目は残す）。読み込んだ棋譜の途中から続ける対局（`continuesRecord`）では、棋譜の対局情報を残して対局者名だけを書き換える |
+| `recordMatchEnd()` | `GameSession::recordGameEndTime()` | 終了日時を記録して対局情報に書く |
+| `clearMatchEnd()` | `GameSession::resumeInterruptedGame()` | 終了日時を消す（中断した対局を再開した） |
+
+対局が書く値（終了日時・続けた対局の対局者名）は `headerValueSet(key, value)` で知らせ、保存した時点の内容にも書くので未保存に数えない。利用者が対局情報を編集していなければ、`beginMatch()` で作り直した対局情報も変更に数えない。
+
+#### 対局情報
+
+- `header()` は、対局情報欄の入力中のセルを確定してから返す。確定は上位層へのフック（Hooks パターン）`setHooks(Hooks{flushPendingHeaderEdits})` で受け取り、合成ルートが `GameInfoPane::commitPendingEditor` を渡す
+- `editHeader(items)` は利用者が対局情報欄で編集した内容を受け取る（`GameInfoPane::gameInfoEdited` から）
+- `headerPlayerName(side)` は対局情報の対局者名（先手・後手。駒落ちは下手・上手。なければ省略名）。対局していないときの盤の対局者名（`PlayerInfoPresenter`）と棋譜解析の対局者名（`KifuAnalysisController`）に使う
+- `usesHandicapNames()` は対局者を下手・上手と呼ぶか（駒落ちで、対局情報の見出しが下手・上手のとき）。司令塔の終局の知らせと入玉宣言の判定（`MatchCoordinator::usesHandicapNames()`）・CSA 通信対局の入玉宣言の確認（`DialogLauncher::Deps::usesHandicapNames`）・BOD のコピーが使う
+
+#### 未保存の判定
+
+`isModified()` は変更のたびに印を付けず、次のどれかで未保存とする。
+
+1. ツリーの `revision()` が、保存（読み込み）した時点と違う（対局の手・待機中に盤で指した変化・分岐の編集はツリーを変える）
+2. コメント・しおりの変更の回数が、保存した時点と違う
+3. 対局情報が、保存した時点と違う
+4. ファイルにない内容を読み込んだ（`markUnsavedContent()`。貼り付けた棋譜・自動化 API で反映した局面）
+
+`markSaved(path)` は保存したとき・ファイルから読み込んだときに呼び、今の内容を保存した時点にして `saved()` を出す。保存形式を拡張子で決められるファイル（`KifuSaveFile::hasKnownSaveExtension()`）だけを上書き保存先にする（それ以外は「上書き保存」で名前を付けて保存へ誘導する）。
+
+#### コメント・しおり
 
 ```
 CommentCoordinator::onCommentUpdated(moveIndex, comment)  ← コメント欄（CommentEditorPanel）の更新
   │   コメント欄が編集しているのは表示中の手（KifuNavigationState::currentNode()）
   ▼
-GameRecordModel::setComment(node, comment)
+KifuDocument::setComment(node, comment)
   │
   ├── 内容が変わらなければ何もしない
   ├── node->record().comment = comment（分岐ツリーのノードに保存）
-  └── isDirty() を立てて commentChanged(nodeId, comment)
+  └── コメントの変更の回数を増やして（未保存になる）commentChanged(nodeId, comment)
         ├── KifuRecordListModel::refreshNode（合成ルートが接続）… 棋譜欄の該当行を更新
         └── CommentCoordinator::showCurrentComment … コメント欄の本文と手数を更新
 ```
 
 しおり（`setBookmark()` → `bookmarkChanged`）も同じ流れで、棋譜欄の該当行を更新する。
 
-#### ExportContext — 出力コンテキスト
+#### シグナルと画面とのつなぎ
 
-`ExportContext` は `KifuExportMetadata`（`src/kifu/kifuexportmetadata.h`）の別名。UIウィジェットへの参照を含まない。
-`KifuExportMetadataBuilder` が通常出力と簡易KIF保存で、対局情報の見出し（`collect()`）・対局者名（`resolvePlayerNames()`）・手合割（`handicapLabel()`。開始局面から判定する）を共通に作る。
+`MainWindowComposer::connectRecord()`（`src/app/mainwindowcomposer_wire.cpp`）がつなぐ。対局情報欄（`GameInfoPane`）は文書の対局情報を編集する画面で、対局情報を自分では作らない。
 
-```cpp
-struct KifuExportMetadata {
-    bool gameInfoProvided = false;         // 空の編集結果も明示できる
-    QList<KifGameInfoItem> gameInfoItems;  // UIから抽出済みの値
-    QString startSfen;                     // 開始局面SFEN
-    MatchPlayers players;                  // 対局情報が無いときに書く対局者（人間・エンジンと名前）
-    TimeControl timeControl;               // 持ち時間（CSA出力用。双方とも時間制限がなければ書かない）
-    QDateTime gameStartDateTime, gameEndDateTime;
-};
-```
+| シグナル | つなぎ先 | 内容 |
+|---------|---------|------|
+| `headerReset(items, beforeMatchStart)` | `GameInfoPane::setGameInfo`・`PlayerInfoPresenter::syncBoardNamesWithGameInfo` | 対局情報を置き換えた（`beforeMatchStart` なら対局を始める前の案内を出す） |
+| `headerValueSet(key, value)` | `GameInfoPane::updateGameInfoValue` | 対局情報に自動で値を書いた（終了日時など） |
+| `saved()` | `GameInfoPane::applyChanges` | 保存した・ファイルから読み込んだ（対局情報欄の未反映の表示を消す） |
+| `playersChanged()` | — | 対局者が変わった（対局の開始・棋譜の置き換え） |
+| `commentChanged(nodeId, comment)` / `bookmarkChanged(nodeId, bookmark)` | `KifuRecordListModel::refreshNode`（コメントは `CommentCoordinator::showCurrentComment` も） | ノードのコメント・しおりが変わった |
 
-`KifuExportController` が書き出すたびに、対局情報ペイン・`MatchTimeRecord`（持ち時間と開始・終了の日時）・`AppState::players`・分岐ツリーの開始局面から組み立てる。
-
-#### 出力フォーマット
-
-| メソッド | 形式 | 分岐対応 | 備考 |
-|---------|------|---------|------|
-| `toKifLines(ctx)` | KIF | あり | 日本将棋連盟標準形式。消費時間・コメント含む |
-| `toKi2Lines(ctx)` | KI2 | あり | 移動元座標省略形式。消費時間なし |
-| `toCsaLines(ctx)` | CSA | なし | コンピュータ将棋協会形式。本譜のみ |
-| `toJkfLines(ctx)` | JKF | あり | JSON棋譜フォーマット |
-| `toUsenLines(ctx)` | USEN | あり | URLセーフ短縮形式 |
-| `toUsiLines(ctx)` | USI | なし | position コマンド文字列。本譜のみ |
-
-CSA・USEN・USI の書き出しに使う USI の指し手は、Exporter が `collectMainlineUsiForExport()`（分岐ツリーの本譜 `KifuBranchTree::mainRecordLine().usiMoves()`）から取る。
+逆向きに、`GameInfoPane::gameInfoEdited(items)` → `KifuDocument::editHeader`、`GameInfoPane::gameInfoUpdated(items)` → `PlayerInfoPresenter::onGameInfoUpdated`（盤の対局者名）をつなぐ。
 
 ### 8.6 LiveGameSession — ライブ対局セッション
 
@@ -4396,7 +4435,7 @@ CSA・USEN・USI の書き出しに使う USI の指し手は、Exporter が `co
 
 **ソース**: `src/ui/coordinators/kifuloadcoordinator.h/.cpp`, `src/kifu/kifuloadparser.h/.cpp`, `src/kifu/kifuformat.h/.cpp`
 
-棋譜ファイル・貼り付けたテキスト・SFEN の局面を読み、分岐ツリーを作り直すコーディネータ。6つのファイル形式（KIF・KI2・CSA・JKF・USI・USEN）と、テキスト貼り付けによる自動判定読み込みに対応する。読む処理（`KifuLoadParser`）はワーカースレッドで行い、結果をメインスレッドでツリーに載せる。
+棋譜ファイル・貼り付けたテキスト・SFEN の局面を読み、棋譜の文書（`KifuDocument`）を置き換えるコーディネータ。6つのファイル形式（KIF・KI2・CSA・JKF・USI・USEN）と、テキスト貼り付けによる自動判定読み込みに対応する。読む処理（`KifuLoadParser`）はワーカースレッドで行い、結果をメインスレッドで文書に載せる。コンストラクタで文書を受け取る（`KifuLoadCoordinator(KifuDocument*)`）。
 
 起動時に合成ルート（`MainWindowComposer`）が一度だけ作り（親は MainWindow）、以後のすべての読み込みに使う。`KifuFileController` は `Deps::loadCoordinator` でポインタを受け取る。読み込み中に次の読み込みを始めると、前の読み込みは `KifuLoadCoordinator` 自身が打ち切る（`CancelFlag`）。
 
@@ -4420,17 +4459,18 @@ onLoadFinished() → applyLoadResult(result)            ← メインスレッ�
   │
   ├── 失敗 → errorOccurred(result.error)
   ├── positionOnly あり（SFEN・BOD・指し手のない USI）→ loadPositionFromSfen()
-  │     └── tree->setRootSfen(sfen)、gameInfoLoaded({})
+  │     └── KifuDocument::replaceWithPosition(sfen)（対局情報は空）
   └── applyRecord(result)
         ├── 指し手も局面図も無ければ errorOccurred
-        ├── KifuBranchTreeBuilder::buildFromKifParseResult() でツリーを作り直す（変化の親子を先に検証）
-        │     （beginBatchUpdate()/endBatchUpdate() で treeChanged を1回にまとめる）
-        └── gameInfoLoaded(result.gameInfo)
+        └── KifuDocument::replaceWithRecord(record, initialSfen, gameInfo)
+              ├── KifuBranchTreeBuilder::buildFromKifParseResult() でツリーを作り直す（変化の親子を先に検証）
+              │     （beginBatchUpdate()/endBatchUpdate() で treeChanged を1回にまとめる）
+              └── 対局情報を読んだものにし、前の対局者・持ち時間・上書き保存先を消す（headerReset）
 ```
 
-読み込みの結果は `loadFinished(bool)` で知らせる。
+読み込みの結果は `loadFinished(bool)` で知らせる。上書き保存先と未保存の状態は `KifuFileController::finishLoad()` が決める（8.9）。
 
-棋譜の正本は分岐ツリーで、読み込みは分岐ツリーだけを作り直す。ツリーが変わると、表示中の手（`KifuNavigationState`）が開始局面へ戻って `changed()` を出し、棋譜欄・分岐候補・分岐ツリー・盤・コメント欄などは、それを受けて表示を作り直す（8.10）。対局情報は `gameInfoLoaded()` を `PlayerInfoPresenter::onGameInfoLoaded` が受けて対局者名などを反映する。対局の手順は、対局開始時に表示中の手順（`RecordLine`）から司令塔が作る（[対局開始フロー](game-start-flow.md)）。
+棋譜の正本は分岐ツリーで、読み込みは文書（分岐ツリーと対局情報）を作り直す。ツリーが変わると、表示中の手（`KifuNavigationState`）が開始局面へ戻って `changed()` を出し、棋譜欄・分岐候補・分岐ツリー・盤・コメント欄などは、それを受けて表示を作り直す（8.10）。対局情報は文書の `headerReset` で対局情報欄（`GameInfoPane::setGameInfo`）と盤の対局者名（`PlayerInfoPresenter::syncBoardNamesWithGameInfo`）に届く。対局の手順は、対局開始時に表示中の手順（`RecordLine`）から司令塔が作る（[対局開始フロー](game-start-flow.md)）。
 
 #### テキスト貼り付け
 
@@ -4454,7 +4494,7 @@ onLoadFinished() → applyLoadResult(result)            ← メインスレッ�
 |------|------|
 | `saveViaDialog(parent, generateLines, defaultFileName, hasBranches, hasTimeInfo, outError)` | 保存ダイアログを出し、KIF（UTF-8 `.kifu`・Shift_JIS `.kif`）・KI2（`.ki2u`・`.ki2`）・CSA・JKF・USEN・USI のどれかで保存する。形式は選んだパスの拡張子で決まり、決まってから `generateLines(format)` でその形式の行だけを作る。分岐や消費時間を保存できない形式では、続けるか確認する |
 | `overwriteExisting(parent, path, lines, outError)` | 既存ファイルへの上書き保存 |
-| `confirmDiscardUnsaved(parent, isDirty, save)` | 未保存の変更があるとき、保存・破棄・キャンセルを確認する |
+| `confirmDiscardUnsaved(parent, isDirty, save)` | 未保存の変更があるとき、保存・破棄・キャンセルを確認する（`isDirty` には `KifuDocument::isModified()` を渡す） |
 
 `saveViaDialog` は保存に成功した場合にファイルパスを返し、キャンセルまたはエラーの場合は空文字を返す。最後に保存したフォルダは `GameSettings::lastKifuSaveDirectory` に記録する。
 
@@ -4471,53 +4511,99 @@ onLoadFinished() → applyLoadResult(result)            ← メインスレッ�
 
 低レベルのファイルI/Oを担当する名前空間。
 
-- **`makeDefaultSaveFileName(players, now, extension)`**: 対局者（`MatchPlayers`）と日時から既定のファイル名（`日時_先手_vs_後手.拡張子`。名前が無ければ `日時_Session.拡張子`）を作る。GUI では最後に始めた対局の対局者（`AppState::players`）を渡す
+- **`makeDefaultSaveFileName(players, now, extension)`**: 対局者（`MatchPlayers`）と日時から既定のファイル名（`日時_先手_vs_後手.拡張子`。名前が無ければ `日時_Session.拡張子`）を作る。GUI では最後に始めた対局の対局者（`KifuDocument::players()`）を渡す
 - **`charactersNotInShiftJis(text)`**: Shift_JIS で表せない文字を返す
 - **`writeKifuFile(path, lines, errorText, useShiftJis)`**: 行リストをテキストファイルとして書き込む
 
-### 8.9 KifuExportController — エクスポート管理
+### 8.9 KifuExport / KifuFileController — 書き出しとファイルの操作
 
-**ソース**: `src/ui/coordinators/kifuexportcontroller.h/.cpp`
+**ソース**: `src/kifu/kifuexport.h/.cpp`、`src/kifu/kifuexportmetadata.h/.cpp`、`src/ui/coordinators/kifufilecontroller.h/.cpp`
 
-`GameRecordModel` の出力メソッドと `KifuSaveCoordinator` / `KifuSaveFile` を統合し、メニュー項目（`KifuFileController` 経由を含む）からファイル保存・上書き・自動保存・クリップボードへのコピーを実行するコントローラ。
+#### KifuExport — 形式ごとの書き出しの表
 
-#### 依存構造（Deps）
+棋譜を形式ごとの行にする名前空間（kifu 層）。書き出しは「分岐ツリーと書き出しの文脈から行を返す関数」を形式ごとに並べた表で選ぶ。GUI の保存・コピー（`KifuFileController`）、自動化 API の `kifu.get`、CLI の変換（`KifuConversionService`）が同じ表を使う。
+
+| 関数 | 説明 |
+|------|------|
+| `metadataOf(document)` | 文書の書き出しの文脈（`KifuExportMetadata`：対局情報・開始局面・対局者・持ち時間・開始と終了の日時） |
+| `lines(tree, metadata, format)` | `format` の行。表の関数を呼ぶ |
+| `lines(document, format)` | `lines(*document.tree(), metadataOf(document), format)` |
+
+表の関数は各 Exporter（`src/kifu/formats/`）の `static QStringList exportLines(const KifuBranchTree&, const KifuExportMetadata&)`。
+
+| Exporter | 形式 | 分岐対応 | 備考 |
+|---------|------|---------|------|
+| `KifExporter` | KIF | あり | 日本将棋連盟標準形式。消費時間・コメント含む。SFEN・BOD を指定したときもこれ（棋譜を書けないため） |
+| `Ki2Exporter` | KI2 | あり | 移動元座標省略形式。消費時間なし |
+| `CsaExporter` | CSA | なし | コンピュータ将棋協会形式。本譜のみ |
+| `JkfExporter` | JKF | あり | JSON棋譜フォーマット |
+| `UsenExporter` | USEN | あり | URLセーフ短縮形式 |
+| `UsiExporter` | USI | なし | position コマンド文字列。本譜のみ（`KifuBranchTree::mainRecordLine().usiMoves()`） |
+
+#### KifuExportMetadata — 書き出しの文脈
+
+UIウィジェットへの参照を含まない値。`KifuExportMetadataBuilder` が通常出力と簡易KIF保存で、対局情報の見出し（`collect()`）・対局者名（`resolvePlayerNames()`）・手合割（`handicapLabel()`。開始局面から判定する）を共通に作る。
 
 ```cpp
-struct Deps {
-    QWidget* parentWidget;                 // 保存ダイアログの親
-    GameRecordModel* gameRecord;           // 棋譜（必須）
-    GameInfoPane* gameInfoPane;            // 対局情報
-    const MatchTimeRecord* timeRecord;     // 持ち時間と開始・終了の日時
-    ShogiGameController* gameController;   // 盤（局面のコピー）
-    const AppState* state;                 // 対局者
-    const KifuNavigationState* navState;   // 表示中の手（局面のコピー・現在の手までのコピー）
+struct KifuExportMetadata {
+    bool gameInfoProvided = false;         // 空の編集結果も明示できる
+    QList<KifGameInfoItem> gameInfoItems;  // 対局情報
+    QString startSfen;                     // 開始局面SFEN
+    MatchPlayers players;                  // 対局情報が無いときに書く対局者（人間・エンジンと名前）
+    TimeControl timeControl;               // 持ち時間（CSA出力用。双方とも時間制限がなければ書かない）
+    QDateTime gameStartDateTime, gameEndDateTime;
 };
 ```
 
-依存は起動時に `MainWindowComposer` が `Deps` として渡す。対局者（最後に始めた対局の `AppState::players`）は値を写さず、書き出すたびに `AppState` から読む。既定の保存ファイル名もこの対局者から作る。開始局面は分岐ツリーのルート（`GameRecordModel::initialSfenForExport()`）から取り、表示中の手数は分岐ツリーのカーソル（`KifuNavigationState::currentPly()`）から取る。
-書き出しの文脈（対局情報・開始局面・対局者・持ち時間・開始と終了の日時）は `buildExportContext()` で1回だけ組み立て、`exportLines(KifuFormat)` が形式に応じた `GameRecordModel::toXxxLines()` を呼ぶ。
+GUI では `KifuExport::metadataOf()` が書き出すたびに文書（対局情報・分岐ツリーの開始局面・対局者・`MatchTimeRecord`）から組み立てる。CLI の変換は読み込んだ棋譜の対局情報と開始局面から作る。
 
-#### 主要メソッド
+#### KifuFileController — 開く・保存・貼り付け・コピー
+
+開いている棋譜の文書（`KifuDocument`）とファイルをつなぐ ui 層のクラス。読み込み（ファイル・貼り付け・局面）と保存（名前を付けて・上書き・自動）と、棋譜・局面のクリップボードへのコピーを受け持つ。メニュー項目は `MenuActionsWiring`（`wireFileMenu`・`wireEditMenu`）がつなぐ。
+
+```cpp
+struct Deps {
+    QWidget* parentWidget;                          // ダイアログの親（必須）
+    KifuDocument* document;                         // 開いている棋譜（必須）
+    KifuLoadCoordinator* loadCoordinator;           // 読み込み（全部の読み込みで1つを使い回す。必須）
+    ShogiGameController* gameController;            // 盤（局面のコピー。必須）
+    const KifuNavigationState* navState;            // 表示中の手（局面のコピー・現在の手までのコピー。必須）
+    std::function<void()> clearUiBeforeKifuLoad;    // 棋譜を読み込む前に前の対局のログ・グラフ・コメントを消す
+};
+```
+
+対局者・上書き保存先・開始局面は値を写さず、そのつど文書から読む。既定の保存ファイル名は文書の対局者（`KifuDocument::players()`）と日時から作る。
 
 | カテゴリ | メソッド | 説明 |
 |---------|---------|------|
-| ファイル保存 | `saveToFile()` | ダイアログ表示 → 全形式で保存 |
-| ファイル保存 | `overwriteFile(path)` | 上書き保存 |
-| ファイル保存 | `saveToPathWithoutDialogs(path, errorText)` | ダイアログを出さずに保存（自動化 API 用） |
-| ファイル保存 | `autoSaveToDir(dir, extension)` | 指定ディレクトリへ自動保存 |
-| 出力 | `exportLines(format)` | 指定形式の出力行を作る（ファイルに書かない） |
-| クリップボード | `copyKifToClipboard()` | KIF形式でコピー |
-| クリップボード | `copyKi2ToClipboard()` | KI2形式でコピー |
-| クリップボード | `copyCsaToClipboard()` | CSA形式でコピー |
-| クリップボード | `copyJkfToClipboard()` | JKF形式でコピー |
-| クリップボード | `copyUsenToClipboard()` | USEN形式でコピー |
-| クリップボード | `copyUsiToClipboard()` | USI形式（全手）でコピー |
+| 読み込み | `chooseAndLoadKifuFile()` | ファイルを選び、未保存の確認をしてから非同期に読む（進捗ダイアログ） |
+| 読み込み | `pasteKifuFromClipboard()` / `onKifuPasteImportRequested(content)` | 貼り付けダイアログを開く／取り込む |
+| 読み込み | `onSfenCollectionPositionSelected(sfen)` | SFEN局面集で選んだ局面を反映する |
+| 読み込み | `loadKifuFile(path)` / `loadKifuText(content)` / `applySfenPosition(sfen)` | 自動化 API 用（ダイアログなし・同期） |
+| 保存 | `saveKifuToFile()` | 名前を付けて保存（`KifuSaveCoordinator::saveViaDialog()`） |
+| 保存 | `overwriteKifuFile()` | 上書き保存（上書き保存先が無ければ名前を付けて保存） |
+| 保存 | `autoSaveKifuToFile(dir)` / `autoSaveKifu(dir, extension)` | 対局の終局時の自動保存（同じ名前があれば連番を付ける） |
+| 保存 | `saveKifuToPath(path, errorText)` | ダイアログを出さずに保存（自動化 API 用） |
+| 確認 | `confirmDiscardUnsaved()` / `hasUnsavedChanges()` | 未保存の確認（`KifuDocument::isModified()`） |
+| 出力 | `exportLines(format)` | `KifuExport::lines(*document, format)`（ファイルに書かない） |
+| クリップボード | `copyKifToClipboard()` / `copyKi2ToClipboard()` / `copyCsaToClipboard()` / `copyJkfToClipboard()` / `copyUsenToClipboard()` / `copyUsiToClipboard()` | 棋譜全体を各形式でコピー（CSA・USI は本譜のみ） |
 | クリップボード | `copyUsiCurrentToClipboard()` | USI形式（表示中の手順の現在の手まで）でコピー |
-| クリップボード | `copySfenToClipboard()` | SFEN（現在局面）をコピー |
-| クリップボード | `copyBodToClipboard()` | BOD形式（現在局面）をコピー |
+| クリップボード | `copySfenToClipboard()` / `copyBodToClipboard()` | 盤の局面を SFEN・BOD でコピー（BOD の下手・上手は `KifuDocument::usesHandicapNames()`） |
 
-ステータスバーに出す知らせは `statusMessage(message, timeout)` で通知する。
+保存の形式はどれも拡張子で決める（`KifuSaveFile::saveFormatForPath()`）。保存に成功すると `KifuDocument::markSaved(path)` で今の内容を保存した時点にする。
+
+読み込みの後始末（上書き保存先と未保存の状態）は、ダイアログからの非同期の読み込み（`KifuLoadCoordinator::loadFinished` → `onAsyncLoadFinished()`）も自動化 API の同期の読み込みも、1つの関数 `finishLoad(success, source, path)` で行う。読み込んだものの出どころ（`Source`）で後始末が決まる。
+
+| `Source` | 読み込んだもの | 後始末 |
+|---------|-------------|-------|
+| `File` | 棋譜ファイル | `markSaved(path)`（上書き保存先にし、変更なしとする） |
+| `Text` | 貼り付けた棋譜 | `markUnsavedContent()`（未保存。上書き保存先なし） |
+| `Position` | 自動化 API で反映した局面 | `markUnsavedContent()` |
+| `Collection` | 局面集から反映した局面 | 何もしない（局面集に残っているので変更なし。上書き保存先なし） |
+
+自動化 API のテキストの読み込み（`loadKifuText()`）は `finishLoad()` を通らず、`markUnsavedContent()` だけを直接呼ぶ（貼り付けダイアログとステータスバーの知らせは出さない）。
+
+ステータスバーに出す知らせは `statusMessage(message, timeout)` で通知し、合成ルートが `QStatusBar::showMessage` につなぐ。
 
 ### 8.10 KifuNavigationState — ナビゲーション状態
 
@@ -4949,7 +5035,7 @@ CandidateArrowPresenter::refresh()
 | `engines` | `EngineLifecycleManager*` | — | 解析のエンジンを置く枠 E1 |
 | `navState` | `const KifuNavigationState*` | — | 解析する手順（表示中の手順）と分岐ライン番号 |
 | `recordModel` | `const KifuRecordListModel*` | — | 結果の表に出す手の表記（手数・分岐の印付き）を棋譜欄から取る |
-| `gameInfo` | `const GameInfoPane*` | — | 読み筋盤面ダイアログに出す対局者名 |
+| `document` | `const KifuDocument*` | — | 読み筋盤面ダイアログに出す対局者名（対局情報の名前。`KifuDocument::headerPlayerName()`） |
 | `shogiView` | `const ShogiView*` | — | 読み筋盤面ダイアログの向きを本体の盤に合わせる |
 | `navController` | `KifuNavigationController*` | — | 解析中・結果の行を選んだ手へ棋譜を移す（`goToLine`） |
 | `evalChart` | `EvaluationChartWidget*` | — | 評価値グラフ |
@@ -5262,7 +5348,7 @@ graph TB
         end
     end
 
-    Model["Model層\n(GameController, MatchCoordinator,\nGameRecordModel 等)"]
+    Model["Model層\n(GameController, MatchCoordinator,\nKifuDocument 等)"]
     View["View層\n(ShogiView, RecordPane,\nThinkingPanel 等)"]
     MW["MainWindowComposer"]
 
@@ -5362,27 +5448,29 @@ KifuNavigationState::changed
 
 ナビゲーションの操作（ボタン・分岐候補・分岐ツリー・評価値グラフ）は `KifuNavigationController` が受け、表示の更新は行わない。確認でやめたときは `navigationRejected()` を出し、`KifuDisplayPresenter::refresh()` がクリックした行の強調を表示中の手に戻す。
 
-#### PlayerInfoPresenter — 対局者名・対局情報
+#### PlayerInfoPresenter — 対局者名
 
 **ソース**: `src/ui/presenters/playerinfopresenter.h`, `src/ui/presenters/playerinfopresenter.cpp`
 
-対局者名・エンジン名と対局情報を表示先へ反映するプレゼンターである。表示先は、盤の対局者名、対局情報ドック（`GameInfoPane`。このクラスが作って持つ）、通信ログの見出し（E1・E2）、思考タブの2つ目のエンジン欄、検討タブ、評価値グラフ。対局者は `MatchPlayers`（[5.6節](#56-matchplayers--対局者)）で受け取り、`AppState::players` に記録する。
+対局者名・エンジン名を表示先へ反映するプレゼンターである（表示だけ）。表示先は、盤の対局者名、通信ログの見出し（E1・E2）、思考タブの2つ目のエンジン欄、検討タブ、評価値グラフ。対局者（`MatchPlayers`、[5.6節](#56-matchplayers--対局者)）と対局情報は棋譜の文書（`KifuDocument`、8.5節）が持ち、このクラスは読むだけで書き換えない。盤の対局者名は、対局中は対局者、対局していなければ対局情報の名前（初期値は「先手」「後手」）にする。
+
+`Deps` は `document`（`const KifuDocument*`）と `activity`（`const AppActivityState*`。対局中か）が必須で、ほかに `shogiView`・`thinking`・`consideration`・`evalGraph`・`logModel1`・`logModel2`（表示先）を受け取る。
 
 | メソッド・スロット | 説明 |
 |------------------|------|
-| `onMatchPlayersResolved(players)` | 対局開始ダイアログで対局者が決まった（`GameSession` が対局を始める前に呼ぶ）。対局者を `AppState::players` に記録して表示し、対局情報（開始日時・対局者・手合割・持ち時間）を作る。読み込んだ棋譜の途中から続ける対局では、棋譜の対局情報を残し、続けた対局の対局者・日時を分岐の最初の手のメモ（`LiveGameSession::setFirstMoveNote()`）にする |
-| `showMatchPlayers()` | 対局中の対局者（`AppState::players`）を表示する。対局していなければエンジン名を消し、盤には対局情報の名前（初期値は「先手」「後手」）を出す |
+| `showPlayers(players)` | 対局者を出す（`GameSession::startGame()` が `KifuDocument::beginMatch()` の後に呼ぶ。動作状態が対局中になる前） |
+| `showMatchPlayers()` | 対局中なら文書の対局者（`KifuDocument::players()`）を出す。対局していなければエンジン名を消し、盤には対局情報の名前を出す |
+| `syncBoardNamesWithGameInfo()` | 対局情報の名前（`KifuDocument::headerPlayerName()`）を盤に出す（`KifuDocument::headerReset` から。棋譜の置き換え・対局の開始） |
+| `onGameInfoUpdated(items)` | 対局情報欄で反映した対局情報の名前を盤に出す（`GameInfoPane::gameInfoUpdated` から） |
 | `onAnalysisEngineNamesChanged(engine1, engine2)` | 検討・詰み探索のエンジン名を検討タブ・思考タブ・評価値グラフに出す（`AnalysisSession::engineNamesChanged` から） |
-| `onGameInfoLoaded(items)` | 棋譜を読んだ（`KifuLoadCoordinator::gameInfoLoaded` から）。対局情報欄に出して、盤の対局者名を合わせる |
-| `updateGameInfoWithEndTime(endDateTime)` | 終局時の終了日時を対局情報に書く |
 
-手合割は開始局面から `KifuExportMetadataBuilder::handicapLabel()` で求め、駒落ちなら対局情報の見出しを下手・上手にする。通信ログの見出し（E1・E2）にどのエンジン名を出すかは 12.7 節を参照。
+対局情報（開始日時・対局者・手合割・持ち時間・終了日時）を作るのは文書（`KifuDocument::beginMatch()`・`recordMatchEnd()`）で、手合割は開始局面から `KifuExportMetadataBuilder::handicapLabel()` で求め、駒落ちなら対局情報の見出しを下手・上手にする。対局情報欄（`GameInfoPane`）は合成ルートが作り、文書の対局情報を編集する画面としてつなぐ（8.5節）。通信ログの見出し（E1・E2）にどのエンジン名を出すかは 12.7 節を参照。
 
 #### TimeDisplayPresenter — 対局時計
 
 **ソース**: `src/ui/presenters/timedisplaypresenter.h`, `src/ui/presenters/timedisplaypresenter.cpp`
 
-対局時計の表示を管理するプレゼンターである。`MatchCoordinator::timeUpdated` シグナルに接続され、残り時間のフォーマットと表示を行う。時計そのもの（`ShogiClock`）は合成ルートが作り、持ち時間の決まりは `GameSession`（`TimeControlUtil::applyToClock()`、12.8 節）が渡す。対局情報と棋譜に書く持ち時間・開始終了日時は `MatchTimeRecord`（`src/game/`）が持つ。
+対局時計の表示を管理するプレゼンターである。`MatchCoordinator::timeUpdated` シグナルに接続され、残り時間のフォーマットと表示を行う。時計そのもの（`ShogiClock`）は合成ルートが作り、持ち時間の決まりは `GameSession`（`TimeControlUtil::applyToClock()`、12.8 節）が渡す。対局情報と棋譜に書く持ち時間・開始終了日時は棋譜の文書の `MatchTimeRecord`（`src/kifu/`。`KifuDocument::timeRecord()`）が持つ。
 
 | 処理 | 説明 |
 |------|------|
@@ -5486,12 +5574,12 @@ onPvRowClicked(ShogiEngineThinkingModel* model, row)
   ├── 起点の局面が表示中の手順（RecordLine）の何手目かを探し、その直前の局面と、
   │     その局面に至った手（record->lastUsiMove() が空なら RecordLine::usiMove(ply)）を
   │     ハイライトに使う
-  ├── 先手/後手名を決める（最後に始めた対局の AppState::players。名前が無ければ「先手」「後手」）
+  ├── 先手/後手名を決める（最後に始めた対局の対局者 KifuDocument::players()。名前が無ければ「先手」「後手」）
   └── PvBoardDialog を作成・表示
        └── ダイアログ閉じた時 → pvDialogClosed(model) シグナル（表の選択を外す）
 ```
 
-`Deps` は表示中の手順を読む `KifuNavigationState`、共有状態 `AppState`（対局者）、盤の反転状態を読む `ShogiView` へのポインタを持つ。
+`Deps` は表示中の手順を読む `KifuNavigationState`、対局者名を読む棋譜の文書 `KifuDocument`（`const`）、盤の反転状態を読む `ShogiView` へのポインタを持つ。
 
 #### その他のControllers
 
@@ -5567,7 +5655,7 @@ void wire(const Deps& deps);
 wire()
   ├── wireFileMenu     → MainWindowActions（新規・終了）、KifuFileController（開く・保存・上書き）、
   │                      ImageExportController（盤・評価値グラフの画像）
-  ├── wireEditMenu     → KifuExportController（棋譜・局面のコピー）、KifuFileController（貼り付け）、
+  ├── wireEditMenu     → KifuFileController（棋譜・局面のコピー、貼り付け）、
   │                      DialogLauncher（局面集）、ImageExportController（画像のコピー）、
   │                      MainWindowActions（局面編集の開始）、PositionEditCoordinator（局面編集の終了）
   ├── wireDisplayMenu  → MainWindowAppearanceController（盤の拡大・縮小・反転、ツールバー）、
@@ -5624,13 +5712,14 @@ CsaGameSession のコンストラクタ
 
 **ソース**: `src/ui/presenters/playerinfopresenter.h`, `src/ui/presenters/playerinfopresenter.cpp`
 
-対局者情報には Wiring クラスがない。`PlayerInfoPresenter`（10.2 節）が対局情報ドック（`GameInfoPane`）を作って持ち、知らせの受け手として直接つながる。
+対局者情報には Wiring クラスがない。`PlayerInfoPresenter`（10.2 節）は棋譜の文書（`KifuDocument`）の対局者と対局情報を読み、知らせの受け手として直接つながる。対局情報ドック（`GameInfoPane`）は合成ルートが作り、文書の対局情報を編集する画面としてつなぐ（8.5 節）。
 
 | 接続 | つなぐ場所 |
 |------|-----------|
-| `GameSession` が対局を始める前に `onMatchPlayersResolved()` を呼ぶ | `GameSession`（`src/app/gamesession.cpp`） |
+| `GameSession` が `KifuDocument::beginMatch()` の後に `showPlayers(players)` を呼ぶ | `GameSession`（`src/app/gamesession.cpp`） |
 | `AnalysisSession::engineNamesChanged` → `onAnalysisEngineNamesChanged()` | `MainWindowComposer::connectAnalysisAndUi()` |
-| `KifuLoadCoordinator::gameInfoLoaded` → `onGameInfoLoaded()` | `MainWindowComposer::connectRecord()` |
+| `KifuDocument::headerReset` → `syncBoardNamesWithGameInfo()` | `MainWindowComposer::connectRecord()` |
+| `GameInfoPane::gameInfoUpdated` → `onGameInfoUpdated()` | `MainWindowComposer::connectRecord()` |
 
 #### その他の接続
 
@@ -5652,10 +5741,9 @@ Coordinators は、複数のオブジェクトをまたぐ複雑な処理フロ�
 | Coordinator | ソース | 役割 |
 |------------|--------|------|
 | `DialogLauncher` | `dialoglauncher.h` | メニューから開くダイアログ（エンジン設定・CSA通信対局・詰将棋・局面集・持将棋・入玉宣言・駒音・盤の外観・文字の大きさなど）を、必要な部品を渡して開く。成り・不成の選択（`choosePromotion()`）も受け持つ |
-| `KifuLoadCoordinator` | `kifuloadcoordinator.h` | 棋譜ファイル・貼り付けた棋譜・局面を読み、分岐ツリーを作り直す |
-| `KifuFileController` | `kifufilecontroller.h` | 棋譜ファイルの開く・保存・上書き・貼り付け・自動保存の UI フロー（第8章） |
+| `KifuLoadCoordinator` | `kifuloadcoordinator.h` | 棋譜ファイル・貼り付けた棋譜・局面を読み、棋譜の文書（`KifuDocument`）を置き換える |
+| `KifuFileController` | `kifufilecontroller.h` | 棋譜の開く・保存・上書き・自動保存・貼り付けと、棋譜・局面のクリップボードへのコピー（第8章） |
 | `KifuSaveCoordinator` | `kifusavecoordinator.h` | 棋譜の保存ダイアログ・未保存の確認（名前空間の関数群） |
-| `KifuExportController` | `kifuexportcontroller.h` | 棋譜を形式ごとの行にして、ファイル・クリップボードへ書き出す |
 | `CsaGameSession` | `csagamesession.h` | CSA 通信対局の開始（待機ダイアログ）と、進行の画面への反映・終局した棋譜の自動保存 |
 | `CommentCoordinator` | `commentcoordinator.h` | 棋譜コメントとしおりの表示・編集（14.5.3） |
 | `PositionEditCoordinator` | `positioneditcoordinator.h` | 局面編集モードの開始/終了フローと関連UIの状態管理 |
@@ -5693,7 +5781,7 @@ Coordinators は、複数のオブジェクトをまたぐ複雑な処理フロ�
 
 **ソース**: `src/ui/coordinators/kifuloadcoordinator.h`, `src/ui/coordinators/kifuloadcoordinator.cpp`
 
-棋譜を読み、棋譜の正本（`KifuBranchTree`）を作り直す Coordinator である。読む処理（`KifuLoadParser`）はワーカースレッドで行い、結果をメインスレッドでツリーに載せる。表示（棋譜欄・分岐・盤）は、ツリーが変わると表示中の手（`KifuNavigationState`）が開始局面へ戻り、それを受けた `KifuDisplayPresenter`・`BoardSyncPresenter` が各自で合わせる。
+棋譜を読み、棋譜の文書（`KifuDocument`。棋譜の正本 `KifuBranchTree` と対局情報）を置き換える Coordinator である。読む処理（`KifuLoadParser`）はワーカースレッドで行い、結果をメインスレッドで文書に載せる。表示（棋譜欄・分岐・盤）は、ツリーが変わると表示中の手（`KifuNavigationState`）が開始局面へ戻り、それを受けた `KifuDisplayPresenter`・`BoardSyncPresenter` が各自で合わせる。
 
 ```
 KifuFileController::chooseAndLoadKifuFile() など（画面からの読み込み）
@@ -5701,10 +5789,12 @@ KifuFileController::chooseAndLoadKifuFile() など（画面からの読み込み
        └── QtConcurrent::run で KifuLoadParser::parseFile / parseText
             ▼ 終わったらメインスレッドで onLoadFinished()
        applyLoadResult(result)
-         ├── 局面だけ（SFEN・BOD）→ loadPositionFromSfen() で開始局面を差し替える
-         └── applyRecord() → KifuBranchTreeBuilder::buildFromKifParseResult() でツリーを作り直す
-              → gameInfoLoaded(items) → PlayerInfoPresenter::onGameInfoLoaded()
-       → loadFinished(success) → UiStatePolicyManager::enableNavigationIfAllowed()
+         ├── 局面だけ（SFEN・BOD）→ loadPositionFromSfen() → KifuDocument::replaceWithPosition(sfen)
+         └── applyRecord() → KifuDocument::replaceWithRecord(record, initialSfen, gameInfo)
+              （KifuBranchTreeBuilder::buildFromKifParseResult() でツリーを作り直し、対局情報を置き換える）
+              → headerReset(items) → GameInfoPane::setGameInfo()・PlayerInfoPresenter::syncBoardNamesWithGameInfo()
+       → loadFinished(success) → KifuFileController::onAsyncLoadFinished() → finishLoad()（上書き保存先・未保存の状態）
+                               → UiStatePolicyManager::enableNavigationIfAllowed()
 ```
 
 同期版（`loadFile()`・`loadText()`・`loadPositionFromSfen()`）は自動化 API とテストが使い、失敗時は `errorOccurred` を出してから `false` を返す。読み込み中に別の読み込みを始めると、前の処理は取り消す（`cancelLoad()`）。
@@ -5718,7 +5808,7 @@ KifuFileController::chooseAndLoadKifuFile() など（画面からの読み込み
 | 処理 | 説明 |
 |------|------|
 | `startGame(selection)` | 待機ダイアログ（`CsaWaitingDialog`）を出して `CsaGameCoordinator::startGame()` を呼び、対局が始まるかエラー・キャンセルまで待つ |
-| `onGameStarted` | 後手なら盤を反転し、`MatchTimeRecord` にサーバーの対局条件を記録し、棋譜と対局情報を作り直して（`prepareRecord`）対局者名を盤に出し、再開局面の既存手順を棋譜へ入れてから動作状態を `DuringCsaGame` にする |
+| `onGameStarted` | 後手なら盤を反転し、棋譜と対局情報を開始局面・対局者名・サーバーの持ち時間で作り直して（`prepareRecord`。実体は `GameSession::beginCsaGameRecord()`）対局者名を盤に出し、再開局面の既存手順を棋譜へ入れてから動作状態を `DuringCsaGame` にする |
 | `onRecordEntryReady` | 着手の棋譜行を `MatchRecordSink::appendRecord()`（実体は `GameSession`）へ渡す |
 | `onEngineScoreUpdated` | 自分のエンジンの評価値を、自分の側の系列に先手から見た値で評価値グラフに描く |
 | `onGameEnded` | 終局日時を記録し（`recordGameEnd`）、設定されていれば棋譜を自動保存（`KifuFileController::autoSaveKifu`）し、動作状態を `Idle` に戻して結果を知らせる |
@@ -5951,7 +6041,7 @@ Urgency::Warn5  → 強い警告色（残5秒・秒読み）
 | BranchTreeManager | QObject | 分岐ツリーのドック | 分岐ツリーを QGraphicsView に描く（`KifuBranchTree` を読むだけの観察者）。構築・入力は `branchtreemanager.cpp`、描画は `branchtreemanager_draw.cpp`。行（変化）の折りたたみと段の割り当ては値型 `BranchTreeLayout`（`branchtreelayout.h/.cpp`）が計算する |
 | EvaluationChartWidget | QWidget | MainWindow 下部（QDockWidget） | Qt Charts による評価値グラフ（2エンジン対応、ゼロライン、カーソル線） |
 | EngineInfoWidget | QWidget | 思考・検討のページ内（エンジンごとの情報欄） | `UsiCommLogModel` の値を1行の表に出す（エンジン名・予想手・探索手・深さ・ノード数・探索局面数/秒・ハッシュ使用率。予想手の列は隠せる）。列幅は保存する |
-| GameInfoPane | QWidget | 対局情報ドック（思考などのドックとタブにまとめる） | 対局情報のツールバー（元に戻す・切り取り・行の追加・反映など）＋ QTableView。中身・編集の履歴・未反映の判定は `GameInfoEditModel`（`src/models/`）。`PlayerInfoPresenter` が作って持つ |
+| GameInfoPane | QWidget | 対局情報ドック（思考などのドックとタブにまとめる） | 対局情報のツールバー（元に戻す・切り取り・行の追加・反映など）＋ QTableView。中身・編集の履歴・未反映の判定は `GameInfoEditModel`（`src/models/`）。合成ルートが作り、棋譜の文書（`KifuDocument`）の対局情報を編集する画面としてつなぐ（文書の `headerReset` で中身を入れ、表が変わると `gameInfoEdited` で文書に返す） |
 | KifuAnalysisResultsDisplay | QObject | モデルデータ（`src/models/`） | 棋譜解析結果の保持（指し手・候補手・評価値・評価値の差・読み筋（漢字・USI）・局面SFEN） |
 | AnalysisResultsPanel | QObject | 棋譜解析の結果ドック | 結果の表・停止ボタン・文字の大きさ。列幅は自分で保存する |
 | MenuWindow | QWidget | メニューのドック（棋譜ドックとタブにまとめる。`src/dialogs/`） | メニュー項目をボタン形式で表示（タブ付き、お気に入り、カスタマイズモード）。作るのは `MenuWindowController` |
@@ -6511,7 +6601,7 @@ CSA通信対局の開始（待機ダイアログ）と、`CsaGameCoordinator` �
 
 - コンストラクタで `CsaGameCoordinator` の各シグナル（`gameStarted`・`gameEnded`・`turnChanged`・`logMessage`・`recordEntryReady`・`engineScoreUpdated`・`moveHighlightRequested`・`errorOccurred`）と、`CsaLogPanel`・`BoardMoveController::csaMoveRequested` を直接つなぐ。棋譜行（`recordEntryReady`）は棋譜の受け手（`MatchRecordSink`。実体は `GameSession`）の `appendRecord()` へ届く
 - `startGame(const CsaGameDialog::Selection&)`: `CsaWaitingDialog` を出して `CsaGameCoordinator::startGame()` を呼び、対局が始まるかエラー・キャンセルまで待つ。呼び出しは `DialogLauncher`（CsaGameDialog で設定を決めた後）
-- 対局開始時: 後手なら盤を反転、`MatchTimeRecord::begin()` で持ち時間と開始日時を置き換え、`prepareRecord` で棋譜と対局情報を作り直し、動作状態（`AppActivityState`）を `DuringCsaGame` にする
+- 対局開始時: 後手なら盤を反転、`prepareRecord(startSfen, black, white, timeControl)`（`GameSession::beginCsaGameRecord()`）で棋譜と対局情報を作り直して対局者・持ち時間・開始日時を棋譜の文書に記録し、動作状態（`AppActivityState`）を `DuringCsaGame` にする
 - 終局時: `recordGameEnd` で終局日時を記録し、設定があれば `KifuFileController::autoSaveKifu()` で棋譜を自動保存、動作状態を `Idle` に戻して結果を表示する
 - 待機ダイアログ（`CsaWaitingDialog`）のログ窓は `CsaLogPanel` を使い、手入力のCSAコマンドは `csaRawCommandRequested` → `CsaGameCoordinator::sendRawCommand` で送る
 
@@ -6701,7 +6791,7 @@ MyDialog::~MyDialog()
 
 **ソース**: `src/ui/presenters/playerinfopresenter.h/.cpp`（クラスの概要は 10.2 節）
 
-対局者名・エンジン名をどこに出すかは、`PlayerInfoPresenter` が対局者（`MatchPlayers`、[5.6節](#56-matchplayers--対局者)）から決める。対局中は最後に始めた対局の対局者（`AppState::players`）を出し、対局していなければ（`AppState::currentMatchPlayers()` が nullptr）エンジン名を消す。
+対局者名・エンジン名をどこに出すかは、`PlayerInfoPresenter` が対局者（`MatchPlayers`、[5.6節](#56-matchplayers--対局者)）から決める。対局中（動作状態が `DuringGame`）は最後に始めた対局の対局者（`KifuDocument::players()`）を出し、対局していなければエンジン名を消す（`PlayerInfoPresenter::showMatchPlayers()`）。
 
 #### 通信ログの見出し（E1・E2）
 
@@ -7154,15 +7244,13 @@ MainWindow のメンバは `ui`・`m_composer`・`m_skipCloseConfirmation`（自
 
 #### AppState — 共有状態
 
-`AppState`（`src/common/appstate.h`）は、部品どうしで共有する状態の唯一の置き場である。部品は組み立て時に `AppState*` を受け取り、使うときに読む（`QString*` のような個々のフィールドへのポインタは渡さない）。部品のメンバに状態のコピーを持たない。
+`AppState`（`src/common/appstate.h`）は、部品どうしで共有する動作状態の唯一の置き場である。部品は組み立て時に `AppState*` を受け取り、使うときに読む（`QString*` のような個々のフィールドへのポインタは渡さない）。部品のメンバに状態のコピーを持たない。
 
 | フィールド | 型 | 役割 |
 |------|----|------|
 | `activity` | `AppActivityState` | アプリの動作状態（`Idle`・`DuringGame`・`DuringAnalysis`・`DuringCsaGame`・`DuringTsumeSearch`・`DuringConsideration`・`DuringPositionEdit`）。変わると `changed()` を出す |
-| `players` | `MatchPlayers` | 最後に始めた対局の対局者（先手・後手のどちらを人間・エンジンが指すかと名前） |
-| `saveFileName` | `QString` | 上書き保存先（読み込み成功時に更新、貼り付け時にクリア） |
 
-`currentMatchPlayers()` は、対局中（`activity` が `DuringGame`）なら `players` を、それ以外は `nullptr` を返す（検討・解析・通信対局のエンジンは対局者ではない）。
+フィールドは `activity` だけである。棋譜に付く状態（対局情報・最後に始めた対局の対局者・持ち時間と開始・終了の日時・上書き保存先・未保存かどうか）は棋譜の文書 `KifuDocument`（8.5節）が持つ。文書を置き換える操作（新規・読み込み）で一緒に消えるので、前の対局者や保存先が次の棋譜に残らない。対局者を表示するのはローカル対局中（`DuringGame`）だけである（検討・解析・通信対局のエンジンは対局者ではない）。
 
 開始局面・表示中の局面・表示中の手数は `AppState` に持たない。棋譜の正本は分岐ツリー（`KifuBranchTree`）で、表示中の手は `KifuNavigationState`（`currentNode()`・`currentPly()`・`currentSfen()`）が持つ。対局中の手順は司令塔（`MatchCoordinator::record()`、`RecordLine`）が持つ。手番は `ShogiBoard` だけが持つ。盤の手前に表示している側は `ShogiView::flipMode()` から求める。
 
@@ -7172,13 +7260,13 @@ MainWindow のメンバは `ui`・`m_composer`・`m_skipCloseConfirmation`（自
 
 | グループ | 主なメンバ |
 |---------|-----------|
-| 棋譜の正本 | `branchTree`（`KifuBranchTree`）・`navState`（`KifuNavigationState`）・`liveGameSession`・`kifuNavController`・`gameRecord`（`GameRecordModel`） |
+| 棋譜の正本 | `branchTree`（`KifuBranchTree`）・`navState`（`KifuNavigationState`）・`liveGameSession`・`kifuNavController`・`document`（`KifuDocument`。分岐ツリーの直後に作る） |
 | モデル | `kifuRecord`・`kifuBranch`・`thinking1/2`・`consideration`・`analysis`・`commLog1/2` |
-| 盤・時計 | `gameController`（`ShogiGameController`）・`shogiView`・`boardController`（`BoardInteractionController`）・`boardMoves`（`BoardMoveController`）・`boardSync`（`BoardSyncPresenter`）・`posEdit`・`posEditCoordinator`・`clock`・`timeRecord`・`timePresenter` |
+| 盤・時計 | `gameController`（`ShogiGameController`）・`shogiView`・`boardController`（`BoardInteractionController`）・`boardMoves`（`BoardMoveController`）・`boardSync`（`BoardSyncPresenter`）・`posEdit`・`posEditCoordinator`・`clock`・`timePresenter` |
 | 画面部品 | `recordPane`・`thinkingPanel`・`considerationTab`・`usiLog`・`csaLog`・`commentEditor`・`branchTreeView`・`evalChart`・`gameInfoPane`・`docks`（`DockWidgets`、12 個のドック） |
 | 棋譜の表示と編集 | `kifuDisplay`（`KifuDisplayPresenter`）・`branchEdit`（`BranchTreeEditController`）・`commentCoordinator` |
 | 対局・検討・通信対局 | `engines`（`EngineLifecycleManager`。エンジンの枠 E1・E2 を対局・検討・棋譜解析・CSA 通信対局で共有）・`match`（`MatchCoordinator`）・`analysisSession`（`AnalysisSession`）・`consecutiveGames`（`ConsecutiveGameSeries`）・`csaGame`（`CsaGameCoordinator`）・`gameSession`（`GameSession`。対局の棋譜の受け手）・`csaSession`（`CsaGameSession`）・`humanTurnPolicy`・`sessionReset`（`SessionResetCoordinator`） |
-| 棋譜のファイル | `kifuLoadCoordinator`・`kifuExportController`・`kifuFileController` |
+| 棋譜のファイル | `kifuLoadCoordinator`・`kifuFileController` |
 | 表示 | `appearance`・`playerInfo`（`PlayerInfoPresenter`）・`engineDisplay`・`evalGraph`・`arrows`（`CandidateArrowPresenter`）・`analysisResults`・`dockCreationService`・`dockLayoutManager`・`uiStatePolicy`・`notificationService` |
 | 利用者の操作 | `actions`（`MainWindowActions`）・`dialogLauncher`・`kifuAnalysis`・`tsumeSearch`・`considerationUi`・`pvClickController`・`usiCommandController`・`joseki`・`menuWindowController`・`languageController`・`images`・`settingsReset` など |
 | 自動化 | `automationServer`（`--automation` 指定時だけ） |
@@ -7192,7 +7280,7 @@ MainWindow のメンバは `ui`・`m_composer`・`m_skipCloseConfirmation`（自
 `MainWindowComposer` は部品を依存する部品より後に作り、依存はコンストラクタの `Deps` で渡す。共通の規則は [4.2節](#42-合成ルートでの組み立て) を参照。
 
 - **依存はポインタで渡す**: 部品は `Deps` 構造体で、ほかの部品のポインタを受け取る。たとえば `GameSession::Deps` は `state`・`match`・`analysis`・`consecutive`・`reset`・`navState`・`liveSession` などをポインタで持つ。生成前の部品を指すための `std::function<X*()>` のゲッターは使わない。
-- **状態は AppState を指す**: 共有状態を使う部品は `AppState*` を受け取り（`GameSession`・`KifuFileController`・`KifuExportController`・`PlayerInfoPresenter`・`PvClickController`・`AutomationContext` など）、使うときに読む。動作状態だけを使う部品は `&m_state.activity`（`AppActivityState*`）を受け取る（`MatchCoordinator`・`AnalysisSession`・`UiStatePolicyManager`・`HumanTurnPolicy`・`BoardMoveController`・`DialogLauncher`・`CsaGameSession` など）。
+- **状態は AppState を指す**: 共有状態を使う部品は `AppState*` を受け取り（`GameSession`・`AutomationContext`）、使うときに読む。棋譜に付く状態（対局者・上書き保存先・対局情報）を使う部品は棋譜の文書 `KifuDocument*` を受け取る（`GameSession`・`KifuFileController`・`PlayerInfoPresenter`・`PvClickController`・`KifuAnalysisController`・`MatchCoordinator`・`AutomationContext` など。読むだけの部品は `const`）。動作状態だけを使う部品は `&m_state.activity`（`AppActivityState*`）を受け取る（`MatchCoordinator`・`AnalysisSession`・`UiStatePolicyManager`・`HumanTurnPolicy`・`BoardMoveController`・`DialogLauncher`・`CsaGameSession` など）。
 - **作った後に渡すもの**: 司令塔（`MatchCoordinator`）は棋譜の受け手の `GameSession` より先に作るので、受け手だけ `createSessions()` で `setRecordSink()` によって渡す。ほかに、`BoardInteractionController::setIsHumanTurnCallback()`・`KifuNavigationController::setLeaveGuard()`・`ShogiGameController::setPromotionChooser()` が、できあがった部品の判定関数を受け取る。
 - **`std::function` はフックだけ**: 上位へ操作を委ねるフック（`CsaGameSession::Deps` の `prepareRecord`・`recordGameEnd`、`KifuFileController::Deps::clearUiBeforeKifuLoad`、`UiStatePolicyManager::Deps::localGameHasHuman`、`DialogLauncher::Deps::usesHandicapNames`、`JosekiWindowController::Deps::isHumanTurnNow` など）と、層の境界をまたぐ関数（`AutomationContext` のお気に入りの取得・設定）にだけ使う。司令塔（`MatchCoordinator`）はフックを持たず、シグナルと棋譜の受け手（`MatchRecordSink`）で上位に知らせる（[4.3節](#43-シグナルと-stdfunction-コールバック)）。
 
@@ -7291,7 +7379,7 @@ createDocks();   // 各ドックを作り、DockLayoutManager に登録する
 
 **ファイル**: `src/ui/coordinators/commentcoordinator.h/.cpp`
 
-表示中の手のコメント・しおりの表示と編集を MainWindow から分離したクラス。コメント・しおりの正本は分岐ツリーのノードで、書き込みは `GameRecordModel` を通す（未保存の印と通知のため）。
+表示中の手のコメント・しおりの表示と編集を MainWindow から分離したクラス。コメント・しおりの正本は分岐ツリーのノードで、書き込みは棋譜の文書 `KifuDocument`（`setComment()`・`setBookmark()`。`CommentCoordinator::Deps::document`）を通す（未保存の判定と通知のため）。
 
 **提供機能**:
 - `showCurrentComment()` — `KifuNavigationState::changed()` を受けて、表示中の手のコメントをコメント欄（`CommentEditorPanel`）に出す
@@ -7354,7 +7442,7 @@ MainWindow は `.ui` の保持と閉じるときの処理だけを持ち、ロ�
 1. **ラッパーメソッドを置かない**: MainWindow が単にメソッド呼び出しを中継するだけのラッパーは作らず、`connect()` を担当のクラスへ直接つなぐ
 2. **デッドコードを残さない**: どのシグナルにも接続されておらず、直接呼び出しもないスロットは削除する
 3. **起動時に全部作る**: 遅延生成（`ensure*()`）は使わず、合成ルートが全部品を作ってからポインタで結ぶ。`tst_structural_kpi` の `appLayerHasNoLazyEnsure` が app 層に `ensure*` が戻らないことを確かめる
-4. **状態は1か所**: 状態のコピーを持たず、動作状態は `AppState::activity`、対局者は司令塔の `MatchStartOptions::players`（開始時に `AppState::players` へ写す）、表示中の手は `KifuNavigationState`、手番は `ShogiBoard` だけを正とする
+4. **状態は1か所**: 状態のコピーを持たず、動作状態は `AppState::activity`、対局者は司令塔の `MatchStartOptions::players`（開始時に `KifuDocument::beginMatch()` で棋譜の文書に記録する）、上書き保存先と対局情報は `KifuDocument`、表示中の手は `KifuNavigationState`、手番は `ShogiBoard` だけを正とする
 5. **状態表による UI の有効・無効**: 動作状態ごとのメニュー・ボタンの有効・無効は `UiStatePolicyManager` の状態表に置く
 
 <!-- chapter-14-end -->
@@ -7379,6 +7467,7 @@ sequenceDiagram
     participant SGD as StartGameDialog
     participant GSB as GameStartOptionsBuilder
     participant SRC as SessionResetCoordinator
+    participant DOC as KifuDocument
     participant MC as MatchCoordinator
     participant ST as Strategy
     participant USI as Usi
@@ -7394,8 +7483,10 @@ sequenceDiagram
     GS->>GS: startGame(plan, beginSeries=true)
     GS->>SRC: prepareGameStart(plan.preparation)
     Note over SRC: ライブ対局を捨てて開始ノードから始め直す<br/>エンジン表示・評価値グラフ・開始日時を整理
-    Note over GS: 時計に持ち時間を設定（TimeControlUtil::applyToClock）<br/>MatchTimeRecord::begin() → 時計の表示
-    GS->>GS: PlayerInfoPresenter::onMatchPlayersResolved()<br/>（対局者名・対局情報の表示）
+    Note over GS: 時計に持ち時間を設定（TimeControlUtil::applyToClock）<br/>→ 時計の表示
+    GS->>DOC: beginMatch(players, time, continuesRecord)
+    Note over DOC: 対局者・持ち時間・開始日時を記録し、<br/>対局情報を作り直す（headerReset → 対局情報欄・盤の対局者名）
+    GS->>GS: PlayerInfoPresenter::showPlayers()<br/>（対局者名・エンジン名の表示）
     GS->>MC: start(MatchStartOptions)
     Note over MC: 動作状態を DuringGame にし、<br/>盤を開始局面にする
     MC->>ST: 対局者の組で Strategy を作って start()
@@ -7413,10 +7504,11 @@ sequenceDiagram
 
 | クラス | 責務 |
 |--------|------|
-| `GameSession` | メニューの「対局」を受けてダイアログを出し、開始の手順（棋譜を整える → 時計 → 対局者の表示 → 対局 → 初手）を `startGame()` で順に行う（`src/app/`） |
+| `GameSession` | メニューの「対局」を受けてダイアログを出し、開始の手順（棋譜を整える → 時計 → 棋譜の文書への対局の記録 → 対局者の表示 → 対局 → 初手）を `startGame()` で順に行う（`src/app/`） |
 | `StartGameDialog` | 対局者（人間・エンジン）・時間設定・開始局面のUI入力を収集 |
 | `GameStartOptionsBuilder` | ダイアログの値と表示中の手順から `GameStartPlan` を作る。状態を持たず、共有状態には触れない（`src/game/`） |
 | `SessionResetCoordinator` | 開始前の棋譜と表示の作り直し（`prepareGameStart()`。盤面・棋譜・評価値グラフ・エンジン表示など）（`src/app/`） |
+| `KifuDocument` | 対局者・持ち時間・開始日時を記録し、対局情報（対局日・開始日時・対局者・手合割・持ち時間）を作り直す（`beginMatch()`。`src/kifu/`） |
 | `MatchCoordinator` | 対局進行の司令塔。対局の手順と対局者を持ち、対局者の組で Strategy を作る。時計を動かして初手の思考を頼む |
 | `Usi` | USIプロトコル通信ファサード。エンジンプロセスの起動と初期化を実行 |
 
@@ -7526,6 +7618,7 @@ sequenceDiagram
     participant SRC as SessionResetCoordinator
     participant KLC as KifuLoadCoordinator
     participant KLP as KifuLoadParser
+    participant DOC as KifuDocument
     participant KBT as KifuBranchTree
     participant NS as KifuNavigationState
     participant KDP as KifuDisplayPresenter
@@ -7539,21 +7632,25 @@ sequenceDiagram
     KLP-->>KLC: KifuLoadResult
     KLC->>KLC: applyLoadResult()（メインスレッド）
 
-    KLC->>KBT: KifuBranchTreeBuilder::buildFromKifParseResult()
+    KLC->>DOC: replaceWithRecord(record, initialSfen, gameInfo)
+    DOC->>KBT: KifuBranchTreeBuilder::buildFromKifParseResult()
     Note over KBT: 本譜ラインをルートに設定<br/>変化手順を子ノードとして追加<br/>（棋譜の正本。作り終えてから変更を1回通知）
     KBT-->>NS: 表示中の手が開始局面へ戻り changed() を出す
     NS-->>KDP: 棋譜欄・分岐候補欄・分岐ツリーに表示中の手と手順を映す
     NS-->>BSP: 開始局面を盤面に描画
-    KLC-->>KFC: gameInfoLoaded（→ PlayerInfoPresenter::onGameInfoLoaded）/ loadFinished
+    Note over DOC: 対局情報を読んだものにし、前の対局者・持ち時間・<br/>上書き保存先を消す（headerReset → 対局情報欄・盤の対局者名）
+    KLC-->>KFC: loadFinished
+    KFC->>DOC: markSaved(filePath)（finishLoad()。上書き保存先にし、変更なしとする）
 ```
 
 **主要クラスの役割:**
 
 | クラス | 責務 |
 |--------|------|
-| `KifuFileController` | 「棋譜を開く」などのファイル操作の入口。進行ダイアログの表示と、読み込み後の上書き保存先の設定（`src/ui/coordinators/`） |
+| `KifuFileController` | 「棋譜を開く」などのファイル操作の入口。進行ダイアログの表示と、読み込み後の上書き保存先・未保存の状態の設定（`finishLoad()`。`src/ui/coordinators/`） |
 | `SessionResetCoordinator` | 棋譜の読み込み前に、エンジンの表示・評価値グラフを作り直す（`src/app/`） |
-| `KifuLoadCoordinator` | 棋譜ファイル・貼り付け・局面を読み、分岐ツリーを作り直す。パースの起動（別スレッド）と結果の適用（`src/ui/coordinators/`） |
+| `KifuLoadCoordinator` | 棋譜ファイル・貼り付け・局面を読み、棋譜の文書を置き換える。パースの起動（別スレッド）と結果の適用（`src/ui/coordinators/`） |
+| `KifuDocument` | 開いている棋譜の文書。分岐ツリーの作り直しと対局情報の置き換え、前の棋譜の対局者・持ち時間・上書き保存先の消去（`src/kifu/`） |
 | `KifuLoadParser` | 形式判定、ファイルの文字コードの判別、フォーマット変換器への振り分け。結果を `KifuLoadResult` にまとめる（`src/kifu/`） |
 | `KifToSfenConverter` | KIF形式のテキストの解析（`parse()`。中身は KI2 と共有する `KifTextParser`）。手合割→SFEN変換、指し手→USI変換、変化抽出 |
 | `KifLineBuilder` | 各形式のパーサが手順を組み立てる部品。手を指しながら局面を進め、棋譜の行（`RecordEntry`）を作る（`src/kifu/formats/`） |
@@ -8904,7 +9001,6 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | GameInfoEditModel | C | models | 対局情報の表の中身・編集の履歴・未反映の判定 | 第11章 |
 | GameInfoPane | C | widgets | 対局情報ドックの中身（ツールバー＋表） | 第11章 |
 | GameModeStrategy | C | game | 対局モード別の手番の進め方（人間対人間・人間対エンジン・エンジン対エンジン） | 第6章 |
-| GameRecordModel | C | kifu | 棋譜データモデル（コメントのSingle Source of Truth） | 第8章 |
 | GameSession | C | app | 対局の開始・終局・再開・待った・新規と、対局の手順の棋譜への追記（`MatchRecordSink`） | 第6章, 第15章 |
 | GameSettings | NS | services | 対局・棋譜の設定の宣言の表 | 第12章 |
 | GameStartOptionsBuilder | C | game | 対局開始ダイアログの値から、対局の開始の計画（局面・対局者・時間・連続対局）を作る | 第6章 |
@@ -8947,12 +9043,13 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | KifuBranchTreeBuilder | C | kifu | 分岐ツリー構築ビルダー | 第8章 |
 | KifuConversionService | C | automation | 棋譜ファイル・文字列を各形式へ変換する GUI 非依存サービス（CLI・自動化 API と共有） | 第8章 |
 | KifuDisplayPresenter | C | ui/presenters | 棋譜欄・分岐候補欄・分岐ツリーに、表示中の手と手順を映す | 第10章 |
-| KifuExportController | C | ui/coordinators | 棋譜の保存・上書き・自動保存・クリップボードへのコピー | 第8章 |
+| KifuDocument | C | kifu | 開いている棋譜の文書（分岐ツリー・対局情報・対局の記録・上書き保存先。未保存は保存した時点との比較で求める） | 第8章 |
+| KifuExport | NS | kifu | 形式ごとの書き出しの表（GUI の保存・コピーと CLI の変換で共通） | 第8章 |
 | KifuExportMetadataBuilder | NS | kifu | UI に依存しない棋譜出力メタデータとヘッダの生成 | 第8章 |
-| KifuFileController | C | ui/coordinators | 棋譜ファイルの操作（開く・保存・上書き・貼り付け・自動保存） | 第3章, 第8章 |
+| KifuFileController | C | ui/coordinators | 棋譜の開く・保存・上書き・自動保存・貼り付けと、棋譜・局面のクリップボードへのコピー | 第3章, 第8章 |
 | KifuFormats | NS | kifu | 棋譜の形式（読み込み・保存・変換で共通の enum）と判定 | 第8章 |
 | KifuIoService | NS | kifu | 棋譜ファイルI/Oサービス | 第8章 |
-| KifuLoadCoordinator | C | ui/coordinators | 棋譜ファイル・貼り付け・局面を読み、分岐ツリーを作り直す（読み込みの実体は `KifuLoadParser`） | 第8章, 第15章 |
+| KifuLoadCoordinator | C | ui/coordinators | 棋譜ファイル・貼り付け・局面を読み、棋譜の文書（`KifuDocument`）を置き換える（読み込みの実体は `KifuLoadParser`） | 第8章, 第15章 |
 | KifuLoadParser | NS | kifu | 棋譜の読み込み口（ファイルの文字コードの判別と、形式ごとの変換器への振り分け） | 第8章 |
 | KifuNavigationController | C | navigation | 棋譜ナビゲーション操作（ボタン・分岐）の処理 | 第13章 |
 | KifuNavigationState | C | kifu | 表示中のノードと手順。変わると `changed()` を出す | 第8章, 第13章 |
@@ -8976,7 +9073,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | MatchSessionState | C | game | 対局の設定と終了状態の持ち主 | 第6章 |
 | MatchStartOptions | S | game | 対局開始の設定（対局者・開始局面・手順・エンジンのパス） | 第6章 |
 | MatchStrategyHost | C | game | Strategy が司令塔に頼む操作のインターフェース | 第6章 |
-| MatchTimeRecord | C | game | 対局の持ち時間と開始・終了の日時（対局情報と棋譜に書く記録） | 第6章 |
+| MatchTimeRecord | C | kifu | 対局の持ち時間と開始・終了の日時（棋譜の文書が持ち、対局情報と棋譜に書く記録） | 第6章, 第8章 |
 | MatchTimeSettings | S | game | 対局の時間の決まり（持ち時間・秒読み・加算と、時間切れの扱い） | 第6章 |
 | MateSearchRunner | C | automation | 登録エンジンで詰みを探す実行器（CLI・自動化 API と共有） | 第9章 |
 | MenuActionsWiring | NS | app | メニュー・ツールバーの項目を、処理する部品へつなぐ（シグナルの接続だけ） | 第4章, 第10章 |
@@ -9104,7 +9201,6 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | humanvsenginestrategy | 第6章 | 人間対エンジンの Strategy |
 | humanvshumanstrategy | 第6章 | 人間対人間の Strategy |
 | interruptedgamestate | 第6章 | 中断したローカル対局の状態（アプリ起動中だけ保持する） |
-| matchtimerecord | 第6章 | 対局の持ち時間と開始・終了の日時（対局情報と棋譜に書く記録） |
 | matchtimesettings | 第6章 | 対局の時間の決まり（持ち時間・秒読み・加算と、時間切れの扱い） |
 
 #### engine/（第7章）
@@ -9129,7 +9225,9 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 
 | ファイル | 解説章 | 内容 |
 |---------|--------|------|
-| gamerecordmodel | 第8章 | 棋譜データモデル |
+| kifudocument | 第8章 | 開いている棋譜の文書（分岐ツリー・対局情報・対局の記録・上書き保存先・未保存の判定） |
+| kifuexport | 第8章 | 形式ごとの書き出しの表 |
+| matchtimerecord | 第6章, 第8章 | 対局の持ち時間と開始・終了の日時（棋譜の文書が持ち、対局情報と棋譜に書く） |
 | kifubranchtree | 第8章 | 分岐ツリー |
 | kifubranchnode | 第8章 | 分岐ノード |
 | kifubranchtreebuilder | 第8章 | ツリー構築 |
@@ -9252,9 +9350,8 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | aboutcoordinator | 第10章 | バージョン情報 |
 | commentcoordinator | 第14章 | コメント調整 |
 | kifuloadcoordinator | 第8章, 第15章 | 棋譜ファイル・貼り付け・局面を読み、分岐ツリーを作り直す |
-| kifufilecontroller | 第8章 | 棋譜ファイルの操作 |
+| kifufilecontroller | 第8章 | 棋譜の開く・保存・上書き・自動保存・貼り付け・クリップボードへのコピー |
 | kifusavecoordinator | 第8章 | 棋譜保存の確認・保存ダイアログ |
-| kifuexportcontroller | 第8章 | 保存・上書き・自動保存・クリップボード |
 | csagamesession | 第10章, 第12章 | 通信対局の開始（待機ダイアログ）と、進行の画面への反映・自動保存 |
 | dockuicoordinator | 第10章 | ドック配置のメニュー（リセット・保存・ロック・保存済み配置）の接続 |
 

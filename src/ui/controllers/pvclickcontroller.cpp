@@ -3,7 +3,7 @@
 
 #include "pvclickcontroller.h"
 
-#include "appstate.h"
+#include "kifudocument.h"
 #include "kifunavigationstate.h"
 #include "logcategories.h"
 #include "pvboarddialog.h"
@@ -52,7 +52,7 @@ void PvClickController::onPvRowClicked(ShogiEngineThinkingModel* model, int row)
     connect(dlg, &QDialog::finished, this, &PvClickController::onPvDialogFinished);
 
     // 対局者名（最後に始めた対局の対局者。名前が無ければ先手・後手）
-    const MatchPlayers players = m_deps.state ? m_deps.state->players : MatchPlayers{};
+    const MatchPlayers players = m_deps.document ? m_deps.document->players() : MatchPlayers{};
     const QString blackName = players.name(Turn::Black);
     const QString whiteName = players.name(Turn::White);
     dlg->setPlayerNames(blackName.isEmpty() ? tr("先手") : blackName, whiteName.isEmpty() ? tr("後手") : whiteName);

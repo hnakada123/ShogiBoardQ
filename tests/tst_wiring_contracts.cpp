@@ -6,7 +6,7 @@
 #include "mainwindow.h"
 #include "mainwindowcomposer.h"
 #include "gamestartoptionsbuilder.h"
-#include "gamerecordmodel.h"
+#include "kifudocument.h"
 #include "kifubranchtree.h"
 #include "kifurecordlistmodel.h"
 #include "livegamesession.h"
@@ -78,9 +78,9 @@ private slots:
         // 名前の通知だけでは活動を開始しない。
         MatchPlayers humanEngine;
         humanEngine.whiteIsEngine = true;
-        p.playerInfo->onMatchPlayersResolved(humanEngine);
+        p.playerInfo->showPlayers(humanEngine);
         QCOMPARE(state.activity.activity(), AppActivityState::Activity::Idle);
-        QVERIFY(!state.currentMatchPlayers());
+        QCOMPARE(p.document->players(), MatchPlayers());
         StartGameDialogData data;
         data.startingPositionNumber = 1;
         data.isHuman1 = data.isHuman2 = true;
@@ -98,8 +98,8 @@ private slots:
         QCOMPARE(p.navState->currentPly(), 0);
         QCOMPARE(p.kifuRecord->rowCount(), 1);
         QCOMPARE(p.navState->currentSfen(), p.match->record().startSfen);
-        QVERIFY(p.gameRecord->isDirty());
-        p.gameRecord->clearDirty();
+        QVERIFY(p.document->isModified());
+        p.document->markSaved(QString());
         m_parts = nullptr;
     }
     void startAndEndUseRealReceivers()
@@ -120,21 +120,21 @@ private slots:
         QVERIFY2(startGame(p, data, &error), qPrintable(error));
         QCOMPARE(p.uiStatePolicy->currentState(), UiStatePolicyManager::AppState::DuringGame);
         QCOMPARE(state.activity.activity(), AppActivityState::Activity::DuringGame);
-        QVERIFY(state.players.humanVsHuman());
-        QCOMPARE(state.players.name(Turn::Black), QStringLiteral("太郎"));
-        QCOMPARE(state.players.name(Turn::White), QStringLiteral("花子"));
+        QVERIFY(p.document->players().humanVsHuman());
+        QCOMPARE(p.document->players().name(Turn::Black), QStringLiteral("太郎"));
+        QCOMPARE(p.document->players().name(Turn::White), QStringLiteral("花子"));
         QVERIFY(p.liveGameSession->isActive());
         QCOMPARE(p.match->clock()->timeControl().black.mainMs, 180000);
-        QCOMPARE(p.timeRecord.timeControl().black.mainMs, 180000);
-        QVERIFY(p.timeRecord.startDateTime().isValid());
+        QCOMPARE(p.document->timeRecord().timeControl().black.mainMs, 180000);
+        QVERIFY(p.document->timeRecord().startDateTime().isValid());
 
         p.gameSession->resign();
         QVERIFY(m_endWasCommitted);
         QCOMPARE(p.kifuRecord->rowCount(), 2);
-        QVERIFY(p.timeRecord.endDateTime().isValid());
+        QVERIFY(p.document->timeRecord().endDateTime().isValid());
         p.gameSession->resign();
         QCOMPARE(p.kifuRecord->rowCount(), 2);
-        p.gameRecord->clearDirty();
+        p.document->markSaved(QString());
     }
     void resetDoesNotStartLiveSession()
     {
@@ -167,7 +167,7 @@ private slots:
         QVERIFY2(startGame(p, data, &error), qPrintable(error));
         QVERIFY(!p.consecutiveGames->shouldStartNextGame());
         p.match->handleBreakOff();
-        p.gameRecord->clearDirty();
+        p.document->markSaved(QString());
     }
 };
 QTEST_MAIN(TestWiringContracts)

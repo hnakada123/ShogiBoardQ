@@ -50,12 +50,13 @@ USEN Files (*.usen)
 - **`KifuFileController`** (`src/ui/coordinators/kifufilecontroller.h/.cpp`) — メニューからの読み込みの窓口
   - `chooseAndLoadKifuFile()` — ファイルを選び、未保存の棋譜を確かめてから読み込む（読み込み中は進捗ダイアログを出し、キャンセルできる）
   - `onSfenCollectionPositionSelected(sfen)` — SFEN局面集で選んだ局面を反映する
-- **`KifuLoadCoordinator`** (`src/ui/coordinators/kifuloadcoordinator.h/.cpp`) — 読み込んだ結果で分岐ツリーを作り直す
+  - 読み込みの後始末（上書き保存先と未保存の状態）は、ダイアログからの非同期の読み込みも自動化 API の同期の読み込みも `finishLoad(success, source, path)` 1つで行う。読み込んだものの出どころ（`Source`）で決まる：棋譜ファイル（`File`）は上書き保存先にして変更なしとし、貼り付けた棋譜（`Text`）と自動化 API で反映した局面（`Position`）は未保存にし、局面集から反映した局面（`Collection`）は変更なしで上書き保存先を持たない（自動化 API のテキストの読み込み `loadKifuText()` は、貼り付けの後始末のうちダイアログとステータスバーを除いた `KifuDocument::markUnsavedContent()` だけを直接呼ぶ）
+- **`KifuLoadCoordinator`** (`src/ui/coordinators/kifuloadcoordinator.h/.cpp`) — 読み込んだ結果を棋譜の文書（`KifuDocument`）に載せる
   - `loadFileAsync(filePath)` / `loadTextAsync(content)` — ワーカーで `KifuLoadParser` を呼び、終わったら `loadFinished` を出す
   - `cancelLoad()` — 読み込み中の処理を捨てる
   - `loadFile(filePath)` / `loadText(content)` — 同期版（自動化 API・テスト）
   - `loadPositionFromSfen(sfen)` — SFEN局面を開始局面にする
-  - 読んだ棋譜の対局情報は `gameInfoLoaded` で知らせる
+  - 棋譜は `KifuDocument::replaceWithRecord(record, startSfen, header)`、局面だけのもの（SFEN・BOD・指し手のない USI）は `KifuDocument::replaceWithPosition(sfen)` で文書を丸ごと置き換える。置き換えると前の棋譜の対局者・持ち時間・上書き保存先は消え、対局情報は文書の `headerReset` で対局情報欄と盤の対局者名に届く
 - **`KifuLoadParser`** (`src/kifu/kifuloadparser.h/.cpp`) — GUI を含まない読み込み口（結果は値 `KifuLoadResult`）
   - `parseFile(path)` — ファイルを1回だけ読み（`readFileText()`：CSA は CSA の文字コード宣言、それ以外は自動判別）、`parseContent()` に渡す
   - `parseContent(content, format)` — `KifuFormat` から形式ごとの `parse()` を表（`parserFor()`）で選んで呼び、結果（`KifuParseOutcome`）を `KifuLoadResult` に写す。指し手のない USI・SFEN と BOD は局面だけを `positionOnly` に返す
@@ -97,21 +98,22 @@ USEN Files (*.usen)
 ### 主要クラス
 
 - **`KifuFileController`** (`src/ui/coordinators/kifufilecontroller.h/.cpp`) — メニューからの保存の窓口
-  - `saveKifuToFile()` — 名前を付けて保存。保存したパスを上書き保存先（`AppState::saveFileName`）にする
-  - `overwriteKifuFile()` — 上書き保存先が無ければ名前を付けて保存する
-  - `autoSaveKifuToFile(saveDir)` — 対局の終局時の自動保存（`MatchCoordinator::autoSaveRequested` から）
-- **`KifuExportController`** (`src/ui/coordinators/kifuexportcontroller.h/.cpp`) — 保存とクリップボードへの書き出し
-  - `saveToFile()` — ダイアログを表示してファイル保存
-  - `overwriteFile(filePath)` — 既存ファイルへの上書き保存
-  - `autoSaveToDir(saveDir, extension)` — 指定ディレクトリへの自動保存（ダイアログなし。名前は対局者と日時から作る）
-  - `saveToPathWithoutDialogs(filePath, errorText)` / `exportLines(format)` — 自動化 API 用
+  - `saveKifuToFile()` — 名前を付けて保存（既定のファイル名は文書の対局者と日時から作る）。保存したら `KifuDocument::markSaved(path)` で今の内容を保存済みにし、保存形式を拡張子で決められるファイルなら上書き保存先（`KifuDocument::filePath()`）にする
+  - `overwriteKifuFile()` — 上書き保存先へ、拡張子で決めた形式で書く。上書き保存先が無ければ名前を付けて保存する
+  - `autoSaveKifuToFile(saveDir)` / `autoSaveKifu(saveDir, extension)` — 対局の終局時の自動保存（`MatchCoordinator::autoSaveRequested` から。ダイアログなし。名前は対局者と日時から作り、同じ名前があれば連番を付ける）
+  - `saveKifuToPath(filePath, errorText)` / `exportLines(format)` — 自動化 API 用（ダイアログを出さない）
+- **`KifuDocument`** (`src/kifu/kifudocument.h/.cpp`) — 開いている棋譜の文書。分岐ツリー・対局情報・対局の記録（対局者・持ち時間・開始と終了の日時）・上書き保存先を持つ
+  - `isModified()` — 未保存かどうか。ツリーの revision・コメントとしおりの変更・対局情報が、最後に保存（または読み込み）した時点と違うか、貼り付けた棋譜などファイルにない内容を読み込んだかで求める（変更のたびに印を付けない）
+  - `markSaved(path)` / `markUnsavedContent()` — 保存した・ファイルから読み込んだ／ファイルにない内容を読み込んだ
 - **`KifuSaveCoordinator`** (`src/ui/coordinators/kifusavecoordinator.h/.cpp`) — 保存で利用者に聞くこと（名前空間）
   - `saveViaDialog()` — 保存ダイアログで全6形式（KIF/KI2/CSA/JKF/USEN/USI）から選ばせる
   - `overwriteExisting()` — `.kif`/`.ki2` に Shift_JIS で表せない文字があれば UTF-8 で保存するか確かめる
   - `confirmDiscardUnsaved()` — 未保存の変更の保存・破棄・キャンセルを確かめる
 - **`KifuSaveFile`** (`src/kifu/kifusavefile.h/.cpp`) — 保存形式の判定と書き出し（文字コードの選択を含む）
-- **`GameRecordModel`** (`src/kifu/gamerecordmodel.h/.cpp`) — 分岐ツリーと対局情報から各形式の行を作る
-  - `toKifLines()`, `toKi2Lines()`, `toCsaLines()`, `toJkfLines()`, `toUsenLines()`, `toUsiLines()`（いずれも `ExportContext` を受け取る）
+- **`KifuExport`** (`src/kifu/kifuexport.h/.cpp`) — 形式ごとの書き出し関数の表（名前空間）
+  - `lines(document, format)` — 文書を `format` の行にする。`metadataOf(document)` で書き出しの文脈（`KifuExportMetadata`：対局情報・開始局面・対局者・持ち時間・開始と終了の日時）を作り、`lines(tree, metadata, format)` に渡す
+  - 表の各関数は `src/kifu/formats/*exporter` の `exportLines(const KifuBranchTree&, const KifuExportMetadata&)`（`KifExporter`・`Ki2Exporter`・`CsaExporter`・`JkfExporter`・`UsenExporter`・`UsiExporter`）。SFEN・BOD は棋譜を書けないので KIF にする
+  - GUI の保存・コピーと CLI の変換（`KifuConversionService`）が同じ表を使う
 - **`BoardImageExporter`** (`src/board/boardimageexporter.h/.cpp`) — 盤面・グラフの画像保存
 
 ---
@@ -138,22 +140,22 @@ USEN Files (*.usen)
 
 | フォーマット | 内容 | メソッド |
 |---|---|---|
-| KIF | 棋譜全体をKIF形式でコピー | `KifuExportController::copyKifToClipboard()` |
-| KI2 | 棋譜全体をKI2形式でコピー | `KifuExportController::copyKi2ToClipboard()` |
-| CSA | 棋譜全体をCSA形式でコピー（分岐は書けないので本譜のみ） | `KifuExportController::copyCsaToClipboard()` |
-| USI（現在の指し手まで） | 表示中の手順の、表示中の手までをUSI形式でコピー | `KifuExportController::copyUsiCurrentToClipboard()` |
-| USI（全て） | 棋譜全体をUSI形式でコピー（分岐は書けないので本譜のみ） | `KifuExportController::copyUsiToClipboard()` |
-| JKF | 棋譜全体をJKF形式でコピー | `KifuExportController::copyJkfToClipboard()` |
-| USEN | 棋譜全体をUSEN形式でコピー | `KifuExportController::copyUsenToClipboard()` |
+| KIF | 棋譜全体をKIF形式でコピー | `KifuFileController::copyKifToClipboard()` |
+| KI2 | 棋譜全体をKI2形式でコピー | `KifuFileController::copyKi2ToClipboard()` |
+| CSA | 棋譜全体をCSA形式でコピー（分岐は書けないので本譜のみ） | `KifuFileController::copyCsaToClipboard()` |
+| USI（現在の指し手まで） | 表示中の手順の、表示中の手までをUSI形式でコピー | `KifuFileController::copyUsiCurrentToClipboard()` |
+| USI（全て） | 棋譜全体をUSI形式でコピー（分岐は書けないので本譜のみ） | `KifuFileController::copyUsiToClipboard()` |
+| JKF | 棋譜全体をJKF形式でコピー | `KifuFileController::copyJkfToClipboard()` |
+| USEN | 棋譜全体をUSEN形式でコピー | `KifuFileController::copyUsenToClipboard()` |
 
-棋譜のコピーは保存と同じ `KifuExportController::exportLines()`（`GameRecordModel` の各形式の出力）で行を作り、クリップボードに書く。
+棋譜のコピーは保存と同じ `KifuFileController::exportLines()`（`KifuExport::lines(document, format)`）で行を作り、クリップボードに書く。
 
 ### 局面コピー
 
 | フォーマット | 内容 | メソッド |
 |---|---|---|
-| SFEN | 盤の局面をSFEN文字列でコピー | `KifuExportController::copySfenToClipboard()` |
-| BOD | 盤の局面をBOD（テキスト盤面図）でコピー（`BodTextGenerator`）。駒落ちの棋譜は KIF の局面図と同じく持駒・手番を下手・上手で書く（対局情報の見出しが先手・後手ならそれに合わせる） | `KifuExportController::copyBodToClipboard()` |
+| SFEN | 盤の局面をSFEN文字列でコピー | `KifuFileController::copySfenToClipboard()` |
+| BOD | 盤の局面をBOD（テキスト盤面図）でコピー（`BodTextGenerator`）。駒落ちの棋譜は KIF の局面図と同じく持駒・手番を下手・上手で書く（対局情報の見出しが先手・後手ならそれに合わせる） | `KifuFileController::copyBodToClipboard()` |
 
 ### 画像コピー
 
@@ -164,7 +166,7 @@ USEN Files (*.usen)
 
 ### 主要クラス
 
-- **`KifuExportController`** (`src/ui/coordinators/kifuexportcontroller.h/.cpp`) — 棋譜・局面のコピー（形式ごとの行の生成とクリップボードへの書き込み）
+- **`KifuFileController`** (`src/ui/coordinators/kifufilecontroller.h/.cpp`) — 棋譜・局面のコピー（`KifuExport` で作った行・盤の局面をクリップボードに書き、結果を `statusMessage` でステータスバーに出す）
 - **`ImageExportController`** (`src/ui/controllers/imageexportcontroller.h/.cpp`) — 画像の保存・コピーの窓口
 - **`BoardImageExporter`** (`src/board/boardimageexporter.h/.cpp`) — 盤面・グラフ画像のクリップボードコピー
 
@@ -176,7 +178,7 @@ USEN Files (*.usen)
 
 - **編集(E) → 棋譜貼り付け…** (`actionPasteKifu`)
 
-`KifuFileController::pasteKifuFromClipboard()` が `KifuPasteDialog` を開く。ダイアログでクリップボードの内容を貼り付けて「取り込む」を押すと、`importRequested` を受けた `KifuFileController::onKifuPasteImportRequested()` が未保存の棋譜を確かめてから `KifuLoadCoordinator::loadTextAsync()` で読み込む。貼り付けた棋譜はファイル由来ではないので、上書き保存先は消す。
+`KifuFileController::pasteKifuFromClipboard()` が `KifuPasteDialog` を開く。ダイアログでクリップボードの内容を貼り付けて「取り込む」を押すと、`importRequested` を受けた `KifuFileController::onKifuPasteImportRequested()` が未保存の棋譜を確かめてから `KifuLoadCoordinator::loadTextAsync()` で読み込む。貼り付けた棋譜はファイル由来ではないので、上書き保存先を持たず未保存とする（`KifuDocument::markUnsavedContent()`）。
 
 ### 自動判定対応フォーマット
 
@@ -214,15 +216,16 @@ USEN Files (*.usen)
 ファイル読み込み:
   MenuActionsWiring → KifuFileController → KifuLoadCoordinator → KifuLoadParser (ワーカー)
                                                                  → 各形式 Converter (KifToSfenConverter 等)
-                                         KifuLoadCoordinator → KifuBranchTree (分岐ツリーの作り直し)
+                                         KifuLoadCoordinator → KifuDocument (文書の置き換え。KifuBranchTree の作り直し)
 
 ファイル保存:
-  MenuActionsWiring → KifuFileController → KifuExportController → KifuSaveCoordinator → KifuSaveFile
-                                                               → GameRecordModel (各形式への変換)
+  MenuActionsWiring → KifuFileController → KifuExport (各形式への変換) → 各形式 Exporter
+                                         → KifuSaveCoordinator → KifuSaveFile
+                                         → KifuDocument::markSaved (保存した時点・上書き保存先)
 
 クリップボードコピー:
-  MenuActionsWiring → KifuExportController → GameRecordModel (各形式への変換)
-                                           → QClipboard
+  MenuActionsWiring → KifuFileController → KifuExport (各形式への変換)
+                                         → QClipboard
 
 クリップボード貼り付け:
   MenuActionsWiring → KifuFileController → KifuPasteDialog (入力)

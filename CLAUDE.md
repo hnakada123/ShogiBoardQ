@@ -76,7 +76,8 @@ cmake --build build --target translations
   - `gamestartoptionsbuilder` - 対局開始ダイアログの値の解釈
 
 - **kifu/**: 棋譜関連（GUI に依存しない）
-  - `gamerecordmodel.cpp/.h` - Kifu data model
+  - `kifudocument.cpp/.h` - 開いている棋譜の文書 `KifuDocument`（分岐ツリー・対局情報・対局の記録（対局者・持ち時間・開始と終了の日時）・上書き保存先）。未保存かどうかは保存した時点との比較で求める
+  - `kifuexport.cpp/.h` - 形式ごとの書き出しの表（`KifuExport::lines`。GUI の保存・コピーと CLI の変換で共通）
   - `recordline.h`・`recordentry.h` - 1本の手順と1手の記録。手順の型は `RecordLine` だけ（読み込みの本譜・変化・書き出し・表示中の手順・対局の手順。末尾に終局の行を持てる）
   - `kifuformat.cpp/.h` - 棋譜の形式（読み込み・保存・変換で共通の1つの enum）と判定
   - `kifuloadparser.cpp/.h` - 棋譜の読み込み口（ファイルの文字コードの判別と形式ごとの変換器への振り分け）
@@ -116,11 +117,11 @@ cmake --build build --target translations
 
 - **ui/**: UI層
   - **presenters/**: 表示への反映
-    - `playerinfopresenter`（対局者名・対局情報）, `kifudisplaypresenter`（棋譜欄・分岐）, `boardsyncpresenter`（盤と手番）, `candidatearrowpresenter`, etc.
+    - `playerinfopresenter`（対局者名）, `kifudisplaypresenter`（棋譜欄・分岐）, `boardsyncpresenter`（盤と手番）, `candidatearrowpresenter`, etc.
   - **controllers/**: 利用者操作の処理
     - `boardmovecontroller`, `considerationuicontroller`, `josekiwindowcontroller`, `menuwindowcontroller`, `pvclickcontroller`, etc.
   - **coordinators/**: 複数の部品にまたがる UI の流れ
-    - `dialoglauncher`, `kifuloadcoordinator`, `kifufilecontroller`, `kifuexportcontroller`, `csagamesession`, `positioneditcoordinator`, etc.
+    - `dialoglauncher`, `kifuloadcoordinator`, `kifufilecontroller`（棋譜の開く・保存・貼り付け・コピー）, `csagamesession`, `positioneditcoordinator`, etc.
     - `uistatepolicymanager` - 動作状態ごとのメニュー・ボタンの有効/無効（コンパイル時の表）
 
 - **views/**: 盤の描画と入力（`shogiview.cpp/.h`）。対局者カード・時計は `boardchromewidget`、局面によらない部分の画像は `boardstaticlayer`、配置は `shogiviewlayout`、ドラッグは `shogiviewinteraction`、ハイライトと矢印は `shogiviewhighlighting`

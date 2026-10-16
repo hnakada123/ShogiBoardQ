@@ -7,14 +7,12 @@
 #include "csalogpanel.h"
 #include "engineinfowidget.h"
 #include "evaluationgraphpresenter.h"
-#include "gameinfopane.h"
-#include "gamerecordmodel.h"
 #include "kifuanalysislistmodel.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
+#include "kifudocument.h"
 #include "kifuloadcoordinator.h"
 #include "livegamesession.h"
-#include "matchtimerecord.h"
 #include "sfenutils.h"
 #include "shogienginethinkingmodel.h"
 #include "thinkingpanel.h"
@@ -23,7 +21,7 @@
 
 KifuBranchNode* SessionResetCoordinator::prepareGameStart(const GameStartPreparation& preparation)
 {
-    KifuBranchTree* tree = m_deps.tree;
+    KifuBranchTree* tree = m_deps.document->tree();
     const bool fromCurrent = preparation.mode == GameStartPreparation::Mode::CurrentPosition;
     KifuBranchNode* node = fromCurrent ? tree->nodeAt(preparation.startNodeId) : nullptr;
     // 存在しないノードから別の分岐や同じSFENを探し直さない
@@ -38,7 +36,9 @@ KifuBranchNode* SessionResetCoordinator::prepareGameStart(const GameStartPrepara
             tree->removeLeaf(terminal);
     }
     if (!node) {
-        tree->setRootSfen(SfenUtils::normalizeStart(preparation.rootSfen));
+        // 新しい棋譜（前の棋譜の対局の記録・上書き保存先は残さない）。対局情報は利用者が対局の前に
+        // 書いた項目（棋戦・場所など）を残し、対局者・日時・持ち時間は対局の開始で作り直す
+        m_deps.document->startNew(SfenUtils::normalizeStart(preparation.rootSfen), /*keepHeader=*/true);
         node = tree->root();
     }
 
@@ -46,23 +46,19 @@ KifuBranchNode* SessionResetCoordinator::prepareGameStart(const GameStartPrepara
     // 現在局面から続けるときは、それまでの評価値を残す
     if (fromCurrent) m_deps.evalGraph->trimToPly(node->ply());
     else m_deps.evalGraph->clear();
-    m_deps.timeRecord->clearStart();
 
     m_deps.liveSession->startFromNode(node);
     return node;
 }
 
-void SessionResetCoordinator::resetToNewRecord(const QString& sfen)
+void SessionResetCoordinator::resetToNewRecord(const QString& sfen, bool keepHeader)
 {
     // 読み込み途中の棋譜は捨てる（ツリーはここで作り直す）
     m_deps.kifuLoader->cancelLoad();
     m_deps.liveSession->discard();
-    m_deps.tree->setRootSfen(sfen);
-    m_deps.gameRecord->clearDirty();
+    m_deps.document->startNew(sfen, keepHeader);
     m_deps.evalGraph->setEngine1Name({});
     m_deps.evalGraph->setEngine2Name({});
-    m_deps.timeRecord->clearEnd();
-    m_deps.gameInfo->resetGameInfo();
 }
 
 void SessionResetCoordinator::clearBeforeKifuLoad()

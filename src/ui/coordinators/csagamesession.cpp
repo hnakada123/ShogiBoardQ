@@ -14,7 +14,6 @@
 #include "logcategories.h"
 #include "mainwindowappearancecontroller.h"
 #include "matchrecordsink.h"
-#include "matchtimerecord.h"
 #include "shogiview.h"
 #include "uinotificationservice.h"
 
@@ -111,9 +110,8 @@ void CsaGameSession::onGameStarted(const QString& blackName, const QString& whit
         && m_deps.shogiView->flipMode() != !c->isBlackSide()) {
         m_deps.appearance->flipBoard();
     }
-    // 対局情報と棋譜の書き出しに使う持ち時間と開始日時を、サーバーの対局条件で置き換える
-    if (m_deps.timeRecord) m_deps.timeRecord->begin(c->gameSummary().timeControl());
-    if (m_deps.prepareRecord) m_deps.prepareRecord(c->startSfen(), blackName, whiteName);
+    // 棋譜と対局情報を作り直す（持ち時間と開始日時はサーバーの対局条件）
+    if (m_deps.prepareRecord) m_deps.prepareRecord(c->startSfen(), blackName, whiteName, c->gameSummary().timeControl());
     if (m_deps.shogiView) {
         m_deps.shogiView->chrome()->setBlackPlayerName(QStringLiteral("▲") + blackName);
         m_deps.shogiView->chrome()->setWhitePlayerName(QStringLiteral("▽") + whiteName);

@@ -18,8 +18,7 @@ class KifuNavigationState;
 class KifuNavigationController;
 class UiStatePolicyManager;
 class KifuFileController;
-class KifuExportController;
-class GameRecordModel;
+class KifuDocument;
 class CsaGameCoordinator;
 class AnalysisSession;
 
@@ -34,14 +33,13 @@ struct AutomationContext {
     ShogiView* shogiView = nullptr;
     KifuBranchTree* branchTree = nullptr;
 
-    const AppState* state = nullptr;                          ///< 動作状態・対局者・局面・保存先
+    const AppState* state = nullptr;                          ///< 動作状態
+    const KifuDocument* document = nullptr;                   ///< 開いている棋譜（対局者・上書き保存先・書き出し）
     const AnalysisSession* analysis = nullptr;                ///< 検討・詰み探索（エンジン名）
     const KifuNavigationState* navState = nullptr;            ///< 表示中の手数（分岐ツリーのカーソル）
     KifuNavigationController* navigationController = nullptr;
     UiStatePolicyManager* uiStatePolicy = nullptr;
     KifuFileController* kifuFileController = nullptr;
-    KifuExportController* kifuExportController = nullptr;
-    GameRecordModel* gameRecordModel = nullptr;
     const CsaGameCoordinator* csaGame = nullptr;              ///< 通信対局の司令塔
 
     // メニューウィンドウ（dialogs 層）の操作。automation 層からは直接触れないので関数で受け取る

@@ -8,17 +8,15 @@
 #include "consecutivegameseries.h"
 #include "csagamecoordinator.h"
 #include "errorbus.h"
-#include "gameinfopane.h"
-#include "gamerecordmodel.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
+#include "kifudocument.h"
 #include "kifuexportmetadata.h"
 #include "kifufilecontroller.h"
 #include "kifunavigationstate.h"
 #include "livegamesession.h"
 #include "logcategories.h"
 #include "mainwindowappearancecontroller.h"
-#include "matchtimerecord.h"
 #include "playerinfopresenter.h"
 #include "sessionresetcoordinator.h"
 #include "sfenutils.h"
@@ -64,8 +62,7 @@ bool GameSession::isCsaGameActive() const
 
 QString GameSession::recordStartSfen() const
 {
-    const KifuBranchNode* root = m_deps.navState->tree()->root();
-    return root ? root->sfen() : SfenUtils::hirateSfen();
+    return m_deps.document->startSfen();
 }
 
 // ============================================================
@@ -84,7 +81,6 @@ void GameSession::appendRecord(const RecordEntry& entry)
     RecordEntry recorded = entry;
     // 棋譜の途中から続けた対局では、消費時間の累計を同じ側の直前の累計から続ける
     recorded.time = m_deps.liveSession->continuedTime(recorded.time);
-    m_deps.gameRecord->markDirty();
     m_deps.liveSession->appendRecord(recorded);
 }
 
@@ -143,20 +139,22 @@ bool GameSession::startGame(const GameStartPlan& plan, bool beginSeries)
     if (plan.flipBoard) m_deps.appearance->flipBoard();
     if (beginSeries) m_deps.consecutive->beginSeries(plan);
 
-    // 2) 時計と持ち時間（対局情報の開始日時もここで決まる）
+    // 2) 時計
     TimeControlUtil::applyToClock(*m_deps.clock, plan.time, sideToMove(plan.options.sfenStart));
-    m_deps.timeRecord->begin(plan.time.rules);
     m_deps.timePresenter->onMatchTimeUpdated(m_deps.clock->remainingMs(Turn::Black),
                                              m_deps.clock->remainingMs(Turn::White),
                                              m_deps.clock->currentPlayer(), /*urgencyMs*/ 0);
 
-    // 3) 対局者を記録して表示し、対局情報（開始日時・対局者・手合割・持ち時間）を作る
-    m_deps.playerInfo->onMatchPlayersResolved(plan.options.players);
+    // 3) 棋譜の文書に対局者・持ち時間・開始日時を記録し、対局情報を作る。
+    //    読み込んだ棋譜の途中から続ける対局では、棋譜の対局情報を残して分岐の最初の手にメモを付ける
+    const MatchPlayers& players = plan.options.players;
+    const bool continuesRecord = m_deps.liveSession->isActive() && m_deps.liveSession->anchorPly() > 0;
+    m_deps.document->beginMatch(players, plan.time.rules, continuesRecord);
+    if (continuesRecord) noteContinuedMatch(players);
+    m_deps.playerInfo->showPlayers(players);
 
     // 4) 対局（盤・手順・Strategy。動作状態は対局中になる）
     m_deps.match->start(plan.options);
-    // 終局の知らせで対局者を下手・上手と呼ぶか（対局情報の見出しと開始局面で決まる）
-    m_deps.match->setHandicapNames(usesHandicapNames());
     discardInterruptedGame();
 
     // 5) 時計を動かし、初手がエンジンなら思考を始める
@@ -164,19 +162,24 @@ bool GameSession::startGame(const GameStartPlan& plan, bool beginSeries)
     return true;
 }
 
-void GameSession::startNextGame(const GameStartPlan& plan)
+void GameSession::noteContinuedMatch(const MatchPlayers& players)
 {
-    // 次局は独立した棋譜として、同じ開始局面から始める
-    m_deps.state->saveFileName.clear();
-    m_deps.reset->resetToNewRecord(plan.preparation.rootSfen);
-    startGame(plan, /*beginSeries=*/false);
+    // 続けた対局の対局者・日時は分岐の最初の手のメモにする
+    const MatchTimeRecord& record = m_deps.document->timeRecord();
+    const bool handicap = KifuExportMetadataBuilder::isHandicap(KifuExportMetadataBuilder::handicapLabel(recordStartSfen()));
+    const QString timeText = record.hasTimeControl()
+        ? KifuExportMetadataBuilder::timeControlText(record.timeControl(), handicap) : tr("無制限");
+    const QDateTime start = record.startDateTime().isValid() ? record.startDateTime() : QDateTime::currentDateTime();
+    m_deps.liveSession->setFirstMoveNote(tr("対局：▲%1 △%2（%3 開始、持ち時間 %4）")
+                                             .arg(players.name(Turn::Black), players.name(Turn::White),
+                                                  start.toString(QStringLiteral("yyyy/MM/dd HH:mm")), timeText));
 }
 
-bool GameSession::usesHandicapNames() const
+void GameSession::startNextGame(const GameStartPlan& plan)
 {
-    const auto* gameInfo = m_deps.playerInfo->gameInfoPane();
-    return KifuExportMetadataBuilder::usesHandicapNames(
-        gameInfo ? gameInfo->gameInfo() : QList<KifGameInfoItem>(), recordStartSfen());
+    // 次局は独立した棋譜として、同じ開始局面から始める（上書き保存先も持たない）
+    m_deps.reset->resetToNewRecord(plan.preparation.rootSfen);
+    startGame(plan, /*beginSeries=*/false);
 }
 
 // ============================================================
@@ -212,35 +215,26 @@ void GameSession::makeEngineMoveNow()
 
 void GameSession::undoTwoMoves()
 {
-    if (m_deps.match->undoTwoPlies()) m_deps.gameRecord->markDirty();
+    // 未保存かどうかはツリーの変更で決まる
+    (void)m_deps.match->undoTwoPlies();
 }
 
 // ============================================================
 // 通信対局
 // ============================================================
 
-void GameSession::beginCsaGameRecord(const QString& startSfen, const QString& blackName, const QString& whiteName)
+void GameSession::beginCsaGameRecord(const QString& startSfen, const QString& blackName, const QString& whiteName,
+                                     const TimeControl& timeControl)
 {
     // 通信対局の対局者はサーバーが知らせた名前（エンジンで指していても対局者名で記録する）
     MatchPlayers players;
     players.blackHumanName = blackName;
     players.whiteHumanName = whiteName;
-    m_deps.state->players = players;
 
-    // 利用者が対局情報に書きかけた内容は、棋譜の作り直しで消さない
-    GameInfoPane* gameInfo = m_deps.playerInfo->gameInfoPane();
-    gameInfo->commitPendingEditor();
-    const QList<KifGameInfoItem> preparedInfo = gameInfo->gameInfo();
-    m_deps.reset->resetToNewRecord(startSfen);
-    gameInfo->setGameInfo(preparedInfo);
-
-    // 持ち時間と開始日時は CsaGameSession がサーバーの対局条件で MatchTimeRecord に記録済み
-    const MatchTimeRecord* record = m_deps.timeRecord;
-    const QDateTime startTime = record->startDateTime().isValid() ? record->startDateTime()
-                                                                  : QDateTime::currentDateTime();
-    m_deps.playerInfo->setGameInfoForMatchStart(startTime, blackName, whiteName,
-                                                KifuExportMetadataBuilder::handicapLabel(startSfen),
-                                                record->timeControl());
+    // 利用者が対局情報に書きかけた内容（棋戦・場所など）は、棋譜の作り直しで消さない。
+    // 持ち時間と開始日時はサーバーの対局条件
+    m_deps.reset->resetToNewRecord(startSfen, /*keepHeader=*/true);
+    m_deps.document->beginMatch(players, timeControl, /*continuesRecord=*/false);
     m_deps.liveSession->startFromRoot();
 }
 
@@ -257,12 +251,9 @@ void GameSession::resetToInitialState()
     discardInterruptedGame();
 
     m_deps.reset->clearBeforeKifuLoad();
+    // 前の対局者・持ち時間・上書き保存先も残さない（盤には対局情報の初期値「先手」「後手」を出す）
     m_deps.reset->resetToNewRecord(SfenUtils::hirateSfen());
     m_deps.state->activity.setActivity(AppActivityState::Activity::Idle);
-    m_deps.state->players = {};
-    m_deps.state->saveFileName.clear();
-    // 前の対局者名を残さない（対局情報の初期値「先手」「後手」を表示する）
-    m_deps.playerInfo->syncBoardNamesWithGameInfo();
 }
 
 // ============================================================
@@ -282,12 +273,6 @@ void GameSession::onGameEnded(const MatchCoordinator::GameEndInfo& info)
     recordGameEndTime();
 }
 
-void GameSession::forgetFinishedMatch()
-{
-    m_deps.state->players = {};
-    m_deps.timeRecord->clear();
-}
-
 void GameSession::endCsaGameRecord()
 {
     // 終局行は司令塔が追記済み。確定しないと、変化の手・分岐の編集・評価値グラフの追従が止まったままになる
@@ -297,8 +282,7 @@ void GameSession::endCsaGameRecord()
 
 void GameSession::recordGameEndTime()
 {
-    m_deps.timeRecord->recordEnd();
-    m_deps.playerInfo->updateGameInfoWithEndTime(m_deps.timeRecord->endDateTime());
+    m_deps.document->recordMatchEnd();
 }
 
 void GameSession::onGameEndProcessed(const MatchCoordinator::GameEndInfo& info)
@@ -351,10 +335,8 @@ void GameSession::resumeInterruptedGame()
     tree->removeLeaf(terminal);
     m_deps.liveSession->startFromNode(node);
 
-    // 終局時刻を消す
-    m_deps.timeRecord->clearEnd();
-    m_deps.playerInfo->updateGameInfoWithEndTime(QDateTime());
-    m_deps.gameRecord->markDirty();
+    // 終局時刻を消す（中断の行を除いたツリーの変更で未保存になる）
+    m_deps.document->clearMatchEnd();
     if (!m_deps.match->resumeInterruptedGame()) return;
     m_deps.match->beginPlay();
 }

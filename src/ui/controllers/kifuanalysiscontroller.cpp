@@ -8,10 +8,9 @@
 #include "appactivitystate.h"
 #include "errorbus.h"
 #include "evaluationchartwidget.h"
-#include "gameinfokeys.h"
-#include "gameinfopane.h"
 #include "kifuanalysisdialog.h"
 #include "kifuanalysislistmodel.h"
+#include "kifudocument.h"
 #include "kifunavigationcontroller.h"
 #include "kifunavigationstate.h"
 #include "kifurecordlistmodel.h"
@@ -136,14 +135,9 @@ bool KifuAnalysisController::start(AnalysisRequest request)
     refs.line = &m_job->line();
     refs.coord = m_job->coordinator();
     refs.presenter = m_resultsPanel;
-    if (const GameInfoPane* gameInfo = m_deps.gameInfo) {
-        const QList<KifGameInfoItem> items = gameInfo->gameInfo();
-        for (const KifGameInfoItem& item : items) {
-            if (item.key == GameInfoKeys::kBlackPlayer || item.key == GameInfoKeys::kShitatePlayer)
-                refs.blackPlayerName = item.value;
-            else if (item.key == GameInfoKeys::kWhitePlayer || item.key == GameInfoKeys::kUwatePlayer)
-                refs.whitePlayerName = item.value;
-        }
+    if (const KifuDocument* document = m_deps.document) {
+        refs.blackPlayerName = document->headerPlayerName(Turn::Black);
+        refs.whitePlayerName = document->headerPlayerName(Turn::White);
     }
     refs.boardFlipped = m_deps.shogiView && m_deps.shogiView->flipMode();
     m_resultHandler = std::make_unique<AnalysisResultHandler>(refs);

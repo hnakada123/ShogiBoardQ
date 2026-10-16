@@ -11,7 +11,6 @@ class DialogLauncher;
 class GameSession;
 class ImageExportController;
 class KifuAnalysisController;
-class KifuExportController;
 class KifuFileController;
 class MainWindowActions;
 class MainWindowAppearanceController;
@@ -33,8 +32,7 @@ struct Deps {
     Ui::MainWindow* ui = nullptr;
     MainWindowActions* actions = nullptr;               ///< 新規・終了・局面編集の開始
     DialogLauncher* dialogs = nullptr;
-    KifuFileController* kifuFiles = nullptr;           ///< 開く・保存・貼り付け
-    KifuExportController* kifuExport = nullptr;        ///< 棋譜・局面のコピー
+    KifuFileController* kifuFiles = nullptr;           ///< 開く・保存・貼り付け・棋譜と局面のコピー
     GameSession* session = nullptr;                    ///< 対局の開始・投了・中断・待った・即指し
     AnalysisSession* analysis = nullptr;               ///< 詰み探索の中止
     PositionEditCoordinator* positionEdit = nullptr;   ///< 局面編集の終了

@@ -4,7 +4,7 @@
 #include "commentcoordinator.h"
 #include "commenteditorpanel.h"
 #include "dialogfontscale.h"
-#include "gamerecordmodel.h"
+#include "kifudocument.h"
 #include "kifubranchnode.h"
 #include "kifunavigationstate.h"
 
@@ -15,9 +15,9 @@ CommentCoordinator::CommentCoordinator(const Deps& deps, QObject* parent)
     : QObject(parent)
     , m_deps(deps)
 {
-    Q_ASSERT(m_deps.editor && m_deps.navState && m_deps.gameRecord);
+    Q_ASSERT(m_deps.editor && m_deps.navState && m_deps.document);
     connect(m_deps.navState, &KifuNavigationState::changed, this, &CommentCoordinator::showCurrentComment);
-    connect(m_deps.gameRecord, &GameRecordModel::commentChanged, this, &CommentCoordinator::showCurrentComment);
+    connect(m_deps.document, &KifuDocument::commentChanged, this, &CommentCoordinator::showCurrentComment);
 }
 
 void CommentCoordinator::showCurrentComment()
@@ -38,7 +38,7 @@ void CommentCoordinator::onCommentUpdated(int /*moveIndex*/, const QString& newC
     // コメント欄が編集しているのは表示中の手（移る前に未更新の確認を通している）
     KifuBranchNode* node = m_deps.navState->currentNode();
     if (!node) return;
-    m_deps.gameRecord->setComment(node, newComment);
+    m_deps.document->setComment(node, newComment);
     if (m_deps.statusBar)
         m_deps.statusBar->showMessage(tr("コメントを更新しました（手数: %1）").arg(node->ply()), 3000);
 }
@@ -60,7 +60,7 @@ void CommentCoordinator::onBookmarkEditRequested()
     if (dialog.exec() != QDialog::Accepted) return;
 
     const QString newBookmark = dialog.textValue();
-    m_deps.gameRecord->setBookmark(node, newBookmark);
+    m_deps.document->setBookmark(node, newBookmark);
     if (m_deps.statusBar) {
         m_deps.statusBar->showMessage(newBookmark.isEmpty() ? tr("しおりを削除しました（手数: %1）").arg(node->ply())
                                                             : tr("しおりを設定しました（手数: %1）").arg(node->ply()),

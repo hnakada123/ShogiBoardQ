@@ -33,6 +33,8 @@ bool isHandicap(const QString& handicapLabel);
 /// 対局者の見出し。駒落ちは柿木形式の KIF と同じく「下手」「上手」、それ以外は「先手」「後手」
 QString blackPlayerKey(const QString& handicapLabel);
 QString whitePlayerKey(const QString& handicapLabel);
+/// 対局情報の対局者名（先手・後手。駒落ちは下手・上手。なければ省略名、それもなければ空）
+QString playerName(const QList<KifGameInfoItem>& header, Turn side);
 /// 書き出す棋譜の局面図（持駒・手番）と終局行で、対局者を下手・上手と呼ぶか。
 /// 対局情報の見出し（下手・上手か先手・後手か）に合わせ、見出しに対局者がなければ開始局面の手合割で決める
 bool usesHandicapNames(const QList<KifGameInfoItem>& header, const QString& startSfen);

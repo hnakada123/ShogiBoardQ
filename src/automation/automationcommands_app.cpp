@@ -5,7 +5,8 @@
 #include "analysissession.h"
 #include "automationdispatcher.h"
 #include "automationwidgets.h"
-#include "gamerecordmodel.h"
+#include "kifubranchnode.h"
+#include "kifudocument.h"
 #include "kifufilecontroller.h"
 #include "shogiboard.h"
 #include "shogigamecontroller.h"
@@ -60,7 +61,7 @@ QString uiStateName(UiStatePolicyManager::AppState state)
 }
 
 /// 自動化 API の play_mode（動作状態と、対局中なら対局者の組。駒落ちの対局は handicap_ を付ける）
-QString playModeName(const AppState& state, const QString& startSfen)
+QString playModeName(const AppState& state, const MatchPlayers& players, const QString& startSfen)
 {
     using Activity = AppActivityState::Activity;
     switch (state.activity.activity()) {
@@ -72,7 +73,6 @@ QString playModeName(const AppState& state, const QString& startSfen)
     case Activity::DuringCsaGame: return QStringLiteral("csa_network");
     case Activity::DuringGame: break;
     }
-    const MatchPlayers& players = state.players;
     if (players.humanVsHuman()) return QStringLiteral("human_vs_human");
     const QString seats = players.engineVsEngine() ? QStringLiteral("engine_vs_engine")
                         : players.blackIsEngine  ? QStringLiteral("engine_vs_human")
@@ -144,11 +144,12 @@ void AutomationCommands::registerAppCommands(AutomationDispatcher& dispatcher, c
         const int ply = context.currentPly();
         const QStringList record = currentLinePositions(context);
         const QString startSfen = record.isEmpty() ? SfenUtils::hirateSfen() : record.first();
-        result[QStringLiteral("play_mode")] = context.state ? playModeName(*context.state, startSfen)
+        const MatchPlayers players = context.document ? context.document->players() : MatchPlayers();
+        result[QStringLiteral("play_mode")] = context.state ? playModeName(*context.state, players, startSfen)
                                                             : QStringLiteral("unknown");
         result[QStringLiteral("current_ply")] = ply;
         result[QStringLiteral("total_plies")] = qMax(0, static_cast<int>(record.size()) - 1);
-        result[QStringLiteral("kifu_file")] = context.state ? context.state->saveFileName : QString();
+        result[QStringLiteral("kifu_file")] = context.document ? context.document->filePath() : QString();
         auto* fileController = context.kifuFileController;
         result[QStringLiteral("dirty")] = fileController && fileController->hasUnsavedChanges();
         result[QStringLiteral("board_flipped")] = context.shogiView && context.shogiView->flipMode();
@@ -160,8 +161,8 @@ void AutomationCommands::registerAppCommands(AutomationDispatcher& dispatcher, c
             engines[QStringLiteral("black")] = analysisEngine;
             engines[QStringLiteral("white")] = QString();
         } else {
-            engines[QStringLiteral("black")] = context.state ? context.state->players.blackEngineName : QString();
-            engines[QStringLiteral("white")] = context.state ? context.state->players.whiteEngineName : QString();
+            engines[QStringLiteral("black")] = players.blackEngineName;
+            engines[QStringLiteral("white")] = players.whiteEngineName;
         }
         result[QStringLiteral("engines")] = engines;
         // 通信対局を一度も始めていなければ（司令塔が待機のまま）出さない

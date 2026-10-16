@@ -143,7 +143,7 @@ static QString sfenToUsenPosition(const QString& sfen)
 // エクスポート
 // ========================================
 
-QStringList UsenExporter::exportLines(const GameRecordModel& model, const GameRecordModel::ExportContext& ctx)
+QStringList UsenExporter::exportLines(const KifuBranchTree& recordTree, const KifuExportMetadata& ctx)
 {
     QStringList out;
 
@@ -155,7 +155,7 @@ QStringList UsenExporter::exportLines(const GameRecordModel& model, const GameRe
     QString terminalCode;
 
     // 本譜の各手（分岐ツリーのノード）をUSEN形式にエンコード
-    KifuBranchTree* branchTree = model.branchTree();
+    const KifuBranchTree* branchTree = &recordTree;
     const QList<KifuBranchNode*> mainLine =
         (branchTree && !branchTree->isEmpty()) ? branchTree->mainLine() : QList<KifuBranchNode*>();
     for (const KifuBranchNode* node : mainLine) {

@@ -297,8 +297,12 @@ set(SRC_GAME
     src/game/matchcoordinator.h
     src/game/matchrecordsink.h
     src/game/matchsessionstate.h
-    src/game/matchtimerecord.cpp
-    src/game/matchtimerecord.h
+    src/kifu/kifudocument.cpp
+    src/kifu/kifudocument.h
+    src/kifu/kifuexport.cpp
+    src/kifu/kifuexport.h
+    src/kifu/matchtimerecord.cpp
+    src/kifu/matchtimerecord.h
     src/game/matchtimesettings.h
     src/game/matchtypes.h
     src/game/nyugyokujudgement.cpp
@@ -377,8 +381,6 @@ set(SRC_KIFU
     src/kifu/formats/usitosfenconverter.cpp
     src/kifu/formats/usitosfenconverter.h
     src/kifu/gameinfokeys.h
-    src/kifu/gamerecordmodel.cpp
-    src/kifu/gamerecordmodel.h
     src/kifu/josekibooksession.cpp
     src/kifu/josekibooksession.h
     src/kifu/josekiioresult.h
@@ -561,8 +563,6 @@ set(SRC_UI
     src/ui/coordinators/docklayoutmanager.h
     src/ui/coordinators/dockuicoordinator.cpp
     src/ui/coordinators/dockuicoordinator.h
-    src/ui/coordinators/kifuexportcontroller.cpp
-    src/ui/coordinators/kifuexportcontroller.h
     src/ui/coordinators/kifufilecontroller.cpp
     src/ui/coordinators/kifufilecontroller.h
     src/ui/coordinators/kifuloadcoordinator.cpp

@@ -12,7 +12,8 @@
 #include "kifuloadparser.h"
 #include "kifubranchtreebuilder.h"
 #include "kifubranchtree.h"
-#include "gamerecordmodel.h"
+#include "kifudocument.h"
+#include "kifuexport.h"
 #include "appstate.h"
 #include "gamesession.h"
 #include "kifudisplaypresenter.h"
@@ -196,12 +197,12 @@ private slots:
         session.startFromNode(node);
         // 棋譜の受け手（本体と同じ GameSession。追記に使う部品だけ渡す）
         AppState state;
-        GameRecordModel recordModel;
+        KifuDocument document(&tree);
         GameSession::Deps deps;
         deps.state = &state;
         deps.navState = &navigation;
         deps.liveSession = &session;
-        deps.gameRecord = &recordModel;
+        deps.document = &document;
         GameSession service(deps);
         const QString terminal = (plies == 2 ? QStringLiteral("▲") : QStringLiteral("△"))
             + QStringLiteral("時間切れ");
@@ -218,11 +219,9 @@ private slots:
         QVERIFY(!session.canAddMove());
         QVERIFY(end->isTerminal());
         QVERIFY(!end->isActualMove());
-        GameRecordModel record;
-        record.setBranchTree(&tree);
-        GameRecordModel::ExportContext context;
+        KifuExportMetadata context;
         context.startSfen = initial;
-        const QString saved = record.toKifLines(context).join('\n');
+        const QString saved = KifuExport::lines(tree, context, KifuFormat::Kif).join('\n');
         QVERIFY(saved.contains(QStringLiteral("時間切れ")));
         QVERIFY(!saved.contains("Time loss"));
         const auto reloaded = KifuLoadParser::parseText(saved);
@@ -286,13 +285,11 @@ private slots:
         QVERIFY2(imported.success, qPrintable(imported.error));
         KifuBranchTree tree;
         KifuBranchTreeBuilder::buildFromKifParseResult(&tree, imported.record, imported.initialSfen);
-        GameRecordModel record;
-        record.setBranchTree(&tree);
-        GameRecordModel::ExportContext context;
+        KifuExportMetadata context;
         context.startSfen = imported.initialSfen;
         context.gameInfoItems = imported.gameInfo;
         context.gameInfoProvided = true;
-        const QStringList expected = record.toKifLines(context);
+        const QStringList expected = KifuExport::lines(tree, context, KifuFormat::Kif);
 
         QTranslator translator;
         QVERIFY(translator.load(QStringLiteral(TRANSLATIONS_DIR "/ShogiBoardQ_") + language + ".qm"));
@@ -409,7 +406,7 @@ private slots:
         QCOMPARE(table.accessibleText(0, 0), KifuPresentation::infoKey("先手"));
         QCOMPARE(metadata.gameInfo().size(), imported.gameInfo.size());
         context.gameInfoItems = metadata.gameInfo();
-        QCOMPARE(record.toKifLines(context), expected);
+        QCOMPARE(KifuExport::lines(tree, context, KifuFormat::Kif), expected);
         table.setText(0, 1, QStringLiteral("編集した名前"));
         metadata.undo();
         QCOMPARE(metadata.gameInfo().first().value, QStringLiteral("佐藤 一郎"));

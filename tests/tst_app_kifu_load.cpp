@@ -9,10 +9,10 @@
 #include <QTemporaryDir>
 
 #include "appstate.h"
-#include "gamerecordmodel.h"
+#include "kifudocument.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
-#include "kifuexportcontroller.h"
+#include "kifuexport.h"
 #include "kifufilecontroller.h"
 #include "kifuloadcoordinator.h"
 #include "kifunavigationstate.h"
@@ -65,8 +65,8 @@ private slots:
         const QStringList moves = p.branchTree->mainRecordLine().usiMoves();
         QVERIFY2(!moves.isEmpty(), qPrintable(file));
         QCOMPARE(moves.first(), firstMove);
-        QCOMPARE(window.composer().state().saveFileName, fixture(file));
-        QVERIFY(!p.gameRecord->isDirty());
+        QCOMPARE(p.document->filePath(), fixture(file));
+        QVERIFY(!p.document->isModified());
         // 読み込んだら開始局面を表示し、棋譜欄は本譜を出す
         QCOMPARE(p.navState->currentNode(), p.branchTree->root());
         QCOMPARE(p.kifuRecord->rowCount(), static_cast<int>(p.branchTree->mainLine().size()));
@@ -81,21 +81,20 @@ private slots:
         MatchPlayers players;
         players.blackHumanName = QStringLiteral("前の先手");
         players.whiteHumanName = QStringLiteral("前の後手");
-        window.composer().state().players = players;
         TimeControl timeControl;
         timeControl.black.mainMs = timeControl.white.mainMs = 600000;
         timeControl.black.incrementMs = timeControl.white.incrementMs = 10000;
-        p.timeRecord.begin(timeControl);
-        p.timeRecord.recordEnd();
+        p.document->beginMatch(players, timeControl, false);
+        p.document->recordMatchEnd();
 
         // 対局者名も開始日時もない棋譜
         QVERIFY(p.kifuFileController->loadKifuText(QStringLiteral("V2.2\nPI\n+\n+7776FU\n-3334FU\n")));
-        QVERIFY(window.composer().state().players.blackHumanName.isEmpty());
-        QVERIFY(!p.timeRecord.hasTimeControl());
-        QVERIFY(!p.timeRecord.startDateTime().isValid());
-        QVERIFY(!p.timeRecord.endDateTime().isValid());
+        QVERIFY(p.document->players().blackHumanName.isEmpty());
+        QVERIFY(!p.document->timeRecord().hasTimeControl());
+        QVERIFY(!p.document->timeRecord().startDateTime().isValid());
+        QVERIFY(!p.document->timeRecord().endDateTime().isValid());
 
-        const QString csa = p.kifuExportController->exportLines(KifuFormat::Csa).join(QLatin1Char('\n'));
+        const QString csa = KifuExport::lines(*p.document, KifuFormat::Csa).join(QLatin1Char('\n'));
         QVERIFY2(!csa.contains(QStringLiteral("$TIME")), qPrintable(csa));
         QVERIFY2(!csa.contains(QStringLiteral("$START_TIME")), qPrintable(csa));
         QVERIFY2(!csa.contains(QStringLiteral("前の先手")), qPrintable(csa));
@@ -122,11 +121,11 @@ private slots:
         MainWindow window;
         auto& p = window.composer().parts();
         QVERIFY(p.kifuFileController->loadKifuFile(fixture(QStringLiteral("test_basic.kif"))));
-        QVERIFY(!window.composer().state().saveFileName.isEmpty());
+        QVERIFY(!p.document->filePath().isEmpty());
 
         QVERIFY(p.kifuFileController->loadKifuText(QStringLiteral("position startpos moves 2g2f 8c8d")));
         QCOMPARE(p.branchTree->mainRecordLine().usiMoves(), (QStringList{QStringLiteral("2g2f"), QStringLiteral("8c8d")}));
-        QVERIFY(window.composer().state().saveFileName.isEmpty());
+        QVERIFY(p.document->filePath().isEmpty());
 
         const QString csa = QStringLiteral("V2.2\nPI\n+\n+7776FU\n-3334FU\n");
         QVERIFY(p.kifuFileController->loadKifuText(csa));
@@ -157,8 +156,8 @@ private slots:
         p.kifuFileController->onSfenCollectionPositionSelected(position);
         QCOMPARE(p.branchTree->root()->sfen(), position);
         QCOMPARE(p.navState->currentSfen(), position);
-        QVERIFY(!p.gameRecord->isDirty());
-        QVERIFY(window.composer().state().saveFileName.isEmpty());
+        QVERIFY(!p.document->isModified());
+        QVERIFY(p.document->filePath().isEmpty());
     }
 
     /// 読めないファイル・壊れたテキストは、元の棋譜と上書き保存先を残してエラーを知らせる
@@ -168,7 +167,7 @@ private slots:
         auto& p = window.composer().parts();
         QVERIFY(p.kifuFileController->loadKifuFile(fixture(QStringLiteral("test_basic.kif"))));
         const QStringList before = p.branchTree->mainRecordLine().usiMoves();
-        const QString target = window.composer().state().saveFileName;
+        const QString target = p.document->filePath();
         QSignalSpy errors(p.kifuLoadCoordinator, &KifuLoadCoordinator::errorOccurred);
         // 知らせはダイアログにせず記録する（自動化 API と同じ）
         UiNotificationService::ScopedCapture shown;
@@ -178,7 +177,7 @@ private slots:
         QVERIFY(errors.count() >= 2);
         QVERIFY(shown.errors().size() >= 2);
         QCOMPARE(p.branchTree->mainRecordLine().usiMoves(), before);
-        QCOMPARE(window.composer().state().saveFileName, target);
+        QCOMPARE(p.document->filePath(), target);
     }
 
     /// 非同期の読み込みも同じ経路で入り、後から始めた読み込みが残る

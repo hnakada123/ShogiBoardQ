@@ -10,7 +10,7 @@
 #include <QTemporaryDir>
 
 #include "branchtreemanager.h"
-#include "gamerecordmodel.h"
+#include "kifudocument.h"
 #include "kifubranchlistmodel.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
@@ -62,7 +62,7 @@ class TestAppBranchNavigation : public QObject
         const QList<ShogiMove> moves = TestReplay::buildGameMoves(ply1->sfen(), usi);
         KifuBranchNode* branch2 = p.branchTree->addMove(ply1, moves.at(0), QStringLiteral("△８四歩(83)"), sfens.at(1));
         p.branchTree->addMove(branch2, moves.at(1), QStringLiteral("▲２六歩(27)"), sfens.at(2));
-        p.gameRecord->clearDirty();
+        p.document->markSaved(QString());
         p.kifuNavController->goToFirst();
         return branch2;
     }
@@ -176,7 +176,7 @@ private slots:
         QCOMPARE(p.navState->currentLineIndex(), 0);
         QCOMPARE(boardPosition(p), position(kNoLanceSfen));
         p.liveGameSession->discard();
-        p.gameRecord->clearDirty();
+        p.document->markSaved(QString());
     }
 };
 

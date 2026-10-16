@@ -5,7 +5,7 @@
 #include "mainwindowcomposer.h"
 #include "gamesession.h"
 #include "gamestartoptionsbuilder.h"
-#include "gamerecordmodel.h"
+#include "kifudocument.h"
 #include "kifubranchtree.h"
 #include "kifunavigationcontroller.h"
 #include "kifunavigationstate.h"
@@ -56,7 +56,7 @@ private slots:
         p.kifuNavController->goToFirst();
         QCOMPARE(p.navState->currentNode(), p.branchTree->root());
         QCOMPARE(p.navState->currentSfen(), expected);
-        p.gameRecord->clearDirty();
+        p.document->markSaved(QString());
     }
 };
 QTEST_MAIN(TestPositionEditGameStart)

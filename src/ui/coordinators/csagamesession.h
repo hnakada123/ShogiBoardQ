@@ -10,6 +10,7 @@
 
 #include "appactivitystate.h"
 #include "csaclient.h"
+#include "timecontrol.h"
 #include "usiscore.h"
 
 class BoardInteractionController;
@@ -21,7 +22,6 @@ class EvaluationChartWidget;
 class KifuFileController;
 class MainWindowAppearanceController;
 class MatchRecordSink;
-class MatchTimeRecord;
 class QStatusBar;
 class QWidget;
 class ShogiView;
@@ -44,7 +44,6 @@ public:
         CsaGameCoordinator* coordinator = nullptr;          ///< 通信対局の司令塔（必須）
         AppActivityState* activity = nullptr;              ///< 通信対局中の動作状態（必須）
         MatchRecordSink* recordSink = nullptr;             ///< 棋譜の行の書き先（必須）
-        MatchTimeRecord* timeRecord = nullptr;             ///< 対局情報と棋譜に書く持ち時間と開始日時
         ShogiView* shogiView = nullptr;                    ///< 対局者名
         BoardInteractionController* boardController = nullptr; ///< 相手の手の強調
         BoardMoveController* boardMoves = nullptr;         ///< 人間が盤で選んだ手をサーバーへ送る
@@ -55,8 +54,9 @@ public:
         MainWindowAppearanceController* appearance = nullptr; ///< 後手のとき盤を反転する
         QStatusBar* statusBar = nullptr;
         QWidget* parentWidget = nullptr;                   ///< 待機・結果ダイアログの親
-        /// 棋譜と対局情報を開始局面・対局者名で作り直し、ライブ記録を始める
-        std::function<void(const QString& startSfen, const QString& blackName, const QString& whiteName)> prepareRecord;
+        /// 棋譜と対局情報を開始局面・対局者名・持ち時間（サーバーの対局条件）で作り直し、ライブ記録を始める
+        std::function<void(const QString& startSfen, const QString& blackName, const QString& whiteName,
+                           const TimeControl& timeControl)> prepareRecord;
         /// ライブ記録を確定し、終局日時を記録して対局情報に反映する
         std::function<void()> recordGameEnd;
     };

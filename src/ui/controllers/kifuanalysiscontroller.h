@@ -15,7 +15,7 @@ class AnalysisResultsPanel;
 class AppActivityState;
 class EngineLifecycleManager;
 class EvaluationChartWidget;
-class GameInfoPane;
+class KifuDocument;
 class KifuAnalysisDialog;
 class KifuAnalysisListModel;
 class KifuNavigationController;
@@ -48,7 +48,7 @@ public:
         // --- 解析する手順と、結果の反映先（無くてもよい） ---
         const KifuNavigationState* navState = nullptr;      ///< 解析する手順（表示中の手順）
         const KifuRecordListModel* recordModel = nullptr;   ///< 結果の表に出す手の表記（手数・分岐の印付き）
-        const GameInfoPane* gameInfo = nullptr;   ///< 対局者名
+        const KifuDocument* document = nullptr;   ///< 対局者名（対局情報）
         const ShogiView* shogiView = nullptr;               ///< 読み筋の盤の向きを本体の盤に合わせる
         KifuNavigationController* navController = nullptr;  ///< 解析中・結果の行を選んだ手へ棋譜を移す
         EvaluationChartWidget* evalChart = nullptr;         ///< 評価値グラフ

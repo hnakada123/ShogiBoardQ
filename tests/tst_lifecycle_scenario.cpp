@@ -4,7 +4,8 @@
 #include "mainwindow.h"
 #include "mainwindowcomposer.h"
 #include "gamesession.h"
-#include "gamerecordmodel.h"
+#include "kifudocument.h"
+#include "kifuexport.h"
 #include "kifubranchtree.h"
 #include "kifurecordlistmodel.h"
 #include "kifunavigationstate.h"
@@ -33,10 +34,10 @@ private slots:
         auto* session = parts.liveGameSession;
         auto* tree = parts.branchTree;
         auto* rows = parts.kifuRecord;
-        auto* model = parts.gameRecord;
+        auto* document = parts.document;
         QVERIFY(service);
         QVERIFY(session);
-        QVERIFY(model);
+        QVERIFY(document);
         parts.gameSession->resetToInitialState();
         const QString initial = SfenUtils::hirateSfen();
         const QStringList usi{"7g7f", "3c3d"};
@@ -71,33 +72,33 @@ private slots:
             QCOMPARE(rows->rowCount(), 4);
             QVERIFY(session->commit());
             QVERIFY(!session->isActive());
-            const auto kif = model->toKifLines({}).join('\n');
-            const auto csa = model->toCsaLines({}).join('\n');
-            const auto jkf = model->toJkfLines({}).join('\n');
+            const auto kif = KifuExport::lines(*document, KifuFormat::Kif).join('\n');
+            const auto csa = KifuExport::lines(*document, KifuFormat::Csa).join('\n');
+            const auto jkf = KifuExport::lines(*document, KifuFormat::Jkf).join('\n');
             QVERIFY(kif.contains(QStringLiteral("７六歩")));
             QVERIFY(kif.contains(QStringLiteral("投了")));
             QVERIFY(csa.contains("+7776FU"));
             QVERIFY(csa.contains("%TORYO"));
             QVERIFY(csa.contains("T1.250"));
             QVERIFY(jkf.contains("TORYO"));
-            model->clearDirty();
+            document->markSaved(QString());
             parts.gameSession->resetToInitialState();
             QCOMPARE(rows->rowCount(), 1);
             QCOMPARE(tree->nodeCount(), 1);
             QCOMPARE(parts.gameSession, service);
         }
-        model->clearDirty();
+        document->markSaved(QString());
     }
     void recordCannotStartSession()
     {
         MainWindow window;
         auto& parts = window.composer().parts();
         parts.gameSession->resetToInitialState();
-        parts.gameRecord->clearDirty();
+        parts.document->markSaved(QString());
         parts.gameSession->appendRecord(
             RecordEntry::ending(TerminalType::Resign, Turn::Black));
         QVERIFY(!parts.liveGameSession->isActive());
-        QVERIFY(!parts.gameRecord->isDirty());
+        QVERIFY(!parts.document->isModified());
         QCOMPARE(parts.branchTree->nodeCount(), 1);
         QCOMPARE(parts.kifuRecord->rowCount(), 1);
     }

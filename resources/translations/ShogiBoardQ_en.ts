@@ -1330,39 +1330,39 @@ Stands: %3 / Players: %4</translation>
 <context>
     <name>BranchTreeEditController</name>
     <message>
-        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="102"/>
+        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="101"/>
         <source>この手順を本譜にする</source>
         <translation>Make this line the main line</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="103"/>
+        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="102"/>
         <source>変化を上へ移動する</source>
         <translation>Move variation up</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="104"/>
+        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="103"/>
         <source>変化を下へ移動する</source>
         <translation>Move variation down</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="105"/>
+        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="104"/>
         <source>この手以降を削除する…</source>
         <translation>Delete from this move…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="139"/>
+        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="138"/>
         <source>手順の削除</source>
         <translation>Delete Moves</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="140"/>
+        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="139"/>
         <source>「%1」以降の %2 手を削除します。
 この操作は取り消せません。</source>
         <translation>This deletes %2 move(s) from “%1” onward.
 This cannot be undone.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="142"/>
+        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="141"/>
         <source>削除する</source>
         <translation>Delete</translation>
     </message>
@@ -2948,22 +2948,22 @@ Please register an engine from Tools → Engine Settings.</translation>
 <context>
     <name>CsaGameSession</name>
     <message>
-        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="91"/>
+        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="90"/>
         <source>通信対局をキャンセルしました</source>
         <translation>Network game cancelled</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="126"/>
+        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="124"/>
         <source>CSA通信対局開始: %1 vs %2</source>
         <translation>CSA network game started: %1 vs %2</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="143"/>
+        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="141"/>
         <source>対局終了</source>
         <translation>Game Over</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="143"/>
+        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="141"/>
         <source>対局が終了しました。
 
 結果: %1
@@ -2974,17 +2974,17 @@ Result: %1
 Cause: %2</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="144"/>
+        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="142"/>
         <source>対局終了: %1 (%2)</source>
         <translation>Game Over: %1 (%2)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="150"/>
+        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="148"/>
         <source>先手番</source>
         <translation>Sente (Black)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="150"/>
+        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="148"/>
         <source>後手番</source>
         <translation>Gote (White)</translation>
     </message>
@@ -4715,38 +4715,38 @@ Each screen keeps its current text size.</translation>
 <context>
     <name>GameInfoEditModel</name>
     <message>
-        <location filename="../../src/models/gameinfoeditmodel.cpp" line="101"/>
+        <location filename="../../src/models/gameinfoeditmodel.cpp" line="92"/>
         <source>項目</source>
         <translation>Item</translation>
     </message>
     <message>
-        <location filename="../../src/models/gameinfoeditmodel.cpp" line="101"/>
+        <location filename="../../src/models/gameinfoeditmodel.cpp" line="92"/>
         <source>内容</source>
         <translation>Value</translation>
     </message>
     <message>
-        <location filename="../../src/models/gameinfoeditmodel.cpp" line="236"/>
+        <location filename="../../src/models/gameinfoeditmodel.cpp" line="212"/>
         <source>未開始（対局開始時に設定）</source>
         <translation>Not started (set when the game starts)</translation>
     </message>
     <message>
-        <location filename="../../src/models/gameinfoeditmodel.cpp" line="236"/>
-        <location filename="../../src/models/gameinfoeditmodel.cpp" line="240"/>
+        <location filename="../../src/models/gameinfoeditmodel.cpp" line="212"/>
+        <location filename="../../src/models/gameinfoeditmodel.cpp" line="216"/>
         <source>未設定</source>
         <translation>Not set</translation>
     </message>
     <message>
-        <location filename="../../src/models/gameinfoeditmodel.cpp" line="238"/>
+        <location filename="../../src/models/gameinfoeditmodel.cpp" line="214"/>
         <source>未設定（名前を入力できます）</source>
         <translation>Not set (enter a player name)</translation>
     </message>
     <message>
-        <location filename="../../src/models/gameinfoeditmodel.cpp" line="240"/>
+        <location filename="../../src/models/gameinfoeditmodel.cpp" line="216"/>
         <source>未設定（対局設定から反映）</source>
         <translation>Not set (from game settings)</translation>
     </message>
     <message>
-        <location filename="../../src/models/gameinfoeditmodel.cpp" line="242"/>
+        <location filename="../../src/models/gameinfoeditmodel.cpp" line="218"/>
         <source>任意入力</source>
         <translation>Optional</translation>
     </message>
@@ -4754,109 +4754,104 @@ Each screen keeps its current text size.</translation>
 <context>
     <name>GameInfoPane</name>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="97"/>
+        <location filename="../../src/widgets/gameinfopane.cpp" line="94"/>
         <source>対局情報</source>
         <translation>Game Info</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="152"/>
         <source>先手</source>
-        <translation>Black</translation>
+        <translation type="vanished">Black</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="153"/>
         <source>後手</source>
-        <translation>White</translation>
+        <translation type="vanished">White</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="231"/>
         <source>未保存の対局情報</source>
-        <translation>Unsaved Game Info</translation>
+        <translation type="vanished">Unsaved Game Info</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="232"/>
         <source>対局情報が編集されていますが、まだ更新されていません。
 変更を破棄して続行しますか？</source>
-        <translation>The game info has been edited but not saved yet.
+        <translation type="vanished">The game info has been edited but not saved yet.
 Discard changes and continue?</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="234"/>
         <source>破棄して続行</source>
-        <translation>Discard and Continue</translation>
+        <translation type="vanished">Discard and Continue</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="390"/>
+        <location filename="../../src/widgets/gameinfopane.cpp" line="338"/>
         <source>フォントサイズを小さくする</source>
         <translation>Decrease font size</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="392"/>
+        <location filename="../../src/widgets/gameinfopane.cpp" line="340"/>
         <source>フォントサイズを大きくする</source>
         <translation>Increase font size</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="394"/>
+        <location filename="../../src/widgets/gameinfopane.cpp" line="342"/>
         <source>元に戻す (Ctrl+Z)</source>
         <translation>Undo (Ctrl+Z)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="396"/>
+        <location filename="../../src/widgets/gameinfopane.cpp" line="344"/>
         <source>やり直す (Ctrl+Y)</source>
         <translation>Redo (Ctrl+Y)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="399"/>
+        <location filename="../../src/widgets/gameinfopane.cpp" line="347"/>
         <source>切り取り (Ctrl+X)</source>
         <translation>Cut (Ctrl+X)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="401"/>
+        <location filename="../../src/widgets/gameinfopane.cpp" line="349"/>
         <source>コピー (Ctrl+C)</source>
         <translation>Copy (Ctrl+C)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="403"/>
+        <location filename="../../src/widgets/gameinfopane.cpp" line="351"/>
         <source>貼り付け (Ctrl+V)</source>
         <translation>Paste (Ctrl+V)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="406"/>
+        <location filename="../../src/widgets/gameinfopane.cpp" line="354"/>
         <source>行を追加</source>
         <translation>Add row</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="406"/>
+        <location filename="../../src/widgets/gameinfopane.cpp" line="354"/>
         <source>新しい行を追加する</source>
         <translation>Add a new row</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="407"/>
+        <location filename="../../src/widgets/gameinfopane.cpp" line="355"/>
         <source>行を削除</source>
         <translation>Delete row</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="408"/>
+        <location filename="../../src/widgets/gameinfopane.cpp" line="356"/>
         <source>選択行を削除する（元に戻す操作で復元できます）</source>
         <translation>Delete the selected row (can be restored with Undo)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="420"/>
+        <location filename="../../src/widgets/gameinfopane.cpp" line="368"/>
         <source>対局情報更新</source>
         <translation>Update Game Info</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="422"/>
+        <location filename="../../src/widgets/gameinfopane.cpp" line="370"/>
         <source>編集した対局情報を棋譜に反映する (Ctrl+Enter)</source>
         <translation>Apply edited game info to the record (Ctrl+Enter)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="481"/>
+        <location filename="../../src/widgets/gameinfopane.cpp" line="429"/>
         <source>未反映の変更があります</source>
         <translation>Unapplied changes</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="481"/>
+        <location filename="../../src/widgets/gameinfopane.cpp" line="429"/>
         <source>内容をダブルクリックして編集</source>
         <translation>Double-click a value to edit</translation>
     </message>
@@ -4999,6 +4994,19 @@ Discard changes and continue?</translation>
     <message>
         <source>開始局面</source>
         <translation type="vanished">Starting Position</translation>
+    </message>
+</context>
+<context>
+    <name>GameSession</name>
+    <message>
+        <location filename="../../src/app/gamesession.cpp" line="171"/>
+        <source>無制限</source>
+        <translation>Unlimited</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/gamesession.cpp" line="173"/>
+        <source>対局：▲%1 △%2（%3 開始、持ち時間 %4）</source>
+        <translation>Game: ☗%1 ☖%2 (started %3, time %4)</translation>
     </message>
 </context>
 <context>
@@ -6515,23 +6523,23 @@ Do you want to save them?</translation>
 <context>
     <name>KifuAnalysisController</name>
     <message>
-        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="48"/>
-        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="92"/>
+        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="47"/>
+        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="91"/>
         <source>解析対象の棋譜データが不正です。</source>
         <translation>The game record selected for analysis is invalid.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="62"/>
+        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="61"/>
         <source>エンジン選択が不正です。</source>
         <translation>Invalid engine selection.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="154"/>
+        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="148"/>
         <source>エンジン初期化に失敗しました。エンジン設定を確認してください。</source>
         <translation>Failed to initialize the engine. Check the engine settings.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="225"/>
+        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="219"/>
         <source>エンジンエラー: %1</source>
         <translation>Engine error: %1</translation>
     </message>
@@ -6921,6 +6929,19 @@ Do you want to save them?</translation>
     </message>
 </context>
 <context>
+    <name>KifuDocument</name>
+    <message>
+        <location filename="../../src/kifu/kifudocument.cpp" line="91"/>
+        <source>先手</source>
+        <translation>Black</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifudocument.cpp" line="92"/>
+        <source>後手</source>
+        <translation>White</translation>
+    </message>
+</context>
+<context>
     <name>KifuExportClipboard</name>
     <message>
         <source>クリップボードへのコピーに失敗しました</source>
@@ -7014,20 +7035,16 @@ Do you want to save them?</translation>
         <translation type="vanished">No game record data</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifuexportcontroller.cpp" line="112"/>
         <source>棋譜を保存しました: %1</source>
-        <translation>Game record saved: %1</translation>
+        <translation type="vanished">Game record saved: %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifuexportcontroller.cpp" line="140"/>
         <source>棋譜を上書き保存しました: %1</source>
-        <translation>Game record overwritten: %1</translation>
+        <translation type="vanished">Game record overwritten: %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifuexportcontroller.cpp" line="111"/>
-        <location filename="../../src/ui/coordinators/kifuexportcontroller.cpp" line="121"/>
         <source>KIF Save Error</source>
-        <translation>KIF Save Error</translation>
+        <translation type="vanished">KIF Save Error</translation>
     </message>
     <message>
         <source>自動保存先ディレクトリが指定されていません</source>
@@ -7038,136 +7055,110 @@ Do you want to save them?</translation>
         <translation type="vanished">No game record data (autosave skipped)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifuexportcontroller.cpp" line="161"/>
         <source>棋譜データが空のため自動保存をスキップしました</source>
-        <translation>Autosave skipped because the game record is empty</translation>
+        <translation type="vanished">Autosave skipped because the game record is empty</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifuexportcontroller.cpp" line="166"/>
         <source>棋譜を自動保存しました: %1</source>
-        <translation>Game record auto-saved: %1</translation>
+        <translation type="vanished">Game record auto-saved: %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifuexportcontroller.cpp" line="170"/>
         <source>棋譜の自動保存に失敗しました: %1</source>
-        <translation>Failed to auto-save game record: %1</translation>
+        <translation type="vanished">Failed to auto-save game record: %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifuexportcontroller.cpp" line="202"/>
         <source>KIF形式の棋譜データがありません</source>
-        <translation>No KIF format game record data</translation>
+        <translation type="vanished">No KIF format game record data</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifuexportcontroller.cpp" line="202"/>
         <source>KIF形式の棋譜をクリップボードにコピーしました</source>
-        <translation>Copied KIF format game record to clipboard</translation>
+        <translation type="vanished">Copied KIF format game record to clipboard</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifuexportcontroller.cpp" line="205"/>
         <source>KI2形式の棋譜データがありません</source>
-        <translation>No KI2 format game record data</translation>
+        <translation type="vanished">No KI2 format game record data</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifuexportcontroller.cpp" line="205"/>
         <source>KI2形式の棋譜をクリップボードにコピーしました</source>
-        <translation>Copied KI2 format game record to clipboard</translation>
+        <translation type="vanished">Copied KI2 format game record to clipboard</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifuexportcontroller.cpp" line="209"/>
         <source>CSA形式の棋譜データがありません</source>
-        <translation>No CSA format game record data</translation>
+        <translation type="vanished">No CSA format game record data</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifuexportcontroller.cpp" line="211"/>
         <source>CSA形式の棋譜をクリップボードにコピーしました</source>
-        <translation>Copied CSA format game record to clipboard</translation>
+        <translation type="vanished">Copied CSA format game record to clipboard</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifuexportcontroller.cpp" line="185"/>
         <source>クリップボードへのコピーに失敗しました</source>
-        <translation>Failed to copy to clipboard</translation>
+        <translation type="vanished">Failed to copy to clipboard</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifuexportcontroller.cpp" line="214"/>
-        <location filename="../../src/ui/coordinators/kifuexportcontroller.cpp" line="252"/>
         <source>USI形式の棋譜データがありません</source>
-        <translation>No USI format game record data</translation>
+        <translation type="vanished">No USI format game record data</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifuexportcontroller.cpp" line="216"/>
         <source>USI形式の棋譜をクリップボードにコピーしました</source>
-        <translation>Copied USI format game record to clipboard</translation>
+        <translation type="vanished">Copied USI format game record to clipboard</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifuexportcontroller.cpp" line="256"/>
         <source>USI形式（現在の指し手まで）の棋譜をクリップボードにコピーしました</source>
-        <translation>Copied USI format game record (up to current move) to clipboard</translation>
+        <translation type="vanished">Copied USI format game record (up to current move) to clipboard</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifuexportcontroller.cpp" line="219"/>
         <source>JKF形式の棋譜データがありません</source>
-        <translation>No JKF format game record data</translation>
+        <translation type="vanished">No JKF format game record data</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifuexportcontroller.cpp" line="148"/>
         <source>棋譜の自動保存先を作成できません: %1</source>
-        <translation>Cannot create the folder for automatic saving: %1</translation>
+        <translation type="vanished">Cannot create the folder for automatic saving: %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifuexportcontroller.cpp" line="210"/>
         <source>CSA形式の棋譜をクリップボードにコピーしました（CSA形式は分岐に対応していないため、本譜のみです）</source>
-        <translation>Copied the record to the clipboard in CSA format (main line only; CSA does not support variations)</translation>
+        <translation type="vanished">Copied the record to the clipboard in CSA format (main line only; CSA does not support variations)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifuexportcontroller.cpp" line="215"/>
         <source>USI形式の棋譜をクリップボードにコピーしました（USI形式は分岐に対応していないため、本譜のみです）</source>
-        <translation>Copied the record to the clipboard in USI format (main line only; USI does not support variations)</translation>
+        <translation type="vanished">Copied the record to the clipboard in USI format (main line only; USI does not support variations)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifuexportcontroller.cpp" line="219"/>
         <source>JKF形式の棋譜をクリップボードにコピーしました</source>
-        <translation>Copied JKF format game record to clipboard</translation>
+        <translation type="vanished">Copied JKF format game record to clipboard</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifuexportcontroller.cpp" line="222"/>
         <source>USEN形式の棋譜データがありません</source>
-        <translation>No USEN format game record data</translation>
+        <translation type="vanished">No USEN format game record data</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifuexportcontroller.cpp" line="222"/>
         <source>USEN形式の棋譜をクリップボードにコピーしました</source>
-        <translation>Copied USEN format game record to clipboard</translation>
+        <translation type="vanished">Copied USEN format game record to clipboard</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifuexportcontroller.cpp" line="276"/>
         <source>SFEN形式の局面データがありません</source>
-        <translation>No SFEN format position data</translation>
+        <translation type="vanished">No SFEN format position data</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifuexportcontroller.cpp" line="279"/>
         <source>SFEN形式の局面をクリップボードにコピーしました</source>
-        <translation>Copied SFEN format position to clipboard</translation>
+        <translation type="vanished">Copied SFEN format position to clipboard</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifuexportcontroller.cpp" line="286"/>
         <source>BOD形式の局面データがありません</source>
-        <translation>No BOD format position data</translation>
+        <translation type="vanished">No BOD format position data</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifuexportcontroller.cpp" line="299"/>
         <source>SFEN形式の解析に失敗しました</source>
-        <translation>Failed to parse SFEN format</translation>
+        <translation type="vanished">Failed to parse SFEN format</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifuexportcontroller.cpp" line="302"/>
         <source>BOD形式の局面をクリップボードにコピーしました</source>
-        <translation>Copied BOD format position to clipboard</translation>
+        <translation type="vanished">Copied BOD format position to clipboard</translation>
     </message>
 </context>
 <context>
     <name>KifuFileController</name>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="51"/>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="65"/>
         <source>棋譜ファイルを開く</source>
         <translation>Open Game Record File</translation>
     </message>
@@ -7180,24 +7171,166 @@ Do you want to save them?</translation>
         <translation type="vanished">Game Record Files (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu);;KI2 Files (*.ki2 *.ki2u);;CSA Files (*.csa);;JKF Files (*.jkf);;USI/SFEN Files (*.usi *.sfen);;USEN Files (*.usen)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="52"/>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="66"/>
         <source>Kifu Files (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.json *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu);;KI2 Files (*.ki2 *.ki2u);;CSA Files (*.csa);;JKF Files (*.jkf *.json);;USI/SFEN Files (*.usi *.sfen);;USEN Files (*.usen)</source>
         <translation>Game Record Files (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.json *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu);;KI2 Files (*.ki2 *.ki2u);;CSA Files (*.csa);;JKF Files (*.jkf *.json);;USI/SFEN Files (*.usi *.sfen);;USEN Files (*.usen)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="133"/>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="117"/>
         <source>棋譜を読み込み中...</source>
         <translation>Loading game record...</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="133"/>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="117"/>
         <source>キャンセル</source>
         <translation>Cancel</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="158"/>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="151"/>
         <source>棋譜を取り込みました</source>
         <translation>Game record imported</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="216"/>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="230"/>
+        <source>KIF Save Error</source>
+        <translation>KIF Save Error</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="217"/>
+        <source>棋譜を保存しました: %1</source>
+        <translation>Game record saved: %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="246"/>
+        <source>棋譜を上書き保存しました: %1</source>
+        <translation>Game record overwritten: %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="254"/>
+        <source>棋譜の自動保存先を作成できません: %1</source>
+        <translation>Cannot create the folder for automatic saving: %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="267"/>
+        <source>棋譜データが空のため自動保存をスキップしました</source>
+        <translation>Autosave skipped because the game record is empty</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="272"/>
+        <source>棋譜を自動保存しました: %1</source>
+        <translation>Record saved automatically: %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="276"/>
+        <source>棋譜の自動保存に失敗しました: %1</source>
+        <translation>Automatic saving of the record failed: %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="290"/>
+        <source>クリップボードへのコピーに失敗しました</source>
+        <translation>Failed to copy to clipboard</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="306"/>
+        <source>KIF形式の棋譜データがありません</source>
+        <translation>No KIF format game record data</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="306"/>
+        <source>KIF形式の棋譜をクリップボードにコピーしました</source>
+        <translation>Copied KIF format game record to clipboard</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="309"/>
+        <source>KI2形式の棋譜データがありません</source>
+        <translation>No KI2 format game record data</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="309"/>
+        <source>KI2形式の棋譜をクリップボードにコピーしました</source>
+        <translation>Copied KI2 format game record to clipboard</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="313"/>
+        <source>CSA形式の棋譜データがありません</source>
+        <translation>No CSA format game record data</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="314"/>
+        <source>CSA形式の棋譜をクリップボードにコピーしました（CSA形式は分岐に対応していないため、本譜のみです）</source>
+        <translation>Copied the record to the clipboard in CSA format (main line only; CSA does not support variations)</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="315"/>
+        <source>CSA形式の棋譜をクリップボードにコピーしました</source>
+        <translation>Copied CSA format game record to clipboard</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="318"/>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="355"/>
+        <source>USI形式の棋譜データがありません</source>
+        <translation>No USI format game record data</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="319"/>
+        <source>USI形式の棋譜をクリップボードにコピーしました（USI形式は分岐に対応していないため、本譜のみです）</source>
+        <translation>Copied the record to the clipboard in USI format (main line only; USI does not support variations)</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="320"/>
+        <source>USI形式の棋譜をクリップボードにコピーしました</source>
+        <translation>Copied USI format game record to clipboard</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="323"/>
+        <source>JKF形式の棋譜データがありません</source>
+        <translation>No JKF format game record data</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="323"/>
+        <source>JKF形式の棋譜をクリップボードにコピーしました</source>
+        <translation>Copied JKF format game record to clipboard</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="326"/>
+        <source>USEN形式の棋譜データがありません</source>
+        <translation>No USEN format game record data</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="326"/>
+        <source>USEN形式の棋譜をクリップボードにコピーしました</source>
+        <translation>Copied USEN format game record to clipboard</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="359"/>
+        <source>USI形式（現在の指し手まで）の棋譜をクリップボードにコピーしました</source>
+        <translation>Copied USI format game record (up to current move) to clipboard</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="377"/>
+        <source>SFEN形式の局面データがありません</source>
+        <translation>No SFEN format position data</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="380"/>
+        <source>SFEN形式の局面をクリップボードにコピーしました</source>
+        <translation>Copied SFEN format position to clipboard</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="387"/>
+        <source>BOD形式の局面データがありません</source>
+        <translation>No BOD format position data</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="397"/>
+        <source>SFEN形式の解析に失敗しました</source>
+        <translation>Failed to parse SFEN format</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="400"/>
+        <source>BOD形式の局面をクリップボードにコピーしました</source>
+        <translation>Copied BOD format position to clipboard</translation>
     </message>
     <message>
         <source>棋譜の取り込みに失敗しました</source>
@@ -7208,19 +7341,18 @@ Do you want to save them?</translation>
         <translation type="vanished">Failed to import game record (internal error)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="177"/>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="159"/>
         <source>局面を反映しました</source>
         <translation>Position applied</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="179"/>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="159"/>
         <source>局面の反映に失敗しました</source>
         <translation>Failed to apply position</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="184"/>
         <source>局面の反映に失敗しました（内部エラー）</source>
-        <translation>Failed to apply position (internal error)</translation>
+        <translation type="vanished">Failed to apply position (internal error)</translation>
     </message>
 </context>
 <context>
@@ -7241,14 +7373,14 @@ Do you want to save them?</translation>
         <translation>Failed to load the game record.%1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifuloadcoordinator.cpp" line="113"/>
+        <location filename="../../src/ui/coordinators/kifuloadcoordinator.cpp" line="112"/>
         <source>棋譜の読み込みで警告があります:
 %1</source>
         <translation>Warning while loading game record:
 %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifuloadcoordinator.cpp" line="130"/>
+        <location filename="../../src/ui/coordinators/kifuloadcoordinator.cpp" line="129"/>
         <source>棋譜の分岐元または開始手数が不正です。</source>
         <translation>The game record has an invalid variation parent or starting ply.</translation>
     </message>
@@ -7284,7 +7416,7 @@ Do you want to save them?</translation>
         <translation type="vanished">Could not get position from BOD format.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifuloadcoordinator.cpp" line="124"/>
+        <location filename="../../src/ui/coordinators/kifuloadcoordinator.cpp" line="123"/>
         <source>読み込み失敗 %1 から指し手を取得できませんでした。</source>
         <translation>Load failed: Could not get moves from %1.</translation>
     </message>
@@ -9081,37 +9213,37 @@ Please restart the application to apply the changes.</translation>
 <context>
     <name>MatchCoordinator</name>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="405"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="413"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="405"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="413"/>
         <source>下手</source>
         <translation>Shitate</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="406"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="414"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="406"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="414"/>
         <source>上手</source>
         <translation>Uwate</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="412"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="420"/>
         <source>%1の投了。%2の勝ちです。</source>
         <translation>%1 resigned. %2 wins.</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="414"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="422"/>
         <source>%1の時間切れ。%2の勝ちです。</source>
         <translation>%1 ran out of time. %2 wins.</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="416"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="424"/>
         <source>最大手数に達しました。持将棋です。</source>
         <translation>Maximum moves reached. Jishogi (impasse).</translation>
     </message>
@@ -9120,27 +9252,27 @@ Please restart the application to apply the changes.</translation>
         <translation type="vanished">%1 declared entering king. %2 wins.</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="418"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="426"/>
         <source>%1の反則負け。%2の勝ちです。</source>
         <translation>%1 committed a foul. %2 wins.</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="420"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="428"/>
         <source>千日手が成立しました。</source>
         <translation>Sennichite (draw by repetition).</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="422"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="430"/>
         <source>%1の連続王手の千日手。%2の勝ちです。</source>
         <translation>Perpetual check by %1. %2 wins.</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="427"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="435"/>
         <source>対局が終了しました。</source>
         <translation>The game has ended.</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="360"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="368"/>
         <source>対局終了</source>
         <translation>Game Over</translation>
     </message>
@@ -9169,7 +9301,7 @@ Please restart the application to apply the changes.</translation>
         <translation type="vanished">Search completed</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="330"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="338"/>
         <source>エンジンエラー: %1</source>
         <translation>Engine error: %1</translation>
     </message>
@@ -9178,7 +9310,7 @@ Please restart the application to apply the changes.</translation>
         <translation type="vanished">Consideration</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="330"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="338"/>
         <source>対局中断</source>
         <translation>Game interrupted</translation>
     </message>
@@ -9803,24 +9935,22 @@ Are you sure you want to declare?</translation>
 <context>
     <name>PlayerInfoPresenter</name>
     <message>
-        <location filename="../../src/ui/presenters/playerinfopresenter.cpp" line="134"/>
+        <location filename="../../src/ui/presenters/playerinfopresenter.cpp" line="85"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/ui/presenters/playerinfopresenter.cpp" line="135"/>
+        <location filename="../../src/ui/presenters/playerinfopresenter.cpp" line="86"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
     <message>
-        <location filename="../../src/ui/presenters/playerinfopresenter.cpp" line="189"/>
         <source>無制限</source>
-        <translation>Unlimited</translation>
+        <translation type="vanished">Unlimited</translation>
     </message>
     <message>
-        <location filename="../../src/ui/presenters/playerinfopresenter.cpp" line="191"/>
         <source>対局：▲%1 △%2（%3 開始、持ち時間 %4）</source>
-        <translation>Game: ☗%1 ☖%2 (started %3, time %4)</translation>
+        <translation type="vanished">Game: ☗%1 ☖%2 (started %3, time %4)</translation>
     </message>
 </context>
 <context>

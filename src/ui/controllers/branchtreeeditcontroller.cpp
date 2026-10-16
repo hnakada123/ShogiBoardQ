@@ -4,7 +4,6 @@
 #include "branchtreeeditcontroller.h"
 #include "branchtreemanager.h"
 #include "dialogutils.h"
-#include "gamerecordmodel.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
 #include "kifunavigationcontroller.h"
@@ -23,7 +22,7 @@ BranchTreeEditController::BranchTreeEditController(const Deps& deps, QObject* pa
     : QObject(parent)
     , m_deps(deps)
 {
-    Q_ASSERT(m_deps.tree && m_deps.navState && m_deps.navController && m_deps.liveSession && m_deps.gameRecord);
+    Q_ASSERT(m_deps.tree && m_deps.navState && m_deps.navController && m_deps.liveSession);
 }
 
 bool BranchTreeEditController::canEdit() const
@@ -187,8 +186,8 @@ bool BranchTreeEditController::apply(Operation operation, KifuBranchNode* node, 
     tree->endBatchUpdate();
 
     if (!changed) return false;
+    // 未保存かどうかはツリーの revision で決まる（棋譜の文書が見る）
     qCDebug(lcUi).noquote() << "BranchTreeEditController: applied operation" << static_cast<int>(operation);
-    m_deps.gameRecord->markDirty();
     return true;
 }
 
@@ -222,7 +221,6 @@ bool BranchTreeEditController::recordBoardMove(QPoint& from, QPoint& to, ShogiGa
 
     qCDebug(lcUi).noquote() << "BranchTreeEditController: board move" << played->displayText
                             << (created ? "added as a new move" : "matched an existing move");
-    if (created) m_deps.gameRecord->markDirty();
     return true;
 }
 

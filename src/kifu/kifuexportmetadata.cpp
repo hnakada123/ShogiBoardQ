@@ -110,6 +110,21 @@ QString KifuExportMetadataBuilder::whitePlayerKey(const QString& handicapLabel)
     return isHandicap(handicapLabel) ? GameInfoKeys::kUwatePlayer : GameInfoKeys::kWhitePlayer;
 }
 
+QString KifuExportMetadataBuilder::playerName(const QList<KifGameInfoItem>& header, Turn side)
+{
+    const QString& fullKey = side == Turn::Black ? GameInfoKeys::kBlackPlayer : GameInfoKeys::kWhitePlayer;
+    const QString& handicapKey = side == Turn::Black ? GameInfoKeys::kShitatePlayer : GameInfoKeys::kUwatePlayer;
+    const QString& shortKey = side == Turn::Black ? GameInfoKeys::kBlackShortName : GameInfoKeys::kWhiteShortName;
+    QString full, handicap, shortName;
+    for (const auto& item : header) {
+        const QString value = item.value.trimmed();
+        if (item.key == fullKey) full = value;
+        else if (item.key == handicapKey) handicap = value;
+        else if (item.key == shortKey) shortName = value;
+    }
+    return !full.isEmpty() ? full : !handicap.isEmpty() ? handicap : shortName;
+}
+
 bool KifuExportMetadataBuilder::usesHandicapNames(const QList<KifGameInfoItem>& header, const QString& startSfen)
 {
     // 読み込んだ棋譜の見出しが先手・後手なら、駒落ちでもその呼び方にそろえる（1つの棋譜で呼び方を混ぜない）

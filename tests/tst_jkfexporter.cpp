@@ -8,7 +8,7 @@
 #include <QTemporaryFile>
 
 #include "kifu_file_helper.h"
-#include "gamerecordmodel.h"
+#include "kifuexport.h"
 #include "jkftosfenconverter.h"
 #include "kifparsetypes.h"
 #include "kifu_test_helper.h"
@@ -29,11 +29,9 @@ KifuBranchNode* addMove(KifuBranchTree& tree, KifuBranchNode* parent, const QStr
 
 QByteArray exportJkf(KifuBranchTree& tree, const QString& startSfen)
 {
-    GameRecordModel model;
-    model.setBranchTree(&tree);
-    GameRecordModel::ExportContext ctx;
+    KifuExportMetadata ctx;
     ctx.startSfen = startSfen;
-    return model.toJkfLines(ctx).join(QLatin1Char('\n')).toUtf8();
+    return KifuExport::lines(tree, ctx, KifuFormat::Jkf).join(QLatin1Char('\n')).toUtf8();
 }
 
 bool readJkf(const QByteArray& json, KifParseResult& result, QString* error)
@@ -103,13 +101,11 @@ private slots:
         auto* node = tree.addRecord(tree.root(), RecordEntry::ending(static_cast<TerminalType>(terminal),
                                                    white ? Turn::White : Turn::Black));
         QVERIFY(node);
-        GameRecordModel model;
-        model.setBranchTree(&tree);
-        GameRecordModel::ExportContext ctx;
+        KifuExportMetadata ctx;
         ctx.startSfen = tree.root()->sfen();
         const auto exportAll = [&] {
-            return QList<QStringList>{model.toKifLines(ctx), model.toKi2Lines(ctx), model.toCsaLines(ctx),
-                model.toJkfLines(ctx), model.toUsiLines(ctx), model.toUsenLines(ctx)};
+            return QList<QStringList>{KifuExport::lines(tree, ctx, KifuFormat::Kif), KifuExport::lines(tree, ctx, KifuFormat::Ki2), KifuExport::lines(tree, ctx, KifuFormat::Csa),
+                KifuExport::lines(tree, ctx, KifuFormat::Jkf), KifuExport::lines(tree, ctx, KifuFormat::Usi), KifuExport::lines(tree, ctx, KifuFormat::Usen)};
         };
         const auto original = exportAll();
         node->record().displayText = QStringLiteral("display text has no result or side");
@@ -117,9 +113,9 @@ private slots:
         node->record().displayText = {};
         QCOMPARE(exportAll(), original);
         if (static_cast<TerminalType>(terminal) == TerminalType::IllegalWin) {
-            QVERIFY(model.toCsaLines(ctx).contains(white ? QStringLiteral("%+ILLEGAL_ACTION")
+            QVERIFY(KifuExport::lines(tree, ctx, KifuFormat::Csa).contains(white ? QStringLiteral("%+ILLEGAL_ACTION")
                                                          : QStringLiteral("%-ILLEGAL_ACTION")));
-            QVERIFY(model.toKi2Lines(ctx).contains(white ? QStringLiteral("まで0手で後手の反則勝ち")
+            QVERIFY(KifuExport::lines(tree, ctx, KifuFormat::Ki2).contains(white ? QStringLiteral("まで0手で後手の反則勝ち")
                                                        : QStringLiteral("まで0手で先手の反則勝ち")));
         }
     }

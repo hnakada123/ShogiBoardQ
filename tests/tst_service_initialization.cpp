@@ -13,7 +13,7 @@
 #include "enginelifecyclemanager.h"
 #include "gamesession.h"
 #include "commentcoordinator.h"
-#include "gamerecordmodel.h"
+#include "kifudocument.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
 #include "kifunavigationstate.h"
@@ -161,8 +161,8 @@ private slots:
     {
         MainWindow window;
         auto& parts = window.composer().parts();
-        QVERIFY(parts.gameRecord);
-        parts.gameRecord->markDirty();
+        QVERIFY(parts.document);
+        parts.document->markUnsavedContent();
 
         auto* editing = window.findChild<PositionEditCoordinator*>();
         QSignalSpy started(editing, &PositionEditCoordinator::positionEditingStarted);
@@ -171,7 +171,7 @@ private slots:
         parts.actions->beginPositionEditing();
         QVERIFY(m_answered);
         QCOMPARE(started.count(), 0);
-        QVERIFY(parts.gameRecord->isDirty());
+        QVERIFY(parts.document->isModified());
 
         answerMessageBox(QMessageBox::DestructiveRole);
         parts.actions->beginPositionEditing();

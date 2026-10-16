@@ -16,7 +16,7 @@
 #include "humanturnpolicy.h"
 #include "csagameprogress.h"
 #include "appstate.h"
-#include "gamerecordmodel.h"
+#include "kifudocument.h"
 #include "gamesession.h"
 #include "kifubranchtree.h"
 #include "kifubranchnode.h"
@@ -456,12 +456,12 @@ private slots:
         live.startFromRoot();
         // 棋譜の受け手（本体と同じ GameSession。追記に使う部品だけ渡す）
         AppState state;
-        GameRecordModel gameRecord;
+        KifuDocument document(&tree);
         GameSession::Deps sd;
         sd.state = &state;
         sd.navState = &nav;
         sd.liveSession = &live;
-        sd.gameRecord = &gameRecord;
+        sd.document = &document;
         GameSession recordService(sd);
 
         AppActivityState activity;
