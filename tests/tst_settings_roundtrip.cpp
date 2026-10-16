@@ -144,25 +144,21 @@ private slots:
     {
         auto& settings = SettingsCommon::openSettings();
         settings.remove(SettingsKeys::kAppearanceSection);
-        QCOMPARE(AppSettings::appearanceSection(), 0);
+        QCOMPARE(AppSettings::appearanceSection(), QStringLiteral("pieces"));
+        // 背景タブの追加前に保存したタブの番号も、同じ項目を開くよう読み替える
+        const QStringList legacyIds{QStringLiteral("pieces"), QStringLiteral("board"), QStringLiteral("stand"),
+                                    QStringLiteral("information"), QStringLiteral("details")};
         for (int legacy = 0; legacy <= 4; ++legacy) {
             settings.setValue(SettingsKeys::kAppearanceSection, legacy);
-            QCOMPARE(AppSettings::appearanceSection(), legacy < 2 ? legacy : legacy + 1);
+            QCOMPARE(AppSettings::appearanceSection(), legacyIds.at(legacy));
         }
-        for (int index = 0; index < 6; ++index) {
-            AppSettings::setAppearanceSection(index);
-            QCOMPARE(AppSettings::appearanceSection(), index);
-        }
-        AppSettings::setAppearanceSection(2);
+        settings.setValue(SettingsKeys::kAppearanceSection, 9);
+        QCOMPARE(AppSettings::appearanceSection(), QStringLiteral("pieces"));
+        AppSettings::setAppearanceSection(QStringLiteral("background"));
         settings.sync();
         const QSettings restored(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
         QCOMPARE(restored.value(SettingsKeys::kAppearanceSection).toString(), QStringLiteral("background"));
-        settings.setValue(SettingsKeys::kAppearanceSection, QStringLiteral("unknown"));
-        QCOMPARE(AppSettings::appearanceSection(), 0);
-        AppSettings::setAppearanceSection(100);
-        QCOMPARE(AppSettings::appearanceSection(), 5);
-        AppSettings::setAppearanceSection(-1);
-        QCOMPARE(AppSettings::appearanceSection(), 0);
+        QCOMPARE(AppSettings::appearanceSection(), QStringLiteral("background"));
     }
 
     void appSettings_boardVisuals()

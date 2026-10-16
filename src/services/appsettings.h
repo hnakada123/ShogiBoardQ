@@ -68,9 +68,7 @@ inline const Setting<bool> toolbarVisible{"UI/toolbarVisible", true};
 /// 選択した駒の合法な移動先を表示（デフォルト: true）
 inline const Setting<bool> legalMovesVisible{"UI/legalMovesVisible", true};
 
-/// 選択可能な駒画像の種類（先頭は standard）
-QStringList availablePieceStyles();
-/// 駒画像の種類（未設定は standard、旧セット・不正値も standard へ移行）
+/// 駒画像の種類（PieceStyleCatalog の ID。未設定は standard、旧セット・不正値も standard へ移行）
 QString pieceStyle();
 void setPieceStyle(const QString& style);
 
@@ -91,8 +89,10 @@ void setBoardColors(const BoardColors& colors);
 BoardVisuals boardVisuals();
 void setBoardVisuals(const BoardVisuals& visuals);
 inline const Setting<int> boardColorDialogTab{"UI/boardColorDialogTab", 5};
-int appearanceSection();
-void setAppearanceSection(int index);
+/// 外観ダイアログで開いていたタブの id（外観ダイアログが決める。旧版のタブの番号は id に読み替える）
+QString appearanceSection();
+void setAppearanceSection(const QString& id);
+/// 外観ダイアログの駒の絞り込み（PieceStyleCatalog::Family の値。0 は「すべて」）
 int appearancePieceFilter();
 void setAppearancePieceFilter(int index);
 inline const Setting<QSize> boardColorDialogSize{"SizeRelated/boardColorDialogSize", QSize(1180, 800)};

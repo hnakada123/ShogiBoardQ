@@ -818,6 +818,10 @@ set(SRC_SERVICES
     src/services/boardappearancecatalog.h
     src/services/boardcolorpresets.cpp
     src/services/boardcolorpresets.h
+    src/services/piecestylecatalog.cpp
+    src/services/piecestylecatalog.h
+    src/services/appearancestate.cpp
+    src/services/appearancestate.h
     src/services/debugscreenshotshortcut.cpp
     src/services/debugscreenshotshortcut.h
     src/services/docksettings.cpp

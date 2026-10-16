@@ -541,6 +541,126 @@
         <source>石庭</source>
         <translation>石庭</translation>
     </message>
+    <message>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="184"/>
+        <source>標準・榧と畳</source>
+        <translation>標準／榧木與榻榻米</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="185"/>
+        <source>淡虎斑・白榧</source>
+        <translation>淺虎紋／淺榧木</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="186"/>
+        <source>黒檀・月白</source>
+        <translation>烏木／月白</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="187"/>
+        <source>白木・墨夜</source>
+        <translation>淺木／墨夜</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="188"/>
+        <source>青磁・白磁</source>
+        <translation>青瓷／瓷白</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="189"/>
+        <source>葡萄・藤鼠</source>
+        <translation>葡萄紫／藤灰</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="190"/>
+        <source>Facet（木肌）</source>
+        <translation>Facet（木色）</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="191"/>
+        <source>Facet（白）</source>
+        <translation>Facet（白色）</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="192"/>
+        <source>Facet（墨）</source>
+        <translation>Facet（墨色）</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="193"/>
+        <source>Atelier（木肌）</source>
+        <translation>Atelier（木色）</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="194"/>
+        <source>Atelier（白）</source>
+        <translation>Atelier（白色）</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="195"/>
+        <source>Atelier（墨）</source>
+        <translation>Atelier（墨色）</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="196"/>
+        <source>Ribbon（木肌）</source>
+        <translation>Ribbon（木色）</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="197"/>
+        <source>Ribbon（白）</source>
+        <translation>Ribbon（白色）</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="198"/>
+        <source>Ribbon（墨）</source>
+        <translation>Ribbon（墨色）</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="199"/>
+        <source>端正（木肌）</source>
+        <translation>端正（木色）</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="200"/>
+        <source>端正（白）</source>
+        <translation>端正（白色）</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="201"/>
+        <source>端正（墨）</source>
+        <translation>端正（墨色）</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="202"/>
+        <source>凛（木肌）</source>
+        <translation>凜（木色）</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="203"/>
+        <source>凛（白）</source>
+        <translation>凜（白色）</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="204"/>
+        <source>凛（墨）</source>
+        <translation>凜（墨色）</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="205"/>
+        <source>墨（木肌）</source>
+        <translation>墨（木色）</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="206"/>
+        <source>墨（白）</source>
+        <translation>墨（白色）</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="207"/>
+        <source>墨（墨）</source>
+        <translation>墨（墨色）</translation>
+    </message>
 </context>
 <context>
     <name>BoardAppearancePreview</name>
@@ -600,39 +720,39 @@
     <name>BoardColorDialog</name>
     <message>
         <location filename="../../src/dialogs/boardcolordialog.cpp" line="52"/>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="296"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="299"/>
         <source>カスタム（個別に指定）</source>
         <translation>自訂（單獨設定顏色）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="119"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="120"/>
         <source>背景や枠線のアルファ値を0にすると透明になります。</source>
         <translation>將透明度設為 0，即可使背景或邊框透明。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="120"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="121"/>
         <source>盤・駒台</source>
         <translation>棋盤／駒台</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="121"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="122"/>
         <source>将棋盤の背景</source>
         <translation>背景</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="122"/>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="585"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="123"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="564"/>
         <source>将棋盤</source>
         <translation>棋盤</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="123"/>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="585"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="124"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="568"/>
         <source>駒台</source>
         <translation>駒台</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="124"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="125"/>
         <source>マス罫線</source>
         <translation>格線</translation>
     </message>
@@ -642,7 +762,7 @@
         <translation>恢復預設顏色</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="39"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="40"/>
         <source>対局画面の外観</source>
         <translation>對局外觀</translation>
     </message>
@@ -657,339 +777,315 @@
         <translation>恢復開啟時的外觀</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="126"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="127"/>
         <source>カード全体</source>
         <translation>對局者卡片</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="126"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="127"/>
         <source>対局者名と持ち時間を囲むカードの色を設定します。</source>
         <translation>設定姓名與時鐘外圍卡片的顏色。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="127"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="128"/>
         <source>カードの背景</source>
         <translation>卡片背景</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="128"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="129"/>
         <source>通常の枠線</source>
         <translation>普通邊框</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="129"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="130"/>
         <source>手番側の枠線</source>
         <translation>目前行棋方邊框</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="131"/>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="522"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="132"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="489"/>
         <source>手番</source>
         <translation>行棋方</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="131"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="132"/>
         <source>「手番」バッジの色を設定します。</source>
         <translation>設定行棋方標記的顏色。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="132"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="133"/>
         <source>手番の背景</source>
         <translation>行棋方背景</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="133"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="134"/>
         <source>手番の枠線</source>
         <translation>行棋方邊框</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="134"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="135"/>
         <source>手番の文字</source>
         <translation>行棋方文字</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="136"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="137"/>
         <source>対局者名</source>
         <translation>對局者姓名</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="137"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="138"/>
         <source>対局者名の背景</source>
         <translation>姓名背景</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="138"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="139"/>
         <source>対局者名の枠線</source>
         <translation>姓名邊框</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="139"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="140"/>
         <source>対局者名の文字</source>
         <translation>姓名文字</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="141"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="142"/>
         <source>持ち時間</source>
         <translation>用時規則</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="142"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="143"/>
         <source>持ち時間の背景</source>
         <translation>時鐘背景</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="143"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="144"/>
         <source>持ち時間の枠線</source>
         <translation>時鐘邊框</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="144"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="145"/>
         <source>持ち時間の文字</source>
         <translation>時鐘文字</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="145"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="146"/>
         <source>残り10秒以下の文字</source>
         <translation>剩餘 10 秒以內的文字</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="146"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="147"/>
         <source>秒読み・残り5秒以下の文字</source>
         <translation>讀秒中／剩餘 5 秒以內的文字</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="168"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="169"/>
         <source>%1の色</source>
         <translation>%1顏色</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="220"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="222"/>
         <source>%1に合うおすすめ配色</source>
         <translation>%1的推薦顏色</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="290"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="293"/>
         <source>盤・駒台・駒・対局者情報をまとめて整える外観です。選択するとすべての将棋盤に反映・保存されます。</source>
         <translation>搭配棋盤、駒台、棋子及對局者卡片。選擇外觀後會套用到所有棋盤並儲存。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="301"/>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="322"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="304"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="325"/>
         <source>外観</source>
         <translation>外觀</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="306"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="309"/>
         <source>駒の大きさ</source>
         <translation>棋子大小</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="308"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="311"/>
         <source>将棋盤の木目を表示する</source>
         <translation>顯示棋盤木紋</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="314"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="317"/>
         <source>駒台の木目を表示する</source>
         <translation>顯示駒台木紋</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="317"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="320"/>
         <source>外観を選ぶと「標準の駒」と標準の大きさ・影に切り替わります。各部品はこのウィンドウの見本から個別に選べます。</source>
         <translation>選擇主題會恢復標準棋子、預設大小和陰影。您也可以透過本視窗的範例分別選擇各項。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="310"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="571"/>
+        <source>手番・対局者名・持ち時間の見本（%1種類）</source>
+        <translation>行棋方、姓名及時鐘（%1 種）</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="313"/>
         <source>駒の影を表示する</source>
         <translation>顯示棋子陰影</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="390"/>
         <source>標準・榧と畳</source>
-        <translation>標準／榧木與榻榻米</translation>
+        <translation type="vanished">標準／榧木與榻榻米</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="391"/>
         <source>淡虎斑・白榧</source>
-        <translation>淺虎紋／淺榧木</translation>
+        <translation type="vanished">淺虎紋／淺榧木</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="392"/>
         <source>黒檀・月白</source>
-        <translation>烏木／月白</translation>
+        <translation type="vanished">烏木／月白</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="393"/>
         <source>白木・墨夜</source>
-        <translation>淺木／墨夜</translation>
+        <translation type="vanished">淺木／墨夜</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="394"/>
         <source>青磁・白磁</source>
-        <translation>青瓷／瓷白</translation>
+        <translation type="vanished">青瓷／瓷白</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="395"/>
         <source>葡萄・藤鼠</source>
-        <translation>葡萄紫／藤灰</translation>
+        <translation type="vanished">葡萄紫／藤灰</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="396"/>
         <source>Facet（木肌）</source>
-        <translation>Facet（木色）</translation>
+        <translation type="vanished">Facet（木色）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="397"/>
         <source>Facet（白）</source>
-        <translation>Facet（白色）</translation>
+        <translation type="vanished">Facet（白色）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="398"/>
         <source>Facet（墨）</source>
-        <translation>Facet（墨色）</translation>
+        <translation type="vanished">Facet（墨色）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="399"/>
         <source>Atelier（木肌）</source>
-        <translation>Atelier（木色）</translation>
+        <translation type="vanished">Atelier（木色）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="400"/>
         <source>Atelier（白）</source>
-        <translation>Atelier（白色）</translation>
+        <translation type="vanished">Atelier（白色）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="401"/>
         <source>Atelier（墨）</source>
-        <translation>Atelier（墨色）</translation>
+        <translation type="vanished">Atelier（墨色）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="402"/>
         <source>Ribbon（木肌）</source>
-        <translation>Ribbon（木色）</translation>
+        <translation type="vanished">Ribbon（木色）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="403"/>
         <source>Ribbon（白）</source>
-        <translation>Ribbon（白色）</translation>
+        <translation type="vanished">Ribbon（白色）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="404"/>
         <source>Ribbon（墨）</source>
-        <translation>Ribbon（墨色）</translation>
+        <translation type="vanished">Ribbon（墨色）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="405"/>
         <source>端正（木肌）</source>
-        <translation>端正（木色）</translation>
+        <translation type="vanished">端正（木色）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="406"/>
         <source>端正（白）</source>
-        <translation>端正（白色）</translation>
+        <translation type="vanished">端正（白色）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="407"/>
         <source>端正（墨）</source>
-        <translation>端正（墨色）</translation>
+        <translation type="vanished">端正（墨色）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="408"/>
         <source>凛（木肌）</source>
-        <translation>凜（木色）</translation>
+        <translation type="vanished">凜（木色）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="409"/>
         <source>凛（白）</source>
-        <translation>凜（白色）</translation>
+        <translation type="vanished">凜（白色）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="410"/>
         <source>凛（墨）</source>
-        <translation>凜（墨色）</translation>
+        <translation type="vanished">凜（墨色）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="411"/>
         <source>墨（木肌）</source>
-        <translation>墨（木色）</translation>
+        <translation type="vanished">墨（木色）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="412"/>
         <source>墨（白）</source>
-        <translation>墨（白色）</translation>
+        <translation type="vanished">墨（白色）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="413"/>
         <source>墨（墨）</source>
-        <translation>墨（墨色）</translation>
+        <translation type="vanished">墨（墨色）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="527"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="494"/>
         <source>▲先手</source>
         <translation>▲先手</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="567"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="535"/>
         <source>すべての駒（%1種類）</source>
         <translation>全部棋子（%1 種）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="568"/>
         <source>虎斑</source>
-        <translation>虎紋</translation>
+        <translation type="vanished">虎紋</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="568"/>
         <source>木肌</source>
-        <translation>原木</translation>
+        <translation type="vanished">原木</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="568"/>
         <source>淡色</source>
-        <translation>淺色</translation>
+        <translation type="vanished">淺色</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="568"/>
         <source>深色</source>
-        <translation>深色</translation>
+        <translation type="vanished">深色</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="568"/>
         <source>意匠</source>
-        <translation>符號</translation>
+        <translation type="vanished">符號</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="568"/>
         <source>チェス</source>
-        <translation>西洋棋</translation>
+        <translation type="vanished">西洋棋</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="568"/>
         <source>アルファベット</source>
-        <translation>字母</translation>
+        <translation type="vanished">字母</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="584"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="553"/>
         <source>駒</source>
         <translation>棋子</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="585"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="570"/>
         <source>対局者情報</source>
         <translation>對局者</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="585"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="566"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="567"/>
         <source>背景</source>
         <translation>背景</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="592"/>
         <source>手番・対局者名・持ち時間の見本（20種類）</source>
-        <translation>行棋方、姓名及時鐘（20 種）</translation>
+        <translation type="vanished">行棋方、姓名及時鐘（20 種）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="593"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="564"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="567"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="568"/>
         <source>%1の見本（%2種類）</source>
         <translation>%1範例（%2種）</translation>
     </message>
@@ -998,47 +1094,47 @@
         <translation type="vanished">%1樣例（20 種）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="616"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="599"/>
         <source>詳細</source>
         <translation>詳細設定</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="626"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="609"/>
         <source>おすすめの組み合わせ</source>
         <translation>推薦組合</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="629"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="612"/>
         <source>自由な組み合わせ</source>
         <translation>自訂組合</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="634"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="618"/>
         <source>プレビュー</source>
         <translation>預覽</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="638"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="622"/>
         <source>初期局面</source>
         <translation>初始局面</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="638"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="622"/>
         <source>成駒・持駒の見本</source>
         <translation>成駒與持駒</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="640"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="624"/>
         <source>盤面反転</source>
         <translation>翻轉棋盤</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="730"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="707"/>
         <source>カスタム</source>
         <translation>自訂</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="732"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="709"/>
         <source>駒：%1
 将棋盤：%2&#x3000;／&#x3000;背景：%5
 駒台：%3&#x3000;／&#x3000;対局者情報：%4</source>
@@ -6914,203 +7010,164 @@ OKを選択すると保存先が指定できます。</source>
         <translation>Ctrl+A</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="48"/>
         <source>淡虎斑</source>
-        <translation>淺虎紋</translation>
+        <translation type="vanished">淺虎紋</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="50"/>
         <source>絹虎斑</source>
-        <translation>絹虎紋</translation>
+        <translation type="vanished">絹虎紋</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="52"/>
         <source>飴虎斑</source>
-        <translation>琥珀虎紋</translation>
+        <translation type="vanished">琥珀虎紋</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="54"/>
         <source>紅虎斑</source>
-        <translation>赤虎紋</translation>
+        <translation type="vanished">赤虎紋</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="56"/>
         <source>山吹虎斑</source>
-        <translation>金虎紋</translation>
+        <translation type="vanished">金虎紋</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="58"/>
         <source>白木</source>
-        <translation>淺木</translation>
+        <translation type="vanished">淺木</translation>
     </message>
     <message>
         <source>糸柾</source>
         <translation type="vanished">細直紋</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="60"/>
         <source>木目</source>
-        <translation>木紋</translation>
+        <translation type="vanished">木紋</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="62"/>
         <source>飴柾</source>
-        <translation>琥珀直紋</translation>
+        <translation type="vanished">琥珀直紋</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="64"/>
         <source>笹杢</source>
-        <translation>竹紋</translation>
+        <translation type="vanished">竹紋</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="66"/>
         <source>胡桃</source>
-        <translation>胡桃木</translation>
+        <translation type="vanished">胡桃木</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="68"/>
         <source>生成り</source>
-        <translation>亞麻</translation>
+        <translation type="vanished">亞麻</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="70"/>
         <source>薄桜</source>
-        <translation>淡櫻</translation>
+        <translation type="vanished">淡櫻</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="72"/>
         <source>青磁</source>
-        <translation>青瓷</translation>
+        <translation type="vanished">青瓷</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="74"/>
         <source>月白</source>
-        <translation>月白</translation>
+        <translation type="vanished">月白</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="76"/>
         <source>藤鼠</source>
-        <translation>藤灰</translation>
+        <translation type="vanished">藤灰</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="78"/>
         <source>黒檀</source>
-        <translation>烏木</translation>
+        <translation type="vanished">烏木</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="80"/>
         <source>鉄紺</source>
-        <translation>鐵藍</translation>
+        <translation type="vanished">鐵藍</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="82"/>
         <source>深緑</source>
-        <translation>森林綠</translation>
+        <translation type="vanished">森林綠</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="84"/>
         <source>葡萄</source>
-        <translation>葡萄紫</translation>
+        <translation type="vanished">葡萄紫</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="86"/>
         <source>墨金</source>
-        <translation>墨金</translation>
+        <translation type="vanished">墨金</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="88"/>
         <source>戦国文字</source>
-        <translation>戰國漢字</translation>
+        <translation type="vanished">戰國漢字</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="90"/>
         <source>Facet（木肌）</source>
-        <translation>Facet（木色）</translation>
+        <translation type="vanished">Facet（木色）</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="92"/>
         <source>Facet（白）</source>
-        <translation>Facet（白色）</translation>
+        <translation type="vanished">Facet（白色）</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="94"/>
         <source>Facet（墨）</source>
-        <translation>Facet（墨色）</translation>
+        <translation type="vanished">Facet（墨色）</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="96"/>
         <source>Atelier（木肌）</source>
-        <translation>Atelier（木色）</translation>
+        <translation type="vanished">Atelier（木色）</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="98"/>
         <source>Atelier（白）</source>
-        <translation>Atelier（白色）</translation>
+        <translation type="vanished">Atelier（白色）</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="100"/>
         <source>Atelier（墨）</source>
-        <translation>Atelier（墨色）</translation>
+        <translation type="vanished">Atelier（墨色）</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="102"/>
         <source>Ribbon（木肌）</source>
-        <translation>Ribbon（木色）</translation>
+        <translation type="vanished">Ribbon（木色）</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="104"/>
         <source>Ribbon（白）</source>
-        <translation>Ribbon（白色）</translation>
+        <translation type="vanished">Ribbon（白色）</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="106"/>
         <source>Ribbon（墨）</source>
-        <translation>Ribbon（墨色）</translation>
+        <translation type="vanished">Ribbon（墨色）</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="108"/>
         <source>端正（木肌）</source>
-        <translation>端正（木色）</translation>
+        <translation type="vanished">端正（木色）</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="110"/>
         <source>端正（白）</source>
-        <translation>端正（白色）</translation>
+        <translation type="vanished">端正（白色）</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="112"/>
         <source>端正（墨）</source>
-        <translation>端正（墨色）</translation>
+        <translation type="vanished">端正（墨色）</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="114"/>
         <source>凛（木肌）</source>
-        <translation>凜（木色）</translation>
+        <translation type="vanished">凜（木色）</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="116"/>
         <source>凛（白）</source>
-        <translation>凜（白色）</translation>
+        <translation type="vanished">凜（白色）</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="118"/>
         <source>凛（墨）</source>
-        <translation>凜（墨色）</translation>
+        <translation type="vanished">凜（墨色）</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="120"/>
         <source>墨（木肌）</source>
-        <translation>墨（木色）</translation>
+        <translation type="vanished">墨（木色）</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="122"/>
         <source>墨（白）</source>
-        <translation>墨（白色）</translation>
+        <translation type="vanished">墨（白色）</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="124"/>
         <source>墨（墨）</source>
-        <translation>墨（墨色）</translation>
+        <translation type="vanished">墨（墨色）</translation>
     </message>
     <message>
         <location filename="../../src/app/mainwindow.ui" line="237"/>
@@ -7523,9 +7580,8 @@ OKを選択すると保存先が指定できます。</source>
         <translation>另存為…</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="125"/>
         <source>標準の駒</source>
-        <translation>標準棋子</translation>
+        <translation type="vanished">標準棋子</translation>
     </message>
     <message>
         <location filename="../../src/app/mainwindow.ui" line="796"/>
@@ -8072,6 +8128,244 @@ OKを選択すると保存先が指定できます。</source>
         <location filename="../../src/dialogs/piecesoundsettingsdialog.cpp" line="31"/>
         <source> 半音</source>
         <translation> 半音</translation>
+    </message>
+</context>
+<context>
+    <name>PieceStyleCatalog</name>
+    <message>
+        <location filename="../../src/services/piecestylecatalog.cpp" line="20"/>
+        <source>標準の駒</source>
+        <translation>標準棋子</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/piecestylecatalog.cpp" line="21"/>
+        <source>淡虎斑</source>
+        <translation>淺虎紋</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/piecestylecatalog.cpp" line="22"/>
+        <source>絹虎斑</source>
+        <translation>絹虎紋</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/piecestylecatalog.cpp" line="23"/>
+        <source>飴虎斑</source>
+        <translation>琥珀虎紋</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/piecestylecatalog.cpp" line="24"/>
+        <source>紅虎斑</source>
+        <translation>赤虎紋</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/piecestylecatalog.cpp" line="25"/>
+        <source>山吹虎斑</source>
+        <translation>金虎紋</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/piecestylecatalog.cpp" line="26"/>
+        <source>白木</source>
+        <translation>淺木</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/piecestylecatalog.cpp" line="27"/>
+        <source>木目</source>
+        <translation>木紋</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/piecestylecatalog.cpp" line="28"/>
+        <source>飴柾</source>
+        <translation>琥珀直紋</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/piecestylecatalog.cpp" line="29"/>
+        <source>笹杢</source>
+        <translation>竹紋</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/piecestylecatalog.cpp" line="30"/>
+        <source>胡桃</source>
+        <translation>胡桃木</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/piecestylecatalog.cpp" line="31"/>
+        <source>生成り</source>
+        <translation>亞麻</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/piecestylecatalog.cpp" line="32"/>
+        <source>薄桜</source>
+        <translation>淡櫻</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/piecestylecatalog.cpp" line="33"/>
+        <source>青磁</source>
+        <translation>青瓷</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/piecestylecatalog.cpp" line="34"/>
+        <source>月白</source>
+        <translation>月白</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/piecestylecatalog.cpp" line="35"/>
+        <source>藤鼠</source>
+        <translation>藤灰</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/piecestylecatalog.cpp" line="36"/>
+        <source>黒檀</source>
+        <translation>烏木</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/piecestylecatalog.cpp" line="37"/>
+        <source>鉄紺</source>
+        <translation>鐵藍</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/piecestylecatalog.cpp" line="38"/>
+        <source>深緑</source>
+        <translation>森林綠</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/piecestylecatalog.cpp" line="39"/>
+        <source>葡萄</source>
+        <translation>葡萄紫</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/piecestylecatalog.cpp" line="40"/>
+        <source>墨金</source>
+        <translation>墨金</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/piecestylecatalog.cpp" line="41"/>
+        <source>戦国文字</source>
+        <translation>戰國漢字</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/piecestylecatalog.cpp" line="42"/>
+        <source>Facet（木肌）</source>
+        <translation>Facet（木色）</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/piecestylecatalog.cpp" line="43"/>
+        <source>Facet（白）</source>
+        <translation>Facet（白色）</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/piecestylecatalog.cpp" line="44"/>
+        <source>Facet（墨）</source>
+        <translation>Facet（墨色）</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/piecestylecatalog.cpp" line="45"/>
+        <source>Atelier（木肌）</source>
+        <translation>Atelier（木色）</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/piecestylecatalog.cpp" line="46"/>
+        <source>Atelier（白）</source>
+        <translation>Atelier（白色）</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/piecestylecatalog.cpp" line="47"/>
+        <source>Atelier（墨）</source>
+        <translation>Atelier（墨色）</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/piecestylecatalog.cpp" line="48"/>
+        <source>Ribbon（木肌）</source>
+        <translation>Ribbon（木色）</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/piecestylecatalog.cpp" line="49"/>
+        <source>Ribbon（白）</source>
+        <translation>Ribbon（白色）</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/piecestylecatalog.cpp" line="50"/>
+        <source>Ribbon（墨）</source>
+        <translation>Ribbon（墨色）</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/piecestylecatalog.cpp" line="51"/>
+        <source>端正（木肌）</source>
+        <translation>端正（木色）</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/piecestylecatalog.cpp" line="52"/>
+        <source>端正（白）</source>
+        <translation>端正（白色）</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/piecestylecatalog.cpp" line="53"/>
+        <source>端正（墨）</source>
+        <translation>端正（墨色）</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/piecestylecatalog.cpp" line="54"/>
+        <source>凛（木肌）</source>
+        <translation>凜（木色）</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/piecestylecatalog.cpp" line="55"/>
+        <source>凛（白）</source>
+        <translation>凜（白色）</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/piecestylecatalog.cpp" line="56"/>
+        <source>凛（墨）</source>
+        <translation>凜（墨色）</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/piecestylecatalog.cpp" line="57"/>
+        <source>墨（木肌）</source>
+        <translation>墨（木色）</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/piecestylecatalog.cpp" line="58"/>
+        <source>墨（白）</source>
+        <translation>墨（白色）</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/piecestylecatalog.cpp" line="59"/>
+        <source>墨（墨）</source>
+        <translation>墨（墨色）</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/piecestylecatalog.cpp" line="91"/>
+        <source>虎斑</source>
+        <translation>虎紋</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/piecestylecatalog.cpp" line="92"/>
+        <source>木肌</source>
+        <translation>原木</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/piecestylecatalog.cpp" line="93"/>
+        <source>淡色</source>
+        <translation>淺色</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/piecestylecatalog.cpp" line="94"/>
+        <source>深色</source>
+        <translation>深色</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/piecestylecatalog.cpp" line="95"/>
+        <source>意匠</source>
+        <translation>符號</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/piecestylecatalog.cpp" line="96"/>
+        <source>チェス</source>
+        <translation>西洋棋</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/piecestylecatalog.cpp" line="97"/>
+        <source>アルファベット</source>
+        <translation>字母</translation>
     </message>
 </context>
 <context>

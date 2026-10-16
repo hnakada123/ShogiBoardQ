@@ -17,14 +17,13 @@ struct BoardThemePreset {
     BoardColors colors;
 };
 
-/// 詳細設定で使う全体テーマ・共通配色と、駒セットの表示名。
+/// 詳細設定で使う全体テーマ・共通配色（駒セットの表示名は PieceStyleCatalog）。
 class BoardColorPresets
 {
     Q_DECLARE_TR_FUNCTIONS(BoardColorPresets)
 public:
     static QList<BoardThemePreset> themes();
     static QList<BoardColorPreset> palettes();
-    static QString pieceStyleName(const QString& style);
 };
 
 #endif // BOARDCOLORPRESETS_H

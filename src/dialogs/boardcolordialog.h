@@ -1,10 +1,14 @@
 #ifndef BOARDCOLORDIALOG_H
 #define BOARDCOLORDIALOG_H
 
+#include "appearancestate.h"
+#include "boardappearancecatalog.h"
 #include "boardcolors.h"
 #include "boardcolorpresets.h"
 #include "boardvisuals.h"
 #include <QDialog>
+#include <QStringList>
+#include <array>
 
 class QColorDialog;
 class QPushButton;
@@ -72,15 +76,16 @@ private:
     QComboBox* m_pieceFilter = nullptr;
     QComboBox* m_combinations = nullptr;
     QListWidget* m_pieceList = nullptr;
-    QList<QListWidget*> m_componentLists;
+    /// 部品の見本の一覧（BoardAppearanceCatalog::Component の順）
+    std::array<QListWidget*, BoardAppearanceCatalog::kComponentCount> m_componentLists{};
+    QStringList m_sectionIds;  ///< 外観のタブの id（タブの並び。開いていたタブの保存に使う）
     QLabel* m_selectionSummary = nullptr;
     BoardAppearancePreview* m_preview = nullptr;
-    BoardColors m_openingColors;
-    BoardVisuals m_openingVisuals;
-    QString m_openingStyle;
+    AppearanceState m_opening;  ///< 開いたときの外観（「開いたときの外観に戻す」）
     void createWorkspace(QVBoxLayout* layout);
     void createColorPages();
     void createAppearancePage();
+    void addSection(const QString& id, QWidget* page, const QString& title);
     void syncThemeSelection();
     void addColorField(QFormLayout* form, BoardColors::Member member,
                        const QString& label, const QString& objectName);

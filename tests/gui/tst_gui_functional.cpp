@@ -46,6 +46,7 @@
 #include <QToolBar>
 #include <QToolButton>
 #include <QTableWidget>
+#include "piecestylecatalog.h"
 #include "../game_info_table_helper.h"
 #include "../header_drag_helper.h"
 #include <QTranslator>
@@ -210,8 +211,8 @@ class GuiAudit : public QObject
         dialog->findChild<QComboBox*>("appearancePieceFilter")->setCurrentIndex(0);
         auto* list = dialog->findChild<QListWidget*>("appearancePieces");
         QVERIFY(list);
-        QCOMPARE(list->count(), AppSettings::availablePieceStyles().size());
-        const int row = static_cast<int>(AppSettings::availablePieceStyles().indexOf(style));
+        QCOMPARE(list->count(), PieceStyleCatalog::ids().size());
+        const int row = static_cast<int>(PieceStyleCatalog::ids().indexOf(style));
         QVERIFY(row >= 0);
         auto* item = list->item(row);
         list->scrollToItem(item);
@@ -744,7 +745,7 @@ private slots:
     void pieceVariants_data()
     {
         QTest::addColumn<QString>("style");
-        for (const auto& style : AppSettings::availablePieceStyles())
+        for (const auto& style : PieceStyleCatalog::ids())
             if (style != QStringLiteral("standard")) QTest::newRow(qPrintable(style)) << style;
     }
     void pieceVariants()
@@ -783,7 +784,7 @@ private slots:
         auto* dialog = window->findChild<BoardColorDialog*>();
         QVERIFY(dialog);
         auto* label = dialog->findChild<QLabel*>("boardColorPresetLabel");
-        QVERIFY(label && label->text().contains(BoardColorPresets::pieceStyleName(style)));
+        QVERIFY(label && label->text().contains(PieceStyleCatalog::displayName(style)));
         dialog->findChild<QTabWidget*>("appearanceSections")->setCurrentIndex(0);
         if (style == QStringLiteral("sengoku"))
             dialog->findChild<QComboBox*>("appearancePieceFilter")->setCurrentIndex(5);
@@ -967,7 +968,7 @@ private slots:
                 if (family == 7)
                     QVERIFY(pieces->item(i)->data(Qt::UserRole).toString().startsWith(QLatin1String("alphabet_")));
             }
-            QCOMPARE(visible, family == 0 ? static_cast<int>(AppSettings::availablePieceStyles().size())
+            QCOMPARE(visible, family == 0 ? static_cast<int>(PieceStyleCatalog::ids().size())
                                          : (family == 5 ? 1 : family >= 6 ? 9 : 5));
         }
         filter->setCurrentIndex(0);
@@ -1429,7 +1430,7 @@ private slots:
         QVERIFY(combo);
         auto* label = dialog->findChild<QLabel*>("boardColorPresetLabel");
         QVERIFY(label);
-        QVERIFY(label->text().contains(BoardColorPresets::pieceStyleName(style)));
+        QVERIFY(label->text().contains(PieceStyleCatalog::displayName(style)));
         const auto presets = BoardColorPresets::palettes();
         QCOMPARE(presets.size(), 5);
         QCOMPARE(combo->count(), 5);
@@ -4142,7 +4143,7 @@ private slots:
         auto* dialog = window->findChild<BoardColorDialog*>();
         QVERIFY(dialog && dialog->isVisible());
         QCOMPARE(dialog->findChild<QListWidget*>("appearancePieces")->count(),
-                 AppSettings::availablePieceStyles().size());
+                 PieceStyleCatalog::ids().size());
     }
     void pieceStyleMenuBar()
     {
