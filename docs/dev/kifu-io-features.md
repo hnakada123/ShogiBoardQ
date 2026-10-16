@@ -113,6 +113,7 @@ USEN Files (*.usen)
 - **`KifuExport`** (`src/kifu/kifuexport.h/.cpp`) — 形式ごとの書き出し関数の表（名前空間）
   - `lines(document, format)` — 文書を `format` の行にする。`metadataOf(document)` で書き出しの文脈（`KifuExportMetadata`：対局情報・開始局面・対局者・持ち時間・開始と終了の日時）を作り、`lines(tree, metadata, format)` に渡す
   - 表の各関数は `src/kifu/formats/*exporter` の `exportLines(const KifuBranchTree&, const KifuExportMetadata&)`（`KifExporter`・`Ki2Exporter`・`CsaExporter`・`JkfExporter`・`UsenExporter`・`UsiExporter`）。SFEN・BOD は棋譜を書けないので KIF にする
+  - 形式をまたいで共有する部品: KIF・KI2 の先頭は `KifExporter::appendHeaderLines()`、KI2・JKF のノードを局面と一緒にたどる処理は `KifuNodeReplay`、USEN の符号化と復号は `UsenCodec`（`UsenToSfenConverter` と共有）、USI の position 文字列は `UsiPosition::commandFor()`
   - GUI の保存・コピーと CLI の変換（`KifuConversionService`）が同じ表を使う
 - **`BoardImageExporter`** (`src/board/boardimageexporter.h/.cpp`) — 盤面・グラフの画像保存
 
