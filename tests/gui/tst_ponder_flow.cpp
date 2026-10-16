@@ -419,7 +419,7 @@ private slots:
         controller.initialize(init);
         QVERIFY(controller.isInitialized());
         CsaEngineController::ThinkingParams params;
-        params.positionCmd = "position startpos";
+        params.position = *UsiPosition::parse(u"position startpos");
         params.timing.timeControl.black.mainMs = params.timing.timeControl.white.mainMs = 60000;
         params.timing.btimeMs = params.timing.wtimeMs = 60000;
         QSignalSpy results(&controller, &CsaEngineController::thinkingFinished);
@@ -431,7 +431,7 @@ private slots:
         QTRY_VERIFY(commands().join('\n').contains("go ponder "));
         const auto before = commands().size();
         const QString opponent = hit ? QStringLiteral("3c3d") : QStringLiteral("4c4d");
-        params.positionCmd = "position startpos moves 7g7f " + opponent;
+        params.position = *UsiPosition::parse(QStringLiteral("position startpos moves 7g7f ") + opponent);
         controller.thinkAsync(params);
         QTRY_COMPARE(results.size(), 1);
         result = qvariant_cast<CsaEngineController::ThinkingResult>(results.takeFirst().first());
@@ -444,12 +444,12 @@ private slots:
             QVERIFY(!sent.contains("stop"));
         } else {
             QCOMPARE(sent.first(), QStringLiteral("stop"));
-            QVERIFY(sent.contains(params.positionCmd));
+            QVERIFY(sent.contains(params.position.command()));
         }
         // 再初期化では前局の予測を引き継がない。
         controller.cleanup();
         controller.initialize(init);
-        params.positionCmd = "position startpos";
+        params.position = *UsiPosition::parse(u"position startpos");
         const auto restart = commands().size();
         controller.thinkAsync(params);
         QTRY_COMPARE(results.size(), 1);

@@ -105,18 +105,18 @@ private slots:
         QFETCH(QString, usi);
         ShogiBoard board;
         QVERIFY(board.trySetSfen(sfen));
-        const auto move = CsaMoveConverter::toUsi(csaMove, board);
+        const auto move = CsaMoveConverter::toUsi(csaMove, board.position());
         QCOMPARE(move ? move->toString() : QString(), usi);
         // 読めた手は CSA に戻すと同じ表記になる
-        if (move) QCOMPARE(CsaMoveConverter::toCsa(*move, board.currentPlayer(), board), csaMove);
+        if (move) QCOMPARE(CsaMoveConverter::toCsa(*move, board.currentPlayer(), board.position()), csaMove);
     }
 
     void usiToCsa_emptySourceIsRejected()
     {
         ShogiBoard board;
         QVERIFY(board.trySetSfen(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1")));
-        QCOMPARE(CsaMoveConverter::toCsa(*UsiMove::parse(QStringLiteral("5e5d")), Turn::Black, board), QString());
-        QCOMPARE(CsaMoveConverter::toCsa(*UsiMove::parse(QStringLiteral("P*5e")), Turn::White, board),
+        QCOMPARE(CsaMoveConverter::toCsa(*UsiMove::parse(QStringLiteral("5e5d")), Turn::Black, board.position()), QString());
+        QCOMPARE(CsaMoveConverter::toCsa(*UsiMove::parse(QStringLiteral("P*5e")), Turn::White, board.position()),
                  QStringLiteral("-0055FU"));
     }
 
@@ -124,9 +124,9 @@ private slots:
     {
         ShogiGameController gc;
         gc.newGame(QStringLiteral("lnsgkg1nl/1r5+B1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/7R1/LNSGKGSNL b B 5"));
-        const auto move = CsaMoveConverter::toUsi(QStringLiteral("+2231UM"), *gc.board());
+        const auto move = CsaMoveConverter::toUsi(QStringLiteral("+2231UM"), gc.board()->position());
         QVERIFY(move);
-        const std::optional<RecordEntry> played = gc.applyRecordedMove(*move);
+        const std::optional<RecordEntry> played = gc.applyRecordedMove(*move, {});
         QVERIFY(played);
         QCOMPARE(played->move.move.toString(), QStringLiteral("2b3a"));
         QVERIFY(played->sfen.endsWith(QStringLiteral(" 6")));
@@ -441,7 +441,7 @@ private slots:
 
         ShogiBoard board;
         QVERIFY(board.trySetSfen(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1")));
-        const auto result = CsaMoveConverter::toUsi(csaMove, board);
+        const auto result = CsaMoveConverter::toUsi(csaMove, board.position());
         if (expectEmpty) {
             QVERIFY(!result);
         }
@@ -904,7 +904,7 @@ private slots:
         const Piece before = gc.board()->pieceCharacter(5, 5);
         QVERIFY(before == Piece::None);
 
-        QVERIFY(!CsaMoveConverter::toUsi(QStringLiteral("+0055FU"), *gc.board()));
+        QVERIFY(!CsaMoveConverter::toUsi(QStringLiteral("+0055FU"), gc.board()->position()));
         QCOMPARE(gc.board()->pieceCharacter(5, 5), Piece::None);
         QCOMPARE(gc.board()->toSfen(), startSfen);
     }

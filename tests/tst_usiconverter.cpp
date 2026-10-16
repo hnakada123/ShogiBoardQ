@@ -3,7 +3,6 @@
 
 #include "kifu_file_helper.h"
 #include "usitosfenconverter.h"
-#include "kifdisplayitem.h"
 #include "kifparsetypes.h"
 #include "terminalcodes.h"
 #include "kifu_test_helper.h"
@@ -347,6 +346,14 @@ private slots:
         QString error;
         QStringList moves = KifuFile::usiMoves<UsiToSfenConverter>(tmp.fileName(), &error);
         QCOMPARE(moves.size(), 0);
+
+        // 指し手も終局コードもなければ、局面だけの棋譜として読む
+        const KifuParseOutcome outcome = KifuFile::parseFile<UsiToSfenConverter>(tmp.fileName());
+        QVERIFY2(outcome.success, qPrintable(outcome.warning));
+        QCOMPARE(outcome.positionOnly, kHirateSfen);
+        QCOMPARE(outcome.initialSfen, kHirateSfen);
+        QCOMPARE(outcome.teaiLabel, QStringLiteral("平手"));
+        QVERIFY(outcome.record.mainline.entries.isEmpty());
     }
 
     // ========================================
@@ -548,9 +555,10 @@ private slots:
     void extractMovesWithTimes_nonExistentFile()
     {
         QString error;
-        QList<KifDisplayItem> items = KifuFile::displayItems<UsiToSfenConverter>(
+        const RecordLine line = KifuFile::mainline<UsiToSfenConverter>(
             fixturePath(QStringLiteral("nonexistent.usi")), &error);
-        QVERIFY(items.isEmpty());
+        QVERIFY(line.isEmpty());
+        QVERIFY(line.entries.isEmpty());
     }
 
     // ========================================
@@ -616,7 +624,7 @@ private slots:
 
         (void)KifuFile::initialSfen<UsiToSfenConverter>(tmp.fileName());
         (void)KifuFile::gameInfo<UsiToSfenConverter>(tmp.fileName());
-        (void)KifuFile::displayItems<UsiToSfenConverter>(tmp.fileName(), &error);
+        (void)KifuFile::mainline<UsiToSfenConverter>(tmp.fileName(), &error);
 
         KifuTestHelper::verifyParsedRecord(success, result, error);
     }

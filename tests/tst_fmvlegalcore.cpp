@@ -36,7 +36,7 @@ private slots:
         board.setSfen(kHirateSfen);
 
         fmv::EnginePosition pos;
-        fmv::Converter::toEnginePosition(pos, board.boardData(), board.pieceStand());
+        fmv::Converter::toEnginePosition(pos, board.position());
 
         fmv::LegalCore core;
         int count = core.countLegalMoves(pos, fmv::Color::Black);
@@ -51,7 +51,7 @@ private slots:
         board.setSfen(sfen);
 
         fmv::EnginePosition pos;
-        fmv::Converter::toEnginePosition(pos, board.boardData(), board.pieceStand());
+        fmv::Converter::toEnginePosition(pos, board.position());
 
         fmv::LegalCore core;
         int checks = core.countChecksToKing(pos, fmv::Color::Black);
@@ -64,7 +64,7 @@ private slots:
         board.setSfen(kHirateSfen);
 
         fmv::EnginePosition pos;
-        fmv::Converter::toEnginePosition(pos, board.boardData(), board.pieceStand());
+        fmv::Converter::toEnginePosition(pos, board.position());
 
         fmv::LegalCore core;
         int checks = core.countChecksToKing(pos, fmv::Color::Black);
@@ -79,7 +79,7 @@ private slots:
         board.setSfen(sfen);
 
         fmv::EnginePosition pos;
-        fmv::Converter::toEnginePosition(pos, board.boardData(), board.pieceStand());
+        fmv::Converter::toEnginePosition(pos, board.position());
 
         fmv::LegalCore core;
         fmv::Move drop;
@@ -148,7 +148,7 @@ private slots:
         auto& ctx = simulation.context;
         const auto turn = white ? Turn::White : Turn::Black;
         const auto side = white ? fmv::Color::White : fmv::Color::Black;
-        QVERIFY(EngineMoveValidator::syncContext(simulation, board.boardData(), board.pieceStand(), turn));
+        QVERIFY(EngineMoveValidator::syncContext(simulation, board.position(), turn));
         const fmv::EnginePosition original = ctx.pos;
 
         const QPoint to = white ? QPoint(8, 7) : QPoint(0, 1);
@@ -177,7 +177,7 @@ private slots:
         UsiMove move;
         move.drop = Piece::BlackPawn;
         move.to = BoardSquare{to.x() + 1, to.y() + 1};
-        const auto compatStatus = EngineMoveValidator::legalStatus(board, turn, move);
+        const auto compatStatus = EngineMoveValidator::legalStatus(board.position(), turn, move);
         QCOMPARE(compatStatus.nonPromotingMoveExists, legal);
         QVERIFY(!compatStatus.promotingMoveExists);
         const auto contextStatus = EngineMoveValidator::legalStatus(ctx, move);
@@ -211,7 +211,7 @@ private slots:
         board.setSfen(QStringLiteral("8k/9/6NGP/9/9/9/9/9/K8 b - 1"));
         EngineMoveValidator::SimulationContext simulation;
         auto& ctx = simulation.context;
-        QVERIFY(EngineMoveValidator::syncContext(simulation, board.boardData(), board.pieceStand(), Turn::Black));
+        QVERIFY(EngineMoveValidator::syncContext(simulation, board.position(), Turn::Black));
         const fmv::EnginePosition original = ctx.pos;
         const UsiMove move = UsiMove::fromString(u"1c1b");
         const auto status = EngineMoveValidator::legalStatus(ctx, move);
@@ -308,12 +308,12 @@ private slots:
         QFETCH(bool, white);
         ShogiBoard board;
         board.setSfen(sfen);
-        QList<Piece> boardData = board.boardData();
+        Position boardData = board.position();
         if (white) {
             // 局面を180度回転して駒の色を交換し、同じ境界条件を後手でも調べる。
-            for (qsizetype i = 0; i < boardData.size(); ++i) {
-                const QChar c(static_cast<char>(board.boardData().at(i)));
-                boardData[boardData.size() - 1 - i] = charToPiece(c.isUpper() ? c.toLower() : c.toUpper());
+            for (int rank = 1; rank <= 9; ++rank) {
+                for (int file = 1; file <= 9; ++file)
+                    boardData.setPieceAt({10 - file, 10 - rank}, flipSide(board.position().pieceAt(file, rank)));
             }
             from = QPoint(8 - from.x(), 8 - from.y());
             to = QPoint(8 - to.x(), 8 - to.y());
@@ -321,7 +321,7 @@ private slots:
         const auto turn = white ? Turn::White : Turn::Black;
         const auto side = white ? fmv::Color::White : fmv::Color::Black;
         EngineMoveValidator::Context ctx;
-        QVERIFY((ctx = EngineMoveValidator::load(boardData, board.pieceStand(), turn)).synced);
+        QVERIFY((ctx = EngineMoveValidator::load(boardData, turn)).synced);
         ctx.pos.zobristKey = 0x123456789abcdef0ULL;
         const auto original = ctx.pos;
         // 表の升は内部の0始まり。USI の指し手は1始まり
@@ -352,7 +352,7 @@ private slots:
             QCOMPARE(contextStatus.nonPromotingMoveExists, nonPromoting);
             QCOMPARE(contextStatus.promotingMoveExists, promoting);
             verifyPositionUnchanged(ctx.pos, original);
-            const auto compatStatus = EngineMoveValidator::legalStatus(EngineMoveValidator::load(boardData, board.pieceStand(), turn), move);
+            const auto compatStatus = EngineMoveValidator::legalStatus(EngineMoveValidator::load(boardData, turn), move);
             QCOMPARE(compatStatus.nonPromotingMoveExists, nonPromoting);
             QCOMPARE(compatStatus.promotingMoveExists, promoting);
         }
@@ -366,7 +366,7 @@ private slots:
         board.setSfen(sfen);
 
         fmv::EnginePosition pos;
-        fmv::Converter::toEnginePosition(pos, board.boardData(), board.pieceStand());
+        fmv::Converter::toEnginePosition(pos, board.position());
 
         fmv::LegalCore core;
 

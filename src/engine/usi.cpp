@@ -20,7 +20,7 @@ Usi::Usi(QObject* parent)
     connect(handler, &UsiProtocolHandler::searchCandidateChanged, this, &Usi::searchCandidateChanged);
 
     // 思考の表に出す行と情報欄の値
-    connect(handler, &UsiProtocolHandler::positionChanged, m_formatter, &ThinkingInfoFormatter::setBaseSfen);
+    connect(handler, &UsiProtocolHandler::positionChanged, m_formatter, &ThinkingInfoFormatter::setSearchPosition);
     connect(handler, &UsiProtocolHandler::searchStarted, m_formatter, &ThinkingInfoFormatter::requestClearThinkingInfo);
     connect(handler, &UsiProtocolHandler::infoReceived, m_formatter, &ThinkingInfoFormatter::onInfoReceived);
     connect(handler, &UsiProtocolHandler::checkmateReceived, m_formatter, &ThinkingInfoFormatter::presentCheckmate);
@@ -33,7 +33,6 @@ Usi::Usi(QObject* parent)
     connect(m_matchHandler, &UsiMatchHandler::declaredWin, this, &Usi::declaredWin);
     connect(m_matchHandler, &UsiMatchHandler::timedOut, this, &Usi::onMatchTimeout);
     connect(m_matchHandler, &UsiMatchHandler::errorOccurred, this, &Usi::onSessionError);
-    connect(m_matchHandler, &UsiMatchHandler::lastMoveChanged, m_formatter, &ThinkingInfoFormatter::setLastUsiMove);
 }
 
 Usi::~Usi()
@@ -112,9 +111,14 @@ void Usi::setMatchClock(ShogiClock* clock)
     m_matchHandler->setClock(clock);
 }
 
-void Usi::requestMatchMove(const QString& position, const QString& ponder, const UsiTimingParams& timing)
+void Usi::requestMatchMove(const UsiPosition& position, const UsiTimingParams& timing)
 {
-    m_session->whenReady([this, position, ponder, timing]() { m_matchHandler->requestMove(position, ponder, timing); });
+    m_session->whenReady([this, position, timing]() { m_matchHandler->requestMove(position, timing); });
+}
+
+void Usi::forgetPonder()
+{
+    m_matchHandler->forgetPonder();
 }
 
 void Usi::requestImmediateMove()
@@ -133,12 +137,12 @@ void Usi::sendGameOverCommand(GameOverResult result)
 // 検討・棋譜解析・詰み探索
 // ============================================================
 
-void Usi::startConsideration(const QString& positionStr, int byoyomiMilliSec, int multiPV)
+void Usi::startConsideration(const UsiPosition& position, int byoyomiMilliSec, int multiPV)
 {
     // 候補手の数は前の設定を残さないよう毎回送る
     sendSetOptionCommand(QStringLiteral("MultiPV"), QString::number(multiPV));
     UsiSearchRequest request;
-    request.position = positionStr;
+    request.position = position;
     request.go = UsiGo::infinite();
     request.stopAfterMs = qMax(0, byoyomiMilliSec);
     m_session->search(request);
@@ -149,10 +153,10 @@ void Usi::search(const UsiSearchRequest& request)
     m_session->search(request);
 }
 
-void Usi::startMateSearch(const QString& positionStr, int timeLimitMs)
+void Usi::startMateSearch(const UsiPosition& position, int timeLimitMs)
 {
     // 応答しないエンジンを待ち続けない（CLI の詰み探索と同じ打ち切り方）
-    m_session->search(UsiSearchRequest::mate(positionStr, timeLimitMs));
+    m_session->search(UsiSearchRequest::mate(position, timeLimitMs));
 }
 
 void Usi::stop()
@@ -173,16 +177,6 @@ void Usi::sendConsoleCommand(const QString& command)
 // ============================================================
 // 読み筋の表示
 // ============================================================
-
-void Usi::setPreviousMove(BoardSquare to)
-{
-    m_formatter->setPreviousMove(to.file, to.rank);
-}
-
-void Usi::setLastUsiMove(const QString& move)
-{
-    m_formatter->setLastUsiMove(move);
-}
 
 const UsiProtocolHandler::SearchCandidate& Usi::searchCandidate() const
 {

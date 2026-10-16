@@ -105,13 +105,13 @@ bool describeOne(QWidget* w, int maxRows, QJsonObject& obj)
     if (auto* board = qobject_cast<ShogiView*>(w)) {
         obj[QStringLiteral("flipped")] = board->flipMode();
         obj[QStringLiteral("square_size")] = board->squareSize();
-        if (board->board()) obj[QStringLiteral("board_sfen")] = board->board()->convertBoardToSfen();
+        if (board->board()) obj[QStringLiteral("board_sfen")] = board->board()->position().boardSfen();
         QJsonArray arrows;
         for (const auto& arrow : board->arrows()) {
             arrows.append(QJsonObject{{QStringLiteral("from_file"), arrow.fromFile},
                 {QStringLiteral("from_rank"), arrow.fromRank}, {QStringLiteral("to_file"), arrow.toFile},
                 {QStringLiteral("to_rank"), arrow.toRank}, {QStringLiteral("priority"), arrow.priority},
-                {QStringLiteral("drop_piece"), QString(pieceToChar(arrow.dropPiece))}});
+                {QStringLiteral("drop_piece"), QString(pieceLetter(arrow.dropPiece))}});
         }
         obj[QStringLiteral("arrows")] = arrows;
         return true;

@@ -114,8 +114,8 @@ private:
     void startTrimmingPhase(const QString& sfen, const QStringList& pv);
     void tryNextTrimCandidate();
     void sendTrimmingCheck(const QString& modifiedSfen);
-    /// go mate で探す（制限時間を過ぎても応答がなければ stop を送り、その応答は不明として扱う）
-    void sendMateSearch(const QString& positionStr, int timeLimitMs);
+    /// 局面（SFEN）を go mate で探す（制限時間を過ぎても応答がなければ stop を送り、その応答は不明として扱う）
+    void sendMateSearch(const QString& sfen, int timeLimitMs);
     void finishTrimmingPhase();
 
     UsiEngineSession* m_engine = nullptr; ///< 詰み探索エンジンとの接続（parent ownership。破棄は cleanup() の deleteLater）

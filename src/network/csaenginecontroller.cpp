@@ -72,13 +72,12 @@ void CsaEngineController::onEngineError(const QString& message)
 void CsaEngineController::thinkAsync(const ThinkingParams& params)
 {
     if (!m_engine) return;
-    m_engine->requestMatchMove(params.positionCmd, m_ponderPosition, params.timing);
+    m_engine->requestMatchMove(params.position, params.timing);
 }
 
 void CsaEngineController::onMatchMoveReady(const UsiMatchMove& move)
 {
     if (!m_engine) return;
-    m_ponderPosition = move.ponderPosition;
     ThinkingResult result;
     result.move = move.move;
     result.valid = move.move.isValid();
@@ -93,7 +92,6 @@ void CsaEngineController::stopThinking()
 
 void CsaEngineController::sendGameOver(bool win)
 {
-    m_ponderPosition.clear();
     if (!m_engine) return;
     m_engine->sendGameOverCommand(win ? GameOverResult::Win : GameOverResult::Lose);
     m_engine->quit();
@@ -101,13 +99,11 @@ void CsaEngineController::sendGameOver(bool win)
 
 void CsaEngineController::sendQuit()
 {
-    m_ponderPosition.clear();
     if (m_engine) m_engine->quit();
 }
 
 void CsaEngineController::cleanup()
 {
-    m_ponderPosition.clear();
     if (Usi* engine = std::exchange(m_engine, nullptr)) {
         disconnect(engine, nullptr, this, nullptr);
         // 枠を空ける（quit を送り、後で破棄する。思考情報・通信ログの表示は残す）

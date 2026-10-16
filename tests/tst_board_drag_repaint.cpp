@@ -166,7 +166,7 @@ class TestBoardDragRepaint : public QObject
         };
         for (const auto& [from, to] : game) {
             QPoint f = from, t = to;
-            const std::optional<RecordEntry> played = gc.validateAndMove(f, t);
+            const std::optional<RecordEntry> played = gc.validateAndMove(f, t, {});
             if (!played) return {};
             history.append(played->sfen);
         }
@@ -487,7 +487,7 @@ private slots:
             QCoreApplication::processEvents();
             ui.controller->onLeftClick(to);
             QPoint f = from, t = to;
-            const bool ok = ui.gc.validateAndMove(f, t).has_value();
+            const bool ok = ui.gc.validateAndMove(f, t, {}).has_value();
             QVERIFY(ok);
             ui.controller->onMoveApplied(f, t, ok);
             QCoreApplication::processEvents();
@@ -604,7 +604,7 @@ private slots:
                               QStringLiteral("%1 from ply %2").arg(QLatin1String(slot)).arg(ply));
             if (QTest::currentTestFailed()) return;
             ply = step.second;
-            QCOMPARE(view->board()->convertBoardToSfen(), positions.at(ply).section(QLatin1Char(' '), 0, 0));
+            QCOMPARE(view->board()->position().boardSfen(), positions.at(ply).section(QLatin1Char(' '), 0, 0));
         }
     }
 
@@ -633,7 +633,7 @@ private slots:
         menu->actions().constFirst()->trigger();
         settle();
         QCOMPARE(stalePixels(*view), 0);
-        QCOMPARE(view->board()->convertBoardToSfen(), positions.at(0).section(QLatin1Char(' '), 0, 0));
+        QCOMPARE(view->board()->position().boardSfen(), positions.at(0).section(QLatin1Char(' '), 0, 0));
 
         int index = 0;
         const QList<QPair<const char*, int>> steps = {
@@ -646,7 +646,7 @@ private slots:
                               QStringLiteral("%1 from %2").arg(QLatin1String(slot)).arg(index));
             if (QTest::currentTestFailed()) return;
             index = step.second;
-            QCOMPARE(view->board()->convertBoardToSfen(), positions.at(index).section(QLatin1Char(' '), 0, 0));
+            QCOMPARE(view->board()->position().boardSfen(), positions.at(index).section(QLatin1Char(' '), 0, 0));
         }
         GameSettings::sfenCollectionRecentFiles.set({});
     }
@@ -712,7 +712,7 @@ private slots:
             settle();
             ui.controller->onLeftClick(to);
             QPoint f = from, t = to;
-            const bool ok = ui.gc.validateAndMove(f, t).has_value();
+            const bool ok = ui.gc.validateAndMove(f, t, {}).has_value();
             QVERIFY(ok);
             ++ply;
             ui.controller->onMoveApplied(f, t, ok);

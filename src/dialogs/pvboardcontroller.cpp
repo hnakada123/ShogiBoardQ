@@ -4,7 +4,7 @@
 #include "pvboardcontroller.h"
 #include "boardcoordinates.h"
 #include "kifupresentation.h"
-#include "shogiboard.h"
+#include "shogiposition.h"
 #include "logcategories.h"
 #include "sfenutils.h"
 #include "sfendiffutils.h"
@@ -64,8 +64,7 @@ QString PvBoardController::currentSfen() const
 
 bool PvBoardController::isBlackTurn() const
 {
-    const QString sfen = currentSfen();
-    return !sfen.contains(QStringLiteral(" w "));
+    return SfenUtils::sideToMove(currentSfen()) == Turn::Black;
 }
 
 QString PvBoardController::displayPv(bool fullOrigin) const
@@ -106,19 +105,13 @@ void PvBoardController::buildSfenHistory()
     m_sfenHistory.clear();
     m_sfenHistory.append(m_baseSfen);
 
-    bool blackToMove = !m_baseSfen.contains(QStringLiteral(" w "));
-
-    ShogiBoard tempBoard;
-    tempBoard.setSfen(m_baseSfen);
-
+    Position position;
+    position.assignSfen(m_baseSfen);
+    Turn mover = SfenUtils::sideToMove(m_baseSfen);
     for (qsizetype i = 0; i < m_pvMoves.size(); ++i) {
-        applyUsiMoveToBoard(&tempBoard, m_pvMoves.at(i), blackToMove);
-        blackToMove = !blackToMove;
-        QString nextTurn = blackToMove ? QStringLiteral("b") : QStringLiteral("w");
-        QString nextSfen = tempBoard.convertBoardToSfen() + QStringLiteral(" ") +
-                          nextTurn + QStringLiteral(" ") +
-                          tempBoard.convertStandToSfen() + QStringLiteral(" 1");
-        m_sfenHistory.append(nextSfen);
+        if (const auto move = UsiMove::parse(m_pvMoves.at(i))) position.applyAs(*move, mover);
+        mover = opponent(mover);
+        m_sfenHistory.append(position.toSfen(mover, 1));
     }
 }
 
@@ -174,7 +167,7 @@ PvHighlightCoords PvBoardController::computeHighlightCoords() const
                 qCDebug(lcUi) << "computeHighlightCoords: diff ok"
                          << " from=" << fromFile << fromRank
                          << " to=" << toFile << toRank
-                         << " drop=" << pieceToChar(droppedPiece);
+                         << " drop=" << droppedPiece;
                 result.valid = true;
                 if (fromFile > 0 && fromRank > 0) {
                     result.hasFrom = true;
@@ -245,10 +238,10 @@ PvHighlightCoords PvBoardController::computeHighlightFromUsiMove(const QString& 
     if (move->isDrop()) {
         bool isBlackMove = true;
         if (isBasePosition) {
-            isBlackMove = !m_baseSfen.contains(QStringLiteral(" w "));
+            isBlackMove = SfenUtils::sideToMove(m_baseSfen) == Turn::Black;
         } else if (m_currentPly >= 1 && m_currentPly <= m_sfenHistory.size()) {
             const QString& prevSfen = m_sfenHistory.at(m_currentPly - 1);
-            isBlackMove = !prevSfen.contains(QStringLiteral(" w "));
+            isBlackMove = SfenUtils::sideToMove(prevSfen) == Turn::Black;
         }
         const QPoint standCoord = BoardCoordinates::fromSquare(*move, isBlackMove ? Turn::Black : Turn::White);
         if (!standCoord.isNull()) {
@@ -270,14 +263,6 @@ PvHighlightCoords PvBoardController::computeHighlightFromUsiMove(const QString& 
 // --------------------------------------------------------
 // Static helpers
 // --------------------------------------------------------
-
-void PvBoardController::applyUsiMoveToBoard(ShogiBoard* board, const QString& usiMove, bool isBlackToMove)
-{
-    if (!board) return;
-    if (const auto move = UsiMove::parse(usiMove)) {
-        board->applyUsiMove(*move, isBlackToMove ? Turn::Black : Turn::White);
-    }
-}
 
 bool PvBoardController::isStartposSfen(QString sfen)
 {

@@ -53,14 +53,16 @@ void TsumePositionPreview::paintEvent(QPaintEvent*)
                          KifuPresentation::rankLabel(flipped ? 9 - i : i + 1));
     }
     painter.setFont(boardFont);
-    static const char codes[] = " PLNSGBRKQMOTCU";
+    // Hayanagi の駒種（1 = 歩 〜 14 = 竜）は PieceKind と同じ順で、1つずれる
+    const auto pieceOf = [](int type, shogi::Color color) {
+        return makePiece(color == shogi::Color::White ? Turn::White : Turn::Black, static_cast<PieceKind>(type - 1));
+    };
     for (int square = 0; square < 81; ++square) {
         const int piece = m_position.piece_at(square);
         if (!piece) continue;
         int row = shogi::square_row(square), column = shogi::square_col(square);
         if (flipped) { row = 8 - row; column = 8 - column; }
-        QChar code = QLatin1Char(codes[static_cast<int>(shogi::piece_type(piece))]);
-        if (shogi::piece_color(piece) == shogi::Color::White) code = code.toLower();
+        const Piece code = pieceOf(static_cast<int>(shogi::piece_type(piece)), shogi::piece_color(piece));
         PiecePainter::draw(painter, PieceImageProvider::instance().icon(code, flipped),
                            QRect(56 + column * 24, 25 + row * 24, 22, 22), visuals);
     }
@@ -72,8 +74,7 @@ void TsumePositionPreview::paintEvent(QPaintEvent*)
         for (int kind = 7; kind >= 1; --kind) {
             const int count = m_position.hand_count(owner, static_cast<shogi::PieceType>(kind));
             if (!count) continue;
-            QChar code = QLatin1Char(codes[kind]);
-            if (owner == shogi::Color::White) code = code.toLower();
+            const Piece code = pieceOf(kind, owner);
             PiecePainter::draw(painter, PieceImageProvider::instance().icon(code, flipped), QRect(x, y, 23, 23), visuals);
             painter.drawText(QRect(x + 24, y, 21, 23), Qt::AlignCenter, QString::number(count));
             y += 29;

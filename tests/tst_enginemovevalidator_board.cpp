@@ -16,7 +16,7 @@ private slots:
     {
         ShogiBoard board;
         board.setSfen(kHirateSfen);
-        int count = static_cast<int>(EngineMoveValidator::legalMoves(board, Turn::Black).size());
+        int count = static_cast<int>(EngineMoveValidator::legalMoves(board.position(), Turn::Black).size());
         QCOMPARE(count, 30);
     }
 
@@ -24,7 +24,7 @@ private slots:
     {
         ShogiBoard board;
         board.setSfen(kHirateSfen);
-        auto status = EngineMoveValidator::legalStatus(board, Turn::Black, UsiMove::fromString(u"7g7f"));
+        auto status = EngineMoveValidator::legalStatus(board.position(), Turn::Black, UsiMove::fromString(u"7g7f"));
 
         QVERIFY(status.nonPromotingMoveExists);
         QVERIFY(!status.promotingMoveExists);
@@ -35,7 +35,7 @@ private slots:
         QString sfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b P 1");
         ShogiBoard board;
         board.setSfen(sfen);
-        auto status = EngineMoveValidator::legalStatus(board, Turn::Black, UsiMove::fromString(u"P*5e"));
+        auto status = EngineMoveValidator::legalStatus(board.position(), Turn::Black, UsiMove::fromString(u"P*5e"));
 
         QVERIFY(!status.nonPromotingMoveExists);
         QVERIFY(!status.promotingMoveExists);
@@ -45,7 +45,7 @@ private slots:
     {
         ShogiBoard board;
         board.setSfen(kHirateSfen);
-        auto status = EngineMoveValidator::legalStatus(board, Turn::Black, UsiMove::fromString(u"7g7h"));
+        auto status = EngineMoveValidator::legalStatus(board.position(), Turn::Black, UsiMove::fromString(u"7g7h"));
 
         QVERIFY(!status.nonPromotingMoveExists);
         QVERIFY(!status.promotingMoveExists);
@@ -56,8 +56,8 @@ private slots:
         QString sfen = QStringLiteral("lnsgk1snl/1r4gb1/ppppppppp/9/9/4r4/PPPP1PPPP/1B5R1/LNSGKGSNL b - 1");
         ShogiBoard board;
         board.setSfen(sfen);
-        QVERIFY(EngineMoveValidator::isInCheck(board, Turn::Black));
-        QVERIFY(!EngineMoveValidator::isInCheck(board, Turn::White));
+        QVERIFY(EngineMoveValidator::isInCheck(board.position(), Turn::Black));
+        QVERIFY(!EngineMoveValidator::isInCheck(board.position(), Turn::White));
     }
 
     void promotionInEnemyTerritory()
@@ -65,7 +65,7 @@ private slots:
         QString sfen = QStringLiteral("lnsgkgsnl/1r5b1/pppp1pppp/4P4/9/9/PPPP1PPPP/1B5R1/LNSGKGSNL b - 1");
         ShogiBoard board;
         board.setSfen(sfen);
-        auto status = EngineMoveValidator::legalStatus(board, Turn::Black, UsiMove::fromString(u"5d5c"));
+        auto status = EngineMoveValidator::legalStatus(board.position(), Turn::Black, UsiMove::fromString(u"5d5c"));
 
         QVERIFY(status.promotingMoveExists);
     }
@@ -75,7 +75,7 @@ private slots:
         QString sfen = QStringLiteral("1nsgkgsnl/Pr5b1/1pppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
         ShogiBoard board;
         board.setSfen(sfen);
-        auto status = EngineMoveValidator::legalStatus(board, Turn::Black, UsiMove::fromString(u"9b9a"));
+        auto status = EngineMoveValidator::legalStatus(board.position(), Turn::Black, UsiMove::fromString(u"9b9a"));
 
         QVERIFY(!status.nonPromotingMoveExists);
         QVERIFY(status.promotingMoveExists);

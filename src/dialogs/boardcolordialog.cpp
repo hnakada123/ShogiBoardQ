@@ -272,9 +272,9 @@ QIcon BoardColorDialog::presetIcon(const BoardColors& colors, const QString& sty
             painter.drawRect(QRect(30 + col * 20, 3 + row * 22, 20, 22));
     auto& pieces = PieceImageProvider::instance();
     const QString selected = style.isEmpty() ? pieces.style() : style;
-    PiecePainter::draw(painter, pieces.iconForStyle(QLatin1Char('u'), selected), QRect(50, 3, 20, 22), visuals);
-    PiecePainter::draw(painter, pieces.iconForStyle(QLatin1Char('P'), selected), QRect(70, 25, 20, 22), visuals);
-    PiecePainter::draw(painter, pieces.iconForStyle(QLatin1Char('K'), selected), QRect(50, 47, 20, 22), visuals);
+    PiecePainter::draw(painter, pieces.iconForStyle(Piece::WhiteDragon, selected), QRect(50, 3, 20, 22), visuals);
+    PiecePainter::draw(painter, pieces.iconForStyle(Piece::BlackPawn, selected), QRect(70, 25, 20, 22), visuals);
+    PiecePainter::draw(painter, pieces.iconForStyle(Piece::BlackKing, selected), QRect(50, 47, 20, 22), visuals);
     painter.end();
     return QIcon(preview);
 }
@@ -492,9 +492,9 @@ QIcon pieceSampleIcon(const QString& style)
 {
     QPixmap image = blankSample();
     QPainter painter(&image);
-    const QString glyphs = QStringLiteral("KPU");
-    for (int i = 0; i < glyphs.size(); ++i)
-        PiecePainter::draw(painter, PieceImageProvider::instance().iconForStyle(glyphs.at(i), style),
+    static constexpr Piece glyphs[] = {Piece::BlackKing, Piece::BlackPawn, Piece::BlackDragon};
+    for (int i = 0; i < 3; ++i)
+        PiecePainter::draw(painter, PieceImageProvider::instance().iconForStyle(glyphs[i], style),
                            QRect(4 + i * 46, 16, 43, 48), {});
     painter.end();
     return sampleIconWithoutTint(image);
@@ -532,8 +532,8 @@ QIcon sampleIcon(Component component, const BoardAppearanceSample& sample, const
         painter.drawText(QRect(14, 52, 114, 27), Qt::AlignLeft, QStringLiteral("09:58"));
     } else if (component == Component::Stand) {
         BoardSurfacePainter::draw(painter, QRectF(14, 3, 112, 76), c.stand, sample.woodGrain, 30);
-        PiecePainter::draw(painter, pieces.iconForStyle('B', style), QRect(23, 19, 42, 46), {});
-        PiecePainter::draw(painter, pieces.iconForStyle('P', style), QRect(73, 22, 39, 43), {});
+        PiecePainter::draw(painter, pieces.iconForStyle(Piece::BlackBishop, style), QRect(23, 19, 42, 46), {});
+        PiecePainter::draw(painter, pieces.iconForStyle(Piece::BlackPawn, style), QRect(73, 22, 39, 43), {});
     } else if (component == Component::Background) {
         painter.setPen(Qt::NoPen);
         painter.setBrush(c.background);
@@ -545,8 +545,8 @@ QIcon sampleIcon(Component component, const BoardAppearanceSample& sample, const
             painter.drawLine(QPointF(22 + i * 32, 8), QPointF(22 + i * 32, 74));
             painter.drawLine(QPointF(22, 8 + i * 22), QPointF(118, 8 + i * 22));
         }
-        PiecePainter::draw(painter, pieces.iconForStyle('p', style), QRect(54, 8, 24, 25), {});
-        PiecePainter::draw(painter, pieces.iconForStyle('K', style), QRect(84, 48, 29, 29), {});
+        PiecePainter::draw(painter, pieces.iconForStyle(Piece::WhitePawn, style), QRect(54, 8, 24, 25), {});
+        PiecePainter::draw(painter, pieces.iconForStyle(Piece::BlackKing, style), QRect(84, 48, 29, 29), {});
     }
     painter.end();
     return sampleIconWithoutTint(image);

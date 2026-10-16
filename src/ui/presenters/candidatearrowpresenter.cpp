@@ -7,6 +7,7 @@
 #include "kifupresentation.h"
 #include "matchcoordinator.h"
 #include "sfenreplay.h"
+#include "sfenutils.h"
 #include "shogiboard.h"
 #include "shogienginethinkingmodel.h"
 #include "usi.h"
@@ -15,7 +16,7 @@ namespace {
 QString positionKey(const QString& sfen)
 {
     // 手数は描画する盤面の同一性に含めない。
-    return sfen.simplified().section(QLatin1Char(' '), 0, 2);
+    return SfenUtils::normalizeSfenKey(sfen);
 }
 
 }
@@ -148,9 +149,7 @@ void CandidateArrowPresenter::refresh()
     m_ponderDescription.clear();
     auto* board = m_view->board();
     if (board) {
-        const QString sfen = board->convertBoardToSfen() + QLatin1Char(' ')
-            + turnToSfen(board->currentPlayer()) + QLatin1Char(' ') + board->convertStandToSfen()
-            + QStringLiteral(" 1");
+        const QString sfen = board->position().toSfen(board->currentPlayer(), 1);
         if (considerationActive()) {
             if (m_showConsideration && m_considerationModel) {
                 for (int row = 0; row < m_considerationModel->rowCount(); ++row) {

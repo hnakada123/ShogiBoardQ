@@ -4,7 +4,7 @@
 #include "jkfformatter.h"
 #include "jkfmoveparser.h"
 #include "ki2movenotation.h"
-#include "shogiboard.h"
+#include "shogiposition.h"
 #include "shoginotation.h"
 
 #include <QJsonArray>
@@ -40,8 +40,9 @@ QJsonObject timeToJkf(const RecordTime& time)
 
 QJsonObject sfenToJkfData(const QString& sfen)
 {
-    ShogiBoard board;
-    if (!board.trySetSfen(sfen)) return {};
+    const std::optional<Position> parsed = Position::fromSfen(sfen);
+    if (!parsed) return {};
+    const Position& board = *parsed;
 
     // board[筋 - 1][段 - 1]。空きマスは空のオブジェクト
     QJsonArray columns;
@@ -61,20 +62,22 @@ QJsonObject sfenToJkfData(const QString& sfen)
     }
 
     QJsonObject hands[2];
-    const QMap<Piece, int>& stand = board.pieceStand();
-    for (auto it = stand.cbegin(); it != stand.cend(); ++it) {
-        if (it.value() <= 0) continue;
-        hands[isBlackPiece(it.key()) ? 0 : 1][ShogiNotation::csaPieceCode(it.key())] = it.value();
+    for (const Turn side : {Turn::Black, Turn::White}) {
+        for (int kind = 0; kind < kHandKindCount; ++kind) {
+            const Piece piece = makePiece(side, static_cast<PieceKind>(kind));
+            const int count = board.handCount(piece);
+            if (count > 0) hands[side == Turn::Black ? 0 : 1][ShogiNotation::csaPieceCode(piece)] = count;
+        }
     }
 
     QJsonObject data;
-    data[QStringLiteral("color")] = jkfColor(board.currentPlayer());
+    data[QStringLiteral("color")] = jkfColor(board.sideToMove());
     data[QStringLiteral("board")] = columns;
     data[QStringLiteral("hands")] = QJsonArray{hands[0], hands[1]};
     return data;
 }
 
-QJsonObject moveToJkf(const ShogiBoard& board, Turn mover, const UsiMove& move, BoardSquare previousTo)
+QJsonObject moveToJkf(const Position& board, Turn mover, const UsiMove& move, BoardSquare previousTo)
 {
     const Piece moving = move.isDrop() ? move.drop : board.pieceAt(move.from);
 

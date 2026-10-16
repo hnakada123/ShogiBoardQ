@@ -318,7 +318,7 @@ void Tst_MatchCoordinator::undoTwoPlies_restoresBoardAndRecord()
     QCOMPARE(h.gc.currentPlayer(), Turn::White);
     QCOMPARE(h.gc.board()->toSfen(), h.mc->record().lastSfen());
     // 次の手の「同」表記は、戻した局面に至った手（７六歩）の移動先を基準にする
-    QCOMPARE(h.gc.previousMoveDestination(), (BoardSquare{7, 6}));
+    QCOMPARE(h.mc->lastMoveDestination(), (BoardSquare{7, 6}));
 }
 
 void Tst_MatchCoordinator::undoTwoPlies_needsTwoMoves()

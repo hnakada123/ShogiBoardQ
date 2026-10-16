@@ -59,7 +59,7 @@ struct Deps {
 | 状態 | 持ち主 |
 |------|-------|
 | 対局の手順（開始局面と指した手の行。終局の行は含めない） | `MatchCoordinator::m_record`（`RecordLine`） |
-| 開始の設定・対局者・最大手数・終局状態・エンジンの先読み局面 | `MatchSessionState m_session` |
+| 開始の設定・対局者・最大手数・終局状態 | `MatchSessionState m_session` |
 | 対局モードの Strategy | `std::unique_ptr<GameModeStrategy> m_strategy` |
 | 中断した対局（再開用） | `std::unique_ptr<InterruptedGameState> m_interruptedGame` |
 | 盤と手番 | `ShogiGameController`（Deps） |
@@ -70,13 +70,14 @@ struct Deps {
 
 | 操作 | 内容 |
 |------|------|
-| `begin(options)` | 開始の設定を持ち、終了状態と先読み局面を消す |
+| `begin(options)` | 開始の設定を持ち、終了状態を消す |
 | `finish(info)` | 終局を記録する（終局済みなら `false`） |
 | `markTerminalRecorded()` | 終局の行を書いたことを記録する（未終局・記録済みなら `false`） |
 | `clearGameOver()` | 終了状態を解く |
-| `ponder(side)`・`setPonder()`・`clearPonder()` | 手番ごとの先読みの局面 |
 
-開始手順は `MatchStartOptions::recordLine` で受け取り、`currentPly` までを対局の手順にする。過去対局の検索、USI position 文字列の履歴、独立した現在手数カウンターは無い。エンジンへの `position` は `RecordLine::positionCommand()` で対局の手順から作り、待ったと中断再開も同じ手順を使う。
+開始手順は `MatchStartOptions::recordLine` で受け取り、`currentPly` までを対局の手順にする。過去対局の検索、USI position 文字列の履歴、独立した現在手数カウンターは無い。エンジンに探索させる局面（`UsiPosition`）は `RecordLine::usiPosition()` で対局の手順から作り、待ったと中断再開も同じ手順を使う。次の手の「同」表記の基準も手順から導く（`lastMoveDestination()` = `m_record.destinationOf(currentPly())`）。
+
+エンジンの先読みの局面は司令塔では持たず、エンジンの `UsiMatchHandler` だけが持つ。待った（`undoTwoPlies()`）では両方のエンジンに `Usi::forgetPonder()` を呼んで捨てさせる。
 
 ---
 
@@ -95,10 +96,10 @@ Strategy は手番ごとに誰が指すかだけを決め、一手の確定と�
 | `MatchStrategyHost` | 内容 |
 |------|------|
 | `engines()`・`isGameOver()`・`sideToMove()`・`currentPly()` | エンジンの枠・終局状態・盤の手番・手数を読む |
-| `requestEngineMove(side)` | 手番のエンジンに、対局の手順の `position` と先読み局面で思考させる |
+| `requestEngineMove(side)` | 手番のエンジンに、対局の手順から作った局面（`RecordLine::usiPosition()`）で思考させる（先読みの当たり・外れはエンジンの側が判断する） |
 | `setWaitingForEngines(waiting)` | エンジンの初期化を待つ間は時計を止める |
 | `recordConsiderationTime(mover, elapsedMs)` | 人間の考慮時間を記録する（人間同士の手番の計測） |
-| `applyEngineMove(move)` | エンジンの手（`UsiMatchMove`。先読みの局面を含む）を合法手か確かめて指し、一手を確定する（反則手は反則負け） |
+| `applyEngineMove(move)` | エンジンの手（`UsiMatchMove`）を合法手か確かめて指し、一手を確定する（反則手・局面に指せない手は反則負け） |
 | `completeHumanMove(played)` | 盤で指した人間の手で一手を確定する |
 
 `GameModeStrategy` の `armTurnTimerIfNeeded()`・`disarmTurnTimer()` は人間同士の Strategy だけが実装する（人間の考慮時間の計測）。

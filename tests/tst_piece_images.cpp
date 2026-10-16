@@ -39,11 +39,11 @@ private slots:
         QFETCH(QString, selectedStyle);
         auto& provider = PieceImageProvider::instance();
         QSignalSpy changed(&provider, &PieceImageProvider::styleChanged);
-        const auto standardPawn = provider.icon('P').pixmap(90).toImage();
+        const auto standardPawn = provider.icon(Piece::BlackPawn).pixmap(90).toImage();
         provider.setStyle(selectedStyle);
         QCOMPARE(changed.count(), 1);
         QCOMPARE(provider.style(), selectedStyle);
-        QVERIFY(provider.icon('P').pixmap(90).toImage() != standardPawn);
+        QVERIFY(provider.icon(Piece::BlackPawn).pixmap(90).toImage() != standardPawn);
         SettingsCommon::openSettings().sync();
         QSettings restored(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
         QCOMPARE(restored.value(SettingsKeys::kPieceStyle).toString(), selectedStyle);
@@ -52,7 +52,7 @@ private slots:
         provider.setStyle(QStringLiteral("standard"));
         QCOMPARE(changed.count(), 2);
         QCOMPARE(provider.style(), QStringLiteral("standard"));
-        QCOMPARE(provider.icon('P').pixmap(90).toImage(), standardPawn);
+        QCOMPARE(provider.icon(Piece::BlackPawn).pixmap(90).toImage(), standardPawn);
     }
 
     void legacySettingsMigrate_data()
@@ -75,8 +75,8 @@ private slots:
         QVERIFY(AppSettings::boardColors() == colors);
         const auto pawn = QIcon(":/pieces/Sente_fu45.svg").pixmap(90).toImage();
         QVERIFY(!pawn.isNull());
-        QCOMPARE(provider.icon('P').pixmap(90).toImage(), pawn);
-        QCOMPARE(provider.iconForStyle('P', legacyStyle).pixmap(90).toImage(), pawn);
+        QCOMPARE(provider.icon(Piece::BlackPawn).pixmap(90).toImage(), pawn);
+        QCOMPARE(provider.iconForStyle(Piece::BlackPawn, legacyStyle).pixmap(90).toImage(), pawn);
         provider.setStyle(QStringLiteral("standard"));
         provider.setStyle(QStringLiteral("../unknown"));
         QCOMPARE(provider.style(), QStringLiteral("standard"));
@@ -152,12 +152,12 @@ private slots:
             if (!style.startsWith(family)) continue;
             ++count;
             // 絵柄・欧文が読み込めず、五角形だけ表示される退行も検出する。
-            const QString plain = QStringLiteral("PLNSBR");
-            const QString promoted = QStringLiteral("QMOTCU");
-            for (int i = 0; i < plain.size(); ++i) {
+            static constexpr Piece plain[] = {Piece::BlackPawn, Piece::BlackLance, Piece::BlackKnight,
+                                              Piece::BlackSilver, Piece::BlackBishop, Piece::BlackRook};
+            for (const Piece blackBase : plain) {
                 for (const bool gote : {false, true}) {
-                    const QChar base = gote ? plain.at(i).toLower() : plain.at(i);
-                    const QChar promotedPiece = gote ? promoted.at(i).toLower() : promoted.at(i);
+                    const Piece base = gote ? toWhite(blackBase) : blackBase;
+                    const Piece promotedPiece = promote(base);
                     const auto normal = provider.iconForStyle(base, style).pixmap(90).toImage();
                     const auto red = provider.iconForStyle(promotedPiece, style).pixmap(90).toImage();
                     QVERIFY(normal != red);
@@ -183,22 +183,24 @@ private slots:
     void flippedKingsKeepIdentity()
     {
         auto& provider = PieceImageProvider::instance();
-        const QString types = QStringLiteral("PLNSGBRKQMOTCUplnsgbrkqmotcu");
+        QList<Piece> types;
+        for (const Turn side : {Turn::Black, Turn::White})
+            for (int kind = 0; kind < kPieceKindCount; ++kind) types << makePiece(side, static_cast<PieceKind>(kind));
         for (const auto& style : AppSettings::availablePieceStyles()) {
             provider.setStyle(style);
             const QString prefix = style == QStringLiteral("standard")
                 ? QStringLiteral(":/pieces/") : QStringLiteral(":/pieces/%1/").arg(style);
-            for (const QChar type : types) {
+            for (const Piece type : std::as_const(types)) {
                 QVERIFY(!provider.icon(type).pixmap(45).isNull());
                 QVERIFY(!provider.icon(type, true).pixmap(45).isNull());
                 QVERIFY(provider.icon(type).pixmap(45).toImage()
                         != provider.icon(type, true).pixmap(45).toImage());
             }
-            QCOMPARE(provider.icon('K', true).pixmap(90).toImage(),
+            QCOMPARE(provider.icon(Piece::BlackKing, true).pixmap(90).toImage(),
                      QIcon(prefix + "Gote_ou45.svg").pixmap(90).toImage());
-            QCOMPARE(provider.icon('k', true).pixmap(90).toImage(),
+            QCOMPARE(provider.icon(Piece::WhiteKing, true).pixmap(90).toImage(),
                      QIcon(prefix + "Sente_gyoku45.svg").pixmap(90).toImage());
-            QVERIFY(provider.icon(' ').isNull());
+            QVERIFY(provider.icon(Piece::None).isNull());
         }
     }
 };

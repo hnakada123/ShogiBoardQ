@@ -5,10 +5,11 @@
 #include <QString>
 
 #include "usigotime.h"
+#include "usiposition.h"
 #include "usiprotocolhandler.h"
 
 struct UsiSearchRequest {
-    QString position;
+    UsiPosition position;
     UsiGo go;
     int stopAfterMs = 0;
     int replyTimeoutMs = 0;
@@ -26,7 +27,7 @@ public:
     void quit() {}
     void search(const UsiSearchRequest& request)
     {
-        m_handler->positions.append(request.position);
+        m_handler->positions.append(request.position.command());
         m_handler->timeouts.append(request.go.mateTimeMs);
     }
     void stop() { ++m_handler->stops; }

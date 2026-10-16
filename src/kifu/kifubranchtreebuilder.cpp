@@ -5,7 +5,6 @@
 #include "kifubranchtree.h"
 #include "kifubranchnode.h"
 #include "kifparsetypes.h"
-#include "kifdisplayitem.h"
 
 bool KifuBranchTreeBuilder::buildFromKifParseResult(KifuBranchTree* tree,
                                                    const KifParseResult& result,
@@ -33,14 +32,12 @@ bool KifuBranchTreeBuilder::buildFromKifParseResult(KifuBranchTree* tree,
 }
 
 QList<KifuBranchNode*> KifuBranchTreeBuilder::addKifLineToTree(
-    KifuBranchTree* tree, const KifLine& line, QList<KifuBranchNode*> path)
+    KifuBranchTree* tree, const RecordLine& line, QList<KifuBranchNode*> path)
 {
     KifuBranchNode* currentNode = path.last();
 
-    if (line.opening) {
-        if (!line.opening->comment.isEmpty()) currentNode->setComment(line.opening->comment);
-        if (!line.opening->bookmark.isEmpty()) currentNode->setBookmark(line.opening->bookmark);
-    }
+    if (!line.openingComment.isEmpty()) currentNode->record().comment = line.openingComment;
+    if (!line.openingBookmark.isEmpty()) currentNode->record().bookmark = line.openingBookmark;
     for (const auto& record : line.entries) {
         currentNode = tree->addRecord(currentNode, record);
         path.append(currentNode);

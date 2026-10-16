@@ -65,7 +65,10 @@ public:
     // --- 対局 ---
 
     void setMatchClock(ShogiClock* clock);
-    void requestMatchMove(const QString& position, const QString& ponder, const UsiTimingParams& timing);
+    /// 対局の手番の探索を頼む（先読みしていれば、その当たり・外れはこの部品が判断する）
+    void requestMatchMove(const UsiPosition& position, const UsiTimingParams& timing);
+    /// 先読みの局面を捨てる（待った・中断で局面が戻ったとき）
+    void forgetPonder();
     /// 対局中の「すぐ指させる」。準備中に頼まれた探索は残し、それを送った後で stop を送る
     void requestImmediateMove();
     void sendGameOverCommand(GameOverResult result);
@@ -73,11 +76,11 @@ public:
     // --- 検討・棋譜解析・詰み探索 ---
 
     /// 検討: 候補手の数を送って position + go infinite を送り、byoyomiMilliSec 後に stop を送る（0 なら送らない）
-    void startConsideration(const QString& positionStr, int byoyomiMilliSec, int multiPV);
+    void startConsideration(const UsiPosition& position, int byoyomiMilliSec, int multiPV);
     /// 探索1回を頼む（棋譜解析の1局面など）
     void search(const UsiSearchRequest& request);
     /// 詰み探索（go mate）
-    void startMateSearch(const QString& positionStr, int timeLimitMs);
+    void startMateSearch(const UsiPosition& position, int timeLimitMs);
     /// 探索を止める（初期化中なら、まだ送っていない探索を取りやめる）
     void stop();
     /// setoption name <name> value <value> を送る（初期化中なら完了後に送る）
@@ -87,10 +90,6 @@ public:
 
     // --- 読み筋の表示 ---
 
-    /// 直前の指し手の行き先（読み筋の最初の手の「同」表記に使う。無ければ {0, 0}）
-    void setPreviousMove(BoardSquare to);
-    /// 読み筋を表示する局面に至った指し手（USI 形式。読み筋の盤の強調）
-    void setLastUsiMove(const QString& move);
     const UsiProtocolHandler::SearchCandidate& searchCandidate() const;
 
     /// 整えた思考の行・情報欄の値を知らせる部品（表示する側が受ける）

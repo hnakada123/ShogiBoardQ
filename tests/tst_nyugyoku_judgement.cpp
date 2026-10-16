@@ -76,14 +76,14 @@ private slots:
         QFETCH(QString, verdict);
         ShogiBoard board;
         board.setSfen(sfen);
-        const auto result = NyugyokuJudgement::judge(board, sente, rule);
+        const auto result = NyugyokuJudgement::judge(board.position(), sente, rule);
         QCOMPARE(result.success, success);
         QCOMPARE(result.isDraw, isDraw);
         QVERIFY2(result.message.contains(verdict), qPrintable(result.message));
         QVERIFY(result.message.startsWith(sente ? QStringLiteral("先手の入玉宣言") : QStringLiteral("後手の入玉宣言")));
 
         // 駒落ちは宣言側を下手・上手と呼ぶ
-        const auto handicap = NyugyokuJudgement::judge(board, sente, rule, true);
+        const auto handicap = NyugyokuJudgement::judge(board.position(), sente, rule, true);
         QCOMPARE(handicap.success, success);
         QVERIFY(handicap.message.startsWith(sente ? QStringLiteral("下手の入玉宣言") : QStringLiteral("上手の入玉宣言")));
     }
@@ -93,18 +93,18 @@ private slots:
         ShogiBoard board;
         board.setSfen(kWin);
         setRule(NyugyokuJudgement::Rule24);
-        auto result = NyugyokuJudgement::judgeEngineDeclaration(board, true);
+        auto result = NyugyokuJudgement::judgeEngineDeclaration(board.position(), true);
         QVERIFY(result.success && result.isDraw);
 
         // 「なし」でもエンジンの宣言は取り消せないため、27点法で判定して説明する
         setRule(NyugyokuJudgement::RuleNone);
-        result = NyugyokuJudgement::judgeEngineDeclaration(board, true);
+        result = NyugyokuJudgement::judgeEngineDeclaration(board.position(), true);
         QVERIFY(result.success && !result.isDraw);
         QVERIFY(result.message.startsWith(QStringLiteral("持将棋ルールが「なし」のため、27点法で判定しました。")));
 
         board.setSfen(kShort);
         setRule(NyugyokuJudgement::Rule27);
-        result = NyugyokuJudgement::judgeEngineDeclaration(board, true);
+        result = NyugyokuJudgement::judgeEngineDeclaration(board.position(), true);
         QVERIFY(!result.success);
         QCOMPARE(result.resultText, QStringLiteral("宣言失敗（負け）"));
     }

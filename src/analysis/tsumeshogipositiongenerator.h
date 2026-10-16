@@ -8,7 +8,7 @@
 #include <QRandomGenerator>
 #include <QStringList>
 #include <QList>
-#include "shogiboard.h"
+#include "shogiposition.h"
 #include "shogitypes.h"
 #include "threadtypes.h"
 
@@ -57,7 +57,7 @@ private:
     static constexpr bool kCanPromote[PieceTypeCount] = {true, true, true, true, false, true, true};
 
     /// 局面（盤と持駒）。file・rank は 0〜8 で、盤の筋・段の 1〜9 にあたる
-    ShogiBoard m_board;
+    Position m_board;
 
     /// 駒使用数カウンタ（各駒種の使用数。盤上の両者の駒と攻方の持駒）
     int m_usedCounts[PieceTypeCount] = {};

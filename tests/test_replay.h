@@ -2,22 +2,42 @@
 #define TEST_REPLAY_H
 
 /// @file test_replay.h
-/// @brief テスト用: 開始局面と USI の指し手から局面列・指し手列を作る（SfenReplay::replay の結果を並べるだけ）
+/// @brief テスト用: 開始局面と USI の指し手から局面列・指し手列を作る（棋譜の読み込みと同じく Position で指す）
 
 #include <QList>
 #include <QStringList>
+#include <optional>
 
-#include "sfenreplay.h"
+#include "shogimove.h"
+#include "shogiposition.h"
+#include "usimove.h"
 
 namespace TestReplay {
+
+/// 開始局面から手を順に指す（持ち駒が合わない駒打ちも指す）。指せない手があれば nullopt
+inline std::optional<QList<std::pair<ShogiMove, QString>>> play(const QString& initialSfen, const QStringList& usiMoves)
+{
+    std::optional<Position> position = Position::fromSfen(initialSfen);
+    if (!position) return std::nullopt;
+    QList<std::pair<ShogiMove, QString>> steps;
+    for (const QString& text : usiMoves) {
+        const auto move = UsiMove::parse(text);
+        if (!move) return std::nullopt;
+        const ShogiMove described = position->describe(*move);
+        if (described.movingPiece == Piece::None || !position->apply(*move, Position::DropRule::Lenient))
+            return std::nullopt;
+        steps.append({described, position->toSfen()});
+    }
+    return steps;
+}
 
 /// 開始局面と各手の後の局面（hasTerminal のとき終局の行のために最後を複製する）。指せなければ空
 inline QStringList buildSfenRecord(const QString& initialSfen, const QStringList& usiMoves, bool hasTerminal)
 {
-    const SfenReplay::Result result = SfenReplay::replay(initialSfen, usiMoves);
-    if (!result.success()) return {};
-    QStringList sfens{result.initialSfen};
-    for (const SfenReplay::Step& step : result.moves) sfens.append(step.sfen);
+    const auto steps = play(initialSfen, usiMoves);
+    if (!steps) return {};
+    QStringList sfens{Position::fromSfen(initialSfen)->toSfen()};
+    for (const auto& step : *steps) sfens.append(step.second);
     if (hasTerminal) sfens.append(sfens.last());
     return sfens;
 }
@@ -25,10 +45,10 @@ inline QStringList buildSfenRecord(const QString& initialSfen, const QStringList
 /// 各手（動かした駒・取った駒つき）。指せない手があれば空
 inline QList<ShogiMove> buildGameMoves(const QString& initialSfen, const QStringList& usiMoves)
 {
-    const SfenReplay::Result result = SfenReplay::replay(initialSfen, usiMoves);
-    if (!result.success()) return {};
+    const auto steps = play(initialSfen, usiMoves);
+    if (!steps) return {};
     QList<ShogiMove> moves;
-    for (const SfenReplay::Step& step : result.moves) moves.append(step.move);
+    for (const auto& step : *steps) moves.append(step.first);
     return moves;
 }
 

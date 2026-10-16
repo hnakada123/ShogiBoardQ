@@ -240,7 +240,7 @@ private slots:
         elapsed.start();
         QVERIFY(engine.startEngine(QStringLiteral(MOCK_USI_EXECUTABLE), engineName));
         engine.sendSetOptionCommand(QStringLiteral("ReplyDelay"), QStringLiteral("250"));
-        engine.requestMatchMove(QStringLiteral("position startpos moves 7g7f"), {},
+        engine.requestMatchMove(*UsiPosition::parse(u"position startpos moves 7g7f"),
                                 TestTime::byoyomiTiming(5000, 300000, 0));
         QVERIFY(elapsed.elapsed() < 200);
         QCOMPARE(ready.size(), 0);
@@ -250,7 +250,6 @@ private slots:
         QCOMPARE(errors.size(), 0);
         QVERIFY(m_ticks > ticks + 5);
         QCOMPARE(moves.first().at(0).value<UsiMatchMove>().move.toString(), QStringLiteral("8c8d"));
-        QVERIFY(moves.first().at(0).value<UsiMatchMove>().position.endsWith(QStringLiteral("7g7f 8c8d")));
     }
     /// 準備中に「すぐ指させる」を押しても、保留中の position・go を捨てずにエンジンが指す
     void immediateMoveDuringInitializationKeepsPendingSearch()
@@ -263,7 +262,7 @@ private slots:
         Usi engine;
         QSignalSpy moves(&engine, &Usi::matchMoveReady);
         QVERIFY(engine.startEngine(QStringLiteral(MOCK_USI_EXECUTABLE), engineName));
-        engine.requestMatchMove(QStringLiteral("position startpos moves 7g7f"), {},
+        engine.requestMatchMove(*UsiPosition::parse(u"position startpos moves 7g7f"),
                                 TestTime::byoyomiTiming(5000, 300000, 0));
         QVERIFY(engine.isInitializing());
         engine.requestImmediateMove();
@@ -291,13 +290,14 @@ private slots:
         QSignalSpy errors(&engine, &Usi::errorOccurred);
         QVERIFY(engine.startEngine(QStringLiteral(MOCK_USI_EXECUTABLE), engineName));
         const UsiTimingParams timing = TestTime::byoyomiTiming(5000, 300000, 0);
-        engine.requestMatchMove(QStringLiteral("position startpos moves 7g7f"), {}, timing);
+        const UsiPosition first = *UsiPosition::parse(u"position startpos moves 7g7f");
+        engine.requestMatchMove(first, timing);
         QTRY_COMPARE(moves.size(), 1);
-        const QString ponder = moves.first().at(0).value<UsiMatchMove>().ponderPosition;
-        QVERIFY(ponder.endsWith(QStringLiteral("2g2f")));
-        const QString position = hit ? ponder : moves.first().at(0).value<UsiMatchMove>().position + QStringLiteral(" 6g6f");
+        // 模擬エンジンは相手の手を 2g2f と予想して先読みする
+        const UsiPosition played = *first.withMove(moves.first().at(0).value<UsiMatchMove>().move);
+        const UsiPosition position = *played.withMove(*UsiMove::parse(hit ? u"2g2f" : u"6g6f"));
         const int ticks = m_ticks;
-        engine.requestMatchMove(position, ponder, timing);
+        engine.requestMatchMove(position, timing);
         QCOMPARE(moves.size(), 1);
         QTRY_COMPARE(moves.size(), 2);
         QCOMPARE(moves.last().at(0).value<UsiMatchMove>().move.to, (BoardSquare{3, 4}));
@@ -317,7 +317,7 @@ private slots:
         QVERIFY(engine.startEngine(QStringLiteral(MOCK_USI_EXECUTABLE), engineName));
         QTRY_COMPARE(ready.size(), 1);
         engine.sendSetOptionCommand(QStringLiteral("ReplyDelay"), QStringLiteral("300"));
-        engine.requestMatchMove(QStringLiteral("position startpos moves 7g7f"), {},
+        engine.requestMatchMove(*UsiPosition::parse(u"position startpos moves 7g7f"),
                                 TestTime::byoyomiTiming(5000, 300000, 0));
         engine.cancelCurrentOperation();
         QTest::qWait(400);
@@ -373,7 +373,7 @@ private slots:
         for (Usi* engine : {engine1, engine2}) {
             if (!engine) continue;
             engine->sendSetOptionCommand(QStringLiteral("ReplyDelay"), QStringLiteral("300"));
-            engine->requestMatchMove(QStringLiteral("position startpos moves 7g7f"), {}, timing);
+            engine->requestMatchMove(*UsiPosition::parse(u"position startpos moves 7g7f"), timing);
         }
         QTest::qWait(30);
 
@@ -427,12 +427,13 @@ private slots:
         QTRY_COMPARE(thinkingReady.size(), 1);
         QTRY_COMPARE(ponderingReady.size(), 1);
         const UsiTimingParams timing = TestTime::byoyomiTiming(5000, 300000, 300000);
-        const QString position = QStringLiteral("position startpos moves 7g7f");
-        pondering->requestMatchMove(position, {}, timing);
+        const UsiPosition position = *UsiPosition::parse(u"position startpos moves 7g7f");
+        pondering->requestMatchMove(position, timing);
         QTRY_COMPARE(ponderingMoves.size(), 1);
-        QVERIFY(!ponderingMoves.first().at(0).value<UsiMatchMove>().ponderPosition.isEmpty());
+        QVERIFY(pondering->protocol()->isSearching());
+        QCOMPARE(pondering->protocol()->searchKind(), UsiProtocolHandler::SearchKind::Ponder);
         thinking->sendSetOptionCommand(QStringLiteral("ReplyDelay"), QStringLiteral("300"));
-        thinking->requestMatchMove(position, {}, timing);
+        thinking->requestMatchMove(position, timing);
         QTest::qWait(30);
         const auto existing = qApp->findChildren<QProcess*>();
         engines.notifyGameOver(loser);
@@ -500,7 +501,7 @@ private slots:
         QSignalSpy errors(&engine, &Usi::errorOccurred);
         QSignalSpy moves(&engine, &Usi::matchMoveReady);
         QVERIFY(engine.startEngine(QStringLiteral(MOCK_USI_EXECUTABLE), engineName));
-        engine.requestMatchMove(QStringLiteral("position startpos moves 7g7f"), {},
+        engine.requestMatchMove(*UsiPosition::parse(u"position startpos moves 7g7f"),
                                 TestTime::byoyomiTiming(5000, 300000, 0));
         QTRY_COMPARE(errors.size(), 1);
         QCOMPARE(moves.size(), 0);

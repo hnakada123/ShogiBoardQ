@@ -32,7 +32,7 @@ public:
     explicit TsumeSearchController(const Deps& deps, QObject* parent = nullptr);
 
     /// 表示中の局面を詰み探索する position コマンド（局面が無ければ空）
-    QString positionForMate() const;
+    UsiPosition positionForMate() const;
 
 public slots:
     /// 条件ダイアログを出し、選んだ条件で探索を始める（ダイアログを閉じてから始める）

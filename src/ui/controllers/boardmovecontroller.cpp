@@ -65,7 +65,7 @@ bool BoardMoveController::playMove(const QPoint& from, const QPoint& to)
     }
     // validateAndMove は成りの選択などで座標を書き換えるのでローカルに退避
     QPoint hFrom = from, hTo = to;
-    const std::optional<RecordEntry> played = m_deps.gameController->validateAndMove(hFrom, hTo);
+    const std::optional<RecordEntry> played = m_deps.gameController->validateAndMove(hFrom, hTo, match->lastMoveDestination());
     board->onMoveApplied(hFrom, hTo, played.has_value());
     if (!played) {
         qCDebug(lcUi) << "validateAndMove failed (human move rejected)";

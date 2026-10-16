@@ -78,16 +78,8 @@ inline QString squareText(BoardSquare square)
 /// USI の駒打ちの駒文字（PLNSGBR、大小文字を問わない）を先手の生駒にする
 inline Piece dropPieceFromChar(QChar ch)
 {
-    switch (ch.toUpper().unicode()) {
-    case u'P': return Piece::BlackPawn;
-    case u'L': return Piece::BlackLance;
-    case u'N': return Piece::BlackKnight;
-    case u'S': return Piece::BlackSilver;
-    case u'G': return Piece::BlackGold;
-    case u'B': return Piece::BlackBishop;
-    case u'R': return Piece::BlackRook;
-    default:   return Piece::None;
-    }
+    const Piece piece = toBlack(charToPiece(ch));
+    return (piece == Piece::None || pieceKind(piece) == PieceKind::King) ? Piece::None : piece;
 }
 
 } // namespace UsiNotation
@@ -95,7 +87,7 @@ inline Piece dropPieceFromChar(QChar ch)
 bool UsiMove::isValid() const
 {
     if (!to.isValid()) return false;
-    if (isDrop()) return !promote && UsiNotation::dropPieceFromChar(pieceToChar(drop)) == drop;
+    if (isDrop()) return !promote && isBlackPiece(drop) && pieceKind(drop) <= PieceKind::Rook;
     return from.isValid() && from != to;
 }
 
@@ -124,7 +116,7 @@ std::optional<UsiMove> UsiMove::parse(QStringView text)
 QString UsiMove::toString() const
 {
     if (!isValid()) return {};
-    if (isDrop()) return pieceToChar(drop) + QStringLiteral("*") + UsiNotation::squareText(to);
+    if (isDrop()) return pieceLetter(drop) + QStringLiteral("*") + UsiNotation::squareText(to);
     QString text = UsiNotation::squareText(from) + UsiNotation::squareText(to);
     if (promote) text += QLatin1Char('+');
     return text;

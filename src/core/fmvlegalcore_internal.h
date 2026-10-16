@@ -7,7 +7,7 @@
 #include "fmvposition.h"
 #include "fmvtypes.h"
 
-#include <cctype>
+#include "piecerules.h"
 
 namespace fmv {
 namespace detail {
@@ -15,68 +15,19 @@ namespace detail {
 /// 成り可能な駒種か
 inline bool isPromotable(PieceType pt) noexcept
 {
-    switch (pt) {
-    case PieceType::Pawn:
-    case PieceType::Lance:
-    case PieceType::Knight:
-    case PieceType::Silver:
-    case PieceType::Bishop:
-    case PieceType::Rook:
-        return true;
-    default:
-        return false;
-    }
+    return isPromotableType(pt);
 }
 
-/// 成り段か
+/// 成り段か（段は0始まり）
 inline bool isPromotionZone(Color side, int rank) noexcept
 {
-    if (side == Color::Black) {
-        return rank <= 2;
-    }
-    return rank >= 6;
+    return PieceRules::inPromotionZone(side == Color::Black ? Turn::Black : Turn::White, rank + 1);
 }
 
-/// 強制成りか
-inline bool isMandatoryPromotion(Color side, PieceType pt, int toRank) noexcept
+/// 行き所のない段か（段は0始まり）。盤上の移動では強制成り、駒打ちでは打てない段
+inline bool isDeadSquare(Color side, PieceType pt, int rank) noexcept
 {
-    if (side == Color::Black) {
-        if ((pt == PieceType::Pawn || pt == PieceType::Lance) && toRank == 0) {
-            return true;
-        }
-        if (pt == PieceType::Knight && toRank <= 1) {
-            return true;
-        }
-        return false;
-    }
-    if ((pt == PieceType::Pawn || pt == PieceType::Lance) && toRank == 8) {
-        return true;
-    }
-    if (pt == PieceType::Knight && toRank >= 7) {
-        return true;
-    }
-    return false;
-}
-
-/// 行き所のない駒の打ち判定
-inline bool isDropDeadSquare(Color side, PieceType pt, int toRank) noexcept
-{
-    if (side == Color::Black) {
-        if ((pt == PieceType::Pawn || pt == PieceType::Lance) && toRank == 0) {
-            return true;
-        }
-        if (pt == PieceType::Knight && toRank <= 1) {
-            return true;
-        }
-        return false;
-    }
-    if ((pt == PieceType::Pawn || pt == PieceType::Lance) && toRank == 8) {
-        return true;
-    }
-    if (pt == PieceType::Knight && toRank >= 7) {
-        return true;
-    }
-    return false;
+    return PieceRules::isDeadSquare(pieceOf(side, pt), rank + 1);
 }
 
 /// 指定色の指定筋に歩があるか
@@ -93,27 +44,11 @@ inline bool hasPawnOnFile(const EnginePosition& pos, Color side, int file) noexc
     return false;
 }
 
-/// char → PieceType
-inline PieceType charToPieceType(char c) noexcept
+/// マスの駒の種類（空きマスは PieceTypeNb）
+inline PieceType typeAt(const EnginePosition& pos, Square sq) noexcept
 {
-    char upper = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
-    switch (upper) {
-    case 'P': return PieceType::Pawn;
-    case 'L': return PieceType::Lance;
-    case 'N': return PieceType::Knight;
-    case 'S': return PieceType::Silver;
-    case 'G': return PieceType::Gold;
-    case 'B': return PieceType::Bishop;
-    case 'R': return PieceType::Rook;
-    case 'K': return PieceType::King;
-    case 'Q': return PieceType::ProPawn;
-    case 'M': return PieceType::ProLance;
-    case 'O': return PieceType::ProKnight;
-    case 'T': return PieceType::ProSilver;
-    case 'C': return PieceType::Horse;
-    case 'U': return PieceType::Dragon;
-    default: return PieceType::PieceTypeNb;
-    }
+    const Piece piece = pos.board[sq];
+    return piece == Piece::None ? PieceType::PieceTypeNb : typeOf(piece);
 }
 
 /// 歩打ちで直接王手になるか

@@ -34,6 +34,13 @@ UsiScore mateScore(const QString& text)
     if (mate == QLatin1String("+0")) score.mateWin = true;
     return score;
 }
+/// position コマンドの列を解析する局面の列にする
+QList<UsiPosition> usiPositions(const QStringList& commands)
+{
+    QList<UsiPosition> positions;
+    for (const QString& command : commands) positions << UsiPosition::parse(command).value_or(UsiPosition{});
+    return positions;
+}
 } // namespace
 
 class TestAnalysisCoordinator : public QObject
@@ -89,7 +96,7 @@ void TestAnalysisCoordinator::initialState_isIdle()
 {
     QStringList sfenRecord = makeSampleSfenRecord();
     AnalysisCoordinator::Deps deps;
-    deps.positions = sfenRecord;
+    deps.positions = usiPositions(sfenRecord);
 
     AnalysisCoordinator coord(deps);
     QCOMPARE(coord.currentPly(), -1);
@@ -99,7 +106,7 @@ void TestAnalysisCoordinator::startAnalyzeRange_emitsPositionPrepared()
 {
     QStringList sfenRecord = makeSampleSfenRecord();
     AnalysisCoordinator::Deps deps;
-    deps.positions = sfenRecord;
+    deps.positions = usiPositions(sfenRecord);
 
     AnalysisCoordinator coord(deps);
     AnalysisCoordinator::Options opt;
@@ -121,7 +128,7 @@ void TestAnalysisCoordinator::startAnalyzeSingle_emitsPositionPrepared()
 {
     QStringList sfenRecord = makeSampleSfenRecord();
     AnalysisCoordinator::Deps deps;
-    deps.positions = sfenRecord;
+    deps.positions = usiPositions(sfenRecord);
 
     AnalysisCoordinator coord(deps);
     AnalysisCoordinator::Options opt;
@@ -140,7 +147,7 @@ void TestAnalysisCoordinator::stop_returnsToIdle()
 {
     QStringList sfenRecord = makeSampleSfenRecord();
     AnalysisCoordinator::Deps deps;
-    deps.positions = sfenRecord;
+    deps.positions = usiPositions(sfenRecord);
 
     AnalysisCoordinator coord(deps);
     AnalysisCoordinator::Options opt;
@@ -166,7 +173,7 @@ void TestAnalysisCoordinator::onEngineInfo_scorecp_emitsProgress()
 {
     QStringList sfenRecord = makeSampleSfenRecord();
     AnalysisCoordinator::Deps deps;
-    deps.positions = sfenRecord;
+    deps.positions = usiPositions(sfenRecord);
 
     AnalysisCoordinator coord(deps);
     AnalysisCoordinator::Options opt;
@@ -196,7 +203,7 @@ void TestAnalysisCoordinator::onEngineInfo_scoremate_emitsProgress()
 {
     QStringList sfenRecord = makeSampleSfenRecord();
     AnalysisCoordinator::Deps deps;
-    deps.positions = sfenRecord;
+    deps.positions = usiPositions(sfenRecord);
 
     AnalysisCoordinator coord(deps);
     AnalysisCoordinator::Options opt;
@@ -223,7 +230,7 @@ void TestAnalysisCoordinator::onEngineInfo_noScore_emitsProgress()
 {
     QStringList sfenRecord = makeSampleSfenRecord();
     AnalysisCoordinator::Deps deps;
-    deps.positions = sfenRecord;
+    deps.positions = usiPositions(sfenRecord);
 
     AnalysisCoordinator coord(deps);
     AnalysisCoordinator::Options opt;
@@ -253,7 +260,7 @@ void TestAnalysisCoordinator::onEngineBestmove_single_emitsFinished()
 {
     QStringList sfenRecord = makeSampleSfenRecord();
     AnalysisCoordinator::Deps deps;
-    deps.positions = sfenRecord;
+    deps.positions = usiPositions(sfenRecord);
 
     AnalysisCoordinator coord(deps);
     AnalysisCoordinator::Options opt;
@@ -277,7 +284,7 @@ void TestAnalysisCoordinator::onEngineBestmove_range_advancesToNextPly()
 {
     QStringList sfenRecord = makeSampleSfenRecord();
     AnalysisCoordinator::Deps deps;
-    deps.positions = sfenRecord;
+    deps.positions = usiPositions(sfenRecord);
 
     AnalysisCoordinator coord(deps);
     AnalysisCoordinator::Options opt;
@@ -306,7 +313,7 @@ void TestAnalysisCoordinator::sendGoCommand_emitsRequestSendUsiCommand()
 {
     QStringList sfenRecord = makeSampleSfenRecord();
     AnalysisCoordinator::Deps deps;
-    deps.positions = sfenRecord;
+    deps.positions = usiPositions(sfenRecord);
 
     AnalysisCoordinator coord(deps);
     AnalysisCoordinator::Options opt;
@@ -317,7 +324,7 @@ void TestAnalysisCoordinator::sendGoCommand_emitsRequestSendUsiCommand()
     // UI からの呼び返しがなくても、開始時に探索要求が一度だけ発行される。
     coord.startAnalyzeSingle(1);
     QCOMPARE(spy.count(), 1);
-    QVERIFY(spy.at(0).at(0).toString().startsWith(QStringLiteral("position")));
+    QVERIFY(qvariant_cast<UsiPosition>(spy.at(0).at(0)).command().startsWith(QStringLiteral("position")));
     QCOMPARE(spy.at(0).at(1).toInt(), 5000);  // この時間で stop を送ってもらう
     coord.stop();
     coord.onEngineBestmoveReceived();
@@ -328,7 +335,7 @@ void TestAnalysisCoordinator::setOptions_multiPV_sendSetoption()
 {
     QStringList sfenRecord = makeSampleSfenRecord();
     AnalysisCoordinator::Deps deps;
-    deps.positions = sfenRecord;
+    deps.positions = usiPositions(sfenRecord);
 
     AnalysisCoordinator coord(deps);
     AnalysisCoordinator::Options opt;
@@ -408,7 +415,7 @@ void TestAnalysisCoordinator::commitPendingResult_bookMove_clearsUsiPv()
 {
     QStringList sfenRecord = makeSampleSfenRecord();
     AnalysisCoordinator::Deps deps;
-    deps.positions = sfenRecord;
+    deps.positions = usiPositions(sfenRecord);
     AnalysisCoordinator coord(deps);
     AnalysisCoordinator::Options opt;
     opt.movetimeMs = 1000;

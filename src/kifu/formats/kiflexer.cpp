@@ -2,7 +2,6 @@
 /// @brief KIF形式固有の字句解析・トークン化の実装・BOD盤面解析
 
 #include "kiflexer.h"
-#include "notationutils.h"
 #include "parsecommon.h"
 
 #include <QRegularExpression>
@@ -147,161 +146,6 @@ void advanceToNextMove(QString& lineStr, int skipOffset,
     }
 }
 
-// === 終局語 ===
-
-KifDisplayItem buildTerminalItem(int moveIndex, TerminalType type, Turn side,
-                                 const QString& timeText, const QRegularExpressionMatch& tm)
-{
-    const QString cum = tm.hasMatch() ? extractCumTimeFromMatch(tm) : QStringLiteral("00:00:00");
-    const QString lineTime = (type == TerminalType::Repetition || timeText.isEmpty())
-        ? QStringLiteral("00:00/") + cum : timeText;
-    return KifuParseCommon::createTerminalDisplayItem(moveIndex, type, side, lineTime);
-}
-
-// === 指し手解析 ===
-
-std::optional<KifuParseCommon::MoveDestination> findDestination(const QString& line)
-{
-    if (line.contains(QStringLiteral("同"))) {
-        return KifuParseCommon::MoveDestination{0, 0, true};
-    }
-
-    static const auto& s_paren = *[]() {
-        static const QRegularExpression r(QStringLiteral("[\\(（]"));
-        return &r;
-    }();
-    const int paren = static_cast<int>(line.indexOf(s_paren));
-    const QString head = (paren >= 0) ? line.left(paren) : line;
-
-    static const auto& s_digitKanji = *[]() {
-        static const QRegularExpression r(QStringLiteral("([1-9１-９])([一二三四五六七八九])"));
-        return &r;
-    }();
-    static const auto& s_digitDigit = *[]() {
-        static const QRegularExpression r(QStringLiteral("([1-9１-９])([1-9１-９])"));
-        return &r;
-    }();
-
-    QRegularExpressionMatch m = s_digitKanji.match(head);
-    if (!m.hasMatch()) m = s_digitDigit.match(head);
-    if (!m.hasMatch()) return std::nullopt;
-
-    const QChar fch = m.capturedView(1).at(0);
-    const QChar rch = m.capturedView(2).at(0);
-
-    const int toFile = ShogiNotation::digitValue(fch);
-    const int toRank = ShogiNotation::rankFromKanji(rch) > 0 ? ShogiNotation::rankFromKanji(rch)
-                                                              : ShogiNotation::digitValue(rch);
-
-    if (toFile >= 1 && toFile <= 9 && toRank >= 1 && toRank <= 9)
-        return KifuParseCommon::MoveDestination{toFile, toRank, false};
-
-    return std::nullopt;
-}
-
-QChar pieceKanjiToUsiUpper(const QString& s)
-{
-    const Piece piece = ShogiNotation::findPieceName(s);
-    if (piece == Piece::None) return QChar();
-    return pieceToChar(demote(piece));
-}
-
-bool isPromotionMoveText(const QString& line)
-{
-    if (line.contains(QStringLiteral("不成"))) return false;
-
-    QString head = line;
-    static const auto& kParenRe = *[]() {
-        static const QRegularExpression r(QStringLiteral("[\\(（]"));
-        return &r;
-    }();
-    int p = static_cast<int>(head.indexOf(kParenRe));
-    if (p >= 0) head = head.left(p);
-    int u = static_cast<int>(head.indexOf(QChar(u'打')));
-    if (u >= 0) head = head.left(u);
-
-    static const auto& kModsRe = *[]() {
-        static const QRegularExpression r(QStringLiteral("[右左上下引寄直行]+"));
-        return &r;
-    }();
-    head.remove(kModsRe);
-    head.remove(QChar(u'▲'));
-    head.remove(QChar(u'△'));
-    head = head.trimmed();
-
-    static const auto& kPromoteSuffix = *[]() {
-        static const QRegularExpression r(QStringLiteral("(歩|香|桂|銀|角|飛)成$"));
-        return &r;
-    }();
-    return kPromoteSuffix.match(head).hasMatch();
-}
-
-bool usiDestination(const QString& usi, int& toFile, int& toRank)
-{
-    // "7g7f" / "7g7f+" / "P*5e" のいずれも 3〜4 文字目が移動先
-    if (usi.size() < 4) return false;
-    const QChar f = usi.at(2);
-    const QChar r = usi.at(3);
-    if (f < QLatin1Char('1') || f > QLatin1Char('9') || r < QLatin1Char('a') || r > QLatin1Char('i')) return false;
-    toFile = f.unicode() - '0';
-    toRank = r.unicode() - 'a' + 1;
-    return true;
-}
-
-bool convertMoveLine(const QString& moveText, QString& usi,
-                     int& prevToFile, int& prevToRank)
-{
-    static const auto& kMods = *[]() {
-        static const QRegularExpression r(QStringLiteral("[右左上下引寄直行]+"));
-        return &r;
-    }();
-    QString line = moveText;
-    line.remove(kMods);
-    line = line.trimmed();
-
-    const auto dest = findDestination(line);
-    if (!dest) return false;
-    int toF = dest->toFile, toR = dest->toRank;
-    if (dest->isSameAsPrev) { toF = prevToFile; toR = prevToRank; }
-    if (!(toF >= 1 && toF <= 9 && toR >= 1 && toR <= 9)) return false;
-
-    if (pieceKanjiToUsiUpper(line).isNull()) return false;
-    const bool isDrop = line.contains(QStringLiteral("打"));
-
-    int fromF = 0, fromR = 0;
-    {
-        static const auto& kParenAscii = *[]() {
-            static const QRegularExpression r(QStringLiteral("\\(([0-9０-９])([0-9０-９])\\)"));
-            return &r;
-        }();
-        static const auto& kParenZenkaku = *[]() {
-            static const QRegularExpression r(QStringLiteral("（([0-9０-９])([0-9０-９])）"));
-            return &r;
-        }();
-        QRegularExpressionMatch m = kParenAscii.match(line);
-        if (!m.hasMatch()) m = kParenZenkaku.match(line);
-        if (m.hasMatch() && m.lastCapturedIndex() >= 2) {
-            const QChar a = m.capturedView(1).at(0);
-            const QChar b = m.capturedView(2).at(0);
-            fromF = qMax(0, ShogiNotation::digitValue(a));
-            fromR = qMax(0, ShogiNotation::digitValue(b));
-        }
-    }
-
-    if (isDrop) {
-        const QChar usiPiece = pieceKanjiToUsiUpper(line);
-        if (usiPiece.isNull()) return false;
-        usi = NotationUtils::formatSfenDrop(usiPiece, toF, toR);
-    } else {
-        if (!(fromF >= 1 && fromF <= 9 && fromR >= 1 && fromR <= 9)) return false;
-        usi = NotationUtils::formatSfenMove(fromF, fromR, toF, toR, isPromotionMoveText(line));
-    }
-
-    prevToFile = toF;
-    prevToRank = toR;
-    return true;
-}
-
 } // namespace KifLexer
 
 // ============================================================
@@ -433,56 +277,24 @@ bool parseBodRow(const QString& line, QStringList& outTokens, QChar& outRankKanj
     return true;
 }
 
-QString rowTokensToSfen(const QStringList& tokens)
+/// 局面図の1段（9筋から1筋の順の9つの駒の名前。"v" は後手、"・" は空き）を局面に置く
+void placeBodRow(const QStringList& tokens, int rank, Position& out)
 {
-    QString row;
-    int empty = 0;
-    auto flushEmpty = [&](){
-        if (empty > 0) { row += QString::number(empty); empty = 0; }
-    };
-
-    int used = 0;
-    for (const QString& tok : std::as_const(tokens)) {
-        if (used >= 9) break;
-
-        if (tok == QStringLiteral("・")) {
-            ++empty; ++used;
-            continue;
-        }
-
-        const bool gote = tok.startsWith(QLatin1Char('v'));
-        const QString body = gote ? tok.mid(1) : tok;
-
-        const Piece piece = ShogiNotation::pieceFromName(body);
-        if (piece == Piece::None) {
-            ++empty; ++used;
-            continue;
-        }
-
-        flushEmpty();
-        if (isPromoted(piece)) row += QLatin1Char('+');
-        row += pieceToChar(gote ? toWhite(demote(piece)) : demote(piece));
-        ++used;
+    for (qsizetype i = 0; i < tokens.size() && i < 9; ++i) {
+        const QString& token = tokens.at(i);
+        const bool gote = token.startsWith(QLatin1Char('v'));
+        const Piece piece = ShogiNotation::pieceFromName(gote ? QStringView(token).mid(1) : QStringView(token));
+        out.setPieceAt({9 - static_cast<int>(i), rank}, piece == Piece::None ? piece : (gote ? toWhite(piece) : piece));
     }
-    while (used < 9) { ++empty; ++used; }
-    flushEmpty();
-    return row;
 }
 
-} // namespace
-
-namespace KifLexer {
-
-// === BOD盤面解析 ===
-
-void parseBodHandsLine(const QString& line, QMap<Piece, int>& outCounts, bool isBlack)
+/// 持駒の行（「先手の持駒：飛　角　歩三」。駒落ちは下手・上手）を局面の持ち駒に足す
+void addBodHands(const QString& line, Position& out)
 {
-    // 駒落ちの棋譜は、先手側を「下手」、後手側を「上手」と書く
-    QString t = line.trimmed();
+    const QString t = line.trimmed();
     const bool sideBlack = t.startsWith(QStringLiteral("先手の持駒")) || t.startsWith(QStringLiteral("下手の持駒"));
     const bool sideWhite = t.startsWith(QStringLiteral("後手の持駒")) || t.startsWith(QStringLiteral("上手の持駒"));
     if (!sideBlack && !sideWhite) return;
-    if (sideBlack != isBlack) return;
 
     qsizetype idx = t.indexOf(QChar(u'：')); if (idx < 0) idx = t.indexOf(QLatin1Char(':'));
     if (idx < 0) return;
@@ -502,15 +314,20 @@ void parseBodHandsLine(const QString& line, QMap<Piece, int>& outCounts, bool is
         QChar head = tok.at(0);
         const Piece piece = demote(ShogiNotation::pieceFromName(QStringView(&head, 1)));
         if (piece == Piece::None || piece == Piece::BlackKing) continue;
-
-        int cnt = parseCountSuffixFlexible(tok);
-        outCounts[piece] += cnt;
+        out.addToHand(sideBlack ? piece : toWhite(piece), parseCountSuffixFlexible(tok));
     }
 }
 
-bool collectBodRows(const QStringList& lines, QMap<QChar, QString>& rowByRank,
-                    QString* detectedLabel)
+} // namespace
+
+namespace KifLexer {
+
+// === BOD盤面解析 ===
+
+bool readBodPosition(const QStringList& lines, Position& out, QString* detectedLabel)
 {
+    Position position;
+    int rows = 0;
     int placementStart = -1;
     for (qsizetype i = 0; i < lines.size(); ++i) {
         if (lines.at(i).contains(QStringLiteral("配置：")) || lines.at(i).contains(QStringLiteral("配置:"))) {
@@ -526,43 +343,49 @@ bool collectBodRows(const QStringList& lines, QMap<QChar, QString>& rowByRank,
             if (raw.trimmed().isEmpty()) continue;
             QStringList toks; QChar dummyRank;
             if (parseBodRow(raw, toks, dummyRank, false)) {
-                rowByRank[ShogiNotation::rankKanji(currentRankIdx + 1).at(0)] = rowTokensToSfen(toks);
+                placeBodRow(toks, currentRankIdx + 1, position);
                 currentRankIdx++;
             }
         }
+        rows = currentRankIdx;
         if (detectedLabel) *detectedLabel = QStringLiteral("配置");
     } else {
+        // 段の漢数字で段を決める（同じ段が2度あれば後の行）
+        QList<int> seen;
         for (const QString& raw : std::as_const(lines)) {
-            QStringList toks; QChar rank;
-            if (parseBodRow(raw, toks, rank, true)) {
-                rowByRank[rank] = rowTokensToSfen(toks);
-            }
+            QStringList toks; QChar rankKanji;
+            if (!parseBodRow(raw, toks, rankKanji, true)) continue;
+            const int rank = ShogiNotation::rankFromKanji(rankKanji);
+            if (rank < 1 || rank > 9) continue;
+            placeBodRow(toks, rank, position);
+            if (!seen.contains(rank)) seen.append(rank);
         }
-        if (detectedLabel && !rowByRank.isEmpty()) *detectedLabel = QStringLiteral("BOD");
+        rows = static_cast<int>(seen.size());
+        if (detectedLabel && rows > 0) *detectedLabel = QStringLiteral("BOD");
     }
+    if (rows != 9) return false;
 
-    return (rowByRank.size() == 9);
-}
+    for (const QString& line : std::as_const(lines)) addBodHands(line, position);
 
-void parseBodTurnAndMoveNumber(const QStringList& lines, QChar& turn, int& moveNumber)
-{
-    turn = QLatin1Char('b');
+    // 手番（駒落ちの棋譜は下手番（先手側）・上手番（後手側）と書く）と手数（「手数＝N」の次の手）
     for (const QString& l : std::as_const(lines)) {
         const QString t = l.trimmed();
-        // 駒落ちの棋譜は下手番（先手側）・上手番（後手側）と書く
-        if (t.contains(QStringLiteral("先手番")) || t.contains(QStringLiteral("下手番"))) { turn = QLatin1Char('b'); break; }
-        if (t.contains(QStringLiteral("後手番")) || t.contains(QStringLiteral("上手番"))) { turn = QLatin1Char('w'); break; }
+        if (t.contains(QStringLiteral("先手番")) || t.contains(QStringLiteral("下手番"))) break;
+        if (t.contains(QStringLiteral("後手番")) || t.contains(QStringLiteral("上手番"))) {
+            position.setSideToMove(Turn::White);
+            break;
+        }
     }
-
-    moveNumber = 1;
     static const QRegularExpression reTeSu(QStringLiteral("手数\\s*[=＝]\\s*([0-9０-９]+)"));
     for (const QString& l : std::as_const(lines)) {
         auto mt = reTeSu.match(l);
         if (mt.hasMatch()) {
-            moveNumber = zenk2ascii(mt.captured(1)).toInt() + 1;
+            position.setMoveNumber(zenk2ascii(mt.captured(1)).toInt() + 1);
             break;
         }
     }
+    out = position;
+    return true;
 }
 
 } // namespace KifLexer

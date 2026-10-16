@@ -30,7 +30,7 @@ BoardViewerWidget::BoardViewerWidget(Features features, ButtonLabels labels, Sho
                                      QWidget* parent)
     : QWidget(parent)
     , m_features(features)
-    , m_board(externalBoard ? externalBoard : new ShogiBoard(9, 9, this))
+    , m_board(externalBoard ? externalBoard : new ShogiBoard(this))
     , m_view(new ShogiView(this))
 {
     setObjectName(QStringLiteral("boardViewer"));

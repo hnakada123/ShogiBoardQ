@@ -2,6 +2,7 @@
 #include <QSignalSpy>
 
 #include "shogiboard.h"
+#include "shogiposition.h"
 #include "shogimove.h"
 
 static const QString kHirateSfen =
@@ -19,8 +20,8 @@ private slots:
         ShogiBoard board;
         board.setSfen(kHirateSfen);
 
-        const auto& data = board.boardData();
-        QCOMPARE(data.size(), 81);
+        const auto& data = board.position().squares();
+        QCOMPARE(static_cast<int>(data.size()), 81);
 
         // Rank 1 (index 0-8): l n s g k g s n l
         QCOMPARE(data[0], Piece::WhiteLance);
@@ -42,7 +43,7 @@ private slots:
     {
         ShogiBoard board;
         board.setSfen(kHirateSfen);
-        QString out = board.convertBoardToSfen();
+        QString out = board.position().boardSfen();
         QCOMPARE(out, QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL"));
     }
 
@@ -52,7 +53,7 @@ private slots:
         QString midSfen = QStringLiteral("lnsgkgsnl/1r5b1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL w - 2");
         ShogiBoard board;
         board.setSfen(midSfen);
-        QString out = board.convertBoardToSfen();
+        QString out = board.position().boardSfen();
         QCOMPARE(out, QStringLiteral("lnsgkgsnl/1r5b1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL"));
     }
 
@@ -64,7 +65,7 @@ private slots:
         ShogiBoard board;
         board.setSfen(sfen);
 
-        const auto& data = board.boardData();
+        const auto& data = board.position().squares();
         // SFEN file order is 9->1, so 6+P2 = files 9-4 empty, file 3 has +P, files 2-1 empty
         // index = (rank-1)*9 + (file-1) = (4-1)*9 + (3-1) = 29
         QCOMPARE(data[29], Piece::BlackPromotedPawn); // +P -> internal 'Q'
@@ -82,12 +83,11 @@ private slots:
         QCOMPARE(board.pieceStandCount(Piece::WhitePawn), 10);
         QCOMPARE(board.pieceStandCount(Piece::BlackBishop), 0);
         QCOMPARE(board.pieceStandCount(Piece::BlackGold), 0);
-        QCOMPARE(board.pieceStand().size(), 16);
-        QCOMPARE(board.convertStandToSfen(), QStringLiteral("S5P10p"));
+        QCOMPARE(board.position().handsSfen(), QStringLiteral("S5P10p"));
         QCOMPARE(board.currentPlayer(), Turn::Black);
 
         QVERIFY(board.trySetSfen(QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 w - 1")));
-        QCOMPARE(board.convertStandToSfen(), QStringLiteral("-"));
+        QCOMPARE(board.position().handsSfen(), QStringLiteral("-"));
         QCOMPARE(board.currentPlayer(), Turn::White);
     }
 
@@ -130,10 +130,9 @@ private slots:
 
         QVERIFY(!board.trySetSfen(sfen));
         QCOMPARE(resetSpy.count(), 0);
-        QCOMPARE(board.convertBoardToSfen(), kBefore.section(QLatin1Char(' '), 0, 0));
-        QCOMPARE(board.convertStandToSfen(), QStringLiteral("Bb"));
+        QCOMPARE(board.position().boardSfen(), kBefore.section(QLatin1Char(' '), 0, 0));
+        QCOMPARE(board.position().handsSfen(), QStringLiteral("Bb"));
         QCOMPARE(board.currentPlayer(), Turn::White);
-        QCOMPARE(board.pieceStand().size(), 16);
     }
 
     void convertStandToSfen()
@@ -141,7 +140,7 @@ private slots:
         ShogiBoard board;
         board.setSfen(kHirateSfen);
         // Initially no pieces on stand
-        QCOMPARE(board.convertStandToSfen(), QStringLiteral("-"));
+        QCOMPARE(board.position().handsSfen(), QStringLiteral("-"));
     }
 
     void convertStandToSfen_withPieces()
@@ -150,7 +149,7 @@ private slots:
         QString sfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b 3P 1");
         ShogiBoard board;
         board.setSfen(sfen);
-        QString stand = board.convertStandToSfen();
+        QString stand = board.position().handsSfen();
         QVERIFY(stand.contains(QLatin1Char('P')));
     }
 
@@ -164,7 +163,7 @@ private slots:
         // Move pawn from 7g (file=7, rank=7) to 7f (file=7, rank=6)
         board.movePieceToSquare(Piece::BlackPawn, 7, 7, 7, 6, false);
 
-        const auto& data = board.boardData();
+        const auto& data = board.position().squares();
         // 7g should be empty: index = (7-1)*9 + (7-1) = 60
         QCOMPARE(data[60], Piece::None);
         // 7f should have P: index = (6-1)*9 + (7-1) = 51
@@ -181,7 +180,7 @@ private slots:
         // Move P from rank 3 to rank 2 with promotion
         board.movePieceToSquare(Piece::BlackPawn, 5, 3, 5, 2, true);
 
-        const auto& data = board.boardData();
+        const auto& data = board.position().squares();
         // 5b (file=5, rank=2): index = (2-1)*9 + (5-1) = 13
         QCOMPARE(data[13], Piece::BlackPromotedPawn); // Promoted pawn
     }
@@ -192,9 +191,9 @@ private slots:
     {
         ShogiBoard board;
         board.setSfen(kHirateSfen);
-        int before = board.pieceStand().value(Piece::BlackPawn, 0);
+        int before = board.pieceStandCount(Piece::BlackPawn);
         board.addPieceToStand(Piece::WhitePawn); // Capture opponent's pawn
-        int after = board.pieceStand().value(Piece::BlackPawn, 0);
+        int after = board.pieceStandCount(Piece::BlackPawn);
         QCOMPARE(after, before + 1);
     }
 
@@ -202,10 +201,10 @@ private slots:
     {
         ShogiBoard board;
         board.setSfen(kHirateSfen);
-        int before = board.pieceStand().value(Piece::BlackPawn, 0);
+        int before = board.pieceStandCount(Piece::BlackPawn);
         // Capture promoted pawn (opponent's +P) -> should convert to P
         board.addPieceToStand(Piece::WhitePromotedPawn);
-        int after = board.pieceStand().value(Piece::BlackPawn, 0);
+        int after = board.pieceStandCount(Piece::BlackPawn);
         QCOMPARE(after, before + 1);
     }
 
@@ -214,12 +213,12 @@ private slots:
         ShogiBoard board;
         board.setSfen(kHirateSfen);
 
-        int before = board.pieceStand().value(Piece::BlackPawn, 0);
+        int before = board.pieceStandCount(Piece::BlackPawn);
         board.incrementPieceOnStand(Piece::BlackPawn);
-        QCOMPARE(board.pieceStand().value(Piece::BlackPawn, 0), before + 1);
+        QCOMPARE(board.pieceStandCount(Piece::BlackPawn), before + 1);
 
         board.decrementPieceOnStand(Piece::BlackPawn);
-        QCOMPARE(board.pieceStand().value(Piece::BlackPawn, 0), before);
+        QCOMPARE(board.pieceStandCount(Piece::BlackPawn), before);
     }
 
     // === Board Operations ===
@@ -242,10 +241,10 @@ private slots:
         board.resetGameBoard();
         QCOMPARE(resetSpy.count(), 1);
 
-        QCOMPARE(board.convertBoardToSfen(), QStringLiteral("9/9/9/9/9/9/9/9/9"));
+        QCOMPARE(board.position().boardSfen(), QStringLiteral("9/9/9/9/9/9/9/9/9"));
         QCOMPARE(board.pieceStandCount(Piece::BlackKing), 0);
         QCOMPARE(board.pieceStandCount(Piece::WhiteKing), 0);
-        QCOMPARE(board.convertStandToSfen(), QStringLiteral("-"));
+        QCOMPARE(board.position().handsSfen(), QStringLiteral("-"));
         const QMap<Piece, int> allPieces = {
             {Piece::BlackPawn, 18}, {Piece::BlackLance, 4}, {Piece::BlackKnight, 4},
             {Piece::BlackSilver, 4}, {Piece::BlackGold, 4}, {Piece::BlackBishop, 2},
@@ -253,10 +252,10 @@ private slots:
         QCOMPARE(board.pieceBox(), allPieces);
         QCOMPARE(board.currentPlayer(), turn);
         ShogiBoard restored;
-        restored.setSfen(board.convertBoardToSfen() + QStringLiteral(" b ")
-                        + board.convertStandToSfen() + QStringLiteral(" 1"));
-        QCOMPARE(restored.boardData(), board.boardData());
-        QCOMPARE(restored.pieceStand(), board.pieceStand());
+        restored.setSfen(board.position().boardSfen() + QStringLiteral(" b ")
+                        + board.position().handsSfen() + QStringLiteral(" 1"));
+        QCOMPARE(restored.position().squares(), board.position().squares());
+        QCOMPARE(restored.position().handsSfen(), board.position().handsSfen());
         QCOMPARE(restored.pieceBox(), board.pieceBox());
     }
 
@@ -285,7 +284,7 @@ private slots:
         ShogiBoard board;
         board.setSfen(QStringLiteral("K8/P8/9/9/9/9/9/9/8k b - 1"));
 
-        const auto& data = board.boardData();
+        const auto& data = board.position().squares();
         // P at rank2 file9: index = (2-1)*9 + (9-1) = 17
         QCOMPARE(data[17], Piece::BlackPawn);
         // rank8 file1: index = (8-1)*9 + (1-1) = 63, should be empty
@@ -295,9 +294,9 @@ private slots:
 
         // After 180 rotation + case swap:
         // P at [17] -> p at [80-17] = [63]
-        QCOMPARE(board.boardData()[63], Piece::WhitePawn);
+        QCOMPARE(board.position().squares()[63], Piece::WhitePawn);
         // Original [17] should now be empty
-        QCOMPARE(board.boardData()[17], Piece::None);
+        QCOMPARE(board.position().squares()[17], Piece::None);
     }
 
     // === Signals ===
@@ -352,44 +351,75 @@ private slots:
         QCOMPARE(board.pieceStandCount(Piece::BlackBishop), 1);
     }
 
-    // === parseSfen (static) ===
+    // === Position::fromSfen ===
 
     void parseSfen_valid()
     {
-        auto result = ShogiBoard::parseSfen(kHirateSfen);
+        auto result = Position::fromSfen(kHirateSfen);
         QVERIFY(result.has_value());
-        QCOMPARE(result->turn, Turn::Black);
-        QCOMPARE(result->moveNumber, 1);
-        QCOMPARE(result->stand, QStringLiteral("-"));
+        QCOMPARE(result->sideToMove(), Turn::Black);
+        QCOMPARE(result->moveNumber(), 1);
+        QCOMPARE(result->handsSfen(), QStringLiteral("-"));
+        QCOMPARE(result->toSfen(), kHirateSfen);
+        QCOMPARE(*result, Position::hirate());
     }
 
     void parseSfen_whiteTurn()
     {
-        auto result = ShogiBoard::parseSfen(
+        auto result = Position::fromSfen(
             QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 2"));
         QVERIFY(result.has_value());
-        QCOMPARE(result->turn, Turn::White);
-        QCOMPARE(result->moveNumber, 2);
+        QCOMPARE(result->sideToMove(), Turn::White);
+        QCOMPARE(result->moveNumber(), 2);
     }
 
     void parseSfen_invalid_tooFewParts()
     {
-        auto result = ShogiBoard::parseSfen(QStringLiteral("lnsgkgsnl/1r5b1 b"));
-        QVERIFY(!result.has_value());
+        QVERIFY(!Position::fromSfen(QStringLiteral("lnsgkgsnl/1r5b1 b")).has_value());
     }
 
     void parseSfen_invalid_turn()
     {
-        auto result = ShogiBoard::parseSfen(
-            QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL x - 1"));
-        QVERIFY(!result.has_value());
+        QVERIFY(!Position::fromSfen(
+            QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL x - 1")).has_value());
     }
 
     void parseSfen_invalid_moveNumber()
     {
-        auto result = ShogiBoard::parseSfen(
-            QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 0"));
-        QVERIFY(!result.has_value());
+        QVERIFY(!Position::fromSfen(
+            QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 0")).has_value());
+    }
+
+    /// "startpos"・"position ..."・手数を省いた局面も読み、moves 以降は指して進める
+    void parseSfenLike_positionCommands()
+    {
+        QCOMPARE(Position::fromSfenLike(u"startpos")->toSfen(), kHirateSfen);
+        QCOMPARE(Position::fromSfenLike(u"position startpos moves 7g7f 3c3d")->toSfen(),
+                 QStringLiteral("lnsgkgsnl/1r5b1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL b - 3"));
+        QCOMPARE(Position::fromSfenLike(u"4k4/9/9/9/9/9/9/9/4K4 w G")->toSfen(),
+                 QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 w G 1"));
+        QVERIFY(!Position::fromSfenLike(u"position startpos moves 5e5d").has_value());
+    }
+
+    /// 駒の値は色と種類の計算で成る・戻す・先後を入れ替える
+    void pieceArithmetic()
+    {
+        QCOMPARE(promote(Piece::BlackPawn), Piece::BlackPromotedPawn);
+        QCOMPARE(promote(Piece::WhiteSilver), Piece::WhitePromotedSilver);
+        QCOMPARE(promote(Piece::BlackBishop), Piece::BlackHorse);
+        QCOMPARE(promote(Piece::WhiteRook), Piece::WhiteDragon);
+        QCOMPARE(promote(Piece::BlackGold), Piece::BlackGold);
+        QCOMPARE(promote(Piece::WhiteKing), Piece::WhiteKing);
+        QCOMPARE(promote(Piece::BlackHorse), Piece::BlackHorse);
+        QCOMPARE(demote(Piece::WhiteDragon), Piece::WhiteRook);
+        QCOMPARE(demote(Piece::BlackPromotedKnight), Piece::BlackKnight);
+        QCOMPARE(demote(Piece::BlackGold), Piece::BlackGold);
+        QCOMPARE(flipSide(Piece::BlackHorse), Piece::WhiteHorse);
+        QCOMPARE(capturedToHand(Piece::WhiteDragon), Piece::BlackRook);
+        QCOMPARE(pieceSfen(Piece::WhitePromotedLance), QStringLiteral("+l"));
+        QCOMPARE(charToPiece(QLatin1Char('Q')), Piece::None);
+        QVERIFY(!isBlackPiece(Piece::None));
+        QVERIFY(!isWhitePiece(Piece::None));
     }
 
     // === currentPlayer ===
@@ -412,7 +442,7 @@ private slots:
         QString sfen = QStringLiteral("lnsgkgsnl/1r7/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
         ShogiBoard board;
         board.setSfen(sfen);
-        QString out = board.convertBoardToSfen();
+        QString out = board.position().boardSfen();
         QCOMPARE(out, QStringLiteral("lnsgkgsnl/1r7/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL"));
     }
 
@@ -422,7 +452,7 @@ private slots:
         QString sfen = QStringLiteral("lnsgkgsnl/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
         ShogiBoard board;
         board.setSfen(sfen);
-        const auto& data = board.boardData();
+        const auto& data = board.position().squares();
         // Rank 2 (index 9-17) should all be None
         for (int i = 9; i <= 17; ++i) {
             QCOMPARE(data[i], Piece::None);
@@ -437,7 +467,7 @@ private slots:
         QString sfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b R2P 1");
         ShogiBoard board;
         board.setSfen(sfen);
-        QString stand = board.convertStandToSfen();
+        QString stand = board.position().handsSfen();
         QVERIFY(stand.contains(QLatin1Char('R')));
         QVERIFY(stand.contains(QLatin1Char('P')));
     }
@@ -560,7 +590,7 @@ private slots:
         board.setPieceAt(BoardSquare{10, 1}, Piece::BlackGold);
         QCOMPARE(changed.count(), 1);
         QCOMPARE(board.pieceStandCount(Piece::BlackPawn), 0);
-        QCOMPARE(board.convertBoardToSfen(), QStringLiteral("4P4/9/9/9/9/9/9/9/9"));
+        QCOMPARE(board.position().boardSfen(), QStringLiteral("4P4/9/9/9/9/9/9/9/9"));
     }
 
     // === copyPositionFrom ===
@@ -574,12 +604,11 @@ private slots:
         copy.setSfen(QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b 2P 9"));
         QSignalSpy reset(&copy, &ShogiBoard::boardReset);
 
-        copy.copyPositionFrom(source);
+        copy.setPosition(source.position());
         QCOMPARE(reset.count(), 1);
-        QCOMPARE(copy.boardData(), source.boardData());
-        QCOMPARE(copy.pieceStand(), source.pieceStand());
+        QCOMPARE(copy.position(), source.position());
         QCOMPARE(copy.currentPlayer(), Turn::White);
-        QCOMPARE(copy.convertBoardToSfen() + QStringLiteral(" w ") + copy.convertStandToSfen(),
+        QCOMPARE(copy.position().boardSfen() + QStringLiteral(" w ") + copy.position().handsSfen(),
                  sfen.left(sfen.lastIndexOf(QLatin1Char(' '))));
 
         // 写した後で進めても、写し元は変わらない
@@ -591,11 +620,11 @@ private slots:
         QCOMPARE(copy.pieceStandCount(Piece::WhiteBishop), 1);
     }
 
-    // === 駒台の表の共有 ===
+    // === 局面は値 ===
 
-    void newBoards_keepStandChangesToThemselves()
+    void boardsKeepStandChangesToThemselves()
     {
-        // 作ったばかりの盤は0枚の駒台の表を共有する。どの書き換え方でも、ほかの盤には及ばない
+        // どの書き換え方でも、ほかの盤には及ばない
         ShogiBoard added;
         ShogiBoard loaded;
         ShogiBoard emptyLoaded;
@@ -603,32 +632,13 @@ private slots:
         QVERIFY(loaded.trySetSfen(QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b R2p 1")));
         QVERIFY(emptyLoaded.trySetSfen(QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b - 1")));
 
-        QCOMPARE(added.convertStandToSfen(), QStringLiteral("3P"));
-        QCOMPARE(loaded.convertStandToSfen(), QStringLiteral("R2p"));
-        QCOMPARE(emptyLoaded.convertStandToSfen(), QStringLiteral("-"));
-
-        added.initStand();
-        QCOMPARE(added.convertStandToSfen(), QStringLiteral("-"));
-        QCOMPARE(loaded.convertStandToSfen(), QStringLiteral("R2p"));
+        QCOMPARE(added.position().handsSfen(), QStringLiteral("3P"));
+        QCOMPARE(loaded.position().handsSfen(), QStringLiteral("R2p"));
+        QCOMPARE(emptyLoaded.position().handsSfen(), QStringLiteral("-"));
 
         const ShogiBoard fresh;
-        QCOMPARE(fresh.pieceStand().size(), 16);
-        QCOMPARE(fresh.convertStandToSfen(), QStringLiteral("-"));
-        QCOMPARE(fresh.pieceStand(), added.pieceStand());
-    }
-
-    // === initStand ===
-
-    void initStand_clearsAll()
-    {
-        ShogiBoard board;
-        // Add some pieces to stand
-        board.incrementPieceOnStand(Piece::BlackPawn);
-        board.incrementPieceOnStand(Piece::BlackPawn);
-        QCOMPARE(board.pieceStand().value(Piece::BlackPawn, 0), 2);
-
-        board.initStand();
-        QCOMPARE(board.pieceStand().value(Piece::BlackPawn, 0), 0);
+        QCOMPARE(fresh.position().handsSfen(), QStringLiteral("-"));
+        QVERIFY(fresh.position().handsEmpty());
     }
 };
 

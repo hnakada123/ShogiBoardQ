@@ -9,12 +9,9 @@ namespace {
 
 using namespace fmv;
 
-constexpr char kPieceChars[] = "PLNSGBRKQMOTCU";
-
-char pieceChar(int piece, Color side)
+Piece pieceChar(int piece, Color side)
 {
-    const char c = kPieceChars[piece];
-    return side == Color::Black ? c : static_cast<char>(c + ('a' - 'A'));
+    return pieceOf(side, static_cast<PieceType>(piece));
 }
 
 // 表・占有ビットボードを参照せず、座標と盤面走査だけで判定する。
@@ -78,7 +75,7 @@ bool referenceAttack(const EnginePosition& pos, Color side, PieceType piece, int
     const int stepR = (dr > 0) - (dr < 0);
     for (int f = from % 9 + stepF, r = from / 9 + stepR;
          f != to % 9 || r != to / 9; f += stepF, r += stepR) {
-        if (pos.board[static_cast<std::size_t>(r * 9 + f)] != ' ') {
+        if (pos.board[static_cast<std::size_t>(r * 9 + f)] != Piece::None) {
             return false;
         }
     }
@@ -89,7 +86,7 @@ Bitboard81 referenceAttackers(const EnginePosition& pos, int to, Color side)
 {
     Bitboard81 result;
     for (int from = 0; from < kSquareNb; ++from) {
-        const char c = pos.board[static_cast<std::size_t>(from)];
+        const Piece c = pos.board[static_cast<std::size_t>(from)];
         for (int pi = 0; pi < static_cast<int>(PieceType::PieceTypeNb); ++pi) {
             if (c == pieceChar(pi, side)) {
                 if (referenceAttack(pos, side, static_cast<PieceType>(pi), from, to)) {
@@ -113,7 +110,7 @@ void addPieceRows(bool slidersOnly)
                 && pt != PieceType::Rook && pt != PieceType::Horse && pt != PieceType::Dragon) {
                 continue;
             }
-            const QByteArray name = QByteArray::number(ci) + '-' + kPieceChars[pi];
+            const QByteArray name = QByteArray::number(ci) + '-' + pieceSfen(pieceOf(Color::Black, pt)).toLatin1();
             QTest::newRow(name.constData()) << pi << ci;
         }
     }
@@ -182,7 +179,7 @@ private slots:
                                  && isSquareAttacked(pos, toSq, side) == expected,
                              qPrintable(QStringLiteral("from=%1 to=%2 blocker=%3")
                                             .arg(from).arg(to).arg(blocker)));
-                    pos.board[static_cast<std::size_t>(blocker)] = ' ';
+                    pos.board[static_cast<std::size_t>(blocker)] = Piece::None;
                 }
             }
         }
@@ -195,7 +192,7 @@ private slots:
             EnginePosition pos;
             pos.clear();
             const unsigned density = 10U + static_cast<unsigned>(sample % 4) * 20U;
-            for (char& c : pos.board) {
+            for (Piece& c : pos.board) {
                 if (random() % 100U < density) {
                     const auto side = static_cast<Color>(random() % 2U);
                     c = pieceChar(static_cast<int>(random() % 14U), side);

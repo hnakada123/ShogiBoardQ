@@ -8,7 +8,7 @@
 #include <QString>
 
 #include "sfenutils.h"
-#include "shogiboard.h"
+#include "shogiposition.h"
 
 namespace SfenDiffUtils {
 
@@ -46,20 +46,17 @@ inline bool diffBoards(const QString& prevSfen, const QString& currSfen, DiffRes
     out = DiffResult{};
     if (prevSfen.isEmpty() || currSfen.isEmpty()) return false;
 
-    ShogiBoard prev;
-    ShogiBoard curr;
-    if (!prev.trySetSfen(SfenUtils::normalizePositionLikeSfen(prevSfen))
-        || !curr.trySetSfen(SfenUtils::normalizePositionLikeSfen(currSfen))) {
-        return false;
-    }
+    const std::optional<Position> prev = Position::fromSfenLike(prevSfen);
+    const std::optional<Position> curr = Position::fromSfenLike(currSfen);
+    if (!prev || !curr) return false;
 
     // 盤の配列は一段目から、各段は1筋から並ぶ（添字 = (段-1)*筋の数 + (筋-1)）
-    const QList<Piece>& prevSquares = prev.boardData();
-    const QList<Piece>& currSquares = curr.boardData();
-    const int files = prev.files();
-    for (qsizetype index = 0; index < prevSquares.size(); ++index) {
-        const Piece before = prevSquares.at(index);
-        const Piece after = currSquares.at(index);
+    const auto& prevSquares = prev->squares();
+    const auto& currSquares = curr->squares();
+    const int files = Position::kFiles;
+    for (size_t index = 0; index < prevSquares.size(); ++index) {
+        const Piece before = prevSquares[index];
+        const Piece after = currSquares[index];
         if (before == after) continue;
 
         const QPoint square(static_cast<int>(index % files), static_cast<int>(index / files));

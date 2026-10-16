@@ -2,18 +2,16 @@
 /// @brief 千日手検出ユーティリティクラスの実装
 
 #include "sennichitedetector.h"
-#include "shogiboard.h"
+#include "sfenutils.h"
+#include "shogiposition.h"
 #include "enginemovevalidator.h"
 
 #include "logcategories.h"
 
 QString SennichiteDetector::positionKey(const QString& sfen)
 {
-    // SFEN形式: "board turn hand moveNum"
-    // 手数（最後のトークン）を除いた "board turn hand" を返す
-    const auto lastSpace = sfen.lastIndexOf(QLatin1Char(' '));
-    if (lastSpace <= 0) return sfen;
-    return sfen.left(lastSpace);
+    // 手数を除いた "board turn hand"（持ち駒は標準の並び）
+    return SfenUtils::normalizeSfenKey(sfen);
 }
 
 SennichiteDetector::Result SennichiteDetector::check(const QStringList& sfenRecord)
@@ -56,7 +54,7 @@ SennichiteDetector::Result SennichiteDetector::checkContinuousCheck(
 
     if (fourthIdx - thirdIdx < 2) return Result::Draw;
 
-    ShogiBoard board;
+    Position board;
 
     // 一方の指し手がすべて王手かどうかは、その側が指した直後の局面（相手の手番の局面）だけで数える。
     // 王手をかけた側の手番の局面まで分母に入れると、毎手王手でも成立しない
@@ -68,7 +66,7 @@ SennichiteDetector::Result SennichiteDetector::checkContinuousCheck(
     // thirdIdx+1 から fourthIdx までの局面を調べる
     // thirdIdx+1 は3回目の出現の直後（次の手が指された局面）
     for (int i = thirdIdx + 1; i <= fourthIdx; ++i) {
-        board.setSfen(sfenRecord.at(i));
+        if (const auto position = Position::fromSfen(sfenRecord.at(i))) board = *position;
 
         // 手番を判定
         const QStringList tokens = sfenRecord.at(i).split(QLatin1Char(' '), Qt::SkipEmptyParts);

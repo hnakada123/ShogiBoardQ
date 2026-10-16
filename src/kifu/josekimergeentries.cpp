@@ -38,8 +38,8 @@ bool fromKifFile(const QString &kifFilePath, QList<KifuMergeEntry> &entries, QSt
     }
     if (errorMessage) errorMessage->clear();
 
-    const KifLine &mainline = loaded.record.mainline;
-    QString before = mainline.baseSfen;
+    const RecordLine &mainline = loaded.record.mainline;
+    QString before = mainline.startSfen;
     for (const RecordEntry &record : mainline.entries) {
         if (record.isTerminal()) break;
         KifuMergeEntry entry;

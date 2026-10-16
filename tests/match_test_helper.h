@@ -96,7 +96,7 @@ struct MatchHarness {
     {
         const auto move = UsiMove::parse(usi);
         if (!move) return false;
-        const std::optional<RecordEntry> played = gc.applyMove(*move);
+        const std::optional<RecordEntry> played = gc.applyMove(*move, mc->lastMoveDestination());
         if (!played) return false;
         mc->onHumanMove(*played);
         return true;

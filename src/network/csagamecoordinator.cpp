@@ -124,7 +124,7 @@ void CsaGameCoordinator::onHumanMove(const QPoint& from, const QPoint& to)
     // 成り選択のモーダル処理中に対局が終了することもある。
     if (!move || m_gameState != GameState::InGame || !isMyTurn()) return;
     const QString csaMove = CsaMoveConverter::toCsa(*move, m_progress.isBlackSide ? Turn::Black : Turn::White,
-                                                    *m_gameController->board());
+                                                    m_gameController->board()->position());
     if (!csaMove.isEmpty() && m_client->sendMove(csaMove)) emit turnChanged(false);
 }
 

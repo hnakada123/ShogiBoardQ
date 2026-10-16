@@ -18,18 +18,20 @@ TsumeSearchController::TsumeSearchController(const Deps& deps, QObject* parent)
     Q_ASSERT(m_deps.navState && m_deps.session);
 }
 
-QString TsumeSearchController::positionForMate() const
+UsiPosition TsumeSearchController::positionForMate() const
 {
     const RecordLine line = m_deps.navState->currentRecordLine();
     // 途中局面は開始局面からの指し手で送る（エンジンに千日手の判断材料を渡すため）
-    if (!line.isEmpty() && line.currentPly > 0) return line.positionCommand(line.currentPly);
+    if (!line.isEmpty() && line.currentPly > 0) return line.usiPosition(line.currentPly);
     // 開始局面（詰将棋の問題など）は、玉の有無から攻方を決めて手番を合わせる
-    return TsumePositionUtil::buildPositionForMate(line.isEmpty() ? m_deps.navState->currentSfen() : line.startSfen);
+    const QString command =
+        TsumePositionUtil::buildPositionForMate(line.isEmpty() ? m_deps.navState->currentSfen() : line.startSfen);
+    return UsiPosition::parse(command).value_or(UsiPosition{});
 }
 
 void TsumeSearchController::showDialogAndStart()
 {
-    const QString position = positionForMate();
+    const UsiPosition position = positionForMate();
     if (position.isEmpty()) {
         ErrorBus::instance().postMessage(
             ErrorBus::ErrorLevel::Warning,
@@ -50,7 +52,7 @@ void TsumeSearchController::showDialogAndStart()
         options.mode = AnalysisOptions::Mode::Tsume;
         options.enginePath = engines.at(index).path;
         options.engineName = engines.at(index).name;
-        options.positionStr = position;
+        options.position = position;
         options.byoyomiMs = dialog.unlimitedTimeFlag() ? 0 : dialog.byoyomiSec() * 1000;   // 0 は無制限
     }
     // ダイアログの終了処理を終えてから、次のイベントループで探索を始める

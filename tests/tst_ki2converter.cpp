@@ -3,13 +3,12 @@
 
 #include "kifu_file_helper.h"
 #include "ki2tosfenconverter.h"
-#include "ki2lexer.h"
 #include "ki2movenotation.h"
-#include "kifdisplayitem.h"
+#include "kifmovegrammar.h"
 #include "kifparsetypes.h"
 #include "kifu_test_helper.h"
 #include "parsecommon.h"
-#include "shogiboard.h"
+#include "shogiposition.h"
 
 static const QString kHirateSfen =
     QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
@@ -33,11 +32,11 @@ private:
     /// 局面の上で KI2 の指し手の文字列を指し手にする（決まらなければ空文字列）
     static QString resolveText(const QString& sfen, const QString& text, BoardSquare previousTo = {})
     {
-        ShogiBoard board;
-        if (!board.trySetSfen(sfen)) return QStringLiteral("<bad sfen>");
-        const auto parsed = Ki2Lexer::parseMoveText(text);
+        const std::optional<Position> board = Position::fromSfen(sfen);
+        if (!board) return QStringLiteral("<bad sfen>");
+        const auto parsed = KifMoveGrammar::parseMoveText(text);
         if (!parsed) return {};
-        const auto move = Ki2MoveNotation::resolve(*parsed, board, board.currentPlayer(), previousTo);
+        const auto move = Ki2MoveNotation::resolve(*parsed, *board, board->sideToMove(), previousTo);
         return move ? move->toString() : QString();
     }
 
@@ -56,13 +55,16 @@ private slots:
         QCOMPARE(result.variations.size(), 2);
         QCOMPARE(result.variations[0].startPly, 2);
         QCOMPARE(result.variations[0].line.usiMoves(), QStringList({"8c8d", "1g1f"}));
-        QCOMPARE(result.variations[0].line.displayItems()[0].comment, QStringLiteral("分岐コメント"));
-        QCOMPARE(result.variations[0].line.displayItems()[0].bookmark, QStringLiteral("分岐しおり"));
+        // 変化の最初の手の前のコメントと後のしおりは、どちらも最初の手に付く
+        QVERIFY(result.variations[0].line.openingComment.isEmpty());
+        QCOMPARE(result.variations[0].line.entries[0].comment, QStringLiteral("分岐コメント"));
+        QCOMPARE(result.variations[0].line.entries[0].bookmark, QStringLiteral("分岐しおり"));
         QCOMPARE(result.variations[1].startPly, 3);
         QCOMPARE(result.variations[1].line.usiMoves(), QStringList({"9g9f"}));
-        QCOMPARE(result.variations[1].line.baseSfen, result.variations[0].line.sfenList()[1]);
+        QCOMPARE(result.variations[1].parentVariation, 0);
+        QCOMPARE(result.variations[1].line.startSfen, result.variations[0].line.sfenAt(1));
         QCOMPARE(KifuFile::usiMoves<Ki2ToSfenConverter>(file.fileName()), result.mainline.usiMoves());
-        QCOMPARE(KifuFile::displayItems<Ki2ToSfenConverter>(file.fileName()).size(), 4);
+        QCOMPARE(KifuFile::mainline<Ki2ToSfenConverter>(file.fileName()).entries.size(), 3);
     }
 
     /// 読めない手があれば、その手の手前までを読み、警告に読んだ手数を書く（KIF・CSA と同じ）
@@ -77,7 +79,7 @@ private slots:
         QVERIFY2(error.contains(QStringLiteral("cannot parse move 2")), qPrintable(error));
         QVERIFY2(error.contains(QStringLiteral("read up to move 1")), qPrintable(error));
         QCOMPARE(result.mainline.usiMoves(), QStringList({"7g7f"}));
-        QCOMPARE(result.mainline.displayItems().size(), 2);
+        QCOMPARE(result.mainline.entries.size(), 1);
     }
 
     void promotedMinorPiece_data()
@@ -234,11 +236,13 @@ private slots:
     void extractMovesWithTimes()
     {
         QString error;
-        QList<KifDisplayItem> items = KifuFile::displayItems<Ki2ToSfenConverter>(
+        const RecordLine line = KifuFile::mainline<Ki2ToSfenConverter>(
             fixturePath(QStringLiteral("test_basic.ki2")), &error);
         QVERIFY2(error.isEmpty(), qPrintable(error));
-        // Returns opening item (ply 0) + 7 moves = 8
-        QCOMPARE(items.size(), 8);
+        // 7手（終局の行はない）。表記は手から作り直すので、KI2 でも移動元が付く
+        QCOMPARE(line.entries.size(), 7);
+        QVERIFY(!line.endsWithTerminal());
+        QCOMPARE(line.entries[0].displayText, QStringLiteral("▲７六歩(77)"));
     }
 
     // ========================================
@@ -299,10 +303,9 @@ private slots:
         tmp.close();
 
         QString error;
-        QList<KifDisplayItem> items = KifuFile::displayItems<Ki2ToSfenConverter>(
-            tmp.fileName(), &error);
-        // Should return at most the opening item
-        QVERIFY(items.size() <= 1);
+        const RecordLine line = KifuFile::mainline<Ki2ToSfenConverter>(tmp.fileName(), &error);
+        // 指し手の行はない
+        QVERIFY(line.entries.isEmpty());
     }
 
     // ========================================
@@ -332,7 +335,7 @@ private slots:
     {
         auto info = KifuFile::gameInfo<Ki2ToSfenConverter>(
             fixturePath(QStringLiteral("test_basic.ki2")));
-        const auto values = KifuParseCommon::toGameInfoMap(info);
+        const auto values = KifuFile::toMap(info);
         QCOMPARE(values.value(QStringLiteral("先手")), QStringLiteral("テスト先手"));
         QCOMPARE(values.value(QStringLiteral("後手")), QStringLiteral("テスト後手"));
     }
@@ -372,7 +375,7 @@ private slots:
 
         (void)KifuFile::initialSfen<Ki2ToSfenConverter>(tmp.fileName());
         (void)KifuFile::gameInfo<Ki2ToSfenConverter>(tmp.fileName());
-        (void)KifuFile::displayItems<Ki2ToSfenConverter>(tmp.fileName(), &error);
+        (void)KifuFile::mainline<Ki2ToSfenConverter>(tmp.fileName(), &error);
 
         KifuTestHelper::verifyParsedRecord(success, result, error);
     }
@@ -403,27 +406,31 @@ private slots:
             "手合割：平手\n先手：A\n▲７六歩 △３四歩 ▲２六歩\n変化：2手\n△８四歩\n");
         QTemporaryFile file;
         QVERIFY(KifuTestHelper::writeToTempFile(file, text.toUtf8(), QStringLiteral("ki2")));
-        KifParseResult fromFile, fromText;
+        KifParseResult fromFile;
         QString error;
         QVERIFY2(KifuFile::parse<Ki2ToSfenConverter>(file.fileName(), fromFile, &error), qPrintable(error));
-        QVERIFY2(Ki2ToSfenConverter::parseText(text, fromText, &error), qPrintable(error));
+        const KifuParseOutcome outcome = Ki2ToSfenConverter::parse(text);
+        QVERIFY2(outcome.success, qPrintable(outcome.warning));
+        const KifParseResult& fromText = outcome.record;
         QCOMPARE(fromText.mainline.usiMoves(), fromFile.mainline.usiMoves());
         QCOMPARE(fromText.variations.size(), 1);
         QCOMPARE(fromText.variations[0].line.usiMoves(), QStringList({QStringLiteral("8c8d")}));
-        QCOMPARE(Ki2ToSfenConverter::extractGameInfoFromText(text).size(), 2);
-        QCOMPARE(Ki2ToSfenConverter::detectInitialSfenFromText(text), kHirateSfen);
+        // 対局情報と開始局面も同じ解析で得る
+        QCOMPARE(outcome.gameInfo.size(), 2);
+        QCOMPARE(outcome.initialSfen, kHirateSfen);
+        QCOMPARE(fromText.mainline.startSfen, kHirateSfen);
     }
 
     // 変化の開始局面は KIF と同じ規則で探す（直前の変化が届かなければ本譜）
     void variationBase_fallsBackToMainline()
     {
-        KifParseResult result;
-        QString error;
-        QVERIFY2(Ki2ToSfenConverter::parseText(QStringLiteral(
-            "▲７六歩 △３四歩 ▲２六歩 △８四歩 ▲２五歩\n変化：3手\n▲６六歩\n変化：5手\n▲６八銀\n"),
-            result, &error), qPrintable(error));
+        const KifuParseOutcome outcome = Ki2ToSfenConverter::parse(QStringLiteral(
+            "▲７六歩 △３四歩 ▲２六歩 △８四歩 ▲２五歩\n変化：3手\n▲６六歩\n変化：5手\n▲６八銀\n"));
+        QVERIFY2(outcome.success, qPrintable(outcome.warning));
+        const KifParseResult& result = outcome.record;
         QCOMPARE(result.variations.size(), 2);
-        QCOMPARE(result.variations[1].line.baseSfen, result.mainline.sfenList().at(4));
+        QCOMPARE(result.variations[1].parentVariation, -1);
+        QCOMPARE(result.variations[1].line.startSfen, result.mainline.sfenAt(4));
         QCOMPARE(result.variations[1].line.usiMoves(), QStringList({QStringLiteral("7i6h")}));
     }
 };

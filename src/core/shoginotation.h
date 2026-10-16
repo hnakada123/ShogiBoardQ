@@ -47,6 +47,19 @@ inline QString rankKanji(int rank)
     return QString(rankKanjiChar(rank));
 }
 
+/// 1〜99 の漢数字（"三"・"十"・"十八"・"二十一"）。範囲外は算用数字
+inline QString kanjiNumber(int number)
+{
+    if (number < 1 || number > 99) return QString::number(number);
+    const int tens = number / 10;
+    const int ones = number % 10;
+    QString text;
+    if (tens > 1) text += rankKanjiChar(tens);
+    if (tens > 0) text += QChar(u'十');
+    if (ones > 0) text += rankKanjiChar(ones);
+    return text;
+}
+
 /// 全角数字を1〜9にする（それ以外は0）
 inline int fileFromZenkaku(QChar ch)
 {

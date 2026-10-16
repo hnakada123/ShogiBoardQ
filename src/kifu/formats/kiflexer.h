@@ -4,15 +4,12 @@
 /// @file kiflexer.h
 /// @brief KIF形式固有の字句解析・トークン化・BOD盤面解析
 
-#include <QChar>
-#include <QMap>
 #include <QRegularExpression>
 #include <QString>
 #include <QStringList>
 #include <optional>
 
-#include "kifdisplayitem.h"
-#include "parsecommon.h"
+#include "shogiposition.h"
 #include "shogitypes.h"
 
 namespace KifLexer {
@@ -52,41 +49,15 @@ void stripInlineComment(QString& rest, QString& commentBuf);
 void advanceToNextMove(QString& lineStr, int skipOffset,
                        const QRegularExpressionMatch& tm, int nextMoveStartIdx);
 
-// === 終局語 ===
-
-/// 終局語の表示アイテムを生成
-KifDisplayItem buildTerminalItem(int moveIndex, TerminalType type, Turn side,
-                                 const QString& timeText, const QRegularExpressionMatch& tm);
-
-// === 指し手解析 ===
-
-/// 目的地（「同」対応）を読む
-[[nodiscard]] std::optional<KifuParseCommon::MoveDestination> findDestination(const QString& line);
-
-/// 駒種（漢字）→ USIドロップ文字（'P','L',...）
-QChar pieceKanjiToUsiUpper(const QString& s);
-
-/// Promoted表記が含まれているか（"成" かつ "不成" でない）
-bool isPromotionMoveText(const QString& line);
-
-/// USI指し手の移動先（筋・段）を取り出す。形式が不正なら false
-bool usiDestination(const QString& usi, int& toFile, int& toRank);
-
-/// 1行の指し手をUSIに変換（prevTo参照；成功で更新）
-bool convertMoveLine(const QString& moveText, QString& usi,
-                     int& prevToFile, int& prevToRank);
-
 // === BOD盤面解析 ===
 
-/// BOD持駒行を解析して駒数マップに追加
-void parseBodHandsLine(const QString& line, QMap<Piece, int>& outCounts, bool isBlack);
-
-/// BOD行を収集して rowByRank マップに格納
-bool collectBodRows(const QStringList& lines, QMap<QChar, QString>& rowByRank,
-                    QString* detectedLabel = nullptr);
-
-/// BODから手番と手数を解析
-void parseBodTurnAndMoveNumber(const QStringList& lines, QChar& turn, int& moveNumber);
+/**
+ * @brief 局面図（BOD・「配置：」）を局面にする
+ *
+ * 盤の9段・両者の持駒・手番（「後手番」「上手番」）・手数（「手数＝N」の次の手）を読む。
+ * 9段がそろわなければ false。detectedLabel には "BOD" か "配置" を入れる
+ */
+bool readBodPosition(const QStringList& lines, Position& out, QString* detectedLabel = nullptr);
 
 } // namespace KifLexer
 

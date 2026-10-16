@@ -61,7 +61,7 @@ class TestStartGameFlow : public QObject {
             if (auto* view = qobject_cast<ShogiView*>(object)) {
                 paintedBoardRects.append(QRect(view->mapToGlobal(QPoint()), view->size()));
                 paintedWindowSizes.append(view->window()->size());
-                paintedBoards.append(view->board()->convertBoardToSfen());
+                paintedBoards.append(view->board()->position().boardSfen());
             }
         }
         return QObject::eventFilter(object, event);
@@ -221,7 +221,7 @@ private slots:
         QTest::qWait(250);
         const QRect expectedRect(view->mapToGlobal(QPoint()), view->size());
         const QSize expectedWindowSize = window->size();
-        const QString expectedBoard = view->board()->convertBoardToSfen();
+        const QString expectedBoard = view->board()->position().boardSfen();
         const auto* record = window->composer().parts().kifuRecord;
         QStringList expectedRecordText;
         // 中断行を除く全列の表示（開始局面の時間見出し、手数など）を保持する。
@@ -285,7 +285,7 @@ private slots:
         }
         QTest::qWait(160);
         const auto history = match->record().sfens();
-        const auto board = view->board()->convertBoardToSfen();
+        const auto board = view->board()->position().boardSfen();
         child<QAction>(*window, "actionBreakOffGame")->trigger();
         QVERIFY(match->gameOverState().isOver);
         QVERIFY(resume->isEnabled());
@@ -305,7 +305,7 @@ private slots:
         QVERIFY(!match->gameOverState().isOver);
         QVERIFY(!resume->isEnabled());
         QCOMPARE(match->record().sfens(), history);
-        QCOMPARE(view->board()->convertBoardToSfen(), board);
+        QCOMPARE(view->board()->position().boardSfen(), board);
         QCOMPARE(clock->currentPlayer(), saved.currentPlayer);
         QVERIFY(qAbs(clock->remainingMs(Turn::Black) - saved.of(Turn::Black).remainingMs) < 100);
         QVERIFY(qAbs(clock->remainingMs(Turn::White) - saved.of(Turn::White).remainingMs) < 100);
@@ -584,7 +584,7 @@ private slots:
         const QString sfen = window->composer().parts().navState->currentSfen();
         const QStringList history = match->record().sfens();
         const auto box = view->board()->pieceBox();
-        const auto hands = view->board()->pieceStand();
+        const auto hands = view->board()->position().handsSfen();
         const int rows = record->kifuView()->model()->rowCount();
         const qint64 blackTime = clock->remainingMainTimeMs(Turn::Black);
         const qint64 whiteTime = clock->remainingMainTimeMs(Turn::White);
@@ -607,9 +607,9 @@ private slots:
         QCOMPARE(clock->remainingMainTimeMs(Turn::White), whiteTime);
         QCOMPARE(QFile(qEnvironmentVariable("AUDIT_USI_LOG")).size(), engineLogSize);
         QCOMPARE(window->composer().state().activity.activity(), AppActivityState::Activity::Idle);
-        QCOMPARE(view->board()->convertBoardToSfen(), boardSfen);
+        QCOMPARE(view->board()->position().boardSfen(), boardSfen);
         QCOMPARE(view->board()->pieceBox(), box);
-        QCOMPARE(view->board()->pieceStand(), hands);
+        QCOMPARE(view->board()->position().handsSfen(), hands);
         QCOMPARE(window->composer().parts().navState->currentSfen(), sfen);
         QCOMPARE(window->composer().parts().branchTree->root()->sfen(), sfen);
         QCOMPARE(match->record().sfens(), history);
@@ -655,7 +655,7 @@ private slots:
         QCOMPARE(window->composer().state().activity.activity(), AppActivityState::Activity::DuringGame);
         QVERIFY(window->composer().state().players.humanVsHuman());
         auto* view = window->findChild<ShogiView*>();
-        QCOMPARE(view->board()->convertBoardToSfen(), expectedBoard);
+        QCOMPARE(view->board()->position().boardSfen(), expectedBoard);
         if (preset == 0) {
             // 王・玉だけの正常な編集局面から、両手番とも実際に指せる。
             const int rank = whiteToMove ? 1 : 9;
@@ -676,7 +676,7 @@ private slots:
         QVERIFY(match);
         auto* board = window->findChild<ShogiView*>()->board();
         const QString handicap = GameStartOptionsBuilder::startingPositionSfen(2).section(' ',0,0);
-        QCOMPARE(board->convertBoardToSfen(),handicap);
+        QCOMPARE(board->position().boardSfen(),handicap);
         match->handleBreakOff();
         settings.setValue("GameSettings/startingPositionNumber",1);
         settings.sync();
@@ -685,7 +685,7 @@ private slots:
         startWindowGame();
         requestedPreset = -1;
         const QString hirate = GameStartOptionsBuilder::startingPositionSfen(1).section(' ',0,0);
-        QCOMPARE(window->findChild<ShogiView*>()->board()->convertBoardToSfen(),hirate);
+        QCOMPARE(window->findChild<ShogiView*>()->board()->position().boardSfen(),hirate);
     }
     void humanGameHonorsMaxMoves() {
         auto& settings = SettingsCommon::openSettings();

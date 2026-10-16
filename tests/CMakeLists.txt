@@ -76,13 +76,18 @@ set(EMV_SOURCES
     ${SRC}/core/fmvposition.cpp
 )
 
+# 局面の値（Position）は core のほぼすべての部品が使うので、どのテストにもつなぐ
+add_library(position_test STATIC ${SRC}/core/shogiposition.cpp ${SRC}/core/usiposition.cpp)
+target_include_directories(position_test PRIVATE ${TEST_INCLUDES})
+target_link_libraries(position_test PRIVATE Qt6::Core)
+
 add_library(kifupresentation_test STATIC
     ${SRC}/common/kifupresentation.cpp
     ${SRC}/core/sfenreplay.cpp
     ${SRC}/core/shogimove.cpp
     ${SRC}/core/terminaltype.cpp)
 target_include_directories(kifupresentation_test PRIVATE ${TEST_INCLUDES})
-target_link_libraries(kifupresentation_test PRIVATE Qt6::Core)
+target_link_libraries(kifupresentation_test PRIVATE Qt6::Core position_test)
 
 add_library(applicationfonts_test STATIC ${SRC}/common/applicationfonts.cpp)
 target_include_directories(applicationfonts_test PRIVATE ${TEST_INCLUDES})
@@ -93,7 +98,7 @@ macro(add_shogi_test NAME)
     add_executable(${NAME} ${ARGN})
     target_include_directories(${NAME} PRIVATE ${TEST_INCLUDES})
     target_compile_definitions(${NAME} PRIVATE SHOGIBOARDQ_TESTING=1)
-    target_link_libraries(${NAME} PRIVATE ${TEST_LIBS} kifupresentation_test applicationfonts_test)
+    target_link_libraries(${NAME} PRIVATE ${TEST_LIBS} kifupresentation_test applicationfonts_test position_test)
     set_target_properties(${NAME} PROPERTIES AUTOMOC ON)
     add_test(NAME ${NAME} COMMAND ${NAME})
     # ヘッドレスCI環境でもWidgetsテストを実行できるようにする
@@ -188,6 +193,13 @@ add_shogi_test(tst_sfenreplay
     ${SRC}/common/errorbus.cpp
     ${SRC}/common/logcategories.cpp
     ${SRC}/core/shogiboard.cpp
+)
+
+# エンジンに探索させる局面（UsiPosition）
+add_shogi_test(tst_usiposition
+    tst_usiposition.cpp
+    ${SRC}/core/shogimove.cpp
+    ${SRC}/core/terminaltype.cpp
 )
 
 # ============================================================
@@ -919,7 +931,7 @@ add_executable(bench_movevalidator
     ${SRC}/core/terminaltype.cpp
 )
 target_include_directories(bench_movevalidator PRIVATE ${TEST_INCLUDES})
-target_link_libraries(bench_movevalidator PRIVATE ${TEST_LIBS})
+target_link_libraries(bench_movevalidator PRIVATE ${TEST_LIBS} position_test)
 target_compile_options(bench_movevalidator PRIVATE -O2)
 
 # Hayanagiの詰将棋探索・局面集・非同期対局フロー
@@ -981,7 +993,7 @@ add_executable(tsumeshogi_generation_harness
     ${EMV_SOURCES}
 )
 target_include_directories(tsumeshogi_generation_harness PRIVATE ${TEST_INCLUDES})
-target_link_libraries(tsumeshogi_generation_harness PRIVATE ${TEST_LIBS} hayanagi_tsume)
+target_link_libraries(tsumeshogi_generation_harness PRIVATE ${TEST_LIBS} hayanagi_tsume position_test)
 set_target_properties(tsumeshogi_generation_harness PROPERTIES AUTOMOC ON)
 
 # 問題集の不要駒除去・全1枚除去の再検査（実エンジン指定。ctest 対象外）

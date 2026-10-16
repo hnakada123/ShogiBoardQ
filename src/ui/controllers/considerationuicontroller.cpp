@@ -72,19 +72,18 @@ void ConsiderationUiController::startConsideration()
 
     // 表示中の手順（分岐ツリー）から、検討する局面と直前の手を決める
     const RecordLine line = m_navState->currentRecordLine();
-    const auto resolved = ConsiderationPositionResolver::resolve(line, line.currentPly, m_navState->currentSfen());
+    const UsiPosition position = ConsiderationPositionResolver::resolve(line, line.currentPly, m_navState->currentSfen());
 
     if (!m_considerationModel) m_considerationModel = tab->considerationModel();
     AnalysisOptions opt;
     opt.mode = AnalysisOptions::Mode::Consideration;
     opt.enginePath = engines.at(index).path;
     opt.engineName = engines.at(index).name;
-    opt.positionStr = resolved.position;
+    opt.position = position;
     opt.byoyomiMs = tab->isUnlimitedTime() ? 0 : tab->byoyomiSec() * 1000;   // 0 は無制限
     opt.multiPV = tab->considerationMultiPV();
-    opt.previousTo = resolved.previousTo;
-    opt.lastUsiMove = resolved.lastUsiMove;
-    qCDebug(lcUi).noquote() << "startConsideration: engine=" << opt.engineName << "position=" << opt.positionStr.left(50);
+    qCDebug(lcUi).noquote() << "startConsideration: engine=" << opt.engineName
+                            << "position=" << opt.position.command().left(50);
 
     m_considerationActive = true;
     attachModels();

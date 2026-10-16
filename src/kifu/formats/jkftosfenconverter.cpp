@@ -7,119 +7,70 @@
 #include "jkftosfenconverter.h"
 #include "handicaps.h"
 #include "jkfmoveparser.h"
-#include "parsecommon.h"
+#include "kiflinebuilder.h"
 #include "terminalcodes.h"
-#include "sfenutils.h"
+#include "shogiposition.h"
 
 #include <array>
 
 #include <QJsonDocument>
 
 namespace {
-void appendWarning(QString* warn, const QString& message)
-{
-    if (!warn) {
-        return;
-    }
-    if (!warn->isEmpty()) {
-        *warn += QLatin1Char('\n');
-    }
-    *warn += message;
-}
-
-int normalizedColorIndex(const QJsonObject& moveObject, int plyNumber, QString* warn)
+int normalizedColorIndex(const QJsonObject& moveObject, int plyNumber, ParseReport& report)
 {
     const QJsonValue colorValue = moveObject.value(QStringLiteral("color"));
     if (!colorValue.isDouble()) {
-        appendWarning(warn,
-                      QStringLiteral("JKF: move %1 has invalid color type; fallback to 0")
-                          .arg(plyNumber));
+        report.warn(QStringLiteral("JKF: move %1 has invalid color type; fallback to 0").arg(plyNumber));
         return 0;
     }
 
     const int color = colorValue.toInt(-1);
     if (color != 0 && color != 1) {
-        appendWarning(warn,
-                      QStringLiteral("JKF: move %1 has out-of-range color %2; fallback to 0")
-                          .arg(plyNumber)
-                          .arg(color));
+        report.warn(QStringLiteral("JKF: move %1 has out-of-range color %2; fallback to 0").arg(plyNumber).arg(color));
         return 0;
     }
     return color;
 }
 } // namespace
 
-// ========== public API ==========
+// ========== 解析 ==========
 
-QString JkfToSfenConverter::mapPresetToSfen(const QString& preset)
+KifuParseOutcome JkfToSfenConverter::parse(QStringView text, const ParseOptions& options)
 {
-    return JkfMoveParser::presetToSfen(preset);
-}
-
-QString JkfToSfenConverter::detectInitialSfenFromText(const QString& text, QString* detectedLabel)
-{
+    KifuParseOutcome outcome;
+    ParseReport report(options);
     QJsonObject root;
-    QString warn;
-    if (!parseJson(text.toUtf8(), root, &warn)) {
-        if (detectedLabel) *detectedLabel = QStringLiteral("平手(既定)");
-        return JkfMoveParser::presetToSfen(QStringLiteral("HIRATE"));
+    QString jsonError;
+    if (!parseJson(text.toUtf8(), root, &jsonError)) {
+        outcome.warning = jsonError;
+        return outcome;
     }
-    return buildInitialSfen(root, detectedLabel);
-}
-
-bool JkfToSfenConverter::parseText(const QString& text, KifParseResult& out, QString* errorMessage)
-{
-    out = KifParseResult{};
-    QJsonObject root;
-    if (!parseJson(text.toUtf8(), root, errorMessage)) return false;
-    return parseRoot(root, out, errorMessage);
-}
-
-bool JkfToSfenConverter::parseRoot(const QJsonObject& root, KifParseResult& out, QString* errorMessage)
-{
-    QString detectedLabel;
-    out.mainline.baseSfen = buildInitialSfen(root, &detectedLabel);
-    out.mainline.startPly = 1;
-    if (out.mainline.baseSfen.isEmpty()) {
-        if (errorMessage) *errorMessage = QStringLiteral("JKF: invalid initial position");
-        return false;
+    const QString initial = buildInitialSfen(root, &outcome.teaiLabel);
+    const std::optional<Position> start = Position::fromSfen(initial);
+    if (!start) {
+        outcome.warning = QStringLiteral("JKF: invalid initial position");
+        return outcome;
     }
-
-    if (!root.contains(QStringLiteral("moves"))) {
-        if (errorMessage) *errorMessage = QStringLiteral("JKF: 'moves' array not found");
-        return false;
+    if (!readRecord(root[QStringLiteral("moves")].toArray(), *start, outcome.record, report)) {
+        outcome.record = {};
+        outcome.warning = report.warnings();
+        return outcome;
     }
-
-    const QJsonArray movesArray = root[QStringLiteral("moves")].toArray();
-    if (parseMovesArray(movesArray, out.mainline.baseSfen, out, errorMessage)) return true;
-    out = KifParseResult{};
-    return false;
-}
-
-QList<KifGameInfoItem> JkfToSfenConverter::extractGameInfoFromText(const QString& text)
-{
-    QJsonObject root;
-    QString warn;
-    if (!parseJson(text.toUtf8(), root, &warn)) return {};
-    return gameInfoFromRoot(root);
+    outcome.success = true;
+    outcome.initialSfen = outcome.record.mainline.startSfen;
+    outcome.gameInfo = gameInfoFromRoot(root);
+    outcome.warning = report.warnings();
+    return outcome;
 }
 
 QList<KifGameInfoItem> JkfToSfenConverter::gameInfoFromRoot(const QJsonObject& root)
 {
     QList<KifGameInfoItem> ordered;
-
-    if (!root.contains(QStringLiteral("header"))) {
-        return ordered;
-    }
+    if (!root.contains(QStringLiteral("header"))) return ordered;
 
     const QJsonObject header = root[QStringLiteral("header")].toObject();
     const QStringList keys = header.keys();
-
-    for (const QString& key : std::as_const(keys)) {
-        const QString value = header[key].toString();
-        ordered.append({key, value});
-    }
-
+    for (const QString& key : std::as_const(keys)) ordered.append({key, header[key].toString()});
     return ordered;
 }
 
@@ -176,116 +127,105 @@ QString JkfToSfenConverter::buildInitialSfen(const QJsonObject& root, QString* d
 }
 
 namespace {
-/// 読んだ手順の途中にある分岐（forks）。分岐の手を指す前の移動先と累計時間を引き継ぐ
+/// 読んだ手順の途中にある分岐（forks）。分岐の手を指す前の両者の累計時間を引き継ぐ
 struct JkfFork {
     int ply = 1;
     QJsonArray moves;
-    int prevToX = 0;
-    int prevToY = 0;
-    std::array<qint64, 2> cumSec{0, 0};
+    std::array<qint64, 2> totals{0, 0};
 };
 
-/// 1本の手順を読む。途中の分岐は forks に集め、手順を読み終えてから足す
-bool readJkfLine(const QJsonArray& moves, const KifBranchPoint& from, int prevToX, int prevToY,
-                 std::array<qint64, 2> cumSec, bool isMainline, KifLine& outLine, QList<JkfFork>& forks, QString* warn)
+/// 1本の手順を読む。途中の分岐は forks に集め、手順を読み終えてから足す。形式が壊れていれば false
+bool readJkfLine(const QJsonArray& moves, bool isMainline, KifLineBuilder& builder, QList<JkfFork>& forks,
+                 ParseReport& report)
 {
-    KifuParseCommon::KifLineDraft line;
-    line.baseSfen = from.sfen;
-    line.startPly = from.startPly;
-    line.previousUsi = from.previousUsi;
-    Turn side = SfenUtils::sideToMove(from.sfen);
-    int ply = from.startPly;
-    if (isMainline) line.disp.append(KifuParseCommon::createOpeningDisplayItem({}, {}));
-
     for (const auto& value : moves) {
         if (!value.isObject()) {
-            appendWarning(warn, QStringLiteral("JKF: move entry must be an object"));
+            report.fail(QStringLiteral("JKF: move entry must be an object"));
             return false;
         }
         const QJsonObject obj = value.toObject();
         if (obj.contains(QStringLiteral("forks")) && !obj[QStringLiteral("forks")].isArray()) {
-            appendWarning(warn, QStringLiteral("JKF: forks must be an array"));
+            report.fail(QStringLiteral("JKF: forks must be an array"));
             return false;
         }
+        const int ply = builder.nextPly();
         const QJsonArray forkArrays = obj[QStringLiteral("forks")].toArray();
         for (const auto& fork : forkArrays) {
             if (!fork.isArray()) {
-                appendWarning(warn, QStringLiteral("JKF: fork must be an array of moves"));
+                report.fail(QStringLiteral("JKF: fork must be an array of moves"));
                 return false;
             }
-            forks.append(JkfFork{ply, fork.toArray(), prevToX, prevToY, cumSec});
+            forks.append(JkfFork{ply, fork.toArray(), builder.totals()});
         }
 
         const QString comment = JkfMoveParser::extractCommentsFromMoveObj(obj);
+        const bool hasTime = obj.contains(QStringLiteral("time"));
+        const JkfMoveParser::Time time = JkfMoveParser::timeOf(obj[QStringLiteral("time")].toObject());
         if (obj.contains(QStringLiteral("special"))) {
-            const QString special = obj[QStringLiteral("special")].toString();
-            TerminalType terminal = TerminalCodes::fromCsaSpecial(special, side);
+            const Turn side = builder.sideToMove();
+            TerminalType terminal = TerminalCodes::fromCsaSpecial(obj[QStringLiteral("special")].toString(), side);
             if (terminal == TerminalType::None) terminal = TerminalType::Error;
-            auto item = KifuParseCommon::createTerminalDisplayItem(ply, terminal, side);
-            item.comment = comment;
-            if (obj.contains(QStringLiteral("time"))) {
-                item.timeText = JkfMoveParser::formatTimeText(obj[QStringLiteral("time")].toObject(), cumSec[side == Turn::Black ? 0 : 1]);
-            }
-            line.disp.append(item);
-            line.endsWithTerminal = true;
+            builder.addTerminal(terminal, side,
+                                hasTime ? builder.timeFor(side, time.elapsedMs, time.totalMs) : KifLineBuilder::zeroTime());
+            if (!comment.isEmpty()) builder.appendComment(comment);
             break;
         }
         if (!obj.contains(QStringLiteral("move"))) {
-            if (isMainline && ply == from.startPly) line.disp[0].comment = comment;
+            // 手のない項目は、本譜の最初の項目（開始局面のコメント）だけ読む
+            if (isMainline && builder.line().entries.isEmpty() && !comment.isEmpty()) builder.appendComment(comment);
             continue;
         }
 
-        const QJsonObject move = obj[QStringLiteral("move")].toObject();
-        const BoardSquare previousTo{prevToX, prevToY};
-        const QString usi = JkfMoveParser::convertMoveToUsi(move, prevToX, prevToY);
-        const auto usiMove = UsiMove::parse(usi);
-        if (!usiMove) {
-            appendWarning(warn, QStringLiteral("JKF: invalid move at ply %1").arg(ply));
+        const QJsonObject moveObject = obj[QStringLiteral("move")].toObject();
+        const std::optional<UsiMove> move = JkfMoveParser::toUsiMove(moveObject);
+        if (!move) {
+            report.fail(QStringLiteral("JKF: invalid move at ply %1").arg(ply));
             return false;
         }
-        const QString pretty = JkfMoveParser::convertMoveToPretty(move, side, *usiMove, previousTo);
-        QString time;
-        if (obj.contains(QStringLiteral("time"))) {
-            const int color = normalizedColorIndex(move, ply, warn);
-            time = JkfMoveParser::formatTimeText(obj[QStringLiteral("time")].toObject(), cumSec[static_cast<size_t>(color)]);
+        RecordTime recordTime = KifLineBuilder::zeroTime();
+        if (hasTime) {
+            const Turn side = normalizedColorIndex(moveObject, ply, report) == 0 ? Turn::Black : Turn::White;
+            recordTime = builder.timeFor(side, time.elapsedMs, time.totalMs);
         }
-        auto item = KifuParseCommon::createMoveDisplayItem(ply, pretty, time);
-        item.comment = comment;
-        line.disp.append(item);
-        line.usiMoves.append(usi);
-        side = opponent(side);
-        ++ply;
+        // 指せない手は、その手の手前で手順を打ち切る（全形式で同じ）
+        if (!builder.addMove(*move, recordTime, JkfMoveParser::notesOf(moveObject))) {
+            if (!report.rejectMove(ply, builder.cannotRestore(QStringLiteral("JKF"), ply)))
+                return false;
+            builder.stop();
+            break;
+        }
+        if (!comment.isEmpty()) builder.appendComment(comment);
     }
-    // 指し手が局面に合うかは resolve が盤で確かめる
-    return line.resolve(outLine, warn);
+    return true;
 }
 
 /// 手順 parent（-1 は本譜）の分岐を、書かれた順に（分岐の中の分岐も続けて）足す
-bool addJkfForks(KifParseResult& out, int parent, const QList<JkfFork>& forks, QString* warn)
+bool addJkfForks(KifParseResult& out, int parent, const QList<JkfFork>& forks, ParseReport& report)
 {
     for (const auto& fork : forks) {
         const auto from = out.branchPoint(parent, fork.ply);
-        if (!from) {
-            appendWarning(warn, QStringLiteral("JKF: invalid fork at ply %1").arg(fork.ply));
+        const std::optional<Position> start = from ? Position::fromSfen(from->sfen) : std::nullopt;
+        if (!start) {
+            report.fail(QStringLiteral("JKF: invalid fork at ply %1").arg(fork.ply));
             return false;
         }
-        KifLine line;
+        KifLineBuilder builder(*start, fork.ply, from->previousMove, KifLineBuilder::LineKind::Variation);
+        builder.setTotals(fork.totals);
         QList<JkfFork> nested;
-        if (!readJkfLine(fork.moves, *from, fork.prevToX, fork.prevToY, fork.cumSec, false, line, nested, warn))
-            return false;
-        out.addVariation(*from, std::move(line));
-        if (!addJkfForks(out, static_cast<int>(out.variations.size()) - 1, nested, warn)) return false;
+        if (!readJkfLine(fork.moves, false, builder, nested, report)) return false;
+        out.addVariation(*from, builder.take());
+        if (!addJkfForks(out, static_cast<int>(out.variations.size()) - 1, nested, report)) return false;
     }
     return true;
 }
 } // namespace
 
-bool JkfToSfenConverter::parseMovesArray(const QJsonArray& movesArray, const QString& baseSfen,
-                                         KifParseResult& out, QString* warn)
+bool JkfToSfenConverter::readRecord(const QJsonArray& moves, const Position& start, KifParseResult& out,
+                                    ParseReport& report)
 {
-    KifBranchPoint start;
-    start.sfen = baseSfen;
+    KifLineBuilder builder(start);
     QList<JkfFork> forks;
-    if (!readJkfLine(movesArray, start, 0, 0, {0, 0}, true, out.mainline, forks, warn)) return false;
-    return addJkfForks(out, -1, forks, warn);
+    if (!readJkfLine(moves, true, builder, forks, report)) return false;
+    out.mainline = builder.take();
+    return addJkfForks(out, -1, forks, report);
 }

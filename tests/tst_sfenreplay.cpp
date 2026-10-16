@@ -4,6 +4,7 @@
 #include "sfenutils.h"
 #include "shogiboard.h"
 #include "sfenreplay.h"
+#include "usiposition.h"
 #include "shogimove.h"
 #include "test_replay.h"
 
@@ -11,6 +12,12 @@ static const QString kHirateSfen =
     QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
 
 /// 開始局面から USI の手を順に指す処理（SfenReplay）と、盤（ShogiBoard）の SFEN の読み書き
+/// position コマンドの探索する局面（読めなければ空）
+static QString searchedSfen(const QString& command)
+{
+    return UsiPosition::parse(command).value_or(UsiPosition{}).sfen();
+}
+
 class TestSfenReplay : public QObject
 {
     Q_OBJECT
@@ -27,17 +34,10 @@ private slots:
     void replayReportsFailureWithoutInventingAPosition()
     {
         const QStringList moves{QStringLiteral("7g7f"), QStringLiteral("3c3d"), QStringLiteral("7g7e")};
-        const auto result = SfenReplay::replay(SfenUtils::hirateSfen(), moves);
-        QVERIFY(!result.success());
-        QCOMPARE(result.failedPly, 3);
-        QCOMPARE(result.moves.size(), 2);
-        QVERIFY(result.error.contains(QStringLiteral("Source square is empty")));
         QVERIFY(TestReplay::buildSfenRecord(SfenUtils::hirateSfen(), moves, false).isEmpty());
         QVERIFY(TestReplay::buildGameMoves(SfenUtils::hirateSfen(), moves).isEmpty());
-        const auto invalidStart = SfenReplay::replay(QStringLiteral("invalid"), {});
-        QCOMPARE(invalidStart.failedPly, 0);
-        QVERIFY(invalidStart.moves.isEmpty());
-        QVERIFY(!invalidStart.error.isEmpty());
+        QVERIFY(SfenReplay::positionAfter(SfenUtils::hirateSfen(), QStringLiteral("7e7d")).isEmpty());
+        QVERIFY(TestReplay::buildSfenRecord(QStringLiteral("invalid"), {}, false).isEmpty());
     }
 
     /// 持ち駒は標準の並び（先手の飛角金銀桂香歩、続いて後手）で書く
@@ -61,11 +61,14 @@ private slots:
     /// 比較用のキーは持ち駒の並びをそろえる（以前のこのアプリが書いた先後交互の並びも同じ局面になる）
     void sfenKeyCanonicalizesHands()
     {
-        QCOMPARE(SfenUtils::canonicalHands(QStringLiteral("BbPp")), QStringLiteral("BPbp"));
-        QCOMPARE(SfenUtils::canonicalHands(QStringLiteral("p2PrB")), QStringLiteral("B2Prp"));
-        QCOMPARE(SfenUtils::canonicalHands(QStringLiteral("10p")), QStringLiteral("10p"));
-        QCOMPARE(SfenUtils::canonicalHands(QStringLiteral("-")), QStringLiteral("-"));
-        QCOMPARE(SfenUtils::canonicalHands(QStringLiteral("Kx")), QStringLiteral("Kx"));
+        const auto hands = [](const char* field) {
+            return Position::fromSfen(QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b %1 1").arg(QLatin1String(field)))->handsSfen();
+        };
+        QCOMPARE(hands("BbPp"), QStringLiteral("BPbp"));
+        QCOMPARE(hands("p2PrB"), QStringLiteral("B2Prp"));
+        QCOMPARE(hands("10p"), QStringLiteral("10p"));
+        QCOMPARE(hands("-"), QStringLiteral("-"));
+        QVERIFY(!Position::fromSfen(QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b Kx 1")));
         QCOMPARE(SfenUtils::normalizeSfenKey(QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 w BbPp 30")),
                  SfenUtils::normalizeSfenKey(QStringLiteral("position sfen 4k4/9/9/9/9/9/9/9/4K4 w BPbp 1")));
     }
@@ -77,27 +80,27 @@ private slots:
         QCOMPARE(board.toSfen(), kHirateSfen);
     }
 
-    void sfenFromPositionCommand_startposMoves()
+    void positionCommand_startposMoves()
     {
-        const QString sfen = SfenReplay::sfenFromPositionCommand(QStringLiteral("position startpos moves 7g7f"));
+        const QString sfen = searchedSfen(QStringLiteral("position startpos moves 7g7f"));
 
         QVERIFY(!sfen.isEmpty());
         QVERIFY(sfen.contains(QStringLiteral(" w ")));
         QCOMPARE(pieceAt(sfen, 7, 6), Piece::BlackPawn);
     }
 
-    void sfenFromPositionCommand_sfenKeepsTurn()
+    void positionCommand_sfenKeepsTurn()
     {
         const QString base = QStringLiteral("4k4/9/9/9/9/9/9/9/9 b P 1");
-        const QString sfen = SfenReplay::sfenFromPositionCommand(QStringLiteral("position sfen %1").arg(base));
+        const QString sfen = searchedSfen(QStringLiteral("position sfen %1").arg(base));
 
         QCOMPARE(sfen, base);
     }
 
-    void sfenFromPositionCommand_sfenMovesKeepMoverSide()
+    void positionCommand_sfenMovesKeepMoverSide()
     {
         const QString base = QStringLiteral("4k4/9/9/9/9/9/9/9/9 b P 1");
-        const QString sfen = SfenReplay::sfenFromPositionCommand(
+        const QString sfen = searchedSfen(
             QStringLiteral("position sfen %1 moves P*5e").arg(base));
 
         QVERIFY(!sfen.isEmpty());

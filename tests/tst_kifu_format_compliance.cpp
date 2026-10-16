@@ -28,6 +28,13 @@ class TestKifuFormatCompliance : public QObject
         return KifuConversionService::convert(request);
     }
 
+    /// 本譜の最後の行の表記（終局の行があればその表記。行がなければ空）
+    static QString lastText(const KifuConversionService::Result& result)
+    {
+        const QList<RecordEntry>& entries = result.mainline.entries;
+        return entries.isEmpty() ? QString() : entries.last().displayText;
+    }
+
 private slots:
     void ki2GoldRetreat_data()
     {
@@ -221,7 +228,8 @@ private slots:
         QVERIFY(saved.lines.contains(QStringLiteral("T0.250")));
         const auto reread = convert(saved.lines.join(QLatin1Char('\n')), Format::Csa);
         QVERIFY2(reread.ok, qPrintable(reread.error));
-        QCOMPARE(reread.moves.last().timeText, QStringLiteral("00:00.250/00:00:01.375"));
+        QVERIFY(reread.mainline.endsWithTerminal());
+        QCOMPARE(reread.mainline.entries.last().time.toText(), QStringLiteral("00:00.250/00:00:01.375"));
         const auto kif = convert(saved.lines.join(QLatin1Char('\n')), Format::Kif);
         QVERIFY(kif.lines.join(QLatin1Char('\n')).contains(QStringLiteral("1:02/00:01:02")));
     }
@@ -273,10 +281,10 @@ private slots:
         for (const Format fmt : {Format::Csa, Format::Jkf, Format::Usi}) {
             const auto saved = convert(text, fmt);
             QVERIFY2(saved.ok, qPrintable(saved.error));
-            QCOMPARE(saved.moves.last().prettyMove, label);
+            QCOMPARE(lastText(saved), label);
             const auto reread = convert(saved.lines.join(QLatin1Char('\n')), Format::Kif);
             QVERIFY2(reread.ok, qPrintable(reread.error));
-            QCOMPARE(reread.moves.last().prettyMove, label);
+            QCOMPARE(lastText(reread), label);
         }
     }
 
@@ -290,7 +298,7 @@ private slots:
             QVERIFY2(saved.ok, qPrintable(saved.error));
             const auto reread = convert(saved.lines.join(QLatin1Char('\n')), Format::Kif);
             QVERIFY2(reread.ok, qPrintable(reread.error));
-            QCOMPARE(reread.moves.last().prettyMove, QStringLiteral("▲投了"));
+            QCOMPARE(lastText(reread), QStringLiteral("▲投了"));
         }
     }
 
@@ -321,7 +329,7 @@ private slots:
         const auto loaded = KifuLoadParser::parseText(text);
         QVERIFY2(loaded.success, qPrintable(loaded.error));
         QCOMPARE(loaded.initialSfen, sfen);
-        QCOMPARE(loaded.record.mainline.baseSfen, sfen);
+        QCOMPARE(loaded.record.mainline.startSfen, sfen);
         QCOMPARE(loaded.record.mainline.usiMoves(), moves);
         KifuBranchTree tree;
         KifuBranchTreeBuilder::buildFromKifParseResult(&tree, loaded.record, loaded.initialSfen);
@@ -363,7 +371,9 @@ private slots:
         QVERIFY2(result.ok, qPrintable(result.error));
         QCOMPARE(result.inputFormat, Format::Usen);
         QCOMPARE(result.usiMoves.size(), count);
-        QCOMPARE(result.moves.size(), count + 1);
+        // 終局の行は作らない（結果の欄が空でも、欄がなくても）
+        QCOMPARE(result.mainline.moveCount(), count);
+        QVERIFY(!result.mainline.endsWithTerminal());
     }
 
     void usenDoesNotInventResignation()
@@ -373,7 +383,8 @@ private slots:
         QVERIFY(!result.lines.first().endsWith(QStringLiteral(".r")));
         const auto reread = convert(result.lines.first(), Format::Usi);
         QVERIFY2(reread.ok, qPrintable(reread.error));
-        QCOMPARE(reread.moves.size(), 3);
+        QCOMPARE(reread.mainline.entries.size(), 2);
+        QVERIFY(!reread.mainline.endsWithTerminal());
         QCOMPARE(reread.usiMoves, result.usiMoves);
     }
 
@@ -384,8 +395,9 @@ private slots:
             {"move":{"color":0,"piece":"FU","from":{"x":7,"y":7},"to":{"x":7,"y":6}}}]})");
         const auto result = convert(text, Format::Kif);
         QVERIFY2(result.ok, qPrintable(result.error));
-        QCOMPARE(result.moves.at(1).prettyMove, QStringLiteral("△４二玉(51)"));
-        QCOMPARE(result.moves.at(2).prettyMove, QStringLiteral("▲７六歩(77)"));
+        QCOMPARE(result.mainline.entries.size(), 2);
+        QCOMPARE(result.mainline.entries.at(0).displayText, QStringLiteral("△４二玉(51)"));
+        QCOMPARE(result.mainline.entries.at(1).displayText, QStringLiteral("▲７六歩(77)"));
         const auto reread = convert(result.lines.join(QLatin1Char('\n')), Format::Usi);
         QVERIFY2(reread.ok, qPrintable(reread.error));
         QCOMPARE(reread.initialSfen, result.initialSfen);
@@ -429,9 +441,11 @@ private slots:
         QVERIFY2(saved.ok, qPrintable(saved.error));
         const auto reread = convert(saved.lines.join(QLatin1Char('\n')), Format::Kif);
         QVERIFY2(reread.ok, qPrintable(reread.error));
-        QCOMPARE(reread.moves.size(), original.moves.size());
-        for (qsizetype i = 0; i < original.moves.size(); ++i) {
-            QCOMPARE(reread.moves.at(i).comment, original.moves.at(i).comment);
+        // 開始局面のコメントと、各行（終局の行を含む）のコメント
+        QCOMPARE(reread.mainline.openingComment, original.mainline.openingComment);
+        QCOMPARE(reread.mainline.entries.size(), original.mainline.entries.size());
+        for (qsizetype i = 0; i < original.mainline.entries.size(); ++i) {
+            QCOMPARE(reread.mainline.entries.at(i).comment, original.mainline.entries.at(i).comment);
         }
     }
 
@@ -453,9 +467,11 @@ private slots:
         QVERIFY2(saved.ok, qPrintable(saved.error));
         const auto reread = convert(saved.lines.join(QLatin1Char('\n')), Format::Kif);
         QVERIFY2(reread.ok, qPrintable(reread.error));
-        QCOMPARE(reread.moves.size(), 3);
+        QCOMPARE(reread.mainline.entries.size(), 2);
         // 終局の種類が保たれる（棋譜欄の表記は終局語の表の語になる）
-        QCOMPARE(TerminalTypes::findWord(reread.moves.last().prettyMove), TerminalTypes::fromWord(terminal));
+        QVERIFY(reread.mainline.endsWithTerminal());
+        QCOMPARE(reread.mainline.terminal()->terminal, TerminalTypes::fromWord(terminal));
+        QCOMPARE(TerminalTypes::findWord(lastText(reread)), TerminalTypes::fromWord(terminal));
         QVERIFY(reread.lines.join(QLatin1Char('\n')).contains(terminal));
     }
 

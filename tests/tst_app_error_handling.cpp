@@ -13,6 +13,7 @@
 #include <QTextStream>
 
 #include "shogiboard.h"
+#include "shogiposition.h"
 
 #ifndef SOURCE_DIR
 #error "SOURCE_DIR must be defined by CMake"
@@ -125,7 +126,7 @@ private slots:
     /// parseSfen が空文字列を拒否すること
     void sfenParseRejectsEmptyString()
     {
-        const auto result = ShogiBoard::parseSfen(QString());
+        const auto result = Position::fromSfen(QString());
         QVERIFY2(!result.has_value(), "parseSfen should reject empty string");
     }
 
@@ -133,15 +134,15 @@ private slots:
     void sfenParseRejectsInsufficientParts()
     {
         // 3フィールド（手数なし）
-        const auto r1 = ShogiBoard::parseSfen(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b -"));
+        const auto r1 = Position::fromSfen(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b -"));
         QVERIFY2(!r1.has_value(), "parseSfen should reject 3-part SFEN");
 
         // 1フィールドのみ
-        const auto r2 = ShogiBoard::parseSfen(QStringLiteral("lnsgkgsnl"));
+        const auto r2 = Position::fromSfen(QStringLiteral("lnsgkgsnl"));
         QVERIFY2(!r2.has_value(), "parseSfen should reject 1-part SFEN");
 
         // 5フィールド（余分）
-        const auto r3 = ShogiBoard::parseSfen(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1 extra"));
+        const auto r3 = Position::fromSfen(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1 extra"));
         QVERIFY2(!r3.has_value(), "parseSfen should reject 5-part SFEN");
     }
 
@@ -149,11 +150,11 @@ private slots:
     void sfenParseRejectsInvalidTurn()
     {
         // "x" は "b" でも "w" でもない
-        const auto r1 = ShogiBoard::parseSfen(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL x - 1"));
+        const auto r1 = Position::fromSfen(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL x - 1"));
         QVERIFY2(!r1.has_value(), "parseSfen should reject invalid turn 'x'");
 
         // 空手番
-        const auto r2 = ShogiBoard::parseSfen(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL  - 1"));
+        const auto r2 = Position::fromSfen(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL  - 1"));
         QVERIFY2(!r2.has_value(), "parseSfen should reject empty turn field");
     }
 
@@ -161,15 +162,15 @@ private slots:
     void sfenParseRejectsInvalidMoveNumber()
     {
         // 手数 0
-        const auto r1 = ShogiBoard::parseSfen(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 0"));
+        const auto r1 = Position::fromSfen(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 0"));
         QVERIFY2(!r1.has_value(), "parseSfen should reject move number 0");
 
         // 手数が負数
-        const auto r2 = ShogiBoard::parseSfen(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - -5"));
+        const auto r2 = Position::fromSfen(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - -5"));
         QVERIFY2(!r2.has_value(), "parseSfen should reject negative move number");
 
         // 手数が非数値
-        const auto r3 = ShogiBoard::parseSfen(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - abc"));
+        const auto r3 = Position::fromSfen(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - abc"));
         QVERIFY2(!r3.has_value(), "parseSfen should reject non-numeric move number");
     }
 
@@ -208,20 +209,20 @@ private slots:
     void sfenParseAcceptsValidInput()
     {
         // 標準初期局面
-        const auto r1 = ShogiBoard::parseSfen(
+        const auto r1 = Position::fromSfen(
             QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"));
         QVERIFY2(r1.has_value(), "parseSfen should accept valid initial SFEN");
-        QCOMPARE(r1->turn, Turn::Black);
-        QCOMPARE(r1->moveNumber, 1);
-        QCOMPARE(r1->stand, QStringLiteral("-"));
+        QCOMPARE(r1->sideToMove(), Turn::Black);
+        QCOMPARE(r1->moveNumber(), 1);
+        QCOMPARE(r1->handsSfen(), QStringLiteral("-"));
 
         // 後手番・持ち駒あり
-        const auto r2 = ShogiBoard::parseSfen(
+        const auto r2 = Position::fromSfen(
             QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w 2P 10"));
         QVERIFY2(r2.has_value(), "parseSfen should accept valid SFEN with pieces in hand");
-        QCOMPARE(r2->turn, Turn::White);
-        QCOMPARE(r2->moveNumber, 10);
-        QCOMPARE(r2->stand, QStringLiteral("2P"));
+        QCOMPARE(r2->sideToMove(), Turn::White);
+        QCOMPARE(r2->moveNumber(), 10);
+        QCOMPARE(r2->handsSfen(), QStringLiteral("2P"));
     }
 
     // ================================================================

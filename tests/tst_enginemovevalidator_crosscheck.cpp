@@ -1,4 +1,5 @@
 #include <QtTest>
+#include "position_test_helper.h"
 
 #include "enginemovevalidator.h"
 #include "shogiboard.h"
@@ -14,7 +15,7 @@ class TestEngineMoveValidatorCrosscheck : public QObject
     {
         ShogiBoard board;
         board.setSfen(sfen);
-        int count = EngineMoveValidator::legalMoveCount(EngineMoveValidator::load(board, turn));
+        int count = EngineMoveValidator::legalMoveCount(EngineMoveValidator::load(board.position(), turn));
         QCOMPARE(count, expectedCount);
     }
 
@@ -24,7 +25,7 @@ class TestEngineMoveValidatorCrosscheck : public QObject
     {
         ShogiBoard board;
         board.setSfen(sfen);
-        int checks = EngineMoveValidator::checkCount(EngineMoveValidator::load(board.boardData(), QMap<Piece, int>(), turn));
+        int checks = EngineMoveValidator::checkCount(EngineMoveValidator::load(PositionTestHelper::fromSquares(QList<Piece>(board.position().squares().cbegin(), board.position().squares().cend())), turn));
         QCOMPARE(checks, expectedChecks);
     }
 
@@ -49,7 +50,7 @@ private slots:
         QString sfen = QStringLiteral("ln1gk1snl/1r4gb1/p1pppp1pp/1p4p2/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL b - 1");
         ShogiBoard board;
         board.setSfen(sfen);
-        int count = EngineMoveValidator::legalMoveCount(EngineMoveValidator::load(board, Turn::Black));
+        int count = EngineMoveValidator::legalMoveCount(EngineMoveValidator::load(board.position(), Turn::Black));
         QVERIFY(count > 0);
     }
 
@@ -59,7 +60,7 @@ private slots:
         QString sfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b P2S 1");
         ShogiBoard board;
         board.setSfen(sfen);
-        int count = EngineMoveValidator::legalMoveCount(EngineMoveValidator::load(board, Turn::Black));
+        int count = EngineMoveValidator::legalMoveCount(EngineMoveValidator::load(board.position(), Turn::Black));
         QVERIFY(count > 30);  // 持ち駒があるので平手より多い
     }
 
@@ -71,7 +72,7 @@ private slots:
 
         ShogiBoard board;
         board.setSfen(sfen);
-        int count = EngineMoveValidator::legalMoveCount(EngineMoveValidator::load(board, Turn::Black));
+        int count = EngineMoveValidator::legalMoveCount(EngineMoveValidator::load(board.position(), Turn::Black));
         QVERIFY(count > 0);  // 王手回避手が存在する
     }
 
@@ -88,13 +89,13 @@ private slots:
         board.setSfen(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"));
 
         // 合法手: 7六歩
-        auto st = EngineMoveValidator::legalStatus(board, Turn::Black, UsiMove::fromString(u"7g7f"));
+        auto st = EngineMoveValidator::legalStatus(board.position(), Turn::Black, UsiMove::fromString(u"7g7f"));
 
         QCOMPARE(st.nonPromotingMoveExists, true);
         QCOMPARE(st.promotingMoveExists, false);
 
         // 不合法手: 7六歩→7七（後退）
-        auto st2 = EngineMoveValidator::legalStatus(board, Turn::Black, UsiMove::fromString(u"7g7h"));
+        auto st2 = EngineMoveValidator::legalStatus(board.position(), Turn::Black, UsiMove::fromString(u"7g7h"));
 
         QCOMPARE(st2.nonPromotingMoveExists, false);
         QCOMPARE(st2.promotingMoveExists, false);
@@ -107,7 +108,7 @@ private slots:
         ShogiBoard board;
         board.setSfen(sfen);
 
-        auto st = EngineMoveValidator::legalStatus(board, Turn::Black, UsiMove::fromString(u"5d5c"));
+        auto st = EngineMoveValidator::legalStatus(board.position(), Turn::Black, UsiMove::fromString(u"5d5c"));
 
         QCOMPARE(st.nonPromotingMoveExists, true);
         QCOMPARE(st.promotingMoveExists, true);
@@ -127,7 +128,7 @@ private slots:
         // 先手番に後手の駒を動かす → 指せない
         ShogiBoard board;
         board.setSfen(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"));
-        const auto st = EngineMoveValidator::legalStatus(board, Turn::Black, UsiMove::fromString(u"3c3d"));
+        const auto st = EngineMoveValidator::legalStatus(board.position(), Turn::Black, UsiMove::fromString(u"3c3d"));
         QCOMPARE(st.nonPromotingMoveExists, false);
         QCOMPARE(st.promotingMoveExists, false);
     }
@@ -137,7 +138,7 @@ private slots:
         // 移動元が空 → 指せない
         ShogiBoard board;
         board.setSfen(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"));
-        const auto st = EngineMoveValidator::legalStatus(board, Turn::Black, UsiMove::fromString(u"5e5d"));
+        const auto st = EngineMoveValidator::legalStatus(board.position(), Turn::Black, UsiMove::fromString(u"5e5d"));
         QCOMPARE(st.nonPromotingMoveExists, false);
         QCOMPARE(st.promotingMoveExists, false);
     }
@@ -149,7 +150,7 @@ private slots:
         board.setSfen(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"));
 
         // 銀を持っていないのに打つ
-        auto st = EngineMoveValidator::legalStatus(board, Turn::Black, UsiMove::fromString(u"S*5e"));
+        auto st = EngineMoveValidator::legalStatus(board.position(), Turn::Black, UsiMove::fromString(u"S*5e"));
 
         QCOMPARE(st.nonPromotingMoveExists, false);
         QCOMPARE(st.promotingMoveExists, false);
@@ -162,7 +163,7 @@ private slots:
         board.setSfen(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b s 1"));
 
         // 先手番だが後手の銀を打とうとする
-        auto st = EngineMoveValidator::legalStatus(board, Turn::Black, UsiMove::fromString(u"S*5e"));
+        auto st = EngineMoveValidator::legalStatus(board.position(), Turn::Black, UsiMove::fromString(u"S*5e"));
 
         QCOMPARE(st.nonPromotingMoveExists, false);
         QCOMPARE(st.promotingMoveExists, false);

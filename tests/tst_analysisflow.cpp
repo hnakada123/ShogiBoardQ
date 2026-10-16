@@ -195,7 +195,7 @@ private slots:
         options.mode = AnalysisOptions::Mode::Tsume;
         options.enginePath = mockEngine();
         options.engineName = QStringLiteral("SilentMate");
-        options.positionStr = QStringLiteral("position sfen 7k1/9/9/9/9/9/9/9/K8 b RS 1");
+        options.position = *UsiPosition::parse(QStringLiteral("position sfen 7k1/9/9/9/9/9/9/9/K8 b RS 1"));
         options.byoyomiMs = 100;
         QSignalSpy messages(&h.session, &AnalysisSession::messageRequested);
         QSignalSpy ended(&h.session, &AnalysisSession::tsumeSearchModeEnded);
@@ -216,7 +216,7 @@ private slots:
         options.mode = AnalysisOptions::Mode::Consideration;
         options.enginePath = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
         options.engineName = QStringLiteral("RestartTest");
-        options.positionStr = QStringLiteral("position startpos");
+        options.position = *UsiPosition::parse(QStringLiteral("position startpos"));
         QSignalSpy waiting(&session, &AnalysisSession::considerationWaitingStarted);
         QSignalSpy ended(&session, &AnalysisSession::considerationModeEnded);
         QVERIFY(session.start(options));
@@ -226,8 +226,8 @@ private slots:
         QSignalSpy commands(process, &EngineProcessManager::commandSent);
         QTRY_VERIFY_WITH_TIMEOUT(waiting.count() == 1, 5000);
         commands.clear();
-        QVERIFY(session.updatePosition(QStringLiteral("position startpos moves 7g7f"), {}, {}));
-        QVERIFY(session.updatePosition(QStringLiteral("position startpos moves 2g2f"), {}, {}));
+        QVERIFY(session.updatePosition(*UsiPosition::parse(QStringLiteral("position startpos moves 7g7f"))));
+        QVERIFY(session.updatePosition(*UsiPosition::parse(QStringLiteral("position startpos moves 2g2f"))));
         session.updateMultiPV(3);
         QTRY_VERIFY_WITH_TIMEOUT(waiting.count() == 2, 5000);
         QStringList sent;
@@ -236,7 +236,7 @@ private slots:
         QCOMPARE(sent.count(QStringLiteral("position startpos moves 2g2f")), 1);
         QCOMPARE(sent.count(QStringLiteral("go infinite")), 1);
         QVERIFY(sent.contains(QStringLiteral("setoption name MultiPV value 3")));
-        QVERIFY(session.updatePosition(QStringLiteral("position startpos moves 7g7f 3c3d"), {}, {}));
+        QVERIFY(session.updatePosition(*UsiPosition::parse(QStringLiteral("position startpos moves 7g7f 3c3d"))));
         session.stop();
         QCoreApplication::processEvents();
         QCOMPARE(ended.count(), 1);

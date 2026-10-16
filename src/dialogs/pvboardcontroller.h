@@ -11,7 +11,6 @@
 
 #include "shogitypes.h"
 
-class ShogiBoard;
 
 /// PV手のハイライト座標
 struct PvHighlightCoords {
@@ -63,8 +62,6 @@ public:
     // Highlight computation
     PvHighlightCoords computeHighlightCoords() const;
 
-    // Static: apply USI move to board (for SFEN history construction)
-    static void applyUsiMoveToBoard(ShogiBoard* board, const QString& usiMove, bool isBlackToMove);
 
 private:
     void buildSfenHistory();

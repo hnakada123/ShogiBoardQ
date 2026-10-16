@@ -25,7 +25,7 @@ class TestEngineMoveValidatorContext : public QObject
         QSet<QString> out;
         const Turn turn = ctx.turn;
         const auto pieceAt = [&board](BoardSquare square) {
-            return board.boardData().at((square.rank - 1) * 9 + (square.file - 1));
+            return board.position().squares().at((square.rank - 1) * 9 + (square.file - 1));
         };
         for (int fromFile = 1; fromFile <= 9; ++fromFile) {
             for (int fromRank = 1; fromRank <= 9; ++fromRank) {
@@ -84,7 +84,7 @@ private slots:
         QFETCH(QString, sfen);
         ShogiBoard board;
         QVERIFY(board.trySetSfen(sfen));
-        const auto ctx = EngineMoveValidator::load(board, board.currentPlayer());
+        const auto ctx = EngineMoveValidator::load(board.position(), board.currentPlayer());
         QVERIFY(ctx.synced);
 
         const QStringList listed = toStrings(EngineMoveValidator::legalMoves(ctx));
@@ -100,24 +100,24 @@ private slots:
         ShogiBoard board;
 
         QVERIFY(board.trySetSfen(QStringLiteral("4r3k/9/9/9/9/9/9/4G1G2/4K4 b G 1")));
-        QStringList moves = toStrings(EngineMoveValidator::legalMoves(board, Turn::Black));
+        QStringList moves = toStrings(EngineMoveValidator::legalMoves(board.position(), Turn::Black));
         QVERIFY(!moves.contains(QStringLiteral("5h4g")));  // ピンされた金は筋から外れられない
         QVERIFY(moves.contains(QStringLiteral("5h5g")));
         QVERIFY(moves.contains(QStringLiteral("3h4g")));
         QVERIFY(moves.contains(QStringLiteral("G*6g")));
 
         QVERIFY(board.trySetSfen(QStringLiteral("4k4/9/9/9/4r4/9/9/9/4K4 b G 1")));
-        moves = toStrings(EngineMoveValidator::legalMoves(board, Turn::Black));
+        moves = toStrings(EngineMoveValidator::legalMoves(board.position(), Turn::Black));
         moves.sort();
         QCOMPARE(moves, QStringList({"5i4h", "5i4i", "5i6h", "5i6i", "G*5f", "G*5g", "G*5h"}));
 
         QVERIFY(board.trySetSfen(QStringLiteral("kn7/9/1G7/9/9/9/9/9/4K4 b P 1")));
-        moves = toStrings(EngineMoveValidator::legalMoves(board, Turn::Black));
+        moves = toStrings(EngineMoveValidator::legalMoves(board.position(), Turn::Black));
         QVERIFY(!moves.contains(QStringLiteral("P*9b")));  // 打ち歩詰め
         QVERIFY(moves.contains(QStringLiteral("P*9c")));
 
         QVERIFY(board.trySetSfen(QStringLiteral("9/k8/9/S1S6/4+R3+R/9/9/9/+B3+B3K b - 1")));
-        moves = toStrings(EngineMoveValidator::legalMoves(board, Turn::Black));
+        moves = toStrings(EngineMoveValidator::legalMoves(board.position(), Turn::Black));
         QVERIFY(moves.contains(QStringLiteral("9d8c")));
         QVERIFY(moves.contains(QStringLiteral("9d8c+")));
         QVERIFY(moves.contains(QStringLiteral("5e3e")));
@@ -138,19 +138,19 @@ private slots:
         for (const QString& sfen : {kHirateSfen, QStringLiteral("4r3k/9/9/9/9/9/9/4G1G2/4K4 b G 1"),
                                     QStringLiteral("4k4/9/9/9/4r4/9/9/9/4K4 b G 1")}) {
             QVERIFY(board.trySetSfen(sfen));
-            const QStringList legal = toStrings(EngineMoveValidator::legalMoves(board, board.currentPlayer()));
-            const QStringList pseudo = toStrings(EngineMoveValidator::pseudoLegalMoves(board, board.currentPlayer()));
+            const QStringList legal = toStrings(EngineMoveValidator::legalMoves(board.position(), board.currentPlayer()));
+            const QStringList pseudo = toStrings(EngineMoveValidator::pseudoLegalMoves(board.position(), board.currentPlayer()));
             for (const QString& move : legal) QVERIFY2(pseudo.contains(move), qPrintable(sfen + " " + move));
         }
 
         QVERIFY(board.trySetSfen(QStringLiteral("4r3k/9/9/9/9/9/9/4G1G2/4K4 b G 1")));
-        QStringList pseudo = toStrings(EngineMoveValidator::pseudoLegalMoves(board, Turn::Black));
+        QStringList pseudo = toStrings(EngineMoveValidator::pseudoLegalMoves(board.position(), Turn::Black));
         QVERIFY(pseudo.contains(QStringLiteral("5h4g")));   // ピンされた金
         QVERIFY(!pseudo.contains(QStringLiteral("5h5i")));  // 味方の駒（玉）のマスへは動かない
         QVERIFY(!pseudo.contains(QStringLiteral("3h3f")));  // 金は2マス進めない
 
         QVERIFY(board.trySetSfen(QStringLiteral("4k4/9/9/9/9/9/4P4/9/4K4 b P 1")));
-        pseudo = toStrings(EngineMoveValidator::pseudoLegalMoves(board, Turn::Black));
+        pseudo = toStrings(EngineMoveValidator::pseudoLegalMoves(board.position(), Turn::Black));
         QVERIFY(pseudo.contains(QStringLiteral("P*5e")));   // 二歩
         QVERIFY(pseudo.contains(QStringLiteral("P*1a")));   // 行き所のない駒
         QVERIFY(!pseudo.contains(QStringLiteral("P*5a")));  // 駒のあるマスには打てない
@@ -162,7 +162,7 @@ private slots:
     {
         ShogiBoard board;
         board.setSfen(kHirateSfen);
-        const auto ctx = EngineMoveValidator::load(board, Turn::Black);
+        const auto ctx = EngineMoveValidator::load(board.position(), Turn::Black);
         QVERIFY(ctx.synced);
         QCOMPARE(ctx.turn, Turn::Black);
     }
@@ -171,7 +171,7 @@ private slots:
     {
         ShogiBoard board;
         board.setSfen(kHirateSfen);
-        const auto ctx = EngineMoveValidator::load(board, Turn::Black);
+        const auto ctx = EngineMoveValidator::load(board.position(), Turn::Black);
         QVERIFY(ctx.synced);
 
         int count = EngineMoveValidator::legalMoveCount(ctx);
@@ -186,7 +186,7 @@ private slots:
     {
         ShogiBoard board;
         board.setSfen(kHirateSfen);
-        const auto ctx = EngineMoveValidator::load(board, Turn::Black);
+        const auto ctx = EngineMoveValidator::load(board.position(), Turn::Black);
         QVERIFY(ctx.synced);
 
         const auto status = EngineMoveValidator::legalStatus(ctx, UsiMove::fromString(u"7g7f"));
@@ -203,7 +203,7 @@ private slots:
         EngineMoveValidator::SimulationContext simulation;
         auto& ctx = simulation.context;
 
-        QVERIFY(EngineMoveValidator::syncContext(simulation, board.boardData(), board.pieceStand(), Turn::Black));
+        QVERIFY(EngineMoveValidator::syncContext(simulation, board.position(), Turn::Black));
 
         // 7六歩を進める
         const UsiMove move = UsiMove::fromString(u"7g7f");
@@ -234,7 +234,7 @@ private slots:
         EngineMoveValidator::SimulationContext simulation;
         auto& ctx = simulation.context;
 
-        QVERIFY(EngineMoveValidator::syncContext(simulation, board.boardData(), board.pieceStand(), Turn::Black));
+        QVERIFY(EngineMoveValidator::syncContext(simulation, board.position(), Turn::Black));
 
         // 7六歩
         const UsiMove m1 = UsiMove::fromString(u"7g7f");
@@ -262,7 +262,7 @@ private slots:
         board.setSfen(kHirateSfen);
         EngineMoveValidator::SimulationContext simulation;
 
-        QVERIFY(EngineMoveValidator::syncContext(simulation, board.boardData(), board.pieceStand(), Turn::Black));
+        QVERIFY(EngineMoveValidator::syncContext(simulation, board.position(), Turn::Black));
 
         // スタック空でundoはfalse
         QVERIFY(!EngineMoveValidator::undoLastMove(simulation));
@@ -273,14 +273,14 @@ private slots:
         ShogiBoard board;
         board.setSfen(kHirateSfen);
         EngineMoveValidator::SimulationContext simulation;
-        QVERIFY(EngineMoveValidator::syncContext(simulation, board.boardData(), board.pieceStand(), Turn::Black));
+        QVERIFY(EngineMoveValidator::syncContext(simulation, board.position(), Turn::Black));
         const UsiMove move = UsiMove::fromString(u"7g7f");
         QVERIFY(EngineMoveValidator::tryApplyMove(simulation, move));
         QCOMPARE(simulation.undoSize, 1);
 
         // 別局面に同期した後は、以前の局面への取り消しを許可しない。
         board.setSfen(QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 w P 1"));
-        QVERIFY(EngineMoveValidator::syncContext(simulation, board.boardData(), board.pieceStand(), Turn::White));
+        QVERIFY(EngineMoveValidator::syncContext(simulation, board.position(), Turn::White));
         const auto original = simulation.context.pos;
         QCOMPARE(simulation.undoSize, 0);
         QVERIFY(!EngineMoveValidator::undoLastMove(simulation));

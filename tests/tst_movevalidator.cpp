@@ -1,4 +1,5 @@
 #include <QtTest>
+#include "position_test_helper.h"
 
 #include "enginemovevalidator.h"
 #include "shogiboard.h"
@@ -16,14 +17,14 @@ private:
     {
         ShogiBoard board;
         board.setSfen(sfen);
-        return EngineMoveValidator::legalStatus(board, turn, move.move);
+        return EngineMoveValidator::legalStatus(board.position(), turn, move.move);
     }
 
     int countLegalMoves(const QString& sfen, Turn turn)
     {
         ShogiBoard board;
         board.setSfen(sfen);
-        return EngineMoveValidator::legalMoveCount(EngineMoveValidator::load(board, turn));
+        return EngineMoveValidator::legalMoveCount(EngineMoveValidator::load(board.position(), turn));
     }
 
 private slots:
@@ -212,7 +213,7 @@ private slots:
         ShogiBoard board;
         board.setSfen(sfen);
 
-        int whiteCount = EngineMoveValidator::legalMoveCount(EngineMoveValidator::load(board, Turn::White));
+        int whiteCount = EngineMoveValidator::legalMoveCount(EngineMoveValidator::load(board.position(), Turn::White));
         // 後手は玉を逃がすか合駒する手がある可能性があるが、
         // この配置では金が効いている方向に逃げられない
         // (ただし横や斜め後ろには逃げられるかもしれない)
@@ -227,7 +228,7 @@ private slots:
         ShogiBoard board;
         board.setSfen(sfen);
 
-        int checks = EngineMoveValidator::checkCount(EngineMoveValidator::load(board.boardData(), QMap<Piece, int>(), Turn::White));
+        int checks = EngineMoveValidator::checkCount(EngineMoveValidator::load(PositionTestHelper::fromSquares(QList<Piece>(board.position().squares().cbegin(), board.position().squares().cend())), Turn::White));
         // 飛車が後手玉を直射している
         QVERIFY(checks >= 1);
     }

@@ -10,6 +10,7 @@
 #include <QString>
 #include <QTimer>
 
+#include "usiposition.h"
 #include "usiinfo.h"
 #include "usimessages.h"
 
@@ -28,7 +29,7 @@ public:
     struct Request {
         QString enginePath;
         QString engineName;
-        QString positionCommand;   ///< "position startpos moves ..." / "position sfen ..."
+        UsiPosition position;      ///< 探索する局面
         int thinkMs = 5000;        ///< 探索時間(ms)
         int multiPv = 1;           ///< 候補手数
     };

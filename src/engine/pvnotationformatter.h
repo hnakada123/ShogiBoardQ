@@ -6,7 +6,7 @@
 
 #include <QString>
 #include <QStringView>
-#include "shogiboard.h"
+#include "shogiposition.h"
 #include "usiinfo.h"
 #include "usimove.h"
 
@@ -57,13 +57,13 @@ private:
     QString m_searchedUsi;      ///< 探索手（USI形式）
     QString m_searchedHand;     ///< 探索手（漢字表記）
 
-    ShogiBoard m_position;          ///< 思考を始めた局面
+    Position m_position;            ///< 思考を始めた局面
     bool m_hasPosition = false;     ///< m_position を設定できたか
-    ShogiBoard m_pvBoard;           ///< 読み筋を進める盤（info ごとに m_position を写す）
+    Position m_pvBoard;             ///< 読み筋を進める局面（info ごとに m_position を写す）
     BoardSquare m_previousTo;       ///< 局面に至った直前の手の移動先
 
     /// board の上で指し手の動かす駒を返す（mover の駒でない、駒台にない、行き先が自分の駒などは None）
-    static Piece movingPiece(const ShogiBoard& board, const UsiMove& move, Turn mover);
+    static Piece movingPiece(const Position& board, const UsiMove& move, Turn mover);
 
     /// 読み筋の指し手を、盤の写しの上で進めながら漢字表記にする
     void formatPv(const QStringList& pv);

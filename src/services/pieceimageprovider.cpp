@@ -27,37 +27,26 @@ void PieceImageProvider::setStyle(const QString& newStyle)
     emit styleChanged();
 }
 
-QIcon PieceImageProvider::icon(QChar piece, bool flipped) const
+QIcon PieceImageProvider::icon(Piece piece, bool flipped) const
 {
     return iconForStyle(piece, style(), flipped);
 }
 
-QIcon PieceImageProvider::iconForStyle(QChar piece, const QString& currentStyle, bool flipped) const
+QIcon PieceImageProvider::iconForStyle(Piece piece, const QString& currentStyle, bool flipped) const
 {
-    const char* name = nullptr;
-    switch (piece.toUpper().toLatin1()) {
-    case 'P': name = "fu"; break;
-    case 'L': name = "kyou"; break;
-    case 'N': name = "kei"; break;
-    case 'S': name = "gin"; break;
-    case 'G': name = "kin"; break;
-    case 'B': name = "kaku"; break;
-    case 'R': name = "hi"; break;
-    case 'K': name = piece.isUpper() ? "ou" : "gyoku"; break;
-    case 'Q': name = "to"; break;
-    case 'M': name = "narikyou"; break;
-    case 'O': name = "narikei"; break;
-    case 'T': name = "narigin"; break;
-    case 'C': name = "uma"; break;
-    case 'U': name = "ryuu"; break;
-    default: return {};
-    }
+    if (piece == Piece::None) return {};
+    // 画像のファイル名（PieceKind の順。玉は先手が「王」、後手が「玉」）
+    static constexpr const char* kNames[kPieceKindCount] = {
+        "fu", "kyou", "kei", "gin", "kin", "kaku", "hi", "ou",
+        "to", "narikyou", "narikei", "narigin", "uma", "ryuu"};
+    const PieceKind kind = pieceKind(piece);
+    const char* name = (kind == PieceKind::King && isWhitePiece(piece)) ? "gyoku" : kNames[static_cast<int>(kind)];
 
     const QString selected = AppSettings::availablePieceStyles().contains(currentStyle)
         ? currentStyle : QStringLiteral("standard");
     const QString prefix = selected == QStringLiteral("standard")
         ? QStringLiteral(":/pieces/") : QStringLiteral(":/pieces/%1/").arg(selected);
-    const QString side = piece.isUpper() != flipped
+    const QString side = isBlackPiece(piece) != flipped
         ? QStringLiteral("Sente_") : QStringLiteral("Gote_");
     const QString path = prefix + side + QLatin1String(name) + QStringLiteral("45.svg");
     auto it = m_icons.constFind(path);

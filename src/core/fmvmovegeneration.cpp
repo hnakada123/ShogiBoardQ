@@ -7,9 +7,8 @@
 
 namespace fmv {
 
-using detail::charToPieceType;
-using detail::isDropDeadSquare;
-using detail::isMandatoryPromotion;
+using detail::typeAt;
+using detail::isDeadSquare;
 using detail::isPromotable;
 using detail::isPromotionZone;
 
@@ -17,19 +16,6 @@ namespace {
 bool inBoard(int file, int rank) noexcept
 {
     return file >= 0 && file < kBoardSize && rank >= 0 && rank < kBoardSize;
-}
-PieceType handTypeToPieceType(HandType ht) noexcept
-{
-    switch (ht) {
-    case HandType::Pawn:   return PieceType::Pawn;
-    case HandType::Lance:  return PieceType::Lance;
-    case HandType::Knight: return PieceType::Knight;
-    case HandType::Silver: return PieceType::Silver;
-    case HandType::Gold:   return PieceType::Gold;
-    case HandType::Bishop: return PieceType::Bishop;
-    case HandType::Rook:   return PieceType::Rook;
-    default: return PieceType::PieceTypeNb;
-    }
 }
 
 void addBoardMoves(const EnginePosition& pos, Color side,
@@ -55,7 +41,7 @@ void addBoardMoves(const EnginePosition& pos, Color side,
         int toRank = r;
         bool canPromote = isPromotable(pt)
                           && (isPromotionZone(side, fromRank) || isPromotionZone(side, toRank));
-        bool mandatory = isMandatoryPromotion(side, pt, toRank);
+        bool mandatory = isDeadSquare(side, pt, toRank);
 
         if (!mandatory) {
             Move m;
@@ -247,8 +233,7 @@ void LegalCore::generateEvasionMoves(const EnginePosition& pos, Color side, Move
         if (from == king) {
             continue;
         }
-        char c = pos.board[from];
-        PieceType pt = charToPieceType(c);
+        PieceType pt = typeAt(pos, from);
         if (pt == PieceType::PieceTypeNb) {
             continue;
         }
@@ -257,7 +242,7 @@ void LegalCore::generateEvasionMoves(const EnginePosition& pos, Color side, Move
         int toRank = squareRank(checkerSq);
         bool canPromote = isPromotable(pt)
                           && (isPromotionZone(side, fromRank) || isPromotionZone(side, toRank));
-        bool mandatory = isMandatoryPromotion(side, pt, toRank);
+        bool mandatory = isDeadSquare(side, pt, toRank);
 
         Move capMove;
         capMove.kind = MoveKind::Board;
@@ -275,7 +260,7 @@ void LegalCore::generateEvasionMoves(const EnginePosition& pos, Color side, Move
         }
     }
 
-    PieceType checkerType = charToPieceType(pos.board[checkerSq]);
+    PieceType checkerType = typeAt(pos, checkerSq);
     bool isSlider = (checkerType == PieceType::Lance || checkerType == PieceType::Bishop
                      || checkerType == PieceType::Rook || checkerType == PieceType::Horse
                      || checkerType == PieceType::Dragon);
@@ -306,8 +291,7 @@ void LegalCore::generateEvasionMoves(const EnginePosition& pos, Color side, Move
             if (from == king) {
                 continue;
             }
-            char c = pos.board[from];
-            PieceType pt = charToPieceType(c);
+            PieceType pt = typeAt(pos, from);
             if (pt == PieceType::PieceTypeNb) {
                 continue;
             }
@@ -316,7 +300,7 @@ void LegalCore::generateEvasionMoves(const EnginePosition& pos, Color side, Move
             int toRank = squareRank(between);
             bool canPromote = isPromotable(pt)
                               && (isPromotionZone(side, fromRank) || isPromotionZone(side, toRank));
-            bool mandatory = isMandatoryPromotion(side, pt, toRank);
+            bool mandatory = isDeadSquare(side, pt, toRank);
 
             Move interpose;
             interpose.kind = MoveKind::Board;
@@ -339,14 +323,14 @@ void LegalCore::generateEvasionMoves(const EnginePosition& pos, Color side, Move
             if (pos.hand[ci][static_cast<std::size_t>(hti)] <= 0) {
                 continue;
             }
-            PieceType pt = handTypeToPieceType(static_cast<HandType>(hti));
+            PieceType pt = pieceTypeOf(static_cast<HandType>(hti));
             if (pt == PieceType::PieceTypeNb) {
                 continue;
             }
 
             int toRank = squareRank(between);
             int toFile = squareFile(between);
-            if (isDropDeadSquare(side, pt, toRank)) {
+            if (isDeadSquare(side, pt, toRank)) {
                 continue;
             }
             if (pt == PieceType::Pawn && detail::hasPawnOnFile(pos, side, toFile)) {
@@ -373,8 +357,7 @@ void LegalCore::generateNonEvasionMoves(const EnginePosition& pos, Color side, M
     Bitboard81 myPieces = pos.colorOcc[ci];
     while (myPieces.any()) {
         Square from = myPieces.popFirst();
-        char c = pos.board[from];
-        PieceType pt = charToPieceType(c);
+        PieceType pt = typeAt(pos, from);
         if (pt == PieceType::PieceTypeNb) {
             continue;
         }
@@ -390,7 +373,7 @@ void LegalCore::generateDropMoves(const EnginePosition& pos, Color side, MoveLis
         if (pos.hand[ci][static_cast<std::size_t>(hti)] <= 0) {
             continue;
         }
-        PieceType pt = handTypeToPieceType(static_cast<HandType>(hti));
+        PieceType pt = pieceTypeOf(static_cast<HandType>(hti));
         if (pt == PieceType::PieceTypeNb) {
             continue;
         }
@@ -403,7 +386,7 @@ void LegalCore::generateDropMoves(const EnginePosition& pos, Color side, MoveLis
 
             int toRank = squareRank(s);
             int toFile = squareFile(s);
-            if (isDropDeadSquare(side, pt, toRank)) {
+            if (isDeadSquare(side, pt, toRank)) {
                 continue;
             }
             if (pt == PieceType::Pawn && detail::hasPawnOnFile(pos, side, toFile)) {

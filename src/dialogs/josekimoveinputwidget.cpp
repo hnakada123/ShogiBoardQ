@@ -6,7 +6,7 @@
 #include "kifupresentation.h"
 #include "josekitablemodel.h"
 #include "sfenreplay.h"
-#include "shogiboard.h"
+#include "shogiposition.h"
 
 #include <QButtonGroup>
 #include <QComboBox>
@@ -239,8 +239,7 @@ void JosekiMoveInputWidget::updatePreview()
 
     QString usi = buildUsiMove();
     m_usiLabel->setText(usi);
-    ShogiBoard position;
-    m_previewLabel->setText(!m_currentSfen.isEmpty() && position.trySetSfen(m_currentSfen)
+    m_previewLabel->setText(!m_currentSfen.isEmpty() && Position::fromSfen(m_currentSfen)
         ? JosekiTableModel::moveText(usi, m_currentSfen)
         : (KifuPresentation::options().notation == KifuPresentation::Notation::Western
                ? usi : usiToJapanese(usi)));

@@ -7,9 +7,8 @@
 #include <QString>
 #include <QStringList>
 #include <QList>
-#include <QMap>
+#include <QStringView>
 
-#include "kifdisplayitem.h"
 #include "kifparsetypes.h"
 
 /**
@@ -44,30 +43,19 @@
 class UsiToSfenConverter
 {
 public:
-
-    // テキスト（貼り付けた棋譜など）版。最初の position/SFEN らしき行を対象にする
-    static QString detectInitialSfenFromText(const QString& text, QString* detectedLabel = nullptr);
-    [[nodiscard]] static bool parseText(const QString& text, KifParseResult& out, QString* errorMessage = nullptr);
-    [[nodiscard]] static bool parseUsiText(const QString& text,
-                                           QString& baseSfen,
-                                           QStringList& usiMoves,
-                                           QString* terminalCode,
-                                           QString* warn);
+    /**
+     * @brief 最初の position/SFEN らしき行を読む
+     *
+     * 指し手も終局コードもない局面（.sfen ファイルなど）は positionOnly に局面だけを返す。
+     * 手合割の名前は平手なら「平手」、それ以外は「局面指定」
+     */
+    static KifuParseOutcome parse(QStringView text, const ParseOptions& options = {});
 
 private:
-    // ---- USI ファイル読み込み ----
-
-    // USIファイルを読み込み、解析対象の行を返す
-    static bool readUsiFile(const QString& filePath, QString& content, QString* warn);
     // 行の中から解析対象の行（最初の position/SFEN らしき行、なければ最初の非空行）を選ぶ
     static bool selectPositionLine(const QStringList& lines, QString& content, QString* warn);
     // 開始局面の SFEN から表示用の手合のラベルを決める
     static QString labelForBaseSfen(const QString& baseSfen);
-    // 解析済みの開始局面・指し手・終局コードから本譜を組み立てる
-    static bool buildResult(const QString& baseSfen, const QStringList& usiMoves,
-                            const QString& terminalCode, KifParseResult& out, QString* error);
-
-    // ---- USI 文字列解析 ----
 
     // USI position コマンド文字列を解析して初期局面SFENと指し手列を取得
     // 入力例: "position startpos moves 2g2f 3c3d"
@@ -80,7 +68,6 @@ private:
                                        QStringList& usiMoves,
                                        QString* terminalCode,
                                        QString* warn);
-
 };
 
 #endif // USITOSFENCONVERTER_H

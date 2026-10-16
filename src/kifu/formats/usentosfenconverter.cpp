@@ -3,34 +3,47 @@
 
 #include "usentosfenconverter.h"
 #include "terminalcodes.h"
-#include "parsecommon.h"
-#include "sfenreplay.h"
-#include "shogiboard.h"
+#include "kiflinebuilder.h"
+#include "shogiposition.h"
 #include "sfenutils.h"
 
 #include <utility>
 #include "logcategories.h"
 
 // ============================================================================
-// 公開メソッド
+// 解析
 // ============================================================================
 
-QString UsenToSfenConverter::detectInitialSfenFromText(const QString& text, QString* detectedLabel)
-{
-    const QString content = text.trimmed();
+namespace {
 
-    // ~ の位置を探す
+/// USI の指し手を順に指し、終局コードがあれば終局の行を足す。指せない手があれば、その手の手前で打ち切る
+void readMoves(const QStringList& moves, const QString& terminalCode, KifLineBuilder& builder, ParseReport& report)
+{
+    for (const QString& text : moves) {
+        const int ply = builder.nextPly();
+        const std::optional<UsiMove> move = UsiMove::parse(text);
+        if (!move || !builder.addMove(*move)) {
+            report.rejectMove(ply, move ? builder.cannotRestore(QStringLiteral("USEN"), ply)
+                                        : QStringLiteral("USEN: Invalid USI move %1: %2").arg(ply).arg(text));
+            builder.stop();
+            return;
+        }
+    }
+    if (!terminalCode.isEmpty()) builder.addTerminal(TerminalCodes::fromUsen(terminalCode), builder.sideToMove());
+}
+
+} // namespace
+
+QString UsenToSfenConverter::initialSfenOf(const QString& content, QString* detectedLabel)
+{
+    // ~ の前の部分が初期局面（空なら平手）
     const qsizetype tildePos = content.indexOf(QChar('~'));
     if (tildePos < 0) {
         if (detectedLabel) *detectedLabel = QStringLiteral("平手(既定)");
         return SfenUtils::hirateSfen();
     }
-
-    // ~ の前の部分が初期局面（空なら平手）
     const QString positionPart = content.left(tildePos);
-
     if (positionPart.isEmpty()) {
-        // 平手（~ から始まる場合）
         if (detectedLabel) *detectedLabel = QStringLiteral("平手");
         return SfenUtils::hirateSfen();
     }
@@ -43,59 +56,55 @@ QString UsenToSfenConverter::detectInitialSfenFromText(const QString& text, QStr
     sfen.replace(QChar('z'), QChar('+'));
 
     // 手数が省略されている場合は補完（盤の SFEN は4つの欄が必須）
-    const QStringList sfenParts = sfen.split(QChar(' '), Qt::SkipEmptyParts);
-    if (sfenParts.size() == 3) {
-        sfen += QStringLiteral(" 1");
-    }
+    if (sfen.split(QChar(' '), Qt::SkipEmptyParts).size() == 3) sfen += QStringLiteral(" 1");
 
     if (detectedLabel) *detectedLabel = QStringLiteral("局面指定");
     return sfen;
 }
 
-bool UsenToSfenConverter::parseText(const QString& text, KifParseResult& out, QString* errorMessage)
+KifuParseOutcome UsenToSfenConverter::parse(QStringView text, const ParseOptions& options)
 {
-    out = KifParseResult{};
-    const QString content = text.trimmed();
+    KifuParseOutcome outcome;
+    ParseReport report(options);
+    const QString content = text.trimmed().toString();
     if (content.isEmpty()) {
-        if (errorMessage) *errorMessage = QStringLiteral("USEN: empty text");
-        return false;
+        outcome.warning = QStringLiteral("USEN: empty text");
+        return outcome;
     }
 
-    // 初期局面を取得
-    const QString initialSfen = detectInitialSfenFromText(content, nullptr);
+    const std::optional<Position> start = Position::fromSfen(initialSfenOf(content, &outcome.teaiLabel));
+    if (!start) {
+        outcome.warning = QStringLiteral("USEN: invalid initial position");
+        return outcome;
+    }
 
     // 本譜と分岐を分離
     QString mainlineUsen;
     QList<QPair<int, QString>> variations;  // (startPly, usenMoves)
     QString terminalCode;
     QString warn;
-
     if (!parseUsenString(content, mainlineUsen, variations, &terminalCode, &warn)) {
-        if (errorMessage) *errorMessage = warn;
-        return false;
+        outcome.warning = warn;
+        return outcome;
     }
 
     // 本譜のデコード
     QString mainTerminal;
     const auto decodedMain = decodeUsenMovesStrict(mainlineUsen, &mainTerminal);
     if (decodedMain.invalidCount > 0) {
-        if (errorMessage) *errorMessage = decodedMain.firstError;
-        return false;
+        outcome.warning = decodedMain.firstError;
+        return outcome;
     }
-    const QStringList mainUsiMoves = decodedMain.moves;
-
-    KifuParseCommon::KifLineDraft main;
-    main.baseSfen = initialSfen;
-    main.usiMoves = mainUsiMoves;
-    main.disp.append(KifuParseCommon::createOpeningDisplayItem({}, {}));
-    for (qsizetype i = 0; i < mainUsiMoves.size(); ++i)
-        main.disp.append(KifuParseCommon::createMoveDisplayItem(static_cast<int>(i) + 1, {}));
-    if (!mainTerminal.isEmpty()) {
-        main.disp.append(KifuParseCommon::createUsiTerminalDisplayItem(
-            static_cast<int>(mainUsiMoves.size()) + 1, TerminalCodes::fromUsen(mainTerminal), initialSfen, mainUsiMoves.size()));
-        main.endsWithTerminal = true;
+    KifParseResult& record = outcome.record;
+    {
+        KifLineBuilder main(*start);
+        readMoves(decodedMain.moves, mainTerminal, main, report);
+        if (report.failed()) {
+            outcome.warning = report.warnings();
+            return outcome;
+        }
+        record.mainline = main.take();
     }
-    if (!main.resolve(out.mainline, errorMessage)) return false;
 
     // 分岐のデコード。USEN の分岐は「直前に記述された手順」から派生する（KIF の「変化：N手」と同じ）
     for (const auto& var : std::as_const(variations)) {
@@ -103,36 +112,31 @@ bool UsenToSfenConverter::parseText(const QString& text, KifParseResult& out, QS
         QString varTerminal;
         const auto decodedVariation = decodeUsenMovesStrict(var.second, &varTerminal);
         if (decodedVariation.invalidCount > 0) {
-            if (errorMessage) *errorMessage = decodedVariation.firstError;
-            out = KifParseResult{};
-            return false;
+            outcome.warning = decodedVariation.firstError;
+            outcome.record = {};
+            return outcome;
         }
-        const QStringList& varUsiMoves = decodedVariation.moves;
-        const auto base = out.latestBranchPoint(startPly);
-        if (!base) {
-            if (errorMessage) *errorMessage = QStringLiteral("USEN: invalid variation start: %1").arg(startPly);
-            out = KifParseResult{};
-            return false;
+        const auto base = record.latestBranchPoint(startPly);
+        const std::optional<Position> from = base ? Position::fromSfen(base->sfen) : std::nullopt;
+        if (!from) {
+            outcome.warning = QStringLiteral("USEN: invalid variation start: %1").arg(startPly);
+            outcome.record = {};
+            return outcome;
         }
-
-        KifuParseCommon::KifLineDraft branch;
-        branch.startPly = startPly;
-        branch.baseSfen = base->sfen;
-        branch.previousUsi = base->previousUsi;
-        branch.usiMoves = varUsiMoves;
-        for (qsizetype i = 0; i < varUsiMoves.size(); ++i)
-            branch.disp.append(KifuParseCommon::createMoveDisplayItem(startPly + static_cast<int>(i), {}));
-        if (!varTerminal.isEmpty()) {
-            branch.disp.append(KifuParseCommon::createUsiTerminalDisplayItem(
-                startPly + static_cast<int>(varUsiMoves.size()), TerminalCodes::fromUsen(varTerminal), branch.baseSfen, varUsiMoves.size()));
-            branch.endsWithTerminal = true;
+        KifLineBuilder branch(*from, startPly, base->previousMove, KifLineBuilder::LineKind::Variation);
+        readMoves(decodedVariation.moves, varTerminal, branch, report);
+        if (report.failed()) {
+            outcome.warning = report.warnings();
+            outcome.record = {};
+            return outcome;
         }
-        KifLine line;
-        if (!branch.resolve(line, errorMessage)) return false;
-        out.addVariation(*base, std::move(line));
+        record.addVariation(*base, branch.take());
     }
 
-    return true;
+    outcome.success = true;
+    outcome.initialSfen = record.mainline.startSfen;
+    outcome.warning = report.warnings();
+    return outcome;
 }
 
 // ============================================================

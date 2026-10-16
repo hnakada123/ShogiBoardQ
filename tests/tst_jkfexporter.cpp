@@ -112,9 +112,9 @@ private slots:
                 model.toJkfLines(ctx), model.toUsiLines(ctx), model.toUsenLines(ctx)};
         };
         const auto original = exportAll();
-        node->setDisplayText(QStringLiteral("display text has no result or side"));
+        node->record().displayText = QStringLiteral("display text has no result or side");
         QCOMPARE(exportAll(), original);
-        node->setDisplayText({});
+        node->record().displayText = {};
         QCOMPARE(exportAll(), original);
         if (static_cast<TerminalType>(terminal) == TerminalType::IllegalWin) {
             QVERIFY(model.toCsaLines(ctx).contains(white ? QStringLiteral("%+ILLEGAL_ACTION")
@@ -196,12 +196,12 @@ private slots:
         KifParseResult result;
         QString error;
         QVERIFY2(readJkf(json, result, &error), qPrintable(error));
-        QCOMPARE(result.mainline.baseSfen, initial);
+        QCOMPARE(result.mainline.startSfen, initial);
         QCOMPARE(result.mainline.usiMoves(), mainUsi);
-        QCOMPARE(result.mainline.sfenList().last(), mainNodes.last()->sfen());
+        QCOMPARE(result.mainline.sfens().last(), mainNodes.last()->sfen());
         QStringList pretty;
-        for (const KifDisplayItem& item : result.mainline.displayItems()) pretty << item.prettyMove;
-        QCOMPARE(pretty.mid(1), QStringList({QStringLiteral("▲４三銀不成(44)"), QStringLiteral("△同　金(52)"),
+        for (const RecordEntry& entry : std::as_const(result.mainline.entries)) pretty << entry.displayText;
+        QCOMPARE(pretty, QStringList({QStringLiteral("▲４三銀不成(44)"), QStringLiteral("△同　金(52)"),
                                             QStringLiteral("▲６八金右(58)"), QStringLiteral("△３三金打"),
                                             QStringLiteral("▲同　角成(88)"), QStringLiteral("△同　金(43)"),
                                             QStringLiteral("▲３四歩打"), QStringLiteral("△投了")}));
@@ -210,15 +210,15 @@ private slots:
         QCOMPARE(result.variations.size(), 3);
         QCOMPARE(result.variations.at(0).startPly, 1);
         QCOMPARE(result.variations.at(0).line.usiMoves(), QStringList({"4d4c+", "5b4c"}));
-        QCOMPARE(result.variations.at(0).line.displayItems().at(0).prettyMove, QStringLiteral("▲４三銀成(44)"));
-        QCOMPARE(result.variations.at(0).line.displayItems().at(1).prettyMove, QStringLiteral("△同　金(52)"));
+        QCOMPARE(result.variations.at(0).line.entries.at(0).displayText, QStringLiteral("▲４三銀成(44)"));
+        QCOMPARE(result.variations.at(0).line.entries.at(1).displayText, QStringLiteral("△同　金(52)"));
         QCOMPARE(result.variations.at(1).startPly, 2);
         QCOMPARE(result.variations.at(1).line.usiMoves(), QStringList({"5a6b"}));
-        QCOMPARE(result.variations.at(1).line.baseSfen, silverPromotes->sfen());
-        QCOMPARE(result.variations.at(1).line.sfenList().last(), kingEscapes->sfen());
+        QCOMPARE(result.variations.at(1).line.startSfen, silverPromotes->sfen());
+        QCOMPARE(result.variations.at(1).line.sfens().last(), kingEscapes->sfen());
         QCOMPARE(result.variations.at(2).startPly, 3);
         QCOMPARE(result.variations.at(2).line.usiMoves(), QStringList({"7h6h"}));
-        QCOMPARE(result.variations.at(2).line.displayItems().at(0).prettyMove, QStringLiteral("▲６八金左(78)"));
+        QCOMPARE(result.variations.at(2).line.entries.at(0).displayText, QStringLiteral("▲６八金左(78)"));
     }
 
     /// 終局は分岐ツリーの終局の種類から special にする（反則勝ちは手番で符号が決まる）
@@ -269,9 +269,9 @@ private slots:
         QCOMPARE(moves.size(), plies + 2);
         QCOMPARE(moves.last().toObject().value(QStringLiteral("special")).toString(), special);
         // 読み込むと同じ種類の終局になる（反則勝ち・負けは手番の印も同じ）
-        const KifDisplayItem reread = result.mainline.displayItems().last();
-        QCOMPARE(reread.terminalType, TerminalTypes::fromWord(word));
-        QCOMPARE(reread.terminalSide, plies % 2 == 0 ? Turn::Black : Turn::White);
+        const RecordEntry reread = result.mainline.entries.last();
+        QCOMPARE(reread.terminal, TerminalTypes::fromWord(word));
+        QCOMPARE(reread.mover, plies % 2 == 0 ? Turn::Black : Turn::White);
     }
 
     /// 手合割の名前（preset）は、盤・手番・持ち駒が手合割の開始局面と同じときだけ書く
@@ -307,7 +307,7 @@ private slots:
         KifParseResult result;
         QString error;
         QVERIFY2(readJkf(json, result, &error), qPrintable(error));
-        QCOMPARE(SfenUtils::normalizeSfenKey(result.mainline.baseSfen), SfenUtils::normalizeSfenKey(sfen));
+        QCOMPARE(SfenUtils::normalizeSfenKey(result.mainline.startSfen), SfenUtils::normalizeSfenKey(sfen));
     }
 };
 

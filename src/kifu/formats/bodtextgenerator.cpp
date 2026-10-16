@@ -2,133 +2,69 @@
 /// @brief BOD形式テキスト生成クラスの実装
 
 #include "bodtextgenerator.h"
+#include "piecerules.h"
 #include "shoginotation.h"
+#include "shogiposition.h"
 
-#include <QChar>
-#include <QMap>
 #include <QStringList>
-#include <QList>
 
 QString BodTextGenerator::generate(const QString& sfenStr, int moveIndex, const QString& lastMoveStr,
                                    bool handicapNames)
 {
     if (sfenStr.isEmpty()) return QString();
+    const std::optional<Position> position = Position::fromSfenLike(sfenStr);
+    if (!position) return QString();
 
-    const QStringList parts = sfenStr.split(QLatin1Char(' '));
-    if (parts.size() < 4) return QString();
-
-    const QString& boardSfen = parts[0];
-    const QString& turnSfen = parts[1];
-    const QString& handSfen = parts[2];
-    const int sfenMoveNum = parts[3].toInt();
-
-    // 持ち駒を解析
-    QMap<QChar, int> senteHand;
-    QMap<QChar, int> goteHand;
-
-    if (handSfen != QStringLiteral("-")) {
-        int count = 0;
-        for (qsizetype i = 0; i < handSfen.size(); ++i) {
-            const QChar c = handSfen.at(i);
-            if (c.isDigit()) {
-                count = count * 10 + c.digitValue();
-            } else {
-                if (count == 0) count = 1;
-                if (c.isUpper()) {
-                    senteHand[c] += count;
-                } else {
-                    goteHand[c.toUpper()] += count;
-                }
-                count = 0;
-            }
-        }
-    }
-
-    // 持ち駒を日本語文字列に変換
-    auto handToString = [](const QMap<QChar, int>& hand) -> QString {
-        if (hand.isEmpty()) return QStringLiteral("なし");
-
-        const QString order = QStringLiteral("RBGSNLP");
-        const QMap<int, QString> kanjiNumbers = {
-            {2, QStringLiteral("二")}, {3, QStringLiteral("三")}, {4, QStringLiteral("四")},
-            {5, QStringLiteral("五")}, {6, QStringLiteral("六")}, {7, QStringLiteral("七")},
-            {8, QStringLiteral("八")}, {9, QStringLiteral("九")}, {10, QStringLiteral("十")},
-            {11, QStringLiteral("十一")}, {12, QStringLiteral("十二")}, {13, QStringLiteral("十三")},
-            {14, QStringLiteral("十四")}, {15, QStringLiteral("十五")}, {16, QStringLiteral("十六")},
-            {17, QStringLiteral("十七")}, {18, QStringLiteral("十八")}
-        };
-
+    // 持ち駒を日本語文字列にする（飛・角・金・銀・桂・香・歩の順。2枚以上は漢数字を添える）
+    auto handToString = [&position](Turn side) -> QString {
         QString result;
-        for (qsizetype i = 0; i < order.size(); ++i) {
-            const QChar piece = order.at(i);
-            if (hand.contains(piece) && hand[piece] > 0) {
-                result += ShogiNotation::movePieceName(charToPiece(piece));
-                if (hand[piece] > 1) {
-                    result += kanjiNumbers.value(hand[piece], QString::number(hand[piece]));
-                }
-                result += QStringLiteral("　");
-            }
+        for (const PieceKind kind : PieceRules::kHandOrder) {
+            const Piece piece = makePiece(side, kind);
+            const int count = position->handCount(piece);
+            if (count <= 0) continue;
+            result += ShogiNotation::movePieceName(toBlack(piece));
+            if (count > 1) result += ShogiNotation::kanjiNumber(count);
+            result += QStringLiteral("　");
         }
-
         return result.isEmpty() ? QStringLiteral("なし") : result.trimmed();
     };
 
-    // 盤面を9x9配列に展開
-    QList<QList<QString>> board(9, QList<QString>(9));
-    const QStringList ranks = boardSfen.split(QLatin1Char('/'));
-    for (qsizetype rank = 0; rank < qMin(ranks.size(), qsizetype(9)); ++rank) {
-        const QString& rankStr = ranks[rank];
-        int file = 0;
-        bool promoted = false;
-        for (qsizetype k = 0; k < rankStr.size() && file < 9; ++k) {
-            const QChar c = rankStr.at(k);
-            if (c == QLatin1Char('+')) {
-                promoted = true;
-            } else if (c.isDigit()) {
-                const int skip = c.toLatin1() - '0';
-                for (int s = 0; s < skip && file < 9; ++s) {
-                    board[rank][file++] = QStringLiteral(" ・");
-                }
-                promoted = false;
-            } else {
-                QString piece = c.isUpper() ? QStringLiteral(" ") : QStringLiteral("v");
-                // 局面図の駒は1文字（成香は杏、成桂は圭、成銀は全）
-                const Piece base = charToPiece(c.toUpper());
-                const QString name = ShogiNotation::boardPieceName(promoted ? promote(base) : base);
-                piece += name.isEmpty() ? QStringLiteral("？") : name;
-                board[rank][file++] = piece;
-                promoted = false;
+    // 盤の各段（9筋から1筋）。後手の駒は "v"、局面図の駒は1文字（成香は杏、成桂は圭、成銀は全）
+    auto rankText = [&position](int rank) {
+        QString line;
+        for (int file = 9; file >= 1; --file) {
+            const Piece piece = position->pieceAt(file, rank);
+            if (piece == Piece::None) {
+                line += QStringLiteral(" ・");
+                continue;
             }
+            line += isBlackPiece(piece) ? QStringLiteral(" ") : QStringLiteral("v");
+            line += ShogiNotation::boardPieceName(toBlack(piece));
         }
-        while (file < 9) {
-            board[rank][file++] = QStringLiteral(" ・");
-        }
-    }
+        return line;
+    };
 
     // BOD形式の文字列を生成
     // 柿木形式の駒落ちの棋譜と同じく、駒落ちでは下手（先手側）・上手（後手側）と書く
     const QString blackName = handicapNames ? QStringLiteral("下手") : QStringLiteral("先手");
     const QString whiteName = handicapNames ? QStringLiteral("上手") : QStringLiteral("後手");
     QStringList bodLines;
-    bodLines << QStringLiteral("%1の持駒：%2").arg(whiteName, handToString(goteHand));
+    bodLines << QStringLiteral("%1の持駒：%2").arg(whiteName, handToString(Turn::White));
     bodLines << QStringLiteral("  ９ ８ ７ ６ ５ ４ ３ ２ １");
     bodLines << QStringLiteral("+---------------------------+");
 
     for (int rank = 0; rank < 9; ++rank) {
-        QString line = QStringLiteral("|");
-        for (int file = 0; file < 9; ++file) {
-            line += board[rank][file];
-        }
-        line += QStringLiteral("|") + ShogiNotation::rankKanji(rank + 1);
+        const QString line = QStringLiteral("|") + rankText(rank + 1) + QStringLiteral("|")
+                             + ShogiNotation::rankKanji(rank + 1);
         bodLines << line;
     }
 
     bodLines << QStringLiteral("+---------------------------+");
-    bodLines << QStringLiteral("%1の持駒：%2").arg(blackName, handToString(senteHand));
-    bodLines << (turnSfen == QStringLiteral("b") ? blackName : whiteName) + QStringLiteral("番");
+    bodLines << QStringLiteral("%1の持駒：%2").arg(blackName, handToString(Turn::Black));
+    bodLines << (position->sideToMove() == Turn::Black ? blackName : whiteName) + QStringLiteral("番");
 
     if (moveIndex > 0) {
-        const int displayMoveNum = sfenMoveNum - 1;
+        const int displayMoveNum = position->moveNumber() - 1;
         if (!lastMoveStr.isEmpty()) {
             bodLines << QStringLiteral("手数＝%1  %2  まで").arg(displayMoveNum).arg(lastMoveStr);
         } else {

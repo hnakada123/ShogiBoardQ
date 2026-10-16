@@ -11,7 +11,7 @@
 class KifuBranchTree;
 class KifuBranchNode;
 struct KifParseResult;
-struct KifLine;
+struct RecordLine;
 
 /**
  * @brief 取り込んだ棋譜（KifParseResult）から分岐ツリーを作る
@@ -34,7 +34,7 @@ private:
     KifuBranchTreeBuilder() = default;
 
     static QList<KifuBranchNode*> addKifLineToTree(KifuBranchTree* tree,
-                                                  const KifLine& line,
+                                                  const RecordLine& line,
                                                   QList<KifuBranchNode*> path);
 };
 

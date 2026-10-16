@@ -4,7 +4,7 @@
 #include "ki2movenotation.h"
 
 #include "enginemovevalidator.h"
-#include "shogiboard.h"
+#include "shogiposition.h"
 #include "shoginotation.h"
 
 #include <QList>
@@ -90,8 +90,8 @@ QString modifierFor(const QList<BoardSquare>& sources, BoardSquare from, BoardSq
 }
 
 /// 指し手の一覧から、文字列が表す手を1つに決める
-std::optional<UsiMove> resolveAmong(const QList<UsiMove>& moves, const Ki2Lexer::MoveText& text,
-                                    const ShogiBoard& board, BoardSquare to, Turn mover)
+std::optional<UsiMove> resolveAmong(const QList<UsiMove>& moves, const KifMoveGrammar::MoveText& text,
+                                    const Position& board, BoardSquare to, Turn mover)
 {
     if (!text.drop) {
         // 盤上の同じ駒の移動。移動元ごとに、書かれた成・不成に合う手を1つ選ぶ
@@ -128,7 +128,7 @@ std::optional<UsiMove> resolveAmong(const QList<UsiMove>& moves, const Ki2Lexer:
 
 namespace Ki2MoveNotation {
 
-std::optional<UsiMove> resolve(const Ki2Lexer::MoveText& text, const ShogiBoard& board, Turn mover,
+std::optional<UsiMove> resolve(const KifMoveGrammar::MoveText& text, const Position& board, Turn mover,
                                BoardSquare previousTo)
 {
     const BoardSquare to = text.sameAsPrevious ? previousTo : text.to;
@@ -141,7 +141,7 @@ std::optional<UsiMove> resolve(const Ki2Lexer::MoveText& text, const ShogiBoard&
     return resolveAmong(EngineMoveValidator::pseudoLegalMoves(position), text, board, to, mover);
 }
 
-Annotation annotate(const ShogiBoard& board, Turn mover, const UsiMove& move)
+Annotation annotate(const Position& board, Turn mover, const UsiMove& move)
 {
     const Piece moving = move.isDrop() ? move.drop : toBlack(board.pieceAt(move.from));
 
@@ -168,7 +168,7 @@ Annotation annotate(const ShogiBoard& board, Turn mover, const UsiMove& move)
     return annotation;
 }
 
-QString format(const ShogiBoard& board, Turn mover, const UsiMove& move, BoardSquare previousTo)
+QString format(const Position& board, Turn mover, const UsiMove& move, BoardSquare previousTo)
 {
     const Piece moving = move.isDrop() ? move.drop : toBlack(board.pieceAt(move.from));
 

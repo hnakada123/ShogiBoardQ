@@ -8,9 +8,7 @@
 // 点数計算
 // ============================================================================
 
-JishogiCalculator::JishogiResult JishogiCalculator::calculate(
-    const QList<Piece>& boardData,
-    const QMap<Piece, int>& pieceStand)
+JishogiCalculator::JishogiResult JishogiCalculator::calculate(const Position& position)
 {
     // 処理フロー:
     // 1. 盤面を走査して各駒の点数を集計
@@ -29,10 +27,7 @@ JishogiCalculator::JishogiResult JishogiCalculator::calculate(
 
     for (int file = 1; file <= 9; ++file) {
         for (int rank = 1; rank <= 9; ++rank) {
-            int index = (rank - 1) * 9 + (file - 1);
-            if (index < 0 || index >= boardData.size()) continue;
-
-            Piece piece = boardData[index];
+            const Piece piece = position.pieceAt(file, rank);
             if (piece == Piece::None) continue;
 
             int points = piecePoints(piece);
@@ -72,10 +67,10 @@ JishogiCalculator::JishogiResult JishogiCalculator::calculate(
     }
 
     // 駒台の駒を加算
-    for (auto it = pieceStand.constBegin(); it != pieceStand.constEnd(); ++it) {
-        Piece piece = it.key();
-        int count = it.value();
-        int points = piecePoints(piece) * count;
+    for (int slot = 0; slot < 2 * kHandKindCount; ++slot) {
+        const Piece piece = makePiece(slot < kHandKindCount ? Turn::Black : Turn::White,
+                                      static_cast<PieceKind>(slot % kHandKindCount));
+        const int points = piecePoints(piece) * position.handCount(piece);
 
         if (isSentePiece(piece)) {
             result.sente.totalPoints += points;

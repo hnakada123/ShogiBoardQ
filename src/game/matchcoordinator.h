@@ -61,6 +61,8 @@ public:
     /// 対局の手順（開始局面と、対局で指した手。終局の行は含めない）
     const RecordLine& record() const { return m_record; }
     int currentPly() const override { return m_record.moveCount(); }
+    /// 手順の最後の手の移動先（次の手の「同」表記の基準。手が無ければ無効なマス）
+    BoardSquare lastMoveDestination() const { return m_record.destinationOf(currentPly()); }
 
     // --- 開始・再開 ---
 

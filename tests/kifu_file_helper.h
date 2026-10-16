@@ -13,7 +13,6 @@
 #include "ki2tosfenconverter.h"
 #include "kiftosfenconverter.h"
 #include "kifuloadparser.h"
-#include "parsecommon.h"
 #include "sfenutils.h"
 #include "usentosfenconverter.h"
 #include "usitosfenconverter.h"
@@ -31,14 +30,28 @@ constexpr KifuFormat formatOf()
     else return KifuFormat::Usi;
 }
 
-/// ファイルを読んで本譜と変化を得る
+/// ファイルを読んで形式の parse() に渡す（ファイルが読めなければ失敗の結果）
+template <typename Converter>
+KifuParseOutcome parseFile(const QString& path, const ParseOptions& options = {})
+{
+    QString text;
+    QString warn;
+    if (!KifuLoadParser::readFileText(path, formatOf<Converter>(), text, &warn)) {
+        KifuParseOutcome failed;
+        failed.warning = warn;
+        return failed;
+    }
+    return Converter::parse(text, options);
+}
+
+/// ファイルを読んで本譜と変化を得る（警告は error に足す）
 template <typename Converter>
 bool parse(const QString& path, KifParseResult& out, QString* error = nullptr)
 {
-    out = KifParseResult{};
-    QString text;
-    if (!KifuLoadParser::readFileText(path, formatOf<Converter>(), text, error)) return false;
-    return Converter::parseText(text, out, error);
+    KifuParseOutcome outcome = parseFile<Converter>(path);
+    if (error) *error += outcome.warning;
+    out = outcome.success ? std::move(outcome.record) : KifParseResult{};
+    return outcome.success;
 }
 
 /// 本譜の USI の指し手（読めなければ空）
@@ -49,55 +62,62 @@ QStringList usiMoves(const QString& path, QString* error = nullptr)
     return parse<Converter>(path, result, error) ? result.mainline.usiMoves() : QStringList();
 }
 
-/// 本譜の表示用の指し手（読めなければ空）
+/// 本譜（読めなければ空の手順）
 template <typename Converter>
-QList<KifDisplayItem> displayItems(const QString& path, QString* error = nullptr)
+RecordLine mainline(const QString& path, QString* error = nullptr)
 {
     KifParseResult result;
-    return parse<Converter>(path, result, error) ? result.mainline.displayItems() : QList<KifDisplayItem>();
+    return parse<Converter>(path, result, error) ? result.mainline : RecordLine{};
 }
 
 /// 開始局面（読めなければ平手）
 template <typename Converter>
 QString initialSfen(const QString& path, QString* detectedLabel = nullptr)
 {
-    QString text;
-    QString warn;
-    if (!KifuLoadParser::readFileText(path, formatOf<Converter>(), text, &warn)) {
+    const KifuParseOutcome outcome = parseFile<Converter>(path);
+    if (!outcome.success || outcome.initialSfen.isEmpty()) {
         if (detectedLabel) *detectedLabel = QStringLiteral("平手(既定)");
         return SfenUtils::hirateSfen();
     }
-    return Converter::detectInitialSfenFromText(text, detectedLabel);
+    if (detectedLabel) *detectedLabel = outcome.teaiLabel;
+    return outcome.initialSfen;
 }
 
 /// 対局情報（USI・USEN は持たないので空）
 template <typename Converter>
 QList<KifGameInfoItem> gameInfo(const QString& path)
 {
-    if constexpr (std::is_same_v<Converter, UsiToSfenConverter> || std::is_same_v<Converter, UsenToSfenConverter>) {
-        Q_UNUSED(path)
-        return {};
-    } else {
-        QString text;
-        QString warn;
-        if (!KifuLoadParser::readFileText(path, formatOf<Converter>(), text, &warn)) return {};
-        return Converter::extractGameInfoFromText(text);
-    }
+    return parseFile<Converter>(path).gameInfo;
+}
+
+/// 対局情報をキーで引ける形にする（同じキーは後のもの）
+inline QMap<QString, QString> toMap(const QList<KifGameInfoItem>& items)
+{
+    QMap<QString, QString> map;
+    for (const auto& item : items) map.insert(item.key, item.value);
+    return map;
 }
 
 template <typename Converter>
 QMap<QString, QString> gameInfoMap(const QString& path)
 {
-    return KifuParseCommon::toGameInfoMap(gameInfo<Converter>(path));
+    return toMap(gameInfo<Converter>(path));
 }
 
-/// USI のファイルから開始局面・指し手・終局の語を読む
+/// USI のファイルから開始局面・指し手・終局の有無を読む（terminalCode は終局があれば終局語）
 inline bool parseUsi(const QString& path, QString& baseSfen, QStringList& usiMoves, QString* terminalCode,
                      QString* warn)
 {
-    QString text;
-    if (!KifuLoadParser::readFileText(path, KifuFormat::Usi, text, warn)) return false;
-    return UsiToSfenConverter::parseUsiText(text, baseSfen, usiMoves, terminalCode, warn);
+    const KifuParseOutcome outcome = parseFile<UsiToSfenConverter>(path);
+    if (warn) *warn += outcome.warning;
+    if (!outcome.success) return false;
+    baseSfen = outcome.initialSfen;
+    usiMoves = outcome.record.mainline.usiMoves();
+    if (terminalCode) {
+        const RecordEntry* terminal = outcome.record.mainline.terminal();
+        *terminalCode = terminal ? TerminalTypes::label(terminal->terminal) : QString();
+    }
+    return true;
 }
 
 } // namespace KifuFile

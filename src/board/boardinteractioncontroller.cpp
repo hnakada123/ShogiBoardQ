@@ -248,7 +248,7 @@ void BoardInteractionController::refreshLegalMoveHighlights()
         || (m_isHumanTurnCb && !m_isHumanTurnCb())) return;
 
     auto* board = m_view->board();
-    const auto position = EngineMoveValidator::load(*board, m_gc->currentPlayer());
+    const auto position = EngineMoveValidator::load(board->position(), m_gc->currentPlayer());
     if (!position.synced) return;
 
     // 局面の読み込みは1回だけ行い、成り・不成のどちらかが合法なマスを表示する。

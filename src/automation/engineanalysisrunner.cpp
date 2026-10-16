@@ -37,7 +37,7 @@ void EngineAnalysisRunner::onSessionReady()
     m_searchStarted = true;
     m_session->handler()->sendSetOption(QStringLiteral("MultiPV"), QString::number(qMax(1, m_request.multiPv)));
     UsiSearchRequest search;
-    search.position = m_request.positionCommand;
+    search.position = m_request.position;
     search.go = UsiGo::infinite();
     search.stopAfterMs = qMax(100, m_request.thinkMs);
     search.replyTimeoutMs = kBestmoveGraceMs;

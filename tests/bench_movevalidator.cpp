@@ -38,8 +38,7 @@ BenchResult benchGenerateLegalMoves(const QString& sfen, int iterations,
 {
     ShogiBoard board;
     board.setSfen(sfen);
-    const auto& bd = board.boardData();
-    const auto& ps = board.pieceStand();
+    const Position& position = board.position();
 
     BenchResult r;
     r.iterations = iterations;
@@ -51,7 +50,7 @@ BenchResult benchGenerateLegalMoves(const QString& sfen, int iterations,
         timer.start();
         volatile int count = 0;
         for (int i = 0; i < iterations; ++i) {
-            count = EngineMoveValidator::legalMoveCount(EngineMoveValidator::load(bd, ps, eTurn));
+            count = EngineMoveValidator::legalMoveCount(EngineMoveValidator::load(position, eTurn));
         }
         r.engineCompatMs = static_cast<double>(timer.nsecsElapsed()) / 1e6;
         (void)count;
@@ -60,7 +59,7 @@ BenchResult benchGenerateLegalMoves(const QString& sfen, int iterations,
     // --- 読み込んだ Context を使い回す ---
     {
         EngineMoveValidator::Context ctx;
-        ctx = EngineMoveValidator::load(bd, ps, eTurn);
+        ctx = EngineMoveValidator::load(position, eTurn);
 
         QElapsedTimer timer;
         timer.start();
@@ -83,7 +82,10 @@ BenchResult benchCheckIfKingInCheck(const QString& sfen, int iterations,
 {
     ShogiBoard board;
     board.setSfen(sfen);
-    const auto& bd = board.boardData();
+    // 持ち駒を除いた局面（王手の判定に持ち駒は関わらない）
+    Position position;
+    for (int rank = 1; rank <= 9; ++rank)
+        for (int file = 1; file <= 9; ++file) position.setPieceAt({file, rank}, board.position().pieceAt(file, rank));
 
     BenchResult r;
     r.iterations = iterations;
@@ -95,7 +97,7 @@ BenchResult benchCheckIfKingInCheck(const QString& sfen, int iterations,
         timer.start();
         volatile int count = 0;
         for (int i = 0; i < iterations; ++i) {
-            count = EngineMoveValidator::checkCount(EngineMoveValidator::load(bd, QMap<Piece, int>(), eTurn));
+            count = EngineMoveValidator::checkCount(EngineMoveValidator::load(position, eTurn));
         }
         r.engineCompatMs = static_cast<double>(timer.nsecsElapsed()) / 1e6;
         (void)count;
@@ -104,8 +106,7 @@ BenchResult benchCheckIfKingInCheck(const QString& sfen, int iterations,
     // --- 読み込んだ Context を使い回す ---
     {
         EngineMoveValidator::Context ctx;
-        QMap<Piece, int> emptyStand;
-        ctx = EngineMoveValidator::load(bd, emptyStand, eTurn);
+        ctx = EngineMoveValidator::load(position, eTurn);
 
         QElapsedTimer timer;
         timer.start();
@@ -129,8 +130,7 @@ BenchResult benchIsLegalMove(const QString& sfen, int iterations,
 {
     ShogiBoard board;
     board.setSfen(sfen);
-    const auto& bd = board.boardData();
-    const auto& ps = board.pieceStand();
+    const Position& position = board.position();
 
     BenchResult r;
     r.iterations = iterations;
@@ -141,7 +141,7 @@ BenchResult benchIsLegalMove(const QString& sfen, int iterations,
         QElapsedTimer timer;
         timer.start();
         for (int i = 0; i < iterations; ++i) {
-            auto st = EngineMoveValidator::legalStatus(EngineMoveValidator::load(bd, ps, eTurn), move.move);
+            auto st = EngineMoveValidator::legalStatus(EngineMoveValidator::load(position, eTurn), move.move);
             (void)st;
         }
         r.engineCompatMs = static_cast<double>(timer.nsecsElapsed()) / 1e6;
@@ -150,7 +150,7 @@ BenchResult benchIsLegalMove(const QString& sfen, int iterations,
     // --- 読み込んだ Context を使い回す ---
     {
         EngineMoveValidator::Context ctx;
-        ctx = EngineMoveValidator::load(bd, ps, eTurn);
+        ctx = EngineMoveValidator::load(position, eTurn);
 
         QElapsedTimer timer;
         timer.start();
@@ -172,8 +172,7 @@ BenchResult benchSyncAndQuery(const QString& sfen, int iterations,
 {
     ShogiBoard board;
     board.setSfen(sfen);
-    const auto& bd = board.boardData();
-    const auto& ps = board.pieceStand();
+    const Position& position = board.position();
 
     BenchResult r;
     r.iterations = iterations;
@@ -185,7 +184,7 @@ BenchResult benchSyncAndQuery(const QString& sfen, int iterations,
         timer.start();
         volatile int count = 0;
         for (int i = 0; i < iterations; ++i) {
-            count = EngineMoveValidator::legalMoveCount(EngineMoveValidator::load(bd, ps, eTurn));
+            count = EngineMoveValidator::legalMoveCount(EngineMoveValidator::load(position, eTurn));
         }
         r.engineCompatMs = static_cast<double>(timer.nsecsElapsed()) / 1e6;
         (void)count;
@@ -198,7 +197,7 @@ BenchResult benchSyncAndQuery(const QString& sfen, int iterations,
         volatile int count = 0;
         for (int i = 0; i < iterations; ++i) {
             EngineMoveValidator::Context ctx;
-            ctx = EngineMoveValidator::load(bd, ps, eTurn);
+            ctx = EngineMoveValidator::load(position, eTurn);
             count = EngineMoveValidator::legalMoveCount(ctx);
         }
         r.engineContextMs = static_cast<double>(timer.nsecsElapsed()) / 1e6;
@@ -218,8 +217,7 @@ BenchResult benchMidgame(int iterations)
         "ln1g1g1nl/1ks2r3/1ppppsbpp/p4pp2/9/2P1P4/PPBP1PPPP/2G1S2R1/LN2KG1NL b Pp 1");
     ShogiBoard board;
     board.setSfen(sfen);
-    const auto& bd = board.boardData();
-    const auto& ps = board.pieceStand();
+    const Position& position = board.position();
 
     BenchResult r;
     r.iterations = iterations;
@@ -231,7 +229,7 @@ BenchResult benchMidgame(int iterations)
         timer.start();
         volatile int count = 0;
         for (int i = 0; i < iterations; ++i) {
-            count = EngineMoveValidator::legalMoveCount(EngineMoveValidator::load(bd, ps, Turn::Black));
+            count = EngineMoveValidator::legalMoveCount(EngineMoveValidator::load(position, Turn::Black));
         }
         r.engineCompatMs = static_cast<double>(timer.nsecsElapsed()) / 1e6;
         (void)count;
@@ -240,7 +238,7 @@ BenchResult benchMidgame(int iterations)
     // --- 読み込んだ Context を使い回す ---
     {
         EngineMoveValidator::Context ctx;
-        ctx = EngineMoveValidator::load(bd, ps, Turn::Black);
+        ctx = EngineMoveValidator::load(position, Turn::Black);
 
         QElapsedTimer timer;
         timer.start();

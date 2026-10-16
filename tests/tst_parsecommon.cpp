@@ -38,31 +38,12 @@ private slots:
 
     // ---- foulTerminalMove ----
 
-    // ---- formatTimeMS ----
     void csaSpecialToTerminal_data();
     void csaSpecialToTerminal();
     void csaSpecial_illegalActionDependsOnSide();
     void terminalWords_readAliases();
     void terminalWords_findInText();
     void terminalWords_labelRoundTrip();
-    void formatTimeMS_zero();
-    void formatTimeMS_basic();
-    void formatTimeMS_minutes();
-    void formatTimeMS_negative();
-
-    // ---- formatTimeHMS ----
-    void formatTimeHMS_zero();
-    void formatTimeHMS_basic();
-    void formatTimeHMS_hours();
-    void formatTimeHMS_negative();
-
-    // ---- formatTimeText ----
-    void formatTimeText_basic();
-
-    // ---- toGameInfoMap ----
-    void toGameInfoMap_empty();
-    void toGameInfoMap_basic();
-    void toGameInfoMap_duplicateKey();
 
     // ---- digit parsing ----
 
@@ -75,8 +56,6 @@ private slots:
     // ---- helper functions ----
     void appendLine_empty();
     void appendLine_nonEmpty();
-    void tebanMark_odd();
-    void tebanMark_even();
 
     // ---- board/format detection ----
     void isBoardHeaderOrFrame_digitLine();
@@ -143,90 +122,6 @@ void TestParseCommon::isBookmarkLine_normalLine()
 }
 
 // ==== csaSpecialToTerminal ====
-
-// ==== formatTimeMS ====
-
-void TestParseCommon::formatTimeMS_zero()
-{
-    QCOMPARE(KifuParseCommon::formatTimeMS(0), QStringLiteral("00:00"));
-}
-
-void TestParseCommon::formatTimeMS_basic()
-{
-    // 30秒 = 30000ms
-    QCOMPARE(KifuParseCommon::formatTimeMS(30000), QStringLiteral("00:30"));
-}
-
-void TestParseCommon::formatTimeMS_minutes()
-{
-    // 5分30秒 = 330000ms
-    QCOMPARE(KifuParseCommon::formatTimeMS(330000), QStringLiteral("05:30"));
-}
-
-void TestParseCommon::formatTimeMS_negative()
-{
-    // 負値は0として扱う
-    QCOMPARE(KifuParseCommon::formatTimeMS(-1000), QStringLiteral("00:00"));
-}
-
-// ==== formatTimeHMS ====
-
-void TestParseCommon::formatTimeHMS_zero()
-{
-    QCOMPARE(KifuParseCommon::formatTimeHMS(0), QStringLiteral("00:00:00"));
-}
-
-void TestParseCommon::formatTimeHMS_basic()
-{
-    // 1分30秒 = 90000ms
-    QCOMPARE(KifuParseCommon::formatTimeHMS(90000), QStringLiteral("00:01:30"));
-}
-
-void TestParseCommon::formatTimeHMS_hours()
-{
-    // 2時間30分15秒 = 9015000ms
-    QCOMPARE(KifuParseCommon::formatTimeHMS(9015000), QStringLiteral("02:30:15"));
-}
-
-// ==== formatTimeText ====
-
-void TestParseCommon::formatTimeText_basic()
-{
-    // 30秒手, 累計5分30秒
-    QCOMPARE(KifuParseCommon::formatTimeText(30000, 330000),
-             QStringLiteral("00:30/00:05:30"));
-}
-
-// ==== toGameInfoMap ====
-
-void TestParseCommon::toGameInfoMap_empty()
-{
-    QList<KifGameInfoItem> items;
-    auto m = KifuParseCommon::toGameInfoMap(items);
-    QVERIFY(m.isEmpty());
-}
-
-void TestParseCommon::toGameInfoMap_basic()
-{
-    QList<KifGameInfoItem> items;
-    items.append({QStringLiteral("先手"), QStringLiteral("田中")});
-    items.append({QStringLiteral("後手"), QStringLiteral("佐藤")});
-    auto m = KifuParseCommon::toGameInfoMap(items);
-    QCOMPARE(m.size(), 2);
-    QCOMPARE(m.value(QStringLiteral("先手")), QStringLiteral("田中"));
-    QCOMPARE(m.value(QStringLiteral("後手")), QStringLiteral("佐藤"));
-}
-
-void TestParseCommon::toGameInfoMap_duplicateKey()
-{
-    // 重複キーは後勝ち
-    QList<KifGameInfoItem> items;
-    items.append({QStringLiteral("備考"), QStringLiteral("一行目")});
-    items.append({QStringLiteral("備考"), QStringLiteral("二行目")});
-    auto m = KifuParseCommon::toGameInfoMap(items);
-    QCOMPARE(m.size(), 1);
-    QCOMPARE(m.value(QStringLiteral("備考")), QStringLiteral("二行目"));
-}
 
 // ==== digit parsing ====
 
@@ -334,18 +229,6 @@ void TestParseCommon::appendLine_nonEmpty()
     QCOMPARE(buf, QStringLiteral("line1\nline2"));
 }
 
-void TestParseCommon::tebanMark_odd()
-{
-    QCOMPARE(KifuParseCommon::tebanMark(1), QStringLiteral("▲"));
-    QCOMPARE(KifuParseCommon::tebanMark(3), QStringLiteral("▲"));
-}
-
-void TestParseCommon::tebanMark_even()
-{
-    QCOMPARE(KifuParseCommon::tebanMark(2), QStringLiteral("△"));
-    QCOMPARE(KifuParseCommon::tebanMark(0), QStringLiteral("△"));
-}
-
 // ==== board/format detection ====
 
 void TestParseCommon::isBoardHeaderOrFrame_digitLine()
@@ -411,14 +294,6 @@ void TestParseCommon::isBodHandsLine_normal()
 }
 
 // ==== USI piece conversion ====
-
-// ==== formatTimeHMS negative ====
-
-void TestParseCommon::formatTimeHMS_negative()
-{
-    // Negative values are clamped to 0
-    QCOMPARE(KifuParseCommon::formatTimeHMS(-5000), QStringLiteral("00:00:00"));
-}
 
 // ==== table-driven: mapKanjiPiece abnormal ====
 

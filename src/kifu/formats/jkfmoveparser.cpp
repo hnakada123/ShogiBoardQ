@@ -5,9 +5,8 @@
 #include "handicaps.h"
 #include "kifmovetext.h"
 #include "shoginotation.h"
-#include "notationutils.h"
-#include "parsecommon.h"
 #include "sfenutils.h"
+#include "shogiposition.h"
 
 namespace {
 
@@ -66,149 +65,77 @@ QString buildSfenFromInitialData(const QJsonObject& data, int moveNumber)
         }
     }
 
-    QString boardStr;
-    if (data.contains(QStringLiteral("board"))) {
-        const QJsonArray board = data[QStringLiteral("board")].toArray();
-
+    // 盤は board[筋 - 1][段 - 1]
+    Position position;
+    for (int x = 0; x < 9; ++x) {
+        const QJsonArray column = boardData[x].toArray();
         for (int y = 0; y < 9; ++y) {
-            int emptyCount = 0;
-            QString rowStr;
-            for (int x = 8; x >= 0; --x) {
-                const QJsonArray col = board[x].toArray();
-                const QJsonObject cell = col[y].toObject();
-
-                if (cell.isEmpty() || !cell.contains(QStringLiteral("kind"))) {
-                    ++emptyCount;
-                } else {
-                    if (emptyCount > 0) {
-                        rowStr += QString::number(emptyCount);
-                        emptyCount = 0;
-                    }
-                    const Turn owner = cell[QStringLiteral("color")].toInt() == 0 ? Turn::Black : Turn::White;
-                    const Piece piece = ShogiNotation::pieceFromCsaCode(cell[QStringLiteral("kind")].toString(), owner);
-                    if (isPromoted(piece)) rowStr += QLatin1Char('+');
-                    rowStr += pieceToChar(demote(piece));
-                }
-            }
-            if (emptyCount > 0) {
-                rowStr += QString::number(emptyCount);
-            }
-            if (!boardStr.isEmpty()) boardStr += QLatin1Char('/');
-            boardStr += rowStr;
+            const QJsonObject cell = column[y].toObject();
+            if (cell.isEmpty() || !cell.contains(QStringLiteral("kind"))) continue;
+            const Turn owner = cell[QStringLiteral("color")].toInt() == 0 ? Turn::Black : Turn::White;
+            position.setPieceAt({x + 1, y + 1},
+                                ShogiNotation::pieceFromCsaCode(cell[QStringLiteral("kind")].toString(), owner));
         }
     }
-
-    QString handsStr;
-    if (data.contains(QStringLiteral("hands"))) {
-        const QJsonArray hands = data[QStringLiteral("hands")].toArray();
-        if (hands.size() >= 2) {
-            const QJsonObject blackHands = hands[0].toObject();
-            const QJsonObject whiteHands = hands[1].toObject();
-
-            auto emitHands = [](const QJsonObject& h, bool isBlack) -> QString {
-                QString s;
-                const char* order[] = {"HI", "KA", "KI", "GI", "KE", "KY", "FU"};
-                const char* sfenChar[] = {"R", "B", "G", "S", "N", "L", "P"};
-                for (int i = 0; i < 7; ++i) {
-                    const QString key = QString::fromUtf8(order[i]);
-                    if (h.contains(key)) {
-                        int count = h[key].toInt();
-                        if (count > 0) {
-                            if (count > 1) s += QString::number(count);
-                            QString ch = QString::fromUtf8(sfenChar[i]);
-                            if (!isBlack) ch = ch.toLower();
-                            s += ch;
-                        }
-                    }
-                }
-                return s;
-            };
-
-            handsStr = emitHands(blackHands, true) + emitHands(whiteHands, false);
+    // 持ち駒は hands[0] が先手、hands[1] が後手
+    for (int side = 0; side < 2; ++side) {
+        const QJsonObject hand = handsData[side].toObject();
+        for (auto it = hand.begin(); it != hand.end(); ++it) {
+            const Piece piece = ShogiNotation::pieceFromCsaCode(it.key(), side == 0 ? Turn::Black : Turn::White);
+            position.addToHand(piece, it.value().toInt());
         }
     }
-    if (handsStr.isEmpty()) handsStr = QStringLiteral("-");
-
-    const QString turnStr = (color == 0) ? QStringLiteral("b") : QStringLiteral("w");
-
-    return QStringLiteral("%1 %2 %3 %4")
-        .arg(boardStr, turnStr, handsStr, QString::number(moveNumber));
+    position.setSideToMove(color == 0 ? Turn::Black : Turn::White);
+    position.setMoveNumber(moveNumber);
+    return position.toSfen();
 }
 
 // --- 指し手変換 ---
 
-QString convertMoveToUsi(const QJsonObject& move, int& prevToX, int& prevToY)
+std::optional<UsiMove> toUsiMove(const QJsonObject& move)
 {
-    if (!move.contains(QStringLiteral("to"))) {
-        return QString();
-    }
-
+    if (!move.contains(QStringLiteral("to"))) return std::nullopt;
     const QJsonObject to = move[QStringLiteral("to")].toObject();
-    const int toX = to[QStringLiteral("x")].toInt();
-    const int toY = to[QStringLiteral("y")].toInt();
-    if (toX < 1 || toX > 9 || toY < 1 || toY > 9
-        || ShogiNotation::pieceFromCsaCode(move[QStringLiteral("piece")].toString()) == Piece::None) return {};
-
-    QString usi;
+    UsiMove usi;
+    usi.to = BoardSquare{to[QStringLiteral("x")].toInt(), to[QStringLiteral("y")].toInt()};
+    const Piece piece = ShogiNotation::pieceFromCsaCode(move[QStringLiteral("piece")].toString());
+    if (!usi.to.isValid() || piece == Piece::None) return std::nullopt;
 
     if (!move.contains(QStringLiteral("from"))) {
         // 打てるのは生駒（玉以外）だけ
-        const Piece piece = ShogiNotation::pieceFromCsaCode(move[QStringLiteral("piece")].toString());
-        usi = NotationUtils::formatSfenDrop(pieceToChar(piece), toX, toY);
-        if (usi.isEmpty()) return QString();
-    } else {
-        const QJsonObject from = move[QStringLiteral("from")].toObject();
-        const int fromX = from[QStringLiteral("x")].toInt();
-        const int fromY = from[QStringLiteral("y")].toInt();
-        if (fromX < 1 || fromX > 9 || fromY < 1 || fromY > 9) return {};
-
-        const bool promotes = move.contains(QStringLiteral("promote")) && move[QStringLiteral("promote")].toBool();
-        usi = NotationUtils::formatSfenMove(fromX, fromY, toX, toY, promotes);
+        if (isPromoted(piece) || piece == Piece::BlackKing) return std::nullopt;
+        usi.drop = piece;
+        return usi;
     }
-
-    prevToX = toX;
-    prevToY = toY;
-
+    const QJsonObject from = move[QStringLiteral("from")].toObject();
+    usi.from = BoardSquare{from[QStringLiteral("x")].toInt(), from[QStringLiteral("y")].toInt()};
+    if (!usi.from.isValid()) return std::nullopt;
+    usi.promote = move[QStringLiteral("promote")].toBool(false);
     return usi;
 }
 
-QString convertMoveToPretty(const QJsonObject& move, Turn mover, const UsiMove& usi, BoardSquare previousTo)
+KifMoveText::Notes notesOf(const QJsonObject& move)
 {
     KifMoveText::Notes notes;
     notes.modifier = relativeToModifier(move[QStringLiteral("relative")].toString());
     const QJsonValue promote = move[QStringLiteral("promote")];
     notes.declinedPromotion = promote.isBool() && !promote.toBool();
-    const Piece moving = ShogiNotation::pieceFromCsaCode(move[QStringLiteral("piece")].toString());
-    return KifMoveText::format(mover, moving, usi, previousTo, notes);
+    return notes;
 }
 
 // --- 時間解析 ---
 
-QString formatTimeText(const QJsonObject& timeObj, qint64& cumSec)
+Time timeOf(const QJsonObject& timeObj)
 {
-    qint64 nowSec = 0;
-    if (timeObj.contains(QStringLiteral("now"))) {
-        const QJsonObject now = timeObj[QStringLiteral("now")].toObject();
-        int h = now[QStringLiteral("h")].toInt(0);
-        int m = now[QStringLiteral("m")].toInt(0);
-        int s = now[QStringLiteral("s")].toInt(0);
-        nowSec = h * 3600 + m * 60 + s;
-    }
-
-    qint64 totalSec = 0;
-    if (timeObj.contains(QStringLiteral("total"))) {
-        const QJsonObject total = timeObj[QStringLiteral("total")].toObject();
-        int h = total[QStringLiteral("h")].toInt(0);
-        int m = total[QStringLiteral("m")].toInt(0);
-        int s = total[QStringLiteral("s")].toInt(0);
-        totalSec = h * 3600 + m * 60 + s;
-        cumSec = totalSec;
-    } else {
-        cumSec += nowSec;
-        totalSec = cumSec;
-    }
-
-    return KifuParseCommon::formatTimeText(nowSec * 1000, totalSec * 1000);
+    const auto seconds = [](const QJsonObject& hms) {
+        return qint64(hms[QStringLiteral("h")].toInt(0)) * 3600 + hms[QStringLiteral("m")].toInt(0) * 60
+            + hms[QStringLiteral("s")].toInt(0);
+    };
+    Time time;
+    if (timeObj.contains(QStringLiteral("now"))) time.elapsedMs = seconds(timeObj[QStringLiteral("now")].toObject()) * 1000;
+    if (timeObj.contains(QStringLiteral("total")))
+        time.totalMs = seconds(timeObj[QStringLiteral("total")].toObject()) * 1000;
+    return time;
 }
 
 // --- コメント・修飾語 ---

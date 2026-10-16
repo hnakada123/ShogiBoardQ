@@ -2,7 +2,7 @@
 /// @brief 詰将棋の漢字PV構築ユーティリティの実装
 
 #include "tsumeshogikanjibuilder.h"
-#include "shogiboard.h"
+#include "shogiposition.h"
 #include "kifmovetext.h"
 #include "shoginotation.h"
 #include "usimove.h"
@@ -16,9 +16,9 @@ QString pieceCharToKanji(QChar piece)
 
 QString buildKanjiPv(const QString& baseSfen, const QStringList& pvMoves)
 {
-    ShogiBoard board;
-    board.setSfen(baseSfen);
-    bool blackToMove = !baseSfen.contains(QStringLiteral(" w "));
+    Position board;
+    board.assignSfen(baseSfen);
+    bool blackToMove = board.sideToMove() == Turn::Black;
 
     QString result;
     for (const QString& text : std::as_const(pvMoves)) {
@@ -26,18 +26,13 @@ QString buildKanjiPv(const QString& baseSfen, const QStringList& pvMoves)
         if (!move) continue;
         const Turn mover = blackToMove ? Turn::Black : Turn::White;
         const Piece moving = move->isDrop() ? move->dropPieceFor(mover)
-                                            : board.pieceCharacter(move->from.file, move->from.rank);
+                                            : board.pieceAt(move->from);
 
         // 詰将棋の読み筋は「同」を使わず、移動先を毎手書く
         result += KifMoveText::format(mover, moving, *move);
 
         // 盤面に反映（読み筋の漢字化なので、駒台の枚数は確かめずに打つ）
-        if (move->isDrop()) {
-            if (board.pieceStandCount(moving) > 0) board.consumeStandPiece(moving);
-            board.movePieceToSquare(moving, 0, 0, move->to.file, move->to.rank, false);
-        } else {
-            board.applyUsiMove(*move, mover);
-        }
+        board.applyAs(*move, mover, Position::DropRule::Lenient);
         blackToMove = !blackToMove;
     }
     return result;

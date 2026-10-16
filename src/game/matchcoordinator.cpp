@@ -145,13 +145,11 @@ bool MatchCoordinator::completeHumanMove(const RecordEntry& played)
 bool MatchCoordinator::applyEngineMove(const UsiMatchMove& move)
 {
     if (isGameOver() || (m_sink && !m_sink->canAppendRecord())) return false;
-    const std::optional<RecordEntry> played = m_gc->applyMove(move.move);
+    const std::optional<RecordEntry> played = m_gc->applyMove(move.move, lastMoveDestination());
     if (!played) {
         handleEngineIllegalMove(move.side);
         return false;
     }
-    // 次の手番の思考で先読みの当たり・外れを判断する
-    m_session.setPonder(move.side, move.ponderPosition);
     m_clock->setMeasuredConsiderationTime(move.side, move.elapsedMs);
     return completeMove(*played, move.score);
 }
@@ -187,7 +185,7 @@ void MatchCoordinator::requestEngineMove(Turn side)
 {
     Usi* engine = m_engines->engineFor(side);
     if (!engine) return;
-    engine->requestMatchMove(m_record.positionCommand(currentPly()), m_session.ponder(side), {});
+    engine->requestMatchMove(m_record.usiPosition(currentPly()), {});
 }
 
 void MatchCoordinator::forceImmediateMove()
@@ -261,7 +259,7 @@ void MatchCoordinator::handleEngineWin(Turn side)
     // エンジンの入玉宣言（bestmove win）も人間の宣言と同じく、盤面から条件と点数を判定する。
     // 条件を満たさなければ宣言したエンジンの負け、24点法の24〜30点は持将棋。
     const NyugyokuJudgement::Result result =
-        NyugyokuJudgement::judgeEngineDeclaration(*m_gc->board(), side == Turn::Black, m_handicapNames);
+        NyugyokuJudgement::judgeEngineDeclaration(m_gc->board()->position(), side == Turn::Black, m_handicapNames);
     handleNyugyokuDeclaration(side, result.success, result.isDraw);
     // 人間の宣言は宣言の結果ダイアログで知らせる。エンジンの宣言はここで判定結果を知らせる
     if (isGameOver()) emit gameOverMessage(NyugyokuJudgement::resultTitle(), result.message);
@@ -449,10 +447,9 @@ bool MatchCoordinator::undoTwoPlies()
 
         const int targetPly = currentPly() - 2;
 
-        // 盤面と手番を戻す。「同」表記の基準は、戻した局面に至った手の移動先
+        // 盤面と手番を戻す（「同」表記の基準は手順の最後の手から導く）
         m_gc->board()->setSfen(m_record.sfenAt(targetPly));
         m_gc->setForcedPromotion(false);
-        m_gc->setPreviousMoveDestination(m_record.destinationOf(targetPly));
         m_record.entries.resize(targetPly);
 
         // 時計を取り消した自分の手を指し始めたときへ戻し、考慮時間は今から測り直す
@@ -462,7 +459,9 @@ bool MatchCoordinator::undoTwoPlies()
             m_strategy->armTurnTimerIfNeeded();
         }
         if (m_sink) m_sink->undoRecords(2);
-        m_session.clearPonder();
+        // 戻す前の局面で始めた先読みは当たらない
+        for (const Turn side : {Turn::Black, Turn::White})
+            if (Usi* engine = m_engines->engineFor(side)) engine->forgetPonder();
     }
     emit movesUndone(currentPly());
     return true;
@@ -485,7 +484,6 @@ void MatchCoordinator::captureInterruptedGame()
     state->options.sfenStart = m_record.lastSfen();
     state->options.resumeFromBreakOff = true;
     state->record = m_record;
-    state->previousTo = m_gc->previousMoveDestination();
     m_interruptedGame = std::move(state);
 }
 
@@ -504,7 +502,6 @@ bool MatchCoordinator::resumeInterruptedGame()
     m_activity->setActivity(AppActivityState::Activity::DuringGame);
     m_record = state->record;
     m_gc->board()->setSfen(state->options.sfenStart);
-    m_gc->setPreviousMoveDestination(state->previousTo);
 
     // 時計のスナップショットは持ち時間の決まりと時間切れの扱いも含む
     m_clock->restoreSnapshot(state->clock);

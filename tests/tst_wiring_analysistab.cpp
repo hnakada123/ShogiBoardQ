@@ -18,6 +18,7 @@
 #include "shogienginethinkingmodel.h"
 #include "pvboarddialog.h"
 #include "gamesession.h"
+#include "sfenutils.h"
 #include "test_replay.h"
 
 class TestWiringAnalysisTab : public QObject {

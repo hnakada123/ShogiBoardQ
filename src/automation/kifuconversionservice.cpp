@@ -43,7 +43,7 @@ KifuConversionService::Result KifuConversionService::convert(const Request& requ
     }
     if (!loaded.positionOnly.isEmpty()) {
         loaded.initialSfen = loaded.positionOnly;
-        loaded.record.mainline.baseSfen = loaded.positionOnly;
+        loaded.record.mainline.startSfen = loaded.positionOnly;
     }
     result.gameInfo = loaded.gameInfo;
     result.hasBranches = !loaded.record.variations.isEmpty();
@@ -59,7 +59,7 @@ KifuConversionService::Result KifuConversionService::convert(const Request& requ
 
     result.initialSfen = model.initialSfenForExport(loaded.initialSfen);
     result.sfens = tree.sfenListForLine(0);
-    result.moves = model.collectMainlineForExport();
+    result.mainline = model.collectMainlineForExport();
     result.usiMoves = model.collectMainlineUsiForExport();
 
     GameRecordModel::ExportContext ctx;

@@ -12,7 +12,6 @@
 #include <optional>
 
 #include "kifubranchnode.h"
-#include "kifdisplayitem.h"
 #include "recordline.h"
 #include "recordentry.h"
 
@@ -280,14 +279,13 @@ public:
      */
     void setComment(int nodeId, const QString& comment);
 
-    // === データ抽出（ResolvedRow互換）===
+    // === データ抽出 ===
 
     /**
-     * @brief 指定ラインの表示アイテムリストを取得
-     * @param lineIndex ラインインデックス（0=本譜）
-     * @return KifDisplayItemのリスト（インデックス0=開始局面、1以降=指し手）
+     * @brief 指定ラインの手順（書き出し・CLI 用。末尾の終局の行と、開始局面のコメント・しおりを含む）
+     * @param lineIndex ラインインデックス（0=本譜。範囲外なら空の手順）
      */
-    QList<KifDisplayItem> displayItemsForLine(int lineIndex) const;
+    RecordLine exportLine(int lineIndex) const;
 
     /**
      * @brief 指定ラインのSFENリストを取得

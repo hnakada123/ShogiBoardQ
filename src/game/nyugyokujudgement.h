@@ -7,7 +7,7 @@
 #include <QCoreApplication>
 #include <QString>
 
-class ShogiBoard;
+class Position;
 
 /**
  * @brief 盤面から入玉宣言の成否を判定し、結果の説明を作る
@@ -35,11 +35,11 @@ public:
 
     /// 宣言側（declarerIsSente）の入玉宣言を盤面から判定する。rule は Rule24 または Rule27。
     /// handicapNames なら結果の説明で宣言側を下手・上手と呼ぶ
-    static Result judge(const ShogiBoard& board, bool declarerIsSente, int rule, bool handicapNames = false);
+    static Result judge(const Position& position, bool declarerIsSente, int rule, bool handicapNames = false);
 
     /// エンジンの宣言を、設定した持将棋ルールで判定する。
     /// 「なし」の場合は宣言を取り消せないため、27点法（CSAの標準）で判定してその旨を説明に加える。
-    static Result judgeEngineDeclaration(const ShogiBoard& board, bool declarerIsSente,
+    static Result judgeEngineDeclaration(const Position& position, bool declarerIsSente,
                                          bool handicapNames = false);
 
     /// 宣言側の呼び名（先手・後手、駒落ちで handicapNames なら下手・上手）

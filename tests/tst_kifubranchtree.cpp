@@ -367,11 +367,11 @@ private slots:
         KifuBranchTree tree;
         tree.setRootSfen(kHirateSfen);
         ShogiMove dummyMove;
-        auto* n1 = tree.addMove(tree.root(), dummyMove, QStringLiteral("m1"), QStringLiteral("board w RPb 2"));
+        auto* n1 = tree.addMove(tree.root(), dummyMove, QStringLiteral("m1"), QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 w RPb 2"));
 
-        QCOMPARE(tree.findBySfen(QStringLiteral("board w RbP 99")), n1);
-        QCOMPARE(tree.findBySfen(QStringLiteral("board w RPb")), n1);
-        QVERIFY(tree.findBySfen(QStringLiteral("board w")) == nullptr);   // 不完全な SFEN
+        QCOMPARE(tree.findBySfen(QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 w RbP 99")), n1);
+        QCOMPARE(tree.findBySfen(QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 w RPb")), n1);
+        QVERIFY(tree.findBySfen(QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 w")) == nullptr);   // 不完全な SFEN
         QVERIFY(tree.findBySfen(QString()) == nullptr);
     }
 
@@ -405,11 +405,11 @@ private slots:
         tree.setRootSfen(kHirateSfen);
         ShogiMove dummyMove;
         auto* n1 = tree.addMove(tree.root(), dummyMove, QStringLiteral("m1"),
-                                QStringLiteral("board w RPb 2"));
+                                QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 w RPb 2"));
         QCOMPARE(tree.findMatchingChild(tree.root(), dummyMove, QStringLiteral("m1"),
-                                        QStringLiteral("board w RbP 2")), n1);
+                                        QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 w RbP 2")), n1);
         QVERIFY(tree.findMatchingChild(tree.root(), dummyMove, QStringLiteral("m1"),
-                                       QStringLiteral("board w R2Pb 2")) == nullptr);
+                                       QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 w R2Pb 2")) == nullptr);
         QVERIFY(tree.findMatchingChild(tree.root(), dummyMove, QStringLiteral("m1"),
                                        QStringLiteral("board b RPb 2")) == nullptr);
     }

@@ -4,50 +4,22 @@
 /// @file kiftosfenconverter.h
 /// @brief KIF形式棋譜コンバータクラスの定義
 
+#include <QStringView>
 
-#include <QList>
-#include <QMap>
-#include <QString>
-#include <QStringList>
-#include "kifdisplayitem.h"
 #include "kifparsetypes.h"
 
 /**
- * @brief KIF形式の棋譜を解析し、USI形式やGUI用データに変換するクラス
+ * @brief KIF形式の棋譜を読む
  *
- * 棋譜は1回だけ行に分けて読み、本譜と各変化を1回の走査で KifParseResult にする
- * （表示用の指し手と USI の指し手は同じ走査で作るので、並びが必ずそろう）。
- * ファイルは KifuLoadParser が文字コードを判別して読み、テキスト版の関数に渡す。
+ * 棋譜（本譜と各変化）・開始局面・手合割の名前・対局情報を1回の解析で返す。
+ * 行の分類・変化の区切り・指し手の文法は KI2 と共有する（KifTextParser）。
+ * ファイルは KifuLoadParser が文字コードを判別して読み、テキストを渡す。
  */
 class KifToSfenConverter
 {
 public:
-    // ---- テキスト（貼り付けた棋譜など） ----
-
-    /// 開始局面のSFEN（局面図、なければ手合割から判定）
-    static QString detectInitialSfenFromText(const QString& text, QString* detectedLabel = nullptr);
-
-    /// 本譜＋全変化をまとめて抽出（コメント・しおりも格納）
-    [[nodiscard]] static bool parseText(const QString& text, KifParseResult& out, QString* errorMessage = nullptr);
-
-    /// 「対局情報」を抽出して順序付きで返す（同一キーは改行で連結、値中の「\n」は改行に変換）
-    static QList<KifGameInfoItem> extractGameInfoFromText(const QString& text);
-
-    // ---- 行に分けたテキスト ----
-
-    static QString detectInitialSfenFromLines(const QStringList& lines, QString* detectedLabel = nullptr);
-    /// 行に分けた棋譜を読む。detectedLabel には手合割の名前（局面図なら "BOD"）を返す
-    [[nodiscard]] static bool parseLines(const QStringList& lines, KifParseResult& out, QString* errorMessage = nullptr,
-                                         QString* detectedLabel = nullptr);
-    static QList<KifGameInfoItem> extractGameInfoFromLines(const QStringList& lines);
-
-    // ---- 局面 ----
-
-    /// 手合→初期SFEN
-    static QString mapHandicapToSfen(const QString& label);
-
-    [[nodiscard]] static bool buildInitialSfenFromBod(const QStringList& lines, QString& outSfen,
-                                        QString* detectedLabel = nullptr, QString* warn = nullptr);
+    /// 棋譜を読む。手合割の名前は局面図なら "BOD"、手合割の行がなければ "平手(既定)"
+    static KifuParseOutcome parse(QStringView text, const ParseOptions& options = {});
 };
 
 #endif // KIFTOSFENCONVERTER_H

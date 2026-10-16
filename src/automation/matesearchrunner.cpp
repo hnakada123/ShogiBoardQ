@@ -40,7 +40,7 @@ void MateSearchRunner::onSessionReady()
 {
     if (m_done) return;
     m_searchStarted = true;
-    m_session->search(UsiSearchRequest::mate(m_request.positionCommand, qMax(100, m_request.timeMs)));
+    m_session->search(UsiSearchRequest::mate(m_request.position, qMax(100, m_request.timeMs)));
     m_elapsed.start();
 }
 

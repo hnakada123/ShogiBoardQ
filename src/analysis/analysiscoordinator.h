@@ -12,6 +12,7 @@
 #include <limits>
 
 #include "usiinfo.h"
+#include "usiposition.h"
 
 
 /**
@@ -29,7 +30,7 @@ class AnalysisCoordinator : public QObject
 public:
     /// 依存オブジェクト
     struct Deps {
-        QStringList positions;  ///< 解析する局面（[ply]。SFEN か `position ...` コマンド）
+        QList<UsiPosition> positions;  ///< 解析する局面（[ply]。そこに至った手は読み筋の「同」の判定に使う）
     };
 
     /// 解析オプション
@@ -76,7 +77,7 @@ signals:
     void requestSetOption(const QString& name, const QString& value);
 
     /// 局面の探索を頼む（position + go infinite を送り、thinkMs 後に stop を送る）
-    void requestSearch(const QString& positionCommand, int thinkMs);
+    void requestSearch(const UsiPosition& position, int thinkMs);
 
     /// 探索の停止を頼む（解析をやめたとき）
     void requestStop();
@@ -89,7 +90,7 @@ signals:
 
     /// 解析対象局面の準備完了を通知する（AnalysisJob が受ける）
     /// 表示用通知。受信者がいなくても探索を開始する。
-    void positionPrepared(int ply, const QString& positionCmd);
+    void positionPrepared(int ply, const QString& sfen);
 
 public:
     // --- AnalysisJob から呼ばれるメソッド ---

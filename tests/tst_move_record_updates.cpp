@@ -267,7 +267,7 @@ private slots:
             KifuBranchNode* node = tree.addMove(path.last(), ShogiMove(), QStringLiteral("▲７六歩(77)"),
                                                 QStringLiteral("sfen-%1").arg(row),
                                                 QStringLiteral("00:01/00:00:%1").arg(row, 2, 10, QLatin1Char('0')));
-            node->setComment(sentence.repeated(1 + row % 5) + QStringLiteral(" (%1)").arg(row));
+            node->record().comment = (sentence.repeated(1 + row % 5) + QStringLiteral(" (%1)").arg(row));
             path.append(node);
         }
         // 5手目を分岐にして、分岐の印の付いた行も比べる

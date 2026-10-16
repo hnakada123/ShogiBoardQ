@@ -17,12 +17,14 @@ inline void verifyParsedRecord(bool success, const KifParseResult& result, const
         QVERIFY2(!diagnostic.isEmpty(), "Failed import must explain why it failed");
         return;
     }
-    QList<KifLine> lines{result.mainline};
+    QList<RecordLine> lines{result.mainline};
     for (const auto& variation : result.variations) lines.append(variation.line);
     for (const auto& line : lines) {
+        // 局面だけの棋譜（USI・SFEN・BOD）は手順を持たない
+        if (line.isEmpty() && line.entries.isEmpty()) continue;
         ShogiBoard board;
-        QVERIFY2(board.trySetSfen(line.baseSfen), qPrintable(line.baseSfen));
-        QString previous = line.baseSfen;
+        QVERIFY2(board.trySetSfen(line.startSfen), qPrintable(line.startSfen));
+        QString previous = line.startSfen;
         bool terminalSeen = false;
         for (const auto& entry : line.entries) {
             QVERIFY(!terminalSeen);

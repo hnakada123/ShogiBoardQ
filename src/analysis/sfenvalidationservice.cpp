@@ -4,7 +4,6 @@
 #include "sfenvalidationservice.h"
 
 #include "sfenutils.h"
-#include "shogiboard.h"
 
 #include <position.h>
 
@@ -73,13 +72,15 @@ SfenValidation SfenValidationService::validate(const QString& sfenLike)
     const QString full = parts.size() == 4 ? parts.join(QLatin1Char(' '))
                                            : parts.join(QLatin1Char(' ')) + QStringLiteral(" 1");
 
-    const auto components = ShogiBoard::parseSfen(full);
-    if (!components) {
+    bool numberOk = false;
+    const int moveNumber = full.section(QLatin1Char(' '), 3, 3).toInt(&numberOk);
+    const QString turn = full.section(QLatin1Char(' '), 1, 1);
+    if ((turn != QLatin1String("b") && turn != QLatin1String("w")) || !numberOk || moveNumber <= 0) {
         result.errors.append(QStringLiteral("Turn must be 'b' or 'w' and the move number a positive integer"));
         return result;
     }
-    result.turn = turnToSfen(components->turn);
-    result.moveNumber = components->moveNumber;
+    result.turn = turn;
+    result.moveNumber = moveNumber;
 
     shogi::Position position;
     if (!position.set_sfen(full.toStdString(), true)) {

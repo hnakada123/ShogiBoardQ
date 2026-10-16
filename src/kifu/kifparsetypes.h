@@ -2,15 +2,15 @@
 #define KIFPARSETYPES_H
 
 /// @file kifparsetypes.h
-/// @brief KIF棋譜パース用データ型の定義
+/// @brief 棋譜の読み込み結果（本譜・変化・対局情報）と、読めない手の扱い
 
 #include <QString>
 #include <QStringList>
 #include <QList>
 #include <optional>
 
-#include "recordentry.h"
-#include "kifdisplayitem.h"
+#include "recordline.h"
+#include "usimove.h"
 
 /// KIFの「(キーワード)：(内容)」行を表すペア
 ///
@@ -21,61 +21,13 @@ struct KifGameInfoItem {
 
 // --- 分岐用データ構造 ---
 
-/// 1本の手順（本譜または変化）。取り込んだ行は着手・終局・局面・注釈を一緒に持つ
-struct KifLine {
-    int startPly = 1;
-    QString baseSfen;
-    std::optional<KifDisplayItem> opening;
-    QList<RecordEntry> entries;
-
-    bool endsWithTerminal() const { return !entries.isEmpty() && entries.last().isTerminal(); }
-    int moveCount() const { return static_cast<int>(entries.size()) - (endsWithTerminal() ? 1 : 0); }
-    QString sfenAt(int offset) const
-    {
-        return offset == 0 ? baseSfen : (offset > 0 && offset <= moveCount() ? entries.at(offset - 1).sfen : QString());
-    }
-    QStringList usiMoves() const
-    {
-        QStringList out;
-        for (const auto& entry : entries)
-            if (!entry.isTerminal()) out.append(entry.move.move.toString());
-        return out;
-    }
-    QStringList sfenList() const
-    {
-        QStringList out{baseSfen};
-        for (const auto& entry : entries)
-            if (!entry.isTerminal()) out.append(entry.sfen);
-        return out;
-    }
-    QList<KifDisplayItem> displayItems() const
-    {
-        QList<KifDisplayItem> out;
-        if (opening) out.append(*opening);
-        QString before = baseSfen;
-        int ply = startPly;
-        for (const auto& record : entries) {
-            KifDisplayItem item(record.displayText, record.time.toText(), record.comment, ply++);
-            item.bookmark = record.bookmark;
-            item.beforeSfen = before;
-            item.terminal = record.isTerminal();
-            item.terminalType = record.terminal;
-            item.terminalSide = record.mover;
-            if (!item.terminal) item.usiMove = record.move.move.toString();
-            out.append(item);
-            before = record.sfen;
-        }
-        return out;
-    }
-};
-
 /**
  * @brief 変化（どの手数から分岐するか）を表す構造体
  *
  */
 struct KifVariation {
     int startPly = 1;  ///< 変化開始手数（例: 「変化：65手」なら 65）
-    KifLine line;      ///< 変化の手順
+    RecordLine line;   ///< 変化の手順（line.startPly == startPly）
     int parentVariation = -1; ///< 分岐元の手順。-1 は本譜、それ以外は variations の先行要素
 };
 
@@ -84,7 +36,7 @@ struct KifBranchPoint {
     int parentVariation = -1;  ///< 分岐元の手順。-1 は本譜
     int startPly = 1;          ///< 変化の最初の手の手数
     QString sfen;              ///< 変化の最初の手を指す前の局面
-    QString previousUsi;       ///< その局面に至った手（「同」の解決用。開始局面なら空）
+    std::optional<UsiMove> previousMove;  ///< その局面に至った手（「同」の解決用。開始局面なら nullopt）
 };
 
 /**
@@ -94,11 +46,11 @@ struct KifBranchPoint {
  * variations の並びのまま木にできる。
  */
 struct KifParseResult {
-    KifLine mainline;                  ///< 本譜
+    RecordLine mainline;             ///< 本譜
     QList<KifVariation> variations;  ///< 変化リスト（書かれた順）
 
     /// 手順（-1 は本譜）
-    const KifLine& lineAt(int variation) const
+    const RecordLine& lineAt(int variation) const
     {
         return variation < 0 ? mainline : variations.at(variation).line;
     }
@@ -107,7 +59,7 @@ struct KifParseResult {
     std::optional<KifBranchPoint> branchPoint(int parent, int startPly) const
     {
         if (parent < -1 || parent >= variations.size() || startPly < 1) return std::nullopt;
-        const KifLine& line = lineAt(parent);
+        const RecordLine& line = lineAt(parent);
         const int offset = startPly - firstPlyOf(parent);  // 手順の中で、分岐の前に指した手の数
         if (offset < 0 || offset > line.moveCount()) return std::nullopt;
         KifBranchPoint point;
@@ -115,11 +67,12 @@ struct KifParseResult {
         point.startPly = startPly;
         point.sfen = line.sfenAt(offset);
         if (offset > 0) {
-            point.previousUsi = line.entries.at(offset - 1).move.move.toString();
+            point.previousMove = line.entries.at(offset - 1).move.move;
         } else if (parent >= 0) {
             // 手順の最初の手の前で分かれるなら、直前の手は分岐元の手順にある
             const KifVariation& variation = variations.at(parent);
-            if (const auto up = branchPoint(variation.parentVariation, variation.startPly)) point.previousUsi = up->previousUsi;
+            if (const auto up = branchPoint(variation.parentVariation, variation.startPly))
+                point.previousMove = up->previousMove;
         }
         return point;
     }
@@ -148,14 +101,101 @@ struct KifParseResult {
     }
 
     /// 変化を足す（line は from.sfen から始まる手順）
-    void addVariation(const KifBranchPoint& from, KifLine line)
+    void addVariation(const KifBranchPoint& from, RecordLine line)
     {
         KifVariation variation;
         variation.startPly = from.startPly;
         variation.parentVariation = from.parentVariation;
+        line.startPly = from.startPly;
         variation.line = std::move(line);
         variations.append(std::move(variation));
     }
+};
+
+/**
+ * @brief 読めない手・指せない手の扱い（全形式で同じ。ここだけで決める）
+ *
+ * 読めない手（表記が解釈できない・局面に合わない）・指せない手・パスがあったときに、
+ * その手順をその手の手前で打ち切って読み込みを続けるか、棋譜全体を読めなかったことにするか。
+ */
+struct ParseOptions {
+    enum class UnreadableMove {
+        TruncateLine,  ///< その手の手前で手順を打ち切り、警告に「何手目まで読んだか」を書いて続ける
+        FailRecord,    ///< 棋譜全体を読めなかったことにする
+    };
+    UnreadableMove unreadableMove = UnreadableMove::TruncateLine;
+};
+
+/**
+ * @brief 読み込み中の警告と失敗の記録（ParseOptions の方針で、読めない手をどう扱うかを決める）
+ */
+class ParseReport
+{
+public:
+    explicit ParseReport(const ParseOptions& options = {}) : m_options(options) {}
+
+    const ParseOptions& options() const { return m_options; }
+    /// 警告を1行足す（末尾の改行は付ける）
+    void warn(const QString& message)
+    {
+        m_warnings += message;
+        if (!message.endsWith(QLatin1Char('\n'))) m_warnings += QLatin1Char('\n');
+    }
+    /// 棋譜全体を読めなかったことにする
+    void fail(const QString& message)
+    {
+        warn(message);
+        m_failed = true;
+    }
+    /**
+     * @brief ply 手目が読めない・指せない（reason は "KIF: cannot parse move 5: ..." のような1行）
+     * @return 手順を打ち切って読み込みを続けるなら true、棋譜全体を読めなかったことにしたなら false
+     */
+    bool rejectMove(int ply, const QString& reason)
+    {
+        if (m_options.unreadableMove == ParseOptions::UnreadableMove::FailRecord) {
+            fail(reason);
+            return false;
+        }
+        warn(reason);
+        m_warnings += truncationNotice(ply);
+        return true;
+    }
+    /// ply 手目のパス（未対応の手として rejectMove と同じに扱う）
+    bool rejectPass(const QString& format, int ply)
+    {
+        return rejectMove(ply, QStringLiteral("%1: Move %2 is a pass, which is not supported.").arg(format).arg(ply));
+    }
+
+    bool failed() const { return m_failed; }
+    const QString& warnings() const { return m_warnings; }
+
+    /// 手順を ply 手目の手前で打ち切ったときの警告
+    static QString truncationNotice(int ply)
+    {
+        return ply > 1 ? QStringLiteral("The record was read up to move %1.\n").arg(ply - 1)
+                       : QStringLiteral("No moves were read from this line.\n");
+    }
+
+private:
+    ParseOptions m_options;
+    QString m_warnings;
+    bool m_failed = false;
+};
+
+/**
+ * @brief 1回の解析で得る棋譜のすべて（形式ごとの parse() が返す）
+ *
+ * 棋譜（本譜・変化）・開始局面・手合割の名前・対局情報・警告を同じ解析で作る。
+ */
+struct KifuParseOutcome {
+    bool success = false;
+    KifParseResult record;
+    QString initialSfen;               ///< 開始局面（record.mainline.startSfen と同じ）
+    QString teaiLabel;                 ///< 手合割の名前（局面図なら "BOD"、USI・CSA は「平手」「局面指定」）
+    QList<KifGameInfoItem> gameInfo;   ///< 対局情報（書かれた順）
+    QString warning;                   ///< 警告（失敗したときは理由）
+    QString positionOnly;              ///< 指し手のない局面だけの棋譜（USI・SFEN・BOD）の局面
 };
 
 #endif // KIFPARSETYPES_H

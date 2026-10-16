@@ -562,11 +562,11 @@ void ShogiView::refreshPieceImages()
 void ShogiView::loadPieceImages(bool flipped)
 {
     auto& provider = PieceImageProvider::instance();
-    const QString types = QStringLiteral("PLNSGBRKQMOTCUplnsgbrkqmotcu");
     bool changed = false;
-    for (const QChar type : types) {
-        const QIcon icon = provider.icon(type, flipped);
-        const Piece piece = charToPiece(type);
+    for (int code = 0; code < 2 * 16; ++code) {
+        if ((code & PieceCode::kKindMask) >= kPieceKindCount) continue;
+        const Piece piece = static_cast<Piece>(code);
+        const QIcon icon = provider.icon(piece, flipped);
         const auto current = m_pieces.constFind(piece);
         if (current != m_pieces.cend() && current->cacheKey() == icon.cacheKey()) continue;
         m_pieces.insert(piece, icon);

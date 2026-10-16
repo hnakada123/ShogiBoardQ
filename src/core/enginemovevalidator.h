@@ -5,7 +5,6 @@
 /// @brief 合法手の判定（ビットボードの合法手生成 fmv を使う）
 
 #include <QList>
-#include <QMap>
 #include <array>
 
 #include "fmvposition.h"
@@ -13,14 +12,14 @@
 #include "shogitypes.h"
 #include "usimove.h"
 
-class ShogiBoard;
+class Position;
 
 /**
  * @brief 合法手の判定
  *
  * 局面は Context に一度読み込んでから問い合わせる。同じ局面への問い合わせ
  * （行き先の候補・合法手の一覧・王手の数）は、読み込んだ Context を使い回す。
- * 1回だけ問い合わせるときは ShogiBoard を受け取る省略形を使う。
+ * 1回だけ問い合わせるときは局面（Position）を受け取る省略形を使う。
  */
 class EngineMoveValidator
 {
@@ -33,8 +32,10 @@ public:
     };
 
     // ---- 局面の読み込み ----
-    static Context load(const ShogiBoard& board, Turn turn);
-    static Context load(const QList<Piece>& boardData, const QMap<Piece, int>& pieceStand, Turn turn);
+    /// 局面を手番 turn で読み込む
+    static Context load(const Position& position, Turn turn);
+    /// 局面をその手番で読み込む
+    static Context load(const Position& position);
 
     // ---- 読み込んだ局面への問い合わせ ----
 
@@ -52,10 +53,10 @@ public:
     static int checkCount(const Context& ctx);
 
     // ---- 1回だけ問い合わせるときの省略形 ----
-    static LegalMoveStatus legalStatus(const ShogiBoard& board, Turn turn, const UsiMove& move);
-    static QList<UsiMove> legalMoves(const ShogiBoard& board, Turn turn);
-    static QList<UsiMove> pseudoLegalMoves(const ShogiBoard& board, Turn turn);
-    static bool isInCheck(const ShogiBoard& board, Turn turn);
+    static LegalMoveStatus legalStatus(const Position& position, Turn turn, const UsiMove& move);
+    static QList<UsiMove> legalMoves(const Position& position, Turn turn);
+    static QList<UsiMove> pseudoLegalMoves(const Position& position, Turn turn);
+    static bool isInCheck(const Position& position, Turn turn);
 
 #ifdef SHOGIBOARDQ_TESTING
     /// 連続適用・取り消しの検証用。通常の判定では生成しない。
@@ -66,10 +67,7 @@ public:
         int undoSize = 0;
     };
 
-    [[nodiscard]] static bool syncContext(SimulationContext& simulation,
-                                          const QList<Piece>& boardData,
-                                          const QMap<Piece, int>& pieceStand,
-                                          Turn turn);
+    [[nodiscard]] static bool syncContext(SimulationContext& simulation, const Position& position, Turn turn);
     [[nodiscard]] static bool tryApplyMove(SimulationContext& simulation, const UsiMove& move);
     [[nodiscard]] static bool undoLastMove(SimulationContext& simulation);
 #endif

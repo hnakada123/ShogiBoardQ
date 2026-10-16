@@ -12,7 +12,7 @@
 #include "shogitypes.h"
 #include "usimove.h"
 
-class ShogiBoard;
+class Position;
 
 /**
  * @brief JKFエクスポート用フォーマット変換ヘルパ関数群
@@ -36,7 +36,7 @@ QJsonObject sfenToJkfData(const QString& sfen);
  * 成れるのに成らない手で false、成れない手では書かない。relative は KI2 の修飾語・「打」を記号にしたもので、
  * 同じ駒で同じマスへ動ける駒がほかにあるときだけ書く。
  */
-QJsonObject moveToJkf(const ShogiBoard& board, Turn mover, const UsiMove& move, BoardSquare previousTo);
+QJsonObject moveToJkf(const Position& board, Turn mover, const UsiMove& move, BoardSquare previousTo);
 
 } // namespace JkfFormatter
 

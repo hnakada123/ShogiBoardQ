@@ -2,6 +2,7 @@
 /// @brief 持将棋・入玉宣言点数計算テスト
 
 #include <QtTest>
+#include "position_test_helper.h"
 
 #include "jishogicalculator.h"
 #include "shogitypes.h"
@@ -68,7 +69,7 @@ void TestJishogiCalculator::calculate_emptyBoard_zeroPoints()
     auto board = emptyBoard();
     QMap<Piece, int> stand;
 
-    auto result = JishogiCalculator::calculate(board, stand);
+    auto result = JishogiCalculator::calculate(PositionTestHelper::fromSquares(board, stand));
 
     QCOMPARE(result.sente.totalPoints, 0);
     QCOMPARE(result.sente.declarationPoints, 0);
@@ -87,7 +88,7 @@ void TestJishogiCalculator::calculate_kingsOnly_zeroPoints()
     board[80] = Piece::WhiteKing;
     QMap<Piece, int> stand;
 
-    auto result = JishogiCalculator::calculate(board, stand);
+    auto result = JishogiCalculator::calculate(PositionTestHelper::fromSquares(board, stand));
 
     QCOMPARE(result.sente.totalPoints, 0);
     QCOMPARE(result.gote.totalPoints, 0);
@@ -105,7 +106,7 @@ void TestJishogiCalculator::calculate_bigPieces_fivePointsEach()
     board[rank5file1 + 3] = Piece::BlackHorse;
     QMap<Piece, int> stand;
 
-    auto result = JishogiCalculator::calculate(board, stand);
+    auto result = JishogiCalculator::calculate(PositionTestHelper::fromSquares(board, stand));
 
     QCOMPARE(result.sente.totalPoints, 20); // 5*4
 }
@@ -122,7 +123,7 @@ void TestJishogiCalculator::calculate_smallPieces_onePointEach()
     board[rank5file1 + 4] = Piece::BlackPawn;
     QMap<Piece, int> stand;
 
-    auto result = JishogiCalculator::calculate(board, stand);
+    auto result = JishogiCalculator::calculate(PositionTestHelper::fromSquares(board, stand));
 
     QCOMPARE(result.sente.totalPoints, 5); // 1*5
 }
@@ -140,7 +141,7 @@ void TestJishogiCalculator::calculate_promotedPieces_sameAsBase()
     board[rank5file1 + 5] = Piece::BlackHorse;          // 5点（馬=角の成駒）
     QMap<Piece, int> stand;
 
-    auto result = JishogiCalculator::calculate(board, stand);
+    auto result = JishogiCalculator::calculate(PositionTestHelper::fromSquares(board, stand));
 
     QCOMPARE(result.sente.totalPoints, 14); // 1*4 + 5*2
 }
@@ -155,7 +156,7 @@ void TestJishogiCalculator::calculate_handPieces_counted()
     stand[Piece::WhiteBishop] = 1; // 5点
     stand[Piece::WhiteGold] = 2;   // 2点
 
-    auto result = JishogiCalculator::calculate(board, stand);
+    auto result = JishogiCalculator::calculate(PositionTestHelper::fromSquares(board, stand));
 
     QCOMPARE(result.sente.totalPoints, 8);        // 5 + 3
     QCOMPARE(result.sente.declarationPoints, 8);   // 持ち駒は宣言点にも加算
@@ -170,7 +171,7 @@ void TestJishogiCalculator::calculate_kingInEnemyTerritory_sente()
     board[(2 - 1) * 9 + (5 - 1)] = Piece::BlackKing; // rank=2, file=5
     QMap<Piece, int> stand;
 
-    auto result = JishogiCalculator::calculate(board, stand);
+    auto result = JishogiCalculator::calculate(PositionTestHelper::fromSquares(board, stand));
 
     QVERIFY(result.sente.kingInEnemyTerritory);
 }
@@ -182,7 +183,7 @@ void TestJishogiCalculator::calculate_kingInEnemyTerritory_gote()
     board[(8 - 1) * 9 + (5 - 1)] = Piece::WhiteKing; // rank=8, file=5
     QMap<Piece, int> stand;
 
-    auto result = JishogiCalculator::calculate(board, stand);
+    auto result = JishogiCalculator::calculate(PositionTestHelper::fromSquares(board, stand));
 
     QVERIFY(result.gote.kingInEnemyTerritory);
 }
@@ -196,7 +197,7 @@ void TestJishogiCalculator::calculate_kingNotInEnemyTerritory()
     board[(6 - 1) * 9 + (5 - 1)] = Piece::WhiteKing; // rank=6
     QMap<Piece, int> stand;
 
-    auto result = JishogiCalculator::calculate(board, stand);
+    auto result = JishogiCalculator::calculate(PositionTestHelper::fromSquares(board, stand));
 
     QVERIFY(!result.sente.kingInEnemyTerritory);
     QVERIFY(!result.gote.kingInEnemyTerritory);
@@ -212,7 +213,7 @@ void TestJishogiCalculator::calculate_piecesInEnemyTerritory_counted()
     board[(3 - 1) * 9 + (1 - 1)] = Piece::BlackPawn;    // rank=3, 敵陣内 → 1点
     QMap<Piece, int> stand;
 
-    auto result = JishogiCalculator::calculate(board, stand);
+    auto result = JishogiCalculator::calculate(PositionTestHelper::fromSquares(board, stand));
 
     QCOMPARE(result.sente.totalPoints, 7);           // 5+1+1
     QCOMPARE(result.sente.declarationPoints, 7);     // 敵陣内の駒のみ
@@ -228,7 +229,7 @@ void TestJishogiCalculator::calculate_piecesOutsideEnemyTerritory_notInDeclarati
     board[(7 - 1) * 9 + (1 - 1)] = Piece::BlackBishop;  // rank=7（自陣）→ 5点
     QMap<Piece, int> stand;
 
-    auto result = JishogiCalculator::calculate(board, stand);
+    auto result = JishogiCalculator::calculate(PositionTestHelper::fromSquares(board, stand));
 
     QCOMPARE(result.sente.totalPoints, 10);
     QCOMPARE(result.sente.declarationPoints, 0); // 敵陣外なので宣言点は0
@@ -425,7 +426,7 @@ void TestJishogiCalculator::calculate_allPiecesOneSide_maxPoints()
     board[18] = Piece::BlackPawn;
     board[19] = Piece::BlackPawn;
 
-    auto result = JishogiCalculator::calculate(board, stand);
+    auto result = JishogiCalculator::calculate(PositionTestHelper::fromSquares(board, stand));
 
     // 飛(5)+角(5)+金2(2)+銀2(2)+桂2(2)+香2(2)+歩9(9) = 27点
     QCOMPARE(result.sente.totalPoints, 27);
@@ -464,7 +465,7 @@ void TestJishogiCalculator::calculate_exactThreshold_24point_boundary()
 
     QMap<Piece, int> stand;
 
-    auto result = JishogiCalculator::calculate(board, stand);
+    auto result = JishogiCalculator::calculate(PositionTestHelper::fromSquares(board, stand));
 
     // 5*4 + 1*6 = 26点
     QCOMPARE(result.sente.declarationPoints, 26);

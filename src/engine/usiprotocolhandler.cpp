@@ -8,7 +8,6 @@
 #include "enginesettingsconstants.h"
 #include "logcategories.h"
 #include "settingscommon.h"
-#include "sfenreplay.h"
 #include "usilineparser.h"
 
 #include <QPointer>
@@ -156,15 +155,12 @@ std::optional<UsiOptionDeclaration> UsiProtocolHandler::reportedOption(const QSt
 // 探索
 // ============================================================
 
-void UsiProtocolHandler::startSearch(const QString& position, const UsiGo& go)
+void UsiProtocolHandler::startSearch(const UsiPosition& position, const UsiGo& go)
 {
     if (!position.isEmpty()) {
-        const QString sfen = SfenReplay::sfenFromPositionCommand(position);
-        if (!sfen.isEmpty()) {
-            m_baseSfen = sfen;
-            emit positionChanged(sfen);
-        }
-        sendCommand(position);
+        m_baseSfen = position.sfen();
+        emit positionChanged(position);
+        sendCommand(position.command());
     }
 
     m_activeSearchSeq = ++m_seq;

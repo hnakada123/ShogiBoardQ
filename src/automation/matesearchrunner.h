@@ -7,6 +7,7 @@
 #include <QElapsedTimer>
 #include <QObject>
 
+#include "usiposition.h"
 #include "usimessages.h"
 #include <QString>
 #include <QStringList>
@@ -27,7 +28,7 @@ public:
     struct Request {
         QString enginePath;
         QString engineName;
-        QString positionCommand;
+        UsiPosition position;      ///< 探索する局面
         int timeMs = 5000;
     };
 

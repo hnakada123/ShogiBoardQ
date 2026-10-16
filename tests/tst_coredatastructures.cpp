@@ -1,4 +1,5 @@
 #include <QtTest>
+#include "position_test_helper.h"
 #include <QSignalSpy>
 
 #include "shoginotation.h"
@@ -140,7 +141,7 @@ private slots:
         // Place white King in its territory
         board[80] = Piece::WhiteKing; // rank 9, file 9
 
-        auto result = JishogiCalculator::calculate(board, stand);
+        auto result = JishogiCalculator::calculate(PositionTestHelper::fromSquares(board, stand));
 
         // Sente: R(5) + B(5) + P(1) + P(1) = 12 total, K = 0
         QCOMPARE(result.sente.totalPoints, 12);
@@ -161,12 +162,6 @@ private slots:
         QCOMPARE(charToPiece(QLatin1Char('B')), Piece::BlackBishop);
         QCOMPARE(charToPiece(QLatin1Char('R')), Piece::BlackRook);
         QCOMPARE(charToPiece(QLatin1Char('K')), Piece::BlackKing);
-        QCOMPARE(charToPiece(QLatin1Char('Q')), Piece::BlackPromotedPawn);
-        QCOMPARE(charToPiece(QLatin1Char('M')), Piece::BlackPromotedLance);
-        QCOMPARE(charToPiece(QLatin1Char('O')), Piece::BlackPromotedKnight);
-        QCOMPARE(charToPiece(QLatin1Char('T')), Piece::BlackPromotedSilver);
-        QCOMPARE(charToPiece(QLatin1Char('C')), Piece::BlackHorse);
-        QCOMPARE(charToPiece(QLatin1Char('U')), Piece::BlackDragon);
     }
 
     void piece_charToPiece_whitePieces()
@@ -179,12 +174,6 @@ private slots:
         QCOMPARE(charToPiece(QLatin1Char('b')), Piece::WhiteBishop);
         QCOMPARE(charToPiece(QLatin1Char('r')), Piece::WhiteRook);
         QCOMPARE(charToPiece(QLatin1Char('k')), Piece::WhiteKing);
-        QCOMPARE(charToPiece(QLatin1Char('q')), Piece::WhitePromotedPawn);
-        QCOMPARE(charToPiece(QLatin1Char('m')), Piece::WhitePromotedLance);
-        QCOMPARE(charToPiece(QLatin1Char('o')), Piece::WhitePromotedKnight);
-        QCOMPARE(charToPiece(QLatin1Char('t')), Piece::WhitePromotedSilver);
-        QCOMPARE(charToPiece(QLatin1Char('c')), Piece::WhiteHorse);
-        QCOMPARE(charToPiece(QLatin1Char('u')), Piece::WhiteDragon);
     }
 
     void piece_charToPiece_emptyAndInvalid()
@@ -193,31 +182,35 @@ private slots:
         QCOMPARE(charToPiece(QLatin1Char('X')), Piece::None);
         QCOMPARE(charToPiece(QLatin1Char('0')), Piece::None);
         QCOMPARE(charToPiece(QLatin1Char('+')), Piece::None);
+        // 成駒は SFEN の1文字では書けない（以前の内部の文字 Q・M・O・T・C・U は読まない）
+        QCOMPARE(charToPiece(QLatin1Char('Q')), Piece::None);
+        QCOMPARE(charToPiece(QLatin1Char('u')), Piece::None);
     }
 
-    void piece_pieceToChar_roundTrip()
+    void piece_pieceSfen_roundTrip()
     {
-        const QList<QPair<QChar, Piece>> allPieces = {
-            {QLatin1Char('P'), Piece::BlackPawn},    {QLatin1Char('L'), Piece::BlackLance},
-            {QLatin1Char('N'), Piece::BlackKnight},   {QLatin1Char('S'), Piece::BlackSilver},
-            {QLatin1Char('G'), Piece::BlackGold},     {QLatin1Char('B'), Piece::BlackBishop},
-            {QLatin1Char('R'), Piece::BlackRook},     {QLatin1Char('K'), Piece::BlackKing},
-            {QLatin1Char('Q'), Piece::BlackPromotedPawn},  {QLatin1Char('M'), Piece::BlackPromotedLance},
-            {QLatin1Char('O'), Piece::BlackPromotedKnight},{QLatin1Char('T'), Piece::BlackPromotedSilver},
-            {QLatin1Char('C'), Piece::BlackHorse},    {QLatin1Char('U'), Piece::BlackDragon},
-            {QLatin1Char('p'), Piece::WhitePawn},     {QLatin1Char('l'), Piece::WhiteLance},
-            {QLatin1Char('n'), Piece::WhiteKnight},   {QLatin1Char('s'), Piece::WhiteSilver},
-            {QLatin1Char('g'), Piece::WhiteGold},     {QLatin1Char('b'), Piece::WhiteBishop},
-            {QLatin1Char('r'), Piece::WhiteRook},     {QLatin1Char('k'), Piece::WhiteKing},
-            {QLatin1Char('q'), Piece::WhitePromotedPawn},  {QLatin1Char('m'), Piece::WhitePromotedLance},
-            {QLatin1Char('o'), Piece::WhitePromotedKnight},{QLatin1Char('t'), Piece::WhitePromotedSilver},
-            {QLatin1Char('c'), Piece::WhiteHorse},    {QLatin1Char('u'), Piece::WhiteDragon},
-            {QLatin1Char(' '), Piece::None},
+        const QList<QPair<QString, Piece>> allPieces = {
+            {QStringLiteral("P"), Piece::BlackPawn},    {QStringLiteral("L"), Piece::BlackLance},
+            {QStringLiteral("N"), Piece::BlackKnight},  {QStringLiteral("S"), Piece::BlackSilver},
+            {QStringLiteral("G"), Piece::BlackGold},    {QStringLiteral("B"), Piece::BlackBishop},
+            {QStringLiteral("R"), Piece::BlackRook},    {QStringLiteral("K"), Piece::BlackKing},
+            {QStringLiteral("+P"), Piece::BlackPromotedPawn},  {QStringLiteral("+L"), Piece::BlackPromotedLance},
+            {QStringLiteral("+N"), Piece::BlackPromotedKnight},{QStringLiteral("+S"), Piece::BlackPromotedSilver},
+            {QStringLiteral("+B"), Piece::BlackHorse},  {QStringLiteral("+R"), Piece::BlackDragon},
+            {QStringLiteral("p"), Piece::WhitePawn},    {QStringLiteral("l"), Piece::WhiteLance},
+            {QStringLiteral("n"), Piece::WhiteKnight},  {QStringLiteral("s"), Piece::WhiteSilver},
+            {QStringLiteral("g"), Piece::WhiteGold},    {QStringLiteral("b"), Piece::WhiteBishop},
+            {QStringLiteral("r"), Piece::WhiteRook},    {QStringLiteral("k"), Piece::WhiteKing},
+            {QStringLiteral("+p"), Piece::WhitePromotedPawn},  {QStringLiteral("+l"), Piece::WhitePromotedLance},
+            {QStringLiteral("+n"), Piece::WhitePromotedKnight},{QStringLiteral("+s"), Piece::WhitePromotedSilver},
+            {QStringLiteral("+b"), Piece::WhiteHorse},  {QStringLiteral("+r"), Piece::WhiteDragon},
         };
-        for (const auto& [ch, piece] : std::as_const(allPieces)) {
-            QCOMPARE(charToPiece(ch), piece);
-            QCOMPARE(pieceToChar(piece), ch);
+        for (const auto& [text, piece] : std::as_const(allPieces)) {
+            QCOMPARE(pieceSfen(piece), text);
+            const Piece base = charToPiece(text.back());
+            QCOMPARE(text.startsWith(QLatin1Char('+')) ? promote(base) : base, piece);
         }
+        QCOMPARE(pieceSfen(Piece::None), QString());
     }
 
     void piece_isBlackPiece()
@@ -477,7 +470,7 @@ private slots:
                 QCOMPARE(board->pieceCharacter(5, 5), state ? toWhite(piece) : piece);
             QVERIFY(gc.editPosition({5, 5}, {12, rank}));
             QCOMPARE(board->pieceBox(), initialBox);
-            QCOMPARE(board->convertStandToSfen(), QStringLiteral("-"));
+            QCOMPARE(board->position().handsSfen(), QStringLiteral("-"));
         }
         // 駒箱と両駒台との往復。王・玉の持ち駒化は引き続き拒否する。
         for (int stand : {10, 11}) {
@@ -550,13 +543,13 @@ private slots:
         QVERIFY(gc.editPosition({12, 8}, {5, 1}));
         gc.switchPiecePromotionStatusOnRightClick(5, 1);
         QVERIFY(gc.editPosition({12, 8}, {5, 9}));
-        const auto before = gc.board()->boardData();
+        const Position before = gc.board()->position();
         const auto box = gc.board()->pieceBox();
         QVERIFY(!gc.editPosition({12, 8}, {5, 5}));
         QVERIFY(!gc.editPosition({5, 1}, {12, 1}));
         QVERIFY(!gc.editPosition({12, 1}, {12, 1}));
         QVERIFY(!gc.editPosition({12, 0}, {5, 5}));
-        QCOMPARE(gc.board()->boardData(), before);
+        QCOMPARE(gc.board()->position(), before);
         QCOMPARE(gc.board()->pieceBox(), box);
     }
 
@@ -577,11 +570,9 @@ private slots:
         ShogiGameController gc;
         QString initial = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
         gc.newGame(initial);
-        const auto before = gc.board()->boardData();
-        const auto hand = gc.board()->pieceStand();
+        const Position before = gc.board()->position();
         QVERIFY(!gc.editPosition(from, to));
-        QCOMPARE(gc.board()->boardData(), before);
-        QCOMPARE(gc.board()->pieceStand(), hand);
+        QCOMPARE(gc.board()->position(), before);
         QCOMPARE(gc.currentPlayer(), Turn::White);
         QCOMPARE(gc.board()->currentPlayer(), Turn::White);
     }
@@ -608,10 +599,10 @@ private slots:
         ShogiGameController gc;
         QString initial = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
         gc.newGame(initial);
-        const auto before = gc.board()->boardData();
+        const Position before = gc.board()->position();
         QSignalSpy committed(&gc, &ShogiGameController::moveCommitted);
-        QVERIFY(!gc.validateAndMove(from, to));
-        QCOMPARE(gc.board()->boardData(), before);
+        QVERIFY(!gc.validateAndMove(from, to, {}));
+        QCOMPARE(gc.board()->position(), before);
         QCOMPARE(gc.board()->toSfen(), initial);
         QCOMPARE(committed.count(), 0);
         QCOMPARE(gc.currentPlayer(), Turn::Black);
@@ -631,10 +622,10 @@ private slots:
         QString initial = QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 ")
             + (black ? QStringLiteral("b P 1") : QStringLiteral("w p 1"));
         gc.newGame(initial);
-        const std::optional<RecordEntry> played = gc.applyMove(*UsiMove::parse(u"P*5e"));
+        const std::optional<RecordEntry> played = gc.applyMove(*UsiMove::parse(u"P*5e"), {});
         QVERIFY(played);
         QCOMPARE(gc.board()->pieceCharacter(5, 5), black ? Piece::BlackPawn : Piece::WhitePawn);
-        QCOMPARE(gc.board()->convertStandToSfen(), QStringLiteral("-"));
+        QCOMPARE(gc.board()->position().handsSfen(), QStringLiteral("-"));
         QCOMPARE(played->move.move, *UsiMove::parse(u"P*5e"));
         QCOMPARE(played->mover, black ? Turn::Black : Turn::White);
         QCOMPARE(played->sfen, gc.board()->toSfen());
@@ -666,14 +657,12 @@ private slots:
         QFETCH(QString, move);
         ShogiGameController gc;
         gc.newGame(sfen);
-        const auto board = gc.board()->boardData();
-        const auto stand = gc.board()->pieceStand();
+        const Position board = gc.board()->position();
         QSignalSpy committed(&gc, &ShogiGameController::moveCommitted);
         const auto parsed = UsiMove::parse(move);
         QVERIFY(parsed);
-        QVERIFY(!gc.applyMove(*parsed));
-        QCOMPARE(gc.board()->boardData(), board);
-        QCOMPARE(gc.board()->pieceStand(), stand);
+        QVERIFY(!gc.applyMove(*parsed, {}));
+        QCOMPARE(gc.board()->position(), board);
         QCOMPARE(committed.count(), 0);
         QCOMPARE(gc.currentPlayer(), Turn::Black);
     }
@@ -687,7 +676,7 @@ private slots:
             QString initial = sfen;
             gc.newGame(initial);
             const UsiMove move = *UsiMove::parse(promote ? u"8h2b+" : u"8h2b");
-            const std::optional<RecordEntry> played = gc.applyMove(move);
+            const std::optional<RecordEntry> played = gc.applyMove(move, {});
             QVERIFY(played);
             QCOMPARE(gc.board()->pieceCharacter(2, 2), promote ? Piece::BlackHorse : Piece::BlackBishop);
             QCOMPARE(played->move.isPromotion(), promote);
@@ -713,14 +702,14 @@ private slots:
         gc.setForcedPromotion(true, false);
         if (illegalAttempt) {
             QPoint empty(7, 6), dest(7, 5);
-            QVERIFY(!gc.validateAndMove(empty, dest));
+            QVERIFY(!gc.validateAndMove(empty, dest, {}));
         }
         QPoint from(7, 7), to(7, 6);
-        QVERIFY(gc.validateAndMove(from, to));
+        QVERIFY(gc.validateAndMove(from, to, {}));
         from = QPoint(3, 3); to = QPoint(3, 4);
-        QVERIFY(gc.validateAndMove(from, to));
+        QVERIFY(gc.validateAndMove(from, to, {}));
         from = QPoint(8, 8); to = QPoint(2, 2);
-        QVERIFY(gc.validateAndMove(from, to));
+        QVERIFY(gc.validateAndMove(from, to, {}));
         QCOMPARE(promotionQuestions, 1);
     }
 
@@ -741,7 +730,7 @@ private slots:
         gc.setPromotionChooser([&promotionQuestions] { ++promotionQuestions; return false; });
         gc.setForcedPromotion(true, promote);
         QPoint from(8, 8), to(2, 2);
-        const std::optional<RecordEntry> played = gc.validateAndMove(from, to);
+        const std::optional<RecordEntry> played = gc.validateAndMove(from, to, {});
         QVERIFY(played);
         QCOMPARE(promotionQuestions, 0);
         QCOMPARE(played->move.isPromotion(), promote);
@@ -757,7 +746,7 @@ private slots:
             gc.newGame(initial);
             gc.setPromotionChooser([choice] { return choice; });
             QPoint from(8, 8), to(2, 2);
-            QVERIFY(gc.validateAndMove(from, to));
+            QVERIFY(gc.validateAndMove(from, to, {}));
             QCOMPARE(gc.lastMove().promote, choice);
             QCOMPARE(gc.board()->pieceCharacter(2, 2), choice ? Piece::BlackHorse : Piece::BlackBishop);
         }

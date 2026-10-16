@@ -9,7 +9,6 @@
 #include <QStringList>
 #include <optional>
 
-#include "kifdisplayitem.h"
 #include "kifparsetypes.h"
 #include "kifuformat.h"
 
@@ -37,7 +36,7 @@ public:
         QString initialSfen;               ///< 開始局面
         QStringList usiMoves;              ///< 本譜の USI 手順
         QStringList sfens;                 ///< 本譜の局面列（開始局面を含む）
-        QList<KifDisplayItem> moves;       ///< 本譜の表示用手順（ply 0 の開始局面項目を含む）
+        RecordLine mainline;               ///< 本譜（終局の行と、開始局面のコメント・しおりを含む）
         QList<KifGameInfoItem> gameInfo;   ///< 対局情報
         QStringList warnings;              ///< 解析時の警告
         bool hasBranches = false;          ///< 変化を含むか

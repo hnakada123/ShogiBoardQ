@@ -4,7 +4,6 @@
 #include "csagamecoordinator.h"
 
 #include "csamoveconverter.h"
-#include "kifmovetext.h"
 #include "logcategories.h"
 #include "shogiboard.h"
 #include "shogiclock.h"
@@ -118,12 +117,9 @@ std::optional<RecordEntry> CsaGameCoordinator::playCsaMove(const QString& csaMov
 {
     ShogiBoard* board = m_gameController ? m_gameController->board() : nullptr;
     if (!board) return std::nullopt;
-    const std::optional<UsiMove> move = CsaMoveConverter::toUsi(csaMove, *board);
+    const std::optional<UsiMove> move = CsaMoveConverter::toUsi(csaMove, board->position());
     if (!move) return std::nullopt;
-    const BoardSquare previousTo = m_progress.previousTo();
-    std::optional<RecordEntry> played = m_gameController->applyRecordedMove(*move);
-    if (played) played->displayText = KifMoveText::format(played->mover, played->move.movingPiece, *move, previousTo);
-    return played;
+    return m_gameController->applyRecordedMove(*move, m_progress.previousTo());
 }
 
 void CsaGameCoordinator::finishMove(const RecordEntry& played, int consumedTimeMs, const QPoint& from,
@@ -195,7 +191,7 @@ void CsaGameCoordinator::startEngineThinking()
     }
 
     CsaEngineController::ThinkingParams params;
-    params.positionCmd = m_progress.positionCommand();
+    params.position = m_progress.usiPosition();
     params.timing = m_progress.engineTiming(m_thinkingMarginMs);
 
     emit logMessage(tr("エンジンが思考中..."), false);
@@ -229,7 +225,7 @@ void CsaGameCoordinator::onEngineThinkingFinished(const CsaEngineController::Thi
 
     // CSA形式の指し手は、盤面を更新する前の駒から作る
     const bool black = m_progress.isBlackSide;
-    const QString csaMove = CsaMoveConverter::toCsa(result.move, black ? Turn::Black : Turn::White, *board);
+    const QString csaMove = CsaMoveConverter::toCsa(result.move, black ? Turn::Black : Turn::White, board->position());
     if (csaMove.isEmpty()) {
         emit logMessage(tr("指し手の駒種変換に失敗しました"), true);
         return;

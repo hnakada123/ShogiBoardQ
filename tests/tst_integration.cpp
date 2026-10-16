@@ -31,15 +31,15 @@ private:
     int countAllPieces(const ShogiBoard& board)
     {
         int count = 0;
-        const auto& data = board.boardData();
-        for (int i = 0; i < data.size(); ++i) {
+        const auto& data = board.position().squares();
+        for (size_t i = 0; i < data.size(); ++i) {
             if (data[i] != Piece::None) {
                 ++count;
             }
         }
-        const auto& stand = board.pieceStand();
-        for (auto it = stand.constBegin(); it != stand.constEnd(); ++it) {
-            count += it.value();
+        for (const Turn side : {Turn::Black, Turn::White}) {
+            for (int kind = 0; kind < kHandKindCount; ++kind)
+                count += board.pieceStandCount(makePiece(side, static_cast<PieceKind>(kind)));
         }
         return count;
     }
@@ -56,7 +56,7 @@ private slots:
             Turn turn = Turn::Black;
 
             for (int moveNum = 0; moveNum < 300; ++moveNum) {
-                int legalCount = EngineMoveValidator::legalMoveCount(EngineMoveValidator::load(board, turn));
+                int legalCount = EngineMoveValidator::legalMoveCount(EngineMoveValidator::load(board.position(), turn));
 
                 if (legalCount == 0) break; // Checkmate or stalemate
 
@@ -71,13 +71,13 @@ private slots:
                     // Try each file for a pawn advance
                     for (int file = 1; file <= 9 && !moved; ++file) {
                         for (int rank = 9; rank >= 2 && !moved; --rank) {
-                            const auto& data = board.boardData();
+                            const auto& data = board.position().squares();
                             int idx = (rank - 1) * 9 + (file - 1);
                             if (data[idx] == Piece::BlackPawn) {
                                 UsiMove m;
                                 m.from = BoardSquare{file, rank};
                                 m.to = BoardSquare{file, rank - 1};
-                                auto status = EngineMoveValidator::legalStatus(board, turn, m);
+                                auto status = EngineMoveValidator::legalStatus(board.position(), turn, m);
                                 if (status.nonPromotingMoveExists) {
                                     board.movePieceToSquare(Piece::BlackPawn,
                                                           file, rank, file, rank - 1, false);
@@ -123,7 +123,7 @@ private slots:
         auto* current = tree.root();
         for (int i = 0; i < result.mainline.usiMoves().size(); ++i) {
             current = tree.addMove(current, dummyMove,
-                                   result.mainline.displayItems()[i].prettyMove,
+                                   result.mainline.entries[i].displayText,
                                    QStringLiteral("sfen_%1").arg(i));
         }
 
@@ -193,15 +193,15 @@ private slots:
             ShogiBoard board;
             for (int i = 0; i < 100; ++i) {
                 board.setSfen(sfen);
-                QString boardSfen = board.convertBoardToSfen();
+                QString boardSfen = board.position().boardSfen();
 
                 // Second round-trip
                 ShogiBoard board2;
                 // Need to reconstruct full SFEN with turn and stand
                 QString fullSfen2 = boardSfen + QStringLiteral(" b ") +
-                                    board.convertStandToSfen() + QStringLiteral(" 1");
+                                    board.position().handsSfen() + QStringLiteral(" 1");
                 board2.setSfen(fullSfen2);
-                QString boardSfen2 = board2.convertBoardToSfen();
+                QString boardSfen2 = board2.position().boardSfen();
 
                 QCOMPARE(boardSfen, boardSfen2);
             }

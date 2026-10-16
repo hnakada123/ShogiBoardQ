@@ -2,7 +2,6 @@
 #include <QCoreApplication>
 
 #include "kifu_file_helper.h"
-#include "kifdisplayitem.h"
 #include "csatosfenconverter.h"
 #include "kifparsetypes.h"
 #include "kifu_test_helper.h"
@@ -165,7 +164,7 @@ private slots:
         bool ok = KifuFile::parse<CsaToSfenConverter>(
             fixturePath(QStringLiteral("test_basic.csa")), result, &warn);
         QVERIFY(ok);
-        QCOMPARE(result.mainline.baseSfen,
+        QCOMPARE(result.mainline.startSfen,
                  QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"));
     }
 
@@ -181,7 +180,7 @@ private slots:
             fixturePath(QStringLiteral("test_handicap_2piece.csa")), result, &warn);
         QVERIFY(ok);
         // 2-piece handicap: no rook/bishop for white, gote moves first
-        QCOMPARE(result.mainline.baseSfen,
+        QCOMPARE(result.mainline.startSfen,
                  QStringLiteral("lnsgkgsnl/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"));
         QVERIFY(result.mainline.usiMoves().size() >= 2);
         QCOMPARE(result.mainline.usiMoves().at(0), QStringLiteral("3c3d"));
@@ -299,7 +298,7 @@ private slots:
         bool ok = KifuFile::parse<CsaToSfenConverter>(tmp.fileName(), result, &warn);
         QVERIFY2(ok, qPrintable(warn));
         QVERIFY(result.mainline.entries.isEmpty());
-        QCOMPARE(result.mainline.baseSfen, QStringLiteral("9/9/9/9/9/9/9/9/9 b - 1"));
+        QCOMPARE(result.mainline.startSfen, QStringLiteral("9/9/9/9/9/9/9/9/9 b - 1"));
     }
 
     // ========================================
@@ -338,8 +337,10 @@ private slots:
         bool ok = KifuFile::parse<CsaToSfenConverter>(tmp.fileName(), result, &warn);
         QVERIFY(ok);
         QCOMPARE(result.mainline.usiMoves().size(), 2);
-        // Display items should include the opening item + 2 moves + result
-        QVERIFY(result.mainline.displayItems().size() >= 4);
+        // 2手の後に終局（投了）の行が続く
+        QCOMPARE(result.mainline.entries.size(), 3);
+        QVERIFY(result.mainline.endsWithTerminal());
+        QCOMPARE(result.mainline.terminal()->terminal, TerminalType::Resign);
     }
 
     // ========================================
@@ -414,11 +415,14 @@ private slots:
         bool ok = KifuFile::parse<CsaToSfenConverter>(tmp.fileName(), result, &warn);
         QVERIFY(ok);
         QCOMPARE(result.mainline.usiMoves().size(), 3);
-        QCOMPARE(result.mainline.displayItems().size(), 5);
-        QCOMPARE(result.mainline.displayItems()[1].timeText, QStringLiteral("00:30/00:00:30"));
-        QCOMPARE(result.mainline.displayItems()[2].timeText, QStringLiteral("00:15/00:00:15"));
-        QCOMPARE(result.mainline.displayItems()[3].timeText, QStringLiteral("00:45/00:01:15"));
-        QCOMPARE(result.mainline.displayItems()[4].timeText, QStringLiteral("00:05/00:00:20"));
+        // 3手と終局の行
+        const QList<RecordEntry>& entries = result.mainline.entries;
+        QCOMPARE(entries.size(), 4);
+        QVERIFY(entries.at(3).isTerminal());
+        QCOMPARE(entries.at(0).time.toText(), QStringLiteral("00:30/00:00:30"));
+        QCOMPARE(entries.at(1).time.toText(), QStringLiteral("00:15/00:00:15"));
+        QCOMPARE(entries.at(2).time.toText(), QStringLiteral("00:45/00:01:15"));
+        QCOMPARE(entries.at(3).time.toText(), QStringLiteral("00:05/00:00:20"));
     }
 
     // ========================================
@@ -733,7 +737,7 @@ private slots:
         KifParseResult result;
         QString warn;
         QVERIFY(KifuFile::parse<CsaToSfenConverter>(tmp.fileName(), result, &warn));
-        QCOMPARE(result.mainline.baseSfen, sfen);
+        QCOMPARE(result.mainline.startSfen, sfen);
     }
 
     // ========================================
@@ -780,9 +784,8 @@ private slots:
         QVERIFY(KifuFile::parse<CsaToSfenConverter>(tmp.fileName(), result, &warn));
         QVERIFY2(warn.isEmpty(), qPrintable(warn));
         QCOMPARE(result.mainline.usiMoves(), usi);
-        QStringList texts;
-        for (qsizetype i = 1; i < result.mainline.displayItems().size(); ++i) texts.append(result.mainline.displayItems().at(i).prettyMove);
-        QCOMPARE(texts, pretty);
+        QVERIFY(!result.mainline.endsWithTerminal());
+        QCOMPARE(result.mainline.displayTexts(), pretty);
     }
 
     // ========================================

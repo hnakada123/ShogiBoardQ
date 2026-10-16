@@ -80,7 +80,7 @@ void LiveGameSession::appendRecord(const RecordEntry& entry)
             m_createdNodeIds.insert(node->nodeId());
             // 棋譜の途中から続けた対局の情報は、新しく作った最初の手に残す
             if (!m_firstMoveNote.isEmpty()) {
-                node->setComment(m_firstMoveNote);
+                node->record().comment = m_firstMoveNote;
                 m_firstMoveNote.clear();
             }
         }

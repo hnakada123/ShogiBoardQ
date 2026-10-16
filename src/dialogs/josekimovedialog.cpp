@@ -7,9 +7,8 @@
 #include "josekimoveinputwidget.h"
 #include "josekisettings.h"
 #include "enginemovevalidator.h"
-#include "shogiboard.h"
+#include "shogiposition.h"
 #include "sfenreplay.h"
-#include "shogiboard.h"
 
 #include <QDialogButtonBox>
 #include <QGroupBox>
@@ -179,9 +178,9 @@ bool isLegalMove(const QString &sfen, const QString &usi)
 {
     if (!JosekiMoveInputWidget::isValidUsiMove(usi)) return false;
     const auto move = UsiMove::parse(usi);
-    ShogiBoard board;
-    if (!move || !board.trySetSfen(sfen)) return false;
-    return EngineMoveValidator::isLegal(EngineMoveValidator::load(board, board.currentPlayer()), *move);
+    const std::optional<Position> board = Position::fromSfen(sfen);
+    if (!move || !board) return false;
+    return EngineMoveValidator::isLegal(EngineMoveValidator::load(*board), *move);
 }
 } // namespace
 
@@ -236,11 +235,10 @@ void JosekiMoveDialog::setCurrentSfen(const QString &sfen)
 {
     m_currentSfen = sfen;
     m_moveInput->setCurrentSfen(sfen);
-    ShogiBoard board;
-    const bool valid = !sfen.isEmpty() && board.trySetSfen(sfen);
-    m_positionLabel->setVisible(valid);
-    if (valid)
-        m_positionLabel->setText(tr("登録する局面: %1番").arg(board.currentPlayer() == Turn::Black ? tr("先手") : tr("後手")));
+    const std::optional<Position> board = sfen.isEmpty() ? std::nullopt : Position::fromSfen(sfen);
+    m_positionLabel->setVisible(board.has_value());
+    if (board)
+        m_positionLabel->setText(tr("登録する局面: %1番").arg(board->sideToMove() == Turn::Black ? tr("先手") : tr("後手")));
     updateValidation();
 }
 

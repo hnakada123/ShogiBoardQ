@@ -7,9 +7,8 @@
 #include <QString>
 #include <QStringList>
 #include <QList>
-#include <QMap>
+#include <QStringView>
 
-#include "kifdisplayitem.h"
 #include "kifparsetypes.h"
 
 /// @brief USEN デコード結果（エラー情報付き）
@@ -34,10 +33,8 @@ struct UsenDecodeResult {
 class UsenToSfenConverter
 {
 public:
-
-    // テキスト（貼り付けた棋譜など）版
-    static QString detectInitialSfenFromText(const QString& text, QString* detectedLabel = nullptr);
-    [[nodiscard]] static bool parseText(const QString& text, KifParseResult& out, QString* errorMessage = nullptr);
+    /// 棋譜を読む。手合割の名前は平手なら「平手」、局面を書いていれば「局面指定」
+    static KifuParseOutcome parse(QStringView text, const ParseOptions& options = {});
 
     // USEN文字列から指し手列をデコード
     static QStringList decodeUsenMoves(const QString& usenStr, QString* terminalOut = nullptr);
@@ -46,6 +43,9 @@ public:
     static UsenDecodeResult decodeUsenMovesStrict(const QString& usenStr, QString* terminalOut = nullptr);
 
 private:
+    /// "~" の前に書いた開始局面（なければ平手）
+    static QString initialSfenOf(const QString& content, QString* detectedLabel);
+
     // ---- USEN デコードヘルパ ----
 
     // USEN文字列を解析して本譜と分岐に分割
