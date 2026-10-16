@@ -25,6 +25,9 @@ public:
     // デストラクタ
     ~PromoteDialog() override;
 
+    /// 成るかを尋ねる（成る: true、成らない・閉じた: false）。主画面の盤と詰将棋を解く画面で共通
+    static bool ask(QWidget* parent);
+
 private:
     std::unique_ptr<Ui::PromoteDialog> ui;
 };
