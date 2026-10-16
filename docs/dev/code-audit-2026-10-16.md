@@ -677,6 +677,11 @@
 
 **規模とテスト**: C++ 約10ファイル、Python 3ファイル。pytest の期待値の更新が要る。
 
+**状態: 済（26121096）**。案から変えた点:
+- 分類は `ErrorKind`（`src/automation/errorkinds.h`）。語と JSON-RPC のコードの表を1つ持ち、`CliOutput::fail`/`failEvent` と `AutomationError` の両方が分類を受け取る。JSON-RPC のエラーには `error.data.slug` を付け、MCP サーバーはその語を返す（`data.slug` が無いときだけ表でコードから引く）。
+- 語は CLI・アプリ・MCP でそろえた。既存ファイルへの書き込みは `file_exists`、引数の誤りは `invalid_argument`、知らないメソッド・コマンドは `unknown_operation`、棋譜の中身が読めないのは `parse_error`（新しいコード -32006。kifu.load の解析失敗もこれ）、エンジンの失敗は `engine_error`（-32007）。MCP サーバーだけの失敗（`app_unavailable`・`cli_failed`・`timeout` など）は `mcp/tests/test_environment.py` に一覧を持ち、それ以外の語は共有の表にあることを検査する。
+- `shogiboardq-cli environment` はソケット・エンドポイントファイル・設定ファイル・メッセージの上限・エラーの分類を出す。MCP サーバーは関係する環境変数の組ごとに1回読む（`environment.py`）。そのため、既定のソケットを求めるには shogiboardq-cli が要る（見つからなければ `SHOGIBOARDQ_AUTOMATION_SOCKET` だけを使う）。
+
 ---
 
 ## 3. 中くらいの候補
