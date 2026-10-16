@@ -589,7 +589,7 @@ private slots:
         const qint64 engineLogSize = QFile(qEnvironmentVariable("AUDIT_USI_LOG")).size();
         QSignalSpy ended(match, &MatchCoordinator::gameEnded);
         // 始められない局面では棋譜を作り直さない
-        QSignalSpy cleaned(window->composer().parts().branchTree, &KifuBranchTree::treeChanged);
+        QSignalSpy cleaned(window->composer().parts().branchTree, &KifuBranchTree::reset);
 
         startWindowGame();
         QTest::qWait(50);

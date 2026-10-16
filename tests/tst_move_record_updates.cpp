@@ -16,6 +16,7 @@
 #include "shogiclock.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
+#include "branchtree_test_util.h"
 #include "kifudisplaypresenter.h"
 #include "kifunavigationstate.h"
 #include "kifubranchlistmodel.h"
@@ -60,7 +61,7 @@ class TestMoveRecordUpdates : public QObject
         const QString texts[] = {QStringLiteral("▲３八飛(28)"), QStringLiteral("△７二飛(82)"),
                                  QStringLiteral("▲２八飛(38)"), QStringLiteral("△８二飛(72)")};
         for (int ply = 1; ply <= plies; ++ply) {
-            node = tree.addMoveQuiet(node, moves[(ply - 1) % 4], texts[(ply - 1) % 4],
+            node = TestTree::addMove(tree, node, moves[(ply - 1) % 4], texts[(ply - 1) % 4],
                                      QStringLiteral("sfen-%1").arg(ply));
         }
         return node;
@@ -100,7 +101,7 @@ private slots:
         QCOMPARE(removed.count(), 0);
 
         // 末尾に1手増えたときは、その1行だけを足す（全行を作り直さない）
-        KifuBranchNode* next = tree.addMoveQuiet(
+        KifuBranchNode* next = TestTree::addMove(tree, 
             last, ShogiMove(UsiMove::fromString(u"2h3h"), Piece::BlackRook),
             QStringLiteral("▲３八飛(28)"), QStringLiteral("sfen-121"));
         model.setPath(tree.pathToNode(next));
@@ -112,7 +113,7 @@ private slots:
                     .contains(QStringLiteral("３八飛")));
 
         // 途中までの手順に替わったときは、後ろの行だけを削る
-        model.setPath(tree.pathToNode(tree.findByPlyOnMainLine(60)));
+        model.setPath(tree.pathToNode(TestTree::findByPlyOnMainLine(tree, 60)));
         QCOMPARE(model.rowCount(), 61);
         QCOMPARE(removed.count(), 1);
         QCOMPARE(inserted.count(), 1);
@@ -146,15 +147,15 @@ private slots:
             return count;
         };
         // 手を移るだけなら、強調する行だけを描き直す
-        for (int ply : {3, 7, 0, 10}) nav.setCurrentNode(tree.findByPlyOnMainLine(ply));
+        for (int ply : {3, 7, 0, 10}) nav.setCurrentNode(TestTree::findByPlyOnMainLine(tree, ply));
         QCOMPARE(wholeTableUpdates(), 0);
         QVERIFY(!changed.isEmpty());
 
         // 分岐ができて「+」の印が変わったときだけ、全行を描き直す
-        tree.addMove(tree.findByPlyOnMainLine(4), ShogiMove(), QStringLiteral("▲９六歩(97)"),
+        TestTree::addMove(tree, TestTree::findByPlyOnMainLine(tree, 4), ShogiMove(), QStringLiteral("▲９六歩(97)"),
                      QStringLiteral("branch"));
         QCOMPARE(wholeTableUpdates(), 1);
-        nav.setCurrentNode(tree.findByPlyOnMainLine(2));
+        nav.setCurrentNode(TestTree::findByPlyOnMainLine(tree, 2));
         QCOMPARE(wholeTableUpdates(), 1);
     }
 
@@ -266,14 +267,14 @@ private slots:
         const QString sentence = QStringLiteral("ここで▲７六歩と突くのが本筋で、△３四歩なら角交換から持久戦になる。");
         QList<KifuBranchNode*> path{tree.root()};
         for (int row = 1; row < 14; ++row) {
-            KifuBranchNode* node = tree.addMove(path.last(), ShogiMove(), QStringLiteral("▲７六歩(77)"),
+            KifuBranchNode* node = TestTree::addMove(tree, path.last(), ShogiMove(), QStringLiteral("▲７六歩(77)"),
                                                 QStringLiteral("sfen-%1").arg(row),
                                                 QStringLiteral("00:01/00:00:%1").arg(row, 2, 10, QLatin1Char('0')));
             node->record().comment = (sentence.repeated(1 + row % 5) + QStringLiteral(" (%1)").arg(row));
             path.append(node);
         }
         // 5手目を分岐にして、分岐の印の付いた行も比べる
-        tree.addMove(path.at(4), ShogiMove(), QStringLiteral("△３四歩(33)"), QStringLiteral("branch"));
+        TestTree::addMove(tree, path.at(4), ShogiMove(), QStringLiteral("△３四歩(33)"), QStringLiteral("branch"));
         KifuRecordListModel model(&tree);
         model.setPath(path);
         model.setCurrentHighlightRow(3);
@@ -317,7 +318,7 @@ private slots:
         EvaluationGraphPresenter presenter({&chart, &nav, &live});
 
         QSignalSpy axis(&chart, &EvaluationChartWidget::xAxisSettingsChanged);
-        for (int ply = 1; ply <= 120; ++ply) nav.setCurrentNode(tree.findByPlyOnMainLine(ply));
+        for (int ply = 1; ply <= 120; ++ply) nav.setCurrentNode(TestTree::findByPlyOnMainLine(tree, ply));
 
         QVERIFY(!axis.isEmpty());
         int previous = 0;

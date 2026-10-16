@@ -80,7 +80,7 @@ private:
     // ライン番号はこの経路から表示時に導出し、別の状態として保持しない。
     QHash<int, int> m_selectedChildIds;
     // 最後に changed() を出したときのツリーの構造の版。手を足してから表示中の手を移したときに、
-    // 後から届く treeChanged で同じ通知を繰り返さないために使う
+    // 後から届くツリーの変更の知らせで同じ通知を繰り返さないために使う
     quint64 m_notifiedRevision = 0;
 };
 

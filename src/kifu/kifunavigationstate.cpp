@@ -12,7 +12,10 @@ KifuNavigationState::KifuNavigationState(KifuBranchTree* tree, QObject* parent)
     , m_tree(tree)
 {
     Q_ASSERT(m_tree);
-    connect(m_tree, &KifuBranchTree::treeChanged, this, &KifuNavigationState::onTreeChanged);
+    connect(m_tree, &KifuBranchTree::nodeAppended, this, &KifuNavigationState::onTreeChanged);
+    connect(m_tree, &KifuBranchTree::childrenReordered, this, &KifuNavigationState::onTreeChanged);
+    connect(m_tree, &KifuBranchTree::subtreeRemoved, this, &KifuNavigationState::onTreeChanged);
+    connect(m_tree, &KifuBranchTree::reset, this, &KifuNavigationState::onTreeChanged);
     m_currentNodeId = m_tree->root() ? m_tree->root()->nodeId() : -1;
     m_notifiedRevision = m_tree->revision();
 }
@@ -74,8 +77,8 @@ KifuBranchNode* KifuNavigationState::nextNode(const KifuBranchNode* node) const
 {
     if (!node) return nullptr;
     const int selectedId = m_selectedChildIds.value(node->nodeId(), -1);
-    for (auto* child : node->children()) {
-        if (child->nodeId() == selectedId) return child;
+    for (int i = 0; i < node->childCount(); ++i) {
+        if (node->childAt(i)->nodeId() == selectedId) return node->childAt(i);
     }
     return node->childAt(0);
 }

@@ -10,6 +10,7 @@
 #include "kifudocument.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
+#include "branchtree_test_util.h"
 #include "recordline.h"
 
 static const QString kHirateSfen =
@@ -32,7 +33,7 @@ private:
         };
         KifuBranchNode* current = tree.root();
         for (qsizetype i = 0; i < moves.size(); ++i) {
-            current = tree.addMove(current, ShogiMove(), moves.at(i), QStringLiteral("sfen%1").arg(i + 1));
+            current = TestTree::addMove(tree, current, ShogiMove(), moves.at(i), QStringLiteral("sfen%1").arg(i + 1));
         }
     }
 
@@ -61,7 +62,7 @@ private slots:
         setupBasicTree(tree);
         KifuDocument document(&tree);
         KifuBranchNode* main = tree.mainLine().at(2);
-        KifuBranchNode* branch = tree.addMove(tree.mainLine().at(1), ShogiMove(),
+        KifuBranchNode* branch = TestTree::addMove(tree, tree.mainLine().at(1), ShogiMove(),
                                               QStringLiteral("△８四歩"), QStringLiteral("branch"));
         QVERIFY(branch);
 

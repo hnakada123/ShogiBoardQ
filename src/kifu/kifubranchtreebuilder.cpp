@@ -19,7 +19,6 @@ bool KifuBranchTreeBuilder::buildFromKifParseResult(KifuBranchTree* tree,
     }
 
     tree->beginBatchUpdate();
-    tree->clear();
     tree->setRootSfen(startSfen);
     QList<QList<KifuBranchNode*>> paths;
     paths.append(addKifLineToTree(tree, result.mainline, {tree->root()}));

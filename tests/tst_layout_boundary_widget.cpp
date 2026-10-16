@@ -10,7 +10,7 @@
 #include <tuple>
 
 #include "dockregistry.h"
-#include "branchtreemanager.h"
+#include "branchtreeview.h"
 #include "commenteditorpanel.h"
 #include "considerationtabmanager.h"
 #include "csalogpanel.h"
@@ -316,7 +316,7 @@ private slots:
         UsiLogPanel usiLog;
         CsaLogPanel csaLog;
         CommentEditorPanel comment;
-        BranchTreeManager branchTree;
+        BranchTreeView branchTree;
         using Id = DockRegistry::DockId;
         DockRegistry::Contents contents{};
         const auto put = [&contents](Id id, QWidget* content) { contents.at(static_cast<std::size_t>(id)) = content; };

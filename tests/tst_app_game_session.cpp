@@ -30,6 +30,7 @@
 #include "humanturnpolicy.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
+#include "branchtree_test_util.h"
 #include "settingscommon.h"
 #include "sfenutils.h"
 #include "shogiclock.h"
@@ -187,7 +188,8 @@ private slots:
         humanVsHumanSettings();
         MainWindow window;
         auto& p = window.composer().parts();
-        QSignalSpy treeChanged(p.branchTree, &KifuBranchTree::treeChanged);
+        QSignalSpy treeReset(p.branchTree, &KifuBranchTree::reset);
+        QSignalSpy appended(p.branchTree, &KifuBranchTree::nodeAppended);
         const int rootId = p.branchTree->root()->nodeId();
         m_acceptDialog = false;
         m_dialogSeen = false;
@@ -195,7 +197,8 @@ private slots:
         p.gameSession->startGameFromDialog();
         QVERIFY(m_dialogSeen);
         // 棋譜は作り直さない
-        QCOMPARE(treeChanged.count(), 0);
+        QCOMPARE(treeReset.count(), 0);
+        QCOMPARE(appended.count(), 0);
         QCOMPARE(p.branchTree->root()->nodeId(), rootId);
         QCOMPARE(window.composer().state().activity.activity(), AppActivityState::Activity::Idle);
         QVERIFY(!p.match->gameOverState().isOver);
@@ -207,9 +210,9 @@ private slots:
         humanVsHumanSettings();
         MainWindow window;
         auto& p = window.composer().parts();
-        QSignalSpy treeChanged(p.branchTree, &KifuBranchTree::treeChanged);
+        QSignalSpy treeReset(p.branchTree, &KifuBranchTree::reset);
         startFromDialog(window);
-        QCOMPARE(treeChanged.count(), 1);
+        QCOMPARE(treeReset.count(), 1);
         QCOMPARE(p.branchTree->nodeCount(), 1);
         QVERIFY(p.match->players().humanVsHuman());
         QCOMPARE(p.match->record().startSfen, SfenUtils::hirateSfen());
@@ -222,7 +225,7 @@ private slots:
         humanVsHumanSettings(5);
         MainWindow window;
         auto& p = window.composer().parts();
-        KifuBranchNode* first = p.branchTree->addMove(p.branchTree->root(), ShogiMove(), QStringLiteral("▲７六歩(77)"),
+        KifuBranchNode* first = TestTree::addMove(*p.branchTree, p.branchTree->root(), ShogiMove(), QStringLiteral("▲７六歩(77)"),
                                                       QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL w - 2"));
         p.navState->setCurrentNode(first);
         p.document->markSaved(QString());
@@ -355,7 +358,7 @@ private slots:
         // 中断の後に棋譜を変えたら再開できない
         p.gameSession->breakOff();
         QVERIFY(p.match->canResumeInterruptedGame());
-        p.branchTree->addMove(p.branchTree->root(), ShogiMove(), QStringLiteral("▲２六歩(27)"),
+        TestTree::addMove(*p.branchTree, p.branchTree->root(), ShogiMove(), QStringLiteral("▲２六歩(27)"),
                               QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/7P1/PPPPPPP1P/1B5R1/LNSGKGSNL w - 2"));
         QVERIFY(!p.match->canResumeInterruptedGame());
         QVERIFY(!p.uiStatePolicy->isEnabled(UiStatePolicyManager::UiElement::GameResume));

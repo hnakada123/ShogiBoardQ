@@ -15,7 +15,8 @@ LiveGameSession::LiveGameSession(KifuBranchTree* tree, KifuNavigationState* navS
     , m_navState(navState)
 {
     Q_ASSERT(m_tree && m_navState);
-    connect(m_tree, &KifuBranchTree::treeChanged, this, &LiveGameSession::onTreeChanged);
+    connect(m_tree, &KifuBranchTree::subtreeRemoved, this, &LiveGameSession::onTreeChanged);
+    connect(m_tree, &KifuBranchTree::reset, this, &LiveGameSession::onTreeChanged);
 }
 
 void LiveGameSession::onTreeChanged()
@@ -146,11 +147,11 @@ void LiveGameSession::placeBeforeUndoneSiblings(KifuBranchNode* node)
     if (m_undoneNodeIds.isEmpty()) return;
     // 待ったで取り消した手順より前に並べ、実際に指した手順を本譜側にする。
     // 対局前から存在する兄弟（以前の対局の本譜など）の順序は変えない。
-    const QList<KifuBranchNode*>& siblings = node->parent()->children();
-    const qsizetype current = siblings.indexOf(node);
-    for (qsizetype i = 0; i < current; ++i) {
-        if (m_undoneNodeIds.contains(siblings.at(i)->nodeId())) {
-            m_tree->moveChildQuiet(node, static_cast<int>(i));
+    const KifuBranchNode* parent = node->parent();
+    const int current = parent->indexOfChild(node);
+    for (int i = 0; i < current; ++i) {
+        if (m_undoneNodeIds.contains(parent->childAt(i)->nodeId())) {
+            m_tree->moveChild(node, i);
             return;
         }
     }

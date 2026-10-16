@@ -22,7 +22,7 @@ class ShogiGameController;
 /**
  * @brief 分岐の編集（本譜にする・並べ替え・削除）を担当するコントローラ
  *
- * BranchTreeManager の右クリックメニューに操作を追加し、選ばれた操作を
+ * BranchTreeView の右クリックメニューに操作を追加し、選ばれた操作を
  * KifuBranchTree に適用する。編集後は現在の手を表示し直し、棋譜を未保存にする。
  * 対局中（ライブセッション中）は編集しない。
  */
@@ -77,8 +77,8 @@ public:
     bool recordMove(const UsiMove& move, ShogiGameController* gc);
 
 public slots:
-    /// BranchTreeManager::nodeContextMenuAboutToShow に接続する
-    void onNodeContextMenuAboutToShow(int row, int ply, QMenu* menu);
+    /// BranchTreeView::nodeContextMenuAboutToShow に接続する
+    void onNodeContextMenuAboutToShow(int nodeId, QMenu* menu);
     /// RecordPane::branchContextMenuRequested に接続する（分岐候補欄の右クリック）
     void onCandidateContextMenuRequested(int row, const QPoint& globalPos);
 
@@ -86,7 +86,6 @@ private slots:
     void onMenuActionTriggered(QAction* action);
 
 private:
-    KifuBranchNode* nodeAt(int row, int ply) const;
     /// 盤上の手を指す局面（表示中の手。終局の行なら直前の手）。盤をその局面にする。無ければ nullptr
     KifuBranchNode* prepareRecordParent(ShogiGameController* gc) const;
     /// parent の局面で move を指して記録する

@@ -6,13 +6,14 @@
 #include <QMessageBox>
 #include "mainwindow.h"
 #include "mainwindowcomposer.h"
-#include "branchtreemanager.h"
+#include "branchtreeview.h"
 #include "commenteditorpanel.h"
 #include "considerationtabmanager.h"
 #include "thinkingpanel.h"
 #include "usilogpanel.h"
 #include "kifudocument.h"
 #include "kifubranchtree.h"
+#include "branchtree_test_util.h"
 #include "kifunavigationstate.h"
 #include "kifunavigationcontroller.h"
 #include "shogienginethinkingmodel.h"
@@ -50,9 +51,9 @@ private slots:
         const QStringList usi{"7g7f"};
         const auto moves = TestReplay::buildGameMoves(SfenUtils::hirateSfen(), usi);
         const auto sfens = TestReplay::buildSfenRecord(SfenUtils::hirateSfen(), usi, false);
-        auto* node = p.branchTree->addMove(p.branchTree->root(), moves.first(), QStringLiteral("▲７六歩"), sfens.last());
+        auto* node = TestTree::addMove(*p.branchTree, p.branchTree->root(), moves.first(), QStringLiteral("▲７六歩"), sfens.last());
         QVERIFY(node);
-        emit p.branchTreeView->branchNodeActivated(0, 1);
+        emit p.branchTreeView->nodeActivated(node->nodeId());
         QCOMPARE(p.navState->currentNode(), node);
         emit p.commentEditor->commentUpdated(1, QStringLiteral("実物の配線によるコメント"));
         QCOMPARE(node->comment(), QStringLiteral("実物の配線によるコメント"));

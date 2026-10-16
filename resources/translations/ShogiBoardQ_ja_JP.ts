@@ -1402,39 +1402,39 @@
 <context>
     <name>BranchTreeEditController</name>
     <message>
-        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="101"/>
+        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="92"/>
         <source>この手順を本譜にする</source>
         <translation>この手順を本譜にする</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="102"/>
+        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="93"/>
         <source>変化を上へ移動する</source>
         <translation>変化を上へ移動する</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="103"/>
+        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="94"/>
         <source>変化を下へ移動する</source>
         <translation>変化を下へ移動する</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="104"/>
+        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="95"/>
         <source>この手以降を削除する…</source>
         <translation>この手以降を削除する…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="138"/>
+        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="129"/>
         <source>手順の削除</source>
         <translation>手順の削除</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="139"/>
+        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="130"/>
         <source>「%1」以降の %2 手を削除します。
 この操作は取り消せません。</source>
         <translation>「%1」以降の %2 手を削除します。
 この操作は取り消せません。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="141"/>
+        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="132"/>
         <source>削除する</source>
         <translation>削除する</translation>
     </message>
@@ -1442,52 +1442,95 @@
 <context>
     <name>BranchTreeManager</name>
     <message>
-        <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="162"/>
+        <source>&lt;p&gt;（ダブルクリックで展開）&lt;/p&gt;</source>
+        <translation type="vanished">&lt;p&gt;（ダブルクリックで展開）&lt;/p&gt;</translation>
+    </message>
+    <message>
+        <source>%1手目</source>
+        <translation type="vanished">%1手目</translation>
+    </message>
+    <message>
+        <source>開始局面</source>
+        <translation type="vanished">開始局面</translation>
+    </message>
+    <message>
+        <source>この変化を展開する</source>
+        <translation type="vanished">この変化を展開する</translation>
+    </message>
+    <message>
+        <source>この変化を折りたたむ</source>
+        <translation type="vanished">この変化を折りたたむ</translation>
+    </message>
+    <message>
+        <source>すべての変化を展開する</source>
+        <translation type="vanished">すべての変化を展開する</translation>
+    </message>
+    <message>
+        <source>変化を詰めて表示する</source>
+        <translation type="vanished">変化を詰めて表示する</translation>
+    </message>
+    <message>
+        <source>拡大</source>
+        <translation type="vanished">拡大</translation>
+    </message>
+    <message>
+        <source>縮小</source>
+        <translation type="vanished">縮小</translation>
+    </message>
+    <message>
+        <source>標準の大きさ（100%）</source>
+        <translation type="vanished">標準の大きさ（100%）</translation>
+    </message>
+</context>
+<context>
+    <name>BranchTreeView</name>
+    <message>
+        <location filename="../../src/widgets/branchnodeitem.cpp" line="108"/>
         <source>&lt;p&gt;（ダブルクリックで展開）&lt;/p&gt;</source>
         <translation>&lt;p&gt;（ダブルクリックで展開）&lt;/p&gt;</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="393"/>
-        <source>%1手目</source>
-        <translation>%1手目</translation>
-    </message>
-    <message>
-        <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="253"/>
+        <location filename="../../src/widgets/branchtreeview.cpp" line="260"/>
         <source>開始局面</source>
         <translation>開始局面</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreemanager.cpp" line="452"/>
+        <location filename="../../src/widgets/branchtreeview.cpp" line="384"/>
+        <source>%1手目</source>
+        <translation>%1手目</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/branchtreeview.cpp" line="705"/>
         <source>この変化を展開する</source>
         <translation>この変化を展開する</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreemanager.cpp" line="453"/>
+        <location filename="../../src/widgets/branchtreeview.cpp" line="705"/>
         <source>この変化を折りたたむ</source>
         <translation>この変化を折りたたむ</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreemanager.cpp" line="457"/>
+        <location filename="../../src/widgets/branchtreeview.cpp" line="708"/>
         <source>すべての変化を展開する</source>
         <translation>すべての変化を展開する</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreemanager.cpp" line="459"/>
+        <location filename="../../src/widgets/branchtreeview.cpp" line="709"/>
         <source>変化を詰めて表示する</source>
         <translation>変化を詰めて表示する</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreemanager.cpp" line="463"/>
+        <location filename="../../src/widgets/branchtreeview.cpp" line="713"/>
         <source>拡大</source>
         <translation>拡大</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreemanager.cpp" line="465"/>
+        <location filename="../../src/widgets/branchtreeview.cpp" line="715"/>
         <source>縮小</source>
         <translation>縮小</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreemanager.cpp" line="467"/>
+        <location filename="../../src/widgets/branchtreeview.cpp" line="717"/>
         <source>標準の大きさ（100%）</source>
         <translation>標準の大きさ（100%）</translation>
     </message>
@@ -4629,12 +4672,12 @@ ABC abc 0123456789</translation>
 <context>
     <name>GameSession</name>
     <message>
-        <location filename="../../src/app/gamesession.cpp" line="192"/>
+        <location filename="../../src/app/gamesession.cpp" line="196"/>
         <source>無制限</source>
         <translation>無制限</translation>
     </message>
     <message>
-        <location filename="../../src/app/gamesession.cpp" line="194"/>
+        <location filename="../../src/app/gamesession.cpp" line="198"/>
         <source>対局：▲%1 △%2（%3 開始、持ち時間 %4）</source>
         <translation>対局：▲%1 △%2（%3 開始、持ち時間 %4）</translation>
     </message>
@@ -6346,7 +6389,7 @@ OKを選択すると保存先が指定できます。</translation>
 <context>
     <name>KifuBranchTree</name>
     <message>
-        <location filename="../../src/kifu/kifubranchtree.cpp" line="51"/>
+        <location filename="../../src/kifu/kifubranchtree.cpp" line="36"/>
         <source>開始局面</source>
         <translation>開始局面</translation>
     </message>

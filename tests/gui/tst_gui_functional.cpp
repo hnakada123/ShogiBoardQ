@@ -71,7 +71,8 @@
 #include "evaluationchartview.h"
 #include "evaluationgraphpresenter.h"
 #include "evaluationseries.h"
-#include "branchtreemanager.h"
+#include "branchtreeitemroles.h"
+#include "branchtreeview.h"
 #include "settingscommon.h"
 #include "appsettings.h"
 #include "applicationfonts.h"
@@ -127,6 +128,19 @@ class GuiAudit : public QObject
     ShogiView* board() const { return window->findChild<ShogiView*>(); }
     RecordPane* record() const { return window->findChild<RecordPane*>(); }
     QString boardSfen() const { return board()->board()->position().boardSfen(); }
+    BranchTreeView* branchTreeView() const { return window->findChild<BranchTreeView*>(); }
+    /// 分岐ツリーで目立たせている手（手数と段）
+    int treePly() const
+    {
+        const KifuBranchNode* node = window->composer().parts().branchTree->nodeAt(branchTreeView()->currentNodeId());
+        return node ? node->ply() : -1;
+    }
+    int treeLane() const { return branchTreeView()->laneOf(branchTreeView()->currentNodeId()); }
+    /// ライン line の ply 手目の ID
+    int lineNodeId(int line, int ply) const
+    {
+        return window->composer().parts().branchTree->allLines().at(line).nodes.at(ply)->nodeId();
+    }
     bool hasKifuPasteDialog() const
     {
         for (auto* widget : QApplication::topLevelWidgets()) {
@@ -492,10 +506,10 @@ private slots:
         sampleGame();
         const int recordSize = record()->kifuView()->font().pointSize();
         const int clockSize = board()->chrome()->blackClockLabel()->font().pointSize();
-        const auto* tree = window->findChild<BranchTreeManager*>();
+        const auto* tree = branchTreeView();
         QVERIFY(tree);
-        const int row = tree->lastHighlightedRow();
-        const int ply = tree->lastHighlightedPly();
+        const int current = tree->currentNodeId();
+        QVERIFY(current >= 0);
         disconnect(&dialogTimer, &QTimer::timeout, this, &GuiAudit::handleDialog);
         connect(&dialogTimer, &QTimer::timeout, this, &GuiAudit::chooseApplicationFont);
         dialogTimer.start(20);
@@ -509,8 +523,7 @@ private slots:
         QCOMPARE(record()->kifuView()->font().pointSize(), recordSize);
         QCOMPARE(board()->chrome()->blackClockLabel()->font().family(), chosen);
         QCOMPARE(board()->chrome()->blackClockLabel()->font().pointSize(), clockSize);
-        QCOMPARE(tree->lastHighlightedRow(), row);
-        QCOMPARE(tree->lastHighlightedPly(), ply);
+        QCOMPARE(tree->currentNodeId(), current);
         auto* log = window->findChild<QPlainTextEdit*>(QStringLiteral("usiLogView"));
         QVERIFY(log);
         QCOMPARE(log->font().family(), chosen);
@@ -3159,8 +3172,7 @@ private slots:
         if (!humanIsBlack) moves.append(QStringLiteral("2g2f"));
         const auto sfens = TestReplay::buildSfenRecord(initial + QStringLiteral(" b - 1"), moves, false);
         auto* graph = window->composer().parts().evalChart;
-        auto* tree = window->findChild<BranchTreeManager*>();
-        QVERIFY(graph && tree);
+        QVERIFY(graph && branchTreeView());
         if (realAnalysis) {
             auto& settings = SettingsCommon::openSettings();
             settings.beginWriteArray("Engines");
@@ -3198,8 +3210,8 @@ private slots:
             QCOMPARE(boardSfen(), sfens.at(ply).section(QLatin1Char(' '), 0, 0));
             QCOMPARE(turnToSfen(board()->board()->currentPlayer()), sfens.at(ply).section(QLatin1Char(' '), 1, 1));
             QCOMPARE(graph->currentPly(), ply);
-            QCOMPARE(tree->lastHighlightedPly(), ply);
-            QCOMPARE(tree->lastHighlightedRow(), 0);
+            QCOMPARE(treePly(), ply);
+            QCOMPARE(treeLane(), 0);
         }
         // グラフから移動しても棋譜・盤面・ツリーが同期する。
         for (auto* dock : window->findChildren<QDockWidget*>()) {
@@ -3211,7 +3223,7 @@ private slots:
         QTest::mouseClick(chartView->viewport(), Qt::LeftButton, Qt::NoModifier, graphPoint);
         QTRY_COMPARE(recordView->currentIndex().row(), lastPly);
         QCOMPARE(graph->currentPly(), lastPly);
-        QCOMPARE(tree->lastHighlightedPly(), lastPly);
+        QCOMPARE(treePly(), lastPly);
         // 分岐ツリーから開始局面へ戻る。
         auto* treeView = window->findChild<QGraphicsView*>("branchTreeView");
         QVERIFY(treeView);
@@ -3220,9 +3232,8 @@ private slots:
         }
         QGraphicsItem* startNode = nullptr;
         for (auto* item : treeView->scene()->items()) {
-            if (item->data(BranchTreeManager::BR_ROLE_KIND).isValid()
-                && item->data(BranchTreeManager::ROLE_ROW).toInt() == 0
-                && item->data(BranchTreeManager::ROLE_PLY).toInt() == 0) startNode = item;
+            if (item->data(BranchTreeItemRoles::NodeId).toInt() == window->composer().parts().branchTree->root()->nodeId())
+                startNode = item;
         }
         QVERIFY(startNode);
         treeView->ensureVisible(startNode);
@@ -3235,7 +3246,7 @@ private slots:
         QTest::mouseClick(record()->nextButton(), Qt::LeftButton);
         QCOMPARE(recordView->currentIndex().row(), 1);
         QCOMPARE(graph->currentPly(), 1);
-        QCOMPARE(tree->lastHighlightedPly(), 1);
+        QCOMPARE(treePly(), 1);
         snapshot(QStringLiteral("post-game-analysis-") + QString::fromLatin1(QTest::currentDataTag()));
         // 同じ対局を最終局面だけ再解析する。古い点と終局行は残さない。
         AnalysisSettings::kifuAnalysisFullRange.set(false);
@@ -3251,7 +3262,7 @@ private slots:
         QCOMPARE(scores->at(0).x(), double(lastPly));
         QCOMPARE(recordView->currentIndex().row(), lastPly);
         QCOMPARE(graph->currentPly(), lastPly);
-        QCOMPARE(tree->lastHighlightedPly(), lastPly);
+        QCOMPARE(treePly(), lastPly);
     }
 
     void engineAnalysisBranch()
@@ -3259,11 +3270,11 @@ private slots:
         QFile f(QStringLiteral(REPO "/tests/fixtures/test_branch.kif"));
         QVERIFY(f.open(QIODevice::ReadOnly));
         paste(QString::fromUtf8(f.readAll()));
-        auto* tree = window->findChild<BranchTreeManager*>();
+        auto* tree = branchTreeView();
         QVERIFY(tree);
-        tree->branchNodeActivated(1, 3);
+        emit tree->nodeActivated(lineNodeId(1, 3));
         QTest::qWait(50);
-        QCOMPARE(tree->lastHighlightedRow(), 1);
+        QCOMPARE(tree->currentNodeId(), lineNodeId(1, 3));
         const QString branchBoard = boardSfen();
         const QString branchMove = record()->kifuView()->model()->index(3, 0).data().toString();
         AnalysisSettings::kifuAnalysisFullRange.set(false);
@@ -3280,18 +3291,16 @@ private slots:
         QCOMPARE(model->row(0)->sfen.section(QLatin1Char(' '), 0, 0), branchBoard);
         QCOMPARE(model->index(0, 0).data().toString(), branchMove);
         QCOMPARE(model->row(0)->lastUsiMove, QStringLiteral("6g6f"));
-        tree->branchNodeActivated(0, 4);
+        emit tree->nodeActivated(lineNodeId(0, 4));
         QTest::qWait(50);
         results->setCurrentIndex(model->index(0, 0));
         QTest::qWait(150);
-        QCOMPARE(tree->lastHighlightedRow(), 1);
         QCOMPARE(record()->kifuView()->currentIndex().row(), 3);
-        QCOMPARE(tree->lastHighlightedRow(), 1);
-        QCOMPARE(tree->lastHighlightedPly(), 3);
+        QCOMPARE(tree->currentNodeId(), lineNodeId(1, 3));
         QCOMPARE(window->composer().parts().evalChart->currentPly(), 3);
         QCOMPARE(boardSfen(), branchBoard);
         // 本譜を表示して条件ダイアログをキャンセルしても、結果の分岐を保持する。
-        tree->branchNodeActivated(0, 4);
+        emit tree->nodeActivated(lineNodeId(0, 4));
         armDialog("auto");
         click("actionAnalyzeKifu");
         auto* graph = window->composer().parts().evalChart;
@@ -3310,8 +3319,7 @@ private slots:
             chartView->chart()->mapToPosition(QPointF(3, 0), scores)));
         QTest::mouseClick(chartView->viewport(), Qt::LeftButton, Qt::NoModifier, point);
         QTRY_COMPARE(record()->kifuView()->currentIndex().row(), 3);
-        QCOMPARE(tree->lastHighlightedRow(), 1);
-        QCOMPARE(tree->lastHighlightedPly(), 3);
+        QCOMPARE(tree->currentNodeId(), lineNodeId(1, 3));
         QCOMPARE(graph->currentPly(), 3);
         QCOMPARE(boardSfen(), branchBoard);
         snapshot("analysis-branch-synchronized");

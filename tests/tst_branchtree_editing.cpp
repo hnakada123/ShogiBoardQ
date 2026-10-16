@@ -4,6 +4,7 @@
 #include <QtTest>
 #include <QAbstractButton>
 #include <QApplication>
+#include <QGraphicsItem>
 #include <QGraphicsView>
 #include <QMessageBox>
 #include <QPushButton>
@@ -13,10 +14,12 @@
 
 #include "branchtreeeditcontroller.h"
 #include "branchtreelayout.h"
-#include "branchtreemanager.h"
+#include "branchtreeitemroles.h"
+#include "branchtreeview.h"
 #include "kifudocument.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
+#include "branchtree_test_util.h"
 #include "kifudisplaypresenter.h"
 #include "kifunavigationcontroller.h"
 #include "kifunavigationstate.h"
@@ -57,7 +60,7 @@ struct Fixture {
     KifuBranchNode* add(KifuBranchNode* parent, const QString& name)
     {
         const QString mark = (parent->ply() % 2 == 0) ? QStringLiteral("▲") : QStringLiteral("△");
-        return tree.addMove(parent, ShogiMove(), mark + name, QStringLiteral("sfen-") + name);
+        return TestTree::addMove(tree, parent, ShogiMove(), mark + name, QStringLiteral("sfen-") + name);
     }
 };
 
@@ -127,9 +130,10 @@ private slots:
     void tree_promoteToMainLine()
     {
         Fixture f;
-        QSignalSpy changed(&f.tree, &KifuBranchTree::treeChanged);
+        QSignalSpy changed(&f.tree, &KifuBranchTree::childrenReordered);
         QVERIFY(f.tree.promoteToMainLine(f.c3));
         QCOMPARE(changed.count(), 1);
+        QCOMPARE(changed.at(0).at(0).toInt(), f.main.at(1)->nodeId());   // 並びを変えた最もルートに近い手
         const QList<KifuBranchNode*> mainLine = f.tree.mainLine();
         QCOMPARE(mainLine.size(), 4);   // root m1 b2 c3
         QCOMPARE(mainLine.last(), f.c3);
@@ -298,26 +302,25 @@ private slots:
         QCOMPARE(tree.nodeCount(), nodesBefore);
     }
 
-    // ===== BranchTreeManager の表示 =====
+    // ===== BranchTreeView の表示 =====
 
-    void manager_compactLayoutPacksLanes()
+    void view_compactLayoutPacksLanes()
     {
         Fixture f;
-        BranchTreeManager manager;
-        manager.setCompactLayout(true);
-        manager.setBranchTree(&f.tree);
+        BranchTreeView view;
+        view.setCompactLayout(true);
+        view.setTree(&f.tree);
 
-        // ライン: 0=本譜, 1=A(5手目から), 2=B(2手目から), 3=C(Bの3手目から)
-        QCOMPARE(manager.rowCount(), 4);
-        QCOMPARE(manager.laneForRow(0), 0);
-        QCOMPARE(manager.laneForRow(1), 1);
-        QCOMPARE(manager.laneForRow(2), 1);   // A と手数が重ならないので同じ段に詰める
-        QCOMPARE(manager.laneForRow(3), 2);   // 親（B）より下
+        // 変化: A(5手目から), B(2手目から), C(Bの3手目から)
+        QCOMPARE(view.laneOf(f.main.at(1)->nodeId()), 0);
+        QCOMPARE(view.laneOf(f.a5->nodeId()), 1);
+        QCOMPARE(view.laneOf(f.b2->nodeId()), 1);   // A と手数が重ならないので同じ段に詰める
+        QCOMPARE(view.laneOf(f.c3->nodeId()), 2);   // 親（B）より下
 
-        manager.setCompactLayout(false);
-        QCOMPARE(manager.laneForRow(1), 1);
-        QCOMPARE(manager.laneForRow(2), 2);
-        QCOMPARE(manager.laneForRow(3), 3);
+        view.setCompactLayout(false);
+        QCOMPARE(view.laneOf(f.a5->nodeId()), 1);
+        QCOMPARE(view.laneOf(f.b2->nodeId()), 2);
+        QCOMPARE(view.laneOf(f.c3->nodeId()), 3);
     }
 
     /// 行の折りたたみと段の割り当ては描画なしで決まる
@@ -349,118 +352,143 @@ private slots:
         QVERIFY(!layout.expandAll());
     }
 
-    void manager_collapseHidesDescendants()
+    void view_collapseHidesDescendants()
     {
         Fixture f;
-        BranchTreeManager manager;
-        manager.setCompactLayout(true);
-        manager.setBranchTree(&f.tree);
+        BranchTreeView view;
+        view.setCompactLayout(true);
+        view.setTree(&f.tree);
 
-        QVERIFY(manager.isRowCollapsible(2));
-        QVERIFY(!manager.isRowCollapsible(3));
-        manager.setRowCollapsed(2, true);
-        QVERIFY(manager.isRowCollapsed(2));
-        QVERIFY(manager.nodeIdFor(2, 2) > 0);    // 先頭の手は残る
-        QCOMPARE(manager.nodeIdFor(2, 3), -1);   // 続きは隠れる
-        QCOMPARE(manager.laneForRow(3), -1);     // 先の変化も隠れる
+        QVERIFY(view.isCollapsible(f.b3->nodeId()));   // 変化の中のどの手でもその変化を指す
+        QVERIFY(!view.isCollapsible(f.c3->nodeId()));
+        QVERIFY(!view.isCollapsible(f.main.at(2)->nodeId()));   // 本譜は折りたためない
+        view.setCollapsed(f.b2->nodeId(), true);
+        QVERIFY(view.isCollapsed(f.b3->nodeId()));
+        QVERIFY(view.isDrawn(f.b2->nodeId()));    // 先頭の手は残る
+        QVERIFY(!view.isDrawn(f.b3->nodeId()));   // 続きは隠れる
+        QCOMPARE(view.laneOf(f.c3->nodeId()), -1);   // 先の変化も隠れる
 
         // 折りたたみはツリーを作り直しても保たれる
-        manager.setBranchTree(&f.tree);
-        QVERIFY(manager.isRowCollapsed(2));
+        view.setTree(&f.tree);
+        QVERIFY(view.isCollapsed(f.b2->nodeId()));
 
         // 隠れた手を表示すると展開される
-        manager.highlightBranchTreeAt(3, 3);
-        QVERIFY(!manager.isRowCollapsed(2));
-        QCOMPARE(manager.lastHighlightedRow(), 3);
-        QCOMPARE(manager.lastHighlightedPly(), 3);
+        view.setCurrentNode(f.c3->nodeId());
+        QVERIFY(!view.isCollapsed(f.b2->nodeId()));
+        QCOMPARE(view.currentNodeId(), f.c3->nodeId());
     }
 
-    void manager_keyboardNavigation()
+    void view_keyboardNavigation()
     {
         Fixture f;
-        BranchTreeManager manager;
-        QGraphicsView& view = *manager.view();
-        manager.setCompactLayout(true);
-        manager.setBranchTree(&f.tree);
-        QSignalSpy activated(&manager, &BranchTreeManager::branchNodeActivated);
+        BranchTreeView view;
+        view.setCompactLayout(true);
+        view.setTree(&f.tree);
+        QSignalSpy activated(&view, &BranchTreeView::nodeActivated);
 
-        manager.highlightBranchTreeAt(0, 5);
+        view.setCurrentNode(f.main.at(5)->nodeId());
         QTest::keyClick(&view, Qt::Key_Down);
         QCOMPARE(activated.count(), 1);
-        QCOMPARE(activated.last().at(0).toInt(), 1);
-        QCOMPARE(activated.last().at(1).toInt(), 5);
+        QCOMPARE(activated.last().at(0).toInt(), f.a5->nodeId());
 
         QTest::keyClick(&view, Qt::Key_Right);
-        QCOMPARE(activated.last().at(0).toInt(), 1);
-        QCOMPARE(activated.last().at(1).toInt(), 6);
+        QCOMPARE(activated.last().at(0).toInt(), f.a6->nodeId());
 
         QTest::keyClick(&view, Qt::Key_Left);
-        QCOMPARE(activated.last().at(1).toInt(), 5);
+        QCOMPARE(activated.last().at(0).toInt(), f.a5->nodeId());
 
         QTest::keyClick(&view, Qt::Key_Up);
-        QCOMPARE(activated.last().at(0).toInt(), 0);
+        QCOMPARE(activated.last().at(0).toInt(), f.main.at(5)->nodeId());
 
         QTest::keyClick(&view, Qt::Key_End);
-        QCOMPARE(activated.last().at(0).toInt(), 0);
-        QCOMPARE(activated.last().at(1).toInt(), 6);
+        QCOMPARE(activated.last().at(0).toInt(), f.main.at(6)->nodeId());
 
         QTest::keyClick(&view, Qt::Key_Home);
-        QCOMPARE(activated.last().at(1).toInt(), 0);
+        QCOMPARE(activated.last().at(0).toInt(), f.tree.root()->nodeId());
+        QCOMPARE(view.currentNodeId(), f.tree.root()->nodeId());
 
         // 対局中など、クリックできない間はキーでも移動しない
         const auto count = activated.count();
-        manager.setBranchTreeClickEnabled(false);
+        view.setClickEnabled(false);
         QTest::keyClick(&view, Qt::Key_Right);
         QCOMPARE(activated.count(), count);
     }
 
-    // 図形はツリーのノード ID を持ち、分岐前の手は親の行の図形を強調する。
-    // 手順の末尾に1手増えただけなら作り直さずに描き足す
-    void manager_readsTreeDirectly()
+    // 手は、その手を初めて含む変化の行に描く（分岐前の手は親の手順の行）。
+    // ツリーの変更を受けて描き直し、手順の末尾に1手増えただけなら作り直さずに描き足す
+    void view_followsTreeChanges()
     {
         Fixture f;
-        BranchTreeManager manager;
-        manager.setBranchTree(&f.tree);
+        BranchTreeView view;
+        view.setTree(&f.tree);
 
-        QCOMPARE(manager.nodeIdFor(0, 0), f.tree.root()->nodeId());
-        QCOMPARE(manager.nodeIdFor(0, 3), f.main.at(3)->nodeId());
-        QCOMPARE(manager.nodeIdFor(1, 5), f.a5->nodeId());
-        QCOMPARE(manager.nodeIdFor(1, 3), -1);   // 分岐前の手は本譜の行に描く
-        QCOMPARE(manager.rowDispCount(1), 7);
+        QVERIFY(view.isDrawn(f.tree.root()->nodeId()));
+        QCOMPARE(view.laneOf(f.main.at(3)->nodeId()), 0);   // 分岐前の手は本譜の行に描く
+        QCOMPARE(view.laneOf(f.a5->nodeId()), 1);
 
-        manager.highlightBranchTreeAt(1, 3);
-        QCOMPARE(manager.lastHighlightedRow(), 0);
-        QCOMPARE(manager.lastHighlightedPly(), 3);
-        manager.highlightBranchTreeAt(1, 6);
-        QCOMPARE(manager.lastHighlightedRow(), 1);
+        view.setCurrentNode(f.main.at(3)->nodeId());
+        QCOMPARE(view.currentNodeId(), f.main.at(3)->nodeId());
+        view.setCurrentNode(f.a6->nodeId());
+        QCOMPARE(view.currentNodeId(), f.a6->nodeId());
 
-        const int rebuilds = manager.rebuildCount();
+        // 表示中の手を、描く前に知らされても、描いた時点で目立たせる
+        const int rebuilds = view.rebuildCount();
+        f.tree.beginBatchUpdate();
         KifuBranchNode* a7 = f.add(f.a6, QStringLiteral("a7"));
-        manager.setBranchTree(&f.tree);
-        QCOMPARE(manager.rebuildCount(), rebuilds);
-        QCOMPARE(manager.nodeIdFor(1, 7), a7->nodeId());
-        QCOMPARE(manager.rowDispCount(1), 8);
+        view.setCurrentNode(a7->nodeId());
+        QCOMPARE(view.currentNodeId(), -1);
+        f.tree.endBatchUpdate();
+        QCOMPARE(view.rebuildCount(), rebuilds);
+        QCOMPARE(view.laneOf(a7->nodeId()), 1);
+        QCOMPARE(view.currentNodeId(), a7->nodeId());
 
-        // 新しい変化ができたときは作り直す
-        f.add(f.a5, QStringLiteral("x6"));
-        manager.setBranchTree(&f.tree);
-        QCOMPARE(manager.rebuildCount(), rebuilds + 1);
-        QCOMPARE(manager.rowCount(), f.tree.lineCount());
+        // 新しい変化ができたとき・並べ替えたときは作り直す
+        KifuBranchNode* x6 = f.add(f.a5, QStringLiteral("x6"));
+        const int x6Id = x6->nodeId();
+        QCOMPARE(view.rebuildCount(), rebuilds + 1);
+        QVERIFY(view.isDrawn(x6Id));
+        QVERIFY(f.tree.moveChild(x6, 0));
+        QCOMPARE(view.rebuildCount(), rebuilds + 2);
+        QVERIFY(f.tree.removeSubtree(x6));
+        QCOMPARE(view.rebuildCount(), rebuilds + 3);
+        QVERIFY(!view.isDrawn(x6Id));
+        QVERIFY(view.isDrawn(a7->nodeId()));
 
         // ツリーを外すと開始局面だけになる
-        manager.setBranchTree(nullptr);
-        QCOMPARE(manager.rowCount(), 0);
-        QCOMPARE(manager.nodeIdFor(0, 1), -1);
+        view.setTree(nullptr);
+        QVERIFY(!view.isDrawn(f.main.at(1)->nodeId()));
+        // 外したツリーの変更では描き直さない
+        const int detached = view.rebuildCount();
+        f.add(a7, QStringLiteral("a8"));
+        QCOMPARE(view.rebuildCount(), detached);
     }
 
-    void manager_zoomIsClamped()
+    void view_commentMarkerFollowsDocument()
     {
-        BranchTreeManager manager;
-        manager.setZoomPercent(1000);
-        QCOMPARE(manager.zoomPercent(), BranchTreeManager::kMaxZoomPercent);
-        manager.setZoomPercent(1);
-        QCOMPARE(manager.zoomPercent(), BranchTreeManager::kMinZoomPercent);
-        manager.setZoomPercent(100);
+        Fixture f;
+        BranchTreeView view;
+        view.setTree(&f.tree);
+        const auto tipOf = [&view](int nodeId) {
+            const QList<QGraphicsItem*> items = view.scene()->items();
+            for (const QGraphicsItem* item : items) {
+                if (item->data(BranchTreeItemRoles::NodeId).toInt() == nodeId) return item->toolTip();
+            }
+            return QString();
+        };
+        QVERIFY(!tipOf(f.a5->nodeId()).contains(QStringLiteral("注目の一手")));
+        f.a5->record().comment = QStringLiteral("注目の一手");
+        view.refreshNode(f.a5->nodeId());
+        QVERIFY(tipOf(f.a5->nodeId()).contains(QStringLiteral("注目の一手")));
+    }
+
+    void view_zoomIsClamped()
+    {
+        BranchTreeView view;
+        view.setZoomPercent(1000);
+        QCOMPARE(view.zoomPercent(), BranchTreeView::kMaxZoomPercent);
+        view.setZoomPercent(1);
+        QCOMPARE(view.zoomPercent(), BranchTreeView::kMinZoomPercent);
+        view.setZoomPercent(100);
     }
 };
 

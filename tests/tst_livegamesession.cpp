@@ -3,6 +3,7 @@
 
 #include "livegamesession.h"
 #include "kifubranchtree.h"
+#include "branchtree_test_util.h"
 #include "kifubranchnode.h"
 #include "kifunavigationstate.h"
 #include "shogimove.h"
@@ -51,7 +52,7 @@ private slots:
         SessionObserver observer;
         observer.session = &session;
         observer.nav = &nav;
-        connect(&tree, &KifuBranchTree::treeChanged, &observer, &SessionObserver::treeChanged);
+        connect(&tree, &KifuBranchTree::nodeAppended, &observer, &SessionObserver::treeChanged);
         RecordEntry move;
         move.displayText = QStringLiteral("投了という文字を含む通常手");
         move.sfen = QStringLiteral("next-sfen");
@@ -137,8 +138,8 @@ private slots:
         tree.setRootSfen(kHirateSfen);
 
         ShogiMove move;
-        auto* n1 = tree.addMove(tree.root(), move, QStringLiteral("move1"), QStringLiteral("sfen1"));
-        auto* n2 = tree.addMove(n1, move, QStringLiteral("move2"), QStringLiteral("sfen2"));
+        auto* n1 = TestTree::addMove(tree, tree.root(), move, QStringLiteral("move1"), QStringLiteral("sfen1"));
+        auto* n2 = TestTree::addMove(tree, n1, move, QStringLiteral("move2"), QStringLiteral("sfen2"));
 
         KifuNavigationState nav(&tree);
         LiveGameSession session(&tree, &nav);
@@ -242,7 +243,7 @@ private slots:
         tree.setRootSfen(kHirateSfen);
 
         ShogiMove move;
-        auto* n1 = tree.addMove(tree.root(), move, QStringLiteral("m1"), QStringLiteral("s1"));
+        auto* n1 = TestTree::addMove(tree, tree.root(), move, QStringLiteral("m1"), QStringLiteral("s1"));
 
         KifuNavigationState nav(&tree);
         LiveGameSession session(&tree, &nav);
@@ -261,9 +262,9 @@ private slots:
         KifuBranchTree tree;
         tree.setRootSfen(kHirateSfen);
         ShogiMove move;
-        auto* n1 = tree.addMove(tree.root(), move, QStringLiteral("▲７六歩"), QStringLiteral("board1 w - 2"));
-        auto* n2 = tree.addMove(n1, move, QStringLiteral("△３四歩"), QStringLiteral("board2 b - 3"));
-        tree.addTerminalMove(n2, TerminalType::Resign, Turn::Black);
+        auto* n1 = TestTree::addMove(tree, tree.root(), move, QStringLiteral("▲７六歩"), QStringLiteral("board1 w - 2"));
+        auto* n2 = TestTree::addMove(tree, n1, move, QStringLiteral("△３四歩"), QStringLiteral("board2 b - 3"));
+        TestTree::addTerminalMove(tree, n2, TerminalType::Resign, Turn::Black);
         const int nodesBefore = tree.nodeCount();
 
         KifuNavigationState nav(&tree);
@@ -285,9 +286,9 @@ private slots:
         KifuBranchTree tree;
         tree.setRootSfen(kHirateSfen);
         ShogiMove move;
-        auto* n1 = tree.addMove(tree.root(), move, QStringLiteral("▲７六歩"), QStringLiteral("board1 w - 2"));
-        auto* n2 = tree.addMove(n1, move, QStringLiteral("△３四歩"), QStringLiteral("board2 b - 3"));
-        auto* n3 = tree.addTerminalMove(n2, TerminalType::Resign, Turn::Black);
+        auto* n1 = TestTree::addMove(tree, tree.root(), move, QStringLiteral("▲７六歩"), QStringLiteral("board1 w - 2"));
+        auto* n2 = TestTree::addMove(tree, n1, move, QStringLiteral("△３四歩"), QStringLiteral("board2 b - 3"));
+        auto* n3 = TestTree::addTerminalMove(tree, n2, TerminalType::Resign, Turn::Black);
 
         KifuNavigationState nav(&tree);
         LiveGameSession session(&tree, &nav);
@@ -316,7 +317,7 @@ private slots:
         KifuBranchTree tree;
         tree.setRootSfen(kHirateSfen);
         ShogiMove move;
-        auto* n1 = tree.addMove(tree.root(), move, QStringLiteral("▲７六歩"), QStringLiteral("board1 w - 2"));
+        auto* n1 = TestTree::addMove(tree, tree.root(), move, QStringLiteral("▲７六歩"), QStringLiteral("board1 w - 2"));
 
         KifuNavigationState nav(&tree);
         LiveGameSession session(&tree, &nav);
@@ -338,7 +339,7 @@ private slots:
         KifuBranchTree tree;
         tree.setRootSfen(kHirateSfen);
         ShogiMove move;
-        auto* n1 = tree.addMove(tree.root(), move, QStringLiteral("▲７六歩"), QStringLiteral("board1 w - 2"));
+        auto* n1 = TestTree::addMove(tree, tree.root(), move, QStringLiteral("▲７六歩"), QStringLiteral("board1 w - 2"));
 
         KifuNavigationState nav(&tree);
         LiveGameSession session(&tree, &nav);
@@ -366,8 +367,8 @@ private slots:
         KifuBranchTree tree;
         tree.setRootSfen(kHirateSfen);
         ShogiMove move;
-        auto* n1 = tree.addMove(tree.root(), move, QStringLiteral("▲７六歩"), QStringLiteral("board1 w - 2"));
-        auto* resign = tree.addTerminalMove(n1, TerminalType::Resign, Turn::White);
+        auto* n1 = TestTree::addMove(tree, tree.root(), move, QStringLiteral("▲７六歩"), QStringLiteral("board1 w - 2"));
+        auto* resign = TestTree::addTerminalMove(tree, n1, TerminalType::Resign, Turn::White);
 
         KifuNavigationState nav(&tree);
         LiveGameSession session(&tree, &nav);
@@ -383,9 +384,9 @@ private slots:
     {
         KifuBranchTree tree;
         tree.setRootSfen(kHirateSfen);
-        auto* m1 = tree.addMove(tree.root(), ShogiMove(), QStringLiteral("▲７六歩(77)"), QStringLiteral("s1"),
+        auto* m1 = TestTree::addMove(tree, tree.root(), ShogiMove(), QStringLiteral("▲７六歩(77)"), QStringLiteral("s1"),
                                 QStringLiteral("00:05/00:00:05"));
-        auto* m2 = tree.addMove(m1, ShogiMove(), QStringLiteral("△３四歩(33)"), QStringLiteral("s2"),
+        auto* m2 = TestTree::addMove(tree, m1, ShogiMove(), QStringLiteral("△３四歩(33)"), QStringLiteral("s2"),
                                 QStringLiteral("00:03/00:00:03"));
 
         KifuNavigationState nav(&tree);
@@ -421,7 +422,7 @@ private slots:
         QVERIFY(session.isActive());
         QSignalSpy active(&session, &LiveGameSession::activeChanged);
 
-        tree.addMove(tree.root(), ShogiMove(), QStringLiteral("▲２六歩"), QStringLiteral("s2"));
+        TestTree::addMove(tree, tree.root(), ShogiMove(), QStringLiteral("▲２六歩"), QStringLiteral("s2"));
         QVERIFY(session.isActive());   // 開始した局面が残っていれば続ける
 
         tree.setRootSfen(kHirateSfen);
@@ -435,8 +436,8 @@ private slots:
     {
         KifuBranchTree tree;
         tree.setRootSfen(kHirateSfen);
-        auto* m1 = tree.addMove(tree.root(), ShogiMove(), QStringLiteral("▲７六歩"), QStringLiteral("s1"));
-        tree.addMove(m1, ShogiMove(), QStringLiteral("△３四歩"), QStringLiteral("s2"));
+        auto* m1 = TestTree::addMove(tree, tree.root(), ShogiMove(), QStringLiteral("▲７六歩"), QStringLiteral("s1"));
+        TestTree::addMove(tree, m1, ShogiMove(), QStringLiteral("△３四歩"), QStringLiteral("s2"));
         KifuNavigationState nav(&tree);
         LiveGameSession session(&tree, &nav);
         QSignalSpy active(&session, &LiveGameSession::activeChanged);

@@ -14,6 +14,7 @@
 #include "kifu_test_helper.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
+#include "branchtree_test_util.h"
 #include "sfenutils.h"
 #include "test_replay.h"
 
@@ -24,7 +25,7 @@ KifuBranchNode* addMove(KifuBranchTree& tree, KifuBranchNode* parent, const QStr
 {
     const QStringList positions = TestReplay::buildSfenRecord(parent->sfen(), {usi}, false);
     const QList<ShogiMove> moves = TestReplay::buildGameMoves(parent->sfen(), {usi});
-    return tree.addMove(parent, moves.value(0), usi, positions.last());
+    return TestTree::addMove(tree, parent, moves.value(0), usi, positions.last());
 }
 
 QByteArray exportJkf(KifuBranchTree& tree, const QString& startSfen)
@@ -130,7 +131,7 @@ private slots:
         const QStringList mainUsi = {"4d4c", "5b4c", "5h6h", "G*3c", "8h3c+", "4c3c", "P*3d"};
         QList<KifuBranchNode*> mainNodes{tree.root()};
         for (const QString& usi : mainUsi) mainNodes.append(addMove(tree, mainNodes.last(), usi));
-        tree.addTerminalMove(mainNodes.last(), TerminalType::Resign, Turn::White);
+        TestTree::addTerminalMove(tree, mainNodes.last(), TerminalType::Resign, Turn::White);
 
         // 1手目の変化（銀成）と、その中の2手目の変化（玉）
         auto* silverPromotes = addMove(tree, mainNodes.at(0), QStringLiteral("4d4c+"));
@@ -250,7 +251,7 @@ private slots:
         tree.setRootSfen(SfenUtils::hirateSfen());
         KifuBranchNode* tip = tree.root();
         if (plies > 0) tip = addMove(tree, tip, QStringLiteral("7g7f"));
-        tree.addTerminalMove(tip, TerminalTypes::fromWord(word), plies % 2 == 0 ? Turn::Black : Turn::White);
+        TestTree::addTerminalMove(tree, tip, TerminalTypes::fromWord(word), plies % 2 == 0 ? Turn::Black : Turn::White);
 
         const QByteArray json = exportJkf(tree, SfenUtils::hirateSfen());
         const QJsonArray moves = QJsonDocument::fromJson(json).object().value(QStringLiteral("moves")).toArray();

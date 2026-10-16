@@ -9,6 +9,7 @@
 
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
+#include "branchtree_test_util.h"
 #include "kifurecordlistmodel.h"
 #include "sfenutils.h"
 #include "shogimove.h"
@@ -33,7 +34,7 @@ struct RecordRows {
     KifuBranchNode* append(const QString& text, const QString& time = QString(), const QString& comment = QString(),
                            const QString& bookmark = QString(), const ShogiMove& move = ShogiMove())
     {
-        KifuBranchNode* node = tree.addMoveQuiet(path.last(), move, text, path.last()->sfen(), time);
+        KifuBranchNode* node = TestTree::addMove(tree, path.last(), move, text, path.last()->sfen(), time);
         node->record().comment = comment;
         node->record().bookmark = bookmark;
         path.append(node);
@@ -45,7 +46,7 @@ struct RecordRows {
     void markBranch(int row)
     {
         KifuBranchNode* parent = path.at(row)->parent();
-        tree.addMoveQuiet(parent, ShogiMove(), QStringLiteral("▲９六歩(97)"), parent->sfen());
+        TestTree::addMove(tree, parent, ShogiMove(), QStringLiteral("▲９六歩(97)"), parent->sfen());
         model.refreshAll();
     }
 };

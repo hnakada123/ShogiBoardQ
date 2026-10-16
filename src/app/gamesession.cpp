@@ -58,7 +58,11 @@ GameSession::GameSession(const Deps& deps, QObject* parent)
     m_csaChannel = std::make_unique<CsaGameChannel>(m_deps.csaGame);
 
     // 棋譜を変えたら、中断した対局は再開できない
-    connect(m_deps.navState->tree(), &KifuBranchTree::treeChanged, this, &GameSession::discardInterruptedGame);
+    KifuBranchTree* tree = m_deps.navState->tree();
+    connect(tree, &KifuBranchTree::nodeAppended, this, &GameSession::discardInterruptedGame);
+    connect(tree, &KifuBranchTree::childrenReordered, this, &GameSession::discardInterruptedGame);
+    connect(tree, &KifuBranchTree::subtreeRemoved, this, &GameSession::discardInterruptedGame);
+    connect(tree, &KifuBranchTree::reset, this, &GameSession::discardInterruptedGame);
 
     // 通信対局の棋譜（画面への反映は CsaGameSession。棋譜を先に作るため、CsaGameSession より先に接続する）
     CsaGameCoordinator* const csa = m_deps.csaGame;

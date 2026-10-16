@@ -26,6 +26,7 @@
 #include "kifuanalysislistmodel.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
+#include "branchtree_test_util.h"
 #include "kifunavigationcontroller.h"
 #include "kifunavigationstate.h"
 #include "settingscommon.h"
@@ -91,7 +92,7 @@ public:
         const QList<ShogiMove> moves = TestReplay::buildGameMoves(SfenUtils::hirateSfen(), usiMoves);
         tree.setRootSfen(sfenRecord.first());
         KifuBranchNode* node = tree.root();
-        for (int i = 0; i < moves.size(); ++i) node = tree.addMove(node, moves.at(i), usiMoves.at(i), sfenRecord.at(i + 1));
+        for (int i = 0; i < moves.size(); ++i) node = TestTree::addMove(tree, node, moves.at(i), usiMoves.at(i), sfenRecord.at(i + 1));
         usi = new Usi();
         new UsiModelBinding(usi, {&logModel, &thinkingModel});
     }
@@ -362,7 +363,7 @@ private slots:
         KifuBranchTree tree;
         tree.setRootSfen(SfenUtils::hirateSfen());
         const QString after = TestReplay::buildSfenRecord(SfenUtils::hirateSfen(), {QStringLiteral("7g7f")}, false).at(1);
-        KifuBranchNode* first = tree.addMove(tree.root(), TestReplay::buildGameMoves(SfenUtils::hirateSfen(),
+        KifuBranchNode* first = TestTree::addMove(tree, tree.root(), TestReplay::buildGameMoves(SfenUtils::hirateSfen(),
                                              {QStringLiteral("7g7f")}).first(), QStringLiteral("▲７六歩(77)"), after);
         KifuNavigationState nav(&tree);
         nav.setCurrentNode(first);

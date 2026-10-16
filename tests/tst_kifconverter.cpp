@@ -5,6 +5,7 @@
 #include "kiftosfenconverter.h"
 #include "kifparsetypes.h"
 #include "kifubranchtree.h"
+#include "branchtree_test_util.h"
 #include "kifubranchtreebuilder.h"
 #include "kifubranchnode.h"
 #include "kifu_test_helper.h"
@@ -68,7 +69,7 @@ private slots:
         KifuBranchTree tree;
         tree.setRootSfen(QStringLiteral("original"));
         const int rootId = tree.root()->nodeId();
-        QSignalSpy changed(&tree, &KifuBranchTree::treeChanged);
+        QSignalSpy changed(&tree, &KifuBranchTree::reset);
         KifParseResult result;
         KifVariation variation;
         variation.parentVariation = parent;
@@ -468,9 +469,9 @@ private slots:
         QVERIFY(!tree.sfenListForLine(1).contains(QString()));
     }
 
-    // ツリー構築中は treeChanged を発火せず、構築完了時に1回だけ発火すること
-    //（以前はノード追加ごとに発火し、表示側がそのたびに全再構築していた）
-    void buildFromKifParseResult_emitsTreeChangedOnce()
+    // ツリー構築中は知らせず、構築完了時に作り直し（reset）を1回だけ知らせること
+    //（以前はノード追加ごとに知らせ、表示側がそのたびに全再構築していた）
+    void buildFromKifParseResult_emitsResetOnce()
     {
         KifParseResult res;
         res.mainline = testLine({ QStringLiteral("▲７六歩"), QStringLiteral("△３四歩"), QStringLiteral("▲２六歩") },
@@ -483,11 +484,13 @@ private slots:
         res.variations = { var };
 
         KifuBranchTree tree;
-        QSignalSpy spy(&tree, &KifuBranchTree::treeChanged);
+        QSignalSpy spy(&tree, &KifuBranchTree::reset);
+        QSignalSpy appended(&tree, &KifuBranchTree::nodeAppended);
         KifuBranchTreeBuilder::buildFromKifParseResult(&tree, res, QStringLiteral("b0 b - 1"));
 
         QCOMPARE(tree.nodeCount(), 6);   // root + 本譜3 + 変化2
         QCOMPARE(spy.count(), 1);
+        QCOMPARE(appended.count(), 0);
     }
 
     // 変化が「別の変化の投了直前の局面」から分岐するケース。
@@ -520,7 +523,7 @@ private slots:
             KifuBranchTreeBuilder::buildFromKifParseResult(&tree, res, QStringLiteral("b0 b - 1"));
 
             QCOMPARE(tree.lineCount(), 3);
-            KifuBranchNode* a3 = tree.findBySfen(QStringLiteral("a3 w - 4"), 3);
+            KifuBranchNode* a3 = TestTree::findBySfen(tree, QStringLiteral("a3 w - 4"), 3);
             QVERIFY(a3 != nullptr);
             QCOMPARE(a3->displayText(), QStringLiteral("▲２六歩"));
             QCOMPARE(a3->childCount(), 2);

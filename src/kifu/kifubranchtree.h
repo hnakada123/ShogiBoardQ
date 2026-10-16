@@ -9,6 +9,7 @@
 #include <QHash>
 #include <QList>
 #include <QSet>
+#include <memory>
 #include <optional>
 
 #include "kifubranchnode.h"
@@ -31,8 +32,11 @@ struct BranchLine {
 /**
  * @brief 分岐構造を表すツリー型データモデル
  *
- * 棋譜の分岐構造をツリーで管理する。
- * UIとは独立したデータモデル。
+ * 棋譜の分岐構造をツリーで管理する。UIとは独立したデータモデル。
+ *
+ * 構造の変更（手の追加・子の並べ替え・部分木の削除・作り直し）は、変わった所をノード ID で
+ * 型付きのシグナルで知らせる。ノード ID は同じツリーの寿命中は使い回さない。
+ * 手の表記・コメント・しおりの変更は構造の変更ではない（棋譜の文書 KifuDocument が知らせる）。
  */
 class KifuBranchTree : public QObject
 {
@@ -45,75 +49,32 @@ public:
     // === 構築 ===
 
     /**
-     * @brief ツリーをクリアする
+     * @brief ツリーを空にする（reset を知らせる）
      */
     void clear();
 
     /**
-     * @brief 開始局面のSFENを設定してルートノードを作成
+     * @brief 開始局面だけのツリーに作り直す（reset を知らせる）
      * @param sfen 開始局面のSFEN
      */
     void setRootSfen(const QString& sfen);
 
     /**
-     * @brief 指し手を追加する
-     * @param parent 親ノード
-     * @param move 指し手
-     * @param displayText 表示テキスト
-     * @param sfen この手を指した後の局面SFEN
-     * @param timeText 消費時間テキスト
-     * @return 作成されたノード
+     * @brief 手を parent の子の末尾に足す（nodeAppended を知らせる）
+     * @return 作成されたノード（parent が無いか終局の行なら nullptr）
      *
-     * displayText が終局手（投了・中断など）の場合、盤面は変化しないため
-     * move と sfen は無視され、ノードは親と同じ局面SFENと無効な ShogiMove を持つ。
-     * これにより終局手ノードの SFEN は追加経路（KIF 読み込み・ライブ対局）に
-     * よらず一定になる。
+     * 終局の行（投了・中断など）は盤面を変えないため、entry の局面と指し手は使わず、
+     * 親と同じ局面と無効な ShogiMove を持つ。これにより終局の行の局面は追加経路
+     * （棋譜の読み込み・対局）によらず一定になる。
      */
     KifuBranchNode* addRecord(KifuBranchNode* parent, const RecordEntry& entry);
 
-    KifuBranchNode* addMove(KifuBranchNode* parent,
-                           const ShogiMove& move,
-                           const QString& displayText,
-                           const QString& sfen,
-                           const QString& timeText = QString());
-
-    /**
-     * @brief 終局手を追加する（表記は終局語の表から作る）
-     * @param parent 親ノード
-     * @param type 終局手の種類
-     * @param side 終局を記録した側
-     * @param timeText 消費時間テキスト
-     * @return 作成されたノード
-     */
-    KifuBranchNode* addTerminalMove(KifuBranchNode* parent,
-                                    TerminalType type,
-                                    Turn side,
-                                    const QString& timeText = QString());
-
-    /**
-     * @brief 指し手を追加する（treeChanged シグナルを発火しない）
-     *
-     * ライブ対局中など、treeChanged による UI 更新を避けたい場合に使用。
-     */
-    KifuBranchNode* addMoveQuiet(KifuBranchNode* parent,
-                                 const ShogiMove& move,
-                                 const QString& displayText,
-                                 const QString& sfen,
-                                 const QString& timeText = QString());
-
-    /// 葉ノードを削除する（ルートは不可、treeChanged は発火しない）。
-    /// 呼び出し側は削除前に現在位置の参照を退避し、削除後に表示を同期すること。
-    bool removeLeafQuiet(KifuBranchNode* node);
-    /// 葉ノードを削除し、表示に構造変更を通知する。
+    /// 葉ノードを削除する（ルートは不可。subtreeRemoved を知らせる）
     bool removeLeaf(KifuBranchNode* node);
 
-    /// 子ノードを兄弟の中で index の位置へ移す（treeChanged は発火しない）。
-    /// 先頭の子が本譜側になるため、ライン番号が変わり得る。
-    bool moveChildQuiet(KifuBranchNode* child, int index);
+    // === 分岐の編集（変更があれば childrenReordered・subtreeRemoved を知らせる） ===
 
-    // === 分岐の編集（利用者の操作。変更があれば treeChanged を発火する） ===
-
-    /// 子ノードを兄弟の中で index の位置へ移す（分岐の並べ替え）
+    /// 子ノードを兄弟の中で index の位置へ移す（分岐の並べ替え。先頭の子が本譜側になる）
     bool moveChild(KifuBranchNode* child, int index);
 
     /// ルートから node までの手順が本譜になるよう、経路上の各手を兄弟の先頭へ移す。
@@ -134,11 +95,11 @@ public:
     // === 一括更新 ===
 
     /**
-     * @brief 一括更新を開始する（treeChanged の発火を抑止する）
+     * @brief 一括更新を開始する（変更の知らせを最も外側の endBatchUpdate() まで遅らせる）
      *
-     * KIF 読み込みのように多数のノードを続けて追加する場合に使う。
-     * 入れ子にでき、最も外側の endBatchUpdate() で、抑止中に変更があれば
-     * treeChanged を1回だけ発火する。
+     * 手を足してから表示中の手を移す、といった続けて行う変更で、表示が途中の状態を描かないようにする。
+     * 入れ子にできる。endBatchUpdate() では、遅らせた知らせを順に出す。作り直し（clear・setRootSfen）を
+     * 含むときは、まとめて reset を1回だけ出す（棋譜の読み込み）。
      */
     void beginBatchUpdate();
 
@@ -153,7 +114,7 @@ public:
     /**
      * @brief ルートノードを取得
      */
-    KifuBranchNode* root() const { return m_root; }
+    KifuBranchNode* root() const { return m_root.get(); }
 
     /**
      * @brief ノードIDからノードを取得
@@ -161,27 +122,9 @@ public:
     KifuBranchNode* nodeAt(int nodeId) const;
 
     /**
-     * @brief 本譜のN手目を取得
-     */
-    KifuBranchNode* findByPlyOnMainLine(int ply) const;
-
-    /**
-     * @brief SFENで一致するノードを探す
-     * @param sfen 検索するSFEN（手数部分は無視し、持ち駒の並び順の差も吸収して比較）
-     * @param ply 手数で絞り込む場合に指定する（-1 なら全手数が対象）
-     * @return 見つかったノード、見つからない場合はnullptr
-     *
-     * ルートから本譜を優先する深さ優先順で走査し、最初に一致したノードを返す。
-     * 終局手ノードは親と同じ局面を持つため対象外とする。
-     */
-    KifuBranchNode* findBySfen(const QString& sfen, int ply = -1) const;
-
-    /**
      * @brief 親ノードの子から、同じ指し手を表す既存ノードを探す
      * @param parent 親ノード
-     * @param move 指し手（終局手や KIF 本譜由来のノードでは無効な値のことがある）
-     * @param displayText 表示テキスト（終局手の種類判定に使用）
-     * @param sfen この手を指した後の局面SFEN
+     * @param entry 足そうとしている行
      * @return 一致する子ノード。見つからない場合は nullptr
      *
      * 通常の指し手は、手数を除いた局面SFENが一致するか、
@@ -190,10 +133,6 @@ public:
      * 同じ手を指し直したときに重複ノードを作らないために使う。
      */
     KifuBranchNode* findMatchingChild(KifuBranchNode* parent, const RecordEntry& entry) const;
-    KifuBranchNode* findMatchingChild(KifuBranchNode* parent,
-                                      const ShogiMove& move,
-                                      const QString& displayText,
-                                      const QString& sfen) const;
 
     /**
      * @brief ツリーが空かどうか
@@ -205,13 +144,10 @@ public:
      */
     int nodeCount() const { return static_cast<int>(m_nodeById.size()); }
 
-    /// 最後に足したノード（ノード ID は使い回さないので、ID が最大のノード。消えていれば nullptr）
-    KifuBranchNode* newestNode() const { return nodeAt(m_nextNodeId - 1); }
-
     /**
-     * @brief 構造変更（追加・削除・並べ替え・クリア）のたびに増える値
+     * @brief 構造変更（追加・削除・並べ替え・作り直し）のたびに増える値
      *
-     * quiet 版の変更は treeChanged を発火しないため、表示側はこの値で差分更新できるか判断する。
+     * 棋譜の文書が保存した時点と比べて未保存かを決める。表示中の手は、同じ構造をもう知らせたかを見る。
      */
     quint64 revision() const { return m_revision; }
 
@@ -290,29 +226,43 @@ public:
     QStringList sfenListForLine(int lineIndex) const;
 
 signals:
-    /**
-     * @brief ツリー構造が変更された
-     */
-    void treeChanged();
+    /// 手 nodeId を parentId の子の末尾に足した
+    void nodeAppended(int parentId, int nodeId);
+    /// parentId の子の並びを変えた（本譜にする操作では、その先の手の子の並びも変わる。ライン番号が変わる）
+    void childrenReordered(int parentId);
+    /// parentId の子 nodeId とその子孫を消した
+    void subtreeRemoved(int parentId, int nodeId);
+    /// ツリーを作り直した（空にした・開始局面を設定した・一括更新の中で作り直した）
+    void reset();
 
 private:
-    KifuBranchNode* createNode();
-    KifuBranchNode* insertRecord(KifuBranchNode* parent, const RecordEntry& entry);
+    /// 知らせを遅らせている構造の変更（一括更新の中）
+    struct Change {
+        enum class Kind { Appended, Reordered, Removed, Reset };
+        Kind kind = Kind::Reset;
+        int parentId = -1;
+        int nodeId = -1;
+    };
+
+    std::unique_ptr<KifuBranchNode> createNode();
+    void forgetSubtree(const KifuBranchNode* node);
+    bool moveChildSilently(KifuBranchNode* child, int index);
     void collectLinesRecursive(KifuBranchNode* node,
                                QList<KifuBranchNode*>& currentPath,
                                QList<BranchLine>& lines,
                                int& lineIndex) const;
     void invalidateLineCache();
 
-    /// treeChanged を発火する（一括更新中は保留し、endBatchUpdate() でまとめて発火）
-    void notifyTreeChanged();
+    /// 構造の変更を知らせる（一括更新中は endBatchUpdate() まで遅らせる）
+    void notify(const Change& change);
+    void emitChange(const Change& change);
 
-    KifuBranchNode* m_root = nullptr;
-    QHash<int, KifuBranchNode*> m_nodeById;
+    std::unique_ptr<KifuBranchNode> m_root;
+    QHash<int, KifuBranchNode*> m_nodeById;   ///< ID → ノード（非所有）
     int m_nextNodeId = 1;
 
     int m_batchDepth = 0;                 ///< 一括更新の入れ子深さ（0=通常）
-    bool m_treeChangedPending = false;    ///< 一括更新中に変更があったか
+    QList<Change> m_pendingChanges;       ///< 一括更新中の変更（古い順）
 
     mutable QList<BranchLine> m_linesCache;
     mutable bool m_linesCacheDirty = true;

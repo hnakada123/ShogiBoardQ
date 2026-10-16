@@ -6,6 +6,7 @@
 #include "considerationpositionresolver.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
+#include "branchtree_test_util.h"
 #include "kifunavigationstate.h"
 #include "recordline.h"
 #include "shogimove.h"
@@ -36,13 +37,13 @@ struct SampleTree {
     SampleTree()
     {
         tree.setRootSfen(kHirate);
-        ply1 = tree.addMove(tree.root(), move("7g7f", Turn::Black, Piece::BlackPawn),
+        ply1 = TestTree::addMove(tree, tree.root(), move("7g7f", Turn::Black, Piece::BlackPawn),
                             QStringLiteral("▲７六歩(77)"), kAfter76);
-        ply2 = tree.addMove(ply1, move("3c3d", Turn::White, Piece::WhitePawn),
+        ply2 = TestTree::addMove(tree, ply1, move("3c3d", Turn::White, Piece::WhitePawn),
                             QStringLiteral("△３四歩(33)"), kAfter34);
-        ply3 = tree.addMove(ply2, move("2g2f", Turn::Black, Piece::BlackPawn),
+        ply3 = TestTree::addMove(tree, ply2, move("2g2f", Turn::Black, Piece::BlackPawn),
                             QStringLiteral("▲２六歩(27)"), kAfter26);
-        branch2 = tree.addMove(ply1, move("8c8d", Turn::White, Piece::WhitePawn),
+        branch2 = TestTree::addMove(tree, ply1, move("8c8d", Turn::White, Piece::WhitePawn),
                                QStringLiteral("△８四歩(83)"), kAfter84);
     }
 
@@ -150,7 +151,7 @@ void TestConsiderationResolver::branch_usesDisplayedBranch()
 void TestConsiderationResolver::terminalMove_isNotPartOfLine()
 {
     SampleTree t;
-    KifuBranchNode* resign = t.tree.addTerminalMove(t.ply3, TerminalType::Resign, Turn::White);
+    KifuBranchNode* resign = TestTree::addTerminalMove(t.tree, t.ply3, TerminalType::Resign, Turn::White);
     const RecordLine line = t.lineAt(resign);
 
     QCOMPARE(line.moveCount(), 3);
@@ -167,7 +168,7 @@ void TestConsiderationResolver::nonHirateStart_usesSfenCommand()
     const QString after = QStringLiteral("4k4/9/4G4/9/9/9/9/9/4K4 w - 2");
     KifuBranchTree tree;
     tree.setRootSfen(start);
-    KifuBranchNode* drop = tree.addMove(tree.root(), move("G*5c", Turn::Black, Piece::BlackGold),
+    KifuBranchNode* drop = TestTree::addMove(tree, tree.root(), move("G*5c", Turn::Black, Piece::BlackGold),
                                         QStringLiteral("▲５三金打"), after);
     KifuNavigationState nav(&tree);
     nav.setCurrentNode(drop);
@@ -183,7 +184,7 @@ void TestConsiderationResolver::dropMove_destinationIsDropSquare()
     const QString after = QStringLiteral("4k4/9/4G4/9/9/9/9/9/4K4 w - 2");
     KifuBranchTree tree;
     tree.setRootSfen(start);
-    KifuBranchNode* drop = tree.addMove(tree.root(), move("G*5c", Turn::Black, Piece::BlackGold),
+    KifuBranchNode* drop = TestTree::addMove(tree, tree.root(), move("G*5c", Turn::Black, Piece::BlackGold),
                                         QStringLiteral("▲５三金打"), after);
     KifuNavigationState nav(&tree);
     nav.setCurrentNode(drop);
