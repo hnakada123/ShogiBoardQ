@@ -443,6 +443,12 @@
 
 **規模とテスト**: dialogs 約18ファイル（各15〜30行減）、widgets 約10ファイル、services 1。テストは `tst_dialog_appearance`（文字一致に依存している。131行目）と `tst_menu_window`。テストが objectName で参照しているので、objectName は残す。
 
+**状態: 済（47c5ea2b・a6fd2089）**。案から変えた点:
+- `DialogFontScale::install(dialog, Setting<int>, Options)` の `Options` に、範囲・保存するウィンドウの大きさ・ダイアログが置いた A-/A+（.ui のボタンなど）・大きさを出すラベルを渡せるようにした。ボタンを渡さなければ、これまでどおり決定ボタンの列に作る。`AppSettings::dialogFontSize(id)` などの文字列 id の関数は、同じキーの `Setting<T>` の宣言（例: `AppSettings::promotionDialogFontSize`）に置き換えたので、保存値はそのまま読める。
+- 相対的な大きさ（太字の見出し・プレビューなど）は作るときに1度だけ付け、文字の大きさに合わせて変える寸法（表の行の高さなど）は `fontSize()` の `fontSizeChanged` につないだ。盤（`TsumePlayDialog`）は `dialogFontScaleExcluded` で対象外にする。
+- `FontSizeControl`（`src/widgets/fontsizecontrol.h`）はボタンに役割のプロパティ（`kRoleProperty`）を付け、テストは表示の文字ではなくこれで探す。ボタンの大きさはパネルでは並ぶボタンに合わせて呼び出し側が決める（`Sizing::Panel`）。
+- `MenuWindow` の独自の範囲チェック、`RecordPaneAppearanceManager`・`CommentEditorPanel`・`AnalysisResultsPanel` の増減の処理も `FontSizeHelper` にした。
+
 #### R9-2. エンジンを選ぶ部品がない
 
 **問題**
@@ -468,6 +474,11 @@
 - `ChangeEngineSettingsDialog(const EngineEntry&, QWidget*)` の1段で作れるようにする。
 
 **規模とテスト**: dialogs 7、widgets 1、ui 3、game 1。テストは `tests/gui/tst_tsume_search_dialog.cpp`（`engineList().at(engineNumber())` を使っている）と `tst_startgamedialog`。
+
+**状態: 済（77436034）**。案から変えた点:
+- `EngineSelector`（`src/widgets/engineselector.h`）は QWidget ではなく、ダイアログが置いたコンボ・「設定」ボタン・案内を結ぶ QObject にした（.ui の部品と objectName をそのまま使える）。内蔵エンジンの項目（詰将棋問題一覧の Hayanagi）を選んだことは空の名前で保存し、`"@hayanagi"` の印は `TsumeshogiSettings::migrateCollectionEngineSelection()` で移す。通信対局も名前で保存し、以前の番号は読むだけにした（`NetworkSettings::csaEngineName`/`csaEngineNumber` は廃止）。
+- 対局開始ダイアログは R9-3 で `PlayerSetupWidget` に組み替えるときに使う（コンボの先頭の「人間」を内蔵の項目にする）。
+- 棋譜解析・詰み探索のダイアログは選んだエンジンを `engine()`（`std::optional<EngineEntry>`）で返す。テストは `tst_engineselector`。
 
 #### R9-3. 対局開始ダイアログが、先手・後手を「1」「2」で二重に書いている
 
