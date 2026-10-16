@@ -587,8 +587,9 @@ USEN は本譜と各ライン（`allLines()`）のノードの指し手から書
 
 ```
 利用者の操作                                         受けるスロット
-  ナビゲーションボタン（棋譜欄・評価値グラフ）        → KifuNavigationController::onFirstClicked() など
-                                                        （connectButtons() が接続）
+  ナビゲーションボタン（棋譜欄・評価値グラフ）        → 局面送りの QAction（KifuNavigationController::action(Step)）
+                                                        → KifuNavigationController::onFirstClicked() など
+                                                        （bindButtons() が2組のボタンを同じ QAction に結ぶ）
   棋譜欄の行      RecordPane::mainRowChanged          → KifuNavigationController::selectRecordRow()
   分岐候補欄の行  RecordPane::branchRowActivated      → KifuNavigationController::selectBranchCandidateRow()
   分岐ツリー      BranchTreeManager::branchNodeActivated → KifuNavigationController::selectBranchTreeNode()
@@ -617,8 +618,8 @@ KifuNavigationState::setCurrentNode() / resetToNode() / goToRoot()
 #### 6.3.1 ナビゲーションボタン（例: 1手進む）
 
 ```
-1. ユーザーが「→」ボタンをクリック
-2. QPushButton::clicked → KifuNavigationController::onNextClicked()
+1. ユーザーが「1手進む」ボタン（棋譜欄の ▼ か評価値グラフの ▶）をクリック
+2. QAbstractButton::clicked → QAction::trigger（action(Next)）→ KifuNavigationController::onNextClicked()
    （confirmLeave() で確認し、やめたら移らない）
 3. KifuNavigationController::goForward(1)
    a. KifuNavigationState::nextNode() で次の子ノードを取得
@@ -649,7 +650,7 @@ KifuNavigationState::setCurrentNode() / resetToNode() / goToRoot()
 4. 以降は 6.3.1 の手順4と同じ
 ```
 
-対局中は棋譜欄・ナビゲーションボタン・分岐ツリーのクリックを無効にする（`UiStatePolicyManager` の `WidgetNavigation`・`WidgetBranchTree`）。
+対局中は棋譜欄・ナビゲーションボタン・分岐ツリーのクリックを無効にする（`UiStatePolicyManager` の `WidgetNavigation`・`WidgetBranchTree`。ナビゲーションボタンは `KifuNavigationController::setStepActionsEnabled()` で局面送りの QAction ごと無効にする）。
 表示中の手は `LiveGameSession` が最新手に合わせる（8.6）。
 `KifuDisplayPresenter::refresh()` が行を足し削りして選択を合わせる間は選択モデルのシグナルを止めるので、表示の更新が利用者の操作として扱われることはない。
 

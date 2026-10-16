@@ -88,6 +88,7 @@
 | 2026-10-16 | エンジンの表示の持ち主を `EngineDisplayPresenter` に1つにしたのに合わせて §1.5・§3.3・§4.1・§4.2・§4.4・§4.5・§6.5・§6.9・§7.1・§7.6・§7.10・§8.5・§9.1・§9.2・§9.4〜§9.6・§10.2〜§10.4・§11.2・§12.7・§14.4・§14.7・§15.1・§15.4・第18章を更新（探索状況は `EngineSearchStatus` で info 1行ごとに1回送り、書式は `EngineInfoWidget` が決める。`UsiCommLogModel` は状況＋`statusChanged` と `logLineAppended`。評価値グラフの点は `EvaluationSeries` に置き、書き手は `EvaluationGraphPresenter` だけ。検討タブは `ConsiderationSettings` を正本として持ち、実行の状態 `RunState` は `EngineDisplayPresenter` が `AnalysisSession` の知らせから設定する。検討中かどうかの正本は `AnalysisSession::isConsidering()`。`ConsiderationUiController` は操作を伝えるだけ、`PlayerInfoPresenter` は盤の対局者名だけ、`SessionResetCoordinator` は表示の消去を `EngineDisplayPresenter::clearAll()` に任せる） |
 | 2026-10-16 | 盤の入力・局面編集・ハイライトの整理（監査 R7）に合わせて §1.5・§3.4・§3.5・§3.6・§4.2・§4.4・§4.5・§5.4・§6.1・§6.6・§6.8・§6.9・§10・§11.1・§12.3・§13.5・§13.6・§13.9・§14.2・§14.3・§14.6・§15.2・§18 を更新（盤で指した手の行き先 `BoardInputRoute`、`BoardInteractionController` の `Mode`・`moveRequested`・手番のコールバックの削除、`PositionEditController`・`PositionEditCoordinator` を `PositionEditSession` に統合、`HumanTurnPolicy` を `src/ui/controllers/` へ移動、ハイライトを層 `BoardHighlightLayer` ごとの値に、`setForcedPromotion()` の削除と定跡の手の `playUsiMove()`） |
 | 2026-10-16 | 思考の表と棋譜解析の結果の表の行を値で持つようにしたのに合わせて §1.5・§7.8・§7.10・§9.6・§9.8・§9.9・§10.2・§11.2・§18.3・§18.4 を更新（`AbstractListModel`・`KifuAnalysisResultsDisplay` を削除。行は `ShogiInfoRecord`・`KifuAnalysisRow` の値、表の部品は `PvTableView`、指し手の書体の規則は `MoveFont`） |
+| 2026-10-16 | 局面送りと編集のボタンを `QAction` の組で共有したのに合わせて §1.5・§11.2・§13.1・§18.3・§18.4 を更新（`KifuNavigationController` が局面送りの6つの `QAction`（`Step`・`action()`）を持ち、棋譜欄と評価値グラフのボタンを `bindButtons()` で結ぶ。`connectButtons()`・`RecordPane::setArrowButtonsEnabled()`・`setNavigationEnabled()`・`arrowButtonsEnabledChanged`・`EvaluationChartWidget::setNavigationEnabled()` を削除し、`UiStatePolicyManager` は `setStepActionsEnabled()` と `RecordPane::setKifuViewEnabled()` で切り替える。元に戻す〜貼り付けは標準ショートカット付きの `EditActions`（`src/widgets/`）にし、コメント欄と対局情報で使う） |
 
 <!-- chapter-0-end -->
 
@@ -423,7 +424,7 @@ src/
 │   └── csamoveconverter.cpp/.h     #   CSA と USI の指し手の変換（toCsa / toUsi）
 │
 ├── navigation/                     # ナビゲーション
-│   └── kifunavigationcontroller.cpp/.h # 棋譜ナビゲーション（ボタン・分岐）
+│   └── kifunavigationcontroller.cpp/.h # 棋譜ナビゲーション（局面送りの6つの QAction・分岐）
 │
 ├── models/                         # Qtモデルと表示用データ
 │   ├── kifurecordlistmodel.cpp/.h  #   棋譜欄のモデル（行は分岐ツリーのノード）
@@ -469,6 +470,7 @@ src/
 │   ├── dialogutils.cpp/.h          #   ダイアログの大きさの保存・復元など
 │   ├── fontsizehelper.cpp/.h       #   A-/A+ の文字の大きさ（範囲・保存・変更の通知）
 │   ├── fontsizecontrol.cpp/.h      #   A-/A+ のボタンの組（文字・見た目・説明・範囲の端での無効化）
+│   ├── editactions.cpp/.h          #   元に戻す〜貼り付けの QAction の組（標準ショートカット。コメント欄・対局情報で共通）
 │   ├── dialogfontscale.cpp/.h      #   ダイアログの A-/A+ と保存（全ダイアログ共通）
 │   ├── engineselector.cpp/.h       #   登録エンジンを選ぶ部品（コンボ・「設定」ボタン・未登録の案内・選択の保存）
 │   ├── playersetupwidget.cpp/.h    #   対局開始ダイアログの対局者1人の欄（人間かエンジンか・名前・「エンジン設定」）
@@ -6121,6 +6123,7 @@ Urgency::Warn5  → 強い警告色（残5秒・秒読み）
 | FontSizeHelper | QObject | A-/A+ のフォントサイズ調整（範囲・保存・変更の通知）。設定の宣言を渡すと初期値の読み込みと保存も行う |
 | FontSizeControl | QObject | A-/A+ のボタン2つを `FontSizeHelper` に結ぶ。ボタンの文字・見た目（`ButtonStyles::fontButton()`）・ツールチップと読み上げ名（「文字を小さくする」「文字を大きくする」）と、範囲の端で押せなくする処理はここだけで決める。ボタンは呼び出し側が置き、objectName も呼び出し側が決める。ボタンには役割のプロパティ `FontSizeControl::kRoleProperty`（`"fontSizeControl"`。値は `"decrease"`・`"increase"`）を付け、テストは表示の文字ではなくこれで探す |
 | DialogFontScale | QWidget | 全ダイアログ・メッセージボックスに A-/A+ と保存を付ける（`install(dialog, 宣言, options)`）。各部品を元の大きさからの差で拡大・縮小する |
+| EditActions | QObject | 元に戻す・やり直す・切り取り・コピー・貼り付けの5つの `QAction`（`enum Kind`、`action(kind)`・`setEnabled(kind, on)`）。標準ショートカット（`QKeySequence::Undo` など。`Qt::WidgetWithChildrenShortcut` で host に追加）・アイコン・実際のショートカットを添えたツールチップはここだけで決める。ボタンは `createButton(kind, parent)`（`setDefaultAction` した `QToolButton`。フォーカスを取らない）。何をするか・有効にするかは呼び出し側が決める（`CommentEditorPanel` は `QTextEdit` の `undo()` などと `undoAvailable` などに、`GameInfoPane` は自分の編集の履歴とクリップボード操作に結ぶ） |
 | EngineSelector | QObject | 登録エンジンを選ぶ部品（下記） |
 | PlayerSetupWidget | QWidget | 対局開始ダイアログの対局者1人の欄（下記） |
 | TimeControlEditor | QWidget | 片方の対局者の持ち時間（時間・分）・秒読み・加算の欄（下記） |
@@ -7012,18 +7015,20 @@ ShogiClock::setCurrentPlayer(firstPlayer)
 | `KifuNavigationState` | コンストラクタ | 表示中の手・選んだ手順の管理（非所有）。分岐ツリー（`KifuBranchTree`）は `state()->tree()` から辿る |
 | 移動前の確認 | `setLeaveGuard(std::function<bool()>)` | 利用者の操作で別の手へ移る前の確認。合成ルートが「局面編集中でない」かつ「未更新のコメントを破棄してよい」を渡す |
 
-#### 6つのナビゲーションボタン
+#### 局面送りの6つの操作（QAction）
 
-`connectButtons(const Buttons&)` で6つの `QPushButton` の `clicked` シグナルを対応スロットに接続する。棋譜欄と評価値グラフの両方のボタンを同じコントローラにつなぐ。どのスロットも、まず `confirmLeave()` で確認を通す。
+局面送りの6つの操作は、このクラスが `QAction` の組として1つだけ持つ（`enum Step { First, Back10, Prev, Next, Fwd10, Last }`、`action(Step)`）。各 `QAction` の `triggered` を対応スロットにつなぎ、どのスロットも、まず `confirmLeave()` で確認を通す。
 
-| ボタン | スロット | 動作 |
+`bindButtons(const Buttons&)`（`Buttons` は `Step` の順の `std::array<QAbstractButton*, 6>`）は、ボタンの `clicked` を `QAction::trigger` に、`QAction::enabledChanged` をボタンの `setEnabled` につなぐ。合成ルートは棋譜欄と評価値グラフの2組のボタンを同じ `QAction` に結ぶので、有効・無効を2組に中継しなくても揃う。ボタンの文字は各パネルが決める（棋譜欄は ▲▼、評価値グラフは ◀▶）。有効・無効は `setStepActionsEnabled(bool)` で6つまとめて切り替え（`UiStatePolicyManager` の `WidgetNavigation`）、`stepActionsEnabled()` で読む。
+
+| 操作（`Step`） | スロット | 動作 |
 |-------|---------|------|
-| 先頭（`|◁`） | `onFirstClicked` → `goToFirst()` | ルートノード（0手目）へ移動 |
-| 10手戻る（`◁◁`） | `onBack10Clicked` → `goBack(10)` | 親ノードを10回辿る |
-| 1手戻る（`◁`） | `onPrevClicked` → `goBack(1)` | 親ノードへ移動 |
-| 1手進む（`▷`） | `onNextClicked` → `goForward(1)` | 次の手（選んだ子）へ移動 |
-| 10手進む（`▷▷`） | `onFwd10Clicked` → `goForward(10)` | 次の手を10回辿る |
-| 末尾（`▷|`） | `onLastClicked` → `goToLast()` | 選んでいる手順の終端まで進む |
+| `First`（最初に戻る） | `onFirstClicked` → `goToFirst()` | ルートノード（0手目）へ移動 |
+| `Back10`（10手戻る） | `onBack10Clicked` → `goBack(10)` | 親ノードを10回辿る |
+| `Prev`（1手戻る） | `onPrevClicked` → `goBack(1)` | 親ノードへ移動 |
+| `Next`（1手進む） | `onNextClicked` → `goForward(1)` | 次の手（選んだ子）へ移動 |
+| `Fwd10`（10手進む） | `onFwd10Clicked` → `goForward(10)` | 次の手を10回辿る |
+| `Last`（最後に進む） | `onLastClicked` → `goToLast()` | 選んでいる手順の終端まで進む |
 
 #### goForward() の分岐選択
 
@@ -7037,7 +7042,7 @@ ShogiClock::setCurrentPlayer(firstPlayer)
 
 | 種類 | メソッド | 動作 |
 |------|---------|------|
-| 移動 | `goToFirst()` / `goToLast()` / `goBack(n)` / `goForward(n)` | 上のボタンの動作 |
+| 移動 | `goToFirst()` / `goToLast()` / `goBack(n)` / `goForward(n)` | 上の局面送りの動作 |
 | 移動 | `goToPly(int ply)` | 選んでいる手順の指定手数へ移動 |
 | 移動 | `goToNode(node)` | 指定ノードへ移動（開始局面からの経路を選んだ手順として記憶する） |
 | 移動 | `goToLine(int lineIndex, int ply)` | `KifuBranchTree::allLines()` の lineIndex 番の手順の ply 手目へ移動し、その手順の終わりまでを選ぶ |
@@ -9152,6 +9157,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | DockLayoutManager | C | ui/coordinators | ドックレイアウト状態の管理 | 第10章 |
 | DockSettings | NS | services | ドック配置の設定の宣言の表 | 第12章 |
 | DockUiCoordinator | C | ui/coordinators | ドック配置のメニュー（リセット・保存・ロック・保存済み配置）の接続 | 第10章 |
+| EditActions | C | widgets | 元に戻す〜貼り付けの5つの `QAction`（標準ショートカット・ツールチップ・ボタン。コメント欄・対局情報で共通） | 第11章 |
 | ElideLabel | C | widgets | テキスト省略表示ラベル | 第11章 |
 | EngineAnalysisRunner | C | automation | 登録エンジンで1局面を一定時間解析する実行器（CLI・自動化 API と共有） | 第7章 |
 | EngineDisplayPresenter | C | ui/presenters | エンジンの表示の持ち主（枠 E1・E2 とモデルの結び・検討の表示・2つ目のエンジン欄・評価値グラフの系列名・表示の消去） | 第9章, 第10章 |
@@ -9232,7 +9238,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | KifuIoService | NS | kifu | 棋譜ファイルI/Oサービス | 第8章 |
 | KifuLoadCoordinator | C | ui/coordinators | 棋譜ファイル・貼り付け・局面を読み、棋譜の文書（`KifuDocument`）を置き換える（読み込みの実体は `KifuLoadParser`） | 第8章, 第15章 |
 | KifuLoadParser | NS | kifu | 棋譜の読み込み口（ファイルの文字コードの判別と、形式ごとの変換器への振り分け） | 第8章 |
-| KifuNavigationController | C | navigation | 棋譜ナビゲーション操作（ボタン・分岐）の処理 | 第13章 |
+| KifuNavigationController | C | navigation | 棋譜ナビゲーション操作（局面送りの6つの QAction と棋譜欄・評価値グラフのボタンの結び付け・分岐）の処理 | 第13章 |
 | KifuNavigationState | C | kifu | 表示中のノードと手順。変わると `changed()` を出す | 第8章, 第13章 |
 | KifuParseOutcome | S | kifu | 形式ごとの `parse()` が返す1回の解析の結果（棋譜・開始局面・手合割・対局情報・警告） | 第8章 |
 | KifuPasteDialog | C | dialogs | 棋譜ペーストダイアログ | 第11章 |
@@ -9592,6 +9598,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | dialogutils | 第11章, 第17章 | ダイアログの大きさの保存・復元など |
 | fontsizehelper | 第11章, 第17章 | A-/A+ のフォントサイズ調整 |
 | fontsizecontrol | 第11章 | A-/A+ のボタンの組 |
+| editactions | 第11章 | 元に戻す〜貼り付けの QAction の組 |
 | dialogfontscale | 第11章, 第17章 | ダイアログの A-/A+ と保存 |
 | engineselector | 第11章 | 登録エンジンを選ぶ部品 |
 | playersetupwidget | 第11章 | 対局開始ダイアログの対局者1人の欄 |

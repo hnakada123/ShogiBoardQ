@@ -557,6 +557,12 @@
 - **編集ボタン。** 元に戻す・やり直す・切り取り・コピー・貼り付けと「更新」「未反映」の表示、破棄の確認ダイアログを、コメント欄（`commenteditorpanel.cpp:400-433`）と対局情報（`gameinfopane.cpp:393-404`）で二重に実装している。
   - 案: 標準ショートカット付きの QAction 群を共通の部品にする。
 
+**状態: 済（8876a775）**。案から変えた点:
+- 局面送りは `KifuNavigationController` が6つの QAction を持つ。ボタンは `QToolButton::setDefaultAction` にせず、今の QPushButton を `bindButtons()` で QAction に結び付けた（押すと実行し、有効・無効は QAction に従う）。`setDefaultAction` ではボタンの文字が QAction の文字になり、棋譜欄（縦に並ぶので ▲▼）と評価値グラフ（横軸が手数なので ◀▶）で記号を変えられないため。アクセサはテストが使うので残し、`arrowButtonsEnabledChanged` の中継と `EvaluationChartWidget::setNavigationEnabled` はなくした。
+- 編集ボタンは `EditActions`（`src/widgets/editactions.h`）にした。ツールチップには実際のショートカットを出す（以前は「Ctrl+Y」と固定の文字で、環境によっては違っていた）。対局情報の `QShortcut` 5つはこの QAction のショートカットに置き換えた。
+- 「更新」ボタン・「修正中」「未反映」の表示は共通にしなかった。破棄の確認ダイアログはコメント欄（別の手へ移る前の確認）にしかなく、二重の実装ではなかった。
+- 合わせて、詰将棋局面生成ダイアログの設定欄が開いた直後に6px足りずスクロールしていたのを直した（6319c5ae。R9-1 以降、内容の大きさが変わっても設定欄の古い希望サイズが使われていた）。
+
 ### R10. 文字列の表を手で同期している
 
 #### R10-1. 駒セットの一覧と外観ダイアログ

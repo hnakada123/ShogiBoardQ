@@ -129,7 +129,8 @@ CSA通信対局は、待機ダイアログのキャンセル（`CsaGameSession::
 - 表のほかに条件が付く項目がある（`effectivePolicy()`）。待った・投了・入玉宣言は、ローカル対局では人間が参加しているときだけ有効
   （`Deps::localGameHasHuman`。エンジン同士の対局では無効。CSA通信対局の投了・入玉宣言はこの条件を見ない）。
   再開は中断した対局を再開できるときだけ有効（`Deps::canResumeGame`。合成ルートが `MatchCoordinator::canResumeInterruptedGame()` を渡す。中断した対局の状態は司令塔の `InterruptedGameState` だけが持つ）
-- 「ナビゲーションボタン」と「棋譜欄クリック」は `RecordPane::setNavigationEnabled()` で一括制御
+- 「ナビゲーションボタン」と「棋譜欄クリック」は同じ UI 要素（`WidgetNavigation`）で、局面送りの QAction を `KifuNavigationController::setStepActionsEnabled()`（`Deps::navigation`）、棋譜欄の行のクリックを `RecordPane::setKifuViewEnabled()`（`Deps::recordPane`）で切り替える。
+  棋譜欄と評価値グラフのボタンは `KifuNavigationController::bindButtons()` で同じ QAction に結ばれ、有効・無効も QAction に従う
 - 「分岐ツリークリック」は `BranchTreeManager::setBranchTreeClickEnabled()` で制御
 - 盤面クリック（指し手入力）は表に含めない。駒をつまめるかは盤で指した手の行き先（`BoardInputRoute`。主画面は `BoardMoveController`）が決める（局面編集中は常に可、それ以外は `HumanTurnPolicy::isHumanTurnNow()`。解析中・詰み探索中・検討中は受け付けない）
 - 「検討開始」ボタンは `ConsiderationTabManager::setStartConsiderationEnabled()` で制御（検討中は同ボタンが「検討中止」として動作するため有効のまま）
@@ -145,7 +146,7 @@ CSA通信対局は、待機ダイアログのキャンセル（`CsaGameSession::
                    → 全UI要素に effectivePolicy() を適用 → stateChanged
 
 MatchCoordinator::resumeAvailabilityChanged ──► refreshResumeAvailability()（canResumeGame に問い合わせて「再開」だけ適用し直す）
-KifuLoadCoordinator::loadFinished ──► enableNavigationIfAllowed()（ナビゲーションが許可されていれば矢印ボタンを有効化）
+KifuLoadCoordinator::loadFinished ──► enableNavigationIfAllowed()（ナビゲーションが許可されていれば局面送りの QAction を有効化）
 ```
 
 ## エンジンエラー時の復旧パス
