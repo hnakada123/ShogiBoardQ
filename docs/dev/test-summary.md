@@ -83,7 +83,7 @@
 74. `tst_wiring_analysistab`
 75. `tst_lifecycle_scenario`
 76. `tst_lifecycle_runtime`
-77. `tst_joseki_repository`
+77. `tst_joseki_book`
 78. `tst_tsumeshogi_generator`
 79. `tst_tsumeshogi_export_header`
 80. `tst_analysis_results`

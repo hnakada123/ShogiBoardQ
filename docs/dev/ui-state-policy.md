@@ -30,16 +30,16 @@ Idle ──MatchCoordinator::start() / resumeInterruptedGame()──────
      ◄─MatchCoordinator::endGame()（終局・中断・エンジンエラー）──
 
 Idle ──KifuAnalysisController::start()────────────────────────────► DuringAnalysis
-     ◄─KifuAnalysisController::finishRun()（完了・中止・エンジンエラー）
+     ◄─KifuAnalysisController::finishRun()（完了・中止・エンジンエラー・エンジンの枠をほかの処理が取った（engineRevoked））
 
 Idle ──CsaGameSession::onGameStarted()────────────────────────────► DuringCsaGame
      ◄─CsaGameSession::onGameEnded()
 
 Idle ──AnalysisSession::start()（詰み探索）────────────────────────► DuringTsumeSearch
-     ◄─AnalysisSession::stop()（探索完了・中止・エンジンエラー）
+     ◄─AnalysisSession::stop()（探索完了・中止・エンジンエラー・エンジンの枠をほかの処理が取った（engineRevoked））
 
 Idle ──AnalysisSession::start()（検討）────────────────────────────► DuringConsideration
-     ◄─AnalysisSession::stop()（検討中止・エンジンエラー）
+     ◄─AnalysisSession::stop()（検討中止・エンジンエラー・エンジンの枠をほかの処理が取った（engineRevoked））
 
 Idle ──PositionEditSession::begin()──────────────────────────────► DuringPositionEdit
      ◄─PositionEditSession::finish()

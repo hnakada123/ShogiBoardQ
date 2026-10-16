@@ -56,7 +56,7 @@ TsumeshogiGeneratorDialog
 `verificationProgress` は問い合わせ数、`verificationStatsUpdated` は検査で除外した局面数（事前選別で複数初手を検出した局面と駒除去の試行を含む）と、
 そのうち判定不能の件数を通知する。
 
-`start()` はエンジンの起動を頼むだけで（`MateOracle::start()`）、初期化を終えた `ready` で探索を始める。
+`start()` はエンジンの起動を頼むだけで（`MateOracle::start()`。値を返さない）、初期化を終えた `ready` で探索を始める。起動できないときは、`start()` から戻った後に `MateOracle::errorOccurred` で届き、生成を終える（`start()` の中に同期の失敗の分岐はない）。
 問い合わせは `MateQueryLoop` が `MateOracle::answered` と間隔0の単発タイマーで進め、UIスレッドを探索待ちにしない。
 `TsumeCandidateJob`・`TsumeVerificationJob` は引き出し型の問い合わせ元（`MateQuerySource`。`nextQuery()`・`submit(answer, elapsedMs)`・`isDone()`）で、Qt のイベントループもエンジンも知らない。
 キャッシュだけで進められる場合も、64ステップごとにイベントループへ制御を戻す（`nextQuery()` が空を返し、ループが呼び直す）。
