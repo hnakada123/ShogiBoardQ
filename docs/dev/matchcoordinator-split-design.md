@@ -33,7 +33,7 @@ struct Deps {
 ```
 
 - 司令塔は `MainWindowComposer::createMatchAndAnalysis()`（`src/app/mainwindowcomposer_create.cpp`）が起動時に一度だけ作り、作り直さない。時計 `ShogiClock` とエンジンの枠 `EngineLifecycleManager` も合成ルートが作り、エンジンの枠は検討・詰み探索（`AnalysisSession`）と共有する。
-- コンストラクタは、エンジンの投了・入玉宣言勝ち・エラー（`EngineLifecycleManager::engineResigned`・`engineDeclaredWin`・`engineError`。エラーは `QueuedConnection`）と時計の `ShogiClock::timeUpdated`・`playerTimeOut` を自分のスロットにつなぐ。
+- コンストラクタは、エンジンの投了・入玉宣言勝ち・エラー（`EngineLifecycleManager::engineResigned`・`engineDeclaredWin`・`engineError`。エラーは `QueuedConnection`）と時計の `ShogiClock::playerTimeOut` を自分のスロットにつなぐ。時計の `timeUpdated` は受けない（表示は `TimeDisplayPresenter` が時計から直接受ける）。
 - 棋譜の受け手は `MainWindowComposer::createSessions()` が `setRecordSink(GameSession)` で設定する。司令塔のシグナルの受け先は `MainWindowComposer::connectGame()`（`src/app/mainwindowcomposer_wire.cpp`）がつなぐ（6章）。
 - 司令塔は Hooks（コールバックの構造体）を持たない。手番のコピーも持たず、手番は盤の手番（`ShogiGameController::currentPlayer()`）だけを使う。
 
@@ -43,14 +43,14 @@ struct Deps {
 
 | 区分 | メソッド |
 |------|---------|
-| 開始・再開 | `start()`（盤・手順・対局者・Strategy を準備。時計はまだ動かさない）、`beginPlay()`（時計を動かし、初手がエンジンなら思考を始める）、`resumeInterruptedGame()`、`discardInterruptedGame()`、private の `createStrategy()`・`captureInterruptedGame()` |
+| 開始・再開 | `start()`（盤・手順・対局者・Strategy を準備。時計はまだ動かさない）、`beginPlay()`（時計を動かし、初手がエンジンなら思考を始める）、`resumeInterruptedGame()`、`discardInterruptedGame()`、`attachInterruptedRecord(nodeId)`（棋譜に書いた中断の行を中断した対局に結びつける）、private の `createStrategy()`・`captureInterruptedGame()` |
 | 着手 | `canAcceptMove()`、`onHumanMove()`、`forceImmediateMove()`、private の `completeMove()`（一手の確定） |
 | 待った | `undoTwoPlies()` |
-| 終局 | `handleResign()`、`handleBreakOff()`、`handlePlayerTimeOut()`、`handleNyugyokuDeclaration()`、`clearGameOverState()`。private の `handleEngineResign()`・`handleEngineWin()`・`handleEngineIllegalMove()`・`handleEngineError()`・`checkAndHandleSennichite()`・`handleMaxMovesJishogi()`、終局の `endGame()`・`appendTerminalRecord()`・`resultMessage()` |
-| 時計 | `clock()`、`pokeTimeUpdateNow()`、private の `emitTimeUpdate()` |
-| 読み取り | `record()`、`currentPly()`、`options()`、`players()`、`isHumanSide()`、`gameOverState()`、`isGameOver()`、`interruptedGame()`、`usesHandicapNames()` |
+| 終局 | `handleResign()`、`handleBreakOff()`、`handlePlayerTimeOut()`、`declareNyugyoku(declarer, rule)`（人間の宣言を盤面から判定して終局し、判定結果を返す）、`handleNyugyokuDeclaration()`、`clearGameOverState()`。private の `handleEngineResign()`・`handleEngineWin()`・`handleEngineIllegalMove()`・`handleEngineError()`・`checkAndHandleSennichite()`・`handleMaxMovesJishogi()`、終局の `endGame()`・`appendTerminalRecord()`・`resultMessage()` |
+| 時計 | `clock()`（表示への通知は中継しない。`completeMove()` は時計の通知を止めて値を変えた後に `ShogiClock::notifyTimeUpdated()` を呼ぶ） |
+| 読み取り | `record()`、`currentPly()`、`options()`、`players()`、`isHumanSide()`、`sideToMove()`、`gameOverState()`、`isGameOver()`、`interruptedGame()`、`canResumeInterruptedGame()`、`usesHandicapNames()` |
 
-終局処理はどれも `endGame()` を通り、終局状態の確定 → 時計の停止 → エンジンへの通知（`EngineLifecycleManager::notifyGameOver()`）→ 終局行の追記 → 動作状態を待機に戻す → `gameEnded` → 知らせ（結果の `gameOverMessage`・自動保存の依頼・`gameEndProcessed`）の順に進む。知らせ方は `Notice` で選び、中断（`Interrupt`）は `gameInterrupted` だけを出し、入玉宣言（`Declaration`）は結果を呼び出し側のダイアログで知らせる。流れの詳細は [対局開始から投了までのフロー](game-play-to-resignation-flow.md) を参照。
+終局処理はどれも `endGame()` を通り、終局状態の確定 → 時計の停止 → エンジンへの通知（`EngineLifecycleManager::notifyGameOver()`）→ 終局行の追記 → 動作状態を待機に戻す → `gameEnded` → 知らせ（結果の `gameOverMessage`・`gameEndProcessed`）の順に進む。棋譜の自動保存は司令塔ではなく、`gameEnded` を受けた `GameSession::finishMatchRecord()` が行う（通信対局と同じ流れ）。知らせ方は `Notice` で選び、中断（`Interrupt`）は `gameInterrupted` だけを出し、入玉宣言（`Declaration`）は結果を呼び出し側のダイアログで知らせる。流れの詳細は [対局開始から投了までのフロー](game-play-to-resignation-flow.md) を参照。
 
 ---
 
@@ -61,7 +61,7 @@ struct Deps {
 | 対局の手順（開始局面と指した手の行。終局の行は含めない） | `MatchCoordinator::m_record`（`RecordLine`） |
 | 開始の設定・対局者・最大手数・終局状態 | `MatchSessionState m_session` |
 | 対局モードの Strategy | `std::unique_ptr<GameModeStrategy> m_strategy` |
-| 中断した対局（再開用） | `std::unique_ptr<InterruptedGameState> m_interruptedGame` |
+| 中断した対局（再開用。棋譜に書いた中断の行 `terminalNodeId` を含む） | `std::unique_ptr<InterruptedGameState> m_interruptedGame` |
 | 盤と手番 | `ShogiGameController`（Deps） |
 | 時計 | `ShogiClock`（Deps。合成ルートが所有） |
 | エンジン | `EngineLifecycleManager`（Deps。合成ルートが所有） |
@@ -108,18 +108,17 @@ Strategy は手番ごとに誰が指すかだけを決め、一手の確定と�
 
 ## 6. 上位層への知らせ（シグナルと MatchRecordSink）
 
-時計・評価値・待った・終局はシグナルで知らせる。盤・手番の表示は、棋譜の受け手に行を書くと表示中の手が最新の手になり、各部品が自分で合わせる。受け先は `MainWindowComposer::connectGame()` がつなぐ。
+評価値・待った・終局・再開できるかの変化はシグナルで知らせる（時計の表示は `TimeDisplayPresenter` が `ShogiClock::timeUpdated` を直接受ける）。盤・手番の表示は、棋譜の受け手に行を書くと表示中の手が最新の手になり、各部品が自分で合わせる。受け先は `MainWindowComposer::connectGame()` がつなぐ。
 
 | シグナル | 受け先 |
 |---------|-------|
 | `movesUndone(ply)` | `EvaluationGraphPresenter::trimToPly()` |
 | `engineMovePlayed(side, ply, score)` | `EvaluationGraphPresenter::plotEngineScore()` |
-| `timeUpdated(...)` | `TimeDisplayPresenter::onMatchTimeUpdated()` |
 | `gameEnded(info)` | `GameSession::onGameEnded()` |
 | `gameOverMessage(title, message)` | `UiNotificationService::showInformation()` |
-| `autoSaveRequested(dir)` | `KifuFileController::autoSaveKifuToFile()` |
 | `gameEndProcessed(info)` | `GameSession::onGameEndProcessed()` |
 | `gameInterrupted()` | `GameSession::onGameInterrupted()` |
+| `resumeAvailabilityChanged()` | `UiStatePolicyManager::refreshResumeAvailability()` |
 
 棋譜の行は `MatchRecordSink`（`src/game/matchrecordsink.h`）に書き込む。
 
@@ -129,9 +128,9 @@ Strategy は手番ごとに誰が指すかだけを決め、一手の確定と�
 | `appendRecord(entry)` | 確定した手・終局の行を追記する |
 | `canUndoRecords(count)`・`undoRecords(count)` | 待ったで末尾の行を取り消す |
 
-実装は `GameSession`（`src/app/gamesession.cpp`）で、ライブ対局のセッション（`LiveGameSession`）を通して分岐ツリーに書く。通信対局の行も `CsaGameSession` が同じ受け手に書く。
+実装は `GameSession`（`src/app/gamesession.cpp`）で、ライブ対局のセッション（`LiveGameSession`）を通して分岐ツリーに書く。通信対局の行も、`GameSession` が `CsaGameCoordinator::recordEntryReady` を受けて同じ `appendRecord()` で書く。
 
-シグナル以外に司令塔を直接呼ぶ部品は、`GameSession`（利用者の操作と開始の設定、`start()`・`beginPlay()`・`resumeInterruptedGame()`）、`BoardMoveController`（人間の着手）、`HumanTurnPolicy`（人間の手番か）、`NyugyokuDeclarationHandler`（人間の入玉宣言）、`CandidateArrowPresenter`（終局状態の読み取り）、`UiStatePolicyManager`（人間が参加しているか。合成ルートが関数で渡す）である。時間切れは司令塔が `ShogiClock::playerTimeOut` を直接受ける。
+シグナル以外に司令塔を直接呼ぶ部品は、`GameSession`（開始の設定と中断・再開、`start()`・`beginPlay()`・`resumeInterruptedGame()`・`attachInterruptedRecord()`）、`LocalGameChannel`（`GameSession` が持つ対局相手の窓口。投了・中断・すぐ指させる・人間の入玉宣言 `declareNyugyoku()`）、`BoardMoveController`（人間の着手）、`HumanTurnPolicy`（人間の手番か）、`CandidateArrowPresenter`（終局状態の読み取り）、`UiStatePolicyManager`（人間が参加しているか・再開できるか。合成ルートが関数で渡す）である。時間切れは司令塔が `ShogiClock::playerTimeOut` を直接受ける。
 
 ---
 
@@ -141,7 +140,7 @@ Strategy は手番ごとに誰が指すかだけを決め、一手の確定と�
 |------|------|
 | `GameEndHandler` | 司令塔の終局処理（`endGame()`・`appendTerminalRecord()`・`resultMessage()` など） |
 | `GameStartOrchestrator` | `MatchCoordinator::start()`・`createStrategy()`。開始オプションの組み立ては `GameStartOptionsBuilder`、開始の順序は `GameSession::startGame()` |
-| `MatchTimekeeper` | 時間の決まりと残り時間は `ShogiClock`、表示への通知は `MatchCoordinator::emitTimeUpdate()`、`go` の時間は `UsiGoTimeCalculator` |
+| `MatchTimekeeper` | 時間の決まりと残り時間は `ShogiClock`、表示は `TimeDisplayPresenter`（`ShogiClock::timeUpdated` を直接受ける）、エンジンが読む時間は `ClockTimeSource`（`MatchTimeSource`）、`go` の時間は `UsiGoTimeCalculator` |
 | `MatchUndoHandler` | `MatchCoordinator::undoTwoPlies()` と `MatchRecordSink::undoRecords()`、表示は `movesUndone` |
 | `MatchTurnHandler` | `MatchCoordinator::createStrategy()`・`onHumanMove()`・`beginPlay()`・`handleEngineError()` |
 | `EngineGameOverNotifier` | `EngineLifecycleManager::notifyGameOver()` |

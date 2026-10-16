@@ -129,7 +129,7 @@ CSA通信対局は、待機ダイアログのキャンセル（`CsaGameSession::
 **補足**:
 - 表のほかに条件が付く項目がある（`effectivePolicy()`）。待った・投了・入玉宣言は、ローカル対局では人間が参加しているときだけ有効
   （`Deps::localGameHasHuman`。エンジン同士の対局では無効。CSA通信対局の投了・入玉宣言はこの条件を見ない）。
-  再開は中断した対局があるときだけ有効（`setResumeAvailable()`）
+  再開は中断した対局を再開できるときだけ有効（`Deps::canResumeGame`。合成ルートが `MatchCoordinator::canResumeInterruptedGame()` を渡す。中断した対局の状態は司令塔の `InterruptedGameState` だけが持つ）
 - 「ナビゲーションボタン」と「棋譜欄クリック」は `RecordPane::setNavigationEnabled()` で一括制御
 - 「分岐ツリークリック」は `BranchTreeManager::setBranchTreeClickEnabled()` で制御
 - 「盤面クリック」は `BoardInteractionController::setMoveInputEnabled()` で制御（対局中の手番チェックは `setIsHumanTurnCallback()` で渡した `HumanTurnPolicy::isHumanTurnNow()` で別途実施）
@@ -145,7 +145,7 @@ CSA通信対局は、待機ダイアログのキャンセル（`CsaGameSession::
                  UiStatePolicyManager::refreshActivity()
                    → 全UI要素に effectivePolicy() を適用 → stateChanged
 
-GameSession ──setResumeAvailable()──► 「再開」だけ適用し直す
+MatchCoordinator::resumeAvailabilityChanged ──► refreshResumeAvailability()（canResumeGame に問い合わせて「再開」だけ適用し直す）
 KifuLoadCoordinator::loadFinished ──► enableNavigationIfAllowed()（ナビゲーションが許可されていれば矢印ボタンを有効化）
 ```
 

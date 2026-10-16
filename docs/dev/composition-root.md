@@ -43,7 +43,7 @@
 3. 動作状態は `AppState` に置く。部品のメンバに状態のコピーを持たない（例: アプリが何をしているかは `AppState::activity` だけ）。
    棋譜に付く状態は棋譜の文書 `KifuDocument` が持つ（最後に始めた対局の対局者は `KifuDocument::players()`、
    上書き保存先は `KifuDocument::filePath()` だけ）。
-4. `std::function` は、上位へ操作を委ねる「フック」にだけ使う（例: `CsaGameSession::Deps::prepareRecord`、
+4. `std::function` は、上位へ問い合わせ・操作を委ねる「フック」にだけ使う（例: `UiStatePolicyManager::Deps::canResumeGame`、
    `KifuFileController::Deps::clearUiBeforeKifuLoad`）。部品の取得には使わない。司令塔（`MatchCoordinator`）は
    フックを持たず、シグナルと `MatchRecordSink`（対局の手順の受け手。実体は `GameSession`）で知らせる。
 5. 層の境界をまたぐときだけ関数で受け取る。例: `AutomationContext` は dialogs 層の
@@ -56,4 +56,7 @@
 
 - `MatchCoordinator` は手順の受け手の `GameSession` より先に作るので、受け手だけは `createSessions()` で
   `setRecordSink()` によって渡す。
+- `GameSession` は `CsaGameSession` より先に作る。どちらもコンストラクタで `CsaGameCoordinator` の
+  `gameStarted`・`gameEnded` をつなぎ、先につないだ `GameSession` が棋譜（作り直し・対局者・終局・自動保存）を
+  済ませてから `CsaGameSession` が画面に反映する（接続の順に頼る）。
 - `AutomationServer` は `--automation` 指定時だけ `startAutomationServer()` で作る。
