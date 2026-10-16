@@ -142,7 +142,7 @@ cmake --build build --target translations
 - **cli/**: `shogiboardq-cli`（GUI を起動しない JSON 出力コマンド。`mcp/` の MCP サーバーが呼び出す）
 - **widgets/**: Custom Qt widgets
   - ドックのパネル（`thinkingpanel`・`gameinfopane`・`recordpane`・`considerationtabmanager`・`usilogpanel`・`csalogpanel`・`commenteditorpanel`・`analysisresultspanel`・`branchtreemanager`）はすべて `QWidget` の派生で、部品をコンストラクタで作りきる。`DockCreationService` はパネルそのものをドックに入れる（`buildUi()`・`containerWidget()` のような、外から後で中身を作らせる・取り出す公開の関数は持たない）
-  - `thinkingpanel`・`thinkingtableview`（思考の表。対局と検討タブで共用）・`engineinfowidget`（探索状況の書式はここで決める）, `gameinfopane`（対局情報。中身は `models/gameinfoeditmodel`）, `recordpane`, `considerationtabmanager`（検討タブ。設定 `ConsiderationSettings`（`considerationsettings.h`）を正本として持ち、開始/中止のボタンは実行の状態 `RunState` で決まる）, `evaluationchartwidget`（評価値グラフ。`EvaluationSeries` を描くだけ）, `analysisresultspanel`（棋譜解析の結果の表。モデルは `setModel()` で1度だけ結ぶ。ドックを出すのは `KifuAnalysisController`）, `branchtreemanager`（分岐ツリー。描く `QGraphicsView` は `view()`）
+  - `thinkingpanel`・`thinkingtableview`（思考の表。対局と検討タブで共用）・`pvtableview`（読み筋の表 `PvTableView`。数値の列・「盤面」ボタン（`boardRequested`）・読み筋の描き方・行の高さを受け持ち、思考の表の基底で棋譜解析の結果の表にも使う）・`engineinfowidget`（探索状況の書式はここで決める）, `gameinfopane`（対局情報。中身は `models/gameinfoeditmodel`）, `recordpane`, `considerationtabmanager`（検討タブ。設定 `ConsiderationSettings`（`considerationsettings.h`）を正本として持ち、開始/中止のボタンは実行の状態 `RunState` で決まる）, `evaluationchartwidget`（評価値グラフ。`EvaluationSeries` を描くだけ）, `analysisresultspanel`（棋譜解析の結果の表。列は `KifuAnalysisListModel::Column`、モデルは `setModel()` で1度だけ結ぶ。ドックを出すのは `KifuAnalysisController`）, `branchtreemanager`（分岐ツリー。描く `QGraphicsView` は `view()`）
   - `tableheaderview` - 表の見出し。列幅は利用者がドラッグしたときだけ `sectionResizedByUser` で保存する
   - `fontsizehelper` - A-/A+ の文字の大きさ（範囲・保存・変更の通知）
   - `fontsizecontrol` - A-/A+ のボタンの組 `FontSizeControl`（文字・見た目・ツールチップと、範囲の端で押せなくする処理はここだけ）。ドックのパネル（思考・検討・棋譜・対局情報・コメント・通信ログ・棋譜解析の結果・定跡ウィンドウ・メニューウィンドウ）が使う。ボタンは役割のプロパティ `FontSizeControl::kRoleProperty`（値は `decrease`・`increase`）で探せる
@@ -152,10 +152,10 @@ cmake --build build --target translations
   - `timecontroleditor` - 片方の対局者の持ち時間・秒読み・加算の欄 `TimeControlEditor`（`TimeControlSide` で読み書き。秒読みと加算は排他で、相手側の欄にも `byoyomiEntered`・`incrementEntered` で知らせる）
   - `settingsformbinding` - 入力欄と設定の宣言（`Setting<T>`）の対応の表 `SettingsFormBinding`（`add()` を1度書けば `load()`・`save()`・`reset()`（既定値に戻す）を同じ表で行う。対局開始・詰将棋生成のダイアログが使う）
 - **dialogs/**: Dialog implementations (with co-located .ui files)
-- **models/**: Qt models for lists and data binding（`usicommlogmodel`: エンジン1台の情報欄と通信ログの行の知らせ、`evaluationseries`: 評価値グラフの点。先手から見た値で持ち、向きの直しは `blackView()` だけ）
+- **models/**: Qt models for lists and data binding（`shogienginethinkingmodel`・`kifuanalysislistmodel`: 思考の表・棋譜解析の結果の表。行は `ShogiInfoRecord`・`KifuAnalysisRow`（`kifuanalysisrow.h`）の値で持つ、`usicommlogmodel`: エンジン1台の情報欄と通信ログの行の知らせ、`evaluationseries`: 評価値グラフの点。先手から見た値で持ち、向きの直しは `blackView()` だけ）
 - **services/**: Cross-cutting services (settings, time keeping)
   - `engineprofilestore.cpp/.h` - 登録エンジンの設定（一覧・USIオプション・先読みの設定）の保存形式を知る唯一の場所（ほかの部品は設定ファイルを開かずにこの関数を使う）
-- **common/**: Shared utilities (`errorbus`, `jishogicalculator`)
+- **common/**: Shared utilities (`errorbus`, `jishogicalculator`, `movefont`（指し手・読み筋の書体の規則。表のモデルの FontRole と `KifuMoveDelegate` で共通）)
 
 ### UI Files
 

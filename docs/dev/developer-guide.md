@@ -87,6 +87,7 @@
 | 2026-10-16 | 棋譜の文書 `KifuDocument`（`kifudocument.h`）と形式ごとの書き出しの表 `KifuExport`（`kifuexport.h`）に合わせて §1.5・§3.4・§3.5・§4.4・§4.5・§6.1・§6.3・§6.5・§6.9・§8.1・§8.2・§8.4・§8.5・§8.7〜§8.9・§9.6・§10.2〜§10.5・§12.4・§12.7・§14.2・§14.3・§14.5・§14.7・§15.1・§15.3・§18 を更新（`GameRecordModel`・`KifuExportController` を削除。対局情報・対局者・持ち時間・上書き保存先は文書が持ち、`AppState` は動作状態だけ。未保存は保存した時点との比較で求める。`MatchTimeRecord` を `src/kifu/` に移した） |
 | 2026-10-16 | エンジンの表示の持ち主を `EngineDisplayPresenter` に1つにしたのに合わせて §1.5・§3.3・§4.1・§4.2・§4.4・§4.5・§6.5・§6.9・§7.1・§7.6・§7.10・§8.5・§9.1・§9.2・§9.4〜§9.6・§10.2〜§10.4・§11.2・§12.7・§14.4・§14.7・§15.1・§15.4・第18章を更新（探索状況は `EngineSearchStatus` で info 1行ごとに1回送り、書式は `EngineInfoWidget` が決める。`UsiCommLogModel` は状況＋`statusChanged` と `logLineAppended`。評価値グラフの点は `EvaluationSeries` に置き、書き手は `EvaluationGraphPresenter` だけ。検討タブは `ConsiderationSettings` を正本として持ち、実行の状態 `RunState` は `EngineDisplayPresenter` が `AnalysisSession` の知らせから設定する。検討中かどうかの正本は `AnalysisSession::isConsidering()`。`ConsiderationUiController` は操作を伝えるだけ、`PlayerInfoPresenter` は盤の対局者名だけ、`SessionResetCoordinator` は表示の消去を `EngineDisplayPresenter::clearAll()` に任せる） |
 | 2026-10-16 | 盤の入力・局面編集・ハイライトの整理（監査 R7）に合わせて §1.5・§3.4・§3.5・§3.6・§4.2・§4.4・§4.5・§5.4・§6.1・§6.6・§6.8・§6.9・§10・§11.1・§12.3・§13.5・§13.6・§13.9・§14.2・§14.3・§14.6・§15.2・§18 を更新（盤で指した手の行き先 `BoardInputRoute`、`BoardInteractionController` の `Mode`・`moveRequested`・手番のコールバックの削除、`PositionEditController`・`PositionEditCoordinator` を `PositionEditSession` に統合、`HumanTurnPolicy` を `src/ui/controllers/` へ移動、ハイライトを層 `BoardHighlightLayer` ごとの値に、`setForcedPromotion()` の削除と定跡の手の `playUsiMove()`） |
+| 2026-10-16 | 思考の表と棋譜解析の結果の表の行を値で持つようにしたのに合わせて §1.5・§7.8・§7.10・§9.6・§9.8・§9.9・§10.2・§11.2・§18.3・§18.4 を更新（`AbstractListModel`・`KifuAnalysisResultsDisplay` を削除。行は `ShogiInfoRecord`・`KifuAnalysisRow` の値、表の部品は `PvTableView`、指し手の書体の規則は `MoveFont`） |
 
 <!-- chapter-0-end -->
 
@@ -427,9 +428,9 @@ src/
 ├── models/                         # Qtモデルと表示用データ
 │   ├── kifurecordlistmodel.cpp/.h  #   棋譜欄のモデル（行は分岐ツリーのノード）
 │   ├── kifubranchlistmodel.cpp/.h  #   分岐候補欄のモデル
-│   ├── kifuanalysislistmodel.cpp/.h # 棋譜解析結果リストモデル
-│   ├── kifuanalysisresultsdisplay.cpp/.h # 棋譜解析結果の表の1行
-│   ├── shogienginethinkingmodel.cpp/.h # 思考の表のモデル
+│   ├── kifuanalysislistmodel.cpp/.h # 棋譜解析の結果の表のモデル（行は KifuAnalysisRow の値）
+│   ├── kifuanalysisrow.h           #   棋譜解析の結果の表の1行（作った後は変えない値）
+│   ├── shogienginethinkingmodel.cpp/.h # 思考の表のモデル（行は ShogiInfoRecord の値）
 │   ├── shogiinforecord.cpp/.h      #   思考の表の1行（エンジンの info 1件）
 │   ├── usicommlogmodel.cpp/.h      #   エンジン1台の情報欄（エンジン名・探索状況・予想手）と通信ログの行の知らせ
 │   ├── evaluationseries.cpp/.h     #   評価値グラフの点（先手から見た評価値の列が2本・系列名・解析した手順の番号）
@@ -449,7 +450,8 @@ src/
 │   ├── recordpane.cpp/.h           #   棋譜表示ペイン
 │   ├── recordpaneappearancemanager.cpp/.h # 棋譜欄の外観
 │   ├── thinkingpanel.cpp/.h        #   思考ドックの中身（エンジン2つ分の情報と思考の表）
-│   ├── thinkingtableview.cpp/.h    #   思考の表（対局のエンジン2つと検討タブで共用）
+│   ├── pvtableview.cpp/.h          #   読み筋の表（数値の列・「盤面」ボタン・読み筋の描き方・行の高さ。思考の表と棋譜解析の結果の表で使う）
+│   ├── thinkingtableview.cpp/.h    #   思考の表（PvTableView の派生。対局のエンジン2つと検討タブで共用）
 │   ├── engineinfowidget.cpp/.h     #   エンジン情報ウィジェット（探索状況の数値の書式はここで決める）
 │   ├── considerationtabmanager.cpp/.h # 検討タブ（設定 ConsiderationSettings を正本として持ち、実行の状態 RunState で開始/中止のボタンを切り替える）
 │   ├── considerationsettings.h     #   検討タブの設定の値（エンジン・時間・候補手の数・矢印）
@@ -576,9 +578,9 @@ src/
 ├── common/                         # 共有ユーティリティ
 │   ├── appstate.h                  #   部品どうしで共有する状態（動作状態・対局者・上書き保存先）
 │   ├── appactivitystate.h          #   アプリがいま何をしているか（AppActivityState）
-│   ├── abstractlistmodel.h         #   ポインタを持つリストモデルの基底
 │   ├── kifupresentation.cpp/.h     #   表示用の指し手・座標の表記（言語と表記の設定に合わせる）
 │   ├── applicationfonts.cpp/.h     #   表示言語に応じた書体
+│   ├── movefont.h                  #   指し手・読み筋の書体の規則（表のモデルの FontRole と KifuMoveDelegate で共通）
 │   ├── applicationstyle.cpp/.h, applicationrendering.cpp/.h # アプリ全体のスタイルと描画の設定
 │   ├── boardcolors.h, boardvisuals.h, buttonstyles.h, tablestyles.h # 配色とスタイルシート
 │   ├── logcategories.cpp/.h        #   ログカテゴリ
@@ -3734,7 +3736,7 @@ info ごとに作業用の局面へ写して（値の代入）、指し手を順
 
 **ソース**: `src/models/shogienginethinkingmodel.h`, `src/models/shogienginethinkingmodel.cpp`
 
-`AbstractListModel<ShogiInfoRecord>` を継承した Qt モデルクラスで、思考タブ・検討タブの `ThinkingTableView`（`src/widgets/thinkingtableview.h`）にバインドされる。
+`QAbstractTableModel` の派生で、行は `ShogiInfoRecord` の値（`QList<ShogiInfoRecord>`）で持つ。思考タブ・検討タブの `ThinkingTableView`（`src/widgets/thinkingtableview.h`）にバインドされる。指定行は `recordAt(row)` で読む（返すポインタは行を足す・消すまで有効）。
 
 #### 列構成（6列）
 
@@ -3749,9 +3751,9 @@ info ごとに作業用の局面へ写して（値の代入）、指し手を順
 | 4 | 盤面 | 固定文字列「表示」（中央揃え） | ビューが `TableButtonDelegate` で角丸のボタン風に描く |
 | 5 | 読み筋 | `ShogiInfoRecord::displayPv()` | 表記の設定に合わせた読み筋（ツールチップは移動元付きの全文） |
 
-モデルは列0〜3を数で返し、ビューが `NumericRightAlignCommaDelegate` で3桁区切り・右寄せに描く（`ThinkingTableView` が設定する）。列幅は利用者がドラッグしたときだけ保存する（`TableHeaderView::sectionResizedByUser`）。depth/seldepth の形の深さは、表ではなく `UsiCommLogModel` 側の欄（7.6節の手順3）に出る。
+モデルは列0〜3を数で返し、ビューが `NumericRightAlignCommaDelegate` で3桁区切り・右寄せに描く（`ThinkingTableView` の基底の読み筋の表 `PvTableView` が設定する）。列幅は利用者がドラッグしたときだけ保存する（`TableHeaderView::sectionResizedByUser`）。depth/seldepth の形の深さは、表ではなく `UsiCommLogModel` 側の欄（7.6節の手順3）に出る。
 
-列4（盤面）をクリックすると、`PvClickController::onPvRowClicked(model, row)` が読み筋の盤面ダイアログ（`PvBoardDialog`）を開く。`baseSfen` と `usiPv`（空ならエンジンが送った `enginePv`）から局面をたどる。
+列4（盤面）をクリックする（選んで Enter でもよい）と、`PvClickController::onPvRowClicked(model, row)` が読み筋の盤面ダイアログ（`PvBoardDialog`）を開く。`baseSfen` と `usiPv`（空ならエンジンが送った `enginePv`）から局面をたどる。
 
 #### 2つの更新モード
 
@@ -3760,7 +3762,7 @@ info ごとに作業用の局面へ写して（値の代入）、指し手を順
 | 通常モード | `prependRow(row, maxRows)` | 思考タブ：新しい情報を先頭に追加（時系列の逆順表示）。先頭と同じ内容なら足さず、`maxRows`（`UsiModelBinding` は 500）を超えた古い行は消す |
 | MultiPVモード | `updateByMultipv(row, maxMultiPV)` | 検討タブ：multipv 番号に基づいて行を更新/挿入 |
 
-どちらも、漢字の読み筋が空の行は `UsiModelBinding::onThinkingRow()` が表に出さない（詰み探索の中間結果など）。
+どちらも、漢字の読み筋が空の行は `UsiModelBinding::onThinkingRow()` が表に出さない（詰み探索の中間結果など）。ほかに `appendRow()`（同じ内容でも末尾に足す）・`trimToMaxRows()`・`clear()` を持つ。
 
 #### updateByMultipv() のロジック
 
@@ -3780,7 +3782,7 @@ updateByMultipv(row, maxMultiPV)
 
 **ソース**: `src/models/shogiinforecord.h`, `src/models/shogiinforecord.cpp`
 
-1行分の思考情報を保持する値クラスである（QObject ではない）。値は `ThinkingInfoRow`（`src/engine/thinkinginforow.h`）のまま持ち、表示する文字列は表のモデルが作る。読み筋の表示だけは、表記の設定ごとに作った文字列を覚えておく（英語表記では局面をたどって作るので重い）。
+1行分の思考情報を保持する値クラスである（QObject ではない）。値は `ThinkingInfoRow`（`src/engine/thinkinginforow.h`）のまま持ち、表示する文字列は表のモデルが作る。読み筋の表示だけは、表記の設定ごとに作った文字列を覚えておく（英語表記では局面をたどって作るので重い）。覚えた文字列は、`KifuPresentation::revision()`（表記の設定を変えるたびに増える番号）が変わったら作り直す。
 
 `ThinkingInfoRow` の項目:
 
@@ -3902,7 +3904,7 @@ YaneuraOu\3\type=check
 | 受けるシグナル | 反映先 |
 |----------------|--------|
 | `ThinkingInfoFormatter::thinkingInfoUpdated` | 思考の表 `prependRow()`、検討の表 `updateByMultipv()` |
-| `ThinkingInfoFormatter::clearThinkingInfoRequested` | 思考の表 `clearAllItems()` |
+| `ThinkingInfoFormatter::clearThinkingInfoRequested` | 思考の表 `clear()` |
 | `ThinkingInfoFormatter::searchStatusUpdated` | `UsiCommLogModel::updateStatus()` |
 | `EngineProcessManager::commandSent`・`dataReceived`・`stderrReceived` | `appendLogLine()`（`▶`・`◀`・`⚠` とエンジンタグを付ける） |
 | `UsiProtocolHandler::bestMoveReceived` | 予想手の表示（指した後の局面の表記で `setPredictedMove()`） |
@@ -5136,7 +5138,7 @@ showDialogAndStart()
 
 #### append() — 1局面の結果を表に足す
 
-`AnalysisResultHandler::append(const PlyAnalysis&)` は `plyAnalyzed` のたびに呼ばれ、1局面の結果を `KifuAnalysisResultsDisplay` オブジェクトにして `KifuAnalysisListModel` に足し、先手から見た評価値を返す（定跡・評価値なしは None）。返した評価値は `KifuAnalysisController` が覚えておき、次の局面の解析を始めたときに評価値グラフへ足す。
+`AnalysisResultHandler::append(const PlyAnalysis&)` は `plyAnalyzed` のたびに呼ばれ、1局面の結果を `KifuAnalysisRow`（`src/models/kifuanalysisrow.h`）の値にして `KifuAnalysisListModel::appendRow()` で足し、先手から見た評価値を返す（定跡・評価値なしは None）。返した評価値は `KifuAnalysisController` が覚えておき、次の局面の解析を始めたときに評価値グラフへ足す。
 
 | 処理 | 説明 |
 |------|------|
@@ -5223,11 +5225,11 @@ QDockWidget
               ├── QHBoxLayout
               │     ├── QLabel       (状態の説明)
               │     └── QProgressBar (解析の進捗)
-              ├── QTableView（TableHeaderView を見出しに使う）
+              ├── PvTableView（読み筋の表。TableHeaderView を見出しに使う）
               │     ├── 交互行色、単一選択
-              │     ├── 列 3,5: NumericRightAlignCommaDelegate（数値右寄せ）
-              │     ├── 列 6: TableButtonDelegate（「表示」ボタン。思考タブと共通）
-              │     └── 列 7: PvTextDelegate（読み筋）
+              │     ├── EvaluationColumn・DifferenceColumn: NumericRightAlignCommaDelegate（数値右寄せ）
+              │     ├── BoardColumn: TableButtonDelegate（「表示」ボタン。思考タブと共通）
+              │     └── PvColumn: PvTextDelegate（読み筋）
               └── QLabel（評価値の見方などのヒント）
 ```
 
@@ -5238,7 +5240,7 @@ QDockWidget
 | 解析中（`m_isAnalyzing = true`） | 知らせない | 最後に確定した行を選んで見せる | クリック無効 | 有効 |
 | 解析完了（`m_isAnalyzing = false`） | `rowSelected` で知らせる | なし | クリック有効 | 無効 |
 
-表の選択モードは常に `SingleSelection` である。解析中は、行が足されるたびに `onRowsInserted()` が最後に確定した行を選んでスクロールする。解析中は選択の変更（`onTableSelectionChanged()`）も盤面列のクリック（`onTableClicked()`）も無視し、`rowSelected`・`rowDoubleClicked` を出さない。棋譜は解析の進み具合に合わせて `KifuAnalysisController` が移す。解析中かどうかは `setStopButtonEnabled()` で決まる。
+表の選択モードは常に `SingleSelection` である。解析中は、行が足されるたびに `onRowsInserted()` が最後に確定した行を選んでスクロールする。解析中は選択の変更（`onTableSelectionChanged()`）も盤面列のクリック・Enter（`PvTableView::boardRequested` を受ける `onBoardRequested()`）も無視し、`rowSelected`・`rowDoubleClicked` を出さない。棋譜は解析の進み具合に合わせて `KifuAnalysisController` が移す。解析中かどうかは `setStopButtonEnabled()` で決まる。
 
 #### 列幅の自動調整
 
@@ -5252,24 +5254,26 @@ A-/A+ ボタンで8pt〜24ptの範囲でフォントサイズを調整でき、�
 
 **ソース**: `src/models/kifuanalysislistmodel.h`, `src/models/kifuanalysislistmodel.cpp`
 
-`AbstractListModel<KifuAnalysisResultsDisplay>`（`src/common/abstractlistmodel.h`）を継承した8列テーブルモデルである。解析結果の各行を `KifuAnalysisResultsDisplay` オブジェクトとして保持する。
+`QAbstractTableModel` の派生の8列テーブルモデルである。解析結果の各行を `KifuAnalysisRow` の値で持ち、`appendRow()` で末尾に足し、`clear()` で消す。`row(int)` は指定行を返す（範囲外は nullptr。行を足す・消すまで有効）。手・候補手・読み筋の表示は表記の設定に合わせてモデルが作り、`KifuPresentation::revision()` が変わるまで覚えておく。
 
 #### 列定義
 
-| 列 | ヘッダー（日本語） | ヘッダー（英語） | データソース | 配置 |
+列は `KifuAnalysisListModel::Column` で表す（パネルも列番号を直接書かずにこの enum を使う）。
+
+| 列（`Column`） | ヘッダー（日本語） | ヘッダー（英語） | データソース | 配置 |
 |----|------------------|-----------------|-------------|------|
-| 0 | 指し手 | Move | `displayMove()` | 左寄せ |
-| 1 | 候補手 | Candidate | `displayCandidate()` | 左寄せ |
-| 2 | 一致 | Match | 指し手と候補手の USI と前の局面を比較 | 中央 |
-| 3 | 評価値 | Eval | `evaluationText()`（`evaluation()` の `UsiScore`） | 右寄せ |
-| 4 | 形勢 | Judgment | `judgementText()` で計算 | 左寄せ |
-| 5 | 評価値差 | Diff | `evaluationDifference()`（比べられなければ `-`） | 右寄せ |
-| 6 | 盤面 | Board | 固定文字列 "表示" | — |
-| 7 | 読み筋 | PV | `displayPv()` | 左寄せ |
+| 0 `MoveColumn` | 指し手 | Move | `move`（表記の設定に合わせる） | 左寄せ |
+| 1 `CandidateColumn` | 候補手 | Candidate | `candidateMove`（表記の設定に合わせる） | 左寄せ |
+| 2 `MatchColumn` | 一致 | Match | `matchesCandidate()` | 中央 |
+| 3 `EvaluationColumn` | 評価値 | Eval | `evaluationText()`（`evaluation` の `UsiScore`） | 右寄せ |
+| 4 `JudgementColumn` | 形勢 | Judgment | `judgementText()` で計算 | 左寄せ |
+| 5 `DifferenceColumn` | 評価値差 | Diff | `evaluationDifference`（比べられなければ `-`） | 右寄せ |
+| 6 `BoardColumn` | 盤面 | Board | 固定文字列 "表示" | — |
+| 7 `PvColumn` | 読み筋 | PV | `pv`（表記の設定に合わせる） | 左寄せ |
 
 #### 一致判定
 
-実際の指し手と候補手が同じかは、表記の文字列ではなく、指し手の USI（`lastUsiMove()`）と候補手の USI（`candidateUsi`）が等しく、かつ指す前の局面（`beforeSfen`）と候補手の局面（`candidateSfen`）が同じかで判定する。一致していれば "◯" が表示される。
+実際の指し手と候補手が同じかは、表記の文字列ではなく、指し手の USI（`lastUsiMove`）と候補手の USI（`candidateUsi`）が等しく、かつ指す前の局面（`beforeSfen`）と候補手の局面（`candidateSfen`）が同じかで判定する（`KifuAnalysisRow::matchesCandidate()`）。一致していれば "◯" が表示される。
 
 #### judgementText() — 形勢判断
 
@@ -5286,23 +5290,21 @@ A-/A+ ボタンで8pt〜24ptの範囲でフォントサイズを調整でき、�
 
 `[side]` は "先手" または "後手" であり、評価値の符号で判定する（正=先手有利、負=後手有利）。評価値がない（定跡・未取得）ときは空文字列を返す。表示用の評価値は `evaluationText()` が作り、centipawn はそのまま、詰みは `"mate N"`、ないときは `-` とする。
 
-#### KifuAnalysisResultsDisplay — 結果データクラス
+#### KifuAnalysisRow — 結果の1行
 
-**ソース**: `src/models/kifuanalysisresultsdisplay.h/.cpp`
+**ソース**: `src/models/kifuanalysisrow.h`
 
-1手分の解析結果を保持するデータオブジェクト。`QObject` を継承し、`KifuAnalysisListModel` のアイテムとして使用される。
+1局面の解析結果を持つ構造体（QObject ではない）。`AnalysisResultHandler` が作り、作った後は変えない。表示する文字列（表記の設定に合わせた手・読み筋、`"mate 3"`・形勢）は表のモデルが作る。
 
 | フィールド | 型 | 説明 |
 |-----------|-----|------|
-| `m_currentMove` | `QString` | 実際の指し手（漢字表記） |
-| `m_candidateMove` | `QString` | エンジン推奨手（前行の読み筋の先頭手） |
-| `m_evaluation` | `UsiScore` | 評価値（先手基準に統一済み。定跡・未取得は None。表示文字列は表のモデルが作る） |
-| `m_evaluationDifference` | `std::optional<int>` | 前手との評価値差（比べられなければ nullopt） |
-| `m_principalVariation` | `QString` | 読み筋（漢字表記優先） |
-| `m_usiPv` | `QString` | 読み筋（USI形式、PvBoardDialog用） |
-| `m_sfen` | `QString` | この局面のSFEN文字列 |
-| `m_lastUsiMove` | `QString` | 盤面ハイライト用の最終手 |
-| `beforeSfen` / `candidateUsi` / `candidateSfen` | `QString` | 指す前の局面・候補手の USI・候補手の局面（一致判定に使う） |
+| `move` | `QString` | 指した手（棋譜の表記） |
+| `lastUsiMove` | `QString` | 指した手（USI。読み筋の盤で強調する） |
+| `beforeSfen` / `sfen` | `QString` | 指す前の局面・指した後の局面（読み筋の始まり） |
+| `evaluation` | `UsiScore` | 先手から見た評価値（定跡・未取得は None） |
+| `evaluationDifference` | `std::optional<int>` | 直前の解析局面からの評価値の増減（比べられなければ nullopt） |
+| `pv` / `usiPv` | `QString` | 読み筋（漢字表記）・読み筋（USI。PvBoardDialog 用） |
+| `candidateMove` / `candidateUsi` / `candidateSfen` | `QString` | 候補手（直前の行の読み筋の最初の手）の漢字表記・USI・指す局面 |
 
 ### 9.10 エンジン管理の違い：AnalysisSession 経由 vs 直接 Usi
 
@@ -5444,7 +5446,7 @@ Presenters は「Model → View」の単方向データフローを担当する�
 | `UsiModelBinding` | `usimodelbinding.h` | エンジン1台（`Usi`）の思考情報・情報欄の値・通信ログを、表示のモデルへ反映する。エンジンを親にして作り、エンジンと一緒に破棄される |
 | `AnalysisResultHandler` | `analysisresulthandler.h` | 棋譜解析の1局面の結果を結果の表の1行にする・読み筋盤面の表示（第9章） |
 
-棋譜解析結果のドックの中身（`AnalysisResultsPanel`）、思考タブの表（`ThinkingTableView`）・`ThinkingPanel` は、部品として `src/widgets/` にある。
+棋譜解析結果のドックの中身（`AnalysisResultsPanel`）、思考タブの表（`ThinkingTableView`）とその基底の読み筋の表（`PvTableView`）・`ThinkingPanel` は、部品として `src/widgets/` にある。
 
 #### BoardSyncPresenter — 盤面同期
 
@@ -6091,15 +6093,15 @@ Urgency::Warn5  → 強い警告色（残5秒・秒読み）
 |---------|-----------|---------|------|
 | RecordPane | QWidget | 棋譜ドック（既定は右側） | 棋譜一覧（QTableView。指し手・消費時間・しおり・コメントの列と、列の表示の切り替え）＋分岐候補一覧（折りたたみ可）＋ナビゲーションボタン＋文字サイズ・しおり編集のボタン。コメントの編集欄は持たない（棋譜コメントのドック） |
 | ThinkingPanel | QWidget | 思考ドック | 対局・棋譜解析のエンジン2つ分の情報欄（`EngineInfoWidget`）と思考の表（`ThinkingTableView`）、文字の大きさのボタン、対局中の候補手の矢印の表示設定。2つ目のエンジンは `setSecondEngineVisible()` で出す。読み筋の「盤面」ボタンは `pvRowClicked(ShogiEngineThinkingModel*, int)` で通知する |
-| ThinkingTableView | QTableView 系 | 思考ドック・検討ドック | 思考の表。対局のエンジン2つと検討タブで共用し、列幅・数値の書式・「盤面」ボタンを受け持つ |
+| PvTableView | IncrementalTableView | 思考の表・棋譜解析の結果の表 | 読み筋の表。数値の列の右寄せ3桁区切り、「盤面」ボタン（クリックか Enter で `boardRequested(int)`）、読み筋の描き方、行の高さと文字の大きさ（`setFontPointSize()`）を受け持つ。列の役割は `Columns`（`numeric`・`board`・`pv`）で渡し、列幅は使う側が決める |
+| ThinkingTableView | PvTableView | 思考ドック・検討ドック | 思考の表。対局のエンジン2つと検討タブで共用し、列幅（保存と復元）を受け持つ。「盤面」ボタンは `pvRowClicked(ShogiEngineThinkingModel*, int)` で知らせる |
 | ConsiderationTabManager | QWidget | 検討ドック | 検討タブの操作（エンジン選択・時間・MultiPV・矢印の表示・開始/中止）と表を作る。設定は `ConsiderationSettings` を正本として持ち（`settings()`・`setSettings()`・`settingsChanged`）、開始/中止のボタンと経過時間は実行の状態 `RunState`（`Idle`・`Running`・`Waiting`。`EngineDisplayPresenter` が `setRunState()` で設定する）で決まる |
 | UsiLogPanel / CsaLogPanel / CommentEditorPanel | QWidget | USI通信ログ・CSA通信ログ・棋譜コメントの各ドック | 各ドックの中身。`CsaLogPanel` は CSA通信対局の待機ダイアログ（`CsaWaitingDialog`）のログ窓にもそのまま入れる |
 | BranchTreeManager | QWidget | 分岐ツリーのドック | 分岐ツリーを自分の持つ QGraphicsView（`view()`。objectName は `branchTreeView`）に描く（`KifuBranchTree` を読むだけの観察者）。構築・入力は `branchtreemanager.cpp`、描画は `branchtreemanager_draw.cpp`。行（変化）の折りたたみと段の割り当ては値型 `BranchTreeLayout`（`branchtreelayout.h/.cpp`）が計算する |
 | EvaluationChartWidget | QWidget | MainWindow 下部（QDockWidget） | Qt Charts による評価値グラフ（2エンジン対応、ゼロライン、カーソル線）。点は `setSeries()` で渡された `EvaluationSeries`（書き手は `EvaluationGraphPresenter`）を描くだけ |
 | EngineInfoWidget | QWidget | 思考・検討のページ内（エンジンごとの情報欄） | `UsiCommLogModel` の値を1行の表に出す（エンジン名・予想手・探索手・深さ・ノード数・探索局面数/秒・ハッシュ使用率。予想手の列は隠せる）。探索状況（`EngineSearchStatus`）の数値の書式（3桁区切り・百分率）はここで決める。列幅は保存する |
 | GameInfoPane | QWidget | 対局情報ドック（思考などのドックとタブにまとめる） | 対局情報のツールバー（元に戻す・切り取り・行の追加・反映など）＋ QTableView。中身・編集の履歴・未反映の判定は `GameInfoEditModel`（`src/models/`）。合成ルートが作り、棋譜の文書（`KifuDocument`）の対局情報を編集する画面としてつなぐ（文書の `headerReset` で中身を入れ、表が変わると `gameInfoEdited` で文書に返す） |
-| KifuAnalysisResultsDisplay | QObject | モデルデータ（`src/models/`） | 棋譜解析結果の保持（指し手・候補手・評価値・評価値の差・読み筋（漢字・USI）・局面SFEN） |
-| AnalysisResultsPanel | QWidget | 棋譜解析の結果ドック | 結果の表・停止ボタン・文字の大きさ。モデルは `setModel()` で1度だけ結ぶ。列幅は自分で保存する。ドックの表示は `KifuAnalysisController` が行う（9.8節） |
+| AnalysisResultsPanel | QWidget | 棋譜解析の結果ドック | 結果の表（`PvTableView`）・停止ボタン・文字の大きさ。モデルは `setModel()` で1度だけ結ぶ。列幅は自分で保存する。ドックの表示は `KifuAnalysisController` が行う（9.8節） |
 | MenuWindow | QWidget | メニューのドック（棋譜ドックとタブにまとめる。`src/dialogs/`） | メニュー項目をボタン形式で表示（タブ付き、お気に入り、カスタマイズモード）。作るのは `MenuWindowController` |
 | MenuButtonWidget | QWidget | MenuWindow 内 | QAction をアイコン＋テキストで表示するカスタムボタン、D&D対応 |
 
@@ -6207,7 +6209,7 @@ Urgency::Warn5  → 強い警告色（残5秒・秒読み）
 | ItemTextDelegate | QStyledItemDelegate | 見た目は QStyledItemDelegate と同じで、項目の文字を `ItemTextPainter` に描かせる（下の各デリゲートの基底） |
 | NumericRightAlignCommaDelegate | ItemTextDelegate | テーブル内の数値を3桁カンマ区切り＋右寄せ表示（思考・検討の表の列0〜3、解析結果の表） |
 | PvTextDelegate | ItemTextDelegate | 読み筋のように長い文字列の列を軽く描く |
-| KifuMoveDelegate | ItemTextDelegate | 指し手の列を、指し手用の字形を選んで描く（エンジン情報欄・定跡ウィンドウなど） |
+| KifuMoveDelegate | ItemTextDelegate | 指し手の列を、指し手用の字形を選んで描く（エンジン情報欄・定跡ウィンドウなど）。書体の規則は表のモデルの FontRole と同じ `MoveFont`（`src/common/movefont.h`） |
 | RecordHighlightDelegate | ItemTextDelegate | 棋譜欄・分岐候補欄の現在行の目印とセルの大きさのキャッシュ |
 | TableButtonDelegate | QStyledItemDelegate | 読み筋の「表示」セルを角丸のボタン風に描く（思考・検討の表、解析結果、詰将棋の局面生成の結果） |
 
@@ -9091,7 +9093,6 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | 名前 | 種別 | ディレクトリ | 説明 | 解説章 |
 |------|------|-------------|------|--------|
 | AboutCoordinator | NS | ui/coordinators | バージョン情報ダイアログの表示 | 第10章 |
-| AbstractListModel | C | common | ポインタ所有リストモデルのテンプレート基底 | 第11章 |
 | AnalysisJob | C | analysis | 棋譜解析1回の入力・進行・エンジンの利用期間を管理する（局面ごとに `PlyAnalysis` を出す） | 第9章 |
 | AnalysisOptions | S | analysis | 検討・詰み探索の開始オプション | 第9章 |
 | AnalysisRequest | S | analysis | 棋譜解析の依頼（手順・範囲と思考時間 `Options`・エンジン・分岐ライン） | 第9章 |
@@ -9215,8 +9216,8 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | KifToSfenConverter | C | kifu/formats | KIF形式→SFEN変換器 | 第8章 |
 | KifuAnalysisController | C | ui/controllers | 棋譜解析（メニューの「棋譜解析」「解析中止」と、解析の進み具合の表示） | 第9章 |
 | KifuAnalysisDialog | C | dialogs | 棋譜解析設定ダイアログ | 第11章 |
-| KifuAnalysisListModel | C | models | 棋譜解析結果リストモデル（8列テーブル） | 第9章 |
-| KifuAnalysisResultsDisplay | C | models | 棋譜解析結果1行ぶんの表示データ | 第9章, 第11章 |
+| KifuAnalysisListModel | C | models | 棋譜解析の結果の表のモデル（8列。行は `KifuAnalysisRow` の値） | 第9章 |
+| KifuAnalysisRow | S | models | 棋譜解析の結果の表の1行（作った後は変えない値） | 第9章 |
 | KifuBranchListModel | C | models | 分岐候補リストモデル | 第11章 |
 | KifuBranchNode | C | kifu | 分岐ツリーのノード | 第8章 |
 | KifuBranchTree | C | kifu | 分岐ツリーデータモデル | 第8章 |
@@ -9267,6 +9268,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | MenuButtonWidget | C | widgets | メニューボタンウィジェット | 第11章 |
 | MenuWindow | C | dialogs | メニュー項目をボタンで並べるウィンドウ | 第11章 |
 | MenuWindowController | C | ui/controllers | メニューウィンドウの表示と、押されたボタンの項目の通知 | 第10章 |
+| MoveFont | NS | common | 指し手・読み筋の書体の規則（表のモデルの FontRole と `KifuMoveDelegate` で共通。ヘッダーオンリー） | 第11章 |
 | NumericRightAlignCommaDelegate | C | widgets | 数値右寄せカンマ区切りデリゲート | 第11章 |
 | NyugyokuDeclarationHandler | C | ui/controllers | 利用者の入玉宣言（確認・宣言・結果の表示。`GameChannel` 経由でローカル対局・通信対局に共通） | 第10章 |
 | ParseOptions | S | kifu | 読めない手・指せない手・パスの扱い（手順を打ち切るか、棋譜全体を失敗にするか） | 第8章 |
@@ -9284,6 +9286,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | PvBoardDialog | C | dialogs | 読み筋盤面表示ダイアログ | 第11章 |
 | PvClickController | C | ui/controllers | 読み筋クリックの制御 | 第10章 |
 | PvNotationFormatter | C | engine | UsiInfo の読み筋・探索手を局面の上で漢字表記にする | 第7章 |
+| PvTableView | C | widgets | 読み筋の表（数値の列・「盤面」ボタン・読み筋の描き方。思考の表と棋譜解析の結果の表で使う） | 第11章 |
 | RecordEntry | S | kifu | 棋譜の1行（指した手か終局） | 第8章 |
 | RecordLine | S | kifu | 1本の手順の値（局面列・指し手・表記・表示中の手数。末尾に終局行を持てる。読み込み結果の本譜・変化にも使う） | 第8章 |
 | RecordPane | C | widgets | 棋譜ペインウィジェット | 第11章 |
@@ -9298,7 +9301,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | ShiftJisCodec | NS | kifu | Shift_JIS（CP932）の変換（ICU のない Qt でも使える） | 第8章 |
 | ShogiBoard | C | core | 表示・局面編集に使う盤（Position を1つ持ち、変更をシグナルで知らせる） | 第5章 |
 | ShogiClock | C | core | 対局時計・時間管理 | 第5章 |
-| ShogiEngineThinkingModel | C | models | エンジン思考結果リストモデル（MultiPV対応） | 第7章, 第11章 |
+| ShogiEngineThinkingModel | C | models | 思考の表のモデル（行は `ShogiInfoRecord` の値。MultiPV対応） | 第7章, 第11章 |
 | ShogiGameController | C | game | 対局進行・盤面更新・合法手検証 | 第6章 |
 | ShogiInfoRecord | C | models | USIエンジン思考情報レコード | 第7章, 第8章 |
 | ShogiMove | S | core | 指した手の記録（USI の指し手と、動かした駒・取った駒） | 第5章 |
@@ -9315,7 +9318,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | ThinkingInfoFormatter | C | engine | エンジンの info 行を、思考の表の行（`ThinkingInfoRow`）と探索状況（`EngineSearchStatus`）にする | 第7章 |
 | ThinkingInfoRow | S | engine | 思考タブの1行分の表示データ | 第7章 |
 | ThinkingPanel | C | widgets | 思考ドックの中身（エンジン2つ分の情報と思考の表、候補手の矢印の表示設定） | 第11章 |
-| ThinkingTableView | C | widgets | 思考の表（対局のエンジン2つと検討タブで共用。列幅・数値の書式・「盤面」ボタン） | 第11章 |
+| ThinkingTableView | C | widgets | 思考の表（`PvTableView` の派生。対局のエンジン2つと検討タブで共用。列幅） | 第11章 |
 | TimeControl | S | core | 持ち時間の決まり（持ち時間・秒読み・加算・遅延）の値型 | 第5章, 第6章 |
 | TimeControlUtil | NS | game | 持ち時間設定を `ShogiClock` へ適用するユーティリティ | 第12章 |
 | TimeControlEditor | C | widgets | 片方の対局者の持ち時間・秒読み・加算の欄（`TimeControlSide` で読み書き。秒読みと加算は排他） | 第11章 |
@@ -9600,7 +9603,8 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | gameinfopane | 第11章 | 対局情報ドックの中身（ツールバー＋表） |
 | tableheaderview | 第11章 | 表の見出し。列幅は利用者がドラッグしたときだけ `sectionResizedByUser` で知らせて保存する |
 | thinkingpanel | 第11章 | 思考ドックの中身（エンジン2つ分の情報と思考の表、候補手の矢印の表示設定） |
-| thinkingtableview | 第11章 | 思考の表（対局のエンジン2つと検討タブで共用。列幅・数値の書式・「盤面」ボタン） |
+| pvtableview | 第11章 | 読み筋の表（数値の列・「盤面」ボタン・読み筋の描き方。思考の表と棋譜解析の結果の表で使う） |
+| thinkingtableview | 第11章 | 思考の表（`PvTableView` の派生。対局のエンジン2つと検討タブで共用。列幅） |
 | csalogpanel | 第11章, 第12章 | CSA通信ログドックの中身（通信ログ・接続状態・手入力のコマンド） |
 | itemtextdelegate | 第11章 | 項目の文字を、配置を覚えて描くデリゲート |
 | tablebuttondelegate | 第11章 | 表のセルを控えめなボタンとして描画する（読み筋の盤面・定跡手の着手と編集など） |
@@ -9636,8 +9640,8 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 |---------|--------|------|
 | kifurecordlistmodel | 第11章 | 棋譜レコードモデル |
 | kifubranchlistmodel | 第11章 | 分岐候補モデル |
-| kifuanalysislistmodel | 第9章 | 解析結果リストモデル |
-| kifuanalysisresultsdisplay | 第9章, 第11章 | 解析結果1行ぶんの表示データ |
+| kifuanalysislistmodel | 第9章 | 解析結果の表のモデル（行は `KifuAnalysisRow` の値） |
+| kifuanalysisrow | 第9章 | 解析結果の表の1行 |
 | gameinfoeditmodel | 第11章 | 対局情報の表の中身・編集の履歴・未反映の判定 |
 | shogienginethinkingmodel | 第7章 | 思考結果モデル |
 | shogiinforecord | 第7章, 第8章 | 思考情報レコード |
@@ -9667,7 +9671,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 |---------|--------|------|
 | appstate | 第14章 | 部品どうしで共有する状態（`AppState`） |
 | appactivitystate | 第3章, 第14章 | アプリの動作状態（`AppActivityState`） |
-| abstractlistmodel | 第11章 | リストモデル基底テンプレート |
+| movefont | 第11章 | 指し手・読み筋の書体の規則 |
 | errorbus | 第4章, 第12章 | エラー通知バス |
 | jishogicalculator | 第12章 | 持将棋点数計算 |
 | tsumepositionutil | 第9章, 第12章 | 詰将棋局面ユーティリティ |
