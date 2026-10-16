@@ -12,7 +12,7 @@
 
 class BoardViewerWidget;
 class QLabel;
-class PvBoardController;
+class PvLine;
 
 /**
  * @brief 読み筋（PV: Principal Variation）を再生する別ウィンドウダイアログ
@@ -20,7 +20,7 @@ class PvBoardController;
  * 思考タブの読み筋をクリックすると、このダイアログが開き、
  * 1手進む/戻るボタンで読み筋の盤面を再現できる。
  *
- * ロジック（SFEN履歴、指し手の表記、ハイライト座標計算）は PvBoardController に、
+ * 読み筋の値（各手数の局面・手の表記・ハイライト）は PvLine に、
  * 盤と拡大縮小・回転・局面送りの操作は BoardViewerWidget に委譲し、本クラスは組み立てのみを担当する。
  */
 class PvBoardDialog : public QDialog
@@ -57,6 +57,7 @@ public:
      * @param lastMove USI形式の手（例: "7g7f"）
      */
     void setLastMove(const QString& lastMove);
+    /// 起動時の局面に至る前の局面（直前の手が分からないとき、盤の差分からハイライトを決める）
     void setPrevSfenForHighlight(const QString& prevSfen);
 
     /**
@@ -74,15 +75,16 @@ private:
     void buildUi();
     /// 手数ラベルと直前の手のハイライトを更新
     void updatePlyDisplay();
-    /// 現在の手のハイライトを更新
-    void updateMoveHighlights();
 
 protected:
     /// ウィンドウを閉じる際にサイズを保存
     void closeEvent(QCloseEvent* event) override;
 
 private:
-    std::unique_ptr<PvBoardController> m_controller;
+    std::unique_ptr<PvLine> m_line;
+    QString m_kanjiPv;     ///< エンジンの読み筋の漢字表記（日本語表記のときの読み筋の欄）
+    QString m_lastMove;    ///< 起動時の局面に至った手
+    QString m_prevSfen;    ///< 起動時の局面に至る前の局面
 
     BoardViewerWidget* m_viewer = nullptr;  ///< 盤・拡大縮小・回転・局面送り
     QLabel* m_pvLabel = nullptr;

@@ -10447,17 +10447,17 @@ Are you sure you want to declare?</translation>
 <context>
     <name>PvBoardDialog</name>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="35"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="34"/>
         <source>読み筋表示</source>
         <translation>Principal Variation Display</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="72"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="66"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="73"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="67"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
@@ -10478,27 +10478,27 @@ Are you sure you want to declare?</translation>
         <translation type="vanished">Flip the board</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="115"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="109"/>
         <source>最初の局面に戻る</source>
         <translation>Go to First Position</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="115"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="109"/>
         <source>1手戻る</source>
         <translation>Go Back 1 Move</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="115"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="109"/>
         <source>1手進む</source>
         <translation>Go Forward 1 Move</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="115"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="109"/>
         <source>最後の局面まで進む</source>
         <translation>Go to Last Position</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="120"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="114"/>
         <source>閉じる</source>
         <translation>Close</translation>
     </message>

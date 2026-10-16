@@ -204,15 +204,10 @@ add_shogi_test(tst_usiposition
 )
 
 # ============================================================
-# Unit 3b: PvBoardController
+# Unit 3b: PvLine（読み筋盤の読み筋）
 # ============================================================
-add_shogi_test(tst_pvboardcontroller
-    tst_pvboardcontroller.cpp
-    ${SRC}/dialogs/pvboardcontroller.cpp
-    ${SRC}/core/shogiboard.cpp
-    ${SRC}/common/errorbus.cpp
-    ${SRC}/common/logcategories.cpp
-)
+add_shogi_test(tst_pvline tst_pvline.cpp)
+target_link_libraries(tst_pvline PRIVATE shogiboardq_static)
 
 # ============================================================
 # Unit 4: ShogiClock

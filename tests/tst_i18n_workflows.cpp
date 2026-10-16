@@ -31,7 +31,7 @@
 #include "shogienginethinkingmodel.h"
 #include "shogiinforecord.h"
 #include "usilineparser.h"
-#include "pvboardcontroller.h"
+#include "pvline.h"
 #include "pvboarddialog.h"
 #include "csagameprogress.h"
 #include "kifuconversionservice.h"
@@ -396,9 +396,8 @@ private slots:
         }
         QVERIFY(!rows.index(1, 3).data(Qt::FontRole).isValid()); // 注釈はUIの書体。
         QVERIFY(!rows.index(4, 0).data(Qt::FontRole).isValid()); // 翻訳された終局もUIの書体。
-        PvBoardController board(imported.initialSfen, {"7g7f", "3c3d"});
-        board.setKanjiPv(info->pv());
-        QCOMPARE(board.displayPv(), pv);
+        const PvLine board(imported.initialSfen, {"7g7f", "3c3d"});
+        QCOMPARE(board.displayPv(info->pv()), pv);
         PvBoardDialog pvDialog(imported.initialSfen, {"7g7f", "3c3d"});
         pvDialog.setKanjiPv(info->pv());
         bool foundPv = false;
@@ -409,8 +408,8 @@ private slots:
             }
         }
         QVERIFY(foundPv);
-        QVERIFY(board.goForward());
-        if (western) QCOMPARE(board.currentMoveText(), QStringLiteral("▲P-7f"));
+        QCOMPARE(board.moveCount(), 2);
+        if (western) QCOMPARE(board.moveText(1), QStringLiteral("▲P-7f"));
 
         // Network game results must stay canonical even with a translated UI.
         CsaGameProgress csa;  // 自分は先手。終局した局面は後手番
