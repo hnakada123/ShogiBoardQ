@@ -462,7 +462,7 @@ TimeDisplayPresenter::showTimes(blackMs, whiteMs, sideToMove)
 `ShogiClock::timeUpdated()` は、tick で表示する秒が変わったときと、`commitMove()`・`startClock()`・`stopClock()` などで状態が変わったときに出る。司令塔の `completeMove()` は時計の通知を止めてまとめて値を変えた後、`ShogiClock::notifyTimeUpdated()` で今の値の `timeUpdated` を1回出す（2.1）。CSA通信対局でも、サーバーの残り時間を写した同じ時計を同じ経路で表示する。
 
 `TimeDisplayPresenter::showTimes()`（`src/ui/presenters/timedisplaypresenter.cpp`）の処理:
-- 先手・後手の時計の文字列を盤の対局者欄に設定する（`ShogiView::chrome()` の `BoardChromeWidget::setBlackClockText()`／`setWhiteClockText()`）。制限ありは残り時間 `HH:MM:SS`（秒は切り上げ）、無制限は「消費 HH:MM:SS」
+- 先手・後手の時計の文字列を盤の対局者欄に設定する（`ShogiView::chrome()->card(Turn)` で取る側ごとの `PlayerCard::setClockText()`）。制限ありは残り時間 `HH:MM:SS`（秒は切り上げ）、無制限は「消費 HH:MM:SS」
 - 手番の側の残り時間と秒読みから警告の段階を決め、`BoardChromeWidget::setUrgency()` に設定する。警告の段階は時計から決める。手番の印は盤の手番が決める（3.5）ので、ここでは変えない
 
 ---
@@ -1113,6 +1113,7 @@ MatchCoordinator::handleResign()
 | 持ち時間を時計に入れる | `src/game/timecontrolutil.h` | `src/game/timecontrolutil.cpp` |
 | 時計の表示 | `src/ui/presenters/timedisplaypresenter.h` | `src/ui/presenters/timedisplaypresenter.cpp` |
 | 対局者名・時計・手番の印の表示 | `src/views/boardchromewidget.h` | `src/views/boardchromewidget.cpp` |
+| 対局者1人のカード（手番の札・名前・時計） | `src/views/playercard.h` | `src/views/playercard.cpp` |
 | USIエンジン | `src/engine/usi.h` | `src/engine/usi.cpp` |
 | 対局の思考依頼・bestmove の受け取り（UsiMatchMove） | `src/engine/usimatchhandler.h` | `src/engine/usimatchhandler.cpp` |
 | エンジンの思考に使う時間の出どころ（対局時計・固定の値） | `src/engine/matchtimesource.h` | `src/engine/matchtimesource.cpp` |
