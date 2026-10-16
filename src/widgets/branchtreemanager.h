@@ -53,9 +53,6 @@ public:
     // --- 定数 ---
     enum BranchNodeKind { BNK_Start = 1, BNK_Main = 2, BNK_Var = 3 };
     static constexpr int BR_ROLE_KIND     = 0x200;
-    static constexpr int BR_ROLE_PLY      = 0x201;
-    static constexpr int BR_ROLE_STARTPLY = 0x202;
-    static constexpr int BR_ROLE_BUCKET   = 0x203;
 
     static constexpr int ROLE_ROW            = BranchTreeItemRoles::Row;
     static constexpr int ROLE_PLY            = BranchTreeItemRoles::Ply;
@@ -175,7 +172,6 @@ private:
     void scrollToCurrentNode();   ///< 強調中のノードを見える位置へスクロールする（表示・リサイズ後）
     int  maxDrawnPly() const;
     void addMoveNumberLabel(int ply);      ///< 「n手目」の見出しを追加する
-    void removeMoveNumberLabel(int ply);
     void updateSceneRect();
     void updateStickyHeader();             ///< 縦にスクロールしても手数の見出しを上端に表示する
     void onVerticalScrolled(int value);

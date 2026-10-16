@@ -1442,17 +1442,17 @@
 <context>
     <name>BranchTreeManager</name>
     <message>
-        <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="163"/>
+        <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="162"/>
         <source>&lt;p&gt;（ダブルクリックで展開）&lt;/p&gt;</source>
         <translation>&lt;p&gt;（ダブルクリックで展開）&lt;/p&gt;</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="400"/>
+        <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="393"/>
         <source>%1手目</source>
         <translation>%1手目</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="254"/>
+        <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="253"/>
         <source>開始局面</source>
         <translation>開始局面</translation>
     </message>
@@ -4673,87 +4673,87 @@ ABC abc 0123456789</translation>
 <context>
     <name>JishogiScoreDialog</name>
     <message>
-        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="32"/>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="34"/>
         <source>持将棋の点数</source>
         <translation>持将棋の点数</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="49"/>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="51"/>
         <source>表示中の局面で、各側が入玉宣言した場合の判定です。</source>
         <translation>表示中の局面で、各側が入玉宣言した場合の判定です。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="60"/>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="62"/>
         <source>点数・宣言条件</source>
         <translation>点数・宣言条件</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="60"/>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="62"/>
         <source>先手</source>
         <translation>先手</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="60"/>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="62"/>
         <source>後手</source>
         <translation>後手</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="61"/>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="63"/>
         <source>宣言点数
 敵陣の駒 ＋ 持ち駒</source>
         <translation>宣言点数
 敵陣の駒 ＋ 持ち駒</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="62"/>
-        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="63"/>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="64"/>
         <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="65"/>
-        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="66"/>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="67"/>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="68"/>
         <source>%1点</source>
         <translation>%1点</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="64"/>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="66"/>
         <source>総点数
 盤上の全駒 ＋ 持ち駒</source>
         <translation>総点数
 盤上の全駒 ＋ 持ち駒</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="67"/>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="69"/>
         <source>玉が敵陣にいる</source>
         <translation>玉が敵陣にいる</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="69"/>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="71"/>
         <source>敵陣に玉以外の駒が10枚以上</source>
         <translation>敵陣に玉以外の駒が10枚以上</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="70"/>
         <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="72"/>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="74"/>
         <source>%1
 %2 / 10枚</source>
         <translation>%1
 %2 / 10枚</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="74"/>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="76"/>
         <source>王手がかかっていない</source>
         <translation>王手がかかっていない</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="76"/>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="78"/>
         <source>24点法</source>
         <translation>24点法</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="78"/>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="80"/>
         <source>27点法</source>
         <translation>27点法</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="82"/>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="84"/>
         <source>点数：飛・角（龍・馬）は5点、その他は1点。玉は数えません。
 敵陣：先手は一〜三段、後手は七〜九段。
 24点法：24〜30点で引き分け、31点以上で勝ち。
@@ -4782,42 +4782,42 @@ ABC abc 0123456789</translation>
         <translation type="vanished">文字を大きくする</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="133"/>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="135"/>
         <source>結果をコピー</source>
         <translation>結果をコピー</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="138"/>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="140"/>
         <source>閉じる</source>
         <translation>閉じる</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="182"/>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="184"/>
         <source>○ 達成</source>
         <translation>○ 達成</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="182"/>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="184"/>
         <source>× 未達</source>
         <translation>× 未達</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="191"/>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="193"/>
         <source>条件未達</source>
         <translation>条件未達</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="193"/>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="195"/>
         <source>点数不足</source>
         <translation>点数不足</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="195"/>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="197"/>
         <source>宣言時：%1</source>
         <translation>宣言時：%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="199"/>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="201"/>
         <source>あと%1点</source>
         <translation>あと%1点</translation>
     </message>
@@ -7845,12 +7845,12 @@ OKを選択すると保存先が指定できます。</translation>
         <translation>局面編集終了</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/dialoglauncher.cpp" line="60"/>
+        <location filename="../../src/ui/coordinators/dialoglauncher.cpp" line="61"/>
         <source>エラー</source>
         <translation>エラー</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/dialoglauncher.cpp" line="61"/>
+        <location filename="../../src/ui/coordinators/dialoglauncher.cpp" line="62"/>
         <source>盤面データがありません。</source>
         <translation>盤面データがありません。</translation>
     </message>
@@ -11300,13 +11300,11 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
     </message>
     <message>
         <location filename="../../src/dialogs/tsumeshogisearchdialog.ui" line="115"/>
-        <location filename="../../src/dialogs/tsumeshogisearchdialog.ui" line="116"/>
         <source>文字を小さくする</source>
         <translation>文字を小さくする</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogisearchdialog.ui" line="122"/>
-        <location filename="../../src/dialogs/tsumeshogisearchdialog.ui" line="123"/>
+        <location filename="../../src/dialogs/tsumeshogisearchdialog.ui" line="121"/>
         <source>文字を大きくする</source>
         <translation>文字を大きくする</translation>
     </message>

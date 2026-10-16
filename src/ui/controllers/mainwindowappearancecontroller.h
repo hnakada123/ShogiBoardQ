@@ -46,8 +46,6 @@ public:
 
     /// ツールバーのボタンにアプリのツールチップを付ける（全部品ができてから1回呼ぶ）
     void installAppToolTips();
-    /// 対局者名・時計の書体を設定から合わせる（全部品ができてから1回呼ぶ）
-    void setupNameAndClockFonts();
 
     // --- アクセサ ---
 

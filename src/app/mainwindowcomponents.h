@@ -75,7 +75,6 @@ class PlayerInfoPresenter;
 class ConsiderationUiController;
 class DialogLauncher;
 class ImageExportController;
-class JishogiScoreDialogController;
 class JosekiWindowController;
 class KifuAnalysisController;
 class LanguageController;
@@ -184,7 +183,6 @@ struct MainWindowComponents {
     JosekiWindowController* joseki = nullptr;
     MenuWindowController* menuWindowController = nullptr;
     LanguageController* languageController = nullptr;
-    JishogiScoreDialogController* jishogiController = nullptr;
     NyugyokuDeclarationHandler* nyugyokuHandler = nullptr;
     PieceSoundPlayer* pieceSoundPlayer = nullptr;
     ImageExportController* images = nullptr;

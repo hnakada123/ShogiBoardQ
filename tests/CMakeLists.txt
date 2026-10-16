@@ -899,6 +899,8 @@ add_shogi_test(tst_jishogi_score_dialog
     ${SRC}/common/applicationfonts.cpp
     ${SRC}/services/settingscommon.cpp
 )
+# 局面から点数と王手を求める JishogiScoreDialog::showFor の依存（合法手生成）
+target_link_libraries(tst_jishogi_score_dialog PRIVATE shogiboardq_static)
 target_compile_definitions(tst_jishogi_score_dialog PRIVATE
     TRANSLATION_DIR="${CMAKE_BINARY_DIR}"
 )

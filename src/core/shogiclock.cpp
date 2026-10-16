@@ -50,7 +50,6 @@ void ShogiClock::setTimeControl(const TimeControl& timeControl)
     m_currentConsiderationCommitted = false;
     m_gameOver = false;
     m_resumedConsiderationMs[0] = m_resumedConsiderationMs[1] = 0;
-    m_resumingTurn = false;
     resetDisplayCache();
 
     // 「待った」用の履歴は、対局開始時の状態から積み直す。
@@ -91,7 +90,6 @@ void ShogiClock::setCurrentPlayer(Turn player)
     m_currentPlayer = player;
     m_currentConsiderationCommitted = false;
     m_resumedConsiderationMs[index(player)] = 0;
-    m_resumingTurn = false;
     side(player).considerationMs = 0;
     m_turnFinished = false;
     if (m_elapsedTimer.isValid()) m_lastTickMs = m_elapsedTimer.elapsed();
@@ -277,7 +275,6 @@ void ShogiClock::undo()
     side(m_currentPlayer).considerationMs = 0;
     m_currentConsiderationCommitted = false;
     m_resumedConsiderationMs[0] = m_resumedConsiderationMs[1] = 0;
-    m_resumingTurn = false;
     m_turnFinished = false;
     if (m_elapsedTimer.isValid()) m_lastTickMs = m_elapsedTimer.elapsed();
     resetDisplayCache();
@@ -323,7 +320,6 @@ void ShogiClock::restoreSnapshot(const Snapshot& state)
     m_history = state.history;
     m_resumedConsiderationMs[0] = m_resumedConsiderationMs[1] = 0;
     m_resumedConsiderationMs[index(m_currentPlayer)] = side(m_currentPlayer).considerationMs;
-    m_resumingTurn = true;
     emit timeUpdated();
 }
 

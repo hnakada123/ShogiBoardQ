@@ -34,7 +34,6 @@
 #include "gamesession.h"
 #include "humanturnpolicy.h"
 #include "imageexportcontroller.h"
-#include "jishogiscoredialogcontroller.h"
 #include "josekiwindow.h"
 #include "josekiwindowcontroller.h"
 #include "kifuanalysiscontroller.h"
@@ -511,12 +510,10 @@ void MainWindowComposer::createControllers()
     m_c.actions = new MainWindowActions(ad, &m_window);
 
     // メニューから開くダイアログ
-    m_c.jishogiController = new JishogiScoreDialogController(&m_window);
     DialogLauncher::Deps dl;
     dl.parentWidget = &m_window;
     dl.kifuFileController = m_c.kifuFileController;
     dl.shogiView = m_c.shogiView;
-    dl.jishogiController = m_c.jishogiController;
     dl.csaSession = m_c.csaSession;
     dl.pieceSoundPlayer = m_c.pieceSoundPlayer;
     dl.menuWindowDock = m_c.dockRegistry->dock(DockRegistry::DockId::Menu);

@@ -112,14 +112,12 @@
      <item>
       <widget class="QPushButton" name="toolButtonFontDecrease">
        <property name="text"><string notr="true">A−</string></property>
-       <property name="toolTip"><string>文字を小さくする</string></property>
        <property name="accessibleName"><string>文字を小さくする</string></property>
       </widget>
      </item>
      <item>
       <widget class="QPushButton" name="toolButtonFontIncrease">
        <property name="text"><string notr="true">A+</string></property>
-       <property name="toolTip"><string>文字を大きくする</string></property>
        <property name="accessibleName"><string>文字を大きくする</string></property>
       </widget>
      </item>

@@ -61,7 +61,6 @@ void MainWindowComposer::finalizeUi()
     AppSettings::loadWindowSize(&m_window);
     m_c.dockLayoutManager->restoreStartupLayoutIfSet();
 
-    m_c.appearance->setupNameAndClockFonts();
     m_c.appearance->installAppToolTips();
 }
 

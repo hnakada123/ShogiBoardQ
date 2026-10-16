@@ -143,31 +143,6 @@ void MainWindowAppearanceController::setupBoardInCenter()
     view->show();
 }
 
-void MainWindowAppearanceController::setupNameAndClockFonts()
-{
-    ShogiView* view = m_deps.shogiView;
-    if (!view) return;
-
-    auto* n1 = view->chrome()->blackNameLabel();
-    auto* n2 = view->chrome()->whiteNameLabel();
-    auto* c1 = view->chrome()->blackClockLabel();
-    auto* c2 = view->chrome()->whiteClockLabel();
-    if (!n1 || !n2 || !c1 || !c2) return;
-
-    QFont nameFont = view->font();
-    nameFont.setPointSize(12);
-    nameFont.setWeight(QFont::DemiBold);
-
-    QFont clockFont = view->font();
-    clockFont.setPointSize(16);
-    clockFont.setWeight(QFont::DemiBold);
-
-    n1->setFont(nameFont);
-    n2->setFont(nameFont);
-    c1->setFont(clockFont);
-    c2->setFont(clockFont);
-}
-
 void MainWindowAppearanceController::fitCentralToBoard()
 {
     m_central->setFixedSize(m_deps.shogiView->sizeHint());
