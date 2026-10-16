@@ -40,7 +40,7 @@ public:
         connect(&m_poll, &QTimer::timeout, this, &ShutdownScenario::poll);
         connect(&m_dialogs, &QTimer::timeout, this, &ShutdownScenario::handleDialogs);
         for (auto* model : window.findChildren<UsiCommLogModel*>())
-            connect(model, &UsiCommLogModel::usiCommLogChanged, this, &ShutdownScenario::logLine);
+            connect(model, &UsiCommLogModel::logLineAppended, this, &ShutdownScenario::logLine);
         m_elapsed.start();
         m_poll.start(20);
         m_dialogs.start(10);
@@ -98,11 +98,8 @@ private:
     }
 
 private slots:
-    void logLine()
+    void logLine(const QString& line)
     {
-        const auto* model = qobject_cast<UsiCommLogModel*>(sender());
-        if (!model) return;
-        const QString line = model->usiCommLog();
         qInfo().noquote() << "USI" << line;
         if (line.contains("go btime ")) { ++m_searches; m_searchTime = m_elapsed.elapsed(); }
         if (line.contains("go ponder ")) ++m_ponder;

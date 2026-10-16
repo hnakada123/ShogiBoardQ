@@ -1,146 +1,51 @@
 /// @file usicommlogmodel.cpp
-/// @brief USI通信ログ・エンジン情報表示モデルの実装
+/// @brief エンジン1台の情報欄と通信ログの行の実装
 
 #include "usicommlogmodel.h"
-#include "logcategories.h"
 
-// ============================================================
-// 初期化
-// ============================================================
-
-UsiCommLogModel::UsiCommLogModel(QObject* parent) : QObject(parent) {}
-
-// ============================================================
-// プロパティ getter
-// ============================================================
-
-QString UsiCommLogModel::engineName() const
+UsiCommLogModel::UsiCommLogModel(QObject* parent)
+    : QObject(parent)
 {
-    return m_engineName;
 }
-
-QString UsiCommLogModel::predictiveMove() const
-{
-    return m_predictiveMove;
-}
-
-QString UsiCommLogModel::searchedMove() const
-{
-    return m_searchedMove;
-}
-
-QString UsiCommLogModel::searchDepth() const
-{
-    return m_searchDepth;
-}
-
-QString UsiCommLogModel::nodeCount() const
-{
-    return m_nodeCount;
-}
-
-QString UsiCommLogModel::nodesPerSecond() const
-{
-    return m_nodesPerSecond;
-}
-
-QString UsiCommLogModel::hashUsage() const
-{
-    return m_hashUsage;
-}
-
-QString UsiCommLogModel::usiCommLog() const
-{
-    return m_usiCommLog;
-}
-
-// ============================================================
-// プロパティ setter
-// ============================================================
 
 void UsiCommLogModel::setEngineName(const QString& engineName)
 {
-    qCDebug(lcEngine) << "setEngineName: old=" << m_engineName << "new=" << engineName;
-    if (m_engineName != engineName)
-    {
-        m_engineName = engineName;
-        emit engineNameChanged();
-    }
+    if (m_engineName == engineName) return;
+    m_engineName = engineName;
+    emit engineNameChanged();
 }
 
-void UsiCommLogModel::setPredictiveMove(const QString& predictiveMove)
+void UsiCommLogModel::updateStatus(const EngineSearchStatus& status)
 {
-    if (m_predictiveMove != predictiveMove)
-    {
-        m_predictiveMove = predictiveMove;
-        emit predictiveMoveChanged();
-    }
+    EngineSearchStatus merged = m_status;
+    merged.merge(status);
+    setStatus(merged);
 }
 
-void UsiCommLogModel::setSearchedMove(const QString& searchedMove)
+void UsiCommLogModel::setStatus(const EngineSearchStatus& status)
 {
-    if (m_searchedMove != searchedMove)
-    {
-        m_searchedMove = searchedMove;
-        emit searchedMoveChanged();
-    }
+    if (m_status == status) return;
+    m_status = status;
+    emit statusChanged();
 }
 
-void UsiCommLogModel::setSearchDepth(const QString& searchDepth)
+void UsiCommLogModel::setPredictedMove(const QString& move)
 {
-    if (m_searchDepth != searchDepth)
-    {
-        m_searchDepth = searchDepth;
-        emit searchDepthChanged();
-    }
+    if (m_predictedMove == move) return;
+    m_predictedMove = move;
+    emit statusChanged();
 }
 
-void UsiCommLogModel::setNodeCount(const QString& nodeCount)
+void UsiCommLogModel::appendLogLine(const QString& line)
 {
-    if (m_nodeCount != nodeCount)
-    {
-        m_nodeCount = nodeCount;
-        emit nodeCountChanged();
-    }
-}
-
-void UsiCommLogModel::setNodesPerSecond(const QString& nodesPerSecond)
-{
-    if (m_nodesPerSecond != nodesPerSecond)
-    {
-        m_nodesPerSecond = nodesPerSecond;
-        emit nodesPerSecondChanged();
-    }
-}
-
-void UsiCommLogModel::setHashUsage(const QString& hashUsage)
-{
-    if (m_hashUsage != hashUsage)
-    {
-        m_hashUsage = hashUsage;
-        emit hashUsageChanged();
-    }
-}
-
-// ============================================================
-// ログ追加・クリア
-// ============================================================
-
-void UsiCommLogModel::appendUsiCommLog(const QString& usiCommLog)
-{
-    m_usiCommLog = usiCommLog;
-    emit usiCommLogChanged();
+    emit logLineAppended(line);
 }
 
 void UsiCommLogModel::clear()
 {
-    // 値が非空の場合のみ変更＆シグナル発火
-    if (!m_engineName.isEmpty())       { m_engineName.clear();       emit engineNameChanged(); }
-    if (!m_predictiveMove.isEmpty())   { m_predictiveMove.clear();   emit predictiveMoveChanged(); }
-    if (!m_searchedMove.isEmpty())     { m_searchedMove.clear();     emit searchedMoveChanged(); }
-    if (!m_searchDepth.isEmpty())      { m_searchDepth.clear();      emit searchDepthChanged(); }
-    if (!m_nodeCount.isEmpty())        { m_nodeCount.clear();        emit nodeCountChanged(); }
-    if (!m_nodesPerSecond.isEmpty())   { m_nodesPerSecond.clear();   emit nodesPerSecondChanged(); }
-    if (!m_hashUsage.isEmpty())        { m_hashUsage.clear();        emit hashUsageChanged(); }
-    if (!m_usiCommLog.isEmpty())       { m_usiCommLog.clear();       emit usiCommLogChanged(); }
+    setEngineName(QString());
+    if (m_status == EngineSearchStatus{} && m_predictedMove.isEmpty()) return;
+    m_status = {};
+    m_predictedMove.clear();
+    emit statusChanged();
 }

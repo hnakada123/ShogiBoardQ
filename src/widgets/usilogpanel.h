@@ -58,8 +58,8 @@ private slots:
     void onCommandEntered();
     void onEngine1NameChanged();
     void onEngine2NameChanged();
-    void onLog1Changed();
-    void onLog2Changed();
+    void onLog1Line(const QString& line);
+    void onLog2Line(const QString& line);
     void onWrapToggled(bool checked);
     void scrollToLatest();
     void copyAll();

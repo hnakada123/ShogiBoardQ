@@ -230,8 +230,8 @@ private slots:
         UsiCommLogModel first;
         UsiCommLogModel second;
         panel.setModels(&first, &second);
-        first.appendUsiCommLog(QStringLiteral("▶ E1: position startpos moves 7g7f"));
-        second.appendUsiCommLog(QStringLiteral("◀ E2: info string <test> & ready"));
+        first.appendLogLine(QStringLiteral("▶ E1: position startpos moves 7g7f"));
+        second.appendLogLine(QStringLiteral("◀ E2: info string <test> & ready"));
         const QString expected = QStringLiteral("▶ E1: position startpos moves 7g7f\n"
                                                 "◀ E2: info string <test> & ready");
         QCOMPARE(view->toPlainText(), expected);
@@ -243,7 +243,7 @@ private slots:
         QVERIFY(!copy->isEnabled());
         QVERIFY(!clear->isEnabled());
         // 表示の消去後もエンジンからの追記が継続する。
-        first.appendUsiCommLog(QStringLiteral("◀ E1: readyok"));
+        first.appendLogLine(QStringLiteral("◀ E1: readyok"));
         QCOMPARE(view->toPlainText(), QStringLiteral("◀ E1: readyok"));
     }
 

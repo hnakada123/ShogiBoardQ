@@ -5,11 +5,11 @@
 /// @brief エンジンの info 行を、思考の表・情報欄に出す値に整える
 
 #include <QObject>
-#include <QLocale>
 #include <QList>
 #include <QHash>
 #include <memory>
 
+#include "enginesearchstatus.h"
 #include "thinkinginforow.h"
 #include "usiinfo.h"
 #include "usimessages.h"
@@ -20,8 +20,8 @@ class PvNotationFormatter;
 /**
  * @brief エンジンの info 行を表示用の値に整えて知らせる
  *
- * 解析済みの info（UsiInfo）を思考の表の行（ThinkingInfoRow）と、情報欄の値（探索中の手・深さ・
- * ノード数・NPS・ハッシュ使用率）に整えてシグナルで知らせる。読み筋は探索の局面から漢字表記にする。
+ * 解析済みの info（UsiInfo）を思考の表の行（ThinkingInfoRow）と、情報欄の探索状況（EngineSearchStatus。
+ * 探索中の手・深さ・ノード数・NPS・ハッシュ使用率）に整えて、info 1行ごとに1回ずつ知らせる。読み筋は探索の局面から漢字表記にする。
  * 表示する側（モデル・ウィジェット）には触れず、翻訳する文字列も作らない。
  */
 class ThinkingInfoFormatter : public QObject
@@ -51,20 +51,16 @@ public slots:
 signals:
     void thinkingInfoUpdated(const ThinkingInfoRow& row);
     void clearThinkingInfoRequested();
-    void searchedMoveUpdated(const QString& move);
-    void searchDepthUpdated(const QString& depth);
-    void nodeCountUpdated(const QString& nodes);
-    void npsUpdated(const QString& nps);
-    void hashUsageUpdated(const QString& hashUsage);
+    /// info 1行の探索状況（含まれなかった項目は「無し」）
+    void searchStatusUpdated(const EngineSearchStatus& status);
 
 private:
-    void emitSearchedHand();
-    void emitStatus(const UsiInfo& info);
+    /// 探索中の手の表示（無ければ空）
+    QString searchedMoveLabel();
 
     BoardSquare m_previousTo;           ///< 探索の局面に至った手の移動先（「同」の基準）
     QString m_baseSfen;                 ///< 探索の局面の SFEN
     QString m_lastUsiMove;              ///< 探索の局面に至った手（USI 形式）
-    QLocale m_locale;                   ///< 3桁区切りの表示（English）
 
     // 探索手の欄の表示。同じ手が何度も届く（MultiPV では候補の数だけの手が繰り返し届く）ので、
     // 局面と表記の設定が同じ間は、探索手（漢字表記と USI形式）ごとに作った表示を覚えておく

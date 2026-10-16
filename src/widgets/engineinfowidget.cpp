@@ -8,6 +8,7 @@
 #include "tablestyles.h"
 #include "logcategories.h"
 #include <QHBoxLayout>
+#include <QLocale>
 #include <QTableWidget>
 #include <QHeaderView>
 #include <QFont>
@@ -167,22 +168,29 @@ void EngineInfoWidget::setModel(UsiCommLogModel* m) {
         return;
     }
 
-    connect(m_model, &UsiCommLogModel::engineNameChanged,     this, &EngineInfoWidget::onNameChanged);
-    connect(m_model, &UsiCommLogModel::predictiveMoveChanged, this, &EngineInfoWidget::onPredChanged);
-    connect(m_model, &UsiCommLogModel::searchedMoveChanged,   this, &EngineInfoWidget::onSearchedChanged);
-    connect(m_model, &UsiCommLogModel::searchDepthChanged,    this, &EngineInfoWidget::onDepthChanged);
-    connect(m_model, &UsiCommLogModel::nodeCountChanged,      this, &EngineInfoWidget::onNodesChanged);
-    connect(m_model, &UsiCommLogModel::nodesPerSecondChanged, this, &EngineInfoWidget::onNpsChanged);
-    connect(m_model, &UsiCommLogModel::hashUsageChanged,      this, &EngineInfoWidget::onHashChanged);
-    onNameChanged(); onPredChanged(); onSearchedChanged(); onDepthChanged(); onNodesChanged(); onNpsChanged(); onHashChanged();
+    connect(m_model, &UsiCommLogModel::engineNameChanged, this, &EngineInfoWidget::onNameChanged);
+    connect(m_model, &UsiCommLogModel::statusChanged, this, &EngineInfoWidget::onStatusChanged);
+    onNameChanged();
+    onStatusChanged();
 }
 
-void EngineInfoWidget::onPredChanged()    { setCellValue(COL_PRED, m_model->predictiveMove()); }
-void EngineInfoWidget::onSearchedChanged(){ setCellValue(COL_SEARCHED, m_model->searchedMove()); }
-void EngineInfoWidget::onDepthChanged()   { setCellValue(COL_DEPTH, m_model->searchDepth()); }
-void EngineInfoWidget::onNodesChanged()   { setCellValue(COL_NODES, m_model->nodeCount()); }
-void EngineInfoWidget::onNpsChanged()     { setCellValue(COL_NPS, m_model->nodesPerSecond()); }
-void EngineInfoWidget::onHashChanged()    { setCellValue(COL_HASH, m_model->hashUsage()); }
+void EngineInfoWidget::onStatusChanged()
+{
+    // ノード数・NPS は英語の3桁区切り、深さは「深さ/選択的探索の深さ」、ハッシュは百分率
+    static const QLocale numbers(QLocale::English);
+    const EngineSearchStatus& status = m_model->status();
+    QString depth;
+    if (status.depth >= 0) {
+        depth = QString::number(status.depth);
+        if (status.seldepth >= 0) depth += QLatin1Char('/') + QString::number(status.seldepth);
+    }
+    setCellValue(COL_PRED, m_model->predictedMove());
+    setCellValue(COL_SEARCHED, status.searchedMove);
+    setCellValue(COL_DEPTH, depth);
+    setCellValue(COL_NODES, status.nodes >= 0 ? numbers.toString(status.nodes) : QString());
+    setCellValue(COL_NPS, status.nps >= 0 ? numbers.toString(status.nps) : QString());
+    setCellValue(COL_HASH, status.hashfull >= 0 ? QString::number(status.hashfull / 10) + QLatin1Char('%') : QString());
+}
 
 void EngineInfoWidget::setDisplayNameFallback(const QString& name) {
     qCDebug(lcUi).noquote() << "[EngineInfoWidget::setDisplayNameFallback] name=" << name

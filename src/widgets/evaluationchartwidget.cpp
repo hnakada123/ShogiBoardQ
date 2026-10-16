@@ -3,6 +3,7 @@
 #include "evaluationchartwidget.h"
 #include "evaluationchartconfigurator.h"
 #include "evaluationchartview.h"
+#include "evaluationseries.h"
 #include "buttonstyles.h"
 
 #include <QChart>
@@ -35,6 +36,8 @@ EvaluationChartWidget::EvaluationChartWidget(QWidget* parent)
     m_flushTimer = new QTimer(this);
     m_flushTimer->setSingleShot(true);
     connect(m_flushTimer, &QTimer::timeout, this, &EvaluationChartWidget::flushPendingScores);
+    m_ownSeries = new EvaluationSeries(this);
+    setSeries(m_ownSeries);
     applyFontSize();
     refreshData();
 }
@@ -282,12 +285,6 @@ void EvaluationChartWidget::setCurrentPly(int ply)
     refreshData();
 }
 
-void EvaluationChartWidget::setAnalysisLineIndex(int lineIndex)
-{
-    m_analysisLineIndex = lineIndex;
-    updatePresentation();
-}
-
 void EvaluationChartWidget::setRecordLength(int plies)
 {
     const int length = qMax(0, plies);
@@ -311,7 +308,7 @@ bool EvaluationChartWidget::eventFilter(QObject* obj, QEvent* event)
         const QPointF chartPos = m_chart->mapFromScene(m_chartView->mapToScene(mouse->pos()));
         if (mouse->button() == Qt::LeftButton && m_chart->plotArea().contains(chartPos)) {
             const int ply = qMax(0, qRound(m_chart->mapToValue(chartPos, m_series[0]).x()));
-            if (m_analysisLineIndex >= 0) emit analysisPlyClicked(m_analysisLineIndex, ply);
+            if (m_evaluation->analysisLineIndex() >= 0) emit analysisPlyClicked(m_evaluation->analysisLineIndex(), ply);
             else emit plyClicked(ply);
             return true;
         }
@@ -325,23 +322,50 @@ void EvaluationChartWidget::setFloating(bool floating) { Q_UNUSED(floating) }
 // 生の評価データ保持・詰みと範囲外表示・バッチ更新
 // ============================================================
 
-void EvaluationChartWidget::appendScore(int side, int ply, const UsiScore& blackScore)
+void EvaluationChartWidget::setSeries(const EvaluationSeries* series)
 {
-    if (ply < 0 || blackScore.isNone()) return;
-    m_scores[side].insert(ply, blackScore);
+    if (!series) series = m_ownSeries;
+    if (m_evaluation == series) return;
+    if (m_evaluation) disconnect(m_evaluation, nullptr, this, nullptr);
+    m_evaluation = series;
+    connect(m_evaluation, &EvaluationSeries::scoreAdded, this, &EvaluationChartWidget::onScoreAdded);
+    connect(m_evaluation, &EvaluationSeries::scoresTrimmed, this, &EvaluationChartWidget::onScoresTrimmed);
+    connect(m_evaluation, &EvaluationSeries::labelsChanged, this, &EvaluationChartWidget::onLabelsChanged);
+    onScoresTrimmed(-1);
+}
+
+const QMap<int, EvaluationChartWidget::Score>& EvaluationChartWidget::scores(int side) const
+{
+    return m_evaluation->scores(side);
+}
+
+void EvaluationChartWidget::onScoreAdded(int /*series*/, int ply)
+{
+    // 点は少し待ってからまとめて描く。対局中は表示中の手の移動（setCurrentPly）ですぐ描く
     m_scoresChanged = true;
+    m_pendingMaxPly = qMax(m_pendingMaxPly, ply);
+    if (!m_flushTimer->isActive()) m_flushTimer->start(100);
 }
 
-void EvaluationChartWidget::appendScoreP1(int ply, const UsiScore& blackScore)
+void EvaluationChartWidget::onScoresTrimmed(int maxPly)
 {
-    appendScore(0, ply, blackScore);
-    setCurrentPly(ply);
+    m_flushTimer->stop();
+    m_pendingMaxPly = 0;
+    if (maxPly < 0) {
+        m_currentPly = 0;
+        m_maxVisitedPly = 0;
+    } else {
+        m_currentPly = qMin(m_currentPly, maxPly);
+        m_maxVisitedPly = maxPly;
+    }
+    m_scoresChanged = true;
+    clearHover();
+    refreshData();
 }
 
-void EvaluationChartWidget::appendScoreP2(int ply, const UsiScore& blackScore)
+void EvaluationChartWidget::onLabelsChanged()
 {
-    appendScore(1, ply, blackScore);
-    setCurrentPly(ply);
+    updatePresentation();
 }
 
 qreal EvaluationChartWidget::displayedValue(const Score& score) const
@@ -364,7 +388,8 @@ QString EvaluationChartWidget::scoreText(const Score& score) const
 
 QString EvaluationChartWidget::seriesName(int side) const
 {
-    if (!m_engineNames[side].isEmpty()) return m_engineNames[side];
+    const QString name = m_evaluation->name(side);
+    if (!name.isEmpty()) return name;
     return side == 0 ? tr("先手エンジン") : tr("後手エンジン");
 }
 
@@ -372,8 +397,8 @@ void EvaluationChartWidget::rebuildSeries()
 {
     for (int side = 0; side < 2; ++side) {
         QList<QPointF> points;
-        points.reserve(m_scores[side].size());
-        for (auto it = m_scores[side].cbegin(); it != m_scores[side].cend(); ++it)
+        points.reserve(scores(side).size());
+        for (auto it = scores(side).cbegin(); it != scores(side).cend(); ++it)
             points.append(QPointF(it.key(), displayedValue(it.value())));
         m_series[side]->replace(points);
     }
@@ -384,8 +409,9 @@ void EvaluationChartWidget::refreshData()
     clearHover();
     int maxCp = 0;
     int maxPly = m_maxVisitedPly;
-    for (const auto& scores : m_scores) {
-        for (auto it = scores.cbegin(); it != scores.cend(); ++it) {
+    for (int side = 0; side < EvaluationSeries::kSeriesCount; ++side) {
+        const QMap<int, Score>& points = scores(side);
+        for (auto it = points.cbegin(); it != points.cend(); ++it) {
             maxPly = qMax(maxPly, it.key());
             if (!it->isMate()) maxCp = qMax(maxCp, qAbs(it->value));
         }
@@ -414,21 +440,22 @@ void EvaluationChartWidget::updatePresentation()
     QStringList values;
     m_chartView->markers.clear();
     for (int side = 0; side < 2; ++side) {
-        m_chartView->legends[side] = m_scores[side].isEmpty() ? QString() : seriesName(side);
-        const auto selected = m_scores[side].constFind(m_currentPly);
-        if (selected != m_scores[side].cend()) values.append(tr("%1：%2").arg(seriesName(side), scoreText(*selected)));
-        for (auto it = m_scores[side].cbegin(); it != m_scores[side].cend(); ++it) {
+        m_chartView->legends[side] = scores(side).isEmpty() ? QString() : seriesName(side);
+        const auto selected = scores(side).constFind(m_currentPly);
+        if (selected != scores(side).cend()) values.append(tr("%1：%2").arg(seriesName(side), scoreText(*selected)));
+        for (auto it = scores(side).cbegin(); it != scores(side).cend(); ++it) {
             const bool edge = it->isMate() || qAbs(qint64(it->value)) > yAxisLimit();
             const bool highlight = it.key() == m_currentPly || (m_hoverSide == side && m_hoverPly == it.key());
-            if (edge || highlight || m_scores[side].size() <= 40)
+            if (edge || highlight || scores(side).size() <= 40)
                 m_chartView->markers.append({QPointF(it.key(), displayedValue(*it)),
                     EvaluationChartView::seriesColor(side), edge, highlight, side == 1});
         }
     }
     m_chartView->summary = tr("%1手目  |  %2").arg(m_currentPly)
         .arg(values.isEmpty() ? tr("評価値なし") : values.join(QStringLiteral("   /   ")));
-    if (m_analysisLineIndex >= 0) {
-        const QString lineName = m_analysisLineIndex == 0 ? tr("本譜") : tr("分岐 %1").arg(m_analysisLineIndex);
+    const int analysisLine = m_evaluation->analysisLineIndex();
+    if (analysisLine >= 0) {
+        const QString lineName = analysisLine == 0 ? tr("本譜") : tr("分岐 %1").arg(analysisLine);
         m_chartView->summary.prepend(lineName + QStringLiteral("  |  "));
     }
     m_chartView->setAccessibleName(m_chartView->summary);
@@ -438,85 +465,14 @@ void EvaluationChartWidget::updatePresentation()
     m_chartView->viewport()->update();
 }
 
-void EvaluationChartWidget::clearAll()
-{
-    m_analysisLineIndex = -1;
-    m_pending.clear();
-    m_flushTimer->stop();
-    for (auto& scores : m_scores) scores.clear();
-    m_scoresChanged = true;
-    m_currentPly = 0;
-    m_maxVisitedPly = 0;
-    clearHover();
-    refreshData();
-}
-
-void EvaluationChartWidget::removeLast(int side)
-{
-    // 待った時にバッファ内の点が後から復活しないよう、先に反映する。
-    flushPendingScores();
-    auto& scores = m_scores[side];
-    if (!scores.isEmpty()) scores.erase(std::prev(scores.end()));
-    m_scoresChanged = true;
-    clearHover();
-    refreshData();
-}
-void EvaluationChartWidget::removeLastP1() { removeLast(0); }
-void EvaluationChartWidget::removeLastP2() { removeLast(1); }
-
-void EvaluationChartWidget::trimToPly(int maxPly)
-{
-    m_pending.removeIf([maxPly](const PendingScore& point) { return point.ply > maxPly; });
-    for (auto& scores : m_scores) {
-        auto it = scores.upperBound(maxPly);
-        while (it != scores.end()) it = scores.erase(it);
-    }
-    m_scoresChanged = true;
-    m_currentPly = qMin(m_currentPly, qMax(0, maxPly));
-    m_maxVisitedPly = qMax(0, maxPly);
-    clearHover();
-    refreshData();
-}
-
-int EvaluationChartWidget::countP1() const { return static_cast<int>(m_scores[0].size()); }
-int EvaluationChartWidget::countP2() const { return static_cast<int>(m_scores[1].size()); }
-// エンジンの着手のたびに同じ名前で呼ばれるので、変わったときだけ表示を更新する
-void EvaluationChartWidget::setEngine1Name(const QString& name)
-{
-    if (m_engineNames[0] == name) return;
-    m_engineNames[0] = name;
-    updatePresentation();
-}
-void EvaluationChartWidget::setEngine2Name(const QString& name)
-{
-    if (m_engineNames[1] == name) return;
-    m_engineNames[1] = name;
-    updatePresentation();
-}
-
-void EvaluationChartWidget::bufferScore(int side, int ply, const UsiScore& blackScore)
-{
-    m_pending.append({side, ply, blackScore});
-    if (!m_flushTimer->isActive()) m_flushTimer->start(100);
-}
-void EvaluationChartWidget::appendScoreP1Buffered(int ply, const UsiScore& blackScore)
-{
-    bufferScore(0, ply, blackScore);
-}
-void EvaluationChartWidget::appendScoreP2Buffered(int ply, const UsiScore& blackScore)
-{
-    bufferScore(1, ply, blackScore);
-}
 void EvaluationChartWidget::flushPendingScores()
 {
-    if (m_pending.isEmpty()) return;
-    for (const auto& point : std::as_const(m_pending)) {
-        appendScore(point.side, point.ply, point.score);
-        m_maxVisitedPly = qMax(m_maxVisitedPly, point.ply);
-    }
-    // バッファには直前の局面の評価値が入る。閲覧・解析中の現在手数は
-    // ナビゲーション側が管理し、遅延描画で過去の手数へ戻さない。
-    m_pending.clear();
+    m_flushTimer->stop();
+    // 足された点の手数まで横軸を伸ばす。閲覧・解析中の現在手数はナビゲーション側が管理し、過去の手数へ戻さない
+    const int maxVisitedPly = qMax(m_maxVisitedPly, m_pendingMaxPly);
+    m_pendingMaxPly = 0;
+    if (!m_scoresChanged && maxVisitedPly == m_maxVisitedPly) return;
+    m_maxVisitedPly = maxVisitedPly;
     refreshData();
 }
 
@@ -553,7 +509,7 @@ void EvaluationChartWidget::hoverAt(const QPoint& position)
     int sideFound = -1;
     int plyFound = -1;
     for (int side = 0; side < 2; ++side) {
-        for (auto it = m_scores[side].cbegin(); it != m_scores[side].cend(); ++it) {
+        for (auto it = scores(side).cbegin(); it != scores(side).cend(); ++it) {
             if (it.key() > xAxisLimit()) continue;
             const QPointF point = m_chart->mapToPosition(QPointF(it.key(), displayedValue(*it)), m_series[side]);
             const qreal dx = qAbs(point.x() - chartPos.x());
@@ -570,7 +526,7 @@ void EvaluationChartWidget::hoverAt(const QPoint& position)
     m_hoverSide = sideFound;
     m_hoverPly = plyFound;
     if (!samePoint) {
-        const Score score = m_scores[sideFound].value(plyFound);
+        const Score score = scores(sideFound).value(plyFound);
         m_tooltip->setFont(m_chartView->font());
         m_tooltip->setText(tr("%1\n%2手目：%3\n先手視点の評価値")
                            .arg(seriesName(sideFound)).arg(plyFound).arg(scoreText(score)));

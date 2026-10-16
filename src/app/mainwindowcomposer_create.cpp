@@ -522,6 +522,7 @@ void MainWindowComposer::createControllers()
     kd.shogiView = m_c.shogiView;
     kd.navController = m_c.kifuNavController;
     kd.evalChart = m_c.evalChart;
+    kd.evalGraph = m_c.evalGraph;
     m_c.kifuAnalysis = new KifuAnalysisController(kd, &m_window);
     m_c.tsumeSearch = new TsumeSearchController({&m_window, m_c.navState, m_c.analysisSession}, &m_window);
 
