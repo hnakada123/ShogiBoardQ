@@ -208,8 +208,6 @@ set(UI_FILES
 set(SRC_APP
     src/app/applicationlogging.cpp
     src/app/applicationlogging.h
-    src/app/dockcreationservice.cpp
-    src/app/dockcreationservice.h
     src/app/gamesession.cpp
     src/app/gamesession.h
     src/app/mainwindow.cpp
@@ -574,8 +572,8 @@ set(SRC_UI
     src/ui/coordinators/dialoglauncher.h
     src/ui/coordinators/docklayoutmanager.cpp
     src/ui/coordinators/docklayoutmanager.h
-    src/ui/coordinators/dockuicoordinator.cpp
-    src/ui/coordinators/dockuicoordinator.h
+    src/ui/coordinators/dockregistry.cpp
+    src/ui/coordinators/dockregistry.h
     src/ui/coordinators/kifufilecontroller.cpp
     src/ui/coordinators/kifufilecontroller.h
     src/ui/coordinators/kifuloadcoordinator.cpp

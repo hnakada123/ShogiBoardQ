@@ -23,7 +23,7 @@
 #include "csagamesession.h"
 #include "csalogpanel.h"
 #include "dialoglauncher.h"
-#include "dockcreationservice.h"
+#include "dockregistry.h"
 #include "docklayoutmanager.h"
 #include "docksettings.h"
 #include "enginedisplaypresenter.h"
@@ -35,6 +35,7 @@
 #include "humanturnpolicy.h"
 #include "imageexportcontroller.h"
 #include "jishogiscoredialogcontroller.h"
+#include "josekiwindow.h"
 #include "josekiwindowcontroller.h"
 #include "kifuanalysiscontroller.h"
 #include "kifuanalysislistmodel.h"
@@ -52,6 +53,7 @@
 #include "mainwindowactions.h"
 #include "mainwindowappearancecontroller.h"
 #include "matchcoordinator.h"
+#include "menuwindow.h"
 #include "menuwindowcontroller.h"
 #include "nyugyokudeclarationhandler.h"
 #include "piecesoundplayer.h"
@@ -79,6 +81,7 @@
 #endif
 
 #include <QAction>
+#include <QDockWidget>
 #include <functional>
 
 // ---------------------------------------------------------------------------
@@ -321,65 +324,45 @@ void MainWindowComposer::createPresentersAndDocks()
 
     m_c.analysisResults = new AnalysisResultsPanel(&m_window);
 
-    DockCreationService::Deps dd;
-    dd.mainWindow = &m_window;
-    dd.displayMenu = m_ui.Display;
-    dd.evalChart = m_c.evalChart;
-    dd.recordPane = m_c.recordPane;
-    dd.thinking = m_c.thinkingPanel;
-    dd.consideration = m_c.considerationTab;
-    dd.usiLog = m_c.usiLog;
-    dd.csaLog = m_c.csaLog;
-    dd.comment = m_c.commentEditor;
-    dd.branchTree = m_c.branchTreeView;
-    dd.gameInfo = m_c.gameInfoPane;
-    dd.analysisResults = m_c.analysisResults;
-    dd.menuWindow = m_c.menuWindowController;
-    dd.joseki = m_c.joseki;
-    m_c.dockCreationService = new DockCreationService(dd, &m_window);
     createDocks();
 }
 
 void MainWindowComposer::createDocks()
 {
-    DockCreationService* docks = m_c.dockCreationService;
-    // 作る順で、同じ場所に重ねたドックのタブの並びが決まる
-    m_c.docks.recordPane = docks->createRecordPaneDock();
-    docks->createAnalysisDocks();
-    m_c.docks.gameInfo = docks->gameInfoDock();
-    m_c.docks.thinking = docks->thinkingDock();
-    m_c.docks.consideration = docks->considerationDock();
-    m_c.docks.usiLog = docks->usiLogDock();
-    m_c.docks.csaLog = docks->csaLogDock();
-    m_c.docks.comment = docks->commentDock();
-    m_c.docks.branchTree = docks->branchTreeDock();
-    m_c.docks.evalChart = docks->createEvalChartDock();
-    m_c.docks.menuWindow = docks->createMenuWindowDock();
-    m_c.docks.josekiWindow = docks->createJosekiWindowDock();
-    // 定跡ウィンドウはドックが前面に出ている間だけ更新する
-    if (m_c.docks.josekiWindow) m_c.joseki->attachDock(m_c.docks.josekiWindow);
-    m_c.docks.analysisResults = docks->createAnalysisResultsDock();
+    using Id = DockRegistry::DockId;
+    // ドックの名前・規定の配置・保存は DockRegistry の表で決まる。ここでは中身の部品を渡すだけ
+    DockRegistry::Contents contents{};
+    const auto put = [&contents](Id id, QWidget* content) { contents.at(static_cast<std::size_t>(id)) = content; };
+    put(Id::Record, m_c.recordPane);
+    put(Id::GameInfo, m_c.gameInfoPane);
+    put(Id::Thinking, m_c.thinkingPanel);
+    put(Id::Consideration, m_c.considerationTab);
+    put(Id::UsiLog, m_c.usiLog);
+    put(Id::CsaLog, m_c.csaLog);
+    put(Id::Comment, m_c.commentEditor);
+    put(Id::BranchTree, m_c.branchTreeView);
+    put(Id::EvalChart, m_c.evalChart);
+    put(Id::Menu, m_c.menuWindowController->menuWindow());
+    put(Id::Joseki, m_c.joseki->josekiWindow());
+    put(Id::AnalysisResults, m_c.analysisResults);
+    m_c.dockRegistry = new DockRegistry(&m_window, m_ui.Display, &m_window);
+    DockRegistry* docks = m_c.dockRegistry;
+    docks->createAll(contents);
+    // メニューウィンドウの分類に、ドックの表示の切り替えも入れる
+    m_c.menuWindowController->collectCategoriesFromMenuBar();
 
-    // 重ねたドックのうち、前面に出すタブ
-    if (m_c.docks.thinking) m_c.docks.thinking->raise();
-    if (m_c.docks.recordPane) m_c.docks.recordPane->raise();
+    // 評価値グラフは浮動のときに表示を変える
+    QDockWidget* chartDock = docks->dock(Id::EvalChart);
+    connect(chartDock, &QDockWidget::topLevelChanged, m_c.evalChart, &EvaluationChartWidget::setFloating);
+    m_c.evalChart->setFloating(chartDock->isFloating());
+    // 定跡ウィンドウはドックが前面に出ている間だけ更新する
+    QDockWidget* josekiDock = docks->dock(Id::Joseki);
+    m_c.joseki->josekiWindow()->setDockWidget(josekiDock);
+    m_c.joseki->attachDock(josekiDock);
     m_ui.actionLockDocks->setChecked(DockSettings::docksLocked());
 
-    m_c.dockLayoutManager = new DockLayoutManager(&m_window, &m_window);
-    DockLayoutManager* layout = m_c.dockLayoutManager;
-    layout->registerDock(DockLayoutManager::DockType::Menu, m_c.docks.menuWindow);
-    layout->registerDock(DockLayoutManager::DockType::Joseki, m_c.docks.josekiWindow);
-    layout->registerDock(DockLayoutManager::DockType::Record, m_c.docks.recordPane);
-    layout->registerDock(DockLayoutManager::DockType::GameInfo, m_c.docks.gameInfo);
-    layout->registerDock(DockLayoutManager::DockType::Thinking, m_c.docks.thinking);
-    layout->registerDock(DockLayoutManager::DockType::Consideration, m_c.docks.consideration);
-    layout->registerDock(DockLayoutManager::DockType::UsiLog, m_c.docks.usiLog);
-    layout->registerDock(DockLayoutManager::DockType::CsaLog, m_c.docks.csaLog);
-    layout->registerDock(DockLayoutManager::DockType::Comment, m_c.docks.comment);
-    layout->registerDock(DockLayoutManager::DockType::BranchTree, m_c.docks.branchTree);
-    layout->registerDock(DockLayoutManager::DockType::EvalChart, m_c.docks.evalChart);
-    layout->registerDock(DockLayoutManager::DockType::AnalysisResults, m_c.docks.analysisResults);
-    layout->setSavedLayoutsMenu(m_ui.menuSavedLayouts);
+    m_c.dockLayoutManager = new DockLayoutManager(&m_window, docks, &m_window);
+    m_c.dockLayoutManager->setSavedLayoutsMenu(m_ui.menuSavedLayouts);
 }
 
 // ---------------------------------------------------------------------------
@@ -505,7 +488,7 @@ void MainWindowComposer::createControllers()
     kd.activity = &m_state.activity;
     kd.analysisModel = m_c.analysis;
     kd.resultsPanel = m_c.analysisResults;
-    kd.resultsDock = m_c.docks.analysisResults;
+    kd.resultsDock = m_c.dockRegistry->dock(DockRegistry::DockId::AnalysisResults);
     kd.engines = m_c.engines;
     kd.navState = m_c.navState;
     kd.recordModel = m_c.kifuRecord;
@@ -536,7 +519,7 @@ void MainWindowComposer::createControllers()
     dl.jishogiController = m_c.jishogiController;
     dl.csaSession = m_c.csaSession;
     dl.pieceSoundPlayer = m_c.pieceSoundPlayer;
-    dl.menuWindowDock = m_c.docks.menuWindow;
+    dl.menuWindowDock = m_c.dockRegistry->dock(DockRegistry::DockId::Menu);
     m_c.dialogLauncher = new DialogLauncher(dl, &m_window);
     // 成り・不成を選べる着手では、成りダイアログで対局者に選ばせる
     m_c.gameController->setPromotionChooser(std::bind(&DialogLauncher::choosePromotion, m_c.dialogLauncher));

@@ -821,12 +821,15 @@ target_include_directories(tst_sfen_collection PRIVATE ${SRC}/automation)
 target_link_libraries(tst_sfen_collection PRIVATE hayanagi_tsume)
 
 # ============================================================
-# Unit: DockLayoutManager テスト
+# Unit: DockRegistry・DockLayoutManager テスト
 # ============================================================
 add_shogi_test(tst_dock_layout
     tst_dock_layout.cpp
     ${SRC}/common/logcategories.cpp
     ${SRC}/ui/coordinators/docklayoutmanager.cpp
+    ${SRC}/ui/coordinators/dockregistry.cpp
+    ${SRC}/widgets/layoutboundarywidget.cpp
+    ${SRC}/widgets/opaquebackground.cpp
     ${SRC}/widgets/dialogfontscale.cpp
     ${SRC}/widgets/fontsizecontrol.cpp
     ${SRC}/widgets/fontsizehelper.cpp

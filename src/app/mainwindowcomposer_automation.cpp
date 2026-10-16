@@ -38,16 +38,11 @@ void MainWindowComposer::startAutomationServer(const QString& socketPath)
     ctx.uiStatePolicy = m_c.uiStatePolicy;
     ctx.kifuFileController = m_c.kifuFileController;
     ctx.csaGame = m_c.csaGame;
-    ctx.menuFavorites = [this]() {
-        const MenuWindow* menu = m_c.menuWindowController->menuWindow();
-        return menu ? menu->favorites() : QStringList{};
-    };
-    ctx.availableMenuActions = [this]() {
-        const MenuWindow* menu = m_c.menuWindowController->menuWindow();
-        return menu ? menu->availableActions() : QStringList{};
-    };
+    // メニューウィンドウは MenuWindowController が起動時に作る
+    ctx.menuFavorites = [this]() { return m_c.menuWindowController->menuWindow()->favorites(); };
+    ctx.availableMenuActions = [this]() { return m_c.menuWindowController->menuWindow()->availableActions(); };
     ctx.setMenuFavorites = [this](const QStringList& names) {
-        if (MenuWindow* menu = m_c.menuWindowController->menuWindow()) menu->setFavorites(names);
+        m_c.menuWindowController->menuWindow()->setFavorites(names);
     };
     ctx.quitApplication = [this]() {
         // 自動化からの終了では未保存確認ダイアログを出さない

@@ -56,14 +56,9 @@ public:
 
     /**
      * @brief 定跡ウィンドウを取得
-     * @return JosekiWindowへのポインタ（未作成時はnullptr）
+     * @return JosekiWindowへのポインタ（コンストラクタで作る。ドックに入れると所有はドックに移る）
      */
     JosekiWindow* josekiWindow() const { return m_josekiWindow; }
-
-    /**
-     * @brief JosekiWindowを確保する（未作成時のみ作成）
-     */
-    void ensureJosekiWindow();
 
     /**
      * @brief 定跡ウィンドウを入れたドックを登録する

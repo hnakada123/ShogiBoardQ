@@ -53,15 +53,13 @@ public:
     void displayMenuWindow();
 
     /**
-     * @brief MenuWindowを確保する（未作成時のみ作成）
-     */
-    void ensureMenuWindow();
-
-    /**
      * @brief メニューウィンドウを取得
-     * @return MenuWindowへのポインタ（未作成時はnullptr）
+     * @return MenuWindowへのポインタ（コンストラクタで作る。ドックに入れると所有はドックに移る）
      */
     MenuWindow* menuWindow() const { return m_menuWindow; }
+
+    /// メニューバーの項目からメニューウィンドウの分類を作り直す（メニューに項目を足した後に呼ぶ）
+    void collectCategoriesFromMenuBar();
 
 signals:
     /**
@@ -78,11 +76,6 @@ signals:
 
 private:
     /**
-     * @brief メニューバーからカテゴリ情報を収集
-     */
-    void collectCategoriesFromMenuBar();
-
-    /**
      * @brief メニューからアクションを再帰的に収集
      * @param menu 対象メニュー
      * @param actions 収集先リスト
@@ -90,7 +83,6 @@ private:
     void collectActionsFromMenu(QMenu* menu, QList<QAction*>& actions);
 
     // 依存オブジェクト
-    QWidget* m_parentWidget = nullptr;
     QMenuBar* m_menuBar = nullptr;
 
     // 内部オブジェクト

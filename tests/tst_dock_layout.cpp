@@ -1,5 +1,5 @@
 /// @file tst_dock_layout.cpp
-/// @brief ドックレイアウトマネージャーテスト
+/// @brief ドックの表（DockRegistry）とレイアウトマネージャーのテスト
 
 #include <QtTest>
 #include <QMainWindow>
@@ -9,6 +9,8 @@
 #include <QFile>
 
 #include "docklayoutmanager.h"
+#include "dockregistry.h"
+#include "layoutboundarywidget.h"
 #include "docksettings.h"
 #include "settingscommon.h"
 
@@ -17,42 +19,86 @@ class TestDockLayout : public QObject
     Q_OBJECT
 
 private:
-    /// テスト用の QMainWindow + DockWidget セットアップ
+    using Id = DockRegistry::DockId;
+
+    /// テスト用の QMainWindow と、棋譜・思考・評価値グラフの3つのドック
     struct TestSetup {
         QMainWindow mainWindow;
-        QDockWidget* dock1 = nullptr;
-        QDockWidget* dock2 = nullptr;
-        QDockWidget* dock3 = nullptr;
+        DockRegistry* registry = nullptr;
+        QDockWidget* dock1 = nullptr;  ///< 棋譜（右）
+        QDockWidget* dock2 = nullptr;  ///< 思考（下）
+        QDockWidget* dock3 = nullptr;  ///< 評価値グラフ（下。思考のタブに重なる）
         DockLayoutManager* manager = nullptr;
 
         TestSetup()
         {
-            dock1 = new QDockWidget(QStringLiteral("Record"), &mainWindow);
-            dock1->setObjectName(QStringLiteral("RecordDock"));
-            dock2 = new QDockWidget(QStringLiteral("Thinking"), &mainWindow);
-            dock2->setObjectName(QStringLiteral("ThinkingDock"));
-            dock3 = new QDockWidget(QStringLiteral("EvalChart"), &mainWindow);
-            dock3->setObjectName(QStringLiteral("EvalChartDock"));
-            mainWindow.addDockWidget(Qt::RightDockWidgetArea, dock1);
-            mainWindow.addDockWidget(Qt::BottomDockWidgetArea, dock2);
-            mainWindow.addDockWidget(Qt::BottomDockWidgetArea, dock3);
-            manager = new DockLayoutManager(&mainWindow, &mainWindow);
+            registry = new DockRegistry(&mainWindow, nullptr, &mainWindow);
+            DockRegistry::Contents contents{};
+            for (Id id : {Id::Record, Id::Thinking, Id::EvalChart})
+                contents.at(static_cast<std::size_t>(id)) = new QWidget(&mainWindow);
+            registry->createAll(contents);
+            dock1 = registry->dock(Id::Record);
+            dock2 = registry->dock(Id::Thinking);
+            dock3 = registry->dock(Id::EvalChart);
+            manager = new DockLayoutManager(&mainWindow, registry, &mainWindow);
         }
     };
+
+    /// すべてのドックを作った QMainWindow
+    struct FullSetup {
+        QMainWindow window;
+        DockRegistry* registry = nullptr;
+
+        FullSetup()
+        {
+            window.setCentralWidget(new QWidget(&window));
+            registry = new DockRegistry(&window, nullptr, &window);
+            DockRegistry::Contents contents{};
+            for (auto& content : contents) content = new QWidget(&window);
+            registry->createAll(contents);
+        }
+
+        /// 思考のドックを含む下段のタブの題名（current には前面のタブ）
+        QStringList bottomTabs(QString* current = nullptr) const
+        {
+            QStringList tabs;
+            const QString thinking = DockRegistry::title(Id::Thinking);
+            const auto bars = window.findChildren<QTabBar*>();
+            for (QTabBar* bar : bars) {
+                QStringList texts;
+                for (int i = 0; i < bar->count(); ++i) texts << bar->tabText(i);
+                if (!texts.contains(thinking)) continue;
+                tabs = texts;
+                if (current) *current = bar->tabText(bar->currentIndex());
+            }
+            return tabs;
+        }
+    };
+
+    /// 表の下段のドックの題名（表の順。hidden も含めるなら includeHidden）
+    static QStringList bottomTitles(bool includeHidden)
+    {
+        QStringList titles;
+        for (const auto& spec : DockRegistry::specs())
+            if (spec.area == Qt::BottomDockWidgetArea && (includeHidden || spec.defaultVisible))
+                titles << DockRegistry::title(spec.id);
+        return titles;
+    }
 
 private slots:
     void initTestCase();
     void cleanupTestCase();
     void cleanup();
 
-    // ドック登録テスト
-    void registerDock_addsDockWidget();
-    void registerDock_multipleDocks();
+    // ドックの作成テスト
+    void createAll_createsOnlyGivenDocks();
+    void createAll_restoresSavedStateOfEveryDock();
+    void createAll_matchesDefaultArrangement();
 
     // ロック状態テスト
     void setDocksLocked_true_disablesMovement();
     void setDocksLocked_false_enablesMovement();
-    void setDocksLocked_onlyAffectsRegisteredDocks();
+    void setDocksLocked_onlyAffectsRegistryDocks();
 
     // レイアウト保存・復元テスト
     void restoreLayout_existingName_succeeds();
@@ -84,38 +130,65 @@ void TestDockLayout::cleanup()
     s.remove(QStringLiteral("CustomDockLayouts"));
     s.remove(QStringLiteral("DockLayout"));
     s.remove(QStringLiteral("Dock"));
-    s.remove(QStringLiteral("EvalChartDock"));
-    s.remove(QStringLiteral("RecordPaneDock"));
-    s.remove(QStringLiteral("MenuWindowDock"));
-    s.remove(QStringLiteral("JosekiWindowDock"));
-    s.remove(QStringLiteral("KifuAnalysisResultsDock"));
+    for (const auto& spec : DockRegistry::specs()) s.remove(QString::fromLatin1(spec.settingsGroup));
     s.sync();
 }
 
 // --- ドック登録テスト ---
 
-void TestDockLayout::registerDock_addsDockWidget()
+void TestDockLayout::createAll_createsOnlyGivenDocks()
 {
     TestSetup setup;
-    setup.manager->registerDock(DockLayoutManager::DockType::Record, setup.dock1);
+    QCOMPARE(setup.registry->docks(), QList<QDockWidget*>({setup.dock1, setup.dock2, setup.dock3}));
+    QVERIFY(!setup.registry->dock(Id::Menu));
+    QCOMPARE(setup.dock1->objectName(), QStringLiteral("RecordPaneDock"));
+    QCOMPARE(setup.dock2->windowTitle(), DockRegistry::title(Id::Thinking));
+    QCOMPARE(setup.mainWindow.dockWidgetArea(setup.dock1), Qt::RightDockWidgetArea);
+    QCOMPARE(setup.mainWindow.dockWidgetArea(setup.dock3), Qt::BottomDockWidgetArea);
+    // 中身の大きさが頻繁に変わる思考のドックは、配置の計算を区切る部品で包む
+    QVERIFY(qobject_cast<LayoutBoundaryWidget*>(setup.dock2->widget()));
+    QVERIFY(!qobject_cast<LayoutBoundaryWidget*>(setup.dock3->widget()));
 
-    // 登録したドックがロック操作で影響を受けることを検証
+    // ロック操作は作ったドックすべてに効く
     setup.manager->setDocksLocked(true);
-    QCOMPARE(setup.dock1->features(), QDockWidget::DockWidgetClosable);
+    for (QDockWidget* dock : {setup.dock1, setup.dock2, setup.dock3})
+        QCOMPARE(dock->features(), QDockWidget::DockWidgetClosable);
 }
 
-void TestDockLayout::registerDock_multipleDocks()
+/// 浮動・表示・位置は、下段のパネルも含めてすべてのドックで保存して戻す
+void TestDockLayout::createAll_restoresSavedStateOfEveryDock()
 {
-    TestSetup setup;
-    setup.manager->registerDock(DockLayoutManager::DockType::Record, setup.dock1);
-    setup.manager->registerDock(DockLayoutManager::DockType::Thinking, setup.dock2);
-    setup.manager->registerDock(DockLayoutManager::DockType::EvalChart, setup.dock3);
+    {
+        TestSetup setup;
+        setup.mainWindow.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&setup.mainWindow));
+        setup.dock2->hide();
+        setup.dock3->setFloating(true);
+        setup.manager->saveDockStates();
+    }
+    const DockSettings::DockState thinking = DockSettings::dockState(QStringLiteral("ThinkingDock"), true);
+    QVERIFY(!thinking.visible);
+    QVERIFY(DockSettings::dockState(QStringLiteral("EvalChartDock"), true).floating);
 
-    // 全登録ドックがロック操作で影響を受けることを検証
-    setup.manager->setDocksLocked(true);
-    QCOMPARE(setup.dock1->features(), QDockWidget::DockWidgetClosable);
-    QCOMPARE(setup.dock2->features(), QDockWidget::DockWidgetClosable);
-    QCOMPARE(setup.dock3->features(), QDockWidget::DockWidgetClosable);
+    TestSetup restored;
+    restored.mainWindow.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&restored.mainWindow));
+    QVERIFY(restored.dock2->isHidden());
+    QVERIFY(restored.dock3->isFloating());
+    QVERIFY(restored.dock1->isVisible());
+}
+
+/// 起動時の配置は「レイアウトを元に戻す」と同じ（どちらも表から作る）
+void TestDockLayout::createAll_matchesDefaultArrangement()
+{
+    FullSetup setup;
+    setup.window.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&setup.window));
+    QString current;
+    QCOMPARE(setup.bottomTabs(&current), bottomTitles(false));
+    QCOMPARE(current, DockRegistry::title(Id::Thinking));
+    QVERIFY(setup.registry->dock(Id::Menu)->isHidden());
+    QCOMPARE(setup.window.dockWidgetArea(setup.registry->dock(Id::Menu)), Qt::RightDockWidgetArea);
 }
 
 // --- ロック状態テスト ---
@@ -123,8 +196,6 @@ void TestDockLayout::registerDock_multipleDocks()
 void TestDockLayout::setDocksLocked_true_disablesMovement()
 {
     TestSetup setup;
-    setup.manager->registerDock(DockLayoutManager::DockType::Record, setup.dock1);
-    setup.manager->registerDock(DockLayoutManager::DockType::Thinking, setup.dock2);
 
     setup.manager->setDocksLocked(true);
 
@@ -141,8 +212,6 @@ void TestDockLayout::setDocksLocked_true_disablesMovement()
 void TestDockLayout::setDocksLocked_false_enablesMovement()
 {
     TestSetup setup;
-    setup.manager->registerDock(DockLayoutManager::DockType::Record, setup.dock1);
-    setup.manager->registerDock(DockLayoutManager::DockType::Thinking, setup.dock2);
 
     // まずロックしてからアンロック
     setup.manager->setDocksLocked(true);
@@ -160,19 +229,17 @@ void TestDockLayout::setDocksLocked_false_enablesMovement()
     QCOMPARE(setup.dock2->allowedAreas(), Qt::AllDockWidgetAreas);
 }
 
-void TestDockLayout::setDocksLocked_onlyAffectsRegisteredDocks()
+void TestDockLayout::setDocksLocked_onlyAffectsRegistryDocks()
 {
     TestSetup setup;
-    // dock1 のみ登録、dock2 は未登録
-    setup.manager->registerDock(DockLayoutManager::DockType::Record, setup.dock1);
-
-    const auto featuresBefore = setup.dock2->features();
+    // 表に無いドックは影響を受けない
+    auto* other = new QDockWidget(QStringLiteral("Other"), &setup.mainWindow);
+    setup.mainWindow.addDockWidget(Qt::LeftDockWidgetArea, other);
+    const auto featuresBefore = other->features();
     setup.manager->setDocksLocked(true);
 
-    // 登録済みドックはロックされる
     QCOMPARE(setup.dock1->features(), QDockWidget::DockWidgetClosable);
-    // 未登録ドックは影響を受けない
-    QCOMPARE(setup.dock2->features(), featuresBefore);
+    QCOMPARE(other->features(), featuresBefore);
 }
 
 // --- レイアウト保存・復元テスト ---
@@ -180,9 +247,6 @@ void TestDockLayout::setDocksLocked_onlyAffectsRegisteredDocks()
 void TestDockLayout::restoreLayout_existingName_succeeds()
 {
     TestSetup setup;
-    setup.manager->registerDock(DockLayoutManager::DockType::Record, setup.dock1);
-    setup.manager->registerDock(DockLayoutManager::DockType::Thinking, setup.dock2);
-    setup.manager->registerDock(DockLayoutManager::DockType::EvalChart, setup.dock3);
     setup.mainWindow.show();
     setup.mainWindow.tabifyDockWidget(setup.dock2, setup.dock3);
     setup.dock1->setFloating(true);
@@ -214,8 +278,6 @@ void TestDockLayout::restoreLayout_existingName_succeeds()
 void TestDockLayout::restoreStartupLayoutIfSet_restoresLayout()
 {
     TestSetup setup;
-    setup.manager->registerDock(DockLayoutManager::DockType::Record, setup.dock1);
-    setup.manager->registerDock(DockLayoutManager::DockType::Thinking, setup.dock2);
 
     // レイアウトを保存してスタートアップに設定
     setup.mainWindow.show();
@@ -240,7 +302,6 @@ void TestDockLayout::restoreStartupLayoutIfSet_restoresLayout()
 void TestDockLayout::restoreStartupLayoutIfSet_noLayoutSet_noEffect()
 {
     TestSetup setup;
-    setup.manager->registerDock(DockLayoutManager::DockType::Record, setup.dock1);
 
     // スタートアップレイアウトが未設定
     DockSettings::startupDockLayoutName.set(QString());
@@ -257,9 +318,6 @@ void TestDockLayout::restoreStartupLayoutIfSet_noLayoutSet_noEffect()
 void TestDockLayout::resetToDefault_restoresInitialState()
 {
     TestSetup setup;
-    setup.manager->registerDock(DockLayoutManager::DockType::Record, setup.dock1);
-    setup.manager->registerDock(DockLayoutManager::DockType::Thinking, setup.dock2);
-    setup.manager->registerDock(DockLayoutManager::DockType::EvalChart, setup.dock3);
 
     // ドックをフローティングにして状態を変更
     setup.dock1->setFloating(true);
@@ -276,98 +334,75 @@ void TestDockLayout::resetToDefault_restoresInitialState()
 void TestDockLayout::saveDockStates_persistsState()
 {
     TestSetup setup;
-    setup.manager->registerDock(DockLayoutManager::DockType::Record, setup.dock1);
-    setup.manager->registerDock(DockLayoutManager::DockType::EvalChart, setup.dock3);
 
     // 状態を保存
     setup.manager->saveDockStates();
 
     // 保存された値がドックの実際の状態と一致すること
-    QCOMPARE(DockSettings::recordPaneDockFloating(), setup.dock1->isFloating());
-    QCOMPARE(DockSettings::recordPaneDockVisible(), setup.dock1->isVisible());
-    QVERIFY(!DockSettings::recordPaneDockGeometry().isEmpty());
+    const auto record = DockSettings::dockState(QStringLiteral("RecordPaneDock"), false);
+    QCOMPARE(record.floating, setup.dock1->isFloating());
+    QCOMPARE(record.visible, setup.dock1->isVisible());
+    QVERIFY(!record.geometry.isEmpty());
 
-    QCOMPARE(DockSettings::evalChartDockFloating(), setup.dock3->isFloating());
-    QCOMPARE(DockSettings::evalChartDockVisible(), setup.dock3->isVisible());
-    QVERIFY(!DockSettings::evalChartDockGeometry().isEmpty());
+    const auto chart = DockSettings::dockState(QStringLiteral("EvalChartDock"), false);
+    QCOMPARE(chart.floating, setup.dock3->isFloating());
+    QCOMPARE(chart.visible, setup.dock3->isVisible());
+    QVERIFY(!chart.geometry.isEmpty());
 }
 
 void TestDockLayout::resetToDefault_resetsAnalysisResults()
 {
-    TestSetup setup;
-    setup.manager->registerDock(DockLayoutManager::DockType::Record, setup.dock1);
-    setup.manager->registerDock(DockLayoutManager::DockType::Thinking, setup.dock2);
-    setup.manager->registerDock(DockLayoutManager::DockType::AnalysisResults, setup.dock3);
-    setup.mainWindow.show();
-    setup.dock3->setFloating(true);
-    setup.dock3->show();
-    setup.manager->resetToDefault();
-    QVERIFY(!setup.dock3->isFloating());
-    QVERIFY(setup.dock3->isHidden());
-    QCOMPARE(setup.mainWindow.dockWidgetArea(setup.dock3), Qt::BottomDockWidgetArea);
+    FullSetup setup;
+    DockLayoutManager manager(&setup.window, setup.registry);
+    setup.window.show();
+    QDockWidget* results = setup.registry->dock(Id::AnalysisResults);
+    results->setFloating(true);
+    results->show();
+    manager.resetToDefault();
+    QVERIFY(!results->isFloating());
+    QVERIFY(results->isHidden());
+    QCOMPARE(setup.window.dockWidgetArea(results), Qt::BottomDockWidgetArea);
 }
 
-/// リセット後の配置は起動時（DockCreationService）と同じになる
+/// リセット後の配置は起動時と同じになる
 void TestDockLayout::resetToDefault_matchesStartupArrangement()
 {
-    using T = DockLayoutManager::DockType;
-    QMainWindow window;
-    window.setCentralWidget(new QWidget(&window));
-    DockLayoutManager manager(&window);
-    const QList<QPair<T, QString>> specs = {
-        {T::Menu, "Menu"}, {T::Joseki, "Joseki"}, {T::Record, "Record"}, {T::GameInfo, "GameInfo"},
-        {T::Thinking, "Thinking"}, {T::Consideration, "Consideration"}, {T::UsiLog, "UsiLog"},
-        {T::CsaLog, "CsaLog"}, {T::Comment, "Comment"}, {T::BranchTree, "BranchTree"},
-        {T::EvalChart, "EvalChart"}, {T::AnalysisResults, "AnalysisResults"}};
-    QHash<T, QDockWidget*> docks;
-    for (const auto& spec : specs) {
-        auto* dock = new QDockWidget(spec.second, &window);
-        dock->setObjectName(spec.second);
-        dock->setWidget(new QWidget(dock));
-        // 起動時とは違う配置から始める
-        window.addDockWidget(Qt::LeftDockWidgetArea, dock);
-        manager.registerDock(spec.first, dock);
-        docks.insert(spec.first, dock);
+    FullSetup setup;
+    DockLayoutManager manager(&setup.window, setup.registry);
+    // 起動時とは違う配置にする
+    const QList<QDockWidget*> docks = setup.registry->docks();
+    for (QDockWidget* dock : docks) {
+        setup.window.removeDockWidget(dock);
+        setup.window.addDockWidget(Qt::LeftDockWidgetArea, dock);
+        dock->show();
     }
-    window.show();
-    QVERIFY(QTest::qWaitForWindowExposed(&window));
-    docks[T::Thinking]->setFloating(true);
+    setup.window.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&setup.window));
+    setup.registry->dock(Id::Thinking)->setFloating(true);
 
     manager.resetToDefault();
     QCoreApplication::processEvents();
 
     // 右: 棋譜とメニュー（メニューは非表示）
-    QCOMPARE(window.dockWidgetArea(docks[T::Record]), Qt::RightDockWidgetArea);
-    QCOMPARE(window.dockWidgetArea(docks[T::Menu]), Qt::RightDockWidgetArea);
-    QVERIFY(docks[T::Menu]->isHidden());
+    QDockWidget* record = setup.registry->dock(Id::Record);
+    QDockWidget* menu = setup.registry->dock(Id::Menu);
+    QCOMPARE(setup.window.dockWidgetArea(record), Qt::RightDockWidgetArea);
+    QCOMPARE(setup.window.dockWidgetArea(menu), Qt::RightDockWidgetArea);
+    QVERIFY(menu->isHidden());
     // 下: 定跡と棋譜解析も同じタブにまとめて非表示
-    for (T type : {T::Joseki, T::AnalysisResults}) {
-        QCOMPARE(window.dockWidgetArea(docks[type]), Qt::BottomDockWidgetArea);
-        QVERIFY(docks[type]->isHidden());
+    for (Id id : {Id::Joseki, Id::AnalysisResults}) {
+        QCOMPARE(setup.window.dockWidgetArea(setup.registry->dock(id)), Qt::BottomDockWidgetArea);
+        QVERIFY(setup.registry->dock(id)->isHidden());
     }
-    auto bottomTabs = [&window](QString* current = nullptr) {
-        QStringList tabs;
-        const auto bars = window.findChildren<QTabBar*>();
-        for (QTabBar* bar : bars) {
-            QStringList texts;
-            for (int i = 0; i < bar->count(); ++i) texts << bar->tabText(i);
-            if (!texts.contains(QStringLiteral("Thinking"))) continue;
-            tabs = texts;
-            if (current) *current = bar->tabText(bar->currentIndex());
-        }
-        return tabs;
-    };
     QString current;
-    QCOMPARE(bottomTabs(&current), QStringList({"GameInfo", "Thinking", "Consideration", "UsiLog", "CsaLog",
-                                                "Comment", "BranchTree", "EvalChart"}));
-    QCOMPARE(current, QStringLiteral("Thinking"));
+    QCOMPARE(setup.bottomTabs(&current), bottomTitles(false));
+    QCOMPARE(current, DockRegistry::title(Id::Thinking));
 
     // 非表示のドックも表示すると起動時と同じタブに戻る（非表示のドックはタブの一覧に含まれない）
-    for (T type : {T::Menu, T::Joseki, T::AnalysisResults}) docks[type]->show();
+    for (Id id : {Id::Menu, Id::Joseki, Id::AnalysisResults}) setup.registry->dock(id)->show();
     QCoreApplication::processEvents();
-    QVERIFY(window.tabifiedDockWidgets(docks[T::Record]).contains(docks[T::Menu]));
-    QCOMPARE(bottomTabs(), QStringList({"GameInfo", "Thinking", "Consideration", "UsiLog", "CsaLog",
-                                        "Comment", "BranchTree", "EvalChart", "Joseki", "AnalysisResults"}));
+    QVERIFY(setup.window.tabifiedDockWidgets(record).contains(menu));
+    QCOMPARE(setup.bottomTabs(), bottomTitles(true));
 }
 
 void TestDockLayout::setDocksLocked_persistsState()

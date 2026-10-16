@@ -3229,178 +3229,217 @@
 <context>
     <name>DockCreationService</name>
     <message>
-        <location filename="../../src/app/dockcreationservice.cpp" line="81"/>
-        <location filename="../../src/app/dockcreationservice.cpp" line="93"/>
         <source>評価値グラフ</source>
-        <translation>評價值圖表</translation>
+        <translation type="vanished">評價值圖表</translation>
     </message>
     <message>
-        <location filename="../../src/app/dockcreationservice.cpp" line="119"/>
-        <location filename="../../src/app/dockcreationservice.cpp" line="126"/>
         <source>棋譜</source>
-        <translation>棋譜</translation>
+        <translation type="vanished">棋譜</translation>
     </message>
     <message>
-        <location filename="../../src/app/dockcreationservice.cpp" line="170"/>
-        <location filename="../../src/app/dockcreationservice.cpp" line="172"/>
         <source>対局情報</source>
-        <translation>對局資訊</translation>
+        <translation type="vanished">對局資訊</translation>
     </message>
     <message>
-        <location filename="../../src/app/dockcreationservice.cpp" line="176"/>
-        <location filename="../../src/app/dockcreationservice.cpp" line="177"/>
         <source>思考</source>
-        <translation>思考</translation>
+        <translation type="vanished">思考</translation>
     </message>
     <message>
-        <location filename="../../src/app/dockcreationservice.cpp" line="180"/>
-        <location filename="../../src/app/dockcreationservice.cpp" line="181"/>
         <source>検討</source>
-        <translation>研究</translation>
+        <translation type="vanished">研究</translation>
     </message>
     <message>
-        <location filename="../../src/app/dockcreationservice.cpp" line="184"/>
-        <location filename="../../src/app/dockcreationservice.cpp" line="185"/>
         <source>USI通信ログ</source>
-        <translation>USI 記錄</translation>
+        <translation type="vanished">USI 記錄</translation>
     </message>
     <message>
-        <location filename="../../src/app/dockcreationservice.cpp" line="188"/>
-        <location filename="../../src/app/dockcreationservice.cpp" line="189"/>
         <source>CSA通信ログ</source>
-        <translation>CSA 記錄</translation>
+        <translation type="vanished">CSA 記錄</translation>
     </message>
     <message>
-        <location filename="../../src/app/dockcreationservice.cpp" line="192"/>
-        <location filename="../../src/app/dockcreationservice.cpp" line="193"/>
         <source>棋譜コメント</source>
-        <translation>註解</translation>
+        <translation type="vanished">註解</translation>
     </message>
     <message>
-        <location filename="../../src/app/dockcreationservice.cpp" line="196"/>
-        <location filename="../../src/app/dockcreationservice.cpp" line="197"/>
         <source>分岐ツリー</source>
-        <translation>變化樹</translation>
+        <translation type="vanished">變化樹</translation>
     </message>
     <message>
-        <location filename="../../src/app/dockcreationservice.cpp" line="224"/>
-        <location filename="../../src/app/dockcreationservice.cpp" line="235"/>
         <source>メニュー</source>
-        <translation>選單</translation>
+        <translation type="vanished">選單</translation>
     </message>
     <message>
-        <location filename="../../src/app/dockcreationservice.cpp" line="259"/>
-        <location filename="../../src/app/dockcreationservice.cpp" line="274"/>
         <source>定跡</source>
-        <translation>定跡</translation>
+        <translation type="vanished">定跡</translation>
     </message>
     <message>
-        <location filename="../../src/app/dockcreationservice.cpp" line="291"/>
-        <location filename="../../src/app/dockcreationservice.cpp" line="302"/>
         <source>棋譜解析</source>
-        <translation>棋譜分析</translation>
+        <translation type="vanished">棋譜分析</translation>
     </message>
 </context>
 <context>
     <name>DockLayoutManager</name>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="133"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="48"/>
         <source>ドックレイアウトを保存</source>
         <translation>儲存面板佈局</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="134"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="49"/>
         <source>レイアウト名:</source>
         <translation>佈局名稱：</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="149"/>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="189"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="64"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="104"/>
         <source>確認</source>
         <translation>確認</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="150"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="65"/>
         <source>「%1」は既に存在します。上書きしますか？</source>
         <translation>「%1」已存在。覆寫嗎？</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="151"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="66"/>
         <source>上書きする</source>
         <translation>覆寫</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="163"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="78"/>
         <source>保存完了</source>
         <translation>儲存完成</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="164"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="79"/>
         <source>レイアウト「%1」を保存しました。</source>
         <translation>已儲存佈局「%1」。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="173"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="88"/>
         <source>エラー</source>
         <translation>錯誤</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="174"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="89"/>
         <source>レイアウト「%1」が見つかりません。</source>
         <translation>找不到佈局「%1」。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="190"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="105"/>
         <source>レイアウト「%1」を削除しますか？</source>
         <translation>刪除佈局「%1」嗎？</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="190"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="105"/>
         <source>削除する</source>
         <translation>刪除</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="202"/>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="212"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="117"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="127"/>
         <source>設定完了</source>
         <translation>設定完成</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="203"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="118"/>
         <source>レイアウト「%1」を起動時のレイアウトに設定しました。</source>
         <translation>已將佈局「%1」設為啟動佈局。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="213"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="128"/>
         <source>起動時のレイアウト設定をクリアしました。
 次回起動時はデフォルトレイアウトが使用されます。</source>
         <translation>已清除啟動佈局設定。
 下次啟動時將使用預設佈局。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="243"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="158"/>
         <source>（保存済みレイアウトなし）</source>
         <translation>（無已儲存的佈局）</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="257"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="172"/>
         <source>復元</source>
         <translation>恢復</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="262"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="177"/>
         <source>起動時のレイアウトに設定</source>
         <translation>設為啟動佈局</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="269"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="184"/>
         <source>削除</source>
         <translation>刪除</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="277"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="192"/>
         <source>起動時のレイアウトをクリア</source>
         <translation>清除啟動佈局</translation>
+    </message>
+</context>
+<context>
+    <name>DockRegistry</name>
+    <message>
+        <location filename="../../src/ui/coordinators/dockregistry.cpp" line="33"/>
+        <source>棋譜</source>
+        <translation>棋譜</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/dockregistry.cpp" line="35"/>
+        <source>対局情報</source>
+        <translation>對局資訊</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/dockregistry.cpp" line="37"/>
+        <source>思考</source>
+        <translation>思考</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/dockregistry.cpp" line="39"/>
+        <source>検討</source>
+        <translation>研究</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/dockregistry.cpp" line="41"/>
+        <source>USI通信ログ</source>
+        <translation>USI 記錄</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/dockregistry.cpp" line="43"/>
+        <source>CSA通信ログ</source>
+        <translation>CSA 記錄</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/dockregistry.cpp" line="45"/>
+        <source>棋譜コメント</source>
+        <translation>註解</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/dockregistry.cpp" line="47"/>
+        <source>分岐ツリー</source>
+        <translation>變化樹</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/dockregistry.cpp" line="49"/>
+        <source>評価値グラフ</source>
+        <translation>評價值圖表</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/dockregistry.cpp" line="51"/>
+        <source>メニュー</source>
+        <translation>選單</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/dockregistry.cpp" line="54"/>
+        <source>定跡</source>
+        <translation>定跡</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/dockregistry.cpp" line="56"/>
+        <source>棋譜解析</source>
+        <translation>棋譜分析</translation>
     </message>
 </context>
 <context>
