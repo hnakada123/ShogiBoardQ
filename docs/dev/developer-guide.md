@@ -458,8 +458,8 @@ src/
 │   ├── branchtreemanager.cpp/.h    #   分岐ツリーの表示（KifuBranchTree を読むだけの観察者。描画は branchtreemanager_draw.cpp）
 │   ├── branchtreelayout.cpp/.h     #   分岐ツリーの行の折りたたみと段の割り当て
 │   ├── evaluationchartwidget.cpp/.h #  評価値グラフ（EvaluationSeries を描くだけ。evaluationchartview・evaluationchartconfigurator と組）
-│   ├── usilogpanel.cpp/.h          #   USI通信ログパネル（CSA は csalogpanel）
-│   ├── commenteditorpanel.cpp/.h   #   棋譜コメント編集パネル
+│   ├── usilogpanel.cpp/.h          #   USI通信ログドックの中身（CSA は csalogpanel）
+│   ├── commenteditorpanel.cpp/.h   #   棋譜コメントドックの中身
 │   ├── tableheaderview.cpp/.h      #   表の見出し。列幅は利用者がドラッグしたときだけ sectionResizedByUser で保存する
 │   ├── incrementaltableview.cpp/.h #   行の追加で表示領域全体を描き直さない表
 │   ├── tablebuttondelegate.cpp/.h  #   表のセルを控えめなボタンとして描くデリゲート
@@ -469,6 +469,9 @@ src/
 │   ├── fontsizecontrol.cpp/.h      #   A-/A+ のボタンの組（文字・見た目・説明・範囲の端での無効化）
 │   ├── dialogfontscale.cpp/.h      #   ダイアログの A-/A+ と保存（全ダイアログ共通）
 │   ├── engineselector.cpp/.h       #   登録エンジンを選ぶ部品（コンボ・「設定」ボタン・未登録の案内・選択の保存）
+│   ├── playersetupwidget.cpp/.h    #   対局開始ダイアログの対局者1人の欄（人間かエンジンか・名前・「エンジン設定」）
+│   ├── timecontroleditor.cpp/.h    #   片方の対局者の持ち時間・秒読み・加算の欄（TimeControlSide で読み書き）
+│   ├── settingsformbinding.cpp/.h  #   入力欄と設定の宣言（Setting<T>）の対応の表（読み込み・保存・既定値に戻す）
 │   ├── boardviewerwidget.cpp/.h    #   盤と縮小・拡大・回転・局面送り（読み筋・局面集・詰将棋・外観の見本で共通）
 │   ├── menubuttonwidget.cpp/.h     #   メニューボタン
 │   ├── collapsiblegroupbox.cpp/.h  #   折りたたみグループボックス
@@ -484,7 +487,7 @@ src/
 │   └── boardimageexporter.cpp/.h   #   盤面画像エクスポート
 │
 ├── dialogs/                        # ダイアログ実装（.ui は同じ場所）
-│   ├── startgamedialog.cpp/.h/.ui  #   対局開始ダイアログ
+│   ├── startgamedialog.cpp/.h/.ui  #   対局開始ダイアログ（先手・後手の欄は widgets/playersetupwidget・timecontroleditor）
 │   ├── kifuanalysisdialog.cpp/.h/.ui # 棋譜解析ダイアログ
 │   ├── csagamedialog.cpp/.h/.ui    #   CSA対局接続ダイアログ
 │   ├── csawaitingdialog.cpp/.h     #   CSA待機ダイアログ（ログ窓は widgets/csalogpanel）
@@ -2878,6 +2881,17 @@ sequenceDiagram
 | `startNodeId` | 分岐ツリー上の表示中のノード |
 | `bottomSide` | 盤の手前に表示している側（「人を手前に表示する」の判定用） |
 
+**StartGameDialogData** — 対局開始ダイアログで選んだ対局の条件（`src/game/startgamedatabridge.h`）:
+
+| フィールド | 説明 |
+|-----------|------|
+| `players` | 対局者2人（`std::array<PlayerChoice, 2>`。[0] が先手／下手、[1] が後手／上手） |
+| `isLoseOnTimeout` | 時間切れを負けにするか |
+| `startingHandicap` | 開始局面の手合割（`Handicaps::kAll` の1つ）。`nullptr` なら表示中の局面から始める（`startsFromCurrentPosition()`） |
+| `maxMoves`・`autoSaveKifu`・`kifuSaveDir`・`isShowHumanInFront`・`consecutiveGames`・`isSwitchTurnEachGame` | 最大手数・自動保存・人を手前に表示・連続対局 |
+
+`PlayerChoice` は対局者1人の選択で、`kind`（`Human`・`Engine`）、人間の名前 `humanName`、エンジン `engine`（`EngineListSettings::EngineEntry`）、時間 `time`（`TimeControlSide`）を持つ。人間とエンジンの印を別々に持たないので、両方に印がある組み合わせは表せない。どちらかがエンジンかは `hasEngine()` で見る。
+
 **GameStartPlan** — 対局の開始の計画:
 
 ```cpp
@@ -2911,9 +2925,8 @@ struct MatchTimeSettings {
 | `buildStartOptions(startSfen, dlg)` | ダイアログの設定から `MatchStartOptions` を作る（対局者は `playersFromDialog()`） |
 | `buildTimeSettings(data)` | ダイアログの設定から `MatchTimeSettings` を作る。秒読みとフィッシャー加算が両方あれば秒読みを使う |
 | `needsHumanAtBottomFlip(dlg, bottomSide)` | 「人を手前に表示する」で盤を反転するか（人間対エンジンで、人間の側が手前でないとき） |
-| `startingPositionSfen(index)` | 手合割インデックス（1=平手 … 14=十枚落ち）から純SFENを返す |
 
-「現在の局面から開始」かどうかは、`StartGameDialogData::startingPositionNumber` が 0 かで決まる（0 なら現在の局面、1 以上なら手合割のプリセット）。現在の局面なら `preparation.mode` は `CurrentPosition` で、表示中の手順と選択ノードを渡す。手順が空なら、表示中の局面（なければ棋譜の開始局面）を開始局面にする。プリセットなら `NewGame` で、`startNodeId` は -1 になる。
+「現在の局面から開始」かどうかは、`StartGameDialogData::startsFromCurrentPosition()`（`startingHandicap` が `nullptr`）で決まる。手合割なら、その局面は `startingHandicap->sfen`（`Handicaps::kAll` の1つ）である。現在の局面なら `preparation.mode` は `CurrentPosition` で、表示中の手順と選択ノードを渡す。手順が空なら、表示中の局面（なければ棋譜の開始局面）を開始局面にする。プリセットなら `NewGame` で、`startNodeId` は -1 になる。
 
 計画を適用する `GameSession::startGame()` は6.3節の順に動く。時間の決まりは `TimeControlUtil::applyToClock()` が時計に適用する。このとき `TimeControl::normalized()` が、秒読みとフィッシャー加算が同時に指定されていたら秒読みを優先して加算を0にする。
 
@@ -5062,7 +5075,8 @@ CandidateArrowPresenter::refresh()
 | `parentWidget` | `QWidget*` | — | 条件ダイアログの親 |
 | `activity` | `AppActivityState*` | 必須 | 解析中は `DuringAnalysis` にする |
 | `analysisModel` | `KifuAnalysisListModel*` | 必須 | 結果蓄積用モデル |
-| `resultsPanel` | `AnalysisResultsPanel*` | 任意 | 結果のドックの中身（無ければ自分で作る） |
+| `resultsPanel` | `AnalysisResultsPanel*` | 任意 | 結果の表（無ければ自分で作る）。初めて解析するときに `setModel(analysisModel)` で1度だけモデルを結ぶ |
+| `resultsDock` | `QDockWidget*` | 任意 | 結果の表のドック。解析を始めたときに表示して前に出す |
 | `engines` | `EngineLifecycleManager*` | — | 解析のエンジンを置く枠 E1 |
 | `navState` | `const KifuNavigationState*` | — | 解析する手順（表示中の手順）と分岐ライン番号 |
 | `recordModel` | `const KifuRecordListModel*` | — | 結果の表に出す手の表記（手数・分岐の印付き）を棋譜欄から取る |
@@ -5088,7 +5102,7 @@ showDialogAndStart()
   └── 2. requestFromDialog(dialog) → AnalysisRequest を組み立てて start(request)
         │
         ├── 解析範囲を手順の手数に収める、前回の解析を止めて結果・評価値グラフをクリア
-        ├── resultsPanel->showWithModel() / beginAnalysis()
+        ├── resultsDock を表示して前に出す、resultsPanel->beginAnalysis()
         ├── 枠 E1 に Usi を作り（createEngine(1, ...)）、AnalysisJob を作成
         ├── ジョブのシグナルを接続
         │     ├── plyStarted → onPlyStarted
@@ -5193,13 +5207,13 @@ showDialogAndStart()
 
 **ソース**: `src/widgets/analysisresultspanel.h`, `src/widgets/analysisresultspanel.cpp`
 
-棋譜解析結果を表示するドックウィジェットの中身である。テーブルビューの構築、列幅管理、自動スクロール、フォントサイズ調整を担当する。ドックは合成ルートが作った `AnalysisResultsPanel` を `DockCreationService` が配置する。
+棋譜解析結果を表示するドックの中身である。`QWidget` の派生で、部品はコンストラクタで作る。列幅管理、自動スクロール、フォントサイズ調整を担当する。合成ルートが作った `AnalysisResultsPanel` を、`DockCreationService` がそのままドックに入れる。結果のモデルは `setModel(KifuAnalysisListModel*)` で1度だけ結ぶ（同じモデルなら何もしない）。自分の入ったドックは知らず、表示もしない。解析を始めたときにドックを出して前に出すのは `KifuAnalysisController`（`Deps::resultsDock`）である。
 
 #### UIコンポーネント構成
 
 ```
 QDockWidget
-  └── QWidget (container)
+  └── AnalysisResultsPanel（QWidget）
         └── QVBoxLayout
               ├── QHBoxLayout
               │     ├── QPushButton "解析中止"
@@ -5219,12 +5233,12 @@ QDockWidget
 
 #### 解析中の動作制御
 
-| 状態 | テーブル選択 | 自動スクロール | 「表示」ボタン | 停止ボタン |
+| 状態 | 行の選択 | 自動スクロール | 「表示」ボタン | 停止ボタン |
 |------|------------|--------------|--------------|----------|
-| 解析中（`m_isAnalyzing = true`） | `NoSelection` | 最新行に自動スクロール＆選択 | クリック無効 | 有効 |
-| 解析完了（`m_isAnalyzing = false`） | `SingleSelection` | なし | クリック有効 | 無効 |
+| 解析中（`m_isAnalyzing = true`） | 知らせない | 最後に確定した行を選んで見せる | クリック無効 | 有効 |
+| 解析完了（`m_isAnalyzing = false`） | `rowSelected` で知らせる | なし | クリック有効 | 無効 |
 
-解析中は `NoSelection` モードでユーザーの選択操作を抑制しつつ、`onRowsInserted()` で一時的に `SingleSelection` に切り替えて最新行を選択・スクロールし、すぐに `NoSelection` に戻す。`m_autoSelecting` フラグにより、この自動選択が `rowSelected` シグナルを発火しないよう制御する。
+表の選択モードは常に `SingleSelection` である。解析中は、行が足されるたびに `onRowsInserted()` が最後に確定した行を選んでスクロールする。解析中は選択の変更（`onTableSelectionChanged()`）も盤面列のクリック（`onTableClicked()`）も無視し、`rowSelected`・`rowDoubleClicked` を出さない。棋譜は解析の進み具合に合わせて `KifuAnalysisController` が移す。解析中かどうかは `setStopButtonEnabled()` で決まる。
 
 #### 列幅の自動調整
 
@@ -6078,16 +6092,18 @@ Urgency::Warn5  → 強い警告色（残5秒・秒読み）
 | RecordPane | QWidget | 棋譜ドック（既定は右側） | 棋譜一覧（QTableView。指し手・消費時間・しおり・コメントの列と、列の表示の切り替え）＋分岐候補一覧（折りたたみ可）＋ナビゲーションボタン＋文字サイズ・しおり編集のボタン。コメントの編集欄は持たない（棋譜コメントのドック） |
 | ThinkingPanel | QWidget | 思考ドック | 対局・棋譜解析のエンジン2つ分の情報欄（`EngineInfoWidget`）と思考の表（`ThinkingTableView`）、文字の大きさのボタン、対局中の候補手の矢印の表示設定。2つ目のエンジンは `setSecondEngineVisible()` で出す。読み筋の「盤面」ボタンは `pvRowClicked(ShogiEngineThinkingModel*, int)` で通知する |
 | ThinkingTableView | QTableView 系 | 思考ドック・検討ドック | 思考の表。対局のエンジン2つと検討タブで共用し、列幅・数値の書式・「盤面」ボタンを受け持つ |
-| ConsiderationTabManager | QObject | 検討ドック | 検討タブの操作（エンジン選択・時間・MultiPV・矢印の表示・開始/中止）と表を作る。設定は `ConsiderationSettings` を正本として持ち（`settings()`・`setSettings()`・`settingsChanged`）、開始/中止のボタンと経過時間は実行の状態 `RunState`（`Idle`・`Running`・`Waiting`。`EngineDisplayPresenter` が `setRunState()` で設定する）で決まる |
-| UsiLogPanel / CsaLogPanel / CommentEditorPanel | QObject | USI通信ログ・CSA通信ログ・棋譜コメントの各ドック | 各ドックの中身を作る。`CsaLogPanel` は CSA通信対局の待機ダイアログ（`CsaWaitingDialog`）のログ窓にも使う |
-| BranchTreeManager | QObject | 分岐ツリーのドック | 分岐ツリーを QGraphicsView に描く（`KifuBranchTree` を読むだけの観察者）。構築・入力は `branchtreemanager.cpp`、描画は `branchtreemanager_draw.cpp`。行（変化）の折りたたみと段の割り当ては値型 `BranchTreeLayout`（`branchtreelayout.h/.cpp`）が計算する |
+| ConsiderationTabManager | QWidget | 検討ドック | 検討タブの操作（エンジン選択・時間・MultiPV・矢印の表示・開始/中止）と表を作る。設定は `ConsiderationSettings` を正本として持ち（`settings()`・`setSettings()`・`settingsChanged`）、開始/中止のボタンと経過時間は実行の状態 `RunState`（`Idle`・`Running`・`Waiting`。`EngineDisplayPresenter` が `setRunState()` で設定する）で決まる |
+| UsiLogPanel / CsaLogPanel / CommentEditorPanel | QWidget | USI通信ログ・CSA通信ログ・棋譜コメントの各ドック | 各ドックの中身。`CsaLogPanel` は CSA通信対局の待機ダイアログ（`CsaWaitingDialog`）のログ窓にもそのまま入れる |
+| BranchTreeManager | QWidget | 分岐ツリーのドック | 分岐ツリーを自分の持つ QGraphicsView（`view()`。objectName は `branchTreeView`）に描く（`KifuBranchTree` を読むだけの観察者）。構築・入力は `branchtreemanager.cpp`、描画は `branchtreemanager_draw.cpp`。行（変化）の折りたたみと段の割り当ては値型 `BranchTreeLayout`（`branchtreelayout.h/.cpp`）が計算する |
 | EvaluationChartWidget | QWidget | MainWindow 下部（QDockWidget） | Qt Charts による評価値グラフ（2エンジン対応、ゼロライン、カーソル線）。点は `setSeries()` で渡された `EvaluationSeries`（書き手は `EvaluationGraphPresenter`）を描くだけ |
 | EngineInfoWidget | QWidget | 思考・検討のページ内（エンジンごとの情報欄） | `UsiCommLogModel` の値を1行の表に出す（エンジン名・予想手・探索手・深さ・ノード数・探索局面数/秒・ハッシュ使用率。予想手の列は隠せる）。探索状況（`EngineSearchStatus`）の数値の書式（3桁区切り・百分率）はここで決める。列幅は保存する |
 | GameInfoPane | QWidget | 対局情報ドック（思考などのドックとタブにまとめる） | 対局情報のツールバー（元に戻す・切り取り・行の追加・反映など）＋ QTableView。中身・編集の履歴・未反映の判定は `GameInfoEditModel`（`src/models/`）。合成ルートが作り、棋譜の文書（`KifuDocument`）の対局情報を編集する画面としてつなぐ（文書の `headerReset` で中身を入れ、表が変わると `gameInfoEdited` で文書に返す） |
 | KifuAnalysisResultsDisplay | QObject | モデルデータ（`src/models/`） | 棋譜解析結果の保持（指し手・候補手・評価値・評価値の差・読み筋（漢字・USI）・局面SFEN） |
-| AnalysisResultsPanel | QObject | 棋譜解析の結果ドック | 結果の表・停止ボタン・文字の大きさ。列幅は自分で保存する |
+| AnalysisResultsPanel | QWidget | 棋譜解析の結果ドック | 結果の表・停止ボタン・文字の大きさ。モデルは `setModel()` で1度だけ結ぶ。列幅は自分で保存する。ドックの表示は `KifuAnalysisController` が行う（9.8節） |
 | MenuWindow | QWidget | メニューのドック（棋譜ドックとタブにまとめる。`src/dialogs/`） | メニュー項目をボタン形式で表示（タブ付き、お気に入り、カスタマイズモード）。作るのは `MenuWindowController` |
 | MenuButtonWidget | QWidget | MenuWindow 内 | QAction をアイコン＋テキストで表示するカスタムボタン、D&D対応 |
+
+ドックのパネル（RecordPane・ThinkingPanel・GameInfoPane・ConsiderationTabManager・UsiLogPanel・CsaLogPanel・CommentEditorPanel・AnalysisResultsPanel・BranchTreeManager）は、どれも `QWidget` の派生で、部品をコンストラクタで作りきる。外から後で中身を作らせる公開の関数（以前の `buildUi()` など）や、中身を返す関数（以前の `containerWidget()` など）は持たない。`DockCreationService` はパネルそのものをドックに入れる。
 
 #### 汎用部品
 
@@ -6104,6 +6120,9 @@ Urgency::Warn5  → 強い警告色（残5秒・秒読み）
 | FontSizeControl | QObject | A-/A+ のボタン2つを `FontSizeHelper` に結ぶ。ボタンの文字・見た目（`ButtonStyles::fontButton()`）・ツールチップと読み上げ名（「文字を小さくする」「文字を大きくする」）と、範囲の端で押せなくする処理はここだけで決める。ボタンは呼び出し側が置き、objectName も呼び出し側が決める。ボタンには役割のプロパティ `FontSizeControl::kRoleProperty`（`"fontSizeControl"`。値は `"decrease"`・`"increase"`）を付け、テストは表示の文字ではなくこれで探す |
 | DialogFontScale | QWidget | 全ダイアログ・メッセージボックスに A-/A+ と保存を付ける（`install(dialog, 宣言, options)`）。各部品を元の大きさからの差で拡大・縮小する |
 | EngineSelector | QObject | 登録エンジンを選ぶ部品（下記） |
+| PlayerSetupWidget | QWidget | 対局開始ダイアログの対局者1人の欄（下記） |
+| TimeControlEditor | QWidget | 片方の対局者の持ち時間（時間・分）・秒読み・加算の欄（下記） |
+| SettingsFormBinding | （値の型） | 入力欄と設定の宣言（`Setting<T>`）の対応の表（下記） |
 
 #### EngineSelector — 登録エンジンを選ぶ部品
 
@@ -6127,7 +6146,7 @@ Urgency::Warn5  → 強い警告色（残5秒・秒読み）
 「設定」ボタンは登録エンジンを選んでいるときだけ押せる。コンボは項目が1つも無いときに無効にする。案内（`hint`）は登録エンジンが無いときだけ出す（棋譜解析のダイアログが使う）。
 「設定」を押したときに登録エンジンを選んでいなければ、「将棋エンジンが選択されていません。」のエラーを出す。
 
-使う画面は次のとおり。対局開始ダイアログ（`StartGameDialog`）はまだ使っていない。
+使う画面は次のとおり。
 
 | 画面 | 保存先（`EngineListSettings`） | 「設定」の受け手 |
 |---|---|---|
@@ -6136,10 +6155,50 @@ Urgency::Warn5  → 強い警告色（残5秒・秒読み）
 | `TsumeshogiGeneratorDialog` | `tsumeshogiGeneratorSelection()` | ダイアログ自身 |
 | `TsumeCollectionDialog` | `tsumeCollectionSelection()`（内蔵の項目「Hayanagi（内蔵・31手まで）」と、名前に KomoringHeights を含む登録エンジンだけ） | 「設定」ボタンなし |
 | `CsaGameDialog` | `csaGameSelection()` | ダイアログ自身 |
+| `StartGameDialog`（`PlayerSetupWidget` が使う。内蔵の項目を「人間」にする） | `GameSettings::StartGame::player1`・`player2` の `engineName`（以前の版の `engineNumber`・`enginePath` も読む） | `PlayerSetupWidget::engineSettingsRequested(engine)` を出し、ダイアログが開く |
 | `ConsiderationTabManager`（検討タブ） | `considerationSelection()` | `engineSettingsRequested(engine)` を出し、`ConsiderationUiController::onEngineSettingsRequested()` が開く |
 
 `KifuAnalysisDialog`・`TsumeShogiSearchDialog` は選んだエンジンを `engine()`（`std::optional<EngineEntry>`）で返す。`KifuAnalysisController`・`TsumeSearchController` はそこからパスと名前を取る。
 テストは `tests/tst_engineselector.cpp`（名前での保存と復元、以前の版の番号、未登録、内蔵の項目と絞り込み、詰将棋問題一覧の以前の版の保存値、「設定」と読み直し）。
+
+#### PlayerSetupWidget・TimeControlEditor — 対局開始ダイアログの先手・後手の欄
+
+**ソース**: `src/widgets/playersetupwidget.h/.cpp`, `src/widgets/timecontroleditor.h/.cpp`
+
+対局開始ダイアログ（`StartGameDialog`）は、先手／下手と後手／上手に同じ部品を1つずつ作る。`.ui` には入れ物のグループ（`groupBox`・`groupBox_2`・`groupBox_7`・`groupBoxSecondPlayerTimeSettings`）だけを置き、中身はダイアログがコードで入れる。部品の objectName は以前の `.ui` と同じで、末尾に番号（1=先手／下手、2=後手／上手）が付く（`comboBoxPlayer1`・`lineEditHumanName1`・`pushButtonEngineSettings1`・`stackedWidgetPlayer1`・`basicTimeHour1`・`basicTimeMinutes1`・`byoyomiSec1`・`addEachMoveSec1` など）。
+
+`PlayerSetupWidget(side, saved, parent)` は対局者1人の欄である。`saved` はその対局者の保存先（`GameSettings::StartGame::Player`）。
+
+| 操作 | 内容 |
+|---|---|
+| コンボ | 先頭が「人間」、その後に登録エンジンが並ぶ（`EngineSelector` の内蔵の項目を「人間」に使う） |
+| 下の欄 | 人間なら名前の入力欄、エンジンなら「エンジン設定」ボタン |
+| `choice()`・`setChoice()` | 選んだ対局者（`PlayerChoice`。時間は含まない） |
+| `load()` | 保存した選択を読む。保存したエンジンが一覧に無ければ（削除されていれば）人間にする。別のエンジンには替えない |
+| `save()` | 選択を保存する。人間を選んでいるときは、前に選んだエンジンを残す |
+| `reset(engine)` | 既定値に戻す（`engine` なら先頭の登録エンジン。無ければ人間） |
+| `kindChanged()` | 人間かエンジンかが変わった |
+| `engineSettingsRequested(engine)` | 「エンジン設定」が押された。設定ダイアログは受け手（ダイアログ）が開く |
+
+`TimeControlEditor(side, parent)` は片方の対局者の時間の欄である。`value()`・`setValue()` で `TimeControlSide` を読み書きする（秒より細かい値は持たない）。秒読みと加算は排他で、一方に値を入れるともう一方を0にする。相手側の欄にも同じことをするよう、値を入れたことを `byoyomiEntered`・`incrementEntered` で知らせる。相手側の欄は `clearIncrement`・`clearByoyomi` で受ける。
+
+開始局面の一覧は `Handicaps::kAll` から作る（「現在の局面」の次に手合割の表の順。左七枚落ち・右七枚落ちも選べる）。選んだ手合割は `StartGameDialogData::startingHandicap` に入る。時間設定の検証は `TimeControlValidator::validate(p1, p2, hasEngine)`（`TimeControlSide` を2つ受け取る）。
+
+#### SettingsFormBinding — 入力欄と設定の対応の表
+
+**ソース**: `src/widgets/settingsformbinding.h/.cpp`
+
+入力欄ごとに `add(欄, Setting<T>)` で保存先を1度だけ書けば、`load()`・`save()`・`reset()` がすべての欄を同じ表で扱う。読み込み・保存・既定値に戻すで同じ項目を3回並べなくてよい。`reset()` は宣言の既定値（`defaultValue()`）を入れ、保存はしない。
+
+| 欄 | 設定の型 | 結ぶ値 |
+|---|---|---|
+| `QSpinBox` | `Setting<int>` | 値 |
+| `QAbstractButton`（チェックボックス・ラジオボタン） | `Setting<bool>` | checked |
+| `QGroupBox`（チェックできるグループ） | `Setting<bool>` | checked |
+| `QComboBox` | `Setting<int>` | 選んだ位置 |
+| `QLineEdit` | `Setting<QString>` | 文字。`defaultText` を渡すと、未保存のときと既定値に戻すときにその値を使う |
+
+`StartGameDialog`（対局者・時間・開始局面以外の欄）と `TsumeshogiGeneratorDialog`（生成の条件の欄と表示の欄）が使う。詰将棋生成ダイアログの「既定値に戻す」は、生成の条件の表の `reset()` で宣言の既定値に戻す。
 
 #### デリゲート
 
@@ -6160,7 +6219,7 @@ Urgency::Warn5  → 強い警告色（残5秒・秒読み）
 
 | クラス名 | 基底クラス | .ui ファイル | 用途 |
 |---------|-----------|------------|------|
-| StartGameDialog | QDialog | startgamedialog.ui | 対局開始パラメータ収集（対局者・持ち時間・開始局面・連続対局設定） |
+| StartGameDialog | QDialog | startgamedialog.ui | 対局開始パラメータ収集（対局者・持ち時間・開始局面・連続対局設定）。先手・後手の対局者と時間の欄は `.ui` に置かず、`PlayerSetupWidget`・`TimeControlEditor` を2つずつコードで作ってグループに入れる。対局者・時間・開始局面以外の欄は `SettingsFormBinding` で設定と結ぶ |
 | TsumeShogiSearchDialog | QDialog | tsumeshogisearchdialog.ui | 詰み探索の設定（エンジン選択・探索時間）。選んだエンジンは `engine()`（`std::optional<EngineEntry>`） |
 | KifuAnalysisDialog | QDialog | kifuanalysisdialog.ui | 棋譜解析パラメータ収集（解析範囲・エンジン・思考時間）。選んだエンジンは `engine()`（`std::optional<EngineEntry>`） |
 | CsaGameDialog | QDialog | csagamedialog.ui | CSA通信対局設定（サーバー接続情報・対局者選択。エンジンは `EngineSelector` で選ぶ） |
@@ -6325,9 +6384,9 @@ Qt の公式サンプルコードを参考にした自動折り返しレイア�
 
 本プロジェクトのカスタムウィジェットには以下の共通パターンが見られる。
 
-**1. buildUi() による初期化**
+**1. コンストラクタで部品を作りきる**
 
-コンストラクタで `buildUi()` を呼び出し、ウィジェットツリーの構築を分離する。RecordPane、GameInfoPane、PvBoardDialog、SfenCollectionDialog、TsumeCollectionDialog、TsumePlayDialog 等が採用している。
+ウィジェットは、部品をコンストラクタで作りきる。作る処理が長いときは、コンストラクタから private の `buildUi()` などを呼んで分ける（RecordPane、PvBoardDialog、SfenCollectionDialog、TsumeCollectionDialog、TsumePlayDialog 等）。ドックのパネルも同じで、作った後に外から中身を作らせる公開の関数は持たない（11.2節）。
 
 **2. フォントサイズの永続化**
 
@@ -7433,7 +7492,7 @@ MainWindow::MainWindow()
 
 **ファイル**: `src/app/dockcreationservice.h/.cpp`
 
-MainWindow からドックウィジェットの生成ロジックを分離したクラス。12 種類のドック（評価値グラフ、棋譜欄、対局情報、思考、検討、USI ログ、CSA ログ、コメント、分岐ツリー、メニューウィンドウ、定跡ウィンドウ、棋譜解析結果）の作成・設定復元・メニュー登録を担当する。ドックの中身（`ThinkingPanel`・`ConsiderationTabManager`・`UsiLogPanel`・`CsaLogPanel`・`CommentEditorPanel`・`BranchTreeManager` など）は合成ルートが先に作り、`DockCreationService` はそれをドックに入れるだけである。
+MainWindow からドックウィジェットの生成ロジックを分離したクラス。12 種類のドック（評価値グラフ、棋譜欄、対局情報、思考、検討、USI ログ、CSA ログ、コメント、分岐ツリー、メニューウィンドウ、定跡ウィンドウ、棋譜解析結果）の作成・設定復元・メニュー登録を担当する。ドックの中身（`ThinkingPanel`・`ConsiderationTabManager`・`UsiLogPanel`・`CsaLogPanel`・`CommentEditorPanel`・`BranchTreeManager`・`AnalysisResultsPanel` など）は、どれもコンストラクタで部品を作りきる `QWidget` で、合成ルートが先に作る。`DockCreationService` はパネルそのものをドックに入れるだけである（`setupDock(dock, panel, ...)`・`setWidget(panel)`）。棋譜解析の結果のドックを解析の開始時に出すのは `KifuAnalysisController`（`Deps::resultsDock`）である。
 
 ```
 DockCreationService
@@ -7596,7 +7655,7 @@ sequenceDiagram
 | クラス | 責務 |
 |--------|------|
 | `GameSession` | メニューの「対局」を受けてダイアログを出し、開始の手順（棋譜を整える → 時計 → 棋譜の文書への対局の記録 → 対局者の表示 → 対局 → 初手）を `startGame()` で順に行う（`src/app/`） |
-| `StartGameDialog` | 対局者（人間・エンジン）・時間設定・開始局面のUI入力を収集 |
+| `StartGameDialog` | 対局者（人間・エンジン）・時間設定・開始局面のUI入力を収集し、`StartGameDialogData` として返す（`data()`）。先手・後手の欄は `PlayerSetupWidget`・`TimeControlEditor`（`src/widgets/`） |
 | `GameStartOptionsBuilder` | ダイアログの値と表示中の手順から `GameStartPlan` を作る。状態を持たず、共有状態には触れない（`src/game/`） |
 | `SessionResetCoordinator` | 開始前の棋譜と表示の作り直し（`prepareGameStart()`。盤面・棋譜・評価値グラフ・エンジン表示など）（`src/app/`） |
 | `KifuDocument` | 対局者・持ち時間・開始日時を記録し、対局情報（対局日・開始日時・対局者・手合割・持ち時間）を作り直す（`beginMatch()`。`src/kifu/`） |
@@ -9214,6 +9273,8 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | ParseReport | C | kifu | 読み込み中の警告と失敗の記録（`ParseOptions` に従って読めない手を扱う） | 第8章 |
 | PieceSoundPlayer | C | services | 駒音（駒を指したときの効果音）の再生 | 第10章 |
 | PlayerInfoPresenter | C | ui/presenters | 盤の対局者名を出す | 第10章, 第12章 |
+| PlayerChoice | S | game | 対局開始ダイアログで選んだ対局者1人（人間かエンジンか・名前・エンジン・時間。`startgamedatabridge.h`） | 第6章 |
+| PlayerSetupWidget | C | widgets | 対局開始ダイアログの対局者1人の欄（「人間」と登録エンジンのコンボ・名前・「エンジン設定」。`EngineSelector` を使う） | 第11章 |
 | PlyAnalysis | S | analysis | 棋譜解析の1局面の結果（評価値・読み筋・定跡か） | 第9章 |
 | PlyAnalysisCollector | C | analysis | 1局面の info と bestmove から `PlyAnalysis` を作る | 第9章 |
 | Position | C | core | 局面の値（盤・持ち駒・手番・手数）。SFEN の読み書きと指し手の適用 | 第2章, 第5章 |
@@ -9230,6 +9291,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | Setting | C | services | 設定ファイルの1項目（キーと既定値）の宣言。読み書きの入口になるテンプレート（ヘッダーオンリー） | 第12章 |
 | SettingsCommon | NS | services | 設定ファイルのパスと、アプリ全体で共有する `QSettings` | 第12章 |
 | SettingsResetController | C | ui/controllers | 全設定の初期化と、それに伴う終了確認 | 第10章 |
+| SettingsFormBinding | C | widgets | 入力欄と設定の宣言（`Setting<T>`）の対応の表（読み込み・保存・既定値に戻す） | 第11章 |
 | SfenReplay | NS | core | 局面に USI の1手を指す（`applyLenient()`・`positionAfter()`） | 第13章 |
 | SfenUtils | NS | core | SFEN文字列のユーティリティ（ヘッダーオンリー） | 第2章, 第5章 |
 | SfenValidationService | C | analysis | SFEN 文字列の妥当性検査（GUI 非依存） | 第9章 |
@@ -9245,7 +9307,8 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | ShogiViewHighlighting | C | views | 盤のハイライト（層 `BoardHighlightLayer` ごとのマス）と矢印 | 第11章 |
 | ShogiViewInteraction | C | views | 盤のドラッグの状態 | 第11章 |
 | ShogiViewLayout | C | views | 盤面のレイアウト計算（マス・駒台のセルの位置、位置からマスへの変換） | 第11章 |
-| StartGameDialog | C | dialogs | 対局開始設定ダイアログ | 第11章 |
+| StartGameDialog | C | dialogs | 対局開始設定ダイアログ（選んだ条件は `data()` で `StartGameDialogData` として返す） | 第11章 |
+| StartGameDialogData | S | game | 対局開始ダイアログで選んだ対局の条件（対局者2人・開始局面の手合割・最大手数・連続対局など） | 第6章 |
 | TableButtonDelegate | C | widgets | 表のセルを控えめなボタンとして描画する（読み筋の盤面・定跡手の着手と編集など） | 第11章 |
 | TableHeaderView | C | widgets | 表の見出し。列幅は利用者がドラッグしたときだけ `sectionResizedByUser` で知らせて保存する | 第11章 |
 | TerminalCodes | NS | kifu/formats | 棋譜形式ごとの終局の符号（CSA・JKF・USI・USEN） | 第8章 |
@@ -9255,6 +9318,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | ThinkingTableView | C | widgets | 思考の表（対局のエンジン2つと検討タブで共用。列幅・数値の書式・「盤面」ボタン） | 第11章 |
 | TimeControl | S | core | 持ち時間の決まり（持ち時間・秒読み・加算・遅延）の値型 | 第5章, 第6章 |
 | TimeControlUtil | NS | game | 持ち時間設定を `ShogiClock` へ適用するユーティリティ | 第12章 |
+| TimeControlEditor | C | widgets | 片方の対局者の持ち時間・秒読み・加算の欄（`TimeControlSide` で読み書き。秒読みと加算は排他） | 第11章 |
 | TimeDisplayPresenter | C | ui/presenters | 時計の表示の更新（`ShogiClock::timeUpdated` を直接受ける） | 第10章 |
 | TsumeCandidateJob | C | analysis | 詰将棋の候補1つを採択か棄却まで進める（手数の確認・唯一解の検査・要らない駒の除去） | 第9章 |
 | TsumeCollectionSession | C | analysis | 詰将棋集の進捗・解析待ちの管理 | 第9章 |
@@ -9527,6 +9591,9 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | fontsizecontrol | 第11章 | A-/A+ のボタンの組 |
 | dialogfontscale | 第11章, 第17章 | ダイアログの A-/A+ と保存 |
 | engineselector | 第11章 | 登録エンジンを選ぶ部品 |
+| playersetupwidget | 第11章 | 対局開始ダイアログの対局者1人の欄 |
+| timecontroleditor | 第11章 | 片方の対局者の持ち時間・秒読み・加算の欄 |
+| settingsformbinding | 第11章 | 入力欄と設定の宣言の対応の表 |
 | analysisresultspanel | 第9章, 第11章 | 棋譜解析の結果ドックの中身（結果の表・停止ボタン・文字の大きさ） |
 | considerationtabmanager | 第9章, 第11章 | 検討ドックの中身（ツールバー・エンジン情報・候補手の表。設定の正本と実行の状態） |
 | considerationsettings | 第9章 | 検討タブの設定の値（エンジン・時間・候補手の数・矢印） |
