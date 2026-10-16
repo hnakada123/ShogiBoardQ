@@ -13,6 +13,7 @@
 
 class AnalysisResultHandler;
 class AnalysisResultsPanel;
+class QDockWidget;
 class AppActivityState;
 class EngineLifecycleManager;
 class EvaluationChartWidget;
@@ -45,7 +46,8 @@ public:
         QWidget* parentWidget = nullptr;                    ///< 条件ダイアログの親
         AppActivityState* activity = nullptr;               ///< 解析中の動作状態（必須）
         KifuAnalysisListModel* analysisModel = nullptr;     ///< 解析結果の表（必須）
-        AnalysisResultsPanel* resultsPanel = nullptr;   ///< 解析結果のドック（無ければ自分で作る）
+        AnalysisResultsPanel* resultsPanel = nullptr;   ///< 解析結果の表（無ければ自分で作る）
+        QDockWidget* resultsDock = nullptr;             ///< 解析を始めたときに出す、結果の表のドック
         EngineLifecycleManager* engines = nullptr;          ///< 解析のエンジンを置く枠 E1（表示は枠を結ぶ側が行う）
         // --- 解析する手順と、結果の反映先（無くてもよい） ---
         const KifuNavigationState* navState = nullptr;      ///< 解析する手順（表示中の手順）
@@ -94,6 +96,7 @@ private:
 
     Deps m_deps;
     QPointer<AnalysisResultsPanel> m_resultsPanel;
+    std::unique_ptr<AnalysisResultsPanel> m_ownedResultsPanel;   ///< 結果の表を渡されなかったときに作ったもの
     std::unique_ptr<AnalysisResultHandler> m_resultHandler;
     std::unique_ptr<AnalysisJob> m_job;
     /// 解析を終えた局面の評価値（先手から見た値）。次の局面に移るときにグラフに足す

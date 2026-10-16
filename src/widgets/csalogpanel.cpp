@@ -30,25 +30,18 @@ void relaxToolbarWidth(QWidget* toolbar)
 }
 } // namespace
 
-CsaLogPanel::CsaLogPanel(QObject* parent)
-    : QObject(parent)
+CsaLogPanel::CsaLogPanel(QWidget* parent)
+    : QWidget(parent)
     , m_fontSize(NetworkSettings::csaLogFontSize, 8, 24)
 {
-}
-
-CsaLogPanel::~CsaLogPanel() = default;
-
-QWidget* CsaLogPanel::buildUi(QWidget* parent)
-{
-    m_container = new QWidget(parent);
-    auto* layout = new QVBoxLayout(m_container);
+    auto* layout = new QVBoxLayout(this);
     layout->setContentsMargins(4, 4, 4, 4);
     layout->setSpacing(6);
 
     buildToolbar();
     layout->addWidget(m_toolbar);
 
-    m_logView = new QPlainTextEdit(m_container);
+    m_logView = new QPlainTextEdit(this);
     m_logView->setObjectName(QStringLiteral("csaLogView"));
     m_logView->setReadOnly(true);
     m_logView->setFont(ApplicationFonts::monospaceFont());
@@ -61,29 +54,25 @@ QWidget* CsaLogPanel::buildUi(QWidget* parent)
     layout->addWidget(m_commandBar);
     setConnected(m_connected);
     applyFontSize();
-
-    return m_container;
 }
+
+CsaLogPanel::~CsaLogPanel() = default;
 
 void CsaLogPanel::append(const QString& line)
 {
-    if (m_logView) {
-        m_logView->appendPlainText(line);
-    }
+    m_logView->appendPlainText(line);
 }
 
 void CsaLogPanel::clear()
 {
-    if (m_logView) {
-        m_logView->clear();
-    }
+    m_logView->clear();
 }
 
 // ===================== ツールバー構築 =====================
 
 void CsaLogPanel::buildToolbar()
 {
-    m_toolbar = new QWidget(m_container);
+    m_toolbar = new QWidget(this);
     auto* toolbarLayout = new QHBoxLayout(m_toolbar);
     toolbarLayout->setContentsMargins(2, 2, 2, 2);
     toolbarLayout->setSpacing(4);
@@ -123,7 +112,7 @@ void CsaLogPanel::buildToolbar()
 
 void CsaLogPanel::buildCommandBar()
 {
-    m_commandBar = new QWidget(m_container);
+    m_commandBar = new QWidget(this);
     auto* layout = new QHBoxLayout(m_commandBar);
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(4);
@@ -159,25 +148,21 @@ void CsaLogPanel::buildCommandBar()
 void CsaLogPanel::setConnected(bool connected)
 {
     m_connected = connected;
-    if (m_connectionStatus) m_connectionStatus->setText(connected ? tr("接続済み") : tr("未接続"));
-    if (m_commandInput) {
-        m_commandInput->setEnabled(connected);
-        m_commandInput->setPlaceholderText(connected ? tr("コマンドを入力してEnter")
-                                                    : tr("CSAサーバーに接続すると送信できます"));
-    }
+    m_connectionStatus->setText(connected ? tr("接続済み") : tr("未接続"));
+    m_commandInput->setEnabled(connected);
+    m_commandInput->setPlaceholderText(connected ? tr("コマンドを入力してEnter")
+                                                : tr("CSAサーバーに接続すると送信できます"));
     updateSendButton();
 }
 
 void CsaLogPanel::updateSendButton()
 {
-    if (m_btnSendToServer && m_commandInput) {
-        m_btnSendToServer->setEnabled(m_connected && !m_commandInput->text().trimmed().isEmpty());
-    }
+    m_btnSendToServer->setEnabled(m_connected && !m_commandInput->text().trimmed().isEmpty());
 }
 
 void CsaLogPanel::copyLog()
 {
-    if (m_logView) QApplication::clipboard()->setText(m_logView->toPlainText());
+    QApplication::clipboard()->setText(m_logView->toPlainText());
 }
 
 // ===================== フォント管理 =====================
@@ -185,22 +170,20 @@ void CsaLogPanel::copyLog()
 void CsaLogPanel::applyFontSize()
 {
     const int size = m_fontSize.fontSize();
-    if (m_logView) {
-        QFont logFont = m_logView->font();
-        logFont.setPointSize(size);
-        m_logView->setFont(logFont);
-    }
+    QFont logFont = m_logView->font();
+    logFont.setPointSize(size);
+    m_logView->setFont(logFont);
     QFont font;
     font.setPointSize(size);
-    if (m_btnSendToServer) m_btnSendToServer->setFont(font);
-    if (m_commandInput) m_commandInput->setFont(font);
+    m_btnSendToServer->setFont(font);
+    m_commandInput->setFont(font);
 }
 
 // ===================== イベント処理 =====================
 
 void CsaLogPanel::onCommandEntered()
 {
-    if (!m_connected || !m_commandInput) return;
+    if (!m_connected) return;
 
     QString command = m_commandInput->text().trimmed();
     if (command.isEmpty()) return;

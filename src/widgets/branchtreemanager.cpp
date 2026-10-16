@@ -22,6 +22,7 @@
 #include <QTransform>
 #include <QScrollBar>
 #include <QTimer>
+#include <QVBoxLayout>
 #include <QWheelEvent>
 
 #include <climits>
@@ -30,57 +31,40 @@
 
 // ===================== コンストラクタ / デストラクタ =====================
 
-BranchTreeManager::BranchTreeManager(QObject* parent)
-    : QObject(parent)
+BranchTreeManager::BranchTreeManager(QWidget* parent)
+    : QWidget(parent)
 {
-}
-
-BranchTreeManager::~BranchTreeManager()
-{
-    m_branchTreeViewport = nullptr;
-}
-
-// ===================== ビュー受け取り =====================
-
-QGraphicsView* BranchTreeManager::buildView(QWidget* parent)
-{
-    auto* view = new QGraphicsView(parent);
-    view->setObjectName(QStringLiteral("branchTreeView"));
-    view->setRenderHint(QPainter::Antialiasing, true);
-    view->setRenderHint(QPainter::TextAntialiasing, true);
-    view->setRenderHint(QPainter::SmoothPixmapTransform, true);
-    view->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-    view->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-    view->setAlignment(Qt::AlignLeft | Qt::AlignTop);
-    setView(view);
-    return view;
-}
-
-void BranchTreeManager::setView(QGraphicsView* view)
-{
-    m_branchTree = view;
+    auto* layout = new QVBoxLayout(this);
+    layout->setContentsMargins(0, 0, 0, 0);
+    m_branchTree = new QGraphicsView(this);
+    m_branchTree->setObjectName(QStringLiteral("branchTreeView"));
+    m_branchTree->setRenderHint(QPainter::Antialiasing, true);
+    m_branchTree->setRenderHint(QPainter::TextAntialiasing, true);
+    m_branchTree->setRenderHint(QPainter::SmoothPixmapTransform, true);
+    m_branchTree->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    m_branchTree->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    m_branchTree->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+    layout->addWidget(m_branchTree);
     m_scene = new QGraphicsScene(m_branchTree);
     m_branchTree->setScene(m_scene);
     // 矢印キーで手を移動できるようにする
     m_branchTree->setFocusPolicy(Qt::StrongFocus);
-
-    if (m_branchTree && m_branchTree->viewport()) {
-        QWidget* vp = m_branchTree->viewport();
-        if (!vp->property("branchFilterInstalled").toBool()) {
-            m_branchTreeViewport = vp;
-            vp->installEventFilter(this);
-            m_branchTree->installEventFilter(this);
-            vp->setProperty("branchFilterInstalled", true);
-        }
-        connect(m_branchTree->verticalScrollBar(), &QScrollBar::valueChanged,
-                this, &BranchTreeManager::onVerticalScrolled);
-    }
+    m_branchTreeViewport = m_branchTree->viewport();
+    m_branchTreeViewport->installEventFilter(this);
+    m_branchTree->installEventFilter(this);
+    connect(m_branchTree->verticalScrollBar(), &QScrollBar::valueChanged,
+            this, &BranchTreeManager::onVerticalScrolled);
 
     m_compactLayout = AnalysisSettings::branchTreeCompactLayout();
     m_zoomPercent = qBound(kMinZoomPercent, AnalysisSettings::branchTreeZoomPercent(), kMaxZoomPercent);
     applyZoom();
 
     rebuildBranchTree();
+}
+
+BranchTreeManager::~BranchTreeManager()
+{
+    m_branchTreeViewport = nullptr;
 }
 
 // ===================== 公開API =====================
@@ -178,7 +162,7 @@ void BranchTreeManager::highlightBranchTreeAt(int row, int ply, bool centerOn)
 
 bool BranchTreeManager::appendSingleMove()
 {
-    if (!m_scene || !m_tree || m_layout.rows.isEmpty() || m_syncedNodeCount < 0) return false;
+    if (!m_tree || m_layout.rows.isEmpty() || m_syncedNodeCount < 0) return false;
     // 構造の変更が「1ノードの追加」1回だけで、ラインの数が変わっていないこと
     if (m_tree->nodeCount() != m_syncedNodeCount + 1 || m_tree->revision() != m_syncedRevision + 1
         || m_tree->lineCount() != m_layout.rows.size()) {
@@ -224,7 +208,6 @@ void BranchTreeManager::setZoomPercent(int percent)
 
 void BranchTreeManager::applyZoom()
 {
-    if (!m_branchTree) return;
     const qreal scale = m_zoomPercent / 100.0;
     m_branchTree->setTransform(QTransform::fromScale(scale, scale));
     updateStickyHeader();
@@ -291,13 +274,13 @@ void BranchTreeManager::scrollToNode(QGraphicsPathItem* item, bool centerOn)
 {
     // 非表示（タブの裏）の間はビューポートの寸法が定まらず、スクロール位置がずれたまま残るため
     // 何もしない。表示・リサイズ時に eventFilter から合わせ直す
-    if (!m_branchTree || !item || !m_branchTree->isVisible()) return;
+    if (!item || !m_branchTree->isVisible()) return;
 
     // ノードの上にある「n手目」の見出しも見える範囲に入れる。上端の見出しの行と一緒に
     // 収まるときは、上端から表示する（手数が読めるように）
     QRectF area = item->mapRectToScene(item->boundingRect() | item->childrenBoundingRect());
     const qreal scale = m_zoomPercent / 100.0;
-    if (m_scene && (area.bottom() + 8) * scale <= m_branchTree->viewport()->height()) {
+    if ((area.bottom() + 8) * scale <= m_branchTree->viewport()->height()) {
         area.setTop(m_scene->sceneRect().top());
     }
     // 見えているときは動かさず、画面外にあるときは中央に寄せる（前後の手も見えるように）
@@ -371,7 +354,7 @@ constexpr int kZoomStep = 10;
 
 QGraphicsItem* BranchTreeManager::nodeItemAt(const QPoint& viewportPos) const
 {
-    if (!m_branchTree || !m_branchTree->scene()) return nullptr;
+    if (!m_branchTree->scene()) return nullptr;
     const QPointF scenePt = m_branchTree->mapToScene(viewportPos);
     // 見出しの帯は手数の表示なので、その下のノードを選ばない
     if (m_headerBand && m_headerBand->sceneBoundingRect().contains(scenePt)) return nullptr;
@@ -452,7 +435,6 @@ bool BranchTreeManager::handleKeyPress(QKeyEvent* event)
 
 void BranchTreeManager::showContextMenu(const QPoint& viewportPos, const QPoint& globalPos)
 {
-    if (!m_branchTree) return;
     QGraphicsItem* hit = nodeItemAt(viewportPos);
     const int row = hit ? hit->data(ROLE_ROW).toInt() : -1;
     const int ply = hit ? hit->data(ROLE_PLY).toInt() : -1;
@@ -515,7 +497,7 @@ bool BranchTreeManager::eventFilter(QObject* obj, QEvent* ev)
     }
 
     // キー操作はビュー本体に届く
-    if (m_branchTree && obj == m_branchTree && ev->type() == QEvent::KeyPress) {
+    if (obj == m_branchTree && ev->type() == QEvent::KeyPress) {
         if (handleKeyPress(static_cast<QKeyEvent*>(ev))) return true;
         return QObject::eventFilter(obj, ev);
     }

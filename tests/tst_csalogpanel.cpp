@@ -25,7 +25,7 @@ private slots:
     void sendingFollowsConnectionAndInput()
     {
         CsaLogPanel panel;
-        std::unique_ptr<QWidget> page(panel.buildUi(nullptr));
+        QWidget* page = &panel;
         auto* input = page->findChild<QLineEdit*>("csaCommandInput");
         auto* send = page->findChild<QPushButton*>("csaSendButton");
         QSignalSpy spy(&panel, &CsaLogPanel::csaRawCommandRequested);
@@ -56,10 +56,10 @@ private slots:
     void incomingLogPreservesReadingPosition()
     {
         CsaLogPanel panel;
-        std::unique_ptr<QWidget> page(panel.buildUi(nullptr));
+        QWidget* page = &panel;
         page->resize(640, 280);
         page->show();
-        QVERIFY(QTest::qWaitForWindowExposed(page.get()));
+        QVERIFY(QTest::qWaitForWindowExposed(page));
         auto* view = page->findChild<QPlainTextEdit*>("csaLogView");
         for (int i = 0; i < 100; ++i) panel.append(QStringLiteral("%1: +7776FU,T1").arg(i));
         auto* scroll = view->verticalScrollBar();

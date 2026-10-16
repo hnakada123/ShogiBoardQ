@@ -50,10 +50,10 @@ private slots:
         QFETCH(bool, wrap);
         AnalysisSettings::usiLogWrapLines.set(wrap);
         UsiLogPanel panel;
-        std::unique_ptr<QWidget> page(panel.buildUi(nullptr));
+        QWidget* page = &panel;
         page->resize(800, 300);
         page->show();
-        QVERIFY(QTest::qWaitForWindowExposed(page.get()));
+        QVERIFY(QTest::qWaitForWindowExposed(page));
         auto* view = page->findChild<QPlainTextEdit*>("usiLogView");
         QVERIFY(view);
         for (int i = 0; i < 100; ++i) {
@@ -110,10 +110,10 @@ private slots:
         QFETCH(bool, wrap);
         AnalysisSettings::usiLogWrapLines.set(wrap);
         UsiLogPanel panel;
-        std::unique_ptr<QWidget> page(panel.buildUi(nullptr));
+        QWidget* page = &panel;
         page->resize(700, 300);
         page->show();
-        QVERIFY(QTest::qWaitForWindowExposed(page.get()));
+        QVERIFY(QTest::qWaitForWindowExposed(page));
         auto* view = page->findChild<QPlainTextEdit*>("usiLogView");
         QVERIFY(view);
         QTextDocument* document = view->document();
@@ -151,7 +151,7 @@ private slots:
         // Qt の標準の文書で同じ内容を表示した表と比べる。折り返すときは、Qt が行数を
         // 配置した行の分だけ数える（ほかは1行とする）ので、追記の手順でスクロールバーが変わる。
         if (wrap) return;
-        QPlainTextEdit reference(page.get());
+        QPlainTextEdit reference(page);
         reference.setGeometry(view->geometry());
         reference.setReadOnly(true);
         reference.setMaximumBlockCount(5000);
@@ -178,7 +178,7 @@ private slots:
     void logHistoryIsBounded()
     {
         UsiLogPanel panel;
-        std::unique_ptr<QWidget> page(panel.buildUi(nullptr));
+        QWidget* page = &panel;
         auto* view = page->findChild<QPlainTextEdit*>("usiLogView");
         for (int i = 0; i < 12000; ++i)
             panel.appendColoredLog(QStringLiteral("info depth %1 pv 7g7f").arg(i), Qt::blue);
@@ -198,7 +198,7 @@ private slots:
     {
         QFETCH(bool, reverse);
         UsiLogPanel panel;
-        std::unique_ptr<QWidget> page(panel.buildUi(nullptr));
+        QWidget* page = &panel;
         auto* view = page->findChild<QPlainTextEdit*>("usiLogView");
         view->setMaximumBlockCount(8);
         for (int i = 0; i < 8; ++i)
@@ -221,7 +221,7 @@ private slots:
     void copyAndClearKeepRawLog()
     {
         UsiLogPanel panel;
-        std::unique_ptr<QWidget> page(panel.buildUi(nullptr));
+        QWidget* page = &panel;
         auto* view = page->findChild<QPlainTextEdit*>("usiLogView");
         auto* copy = page->findChild<QAction*>("usiLogCopy");
         auto* clear = page->findChild<QAction*>("usiLogClear");
@@ -250,7 +250,7 @@ private slots:
     void commandRoutesFromButtonAndEnter()
     {
         UsiLogPanel panel;
-        std::unique_ptr<QWidget> page(panel.buildUi(nullptr));
+        QWidget* page = &panel;
         auto* input = page->findChild<QLineEdit*>("usiCommandInput");
         auto* send = page->findChild<QPushButton*>("usiCommandSend");
         auto* target = page->findChild<QComboBox*>("usiCommandTarget");
@@ -278,7 +278,7 @@ private slots:
     {
         {
             UsiLogPanel panel;
-            std::unique_ptr<QWidget> page(panel.buildUi(nullptr));
+            QWidget* page = &panel;
             auto* view = page->findChild<QPlainTextEdit*>("usiLogView");
             QCOMPARE(view->lineWrapMode(), QPlainTextEdit::NoWrap);
             page->findChild<QAction*>("usiLogWrap")->trigger();
@@ -286,7 +286,7 @@ private slots:
             page->findChild<QComboBox*>("usiCommandTarget")->setCurrentIndex(1);
         }
         UsiLogPanel restored;
-        std::unique_ptr<QWidget> page(restored.buildUi(nullptr));
+        QWidget* page = &restored;
         auto* view = page->findChild<QPlainTextEdit*>("usiLogView");
         QCOMPARE(view->lineWrapMode(), QPlainTextEdit::WidgetWidth);
         QVERIFY(page->findChild<QAction*>("usiLogWrap")->isChecked());

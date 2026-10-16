@@ -4,11 +4,10 @@
 /// @file csalogpanel.h
 /// @brief CSA通信ログパネルクラスの定義
 
-#include <QObject>
+#include <QWidget>
 
 #include "fontsizehelper.h"
 
-class QWidget;
 class QPlainTextEdit;
 class QToolButton;
 class QPushButton;
@@ -18,18 +17,16 @@ class QLabel;
 /**
  * @brief CSA通信ログの表示・操作を担うパネル
  *
- * CSA通信ログドックの中身を buildUi() で作る。ツールバー（フォントサイズ）、コマンド入力バー、ログ表示エリアを持つ。
+ * CSA通信ログドック（と通信対局の待機ダイアログのログ）の中身。部品はコンストラクタで作る。
+ * ツールバー（文字の大きさ・接続状態・コピー・クリア）、ログ表示エリア、コマンド入力バーを持つ。
  */
-class CsaLogPanel : public QObject
+class CsaLogPanel : public QWidget
 {
     Q_OBJECT
 
 public:
-    explicit CsaLogPanel(QObject* parent = nullptr);
+    explicit CsaLogPanel(QWidget* parent = nullptr);
     ~CsaLogPanel() override;
-
-    /// CSA通信ログページのUIを構築し返す
-    QWidget* buildUi(QWidget* parent);
 
     /// ログ行を追記
     void append(const QString& line);
@@ -52,7 +49,6 @@ private:
     void buildCommandBar();
     void applyFontSize();
 
-    QWidget* m_container = nullptr;
     QWidget* m_toolbar = nullptr;
     QPlainTextEdit* m_logView = nullptr;
     QToolButton* m_btnFontIncrease = nullptr;

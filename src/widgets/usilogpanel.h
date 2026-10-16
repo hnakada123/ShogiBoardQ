@@ -4,12 +4,11 @@
 /// @file usilogpanel.h
 /// @brief USI通信ログパネルクラスの定義
 
-#include <QObject>
+#include <QWidget>
 #include <QColor>
 
 #include "fontsizehelper.h"
 
-class QWidget;
 class QAction;
 class QPlainTextEdit;
 class QToolButton;
@@ -24,19 +23,16 @@ class UsiCommLogModel;
 /**
  * @brief USI通信ログの表示・操作を担うパネル
  *
- * USI通信ログドックの中身を buildUi() で作る。ツールバー（フォントサイズ・エンジン名表示）、コマンド入力バー、
- * ログ表示エリアを持つ。
+ * USI通信ログドックの中身。部品はコンストラクタで作る。ツールバー（文字の大きさ・エンジン名表示）、
+ * ログ表示エリア、コマンド入力バーを持つ。
  */
-class UsiLogPanel : public QObject
+class UsiLogPanel : public QWidget
 {
     Q_OBJECT
 
 public:
-    explicit UsiLogPanel(QObject* parent = nullptr);
+    explicit UsiLogPanel(QWidget* parent = nullptr);
     ~UsiLogPanel() override;
-
-    /// USI通信ログページのUIを構築し返す
-    QWidget* buildUi(QWidget* parent);
 
     /// USI通信ログモデルを設定（エンジン名・ログ表示を接続）
     void setModels(UsiCommLogModel* log1, UsiCommLogModel* log2);
@@ -72,7 +68,6 @@ private:
     void buildCommandBar();
     void applyFontSize();
 
-    QWidget* m_container = nullptr;
     QToolBar* m_toolbar = nullptr;
     QPlainTextEdit* m_logView = nullptr;
     ElideLabel* m_engine1Label = nullptr;

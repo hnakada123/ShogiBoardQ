@@ -4,7 +4,7 @@
 /// @file considerationtabmanager.h
 /// @brief 検討ドックの中身（ツールバー・エンジン情報・候補手の表）
 
-#include <QObject>
+#include <QWidget>
 #include <QString>
 
 #include "considerationsettings.h"
@@ -12,7 +12,6 @@
 #include "fontsizehelper.h"
 #include "shogienginethinkingmodel.h"
 
-class QWidget;
 class QToolButton;
 class QPushButton;
 class QLabel;
@@ -30,13 +29,13 @@ class ThinkingTableView;
 /**
  * @brief 検討タブのUI構築・状態管理を担うマネージャ
  *
- * ドックの中身は buildUi() で作る。
+ * 検討ドックの中身（ツールバー・情報・表）。部品はコンストラクタで作る。
  * - 設定（エンジン・時間・候補手の数・矢印）は ConsiderationSettings を正本として持ち、利用者が変えると
  *   保存して settingsChanged で知らせる。ウィジェットはその値を出すだけ
  * - 実行の状態（RunState）は検討の表示の持ち主（EngineDisplayPresenter）が設定する。開始/中止のボタンは
  *   状態に応じて startConsiderationRequested か stopConsiderationRequested を出す
  */
-class ConsiderationTabManager : public QObject
+class ConsiderationTabManager : public QWidget
 {
     Q_OBJECT
 
@@ -49,13 +48,9 @@ public:
     };
     Q_ENUM(RunState)
 
-    explicit ConsiderationTabManager(QObject* parent = nullptr);
+    /// ツールバー・情報・表を作り、保存した検討の条件を出す
+    explicit ConsiderationTabManager(QWidget* parent = nullptr);
     ~ConsiderationTabManager() override;
-
-    /// 検討ドックの中身（ツールバー・情報・表）を作る
-    QWidget* buildUi(QWidget* parent);
-    /// 検討タブのUIを構築し、ツールバー・情報・テーブルビューを parentWidget に配置する
-    void buildConsiderationUi(QWidget* parentWidget);
     /// 検討の表が model を出していれば選択を外す（読み筋ダイアログを閉じたとき）
     void clearViewSelection(const ShogiEngineThinkingModel* model);
 
@@ -105,9 +100,9 @@ private slots:
     void onElapsedTimerTick();
 
 private:
-    void buildToolbarControls(QWidget* parentWidget);
+    void buildToolbarControls();
     void layoutToolbar();
-    void buildConsiderationView(QWidget* parentWidget);
+    void buildConsiderationView();
     /// エンジンの一覧を設定から読み、検討の条件を復元して、変更の通知をつなぐ
     void loadEnginesAndSettings();
     /// 検討の条件を画面に出す（通知は出さない）

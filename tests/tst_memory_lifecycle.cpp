@@ -43,9 +43,7 @@ private slots:
     void considerationSetupDoesNotAccumulateDelegates()
     {
         ShogiEngineThinkingModel model;
-        QWidget page;
         ConsiderationTabManager manager;
-        manager.buildConsiderationUi(&page);
         for (int i = 0; i < 100; ++i)
             manager.setConsiderationThinkingModel(&model);
         QCOMPARE(manager.considerationView()->findChildren<NumericRightAlignCommaDelegate*>().size(), 1);
@@ -66,9 +64,7 @@ private slots:
     void considerationModelSwitchReleasesSelectionModels()
     {
         ShogiEngineThinkingModel first, second;
-        QWidget page;
         ConsiderationTabManager manager;
-        manager.buildConsiderationUi(&page);
         for (int i = 0; i < 100; ++i) {
             manager.setConsiderationThinkingModel(i % 2 ? &first : &second);
             QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
@@ -80,9 +76,9 @@ private slots:
     {
         KifuAnalysisListModel first, second;
         AnalysisResultsPanel presenter;
-        std::unique_ptr<QWidget> page(presenter.containerWidget());
+        QWidget* page = &presenter;
         for (int i = 0; i < 100; ++i) {
-            presenter.showWithModel(i % 2 ? &first : &second);
+            presenter.setModel(i % 2 ? &first : &second);
             QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
         }
         auto* view = page->findChild<QTableView*>();

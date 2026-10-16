@@ -83,8 +83,8 @@ struct UiHarness {
     KifuRecordListModel recordModel{&tree};
     KifuBranchListModel branchModel{&tree};
     RecordPane recordPane{nullptr};
-    QGraphicsView branchTreeView;
     BranchTreeManager branchTreeManager;
+    QGraphicsView& branchTreeView = *branchTreeManager.view();
     std::unique_ptr<KifuDisplayPresenter> display;
     Scenario scenario;
 
@@ -92,7 +92,6 @@ struct UiHarness {
     {
         scenario = buildScenarioTree(tree);
         recordPane.setModels(&recordModel, &branchModel);
-        branchTreeManager.setView(&branchTreeView);
         KifuDisplayPresenter::Deps deps;
         deps.navState = &state;
         deps.liveSession = &live;
@@ -509,7 +508,7 @@ private slots:
     void branchTree_scrollsCurrentNodeIntoViewWhenShown()
     {
         UiHarness h;
-        h.branchTreeView.resize(420, 160);
+        h.branchTreeManager.resize(420, 160);
         h.branchTreeManager.highlightBranchTreeAt(0, 5, /*centerOn=*/true);
         QCOMPARE(h.branchTreeView.horizontalScrollBar()->value(), 0);
         QCOMPARE(h.branchTreeView.verticalScrollBar()->value(), 0);
@@ -529,8 +528,8 @@ private slots:
             return h.branchTreeView.mapToScene(h.branchTreeView.viewport()->rect()).boundingRect();
         };
 
-        h.branchTreeView.show();
-        QVERIFY(QTest::qWaitForWindowExposed(&h.branchTreeView));
+        h.branchTreeManager.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&h.branchTreeManager));
         QTRY_VERIFY(visibleArea().contains(nodeArea));
         QCOMPARE(h.branchTreeView.verticalScrollBar()->value(), 0);
 
@@ -562,8 +561,9 @@ private slots:
         UiHarness h;
         QWidget host;
         auto* layout = new QVBoxLayout(&host);
-        CommentEditorPanel editor;
-        layout->addWidget(editor.buildCommentUi(&host));
+        // パネルは host の子にする（host が消す）
+        CommentEditorPanel& editor = *new CommentEditorPanel(&host);
+        layout->addWidget(&editor);
         auto* edit = host.findChild<QTextEdit*>(QStringLiteral("kifuCommentEdit"));
         QVERIFY(edit != nullptr);
         KifuDocument document(&h.tree);

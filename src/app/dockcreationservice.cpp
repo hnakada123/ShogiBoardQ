@@ -178,28 +178,23 @@ void DockCreationService::createAnalysisDocks()
 
     // 2. 検討ドック
     m_considerationDock = new QDockWidget(tr("検討"), m_mainWindow);
-    QWidget* considerationPage = m_deps.consideration->buildUi(m_considerationDock);
-    setupDock(m_considerationDock, considerationPage, tr("検討"), QStringLiteral("ConsiderationDock"), true);
+    setupDock(m_considerationDock, m_deps.consideration, tr("検討"), QStringLiteral("ConsiderationDock"), true);
 
     // 3. USI通信ログドック
     m_usiLogDock = new QDockWidget(tr("USI通信ログ"), m_mainWindow);
-    QWidget* usiLogPage = m_deps.usiLog->buildUi(m_usiLogDock);
-    setupDock(m_usiLogDock, usiLogPage, tr("USI通信ログ"), QStringLiteral("UsiLogDock"));
+    setupDock(m_usiLogDock, m_deps.usiLog, tr("USI通信ログ"), QStringLiteral("UsiLogDock"));
 
     // 4. CSA通信ログドック
     m_csaLogDock = new QDockWidget(tr("CSA通信ログ"), m_mainWindow);
-    QWidget* csaLogPage = m_deps.csaLog->buildUi(m_csaLogDock);
-    setupDock(m_csaLogDock, csaLogPage, tr("CSA通信ログ"), QStringLiteral("CsaLogDock"));
+    setupDock(m_csaLogDock, m_deps.csaLog, tr("CSA通信ログ"), QStringLiteral("CsaLogDock"));
 
     // 5. 棋譜コメントドック
     m_commentDock = new QDockWidget(tr("棋譜コメント"), m_mainWindow);
-    QWidget* commentPage = m_deps.comment->buildCommentUi(m_commentDock);
-    setupDock(m_commentDock, commentPage, tr("棋譜コメント"), QStringLiteral("CommentDock"));
+    setupDock(m_commentDock, m_deps.comment, tr("棋譜コメント"), QStringLiteral("CommentDock"));
 
     // 6. 分岐ツリードック
     m_branchTreeDock = new QDockWidget(tr("分岐ツリー"), m_mainWindow);
-    QWidget* branchTreePage = m_deps.branchTree->buildView(m_branchTreeDock);
-    setupDock(m_branchTreeDock, branchTreePage, tr("分岐ツリー"), QStringLiteral("BranchTreeDock"));
+    setupDock(m_branchTreeDock, m_deps.branchTree, tr("分岐ツリー"), QStringLiteral("BranchTreeDock"));
 
     // ドックをタブ化して配置
     if (m_gameInfoDock && m_thinkingDock) {
@@ -295,9 +290,7 @@ QDockWidget* DockCreationService::createAnalysisResultsDock()
 
     m_analysisResultsDock = new QDockWidget(tr("棋譜解析"), m_mainWindow);
     setupDockFeatures(m_analysisResultsDock, QStringLiteral("AnalysisResultsDock"));
-    m_analysisResultsDock->setWidget(m_deps.analysisResults->containerWidget());
-
-    m_deps.analysisResults->setDockWidget(m_analysisResultsDock);
+    m_analysisResultsDock->setWidget(m_deps.analysisResults);
 
     m_mainWindow->addDockWidget(Qt::BottomDockWidgetArea, m_analysisResultsDock);
 

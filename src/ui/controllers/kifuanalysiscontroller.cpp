@@ -19,6 +19,7 @@
 #include "shogiview.h"
 #include "enginelifecyclemanager.h"
 
+#include <QDockWidget>
 #include <limits>
 
 KifuAnalysisController::KifuAnalysisController(const Deps& deps, QObject* parent)
@@ -105,13 +106,18 @@ bool KifuAnalysisController::start(AnalysisRequest request)
     m_deps.analysisModel->clearAllItems();
 
     if (!m_resultsPanel) {
-        m_resultsPanel = m_deps.resultsPanel ? m_deps.resultsPanel : new AnalysisResultsPanel(this);
+        if (!m_deps.resultsPanel) m_ownedResultsPanel = std::make_unique<AnalysisResultsPanel>();
+        m_resultsPanel = m_deps.resultsPanel ? m_deps.resultsPanel : m_ownedResultsPanel.get();
+        m_resultsPanel->setModel(m_deps.analysisModel);
         connect(m_resultsPanel, &AnalysisResultsPanel::stopRequested, this, &KifuAnalysisController::stop);
         connect(m_resultsPanel, &AnalysisResultsPanel::rowDoubleClicked,
                 this, &KifuAnalysisController::onResultRowDoubleClicked);
         connect(m_resultsPanel, &AnalysisResultsPanel::rowSelected, this, &KifuAnalysisController::onResultRowSelected);
     }
-    m_resultsPanel->showWithModel(m_deps.analysisModel);
+    if (QDockWidget* dock = m_deps.resultsDock) {
+        dock->setVisible(true);
+        dock->raise();
+    }
     m_resultsPanel->beginAnalysis(request.options.endPly - request.options.startPly + 1, request.engineName);
 
     // 評価値グラフは解析の結果だけにする（条件ダイアログをやめたときは消さない）

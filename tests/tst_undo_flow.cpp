@@ -58,7 +58,6 @@ struct Harness : QObject {
     KifuRecordListModel record{&tree};
     KifuBranchListModel branches{&tree};
     RecordPane pane;
-    QGraphicsView treeView;
     BranchTreeManager treeManager;
     ShogiGameController gc;
     LiveGameSession session{&tree, &state};
@@ -88,7 +87,6 @@ struct Harness : QObject {
         const QString initial = SfenUtils::hirateSfen();
         tree.setRootSfen(initial);
         pane.setModels(&record, &branches);
-        treeManager.setView(&treeView);
         KifuDisplayPresenter::Deps dd;
         dd.navState = &state;
         dd.liveSession = &session;

@@ -3400,11 +3400,12 @@ private slots:
     void engineAnalysisLayout()
     {
         KifuAnalysisListModel model;
-        AnalysisResultsPanel presenter;
-        QWidget* container = presenter.containerWidget();
-        container->setParent(window.get(), Qt::Window);
+        // 結果の表は別のウィンドウとして出す（最後に delete する）
+        AnalysisResultsPanel& presenter = *new AnalysisResultsPanel(window.get());
+        presenter.setWindowFlag(Qt::Window);
+        QWidget* container = &presenter;
         container->resize(1100, 480);
-        presenter.showWithModel(&model);
+        presenter.setModel(&model);
         container->show();
         presenter.beginAnalysis(24, QStringLiteral("Hayanagi 1.5.0"));
         auto* table = presenter.view();
@@ -3446,12 +3447,9 @@ private slots:
         QCOMPARE(table->columnWidth(0), 200);
         {
             AnalysisResultsPanel restored;
-            QWidget* restoredContainer = restored.containerWidget();
-            restoredContainer->setParent(window.get(), Qt::Window);
-            restored.showWithModel(&model);
+            restored.setModel(&model);
             QTest::qWait(50);
             QCOMPARE(restored.view()->columnWidth(0), 200);
-            delete restoredContainer;
         }
         model.clearAllItems();
         QVERIFY(!progress->isVisible());
@@ -3961,17 +3959,14 @@ private slots:
             QVERIFY(view->columnWidth(col) >= view->fontMetrics().horizontalAdvance(model->headerData(col, Qt::Horizontal).toString()));
         QCOMPARE(AnalysisSettings::thinkingViewColumnWidths(AnalysisSettings::ThinkingTable::Consideration).at(2), 180);
 
-        QWidget restoredPanel;
-        new QVBoxLayout(&restoredPanel);
         ConsiderationTabManager restored;
         restored.setConsiderationThinkingModel(model);
-        restored.buildConsiderationUi(&restoredPanel);
         QCOMPARE(restored.considerationView()->columnWidth(2), 180);
         QCOMPARE(restored.considerationInfo()->columnWidths().at(0), 290);
         ConsiderationSettings restoredSettings = restored.settings();
         restoredSettings.unlimitedTime = true;
         restored.setSettings(restoredSettings);
-        QVERIFY(!restoredPanel.findChild<QSpinBox*>("considerationSeconds")->isEnabled());
+        QVERIFY(!restored.findChild<QSpinBox*>("considerationSeconds")->isEnabled());
     }
     void engineInfoLayout()
     {

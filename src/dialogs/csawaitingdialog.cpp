@@ -199,7 +199,7 @@ void CsaWaitingDialog::createLogWindow()
     // 中身は対局中の CSA 通信ログのドックと同じ部品（文字の大きさの設定も共有する）
     auto* layout = new QVBoxLayout(m_logWindow);
     m_logPanel = new CsaLogPanel(m_logWindow);
-    layout->addWidget(m_logPanel->buildUi(m_logWindow));
+    layout->addWidget(m_logPanel);
     connect(m_logPanel, &CsaLogPanel::csaRawCommandRequested, this, &CsaWaitingDialog::onRawCommandRequested);
 
     auto* buttonLayout = new QHBoxLayout();

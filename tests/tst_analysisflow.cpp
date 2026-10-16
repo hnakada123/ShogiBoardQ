@@ -367,12 +367,9 @@ private slots:
         KifuNavigationState nav(&tree);
         nav.setCurrentNode(first);
 
-        QWidget panel;
-        new QVBoxLayout(&panel);
         ShogiEngineThinkingModel considerationModel;
         ConsiderationTabManager tab;
         tab.setConsiderationThinkingModel(&considerationModel);
-        tab.buildConsiderationUi(&panel);
         ConsiderationSettings settings = tab.settings();
         settings.unlimitedTime = false;
         settings.byoyomiSec = 15;
@@ -411,10 +408,7 @@ private slots:
         KifuBranchTree tree;
         tree.setRootSfen(SfenUtils::hirateSfen());
         KifuNavigationState nav(&tree);
-        QWidget panel;
-        new QVBoxLayout(&panel);
         ConsiderationTabManager tab;
-        tab.buildConsiderationUi(&panel);
         writeEngineSettings(mockEngine(), QStringLiteral("RenamedEngine"));   // タブの一覧を作った後に登録が変わった
 
         ConsiderationUiController::Deps deps;
