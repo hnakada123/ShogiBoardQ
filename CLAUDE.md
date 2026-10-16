@@ -49,7 +49,7 @@ cmake --build build --target translations
   - `mainwindowactions.cpp/.h` - メニュー・盤・棋譜欄からの利用者操作の振り分け先
   - `menuactionswiring.cpp/.h` - メニュー・ツールバーの項目と処理する部品の接続
   - `gamesession.cpp/.h` - 対局の開始・終局・再開と、対局の手順の棋譜への追記（`MatchRecordSink`）。ローカル対局と通信対局の棋譜を開始から終局・自動保存まで1本の流れで扱い、投了・中断・即指し・入玉宣言は `activeChannel()`（`GameChannel`）へ送る
-  - `sessionresetcoordinator.cpp/.h` - 対局の開始前・新規・局面編集・棋譜の読み込み前に、棋譜と表示を作り直す
+  - `sessionresetcoordinator.cpp/.h` - 対局の開始前・新規・局面編集・棋譜の読み込み前に、棋譜と表示を作り直す（エンジンの表示の消去は `EngineDisplayPresenter::clearAll()`）
   - `humanturnpolicy.cpp/.h` - 盤を人間が操作できる手番か・対局が進行中かの判定
   - `dockcreationservice.cpp/.h` - ドックの生成と配置
 
@@ -101,6 +101,7 @@ cmake --build build --target translations
   - `usi.cpp/.h` - GUI から使うエンジン1台の窓口
   - `usienginesession.cpp/.h` - 起動と初期化（usi〜readyok）。GUI と CLI の実行器が共有する
   - `usiprotocolhandler.cpp/.h` - USI protocol implementation
+  - `thinkinginfoformatter.cpp/.h`・`enginesearchstatus.h` - info を思考の表の行と探索状況 `EngineSearchStatus`（数値のまま。info 1行ごとに `searchStatusUpdated` で1回送り、書式は表示する側が決める）にする
   - `usilineparser.cpp/.h` - 受信行（info・bestmove・checkmate・option・id）を型付きの値にする
   - `engineprocessmanager.cpp/.h` - Engine process lifecycle
   - `usimatchhandler.cpp/.h` - 対局・解析での USI のやり取り（position/go/bestmove）
@@ -121,9 +122,9 @@ cmake --build build --target translations
 
 - **ui/**: UI層
   - **presenters/**: 表示への反映
-    - `playerinfopresenter`（対局者名）, `kifudisplaypresenter`（棋譜欄・分岐）, `boardsyncpresenter`（盤と手番）, `candidatearrowpresenter`, etc.
+    - `enginedisplaypresenter`（エンジンの表示の持ち主。検討の表示は `AnalysisSession` の知らせだけから決める）, `playerinfopresenter`（盤の対局者名）, `evaluationgraphpresenter`（評価値グラフの点の唯一の書き手）, `kifudisplaypresenter`（棋譜欄・分岐）, `boardsyncpresenter`（盤と手番）, `candidatearrowpresenter`, etc.
   - **controllers/**: 利用者操作の処理
-    - `boardmovecontroller`, `considerationuicontroller`, `josekiwindowcontroller`, `menuwindowcontroller`, `pvclickcontroller`, etc.
+    - `boardmovecontroller`, `considerationuicontroller`（検討タブの操作を `AnalysisSession` へ伝えるだけ）, `josekiwindowcontroller`, `menuwindowcontroller`, `pvclickcontroller`, etc.
   - **coordinators/**: 複数の部品にまたがる UI の流れ
     - `dialoglauncher`, `kifuloadcoordinator`, `kifufilecontroller`（棋譜の開く・保存・貼り付け・コピー）, `csagamesession`, `positioneditcoordinator`, etc.
     - `uistatepolicymanager` - 動作状態ごとのメニュー・ボタンの有効/無効（コンパイル時の表）
@@ -136,11 +137,11 @@ cmake --build build --target translations
   - `kifuconversionservice`, `boardimagerenderer`, `engineanalysisrunner`, `matesearchrunner`, `tsumeverificationrunner` - CLI と共有するサービス（局面の検証は `analysis/sfenvalidationservice`）
 - **cli/**: `shogiboardq-cli`（GUI を起動しない JSON 出力コマンド。`mcp/` の MCP サーバーが呼び出す）
 - **widgets/**: Custom Qt widgets
-  - `thinkingpanel`・`thinkingtableview`（思考の表。対局と検討タブで共用）・`engineinfowidget`, `gameinfopane`（対局情報。中身は `models/gameinfoeditmodel`）, `recordpane`, `considerationtabmanager`, `analysisresultspanel`
+  - `thinkingpanel`・`thinkingtableview`（思考の表。対局と検討タブで共用）・`engineinfowidget`（探索状況の書式はここで決める）, `gameinfopane`（対局情報。中身は `models/gameinfoeditmodel`）, `recordpane`, `considerationtabmanager`（検討タブ。設定 `ConsiderationSettings`（`considerationsettings.h`）を正本として持ち、開始/中止のボタンは実行の状態 `RunState` で決まる）, `evaluationchartwidget`（評価値グラフ。`EvaluationSeries` を描くだけ）, `analysisresultspanel`
   - `tableheaderview` - 表の見出し。列幅は利用者がドラッグしたときだけ `sectionResizedByUser` で保存する
   - `fontsizehelper` - A-/A+ の文字の大きさ（範囲・保存・変更の通知）
 - **dialogs/**: Dialog implementations (with co-located .ui files)
-- **models/**: Qt models for lists and data binding
+- **models/**: Qt models for lists and data binding（`usicommlogmodel`: エンジン1台の情報欄と通信ログの行の知らせ、`evaluationseries`: 評価値グラフの点。先手から見た値で持ち、向きの直しは `blackView()` だけ）
 - **services/**: Cross-cutting services (settings, time keeping)
 - **common/**: Shared utilities (`errorbus`, `jishogicalculator`)
 
