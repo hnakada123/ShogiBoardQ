@@ -85,7 +85,7 @@
 76. `tst_joseki_repository`
 77. `tst_tsumeshogi_generator`
 78. `tst_tsumeshogi_export_header`
-79. `tst_analysis_coordinator`
+79. `tst_analysis_results`
 80. `tst_consideration_resolver`
 81. `tst_tsume_search`
 82. `tst_image_export`

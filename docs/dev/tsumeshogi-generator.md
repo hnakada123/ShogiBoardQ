@@ -13,8 +13,11 @@
 | クラス | ファイル | 責務 |
 |---|---|---|
 | `TsumeshogiGeneratorDialog` | `src/dialogs/tsumeshogigeneratordialog.h/.cpp` | UI（パラメータ設定・進捗表示・結果テーブル） |
-| `TsumeshogiGenerator` | `src/analysis/tsumeshogigenerator.h/.cpp` | オーケストレータ（生成→検証→トリミングの全体制御） |
+| `TsumeshogiGenerator` | `src/analysis/tsumeshogigenerator.h/.cpp` | 候補の待ち行列（バッチ生成）・問い合わせの中継・結果の集計（重複の除外・上限・進捗） |
+| `TsumeCandidateJob` | `src/analysis/tsumecandidatejob.{h,cpp}` | 候補1つを採択か棄却まで進める（手数の確認→唯一解の検査→駒の除去→除いた局面の検査）。Qt のイベントループを知らない引き出し型 |
+| `TsumeVerificationJob` | `src/analysis/tsumeverificationjob.{h,cpp}` | `TsumeshogiVerifier` の問い合わせを総予算と1回の上限（`kQueryMaxMs` = 1000ms）で区切って出す。CLI の余詰検査（`TsumeVerificationRunner`）と共通 |
 | `TsumeshogiVerifier` | `src/analysis/tsumeshogiverifier.{h,cpp}` | 合法手・全応手の列挙と唯一性の検査状態を管理 |
+| `MateOracle`・`MateQueryLoop` | `src/engine/mateoracle.{h,cpp}`・`src/engine/matequeryloop.{h,cpp}` | エンジンへの `go mate` の問い合わせ（`UsiEngineSession` を持ち、答えは `MateAnswer`）と、引き出し型の問い合わせ元（`MateQuerySource`）を最後まで回すループ |
 | `TsumeshogiCandidateScreener` | `src/analysis/tsumeshogicandidatescreener.{h,cpp}` | 内蔵探索（Hayanagi）による候補の事前選別とバッチ生成 |
 | `TsumeshogiPositionGenerator` | `src/analysis/tsumeshogipositiongenerator.h/.cpp` | ランダム局面生成（SFEN文字列出力） |
 | `TsumeshogiExportHeaderBuilder` | `src/analysis/tsumeshogiexportheaderbuilder.h/.cpp` | ファイル保存のコメントヘッダ（バージョン・生成日時・生成設定）の生成 |
@@ -22,37 +25,41 @@
 ```
 TsumeshogiGeneratorDialog
   │
-  ├─ TsumeshogiGenerator          ← オーケストレータ
+  ├─ TsumeshogiGenerator          ← 候補の待ち行列・問い合わせの中継・結果の集計
   │    ├─ TsumeshogiCandidateScreener  ← 事前選別（ワーカースレッド。内部で TsumeshogiPositionGenerator を使用）
   │    │    └─ TsumeshogiPositionGenerator  ← ランダム局面生成
-  │    ├─ TsumeshogiVerifier        ← 余詰検査（Hayanagiの合法手生成を利用）
-  │    └─ UsiEngineSession             ← エンジン通信（画面を持たない接続。search() で position・go mate を送り、期限を過ぎたら stop を送る）
+  │    ├─ TsumeCandidateJob         ← 候補1つの処理（引き出し型）
+  │    │    └─ TsumeVerificationJob    ← 総予算つきの唯一解の検査
+  │    │         └─ TsumeshogiVerifier   ← 余詰検査（Hayanagiの合法手生成を利用）
+  │    └─ MateQueryLoop → MateOracle   ← 問い合わせを1つずつエンジンへ（MateOracle が UsiEngineSession を持ち、position・go mate を送り、期限を過ぎたら stop を送る）
   │
   signals: positionFound / progressUpdated / finished / errorOccurred
 ```
 
 ## 処理フロー
 
-1. `Searching`: ワーカースレッドでランダム局面を生成し、内蔵探索で「目標手数ちょうどで詰み、詰む初手が1つ」の候補だけを残す。候補を選択エンジンの `go mate` で調べる。
-2. 目標手数のPVが返ったら `Verifying` へ移り、`TsumeshogiVerifier` で全変化の攻手を検査する。
-3. 合格した局面だけを `Trimming` のベースにする。
-4. 駒の除去後に目標手数のPVが返っても、`Verifying` を完了するまで除去を確定しない。
-5. 除去候補を試し終えたら、検証済みの最終SFEN/PVを出力し、次の候補へ進む。
+1. ワーカースレッドでランダム局面を生成し、内蔵探索で「目標手数ちょうどで詰み、詰む初手が1つ」の候補だけを待ち行列に残す。生成器は候補を1つずつ `TsumeCandidateJob` にして `MateQueryLoop` で回す。
+2. `CheckLength`: 候補を選択エンジンの `go mate` で調べる。目標手数のPVでなければ棄却する。
+3. `Verify`: `TsumeVerificationJob`（`TsumeshogiVerifier`）で全変化の攻手を検査する。合格した局面だけを除去の元局面にする。
+4. `Trim`・`VerifyTrimmed`: 駒の除去後に目標手数のPVが返っても、除いた局面の検査に合格するまで除去を確定しない。
+5. 除去候補を試し終えたら `Accepted` になり、生成器が検証済みの最終SFEN/PV（`outcome()`）を出力して次の候補へ進む。
 
-| Phase | 内容 |
+| Stage（`TsumeCandidateJob::Stage`） | 内容 |
 |---|---|
-| `Idle` | 停止中 |
-| `Searching` | 候補生成と外部エンジンによる詰み探索 |
-| `Trimming` | 駒除去候補の詰み探索 |
-| `Verifying` | 元のフェーズを保持して唯一性を検査。終了後に採択または棄却 |
+| `CheckLength` | 候補局面の詰みの手数を確かめる |
+| `Verify` | 候補局面の唯一解を検査する |
+| `Trim` | 駒を1枚除いた局面の詰みを確かめる |
+| `VerifyTrimmed` | 駒を1枚除いた局面の唯一解を検査する |
+| `Accepted`・`Rejected` | 採択・棄却（`outcome()` は `Accepted` のときだけ値がある） |
 
 `positionFound` は全検査に合格した局面だけを通知する。`progressUpdated` の探索済み数は、事前選別で落とした局面を含む生成局面数である。
 `verificationProgress` は問い合わせ数、`verificationStatsUpdated` は検査で除外した局面数（事前選別で複数初手を検出した局面と駒除去の試行を含む）と、
 そのうち判定不能の件数を通知する。
 
-`start()` の初期化中は従来どおり停止要求を記録し、初期化処理が復帰してから終了する。
-検査問い合わせと続行処理はUSIシグナルと単発タイマーで進め、UIスレッドを探索待ちにしない。
-キャッシュだけで進められる場合も、64ステップごとにイベントループへ制御を戻す。
+`start()` はエンジンの起動を頼むだけで（`MateOracle::start()`）、初期化を終えた `ready` で探索を始める。
+問い合わせは `MateQueryLoop` が `MateOracle::answered` と間隔0の単発タイマーで進め、UIスレッドを探索待ちにしない。
+`TsumeCandidateJob`・`TsumeVerificationJob` は引き出し型の問い合わせ元（`MateQuerySource`。`nextQuery()`・`submit(answer, elapsedMs)`・`isDone()`）で、Qt のイベントループもエンジンも知らない。
+キャッシュだけで進められる場合も、64ステップごとにイベントループへ制御を戻す（`nextQuery()` が空を返し、ループが呼び直す）。
 
 ## ランダム局面生成 (TsumeshogiPositionGenerator)
 
@@ -110,7 +117,7 @@ TsumeshogiGeneratorDialog
 キューが2局面未満になったら次のバッチを先行して始める。
 
 時間上限は `kScreenLimits`（存在探索 100ms、各初手の別詰探索 100ms、別詰の深さ上乗せ2手）。
-駒除去候補の選別はUIスレッドで行うため `kTrimScreenLimits`（20ms、5ms、上乗せ2手）と短くし、
+駒除去候補の選別は `TsumeCandidateJob` が呼び出し元（UI）のスレッドで行うため `kTrimScreenLimits`（20ms、5ms、上乗せ2手）と短くし、
 除去後に目標手数で詰まない・短く詰む・初手が複数ある除去はエンジンに送らず却下する。
 
 2026-09-25 の計測（KomoringHeights 1.1.0、3手詰・攻め駒4・守り駒1・範囲3・5秒、`tsumeshogi_generation_harness --screen`）:
@@ -125,7 +132,7 @@ TsumeshogiGeneratorDialog
 事前選別の時間切れは 4000 局面中 0 だった。目標手数が長い場合は時間切れが増えるが、
 その局面は従来どおりエンジンに送られるため、生成が止まることはない。
 
-## エンジン検証 (TsumeshogiGenerator)
+## エンジン検証 (TsumeCandidateJob・TsumeVerificationJob)
 
 ### USIプロトコル
 
@@ -185,24 +192,24 @@ TsumeshogiGeneratorDialog
 既存の詰将棋対局で参考手順以外の詰手を受理する動作は変更しない。
 
 `timeoutMs` は候補探索・各除去探索に加え、それぞれの余詰検査全体にも適用する。
-検査中の1問い合わせは最大1秒（総予算の残りが少なければその時間）とし、難しい1手に偏らないようにする。
+検査中の1問い合わせは最大1秒（`TsumeVerificationJob::kQueryMaxMs`。総予算の残りが少なければその時間）とし、難しい1手に偏らないようにする。総予算は答えにかかった時間の合計で数える。
 検査局面数・応答キャッシュの上限はそれぞれ10,000。時間や資源の上限に達した場合は判定不能として採択しない。
 目標手数は従来どおり1～99の奇数。Hayanagiの有限深さ探索APIは使わないため、63手への暗黙の切り詰めは行わない。
 
-SFEN重複排除は唯一性検査と独立して行う。`registerFoundPosition()` は検証済みの正確なSFEN/PVの組以外を拒否し、
-その後に `m_foundSfens` で二重出力を防ぐ。
+SFEN重複排除は唯一性検査と独立して行う。採択の結果（`TsumeCandidateJob::outcome()`）は、全ての1枚除去の判定を終えた局面と
+その局面の検査が返した手順からしか作られない。生成器の `publish()` はその後に `m_foundSfens` で二重出力を防ぐ。
 
 ### タイマー
 
 | タイマー | 用途 | 間隔 |
 |---|---|---|
-| `UsiSearchRequest::stopAfterMs`（`UsiEngineSession` の stop タイマー） | エンジン無応答ガード。期限を過ぎたら stop を送る | 各 `go mate` に指定した時間 + 5000ms（シングルショット） |
-| `UsiSearchRequest::replyTimeoutMs`（`UsiEngineSession` の応答待ち） | stop の後の応答待ち。過ぎたら `searchTimedOut` を受けてエンジン固着として生成を中止する | 3000ms（シングルショット） |
+| `UsiSearchRequest::stopAfterMs`（`UsiEngineSession` の stop タイマー） | エンジン無応答ガード。期限を過ぎたら stop を送る | 各 `go mate` に指定した時間 + 5000ms（`kMateStopMarginMs`。シングルショット） |
+| `UsiSearchRequest::replyTimeoutMs`（`UsiEngineSession` の応答待ち） | stop の後の応答待ち。過ぎたら `MateOracle::timedOut` を受けてエンジン固着として生成を中止する | 3000ms（`kStopReplyMs`。シングルショット） |
 | `m_progressTimer` | UI進捗更新 | 500ms（リピート） |
-| `m_verificationStepTimer` | 余詰検査の続行 | 0ms（シングルショット） |
+| `MateQueryLoop` の `m_stepTimer` | 次の問い合わせを引き出す | 0ms（シングルショット） |
 
-探索は `TsumeshogiGenerator::sendMateSearch(sfen, ms)` が `UsiSearchRequest`（局面は `UsiPosition::parse(sfen)`、`go` は `UsiGo::mate()`）にまとめて `UsiEngineSession::search()` に頼む。
-stop を送った後に届いた応答は `UsiCheckmate::stopped` が付き、結果として扱わない。
+探索は `MateQueryLoop` が `MateOracle::ask(position, limitMs)` に頼み、`MateOracle` が `UsiSearchRequest::mate()`（打ち切りの方針を決める1か所）にまとめて `UsiEngineSession::search()` に渡す。
+stop を送った後に届いた応答（`UsiCheckmate::stopped`）は `MateAnswer::fromCheckmate()` が Unknown にし、詰み・不詰の結果として扱わない。
 
 エンジンの応答が遅れた場合、停止・応答待ちの時間だけ総予算を超えることがある。
 予算超過後の結果を採択せず、既存の無応答ガードで安全に次へ進むか生成を終了する。
@@ -219,13 +226,13 @@ stop を送った後に届いた応答は `UsiCheckmate::stopped` が付き、�
 N手詰・主手順の唯一性検査に合格（SFEN, PV）
   │
   ▼
-startTrimmingPhase(sfen, pv)
+TsumeCandidateJob::startTrimming(sfen, pv)
   │
   ▼
 除去候補リストを構築（enumerateRemovablePieces）
   │
   ▼
-候補[0]を除去したSFENを生成（removePieceFromSfen）
+候補[0]を除去したSFENを生成（removePiece）
   │
   ▼
 開始局面の王手・内蔵探索で事前選別（不詰・短い詰み・複数初手は却下して次の候補へ）
@@ -235,19 +242,19 @@ startTrimmingPhase(sfen, pv)
   │
   ▼
 エンジン応答:
-  ├─ ちょうどN手詰 → 唯一性を再検査 → 合格した場合だけ除去確定
+  ├─ ちょうどN手詰 → 唯一性を再検査（VerifyTrimmed） → 合格した場合だけ除去確定
   │   → 除去後のSFENをベースに候補リストを再構築
   │   → 先頭から再開（新たに除去可能になった駒があるかもしれない）
   │
-  ├─ 判定不能・時間切れ・証明が不十分な異なる長さのPV → 局面全体を不採択
+  ├─ 判定不能・時間切れ・証明が不十分な異なる長さのPV・内蔵探索と食い違う不詰 → 局面全体を不採択
   │
-  └─ 確定した不詰・手数不一致・余詰 → 除去却下
+  └─ 確定した不詰・余詰 → 除去却下
       → 次の候補へ（インデックスを進める）
           │
           ├─ 次の候補あり → エンジンに送信
-          └─ 全候補の確定判定が完了 → トリミング完了
-              → positionFound シグナルを emit
-              → Searching フェーズに復帰
+          └─ 全候補の確定判定が完了 → Accepted（outcome() に最終SFEN/PV）
+              → 生成器が positionFound シグナルを emit
+              → 次の候補へ
 ```
 
 ### 除去候補の列挙ルール
@@ -282,11 +289,11 @@ startTrimmingPhase(sfen, pv)
 
 トリミング中に `stop()`・エンジンエラー・エンジン固着で終了する場合、処理中の局面は出力しない。元局面の詰み・余詰を確認済みでも、その駒が不要でないことを確認したことにはならない。`Unknown` や遅延応答による判定不能も、除去を却下して元局面を採択する根拠にはしない。
 
-`registerFoundPosition()` はSFEN・PVが余詰検査の合格結果と一致することに加えて、最終局面に対する全1枚除去の完了フラグ `m_trimComplete` を要求する。このフラグは新候補・除去成功による再検査・後始末で解除する。
+採択の結果（`outcome()`）は `Accepted` のときだけ値があり、最終局面に対する全1枚除去の判定を終えてから、その局面の検査が返した手順で作る。中断した候補（`abort()`）は `Rejected` になり、結果を持たない。
 
 ### 保存済み問題集の再検査
 
-13手詰の旧703番では4三桂・2九香を除いても同じ13手詰が成立した。このため、生成時のトリミングとは別に、保存した全局面の不要駒を再検査する。再検査ツールは `TsumeshogiGenerator::onePieceRemovedPositions()` を使い、生成器と同じ除去操作を適用する。
+13手詰の旧703番では4三桂・2九香を除いても同じ13手詰が成立した。このため、生成時のトリミングとは別に、保存した全局面の不要駒を再検査する。再検査ツールは `TsumeCandidateJob::onePieceRemovedPositions()` を使い、生成器と同じ除去操作を適用する。
 
 ```bash
 cmake --build build --target tsumeshogi_collection_auditor --parallel 4
@@ -302,7 +309,7 @@ Python側は監査記録 `audit.jsonl` を即時保存し、同じ検証器の�
 ## 駒を1枚除いた局面（トリミング）
 
 トリミング処理では、SFEN を局面の値 `Position` に読み、駒を1枚除いて守方（後手）の持駒にしたあと、`Position::toSfen(Turn::Black, 1)` で SFEN を書き出す
-（`TsumeshogiGenerator::removePieceFromSfen()`）。手番は先手、手数は1に固定する。
+（`TsumeCandidateJob::removePiece()`）。手番は先手、手数は1に固定する。
 
 除去候補（`TrimCandidate`）の並び:
 1. 盤上の駒（玉以外。攻方・守方とも）。上の段から、段の中は9筋から
@@ -340,7 +347,7 @@ Python側は監査記録 `audit.jsonl` を即時保存し、同じ検証器の�
 - 「手順も出力」を有効にすると、ファイル保存・コピーの各行が `<SFEN> moves <USI手順>` になる。無効時は SFEN のみで、SFEN集ダイアログ等の1行1SFEN形式と互換。
 - 「ファイル保存」は先頭に `# ` 始まりのコメント行で ShogiBoardQ のバージョン（`APP_VERSION`）、生成開始日時、生成設定（エンジン、目標手数、攻め駒上限、守り駒上限、配置範囲、探索時間/局面、生成上限、余詰検査）を記録する（`TsumeshogiExportHeaderBuilder::build`）。設定と日時は「開始」時に `m_lastRunSettings` / `m_lastRunStartedAt` に控えたものを使うので、生成後に設定欄を変えても保存内容は変わらない。コピーにはヘッダを付けない。`TsumeCollection::parse` と `SfenCollectionDialog::parseSfenLines` は `#` 始まりの行を読み飛ばす。
 - ファイル保存は `TsumeCollectionWriter::save()` が `QSaveFile` で書き込み完了を確認してから置き換える。閉じる・Escでも生成を停止して設定を保存する。
-- ジェネレータ（`TsumeshogiGenerator`）はダイアログの子として1つだけ生成し、開始のたびに再利用する。`start()` が状態を初期化し、エンジンとの接続（`UsiEngineSession`。画面の思考情報は使わない）は開始ごとに生成・終了時に `deleteLater` で破棄する。
+- ジェネレータ（`TsumeshogiGenerator`）はダイアログの子として1つだけ生成し、開始のたびに再利用する。`start()` が状態を初期化し、エンジンとの接続（`MateOracle`。画面の思考情報は使わない）は開始ごとに生成・終了時に `deleteLater` で破棄する。
 
 ## 設定パラメータ一覧
 
@@ -370,13 +377,14 @@ Python側は監査記録 `audit.jsonl` を即時保存し、同じ検証器の�
 - 候補・除去探索の `checkmate` は一次フィルタを通して余詰検査へ進める。
 - 検査中の `checkmate` は長さがN手かにかかわらず、現在の問い合わせへの詰み応答として扱う。
 - 検査中の `nomate` はその攻手を否定するために使用し、`timeout` は判定不能として使用する。
-- 無応答ガードで送ったstopの後に来る応答（`UsiCheckmate::stopped`）は結果として使わず、検査ではUnknownとして処理する。
-- 終了時は検査続行タイマーを止め、問い合わせ・検証結果を破棄する。旧接続のシグナルは切断する。
+- 無応答ガードで送ったstopの後に来る応答（`UsiCheckmate::stopped`）は結果として使わず、検査ではUnknownとして処理する（`MateAnswer::fromCheckmate()`）。
+- 終了時は `MateQueryLoop::cancel()` で問い合わせを止め、調べている候補（`TsumeCandidateJob`）を破棄する。旧接続（`MateOracle`）のシグナルは切断する。
 
-`tests/tst_tsumeshogi_verification.cpp` が第2・4問の初手、途中手、最終手、長い別解、
-判定不能、不正PV、駒除去の再検査、通常・停止・エラー時の出力条件を検査する。
-バッチ生成が候補以外を含む生成局面数を進捗に通知し、キューに事前選別を通った局面だけを積むこと、
-駒除去の事前選別で3手で詰まない除去をエンジンに送らないことも同じファイルで検査する。
+`tests/tst_tsumeshogi_verification.cpp` はエンジンを使わず、`TsumeCandidateJob`・`TsumeVerificationJob`（`TsumeshogiVerifier`）を代用エンジンの答えで直接進め、
+第2・4問の初手、途中手、最終手、長い別解、判定不能、不正PV、駒除去の再検査、停止・時間切れ・遅れた応答で採択しないこと、
+1回の問い合わせの上限と総予算、駒除去の事前選別で3手で詰まない除去をエンジンに送らないことを検査する。
+生成器（`TsumeshogiGenerator`）は、どの終了経路（停止・上限到達・エンジンエラー・無応答・非対応）でも先行するバッチ生成を取り消して採択しないこと、
+バッチが候補以外を含む生成局面数を進捗に通知し、キューに事前選別を通った局面だけを積むこと、候補の段階の進捗と棄却の数を中継することだけを検査する。
 `tests/tst_tsumeshogi_screener.cpp` は事前選別の各判定（ちょうどの手数、短い詰み、複数初手、上乗せ深さによる長い別初手の検出、
 不正入力・中断の Unknown、バッチの件数と中断）を検査する。
 基本の唯一解正例は、王手が1種類しかなく応手が0の専用1手局面を使う。

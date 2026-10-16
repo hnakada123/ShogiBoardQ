@@ -160,7 +160,7 @@ KifuLoadCoordinator::loadFinished ──► enableNavigationIfAllowed()（ナビ
     → setActivity(Idle) → gameEnded（GameSession::onGameEnded()）
 
 【棋譜解析中】
-  Usi::errorOccurred → AnalysisJob::onError() → stop() → finished
+  Usi::errorOccurred → AnalysisJob::onError() → stop() → finished(false)
     → KifuAnalysisController::onFinished() → finishRun() → setActivity(Idle)
   （AnalysisJob::errorOccurred → KifuAnalysisController::onEngineError() がエラーを表示する）
 
