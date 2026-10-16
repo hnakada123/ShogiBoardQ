@@ -698,7 +698,7 @@
 | 詰将棋対局（dialogs） | `TsumePlayDialog` が対局と正解手順の再生を `m_reviewing` などのフラグで切り替え、全部品の有効・無効を三項演算で決める。挑戦と正答の記録をダイアログが付ける。成りの確認は `QMessageBox` を自前で組み立てた3択で、メイン盤の `PromotionFlow` と別 | `enum class Mode { Playing, Reviewing }` と、部品ごとの有効・無効の表を1か所に置く。記録は `TsumeGameSession` へ移す |
 | KifuPresentation と common/（common） | `kifupresentation.cpp` が、`core/shoginotation.h` の駒名・全角の筋・漢数字の段、`core/handicaps.h` の手合割の表（B4 の原因）、`kifu/gameinfokeys.h` の見出しを写している。英語表記の移動元の判定は駒の利きを手書きしていて、KI2 の同じ判定（`ki2movenotation.cpp:149-160` は `EngineMoveValidator::pseudoLegalMoves` を使う）と2系統。`Options current` というグローバル状態がある。common には QWidget に依存するスタイル類、models 専用の `abstractlistmodel.h`、持将棋の計算、position コマンドの組み立てが同居している | KifuPresentation を kifu/ へ移し、表は core のものを使う。移動元の判定は KI2 と共有する。手合割の表示名は `handicaps.h` の表に `QT_TRANSLATE_NOOP` 付きで持たせる。スタイル類は UI 用の共通ディレクトリへ移す |
 | 自動化 API の UI 操作（automation） | 12のメソッドがそれぞれ「受付時の検査 → 予約 → 実行時の再検査 → 失敗の握りつぶし」を手書きしている（`AutomationDeferredCall::schedule` が12回、`catch (const AutomationError&) { }` が12回）。マウスイベントの合成が4回書かれている。実行時の失敗は捨てられ、応答は常に `queued:true`。ウィジェットの型による分岐が、読み（18分岐）と書き（13分岐）で非対称 | `QueuedInteraction{QPointer target; check; perform}` と `queue()` を1つ作り、失敗の理由を記録して返す。マウス入力は `sendClick`/`sendDrag` に1本化し、ウィジェットの読み書きは型ごとのアダプタ表にする |
-| `Setting<T>` で表せない設定（services） | 列幅の配列の読み書きが `analysissettings.cpp:14-37` と `josekisettings.cpp:11-38` で同じコード（`:77-91` は別の形式）。範囲付きの整数は、読みと書きの両方に qBound を書く（4か所）。構造体と複数キーの対応は BoardColors だけが表を使い、`PieceSoundTone`・`BoardVisuals` は手書き。`TsumeshogiSettings` は既定値を2か所に書く。`csagamedialog.cpp:380-457` は接続履歴をダイアログ内のキーで直接読み書きする | `BoundedSetting<int>`・`ListSetting<int>`・`StructSetting<T>{{key,&T::member}…}` を setting.h に足して置き換える。CSA の接続履歴は networksettings.h へ移す |
+| `Setting<T>` で表せない設定（services） | 列幅の配列の読み書きが `analysissettings.cpp:14-37` と `josekisettings.cpp:11-38` で同じコード（`:77-91` は別の形式）。範囲付きの整数は、読みと書きの両方に qBound を書く（4か所）。構造体と複数キーの対応は BoardColors だけが表を使い、`PieceSoundTone`・`BoardVisuals` は手書き。`TsumeshogiSettings` は既定値を2か所に書く。`csagamedialog.cpp:380-457` は接続履歴をダイアログ内のキーで直接読み書きする | `BoundedSetting<int>`・`ListSetting<int>`・`StructSetting<T>{{key,&T::member}…}` を setting.h に足して置き換える。CSA の接続履歴は networksettings.h へ移す<br>**状態: 済（41580259）**。setting.h に `BoundedSetting<T>`（読み書きの両方で範囲に収める）・`StructSetting<T>`（`SettingField<T>::of(key, &T::member)` の表。normalize を渡せる）・`ListSetting<T>`（配列の形式。キーは実行時に決めてよい）・`StructListSetting<T>` を足した。駒音の音量・音色、外観の駒の絞り込み、USI ログの送信先、詰将棋の対局・問題一覧の設定（既定値は構造体だけに書く）、思考の表・定跡ウィンドウの列幅を宣言1つにし、`josekisettings.cpp` は削除。`BoardVisuals` も `StructSetting` で読み、駒台の木目だけ「未保存なら盤の木目に合わせる」補いを残す。CSA の接続履歴は `NetworkSettings::csaServerHistory`（保存形式は同じ）。棋譜解析の結果の表の列幅（`:77-91`）は QVariantList の形式のまま残した |
 
 ---
 
@@ -706,34 +706,36 @@
 
 監査の報告に基づく一覧。消す前に grep で確かめること。
 
+**状態**: 下の各項目の末尾に書く。「済（de96637a）」は4章をまとめて直したコミット、「既に削除」はそれまでの段階で消えていたもの、「3章へ」は3章の書き直しで扱うもの。
+
 - **使われていない API**
-  - `StartGameDialog::engineList()`
-  - `UsiToSfenConverter::readUsiFile`
-  - `KifuBranchTree::branchablePlysOnLine`
-  - `BranchTreeManager::removeMoveNumberLabel`
-  - `ShogiViewLayout::calculateRectangleForRankOrFileLabel`、中身が空の `fitBoardToWidget`、`standInnerEdgePx`、`labelBandPx`/`labelFontPt` の getter
-  - `ElideLabel` の自動スクロール・手動パン・下線（設定する関数の呼び出しが0件、約100行）
-  - `enginesettingsconstants.h:16` の `SettingsFileName`
-  - `kifu/josekitypes.h` の `JosekiEntry`
+  - `StartGameDialog::engineList()` — **既に削除（R9-2、77436034）**
+  - `UsiToSfenConverter::readUsiFile` — **既に削除（R2、6143b3b0）**
+  - `KifuBranchTree::branchablePlysOnLine` — **済（de96637a）**
+  - `BranchTreeManager::removeMoveNumberLabel` — **済（de96637a）**
+  - `ShogiViewLayout::calculateRectangleForRankOrFileLabel`、中身が空の `fitBoardToWidget`、`standInnerEdgePx`、`labelBandPx`/`labelFontPt` の getter — **済（de96637a）**
+  - `ElideLabel` の自動スクロール・手動パン・下線（設定する関数の呼び出しが0件、約100行） — **済（de96637a）。省略表示だけを残して書き直した**
+  - `enginesettingsconstants.h:16` の `SettingsFileName` — **既に削除（R8、9d05747b）**
+  - `kifu/josekitypes.h` の `JosekiEntry` — **済（de96637a）**
 - **テストからしか呼ばれない API**
-  - `KifuBranchTree::findByPlyOnMainLine`・`findBySfen`・`addMove`/`addMoveQuiet`/`addTerminalMove`
-  - `AnalysisCoordinator` の `SinglePosition`/`startAnalyzeSingle`
-  - `PvBoardController::goBack`/`goLast`
-  - `KifToSfenConverter::mapHandicapToSfen`・`JkfToSfenConverter::mapPresetToSfen`
+  - `KifuBranchTree::findByPlyOnMainLine`・`findBySfen`・`addMove`/`addMoveQuiet`/`addTerminalMove` — **3章へ（分岐ツリーの書き直しでテスト用の作り方へ移す）**
+  - `AnalysisCoordinator` の `SinglePosition`/`startAnalyzeSingle` — **既に削除（R5、b625d5eb。`AnalysisCoordinator` ごと `AnalysisJob` へ吸収）**
+  - `PvBoardController::goBack`/`goLast` — **3章へ（読み筋盤の書き直しで扱う）**
+  - `KifToSfenConverter::mapHandicapToSfen`・`JkfToSfenConverter::mapPresetToSfen` — **`mapPresetToSfen` は既に削除（R2、6143b3b0）。`mapHandicapToSfen` は R2 以後 src から使うので残す**
 - **書くだけで読まれない値・到達しない分岐**
-  - `BranchTreeManager` の `BR_ROLE_PLY`・`BR_ROLE_STARTPLY`・`BR_ROLE_BUCKET`（`branchtreemanager_draw.cpp:137` で書くだけ）
-  - `ShogiClock::m_resumingTurn`
-  - `ShogiViewLayout` の `param1`/`param2` で引いている `tweak = 0`
-  - `matchsearchsnapshot.h` の、時計がないときの分岐（到達しない）
+  - `BranchTreeManager` の `BR_ROLE_PLY`・`BR_ROLE_STARTPLY`・`BR_ROLE_BUCKET`（`branchtreemanager_draw.cpp:137` で書くだけ） — **済（de96637a）**
+  - `ShogiClock::m_resumingTurn` — **済（de96637a）**
+  - `ShogiViewLayout` の `param1`/`param2` で引いている `tweak = 0` — **済（de96637a）**
+  - `matchsearchsnapshot.h` の、時計がないときの分岐（到達しない） — **既に削除（R4、d8dbb2bd でファイルごと削除）**
 - **効いていない処理**
-  - `MainWindowAppearanceController::setupNameAndClockFonts`（`mainwindowappearancecontroller.cpp:146-170`）が設定する書体は、`BoardChromeWidget::relayoutCards`・`fitLabelFontToRect` がすぐ上書きする。
-  - 各ダイアログの A-/A+ のツールチップの tr 文字列（16個）は、`DialogUtils::updateFontButtons` が上書きするので表示されない（R9-1）。
+  - `MainWindowAppearanceController::setupNameAndClockFonts`（`mainwindowappearancecontroller.cpp:146-170`）が設定する書体は、`BoardChromeWidget::relayoutCards`・`fitLabelFontToRect` がすぐ上書きする。 — **済（de96637a）。関数を消し、時計の太さ（DemiBold）は `BoardChromeWidget` で決める**
+  - 各ダイアログの A-/A+ のツールチップの tr 文字列（16個）は、`DialogUtils::updateFontButtons` が上書きするので表示されない（R9-1）。 — **済（de96637a。R9-1 で残っていた `tsumeshogisearchdialog.ui` の分）**
 - **文書と実装の食い違い**
-  - `AutomationActionPolicy` の許可リストに `actionLanguageChineseSimplified`/`actionLanguageChineseTraditional` がない（文書の「言語切替は許可」と食い違う）。
-  - 同じヘッダーのコメント「言語切替・ドックレイアウト保存は含めない」が実態と逆になっている。
+  - `AutomationActionPolicy` の許可リストに `actionLanguageChineseSimplified`/`actionLanguageChineseTraditional` がない（文書の「言語切替は許可」と食い違う）。 — **済（de96637a）**
+  - 同じヘッダーのコメント「言語切替・ドックレイアウト保存は含めない」が実態と逆になっている。 — **済（de96637a）**
 - **転送だけ・名残の層**
-  - `DockUiCoordinator`（39行。R10-2）
-  - `JishogiScoreDialogController`（1関数だけの QObject。関数にしてもよい）
+  - `DockUiCoordinator`（39行。R10-2） — **既に削除（R10-2、7d829071）**
+  - `JishogiScoreDialogController`（1関数だけの QObject。関数にしてもよい） — **済（de96637a）。`JishogiScoreDialog::showFor(position, parent)` にした**
 
 ---
 
