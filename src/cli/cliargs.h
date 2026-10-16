@@ -10,6 +10,7 @@
 #include <optional>
 
 #include "enginelistsettings.h"
+#include "errorkinds.h"
 #include "usiposition.h"
 
 /// 引数の sfen・moves から組み立てた局面
@@ -34,8 +35,8 @@ std::optional<CliPosition> resolvePosition(const QJsonObject& params, QString* e
 /// 引数の "engine" の登録エンジンを解決する。失敗時は nullopt と error
 std::optional<EngineListSettings::EngineEntry> resolveEngine(const QJsonObject& params, QString* error);
 
-/// 出力ファイルの事前検査（絶対パス、既存ファイルは --overwrite 必須、親ディレクトリの存在）
-bool checkOutputPath(const QString& path, bool overwrite, QString* error);
+/// 出力ファイルの事前検査（絶対パス、既存ファイルは --overwrite 必須、親ディレクトリの存在）。問題があればその分類
+std::optional<ErrorKind> checkOutputPath(const QString& path, bool overwrite, QString* error);
 
 } // namespace CliArgs
 

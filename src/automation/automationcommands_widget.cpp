@@ -65,7 +65,7 @@ void AutomationCommands::registerWidgetCommands(AutomationDispatcher& dispatcher
     dispatcher.registerMethod(QStringLiteral("widget.editCell"), [context](const QJsonObject& params) {
         auto* table = qobject_cast<QTableView*>(targetWidget(context, params));
         if (!table || !table->model())
-            throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("Widget must be a table with a model"));
+            throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("Widget must be a table with a model"));
         const int row = AutomationParams::requireInt(params, QStringLiteral("row"), 0, table->model()->rowCount() - 1);
         const int column = AutomationParams::requireInt(params, QStringLiteral("column"), 0, table->model()->columnCount() - 1);
         const QString text = params.value(QStringLiteral("text")).toString();
@@ -73,7 +73,7 @@ void AutomationCommands::registerWidgetCommands(AutomationDispatcher& dispatcher
         const QPersistentModelIndex index(table->model()->index(row, column));
         if (!(index.flags() & Qt::ItemIsEditable) || !(index.flags() & Qt::ItemIsEnabled)
             || table->isRowHidden(row) || table->isColumnHidden(column))
-            throw AutomationError(AutomationErrorCode::InvalidState, QStringLiteral("Cell is read-only, hidden or disabled"));
+            throw AutomationError(ErrorKind::InvalidState, QStringLiteral("Cell is read-only, hidden or disabled"));
         AutomationDeferredCall::schedule([table, index, text, commit]() {
             try {
                 AutomationWidgets::requireInteractive(table);
@@ -120,7 +120,7 @@ void AutomationCommands::registerWidgetCommands(AutomationDispatcher& dispatcher
 
     dispatcher.registerMethod(QStringLiteral("widget.showDock"), [context](const QJsonObject& params) {
         auto* dock = qobject_cast<QDockWidget*>(targetWidget(context, params, false));
-        if (!dock) throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("Widget must be a dock"));
+        if (!dock) throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("Widget must be a dock"));
         AutomationWidgets::requireInteractive(dock->parentWidget());
         AutomationDeferredCall::schedule([dock]() {
             try {
@@ -134,7 +134,7 @@ void AutomationCommands::registerWidgetCommands(AutomationDispatcher& dispatcher
 
     dispatcher.registerMethod(QStringLiteral("widget.click"), [context](const QJsonObject& params) {
         auto* button = qobject_cast<QAbstractButton*>(targetWidget(context, params));
-        if (!button) throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("Widget must be a button"));
+        if (!button) throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("Widget must be a button"));
         AutomationDeferredCall::schedule([button]() {
             try { AutomationWidgets::requireInteractive(button); button->click(); }
             catch (const AutomationError&) { }
@@ -146,22 +146,22 @@ void AutomationCommands::registerWidgetCommands(AutomationDispatcher& dispatcher
         QWidget* widget = targetWidget(context, params, false);
         if (widget->window() != AutomationWidgets::requireWindow(context,
                 params.value(QStringLiteral("target")).toString()))
-            throw AutomationError(AutomationErrorCode::NotAllowed, QStringLiteral("Widget belongs to another window"));
+            throw AutomationError(ErrorKind::NotAllowed, QStringLiteral("Widget belongs to another window"));
         AutomationWidgets::requireInteractive(widget, false, true);
         const QJsonValue value = params.value(QStringLiteral("value"));
         const bool submit = params.value(QStringLiteral("submit")).toBool();
         if (submit && !qobject_cast<QLineEdit*>(widget))
-            throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("submit requires a line edit"));
+            throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("submit requires a line edit"));
         std::function<void()> apply;
         if (auto* picker = qobject_cast<QColorDialog*>(widget)) {
             const QColor color(value.toString());
             if (!value.isString() || !color.isValid())
-                throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("value must be a valid color"));
+                throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("value must be a valid color"));
             apply = [picker, color]() { picker->setCurrentColor(color); };
         } else if (auto* combo = qobject_cast<QComboBox*>(widget)) {
             const int index = value.isString() ? combo->findText(value.toString(), Qt::MatchExactly)
                 : AutomationParams::requireInt(params, QStringLiteral("value"), 0, combo->count() - 1);
-            if (index < 0) throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("No matching combo item"));
+            if (index < 0) throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("No matching combo item"));
             apply = [combo, index]() {
                 QPointer<QComboBox> guard(combo);
                 const QString text = combo->itemText(index);
@@ -172,11 +172,11 @@ void AutomationCommands::registerWidgetCommands(AutomationDispatcher& dispatcher
             };
         } else if (auto* lineEdit = qobject_cast<QLineEdit*>(widget)) {
             if (lineEdit->isReadOnly())
-                throw AutomationError(AutomationErrorCode::InvalidState, QStringLiteral("Text field is read-only or protected"));
-            if (!value.isString()) throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("value must be text"));
+                throw AutomationError(ErrorKind::InvalidState, QStringLiteral("Text field is read-only or protected"));
+            if (!value.isString()) throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("value must be text"));
             const QString text = value.toString();
             if (text.size() > lineEdit->maxLength())
-                throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("Text exceeds the field limit"));
+                throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("Text exceeds the field limit"));
             apply = [lineEdit, text, submit]() {
                 if (lineEdit->isReadOnly()) return;
                 QPointer<QLineEdit> guard(lineEdit);
@@ -191,34 +191,34 @@ void AutomationCommands::registerWidgetCommands(AutomationDispatcher& dispatcher
                 }
             };
         } else if (auto* plainEdit = qobject_cast<QPlainTextEdit*>(widget)) {
-            if (plainEdit->isReadOnly()) throw AutomationError(AutomationErrorCode::InvalidState, QStringLiteral("Text field is read-only"));
-            if (!value.isString()) throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("value must be text"));
+            if (plainEdit->isReadOnly()) throw AutomationError(ErrorKind::InvalidState, QStringLiteral("Text field is read-only"));
+            if (!value.isString()) throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("value must be text"));
             apply = [plainEdit, value]() { plainEdit->setPlainText(value.toString()); };
         } else if (auto* richEdit = qobject_cast<QTextEdit*>(widget)) {
-            if (richEdit->isReadOnly()) throw AutomationError(AutomationErrorCode::InvalidState, QStringLiteral("Text field is read-only"));
-            if (!value.isString()) throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("value must be text"));
+            if (richEdit->isReadOnly()) throw AutomationError(ErrorKind::InvalidState, QStringLiteral("Text field is read-only"));
+            if (!value.isString()) throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("value must be text"));
             apply = [richEdit, value]() { richEdit->setPlainText(value.toString()); };
         } else if (auto* spin = qobject_cast<QSpinBox*>(widget)) {
-            if (spin->isReadOnly()) throw AutomationError(AutomationErrorCode::InvalidState, QStringLiteral("Spin box is read-only"));
+            if (spin->isReadOnly()) throw AutomationError(ErrorKind::InvalidState, QStringLiteral("Spin box is read-only"));
             const int number = AutomationParams::requireInt(params, QStringLiteral("value"), spin->minimum(), spin->maximum());
             apply = [spin, number]() { spin->setValue(number); };
         } else if (auto* doubleSpin = qobject_cast<QDoubleSpinBox*>(widget)) {
             const double number = value.toDouble();
-            if (doubleSpin->isReadOnly()) throw AutomationError(AutomationErrorCode::InvalidState, QStringLiteral("Spin box is read-only"));
+            if (doubleSpin->isReadOnly()) throw AutomationError(ErrorKind::InvalidState, QStringLiteral("Spin box is read-only"));
             if (!value.isDouble() || !std::isfinite(number) || number < doubleSpin->minimum() || number > doubleSpin->maximum())
-                throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("value is outside the spin box range"));
+                throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("value is outside the spin box range"));
             apply = [doubleSpin, number]() { doubleSpin->setValue(number); };
         } else if (auto* slider = qobject_cast<QSlider*>(widget)) {
             const int number = AutomationParams::requireInt(params, QStringLiteral("value"), slider->minimum(), slider->maximum());
             apply = [slider, number]() { slider->setValue(number); };
         } else if (auto* group = qobject_cast<QGroupBox*>(widget); group && group->isCheckable()) {
-            if (!value.isBool()) throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("value must be boolean"));
+            if (!value.isBool()) throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("value must be boolean"));
             apply = [group, value]() { group->setChecked(value.toBool()); };
         } else if (auto* list = qobject_cast<QListView*>(widget); list && list->model()) {
             const int row = AutomationParams::requireInt(params, QStringLiteral("value"), 0, list->model()->rowCount() - 1);
             const QPersistentModelIndex index(list->model()->index(row, 0));
             if (!(index.flags() & Qt::ItemIsEnabled) || !(index.flags() & Qt::ItemIsSelectable) || list->isRowHidden(row))
-                throw AutomationError(AutomationErrorCode::InvalidState, QStringLiteral("List item is hidden or disabled"));
+                throw AutomationError(ErrorKind::InvalidState, QStringLiteral("List item is hidden or disabled"));
             apply = [list, index]() {
                 if (!index.isValid() || !(index.flags() & Qt::ItemIsEnabled) || list->isRowHidden(index.row())) return;
                 list->setCurrentIndex(index);
@@ -226,20 +226,20 @@ void AutomationCommands::registerWidgetCommands(AutomationDispatcher& dispatcher
                 list->scrollTo(index);
             };
         } else if (auto* button = qobject_cast<QAbstractButton*>(widget); button && button->isCheckable()) {
-            if (!value.isBool()) throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("value must be boolean"));
+            if (!value.isBool()) throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("value must be boolean"));
             const bool checked = value.toBool();
             if (!checked && button->autoExclusive()) {
-                throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("Select another radio button instead"));
+                throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("Select another radio button instead"));
             }
             apply = [button, checked]() { if (button->isChecked() != checked) button->click(); };
         } else if (auto* tabs = qobject_cast<QTabWidget*>(widget)) {
             const int index = AutomationParams::requireInt(params, QStringLiteral("value"), 0, tabs->count() - 1);
             if (!tabs->isTabEnabled(index) || !tabs->isTabVisible(index)) {
-                throw AutomationError(AutomationErrorCode::InvalidState, QStringLiteral("Tab is hidden or disabled"));
+                throw AutomationError(ErrorKind::InvalidState, QStringLiteral("Tab is hidden or disabled"));
             }
             apply = [tabs, index]() { tabs->setCurrentIndex(index); };
         } else {
-            throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("Unsupported widget type"));
+            throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("Unsupported widget type"));
         }
         AutomationDeferredCall::schedule([widget, apply]() {
             try { AutomationWidgets::requireInteractive(widget, false, true); apply(); }
@@ -251,13 +251,13 @@ void AutomationCommands::registerWidgetCommands(AutomationDispatcher& dispatcher
     dispatcher.registerMethod(QStringLiteral("widget.clickCell"), [context](const QJsonObject& params) {
         auto* table = qobject_cast<QTableView*>(targetWidget(context, params));
         if (!table || !table->model()) {
-            throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("Widget must be a table with a model"));
+            throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("Widget must be a table with a model"));
         }
         const int row = AutomationParams::requireInt(params, QStringLiteral("row"), 0, table->model()->rowCount() - 1);
         const int column = AutomationParams::requireInt(params, QStringLiteral("column"), 0, table->model()->columnCount() - 1);
         const QPersistentModelIndex index(table->model()->index(row, column));
         if (table->isRowHidden(row) || table->isColumnHidden(column) || !(index.flags() & Qt::ItemIsEnabled)) {
-            throw AutomationError(AutomationErrorCode::InvalidState, QStringLiteral("Cell is hidden or disabled"));
+            throw AutomationError(ErrorKind::InvalidState, QStringLiteral("Cell is hidden or disabled"));
         }
         AutomationDeferredCall::schedule([table, index]() {
             try { clickCell(table, index); }

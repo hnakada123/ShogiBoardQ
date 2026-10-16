@@ -14,7 +14,6 @@
 
 namespace {
 
-using CliOutput::kInvalidArgument;
 
 /// analyze / mate に共通する開始イベントの内容
 QJsonObject startedFields(const EngineListSettings::EngineEntry& engine, const CliPosition& position)
@@ -55,7 +54,7 @@ public slots:
     }
     void onError(const QString& message)
     {
-        m_exitCode = CliOutput::failEvent(QStringLiteral("engine_error"), message);
+        m_exitCode = CliOutput::failEvent(ErrorKind::EngineError, message);
         m_loop->quit();
     }
 
@@ -87,7 +86,7 @@ public slots:
     }
     void onError(const QString& message)
     {
-        m_exitCode = CliOutput::failEvent(QStringLiteral("engine_error"), message);
+        m_exitCode = CliOutput::failEvent(ErrorKind::EngineError, message);
         m_loop->quit();
     }
 
@@ -107,9 +106,9 @@ int CliCommands::analyze(const QStringList& args)
 
     QString error;
     const auto engine = CliArgs::resolveEngine(*params, &error);
-    if (!engine) return CliOutput::failEvent(QStringLiteral("engine_not_found"), error);
+    if (!engine) return CliOutput::failEvent(ErrorKind::EngineNotFound, error);
     const auto position = CliArgs::resolvePosition(*params, &error);
-    if (!position) return CliOutput::failEvent(kInvalidArgument, error);
+    if (!position) return CliOutput::failEvent(ErrorKind::InvalidArgument, error);
     const int seconds = params->value(QStringLiteral("seconds")).toInt();
     const int multiPv = params->value(QStringLiteral("multipv")).toInt();
 
@@ -134,7 +133,7 @@ int CliCommands::analyze(const QStringList& args)
     started[QStringLiteral("multipv")] = multiPv;
     CliOutput::printEvent(QStringLiteral("started"), started);
 
-    if (!runner.start(request, &error)) return CliOutput::failEvent(QStringLiteral("engine_error"), error);
+    if (!runner.start(request, &error)) return CliOutput::failEvent(ErrorKind::EngineError, error);
     loop.exec();
     return reporter.exitCode();
 }
@@ -147,9 +146,9 @@ int CliCommands::mate(const QStringList& args)
 
     QString error;
     const auto engine = CliArgs::resolveEngine(*params, &error);
-    if (!engine) return CliOutput::failEvent(QStringLiteral("engine_not_found"), error);
+    if (!engine) return CliOutput::failEvent(ErrorKind::EngineNotFound, error);
     const auto position = CliArgs::resolvePosition(*params, &error);
-    if (!position) return CliOutput::failEvent(kInvalidArgument, error);
+    if (!position) return CliOutput::failEvent(ErrorKind::InvalidArgument, error);
     const int seconds = params->value(QStringLiteral("seconds")).toInt();
 
     MateSearchRunner runner;
@@ -170,7 +169,7 @@ int CliCommands::mate(const QStringList& args)
     started[QStringLiteral("seconds")] = seconds;
     CliOutput::printEvent(QStringLiteral("started"), started);
 
-    if (!runner.start(request, &error)) return CliOutput::failEvent(QStringLiteral("engine_error"), error);
+    if (!runner.start(request, &error)) return CliOutput::failEvent(ErrorKind::EngineError, error);
     loop.exec();
     return reporter.exitCode();
 }

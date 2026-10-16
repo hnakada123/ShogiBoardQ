@@ -191,7 +191,7 @@ void AutomationCommands::registerAppCommands(AutomationDispatcher& dispatcher, c
 
     dispatcher.registerMethod(QStringLiteral("app.quit"), [context](const QJsonObject&) {
         if (!context.quitApplication) {
-            throw AutomationError(AutomationErrorCode::InvalidState, QStringLiteral("Quit is not available"));
+            throw AutomationError(ErrorKind::InvalidState, QStringLiteral("Quit is not available"));
         }
         // 応答を送ってから終了処理を始める
         AutomationDeferredCall::schedule(context.quitApplication, context.mainWindow);

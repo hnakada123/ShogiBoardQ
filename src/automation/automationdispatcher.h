@@ -12,6 +12,8 @@
 #include <QStringList>
 #include <functional>
 
+#include "errorkinds.h"
+
 /// JSON-RPC のエラーコード（標準 + アプリ固有）
 namespace AutomationErrorCode {
 constexpr int ParseError = -32700;
@@ -24,20 +26,23 @@ constexpr int InvalidState = -32002;    ///< 現在の状態では実行でき�
 constexpr int FileError = -32003;       ///< パスが不正・既存ファイル・入出力失敗
 constexpr int UnsavedChanges = -32004;  ///< 未保存の変更がある
 constexpr int NotFound = -32005;        ///< 対象が見つからない
+constexpr int InvalidContent = -32006;  ///< 棋譜などの中身が読めない
+constexpr int EngineError = -32007;     ///< エンジンの起動・探索の失敗
 } // namespace AutomationErrorCode
 
-/// メソッド実装が投げるエラー。`data.hint` に対処方法を入れる
+/// メソッド実装が投げるエラー。分類（ErrorKind）が JSON-RPC のコードと `data.slug` を決め、`data.hint` に対処方法を入れる
 class AutomationError
 {
 public:
-    AutomationError(int code, QString message, QString hint = QString())
-        : m_code(code), m_message(std::move(message)), m_hint(std::move(hint)) {}
-    int code() const { return m_code; }
+    AutomationError(ErrorKind kind, QString message, QString hint = QString())
+        : m_kind(kind), m_message(std::move(message)), m_hint(std::move(hint)) {}
+    ErrorKind kind() const { return m_kind; }
+    int code() const { return ErrorKinds::rpcCode(m_kind); }
     const QString& message() const { return m_message; }
     const QString& hint() const { return m_hint; }
 
 private:
-    int m_code;
+    ErrorKind m_kind;
     QString m_message;
     QString m_hint;
 };
@@ -63,7 +68,8 @@ public:
     QJsonObject handleRequest(const QJsonObject& request) const;
 
     static QJsonObject makeResult(const QJsonValue& id, const QJsonValue& result);
-    static QJsonObject makeError(const QJsonValue& id, int code, const QString& message,
+    /// エラー応答（`error.code` は分類の JSON-RPC のコード、`error.data.slug` は分類の語）
+    static QJsonObject makeError(const QJsonValue& id, ErrorKind kind, const QString& message,
                                  const QString& hint = QString());
 
 private:

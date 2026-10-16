@@ -20,6 +20,7 @@ int CliCommands::run(const QStringList& arguments)
     static const QHash<QString, Handler> handlers = {
         {QStringLiteral("version"), &CliCommands::version},
         {QStringLiteral("describe"), &CliCommands::describe},
+        {QStringLiteral("environment"), &CliCommands::environment},
         {QStringLiteral("list-engines"), &CliCommands::listEngines},
         {QStringLiteral("validate-sfen"), &CliCommands::validateSfen},
         {QStringLiteral("convert-kifu"), &CliCommands::convertKifu},
@@ -38,7 +39,7 @@ int CliCommands::run(const QStringList& arguments)
     const QString& command = arguments.at(1);
     const auto it = handlers.constFind(command);
     if (it == handlers.constEnd()) {
-        return CliOutput::fail(QStringLiteral("unknown_command"),
+        return CliOutput::fail(ErrorKind::UnknownOperation,
                                QStringLiteral("Unknown command \"%1\". Run without arguments for usage.").arg(command));
     }
     return it.value()(arguments.mid(2));

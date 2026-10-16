@@ -18,7 +18,6 @@
 #include <QStandardPaths>
 
 namespace {
-constexpr qsizetype kMaxLineBytes = 8 * 1024 * 1024; ///< 1 メッセージの上限（棋譜テキストを含む）
 constexpr QLatin1StringView kEndpointFileName("automation-endpoint.json");
 }
 
@@ -141,10 +140,10 @@ void AutomationServer::onReadyRead()
     auto entry = m_buffers.find(socket.data());
     if (entry == m_buffers.end()) return;
     entry->append(socket->readAll());
-    if (entry->size() > kMaxLineBytes) {
+    if (entry->size() > kMaxMessageBytes) {
         const QJsonObject error = AutomationDispatcher::makeError(
-            QJsonValue::Null, AutomationErrorCode::InvalidRequest,
-            QStringLiteral("Message exceeds %1 bytes").arg(kMaxLineBytes));
+            QJsonValue::Null, ErrorKind::InvalidRequest,
+            QStringLiteral("Message exceeds %1 bytes").arg(kMaxMessageBytes));
         entry->clear();
         socket->write(QJsonDocument(error).toJson(QJsonDocument::Compact) + '\n');
         socket->disconnectFromServer();

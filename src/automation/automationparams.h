@@ -16,7 +16,7 @@ inline QString requireString(const QJsonObject& params, const QString& key)
 {
     const QJsonValue value = params.value(key);
     if (!value.isString() || value.toString().isEmpty()) {
-        throw AutomationError(AutomationErrorCode::InvalidParams,
+        throw AutomationError(ErrorKind::InvalidArgument,
                               QStringLiteral("\"%1\" must be a non-empty string").arg(key));
     }
     return value.toString();
@@ -28,11 +28,11 @@ inline int optionalInt(const QJsonObject& params, const QString& key, int defaul
     const QJsonValue value = params.value(key);
     if (value.isUndefined() || value.isNull()) return defaultValue;
     if (!value.isDouble()) {
-        throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("\"%1\" must be an integer").arg(key));
+        throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("\"%1\" must be an integer").arg(key));
     }
     const double d = value.toDouble();
     if (d < minimum || d > maximum || d != static_cast<double>(static_cast<int>(d))) {
-        throw AutomationError(AutomationErrorCode::InvalidParams,
+        throw AutomationError(ErrorKind::InvalidArgument,
                               QStringLiteral("\"%1\" must be an integer between %2 and %3").arg(key).arg(minimum).arg(maximum));
     }
     return static_cast<int>(d);
@@ -42,7 +42,7 @@ inline int optionalInt(const QJsonObject& params, const QString& key, int defaul
 inline int requireInt(const QJsonObject& params, const QString& key, int minimum, int maximum)
 {
     if (!params.contains(key)) {
-        throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("\"%1\" is required").arg(key));
+        throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("\"%1\" is required").arg(key));
     }
     return optionalInt(params, key, minimum, minimum, maximum);
 }

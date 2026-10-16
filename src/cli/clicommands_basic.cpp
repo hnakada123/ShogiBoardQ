@@ -7,6 +7,8 @@
 #include "applicationtranslations.h"
 #include "appsettings.h"
 #include "automationmethodspecs.h"
+#include "automationserver.h"
+#include "settingscommon.h"
 #include "clicommandspecs.h"
 #include "boardimagerenderer.h"
 #include "cliargs.h"
@@ -82,6 +84,23 @@ int CliCommands::describe(const QStringList& args)
     return 0;
 }
 
+int CliCommands::environment(const QStringList& args)
+{
+    int exitCode = 0;
+    if (!CliArgs::parse(QStringLiteral("environment"), args, false, &exitCode)) return exitCode;
+    // MCP サーバーが ShogiBoardQ の値を写さずに済むよう、アプリと同じ計算で場所と上限を出す
+    QJsonObject obj;
+    obj[QStringLiteral("ok")] = true;
+    obj[QStringLiteral("version")] = QCoreApplication::applicationVersion();
+    obj[QStringLiteral("socket_path")] = AutomationServer::defaultSocketPath();
+    obj[QStringLiteral("endpoint_file")] = AutomationServer::endpointFilePath();
+    obj[QStringLiteral("settings_file")] = SettingsCommon::settingsFilePath();
+    obj[QStringLiteral("max_message_bytes")] = static_cast<double>(AutomationServer::kMaxMessageBytes);
+    obj[QStringLiteral("error_kinds")] = ErrorKinds::toJson();
+    CliOutput::printJson(obj);
+    return 0;
+}
+
 int CliCommands::listEngines(const QStringList& args)
 {
     int exitCode = 0;
@@ -121,13 +140,13 @@ int CliCommands::convertKifu(const QStringList& args)
 
     const QString outputPath = params->value(QStringLiteral("output")).toString();
     QString error;
-    if (!outputPath.isEmpty()
-        && !CliArgs::checkOutputPath(outputPath, params->value(QStringLiteral("overwrite")).toBool(), &error)) {
-        return CliOutput::fail(QStringLiteral("io_error"), error);
+    if (const auto problem = outputPath.isEmpty() ? std::nullopt
+            : CliArgs::checkOutputPath(outputPath, params->value(QStringLiteral("overwrite")).toBool(), &error)) {
+        return CliOutput::fail(*problem, error);
     }
 
     const KifuConversionService::Result result = KifuConversionService::convert(request);
-    if (!result.ok) return CliOutput::fail(QStringLiteral("parse_error"), result.error);
+    if (!result.ok) return CliOutput::fail(ErrorKind::InvalidContent, result.error);
 
     QJsonObject obj;
     obj[QStringLiteral("ok")] = true;
@@ -147,7 +166,7 @@ int CliCommands::convertKifu(const QStringList& args)
         obj[QStringLiteral("text")] = result.lines.join(QLatin1Char('\n')) + QLatin1Char('\n');
     } else {
         if (!KifuSaveFile::write(outputPath, result.lines, &error)) {
-            return CliOutput::fail(QStringLiteral("io_error"), error);
+            return CliOutput::fail(ErrorKind::FileError, error);
         }
         obj[QStringLiteral("output_path")] = outputPath;
     }
@@ -163,8 +182,8 @@ int CliCommands::renderBoard(const QStringList& args)
 
     QString error;
     const QString outputPath = params->value(QStringLiteral("output")).toString();
-    if (!CliArgs::checkOutputPath(outputPath, params->value(QStringLiteral("overwrite")).toBool(), &error)) {
-        return CliOutput::fail(QStringLiteral("io_error"), error);
+    if (const auto problem = CliArgs::checkOutputPath(outputPath, params->value(QStringLiteral("overwrite")).toBool(), &error)) {
+        return CliOutput::fail(*problem, error);
     }
 
     BoardImageRenderer::Options options;
@@ -181,7 +200,7 @@ int CliCommands::renderBoard(const QStringList& args)
 
     QSize size;
     if (!BoardImageRenderer::renderToFile(params->value(QStringLiteral("sfen")).toString(), outputPath, options, &error, &size)) {
-        return CliOutput::fail(QStringLiteral("render_error"), error);
+        return CliOutput::fail(ErrorKind::RenderError, error);
     }
     QJsonObject obj;
     obj[QStringLiteral("ok")] = true;
