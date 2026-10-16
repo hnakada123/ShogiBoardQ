@@ -18,7 +18,7 @@
 │  ┌────────────────────────────────────────────────┐        │
 │  │ 人間の手番                                     │        │
 │  │  1. 盤のクリック（駒選択→移動先）              │        │
-│  │  2. validateAndMove()（合法手判定・盤面更新）  │        │
+│  │  2. prepareMove() → applyMove()（盤面更新）    │        │
 │  │  3. MatchCoordinator::onHumanMove()            │        │
 │  │     → Strategy → completeMove()                │        │
 │  └────────────────────────┬───────────────────────┘        │
@@ -72,30 +72,29 @@ BoardInteractionController::onLeftClick(pt)
 
 `onLeftClick()` の処理:
 
-1. 指し手入力の確認: 指し手入力が無効（`setMoveInputEnabled(false)`。`UiStatePolicyManager` が動作状態に応じて設定する）なら無視する。局面編集モードは除く。
-2. 人間の手番チェック: `m_isHumanTurnCb` コールバックで現在が人間の手番かを確認し、エンジンの手番なら無視する。コールバックは `MainWindowComposer::createMatchAndAnalysis()` が `MainWindowComposer::isHumanTurnNow()` に設定し、これが `HumanTurnPolicy::isHumanTurnNow()`（`src/app/humanturnpolicy.cpp`）を呼ぶ。対局中は `MatchCoordinator::isHumanSide(盤の手番)`、通信対局中は人間が指していて自分の手番か、対局していないときは変化として記録できるか（`BranchTreeEditController::canRecordBoardMove()`）で決める。
-3. 1回目のクリック（駒選択）: 持ち駒のない駒台のマスは無視する。`ShogiView::startDrag()` でドラッグを始め、`selectPieceAndHighlight()` で駒を選ぶ。選んだマスにオレンジ色のハイライトを付け、合法な移動先（`EngineMoveValidator` で判定）を青色で示す（メニューで表示を切り替えられる）。相手の駒台や空きマスは選ばない。`m_waitingSecondClick = true` に設定する。
-4. 2回目のクリック（移動先指定）: 同じマスならキャンセルする。別のマスなら `moveRequested(from, to)` シグナルを発行する。成り・不成のダイアログを出している間もドラッグ状態を保つため、ここではドラッグを終えない（`ShogiGameController::endDragSignal` → `ShogiView::endDrag()` で終える。`connectBoard()` が接続）。
+1. 受け付けの確認: 盤で指した手の行き先（`BoardInputRoute`、`src/board/boardinputroute.h`）の `acceptsInput()` が false なら無視する。主画面の行き先は `BoardMoveController` で、`BoardMoveController` のコンストラクタが `setInputRoute(this)` で登録する。局面編集中は常に受け付け、それ以外は `HumanTurnPolicy::isHumanTurnNow()`（`src/ui/controllers/humanturnpolicy.cpp`）で決める。対局中は `MatchCoordinator::isHumanSide(盤の手番)`、通信対局中は人間が指していて自分の手番か、対局していないときは変化として記録できるか（`BranchTreeEditController::canRecordBoardMove()`）。解析中・詰み探索中・検討中は受け付けない。
+2. 1回目のクリック（駒選択）: 持ち駒のない駒台のマスは無視する。`ShogiView::startDrag()` でドラッグを始め、`selectPieceAndHighlight()` で駒を選ぶ。選んだマスを `BoardHighlightLayer::Selection` の層に、合法な移動先（`EngineMoveValidator` で判定）を `LegalDestinations` の層に出す（メニューで表示を切り替えられる）。相手の駒台や空きマスは選ばない。`m_waitingSecondClick = true` に設定する。
+3. 2回目のクリック（移動先指定）: 同じマスならキャンセルする。別のマスなら行き先の `BoardInputRoute::submit(from, to)` に渡す。成り・不成のダイアログを出している間もドラッグ状態を保つため、ここではドラッグを終えない（`ShogiGameController::endDragSignal` → `ShogiView::endDrag()` で終える。`connectBoard()` が接続）。
 
-右クリック（`onRightClick()`）は、2回目のクリック待ちなら選択を取り消す。盤の手番が替わったとき（`ShogiBoard::turnChanged`）も、つまんでいた駒の選択を取り消す（`cancelPendingClick()`）。
+右クリック（`onRightClick()`）は、2回目のクリック待ちなら選択を取り消す。盤の手番が替わったとき（`ShogiBoard::turnChanged`）と動作状態が変わったとき（`AppActivityState::changed`。`BoardMoveController` が接続）も、つまんでいた駒の選択を取り消す（`cancelPendingClick()`）。
 
 ### 1.2 指し手のルーティング
 
 ```
-BoardInteractionController::moveRequested(from, to)
-    ↓  （BoardMoveController のコンストラクタが接続）
-BoardMoveController::onMoveRequested(from, to)        （src/ui/controllers/boardmovecontroller.cpp）
-    ↓
-BoardMoveController::playMove(from, to)
+BoardInputRoute::submit(from, to)
+    ↓  （主画面の行き先は BoardMoveController）
+BoardMoveController::playMove(from, to)        （src/ui/controllers/boardmovecontroller.cpp）
+    ↓  対局・通信対局では ShogiGameController::prepareMove() で UsiMove にする（成り・不成もここで決まる）
+BoardMoveController::playUsiMove(move)
 ```
 
-`BoardMoveController::playMove()` は、アプリの動作状態（`AppActivityState::Activity`）で処理を分ける。定跡ウィンドウで選んだ手も、`JosekiWindowController` が成り・不成を指定してからこの関数で指す。
+`BoardMoveController::playMove()` は、アプリの動作状態（`AppActivityState::Activity`）で処理を分ける。クリックは1回だけ `UsiMove` にし、その後は `playUsiMove()` が扱う。定跡ウィンドウで選んだ手は成り・不成まで決まっているので、`JosekiWindowController` が `playUsiMove()` を直接呼ぶ（盤の座標に戻さない）。
 
-- 局面編集中（`Activity::DuringPositionEdit`）なら `PositionEditController::applyEditMove()` に渡して終わる。
-- 対局していない待機中（`Activity::Idle`）なら、指した手を表示中の手の次の手（変化）として記録して終わる（`BranchTreeEditController::recordBoardMove()`）。
-- 通信対局中（`Activity::DuringCsaGame`）なら `csaMoveRequested(from, to)` シグナルを発行する（→ `CsaGameCoordinator::onHumanMove()`。`CsaGameSession` が接続）。盤はサーバーの確認を受けてから変えるので、ここでは指さない。
+- 局面編集中（`Activity::DuringPositionEdit`）なら `PositionEditSession::applyEditMove()` に渡して終わる。
+- 対局していない待機中（`Activity::Idle`）なら、指した手を表示中の手の次の手（変化）として記録して終わる（盤の手は `BranchTreeEditController::recordBoardMove()`、定跡の手は `recordMove()`）。
+- 通信対局中（`Activity::DuringCsaGame`）なら、`ShogiGameController::isLegal()` で合法手か確かめて `csaMoveRequested(move)` シグナルを発行する（→ `CsaGameCoordinator::onHumanMove(const UsiMove&)`。`CsaGameSession` が接続）。盤はサーバーの確認を受けてから変えるので、ここでは指さない。
 - 対局中（`Activity::DuringGame`）で、司令塔が手を受け付け（`MatchCoordinator::canAcceptMove()`：終局しておらず棋譜に書ける）、盤の手番が人間（`isHumanSide()`）のときだけ指す。それ以外は `onMoveApplied(from, to, false)` で選択を取り消して終わる。
-- `ShogiGameController::validateAndMove()` を呼び、結果を `BoardInteractionController::onMoveApplied()` に渡して選択のハイライトを更新する（1.4）。不合法ならここで終わる。
+- `ShogiGameController::applyMove(move, MatchCoordinator::lastMoveDestination())` で指し、結果を `BoardInteractionController::onMoveApplied()` に渡して選択のハイライトを更新する（1.4）。不合法ならここで終わる。
 - 合法なら、指した手（`RecordEntry`）を `MatchCoordinator::onHumanMove(played)` に渡す（2章）。考慮時間の確定・棋譜への追記・千日手と最大手数の判定・エンジンへの手番渡しは司令塔が行う。
 
 ### 1.3 指し手の検証と盤面更新
@@ -103,10 +102,11 @@ BoardMoveController::playMove(from, to)
 **ファイル:** `src/game/shogigamecontroller.cpp`
 
 ```cpp
-std::optional<RecordEntry> ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo);
+std::optional<UsiMove> ShogiGameController::prepareMove(const QPoint& from, const QPoint& to);
+std::optional<RecordEntry> ShogiGameController::applyMove(const UsiMove& move, BoardSquare previousTo);
 ```
 
-盤のクリック（表示の座標）による着手を検証し、合法手であれば指す。`prepareMove()` が合法手の判定と成り・不成の決定を行い、`applyRecordedMove()` → `commitMove()` が盤に指す。盤への反映（`commitMove()`）は、エンジンの手を指す `applyMove()`（2.2）と共通である。指した手は棋譜の1行（`RecordEntry`）として返し、対局の手順への追加は司令塔が行う。
+盤のクリック（表示の座標）は `prepareMove()` が盤を変えずに `UsiMove` にする（合法手の判定と成り・不成の決定）。指すのは `applyMove()` で、指し手どおりの成り・不成が合法か（`isLegal()`）を確かめてから `commitMove()` で盤に指す。エンジンの手（2.2）・定跡の手も同じ `applyMove()` を通る。指した手は棋譜の1行（`RecordEntry`）として返し、対局の手順への追加は司令塔が行う。
 
 #### 処理ステップ
 
@@ -129,13 +129,12 @@ prepareMove() の成り・不成
     ├─ 成りだけ合法（行き所のない駒など）→ 成る
     ├─ 不成だけ合法 → 成らない
     ├─ 両方合法
-    │    ├─ 強制成りモード（setForcedPromotion()、定跡ウィンドウの手）→ 指定どおり
-    │    └─ それ以外 → setPromotionChooser() で設定した関数で対局者に選ばせる
+    │    └─ setPromotionChooser() で設定した関数で対局者に選ばせる
     │         DialogLauncher::choosePromotion() → PromotionFlow::askPromote()
     └─ どちらも不合法 → nullopt
 ```
 
-成りの選び方は `MainWindowComposer::createControllers()` が設定する。強制成りの指定は1手かぎりで、`prepareMove()` の始めに取り出して元に戻す。エンジンの手は成り・不成が決まった `UsiMove` で届くので、`applyMove()` は指し手どおりの成り・不成が合法かだけを確かめる。
+成りの選び方は `MainWindowComposer::createControllers()` が設定する。エンジンの手と定跡の手は成り・不成が決まった `UsiMove` で届くので、`prepareMove()` を通らず、`applyMove()` が指し手どおりの成り・不成が合法かだけを確かめる。
 
 ### 1.4 着手後のハイライト更新
 
@@ -145,7 +144,7 @@ prepareMove() の成り・不成
 BoardInteractionController::onMoveApplied(from, to, success)
 ```
 
-- 成功時: 移動元に薄い赤色、移動先に黄色のハイライトを表示し、選択中のオレンジ色のハイライトを消す。
+- 成功時: 直前の手の移動元（`BoardHighlightLayer::LastMoveFrom`）と移動先（`LastMoveTo`）を出し、選択（`Selection`）を消す。色は層ごとに `ShogiViewHighlighting` が決める。
 - 失敗時（不合法手）: 選択とドラッグ状態を取り消す。
 
 一手を確定して棋譜に書くと（人間の手もエンジンの手も）、表示中の手がその手に移り、`BoardSyncPresenter::syncToCurrentNode()`（`src/ui/presenters/boardsyncpresenter.cpp`）が `BoardInteractionController::showMoveHighlights()` でその手の移動元・移動先を示す（4.2）。
@@ -1082,7 +1081,8 @@ MatchCoordinator::handleResign()
 | 盤面操作コントローラ | `src/board/boardinteractioncontroller.h` | `src/board/boardinteractioncontroller.cpp` |
 | 盤で指した手の振り分け | `src/ui/controllers/boardmovecontroller.h` | `src/ui/controllers/boardmovecontroller.cpp` |
 | 部品の生成と配線（司令塔のシグナルの接続） | `src/app/mainwindowcomposer.h` | `src/app/mainwindowcomposer_create.cpp`, `src/app/mainwindowcomposer_wire.cpp` |
-| 盤を人間が操作できるかの判定 | `src/app/humanturnpolicy.h` | `src/app/humanturnpolicy.cpp` |
+| 盤で指した手の行き先（インターフェース） | `src/board/boardinputroute.h` | - |
+| 盤を人間が操作できるかの判定 | `src/ui/controllers/humanturnpolicy.h` | `src/ui/controllers/humanturnpolicy.cpp` |
 | 盤（局面と手番） | `src/core/shogiboard.h` | `src/core/shogiboard.cpp` |
 | ゲームコントローラ | `src/game/shogigamecontroller.h` | `src/game/shogigamecontroller.cpp` |
 | 対局司令塔（一手の確定・終局・待った・中断と再開） | `src/game/matchcoordinator.h` | `src/game/matchcoordinator.cpp` |

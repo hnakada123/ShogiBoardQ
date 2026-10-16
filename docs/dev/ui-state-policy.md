@@ -21,7 +21,7 @@
 | **DuringCsaGame** | CSA通信対局中 | `CsaGameSession::onGameStarted()`（`CsaGameCoordinator::gameStarted` を受ける） |
 | **DuringTsumeSearch** | 詰み探索中 | `AnalysisSession::start()`（詰み探索のとき） |
 | **DuringConsideration** | 検討中 | `AnalysisSession::start()`（検討のとき） |
-| **DuringPositionEdit** | 局面編集中 | `PositionEditCoordinator::beginPositionEditing()` |
+| **DuringPositionEdit** | 局面編集中 | `PositionEditSession::begin()` |
 
 ## 状態遷移図
 
@@ -41,8 +41,8 @@ Idle ──AnalysisSession::start()（詰み探索）─────────
 Idle ──AnalysisSession::start()（検討）────────────────────────────► DuringConsideration
      ◄─AnalysisSession::stop()（検討中止・エンジンエラー）
 
-Idle ──PositionEditCoordinator::beginPositionEditing()────────────► DuringPositionEdit
-     ◄─PositionEditCoordinator::finishPositionEditing()
+Idle ──PositionEditSession::begin()──────────────────────────────► DuringPositionEdit
+     ◄─PositionEditSession::finish()
 ```
 
 CSA通信対局は、待機ダイアログのキャンセル（`CsaGameSession::onWaitingCancelled()`）や対局が始まらなかったときも
@@ -123,7 +123,6 @@ CSA通信対局は、待機ダイアログのキャンセル（`CsaGameSession::
 | ナビゲーションボタン | E | D | D | D | E | E | D |
 | 棋譜欄クリック | E | D | D | D | E | E | D |
 | 分岐ツリークリック | E | D | D | D | E | E | D |
-| 盤面クリック（指し手入力） | E | E | D | E | D | D | D |
 | 検討ドック「検討開始」ボタン | E | D | E | D | E | E | E |
 
 **補足**:
@@ -132,7 +131,7 @@ CSA通信対局は、待機ダイアログのキャンセル（`CsaGameSession::
   再開は中断した対局を再開できるときだけ有効（`Deps::canResumeGame`。合成ルートが `MatchCoordinator::canResumeInterruptedGame()` を渡す。中断した対局の状態は司令塔の `InterruptedGameState` だけが持つ）
 - 「ナビゲーションボタン」と「棋譜欄クリック」は `RecordPane::setNavigationEnabled()` で一括制御
 - 「分岐ツリークリック」は `BranchTreeManager::setBranchTreeClickEnabled()` で制御
-- 「盤面クリック」は `BoardInteractionController::setMoveInputEnabled()` で制御（対局中の手番チェックは `setIsHumanTurnCallback()` で渡した `HumanTurnPolicy::isHumanTurnNow()` で別途実施）
+- 盤面クリック（指し手入力）は表に含めない。駒をつまめるかは盤で指した手の行き先（`BoardInputRoute`。主画面は `BoardMoveController`）が決める（局面編集中は常に可、それ以外は `HumanTurnPolicy::isHumanTurnNow()`。解析中・詰み探索中・検討中は受け付けない）
 - 「検討開始」ボタンは `ConsiderationTabManager::setStartConsiderationEnabled()` で制御（検討中は同ボタンが「検討中止」として動作するため有効のまま）
 - 「表示メニュー」は全状態で常に有効のため省略
 
@@ -180,4 +179,4 @@ KifuLoadCoordinator::loadFinished ──► enableNavigationIfAllowed()（ナビ
 - **テーブル駆動**: UI要素を足すときは `UiElement` に値を足し、`kRules` に同じ順で規則を、メニュー項目なら `kActions` に対応する `QAction` を足す。`kRules` が全要素を宣言順に並べていることは `static_assert` で確かめる
 - **依存の注入**: `MainWindowComposer::createSessions()` がコンストラクタの `Deps` で依存オブジェクトを渡す（[composition-root.md](composition-root.md)）。`Deps::localGameHasHuman` は司令塔の対局者（`MatchCoordinator::isHumanSide()`）から決める。`Deps::activity` を渡さないと自分だけの動作状態を使う（テスト用）
 - **表示メニュー**: 全状態で常に有効のため、テーブルには含めていない
-- **対局中の盤面クリック**: 対局中も `setMoveInputEnabled(true)` のままにし、人間の手番かどうかは `BoardInteractionController::setIsHumanTurnCallback()` で渡した判定（`HumanTurnPolicy::isHumanTurnNow()`）が別途行う
+- **盤面クリック**: `UiStatePolicyManager` は盤を触らない。`BoardInteractionController` はクリックのたびに `BoardInputRoute::acceptsInput()` に問い合わせる。動作状態による判定は `BoardMoveController`（`HumanTurnPolicy` を使う）が行う

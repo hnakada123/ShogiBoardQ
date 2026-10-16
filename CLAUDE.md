@@ -50,7 +50,6 @@ cmake --build build --target translations
   - `menuactionswiring.cpp/.h` - メニュー・ツールバーの項目と処理する部品の接続
   - `gamesession.cpp/.h` - 対局の開始・終局・再開と、対局の手順の棋譜への追記（`MatchRecordSink`）。ローカル対局と通信対局の棋譜を開始から終局・自動保存まで1本の流れで扱い、投了・中断・即指し・入玉宣言は `activeChannel()`（`GameChannel`）へ送る
   - `sessionresetcoordinator.cpp/.h` - 対局の開始前・新規・局面編集・棋譜の読み込み前に、棋譜と表示を作り直す（エンジンの表示の消去は `EngineDisplayPresenter::clearAll()`）
-  - `humanturnpolicy.cpp/.h` - 盤を人間が操作できる手番か・対局が進行中かの判定
   - `dockcreationservice.cpp/.h` - ドックの生成と配置
 
 - **core/**: 純粋なゲームロジック（Qt GUI非依存）
@@ -120,20 +119,21 @@ cmake --build build --target translations
   - `kifunavigationcontroller.cpp/.h` - 棋譜ナビゲーション（ボタン・分岐）
 
 - **board/**: 盤面編集・操作
-  - `boardinteractioncontroller.cpp/.h` - Board interaction
-  - `positioneditcontroller.cpp/.h` - Position editing
+  - `boardinteractioncontroller.cpp/.h` - 盤のクリックを移動元・移動先にし、選択・直前の手・合法な移動先のハイライトを出す
+  - `boardinputroute.h` - 盤で指した手の行き先 `BoardInputRoute`（つまめるか・局面編集中か・着手の処理。主画面は `BoardMoveController`、詰将棋を解くダイアログは `TsumePlayDialog`）
+  - `positioneditsession.cpp/.h` - 局面編集（開始・終了・編集メニュー・編集中の着手）。「編集中か」は動作状態 `DuringPositionEdit` だけで決まる
   - `boardimageexporter.cpp/.h` - Board image export
 
 - **ui/**: UI層
   - **presenters/**: 表示への反映
     - `enginedisplaypresenter`（エンジンの表示の持ち主。検討の表示は `AnalysisSession` の知らせだけから決める）, `playerinfopresenter`（盤の対局者名）, `evaluationgraphpresenter`（評価値グラフの点の唯一の書き手）, `kifudisplaypresenter`（棋譜欄・分岐）, `boardsyncpresenter`（盤と手番）, `candidatearrowpresenter`, etc.
   - **controllers/**: 利用者操作の処理
-    - `boardmovecontroller`, `considerationuicontroller`（検討タブの操作を `AnalysisSession` へ伝えるだけ）, `josekiwindowcontroller`, `menuwindowcontroller`, `pvclickcontroller`, etc.
+    - `boardmovecontroller`（主画面の `BoardInputRoute`。動作状態ごとに手を処理する）, `humanturnpolicy`（盤を人間が操作できる手番か・対局が進行中かの判定）, `considerationuicontroller`（検討タブの操作を `AnalysisSession` へ伝えるだけ）, `josekiwindowcontroller`, `menuwindowcontroller`, `pvclickcontroller`, etc.
   - **coordinators/**: 複数の部品にまたがる UI の流れ
-    - `dialoglauncher`, `kifuloadcoordinator`, `kifufilecontroller`（棋譜の開く・保存・貼り付け・コピー）, `csagamesession`, `positioneditcoordinator`, etc.
+    - `dialoglauncher`, `kifuloadcoordinator`, `kifufilecontroller`（棋譜の開く・保存・貼り付け・コピー）, `csagamesession`, etc.
     - `uistatepolicymanager` - 動作状態ごとのメニュー・ボタンの有効/無効（コンパイル時の表）
 
-- **views/**: 盤の描画と入力（`shogiview.cpp/.h`）。対局者カード・時計は `boardchromewidget`、局面によらない部分の画像は `boardstaticlayer`、配置は `shogiviewlayout`、ドラッグは `shogiviewinteraction`、ハイライトと矢印は `shogiviewhighlighting`
+- **views/**: 盤の描画と入力（`shogiview.cpp/.h`）。対局者カード・時計は `boardchromewidget`、局面によらない部分の画像は `boardstaticlayer`、配置は `shogiviewlayout`、ドラッグは `shogiviewinteraction`、ハイライト（層 `BoardHighlightLayer` ごとのマスの値。色は層で決まる）と矢印は `shogiviewhighlighting`
 - **automation/**: 自動化 API（`ShogiBoardQ --automation`）と、CLI・MCP サーバーが共有する GUI 非依存サービス（設計: `docs/dev/mcp-server.md`）
   - `automationserver.cpp/.h` - QLocalServer で改行区切り JSON-RPC 2.0 を待ち受け
   - `automationdispatcher.cpp/.h` - JSON-RPC 解析とメソッド表（GUI 非依存）
@@ -147,6 +147,7 @@ cmake --build build --target translations
 - **dialogs/**: Dialog implementations (with co-located .ui files)
 - **models/**: Qt models for lists and data binding（`usicommlogmodel`: エンジン1台の情報欄と通信ログの行の知らせ、`evaluationseries`: 評価値グラフの点。先手から見た値で持ち、向きの直しは `blackView()` だけ）
 - **services/**: Cross-cutting services (settings, time keeping)
+  - `engineprofilestore.cpp/.h` - 登録エンジンの設定（一覧・USIオプション・先読みの設定）の保存形式を知る唯一の場所（ほかの部品は設定ファイルを開かずにこの関数を使う）
 - **common/**: Shared utilities (`errorbus`, `jishogicalculator`)
 
 ### UI Files

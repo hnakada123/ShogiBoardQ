@@ -181,7 +181,7 @@ docs/dev/developer-guide.md に第7章「engine層：USIエンジン連携」を
 - src/engine/shogienginethinkingmodel.h
 - src/engine/shogiengineinfoparser.h
 - src/engine/enginesettingscoordinator.h
-- src/engine/engineoptions.h
+- src/services/engineoption.h
 - src/engine/usicommlogmodel.h
 
 記述してほしい内容:
