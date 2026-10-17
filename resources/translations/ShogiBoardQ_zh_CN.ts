@@ -741,11 +741,13 @@
     <message>
         <location filename="../../src/dialogs/boardcolordialog.cpp" line="123"/>
         <location filename="../../src/dialogs/boardcolordialog.cpp" line="564"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="564"/>
         <source>将棋盤</source>
         <translation>棋盘</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/boardcolordialog.cpp" line="124"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="568"/>
         <location filename="../../src/dialogs/boardcolordialog.cpp" line="568"/>
         <source>駒台</source>
         <translation>驹台</translation>
@@ -5085,12 +5087,17 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">打入持驹</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimoveinputwidget.cpp" line="65"/>
+        <location filename="../../src/dialogs/josekimoveinputwidget.cpp" line="111"/>
         <source>局面がありません</source>
         <translation>没有局面</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimoveinputwidget.cpp" line="105"/>
+        <location filename="../../src/dialogs/josekimoveinputwidget.cpp" line="111"/>
+        <source>合法手から選んでください</source>
+        <translation>请从合法着法中选择</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/josekimoveinputwidget.cpp" line="104"/>
         <source>なし</source>
         <translation>无</translation>
     </message>
@@ -5587,6 +5594,7 @@ YaneuraOu 定跡格式的着法行至少需要 5 个字段
         <translation type="vanished">保存定跡</translation>
     </message>
     <message>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="470"/>
         <location filename="../../src/dialogs/josekiwindow.cpp" line="470"/>
         <source>定跡</source>
         <translation>定跡</translation>
@@ -6820,77 +6828,77 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">错误</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="125"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="129"/>
         <source>（定跡）</source>
         <translation>（定跡）</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="136"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="140"/>
         <source>対局日</source>
         <translation>对局日期</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="136"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="140"/>
         <source>開始日時</source>
         <translation>开始时间</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="137"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="141"/>
         <source>終了日時</source>
         <translation>结束时间</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="137"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="141"/>
         <source>先手</source>
         <translation>先手</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="138"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="142"/>
         <source>後手</source>
         <translation>后手</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="138"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="142"/>
         <source>下手</source>
         <translation>下手</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="139"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="143"/>
         <source>上手</source>
         <translation>上手</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="139"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="143"/>
         <source>手合割</source>
         <translation>让子</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="140"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="144"/>
         <source>持ち時間</source>
         <translation>用时规则</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="140"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="144"/>
         <source>棋戦</source>
         <translation>赛事</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="141"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="145"/>
         <source>場所</source>
         <translation>地点</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="141"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="145"/>
         <source>備考</source>
         <translation>备注</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="142"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="146"/>
         <source>戦型</source>
         <translation>战型</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="142"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="146"/>
         <source>表題</source>
         <translation>标题</translation>
     </message>
@@ -6950,7 +6958,7 @@ OKを選択すると保存先が指定できます。</source>
         <translation>去左五枚</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="154"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="158"/>
         <source>局面指定</source>
         <translation>指定局面</translation>
     </message>
@@ -6980,17 +6988,17 @@ OKを選択すると保存先が指定できます。</source>
         <translation>去十枚</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="154"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="158"/>
         <source>その他</source>
         <translation>其他</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="158"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="162"/>
         <source>無制限</source>
         <translation>不限时</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="170"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="174"/>
         <source>%1+%2秒加算</source>
         <translation>%1+每步加%2秒</translation>
     </message>

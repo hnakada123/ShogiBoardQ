@@ -116,6 +116,7 @@ void JosekiMoveDialog::setupUi(bool isEdit)
     QVBoxLayout *commentLayout = new QVBoxLayout(commentGroup);
 
     m_commentEdit = new QLineEdit(this);
+    m_commentEdit->setObjectName(QStringLiteral("commentEdit"));
     m_commentEdit->setPlaceholderText(tr("コメントを入力（任意）"));
     commentLayout->addWidget(m_commentEdit);
     mainLayout->addWidget(commentGroup);
