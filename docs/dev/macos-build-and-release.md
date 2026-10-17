@@ -265,16 +265,17 @@ ShogiBoardQ が使わないものを削除し、Apple Silicon 専用の配布で
 | 削除するもの | 理由 |
 |---|---|
 | `PlugIns/platforminputcontexts/`、`QtQml*` / `QtQuick` / `QtVirtualKeyboard*` | 仮想キーボード・QML を使わない |
-| `PlugIns/tls/`、`PlugIns/networkinformation/` | CSA 通信は平文 TCP のみ |
+| `PlugIns/tls/` の SecureTransport 以外、`PlugIns/networkinformation/` | 通信対局の「TLS（暗号化）」は macOS 標準の Security フレームワークを使う SecureTransport バックエンドで行う（OpenSSL バックエンドは libssl の同梱が要る）。ネットワーク情報は使わない |
 | `PlugIns/multimedia/libffmpegmediaplugin.dylib`、`libav*` / `libsw*` | 駒音は macOS 標準の darwin バックエンドで再生する |
 | `PlugIns/sqldrivers/` の SQLite 以外 | SQLite のみ使用 |
 | `PlugIns/imageformats/` の gif / wbmp / macheif / icns / tga / macjp2 | SVG / ICO（アイコン）と JPEG / TIFF / WebP（盤面画像出力）のみ使用 |
 
 ```bash
 C=build/ShogiBoardQ.app/Contents
-rm -rf $C/PlugIns/platforminputcontexts $C/PlugIns/tls $C/PlugIns/networkinformation \
+rm -rf $C/PlugIns/platforminputcontexts $C/PlugIns/networkinformation \
   $C/PlugIns/multimedia/libffmpegmediaplugin.dylib $C/Frameworks/libav*.dylib $C/Frameworks/libsw*.dylib \
   $C/Frameworks/QtQml*.framework $C/Frameworks/QtQuick.framework $C/Frameworks/QtVirtualKeyboard*.framework
+find $C/PlugIns/tls -name '*.dylib' ! -name libqsecuretransportbackend.dylib -delete
 find $C/PlugIns/sqldrivers -name '*.dylib' ! -name libqsqlite.dylib -delete
 for p in gif wbmp macheif icns tga macjp2; do rm -f $C/PlugIns/imageformats/libq$p.dylib; done
 
@@ -286,7 +287,7 @@ find $C -type f \( -perm +111 -o -name '*.dylib' \) | while read -r f; do
 done
 ```
 
-残るのは Qt フレームワーク 12 個（Charts, Concurrent, Core, DBus, Gui, Multimedia, Network, OpenGL, OpenGLWidgets, Sql, Svg, Widgets）と、プラグイン 9 個（cocoa, macstyle, svgicon, darwin multimedia, sqlite, ico / jpeg / tiff / webp）。
+残るのは Qt フレームワーク 12 個（Charts, Concurrent, Core, DBus, Gui, Multimedia, Network, OpenGL, OpenGLWidgets, Sql, Svg, Widgets）と、プラグイン 10 個（cocoa, macstyle, svgicon, darwin multimedia, sqlite, securetransport, ico / jpeg / tiff / webp）。
 削除後はバンドル全体を署名し直す（[6.4](#64-手動でのコード署名)。アドホック署名なら `codesign --force --deep --sign - build/ShogiBoardQ.app`）。
 
 起動後、読み込まれたライブラリがすべてバンドル内のものか確認する：

@@ -287,7 +287,9 @@ macdeployqt "$APP_BUNDLE" -verbose=2
 # macdeployqt は Qt にあるプラグインを種類ごとにすべて配置し、仮想キーボードの
 # プラグイン経由で Qt Quick / QML まで取り込む。ShogiBoardQ が使わないものは削除する。
 #   - 仮想キーボード・QML・Qt Quick: 使用しない
-#   - TLS・ネットワーク情報: CSA 通信は平文 TCP のみ
+#   - TLS: CSA 通信対局の「TLS（暗号化）」には macOS 標準の Security フレームワークを使う
+#     SecureTransport バックエンドだけを残す（OpenSSL バックエンドは libssl を同梱しないと動かない）
+#   - ネットワーク情報: 使用しない
 #   - FFmpeg バックエンド: 駒音は macOS 標準の darwin バックエンドで再生できる
 #   - SQL ドライバー: SQLite のみ使用
 #   - 画像形式: アイコン用の SVG / ICO と、盤面画像出力の JPEG / TIFF / WebP のみ残す
@@ -295,7 +297,6 @@ info "未使用の Qt 部品を削除中..."
 CONTENTS="$APP_BUNDLE/Contents"
 rm -rf \
     "$CONTENTS/PlugIns/platforminputcontexts" \
-    "$CONTENTS/PlugIns/tls" \
     "$CONTENTS/PlugIns/networkinformation" \
     "$CONTENTS/PlugIns/multimedia/libffmpegmediaplugin.dylib" \
     "$CONTENTS/Frameworks/"libav*.dylib \
@@ -303,6 +304,7 @@ rm -rf \
     "$CONTENTS/Frameworks/"QtQml*.framework \
     "$CONTENTS/Frameworks/QtQuick.framework" \
     "$CONTENTS/Frameworks/"QtVirtualKeyboard*.framework
+find "$CONTENTS/PlugIns/tls" -name '*.dylib' ! -name 'libqsecuretransportbackend.dylib' -delete
 find "$CONTENTS/PlugIns/sqldrivers" -name '*.dylib' ! -name 'libqsqlite.dylib' -delete
 for plugin in gif wbmp macheif icns tga macjp2; do
     rm -f "$CONTENTS/PlugIns/imageformats/libq${plugin}.dylib"
@@ -364,6 +366,8 @@ info "PlugIns:    $(find "$APP_BUNDLE/Contents/PlugIns" -type f 2>/dev/null | wc
 # ──────────────────────────────────────────────
 
 [[ -f "$APP_BUNDLE/Contents/PlugIns/sqldrivers/libqsqlite.dylib" ]] || die "SQLite ドライバーが配布物にありません。"
+[[ -f "$APP_BUNDLE/Contents/PlugIns/tls/libqsecuretransportbackend.dylib" ]] \
+    || die "TLS プラグイン（SecureTransport バックエンド）が配布物にありません。"
 if [[ "$OPT_SKIP_QT_LICENSES" = true ]]; then
     warn "Qt ライセンス文書の追加をスキップしました（Contents/MacOS/licenses の簡易文書のみ）。"
 else

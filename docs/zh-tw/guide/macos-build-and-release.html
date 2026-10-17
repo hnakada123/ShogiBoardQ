@@ -288,7 +288,7 @@ otool -L build/ShogiBoardQ.app/Contents/MacOS/ShogiBoardQ</code></pre>
 </thead>
 <tbody>
 <tr><td><code>PlugIns/platforminputcontexts/</code>、<code>QtQml*</code> / <code>QtQuick</code> / <code>QtVirtualKeyboard*</code></td><td>不使用虛擬鍵盤與 QML</td></tr>
-<tr><td><code>PlugIns/tls/</code>、<code>PlugIns/networkinformation/</code></td><td>CSA 通訊只使用明文 TCP</td></tr>
+<tr><td><code>PlugIns/tls/</code> 中 SecureTransport 以外的後端、<code>PlugIns/networkinformation/</code></td><td>網路對局的「TLS（加密）」使用基於 macOS 標準 Security 框架的 SecureTransport 後端（OpenSSL 後端需要同捆 libssl）。不使用網路資訊外掛程式</td></tr>
 <tr><td><code>PlugIns/multimedia/libffmpegmediaplugin.dylib</code>、<code>libav*</code> / <code>libsw*</code></td><td>棋子音效使用 macOS 標準的 darwin 後端播放</td></tr>
 <tr><td><code>PlugIns/sqldrivers/</code> 中 SQLite 以外的驅動程式</td><td>只使用 SQLite</td></tr>
 <tr><td><code>PlugIns/imageformats/</code> 中的 gif / wbmp / macheif / icns / tga / macjp2</td><td>只使用 SVG / ICO（圖示）與 JPEG / TIFF / WebP（匯出棋盤圖片）</td></tr>
@@ -296,9 +296,10 @@ otool -L build/ShogiBoardQ.app/Contents/MacOS/ShogiBoardQ</code></pre>
 </table>
 </div>
 <pre class="bash"><code>C=build/ShogiBoardQ.app/Contents
-rm -rf $C/PlugIns/platforminputcontexts $C/PlugIns/tls $C/PlugIns/networkinformation \
+rm -rf $C/PlugIns/platforminputcontexts $C/PlugIns/networkinformation \
   $C/PlugIns/multimedia/libffmpegmediaplugin.dylib $C/Frameworks/libav*.dylib $C/Frameworks/libsw*.dylib \
   $C/Frameworks/QtQml*.framework $C/Frameworks/QtQuick.framework $C/Frameworks/QtVirtualKeyboard*.framework
+find $C/PlugIns/tls -name &#39;*.dylib&#39; ! -name libqsecuretransportbackend.dylib -delete
 find $C/PlugIns/sqldrivers -name &#39;*.dylib&#39; ! -name libqsqlite.dylib -delete
 for p in gif wbmp macheif icns tga macjp2; do rm -f $C/PlugIns/imageformats/libq$p.dylib; done
 
@@ -308,7 +309,7 @@ find $C -type f \( -perm +111 -o -name &#39;*.dylib&#39; \) | while read -r f; d
     lipo &quot;$f&quot; -thin arm64 -output &quot;$f.thin&quot; &amp;&amp; chmod &quot;$(stat -f %Lp &quot;$f&quot;)&quot; &quot;$f.thin&quot; &amp;&amp; mv &quot;$f.thin&quot; &quot;$f&quot;
   fi
 done</code></pre>
-<p>保留的是 12 個 Qt 框架（Charts、Concurrent、Core、DBus、Gui、Multimedia、Network、OpenGL、OpenGLWidgets、Sql、Svg、Widgets）與 9 個外掛程式（cocoa、macstyle、svgicon、darwin multimedia、sqlite、ico / jpeg / tiff / webp）。刪除後要重新對整個應用程式套件簽章（<a href="#signing-manual">6.4</a>。臨時簽章時為 <code>codesign --force --deep --sign - build/ShogiBoardQ.app</code>）。</p>
+<p>保留的是 12 個 Qt 框架（Charts、Concurrent、Core、DBus、Gui、Multimedia、Network、OpenGL、OpenGLWidgets、Sql、Svg、Widgets）與 10 個外掛程式（cocoa、macstyle、svgicon、darwin multimedia、sqlite、securetransport、ico / jpeg / tiff / webp）。刪除後要重新對整個應用程式套件簽章（<a href="#signing-manual">6.4</a>。臨時簽章時為 <code>codesign --force --deep --sign - build/ShogiBoardQ.app</code>）。</p>
 <p>啟動後，確認載入的函式庫全部來自套件內：</p>
 <pre class="bash"><code>open build/ShogiBoardQ.app
 lsof -p &quot;$(pgrep -x ShogiBoardQ)&quot; | grep -E &#39;/Qt/|homebrew&#39;   # 沒有任何輸出即可</code></pre>
