@@ -236,7 +236,8 @@ ShogiBoardQ-linux-x86_64.AppImage
         │   ├── iconengines/libqsvgicon.so
         │   ├── platforminputcontexts/          ← 日本語入力（compose・fcitx5・ibus）
         │   ├── platformthemes/libqxdgdesktopportal.so
-        │   └── sqldrivers/libqsqlite.so        ← 詰将棋の解答履歴・解析キャッシュ
+        │   ├── sqldrivers/libqsqlite.so        ← 詰将棋の解答履歴・解析キャッシュ
+        │   └── tls/libqopensslbackend.so       ← 通信対局の TLS 接続（OpenSSL）
         └── share/
             ├── applications/, icons/
             └── licenses/ShogiBoardQ/
@@ -248,7 +249,8 @@ ShogiBoardQ-linux-x86_64.AppImage
 
 - 問題集・通常対局用の Hayanagi・説明書・問題集の検証記録（`validation_*.json`）は入れない。アプリはこれらを AppImage 内から読まず、利用者もファイル選択できないため、ZIP の外部ファイルとしてだけ配布する。詰将棋対局の Hayanagi はアプリ本体に組み込まれている。
 - linuxdeploy が配置する Qt 標準の翻訳（`usr/translations/`）は使わないので削除する。標準ダイアログの日本語・中国語訳は実行ファイルに内蔵し、アプリの翻訳は `usr/bin/` から読む。
-- 使わないプラグイン（OpenGL 連携の `xcbglintegrations`、通信暗号化の `tls`、GIF 画像）は入れない。OpenGL を使う画面部品はなく、CSA 通信対局は暗号化しない TCP で、HTTPS などの通信もしないため。
+- 使わないプラグイン（OpenGL 連携の `xcbglintegrations`、GIF 画像）は入れない。OpenGL を使う画面部品がないため。
+- `tls` は、CSA 通信対局の「TLS（暗号化）」接続に使う OpenSSL バックエンド（`libqopensslbackend.so`）だけを入れる。libssl・libcrypto は依存ライブラリとして同梱される。HTTPS などの通信はしない。
 - Qt のライセンス文書は、同梱する Qt モジュール（qtbase・qtcharts・qtmultimedia・qtsvg・qttranslations・qtwayland）の分と、それらが参照する文書だけを入れる（`scripts/qt_licenses.py`）。WebEngine など配布しないモジュールの文書は入れない。
 - Qt 以外の同梱ライブラリ（glib・PulseAudio・OpenSSL・fcitx5-qt など約50パッケージ）は、`scripts/bundled_licenses.py` が元のパッケージを pacman で調べ、ライセンス本文を `third-party/` に、版・ライセンス・ソースの取得先の一覧を `THIRD-PARTY-NOTICES.md` に入れる。どちらも「バージョン情報」の「Qt 内の第三者ライセンス一覧」「同梱ライブラリのライセンス一覧」で表示される。
 

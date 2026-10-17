@@ -252,7 +252,8 @@ python3 scripts/qt_licenses.py prepare --version 6.7.2 \
         │   ├── iconengines/libqsvgicon.so
         │   ├── platforminputcontexts/          ← 日本語入力（compose・fcitx5・ibus）
         │   ├── platformthemes/libqxdgdesktopportal.so
-        │   └── sqldrivers/libqsqlite.so        ← 詰将棋の解答履歴・解析キャッシュ
+        │   ├── sqldrivers/libqsqlite.so        ← 詰将棋の解答履歴・解析キャッシュ
+        │   └── tls/libqopensslbackend.so       ← 通信対局の TLS 接続（OpenSSL）
         └── share/
             ├── applications/, icons/
             └── licenses/ShogiBoardQ/
@@ -263,7 +264,8 @@ python3 scripts/qt_licenses.py prepare --version 6.7.2 \
 <ul>
 <li>問題集・通常対局用の Hayanagi・説明書・問題集の検証記録（<code>validation_*.json</code>）は入れない。アプリはこれらを AppImage 内から読まず、利用者もファイル選択できないため、ZIP の外部ファイルとしてだけ配布する。詰将棋対局の Hayanagi はアプリ本体に組み込まれている。</li>
 <li>linuxdeploy が配置する Qt 標準の翻訳（<code>usr/translations/</code>）は使わないので削除する。標準ダイアログの日本語・中国語訳は実行ファイルに内蔵し、アプリの翻訳は <code>usr/bin/</code> から読む。</li>
-<li>使わないプラグイン（OpenGL 連携の <code>xcbglintegrations</code>、通信暗号化の <code>tls</code>、GIF 画像）は入れない。OpenGL を使う画面部品はなく、CSA 通信対局は暗号化しない TCP で、HTTPS などの通信もしないため。</li>
+<li>使わないプラグイン（OpenGL 連携の <code>xcbglintegrations</code>、GIF 画像）は入れない。OpenGL を使う画面部品がないため。</li>
+<li><code>tls</code> は、CSA 通信対局の「TLS（暗号化）」接続に使う OpenSSL バックエンド（<code>libqopensslbackend.so</code>）だけを入れる。libssl・libcrypto は依存ライブラリとして同梱される。HTTPS などの通信はしない。</li>
 <li>Qt のライセンス文書は、同梱する Qt モジュール（qtbase・qtcharts・qtmultimedia・qtsvg・qttranslations・qtwayland）の分と、それらが参照する文書だけを入れる（<code>scripts/qt_licenses.py</code>）。WebEngine など配布しないモジュールの文書は入れない。</li>
 <li>Qt 以外の同梱ライブラリ（glib・PulseAudio・OpenSSL・fcitx5-qt など約50パッケージ）は、<code>scripts/bundled_licenses.py</code> が元のパッケージを pacman で調べ、ライセンス本文を <code>third-party/</code> に、版・ライセンス・ソースの取得先の一覧を <code>THIRD-PARTY-NOTICES.md</code> に入れる。どちらも「バージョン情報」の「Qt 内の第三者ライセンス一覧」「同梱ライブラリのライセンス一覧」で表示される。</li>
 </ul>
