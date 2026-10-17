@@ -117,7 +117,7 @@
                     <span class="guide-step-number">3</span>
                     <span class="guide-step-title">顯示棋譜</span>
                 </div>
-                <p class="guide-step-text">讀取檔案後，「棋譜」欄會顯示著法與用時，棋盤則顯示初始局面。可以透過棋譜欄或導覽按鈕移動到任意局面。對局者、日期、讓子等對局資訊也會自動讀取。</p>
+                <p class="guide-step-text">讀取檔案後，「棋譜」欄會顯示著法與用時，棋盤則顯示初始局面。可以透過棋譜欄或導覽按鈕移動到任意局面。對局者、日期、讓子等對局資訊也會自動讀取。檔案中有無法解析、不能走或先後手符號與手番不符的著法時，任何格式都會讀取到該著法之前為止，並在警告中顯示原因和已讀取的手數。</p>
                 <div class="screenshot-item">
                     <img src="../../images/zh-tw/kifu-management/kifu-03-loaded.png" alt="讀取棋譜後的畫面">
                     <p class="screenshot-caption">讀取棋譜後：棋譜欄顯示著法與用時</p>
@@ -331,7 +331,7 @@ T2</code></pre>
                         <tr><td>BOD</td><td>帶有持駒標題、邊框或格子記法，且沒有著法列表的局面圖</td></tr>
                     </tbody>
                 </table>
-                <p class="guide-step-text">無法識別的文字會嘗試以 KIF 讀取。識別格式後會檢查內容，無法匯入時會顯示錯誤。</p>
+                <p class="guide-step-text">無法識別的文字會嘗試以 KIF 讀取。識別格式後會檢查內容：有無法解析或不能走的著法時，會匯入到該著法之前為止，並在警告中顯示原因和手數；無法作為棋譜讀取時會顯示錯誤。</p>
             </div>
 
         </div>

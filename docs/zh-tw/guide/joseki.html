@@ -105,7 +105,7 @@
                     <li>編輯・刪除：編輯或刪除該定跡著法的按鈕（「執行」在對局中輪到自己時以及不在對局中時顯示）</li>
                 </ul>
                 <p class="guide-step-text">在棋譜欄選擇著法或對局推進時，會切換為該局面的定跡著法。不區分手數，相同局面總是顯示相同的定跡著法。</p>
-                <p class="guide-step-text">按一下「詳細」可顯示局面與定跡的 SFEN。「■ 停止」暫停定跡顯示，「▶ 恢復」重新顯示。最下方一行顯示檔名、局面數與目前局面的定跡著法數。未開啟定跡檔案或該局面沒有定跡時，表格中會顯示提示。</p>
+                <p class="guide-step-text">按一下「詳細」可顯示局面與定跡的 SFEN。「■ 停止」暫停定跡顯示，「▶ 恢復」重新顯示。定跡視窗位於其他分頁後面時不會更新，回到前面時會顯示目前局面的定跡著法。最下方一行顯示檔名、局面數與目前局面的定跡著法數。未開啟定跡檔案或該局面沒有定跡時，表格中會顯示提示。</p>
             </div>
 
         </div>
@@ -150,11 +150,11 @@
                     <span class="guide-step-number">4</span>
                     <span class="guide-step-title">新增定跡著法</span>
                 </div>
-                <p class="guide-step-text">按一下「＋新增」為目前局面新增定跡著法。選擇「移動盤上棋子」或「打入持駒」，指定起點與終點，並透過預覽確認。預期應手也可以選擇「無」。</p>
-                <p class="guide-step-text">輸入的著法在該局面不能走時，無法按下「新增」。已登記相同著法時，會確認是否覆寫。</p>
+                <p class="guide-step-text">按一下「＋新增」為目前局面新增定跡著法。著法從該局面的合法著法清單中選擇，清單以棋譜記法顯示（不能走的著法不會列出）。預期應手從走出該著法後的局面的合法著法中選擇，也可以選擇「無」。</p>
+                <p class="guide-step-text">未選擇著法時，無法按下「新增」。已登記相同著法時，會確認是否覆寫。</p>
                 <div class="screenshot-item screenshot-item--compact">
                     <img src="../../images/zh-tw/joseki/joseki-03-add.png" alt="新增定跡著法">
-                    <p class="screenshot-caption">新增定跡著法：透過預覽確認著法後新增</p>
+                    <p class="screenshot-caption">新增定跡著法：從局面的合法著法清單中選擇著法與預期應手</p>
                 </div>
             </div>
 
@@ -163,7 +163,7 @@
                     <span class="guide-step-number">5</span>
                     <span class="guide-step-title">編輯定跡著法</span>
                 </div>
-                <p class="guide-step-text">按一下「編輯」可以修改預期應手、評價值、搜尋深度、次數與註解（著法本身不能修改）。在表格的行上按右鍵，還可以使用執行、編輯、刪除與複製著法的選單。</p>
+                <p class="guide-step-text">按一下「編輯」可以修改預期應手、評價值、搜尋深度、次數與註解（著法本身不能修改；預期應手從走出該定跡著法後的局面的合法著法中選擇）。在表格的行上按右鍵，還可以使用執行、編輯、刪除與複製著法的選單。</p>
                 <p class="guide-step-text">修改後，檔名右側會顯示「未儲存」與提示儲存的說明。</p>
                 <div class="screenshot-item screenshot-item--compact">
                     <img src="../../images/zh-tw/joseki/joseki-04-edit.png" alt="編輯定跡著法">
@@ -180,7 +180,7 @@
                     <span class="guide-step-number">6</span>
                     <span class="guide-step-title">刪除與儲存</span>
                 </div>
-                <p class="guide-step-text">按一下「刪除」會顯示確認，確認後刪除該定跡著法。</p>
+                <p class="guide-step-text">按一下「刪除」會顯示確認，確認後刪除該定跡著法。刪除局面的最後一個定跡著法時，該局面也會從定跡中移除。</p>
                 <p class="guide-step-text">使用「儲存」（覆寫）或「另存為」把修改寫入定跡檔案。有未儲存的修改時，透過「新建」「開啟」「歷史記錄」切換檔案，或關閉定跡視窗、應用程式時，會確認是否儲存。</p>
                 <div class="screenshot-item screenshot-item--compact">
                     <img src="../../images/zh-tw/joseki/joseki-06-delete.png" alt="刪除確認">

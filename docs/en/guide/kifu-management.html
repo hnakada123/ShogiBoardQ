@@ -111,7 +111,7 @@
 <span class="guide-step-number">3</span>
 <span class="guide-step-title">View the Loaded Record</span>
 </div>
-<p class="guide-step-text">After loading, the game record area shows moves and time spent, and the board shows the starting position. Use the record list or navigation buttons to move to any position. Game information such as player names, date, and handicap is read automatically.</p>
+<p class="guide-step-text">After loading, the game record area shows moves and time spent, and the board shows the starting position. Use the record list or navigation buttons to move to any position. Game information such as player names, date, and handicap is read automatically. When a file contains a move that cannot be read or played, or whose side marker does not match the side to move, every format is loaded up to the move before it, and a warning shows the reason and the number of moves read.</p>
 <div class="screenshot-item">
 <img alt="Screen after loading a game record" src="../../images/en/kifu-management/kifu-03-loaded.png"/>
 <p class="screenshot-caption">Loaded game record: moves and time spent in the move list</p>
@@ -312,7 +312,7 @@ T2</code></pre>
 <tr><td>BOD</td><td>A position diagram with hand headings, borders, or square notation, without a move list</td></tr>
 </tbody>
 </table>
-<p class="guide-step-text">Unrecognized text is tried as KIF. The content is validated after format detection, and an error is shown if it cannot be imported.</p>
+<p class="guide-step-text">Unrecognized text is tried as KIF. The content is validated after format detection. When a move cannot be read or played, the record is imported up to the move before it and a warning shows the reason and the number of moves read; an error is shown if the text cannot be read as a record at all.</p>
 </div>
 </div>
 </div>

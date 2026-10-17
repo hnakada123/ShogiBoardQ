@@ -105,7 +105,7 @@
                     <li>编辑・删除：编辑或删除该定跡着法的按钮（“执行”在对局中轮到自己时以及不在对局中时显示）</li>
                 </ul>
                 <p class="guide-step-text">在棋谱栏选择着法或对局推进时，会切换为该局面的定跡着法。不区分手数，相同局面总是显示相同的定跡着法。</p>
-                <p class="guide-step-text">点击“详细”可显示局面和定跡的 SFEN。“■ 停止”暂停定跡显示，“▶ 恢复”重新显示。最下方一行显示文件名、局面数和当前局面的定跡着法数。未打开定跡文件或该局面没有定跡时，表格中会显示提示。</p>
+                <p class="guide-step-text">点击“详细”可显示局面和定跡的 SFEN。“■ 停止”暂停定跡显示，“▶ 恢复”重新显示。定跡窗口位于其他标签页后面时不会更新，回到前面时会显示当前局面的定跡着法。最下方一行显示文件名、局面数和当前局面的定跡着法数。未打开定跡文件或该局面没有定跡时，表格中会显示提示。</p>
             </div>
 
         </div>
@@ -150,11 +150,11 @@
                     <span class="guide-step-number">4</span>
                     <span class="guide-step-title">添加定跡着法</span>
                 </div>
-                <p class="guide-step-text">点击“＋添加”为当前局面添加定跡着法。选择“移动盘上棋子”或“打入持驹”，指定起点和终点，并通过预览确认。预期应手也可以选择“无”。</p>
-                <p class="guide-step-text">输入的着法在该局面不能走时，无法点击“添加”。已登记相同着法时，会确认是否覆盖。</p>
+                <p class="guide-step-text">点击“＋添加”为当前局面添加定跡着法。着法从该局面的合法着法列表中选择，列表以棋谱记法显示（不能走的着法不会列出）。预期应手从走出该着法后的局面的合法着法中选择，也可以选择“无”。</p>
+                <p class="guide-step-text">未选择着法时，无法点击“添加”。已登记相同着法时，会确认是否覆盖。</p>
                 <div class="screenshot-item screenshot-item--compact">
                     <img src="../../images/zh-cn/joseki/joseki-03-add.png" alt="添加定跡着法">
-                    <p class="screenshot-caption">添加定跡着法：通过预览确认着法后添加</p>
+                    <p class="screenshot-caption">添加定跡着法：从局面的合法着法列表中选择着法和预期应手</p>
                 </div>
             </div>
 
@@ -163,7 +163,7 @@
                     <span class="guide-step-number">5</span>
                     <span class="guide-step-title">编辑定跡着法</span>
                 </div>
-                <p class="guide-step-text">点击“编辑”可以修改预期应手、评价值、搜索深度、次数和注释（着法本身不能修改）。右键单击表格的行，还可以使用执行、编辑、删除和复制着法的菜单。</p>
+                <p class="guide-step-text">点击“编辑”可以修改预期应手、评价值、搜索深度、次数和注释（着法本身不能修改；预期应手从走出该定跡着法后的局面的合法着法中选择）。右键单击表格的行，还可以使用执行、编辑、删除和复制着法的菜单。</p>
                 <p class="guide-step-text">修改后，文件名右侧会显示“未保存”和提示保存的说明。</p>
                 <div class="screenshot-item screenshot-item--compact">
                     <img src="../../images/zh-cn/joseki/joseki-04-edit.png" alt="编辑定跡着法">
@@ -180,7 +180,7 @@
                     <span class="guide-step-number">6</span>
                     <span class="guide-step-title">删除与保存</span>
                 </div>
-                <p class="guide-step-text">点击“删除”会显示确认，确认后删除该定跡着法。</p>
+                <p class="guide-step-text">点击“删除”会显示确认，确认后删除该定跡着法。删除局面的最后一个定跡着法时，该局面也会从定跡中移除。</p>
                 <p class="guide-step-text">使用“保存”（覆盖）或“另存为”把修改写入定跡文件。有未保存的修改时，通过“新建”“打开”“历史记录”切换文件，或关闭定跡窗口、应用程序时，会确认是否保存。</p>
                 <div class="screenshot-item screenshot-item--compact">
                     <img src="../../images/zh-cn/joseki/joseki-06-delete.png" alt="删除确认">

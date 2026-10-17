@@ -213,6 +213,7 @@ pip install -e mcp</code></pre>
                         <tr><td><code>SHOGIBOARDQ_OUTPUT_DIR</code></td><td>截圖等的預設輸出位置。預設是暫存目錄下的 <code>shogiboardq-mcp</code></td></tr>
                         <tr><td><code>SHOGIBOARDQ_AUTOMATION_SOCKET</code></td><td>自動化通訊端的路徑（與應用程式的 <code>--automation-socket</code> 相同）</td></tr>
                         <tr><td><code>SHOGIBOARDQ_QUIT_APP_ON_EXIT</code></td><td>設為 <code>1</code> 時，伺服器結束時會關閉由伺服器啟動的應用程式（預設保留）</td></tr>
+                        <tr><td><code>SHOGIBOARDQ_ALLOW_UNRESTRICTED_UI</code></td><td>設為 <code>1</code> 時可以使用通用的 GUI 操作工具（trigger_action、click_widget、set_widget_value、click_table_cell、edit_table_cell、click_dialog_button、select_menu_action）。預設停用。透過 GUI 進行的檔案操作和引擎註冊不受目錄限制，因此相當於授予與應用程式相同的權限</td></tr>
                         <tr><td><code>PYTHONPATH</code></td><td>未執行 <code>pip install -e mcp</code> 時，指定儲存庫的 <code>mcp</code> 目錄</td></tr>
                     </tbody>
                 </table>
@@ -455,7 +456,8 @@ PYTHONPATH = "/path/to/ShogiBoardQ/mcp"</code></pre>
                     </tbody>
                 </table>
                 <p class="guide-step-text">在有未儲存變更的狀態下讀取棋譜或設定局面的要求，除非明確指定 <code>discard_unsaved</code>，否則會被拒絕。選單操作採用允許清單，無法執行結束和覆寫儲存。可以切換語言，重新啟動應用程式後生效。可執行的操作可用 list_actions 確認。</p>
-                <p class="guide-step-text">沒有名稱的控制項，可以把 get_widget_text 或 list_dialogs 回傳的 selector 指定給 widget、target 或 dialog 來操作。重新開啟對話方塊或重新啟動應用程式後請重新取得。set_widget_value 也支援滑桿、清單、可勾選的群組和顏色。選單可以用 list_menu_actions 查詢階層索引，再指定給 select_menu_action 的 path。</p>
+                <p class="guide-step-text">所有工具都用 target（objectName、selector 或標題的一部分）指定要操作的視窗或對話方塊，省略時為主視窗。沒有名稱的控制項，可以把 get_widget_text 或 list_dialogs 回傳的 selector 指定給 widget 或 target 來操作。重新開啟對話方塊或重新啟動應用程式後請重新取得。set_widget_value 也支援滑桿、清單、可勾選的群組和顏色。選單可以用 list_menu_actions 查詢階層索引，再指定給 select_menu_action 的 path。</p>
+                <p class="guide-step-text">操作畫面的工具會等待應用程式執行完操作後才回傳；執行時無法操作（例如目標被隱藏、被停用或被其他對話方塊遮住）時回傳錯誤。結果中的 <code>state</code> 用於區分已執行（done）、操作開啟的強制回應對話方塊仍在顯示（running）和等待期間未執行（pending）。工具失敗時，訊息以與 CLI、自動化 API 共用的錯誤分類詞開頭，例如 <code>invalid_argument</code>、<code>not_found</code>、<code>file_exists</code>、<code>parse_error</code>。</p>
             </div>
         </div>
     </div>
@@ -475,6 +477,8 @@ PYTHONPATH = "/path/to/ShogiBoardQ/mcp"</code></pre>
                 </div>
                 <ul class="guide-step-text">
                     <li>自動化通訊端只有本使用者可以存取，不會公開到網路。只有加上 <code>--automation</code> 時才有效</li>
+                    <li>通用的 GUI 操作（trigger_action、click_widget、set_widget_value 等）預設停用，只有在伺服器的環境變數中指定 <code>SHOGIBOARDQ_ALLOW_UNRESTRICTED_UI=1</code> 時才能使用。一般的棋譜讀寫請使用 load_kifu / save_kifu</li>
+                    <li>網路對局的密碼在讀取時會被遮蓋；使用者正在顯示密碼時，會拒絕擷取畫面</li>
                     <li>檔案只接受絕對路徑，<code>SHOGIBOARDQ_ALLOWED_DIRS</code>（預設是家目錄）以外的路徑會被拒絕。沒有明確指定 <code>overwrite</code> 時不會覆寫既有檔案</li>
                     <li>引擎只接受在 ShogiBoardQ 中註冊的名稱</li>
                     <li>選單操作採用允許清單，不執行結束和覆寫儲存。可以切換語言和管理已命名的面板佈局</li>
