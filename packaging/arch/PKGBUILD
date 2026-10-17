@@ -12,7 +12,7 @@
 #   /usr/share/licenses/shogiboardq/    「バージョン情報」で表示するライセンス文書
 
 pkgname=shogiboardq
-pkgver=2026.10.10
+pkgver=2026.10.17
 pkgrel=1
 pkgdesc='Shogi board GUI for playing, kifu management and analysis with USI engines'
 arch=('x86_64')
