@@ -12,6 +12,11 @@ CMakeUserPresets.json
 debug.log
 ShogiBoardQ-linux-x86_64.AppImage
 ShogiBoardQ-linux.zip
+/ShogiBoardQ*.dmg
+/ShogiBoardQ-macos.zip
+
+# macOS Finder
+.DS_Store
 
 # Python (mcp/)
 __pycache__/
