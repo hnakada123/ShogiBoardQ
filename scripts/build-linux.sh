@@ -298,7 +298,9 @@ link_plugins platforminputcontexts \
 # platformthemes: デスクトップ統合
 link_plugins platformthemes libqxdgdesktopportal.so
 
-# tls は同梱しない。CSA 通信対局は暗号化しない TCP で、HTTPS 等の通信もしないため。
+# tls: CSA 通信対局の「TLS（暗号化）」接続（OpenSSL バックエンド。libssl・libcrypto は依存として同梱される）。
+# 証明書の読み取りだけの libqcertonlybackend.so は使わないので入れない。
+link_plugins tls libqopensslbackend.so
 
 # 詰将棋の解答履歴・解析キャッシュ
 link_plugins sqldrivers libqsqlite.so
@@ -323,7 +325,7 @@ WRAPPER_EOF
 chmod +x "$QMAKE_WRAPPER"
 export QMAKE="$QMAKE_WRAPPER"
 
-export EXTRA_QT_PLUGINS="svg;iconengines;sqldrivers"
+export EXTRA_QT_PLUGINS="svg;iconengines;sqldrivers;tls"
 
 # linuxdeploy 内蔵の strip は古く、最新の .relr.dyn セクションを
 # 認識できない場合がある。linuxdeploy の strip をスキップし、
@@ -433,6 +435,7 @@ chmod +x "$APPDIR/AppRun"
 # クリーンアップ済みの AppDir をそのままパッケージングする appimagetool を使用
 info "Qt・同梱ライブラリのライセンスと対応ソース情報を同梱中..."
 [[ -f "${APPDIR}/usr/plugins/sqldrivers/libqsqlite.so" ]] || die "SQLite ドライバーが配布物にありません。"
+[[ -f "${APPDIR}/usr/plugins/tls/libqopensslbackend.so" ]] || die "TLS プラグイン（OpenSSL バックエンド）が配布物にありません。"
 # Qt の文書は同梱するモジュールの分だけ入れる（WebEngine など使わないモジュールの分は入れない）。
 # qtwayland: Qt 6.9 以前は日本語入力（fcitx5）が使う Qt Wayland Client がこのモジュールにある。
 # qttranslations: 標準ダイアログの訳（qtbase_*.qm）を実行ファイルに内蔵している。

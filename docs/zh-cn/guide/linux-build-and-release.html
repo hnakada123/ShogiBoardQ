@@ -252,7 +252,8 @@ python3 scripts/qt_licenses.py prepare --version 6.7.2 \
         │   ├── iconengines/libqsvgicon.so
         │   ├── platforminputcontexts/          ← 日语输入（compose、fcitx5、ibus）
         │   ├── platformthemes/libqxdgdesktopportal.so
-        │   └── sqldrivers/libqsqlite.so        ← 诘棋作答记录与分析缓存
+        │   ├── sqldrivers/libqsqlite.so        ← 诘棋作答记录与分析缓存
+        │   └── tls/libqopensslbackend.so       ← 联网对局的 TLS 连接（OpenSSL）
         └── share/
             ├── applications/, icons/
             └── licenses/ShogiBoardQ/
@@ -263,7 +264,8 @@ python3 scripts/qt_licenses.py prepare --version 6.7.2 \
 <ul>
 <li>不收录题集、普通对局用的 Hayanagi、说明文档和题集的校验记录（<code>validation_*.json</code>）。应用程序不会从 AppImage 内部读取它们，用户也无法在其中选择文件，因此只作为 ZIP 中 AppImage 之外的文件发布。诘棋练习用的 Hayanagi 已内置于应用程序中。</li>
 <li>删除 linuxdeploy 放入的 Qt 标准翻译（<code>usr/translations/</code>）。标准对话框的日语和中文翻译已内置于可执行文件，应用程序的翻译从 <code>usr/bin/</code> 读取。</li>
-<li>不收录用不到的插件：OpenGL 集成（<code>xcbglintegrations</code>）、通信加密（<code>tls</code>）和 GIF 图像。没有使用 OpenGL 的界面部件，CSA 联网对局使用不加密的 TCP，也不进行 HTTPS 等通信。</li>
+<li>不收录用不到的插件：OpenGL 集成（<code>xcbglintegrations</code>）和 GIF 图像。没有使用 OpenGL 的界面部件。</li>
+<li><code>tls</code> 插件只收录 OpenSSL 后端（<code>libqopensslbackend.so</code>），用于 CSA 联网对局的“TLS（加密）”连接。libssl 和 libcrypto 作为其依赖库一并收录。应用程序不进行 HTTPS 等通信。</li>
 <li>Qt 的许可文档只收录随附的 Qt 模块（qtbase、qtcharts、qtmultimedia、qtsvg、qttranslations、qtwayland）及其引用的文档（<code>scripts/qt_licenses.py</code>）。不收录 WebEngine 等未发布模块的文档。</li>
 <li>对于 Qt 以外的随附库（glib、PulseAudio、OpenSSL、fcitx5-qt 等约 50 个软件包），<code>scripts/bundled_licenses.py</code> 通过 pacman 查找所属软件包，把许可原文放入 <code>third-party/</code>，并在 <code>THIRD-PARTY-NOTICES.md</code> 中列出版本、许可和源代码获取位置。两者分别显示在“版本信息”的“Qt 中的第三方许可证”和“随附库的许可证”中。</li>
 </ul>

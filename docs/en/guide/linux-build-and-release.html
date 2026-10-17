@@ -252,7 +252,8 @@ python3 scripts/qt_licenses.py prepare --version 6.7.2 \
         │   ├── iconengines/libqsvgicon.so
         │   ├── platforminputcontexts/          ← Japanese input (compose, fcitx5, ibus)
         │   ├── platformthemes/libqxdgdesktopportal.so
-        │   └── sqldrivers/libqsqlite.so        ← tsume history and analysis cache
+        │   ├── sqldrivers/libqsqlite.so        ← tsume history and analysis cache
+        │   └── tls/libqopensslbackend.so       ← TLS for CSA network play (OpenSSL)
         └── share/
             ├── applications/, icons/
             └── licenses/ShogiBoardQ/
@@ -263,7 +264,8 @@ python3 scripts/qt_licenses.py prepare --version 6.7.2 \
 <ul>
 <li>Puzzle collections, the Hayanagi engine for regular games, documentation, and validation records (<code>validation_*.json</code>) are not included. The application does not read them from inside the AppImage and users cannot select files there, so they are shipped only as files outside the AppImage in the ZIP. The Hayanagi used for tsume play is built into the application.</li>
 <li>Qt's own translations placed by linuxdeploy (<code>usr/translations/</code>) are removed. The Japanese and Chinese translations of standard dialogs are built into the executable, and the application translations are read from <code>usr/bin/</code>.</li>
-<li>Unused plugins are not bundled: OpenGL integration (<code>xcbglintegrations</code>), TLS (<code>tls</code>), and GIF images. No widget uses OpenGL, and CSA network play uses unencrypted TCP with no HTTPS or other encrypted connections.</li>
+<li>Unused plugins are not bundled: OpenGL integration (<code>xcbglintegrations</code>) and GIF images. No widget uses OpenGL.</li>
+<li>Of the <code>tls</code> plugins, only the OpenSSL backend (<code>libqopensslbackend.so</code>) is bundled, for the "TLS (encrypted)" connection in CSA network play. libssl and libcrypto are bundled as its dependencies. The app makes no HTTPS or other connections.</li>
 <li>The Qt license notices cover only the bundled Qt modules (qtbase, qtcharts, qtmultimedia, qtsvg, qttranslations, and qtwayland) and the files they refer to (<code>scripts/qt_licenses.py</code>). Notices for modules that are not distributed, such as Qt WebEngine, are left out.</li>
 <li>For the other bundled libraries (about 50 packages such as glib, PulseAudio, OpenSSL, and fcitx5-qt), <code>scripts/bundled_licenses.py</code> looks up each package with pacman, copies the license texts to <code>third-party/</code>, and lists versions, licenses, and source locations in <code>THIRD-PARTY-NOTICES.md</code>. Both lists are shown in “Version Info” as “Third-party licenses in Qt” and “Bundled library licenses”.</li>
 </ul>

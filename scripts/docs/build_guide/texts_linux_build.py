@@ -119,7 +119,8 @@ ShogiBoardQ-linux-x86_64.AppImage
         │   ├── iconengines/libqsvgicon.so
         │   ├── platforminputcontexts/          ← {c['im']}
         │   ├── platformthemes/libqxdgdesktopportal.so
-        │   └── sqldrivers/libqsqlite.so        ← {c['sqlite']}
+        │   ├── sqldrivers/libqsqlite.so        ← {c['sqlite']}
+        │   └── tls/libqopensslbackend.so       ← {c['tls']}
         └── share/
             ├── applications/, icons/
             └── licenses/ShogiBoardQ/
@@ -323,7 +324,7 @@ T["ja"] = {
         ("code", appimage_tree({
             "extracted": "（展開時）", "apprun": "同梱の Qt だけを使って起動する", "exe": "実行ファイル",
             "qtconf": "Qt プラグインの検索先", "qm": "アプリの翻訳（4言語）", "lib": "Qt と依存ライブラリ",
-            "im": "日本語入力（compose・fcitx5・ibus）", "sqlite": "詰将棋の解答履歴・解析キャッシュ",
+            "im": "日本語入力（compose・fcitx5・ibus）", "sqlite": "詰将棋の解答履歴・解析キャッシュ", "tls": "通信対局の TLS 接続（OpenSSL）",
             "qt": "同梱する Qt モジュールの文書", "source": "Qt の取得元・ビルド時の版",
             "third": "Qt 以外の同梱ライブラリの文書"})),
         ("ul", [
@@ -332,8 +333,9 @@ T["ja"] = {
             "詰将棋対局の Hayanagi はアプリ本体に組み込まれている。",
             "linuxdeploy が配置する Qt 標準の翻訳（`usr/translations/`）は使わないので削除する。標準ダイアログの"
             "日本語・中国語訳は実行ファイルに内蔵し、アプリの翻訳は `usr/bin/` から読む。",
-            "使わないプラグイン（OpenGL 連携の `xcbglintegrations`、通信暗号化の `tls`、GIF 画像）は入れない。"
-            "OpenGL を使う画面部品はなく、CSA 通信対局は暗号化しない TCP で、HTTPS などの通信もしないため。",
+            "使わないプラグイン（OpenGL 連携の `xcbglintegrations`、GIF 画像）は入れない。OpenGL を使う画面部品がないため。",
+            "`tls` は、CSA 通信対局の「TLS（暗号化）」接続に使う OpenSSL バックエンド（`libqopensslbackend.so`）だけを入れる。"
+            "libssl・libcrypto は依存ライブラリとして同梱される。HTTPS などの通信はしない。",
             "Qt のライセンス文書は、同梱する Qt モジュール（qtbase・qtcharts・qtmultimedia・qtsvg・qttranslations・qtwayland）"
             "の分と、それらが参照する文書だけを入れる（`scripts/qt_licenses.py`）。WebEngine など配布しないモジュールの"
             "文書は入れない。",
@@ -602,7 +604,7 @@ T["en"] = {
         ("code", appimage_tree({
             "extracted": "(extracted)", "apprun": "starts the app with the bundled Qt only", "exe": "executable",
             "qtconf": "Qt plugin location", "qm": "application translations (4 languages)", "lib": "Qt and dependencies",
-            "im": "Japanese input (compose, fcitx5, ibus)", "sqlite": "tsume history and analysis cache",
+            "im": "Japanese input (compose, fcitx5, ibus)", "sqlite": "tsume history and analysis cache", "tls": "TLS for CSA network play (OpenSSL)",
             "qt": "notices of the bundled Qt modules", "source": "Qt source record and build version",
             "third": "notices of the other bundled libraries"})),
         ("ul", [
@@ -612,8 +614,9 @@ T["en"] = {
             "for tsume play is built into the application.",
             "Qt's own translations placed by linuxdeploy (`usr/translations/`) are removed. The Japanese and Chinese "
             "translations of standard dialogs are built into the executable, and the application translations are read from `usr/bin/`.",
-            "Unused plugins are not bundled: OpenGL integration (`xcbglintegrations`), TLS (`tls`), and GIF images. "
-            "No widget uses OpenGL, and CSA network play uses unencrypted TCP with no HTTPS or other encrypted connections.",
+            "Unused plugins are not bundled: OpenGL integration (`xcbglintegrations`) and GIF images. No widget uses OpenGL.",
+            "Of the `tls` plugins, only the OpenSSL backend (`libqopensslbackend.so`) is bundled, for the \"TLS (encrypted)\" "
+            "connection in CSA network play. libssl and libcrypto are bundled as its dependencies. The app makes no HTTPS or other connections.",
             "The Qt license notices cover only the bundled Qt modules (qtbase, qtcharts, qtmultimedia, qtsvg, qttranslations, "
             "and qtwayland) and the files they refer to (`scripts/qt_licenses.py`). Notices for modules that are not "
             "distributed, such as Qt WebEngine, are left out.",
@@ -874,7 +877,7 @@ T["zh-cn"] = {
         ("code", appimage_tree({
             "extracted": "（解压后）", "apprun": "只使用随附的 Qt 启动", "exe": "可执行文件",
             "qtconf": "Qt 插件的位置", "qm": "应用程序翻译（4 种语言）", "lib": "Qt 及其依赖库",
-            "im": "日语输入（compose、fcitx5、ibus）", "sqlite": "诘棋作答记录与分析缓存",
+            "im": "日语输入（compose、fcitx5、ibus）", "sqlite": "诘棋作答记录与分析缓存", "tls": "联网对局的 TLS 连接（OpenSSL）",
             "qt": "随附的 Qt 模块的文档", "source": "Qt 的来源与构建时版本",
             "third": "Qt 以外随附库的文档"})),
         ("ul", [
@@ -883,8 +886,9 @@ T["zh-cn"] = {
             "已内置于应用程序中。",
             "删除 linuxdeploy 放入的 Qt 标准翻译（`usr/translations/`）。标准对话框的日语和中文翻译已内置于可执行文件，"
             "应用程序的翻译从 `usr/bin/` 读取。",
-            "不收录用不到的插件：OpenGL 集成（`xcbglintegrations`）、通信加密（`tls`）和 GIF 图像。没有使用 OpenGL 的界面部件，"
-            "CSA 联网对局使用不加密的 TCP，也不进行 HTTPS 等通信。",
+            "不收录用不到的插件：OpenGL 集成（`xcbglintegrations`）和 GIF 图像。没有使用 OpenGL 的界面部件。",
+            "`tls` 插件只收录 OpenSSL 后端（`libqopensslbackend.so`），用于 CSA 联网对局的“TLS（加密）”连接。"
+            "libssl 和 libcrypto 作为其依赖库一并收录。应用程序不进行 HTTPS 等通信。",
             "Qt 的许可文档只收录随附的 Qt 模块（qtbase、qtcharts、qtmultimedia、qtsvg、qttranslations、qtwayland）"
             "及其引用的文档（`scripts/qt_licenses.py`）。不收录 WebEngine 等未发布模块的文档。",
             "对于 Qt 以外的随附库（glib、PulseAudio、OpenSSL、fcitx5-qt 等约 50 个软件包），`scripts/bundled_licenses.py` "
@@ -1132,7 +1136,7 @@ T["zh-tw"] = {
         ("code", appimage_tree({
             "extracted": "（解壓縮後）", "apprun": "只使用隨附的 Qt 啟動", "exe": "執行檔",
             "qtconf": "Qt 外掛程式的位置", "qm": "應用程式翻譯（4 種語言）", "lib": "Qt 及其相依程式庫",
-            "im": "日文輸入（compose、fcitx5、ibus）", "sqlite": "詰棋作答紀錄與分析快取",
+            "im": "日文輸入（compose、fcitx5、ibus）", "sqlite": "詰棋作答紀錄與分析快取", "tls": "網路對局的 TLS 連線（OpenSSL）",
             "qt": "隨附的 Qt 模組的文件", "source": "Qt 的來源與建置時版本",
             "third": "Qt 以外隨附程式庫的文件"})),
         ("ul", [
@@ -1141,8 +1145,9 @@ T["zh-tw"] = {
             "已內建於應用程式中。",
             "刪除 linuxdeploy 放入的 Qt 標準翻譯（`usr/translations/`）。標準對話方塊的日文與中文翻譯已內建於執行檔，"
             "應用程式的翻譯從 `usr/bin/` 讀取。",
-            "不收錄用不到的外掛程式：OpenGL 整合（`xcbglintegrations`）、通訊加密（`tls`）和 GIF 圖片。沒有使用 OpenGL 的介面元件，"
-            "CSA 網路對局使用不加密的 TCP，也不進行 HTTPS 等通訊。",
+            "不收錄用不到的外掛程式：OpenGL 整合（`xcbglintegrations`）和 GIF 圖片。沒有使用 OpenGL 的介面元件。",
+            "`tls` 外掛程式只收錄 OpenSSL 後端（`libqopensslbackend.so`），用於 CSA 網路對局的「TLS（加密）」連線。"
+            "libssl 和 libcrypto 作為其相依程式庫一併收錄。應用程式不進行 HTTPS 等通訊。",
             "Qt 的授權文件只收錄隨附的 Qt 模組（qtbase、qtcharts、qtmultimedia、qtsvg、qttranslations、qtwayland）"
             "及其參照的文件（`scripts/qt_licenses.py`）。不收錄 WebEngine 等未發行模組的文件。",
             "對於 Qt 以外的隨附程式庫（glib、PulseAudio、OpenSSL、fcitx5-qt 等約 50 個套件），`scripts/bundled_licenses.py` "
