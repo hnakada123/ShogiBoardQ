@@ -150,7 +150,7 @@ def message_boxes():
 
 def close_message_boxes():
     for box in message_boxes():
-        rpc("dialog.close", {"dialog": box["selector"]})
+        rpc("dialog.close", {"target": box["selector"]})
         time.sleep(0.5)
 
 
@@ -199,7 +199,7 @@ def scenario_tsumi():
     dialog = next(w for w in rpc("dialog.list")["windows"] if w.get("object_name") == "TsumeShogiSearchDialog")
     rpc("widget.setValue", {"target": dialog["selector"], "widget": "comboBoxEngine1", "value": HAYANAGI})
     time.sleep(0.3)
-    rpc("dialog.clickButton", {"dialog": dialog["selector"], "text": SEARCH_START})
+    rpc("dialog.clickButton", {"target": dialog["selector"], "text": SEARCH_START})
     wait_until(lambda: bool(message_boxes()), timeout=60)  # 結果のメッセージ
     time.sleep(0.5)
     close_message_boxes()
@@ -260,7 +260,7 @@ def scenario_game():
     for key, value in [("comboBoxPlayer1", 0), ("comboBoxPlayer2", 1), ("basicTimeHour1", 0),
                        ("basicTimeMinutes1", 5), ("byoyomiSec1", 0)]:
         rpc("widget.setValue", {"target": "StartGameDialog", "widget": key, "value": value})
-    rpc("dialog.clickButton", {"dialog": "StartGameDialog", "text": GAME_START})
+    rpc("dialog.clickButton", {"target": "StartGameDialog", "text": GAME_START})
     time.sleep(2)
     env = dict(os.environ, SBQ_HAYANAGI=HAYANAGI_PATH)
     for human_move in range(1, 30):

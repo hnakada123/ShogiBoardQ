@@ -19,7 +19,7 @@ description: ShogiBoardQ の公開ガイド（docs/guide/*.html）やホーム�
    **修正を外すと失敗する**ことを確かめる。`tr()` を変えたら `cmake --build build --target update_translations` の後、
    4言語の訳を入れて未翻訳0を保つ（ja_JP は原文と同じ訳。`%n` の複数形は使わない）。
 3. **撮影**: 4言語すべてで撮る。`scripts/docs/launch.sh <名前> <ja_JP|en|zh_CN|zh_TW> <ディスプレイ> [W H]` で起動し、
-   `scripts/docs/rpc.py` で操作・撮影する（ウィンドウ枠が要るときは `kwin_capture.sh`）。
+   `scripts/docs/rpc.py` で操作・撮影する（ウィンドウ枠が要るときは `kwin_capture.sh`、浮動ドックを並べるときは `kwin_x_capture.sh`）。
    - メインウィンドウは ja・zh 1300×980、en 1400×1000。ダイアログは `screenshot.capture` にダイアログの selector を渡す。
    - メニューのポップアップは `scripts/x11ctl.py` でクリックして `import -window root -crop` で切り抜く。
    - 盤面をくっきり撮るときは README の高解像度の手順に従う。撮影用のスクリプトは作業フォルダ（scratchpad）に置く。
@@ -45,7 +45,8 @@ description: ShogiBoardQ の公開ガイド（docs/guide/*.html）やホーム�
      スマートフォン幅（`--window-size=390,7000`）でも表や画像がはみ出さないか見る
    - コードを変えたときは `ctest` 全体と GUI 監査（`python3 tests/gui/prepare.py` の後に
      `xvfb-run -a -s '-screen 0 1600x1200x24' python3 tests/gui/run.py`）。詰将棋の GUI テストは
-     `xvfb-run -a env -u WAYLAND_DISPLAY QT_QPA_PLATFORM=xcb build/gui-audit/test-build/tst_tsume_*` で別に実行する。
+     `xvfb-run -a -s '-screen 0 1600x1200x24' env -u WAYLAND_DISPLAY QT_QPA_PLATFORM=xcb build/gui-audit/test-build/tst_tsume_*` で別に実行する
+     （画面の大きさを省くと xvfb-run の既定の 640×480 になり、縦長の詰将棋局面生成ダイアログが縮んで設定欄のスクロールの検査が失敗する）。
      テストの実行ファイルを直接起動するときは必ず `env -u WAYLAND_DISPLAY QT_QPA_PLATFORM=xcb` を付ける
      （付けないと Wayland のセッションでは Xvfb ではなく普段の画面にウィンドウが出る）
 7. **後片付け**: 起動したアプリは `rpc.py <名前> app.quit` で止め、起動した Xvfb も止める

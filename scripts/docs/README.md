@@ -20,6 +20,7 @@
 | `keycombo.py` | X のキーの組み合わせを押す（例: `Alt_L s`）。単独のキー・クリック・ウィンドウ一覧は `../x11ctl.py` |
 | `humanplay.py` | 対局中に人間（先手）側の手を Hayanagi に考えさせ、盤のクリックで指す |
 | `kwin_capture.sh` | ウィンドウ枠（KDE の装飾）付きで撮るための入れ子の KWin を、普段の環境から隔離して実行する |
+| `kwin_x_capture.sh` | `kwin_capture.sh` の Xwayland 版。アプリを xcb で起動するので `x11ctl.py move` でメインウィンドウや浮動ドックの位置を決められる（Wayland のクライアントは自分の位置を決められないため、浮動ドックを並べる `dock-04-floating` に使う）。撮影は `spectacle -b -n -f -o out.png`（全画面）で、背景は黒になるので `magick in -alpha set -fuzz 1% -fill transparent -draw 'color 1,1 floodfill' …` で透明にする |
 | `shoot_tables.py` | 思考表・検討タブの表が主な題材の画像（検討ページ・ドックの既定配置・詰み探索の思考タブ・ホームのメイン画像・対局の思考タブ）を言語ごとに撮る。`docs/images` と同じ並びで書き出す |
 | `shoot_csa.py` | ローカルの shogi-server で4言語のCSA設定・待機・対局・終局を撮影する。floodgateは設定画面だけを撮り、公開サーバーには接続しない |
 | `sample_kifu/` | 画像に写る見本の棋譜（▲鈴木・▽山田、105行）。`mkkif.py` が `full.usi` から言語別の KIF（`sample-<言語>.kif`・ホーム用の `main-<言語>.kif`）を書き出す。1〜50手目（`first50.usi`）は画像から読み取った手順、51手目以降は `continue_game.py` でやねうら王に指させた |
@@ -66,7 +67,7 @@ python3 scripts/docs/shoot_tables.py en game docs/images
 - メニューのポップアップは `screenshot.capture` に写らない。`../x11ctl.py click <x> 12` でメニュー名をクリックし、`../x11ctl.py list` の `or=1`（ポップアップ）の範囲を `import -window root -crop` で切り抜く。メニューの位置は Alt+キー（`keycombo.py Alt_L s`）で開いて `list` から調べられる。
 - 中国語（zh_CN/zh_TW）は `LOCPATH` を付けて起動する（`launch.sh` が行う）。`LOCPATH` を付けると ja/en のロケールは読めなくなるので、言語ごとに別のインスタンスにする。
 - 止めるときは `rpc.py <名前> app.quit`。Xvfb は `pgrep -x Xvfb` で探し、`/proc/<pid>/cmdline` でディスプレイ番号を確かめてから止める（`pkill -f` は自分のシェルにも一致する）。
-- 入れ子の KWin は `kwin_capture.sh` 以外の方法で起動しない。普段のディスプレイの変数を残したまま使い捨ての D-Bus を起動すると、ポータルや fcitx5 が普段の画面につながり、終了後も残る。
+- 入れ子の KWin は `kwin_capture.sh`・`kwin_x_capture.sh` 以外の方法で起動しない。普段のディスプレイの変数を残したまま使い捨ての D-Bus を起動すると、ポータルや fcitx5 が普段の画面につながり、終了後も残る。
 
 ## ページを作るときの流れ
 
