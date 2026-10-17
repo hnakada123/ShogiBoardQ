@@ -19,6 +19,9 @@
 - `images/pieces/showcase/`: 製品紹介ページの駒見本（`resources/images/pieces/` の王将を96pxに書き出したもの）。
 - `dev/`: 開発者向け資料。
 - `sitemap.xml`: 公開ページのURL一覧。
+- `.nojekyll`: GitHub Pages に Jekyll を使わせず、ファイルをそのまま配信させる印。公開ページは手書きの HTML なので
+  Jekyll の処理は要らない。これが無いと、`dev/` の Markdown にある `{{` などを Liquid のテンプレートとして読み、
+  構文エラーでサイト全体の公開が止まる（2026-10-16〜17 に `code-audit-2026-10-16.md` の C++ の `{{key,&T::member}` で発生）。
 
 ルート直下のHTMLは製品紹介の `index.html` のみとし、機能・操作説明は `guide/` に配置する。
 旧URL用の転送ページは設けない。
