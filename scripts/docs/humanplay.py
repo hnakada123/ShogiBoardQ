@@ -83,9 +83,9 @@ def answer_promotion(promote):
         dlg = [w for w in rpc("dialog.list")["windows"] if w["object_name"] == "PromoteDialog"]
         if dlg:
             texts = PROMOTE if promote else NO_PROMOTE
-            for w in rpc("widget.text", {"dialog": dlg[0]["selector"]})["widgets"]:
+            for w in rpc("widget.text", {"target": dlg[0]["selector"]})["widgets"]:
                 if w["class"] == "QPushButton" and w.get("text", "").replace("&", "") in texts:
-                    rpc("dialog.clickButton", {"dialog": dlg[0]["selector"], "widget": w["selector"]})
+                    rpc("dialog.clickButton", {"target": dlg[0]["selector"], "widget": w["selector"]})
                     return
         time.sleep(0.2)
 
