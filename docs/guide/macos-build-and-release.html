@@ -341,8 +341,8 @@ otool -L build/ShogiBoardQ.app/Contents/MacOS/ShogiBoardQ</code></pre>
 <td>仮想キーボード・QML を使わない</td>
 </tr>
 <tr>
-<td><code>PlugIns/tls/</code>、<code>PlugIns/networkinformation/</code></td>
-<td>CSA 通信は平文 TCP のみ</td>
+<td><code>PlugIns/tls/</code> の SecureTransport 以外、<code>PlugIns/networkinformation/</code></td>
+<td>通信対局の「TLS（暗号化）」は macOS 標準の Security フレームワークを使う SecureTransport バックエンドで行う（OpenSSL バックエンドは libssl の同梱が要る）。ネットワーク情報は使わない</td>
 </tr>
 <tr>
 <td><code>PlugIns/multimedia/libffmpegmediaplugin.dylib</code>、<code>libav*</code> / <code>libsw*</code></td>
@@ -360,9 +360,10 @@ otool -L build/ShogiBoardQ.app/Contents/MacOS/ShogiBoardQ</code></pre>
 </table>
 </div>
 <pre class="bash"><code>C=build/ShogiBoardQ.app/Contents
-rm -rf $C/PlugIns/platforminputcontexts $C/PlugIns/tls $C/PlugIns/networkinformation \
+rm -rf $C/PlugIns/platforminputcontexts $C/PlugIns/networkinformation \
   $C/PlugIns/multimedia/libffmpegmediaplugin.dylib $C/Frameworks/libav*.dylib $C/Frameworks/libsw*.dylib \
   $C/Frameworks/QtQml*.framework $C/Frameworks/QtQuick.framework $C/Frameworks/QtVirtualKeyboard*.framework
+find $C/PlugIns/tls -name &#39;*.dylib&#39; ! -name libqsecuretransportbackend.dylib -delete
 find $C/PlugIns/sqldrivers -name &#39;*.dylib&#39; ! -name libqsqlite.dylib -delete
 for p in gif wbmp macheif icns tga macjp2; do rm -f $C/PlugIns/imageformats/libq$p.dylib; done
 
@@ -372,7 +373,7 @@ find $C -type f \( -perm +111 -o -name &#39;*.dylib&#39; \) | while read -r f; d
     lipo &quot;$f&quot; -thin arm64 -output &quot;$f.thin&quot; &amp;&amp; chmod &quot;$(stat -f %Lp &quot;$f&quot;)&quot; &quot;$f.thin&quot; &amp;&amp; mv &quot;$f.thin&quot; &quot;$f&quot;
   fi
 done</code></pre>
-<p>残るのは Qt フレームワーク 12 個（Charts, Concurrent, Core, DBus, Gui, Multimedia, Network, OpenGL, OpenGLWidgets, Sql, Svg, Widgets）と、プラグイン 9 個（cocoa, macstyle, svgicon, darwin multimedia, sqlite, ico / jpeg / tiff / webp）。 削除後はバンドル全体を署名し直す（<a href="#64-手動でのコード署名">6.4</a>。アドホック署名なら <code>codesign --force --deep --sign - build/ShogiBoardQ.app</code>）。</p>
+<p>残るのは Qt フレームワーク 12 個（Charts, Concurrent, Core, DBus, Gui, Multimedia, Network, OpenGL, OpenGLWidgets, Sql, Svg, Widgets）と、プラグイン 10 個（cocoa, macstyle, svgicon, darwin multimedia, sqlite, securetransport, ico / jpeg / tiff / webp）。 削除後はバンドル全体を署名し直す（<a href="#64-手動でのコード署名">6.4</a>。アドホック署名なら <code>codesign --force --deep --sign - build/ShogiBoardQ.app</code>）。</p>
 <p>起動後、読み込まれたライブラリがすべてバンドル内のものか確認する：</p>
 <pre class="bash"><code>open build/ShogiBoardQ.app
 lsof -p &quot;$(pgrep -x ShogiBoardQ)&quot; | grep -E &#39;/Qt/|homebrew&#39;   # 何も表示されなければよい</code></pre>

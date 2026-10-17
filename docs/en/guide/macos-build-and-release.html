@@ -123,7 +123,7 @@ python3 scripts/qt_licenses.py prepare --version 6.7.3 --archive build/qt-source
 <p>After <code>macdeployqt</code>, the script removes Qt parts the application does not use, then checks that every framework still referenced is present in the bundle:</p>
 <ul>
 <li>Virtual keyboard, QML, and Qt Quick (<code>platforminputcontexts</code>, <code>QtQml*</code>, <code>QtQuick</code>, <code>QtVirtualKeyboard*</code>)</li>
-<li>TLS and network information plugins (CSA play uses plain TCP)</li>
+<li>TLS backends other than SecureTransport, and the network information plugin. The “TLS (encrypted)” connection for CSA play uses the SecureTransport backend, which relies on the macOS Security framework; the OpenSSL backend would need libssl in the bundle</li>
 <li>The FFmpeg multimedia backend and its <code>libav*</code> / <code>libsw*</code> libraries (piece sounds use the native darwin backend)</li>
 <li>SQL drivers other than SQLite</li>
 <li>Image format plugins other than SVG and ICO (icons) and JPEG, TIFF, and WebP (board image export)</li>
