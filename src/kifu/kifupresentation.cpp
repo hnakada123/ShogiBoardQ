@@ -35,7 +35,11 @@ QString format(const Position& board, const QString& usi, Options style, bool si
     result += pieceSfen(toBlack(moving));
     const QString text = move->toString();
     const QStringView to = QStringView(text).mid(2, 2);
-    if (move->isDrop()) return result + QLatin1Char('*') + to;
+    if (move->isDrop()) {
+        result += QLatin1Char('*');
+        result += to;
+        return result;
+    }
     // 同じ駒で同じマスへ動ける駒がほかにあれば移動元を付ける（KI2 の修飾語と同じ判定）
     if (style.alwaysOrigin || Ki2MoveNotation::annotate(board, mover, *move).sources.size() > 1)
         result += QStringView(text).left(2);
