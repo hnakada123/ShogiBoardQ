@@ -92,6 +92,8 @@ private slots:
     void testAddKeepsTargetPosition();
     void testSameSfenKeepsTableRows();
     void testButtonColumnsActOnRow();
+    void testMoveListPlaceholder();
+    void testFontButtonsKeepWidth();
 
 private:
     static QString initialSfen();
@@ -1027,4 +1029,33 @@ void TestJosekiWindow::testButtonColumnsActOnRow()
 }
 
 QTEST_MAIN(TestJosekiWindow)
+void TestJosekiWindow::testMoveListPlaceholder()
+{
+    // 合法手が並んでいるのに、選んでいないだけで「局面がありません」と出さない
+    JosekiMoveInputWidget input(QStringLiteral("moveInput"), QStringLiteral("指し手"), false);
+    auto *combo = input.findChild<QComboBox*>(QStringLiteral("moveInputCombo"));
+    QVERIFY(combo);
+    QCOMPARE(combo->count(), 0);
+    QCOMPARE(combo->placeholderText(), QStringLiteral("局面がありません"));
+    input.setCurrentSfen(initialSfen());
+    QCOMPARE(combo->count(), 30);
+    QCOMPARE(combo->currentIndex(), -1);
+    QCOMPARE(combo->placeholderText(), QStringLiteral("合法手から選んでください"));
+    input.setCurrentSfen(QString());
+    QCOMPARE(combo->count(), 0);
+    QCOMPARE(combo->placeholderText(), QStringLiteral("局面がありません"));
+}
+
+void TestJosekiWindow::testFontButtonsKeepWidth()
+{
+    // A-/A+ は「表示」の枠の中で文字が収まる幅を保つ（スタイルだけだと 20px ほどに縮む）
+    JosekiWindow window;
+    for (const char *name : {"josekiFontDecrease", "josekiFontIncrease"}) {
+        auto *button = window.findChild<QPushButton*>(QString::fromLatin1(name));
+        QVERIFY2(button, name);
+        QCOMPARE(button->minimumWidth(), 36);
+        QCOMPARE(button->maximumWidth(), 36);
+    }
+}
+
 #include "tst_josekiwindow.moc"

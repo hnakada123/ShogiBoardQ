@@ -192,6 +192,8 @@ QWidget *JosekiWindow::buildToolbar()
     auto *fontIncrease = new QPushButton(this);
     fontIncrease->setObjectName(QStringLiteral("josekiFontIncrease"));
     new FontSizeControl(fontDecrease, fontIncrease, &m_fontHelper);
+    // 「表示」の枠の中でほかのボタンと同じ高さに並べ、幅は文字が収まる最小限にそろえる
+    for (auto *button : {fontDecrease, fontIncrease}) button->setFixedWidth(36);
     m_autoLoadCheckBox = new QCheckBox(tr("自動読込"), this);
     m_autoLoadCheckBox->setToolTip(tr("定跡ウィンドウ表示時に前回のファイルを自動で読み込む"));
     m_autoLoadCheckBox->setChecked(true);

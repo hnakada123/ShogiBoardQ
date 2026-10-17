@@ -62,7 +62,6 @@ JosekiMoveInputWidget::JosekiMoveInputWidget(const QString &name, const QString 
 
     m_combo = new QComboBox(this);
     m_combo->setObjectName(name + QStringLiteral("Combo"));
-    m_combo->setPlaceholderText(tr("局面がありません"));
     m_combo->setMaxVisibleItems(20);
     connect(m_combo, &QComboBox::currentIndexChanged, this, &JosekiMoveInputWidget::onCurrentIndexChanged);
     layout->addWidget(m_combo);
@@ -108,6 +107,8 @@ void JosekiMoveInputWidget::populate()
             for (const LegalMove &move : moves) m_combo->addItem(move.text, move.move.toString());
         }
         m_combo->setEnabled(m_combo->count() > 0);
+        // 選んでいないときの表示。局面があるのに「局面がありません」と出さない
+        m_combo->setPlaceholderText(m_combo->count() > 0 ? tr("合法手から選んでください") : tr("局面がありません"));
     }
     selectRequested();
 }
