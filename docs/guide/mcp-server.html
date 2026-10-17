@@ -213,6 +213,7 @@ pip install -e mcp</code></pre>
                         <tr><td><code>SHOGIBOARDQ_OUTPUT_DIR</code></td><td>スクリーンショットなどの既定の出力先。既定は一時ディレクトリ配下の <code>shogiboardq-mcp</code></td></tr>
                         <tr><td><code>SHOGIBOARDQ_AUTOMATION_SOCKET</code></td><td>自動化ソケットのパス（アプリ側の <code>--automation-socket</code> と共通）</td></tr>
                         <tr><td><code>SHOGIBOARDQ_QUIT_APP_ON_EXIT</code></td><td><code>1</code> にすると、サーバーが起動したアプリをサーバー終了時に閉じます（既定は残す）</td></tr>
+                        <tr><td><code>SHOGIBOARDQ_ALLOW_UNRESTRICTED_UI</code></td><td><code>1</code> にすると、汎用の GUI 操作ツール（trigger_action・click_widget・set_widget_value・click_table_cell・edit_table_cell・click_dialog_button・select_menu_action）を使えます。既定は無効です。GUI 経由のファイル操作やエンジン登録にはディレクトリ制限が及ばないため、アプリと同じ権限を与える設定です</td></tr>
                         <tr><td><code>PYTHONPATH</code></td><td><code>pip install -e mcp</code> をしていない場合、リポジトリの <code>mcp</code> ディレクトリを指定します</td></tr>
                     </tbody>
                 </table>
@@ -455,7 +456,8 @@ PYTHONPATH = "/path/to/ShogiBoardQ/mcp"</code></pre>
                     </tbody>
                 </table>
                 <p class="guide-step-text">未保存の変更がある状態で棋譜を読み込んだり局面を設定したりする依頼は、<code>discard_unsaved</code> を明示しない限り拒否されます。メニュー動作は許可リスト方式で、終了・上書き保存は実行できません。言語切替は可能で、アプリ再起動後に反映されます。実行できる動作は list_actions で確認できます。</p>
-                <p class="guide-step-text">名前のない部品は get_widget_text / list_dialogs の selector を widget・target・dialog に指定して操作できます。ダイアログの再生成・アプリ再起動後は再取得してください。set_widget_value はスライダー・リスト・チェック付きグループ・色にも対応します。メニューは list_menu_actions で階層インデックスを調べ、select_menu_action の path に指定します。</p>
+                <p class="guide-step-text">操作するウィンドウやダイアログは、どのツールも target（objectName・selector・タイトルの一部）で指定します。省略するとメインウィンドウです。名前のない部品は get_widget_text / list_dialogs の selector を widget・target に指定して操作できます。ダイアログの再生成・アプリ再起動後は再取得してください。set_widget_value はスライダー・リスト・チェック付きグループ・色にも対応します。メニューは list_menu_actions で階層インデックスを調べ、select_menu_action の path に指定します。</p>
+                <p class="guide-step-text">画面を操作するツールは、アプリが操作を実行するまで待ってから返り、対象が隠れた・無効になった・別のダイアログに遮られたなど実行時に操作できなかった場合はエラーを返します。結果の <code>state</code> は、実行済み（done）・操作で開いたモーダルダイアログがまだ開いている（running）・待つ間に実行されなかった（pending）を区別します。ツールが失敗したときのメッセージは、CLI・自動化 API と共通の分類の語（<code>invalid_argument</code>・<code>not_found</code>・<code>file_exists</code>・<code>parse_error</code> など）で始まります。</p>
             </div>
         </div>
     </div>
@@ -475,6 +477,8 @@ PYTHONPATH = "/path/to/ShogiBoardQ/mcp"</code></pre>
                 </div>
                 <ul class="guide-step-text">
                     <li>自動化ソケットは所有者だけがアクセスでき、ネットワークには公開しません。<code>--automation</code> を付けたときだけ有効です</li>
+                    <li>汎用の GUI 操作（trigger_action・click_widget・set_widget_value など）は既定で無効で、サーバーの環境変数に <code>SHOGIBOARDQ_ALLOW_UNRESTRICTED_UI=1</code> を指定したときだけ使えます。通常の棋譜の読み書きには load_kifu / save_kifu を使います</li>
+                    <li>通信対局のパスワードは読み取り時に伏せ字になり、利用者がパスワードを表示している間はスクリーンショットを拒否します</li>
                     <li>ファイルは絶対パスのみ受け付け、<code>SHOGIBOARDQ_ALLOWED_DIRS</code>（既定はホームディレクトリ）の外は拒否します。既存ファイルは <code>overwrite</code> の明示が無ければ上書きしません</li>
                     <li>エンジンは ShogiBoardQ に登録済みの名前だけを受け付けます</li>
                     <li>メニュー動作は許可リスト方式で、終了・上書き保存は実行しません。言語切替・名前付きドックレイアウト管理は操作できます</li>

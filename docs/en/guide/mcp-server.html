@@ -213,6 +213,7 @@ pip install -e mcp</code></pre>
                         <tr><td><code>SHOGIBOARDQ_OUTPUT_DIR</code></td><td>Default folder for screenshots and other outputs. Default: <code>shogiboardq-mcp</code> under the temp directory</td></tr>
                         <tr><td><code>SHOGIBOARDQ_AUTOMATION_SOCKET</code></td><td>Automation socket path (shared with the app's <code>--automation-socket</code>)</td></tr>
                         <tr><td><code>SHOGIBOARDQ_QUIT_APP_ON_EXIT</code></td><td>Set to <code>1</code> to close an app the server launched when the server exits (default: keep it running)</td></tr>
+                        <tr><td><code>SHOGIBOARDQ_ALLOW_UNRESTRICTED_UI</code></td><td>Set to <code>1</code> to enable the generic GUI tools (trigger_action, click_widget, set_widget_value, click_table_cell, edit_table_cell, click_dialog_button, select_menu_action). Disabled by default. File operations and engine registration done through the GUI are not limited to the allowed directories, so this grants the same permissions as the app itself</td></tr>
                         <tr><td><code>PYTHONPATH</code></td><td>The repository's <code>mcp</code> directory unless you ran <code>pip install -e mcp</code></td></tr>
                     </tbody>
                 </table>
@@ -455,7 +456,8 @@ PYTHONPATH = "/path/to/ShogiBoardQ/mcp"</code></pre>
                     </tbody>
                 </table>
                 <p class="guide-step-text">Loading a record or setting a position while the current record has unsaved changes is refused unless <code>discard_unsaved</code> is passed explicitly. Menu actions are allow-listed: quitting and overwriting the current file cannot be triggered. Language changes are available and take effect after restarting the app. list_actions shows what is available.</p>
-                <p class="guide-step-text">Use the selector returned by get_widget_text or list_dialogs as widget, target or dialog to operate unnamed controls. Fetch it again after reopening the dialog or restarting the app. set_widget_value supports sliders, lists, checkable groups and colors; list_menu_actions provides the index paths for select_menu_action.</p>
+                <p class="guide-step-text">Every tool names the window or dialog to operate with target (objectName, selector or part of the title); when omitted, it is the main window. Use the selector returned by get_widget_text or list_dialogs as widget or target to operate unnamed controls. Fetch it again after reopening the dialog or restarting the app. set_widget_value supports sliders, lists, checkable groups and colors; list_menu_actions provides the index paths for select_menu_action.</p>
+                <p class="guide-step-text">Tools that operate the screen wait until the app has performed the operation before returning, and return an error when it could not be performed at that time (the target was hidden, disabled or blocked by another dialog, for example). The <code>state</code> in the result tells whether the operation was performed (done), whether a modal dialog it opened is still open (running), or whether it was not performed while waiting (pending). When a tool fails, the message starts with an error kind shared with the CLI and the automation API, such as <code>invalid_argument</code>, <code>not_found</code>, <code>file_exists</code> or <code>parse_error</code>.</p>
             </div>
         </div>
     </div>
@@ -475,6 +477,8 @@ PYTHONPATH = "/path/to/ShogiBoardQ/mcp"</code></pre>
                 </div>
                 <ul class="guide-step-text">
                     <li>The automation socket is accessible only to your user and is never exposed on the network. It exists only when <code>--automation</code> is given</li>
+                    <li>The generic GUI tools (trigger_action, click_widget, set_widget_value and so on) are disabled by default and work only when the server is started with <code>SHOGIBOARDQ_ALLOW_UNRESTRICTED_UI=1</code>. Use load_kifu / save_kifu for ordinary record reading and writing</li>
+                    <li>The CSA password is masked when read, and screenshots are refused while the user has the password shown</li>
                     <li>File arguments must be absolute paths inside <code>SHOGIBOARDQ_ALLOWED_DIRS</code> (default: your home directory). Existing files are replaced only with an explicit <code>overwrite</code></li>
                     <li>Engines are referenced only by the names registered in ShogiBoardQ</li>
                     <li>Menu actions are allow-listed; quitting and overwriting are excluded. Language changes and saved dock layouts are supported</li>

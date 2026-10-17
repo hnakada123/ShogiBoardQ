@@ -105,7 +105,7 @@
                     <li>Edit and Delete: buttons that edit or delete the book move (Play appears on your turn during games and whenever no game is in progress)</li>
                 </ul>
                 <p class="guide-step-text">When you select a move in the game record or a game advances, the table switches to the book moves of that position. Move numbers are ignored, so the same position always shows the same book moves.</p>
-                <p class="guide-step-text">Details shows the SFEN of the position and of the book entry. ■ Stop pauses the book display and ▶ Resume restarts it. The bottom line shows the file name, the number of positions and the number of book moves for this position. A hint is shown inside the table when no book file is open or the position has no book moves.</p>
+                <p class="guide-step-text">Details shows the SFEN of the position and of the book entry. ■ Stop pauses the book display and ▶ Resume restarts it. While the Joseki window is behind another tab it is not updated; when it comes to the front again it shows the book moves of the displayed position. The bottom line shows the file name, the number of positions and the number of book moves for this position. A hint is shown inside the table when no book file is open or the position has no book moves.</p>
             </div>
 
         </div>
@@ -150,11 +150,11 @@
                     <span class="guide-step-number">4</span>
                     <span class="guide-step-title">Add a Book Move</span>
                 </div>
-                <p class="guide-step-text">+ Add adds a book move to the displayed position. Choose Move piece on board or Drop piece from hand, set the squares and check the preview. None can be chosen for the response.</p>
-                <p class="guide-step-text">Add stays disabled while the move cannot be played in the position. If the move is already registered, you are asked whether to overwrite it.</p>
+                <p class="guide-step-text">+ Add adds a book move to the displayed position. Choose the move from a list of the legal moves of the position, written in game-record notation (moves that cannot be played are not listed). The response is chosen from the legal moves of the position after that move, and None can be chosen.</p>
+                <p class="guide-step-text">Add stays disabled until a move is chosen. If the move is already registered, you are asked whether to overwrite it.</p>
                 <div class="screenshot-item screenshot-item--compact">
                     <img src="../../images/en/joseki/joseki-03-add.png" alt="Add Book Move dialog">
-                    <p class="screenshot-caption">Add Book Move: check the move in the preview and add it</p>
+                    <p class="screenshot-caption">Add Book Move: choose the move and the response from the legal moves of the position</p>
                 </div>
             </div>
 
@@ -163,7 +163,7 @@
                     <span class="guide-step-number">5</span>
                     <span class="guide-step-title">Edit a Book Move</span>
                 </div>
-                <p class="guide-step-text">Edit changes the response, score, search depth, frequency and comment (the move itself cannot be changed). Right-click a row for a menu with Play, Edit, Delete and copying the move.</p>
+                <p class="guide-step-text">Edit changes the response, score, search depth, frequency and comment (the move itself cannot be changed; the response is chosen from the legal moves of the position after the book move). Right-click a row for a menu with Play, Edit, Delete and copying the move.</p>
                 <p class="guide-step-text">After a change, Unsaved and a reminder to save appear.</p>
                 <div class="screenshot-item screenshot-item--compact">
                     <img src="../../images/en/joseki/joseki-04-edit.png" alt="Edit Book Move dialog">
@@ -180,7 +180,7 @@
                     <span class="guide-step-number">6</span>
                     <span class="guide-step-title">Delete and Save</span>
                 </div>
-                <p class="guide-step-text">Delete asks for confirmation and removes the book move.</p>
+                <p class="guide-step-text">Delete asks for confirmation and removes the book move. Deleting the last book move of a position removes the position from the book as well.</p>
                 <p class="guide-step-text">Save (overwrite) or Save As writes the changes to a book file. If you switch files with New, Open or History, or close the Joseki window or the application while changes are unsaved, you are asked whether to save them.</p>
                 <div class="screenshot-item screenshot-item--compact">
                     <img src="../../images/en/joseki/joseki-06-delete.png" alt="Delete confirmation">

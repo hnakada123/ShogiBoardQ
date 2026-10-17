@@ -213,6 +213,7 @@ pip install -e mcp</code></pre>
                         <tr><td><code>SHOGIBOARDQ_OUTPUT_DIR</code></td><td>截图等的默认输出位置。默认是临时目录下的 <code>shogiboardq-mcp</code></td></tr>
                         <tr><td><code>SHOGIBOARDQ_AUTOMATION_SOCKET</code></td><td>自动化套接字的路径（与应用的 <code>--automation-socket</code> 相同）</td></tr>
                         <tr><td><code>SHOGIBOARDQ_QUIT_APP_ON_EXIT</code></td><td>设为 <code>1</code> 时，服务器退出时会关闭由服务器启动的应用（默认保留）</td></tr>
+                        <tr><td><code>SHOGIBOARDQ_ALLOW_UNRESTRICTED_UI</code></td><td>设为 <code>1</code> 时可以使用通用的 GUI 操作工具（trigger_action、click_widget、set_widget_value、click_table_cell、edit_table_cell、click_dialog_button、select_menu_action）。默认禁用。通过 GUI 进行的文件操作和引擎注册不受目录限制，因此相当于授予与应用相同的权限</td></tr>
                         <tr><td><code>PYTHONPATH</code></td><td>未执行 <code>pip install -e mcp</code> 时，指定仓库的 <code>mcp</code> 目录</td></tr>
                     </tbody>
                 </table>
@@ -455,7 +456,8 @@ PYTHONPATH = "/path/to/ShogiBoardQ/mcp"</code></pre>
                     </tbody>
                 </table>
                 <p class="guide-step-text">在有未保存更改的状态下读取棋谱或设置局面的请求，除非明确指定 <code>discard_unsaved</code>，否则会被拒绝。菜单操作采用允许列表，无法执行退出和覆盖保存。可以切换语言，重新启动应用后生效。可执行的操作可用 list_actions 确认。</p>
-                <p class="guide-step-text">没有名称的控件，可以把 get_widget_text 或 list_dialogs 返回的 selector 指定给 widget、target 或 dialog 来操作。重新打开对话框或重新启动应用后请重新获取。set_widget_value 也支持滑块、列表、带勾选的组和颜色。菜单可以用 list_menu_actions 查询层级索引，再指定给 select_menu_action 的 path。</p>
+                <p class="guide-step-text">所有工具都用 target（objectName、selector 或标题的一部分）指定要操作的窗口或对话框，省略时为主窗口。没有名称的控件，可以把 get_widget_text 或 list_dialogs 返回的 selector 指定给 widget 或 target 来操作。重新打开对话框或重新启动应用后请重新获取。set_widget_value 也支持滑块、列表、带勾选的组和颜色。菜单可以用 list_menu_actions 查询层级索引，再指定给 select_menu_action 的 path。</p>
+                <p class="guide-step-text">操作画面的工具会等待应用执行完操作后才返回；执行时无法操作（例如目标被隐藏、被禁用或被其他对话框遮挡）时返回错误。结果中的 <code>state</code> 用于区分已执行（done）、操作打开的模态对话框仍在显示（running）和等待期间未执行（pending）。工具失败时，消息以与 CLI、自动化 API 共用的错误分类词开头，例如 <code>invalid_argument</code>、<code>not_found</code>、<code>file_exists</code>、<code>parse_error</code>。</p>
             </div>
         </div>
     </div>
@@ -475,6 +477,8 @@ PYTHONPATH = "/path/to/ShogiBoardQ/mcp"</code></pre>
                 </div>
                 <ul class="guide-step-text">
                     <li>自动化套接字只有本用户可以访问，不会公开到网络。只有加上 <code>--automation</code> 时才有效</li>
+                    <li>通用的 GUI 操作（trigger_action、click_widget、set_widget_value 等）默认禁用，只有在服务器的环境变量中指定 <code>SHOGIBOARDQ_ALLOW_UNRESTRICTED_UI=1</code> 时才能使用。普通的棋谱读写请使用 load_kifu / save_kifu</li>
+                    <li>网络对局的密码在读取时会被遮盖；用户正在显示密码时，会拒绝截图</li>
                     <li>文件只接受绝对路径，<code>SHOGIBOARDQ_ALLOWED_DIRS</code>（默认是主目录）以外的路径会被拒绝。没有明确指定 <code>overwrite</code> 时不会覆盖已有文件</li>
                     <li>引擎只接受在 ShogiBoardQ 中注册的名称</li>
                     <li>菜单操作采用允许列表，不执行退出和覆盖保存。可以切换语言和管理已命名的面板布局</li>

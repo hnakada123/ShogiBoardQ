@@ -104,7 +104,7 @@
                     <li>編集・削除：その定跡手を編集または削除するボタン（「着手」は対局中の自分の手番と、対局していないときに表示）</li>
                 </ul>
                 <p class="guide-step-text">棋譜欄で手を選んだり、対局で手が進んだりすると、その局面の定跡手に切り替わります。手数は区別しないので、同じ局面なら同じ定跡手が表示されます。</p>
-                <p class="guide-step-text">「詳細」を押すと局面と定跡のSFENを表示します。「■ 停止」で定跡の表示を止め、「▶ 再開」で再開します。いちばん下の行には、ファイル名・局面数・この局面の定跡手の数が表示されます。定跡ファイルを開いていないときや、その局面の定跡がないときは、表の中に案内が表示されます。</p>
+                <p class="guide-step-text">「詳細」を押すと局面と定跡のSFENを表示します。「■ 停止」で定跡の表示を止め、「▶ 再開」で再開します。定跡ウィンドウがほかのタブの裏にある間は表示を更新せず、前面に戻したときに表示中の局面の定跡手を表示します。いちばん下の行には、ファイル名・局面数・この局面の定跡手の数が表示されます。定跡ファイルを開いていないときや、その局面の定跡がないときは、表の中に案内が表示されます。</p>
             </div>
 
         </div>
@@ -149,11 +149,11 @@
                     <span class="guide-step-number">4</span>
                     <span class="guide-step-title">定跡手を追加する</span>
                 </div>
-                <p class="guide-step-text">「＋追加」で、表示中の局面に定跡手を追加します。指し手は「盤上の駒を動かす」か「持ち駒を打つ」を選んで移動元・移動先を指定し、プレビューで確認します。予想応手は「なし」も選べます。</p>
-                <p class="guide-step-text">その局面で指せない手を入力している間は「追加」を押せません。同じ指し手がすでに登録されているときは、上書きするかの確認が表示されます。</p>
+                <p class="guide-step-text">「＋追加」で、表示中の局面に定跡手を追加します。指し手は、その局面で指せる手を棋譜の表記で並べた一覧から選びます（指せない手は一覧に出ません）。予想応手は、その手を指した後の局面で指せる手の一覧から選び、「なし」も選べます。</p>
+                <p class="guide-step-text">指し手を選ぶまで「追加」は押せません。同じ指し手がすでに登録されているときは、上書きするかの確認が表示されます。</p>
                 <div class="screenshot-item screenshot-item--compact">
                     <img src="../images/joseki/joseki-03-add.png" alt="定跡手の追加">
-                    <p class="screenshot-caption">定跡手の追加：指し手をプレビューで確認して追加する</p>
+                    <p class="screenshot-caption">定跡手の追加：局面の合法手の一覧から指し手と予想応手を選ぶ</p>
                 </div>
             </div>
 
@@ -162,7 +162,7 @@
                     <span class="guide-step-number">5</span>
                     <span class="guide-step-title">定跡手を編集する</span>
                 </div>
-                <p class="guide-step-text">「編集」で、予想応手・評価値・探索深さ・出現頻度・コメントを変更します（指し手そのものは変えられません）。表の行を右クリックすると、着手・編集・削除・指し手のコピーのメニューも使えます。</p>
+                <p class="guide-step-text">「編集」で、予想応手・評価値・探索深さ・出現頻度・コメントを変更します（指し手そのものは変えられません。予想応手は、その定跡手を指した後の局面で指せる手の一覧から選びます）。表の行を右クリックすると、着手・編集・削除・指し手のコピーのメニューも使えます。</p>
                 <p class="guide-step-text">変更すると、ファイル名の右に「未保存」と、保存を促す案内が表示されます。</p>
                 <div class="screenshot-item screenshot-item--compact">
                     <img src="../images/joseki/joseki-04-edit.png" alt="定跡手の編集">
@@ -179,7 +179,7 @@
                     <span class="guide-step-number">6</span>
                     <span class="guide-step-title">削除と保存</span>
                 </div>
-                <p class="guide-step-text">「削除」を押すと確認が表示され、「削除する」で定跡手を削除します。</p>
+                <p class="guide-step-text">「削除」を押すと確認が表示され、「削除する」で定跡手を削除します。局面の最後の定跡手を削除すると、その局面も定跡から消えます。</p>
                 <p class="guide-step-text">変更は「保存」（上書き）または「別名保存」で定跡ファイルに書き込みます。未保存の変更があるまま「新規」「開く」「履歴」で別のファイルに切り替えたり、定跡ウィンドウやアプリを閉じたりすると、保存するかの確認が表示されます。</p>
                 <div class="screenshot-item screenshot-item--compact">
                     <img src="../images/joseki/joseki-06-delete.png" alt="削除の確認">
