@@ -12,6 +12,7 @@
 #include <QTemporaryDir>
 #include <QVBoxLayout>
 
+#include "applicationfonts.h"
 #include "engineinfowidget.h"
 #include "header_drag_helper.h"
 #include "kifubranchlistmodel.h"
@@ -179,6 +180,8 @@ private slots:
         QVERIFY(m_config.isValid());
         qputenv("XDG_CONFIG_HOME", m_config.path().toUtf8());
         qputenv("SHOGIBOARDQ_CONFIG_HOME", m_config.path().toUtf8());
+        // 本体と同じく、表の行高を計算する前に共通の書体を確定する。
+        ApplicationFonts::initialize();
     }
 
     // ドックの中身を不透明にしておけば、中の部品の更新でドックやメインウィンドウは描き直さない
@@ -279,7 +282,16 @@ private slots:
                 view->show();
                 QVERIFY(QTest::qWaitForWindowExposed(view));
             }
+            // 選択色とフォーカスの描画条件を揃え、両方とも前面にしてから比較する。
+            plain.activateWindow();
+            QVERIFY(QTest::qWaitForWindowActive(&plain));
+            plain.setFocus();
+            QTRY_VERIFY(plain.hasFocus());
             const QImage expected = plain.grab().toImage();
+            cut.activateWindow();
+            QVERIFY(QTest::qWaitForWindowActive(&cut));
+            cut.setFocus();
+            QTRY_VERIFY(cut.hasFocus());
             const QImage actual = cut.grab().toImage();
             QCOMPARE(actual.size(), expected.size());
             QVERIFY2(actual == expected, qPrintable(QStringLiteral("PV column width %1").arg(pvWidth)));
