@@ -13,6 +13,7 @@
 #include <QVBoxLayout>
 
 #include "engineinfowidget.h"
+#include "header_drag_helper.h"
 #include "kifubranchlistmodel.h"
 #include "record_rows_helper.h"
 #include "kifumovedelegate.h"
@@ -430,7 +431,7 @@ private slots:
         UsiCommLogModel log;
         EngineInfoWidget info(AnalysisSettings::ThinkingTable::Engine1);
         info.setModel(&log);
-        info.resize(900, 60);
+        info.resize(2000, 60);
         info.show();
         QVERIFY(QTest::qWaitForWindowExposed(&info));
         auto* table = info.findChild<QTableWidget*>(QStringLiteral("engineInfoTable"));
@@ -448,15 +449,45 @@ private slots:
         EventCounter resizes(QEvent::Resize);
         table->installEventFilter(&resizes);
         const int widthBefore = table->width();
+        const QList<int> columnsBefore = info.columnWidths();
         // info 1行の探索状況は1回で届く
         log.updateStatus(fullStatus());
         QCoreApplication::processEvents();
         QCoreApplication::processEvents();
+        QCOMPARE(table->width(), widthBefore);
+        QCOMPARE(info.columnWidths(), columnsBefore);
+        QCOMPARE(resizes.count, 0);
+        log.setPredictedMove(QStringLiteral("△同　歩(23)"));
+        QCoreApplication::processEvents();
+        QCOMPARE(info.columnWidths(), columnsBefore);
+
+        // 想定桁数を超える値が届いたときだけ、複数列の拡張をまとめて1回で反映する。
+        EngineSearchStatus large = fullStatus();
+        large.depth = 12345;
+        large.seldepth = 123456;
+        large.nodes = 1234567890123456789LL;
+        large.nps = 1234567890123LL;
+        log.setStatus(large);
+        QCoreApplication::processEvents();
+        QCoreApplication::processEvents();
         QVERIFY(table->width() > widthBefore);
         QVERIFY2(resizes.count == 1, qPrintable(QStringLiteral("table resized %1 times").arg(resizes.count)));
-        // 列幅は内容に合わせて広がっている
         const QFontMetrics metrics(table->font());
-        QVERIFY(table->columnWidth(4) >= metrics.horizontalAdvance(QStringLiteral("123,456,789")));
+        QVERIFY(table->columnWidth(4) >= metrics.horizontalAdvance(QStringLiteral("1,234,567,890,123,456,789")));
+        QVERIFY(table->columnWidth(5) >= metrics.horizontalAdvance(QStringLiteral("1,234,567,890,123")));
+
+        // 値が小さくなる・次の思考で空欄になる・モデルを外す場合も列幅を維持する。
+        const QList<int> expanded = info.columnWidths();
+        log.setStatus(fullStatus());
+        QCoreApplication::processEvents();
+        QCOMPARE(info.columnWidths(), expanded);
+        log.clear();
+        QCoreApplication::processEvents();
+        QCOMPARE(info.columnWidths(), expanded);
+        info.setModel(nullptr);
+        QCoreApplication::processEvents();
+        QCOMPARE(info.columnWidths(), expanded);
+        QCOMPARE(resizes.count, 1);
     }
 
     // 測った文字の幅と見出しの高さを使い回しても、文字の大きさを変えれば測り直す
@@ -491,12 +522,31 @@ private slots:
         QVERIFY(table->columnWidth(4) >= QFontMetrics(table->font()).horizontalAdvance(QStringLiteral("123,456,789")));
         QCOMPARE(table->height(), expectedHeight());
 
-        // 値が同じ幅に戻れば、列幅も戻る
+        // 値が小さくなっても幅を維持し、文字サイズを小さくしたときは幅を再計算する。
+        const int enlargedWidth = table->columnWidth(4);
         status.nodes = 1;
         log.setStatus(status);
         QCoreApplication::processEvents();
         QCoreApplication::processEvents();
-        QVERIFY(table->columnWidth(4) < QFontMetrics(table->font()).horizontalAdvance(QStringLiteral("123,456,789")) + 20);
+        QCOMPARE(table->columnWidth(4), enlargedWidth);
+        info.setFontSize(9);
+        QCoreApplication::processEvents();
+        QVERIFY(table->columnWidth(4) < enlargedWidth);
+        QVERIFY(table->columnWidth(4) >= QFontMetrics(table->font()).horizontalAdvance(QStringLiteral("999,999,999,999")) + 20);
+
+        // 手動の列幅は値・文字サイズの変更より優先し、再作成後も保存した幅を使う。
+        HeaderDrag::resizeSection(table->horizontalHeader(), 4, 180);
+        const QList<int> manual = info.columnWidths();
+        QCOMPARE(manual.at(4), 180);
+        QCOMPARE(AnalysisSettings::engineInfoColumnWidths(AnalysisSettings::ThinkingTable::Engine1), manual);
+        status.nodes = std::numeric_limits<qint64>::max();
+        log.setStatus(status);
+        info.setFontSize(20);
+        QCoreApplication::processEvents();
+        QCOMPARE(info.columnWidths(), manual);
+        EngineInfoWidget restored(AnalysisSettings::ThinkingTable::Engine1);
+        QCOMPARE(restored.columnWidths(), manual);
+        AnalysisSettings::setEngineInfoColumnWidths(AnalysisSettings::ThinkingTable::Engine1, {});
     }
 };
 

@@ -18,7 +18,8 @@ class UsiCommLogModel;
 /**
  * @brief エンジン名・予想手・探索手・深さ・ノード数などを1行で出す情報欄
  *
- * 列幅は内容に合わせて広げる。利用者が見出しの境目をドラッグして列幅を変えると、
+ * 想定桁数と指し手が収まる幅を確保し、内容が長くなったときだけ広げる。書体が変わるまでは縮めない。
+ * 利用者が見出しの境目をドラッグして列幅を変えると、
  * その幅を思考の表の組（table）ごとに保存し、以後は自動で変えない。
  */
 class EngineInfoWidget : public QWidget {
@@ -70,6 +71,7 @@ private:
     };
     QList<MeasuredText> m_cellWidths;     // 列ごとの値の幅
     QList<MeasuredText> m_headingWidths;  // 列ごとの見出しの幅
+    QList<int> m_autoColumnWidths;       // 初期幅と受信済みの内容が収まる幅（書体変更時だけ再計算）
     QFont m_measuredHeadingFont;          // 幅を測った見出し・値の書体
     QFont m_measuredMoveFont;             // 幅を測った指し手の書体
 
