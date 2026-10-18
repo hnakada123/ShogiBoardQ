@@ -11743,7 +11743,7 @@ Choose a file with one SFEN position per line.</translation>
 <context>
     <name>ShogiEngineThinkingModel</name>
     <message>
-        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="101"/>
+        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="114"/>
         <source>表示</source>
         <translation>Show</translation>
     </message>
@@ -11752,42 +11752,69 @@ Choose a file with one SFEN position per line.</translation>
         <translation type="vanished">Time</translation>
     </message>
     <message>
-        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="89"/>
+        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="56"/>
+        <source>下限値：この値以上</source>
+        <translation>Lower bound: at least this value</translation>
+    </message>
+    <message>
+        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="57"/>
+        <source>上限値：この値以下</source>
+        <translation>Upper bound: at most this value</translation>
+    </message>
+    <message>
+        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="102"/>
         <source>詰み</source>
         <translation>Checkmate</translation>
     </message>
     <message>
-        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="96"/>
+        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="109"/>
         <source>%1手詰</source>
         <translation>Mate in %1 plies</translation>
     </message>
     <message>
-        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="113"/>
+        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="121"/>
+        <source>探索開始局面の手番側から見た評価値です。正は手番側有利、負は相手側有利です。</source>
+        <translation>Score from the perspective of the side to move in the search starting position. Positive values favor that side; negative values favor the opponent.</translation>
+    </message>
+    <message>
+        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="123"/>
+        <source>++：下限値（この値以上）
+--：上限値（この値以下）</source>
+        <translation>++: lower bound (at least this value)
+--: upper bound (at most this value)</translation>
+    </message>
+    <message>
+        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="132"/>
         <source>時間(ms)</source>
         <translation>Time (ms)</translation>
     </message>
     <message>
-        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="115"/>
+        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="134"/>
         <source>深さ</source>
         <translation>Depth</translation>
     </message>
     <message>
-        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="117"/>
+        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="136"/>
         <source>ノード数</source>
         <translation>Nodes</translation>
     </message>
     <message>
-        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="119"/>
+        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="138"/>
         <source>評価値</source>
         <translation>Score</translation>
     </message>
     <message>
-        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="121"/>
+        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="140"/>
+        <source>上下限</source>
+        <translation>Bound</translation>
+    </message>
+    <message>
+        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="142"/>
         <source>盤面</source>
         <translation>Board</translation>
     </message>
     <message>
-        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="123"/>
+        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="144"/>
         <source>読み筋</source>
         <translation>PV</translation>
     </message>

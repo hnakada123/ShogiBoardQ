@@ -126,8 +126,8 @@ class TestIncrementalTableView : public QObject
         view.setStyleSheet(TableStyles::thinking());
         view.setShowGrid(false);
         view.setMouseTracking(true);
-        view.setItemDelegateForColumn(4, new TableButtonDelegate(&view));
-        view.setItemDelegateForColumn(5, new PvTextDelegate(&view));
+        view.setItemDelegateForColumn(ShogiEngineThinkingModel::BoardColumn, new TableButtonDelegate(&view));
+        view.setItemDelegateForColumn(ShogiEngineThinkingModel::PvColumn, new PvTextDelegate(&view));
         auto* numeric = new NumericRightAlignCommaDelegate(&view);
         for (int column = 0; column < 4; ++column) view.setItemDelegateForColumn(column, numeric);
         view.horizontalHeader()->setStretchLastSection(true);
@@ -237,8 +237,8 @@ private slots:
         view.setStyleSheet(TableStyles::thinking());
         view.setShowGrid(false);
         view.setMouseTracking(true);
-        view.setItemDelegateForColumn(4, new TableButtonDelegate(&view));
-        view.setItemDelegateForColumn(5, new PvTextDelegate(&view));
+        view.setItemDelegateForColumn(ShogiEngineThinkingModel::BoardColumn, new TableButtonDelegate(&view));
+        view.setItemDelegateForColumn(ShogiEngineThinkingModel::PvColumn, new PvTextDelegate(&view));
         auto* numeric = new NumericRightAlignCommaDelegate(&view);
         for (int column = 0; column < 4; ++column) view.setItemDelegateForColumn(column, numeric);
         view.horizontalHeader()->setStretchLastSection(true);
@@ -405,7 +405,7 @@ private slots:
         settle();
         QVERIFY(view1.verticalScrollBar()->isVisible());
         const int viewportWidth = view1.viewport()->width();
-        const int lastWidth = view1.columnWidth(5);
+        const int lastWidth = view1.columnWidth(ShogiEngineThinkingModel::PvColumn);
 
         int next = 1;
         for (int cycle = 0; cycle < 2; ++cycle) {
@@ -421,7 +421,7 @@ private slots:
                 const QString label = QStringLiteral("cycle %1 row %2").arg(cycle).arg(row);
                 QVERIFY2(view1.verticalScrollBar()->isVisible(), qPrintable(label));
                 QVERIFY2(view1.viewport()->width() == viewportWidth, qPrintable(label));
-                QVERIFY2(view1.columnWidth(5) == lastWidth, qPrintable(label));
+                QVERIFY2(view1.columnWidth(ShogiEngineThinkingModel::PvColumn) == lastWidth, qPrintable(label));
                 // 小数倍率では、行の追加は元から全体の描き直しになる（画面のずらしを使えない）
                 if (integralScale(view1)) {
                     QVERIFY2(viewportSpy.fullPaints == 0,
@@ -433,7 +433,7 @@ private slots:
             model1.clear();
             settle();
             QVERIFY(view1.verticalScrollBar()->isVisible());
-            QCOMPARE(view1.columnWidth(5), lastWidth);
+            QCOMPARE(view1.columnWidth(ShogiEngineThinkingModel::PvColumn), lastWidth);
         }
     }
 
@@ -456,14 +456,14 @@ private slots:
         settle();
         const QList<int> saved = AnalysisSettings::thinkingViewColumnWidths(AnalysisSettings::ThinkingTable::Engine1);
 
-        const int lastWidth = view1.columnWidth(5);
+        const int lastWidth = view1.columnWidth(ShogiEngineThinkingModel::PvColumn);
         for (int i = 0; i < 8; ++i) model1.prependRow(thinkingRecord(i), kUnlimitedRows);
         settle();
         model1.clear();
         settle();
         view1.resize(700, 130);
         settle();
-        QVERIFY(view1.columnWidth(5) != lastWidth);
+        QVERIFY(view1.columnWidth(ShogiEngineThinkingModel::PvColumn) != lastWidth);
         view1.resize(820, 130);
         settle();
         QCOMPARE(AnalysisSettings::thinkingViewColumnWidths(AnalysisSettings::ThinkingTable::Engine1), saved);

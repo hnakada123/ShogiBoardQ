@@ -162,10 +162,10 @@ class TestThinkingDisplayUpdates : public QObject
         view.setModel(model);
         view.setStyleSheet(TableStyles::thinking());
         view.setShowGrid(false);
-        view.setItemDelegateForColumn(4, new TableButtonDelegate(&view));
+        view.setItemDelegateForColumn(ShogiEngineThinkingModel::BoardColumn, new TableButtonDelegate(&view));
         auto* numeric = new NumericRightAlignCommaDelegate(&view);
         for (int column = 0; column < 4; ++column) view.setItemDelegateForColumn(column, numeric);
-        if (pvDelegate) view.setItemDelegateForColumn(5, new PvTextDelegate(&view));
+        if (pvDelegate) view.setItemDelegateForColumn(ShogiEngineThinkingModel::PvColumn, new PvTextDelegate(&view));
         view.horizontalHeader()->setStretchLastSection(true);
         view.verticalHeader()->setVisible(false);
         view.verticalHeader()->setDefaultSectionSize(KifuMoveDelegate::textHeight(view.font()) + 4);
@@ -271,9 +271,9 @@ private slots:
             setUpThinkingView(plain, &model, false);
             setUpThinkingView(cut, &model, true);
             for (QTableView* view : {&plain, &cut}) {
-                view->resize(pvWidth + 520, 320);
+                view->resize(pvWidth + 620, 320);
                 view->horizontalHeader()->setStretchLastSection(false);
-                view->horizontalHeader()->resizeSection(5, pvWidth);
+                view->horizontalHeader()->resizeSection(ShogiEngineThinkingModel::PvColumn, pvWidth);
                 view->selectRow(2);
                 view->show();
                 QVERIFY(QTest::qWaitForWindowExposed(view));
@@ -304,9 +304,9 @@ private slots:
                     QTableView view;
                     setUpThinkingView(view, &model, pvDelegate);
                     view.setMouseTracking(true);
-                    view.resize(pvWidth + 520, 340);
+                    view.resize(pvWidth + 620, 340);
                     view.horizontalHeader()->setStretchLastSection(false);
-                    view.horizontalHeader()->resizeSection(5, pvWidth);
+                    view.horizontalHeader()->resizeSection(ShogiEngineThinkingModel::PvColumn, pvWidth);
                     view.setSelectionBehavior(QAbstractItemView::SelectRows);
                     view.selectRow(2);
                     if (state == Disabled) view.setEnabled(false);
@@ -318,9 +318,9 @@ private slots:
                     }
                     if (state == Focus) {
                         view.setFocus();
-                        view.setCurrentIndex(model.index(4, 5));
+                        view.setCurrentIndex(model.index(4, ShogiEngineThinkingModel::PvColumn));
                     }
-                    if (state == Hover) QTest::mouseMove(view.viewport(), view.visualRect(model.index(5, 5)).center());
+                    if (state == Hover) QTest::mouseMove(view.viewport(), view.visualRect(model.index(5, ShogiEngineThinkingModel::PvColumn)).center());
                     QCoreApplication::processEvents();
                     return view.grab().toImage();
                 };
