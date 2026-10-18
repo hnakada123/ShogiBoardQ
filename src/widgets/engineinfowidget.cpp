@@ -296,15 +296,32 @@ void EngineInfoWidget::updateTableGeometry()
         const QFont headingFont = m_table->font();
         const bool japanese = KifuPresentation::options().notation == KifuPresentation::Notation::Japanese;
         const QFont moveFont = japanese ? ApplicationFonts::japaneseFont(headingFont) : headingFont;
+        const QFontMetrics headingMetrics(headingFont);
+        const QFontMetrics moveMetrics(moveFont);
         if (headingFont != m_measuredHeadingFont || moveFont != m_measuredMoveFont
             || m_cellWidths.size() != COL_COUNT) {
             m_measuredHeadingFont = headingFont;
             m_measuredMoveFont = moveFont;
             m_cellWidths = QList<MeasuredText>(COL_COUNT);
             m_headingWidths = QList<MeasuredText>(COL_COUNT);
+
+            // 通常の探索情報は初期幅に収め、更新や次の思考開始で列の位置を動かさない。
+            const QString moveSample = japanese ? QStringLiteral("▲９九銀不成(99)") : QStringLiteral("▲B8hx2b+");
+            QString samples[] = {QString(), moveSample, moveSample, QStringLiteral("999/999"),
+                                 QStringLiteral("999,999,999,999"), QStringLiteral("999,999,999"), QStringLiteral("999%")};
+            // 数字の幅が一定でない書体でも、想定桁数の範囲では列を広げずに済むようにする。
+            QChar widestDigit = QLatin1Char('0');
+            for (const QChar digit : QStringLiteral("123456789")) {
+                if (headingMetrics.horizontalAdvance(digit) > headingMetrics.horizontalAdvance(widestDigit))
+                    widestDigit = digit;
+            }
+            m_autoColumnWidths.clear();
+            for (int col = 0; col < COL_COUNT; ++col) {
+                if (col >= COL_DEPTH) samples[col].replace(QLatin1Char('9'), widestDigit);
+                const QFontMetrics& metrics = (col == COL_PRED || col == COL_SEARCHED) ? moveMetrics : headingMetrics;
+                m_autoColumnWidths.append(metrics.horizontalAdvance(samples[col]) + 20);
+            }
         }
-        const QFontMetrics headingMetrics(headingFont);
-        const QFontMetrics moveMetrics(moveFont);
         const auto measured = [](MeasuredText& cache, const QString& text, const QFontMetrics& metrics) {
             if (cache.width < 0 || cache.text != text) {
                 cache.text = text;
@@ -320,7 +337,8 @@ void EngineInfoWidget::updateTableGeometry()
                                     measured(m_headingWidths[col], heading ? heading->text() : QString(),
                                              headingMetrics)) + 20;
             if (col == COL_ENGINE_NAME) contentWidth = qBound(120, contentWidth, 260);
-            m_table->setColumnWidth(col, contentWidth);
+            m_autoColumnWidths[col] = qMax(m_autoColumnWidths.at(col), contentWidth);
+            m_table->setColumnWidth(col, m_autoColumnWidths.at(col));
         }
     }
     const int contentWidth = m_table->horizontalHeader()->length();
