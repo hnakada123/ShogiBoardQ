@@ -5,11 +5,17 @@
 /// 盤・棋譜欄・分岐候補欄は表示中の手の変化を受けて自分で合わせる。
 
 #include <QtTest>
+#include <QChartView>
+#include <QComboBox>
+#include <QDockWidget>
 #include <QPushButton>
 #include <QSignalSpy>
 #include <QTemporaryDir>
 
 #include "branchtreeview.h"
+#include "appstate.h"
+#include "evaluationchartwidget.h"
+#include "evaluationgraphpresenter.h"
 #include "kifudocument.h"
 #include "kifubranchlistmodel.h"
 #include "kifubranchnode.h"
@@ -97,6 +103,72 @@ private slots:
         QCOMPARE(p.navState->currentNode(), p.branchTree->root());
         QCOMPARE(boardPosition(p), position(SfenUtils::hirateSfen()));
         QCOMPARE(p.kifuRecord->currentHighlightRow(), 0);
+    }
+
+    void evaluationGraphNavigationFollowsGameState_data()
+    {
+        QTest::addColumn<AppActivityState::Activity>("playing");
+        QTest::newRow("local-game") << AppActivityState::Activity::DuringGame;
+        QTest::newRow("csa-game") << AppActivityState::Activity::DuringCsaGame;
+    }
+
+    /// 対局・再開でグラフからの局面移動を止め、終局・中断で再び操作できる。
+    void evaluationGraphNavigationFollowsGameState()
+    {
+        QFETCH(AppActivityState::Activity, playing);
+        MainWindow window;
+        auto& p = window.composer().parts();
+        QVERIFY(loadRecord(p));
+        p.kifuNavController->goToLast();
+        p.evalGraph->plotEngineScore(Turn::Black, 1, UsiScore::cp(100));
+        p.evalGraph->plotEngineScore(Turn::Black, 5, UsiScore::cp(200));
+        auto* graph = p.evalChart;
+        window.resize(1400, 900);
+        window.show();
+        for (auto* dock : window.findChildren<QDockWidget*>()) {
+            if (dock->widget() == graph) { dock->show(); dock->raise(); }
+        }
+        auto* chartView = qobject_cast<QChartView*>(graph->chartViewWidget());
+        QVERIFY(chartView);
+        QTRY_VERIFY(chartView->isVisible());
+        QTRY_VERIFY(chartView->chart()->plotArea().width() > 0);
+        const auto clickPoint = [&]() {
+            const QPoint point = chartView->mapFromScene(chartView->chart()->mapToScene(
+                chartView->chart()->mapToPosition(QPointF(1, 100))));
+            QTest::mouseClick(chartView->viewport(), Qt::LeftButton, Qt::NoModifier, point);
+        };
+        const QList<QPushButton*> buttons = {graph->firstButton(), graph->back10Button(), graph->prevButton(),
+                                             graph->nextButton(), graph->fwd10Button(), graph->lastButton()};
+        auto& activity = window.composer().state().activity;
+        // 同じグラフで対局開始→終局→再開→中断に相当する状態遷移を確かめる。
+        for (int cycle = 0; cycle < 2; ++cycle) {
+            activity.setActivity(playing);
+            const QString currentPosition = boardPosition(p);
+            QSignalSpy changed(p.navState, &KifuNavigationState::changed);
+            for (auto* button : buttons) {
+                QVERIFY(!button->isEnabled());
+                button->click();
+            }
+            clickPoint();
+            QCOMPARE(changed.count(), 0);
+            QCOMPARE(p.navState->currentPly(), 5);
+            QCOMPARE(boardPosition(p), currentPosition);
+            QCOMPARE(graph->currentPly(), 5);
+            QVERIFY(graph->findChild<QPushButton*>(QStringLiteral("evalDisplaySettings"))->isEnabled());
+            QVERIFY(graph->findChild<QComboBox*>(QStringLiteral("evalRangeMode"))->isEnabled());
+
+            activity.setActivity(AppActivityState::Activity::Idle);
+            for (auto* button : buttons) QVERIFY(button->isEnabled());
+            clickPoint();
+            QCOMPARE(p.navState->currentPly(), 1);
+            QCOMPARE(graph->currentPly(), 1);
+            QCOMPARE(boardPosition(p), position(p.navState->currentSfen()));
+            QVERIFY(boardPosition(p) != currentPosition);
+            graph->firstButton()->click();
+            QCOMPARE(p.navState->currentPly(), 0);
+            graph->lastButton()->click();
+            QCOMPARE(p.navState->currentPly(), 5);
+        }
     }
 
     /// 分岐ツリーのノードをクリックすると、その手順のその手へ移り、盤・棋譜欄・分岐候補欄が合う

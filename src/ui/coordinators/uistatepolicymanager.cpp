@@ -6,6 +6,7 @@
 #include "ui_mainwindow.h"
 #include "recordpane.h"
 #include "kifunavigationcontroller.h"
+#include "evaluationchartwidget.h"
 #include "branchtreeview.h"
 #include "considerationtabmanager.h"
 
@@ -243,6 +244,7 @@ void UiStatePolicyManager::applyPolicy(UiElement element, Policy policy)
     case UiElement::WidgetNavigation:
         if (m_deps.recordPane) m_deps.recordPane->setKifuViewEnabled(enabled);
         if (m_deps.navigation) m_deps.navigation->setStepActionsEnabled(enabled);
+        if (m_deps.evalChart) m_deps.evalChart->setNavigationEnabled(enabled);
         break;
     case UiElement::WidgetBranchTree:
         if (m_deps.branchTree) m_deps.branchTree->setClickEnabled(enabled);

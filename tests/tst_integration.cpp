@@ -72,9 +72,7 @@ private slots:
                     // Try each file for a pawn advance
                     for (int file = 1; file <= 9 && !moved; ++file) {
                         for (int rank = 9; rank >= 2 && !moved; --rank) {
-                            const auto& data = board.position().squares();
-                            int idx = (rank - 1) * 9 + (file - 1);
-                            if (data[idx] == Piece::BlackPawn) {
+                            if (board.position().pieceAt(file, rank) == Piece::BlackPawn) {
                                 UsiMove m;
                                 m.from = BoardSquare{file, rank};
                                 m.to = BoardSquare{file, rank - 1};
@@ -165,7 +163,6 @@ private slots:
             session.startFromRoot();
             QVERIFY(session.isActive());
 
-            ShogiMove move;
             for (int i = 0; i < 10; ++i) {
                 session.appendRecord(RecordEntry::played(ShogiMove(), QStringLiteral("m%1_%2").arg(cycle).arg(i), QStringLiteral("s%1_%2").arg(cycle).arg(i)));
             }

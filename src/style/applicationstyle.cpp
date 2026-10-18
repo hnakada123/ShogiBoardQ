@@ -121,7 +121,7 @@ private:
         QRect rect;
         bool relative = true;  ///< 項目の左上からの位置か（false なら項目の位置によらない）
     };
-    mutable QHash<int, QIcon> m_icons;
+    mutable QHash<StandardPixmap, QIcon> m_icons;
     mutable QHash<ItemRectKey, CachedItemRect> m_itemRects;
 };
 } // namespace

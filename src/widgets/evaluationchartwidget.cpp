@@ -294,6 +294,12 @@ void EvaluationChartWidget::setRecordLength(int plies)
     refreshData();
 }
 
+void EvaluationChartWidget::setNavigationEnabled(bool enabled)
+{
+    m_navigationEnabled = enabled;
+    m_navBar->setEnabled(enabled);
+}
+
 bool EvaluationChartWidget::eventFilter(QObject* obj, QEvent* event)
 {
     if (obj != m_chartView->viewport()) return QWidget::eventFilter(obj, event);
@@ -305,6 +311,7 @@ bool EvaluationChartWidget::eventFilter(QObject* obj, QEvent* event)
         auto* mouse = static_cast<QMouseEvent*>(event);
         const QPointF chartPos = m_chart->mapFromScene(m_chartView->mapToScene(mouse->pos()));
         if (mouse->button() == Qt::LeftButton && m_chart->plotArea().contains(chartPos)) {
+            if (!m_navigationEnabled) return true;
             const int ply = qMax(0, qRound(m_chart->mapToValue(chartPos, m_series[0]).x()));
             if (m_evaluation->analysisLineIndex() >= 0) emit analysisPlyClicked(m_evaluation->analysisLineIndex(), ply);
             else emit plyClicked(ply);

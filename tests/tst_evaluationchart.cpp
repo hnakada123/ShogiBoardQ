@@ -332,6 +332,76 @@ private slots:
         QVERIFY(chartView->summary.contains(QStringLiteral("評価値なし")));
     }
 
+    void disabledNavigationKeepsDisplayControls_data()
+    {
+        QTest::addColumn<int>("analysisLine");
+        QTest::newRow("game-scores") << -1;
+        QTest::newRow("analysis-scores") << 2;
+    }
+
+    void disabledNavigationKeepsDisplayControls()
+    {
+        QFETCH(int, analysisLine);
+        TestChart widget;
+        widget.resize(1000, 400);
+        widget.appendScoreP1(5, UsiScore::cp(450));
+        widget.points().setAnalysisLineIndex(analysisLine);
+        widget.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&widget));
+        auto* chartView = view(widget);
+        const auto point = [&]() {
+            return chartView->mapFromScene(chartView->chart()->mapToScene(
+                chartView->chart()->mapToPosition(QPointF(5, 450), series(widget))));
+        };
+        QSignalSpy normal(&widget, &EvaluationChartWidget::plyClicked);
+        QSignalSpy analysis(&widget, &EvaluationChartWidget::analysisPlyClicked);
+        const QList<QPushButton*> buttons = {widget.firstButton(), widget.back10Button(), widget.prevButton(),
+                                             widget.nextButton(), widget.fwd10Button(), widget.lastButton()};
+
+        widget.setNavigationEnabled(false);
+        QTest::mouseClick(chartView->viewport(), Qt::LeftButton, Qt::NoModifier, point());
+        QCOMPARE(normal.count(), 0);
+        QCOMPARE(analysis.count(), 0);
+        QCOMPARE(widget.currentPly(), 5);
+        for (auto* button : buttons) {
+            QVERIFY(!button->isEnabled());
+            QSignalSpy clicked(button, &QPushButton::clicked);
+            button->click();
+            QCOMPARE(clicked.count(), 0);
+        }
+
+        // 局面移動を止めても、評価値の確認・更新と表示設定は利用できる。
+        QTest::mouseMove(chartView->viewport(), QPoint(10, 10));
+        QTest::mouseMove(chartView->viewport(), point());
+        QTRY_VERIFY(chartView->findChild<QLabel*>(QStringLiteral("evalTooltip"))->isVisible());
+        widget.appendScoreP1(7, UsiScore::cp(600));
+        QCOMPARE(series(widget)->count(), 2);
+        QCOMPARE(widget.currentPly(), 7);
+        auto* settings = widget.findChild<QPushButton*>(QStringLiteral("evalDisplaySettings"));
+        auto* range = widget.findChild<QComboBox*>(QStringLiteral("evalRangeMode"));
+        QVERIFY(settings && settings->isEnabled());
+        QVERIFY(range && range->isEnabled());
+        m_accept = true;
+        QTimer::singleShot(0, this, &TestEvaluationChart::editSettings);
+        settings->click();
+        QCOMPARE(widget.yAxisLimit(), 32000);
+        QCOMPARE(widget.labelFontSize(), 11);
+
+        widget.setNavigationEnabled(true);
+        for (auto* button : buttons) QVERIFY(button->isEnabled());
+        QTest::mouseClick(chartView->viewport(), Qt::LeftButton, Qt::NoModifier, point());
+        if (analysisLine >= 0) {
+            QCOMPARE(normal.count(), 0);
+            QCOMPARE(analysis.count(), 1);
+            QCOMPARE(analysis.at(0).at(0).toInt(), analysisLine);
+            QCOMPARE(analysis.at(0).at(1).toInt(), 5);
+        } else {
+            QCOMPARE(normal.count(), 1);
+            QCOMPARE(normal.at(0).at(0).toInt(), 5);
+            QCOMPARE(analysis.count(), 0);
+        }
+    }
+
     void navigationButtons()
     {
         TestChart widget;

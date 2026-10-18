@@ -12,7 +12,7 @@ class QLabel;
 class QPushButton;
 
 /// 表示局面の持将棋点数と入玉宣言条件を先後比較で表示する。
-struct Position;
+class Position;
 
 class JishogiScoreDialog : public QDialog
 {
