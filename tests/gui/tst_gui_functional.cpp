@@ -3927,12 +3927,12 @@ private slots:
         manager->considerationInfo()->setModel(summary);
         QTest::qWait(80);
         QCOMPARE(model->headerData(0, Qt::Horizontal).toString(), QStringLiteral("時間(ms)"));
-        QVERIFY(model->index(0, 5).data(Qt::ToolTipRole).toString().contains(pv + pv));
+        QVERIFY(model->index(0, ShogiEngineThinkingModel::PvColumn).data(Qt::ToolTipRole).toString().contains(pv + pv));
         QVERIFY(view->columnWidth(1) < 100);
-        QVERIFY(view->columnWidth(4) < 100);
-        QVERIFY(view->columnWidth(5) > view->viewport()->width() / 2);
+        QVERIFY(view->columnWidth(ShogiEngineThinkingModel::BoardColumn) < 100);
+        QVERIFY(view->columnWidth(ShogiEngineThinkingModel::PvColumn) > view->viewport()->width() / 2);
         QSignalSpy pvClicked(manager, &ConsiderationTabManager::pvRowClicked);
-        const auto index = model->index(2, 4);
+        const auto index = model->index(2, ShogiEngineThinkingModel::BoardColumn);
         QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, view->visualRect(index).center());
         QCOMPARE(pvClicked.size(), 1);
         QCOMPARE(pvClicked.first().at(1).toInt(), 2);
@@ -3956,7 +3956,7 @@ private slots:
         for (int i = 0; i < 4; ++i) QTest::mouseClick(increase, Qt::LeftButton);
         QTest::qWait(80);
         QCOMPARE(manager->considerationFontSize(), AnalysisSettings::considerationFontSize());
-        for (int col = 0; col < 5; ++col)
+        for (int col = 0; col < ShogiEngineThinkingModel::PvColumn; ++col)
             QVERIFY(view->columnWidth(col) >= view->fontMetrics().horizontalAdvance(model->headerData(col, Qt::Horizontal).toString()));
         QCOMPARE(AnalysisSettings::thinkingViewColumnWidths(AnalysisSettings::ThinkingTable::Consideration).at(2), 180);
 

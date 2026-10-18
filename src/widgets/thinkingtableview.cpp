@@ -65,13 +65,17 @@ void ThinkingTableView::fitColumns()
 {
     if (!m_model) return;
     const QFontMetrics metrics(font());
-    const QList<int> saved = AnalysisSettings::thinkingViewColumnWidths(m_table);
-    // 数値の見本（3桁区切り）と「盤面」ボタンの文字が収まる幅を下限にする
+    QList<int> saved = AnalysisSettings::thinkingViewColumnWidths(m_table);
+    // 上下限列の追加前に保存した幅は、盤面・読み筋の位置をずらして引き継ぐ。
+    if (saved.size() == Column::ColumnCount - 1) saved.insert(Column::BoundColumn, 0);
+    // 数値の見本（3桁区切り）・上下限の記号・「盤面」ボタンの文字が収まる幅を下限にする
     const QString samples[] = {QStringLiteral("99,999"), QStringLiteral("99"), QStringLiteral("99,999,999"),
-                               QStringLiteral("-9,999"), ShogiEngineThinkingModel::boardButtonText()};
+                               QStringLiteral("-9,999"), QStringLiteral("++"), ShogiEngineThinkingModel::boardButtonText()};
     for (int column = Column::TimeColumn; column < Column::PvColumn; ++column) {
         const QString title = m_model->headerData(column, Qt::Horizontal).toString();
-        const int minimum = qMax(metrics.horizontalAdvance(title), metrics.horizontalAdvance(samples[column])) + 20;
+        int sampleWidth = metrics.horizontalAdvance(samples[column]);
+        if (column == Column::BoundColumn) sampleWidth = qMax(sampleWidth, metrics.horizontalAdvance(QStringLiteral("--")));
+        const int minimum = qMax(metrics.horizontalAdvance(title), sampleWidth) + 20;
         const int width = saved.size() == Column::ColumnCount ? qMax(minimum, saved.at(column)) : minimum;
         setColumnWidth(column, width);
     }

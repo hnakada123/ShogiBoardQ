@@ -9715,47 +9715,74 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>ShogiEngineThinkingModel</name>
     <message>
-        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="89"/>
+        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="56"/>
+        <source>下限値：この値以上</source>
+        <translation>下限值：不小于此值</translation>
+    </message>
+    <message>
+        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="57"/>
+        <source>上限値：この値以下</source>
+        <translation>上限值：不大于此值</translation>
+    </message>
+    <message>
+        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="102"/>
         <source>詰み</source>
         <translation>诘棋</translation>
     </message>
     <message>
-        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="96"/>
+        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="109"/>
         <source>%1手詰</source>
         <translation>%1 手诘</translation>
     </message>
     <message>
-        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="101"/>
+        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="114"/>
         <source>表示</source>
         <translation>显示</translation>
     </message>
     <message>
-        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="113"/>
+        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="121"/>
+        <source>探索開始局面の手番側から見た評価値です。正は手番側有利、負は相手側有利です。</source>
+        <translation>从搜索起始局面的行棋方视角给出的评估值。正值表示行棋方有利，负值表示对方有利。</translation>
+    </message>
+    <message>
+        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="123"/>
+        <source>++：下限値（この値以上）
+--：上限値（この値以下）</source>
+        <translation>++：下限值（不小于此值）
+--：上限值（不大于此值）</translation>
+    </message>
+    <message>
+        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="132"/>
         <source>時間(ms)</source>
         <translation>时间（毫秒）</translation>
     </message>
     <message>
-        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="115"/>
+        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="134"/>
         <source>深さ</source>
         <translation>深度</translation>
     </message>
     <message>
-        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="117"/>
+        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="136"/>
         <source>ノード数</source>
         <translation>节点数</translation>
     </message>
     <message>
-        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="119"/>
+        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="138"/>
         <source>評価値</source>
         <translation>评价值</translation>
     </message>
     <message>
-        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="121"/>
+        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="140"/>
+        <source>上下限</source>
+        <translation>上下限</translation>
+    </message>
+    <message>
+        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="142"/>
         <source>盤面</source>
         <translation>棋盘</translation>
     </message>
     <message>
-        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="123"/>
+        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="144"/>
         <source>読み筋</source>
         <translation>主要变化</translation>
     </message>

@@ -345,7 +345,7 @@ private slots:
         row.baseSfen = imported.initialSfen;
         thinking.appendRow(row);
         const ShogiInfoRecord* info = thinking.recordAt(0);
-        const QString pv = thinking.data(thinking.index(0, 5), Qt::DisplayRole).toString();
+        const QString pv = thinking.data(thinking.index(0, ShogiEngineThinkingModel::PvColumn), Qt::DisplayRole).toString();
         QCOMPARE(pv, western ? QStringLiteral("▲P-7f △P-3d") : info->pv());
         // 表示用の読み筋は覚えておくが、表記の設定を変えたら作り直す
         KifuPresentation::configure(language, western ? QStringLiteral("japanese") : QStringLiteral("western"), true);
@@ -388,7 +388,7 @@ private slots:
         viewFont.setPointSize(19);
         viewFont.setBold(true);
         const QFont expectedFont = western ? viewFont : ApplicationFonts::japaneseFont(viewFont);
-        for (const auto& index : {rows.index(1, 0), branches.index(0, 0), thinking.index(0, 5)}) {
+        for (const auto& index : {rows.index(1, 0), branches.index(0, 0), thinking.index(0, ShogiEngineThinkingModel::PvColumn)}) {
             const QVariant role = index.data(Qt::FontRole);
             const QFont painted = role.isValid() ? qvariant_cast<QFont>(role).resolve(viewFont) : viewFont;
             QCOMPARE(painted.family(), expectedFont.family());

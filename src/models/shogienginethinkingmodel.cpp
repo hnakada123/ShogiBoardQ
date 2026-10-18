@@ -28,7 +28,7 @@ int ShogiEngineThinkingModel::columnCount(const QModelIndex &parent) const
 {
     Q_UNUSED(parent)
 
-    // 時間・深さ・ノード数・評価値・盤面・読み筋
+    // 時間・深さ・ノード数・評価値・上下限・盤面・読み筋
     return ColumnCount;
 }
 
@@ -43,6 +43,21 @@ QVariant ShogiEngineThinkingModel::data(const QModelIndex &index, int role) cons
     }
 
     if (role == Qt::FontRole && index.column() == PvColumn) return MoveFont::role();
+
+    if (index.column() == BoundColumn) {
+        if (role == Qt::TextAlignmentRole) return Qt::AlignCenter;
+        const UsiScore& score = m_rows.at(index.row()).score();
+        if (!score.isCp()) return QVariant();
+        if (role == Qt::DisplayRole) {
+            if (score.bound == UsiScore::Bound::Lower) return QStringLiteral("++");
+            if (score.bound == UsiScore::Bound::Upper) return QStringLiteral("--");
+        }
+        if (role == Qt::ToolTipRole) {
+            if (score.bound == UsiScore::Bound::Lower) return tr("下限値：この値以上");
+            if (score.bound == UsiScore::Bound::Upper) return tr("上限値：この値以下");
+        }
+        return QVariant();
+    }
 
     // 盤面列はボタン風の表示
     if (index.column() == BoardColumn) {
@@ -82,8 +97,6 @@ QVariant ShogiEngineThinkingModel::scoreDisplay(const UsiScore& score)
     case UsiScore::Kind::None:
         return QVariant();
     case UsiScore::Kind::Cp:
-        if (score.bound == UsiScore::Bound::Lower) return QString::number(score.value) + QStringLiteral("++");
-        if (score.bound == UsiScore::Bound::Upper) return QString::number(score.value) + QStringLiteral("--");
         return score.value;
     case UsiScore::Kind::Mate:
         return score.mateCountKnown ? mateScoreText(score.value) : tr("詰み");
@@ -103,6 +116,12 @@ QString ShogiEngineThinkingModel::boardButtonText()
 
 QVariant ShogiEngineThinkingModel::headerData(int section, Qt::Orientation orientation, int role) const
 {
+    if (orientation == Qt::Horizontal && role == Qt::ToolTipRole) {
+        if (section == ScoreColumn)
+            return tr("探索開始局面の手番側から見た評価値です。正は手番側有利、負は相手側有利です。");
+        if (section == BoundColumn)
+            return tr("++：下限値（この値以上）\n--：上限値（この値以下）");
+    }
     if (role != Qt::DisplayRole) {
         return QVariant();
     }
@@ -117,6 +136,8 @@ QVariant ShogiEngineThinkingModel::headerData(int section, Qt::Orientation orien
             return tr("ノード数");
         case ScoreColumn:
             return tr("評価値");
+        case BoundColumn:
+            return tr("上下限");
         case BoardColumn:
             return tr("盤面");
         case PvColumn:
