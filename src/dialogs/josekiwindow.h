@@ -143,6 +143,8 @@ private:
     QPushButton  *m_saveButton = nullptr;
     QPushButton  *m_saveAsButton = nullptr;
     QPushButton  *m_recentButton = nullptr;
+    QPushButton  *m_fontDecreaseButton = nullptr;
+    QPushButton  *m_fontIncreaseButton = nullptr;
     RecentFilesMenu *m_recentFilesMenu = nullptr;
     QLabel       *m_filePathLabel = nullptr;
     QLabel       *m_fileStatusLabel = nullptr;
