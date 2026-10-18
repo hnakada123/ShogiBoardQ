@@ -84,6 +84,8 @@ private slots:
     void onEngineRevoked(QObject* owner);
     void onResultRowSelected(int row);
     void onResultRowDoubleClicked(int row);
+    /// 棋譜欄・グラフなどから移った局面に結果の選択を合わせる
+    void syncResultSelection();
     /// 評価値グラフの解析の点をクリックした
     void onAnalysisPlyClicked(int lineIndex, int ply);
 

@@ -15,6 +15,7 @@
 #include <QPushButton>
 #include <QLabel>
 #include <QProgressBar>
+#include <QSignalBlocker>
 #include "elidelabel.h"
 #include "analysissettings.h"
 #include "kifuanalysislistmodel.h"
@@ -134,6 +135,22 @@ void AnalysisResultsPanel::setModel(KifuAnalysisListModel* model)
             this, &AnalysisResultsPanel::onTableSelectionChanged);
     m_reflowAllRows = true;
     m_reflowTimer->start();
+}
+
+void AnalysisResultsPanel::selectRow(int row)
+{
+    if (m_isAnalyzing) return;
+    // 表示の同期を利用者の選択として通知しない。ビューには選択変更を伝えて再描画させる。
+    const QSignalBlocker blocker(this);
+    const QModelIndex index = m_view->model()->index(row, 0);
+    if (!index.isValid()) {
+        m_view->clearRowSelection();
+        return;
+    }
+    if (m_view->currentIndex().row() != row) {
+        m_view->selectionModel()->setCurrentIndex(index, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
+    }
+    m_view->scrollTo(index);
 }
 
 void AnalysisResultsPanel::connectModelSignals(KifuAnalysisListModel* model)

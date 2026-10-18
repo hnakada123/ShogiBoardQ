@@ -44,6 +44,9 @@ public:
     /// 解析完了メッセージを表示する
     void showAnalysisComplete(int totalMoves);
 
+    /// 表示中の局面に合わせて行を選ぶ（通知しない。範囲外なら選択解除、解析中は変更しない）
+    void selectRow(int row);
+
 signals:
     /// 中止ボタン押下時に発行（→ KifuAnalysisController::stop）
     void stopRequested();

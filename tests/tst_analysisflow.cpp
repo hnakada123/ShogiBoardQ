@@ -14,6 +14,7 @@
 #include <memory>
 
 #include "analysisjob.h"
+#include "analysisresultspanel.h"
 #include "analysissession.h"
 #include "appactivitystate.h"
 #include "considerationtabmanager.h"
@@ -21,6 +22,8 @@
 #include "enginelifecyclemanager.h"
 #include "enginesettingsconstants.h"
 #include "errorbus.h"
+#include "evaluationchartwidget.h"
+#include "evaluationgraphpresenter.h"
 #include "kifuanalysiscontroller.h"
 #include "kifuanalysisdialog.h"
 #include "kifuanalysislistmodel.h"
@@ -78,6 +81,9 @@ public:
     KifuNavigationController navController{&nav};
     AppActivityState activity;
     KifuAnalysisListModel analysisModel;
+    AnalysisResultsPanel resultsPanel;
+    EvaluationChartWidget evalChart;
+    EvaluationGraphPresenter evalGraph{{&evalChart, &nav, nullptr}};
     UsiCommLogModel logModel;
     ShogiEngineThinkingModel thinkingModel;
     ShogiClock clock;
@@ -112,6 +118,9 @@ public:
         KifuAnalysisController::Deps d;
         d.activity = &activity;
         d.analysisModel = &analysisModel;
+        d.resultsPanel = &resultsPanel;
+        d.evalChart = &evalChart;
+        d.evalGraph = &evalGraph;
         d.engines = &engines;
         d.navState = &nav;
         d.navController = &navController;
@@ -306,6 +315,112 @@ private slots:
         QCOMPARE(h.nav.currentPly(), 2);
         QCOMPARE(h.activity.activity(), AppActivityState::Activity::Idle);
         QVERIFY(h.lastError().isEmpty());
+    }
+
+    void resultsFollowRecordAndGraphSelection_data()
+    {
+        QTest::addColumn<int>("startPly");
+        QTest::newRow("full-range") << 0;
+        QTest::newRow("partial-range") << 1;
+    }
+
+    /// 棋譜欄・グラフからの移動で解析結果の選択も動き、選択の通知が循環しない。
+    void resultsFollowRecordAndGraphSelection()
+    {
+        QFETCH(int, startPly);
+        TestHelper h;
+        auto ctrl = h.controller();
+        AnalysisRequest request;
+        request.line = h.line();
+        request.enginePath = mockEngine();
+        request.options.startPly = startPly;
+        QVERIFY(ctrl->start(request));
+        QTRY_VERIFY_WITH_TIMEOUT(!ctrl->isRunning(), 7000);
+        auto* view = h.resultsPanel.view();
+        QCOMPARE(view->currentIndex().row(), 2 - startPly);
+        QSignalSpy selected(&h.resultsPanel, &AnalysisResultsPanel::rowSelected);
+        QSignalSpy changed(&h.nav, &KifuNavigationState::changed);
+
+        h.navController.selectRecordRow(startPly);
+        QCOMPARE(view->currentIndex().row(), 0);
+        QCOMPARE(view->selectionModel()->selectedRows().size(), 1);
+        QCOMPARE(view->selectionModel()->selectedRows().first().row(), 0);
+        QCOMPARE(h.evalChart.currentPly(), startPly);
+        QCOMPARE(selected.count(), 0);
+        QCOMPARE(changed.count(), 1);
+
+        emit h.evalChart.analysisPlyClicked(0, 2);
+        QCOMPARE(view->currentIndex().row(), 2 - startPly);
+        QCOMPARE(view->selectionModel()->selectedRows().first().row(), 2 - startPly);
+        QCOMPARE(h.nav.currentPly(), 2);
+        QCOMPARE(h.evalChart.currentPly(), 2);
+        QCOMPARE(selected.count(), 0);
+        QCOMPARE(changed.count(), 2);
+
+        // 解析結果から棋譜・グラフへの移動も維持する。
+        view->setCurrentIndex(h.analysisModel.index(0, 0));
+        QCOMPARE(h.nav.currentPly(), startPly);
+        QCOMPARE(h.evalChart.currentPly(), startPly);
+        QCOMPARE(selected.count(), 1);
+        QCOMPARE(changed.count(), 3);
+    }
+
+    void resultsClearSelectionOutsideAnalyzedRange()
+    {
+        TestHelper h;
+        auto ctrl = h.controller();
+        AnalysisRequest request;
+        request.line = h.line();
+        request.enginePath = mockEngine();
+        request.options.startPly = 1;
+        request.options.endPly = 1;
+        QVERIFY(ctrl->start(request));
+        QTRY_VERIFY_WITH_TIMEOUT(!ctrl->isRunning(), 7000);
+        auto* view = h.resultsPanel.view();
+        QSignalSpy selected(&h.resultsPanel, &AnalysisResultsPanel::rowSelected);
+        for (const int ply : {0, 2}) {
+            h.navController.selectRecordRow(ply);
+            QVERIFY(!view->currentIndex().isValid());
+            QVERIFY(view->selectionModel()->selectedRows().isEmpty());
+            h.navController.selectRecordRow(1);
+            QCOMPARE(view->currentIndex().row(), 0);
+            QCOMPARE(view->selectionModel()->selectedRows().size(), 1);
+        }
+        QCOMPARE(selected.count(), 0);
+    }
+
+    void resultsSelectionFollowsAnalyzedBranch()
+    {
+        TestHelper h;
+        auto* first = TestTree::findByPlyOnMainLine(h.tree, 1);
+        const QStringList branchMoves{QStringLiteral("8c8d")};
+        const auto sfens = TestReplay::buildSfenRecord(first->sfen(), branchMoves, false);
+        const auto moves = TestReplay::buildGameMoves(first->sfen(), branchMoves);
+        TestTree::addMove(h.tree, first, moves.first(), branchMoves.first(), sfens.last());
+        auto ctrl = h.controller();
+        AnalysisRequest request;
+        request.line = KifuBranchTree::toRecordLine(h.tree.allLines().at(1).nodes);
+        request.lineIndex = 1;
+        request.options.startPly = 1;
+        request.enginePath = mockEngine();
+        QVERIFY(ctrl->start(request));
+        QTRY_VERIFY_WITH_TIMEOUT(!ctrl->isRunning(), 7000);
+        auto* view = h.resultsPanel.view();
+        QCOMPARE(view->currentIndex().row(), 1);
+        QSignalSpy selected(&h.resultsPanel, &AnalysisResultsPanel::rowSelected);
+
+        h.navController.goToLine(0, 2);
+        QVERIFY(!view->currentIndex().isValid());
+        QVERIFY(view->selectionModel()->selectedRows().isEmpty());
+        h.navController.goToLine(1, 1);
+        QCOMPARE(view->currentIndex().row(), 0);
+        QCOMPARE(h.nav.currentLineIndex(), 1);
+        h.navController.goToLine(0, 2);
+        emit h.evalChart.analysisPlyClicked(1, 2);
+        QCOMPARE(view->currentIndex().row(), 1);
+        QCOMPARE(h.nav.currentLineIndex(), 1);
+        QCOMPARE(h.evalChart.currentPly(), 2);
+        QCOMPARE(selected.count(), 0);
     }
 
     // === エラー ===

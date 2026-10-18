@@ -33,6 +33,10 @@ KifuAnalysisController::KifuAnalysisController(const Deps& deps, QObject* parent
         connect(m_deps.evalChart, &EvaluationChartWidget::analysisPlyClicked,
                 this, &KifuAnalysisController::onAnalysisPlyClicked);
     }
+    if (m_deps.navState) {
+        connect(m_deps.navState, &KifuNavigationState::changed,
+                this, &KifuAnalysisController::syncResultSelection);
+    }
 }
 
 KifuAnalysisController::~KifuAnalysisController()
@@ -176,6 +180,7 @@ void KifuAnalysisController::finishRun()
     if (m_resultsPanel) m_resultsPanel->setStopButtonEnabled(false);
     if (m_deps.activity->is(AppActivityState::Activity::DuringAnalysis))
         m_deps.activity->setActivity(AppActivityState::Activity::Idle);
+    syncResultSelection();
 }
 
 // ============================================================
@@ -222,6 +227,14 @@ void KifuAnalysisController::onEngineError(const QString& message)
 // ============================================================
 // 結果の行・グラフの点の選択
 // ============================================================
+
+void KifuAnalysisController::syncResultSelection()
+{
+    if (m_running || !m_resultsPanel || !m_deps.navState) return;
+    const KifuNavigationState* nav = m_deps.navState;
+    const int row = nav->currentLineIndex() == m_lineIndex ? nav->currentPly() - m_startPly : -1;
+    m_resultsPanel->selectRow(row);
+}
 
 void KifuAnalysisController::onResultRowSelected(int row)
 {
