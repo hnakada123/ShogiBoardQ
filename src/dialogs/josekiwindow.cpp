@@ -4,6 +4,7 @@
 #include "josekiwindow.h"
 #include "recentfilesmenu.h"
 #include "fontsizecontrol.h"
+#include "flowlayout.h"
 #include "buttonstyles.h"
 #include "dialogutils.h"
 #include "handicaps.h"
@@ -31,6 +32,7 @@
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QFrame>
+#include <QGridLayout>
 #include <QGroupBox>
 #include <QHBoxLayout>
 #include <QHeaderView>
@@ -50,11 +52,18 @@
 namespace {
 constexpr QSize kDefaultSize{950, 600};
 
+QString toolButtonStyle()
+{
+    return ButtonStyles::panelToolButton()
+        + QStringLiteral("QPushButton, QToolButton { padding: 4px 8px; }");
+}
+
 QPushButton *makeToolButton(const QString &text, const QString &toolTip, const QString &style, QWidget *parent)
 {
     auto *button = new QPushButton(text, parent);
     button->setToolTip(toolTip);
     button->setStyleSheet(style);
+    button->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
     return button;
 }
 
@@ -62,8 +71,8 @@ QGroupBox *makeGroup(const QString &title, QWidget *parent, QHBoxLayout **layout
 {
     auto *group = new QGroupBox(title, parent);
     *layout = new QHBoxLayout(group);
-    (*layout)->setContentsMargins(8, 4, 8, 4);
-    (*layout)->setSpacing(4);
+    (*layout)->setContentsMargins(8, 6, 8, 6);
+    (*layout)->setSpacing(6);
     return group;
 }
 
@@ -159,10 +168,9 @@ bool JosekiWindow::confirmClose()
 QWidget *JosekiWindow::buildToolbar()
 {
     auto *toolbar = new QWidget(this);
-    auto *toolbarLayout = new QHBoxLayout(toolbar);
-    toolbarLayout->setContentsMargins(0, 0, 0, 0);
-    toolbarLayout->setSpacing(12);
-    const QString buttonStyle = ButtonStyles::panelToolButton() + QStringLiteral("QPushButton { padding: 4px 8px; }");
+    // 操作を左にまとめ、ドックの幅や文字サイズに応じてグループ単位で折り返す。
+    auto *toolbarLayout = new FlowLayout(toolbar, 0, 12, 8);
+    const QString buttonStyle = toolButtonStyle();
 
     QHBoxLayout *fileGroupLayout = nullptr;
     QGroupBox *fileGroup = makeGroup(tr("ファイル"), this, &fileGroupLayout);
@@ -183,25 +191,7 @@ QWidget *JosekiWindow::buildToolbar()
     m_recentFilesMenu = new RecentFilesMenu(recentMenu);
     for (auto *button : {m_newButton, m_openButton, m_saveButton, m_saveAsButton, m_recentButton})
         fileGroupLayout->addWidget(button);
-    toolbarLayout->addWidget(fileGroup, 0, Qt::AlignLeft);
-
-    QHBoxLayout *displayGroupLayout = nullptr;
-    QGroupBox *displayGroup = makeGroup(tr("表示"), this, &displayGroupLayout);
-    auto *fontDecrease = new QPushButton(this);
-    fontDecrease->setObjectName(QStringLiteral("josekiFontDecrease"));
-    auto *fontIncrease = new QPushButton(this);
-    fontIncrease->setObjectName(QStringLiteral("josekiFontIncrease"));
-    new FontSizeControl(fontDecrease, fontIncrease, &m_fontHelper);
-    // 「表示」の枠の中でほかのボタンと同じ高さに並べ、幅は文字が収まる最小限にそろえる
-    for (auto *button : {fontDecrease, fontIncrease}) button->setFixedWidth(36);
-    m_autoLoadCheckBox = new QCheckBox(tr("自動読込"), this);
-    m_autoLoadCheckBox->setToolTip(tr("定跡ウィンドウ表示時に前回のファイルを自動で読み込む"));
-    m_autoLoadCheckBox->setChecked(true);
-    displayGroupLayout->addWidget(fontDecrease);
-    displayGroupLayout->addWidget(fontIncrease);
-    displayGroupLayout->addWidget(m_autoLoadCheckBox);
-    toolbarLayout->addWidget(displayGroup, 0, Qt::AlignLeft);
-    toolbarLayout->addStretch();
+    toolbarLayout->addWidget(fileGroup);
 
     QHBoxLayout *operationGroupLayout = nullptr;
     QGroupBox *operationGroup = makeGroup(tr("操作"), this, &operationGroupLayout);
@@ -223,7 +213,24 @@ QWidget *JosekiWindow::buildToolbar()
     operationGroupLayout->addWidget(m_addMoveButton);
     operationGroupLayout->addWidget(m_mergeButton);
     operationGroupLayout->addWidget(m_stopButton);
-    toolbarLayout->addWidget(operationGroup, 0, Qt::AlignRight);
+    toolbarLayout->addWidget(operationGroup);
+
+    QHBoxLayout *displayGroupLayout = nullptr;
+    QGroupBox *displayGroup = makeGroup(tr("表示"), this, &displayGroupLayout);
+    m_fontDecreaseButton = new QPushButton(this);
+    m_fontDecreaseButton->setObjectName(QStringLiteral("josekiFontDecrease"));
+    m_fontIncreaseButton = new QPushButton(this);
+    m_fontIncreaseButton->setObjectName(QStringLiteral("josekiFontIncrease"));
+    new FontSizeControl(m_fontDecreaseButton, m_fontIncreaseButton, &m_fontHelper);
+    for (auto *button : {m_fontDecreaseButton, m_fontIncreaseButton})
+        button->setStyleSheet(buttonStyle + QStringLiteral("QPushButton { padding: 4px 6px; }"));
+    m_autoLoadCheckBox = new QCheckBox(tr("自動読込"), this);
+    m_autoLoadCheckBox->setToolTip(tr("定跡ウィンドウ表示時に前回のファイルを自動で読み込む"));
+    m_autoLoadCheckBox->setChecked(true);
+    displayGroupLayout->addWidget(m_fontDecreaseButton);
+    displayGroupLayout->addWidget(m_fontIncreaseButton);
+    displayGroupLayout->addWidget(m_autoLoadCheckBox);
+    toolbarLayout->addWidget(displayGroup);
 
     connect(m_newButton, &QPushButton::clicked, m_files, &JosekiFileController::newBook);
     connect(m_openButton, &QPushButton::clicked, m_files, &JosekiFileController::open);
@@ -247,31 +254,33 @@ void JosekiWindow::setupUi()
     mainLayout->addWidget(buildToolbar());
 
     // --- ファイルと局面の情報 ---
-    auto *fileInfoLayout = new QHBoxLayout();
-    fileInfoLayout->addWidget(new QLabel(tr("ファイル:"), this));
+    auto *infoLayout = new QGridLayout();
+    infoLayout->setHorizontalSpacing(10);
+    infoLayout->setVerticalSpacing(6);
+    infoLayout->setColumnStretch(1, 1);
+    infoLayout->addWidget(new QLabel(tr("ファイル:"), this), 0, 0);
     m_filePathLabel = new QLabel(tr("未選択"), this);
     m_filePathLabel->setStyleSheet(QStringLiteral("color: gray;"));
     m_filePathLabel->setTextFormat(Qt::PlainText);
     m_filePathLabel->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
     m_filePathLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
-    fileInfoLayout->addWidget(m_filePathLabel, 1);
+    infoLayout->addWidget(m_filePathLabel, 0, 1);
     m_fileStatusLabel = new QLabel(this);
     m_fileStatusLabel->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
-    fileInfoLayout->addWidget(m_fileStatusLabel);
-    mainLayout->addLayout(fileInfoLayout);
+    infoLayout->addWidget(m_fileStatusLabel, 0, 2);
 
     auto *positionInfoLayout = new QHBoxLayout();
-    positionInfoLayout->addWidget(new QLabel(tr("局面:"), this));
+    positionInfoLayout->setSpacing(8);
+    infoLayout->addWidget(new QLabel(tr("局面:"), this), 1, 0);
     m_positionSummaryLabel = new QLabel(tr("(未設定)"), this);
     m_positionSummaryLabel->setStyleSheet(QStringLiteral("color: #0066cc; font-weight: bold;"));
     positionInfoLayout->addWidget(m_positionSummaryLabel);
-    m_showSfenDetailBtn = new QPushButton(tr("詳細"), this);
-    m_showSfenDetailBtn->setToolTip(tr("SFENの詳細を表示/非表示"));
+    m_showSfenDetailBtn = makeToolButton(tr("詳細"), tr("SFENの詳細を表示/非表示"), toolButtonStyle(), this);
     m_showSfenDetailBtn->setCheckable(true);
-    m_showSfenDetailBtn->setFixedWidth(50);
     positionInfoLayout->addWidget(m_showSfenDetailBtn);
     positionInfoLayout->addStretch();
-    mainLayout->addLayout(positionInfoLayout);
+    infoLayout->addLayout(positionInfoLayout, 1, 1, 1, 2);
+    mainLayout->addLayout(infoLayout);
 
     m_sfenDetailWidget = new QWidget(this);
     auto *sfenDetailLayout = new QVBoxLayout(m_sfenDetailWidget);
@@ -375,7 +384,17 @@ void JosekiWindow::applyFontSize()
         m_tableView->setColumnWidth(col, qMax(m_tableView->columnWidth(col), fm.horizontalAdvance(sample) + 24));
     }
     header->setStretchLastSection(true);
-    m_showSfenDetailBtn->setFixedWidth(fm.horizontalAdvance(m_showSfenDetailBtn->text()) + 20);
+    // 文字・枠・余白を含む sizeHint に幅を任せ、文字を拡大しても欠けないようにする。
+    // QPushButton と QToolButton は標準の高さが違うため、このウィンドウ内でそろえる。
+    const QList<QAbstractButton *> buttons = {m_newButton, m_openButton, m_saveButton, m_saveAsButton,
+        m_recentButton, m_addMoveButton, m_mergeButton, m_stopButton,
+        m_fontDecreaseButton, m_fontIncreaseButton, m_showSfenDetailBtn};
+    int buttonHeight = qMax(32, fm.height() + 12);
+    for (QAbstractButton *button : buttons) buttonHeight = qMax(buttonHeight, button->sizeHint().height());
+    for (QAbstractButton *button : buttons) button->setFixedHeight(buttonHeight);
+    const int fontButtonWidth = qMax(36, qMax(m_fontDecreaseButton->sizeHint().width(), m_fontIncreaseButton->sizeHint().width()));
+    for (QPushButton *button : {m_fontDecreaseButton, m_fontIncreaseButton})
+        button->setFixedWidth(fontButtonWidth);
 
     // 注意書きと SFEN の詳細は1段小さい文字で出す
     const int smallSize = qMax(fontSize - 1, 6);
