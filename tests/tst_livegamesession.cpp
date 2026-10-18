@@ -160,7 +160,6 @@ private slots:
 
         QCOMPARE(session.moveCount(), 0);
 
-        ShogiMove move;
         session.appendRecord(playedEntry(QStringLiteral("▲７六歩"), QStringLiteral("sfen1"), QStringLiteral("0:10")));
         QCOMPARE(session.moveCount(), 1);
 
@@ -178,7 +177,6 @@ private slots:
         LiveGameSession session(&tree, &nav);
         session.startFromRoot();
 
-        ShogiMove move;
         session.appendRecord(playedEntry(QStringLiteral("▲７六歩"), QStringLiteral("sfen1"), QString()));
         session.appendRecord(playedEntry(QStringLiteral("△３四歩"), QStringLiteral("sfen2"), QString()));
 
@@ -200,7 +198,6 @@ private slots:
         session.startFromRoot();
         QVERIFY(session.isActive());
 
-        ShogiMove move;
         session.appendRecord(playedEntry(QStringLiteral("▲７六歩"), QStringLiteral("sfen1"), QString()));
         QCOMPARE(session.moveCount(), 1);
 
@@ -222,7 +219,6 @@ private slots:
             session.startFromRoot();
             QVERIFY(session.isActive());
 
-            ShogiMove move;
             for (int i = 0; i < 10; ++i) {
                 session.appendRecord(playedEntry(QStringLiteral("move%1_%2").arg(cycle).arg(i), QStringLiteral("sfen%1_%2").arg(cycle).arg(i), QString()));
             }

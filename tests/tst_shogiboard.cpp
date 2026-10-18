@@ -29,7 +29,7 @@ private slots:
         QCOMPARE(data[8], Piece::WhiteLance);
 
         // Rank 7 (index 54-62): P P P P P P P P P
-        for (int i = 54; i <= 62; ++i) {
+        for (std::size_t i = 54; i <= 62; ++i) {
             QCOMPARE(data[i], Piece::BlackPawn);
         }
 
@@ -454,7 +454,7 @@ private slots:
         board.setSfen(sfen);
         const auto& data = board.position().squares();
         // Rank 2 (index 9-17) should all be None
-        for (int i = 9; i <= 17; ++i) {
+        for (std::size_t i = 9; i <= 17; ++i) {
             QCOMPARE(data[i], Piece::None);
         }
     }

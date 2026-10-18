@@ -145,8 +145,11 @@ void GameInfoEditModel::setAutomaticValue(const QString& key, const QString& val
         else entry->value = value;
     }
     const auto applied = findKey(m_applied, key);
-    if (applied == m_applied.end()) m_applied.append({key, value});
-    else applied->value = value;
+    if (applied == m_applied.end()) {
+        m_applied.append({key, value});
+    } else {
+        applied->value = value;
+    }
     emit editStateChanged();
 }
 

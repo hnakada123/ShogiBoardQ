@@ -107,7 +107,9 @@ struct Harness : QObject {
         match = std::make_unique<MatchCoordinator>(deps);
         match->setRecordSink(&sink);
         QObject::connect(match.get(), &MatchCoordinator::movesUndone, this, &Harness::observeUndo);
-        startFrom(RecordLine{initial, {}, 0});
+        RecordLine initialLine;
+        initialLine.startSfen = initial;
+        startFrom(initialLine);
     }
 
     /// 手順 from の最後の局面から対局を始める

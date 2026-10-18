@@ -184,12 +184,12 @@ KifuParseOutcome UsiToSfenConverter::parse(QStringView text, const ParseOptions&
     }
 
     KifLineBuilder builder(*start);
-    for (const QString& text : std::as_const(usiMoves)) {
+    for (const QString& moveText : std::as_const(usiMoves)) {
         const int ply = builder.nextPly();
-        const std::optional<UsiMove> move = UsiMove::parse(text);
+        const std::optional<UsiMove> move = UsiMove::parse(moveText);
         if (!move || !builder.addMove(*move)) {
             report.rejectMove(ply, move ? builder.cannotRestore(QStringLiteral("USI"), ply)
-                                        : QStringLiteral("USI: Invalid USI move %1: %2").arg(ply).arg(text));
+                                        : QStringLiteral("USI: Invalid USI move %1: %2").arg(ply).arg(moveText));
             builder.stop();
             break;
         }

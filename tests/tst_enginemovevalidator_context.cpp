@@ -25,7 +25,7 @@ class TestEngineMoveValidatorContext : public QObject
         QSet<QString> out;
         const Turn turn = ctx.turn;
         const auto pieceAt = [&board](BoardSquare square) {
-            return board.position().squares().at((square.rank - 1) * 9 + (square.file - 1));
+            return board.position().pieceAt(square);
         };
         for (int fromFile = 1; fromFile <= 9; ++fromFile) {
             for (int fromRank = 1; fromRank <= 9; ++fromRank) {

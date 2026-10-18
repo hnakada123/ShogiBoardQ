@@ -47,6 +47,9 @@ public:
     void setRecordLength(int plies);
     int currentPly() const { return m_currentPly; }
 
+    /// 点のクリックと矢印ボタンによる局面移動を切り替える（表示設定・評価値の更新は常に可能）
+    void setNavigationEnabled(bool enabled);
+
     // 棋譜欄と同じ6つのナビゲーションボタン（KifuNavigationController::bindButtons で QAction に結び付ける）
     QPushButton* firstButton() const { return m_navButtons[NavFirst]; }
     QPushButton* back10Button() const { return m_navButtons[NavBack10]; }
@@ -115,6 +118,7 @@ private:
     QWidget* m_settingsButton = nullptr;
     QWidget* m_navBar = nullptr;
     QPushButton* m_navButtons[NavButtonCount] = {};
+    bool m_navigationEnabled = true;
     bool m_navBarWrapped = false; // 幅が足りず、ナビゲーションボタンを2行目に置いている
     int m_currentPly = 0;
     int m_maxVisitedPly = 0;

@@ -11,6 +11,7 @@
 class QAction;
 class RecordPane;
 class KifuNavigationController;
+class EvaluationChartWidget;
 class BranchTreeView;
 class ConsiderationTabManager;
 
@@ -83,7 +84,7 @@ public:
         SettingsReset,
 
         // --- ウィジェット ---
-        WidgetNavigation,      ///< ナビゲーションボタン + 棋譜欄クリック
+        WidgetNavigation,      ///< ナビゲーションボタン + 棋譜欄・評価値グラフのクリック
         WidgetBranchTree,      ///< 分岐ツリークリック
         WidgetConsiderationStart, ///< 検討ドック「検討開始」ボタン
 
@@ -95,6 +96,7 @@ public:
         Ui::MainWindow* ui = nullptr;
         RecordPane* recordPane = nullptr;                     ///< 棋譜欄のクリック
         KifuNavigationController* navigation = nullptr;       ///< 局面送りの操作（棋譜欄と評価値グラフのボタン）
+        EvaluationChartWidget* evalChart = nullptr;            ///< 評価値グラフの局面移動
         BranchTreeView* branchTree = nullptr;                 ///< 分岐ツリーのクリック
         ConsiderationTabManager* consideration = nullptr;     ///< 検討ドックの「検討開始」
         std::function<bool()> localGameHasHuman;  ///< ローカル対局に人間が参加しているか（待った・投了・入玉宣言）
