@@ -7,6 +7,7 @@
 #include <QTabBar>
 #include <QStandardPaths>
 #include <QFile>
+#include <QWindow>
 
 #include "docklayoutmanager.h"
 #include "dockregistry.h"
@@ -94,6 +95,9 @@ private slots:
     void createAll_createsOnlyGivenDocks();
     void createAll_restoresSavedStateOfEveryDock();
     void createAll_matchesDefaultArrangement();
+    void floatingDocks_allowIndependentWindows_data();
+    void floatingDocks_allowIndependentWindows();
+    void floatingDock_mainWindowCanBeRaised();
 
     // ロック状態テスト
     void setDocksLocked_true_disablesMovement();
@@ -175,6 +179,8 @@ void TestDockLayout::createAll_restoresSavedStateOfEveryDock()
     QVERIFY(QTest::qWaitForWindowExposed(&restored.mainWindow));
     QVERIFY(restored.dock2->isHidden());
     QVERIFY(restored.dock3->isFloating());
+    QCOMPARE(restored.dock3->windowType(), Qt::Window);
+    QVERIFY(!restored.dock3->windowHandle()->transientParent());
     QVERIFY(restored.dock1->isVisible());
 }
 
@@ -189,6 +195,84 @@ void TestDockLayout::createAll_matchesDefaultArrangement()
     QCOMPARE(current, DockRegistry::title(Id::Thinking));
     QVERIFY(setup.registry->dock(Id::Menu)->isHidden());
     QCOMPARE(setup.window.dockWidgetArea(setup.registry->dock(Id::Menu)), Qt::RightDockWidgetArea);
+}
+
+void TestDockLayout::floatingDocks_allowIndependentWindows_data()
+{
+    QTest::addColumn<int>("dockId");
+    QTest::addColumn<bool>("initiallyVisible");
+    for (const auto& spec : DockRegistry::specs()) {
+        QTest::newRow(spec.objectName) << static_cast<int>(spec.id) << true;
+        const QByteArray hiddenName = QByteArray(spec.objectName) + "-hidden";
+        QTest::newRow(hiddenName.constData()) << static_cast<int>(spec.id) << false;
+    }
+}
+
+/// 全タブで、切り離し・再表示・再結合後も本体より手前に固定されない。
+void TestDockLayout::floatingDocks_allowIndependentWindows()
+{
+    QFETCH(int, dockId);
+    QFETCH(bool, initiallyVisible);
+    FullSetup setup;
+    setup.window.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&setup.window));
+    QDockWidget* dock = setup.registry->dock(static_cast<Id>(dockId));
+    dock->setVisible(initiallyVisible);
+    dock->setFloating(true);
+    QCOMPARE(dock->isVisible(), initiallyVisible);
+    dock->show();
+
+    for (int cycle = 0; cycle < 2; ++cycle) {
+        QVERIFY(dock->isFloating());
+        QVERIFY(dock->isVisible());
+        QCOMPARE(dock->windowType(), Qt::Window);
+        QVERIFY(!dock->windowFlags().testFlag(Qt::WindowStaysOnTopHint));
+        QVERIFY(dock->windowHandle());
+        QVERIFY(!dock->windowHandle()->transientParent());
+        // Qt の所有関係は維持し、ドックを閉じてもアプリの終了条件にしない。
+        QCOMPARE(dock->parentWidget(), &setup.window);
+        QVERIFY(!dock->testAttribute(Qt::WA_QuitOnClose));
+        dock->setGeometry(80, 100, 360, 260);
+        const QRect geometry = dock->geometry();
+        QVERIFY(dock->close());
+        QVERIFY(!dock->toggleViewAction()->isChecked());
+        dock->toggleViewAction()->trigger();
+        QVERIFY(dock->isVisible());
+        QCOMPARE(dock->geometry(), geometry);
+        QVERIFY(!dock->windowHandle()->transientParent());
+
+        // Qt は浮動状態の再適用でもウィンドウ属性を設定し直す。
+        dock->setFloating(true);
+        QCOMPARE(dock->windowType(), Qt::Window);
+        QVERIFY(!dock->windowHandle()->transientParent());
+        dock->setFloating(false);
+        QVERIFY(!dock->isFloating());
+        QCOMPARE(setup.window.dockWidgetArea(dock), DockRegistry::spec(static_cast<Id>(dockId)).area);
+        dock->setFloating(true);
+    }
+}
+
+/// OS のウィンドウ管理でも、本体と切り離したタブを交互に前面へ出せる。
+void TestDockLayout::floatingDock_mainWindowCanBeRaised()
+{
+    if (QGuiApplication::platformName() == QStringLiteral("offscreen")
+        || QGuiApplication::platformName() == QStringLiteral("minimal"))
+        QSKIP("Requires a window system with stacking support");
+
+    TestSetup setup;
+    setup.mainWindow.resize(640, 480);
+    setup.mainWindow.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&setup.mainWindow));
+    setup.dock3->setFloating(true);
+    setup.dock3->setGeometry(QRect(setup.mainWindow.mapToGlobal(QPoint(100, 100)), QSize(300, 240)));
+    QVERIFY(QTest::qWaitForWindowExposed(setup.dock3));
+    const QPoint overlap = setup.dock3->mapToGlobal(QPoint(100, 100));
+    for (QWidget* window : {static_cast<QWidget*>(setup.dock3), static_cast<QWidget*>(&setup.mainWindow),
+                            static_cast<QWidget*>(setup.dock3), static_cast<QWidget*>(&setup.mainWindow)}) {
+        window->raise();
+        window->activateWindow();
+        QTRY_COMPARE(QGuiApplication::topLevelAt(overlap), window->windowHandle());
+    }
 }
 
 // --- ロック状態テスト ---
@@ -250,7 +334,8 @@ void TestDockLayout::restoreLayout_existingName_succeeds()
     setup.mainWindow.show();
     setup.mainWindow.tabifyDockWidget(setup.dock2, setup.dock3);
     setup.dock1->setFloating(true);
-    setup.dock1->setGeometry(40, 60, 320, 240);
+    // macOS のメニューバーと通常ウィンドウのタイトルバーより下に置く。
+    setup.dock1->setGeometry(40, 120, 320, 240);
     setup.dock3->hide();
     const QRect floatingGeometry = setup.dock1->geometry();
 
@@ -268,6 +353,8 @@ void TestDockLayout::restoreLayout_existingName_succeeds()
     // 保存されたレイアウトデータが一致すること
     QCOMPARE(DockSettings::loadDockLayout(QStringLiteral("TestLayout")), state);
     QVERIFY(setup.dock1->isFloating());
+    QCOMPARE(setup.dock1->windowType(), Qt::Window);
+    QVERIFY(!setup.dock1->windowHandle()->transientParent());
     QCOMPARE(setup.dock1->geometry(), floatingGeometry);
     QVERIFY(setup.dock3->isHidden());
     // Qt は閉じたタブを tabifiedDockWidgets() の結果に含めない。
@@ -296,6 +383,8 @@ void TestDockLayout::restoreStartupLayoutIfSet_restoresLayout()
 
     QVERIFY(setup.dock1->isVisible());
     QVERIFY(setup.dock2->isFloating());
+    QCOMPARE(setup.dock2->windowType(), Qt::Window);
+    QVERIFY(!setup.dock2->windowHandle()->transientParent());
     QCOMPARE(DockSettings::startupDockLayoutName(), QStringLiteral("Startup"));
 }
 

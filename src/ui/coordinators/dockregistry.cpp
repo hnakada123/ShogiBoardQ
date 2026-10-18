@@ -12,10 +12,38 @@
 #include <QDockWidget>
 #include <QMainWindow>
 #include <QMenu>
+#include <QWindow>
 
 using DockId = DockRegistry::DockId;
 
 namespace {
+/// 浮動時も、本体と同じ通常のウィンドウとして前後を切り替えられるドック。
+class DockWidget : public QDockWidget
+{
+public:
+    using QDockWidget::QDockWidget;
+
+    void setVisible(bool visible) override
+    {
+        if (visible && isFloating()) {
+            // Qt は切り離し・レイアウト復元のたびに Qt::Tool を設定する。
+            // topLevelChanged だけでは、浮動状態を再適用した場合を拾えない。
+            const Qt::WindowFlags flags = (windowFlags() & ~Qt::WindowType_Mask) | Qt::Window;
+            if (windowFlags() != flags) {
+                const QRect previousGeometry = geometry();
+                setWindowFlags(flags);
+                setGeometry(previousGeometry);
+                setAttribute(Qt::WA_QuitOnClose, false);
+            }
+            if (!testAttribute(Qt::WA_WState_Created)) create();
+            // OS の親子関係による前面固定も解除する。QWidget の親は残すので、
+            // 本体による所有・再ドッキング・レイアウト保存は従来どおり行える。
+            windowHandle()->setTransientParent(nullptr);
+        }
+        QDockWidget::setVisible(visible);
+    }
+};
+
 constexpr Qt::DockWidgetArea kRight = Qt::RightDockWidgetArea;
 constexpr Qt::DockWidgetArea kBottom = Qt::BottomDockWidgetArea;
 
@@ -92,7 +120,7 @@ void DockRegistry::createAll(const Contents& contents)
         QWidget* content = contents.at(indexOf(entry.id));
         if (!content) continue;
         const QString dockTitle = title(entry.id);
-        auto* dock = new QDockWidget(dockTitle, m_window);
+        auto* dock = new DockWidget(dockTitle, m_window);
         dock->setObjectName(QString::fromLatin1(entry.objectName));
         dock->setFeatures(QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable
                           | QDockWidget::DockWidgetClosable);
