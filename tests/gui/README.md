@@ -77,6 +77,7 @@ xvfb-run -a -s '-screen 0 1600x1200x24' python3 tests/gui/run.py \
 対局者情報の配色は `boardInformationColors` で追加14色の選択、透明度、複数盤面への即時反映、警告文字色、おすすめ配色による表示色の保持、設定・選択タブの復元、全配色の初期化を検証します。
 おすすめ配色は `boardColorPresets` で標準の駒に合う配色5種類の選択・設定復元、個別調整との同期を検証します。
 横幅の固定は `windowWidthFollowsContent` で盤の左右の余白、縦方向のリサイズ、棋譜フォント・盤サイズ・表示列の変更への追従、消費時間の全体表示を検証します。通常サイズと棋譜フォント拡大時のスクリーンショットも保存します。
+`captureKeepsWindowGeometry` は18手目までの局面から▲２四銀を指し、棋譜欄が初めて縦スクロールを必要とする場合も、盤・棋譜欄・ウィンドウに移動やリサイズが起きないことを確認します。スクロール不要・既にスクロール中の条件と、待ったで戻った場合も検証し、着手前後の画像を保存します。
 `branchPanelCollapse` は分岐候補の開閉、幅の追従、開閉状態の復元、折りたたみ中の棋譜移動を確認し、長い対局者名を含む `branch-panel-collapsed.png` を保存します。
 `engineInfoLayout` はエンジン情報帯の幅、狭い画面での横スクロール、フォント拡大、手動列幅の保持と全文ツールチップを確認します。
 `engineConsiderationLayout` は検討操作部の折り返し、時間設定の切替、読み筋の表示幅と全文ツールチップ、盤面表示操作、文字拡大、列幅の保存・復元を確認し、`consideration-layout.png` と `consideration-narrow.png` を保存します。

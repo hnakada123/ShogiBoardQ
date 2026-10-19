@@ -656,6 +656,93 @@ private slots:
         QTRY_COMPARE(table->horizontalScrollBar()->maximum(), 0);
         QVERIFY(table->visualRect(table->model()->index(1, 1)).right() < table->viewport()->width());
     }
+    void captureKeepsWindowGeometry_data()
+    {
+        QTest::addColumn<int>("fontIncrease");
+        QTest::addColumn<int>("squareSize");
+        QTest::addColumn<bool>("scrollsBefore");
+        QTest::addColumn<bool>("scrollsAfter");
+        QTest::newRow("no-scroll") << 0 << 50 << false << false;
+        QTest::newRow("scrollbar-threshold") << 1 << 49 << false << true;
+        QTest::newRow("already-scrolling") << 4 << 50 << true << true;
+    }
+    void captureKeepsWindowGeometry()
+    {
+        QFETCH(int, fontIncrease);
+        QFETCH(int, squareSize);
+        QFETCH(bool, scrollsBefore);
+        QFETCH(bool, scrollsAfter);
+        while (board()->squareSize() > squareSize) board()->reduceBoard();
+        while (board()->squareSize() < squareSize) board()->enlargeBoard();
+        record()->onToggleBookmarkColumn(false);
+        record()->onToggleCommentColumn(false);
+        record()->onToggleTimeColumn(true);
+        armDialog("game"); click("actionStartGame"); QVERIFY(dialogHandled);
+        for (int i = 0; i < fontIncrease; ++i)
+            QTest::mouseClick(record()->fontIncreaseButton(), Qt::LeftButton);
+        // 報告の18手目までを再現し、▲２四銀で初めて縦スクロールが必要になる条件も確認する。
+        const QStringList moves = QStringLiteral(
+            "7g7f 3a3b 2g2f 5a4b 2f2e 4b3a 3i3h 8c8d 3h2g "
+            "3c3d 2g2f 8d8e 1g1f 3b3c 2f1e 4a3b 2e2d 2c2d").split(' ');
+        for (const QString& move : moves) {
+            QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier,
+                              squarePoint(move.at(0).digitValue(), move.at(1).unicode() - u'a' + 1));
+            QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier,
+                              squarePoint(move.at(2).digitValue(), move.at(3).unicode() - u'a' + 1));
+            QTest::qWait(20);
+        }
+        QCOMPARE(record()->kifuView()->model()->rowCount(), 19);
+        QTest::qWait(100);
+        auto* table = record()->kifuView();
+        QCOMPARE(table->verticalScrollBar()->maximum() > 0, scrollsBefore);
+        const QRect originalWindow = window->geometry();
+        const QPoint originalBoard = board()->mapToGlobal(QPoint());
+        const int moveWidth = table->columnWidth(0);
+        const int timeWidth = table->columnWidth(1);
+        snapshot(QStringLiteral("capture-before-") + QTest::currentDataTag());
+
+        // 最後に元の位置へ戻る揺れも、途中の Move / Resize を記録して検出する。
+        class GeometryProbe : public QObject {
+        public:
+            QStringList events;
+            bool eventFilter(QObject* watched, QEvent* event) override
+            {
+                if ((event->type() == QEvent::Resize || event->type() == QEvent::Move) && events.size() < 100) {
+                    auto* widget = qobject_cast<QWidget*>(watched);
+                    events.append(QStringLiteral("%1 %2: %3,%4 %5x%6")
+                        .arg(watched->metaObject()->className()).arg(int(event->type()))
+                        .arg(widget->x()).arg(widget->y()).arg(widget->width()).arg(widget->height()));
+                }
+                return false;
+            }
+        } probe;
+        window->installEventFilter(&probe);
+        window->centralWidget()->installEventFilter(&probe);
+        board()->installEventFilter(&probe);
+        record()->installEventFilter(&probe);
+        table->installEventFilter(&probe);
+        QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, squarePoint(1, 5));
+        QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, squarePoint(2, 4));
+        QTRY_COMPARE(table->model()->rowCount(), 20);
+        QTest::qWait(500);
+        QCOMPARE(table->verticalScrollBar()->maximum() > 0, scrollsAfter);
+        QCOMPARE(table->columnWidth(0), moveWidth);
+        QCOMPARE(table->columnWidth(1), timeWidth);
+        QCOMPARE(table->horizontalScrollBar()->maximum(), 0);
+        QCOMPARE(window->geometry(), originalWindow);
+        QCOMPARE(board()->mapToGlobal(QPoint()), originalBoard);
+        QVERIFY2(probe.events.isEmpty(), qPrintable(probe.events.join('\n')));
+        snapshot(QStringLiteral("capture-after-") + QTest::currentDataTag());
+
+        // 待ったでスクロール不要に戻る際にも横幅を縮めない。
+        click("actionUndoMove");
+        QTRY_COMPARE(table->model()->rowCount(), 18);
+        QTest::qWait(100);
+        QCOMPARE(table->verticalScrollBar()->maximum() > 0, scrollsBefore);
+        QCOMPARE(window->geometry(), originalWindow);
+        QVERIFY2(probe.events.isEmpty(), qPrintable(probe.events.join('\n')));
+        armDialog("yes"); click("actionBreakOffGame");
+    }
     void boardZoomPreservesWindowState_data()
     {
         QTest::addColumn<bool>("fullScreen");

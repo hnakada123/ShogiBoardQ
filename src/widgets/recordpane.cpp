@@ -60,6 +60,8 @@ void RecordPane::buildKifuTable()
     m_kifu->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
     m_kifu->setWordWrap(false);
     m_kifu->setTextElideMode(Qt::ElideRight);
+    // 行が増えてスクロールが必要になっても、棋譜欄とウィンドウの横幅を変えない。
+    m_kifu->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
     m_kifu->setStyleSheet(RecordPaneAppearanceManager::kifuTableStyleSheet(m_appearanceManager.fontSize()));
 }
 
@@ -278,8 +280,7 @@ void RecordPane::updateKifuTableWidth()
     if (!m_kifu->model()) return;
 
     const auto* scrollBar = m_kifu->verticalScrollBar();
-    const int scrollBarWidth = scrollBar->maximum() > scrollBar->minimum()
-        ? scrollBar->sizeHint().width() : 0;
+    const int scrollBarWidth = scrollBar->sizeHint().width();
     const auto* header = m_kifu->horizontalHeader();
     int tableWidth = scrollBarWidth + 2 * m_kifu->frameWidth();
     bool hasStretchColumn = false;
