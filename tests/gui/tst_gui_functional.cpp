@@ -124,6 +124,22 @@ class GuiAudit : public QObject
     QStringList dialogMessages;
     const QString initial = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL");
 
+    // 最後に元の位置へ戻る揺れも、途中の Move / Resize を記録して検出する。
+    class GeometryProbe : public QObject {
+    public:
+        QStringList events;
+        bool eventFilter(QObject* watched, QEvent* event) override
+        {
+            if ((event->type() == QEvent::Resize || event->type() == QEvent::Move) && events.size() < 100) {
+                auto* widget = qobject_cast<QWidget*>(watched);
+                events.append(QStringLiteral("%1 %2: %3,%4 %5x%6")
+                    .arg(watched->metaObject()->className()).arg(int(event->type()))
+                    .arg(widget->x()).arg(widget->y()).arg(widget->width()).arg(widget->height()));
+            }
+            return false;
+        }
+    };
+
     ShogiView* board() const { return window->findChild<ShogiView*>(); }
     RecordPane* record() const { return window->findChild<RecordPane*>(); }
     QString boardSfen() const { return board()->board()->position().boardSfen(); }
@@ -701,21 +717,7 @@ private slots:
         const int timeWidth = table->columnWidth(1);
         snapshot(QStringLiteral("capture-before-") + QTest::currentDataTag());
 
-        // 最後に元の位置へ戻る揺れも、途中の Move / Resize を記録して検出する。
-        class GeometryProbe : public QObject {
-        public:
-            QStringList events;
-            bool eventFilter(QObject* watched, QEvent* event) override
-            {
-                if ((event->type() == QEvent::Resize || event->type() == QEvent::Move) && events.size() < 100) {
-                    auto* widget = qobject_cast<QWidget*>(watched);
-                    events.append(QStringLiteral("%1 %2: %3,%4 %5x%6")
-                        .arg(watched->metaObject()->className()).arg(int(event->type()))
-                        .arg(widget->x()).arg(widget->y()).arg(widget->width()).arg(widget->height()));
-                }
-                return false;
-            }
-        } probe;
+        GeometryProbe probe;
         window->installEventFilter(&probe);
         window->centralWidget()->installEventFilter(&probe);
         board()->installEventFilter(&probe);
@@ -739,6 +741,62 @@ private slots:
         QTRY_COMPARE(table->model()->rowCount(), 18);
         QTest::qWait(100);
         QCOMPARE(table->verticalScrollBar()->maximum() > 0, scrollsBefore);
+        QCOMPARE(window->geometry(), originalWindow);
+        QVERIFY2(probe.events.isEmpty(), qPrintable(probe.events.join('\n')));
+        armDialog("yes"); click("actionBreakOffGame");
+    }
+    void promotionKeepsWindowGeometry_data()
+    {
+        QTest::addColumn<bool>("extraColumns");
+        QTest::newRow("move-and-time") << false;
+        QTest::newRow("bookmark-and-comment") << true;
+    }
+    void promotionKeepsWindowGeometry()
+    {
+        QFETCH(bool, extraColumns);
+        record()->onToggleBookmarkColumn(extraColumns);
+        record()->onToggleCommentColumn(extraColumns);
+        record()->onToggleTimeColumn(true);
+        QTest::mouseClick(record()->fontIncreaseButton(), Qt::LeftButton);
+        armDialog("game"); click("actionStartGame"); QVERIFY(dialogHandled);
+        const QStringList moves = QStringLiteral(
+            "7g7f 7a6b 2g2f 8c8d 2f2e 3c3d 2e2d 2c2d 2h2d 4a3b 2d2h 6c6d 7i7h").split(' ');
+        for (const QString& move : moves) {
+            QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier,
+                              squarePoint(move.at(0).digitValue(), move.at(1).unicode() - u'a' + 1));
+            QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier,
+                              squarePoint(move.at(2).digitValue(), move.at(3).unicode() - u'a' + 1));
+            QTest::qWait(20);
+        }
+        auto* table = record()->kifuView();
+        QCOMPARE(table->model()->rowCount(), 14);
+        QTest::qWait(100);
+        const QRect originalWindow = window->geometry();
+        const int moveWidth = table->columnWidth(0);
+        const int timeWidth = table->columnWidth(1);
+        GeometryProbe probe;
+        window->installEventFilter(&probe);
+        window->centralWidget()->installEventFilter(&probe);
+        board()->installEventFilter(&probe);
+        record()->installEventFilter(&probe);
+        table->installEventFilter(&probe);
+        snapshot(QStringLiteral("promotion-before-") + QTest::currentDataTag());
+        armDialog("yes");
+        QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, squarePoint(2, 2));
+        QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, squarePoint(8, 8));
+        QVERIFY(dialogHandled);
+        QTRY_COMPARE(table->model()->rowCount(), 15);
+        QVERIFY(table->model()->index(14, 0).data().toString().contains(QStringLiteral("角成")));
+        QTest::qWait(500);
+        snapshot(QStringLiteral("promotion-after-") + QTest::currentDataTag());
+        QCOMPARE(window->geometry(), originalWindow);
+        QCOMPARE(table->columnWidth(0), moveWidth);
+        QCOMPARE(table->columnWidth(1), timeWidth);
+        QCOMPARE(table->horizontalScrollBar()->maximum(), 0);
+        QVERIFY2(probe.events.isEmpty(), qPrintable(probe.events.join('\n')));
+        click("actionUndoMove");
+        QTRY_COMPARE(table->model()->rowCount(), 13);
+        QTest::qWait(100);
         QCOMPARE(window->geometry(), originalWindow);
         QVERIFY2(probe.events.isEmpty(), qPrintable(probe.events.join('\n')));
         armDialog("yes"); click("actionBreakOffGame");

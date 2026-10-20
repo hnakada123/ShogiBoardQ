@@ -78,6 +78,7 @@ xvfb-run -a -s '-screen 0 1600x1200x24' python3 tests/gui/run.py \
 おすすめ配色は `boardColorPresets` で標準の駒に合う配色5種類の選択・設定復元、個別調整との同期を検証します。
 横幅の固定は `windowWidthFollowsContent` で盤の左右の余白、縦方向のリサイズ、棋譜フォント・盤サイズ・表示列の変更への追従、消費時間の全体表示を検証します。通常サイズと棋譜フォント拡大時のスクリーンショットも保存します。
 `captureKeepsWindowGeometry` は18手目までの局面から▲２四銀を指し、棋譜欄が初めて縦スクロールを必要とする場合も、盤・棋譜欄・ウィンドウに移動やリサイズが起きないことを確認します。スクロール不要・既にスクロール中の条件と、待ったで戻った場合も検証し、着手前後の画像を保存します。
+`promotionKeepsWindowGeometry` は14手目の△８八角成で指し手の表記が長くなっても、列幅と盤・ウィンドウの位置や大きさが変わらないことを、しおり・コメント列の表示／非表示と待ったを含めて検証します。開始局面から成り・不成・4桁の手数・時間表記を収める幅の確保と、日本語／英語・文字サイズ変更への対応は CTest の `tst_move_record_updates` でも確認します。
 `branchPanelCollapse` は分岐候補の開閉、幅の追従、開閉状態の復元、折りたたみ中の棋譜移動を確認し、長い対局者名を含む `branch-panel-collapsed.png` を保存します。
 `engineInfoLayout` はエンジン情報帯の幅、狭い画面での横スクロール、フォント拡大、手動列幅の保持と全文ツールチップを確認します。
 `engineConsiderationLayout` は検討操作部の折り返し、時間設定の切替、読み筋の表示幅と全文ツールチップ、盤面表示操作、文字拡大、列幅の保存・復元を確認し、`consideration-layout.png` と `consideration-narrow.png` を保存します。
