@@ -1,5 +1,6 @@
 #include <QtTest>
 #include <QSignalSpy>
+#include <QScopeGuard>
 #include <QHeaderView>
 #include <QLabel>
 #include <QStyledItemDelegate>
@@ -26,6 +27,9 @@
 #include "recordpaneappearancemanager.h"
 #include "sfenutils.h"
 #include "shogimove.h"
+#include "kifmovetext.h"
+#include "kifupresentation.h"
+#include "test_replay.h"
 
 /// 1手指すたびに行う棋譜欄・評価値グラフの更新が、手数に比例して重くならないことを検証する。
 class TestMoveRecordUpdates : public QObject
@@ -256,6 +260,97 @@ private slots:
         panel.setCommentText(comment);
         QCOMPARE(rebuilt.count(), 1);
         verifyShown("replaced from outside");
+    }
+
+    void moveAndTimeColumnsStayStable_data()
+    {
+        QTest::addColumn<bool>("western");
+        QTest::addColumn<bool>("promoteBishop");
+        QTest::newRow("japanese-promotion") << false << true;
+        QTest::newRow("japanese-no-promotion") << false << false;
+        QTest::newRow("western-promotion") << true << true;
+        QTest::newRow("western-no-promotion") << true << false;
+    }
+
+    // 開始局面の時点で、成り・不成・４桁の手数・時間の桁変化を収める幅があること。
+    // 通常のデリゲートで測った実際の文字幅とも比較し、安定化のために文字を切っていないか確認する。
+    void moveAndTimeColumnsStayStable()
+    {
+        QFETCH(bool, western);
+        QFETCH(bool, promoteBishop);
+        const auto saved = KifuPresentation::options();
+        const auto restore = qScopeGuard([saved] {
+            KifuPresentation::configure(QStringLiteral("ja_JP"),
+                saved.notation == KifuPresentation::Notation::Japanese ? QStringLiteral("japanese")
+                                                                      : QStringLiteral("western"),
+                saved.alwaysOrigin);
+        });
+        KifuPresentation::configure(QStringLiteral("ja_JP"),
+            western ? QStringLiteral("western") : QStringLiteral("japanese"), true);
+        QStringList moves = QStringLiteral(
+            "7g7f 7a6b 2g2f 8c8d 2f2e 3c3d 2e2d 2c2d 2h2d 4a3b 2d2h 6c6d 7i7h").split(' ');
+        moves.append(promoteBishop ? QStringLiteral("2b8h+") : QStringLiteral("2b8h"));
+        const QStringList cycle{QStringLiteral("2h3h"), QStringLiteral("8h9g"),
+                                QStringLiteral("3h2h"), QStringLiteral("9g8h")};
+        while (moves.size() < 1000) moves.append(cycle.at((moves.size() - 14) % 4));
+        const auto steps = TestReplay::play(SfenUtils::hirateSfen(), moves);
+        QVERIFY(steps.has_value());
+        KifuBranchTree tree;
+        tree.setRootSfen(SfenUtils::hirateSfen());
+        QList<KifuBranchNode*> path{tree.root()};
+        for (const auto& [move, sfen] : *steps) {
+            KifMoveText::Notes notes;
+            notes.declinedPromotion = KifMoveText::couldPromote(move.movingPiece, move.move);
+            const QString label = KifMoveText::format(path.size() % 2 ? Turn::Black : Turn::White,
+                                                     move.movingPiece, move.move, {}, notes);
+            auto* node = TestTree::addMove(tree, path.last(), move, label, sfen);
+            const qint64 seconds = path.size() % 60;
+            node->record().time = RecordTime::fromMilliseconds(seconds * 61000,
+                (path.size() % 100) * 3600000 + seconds * 61000);
+            path.append(node);
+        }
+        // 分岐の印も含む。
+        TestTree::addMove(tree, tree.root(), ShogiMove(UsiMove::fromString(u"2g2f"), Piece::BlackPawn),
+                          QStringLiteral("▲２六歩(27)"), SfenUtils::hirateSfen());
+        KifuRecordListModel model(&tree);
+        model.setPath({tree.root()});
+        QTableView view;
+        view.setFont(QFont(QStringLiteral("Noto Serif CJK JP"), 11));
+        view.setWordWrap(false);
+        view.setModel(&model);
+        view.setItemDelegate(new RecordHighlightDelegate(&view));
+        view.setColumnHidden(2, true);
+        view.setColumnHidden(3, true);
+        view.horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+        view.resize(800, 300);
+        view.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&view));
+        view.resizeColumnsToContents();
+        const int moveWidth = view.columnWidth(0);
+        const int timeWidth = view.columnWidth(1);
+        QStyledItemDelegate plain;
+        QStyleOptionViewItem option;
+        option.initFrom(&view);
+        option.font = view.font();
+        option.fontMetrics = view.fontMetrics();
+        option.widget = &view;
+        for (int ply : {9, 10, 13, 14, 15, 99, 100, 999, 1000, 0}) {
+            model.setPath(path.mid(0, ply + 1));
+            view.resizeColumnsToContents();
+            QCOMPARE(view.columnWidth(0), moveWidth);
+            QCOMPARE(view.columnWidth(1), timeWidth);
+            for (int column : {0, 1}) {
+                const QModelIndex index = model.index(ply, column);
+                QVERIFY2(view.columnWidth(column) >= plain.sizeHint(option, index).width(),
+                         qPrintable(index.data().toString()));
+            }
+        }
+        QFont larger = view.font();
+        larger.setPointSize(18);
+        view.setFont(larger);
+        view.resizeColumnsToContents();
+        QVERIFY(view.columnWidth(0) > moveWidth);
+        QVERIFY(view.columnWidth(1) > timeWidth);
     }
 
     // 棋譜欄の長いコメントは、表示幅より十分先で切ってから描く。切っても、全文を渡して

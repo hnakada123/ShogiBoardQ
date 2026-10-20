@@ -4,9 +4,11 @@
 #include "recordhighlightdelegate.h"
 #include "kifubranchlistmodel.h"
 #include "kifurecordlistmodel.h"
+#include "movefont.h"
 #include "tablestyles.h"
 
 #include <QApplication>
+#include <QFontMetricsF>
 #include <QPainter>
 
 bool RecordHighlightDelegate::SizeKey::operator==(const SizeKey& other) const
@@ -30,14 +32,52 @@ QSize RecordHighlightDelegate::sizeHint(const QStyleOptionViewItem& option, cons
 
     QStyleOptionViewItem opt = option;
     initStyleOption(&opt, index);
+    QSize size = textSize(opt);
+    if (qobject_cast<const KifuRecordListModel*>(index.model())) {
+        // 内容だけで幅を決めると、初めての「成」「不成」や手数の桁増加で棋譜欄と
+        // ウィンドウが伸びる。通常の指し手・時間の幅は開始局面から確保する。
+        if (index.column() == KifuRecordListModel::MoveColumn) {
+            opt.font = MoveFont::font(opt.font);
+            opt.fontMetrics = QFontMetrics(opt.font);
+            opt.text = MoveFont::usesJapaneseFont()
+                ? QStringLiteral("9999 △９九銀不成(99)+")
+                : QStringLiteral("9999 △+B9ix9h= [+]");
+        } else if (index.column() == KifuRecordListModel::TimeColumn) {
+            opt.text = QStringLiteral("99:99/99:99:99");
+        } else {
+            return size;
+        }
+        // プロポーショナル数字を持つ書体でも、数字の入れ替わりで幅を変えない。
+        opt.text.replace(QLatin1Char('9'), widestDigit(opt.font));
+        size.setWidth(qMax(size.width(), textSize(opt).width()));
+    }
+    return size;
+}
+
+QChar RecordHighlightDelegate::widestDigit(const QFont& font) const
+{
+    if (const auto it = m_widestDigits.constFind(font); it != m_widestDigits.cend()) return it.value();
+    // 整数へ丸めて比べると同じ幅に見える数字も、文字列全体では数ピクセル差が出る。
+    const QFontMetricsF metrics(font);
+    QChar widest = QLatin1Char('0');
+    for (const QChar digit : QStringLiteral("123456789")) {
+        if (metrics.horizontalAdvance(digit) > metrics.horizontalAdvance(widest)) widest = digit;
+    }
+    if (m_widestDigits.size() >= kMaxCachedSizes) m_widestDigits.clear();
+    m_widestDigits.insert(font, widest);
+    return widest;
+}
+
+QSize RecordHighlightDelegate::textSize(const QStyleOptionViewItem& option) const
+{
     const QWidget* widget = option.widget;
     QStyle* style = widget ? widget->style() : QApplication::style();
-    const bool wrap = opt.features.testFlag(QStyleOptionViewItem::WrapText);
-    const SizeKey key{opt.text, opt.font, style, int(opt.features), int(opt.state),
-                      int(opt.decorationPosition), wrap ? opt.rect.width() : 0};
+    const bool wrap = option.features.testFlag(QStyleOptionViewItem::WrapText);
+    const SizeKey key{option.text, option.font, style, int(option.features), int(option.state),
+                      int(option.decorationPosition), wrap ? option.rect.width() : 0};
     if (const auto it = m_sizeCache.constFind(key); it != m_sizeCache.cend()) return it.value();
 
-    const QSize size = style->sizeFromContents(QStyle::CT_ItemViewItem, &opt, QSize(), widget);
+    const QSize size = style->sizeFromContents(QStyle::CT_ItemViewItem, &option, QSize(), widget);
     if (m_sizeCache.size() >= kMaxCachedSizes) m_sizeCache.clear();
     m_sizeCache.insert(key, size);
     return size;

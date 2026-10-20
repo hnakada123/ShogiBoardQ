@@ -35,8 +35,12 @@ public:
     };
 
 private:
+    QSize textSize(const QStyleOptionViewItem& option) const;
+    QChar widestDigit(const QFont& font) const;
+
     static constexpr qsizetype kMaxCachedSizes = 4096;
     mutable QHash<SizeKey, QSize> m_sizeCache;
+    mutable QHash<QFont, QChar> m_widestDigits;
 };
 
 size_t qHash(const RecordHighlightDelegate::SizeKey& key, size_t seed = 0);
