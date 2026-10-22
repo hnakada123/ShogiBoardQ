@@ -445,13 +445,6 @@ private slots:
         QCOMPARE(AnalysisSettings::considerationMultiPV(), 4);
     }
 
-    void analysisSettings_pvBoard()
-    {
-        QSize pvSize(500, 500);
-        AnalysisSettings::pvBoardDialogSize.set(pvSize);
-        QCOMPARE(AnalysisSettings::pvBoardDialogSize(), pvSize);
-    }
-
     void analysisSettings_columnWidths()
     {
         QList<int> widths = {100, 200, 150};
@@ -531,10 +524,6 @@ private slots:
 
     void gameSettings_sfenCollection()
     {
-        QSize sfenSize(700, 800);
-        GameSettings::sfenCollectionDialogSize.set(sfenSize);
-        QCOMPARE(GameSettings::sfenCollectionDialogSize(), sfenSize);
-
         QStringList recentFiles = {
             QStringLiteral("/path/to/file1.sfen"),
             QStringLiteral("/path/to/file2.sfen"),

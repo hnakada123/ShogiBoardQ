@@ -630,9 +630,10 @@ private slots:
         BoardImageRenderer::Options options;
         options.squareSize = 40;
         options.lastMoveUsi = QStringLiteral("7g7f");
-        QString error;
+        Failure failure;
         QSize size;
-        QVERIFY2(BoardImageRenderer::renderToFile(QStringLiteral("startpos"), path, options, &error, &size), qPrintable(error));
+        QVERIFY2(BoardImageRenderer::renderToFile(QStringLiteral("startpos"), path, options, &failure, &size),
+                 qPrintable(failure.message));
         QVERIFY(size.width() > 40 * 9);
         QVERIFY(size.height() > 40 * 9);
 
@@ -654,23 +655,32 @@ private slots:
         normal.squareSize = 30;
         BoardImageRenderer::Options flipped = normal;
         flipped.flip = true;
-        QString error;
-        const QImage a = BoardImageRenderer::render(sfen, normal, &error);
-        QVERIFY2(!a.isNull(), qPrintable(error));
-        const QImage b = BoardImageRenderer::render(sfen, flipped, &error);
-        QVERIFY2(!b.isNull(), qPrintable(error));
+        Failure failure;
+        const QImage a = BoardImageRenderer::render(sfen, normal, &failure);
+        QVERIFY2(!a.isNull(), qPrintable(failure.message));
+        const QImage b = BoardImageRenderer::render(sfen, flipped, &failure);
+        QVERIFY2(!b.isNull(), qPrintable(failure.message));
         QCOMPARE(a.size(), b.size());
         QVERIFY(a != b);
     }
 
+    /// 局面・大きさ・最後の手の誤りは引数の誤り（invalid_argument）として返す
     void rejectsInvalidInput()
     {
-        QString error;
-        QVERIFY(BoardImageRenderer::render(QStringLiteral("not a sfen"), {}, &error).isNull());
-        QVERIFY(!error.isEmpty());
+        Failure failure;
+        QVERIFY(BoardImageRenderer::render(QStringLiteral("not a sfen"), {}, &failure).isNull());
+        QCOMPARE(failure.kind, ErrorKind::InvalidArgument);
+        QVERIFY(!failure.message.isEmpty());
         BoardImageRenderer::Options tooSmall;
         tooSmall.squareSize = 5;
-        QVERIFY(BoardImageRenderer::render(QStringLiteral("startpos"), tooSmall, &error).isNull());
+        failure = {};
+        QVERIFY(BoardImageRenderer::render(QStringLiteral("startpos"), tooSmall, &failure).isNull());
+        QCOMPARE(failure.kind, ErrorKind::InvalidArgument);
+        BoardImageRenderer::Options badMove;
+        badMove.lastMoveUsi = QStringLiteral("zzzz");
+        failure = {};
+        QVERIFY(BoardImageRenderer::render(QStringLiteral("startpos"), badMove, &failure).isNull());
+        QCOMPARE(failure.kind, ErrorKind::InvalidArgument);
     }
 };
 

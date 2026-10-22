@@ -146,7 +146,7 @@ int CliCommands::convertKifu(const QStringList& args)
     }
 
     const KifuConversionService::Result result = KifuConversionService::convert(request);
-    if (!result.ok) return CliOutput::fail(ErrorKind::InvalidContent, result.error);
+    if (!result.ok) return CliOutput::fail(result.failure);
 
     QJsonObject obj;
     obj[QStringLiteral("ok")] = true;
@@ -199,8 +199,9 @@ int CliCommands::renderBoard(const QStringList& args)
     ApplicationFonts::initialize(AppSettings::uiFontFamily(), translations.language());
 
     QSize size;
-    if (!BoardImageRenderer::renderToFile(params->value(QStringLiteral("sfen")).toString(), outputPath, options, &error, &size)) {
-        return CliOutput::fail(ErrorKind::RenderError, error);
+    Failure failure;
+    if (!BoardImageRenderer::renderToFile(params->value(QStringLiteral("sfen")).toString(), outputPath, options, &failure, &size)) {
+        return CliOutput::fail(failure);
     }
     QJsonObject obj;
     obj[QStringLiteral("ok")] = true;

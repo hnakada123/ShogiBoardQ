@@ -14,6 +14,8 @@
 #include "layoutboundarywidget.h"
 #include "docksettings.h"
 #include "settingscommon.h"
+#include "settingskeys.h"
+#include <QSettings>
 
 class TestDockLayout : public QObject
 {
@@ -106,6 +108,7 @@ private slots:
 
     // レイアウト保存・復元テスト
     void restoreLayout_existingName_succeeds();
+    void layoutNames_withSeparatorsRoundTrip();
     void restoreStartupLayoutIfSet_restoresLayout();
     void restoreStartupLayoutIfSet_noLayoutSet_noEffect();
     void resetToDefault_restoresInitialState();
@@ -327,6 +330,29 @@ void TestDockLayout::setDocksLocked_onlyAffectsRegistryDocks()
 }
 
 // --- レイアウト保存・復元テスト ---
+
+/// 「/」「\」「%」を含むレイアウト名も一覧に出て、読み込み・削除できる（以前の版の「%」を含むキーも読める）
+void TestDockLayout::layoutNames_withSeparatorsRoundTrip()
+{
+    const QStringList names = {QStringLiteral("対局/検討"), QStringLiteral("a\\b"), QStringLiteral("100%")};
+    for (qsizetype i = 0; i < names.size(); ++i)
+        DockSettings::saveDockLayout(names.at(i), QByteArray::number(i));
+    const QStringList saved = DockSettings::savedDockLayoutNames();
+    for (qsizetype i = 0; i < names.size(); ++i) {
+        QVERIFY2(saved.contains(names.at(i)), qPrintable(saved.join(QLatin1Char(','))));
+        QCOMPARE(DockSettings::loadDockLayout(names.at(i)), QByteArray::number(i));
+        DockSettings::deleteDockLayout(names.at(i));
+        QVERIFY(!DockSettings::savedDockLayoutNames().contains(names.at(i)));
+    }
+
+    // 以前の版が「%」を含む名前をそのままのキーで保存していたもの
+    QSettings& settings = SettingsCommon::openSettings();
+    settings.setValue(QString::fromLatin1(SettingsKeys::kCustomDockLayoutsGroup) + QStringLiteral("/50%"), QByteArray("old"));
+    QVERIFY(DockSettings::savedDockLayoutNames().contains(QStringLiteral("50%")));
+    QCOMPARE(DockSettings::loadDockLayout(QStringLiteral("50%")), QByteArray("old"));
+    DockSettings::deleteDockLayout(QStringLiteral("50%"));
+    QVERIFY(!DockSettings::savedDockLayoutNames().contains(QStringLiteral("50%")));
+}
 
 void TestDockLayout::restoreLayout_existingName_succeeds()
 {

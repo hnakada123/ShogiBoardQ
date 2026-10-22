@@ -103,10 +103,13 @@ bool CsaEngineController::isReady() const
     return m_engine && m_engine->isRunning() && !m_engine->isInitializing();
 }
 
-void CsaEngineController::sendGameOver(bool win)
+void CsaEngineController::sendGameOver(GameOverResult result)
 {
     if (!m_engine) return;
-    m_engine->sendGameOverCommand(win ? GameOverResult::Win : GameOverResult::Lose);
+    // 終局後の bestmove で着手させない（取り消した探索の結果は届かない）。先読み中なら stop で止める
+    m_engine->cancelCurrentOperation();
+    m_engine->stop();
+    m_engine->sendGameOverCommand(result);
     // 枠を空けて quit する。次の対局は起動し直す
     cleanup();
 }

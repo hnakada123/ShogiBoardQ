@@ -10,11 +10,9 @@
 #include "shogiview.h"
 #include "shogiviewhighlighting.h"
 #include "analysissettings.h"
-#include "dialogutils.h"
 #include "appsettings.h"
 #include "dialogfontscale.h"
 
-#include <QCloseEvent>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QPushButton>
@@ -34,10 +32,8 @@ PvBoardDialog::PvBoardDialog(const QString& baseSfen,
     setWindowTitle(tr("読み筋表示"));
     setMinimumSize(kMinimumSize);
 
-    // 前回保存されたウィンドウサイズを読み込む
-    DialogUtils::restoreDialogSize(this, AnalysisSettings::pvBoardDialogSize());
-
     buildUi();
+    // ウィンドウは開くたびに盤に合わせる（fitToBoard）ので、ウィンドウの大きさは保存しない
     DialogFontScale::install(this, AppSettings::pvBoardDialogFontSize);
 
     // 読み筋の各手数の局面を盤に渡す（0 が開始局面）。表示する手数はビューアの番号だけで持つ
@@ -148,8 +144,3 @@ void PvBoardDialog::updatePlyDisplay()
     m_viewer->setPositionText(plyText);
 }
 
-void PvBoardDialog::closeEvent(QCloseEvent* event)
-{
-    DialogUtils::saveDialogSize(this, AnalysisSettings::pvBoardDialogSize);
-    QDialog::closeEvent(event);
-}

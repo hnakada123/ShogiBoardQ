@@ -7,7 +7,6 @@
 #include "shogiboard.h"
 #include "shogiview.h"
 #include "gamesettings.h"
-#include "dialogutils.h"
 #include "appsettings.h"
 #include "dialogfontscale.h"
 #include "sfenutils.h"
@@ -18,7 +17,6 @@
 #include <QHBoxLayout>
 #include <QPushButton>
 #include <QLabel>
-#include <QCloseEvent>
 #include <QTimer>
 #include <QMenu>
 #include <QFile>
@@ -37,10 +35,8 @@ SfenCollectionDialog::SfenCollectionDialog(QWidget* parent)
     setWindowTitle(tr("局面集ビューア"));
     setMinimumSize(kMinimumSize);
 
-    // 前回保存されたウィンドウサイズを読み込む
-    DialogUtils::restoreDialogSize(this, GameSettings::sfenCollectionDialogSize());
-
     buildUi();
+    // ウィンドウは開くたびに盤（保存したマスの大きさ）に合わせるので、ウィンドウの大きさは保存しない
     DialogFontScale::install(this, AppSettings::sfenCollectionDialogFontSize);
 
     // 最近使ったファイルリストを読み込み
@@ -145,12 +141,12 @@ void SfenCollectionDialog::onSelectClicked()
     if (!sfen.isEmpty()) emit positionSelected(sfen);
 }
 
-void SfenCollectionDialog::closeEvent(QCloseEvent* event)
+void SfenCollectionDialog::done(int result)
 {
-    DialogUtils::saveDialogSize(this, GameSettings::sfenCollectionDialogSize);
+    // 閉じるボタン・Esc・ウィンドウの×のどれでも通る
     GameSettings::sfenCollectionRecentFiles.set(m_recentFiles.files());
     GameSettings::sfenCollectionSquareSize.set(m_viewer->view()->squareSize());
-    QDialog::closeEvent(event);
+    QDialog::done(result);
 }
 
 // ============================================================

@@ -4,6 +4,7 @@
 /// @file boardimagerenderer.h
 /// @brief SFEN から盤面画像を描画する（自動化・CLI 用。QApplication が必要）
 
+#include "errorkinds.h"
 #include <QImage>
 #include <QSize>
 #include <QString>
@@ -25,12 +26,12 @@ public:
         QString whiteName;        ///< 後手名
     };
 
-    /// 描画に失敗すると null 画像を返し、error に理由を入れる
-    static QImage render(const QString& sfen, const Options& options, QString* error = nullptr);
+    /// 描画に失敗すると null 画像を返し、failure に理由を入れる（局面・指し手・大きさの誤りは invalid_argument）
+    static QImage render(const QString& sfen, const Options& options, Failure* failure = nullptr);
 
     /// 画像ファイルに保存する。形式は拡張子から決まる（png/jpg/bmp/webp など）
     static bool renderToFile(const QString& sfen, const QString& outputPath, const Options& options,
-                             QString* error = nullptr, QSize* outSize = nullptr);
+                             Failure* failure = nullptr, QSize* outSize = nullptr);
 };
 
 #endif // BOARDIMAGERENDERER_H

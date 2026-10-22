@@ -8,6 +8,7 @@
 #include "kifubranchtreebuilder.h"
 #include "kifuexport.h"
 #include "kifuloadparser.h"
+#include "sfenvalidationservice.h"
 
 #include <QFileInfo>
 
@@ -15,11 +16,11 @@ KifuConversionService::Result KifuConversionService::convert(const Request& requ
 {
     Result result;
     if (request.inputPath.isEmpty() == request.text.isEmpty()) {
-        result.error = QStringLiteral("Specify exactly one of input path or text");
+        result.failure = {ErrorKind::InvalidArgument, QStringLiteral("Specify exactly one of input path or text")};
         return result;
     }
     if (request.outputFormat == KifuFormat::Bod) {
-        result.error = QStringLiteral("Output format must be a kifu format or sfen");
+        result.failure = {ErrorKind::InvalidArgument, QStringLiteral("Output format must be a kifu format or sfen")};
         return result;
     }
 
@@ -30,7 +31,7 @@ KifuConversionService::Result KifuConversionService::convert(const Request& requ
                                      : KifuLoadParser::parseText(request.text);
     } else {
         if (!QFileInfo::exists(request.inputPath)) {
-            result.error = QStringLiteral("Input file does not exist: %1").arg(request.inputPath);
+            result.failure = {ErrorKind::NotFound, QStringLiteral("Input file does not exist: %1").arg(request.inputPath)};
             return result;
         }
         loaded = KifuLoadParser::parseFile(request.inputPath, request.inputFormat);
@@ -38,7 +39,8 @@ KifuConversionService::Result KifuConversionService::convert(const Request& requ
     result.inputFormat = loaded.format;
     if (!loaded.warning.trimmed().isEmpty()) result.warnings.append(loaded.warning.trimmed());
     if (!loaded.success) {
-        result.error = loaded.error.isEmpty() ? QStringLiteral("Failed to parse the kifu") : loaded.error;
+        result.failure = {ErrorKind::InvalidContent,
+                          loaded.error.isEmpty() ? QStringLiteral("Failed to parse the kifu") : loaded.error};
         return result;
     }
     if (!loaded.positionOnly.isEmpty()) {
@@ -51,11 +53,18 @@ KifuConversionService::Result KifuConversionService::convert(const Request& requ
     // 一時的な分岐ツリーを組み立てて、GUI と同じ書き出しの表で出力する
     KifuBranchTree tree;
     if (!KifuBranchTreeBuilder::buildFromKifParseResult(&tree, loaded.record, loaded.initialSfen)) {
-        result.error = QStringLiteral("Invalid variation parent or starting ply");
+        result.failure = {ErrorKind::InvalidContent, QStringLiteral("Invalid variation parent or starting ply")};
         return result;
     }
 
     result.initialSfen = tree.root() ? tree.root()->sfen() : loaded.initialSfen;
+    // 開始局面は render-board と同じく、盤と持駒として成り立つかを確かめる（駒数の上限・玉の重複。
+    // 表記の説明の図のような、手番でない側に王手がかかっている局面は受け付ける）
+    if (const SfenValidation start = SfenValidationService::validate(result.initialSfen); start.normalizedSfen.isEmpty()) {
+        result.failure = {ErrorKind::InvalidContent,
+                          QStringLiteral("Invalid start position: %1").arg(start.errors.join(QStringLiteral("; ")))};
+        return result;
+    }
     result.sfens = tree.sfenListForLine(0);
     result.mainline = tree.exportLine(0);
     result.usiMoves = tree.isEmpty() ? QStringList() : tree.mainRecordLine().usiMoves();

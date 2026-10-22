@@ -13,6 +13,8 @@
 #include "csagamecoordinator.h"
 #include "csagamesession.h"
 #include "enginelifecyclemanager.h"
+#include "engineprocessmanager.h"
+#include "usi.h"
 #include "humanturnpolicy.h"
 #include "csagameprogress.h"
 #include "appstate.h"
@@ -212,6 +214,22 @@ private slots:
         h.server.send("#WIN");
         QTRY_COMPARE(h.coordinator.gameState(), CsaGameCoordinator::GameState::GameOver);
         QVERIFY(!h.engines.engineInSlot(1));
+    }
+
+    /// 引き分けの終局もローカル対局と同じく、探索を止めてから gameover draw を送る
+    void drawSendsGameOverDrawToEngine()
+    {
+        Harness h;
+        QVERIFY(h.start("-", {}, true));
+        Usi* engine = h.engines.engineInSlot(1);
+        QVERIFY(engine);
+        QSignalSpy sent(engine->process(), &EngineProcessManager::commandSent);
+        h.server.send("#SENNICHITE");
+        h.server.send("#DRAW");
+        QTRY_COMPARE(h.coordinator.gameState(), CsaGameCoordinator::GameState::GameOver);
+        QStringList commands;
+        for (const QList<QVariant>& args : std::as_const(sent)) commands << args.at(0).toString();
+        QVERIFY2(commands.contains(QStringLiteral("gameover draw")), qPrintable(commands.join(QLatin1Char(','))));
     }
 
     void rejectedUnconfirmedMoveLeavesOriginalPosition()

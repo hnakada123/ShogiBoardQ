@@ -120,11 +120,6 @@ inline const Setting<int> tsumeSearchTimeLimitSec{"TsumeSearch/timeLimitSec", 20
 inline const Setting<int> tsumeSearchFontSize{"TsumeSearch/fontSize", 0};
 inline const Setting<QSize> tsumeSearchDialogSize{"TsumeSearch/dialogSize", QSize(560, 360)};
 
-// --- 読み筋盤面 ---
-
-/// 読み筋表示ウィンドウのサイズ（デフォルト: 620x720）
-inline const Setting<QSize> pvBoardDialogSize{"SizeRelated/pvBoardDialogSize", QSize(620, 720)};
-
 } // namespace AnalysisSettings
 
 #endif // ANALYSISSETTINGS_H

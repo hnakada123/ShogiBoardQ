@@ -61,9 +61,9 @@ private:
     /// 最近使ったファイルの一覧が変わったとき、メニューを作り直して保存する
     void onRecentFilesChanged();
 
-protected:
-    /// ウィンドウを閉じる際にサイズ・履歴・盤の大きさを保存
-    void closeEvent(QCloseEvent* event) override;
+public slots:
+    /// 閉じるときに履歴・盤の大きさを保存する（ウィンドウの大きさは DialogFontScale が保存する）
+    void done(int result) override;
 
 private:
     BoardViewerWidget* m_viewer = nullptr;  ///< 盤・拡大縮小・回転・局面送り

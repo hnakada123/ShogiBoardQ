@@ -15,21 +15,32 @@
 #include <QImageWriter>
 
 #include <memory>
+#include <optional>
 
-QImage BoardImageRenderer::render(const QString& sfen, const Options& options, QString* error)
+QImage BoardImageRenderer::render(const QString& sfen, const Options& options, Failure* failure)
 {
+    const auto fail = [failure](ErrorKind kind, const QString& message) {
+        if (failure) *failure = {kind, message};
+        return QImage();
+    };
     if (!qobject_cast<QApplication*>(QCoreApplication::instance())) {
-        if (error) *error = QStringLiteral("A QApplication (offscreen is fine) is required to render a board");
-        return {};
+        return fail(ErrorKind::InternalError, QStringLiteral("A QApplication (offscreen is fine) is required to render a board"));
     }
     const SfenValidation validation = SfenValidationService::validate(sfen);
     if (validation.normalizedSfen.isEmpty()) {
-        if (error) *error = validation.errors.join(QStringLiteral("; "));
-        return {};
+        return fail(ErrorKind::InvalidArgument,
+                    QStringLiteral("Invalid SFEN: %1").arg(validation.errors.join(QStringLiteral("; "))));
     }
     if (options.squareSize < 20 || options.squareSize > 150) {
-        if (error) *error = QStringLiteral("square_size must be between 20 and 150");
-        return {};
+        return fail(ErrorKind::InvalidArgument, QStringLiteral("square_size must be between 20 and 150"));
+    }
+    std::optional<UsiMove> lastMove;
+    if (!options.lastMoveUsi.isEmpty()) {
+        lastMove = UsiMove::parse(options.lastMoveUsi);
+        if (!lastMove) {
+            return fail(ErrorKind::InvalidArgument,
+                        QStringLiteral("last_move is not a USI move: %1").arg(options.lastMoveUsi));
+        }
     }
 
     ShogiBoard board;
@@ -44,23 +55,23 @@ QImage BoardImageRenderer::render(const QString& sfen, const Options& options, Q
     view.applyBoardAndRender(&board);
     view.resize(view.sizeHint());
 
-    if (const auto move = UsiMove::parse(options.lastMoveUsi)) {
-        view.highlighting()->setHighlights(BoardHighlightLayer::LastMoveTo, {QPoint(move->to.file, move->to.rank)});
+    if (lastMove) {
+        view.highlighting()->setHighlights(BoardHighlightLayer::LastMoveTo, {QPoint(lastMove->to.file, lastMove->to.rank)});
         // 駒打ちは移動元を強調しない
-        if (!move->isDrop())
+        if (!lastMove->isDrop())
             view.highlighting()->setHighlights(BoardHighlightLayer::LastMoveFrom,
-                                               {QPoint(move->from.file, move->from.rank)});
+                                               {QPoint(lastMove->from.file, lastMove->from.rank)});
     }
 
     QImage image = view.toImage();
-    if (image.isNull() && error) *error = QStringLiteral("Rendering produced an empty image");
+    if (image.isNull()) return fail(ErrorKind::RenderError, QStringLiteral("Rendering produced an empty image"));
     return image;
 }
 
 bool BoardImageRenderer::renderToFile(const QString& sfen, const QString& outputPath, const Options& options,
-                                      QString* error, QSize* outSize)
+                                      Failure* failure, QSize* outSize)
 {
-    const QImage image = render(sfen, options, error);
+    const QImage image = render(sfen, options, failure);
     if (image.isNull()) return false;
 
     QString suffix = QFileInfo(outputPath).suffix().toLower();
@@ -69,7 +80,7 @@ bool BoardImageRenderer::renderToFile(const QString& sfen, const QString& output
     QImageWriter writer(outputPath, suffix.toLatin1());
     if (suffix == QLatin1String("jpeg") || suffix == QLatin1String("webp")) writer.setQuality(95);
     if (!writer.write(image)) {
-        if (error) *error = QStringLiteral("Failed to write %1: %2").arg(outputPath, writer.errorString());
+        if (failure) *failure = {ErrorKind::FileError, QStringLiteral("Failed to write %1: %2").arg(outputPath, writer.errorString())};
         return false;
     }
     if (outSize) *outSize = image.size();
