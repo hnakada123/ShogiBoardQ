@@ -80,6 +80,22 @@ bool JosekiBookSession::removeMove(const QString &sfen, const QString &usiMove)
     return true;
 }
 
+bool JosekiBookSession::moveMoveTo(const QString &sfen, const QString &usiMove, int index)
+{
+    if (!m_book.moveTo(sfen, usiMove, index)) return false;
+    setModified(true);
+    emit contentChanged();
+    return true;
+}
+
+bool JosekiBookSession::sortMoves(const QString &sfen, JosekiBook::SortKey key)
+{
+    if (!m_book.sortMoves(sfen, key)) return false;
+    setModified(true);
+    emit contentChanged();
+    return true;
+}
+
 JosekiBookSession::ImportStats JosekiBookSession::importMoves(const QList<JosekiImport::Move> &moves)
 {
     ImportStats stats;

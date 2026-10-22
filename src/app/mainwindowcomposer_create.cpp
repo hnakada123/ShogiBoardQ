@@ -328,6 +328,8 @@ void MainWindowComposer::createPresentersAndDocks()
     jd.navState = m_c.navState;
     jd.isHumanTurnNow = std::bind(&MainWindowComposer::isHumanTurnNow, this);
     jd.boardMoves = m_c.boardMoves;
+    jd.branchEdit = m_c.branchEdit;
+    jd.navController = m_c.kifuNavController;
     m_c.joseki = new JosekiWindowController(jd, &m_window);
     m_c.joseki->josekiWindow()->setBoardArrowsChecked(m_c.arrows->josekiArrowsVisible());
 

@@ -106,6 +106,21 @@ inline const Setting<bool> josekiBookMergePreferIncoming{"JosekiBookMerge/prefer
 /// 定跡ファイルを足す: 同じ指し手の出現頻度を足し合わせる（デフォルト: true）
 inline const Setting<bool> josekiBookMergeSumFrequency{"JosekiBookMerge/sumFrequency", true};
 
+/// 定跡を棋譜に展開するダイアログのフォントサイズ（0 ならダイアログの元の大きさから始める）
+inline const Setting<int> josekiExpandDialogFontSize{"JosekiWindow/expandDialogFontSize", 0};
+
+/// 定跡を棋譜に展開するダイアログのウィンドウサイズ（デフォルト: 460x300）
+inline const Setting<QSize> josekiExpandDialogSize{"SizeRelated/josekiExpandDialogSize", QSize(460, 300)};
+
+/// 定跡を棋譜に展開する: 表示中の局面から何手先まで（デフォルト: 8）
+inline const Setting<int> josekiExpandMaxPlies{"JosekiExpand/maxPlies", 8};
+
+/// 定跡を棋譜に展開する: 1局面から展開する定跡手の数（デフォルト: 3）
+inline const Setting<int> josekiExpandMovesPerPosition{"JosekiExpand/movesPerPosition", 3};
+
+/// 定跡を棋譜に展開する: 比率の下限（%。デフォルト: 0）
+inline const Setting<double> josekiExpandMinRatio{"JosekiExpand/minRatioPercent", 0.0};
+
 /// 盤に定跡手の矢印を出す（「表示」メニュー・定跡ウィンドウ。デフォルト: false）
 inline const Setting<bool> boardArrowsVisible{"JosekiWindow/boardArrowsVisible", false};
 

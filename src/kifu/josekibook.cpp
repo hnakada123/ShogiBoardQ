@@ -298,6 +298,41 @@ bool JosekiBook::updateMove(const QString &sfen, const JosekiMove &move)
     return true;
 }
 
+bool JosekiBook::moveTo(const QString &sfen, const QString &usiMove, int index)
+{
+    const auto it = m_positions.find(keyOf(sfen));
+    const std::optional<quint16> code = findMoveCode(usiMove);
+    if (it == m_positions.end() || !code) return false;
+    Records &records = *it;
+    const Range range = resolve(records, sfen);
+    const qsizetype from = indexOf(records, range, *code);
+    if (from < 0) return false;
+    const qsizetype to = range.header + 1 + qBound(qsizetype(0), qsizetype(index), range.end - range.header - 2);
+    if (from == to) return false;
+    records.move(from, to);
+    return true;
+}
+
+bool JosekiBook::sortMoves(const QString &sfen, SortKey key)
+{
+    const auto it = m_positions.find(keyOf(sfen));
+    if (it == m_positions.end()) return false;
+    Records &records = *it;
+    const Range range = resolve(records, sfen);
+    const auto first = records.begin() + range.header + 1;
+    const auto last = records.begin() + range.end;
+    const auto higher = [key](const PackedMove &a, const PackedMove &b) {
+        const auto rank = [key](const PackedMove &m) {
+            return key == SortKey::Frequency ? std::pair<qint32, qint32>{m.frequency, m.value}
+                                             : std::pair<qint32, qint32>{m.value, m.frequency};
+        };
+        return rank(a) > rank(b);
+    };
+    if (std::is_sorted(first, last, higher)) return false;
+    std::stable_sort(first, last, higher);
+    return true;
+}
+
 bool JosekiBook::removeMove(const QString &sfen, const QString &usiMove)
 {
     const auto it = m_positions.find(keyOf(sfen));

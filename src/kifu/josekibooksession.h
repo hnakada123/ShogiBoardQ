@@ -93,6 +93,10 @@ public:
     bool updateMove(const QString &sfen, const JosekiMove &move);
     /// 定跡手を消す。無ければ false
     bool removeMove(const QString &sfen, const QString &usiMove);
+    /// 定跡手を index 番目へ移す（JosekiBook::moveTo）。並びが変わったら true
+    bool moveMoveTo(const QString &sfen, const QString &usiMove, int index);
+    /// 局面の定跡手を key の高い順に並べる（JosekiBook::sortMoves）。並びが変わったら true
+    bool sortMoves(const QString &sfen, JosekiBook::SortKey key);
     /**
      * @brief エンジンの読み筋の最初の手を、sfen の局面の定跡手として登録する
      * @param pv 読み筋（USI。2手目があれば予想応手にする）

@@ -72,6 +72,15 @@ public:
     /// 定跡手を消す（最後の手なら局面も消す）。無ければ false
     bool removeMove(const QString &sfen, const QString &usiMove);
 
+    /// 定跡手を並べ替えるときの順
+    enum class SortKey { Frequency, Value };
+    /// 局面の定跡手 usiMove を index 番目（0 始まり。範囲外は端）へ移す。並びが変わったら true。
+    /// 定跡手の並びは定跡ファイルに書く順で、表・盤の矢印の番号・対局の「表の先頭の手」もこの順
+    bool moveTo(const QString &sfen, const QString &usiMove, int index);
+    /// 局面の定跡手を key の高い順に並べる（同じなら出現頻度は評価値の、評価値は出現頻度の高い順、
+    /// それも同じなら元の順）。並びが変わったら true
+    bool sortMoves(const QString &sfen, SortKey key);
+
     /// 棋譜からのマージで登録する（あれば出現頻度を count 増やし、無ければ出現頻度 count で足す）。登録済みの印を付ける。
     /// comment はコメントの無い手にだけ入れる。新しく足したら true
     bool registerMergeMove(const QString &sfen, const QString &usiMove, int count = 1, const QString &comment = QString());

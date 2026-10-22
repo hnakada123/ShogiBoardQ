@@ -11,19 +11,17 @@
 #include <functional>
 
 #include "fontsizehelper.h"
+#include "josekilines.h"
+#include "josekitableview.h"
 
-class QAction;
 class QCheckBox;
 class QCloseEvent;
 class QDockWidget;
 class QDragEnterEvent;
 class QDropEvent;
 class QLabel;
-class QMenu;
-class QModelIndex;
 class QPushButton;
 class QShowEvent;
-class QTableView;
 class QToolButton;
 class JosekiBookSession;
 class JosekiEditController;
@@ -78,6 +76,8 @@ public:
     bool canRegisterMoves() const;
     /// 「盤の手を登録」がオンか
     bool isRecordingBoardMoves() const;
+    /// 表示中の手順が定跡を外れた手を出す（ply > 0 ならその手数の手 moveText、0 ならすべて定跡、負なら出さない）
+    void setBookDeviation(int ply, const QString &moveText);
 
 public slots:
     /// 「盤に矢印」のチェック（「表示」メニューの「盤に定跡手を表示」と同じ状態にする）
@@ -93,6 +93,10 @@ signals:
     void boardArrowsToggled(bool checked);
     /// 「■ 停止」「▶ 再開」で定跡の表示を止めた・再開した
     void displayEnabledChanged(bool enabled);
+    /// 「棋譜に展開...」で、表示中の局面から定跡を棋譜の変化に展開する条件を選んだ
+    void expandRequested(const JosekiLines::ExpandOptions &options);
+    /// 定跡を外れた手（の表示）を押した（その手数へ移る）
+    void deviationPlyRequested(int ply);
 
 protected:
     void closeEvent(QCloseEvent *event) override;
@@ -116,19 +120,16 @@ private slots:
 
     // --- 定跡手の操作 ---
     void onAddMoveButtonClicked();
-    void onTableClicked(const QModelIndex &index);
-    void onTableDoubleClicked(const QModelIndex &index);
-    void onTableContextMenu(const QPoint &pos);
-    void onContextMenuPlay();
-    void onContextMenuEdit();
-    void onContextMenuDelete();
-    void onContextMenuCopyMove();
+    /// 表のボタン・ダブルクリック・右クリックのメニューの操作
+    void onRowActionRequested(JosekiTableView::RowAction action, int row);
 
     // --- 表示 ---
     void onSfenDetailToggled(bool checked);
     void onAutoLoadCheckBoxChanged(Qt::CheckState state);
     void onStopButtonClicked();
     void onRecordBoardMovesToggled(bool checked);
+    void onExpandButtonClicked();
+    void onDeviationClicked();
     void onRestoreStatusDisplay();
     void showTransientStatus(const QString &text);
     void openDroppedPaths();
@@ -154,6 +155,10 @@ private:
     void editMoveAt(int row);
     void deleteMoveAt(int row);
     void playMoveAt(int row);
+    /// 表の行の操作を今できるか（右クリックのメニューの項目を押せるか）
+    bool isRowActionAvailable(JosekiTableView::RowAction action, int row);
+    /// 先頭へ・上へ・下へ移動と、出現頻度・評価値の順に並べる
+    void reorderMoveAt(JosekiTableView::RowAction action, int row);
     void refreshHumanCanPlay();
 
 
@@ -186,23 +191,22 @@ private:
     QToolButton  *m_mergeButton = nullptr;
     /// 盤で指した手を登録する（保存しない。起動するとオフ）
     QCheckBox    *m_recordBoardMovesCheckBox = nullptr;
+    QPushButton  *m_expandButton = nullptr;
+    /// 表示中の手順が定跡を外れた手（押すとその手へ移る）
+    QPushButton  *m_deviationButton = nullptr;
+    int           m_deviationPly = -1;
 
     // === 状態表示 ===
     QLabel       *m_currentSfenLabel = nullptr;
     QLabel       *m_sfenLineLabel = nullptr;
     QLabel       *m_statusLabel = nullptr;
     QLabel       *m_positionSummaryLabel = nullptr;
-    QLabel       *m_emptyGuideLabel = nullptr;
     QLabel       *m_noticeLabel = nullptr;
     QPushButton  *m_showSfenDetailBtn = nullptr;
     QWidget      *m_sfenDetailWidget = nullptr;
 
     // === 表とコンテキストメニュー ===
-    QTableView   *m_tableView = nullptr;
-    QMenu        *m_tableContextMenu = nullptr;
-    QAction      *m_actionPlay = nullptr;
-    QAction      *m_actionEdit = nullptr;
-    QAction      *m_actionDelete = nullptr;
+    JosekiTableView *m_tableView = nullptr;
 
     // === View 状態 ===
     QString       m_currentSfen;
