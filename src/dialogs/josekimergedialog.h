@@ -54,10 +54,13 @@ public:
      */
     void setRegisteredMoves(const QSet<JosekiMoveKey> &registeredMoves);
 
-    /// 指し手を定跡に登録する関数（登録して定跡ファイルに保存できたら true）
+    /// 指し手を定跡に登録し始める関数（登録して定跡ファイルに保存し始めたら true）。
+    /// 保存が終わったら、呼び出し側が setRegisteredMoves() と finishRegistration() で知らせる
     using Registrar = std::function<bool(const QList<KifuMergeEntry> &entries)>;
     /// 登録する関数を設定する。空にすると登録できなくなる（定跡ファイルを替えたとき）
     void setRegistrar(Registrar registrar);
+    /// 登録の保存が終わった（このダイアログの「全て登録」なら、登録できたときに件数を知らせる）
+    void finishRegistration(bool registered);
 
 private slots:
     /// 行の「登録」ボタン
@@ -89,7 +92,7 @@ private:
      */
     /// 文字の大きさに合わせて行の高さと列の幅を決め直す
     void fitRowsToFont();
-    /// 指し手を登録する（登録して保存できたら true）
+    /// 指し手を登録し始める（保存し始めたら true）
     bool registerEntries(const QList<KifuMergeEntry> &entries);
     
     /// 指し手の見分け方（局面のキー・USI の指し手。JosekiBook と同じ）
@@ -115,6 +118,8 @@ private:
     QList<KifuMergeEntry> m_entries; ///< 棋譜エントリ
     QSet<JosekiMoveKey> m_registeredMoves; ///< 登録済みの指し手（局面のキーと USI の指し手の組）
     Registrar m_registrar;
+    /// 保存中の「全て登録」の件数（このダイアログが頼んでいなければ 0）
+    int m_pendingRegisterAllCount = 0;
     QButtonGroup *m_registerButtons = nullptr;  ///< 行の「登録」ボタン（id が行）
 };
 

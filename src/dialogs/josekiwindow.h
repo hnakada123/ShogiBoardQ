@@ -82,6 +82,8 @@ private slots:
     void onRecentFilesChanged();
     void onBusyChanged(bool busy);
     void onModifiedChanged(bool modified);
+    /// マージの登録の保存が終わった（マージのダイアログに登録済みの印を配る）
+    void onMergeFinished(bool registered);
     void closeMergeDialogs();
 
     // --- 定跡手の操作 ---
@@ -129,7 +131,7 @@ private:
 
     // --- マージ ---
     void openMergeDialog(const QList<KifuMergeEntry> &entries, const QString &title);
-    /// マージダイアログの「登録」「全て登録」: 登録して定跡ファイルへ1回だけ保存する
+    /// マージダイアログの「登録」「全て登録」: 登録して定跡ファイルへ1回だけ保存し始める（始めたら true）
     bool registerMergeEntries(const QList<KifuMergeEntry> &entries);
 
     // --- データとファイル ---

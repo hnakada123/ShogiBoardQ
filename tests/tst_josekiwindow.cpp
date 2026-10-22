@@ -77,6 +77,7 @@ private slots:
     void testPositionSummaryNamesHandicapOrPly();
     void testHistoryKeepsOnlyLoadedFiles();
     void testClearHistoryStopsAutoLoad();
+    void testAutoLoadAtStartup();
     void testDirtyStatusSurvivesRefresh();
     void testConfirmClose_data();
     void testConfirmClose();
@@ -90,6 +91,7 @@ private slots:
     void testEmptyAndStoppedDisplay();
     void testDialogCancelPersistsSize();
     void testAddKeepsTargetPosition();
+    void testEditAndDeleteKeepTargetPosition();
     void testSameSfenKeepsTableRows();
     void testButtonColumnsActOnRow();
     void testMoveListPlaceholder();
@@ -102,8 +104,12 @@ private:
     void chooseSaveFile();
     void acceptMoveEdit();
     void acceptMoveAfterPositionChange();
+    void editMoveAfterPositionChange();
+    void confirmDeleteAfterPositionChange();
     QMessageBox::ButtonRole m_responseRole = QMessageBox::AcceptRole;
     bool m_messageSeen = false;
+    /// 非同期の保存が終わってから出るメッセージボックスに答える（答えたら止まる）
+    QTimer m_responder;
     QString m_newSavePath;
     QTemporaryDir m_tempDir;
     QString m_originalSettingsPath;
@@ -115,6 +121,8 @@ void TestJosekiWindow::initTestCase()
     // SettingsServiceは settingsFilePath() でキャッシュするため、
     // テスト前に既存設定をバックアップし、テスト後に復元する
     m_originalSettingsPath = SettingsCommon::settingsFilePath();
+    m_responder.setInterval(10);
+    connect(&m_responder, &QTimer::timeout, this, &TestJosekiWindow::respondToMessageBox);
     // テスト用に初期値をクリア
     QSettings s(m_originalSettingsPath, QSettings::IniFormat);
     s.remove("JosekiWindow");
@@ -430,6 +438,7 @@ void TestJosekiWindow::respondToMessageBox()
     auto *box = qobject_cast<QMessageBox*>(QApplication::activeModalWidget());
     if (!box) return;
     m_messageSeen = true;
+    m_responder.stop();
     for (QAbstractButton *button : box->buttons()) {
         if (box->buttonRole(button) != m_responseRole) continue;
         if (!m_newSavePath.isEmpty()) QTimer::singleShot(0, this, &TestJosekiWindow::chooseSaveFile);
@@ -530,15 +539,19 @@ void TestJosekiWindow::testMergeSaveFailureAndRetry()
     auto *table = merge->findChild<QTableWidget*>();
     m_messageSeen = false;
     m_responseRole = QMessageBox::AcceptRole;
-    QTimer::singleShot(0, this, &TestJosekiWindow::respondToMessageBox);
+    m_responder.start();
     qobject_cast<QPushButton*>(table->cellWidget(0, 2))->click();
-    QVERIFY(m_messageSeen);
+    // 保存はワーカースレッドで行い、失敗は終わってから知らせる
+    QTRY_VERIFY(m_messageSeen);
+    QTRY_VERIFY(!window.isIoBusy());
     QVERIFY(table->item(0, 3)->text().isEmpty());
     QVERIFY(table->cellWidget(0, 2)->isEnabled());
     QVERIFY(window.m_session->isModified());
     QCOMPARE(window.m_model->moves().first().frequency, 1);
     QVERIFY(QDir().mkpath(directory));
     qobject_cast<QPushButton*>(table->cellWidget(0, 2))->click();
+    QVERIFY(window.isIoBusy());
+    QTRY_VERIFY(!window.isIoBusy());
     QVERIFY(!table->cellWidget(0, 2)->isEnabled());
     QVERIFY(!window.m_session->isModified());
     const auto saved = JosekiBookFile::load(path);
@@ -555,10 +568,16 @@ void TestJosekiWindow::testMergeRegisterAllSkipsRegistered()
     auto *merge = window.findChild<JosekiMergeDialog*>();
     auto *table = merge->findChild<QTableWidget*>();
     qobject_cast<QPushButton*>(table->cellWidget(0, 2))->click();
+    QTRY_VERIFY(!window.isIoBusy());
     QVERIFY(!table->cellWidget(2, 2)->isEnabled());
-    QTimer::singleShot(0, this, &TestJosekiWindow::respondToMessageBox);
+    m_messageSeen = false;
+    m_responseRole = QMessageBox::AcceptRole;
+    m_responder.start();
     QVERIFY(QMetaObject::invokeMethod(merge, "onRegisterAllButtonClicked", Qt::DirectConnection));
+    // 保存中はダイアログを使えないので、続けて押しても登録しない
     QVERIFY(QMetaObject::invokeMethod(merge, "onRegisterAllButtonClicked", Qt::DirectConnection));
+    QTRY_VERIFY(m_messageSeen);
+    QTRY_VERIFY(!window.isIoBusy());
     QVERIFY(!table->cellWidget(1, 2)->isEnabled());
     QCOMPARE(window.m_model->moves().size(), 2);
     QCOMPARE(window.m_model->moves().first().frequency, 2);
@@ -582,15 +601,19 @@ void TestJosekiWindow::testMergeRegisterAllSavesAtOnce()
 
     m_messageSeen = false;
     m_responseRole = QMessageBox::AcceptRole;
-    QTimer::singleShot(0, this, &TestJosekiWindow::respondToMessageBox);
+    m_responder.start();
     QVERIFY(QMetaObject::invokeMethod(merge, "onRegisterAllButtonClicked", Qt::DirectConnection));
-    QVERIFY(m_messageSeen);
+    QTRY_VERIFY(m_messageSeen);
+    QTRY_VERIFY(!window.isIoBusy());
     QVERIFY(table->cellWidget(0, 2)->isEnabled());
     QVERIFY(table->cellWidget(1, 2)->isEnabled());
 
     QVERIFY(QDir().mkpath(directory));
-    QTimer::singleShot(0, this, &TestJosekiWindow::respondToMessageBox);
+    m_messageSeen = false;
+    m_responder.start();
     QVERIFY(QMetaObject::invokeMethod(merge, "onRegisterAllButtonClicked", Qt::DirectConnection));
+    QTRY_VERIFY(m_messageSeen);
+    QTRY_VERIFY(!window.isIoBusy());
     QVERIFY(!table->cellWidget(0, 2)->isEnabled());
     QVERIFY(!table->cellWidget(1, 2)->isEnabled());
     const auto saved = JosekiBookFile::load(path);
@@ -662,6 +685,54 @@ void TestJosekiWindow::testHistoryKeepsOnlyLoadedFiles()
 }
 
 /// 「履歴をクリア」の後は、開き直すか保存するまで次回の自動読込の対象にしない
+/// 「自動読込」: 起動時の設定の読み込みで前回のファイルを消さず、初めて表示したときに読み込む。
+/// 表示しないまま閉じても前回のファイルを覚えている。履歴をクリアしたら読み込まない
+void TestJosekiWindow::testAutoLoadAtStartup()
+{
+    const QString book = m_tempDir.filePath(QStringLiteral("auto.db"));
+    JosekiSettings::josekiWindowAutoLoadEnabled.set(false);
+    {
+        JosekiWindow window;
+        QVERIFY(seedWindow(window, book));
+    }
+    QCOMPARE(JosekiSettings::josekiWindowLastFilePath(), book);
+    JosekiSettings::josekiWindowAutoLoadEnabled.set(true);
+    {
+        JosekiWindow window;
+        QCOMPARE(window.m_pendingAutoLoadPath, book);
+        QCOMPARE(JosekiSettings::josekiWindowLastFilePath(), book);
+        window.saveSettings();  // 表示しないまま閉じたとき
+        QCOMPARE(JosekiSettings::josekiWindowLastFilePath(), book);
+    }
+    {
+        JosekiWindow window;
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        QTRY_VERIFY(window.m_session->filePath() == book && !window.isIoBusy());
+        QCOMPARE(window.m_session->movesAt(initialSfen()).size(), 1);
+        QCOMPARE(JosekiSettings::josekiWindowLastFilePath(), book);
+    }
+    {
+        JosekiWindow window;
+        QCOMPARE(window.m_pendingAutoLoadPath, book);
+        window.m_files->clearRecentFiles();
+        QVERIFY(window.m_pendingAutoLoadPath.isEmpty());
+        QVERIFY(JosekiSettings::josekiWindowLastFilePath().isEmpty());
+    }
+    // 表示する前に別のファイルを作ったら、前回のファイルは読み込まない
+    QVERIFY(JosekiBookFile::save(book, JosekiBookFile::load(book).book).success);
+    JosekiSettings::josekiWindowLastFilePath.set(book);
+    JosekiSettings::josekiWindowRecentFiles.set({book});
+    JosekiWindow window;
+    QCOMPARE(window.m_pendingAutoLoadPath, book);
+    window.m_files->newBook();
+    QVERIFY(window.m_pendingAutoLoadPath.isEmpty());
+    window.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&window));
+    QVERIFY(!window.isIoBusy());
+    QVERIFY(window.m_session->filePath().isEmpty());
+}
+
 void TestJosekiWindow::testClearHistoryStopsAutoLoad()
 {
     JosekiWindow window;
@@ -958,6 +1029,45 @@ void TestJosekiWindow::testAddKeepsTargetPosition()
     QCOMPARE(moves.size(), 1);
     QCOMPARE(moves.first().move, QStringLiteral("7g7f"));
     QVERIFY(!window.m_session->hasPosition(window.m_currentSfen));
+}
+
+void TestJosekiWindow::editMoveAfterPositionChange()
+{
+    auto *dialog = qobject_cast<JosekiMoveDialog*>(QApplication::activeModalWidget());
+    QVERIFY(dialog);
+    auto *window = qobject_cast<JosekiWindow*>(dialog->parentWidget());
+    QVERIFY(window);
+    window->setCurrentSfen(SfenReplay::positionAfter(SfenUtils::hirateSfen(), QStringLiteral("2g2f")));
+    JosekiMove edited = dialog->entry();
+    edited.value = 99;
+    dialog->setEntry(edited);
+    dialog->accept();
+}
+
+void TestJosekiWindow::confirmDeleteAfterPositionChange()
+{
+    auto *box = qobject_cast<QMessageBox*>(QApplication::activeModalWidget());
+    QVERIFY(box);
+    auto *window = qobject_cast<JosekiWindow*>(box->parentWidget());
+    QVERIFY(window);
+    window->setCurrentSfen(SfenReplay::positionAfter(SfenUtils::hirateSfen(), QStringLiteral("2g2f")));
+    box->button(QMessageBox::Yes)->click();
+}
+
+/// 編集・削除も、ダイアログを開いている間に局面が進んだら（対局中にエンジンが指すなど）、開いたときの局面の手に行う
+void TestJosekiWindow::testEditAndDeleteKeepTargetPosition()
+{
+    JosekiWindow window;
+    QVERIFY(seedWindow(window, m_tempDir.filePath(QStringLiteral("keep-target.db"))));
+    QTimer::singleShot(0, this, &TestJosekiWindow::editMoveAfterPositionChange);
+    window.editMoveAt(0);
+    QCOMPARE(window.m_session->movesAt(initialSfen()).first().value, 99);
+    QVERIFY(!window.m_session->hasPosition(window.m_currentSfen));
+
+    window.setCurrentSfen(initialSfen());
+    QTimer::singleShot(0, this, &TestJosekiWindow::confirmDeleteAfterPositionChange);
+    window.deleteMoveAt(0);
+    QVERIFY(!window.m_session->hasPosition(initialSfen()));
 }
 
 /// 同じ局面が続けて設定されたときは表を更新しない。人間が指せるかが変わったとき・定跡データを

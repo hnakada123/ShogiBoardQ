@@ -29,8 +29,7 @@ QString JosekiBookSession::positionKey(const QString &sfen)
 
 QString JosekiBookSession::registeredSfen(const QString &sfen) const
 {
-    const JosekiPosition *position = m_book.find(sfen);
-    return position ? position->sfen : QString();
+    return m_book.registeredSfen(sfen);
 }
 
 // ============================================================
@@ -116,16 +115,16 @@ void JosekiBookSession::setModified(bool modified)
     emit modifiedChanged(modified);
 }
 
-void JosekiBookSession::setBusy(bool busy)
+void JosekiBookSession::setActivity(Activity activity)
 {
-    if (m_busy == busy) return;
-    m_busy = busy;
-    emit busyChanged(busy);
+    const bool wasBusy = isBusy();
+    m_activity = activity;
+    if (wasBusy != isBusy()) emit busyChanged(isBusy());
 }
 
 bool JosekiBookSession::save(const QString &filePath, QString *errorMessage)
 {
-    if (m_busy) return false;
+    if (isBusy()) return false;
     const JosekiSaveResult result = JosekiBookFile::save(filePath, m_book);
     if (!result.success) {
         if (errorMessage) *errorMessage = result.errorMessage;
@@ -135,38 +134,36 @@ bool JosekiBookSession::save(const QString &filePath, QString *errorMessage)
     return true;
 }
 
-bool JosekiBookSession::registerMergeMoves(const QList<KifuMergeEntry> &entries, QString *errorMessage)
+bool JosekiBookSession::startRegisterMergeMoves(const QList<KifuMergeEntry> &entries)
 {
-    if (m_busy || m_filePath.isEmpty()) return false;
-    // 保存が成功するまで編集中のデータと登録済みの印を変えない
+    if (isBusy() || m_filePath.isEmpty()) return false;
+    // 保存できるまで編集中のデータと登録済みの印を変えない（写しに登録して保存する）
     JosekiBook updated = m_book;
     for (const KifuMergeEntry &entry : entries) {
         if (!updated.isMergeRegistered(entry.sfen, entry.usiMove)) updated.registerMergeMove(entry.sfen, entry.usiMove);
     }
-    const JosekiSaveResult result = JosekiBookFile::save(m_filePath, updated);
-    if (!result.success) {
-        if (errorMessage) *errorMessage = result.errorMessage;
-        return false;
-    }
-    m_book = std::move(updated);
-    markSaved(m_filePath);
+    m_pendingMerge = updated;
+    m_pendingSaveFilePath = m_filePath;
+    setActivity(Activity::Saving);
+    // ワーカーには値の写しを渡す（保存中は定跡を変えられないので、写しはデータを共有したまま）
+    m_saveWatcher.setFuture(QtConcurrent::run(&JosekiBookFile::save, m_filePath, std::move(updated)));
     return true;
 }
 
 bool JosekiBookSession::startLoad(const QString &filePath)
 {
-    if (m_busy) return false;
+    if (isBusy()) return false;
     m_pendingLoadFilePath = filePath;
-    setBusy(true);
+    setActivity(Activity::Loading);
     m_loadWatcher.setFuture(QtConcurrent::run(&JosekiBookFile::load, filePath));
     return true;
 }
 
 bool JosekiBookSession::startSave(const QString &filePath)
 {
-    if (m_busy) return false;
+    if (isBusy()) return false;
     m_pendingSaveFilePath = filePath;
-    setBusy(true);
+    setActivity(Activity::Saving);
     // スナップショットをコピーしてワーカーに渡す
     m_saveWatcher.setFuture(QtConcurrent::run(&JosekiBookFile::save, filePath, m_book));
     return true;
@@ -176,7 +173,7 @@ void JosekiBookSession::onLoadFinished()
 {
     JosekiLoadResult result = m_loadWatcher.result();
     const QString filePath = std::exchange(m_pendingLoadFilePath, QString());
-    setBusy(false);
+    setActivity(Activity::Idle);
     if (!result.success) {
         emit loadFailed(result.errorMessage);
         return;
@@ -194,11 +191,15 @@ void JosekiBookSession::onSaveFinished()
 {
     const JosekiSaveResult result = m_saveWatcher.result();
     const QString filePath = std::exchange(m_pendingSaveFilePath, QString());
-    setBusy(false);
+    std::optional<JosekiBook> merged = std::exchange(m_pendingMerge, std::nullopt);
+    setActivity(Activity::Idle);
     if (!result.success) {
         emit saveFailed(result.errorMessage);
+        if (merged) emit mergeFinished(false);
         return;
     }
+    if (merged) m_book = std::move(*merged);
     markSaved(filePath);
     emit saved(filePath);
+    if (merged) emit mergeFinished(true);
 }

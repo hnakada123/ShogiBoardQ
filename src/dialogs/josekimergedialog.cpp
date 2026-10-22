@@ -15,6 +15,7 @@
 #include <QHBoxLayout>
 #include <QMessageBox>
 #include <QFileInfo>
+#include <utility>
 
 namespace {
 constexpr QSize kDefaultSize{600, 500};
@@ -70,7 +71,15 @@ void JosekiMergeDialog::setupUi()
     m_autoSaveLabel = new QLabel(tr("※ 登録時に定跡ファイルへ自動保存されます"), this);
     m_autoSaveLabel->setWordWrap(true);
     mainLayout->addWidget(m_autoSaveLabel);
-    
+
+    // やねうら王は既定（BookDepthLimit=16）では深さ16未満の定跡手を使わない
+    QLabel *engineNoteLabel = new QLabel(tr("※ 登録した手は評価値0・深さ0になります。やねうら王に読ませるときは、"
+                                            "エンジン設定で BookDepthLimit を 0 にしてください（既定の16では使われません）"),
+                                         this);
+    engineNoteLabel->setObjectName(QStringLiteral("engineNoteLabel"));
+    engineNoteLabel->setWordWrap(true);
+    mainLayout->addWidget(engineNoteLabel);
+
     // === テーブル ===
     m_tableWidget = new QTableWidget(this);
     m_tableWidget->setItemDelegateForColumn(1, new KifuMoveDelegate(m_tableWidget));
@@ -226,15 +235,20 @@ void JosekiMergeDialog::onRegisterButtonClicked(int row)
     if (row < 0 || row >= static_cast<int>(m_entries.size())) return;
     const KifuMergeEntry &entry = m_entries.at(row);
     if (isRegistered(entry.sfen, entry.usiMove)) return;
-    if (registerEntries({entry})) updateTable();
+    // 保存が終わると setRegisteredMoves() で表を作り直す
+    registerEntries({entry});
 }
 
 bool JosekiMergeDialog::registerEntries(const QList<KifuMergeEntry> &entries)
 {
-    if (!isEnabled() || !m_registrar || entries.isEmpty() || !m_registrar(entries)) return false;
-    for (const KifuMergeEntry &entry : entries)
-        m_registeredMoves.insert(moveKey(entry));
-    return true;
+    return isEnabled() && m_registrar && !entries.isEmpty() && m_registrar(entries);
+}
+
+void JosekiMergeDialog::finishRegistration(bool registered)
+{
+    const int count = std::exchange(m_pendingRegisterAllCount, 0);
+    if (!registered || count == 0) return;
+    QMessageBox::information(this, tr("一括登録完了"), tr("%1件の指し手を定跡に登録しました。").arg(count));
 }
 
 void JosekiMergeDialog::onRegisterAllButtonClicked()
@@ -254,13 +268,8 @@ void JosekiMergeDialog::onRegisterAllButtonClicked()
         pending.append(entry);
     }
     if (pending.isEmpty()) return;
-
-    const bool registered = registerEntries(pending);
-    updateTable();
-    if (!registered) return;
-
-    QMessageBox::information(this, tr("一括登録完了"),
-        tr("%1件の指し手を定跡に登録しました。").arg(pending.size()));
+    // 保存が終わると finishRegistration() で件数を知らせる
+    if (registerEntries(pending)) m_pendingRegisterAllCount = static_cast<int>(pending.size());
 }
 
 void JosekiMergeDialog::fitRowsToFont()

@@ -5,7 +5,7 @@
 
 #include "josekibooksession.h"
 
-#include <QApplication>
+#include <QWidget>
 #include <QDir>
 #include <QFileDialog>
 #include <QFileInfo>
@@ -36,11 +36,7 @@ JosekiFileController::JosekiFileController(const Deps &deps, QObject *parent)
     connect(m_deps.session, &JosekiBookSession::busyChanged, this, &JosekiFileController::onBusyChanged);
 }
 
-JosekiFileController::~JosekiFileController()
-{
-    // 読み書きの途中で閉じたときは待機カーソルを戻す（ワーカーは値の写しで動くので待たない）
-    if (isBusy()) QApplication::restoreOverrideCursor();
-}
+JosekiFileController::~JosekiFileController() = default;
 
 bool JosekiFileController::isBusy() const
 {
@@ -113,7 +109,6 @@ void JosekiFileController::openFile(const QString &filePath)
 {
     if (isBusy()) return;
     emit bookSwitching();
-    emit statusMessage(tr("読み込み中..."));
     m_deps.session->startLoad(filePath);
 }
 
@@ -121,7 +116,6 @@ void JosekiFileController::saveTo(const QString &filePath)
 {
     if (isBusy()) return;
     if (filePath != m_deps.session->filePath()) emit bookSwitching();
-    emit statusMessage(tr("保存中..."));
     m_deps.session->startSave(filePath);
 }
 
@@ -146,8 +140,9 @@ void JosekiFileController::onSaveFailed(const QString &errorMessage)
 
 void JosekiFileController::onBusyChanged(bool busy)
 {
-    if (busy) QApplication::setOverrideCursor(Qt::WaitCursor);
-    else QApplication::restoreOverrideCursor();
+    // 読み書きはワーカースレッドで行い、ほかの操作はできるので、待ちのカーソルは定跡ウィンドウの中だけに出す
+    if (busy) m_deps.parentWidget->setCursor(Qt::BusyCursor);
+    else m_deps.parentWidget->unsetCursor();
 }
 
 // ============================================================

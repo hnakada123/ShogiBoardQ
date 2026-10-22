@@ -196,7 +196,7 @@ void EngineOptionDescriptions::initializeDescriptions()
         "後手番での定跡採用の評価値下限");
 
     s_yaneuraouDescriptions["BookDepthLimit"] = QObject::tr(
-        "定跡として採用する最小探索深さ");
+        "定跡として採用する最小探索深さ（0で深さを問わない）");
 
     s_yaneuraouDescriptions["ConsiderBookMoveCount"] = QObject::tr(
         "定跡選択時の出現頻度考慮");
@@ -205,7 +205,7 @@ void EngineOptionDescriptions::initializeDescriptions()
         "定跡の読み筋出力手数");
 
     s_yaneuraouDescriptions["IgnoreBookPly"] = QObject::tr(
-        "定跡の手数制限無視");
+        "定跡の局面の手数を無視（手数違いの同じ局面にも定跡を使う）");
 
     s_yaneuraouDescriptions["FlippedBook"] = QObject::tr(
         "後手定跡の先手定跡からの反転生成");

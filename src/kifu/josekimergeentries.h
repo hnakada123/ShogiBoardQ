@@ -22,8 +22,9 @@ namespace JosekiMergeEntries {
 QList<KifuMergeEntry> fromLine(const QStringList &sfens, const QStringList &usiMoves,
                                const QStringList &moveTexts, int currentPly);
 
-/// 棋譜ファイルの本譜からマージの候補を作る。読めなければ false（errorMessage が空なら指し手がない）
-bool fromKifFile(const QString &kifFilePath, QList<KifuMergeEntry> &entries, QString *errorMessage);
+/// 棋譜ファイル（KIF・KI2・CSA・JKF・USI・USEN など。形式はファイルから判定する）の本譜からマージの候補を作る。
+/// 読めなければ false（errorMessage が空なら指し手がない）
+bool fromKifuFile(const QString &filePath, QList<KifuMergeEntry> &entries, QString *errorMessage);
 
 } // namespace JosekiMergeEntries
 

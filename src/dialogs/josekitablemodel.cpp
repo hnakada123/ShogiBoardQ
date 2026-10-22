@@ -37,6 +37,8 @@ void JosekiTableModel::setMoves(const QString &sfen, const QList<JosekiMove> &mo
     const int newRows = static_cast<int>(moves.size());
     m_sfen = sfen;
     m_humanCanPlay = humanCanPlay;
+    m_frequencyTotal = 0;
+    for (const JosekiMove &move : moves) m_frequencyTotal += qMax(move.frequency, 0);
     // 行の数だけを増減させ、残る行は中身を差し替える（列幅と表示位置は保つ）
     if (newRows < oldRows) {
         beginRemoveRows(QModelIndex(), newRows, oldRows - 1);
@@ -71,7 +73,7 @@ QVariant JosekiTableModel::data(const QModelIndex &index, int role) const
 
     if (role == Qt::TextAlignmentRole) {
         switch (column) {
-        case Value: case Depth: case Frequency: return int(Qt::AlignRight | Qt::AlignVCenter);
+        case Value: case Depth: case Frequency: case Ratio: return int(Qt::AlignRight | Qt::AlignVCenter);
         case Comment: return int(Qt::AlignLeft | Qt::AlignVCenter);
         default: return int(Qt::AlignCenter);
         }
@@ -98,6 +100,10 @@ QVariant JosekiTableModel::data(const QModelIndex &index, int role) const
     case Value: return locale.toString(move.value);
     case Depth: return locale.toString(move.depth);
     case Frequency: return locale.toString(move.frequency);
+    case Ratio:
+        if (m_frequencyTotal <= 0) return QString();
+        return locale.toString(100.0 * qMax(move.frequency, 0) / static_cast<double>(m_frequencyTotal), 'f', 1)
+            + QLatin1Char('%');
     case Comment: return move.comment;
     default: return {};
     }
@@ -105,7 +111,9 @@ QVariant JosekiTableModel::data(const QModelIndex &index, int role) const
 
 QVariant JosekiTableModel::headerData(int section, Qt::Orientation orientation, int role) const
 {
-    if (orientation != Qt::Horizontal || role != Qt::DisplayRole) return {};
+    if (orientation != Qt::Horizontal) return {};
+    if (role == Qt::ToolTipRole && section == Ratio) return tr("この局面の定跡手の出現頻度の合計に対する割合");
+    if (role != Qt::DisplayRole) return {};
     switch (section) {
     case No: return tr("No.");
     case Play: return tr("着手");
@@ -116,6 +124,7 @@ QVariant JosekiTableModel::headerData(int section, Qt::Orientation orientation, 
     case Value: return tr("評価値");
     case Depth: return tr("深さ");
     case Frequency: return tr("出現頻度");
+    case Ratio: return tr("比率");
     case Comment: return tr("コメント");
     default: return {};
     }
