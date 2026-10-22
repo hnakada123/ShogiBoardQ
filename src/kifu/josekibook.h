@@ -72,10 +72,25 @@ public:
     /// 定跡手を消す（最後の手なら局面も消す）。無ければ false
     bool removeMove(const QString &sfen, const QString &usiMove);
 
-    /// 棋譜からのマージで登録する（あれば出現頻度を1増やし、無ければ足す）。登録済みの印を付ける
-    void registerMergeMove(const QString &sfen, const QString &usiMove);
+    /// 棋譜からのマージで登録する（あれば出現頻度を count 増やし、無ければ出現頻度 count で足す）。登録済みの印を付ける。
+    /// comment はコメントの無い手にだけ入れる。新しく足したら true
+    bool registerMergeMove(const QString &sfen, const QString &usiMove, int count = 1, const QString &comment = QString());
     /// マージで登録した印のある指し手か
     bool isMergeRegistered(const QString &sfen, const QString &usiMove) const;
+
+    /// 別の定跡を足すときの、同じ指し手の扱い
+    struct MergeOptions {
+        bool preferIncoming = false;  ///< 予想応手・評価値・深さ・コメントを足す側の値にする（コメントは足す側にあるときだけ）
+        bool sumFrequency = true;     ///< 出現頻度を足し合わせる（しなければ優先する側の値）
+    };
+    /// 別の定跡を足した結果
+    struct MergeStats {
+        int addedPositions = 0;  ///< 足した局面
+        int addedMoves = 0;      ///< 足した定跡手（足した局面の手を含む）
+        int updatedMoves = 0;    ///< 同じ指し手があった定跡手
+    };
+    /// other の局面と定跡手を足す。今の定跡に無い局面は手数違いの登録もそのまま写す
+    MergeStats mergeFrom(const JosekiBook &other, const MergeOptions &options);
     /// マージで登録した印（局面のキーと指し手の組）
     const QSet<JosekiMoveKey> &mergeRegistered() const { return m_mergeRegistered; }
 

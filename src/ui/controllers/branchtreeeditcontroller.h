@@ -5,6 +5,7 @@
 /// @brief 分岐ツリーの右クリックメニューから分岐を編集するコントローラの定義
 
 #include <QObject>
+#include <QString>
 
 #include "usimove.h"
 
@@ -75,6 +76,10 @@ public:
 
     /// 成り・不成まで決まった手（定跡の手など）を、recordBoardMove と同じく変化として記録する
     bool recordMove(const UsiMove& move, ShogiGameController* gc);
+
+signals:
+    /// 対局していないときに盤上で指した手を記録した（同じ手の既存ノードへ移ったときも出す。sfen は指す前の局面）
+    void boardMoveRecorded(const QString& sfen, const QString& usiMove);
 
 public slots:
     /// BranchTreeView::nodeContextMenuAboutToShow に接続する

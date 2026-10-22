@@ -53,6 +53,8 @@ private slots:
     void find_nullForUnknown();
     void movesAt_returnsEmptyForUnknown();
     void leadingMove_ordersLikeYaneuraOu();
+    void session_registerEnginePv();
+    void session_valueOfScore();
 
     // --- File I/O ---
     void saveAndLoad_roundTrip();
@@ -74,6 +76,8 @@ private slots:
     void putMove_keepsFirstRegisteredSfen();
     void putMove_replacesInPlace();
     void load_keepsRegistrationsPerPly();
+    void mergeFrom_combinesBooks();
+    void session_startMergeBook();
     void load_duplicateMoveAndLegacyHands();
     void packedMoves_keepEveryNotation();
     void comments_updateAndRemove();
@@ -219,6 +223,60 @@ void TestJosekiBook::movesAt_returnsEmptyForUnknown()
     JosekiBook repo;
     const QList<JosekiMove> &moves = repo.movesAt(QStringLiteral("unknown/sfen b -"));
     QVERIFY(moves.isEmpty());
+}
+
+/// エンジンの読み筋の登録: 新しい手は出現頻度1、登録済みの手は評価値・深さ・予想応手だけを書き換える
+void TestJosekiBook::session_registerEnginePv()
+{
+    using Result = JosekiBookSession::EngineRegistration;
+    JosekiBookSession session;
+    const QString sfen = kHirateSfen + QStringLiteral(" 1");
+    QCOMPARE(session.registerEnginePv(sfen, {}, UsiScore::cp(10), 5), Result::Invalid);
+    QVERIFY(!session.isModified());
+
+    QCOMPARE(session.registerEnginePv(sfen, {QStringLiteral("7g7f"), QStringLiteral("3c3d"), QStringLiteral("2g2f")},
+                                      UsiScore::cp(45), 20),
+             Result::Added);
+    JosekiMove added = session.movesAt(sfen).constFirst();
+    QCOMPARE(added.move, QStringLiteral("7g7f"));
+    QCOMPARE(added.nextMove, QStringLiteral("3c3d"));
+    QCOMPARE(added.value, 45);
+    QCOMPARE(added.depth, 20);
+    QCOMPARE(added.frequency, 1);
+    QVERIFY(session.isModified());
+
+    // 出現頻度とコメントは残し、評価値・深さ・予想応手を書き換える
+    added.frequency = 7;
+    added.comment = QStringLiteral("角道を開ける");
+    QVERIFY(session.updateMove(sfen, added));
+    QCOMPARE(session.registerEnginePv(sfen, {QStringLiteral("7g7f"), QStringLiteral("8c8d")}, UsiScore::cp(-12), -1),
+             Result::Updated);
+    JosekiMove updated = session.movesAt(sfen).constFirst();
+    QCOMPARE(updated.nextMove, QStringLiteral("8c8d"));
+    QCOMPARE(updated.value, -12);
+    QCOMPARE(updated.depth, 0);
+    QCOMPARE(updated.frequency, 7);
+    QCOMPARE(updated.comment, QStringLiteral("角道を開ける"));
+
+    // 読み筋が1手だけなら、登録済みの予想応手は残す。新しい手は「なし」
+    QCOMPARE(session.registerEnginePv(sfen, {QStringLiteral("7g7f")}, UsiScore::cp(3), 9), Result::Updated);
+    QCOMPARE(session.movesAt(sfen).constFirst().nextMove, QStringLiteral("8c8d"));
+    QCOMPARE(session.registerEnginePv(sfen, {QStringLiteral("2g2f")}, UsiScore::cp(3), 9), Result::Added);
+    QCOMPARE(session.movesAt(sfen).constLast().nextMove, QStringLiteral("none"));
+}
+
+/// 定跡の評価値: 詰みはやねうら王と同じく ±(32000 − 手数)
+void TestJosekiBook::session_valueOfScore()
+{
+    QCOMPARE(JosekiBookSession::valueOf(UsiScore::cp(-345)), -345);
+    QCOMPARE(JosekiBookSession::valueOf(UsiScore{}), 0);
+    QCOMPARE(JosekiBookSession::valueOf(UsiScore::mate(5)), 31995);
+    QCOMPARE(JosekiBookSession::valueOf(UsiScore::mate(-4)), -31996);
+    QCOMPARE(JosekiBookSession::valueOf(UsiScore::mate(0)), -32000);
+    UsiScore winning;
+    winning.kind = UsiScore::Kind::Mate;
+    winning.mateWin = true;
+    QCOMPARE(JosekiBookSession::valueOf(winning), 32000);
 }
 
 /// 予想応手が "none" のときにやねうら王が先読みに使う手は、出現頻度、次に評価値の高い手。
@@ -399,6 +457,134 @@ void TestJosekiBook::putMove_replacesInPlace()
 
 /// 同じ局面を手数違いで別々に登録したファイルは、手数ごとの登録のまま読み、保存しても残す
 /// （やねうら王は既定では手数まで一致する登録だけを使うので、まとめると使えない局面が出る）
+namespace {
+/// 足す定跡: ▲７六歩の後の局面（△３四歩・読めない予想応手の△８四歩）、初期局面（▲７六歩・▲２六歩）、
+/// 今の定跡に無い局面（▲２六歩の後。21手目と23手目に別々の登録）
+QByteArray incomingBookText(const QString &hirate)
+{
+    const QString after76 = SfenReplay::positionAfter(hirate + QStringLiteral(" 1"), QStringLiteral("7g7f"));
+    const QString after26 = SfenReplay::positionAfter(hirate + QStringLiteral(" 1"), QStringLiteral("2g2f"));
+    const QString board26 = after26.section(QLatin1Char(' '), 0, 2);
+    return "#YANEURAOU-DB2016 1.00\n"
+           "sfen " + after76.toUtf8() + "\n"
+           "3c3d none 10 20 5\n"
+           "#受け\n"
+           "8c8d abc 0 0 1\n"
+           "sfen " + hirate.toUtf8() + " 1\n"
+           "7g7f 8c8d 99 40 4\n"
+           "2g2f none 5 5 2\n"
+           "sfen " + board26.toUtf8() + " 21\n"
+           "8c8d none 0 0 1\n"
+           "sfen " + board26.toUtf8() + " 23\n"
+           "3c3d none 0 0 1\n";
+}
+
+JosekiBook currentBook(const QString &hirateWithPly)
+{
+    JosekiBook book;
+    JosekiMove first;
+    first.move = QStringLiteral("7g7f");
+    first.nextMove = QStringLiteral("3c3d");
+    first.value = 30;
+    first.depth = 20;
+    first.frequency = 10;
+    first.comment = QStringLiteral("今の定跡");
+    book.putMove(hirateWithPly, first);
+    JosekiMove reply;
+    reply.move = QStringLiteral("3c3d");
+    reply.nextMove = QStringLiteral("none");
+    reply.frequency = 1;
+    book.putMove(SfenReplay::positionAfter(hirateWithPly, QStringLiteral("7g7f")), reply);
+    return book;
+}
+} // namespace
+
+/// 別の定跡を足す: 無い局面は手数違いの登録もそのまま写し、同じ指し手は選んだ扱いで合わせる
+void TestJosekiBook::mergeFrom_combinesBooks()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath(QStringLiteral("incoming.db"));
+    {
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write(incomingBookText(kHirateSfen));
+    }
+    const JosekiLoadResult incoming = JosekiBookFile::load(path);
+    QVERIFY(incoming.success);
+    const QString after76 = SfenReplay::positionAfter(kHirateSfenWithPly, QStringLiteral("7g7f"));
+    const QString board26 = SfenReplay::positionAfter(kHirateSfenWithPly, QStringLiteral("2g2f")).section(QLatin1Char(' '), 0, 2);
+
+    // 既定: 今の定跡の値を残し、出現頻度を足し合わせる
+    JosekiBook book = currentBook(kHirateSfenWithPly);
+    const JosekiBook::MergeStats stats = book.mergeFrom(incoming.book, {});
+    QCOMPARE(stats.addedPositions, 1);
+    QCOMPARE(stats.addedMoves, 4);
+    QCOMPARE(stats.updatedMoves, 2);
+    const JosekiMove kept = book.movesAt(kHirateSfenWithPly).at(0);
+    QCOMPARE(kept.frequency, 14);
+    QCOMPARE(kept.value, 30);
+    QCOMPARE(kept.nextMove, QStringLiteral("3c3d"));
+    QCOMPARE(kept.comment, QStringLiteral("今の定跡"));
+    QCOMPARE(book.movesAt(kHirateSfenWithPly).at(1).move, QStringLiteral("2g2f"));
+    QCOMPARE(book.movesAt(after76).at(0).frequency, 6);
+    QVERIFY(book.movesAt(after76).at(0).comment.isEmpty());
+    // 読めない予想応手の文字列も失わない
+    QCOMPARE(book.movesAt(after76).at(1).nextMove, QStringLiteral("abc"));
+    QCOMPARE(book.registeredPlies(board26), (QList<int>{21, 23}));
+    QCOMPARE(book.movesAt(board26 + QStringLiteral(" 23")).constFirst().move, QStringLiteral("3c3d"));
+
+    // 足す定跡の値にし、出現頻度は足さない（足す側にコメントがあればそれにする）
+    JosekiBook preferred = currentBook(kHirateSfenWithPly);
+    JosekiBook::MergeOptions options;
+    options.preferIncoming = true;
+    options.sumFrequency = false;
+    (void)preferred.mergeFrom(incoming.book, options);
+    const JosekiMove replaced = preferred.movesAt(kHirateSfenWithPly).at(0);
+    QCOMPARE(replaced.frequency, 4);
+    QCOMPARE(replaced.value, 99);
+    QCOMPARE(replaced.depth, 40);
+    QCOMPARE(replaced.nextMove, QStringLiteral("8c8d"));
+    QCOMPARE(replaced.comment, QStringLiteral("今の定跡"));
+    QCOMPARE(preferred.movesAt(after76).at(0).comment, QStringLiteral("受け"));
+    QCOMPARE(preferred.movesAt(after76).at(0).value, 10);
+}
+
+/// 定跡ファイルを足すのはワーカースレッドで行い、終わったら変更ありにする（保存はしない）
+void TestJosekiBook::session_startMergeBook()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath(QStringLiteral("incoming.db"));
+    {
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write(incomingBookText(kHirateSfen));
+    }
+    JosekiBookSession session;
+    session.addMove(kHirateSfenWithPly, makeMove(QStringLiteral("7g7f"), 30, 20, 10));
+    session.setModified(false);
+    QSignalSpy merged(&session, &JosekiBookSession::bookMerged);
+    QSignalSpy changed(&session, &JosekiBookSession::contentChanged);
+    QVERIFY(session.startMergeBook(path, {}));
+    QVERIFY(session.isBusy());
+    QCOMPARE(session.activity(), JosekiBookSession::Activity::Merging);
+    // 足している間は別の読み書きを始めない
+    QVERIFY(!session.startMergeBook(path, {}));
+    QVERIFY(merged.wait(5000));
+    QVERIFY(!session.isBusy());
+    QVERIFY(session.isModified());
+    QCOMPARE(changed.count(), 1);
+    QCOMPARE(merged.constFirst().at(0).toString(), path);
+    QCOMPARE(session.movesAt(kHirateSfenWithPly).constFirst().frequency, 14);
+    QCOMPARE(session.positionCount(), 3);
+
+    QSignalSpy failed(&session, &JosekiBookSession::bookMergeFailed);
+    QVERIFY(session.startMergeBook(dir.filePath(QStringLiteral("missing.db")), {}));
+    QVERIFY(failed.wait(5000));
+    QCOMPARE(session.positionCount(), 3);
+}
+
 void TestJosekiBook::load_keepsRegistrationsPerPly()
 {
     QTemporaryDir dir;

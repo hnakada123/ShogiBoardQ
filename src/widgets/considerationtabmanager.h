@@ -21,6 +21,7 @@ class QTimer;
 class QRadioButton;
 class QCheckBox;
 class QModelIndex;
+class QMenu;
 
 class EngineInfoWidget;
 class EngineSelector;
@@ -92,6 +93,8 @@ signals:
 
     // 読み筋の行の「盤面」ボタンが押された
     void pvRowClicked(ShogiEngineThinkingModel* model, int row);
+    /// 読み筋の行を右クリックした（受け手が menu に項目を足す）
+    void rowContextMenuAboutToShow(ShogiEngineThinkingModel* model, int row, QMenu* menu);
 
 private slots:
     /// 画面の値から検討の条件を読み直す（利用者がどれかの設定を変えた）

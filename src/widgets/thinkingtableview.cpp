@@ -38,6 +38,7 @@ ThinkingTableView::ThinkingTableView(AnalysisSettings::ThinkingTable table, QWid
 
     connect(header, &TableHeaderView::sectionResizedByUser, this, &ThinkingTableView::onSectionResizedByUser);
     connect(this, &PvTableView::boardRequested, this, &ThinkingTableView::onBoardRequested);
+    connect(this, &PvTableView::rowContextMenuAboutToShow, this, &ThinkingTableView::onRowContextMenuAboutToShow);
 }
 
 void ThinkingTableView::setThinkingModel(ShogiEngineThinkingModel* model)
@@ -50,6 +51,11 @@ void ThinkingTableView::setThinkingModel(ShogiEngineThinkingModel* model)
 void ThinkingTableView::onBoardRequested(int row)
 {
     if (m_model) emit pvRowClicked(m_model, row);
+}
+
+void ThinkingTableView::onRowContextMenuAboutToShow(int row, QMenu* menu)
+{
+    if (m_model) emit thinkingRowContextMenuAboutToShow(m_model, row, menu);
 }
 
 void ThinkingTableView::onSectionResizedByUser(int logicalIndex)

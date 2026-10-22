@@ -95,6 +95,9 @@ private slots:
     void testEditAndDeleteKeepTargetPosition();
     void testSameSfenKeepsTableRows();
     void testDerivedReplyFollowsNextPosition();
+    void testRecordBoardMoves();
+    void testExternalChangesRefreshTable();
+    void testMergeMenuAndDroppedBook();
     void testButtonColumnsActOnRow();
     void testMoveListPlaceholder();
     void testFontButtonsKeepWidth();
@@ -1178,6 +1181,112 @@ void TestJosekiWindow::testDerivedReplyFollowsNextPosition()
     window.updateJosekiDisplay();
     QCOMPARE(next(Qt::DisplayRole).toString(), QStringLiteral("△８四歩(83)"));
     QVERIFY(!next(Qt::ForegroundRole).isValid());
+}
+
+/// 「盤の手を登録」: オンの間だけ、まだ無い手を予想応手なし・評価値0・深さ0・出現頻度1で登録する（ある手は変えない）
+void TestJosekiWindow::testRecordBoardMoves()
+{
+    JosekiSettings::josekiWindowAutoLoadEnabled.set(false);
+    JosekiBookSession session;
+    JosekiWindow window(&session);
+    QVERIFY(seedWindow(window, m_tempDir.filePath(QStringLiteral("record.db"))));
+    const QString after = SfenReplay::positionAfter(initialSfen(), QStringLiteral("7g7f"));
+
+    // オフ（起動したとき）なら登録しない
+    QVERIFY(!window.isRecordingBoardMoves());
+    window.recordBoardMove(after, QStringLiteral("3c3d"));
+    QVERIFY(!session.hasPosition(after));
+    QVERIFY(!session.isModified());
+
+    window.m_recordBoardMovesCheckBox->setChecked(true);
+    QVERIFY2(window.m_statusLabel->text().contains(QStringLiteral("盤の手を登録中")), qPrintable(window.m_statusLabel->text()));
+    window.recordBoardMove(after, QStringLiteral("3c3d"));
+    QCOMPARE(session.movesAt(after).size(), 1);
+    const JosekiMove added = session.movesAt(after).constFirst();
+    QCOMPARE(added.move, QStringLiteral("3c3d"));
+    QCOMPARE(added.nextMove, QStringLiteral("none"));
+    QCOMPARE(added.value, 0);
+    QCOMPARE(added.depth, 0);
+    QCOMPARE(added.frequency, 1);
+    QVERIFY(session.isModified());
+
+    // 登録済みの手は変えない
+    window.recordBoardMove(initialSfen(), QStringLiteral("7g7f"));
+    const JosekiMove kept = session.movesAt(initialSfen()).constFirst();
+    QCOMPARE(kept.value, 10);
+    QCOMPARE(kept.depth, 32);
+    QCOMPARE(kept.frequency, 1);
+
+    // 前回のファイルの読み込みを待っている間（読み込むとデータを置き換える）は登録しない
+    window.m_pendingAutoLoadPath = m_tempDir.filePath(QStringLiteral("pending.db"));
+    QVERIFY(!window.canRegisterMoves());
+    window.recordBoardMove(after, QStringLiteral("8c8d"));
+    QCOMPARE(session.movesAt(after).size(), 1);
+    window.m_pendingAutoLoadPath.clear();
+    QVERIFY(window.canRegisterMoves());
+}
+
+/// ほかの部品が定跡を変えても表を作り直す（表示中ならすぐ、隠れていれば次に局面が届いたとき）
+void TestJosekiWindow::testExternalChangesRefreshTable()
+{
+    JosekiSettings::josekiWindowAutoLoadEnabled.set(false);
+    JosekiBookSession session;
+    JosekiWindow window(&session);
+    QVERIFY(seedWindow(window, m_tempDir.filePath(QStringLiteral("external.db"))));
+    QCOMPARE(window.m_model->rowCount(), 1);
+
+    session.addMove(initialSfen(), {QStringLiteral("2g2f"), QStringLiteral("none"), 0, 0, 1, {}});
+    QCOMPARE(window.m_model->rowCount(), 1);
+    window.setCurrentSfen(initialSfen());
+    QCOMPARE(window.m_model->rowCount(), 2);
+
+    window.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&window));
+    session.addMove(initialSfen(), {QStringLiteral("5g5f"), QStringLiteral("none"), 0, 0, 1, {}});
+    QCOMPARE(window.m_model->rowCount(), 3);
+}
+
+/// 「マージ ▼」の項目。定跡ファイル1つのドロップは開き、定跡ファイルを足している間は状態に出す
+void TestJosekiWindow::testMergeMenuAndDroppedBook()
+{
+    JosekiSettings::josekiWindowAutoLoadEnabled.set(false);
+    JosekiBookSession session;
+    JosekiWindow window(&session);
+    auto *menu = window.findChild<QMenu *>(QStringLiteral("josekiMergeMenu"));
+    QVERIFY(menu);
+    QStringList texts;
+    const QList<QAction *> actions = menu->actions();
+    for (QAction *action : actions) {
+        if (!action->isSeparator()) texts << action->text();
+    }
+    QCOMPARE(texts, (QStringList{QStringLiteral("現在の棋譜から"), QStringLiteral("棋譜ファイルから"),
+                                 QStringLiteral("複数の棋譜から..."), QStringLiteral("定跡ファイルから...")}));
+    QVERIFY(window.acceptDrops());
+
+    const QString path = m_tempDir.filePath(QStringLiteral("dropped.db"));
+    {
+        JosekiBookSession other;
+        other.addMove(initialSfen(), {QStringLiteral("7g7f"), QStringLiteral("none"), 0, 0, 3, {}});
+        QVERIFY(other.save(path));
+    }
+    QSignalSpy loaded(&session, &JosekiBookSession::loaded);
+    window.m_droppedPaths = {path};
+    window.openDroppedPaths();
+    QVERIFY(loaded.wait(5000));
+    QCOMPARE(session.filePath(), path);
+
+    // 足し終えたら結果のメッセージを出す（ここでは閉じる）
+    QSignalSpy merged(&session, &JosekiBookSession::bookMerged);
+    QVERIFY(session.startMergeBook(path, {}));
+    QVERIFY2(window.m_statusLabel->text().contains(QStringLiteral("定跡ファイルを足しています")),
+             qPrintable(window.m_statusLabel->text()));
+    m_messageSeen = false;
+    m_responseRole = QMessageBox::AcceptRole;
+    m_responder.start();
+    QVERIFY(merged.wait(5000));
+    QTRY_VERIFY(m_messageSeen);
+    QCOMPARE(session.movesAt(initialSfen()).constFirst().frequency, 6);
+    QVERIFY(session.isModified());
 }
 
 void TestJosekiWindow::testButtonColumnsActOnRow()

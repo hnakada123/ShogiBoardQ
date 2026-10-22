@@ -16,6 +16,7 @@
  * 表のモデル（KifuAnalysisListModel）が作る。
  */
 struct KifuAnalysisRow {
+    int ply = -1;                             ///< 解析した局面の手数（sfen の局面）
     QString move;                             ///< 指した手（棋譜の表記）
     QString lastUsiMove;                      ///< 指した手（USI。読み筋の盤で強調する）
     QString beforeSfen;                       ///< 指す前の局面
@@ -24,6 +25,7 @@ struct KifuAnalysisRow {
     std::optional<int> evaluationDifference;  ///< 直前の解析局面からの評価値の増減（比べられなければ nullopt）
     QString pv;                               ///< 読み筋（漢字表記）
     QString usiPv;                            ///< 読み筋（USI。空白区切り）
+    int depth = -1;                           ///< 読み筋の探索深さ（無ければ -1）
     QString candidateMove;                    ///< 候補手（直前の行の読み筋の最初の手。漢字表記）
     QString candidateUsi;                     ///< 候補手（USI）
     QString candidateSfen;                    ///< 候補手を指す局面

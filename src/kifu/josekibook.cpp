@@ -313,7 +313,7 @@ bool JosekiBook::removeMove(const QString &sfen, const QString &usiMove)
     return true;
 }
 
-void JosekiBook::registerMergeMove(const QString &sfen, const QString &usiMove)
+bool JosekiBook::registerMergeMove(const QString &sfen, const QString &usiMove, int count, const QString &comment)
 {
     const QString key = positionKey(sfen);
     m_mergeRegistered.insert({key, usiMove});
@@ -324,14 +324,84 @@ void JosekiBook::registerMergeMove(const QString &sfen, const QString &usiMove)
     const quint16 code = encodeMove(usiMove);
     const qsizetype index = indexOf(records, range, code);
     if (index >= 0) {
-        records[index].frequency += 1;
-        return;
+        PackedMove &existing = records[index];
+        existing.frequency += count;
+        if (existing.comment == 0) existing.comment = storeComment(comment);
+        return false;
     }
     PackedMove added;
     added.move = code;
     added.next = kNoMove;
-    added.frequency = 1;
+    added.frequency = count;
+    added.comment = storeComment(comment);
     records.insert(range.end, added);
+    return true;
+}
+
+JosekiBook::MergeStats JosekiBook::mergeFrom(const JosekiBook &other, const MergeOptions &options)
+{
+    MergeStats stats;
+    // USI の指し手の番号はどの定跡でも同じ。読めない文字列の番号だけを、この定跡の表の番号に直す
+    const auto remap = [this, &other](quint16 code) {
+        return code >= kTokenBase && code != kHeader ? encodeMove(other.decodeMove(code)) : code;
+    };
+    for (auto it = other.m_positions.constBegin(); it != other.m_positions.constEnd(); ++it) {
+        const Records &incoming = it.value();
+        const auto existing = m_positions.find(it.key());
+        if (existing == m_positions.end()) {
+            Records copied;
+            copied.reserve(incoming.size());
+            for (const PackedMove &packed : incoming) {
+                PackedMove move = packed;
+                if (packed.move != kHeader) {
+                    move.move = remap(packed.move);
+                    move.next = remap(packed.next);
+                    move.comment = storeComment(other.m_comments.value(packed.comment));
+                    ++stats.addedMoves;
+                }
+                copied.append(move);
+            }
+            m_positions.insert(it.key(), copied);
+            ++stats.addedPositions;
+            continue;
+        }
+        Records &records = *existing;
+        const QString key = QString::fromUtf8(it.key());
+        const QList<Range> ranges = rangesOf(incoming);
+        for (const Range &from : ranges) {
+            // 同じ手数の登録（無ければ最初の登録）に足す
+            const QString sfen = key + QLatin1Char(' ') + QString::number(incoming.at(from.header).value);
+            for (qsizetype i = from.header + 1; i < from.end; ++i) {
+                const PackedMove &packed = incoming.at(i);
+                const Range range = resolve(records, sfen);
+                const quint16 code = remap(packed.move);
+                const qsizetype index = indexOf(records, range, code);
+                const QString comment = other.m_comments.value(packed.comment);
+                if (index < 0) {
+                    PackedMove added = packed;
+                    added.move = code;
+                    added.next = remap(packed.next);
+                    added.comment = storeComment(comment);
+                    records.insert(range.end, added);
+                    ++stats.addedMoves;
+                    continue;
+                }
+                PackedMove &target = records[index];
+                const int frequency = options.sumFrequency ? target.frequency + packed.frequency
+                                      : options.preferIncoming ? packed.frequency
+                                                               : target.frequency;
+                if (options.preferIncoming) {
+                    target.next = remap(packed.next);
+                    target.value = packed.value;
+                    target.depth = packed.depth;
+                    if (!comment.isEmpty()) target.comment = storeComment(comment, target.comment);
+                }
+                target.frequency = frequency;
+                ++stats.updatedMoves;
+            }
+        }
+    }
+    return stats;
 }
 
 bool JosekiBook::isMergeRegistered(const QString &sfen, const QString &usiMove) const

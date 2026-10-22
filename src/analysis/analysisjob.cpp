@@ -37,13 +37,17 @@ void PlyAnalysisCollector::begin(int ply, const UsiPosition& position)
     m_position = position;
     m_anyInfo = false;
     m_bestPv.clear();
+    m_bestDepth = -1;
 }
 
 void PlyAnalysisCollector::addInfo(const UsiInfo& info)
 {
     m_anyInfo = true;
     // エンジン設定で MultiPV を2以上にしていても、結果は最善の読み筋で確定する
-    if (info.multipv <= 1 && info.hasPv()) m_bestPv = info.pv;
+    if (info.multipv <= 1 && info.hasPv()) {
+        m_bestPv = info.pv;
+        m_bestDepth = info.depth;
+    }
 }
 
 PlyAnalysis PlyAnalysisCollector::finish(const UsiBestMove& bestMove) const
@@ -53,6 +57,7 @@ PlyAnalysis PlyAnalysisCollector::finish(const UsiBestMove& bestMove) const
     result.book = !m_anyInfo;
     if (result.book) return result;
     result.score = bestMove.score;
+    result.depth = m_bestDepth;
 
     PvNotationFormatter formatter;
     formatter.setPosition(m_position.sfen());

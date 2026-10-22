@@ -13,6 +13,7 @@ class QAbstractItemModel;
 class QTimer;
 class QPushButton;
 class QLabel;
+class QMenu;
 class ElideLabel;
 class QProgressBar;
 class KifuAnalysisListModel;
@@ -56,6 +57,9 @@ signals:
     
     /// 行選択時に発行（KifuAnalysisController が棋譜をその手へ移す）
     void rowSelected(int row);
+
+    /// 行を右クリックした（受け手が menu に項目を足す）
+    void rowContextMenuAboutToShow(int row, QMenu* menu);
 
 private slots:
     /// 列幅再計算を遅延実行する

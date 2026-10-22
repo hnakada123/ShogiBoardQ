@@ -67,11 +67,13 @@ UsiScore AnalysisResultHandler::append(const PlyAnalysis& result)
     qCDebug(lcAnalysis).noquote() << "append: ply=" << ply << "moveLabel=" << moveLabel << "pv=" << pv.left(30);
 
     KifuAnalysisRow resultRow;
+    resultRow.ply = ply;
     resultRow.move = moveLabel;
     resultRow.evaluation = blackScore;
     resultRow.evaluationDifference = difference;
     resultRow.pv = pv;
     resultRow.usiPv = usiPv;
+    resultRow.depth = result.book ? -1 : result.depth;
     if (m_refs.line && ply > 0 && ply <= m_refs.line->moveCount() + 1)
         resultRow.beforeSfen = SfenUtils::normalizePositionLikeSfen(m_refs.line->sfenAt(ply - 1));
     if (m_refs.line && ply >= 0 && ply <= m_refs.line->moveCount())

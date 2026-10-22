@@ -77,6 +77,7 @@ private slots:
         QCOMPARE(analysis.score.value, 50);
         QCOMPARE(analysis.usiPv, (QStringList{QStringLiteral("3c3d"), QStringLiteral("2g2f")}));
         QCOMPARE(analysis.pvKanji, QStringLiteral("△３四歩(33)▲２六歩(27)"));
+        QCOMPARE(analysis.depth, 10);
     }
 
     /// エンジン設定の MultiPV が2以上でも、1局面の結果は最善の読み筋（multipv 1）で確定する（U1）
@@ -86,9 +87,11 @@ private slots:
         collector.begin(0, position("position startpos"));
         // 深さごとに multipv 1, 2 の順で届き、bestmove の直前の行は2番目の読み筋
         collector.addInfo(info("info depth 10 multipv 1 score cp 200 pv 7g7f 3c3d"));
-        collector.addInfo(info("info depth 10 multipv 2 score cp -300 pv 2g2f 8c8d"));
+        collector.addInfo(info("info depth 11 multipv 2 score cp -300 pv 2g2f 8c8d"));
         const PlyAnalysis analysis = collector.finish(bestMove(UsiScore::cp(200)));
         QCOMPARE(analysis.score.value, 200);
+        // 深さも最善の読み筋のもの（定跡に登録するときに使う）
+        QCOMPARE(analysis.depth, 10);
         QCOMPARE(analysis.usiPv.join(QLatin1Char(' ')), QStringLiteral("7g7f 3c3d"));
         QCOMPARE(analysis.pvKanji, QStringLiteral("▲７六歩(77)△３四歩(33)"));
     }
@@ -133,11 +136,17 @@ private slots:
         refs.analysisModel = &model;
         AnalysisResultHandler handler(refs);
         // ply=2 は偶数（先手番）なので評価値 200 がそのまま
-        QCOMPARE(handler.append(result(2, UsiScore::cp(200), {QStringLiteral("7g7f")})).value, 200);
+        PlyAnalysis first = result(2, UsiScore::cp(200), {QStringLiteral("7g7f")});
+        first.depth = 18;
+        QCOMPARE(handler.append(first).value, 200);
         // ply=3 は後手番なので先手から見た値に符号を直す
         QCOMPARE(handler.append(result(3, UsiScore::cp(80), {QStringLiteral("3c3d")})).value, -80);
         QCOMPARE(model.rowCount(), 2);
         QCOMPARE(model.row(0)->usiPv, QStringLiteral("7g7f"));
+        // 行は局面の手数と読み筋の深さも持つ（定跡に登録するときに使う）
+        QCOMPARE(model.row(0)->ply, 2);
+        QCOMPARE(model.row(0)->depth, 18);
+        QCOMPARE(model.row(1)->ply, 3);
     }
 
     void bookResultHasNoScoreOrPv()
@@ -152,6 +161,7 @@ private slots:
         QVERIFY(handler.append(book).isNone());
         QCOMPARE(model.row(0)->pv, QStringLiteral("（定跡）"));
         QCOMPARE(model.row(0)->usiPv, QString());
+        QCOMPARE(model.row(0)->depth, -1);
     }
 
     void mateScoresKeepTheirSide()

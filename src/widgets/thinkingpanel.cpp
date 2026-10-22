@@ -62,6 +62,8 @@ ThinkingPanel::ThinkingPanel(QWidget* parent)
 
     connect(m_view1, &ThinkingTableView::pvRowClicked, this, &ThinkingPanel::pvRowClicked);
     connect(m_view2, &ThinkingTableView::pvRowClicked, this, &ThinkingPanel::pvRowClicked);
+    connect(m_view1, &ThinkingTableView::thinkingRowContextMenuAboutToShow, this, &ThinkingPanel::rowContextMenuAboutToShow);
+    connect(m_view2, &ThinkingTableView::thinkingRowContextMenuAboutToShow, this, &ThinkingPanel::rowContextMenuAboutToShow);
     connect(&m_fontSize, &FontSizeHelper::fontSizeChanged, this, &ThinkingPanel::applyFontSize);
     // 既定の大きさ（10）のときは表の既定の書体のままにする
     if (m_fontSize.fontSize() != 10) applyFontSize();

@@ -76,6 +76,7 @@ class ConsiderationUiController;
 class DialogLauncher;
 class ImageExportController;
 class JosekiBookSession;
+class JosekiRegistrationController;
 class JosekiWindowController;
 class KifuAnalysisController;
 class LanguageController;
@@ -183,6 +184,7 @@ struct MainWindowComponents {
     PvClickController* pvClickController = nullptr;
     UsiCommandController* usiCommandController = nullptr;
     JosekiWindowController* joseki = nullptr;
+    JosekiRegistrationController* josekiRegistration = nullptr;  ///< 思考の表・棋譜解析の結果から定跡に登録
     MenuWindowController* menuWindowController = nullptr;
     LanguageController* languageController = nullptr;
     NyugyokuDeclarationHandler* nyugyokuHandler = nullptr;
