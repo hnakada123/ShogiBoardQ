@@ -84,6 +84,8 @@ private slots:
     void testConfirmClose_data();
     void testConfirmClose();
     void testConfirmCloseSavesNewFile();
+    void testDockCloseDiscardRevertsBook();
+    void testAutoLoadOffKeepsLastFile();
     void testConfirmCloseWhileSaving();
     void testMoveValidation_data();
     void testMoveValidation();
@@ -840,6 +842,66 @@ void TestJosekiWindow::testConfirmClose()
     QVERIFY(disk.success);
     QCOMPARE(disk.book.movesAt(key).first().value, saved ? 99 : 10);
     QCOMPARE(window.m_session->isModified(), !saved);
+}
+
+/// 定跡ドックを閉じるときに「破棄」を選ぶと、定跡は保存した内容に戻る（閉じても矢印・対局に使い続けるため）
+void TestJosekiWindow::testDockCloseDiscardRevertsBook()
+{
+    JosekiBookSession session;
+    JosekiWindow window(&session);
+    QDockWidget dock;
+    window.setDockWidget(&dock);
+    const QString path = m_tempDir.filePath(QStringLiteral("dock-close.db"));
+    QVERIFY(seedWindow(window, path));
+    const QString key = JosekiBookSession::positionKey(initialSfen());
+    QVERIFY(window.m_session->updateMove(initialSfen(), {QStringLiteral("7g7f"), QStringLiteral("none"), 99, 32, 1, {}}));
+    QVERIFY(window.m_session->isModified());
+
+    m_responseRole = QMessageBox::DestructiveRole;
+    m_messageSeen = false;
+    QTimer::singleShot(0, this, &TestJosekiWindow::respondToMessageBox);
+    dock.show();
+    QVERIFY(dock.close());
+    QVERIFY(m_messageSeen);
+    QTRY_VERIFY(!window.isIoBusy());
+    QVERIFY(!window.m_session->isModified());
+    QCOMPARE(window.m_session->movesAt(key).first().value, 10);
+
+    // 新しい定跡（ファイルなし）の変更を破棄すると空の定跡になる
+    window.m_files->newBook();
+    window.m_session->addMove(initialSfen(), {QStringLiteral("7g7f"), QStringLiteral("none"), 10, 32, 1, {}});
+    m_messageSeen = false;
+    QTimer::singleShot(0, this, &TestJosekiWindow::respondToMessageBox);
+    dock.show();
+    QVERIFY(dock.close());
+    QVERIFY(m_messageSeen);
+    QVERIFY(!window.m_session->isModified());
+    QVERIFY(window.m_session->movesAt(key).isEmpty());
+}
+
+/// 「自動読込」をオフにして起動しても、前回のファイルの記録は消えない（後でオンにすれば次の起動で読み込む）
+void TestJosekiWindow::testAutoLoadOffKeepsLastFile()
+{
+    const QString book = m_tempDir.filePath(QStringLiteral("auto-off.db"));
+    {
+        JosekiBookSession session;
+        JosekiWindow window(&session);
+        QVERIFY(seedWindow(window, book));
+    }
+    QCOMPARE(JosekiSettings::josekiWindowLastFilePath(), book);
+    JosekiSettings::josekiWindowAutoLoadEnabled.set(false);
+    {
+        JosekiBookSession session;
+        JosekiWindow window(&session);
+        QVERIFY(window.m_pendingAutoLoadPath.isEmpty());
+        QCOMPARE(JosekiSettings::josekiWindowLastFilePath(), book);
+        window.saveSettings();
+        QCOMPARE(JosekiSettings::josekiWindowLastFilePath(), book);
+    }
+    JosekiSettings::josekiWindowAutoLoadEnabled.set(true);
+    JosekiBookSession session;
+    JosekiWindow window(&session);
+    QCOMPARE(window.m_pendingAutoLoadPath, book);
 }
 
 void TestJosekiWindow::testConfirmCloseSavesNewFile()

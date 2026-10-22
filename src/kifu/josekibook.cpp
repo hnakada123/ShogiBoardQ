@@ -345,6 +345,8 @@ bool JosekiBook::removeMove(const QString &sfen, const QString &usiMove)
     // 登録の最後の定跡手なら見出しも消し、登録が無くなれば局面も消す
     if (range.end - range.header == 2) it->removeAt(range.header);
     if (it->isEmpty()) m_positions.erase(it);
+    // マージで登録した印も消す（消した手は、マージでもう一度登録できる）
+    m_mergeRegistered.remove({positionKey(sfen), usiMove});
     return true;
 }
 

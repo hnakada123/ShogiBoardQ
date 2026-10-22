@@ -164,6 +164,36 @@ private slots:
         QCOMPARE(handler.uniqueRegisteredName(QStringLiteral("Other")), QStringLiteral("Other"));
     }
 
+    /// オプションを読めないエンジンは一覧にも設定にも足さない（画面の一覧と行の番号がずれない）
+    void registerEngine_invalidOptionsLeavesListUnchanged()
+    {
+        EngineRegistrationHandler handler;
+        const QList<EngineListSettings::EngineEntry> before = EngineListSettings::loadEngines();
+        handler.m_engineList = before;
+        QSignalSpy registered(&handler, &EngineRegistrationHandler::engineRegistered);
+        QSignalSpy failed(&handler, &EngineRegistrationHandler::errorOccurred);
+
+        handler.m_fileName = QStringLiteral("/engines/c/Broken");
+        handler.registerEngine(QStringLiteral("Broken"), QStringLiteral("author"),
+                               {QStringLiteral("option name Threads type spin default 1 min 1 max 64"),
+                                QStringLiteral("option name Threads type spin default 2 min 1 max 64")});
+        QCOMPARE(registered.count(), 0);
+        QCOMPARE(failed.count(), 1);
+        QCOMPARE(handler.m_engineList.size(), before.size());
+        QString existingName;
+        QVERIFY(!handler.isDuplicatePath(QStringLiteral("/engines/c/Broken"), existingName));
+
+        // 次の登録が成功しても、失敗したエンジンは保存されない（エラーの印は startRegistration と同じく戻す）
+        handler.m_errorOccurred = false;
+        handler.m_fileName = QStringLiteral("/engines/d/Good");
+        handler.registerEngine(QStringLiteral("Good"), QStringLiteral("author"),
+                               {QStringLiteral("option name Threads type spin default 1 min 1 max 64")});
+        QCOMPARE(registered.count(), 1);
+        const auto engines = EngineListSettings::loadEngines();
+        QCOMPARE(engines.size(), before.size() + 1);
+        QCOMPARE(engines.last().name, QStringLiteral("Good"));
+    }
+
     void parseOptionLine_multiWordName_parsesSpinOption()
     {
         EngineRegistrationHandler handler;
