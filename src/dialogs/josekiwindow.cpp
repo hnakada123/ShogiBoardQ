@@ -249,8 +249,9 @@ QWidget *JosekiWindow::buildToolbar()
     m_expandButton->setObjectName(QStringLiteral("josekiExpand"));
     m_recordBoardMovesCheckBox = new QCheckBox(tr("盤の手を登録"), this);
     m_recordBoardMovesCheckBox->setObjectName(QStringLiteral("josekiRecordBoardMoves"));
-    m_recordBoardMovesCheckBox->setToolTip(tr("対局していないときに盤で指した手を、指す前の局面の定跡手として登録する"
-                                              "（登録済みの手は変えない。アプリを起動し直すとオフに戻る）"));
+    m_recordBoardMovesCheckBox->setToolTip(tr("盤で指した手と対局で指された手（人間・エンジンとも）を、指す前の局面の定跡手として"
+                                              "登録する（登録済みの手は変えない。局面編集の手は登録しない。"
+                                              "アプリを起動し直すとオフに戻る）"));
     m_stopButton = makeToolButton(tr("■ 停止"), tr("定跡表示を停止/再開"), buttonStyle, this);
     m_stopButton->setCheckable(true);
     operationGroupLayout->addWidget(m_addMoveButton);

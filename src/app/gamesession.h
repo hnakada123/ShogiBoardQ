@@ -87,6 +87,10 @@ public:
     /// 対局中の対局相手の窓口（対局していなければ nullptr）
     GameChannel* activeChannel() const;
 
+signals:
+    /// 対局（ローカル・通信）で指された手を棋譜に書いた（sfen は指す前の局面。定跡ウィンドウの「盤の手を登録」が受ける）
+    void gameMoveRecorded(const QString& sfen, const QString& usiMove);
+
 public slots:
     // --- 利用者の操作 ---
     /// 対局開始ダイアログを出し、選んだ条件で対局を始める

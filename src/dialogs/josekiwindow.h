@@ -82,7 +82,7 @@ public:
 public slots:
     /// 「盤に矢印」のチェック（「表示」メニューの「盤に定跡手を表示」と同じ状態にする）
     void setBoardArrowsChecked(bool checked);
-    /// 盤で指した手（対局していないとき。sfen は指す前の局面）。「盤の手を登録」がオンなら、
+    /// 盤で指した手・対局で指された手（sfen は指す前の局面）。「盤の手を登録」がオンなら、
     /// まだ無い手を予想応手なし・評価値0・深さ0・出現頻度1で登録する（ある手は変えない）
     void recordBoardMove(const QString &sfen, const QString &usiMove);
 

@@ -4,6 +4,10 @@
 #include "mainwindow.h"
 #include "mainwindowcomposer.h"
 #include "gamesession.h"
+#include "josekibooksession.h"
+#include "josekiwindow.h"
+#include "josekiwindowcontroller.h"
+#include <QCheckBox>
 #include "kifudocument.h"
 #include "kifuexport.h"
 #include "kifubranchtree.h"
@@ -89,6 +93,52 @@ private slots:
         }
         document->markSaved(QString());
     }
+    /// 定跡ウィンドウの「盤の手を登録」がオンなら、対局で指された手（両者とも）も定跡に登録する
+    void gameMovesAreRecordedToJoseki()
+    {
+        MainWindow window;
+        auto& parts = window.composer().parts();
+        parts.gameSession->resetToInitialState();
+        auto* recordMoves = parts.joseki->josekiWindow()->findChild<QCheckBox*>(QStringLiteral("josekiRecordBoardMoves"));
+        QVERIFY(recordMoves);
+        const QString initial = SfenUtils::hirateSfen();
+        const QStringList usi{"7g7f", "3c3d"};
+        const auto moves = TestReplay::buildGameMoves(initial, usi);
+        const auto positions = TestReplay::buildSfenRecord(initial, usi, false);
+        QSignalSpy recorded(parts.gameSession, &GameSession::gameMoveRecorded);
+        const auto playGame = [&]() {
+            QVERIFY(parts.sessionReset->prepareGameStart({GameStartPreparation::Mode::NewGame, initial, -1}));
+            for (int i = 0; i < usi.size(); ++i) {
+                RecordEntry entry;
+                entry.move = moves.at(i);
+                entry.displayText = i == 0 ? QStringLiteral("▲７六歩(77)") : QStringLiteral("△３四歩(33)");
+                entry.sfen = positions.at(i + 1);
+                entry.mover = i == 0 ? Turn::Black : Turn::White;
+                parts.gameSession->appendRecord(entry);
+            }
+            parts.gameSession->appendRecord(RecordEntry::ending(TerminalType::Resign, Turn::Black));
+        };
+
+        // オフ（起動したとき）なら登録しない。手は指す前の局面と一緒に知らせる（終局の行は知らせない）
+        playGame();
+        QCOMPARE(recorded.count(), 2);
+        QCOMPARE(recorded.at(0).at(0).toString(), positions.at(0));
+        QCOMPARE(recorded.at(1).at(1).toString(), QStringLiteral("3c3d"));
+        QVERIFY(parts.josekiBook->isEmpty());
+
+        parts.document->markSaved(QString());
+        parts.gameSession->resetToInitialState();
+        recordMoves->setChecked(true);
+        playGame();
+        QCOMPARE(parts.josekiBook->movesAt(positions.at(0)).size(), 1);
+        QCOMPARE(parts.josekiBook->movesAt(positions.at(1)).size(), 1);
+        QCOMPARE(parts.josekiBook->movesAt(positions.at(0)).constFirst().move, QStringLiteral("7g7f"));
+        QCOMPARE(parts.josekiBook->movesAt(positions.at(1)).constFirst().move, QStringLiteral("3c3d"));
+        QVERIFY(parts.josekiBook->isModified());
+        parts.josekiBook->setModified(false);
+        parts.document->markSaved(QString());
+    }
+
     void recordCannotStartSession()
     {
         MainWindow window;

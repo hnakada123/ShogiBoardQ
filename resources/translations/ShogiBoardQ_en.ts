@@ -5210,17 +5210,17 @@ Discard changes and continue?</translation>
 <context>
     <name>GameSession</name>
     <message>
-        <location filename="../../src/app/gamesession.cpp" line="164"/>
+        <location filename="../../src/app/gamesession.cpp" line="168"/>
         <source>保存していない定跡</source>
         <translation>unsaved book</translation>
     </message>
     <message>
-        <location filename="../../src/app/gamesession.cpp" line="210"/>
+        <location filename="../../src/app/gamesession.cpp" line="214"/>
         <source>無制限</source>
         <translation>Unlimited</translation>
     </message>
     <message>
-        <location filename="../../src/app/gamesession.cpp" line="212"/>
+        <location filename="../../src/app/gamesession.cpp" line="216"/>
         <source>対局：▲%1 △%2（%3 開始、持ち時間 %4）</source>
         <translation>Game: ☗%1 ☖%2 (started %3, time %4)</translation>
     </message>
@@ -6853,8 +6853,8 @@ YaneuraOu ponders on this move.</translation>
 <context>
     <name>JosekiWindow</name>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="300"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="910"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="301"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="911"/>
         <source>定跡ウィンドウ</source>
         <translation>Opening Book Window</translation>
     </message>
@@ -6944,12 +6944,11 @@ YaneuraOu ponders on this move.</translation>
         <translation>Register board moves</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="252"/>
         <source>対局していないときに盤で指した手を、指す前の局面の定跡手として登録する（登録済みの手は変えない。アプリを起動し直すとオフに戻る）</source>
-        <translation>Registers moves played on the board outside games as book moves of the position before the move (moves already in the book are not changed; turns off when the app restarts)</translation>
+        <translation type="vanished">Registers moves played on the board outside games as book moves of the position before the move (moves already in the book are not changed; turns off when the app restarts)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="264"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="265"/>
         <source>表示</source>
         <translation>Display</translation>
     </message>
@@ -6962,7 +6961,7 @@ YaneuraOu ponders on this move.</translation>
         <translation type="vanished">Increase font size</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="374"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="375"/>
         <source>※ 追加・編集・削除後は「保存」ボタンで定跡ファイルに保存してください</source>
         <translation>After adding, editing, or deleting moves, click Save to save the book file.</translation>
     </message>
@@ -6975,12 +6974,12 @@ YaneuraOu ponders on this move.</translation>
         <translation type="vanished">Decrease font size</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="272"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="273"/>
         <source>自動読込</source>
         <translation>Auto Load</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="273"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="274"/>
         <source>定跡ウィンドウ表示時に前回のファイルを自動で読み込む</source>
         <translation>Auto-load previous file when opening book window opens</translation>
     </message>
@@ -7019,13 +7018,13 @@ YaneuraOu ponders on this move.</translation>
         <translation>From game file</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="254"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="689"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="255"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="690"/>
         <source>■ 停止</source>
         <translation>■ Stop</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="254"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="255"/>
         <source>定跡表示を停止/再開</source>
         <translation>Stop/Resume opening book display</translation>
     </message>
@@ -7038,35 +7037,35 @@ YaneuraOu ponders on this move.</translation>
         <translation type="vanished">Close opening book window</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="313"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="314"/>
         <source>ファイル:</source>
         <translation>File:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="314"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="500"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="315"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="501"/>
         <source>未選択</source>
         <translation>Not selected</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="326"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="327"/>
         <source>局面:</source>
         <translation>Position:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="327"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="545"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="889"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="328"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="546"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="890"/>
         <source>(未設定)</source>
         <translation>(Not set)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="330"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="331"/>
         <source>詳細</source>
         <translation>Details</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="330"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="331"/>
         <source>SFENの詳細を表示/非表示</source>
         <translation>Show/Hide SFEN details</translation>
     </message>
@@ -7127,7 +7126,7 @@ YaneuraOu ponders on this move.</translation>
         <translation type="vanished">Copy Move</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="450"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="451"/>
         <source> (未読込)</source>
         <translation> (Not loaded)</translation>
     </message>
@@ -7196,12 +7195,12 @@ YaneuraOu opening book format requires at least 5 fields per move line
 File: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="805"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="806"/>
         <source>定跡: (該当なし)</source>
         <translation>Book: (No match)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="796"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="797"/>
         <source>定跡SFEN: %1</source>
         <translation>Book SFEN: %1</translation>
     </message>
@@ -7210,53 +7209,53 @@ File: %1</translation>
         <translation type="vanished">Double-click to play</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="456"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="689"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="457"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="690"/>
         <source>▶ 再開</source>
         <translation>▶ Resume</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="802"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="803"/>
         <source>（手数違いの登録: %1）</source>
         <translation>(registered separately at moves %1)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="846"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="847"/>
         <source>✓読込済</source>
         <translation>✓Loaded</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="862"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="863"/>
         <source>ファイル: %1</source>
         <translation>File: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="862"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="863"/>
         <source>ファイル: 未選択</source>
         <translation>File: Not selected</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="863"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="864"/>
         <source>局面数: %1</source>
         <translation>Positions: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="864"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="865"/>
         <source>【停止中】</source>
         <translation>[Stopped]</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="864"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="865"/>
         <source>定跡: %1件</source>
         <translation>Book: %1 entries</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="575"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="576"/>
         <source>着手エラー</source>
         <translation>Move Error</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="576"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="577"/>
         <source>定跡手「%1」を指すことができませんでした。
 
 この定跡手は現在の局面では合法手ではない可能性があります。
@@ -7267,7 +7266,7 @@ This book move may not be legal in the current position.
 There may be an error in the opening book data.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="922"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="923"/>
         <source>新規ファイル（未保存）</source>
         <translation>New File (Unsaved)</translation>
     </message>
@@ -7284,13 +7283,13 @@ There may be an error in the opening book data.</translation>
         <translation type="vanished">Error occurred while writing file: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="522"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="522"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="523"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="523"/>
         <source>定跡</source>
         <translation>Joseki</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="843"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="844"/>
         <source>未保存</source>
         <translation>Unsaved</translation>
     </message>
@@ -7353,7 +7352,7 @@ Overwrite?</translation>
         <translation type="vanished">Overwrite</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="595"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="596"/>
         <source>定跡手は、対局中の自分の手番か、対局していないときに指せます。</source>
         <translation>Book moves can be played on your turn during a game, or when no game is in progress.</translation>
     </message>
@@ -7380,12 +7379,12 @@ Select OK to specify the save location.</translation>
         <translation type="vanished">Specify Opening Book Save Location</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="859"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="860"/>
         <source>読み込み中...</source>
         <translation>Loading...</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="860"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="861"/>
         <source>保存中...</source>
         <translation>Saving...</translation>
     </message>
@@ -7394,7 +7393,7 @@ Select OK to specify the save location.</translation>
         <translation type="vanished">Failed to save file.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="595"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="596"/>
         <source>情報</source>
         <translation>Information</translation>
     </message>
@@ -7429,91 +7428,96 @@ Select OK to specify the save location.</translation>
         <translation type="vanished">Merge Game Record to Book - %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="874"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="875"/>
         <source>定跡表示を停止しています。「再開」で表示を再開します。</source>
         <translation>Book display is paused. Click Resume to show book moves again.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="872"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="873"/>
         <source>定跡ファイルを読み込んでいます...</source>
         <translation>Loading the opening book file...</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="275"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="252"/>
+        <source>盤で指した手と対局で指された手（人間・エンジンとも）を、指す前の局面の定跡手として登録する（登録済みの手は変えない。局面編集の手は登録しない。アプリを起動し直すとオフに戻る）</source>
+        <translation>Registers moves played on the board and moves played in games (by people and engines) as book moves of the position before the move (moves already in the book are not changed; moves made while editing a position are not registered; turns off when the app restarts)</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="276"/>
         <source>盤に矢印</source>
         <translation>Board arrows</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="277"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="278"/>
         <source>表示中の局面の定跡手を盤に矢印で表示する（「表示」メニューの「盤に定跡手を表示」と同じ）</source>
         <translation>Show the book moves of the displayed position as arrows on the board (same as “Show book moves on board” in the View menu)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="717"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="718"/>
         <source>定跡の読み書き中のため、盤の手を登録できませんでした</source>
         <translation>Could not register the board move because the book is being loaded or saved</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="722"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="723"/>
         <source>%1 を定跡に登録しました</source>
         <translation>Registered %1 in the book</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="739"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="740"/>
         <source>%1手目の%2で定跡を外れています</source>
         <translation>Left the book at move %1 (%2)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="740"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="741"/>
         <source>押すとその手へ移ります</source>
         <translation>Click to go to that move</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="742"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="743"/>
         <source>表示中の手順はすべて定跡にあります</source>
         <translation>All moves of the displayed line are in the book</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="861"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="862"/>
         <source>定跡ファイルを足しています...</source>
         <translation>Adding book file...</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="865"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="866"/>
         <source>盤の手を登録中</source>
         <translation>Registering board moves</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="876"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="877"/>
         <source>将棋盤で局面を表示すると、その局面の定跡を確認できます。</source>
         <translation>Display a position on the board to see its book moves.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="878"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="879"/>
         <source>「開く」で定跡ファイルを読み込むと、表示中の局面の定跡手が表示されます。
 「新規」で新しい定跡ファイルを作ることもできます。</source>
         <translation>Open a book file with &quot;Open&quot; to see the book moves for the displayed position.
 You can also create a new book file with &quot;New&quot;.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="881"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="882"/>
         <source>この局面には定跡が登録されていません。
 「＋追加」で指し手を登録するか、「マージ」から棋譜を取り込めます。</source>
         <translation>There are no book moves for this position.
 Use Add to enter a move or Merge to import a game record.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="894"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="895"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="894"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="895"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="898"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="899"/>
         <source>初期配置</source>
         <translation>Initial Position</translation>
     </message>
@@ -7522,17 +7526,17 @@ Use Add to enter a move or Merge to import a game record.</translation>
         <translation type="vanished">Handicap</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="902"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="903"/>
         <source>%1手目</source>
         <translation>Move %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="903"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="904"/>
         <source>%1 (%2番)</source>
         <translation>%1 (%2 to move)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="905"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="906"/>
         <source>局面SFEN: %1</source>
         <translation>Position SFEN: %1</translation>
     </message>
@@ -7547,7 +7551,7 @@ Do you want to save them?</translation>
         <translation type="vanished">Cannot play move because it is the engine&apos;s turn.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="646"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="647"/>
         <source>「%1」をコピーしました</source>
         <translation>Copied &quot;%1&quot;</translation>
     </message>

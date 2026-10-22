@@ -184,8 +184,9 @@ void MainWindowComposer::connectAnalysisAndUi()
     connect(m_ui.actionShowJosekiArrows, &QAction::toggled, josekiWindow, &JosekiWindow::setBoardArrowsChecked);
     connect(josekiWindow, &JosekiWindow::boardArrowsToggled, m_ui.actionShowJosekiArrows, &QAction::setChecked);
     connect(josekiWindow, &JosekiWindow::displayEnabledChanged, m_c.arrows, &CandidateArrowPresenter::scheduleRefresh);
-    // 対局していないときに盤で指した手（定跡ウィンドウの「盤の手を登録」がオンなら定跡に登録する）
+    // 盤で指した手と対局で指された手（定跡ウィンドウの「盤の手を登録」がオンなら定跡に登録する）
     connect(m_c.branchEdit, &BranchTreeEditController::boardMoveRecorded, josekiWindow, &JosekiWindow::recordBoardMove);
+    connect(m_c.gameSession, &GameSession::gameMoveRecorded, josekiWindow, &JosekiWindow::recordBoardMove);
     // 思考の表・検討の表・棋譜解析の結果の表の右クリックに「定跡に登録」を足す
     JosekiRegistrationController* registration = m_c.josekiRegistration;
     connect(thinking, &ThinkingPanel::rowContextMenuAboutToShow,

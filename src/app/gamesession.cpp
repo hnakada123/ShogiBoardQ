@@ -104,7 +104,11 @@ void GameSession::appendRecord(const RecordEntry& entry)
     RecordEntry recorded = entry;
     // 棋譜の途中から続けた対局では、消費時間の累計を同じ側の直前の累計から続ける
     recorded.time = m_deps.liveSession->continuedTime(recorded.time);
+    const KifuBranchNode* before = m_deps.liveSession->liveNode();
+    const QString sfenBefore = before ? before->sfen() : QString();
     m_deps.liveSession->appendRecord(recorded);
+    if (!recorded.isTerminal() && recorded.move.move.isValid() && !sfenBefore.isEmpty())
+        emit gameMoveRecorded(sfenBefore, recorded.move.move.toString());
 }
 
 bool GameSession::canUndoRecords(int count) const
