@@ -4994,51 +4994,69 @@ YaneuraOu 定跡格式的著法行至少需要 5 個欄位
         <translation>請等待檔案載入或儲存完成。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="161"/>
         <source>確認</source>
-        <translation>確認</translation>
+        <translation type="vanished">確認</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="162"/>
         <source>定跡データに未保存の変更があります。
 保存しますか？</source>
-        <translation>定跡資料有尚未儲存的修改。
+        <translation type="vanished">定跡資料有尚未儲存的修改。
 是否儲存？</translation>
     </message>
     <message>
+        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="162"/>
+        <source>未保存の定跡</source>
+        <translation>未儲存的定跡</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="162"/>
+        <source>定跡に未保存の変更があります。保存しますか？</source>
+        <translation>定跡有尚未儲存的修改。是否儲存？</translation>
+    </message>
+    <message>
         <location filename="../../src/dialogs/josekifilecontroller.cpp" line="164"/>
+        <source>新しい定跡（まだファイルに保存していません）</source>
+        <translation>新定跡（尚未儲存到檔案）</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="165"/>
+        <source>定跡ファイル: %1</source>
+        <translation>定跡檔案：%1</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="166"/>
         <source>保存</source>
         <translation>儲存</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="165"/>
+        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="167"/>
         <source>破棄</source>
         <translation>放棄</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="166"/>
+        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="168"/>
         <source>キャンセル</source>
         <translation>取消</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="182"/>
+        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="184"/>
         <source>保存先の指定</source>
         <translation>指定儲存位置</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="183"/>
+        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="185"/>
         <source>定跡ファイルの保存先が設定されていません。
 OKを選択すると保存先が指定できます。</source>
         <translation>尚未設定定跡儲存位置。
 請選擇「確定」以指定儲存位置。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="187"/>
+        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="189"/>
         <source>定跡ファイルの保存先を指定</source>
         <translation>指定定跡儲存位置</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="196"/>
+        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="198"/>
         <source>定跡ファイルを保存</source>
         <translation>儲存定跡</translation>
     </message>

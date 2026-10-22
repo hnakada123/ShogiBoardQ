@@ -117,6 +117,9 @@ private:
     void acceptExpandDialog();
     QMessageBox::ButtonRole m_responseRole = QMessageBox::AcceptRole;
     bool m_messageSeen = false;
+    QString m_lastMessageTitle;        ///< 最後に答えたメッセージボックスの題名
+    QString m_lastMessageInformative;  ///< その補足の文
+    QMessageBox::Icon m_lastMessageIcon = QMessageBox::NoIcon;
     /// 非同期の保存が終わってから出るメッセージボックスに答える（答えたら止まる）
     QTimer m_responder;
     QString m_newSavePath;
@@ -459,6 +462,9 @@ void TestJosekiWindow::respondToMessageBox()
     auto *box = qobject_cast<QMessageBox*>(QApplication::activeModalWidget());
     if (!box) return;
     m_messageSeen = true;
+    m_lastMessageTitle = box->windowTitle();
+    m_lastMessageInformative = box->informativeText();
+    m_lastMessageIcon = box->icon();
     m_responder.stop();
     for (QAbstractButton *button : box->buttons()) {
         if (box->buttonRole(button) != m_responseRole) continue;
@@ -826,6 +832,10 @@ void TestJosekiWindow::testConfirmClose()
     QTimer::singleShot(0, this, &TestJosekiWindow::respondToMessageBox);
     QCOMPARE(window.confirmClose(), accepted);
     QVERIFY(m_messageSeen);
+    // 棋譜の未保存の警告と同じ見た目で、どの定跡ファイルかを添える
+    QCOMPARE(m_lastMessageTitle, QStringLiteral("未保存の定跡"));
+    QCOMPARE(m_lastMessageIcon, QMessageBox::Warning);
+    QCOMPARE(m_lastMessageInformative, QStringLiteral("定跡ファイル: close.db"));
     const auto disk = JosekiBookFile::load(path);
     QVERIFY(disk.success);
     QCOMPARE(disk.book.movesAt(key).first().value, saved ? 99 : 10);
@@ -843,6 +853,7 @@ void TestJosekiWindow::testConfirmCloseSavesNewFile()
     m_responseRole = QMessageBox::AcceptRole;
     QTimer::singleShot(0, this, &TestJosekiWindow::respondToMessageBox);
     QVERIFY(window.confirmClose());
+    QCOMPARE(m_lastMessageInformative, QStringLiteral("新しい定跡（まだファイルに保存していません）"));
     QVERIFY(!window.isIoBusy());
     QVERIFY(!window.m_session->isModified());
     QVERIFY(JosekiBookFile::load(m_newSavePath).success);

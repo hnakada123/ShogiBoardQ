@@ -5812,51 +5812,69 @@ Overwrite?</translation>
         <translation>Please wait until the file has finished loading or saving.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="161"/>
         <source>確認</source>
-        <translation>Confirm</translation>
+        <translation type="vanished">Confirm</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="162"/>
         <source>定跡データに未保存の変更があります。
 保存しますか？</source>
-        <translation>The book data has unsaved changes.
+        <translation type="vanished">The book data has unsaved changes.
 Do you want to save them?</translation>
     </message>
     <message>
+        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="162"/>
+        <source>未保存の定跡</source>
+        <translation>Unsaved Opening Book</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="162"/>
+        <source>定跡に未保存の変更があります。保存しますか？</source>
+        <translation>The opening book has unsaved changes. Do you want to save them?</translation>
+    </message>
+    <message>
         <location filename="../../src/dialogs/josekifilecontroller.cpp" line="164"/>
+        <source>新しい定跡（まだファイルに保存していません）</source>
+        <translation>New book (not saved to a file yet)</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="165"/>
+        <source>定跡ファイル: %1</source>
+        <translation>Book file: %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="166"/>
         <source>保存</source>
         <translation>Save</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="165"/>
+        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="167"/>
         <source>破棄</source>
         <translation>Discard</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="166"/>
+        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="168"/>
         <source>キャンセル</source>
         <translation>Cancel</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="182"/>
+        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="184"/>
         <source>保存先の指定</source>
         <translation>Specify Save Location</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="183"/>
+        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="185"/>
         <source>定跡ファイルの保存先が設定されていません。
 OKを選択すると保存先が指定できます。</source>
         <translation>Opening book save location is not set.
 Select OK to specify the save location.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="187"/>
+        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="189"/>
         <source>定跡ファイルの保存先を指定</source>
         <translation>Specify Opening Book Save Location</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="196"/>
+        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="198"/>
         <source>定跡ファイルを保存</source>
         <translation>Save Opening Book</translation>
     </message>
