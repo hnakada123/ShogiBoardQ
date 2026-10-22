@@ -157,22 +157,24 @@ bool JosekiFileController::confirmDiscardChanges()
         return false;
     }
     if (!m_deps.session->isModified()) return true;
-    QMessageBox msgBox(m_deps.parentWidget);
-    msgBox.setWindowTitle(tr("確認"));
-    msgBox.setText(tr("定跡データに未保存の変更があります。\n保存しますか？"));
-    msgBox.setIcon(QMessageBox::Question);
-    QPushButton *saveBtn = msgBox.addButton(tr("保存"), QMessageBox::AcceptRole);
-    QPushButton *discardBtn = msgBox.addButton(tr("破棄"), QMessageBox::DestructiveRole);
-    msgBox.addButton(tr("キャンセル"), QMessageBox::RejectRole);
-    msgBox.setDefaultButton(saveBtn);
-    msgBox.exec();
-    if (msgBox.clickedButton() == saveBtn) {
-        const QString current = m_deps.session->filePath();
+    // 棋譜の未保存の警告（KifuSaveCoordinator::confirmDiscardUnsaved）と同じ見た目にし、どの定跡かを添える
+    const QString current = m_deps.session->filePath();
+    QMessageBox msgBox(QMessageBox::Warning, tr("未保存の定跡"), tr("定跡に未保存の変更があります。保存しますか？"),
+                       QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel, m_deps.parentWidget);
+    msgBox.setInformativeText(current.isEmpty() ? tr("新しい定跡（まだファイルに保存していません）")
+                                                 : tr("定跡ファイル: %1").arg(QFileInfo(current).fileName()));
+    msgBox.button(QMessageBox::Save)->setText(tr("保存"));
+    msgBox.button(QMessageBox::Discard)->setText(tr("破棄"));
+    msgBox.button(QMessageBox::Cancel)->setText(tr("キャンセル"));
+    msgBox.setDefaultButton(QMessageBox::Save);
+    msgBox.setEscapeButton(QMessageBox::Cancel);
+    const int choice = msgBox.exec();
+    if (choice == QMessageBox::Save) {
         const QString filePath = current.isEmpty() ? selectSaveFilePath() : current;
         // 確認の応答の流れの中なので、保存が終わるまで待つ
         return !filePath.isEmpty() && saveNow(filePath);
     }
-    return msgBox.clickedButton() == discardBtn;
+    return choice == QMessageBox::Discard;
 }
 
 bool JosekiFileController::ensureFilePath()
