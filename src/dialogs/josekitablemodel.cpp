@@ -8,6 +8,7 @@
 #include "sfenreplay.h"
 #include "shogiposition.h"
 
+#include <QColor>
 #include <QLocale>
 
 JosekiTableModel::JosekiTableModel(QObject *parent)
@@ -31,12 +32,24 @@ QString JosekiTableModel::moveText(const QString &usiMove, const QString &sfen)
     return KifMoveText::format(mover, moving, *move);
 }
 
-void JosekiTableModel::setMoves(const QString &sfen, const QList<JosekiMove> &moves, bool humanCanPlay)
+bool JosekiTableModel::hasNoReply(const JosekiMove &move)
+{
+    return move.nextMove.isEmpty() || move.nextMove == QLatin1String("none");
+}
+
+QString JosekiTableModel::derivedReplyText(const QString &moveText)
+{
+    return tr("（%1）").arg(moveText);
+}
+
+void JosekiTableModel::setMoves(const QString &sfen, const QList<JosekiMove> &moves, bool humanCanPlay,
+                                const QStringList &derivedReplies)
 {
     const int oldRows = static_cast<int>(m_moves.size());
     const int newRows = static_cast<int>(moves.size());
     m_sfen = sfen;
     m_humanCanPlay = humanCanPlay;
+    m_derivedReplies = derivedReplies;
     m_frequencyTotal = 0;
     for (const JosekiMove &move : moves) m_frequencyTotal += qMax(move.frequency, 0);
     // 行の数だけを増減させ、残る行は中身を差し替える（列幅と表示位置は保つ）
@@ -70,6 +83,8 @@ QVariant JosekiTableModel::data(const QModelIndex &index, int role) const
     if (!index.isValid() || index.row() >= m_moves.size()) return {};
     const JosekiMove &move = m_moves.at(index.row());
     const int column = index.column();
+    // 予想応手が「なし」で、次の局面の定跡から応手を導けた行
+    const QString derivedReply = hasNoReply(move) ? m_derivedReplies.value(index.row()) : QString();
 
     if (role == Qt::TextAlignmentRole) {
         switch (column) {
@@ -81,10 +96,17 @@ QVariant JosekiTableModel::data(const QModelIndex &index, int role) const
     if (role == Qt::ToolTipRole) {
         switch (column) {
         case Move: return m_humanCanPlay ? move.move + QLatin1Char('\n') + tr("ダブルクリックで着手") : move.move;
-        case NextMove: return move.nextMove;
+        case NextMove:
+            if (derivedReply.isEmpty()) return move.nextMove;
+            return tr("予想応手は「なし」です。\n次の局面の定跡手で出現頻度（同じなら評価値）が最も高い手を表示しています。\n"
+                      "やねうら王はこの手を先読みに使います。") + QLatin1Char('\n') + derivedReply;
         case Comment: return move.comment;
         default: return {};
         }
+    }
+    if (role == Qt::ForegroundRole) {
+        if (column == NextMove && !derivedReply.isEmpty()) return QColor(Qt::darkGray);
+        return {};
     }
     if (role != Qt::DisplayRole) return {};
 
@@ -94,7 +116,11 @@ QVariant JosekiTableModel::data(const QModelIndex &index, int role) const
     case No: return index.row() + 1;
     case Play: return m_humanCanPlay ? tr("着手") : QString();
     case Move: return moveText(move.move, m_sfen);
-    case NextMove: return moveText(move.nextMove, SfenReplay::positionAfter(m_sfen, move.move));
+    case NextMove: {
+        const QString after = SfenReplay::positionAfter(m_sfen, move.move);
+        if (!derivedReply.isEmpty()) return derivedReplyText(moveText(derivedReply, after));
+        return moveText(move.nextMove, after);
+    }
     case Edit: return tr("編集");
     case Delete: return tr("削除");
     case Value: return locale.toString(move.value);

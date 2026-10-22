@@ -94,6 +94,7 @@ private slots:
     void testAddKeepsTargetPosition();
     void testEditAndDeleteKeepTargetPosition();
     void testSameSfenKeepsTableRows();
+    void testDerivedReplyFollowsNextPosition();
     void testButtonColumnsActOnRow();
     void testMoveListPlaceholder();
     void testFontButtonsKeepWidth();
@@ -1153,6 +1154,32 @@ void TestJosekiWindow::testSameSfenKeepsTableRows()
 }
 
 /// 「着手」「編集」「削除」の列を押すと、その行の定跡手を指す・編集する・消す
+/// 予想応手が「なし」の手には、次の局面の定跡手からやねうら王が先読みに使う手を灰色で出し、
+/// 次の局面の定跡が変わればそれに合わせる
+void TestJosekiWindow::testDerivedReplyFollowsNextPosition()
+{
+    JosekiSettings::josekiWindowAutoLoadEnabled.set(false);
+    JosekiBookSession session;
+    JosekiWindow window(&session);
+    QVERIFY(seedWindow(window, m_tempDir.filePath(QStringLiteral("derived.db"))));
+    const auto next = [&window](int role) { return window.m_model->index(0, JosekiTableModel::NextMove).data(role); };
+    QCOMPARE(next(Qt::DisplayRole).toString(), QStringLiteral("なし"));
+
+    // ▲７六歩の後の局面に △８四歩（出現頻度1）と △３四歩（出現頻度5）を登録する
+    const QString after = SfenReplay::positionAfter(initialSfen(), QStringLiteral("7g7f"));
+    session.addMove(after, {QStringLiteral("8c8d"), QStringLiteral("none"), 0, 0, 1, {}});
+    session.addMove(after, {QStringLiteral("3c3d"), QStringLiteral("none"), 0, 0, 5, {}});
+    window.updateJosekiDisplay();
+    QCOMPARE(next(Qt::DisplayRole).toString(), QStringLiteral("（△３四歩(33)）"));
+    QCOMPARE(next(Qt::ForegroundRole).value<QColor>(), QColor(Qt::darkGray));
+
+    // 予想応手を書けば、その手を普通の色で出す
+    QVERIFY(session.updateMove(initialSfen(), {QStringLiteral("7g7f"), QStringLiteral("8c8d"), 10, 32, 1, {}}));
+    window.updateJosekiDisplay();
+    QCOMPARE(next(Qt::DisplayRole).toString(), QStringLiteral("△８四歩(83)"));
+    QVERIFY(!next(Qt::ForegroundRole).isValid());
+}
+
 void TestJosekiWindow::testButtonColumnsActOnRow()
 {
     JosekiSettings::josekiWindowAutoLoadEnabled.set(false);

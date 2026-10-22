@@ -52,6 +52,7 @@ private slots:
     void clear_resetsAll();
     void find_nullForUnknown();
     void movesAt_returnsEmptyForUnknown();
+    void leadingMove_ordersLikeYaneuraOu();
 
     // --- File I/O ---
     void saveAndLoad_roundTrip();
@@ -64,6 +65,7 @@ private slots:
     void japaneseMove_usesPositionTurn();
     void japaneseMove_noneReply();
     void tableModel_showsFrequencyRatio();
+    void tableModel_showsDerivedReplyInGray();
     void mergeEntries_readOtherKifuFormats();
 
     // --- Merge ---
@@ -217,6 +219,31 @@ void TestJosekiBook::movesAt_returnsEmptyForUnknown()
     JosekiBook repo;
     const QList<JosekiMove> &moves = repo.movesAt(QStringLiteral("unknown/sfen b -"));
     QVERIFY(moves.isEmpty());
+}
+
+/// 予想応手が "none" のときにやねうら王が先読みに使う手は、出現頻度、次に評価値の高い手。
+/// それも同じならファイルで先の手で、深さは見ない（やねうら王 9.10 で確かめた並び）
+void TestJosekiBook::leadingMove_ordersLikeYaneuraOu()
+{
+    JosekiBook book;
+    QVERIFY(book.leadingMove(kHirateSfen).isEmpty());
+
+    // 出現頻度は評価値・ファイルの順より先に比べる
+    book.putMove(kHirateSfen, makeMove(QStringLiteral("8h2b+"), 100, 32, 1));
+    book.putMove(kHirateSfen, makeMove(QStringLiteral("7g7f"), 0, 32, 5));
+    QCOMPARE(book.leadingMove(kHirateSfen), QStringLiteral("7g7f"));
+
+    // 出現頻度が同じなら評価値の高い手
+    book.putMove(kHirateSfen, makeMove(QStringLiteral("2g2f"), 50, 32, 5));
+    QCOMPARE(book.leadingMove(kHirateSfen), QStringLiteral("2g2f"));
+
+    // 出現頻度・評価値が同じならファイルで先の手（深さは見ない）
+    book.putMove(kHirateSfen, makeMove(QStringLiteral("2g2f"), 0, 0, 5));
+    book.putMove(kHirateSfen, makeMove(QStringLiteral("5g5f"), 0, 99, 5));
+    QCOMPARE(book.leadingMove(kHirateSfen), QStringLiteral("7g7f"));
+
+    // 手数は区別しない
+    QCOMPARE(book.leadingMove(kHirateSfen + QStringLiteral(" 9")), QStringLiteral("7g7f"));
 }
 
 // =============================================================
@@ -725,6 +752,33 @@ void TestJosekiBook::tableModel_showsFrequencyRatio()
 
     model.setMoves(hirate, {makeMove(QStringLiteral("7g7f"), 0, 0, 0)}, true);
     QVERIFY(model.index(0, JosekiTableModel::Ratio).data().toString().isEmpty());
+}
+
+/// 予想応手が「なし」の手には、導いた応手を灰色の括弧付きで出す。予想応手を書いた手には出さない
+void TestJosekiBook::tableModel_showsDerivedReplyInGray()
+{
+    JosekiTableModel model;
+    const QString hirate = SfenUtils::hirateSfen();
+    JosekiMove written = makeMove(QStringLiteral("2g2f"));
+    written.nextMove = QStringLiteral("8c8d");
+    model.setMoves(hirate, {makeMove(QStringLiteral("7g7f")), written, makeMove(QStringLiteral("5g5f"))}, true,
+                   {QStringLiteral("3c3d"), QStringLiteral("3c3d"), QString()});
+    const auto next = [&model](int row, int role) { return model.index(row, JosekiTableModel::NextMove).data(role); };
+
+    QCOMPARE(next(0, Qt::DisplayRole).toString(), QStringLiteral("（△３四歩(33)）"));
+    QCOMPARE(next(0, Qt::ForegroundRole).value<QColor>(), QColor(Qt::darkGray));
+    QVERIFY(next(0, Qt::ToolTipRole).toString().endsWith(QStringLiteral("\n3c3d")));
+
+    QCOMPARE(next(1, Qt::DisplayRole).toString(), QStringLiteral("△８四歩(83)"));
+    QVERIFY(!next(1, Qt::ForegroundRole).isValid());
+    QCOMPARE(next(1, Qt::ToolTipRole).toString(), QStringLiteral("8c8d"));
+
+    QCOMPARE(next(2, Qt::DisplayRole).toString(), QStringLiteral("なし"));
+    QVERIFY(!next(2, Qt::ForegroundRole).isValid());
+
+    // 導いた応手を渡さなければ「なし」のまま
+    model.setMoves(hirate, {makeMove(QStringLiteral("7g7f"))}, true);
+    QCOMPARE(next(0, Qt::DisplayRole).toString(), QStringLiteral("なし"));
 }
 
 /// 棋譜ファイルからのマージは KIF 以外の形式も読む（形式はファイルから判定する）

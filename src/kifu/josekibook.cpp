@@ -243,6 +243,22 @@ QList<JosekiMove> JosekiBook::movesAt(const QString &sfen) const
     return moves;
 }
 
+QString JosekiBook::leadingMove(const QString &sfen) const
+{
+    const auto it = m_positions.constFind(keyOf(sfen));
+    if (it == m_positions.constEnd()) return QString();
+    // やねうら王は局面の定跡手を出現頻度、次に評価値の高い順に並べ替える（同じなら元の順）。深さは見ない
+    const Range range = resolve(*it, sfen);
+    const PackedMove *best = nullptr;
+    for (qsizetype i = range.header + 1; i < range.end; ++i) {
+        const PackedMove &move = it->at(i);
+        if (!best || move.frequency > best->frequency
+            || (move.frequency == best->frequency && move.value > best->value))
+            best = &move;
+    }
+    return best ? decodeMove(best->move) : QString();
+}
+
 bool JosekiBook::hasMove(const QString &sfen, const QString &usiMove) const
 {
     const auto it = m_positions.constFind(keyOf(sfen));
