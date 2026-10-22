@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>定跡 - ShogiBoardQ</title>
-    <meta name="description" content="圖解 ShogiBoardQ 的定跡功能：讀取 YaneuraOu 格式的定跡檔案，顯示各局面的定跡著法與棋盤箭頭，在對局中執行定跡著法，讓引擎在對局中使用定跡，新增、編輯、刪除定跡著法，以及從棋譜合併。">
+    <meta name="description" content="圖解 ShogiBoardQ 的定跡功能：讀取 YaneuraOu 格式的定跡檔案，顯示各局面的定跡著法與棋盤箭頭，在對局中執行定跡著法，讓引擎在對局中使用定跡，新增、編輯、刪除定跡著法，以及從棋盤著法、引擎的主要變化、多個棋譜與其他定跡檔案註冊。">
     <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/joseki.html">
     <!-- Open Graph -->
     <meta property="og:type" content="article">
@@ -65,7 +65,7 @@
             <span class="badge">YaneuraOu 格式（.db）</span>
             <span class="badge">定跡著法</span>
             <span class="badge">新增・編輯・刪除</span>
-            <span class="badge">從棋譜合併</span>
+            <span class="badge">從棋譜與引擎註冊</span>
         </div>
         <p class="screenshot-note">截圖於 Linux 上以繁體中文介面擷取。</p>
     </div>
@@ -209,6 +209,19 @@
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">8</span>
+                    <span class="guide-step-title">註冊在棋盤上走的著法</span>
+                </div>
+                <p class="guide-step-text">勾選「註冊棋盤著法」後，非對局時在棋盤上走的著法會註冊為走子前局面的定跡著法。新的著法以無預期應手、評價值 0、深度 0、次數 1 註冊，已有的著法不會變更。退回一步再走其他著法，該局面的定跡著法也會增加。</p>
+                <p class="guide-step-text">開啟期間，最下方一行會顯示「正在註冊棋盤著法」。對局中或局面編輯中走的著法不會註冊。重新啟動應用程式後恢復為關閉。註冊的著法請按一下「儲存」寫入定跡檔案。</p>
+                <div class="screenshot-item">
+                    <img src="../../images/zh-tw/joseki/joseki-12-record-board.png" alt="註冊棋盤著法後的定跡視窗">
+                    <p class="screenshot-caption">註冊棋盤著法：走了兩步後回到初始局面，再走另一個第一手</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">9</span>
                     <span class="guide-step-title">編輯定跡著法</span>
                 </div>
                 <p class="guide-step-text">按一下「編輯」可以修改預期應手、評價值、搜尋深度、次數與註解（著法本身不能修改；預期應手從走出該定跡著法後的局面的合法著法中選擇）。在表格的行上按右鍵，還可以使用執行、編輯、刪除與複製著法的選單。</p>
@@ -225,7 +238,7 @@
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">9</span>
+                    <span class="guide-step-number">10</span>
                     <span class="guide-step-title">刪除與儲存</span>
                 </div>
                 <p class="guide-step-text">按一下「刪除」會顯示確認，確認後刪除該定跡著法。刪除局面的最後一個定跡著法時，該局面也會從定跡中移除。</p>
@@ -247,14 +260,14 @@
 <!-- Section 4 -->
 <section id="joseki-merge" class="section">
     <div class="section-inner">
-        <h2 class="section-title">從棋譜合併</h2>
-        <p class="section-desc">把棋譜中的著法一併登記到定跡</p>
+        <h2 class="section-title">從棋譜與定跡檔案註冊</h2>
+        <p class="section-desc">將棋譜的著法或其他定跡檔案批次註冊到定跡</p>
 
         <div class="screenshot-gallery">
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">10</span>
+                    <span class="guide-step-number">11</span>
                     <span class="guide-step-title">登記棋譜的著法</span>
                 </div>
                 <p class="guide-step-text">選擇「合併 ▼」→「從目前棋譜」，會列出棋譜欄中目前顯示的著法序列（選擇了變化時為該變化）的著法；選擇「從棋譜檔案」，會列出棋譜檔案（KIF、KI2、CSA、JKF、USI、USEN 等）主線的著法（均包括先手與後手）。「註冊」逐手登記，「全部註冊」一次全部登記。</p>
@@ -267,15 +280,104 @@
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">11</span>
+                    <span class="guide-step-number">12</span>
+                    <span class="guide-step-title">從多個棋譜註冊</span>
+                </div>
+                <p class="guide-step-text">選擇「合併 ▼」→「從多個棋譜...」，可以一次註冊多個棋譜檔案與資料夾。用「新增檔案...」「新增資料夾...」列出，也可以將棋譜檔案與資料夾拖放到定跡視窗或此對話方塊中（資料夾也會讀取子資料夾中的棋譜）。</p>
+                <p class="guide-step-text">條件如下：</p>
+                <ul class="guide-step-text">
+                    <li>註冊的手數：註冊到此手數為止的著法（預設到第 60 手）</li>
+                    <li>註冊的著法：先手與後手、僅先手的著法、僅後手的著法、僅勝方的著法（只使用因認輸、將死、超時等分出勝負的棋譜）</li>
+                    <li>也註冊變化中的著法：棋譜中變化的著法也註冊</li>
+                    <li>最少出現次數：只註冊在所列棋譜中至少出現於這麼多局的著法</li>
+                    <li>將棋譜註解作為定跡註解：為沒有註解的定跡著法加入棋譜中該著法的註解</li>
+                </ul>
+                <p class="guide-step-text">按一下「註冊」開始讀取棋譜並顯示進度（按一下「中止」停止時定跡不會變更）。新的著法以無預期應手、評價值 0、深度 0 註冊，次數為該著法出現的局數；已有的著法會在次數上加上局數。同一局中同一局面、同一著法出現多次也只算一局。註冊後不會儲存到定跡檔案，請按一下「儲存」寫入。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-tw/joseki/joseki-13-import.png" alt="從多個棋譜註冊">
+                    <p class="screenshot-caption">從多個棋譜註冊：讀取資料夾中的棋譜並顯示註冊結果</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">13</span>
+                    <span class="guide-step-title">合併其他定跡檔案</span>
+                </div>
+                <p class="guide-step-text">選擇「合併 ▼」→「從定跡檔案...」，可以將其他定跡檔案（YaneuraOu 格式）合併到目前定跡。目前定跡中沒有的局面與定跡著法會原樣加入，不同手數的登記也會保留。對於兩邊都有的著法，可以選擇預期應手、評價值、深度與註解使用哪一方的值，以及是否將次數相加（不相加時使用所選一方的次數）。</p>
+                <p class="guide-step-text">讀取與合併在背景進行，期間顯示「正在合併定跡檔案...」。完成後會顯示加入的局面與定跡著法的數量。不能合併與目前開啟的定跡檔案相同的檔案。合併的結果請按一下「儲存」寫入定跡檔案。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-tw/joseki/joseki-14-book-merge.png" alt="合併定跡檔案">
+                    <p class="screenshot-caption">合併定跡檔案：選擇兩邊都有的著法的處理方式</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 5 -->
+<section id="joseki-engine" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">註冊引擎的分析</h2>
+        <p class="section-desc">從研究、對局的思考表格或棋譜分析結果中，將引擎的主要變化註冊到定跡</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">14</span>
+                    <span class="guide-step-title">從思考表格註冊</span>
+                </div>
+                <p class="guide-step-text">在「研究」分頁或對局中「思考」分頁的表格中，於某一列上按右鍵，選擇「將主要變化的第一手（…）註冊到定跡」，即可將該列主要變化的第一手註冊為引擎搜尋局面的定跡著法。評價值與深度使用該列的值，主要變化的第二手作為預期應手。將死的評價值與 YaneuraOu 相同，以 ±(32000−手數) 註冊。</p>
+                <p class="guide-step-text">已有的著法只改寫評價值、深度與預期應手（保留次數與註解），新的著法次數為 1。在定跡視窗讀取上次的定跡檔案之前（即第一次顯示定跡視窗之前），以及定跡正在讀取或儲存時無法選擇。註冊的著法請按一下「儲存」寫入定跡檔案。</p>
+                <div class="screenshot-item">
+                    <img src="../../images/zh-tw/joseki/joseki-15-thinking-menu.png" alt="研究表格的右鍵選單">
+                    <p class="screenshot-caption">研究表格的右鍵選單：將主要變化的第一手註冊到定跡</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">15</span>
+                    <span class="guide-step-title">從棋譜分析結果註冊</span>
+                </div>
+                <p class="guide-step-text">在棋譜分析結果的表格中，於某一列上按右鍵，選擇「將主要變化的第一手（…）註冊到定跡」，即可註冊該列局面（走出該著法後的局面）主要變化的第一手。註冊方式與思考表格相同。</p>
+                <p class="guide-step-text">選擇「將結果批次註冊到定跡...」，可以一次註冊已分析局面主要變化的第一手。選擇局面手數的範圍，以及註冊先手行棋還是後手行棋的局面。沒有主要變化的局面（例如引擎依定跡走出的局面）不註冊。完成後會顯示註冊與改寫的著法數量。</p>
+                <div class="screenshot-item">
+                    <img src="../../images/zh-tw/joseki/joseki-16-analysis-menu.png" alt="棋譜分析結果的右鍵選單">
+                    <p class="screenshot-caption">棋譜分析結果表格的右鍵選單</p>
+                </div>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-tw/joseki/joseki-17-analysis-register.png" alt="將結果批次註冊到定跡">
+                    <p class="screenshot-caption">將結果批次註冊到定跡：選擇局面手數的範圍與行棋方</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 6 -->
+<section id="joseki-yaneuraou" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">在 YaneuraOu 中使用</h2>
+        <p class="section-desc">讓 YaneuraOu 讀取自製定跡時的設定</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">16</span>
                     <span class="guide-step-title">在 YaneuraOu 中使用</span>
                 </div>
                 <p class="guide-step-text">製作的定跡檔案可以作為 YaneuraOu 的定跡（引擎設定中的 BookFile、BookDir）使用。但在 YaneuraOu 的預設設定下，有些著法不會被使用。</p>
                 <ul class="guide-step-text">
-                    <li>從棋譜登記的著法深度為 0。YaneuraOu 預設（BookDepthLimit=16）不使用深度低於 16 的定跡著法，請在「引擎設定」中將 BookDepthLimit 設為 0（合併的對話方塊中也會顯示此提示）。</li>
+                    <li>從棋盤或棋譜註冊的著法深度為 0（從引擎分析註冊的著法使用其主要變化的深度）。YaneuraOu 預設（BookDepthLimit=16）不使用深度低於 16 的定跡著法，請在「引擎設定」中將 BookDepthLimit 設為 0（合併的對話方塊中也會顯示此提示）。</li>
                     <li>ShogiBoardQ 不區分手數，但 YaneuraOu 預設（IgnoreBookPly 關閉）只在定跡檔案中局面的手數也一致時才使用定跡。要在以不同手數出現相同局面時也使用定跡，請開啟 IgnoreBookPly。</li>
                 </ul>
             </div>
+
 
         </div>
     </div>
