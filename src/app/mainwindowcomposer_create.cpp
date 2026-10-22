@@ -34,6 +34,7 @@
 #include "gamesession.h"
 #include "humanturnpolicy.h"
 #include "imageexportcontroller.h"
+#include "josekibooksession.h"
 #include "josekiwindow.h"
 #include "josekiwindowcontroller.h"
 #include "kifuanalysiscontroller.h"
@@ -312,9 +313,11 @@ void MainWindowComposer::createPresentersAndDocks()
 
     m_c.menuWindowController = new MenuWindowController({&m_window, m_window.menuBar()}, &m_window);
 
-    // 定跡ウィンドウ。定跡手を指せるかは盤のクリックと同じ判定を使う
+    // 開いている定跡と定跡ウィンドウ。定跡手を指せるかは盤のクリックと同じ判定を使う
+    m_c.josekiBook = new JosekiBookSession(&m_window);
     JosekiWindowController::Deps jd;
     jd.parentWidget = &m_window;
+    jd.book = m_c.josekiBook;
     jd.gameController = m_c.gameController;
     jd.navState = m_c.navState;
     jd.isHumanTurnNow = std::bind(&MainWindowComposer::isHumanTurnNow, this);

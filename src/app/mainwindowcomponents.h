@@ -75,6 +75,7 @@ class PlayerInfoPresenter;
 class ConsiderationUiController;
 class DialogLauncher;
 class ImageExportController;
+class JosekiBookSession;
 class JosekiWindowController;
 class KifuAnalysisController;
 class LanguageController;
@@ -160,6 +161,7 @@ struct MainWindowComponents {
     // --- 棋譜のファイル ---
     KifuLoadCoordinator* kifuLoadCoordinator = nullptr;
     KifuFileController* kifuFileController = nullptr;
+    JosekiBookSession* josekiBook = nullptr;            ///< 開いている定跡ファイル（定跡ウィンドウが表示・編集する）
 
     // --- 表示 ---
     MainWindowAppearanceController* appearance = nullptr;

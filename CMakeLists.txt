@@ -746,6 +746,8 @@ set(SRC_DIALOGS
     src/dialogs/jishogiscoredialog.h
     src/dialogs/josekifilecontroller.cpp
     src/dialogs/josekifilecontroller.h
+    src/dialogs/josekimergecontroller.cpp
+    src/dialogs/josekimergecontroller.h
     src/dialogs/josekimergedialog.cpp
     src/dialogs/josekimergedialog.h
     src/dialogs/josekimovedialog.cpp
