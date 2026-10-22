@@ -15,6 +15,8 @@
 #include <QTimer>
 
 #include "startgamedialog.h"
+#include "josekiplayoptionsdialog.h"
+#include "josekisettings.h"
 #include "settingscommon.h"
 #include "timecontrolvalidator.h"
 
@@ -63,6 +65,15 @@ class TestStartGameDialog : public QObject
         accept(dialog);
         m_warningAttempts = 0;
         return m_warningText;
+    }
+
+    /// 定跡の条件のダイアログで手数を20にして閉じる
+    void setJosekiMaxPly20()
+    {
+        auto* dialog = qobject_cast<JosekiPlayOptionsDialog*>(QApplication::activeModalWidget());
+        QVERIFY(dialog);
+        dialog->findChild<QSpinBox*>(QStringLiteral("josekiMaxPly"))->setValue(20);
+        dialog->accept();
     }
 
     static void setEngines(const QStringList& names)
@@ -142,6 +153,41 @@ private slots:
         accept(reopened);
         QCOMPARE(reopened.data().players[1].engine.name, QStringLiteral("second"));
         QCOMPARE(reopened.data().players[1].engine.path, QStringLiteral("/engines/second"));
+    }
+
+    /// 「定跡を使う」はエンジンの対局者だけに出し、定跡を開いていなければ押せない（チェックは残す）。
+    /// 条件はダイアログで選んで保存し、先後の入れ替えで一緒に入れ替える
+    void josekiOptionsPerEngine()
+    {
+        setEngines({QStringLiteral("first")});
+        {
+            StartGameDialog dialog;
+            auto* use1 = widget<QCheckBox>(dialog, "checkBoxUseJoseki1");
+            auto* use2 = widget<QCheckBox>(dialog, "checkBoxUseJoseki2");
+            QVERIFY(!use1->isVisibleTo(&dialog));
+            QVERIFY(use2->isVisibleTo(&dialog));
+            QVERIFY(!use2->isEnabled());
+            use2->setChecked(true);
+            QVERIFY(!dialog.data().players[1].joseki.enabled);
+            dialog.setJosekiBookName(QStringLiteral("book.db"));
+            QVERIFY(use2->isEnabled());
+            QVERIFY(use2->text().contains(QStringLiteral("book.db")));
+            QVERIFY(dialog.data().players[1].joseki.enabled);
+            QTimer::singleShot(0, this, &TestStartGameDialog::setJosekiMaxPly20);
+            widget<QPushButton>(dialog, "pushButtonJosekiConditions2")->click();
+            QCOMPARE(dialog.data().players[1].joseki.maxPly, 20);
+            widget<QSpinBox>(dialog, "byoyomiSec1")->setValue(30);
+            accept(dialog);
+        }
+        QVERIFY(JosekiSettings::playOptions2().enabled);
+        QCOMPARE(JosekiSettings::playOptions2().maxPly, 20);
+        StartGameDialog reopened;
+        QVERIFY(widget<QCheckBox>(reopened, "checkBoxUseJoseki2")->isChecked());
+        widget<QPushButton>(reopened, "pushButtonSwapSides")->click();
+        QVERIFY(widget<QCheckBox>(reopened, "checkBoxUseJoseki1")->isChecked());
+        QVERIFY(!widget<QCheckBox>(reopened, "checkBoxUseJoseki2")->isChecked());
+        reopened.setJosekiBookName(QStringLiteral("book.db"));
+        QCOMPARE(reopened.data().players[0].joseki.maxPly, 20);
     }
 
     void resetRestoresCommonTime()

@@ -13,12 +13,16 @@ UsiMatchHandler::UsiMatchHandler(UsiProtocolHandler* protocolHandler, QObject* p
     m_responseTimer.setSingleShot(true);
     m_responseTimer.setTimerType(Qt::PreciseTimer);
     connect(&m_responseTimer, &QTimer::timeout, this, &UsiMatchHandler::onSearchTimeout);
+    m_bookTimer.setSingleShot(true);
+    m_bookTimer.setTimerType(Qt::PreciseTimer);
+    connect(&m_bookTimer, &QTimer::timeout, this, &UsiMatchHandler::onBookMoveTimer);
     connect(m_protocolHandler, &UsiProtocolHandler::bestMoveReceived, this, &UsiMatchHandler::onBestMoveReceived);
 }
 
 void UsiMatchHandler::cancelAsync()
 {
     m_responseTimer.stop();
+    m_bookTimer.stop();
     m_pending = Pending::None;
 }
 
@@ -48,6 +52,46 @@ void UsiMatchHandler::requestMove(const UsiPosition& position)
     m_pending = Pending::Move;
     m_responseTimer.start(searchTiming(m_position.sideToMove()).timeoutMs);
     m_protocolHandler->sendPonderHit();
+}
+
+void UsiMatchHandler::requestBookMove(const UsiPosition& position, const UsiMove& move, int delayMs)
+{
+    // 持ち時間に対して、待つ時間はこれだけ残す（時計の精算と盤への反映の間に時間切れにならないように）
+    constexpr int kTimeMarginMs = 500;
+    cancelAsync();
+    m_position = position;
+    const SearchTiming timing = searchTiming(m_position.sideToMove());
+    if (timing.expired) return;
+    // 先読みしていれば止める。返ってくる bestmove は先読みの結果なので onBestMoveReceived が捨てる
+    if (m_protocolHandler->isSearching() && m_protocolHandler->searchKind() == UsiProtocolHandler::SearchKind::Ponder)
+        m_protocolHandler->sendStop();
+    m_ponder = {};
+    m_bookMove = move;
+    m_pending = Pending::BookMove;
+    m_bookElapsed.start();
+    m_bookTimer.start(qBound(0, timing.timeoutMs - kTimeMarginMs, delayMs));
+}
+
+bool UsiMatchHandler::playBookMoveNow()
+{
+    if (m_pending != Pending::BookMove) return false;
+    m_bookTimer.stop();
+    onBookMoveTimer();
+    return true;
+}
+
+void UsiMatchHandler::onBookMoveTimer()
+{
+    if (m_pending != Pending::BookMove) return;
+    m_pending = Pending::None;
+    const Turn side = m_position.sideToMove();
+    if (!finishTurn()) return;
+    UsiMatchMove played;
+    played.side = side;
+    played.move = m_bookMove;
+    played.elapsedMs = m_bookElapsed.elapsed();
+    if (const std::optional<UsiPosition> after = m_position.withMove(m_bookMove)) m_position = *after;
+    emit moveReady(played);
 }
 
 void UsiMatchHandler::startAsyncSearch()

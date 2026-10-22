@@ -23,6 +23,15 @@
 #include "usimatchhandler.h"
 #include "nyugyokujudgement.h"
 #include "sennichitedetector.h"
+#include "josekimovepicker.h"
+#include "kifupresentation.h"
+
+#include <QRandomGenerator>
+
+namespace {
+/// 定跡手を指すまで待つ時間（定跡手でもエンジンが指したと分かるように、最低これだけ置く）
+constexpr int kBookMoveDelayMs = 1000;
+} // namespace
 
 // ============================================================
 // 初期化
@@ -191,7 +200,29 @@ void MatchCoordinator::requestEngineMove(Turn side)
 {
     Usi* engine = m_engines->engineFor(side);
     if (!engine) return;
-    engine->requestMatchMove(m_record.usiPosition(currentPly()));
+    const UsiPosition position = m_record.usiPosition(currentPly());
+    // 定跡を使う対局者なら、条件に合う定跡手をエンジンに探索させずに指す
+    const StartOptions& opt = m_session.options();
+    const JosekiPlayOptions& joseki = opt.josekiOptions.at(side == Turn::Black ? 0 : 1);
+    if (joseki.enabled) {
+        const QString sfen = m_record.lastSfen();
+        if (const std::optional<JosekiPick> pick =
+                JosekiMovePicker::pick(opt.josekiBook, sfen, joseki, *QRandomGenerator::global())) {
+            if (const std::optional<UsiMove> move = UsiMove::parse(pick->move.move)) {
+                engine->requestBookMove(position, *move, kBookMoveDelayMs, bookMoveLabel(sfen, *pick));
+                return;
+            }
+        }
+    }
+    engine->requestMatchMove(position);
+}
+
+QString MatchCoordinator::bookMoveLabel(const QString& sfen, const JosekiPick& pick)
+{
+    const QString move = KifuPresentation::move(sfen, pick.move.move, KifuPresentation::options());
+    // 出現頻度の無い定跡（すべて0）は割合を出さない
+    if (pick.ratioPercent <= 0.0) return tr("%1（定跡）").arg(move);
+    return tr("%1（定跡 %2%）").arg(move, QString::number(pick.ratioPercent, 'f', 1));
 }
 
 void MatchCoordinator::forceImmediateMove()

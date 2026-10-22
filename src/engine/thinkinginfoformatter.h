@@ -47,6 +47,8 @@ public slots:
     void requestClearThinkingInfo();
     /// 詰み探索の結果。info を省くエンジンでも詰み手順を思考の表に残す
     void presentCheckmate(const UsiCheckmate& result);
+    /// 対局で定跡手を指す。前の思考情報を消し、情報欄の探索手に label（表示する側が作った表記）を出す
+    void presentBookMove(const QString& label);
 
 signals:
     void thinkingInfoUpdated(const ThinkingInfoRow& row);

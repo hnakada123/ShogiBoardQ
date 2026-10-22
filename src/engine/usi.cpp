@@ -107,6 +107,14 @@ void Usi::requestMatchMove(const UsiPosition& position)
     m_session->whenReady([this, position]() { m_matchHandler->requestMove(position); });
 }
 
+void Usi::requestBookMove(const UsiPosition& position, const UsiMove& move, int delayMs, const QString& label)
+{
+    m_session->whenReady([this, position, move, delayMs, label]() {
+        m_formatter->presentBookMove(label);
+        m_matchHandler->requestBookMove(position, move, delayMs);
+    });
+}
+
 void Usi::forgetPonder()
 {
     m_matchHandler->forgetPonder();
@@ -114,6 +122,7 @@ void Usi::forgetPonder()
 
 void Usi::requestImmediateMove()
 {
+    if (m_matchHandler->playBookMoveNow()) return;
     // 準備中に stop を送ると保留中の position・go まで取りやめになり、エンジンが指さずに対局が止まる。
     // 保留中の処理の後ろに並べ、探索を始めた直後に止めて指させる
     m_session->whenReady([this]() { m_session->stop(); });

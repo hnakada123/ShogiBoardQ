@@ -295,6 +295,9 @@ void MainWindowComposer::createPresentersAndDocks()
     ed.csaLog = m_c.csaLog;
     m_c.engineDisplay = new EngineDisplayPresenter(ed, &m_window);
 
+    // 開いている定跡（定跡ウィンドウが表示・編集し、盤の矢印と対局でも使う）
+    m_c.josekiBook = new JosekiBookSession(&m_window);
+
     CandidateArrowPresenter::Deps ad;
     ad.view = m_c.shogiView;
     ad.match = m_c.match;
@@ -303,7 +306,10 @@ void MainWindowComposer::createPresentersAndDocks()
     ad.analysis = m_c.analysisSession;
     ad.consideration = m_c.consideration;
     ad.showConsiderationArrows = std::bind(&MainWindowComposer::showConsiderationArrows, this);
+    ad.josekiBook = m_c.josekiBook;
+    ad.josekiArrowsAllowed = std::bind(&MainWindowComposer::josekiArrowsAllowed, this);
     m_c.arrows = new CandidateArrowPresenter(ad, &m_window);
+    m_ui.actionShowJosekiArrows->setChecked(m_c.arrows->josekiArrowsVisible());
 
     PlayerInfoPresenter::Deps pd;
     pd.document = m_c.document;
@@ -313,8 +319,7 @@ void MainWindowComposer::createPresentersAndDocks()
 
     m_c.menuWindowController = new MenuWindowController({&m_window, m_window.menuBar()}, &m_window);
 
-    // 開いている定跡と定跡ウィンドウ。定跡手を指せるかは盤のクリックと同じ判定を使う
-    m_c.josekiBook = new JosekiBookSession(&m_window);
+    // 定跡ウィンドウ。定跡手を指せるかは盤のクリックと同じ判定を使う
     JosekiWindowController::Deps jd;
     jd.parentWidget = &m_window;
     jd.book = m_c.josekiBook;
@@ -323,6 +328,7 @@ void MainWindowComposer::createPresentersAndDocks()
     jd.isHumanTurnNow = std::bind(&MainWindowComposer::isHumanTurnNow, this);
     jd.boardMoves = m_c.boardMoves;
     m_c.joseki = new JosekiWindowController(jd, &m_window);
+    m_c.joseki->josekiWindow()->setBoardArrowsChecked(m_c.arrows->josekiArrowsVisible());
 
     m_c.analysisResults = new AnalysisResultsPanel(&m_window);
 
@@ -433,6 +439,7 @@ void MainWindowComposer::createSessions()
     gd.appearance = m_c.appearance;
     gd.csaGame = m_c.csaGame;
     gd.nyugyoku = m_c.nyugyokuHandler;
+    gd.josekiBook = m_c.josekiBook;
     m_c.gameSession = new GameSession(gd, &m_window);
     // 司令塔は手順の書き先（GameSession）より先に作るので、ここで渡す
     m_c.match->setRecordSink(m_c.gameSession);

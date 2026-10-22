@@ -10,6 +10,8 @@
 #include "startgamedatabridge.h"
 
 class EngineSelector;
+class QCheckBox;
+class QLabel;
 class QLineEdit;
 class QPushButton;
 class QStackedWidget;
@@ -18,7 +20,9 @@ class QStackedWidget;
  * @brief 対局者1人を選ぶ欄
  *
  * コンボの先頭が「人間」、その後に登録エンジンが並ぶ（EngineSelector の内蔵の項目を「人間」に使う）。
- * 人間なら名前の入力欄、エンジンなら「エンジン設定」ボタンを出す。設定ダイアログは受け手が開く。
+ * 人間なら名前の入力欄、エンジンなら「エンジン設定」ボタンと「定跡を使う」・「条件…」を出す。
+ * 設定ダイアログ・定跡の条件のダイアログは受け手が開く。定跡は定跡ウィンドウで開いている定跡を使い、
+ * 開いていなければ「定跡を使う」を押せない（setJosekiBookName）。
  */
 class PlayerSetupWidget : public QWidget
 {
@@ -29,10 +33,15 @@ public:
     /// saved はこの対局者の保存先（エンジンの選択の保存・復元に使う）
     PlayerSetupWidget(int side, const GameSettings::StartGame::Player& saved, QWidget* parent = nullptr);
 
-    /// 選んだ対局者（時間は含まない）
+    /// 選んだ対局者（時間は含まない）。定跡は、エンジンで、定跡を開いていて「定跡を使う」のときだけ使う
     PlayerChoice choice() const;
-    /// 対局者を選ぶ（人間・名前・エンジンの名前。時間は見ない）
+    /// 対局者を選ぶ（人間・名前・エンジンの名前。時間と定跡の条件は見ない）
     void setChoice(const PlayerChoice& choice);
+    /// 定跡を使う条件（enabled は「定跡を使う」のチェック。定跡を開いていなくてもチェックのまま返す）
+    JosekiPlayOptions josekiOptions() const;
+    void setJosekiOptions(const JosekiPlayOptions& options);
+    /// 定跡ウィンドウで開いている定跡の名前（空なら開いていないので「定跡を使う」を押せない）
+    void setJosekiBookName(const QString& name);
     bool isEngine() const;
 
     /// 保存した選択を読む（保存したエンジンが一覧に無ければ人間にする）
@@ -47,17 +56,26 @@ signals:
     void kindChanged();
     /// 「エンジン設定」が押された
     void engineSettingsRequested(const EngineListSettings::EngineEntry& engine);
+    /// 定跡の「条件…」が押された（side はコンストラクタに渡した番号）
+    void josekiConditionsRequested(int side);
 
 private slots:
     void updatePages();
+    void onJosekiConditionsClicked();
 
 private:
     const GameSettings::StartGame::Player& m_saved;
+    int m_side = 1;
+    JosekiPlayOptions m_joseki;   ///< 定跡を使う条件（enabled はチェックが持つ）
     EngineSelector* m_selector = nullptr;
     QLineEdit* m_humanName = nullptr;
     QStackedWidget* m_labelPages = nullptr;
     QStackedWidget* m_inputPages = nullptr;
     QPushButton* m_engineSettings = nullptr;
+    QWidget* m_josekiRow = nullptr;          ///< 「定跡を使う」と「条件…」（エンジンのときだけ出す）
+    QLabel* m_josekiLabel = nullptr;
+    QCheckBox* m_useJoseki = nullptr;
+    QPushButton* m_josekiConditions = nullptr;
 };
 
 #endif // PLAYERSETUPWIDGET_H

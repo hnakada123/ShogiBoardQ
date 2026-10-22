@@ -4,6 +4,7 @@
 /// @file usimatchhandler.h
 /// @brief 対局での position/go/bestmove のやり取り（先読みを含む）
 
+#include <QElapsedTimer>
 #include <QObject>
 #include <QTimer>
 #include <QString>
@@ -33,6 +34,7 @@ Q_DECLARE_METATYPE(UsiMatchMove)
  * 持ち時間を読んで go を送り、持ち時間の間に bestmove が届かなければ知らせる。
  * 指した後は、予想した相手の手で先読みを始める。予想が当たれば ponderhit、外れれば stop で回収してから次の go を送る。
  * 先読みの局面はこの部品だけが持つ（待ったなどで局面が変わったら forgetPonder() で捨てる）。
+ * 定跡手（requestBookMove）はエンジンに探索させず、待つ時間の後で同じ moveReady で知らせる。
  * 結果（指し手・投了・宣言勝ち）には指した側を添えて知らせる。
  */
 class UsiMatchHandler : public QObject
@@ -49,6 +51,16 @@ public:
 
     /// 手番の探索を頼む。先読み中なら当たり・外れを判断する
     void requestMove(const UsiPosition& position);
+    /**
+     * @brief 手番で定跡手を指す（エンジンには探索させない）
+     *
+     * 先読み中なら止める（返ってくる bestmove は先読みの結果なので使わない）。delayMs 待ってから手番の時間を
+     * 精算し、moveReady で知らせる（評価値は無し）。持ち時間が待つ時間より短ければ、時間切れにならないよう縮める。
+     * 指した後は先読みしない。
+     */
+    void requestBookMove(const UsiPosition& position, const UsiMove& move, int delayMs);
+    /// 定跡手を待っていれば、すぐ指す（「すぐ指させる」）。待っていなければ false
+    bool playBookMoveNow();
     void cancelAsync();
     /// 先読みの局面を捨てる（待った・中断の後など。次の手番の探索は先読みを外れとして扱う）
     void forgetPonder() { m_ponder = {}; }
@@ -66,6 +78,8 @@ signals:
 private slots:
     void onBestMoveReceived(const UsiBestMove& result);
     void onSearchTimeout();
+    /// 定跡手の待つ時間が過ぎた
+    void onBookMoveTimer();
 
 private:
     void startAsyncSearch();
@@ -75,11 +89,14 @@ private:
     /// 手番の時間を精算する。時間切れなら false
     bool finishTurn();
 
-    enum class Pending { None, PonderStop, Move };
+    enum class Pending { None, PonderStop, Move, BookMove };
     Pending m_pending = Pending::None;
     UsiPosition m_position;
     UsiPosition m_ponder;
     QTimer m_responseTimer;
+    UsiMove m_bookMove;            ///< 待っている定跡手
+    QTimer m_bookTimer;            ///< 定跡手を指すまでの待ち
+    QElapsedTimer m_bookElapsed;   ///< 定跡手を頼まれてからの時間（考えた時間として知らせる）
 
     UsiProtocolHandler* m_protocolHandler = nullptr;
     MatchTimeSource* m_timeSource = nullptr;

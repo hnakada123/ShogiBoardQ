@@ -51,6 +51,7 @@ const QStringList& AutomationActionPolicy::allowedActions()
         QStringLiteral("actionChangeTurn"),
         // 表示
         QStringLiteral("actionFlipBoard"),
+        QStringLiteral("actionShowJosekiArrows"),
         QStringLiteral("actionEnlargeBoard"),
         QStringLiteral("actionShrinkBoard"),
         QStringLiteral("actionToolBar"),

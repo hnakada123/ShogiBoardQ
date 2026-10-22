@@ -3,6 +3,7 @@
 
 #include "gamesession.h"
 #include "enginelifecyclemanager.h"
+#include "josekibooksession.h"
 
 #include "analysissession.h"
 #include "appstate.h"
@@ -31,6 +32,7 @@
 #include "timedisplaypresenter.h"
 
 #include <QDateTime>
+#include <QFileInfo>
 
 namespace {
 
@@ -130,6 +132,7 @@ void GameSession::startGameFromDialog()
 
     StartGameDialog dlg;
     if (hasEditedStart) dlg.forceCurrentPositionSelection();
+    dlg.setJosekiBookName(josekiBookName());
     if (dlg.exec() != QDialog::Accepted) return;
 
     GameStartRequest request;
@@ -142,12 +145,23 @@ void GameSession::startGameFromDialog()
     request.bottomSide = m_deps.shogiView->flipMode() ? Turn::White : Turn::Black;
 
     QString error;
-    const std::optional<GameStartPlan> plan = GameStartOptionsBuilder::plan(request, &error);
+    std::optional<GameStartPlan> plan = GameStartOptionsBuilder::plan(request, &error);
     if (!plan) {
         if (!error.isEmpty()) ErrorBus::instance().postMessage(ErrorBus::ErrorLevel::Warning, error);
         return;
     }
+    // 定跡を使うエンジンには、始めた時点の定跡の写しを渡す（対局中に定跡ウィンドウで変えても影響しない）
+    const auto& joseki = plan->options.josekiOptions;
+    if (m_deps.josekiBook && (joseki[0].enabled || joseki[1].enabled))
+        plan->options.josekiBook = m_deps.josekiBook->snapshot();
     startGame(*plan, /*beginSeries=*/true);
+}
+
+QString GameSession::josekiBookName() const
+{
+    if (!m_deps.josekiBook || m_deps.josekiBook->isEmpty()) return QString();
+    const QString path = m_deps.josekiBook->filePath();
+    return path.isEmpty() ? tr("保存していない定跡") : QFileInfo(path).fileName();
 }
 
 bool GameSession::startGame(const GameStartPlan& plan, bool beginSeries)

@@ -58,6 +58,7 @@ void ConsecutiveGameSeries::launchPreparedNextGame()
         MatchStartOptions& opt = m_nextGame.options;
         std::swap(opt.players.blackEngineName, opt.players.whiteEngineName);
         std::swap(opt.enginePath1, opt.enginePath2);
+        std::swap(opt.josekiOptions[0], opt.josekiOptions[1]);
         std::swap(m_nextGame.time.rules.black, m_nextGame.time.rules.white);
     }
     emit nextGameReady(m_nextGame);

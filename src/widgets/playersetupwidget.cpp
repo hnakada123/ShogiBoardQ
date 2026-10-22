@@ -3,6 +3,7 @@
 
 #include "playersetupwidget.h"
 
+#include <QCheckBox>
 #include <QComboBox>
 #include <QGridLayout>
 #include <QHBoxLayout>
@@ -13,6 +14,7 @@
 
 #include "buttonstyles.h"
 #include "engineselector.h"
+#include "josekisettings.h"
 
 namespace {
 /// ページ（名前の欄・エンジン設定ボタン）の番号
@@ -37,6 +39,7 @@ QWidget* makePage(QWidget* parent, const QString& name, QWidget* content)
 PlayerSetupWidget::PlayerSetupWidget(int side, const GameSettings::StartGame::Player& saved, QWidget* parent)
     : QWidget(parent)
     , m_saved(saved)
+    , m_side(side)
 {
     const QString n = QString::number(side);
     auto* grid = new QGridLayout(this);
@@ -76,10 +79,31 @@ PlayerSetupWidget::PlayerSetupWidget(int side, const GameSettings::StartGame::Pl
     m_inputPages->addWidget(makePage(m_inputPages, QStringLiteral("pageHuman") + n, m_humanName));
     m_inputPages->addWidget(makePage(m_inputPages, QStringLiteral("pageEngine") + n, m_engineSettings));
 
+    // エンジンなら、定跡ウィンドウで開いている定跡を使うか（エンジンに探索させずに定跡手を指す）と、その条件
+    m_josekiLabel = new QLabel(tr("定跡"), this);
+    m_josekiLabel->setObjectName(QStringLiteral("labelJoseki") + n);
+    m_useJoseki = new QCheckBox(tr("定跡を使う"), this);
+    m_useJoseki->setObjectName(QStringLiteral("checkBoxUseJoseki") + n);
+    m_josekiConditions = new QPushButton(tr("条件…"), this);
+    m_josekiConditions->setObjectName(QStringLiteral("pushButtonJosekiConditions") + n);
+    m_josekiConditions->setStyleSheet(ButtonStyles::secondaryNeutral());
+    m_josekiConditions->setAutoDefault(false);
+    m_josekiLabel->setBuddy(m_useJoseki);
+    m_josekiRow = new QWidget(this);
+    auto* josekiLayout = new QHBoxLayout(m_josekiRow);
+    josekiLayout->setContentsMargins(0, 0, 0, 0);
+    josekiLayout->addWidget(m_useJoseki);
+    josekiLayout->addWidget(m_josekiConditions);
+    josekiLayout->addStretch();
+    connect(m_josekiConditions, &QPushButton::clicked, this, &PlayerSetupWidget::onJosekiConditionsClicked);
+
     grid->addWidget(typeLabel, 0, 0);
     grid->addWidget(combo, 0, 1);
     grid->addWidget(m_labelPages, 1, 0);
     grid->addWidget(m_inputPages, 1, 1);
+    grid->addWidget(m_josekiLabel, 2, 0);
+    grid->addWidget(m_josekiRow, 2, 1);
+    setJosekiBookName(QString());
 
     // コンボの先頭（内蔵の項目）を「人間」にする。エンジンは名前で保存し、以前の版の番号・パスも読む
     EngineSelector::Options options;
@@ -104,8 +128,39 @@ PlayerChoice PlayerSetupWidget::choice() const
     if (const std::optional<EngineListSettings::EngineEntry> engine = m_selector->selected()) {
         choice.kind = PlayerChoice::Kind::Engine;
         choice.engine = *engine;
+        choice.joseki = josekiOptions();
+        // 定跡ウィンドウで定跡を開いていなければ使わない（チェックの保存は残す）
+        choice.joseki.enabled = choice.joseki.enabled && m_useJoseki->isEnabled();
     }
     return choice;
+}
+
+JosekiPlayOptions PlayerSetupWidget::josekiOptions() const
+{
+    JosekiPlayOptions options = m_joseki;
+    options.enabled = m_useJoseki->isChecked();
+    return options;
+}
+
+void PlayerSetupWidget::setJosekiOptions(const JosekiPlayOptions& options)
+{
+    m_joseki = options.normalized();
+    m_useJoseki->setChecked(m_joseki.enabled);
+}
+
+void PlayerSetupWidget::setJosekiBookName(const QString& name)
+{
+    const bool available = !name.isEmpty();
+    m_useJoseki->setEnabled(available);
+    m_useJoseki->setText(available ? tr("定跡を使う（%1）").arg(name) : tr("定跡を使う"));
+    m_useJoseki->setToolTip(available
+        ? tr("定跡ウィンドウで開いている定跡の手を、エンジンに探索させずに指します")
+        : tr("定跡ウィンドウで定跡ファイルを開くと使えます"));
+}
+
+void PlayerSetupWidget::onJosekiConditionsClicked()
+{
+    emit josekiConditionsRequested(m_side);
 }
 
 void PlayerSetupWidget::setChoice(const PlayerChoice& choice)
@@ -135,6 +190,7 @@ void PlayerSetupWidget::load()
     }
     if (index >= 0) m_selector->select(engines.at(index).name);
     else m_selector->selectBuiltin();
+    setJosekiOptions(JosekiSettings::playOptions(m_side)());
     updatePages();
 }
 
@@ -145,6 +201,7 @@ void PlayerSetupWidget::save() const
     m_saved.isEngine.set(!human);
     m_saved.humanName.set(m_humanName->text());
     if (!human) m_selector->saveSelection();
+    JosekiSettings::playOptions(m_side).set(josekiOptions());
 }
 
 void PlayerSetupWidget::reset(bool engine)
@@ -152,6 +209,7 @@ void PlayerSetupWidget::reset(bool engine)
     m_humanName->setText(tr("You"));
     if (engine && m_selector->hasEngines()) m_selector->select(m_selector->engines().first().name);
     else m_selector->selectBuiltin();
+    setJosekiOptions(JosekiPlayOptions{});
 }
 
 void PlayerSetupWidget::updatePages()
@@ -159,4 +217,7 @@ void PlayerSetupWidget::updatePages()
     const int page = isEngine() ? kEnginePage : kHumanPage;
     m_labelPages->setCurrentIndex(page);
     m_inputPages->setCurrentIndex(page);
+    // 定跡を使えるのはエンジンだけ
+    m_josekiLabel->setVisible(isEngine());
+    m_josekiRow->setVisible(isEngine());
 }

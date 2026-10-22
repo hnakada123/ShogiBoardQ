@@ -38,6 +38,8 @@ public:
 
     /// 開始局面を「現在の局面」にする
     void forceCurrentPositionSelection();
+    /// 定跡ウィンドウで開いている定跡の名前（空なら開いていないので、エンジンの「定跡を使う」を押せない）
+    void setJosekiBookName(const QString &name);
 
 private:
     std::unique_ptr<Ui::StartGameDialog> ui; ///< UIオブジェクト
@@ -69,6 +71,8 @@ private slots:
 
     /// 選んだエンジンの設定ダイアログを表示する
     void showEngineSettingsDialog(const EngineListSettings::EngineEntry& engine);
+    /// 対局者 side（1=先手／下手、2=後手／上手）の定跡を使う条件のダイアログを表示する
+    void showJosekiConditionsDialog(int side);
 
     /// 先後の対局者設定を入れ替える
     void swapSides();

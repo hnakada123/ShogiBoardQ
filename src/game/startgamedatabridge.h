@@ -9,6 +9,7 @@
 
 #include "enginelistsettings.h"
 #include "handicaps.h"
+#include "josekiplayoptions.h"
 #include "timecontrol.h"
 
 /// 対局者1人の選択（対局開始ダイアログの「対局者」と時間設定）
@@ -19,6 +20,7 @@ struct PlayerChoice {
     QString humanName;                       ///< 人間の対局者名
     EngineListSettings::EngineEntry engine;  ///< エンジン（kind が Engine のとき。名前・実行ファイル・作者）
     TimeControlSide time;                    ///< 持ち時間・秒読み・加算
+    JosekiPlayOptions joseki;                ///< 定跡を使う条件（kind が Engine のとき。定跡ウィンドウで開いている定跡を使う）
 
     bool isHuman() const { return kind == Kind::Human; }
     bool isEngine() const { return kind == Kind::Engine; }

@@ -70,9 +70,12 @@ public:
     void setMatchTimeSource(MatchTimeSource* source);
     /// 対局の手番の探索を頼む（先読みしていれば、その当たり・外れはこの部品が判断する）
     void requestMatchMove(const UsiPosition& position);
+    /// 対局の手番で定跡手を指す。探索はさせず、delayMs 後に matchMoveReady で知らせる。
+    /// label は情報欄の「探索手」に出す表示（例「▲７六歩（定跡 82%）」）
+    void requestBookMove(const UsiPosition& position, const UsiMove& move, int delayMs, const QString& label);
     /// 先読みの局面を捨てる（待った・中断で局面が戻ったとき）
     void forgetPonder();
-    /// 対局中の「すぐ指させる」。準備中に頼まれた探索は残し、それを送った後で stop を送る
+    /// 対局中の「すぐ指させる」。定跡手を待っていればすぐ指す。準備中に頼まれた探索は残し、それを送った後で stop を送る
     void requestImmediateMove();
     void sendGameOverCommand(GameOverResult result);
 

@@ -71,7 +71,7 @@ cmake --build build --target translations
   - `shoginotation.h` - 筋・段・駒の表記（漢字・全角・CSA）
 
 - **game/**: ゲーム進行・対局管理（GUI に依存しない）
-  - `matchcoordinator.cpp/.h` - 対局の司令塔（開始・着手・終局・待った・中断と再開）。手順は `record()`、対局者は `players()`
+  - `matchcoordinator.cpp/.h` - 対局の司令塔（開始・着手・終局・待った・中断と再開）。手順は `record()`、対局者は `players()`。エンジンの手番で、定跡を使う対局者（`MatchStartOptions::josekiOptions`）なら `JosekiMovePicker` で定跡手を選び、`Usi::requestBookMove` で探索させずに最低1秒置いて指す（定跡は対局を始めたときに定跡ウィンドウで開いていた定跡の写し `MatchStartOptions::josekiBook`）
   - `humanvshumanstrategy` / `humanvsenginestrategy` / `enginevsenginestrategy` - 対局者の組ごとの進め方（`MatchStrategyHost` 経由）
   - `enginelifecyclemanager.cpp/.h` - エンジンの枠 E1・E2（対局・検討・棋譜解析・CSA 通信対局で共有）。使う側は `acquire(owner, slot, side, name)` で move-only の `EngineLease`（`engine()`・`reset()`）を受け取り、持っている間だけ使う。手放すと枠を空ける（持ち主には知らせない）。ほかの持ち主が同じ枠を取った・`destroyEngines()` で全部の枠を破棄したときは、前の持ち主に `engineRevoked(owner)` で知らせる（枠にあるかは `holds(engine)`）
   - `gamechannel.cpp/.h` - 対局相手の窓口 `GameChannel`: 投了・中断・即指し・入玉宣言をローカル対局と通信対局で同じ操作にする（ローカル対局は `LocalGameChannel`、通信対局は network の `CsaGameChannel`）
@@ -91,6 +91,7 @@ cmake --build build --target translations
   - `kifuioservice.cpp/.h`・`kifusavefile.cpp/.h` - Kifu file I/O
   - `josekibook.cpp/.h` - 定跡のデータの値型 `JosekiBook`（局面のキー `JosekiBook::positionKey()`（手数を除いた SFEN）から局面の登録を引く表1つ。同じ局面を手数違いで別々に登録したファイルは手数ごとの登録のまま持ち、引くときは同じ手数の登録、無ければ最初の登録を使う。大きな定跡も読めるよう、指し手を16ビットの番号にした詰めた形で持ち、`movesAt()` で `JosekiMove` に戻す。最後の定跡手を消すと登録も消える。マージで登録した印は `JosekiMoveKey`（局面のキーと USI の指し手の組。`josekitypes.h`））と、やねうら王定跡形式の読み書き `JosekiBookFile::load()`・`save()`（ワーカースレッドから呼べる）
   - `josekibooksession.cpp/.h` - 開いている定跡ファイル（`JosekiBook` の値・変更状態・読み書き。マージの登録も非同期で保存する）。合成ルートが1つ作り（`MainWindowComponents::josekiBook`）、定跡ウィンドウはそれを表示・編集する（ウィンドウのマージの操作は dialogs の `JosekiMergeController`）
+  - `josekimovepicker.cpp/.h` - 対局で指す定跡手を選ぶ `JosekiMovePicker`（条件 `JosekiPlayOptions`（`core/josekiplayoptions.h`。意味はやねうら王の定跡オプションに合わせる。保存は `JosekiSettings::playOptions1/2`）に合い、局面で指せる手から、出現頻度に比例・評価値で選ぶ・先頭の手のどれかで選ぶ）
   - `kifupresentation.cpp/.h` - 画面に出す棋譜の表記 `KifuPresentation`（指し手・読み筋・終局語。ファイルやプロトコルには使わない）。日本語の指し手は `KifMoveText`、段の漢数字は `ShogiNotation`、英語表記で移動元を付けるかは KI2 と同じ判定（`Ki2MoveNotation::annotate()` の `Annotation::sources`。合法手で決めるのでピンされた駒は数えない）。`Notation`・`Options` は `NotationStyle` の別名で、`configure`・`options`・`revision`・`resolveLanguage` は `NotationStyle` へ転送する
   - **formats/**: Format converters（テキストを読む。ファイルは `KifuLoadParser` が読んで渡す）
     - `kiftosfenconverter`, `ki2tosfenconverter`, `csatosfenconverter`, etc. - 形式ごとに `parse(text, options)` を1つだけ持ち、`KifuParseOutcome` を返す（BOD は `KifTextParser::parseBod`）
@@ -119,7 +120,7 @@ cmake --build build --target translations
   - `mateoracle.cpp/.h` - 詰みの問い合わせ（go mate）の部品 `MateOracle` と答え `MateAnswer`（`UsiCheckmate` からの変換は `MateAnswer::fromCheckmate` だけ）
   - `matequeryloop.cpp/.h` - 引き出し型の問い合わせ元 `MateQuerySource` を `MateOracle` で回す `MateQueryLoop`
   - `engineprocessmanager.cpp/.h` - Engine process lifecycle
-  - `usimatchhandler.cpp/.h` - 対局・解析での USI のやり取り（position/go/bestmove）
+  - `usimatchhandler.cpp/.h` - 対局・解析での USI のやり取り（position/go/bestmove）。定跡手（`requestBookMove`）は探索させず、先読み中なら止めて、待つ時間の後で同じ `moveReady` で知らせる（「すぐ指させる」は `playBookMoveNow`）
   - `matchtimesource.cpp/.h` - エンジンの思考に使う時間の出どころ `MatchTimeSource`（ローカル対局は対局時計の `ClockTimeSource`、通信対局はサーバーの残り時間を返す `CsaGameCoordinator`、時計のない場合は `FixedTimeSource`）
 
 - **network/**: CSA通信対局
@@ -144,7 +145,7 @@ cmake --build build --target translations
 
 - **ui/**: UI層
   - **presenters/**: 表示への反映
-    - `enginedisplaypresenter`（エンジンの表示の持ち主。検討の表示は `AnalysisSession` の知らせだけから決める）, `playerinfopresenter`（盤の対局者名）, `evaluationgraphpresenter`（評価値グラフの点の唯一の書き手）, `kifudisplaypresenter`（棋譜欄・分岐）, `boardsyncpresenter`（盤と手番）, `candidatearrowpresenter`, etc.
+    - `enginedisplaypresenter`（エンジンの表示の持ち主。検討の表示は `AnalysisSession` の知らせだけから決める）, `playerinfopresenter`（盤の対局者名）, `evaluationgraphpresenter`（評価値グラフの点の唯一の書き手）, `kifudisplaypresenter`（棋譜欄・分岐）, `boardsyncpresenter`（盤と手番）, `candidatearrowpresenter`（検討・対局のエンジンの読みと、定跡ウィンドウで開いている定跡の定跡手（緑。「表示」→「盤に定跡手を表示」）の矢印）, etc.
   - **controllers/**: 利用者操作の処理
     - `boardmovecontroller`（主画面の `BoardInputRoute`。動作状態ごとに手を処理する）, `humanturnpolicy`（盤を人間が操作できる手番か・対局が進行中かの判定）, `considerationuicontroller`（検討タブの操作を `AnalysisSession` へ伝えるだけ）, `josekiwindowcontroller`, `menuwindowcontroller`, `pvclickcontroller`, etc.
   - **coordinators/**: 複数の部品にまたがる UI の流れ
@@ -179,7 +180,7 @@ cmake --build build --target translations
   - `recentfilesmenu` - 「履歴」ボタンのメニュー `RecentFilesMenu`（ファイル・区切り・「履歴をクリア」、空なら「（履歴なし）」。選ばれた項目は `fileTriggered(QString)`・`clearTriggered()` で知らせる）。定跡ウィンドウ（`JosekiFileController::openRecent(path)` へ渡す）と局面集ビューアが使う
   - `dialogfontscale` - ダイアログの A-/A+ と保存 `DialogFontScale`（全ダイアログ共通。各部品を元の大きさからの差で拡大・縮小する）
   - `engineselector` - 登録エンジンを選ぶ部品 `EngineSelector`（呼び出し側が置いたコンボ・「設定」ボタン・未登録の案内に結び、一覧の読み込み・保存した選択の復元と保存（`EngineListSettings::SelectionKeys`）・未登録のときの無効化を受け持つ）。設定ダイアログは dialogs にあるので開かず、`settingsRequested(EngineEntry)` で受け手に頼む。棋譜解析・詰み探索・詰将棋生成・詰将棋問題一覧・CSA通信対局のダイアログ、検討タブ、対局開始ダイアログの対局者の欄が使う
-  - `playersetupwidget` - 対局開始ダイアログの対局者1人の欄 `PlayerSetupWidget`（コンボの先頭が「人間」（`EngineSelector` の内蔵の項目）で、その後に登録エンジン。人間なら名前の欄、エンジンなら「エンジン設定」ボタン）。選択は `PlayerChoice`（`game/startgamedatabridge.h`）で読み書きし、保存したエンジンが削除されていれば人間に戻す
+  - `playersetupwidget` - 対局開始ダイアログの対局者1人の欄 `PlayerSetupWidget`（コンボの先頭が「人間」（`EngineSelector` の内蔵の項目）で、その後に登録エンジン。人間なら名前の欄、エンジンなら「エンジン設定」ボタンと「定跡を使う」・「条件…」（条件のダイアログは dialogs の `JosekiPlayOptionsDialog`。定跡を開いていなければ押せない））。選択は `PlayerChoice`（`game/startgamedatabridge.h`）で読み書きし、保存したエンジンが削除されていれば人間に戻す
   - `timecontroleditor` - 片方の対局者の持ち時間・秒読み・加算の欄 `TimeControlEditor`（`TimeControlSide` で読み書き。秒読みと加算は排他で、相手側の欄にも `byoyomiEntered`・`incrementEntered` で知らせる）
   - `tablemodelutils.h` - 表へのモデルの付け替え `TableModelUtils::setModel`（Qt が置き換えた選択モデルを解放する）
   - `settingsformbinding` - 入力欄と設定の宣言（`Setting<T>`）の対応の表 `SettingsFormBinding`（`add()` を1度書けば `load()`・`save()`・`reset()`（既定値に戻す）を同じ表で行う。対局開始・詰将棋生成のダイアログが使う）

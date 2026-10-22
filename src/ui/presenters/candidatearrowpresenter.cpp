@@ -4,6 +4,8 @@
 #include "analysissettings.h"
 #include "appactivitystate.h"
 #include "enginelifecyclemanager.h"
+#include "josekibooksession.h"
+#include "josekisettings.h"
 #include "kifupresentation.h"
 #include "matchcoordinator.h"
 #include "sfenreplay.h"
@@ -19,12 +21,16 @@ QString positionKey(const QString& sfen)
     return SfenUtils::normalizeSfenKey(sfen);
 }
 
+/// 番号を付ける定跡手の矢印の数（表の上から。多いと番号で盤が隠れる）
+constexpr int kNumberedJosekiArrows = 5;
+
 }
 
 CandidateArrowPresenter::CandidateArrowPresenter(const Deps& deps, QObject* parent)
     : QObject(parent)
     , m_view(deps.view)
     , m_sources(deps)
+    , m_josekiArrowsVisible(JosekiSettings::boardArrowsVisible())
 {
     Q_ASSERT(deps.view);
     m_refreshTimer.setSingleShot(true);
@@ -48,6 +54,35 @@ CandidateArrowPresenter::CandidateArrowPresenter(const Deps& deps, QObject* pare
     if (deps.engines) {
         connect(deps.engines, &EngineLifecycleManager::enginesChanged, this, &CandidateArrowPresenter::bindEngines);
         bindEngines();
+    }
+    if (deps.josekiBook)
+        connect(deps.josekiBook, &JosekiBookSession::contentChanged, this, &CandidateArrowPresenter::scheduleRefresh);
+}
+
+void CandidateArrowPresenter::setJosekiArrowsVisible(bool visible)
+{
+    if (m_josekiArrowsVisible == visible) return;
+    m_josekiArrowsVisible = visible;
+    JosekiSettings::boardArrowsVisible.set(visible);
+    scheduleRefresh();
+}
+
+void CandidateArrowPresenter::appendJosekiArrows(QList<ShogiView::Arrow>& arrows, const QString& sfen) const
+{
+    if (!m_josekiArrowsVisible || !m_sources.josekiBook) return;
+    if (m_sources.josekiArrowsAllowed && !m_sources.josekiArrowsAllowed()) return;
+    const QList<JosekiMove> moves = m_sources.josekiBook->movesAt(sfen);
+    int maxFrequency = 0;
+    for (const JosekiMove& move : moves) maxFrequency = qMax(maxFrequency, move.frequency);
+    for (qsizetype i = 0; i < moves.size(); ++i) {
+        // 番号は定跡ウィンドウの表の順（上の手だけに付ける）
+        const int priority = i < kNumberedJosekiArrows ? static_cast<int>(i) + 1 : 0;
+        auto arrow = arrowForMove(moves.at(i).move, sfen, priority);
+        if (!arrow) continue;
+        // 出現頻度の高い手ほど濃くする（出現頻度が無ければ同じ濃さ）
+        const double share = maxFrequency > 0 ? qMax(moves.at(i).frequency, 0) / static_cast<double>(maxFrequency) : 1.0;
+        arrow->color = QColor(0, 150, 70, 70 + qRound(160 * share));
+        arrows.append(*arrow);
     }
 }
 
@@ -136,6 +171,8 @@ void CandidateArrowPresenter::refresh()
     m_ponderDescription.clear();
     auto* board = m_view->board();
     if (board) {
+        // 定跡手の矢印はエンジンの矢印の下に描く（先に足す）。定跡は手数違いの登録を区別するので手数付きで引く
+        appendJosekiArrows(arrows, board->position().toSfen(board->currentPlayer(), board->position().moveNumber()));
         const QString sfen = board->position().toSfen(board->currentPlayer(), 1);
         if (considerationActive()) {
             const bool show = !m_sources.showConsiderationArrows || m_sources.showConsiderationArrows();
