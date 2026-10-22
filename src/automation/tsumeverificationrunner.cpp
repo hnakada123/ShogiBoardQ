@@ -37,16 +37,13 @@ QString TsumeVerificationRunner::statusName(TsumeshogiVerifier::Status status)
     return QStringLiteral("unknown");
 }
 
-bool TsumeVerificationRunner::start(const Request& request, QString* error)
+bool TsumeVerificationRunner::start(const Request& request)
 {
     m_done = false;
     m_job = std::make_unique<TsumeVerificationJob>(
         request.sfen, request.targetMoves, TsumeshogiVerifier::Options{request.allowFinalMoveAlternatives, false},
         request.timeoutMs);
-    if (m_job->result().status == TsumeshogiVerifier::Status::Invalid) {
-        if (error) *error = QStringLiteral("The SFEN is not a valid tsume position");
-        return false;
-    }
+    if (m_job->result().status == TsumeshogiVerifier::Status::Invalid) return false;
     m_elapsed.invalidate();
     // エンジンの起動の失敗は errorOccurred で届く
     m_oracle->start(request.enginePath, request.engineName);

@@ -136,9 +136,6 @@ inline const Setting<int> kifuPasteDialogFontSize{"FontSize/kifuPasteDialog", 10
 
 // --- 局面集 ---
 
-/// 局面集ビューアのサイズ（デフォルト: 620x780）
-inline const Setting<QSize> sfenCollectionDialogSize{"SizeRelated/sfenCollectionDialogSize", QSize(620, 780)};
-
 /// 局面集ビューアの最近使ったファイルリスト（最大5件）
 inline const Setting<QStringList> sfenCollectionRecentFiles{"SfenCollection/recentFiles", QStringList()};
 

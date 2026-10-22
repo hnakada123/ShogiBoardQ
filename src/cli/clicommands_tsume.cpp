@@ -220,7 +220,11 @@ int CliCommands::verifyTsume(const QStringList& args)
     request.timeoutMs = timeoutMs;
     request.allowFinalMoveAlternatives = !params->value(QStringLiteral("no_final_alternatives")).toBool();
 
-    if (!runner.start(request, &error)) return CliOutput::fail(ErrorKind::EngineError, error);
+    // 詰将棋の局面でなければ（受方の玉がない・王手がかかっているなど）、エンジンを起動せずに status invalid を返す
+    if (!runner.start(request)) {
+        reporter.onFinished(TsumeshogiVerifier::Status::Invalid, {}, 0, 0);
+        return reporter.exitCode();
+    }
     loop.exec();
     return reporter.exitCode();
 }

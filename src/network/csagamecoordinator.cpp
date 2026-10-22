@@ -340,13 +340,17 @@ void CsaGameCoordinator::onClientGameEnded(CsaClient::GameResult result, CsaClie
     if (m_engineController) {
         switch (result) {
         case CsaClient::GameResult::Win:
-            m_engineController->sendGameOver(true);
+            m_engineController->sendGameOver(GameOverResult::Win);
             break;
         case CsaClient::GameResult::Lose:
-            m_engineController->sendGameOver(false);
+            m_engineController->sendGameOver(GameOverResult::Lose);
             break;
         case CsaClient::GameResult::Draw:
-        default:
+            m_engineController->sendGameOver(GameOverResult::Draw);
+            break;
+        case CsaClient::GameResult::Censored:
+        case CsaClient::GameResult::Chudan:
+        case CsaClient::GameResult::Unknown:
             m_engineController->sendQuit();
             break;
         }

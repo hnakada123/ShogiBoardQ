@@ -199,7 +199,7 @@ shogiboardq-cli <command> [options]
 共通仕様:
 
 - オプションは引数の表 `CliCommandSpecs`（`src/cli/clicommandspecs.{h,cpp}`）に1か所で宣言する。オプション名は引数名の `_` を `-` にしたもの（`max_positions` → `--max-positions`）。`CliArgs::parse(command, args, events, exitCode)` が表からオプションを登録し、コマンドラインを検査済みの JSON（既定値を補ったもの）にする。真偽値はフラグ（指定すれば true）、文字列の配列（`--moves`）は空白区切りの1つの値。知らないオプション・必須の欠け・範囲外・選択肢外は `invalid_argument`。各コマンドはこの JSON を読み、局面は `CliArgs::resolvePosition(params)`、エンジンは `CliArgs::resolveEngine(params)` で解決する。引数なし・`--help` のときの使い方の文（`CliCommandSpecs::usage()`）も同じ表から作る。範囲と既定値の一覧は `shogiboardq-cli describe` で確かめる。
-- エラーは `CliOutput::fail(ErrorKind, message)` が `{"ok":false,"error":{"code":語,"message":"..."}}` を標準出力に書いて終了コード 1。JSON Lines コマンドでは `CliOutput::failEvent(ErrorKind, message)` が `{"event":"error","code":語,"message":"..."}` を出してから終了する。`code` はエラーの分類（[エラーの分類](#エラーの分類)）の語で、CLI が使うのは `invalid_argument`（引数の誤り・読めない局面）、`unknown_operation`（知らないコマンド）、`engine_not_found`、`engine_error`、`parse_error`（`convert-kifu` の棋譜が読めない）、`render_error`、出力ファイルの問題（`CliArgs::checkOutputPath()` が分類を返す。相対パスは `invalid_argument`、既存ファイルで `--overwrite` なしは `file_exists`、ディレクトリを指すときと書き込みの失敗は `file_error`、親ディレクトリがないときは `not_found`）。
+- エラーは `CliOutput::fail(ErrorKind, message)` が `{"ok":false,"error":{"code":語,"message":"..."}}` を標準出力に書いて終了コード 1。JSON Lines コマンドでは `CliOutput::failEvent(ErrorKind, message)` が `{"event":"error","code":語,"message":"..."}` を出してから終了する。`code` はエラーの分類（[エラーの分類](#エラーの分類)）の語で、CLI が使うのは `invalid_argument`（引数の誤り・読めない局面）、`unknown_operation`（知らないコマンド）、`engine_not_found`、`engine_error`、`parse_error`（`convert-kifu` の棋譜が読めない・開始局面が不正）、`not_found`（`convert-kifu` の入力ファイルがない）、`render_error`（盤面を描けない。局面・`--last-move` の誤りは `invalid_argument`）、出力ファイルの問題（`CliArgs::checkOutputPath()` が分類を返す。相対パスは `invalid_argument`、既存ファイルで `--overwrite` なしは `file_exists`、ディレクトリを指すときと書き込みの失敗は `file_error`、親ディレクトリがないときは `not_found`）。
 - エンジンは設定ファイル（`SettingsCommon::settingsFilePath()`）の `[Engines]` に登録済みの名前だけを受け付ける（`EngineListSettings::loadEngines()`）。任意パスは受け付けない。エンジンのオプションは GUI と同じく設定ファイルの値を適用する（`UsiEngineSession::startAsync()` が `EngineProfileStore::launchOptions()` で読み、`UsiProtocolHandler::setLaunchOptions()` に渡す）。
 - 局面は `--sfen`（`startpos` も可）と `--moves`（USI 手を空白区切り）で指定し、`CliArgs::resolvePosition(params)` が `UsiPosition::fromMoves()` で探索させる局面（`CliPosition::position`）にする（読めない手・指せない手は `invalid_argument`）。エンジンには `UsiPosition::command()`（平手なら `position startpos moves ...`、それ以外は `position sfen ... moves ...`）を送る。
 - `--output` の既存ファイルは `--overwrite` が無ければ拒否する。ディレクトリ制限は MCP サーバー側で行う（CLI 単体では行わない）。
@@ -235,7 +235,7 @@ ShogiBoardQ --automation [--automation-socket PATH]
 | `app.quit` | - | `{ok:true}`（応答後に終了。テストハーネス用で MCP ツールには出さない） | - |
 | `position.get` | - | `{sfen, start_sfen, ply, moves[]}` | - |
 | `position.set` | `{sfen, discard_unsaved?}` | `{sfen}` | `-32602` 不正 SFEN、`-32004` 未保存 |
-| `kifu.load` | `{path?, text?, discard_unsaved?}` | `{total_plies, start_sfen, kifu_file, warnings?}` | `-32602` 相対パス・`path` と `text` の一方だけを渡していない、`-32005` ファイルなし、`-32004` 未保存、`-32006`（`parse_error`）読込失敗（理由をメッセージに含め、エラーダイアログは出さない） |
+| `kifu.load` | `{path?, text?, discard_unsaved?}` | `{total_plies, start_sfen, kifu_file, warnings?}` | `-32602` 相対パス・`path` と `text` の一方だけを渡していない、`-32005` ファイルなし、`-32004` 未保存、`invalid_state` 対局・検討・解析・局面編集の間、`-32006`（`parse_error`）読込失敗（理由をメッセージに含め、エラーダイアログは出さない） |
 | `kifu.save` | `{path, overwrite?}` | `{path, format}` | `-32602` 相対パス、`-32003`（`file_exists`）既存ファイル、`-32005` ディレクトリなし、`-32003`（`file_error`）書き込みの失敗・.kif・.ki2 に Shift_JIS で表せない文字（確認ダイアログは出さず、文字を示して `.kifu`・`.ki2u` を案内） |
 | `kifu.get` | `{format?, line?: "current"\|"main", from_ply?, max_moves?, max_chars?}` | `{format, total_plies, line, moves:[{ply,text,usi,time,comment}], text?, truncated}`（`moves` は表示中の手順。`line="main"` で本譜） | - |
 | `kifu.goto` | `{ply}` | `{ply, sfen}` | `-32602` 範囲外 |
@@ -268,7 +268,7 @@ MCP サーバーは `AppClient.call_queued()` で操作の実行を待つ（5 �
 
 #### 未保存の変更・読み込みの失敗・入れ子の要求
 
-`kifu.load` / `position.set` は未保存の変更があるとき `discard_unsaved` 無しでは `-32004` を返し、確認ダイアログは出さない。読み込み失敗の通知も `UiNotificationService::ScopedCapture` でダイアログを出さずに記録し、`-32006`（`parse_error`）の理由として返す。ハンドラの実行中（入れ子のイベントループ）に届いた別の要求は実行せず `-32002` を返し、処理中に切断したソケットはハンドラが戻ってから削除する。
+`kifu.load` / `position.set` は対局・検討・解析・局面編集の間は棋譜を置き換えず `invalid_state` を返す（GUI の「開く」と同じく待機中だけ。`AutomationCommands::requireReplaceableRecord`）。未保存の変更があるとき `discard_unsaved` 無しでは `-32004` を返し、確認ダイアログは出さない。読み込み失敗の通知も `UiNotificationService::ScopedCapture` でダイアログを出さずに記録し、`-32006`（`parse_error`）の理由として返す。ハンドラの実行中（入れ子のイベントループ）に届いた別の要求は実行せず `-32002` を返し、処理中に切断したソケットはハンドラが戻ってから削除する。
 
 ### エラーの分類
 

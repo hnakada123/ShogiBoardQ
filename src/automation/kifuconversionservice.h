@@ -9,6 +9,7 @@
 #include <QStringList>
 #include <optional>
 
+#include "errorkinds.h"
 #include "kifparsetypes.h"
 #include "kifuformat.h"
 
@@ -30,7 +31,7 @@ public:
 
     struct Result {
         bool ok = false;
-        QString error;                     ///< 失敗理由（ok=false のとき）
+        Failure failure;                   ///< 失敗の分類と理由（ok=false のとき）
         KifuFormat inputFormat = KifuFormat::Kif; ///< 読んだ入力形式
         QStringList lines;                 ///< 出力テキスト（行単位）
         QString initialSfen;               ///< 開始局面

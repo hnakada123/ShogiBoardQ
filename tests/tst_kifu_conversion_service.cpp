@@ -58,7 +58,7 @@ private slots:
         request.inputFormat = static_cast<Format>(format);
         request.outputFormat = Format::Sfen;
         const auto result = KifuConversionService::convert(request);
-        QVERIFY2(result.ok, qPrintable(result.error));
+        QVERIFY2(result.ok, qPrintable(result.failure.message));
         QCOMPARE(result.usiMoves, (QStringList{QStringLiteral("7g7f"), QStringLiteral("3c3d")}));
         const QString warnings = result.warnings.join(QLatin1Char('\n'));
         QVERIFY2(warnings.contains(QStringLiteral("Source square is empty")), qPrintable(warnings));
@@ -76,7 +76,7 @@ private slots:
         request.inputFormat = Format::Kif;
         request.outputFormat = Format::Sfen;
         const auto result = KifuConversionService::convert(request);
-        QVERIFY2(result.ok, qPrintable(result.error));
+        QVERIFY2(result.ok, qPrintable(result.failure.message));
         QCOMPARE(result.usiMoves, (QStringList{QStringLiteral("7g7f"), QStringLiteral("3c3d")}));
         QVERIFY(result.warnings.join(QLatin1Char('\n')).contains(QStringLiteral("Cannot restore move 3")));
     }
@@ -105,7 +105,7 @@ private slots:
         request.inputFormat = static_cast<Format>(format);
         request.outputFormat = Format::Kif;
         const auto result = KifuConversionService::convert(request);
-        QVERIFY2(result.ok, qPrintable(result.error));
+        QVERIFY2(result.ok, qPrintable(result.failure.message));
         QCOMPARE(result.usiMoves, moves);
         const QString warnings = result.warnings.join(QLatin1Char('\n'));
         QVERIFY2(warnings.contains(QStringLiteral("is a pass")), qPrintable(warnings));
@@ -134,7 +134,7 @@ private slots:
         request.inputFormat = static_cast<Format>(format);
         request.outputFormat = Format::Kif;
         const auto result = KifuConversionService::convert(request);
-        QVERIFY2(result.ok, qPrintable(result.error));
+        QVERIFY2(result.ok, qPrintable(result.failure.message));
         QStringList moveLines;
         for (const QString& line : result.lines)
             if (QRegularExpression(QStringLiteral("^\\s+\\d+ ")).match(line).hasMatch()) moveLines << line.simplified();
@@ -163,7 +163,7 @@ private slots:
         request.inputFormat = Format::Csa;
         request.outputFormat = Format::Csa;
         const auto result = KifuConversionService::convert(request);
-        QVERIFY2(result.ok, qPrintable(result.error));
+        QVERIFY2(result.ok, qPrintable(result.failure.message));
         QCOMPARE(result.usiMoves, (QStringList{QStringLiteral("7g7f"), QStringLiteral("3c3d")}));
         const QString warnings = result.warnings.join(QLatin1Char('\n'));
         QVERIFY2(warnings.contains(reason), qPrintable(warnings));
@@ -205,12 +205,12 @@ private slots:
         request.inputFormat = Format::Jkf;
         request.outputFormat = static_cast<Format>(format);
         const auto encoded = KifuConversionService::convert(request);
-        QVERIFY2(encoded.ok, qPrintable(encoded.error));
+        QVERIFY2(encoded.ok, qPrintable(encoded.failure.message));
         request.text = encoded.lines.join(QLatin1Char('\n'));
         request.inputFormat = request.outputFormat;
         request.outputFormat = Format::Jkf;
         const auto decoded = KifuConversionService::convert(request);
-        QVERIFY2(decoded.ok, qPrintable(decoded.error));
+        QVERIFY2(decoded.ok, qPrintable(decoded.failure.message));
         const auto moves = QJsonDocument::fromJson(decoded.lines.join(QLatin1Char('\n')).toUtf8())
                                .object().value("moves").toArray();
         QCOMPARE(moves.size(), 6);
@@ -226,7 +226,7 @@ private slots:
     void kifToUsiKeepsMainline()
     {
         const auto result = convertFile(QStringLiteral("test_basic.kif"), Format::Usi);
-        QVERIFY2(result.ok, qPrintable(result.error));
+        QVERIFY2(result.ok, qPrintable(result.failure.message));
         QCOMPARE(result.inputFormat, Format::Kif);
         QCOMPARE(result.initialSfen, SfenUtils::hirateSfen());
         QCOMPARE(result.usiMoves, basicMoves());
@@ -245,7 +245,7 @@ private slots:
             for (Format output : outputs) {
                 const auto result = convertFile(file, output);
                 QVERIFY2(result.ok, qPrintable(file + QStringLiteral(" -> ") + KifuFormats::name(output)
-                                               + QStringLiteral(": ") + result.error));
+                                               + QStringLiteral(": ") + result.failure.message));
                 QVERIFY2(result.usiMoves == basicMoves(), qPrintable(file + QStringLiteral(": ") + result.usiMoves.join(QLatin1Char(' '))));
                 QVERIFY(!result.lines.isEmpty());
             }
@@ -255,12 +255,12 @@ private slots:
     void kifHeaderCarriesPlayerNames()
     {
         const auto csa = convertFile(QStringLiteral("test_basic.kif"), Format::Csa);
-        QVERIFY2(csa.ok, qPrintable(csa.error));
+        QVERIFY2(csa.ok, qPrintable(csa.failure.message));
         QVERIFY(csa.lines.contains(QStringLiteral("N+テスト先手")));
         QVERIFY(csa.lines.contains(QStringLiteral("N-テスト後手")));
 
         const auto kif = convertFile(QStringLiteral("test_basic.csa"), Format::Kif);
-        QVERIFY2(kif.ok, qPrintable(kif.error));
+        QVERIFY2(kif.ok, qPrintable(kif.failure.message));
         QVERIFY(kif.lines.filter(QStringLiteral("先手：")).size() == 1);
     }
 
@@ -271,7 +271,7 @@ private slots:
         request.text = QStringLiteral("position startpos moves 7g7f 3c3d");
         request.outputFormat = Format::Kif;
         const auto kif = KifuConversionService::convert(request);
-        QVERIFY2(kif.ok, qPrintable(kif.error));
+        QVERIFY2(kif.ok, qPrintable(kif.failure.message));
         QVERIFY2(kif.lines.filter(QStringLiteral("対局日")).isEmpty(), qPrintable(kif.lines.join(QLatin1Char('\n'))));
         QVERIFY(kif.lines.filter(QStringLiteral("開始日時")).isEmpty());
         QVERIFY(kif.lines.filter(QStringLiteral("先手：")).isEmpty());
@@ -279,7 +279,7 @@ private slots:
 
         request.outputFormat = Format::Csa;
         const auto csa = KifuConversionService::convert(request);
-        QVERIFY2(csa.ok, qPrintable(csa.error));
+        QVERIFY2(csa.ok, qPrintable(csa.failure.message));
         QVERIFY2(csa.lines.filter(QStringLiteral("$START_TIME")).isEmpty(), qPrintable(csa.lines.join(QLatin1Char('\n'))));
     }
 
@@ -289,7 +289,7 @@ private slots:
         request.text = QStringLiteral("position startpos moves 7g7f 3c3d");
         request.outputFormat = Format::Sfen;
         const auto result = KifuConversionService::convert(request);
-        QVERIFY2(result.ok, qPrintable(result.error));
+        QVERIFY2(result.ok, qPrintable(result.failure.message));
         QCOMPARE(result.inputFormat, Format::Usi);
         QCOMPARE(result.sfens.size(), 3);
         QCOMPARE(result.lines, result.sfens);
@@ -298,7 +298,7 @@ private slots:
         csa.text = QStringLiteral("V2.2\nN+A\nN-B\nPI\n+\n+7776FU\n-3334FU\n%TORYO\n");
         csa.outputFormat = Format::Kif;
         const auto csaResult = KifuConversionService::convert(csa);
-        QVERIFY2(csaResult.ok, qPrintable(csaResult.error));
+        QVERIFY2(csaResult.ok, qPrintable(csaResult.failure.message));
         QCOMPARE(csaResult.inputFormat, Format::Csa);
         QCOMPARE(csaResult.usiMoves, QStringList({QStringLiteral("7g7f"), QStringLiteral("3c3d")}));
     }
@@ -306,23 +306,36 @@ private slots:
     void branchesAreReportedAndMainlineKept()
     {
         const auto result = convertFile(QStringLiteral("test_branch.kif"), Format::Kif);
-        QVERIFY2(result.ok, qPrintable(result.error));
+        QVERIFY2(result.ok, qPrintable(result.failure.message));
         QVERIFY(result.hasBranches);
         QVERIFY(!result.usiMoves.isEmpty());
     }
 
+    /// 失敗は分類つきで返す（ファイルがない・入力の指定の誤り・読めない中身・不正な開始局面）
     void reportsErrors()
     {
         KifuConversionService::Request request;
         request.inputPath = fixture(QStringLiteral("does_not_exist.kif"));
         request.outputFormat = Format::Kif;
-        QVERIFY(!KifuConversionService::convert(request).ok);
+        const auto missing = KifuConversionService::convert(request);
+        QVERIFY(!missing.ok);
+        QCOMPARE(missing.failure.kind, ErrorKind::NotFound);
 
         KifuConversionService::Request both;
         both.inputPath = fixture(QStringLiteral("test_basic.kif"));
         both.text = QStringLiteral("x");
         both.outputFormat = Format::Kif;
-        QVERIFY(!KifuConversionService::convert(both).ok);
+        const auto ambiguous = KifuConversionService::convert(both);
+        QVERIFY(!ambiguous.ok);
+        QCOMPARE(ambiguous.failure.kind, ErrorKind::InvalidArgument);
+
+        // 歩が20枚ある局面は validate-sfen・render-board と同じく読めない
+        KifuConversionService::Request tooMany;
+        tooMany.text = QStringLiteral("position sfen lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b 2P 1");
+        tooMany.outputFormat = Format::Kif;
+        const auto invalidStart = KifuConversionService::convert(tooMany);
+        QVERIFY(!invalidStart.ok);
+        QCOMPARE(invalidStart.failure.kind, ErrorKind::InvalidContent);
 
         QVERIFY(!KifuFormats::fromName(QStringLiteral("pgn")).has_value());
         QCOMPARE(KifuFormats::fromPath(QStringLiteral("/tmp/a.KI2U")), Format::Ki2);

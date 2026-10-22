@@ -31,6 +31,13 @@ enum class ErrorKind {
     RenderError,       ///< 盤面画像を描けない（render_error）
 };
 
+/// 分類つきの失敗。GUI に依存しないサービスが返し、CLI（CliOutput::fail）と自動化 API（AutomationError）は
+/// 分類をそのまま写す（呼び出し側で分類を推し量らない）
+struct Failure {
+    ErrorKind kind = ErrorKind::InternalError;
+    QString message;
+};
+
 namespace ErrorKinds {
 
 /// 分類の語

@@ -50,9 +50,9 @@ public:
     void thinkAsync(const UsiPosition& position);
     /// 思考中なら stop を送り、その時点の最善手ですぐ指させる
     void stopThinking();
-    /// gameover を送ってエンジンを終える
-    void sendGameOver(bool win);
-    /// エンジンを終える（引き分け・中断の終局）
+    /// 探索・先読みを止めて gameover を送り、エンジンを終える（ローカル対局の終局と同じ順）
+    void sendGameOver(GameOverResult result);
+    /// エンジンを終える（中断・打ち切りなど勝敗の決まらない終局）
     void sendQuit();
     void cleanup();
 

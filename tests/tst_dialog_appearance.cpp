@@ -47,6 +47,8 @@
 #include "sfencollectiondialog.h"
 #include "sfenutils.h"
 #include "shogiview.h"
+#include "boardviewerwidget.h"
+#include "gamesettings.h"
 #include "startgamedialog.h"
 #include "tsumecollectiondialog.h"
 #include "tsumeplaydialog.h"
@@ -527,6 +529,25 @@ private slots:
         PromoteDialog reopened;
         QCOMPARE(reopened.size(), QSize(540, 280));
         QCOMPARE(reopened.font().pointSize(), AppSettings::promotionDialogFontSize.valueOr(10));
+    }
+
+    /// 局面集ビューアは、閉じるボタンや Esc（reject）で閉じても盤の大きさを保存する（ウィンドウは盤に合わせる）
+    void sfenCollectionSavesBoardSizeOnReject()
+    {
+        int saved = 0;
+        {
+            SfenCollectionDialog dialog;
+            dialog.show();
+            QVERIFY(QTest::qWaitForWindowExposed(&dialog));
+            auto* viewer = dialog.findChild<BoardViewerWidget*>();
+            QVERIFY(viewer);
+            viewer->enlargeBoard();
+            saved = viewer->view()->squareSize();
+            dialog.reject();
+        }
+        QCOMPARE(GameSettings::sfenCollectionSquareSize(), saved);
+        SfenCollectionDialog reopened;
+        QCOMPARE(reopened.findChild<BoardViewerWidget*>()->view()->squareSize(), saved);
     }
 
     /// 静的関数で出すメッセージボックスにも文字サイズ操作が付き、決定ボタンと同じ段に並ぶ

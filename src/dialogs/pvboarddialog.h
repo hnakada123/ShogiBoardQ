@@ -76,10 +76,6 @@ private:
     /// 手数ラベルと直前の手のハイライトを更新
     void updatePlyDisplay();
 
-protected:
-    /// ウィンドウを閉じる際にサイズを保存
-    void closeEvent(QCloseEvent* event) override;
-
 private:
     std::unique_ptr<PvLine> m_line;
     QString m_kanjiPv;     ///< エンジンの読み筋の漢字表記（日本語表記のときの読み筋の欄）

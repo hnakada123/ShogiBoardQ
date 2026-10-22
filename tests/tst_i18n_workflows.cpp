@@ -458,7 +458,7 @@ private slots:
             request.text = kif;
             request.outputFormat = format;
             const auto localized = KifuConversionService::convert(request);
-            QVERIFY2(localized.ok, qPrintable(localized.error));
+            QVERIFY2(localized.ok, qPrintable(localized.failure.message));
             KifuPresentation::configure("ja_JP", "japanese", false);
             const auto japanese = KifuConversionService::convert(request);
             QCOMPARE(localized.lines, japanese.lines);
