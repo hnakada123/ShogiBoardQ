@@ -9,6 +9,7 @@
 #include <memory>
 #include <optional>
 
+#include "appactivitystate.h"
 #include "gamemodestrategy.h"
 #include "interruptedgamestate.h"
 #include "matchsessionstate.h"
@@ -18,7 +19,6 @@
 #include "startoptions.h"
 #include "usiscore.h"
 
-class AppActivityState;
 class EngineLifecycleManager;
 class KifuDocument;
 class MatchRecordSink;
@@ -193,6 +193,7 @@ private:
     ShogiGameController* m_gc = nullptr;
     ShogiClock* m_clock = nullptr;
     AppActivityState* m_activity = nullptr;
+    ActivityLease m_activityLease;   ///< 対局中の動作状態（開始・再開で受け取り、終局で手放す）
     MatchRecordSink* m_sink = nullptr;
     EngineLifecycleManager* m_engines = nullptr;
     const KifuDocument* m_document = nullptr;

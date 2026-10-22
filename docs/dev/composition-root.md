@@ -3,8 +3,8 @@
 ## 概要
 
 アプリの部品は `MainWindowComposer`（`src/app/mainwindowcomposer*.cpp`）が起動時に全部作る。
-部品の一覧は `MainWindowComponents`（`src/app/mainwindowcomponents.h`）、部品どうしで共有する状態は
-`AppState`（`src/common/appstate.h`）に1つだけ置く。MainWindow は `.ui` と閉じるときの確認・終了処理だけを持つ。
+部品の一覧は `MainWindowComponents`（`src/app/mainwindowcomponents.h`）、部品どうしで共有する動作状態は
+`AppActivityState`（`src/common/appactivitystate.h`）に1つだけ置く。MainWindow は `.ui` と閉じるときの確認・終了処理だけを持つ。
 
 2026-10-15 に、それまでのレジストリ構成（`MainWindowServiceRegistry`・`MainWindowFoundationRegistry`・
 `KifuSubRegistry` と約50個の `ensure*`）をこの構成に置き換えた。
@@ -40,7 +40,9 @@
 
 1. 新しい部品は `MainWindowComponents` にメンバを足し、`mainwindowcomposer_create.cpp` の該当する段階（`createSessions()` など）で1回だけ作る。
 2. 依存は部品のポインタで渡す。`std::function<X*()>` のゲッターや `ensure*` コールバックは使わない。
-3. 動作状態は `AppState` に置く。部品のメンバに状態のコピーを持たない（例: アプリが何をしているかは `AppState::activity` だけ）。
+3. 動作状態は `AppActivityState` に置く。部品のメンバに状態のコピーを持たない（例: アプリが何をしているかは `AppActivityState::activity()` だけ）。
+   状態を変えるのは `AppActivityState::begin()` が返す `ActivityLease` を持つ部品だけで、終えられるのも持ち主だけ
+   （別の部品が別の動作を始めると、前の持ち主に `revoked(owner)` が届き、受けた部品は自分の処理を終える）。
    棋譜に付く状態は棋譜の文書 `KifuDocument` が持つ（最後に始めた対局の対局者は `KifuDocument::players()`、
    上書き保存先は `KifuDocument::filePath()` だけ）。
 4. `std::function` は、上位へ問い合わせ・操作を委ねる「フック」にだけ使う（例: `UiStatePolicyManager::Deps::canResumeGame`、

@@ -70,7 +70,7 @@ bool CsaGameSession::startGame(const CsaGameDialog::Selection& selection)
     const bool started = waitingDialog.exec() == QDialog::Accepted
         && c->gameState() == CsaGameCoordinator::GameState::InGame;
     if (!started) {
-        m_deps.activity->setActivity(AppActivityState::Activity::Idle);
+        m_activityLease.reset();
         if (c->gameState() != CsaGameCoordinator::GameState::Idle) c->stopGame();
     }
     return started;
@@ -80,7 +80,7 @@ void CsaGameSession::onWaitingCancelled()
 {
     qCDebug(lcUi) << "onWaitingCancelled: cancelled by user";
     m_deps.coordinator->stopGame();
-    m_deps.activity->setActivity(AppActivityState::Activity::Idle);
+    m_activityLease.reset();
     showStatus(tr("通信対局をキャンセルしました"), 3000);
 }
 
@@ -100,7 +100,7 @@ void CsaGameSession::onGameStarted(const QString& blackName, const QString& whit
     }
     // 棋譜・対局者の表示は GameSession が先に作っている（gameStarted を先に受ける）。
     // 時計・再開棋譜の準備が揃ってから通信対局中にする。同じ接続での次局もここを通る
-    m_deps.activity->setActivity(AppActivityState::Activity::DuringCsaGame);
+    m_activityLease = m_deps.activity->begin(AppActivityState::Activity::DuringCsaGame, this);
     showStatus(tr("CSA通信対局開始: %1 vs %2").arg(blackName, whiteName), 5000);
 }
 
@@ -111,7 +111,7 @@ void CsaGameSession::onGameEnded(CsaClient::GameResult result, CsaClient::GameEn
     qCDebug(lcUi) << "onGameEnded:" << resultText << "(" << causeText << ")" << "consumedTimeMs=" << consumedTimeMs;
 
     // 棋譜の確定・終了日時・自動保存は GameSession が先に済ませている（gameEnded を先に受ける）
-    m_deps.activity->setActivity(AppActivityState::Activity::Idle);
+    m_activityLease.reset();
     showGameEndDialog(tr("対局終了"), tr("対局が終了しました。\n\n結果: %1\n原因: %2").arg(resultText, causeText));
     showStatus(tr("対局終了: %1 (%2)").arg(resultText, causeText), 5000);
 }

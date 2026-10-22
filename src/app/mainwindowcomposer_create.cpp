@@ -202,7 +202,7 @@ void MainWindowComposer::createPanels()
 
     // 局面編集中は棋譜を移らない。未更新のコメントは破棄してよいか確かめる
     m_c.kifuNavController->setLeaveGuard([this]() {
-        return !m_state.activity.is(AppActivityState::Activity::DuringPositionEdit)
+        return !m_activity.is(AppActivityState::Activity::DuringPositionEdit)
             && m_c.commentCoordinator->confirmLeaveEditingMove();
     });
 }
@@ -219,14 +219,14 @@ void MainWindowComposer::createMatchAndAnalysis()
     MatchCoordinator::Deps md;
     md.gc = m_c.gameController;
     md.clock = m_c.clock;
-    md.activity = &m_state.activity;
+    md.activity = &m_activity;
     md.document = m_c.document;
     md.engines = m_c.engines;
     m_c.match = new MatchCoordinator(md, &m_window);
 
     AnalysisSession::Deps sd;
     sd.engines = m_c.engines;
-    sd.activity = &m_state.activity;
+    sd.activity = &m_activity;
     sd.navState = m_c.navState;
     m_c.analysisSession = new AnalysisSession(sd, &m_window);
     m_c.consecutiveGames = new ConsecutiveGameSeries(&m_window);
@@ -238,7 +238,7 @@ void MainWindowComposer::createMatchAndAnalysis()
     m_c.csaGame = new CsaGameCoordinator(cd, &m_window);
 
     HumanTurnPolicy::Deps hd;
-    hd.activity = &m_state.activity;
+    hd.activity = &m_activity;
     hd.gameController = m_c.gameController;
     hd.match = m_c.match;
     hd.csaGame = m_c.csaGame;
@@ -250,7 +250,7 @@ void MainWindowComposer::createMatchAndAnalysis()
     pd.gameController = m_c.gameController;
     pd.board = m_c.boardController;
     pd.navState = m_c.navState;
-    pd.activity = &m_state.activity;
+    pd.activity = &m_activity;
     pd.actions.returnAllPiecesToStand = m_ui.actionReturnAllPiecesToStand;
     pd.actions.setHiratePosition = m_ui.actionSetHiratePosition;
     pd.actions.setTsumePosition = m_ui.actionSetTsumePosition;
@@ -262,7 +262,7 @@ void MainWindowComposer::createMatchAndAnalysis()
     bd.view = m_c.shogiView;
     bd.gameController = m_c.gameController;
     bd.board = m_c.boardController;
-    bd.activity = &m_state.activity;
+    bd.activity = &m_activity;
     bd.match = m_c.match;
     bd.positionEdit = m_c.positionEdit;
     bd.branchEdit = m_c.branchEdit;
@@ -303,7 +303,7 @@ void MainWindowComposer::createPresentersAndDocks()
     ad.view = m_c.shogiView;
     ad.match = m_c.match;
     ad.engines = m_c.engines;
-    ad.activity = &m_state.activity;
+    ad.activity = &m_activity;
     ad.analysis = m_c.analysisSession;
     ad.consideration = m_c.consideration;
     ad.showConsiderationArrows = std::bind(&MainWindowComposer::showConsiderationArrows, this);
@@ -314,7 +314,7 @@ void MainWindowComposer::createPresentersAndDocks()
 
     PlayerInfoPresenter::Deps pd;
     pd.document = m_c.document;
-    pd.activity = &m_state.activity;
+    pd.activity = &m_activity;
     pd.shogiView = m_c.shogiView;
     m_c.playerInfo = new PlayerInfoPresenter(pd, &m_window);
 
@@ -403,7 +403,7 @@ void MainWindowComposer::createSessions()
         return m_c.match->isHumanSide(Turn::Black) || m_c.match->isHumanSide(Turn::White);
     };
     ud.canResumeGame = std::bind(&MatchCoordinator::canResumeInterruptedGame, m_c.match);
-    ud.activity = &m_state.activity;
+    ud.activity = &m_activity;
     m_c.uiStatePolicy = new UiStatePolicyManager(ud, &m_window);
     m_c.notificationService = new UiNotificationService({&m_window}, &m_window);
     m_c.pieceSoundPlayer = new PieceSoundPlayer(&m_window);
@@ -428,14 +428,14 @@ void MainWindowComposer::createSessions()
     fd.loadCoordinator = m_c.kifuLoadCoordinator;
     fd.gameController = m_c.gameController;
     fd.navState = m_c.navState;
-    fd.activity = &m_state.activity;
+    fd.activity = &m_activity;
     fd.clearUiBeforeKifuLoad = std::bind(&SessionResetCoordinator::clearBeforeKifuLoad, m_c.sessionReset.get());
     m_c.kifuFileController = new KifuFileController(fd, &m_window);
 
     // 対局の利用者の操作と、対局の手順の書き先
     m_c.nyugyokuHandler = new NyugyokuDeclarationHandler(&m_window, m_c.document, &m_window);
     GameSession::Deps gd;
-    gd.state = &m_state;
+    gd.activity = &m_activity;
     gd.match = m_c.match;
     gd.analysis = m_c.analysisSession;
     gd.engines = m_c.engines;
@@ -459,7 +459,7 @@ void MainWindowComposer::createSessions()
 
     CsaGameSession::Deps cd;
     cd.coordinator = m_c.csaGame;
-    cd.activity = &m_state.activity;
+    cd.activity = &m_activity;
     cd.shogiView = m_c.shogiView;
     cd.boardController = m_c.boardController;
     cd.boardMoves = m_c.boardMoves;
@@ -509,7 +509,7 @@ void MainWindowComposer::createControllers()
     // 棋譜解析・詰み探索（メニューから始める）
     KifuAnalysisController::Deps kd;
     kd.parentWidget = &m_window;
-    kd.activity = &m_state.activity;
+    kd.activity = &m_activity;
     kd.analysisModel = m_c.analysis;
     kd.resultsPanel = m_c.analysisResults;
     kd.resultsDock = m_c.dockRegistry->dock(DockRegistry::DockId::AnalysisResults);

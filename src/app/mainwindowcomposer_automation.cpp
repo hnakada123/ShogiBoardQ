@@ -30,7 +30,7 @@ void MainWindowComposer::startAutomationServer(const QString& socketPath)
     ctx.gameController = m_c.gameController;
     ctx.shogiView = m_c.shogiView;
     ctx.branchTree = m_c.branchTree;
-    ctx.state = &m_state;
+    ctx.activity = &m_activity;
     ctx.document = m_c.document;
     ctx.analysis = m_c.analysisSession;
     ctx.navState = m_c.navState;

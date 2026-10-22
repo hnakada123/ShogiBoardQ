@@ -14,7 +14,7 @@
 #include "matchcoordinator.h"
 #include "matchrecordsink.h"
 
-struct AppState;
+class AppActivityState;
 class JosekiBookSession;
 class AnalysisSession;
 class EngineLifecycleManager;
@@ -51,7 +51,7 @@ class GameSession : public QObject, public MatchRecordSink
 
 public:
     struct Deps {
-        AppState* state = nullptr;                          ///< 動作状態
+        const AppActivityState* activity = nullptr;         ///< 動作状態（対局中の窓口を決める）
         MatchCoordinator* match = nullptr;                  ///< ローカル対局の司令塔
         AnalysisSession* analysis = nullptr;                ///< 検討・詰み探索（「新規」で止める）
         EngineLifecycleManager* engines = nullptr;          ///< エンジンの枠（「新規」で全部止める。省略可）

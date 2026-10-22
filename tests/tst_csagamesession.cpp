@@ -87,7 +87,7 @@ private slots:
         emit coordinator.gameStarted(QStringLiteral("Black"), QStringLiteral("White"), {RecordEntry{}});
         QCOMPARE(activity.activity(), AppActivityState::Activity::DuringCsaGame);
         QVERIFY(session.isActive());
-        QCOMPARE(policy.currentState(), UiStatePolicyManager::AppState::DuringCsaGame);
+        QCOMPARE(policy.currentState(), UiStatePolicyManager::Activity::DuringCsaGame);
         QVERIFY(status.currentMessage().contains(QStringLiteral("Black")));
     }
 };

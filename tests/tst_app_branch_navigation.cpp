@@ -13,7 +13,7 @@
 #include <QTemporaryDir>
 
 #include "branchtreeview.h"
-#include "appstate.h"
+#include "appactivitystate.h"
 #include "evaluationchartwidget.h"
 #include "evaluationgraphpresenter.h"
 #include "kifudocument.h"
@@ -139,10 +139,10 @@ private slots:
         };
         const QList<QPushButton*> buttons = {graph->firstButton(), graph->back10Button(), graph->prevButton(),
                                              graph->nextButton(), graph->fwd10Button(), graph->lastButton()};
-        auto& activity = window.composer().state().activity;
+        auto& activity = window.composer().activity();
         // 同じグラフで対局開始→終局→再開→中断に相当する状態遷移を確かめる。
         for (int cycle = 0; cycle < 2; ++cycle) {
-            activity.setActivity(playing);
+            ActivityLease lease = activity.begin(playing, nullptr);
             const QString currentPosition = boardPosition(p);
             QSignalSpy changed(p.navState, &KifuNavigationState::changed);
             for (auto* button : buttons) {
@@ -157,7 +157,7 @@ private slots:
             QVERIFY(graph->findChild<QPushButton*>(QStringLiteral("evalDisplaySettings"))->isEnabled());
             QVERIFY(graph->findChild<QComboBox*>(QStringLiteral("evalRangeMode"))->isEnabled());
 
-            activity.setActivity(AppActivityState::Activity::Idle);
+            lease.reset();
             for (auto* button : buttons) QVERIFY(button->isEnabled());
             clickPoint();
             QCOMPARE(p.navState->currentPly(), 1);

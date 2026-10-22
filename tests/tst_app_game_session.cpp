@@ -11,7 +11,7 @@
 #include <memory>
 // 通信対局の司令塔の手番の状態は、サーバーとのやり取りでしか変わらないため、テストでは直接設定する
 // （CsaGameCoordinator が TestAppGameSession を friend にしている）
-#include "appstate.h"
+#include "appactivitystate.h"
 #include "csagamecoordinator.h"
 #include "csagamesession.h"
 #include "boardchromewidget.h"
@@ -113,7 +113,7 @@ private slots:
         p.gameSession->resign();
         QCOMPARE(ended.count(), 1);
         // 終局の行を書き、待機中に戻る
-        QCOMPARE(window.composer().state().activity.activity(), AppActivityState::Activity::Idle);
+        QCOMPARE(window.composer().activity().activity(), AppActivityState::Activity::Idle);
     }
 
     void interruptionEndsTheMatch()
@@ -135,7 +135,7 @@ private slots:
         auto& p = window.composer().parts();
         startFromDialog(window);
         // 通信対局中の投了・中断は通信対局の司令塔へ送り、ローカル対局は終わらせない
-        window.composer().state().activity.setActivity(AppActivityState::Activity::DuringCsaGame);
+        ActivityLease csa = window.composer().activity().begin(AppActivityState::Activity::DuringCsaGame, nullptr);
         p.gameSession->resign();
         p.gameSession->breakOff();
         QVERIFY(!p.match->gameOverState().isOver);
@@ -146,7 +146,7 @@ private slots:
     {
         ShogiGameController gc;
         AppActivityState activity;
-        activity.setActivity(AppActivityState::Activity::DuringCsaGame);
+        ActivityLease lease = activity.begin(AppActivityState::Activity::DuringCsaGame, nullptr);
         auto csa = std::make_unique<CsaGameCoordinator>();
         HumanTurnPolicy::Deps deps;
         deps.activity = &activity;
@@ -178,9 +178,10 @@ private slots:
         deps.activity = &activity;
         deps.gameController = &gc;
         HumanTurnPolicy policy(deps);
+        ActivityLease lease;
         for (const auto state : {AppActivityState::Activity::DuringAnalysis, AppActivityState::Activity::DuringTsumeSearch,
                                  AppActivityState::Activity::DuringConsideration}) {
-            activity.setActivity(state);
+            lease = activity.begin(state, nullptr);
             QVERIFY(!policy.isHumanTurnNow());
         }
     }
@@ -202,7 +203,7 @@ private slots:
         QCOMPARE(treeReset.count(), 0);
         QCOMPARE(appended.count(), 0);
         QCOMPARE(p.branchTree->root()->nodeId(), rootId);
-        QCOMPARE(window.composer().state().activity.activity(), AppActivityState::Activity::Idle);
+        QCOMPARE(window.composer().activity().activity(), AppActivityState::Activity::Idle);
         QVERIFY(!p.match->gameOverState().isOver);
     }
 
@@ -218,7 +219,7 @@ private slots:
         QCOMPARE(p.branchTree->nodeCount(), 1);
         QVERIFY(p.match->players().humanVsHuman());
         QCOMPARE(p.match->record().startSfen, SfenUtils::hirateSfen());
-        QCOMPARE(window.composer().state().activity.activity(), AppActivityState::Activity::DuringGame);
+        QCOMPARE(window.composer().activity().activity(), AppActivityState::Activity::DuringGame);
     }
 
     /// 棋譜をたどっている途中から新しい対局を始めても、対局の時計を動かす
@@ -236,7 +237,7 @@ private slots:
         QCOMPARE(p.match->clock(), clock);
         QVERIFY(clock->remainingMs(Turn::Black) > 0);
         QVERIFY(clock->isRunning());
-        QCOMPARE(window.composer().state().activity.activity(), AppActivityState::Activity::DuringGame);
+        QCOMPARE(window.composer().activity().activity(), AppActivityState::Activity::DuringGame);
         QVERIFY(p.match->players().humanVsHuman());
         QCOMPARE(p.match->record().startSfen, SfenUtils::hirateSfen());
         p.gameSession->breakOff();
@@ -253,12 +254,12 @@ private slots:
         // サーバーとのやり取りの代わりに、司令塔の知らせを直接出す
         emit p.csaGame->gameStarted(QStringLiteral("Sente"), QStringLiteral("Gote"), {});
         QVERIFY(p.liveGameSession->isActive());
-        QCOMPARE(window.composer().state().activity.activity(), AppActivityState::Activity::DuringCsaGame);
+        QCOMPARE(window.composer().activity().activity(), AppActivityState::Activity::DuringCsaGame);
 
         emit p.csaGame->gameEnded(CsaClient::GameResult::Win, CsaClient::GameEndCause::Resign, 0);
         QVERIFY(!p.liveGameSession->isActive());
         QVERIFY(p.document->timeRecord().endDateTime().isValid());
-        QCOMPARE(window.composer().state().activity.activity(), AppActivityState::Activity::Idle);
+        QCOMPARE(window.composer().activity().activity(), AppActivityState::Activity::Idle);
         p.document->markSaved(QString());
     }
 
@@ -300,7 +301,7 @@ private slots:
         humanVsHumanSettings();
         MainWindow window;
         auto& p = window.composer().parts();
-        auto& activity = window.composer().state().activity;
+        auto& activity = window.composer().activity();
         QVERIFY(!p.gameSession->activeChannel());
         startFromDialog(window);
         GameChannel* local = p.gameSession->activeChannel();
@@ -308,11 +309,11 @@ private slots:
         QVERIFY(local->judgesDeclaration());
         QVERIFY(local->isHumanToMove());
         QCOMPARE(local->sideToMove(), Turn::Black);
-        activity.setActivity(AppActivityState::Activity::DuringCsaGame);
+        ActivityLease lease = activity.begin(AppActivityState::Activity::DuringCsaGame, nullptr);
         GameChannel* csa = p.gameSession->activeChannel();
         QVERIFY(csa && csa != local);
         QVERIFY(!csa->judgesDeclaration());
-        activity.setActivity(AppActivityState::Activity::DuringGame);
+        lease = activity.begin(AppActivityState::Activity::DuringGame, nullptr);
         p.gameSession->breakOff();
         p.document->markSaved(QString());
     }
@@ -336,7 +337,7 @@ private slots:
         QVERIFY(savedFiles().isEmpty());
         p.document->markSaved(QString());
         startFromDialog(window);
-        QCOMPARE(window.composer().state().activity.activity(), AppActivityState::Activity::DuringGame);
+        QCOMPARE(window.composer().activity().activity(), AppActivityState::Activity::DuringGame);
         p.gameSession->resign();
         QCOMPARE(savedFiles().size(), 1);
         QVERIFY(savedFiles().first().endsWith(QStringLiteral(".kifu")));
@@ -369,7 +370,7 @@ private slots:
         p.gameSession->resumeInterruptedGame();
         QVERIFY(!p.match->canResumeInterruptedGame());
         QVERIFY(!p.uiStatePolicy->isEnabled(UiStatePolicyManager::UiElement::GameResume));
-        QCOMPARE(window.composer().state().activity.activity(), AppActivityState::Activity::DuringGame);
+        QCOMPARE(window.composer().activity().activity(), AppActivityState::Activity::DuringGame);
         QVERIFY(!p.branchTree->nodeAt(interruptNode));
 
         // 中断の後に棋譜を変えたら再開できない

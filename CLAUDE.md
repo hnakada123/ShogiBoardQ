@@ -49,7 +49,7 @@ cmake --build build --target translations
   - `main.cpp` - Entry point
   - `mainwindow.cpp/.h/.ui` - Main window
   - `mainwindowcomposer.cpp/.h` - 合成ルート。起動時に全部品を依存順に作り、依存を注入し、シグナルをつなぐ（実装は `mainwindowcomposer_*.cpp` に段階ごとに分割）。設計: `docs/dev/composition-root.md`
-  - `mainwindowcomponents.h` - 合成ルートが作る部品の一覧。状態は `src/common/appstate.h` の `AppState` に1つだけ置く（部品には `AppState*` を渡し、個々のフィールドへのポインタは渡さない）
+  - `mainwindowcomponents.h` - 合成ルートが作る部品の一覧。動作状態は `src/common/appactivitystate.h` の `AppActivityState` に1つだけ置き（合成ルートが持ち、部品には `AppActivityState*` を渡す）、変えるのは `begin(動作, 持ち主)` が返す move-only の `ActivityLease` を持つ部品だけ（手放すと待機中に戻る。別の部品が別の動作を始めたら、前の持ち主に `revoked(owner)` で次のイベントループで知らせる）
   - `mainwindowactions.cpp/.h` - メニュー・盤・棋譜欄からの利用者操作の振り分け先
   - `menuactionswiring.cpp/.h` - メニュー・ツールバーの項目と処理する部品の接続
   - `gamesession.cpp/.h` - 対局の開始・終局・再開と、対局の手順の棋譜への追記（`MatchRecordSink`）。ローカル対局と通信対局の棋譜を開始から終局・自動保存まで1本の流れで扱い、投了・中断・即指し・入玉宣言は `activeChannel()`（`GameChannel`）へ送る
@@ -198,7 +198,7 @@ cmake --build build --target translations
   - `piecestylecatalog.cpp/.h` - 駒のセットの表 `PieceStyleCatalog`（ID・分類 `Family`・表示名・画像の場所）。駒のセットを足すときはこの表に1行足す（外観ダイアログの絞り込みの番号は `Family` の値）
   - `notationstyle.cpp/.h` - 表示言語と棋譜の表記の設定 `NotationStyle`（`Notation`・`Options`・`resolveLanguage`・`configure`・`options`・`revision`）。起動時に `ApplicationTranslations` が設定し、kifu の `KifuPresentation` が読む
   - `appearancestate.cpp/.h` - 外観（駒のセット・配色・見た目）をまとめた値 `AppearanceState`（`current()`・`apply()`）。おすすめの組み合わせは `boardappearancecatalog` の `combinations()`
-- **common/**: 共有の土台（`appstate.h`・`appactivitystate.h`・`boardcolors.h`・`boardvisuals.h`・`branchtreeitemroles.h`・`errorbus`・`logcategories`・`threadtypes.h`・`tsumeevaluation.h`・`recentfilelist`（最近使ったファイルの一覧 `RecentFileList`。新しい順・重複なし・上限つき。定跡の `JosekiBookSession` と局面集ビューアが使う））
+- **common/**: 共有の土台（`appactivitystate`（動作状態 `AppActivityState` と持ち主のリース `ActivityLease`）・`boardcolors.h`・`boardvisuals.h`・`branchtreeitemroles.h`・`errorbus`・`logcategories`・`threadtypes.h`・`tsumeevaluation.h`・`recentfilelist`（最近使ったファイルの一覧 `RecentFileList`。新しい順・重複なし・上限つき。定跡の `JosekiBookSession` と局面集ビューアが使う））
 
 ### UI Files
 

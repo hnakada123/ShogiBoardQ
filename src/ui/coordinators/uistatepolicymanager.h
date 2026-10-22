@@ -28,8 +28,8 @@ class UiStatePolicyManager : public QObject
 {
     Q_OBJECT
 public:
-    /// アプリケーション状態
-    using AppState = AppActivityState::Activity;
+    /// 動作状態
+    using Activity = AppActivityState::Activity;
 
     /// UI要素に適用するポリシー
     enum class Policy {
@@ -101,32 +101,23 @@ public:
         ConsiderationTabManager* consideration = nullptr;     ///< 検討ドックの「検討開始」
         std::function<bool()> localGameHasHuman;  ///< ローカル対局に人間が参加しているか（待った・投了・入玉宣言）
         std::function<bool()> canResumeGame;      ///< 中断した対局を再開できるか（司令塔に問い合わせる）
-        AppActivityState* activity = nullptr;
+        const AppActivityState* activity = nullptr;   ///< 動作状態（必須）
     };
 
-    /// deps.activity が無ければ自分だけの動作状態を使う（テスト用）
     explicit UiStatePolicyManager(const Deps& deps, QObject* parent = nullptr);
-    UiStatePolicyManager() : UiStatePolicyManager(Deps{}) {}
 
     /// 現在の状態を返す
-    AppState currentState() const { return m_activity->activity(); }
+    Activity currentState() const { return m_deps.activity->activity(); }
 
     /// 指定要素が現在の状態で有効かを返す
     bool isEnabled(UiElement element) const;
 
     /// 表だけで決まるポリシー（再開の可否・人間の参加などの条件を除く）
-    static Policy tablePolicy(AppState state, UiElement element);
+    static Policy tablePolicy(Activity state, UiElement element);
 
 public slots:
     /// 再開できるかが変わった（「再開」の有効・無効を問い合わせ直す）
     void refreshResumeAvailability();
-
-    /// ナビゲーションが許可されている場合のみ矢印ボタンを有効化する
-    void enableNavigationIfAllowed();
-
-signals:
-    /// 状態が変更されたときに発火する
-    void stateChanged(AppActivityState::Activity newState);
 
 private:
     /// 再開の可否・人間の参加を反映した現在のポリシーを返す
@@ -136,8 +127,6 @@ private:
     void applyPolicy(UiElement element, Policy policy);
 
     Deps m_deps;
-    AppActivityState m_defaultActivity;
-    AppActivityState* m_activity = nullptr;
     void refreshActivity();
 };
 

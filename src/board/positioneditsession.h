@@ -8,7 +8,8 @@
 #include <QPoint>
 #include <QString>
 
-class AppActivityState;
+#include "appactivitystate.h"
+
 class BoardInteractionController;
 class KifuNavigationState;
 class QAction;
@@ -18,8 +19,9 @@ class ShogiView;
 /**
  * @brief 局面編集を1か所で受け持つ
  *
- * 「編集中か」は動作状態（AppActivityState::DuringPositionEdit）の1つだけで、盤の描き方
- * （ShogiView::setPositionEditMode）と「編集終了」ボタンはこのクラスが動作状態に合わせて切り替える。
+ * 「編集中か」は動作状態（AppActivityState::DuringPositionEdit）のリースを持っているかだけで決まり、盤の描き方
+ * （ShogiView::setPositionEditMode）と「編集終了」ボタンはこのクラスがそれに合わせて切り替える。
+ * 編集は待機中だけ始める。ほかの部品が別の動作を始めて動作状態を取り上げたら、編集中の局面で編集を終える。
  * 編集を始めると表示中の局面を、終えると編集した局面を知らせる（受け手が棋譜をその局面だけにする）。
  */
 class PositionEditSession : public QObject
@@ -62,6 +64,10 @@ public slots:
     void setTsumePosition();
     void toggleSideToMove();
 
+private slots:
+    /// ほかの部品が別の動作を始めた
+    void onActivityRevoked(QObject* owner);
+
 signals:
     /// 編集を始めた（sfen は編集する局面。手数は1）
     void editingStarted(const QString& sfen);
@@ -71,8 +77,11 @@ signals:
 private:
     /// つまんでいる駒とハイライトを消す
     void resetInteraction();
+    /// 編集中の局面を新しい開始局面にして、盤を編集の表示から戻す
+    void endEditing();
 
     Deps m_deps;
+    ActivityLease m_activityLease;   ///< 局面編集中の動作状態
 };
 
 #endif // POSITIONEDITSESSION_H

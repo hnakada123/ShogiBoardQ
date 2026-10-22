@@ -17,7 +17,7 @@
 #include "usi.h"
 #include "humanturnpolicy.h"
 #include "csagameprogress.h"
-#include "appstate.h"
+#include "appactivitystate.h"
 #include "kifudocument.h"
 #include "evaluationchartwidget.h"
 #include "evaluationgraphpresenter.h"
@@ -255,7 +255,7 @@ private slots:
         Harness h;
         QVERIFY(h.start("+"));
         AppActivityState activity;
-        activity.setActivity(AppActivityState::Activity::DuringCsaGame);
+        ActivityLease lease = activity.begin(AppActivityState::Activity::DuringCsaGame, nullptr);
         HumanTurnPolicy::Deps deps;
         deps.activity = &activity;
         deps.gameController = &h.gc;
@@ -507,9 +507,9 @@ private slots:
         KifuNavigationState nav(&tree);
         LiveGameSession live(&tree, &nav);
         // 棋譜の受け手（本体と同じ GameSession。通信対局の棋譜を作り直して書くのに使う部品を渡す）
-        AppState state;
+        AppActivityState activity;
         KifuDocument document(&tree);
-        MatchCoordinator match({&h.gc, &h.clock, &state.activity, &h.engines, &document});
+        MatchCoordinator match({&h.gc, &h.clock, &activity, &h.engines, &document});
         KifuLoadCoordinator loader(&document);
         EvaluationChartWidget chart;
         EvaluationGraphPresenter graph({&chart, &nav, &live});
@@ -519,9 +519,9 @@ private slots:
         rd.kifuLoader = &loader;
         rd.evalGraph = &graph;
         SessionResetCoordinator reset(rd);
-        PlayerInfoPresenter playerInfo({&document, &state.activity});
+        PlayerInfoPresenter playerInfo({&document, &activity});
         GameSession::Deps sd;
-        sd.state = &state;
+        sd.activity = &activity;
         sd.match = &match;
         sd.reset = &reset;
         sd.navState = &nav;
@@ -534,7 +534,7 @@ private slots:
 
         CsaGameSession::Deps cd;
         cd.coordinator = &h.coordinator;
-        cd.activity = &state.activity;
+        cd.activity = &activity;
         CsaGameSession session(cd);
         QSignalSpy sounds(&h.gc, &ShogiGameController::moveCommitted);
 

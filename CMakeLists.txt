@@ -888,6 +888,7 @@ set(SRC_SERVICES
 )
 
 set(SRC_COMMON
+    src/common/appactivitystate.cpp
     src/common/appactivitystate.h
     src/style/applicationfonts.cpp
     src/style/applicationfonts.h
@@ -895,7 +896,6 @@ set(SRC_COMMON
     src/style/applicationrendering.h
     src/style/applicationstyle.cpp
     src/style/applicationstyle.h
-    src/common/appstate.h
     src/common/boardcolors.h
     src/common/boardvisuals.h
     src/common/branchtreeitemroles.h

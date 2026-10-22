@@ -37,7 +37,7 @@
 
 **重点確認ポイント:**
 - 対局者の組 `MatchPlayers`（`MatchCoordinator::players()`）が人間同士（`blackIsEngine`・`whiteIsEngine` とも false）になっているか
-- 対局者の記録（`GameSession::startGame()` → `beginMatchRecord()` → `KifuDocument::beginMatch()`。`KifuDocument::players()`）と盤への表示（`PlayerInfoPresenter::showPlayers()`）と、`AppState::activity` が `DuringGame` になるか（`MatchCoordinator::start()`）
+- 対局者の記録（`GameSession::startGame()` → `beginMatchRecord()` → `KifuDocument::beginMatch()`。`KifuDocument::players()`）と盤への表示（`PlayerInfoPresenter::showPlayers()`）と、動作状態（`AppActivityState::activity()`） が `DuringGame` になるか（`MatchCoordinator::start()`）
 - `UiStatePolicyManager` の状態遷移（`Idle` → `DuringGame`）
 - 時計表示の初期化（持ち時間設定がある場合。`TimeDisplayPresenter::showClock()`。以後は `ShogiClock::timeUpdated` を直接受けて更新）
 
@@ -218,7 +218,7 @@
   2. `SessionResetCoordinator::clearBeforeKifuLoad()` — 通信ログ・思考情報・検討・解析結果（`EngineDisplayPresenter::clearAll()`）と評価値グラフを消す
   3. `SessionResetCoordinator::resetToNewRecord()` — 読み込み途中の棋譜を捨て（`KifuLoadCoordinator::cancelLoad()`）、`KifuDocument::startNew()` で平手の開始局面だけの棋譜にする。文書の置き換えで対局情報は既定の項目になり、対局者・持ち時間・終局日時・上書き保存先も消え、盤の対局者名は対局情報の初期値（「先手」「後手」）に戻る（`headerReset` → `PlayerInfoPresenter::syncBoardNamesWithGameInfo()`）
   4. 動作状態を `Idle` に戻す
-- `AppState::activity` が `Idle` に戻り、`KifuDocument::players()` が空・`KifuDocument::filePath()` が空になるか
+- 動作状態（`AppActivityState::activity()`） が `Idle` に戻り、`KifuDocument::players()` が空・`KifuDocument::filePath()` が空になるか
 - 分岐ツリーの開始局面（`KifuBranchTree::root()`）が平手 SFEN に戻り、表示中の手（`KifuNavigationState::currentSfen()`）も平手になるか
 - 司令塔の終局状態が `MatchCoordinator::clearGameOverState()` で消えるか（対局の手順 `MatchCoordinator::record()` は次の対局の開始で置き換わる）
 - `LiveGameSession` が破棄（`discard()`）されるか

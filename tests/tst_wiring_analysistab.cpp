@@ -121,12 +121,12 @@ private slots:
         MainWindow window;
         m_seenDialog.clear();
         m_seenMessage.clear();
-        const auto previousActivity = window.composer().state().activity.activity();
+        const auto previousActivity = window.composer().activity().activity();
         QTimer::singleShot(0, this, &TestWiringAnalysisTab::rejectModal);
         emit window.composer().parts().considerationTab->startConsiderationRequested();
         QCOMPARE(m_seenDialog, QStringLiteral("QMessageBox"));
         QCOMPARE(m_seenMessage, QStringLiteral("将棋エンジンが選択されていません。"));
-        QCOMPARE(window.composer().state().activity.activity(), previousActivity);
+        QCOMPARE(window.composer().activity().activity(), previousActivity);
     }
 };
 QTEST_MAIN(TestWiringAnalysisTab)
