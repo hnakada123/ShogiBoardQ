@@ -15,7 +15,17 @@
 #include <optional>
 
 #include "josekibook.h"
+#include "josekiimport.h"
 #include "josekitypes.h"
+#include "usiscore.h"
+
+/// 定跡ファイルを今の定跡に足した結果（ワーカースレッドで作り、メインスレッドで使う値）
+struct JosekiBookMergeResult {
+    bool success = false;
+    QString errorMessage;
+    JosekiBook book;               ///< 足した後の定跡
+    JosekiBook::MergeStats stats;
+};
 
 /**
  * @brief 定跡ウィンドウで開いている定跡ファイルの状態
@@ -36,8 +46,15 @@ class JosekiBookSession : public QObject
 public:
     static constexpr int kMaxRecentFiles = 5;
 
-    /// 読み書きの最中の処理（読み込み中・保存中は定跡を変えられない）
-    enum class Activity { Idle, Loading, Saving };
+    /// 読み書きの最中の処理（読み込み中・保存中・定跡ファイルを足している間は定跡を変えられない）
+    enum class Activity { Idle, Loading, Saving, Merging };
+    /// 棋譜から集めた手を登録した結果
+    struct ImportStats {
+        int added = 0;    ///< 足した定跡手
+        int updated = 0;  ///< 出現頻度を増やした定跡手
+    };
+    /// エンジンの読み筋を登録した結果
+    enum class EngineRegistration { Invalid, Added, Updated };
 
     explicit JosekiBookSession(QObject *parent = nullptr);
     ~JosekiBookSession() override;
@@ -76,6 +93,22 @@ public:
     bool updateMove(const QString &sfen, const JosekiMove &move);
     /// 定跡手を消す。無ければ false
     bool removeMove(const QString &sfen, const QString &usiMove);
+    /**
+     * @brief エンジンの読み筋の最初の手を、sfen の局面の定跡手として登録する
+     * @param pv 読み筋（USI。2手目があれば予想応手にする）
+     * @param score sfen の局面の手番側から見た評価値（定跡の評価値は valueOf で直す）
+     * @param depth 探索深さ（無ければ負の値で、0 にする）
+     *
+     * 登録済みの手なら評価値・深さ・予想応手だけを書き換え（出現頻度とコメントは残す。読み筋が1手なら予想応手も残す）、
+     * 無ければ出現頻度1で足す。
+     * 読み筋が空なら何もしない（Invalid）
+     */
+    EngineRegistration registerEnginePv(const QString &sfen, const QStringList &pv, const UsiScore &score, int depth);
+    /// 定跡の評価値（手番側から見た値）。詰みはやねうら王と同じく ±(32000 − 手数)、評価値が無ければ 0
+    static int valueOf(const UsiScore &score);
+    /// 複数の棋譜から集めた手を登録する（あれば出現頻度に数を足し、無ければ予想応手なし・評価値0・深さ0で足す。
+    /// コメントは定跡にコメントの無い手だけに入れる）。マージで登録した印も付ける。読み書き中は何もしない
+    ImportStats importMoves(const QList<JosekiImport::Move> &moves);
 
     // --- 最近使ったファイル ---
 
@@ -105,6 +138,13 @@ public:
      * で知らせる。「全て登録」でも保存は1回。読み込み中・保存中・保存先がなければ始めずに false
      */
     bool startRegisterMergeMoves(const QList<KifuMergeEntry> &entries);
+    /**
+     * @brief 別の定跡ファイルを読み込み、今の定跡に足し始める（JosekiBook::mergeFrom）
+     *
+     * 読み込みと足し合わせはワーカースレッドで今の定跡の写しに行い、終わったら定跡を入れ替えて変更ありにする
+     * （保存はしない）。完了は bookMerged() / bookMergeFailed()。読み書き中なら始めずに false
+     */
+    bool startMergeBook(const QString &filePath, const JosekiBook::MergeOptions &options);
 
 public slots:
     void setModified(bool modified);
@@ -125,10 +165,15 @@ signals:
     void mergeFinished(bool registered);
     /// 定跡の中身が変わった（読み込み・新規・定跡手の追加・編集・削除・マージ。盤の矢印を描き直す）
     void contentChanged();
+    /// startMergeBook() で定跡ファイルを足した
+    void bookMerged(const QString &filePath, const JosekiBook::MergeStats &stats);
+    /// startMergeBook() の定跡ファイルを読めなかった（定跡は変えていない）
+    void bookMergeFailed(const QString &errorMessage);
 
 private slots:
     void onLoadFinished();
     void onSaveFinished();
+    void onMergeBookFinished();
 
 private:
     /// 読み書きの最中の処理を変える（読み書き中かが変われば busyChanged を出す）
@@ -143,6 +188,8 @@ private:
     Activity m_activity = Activity::Idle;
     QFutureWatcher<JosekiLoadResult> m_loadWatcher;
     QFutureWatcher<JosekiSaveResult> m_saveWatcher;
+    QFutureWatcher<JosekiBookMergeResult> m_mergeBookWatcher;
+    QString m_pendingMergeBookFilePath;
     QString m_pendingLoadFilePath;
     QString m_pendingSaveFilePath;
     /// 保存中のマージの結果（保存できたら定跡にする）

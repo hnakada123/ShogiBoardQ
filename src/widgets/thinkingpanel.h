@@ -12,6 +12,7 @@
 class EngineInfoWidget;
 class QCheckBox;
 class QLabel;
+class QMenu;
 class ThinkingTableView;
 class UsiCommLogModel;
 
@@ -52,6 +53,8 @@ signals:
     void arrowSettingsChanged();
     /// 読み筋の行の「盤面」ボタンが押された
     void pvRowClicked(ShogiEngineThinkingModel* model, int row);
+    /// 読み筋の行を右クリックした（受け手が menu に項目を足す）
+    void rowContextMenuAboutToShow(ShogiEngineThinkingModel* model, int row, QMenu* menu);
 
 private slots:
     void onMatchArrowsToggled(bool checked);

@@ -229,6 +229,7 @@ bool BranchTreeEditController::addMove(KifuBranchNode* parent, const UsiMove& mo
 
     qCDebug(lcUi).noquote() << "BranchTreeEditController: board move" << played->displayText
                             << (created ? "added as a new move" : "matched an existing move");
+    emit boardMoveRecorded(parent->sfen(), move.toString());
     return true;
 }
 

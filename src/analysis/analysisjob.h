@@ -37,6 +37,7 @@ struct PlyAnalysis {
     UsiScore score;       ///< 最善の読み筋（multipv 1）の最後の評価値（その局面の手番側から見た値。定跡は None）
     QStringList usiPv;    ///< 最善の読み筋（局面に合った手まで。resign などの宣言は含まない）
     QString pvKanji;      ///< 同じ読み筋の漢字表記（局面に合わなければエンジンの読み筋のまま）
+    int depth = -1;       ///< 最善の読み筋を出したときの探索深さ（無ければ -1）
     bool book = false;    ///< info が1つも届かずに bestmove が届いた（定跡）
 };
 
@@ -60,6 +61,7 @@ private:
     UsiPosition m_position;
     bool m_anyInfo = false;
     QStringList m_bestPv;   ///< multipv 1 の最後の読み筋
+    int m_bestDepth = -1;   ///< その読み筋の探索深さ
 };
 
 /**

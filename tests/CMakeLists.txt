@@ -761,6 +761,10 @@ add_shogi_test(tst_joseki_book tst_joseki_book.cpp)
 target_link_libraries(tst_joseki_book PRIVATE shogiboardq_static)
 add_shogi_test(tst_joseki_move_picker tst_joseki_move_picker.cpp)
 target_link_libraries(tst_joseki_move_picker PRIVATE shogiboardq_static)
+add_shogi_test(tst_joseki_registration tst_joseki_registration.cpp)
+target_link_libraries(tst_joseki_registration PRIVATE shogiboardq_static)
+add_shogi_test(tst_joseki_import tst_joseki_import.cpp)
+target_link_libraries(tst_joseki_import PRIVATE shogiboardq_static)
 
 # ============================================================
 # Unit: TsumeshogiPositionGenerator + TsumePositionUtil テスト

@@ -346,6 +346,8 @@ void ConsiderationTabManager::buildConsiderationView()
     m_considerationView = new ThinkingTableView(AnalysisSettings::ThinkingTable::Consideration, this);
     m_considerationView->setObjectName(QStringLiteral("considerationView"));
     connect(m_considerationView, &ThinkingTableView::pvRowClicked, this, &ConsiderationTabManager::pvRowClicked);
+    connect(m_considerationView, &ThinkingTableView::thinkingRowContextMenuAboutToShow,
+            this, &ConsiderationTabManager::rowContextMenuAboutToShow);
 
     // buildConsiderationUi() より前に setConsiderationThinkingModel() が呼ばれた場合、
     // 保存済みモデルをビューに適用する

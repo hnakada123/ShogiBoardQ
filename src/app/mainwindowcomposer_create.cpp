@@ -36,6 +36,7 @@
 #include "imageexportcontroller.h"
 #include "josekibooksession.h"
 #include "josekiwindow.h"
+#include "josekiregistrationcontroller.h"
 #include "josekiwindowcontroller.h"
 #include "kifuanalysiscontroller.h"
 #include "kifuanalysislistmodel.h"
@@ -329,6 +330,15 @@ void MainWindowComposer::createPresentersAndDocks()
     jd.boardMoves = m_c.boardMoves;
     m_c.joseki = new JosekiWindowController(jd, &m_window);
     m_c.joseki->josekiWindow()->setBoardArrowsChecked(m_c.arrows->josekiArrowsVisible());
+
+    // 思考の表・棋譜解析の結果から定跡に登録する（定跡ウィンドウで定跡を開いているときだけ）
+    JosekiRegistrationController::Deps rd;
+    rd.book = m_c.josekiBook;
+    rd.canRegister = std::bind(&JosekiWindow::canRegisterMoves, m_c.joseki->josekiWindow());
+    rd.analysisModel = m_c.analysis;
+    rd.parentWidget = &m_window;
+    rd.statusBar = m_ui.statusbar;
+    m_c.josekiRegistration = new JosekiRegistrationController(rd, &m_window);
 
     m_c.analysisResults = new AnalysisResultsPanel(&m_window);
 

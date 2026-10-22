@@ -389,6 +389,8 @@ set(SRC_KIFU
     src/kifu/josekibooksession.h
     src/kifu/josekibook.cpp
     src/kifu/josekibook.h
+    src/kifu/josekiimport.cpp
+    src/kifu/josekiimport.h
     src/kifu/josekimergeentries.cpp
     src/kifu/josekimergeentries.h
     src/kifu/josekimovepicker.cpp
@@ -548,6 +550,8 @@ set(SRC_UI
     src/ui/controllers/humanturnpolicy.h
     src/ui/controllers/imageexportcontroller.cpp
     src/ui/controllers/imageexportcontroller.h
+    src/ui/controllers/josekiregistrationcontroller.cpp
+    src/ui/controllers/josekiregistrationcontroller.h
     src/ui/controllers/josekiwindowcontroller.cpp
     src/ui/controllers/josekiwindowcontroller.h
     src/ui/controllers/kifuanalysiscontroller.cpp
@@ -747,6 +751,14 @@ set(SRC_DIALOGS
     src/dialogs/fontsettingsdialog.h
     src/dialogs/jishogiscoredialog.cpp
     src/dialogs/jishogiscoredialog.h
+    src/dialogs/josekianalysisregisterdialog.cpp
+    src/dialogs/josekianalysisregisterdialog.h
+    src/dialogs/josekibookmergedialog.cpp
+    src/dialogs/josekibookmergedialog.h
+    src/dialogs/josekieditcontroller.cpp
+    src/dialogs/josekieditcontroller.h
+    src/dialogs/josekiimportdialog.cpp
+    src/dialogs/josekiimportdialog.h
     src/dialogs/josekifilecontroller.cpp
     src/dialogs/josekifilecontroller.h
     src/dialogs/josekimergecontroller.cpp

@@ -28,6 +28,8 @@ public:
 signals:
     /// 行の「盤面」ボタンが押された
     void pvRowClicked(ShogiEngineThinkingModel* model, int row);
+    /// 行を右クリックした（受け手が menu に項目を足す。PvTableView::rowContextMenuAboutToShow に表を添えたもの）
+    void thinkingRowContextMenuAboutToShow(ShogiEngineThinkingModel* model, int row, QMenu* menu);
 
 protected:
     /// 保存した列幅（無ければ見出しと数値の見本が収まる幅）を当てる
@@ -35,6 +37,7 @@ protected:
 
 private slots:
     void onBoardRequested(int row);
+    void onRowContextMenuAboutToShow(int row, QMenu* menu);
     void onSectionResizedByUser(int logicalIndex);
 
 private:

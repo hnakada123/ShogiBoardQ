@@ -266,8 +266,13 @@ private slots:
         QVERIFY(h.controller.canRecordBoardMove());
 
         QSignalSpy changed(&h.state, &KifuNavigationState::changed);
+        // 記録した手は、指す前の局面と一緒に知らせる（定跡ウィンドウの「盤の手を登録」）
+        QSignalSpy recorded(&h.controller, &BranchTreeEditController::boardMoveRecorded);
         QPoint from(7, 7), to(7, 6);
         QVERIFY(h.controller.recordBoardMove(from, to, &gc));
+        QCOMPARE(recorded.count(), 1);
+        QCOMPARE(recorded.last().at(0).toString(), tree.root()->sfen());
+        QCOMPARE(recorded.last().at(1).toString(), QStringLiteral("7g7f"));
         QCOMPARE(tree.root()->childCount(), 1);
         QCOMPARE(h.state.currentNode(), tree.root()->childAt(0));
         QVERIFY(h.state.currentNode()->displayText().contains(QStringLiteral("７六歩")));
@@ -283,6 +288,7 @@ private slots:
         QVERIFY(h.controller.recordBoardMove(from, to, &gc));
         QCOMPARE(tree.root()->childCount(), 1);
         QVERIFY(!h.document.isModified());
+        QCOMPARE(recorded.count(), 2);
 
         // 違う手は新しい変化になる
         h.nav.goToNode(tree.root());
@@ -300,6 +306,8 @@ private slots:
         to = QPoint(2, 5);
         QVERIFY(!h.controller.recordBoardMove(from, to, &gc));
         QCOMPARE(tree.nodeCount(), nodesBefore);
+        QCOMPARE(recorded.count(), 3);
+        QCOMPARE(recorded.last().at(1).toString(), QStringLiteral("2g2f"));
     }
 
     // ===== BranchTreeView の表示 =====

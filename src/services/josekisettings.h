@@ -58,6 +58,54 @@ inline const Setting<int> josekiPlayOptionsDialogFontSize{"JosekiWindow/playOpti
 /// 定跡を使う条件のダイアログのウィンドウサイズ（デフォルト: 460x440）
 inline const Setting<QSize> josekiPlayOptionsDialogSize{"SizeRelated/josekiPlayOptionsDialogSize", QSize(460, 440)};
 
+/// 棋譜解析の結果をまとめて定跡に登録するダイアログのフォントサイズ（0 ならダイアログの元の大きさから始める）
+inline const Setting<int> josekiAnalysisRegisterDialogFontSize{"JosekiWindow/analysisRegisterDialogFontSize", 0};
+
+/// 棋譜解析の結果をまとめて定跡に登録するダイアログのウィンドウサイズ（デフォルト: 460x280）
+inline const Setting<QSize> josekiAnalysisRegisterDialogSize{"SizeRelated/josekiAnalysisRegisterDialogSize", QSize(460, 280)};
+
+/// 棋譜解析の結果をまとめて定跡に登録するとき、先手の手番の局面を登録する（デフォルト: true）
+inline const Setting<bool> josekiAnalysisRegisterBlack{"JosekiWindow/analysisRegisterBlack", true};
+
+/// 棋譜解析の結果をまとめて定跡に登録するとき、後手の手番の局面を登録する（デフォルト: true）
+inline const Setting<bool> josekiAnalysisRegisterWhite{"JosekiWindow/analysisRegisterWhite", true};
+
+/// 複数の棋譜から定跡に登録するダイアログのフォントサイズ（0 ならダイアログの元の大きさから始める）
+inline const Setting<int> josekiImportDialogFontSize{"JosekiWindow/importDialogFontSize", 0};
+
+/// 複数の棋譜から定跡に登録するダイアログのウィンドウサイズ（デフォルト: 600x560）
+inline const Setting<QSize> josekiImportDialogSize{"SizeRelated/josekiImportDialogSize", QSize(600, 560)};
+
+/// 複数の棋譜から登録する: この手数までの手を登録する（デフォルト: 60）
+inline const Setting<int> josekiImportMaxPly{"JosekiImport/maxPly", 60};
+
+/// 複数の棋譜から登録する: 登録する手（0=両方, 1=先手だけ, 2=後手だけ, 3=勝った側だけ。デフォルト: 0）
+inline const Setting<int> josekiImportSides{"JosekiImport/sides", 0};
+
+/// 複数の棋譜から登録する: 変化の手も登録する（デフォルト: false）
+inline const Setting<bool> josekiImportVariations{"JosekiImport/includeVariations", false};
+
+/// 複数の棋譜から登録する: この局数以上で指された手だけ登録する（デフォルト: 1）
+inline const Setting<int> josekiImportMinCount{"JosekiImport/minCount", 1};
+
+/// 複数の棋譜から登録する: 棋譜のコメントを定跡のコメントにする（デフォルト: false）
+inline const Setting<bool> josekiImportComments{"JosekiImport/useComments", false};
+
+/// 複数の棋譜から登録する: 最後にファイル・フォルダを選んだフォルダ
+inline const Setting<QString> josekiImportLastDirectory{"JosekiImport/lastDirectory", QString()};
+
+/// 定跡ファイルを足すダイアログのフォントサイズ（0 ならダイアログの元の大きさから始める）
+inline const Setting<int> josekiBookMergeDialogFontSize{"JosekiWindow/bookMergeDialogFontSize", 0};
+
+/// 定跡ファイルを足すダイアログのウィンドウサイズ（デフォルト: 600x300）
+inline const Setting<QSize> josekiBookMergeDialogSize{"SizeRelated/josekiBookMergeDialogSize", QSize(600, 300)};
+
+/// 定跡ファイルを足す: 同じ指し手は足す定跡の予想応手・評価値・深さ・コメントにする（デフォルト: false）
+inline const Setting<bool> josekiBookMergePreferIncoming{"JosekiBookMerge/preferIncoming", false};
+
+/// 定跡ファイルを足す: 同じ指し手の出現頻度を足し合わせる（デフォルト: true）
+inline const Setting<bool> josekiBookMergeSumFrequency{"JosekiBookMerge/sumFrequency", true};
+
 /// 盤に定跡手の矢印を出す（「表示」メニュー・定跡ウィンドウ。デフォルト: false）
 inline const Setting<bool> boardArrowsVisible{"JosekiWindow/boardArrowsVisible", false};
 

@@ -16,6 +16,8 @@ class QAction;
 class QCheckBox;
 class QCloseEvent;
 class QDockWidget;
+class QDragEnterEvent;
+class QDropEvent;
 class QLabel;
 class QMenu;
 class QModelIndex;
@@ -24,6 +26,7 @@ class QShowEvent;
 class QTableView;
 class QToolButton;
 class JosekiBookSession;
+class JosekiEditController;
 class JosekiFileController;
 class JosekiMergeController;
 class RecentFilesMenu;
@@ -36,6 +39,7 @@ class JosekiTableModel;
  * - 開いている定跡ファイル（データ・パス・変更状態・履歴・読み書き）は JosekiBookSession（合成ルートが作り、
  *   ほかの部品とも共有する。ウィンドウは持たない）
  * - ファイルの利用者操作（開く・新規・保存・履歴）と確認ダイアログは JosekiFileController
+ * - 定跡手の追加・編集・削除のダイアログは JosekiEditController、マージは JosekiMergeController
  * - 表の中身は JosekiTableModel（「着手」「編集」「削除」の列はボタンとして描く）
  */
 class JosekiWindow : public QWidget
@@ -69,10 +73,18 @@ public:
     void showMoveFailed(const QString &usiMove);
     /// 定跡を表に出しているか（「■ 停止」で止めていなければ true。盤の矢印も止めているときは出さない）
     bool isDisplayEnabled() const { return m_displayEnabled; }
+    /// 定跡に手を登録できるか（前回のファイルの読み込みを待っておらず、読み書き中でない）。
+    /// 前回のファイルは初めて表示したときに読み込み、それまでのデータを置き換えるので、その前は登録させない
+    bool canRegisterMoves() const;
+    /// 「盤の手を登録」がオンか
+    bool isRecordingBoardMoves() const;
 
 public slots:
     /// 「盤に矢印」のチェック（「表示」メニューの「盤に定跡手を表示」と同じ状態にする）
     void setBoardArrowsChecked(bool checked);
+    /// 盤で指した手（対局していないとき。sfen は指す前の局面）。「盤の手を登録」がオンなら、
+    /// まだ無い手を予想応手なし・評価値0・深さ0・出現頻度1で登録する（ある手は変えない）
+    void recordBoardMove(const QString &sfen, const QString &usiMove);
 
 signals:
     void josekiMoveSelected(const QString &usiMove);
@@ -85,6 +97,9 @@ signals:
 protected:
     void closeEvent(QCloseEvent *event) override;
     void showEvent(QShowEvent *event) override;
+    /// 定跡ファイル（.db）1つのドロップは開き、棋譜ファイル・フォルダは複数の棋譜から登録するダイアログに並べる
+    void dragEnterEvent(QDragEnterEvent *event) override;
+    void dropEvent(QDropEvent *event) override;
     bool eventFilter(QObject *obj, QEvent *event) override;
 
 private slots:
@@ -96,6 +111,8 @@ private slots:
     void onModifiedChanged(bool modified);
     /// マージの登録の保存が終わった（定跡が変わったので表を作り直す）
     void onMergeFinished();
+    /// 定跡の中身が変わった（ほかの部品が登録したときも、表を作り直す）
+    void onContentChanged();
 
     // --- 定跡手の操作 ---
     void onAddMoveButtonClicked();
@@ -111,8 +128,10 @@ private slots:
     void onSfenDetailToggled(bool checked);
     void onAutoLoadCheckBoxChanged(Qt::CheckState state);
     void onStopButtonClicked();
+    void onRecordBoardMovesToggled(bool checked);
     void onRestoreStatusDisplay();
     void showTransientStatus(const QString &text);
+    void openDroppedPaths();
 
 
 private:
@@ -142,6 +161,7 @@ private:
     JosekiBookSession *m_session = nullptr;
     JosekiFileController *m_files = nullptr;
     JosekiMergeController *m_merge = nullptr;
+    JosekiEditController *m_edit = nullptr;
     JosekiTableModel *m_model = nullptr;
 
     // === ファイルグループ ===
@@ -164,6 +184,8 @@ private:
     QPushButton  *m_stopButton = nullptr;
     QPushButton  *m_addMoveButton = nullptr;
     QToolButton  *m_mergeButton = nullptr;
+    /// 盤で指した手を登録する（保存しない。起動するとオフ）
+    QCheckBox    *m_recordBoardMovesCheckBox = nullptr;
 
     // === 状態表示 ===
     QLabel       *m_currentSfenLabel = nullptr;
@@ -193,6 +215,8 @@ private:
     QString       m_displayedSfen;
     /// 遅延読込（初めて表示するときに前回のファイルを読み込む）。空なら読み込まない
     QString       m_pendingAutoLoadPath;
+    /// ドロップされたファイル・フォルダ（ドロップの処理の後で開く）
+    QStringList   m_droppedPaths;
 
     /// 親ドックウィジェット
     QDockWidget  *m_dockWidget = nullptr;

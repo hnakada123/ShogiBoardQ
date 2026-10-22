@@ -5,6 +5,7 @@
 
 #include <QHeaderView>
 #include <QItemSelectionModel>
+#include <QMenu>
 #include <QStyle>
 
 #include "kifumovedelegate.h"
@@ -39,6 +40,8 @@ PvTableView::PvTableView(const PvTableView::Columns& columns, int rowPadding, QW
     // 「盤面」はクリックでも Enter（activated）でも開く
     connect(this, &QTableView::clicked, this, &PvTableView::onClicked);
     connect(this, &QTableView::activated, this, &PvTableView::onActivated);
+    setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(this, &QWidget::customContextMenuRequested, this, &PvTableView::onCustomContextMenuRequested);
 }
 
 void PvTableView::setFontPointSize(int pointSize)
@@ -69,6 +72,17 @@ void PvTableView::onActivated(const QModelIndex& index)
     // 1回のクリックで activated も出す環境では、clicked で開いたものを開き直さない
     if (style()->styleHint(QStyle::SH_ItemView_ActivateItemOnSingleClick, nullptr, this)) return;
     onClicked(index);
+}
+
+void PvTableView::onCustomContextMenuRequested(const QPoint& pos)
+{
+    const QModelIndex index = indexAt(pos);
+    if (!index.isValid()) return;
+    // 行は選び直さない（棋譜解析の結果の表では、行を選ぶと棋譜がその手へ移る）
+    QMenu menu(this);
+    menu.setToolTipsVisible(true);
+    emit rowContextMenuAboutToShow(index.row(), &menu);
+    if (!menu.isEmpty()) menu.exec(viewport()->mapToGlobal(pos));
 }
 
 void PvTableView::updateRowHeight()

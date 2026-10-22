@@ -54,6 +54,7 @@ AnalysisResultsPanel::AnalysisResultsPanel(QWidget* parent)
     m_view->setAccessibleName(tr("棋譜解析結果"));
     // 盤面列のクリック・Enter で読み筋表示ウィンドウを開く
     connect(m_view, &PvTableView::boardRequested, this, &AnalysisResultsPanel::onBoardRequested);
+    connect(m_view, &PvTableView::rowContextMenuAboutToShow, this, &AnalysisResultsPanel::rowContextMenuAboutToShow);
 
     auto* header = static_cast<TableHeaderView*>(m_view->horizontalHeader());
     m_header = header;

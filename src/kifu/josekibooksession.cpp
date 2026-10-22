@@ -7,6 +7,25 @@
 #include <algorithm>
 #include <utility>
 
+namespace {
+
+/// filePath の定跡を book（今の定跡の写し）に足す（ワーカースレッドで呼ぶ）
+JosekiBookMergeResult mergeBookFile(JosekiBook book, const QString &filePath, JosekiBook::MergeOptions options)
+{
+    JosekiBookMergeResult result;
+    const JosekiLoadResult loaded = JosekiBookFile::load(filePath);
+    if (!loaded.success) {
+        result.errorMessage = loaded.errorMessage;
+        return result;
+    }
+    result.stats = book.mergeFrom(loaded.book, options);
+    result.book = std::move(book);
+    result.success = true;
+    return result;
+}
+
+} // namespace
+
 JosekiBookSession::JosekiBookSession(QObject *parent)
     : QObject(parent)
 {
@@ -14,6 +33,8 @@ JosekiBookSession::JosekiBookSession(QObject *parent)
             this, &JosekiBookSession::onLoadFinished);
     connect(&m_saveWatcher, &QFutureWatcher<JosekiSaveResult>::finished,
             this, &JosekiBookSession::onSaveFinished);
+    connect(&m_mergeBookWatcher, &QFutureWatcher<JosekiBookMergeResult>::finished,
+            this, &JosekiBookSession::onMergeBookFinished);
 }
 
 JosekiBookSession::~JosekiBookSession() = default;
@@ -57,6 +78,54 @@ bool JosekiBookSession::removeMove(const QString &sfen, const QString &usiMove)
     setModified(true);
     emit contentChanged();
     return true;
+}
+
+JosekiBookSession::ImportStats JosekiBookSession::importMoves(const QList<JosekiImport::Move> &moves)
+{
+    ImportStats stats;
+    if (isBusy() || moves.isEmpty()) return stats;
+    for (const JosekiImport::Move &move : moves) {
+        if (m_book.registerMergeMove(move.sfen, move.usiMove, move.count, move.comment)) ++stats.added;
+        else ++stats.updated;
+    }
+    setModified(true);
+    emit contentChanged();
+    return stats;
+}
+
+int JosekiBookSession::valueOf(const UsiScore &score)
+{
+    // やねうら王の VALUE_MATE。n 手で詰ます側は VALUE_MATE - n、詰まされる側はその符号を変えた値
+    constexpr int kMate = 32000;
+    if (score.isCp()) return score.value;
+    if (!score.isMate()) return 0;
+    const int plies = score.mateCountKnown ? qAbs(score.value) : 0;
+    return score.mateWin ? kMate - plies : -(kMate - plies);
+}
+
+JosekiBookSession::EngineRegistration JosekiBookSession::registerEnginePv(const QString &sfen, const QStringList &pv,
+                                                                          const UsiScore &score, int depth)
+{
+    if (sfen.isEmpty() || pv.isEmpty() || pv.constFirst().isEmpty()) return EngineRegistration::Invalid;
+    JosekiMove move;
+    move.move = pv.constFirst();
+    // 読み筋が1手だけなら、登録済みの手の予想応手は変えない（null は変えない印）
+    move.nextMove = pv.size() > 1 ? pv.at(1) : QString();
+    move.value = valueOf(score);
+    move.depth = qMax(depth, 0);
+    const QList<JosekiMove> existing = m_book.movesAt(sfen);
+    for (const JosekiMove &current : existing) {
+        if (current.move != move.move) continue;
+        // 出現頻度とコメントは残す
+        move.frequency = current.frequency;
+        move.comment = current.comment;
+        (void)updateMove(sfen, move);
+        return EngineRegistration::Updated;
+    }
+    move.frequency = 1;
+    if (move.nextMove.isNull()) move.nextMove = QStringLiteral("none");
+    addMove(sfen, move);
+    return EngineRegistration::Added;
 }
 
 // ============================================================
@@ -152,6 +221,31 @@ bool JosekiBookSession::startRegisterMergeMoves(const QList<KifuMergeEntry> &ent
     // ワーカーには値の写しを渡す（保存中は定跡を変えられないので、写しはデータを共有したまま）
     m_saveWatcher.setFuture(QtConcurrent::run(&JosekiBookFile::save, m_filePath, std::move(updated)));
     return true;
+}
+
+bool JosekiBookSession::startMergeBook(const QString &filePath, const JosekiBook::MergeOptions &options)
+{
+    if (isBusy()) return false;
+    m_pendingMergeBookFilePath = filePath;
+    setActivity(Activity::Merging);
+    // 足している間は定跡を変えられないので、写しはデータを共有したまま渡す（足すときにワーカーで複製する）
+    m_mergeBookWatcher.setFuture(QtConcurrent::run(&mergeBookFile, m_book, filePath, options));
+    return true;
+}
+
+void JosekiBookSession::onMergeBookFinished()
+{
+    JosekiBookMergeResult result = m_mergeBookWatcher.result();
+    const QString filePath = std::exchange(m_pendingMergeBookFilePath, QString());
+    setActivity(Activity::Idle);
+    if (!result.success) {
+        emit bookMergeFailed(result.errorMessage);
+        return;
+    }
+    m_book = std::move(result.book);
+    setModified(true);
+    emit contentChanged();
+    emit bookMerged(filePath, result.stats);
 }
 
 bool JosekiBookSession::startLoad(const QString &filePath)

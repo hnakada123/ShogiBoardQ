@@ -9,6 +9,7 @@
 #include <QString>
 #include <QStringList>
 
+#include "josekibook.h"
 #include "josekitypes.h"
 
 class JosekiBookSession;
@@ -21,6 +22,8 @@ class QWidget;
  * 「現在の棋譜から」「棋譜ファイルから」でマージのダイアログを開き、ダイアログの「登録」「全て登録」を
  * JosekiBookSession の非同期の保存につなぐ。保存が終わったら、開いているダイアログに登録済みの印を配る。
  * 読み書き中はダイアログを使えなくし、開いている定跡を替えるときはダイアログを閉じる。
+ * 「複数の棋譜から」（定跡ウィンドウへのドロップも）は JosekiImportDialog で、「定跡ファイルから」は
+ * JosekiBookMergeDialog で条件を選び、どちらも定跡を変えるだけで保存しない。
  */
 class JosekiMergeController : public QObject
 {
@@ -40,12 +43,18 @@ public:
                      const QStringList &japaneseMoveList, int currentPly);
     /// ダイアログの「登録」「全て登録」: 登録して定跡ファイルへ1回だけ保存し始める（始めたら true）
     bool registerEntries(const QList<KifuMergeEntry> &entries);
+    /// paths（棋譜ファイル・フォルダ）を並べて、複数の棋譜から登録するダイアログを開く（定跡ウィンドウへのドロップ）
+    void importPaths(const QStringList &paths);
 
 public slots:
     /// 「マージ ▼」→「現在の棋譜から」
     void mergeFromCurrentKifu();
     /// 「マージ ▼」→「棋譜ファイルから」
     void mergeFromKifuFile();
+    /// 「マージ ▼」→「複数の棋譜から...」
+    void mergeFromKifuFiles();
+    /// 「マージ ▼」→「定跡ファイルから...」
+    void mergeFromBookFile();
     /// 開いている定跡を替える直前（古いダイアログからは登録させない）
     void closeDialogs();
 
@@ -58,6 +67,9 @@ private slots:
     void onBusyChanged(bool busy);
     /// 登録の保存が終わった（ダイアログに登録済みの印を配る）
     void onMergeFinished(bool registered);
+    /// 「定跡ファイルから」で足し終えた・足せなかった
+    void onBookMerged(const QString &filePath, const JosekiBook::MergeStats &stats);
+    void onBookMergeFailed(const QString &errorMessage);
 
 private:
     void openDialog(const QList<KifuMergeEntry> &entries, const QString &title);

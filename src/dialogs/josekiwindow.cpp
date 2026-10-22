@@ -9,9 +9,10 @@
 #include "dialogutils.h"
 #include "handicaps.h"
 #include "josekibooksession.h"
+#include "josekieditcontroller.h"
+#include "josekiimportdialog.h"
 #include "josekifilecontroller.h"
 #include "josekimergecontroller.h"
-#include "josekimovedialog.h"
 #include "josekisettings.h"
 #include "josekitablemodel.h"
 #include "kifumovedelegate.h"
@@ -28,6 +29,8 @@
 #include <QClipboard>
 #include <QCloseEvent>
 #include <QDockWidget>
+#include <QDragEnterEvent>
+#include <QDropEvent>
 #include <QFileInfo>
 #include <QFrame>
 #include <QGridLayout>
@@ -109,6 +112,8 @@ JosekiWindow::JosekiWindow(JosekiBookSession *session, QWidget *parent)
     Q_ASSERT(m_session);
     m_files = new JosekiFileController({m_session, this}, this);
     m_merge = new JosekiMergeController({m_session, m_files, this}, this);
+    m_edit = new JosekiEditController({m_session, this}, this);
+    setAcceptDrops(true);
     setupUi();
     connect(m_session, &JosekiBookSession::modifiedChanged, this, &JosekiWindow::onModifiedChanged);
     connect(m_session, &JosekiBookSession::busyChanged, this, &JosekiWindow::onBusyChanged);
@@ -116,6 +121,7 @@ JosekiWindow::JosekiWindow(JosekiBookSession *session, QWidget *parent)
     connect(m_session, &JosekiBookSession::filePathChanged, this, &JosekiWindow::onFilePathChanged);
     connect(m_session, &JosekiBookSession::loaded, this, &JosekiWindow::onBookLoaded);
     connect(m_session, &JosekiBookSession::mergeFinished, this, &JosekiWindow::onMergeFinished);
+    connect(m_session, &JosekiBookSession::contentChanged, this, &JosekiWindow::onContentChanged);
     connect(m_merge, &JosekiMergeController::kifuDataRequested, this, &JosekiWindow::requestKifuDataForMerge);
     connect(m_files, &JosekiFileController::statusMessage, this, &JosekiWindow::showTransientStatus);
     connect(m_recentFilesMenu, &RecentFilesMenu::fileTriggered, m_files, &JosekiFileController::openRecent);
@@ -141,6 +147,33 @@ bool JosekiWindow::eventFilter(QObject *obj, QEvent *event)
         if (!confirmClose()) { event->ignore(); return true; }
     }
     return QWidget::eventFilter(obj, event);
+}
+
+void JosekiWindow::dragEnterEvent(QDragEnterEvent *event)
+{
+    if (!isIoBusy() && !JosekiImportDialog::localPaths(event->mimeData()).isEmpty()) event->acceptProposedAction();
+}
+
+void JosekiWindow::dropEvent(QDropEvent *event)
+{
+    const QStringList paths = JosekiImportDialog::localPaths(event->mimeData());
+    if (isIoBusy() || paths.isEmpty()) return;
+    event->acceptProposedAction();
+    // ドロップの処理の中ではダイアログを開かない（ドラッグ元のアプリを待たせない）
+    m_droppedPaths = paths;
+    QTimer::singleShot(0, this, &JosekiWindow::openDroppedPaths);
+}
+
+void JosekiWindow::openDroppedPaths()
+{
+    const QStringList paths = std::exchange(m_droppedPaths, QStringList());
+    if (paths.isEmpty()) return;
+    // 定跡ファイル（.db）1つなら開き、それ以外は複数の棋譜から登録するダイアログに並べる
+    if (paths.size() == 1 && paths.constFirst().endsWith(QStringLiteral(".db"), Qt::CaseInsensitive)) {
+        m_files->openRecent(paths.constFirst());
+        return;
+    }
+    m_merge->importPaths(paths);
 }
 
 void JosekiWindow::closeEvent(QCloseEvent *event)
@@ -199,7 +232,7 @@ QWidget *JosekiWindow::buildToolbar()
     m_addMoveButton = makeToolButton(tr("＋追加"), tr("現在の局面に定跡手を追加"), buttonStyle, this);
     m_mergeButton = new QToolButton(this);
     m_mergeButton->setText(tr("マージ ▼"));
-    m_mergeButton->setToolTip(tr("棋譜から定跡をマージ"));
+    m_mergeButton->setToolTip(tr("棋譜や別の定跡ファイルから定跡に登録（棋譜ファイル・フォルダはウィンドウへのドロップでも登録できる）"));
     m_mergeButton->setPopupMode(QToolButton::InstantPopup);
     // 表示文字に ▼ を含むので、Qt のメニュー矢印は重ねて描かない
     m_mergeButton->setStyleSheet(buttonStyle + QStringLiteral("QToolButton::menu-indicator { image: none; width: 0px; }"));
@@ -208,11 +241,19 @@ QWidget *JosekiWindow::buildToolbar()
     mergeMenu->setProperty("automationMenu", true);
     mergeMenu->addAction(tr("現在の棋譜から"), m_merge, &JosekiMergeController::mergeFromCurrentKifu);
     mergeMenu->addAction(tr("棋譜ファイルから"), m_merge, &JosekiMergeController::mergeFromKifuFile);
+    mergeMenu->addSeparator();
+    mergeMenu->addAction(tr("複数の棋譜から..."), m_merge, &JosekiMergeController::mergeFromKifuFiles);
+    mergeMenu->addAction(tr("定跡ファイルから..."), m_merge, &JosekiMergeController::mergeFromBookFile);
     m_mergeButton->setMenu(mergeMenu);
+    m_recordBoardMovesCheckBox = new QCheckBox(tr("盤の手を登録"), this);
+    m_recordBoardMovesCheckBox->setObjectName(QStringLiteral("josekiRecordBoardMoves"));
+    m_recordBoardMovesCheckBox->setToolTip(tr("対局していないときに盤で指した手を、指す前の局面の定跡手として登録する"
+                                              "（登録済みの手は変えない。アプリを起動し直すとオフに戻る）"));
     m_stopButton = makeToolButton(tr("■ 停止"), tr("定跡表示を停止/再開"), buttonStyle, this);
     m_stopButton->setCheckable(true);
     operationGroupLayout->addWidget(m_addMoveButton);
     operationGroupLayout->addWidget(m_mergeButton);
+    operationGroupLayout->addWidget(m_recordBoardMovesCheckBox);
     operationGroupLayout->addWidget(m_stopButton);
     toolbarLayout->addWidget(operationGroup);
 
@@ -246,6 +287,7 @@ QWidget *JosekiWindow::buildToolbar()
     connect(m_autoLoadCheckBox, &QCheckBox::checkStateChanged, this, &JosekiWindow::onAutoLoadCheckBoxChanged);
     connect(m_boardArrowsCheckBox, &QCheckBox::toggled, this, &JosekiWindow::boardArrowsToggled);
     connect(m_stopButton, &QPushButton::clicked, this, &JosekiWindow::onStopButtonClicked);
+    connect(m_recordBoardMovesCheckBox, &QCheckBox::toggled, this, &JosekiWindow::onRecordBoardMovesToggled);
     return toolbar;
 }
 
@@ -588,63 +630,20 @@ void JosekiWindow::playMoveAt(int row)
 
 void JosekiWindow::editMoveAt(int row)
 {
-    if (isIoBusy() || row < 0 || row >= m_model->moves().size()) return;
-
-    // ダイアログを開いている間に局面が進んでも（対局中にエンジンが指すなど）、開いたときの局面の手を書き換える
-    const QString targetSfen = m_currentSfen;
-    const JosekiMove current = m_model->moves().at(row);
-    JosekiMoveDialog dialog(this, true);
-    dialog.setCurrentSfen(targetSfen);
-    dialog.setEntry(current);
-    dialog.setEditMoveDisplay(JosekiTableModel::moveText(current.move, targetSfen));
-    if (dialog.exec() != QDialog::Accepted || isIoBusy()) return;
-
-    const JosekiMove updated = dialog.entry();
-    if (m_session->updateMove(targetSfen, updated)) updateJosekiDisplay();
+    if (row < 0 || row >= m_model->moves().size()) return;
+    // ダイアログを開いている間に局面が進んでも、開いたときの局面の手を書き換える
+    if (m_edit->editMove(m_currentSfen, m_model->moves().at(row))) updateJosekiDisplay();
 }
 
 void JosekiWindow::deleteMoveAt(int row)
 {
-    if (isIoBusy() || row < 0 || row >= m_model->moves().size()) return;
-
-    // 確認している間に局面が進んでも、確認を出したときの局面の手を消す
-    const QString targetSfen = m_currentSfen;
-    const QString usiMove = m_model->moves().at(row).move;
-    if (!DialogUtils::confirmAction(this, tr("削除確認"),
-                                    tr("定跡手「%1」を削除しますか？")
-                                        .arg(JosekiTableModel::moveText(usiMove, targetSfen)),
-                                    tr("削除する"))
-        || isIoBusy()) {
-        return;
-    }
-    if (m_session->removeMove(targetSfen, usiMove)) updateJosekiDisplay();
+    if (row < 0 || row >= m_model->moves().size()) return;
+    if (m_edit->deleteMove(m_currentSfen, m_model->moves().at(row).move)) updateJosekiDisplay();
 }
 
 void JosekiWindow::onAddMoveButtonClicked()
 {
-    if (isIoBusy()) return;
-    if (m_currentSfen.isEmpty()) {
-        QMessageBox::warning(this, tr("定跡手追加"),
-            tr("局面が設定されていません。\n将棋盤で局面を表示してから定跡手を追加してください。"));
-        return;
-    }
-
-    // ダイアログを開いている間に局面が進んでも、開いたときの局面に追加する
-    const QString targetSfen = m_currentSfen;
-    JosekiMoveDialog dialog(this, false);
-    dialog.setCurrentSfen(targetSfen);
-    if (dialog.exec() != QDialog::Accepted || isIoBusy()) return;
-
-    const JosekiMove newMove = dialog.entry();
-    if (m_session->hasMove(targetSfen, newMove.move)
-        && !DialogUtils::confirmAction(this, tr("確認"),
-                tr("指し手「%1」は既に登録されています。\n上書きしますか？")
-                    .arg(JosekiTableModel::moveText(newMove.move, targetSfen)),
-                tr("上書きする"))) {
-        return;
-    }
-    m_session->addMove(targetSfen, newMove);
-    updateJosekiDisplay();
+    if (m_edit->addMove(m_currentSfen)) updateJosekiDisplay();
 }
 
 void JosekiWindow::onTableClicked(const QModelIndex &index)
@@ -715,6 +714,34 @@ void JosekiWindow::onStopButtonClicked()
     JosekiSettings::josekiWindowDisplayEnabled.set(m_displayEnabled);
     updateStatusDisplay();
     emit displayEnabledChanged(m_displayEnabled);
+}
+
+void JosekiWindow::onRecordBoardMovesToggled(bool checked)
+{
+    (void)checked;
+    updateStatusDisplay();
+}
+
+bool JosekiWindow::isRecordingBoardMoves() const
+{
+    return m_recordBoardMovesCheckBox->isChecked();
+}
+
+bool JosekiWindow::canRegisterMoves() const
+{
+    return m_pendingAutoLoadPath.isEmpty() && !isIoBusy();
+}
+
+void JosekiWindow::recordBoardMove(const QString &sfen, const QString &usiMove)
+{
+    if (!isRecordingBoardMoves() || sfen.isEmpty() || usiMove.isEmpty()) return;
+    if (!canRegisterMoves()) {
+        showTransientStatus(tr("定跡の読み書き中のため、盤の手を登録できませんでした"));
+        return;
+    }
+    if (m_session->hasMove(sfen, usiMove)) return;
+    m_session->addMove(sfen, {usiMove, QStringLiteral("none"), 0, 0, 1, {}});
+    showTransientStatus(tr("%1 を定跡に登録しました").arg(JosekiTableModel::moveText(usiMove, sfen)));
 }
 
 void JosekiWindow::setBoardArrowsChecked(bool checked)
@@ -825,9 +852,11 @@ void JosekiWindow::updateStatusDisplay()
     // 読み書きの最中は終わるまで出し続ける（大きな定跡は読み込みに数秒かかる）
     if (activity == JosekiBookSession::Activity::Loading) statusParts << tr("読み込み中...");
     else if (activity == JosekiBookSession::Activity::Saving) statusParts << tr("保存中...");
+    else if (activity == JosekiBookSession::Activity::Merging) statusParts << tr("定跡ファイルを足しています...");
     statusParts << (filePath.isEmpty() ? tr("ファイル: 未選択") : tr("ファイル: %1").arg(QFileInfo(filePath).fileName()));
     statusParts << tr("局面数: %1").arg(QLocale().toString(m_session->positionCount()));
     statusParts << (m_displayEnabled ? tr("定跡: %1件").arg(moveCount) : tr("【停止中】"));
+    if (isRecordingBoardMoves()) statusParts << tr("盤の手を登録中");
     m_statusLabel->setText(statusParts.join(QStringLiteral("  |  ")));
 
     const bool showGuide = moveCount == 0;
@@ -899,6 +928,13 @@ void JosekiWindow::setKifuDataForMerge(const QStringList &sfenList, const QStrin
                                        const QStringList &japaneseMoveList, int currentPly)
 {
     m_merge->setKifuData(sfenList, moveList, japaneseMoveList, currentPly);
+}
+
+void JosekiWindow::onContentChanged()
+{
+    // 表に出している局面を忘れ、裏に回っていたドックが前面に出たときにも作り直させる
+    m_displayedSfen.clear();
+    if (isVisible() && m_pendingAutoLoadPath.isEmpty()) updateJosekiDisplay();
 }
 
 void JosekiWindow::onMergeFinished()
