@@ -210,6 +210,29 @@ bool BranchTreeEditController::recordMove(const UsiMove& move, ShogiGameControll
     return parent != nullptr && addMove(parent, move, gc);
 }
 
+int BranchTreeEditController::addVariationLines(KifuBranchNode* parent, const QList<RecordLine>& lines)
+{
+    if (parent == nullptr || !canRecordBoardMove()) return 0;
+    int created = 0;
+    // ツリーの変更はまとめて知らせる（分岐ツリーの図・棋譜欄の描き直しは1回）
+    m_deps.tree->beginBatchUpdate();
+    for (const RecordLine& line : lines) {
+        KifuBranchNode* node = parent;
+        for (const RecordEntry& entry : line.entries) {
+            if (entry.isTerminal()) break;
+            KifuBranchNode* child = m_deps.tree->findMatchingChild(node, entry);
+            if (child == nullptr) {
+                child = m_deps.tree->addRecord(node, entry);
+                if (child == nullptr) break;
+                ++created;
+            }
+            node = child;
+        }
+    }
+    m_deps.tree->endBatchUpdate();
+    return created;
+}
+
 bool BranchTreeEditController::addMove(KifuBranchNode* parent, const UsiMove& move, ShogiGameController* gc)
 {
     // 「同」表記の基準は指す局面に至った手

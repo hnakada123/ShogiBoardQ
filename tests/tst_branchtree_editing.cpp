@@ -13,6 +13,8 @@
 #include <QTimer>
 
 #include "branchtreeeditcontroller.h"
+#include "kiflinebuilder.h"
+#include "shogiposition.h"
 #include "branchtreelayout.h"
 #include "branchtreeitemroles.h"
 #include "branchtreeview.h"
@@ -308,6 +310,38 @@ private slots:
         QCOMPARE(tree.nodeCount(), nodesBefore);
         QCOMPARE(recorded.count(), 3);
         QCOMPARE(recorded.last().at(1).toString(), QStringLiteral("2g2f"));
+    }
+
+    // 定跡の展開: 手順をまとめて変化として足す。同じ手はたどるだけで、表示中の手は変えない。対局中は足さない
+    void controller_addsVariationLines()
+    {
+        KifuBranchTree tree;
+        tree.setRootSfen(kHirateSfen);
+        EditHarness h(tree);
+        ShogiGameController gc;
+        QPoint from(7, 7), to(7, 6);
+        QVERIFY(h.controller.recordBoardMove(from, to, &gc));   // 棋譜に ▲７六歩
+        h.nav.goToNode(tree.root());
+        KifuBranchNode* current = h.state.currentNode();
+
+        const auto lineOf = [](const QStringList& moves) {
+            KifLineBuilder builder(*Position::fromSfenLike(kHirateSfen), 1, std::nullopt,
+                                   KifLineBuilder::LineKind::Variation);
+            for (const QString& move : moves) builder.addMove(*UsiMove::parse(move));
+            return builder.take();
+        };
+        const QList<RecordLine> lines{lineOf({"7g7f", "3c3d"}), lineOf({"7g7f", "8c8d"}), lineOf({"2g2f"})};
+        QCOMPARE(h.controller.addVariationLines(tree.root(), lines), 3);
+        QCOMPARE(tree.root()->childCount(), 2);
+        QCOMPARE(tree.root()->childAt(0)->childCount(), 2);
+        QCOMPARE(h.state.currentNode(), current);
+        QVERIFY(h.document.isModified());
+        // もう一度足しても増えない
+        QCOMPARE(h.controller.addVariationLines(tree.root(), lines), 0);
+
+        h.live.startFromRoot();
+        QCOMPARE(h.controller.addVariationLines(tree.root(), {lineOf({"5g5f"})}), 0);
+        h.live.discard();
     }
 
     // ===== BranchTreeView の表示 =====

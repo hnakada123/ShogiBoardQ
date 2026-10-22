@@ -7,6 +7,7 @@
 #include <QObject>
 #include <QString>
 
+#include "recordline.h"
 #include "usimove.h"
 
 class KifuBranchNode;
@@ -76,6 +77,15 @@ public:
 
     /// 成り・不成まで決まった手（定跡の手など）を、recordBoardMove と同じく変化として記録する
     bool recordMove(const UsiMove& move, ShogiGameController* gc);
+
+    /**
+     * @brief 手順をまとめて parent の後の変化として足す（定跡の展開）
+     * @param lines parent の局面から始まる手順（先の手順ほど前の変化になる）
+     * @return 新しく足した手の数（同じ手が既にあればその手をたどり、足さない）
+     *
+     * 表示中の手は変えない。対局中は足さない。
+     */
+    int addVariationLines(KifuBranchNode* parent, const QList<RecordLine>& lines);
 
 signals:
     /// 対局していないときに盤上で指した手を記録した（同じ手の既存ノードへ移ったときも出す。sfen は指す前の局面）

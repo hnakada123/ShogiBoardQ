@@ -53,6 +53,7 @@ private slots:
     void find_nullForUnknown();
     void movesAt_returnsEmptyForUnknown();
     void leadingMove_ordersLikeYaneuraOu();
+    void reorder_moveToAndSort();
     void session_registerEnginePv();
     void session_valueOfScore();
 
@@ -223,6 +224,47 @@ void TestJosekiBook::movesAt_returnsEmptyForUnknown()
     JosekiBook repo;
     const QList<JosekiMove> &moves = repo.movesAt(QStringLiteral("unknown/sfen b -"));
     QVERIFY(moves.isEmpty());
+}
+
+/// 定跡手の並べ替え: 位置を移す・出現頻度や評価値の順に並べる（同じなら元の順）。並びが変わらなければ false
+void TestJosekiBook::reorder_moveToAndSort()
+{
+    JosekiBook book;
+    const auto order = [&book](const QString &sfen) {
+        QStringList moves;
+        const QList<JosekiMove> found = book.movesAt(sfen);
+        for (const JosekiMove &move : found) moves << move.move;
+        return moves;
+    };
+    book.putMove(kHirateSfen, makeMove(QStringLiteral("7g7f"), 10, 0, 5));
+    book.putMove(kHirateSfen, makeMove(QStringLiteral("2g2f"), 30, 0, 9));
+    book.putMove(kHirateSfen, makeMove(QStringLiteral("5g5f"), 30, 0, 1));
+    book.putMove(kHirateSfen, makeMove(QStringLiteral("6g6f"), -5, 0, 9));
+
+    QVERIFY(book.moveTo(kHirateSfen, QStringLiteral("5g5f"), 0));
+    QCOMPARE(order(kHirateSfen), (QStringList{"5g5f", "7g7f", "2g2f", "6g6f"}));
+    QVERIFY(!book.moveTo(kHirateSfen, QStringLiteral("5g5f"), -3));  // 先頭より前は先頭
+    QVERIFY(book.moveTo(kHirateSfen, QStringLiteral("7g7f"), 99));   // 末尾より後は末尾
+    QCOMPARE(order(kHirateSfen), (QStringList{"5g5f", "2g2f", "6g6f", "7g7f"}));
+    QVERIFY(!book.moveTo(kHirateSfen, QStringLiteral("8h2b+"), 0));
+
+    // 出現頻度の順（同じなら評価値の高い順）
+    QVERIFY(book.sortMoves(kHirateSfen, JosekiBook::SortKey::Frequency));
+    QCOMPARE(order(kHirateSfen), (QStringList{"2g2f", "6g6f", "7g7f", "5g5f"}));
+    QVERIFY(!book.sortMoves(kHirateSfen, JosekiBook::SortKey::Frequency));
+    // 評価値の順（同じなら出現頻度の高い順）
+    QVERIFY(book.sortMoves(kHirateSfen, JosekiBook::SortKey::Value));
+    QCOMPARE(order(kHirateSfen), (QStringList{"2g2f", "5g5f", "7g7f", "6g6f"}));
+    QVERIFY(!book.sortMoves(QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b -"), JosekiBook::SortKey::Value));
+
+    // 手数違いの登録は、引いた登録だけを並べ替える
+    const QString at21 = kHirateSfen + QStringLiteral(" 21");
+    const QString after = SfenReplay::positionAfter(kHirateSfenWithPly, QStringLiteral("7g7f"));
+    book.putMove(after, makeMove(QStringLiteral("3c3d"), 0, 0, 1));
+    book.putMove(after, makeMove(QStringLiteral("8c8d"), 0, 0, 2));
+    QVERIFY(book.sortMoves(after, JosekiBook::SortKey::Frequency));
+    QCOMPARE(order(after), (QStringList{"8c8d", "3c3d"}));
+    QCOMPARE(order(at21), (QStringList{"2g2f", "5g5f", "7g7f", "6g6f"}));
 }
 
 /// エンジンの読み筋の登録: 新しい手は出現頻度1、登録済みの手は評価値・深さ・予想応手だけを書き換える

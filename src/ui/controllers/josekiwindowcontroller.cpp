@@ -6,23 +6,31 @@
 #include "logcategories.h"
 
 #include "boardmovecontroller.h"
+#include "branchtreeeditcontroller.h"
+#include "josekibooksession.h"
 #include "josekiwindow.h"
+#include "kifubranchnode.h"
+#include "kifunavigationcontroller.h"
+#include "kifupresentation.h"
 #include "shogigamecontroller.h"
 #include "boardcoordinates.h"
 #include "kifunavigationstate.h"
 
 #include <QDockWidget>
+#include <QMessageBox>
 #include <functional>
 
 JosekiWindowController::JosekiWindowController(const Deps& deps, QObject* parent)
     : QObject(parent)
     , m_parentWidget(deps.parentWidget)
+    , m_book(deps.book)
+    , m_branchEdit(deps.branchEdit)
     , m_gameController(deps.gameController)
     , m_navState(deps.navState)
     , m_isHumanTurnNow(deps.isHumanTurnNow)
     , m_boardMoves(deps.boardMoves)
 {
-    Q_ASSERT(deps.book && m_gameController && m_navState && m_boardMoves);
+    Q_ASSERT(deps.book && m_gameController && m_navState && m_boardMoves && m_branchEdit && deps.navController);
     m_josekiWindow = new JosekiWindow(deps.book, m_parentWidget);
 
     // 定跡手選択シグナルを接続
@@ -36,6 +44,10 @@ JosekiWindowController::JosekiWindowController(const Deps& deps, QObject* parent
     connect(m_josekiWindow, &JosekiWindow::requestKifuDataForMerge,
             this, &JosekiWindowController::onRequestKifuDataForMerge);
     connect(m_navState, &KifuNavigationState::changed, this, &JosekiWindowController::updateJosekiWindow);
+    // 定跡が変わったら、表示中の手順が定跡を外れた手も合わせる
+    connect(deps.book, &JosekiBookSession::contentChanged, this, &JosekiWindowController::updateJosekiWindow);
+    connect(m_josekiWindow, &JosekiWindow::expandRequested, this, &JosekiWindowController::onExpandRequested);
+    connect(m_josekiWindow, &JosekiWindow::deviationPlyRequested, deps.navController, &KifuNavigationController::selectPly);
 }
 
 void JosekiWindowController::attachDock(QDockWidget* dock)
@@ -67,6 +79,49 @@ void JosekiWindowController::updateJosekiWindow()
     // 表示中の手の局面を定跡ウィンドウに設定する。人間が着手可能かどうかは、定跡ウィンドウが
     // 表示を作り直すたびに setHumanCanPlayProvider の判定で問い合わせる
     m_josekiWindow->setCurrentSfen(m_navState->currentSfen());
+    updateBookDeviation();
+}
+
+void JosekiWindowController::updateBookDeviation()
+{
+    const RecordLine line = m_navState->currentRecordLine();
+    if (m_book->isEmpty() || line.moveCount() == 0 || !m_josekiWindow->isDisplayEnabled()) {
+        m_josekiWindow->setBookDeviation(-1, QString());
+        return;
+    }
+    const QStringList sfens = line.sfens();
+    const QStringList moves = line.usiMoves();
+    const std::optional<int> index = JosekiLines::firstDeviation(m_book->snapshot(), sfens, moves);
+    if (!index) {
+        m_josekiWindow->setBookDeviation(0, QString());
+        return;
+    }
+    const QString move = KifuPresentation::move(sfens.at(*index), moves.at(*index), KifuPresentation::options());
+    m_josekiWindow->setBookDeviation(line.startPly + *index, move);
+}
+
+void JosekiWindowController::onExpandRequested(const JosekiLines::ExpandOptions& options)
+{
+    if (!m_branchEdit->canRecordBoardMove()) {
+        QMessageBox::information(m_parentWidget, tr("定跡を棋譜に展開"), tr("対局中は棋譜に展開できません。"));
+        return;
+    }
+    // 終局の行を表示していれば、その前の局面から展開する
+    KifuBranchNode* node = m_navState->currentNode();
+    if (node && node->isTerminal()) node = node->parent();
+    if (!node) return;
+    const std::optional<UsiMove> previous = node->isActualMove() ? std::optional<UsiMove>(node->move().move)
+                                                                 : std::nullopt;
+    const JosekiLines::ExpandResult result =
+        JosekiLines::expand(m_book->snapshot(), node->sfen(), node->ply() + 1, previous, options);
+    const int added = m_branchEdit->addVariationLines(node, result.lines);
+    QString text = added > 0 ? tr("棋譜に %1 手を足しました。").arg(added)
+                             : tr("足せる定跡手がありませんでした（棋譜にすでにある手は足しません）。");
+    if (result.transpositions > 0)
+        text += QLatin1Char('\n') + tr("別の手順で同じ局面に着いたため %1 か所で止めました。").arg(result.transpositions);
+    if (result.truncated)
+        text += QLatin1Char('\n') + tr("手の数が上限（%1 手）に達したため、途中で止めました。").arg(options.maxMoves);
+    QMessageBox::information(m_parentWidget, tr("定跡を棋譜に展開"), text);
 }
 
 bool JosekiWindowController::determineHumanCanPlay() const

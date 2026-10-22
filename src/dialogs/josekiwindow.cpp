@@ -10,17 +10,17 @@
 #include "handicaps.h"
 #include "josekibooksession.h"
 #include "josekieditcontroller.h"
+#include "josekiexpanddialog.h"
 #include "josekiimportdialog.h"
 #include "josekifilecontroller.h"
 #include "josekimergecontroller.h"
 #include "josekisettings.h"
 #include "josekitablemodel.h"
-#include "kifumovedelegate.h"
+#include "josekitableview.h"
 #include "kifupresentation.h"
 #include "logcategories.h"
 #include "sfenreplay.h"
 #include "sfenutils.h"
-#include "tablebuttondelegate.h"
 #include "tablestyles.h"
 
 #include <QAction>
@@ -44,7 +44,6 @@
 #include <QMessageBox>
 #include <QPushButton>
 #include <QShowEvent>
-#include <QTableView>
 #include <QTimer>
 #include <QToolButton>
 #include <QVBoxLayout>
@@ -245,6 +244,9 @@ QWidget *JosekiWindow::buildToolbar()
     mergeMenu->addAction(tr("複数の棋譜から..."), m_merge, &JosekiMergeController::mergeFromKifuFiles);
     mergeMenu->addAction(tr("定跡ファイルから..."), m_merge, &JosekiMergeController::mergeFromBookFile);
     m_mergeButton->setMenu(mergeMenu);
+    m_expandButton = makeToolButton(tr("棋譜に展開..."), tr("表示中の局面から定跡手をたどり、棋譜の変化として足す"),
+                                    buttonStyle, this);
+    m_expandButton->setObjectName(QStringLiteral("josekiExpand"));
     m_recordBoardMovesCheckBox = new QCheckBox(tr("盤の手を登録"), this);
     m_recordBoardMovesCheckBox->setObjectName(QStringLiteral("josekiRecordBoardMoves"));
     m_recordBoardMovesCheckBox->setToolTip(tr("対局していないときに盤で指した手を、指す前の局面の定跡手として登録する"
@@ -253,6 +255,7 @@ QWidget *JosekiWindow::buildToolbar()
     m_stopButton->setCheckable(true);
     operationGroupLayout->addWidget(m_addMoveButton);
     operationGroupLayout->addWidget(m_mergeButton);
+    operationGroupLayout->addWidget(m_expandButton);
     operationGroupLayout->addWidget(m_recordBoardMovesCheckBox);
     operationGroupLayout->addWidget(m_stopButton);
     toolbarLayout->addWidget(operationGroup);
@@ -288,6 +291,7 @@ QWidget *JosekiWindow::buildToolbar()
     connect(m_boardArrowsCheckBox, &QCheckBox::toggled, this, &JosekiWindow::boardArrowsToggled);
     connect(m_stopButton, &QPushButton::clicked, this, &JosekiWindow::onStopButtonClicked);
     connect(m_recordBoardMovesCheckBox, &QCheckBox::toggled, this, &JosekiWindow::onRecordBoardMovesToggled);
+    connect(m_expandButton, &QPushButton::clicked, this, &JosekiWindow::onExpandButtonClicked);
     return toolbar;
 }
 
@@ -326,6 +330,14 @@ void JosekiWindow::setupUi()
     m_showSfenDetailBtn = makeToolButton(tr("詳細"), tr("SFENの詳細を表示/非表示"), toolButtonStyle(), this);
     m_showSfenDetailBtn->setCheckable(true);
     positionInfoLayout->addWidget(m_showSfenDetailBtn);
+    m_deviationButton = new QPushButton(this);
+    m_deviationButton->setObjectName(QStringLiteral("josekiDeviation"));
+    m_deviationButton->setFlat(true);
+    m_deviationButton->setCursor(Qt::PointingHandCursor);
+    m_deviationButton->setStyleSheet(QStringLiteral("QPushButton { color: #cc6600; text-align: left; border: none; }"
+                                                    "QPushButton:disabled { color: #228b22; }"));
+    m_deviationButton->setVisible(false);
+    positionInfoLayout->addWidget(m_deviationButton);
     positionInfoLayout->addStretch();
     infoLayout->addLayout(positionInfoLayout, 1, 1, 1, 2);
     mainLayout->addLayout(infoLayout);
@@ -344,37 +356,11 @@ void JosekiWindow::setupUi()
     m_sfenDetailWidget->setVisible(false);
     mainLayout->addWidget(m_sfenDetailWidget);
 
-    // --- 定跡手の表（「着手」「編集」「削除」はボタンとして描き、押した列で処理を決める） ---
-    m_tableView = new QTableView(this);
-    m_tableView->setObjectName(QStringLiteral("josekiTable"));
-    m_tableView->setModel(m_model);
-    auto *moveDelegate = new KifuMoveDelegate(m_tableView);
-    m_tableView->setItemDelegateForColumn(JosekiTableModel::Move, moveDelegate);
-    m_tableView->setItemDelegateForColumn(JosekiTableModel::NextMove, moveDelegate);
-    auto *buttonDelegate = new TableButtonDelegate(m_tableView);
-    for (int column : {JosekiTableModel::Play, JosekiTableModel::Edit, JosekiTableModel::Delete})
-        m_tableView->setItemDelegateForColumn(column, buttonDelegate);
-    m_tableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    m_tableView->setSelectionBehavior(QAbstractItemView::SelectRows);
-    m_tableView->setSelectionMode(QAbstractItemView::SingleSelection);
-    m_tableView->setAlternatingRowColors(true);
-    m_tableView->setShowGrid(false);
-    m_tableView->setWordWrap(false);
-    m_tableView->setMouseTracking(true);
-    m_tableView->verticalHeader()->setVisible(false);
-    m_tableView->setContextMenuPolicy(Qt::CustomContextMenu);
-    const int defaultWidths[JosekiTableModel::ColumnCount - 1] = {40, 50, 120, 120, 50, 50, 70, 50, 80, 60};
-    for (int col = 0; col < JosekiTableModel::ColumnCount - 1; ++col) m_tableView->setColumnWidth(col, defaultWidths[col]);
-    m_tableView->horizontalHeader()->setStretchLastSection(true);
+    // --- 定跡手の表（ボタンの列・右クリックの操作は rowActionRequested で受ける） ---
+    m_tableView = new JosekiTableView(m_model, this);
+    m_tableView->setActionAvailability(std::bind(&JosekiWindow::isRowActionAvailable, this,
+                                                 std::placeholders::_1, std::placeholders::_2));
     mainLayout->addWidget(m_tableView, 1);
-
-    m_emptyGuideLabel = new QLabel(m_tableView->viewport());
-    m_emptyGuideLabel->setWordWrap(true);
-    m_emptyGuideLabel->setAttribute(Qt::WA_TransparentForMouseEvents);
-    auto *emptyLayout = new QVBoxLayout(m_tableView->viewport());
-    emptyLayout->addWidget(m_emptyGuideLabel);
-    m_emptyGuideLabel->setAlignment(Qt::AlignCenter);
-    m_emptyGuideLabel->setVisible(false);
 
     // --- 状態表示 ---
     auto *statusFrame = new QFrame(this);
@@ -388,23 +374,9 @@ void JosekiWindow::setupUi()
     m_noticeLabel = new QLabel(tr("※ 追加・編集・削除後は「保存」ボタンで定跡ファイルに保存してください"), this);
     mainLayout->addWidget(m_noticeLabel);
 
-    // --- 表のコンテキストメニュー ---
-    m_tableContextMenu = new QMenu(this);
-    m_actionPlay = m_tableContextMenu->addAction(tr("着手"));
-    m_tableContextMenu->addSeparator();
-    m_actionEdit = m_tableContextMenu->addAction(tr("編集..."));
-    m_actionDelete = m_tableContextMenu->addAction(tr("削除"));
-    m_tableContextMenu->addSeparator();
-    QAction *actionCopyMove = m_tableContextMenu->addAction(tr("指し手をコピー"));
-
     connect(m_showSfenDetailBtn, &QPushButton::toggled, this, &JosekiWindow::onSfenDetailToggled);
-    connect(m_tableView, &QTableView::clicked, this, &JosekiWindow::onTableClicked);
-    connect(m_tableView, &QTableView::doubleClicked, this, &JosekiWindow::onTableDoubleClicked);
-    connect(m_tableView, &QTableView::customContextMenuRequested, this, &JosekiWindow::onTableContextMenu);
-    connect(m_actionPlay, &QAction::triggered, this, &JosekiWindow::onContextMenuPlay);
-    connect(m_actionEdit, &QAction::triggered, this, &JosekiWindow::onContextMenuEdit);
-    connect(m_actionDelete, &QAction::triggered, this, &JosekiWindow::onContextMenuDelete);
-    connect(actionCopyMove, &QAction::triggered, this, &JosekiWindow::onContextMenuCopyMove);
+    connect(m_deviationButton, &QPushButton::clicked, this, &JosekiWindow::onDeviationClicked);
+    connect(m_tableView, &JosekiTableView::rowActionRequested, this, &JosekiWindow::onRowActionRequested);
 
     updateRecentFilesMenu();
     updateStatusDisplay();
@@ -540,8 +512,6 @@ void JosekiWindow::onBusyChanged(bool busy)
     m_recentButton->setEnabled(!busy);
     m_mergeButton->setEnabled(!busy);
     m_tableView->setEnabled(!busy);
-    m_actionEdit->setEnabled(!busy);
-    m_actionDelete->setEnabled(!busy);
     updateStatusDisplay();
 }
 
@@ -646,53 +616,61 @@ void JosekiWindow::onAddMoveButtonClicked()
     if (m_edit->addMove(m_currentSfen)) updateJosekiDisplay();
 }
 
-void JosekiWindow::onTableClicked(const QModelIndex &index)
+bool JosekiWindow::isRowActionAvailable(JosekiTableView::RowAction action, int row)
 {
-    if (!index.isValid()) return;
-    switch (index.column()) {
-    case JosekiTableModel::Play:
-        // 人間が指せないときは「着手」のボタンを描かない
-        if (m_model->humanCanPlay()) playMoveAt(index.row());
+    using Action = JosekiTableView::RowAction;
+    const int count = static_cast<int>(m_model->moves().size());
+    switch (action) {
+    case Action::Play: refreshHumanCanPlay(); return m_humanCanPlay;
+    case Action::CopyMove: return true;
+    case Action::MoveToTop:
+    case Action::MoveUp: return !isIoBusy() && row > 0;
+    case Action::MoveDown: return !isIoBusy() && row + 1 < count;
+    case Action::SortByFrequency:
+    case Action::SortByValue: return !isIoBusy() && count > 1;
+    default: return !isIoBusy();
+    }
+}
+
+void JosekiWindow::onRowActionRequested(JosekiTableView::RowAction action, int row)
+{
+    if (row < 0 || row >= m_model->moves().size()) return;
+    using Action = JosekiTableView::RowAction;
+    switch (action) {
+    case Action::Play: playMoveAt(row); break;
+    case Action::Edit: editMoveAt(row); break;
+    case Action::Delete: deleteMoveAt(row); break;
+    case Action::CopyMove: {
+        const QString usiMove = m_model->moves().at(row).move;
+        QApplication::clipboard()->setText(usiMove);
+        showTransientStatus(tr("「%1」をコピーしました").arg(usiMove));
         break;
-    case JosekiTableModel::Edit: editMoveAt(index.row()); break;
-    case JosekiTableModel::Delete: deleteMoveAt(index.row()); break;
+    }
+    default: reorderMoveAt(action, row); break;
+    }
+}
+
+void JosekiWindow::reorderMoveAt(JosekiTableView::RowAction action, int row)
+{
+    if (!isRowActionAvailable(action, row)) return;
+    using Action = JosekiTableView::RowAction;
+    // 並べ替えた後も同じ手を選んだままにする
+    const QString usiMove = m_model->moves().at(row).move;
+    bool changed = false;
+    switch (action) {
+    case Action::MoveToTop: changed = m_session->moveMoveTo(m_currentSfen, usiMove, 0); break;
+    case Action::MoveUp: changed = m_session->moveMoveTo(m_currentSfen, usiMove, row - 1); break;
+    case Action::MoveDown: changed = m_session->moveMoveTo(m_currentSfen, usiMove, row + 1); break;
+    case Action::SortByFrequency: changed = m_session->sortMoves(m_currentSfen, JosekiBook::SortKey::Frequency); break;
+    case Action::SortByValue: changed = m_session->sortMoves(m_currentSfen, JosekiBook::SortKey::Value); break;
     default: break;
     }
-}
-
-void JosekiWindow::onTableDoubleClicked(const QModelIndex &index)
-{
-    // ボタンの列は1回目のクリックで処理済み
-    const int column = index.column();
-    if (!index.isValid() || column == JosekiTableModel::Play || column == JosekiTableModel::Edit
-        || column == JosekiTableModel::Delete) {
-        return;
+    if (!changed) return;
+    updateJosekiDisplay();
+    const QList<JosekiMove> &moves = m_model->moves();
+    for (int i = 0; i < moves.size(); ++i) {
+        if (moves.at(i).move == usiMove) m_tableView->selectRow(i);
     }
-    playMoveAt(index.row());
-}
-
-void JosekiWindow::onTableContextMenu(const QPoint &pos)
-{
-    if (isIoBusy()) return;
-    const QModelIndex index = m_tableView->indexAt(pos);
-    if (!index.isValid()) return;
-    refreshHumanCanPlay();
-    m_actionPlay->setEnabled(m_humanCanPlay);
-    m_tableView->selectRow(index.row());
-    m_tableContextMenu->exec(m_tableView->viewport()->mapToGlobal(pos));
-}
-
-void JosekiWindow::onContextMenuPlay() { playMoveAt(m_tableView->currentIndex().row()); }
-void JosekiWindow::onContextMenuEdit() { editMoveAt(m_tableView->currentIndex().row()); }
-void JosekiWindow::onContextMenuDelete() { deleteMoveAt(m_tableView->currentIndex().row()); }
-
-void JosekiWindow::onContextMenuCopyMove()
-{
-    const int row = m_tableView->currentIndex().row();
-    if (row < 0 || row >= m_model->moves().size()) return;
-    const QString usiMove = m_model->moves().at(row).move;
-    QApplication::clipboard()->setText(usiMove);
-    showTransientStatus(tr("「%1」をコピーしました").arg(usiMove));
 }
 
 // ============================================================
@@ -742,6 +720,33 @@ void JosekiWindow::recordBoardMove(const QString &sfen, const QString &usiMove)
     if (m_session->hasMove(sfen, usiMove)) return;
     m_session->addMove(sfen, {usiMove, QStringLiteral("none"), 0, 0, 1, {}});
     showTransientStatus(tr("%1 を定跡に登録しました").arg(JosekiTableModel::moveText(usiMove, sfen)));
+}
+
+void JosekiWindow::onExpandButtonClicked()
+{
+    if (isIoBusy() || m_model->moves().isEmpty()) return;
+    JosekiExpandDialog dialog(this);
+    if (dialog.exec() == QDialog::Accepted && !isIoBusy()) emit expandRequested(dialog.options());
+}
+
+void JosekiWindow::setBookDeviation(int ply, const QString &moveText)
+{
+    m_deviationPly = ply;
+    m_deviationButton->setVisible(ply >= 0);
+    // すべて定跡どおりなら押す先がないので押せなくする（色でも分ける）
+    m_deviationButton->setEnabled(ply > 0);
+    if (ply > 0) {
+        m_deviationButton->setText(tr("%1手目の%2で定跡を外れています").arg(ply).arg(moveText));
+        m_deviationButton->setToolTip(tr("押すとその手へ移ります"));
+    } else if (ply == 0) {
+        m_deviationButton->setText(tr("表示中の手順はすべて定跡にあります"));
+        m_deviationButton->setToolTip(QString());
+    }
+}
+
+void JosekiWindow::onDeviationClicked()
+{
+    if (m_deviationPly > 0) emit deviationPlyRequested(m_deviationPly);
 }
 
 void JosekiWindow::setBoardArrowsChecked(bool checked)
@@ -828,6 +833,7 @@ void JosekiWindow::updateStatusDisplay()
     const bool modified = m_session->isModified();
     const bool hasData = !m_session->isEmpty();
     m_addMoveButton->setEnabled(!isIoBusy() && !m_currentSfen.isEmpty());
+    m_expandButton->setEnabled(!isIoBusy() && !m_model->moves().isEmpty());
     if (m_filePathLabel->toolTip() != filePath) m_filePathLabel->setToolTip(filePath);
     m_noticeLabel->setVisible(modified);
 
@@ -859,21 +865,22 @@ void JosekiWindow::updateStatusDisplay()
     if (isRecordingBoardMoves()) statusParts << tr("盤の手を登録中");
     m_statusLabel->setText(statusParts.join(QStringLiteral("  |  ")));
 
-    const bool showGuide = moveCount == 0;
-    if (activity == JosekiBookSession::Activity::Loading)
-        m_emptyGuideLabel->setText(tr("定跡ファイルを読み込んでいます..."));
+    QString guide;
+    if (moveCount > 0)
+        guide.clear();
+    else if (activity == JosekiBookSession::Activity::Loading)
+        guide = tr("定跡ファイルを読み込んでいます...");
     else if (!m_displayEnabled)
-        m_emptyGuideLabel->setText(tr("定跡表示を停止しています。「再開」で表示を再開します。"));
+        guide = tr("定跡表示を停止しています。「再開」で表示を再開します。");
     else if (m_currentSfen.isEmpty())
-        m_emptyGuideLabel->setText(tr("将棋盤で局面を表示すると、その局面の定跡を確認できます。"));
+        guide = tr("将棋盤で局面を表示すると、その局面の定跡を確認できます。");
     else if (filePath.isEmpty() && !hasData)
-        m_emptyGuideLabel->setText(tr("「開く」で定跡ファイルを読み込むと、表示中の局面の定跡手が表示されます。\n"
-                                    "「新規」で新しい定跡ファイルを作ることもできます。"));
+        guide = tr("「開く」で定跡ファイルを読み込むと、表示中の局面の定跡手が表示されます。\n"
+                   "「新規」で新しい定跡ファイルを作ることもできます。");
     else
-        m_emptyGuideLabel->setText(tr("この局面には定跡が登録されていません。\n"
-                                    "「＋追加」で指し手を登録するか、「マージ」から棋譜を取り込めます。"));
-    m_emptyGuideLabel->setVisible(showGuide);
-    if (showGuide) m_emptyGuideLabel->raise();
+        guide = tr("この局面には定跡が登録されていません。\n"
+                   "「＋追加」で指し手を登録するか、「マージ」から棋譜を取り込めます。");
+    m_tableView->setEmptyGuide(guide);
 }
 
 void JosekiWindow::updatePositionSummary()

@@ -12,9 +12,12 @@
 #include <QStringList>
 #include <QPoint>
 
+#include "josekilines.h"
 
 class BoardMoveController;
+class BranchTreeEditController;
 class JosekiBookSession;
+class KifuNavigationController;
 class JosekiWindow;
 class KifuNavigationState;
 class QDockWidget;
@@ -23,7 +26,8 @@ class ShogiGameController;
 /**
  * @brief 定跡ウィンドウを作って表示中の手の局面に合わせ、選んだ定跡手を盤への着手として要求する
  *
- * 表示中の手（KifuNavigationState）が変わるたびに、定跡ウィンドウが前面にあれば局面を合わせる。
+ * 表示中の手（KifuNavigationState）が変わるたびに、定跡ウィンドウが前面にあれば局面と、表示中の手順が定跡を
+ * 外れた手を合わせる。定跡ウィンドウの「棋譜に展開...」で、表示中の局面から定跡を棋譜の変化に展開する。
  */
 class JosekiWindowController : public QObject
 {
@@ -40,6 +44,10 @@ public:
         std::function<bool()> isHumanTurnNow;
         /// 定跡手を盤に指す（盤の操作と同じ処理。必須）
         BoardMoveController* boardMoves = nullptr;
+        /// 定跡を棋譜の変化に展開する（必須）
+        BranchTreeEditController* branchEdit = nullptr;
+        /// 定跡を外れた手へ移る（必須）
+        KifuNavigationController* navController = nullptr;
     };
 
     explicit JosekiWindowController(const Deps& deps, QObject* parent = nullptr);
@@ -85,12 +93,19 @@ private slots:
     /// ドックが前面に出た・裏に回った・閉じたときの処理
     void onDockVisibilityChanged(bool visible);
 
+    /// 表示中の局面から定跡を棋譜の変化に展開する
+    void onExpandRequested(const JosekiLines::ExpandOptions& options);
+
 private:
     /// 人間が今指せるか（盤面クリックと同じ判定）
     bool determineHumanCanPlay() const;
+    /// 表示中の手順が定跡を外れた手を定跡ウィンドウに出す
+    void updateBookDeviation();
 
     // 依存オブジェクト
     QWidget* m_parentWidget = nullptr;
+    const JosekiBookSession* m_book = nullptr;
+    BranchTreeEditController* m_branchEdit = nullptr;
     ShogiGameController* m_gameController = nullptr;
     const KifuNavigationState* m_navState = nullptr;
     std::function<bool()> m_isHumanTurnNow;  ///< 人間が今指せるか

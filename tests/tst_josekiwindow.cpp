@@ -24,6 +24,7 @@
 #include "josekitablemodel.h"
 #include "josekimergecontroller.h"
 #include "josekimergedialog.h"
+#include "josekiexpanddialog.h"
 #include "josekimovedialog.h"
 #include "josekimoveinputwidget.h"
 #include "sfenreplay.h"
@@ -98,6 +99,8 @@ private slots:
     void testRecordBoardMoves();
     void testExternalChangesRefreshTable();
     void testMergeMenuAndDroppedBook();
+    void testReorderRows();
+    void testExpandAndDeviation();
     void testButtonColumnsActOnRow();
     void testMoveListPlaceholder();
     void testFontButtonsKeepWidth();
@@ -111,6 +114,7 @@ private:
     void acceptMoveAfterPositionChange();
     void editMoveAfterPositionChange();
     void confirmDeleteAfterPositionChange();
+    void acceptExpandDialog();
     QMessageBox::ButtonRole m_responseRole = QMessageBox::AcceptRole;
     bool m_messageSeen = false;
     /// 非同期の保存が終わってから出るメッセージボックスに答える（答えたら止まる）
@@ -487,8 +491,11 @@ void TestJosekiWindow::testBusyBlocksEditsAndMerge()
     QVERIFY(window.isIoBusy());
     window.setCurrentSfen(initialSfen()); // 保存中に局面更新で行が作り直される場合も禁止
     QVERIFY(!window.m_tableView->isEnabled());
-    QVERIFY(!window.m_actionEdit->isEnabled());
-    QVERIFY(!window.m_actionDelete->isEnabled());
+    // 右クリックのメニューの編集・削除も押せない
+    window.m_tableView->updateMenuActions(0);
+    QVERIFY(!window.m_tableView->action(JosekiTableView::RowAction::Edit)->isEnabled());
+    QVERIFY(!window.m_tableView->action(JosekiTableView::RowAction::Delete)->isEnabled());
+    QVERIFY(window.m_tableView->action(JosekiTableView::RowAction::CopyMove)->isEnabled());
     QVERIFY(!merge->isEnabled());
     window.m_session->setModified(true);
     QVERIFY(!window.m_saveButton->isEnabled());
@@ -1019,14 +1026,14 @@ void TestJosekiWindow::testEmptyAndStoppedDisplay()
     window.setCurrentSfen(initialSfen());
     window.show();
     QVERIFY(QTest::qWaitForWindowExposed(&window));
-    QVERIFY(window.m_emptyGuideLabel->isVisible());
+    QVERIFY(window.m_tableView->emptyGuideLabel()->isVisible());
     window.resize(1100, 700);
     QCoreApplication::processEvents();
-    QVERIFY(window.m_tableView->viewport()->rect().contains(window.m_emptyGuideLabel->geometry()));
+    QVERIFY(window.m_tableView->viewport()->rect().contains(window.m_tableView->emptyGuideLabel()->geometry()));
     window.m_stopButton->setChecked(true);
     window.onStopButtonClicked();
     QVERIFY(window.m_stopButton->isVisible()); // 空の定跡でも再開できる
-    QVERIFY(window.m_emptyGuideLabel->text().contains(QStringLiteral("停止")));
+    QVERIFY(window.m_tableView->emptyGuideLabel()->text().contains(QStringLiteral("停止")));
     window.setCurrentSfen(QString());
     QCOMPARE(window.m_positionSummaryLabel->text(), QStringLiteral("(未設定)"));
     QVERIFY(window.m_sfenLineLabel->text().isEmpty());
@@ -1289,6 +1296,100 @@ void TestJosekiWindow::testMergeMenuAndDroppedBook()
     QVERIFY(session.isModified());
 }
 
+/// 右クリックの並べ替え: 先頭へ・上へ・下へ移し、出現頻度・評価値の順に並べる。動かした手は選んだまま
+void TestJosekiWindow::testReorderRows()
+{
+    JosekiSettings::josekiWindowAutoLoadEnabled.set(false);
+    JosekiBookSession session;
+    JosekiWindow window(&session);
+    QVERIFY(seedWindow(window, m_tempDir.filePath(QStringLiteral("reorder.db"))));  // 7g7f（値10・頻度1）
+    session.addMove(initialSfen(), {QStringLiteral("2g2f"), QStringLiteral("none"), 50, 0, 7, {}});
+    session.addMove(initialSfen(), {QStringLiteral("5g5f"), QStringLiteral("none"), -20, 0, 3, {}});
+    session.setModified(false);
+    window.updateJosekiDisplay();
+    const auto order = [&window] {
+        QStringList moves;
+        for (const JosekiMove &move : window.m_model->moves()) moves << move.move;
+        return moves;
+    };
+    using Action = JosekiTableView::RowAction;
+    JosekiTableView *table = window.m_tableView;
+
+    // 先頭の行は上へ動かせず、末尾の行は下へ動かせない
+    table->updateMenuActions(0);
+    QVERIFY(!table->action(Action::MoveToTop)->isEnabled());
+    QVERIFY(!table->action(Action::MoveUp)->isEnabled());
+    QVERIFY(table->action(Action::MoveDown)->isEnabled());
+    table->updateMenuActions(2);
+    QVERIFY(table->action(Action::MoveUp)->isEnabled());
+    QVERIFY(!table->action(Action::MoveDown)->isEnabled());
+
+    emit table->rowActionRequested(Action::MoveToTop, 2);
+    QCOMPARE(order(), (QStringList{"5g5f", "7g7f", "2g2f"}));
+    QCOMPARE(table->currentIndex().row(), 0);
+    QVERIFY(session.isModified());
+    emit table->rowActionRequested(Action::MoveDown, 0);
+    QCOMPARE(order(), (QStringList{"7g7f", "5g5f", "2g2f"}));
+    QCOMPARE(table->currentIndex().row(), 1);
+    emit table->rowActionRequested(Action::MoveUp, 2);
+    QCOMPARE(order(), (QStringList{"7g7f", "2g2f", "5g5f"}));
+    emit table->rowActionRequested(Action::SortByFrequency, 0);
+    QCOMPARE(order(), (QStringList{"2g2f", "5g5f", "7g7f"}));
+    QCOMPARE(table->currentIndex().row(), 2);
+    emit table->rowActionRequested(Action::SortByValue, 0);
+    QCOMPARE(order(), (QStringList{"2g2f", "7g7f", "5g5f"}));
+
+    // 並びはファイルに書く順なので、保存して読み直しても同じ
+    QVERIFY(session.save(m_tempDir.filePath(QStringLiteral("reorder.db"))));
+    JosekiBookSession reloaded;
+    QSignalSpy loaded(&reloaded, &JosekiBookSession::loaded);
+    QVERIFY(reloaded.startLoad(m_tempDir.filePath(QStringLiteral("reorder.db"))));
+    QVERIFY(loaded.wait(5000));
+    QCOMPARE(reloaded.movesAt(initialSfen()).constFirst().move, QStringLiteral("2g2f"));
+    QCOMPARE(reloaded.movesAt(initialSfen()).constLast().move, QStringLiteral("5g5f"));
+}
+
+/// 「棋譜に展開...」は定跡手がある局面で押せ、ダイアログの条件を知らせる。定跡を外れた手の表示は押すとその手数を知らせる
+void TestJosekiWindow::testExpandAndDeviation()
+{
+    JosekiSettings::josekiWindowAutoLoadEnabled.set(false);
+    JosekiBookSession session;
+    JosekiWindow window(&session);
+    QVERIFY(seedWindow(window, m_tempDir.filePath(QStringLiteral("expand.db"))));
+    QVERIFY(window.m_expandButton->isEnabled());
+    window.setCurrentSfen(SfenReplay::positionAfter(initialSfen(), QStringLiteral("2g2f")));
+    QVERIFY(!window.m_expandButton->isEnabled());
+    window.setCurrentSfen(initialSfen());
+
+    QSignalSpy expand(&window, &JosekiWindow::expandRequested);
+    QTimer::singleShot(0, this, &TestJosekiWindow::acceptExpandDialog);
+    window.onExpandButtonClicked();
+    QCOMPARE(expand.count(), 1);
+    const auto options = expand.constFirst().constFirst().value<JosekiLines::ExpandOptions>();
+    QCOMPARE(options.maxPlies, 5);
+    QCOMPARE(JosekiSettings::josekiExpandMaxPlies(), 5);
+
+    QSignalSpy deviation(&window, &JosekiWindow::deviationPlyRequested);
+    window.setBookDeviation(-1, QString());
+    QVERIFY(window.m_deviationButton->isHidden());
+    window.setBookDeviation(0, QString());
+    QVERIFY(!window.m_deviationButton->isHidden());
+    QVERIFY(!window.m_deviationButton->isEnabled());
+    window.setBookDeviation(14, QStringLiteral("▲２五歩(26)"));
+    QVERIFY(window.m_deviationButton->text().contains(QStringLiteral("14手目の▲２五歩(26)")));
+    window.m_deviationButton->click();
+    QCOMPARE(deviation.count(), 1);
+    QCOMPARE(deviation.constFirst().constFirst().toInt(), 14);
+}
+
+void TestJosekiWindow::acceptExpandDialog()
+{
+    auto *dialog = qobject_cast<JosekiExpandDialog *>(QApplication::activeModalWidget());
+    QVERIFY(dialog);
+    dialog->findChild<QSpinBox *>(QStringLiteral("josekiExpandMaxPlies"))->setValue(5);
+    dialog->accept();
+}
+
 void TestJosekiWindow::testButtonColumnsActOnRow()
 {
     JosekiSettings::josekiWindowAutoLoadEnabled.set(false);
@@ -1296,18 +1397,18 @@ void TestJosekiWindow::testButtonColumnsActOnRow()
     JosekiWindow window(&session);
     QVERIFY(seedWindow(window, m_tempDir.filePath(QStringLiteral("buttons.db"))));
     QSignalSpy selected(&window, &JosekiWindow::josekiMoveSelected);
-    window.onTableClicked(window.m_model->index(0, JosekiTableModel::Play));
+    emit window.m_tableView->clicked(window.m_model->index(0, JosekiTableModel::Play));
     QCOMPARE(selected.count(), 1);
     QCOMPARE(selected.first().first().toString(), QStringLiteral("7g7f"));
     // 人間が指せないときは「着手」を押しても指さない
     window.setHumanCanPlayProvider([] { return false; });
     window.updateJosekiDisplay();
-    window.onTableClicked(window.m_model->index(0, JosekiTableModel::Play));
+    emit window.m_tableView->clicked(window.m_model->index(0, JosekiTableModel::Play));
     QCOMPARE(selected.count(), 1);
 
     m_responseRole = QMessageBox::YesRole;
     QTimer::singleShot(0, this, &TestJosekiWindow::respondToMessageBox);
-    window.onTableClicked(window.m_model->index(0, JosekiTableModel::Delete));
+    emit window.m_tableView->clicked(window.m_model->index(0, JosekiTableModel::Delete));
     m_responseRole = QMessageBox::AcceptRole;
     QCOMPARE(window.m_model->rowCount(), 0);
     QVERIFY(window.m_session->isModified());
