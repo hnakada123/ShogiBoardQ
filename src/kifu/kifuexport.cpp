@@ -37,6 +37,8 @@ namespace KifuExport {
 
 KifuExportMetadata metadataOf(const KifuDocument& document)
 {
+    // 画面で入力中の内容も書き出す
+    document.commitPendingEdits();
     KifuExportMetadata metadata;
     metadata.gameInfoItems = document.header();
     metadata.gameInfoProvided = true;

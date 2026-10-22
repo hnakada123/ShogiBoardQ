@@ -37,15 +37,21 @@ class KifuDocument : public QObject
     Q_OBJECT
 
 public:
-    /// 上位層へのコールバック
+    /// 上位層へのコールバック（文書を編集する画面の、まだ文書に入っていない入力。画面がなければ空）
     struct Hooks {
-        /// 対局情報欄の入力中のセルを確定する（対局情報を読む前に呼ぶ。画面がなければ空）
+        /// 対局情報欄の入力中のセルを確定する（対局情報を読む前に呼ぶ）
         std::function<void()> flushPendingHeaderEdits;
+        /// コメント欄の未更新の本文を、書いていた手に確定する（書き出す前に呼ぶ）
+        std::function<void()> commitPendingComment;
+        /// コメント欄に未更新の本文があるか（未保存に数える）
+        std::function<bool()> hasPendingComment;
     };
 
     explicit KifuDocument(KifuBranchTree* tree, QObject* parent = nullptr);
 
     void setHooks(Hooks hooks) { m_hooks = std::move(hooks); }
+    /// 画面で入力中の内容（対局情報欄のセル・コメント欄の未更新の本文）を文書に確定する。保存・書き出しの前に呼ぶ
+    void commitPendingEdits() const;
 
     KifuBranchTree* tree() const { return m_tree; }
     /// 開始局面（ツリーが空なら平手）

@@ -3907,8 +3907,7 @@ private slots:
         QSignalSpy updates(panel, &CommentEditorPanel::commentUpdated);
         QTest::keyClick(edit, Qt::Key_Return, Qt::ControlModifier);
         QCOMPARE(updates.size(), 1);
-        QCOMPARE(updates.first().at(0).toInt(), 1);
-        QCOMPARE(updates.first().at(1).toString(), comment);
+        QCOMPARE(updates.first().at(0).toString(), comment);
         QCOMPARE(edit->toPlainText(), comment);
         QVERIFY(!panel->hasUnsavedComment());
         QVERIFY(!apply->isEnabled());

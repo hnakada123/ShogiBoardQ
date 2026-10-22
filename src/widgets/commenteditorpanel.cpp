@@ -210,13 +210,6 @@ bool CommentEditorPanel::confirmDiscardUnsavedComment()
     return false;
 }
 
-void CommentEditorPanel::clearCommentDirty()
-{
-    m_originalComment = m_comment->toPlainText();
-    m_isCommentDirty = false;
-    updateEditingIndicator();
-}
-
 // static
 QString CommentEditorPanel::convertUrlsToLinks(const QString& text)
 {
@@ -292,15 +285,19 @@ void CommentEditorPanel::applyCommentFontSize(int size)
 
 void CommentEditorPanel::onUpdateCommentClicked()
 {
+    commitPendingComment();
+}
+
+void CommentEditorPanel::commitPendingComment()
+{
     if (!m_isCommentDirty || m_currentMoveIndex < 0) return;
 
-    QString newComment = m_comment->toPlainText();
-
-    emit commentUpdated(m_currentMoveIndex, newComment);
-
+    // 受け手がコメントを表示し直す（setCommentText）前に、未更新でない状態にしておく
+    const QString newComment = m_comment->toPlainText();
     m_originalComment = newComment;
     m_isCommentDirty = false;
     updateEditingIndicator();
+    emit commentUpdated(newComment);
 }
 
 void CommentEditorPanel::onCommentTextChanged()

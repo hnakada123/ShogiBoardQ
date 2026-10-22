@@ -98,7 +98,8 @@ constexpr Rule kRules[] = {
     // --- ウィジェット ---
     {E::WidgetNavigation,       kBrowsing,    Off::Disable},
     {E::WidgetBranchTree,       kBrowsing,    Off::Disable},
-    {E::WidgetConsiderationStart, kAllStates & ~kPlaying, Off::Disable},
+    // 局面編集中は盤が編集中の局面なので検討しない（編集を終えてから始める）
+    {E::WidgetConsiderationStart, kAllStates & ~kPlaying & ~in(S::DuringPositionEdit), Off::Disable},
 };
 
 constexpr bool rulesFollowDeclarationOrder()

@@ -42,21 +42,21 @@ public:
     /// 現在の手数インデックスを取得
     int currentMoveIndex() const { return m_currentMoveIndex; }
 
-    /// 未保存の編集があるかチェック
+    /// 「コメント更新」を押していない編集があるか
     bool hasUnsavedComment() const { return m_isCommentDirty; }
 
     /// 未保存編集の警告ダイアログを表示（移動を続けるならtrue）
     bool confirmDiscardUnsavedComment();
 
-    /// 編集状態をクリア（コメント更新後に呼ぶ）
-    void clearCommentDirty();
+    /// 「コメント更新」と同じく、未更新の本文を commentUpdated で知らせる（未更新の本文がなければ何もしない）
+    void commitPendingComment();
 
     /// プレーンテキストをエスケープし、URLをHTMLリンクに変換
     static QString convertUrlsToLinks(const QString& text);
 
 signals:
     /// コメント更新シグナル
-    void commentUpdated(int moveIndex, const QString& newComment);
+    void commentUpdated(const QString& newComment);
 
 protected:
     bool eventFilter(QObject* obj, QEvent* ev) override;
