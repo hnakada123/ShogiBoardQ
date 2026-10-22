@@ -227,9 +227,13 @@ QWidget *JosekiWindow::buildToolbar()
     m_autoLoadCheckBox = new QCheckBox(tr("自動読込"), this);
     m_autoLoadCheckBox->setToolTip(tr("定跡ウィンドウ表示時に前回のファイルを自動で読み込む"));
     m_autoLoadCheckBox->setChecked(true);
+    m_boardArrowsCheckBox = new QCheckBox(tr("盤に矢印"), this);
+    m_boardArrowsCheckBox->setObjectName(QStringLiteral("josekiBoardArrows"));
+    m_boardArrowsCheckBox->setToolTip(tr("表示中の局面の定跡手を盤に矢印で表示する（「表示」メニューの「盤に定跡手を表示」と同じ）"));
     displayGroupLayout->addWidget(m_fontDecreaseButton);
     displayGroupLayout->addWidget(m_fontIncreaseButton);
     displayGroupLayout->addWidget(m_autoLoadCheckBox);
+    displayGroupLayout->addWidget(m_boardArrowsCheckBox);
     toolbarLayout->addWidget(displayGroup);
 
     connect(m_newButton, &QPushButton::clicked, m_files, &JosekiFileController::newBook);
@@ -239,6 +243,7 @@ QWidget *JosekiWindow::buildToolbar()
     connect(m_addMoveButton, &QPushButton::clicked, this, &JosekiWindow::onAddMoveButtonClicked);
     connect(&m_fontHelper, &FontSizeHelper::fontSizeChanged, this, &JosekiWindow::applyFontSize);
     connect(m_autoLoadCheckBox, &QCheckBox::checkStateChanged, this, &JosekiWindow::onAutoLoadCheckBoxChanged);
+    connect(m_boardArrowsCheckBox, &QCheckBox::toggled, this, &JosekiWindow::boardArrowsToggled);
     connect(m_stopButton, &QPushButton::clicked, this, &JosekiWindow::onStopButtonClicked);
     return toolbar;
 }
@@ -707,6 +712,12 @@ void JosekiWindow::onStopButtonClicked()
     else clearTable();
     JosekiSettings::josekiWindowDisplayEnabled.set(m_displayEnabled);
     updateStatusDisplay();
+    emit displayEnabledChanged(m_displayEnabled);
+}
+
+void JosekiWindow::setBoardArrowsChecked(bool checked)
+{
+    m_boardArrowsCheckBox->setChecked(checked);
 }
 
 void JosekiWindow::onSfenDetailToggled(bool checked)

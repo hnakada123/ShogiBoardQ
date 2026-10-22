@@ -25,6 +25,7 @@ class MatchRecordSink;
 class ShogiClock;
 class ShogiGameController;
 class Usi;
+struct JosekiPick;
 
 /**
  * @brief ローカル対局（人間・エンジン）の司令塔
@@ -159,6 +160,8 @@ private:
     bool completeHumanMove(const RecordEntry& played) override;
 
     void createStrategy(const StartOptions& opt);
+    /// 情報欄の「探索手」に出す定跡手の表示（例「▲７六歩(77)（定跡 82.1%）」）
+    static QString bookMoveLabel(const QString& sfen, const JosekiPick& pick);
     /// 一手を確定する。engineScore はエンジンの手のとき（グラフに足す評価値）
     bool completeMove(RecordEntry played, std::optional<UsiScore> engineScore);
     void disarmTurnTimer();

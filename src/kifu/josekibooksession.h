@@ -63,6 +63,8 @@ public:
     bool hasMove(const QString &sfen, const QString &usiMove) const { return m_book.hasMove(sfen, usiMove); }
     /// 棋譜からマージで登録した指し手（局面のキーと指し手の組）
     const QSet<JosekiMoveKey> &mergeRegisteredMoves() const { return m_book.mergeRegistered(); }
+    /// 今の定跡の写し（対局で使う。中身は共有するので、大きな定跡でも写しを作るのは軽い）
+    JosekiBook snapshot() const { return m_book; }
 
     // --- 定跡データの変更（変更ありにする） ---
 
@@ -119,6 +121,8 @@ signals:
     void saveFailed(const QString &errorMessage);
     /// startRegisterMergeMoves() の保存が終わった（registered: 登録して保存できた）
     void mergeFinished(bool registered);
+    /// 定跡の中身が変わった（読み込み・新規・定跡手の追加・編集・削除・マージ。盤の矢印を描き直す）
+    void contentChanged();
 
 private slots:
     void onLoadFinished();

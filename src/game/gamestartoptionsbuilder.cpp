@@ -125,6 +125,10 @@ MatchStartOptions GameStartOptionsBuilder::buildStartOptions(const QString& star
     opt.sfenStart = startSfen;
     if (dlg.players[0].isEngine()) opt.enginePath1 = dlg.players[0].engine.path;
     if (dlg.players[1].isEngine()) opt.enginePath2 = dlg.players[1].engine.path;
+    // 定跡を使えるのはエンジンの対局者だけ（定跡そのものは対局を始める側が写して渡す）
+    for (std::size_t i = 0; i < dlg.players.size(); ++i) {
+        if (dlg.players[i].isEngine()) opt.josekiOptions[i] = dlg.players[i].joseki.normalized();
+    }
     opt.maxMoves = dlg.maxMoves;
     opt.autoSave.enabled = dlg.autoSaveKifu;
     opt.autoSave.dir = dlg.kifuSaveDir;

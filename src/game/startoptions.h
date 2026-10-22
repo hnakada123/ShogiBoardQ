@@ -8,7 +8,10 @@
 /// MatchCoordinator::StartOptions は本型の using エイリアス。
 
 #include <QString>
+#include <array>
 
+#include "josekibook.h"
+#include "josekiplayoptions.h"
 #include "matchautosave.h"
 #include "matchplayers.h"
 #include "recordline.h"
@@ -36,6 +39,11 @@ struct MatchStartOptions {
     int maxMoves = 0;                      ///< 最大手数（0=無制限）
 
     MatchAutoSave autoSave;                ///< 終局した棋譜の自動保存
+
+    /// 対局で使う定跡（対局を始めたときに定跡ウィンドウで開いていた定跡の写し。中身は共有する）
+    JosekiBook josekiBook;
+    /// 先手（下手）・後手（上手）のエンジンが定跡を使う条件（[0] が先手。人間の側は使わない）
+    std::array<JosekiPlayOptions, 2> josekiOptions;
 
     bool resumeFromBreakOff = false;        ///< 中断した手の途中から再開する
 };

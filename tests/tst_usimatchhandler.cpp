@@ -1,4 +1,5 @@
 #include <QtTest>
+#include <QElapsedTimer>
 #include <QSettings>
 #include <QFile>
 #include <algorithm>
@@ -425,6 +426,50 @@ private slots:
         QTRY_COMPARE_WITH_TIMEOUT(moves.count(), 2, 5000);
         QCOMPARE(moves.last().at(0).value<UsiMatchMove>().move.to, (BoardSquare{3, 4}));
         engine.quit();
+    }
+    // 定跡手は探索させずに待ってから指す。先読み中なら止め、返ってくる先読みの bestmove は指し手にしない
+    void bookMoveSkipsSearchAndStopsPonder()
+    {
+        MatchHarness h;
+        QVERIFY(h.start(mockPath()));
+        QCOMPARE(h.reply(), QPoint(8, 4));
+        QVERIFY(h.isPondering());
+        h.commands.clear();
+        h.humanMove(QStringLiteral("2g2f"));
+        const int previous = h.completed;
+        QElapsedTimer elapsed;
+        elapsed.start();
+        h.match.requestBookMove(h.position, *UsiMove::parse(u"3c3d"), 300);
+        QTRY_VERIFY_WITH_TIMEOUT(h.completed > previous, 3000);
+        QVERIFY(elapsed.elapsed() >= 250);
+        QCOMPARE(h.lastTo, QPoint(3, 4));
+        QCOMPARE(h.commands, QStringList{QStringLiteral("stop")});
+        QTest::qWait(300);
+        QCOMPARE(h.completed, previous + 1);
+        QVERIFY(!h.isPondering());
+        QCOMPARE(h.errors, 0);
+        QVERIFY(!h.clock.isGameOver());
+    }
+    // 「すぐ指させる」では待たずに指す。持ち時間が待つ時間より短ければ、時間切れにならないよう縮める
+    void bookMoveImmediateAndShortTime()
+    {
+        MatchHarness h;
+        h.byoyomi = 1000;
+        QVERIFY(h.start(mockPath(), false));
+        h.commands.clear();
+        int previous = h.completed;
+        h.match.requestBookMove(h.position, *UsiMove::parse(u"3c3d"), 10000);
+        QVERIFY(h.match.playBookMoveNow());
+        QCOMPARE(h.completed, previous + 1);
+        QVERIFY(!h.match.playBookMoveNow());
+        QVERIFY(h.commands.isEmpty());
+
+        h.humanMove(QStringLiteral("2g2f"));
+        previous = h.completed;
+        h.match.requestBookMove(h.position, *UsiMove::parse(u"8c8d"), 10000);
+        QTRY_VERIFY_WITH_TIMEOUT(h.completed > previous, 1500);
+        QVERIFY(!h.clock.isGameOver());
+        QCOMPARE(h.errors, 0);
     }
     void actualDeadlineRejectsLateMove()
     {

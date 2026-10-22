@@ -74,6 +74,15 @@ bool MainWindowComposer::showConsiderationArrows() const
     return !m_c.considerationTab || m_c.considerationTab->settings().showArrows;
 }
 
+bool MainWindowComposer::josekiArrowsAllowed() const
+{
+    const JosekiWindow* window = m_c.joseki ? m_c.joseki->josekiWindow() : nullptr;
+    if (window && !window->isDisplayEnabled()) return false;
+    // 対局中は人間の手番だけ（エンジンの手番に定跡手を見せても使えない）
+    const HumanTurnPolicy* policy = m_c.humanTurnPolicy.get();
+    return !policy || !policy->isGameActivelyInProgress() || policy->isHumanTurnNow();
+}
+
 void MainWindowComposer::shutdown()
 {
     if (m_shutdownDone) return;

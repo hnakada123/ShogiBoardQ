@@ -415,6 +415,7 @@ add_shogi_test(tst_startgamedialog
     ${SRC}/dialogs/startgamedialog.ui
     ${SRC}/game/timecontrolvalidator.cpp
     ${SRC}/dialogs/changeenginesettingsdialog.cpp
+    ${SRC}/dialogs/josekiplayoptionsdialog.cpp
     ${SRC}/dialogs/changeenginesettingsdialog.ui
     ${SRC}/dialogs/enginesettingsoptionhandler.cpp
     ${SRC}/engine/engineoptiondescriptions.cpp
@@ -758,6 +759,8 @@ target_link_libraries(tst_lifecycle_runtime PRIVATE shogiboardq_static)
 # ============================================================
 add_shogi_test(tst_joseki_book tst_joseki_book.cpp)
 target_link_libraries(tst_joseki_book PRIVATE shogiboardq_static)
+add_shogi_test(tst_joseki_move_picker tst_joseki_move_picker.cpp)
+target_link_libraries(tst_joseki_move_picker PRIVATE shogiboardq_static)
 
 # ============================================================
 # Unit: TsumeshogiPositionGenerator + TsumePositionUtil テスト

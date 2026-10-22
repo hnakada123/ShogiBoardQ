@@ -91,6 +91,7 @@
     <addaction name="actionShrinkBoard"/>
     <addaction name="actionBoardAppearance"/>
     <addaction name="actionLegalMoves"/>
+    <addaction name="actionShowJosekiArrows"/>
     <addaction name="actionFontSettings"/>
     <addaction name="separator"/>
     <addaction name="actionToolBar"/>
@@ -835,6 +836,11 @@
    <property name="checkable"><bool>true</bool></property>
    <property name="text"><string>指せるマスを表示</string></property>
    <property name="toolTip"><string>選択した駒を指せるマスに色を付けます</string></property>
+  </action>
+  <action name="actionShowJosekiArrows">
+   <property name="checkable"><bool>true</bool></property>
+   <property name="text"><string>盤に定跡手を表示</string></property>
+   <property name="toolTip"><string>定跡ウィンドウで開いている定跡の、表示中の局面の定跡手を盤に矢印で表示します（定跡ウィンドウで定跡ファイルを開くと表示します）</string></property>
   </action>
   <action name="actionBoardAppearance">
    <property name="icon">

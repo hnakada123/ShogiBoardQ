@@ -8,6 +8,7 @@
 #include "gamesettings.h"
 #include "buttonstyles.h"
 #include "dialogutils.h"
+#include "josekiplayoptionsdialog.h"
 #include "playersetupwidget.h"
 #include "timecontroleditor.h"
 #include <QCoreApplication>
@@ -184,6 +185,8 @@ void StartGameDialog::connectSignalsAndSlots()
     for (PlayerSetupWidget* player : m_players) {
         connect(player, &PlayerSetupWidget::engineSettingsRequested, this, &StartGameDialog::showEngineSettingsDialog);
         connect(player, &PlayerSetupWidget::kindChanged, this, &StartGameDialog::updateConsecutiveGamesEnabled);
+        connect(player, &PlayerSetupWidget::josekiConditionsRequested,
+                this, &StartGameDialog::showJosekiConditionsDialog);
     }
     connect(ui->pushButtonSwapSides, &QPushButton::clicked, this, &StartGameDialog::swapSides);
     connect(ui->pushButtonResetToDefault, &QPushButton::clicked, this, &StartGameDialog::resetSettingsToDefault);
@@ -219,6 +222,10 @@ void StartGameDialog::swapSides()
     const PlayerChoice first = m_players[0]->choice();
     m_players[0]->setChoice(m_players[1]->choice());
     m_players[1]->setChoice(first);
+    // 定跡の条件もエンジンと一緒に入れ替える（定跡を開いていなくてもチェックのまま）
+    const JosekiPlayOptions firstJoseki = m_players[0]->josekiOptions();
+    m_players[0]->setJosekiOptions(m_players[1]->josekiOptions());
+    m_players[1]->setJosekiOptions(firstJoseki);
 
     // 「後手に異なる時間を設定」が有効な場合のみ持ち時間も入れ替え
     if (ui->groupBoxSecondPlayerTimeSettings->isChecked()) {
@@ -236,6 +243,20 @@ void StartGameDialog::showEngineSettingsDialog(const EngineListSettings::EngineE
 {
     ChangeEngineSettingsDialog dialog(engine, this);
     dialog.exec();
+}
+
+void StartGameDialog::showJosekiConditionsDialog(int side)
+{
+    PlayerSetupWidget* player = m_players.at(side == 2 ? 1 : 0);
+    // 題名は対局者の欄の見出し（先手・後手、駒落ちなら下手・上手）を使う
+    const QGroupBox* group = side == 2 ? ui->groupBox_2 : ui->groupBox;
+    JosekiPlayOptionsDialog dialog(player->josekiOptions(), tr("%1の定跡の条件").arg(group->title()), this);
+    if (dialog.exec() == QDialog::Accepted) player->setJosekiOptions(dialog.options());
+}
+
+void StartGameDialog::setJosekiBookName(const QString &name)
+{
+    for (PlayerSetupWidget* player : m_players) player->setJosekiBookName(name);
 }
 
 // ============================================================

@@ -40,12 +40,14 @@ void JosekiBookSession::addMove(const QString &sfen, const JosekiMove &move)
 {
     m_book.putMove(sfen, move);
     setModified(true);
+    emit contentChanged();
 }
 
 bool JosekiBookSession::updateMove(const QString &sfen, const JosekiMove &move)
 {
     if (!m_book.updateMove(sfen, move)) return false;
     setModified(true);
+    emit contentChanged();
     return true;
 }
 
@@ -53,6 +55,7 @@ bool JosekiBookSession::removeMove(const QString &sfen, const QString &usiMove)
 {
     if (!m_book.removeMove(sfen, usiMove)) return false;
     setModified(true);
+    emit contentChanged();
     return true;
 }
 
@@ -98,6 +101,7 @@ void JosekiBookSession::newBook()
     m_filePath.clear();
     setModified(false);
     emit filePathChanged();
+    emit contentChanged();
 }
 
 void JosekiBookSession::markSaved(const QString &filePath)
@@ -185,6 +189,7 @@ void JosekiBookSession::onLoadFinished()
     setModified(false);
     emit filePathChanged();
     emit loaded(filePath);
+    emit contentChanged();
 }
 
 void JosekiBookSession::onSaveFinished()
@@ -201,5 +206,8 @@ void JosekiBookSession::onSaveFinished()
     if (merged) m_book = std::move(*merged);
     markSaved(filePath);
     emit saved(filePath);
-    if (merged) emit mergeFinished(true);
+    if (merged) {
+        emit mergeFinished(true);
+        emit contentChanged();
+    }
 }

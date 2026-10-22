@@ -245,6 +245,7 @@ set(SRC_CORE
     src/core/fmvposition.h
     src/core/fmvtypes.h
     src/core/handicaps.h
+    src/core/josekiplayoptions.h
     src/core/kifmovetext.h
     src/core/legalmovestatus.h
     src/core/matchplayers.h
@@ -390,6 +391,8 @@ set(SRC_KIFU
     src/kifu/josekibook.h
     src/kifu/josekimergeentries.cpp
     src/kifu/josekimergeentries.h
+    src/kifu/josekimovepicker.cpp
+    src/kifu/josekimovepicker.h
     src/kifu/josekitypes.h
     src/kifu/kifparsetypes.h
     src/kifu/kifreader.cpp
@@ -751,6 +754,8 @@ set(SRC_DIALOGS
     src/dialogs/josekimergedialog.cpp
     src/dialogs/josekimergedialog.h
     src/dialogs/josekimovedialog.cpp
+    src/dialogs/josekiplayoptionsdialog.cpp
+    src/dialogs/josekiplayoptionsdialog.h
     src/dialogs/josekimovedialog.h
     src/dialogs/josekimoveinputwidget.cpp
     src/dialogs/josekimoveinputwidget.h

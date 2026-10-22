@@ -67,10 +67,20 @@ public:
                              int currentPly);
     /// 定跡手を盤に指せなかったことを知らせる
     void showMoveFailed(const QString &usiMove);
+    /// 定跡を表に出しているか（「■ 停止」で止めていなければ true。盤の矢印も止めているときは出さない）
+    bool isDisplayEnabled() const { return m_displayEnabled; }
+
+public slots:
+    /// 「盤に矢印」のチェック（「表示」メニューの「盤に定跡手を表示」と同じ状態にする）
+    void setBoardArrowsChecked(bool checked);
 
 signals:
     void josekiMoveSelected(const QString &usiMove);
     void requestKifuDataForMerge();
+    /// 「盤に矢印」のチェックを変えた
+    void boardArrowsToggled(bool checked);
+    /// 「■ 停止」「▶ 再開」で定跡の表示を止めた・再開した
+    void displayEnabledChanged(bool enabled);
 
 protected:
     void closeEvent(QCloseEvent *event) override;
@@ -148,6 +158,7 @@ private:
 
     // === 表示設定グループ ===
     QCheckBox    *m_autoLoadCheckBox = nullptr;
+    QCheckBox    *m_boardArrowsCheckBox = nullptr;
 
     // === 操作グループ ===
     QPushButton  *m_stopButton = nullptr;

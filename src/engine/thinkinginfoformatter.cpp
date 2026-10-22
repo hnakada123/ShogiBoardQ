@@ -89,6 +89,19 @@ void ThinkingInfoFormatter::requestClearThinkingInfo()
     emit clearThinkingInfoRequested();
 }
 
+void ThinkingInfoFormatter::presentBookMove(const QString& label)
+{
+    requestClearThinkingInfo();
+    // 探索はしないので、深さ・ノード数は0にする（前の探索の値を残さない）
+    EngineSearchStatus status;
+    status.searchedMove = label;
+    status.depth = 0;
+    status.seldepth = 0;
+    status.nodes = 0;
+    status.nps = 0;
+    emit searchStatusUpdated(status);
+}
+
 void ThinkingInfoFormatter::presentCheckmate(const UsiCheckmate& result)
 {
     if (result.result != UsiCheckmate::Result::Mate || result.pv.isEmpty()) return;

@@ -15,6 +15,7 @@
 #include "matchrecordsink.h"
 
 struct AppState;
+class JosekiBookSession;
 class AnalysisSession;
 class EngineLifecycleManager;
 class ConsecutiveGameSeries;
@@ -67,6 +68,8 @@ public:
         MainWindowAppearanceController* appearance = nullptr; ///< 「人を手前に表示する」の盤の反転
         CsaGameCoordinator* csaGame = nullptr;              ///< 通信対局の司令塔（必須）
         NyugyokuDeclarationHandler* nyugyoku = nullptr;     ///< 利用者の入玉宣言
+        /// 定跡ウィンドウで開いている定跡（エンジンが定跡を使う対局は、始めたときの写しを使う。省略可）
+        const JosekiBookSession* josekiBook = nullptr;
     };
 
     explicit GameSession(const Deps& deps, QObject* parent = nullptr);
@@ -117,6 +120,8 @@ private slots:
 
 private:
     QString recordStartSfen() const;
+    /// 対局開始ダイアログに出す、定跡ウィンドウで開いている定跡の名前（開いていなければ空）
+    QString josekiBookName() const;
     /// 対局者・持ち時間・開始日時を文書に記録し、対局者を表示する（ローカル対局・通信対局で共通）
     void beginMatchRecord(const MatchPlayers& players, const TimeControl& timeControl, bool continuesRecord);
     /// 終局した棋譜の後始末（commit ならライブ対局を確定し、終了日時を記録して自動保存する）
