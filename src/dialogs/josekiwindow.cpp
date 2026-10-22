@@ -10,8 +10,7 @@
 #include "handicaps.h"
 #include "josekibooksession.h"
 #include "josekifilecontroller.h"
-#include "josekimergedialog.h"
-#include "josekimergeentries.h"
+#include "josekimergecontroller.h"
 #include "josekimovedialog.h"
 #include "josekisettings.h"
 #include "josekitablemodel.h"
@@ -27,9 +26,7 @@
 #include <QCheckBox>
 #include <QClipboard>
 #include <QCloseEvent>
-#include <QDir>
 #include <QDockWidget>
-#include <QFileDialog>
 #include <QFileInfo>
 #include <QFrame>
 #include <QGridLayout>
@@ -102,13 +99,15 @@ PositionInfo describePosition(const QString &sfen)
 }
 } // namespace
 
-JosekiWindow::JosekiWindow(QWidget *parent)
+JosekiWindow::JosekiWindow(JosekiBookSession *session, QWidget *parent)
     : QWidget(parent, Qt::Window)
-    , m_session(new JosekiBookSession(this))
+    , m_session(session)
     , m_model(new JosekiTableModel(this))
     , m_fontHelper(JosekiSettings::josekiWindowFontSize, 6, 24, 1)
 {
+    Q_ASSERT(m_session);
     m_files = new JosekiFileController({m_session, this}, this);
+    m_merge = new JosekiMergeController({m_session, m_files, this}, this);
     setupUi();
     connect(m_session, &JosekiBookSession::modifiedChanged, this, &JosekiWindow::onModifiedChanged);
     connect(m_session, &JosekiBookSession::busyChanged, this, &JosekiWindow::onBusyChanged);
@@ -116,7 +115,7 @@ JosekiWindow::JosekiWindow(QWidget *parent)
     connect(m_session, &JosekiBookSession::filePathChanged, this, &JosekiWindow::onFilePathChanged);
     connect(m_session, &JosekiBookSession::loaded, this, &JosekiWindow::onBookLoaded);
     connect(m_session, &JosekiBookSession::mergeFinished, this, &JosekiWindow::onMergeFinished);
-    connect(m_files, &JosekiFileController::bookSwitching, this, &JosekiWindow::closeMergeDialogs);
+    connect(m_merge, &JosekiMergeController::kifuDataRequested, this, &JosekiWindow::requestKifuDataForMerge);
     connect(m_files, &JosekiFileController::statusMessage, this, &JosekiWindow::showTransientStatus);
     connect(m_recentFilesMenu, &RecentFilesMenu::fileTriggered, m_files, &JosekiFileController::openRecent);
     connect(m_recentFilesMenu, &RecentFilesMenu::clearTriggered, m_files, &JosekiFileController::clearRecentFiles);
@@ -206,8 +205,8 @@ QWidget *JosekiWindow::buildToolbar()
     auto *mergeMenu = new QMenu(this);
     mergeMenu->setObjectName(QStringLiteral("josekiMergeMenu"));
     mergeMenu->setProperty("automationMenu", true);
-    mergeMenu->addAction(tr("現在の棋譜から"), this, &JosekiWindow::onMergeFromCurrentKifu);
-    mergeMenu->addAction(tr("棋譜ファイルから"), this, &JosekiWindow::onMergeFromKifuFile);
+    mergeMenu->addAction(tr("現在の棋譜から"), m_merge, &JosekiMergeController::mergeFromCurrentKifu);
+    mergeMenu->addAction(tr("棋譜ファイルから"), m_merge, &JosekiMergeController::mergeFromKifuFile);
     m_mergeButton->setMenu(mergeMenu);
     m_stopButton = makeToolButton(tr("■ 停止"), tr("定跡表示を停止/再開"), buttonStyle, this);
     m_stopButton->setCheckable(true);
@@ -494,8 +493,6 @@ void JosekiWindow::onBusyChanged(bool busy)
     m_tableView->setEnabled(!busy);
     m_actionEdit->setEnabled(!busy);
     m_actionDelete->setEnabled(!busy);
-    const auto dialogs = findChildren<JosekiMergeDialog *>();
-    for (JosekiMergeDialog *dialog : dialogs) dialog->setEnabled(!busy);
     updateStatusDisplay();
 }
 
@@ -875,87 +872,16 @@ void JosekiWindow::showFilePath()
 }
 
 // ============================================================
-// 棋譜からのマージ
+// 棋譜からのマージ（JosekiMergeController へ渡す）
 // ============================================================
-
-void JosekiWindow::onMergeFromCurrentKifu()
-{
-    if (isIoBusy() || !m_files->ensureFilePath()) return;
-    emit requestKifuDataForMerge();
-}
 
 void JosekiWindow::setKifuDataForMerge(const QStringList &sfenList, const QStringList &moveList,
                                        const QStringList &japaneseMoveList, int currentPly)
 {
-    if (isIoBusy()) return;
-    if (moveList.isEmpty()) {
-        QMessageBox::information(this, tr("情報"), tr("棋譜に指し手がありません。"));
-        return;
-    }
-    openMergeDialog(JosekiMergeEntries::fromLine(sfenList, moveList, japaneseMoveList, currentPly), QString());
+    m_merge->setKifuData(sfenList, moveList, japaneseMoveList, currentPly);
 }
 
-void JosekiWindow::onMergeFromKifuFile()
-{
-    if (isIoBusy() || !m_files->ensureFilePath()) return;
-
-    // 形式はファイルから判定する（棋譜を開くときと同じ形式を読める）
-    const QString kifuFilePath = QFileDialog::getOpenFileName(
-        this, tr("棋譜ファイルを選択"), QDir::homePath(),
-        tr("棋譜ファイル (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.json *.usi *.sfen *.usen);;すべてのファイル (*)"));
-    if (kifuFilePath.isEmpty()) return;
-
-    QList<KifuMergeEntry> entries;
-    QString errorMessage;
-    if (!JosekiMergeEntries::fromKifuFile(kifuFilePath, entries, &errorMessage)) {
-        if (errorMessage.isEmpty())
-            QMessageBox::information(this, tr("情報"), tr("棋譜に指し手がありません。"));
-        else
-            QMessageBox::warning(this, tr("エラー"), tr("棋譜ファイルの読み込みに失敗しました。\n%1").arg(errorMessage));
-        return;
-    }
-    openMergeDialog(entries, tr("棋譜から定跡にマージ - %1").arg(QFileInfo(kifuFilePath).fileName()));
-}
-
-void JosekiWindow::openMergeDialog(const QList<KifuMergeEntry> &entries, const QString &title)
-{
-    if (entries.isEmpty()) {
-        QMessageBox::information(this, tr("情報"), tr("登録可能な指し手がありません。"));
-        return;
-    }
-    auto *dialog = new JosekiMergeDialog(this);
-    dialog->setAttribute(Qt::WA_DeleteOnClose);
-    dialog->setTargetJosekiFile(m_session->filePath());
-    dialog->setRegisteredMoves(m_session->mergeRegisteredMoves());
-    dialog->setRegistrar(std::bind(&JosekiWindow::registerMergeEntries, this, std::placeholders::_1));
-    if (!title.isEmpty()) dialog->setWindowTitle(title);
-    dialog->setKifuData(entries);
-    dialog->show();
-}
-
-bool JosekiWindow::registerMergeEntries(const QList<KifuMergeEntry> &entries)
-{
-    // 保存はワーカースレッドで行う。終わったら onMergeFinished（失敗は JosekiFileController が知らせる）
-    return !isIoBusy() && m_session->startRegisterMergeMoves(entries);
-}
-
-void JosekiWindow::onMergeFinished(bool registered)
+void JosekiWindow::onMergeFinished()
 {
     updateJosekiDisplay();
-    const auto dialogs = findChildren<JosekiMergeDialog *>();
-    for (JosekiMergeDialog *dialog : dialogs) {
-        dialog->setRegisteredMoves(m_session->mergeRegisteredMoves());
-        dialog->finishRegistration(registered);
-    }
-}
-
-void JosekiWindow::closeMergeDialogs()
-{
-    // 別のファイルに替えた後は、古いダイアログからは登録させない
-    const auto dialogs = findChildren<JosekiMergeDialog *>();
-    for (JosekiMergeDialog *dialog : dialogs) {
-        dialog->setRegistrar({});
-        dialog->setEnabled(false);
-        dialog->reject();
-    }
 }

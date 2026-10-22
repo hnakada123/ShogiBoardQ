@@ -14,6 +14,7 @@
 
 
 class BoardMoveController;
+class JosekiBookSession;
 class JosekiWindow;
 class KifuNavigationState;
 class QDockWidget;
@@ -31,6 +32,7 @@ class JosekiWindowController : public QObject
 public:
     struct Deps {
         QWidget* parentWidget = nullptr;
+        JosekiBookSession* book = nullptr;               ///< 開いている定跡（必須・非所有）
         ShogiGameController* gameController = nullptr;  ///< 定跡手の成り・不成を指定する（非所有）
         /// 表示中の手。定跡ウィンドウの局面と、棋譜のマージに使う（非所有）
         const KifuNavigationState* navState = nullptr;

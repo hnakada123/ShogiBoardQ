@@ -11,7 +11,6 @@
 #include <functional>
 
 #include "fontsizehelper.h"
-#include "josekitypes.h"
 
 class QAction;
 class QCheckBox;
@@ -26,6 +25,7 @@ class QTableView;
 class QToolButton;
 class JosekiBookSession;
 class JosekiFileController;
+class JosekiMergeController;
 class RecentFilesMenu;
 class JosekiTableModel;
 
@@ -33,7 +33,8 @@ class JosekiTableModel;
  * @brief 定跡ウィンドウ
  *
  * 表示中の局面の定跡手を表に出し、定跡手の追加・編集・削除・着手と棋譜からのマージを受け付ける。
- * - 開いている定跡ファイル（データ・パス・変更状態・履歴・読み書き）は JosekiBookSession
+ * - 開いている定跡ファイル（データ・パス・変更状態・履歴・読み書き）は JosekiBookSession（合成ルートが作り、
+ *   ほかの部品とも共有する。ウィンドウは持たない）
  * - ファイルの利用者操作（開く・新規・保存・履歴）と確認ダイアログは JosekiFileController
  * - 表の中身は JosekiTableModel（「着手」「編集」「削除」の列はボタンとして描く）
  */
@@ -47,7 +48,8 @@ class JosekiWindow : public QWidget
 #endif
 
 public:
-    explicit JosekiWindow(QWidget *parent = nullptr);
+    /// session は開いている定跡（必須。非所有で、ウィンドウより長く生きる）
+    explicit JosekiWindow(JosekiBookSession *session, QWidget *parent = nullptr);
     ~JosekiWindow() override;
 
     void setCurrentSfen(const QString &sfen);
@@ -82,9 +84,8 @@ private slots:
     void onRecentFilesChanged();
     void onBusyChanged(bool busy);
     void onModifiedChanged(bool modified);
-    /// マージの登録の保存が終わった（マージのダイアログに登録済みの印を配る）
-    void onMergeFinished(bool registered);
-    void closeMergeDialogs();
+    /// マージの登録の保存が終わった（定跡が変わったので表を作り直す）
+    void onMergeFinished();
 
     // --- 定跡手の操作 ---
     void onAddMoveButtonClicked();
@@ -103,9 +104,6 @@ private slots:
     void onRestoreStatusDisplay();
     void showTransientStatus(const QString &text);
 
-    // --- マージ ---
-    void onMergeFromCurrentKifu();
-    void onMergeFromKifuFile();
 
 private:
     // --- 画面 ---
@@ -129,14 +127,11 @@ private:
     void playMoveAt(int row);
     void refreshHumanCanPlay();
 
-    // --- マージ ---
-    void openMergeDialog(const QList<KifuMergeEntry> &entries, const QString &title);
-    /// マージダイアログの「登録」「全て登録」: 登録して定跡ファイルへ1回だけ保存し始める（始めたら true）
-    bool registerMergeEntries(const QList<KifuMergeEntry> &entries);
 
     // --- データとファイル ---
     JosekiBookSession *m_session = nullptr;
     JosekiFileController *m_files = nullptr;
+    JosekiMergeController *m_merge = nullptr;
     JosekiTableModel *m_model = nullptr;
 
     // === ファイルグループ ===

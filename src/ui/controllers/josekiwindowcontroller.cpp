@@ -22,8 +22,8 @@ JosekiWindowController::JosekiWindowController(const Deps& deps, QObject* parent
     , m_isHumanTurnNow(deps.isHumanTurnNow)
     , m_boardMoves(deps.boardMoves)
 {
-    Q_ASSERT(m_gameController && m_navState && m_boardMoves);
-    m_josekiWindow = new JosekiWindow(m_parentWidget);
+    Q_ASSERT(deps.book && m_gameController && m_navState && m_boardMoves);
+    m_josekiWindow = new JosekiWindow(deps.book, m_parentWidget);
 
     // 定跡手選択シグナルを接続
     connect(m_josekiWindow, &JosekiWindow::josekiMoveSelected,
