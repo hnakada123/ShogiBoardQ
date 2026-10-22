@@ -61,6 +61,9 @@ public:
     /// 局面の定跡手（無ければ空）
     QList<JosekiMove> movesAt(const QString &sfen) const;
     bool hasMove(const QString &sfen, const QString &usiMove) const;
+    /// 局面の定跡手のうち、出現頻度が、同じなら評価値が最も高い手（それも同じならファイルで先の手。局面が無ければ空）。
+    /// やねうら王は予想応手が "none" の定跡手を指すと、次の局面のこの手を先読みに使う
+    QString leadingMove(const QString &sfen) const;
 
     /// 定跡手を足す。同じ指し手があればその場で置き換える。新しい局面は sfen の手数（無ければ1手目）で登録する
     void putMove(const QString &sfen, const JosekiMove &move);

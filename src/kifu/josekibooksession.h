@@ -61,6 +61,8 @@ public:
     QList<int> registeredPlies(const QString &sfen) const { return m_book.registeredPlies(sfen); }
     bool hasPosition(const QString &sfen) const { return m_book.contains(sfen); }
     bool hasMove(const QString &sfen, const QString &usiMove) const { return m_book.hasMove(sfen, usiMove); }
+    /// 局面の定跡手のうち、やねうら王が先頭に並べる手（JosekiBook::leadingMove。無ければ空）
+    QString leadingMove(const QString &sfen) const { return m_book.leadingMove(sfen); }
     /// 棋譜からマージで登録した指し手（局面のキーと指し手の組）
     const QSet<JosekiMoveKey> &mergeRegisteredMoves() const { return m_book.mergeRegistered(); }
     /// 今の定跡の写し（対局で使う。中身は共有するので、大きな定跡でも写しを作るのは軽い）

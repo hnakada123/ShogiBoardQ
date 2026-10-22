@@ -4668,12 +4668,12 @@ ABC abc 0123456789</translation>
 <context>
     <name>JosekiBook</name>
     <message>
-        <location filename="../../src/kifu/josekibook.cpp" line="346"/>
+        <location filename="../../src/kifu/josekibook.cpp" line="362"/>
         <source>ファイルを開けませんでした: %1</source>
         <translation>无法打开文件：%1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/josekibook.cpp" line="462"/>
+        <location filename="../../src/kifu/josekibook.cpp" line="478"/>
         <source>このファイルはやねうら王定跡フォーマット(YANEURAOU-DB2016)ではありません。
 ヘッダー行（#YANEURAOU-DB2016 等）が見つかりませんでした。
 
@@ -4684,7 +4684,7 @@ ABC abc 0123456789</translation>
 文件：%1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/josekibook.cpp" line="470"/>
+        <location filename="../../src/kifu/josekibook.cpp" line="486"/>
         <source>定跡ファイルにSFEN行が見つかりませんでした。
 
 やねうら王定跡フォーマットでは「sfen 」で始まる局面行が必要です。
@@ -4697,7 +4697,7 @@ YaneuraOu 定跡格式需要以“sfen ”开头的局面行。
 文件：%1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/josekibook.cpp" line="478"/>
+        <location filename="../../src/kifu/josekibook.cpp" line="494"/>
         <source>定跡ファイルに有効な指し手行が見つかりませんでした。
 
 やねうら王定跡フォーマットでは指し手行に少なくとも5つのフィールド
@@ -4712,13 +4712,13 @@ YaneuraOu 定跡格式的着法行至少需要 5 个字段
 文件：%1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/josekibook.cpp" line="498"/>
-        <location filename="../../src/kifu/josekibook.cpp" line="543"/>
+        <location filename="../../src/kifu/josekibook.cpp" line="514"/>
+        <location filename="../../src/kifu/josekibook.cpp" line="559"/>
         <source>ファイルを保存できませんでした: %1</source>
         <translation>无法保存文件：%1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/josekibook.cpp" line="538"/>
+        <location filename="../../src/kifu/josekibook.cpp" line="554"/>
         <source>ファイル書き込み中にエラーが発生しました: %1</source>
         <translation>写入文件时发生错误：%1</translation>
     </message>
@@ -5363,75 +5363,89 @@ YaneuraOu 定跡格式的着法行至少需要 5 个字段
 <context>
     <name>JosekiTableModel</name>
     <message>
-        <location filename="../../src/dialogs/josekitablemodel.cpp" line="21"/>
+        <location filename="../../src/dialogs/josekitablemodel.cpp" line="22"/>
         <source>なし</source>
         <translation>无</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekitablemodel.cpp" line="83"/>
+        <location filename="../../src/dialogs/josekitablemodel.cpp" line="42"/>
+        <source>（%1）</source>
+        <translation>（%1）</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/josekitablemodel.cpp" line="98"/>
         <source>ダブルクリックで着手</source>
         <translation>双击执行着法</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekitablemodel.cpp" line="95"/>
-        <location filename="../../src/dialogs/josekitablemodel.cpp" line="119"/>
+        <location filename="../../src/dialogs/josekitablemodel.cpp" line="101"/>
+        <source>予想応手は「なし」です。
+次の局面の定跡手で出現頻度（同じなら評価値）が最も高い手を表示しています。
+やねうら王はこの手を先読みに使います。</source>
+        <translation>预期应手为“无”。
+显示下一局面的定跡着法中次数最高（相同时评价值最高）的着法。
+YaneuraOu 会以此着法进行后台思考。</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/josekitablemodel.cpp" line="117"/>
+        <location filename="../../src/dialogs/josekitablemodel.cpp" line="145"/>
         <source>着手</source>
         <translation>执行</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekitablemodel.cpp" line="98"/>
-        <location filename="../../src/dialogs/josekitablemodel.cpp" line="122"/>
+        <location filename="../../src/dialogs/josekitablemodel.cpp" line="124"/>
+        <location filename="../../src/dialogs/josekitablemodel.cpp" line="148"/>
         <source>編集</source>
         <translation>编辑</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekitablemodel.cpp" line="99"/>
-        <location filename="../../src/dialogs/josekitablemodel.cpp" line="123"/>
+        <location filename="../../src/dialogs/josekitablemodel.cpp" line="125"/>
+        <location filename="../../src/dialogs/josekitablemodel.cpp" line="149"/>
         <source>削除</source>
         <translation>删除</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekitablemodel.cpp" line="115"/>
+        <location filename="../../src/dialogs/josekitablemodel.cpp" line="141"/>
         <source>この局面の定跡手の出現頻度の合計に対する割合</source>
         <translation>占此局面定跡着法次数合计的比例</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekitablemodel.cpp" line="118"/>
+        <location filename="../../src/dialogs/josekitablemodel.cpp" line="144"/>
         <source>No.</source>
         <translation>序号</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekitablemodel.cpp" line="120"/>
+        <location filename="../../src/dialogs/josekitablemodel.cpp" line="146"/>
         <source>定跡手</source>
         <translation>定跡着法</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekitablemodel.cpp" line="121"/>
+        <location filename="../../src/dialogs/josekitablemodel.cpp" line="147"/>
         <source>予想応手</source>
         <translation>预期应手</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekitablemodel.cpp" line="124"/>
+        <location filename="../../src/dialogs/josekitablemodel.cpp" line="150"/>
         <source>評価値</source>
         <translation>评价值</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekitablemodel.cpp" line="125"/>
+        <location filename="../../src/dialogs/josekitablemodel.cpp" line="151"/>
         <source>深さ</source>
         <translation>深度</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekitablemodel.cpp" line="126"/>
+        <location filename="../../src/dialogs/josekitablemodel.cpp" line="152"/>
         <source>出現頻度</source>
         <translation>次数</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekitablemodel.cpp" line="127"/>
+        <location filename="../../src/dialogs/josekitablemodel.cpp" line="153"/>
         <source>比率</source>
         <translation>比例</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekitablemodel.cpp" line="128"/>
+        <location filename="../../src/dialogs/josekitablemodel.cpp" line="154"/>
         <source>コメント</source>
         <translation>注释</translation>
     </message>
@@ -5439,68 +5453,68 @@ YaneuraOu 定跡格式的着法行至少需要 5 个字段
 <context>
     <name>JosekiWindow</name>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="253"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="865"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="254"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="874"/>
         <source>定跡ウィンドウ</source>
         <translation>定跡窗口</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="176"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="177"/>
         <source>ファイル</source>
         <translation>文件</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="177"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="178"/>
         <source>新規</source>
         <translation>新建</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="177"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="178"/>
         <source>新しい空の定跡ファイルを作成</source>
         <translation>创建空白定跡文件</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="179"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="180"/>
         <source>開く</source>
         <translation>打开</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="179"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="180"/>
         <source>定跡ファイル(.db)を開く</source>
         <translation>打开定跡文件 (.db)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="181"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="182"/>
         <source>保存</source>
         <translation>保存</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="181"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="182"/>
         <source>現在のファイルに上書き保存</source>
         <translation>保存到当前文件</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="184"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="185"/>
         <source>別名保存</source>
         <translation>另存为</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="184"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="185"/>
         <source>別の名前で保存</source>
         <translation>以新名称保存</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="186"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="187"/>
         <source>履歴</source>
         <translation>历史记录</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="186"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="187"/>
         <source>最近使ったファイルを開く</source>
         <translation>打开最近使用的文件</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="219"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="220"/>
         <source>表示</source>
         <translation>显示</translation>
     </message>
@@ -5513,7 +5527,7 @@ YaneuraOu 定跡格式的着法行至少需要 5 个字段
         <translation type="vanished">放大字号</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="345"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="346"/>
         <source>※ 追加・編集・削除後は「保存」ボタンで定跡ファイルに保存してください</source>
         <translation>添加、编辑或删除着法后，请点击“保存”以保存定跡文件。</translation>
     </message>
@@ -5526,101 +5540,101 @@ YaneuraOu 定跡格式的着法行至少需要 5 个字段
         <translation type="vanished">缩小字号</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="227"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="228"/>
         <source>自動読込</source>
         <translation>自动载入</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="228"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="229"/>
         <source>定跡ウィンドウ表示時に前回のファイルを自動で読み込む</source>
         <translation>打开定跡窗口时自动载入上次的文件</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="197"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="198"/>
         <source>操作</source>
         <translation>操作</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="198"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="199"/>
         <source>＋追加</source>
         <translation>＋添加</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="198"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="199"/>
         <source>現在の局面に定跡手を追加</source>
         <translation>为当前局面添加定跡着法</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="200"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="201"/>
         <source>マージ ▼</source>
         <translation>合并 ▼</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="201"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="202"/>
         <source>棋譜から定跡をマージ</source>
         <translation>将棋谱合并到定跡库</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="208"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="209"/>
         <source>現在の棋譜から</source>
         <translation>从当前棋谱</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="209"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="210"/>
         <source>棋譜ファイルから</source>
         <translation>从棋谱文件</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="211"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="710"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="212"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="712"/>
         <source>■ 停止</source>
         <translation>■ 停止</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="211"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="212"/>
         <source>定跡表示を停止/再開</source>
         <translation>停止／恢复定跡显示</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="230"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="231"/>
         <source>盤に矢印</source>
         <translation>棋盘箭头</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="232"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="233"/>
         <source>表示中の局面の定跡手を盤に矢印で表示する（「表示」メニューの「盤に定跡手を表示」と同じ）</source>
         <translation>在棋盘上用箭头显示当前局面的定跡着法（与“视图”菜单的“在棋盘上显示定跡着法”相同）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="266"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="267"/>
         <source>ファイル:</source>
         <translation>文件：</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="267"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="484"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="268"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="486"/>
         <source>未選択</source>
         <translation>未选择</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="279"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="280"/>
         <source>局面:</source>
         <translation>局面：</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="280"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="531"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="844"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="281"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="533"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="853"/>
         <source>(未設定)</source>
         <translation>（未设置）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="283"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="284"/>
         <source>詳細</source>
         <translation>详细</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="283"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="284"/>
         <source>SFENの詳細を表示/非表示</source>
         <translation>显示／隐藏 SFEN 详情</translation>
     </message>
@@ -5629,7 +5643,7 @@ YaneuraOu 定跡格式的着法行至少需要 5 个字段
         <translation type="vanished">序号</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="350"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="351"/>
         <source>着手</source>
         <translation>执行</translation>
     </message>
@@ -5646,7 +5660,7 @@ YaneuraOu 定跡格式的着法行至少需要 5 个字段
         <translation type="vanished">编辑</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="353"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="354"/>
         <source>削除</source>
         <translation>删除</translation>
     </message>
@@ -5667,17 +5681,17 @@ YaneuraOu 定跡格式的着法行至少需要 5 个字段
         <translation type="vanished">注释</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="352"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="353"/>
         <source>編集...</source>
         <translation>编辑...</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="355"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="356"/>
         <source>指し手をコピー</source>
         <translation>复制着法</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="434"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="436"/>
         <source> (未読込)</source>
         <translation>（未载入）</translation>
     </message>
@@ -5702,12 +5716,12 @@ YaneuraOu 定跡格式的着法行至少需要 5 个字段
         <translation type="vanished">错误</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="771"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="773"/>
         <source>定跡: (該当なし)</source>
         <translation>定跡：（无匹配）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="762"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="764"/>
         <source>定跡SFEN: %1</source>
         <translation>定跡 SFEN：%1</translation>
     </message>
@@ -5716,53 +5730,53 @@ YaneuraOu 定跡格式的着法行至少需要 5 个字段
         <translation type="vanished">双击执行着法</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="440"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="710"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="442"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="712"/>
         <source>▶ 再開</source>
         <translation>▶ 恢复</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="768"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="770"/>
         <source>（手数違いの登録: %1）</source>
         <translation>（以不同手数分别注册：%1）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="804"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="813"/>
         <source>✓読込済</source>
         <translation>✓已载入</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="819"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="828"/>
         <source>ファイル: %1</source>
         <translation>文件：%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="819"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="828"/>
         <source>ファイル: 未選択</source>
         <translation>文件：未选择</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="820"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="829"/>
         <source>局面数: %1</source>
         <translation>局面数：%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="821"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="830"/>
         <source>【停止中】</source>
         <translation>[已停止]</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="821"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="830"/>
         <source>定跡: %1件</source>
         <translation>定跡：%1 条</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="561"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="563"/>
         <source>着手エラー</source>
         <translation>着法错误</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="562"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="564"/>
         <source>定跡手「%1」を指すことができませんでした。
 
 この定跡手は現在の局面では合法手ではない可能性があります。
@@ -5773,7 +5787,7 @@ YaneuraOu 定跡格式的着法行至少需要 5 个字段
 定跡数据可能存在错误。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="877"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="886"/>
         <source>新規ファイル（未保存）</source>
         <translation>新文件（未保存）</translation>
     </message>
@@ -5782,18 +5796,18 @@ YaneuraOu 定跡格式的着法行至少需要 5 个字段
         <translation type="vanished">保存定跡</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="508"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="508"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="510"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="510"/>
         <source>定跡</source>
         <translation>定跡</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="801"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="810"/>
         <source>未保存</source>
         <translation>未保存</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="638"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="640"/>
         <source>確認</source>
         <translation>确认</translation>
     </message>
@@ -5828,46 +5842,46 @@ YaneuraOu 定跡格式的着法行至少需要 5 个字段
         <translation type="vanished">未找到文件：%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="614"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="616"/>
         <source>削除する</source>
         <translation>删除</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="625"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="627"/>
         <source>定跡手追加</source>
         <translation>添加定跡着法</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="626"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="628"/>
         <source>局面が設定されていません。
 将棋盤で局面を表示してから定跡手を追加してください。</source>
         <translation>尚未设置局面。
 请先在棋盘上显示局面，再添加定跡着法。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="639"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="641"/>
         <source>指し手「%1」は既に登録されています。
 上書きしますか？</source>
         <translation>着法“%1”已注册。
 覆盖吗？</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="641"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="643"/>
         <source>上書きする</source>
         <translation>覆盖</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="581"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="583"/>
         <source>定跡手は、対局中の自分の手番か、対局していないときに指せます。</source>
         <translation>定跡着法可在对局中轮到自己时，或不在对局中时执行。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="611"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="613"/>
         <source>削除確認</source>
         <translation>确认删除</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="612"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="614"/>
         <source>定跡手「%1」を削除しますか？</source>
         <translation>删除定跡着法“%1”吗？</translation>
     </message>
@@ -5886,17 +5900,17 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">指定定跡保存位置</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="817"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="826"/>
         <source>読み込み中...</source>
         <translation>正在载入...</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="818"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="827"/>
         <source>保存中...</source>
         <translation>正在保存...</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="581"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="583"/>
         <source>情報</source>
         <translation>信息</translation>
     </message>
@@ -5931,46 +5945,46 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">将棋谱合并到定跡库 - %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="828"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="837"/>
         <source>定跡表示を停止しています。「再開」で表示を再開します。</source>
         <translation>定跡显示已暂停。点击“恢复”重新显示定跡着法。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="826"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="835"/>
         <source>定跡ファイルを読み込んでいます...</source>
         <translation>正在载入定跡文件...</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="830"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="839"/>
         <source>将棋盤で局面を表示すると、その局面の定跡を確認できます。</source>
         <translation>在棋盘上显示局面，即可查看其定跡着法。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="832"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="841"/>
         <source>「開く」で定跡ファイルを読み込むと、表示中の局面の定跡手が表示されます。
 「新規」で新しい定跡ファイルを作ることもできます。</source>
         <translation>点击“打开”读取定跡文件后，会显示当前局面的定跡着法。
 也可以点击“新建”创建新的定跡文件。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="835"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="844"/>
         <source>この局面には定跡が登録されていません。
 「＋追加」で指し手を登録するか、「マージ」から棋譜を取り込めます。</source>
         <translation>此局面没有定跡着法。
 可通过“添加”输入着法，或通过“合并”导入棋谱。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="849"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="858"/>
         <source>先手</source>
         <translation>先手</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="849"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="858"/>
         <source>後手</source>
         <translation>后手</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="853"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="862"/>
         <source>初期配置</source>
         <translation>初始局面</translation>
     </message>
@@ -5979,17 +5993,17 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">让子</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="857"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="866"/>
         <source>%1手目</source>
         <translation>第 %1 手</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="858"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="867"/>
         <source>%1 (%2番)</source>
         <translation>%1（%2行棋）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="860"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="869"/>
         <source>局面SFEN: %1</source>
         <translation>局面 SFEN：%1</translation>
     </message>
@@ -6004,7 +6018,7 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">当前轮到引擎行棋，无法执行着法。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="694"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="696"/>
         <source>「%1」をコピーしました</source>
         <translation>已复制“%1”</translation>
     </message>

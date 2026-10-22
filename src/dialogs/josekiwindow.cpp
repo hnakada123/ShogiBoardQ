@@ -17,6 +17,7 @@
 #include "kifumovedelegate.h"
 #include "kifupresentation.h"
 #include "logcategories.h"
+#include "sfenreplay.h"
 #include "sfenutils.h"
 #include "tablebuttondelegate.h"
 #include "tablestyles.h"
@@ -384,7 +385,8 @@ void JosekiWindow::applyFontSize()
         "QTableView::item { padding: 3px 6px; }"));
     for (int col = 0; col < JosekiTableModel::ColumnCount - 1; ++col) {
         QString sample = m_model->headerData(col, Qt::Horizontal).toString();
-        if (col == JosekiTableModel::Move || col == JosekiTableModel::NextMove) sample = QStringLiteral("▲７六歩(77)");
+        if (col == JosekiTableModel::Move) sample = QStringLiteral("▲７六歩(77)");
+        if (col == JosekiTableModel::NextMove) sample = JosekiTableModel::derivedReplyText(QStringLiteral("▲７六歩(77)"));
         if (col == JosekiTableModel::Frequency) sample = QStringLiteral("999,999,999");
         if (col == JosekiTableModel::Ratio) sample = QStringLiteral("100.0%");
         m_tableView->setColumnWidth(col, qMax(m_tableView->columnWidth(col), fm.horizontalAdvance(sample) + 24));
@@ -775,7 +777,14 @@ void JosekiWindow::updateJosekiDisplay()
     // 選択と表示位置は初めに戻す
     m_tableView->setCurrentIndex(QModelIndex());
     m_tableView->clearSelection();
-    m_model->setMoves(m_currentSfen, moves, m_humanCanPlay);
+    // 予想応手が「なし」の手には、やねうら王が先読みに使う次の局面の定跡手を添える（表に灰色で出す）
+    QStringList derivedReplies;
+    for (const JosekiMove &move : std::as_const(moves)) {
+        derivedReplies.append(JosekiTableModel::hasNoReply(move)
+                                  ? m_session->leadingMove(SfenReplay::positionAfter(m_currentSfen, move.move))
+                                  : QString());
+    }
+    m_model->setMoves(m_currentSfen, moves, m_humanCanPlay, derivedReplies);
     if (!moves.isEmpty()) m_tableView->scrollToTop();
     updateStatusDisplay();
 }
