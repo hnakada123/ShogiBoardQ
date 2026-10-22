@@ -4,11 +4,12 @@
 usage: shoot_tables.py <ja_JP|en|zh_CN|zh_TW> <scenario> <output dir>
 
 scenarios (window ja / zh 1300x980, en 1400x1000 unless noted):
-  main   consideration/consideration-01-initial.png, -02-running.png, -04-different-move.png and
-         dock/dock-01-default.png, with the sample record (sample_kifu/sample-<lang>.kif)
+  main   consideration/consideration-01-initial.png, -02-running.png, -03-thinking-tab.png,
+         -04-different-move.png and dock/dock-01-default.png, with the sample record (sample_kifu/sample-<lang>.kif)
   tsumi  tsumi-search/tsumi-search-thinking.png (the Tsume Initial Setup position, from a fresh start)
   wide   screenshot-main.png (all languages 1400x1000), with sample_kifu/main-<lang>.kif
   game   game-play/game-03-playing-thinking-tab.png (Human vs YaneuraOu; the human moves come from humanplay.py)
+  lang   multilanguage/main-screen.png (every language shows the Japanese record sample_kifu/sample-ja.kif)
 
 Images are written to <output dir>/<lang dir>/<path>, laid out like docs/images (ja at the top, the others
 under en/, zh-cn/ and zh-tw/), so docs/images can be given directly. The app is started with launch.sh, so
@@ -174,6 +175,13 @@ def scenario_main():
     capture("consideration/consideration-01-initial.png")
     start_and_wait("0:07")
     capture("consideration/consideration-02-running.png")
+    # 同じ検討の思考タブ（検討中の矢印表示は検討タブで設定するので、思考タブのチェックは無効になる）
+    rpc("widget.showDock", {"widget": "ThinkingDock"})
+    wait_until(lambda: elapsed().endswith("0:10"), timeout=30)
+    time.sleep(0.15)
+    capture("consideration/consideration-03-thinking-tab.png")
+    rpc("widget.showDock", {"widget": "ConsiderationDock"})
+    time.sleep(0.5)
     goto_and_wait(48, "0:07")
     capture("consideration/consideration-04-different-move.png")
     stop_consideration()
@@ -221,6 +229,22 @@ def scenario_wide():
     time.sleep(0.5)
     start_and_wait("0:13")
     capture("screenshot-main.png")
+    stop_consideration()
+    quit_app()
+
+
+def scenario_lang():
+    launch(*((1400, 1000) if LANG == "en" else (1300, 980)))
+    # 多言語対応のページ: どの言語の画面でも日本語の棋譜を読み込み、31手目を Hayanagi で検討する（時間無制限）
+    rpc("kifu.load", {"path": os.path.join(KIFU, "sample-ja.kif")})
+    time.sleep(1)
+    rpc("kifu.goto", {"ply": 31})
+    rpc("widget.showDock", {"widget": "ConsiderationDock"})
+    time.sleep(0.5)
+    setup_consideration(HAYANAGI, timed=False)
+    time.sleep(0.5)
+    start_and_wait("0:07")
+    capture("multilanguage/main-screen.png")
     stop_consideration()
     quit_app()
 
@@ -278,7 +302,8 @@ def scenario_game():
     quit_app()
 
 
-SCENARIOS = {"main": scenario_main, "tsumi": scenario_tsumi, "wide": scenario_wide, "game": scenario_game}
+SCENARIOS = {"main": scenario_main, "tsumi": scenario_tsumi, "wide": scenario_wide, "game": scenario_game,
+             "lang": scenario_lang}
 
 if __name__ == "__main__":
     SCENARIOS[SCENARIO]()
