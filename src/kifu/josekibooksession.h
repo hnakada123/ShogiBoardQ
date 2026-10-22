@@ -59,7 +59,7 @@ public:
     QString registeredSfen(const QString &sfen) const;
     /// 局面を登録した手数（ファイルの順。手数違いで別々に登録していれば複数。無ければ空）
     QList<int> registeredPlies(const QString &sfen) const { return m_book.registeredPlies(sfen); }
-    bool hasPosition(const QString &sfen) const { return m_book.find(sfen) != nullptr; }
+    bool hasPosition(const QString &sfen) const { return m_book.contains(sfen); }
     bool hasMove(const QString &sfen, const QString &usiMove) const { return m_book.hasMove(sfen, usiMove); }
     /// 棋譜からマージで登録した指し手（局面のキーと指し手の組）
     const QSet<JosekiMoveKey> &mergeRegisteredMoves() const { return m_book.mergeRegistered(); }

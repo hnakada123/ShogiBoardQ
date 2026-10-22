@@ -73,6 +73,8 @@ private slots:
     void putMove_replacesInPlace();
     void load_keepsRegistrationsPerPly();
     void load_duplicateMoveAndLegacyHands();
+    void packedMoves_keepEveryNotation();
+    void comments_updateAndRemove();
 
     // --- 局面のキー・表記・重複（JosekiBookSession・JosekiTableModel） ---
     void normalizeSfen_removesPlyNumber();
@@ -108,7 +110,7 @@ void TestJosekiBook::addMove_addsToPosition()
 
     QVERIFY(!repo.isEmpty());
     QCOMPARE(repo.positionCount(), 1);
-    QVERIFY(repo.find(kHirateSfen));
+    QVERIFY(repo.contains(kHirateSfen));
 
     const QList<JosekiMove> &moves = repo.movesAt(kHirateSfen);
     QCOMPARE(moves.size(), 1);
@@ -172,7 +174,7 @@ void TestJosekiBook::removeMove_removesPositionWhenEmpty()
     QVERIFY(repo.removeMove(kHirateSfen, QStringLiteral("7g7f")));
 
     // 最後の定跡手を消すと局面（登録したときの SFEN も）も消える
-    QVERIFY(!repo.find(kHirateSfen));
+    QVERIFY(!repo.contains(kHirateSfen));
     QVERIFY(repo.isEmpty());
     QVERIFY(!repo.removeMove(kHirateSfen, QStringLiteral("7g7f")));
 }
@@ -200,14 +202,14 @@ void TestJosekiBook::clear_resetsAll()
 
     QVERIFY(repo.isEmpty());
     QCOMPARE(repo.positionCount(), 0);
-    QVERIFY(!repo.find(kHirateSfen));
+    QVERIFY(!repo.contains(kHirateSfen));
     QVERIFY(repo.mergeRegistered().isEmpty());
 }
 
 void TestJosekiBook::find_nullForUnknown()
 {
     JosekiBook repo;
-    QVERIFY(!repo.find(QStringLiteral("unknown/sfen b -")));
+    QVERIFY(!repo.contains(QStringLiteral("unknown/sfen b -")));
 }
 
 void TestJosekiBook::movesAt_returnsEmptyForUnknown()
@@ -249,8 +251,8 @@ void TestJosekiBook::saveAndLoad_roundTrip()
 
     // 検証
     QCOMPARE(repoLoad.positionCount(), 2);
-    QVERIFY(repoLoad.find(kHirateSfen));
-    QVERIFY(repoLoad.find(secondSfen));
+    QVERIFY(repoLoad.contains(kHirateSfen));
+    QVERIFY(repoLoad.contains(secondSfen));
 
     const QList<JosekiMove> &hirateMoves = repoLoad.movesAt(kHirateSfen);
     QCOMPARE(hirateMoves.size(), 2);
@@ -312,7 +314,7 @@ void TestJosekiBook::registerMergeMove_newEntry_addsWithFrequency1()
 
     repo.registerMergeMove(kHirateSfenWithPly, QStringLiteral("7g7f"));
 
-    QVERIFY(repo.find(kHirateSfen));
+    QVERIFY(repo.contains(kHirateSfen));
     const QList<JosekiMove> &moves = repo.movesAt(kHirateSfen);
     QCOMPARE(moves.size(), 1);
     QCOMPARE(moves[0].move, QStringLiteral("7g7f"));
@@ -643,6 +645,70 @@ void TestJosekiBook::japaneseMove_noneReply()
     const QString hirate = SfenUtils::hirateSfen();
     QCOMPARE(JosekiTableModel::moveText(QStringLiteral("none"), hirate), QStringLiteral("なし"));
     QVERIFY(JosekiTableModel::moveText(QString(), hirate).isEmpty());
+}
+
+/// 定跡手は詰めた形（指し手の番号）で持つ。駒打ち・成り・すべてのマスの指し手と、USI として読めない文字列
+/// （小文字の駒打ちを含む）を、読み込み・保存の後も元の文字のまま返す
+void TestJosekiBook::packedMoves_keepEveryNotation()
+{
+    JosekiBook book;
+    const QStringList moves = {QStringLiteral("1a9i"), QStringLiteral("9i1a+"), QStringLiteral("8h2b+"),
+                               QStringLiteral("P*5e"), QStringLiteral("R*1a"), QStringLiteral("L*9i"),
+                               QStringLiteral("p*5e"), QStringLiteral("resign"), QStringLiteral("(none)")};
+    for (const QString &move : moves) {
+        JosekiMove entry = makeMove(move, -12, 3, 4);
+        entry.nextMove = move == QStringLiteral("8h2b+") ? QStringLiteral("win") : QStringLiteral("G*4b");
+        book.putMove(kHirateSfen, entry);
+    }
+    QVERIFY(book.hasMove(kHirateSfen, QStringLiteral("p*5e")));
+    QVERIFY(!book.hasMove(kHirateSfen, QStringLiteral("S*5e")));
+    QVERIFY(!book.hasMove(kHirateSfen, QStringLiteral("unknown")));
+
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath(QStringLiteral("notation.db"));
+    QVERIFY(JosekiBookFile::save(path, book).success);
+    const JosekiLoadResult loaded = JosekiBookFile::load(path);
+    QVERIFY(loaded.success);
+    const JosekiBook *sources[] = {&book, &loaded.book};
+    for (const JosekiBook *source : sources) {
+        const QList<JosekiMove> stored = source->movesAt(kHirateSfen);
+        QCOMPARE(stored.size(), moves.size());
+        for (qsizetype i = 0; i < moves.size(); ++i) {
+            QCOMPARE(stored.at(i).move, moves.at(i));
+            QCOMPARE(stored.at(i).nextMove,
+                     moves.at(i) == QStringLiteral("8h2b+") ? QStringLiteral("win") : QStringLiteral("G*4b"));
+            QCOMPARE(stored.at(i).value, -12);
+            QCOMPARE(stored.at(i).frequency, 4);
+        }
+    }
+    QVERIFY(book.removeMove(kHirateSfen, QStringLiteral("resign")));
+    QCOMPARE(book.movesAt(kHirateSfen).size(), moves.size() - 1);
+}
+
+/// コメントの書き換え・消去・別の手のコメントが混ざらないこと
+void TestJosekiBook::comments_updateAndRemove()
+{
+    JosekiBook book;
+    book.putMove(kHirateSfen, makeMove(QStringLiteral("7g7f"), 0, 0, 1, QStringLiteral("角道")));
+    book.putMove(kHirateSfen, makeMove(QStringLiteral("2g2f"), 0, 0, 1, QStringLiteral("飛車先")));
+    QVERIFY(book.updateMove(kHirateSfen, makeMove(QStringLiteral("7g7f"), 0, 0, 1, QStringLiteral("角道を開ける"))));
+    QVERIFY(book.updateMove(kHirateSfen, makeMove(QStringLiteral("2g2f"), 0, 0, 1)));
+    book.putMove(kHirateSfen, makeMove(QStringLiteral("5g5f"), 0, 0, 1, QStringLiteral("中央")));
+    const QList<JosekiMove> moves = book.movesAt(kHirateSfen);
+    QCOMPARE(moves.at(0).comment, QStringLiteral("角道を開ける"));
+    QVERIFY(moves.at(1).comment.isEmpty());
+    QCOMPARE(moves.at(2).comment, QStringLiteral("中央"));
+
+    // 予想応手を渡さない（null）更新は予想応手を変えない
+    JosekiMove withReply = makeMove(QStringLiteral("8h7g"));
+    withReply.nextMove = QStringLiteral("3c3d");
+    book.putMove(kHirateSfen, withReply);
+    JosekiMove keepReply = makeMove(QStringLiteral("8h7g"), 5);
+    keepReply.nextMove = QString();
+    QVERIFY(book.updateMove(kHirateSfen, keepReply));
+    QCOMPARE(book.movesAt(kHirateSfen).last().nextMove, QStringLiteral("3c3d"));
+    QCOMPARE(book.movesAt(kHirateSfen).last().value, 5);
 }
 
 /// 比率の列は、この局面の出現頻度の合計に対する割合（合計が0なら空）
