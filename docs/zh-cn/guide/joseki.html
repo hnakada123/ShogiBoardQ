@@ -101,11 +101,12 @@
                 <ul class="guide-step-text">
                     <li>定跡着法・预期应手：登记的着法，以及之后预期的对手应手</li>
                     <li>评价值・深度・次数：定跡文件中记录的评价值、搜索深度和出现次数</li>
+                    <li>比例：该着法的次数占此局面定跡着法次数合计的比例</li>
                     <li>注释：定跡着法的注释</li>
                     <li>编辑・删除：编辑或删除该定跡着法的按钮（“执行”在对局中轮到自己时以及不在对局中时显示）</li>
                 </ul>
-                <p class="guide-step-text">在棋谱栏选择着法或对局推进时，会切换为该局面的定跡着法。不区分手数，相同局面总是显示相同的定跡着法。</p>
-                <p class="guide-step-text">点击“详细”可显示局面和定跡的 SFEN。“■ 停止”暂停定跡显示，“▶ 恢复”重新显示。定跡窗口位于其他标签页后面时不会更新，回到前面时会显示当前局面的定跡着法。最下方一行显示文件名、局面数和当前局面的定跡着法数。未打开定跡文件或该局面没有定跡时，表格中会显示提示。</p>
+                <p class="guide-step-text">在棋谱栏选择着法或对局推进时，会切换为该局面的定跡着法。不区分手数，相同局面总是显示相同的定跡着法。如果定跡文件中以不同手数分别登记了相同局面，则显示并编辑与当前手数相同的登记（没有时为文件中靠前的登记）。保存时，各手数的登记都会保留。</p>
+                <p class="guide-step-text">点击“详细”可显示局面和定跡的 SFEN。“■ 停止”暂停定跡显示，“▶ 恢复”重新显示。定跡窗口位于其他标签页后面时不会更新，回到前面时会显示当前局面的定跡着法。最下方一行显示文件名、局面数和当前局面的定跡着法数。载入或保存期间，还会显示“正在载入...”或“正在保存...”（较大的定跡文件需要几秒钟才能载入）。未打开定跡文件或该局面没有定跡时，表格中会显示提示。</p>
             </div>
 
         </div>
@@ -209,12 +210,24 @@
                     <span class="guide-step-number">7</span>
                     <span class="guide-step-title">登记棋谱的着法</span>
                 </div>
-                <p class="guide-step-text">选择“合并 ▼”→“从当前棋谱”或“从棋谱文件”（KIF 格式），会列出棋谱主线的着法（先手和后手）。“注册”逐手登记，“全部注册”一次全部登记。</p>
-                <p class="guide-step-text">新的着法以无预期应手、评价值 0、深度 0、次数 1 登记；已有的着法次数加 1。登记后会立即保存到定跡文件（其他未保存的修改也会一并保存）。尚未保存的新定跡需要先指定保存位置。“✓已注册”表示打开该文件后登记的着法。</p>
+                <p class="guide-step-text">选择“合并 ▼”→“从当前棋谱”，会列出棋谱栏中当前显示的着法序列（选择了变化时为该变化）的着法；选择“从棋谱文件”，会列出棋谱文件（KIF、KI2、CSA、JKF、USI、USEN 等）主线的着法（均包括先手和后手）。“注册”逐手登记，“全部注册”一次全部登记。</p>
+                <p class="guide-step-text">新的着法以无预期应手、评价值 0、深度 0、次数 1 登记；已有的着法次数加 1。登记后会立即保存到定跡文件（其他未保存的修改也会一并保存。保存在后台进行，期间显示“正在保存...”）。尚未保存的新定跡需要先指定保存位置。“✓已注册”表示打开该文件后登记的着法。</p>
                 <div class="screenshot-item screenshot-item--compact">
                     <img src="../../images/zh-cn/joseki/joseki-08-merge.png" alt="将棋谱合并到定跡库">
                     <p class="screenshot-caption">合并：逐手或一次全部登记棋谱的着法</p>
                 </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">8</span>
+                    <span class="guide-step-title">在 YaneuraOu 中使用</span>
+                </div>
+                <p class="guide-step-text">制作的定跡文件可以作为 YaneuraOu 的定跡（引擎设置中的 BookFile、BookDir）使用。但在 YaneuraOu 的默认设置下，有些着法不会被使用。</p>
+                <ul class="guide-step-text">
+                    <li>从棋谱登记的着法深度为 0。YaneuraOu 默认（BookDepthLimit=16）不使用深度低于 16 的定跡着法，请在“引擎设置”中将 BookDepthLimit 设为 0（合并对话框中也会显示此提示）。</li>
+                    <li>ShogiBoardQ 不区分手数，但 YaneuraOu 默认（IgnoreBookPly 关闭）只在定跡文件中局面的手数也一致时才使用定跡。要在以不同手数出现相同局面时也使用定跡，请开启 IgnoreBookPly。</li>
+                </ul>
             </div>
 
         </div>

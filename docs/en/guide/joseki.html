@@ -101,11 +101,12 @@
                 <ul class="guide-step-text">
                     <li>Book Move and Response: the registered move and the expected reply of the opponent</li>
                     <li>Score, Depth and Frequency: the score, search depth and occurrence count stored in the book</li>
+                    <li>Share: the move's share of the total frequency of the book moves in this position</li>
                     <li>Comment: a comment attached to the book move</li>
                     <li>Edit and Delete: buttons that edit or delete the book move (Play appears on your turn during games and whenever no game is in progress)</li>
                 </ul>
-                <p class="guide-step-text">When you select a move in the game record or a game advances, the table switches to the book moves of that position. Move numbers are ignored, so the same position always shows the same book moves.</p>
-                <p class="guide-step-text">Details shows the SFEN of the position and of the book entry. ■ Stop pauses the book display and ▶ Resume restarts it. While the Joseki window is behind another tab it is not updated; when it comes to the front again it shows the book moves of the displayed position. The bottom line shows the file name, the number of positions and the number of book moves for this position. A hint is shown inside the table when no book file is open or the position has no book moves.</p>
+                <p class="guide-step-text">When you select a move in the game record or a game advances, the table switches to the book moves of that position. Move numbers are ignored, so the same position always shows the same book moves. If the book file registers the same position separately under different move numbers, the entry for the displayed move number (or else the first one in the file) is shown and edited. Saving keeps each of these entries.</p>
+                <p class="guide-step-text">Details shows the SFEN of the position and of the book entry. ■ Stop pauses the book display and ▶ Resume restarts it. While the Joseki window is behind another tab it is not updated; when it comes to the front again it shows the book moves of the displayed position. The bottom line shows the file name, the number of positions and the number of book moves for this position. While a file is being loaded or saved, it also shows Loading... or Saving... (a large book file can take a few seconds to load). A hint is shown inside the table when no book file is open or the position has no book moves.</p>
             </div>
 
         </div>
@@ -209,12 +210,24 @@
                     <span class="guide-step-number">7</span>
                     <span class="guide-step-title">Register the Moves of a Game Record</span>
                 </div>
-                <p class="guide-step-text">Choose Merge ▼ → From current game or From game file (KIF) to list the main-line moves of the game (both sides). Register adds one move, Register All adds them all.</p>
-                <p class="guide-step-text">A new move is registered with no response, score 0, depth 0 and frequency 1; a move already in the book gets its frequency increased by 1. Registering saves the book file immediately, together with any other unsaved changes. For a new book that has not been saved yet, you choose where to save it first. ✓Registered marks the moves registered since the file was opened.</p>
+                <p class="guide-step-text">Choose Merge ▼ → From current game to list the moves of the line shown in the game record (the selected variation, if any), or From game file to list the main-line moves of a game record file (KIF, KI2, CSA, JKF, USI, USEN and so on). Moves of both sides are listed. Register adds one move, Register All adds them all.</p>
+                <p class="guide-step-text">A new move is registered with no response, score 0, depth 0 and frequency 1; a move already in the book gets its frequency increased by 1. Registering saves the book file immediately, together with any other unsaved changes. Saving runs in the background, and Saving... is shown meanwhile. For a new book that has not been saved yet, you choose where to save it first. ✓Registered marks the moves registered since the file was opened.</p>
                 <div class="screenshot-item screenshot-item--compact">
                     <img src="../../images/en/joseki/joseki-08-merge.png" alt="Merge dialog">
                     <p class="screenshot-caption">Merge: register the moves of the game one by one or all at once</p>
                 </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">8</span>
+                    <span class="guide-step-title">Using the Book with YaneuraOu</span>
+                </div>
+                <p class="guide-step-text">A book file made here can be used as YaneuraOu's book (BookFile and BookDir in the engine settings). With YaneuraOu's default settings, however, some moves are not used.</p>
+                <ul class="guide-step-text">
+                    <li>Moves registered from game records have depth 0. By default (BookDepthLimit=16) YaneuraOu ignores book moves with a depth below 16, so set BookDepthLimit to 0 in Engine Settings (the merge dialog shows this note too).</li>
+                    <li>ShogiBoardQ ignores move numbers, but by default (IgnoreBookPly off) YaneuraOu uses a book entry only when the move number of the position also matches. To use the book when the same position is reached at a different move number, turn IgnoreBookPly on.</li>
+                </ul>
             </div>
 
         </div>
