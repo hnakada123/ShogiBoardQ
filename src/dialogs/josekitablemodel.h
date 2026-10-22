@@ -22,7 +22,8 @@ class JosekiTableModel : public QAbstractTableModel
     Q_OBJECT
 
 public:
-    enum Column { No, Play, Move, NextMove, Edit, Delete, Value, Depth, Frequency, Comment, ColumnCount };
+    /// Ratio はこの局面の出現頻度の合計に対する割合（合計が0なら空）
+    enum Column { No, Play, Move, NextMove, Edit, Delete, Value, Depth, Frequency, Ratio, Comment, ColumnCount };
 
     explicit JosekiTableModel(QObject *parent = nullptr);
 
@@ -43,6 +44,7 @@ public:
 private:
     QString m_sfen;
     QList<JosekiMove> m_moves;
+    qint64 m_frequencyTotal = 0;  ///< 定跡手の出現頻度の合計（比率の分母）
     bool m_humanCanPlay = true;
 };
 

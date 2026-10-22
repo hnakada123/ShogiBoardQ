@@ -28,11 +28,11 @@ QList<KifuMergeEntry> fromLine(const QStringList &sfens, const QStringList &usiM
     return entries;
 }
 
-bool fromKifFile(const QString &kifFilePath, QList<KifuMergeEntry> &entries, QString *errorMessage)
+bool fromKifuFile(const QString &filePath, QList<KifuMergeEntry> &entries, QString *errorMessage)
 {
-    const KifuLoadResult loaded = KifuLoadParser::parseFile(kifFilePath, KifuFormat::Kif);
+    const KifuLoadResult loaded = KifuLoadParser::parseFile(filePath);
     if (!loaded.success) {
-        qCWarning(lcKifu) << "JosekiMergeEntries::fromKifFile: parse failed:" << loaded.error;
+        qCWarning(lcKifu) << "JosekiMergeEntries::fromKifuFile: parse failed:" << loaded.error;
         if (errorMessage) *errorMessage = loaded.error;
         return false;
     }

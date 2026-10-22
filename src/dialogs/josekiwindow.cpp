@@ -115,6 +115,7 @@ JosekiWindow::JosekiWindow(QWidget *parent)
     connect(m_session, &JosekiBookSession::recentFilesChanged, this, &JosekiWindow::onRecentFilesChanged);
     connect(m_session, &JosekiBookSession::filePathChanged, this, &JosekiWindow::onFilePathChanged);
     connect(m_session, &JosekiBookSession::loaded, this, &JosekiWindow::onBookLoaded);
+    connect(m_session, &JosekiBookSession::mergeFinished, this, &JosekiWindow::onMergeFinished);
     connect(m_files, &JosekiFileController::bookSwitching, this, &JosekiWindow::closeMergeDialogs);
     connect(m_files, &JosekiFileController::statusMessage, this, &JosekiWindow::showTransientStatus);
     connect(m_recentFilesMenu, &RecentFilesMenu::fileTriggered, m_files, &JosekiFileController::openRecent);
@@ -315,8 +316,8 @@ void JosekiWindow::setupUi()
     m_tableView->setMouseTracking(true);
     m_tableView->verticalHeader()->setVisible(false);
     m_tableView->setContextMenuPolicy(Qt::CustomContextMenu);
-    const int defaultWidths[] = {40, 50, 120, 120, 50, 50, 70, 50, 80};
-    for (int col = 0; col < 9; ++col) m_tableView->setColumnWidth(col, defaultWidths[col]);
+    const int defaultWidths[JosekiTableModel::ColumnCount - 1] = {40, 50, 120, 120, 50, 50, 70, 50, 80, 60};
+    for (int col = 0; col < JosekiTableModel::ColumnCount - 1; ++col) m_tableView->setColumnWidth(col, defaultWidths[col]);
     m_tableView->horizontalHeader()->setStretchLastSection(true);
     mainLayout->addWidget(m_tableView, 1);
 
@@ -381,6 +382,7 @@ void JosekiWindow::applyFontSize()
         QString sample = m_model->headerData(col, Qt::Horizontal).toString();
         if (col == JosekiTableModel::Move || col == JosekiTableModel::NextMove) sample = QStringLiteral("▲７六歩(77)");
         if (col == JosekiTableModel::Frequency) sample = QStringLiteral("999,999,999");
+        if (col == JosekiTableModel::Ratio) sample = QStringLiteral("100.0%");
         m_tableView->setColumnWidth(col, qMax(m_tableView->columnWidth(col), fm.horizontalAdvance(sample) + 24));
     }
     header->setStretchLastSection(true);
@@ -412,12 +414,21 @@ void JosekiWindow::loadSettings()
 {
     applyFontSize();
     DialogUtils::restoreDialogSize(this, JosekiSettings::josekiWindowSize());
+    // 比率の列を足す前の保存（列が1つ少ない）は、比率より前の列の幅だけを使う
     const auto widths = JosekiSettings::josekiWindowColumnWidths();
-    for (int col = 0; col < widths.size() && col < JosekiTableModel::ColumnCount - 1; ++col) {
+    const int restorable = widths.size() == JosekiTableModel::ColumnCount ? JosekiTableModel::ColumnCount - 1
+                                                                           : JosekiTableModel::Ratio;
+    for (int col = 0; col < widths.size() && col < restorable; ++col) {
         if (widths.at(col) > 0) m_tableView->setColumnWidth(col, widths.at(col));
     }
     m_autoLoadEnabled = JosekiSettings::josekiWindowAutoLoadEnabled();
     m_autoLoadCheckBox->setChecked(m_autoLoadEnabled);
+    // 前回のファイルは履歴を入れる前に読む（履歴を入れると設定を保存し直す）。読み込みは初めて表示したとき
+    const QString lastFilePath = JosekiSettings::josekiWindowLastFilePath();
+    if (m_autoLoadEnabled && !lastFilePath.isEmpty() && QFileInfo::exists(lastFilePath)) {
+        m_pendingAutoLoadPath = lastFilePath;
+        m_filePathLabel->setText(lastFilePath + tr(" (未読込)"));
+    }
     m_session->setRecentFiles(JosekiSettings::josekiWindowRecentFiles());
     m_displayEnabled = JosekiSettings::josekiWindowDisplayEnabled();
     if (!m_displayEnabled) {
@@ -427,18 +438,15 @@ void JosekiWindow::loadSettings()
     const bool sfenDetailVisible = JosekiSettings::josekiWindowSfenDetailVisible();
     m_showSfenDetailBtn->setChecked(sfenDetailVisible);
     m_sfenDetailWidget->setVisible(sfenDetailVisible);
-    const QString lastFilePath = JosekiSettings::josekiWindowLastFilePath();
-    if (m_autoLoadEnabled && !lastFilePath.isEmpty() && QFileInfo::exists(lastFilePath)) {
-        m_pendingAutoLoadPath = lastFilePath;
-        m_filePathLabel->setText(lastFilePath + tr(" (未読込)"));
-    }
 }
 
 void JosekiWindow::saveSettings()
 {
     DialogUtils::saveDialogSize(this, JosekiSettings::josekiWindowSize);
+    // 自動読込を待っている間（まだ表示していない）は、その前回のファイルを覚えたままにする。
     // 「履歴をクリア」した後は、開き直すか保存して履歴に戻るまで前回のファイルとして記録しない
-    JosekiSettings::josekiWindowLastFilePath.set(m_session->lastFilePathForSettings());
+    JosekiSettings::josekiWindowLastFilePath.set(
+        m_pendingAutoLoadPath.isEmpty() ? m_session->lastFilePathForSettings() : m_pendingAutoLoadPath);
     JosekiSettings::josekiWindowAutoLoadEnabled.set(m_autoLoadEnabled);
     JosekiSettings::josekiWindowRecentFiles.set(m_session->recentFiles());
     QList<int> widths;
@@ -452,6 +460,8 @@ void JosekiWindow::saveSettings()
 
 void JosekiWindow::onFilePathChanged()
 {
+    // 自動読込の前に別のファイルを開いた・作った・保存したときは、前回のファイルを読み込まない
+    m_pendingAutoLoadPath.clear();
     showFilePath();
     updateWindowTitle();
     updateJosekiDisplay();
@@ -464,6 +474,11 @@ void JosekiWindow::onBookLoaded()
 
 void JosekiWindow::onRecentFilesChanged()
 {
+    // 履歴から消えた（「履歴をクリア」した）前回のファイルは、自動で読み込まない
+    if (!m_pendingAutoLoadPath.isEmpty() && !m_session->recentFiles().contains(m_pendingAutoLoadPath)) {
+        m_pendingAutoLoadPath.clear();
+        m_filePathLabel->setText(tr("未選択"));
+    }
     updateRecentFilesMenu();
     saveSettings();
 }
@@ -571,29 +586,34 @@ void JosekiWindow::editMoveAt(int row)
 {
     if (isIoBusy() || row < 0 || row >= m_model->moves().size()) return;
 
+    // ダイアログを開いている間に局面が進んでも（対局中にエンジンが指すなど）、開いたときの局面の手を書き換える
+    const QString targetSfen = m_currentSfen;
     const JosekiMove current = m_model->moves().at(row);
     JosekiMoveDialog dialog(this, true);
-    dialog.setCurrentSfen(m_currentSfen);
+    dialog.setCurrentSfen(targetSfen);
     dialog.setEntry(current);
-    dialog.setEditMoveDisplay(JosekiTableModel::moveText(current.move, m_currentSfen));
-    if (dialog.exec() != QDialog::Accepted) return;
+    dialog.setEditMoveDisplay(JosekiTableModel::moveText(current.move, targetSfen));
+    if (dialog.exec() != QDialog::Accepted || isIoBusy()) return;
 
     const JosekiMove updated = dialog.entry();
-    if (m_session->updateMove(m_currentSfen, updated)) updateJosekiDisplay();
+    if (m_session->updateMove(targetSfen, updated)) updateJosekiDisplay();
 }
 
 void JosekiWindow::deleteMoveAt(int row)
 {
     if (isIoBusy() || row < 0 || row >= m_model->moves().size()) return;
 
+    // 確認している間に局面が進んでも、確認を出したときの局面の手を消す
+    const QString targetSfen = m_currentSfen;
     const QString usiMove = m_model->moves().at(row).move;
     if (!DialogUtils::confirmAction(this, tr("削除確認"),
                                     tr("定跡手「%1」を削除しますか？")
-                                        .arg(JosekiTableModel::moveText(usiMove, m_currentSfen)),
-                                    tr("削除する"))) {
+                                        .arg(JosekiTableModel::moveText(usiMove, targetSfen)),
+                                    tr("削除する"))
+        || isIoBusy()) {
         return;
     }
-    if (m_session->removeMove(m_currentSfen, usiMove)) updateJosekiDisplay();
+    if (m_session->removeMove(targetSfen, usiMove)) updateJosekiDisplay();
 }
 
 void JosekiWindow::onAddMoveButtonClicked()
@@ -609,7 +629,7 @@ void JosekiWindow::onAddMoveButtonClicked()
     const QString targetSfen = m_currentSfen;
     JosekiMoveDialog dialog(this, false);
     dialog.setCurrentSfen(targetSfen);
-    if (dialog.exec() != QDialog::Accepted) return;
+    if (dialog.exec() != QDialog::Accepted || isIoBusy()) return;
 
     const JosekiMove newMove = dialog.entry();
     if (m_session->hasMove(targetSfen, newMove.move)
@@ -731,9 +751,14 @@ void JosekiWindow::updateJosekiDisplay()
     if (m_displayEnabled && !m_currentSfen.isEmpty()) {
         if (m_session->hasPosition(m_currentSfen)) {
             moves = m_session->movesAt(m_currentSfen);
-            const QString registered = m_session->registeredSfen(m_currentSfen);
-            sfenLine = tr("定跡SFEN: %1")
-                           .arg(registered.isEmpty() ? JosekiBookSession::positionKey(m_currentSfen) : registered);
+            sfenLine = tr("定跡SFEN: %1").arg(m_session->registeredSfen(m_currentSfen));
+            // 同じ局面を手数違いで別々に登録していれば、その手数も示す（表示中の手数の登録、無ければ最初の登録を出す）
+            const QList<int> plies = m_session->registeredPlies(m_currentSfen);
+            if (plies.size() > 1) {
+                QStringList plyTexts;
+                for (const int ply : plies) plyTexts.append(QString::number(ply));
+                sfenLine += QLatin1Char(' ') + tr("（手数違いの登録: %1）").arg(plyTexts.join(QStringLiteral(", ")));
+            }
         } else {
             sfenLine = tr("定跡: (該当なし)");
         }
@@ -778,14 +803,20 @@ void JosekiWindow::updateStatusDisplay()
     m_stopButton->setVisible(hasData || !m_displayEnabled);
 
     const int moveCount = static_cast<int>(m_model->moves().size());
+    const JosekiBookSession::Activity activity = m_session->activity();
     QStringList statusParts;
+    // 読み書きの最中は終わるまで出し続ける（大きな定跡は読み込みに数秒かかる）
+    if (activity == JosekiBookSession::Activity::Loading) statusParts << tr("読み込み中...");
+    else if (activity == JosekiBookSession::Activity::Saving) statusParts << tr("保存中...");
     statusParts << (filePath.isEmpty() ? tr("ファイル: 未選択") : tr("ファイル: %1").arg(QFileInfo(filePath).fileName()));
     statusParts << tr("局面数: %1").arg(QLocale().toString(m_session->positionCount()));
     statusParts << (m_displayEnabled ? tr("定跡: %1件").arg(moveCount) : tr("【停止中】"));
     m_statusLabel->setText(statusParts.join(QStringLiteral("  |  ")));
 
     const bool showGuide = moveCount == 0;
-    if (!m_displayEnabled)
+    if (activity == JosekiBookSession::Activity::Loading)
+        m_emptyGuideLabel->setText(tr("定跡ファイルを読み込んでいます..."));
+    else if (!m_displayEnabled)
         m_emptyGuideLabel->setText(tr("定跡表示を停止しています。「再開」で表示を再開します。"));
     else if (m_currentSfen.isEmpty())
         m_emptyGuideLabel->setText(tr("将棋盤で局面を表示すると、その局面の定跡を確認できます。"));
@@ -868,21 +899,22 @@ void JosekiWindow::onMergeFromKifuFile()
 {
     if (isIoBusy() || !m_files->ensureFilePath()) return;
 
-    const QString kifFilePath = QFileDialog::getOpenFileName(
+    // 形式はファイルから判定する（棋譜を開くときと同じ形式を読める）
+    const QString kifuFilePath = QFileDialog::getOpenFileName(
         this, tr("棋譜ファイルを選択"), QDir::homePath(),
-        tr("KIF形式 (*.kif *.kifu);;すべてのファイル (*)"));
-    if (kifFilePath.isEmpty()) return;
+        tr("棋譜ファイル (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.json *.usi *.sfen *.usen);;すべてのファイル (*)"));
+    if (kifuFilePath.isEmpty()) return;
 
     QList<KifuMergeEntry> entries;
     QString errorMessage;
-    if (!JosekiMergeEntries::fromKifFile(kifFilePath, entries, &errorMessage)) {
+    if (!JosekiMergeEntries::fromKifuFile(kifuFilePath, entries, &errorMessage)) {
         if (errorMessage.isEmpty())
             QMessageBox::information(this, tr("情報"), tr("棋譜に指し手がありません。"));
         else
             QMessageBox::warning(this, tr("エラー"), tr("棋譜ファイルの読み込みに失敗しました。\n%1").arg(errorMessage));
         return;
     }
-    openMergeDialog(entries, tr("棋譜から定跡にマージ - %1").arg(QFileInfo(kifFilePath).fileName()));
+    openMergeDialog(entries, tr("棋譜から定跡にマージ - %1").arg(QFileInfo(kifuFilePath).fileName()));
 }
 
 void JosekiWindow::openMergeDialog(const QList<KifuMergeEntry> &entries, const QString &title)
@@ -903,12 +935,18 @@ void JosekiWindow::openMergeDialog(const QList<KifuMergeEntry> &entries, const Q
 
 bool JosekiWindow::registerMergeEntries(const QList<KifuMergeEntry> &entries)
 {
-    if (isIoBusy()) return false;
-    QString errorMessage;
-    const bool registered = m_session->registerMergeMoves(entries, &errorMessage);
-    if (!registered) QMessageBox::warning(this, tr("エラー"), errorMessage);
+    // 保存はワーカースレッドで行う。終わったら onMergeFinished（失敗は JosekiFileController が知らせる）
+    return !isIoBusy() && m_session->startRegisterMergeMoves(entries);
+}
+
+void JosekiWindow::onMergeFinished(bool registered)
+{
     updateJosekiDisplay();
-    return registered;
+    const auto dialogs = findChildren<JosekiMergeDialog *>();
+    for (JosekiMergeDialog *dialog : dialogs) {
+        dialog->setRegisteredMoves(m_session->mergeRegisteredMoves());
+        dialog->finishRegistration(registered);
+    }
 }
 
 void JosekiWindow::closeMergeDialogs()
