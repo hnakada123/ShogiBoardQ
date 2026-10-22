@@ -30,15 +30,6 @@ const QRegularExpression& resultPatternCaptureRe()
     return re;
 }
 
-const QRegularExpression& resultPatternRe()
-{
-    static const auto& re = *[]() {
-        static const QRegularExpression r(QStringLiteral("^\\s*まで[0-9０-９]+手"));
-        return &r;
-    }();
-    return re;
-}
-
 // === 行の種類判定 ===
 
 bool isKi2MoveLine(const QString& line)
@@ -47,23 +38,47 @@ bool isKi2MoveLine(const QString& line)
     return !t.isEmpty() && isTurnMark(t.at(0));
 }
 
-bool isResultLine(const QString& line)
-{
-    return resultPatternRe().match(line).hasMatch();
-}
-
 // === 結果行解析 ===
 
-bool parseResultLine(const QString& line, TerminalType& terminal, int& moveCount)
+std::optional<ResultLine> parseResultLine(const QString& line)
 {
     const QRegularExpressionMatch m = resultPatternCaptureRe().match(line);
-    if (!m.hasMatch()) return false;
-    moveCount = ShogiNotation::numberFromDigits(m.captured(1));
+    if (!m.hasMatch()) return std::nullopt;
+    ResultLine result;
+    result.moveCount = ShogiNotation::numberFromDigits(m.captured(1));
 
     // 「まで77手で千日手」などは終局語の表で読む。「先手の勝ち」だけの行は投了とみなす
-    terminal = TerminalTypes::findWord(line);
-    if (terminal == TerminalType::None && line.contains(QChar(u'勝'))) terminal = TerminalType::Resign;
-    return terminal != TerminalType::None;
+    result.terminal = TerminalTypes::findWord(line);
+    if (result.terminal == TerminalType::None && line.contains(QChar(u'勝'))) result.terminal = TerminalType::Resign;
+    if (result.terminal == TerminalType::None) return std::nullopt;
+
+    static const QRegularExpression namedRe(QStringLiteral("(先手|下手|後手|上手)の"));
+    if (const QRegularExpressionMatch named = namedRe.match(line, m.capturedEnd(0)); named.hasMatch()) {
+        const QString who = named.captured(1);
+        result.named = (who == QStringLiteral("先手") || who == QStringLiteral("下手")) ? Turn::Black : Turn::White;
+    }
+    return result;
+}
+
+Turn ResultLine::endingSide(Turn sideToMove) const
+{
+    if (!named) return sideToMove;
+    const Turn other = *named == Turn::Black ? Turn::White : Turn::Black;
+    switch (terminal) {
+    // 「先手の勝ち」「時間切れにより先手の勝ち」は勝った側を名指しする。記録するのは負けた側
+    case TerminalType::Resign:
+    case TerminalType::Timeout:
+        return other;
+    // 反則・入玉宣言・不戦の行は、記録した側をそのまま名指しする
+    case TerminalType::IllegalWin:
+    case TerminalType::IllegalLoss:
+    case TerminalType::DeclarationWin:
+    case TerminalType::ForfeitWin:
+    case TerminalType::Forfeit:
+        return *named;
+    default:
+        return sideToMove;
+    }
 }
 
 // === 指し手テキスト解析 ===

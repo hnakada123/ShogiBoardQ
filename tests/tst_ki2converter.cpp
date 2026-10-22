@@ -7,6 +7,7 @@
 #include "kifmovegrammar.h"
 #include "kifparsetypes.h"
 #include "kifu_test_helper.h"
+#include "kifuexportcommon.h"
 #include "parsecommon.h"
 #include "shogiposition.h"
 
@@ -419,6 +420,45 @@ private slots:
         QCOMPARE(outcome.gameInfo.size(), 2);
         QCOMPARE(outcome.initialSfen, kHirateSfen);
         QCOMPARE(fromText.mainline.startSfen, kHirateSfen);
+    }
+
+    /// 結果行が名指しした側を終局の行に記録し、書き出すと同じ結果行に戻る
+    void resultLine_namedSideRoundTrips_data()
+    {
+        QTest::addColumn<QString>("resultLine");
+        QTest::addColumn<int>("terminal");
+        QTest::addColumn<int>("mover");
+        // 3手目の後は後手番
+        QTest::newRow("先手の反則負け") << QStringLiteral("まで3手で先手の反則負け")
+                                         << int(TerminalType::IllegalLoss) << int(Turn::Black);
+        QTest::newRow("後手の反則負け") << QStringLiteral("まで3手で後手の反則負け")
+                                         << int(TerminalType::IllegalLoss) << int(Turn::White);
+        QTest::newRow("先手の反則勝ち") << QStringLiteral("まで3手で先手の反則勝ち")
+                                         << int(TerminalType::IllegalWin) << int(Turn::Black);
+        QTest::newRow("先手の入玉勝ち") << QStringLiteral("まで3手で先手の入玉勝ち")
+                                         << int(TerminalType::DeclarationWin) << int(Turn::Black);
+        QTest::newRow("先手の勝ち") << QStringLiteral("まで3手で先手の勝ち")
+                                     << int(TerminalType::Resign) << int(Turn::White);
+        QTest::newRow("時間切れにより後手の勝ち") << QStringLiteral("まで3手で時間切れにより後手の勝ち")
+                                                   << int(TerminalType::Timeout) << int(Turn::Black);
+        QTest::newRow("千日手") << QStringLiteral("まで3手で千日手")
+                                << int(TerminalType::Repetition) << int(Turn::White);
+    }
+
+    void resultLine_namedSideRoundTrips()
+    {
+        QFETCH(QString, resultLine);
+        QFETCH(int, terminal);
+        QFETCH(int, mover);
+        const KifuParseOutcome outcome = Ki2ToSfenConverter::parse(
+            QStringLiteral("手合割：平手\n▲７六歩 △３四歩 ▲２二角成\n") + resultLine + QStringLiteral("\n"));
+        QVERIFY2(outcome.success, qPrintable(outcome.warning));
+        const RecordLine& line = outcome.record.mainline;
+        QVERIFY(line.endsWithTerminal());
+        const RecordEntry& ending = line.entries.last();
+        QCOMPARE(int(ending.terminal), terminal);
+        QCOMPARE(int(ending.mover), mover);
+        QCOMPARE(KifuExportCommon::buildEndingLine(3, ending.terminal, ending.mover, false), resultLine);
     }
 
     // 変化の開始局面は KIF と同じ規則で探す（直前の変化が届かなければ本譜）

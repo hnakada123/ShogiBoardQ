@@ -102,10 +102,9 @@ private:
     /// 「まで77手で先手の勝ち」（KI2 の終局）
     bool readResultLine(const QString& line)
     {
-        TerminalType terminal = TerminalType::None;
-        int count = 0;
-        if (!Ki2Lexer::parseResultLine(line, terminal, count)) return false;
-        m_builder.addTerminal(terminal, m_builder.sideToMove());
+        const std::optional<Ki2Lexer::ResultLine> result = Ki2Lexer::parseResultLine(line);
+        if (!result) return false;
+        m_builder.addTerminal(result->terminal, result->endingSide(m_builder.sideToMove()));
         return true;
     }
 

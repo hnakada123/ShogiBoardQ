@@ -7,6 +7,7 @@
 #include <QRegularExpression>
 #include <QString>
 #include <QStringList>
+#include <optional>
 
 #include "shogitypes.h"
 #include "terminaltype.h"
@@ -18,21 +19,26 @@ namespace Ki2Lexer {
 /// 結果行検出（キャプチャあり）: "まで○手で..." の手数をキャプチャ
 const QRegularExpression& resultPatternCaptureRe();
 
-/// 結果行検出（キャプチャなし）: "まで○手で..." の判定のみ
-const QRegularExpression& resultPatternRe();
-
 // === 行の種類判定 ===
 
 /// KI2行が指し手行かどうか判定（▲または△で始まる）
 bool isKi2MoveLine(const QString& line);
 
-/// 結果行かどうか判定
-bool isResultLine(const QString& line);
-
 // === 結果行解析 ===
 
-/// 結果行を解析して終局語と手数を抽出
-bool parseResultLine(const QString& line, TerminalType& terminal, int& moveCount);
+/// 結果行（"まで77手で先手の勝ち"）を読んだ値
+struct ResultLine {
+    TerminalType terminal = TerminalType::None;
+    int moveCount = 0;
+    /// 行が名指しした側（"先手の勝ち" なら先手、"後手の反則負け" なら後手）。名指しがなければ空
+    std::optional<Turn> named;
+
+    /// 終局の行を記録する側（RecordEntry::endingSide と同じ規則。書き出しの buildEndingLine の逆）
+    Turn endingSide(Turn sideToMove) const;
+};
+
+/// 結果行を読む。結果行でなければ空
+std::optional<ResultLine> parseResultLine(const QString& line);
 
 // === 指し手テキスト解析 ===
 

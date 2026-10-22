@@ -264,6 +264,25 @@ private slots:
         QVERIFY(kif.lines.filter(QStringLiteral("先手：")).size() == 1);
     }
 
+    /// 対局情報のない棋譜を変換しても、変換した時刻を対局の日時として書かず、仮の対局者名も作らない
+    void conversionDoesNotInventGameInfo()
+    {
+        KifuConversionService::Request request;
+        request.text = QStringLiteral("position startpos moves 7g7f 3c3d");
+        request.outputFormat = Format::Kif;
+        const auto kif = KifuConversionService::convert(request);
+        QVERIFY2(kif.ok, qPrintable(kif.error));
+        QVERIFY2(kif.lines.filter(QStringLiteral("対局日")).isEmpty(), qPrintable(kif.lines.join(QLatin1Char('\n'))));
+        QVERIFY(kif.lines.filter(QStringLiteral("開始日時")).isEmpty());
+        QVERIFY(kif.lines.filter(QStringLiteral("先手：")).isEmpty());
+        QVERIFY(kif.lines.filter(QStringLiteral("後手：")).isEmpty());
+
+        request.outputFormat = Format::Csa;
+        const auto csa = KifuConversionService::convert(request);
+        QVERIFY2(csa.ok, qPrintable(csa.error));
+        QVERIFY2(csa.lines.filter(QStringLiteral("$START_TIME")).isEmpty(), qPrintable(csa.lines.join(QLatin1Char('\n'))));
+    }
+
     void textInputIsAutoDetected()
     {
         KifuConversionService::Request request;
