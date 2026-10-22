@@ -33,6 +33,8 @@ public:
     [[nodiscard]] bool confirmDiscardChanges();
     /// 保存先がなければ選ばせて保存する（マージの前）。保存先があれば true
     [[nodiscard]] bool ensureFilePath();
+    /// 未保存の変更を捨てて、保存した内容に戻す（ファイルがなければ空の定跡にする。変更がなければ何もしない）
+    void revertChanges();
     /// ファイルを読み込み始める
     void openFile(const QString &filePath);
     /// filePath に保存し始める

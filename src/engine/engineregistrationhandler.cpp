@@ -162,18 +162,18 @@ void EngineRegistrationHandler::registerEngine(const QString& engineName, const 
     m_engineIdAuthor = engineAuthor;
     m_optionLines = optionLines;
 
-    // エンジン情報をリストに追加
-    EngineListSettings::EngineEntry engine;
-    engine.name = m_engineIdName;
-    engine.path = m_fileName;
-    engine.author = m_engineIdAuthor;
-    m_engineList.append(engine);
-
+    // オプションを読めたエンジンだけを一覧に足す（読めなければ一覧も設定も変えない）
     parseEngineOptionsFromUsiOutput();
     if (m_errorOccurred) {
         setRegistrationInProgress(false);
         return;
     }
+
+    EngineListSettings::EngineEntry engine;
+    engine.name = m_engineIdName;
+    engine.path = m_fileName;
+    engine.author = m_engineIdAuthor;
+    m_engineList.append(engine);
 
     EngineProfileStore::saveEngines(m_engineList);
     EngineProfileStore::saveOptions(m_engineIdName, m_engineOptions);

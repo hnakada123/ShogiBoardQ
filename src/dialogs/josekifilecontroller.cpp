@@ -105,6 +105,18 @@ void JosekiFileController::clearRecentFiles()
 // 読み込み・保存
 // ============================================================
 
+void JosekiFileController::revertChanges()
+{
+    if (isBusy() || !m_deps.session->isModified()) return;
+    const QString filePath = m_deps.session->filePath();
+    if (filePath.isEmpty()) {
+        emit bookSwitching();
+        m_deps.session->newBook();
+    } else {
+        openFile(filePath);
+    }
+}
+
 void JosekiFileController::openFile(const QString &filePath)
 {
     if (isBusy()) return;

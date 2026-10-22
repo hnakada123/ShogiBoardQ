@@ -144,6 +144,8 @@ bool JosekiWindow::eventFilter(QObject *obj, QEvent *event)
 {
     if (obj == m_dockWidget && event->type() == QEvent::Close) {
         if (!confirmClose()) { event->ignore(); return true; }
+        // 閉じても定跡は盤の矢印と対局で使い続けるので、「破棄」を選んだ変更は保存した内容に戻す
+        m_files->revertChanges();
     }
     return QWidget::eventFilter(obj, event);
 }
@@ -465,9 +467,14 @@ void JosekiWindow::saveSettings()
 {
     DialogUtils::saveDialogSize(this, JosekiSettings::josekiWindowSize);
     // 自動読込を待っている間（まだ表示していない）は、その前回のファイルを覚えたままにする。
+    // ファイルを開いていない（自動読込をオフにして起動した・新規にした）ときも、履歴に残っている前回のファイルを覚えたままにする。
     // 「履歴をクリア」した後は、開き直すか保存して履歴に戻るまで前回のファイルとして記録しない
-    JosekiSettings::josekiWindowLastFilePath.set(
-        m_pendingAutoLoadPath.isEmpty() ? m_session->lastFilePathForSettings() : m_pendingAutoLoadPath);
+    QString lastFilePath = m_pendingAutoLoadPath.isEmpty() ? m_session->lastFilePathForSettings() : m_pendingAutoLoadPath;
+    if (lastFilePath.isEmpty() && m_session->filePath().isEmpty()) {
+        const QString previous = JosekiSettings::josekiWindowLastFilePath();
+        if (m_session->recentFiles().contains(previous)) lastFilePath = previous;
+    }
+    JosekiSettings::josekiWindowLastFilePath.set(lastFilePath);
     JosekiSettings::josekiWindowAutoLoadEnabled.set(m_autoLoadEnabled);
     JosekiSettings::josekiWindowRecentFiles.set(m_session->recentFiles());
     QList<int> widths;

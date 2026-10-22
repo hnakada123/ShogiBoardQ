@@ -454,6 +454,10 @@ void TestJosekiBook::registerMergeMove_newEntry_addsWithFrequency1()
 
     // 局面は登録したときの手数付きの SFEN で覚える
     QCOMPARE(repo.registeredSfen(kHirateSfen), kHirateSfenWithPly);
+
+    // 定跡手を消すと登録済みの印も消える（マージでもう一度登録できる）
+    QVERIFY(repo.removeMove(kHirateSfenWithPly, QStringLiteral("7g7f")));
+    QVERIFY(!repo.isMergeRegistered(kHirateSfenWithPly, QStringLiteral("7g7f")));
 }
 
 void TestJosekiBook::registerMergeMove_existing_incrementsFrequency()
