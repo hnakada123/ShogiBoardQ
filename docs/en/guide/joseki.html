@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Joseki - ShogiBoardQ</title>
-    <meta name="description" content="A screenshot guide to joseki (opening book) support in ShogiBoardQ: open YaneuraOu-format book files, see the book moves for each position in the table and as board arrows, play them in games, let engines use the book in games, add, edit and delete moves, and merge moves from game records.">
+    <meta name="description" content="A screenshot guide to joseki (opening book) support in ShogiBoardQ: open YaneuraOu-format book files, see the book moves for each position in the table and as board arrows, play them in games, let engines use the book in games, add, edit and delete moves, register moves from the board, engine analysis, multiple game records and other book files, and merge moves from game records.">
     <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/joseki.html">
     <!-- Open Graph -->
     <meta property="og:type" content="article">
@@ -65,7 +65,7 @@
             <span class="badge">YaneuraOu format (.db)</span>
             <span class="badge">Book Moves</span>
             <span class="badge">Add / Edit / Delete</span>
-            <span class="badge">Merge from Game Records</span>
+            <span class="badge">Register from Games and Engines</span>
         </div>
         <p class="screenshot-note">Screenshots were captured on Linux with the English interface.</p>
     </div>
@@ -209,6 +209,19 @@
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">8</span>
+                    <span class="guide-step-title">Register Moves Played on the Board</span>
+                </div>
+                <p class="guide-step-text">With Register board moves checked, moves played on the board outside games are registered as book moves of the position before the move. A new move is registered with no response, score 0, depth 0 and frequency 1; a move already in the book is not changed. Take a move back and play another one to add more book moves to that position.</p>
+                <p class="guide-step-text">While it is on, the bottom line shows Registering board moves. Moves played during games or while editing a position are not registered. It turns off when the application is restarted. Save writes the registered moves to the book file.</p>
+                <div class="screenshot-item">
+                    <img src="../../images/en/joseki/joseki-12-record-board.png" alt="Joseki window after registering board moves">
+                    <p class="screenshot-caption">Register board moves: two moves played, then back to the start position and another first move played</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">9</span>
                     <span class="guide-step-title">Edit a Book Move</span>
                 </div>
                 <p class="guide-step-text">Edit changes the response, score, search depth, frequency and comment (the move itself cannot be changed; the response is chosen from the legal moves of the position after the book move). Right-click a row for a menu with Play, Edit, Delete and copying the move.</p>
@@ -225,7 +238,7 @@
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">9</span>
+                    <span class="guide-step-number">10</span>
                     <span class="guide-step-title">Delete and Save</span>
                 </div>
                 <p class="guide-step-text">Delete asks for confirmation and removes the book move. Deleting the last book move of a position removes the position from the book as well.</p>
@@ -247,14 +260,14 @@
 <!-- Section 4 -->
 <section id="joseki-merge" class="section">
     <div class="section-inner">
-        <h2 class="section-title">Merging from Game Records</h2>
-        <p class="section-desc">Register the moves of a game record in the book</p>
+        <h2 class="section-title">Registering from Game Records and Book Files</h2>
+        <p class="section-desc">Register the moves of game records or another book file in the book</p>
 
         <div class="screenshot-gallery">
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">10</span>
+                    <span class="guide-step-number">11</span>
                     <span class="guide-step-title">Register the Moves of a Game Record</span>
                 </div>
                 <p class="guide-step-text">Choose Merge ▼ → From current game to list the moves of the line shown in the game record (the selected variation, if any), or From game file to list the main-line moves of a game record file (KIF, KI2, CSA, JKF, USI, USEN and so on). Moves of both sides are listed. Register adds one move, Register All adds them all.</p>
@@ -267,15 +280,104 @@
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">11</span>
+                    <span class="guide-step-number">12</span>
+                    <span class="guide-step-title">Register from Multiple Game Records</span>
+                </div>
+                <p class="guide-step-text">Merge ▼ → From multiple game records... registers many game record files and folders at once. List them with Add Files... and Add Folder..., or drop game record files and folders on the Joseki window or on this dialog (folders include the game records in their subfolders).</p>
+                <p class="guide-step-text">The conditions are:</p>
+                <ul class="guide-step-text">
+                    <li>Register the first: moves up to this move number are registered (60 by default)</li>
+                    <li>Moves to register: Both Black and White, Black moves only, White moves only, or Winner moves only (only game records with a result, such as resignation, checkmate or time up, are used)</li>
+                    <li>Also register moves in variations: the moves in the variations of the game records are registered too</li>
+                    <li>Minimum occurrences: only moves played in at least this many of the listed game records are registered</li>
+                    <li>Use game record comments as book comments: a book move without a comment gets the comment of that move in the game record</li>
+                </ul>
+                <p class="guide-step-text">Register starts reading the game records and shows the progress (Stop leaves the book unchanged). A new move is registered with no response, score 0 and depth 0, and its frequency is the number of games it was played in; a move already in the book gets that number added to its frequency. A position and move that appear several times in one game count once. Registering does not save the book file, so write it with Save.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/en/joseki/joseki-13-import.png" alt="Register from Multiple Game Records dialog">
+                    <p class="screenshot-caption">Register from multiple game records: the game records in a folder are read and the result is shown</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">13</span>
+                    <span class="guide-step-title">Add Another Book File</span>
+                </div>
+                <p class="guide-step-text">Merge ▼ → From book file... adds another book file (YaneuraOu format) to the current book. Positions and book moves that are not in the current book are added as they are, keeping registrations under different move numbers. For moves in both books, choose whether the response, score, depth and comment come from the current book or from the added book, and whether to add up the frequencies (otherwise the frequency of the chosen book is used).</p>
+                <p class="guide-step-text">Loading and adding run in the background, and Adding book file... is shown meanwhile. When it finishes, the numbers of added positions and book moves are shown. The book file that is open cannot be added to itself. Save writes the result to the book file.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/en/joseki/joseki-14-book-merge.png" alt="Add a Book File dialog">
+                    <p class="screenshot-caption">Add a book file: choose how to treat moves that are in both books</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 5 -->
+<section id="joseki-engine" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Registering Engine Analysis</h2>
+        <p class="section-desc">Register the engine&#39;s PV from the thinking tables of consideration and games or from kifu analysis results</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">14</span>
+                    <span class="guide-step-title">Register from the Thinking Table</span>
+                </div>
+                <p class="guide-step-text">Right-click a row of the table in the Consideration tab, or in the Thinking tab during a game, and choose Register the First PV Move (…) in the Book to register the first move of that row&#39;s PV as a book move of the position the engine searched. The score and depth come from the row, and the second move of the PV becomes the expected response. A mate score is registered as ±(32000 − moves to mate), as YaneuraOu does.</p>
+                <p class="guide-step-text">A move already in the book only gets its score, depth and expected response updated (its frequency and comment are kept); a new move gets frequency 1. The item cannot be chosen before the Joseki window has loaded the previous book file (that is, before the Joseki window is shown for the first time) or while the book is being loaded or saved. Save writes the registered moves to the book file.</p>
+                <div class="screenshot-item">
+                    <img src="../../images/en/joseki/joseki-15-thinking-menu.png" alt="Right-click menu of the Consideration table">
+                    <p class="screenshot-caption">Right-click the Consideration table to register the first PV move in the book</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">15</span>
+                    <span class="guide-step-title">Register from Kifu Analysis Results</span>
+                </div>
+                <p class="guide-step-text">Right-click a row of the kifu analysis results and choose Register the First PV Move (…) in the Book to register the first PV move of that row&#39;s position (the position after the move). It works the same way as in the thinking table.</p>
+                <p class="guide-step-text">Register Results in the Book... registers the first PV moves of the analyzed positions at once. Choose the range of move numbers and whether to register positions with Black or White to move. Positions without a PV (such as positions where the engine played from its book) are not registered. When it finishes, the numbers of registered and updated moves are shown.</p>
+                <div class="screenshot-item">
+                    <img src="../../images/en/joseki/joseki-16-analysis-menu.png" alt="Right-click menu of the analysis results">
+                    <p class="screenshot-caption">Right-click the kifu analysis results</p>
+                </div>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/en/joseki/joseki-17-analysis-register.png" alt="Register Results in the Book dialog">
+                    <p class="screenshot-caption">Register Results in the Book: choose the range of move numbers and the side to move</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 6 -->
+<section id="joseki-yaneuraou" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">Using the Book with YaneuraOu</h2>
+        <p class="section-desc">Settings for letting YaneuraOu read the book you made</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">16</span>
                     <span class="guide-step-title">Using the Book with YaneuraOu</span>
                 </div>
                 <p class="guide-step-text">A book file made here can be used as YaneuraOu's book (BookFile and BookDir in the engine settings). With YaneuraOu's default settings, however, some moves are not used.</p>
                 <ul class="guide-step-text">
-                    <li>Moves registered from game records have depth 0. By default (BookDepthLimit=16) YaneuraOu ignores book moves with a depth below 16, so set BookDepthLimit to 0 in Engine Settings (the merge dialog shows this note too).</li>
+                    <li>Moves registered from the board or from game records have depth 0 (moves registered from engine analysis have the depth of their PV). By default (BookDepthLimit=16) YaneuraOu ignores book moves with a depth below 16, so set BookDepthLimit to 0 in Engine Settings (the merge dialog shows this note too).</li>
                     <li>ShogiBoardQ ignores move numbers, but by default (IgnoreBookPly off) YaneuraOu uses a book entry only when the move number of the position also matches. To use the book when the same position is reached at a different move number, turn IgnoreBookPly on.</li>
                 </ul>
             </div>
+
 
         </div>
     </div>
