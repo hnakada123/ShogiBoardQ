@@ -303,7 +303,7 @@ MCP サーバーは `AppClient.call_queued()` で操作の実行を待つ（5 �
 | `ErrorKind` / `ErrorKinds` | `src/automation/errorkinds.{h,cpp}` | エラーの分類と、語・JSON-RPC のコードの表（`slug()`・`rpcCode()`・`toJson()`）。CLI の `CliOutput::fail()`・`failEvent()` と `AutomationError` が使う |
 | `ParamSpec` / `OperationSpec` | `src/automation/paramspec.{h,cpp}` | 引数1つの仕様（名前・型・必須・範囲・既定値・選択肢・説明）と操作1つの仕様。`ParamSpecs::inputSchema()`・`toJson()`（JSON Schema）と `validate()`（知らない引数の拒否・必須・型・範囲・選択肢の検査と既定値の補完）。CLI・自動化 API・MCP で共有する |
 | `AutomationMethodSpecs` | `src/automation/automationmethodspecs.{h,cpp}` | 自動化 API の全メソッドの引数の表（`all()`・`find()`） |
-| `AutomationContext` | `src/automation/automationcontext.h` | MainWindow 側の依存を注入する Deps 構造体。部品と状態（`AppState`・棋譜の文書 `KifuDocument`・`KifuNavigationState`）は非所有ポインタで受け取り、関数で受け取るのは dialogs 層のメニューウィンドウのお気に入りと終了要求だけ |
+| `AutomationContext` | `src/automation/automationcontext.h` | MainWindow 側の依存を注入する Deps 構造体。部品と状態（動作状態 `AppActivityState`・棋譜の文書 `KifuDocument`・`KifuNavigationState`）は非所有ポインタで受け取り、関数で受け取るのは dialogs 層のメニューウィンドウのお気に入りと終了要求だけ |
 | `AutomationCommands*` | `src/automation/automationcommands_{app,position,kifu,navigation,ui,widget,dock}.cpp` | 各メソッドの実装。既存の `KifuFileController` / `KifuNavigationController` / `UiStatePolicyManager` / `ScreenshotService` を呼ぶ。`kifu.get` の形式指定のテキストは `KifuExport::lines(*document, format)`、`moves` は分岐ツリーから作り、`app.state` の `kifu_file`・`engines`・`play_mode` は `KifuDocument::filePath()`・`players()` を読む |
 | `AutomationActionPolicy` | `src/automation/automationactionpolicy.{h,cpp}` | `QAction` の許可リスト |
 | `AutomationInteractions` / `QueuedInteraction` | `src/automation/automationinteractions.{h,cpp}` | 応答の後に行う UI 操作の予約（`queue()`）・実行の直前の再検査・結果の記録と `ui.interaction` の答え（`status()`） |

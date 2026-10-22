@@ -112,8 +112,6 @@ void MainWindowComposer::connectRecord()
     KifuLoadCoordinator* loader = m_c.kifuLoadCoordinator;
     connect(loader, &KifuLoadCoordinator::errorOccurred,
             m_c.notificationService, &UiNotificationService::displayErrorMessage);
-    connect(loader, &KifuLoadCoordinator::loadFinished,
-            m_c.uiStatePolicy, &UiStatePolicyManager::enableNavigationIfAllowed);
     connect(m_c.dialogLauncher, &DialogLauncher::engineListChanged,
             m_c.considerationTab, &ConsiderationTabManager::reloadEngines);
     connect(m_c.dialogLauncher, &DialogLauncher::sfenCollectionPositionSelected,

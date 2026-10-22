@@ -8,7 +8,7 @@
 #include <QStringList>
 #include <functional>
 
-#include "appstate.h"
+#include "appactivitystate.h"
 
 class QMainWindow;
 class ShogiGameController;
@@ -33,7 +33,7 @@ struct AutomationContext {
     ShogiView* shogiView = nullptr;
     KifuBranchTree* branchTree = nullptr;
 
-    const AppState* state = nullptr;                          ///< 動作状態
+    const AppActivityState* activity = nullptr;               ///< 動作状態
     const KifuDocument* document = nullptr;                   ///< 開いている棋譜（対局者・上書き保存先・書き出し）
     const AnalysisSession* analysis = nullptr;                ///< 検討・詰み探索（エンジン名）
     const KifuNavigationState* navState = nullptr;            ///< 表示中の手数（分岐ツリーのカーソル）

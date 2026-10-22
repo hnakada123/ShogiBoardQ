@@ -27,6 +27,7 @@ PositionEditSession::PositionEditSession(const Deps& deps, QObject* parent)
 {
     Q_ASSERT(m_deps.view && m_deps.gameController && m_deps.board && m_deps.navState && m_deps.activity);
     connect(m_deps.view->chrome(), &BoardChromeWidget::editExitRequested, this, &PositionEditSession::finish);
+    connect(m_deps.activity, &AppActivityState::revoked, this, &PositionEditSession::onActivityRevoked);
 
     const EditActions& a = m_deps.actions;
     if (a.returnAllPiecesToStand)
@@ -41,7 +42,7 @@ PositionEditSession::PositionEditSession(const Deps& deps, QObject* parent)
 
 bool PositionEditSession::isEditing() const
 {
-    return m_deps.activity->is(AppActivityState::Activity::DuringPositionEdit);
+    return m_activityLease.isCurrent();
 }
 
 // ============================================================
@@ -51,7 +52,8 @@ bool PositionEditSession::isEditing() const
 void PositionEditSession::begin()
 {
     ShogiBoard* board = m_deps.view->board();
-    if (!board || isEditing()) return;
+    // 編集は待機中だけ始める（編集メニューと同じ規則。対局・検討などの途中では始めない）
+    if (!board || !m_deps.activity->is(AppActivityState::Activity::Idle)) return;
 
     // 表示中の局面を、表示している手番のまま1手目として編集する（棋譜を読み込んだ直後も同じ）
     const Turn turn = board->currentPlayer();
@@ -60,7 +62,7 @@ void PositionEditSession::begin()
 
     resetInteraction();
     board->setSfen(sfen);
-    m_deps.activity->setActivity(AppActivityState::Activity::DuringPositionEdit);
+    m_activityLease = m_deps.activity->begin(AppActivityState::Activity::DuringPositionEdit, this);
     m_deps.view->setPositionEditMode(true);
     m_deps.view->setEditExitButtonVisible(true);
     m_deps.view->update();
@@ -69,8 +71,19 @@ void PositionEditSession::begin()
 
 void PositionEditSession::finish()
 {
-    if (!isEditing()) return;
+    if (isEditing()) endEditing();
+}
+
+void PositionEditSession::onActivityRevoked(QObject* owner)
+{
+    // 編集中にほかの部品が別の動作を始めた。盤を編集の表示のまま残さず、編集した局面で編集を終える
+    if (owner == this) endEditing();
+}
+
+void PositionEditSession::endEditing()
+{
     ShogiBoard* board = m_deps.view->board();
+    if (!board) return;
 
     // 編集中に替えた手番で、編集した局面を1手目にする
     const QString sfen = board->position().toSfen(m_deps.gameController->currentPlayer(), 1);
@@ -78,7 +91,7 @@ void PositionEditSession::finish()
     board->setSfen(sfen);
     m_deps.view->setPositionEditMode(false);
     m_deps.view->setEditExitButtonVisible(false);
-    m_deps.activity->setActivity(AppActivityState::Activity::Idle);
+    m_activityLease.reset();
     m_deps.view->update();
     qCDebug(lcUi) << "finishPositionEditing: startSfen=" << sfen;
     emit editingFinished(sfen);

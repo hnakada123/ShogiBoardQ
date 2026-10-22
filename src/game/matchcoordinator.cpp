@@ -75,7 +75,7 @@ void MatchCoordinator::start(const StartOptions& opt)
     clearGameOverState();
     m_session.begin(resolved);
     m_record = resolved.recordLine;
-    m_activity->setActivity(AppActivityState::Activity::DuringGame);
+    m_activityLease = m_activity->begin(AppActivityState::Activity::DuringGame, this);
 
     m_gc->newGame(resolved.sfenStart);
     m_playing = false;
@@ -381,7 +381,7 @@ void MatchCoordinator::endGame(const GameEndInfo& info, std::optional<Turn> engi
     disarmTurnTimer();
     m_engines->notifyGameOver(engineLoser);
     appendTerminalRecord(info);
-    m_activity->setActivity(AppActivityState::Activity::Idle);
+    m_activityLease.reset();
     // 終局の行を棋譜に書いた後で、時刻と UI を更新させる
     emit gameEnded(info);
 
@@ -533,7 +533,7 @@ bool MatchCoordinator::resumeInterruptedGame()
 
     clearGameOverState();
     m_session.begin(state->options);
-    m_activity->setActivity(AppActivityState::Activity::DuringGame);
+    m_activityLease = m_activity->begin(AppActivityState::Activity::DuringGame, this);
     m_record = state->record;
     m_gc->board()->setSfen(state->options.sfenStart);
 

@@ -647,7 +647,7 @@ void MatchCoordinator::endGame(const GameEndInfo& info, std::optional<Turn> engi
     disarmTurnTimer();
     m_engines->notifyGameOver(engineLoser);
     appendTerminalRecord(info);
-    m_activity->setActivity(AppActivityState::Activity::Idle);
+    m_activityLease.reset();
     // 終局の行を棋譜に書いた後で、時刻と UI を更新させる
     emit gameEnded(info);
 
@@ -1046,7 +1046,7 @@ MatchCoordinator::handleResign()
         │   ├─ 投了した側の考慮時間を確定
         │   ├─ MatchRecordSink::appendRecord("▲投了")      ──→ (A)
         │   └─ MatchSessionState::markTerminalRecorded()
-        ├─ AppActivityState::setActivity(Idle)             ──→ (B)
+        ├─ m_activityLease.reset()（動作状態を Idle に） ──→ (B)
         ├─ emit gameEnded(info)                            ──→ (C)
         ├─ emit gameOverMessage("対局終了", "先手の投了。後手の勝ちです。")
         │                                    ──→ UiNotificationService::showInformation()

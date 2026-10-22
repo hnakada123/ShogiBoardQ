@@ -6,7 +6,7 @@
 #include "josekibooksession.h"
 
 #include "analysissession.h"
-#include "appstate.h"
+#include "appactivitystate.h"
 #include "consecutivegameseries.h"
 #include "csagamechannel.h"
 #include "csagamecoordinator.h"
@@ -55,7 +55,7 @@ GameSession::GameSession(const Deps& deps, QObject* parent)
     : QObject(parent)
     , m_deps(deps)
 {
-    Q_ASSERT(m_deps.state && m_deps.match && m_deps.clock && m_deps.csaGame);
+    Q_ASSERT(m_deps.activity && m_deps.match && m_deps.clock && m_deps.csaGame);
     m_localChannel = std::make_unique<LocalGameChannel>(m_deps.match, m_deps.clock);
     m_csaChannel = std::make_unique<CsaGameChannel>(m_deps.csaGame);
 
@@ -77,7 +77,7 @@ GameSession::~GameSession() = default;
 
 GameChannel* GameSession::activeChannel() const
 {
-    const AppActivityState& activity = m_deps.state->activity;
+    const AppActivityState& activity = *m_deps.activity;
     if (activity.is(AppActivityState::Activity::DuringCsaGame)) return m_csaChannel.get();
     if (activity.is(AppActivityState::Activity::DuringGame)) return m_localChannel.get();
     return nullptr;
@@ -305,8 +305,8 @@ void GameSession::resetToInitialState()
 
     m_deps.reset->clearBeforeKifuLoad();
     // 前の対局者・持ち時間・上書き保存先も残さない（盤には対局情報の初期値「先手」「後手」を出す）
+    // 動作状態は、止めた検討・通信対局・解析がそれぞれ手放す（「新規」は待機中だけ）
     m_deps.reset->resetToNewRecord(SfenUtils::hirateSfen());
-    m_deps.state->activity.setActivity(AppActivityState::Activity::Idle);
 }
 
 // ============================================================

@@ -604,7 +604,7 @@ private slots:
         QCOMPARE(clock->remainingMainTimeMs(Turn::Black), blackTime);
         QCOMPARE(clock->remainingMainTimeMs(Turn::White), whiteTime);
         QCOMPARE(QFile(qEnvironmentVariable("AUDIT_USI_LOG")).size(), engineLogSize);
-        QCOMPARE(window->composer().state().activity.activity(), AppActivityState::Activity::Idle);
+        QCOMPARE(window->composer().activity().activity(), AppActivityState::Activity::Idle);
         QCOMPARE(view->board()->position().boardSfen(), boardSfen);
         QCOMPARE(view->board()->pieceBox(), box);
         QCOMPARE(view->board()->position().handsSfen(), hands);
@@ -650,7 +650,7 @@ private slots:
         QVERIFY2(!messages.join('\n').contains(QStringLiteral("対局を開始できません")),
                  qPrintable(messages.join('\n')));
         QVERIFY(window->composer().parts().match->clock()->isRunning());
-        QCOMPARE(window->composer().state().activity.activity(), AppActivityState::Activity::DuringGame);
+        QCOMPARE(window->composer().activity().activity(), AppActivityState::Activity::DuringGame);
         QVERIFY(window->composer().parts().document->players().humanVsHuman());
         auto* view = window->findChild<ShogiView*>();
         QCOMPARE(view->board()->position().boardSfen(), expectedBoard);

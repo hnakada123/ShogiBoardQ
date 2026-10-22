@@ -8,7 +8,7 @@
 #include <QSignalSpy>
 #include <QTemporaryDir>
 
-#include "appstate.h"
+#include "appactivitystate.h"
 #include "kifudocument.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
@@ -168,8 +168,7 @@ private slots:
         QVERIFY(p.kifuFileController->loadKifuFile(fixture(QStringLiteral("test_basic.kif"))));
         const QString root = p.branchTree->root()->sfen();
         const QStringList before = p.branchTree->mainRecordLine().usiMoves();
-        auto& activity = window.composer().state().activity;
-        activity.setActivity(AppActivityState::Activity::DuringConsideration);
+        ActivityLease consideration = window.composer().activity().begin(AppActivityState::Activity::DuringConsideration, nullptr);
         QVERIFY(!p.kifuFileController->canReplaceRecord());
         QSignalSpy messages(p.kifuFileController, &KifuFileController::statusMessage);
 
@@ -179,7 +178,7 @@ private slots:
         QCOMPARE(p.branchTree->root()->sfen(), root);
         QCOMPARE(p.branchTree->mainRecordLine().usiMoves(), before);
 
-        activity.setActivity(AppActivityState::Activity::Idle);
+        consideration.reset();
         QVERIFY(p.kifuFileController->canReplaceRecord());
     }
 

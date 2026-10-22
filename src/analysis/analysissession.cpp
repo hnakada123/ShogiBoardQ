@@ -21,6 +21,7 @@ AnalysisSession::AnalysisSession(const Deps& deps, QObject* parent)
     if (m_deps.navState)
         connect(m_deps.navState, &KifuNavigationState::changed, this, &AnalysisSession::followDisplayedPosition);
     connect(m_deps.engines, &EngineLifecycleManager::engineRevoked, this, &AnalysisSession::onEngineRevoked);
+    connect(m_deps.activity, &AppActivityState::revoked, this, &AnalysisSession::onActivityRevoked);
 }
 
 Usi* AnalysisSession::engine() const
@@ -47,8 +48,9 @@ bool AnalysisSession::start(const AnalysisOptions& opt)
     m_state = State::Searching;
     m_engineName = opt.engineName;
     m_mode = opt.mode == AnalysisOptions::Mode::Tsume ? Mode::Tsume : Mode::Consideration;
-    m_deps.activity->setActivity(m_mode == Mode::Tsume ? AppActivityState::Activity::DuringTsumeSearch
-                                                      : AppActivityState::Activity::DuringConsideration);
+    m_activityLease = m_deps.activity->begin(m_mode == Mode::Tsume ? AppActivityState::Activity::DuringTsumeSearch
+                                                                  : AppActivityState::Activity::DuringConsideration,
+                                             this);
 
     // エンジンは E1 の枠に置く（対局の手番は持たない）
     m_lease = m_deps.engines->acquire(this, 1, std::nullopt, opt.engineName);
@@ -97,7 +99,8 @@ void AnalysisSession::stop()
     const Mode previous = endSession();
     m_deps.engines->setShutdownInProgress(false);
     if (previous == Mode::None) return;
-    m_deps.activity->setActivity(AppActivityState::Activity::Idle);
+    // 自分の動作状態のときだけ待機中に戻す（ほかの部品が始めた動作は変えない）
+    m_activityLease.reset();
     if (previous == Mode::Consideration) emit considerationModeEnded();
     if (previous == Mode::Tsume) emit tsumeSearchModeEnded();
 }
@@ -105,6 +108,11 @@ void AnalysisSession::stop()
 void AnalysisSession::onEngineRevoked(QObject* owner)
 {
     // ほかの処理がエンジンの枠を取った（棋譜解析・対局の開始など）。セッションを終えたことを知らせる
+    if (owner == this) stop();
+}
+
+void AnalysisSession::onActivityRevoked(QObject* owner)
+{
     if (owner == this) stop();
 }
 

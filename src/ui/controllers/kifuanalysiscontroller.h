@@ -10,12 +10,12 @@
 #include <optional>
 
 #include "analysisjob.h"
+#include "appactivitystate.h"
 #include "enginelifecyclemanager.h"
 
 class AnalysisResultHandler;
 class AnalysisResultsPanel;
 class QDockWidget;
-class AppActivityState;
 class EvaluationChartWidget;
 class EvaluationGraphPresenter;
 class KifuDocument;
@@ -82,6 +82,8 @@ private slots:
     void onFinished(bool completed);
     void onEngineError(const QString& message);
     void onEngineRevoked(QObject* owner);
+    /// ほかの部品が別の動作（検討・対局など）を始めた
+    void onActivityRevoked(QObject* owner);
     void onResultRowSelected(int row);
     void onResultRowDoubleClicked(int row);
     /// 棋譜欄・グラフなどから移った局面に結果の選択を合わせる
@@ -102,6 +104,7 @@ private:
     std::unique_ptr<AnalysisResultsPanel> m_ownedResultsPanel;   ///< 結果の表を渡されなかったときに作ったもの
     std::unique_ptr<AnalysisResultHandler> m_resultHandler;
     EngineLease m_lease;                       ///< 枠 E1 のエンジンを使う権利（テスト用のエンジンを渡されたときは使わない）
+    ActivityLease m_activityLease;             ///< 解析中の動作状態
     std::unique_ptr<AnalysisJob> m_job;
     /// 解析を終えた局面の評価値（先手から見た値）。次の局面に移るときにグラフに足す
     struct PendingPlot {

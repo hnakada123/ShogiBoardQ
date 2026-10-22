@@ -6,7 +6,7 @@
 
 #include <QObject>
 
-#include "appstate.h"
+#include "appactivitystate.h"
 #include "mainwindowcomponents.h"
 
 class MainWindow;
@@ -21,7 +21,8 @@ QT_END_NAMESPACE
  * 部品は compose() で全部作る。遅延生成も、作られていない部品を後から探すゲッターもない。
  * 部品は依存する部品が先にできている順に作り、依存はコンストラクタの Deps で渡す
  * （作った後に set* で注入しない）。部品どうしのシグナルは全部作ってからつなぐ。
- * 状態は AppState に1つだけ置き、部品はそこへのポインタを受け取る。
+ * 動作状態は AppActivityState に1つだけ置き、部品はそこへのポインタを受け取る（変えるのは begin で
+ * リースを受け取った部品だけ）。
  *
  * 実装は次のファイルに分けている:
  * - mainwindowcomposer.cpp            起動・終了の手順、初期表示、終了確認
@@ -49,8 +50,8 @@ public:
     /// 自動化 API のサーバーを作って待ち受けを始める（1回だけ）
     void startAutomationServer(const QString& socketPath);
 
-    AppState& state() { return m_state; }
-    const AppState& state() const { return m_state; }
+    AppActivityState& activity() { return m_activity; }
+    const AppActivityState& activity() const { return m_activity; }
     MainWindowComponents& parts() { return m_c; }
     const MainWindowComponents& parts() const { return m_c; }
 
@@ -83,7 +84,7 @@ private:
 
     MainWindow& m_window;
     Ui::MainWindow& m_ui;
-    AppState m_state;
+    AppActivityState m_activity;
     MainWindowComponents m_c;
     bool m_shutdownDone = false;
 };

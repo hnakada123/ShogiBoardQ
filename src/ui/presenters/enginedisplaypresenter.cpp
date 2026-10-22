@@ -84,8 +84,8 @@ void EngineDisplayPresenter::clearAll()
     }
     if (ConsiderationTabManager* tab = m_deps.considerationTab) {
         if (tab->considerationInfo()) tab->considerationInfo()->setModel(nullptr);
+        // 検討の実行の状態（ボタン・経過時間）は AnalysisSession の知らせだけから決める
         tab->setConsiderationEngineName(QString());
-        tab->setRunState(ConsiderationTabManager::RunState::Idle);
     }
 }
 

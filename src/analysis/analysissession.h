@@ -10,10 +10,10 @@
 #include <QTimer>
 
 #include "analysisoptions.h"
+#include "appactivitystate.h"
 #include "enginelifecyclemanager.h"
 #include "usimessages.h"
 
-class AppActivityState;
 class KifuNavigationState;
 class Usi;
 
@@ -87,6 +87,8 @@ private slots:
     void onConsiderationBestMoveReceived(const UsiBestMove& result);
     void restartConsiderationDeferred();
     void onEngineRevoked(QObject* owner);
+    /// ほかの部品が別の動作（対局・局面編集など）を始めた
+    void onActivityRevoked(QObject* owner);
 
 private:
     enum class Mode { None, Consideration, Tsume };
@@ -101,6 +103,7 @@ private:
 
     Deps m_deps;
     EngineLease m_lease;                          ///< 枠 E1 のエンジンを使う権利
+    ActivityLease m_activityLease;                ///< 検討中・詰み探索中の動作状態
     QPointer<Usi> m_engine;                       ///< m_lease のエンジン
     Mode m_mode = Mode::None;
     State m_state = State::Idle;

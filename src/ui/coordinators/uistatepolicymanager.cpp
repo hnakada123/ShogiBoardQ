@@ -20,10 +20,10 @@
 UiStatePolicyManager::UiStatePolicyManager(const Deps& deps, QObject* parent)
     : QObject(parent)
     , m_deps(deps)
-    , m_activity(deps.activity ? deps.activity : &m_defaultActivity)
 {
+    Q_ASSERT(m_deps.activity);
     // 状態は動作状態（AppActivityState）が決める。変わるたびに表のとおりに有効・無効を切り替える
-    connect(m_activity, &AppActivityState::changed, this, &UiStatePolicyManager::refreshActivity);
+    connect(m_deps.activity, &AppActivityState::changed, this, &UiStatePolicyManager::refreshActivity);
     refreshActivity();
 }
 
@@ -33,10 +33,10 @@ UiStatePolicyManager::UiStatePolicyManager(const Deps& deps, QObject* parent)
 
 namespace {
 
-using S = UiStatePolicyManager::AppState;
+using S = UiStatePolicyManager::Activity;
 using E = UiStatePolicyManager::UiElement;
 
-/// 状態の集合（AppState ごとに1ビット）
+/// 状態の集合（動作状態ごとに1ビット）
 using StateSet = unsigned;
 constexpr StateSet in(S state) { return 1u << static_cast<unsigned>(state); }
 constexpr StateSet kAllStates = in(S::Idle) | in(S::DuringGame) | in(S::DuringAnalysis) | in(S::DuringCsaGame)
@@ -174,7 +174,7 @@ void applyActionPolicy(QAction* action, UiStatePolicyManager::Policy policy)
 
 } // namespace
 
-UiStatePolicyManager::Policy UiStatePolicyManager::tablePolicy(AppState state, UiElement element)
+UiStatePolicyManager::Policy UiStatePolicyManager::tablePolicy(Activity state, UiElement element)
 {
     if (element == UiElement::Count) return Policy::Disabled;
     const Rule& rule = kRules[static_cast<int>(element)];
@@ -193,7 +193,7 @@ UiStatePolicyManager::Policy UiStatePolicyManager::effectivePolicy(UiElement ele
     // 待った・投了・入玉宣言はローカル対局では人間が参加する場合だけ。エンジン同士では行わない
     if (element == UiElement::GameUndo
         || ((element == UiElement::GameResign || element == UiElement::GameNyugyokuDeclaration)
-            && currentState() == AppState::DuringGame)) {
+            && currentState() == Activity::DuringGame)) {
         if (!m_deps.localGameHasHuman || !m_deps.localGameHasHuman()) return Policy::Disabled;
     }
     return tablePolicy(currentState(), element);
@@ -210,7 +210,6 @@ void UiStatePolicyManager::refreshActivity()
         const auto element = static_cast<UiElement>(i);
         applyPolicy(element, effectivePolicy(element));
     }
-    emit stateChanged(currentState());
 }
 
 // ======================================================================
@@ -220,12 +219,6 @@ void UiStatePolicyManager::refreshActivity()
 void UiStatePolicyManager::refreshResumeAvailability()
 {
     applyPolicy(UiElement::GameResume, effectivePolicy(UiElement::GameResume));
-}
-
-void UiStatePolicyManager::enableNavigationIfAllowed()
-{
-    if (!isEnabled(UiElement::WidgetNavigation)) return;
-    if (m_deps.navigation) m_deps.navigation->setStepActionsEnabled(true);
 }
 
 // ======================================================================

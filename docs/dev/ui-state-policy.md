@@ -6,22 +6,25 @@
 
 `UiStatePolicyManager`（`src/ui/coordinators/uistatepolicymanager.h/.cpp`）は、アプリケーションの7つの状態に応じて、全UI要素のポリシーを一元管理する状態テーブル駆動型のクラスである。
 
-## アプリケーション状態（AppState）
+## 動作状態（AppActivityState）
 
-状態は `AppActivityState::Activity`（`src/common/appactivitystate.h`）で、値は `AppState::activity` に1つだけ置く
-（`UiStatePolicyManager::AppState` はこの列挙の別名）。状態は各部品が `AppActivityState::setActivity()` で直接切り替える。
+状態は `AppActivityState::Activity`（`src/common/appactivitystate.h`）で、値は合成ルートが持つ `AppActivityState` に1つだけ置く
+（`UiStatePolicyManager::Activity` はこの列挙の別名）。状態を変えるのは、`AppActivityState::begin(動作, 持ち主)` が返す
+`ActivityLease` を持つ部品だけである。リースを手放す（`reset()`・破棄）と待機中に戻るが、別の部品が別の動作を始めた後
+（取り上げられた後）は何もしない。取り上げられた持ち主には `revoked(owner)` が次のイベントループで届き、受けた部品は
+自分の処理を終える（検討・詰み探索・棋譜解析は止め、局面編集は編集した局面で編集を終える）。
 `UiStatePolicyManager` は `AppActivityState::changed` を受けて全UI要素にポリシーを適用し直すので、
 状態を変える側は `UiStatePolicyManager` を知らなくてよい。
 
 | 状態 | 説明 | この状態にする部品 |
 |---|---|---|
-| **Idle** | 待機状態（起動直後・各モード終了後） | 各モードを終える部品・「新規」（`GameSession::resetToInitialState()`） |
+| **Idle** | 待機状態（起動直後・各モード終了後） | 動作を終えた部品がリースを手放したとき |
 | **DuringGame** | 対局中 | `MatchCoordinator::start()`・`resumeInterruptedGame()` |
 | **DuringAnalysis** | 棋譜解析中 | `KifuAnalysisController::start()` |
 | **DuringCsaGame** | CSA通信対局中 | `CsaGameSession::onGameStarted()`（`CsaGameCoordinator::gameStarted` を受ける） |
 | **DuringTsumeSearch** | 詰み探索中 | `AnalysisSession::start()`（詰み探索のとき） |
 | **DuringConsideration** | 検討中 | `AnalysisSession::start()`（検討のとき） |
-| **DuringPositionEdit** | 局面編集中 | `PositionEditSession::begin()` |
+| **DuringPositionEdit** | 局面編集中 | `PositionEditSession::begin()`（待機中だけ始める） |
 
 ## 状態遷移図
 
@@ -139,14 +142,13 @@ CSA通信対局は、待機ダイアログのキャンセル（`CsaGameSession::
 ## 状態変化の伝わり方
 
 ```
-各部品 ──setActivity()──► AppActivityState（AppState::activity）
-                              │ changed
-                              ▼
-                 UiStatePolicyManager::refreshActivity()
-                   → 全UI要素に effectivePolicy() を適用 → stateChanged
+各部品 ──begin()／リースの reset()──► AppActivityState
+                              │ changed                     │ revoked(owner)（次のイベントループ）
+                              ▼                             ▼
+                 UiStatePolicyManager::refreshActivity()   取り上げられた持ち主が自分の処理を終える
+                   → 全UI要素に effectivePolicy() を適用
 
 MatchCoordinator::resumeAvailabilityChanged ──► refreshResumeAvailability()（canResumeGame に問い合わせて「再開」だけ適用し直す）
-KifuLoadCoordinator::loadFinished ──► enableNavigationIfAllowed()（ナビゲーションが許可されていれば局面送りの QAction を有効化）
 ```
 
 ## エンジンエラー時の復旧パス
@@ -157,20 +159,20 @@ KifuLoadCoordinator::loadFinished ──► enableNavigationIfAllowed()（ナビ
 【対局中】
   Usi::errorOccurred → EngineLifecycleManager::engineError
     → MatchCoordinator::handleEngineError() → handleBreakOff() → endGame()
-    → setActivity(Idle) → gameEnded（GameSession::onGameEnded()）
+    → 動作状態のリースを手放す（Idle） → gameEnded（GameSession::onGameEnded()）
 
 【棋譜解析中】
   Usi::errorOccurred → AnalysisJob::onError() → stop() → finished(false)
-    → KifuAnalysisController::onFinished() → finishRun() → setActivity(Idle)
+    → KifuAnalysisController::onFinished() → finishRun() → リースを手放す（Idle）
   （AnalysisJob::errorOccurred → KifuAnalysisController::onEngineError() がエラーを表示する）
 
 【詰み探索中】
   Usi::errorOccurred → AnalysisSession::onEngineError()
-    → stop() → setActivity(Idle) → tsumeSearchModeEnded
+    → stop() → リースを手放す（Idle） → tsumeSearchModeEnded
 
 【検討中】
   Usi::errorOccurred → AnalysisSession::onEngineError()
-    → stop() → setActivity(Idle) → considerationModeEnded
+    → stop() → リースを手放す（Idle） → considerationModeEnded
 ```
 
 **注意**: CSA通信対局は `CsaGameCoordinator`（エンジンのエラーは `CsaEngineController::engineError` → `onEngineControllerError()`）と `CsaGameSession` が独自にエラー管理するため、`MatchCoordinator::handleEngineError()` では対象外。

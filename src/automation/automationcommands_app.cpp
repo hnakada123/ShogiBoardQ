@@ -46,25 +46,25 @@ void AutomationDeferredCall::run()
 
 namespace {
 
-QString uiStateName(UiStatePolicyManager::AppState state)
+QString uiStateName(AppActivityState::Activity state)
 {
     switch (state) {
-    case UiStatePolicyManager::AppState::Idle: return QStringLiteral("idle");
-    case UiStatePolicyManager::AppState::DuringGame: return QStringLiteral("game");
-    case UiStatePolicyManager::AppState::DuringAnalysis: return QStringLiteral("analysis");
-    case UiStatePolicyManager::AppState::DuringCsaGame: return QStringLiteral("csa_game");
-    case UiStatePolicyManager::AppState::DuringTsumeSearch: return QStringLiteral("tsume_search");
-    case UiStatePolicyManager::AppState::DuringConsideration: return QStringLiteral("consideration");
-    case UiStatePolicyManager::AppState::DuringPositionEdit: return QStringLiteral("position_edit");
+    case AppActivityState::Activity::Idle: return QStringLiteral("idle");
+    case AppActivityState::Activity::DuringGame: return QStringLiteral("game");
+    case AppActivityState::Activity::DuringAnalysis: return QStringLiteral("analysis");
+    case AppActivityState::Activity::DuringCsaGame: return QStringLiteral("csa_game");
+    case AppActivityState::Activity::DuringTsumeSearch: return QStringLiteral("tsume_search");
+    case AppActivityState::Activity::DuringConsideration: return QStringLiteral("consideration");
+    case AppActivityState::Activity::DuringPositionEdit: return QStringLiteral("position_edit");
     }
     return QStringLiteral("unknown");
 }
 
 /// 自動化 API の play_mode（動作状態と、対局中なら対局者の組。駒落ちの対局は handicap_ を付ける）
-QString playModeName(const AppState& state, const MatchPlayers& players, const QString& startSfen)
+QString playModeName(const AppActivityState& state, const MatchPlayers& players, const QString& startSfen)
 {
     using Activity = AppActivityState::Activity;
-    switch (state.activity.activity()) {
+    switch (state.activity()) {
     case Activity::Idle:
     case Activity::DuringPositionEdit: return QStringLiteral("not_started");
     case Activity::DuringAnalysis: return QStringLiteral("analysis");
@@ -145,7 +145,7 @@ void AutomationCommands::registerAppCommands(AutomationDispatcher& dispatcher, c
         const QStringList record = currentLinePositions(context);
         const QString startSfen = record.isEmpty() ? SfenUtils::hirateSfen() : record.first();
         const MatchPlayers players = context.document ? context.document->players() : MatchPlayers();
-        result[QStringLiteral("play_mode")] = context.state ? playModeName(*context.state, players, startSfen)
+        result[QStringLiteral("play_mode")] = context.activity ? playModeName(*context.activity, players, startSfen)
                                                             : QStringLiteral("unknown");
         result[QStringLiteral("current_ply")] = ply;
         result[QStringLiteral("total_plies")] = qMax(0, static_cast<int>(record.size()) - 1);

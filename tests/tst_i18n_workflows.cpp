@@ -15,7 +15,7 @@
 #include "branchtree_test_util.h"
 #include "kifudocument.h"
 #include "kifuexport.h"
-#include "appstate.h"
+#include "appactivitystate.h"
 #include "csagamecoordinator.h"
 #include "enginelifecyclemanager.h"
 #include "gamesession.h"
@@ -202,15 +202,15 @@ private slots:
         navigation.setCurrentNode(node);
         session.startFromNode(node);
         // 棋譜の受け手（本体と同じ GameSession。追記に使う部品と、作るときに要る対局の司令塔だけ渡す）
-        AppState state;
+        AppActivityState activity;
         KifuDocument document(&tree);
         ShogiGameController gc;
         ShogiClock clock;
         EngineLifecycleManager engines(&clock);
-        MatchCoordinator match({&gc, &clock, &state.activity, &engines, &document});
+        MatchCoordinator match({&gc, &clock, &activity, &engines, &document});
         CsaGameCoordinator csa;
         GameSession::Deps deps;
-        deps.state = &state;
+        deps.activity = &activity;
         deps.match = &match;
         deps.clock = &clock;
         deps.csaGame = &csa;

@@ -17,15 +17,16 @@ class TestAppUiStatePolicy : public QObject
     Q_OBJECT
 
 private:
-    using S = UiStatePolicyManager::AppState;
+    using S = UiStatePolicyManager::Activity;
     using E = UiStatePolicyManager::UiElement;
 
     /// 動作状態と、それに従う UI 状態ポリシー
     struct Policy {
         AppActivityState activity;
         UiStatePolicyManager mgr;
+        ActivityLease lease;   ///< 表を確かめるための状態（持ち主なし）
         explicit Policy(UiStatePolicyManager::Deps deps = {}) : mgr(withActivity(deps, &activity)) {}
-        void set(S state) { activity.setActivity(state); }
+        void set(S state) { lease = activity.begin(state, nullptr); }
         static UiStatePolicyManager::Deps withActivity(UiStatePolicyManager::Deps deps, AppActivityState* activity)
         {
             deps.activity = activity;
@@ -61,12 +62,12 @@ private slots:
         deps.activity = &activity;
         deps.localGameHasHuman = [] { return true; };
         UiStatePolicyManager manager(deps);
-        QSignalSpy changed(&manager, &UiStatePolicyManager::stateChanged);
-        activity.setActivity(AppActivityState::Activity::DuringGame);
+        QSignalSpy changed(&activity, &AppActivityState::changed);
+        ActivityLease game = activity.begin(AppActivityState::Activity::DuringGame, this);
         QCOMPARE(manager.currentState(), S::DuringGame);
         QVERIFY(manager.isEnabled(E::GameUndo));
         QCOMPARE(changed.count(), 1);
-        activity.setActivity(S::DuringConsideration);
+        ActivityLease consideration = activity.begin(S::DuringConsideration, &manager);
         QCOMPARE(activity.activity(), AppActivityState::Activity::DuringConsideration);
         QVERIFY(!manager.isEnabled(E::GameUndo));
         QCOMPARE(changed.count(), 2);
@@ -150,37 +151,59 @@ private slots:
     }
 
     // ================================================================
-    // stateChanged シグナルテスト
+    // 動作状態の持ち主（ActivityLease）
     // ================================================================
 
-    /// 動作状態が変わると stateChanged を出すこと
-    void activityChangeEmitsStateChanged()
+    /// 終えられるのは今の持ち主だけ。取り上げられた後に手放しても、新しい動作は変わらない
+    void onlyCurrentOwnerReturnsToIdle()
     {
-        Policy p;
-        UiStatePolicyManager& mgr = p.mgr;
-        QSignalSpy spy(&mgr, &UiStatePolicyManager::stateChanged);
-        QVERIFY(spy.isValid());
-
-        p.set(S::DuringGame);
-        QCOMPARE(spy.count(), 1);
-
-        const auto args = spy.takeFirst();
-        QCOMPARE(args.at(0).value<UiStatePolicyManager::AppState>(), S::DuringGame);
+        AppActivityState activity;
+        QObject analysis;
+        QObject game;
+        ActivityLease analysisLease = activity.begin(S::DuringAnalysis, &analysis);
+        QVERIFY(analysisLease.isCurrent());
+        ActivityLease gameLease = activity.begin(S::DuringGame, &game);
+        QVERIFY(!analysisLease.isCurrent());
+        analysisLease.reset();
+        QCOMPARE(activity.activity(), S::DuringGame);
+        gameLease.reset();
+        QCOMPARE(activity.activity(), S::Idle);
+        // 手放したリースは何もしない
+        gameLease.reset();
+        QCOMPARE(activity.activity(), S::Idle);
     }
 
-    /// 状態ごとに stateChanged を出すこと
-    void eachActivityChangeEmitsStateChanged()
+    /// 取り上げられた持ち主には、始めた部品の準備が済んでから（次のイベントループで）知らせる
+    void revokedReachesPreviousOwnerLater()
     {
-        Policy p;
-        UiStatePolicyManager& mgr = p.mgr;
-        QSignalSpy spy(&mgr, &UiStatePolicyManager::stateChanged);
-        QVERIFY(spy.isValid());
+        AppActivityState activity;
+        QObject edit;
+        QObject consideration;
+        QSignalSpy revoked(&activity, &AppActivityState::revoked);
+        ActivityLease editLease = activity.begin(S::DuringPositionEdit, &edit);
+        ActivityLease considerationLease = activity.begin(S::DuringConsideration, &consideration);
+        QCOMPARE(revoked.count(), 0);
+        QTRY_COMPARE(revoked.count(), 1);
+        QCOMPARE(revoked.first().at(0).value<QObject*>(), &edit);
+        // 同じ持ち主が始め直しても知らせない
+        considerationLease = activity.begin(S::DuringConsideration, &consideration);
+        QTest::qWait(10);
+        QCOMPARE(revoked.count(), 1);
+        QCOMPARE(activity.activity(), S::DuringConsideration);
+    }
 
-        p.set(S::DuringAnalysis);
-        QCOMPARE(spy.count(), 1);
-
-        p.set(S::Idle);
-        QCOMPARE(spy.count(), 2);
+    /// リースを破棄すると待機中に戻る（移したリースは元の変数では何もしない）
+    void leaseMovesAndReleasesOnDestruction()
+    {
+        AppActivityState activity;
+        {
+            ActivityLease first = activity.begin(S::DuringTsumeSearch, nullptr);
+            ActivityLease moved = std::move(first);
+            first.reset();
+            QCOMPARE(activity.activity(), S::DuringTsumeSearch);
+            QVERIFY(moved.isCurrent());
+        }
+        QCOMPARE(activity.activity(), S::Idle);
     }
 
     // ================================================================
@@ -220,7 +243,7 @@ private slots:
     {
         Policy p;
         UiStatePolicyManager& mgr = p.mgr;
-        QSignalSpy spy(&mgr, &UiStatePolicyManager::stateChanged);
+        QSignalSpy spy(&p.activity, &AppActivityState::changed);
 
         const QList<S> allStates = {
             S::Idle, S::DuringGame, S::DuringAnalysis,

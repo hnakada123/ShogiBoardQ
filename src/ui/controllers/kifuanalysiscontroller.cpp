@@ -29,6 +29,7 @@ KifuAnalysisController::KifuAnalysisController(const Deps& deps, QObject* parent
     Q_ASSERT(m_deps.activity && m_deps.analysisModel);
     if (m_deps.engines)
         connect(m_deps.engines, &EngineLifecycleManager::engineRevoked, this, &KifuAnalysisController::onEngineRevoked);
+    connect(m_deps.activity, &AppActivityState::revoked, this, &KifuAnalysisController::onActivityRevoked);
     if (m_deps.evalChart) {
         connect(m_deps.evalChart, &EvaluationChartWidget::analysisPlyClicked,
                 this, &KifuAnalysisController::onAnalysisPlyClicked);
@@ -150,7 +151,7 @@ bool KifuAnalysisController::start(AnalysisRequest request)
     m_resultHandler = std::make_unique<AnalysisResultHandler>(refs);
 
     m_running = true;
-    m_deps.activity->setActivity(AppActivityState::Activity::DuringAnalysis);
+    m_activityLease = m_deps.activity->begin(AppActivityState::Activity::DuringAnalysis, this);
     // エンジンの起動の失敗は、戻った後に onEngineError で届く（ここで二重に出さない）
     if (!m_job->start()) {
         showError(tr("エンジン初期化に失敗しました。エンジン設定を確認してください。"));
@@ -173,13 +174,18 @@ void KifuAnalysisController::onEngineRevoked(QObject* owner)
     if (owner == this) stop();
 }
 
+void KifuAnalysisController::onActivityRevoked(QObject* owner)
+{
+    if (owner == this) stop();
+}
+
 void KifuAnalysisController::finishRun()
 {
     if (!m_running) return;
     m_running = false;
     if (m_resultsPanel) m_resultsPanel->setStopButtonEnabled(false);
-    if (m_deps.activity->is(AppActivityState::Activity::DuringAnalysis))
-        m_deps.activity->setActivity(AppActivityState::Activity::Idle);
+    // 自分の動作状態のときだけ待機中に戻す（ほかの部品が始めた動作は変えない）
+    m_activityLease.reset();
     syncResultSelection();
 }
 

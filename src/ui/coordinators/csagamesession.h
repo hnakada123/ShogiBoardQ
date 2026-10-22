@@ -61,8 +61,8 @@ public:
     bool startGame(const CsaGameDialog::Selection& selection);
 
     CsaGameCoordinator* coordinator() const { return m_deps.coordinator; }
-    /// 通信対局中か（待機中・対局中）
-    bool isActive() const { return m_deps.activity->is(AppActivityState::Activity::DuringCsaGame); }
+    /// 通信対局中か（対局が始まってから終局まで）
+    bool isActive() const { return m_activityLease.isCurrent(); }
 
 public slots:
     /// 待機ダイアログで「キャンセル」した
@@ -80,6 +80,7 @@ private:
     void showStatus(const QString& message, int timeoutMs) const;
 
     Deps m_deps;
+    ActivityLease m_activityLease;       ///< 通信対局中の動作状態（対局の開始で受け取り、終局・取りやめで手放す）
 
     bool m_autoFlipBoard = true;         ///< 後手のときは盤を反転する（接続ダイアログの設定）
 };

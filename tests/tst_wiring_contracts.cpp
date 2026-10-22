@@ -65,21 +65,21 @@ public:
     {
         m_endWasCommitted = m_parts->branchTree->mainLine().last()->isTerminal()
             && !m_parts->liveGameSession->isActive()
-            && m_parts->uiStatePolicy->currentState() == UiStatePolicyManager::AppState::Idle;
+            && m_parts->uiStatePolicy->currentState() == UiStatePolicyManager::Activity::Idle;
     }
 private slots:
     void humanMoveAndUndoPublishConsistentRecord()
     {
         MainWindow window;
         auto& p = window.composer().parts();
-        auto& state = window.composer().state();
+        auto& activity = window.composer().activity();
         m_parts = &p;
         m_consistentMoves = 0;
         // 名前の通知だけでは活動を開始しない。
         MatchPlayers humanEngine;
         humanEngine.whiteIsEngine = true;
         p.playerInfo->showPlayers(humanEngine);
-        QCOMPARE(state.activity.activity(), AppActivityState::Activity::Idle);
+        QCOMPARE(activity.activity(), AppActivityState::Activity::Idle);
         QCOMPARE(p.document->players(), MatchPlayers());
         StartGameDialogData data;
         QString error;
@@ -104,7 +104,7 @@ private slots:
     {
         MainWindow window;
         auto& p = window.composer().parts();
-        auto& state = window.composer().state();
+        auto& activity = window.composer().activity();
         m_parts = &p;
         m_endWasCommitted = false;
         connect(p.match, &MatchCoordinator::gameEnded, this, &TestWiringContracts::observeEnd);
@@ -114,8 +114,8 @@ private slots:
         data.players[1].humanName = QStringLiteral("花子");
         QString error;
         QVERIFY2(startGame(p, data, &error), qPrintable(error));
-        QCOMPARE(p.uiStatePolicy->currentState(), UiStatePolicyManager::AppState::DuringGame);
-        QCOMPARE(state.activity.activity(), AppActivityState::Activity::DuringGame);
+        QCOMPARE(p.uiStatePolicy->currentState(), UiStatePolicyManager::Activity::DuringGame);
+        QCOMPARE(activity.activity(), AppActivityState::Activity::DuringGame);
         QVERIFY(p.document->players().humanVsHuman());
         QCOMPARE(p.document->players().name(Turn::Black), QStringLiteral("太郎"));
         QCOMPARE(p.document->players().name(Turn::White), QStringLiteral("花子"));
@@ -142,7 +142,7 @@ private slots:
         QVERIFY(!p.liveGameSession->isActive());
         QCOMPARE(p.branchTree->nodeCount(), 1);
         QCOMPARE(p.kifuRecord->rowCount(), 1);
-        QCOMPARE(p.uiStatePolicy->currentState(), UiStatePolicyManager::AppState::Idle);
+        QCOMPARE(p.uiStatePolicy->currentState(), UiStatePolicyManager::Activity::Idle);
     }
     void consecutiveSettingsReachController()
     {

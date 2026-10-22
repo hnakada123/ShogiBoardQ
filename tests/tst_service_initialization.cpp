@@ -5,6 +5,7 @@
 #include <QPointer>
 #include <QSignalSpy>
 #include <QTextEdit>
+#include "appactivitystate.h"
 #include "mainwindow.h"
 #include "mainwindowactions.h"
 #include "mainwindowcomposer.h"
@@ -146,6 +147,33 @@ private slots:
         parts.positionEdit->finish();
         QCOMPARE(started.count(), 1);
         QCOMPARE(finished.count(), 1);
+    }
+
+    /// 局面編集中にほかの部品が別の動作を始めて動作状態を取り上げたら、盤を編集の表示のまま残さず、
+    /// 編集した局面で編集を終える（編集は待機中だけ始め、終えられるのは持ち主だけ）
+    void positionEditEndsWhenActivityIsTaken()
+    {
+        MainWindow window;
+        auto& parts = window.composer().parts();
+        AppActivityState& activity = window.composer().activity();
+        QSignalSpy finished(parts.positionEdit, &PositionEditSession::editingFinished);
+        parts.actions->beginPositionEditing();
+        QVERIFY(parts.positionEdit->isEditing());
+        QVERIFY(parts.shogiView->positionEditMode());
+
+        QObject other;
+        ActivityLease consideration = activity.begin(AppActivityState::Activity::DuringConsideration, &other);
+        QVERIFY(!parts.positionEdit->isEditing());
+        QTRY_COMPARE(finished.count(), 1);
+        QVERIFY(!parts.shogiView->positionEditMode());
+        // 取り上げた部品の動作状態は変わらない。編集は待機中でなければ始めない
+        QCOMPARE(activity.activity(), AppActivityState::Activity::DuringConsideration);
+        parts.document->markSaved(QString());
+        parts.actions->beginPositionEditing();
+        QVERIFY(!parts.positionEdit->isEditing());
+        consideration.reset();
+        QCOMPARE(activity.activity(), AppActivityState::Activity::Idle);
+        parts.document->markSaved(QString());
     }
 
     /// 司令塔（MatchCoordinator）・エンジンの枠・検討のセッションは起動時に一度だけ作り、作り直さない。

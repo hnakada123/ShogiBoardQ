@@ -35,7 +35,7 @@
 | [第11章](#第11章-viewswidgetsdialogs層qt-ui部品) | views/widgets/dialogs層：Qt UI部品 | ShogiView描画、ThinkingPanel などのウィジェット、ダイアログ |
 | [第12章](#第12章-network層とservices層) | network層とservices層 | CSA通信、設定の宣言（Setting<T>）、駒音・外観などのサービス |
 | [第13章](#第13章-navigation層とboard層) | navigation層とboard層 | 棋譜ナビゲーション、盤面操作 |
-| [第14章](#第14章-mainwindowの役割と構造) | MainWindowの役割と構造 | MainWindowComposer・部品の一覧・AppState、起動手順 |
+| [第14章](#第14章-mainwindowの役割と構造) | MainWindowの役割と構造 | MainWindowComposer・部品の一覧・動作状態、起動手順 |
 | [第15章](#第15章-機能フロー詳解) | 機能フロー詳解 | 5大ユースケースのシーケンス図 |
 | [第16章](#第16章-国際化i18nと翻訳) | 国際化（i18n）と翻訳 | Qt Linguist、LanguageController |
 | [第17章](#第17章-新機能の追加ガイド) | 新機能の追加ガイド | 実践チュートリアル |
@@ -100,6 +100,7 @@
 | 2026-10-16 | エンジンの起動の失敗を非同期だけで知らせ、枠のエンジンをリースで持つようにしたのに合わせて §3.4・§6.1・§6.2・§6.3・§6.9・§7.2・§7.5・§7.9・§9.3・§9.4・§9.6・§9.10・§12.3・§14.3・§15.4・第18章を更新（`UsiEngineSession::startAsync()`・`probeAsync()`・`Usi::startEngine()`・`MateOracle::start()` などは値を返さず、失敗は戻った後に `errorOccurred` で届く。`EngineLifecycleManager::createEngine()`・`destroyEngine()` を `acquire()` と move-only の `EngineLease` に置き換え、枠を取り上げた前の持ち主には `engineRevoked` で知らせる。`AnalysisSession::stop()` は自分のエンジンだけを手放し、「新規」は `GameSession::Deps::engines` の `destroyEngines(false)` で全部止める） |
 | 2026-10-16 | 分岐ツリーの変更の知らせを型付きにし、図を `BranchTreeView`・`BranchNodeItem` に作り直したのに合わせて §1.5・§1.8・§3.5・§4.4・§4.5・§6.9・§8.2・§8.3・§8.6・§8.7・§10.2〜§10.4・§11.1・§11.2・§11.5・§13.1・§13.3・§16.2・第18章を更新（`KifuBranchTree::treeChanged` を `nodeAppended`・`childrenReordered`・`subtreeRemoved`・`reset` に分け、一括更新は知らせを遅らせて順に出す。`*Quiet` の関数・`newestNode()` を削除し、`addMove`・`addTerminalMove`・`findByPlyOnMainLine`・`findBySfen` はテスト用の `TestTree`（`tests/branchtree_test_util.h`）に移した。ノードは子を `std::unique_ptr` で所有する。`BranchTreeManager` を削除し、図はツリーの知らせを自分で受けて、外とはノード ID でやり取りする（`KifuNavigationController::selectBranchTreeNode(nodeId)`・`BranchTreeEditController::onNodeContextMenuAboutToShow(nodeId, menu)`）） |
 | 2026-10-16 | 盤の位置を値の型 `BoardGeometry` に、対局者カードを `PlayerCard` にしたのに合わせて §1.5・§11.1・§11.5・§12.6・第18章を更新（`ShogiViewLayout`（`shogiviewlayout.h/.cpp`）を削除し、盤・マス・駒台のセル・座標の文字・カードの位置を `BoardGeometry::Params` から1度だけ計算してウィジェット座標で持つ。ShogiView は `boardGeometry()` で返し、`rebuildGeometry()` で作り直す。`calculateSquareRectangleBasedOnBoardState()`・`cachedFieldRect()`・マスの矩形のキャッシュ・`setFieldSize()`（`fieldSize` は読み出し専用）・`updateBoardSize()`・`setStandGapCols()` を削除。`BoardChromeWidget` は `setBoardLayout()` を `setBoardGeometry()` に置き換え、名前・時計・札の関数（`setBlackPlayerName()`・`setBlackClockText()`・`blackNameLabel()`・`turnBadge()`・`visibleCardRect()` など）を `card(Turn)` が返す `PlayerCard` の `setName()`・`setClockText()`・`nameLabel()`・`clockLabel()`・`turnBadge()` に移した） |
+| 2026-10-23 | 動作状態に持ち主を付けた（監査 R1）のに合わせて §1.5・§3.4・§4.2・§6.2・第14章を更新（`AppState` を廃止して合成ルートが `AppActivityState` を持ち、部品は `AppActivityState*` を受け取る。状態を変えるのは `begin()` が返す `ActivityLease` を持つ部品だけで、別の部品が別の動作を始めると前の持ち主に `revoked` が届く。局面編集は待機中だけ始め、取り上げられたら編集した局面で編集を終える） |
 
 <!-- chapter-0-end -->
 
@@ -611,8 +612,7 @@ src/
 │   └── uinotificationservice.cpp/.h #  エラー通知ダイアログ
 │
 ├── common/                         # 共有の土台（ログ・エラー通知・共有状態など）
-│   ├── appstate.h                  #   部品どうしで共有する状態（動作状態・対局者・上書き保存先）
-│   ├── appactivitystate.h          #   アプリがいま何をしているか（AppActivityState）
+│   ├── appactivitystate.cpp/.h     #   アプリがいま何をしているか（AppActivityState）と持ち主のリース（ActivityLease）
 │   ├── boardcolors.h, boardvisuals.h #  盤の配色と質感の値
 │   ├── branchtreeitemroles.h       #   分岐ツリーの描画と自動化で共有する項目のキー
 │   ├── logcategories.cpp/.h        #   ログカテゴリ
@@ -1214,7 +1214,7 @@ graph BT
 
 | 層 | ディレクトリ | 責務 |
 |---------|------------|------|
-| **土台** | `core/`, `common/` | 将棋のルール・盤面・駒・指し手（Qt GUI非依存）と、ログ・エラー通知・共有状態（`AppState`・`AppActivityState`）などの共有部品 |
+| **土台** | `core/`, `common/` | 将棋のルール・盤面・駒・指し手（Qt GUI非依存）と、ログ・エラー通知・動作状態（`AppActivityState`・`ActivityLease`）などの共有部品 |
 | **サービス** | `services/` | 設定の宣言・駒画像・駒音・通知など、層を横断して使う機能 |
 | **ドメイン** | `kifu/`, `engine/`, `game/`, `analysis/`, `network/`, `navigation/` | 棋譜・エンジン通信・対局進行・解析・通信対局・ナビゲーションのロジック。`engine/` は `game/` を知らない（`Usi` は `ShogiGameController` を持たない） |
 | **見た目** | `style/` | QWidget に依存する書体・アプリ全体のスタイル・ボタンと表のスタイルシート（`ApplicationFonts`・`ApplicationStyle`・`ButtonStyles`・`TableStyles`・`MoveFont`） |
@@ -1265,7 +1265,7 @@ MainWindow（`src/app/mainwindow.h/.cpp`）は約50行で、`.ui` と閉じる�
 graph LR
     MW["MainWindow<br/>(.ui・終了確認)"] --> COMP["MainWindowComposer<br/>(合成ルート)"]
     COMP --> PARTS["MainWindowComponents<br/>(部品の一覧)"]
-    COMP --> STATE["AppState<br/>(共有状態)"]
+    COMP --> STATE["AppActivityState<br/>(動作状態)"]
 
     MENU["メニュー/ツールバー"] --> MAW["MenuActionsWiring<br/>(QAction の接続)"]
     MAW --> GS["GameSession<br/>(対局の開始・終局・再開)"]
@@ -1291,7 +1291,7 @@ graph LR
 
 1. **MainWindow にロジックを書かない**: MainWindow は `MainWindowComposer` を作って `compose()` を呼ぶだけである
 2. **部品は起動時に全部作る**: `MainWindowComposer::compose()` が全部品を依存順に1回だけ作り、それから依存を結ぶ。遅延生成（`ensure*()`）はない
-3. **状態は1か所**: 動作状態・局面・対局者・上書き保存先などの共有状態は `AppState`（`src/common/appstate.h`）だけに置く。部品は `AppState*` を受け取る（個々のフィールドへのポインタは渡さない）
+3. **状態は1か所**: 動作状態は `AppActivityState`（`src/common/appactivitystate.h`）だけに置き、部品は `AppActivityState*` を受け取る。変えるのは `begin()` が返す `ActivityLease` を持つ部品だけ。棋譜に付く状態（対局者・上書き保存先など）は棋譜の文書 `KifuDocument` が持つ
 4. **操作の受け口**: メニュー・ツールバーの項目は `MenuActionsWiring`（`src/app/menuactionswiring.cpp`）が処理する部品のスロットへつなぐ。1つの部品では済まない操作（新規・局面編集の開始・終了）は `MainWindowActions` が受ける。盤で指した手は `BoardMoveController`、棋譜欄・分岐の操作は `KifuNavigationController` が受ける
 
 #### 合成ルートが作る主要コンポーネント
@@ -1319,7 +1319,7 @@ graph LR
 
 | 何を表すか | 型 | 置き場 |
 |-----------|-----|-------|
-| アプリがいま何をしているか | `AppActivityState::Activity`（`src/common/appactivitystate.h`） | `AppState::activity`（`src/common/appstate.h`） |
+| アプリがいま何をしているか | `AppActivityState::Activity`（`src/common/appactivitystate.h`） | 合成ルートが持つ `AppActivityState`（変えるのはリース `ActivityLease` の持ち主だけ） |
 | 対局の先手・後手を人間とエンジンのどちらが指すかと、その名前 | `MatchPlayers`（`src/core/matchplayers.h`） | 対局中の正本は `MatchCoordinator::players()`。棋譜の文書の `KifuDocument::players()` は最後に始めた対局の対局者（棋譜を置き換えると空になる） |
 
 #### 動作状態（Activity）の値
@@ -1334,7 +1334,7 @@ graph LR
 | `DuringCsaGame` | CSA通信対局中 |
 | `DuringPositionEdit` | 局面編集中 |
 
-`AppActivityState` は `QObject` で、`setActivity()` で値が変わると `changed()` を出す。値を変えるのは、対局の司令塔（`MatchCoordinator` が `DuringGame`）、検討・詰み探索のセッション（`AnalysisSession`）、棋譜解析（`KifuAnalysisController` が `DuringAnalysis`）、通信対局（`CsaGameSession` が `DuringCsaGame`）、局面編集（`PositionEditSession` が `DuringPositionEdit`）である。終局・中止で `Idle` に戻る。`UiStatePolicyManager` は `changed()` を受けて、メニュー・ボタンの有効/無効を更新する。
+`AppActivityState` は `QObject` で、値が変わると `changed()` を出す。値を変えられるのは `begin(動作, 持ち主)` が返す move-only の `ActivityLease` を持つ部品だけで、対局の司令塔（`MatchCoordinator` が `DuringGame`）、検討・詰み探索のセッション（`AnalysisSession`）、棋譜解析（`KifuAnalysisController` が `DuringAnalysis`）、通信対局（`CsaGameSession` が `DuringCsaGame`）、局面編集（`PositionEditSession` が `DuringPositionEdit`）である。終局・中止でリースを手放すと `Idle` に戻る。別の部品が別の動作を始めた後は、前の持ち主がリースを手放しても状態は変わらず、前の持ち主には `revoked(owner)` が次のイベントループで届く（検討・詰み探索・棋譜解析は止め、局面編集は編集した局面で編集を終える）。`UiStatePolicyManager` は `changed()` を受けて、メニュー・ボタンの有効/無効を更新する。
 
 #### 対局者（MatchPlayers）
 
@@ -1526,7 +1526,7 @@ public:
     struct Deps {
         ObjectA* objA = nullptr;     ///< 説明（非所有）
         ObjectB* objB = nullptr;     ///< 説明（非所有）
-        AppState* state = nullptr;   ///< 共有状態（非所有）
+        AppActivityState* activity = nullptr;   ///< 動作状態（非所有）
     };
 
     explicit SomeClass(const Deps& deps, QObject* parent = nullptr);
@@ -1563,7 +1563,7 @@ public:
 };
 ```
 
-> **注目**: 共有状態が要る部品は `AppState*`（動作状態だけなら `AppActivityState*`）を受け取る。`QString*` のような値のフィールドへのポインタは渡さず、状態のコピーも部品に持たない。読むだけの依存は `const KifuNavigationState*` のように `const` で受け取る。
+> **注目**: 動作状態が要る部品は `AppActivityState*` を受け取る。`QString*` のような値のフィールドへのポインタは渡さず、状態のコピーも部品に持たない。読むだけの依存は `const KifuNavigationState*` のように `const` で受け取る。
 
 #### QObject でない部品の Deps
 
@@ -1630,15 +1630,15 @@ struct Deps {
 
 `--automation` 指定時だけ、`startAutomationServer()`（`mainwindowcomposer_automation.cpp`）が自動化 API のサーバーを作る。
 
-部品は `MainWindowComponents`（`src/app/mainwindowcomponents.h`）のメンバとして持ち、共有状態は `AppState`（`src/common/appstate.h`）に置く。どちらも `MainWindowComposer` が持つ。
+部品は `MainWindowComponents`（`src/app/mainwindowcomponents.h`）のメンバとして持ち、動作状態は `AppActivityState`（`src/common/appactivitystate.h`）に置く。どちらも `MainWindowComposer` が持つ。
 
 #### 規則
 
 1. 新しい部品は `MainWindowComponents` にメンバを足し、`create*()` の該当する段階（多くは `createSessions()` か `createControllers()`）で1回だけ作る。QObject は MainWindow を親にした生ポインタ、QObject でないものは `std::unique_ptr` で持つ。
 2. 依存は部品のポインタで渡す。`std::function<X*()>` のゲッターや `ensure*` コールバックは使わない。
-3. 状態は `AppState` に置き、部品は `&m_state`（`AppState*`。動作状態だけなら `&m_state.activity`）を受け取る。値のフィールドへのポインタは渡さず、部品のメンバに状態のコピーを持たない。
+3. 動作状態は `AppActivityState` に置き、部品は `&m_activity`（`AppActivityState*`）を受け取る。値のフィールドへのポインタは渡さず、部品のメンバに状態のコピーを持たない。状態を変える部品は `begin()` で `ActivityLease` を受け取る。
 4. `std::function` は、上位へ問い合わせ・操作を委ねるコールバックにだけ使う（[4.3節](#43-シグナルと-stdfunction-コールバック)）。
-5. テストは `MainWindow::composer().parts()` と `composer().state()` で部品と状態を読む。
+5. テストは `MainWindow::composer().parts()` と `composer().activity()` で部品と動作状態を読む。
 
 `tests/tst_structural_kpi.cpp` の `appLayerHasNoLazyEnsure` が app 層に `ensure*` がないことを、`testsDoNotRedefinePrivate` がテストで `#define private public` を使っていないことを確かめる。
 
@@ -2808,7 +2808,7 @@ struct Deps {
 };
 ```
 
-すべてのポインタは非所有（non-owning）であり、寿命は合成ルート（`MainWindowComposer`）側で管理される。`activity` は `AppState::activity` を指し、`start()` と `resumeInterruptedGame()` が `DuringGame` に、終局（`endGame()`）が `Idle` にする（[3.4節](#34-動作状態と対局者appactivitystate--matchplayers)）。
+すべてのポインタは非所有（non-owning）であり、寿命は合成ルート（`MainWindowComposer`）側で管理される。`activity` は合成ルートの `AppActivityState` を指し、`start()` と `resumeInterruptedGame()` が `begin(DuringGame)` でリースを受け取り、終局（`endGame()`）で手放して `Idle` に戻す（[3.4節](#34-動作状態と対局者appactivitystate--matchplayers)）。
 
 #### start() / beginPlay() — 対局の準備と開始
 
@@ -3067,7 +3067,7 @@ commitMove(move, previousTo)
 
 ### 6.7 手番管理 — 手番は ShogiBoard だけが持つ
 
-手番は `ShogiBoard`（`src/core/shogiboard.h`）だけが持つ。`ShogiGameController::currentPlayer()` は盤の手番を返すだけで、`ShogiGameController`・`MatchCoordinator`・`AppState` は手番のコピーを持たない。手番の表現を変換したり、手番を各部品へ配ったりする専用のクラスは無い。
+手番は `ShogiBoard`（`src/core/shogiboard.h`）だけが持つ。`ShogiGameController::currentPlayer()` は盤の手番を返すだけで、`ShogiGameController`・`MatchCoordinator`・`AppActivityState` は手番のコピーを持たない。手番の表現を変換したり、手番を各部品へ配ったりする専用のクラスは無い。
 
 | 操作 | 内容 |
 |------|------|
@@ -3195,7 +3195,7 @@ MatchCoordinator::gameInterrupted
 
 | フィールド | 用途 |
 |-----------|------|
-| `state` | `AppState`（動作状態） |
+| `activity` | `AppActivityState`（動作状態。対局中の窓口を決める） |
 | `match` / `analysis` / `consecutive` / `csaGame` / `reset` | 対局の司令塔（必須）・検討（「新規」で止める）・連続対局・通信対局の司令塔（必須）・棋譜と表示の作り直し |
 | `engines` | エンジンの枠（`EngineLifecycleManager`。省略可）。「新規」で対局・棋譜解析のエンジンも `destroyEngines(false)` で止める（`AnalysisSession::stop()` は自分のエンジンしか手放さないため） |
 | `navState` / `liveSession` / `document` | 表示中の手（現在局面からの開始・再開）・対局の手順の書き先（分岐ツリー）・棋譜の文書（対局者・持ち時間・開始と終了の日時・対局情報） |
@@ -7465,7 +7465,7 @@ CLAUDE.md に明記されているとおり、ShogiBoardQ の設計原則は **�
 MainWindow（.ui・閉じるときの確認と終了処理）
   └─ MainWindowComposer（合成ルート）
        ├─ MainWindowComponents  部品の一覧（起動時に全部作る）
-       ├─ AppState              部品どうしで共有する状態（1か所だけ）
+       ├─ AppActivityState      部品どうしで共有する動作状態（1か所だけ）
        └─ compose()             生成 → シグナル接続 → 初期表示
 ```
 
@@ -7488,19 +7488,17 @@ MainWindow::MainWindow(QWidget* parent)
 
 ### 14.2 部品と状態の置き場
 
-MainWindow のメンバは `ui`・`m_composer`・`m_skipCloseConfirmation`（自動化 API からの終了で確認を出さない）の3つだけである。部品と状態は `MainWindowComposer` が持ち、`composer().parts()` と `composer().state()` で読める（テストと自動化 API が使う）。
+MainWindow のメンバは `ui`・`m_composer`・`m_skipCloseConfirmation`（自動化 API からの終了で確認を出さない）の3つだけである。部品と動作状態は `MainWindowComposer` が持ち、`composer().parts()` と `composer().activity()` で読める（テストと自動化 API が使う）。
 
-#### AppState — 共有状態
+#### AppActivityState — 動作状態
 
-`AppState`（`src/common/appstate.h`）は、部品どうしで共有する動作状態の唯一の置き場である。部品は組み立て時に `AppState*` を受け取り、使うときに読む（`QString*` のような個々のフィールドへのポインタは渡さない）。部品のメンバに状態のコピーを持たない。
+`AppActivityState`（`src/common/appactivitystate.h`）は、部品どうしで共有する動作状態（`Idle`・`DuringGame`・`DuringAnalysis`・`DuringCsaGame`・`DuringTsumeSearch`・`DuringConsideration`・`DuringPositionEdit`）の唯一の置き場である。合成ルートが持ち、部品は組み立て時に `AppActivityState*` を受け取って使うときに読む。部品のメンバに状態のコピーを持たない。
 
-| フィールド | 型 | 役割 |
-|------|----|------|
-| `activity` | `AppActivityState` | アプリの動作状態（`Idle`・`DuringGame`・`DuringAnalysis`・`DuringCsaGame`・`DuringTsumeSearch`・`DuringConsideration`・`DuringPositionEdit`）。変わると `changed()` を出す |
+状態を変えられるのは、`begin(動作, 持ち主)` が返す move-only の `ActivityLease` を持つ部品だけである。リースを手放す（`reset()`・破棄）と `Idle` に戻るが、別の部品が別の動作を始めた後は何もしない。取り上げられた前の持ち主には `revoked(owner)` が次のイベントループで届く（エンジンの枠の `EngineLease`・`engineRevoked` と同じ形）。値が変わると `changed()` を出す。
 
-フィールドは `activity` だけである。棋譜に付く状態（対局情報・最後に始めた対局の対局者・持ち時間と開始・終了の日時・上書き保存先・未保存かどうか）は棋譜の文書 `KifuDocument`（8.5節）が持つ。文書を置き換える操作（新規・読み込み）で一緒に消えるので、前の対局者や保存先が次の棋譜に残らない。対局者を表示するのはローカル対局中（`DuringGame`）だけである（検討・解析・通信対局のエンジンは対局者ではない）。
+棋譜に付く状態（対局情報・最後に始めた対局の対局者・持ち時間と開始・終了の日時・上書き保存先・未保存かどうか）は棋譜の文書 `KifuDocument`（8.5節）が持つ。文書を置き換える操作（新規・読み込み）で一緒に消えるので、前の対局者や保存先が次の棋譜に残らない。対局者を表示するのはローカル対局中（`DuringGame`）だけである（検討・解析・通信対局のエンジンは対局者ではない）。
 
-開始局面・表示中の局面・表示中の手数は `AppState` に持たない。棋譜の正本は分岐ツリー（`KifuBranchTree`）で、表示中の手は `KifuNavigationState`（`currentNode()`・`currentPly()`・`currentSfen()`）が持つ。対局中の手順は司令塔（`MatchCoordinator::record()`、`RecordLine`）が持つ。手番は `ShogiBoard` だけが持つ。盤の手前に表示している側は `ShogiView::flipMode()` から求める。
+開始局面・表示中の局面・表示中の手数は `AppActivityState` に持たない。棋譜の正本は分岐ツリー（`KifuBranchTree`）で、表示中の手は `KifuNavigationState`（`currentNode()`・`currentPly()`・`currentSfen()`）が持つ。対局中の手順は司令塔（`MatchCoordinator::record()`、`RecordLine`）が持つ。手番は `ShogiBoard` だけが持つ。盤の手前に表示している側は `ShogiView::flipMode()` から求める。
 
 #### MainWindowComponents — 部品の一覧
 
@@ -7527,8 +7525,8 @@ MainWindow のメンバは `ui`・`m_composer`・`m_skipCloseConfirmation`（自
 
 `MainWindowComposer` は部品を依存する部品より後に作り、依存はコンストラクタの `Deps` で渡す。共通の規則は [4.2節](#42-合成ルートでの組み立て) を参照。
 
-- **依存はポインタで渡す**: 部品は `Deps` 構造体で、ほかの部品のポインタを受け取る。たとえば `GameSession::Deps` は `state`・`match`・`analysis`・`engines`・`consecutive`・`reset`・`navState`・`liveSession` などをポインタで持つ。生成前の部品を指すための `std::function<X*()>` のゲッターは使わない。
-- **状態は AppState を指す**: 共有状態を使う部品は `AppState*` を受け取り（`GameSession`・`AutomationContext`）、使うときに読む。棋譜に付く状態（対局者・上書き保存先・対局情報）を使う部品は棋譜の文書 `KifuDocument*` を受け取る（`GameSession`・`KifuFileController`・`PlayerInfoPresenter`・`PvClickController`・`KifuAnalysisController`・`MatchCoordinator`・`AutomationContext` など。読むだけの部品は `const`）。動作状態だけを使う部品は `&m_state.activity`（`AppActivityState*`）を受け取る（`MatchCoordinator`・`AnalysisSession`・`UiStatePolicyManager`・`HumanTurnPolicy`・`BoardMoveController`・`CsaGameSession` など）。
+- **依存はポインタで渡す**: 部品は `Deps` 構造体で、ほかの部品のポインタを受け取る。たとえば `GameSession::Deps` は `activity`・`match`・`analysis`・`engines`・`consecutive`・`reset`・`navState`・`liveSession` などをポインタで持つ。生成前の部品を指すための `std::function<X*()>` のゲッターは使わない。
+- **状態は AppActivityState を指す**: 動作状態を使う部品は `&m_activity`（`AppActivityState*`）を受け取り（`GameSession`・`AutomationContext`・`MatchCoordinator`・`AnalysisSession`・`UiStatePolicyManager`・`HumanTurnPolicy`・`BoardMoveController`・`CsaGameSession` など）、使うときに読む。棋譜に付く状態（対局者・上書き保存先・対局情報）を使う部品は棋譜の文書 `KifuDocument*` を受け取る（`GameSession`・`KifuFileController`・`PlayerInfoPresenter`・`PvClickController`・`KifuAnalysisController`・`MatchCoordinator`・`AutomationContext` など。読むだけの部品は `const`）。
 - **作った後に渡すもの**: 司令塔（`MatchCoordinator`）は棋譜の受け手の `GameSession` より先に作るので、受け手だけ `createSessions()` で `setRecordSink()` によって渡す。ほかに、`KifuNavigationController::setLeaveGuard()`・`ShogiGameController::setPromotionChooser()` が、できあがった部品の判定関数を受け取る。盤の操作の行き先（`BoardInteractionController::setInputRoute()`）は、`BoardMoveController` が自分のコンストラクタで自分を渡す。
 - **`std::function` はフックだけ**: 上位へ問い合わせ・操作を委ねるフック（`KifuFileController::Deps::clearUiBeforeKifuLoad`、`UiStatePolicyManager::Deps` の `localGameHasHuman`・`canResumeGame`、`JosekiWindowController::Deps::isHumanTurnNow` など）と、層の境界をまたぐ関数（`AutomationContext` のお気に入りの取得・設定）にだけ使う。司令塔（`MatchCoordinator`）はフックを持たず、シグナルと棋譜の受け手（`MatchRecordSink`）で上位に知らせる（[4.3節](#43-シグナルと-stdfunction-コールバック)）。
 
@@ -7585,7 +7583,7 @@ MainWindow::MainWindow()
 
 `ShogiBoardQ --automation` で起動したときだけ、`MainWindowComposer::startAutomationServer()`（`MainWindow::startAutomationServer()` から呼ぶ）が作る（親は MainWindow）。`QLocalServer` で改行区切りの JSON-RPC 2.0 を待ち受け、局面・棋譜・UI の操作を外部から行えるようにする。MCP サーバー（`mcp/`）と GUI のテスト（`tests/gui/`）がこれを使う。
 
-部品は `AutomationContext` に詰めて渡す（部品のポインタと、状態として `AppState`・`KifuNavigationState`）。メソッドの実装（`automationcommands_*.cpp`）は MainWindow を知らない。
+部品は `AutomationContext` に詰めて渡す（部品のポインタと、状態として `AppActivityState`・`KifuNavigationState`）。メソッドの実装（`automationcommands_*.cpp`）は MainWindow を知らない。
 
 メソッドの引数は `AutomationMethodSpecs`（`src/automation/automationmethodspecs.h`）の表に、名前・型・必須・範囲・既定値・選択肢を `ParamSpec`（`src/automation/paramspec.h`）で1行ずつ宣言する。`AutomationDispatcher::handleRequest()` はメソッドを呼ぶ前に `ParamSpecs::validate()` で引数を検査し（知らない引数・必須の欠け・型・範囲・選択肢の誤りは `-32602`）、既定値を補った引数をメソッドに渡す。メソッドは補われた値を読むだけで、`AutomationParams`（`requireString`・`optionalInt`・`requireInt`）は範囲が画面の状態で決まる引数（表の行・列など）にだけ使う。CLI の引数も同じ部品の表 `CliCommandSpecs`（`src/cli/clicommandspecs.h`）で宣言し、`shogiboardq-cli describe` が両方の表を JSON Schema として出す。MCP サーバーのツールのスキーマがこの表と一致することは `mcp/tests/test_param_specs.py` が検査する。引数を足すときは表に1行足し、MCP のツール（`mcp/shogiboardq_mcp/tooldefs.py`）のスキーマも合わせる。設計は [MCP サーバーの設計](mcp-server.md) を参照。外部からアプリを操作するときは、この自動化 API を使う。
 
@@ -7669,7 +7667,7 @@ MainWindow は `.ui` の保持と閉じるときの処理だけを持ち、ロ�
 | `MainWindowComposer` | 部品の生成・シグナル接続・初期表示・終了処理 |
 | `MenuActionsWiring` | メニュー・ツールバーの項目と処理する部品の接続 |
 | `MainWindowActions` | 複数の部品にまたがる操作（新規・局面編集の開始・終了） |
-| `AppState` | 動作状態・対局者・上書き保存先の共有状態 |
+| `AppActivityState` | 動作状態 |
 | `GameSession` | 対局の開始・投了・中断と再開・入玉宣言・待った・終局後の表示、対局の棋譜の追記（ローカル対局・通信対局の棋譜と自動保存） |
 | `CsaGameSession` | CSA 通信対局の開始と、進行の画面への反映 |
 | `SessionResetCoordinator` | 対局の開始前・新規・局面編集・棋譜の読み込み前に、棋譜と表示を作り直す |
@@ -7688,7 +7686,7 @@ MainWindow は `.ui` の保持と閉じるときの処理だけを持ち、ロ�
 1. **ラッパーメソッドを置かない**: MainWindow が単にメソッド呼び出しを中継するだけのラッパーは作らず、`connect()` を担当のクラスへ直接つなぐ
 2. **デッドコードを残さない**: どのシグナルにも接続されておらず、直接呼び出しもないスロットは削除する
 3. **起動時に全部作る**: 遅延生成（`ensure*()`）は使わず、合成ルートが全部品を作ってからポインタで結ぶ。`tst_structural_kpi` の `appLayerHasNoLazyEnsure` が app 層に `ensure*` が戻らないことを確かめる
-4. **状態は1か所**: 状態のコピーを持たず、動作状態は `AppState::activity`、対局者は司令塔の `MatchStartOptions::players`（開始時に `KifuDocument::beginMatch()` で棋譜の文書に記録する）、上書き保存先と対局情報は `KifuDocument`、表示中の手は `KifuNavigationState`、手番は `ShogiBoard` だけを正とする
+4. **状態は1か所**: 状態のコピーを持たず、動作状態は `AppActivityState`、対局者は司令塔の `MatchStartOptions::players`（開始時に `KifuDocument::beginMatch()` で棋譜の文書に記録する）、上書き保存先と対局情報は `KifuDocument`、表示中の手は `KifuNavigationState`、手番は `ShogiBoard` だけを正とする
 5. **状態表による UI の有効・無効**: 動作状態ごとのメニュー・ボタンの有効・無効は `UiStatePolicyManager` の状態表に置く
 
 <!-- chapter-14-end -->
@@ -8733,7 +8731,7 @@ m_c.kifuTagController = new KifuTagController(td, &m_window);
 
 依存する部品は先に作っておく（作った後に `set*` で注入しない）。モデルのように依存のない部品は、それを使う部品より前の段階（`createRecordAndModels()` など）で作ってもよい。
 
-状態が要るときは、値を写さずに `AppState` へのポインタ（`&m_state`）を渡し、部品は `m_state->players` のように読む。個々のフィールドへのポインタ（`QString*` など）は渡さない。アプリが何をしているかだけが要る部品には `&m_state.activity`（`AppActivityState`）を渡す。部品を `std::function<X*()>` のゲッターで渡さない。
+動作状態が要るときは、値を写さずに `AppActivityState` へのポインタ（`&m_activity`）を渡し、部品は使うときに読む。状態を変える部品は `begin()` で `ActivityLease` を受け取る。個々のフィールドへのポインタ（`QString*` など）は渡さない。部品を `std::function<X*()>` のゲッターで渡さない。
 
 #### 4. シグナルをつなぐ
 
@@ -9047,7 +9045,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 |---|---------|------|
 | 6 | `Deps` 構造体で依存を注入しているか | 第4章 §4.1 |
 | 7 | 部品を `MainWindowComponents` に足し、合成ルートで1回だけ作っているか（app 層に `ensure*()` を置かない） | 第4章 §4.2 |
-| 8 | 依存をポインタで渡しているか（`std::function<X*()>` のゲッターを使わず、状態は `AppState` を指す） | 第4章 §4.2 |
+| 8 | 依存をポインタで渡しているか（`std::function<X*()>` のゲッターを使わず、動作状態は `AppActivityState` を指す） | 第4章 §4.2 |
 | 9 | MainWindowへのロジック追加を最小限にしているか | CLAUDE.md Design Principles |
 | 10 | ポインタの所有権をコメントで明記しているか | commenting-style-guide.md §6 |
 
@@ -9198,12 +9196,12 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | AnalysisResultsPanel | C | widgets | 棋譜解析の結果ドックの中身（結果の表・停止ボタン・文字の大きさ） | 第9章, 第11章 |
 | AnalysisSession | C | analysis | 検討・詰み探索（1つのエンジンで局面を調べる）のセッション | 第9章 |
 | AnalysisSettings | NS | services | 解析・検討の設定の宣言の表 | 第9章, 第12章 |
+| ActivityLease | C | common | 動作状態を持つ権利（`AppActivityState::begin()` が返す move-only の値。手放すと待機中に戻す） | 第3章, 第14章 |
 | AppActivityState | C | common | アプリの動作状態（待機・対局・解析・検討・詰み探索・通信対局・局面編集）の正本 | 第3章, 第14章 |
 | ApplicationTranslations | C | services | 起動時の言語の決定と翻訳ファイルの読み込み | 第16章 |
 | AppearanceState | S | services | 外観（駒のセット・配色・見た目）をまとめた値（`current()`・`apply()`） | 第12章 |
 | AppPaths | NS | services | 設定・データ・キャッシュの置き場所（環境変数で別の場所へ切り替えられる） | 第12章 |
 | AppSettings | NS | services | アプリ全般の設定の宣言の表（`Setting<T>`） | 第12章 |
-| AppState | S | common | 部品どうしで共有する状態の唯一の置き場（動作状態・最後に始めた対局の対局者・上書き保存先） | 第14章 |
 | AppToolTipFilter | C | widgets | アプリ全体のツールチップフィルタ | 第11章 |
 | AutomationActionPolicy | NS | automation | 自動化 API が実行してよい QAction の許可リスト | 第14章 |
 | AutomationContext | S | automation | 自動化 API のメソッド実装に渡すアプリ側の状態と部品 | 第14章 |
@@ -9814,8 +9812,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 
 | ファイル | 解説章 | 内容 |
 |---------|--------|------|
-| appstate | 第14章 | 部品どうしで共有する状態（`AppState`） |
-| appactivitystate | 第3章, 第14章 | アプリの動作状態（`AppActivityState`） |
+| appactivitystate | 第3章, 第14章 | アプリの動作状態（`AppActivityState`）と持ち主のリース（`ActivityLease`） |
 | errorbus | 第4章, 第12章 | エラー通知バス |
 | logcategories | 第4章 | ログカテゴリ |
 | recentfilelist | 第11章 | 最近使ったファイルの一覧 |
@@ -9916,7 +9913,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | ShogiViewの描画パイプライン | 第11章 | §11.1 |
 | CSAプロトコル状態遷移 | 第12章 | §12.2 |
 | 設定の宣言の表（`Setting<T>`）とINI永続化 | 第12章 | §12.5 |
-| MainWindowComponents と AppState | 第14章 | §14.2 |
+| MainWindowComponents と AppActivityState | 第14章 | §14.2 |
 | 起動の手順 | 第14章 | §14.4 |
 | MainWindow から切り出した責務 | 第14章 | §14.7 |
 | ユースケースシーケンス図（5パターン） | 第15章 | §15.1–§15.5 |
