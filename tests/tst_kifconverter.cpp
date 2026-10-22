@@ -994,6 +994,24 @@ private slots:
         QVERIFY2(outcome.warning.contains(QStringLiteral("variation start")), qPrintable(outcome.warning));
     }
 
+    // 100分以上の消費時間（分が3桁）と100時間以上の累計も読む。アプリの KIF の書き出しは分を3桁で書く
+    void consumedTime_threeDigitMinutes()
+    {
+        const KifuParseOutcome outcome = KifToSfenConverter::parse(QStringLiteral(
+            "手数----指手---------消費時間--\n"
+            "   1 ７六歩(77)   (100:00/01:40:00)\n"
+            "   2 ３四歩(33)   (１２０:３０/１２０:３０:００)\n"));
+        QVERIFY2(outcome.success, qPrintable(outcome.warning));
+        const RecordLine& line = outcome.record.mainline;
+        QCOMPARE(line.entries.size(), 2);
+        QVERIFY(line.entries[0].time.valid);
+        QCOMPARE(line.entries[0].time.elapsedMs, 100LL * 60 * 1000);
+        QCOMPARE(line.entries[0].time.totalMs, 100LL * 60 * 1000);
+        QVERIFY(line.entries[1].time.valid);
+        QCOMPARE(line.entries[1].time.elapsedMs, (120LL * 60 + 30) * 1000);
+        QCOMPARE(line.entries[1].time.totalMs, (120LL * 3600 + 30 * 60) * 1000);
+    }
+
     // 指し手の表記は手から作り直す（「同歩」は「同　歩」、移動元を付ける）
     void displayText_isGeneratedFromTheMove()
     {

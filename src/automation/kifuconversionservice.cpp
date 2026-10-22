@@ -63,11 +63,11 @@ KifuConversionService::Result KifuConversionService::convert(const Request& requ
     if (request.outputFormat == KifuFormat::Sfen) {
         result.lines = result.sfens;
     } else {
+        // GUI の保存と同じく、読み込んだ対局情報だけを書く（変換した時刻や仮の対局者名を作らない）
         KifuExportMetadata metadata;
+        metadata.gameInfoProvided = true;
         metadata.gameInfoItems = loaded.gameInfo;
         metadata.startSfen = result.initialSfen;
-        metadata.players.blackHumanName = KifuExportMetadataBuilder::playerName(loaded.gameInfo, Turn::Black);
-        metadata.players.whiteHumanName = KifuExportMetadataBuilder::playerName(loaded.gameInfo, Turn::White);
         result.lines = KifuExport::lines(tree, metadata, request.outputFormat);
     }
     result.ok = true;

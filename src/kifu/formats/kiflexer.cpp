@@ -45,7 +45,7 @@ const QRegularExpression& kifTimeRe()
 {
     static const auto& re = *[]() {
         static const QRegularExpression r(
-            QStringLiteral("\\(\\s*([0-9０-９]{1,2})[:：]([0-9０-９]{2})(?:\\s*[／/]\\s*([0-9０-９]{1,3})[:：]([0-9０-９]{2})[:：]([0-9０-９]{2}))?\\s*\\)")
+            QStringLiteral("\\(\\s*([0-9０-９]+)[:：]([0-9０-９]{2})(?:\\s*[／/]\\s*([0-9０-９]+)[:：]([0-9０-９]{2})[:：]([0-9０-９]{2}))?\\s*\\)")
             );
         return &r;
     }();
