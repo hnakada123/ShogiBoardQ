@@ -101,11 +101,12 @@
                 <ul class="guide-step-text">
                     <li>定跡著法・預期應手：登記的著法，以及之後預期的對手應手</li>
                     <li>評價值・深度・次數：定跡檔案中記錄的評價值、搜尋深度與出現次數</li>
+                    <li>比例：該著法的次數佔此局面定跡著法次數合計的比例</li>
                     <li>註解：定跡著法的註解</li>
                     <li>編輯・刪除：編輯或刪除該定跡著法的按鈕（「執行」在對局中輪到自己時以及不在對局中時顯示）</li>
                 </ul>
-                <p class="guide-step-text">在棋譜欄選擇著法或對局推進時，會切換為該局面的定跡著法。不區分手數，相同局面總是顯示相同的定跡著法。</p>
-                <p class="guide-step-text">按一下「詳細」可顯示局面與定跡的 SFEN。「■ 停止」暫停定跡顯示，「▶ 恢復」重新顯示。定跡視窗位於其他分頁後面時不會更新，回到前面時會顯示目前局面的定跡著法。最下方一行顯示檔名、局面數與目前局面的定跡著法數。未開啟定跡檔案或該局面沒有定跡時，表格中會顯示提示。</p>
+                <p class="guide-step-text">在棋譜欄選擇著法或對局推進時，會切換為該局面的定跡著法。不區分手數，相同局面總是顯示相同的定跡著法。如果定跡檔案中以不同手數分別登記了相同局面，則顯示並編輯與目前手數相同的登記（沒有時為檔案中靠前的登記）。儲存時，各手數的登記都會保留。</p>
+                <p class="guide-step-text">按一下「詳細」可顯示局面與定跡的 SFEN。「■ 停止」暫停定跡顯示，「▶ 恢復」重新顯示。定跡視窗位於其他分頁後面時不會更新，回到前面時會顯示目前局面的定跡著法。最下方一行顯示檔名、局面數與目前局面的定跡著法數。載入或儲存期間，還會顯示「正在載入...」或「正在儲存...」（較大的定跡檔案需要幾秒鐘才能載入）。未開啟定跡檔案或該局面沒有定跡時，表格中會顯示提示。</p>
             </div>
 
         </div>
@@ -209,12 +210,24 @@
                     <span class="guide-step-number">7</span>
                     <span class="guide-step-title">登記棋譜的著法</span>
                 </div>
-                <p class="guide-step-text">選擇「合併 ▼」→「從目前棋譜」或「從棋譜檔案」（KIF 格式），會列出棋譜主線的著法（先手與後手）。「註冊」逐手登記，「全部註冊」一次全部登記。</p>
-                <p class="guide-step-text">新的著法以無預期應手、評價值 0、深度 0、次數 1 登記；已有的著法次數加 1。登記後會立即儲存到定跡檔案（其他未儲存的修改也會一併儲存）。尚未儲存的新定跡需要先指定儲存位置。「✓已註冊」表示開啟該檔案後登記的著法。</p>
+                <p class="guide-step-text">選擇「合併 ▼」→「從目前棋譜」，會列出棋譜欄中目前顯示的著法序列（選擇了變化時為該變化）的著法；選擇「從棋譜檔案」，會列出棋譜檔案（KIF、KI2、CSA、JKF、USI、USEN 等）主線的著法（均包括先手與後手）。「註冊」逐手登記，「全部註冊」一次全部登記。</p>
+                <p class="guide-step-text">新的著法以無預期應手、評價值 0、深度 0、次數 1 登記；已有的著法次數加 1。登記後會立即儲存到定跡檔案（其他未儲存的修改也會一併儲存。儲存在背景進行，期間顯示「正在儲存...」）。尚未儲存的新定跡需要先指定儲存位置。「✓已註冊」表示開啟該檔案後登記的著法。</p>
                 <div class="screenshot-item screenshot-item--compact">
                     <img src="../../images/zh-tw/joseki/joseki-08-merge.png" alt="將棋譜合併到定跡庫">
                     <p class="screenshot-caption">合併：逐手或一次全部登記棋譜的著法</p>
                 </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">8</span>
+                    <span class="guide-step-title">在 YaneuraOu 中使用</span>
+                </div>
+                <p class="guide-step-text">製作的定跡檔案可以作為 YaneuraOu 的定跡（引擎設定中的 BookFile、BookDir）使用。但在 YaneuraOu 的預設設定下，有些著法不會被使用。</p>
+                <ul class="guide-step-text">
+                    <li>從棋譜登記的著法深度為 0。YaneuraOu 預設（BookDepthLimit=16）不使用深度低於 16 的定跡著法，請在「引擎設定」中將 BookDepthLimit 設為 0（合併的對話方塊中也會顯示此提示）。</li>
+                    <li>ShogiBoardQ 不區分手數，但 YaneuraOu 預設（IgnoreBookPly 關閉）只在定跡檔案中局面的手數也一致時才使用定跡。要在以不同手數出現相同局面時也使用定跡，請開啟 IgnoreBookPly。</li>
+                </ul>
             </div>
 
         </div>
