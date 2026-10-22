@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>定跡機能 - ShogiBoardQ</title>
-    <meta name="description" content="ShogiBoardQの定跡機能を紹介します。やねうら王形式の定跡ファイルの読み込み、局面ごとの定跡手の表示と盤の矢印、対局中の着手、エンジンに定跡を使わせる対局、定跡手の追加・編集・削除、盤で指した手・エンジンの読み筋・複数の棋譜・別の定跡ファイルからの登録をスクリーンショット付きで解説。">
+    <meta name="description" content="ShogiBoardQの定跡機能を紹介します。やねうら王形式の定跡ファイルの読み込み、局面ごとの定跡手の表示と盤の矢印、対局中の着手、エンジンに定跡を使わせる対局、定跡手の追加・編集・削除、盤で指した手・エンジンの読み筋・複数の棋譜・別の定跡ファイルからの登録、並べ替え、棋譜への展開、定跡を外れた手の表示をスクリーンショット付きで解説。">
     <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/guide/joseki.html">
     <!-- Open Graph -->
     <meta property="og:type" content="article">
@@ -238,6 +238,19 @@
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">10</span>
+                    <span class="guide-step-title">定跡手を並べ替える</span>
+                </div>
+                <p class="guide-step-text">表の行を右クリックして「先頭へ移動」「上へ移動」「下へ移動」を選ぶと、その定跡手の順番を変えられます。「出現頻度の順に並べる」「評価値の順に並べる」は、表示中の局面の定跡手を高い順に並べ替えます（同じ値なら、出現頻度は評価値の高い順、評価値は出現頻度の高い順）。</p>
+                <p class="guide-step-text">表の順は定跡ファイルに書く順で、盤の矢印の番号や、対局でエンジンに定跡を使わせるときの「表の先頭の手」もこの順です。並べ替えた結果は「保存」で定跡ファイルに書き込みます。</p>
+                <div class="screenshot-item">
+                    <img src="../images/joseki/joseki-18-reorder-menu.png" alt="表の右クリックのメニュー">
+                    <p class="screenshot-caption">表の右クリック：定跡手の並べ替え</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">11</span>
                     <span class="guide-step-title">削除と保存</span>
                 </div>
                 <p class="guide-step-text">「削除」を押すと確認が表示され、「削除する」で定跡手を削除します。局面の最後の定跡手を削除すると、その局面も定跡から消えます。</p>
@@ -266,7 +279,7 @@
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">11</span>
+                    <span class="guide-step-number">12</span>
                     <span class="guide-step-title">棋譜の指し手を登録する</span>
                 </div>
                 <p class="guide-step-text">「マージ ▼」→「現在の棋譜から」を選ぶと棋譜欄に表示中の手順（分岐を選んでいればその分岐）の指し手が、「棋譜ファイルから」を選ぶと棋譜ファイル（KIF・KI2・CSA・JKF・USI・USEN など）の本譜の指し手が、先手・後手とも一覧で表示されます。「登録」で1手ずつ、「全て登録」でまとめて定跡に登録します。</p>
@@ -279,7 +292,7 @@
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">12</span>
+                    <span class="guide-step-number">13</span>
                     <span class="guide-step-title">複数の棋譜から登録する</span>
                 </div>
                 <p class="guide-step-text">「マージ ▼」→「複数の棋譜から...」で、棋譜ファイルやフォルダをまとめて登録します。「ファイルを追加...」「フォルダを追加...」で並べるほか、定跡ウィンドウやこの画面に棋譜ファイル・フォルダをドロップしても並べられます（フォルダはサブフォルダの棋譜も読みます）。</p>
@@ -300,7 +313,7 @@
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">13</span>
+                    <span class="guide-step-number">14</span>
                     <span class="guide-step-title">別の定跡ファイルを足す</span>
                 </div>
                 <p class="guide-step-text">「マージ ▼」→「定跡ファイルから...」で、別の定跡ファイル（やねうら王定跡形式）を今の定跡に足します。今の定跡に無い局面と定跡手はそのまま足し、手数違いの登録もそのまま残します。両方にある指し手は、予想応手・評価値・深さ・コメントをどちらの定跡の値にするかと、出現頻度を足し合わせるか（足し合わせないときは選んだ側の値）を選べます。</p>
@@ -325,7 +338,7 @@
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">14</span>
+                    <span class="guide-step-number">15</span>
                     <span class="guide-step-title">思考の表から登録する</span>
                 </div>
                 <p class="guide-step-text">検討タブや、対局中の思考タブの表で行を右クリックし、「読み筋の最初の手（…）を定跡に登録」を選ぶと、その行の読み筋の最初の手を、エンジンが探索した局面の定跡手として登録します。評価値と深さはその行の値になり、読み筋の2手目が予想応手になります。詰みの評価値は、やねうら王と同じく ±(32000−手数) で登録します。</p>
@@ -338,7 +351,7 @@
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">15</span>
+                    <span class="guide-step-number">16</span>
                     <span class="guide-step-title">棋譜解析の結果から登録する</span>
                 </div>
                 <p class="guide-step-text">棋譜解析の結果の表で行を右クリックし、「読み筋の最初の手（…）を定跡に登録」を選ぶと、その行の局面（その手を指した後の局面）の読み筋の最初の手を登録します。登録のしかたは思考の表と同じです。</p>
@@ -358,7 +371,49 @@
 </section>
 
 <!-- Section 6 -->
-<section id="joseki-yaneuraou" class="section">
+<section id="joseki-explore" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">定跡を調べる</h2>
+        <p class="section-desc">定跡を棋譜の変化に展開したり、棋譜が定跡を外れた手を確かめたりします</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">17</span>
+                    <span class="guide-step-title">定跡を棋譜に展開する</span>
+                </div>
+                <p class="guide-step-text">「棋譜に展開...」で、表示中の局面から定跡手をたどり、棋譜の変化として足します。展開する手数、1局面から展開する定跡手の数（表の上から）、比率の下限を選べます。局面で指せない手は足しません。</p>
+                <p class="guide-step-text">別の手順で同じ局面に着いたら、その先は展開しません（その局面は先に着いた手順で展開しています）。棋譜にすでにある手は足さず、表示中の手も変わりません。足した変化は分岐ツリーや棋譜欄の分岐で確かめられ、棋譜として保存することもできます。対局中は展開できません。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../images/joseki/joseki-19-expand.png" alt="棋譜に展開">
+                    <p class="screenshot-caption">棋譜に展開：展開する手数・1局面の定跡手の数・比率の下限を選ぶ</p>
+                </div>
+                <div class="screenshot-item">
+                    <img src="../images/joseki/joseki-20-expanded.png" alt="展開した後の分岐ツリー">
+                    <p class="screenshot-caption">展開した後の分岐ツリー：初期局面から4手先まで、1局面2手ずつ（比率10%以上）</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">18</span>
+                    <span class="guide-step-title">定跡を外れた手を見る</span>
+                </div>
+                <p class="guide-step-text">棋譜欄に表示している手順が定跡を外れると、局面の行の右に「N手目の▲…で定跡を外れています」と表示されます。押すと、その手へ移ります。手順の手がすべて定跡にあるときは「表示中の手順はすべて定跡にあります」と表示されます。</p>
+                <p class="guide-step-text">定跡にあるかは、それぞれの手を指す前の局面に、その手が定跡手として登録されているかで調べます（手数は区別しません）。「■ 停止」で定跡の表示を止めている間は表示しません。</p>
+                <div class="screenshot-item">
+                    <img src="../images/joseki/joseki-21-deviation.png" alt="定跡を外れた手の表示">
+                    <p class="screenshot-caption">定跡を外れた手：押すとその手へ移る</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 7 -->
+<section id="joseki-yaneuraou" class="section section--alt">
     <div class="section-inner">
         <h2 class="section-title">やねうら王で使う</h2>
         <p class="section-desc">作った定跡をやねうら王に読ませるときの設定です</p>
@@ -367,7 +422,7 @@
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">16</span>
+                    <span class="guide-step-number">19</span>
                     <span class="guide-step-title">やねうら王で使うとき</span>
                 </div>
                 <p class="guide-step-text">作った定跡ファイルは、やねうら王の定跡（エンジン設定の BookFile・BookDir）として使えます。ただし、やねうら王の既定の設定のままでは使われない手があります。</p>

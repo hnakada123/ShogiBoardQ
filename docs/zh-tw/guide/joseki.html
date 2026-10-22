@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>定跡 - ShogiBoardQ</title>
-    <meta name="description" content="圖解 ShogiBoardQ 的定跡功能：讀取 YaneuraOu 格式的定跡檔案，顯示各局面的定跡著法與棋盤箭頭，在對局中執行定跡著法，讓引擎在對局中使用定跡，新增、編輯、刪除定跡著法，以及從棋盤著法、引擎的主要變化、多個棋譜與其他定跡檔案註冊。">
+    <meta name="description" content="圖解 ShogiBoardQ 的定跡功能：讀取 YaneuraOu 格式的定跡檔案，顯示各局面的定跡著法與棋盤箭頭，在對局中執行定跡著法，讓引擎在對局中使用定跡，新增、編輯、刪除定跡著法，從棋盤著法、引擎的主要變化、多個棋譜與其他定跡檔案註冊，調整順序，展開到棋譜，以及顯示脫離定跡的著法。">
     <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/joseki.html">
     <!-- Open Graph -->
     <meta property="og:type" content="article">
@@ -239,6 +239,19 @@
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">10</span>
+                    <span class="guide-step-title">調整定跡著法的順序</span>
+                </div>
+                <p class="guide-step-text">在表格的列上按右鍵，選擇「移到最前」「上移」「下移」，即可改變該定跡著法的順序。「依次數排序」「依評價值排序」會將目前局面的定跡著法由高到低排列（數值相同時，次數依評價值、評價值依次數由高到低排列）。</p>
+                <p class="guide-step-text">表格的順序就是寫入定跡檔案的順序，棋盤箭頭的編號以及在對局中讓引擎使用定跡時的「表格中的第一個著法」也依此順序。排序的結果請按一下「儲存」寫入定跡檔案。</p>
+                <div class="screenshot-item">
+                    <img src="../../images/zh-tw/joseki/joseki-18-reorder-menu.png" alt="表格的右鍵選單">
+                    <p class="screenshot-caption">表格的右鍵選單：調整定跡著法的順序</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">11</span>
                     <span class="guide-step-title">刪除與儲存</span>
                 </div>
                 <p class="guide-step-text">按一下「刪除」會顯示確認，確認後刪除該定跡著法。刪除局面的最後一個定跡著法時，該局面也會從定跡中移除。</p>
@@ -267,7 +280,7 @@
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">11</span>
+                    <span class="guide-step-number">12</span>
                     <span class="guide-step-title">登記棋譜的著法</span>
                 </div>
                 <p class="guide-step-text">選擇「合併 ▼」→「從目前棋譜」，會列出棋譜欄中目前顯示的著法序列（選擇了變化時為該變化）的著法；選擇「從棋譜檔案」，會列出棋譜檔案（KIF、KI2、CSA、JKF、USI、USEN 等）主線的著法（均包括先手與後手）。「註冊」逐手登記，「全部註冊」一次全部登記。</p>
@@ -280,7 +293,7 @@
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">12</span>
+                    <span class="guide-step-number">13</span>
                     <span class="guide-step-title">從多個棋譜註冊</span>
                 </div>
                 <p class="guide-step-text">選擇「合併 ▼」→「從多個棋譜...」，可以一次註冊多個棋譜檔案與資料夾。用「新增檔案...」「新增資料夾...」列出，也可以將棋譜檔案與資料夾拖放到定跡視窗或此對話方塊中（資料夾也會讀取子資料夾中的棋譜）。</p>
@@ -301,7 +314,7 @@
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">13</span>
+                    <span class="guide-step-number">14</span>
                     <span class="guide-step-title">合併其他定跡檔案</span>
                 </div>
                 <p class="guide-step-text">選擇「合併 ▼」→「從定跡檔案...」，可以將其他定跡檔案（YaneuraOu 格式）合併到目前定跡。目前定跡中沒有的局面與定跡著法會原樣加入，不同手數的登記也會保留。對於兩邊都有的著法，可以選擇預期應手、評價值、深度與註解使用哪一方的值，以及是否將次數相加（不相加時使用所選一方的次數）。</p>
@@ -326,7 +339,7 @@
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">14</span>
+                    <span class="guide-step-number">15</span>
                     <span class="guide-step-title">從思考表格註冊</span>
                 </div>
                 <p class="guide-step-text">在「研究」分頁或對局中「思考」分頁的表格中，於某一列上按右鍵，選擇「將主要變化的第一手（…）註冊到定跡」，即可將該列主要變化的第一手註冊為引擎搜尋局面的定跡著法。評價值與深度使用該列的值，主要變化的第二手作為預期應手。將死的評價值與 YaneuraOu 相同，以 ±(32000−手數) 註冊。</p>
@@ -339,7 +352,7 @@
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">15</span>
+                    <span class="guide-step-number">16</span>
                     <span class="guide-step-title">從棋譜分析結果註冊</span>
                 </div>
                 <p class="guide-step-text">在棋譜分析結果的表格中，於某一列上按右鍵，選擇「將主要變化的第一手（…）註冊到定跡」，即可註冊該列局面（走出該著法後的局面）主要變化的第一手。註冊方式與思考表格相同。</p>
@@ -359,7 +372,49 @@
 </section>
 
 <!-- Section 6 -->
-<section id="joseki-yaneuraou" class="section">
+<section id="joseki-explore" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">查看定跡</h2>
+        <p class="section-desc">將定跡展開為棋譜的變化，或確認棋譜脫離定跡的著法</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">17</span>
+                    <span class="guide-step-title">將定跡展開到棋譜</span>
+                </div>
+                <p class="guide-step-text">按一下「展開到棋譜...」，可以從目前局面沿定跡著法前進，作為棋譜的變化加入。可以選擇展開的手數、每個局面展開的定跡著法數（從表格上方開始）以及比例下限。在該局面中不能走的著法不會加入。</p>
+                <p class="guide-step-text">以不同手順到達相同局面時，從該處起不再展開（該局面已沿先到達的手順展開）。棋譜中已有的著法不會加入，目前顯示的著法也不變。加入的變化可以在變化樹或棋譜欄的分支中確認，也可以作為棋譜儲存。對局中無法展開。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-tw/joseki/joseki-19-expand.png" alt="將定跡展開到棋譜">
+                    <p class="screenshot-caption">展開到棋譜：選擇展開的手數、每個局面的定跡著法數與比例下限</p>
+                </div>
+                <div class="screenshot-item">
+                    <img src="../../images/zh-tw/joseki/joseki-20-expanded.png" alt="展開後的變化樹">
+                    <p class="screenshot-caption">展開後的變化樹：從初始局面展開到 4 手為止，每個局面 2 手（比例 10% 以上）</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">18</span>
+                    <span class="guide-step-title">查看脫離定跡的著法</span>
+                </div>
+                <p class="guide-step-text">棋譜欄中顯示的手順脫離定跡時，局面一行的右側會顯示「在第 N 手的…脫離定跡」。按一下即可移動到該著法。手順中的著法全部在定跡中時，顯示「目前手順全部在定跡中」。</p>
+                <p class="guide-step-text">是否在定跡中，是依據走該著法之前的局面中是否登記了該定跡著法來判斷（不區分手數）。用「■ 停止」停止定跡顯示期間不顯示。</p>
+                <div class="screenshot-item">
+                    <img src="../../images/zh-tw/joseki/joseki-21-deviation.png" alt="脫離定跡的著法">
+                    <p class="screenshot-caption">脫離定跡的著法：按一下即可移動到該著法</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 7 -->
+<section id="joseki-yaneuraou" class="section section--alt">
     <div class="section-inner">
         <h2 class="section-title">在 YaneuraOu 中使用</h2>
         <p class="section-desc">讓 YaneuraOu 讀取自製定跡時的設定</p>
@@ -368,7 +423,7 @@
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">16</span>
+                    <span class="guide-step-number">19</span>
                     <span class="guide-step-title">在 YaneuraOu 中使用</span>
                 </div>
                 <p class="guide-step-text">製作的定跡檔案可以作為 YaneuraOu 的定跡（引擎設定中的 BookFile、BookDir）使用。但在 YaneuraOu 的預設設定下，有些著法不會被使用。</p>

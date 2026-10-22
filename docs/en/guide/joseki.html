@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Joseki - ShogiBoardQ</title>
-    <meta name="description" content="A screenshot guide to joseki (opening book) support in ShogiBoardQ: open YaneuraOu-format book files, see the book moves for each position in the table and as board arrows, play them in games, let engines use the book in games, add, edit and delete moves, register moves from the board, engine analysis, multiple game records and other book files, and merge moves from game records.">
+    <meta name="description" content="A screenshot guide to joseki (opening book) support in ShogiBoardQ: open YaneuraOu-format book files, see the book moves for each position in the table and as board arrows, play them in games, let engines use the book in games, add, edit and delete moves, register moves from the board, engine analysis, multiple game records and other book files, reorder book moves, expand the book into the game record, see where a game leaves the book, and merge moves from game records.">
     <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/joseki.html">
     <!-- Open Graph -->
     <meta property="og:type" content="article">
@@ -239,6 +239,19 @@
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">10</span>
+                    <span class="guide-step-title">Reorder Book Moves</span>
+                </div>
+                <p class="guide-step-text">Right-click a row and choose Move to Top, Move Up or Move Down to change the position of that book move. Sort by Frequency and Sort by Score sort the book moves of the displayed position from the highest down (on a tie, frequency is sorted by score and score by frequency).</p>
+                <p class="guide-step-text">The table order is the order written to the book file; the arrow numbers on the board and the first move in the table used when engines play from the book in games follow the same order. Save writes the new order to the book file.</p>
+                <div class="screenshot-item">
+                    <img src="../../images/en/joseki/joseki-18-reorder-menu.png" alt="Right-click menu of the table">
+                    <p class="screenshot-caption">Right-click the table to reorder the book moves</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">11</span>
                     <span class="guide-step-title">Delete and Save</span>
                 </div>
                 <p class="guide-step-text">Delete asks for confirmation and removes the book move. Deleting the last book move of a position removes the position from the book as well.</p>
@@ -267,7 +280,7 @@
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">11</span>
+                    <span class="guide-step-number">12</span>
                     <span class="guide-step-title">Register the Moves of a Game Record</span>
                 </div>
                 <p class="guide-step-text">Choose Merge ▼ → From current game to list the moves of the line shown in the game record (the selected variation, if any), or From game file to list the main-line moves of a game record file (KIF, KI2, CSA, JKF, USI, USEN and so on). Moves of both sides are listed. Register adds one move, Register All adds them all.</p>
@@ -280,7 +293,7 @@
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">12</span>
+                    <span class="guide-step-number">13</span>
                     <span class="guide-step-title">Register from Multiple Game Records</span>
                 </div>
                 <p class="guide-step-text">Merge ▼ → From multiple game records... registers many game record files and folders at once. List them with Add Files... and Add Folder..., or drop game record files and folders on the Joseki window or on this dialog (folders include the game records in their subfolders).</p>
@@ -301,7 +314,7 @@
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">13</span>
+                    <span class="guide-step-number">14</span>
                     <span class="guide-step-title">Add Another Book File</span>
                 </div>
                 <p class="guide-step-text">Merge ▼ → From book file... adds another book file (YaneuraOu format) to the current book. Positions and book moves that are not in the current book are added as they are, keeping registrations under different move numbers. For moves in both books, choose whether the response, score, depth and comment come from the current book or from the added book, and whether to add up the frequencies (otherwise the frequency of the chosen book is used).</p>
@@ -326,7 +339,7 @@
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">14</span>
+                    <span class="guide-step-number">15</span>
                     <span class="guide-step-title">Register from the Thinking Table</span>
                 </div>
                 <p class="guide-step-text">Right-click a row of the table in the Consideration tab, or in the Thinking tab during a game, and choose Register the First PV Move (…) in the Book to register the first move of that row&#39;s PV as a book move of the position the engine searched. The score and depth come from the row, and the second move of the PV becomes the expected response. A mate score is registered as ±(32000 − moves to mate), as YaneuraOu does.</p>
@@ -339,7 +352,7 @@
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">15</span>
+                    <span class="guide-step-number">16</span>
                     <span class="guide-step-title">Register from Kifu Analysis Results</span>
                 </div>
                 <p class="guide-step-text">Right-click a row of the kifu analysis results and choose Register the First PV Move (…) in the Book to register the first PV move of that row&#39;s position (the position after the move). It works the same way as in the thinking table.</p>
@@ -359,7 +372,49 @@
 </section>
 
 <!-- Section 6 -->
-<section id="joseki-yaneuraou" class="section">
+<section id="joseki-explore" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">Exploring the Book</h2>
+        <p class="section-desc">Expand the book into variations of the game record, and see where the game record leaves the book</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">17</span>
+                    <span class="guide-step-title">Expand the Book into the Game Record</span>
+                </div>
+                <p class="guide-step-text">Expand to Record... follows the book moves from the displayed position and adds them to the game record as variations. Choose how many moves ahead to expand, how many book moves to expand from each position (from the top of the table), and the minimum share. Moves that cannot be played in the position are not added.</p>
+                <p class="guide-step-text">Where another line reaches the same position, expansion stops (that position is expanded along the line that reached it first). Moves already in the game record are not added, and the displayed move does not change. The added variations can be checked in the branch tree and the variation list, and saved with the game record. The book cannot be expanded during a game.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/en/joseki/joseki-19-expand.png" alt="Expand the Book into the Game Record dialog">
+                    <p class="screenshot-caption">Expand to Record: choose how far to expand, the book moves per position and the minimum share</p>
+                </div>
+                <div class="screenshot-item">
+                    <img src="../../images/en/joseki/joseki-20-expanded.png" alt="Branch tree after expanding">
+                    <p class="screenshot-caption">The branch tree after expanding: up to 4 moves ahead of the start position, 2 book moves per position (share of 10% or more)</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">18</span>
+                    <span class="guide-step-title">See Where the Game Leaves the Book</span>
+                </div>
+                <p class="guide-step-text">When the line shown in the game record leaves the book, Left the book at move N (…) appears to the right of the position line. Click it to go to that move. When every move of the line is in the book, All moves of the displayed line are in the book is shown.</p>
+                <p class="guide-step-text">A move counts as in the book when it is registered as a book move of the position before it (move numbers are ignored). Nothing is shown while the book display is stopped with ■ Stop.</p>
+                <div class="screenshot-item">
+                    <img src="../../images/en/joseki/joseki-21-deviation.png" alt="Where the game leaves the book">
+                    <p class="screenshot-caption">Where the game leaves the book: click it to go to that move</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 7 -->
+<section id="joseki-yaneuraou" class="section section--alt">
     <div class="section-inner">
         <h2 class="section-title">Using the Book with YaneuraOu</h2>
         <p class="section-desc">Settings for letting YaneuraOu read the book you made</p>
@@ -368,7 +423,7 @@
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">16</span>
+                    <span class="guide-step-number">19</span>
                     <span class="guide-step-title">Using the Book with YaneuraOu</span>
                 </div>
                 <p class="guide-step-text">A book file made here can be used as YaneuraOu's book (BookFile and BookDir in the engine settings). With YaneuraOu's default settings, however, some moves are not used.</p>
