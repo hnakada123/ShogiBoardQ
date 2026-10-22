@@ -4,20 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Joseki - ShogiBoardQ</title>
-    <meta name="description" content="A screenshot guide to joseki (opening book) support in ShogiBoardQ: open YaneuraOu-format book files, see the book moves for each position, play them in games, add, edit and delete moves, and merge moves from game records.">
+    <meta name="description" content="A screenshot guide to joseki (opening book) support in ShogiBoardQ: open YaneuraOu-format book files, see the book moves for each position in the table and as board arrows, play them in games, let engines use the book in games, add, edit and delete moves, and merge moves from game records.">
     <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/joseki.html">
     <!-- Open Graph -->
     <meta property="og:type" content="article">
     <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/en/guide/joseki.html">
     <meta property="og:title" content="Joseki - ShogiBoardQ">
-    <meta property="og:description" content="Open YaneuraOu-format opening books, see and edit the book moves for each position, and play them directly during games.">
+    <meta property="og:description" content="Open YaneuraOu-format opening books, see and edit the book moves for each position, play them directly during games, and let engines use the book.">
     <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/joseki/joseki-01-window.png">
     <meta property="og:locale" content="en_US">
     <meta property="og:site_name" content="ShogiBoardQ">
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Joseki - ShogiBoardQ">
-    <meta name="twitter:description" content="Open YaneuraOu-format opening books, see and edit the book moves for each position, and play them directly during games.">
+    <meta name="twitter:description" content="Open YaneuraOu-format opening books, see and edit the book moves for each position, play them directly during games, and let engines use the book.">
     <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/joseki/joseki-01-window.png">
     <link rel="stylesheet" href="../../css/style.css">
     <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/joseki.html">
@@ -109,6 +109,19 @@
                 <p class="guide-step-text">Details shows the SFEN of the position and of the book entry. ■ Stop pauses the book display and ▶ Resume restarts it. While the Joseki window is behind another tab it is not updated; when it comes to the front again it shows the book moves of the displayed position. The bottom line shows the file name, the number of positions and the number of book moves for this position. While a file is being loaded or saved, it also shows Loading... or Saving... (a large book file can take a few seconds to load). A hint is shown inside the table when no book file is open or the position has no book moves.</p>
             </div>
 
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">Show Book Moves on the Board</span>
+                </div>
+                <p class="guide-step-text">Check View → Show book moves on board to draw the book moves of the displayed position as green arrows on the board. Board arrows in the Joseki window toggles the same setting.</p>
+                <p class="guide-step-text">The first five moves of the table are numbered in table order, and moves with a higher frequency are drawn darker. Arrows are shown only while a book file is open in the Joseki window; they are hidden while ■ Stop has paused the display and on the engine's turn during a game. Where they overlap, the engine's arrows from consideration or games are drawn on top.</p>
+                <div class="screenshot-item">
+                    <img src="../../images/en/joseki/joseki-09-arrows.png" alt="Book move arrows on the board">
+                    <p class="screenshot-caption">Book moves on the board: the book moves of the initial position (numbered in table order)</p>
+                </div>
+            </div>
+
         </div>
     </div>
 </section>
@@ -117,13 +130,13 @@
 <section id="joseki-play" class="section">
     <div class="section-inner">
         <h2 class="section-title">Using the Book in Games</h2>
-        <p class="section-desc">Play book moves on your own turn during a game, or at any time when no game is in progress</p>
+        <p class="section-desc">Play book moves on your own turn during a game, or at any time when no game is in progress. Engines in a game can also use the book</p>
 
         <div class="screenshot-gallery">
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-number">4</span>
                     <span class="guide-step-title">Play a Book Move</span>
                 </div>
                 <p class="guide-step-text">During a game, buttons appear in the Play column on your turn. Click one, or double-click the row, to play that book move (promotion follows the book). The move is recorded in the game record just like a move made on the board.</p>
@@ -131,6 +144,40 @@
                 <div class="screenshot-item">
                     <img src="../../images/en/joseki/joseki-02-play.png" alt="Joseki window during a game">
                     <p class="screenshot-caption">During a game: Play buttons on your turn play the book move</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">5</span>
+                    <span class="guide-step-title">Let the Engine Use the Book</span>
+                </div>
+                <p class="guide-step-text">When an engine is chosen as a player in the game dialog, Use book and Conditions… appear. With Use book checked, on that engine's turn the move is played without letting the engine think, if the book open in the Joseki window has a move that meets the conditions. The move is played after at least one second. Once out of the book, the engine thinks and plays as usual.</p>
+                <p class="guide-step-text">Use book cannot be checked while no book file is open in the Joseki window. The book as it was when the game started is used, so editing the book or opening another file during the game does not affect that game. When a book move is played, the engine information shows it under Searching, like “△P-8d (book 39.9%)” (the percentage is the share). No point is added to the evaluation graph.</p>
+                <div class="screenshot-item">
+                    <img src="../../images/en/joseki/joseki-10-engine-book.png" alt="Use book in the game dialog">
+                    <p class="screenshot-caption">Game dialog: Use book and Conditions… for an engine player</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">6</span>
+                    <span class="guide-step-title">Book Conditions</span>
+                </div>
+                <p class="guide-step-text">Conditions… sets the conditions for using the book. They mean the same as YaneuraOu's book options.</p>
+                <ul class="guide-step-text">
+                    <li>Use the book for the first … moves: book moves are used up to this move number (BookMoves)</li>
+                    <li>Selection: In proportion to frequency, By score (equally among moves close to the best), or First move in the table (ConsiderBookMoveCount and BookEvalDiff)</li>
+                    <li>Score difference: with By score, moves within this difference from the best score are chosen (BookEvalDiff)</li>
+                    <li>Minimum score: moves whose score from the mover's side is below this are not used (BookEvalBlackLimit and BookEvalWhiteLimit)</li>
+                    <li>Minimum depth: moves shallower than this are not used; moves registered from game records have depth 0 (BookDepthLimit)</li>
+                    <li>Minimum share and Minimum frequency: moves below these are not used</li>
+                    <li>After leaving the book, the engine's built-in book may be used. To prevent this, turn off the engine's book in the engine settings (for YaneuraOu, set BookFile to no_book)</li>
+                </ul>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/en/joseki/joseki-11-conditions.png" alt="Book conditions">
+                    <p class="screenshot-caption">Book conditions</p>
                 </div>
             </div>
 
@@ -148,7 +195,7 @@
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-number">7</span>
                     <span class="guide-step-title">Add a Book Move</span>
                 </div>
                 <p class="guide-step-text">+ Add adds a book move to the displayed position. Choose the move from a list of the legal moves of the position, written in game-record notation (moves that cannot be played are not listed). The response is chosen from the legal moves of the position after that move, and None can be chosen.</p>
@@ -161,7 +208,7 @@
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">5</span>
+                    <span class="guide-step-number">8</span>
                     <span class="guide-step-title">Edit a Book Move</span>
                 </div>
                 <p class="guide-step-text">Edit changes the response, score, search depth, frequency and comment (the move itself cannot be changed; the response is chosen from the legal moves of the position after the book move). Right-click a row for a menu with Play, Edit, Delete and copying the move.</p>
@@ -178,7 +225,7 @@
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">6</span>
+                    <span class="guide-step-number">9</span>
                     <span class="guide-step-title">Delete and Save</span>
                 </div>
                 <p class="guide-step-text">Delete asks for confirmation and removes the book move. Deleting the last book move of a position removes the position from the book as well.</p>
@@ -207,7 +254,7 @@
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">7</span>
+                    <span class="guide-step-number">10</span>
                     <span class="guide-step-title">Register the Moves of a Game Record</span>
                 </div>
                 <p class="guide-step-text">Choose Merge ▼ → From current game to list the moves of the line shown in the game record (the selected variation, if any), or From game file to list the main-line moves of a game record file (KIF, KI2, CSA, JKF, USI, USEN and so on). Moves of both sides are listed. Register adds one move, Register All adds them all.</p>
@@ -220,7 +267,7 @@
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">8</span>
+                    <span class="guide-step-number">11</span>
                     <span class="guide-step-title">Using the Book with YaneuraOu</span>
                 </div>
                 <p class="guide-step-text">A book file made here can be used as YaneuraOu's book (BookFile and BookDir in the engine settings). With YaneuraOu's default settings, however, some moves are not used.</p>
