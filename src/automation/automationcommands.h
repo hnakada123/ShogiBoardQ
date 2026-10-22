@@ -11,6 +11,7 @@
 #include "recordline.h"
 
 class AutomationDispatcher;
+class KifuFileController;
 
 /**
  * @brief 応答を返した後にメインスレッドで実行する遅延呼び出し
@@ -52,6 +53,9 @@ QString currentSfen(const AutomationContext& context);
 QStringList currentLinePositions(const AutomationContext& context);
 /// 表示中の手順（分岐ツリー）。終局行は含まない。currentPly は表示中の手数
 RecordLine currentRecordLine(const AutomationContext& context);
+/// 棋譜を置き換える操作（kifu.load・position.set）の前の検査。対局・検討・解析・局面編集の間と、
+/// discardUnsaved でない未保存の変更があるときは AutomationError を投げる
+KifuFileController* requireReplaceableRecord(const AutomationContext& context, bool discardUnsaved);
 
 } // namespace AutomationCommands
 

@@ -46,6 +46,7 @@ void DialogLauncher::displayEngineSettingsDialog()
 {
     EngineRegistrationDialog dialog(m_deps.parentWidget);
     dialog.exec();
+    emit engineListChanged();
 }
 
 bool DialogLauncher::choosePromotion()

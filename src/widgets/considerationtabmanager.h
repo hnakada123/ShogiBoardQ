@@ -81,6 +81,10 @@ public:
     // フォントサイズ（外部からの取得用）
     int considerationFontSize() const { return m_considerationFontSize.fontSize(); }
 
+public slots:
+    /// 登録エンジンの一覧を読み直す（エンジンの登録・削除の後。選んでいたエンジンが残っていれば選んだまま）
+    void reloadEngines();
+
 signals:
     /// 検討の条件が変わった（利用者の操作・setSettings）
     void settingsChanged(const ConsiderationSettings& settings);

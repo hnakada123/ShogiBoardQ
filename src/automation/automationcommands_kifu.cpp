@@ -44,15 +44,6 @@ KifuFileController* requireFileController(const AutomationContext& context)
     return controller;
 }
 
-void requireSavedOrDiscard(KifuFileController* controller, bool discard)
-{
-    if (controller->hasUnsavedChanges() && !discard) {
-        throw AutomationError(ErrorKind::UnsavedChanges,
-                              QStringLiteral("The current record has unsaved changes"),
-                              QStringLiteral("Save it with kifu.save or pass discard_unsaved=true"));
-    }
-}
-
 QJsonObject loadResult(const AutomationContext& context)
 {
     QJsonObject result;
@@ -65,6 +56,22 @@ QJsonObject loadResult(const AutomationContext& context)
 
 } // namespace
 
+KifuFileController* AutomationCommands::requireReplaceableRecord(const AutomationContext& context, bool discardUnsaved)
+{
+    KifuFileController* controller = requireFileController(context);
+    if (!controller->canReplaceRecord()) {
+        throw AutomationError(ErrorKind::InvalidState,
+                              QStringLiteral("The record cannot be replaced during a game, analysis or position editing"),
+                              QStringLiteral("Stop the game or analysis, or finish position editing first"));
+    }
+    if (controller->hasUnsavedChanges() && !discardUnsaved) {
+        throw AutomationError(ErrorKind::UnsavedChanges,
+                              QStringLiteral("The current record has unsaved changes"),
+                              QStringLiteral("Save it with kifu.save or pass discard_unsaved=true"));
+    }
+    return controller;
+}
+
 void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, const AutomationContext& context)
 {
     dispatcher.registerMethod(QStringLiteral("kifu.load"), [context](const QJsonObject& params) {
@@ -73,8 +80,8 @@ void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, 
         if (path.isEmpty() == text.isEmpty()) {
             throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("Pass exactly one of \"path\" or \"text\""));
         }
-        KifuFileController* controller = requireFileController(context);
-        requireSavedOrDiscard(controller, params.value(QStringLiteral("discard_unsaved")).toBool());
+        KifuFileController* controller = AutomationCommands::requireReplaceableRecord(
+            context, params.value(QStringLiteral("discard_unsaved")).toBool());
         bool ok = false;
         // 読み込み失敗のダイアログは出さず、内容をエラー応答で返す
         const UiNotificationService::ScopedCapture capture;

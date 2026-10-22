@@ -22,6 +22,8 @@
 #include "uistatepolicymanager.h"
 #include "livegamesession.h"
 #include "gamesession.h"
+#include "evaluationgraphpresenter.h"
+#include "evaluationseries.h"
 #include "kifudocument.h"
 #include "kifunavigationstate.h"
 #include "mainwindow.h"
@@ -257,6 +259,21 @@ private slots:
         QVERIFY(!p.liveGameSession->isActive());
         QVERIFY(p.document->timeRecord().endDateTime().isValid());
         QCOMPARE(window.composer().state().activity.activity(), AppActivityState::Activity::Idle);
+        p.document->markSaved(QString());
+    }
+
+    /// 通信対局を始めると、前の対局・棋譜解析の評価値グラフの点を消す（ローカル対局の開始と同じ）
+    void csaGameStartClearsPreviousEvaluations()
+    {
+        humanVsHumanSettings();
+        MainWindow window;
+        auto& p = window.composer().parts();
+        p.evalGraph->beginAnalysis(QStringLiteral("Engine"), 0);
+        p.evalGraph->plotAnalysisScore(1, UsiScore::cp(120));
+        QCOMPARE(p.evalGraph->series()->count(0), 1);
+        emit p.csaGame->gameStarted(QStringLiteral("Sente"), QStringLiteral("Gote"), {});
+        QCOMPARE(p.evalGraph->series()->count(0), 0);
+        emit p.csaGame->gameEnded(CsaClient::GameResult::Win, CsaClient::GameEndCause::Resign, 0);
         p.document->markSaved(QString());
     }
 

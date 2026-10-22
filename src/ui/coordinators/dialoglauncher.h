@@ -66,6 +66,8 @@ public slots:
 
 signals:
     void sfenCollectionPositionSelected(const QString& sfen);
+    /// エンジン登録ダイアログを閉じた（登録エンジンの一覧が変わったかもしれない）
+    void engineListChanged();
 
 private:
     Deps m_deps;

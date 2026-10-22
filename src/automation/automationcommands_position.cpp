@@ -34,15 +34,7 @@ void AutomationCommands::registerPositionCommands(AutomationDispatcher& dispatch
             throw AutomationError(ErrorKind::InvalidArgument,
                                   QStringLiteral("Invalid SFEN: %1").arg(validation.errors.join(QStringLiteral("; "))));
         }
-        KifuFileController* controller = context.kifuFileController;
-        if (!controller) {
-            throw AutomationError(ErrorKind::InternalError, QStringLiteral("Kifu controller is unavailable"));
-        }
-        if (controller->hasUnsavedChanges() && !discard) {
-            throw AutomationError(ErrorKind::UnsavedChanges,
-                                  QStringLiteral("The current record has unsaved changes"),
-                                  QStringLiteral("Save it with kifu.save or pass discard_unsaved=true"));
-        }
+        KifuFileController* controller = AutomationCommands::requireReplaceableRecord(context, discard);
         if (!controller->applySfenPosition(validation.normalizedSfen)) {
             throw AutomationError(ErrorKind::InvalidState, QStringLiteral("The position could not be applied"));
         }

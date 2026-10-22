@@ -9,6 +9,9 @@
 #include "branchtreeview.h"
 #include "commenteditorpanel.h"
 #include "considerationtabmanager.h"
+#include "dialoglauncher.h"
+#include "enginelistsettings.h"
+#include "engineprofilestore.h"
 #include "thinkingpanel.h"
 #include "usilogpanel.h"
 #include "kifudocument.h"
@@ -97,6 +100,21 @@ private slots:
         QTimer::singleShot(0, this, &TestWiringAnalysisTab::rejectModal);
         emit window.composer().parts().considerationTab->engineSettingsRequested({QStringLiteral("TestEngine"), QString(), QString()});
         QCOMPARE(m_seenDialog, QStringLiteral("ChangeEngineSettingsDialog"));
+    }
+    /// エンジン登録ダイアログを閉じたら、検討タブのエンジンの一覧を読み直す（再起動しなくても選べる）
+    void engineRegistrationReloadsConsiderationEngines()
+    {
+        MainWindow window;
+        auto* tab = window.composer().parts().considerationTab;
+        QVERIFY(tab->settings().engineName.isEmpty());
+        EngineListSettings::EngineEntry engine;
+        engine.name = QStringLiteral("NewEngine");
+        engine.path = QStringLiteral("/engines/new/engine");
+        EngineProfileStore::saveEngines({engine});
+        QTimer::singleShot(0, this, &TestWiringAnalysisTab::rejectModal);
+        window.composer().parts().dialogLauncher->displayEngineSettingsDialog();
+        QCOMPARE(tab->settings().engineName, QStringLiteral("NewEngine"));
+        EngineProfileStore::saveEngines({});
     }
     void considerationSignalReportsMissingEngine()
     {
