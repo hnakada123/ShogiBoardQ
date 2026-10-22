@@ -12,10 +12,19 @@
 #include <QSaveFile>
 #include <QTextStream>
 
-#include <optional>
+#include <algorithm>
 #include <utility>
 
 namespace {
+
+/// 指し手の番号: kNoMove は "none"、それより大きく kTokenBase より小さい番号は USI の指し手、
+/// kTokenBase から JosekiBook::kHeader の手前までは USI として読めない文字列の表の番号
+constexpr quint16 kNoMove = 0;
+constexpr quint16 kTokenBase = 0x8000;
+/// 駒打ちの移動元の番号（盤の81マスの後に、打つ駒の種類 歩〜飛を並べる）
+constexpr int kDropFromBase = 81;
+/// 駒打ちの駒の文字（PieceKind の歩〜飛の順）
+constexpr char kDropLetters[] = "PLNSGBR";
 
 /// SFEN の手数（無い・読めなければ nullopt。startpos は1手目）
 std::optional<int> plyOf(const QString &sfen)
@@ -28,32 +37,37 @@ std::optional<int> plyOf(const QString &sfen)
     return ply;
 }
 
-/// 1つの局面の登録のうち、sfen と同じ手数のもの。無ければ最初のもの（registrations は空でない）
-qsizetype resolveIndex(const QList<JosekiPosition> &registrations, const QString &sfen)
+int squareIndex(BoardSquare square)
 {
-    if (registrations.size() > 1) {
-        if (const std::optional<int> ply = plyOf(sfen)) {
-            for (qsizetype i = 0; i < registrations.size(); ++i) {
-                if (registrations.at(i).ply == *ply) return i;
-            }
-        }
-    }
-    return 0;
+    return (square.file - 1) * 9 + (square.rank - 1);
 }
 
-/// 定跡手の位置（無ければ -1）
-qsizetype indexOfMove(const QList<JosekiMove> &moves, const QString &usiMove)
+/// USI の書き方どおりの指し手の番号（違えば nullopt。駒打ちの駒は大文字だけを USI の書き方とする）
+std::optional<quint16> usiMoveCode(QStringView text)
 {
-    for (qsizetype i = 0; i < moves.size(); ++i) {
-        if (moves.at(i).move == usiMove) return i;
-    }
-    return -1;
+    const std::optional<UsiMove> move = UsiMove::parse(text);
+    if (!move || !move->isValid() || text.trimmed().size() != text.size()) return std::nullopt;
+    if (move->isDrop() && !text.at(0).isUpper()) return std::nullopt;
+    const int from = move->isDrop() ? kDropFromBase + static_cast<int>(pieceKind(move->drop)) : squareIndex(move->from);
+    return static_cast<quint16>(1 + (from * 81 + squareIndex(move->to)) * 2 + (move->promote ? 1 : 0));
 }
 
-/// ファイルの sfen 行に書く手数付きの SFEN
-QString sfenLine(const QString &key, int ply)
+/// USI の指し手の番号を文字にして out の後ろに足す
+void appendUsiMove(QByteArray &out, quint16 code)
 {
-    return key + QLatin1Char(' ') + QString::number(ply);
+    const int value = code - 1;
+    const int from = value / 2 / 81;
+    const int to = value / 2 % 81;
+    if (from >= kDropFromBase) {
+        out += kDropLetters[from - kDropFromBase];
+        out += '*';
+    } else {
+        out += static_cast<char>('1' + from / 9);
+        out += static_cast<char>('a' + from % 9);
+    }
+    out += static_cast<char>('1' + to / 9);
+    out += static_cast<char>('a' + to % 9);
+    if (value % 2 != 0) out += '+';
 }
 
 QString translated(const char *source)
@@ -64,7 +78,7 @@ QString translated(const char *source)
 } // namespace
 
 // ============================================================
-// データ
+// 詰めた形との変換
 // ============================================================
 
 QString JosekiBook::positionKey(const QString &sfen)
@@ -72,115 +86,236 @@ QString JosekiBook::positionKey(const QString &sfen)
     return SfenUtils::normalizeSfenKey(sfen);
 }
 
-JosekiBook JosekiBook::fromPositions(QMap<QString, QList<JosekiPosition>> positions)
+QByteArray JosekiBook::keyOf(const QString &sfen)
 {
-    for (auto it = positions.begin(); it != positions.end();) {
-        it->removeIf([](const JosekiPosition &position) { return position.moves.isEmpty(); });
-        if (it->isEmpty()) it = positions.erase(it);
-        else ++it;
-    }
-    JosekiBook book;
-    book.m_positions = std::move(positions);
-    return book;
+    // toUtf8 は長さの3倍の領域を取るので、表に入れるキーは詰める
+    QByteArray key = positionKey(sfen).toUtf8();
+    key.squeeze();
+    return key;
 }
 
-const JosekiPosition *JosekiBook::find(const QString &sfen) const
+QList<JosekiBook::Range> JosekiBook::rangesOf(const Records &records)
 {
-    const auto it = m_positions.constFind(positionKey(sfen));
-    return it == m_positions.constEnd() ? nullptr : &it->at(resolveIndex(*it, sfen));
+    QList<Range> ranges;
+    for (qsizetype i = 0; i < records.size(); ++i) {
+        if (records.at(i).move != kHeader) continue;
+        if (!ranges.isEmpty()) ranges.last().end = i;
+        ranges.append(Range{i, records.size()});
+    }
+    return ranges;
+}
+
+JosekiBook::Range JosekiBook::resolve(const Records &records, const QString &sfen)
+{
+    const QList<Range> ranges = rangesOf(records);
+    if (ranges.size() > 1) {
+        if (const std::optional<int> ply = plyOf(sfen)) {
+            for (const Range &range : ranges) {
+                if (records.at(range.header).value == *ply) return range;
+            }
+        }
+    }
+    return ranges.first();
+}
+
+qsizetype JosekiBook::indexOf(const Records &records, Range range, quint16 move)
+{
+    for (qsizetype i = range.header + 1; i < range.end; ++i) {
+        if (records.at(i).move == move) return i;
+    }
+    return -1;
+}
+
+quint16 JosekiBook::encodeMove(QStringView text)
+{
+    if (const std::optional<quint16> code = findMoveCode(text)) return *code;
+    // USI として読めない文字列は、ファイルの内容を失わないように表に入れて番号にする
+    if (kTokenBase + m_tokens.size() >= kHeader) {
+        qCWarning(lcUi) << "Too many unreadable book moves; stored as none:" << text;
+        return kNoMove;
+    }
+    const auto code = static_cast<quint16>(kTokenBase + m_tokens.size());
+    m_tokens.append(text.toString());
+    m_tokenCodes.insert(m_tokens.last(), code);
+    return code;
+}
+
+std::optional<quint16> JosekiBook::findMoveCode(QStringView text) const
+{
+    if (text.isEmpty() || text == QLatin1String("none")) return kNoMove;
+    if (const std::optional<quint16> code = usiMoveCode(text)) return code;
+    const auto it = m_tokenCodes.constFind(text.toString());
+    if (it == m_tokenCodes.constEnd()) return std::nullopt;
+    return *it;
+}
+
+void JosekiBook::appendMoveText(QByteArray &out, quint16 code) const
+{
+    if (code == kNoMove) out += "none";
+    else if (code >= kTokenBase) out += m_tokens.value(code - kTokenBase).toUtf8();
+    else appendUsiMove(out, code);
+}
+
+QString JosekiBook::decodeMove(quint16 code) const
+{
+    if (code >= kTokenBase) return m_tokens.value(code - kTokenBase);
+    QByteArray text;
+    appendMoveText(text, code);
+    return QString::fromLatin1(text);
+}
+
+quint32 JosekiBook::storeComment(const QString &comment, quint32 index)
+{
+    if (comment.isEmpty()) return 0;
+    if (index != 0) {
+        m_comments[index] = comment;
+        return index;
+    }
+    m_comments.append(comment);
+    return static_cast<quint32>(m_comments.size() - 1);
+}
+
+void JosekiBook::assign(PackedMove &target, const JosekiMove &move)
+{
+    target.next = encodeMove(move.nextMove);
+    target.value = move.value;
+    target.depth = move.depth;
+    target.frequency = move.frequency;
+    target.comment = storeComment(move.comment, target.comment);
+}
+
+JosekiMove JosekiBook::unpack(const PackedMove &packed) const
+{
+    JosekiMove move;
+    move.move = decodeMove(packed.move);
+    move.nextMove = decodeMove(packed.next);
+    move.value = packed.value;
+    move.depth = packed.depth;
+    move.frequency = packed.frequency;
+    move.comment = m_comments.value(packed.comment);
+    return move;
+}
+
+JosekiBook::Range JosekiBook::findOrCreate(Records &records, const QString &sfen)
+{
+    if (!records.isEmpty()) return resolve(records, sfen);
+    PackedMove header;
+    header.move = kHeader;
+    header.value = plyOf(sfen).value_or(1);
+    records.append(header);
+    return Range{0, 1};
+}
+
+// ============================================================
+// データ
+// ============================================================
+
+bool JosekiBook::contains(const QString &sfen) const
+{
+    return m_positions.contains(keyOf(sfen));
 }
 
 QString JosekiBook::registeredSfen(const QString &sfen) const
 {
-    const QString key = positionKey(sfen);
+    const QByteArray key = keyOf(sfen);
     const auto it = m_positions.constFind(key);
-    return it == m_positions.constEnd() ? QString() : sfenLine(key, it->at(resolveIndex(*it, sfen)).ply);
+    if (it == m_positions.constEnd()) return QString();
+    return QString::fromUtf8(key) + QLatin1Char(' ') + QString::number(it->at(resolve(*it, sfen).header).value);
 }
 
 QList<int> JosekiBook::registeredPlies(const QString &sfen) const
 {
     QList<int> plies;
-    const auto it = m_positions.constFind(positionKey(sfen));
+    const auto it = m_positions.constFind(keyOf(sfen));
     if (it == m_positions.constEnd()) return plies;
-    for (const JosekiPosition &position : *it) plies.append(position.ply);
+    const QList<Range> ranges = rangesOf(*it);
+    for (const Range &range : ranges) plies.append(it->at(range.header).value);
     return plies;
 }
 
 QList<JosekiMove> JosekiBook::movesAt(const QString &sfen) const
 {
-    const JosekiPosition *position = find(sfen);
-    return position ? position->moves : QList<JosekiMove>();
+    QList<JosekiMove> moves;
+    const auto it = m_positions.constFind(keyOf(sfen));
+    if (it == m_positions.constEnd()) return moves;
+    const Range range = resolve(*it, sfen);
+    for (qsizetype i = range.header + 1; i < range.end; ++i) moves.append(unpack(it->at(i)));
+    return moves;
 }
 
 bool JosekiBook::hasMove(const QString &sfen, const QString &usiMove) const
 {
-    const JosekiPosition *position = find(sfen);
-    return position && indexOfMove(position->moves, usiMove) >= 0;
-}
-
-JosekiPosition *JosekiBook::findForWrite(const QString &key, const QString &sfen)
-{
-    const auto it = m_positions.find(key);
-    return it == m_positions.end() ? nullptr : &(*it)[resolveIndex(*it, sfen)];
-}
-
-JosekiPosition &JosekiBook::findOrCreate(const QString &key, const QString &sfen)
-{
-    if (JosekiPosition *existing = findForWrite(key, sfen)) return *existing;
-    QList<JosekiPosition> &registrations = m_positions[key];
-    registrations.append(JosekiPosition{plyOf(sfen).value_or(1), {}});
-    return registrations.last();
+    const auto it = m_positions.constFind(keyOf(sfen));
+    const std::optional<quint16> code = findMoveCode(usiMove);
+    return it != m_positions.constEnd() && code && indexOf(*it, resolve(*it, sfen), *code) >= 0;
 }
 
 void JosekiBook::putMove(const QString &sfen, const JosekiMove &move)
 {
-    QList<JosekiMove> &moves = findOrCreate(positionKey(sfen), sfen).moves;
-    const qsizetype index = indexOfMove(moves, move.move);
-    if (index < 0) moves.append(move);
-    else moves[index] = move;
+    Records &records = m_positions[keyOf(sfen)];
+    const Range range = findOrCreate(records, sfen);
+    const quint16 code = encodeMove(move.move);
+    const qsizetype index = indexOf(records, range, code);
+    if (index >= 0) {
+        assign(records[index], move);
+        return;
+    }
+    PackedMove added;
+    added.move = code;
+    assign(added, move);
+    records.insert(range.end, added);
 }
 
 bool JosekiBook::updateMove(const QString &sfen, const JosekiMove &move)
 {
-    JosekiPosition *position = findForWrite(positionKey(sfen), sfen);
-    const qsizetype index = position ? indexOfMove(position->moves, move.move) : -1;
+    const auto it = m_positions.find(keyOf(sfen));
+    const std::optional<quint16> code = findMoveCode(move.move);
+    if (it == m_positions.end() || !code) return false;
+    const qsizetype index = indexOf(*it, resolve(*it, sfen), *code);
     if (index < 0) return false;
-    JosekiMove &existing = position->moves[index];
-    if (!move.nextMove.isNull()) existing.nextMove = move.nextMove;
+    PackedMove &existing = (*it)[index];
+    if (!move.nextMove.isNull()) existing.next = encodeMove(move.nextMove);
     existing.value = move.value;
     existing.depth = move.depth;
     existing.frequency = move.frequency;
-    existing.comment = move.comment;
+    existing.comment = storeComment(move.comment, existing.comment);
     return true;
 }
 
 bool JosekiBook::removeMove(const QString &sfen, const QString &usiMove)
 {
-    const auto it = m_positions.find(positionKey(sfen));
-    if (it == m_positions.end()) return false;
-    const qsizetype index = resolveIndex(*it, sfen);
-    QList<JosekiMove> &moves = (*it)[index].moves;
-    const qsizetype removed = moves.removeIf([&usiMove](const JosekiMove &m) { return m.move == usiMove; });
-    if (moves.isEmpty()) it->removeAt(index);
+    const auto it = m_positions.find(keyOf(sfen));
+    const std::optional<quint16> code = findMoveCode(usiMove);
+    if (it == m_positions.end() || !code) return false;
+    const Range range = resolve(*it, sfen);
+    const qsizetype index = indexOf(*it, range, *code);
+    if (index < 0) return false;
+    it->removeAt(index);
+    // 登録の最後の定跡手なら見出しも消し、登録が無くなれば局面も消す
+    if (range.end - range.header == 2) it->removeAt(range.header);
     if (it->isEmpty()) m_positions.erase(it);
-    return removed > 0;
+    return true;
 }
 
 void JosekiBook::registerMergeMove(const QString &sfen, const QString &usiMove)
 {
     const QString key = positionKey(sfen);
     m_mergeRegistered.insert({key, usiMove});
-    QList<JosekiMove> &moves = findOrCreate(key, sfen).moves;
-    const qsizetype index = indexOfMove(moves, usiMove);
+    QByteArray keyBytes = key.toUtf8();
+    keyBytes.squeeze();
+    Records &records = m_positions[keyBytes];
+    const Range range = findOrCreate(records, sfen);
+    const quint16 code = encodeMove(usiMove);
+    const qsizetype index = indexOf(records, range, code);
     if (index >= 0) {
-        moves[index].frequency += 1;
+        records[index].frequency += 1;
         return;
     }
-    JosekiMove added;
-    added.move = usiMove;
-    added.nextMove = QStringLiteral("none");
+    PackedMove added;
+    added.move = code;
+    added.next = kNoMove;
     added.frequency = 1;
-    moves.append(added);
+    records.insert(range.end, added);
 }
 
 bool JosekiBook::isMergeRegistered(const QString &sfen, const QString &usiMove) const
@@ -191,6 +326,9 @@ bool JosekiBook::isMergeRegistered(const QString &sfen, const QString &usiMove) 
 void JosekiBook::clear()
 {
     m_positions.clear();
+    m_tokens.clear();
+    m_tokenCodes.clear();
+    m_comments = QStringList{QString()};
     m_mergeRegistered.clear();
 }
 
@@ -209,12 +347,47 @@ JosekiLoadResult load(const QString &filePath)
         return result;
     }
 
-    QMap<QString, QList<JosekiPosition>> positions;
-    // 読んでいる登録（sfen 行の局面と手数）。局面のキーは sfen 行ごとに1回だけ作る
-    auto current = positions.end();
-    qsizetype currentIndex = -1;
+    JosekiBook &book = result.book;
+    // 読んでいる sfen 行の局面と手数。定跡手は pending にためて、次の sfen 行かファイルの終わりで表に入れる
+    QByteArray currentKey;
+    int currentPly = 1;
+    bool hasCurrent = false;
+    JosekiBook::Records pending;
     // コメント行を直前の定跡手に付けるか（重なって読み捨てた指し手の後のコメントは付けない）
     bool attachComment = false;
+    const auto flush = [&book, &currentKey, &currentPly, &pending]() {
+        if (pending.isEmpty()) return;
+        JosekiBook::PackedMove header;
+        header.move = JosekiBook::kHeader;
+        header.value = currentPly;
+        const auto it = book.m_positions.find(currentKey);
+        if (it == book.m_positions.end()) {
+            // ほとんどの局面はここ。ちょうどの大きさの配列で持つ
+            JosekiBook::Records records;
+            records.reserve(pending.size() + 1);
+            records.append(header);
+            records.append(pending);
+            book.m_positions.insert(currentKey, records);
+        } else {
+            // 同じ局面の sfen 行が前にもあった。手数違いなら別の登録、同じ手数ならその続き（同じ指し手は前の行を使う）
+            const QList<JosekiBook::Range> ranges = JosekiBook::rangesOf(*it);
+            const auto same = std::find_if(ranges.cbegin(), ranges.cend(), [&it, &header](const JosekiBook::Range &range) {
+                return it->at(range.header).value == header.value;
+            });
+            if (same == ranges.cend()) {
+                it->append(header);
+                it->append(pending);
+            } else {
+                qsizetype end = same->end;
+                for (const JosekiBook::PackedMove &move : std::as_const(pending)) {
+                    if (JosekiBook::indexOf(*it, JosekiBook::Range{same->header, end}, move.move) >= 0) continue;
+                    it->insert(end++, move);
+                }
+            }
+        }
+        pending.clear();
+    };
+
     QTextStream in(&file);
     bool hasValidHeader = false;
     bool hasSfenLine = false;
@@ -236,32 +409,27 @@ JosekiLoadResult load(const QString &filePath)
             }
             // コメント行は直前の定跡手のコメント
             if (attachComment) {
-                QString &comment = (*current)[currentIndex].moves.last().comment;
+                JosekiBook::PackedMove &last = pending.last();
                 const QString text = line.mid(1);
-                comment = comment.isEmpty() ? text : comment + QLatin1Char(' ') + text;
+                if (last.comment == 0) last.comment = book.storeComment(text);
+                else book.m_comments[last.comment] += QLatin1Char(' ') + text;
             }
             continue;
         }
 
         hasContentLine = true;
         if (line.startsWith(QStringLiteral("sfen "))) {
+            flush();
             const QString sfen = line.mid(5).trimmed();
             // 以前のこのアプリが書いた持ち駒の並び（先後交互）も、標準の並びの局面と同じキーにする
-            const QString key = JosekiBook::positionKey(sfen);
-            current = positions.find(key);
-            if (current == positions.end()) current = positions.insert(key, {});
-            // 同じ局面でも手数が違えば別の登録（同じ手数の sfen 行が重なっていれば続きとして読む）
-            const int ply = plyOf(sfen).value_or(1);
-            currentIndex = current->size();
-            for (qsizetype i = 0; i < current->size(); ++i) {
-                if (current->at(i).ply == ply) currentIndex = i;
-            }
-            if (currentIndex == current->size()) current->append(JosekiPosition{ply, {}});
+            currentKey = JosekiBook::keyOf(sfen);
+            currentPly = plyOf(sfen).value_or(1);
+            hasCurrent = true;
             attachComment = false;
             hasSfenLine = true;
             continue;
         }
-        if (current == positions.end()) continue;
+        if (!hasCurrent) continue;
 
         const QStringList parts = line.split(QLatin1Char(' '), Qt::SkipEmptyParts);
         if (parts.size() < 5) {
@@ -274,25 +442,28 @@ JosekiLoadResult load(const QString &filePath)
             qCWarning(lcUi) << "Invalid move format at line" << lineNumber << ":" << parts.at(0);
         }
         hasMoveLine = true;
-        QList<JosekiMove> &moves = (*current)[currentIndex].moves;
+        const quint16 code = book.encodeMove(parts.at(0));
         // 1つの登録に同じ指し手が重なっていれば、最初の行を使う
-        attachComment = indexOfMove(moves, parts.at(0)) < 0;
+        attachComment = std::none_of(pending.cbegin(), pending.cend(),
+                                     [code](const JosekiBook::PackedMove &move) { return move.move == code; });
         if (!attachComment) continue;
-        JosekiMove move;
-        move.move = parts.at(0);
-        move.nextMove = parts.at(1);
+        JosekiBook::PackedMove move;
+        move.move = code;
+        move.next = book.encodeMove(parts.at(1));
         move.value = parts.at(2).toInt();
         move.depth = parts.at(3).toInt();
         move.frequency = parts.at(4).toInt();
-        if (parts.size() > 5) move.comment = parts.mid(5).join(QLatin1Char(' '));
-        moves.append(move);
+        if (parts.size() > 5) move.comment = book.storeComment(parts.mid(5).join(QLatin1Char(' ')));
+        pending.append(move);
     }
+    flush();
 
     if (!hasValidHeader) {
         result.errorMessage = translated(QT_TRANSLATE_NOOP("JosekiBook",
             "このファイルはやねうら王定跡フォーマット(YANEURAOU-DB2016)ではありません。\n"
             "ヘッダー行（#YANEURAOU-DB2016 等）が見つかりませんでした。\n\n"
             "ファイル: %1")).arg(filePath);
+        result.book.clear();
         return result;
     }
     if (!hasSfenLine && hasContentLine) {
@@ -300,6 +471,7 @@ JosekiLoadResult load(const QString &filePath)
             "定跡ファイルにSFEN行が見つかりませんでした。\n\n"
             "やねうら王定跡フォーマットでは「sfen 」で始まる局面行が必要です。\n\n"
             "ファイル: %1")).arg(filePath);
+        result.book.clear();
         return result;
     }
     if (hasSfenLine && !hasMoveLine) {
@@ -308,10 +480,10 @@ JosekiLoadResult load(const QString &filePath)
             "やねうら王定跡フォーマットでは指し手行に少なくとも5つのフィールド\n"
             "（指し手 予想応手 評価値 深さ 出現頻度）が必要です。\n\n"
             "ファイル: %1")).arg(filePath);
+        result.book.clear();
         return result;
     }
 
-    result.book = JosekiBook::fromPositions(std::move(positions));
     result.success = true;
     qCInfo(lcUi) << "Parsed" << result.book.positionCount() << "positions from" << filePath;
     if (invalidLineCount > 0) qCWarning(lcUi) << invalidLineCount << "lines had invalid format";
@@ -327,25 +499,41 @@ JosekiSaveResult save(const QString &filePath, const JosekiBook &book)
         return result;
     }
 
-    QTextStream out(&file);
-    out << QStringLiteral("#YANEURAOU-DB2016 1.00\n");
+    // やねうら王の定跡ファイルと同じく sfen 行の文字の順に書く（キーの順。同じ局面の手数違いの登録はファイルの順）。
     // 手数違いの登録も、それぞれの手数の sfen 行で書く（やねうら王は既定では手数まで一致する登録だけを使う）
+    QList<QByteArray> keys = book.m_positions.keys();
+    std::sort(keys.begin(), keys.end());
+    constexpr qsizetype kChunkSize = 1 << 20;
+    QByteArray out;
+    out.reserve(kChunkSize + 4096);
+    out += "#YANEURAOU-DB2016 1.00\n";
+    bool written = true;
     int savedCount = 0;
-    const QMap<QString, QList<JosekiPosition>> &positions = book.positions();
-    for (auto it = positions.cbegin(); it != positions.cend(); ++it) {
-        for (const JosekiPosition &position : *it) {
-            out << QStringLiteral("sfen ") << sfenLine(it.key(), position.ply) << QLatin1Char('\n');
-            for (const JosekiMove &move : position.moves) {
-                out << move.move << QLatin1Char(' ') << move.nextMove << QLatin1Char(' ') << move.value << QLatin1Char(' ')
-                    << move.depth << QLatin1Char(' ') << move.frequency << QLatin1Char('\n');
-                if (!move.comment.isEmpty()) out << QLatin1Char('#') << move.comment << QLatin1Char('\n');
+    for (const QByteArray &key : std::as_const(keys)) {
+        const JosekiBook::Records &records = *book.m_positions.constFind(key);
+        for (const JosekiBook::PackedMove &packed : records) {
+            if (packed.move == JosekiBook::kHeader) {
+                out += "sfen " + key + ' ' + QByteArray::number(packed.value) + '\n';
+                ++savedCount;
+                continue;
             }
-            ++savedCount;
+            book.appendMoveText(out, packed.move);
+            out += ' ';
+            book.appendMoveText(out, packed.next);
+            out += ' ' + QByteArray::number(packed.value) + ' ' + QByteArray::number(packed.depth) + ' '
+                + QByteArray::number(packed.frequency) + '\n';
+            const QString comment = book.m_comments.value(packed.comment);
+            if (!comment.isEmpty()) out += '#' + comment.toUtf8() + '\n';
+        }
+        if (out.size() >= kChunkSize) {
+            written = file.write(out) == out.size();
+            out.clear();
+            if (!written) break;
         }
     }
+    if (written) written = file.write(out) == out.size();
 
-    out.flush();
-    if (out.status() != QTextStream::Ok) {
+    if (!written) {
         result.errorMessage =
             translated(QT_TRANSLATE_NOOP("JosekiBook", "ファイル書き込み中にエラーが発生しました: %1")).arg(filePath);
         file.cancelWriting();

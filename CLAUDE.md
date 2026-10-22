@@ -89,8 +89,8 @@ cmake --build build --target translations
   - `kifuloadparser.cpp/.h` - 棋譜の読み込み口（ファイルの文字コードの判別と形式ごとの変換器への振り分け）
   - `kifparsetypes.h` - 読み込み結果（`KifParseResult`・形式ごとの `parse()` が返す `KifuParseOutcome`）と、読めない手の扱い（`ParseOptions`・`ParseReport`。ここだけで決める）
   - `kifuioservice.cpp/.h`・`kifusavefile.cpp/.h` - Kifu file I/O
-  - `josekibook.cpp/.h` - 定跡のデータの値型 `JosekiBook`（局面のキー `JosekiBook::positionKey()`（手数を除いた SFEN）から `JosekiPosition{登録したときの手数付きの SFEN, 定跡手}` を引く map 1つ。最後の定跡手を消すと局面も消える。マージで登録した印は `JosekiMoveKey`（局面のキーと USI の指し手の組。`josekitypes.h`））と、やねうら王定跡形式の読み書き `JosekiBookFile::load()`・`save()`（ワーカースレッドから呼べる）
-  - `josekibooksession.cpp/.h` - 開いている定跡ファイル（`JosekiBook` の値・変更状態・読み書き）
+  - `josekibook.cpp/.h` - 定跡のデータの値型 `JosekiBook`（局面のキー `JosekiBook::positionKey()`（手数を除いた SFEN）から局面の登録を引く表1つ。同じ局面を手数違いで別々に登録したファイルは手数ごとの登録のまま持ち、引くときは同じ手数の登録、無ければ最初の登録を使う。大きな定跡も読めるよう、指し手を16ビットの番号にした詰めた形で持ち、`movesAt()` で `JosekiMove` に戻す。最後の定跡手を消すと登録も消える。マージで登録した印は `JosekiMoveKey`（局面のキーと USI の指し手の組。`josekitypes.h`））と、やねうら王定跡形式の読み書き `JosekiBookFile::load()`・`save()`（ワーカースレッドから呼べる）
+  - `josekibooksession.cpp/.h` - 開いている定跡ファイル（`JosekiBook` の値・変更状態・読み書き。マージの登録も非同期で保存する）。合成ルートが1つ作り（`MainWindowComponents::josekiBook`）、定跡ウィンドウはそれを表示・編集する（ウィンドウのマージの操作は dialogs の `JosekiMergeController`）
   - `kifupresentation.cpp/.h` - 画面に出す棋譜の表記 `KifuPresentation`（指し手・読み筋・終局語。ファイルやプロトコルには使わない）。日本語の指し手は `KifMoveText`、段の漢数字は `ShogiNotation`、英語表記で移動元を付けるかは KI2 と同じ判定（`Ki2MoveNotation::annotate()` の `Annotation::sources`。合法手で決めるのでピンされた駒は数えない）。`Notation`・`Options` は `NotationStyle` の別名で、`configure`・`options`・`revision`・`resolveLanguage` は `NotationStyle` へ転送する
   - **formats/**: Format converters（テキストを読む。ファイルは `KifuLoadParser` が読んで渡す）
     - `kiftosfenconverter`, `ki2tosfenconverter`, `csatosfenconverter`, etc. - 形式ごとに `parse(text, options)` を1つだけ持ち、`KifuParseOutcome` を返す（BOD は `KifTextParser::parseBod`）
