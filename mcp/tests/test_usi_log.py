@@ -31,10 +31,13 @@ async def wait_for(predicate, timeout=10.0):
         await asyncio.sleep(0.1)
 
 
-async def test_manual_usi_command_reaches_running_engine(server_env):
+async def test_manual_usi_command_reaches_running_engine(server_env, tmp_path):
     if not os.environ.get("SHOGIBOARDQ_TEST_USI_ENGINE"):
         pytest.skip("SHOGIBOARDQ_TEST_USI_ENGINE is required")
-    async with mcp_session(server_env) as session:
+    # Quit the app this session launches; otherwise it keeps running after the test suite.
+    env = dict(server_env, SHOGIBOARDQ_QUIT_APP_ON_EXIT="1",
+               SHOGIBOARDQ_AUTOMATION_SOCKET=str(tmp_path / "app.sock"))
+    async with mcp_session(env) as session:
         await call(session, "trigger_action", name="actionStartGame")
         await wait_for(lambda: _has_dialog(session, "StartGameDialog"))
         await call(session, "set_widget_value", target="StartGameDialog", widget="comboBoxPlayer1", value=0)

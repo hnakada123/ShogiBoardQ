@@ -43,6 +43,10 @@ class UI:
     async def widget(self, name):
         return (await self.call("get_widget_text", widget=name))["widgets"][0]
 
+    async def column(self, name, header):
+        # Look the column up by its header so that adding a column does not shift the tests.
+        return (await self.widget(name))["rows"][0].index(header)
+
     async def set(self, name, value):
         await self.call("set_widget_value", widget=name, value=value)
 
@@ -85,10 +89,11 @@ class UI:
     async def open_pv(self):
         # Navigation replaces the model asynchronously. A queued click is discarded
         # if its persistent index is invalidated; reacquire the rows before retrying.
+        board_column = await self.column("considerationView", "盤面")
         deadline = asyncio.get_running_loop().time() + 8
         while asyncio.get_running_loop().time() < deadline:
             await self.wait("considerationView", "row_count", 3)
-            await self.call("click_table_cell", widget="considerationView", row=0, column=4)
+            await self.call("click_table_cell", widget="considerationView", row=0, column=board_column)
             for _ in range(10):
                 await asyncio.sleep(0.1)
                 dialogs = (await self.call("list_dialogs"))["windows"]
@@ -175,8 +180,9 @@ async def test_navigation_pv_board_and_display(consideration_env, tmp_path):
             await asyncio.sleep(0.3)
             assert (await ui.widget("considerationElapsed"))["text"] == elapsed
             # 停止時の PV なし info（time/nodes のみ）で最善手の行が空にならない
+            pv_column = await ui.column("considerationView", "読み筋")
             rows = (await ui.widget("considerationView"))["rows"][1:]
-            assert rows and all(row[5] for row in rows), rows
+            assert rows and all(row[pv_column] for row in rows), rows
             for ply in (1, 3, 0, 2):
                 pos = await ui.call("goto_ply", ply=ply)
                 assert pos["ply"] == ply

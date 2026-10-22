@@ -709,7 +709,7 @@ PHASE2_TOOLS: list[types.Tool] = [
     _tool(
         "click_table_cell", "Click table cell",
         "Click a zero-based row and column in a table identified by object name or selector through normal mouse events. "
-        "Use considerationView column 4 to open the principal variation board. Scrolls the cell "
+        "Use considerationView column 5 (header 盤面) to open the principal variation board. Scrolls the cell "
         "into view; hidden, disabled and modally blocked cells are refused. Returns when queued.",
         {"properties": {"target": {"type": "string", "default": "main"},
                         "widget": {"type": "string", "minLength": 1},

@@ -115,7 +115,7 @@ set_widget_value(widget="considerationMultiPV", value=2)  # 0始まり: 3候補
 set_widget_value(widget="considerationUnlimited", value=true)
 click_widget(widget="considerationStartStop")
 get_widget_text(widget="considerationView")
-click_table_cell(widget="considerationView", row=0, column=4)  # 読み筋の盤面
+click_table_cell(widget="considerationView", row=0, column=5)  # 「盤面」列: 読み筋の盤面
 ```
 
 時間制限を使う場合は開始前に `considerationTimed=true`、`considerationSeconds=秒数` を設定します。
