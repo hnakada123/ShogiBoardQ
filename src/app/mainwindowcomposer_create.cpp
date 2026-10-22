@@ -428,6 +428,7 @@ void MainWindowComposer::createSessions()
     fd.loadCoordinator = m_c.kifuLoadCoordinator;
     fd.gameController = m_c.gameController;
     fd.navState = m_c.navState;
+    fd.activity = &m_state.activity;
     fd.clearUiBeforeKifuLoad = std::bind(&SessionResetCoordinator::clearBeforeKifuLoad, m_c.sessionReset.get());
     m_c.kifuFileController = new KifuFileController(fd, &m_window);
 

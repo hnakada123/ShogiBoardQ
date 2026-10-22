@@ -263,6 +263,8 @@ void GameSession::onCsaGameStarted(const QString& blackName, const QString& whit
                                    const QList<RecordEntry>& initialRecords)
 {
     qCDebug(lcApp) << "onCsaGameStarted:" << blackName << "vs" << whiteName;
+    // 前の対局・棋譜解析の評価値グラフ・思考・解析結果を消す（ローカル対局の開始と同じ）
+    m_deps.reset->clearBeforeKifuLoad();
     // 利用者が対局情報に書きかけた内容（棋戦・場所など）は、棋譜の作り直しで消さない。
     // 対局者・持ち時間・開始日時はサーバーの対局条件
     m_deps.reset->resetToNewRecord(m_deps.csaGame->startSfen(), /*keepHeader=*/true);

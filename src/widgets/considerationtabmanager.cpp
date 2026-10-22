@@ -106,6 +106,11 @@ void ConsiderationTabManager::saveSettings() const
     AnalysisSettings::considerationMultiPV.set(m_settings.multiPV);
 }
 
+void ConsiderationTabManager::reloadEngines()
+{
+    m_engineSelector->reload();
+}
+
 void ConsiderationTabManager::loadEnginesAndSettings()
 {
     // エンジンの一覧（登録順）。保存した選択を復元し、無ければ先頭のエンジン

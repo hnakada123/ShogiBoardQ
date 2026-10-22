@@ -3,6 +3,7 @@
 
 #include "kifufilecontroller.h"
 
+#include "appactivitystate.h"
 #include "bodtextgenerator.h"
 #include "errorbus.h"
 #include "gamesettings.h"
@@ -42,6 +43,19 @@ bool KifuFileController::hasUnsavedChanges() const
     return m_deps.document->isModified();
 }
 
+bool KifuFileController::canReplaceRecord() const
+{
+    return m_deps.activity->is(AppActivityState::Activity::Idle);
+}
+
+bool KifuFileController::refuseReplacingRecord()
+{
+    if (canReplaceRecord()) return false;
+    // 開いたままの棋譜貼り付け・局面集ビューアから、対局などを始めた後に反映しようとしたとき
+    emit statusMessage(tr("対局・検討・解析・局面編集の間は、棋譜を読み込めません"), 5000);
+    return true;
+}
+
 bool KifuFileController::confirmDiscardUnsaved()
 {
     return KifuSaveCoordinator::confirmDiscardUnsaved(m_deps.parentWidget, hasUnsavedChanges(), [this]() {
@@ -61,6 +75,7 @@ QStringList KifuFileController::exportLines(KifuFormat format) const
 
 void KifuFileController::chooseAndLoadKifuFile()
 {
+    if (refuseReplacingRecord()) return;
     const QString filePath = QFileDialog::getOpenFileName(
         m_deps.parentWidget, tr("棋譜ファイルを開く"), GameSettings::lastKifuDirectory(),
         tr("Kifu Files (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.json *.usi *.sfen *.usen);;"
@@ -95,13 +110,13 @@ void KifuFileController::pasteKifuFromClipboard()
 void KifuFileController::onKifuPasteImportRequested(const QString& content)
 {
     qCDebug(lcApp) << "onKifuPasteImportRequested: content length =" << content.size();
-    if (!confirmDiscardUnsaved()) return;
+    if (refuseReplacingRecord() || !confirmDiscardUnsaved()) return;
     startAsyncLoad(content, Source::Text);
 }
 
 void KifuFileController::onSfenCollectionPositionSelected(const QString& sfen)
 {
-    if (!confirmDiscardUnsaved()) return;
+    if (refuseReplacingRecord() || !confirmDiscardUnsaved()) return;
     if (m_deps.clearUiBeforeKifuLoad) m_deps.clearUiBeforeKifuLoad();
     finishLoad(m_deps.loadCoordinator->loadPositionFromSfen(sfen), Source::Collection, QString());
 }

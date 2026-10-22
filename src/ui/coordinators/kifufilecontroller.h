@@ -13,6 +13,7 @@
 
 #include "kifuformat.h"
 
+class AppActivityState;
 class KifuDocument;
 class KifuLoadCoordinator;
 class KifuNavigationState;
@@ -39,6 +40,8 @@ public:
         KifuLoadCoordinator* loadCoordinator = nullptr; ///< 読み込み（全部の読み込みで1つを使い回す。必須）
         ShogiGameController* gameController = nullptr;  ///< 盤（局面のコピー。必須）
         const KifuNavigationState* navState = nullptr;  ///< 表示中の手（局面のコピー・現在の手までのコピー。必須）
+        /// 動作状態（棋譜を置き換えてよいかの判定。必須）
+        const AppActivityState* activity = nullptr;
         /// 棋譜を読み込む前に前の対局のログ・グラフ・コメントを消す
         std::function<void()> clearUiBeforeKifuLoad;
     };
@@ -84,6 +87,8 @@ public:
 
     /// 未保存の変更があるか
     bool hasUnsavedChanges() const;
+    /// 棋譜を読み込み・局面の反映で置き換えてよいか（待機中だけ。対局・検討・解析・局面編集の間は置き換えない）
+    bool canReplaceRecord() const;
     /// 棋譜ファイルを読み込む（拡張子で形式を判定）。成功時は上書き保存先を更新する
     [[nodiscard]] bool loadKifuFile(const QString& filePath);
     /// 棋譜テキストを読み込む（形式は内容から判定）。上書き保存先はクリアする
@@ -102,6 +107,9 @@ private slots:
     void onAsyncLoadFinished(bool success);
 
 private:
+    /// 棋譜を置き換えられない状態なら知らせて true
+    bool refuseReplacingRecord();
+
     /// 読み込んだものの出どころ（読み込みの後始末が違う）
     enum class Source {
         File,         ///< 棋譜ファイル（上書き保存先にし、変更なしとする）

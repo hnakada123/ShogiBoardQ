@@ -160,6 +160,29 @@ private slots:
         QVERIFY(p.document->filePath().isEmpty());
     }
 
+    /// 開いたままの局面集ビューア・棋譜貼り付けから、対局などを始めた後に反映しても棋譜を置き換えない
+    void recordIsNotReplacedOutsideIdle()
+    {
+        MainWindow window;
+        auto& p = window.composer().parts();
+        QVERIFY(p.kifuFileController->loadKifuFile(fixture(QStringLiteral("test_basic.kif"))));
+        const QString root = p.branchTree->root()->sfen();
+        const QStringList before = p.branchTree->mainRecordLine().usiMoves();
+        auto& activity = window.composer().state().activity;
+        activity.setActivity(AppActivityState::Activity::DuringConsideration);
+        QVERIFY(!p.kifuFileController->canReplaceRecord());
+        QSignalSpy messages(p.kifuFileController, &KifuFileController::statusMessage);
+
+        p.kifuFileController->onSfenCollectionPositionSelected(QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 w - 1"));
+        p.kifuFileController->onKifuPasteImportRequested(QStringLiteral("position startpos moves 2g2f"));
+        QCOMPARE(messages.count(), 2);
+        QCOMPARE(p.branchTree->root()->sfen(), root);
+        QCOMPARE(p.branchTree->mainRecordLine().usiMoves(), before);
+
+        activity.setActivity(AppActivityState::Activity::Idle);
+        QVERIFY(p.kifuFileController->canReplaceRecord());
+    }
+
     /// 読めないファイル・壊れたテキストは、元の棋譜と上書き保存先を残してエラーを知らせる
     void failedLoadKeepsTheRecord()
     {
