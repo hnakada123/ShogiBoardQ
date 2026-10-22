@@ -563,7 +563,7 @@ private slots:
         verifyDisabled(p, S::DuringAnalysis, E::WidgetBranchTree, "WidgetBranchTree");
     }
 
-    /// WidgetConsiderationStart: 対局中/CSA中のみ無効
+    /// WidgetConsiderationStart: 対局中/CSA中と局面編集中は無効
     void widgetConsiderationStart_disabledDuringGames()
     {
         Policy p;
@@ -573,7 +573,7 @@ private slots:
         verifyEnabled(p, S::DuringAnalysis, E::WidgetConsiderationStart, "WidgetConsiderationStart");
         verifyEnabled(p, S::DuringTsumeSearch, E::WidgetConsiderationStart, "WidgetConsiderationStart");
         verifyEnabled(p, S::DuringConsideration, E::WidgetConsiderationStart, "WidgetConsiderationStart");
-        verifyEnabled(p, S::DuringPositionEdit, E::WidgetConsiderationStart, "WidgetConsiderationStart");
+        verifyDisabled(p, S::DuringPositionEdit, E::WidgetConsiderationStart, "WidgetConsiderationStart");
     }
 
     // ================================================================

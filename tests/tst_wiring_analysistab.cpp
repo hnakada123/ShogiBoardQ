@@ -55,7 +55,7 @@ private slots:
         QVERIFY(node);
         emit p.branchTreeView->nodeActivated(node->nodeId());
         QCOMPARE(p.navState->currentNode(), node);
-        emit p.commentEditor->commentUpdated(1, QStringLiteral("実物の配線によるコメント"));
+        emit p.commentEditor->commentUpdated(QStringLiteral("実物の配線によるコメント"));
         QCOMPARE(node->comment(), QStringLiteral("実物の配線によるコメント"));
         QVERIFY(p.document->isModified());
         p.document->markSaved(QString());

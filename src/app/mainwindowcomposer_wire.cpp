@@ -96,7 +96,9 @@ void MainWindowComposer::connectRecord()
 
     // 対局情報（対局情報欄は文書の対局情報を編集する画面）
     GameInfoPane* gameInfo = m_c.gameInfoPane;
-    document->setHooks({std::bind(&GameInfoPane::commitPendingEditor, gameInfo)});
+    document->setHooks({std::bind(&GameInfoPane::commitPendingEditor, gameInfo),
+                        std::bind(&CommentCoordinator::commitPendingComment, m_c.commentCoordinator),
+                        std::bind(&CommentCoordinator::hasPendingComment, m_c.commentCoordinator)});
     connect(document, &KifuDocument::headerReset, gameInfo, &GameInfoPane::setGameInfo);
     connect(document, &KifuDocument::headerValueSet, gameInfo, &GameInfoPane::updateGameInfoValue);
     connect(document, &KifuDocument::saved, gameInfo, &GameInfoPane::applyChanges);

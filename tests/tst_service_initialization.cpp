@@ -4,6 +4,7 @@
 #include <QTemporaryDir>
 #include <QPointer>
 #include <QSignalSpy>
+#include <QTextEdit>
 #include "mainwindow.h"
 #include "mainwindowactions.h"
 #include "mainwindowcomposer.h"
@@ -13,7 +14,9 @@
 #include "enginelifecyclemanager.h"
 #include "gamesession.h"
 #include "commentcoordinator.h"
+#include "commenteditorpanel.h"
 #include "kifudocument.h"
+#include "kifuexport.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
 #include "branchtree_test_util.h"
@@ -72,12 +75,48 @@ private slots:
         parts.navState->setCurrentNode(ply1);
         CommentCoordinator* coordinator = parts.commentCoordinator;
         QVERIFY(coordinator);
-        coordinator->onCommentUpdated(0, QStringLiteral("最初"));
+        coordinator->onCommentUpdated(QStringLiteral("最初"));
         QCOMPARE(ply1->comment(), QStringLiteral("最初"));
         parts.navState->setCurrentNode(ply2);
-        coordinator->onCommentUpdated(0, QStringLiteral("更新後"));
+        coordinator->onCommentUpdated(QStringLiteral("更新後"));
         QCOMPARE(ply2->comment(), QStringLiteral("更新後"));
         QCOMPARE(ply1->comment(), QStringLiteral("最初"));
+    }
+
+    /// 「コメント更新」を押していないコメントは、棋譜の未保存に数え、書き出すときにその手に確定する。
+    /// 対局の進行などで表示中の手が変わったときは、書いていた手に確定してから切り替える
+    void pendingCommentIsCountedAndCommittedToItsMove()
+    {
+        MainWindow window;
+        auto& parts = window.composer().parts();
+        KifuBranchTree* tree = parts.branchTree;
+        tree->setRootSfen(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"));
+        KifuBranchNode* ply1 = TestTree::addMove(*tree, tree->root(), ShogiMove(), QStringLiteral("▲７六歩(77)"), QStringLiteral("s1"));
+        KifuBranchNode* ply2 = TestTree::addMove(*tree, ply1, ShogiMove(), QStringLiteral("△３四歩(33)"), QStringLiteral("s2"));
+        parts.navState->setCurrentNode(ply1);
+        parts.document->markSaved(QString());
+        QVERIFY(!parts.kifuFileController->hasUnsavedChanges());
+
+        auto* edit = parts.commentEditor->findChild<QTextEdit*>();
+        QVERIFY(edit);
+        edit->setPlainText(QStringLiteral("書きかけ"));
+        QVERIFY(parts.commentEditor->hasUnsavedComment());
+        QVERIFY(parts.kifuFileController->hasUnsavedChanges());
+        QVERIFY(ply1->comment().isEmpty());
+
+        // 書き出すときに、書いていた手に確定する
+        const QStringList kif = KifuExport::lines(*parts.document, KifuFormat::Kif);
+        QVERIFY2(kif.contains(QStringLiteral("*書きかけ")), qPrintable(kif.join(QLatin1Char('\n'))));
+        QCOMPARE(ply1->comment(), QStringLiteral("書きかけ"));
+        QVERIFY(!parts.commentEditor->hasUnsavedComment());
+
+        // 確認を通さずに表示中の手が変わる（対局の進行など）と、書きかけの本文は書いていた手に入る
+        edit->setPlainText(QStringLiteral("書き直し"));
+        parts.navState->setCurrentNode(ply2);
+        QCOMPARE(ply1->comment(), QStringLiteral("書き直し"));
+        QVERIFY(ply2->comment().isEmpty());
+        QVERIFY(edit->toPlainText().isEmpty());
+        QVERIFY(!parts.commentEditor->hasUnsavedComment());
     }
 
     /// 部品は起動時に1回だけ作られ、どれも1つずつある。局面編集の開始・終了の通知も1回ずつ届く

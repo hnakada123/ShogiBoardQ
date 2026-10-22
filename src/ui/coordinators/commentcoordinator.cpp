@@ -7,6 +7,7 @@
 #include "dialogfontscale.h"
 #include "kifudocument.h"
 #include "kifubranchnode.h"
+#include "kifubranchtree.h"
 #include "kifunavigationstate.h"
 
 #include <QInputDialog>
@@ -24,6 +25,11 @@ CommentCoordinator::CommentCoordinator(const Deps& deps, QObject* parent)
 void CommentCoordinator::showCurrentComment()
 {
     const KifuBranchNode* node = m_deps.navState->currentNode();
+    const int nodeId = node ? node->nodeId() : -1;
+    // 利用者が別の手へ移るときは、移る前に未更新の確認を通している。それ以外（対局の進行など）で
+    // 表示中の手が変わったら、書きかけの本文を書いていた手に確定する（その手が無くなっていれば捨てる）
+    if (nodeId != m_editingNodeId) commitPendingComment();
+    m_editingNodeId = nodeId;
     m_deps.editor->setCurrentMoveIndex(m_deps.navState->currentPly());
     // 棋譜のコメントはプレーンテキスト。表示用の整形で本文を書き換えない
     m_deps.editor->setCommentText(node ? node->comment() : QString());
@@ -34,10 +40,20 @@ bool CommentCoordinator::confirmLeaveEditingMove()
     return m_deps.editor->confirmDiscardUnsavedComment();
 }
 
-void CommentCoordinator::onCommentUpdated(int /*moveIndex*/, const QString& newComment)
+bool CommentCoordinator::hasPendingComment() const
 {
-    // コメント欄が編集しているのは表示中の手（移る前に未更新の確認を通している）
-    KifuBranchNode* node = m_deps.navState->currentNode();
+    return m_deps.editor->hasUnsavedComment();
+}
+
+void CommentCoordinator::commitPendingComment()
+{
+    m_deps.editor->commitPendingComment();
+}
+
+void CommentCoordinator::onCommentUpdated(const QString& newComment)
+{
+    // コメント欄が編集しているのは、コメント欄に出した手（棋譜を作り直して無くなっていれば書かない）
+    KifuBranchNode* node = m_deps.document->tree()->nodeAt(m_editingNodeId);
     if (!node) return;
     m_deps.document->setComment(node, newComment);
     if (m_deps.statusBar)

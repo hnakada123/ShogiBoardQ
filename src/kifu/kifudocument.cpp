@@ -191,6 +191,12 @@ void KifuDocument::flushPendingHeaderEdits() const
     if (m_hooks.flushPendingHeaderEdits) m_hooks.flushPendingHeaderEdits();
 }
 
+void KifuDocument::commitPendingEdits() const
+{
+    flushPendingHeaderEdits();
+    if (m_hooks.commitPendingComment) m_hooks.commitPendingComment();
+}
+
 QList<KifGameInfoItem> KifuDocument::header() const
 {
     flushPendingHeaderEdits();
@@ -247,6 +253,8 @@ void KifuDocument::setBookmark(KifuBranchNode* node, const QString& bookmark)
 bool KifuDocument::isModified() const
 {
     flushPendingHeaderEdits();
+    // コメント欄の未更新の本文は、確定せずに未保存に数える（確定するのは保存・書き出しのとき）
+    if (m_hooks.hasPendingComment && m_hooks.hasPendingComment()) return true;
     if (m_unsavedContent || m_tree->revision() != m_saved.treeRevision
         || m_annotationRevision != m_saved.annotationRevision) {
         return true;
