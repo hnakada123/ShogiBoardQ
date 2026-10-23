@@ -175,48 +175,48 @@
 <context>
     <name>AnalysisSession</name>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="140"/>
-        <location filename="../../src/analysis/analysissession.cpp" line="225"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="136"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="196"/>
         <source>詰み探索</source>
         <translation>詰み探索</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="140"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="136"/>
         <source>検討</source>
         <translation>検討</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="141"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="137"/>
         <source>エンジンエラー: %1</source>
         <translation>エンジンエラー: %1</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="233"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="204"/>
         <source>詰みあり（手順 %1 手）</source>
         <translation>詰みあり（手順 %1 手）</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="236"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="207"/>
         <source>詰みなし</source>
         <translation>詰みなし</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="239"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="210"/>
         <source>（エンジン側）未実装</source>
         <translation>（エンジン側）未実装</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="242"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="213"/>
         <source>時間内に詰みを判定できませんでした</source>
         <translation>時間内に詰みを判定できませんでした</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="249"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="220"/>
         <source>エンジンが応答しなかったため、詰み探索を打ち切りました</source>
         <translation>エンジンが応答しなかったため、詰み探索を打ち切りました</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="254"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="225"/>
         <source>探索が完了しました</source>
         <translation>探索が完了しました</translation>
     </message>
@@ -1963,6 +1963,11 @@
         <source>検討エンジンの選択が不正です。</source>
         <translation>検討エンジンの選択が不正です。</translation>
     </message>
+    <message>
+        <location filename="../../src/ui/controllers/considerationuicontroller.cpp" line="61"/>
+        <source>検討する局面を読めません。</source>
+        <translation>検討する局面を読めません。</translation>
+    </message>
 </context>
 <context>
     <name>CsaClient</name>
@@ -2410,6 +2415,11 @@
         <translation>相手の指し手: %1 (消費時間: %2ms)</translation>
     </message>
     <message>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="200"/>
+        <source>エンジンに送る局面を作れません</source>
+        <translation>エンジンに送る局面を作れません</translation>
+    </message>
+    <message>
         <location filename="../../src/network/csagamecoordinator_moves.cpp" line="159"/>
         <source>サーバーからの指し手を解釈できません: %1</source>
         <translation>サーバーからの指し手を解釈できません: %1</translation>
@@ -2442,7 +2452,7 @@
         <translation type="vanished">サーバーからの指し手確認を変換できません: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="198"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="203"/>
         <source>エンジンが思考中...</source>
         <translation>エンジンが思考中...</translation>
     </message>
@@ -2451,22 +2461,22 @@
         <translation type="vanished">エンジンが投了しました</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="210"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="215"/>
         <source>エンジンが有効な指し手を返しませんでした</source>
         <translation>エンジンが有効な指し手を返しませんでした</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="216"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="221"/>
         <source>盤面が取得できませんでした</source>
         <translation>盤面が取得できませんでした</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="224"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="229"/>
         <source>指し手の駒種変換に失敗しました</source>
         <translation>指し手の駒種変換に失敗しました</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="228"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="233"/>
         <source>CSA形式の指し手: %1</source>
         <translation>CSA形式の指し手: %1</translation>
     </message>
@@ -8935,82 +8945,87 @@ OKを選択すると保存先が指定できます。</translation>
 <context>
     <name>MatchCoordinator</name>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="236"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="218"/>
+        <source>エンジンに送る局面を作れません</source>
+        <translation>エンジンに送る局面を作れません</translation>
+    </message>
+    <message>
+        <location filename="../../src/game/matchcoordinator.cpp" line="241"/>
         <source>%1（定跡）</source>
         <translation>%1（定跡）</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="237"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="242"/>
         <source>%1（定跡 %2%）</source>
         <translation>%1（定跡 %2%）</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="371"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="376"/>
         <source>対局中断</source>
         <translation>対局中断</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="371"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="376"/>
         <source>エンジンエラー: %1</source>
         <translation>エンジンエラー: %1</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="407"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="412"/>
         <source>対局終了</source>
         <translation>対局終了</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="446"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="451"/>
         <source>先手</source>
         <translation>先手</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="446"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="451"/>
         <source>下手</source>
         <translation>下手</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="447"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="452"/>
         <source>後手</source>
         <translation>後手</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="447"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="452"/>
         <source>上手</source>
         <translation>上手</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="453"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="458"/>
         <source>%1の投了。%2の勝ちです。</source>
         <translation>%1の投了。%2の勝ちです。</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="455"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="460"/>
         <source>%1の時間切れ。%2の勝ちです。</source>
         <translation>%1の時間切れ。%2の勝ちです。</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="457"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="462"/>
         <source>最大手数に達しました。持将棋です。</source>
         <translation>最大手数に達しました。持将棋です。</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="459"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="464"/>
         <source>%1の反則負け。%2の勝ちです。</source>
         <translation>%1の反則負け。%2の勝ちです。</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="461"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="466"/>
         <source>千日手が成立しました。</source>
         <translation>千日手が成立しました。</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="463"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="468"/>
         <source>%1の連続王手の千日手。%2の勝ちです。</source>
         <translation>%1の連続王手の千日手。%2の勝ちです。</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="468"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="473"/>
         <source>対局が終了しました。</source>
         <translation>対局が終了しました。</translation>
     </message>
@@ -11974,22 +11989,27 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>最短手数を確認できるKomoringHeightsを選択してください。</translation>
     </message>
     <message>
-        <location filename="../../src/engine/tsumemateengine.cpp" line="116"/>
+        <location filename="../../src/engine/tsumemateengine.cpp" line="90"/>
+        <source>詰みを調べる局面を読めません。</source>
+        <translation>詰みを調べる局面を読めません。</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/tsumemateengine.cpp" line="122"/>
         <source>エンジンが判定を完了できませんでした。時間を増やして再判定できます。</source>
         <translation>エンジンが判定を完了できませんでした。時間を増やして再判定できます。</translation>
     </message>
     <message>
-        <location filename="../../src/engine/tsumemateengine.cpp" line="133"/>
+        <location filename="../../src/engine/tsumemateengine.cpp" line="139"/>
         <source>判定エンジンを実行できません: %1</source>
         <translation>判定エンジンを実行できません: %1</translation>
     </message>
     <message>
-        <location filename="../../src/engine/tsumemateengine.cpp" line="136"/>
+        <location filename="../../src/engine/tsumemateengine.cpp" line="142"/>
         <source>判定エンジンが終了しました。実行ファイルを確認してください。</source>
         <translation>判定エンジンが終了しました。実行ファイルを確認してください。</translation>
     </message>
     <message>
-        <location filename="../../src/engine/tsumemateengine.cpp" line="141"/>
+        <location filename="../../src/engine/tsumemateengine.cpp" line="147"/>
         <source>制限時間内に判定が完了しませんでした。不詰とは判定していません。</source>
         <translation>制限時間内に判定が完了しませんでした。不詰とは判定していません。</translation>
     </message>
@@ -12952,23 +12972,24 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>Usi</name>
     <message>
-        <location filename="../../src/engine/usienginesession.cpp" line="64"/>
+        <location filename="../../src/engine/usienginesession.cpp" line="67"/>
         <source>Engine file path is empty.</source>
         <translation>エンジンのファイルパスが指定されていません。</translation>
     </message>
     <message>
         <location filename="../../src/engine/usi.cpp" line="93"/>
+        <location filename="../../src/engine/usienginesession.cpp" line="252"/>
         <source>Timeout waiting for bestmove.</source>
         <translation>エンジンから指し手（bestmove）が返ってきません（タイムアウト）。</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usienginesession.cpp" line="122"/>
+        <location filename="../../src/engine/usienginesession.cpp" line="127"/>
         <source>Engine exited unexpectedly.</source>
         <translation>エンジンが予期せず終了しました。</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usienginesession.cpp" line="80"/>
-        <location filename="../../src/engine/usienginesession.cpp" line="116"/>
+        <location filename="../../src/engine/usienginesession.cpp" line="83"/>
+        <location filename="../../src/engine/usienginesession.cpp" line="121"/>
         <source>Failed to start engine: %1</source>
         <translation>エンジンの起動に失敗しました: %1</translation>
     </message>
@@ -13076,7 +13097,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>UsiMatchHandler</name>
     <message>
-        <location filename="../../src/engine/usimatchhandler.cpp" line="133"/>
+        <location filename="../../src/engine/usimatchhandler.cpp" line="127"/>
         <source>Invalid bestmove format: &quot;%1&quot;</source>
         <translation>エンジンの指し手（bestmove）の形式が正しくありません: 「%1」</translation>
     </message>
@@ -13094,7 +13115,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>エンジンから readyok が返ってきません（タイムアウト）</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="288"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="309"/>
         <source>Invalid bestmove format: %1</source>
         <translation>エンジンの指し手（bestmove）の形式が正しくありません: %1</translation>
     </message>

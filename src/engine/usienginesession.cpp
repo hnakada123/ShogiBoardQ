@@ -21,6 +21,8 @@ UsiEngineSession::UsiEngineSession(QObject* parent)
     m_startTimer.setSingleShot(true);
     m_stopTimer.setSingleShot(true);
     m_replyTimer.setSingleShot(true);
+    m_abandonTimer.setSingleShot(true);
+    connect(&m_abandonTimer, &QTimer::timeout, this, &UsiEngineSession::onAbandonTimeout);
     connect(&m_startTimer, &QTimer::timeout, this, &UsiEngineSession::onStartTimeout);
     connect(&m_stopTimer, &QTimer::timeout, this, &UsiEngineSession::onStopTimer);
     connect(&m_replyTimer, &QTimer::timeout, this, &UsiEngineSession::searchTimedOut);
@@ -31,6 +33,7 @@ UsiEngineSession::UsiEngineSession(QObject* parent)
     connect(m_handler, &UsiProtocolHandler::errorOccurred, this, &UsiEngineSession::onHandlerError);
     connect(m_handler, &UsiProtocolHandler::bestMoveReceived, this, &UsiEngineSession::onSearchFinished);
     connect(m_handler, &UsiProtocolHandler::checkmateReceived, this, &UsiEngineSession::onSearchFinished);
+    connect(m_handler, &UsiProtocolHandler::searchEnded, this, &UsiEngineSession::onSearchEnded);
 }
 
 UsiEngineSession::~UsiEngineSession()
@@ -109,6 +112,8 @@ void UsiEngineSession::onInitialized(bool success)
         m_pending.erase(m_pending.begin());
         action();
     }
+    // 初期化の間に頼まれた探索（最後の1つ）は、オプションなどを送った後で始める
+    if (guard && m_queued && !isInitializing() && !m_handler->isSearching()) startQueuedSearch();
 }
 
 void UsiEngineSession::onStartTimeout()
@@ -127,6 +132,9 @@ void UsiEngineSession::quit()
     m_launchFailurePending = false;
     m_startTimer.stop();
     clearSearchTimers();
+    m_abandonTimer.stop();
+    m_queued.reset();
+    m_stopQueued = false;
     m_pending.clear();
     m_handler->markStopped();
     m_process->stopProcessAsync();
@@ -170,36 +178,78 @@ void UsiEngineSession::whenReady(std::function<void()> action)
     action();
 }
 
-void UsiEngineSession::search(const UsiSearchRequest& request)
+bool UsiEngineSession::search(const UsiSearchRequest& request)
 {
-    // 初期化の後に始める
-    if (isInitializing()) {
-        m_pending.push_back([this, request]() { startRequestedSearch(request); });
-        return;
+    if (request.position.isEmpty()) {
+        qCWarning(lcEngine) << "search rejected: no position";
+        return false;
     }
-    startRequestedSearch(request);
+    m_queued = request;
+    m_stopQueued = false;
+    // 初期化中なら onInitialized、探索中なら前の結果が届いた後（onSearchEnded）で始める
+    if (isInitializing()) return true;
+    if (m_handler->isSearching()) {
+        abandonRunningSearch();
+        return true;
+    }
+    startQueuedSearch();
+    return true;
 }
 
-void UsiEngineSession::startRequestedSearch(const UsiSearchRequest& request)
+void UsiEngineSession::startQueuedSearch()
 {
+    if (!m_queued) return;
+    const UsiSearchRequest request = std::move(*m_queued);
+    m_queued.reset();
+    const bool stopNow = std::exchange(m_stopQueued, false);
     clearSearchTimers();
+    for (const auto& option : std::as_const(request.options)) m_handler->sendSetOption(option.first, option.second);
     m_replyTimeoutMs = request.replyTimeoutMs;
-    m_handler->startSearch(request.position, request.go);
+    if (!m_handler->startSearch(request.position, request.goAtStart ? request.goAtStart() : request.go)) return;
     if (request.stopAfterMs > 0) m_stopTimer.start(request.stopAfterMs);
     else if (request.replyTimeoutMs > 0) m_replyTimer.start(request.replyTimeoutMs);
+    if (stopNow) stop();
+}
+
+void UsiEngineSession::abandonRunningSearch()
+{
+    clearSearchTimers();
+    m_handler->abandonSearch();
+    // 前の探索が stop に答えなければ、次の探索を始められないのでエラーにする
+    if (!m_abandonTimer.isActive()) m_abandonTimer.start(UsiSearchRequest::kStopReplyMs);
 }
 
 void UsiEngineSession::stop()
 {
-    if (isInitializing()) {
-        // まだ送っていない探索を取りやめる
-        m_pending.clear();
+    if (m_queued) {
+        // まだ始めていない探索は、始めてすぐ止める（結果は届く）
+        m_stopQueued = true;
         return;
     }
     m_stopTimer.stop();
     if (!m_handler->isSearching()) return;
     m_handler->sendStop();
     if (m_replyTimeoutMs > 0 && !m_replyTimer.isActive()) m_replyTimer.start(m_replyTimeoutMs);
+}
+
+void UsiEngineSession::cancelSearch()
+{
+    m_queued.reset();
+    m_stopQueued = false;
+    if (m_handler->isSearching()) abandonRunningSearch();
+    else clearSearchTimers();
+}
+
+void UsiEngineSession::onSearchEnded()
+{
+    m_abandonTimer.stop();
+    if (m_queued && !isInitializing() && !m_handler->isSearching()) startQueuedSearch();
+}
+
+void UsiEngineSession::onAbandonTimeout()
+{
+    if (!m_handler->isSearching()) return;
+    onHandlerError(QCoreApplication::translate("Usi", "Timeout waiting for bestmove."));
 }
 
 void UsiEngineSession::onStopTimer()
@@ -222,6 +272,9 @@ void UsiEngineSession::cancelCurrentOperation()
 {
     m_startTimer.stop();
     clearSearchTimers();
+    m_abandonTimer.stop();
+    m_queued.reset();
+    m_stopQueued = false;
     m_pending.clear();
     m_handler->cancelCurrentOperation();
 }

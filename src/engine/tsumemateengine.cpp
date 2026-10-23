@@ -84,12 +84,18 @@ void TsumeMateEngine::onReady()
 
 void TsumeMateEngine::beginSearch()
 {
+    const std::optional<UsiPosition> position = UsiPosition::parse(m_sfen);
+    if (!position) {
+        // 読めない局面はエンジンに送らない
+        finishSearch({TsumeEvaluation::Status::Unknown, 0, {}, tr("詰みを調べる局面を読めません。")});
+        return;
+    }
     m_phase = Phase::Searching;
     m_oracle->session()->handler()->sendUsiNewGame();
     // Komoring 1.1.0 は時間制限で最短化を打ち切っても既発見の PV を返す場合がある。
     // go mate infinite で探させ、制限時間までに自然に終わった MinLength の結果だけを確定扱いにする
     // （時間切れは stop を送らずにエンジンを終わらせる）
-    m_oracle->askWithin(UsiPosition::parse(m_sfen).value_or(UsiPosition{}), m_milliseconds);
+    m_oracle->askWithin(*position, m_milliseconds);
 }
 
 void TsumeMateEngine::finishSearch(const TsumeEvaluation& result)

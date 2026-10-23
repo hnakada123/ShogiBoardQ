@@ -55,7 +55,7 @@ private slots:
         // 遅延表示バッファを処理しても盤面用の候補は復活しない。
         presenter.flushInfoBuffer();
         QVERIFY(!protocol.searchCandidate().active);
-        protocol.startSearch(UsiPosition{}, UsiGo::infinite());
+        protocol.startSearch(*UsiPosition::fromSfen(SfenUtils::hirateSfen()), UsiGo::infinite());
         QVERIFY(protocol.searchCandidate().move.isEmpty());
         protocol.onDataReceived("info pv 7g7f");
         protocol.cancelCurrentOperation();
@@ -78,13 +78,13 @@ private slots:
         QVERIFY(!protocol.searchCandidate().pondering);
         QCOMPARE(protocol.searchCandidate().move, QStringLiteral("2g2f"));
         protocol.onDataReceived("bestmove 2g2f ponder 8c8d");
-        protocol.startSearch(UsiPosition{}, UsiGo::ponder({}));
+        protocol.startSearch(*UsiPosition::fromSfen(SfenUtils::hirateSfen()), UsiGo::ponder({}));
         protocol.onDataReceived("info pv 2f2e");
         protocol.sendStop();
         protocol.onDataReceived("info pv 9g9f");
         QVERIFY(!protocol.searchCandidate().active);
         protocol.onDataReceived("bestmove resign");
-        protocol.startSearch(UsiPosition{}, UsiGo::infinite());
+        protocol.startSearch(*UsiPosition::fromSfen(SfenUtils::hirateSfen()), UsiGo::infinite());
         QVERIFY(protocol.searchCandidate().move.isEmpty());
     }
     void sharedConversion()

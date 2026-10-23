@@ -18,7 +18,7 @@ TsumeSearchController::TsumeSearchController(const Deps& deps, QObject* parent)
     Q_ASSERT(m_deps.navState && m_deps.session);
 }
 
-UsiPosition TsumeSearchController::positionForMate() const
+std::optional<UsiPosition> TsumeSearchController::positionForMate() const
 {
     const RecordLine line = m_deps.navState->currentRecordLine();
     // 途中局面は開始局面からの指し手で送る（エンジンに千日手の判断材料を渡すため）
@@ -26,13 +26,13 @@ UsiPosition TsumeSearchController::positionForMate() const
     // 開始局面（詰将棋の問題など）は、玉の有無から攻方を決めて手番を合わせる
     const QString command =
         TsumePositionUtil::buildPositionForMate(line.isEmpty() ? m_deps.navState->currentSfen() : line.startSfen);
-    return UsiPosition::parse(command).value_or(UsiPosition{});
+    return UsiPosition::parse(command);
 }
 
 void TsumeSearchController::showDialogAndStart()
 {
-    const UsiPosition position = positionForMate();
-    if (position.isEmpty()) {
+    const std::optional<UsiPosition> position = positionForMate();
+    if (!position) {
         ErrorBus::instance().postMessage(
             ErrorBus::ErrorLevel::Warning,
             tr("詰み探索用の局面（SFEN）が取得できません。棋譜を読み込むか局面を指定してください。"));
@@ -51,7 +51,7 @@ void TsumeSearchController::showDialogAndStart()
         options.mode = AnalysisOptions::Mode::Tsume;
         options.enginePath = engine->path;
         options.engineName = engine->name;
-        options.position = position;
+        options.position = *position;
         options.byoyomiMs = dialog.unlimitedTimeFlag() ? 0 : dialog.byoyomiSec() * 1000;   // 0 は無制限
     }
     // ダイアログの終了処理を終えてから、次のイベントループで探索を始める

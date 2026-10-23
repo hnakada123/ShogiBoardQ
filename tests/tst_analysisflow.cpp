@@ -179,6 +179,27 @@ private slots:
         QCOMPARE(results.size(), 3);
     }
 
+    /// 読めない局面（壊れた SFEN）はエンジンに送らずに飛ばし、前の局面の結果をその手数の結果にしない（U5）
+    void jobSkipsUnreadablePositions()
+    {
+        TestHelper h;
+        AnalysisRequest request;
+        request.line = h.line();
+        request.line.entries[0].sfen = QStringLiteral("broken");
+        request.enginePath = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
+        request.engineName = QStringLiteral("SkipAnalysis");
+        request.options.endPly = 2;
+        AnalysisJob job(request, {h.usi});
+        QSignalSpy results(&job, &AnalysisJob::plyAnalyzed);
+        QSignalSpy finished(&job, &AnalysisJob::finished);
+        QVERIFY(job.start());
+        QTRY_COMPARE_WITH_TIMEOUT(finished.size(), 1, 5000);
+        QList<int> plies;
+        for (const auto& args : std::as_const(results)) plies << args.first().value<PlyAnalysis>().ply;
+        QCOMPARE(plies, (QList<int>{0, 2}));
+        QVERIFY(finished.first().first().toBool());
+    }
+
     void stoppedJobIgnoresInitializationAndResults()
     {
         TestHelper h;
@@ -220,7 +241,8 @@ private slots:
         QCOMPARE(h.activity.activity(), AppActivityState::Activity::Idle);
     }
 
-    void considerationRestartCoalescesAndStopCancelsQueuedWork()
+    /// 検討のやり直しは、探索していなければすぐ始め、探索中なら stop で止めてから最後の依頼だけを始める
+    void considerationRestartKeepsLatestAndStopCancelsQueuedWork()
     {
         AnalysisHarness h;
         AnalysisSession& session = h.session;
@@ -243,11 +265,17 @@ private slots:
         session.updateMultiPV(3);
         QTRY_VERIFY_WITH_TIMEOUT(waiting.count() == 2, 5000);
         QStringList sent;
-        for (const auto& args : commands) sent.append(args.first().toString());
-        QVERIFY(!sent.contains(QStringLiteral("position startpos moves 7g7f")));
+        for (const auto& args : std::as_const(commands)) sent.append(args.first().toString());
+        // 待っている間の最初の変更はすぐ探索し、次の変更で止める（その結果は捨てる）
+        QCOMPARE(sent.count(QStringLiteral("position startpos moves 7g7f")), 1);
+        const qsizetype stop = sent.indexOf(QStringLiteral("stop"));
+        QVERIFY(stop > sent.indexOf(QStringLiteral("position startpos moves 7g7f")));
+        // 止めている間の依頼は最後の1つ（局面 2g2f・候補手 3）だけを、止めた後で送る
         QCOMPARE(sent.count(QStringLiteral("position startpos moves 2g2f")), 1);
-        QCOMPARE(sent.count(QStringLiteral("go infinite")), 1);
-        QVERIFY(sent.contains(QStringLiteral("setoption name MultiPV value 3")));
+        QCOMPARE(sent.count(QStringLiteral("go infinite")), 2);
+        QCOMPARE(sent.count(QStringLiteral("setoption name MultiPV value 3")), 1);
+        QVERIFY(sent.indexOf(QStringLiteral("setoption name MultiPV value 3")) > stop);
+        QVERIFY(sent.indexOf(QStringLiteral("position startpos moves 2g2f")) > stop);
         QVERIFY(session.updatePosition(*UsiPosition::parse(QStringLiteral("position startpos moves 7g7f 3c3d"))));
         session.stop();
         QCoreApplication::processEvents();

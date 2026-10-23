@@ -72,7 +72,7 @@ struct Harness : QObject {
     bool coherentUndo = false;
 
     const RecordLine& line() const { return match->record(); }
-    QString position() const { return line().usiPosition(line().moveCount()).command(); }
+    QString position() const { return line().usiPosition(line().moveCount())->command(); }
 
     /// 待ったを知らせた時点で、手順・ライブ対局・表示中の手が揃っている
     void observeUndo(int ply)

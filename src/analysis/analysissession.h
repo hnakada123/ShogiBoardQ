@@ -7,7 +7,6 @@
 #include <QObject>
 #include <QPointer>
 #include <QString>
-#include <QTimer>
 
 #include "analysisoptions.h"
 #include "appactivitystate.h"
@@ -21,7 +20,8 @@ class Usi;
  * @brief 検討・詰み探索のセッション
  *
  * エンジンを E1 の枠に借りて（EngineLease）局面を調べる。検討は局面や候補手の数が変わるたびに探索をやり直し、
- * 詰み探索は結果が出たら終わる。開始・停止・やり直しを1つの状態遷移として扱う。
+ * 詰み探索は結果が出たら終わる。やり直しはエンジンに頼み直すだけ（前の探索を止めて結果を捨てるのは
+ * UsiEngineSession::search）。
  * 対局（MatchCoordinator）・棋譜解析とはエンジンの枠だけを共有する（同時には動かない）。ほかの処理が枠を取ったら
  * セッションを終え、終わったことを知らせる。
  */
@@ -38,7 +38,8 @@ public:
 
     explicit AnalysisSession(const Deps& deps, QObject* parent = nullptr);
 
-    /// 検討・詰み探索を始める（前のセッションと、ほかの処理のエンジンは破棄する）。起動の失敗は後で知らせる
+    /// 検討・詰み探索を始める（前のセッションと、ほかの処理のエンジンは破棄する）。起動の失敗は後で知らせる。
+    /// 局面が空なら何もせず false
     bool start(const AnalysisOptions& opt);
     /// 終わらせて自分のエンジンを手放す（思考情報の表示は残す）。検討・詰み探索をしていなければ何もしない
     void stop();
@@ -58,7 +59,7 @@ public:
     void updateMultiPV(int multiPV);
     /**
      * @brief 検討中に局面を変える
-     * @return true: やり直しを始めた, false: 検討中でないか同じ局面
+     * @return true: やり直しを始めた, false: 検討中でないか同じ局面・空の局面
      */
     bool updatePosition(const UsiPosition& position);
 
@@ -86,14 +87,14 @@ private slots:
     void onTsumeBestMoveReceived(const UsiBestMove& result);
     void onSearchTimedOut();
     void onConsiderationBestMoveReceived(const UsiBestMove& result);
-    void restartConsiderationDeferred();
     void onEngineRevoked(QObject* owner);
     /// ほかの部品が別の動作（対局・局面編集など）を始めた
     void onActivityRevoked(QObject* owner);
 
 private:
     enum class Mode { None, Consideration, Tsume };
-    enum class State { Idle, Searching, StoppingSearch, RestartQueued, Waiting };
+    /// 検討の探索中か、探索を終えて次の局面を待っているか（詰み探索は Searching のまま終わる）
+    enum class State { Idle, Searching, Waiting };
 
     void startSearch();
     /// セッションを終える（知らせない）。終えたモードを返す
@@ -109,7 +110,6 @@ private:
     Mode m_mode = Mode::None;
     State m_state = State::Idle;
     QString m_engineName;                         ///< 使っているエンジンの名前
-    QTimer m_restartTimer;                       ///< 停止時に取り消す再開要求
     UsiPosition m_position;                       ///< 検討・詰み探索する局面
     int m_byoyomiMs = 0;                          ///< 検討の時間制限（ms）
     int m_multiPV = 1;                            ///< 検討の候補手数

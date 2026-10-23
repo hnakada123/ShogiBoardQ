@@ -4,11 +4,13 @@
 #include "usimatchhandler.h"
 
 #include "logcategories.h"
+#include "usienginesession.h"
 #include "usiprotocolhandler.h"
 
-UsiMatchHandler::UsiMatchHandler(UsiProtocolHandler* protocolHandler, QObject* parent)
+UsiMatchHandler::UsiMatchHandler(UsiEngineSession* session, QObject* parent)
     : QObject(parent)
-    , m_protocolHandler(protocolHandler)
+    , m_session(session)
+    , m_protocolHandler(session->handler())
 {
     m_responseTimer.setSingleShot(true);
     m_responseTimer.setTimerType(Qt::PreciseTimer);
@@ -32,26 +34,19 @@ void UsiMatchHandler::requestMove(const UsiPosition& position)
     m_position = position;
     if (searchTiming(m_position.sideToMove()).expired) return;
 
-    using State = UsiProtocolHandler::State;
-    const bool pondering = m_protocolHandler->isSearching()
-        && m_protocolHandler->searchKind() == UsiProtocolHandler::SearchKind::Ponder;
-    if (!pondering) {
-        m_ponder = {};
-        startAsyncSearch();
-        return;
-    }
-    // 先読みの予想が当たれば ponderhit で続ける。外れたら stop で回収してから探し直す
-    const bool hit = m_protocolHandler->state() == State::Searching && !m_ponder.isEmpty() && position == m_ponder;
+    // 先読みの予想が当たれば ponderhit で続ける
+    const bool hit = m_protocolHandler->state() == UsiProtocolHandler::State::Searching
+        && m_protocolHandler->searchKind() == UsiProtocolHandler::SearchKind::Ponder
+        && !m_ponder.isEmpty() && position == m_ponder;
     m_ponder = {};
-    if (!hit) {
-        m_pending = Pending::PonderStop;
-        m_responseTimer.start(qMin(2000, searchTiming(m_position.sideToMove()).timeoutMs));
-        m_protocolHandler->sendStop();
+    if (hit) {
+        m_pending = Pending::Move;
+        m_responseTimer.start(searchTiming(m_position.sideToMove()).timeoutMs);
+        m_protocolHandler->sendPonderHit();
         return;
     }
-    m_pending = Pending::Move;
-    m_responseTimer.start(searchTiming(m_position.sideToMove()).timeoutMs);
-    m_protocolHandler->sendPonderHit();
+    // 外れた先読みは、探索の部品が stop で回収して結果を捨ててから探し直す
+    startAsyncSearch();
 }
 
 void UsiMatchHandler::requestBookMove(const UsiPosition& position, const UsiMove& move, int delayMs)
@@ -62,9 +57,8 @@ void UsiMatchHandler::requestBookMove(const UsiPosition& position, const UsiMove
     m_position = position;
     const SearchTiming timing = searchTiming(m_position.sideToMove());
     if (timing.expired) return;
-    // 先読みしていれば止める。返ってくる bestmove は先読みの結果なので onBestMoveReceived が捨てる
-    if (m_protocolHandler->isSearching() && m_protocolHandler->searchKind() == UsiProtocolHandler::SearchKind::Ponder)
-        m_protocolHandler->sendStop();
+    // 先読みしていれば止め、返ってくる bestmove は捨てる
+    m_session->cancelSearch();
     m_ponder = {};
     m_bookMove = move;
     m_pending = Pending::BookMove;
@@ -96,24 +90,24 @@ void UsiMatchHandler::onBookMoveTimer()
 
 void UsiMatchHandler::startAsyncSearch()
 {
-    const SearchTiming timing = searchTiming(m_position.sideToMove());
+    const Turn side = m_position.sideToMove();
+    const SearchTiming timing = searchTiming(side);
     if (timing.expired) {
         cancelAsync();
         return;
     }
     m_pending = Pending::Move;
+    // 持ち時間は依頼したときから数える（先読みの停止を待つ間も時計は進む）
     m_responseTimer.start(timing.timeoutMs);
-    m_protocolHandler->startSearch(m_position, UsiGo::clock(UsiGoTimeCalculator::compute(timing.input)));
+    UsiSearchRequest request;
+    request.position = m_position;
+    // go の時間は送るときの残り時間で決める
+    request.goAtStart = [this, side]() { return UsiGo::clock(UsiGoTimeCalculator::compute(searchTiming(side).input)); };
+    if (!m_session->search(request)) cancelAsync();
 }
 
 void UsiMatchHandler::onBestMoveReceived(const UsiBestMove& result)
 {
-    if (m_pending == Pending::PonderStop) {
-        // 外れた先読みを回収した。手番の探索を始める
-        m_responseTimer.stop();
-        startAsyncSearch();
-        return;
-    }
     if (m_pending != Pending::Move || result.pondering) return;
     m_pending = Pending::None;
     m_responseTimer.stop();
@@ -159,7 +153,10 @@ void UsiMatchHandler::startPondering(const UsiBestMove& result)
     m_ponder = *ponder;
     // 先読みの手番は自分の手の後（相手の手番）だが、持ち時間は自分のものを読む
     const SearchTiming timing = searchTiming(opponent(m_position.sideToMove()), true);
-    m_protocolHandler->startSearch(m_ponder, UsiGo::ponder(UsiGoTimeCalculator::compute(timing.input)));
+    UsiSearchRequest request;
+    request.position = m_ponder;
+    request.go = UsiGo::ponder(UsiGoTimeCalculator::compute(timing.input));
+    m_session->search(request);
 }
 
 bool UsiMatchHandler::finishTurn()

@@ -10,7 +10,7 @@
 Usi::Usi(QObject* parent)
     : QObject(parent)
     , m_session(new UsiEngineSession(this))
-    , m_matchHandler(new UsiMatchHandler(m_session->handler(), this))
+    , m_matchHandler(new UsiMatchHandler(m_session, this))
     , m_formatter(new ThinkingInfoFormatter(this))
 {
     UsiProtocolHandler* handler = m_session->handler();
@@ -123,8 +123,8 @@ void Usi::forgetPonder()
 void Usi::requestImmediateMove()
 {
     if (m_matchHandler->playBookMoveNow()) return;
-    // 準備中に stop を送ると保留中の position・go まで取りやめになり、エンジンが指さずに対局が止まる。
-    // 保留中の処理の後ろに並べ、探索を始めた直後に止めて指させる
+    // 準備中に頼まれた探索の依頼（requestMatchMove）は初期化の後で届くので、その後ろに並べて止める
+    // （始めた直後に stop を送り、指させる）
     m_session->whenReady([this]() { m_session->stop(); });
 }
 
@@ -137,26 +137,26 @@ void Usi::sendGameOverCommand(GameOverResult result)
 // 検討・棋譜解析・詰み探索
 // ============================================================
 
-void Usi::startConsideration(const UsiPosition& position, int byoyomiMilliSec, int multiPV)
+bool Usi::startConsideration(const UsiPosition& position, int byoyomiMilliSec, int multiPV)
 {
-    // 候補手の数は前の設定を残さないよう毎回送る
-    sendSetOptionCommand(QStringLiteral("MultiPV"), QString::number(multiPV));
     UsiSearchRequest request;
     request.position = position;
     request.go = UsiGo::infinite();
     request.stopAfterMs = qMax(0, byoyomiMilliSec);
-    m_session->search(request);
+    // 候補手の数は前の設定を残さないよう毎回送る（前の探索を止めた後、position の前に）
+    request.options = {{QStringLiteral("MultiPV"), QString::number(multiPV)}};
+    return m_session->search(request);
 }
 
-void Usi::search(const UsiSearchRequest& request)
+bool Usi::search(const UsiSearchRequest& request)
 {
-    m_session->search(request);
+    return m_session->search(request);
 }
 
-void Usi::startMateSearch(const UsiPosition& position, int timeLimitMs)
+bool Usi::startMateSearch(const UsiPosition& position, int timeLimitMs)
 {
     // 応答しないエンジンを待ち続けない（CLI の詰み探索と同じ打ち切り方）
-    m_session->search(UsiSearchRequest::mate(position, timeLimitMs));
+    return m_session->search(UsiSearchRequest::mate(position, timeLimitMs));
 }
 
 void Usi::stop()
