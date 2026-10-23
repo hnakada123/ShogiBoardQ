@@ -4,13 +4,21 @@
 #include "nyugyokujudgement.h"
 
 #include "enginemovevalidator.h"
-#include "jishogicalculator.h"
 #include "gamesettings.h"
 #include "shogiposition.h"
 
-int NyugyokuJudgement::configuredRule()
+std::optional<JishogiCalculator::Rule> NyugyokuJudgement::ruleFromSetting(int value)
 {
-    return GameSettings::StartGame::jishogiRule();
+    switch (value) {
+    case 1: return JishogiCalculator::Rule::Points24;
+    case 2: return JishogiCalculator::Rule::Points27;
+    default: return std::nullopt;
+    }
+}
+
+std::optional<JishogiCalculator::Rule> NyugyokuJudgement::configuredRule()
+{
+    return ruleFromSetting(GameSettings::StartGame::jishogiRule());
 }
 
 QString NyugyokuJudgement::declarerName(bool declarerIsSente, bool handicapNames)
@@ -19,18 +27,18 @@ QString NyugyokuJudgement::declarerName(bool declarerIsSente, bool handicapNames
     return declarerIsSente ? tr("先手") : tr("後手");
 }
 
-NyugyokuJudgement::Result NyugyokuJudgement::judge(const Position& position, bool declarerIsSente, int rule,
-                                                   bool handicapNames)
+NyugyokuJudgement::Result NyugyokuJudgement::judge(const Position& position, bool declarerIsSente,
+                                                   JishogiCalculator::Rule rule, bool handicapNames)
 {
+    using Verdict = JishogiCalculator::Verdict;
     const auto points = JishogiCalculator::calculate(position);
     const auto& score = declarerIsSente ? points.sente : points.gote;
     const bool inCheck = EngineMoveValidator::isInCheck(position, declarerIsSente ? Turn::Black : Turn::White);
+    const Verdict verdict = JishogiCalculator::judge(score, rule, declarerIsSente, inCheck);
 
     const bool kingInEnemyTerritory = score.kingInEnemyTerritory;
     const bool enoughPieces = score.piecesInEnemyTerritory >= 10;
     const bool noCheck = !inCheck;
-    const bool conditionsMet = kingInEnemyTerritory && enoughPieces && noCheck;
-    const int declarationPoints = score.declarationPoints;
 
     const QString checkMark = tr("○");
     const QString crossMark = tr("×");
@@ -41,50 +49,45 @@ NyugyokuJudgement::Result NyugyokuJudgement::judge(const Position& position, boo
                          "④ 宣言点数: %5点\n")
         .arg(kingInEnemyTerritory ? checkMark : crossMark, enoughPieces ? checkMark : crossMark)
         .arg(score.piecesInEnemyTerritory)
-        .arg(noCheck ? checkMark : crossMark, QString::number(declarationPoints));
+        .arg(noCheck ? checkMark : crossMark, QString::number(score.declarationPoints));
 
     Result result;
-    QString verdict;
-    if (rule == Rule24) {
+    result.success = verdict == Verdict::Win || verdict == Verdict::Draw;
+    result.isDraw = verdict == Verdict::Draw;
+    result.resultText = verdict == Verdict::Win ? tr("宣言勝ち")
+                        : verdict == Verdict::Draw ? tr("持将棋（引き分け）") : tr("宣言失敗（負け）");
+    QString reason;
+    if (rule == JishogiCalculator::Rule::Points24) {
         details += tr("\n【24点法】\n");
-        if (conditionsMet && declarationPoints >= 31) {
-            result.success = true;
-            result.resultText = tr("宣言勝ち");
-            verdict = tr("31点以上: 勝ち");
-        } else if (conditionsMet && declarationPoints >= 24) {
-            result.success = true;
-            result.isDraw = true;
-            result.resultText = tr("持将棋（引き分け）");
-            verdict = tr("24〜30点: 引き分け");
-        } else {
-            result.resultText = tr("宣言失敗（負け）");
-            verdict = conditionsMet ? tr("24点未満: 宣言失敗") : tr("条件未達: 宣言失敗");
+        switch (verdict) {
+        case Verdict::Win: reason = tr("31点以上: 勝ち"); break;
+        case Verdict::Draw: reason = tr("24〜30点: 引き分け"); break;
+        case Verdict::ShortOfPoints: reason = tr("24点未満: 宣言失敗"); break;
+        case Verdict::NotDeclarable: reason = tr("条件未達: 宣言失敗"); break;
         }
     } else {
-        const int requiredPoints = declarerIsSente ? 28 : 27;
         details += tr("\n【27点法】\n");
-        details += tr("必要点数: %1点以上\n").arg(requiredPoints);
-        if (conditionsMet && declarationPoints >= requiredPoints) {
-            result.success = true;
-            result.resultText = tr("宣言勝ち");
-            verdict = tr("条件達成: 勝ち");
-        } else {
-            result.resultText = tr("宣言失敗（負け）");
-            verdict = conditionsMet ? tr("点数不足: 宣言失敗") : tr("条件未達: 宣言失敗");
+        details += tr("必要点数: %1点以上\n").arg(JishogiCalculator::winningPoints(rule, declarerIsSente));
+        switch (verdict) {
+        case Verdict::Win: reason = tr("条件達成: 勝ち"); break;
+        case Verdict::Draw:   // 27点法に持将棋はない
+        case Verdict::ShortOfPoints: reason = tr("点数不足: 宣言失敗"); break;
+        case Verdict::NotDeclarable: reason = tr("条件未達: 宣言失敗"); break;
         }
     }
 
     result.message = tr("%1の入玉宣言\n\n%2\n\n【結果】%3")
-        .arg(declarerName(declarerIsSente, handicapNames), details + verdict, result.resultText);
+        .arg(declarerName(declarerIsSente, handicapNames), details + reason, result.resultText);
     return result;
 }
 
 NyugyokuJudgement::Result NyugyokuJudgement::judgeEngineDeclaration(const Position& position, bool declarerIsSente,
                                                                     bool handicapNames)
 {
-    const int configured = configuredRule();
-    Result result = judge(position, declarerIsSente, configured == Rule24 ? Rule24 : Rule27, handicapNames);
-    if (configured != Rule24 && configured != Rule27) {
+    const std::optional<JishogiCalculator::Rule> configured = configuredRule();
+    Result result = judge(position, declarerIsSente, configured.value_or(JishogiCalculator::Rule::Points27),
+                          handicapNames);
+    if (!configured) {
         result.message = tr("持将棋ルールが「なし」のため、27点法で判定しました。") + QStringLiteral("\n\n")
                          + result.message;
     }

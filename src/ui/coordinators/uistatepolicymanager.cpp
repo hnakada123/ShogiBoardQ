@@ -8,7 +8,7 @@
 #include "kifunavigationcontroller.h"
 #include "evaluationchartwidget.h"
 #include "branchtreeview.h"
-#include "considerationtabmanager.h"
+#include "considerationpanel.h"
 
 #include <QAction>
 #include "logcategories.h"

@@ -13,7 +13,6 @@
 #include "kifmovetext.h"
 #include "legalmovestatus.h"
 #include "logcategories.h"
-#include "piecemoverules.h"
 #include "shogiboard.h"
 
 // ============================================================
@@ -174,50 +173,5 @@ std::optional<RecordEntry> ShogiGameController::commitMove(const UsiMove& move, 
 void ShogiGameController::notifyMoveCommitted(Turn mover, int ply)
 {
     emit moveCommitted(mover, ply);
-}
-
-// ============================================================
-// 局面編集
-// ============================================================
-
-bool ShogiGameController::editPosition(const QPoint& outFrom, const QPoint& outTo, Turn pieceBoxSide)
-{
-
-    int fileFrom = outFrom.x();
-    int rankFrom = outFrom.y();
-    int fileTo = outTo.x();
-    int rankTo = outTo.y();
-
-    const auto validSquare = [](const QPoint& square) {
-        return (square.x() >= 1 && square.x() <= 9 && square.y() >= 1 && square.y() <= 9)
-            || (square.x() == BoardConstants::kBlackStandFile && square.y() >= 1 && square.y() <= 8)
-            || (square.x() == BoardConstants::kWhiteStandFile && square.y() >= 2 && square.y() <= 9)
-            || (square.x() == BoardConstants::kPieceBoxFile && square.y() >= 1 && square.y() <= 8);
-    };
-    if (!validSquare(outFrom) || !validSquare(outTo) || outFrom == outTo) return false;
-
-    Piece source = board()->pieceCharacter(fileFrom, rankFrom);
-    Piece dest = board()->pieceCharacter(fileTo, rankTo);
-    // 駒箱は先後共通の在庫。盤上に置く側を、二歩・成りなどの判定前に確定する。
-    if (fileFrom == BoardConstants::kPieceBoxFile && pieceBoxSide == Turn::White)
-        source = toWhite(source);
-    if (source == Piece::None) return false;
-    if (fileTo >= BoardConstants::kBlackStandFile && toBlack(demote(source)) != toBlack(dest)) return false;
-
-    // 編集中の駒配置は、ユーザーが選んだ手番を変更しない。
-    if (!PieceMoveRules::checkMovePiece(board(), source, dest, fileFrom, fileTo)) return false;
-
-    const bool promote = PieceMoveRules::shouldAutoPromote(fileTo, rankTo, source);
-
-    board()->updateBoardAndPieceStand(source, dest, fileFrom, rankFrom, fileTo, rankTo, promote);
-
-    return true;
-}
-
-void ShogiGameController::switchPiecePromotionStatusOnRightClick(const int fileFrom, const int rankFrom) const
-{
-    // 二歩や段の必成などの禁止形スキップは board 側で一括処理する
-
-    board()->promoteOrDemotePiece(fileFrom, rankFrom);
 }
 

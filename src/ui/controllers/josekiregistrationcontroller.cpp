@@ -47,7 +47,7 @@ void JosekiRegistrationController::recordBoardMove(const QString& sfen, const QS
         return;
     }
     if (m_deps.book->hasMove(sfen, usiMove)) return;
-    if (m_deps.book->addMove(sfen, {usiMove, QStringLiteral("none"), 0, 0, 1, {}}))
+    if (m_deps.book->addMove(sfen, {usiMove, std::nullopt, 0, 0, 1, {}}))
         showStatus(tr("%1 を定跡に登録しました").arg(JosekiTableModel::moveText(usiMove, sfen)));
 }
 

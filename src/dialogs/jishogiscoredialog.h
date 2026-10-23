@@ -37,7 +37,7 @@ private:
                 const QString& gote, const QString& name, bool emphasis = false);
     static QString conditionText(bool met);
     static QString ruleText(const JishogiCalculator::PlayerScore& score,
-                            bool inCheck, bool isSente, bool rule24);
+                            bool inCheck, bool isSente, JishogiCalculator::Rule rule);
 
     QWidget* m_content = nullptr;
     QPushButton* m_fontDecrease = nullptr;

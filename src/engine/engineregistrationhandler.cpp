@@ -52,12 +52,12 @@ void EngineRegistrationHandler::loadEnginesFromSettings()
     emit enginesChanged();
 }
 
-const QList<EngineListSettings::EngineEntry>& EngineRegistrationHandler::engineList() const
+const QList<EngineEntry>& EngineRegistrationHandler::engineList() const
 {
     return m_engineList;
 }
 
-const EngineListSettings::EngineEntry& EngineRegistrationHandler::engineAt(int index) const
+const EngineEntry& EngineRegistrationHandler::engineAt(int index) const
 {
     return m_engineList.at(index);
 }
@@ -66,7 +66,7 @@ const EngineListSettings::EngineEntry& EngineRegistrationHandler::engineAt(int i
 bool EngineRegistrationHandler::isDuplicatePath(const QString& path, QString& existingName) const
 {
     const QString normalizedInput = normalizeEnginePath(path);
-    for (const EngineListSettings::EngineEntry& engine : std::as_const(m_engineList)) {
+    for (const EngineEntry& engine : std::as_const(m_engineList)) {
         if (normalizeEnginePath(engine.path) == normalizedInput) {
             existingName = engine.name;
             return true;
@@ -169,7 +169,7 @@ void EngineRegistrationHandler::registerEngine(const QString& engineName, const 
         return;
     }
 
-    EngineListSettings::EngineEntry engine;
+    EngineEntry engine;
     engine.name = m_engineIdName;
     engine.path = m_fileName;
     engine.author = m_engineIdAuthor;
@@ -186,7 +186,7 @@ void EngineRegistrationHandler::registerEngine(const QString& engineName, const 
 QString EngineRegistrationHandler::uniqueRegisteredName(const QString& idName) const
 {
     const auto taken = [this](const QString& name) {
-        for (const EngineListSettings::EngineEntry& engine : std::as_const(m_engineList)) {
+        for (const EngineEntry& engine : std::as_const(m_engineList)) {
             if (engine.name == name) return true;
         }
         return false;
@@ -245,28 +245,21 @@ void EngineRegistrationHandler::parseEngineOptionsFromUsiOutput()
 void EngineRegistrationHandler::parseOptionLine(const QString& line)
 {
     QString parseError;
-    const std::optional<UsiOptionDeclaration> declaration = UsiLineParser::parseOption(line, &parseError);
-    if (!declaration) {
+    const std::optional<EngineOption> parsed = UsiLineParser::parseOption(line, &parseError);
+    if (!parsed) {
         qCWarning(lcUi) << "parseOptionLine: invalid option line:" << parseError << line;
         setError(tr("オプション行の形式が無効です。"));
         return;
     }
-    const UsiOptionDeclaration& parsed = *declaration;
 
     // 既存のオプションと重複しないことを確認
-    auto it = std::find_if(m_engineOptions.begin(), m_engineOptions.end(), [&parsed](const EngineOption& option) {
-        return option.name == parsed.name;
+    const QString& name = parsed->name;
+    auto it = std::find_if(m_engineOptions.begin(), m_engineOptions.end(), [&name](const EngineOption& option) {
+        return option.name == name;
     });
 
     if (it == m_engineOptions.end()) {
-        EngineOption option{parsed.name,
-                            parsed.type,
-                            parsed.defaultValue,
-                            parsed.minValue,
-                            parsed.maxValue,
-                            parsed.defaultValue,
-                            parsed.comboValues};
-        m_engineOptions.append(option);
+        m_engineOptions.append(*parsed);   // 値は既定値から始める
     } else {
         setError(tr("重複したエンジンオプションが見つかりました。"));
     }

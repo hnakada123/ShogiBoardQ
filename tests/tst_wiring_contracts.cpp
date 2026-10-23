@@ -75,10 +75,6 @@ private slots:
         auto& activity = window.composer().activity();
         m_parts = &p;
         m_consistentMoves = 0;
-        // 名前の通知だけでは活動を開始しない。
-        MatchPlayers humanEngine;
-        humanEngine.whiteIsEngine = true;
-        p.playerInfo->showPlayers(humanEngine);
         QCOMPARE(activity.activity(), AppActivityState::Activity::Idle);
         QCOMPARE(p.document->players(), MatchPlayers());
         StartGameDialogData data;

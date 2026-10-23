@@ -15,8 +15,9 @@
  * @brief 画面に出す盤（局面の値を1つ持ち、変更をシグナルで知らせる包み）
  *
  * 局面そのもの（盤・持ち駒・手番・手数・SFEN）は Position が持つ。計算のための一時的な局面には
- * Position を使い、この QObject は作らない。ここに残すのは、表示の座標（駒台は筋10・11、駒箱は筋12）での
- * 読み出しと、局面編集の操作（駒台・駒箱との出し入れ、成りの切り替え、先後の反転）だけ。
+ * Position を使い、この QObject は作らない。局面を変えるのは、局面の置き換え（setPosition・setSfen）、
+ * 指し手（applyUsiMove）と、局面編集の3つの操作（updateBoardAndPieceStand・promoteOrDemotePiece・
+ * resetGameBoard）だけ。表示の座標（駒台は筋10・11、駒箱は筋12）で読み出せる。
  */
 class ShogiBoard : public QObject
 {
@@ -67,12 +68,6 @@ public:
     QMap<Piece, int> pieceBox() const;
     int pieceBoxCount(Piece piece) const;
 
-    /// 指定駒を駒台に加算する（delta>0 のときのみ）
-    void addStandPiece(Piece piece, int delta = 1);
-
-    /// 指定駒を駒台から1枚消費する（存在しない/0枚時は false）
-    bool consumeStandPiece(Piece piece);
-
     int ranks() const { return Position::kRanks; }
     int files() const { return Position::kFiles; }
     Turn currentPlayer() const { return m_position.sideToMove(); }
@@ -86,12 +81,8 @@ public:
 
     // --- 駒操作 ---
 
-    /// 指定マスへ駒を移動する（配置データのみ更新。行き所のない段へ置いた歩・香・桂は成る）
-    void movePieceToSquare(Piece selectedPiece, const int fileFrom, const int rankFrom,
-                           const int fileTo, const int rankTo, const bool promote);
-
     /// 局面編集用: 盤面と駒台を同時に更新する
-    void updateBoardAndPieceStand(const Piece source, const Piece dest, const int fileFrom, const int rankFrom, const int fileTo, const int rankTo, const bool promote);
+    void updateBoardAndPieceStand(const Piece source, const Piece dest, const int fileFrom, const int rankFrom, const int fileTo, const int rankTo);
 
     /**
      * @brief USI の指し手を盤と駒台に適用し、手番を相手に渡して手数を1つ進める
@@ -110,24 +101,10 @@ public:
     /// 駒台に打てる駒があるか判定する
     bool isPieceAvailableOnStand(const Piece source, const int fileFrom) const;
 
-    // --- 駒台操作 ---
-
-    /// 取った駒を駒台に追加する（成駒は元の駒に変換）
-    void addPieceToStand(Piece dest);
-
-    /// 駒台の駒を1枚増やす
-    void incrementPieceOnStand(const Piece dest);
-
-    /// 駒台の駒を1枚減らす（駒打ち時）。不足時は false。
-    bool decrementPieceOnStand(Piece source);
-
     // --- 盤面リセット ---
 
     /// 盤上・両駒台を空にして、全駒を駒箱に戻す（局面編集用）
     void resetGameBoard();
-
-    /// 先後の配置を反転する
-    void flipSides();
 
 signals:
     /// 盤面全体リセット通知（→ ShogiView::repaint）
@@ -144,7 +121,22 @@ signals:
     void turnChanged(Turn turn);
 
 private:
+    friend class TestShogiBoard;
+
     void setData(const int file, const int rank, const Piece value);
+    /// 指定マスへ駒を移動する（配置データのみ更新。行き所のない段へ置いた歩・香・桂は成る）
+    void movePieceToSquare(Piece selectedPiece, const int fileFrom, const int rankFrom,
+                           const int fileTo, const int rankTo, const bool promote);
+    /// 指定駒を駒台に加算する（delta>0 のときのみ）
+    void addStandPiece(Piece piece, int delta = 1);
+    /// 指定駒を駒台から1枚消費する（存在しない/0枚時は false）
+    bool consumeStandPiece(Piece piece);
+    /// 取った駒を駒台に追加する（成駒は元の駒に変換）
+    void addPieceToStand(Piece dest);
+    /// 駒台の駒を1枚増やす
+    void incrementPieceOnStand(const Piece dest);
+    /// 駒台の駒を1枚減らす（駒打ち時）。不足時は false。
+    bool decrementPieceOnStand(Piece source);
 
     Position m_position;
 };

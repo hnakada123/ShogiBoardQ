@@ -114,7 +114,7 @@ void UsiProtocolHandler::onInitializationTimeout()
     if (guard) emit initializationFinished(false);
 }
 
-std::optional<UsiOptionDeclaration> UsiProtocolHandler::reportedOption(const QString& name) const
+std::optional<EngineOption> UsiProtocolHandler::reportedOption(const QString& name) const
 {
     const auto it = m_reportedOptions.constFind(name);
     if (it == m_reportedOptions.cend()) return std::nullopt;

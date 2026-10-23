@@ -2,13 +2,11 @@
 #define MATCHTYPES_H
 
 /// @file matchtypes.h
-/// @brief MatchCoordinator の基本型定義（Cause, GameEndInfo, GameOverState）
+/// @brief MatchCoordinator の基本型定義（Cause, GameEndInfo）
 ///
 /// MatchCoordinator に依存せずに終局情報・時間パラメータ等を参照できる軽量ヘッダ。
 /// matchcoordinator.h は本ファイルをインクルードし、using エイリアスで
 /// MatchCoordinator::Cause 等を再公開する。対局者（先手・後手）は Turn で表す。
-
-#include <QDateTime>
 
 #include "shogitypes.h"
 
@@ -30,16 +28,6 @@ enum class MatchCause : int {
 struct MatchGameEndInfo {
     MatchCause  cause = MatchCause::Resignation;  ///< 終局原因
     Turn        loser = Turn::Black;              ///< 敗者
-};
-
-/// @brief 直近の終局状態
-/// @note MatchCoordinator::GameOverState は本型の using エイリアス。
-struct MatchGameOverState {
-    bool             isOver        = false;  ///< 終局済みか
-    bool             moveAppended  = false;  ///< 棋譜に終局手を追記済みか
-    bool             hasLast       = false;  ///< 直近の終局情報があるか
-    MatchGameEndInfo lastInfo;               ///< 直近の終局情報
-    QDateTime        when;                   ///< 終局日時
 };
 
 #endif // MATCHTYPES_H

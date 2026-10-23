@@ -2,13 +2,13 @@
 /// @brief 棋譜解析の1局面の結果のテスト
 ///
 /// PlyAnalysisCollector（info と bestmove から1局面の結果を作る）と
-/// AnalysisResultHandler（結果を表の1行にする）をテストする。
+/// KifuAnalysisRowPresenter（結果を表の1行にする）をテストする。
 
 #include <QTest>
 #include <QStringList>
 
 #include "analysisjob.h"
-#include "analysisresulthandler.h"
+#include "kifuanalysisrowpresenter.h"
 #include "kifuanalysislistmodel.h"
 #include "kifuanalysisrow.h"
 #include "kifupresentation.h"
@@ -132,14 +132,14 @@ private slots:
         QVERIFY(collector.finish(bestMove(UsiScore{})).book);
     }
 
-    // --- AnalysisResultHandler ---
+    // --- KifuAnalysisRowPresenter ---
 
     void appendAddsRowAndReturnsBlackScore()
     {
         KifuAnalysisListModel model;
-        AnalysisResultHandler::Refs refs;
+        KifuAnalysisRowPresenter::Refs refs;
         refs.analysisModel = &model;
-        AnalysisResultHandler handler(refs);
+        KifuAnalysisRowPresenter handler(refs);
         // ply=2 は偶数（先手番）なので評価値 200 がそのまま
         PlyAnalysis first = result(2, UsiScore::cp(200), {QStringLiteral("7g7f")});
         first.depth = 18;
@@ -165,11 +165,11 @@ private slots:
         line.entries[0].displayText = QStringLiteral("▲７六歩(77)");
         KifuPresentation::configure(QStringLiteral("en"), QStringLiteral("western"), false);
         KifuAnalysisListModel model;
-        AnalysisResultHandler::Refs refs;
+        KifuAnalysisRowPresenter::Refs refs;
         refs.analysisModel = &model;
         refs.line = &line;
         refs.branchPlies = {1};
-        AnalysisResultHandler handler(refs);
+        KifuAnalysisRowPresenter handler(refs);
         handler.append(result(0, UsiScore::cp(30), {QStringLiteral("7g7f")}));
         handler.append(result(1, UsiScore::cp(10), {QStringLiteral("3c3d")}));
         const auto cell = [&model](int row) { return model.index(row, KifuAnalysisListModel::MoveColumn).data().toString(); };
@@ -181,12 +181,43 @@ private slots:
         KifuPresentation::configure(QStringLiteral("ja_JP"), QStringLiteral("auto"), false);
     }
 
+    /// 候補手は前の行の読み筋の最初の手。前の行の局面に至った手と同じマスへの手は「同　」と書く
+    void candidateUsesSameSquareNotation()
+    {
+        const QString hirate = SfenUtils::hirateSfen();
+        const QStringList moves{QStringLiteral("7g7f"), QStringLiteral("3c3d"), QStringLiteral("8h2b+"),
+                                QStringLiteral("3a2b")};
+        const RecordLine line = RecordLine::fromPositions(TestReplay::buildSfenRecord(hirate, moves, false),
+                                                          TestReplay::buildGameMoves(hirate, moves));
+        KifuAnalysisListModel model;
+        KifuAnalysisRowPresenter::Refs refs;
+        refs.analysisModel = &model;
+        refs.line = &line;
+        KifuAnalysisRowPresenter rows(refs);
+        const auto analyzed = [&line](int ply, const QString& pv) {
+            PlyAnalysis analysis;
+            analysis.ply = ply;
+            analysis.score = UsiScore::cp(10);
+            analysis.pv = PvText::play(line.sfenAt(ply), QStringList{pv});
+            return analysis;
+        };
+        rows.append(analyzed(2, QStringLiteral("2g2f")));
+        rows.append(analyzed(3, QStringLiteral("3a2b")));
+        rows.append(analyzed(4, QStringLiteral("2g2f")));
+        // 3手目の候補手は2手目の読み筋（▲２六歩）で、指した角成とは違う
+        QCOMPARE(model.row(1)->candidateMove, QStringLiteral("▲２六歩(27)"));
+        QVERIFY(!model.row(1)->matchesCandidate());
+        // 4手目の候補手は角を取り返す手。直前の角成と同じマスなので「同　」
+        QCOMPARE(model.row(2)->candidateMove, QStringLiteral("△同　銀(31)"));
+        QVERIFY(model.row(2)->matchesCandidate());
+    }
+
     void bookResultHasNoScoreOrPv()
     {
         KifuAnalysisListModel model;
-        AnalysisResultHandler::Refs refs;
+        KifuAnalysisRowPresenter::Refs refs;
         refs.analysisModel = &model;
-        AnalysisResultHandler handler(refs);
+        KifuAnalysisRowPresenter handler(refs);
         PlyAnalysis book;
         book.ply = 1;
         book.book = true;
@@ -201,9 +232,9 @@ private slots:
     void mateScoresKeepTheirSide()
     {
         KifuAnalysisListModel model;
-        AnalysisResultHandler::Refs refs;
+        KifuAnalysisRowPresenter::Refs refs;
         refs.analysisModel = &model;
-        AnalysisResultHandler handler(refs);
+        KifuAnalysisRowPresenter handler(refs);
         // 後手番の局面なので先手から見ると詰まされる側
         const UsiScore mated = handler.append(result(1, UsiScore::mate(5), {QStringLiteral("7g7f")}));
         QVERIFY(mated.isMate());
@@ -215,9 +246,9 @@ private slots:
     void missingEvaluationAndDifferences()
     {
         KifuAnalysisListModel model;
-        AnalysisResultHandler::Refs refs;
+        KifuAnalysisRowPresenter::Refs refs;
         refs.analysisModel = &model;
-        AnalysisResultHandler handler(refs);
+        KifuAnalysisRowPresenter handler(refs);
         handler.append(result(0, UsiScore::cp(120), {QStringLiteral("7g7f")}));
         QVERIFY(!model.row(0)->evaluationDifference);
         QCOMPARE(model.index(0, 5).data().toString(), QStringLiteral("-"));

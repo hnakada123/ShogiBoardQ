@@ -7,12 +7,15 @@
 #include <QMetaType>
 #include <QString>
 
+#include "analysissettings.h"
+
 /// 検討タブで選んだ検討の条件。検討タブはこの値を正本として持ち、変わると settingsChanged で知らせる
 struct ConsiderationSettings {
     QString engineName;          ///< 検討に使うエンジン（登録名）
     bool unlimitedTime = true;   ///< 時間無制限で検討する
-    int byoyomiSec = 20;         ///< 時間を決めるときの1局面の検討時間（秒）
-    int multiPV = 1;             ///< 候補手の数（1〜10）
+    /// 時間を決めるときの1局面の検討時間（秒。範囲と既定値は AnalysisSettings::considerationByoyomiSec）
+    int byoyomiSec = AnalysisSettings::considerationByoyomiSec.defaultValue();
+    int multiPV = 1;             ///< 候補手の数（1〜10。範囲は AnalysisSettings::considerationMultiPV）
     bool showArrows = true;      ///< 候補手の矢印を盤に出す
 
     /// 1局面の検討時間（ms。0 は無制限）

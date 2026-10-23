@@ -35,12 +35,12 @@ public:
     void setMoves(const QString &sfen, const QList<JosekiMove> &moves, bool humanCanPlay,
                   const QStringList &derivedReplies = {});
     const QList<JosekiMove> &moves() const { return m_moves; }
-    /// 予想応手が書かれていない（"none" か空）
+    /// 予想応手が無い
     static bool hasNoReply(const JosekiMove &move);
     const QString &sfen() const { return m_sfen; }
     bool humanCanPlay() const { return m_humanCanPlay; }
 
-    /// 定跡手の表記（棋譜欄と同じ書式。"none" は「なし」）。定跡の表は手ごとに独立しているので「同」は使わない
+    /// 定跡手の表記（KifuPresentation::move。表示言語と表記の設定に合わせる）。定跡の表は手ごとに独立しているので「同」は使わない
     static QString moveText(const QString &usiMove, const QString &sfen);
     /// 導いた応手の表記（moveText を括弧で囲む）
     static QString derivedReplyText(const QString &moveText);
@@ -54,6 +54,7 @@ private:
     QString m_sfen;
     QList<JosekiMove> m_moves;
     QStringList m_derivedReplies;  ///< 行ごとの導いた応手（無い行は空）
+    QStringList m_afterSfens;      ///< 行ごとの、定跡手を指した後の局面（予想応手の表記に使う）
     qint64 m_frequencyTotal = 0;  ///< 定跡手の出現頻度の合計（比率の分母）
     bool m_humanCanPlay = true;
 };

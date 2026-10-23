@@ -94,7 +94,7 @@ class TestDialogAppearance : public QObject
             settings.endArray();
             settings.sync();
             return std::make_unique<ChangeEngineSettingsDialog>(
-                EngineListSettings::EngineEntry{QStringLiteral("Test engine"), QString(), QString()});
+                EngineEntry{QStringLiteral("Test engine"), QString(), QString()});
         }
         if (name == QLatin1String("csaGame")) return std::make_unique<CsaGameDialog>();
         if (name == QLatin1String("csaWaiting")) return std::make_unique<CsaWaitingDialog>(nullptr);

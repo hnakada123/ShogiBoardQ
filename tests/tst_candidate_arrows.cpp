@@ -8,6 +8,7 @@
 #include "enginelifecyclemanager.h"
 #include "josekibooksession.h"
 #include "candidatearrowpresenter.h"
+#include "considerationsettings.h"
 #include "thinkingpanel.h"
 #include "sfenutils.h"
 #include "shogiboard.h"
@@ -163,12 +164,12 @@ private slots:
         EngineLifecycleManager engines;
         AnalysisSession session(AnalysisSession::Deps{&engines, &activity});
         ShogiEngineThinkingModel model;
-        bool showArrows = true;
+        ConsiderationSettings considerationSettings;   // 検討タブの設定（showArrows）
         CandidateArrowPresenter::Deps deps;
         deps.view = &view;
         deps.analysis = &session;
         deps.consideration = &model;
-        deps.showConsiderationArrows = [&showArrows]() { return showArrows; };
+        deps.considerationSettings = &considerationSettings;
         CandidateArrowPresenter presenter(deps);
         auto* controller = &presenter;
         ThinkingPanel tab;
@@ -211,10 +212,10 @@ private slots:
         model.trimToMaxRows(1);
         QTRY_COMPARE(view.arrows().size(), 1);
         // 検討タブの「矢印」の設定を切ると消え、戻すと出る（設定の変更で描き直す）
-        showArrows = false;
+        considerationSettings.showArrows = false;
         controller->scheduleRefresh();
         QTRY_VERIFY(view.arrows().isEmpty());
-        showArrows = true;
+        considerationSettings.showArrows = true;
         controller->scheduleRefresh();
         QTRY_COMPARE(view.arrows().size(), 1);
         board.setSfen(SfenUtils::hirateSfen().replace(" b ", " w "));

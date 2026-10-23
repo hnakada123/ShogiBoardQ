@@ -48,8 +48,8 @@ std::optional<Turn> winnerOf(const RecordLine &line)
 
 bool isKifuFile(const QString &path)
 {
-    const std::optional<KifuFormat> format = KifuFormats::fromPath(path);
-    return format && KifuFormats::isSavable(*format);
+    // 開ける棋譜ファイル（JKF の .json を含む）のうち、手順のある形式（局面だけの .sfen は除く）
+    return KifuFormats::isReadableFile(path) && KifuFormats::fromPath(path) != KifuFormat::Sfen;
 }
 
 QStringList expandPaths(const QStringList &paths)

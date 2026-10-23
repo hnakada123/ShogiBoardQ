@@ -42,11 +42,13 @@ public:
     QString name(int series) const { return m_names.at(index(series)); }
     void setName(int series, const QString& name);
 
-    /// 棋譜解析の点なら、解析した手順の番号（対局・検討の点は -1）
-    int analysisLineIndex() const { return m_analysisLineIndex; }
-    void setAnalysisLineIndex(int lineIndex);
+    /// 棋譜解析の点なら、解析した手順の末尾の手のノード ID（対局・検討の点は -1）
+    int analysisLineEnd() const { return m_analysisLineEnd; }
+    /// 解析した手順の名前（「本譜」「分岐 2」。グラフの見出しに出す。手順が消えたら空）
+    const QString& analysisLineName() const { return m_analysisLineName; }
+    void setAnalysisLine(int lineEndNodeId, const QString& name);
 
-    /// 全部の点を消す（解析した手順の番号も -1 に戻す）
+    /// 全部の点を消す（解析した手順も無しに戻す）
     void clear();
     /// maxPly 手目より後の点を消す（待った・途中からの再開）
     void trimToPly(int maxPly);
@@ -56,7 +58,7 @@ signals:
     void scoreAdded(int series, int ply);
     /// 点を消した。maxPly はその手数より後を消した（全部消したときは -1）
     void scoresTrimmed(int maxPly);
-    /// 系列の名前・解析した手順の番号が変わった
+    /// 系列の名前・解析した手順が変わった
     void labelsChanged();
 
 private:
@@ -64,7 +66,8 @@ private:
 
     std::array<QMap<int, UsiScore>, kSeriesCount> m_scores;
     std::array<QString, kSeriesCount> m_names;
-    int m_analysisLineIndex = -1;
+    int m_analysisLineEnd = -1;
+    QString m_analysisLineName;
 };
 
 #endif // EVALUATIONSERIES_H

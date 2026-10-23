@@ -415,7 +415,7 @@ private slots:
         EngineLifecycleManager engines;
         MatchEngineSeat seat(&engines);
         // 通信対局の残り時間の代わりに、決まった残り時間を読ませる
-        UsiTimingParams timing;
+        UsiGoTimeInput timing;
         timing.timeControl.black.mainMs = timing.timeControl.white.mainMs = 60000;
         timing.btimeMs = timing.wtimeMs = 60000;
         FixedTimeSource matchTime(timing);

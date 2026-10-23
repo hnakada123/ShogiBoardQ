@@ -6,7 +6,7 @@
 
 #include <QObject>
 #include "engineoption.h"
-#include "enginelistsettings.h"
+#include "registeredengines.h"
 
 class UsiEngineSession;
 
@@ -31,10 +31,10 @@ public:
     void loadEnginesFromSettings();
 
     /// 登録エンジンの一覧（正本。画面の一覧は enginesChanged で作り直す）
-    const QList<EngineListSettings::EngineEntry>& engineList() const;
+    const QList<EngineEntry>& engineList() const;
 
     /// 指定インデックスのエンジン情報を取得する
-    const EngineListSettings::EngineEntry& engineAt(int index) const;
+    const EngineEntry& engineAt(int index) const;
 
     /// パスの重複を検査する（重複時は existingName にエンジン名を返す）
     bool isDuplicatePath(const QString& path, QString& existingName) const;
@@ -101,7 +101,7 @@ private:
     QString m_fileName;
     QString m_engineIdName;
     QString m_engineIdAuthor;
-    QList<EngineListSettings::EngineEntry> m_engineList;
+    QList<EngineEntry> m_engineList;
     QList<EngineOption> m_engineOptions;
 };
 

@@ -46,7 +46,9 @@
    棋譜に付く状態は棋譜の文書 `KifuDocument` が持つ（最後に始めた対局の対局者は `KifuDocument::players()`、
    上書き保存先は `KifuDocument::filePath()` だけ）。
 4. `std::function` は、上位へ問い合わせ・操作を委ねる「フック」にだけ使う（例: `UiStatePolicyManager::Deps::canResumeGame`、
-   `KifuDocument::Hooks::commitPendingEdits`）。部品の取得には使わない。司令塔（`MatchCoordinator`）は
+   `KifuDocument::Hooks::commitPendingEdits`）。部品の取得には使わない。フックには部品の関数をそのまま結び
+   （`std::bind`）、合成ルートに判断を書かない（判断が要るなら、それを持つ部品の関数にする。例:
+   `PositionEditSession::allowsLeavingMove()`・`MatchCoordinator::hasHumanPlayer()`）。司令塔（`MatchCoordinator`）は
    フックを持たず、シグナルと `MatchRecordSink`（対局の手順の受け手。実体は `GameSession`）で知らせる。
 5. 層の境界をまたぐときだけ関数で受け取る。例: `AutomationContext` は dialogs 層の
    メニューウィンドウを触れないので、お気に入りの取得・設定を関数で受け取る。

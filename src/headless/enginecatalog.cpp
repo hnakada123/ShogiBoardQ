@@ -7,14 +7,11 @@
 #include <QJsonObject>
 #include <QStringList>
 
-std::optional<EngineListSettings::EngineEntry> EngineCatalog::findByName(const QString& name, QString* error)
+std::optional<EngineEntry> EngineCatalog::findByName(const QString& name, QString* error)
 {
-    const QList<EngineListSettings::EngineEntry> engines = EngineListSettings::loadEngines();
-    QStringList names;
-    for (const auto& entry : std::as_const(engines)) {
-        if (entry.name == name) return entry;
-        names.append(entry.name);
-    }
+    const RegisteredEngines engines = RegisteredEngines::load();
+    if (std::optional<EngineEntry> entry = engines.findByName(name)) return entry;
+    const QStringList names = engines.names();
     if (error) {
         if (names.isEmpty()) {
             *error = QStringLiteral("No USI engines are registered. Register one in ShogiBoardQ "
@@ -30,8 +27,8 @@ std::optional<EngineListSettings::EngineEntry> EngineCatalog::findByName(const Q
 QJsonArray EngineCatalog::toJson()
 {
     QJsonArray array;
-    const QList<EngineListSettings::EngineEntry> engines = EngineListSettings::loadEngines();
-    for (const auto& entry : std::as_const(engines)) {
+    const RegisteredEngines engines = RegisteredEngines::load();
+    for (const EngineEntry& entry : engines.entries()) {
         QJsonObject obj;
         obj[QStringLiteral("name")] = entry.name;
         obj[QStringLiteral("path")] = entry.path;

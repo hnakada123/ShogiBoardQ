@@ -33,8 +33,7 @@ bool NyugyokuDeclarationHandler::handleDeclaration(GameChannel* channel)
 
     // こちらで判定する対局は、持将棋ルール（対局ダイアログの設定）が要る
     if (channel->judgesDeclaration()) {
-        const int rule = NyugyokuJudgement::configuredRule();
-        if (rule != NyugyokuJudgement::Rule24 && rule != NyugyokuJudgement::Rule27) {
+        if (!NyugyokuJudgement::configuredRule()) {
             QMessageBox::warning(m_parentWidget, tr("入玉宣言"),
                 tr("持将棋ルールが「なし」に設定されています。\n"
                    "対局ダイアログで「24点法」または「27点法」を選択してください。"));

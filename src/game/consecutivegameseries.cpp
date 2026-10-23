@@ -55,11 +55,8 @@ void ConsecutiveGameSeries::launchPreparedNextGame()
     // 1局ごとに手番を入れ替える場合。持ち時間もエンジンと一緒に入れ替え、
     // エンジンごとに時間差を付けた対局でも各エンジンが同じ持ち時間で指し続けるようにする。
     if (m_nextGame.switchTurnEachGame) {
-        MatchStartOptions& opt = m_nextGame.options;
-        std::swap(opt.players.blackEngineName, opt.players.whiteEngineName);
-        std::swap(opt.enginePath1, opt.enginePath2);
-        std::swap(opt.josekiOptions[0], opt.josekiOptions[1]);
-        std::swap(m_nextGame.time.rules.black, m_nextGame.time.rules.white);
+        m_nextGame.options.swapSides();
+        m_nextGame.time.rules.swapSides();
     }
     emit nextGameReady(m_nextGame);
 }

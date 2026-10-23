@@ -380,7 +380,7 @@ void TsumeshogiGeneratorDialog::fitSettingsArea()
     resize(width(), newHeight);
 }
 
-void TsumeshogiGeneratorDialog::showEngineSettingsDialog(const EngineListSettings::EngineEntry& engine)
+void TsumeshogiGeneratorDialog::showEngineSettingsDialog(const EngineEntry& engine)
 {
     ChangeEngineSettingsDialog dialog(engine, this);
     dialog.exec();

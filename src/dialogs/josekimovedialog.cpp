@@ -237,7 +237,7 @@ void JosekiMoveDialog::setEntry(const JosekiMove &entry)
     if (m_isEdit) m_editMove = entry.move;
     m_moveInput->setUsiMove(entry.move);
     // 予想応手は指し手の後の局面で選び直す（updateValidation がその局面を渡す）
-    m_nextMoveInput->setUsiMove(entry.nextMove.isEmpty() ? QStringLiteral("none") : entry.nextMove);
+    m_nextMoveInput->setUsiMove(entry.nextMove.value_or(JosekiMoveInputWidget::kNoMove));
     m_valueSpinBox->setValue(entry.value);
     m_depthSpinBox->setValue(entry.depth);
     m_frequencySpinBox->setValue(entry.frequency);
@@ -249,8 +249,8 @@ JosekiMove JosekiMoveDialog::entry() const
 {
     JosekiMove result;
     result.move = move();
-    result.nextMove = m_nextMoveInput->usiMove();
-    if (result.nextMove.isEmpty()) result.nextMove = QStringLiteral("none");
+    const QString next = m_nextMoveInput->usiMove();
+    if (!next.isEmpty() && next != JosekiMoveInputWidget::kNoMove) result.nextMove = next;
     result.value = m_valueSpinBox->value();
     result.depth = m_depthSpinBox->value();
     result.frequency = m_frequencySpinBox->value();

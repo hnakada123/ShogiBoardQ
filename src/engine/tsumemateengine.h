@@ -6,6 +6,10 @@
 
 #include "tsumeevaluation.h"
 #include <QObject>
+#include <functional>
+#include <optional>
+
+#include "engineoption.h"
 
 #include <QStringList>
 
@@ -31,6 +35,12 @@ public:
 
     /// 最短手数の確認に必要で、この接続に限って指定するオプション
     static QList<QPair<QString, QString>> requiredOptions();
+    /// 最短手数を確認できるエンジンか（報告したオプションに PostSearchLevel の MinLength・
+    /// GenerateAllLegalMoves・RootIsAndNodeIfChecked がある。KomoringHeights）。
+    /// lookup は名前からエンジンが報告したオプションを引く（登録時に保存したものか、起動して受けたもの）
+    static bool canVerifyShortestMate(const std::function<std::optional<EngineOption>(const QString&)>& lookup);
+    /// 登録エンジンの保存済みのオプションで判定する（問題一覧の判定エンジンの候補を絞る）
+    static bool canVerifyShortestMate(const QList<EngineOption>& options);
 
 signals:
     void finished(const TsumeEvaluation& result);

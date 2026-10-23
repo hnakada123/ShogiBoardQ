@@ -2,7 +2,6 @@
 /// @brief 持将棋（入玉宣言法）の点数計算・判定ロジックの実装
 
 #include "jishogicalculator.h"
-#include <QObject>
 
 // ============================================================================
 // 点数計算
@@ -98,39 +97,27 @@ bool JishogiCalculator::meetsDeclarationConditions(const PlayerScore& score, boo
 }
 
 // ============================================================================
-// 判定結果文字列
+// 宣言の判定
 // ============================================================================
 
-/// 24点法: 31点以上→勝ち、24〜30点→引き分け、24点未満→負け
-QString JishogiCalculator::result24(const PlayerScore& score, bool kingInCheck)
+int JishogiCalculator::winningPoints(Rule rule, bool isSente)
 {
-    if (!meetsDeclarationConditions(score, kingInCheck)) {
-        return QObject::tr("負け");
-    }
-
-    if (score.declarationPoints >= 31) {
-        return QObject::tr("勝ち");
-    } else if (score.declarationPoints >= 24) {
-        return QObject::tr("引き分け");
-    } else {
-        return QObject::tr("負け");
-    }
+    if (rule == Rule::Points24) return 31;
+    return isSente ? 28 : 27;
 }
 
-/// 27点法: 先手28点以上、後手27点以上で勝ち
-QString JishogiCalculator::result27(const PlayerScore& score, bool isSente, bool kingInCheck)
+int JishogiCalculator::requiredPoints(Rule rule, bool isSente)
 {
-    if (!meetsDeclarationConditions(score, kingInCheck)) {
-        return QObject::tr("負け");
-    }
+    return rule == Rule::Points24 ? 24 : winningPoints(rule, isSente);
+}
 
-    int requiredPoints = isSente ? 28 : 27;
-
-    if (score.declarationPoints >= requiredPoints) {
-        return QObject::tr("勝ち");
-    } else {
-        return QObject::tr("負け");
-    }
+JishogiCalculator::Verdict JishogiCalculator::judge(const PlayerScore& score, Rule rule, bool isSente,
+                                                    bool kingInCheck)
+{
+    if (!meetsDeclarationConditions(score, kingInCheck)) return Verdict::NotDeclarable;
+    if (score.declarationPoints >= winningPoints(rule, isSente)) return Verdict::Win;
+    if (score.declarationPoints >= requiredPoints(rule, isSente)) return Verdict::Draw;
+    return Verdict::ShortOfPoints;
 }
 
 // ============================================================================

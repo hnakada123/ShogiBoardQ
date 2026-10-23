@@ -199,11 +199,11 @@ private slots:
         const JosekiMove kept = session.movesAt(hirate).constFirst();
         QCOMPARE(kept.frequency, 7);
         QCOMPARE(kept.value, 25);
-        QCOMPARE(kept.nextMove, QStringLiteral("3c3d"));
+        QCOMPARE(kept.nextMove.value_or(QString()), QStringLiteral("3c3d"));
         QCOMPARE(kept.comment, QStringLiteral("元のコメント"));
         const JosekiMove added = session.movesAt(after).constFirst();
         QCOMPARE(added.frequency, 2);
-        QCOMPARE(added.nextMove, QStringLiteral("none"));
+        QVERIFY(!added.nextMove);
         QCOMPARE(added.comment, QStringLiteral("棋譜のコメント"));
     }
 

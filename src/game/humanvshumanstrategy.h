@@ -4,12 +4,10 @@
 /// @file humanvshumanstrategy.h
 /// @brief 人間 vs 人間モードの Strategy
 
-#include <QElapsedTimer>
-
 #include "gamemodestrategy.h"
 
 /**
- * @brief 人間同士の対局。手番ごとの考慮時間を測って時計に渡す
+ * @brief 人間同士の対局。人間の手を一手として確定する（考慮時間は人間対エンジンの人間の手と同じく対局時計が測る）
  */
 class HumanVsHumanStrategy : public GameModeStrategy {
 public:
@@ -17,15 +15,9 @@ public:
 
     void start() override;
     void onHumanMove(const RecordEntry& played) override;
-    void armTurnTimerIfNeeded() override;
-    void disarmTurnTimer() override;
 
 private:
-    void finishTurnTimer(Turn mover);
-
     MatchStrategyHost& m_host;
-    QElapsedTimer m_turnTimer;
-    bool m_turnTimerArmed = false;
 };
 
 #endif // HUMANVSHUMANSTRATEGY_H

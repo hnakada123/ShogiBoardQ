@@ -6,7 +6,7 @@
 ///
 /// 評価値グラフ・解析タブ・棋譜解析・検討モード・読み筋盤面に関する設定を提供します。
 /// 呼び出し元: evaluationchartwidget.cpp, evaluationchartsettingsdialog.cpp, thinkingpanel.cpp, kifuanalysisdialog.cpp,
-///             analysisresultspanel.cpp, considerationtabmanager.cpp,
+///             analysisresultspanel.cpp, considerationpanel.cpp,
 ///             pvboarddialog.cpp
 
 #include <QSize>
@@ -135,11 +135,11 @@ inline const Setting<QSize> kifuAnalysisDialogSize{"SizeRelated/kifuAnalysisDial
 /// 検討タブの時間無制限フラグ（デフォルト: true）
 inline const Setting<bool> considerationUnlimitedTime{"Consideration/unlimitedTime", true};
 
-/// 検討タブの検討時間・秒（デフォルト: 0）
-inline const Setting<int> considerationByoyomiSec{"Consideration/byoyomiSec", 0};
+/// 検討タブで時間を決めるときの1局面の検討時間・秒（デフォルト: 20。1〜3600。検討の条件の既定値もこれ）
+inline const BoundedSetting<int> considerationByoyomiSec{"Consideration/byoyomiSec", 20, 1, 3600};
 
-/// 検討の候補手の数（デフォルト: 1）
-inline const Setting<int> considerationMultiPV{"Consideration/multiPV", 1};
+/// 検討の候補手の数（デフォルト: 1。1〜10）
+inline const BoundedSetting<int> considerationMultiPV{"Consideration/multiPV", 1, 1, 10};
 
 /// 検討タブのフォントサイズ（デフォルト: 10）
 inline const Setting<int> considerationFontSize{"ConsiderationTab/fontSize", 10};

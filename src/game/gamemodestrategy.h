@@ -36,9 +36,6 @@ public:
     virtual void requestEngineMove(Turn side) = 0;
     /// エンジンの初期化を待つ間は時計を止める（待ち終えたら、対局中なら動かす）
     virtual void setWaitingForEngines(bool waiting) = 0;
-    /// 人間の考慮時間を記録する（人間対人間の手番の計測）
-    virtual void recordConsiderationTime(Turn mover, qint64 elapsedMs) = 0;
-
     /**
      * @brief エンジンの指し手を盤に指し、一手を確定する（先読みの局面は次の思考に使う）
      * @return 対局が続くなら true（反則手・千日手・最大手数・終局なら false）
@@ -74,10 +71,6 @@ public:
     /// side の手番を指すエンジン（人間の手番なら nullptr）。司令塔は投了・宣言勝ち・エラーをここから受け、
     /// 思考の依頼と終局の知らせもここへ送る
     virtual MatchEngineSeat* engineSeat(Turn /*side*/) const { return nullptr; }
-
-    /// 人間の考慮時間の計測を始める・打ち切る（人間対人間だけが使う）
-    virtual void armTurnTimerIfNeeded() {}
-    virtual void disarmTurnTimer() {}
 };
 
 #endif // GAMEMODESTRATEGY_H

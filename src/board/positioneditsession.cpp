@@ -2,6 +2,7 @@
 /// @brief 局面編集の実装
 
 #include "positioneditsession.h"
+#include "positioneditrules.h"
 
 #include <QAction>
 
@@ -109,11 +110,10 @@ void PositionEditSession::resetInteraction()
 
 bool PositionEditSession::applyEditMove(const QPoint& from, const QPoint& to)
 {
-    QPoint hFrom = from, hTo = to;
-    const bool ok = m_deps.gameController->editPosition(hFrom, hTo, m_deps.view->pieceBoxSide());
+    const bool ok = PositionEditRules::apply(*m_deps.view->board(), from, to, m_deps.view->pieceBoxSide());
     // 盤・駒台・駒箱の変化は ShogiBoard の通知で変わった所だけ描き直されるので、ここで盤全体は描き直さない
     m_deps.view->endDrag();
-    m_deps.board->onMoveApplied(hFrom, hTo, ok);
+    m_deps.board->onMoveApplied(from, to, ok);
     return ok;
 }
 

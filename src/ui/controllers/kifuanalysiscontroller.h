@@ -13,8 +13,8 @@
 #include "appactivitystate.h"
 #include "enginelifecyclemanager.h"
 
-class AnalysisResultHandler;
 class AnalysisResultsPanel;
+class KifuAnalysisRowPresenter;
 class QDockWidget;
 class EvaluationChartWidget;
 class EvaluationGraphPresenter;
@@ -23,8 +23,8 @@ class KifuAnalysisDialog;
 class KifuAnalysisListModel;
 class KifuNavigationController;
 class KifuNavigationState;
+class PvClickController;
 class QWidget;
-class ShogiView;
 class Usi;
 struct ThinkingInfoRow;
 
@@ -50,8 +50,7 @@ public:
         EngineLifecycleManager* engines = nullptr;          ///< 解析のエンジンを置く枠 E1（表示は枠を結ぶ側が行う）
         // --- 解析する手順と、結果の反映先（無くてもよい） ---
         const KifuNavigationState* navState = nullptr;      ///< 解析する手順（表示中の手順）
-        const KifuDocument* document = nullptr;   ///< 対局者名（対局情報）
-        const ShogiView* shogiView = nullptr;               ///< 読み筋の盤の向きを本体の盤に合わせる
+        PvClickController* pvBoards = nullptr;              ///< 結果の行のダブルクリックで読み筋盤を開く
         KifuNavigationController* navController = nullptr;  ///< 解析中・結果の行を選んだ手へ棋譜を移す
         EvaluationChartWidget* evalChart = nullptr;         ///< 評価値グラフ（点のクリックで解析結果の行へ移る）
         EvaluationGraphPresenter* evalGraph = nullptr;      ///< 評価値グラフの点（解析した局面の評価値）
@@ -87,7 +86,7 @@ private slots:
     /// 棋譜欄・グラフなどから移った局面に結果の選択を合わせる
     void syncResultSelection();
     /// 評価値グラフの解析の点をクリックした
-    void onAnalysisPlyClicked(int lineIndex, int ply);
+    void onAnalysisPlyClicked(int lineEndNodeId, int ply);
 
 private:
     /// 解析する手順（表示中の手順。分岐を選んでいればその分岐。終局の行は含まない）
@@ -97,12 +96,13 @@ private:
     void showError(const QString& message) const;
     /// 直前の局面の確定した評価値をグラフに足す
     void publishCommittedEvaluation();
-    void finishRun();
+    /// 解析を終える（completed なら最後まで解析した）。動作状態を待機に戻し、結果の表に知らせる
+    void finishRun(bool completed = false);
 
     Deps m_deps;
     QPointer<AnalysisResultsPanel> m_resultsPanel;
     std::unique_ptr<AnalysisResultsPanel> m_ownedResultsPanel;   ///< 結果の表を渡されなかったときに作ったもの
-    std::unique_ptr<AnalysisResultHandler> m_resultHandler;
+    std::unique_ptr<KifuAnalysisRowPresenter> m_rows;   ///< 解析1回分の結果を表の行にする
     EngineLease m_lease;                       ///< 枠 E1 のエンジンを使う権利（テスト用のエンジンを渡されたときは使わない）
     ActivityLease m_activityLease;             ///< 解析中の動作状態
     std::unique_ptr<AnalysisJob> m_job;
@@ -112,7 +112,7 @@ private:
         UsiScore score;
     };
     std::optional<PendingPlot> m_pendingPlot;
-    int m_lineIndex = 0;
+    int m_lineEndNodeId = -1;   ///< 解析した手順の末尾の手（手順の番号は分岐を足すと変わるので手で覚える）
     int m_startPly = 0;
     bool m_running = false;
     bool m_stoppedByUser = false;

@@ -2,12 +2,12 @@
 /// @brief 分岐ツリーの図の実装（ツリーの変更・描画・強調・操作）
 
 #include "branchtreeview.h"
+#include "movefont.h"
 #include "branchnodeitem.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
 #include "kifupresentation.h"
 #include "analysissettings.h"
-#include "applicationfonts.h"
 #include "logcategories.h"
 
 #include <QAction>
@@ -48,10 +48,8 @@ QFont baseFont(int pointSize)
 /// 手の表記に使う書体（日本語表記の指し手は日本語の書体）
 QFont labelFont(const KifuBranchNode* node)
 {
-    QFont font = baseFont(10);
-    if (node->isActualMove() && KifuPresentation::options().notation == KifuPresentation::Notation::Japanese)
-        font = ApplicationFonts::japaneseFont(font);
-    return font;
+    const QFont font = baseFont(10);
+    return node->isActualMove() ? MoveFont::font(font) : font;
 }
 
 /// 分岐ツリーの手の表記（KifuPresentation の表記設定に従う）

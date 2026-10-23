@@ -62,7 +62,7 @@ RecordTime CsaGameProgress::initialMoveTime(int index) const
     return RecordTime::fromMilliseconds(s.positionMoveConsumedMs(index), total);
 }
 
-UsiTimingParams CsaGameProgress::engineTiming(int marginMs) const
+UsiGoTimeInput CsaGameProgress::engineTiming(int marginMs) const
 {
     // 仕様 3.2.2.1: 1手に使える時間は「遅延時間＋残り時間＋秒読み」。遅延時間はサーバーが消費時間から
     // 差し引くので、今の手の思考時間に足すだけでよい。サーバーは LF の到着時刻で消費時間を測るので、
@@ -74,7 +74,7 @@ UsiTimingParams CsaGameProgress::engineTiming(int marginMs) const
     qint64& own = isBlackSide ? black : white;
     own = qMax<qint64>(0, own - mine.incrementMs);
 
-    UsiTimingParams timing;
+    UsiGoTimeInput timing;
     timing.timeControl = tc;
     timing.btimeMs = black;
     timing.wtimeMs = white;

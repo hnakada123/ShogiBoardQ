@@ -29,7 +29,7 @@ class EngineSelector : public QObject
     Q_OBJECT
 
 public:
-    using Engine = EngineListSettings::EngineEntry;
+    using Engine = EngineEntry;
 
     /// 結び付ける部品（コンボは必須。ほかは無ければ nullptr）
     struct Widgets {
@@ -44,7 +44,7 @@ public:
         /// 空でなければ、先頭に内蔵エンジン（登録エンジン以外）の項目をこの表示名で置く
         QString builtinLabel;
         /// 一覧に出す登録エンジン（空なら全部）
-        std::function<bool(const EngineListSettings::EngineEntry&)> filter;
+        std::function<bool(const EngineEntry&)> filter;
     };
 
     /// 一覧を読み、保存した選択を戻す（保存が無ければ先頭の登録エンジン）
@@ -54,7 +54,7 @@ public:
     void reload();
 
     /// 一覧に出している登録エンジン（内蔵の項目は含まない）
-    const QList<Engine>& engines() const { return m_engines; }
+    const RegisteredEngines& engines() const { return m_engines; }
     bool hasEngines() const { return !m_engines.isEmpty(); }
     /// 選んだ登録エンジン（内蔵の項目を選んだとき・何も選んでいないときは std::nullopt）
     std::optional<Engine> selected() const;
@@ -74,7 +74,7 @@ signals:
     /// 選んだエンジンが変わった
     void selectionChanged();
     /// 「設定」が押された（選んだ登録エンジン。設定ダイアログは受け手が開く）
-    void settingsRequested(const EngineListSettings::EngineEntry& engine);
+    void settingsRequested(const EngineEntry& engine);
 
 private slots:
     void onSettingsClicked();
@@ -94,7 +94,7 @@ private:
     QPointer<QAbstractButton> m_settingsButton;
     QPointer<QLabel> m_hint;
     Options m_options;
-    QList<Engine> m_engines;
+    RegisteredEngines m_engines;   ///< 選べるエンジン（filter で絞った登録エンジン）
     bool m_enabled = true;
 };
 

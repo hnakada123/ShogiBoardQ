@@ -412,7 +412,7 @@ private slots:
         engine.startEngine(mockPath(), QStringLiteral("MatchTest"));
         QTRY_COMPARE_WITH_TIMEOUT(initialized.count(), 1, 5000);
         // 時計がないので、残り時間と秒読みを決まった値で渡す
-        UsiTimingParams timing;
+        UsiGoTimeInput timing;
         timing.timeControl.black.byoyomiMs = timing.timeControl.white.byoyomiMs = 5000;
         timing.btimeMs = 300000;
         FixedTimeSource matchTime(timing);

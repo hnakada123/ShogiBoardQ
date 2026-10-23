@@ -13,20 +13,6 @@
 #include <QFileInfo>
 #include <QJsonArray>
 
-std::optional<QJsonObject> CliArgs::parse(const QString& command, const QStringList& args, bool events, int* exitCode)
-{
-    const OperationSpec* spec = CliCommandSpecs::find(command);
-    Q_ASSERT(spec);
-    QString error;
-    std::optional<QJsonObject> params = CliCommandSpecs::parse(*spec, args, &error);
-    if (!params) {
-        const int code = events ? CliOutput::failEvent(ErrorKind::InvalidArgument, error)
-                                : CliOutput::fail(ErrorKind::InvalidArgument, error);
-        if (exitCode) *exitCode = code;
-    }
-    return params;
-}
-
 std::optional<CliPosition> CliArgs::resolvePosition(const QJsonObject& params, QString* error)
 {
     CliPosition position;
@@ -59,7 +45,7 @@ std::optional<CliPosition> CliArgs::resolvePosition(const QJsonObject& params, Q
     return position;
 }
 
-std::optional<EngineListSettings::EngineEntry> CliArgs::resolveEngine(const QJsonObject& params, QString* error)
+std::optional<EngineEntry> CliArgs::resolveEngine(const QJsonObject& params, QString* error)
 {
     const QString name = params.value(QStringLiteral("engine")).toString().trimmed();
     if (name.isEmpty()) {

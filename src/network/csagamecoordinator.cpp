@@ -366,7 +366,9 @@ void CsaGameCoordinator::onClientGameEnded(CsaClient::GameResult result, CsaClie
 MatchSearchTiming CsaGameCoordinator::snapshot(Turn side, bool /*pondering*/) const
 {
     // 先読みも自分の持ち時間を読む。残り時間は着手ごとにサーバーが示した値
-    return FixedTimeSource(m_progress.engineTiming(m_thinkingMarginMs)).snapshot(side, false);
+    UsiGoTimeInput input = m_progress.engineTiming(m_thinkingMarginMs);
+    input.sideToMove = side;
+    return MatchSearchTiming::fromInput(input);
 }
 
 qint64 CsaGameCoordinator::elapsedThisTurn(Turn side) const

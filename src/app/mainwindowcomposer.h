@@ -75,15 +75,6 @@ private:
     /// 盤・棋譜欄・対局者名の初期表示と、保存したウィンドウの大きさ・ドックの配置の復元
     void finalizeUi();
 
-    /// 人間が盤で指せる手番か（盤のクリックと定跡手で使う。終了処理の後は false）
-    bool isHumanTurnNow() const;
-    /// 検討の候補手の矢印を盤に出すか（検討タブの設定）
-    bool showConsiderationArrows() const;
-    /// 入力中の編集（対局情報欄のセル・コメント欄の本文）を文書に確定する（KifuDocument::Hooks）
-    void commitPendingEdits();
-    /// 文書に入っていない入力中の編集があるか（KifuDocument::Hooks）
-    bool hasPendingEdits() const;
-
     MainWindow& m_window;
     Ui::MainWindow& m_ui;
     AppActivityState m_activity;

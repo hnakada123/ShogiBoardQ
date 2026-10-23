@@ -31,17 +31,19 @@ void EvaluationSeries::setName(int series, const QString& name)
     emit labelsChanged();
 }
 
-void EvaluationSeries::setAnalysisLineIndex(int lineIndex)
+void EvaluationSeries::setAnalysisLine(int lineEndNodeId, const QString& name)
 {
-    if (m_analysisLineIndex == lineIndex) return;
-    m_analysisLineIndex = lineIndex;
+    if (m_analysisLineEnd == lineEndNodeId && m_analysisLineName == name) return;
+    m_analysisLineEnd = lineEndNodeId;
+    m_analysisLineName = name;
     emit labelsChanged();
 }
 
 void EvaluationSeries::clear()
 {
     for (auto& scores : m_scores) scores.clear();
-    m_analysisLineIndex = -1;
+    m_analysisLineEnd = -1;
+    m_analysisLineName.clear();
     emit scoresTrimmed(-1);
 }
 

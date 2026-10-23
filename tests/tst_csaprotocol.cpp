@@ -1164,6 +1164,16 @@ private:
     }
 
 private slots:
+    /// ゲーム名と手番の希望は shogi-server の「ゲーム名[-b|-w],パスワード」の形でパスワードに載せる
+    void csaClient_loginPasswordCarriesGameName()
+    {
+        QCOMPARE(CsaClient::loginPassword(QStringLiteral("pw"), QString(), Turn::Black), QStringLiteral("pw"));
+        QCOMPARE(CsaClient::loginPassword(QStringLiteral("pw"), QStringLiteral("floodgate-600-10"), std::nullopt),
+                 QStringLiteral("floodgate-600-10,pw"));
+        QCOMPARE(CsaClient::loginPassword(QStringLiteral("pw"), QStringLiteral("g"), Turn::Black), QStringLiteral("g-b,pw"));
+        QCOMPARE(CsaClient::loginPassword(QStringLiteral("pw"), QStringLiteral("g"), Turn::White), QStringLiteral("g-w,pw"));
+    }
+
     void csaClient_tlsCertificateVerification_data()
     {
         QTest::addColumn<bool>("trustCertificate");

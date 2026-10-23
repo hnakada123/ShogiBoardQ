@@ -3,6 +3,7 @@
 
 #include "kifufilecontroller.h"
 
+#include "kifufilefilter.h"
 #include "appactivitystate.h"
 #include "bodtextgenerator.h"
 #include "errorbus.h"
@@ -77,14 +78,7 @@ void KifuFileController::chooseAndLoadKifuFile()
 {
     if (refuseReplacingRecord()) return;
     const QString filePath = QFileDialog::getOpenFileName(
-        m_deps.parentWidget, tr("棋譜ファイルを開く"), GameSettings::lastKifuDirectory(),
-        tr("Kifu Files (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.json *.usi *.sfen *.usen);;"
-           "KIF Files (*.kif *.kifu);;"
-           "KI2 Files (*.ki2 *.ki2u);;"
-           "CSA Files (*.csa);;"
-           "JKF Files (*.jkf *.json);;"
-           "USI/SFEN Files (*.usi *.sfen);;"
-           "USEN Files (*.usen)"));
+        m_deps.parentWidget, tr("棋譜ファイルを開く"), GameSettings::lastKifuDirectory(), KifuFileFilter::forOpening());
     if (filePath.isEmpty() || !confirmDiscardUnsaved()) return;
 
     // 選択したファイルのディレクトリを保存

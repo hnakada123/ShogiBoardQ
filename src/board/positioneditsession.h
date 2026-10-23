@@ -49,6 +49,8 @@ public:
     explicit PositionEditSession(const Deps& deps, QObject* parent = nullptr);
 
     bool isEditing() const;
+    /// 表示中の手から移ってよいか（局面編集中は棋譜の手を移らない。KifuNavigationController の移動前の確認）
+    bool allowsLeavingMove() const { return !isEditing(); }
     /// 編集中の着手（盤の操作で決まった駒の移動）を盤に反映する。動かせたら true
     bool applyEditMove(const QPoint& from, const QPoint& to);
 

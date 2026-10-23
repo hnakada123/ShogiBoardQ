@@ -29,7 +29,7 @@ private:
     {
         JosekiMove m;
         m.move = usi;
-        m.nextMove = QStringLiteral("none");
+        m.nextMove = std::nullopt;
         m.value = value;
         m.depth = depth;
         m.frequency = freq;
@@ -279,7 +279,7 @@ void TestJosekiBook::session_registerEnginePv()
              Result::Added);
     JosekiMove added = session.movesAt(sfen).constFirst();
     QCOMPARE(added.move, QStringLiteral("7g7f"));
-    QCOMPARE(added.nextMove, QStringLiteral("3c3d"));
+    QCOMPARE(added.nextMove.value_or(QString()), QStringLiteral("3c3d"));
     QCOMPARE(added.value, 45);
     QCOMPARE(added.depth, 20);
     QCOMPARE(added.frequency, 1);
@@ -292,7 +292,7 @@ void TestJosekiBook::session_registerEnginePv()
     QCOMPARE(session.registerEnginePv(sfen, {QStringLiteral("7g7f"), QStringLiteral("8c8d")}, UsiScore::cp(-12), -1),
              Result::Updated);
     JosekiMove updated = session.movesAt(sfen).constFirst();
-    QCOMPARE(updated.nextMove, QStringLiteral("8c8d"));
+    QCOMPARE(updated.nextMove.value_or(QString()), QStringLiteral("8c8d"));
     QCOMPARE(updated.value, -12);
     QCOMPARE(updated.depth, 0);
     QCOMPARE(updated.frequency, 7);
@@ -300,9 +300,9 @@ void TestJosekiBook::session_registerEnginePv()
 
     // 読み筋が1手だけなら、登録済みの予想応手は残す。新しい手は「なし」
     QCOMPARE(session.registerEnginePv(sfen, {QStringLiteral("7g7f")}, UsiScore::cp(3), 9), Result::Updated);
-    QCOMPARE(session.movesAt(sfen).constFirst().nextMove, QStringLiteral("8c8d"));
+    QCOMPARE(session.movesAt(sfen).constFirst().nextMove.value_or(QString()), QStringLiteral("8c8d"));
     QCOMPARE(session.registerEnginePv(sfen, {QStringLiteral("2g2f")}, UsiScore::cp(3), 9), Result::Added);
-    QCOMPARE(session.movesAt(sfen).constLast().nextMove, QStringLiteral("none"));
+    QVERIFY(!session.movesAt(sfen).constLast().nextMove);
 }
 
 /// 定跡の評価値: 詰みはやねうら王と同じく ±(32000 − 手数)
@@ -444,7 +444,7 @@ void TestJosekiBook::addPlayedMove_newEntry_addsWithFrequency1()
     QCOMPARE(moves.size(), 1);
     QCOMPARE(moves[0].move, QStringLiteral("7g7f"));
     QCOMPARE(moves[0].frequency, 1);
-    QCOMPARE(moves[0].nextMove, QStringLiteral("none"));
+    QVERIFY(!moves[0].nextMove);
 
     // 局面は登録したときの手数付きの SFEN で覚える
     QCOMPARE(repo.registeredSfen(kHirateSfen), kHirateSfenWithPly);
@@ -528,7 +528,7 @@ JosekiBook currentBook(const QString &hirateWithPly)
     book.putMove(hirateWithPly, first);
     JosekiMove reply;
     reply.move = QStringLiteral("3c3d");
-    reply.nextMove = QStringLiteral("none");
+    reply.nextMove = std::nullopt;
     reply.frequency = 1;
     book.putMove(SfenReplay::positionAfter(hirateWithPly, QStringLiteral("7g7f")), reply);
     return book;
@@ -560,13 +560,13 @@ void TestJosekiBook::mergeFrom_combinesBooks()
     const JosekiMove kept = book.movesAt(kHirateSfenWithPly).at(0);
     QCOMPARE(kept.frequency, 14);
     QCOMPARE(kept.value, 30);
-    QCOMPARE(kept.nextMove, QStringLiteral("3c3d"));
+    QCOMPARE(kept.nextMove.value_or(QString()), QStringLiteral("3c3d"));
     QCOMPARE(kept.comment, QStringLiteral("今の定跡"));
     QCOMPARE(book.movesAt(kHirateSfenWithPly).at(1).move, QStringLiteral("2g2f"));
     QCOMPARE(book.movesAt(after76).at(0).frequency, 6);
     QVERIFY(book.movesAt(after76).at(0).comment.isEmpty());
     // 読めない予想応手の文字列も失わない
-    QCOMPARE(book.movesAt(after76).at(1).nextMove, QStringLiteral("abc"));
+    QCOMPARE(book.movesAt(after76).at(1).nextMove.value_or(QString()), QStringLiteral("abc"));
     QCOMPARE(book.registeredPlies(board26), (QList<int>{21, 23}));
     QCOMPARE(book.movesAt(board26 + QStringLiteral(" 23")).constFirst().move, QStringLiteral("3c3d"));
 
@@ -580,7 +580,7 @@ void TestJosekiBook::mergeFrom_combinesBooks()
     QCOMPARE(replaced.frequency, 4);
     QCOMPARE(replaced.value, 99);
     QCOMPARE(replaced.depth, 40);
-    QCOMPARE(replaced.nextMove, QStringLiteral("8c8d"));
+    QCOMPARE(replaced.nextMove.value_or(QString()), QStringLiteral("8c8d"));
     QCOMPARE(replaced.comment, QStringLiteral("今の定跡"));
     QCOMPARE(preferred.movesAt(after76).at(0).comment, QStringLiteral("受け"));
     QCOMPARE(preferred.movesAt(after76).at(0).value, 10);
@@ -651,10 +651,10 @@ void TestJosekiBook::load_keepsRegistrationsPerPly()
     QCOMPARE(book.movesAt(at21).size(), 2);
     QCOMPARE(book.movesAt(at21).at(1).comment, QStringLiteral("21手目のコメント"));
     QCOMPARE(book.movesAt(at23).size(), 2);
-    QCOMPARE(book.movesAt(at23).at(1).nextMove, QStringLiteral("4a3b"));
+    QCOMPARE(book.movesAt(at23).at(1).nextMove.value_or(QString()), QStringLiteral("4a3b"));
     QCOMPARE(book.movesAt(kHirateSfen + QStringLiteral(" 1")).first().move, QStringLiteral("6g6f"));
     // 局面の値で引いても同じ（手数で登録を選ぶ）
-    QCOMPARE(book.movesAt(*Position::fromSfen(at23)).at(1).nextMove, QStringLiteral("4a3b"));
+    QCOMPARE(book.movesAt(*Position::fromSfen(at23)).at(1).nextMove.value_or(QString()), QStringLiteral("4a3b"));
     QCOMPARE(book.movesAt(*Position::fromSfen(at21)).at(1).comment, QStringLiteral("21手目のコメント"));
     QCOMPARE(book.registeredSfen(at23), at23);
     QCOMPARE(book.registeredSfen(kHirateSfen), at21);
@@ -899,8 +899,16 @@ void TestJosekiBook::japaneseMove_usesPositionTurn()
 void TestJosekiBook::japaneseMove_noneReply()
 {
     const QString hirate = SfenUtils::hirateSfen();
-    QCOMPARE(JosekiTableModel::moveText(QStringLiteral("none"), hirate), QStringLiteral("なし"));
     QVERIFY(JosekiTableModel::moveText(QString(), hirate).isEmpty());
+    // 予想応手の無い行は「なし」と出す
+    JosekiTableModel model;
+    JosekiMove move;
+    move.move = QStringLiteral("7g7f");
+    model.setMoves(hirate, {move}, false);
+    QCOMPARE(model.index(0, JosekiTableModel::NextMove).data().toString(), QStringLiteral("なし"));
+    move.nextMove = QStringLiteral("3c3d");
+    model.setMoves(hirate, {move}, false);
+    QCOMPARE(model.index(0, JosekiTableModel::NextMove).data().toString(), QStringLiteral("△３四歩(33)"));
 }
 
 /// 定跡手は詰めた形（指し手の番号）で持つ。駒打ち・成り・すべてのマスの指し手と、USI として読めない文字列
@@ -932,7 +940,7 @@ void TestJosekiBook::packedMoves_keepEveryNotation()
         QCOMPARE(stored.size(), moves.size());
         for (qsizetype i = 0; i < moves.size(); ++i) {
             QCOMPARE(stored.at(i).move, moves.at(i));
-            QCOMPARE(stored.at(i).nextMove,
+            QCOMPARE(stored.at(i).nextMove.value_or(QString()),
                      moves.at(i) == QStringLiteral("8h2b+") ? QStringLiteral("win") : QStringLiteral("G*4b"));
             QCOMPARE(stored.at(i).value, -12);
             QCOMPARE(stored.at(i).frequency, 4);
@@ -956,14 +964,14 @@ void TestJosekiBook::comments_updateAndRemove()
     QVERIFY(moves.at(1).comment.isEmpty());
     QCOMPARE(moves.at(2).comment, QStringLiteral("中央"));
 
-    // 予想応手を渡さない（null）更新は予想応手を変えない
+    // 予想応手を変えない（Keep）更新は予想応手を変えない
     JosekiMove withReply = makeMove(QStringLiteral("8h7g"));
     withReply.nextMove = QStringLiteral("3c3d");
     book.putMove(kHirateSfen, withReply);
     JosekiMove keepReply = makeMove(QStringLiteral("8h7g"), 5);
-    keepReply.nextMove = QString();
-    QVERIFY(book.updateMove(kHirateSfen, keepReply));
-    QCOMPARE(book.movesAt(kHirateSfen).last().nextMove, QStringLiteral("3c3d"));
+    keepReply.nextMove = std::nullopt;
+    QVERIFY(book.updateMove(kHirateSfen, keepReply, JosekiBook::NextMoveUpdate::Keep));
+    QCOMPARE(book.movesAt(kHirateSfen).last().nextMove.value_or(QString()), QStringLiteral("3c3d"));
     QCOMPARE(book.movesAt(kHirateSfen).last().value, 5);
 }
 

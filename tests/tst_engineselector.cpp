@@ -16,7 +16,7 @@
 #include "tsumeshogisettings.h"
 
 namespace {
-bool isMateEngine(const EngineListSettings::EngineEntry& engine)
+bool isMateEngine(const EngineEntry& engine)
 {
     return engine.name.contains(QStringLiteral("Mate"));
 }
@@ -29,7 +29,7 @@ class TestEngineSelector : public QObject
 
     static void registerEngines(const QStringList& names)
     {
-        QList<EngineListSettings::EngineEntry> engines;
+        QList<EngineEntry> engines;
         for (const QString& name : names)
             engines.append({name, QStringLiteral("/engines/") + name, QStringLiteral("Author of ") + name});
         EngineProfileStore::saveEngines(engines);
@@ -116,7 +116,7 @@ private slots:
         QPushButton settingsButton;
         EngineSelector selector({&combo, &settingsButton, nullptr}, options, nullptr);
         QCOMPARE(combo.count(), 2);
-        QCOMPARE(selector.engines().size(), 1);
+        QCOMPARE(selector.engines().entries().size(), 1);
         QCOMPARE(selector.selected()->name, QStringLiteral("Mate Solver"));
 
         combo.setCurrentIndex(0);
@@ -164,7 +164,7 @@ private slots:
         combo.setCurrentIndex(1);
         settingsButton.click();
         QCOMPARE(requested.size(), 1);
-        QCOMPARE(requested.at(0).at(0).value<EngineListSettings::EngineEntry>().name, QStringLiteral("Beta"));
+        QCOMPARE(requested.at(0).at(0).value<EngineEntry>().name, QStringLiteral("Beta"));
 
         registerEngines({QStringLiteral("Gamma"), QStringLiteral("Beta")});
         selector.reload();

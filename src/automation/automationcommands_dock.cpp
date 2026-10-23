@@ -10,6 +10,7 @@
 #include <QAction>
 #include <QApplication>
 #include <QDockWidget>
+#include <QHash>
 #include <QJsonArray>
 #include <QMainWindow>
 #include <QPointer>
@@ -45,28 +46,53 @@ QDockWidget* findDock(QMainWindow* window, const QString& name)
     return matches.first();
 }
 
-void requireOperation(QMainWindow* window, QDockWidget* dock, const QString& operation,
-                      Qt::DockWidgetArea area, QDockWidget* relative)
+/// ドックの操作（引数の operation。名前は表 AutomationMethodSpecs の選択肢で検査済み）
+enum class DockOperation { Show, Hide, Float, Dock, Tabify, Drag };
+
+DockOperation operationFrom(const QString& name)
+{
+    static const QHash<QString, DockOperation> operations{
+        {QStringLiteral("show"), DockOperation::Show},   {QStringLiteral("hide"), DockOperation::Hide},
+        {QStringLiteral("float"), DockOperation::Float}, {QStringLiteral("dock"), DockOperation::Dock},
+        {QStringLiteral("tabify"), DockOperation::Tabify}, {QStringLiteral("drag"), DockOperation::Drag}};
+    return operations.value(name, DockOperation::Show);
+}
+
+bool canOperate(QMainWindow* window, QDockWidget* dock, DockOperation operation, Qt::DockWidgetArea area,
+                QDockWidget* relative)
+{
+    const QDockWidget::DockWidgetFeatures features = dock->features();
+    const bool movable = features.testFlag(QDockWidget::DockWidgetMovable);
+    switch (operation) {
+    case DockOperation::Show:
+        return true;
+    case DockOperation::Hide:
+        return features.testFlag(QDockWidget::DockWidgetClosable);
+    case DockOperation::Drag:
+        return movable && !dock->isFloating() && dock->widget() && !dock->visibleRegion().isEmpty()
+            && features.testFlag(QDockWidget::DockWidgetFloatable);
+    case DockOperation::Float:
+        return movable && features.testFlag(QDockWidget::DockWidgetFloatable);
+    case DockOperation::Dock:
+        return movable && dock->isAreaAllowed(area);
+    case DockOperation::Tabify:
+        return movable && relative && relative->isEnabled() && !relative->isFloating() && !relative->isHidden()
+            && relative->features().testFlag(QDockWidget::DockWidgetMovable)
+            && dock->isAreaAllowed(window->dockWidgetArea(relative));
+    }
+    return false;
+}
+
+void requireOperation(QMainWindow* window, QDockWidget* dock, DockOperation operation, Qt::DockWidgetArea area,
+                      QDockWidget* relative)
 {
     AutomationWidgets::requireInteractive(window);
     if (!dock || !dock->isEnabled()) {
         throw AutomationError(ErrorKind::InvalidState, QStringLiteral("Dock is unavailable or disabled"));
     }
-    if (operation == QLatin1String("show")) return;
-    if (operation == QLatin1String("hide")) {
-        if (dock->features().testFlag(QDockWidget::DockWidgetClosable)) return;
-    } else if (dock->features().testFlag(QDockWidget::DockWidgetMovable)) {
-        if (operation == QLatin1String("drag") && !dock->isFloating() && dock->widget()
-            && !dock->visibleRegion().isEmpty() && dock->features().testFlag(QDockWidget::DockWidgetFloatable)) return;
-        if (operation == QLatin1String("float") && dock->features().testFlag(QDockWidget::DockWidgetFloatable)) return;
-        if (operation == QLatin1String("dock") && dock->isAreaAllowed(area)) return;
-        if (operation == QLatin1String("tabify") && relative && relative->isEnabled()
-            && !relative->isFloating() && !relative->isHidden()
-            && relative->features().testFlag(QDockWidget::DockWidgetMovable)
-            && dock->isAreaAllowed(window->dockWidgetArea(relative))) return;
-    }
-    throw AutomationError(ErrorKind::InvalidState,
-                          QStringLiteral("Dock operation is locked, disallowed or has no visible docked relative"));
+    if (!canOperate(window, dock, operation, area, relative))
+        throw AutomationError(ErrorKind::InvalidState,
+                              QStringLiteral("Dock operation is locked, disallowed or has no visible docked relative"));
 }
 
 void dragTitleBar(QDockWidget* dock, const QPoint& destination)
@@ -122,50 +148,55 @@ void AutomationCommands::registerDockCommands(AutomationDispatcher& dispatcher, 
         if (!window) throw AutomationError(ErrorKind::InvalidState, QStringLiteral("No main window"));
         // 型と範囲は AutomationMethodSpecs の表で検査済み。ここでは操作ごとの組み合わせだけを確かめる
         auto* dock = findDock(window, params.value(QStringLiteral("widget")).toString());
-        const QString operation = params.value(QStringLiteral("operation")).toString();
+        const DockOperation operation = operationFrom(params.value(QStringLiteral("operation")).toString());
         Qt::DockWidgetArea area = Qt::NoDockWidgetArea;
         QPointer<QDockWidget> relative;
-        if (operation == QLatin1String("dock")) area = parseArea(AutomationParams::requireString(params, QStringLiteral("area")));
-        if (operation == QLatin1String("tabify")) {
+        if (operation == DockOperation::Dock) area = parseArea(AutomationParams::requireString(params, QStringLiteral("area")));
+        if (operation == DockOperation::Tabify) {
             relative = findDock(window, AutomationParams::requireString(params, QStringLiteral("relative_to")));
             if (relative == dock) throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("Cannot tabify a dock with itself"));
         }
         QRect geometry;
         QPoint destination;
-        if (operation == QLatin1String("drag")) {
+        if (operation == DockOperation::Drag) {
             if (!params.contains(QStringLiteral("x")) || !params.contains(QStringLiteral("y"))) {
                 throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("drag requires integer x and y"));
             }
             destination = QPoint(params.value(QStringLiteral("x")).toInt(), params.value(QStringLiteral("y")).toInt());
         }
         if (params.contains(QStringLiteral("geometry"))) {
-            if (operation != QLatin1String("float")) {
+            if (operation != DockOperation::Float) {
                 throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("geometry is only valid for float"));
             }
             const auto obj = params.value(QStringLiteral("geometry")).toObject();
             geometry = QRect(obj.value(QStringLiteral("x")).toInt(), obj.value(QStringLiteral("y")).toInt(),
                              obj.value(QStringLiteral("width")).toInt(), obj.value(QStringLiteral("height")).toInt());
         }
-        if ((params.contains(QStringLiteral("area")) && operation != QLatin1String("dock"))
-            || (params.contains(QStringLiteral("relative_to")) && operation != QLatin1String("tabify"))
-            || ((params.contains(QStringLiteral("x")) || params.contains(QStringLiteral("y"))) && operation != QLatin1String("drag"))) {
+        if ((params.contains(QStringLiteral("area")) && operation != DockOperation::Dock)
+            || (params.contains(QStringLiteral("relative_to")) && operation != DockOperation::Tabify)
+            || ((params.contains(QStringLiteral("x")) || params.contains(QStringLiteral("y"))) && operation != DockOperation::Drag)) {
             throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("Unexpected parameter for dock operation"));
         }
-        requireOperation(window, dock, operation, area, relative);
         return AutomationInteractions::queue(
             {dock, [window, dock, operation, area, relative]() { requireOperation(window, dock, operation, area, relative); },
              [window, dock, operation, area, relative, geometry, destination]() {
-                if (operation == QLatin1String("hide")) { dock->close(); return; }
-                if (operation == QLatin1String("drag")) { dragTitleBar(dock, destination); return; }
-                if (operation == QLatin1String("float")) {
+                switch (operation) {
+                case DockOperation::Hide: dock->close(); return;
+                case DockOperation::Drag: dragTitleBar(dock, destination); return;
+                case DockOperation::Float:
                     dock->setFloating(true);
                     if (geometry.isValid()) dock->setGeometry(geometry);
-                } else if (operation == QLatin1String("dock")) {
+                    break;
+                case DockOperation::Dock:
                     dock->setFloating(false);
                     window->addDockWidget(area, dock);
-                } else if (operation == QLatin1String("tabify")) {
+                    break;
+                case DockOperation::Tabify:
                     dock->setFloating(false);
                     window->tabifyDockWidget(relative, dock);
+                    break;
+                case DockOperation::Show:
+                    break;
                 }
                 dock->show();
                 dock->raise();

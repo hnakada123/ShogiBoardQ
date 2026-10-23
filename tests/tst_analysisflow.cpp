@@ -4,6 +4,9 @@
 /// 解析の開始・中止・完了・エラーの状態遷移（動作状態と実行中か）と、検討タブの設定で検討を始める流れを確かめる。
 
 #include <QTest>
+#include <QComboBox>
+#include <QRadioButton>
+#include <QSpinBox>
 #include <QTemporaryDir>
 #include "engineprocessmanager.h"
 #include <QSignalSpy>
@@ -17,13 +20,14 @@
 #include "analysisresultspanel.h"
 #include "analysissession.h"
 #include "appactivitystate.h"
-#include "considerationtabmanager.h"
+#include "considerationpanel.h"
 #include "considerationuicontroller.h"
 #include "enginelifecyclemanager.h"
 #include "enginesettingsconstants.h"
 #include "errorbus.h"
 #include "evaluationchartwidget.h"
 #include "evaluationgraphpresenter.h"
+#include "evaluationseries.h"
 #include "kifuanalysiscontroller.h"
 #include "kifuanalysisdialog.h"
 #include "kifuanalysislistmodel.h"
@@ -112,6 +116,16 @@ public:
     }
 
     RecordLine line() const { return KifuBranchTree::toRecordLine(tree.mainLine()); }
+    /// index 番の手順（KifuBranchTree::allLines()）の末尾の手の ID
+    int lineEnd(int index = 0) const { return tree.allLines().at(index).nodes.constLast()->nodeId(); }
+    /// 本譜を解析する依頼（エンジンと範囲は呼ぶ側が決める）
+    AnalysisRequest request() const
+    {
+        AnalysisRequest r;
+        r.line = line();
+        r.lineEndNodeId = lineEnd();
+        return r;
+    }
 
     std::unique_ptr<KifuAnalysisController> controller(bool borrowEngine = true)
     {
@@ -154,8 +168,7 @@ private slots:
     void jobRunsWithoutUiAndOwnsSnapshot()
     {
         TestHelper h;
-        AnalysisRequest request;
-        request.line = h.line();
+        AnalysisRequest request = h.request();
         request.enginePath = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
         request.engineName = QStringLiteral("HeadlessAnalysis");
         request.options.endPly = 2;
@@ -183,8 +196,7 @@ private slots:
     void jobSkipsUnreadablePositions()
     {
         TestHelper h;
-        AnalysisRequest request;
-        request.line = h.line();
+        AnalysisRequest request = h.request();
         request.line.entries[0].sfen = QStringLiteral("broken");
         request.enginePath = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
         request.engineName = QStringLiteral("SkipAnalysis");
@@ -203,8 +215,7 @@ private slots:
     void stoppedJobIgnoresInitializationAndResults()
     {
         TestHelper h;
-        AnalysisRequest request;
-        request.line = h.line();
+        AnalysisRequest request = h.request();
         request.enginePath = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
         AnalysisJob job(request, {h.usi});
         QSignalSpy positions(&job, &AnalysisJob::plyStarted);
@@ -358,8 +369,7 @@ private slots:
         QFETCH(int, startPly);
         TestHelper h;
         auto ctrl = h.controller();
-        AnalysisRequest request;
-        request.line = h.line();
+        AnalysisRequest request = h.request();
         request.enginePath = mockEngine();
         request.options.startPly = startPly;
         QVERIFY(ctrl->start(request));
@@ -377,7 +387,7 @@ private slots:
         QCOMPARE(selected.count(), 0);
         QCOMPARE(changed.count(), 1);
 
-        emit h.evalChart.analysisPlyClicked(0, 2);
+        emit h.evalChart.analysisPlyClicked(h.lineEnd(), 2);
         QCOMPARE(view->currentIndex().row(), 2 - startPly);
         QCOMPARE(view->selectionModel()->selectedRows().first().row(), 2 - startPly);
         QCOMPARE(h.nav.currentPly(), 2);
@@ -397,8 +407,7 @@ private slots:
     {
         TestHelper h;
         auto ctrl = h.controller();
-        AnalysisRequest request;
-        request.line = h.line();
+        AnalysisRequest request = h.request();
         request.enginePath = mockEngine();
         request.options.startPly = 1;
         request.options.endPly = 1;
@@ -428,7 +437,7 @@ private slots:
         auto ctrl = h.controller();
         AnalysisRequest request;
         request.line = KifuBranchTree::toRecordLine(h.tree.allLines().at(1).nodes);
-        request.lineIndex = 1;
+        request.lineEndNodeId = h.lineEnd(1);
         request.options.startPly = 1;
         request.enginePath = mockEngine();
         QVERIFY(ctrl->start(request));
@@ -437,18 +446,55 @@ private slots:
         QCOMPARE(view->currentIndex().row(), 1);
         QSignalSpy selected(&h.resultsPanel, &AnalysisResultsPanel::rowSelected);
 
-        h.navController.goToLine(0, 2);
+        const int mainEnd = h.lineEnd(0);
+        const int branchEnd = h.lineEnd(1);
+        h.navController.goToPlyOnLine(mainEnd, 2);
         QVERIFY(!view->currentIndex().isValid());
         QVERIFY(view->selectionModel()->selectedRows().isEmpty());
-        h.navController.goToLine(1, 1);
+        h.navController.goToPlyOnLine(branchEnd, 1);
         QCOMPARE(view->currentIndex().row(), 0);
         QCOMPARE(h.nav.currentLineIndex(), 1);
-        h.navController.goToLine(0, 2);
-        emit h.evalChart.analysisPlyClicked(1, 2);
+        h.navController.goToPlyOnLine(mainEnd, 2);
+        emit h.evalChart.analysisPlyClicked(branchEnd, 2);
         QCOMPARE(view->currentIndex().row(), 1);
         QCOMPARE(h.nav.currentLineIndex(), 1);
         QCOMPARE(h.evalChart.currentPly(), 2);
         QCOMPARE(selected.count(), 0);
+    }
+
+    /// 解析の後に分岐を本譜にしても、結果の行・グラフの点は解析した手順へ移る（手順の番号は変わる）
+    void resultsKeepAnalyzedLineAfterBranchEditing()
+    {
+        TestHelper h;
+        auto* first = TestTree::findByPlyOnMainLine(h.tree, 1);
+        const QStringList branchMoves{QStringLiteral("8c8d")};
+        const auto sfens = TestReplay::buildSfenRecord(first->sfen(), branchMoves, false);
+        const auto moves = TestReplay::buildGameMoves(first->sfen(), branchMoves);
+        KifuBranchNode* branch = TestTree::addMove(h.tree, first, moves.first(), branchMoves.first(), sfens.last());
+        h.navController.goToPlyOnLine(branch->nodeId(), 2);
+        auto ctrl = h.controller();
+        QVERIFY(h.startAnalysis(*ctrl));
+        QTRY_VERIFY_WITH_TIMEOUT(!ctrl->isRunning(), 7000);
+        QCOMPARE(h.evalGraph.series()->analysisLineEnd(), branch->nodeId());
+        QCOMPARE(h.evalGraph.series()->analysisLineName(), QStringLiteral("分岐 1"));
+
+        // 分岐を本譜にすると、解析した手順は0番になる。グラフの見出しも付け直す
+        QVERIFY(h.tree.moveChild(branch, 0));
+        QCOMPARE(h.evalGraph.series()->analysisLineName(), QStringLiteral("本譜"));
+        h.navController.goToPlyOnLine(h.lineEnd(1), 2);   // 元の本譜（今は1番）へ
+        h.resultsPanel.view()->setCurrentIndex(h.analysisModel.index(2, 0));
+        QCOMPARE(h.nav.currentNode(), branch);
+        h.navController.goToPlyOnLine(h.lineEnd(1), 2);
+        emit h.evalChart.analysisPlyClicked(h.evalGraph.series()->analysisLineEnd(), 1);
+        QCOMPARE(h.nav.currentNode(), first);
+        QCOMPARE(h.nav.currentLineIndex(), 0);
+
+        // 解析した手順を消すと移らず、見出しも外す
+        QVERIFY(h.tree.removeSubtree(branch));
+        QVERIFY(h.evalGraph.series()->analysisLineName().isEmpty());
+        const KifuBranchNode* before = h.nav.currentNode();
+        emit h.evalChart.analysisPlyClicked(h.evalGraph.series()->analysisLineEnd(), 2);
+        QCOMPARE(h.nav.currentNode(), before);
     }
 
     // === エラー ===
@@ -512,16 +558,19 @@ private slots:
         nav.setCurrentNode(first);
 
         ShogiEngineThinkingModel considerationModel;
-        ConsiderationTabManager tab;
+        ConsiderationPanel tab;
         tab.setConsiderationThinkingModel(&considerationModel);
-        ConsiderationSettings settings = tab.settings();
-        settings.unlimitedTime = false;
-        settings.byoyomiSec = 15;
-        settings.multiPV = 4;
-        tab.setSettings(settings);
+        // 利用者と同じく画面の欄で条件を変える
+        tab.findChild<QRadioButton*>(QStringLiteral("considerationTimed"))->setChecked(true);
+        tab.findChild<QSpinBox*>(QStringLiteral("considerationSeconds"))->setValue(15);
+        tab.findChild<QComboBox*>(QStringLiteral("considerationMultiPV"))->setCurrentIndex(3);
+        const ConsiderationSettings settings = tab.settings();
+        QVERIFY(!settings.unlimitedTime);
+        QCOMPARE(settings.byoyomiSec, 15);
+        QCOMPARE(settings.multiPV, 4);
 
         ConsiderationUiController::Deps deps;
-        deps.considerationTabManager = &tab;
+        deps.considerationPanel = &tab;
         deps.session = &h.session;
         deps.navState = &nav;
         ConsiderationUiController controller(deps);
@@ -552,11 +601,11 @@ private slots:
         KifuBranchTree tree;
         tree.setRootSfen(SfenUtils::hirateSfen());
         KifuNavigationState nav(&tree);
-        ConsiderationTabManager tab;
+        ConsiderationPanel tab;
         writeEngineSettings(mockEngine(), QStringLiteral("RenamedEngine"));   // タブの一覧を作った後に登録が変わった
 
         ConsiderationUiController::Deps deps;
-        deps.considerationTabManager = &tab;
+        deps.considerationPanel = &tab;
         deps.session = &h.session;
         deps.navState = &nav;
         ConsiderationUiController controller(deps);

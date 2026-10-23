@@ -204,12 +204,12 @@ void CsaGameDialog::onAccepted()
 void CsaGameDialog::onServerHistoryChanged(int index)
 {
     // インデックス0は新しい接続先なのでスキップ
-    if (index <= 0 || index > m_serverHistory.size()) {
+    if (index <= 0 || index > m_serverHistory.items().size()) {
         return;
     }
 
     // 履歴から設定を復元（インデックスは1始まりなので-1する）
-    const NetworkSettings::CsaServerHistoryEntry& history = m_serverHistory.at(index - 1);
+    const NetworkSettings::CsaServerHistoryEntry& history = m_serverHistory.items().at(index - 1);
     ui->lineEditHost->setText(history.host);
     ui->spinBoxPort->setValue(history.port);
     ui->comboBoxTransport->setCurrentIndex(history.useTls ? 1 : 0);
@@ -236,7 +236,7 @@ void CsaGameDialog::onAutoSaveDirBrowse()
 }
 
 // エンジン設定ダイアログを表示する
-void CsaGameDialog::showEngineSettingsDialog(const EngineListSettings::EngineEntry& engine)
+void CsaGameDialog::showEngineSettingsDialog(const EngineEntry& engine)
 {
     ChangeEngineSettingsDialog dialog(engine, this);
     dialog.exec();
@@ -252,18 +252,13 @@ CsaGameDialog::Selection CsaGameDialog::selection() const
     start.port = ui->spinBoxPort->value();
     start.transport = useTls() ? CsaClient::Transport::Tls : CsaClient::Transport::Plain;
     start.username = ui->lineEditId->text().trimmed();
-    // shogi-server のゲーム名と手番の希望は「ゲーム名[-b|-w],パスワード」の形でパスワード欄に載せる
-    const QString password = ui->lineEditPassword->text();
-    const QString gameName = ui->lineEditGameName->text().trimmed();
-    if (gameName.isEmpty()) {
-        start.password = password;
-    } else {
-        QString token = gameName;
-        const auto turn = static_cast<TurnPreference>(ui->comboBoxTurnPreference->currentIndex());
-        if (turn == TurnPreference::Black) token += QStringLiteral("-b");
-        else if (turn == TurnPreference::White) token += QStringLiteral("-w");
-        start.password = token + QLatin1Char(',') + password;
-    }
+    // ゲーム名と手番の希望はパスワードに載せる（shogi-server の書き方は network が知る）
+    const auto turn = static_cast<TurnPreference>(ui->comboBoxTurnPreference->currentIndex());
+    const std::optional<Turn> preferred = turn == TurnPreference::Black ? std::optional<Turn>(Turn::Black)
+        : turn == TurnPreference::White                                 ? std::optional<Turn>(Turn::White)
+                                                                        : std::nullopt;
+    start.password = CsaClient::loginPassword(ui->lineEditPassword->text(), ui->lineEditGameName->text().trimmed(),
+                                              preferred);
     if (ui->radioButtonHuman->isChecked()) {
         start.playerType = CsaGameCoordinator::PlayerType::Human;
     } else {
@@ -309,7 +304,7 @@ CsaGameDialog::GameCountMode CsaGameDialog::gameCountMode() const
 
 void CsaGameDialog::loadServerHistory()
 {
-    m_serverHistory = NetworkSettings::csaServerHistory();
+    m_serverHistory.setItems(NetworkSettings::csaServerHistory());
 }
 
 // 現在の設定をサーバー接続履歴の先頭に置いて保存する（同じ接続先は先頭へ移し、古いものから捨てる）
@@ -322,10 +317,8 @@ void CsaGameDialog::saveServerHistory()
     current.id = ui->lineEditId->text().trimmed();
     if (current.host.isEmpty() || current.id.isEmpty()) return;
 
-    m_serverHistory.removeAll(current);
-    m_serverHistory.prepend(current);
-    while (m_serverHistory.size() > NetworkSettings::kCsaServerHistoryLimit) m_serverHistory.removeLast();
-    NetworkSettings::csaServerHistory.set(m_serverHistory);
+    m_serverHistory.add(current);
+    NetworkSettings::csaServerHistory.set(m_serverHistory.items());
 }
 
 // UIにサーバー履歴を反映する
@@ -338,7 +331,7 @@ void CsaGameDialog::populateUIWithServerHistory()
     ui->comboBoxHistory->setEnabled(!m_serverHistory.isEmpty());
 
     // 履歴リストからサーバー履歴をコンボボックスに追加する
-    for (const NetworkSettings::CsaServerHistoryEntry& history : std::as_const(m_serverHistory)) {
+    for (const NetworkSettings::CsaServerHistoryEntry& history : m_serverHistory.items()) {
         QString displayText = formatServerHistoryDisplay(history);
         ui->comboBoxHistory->addItem(displayText);
     }

@@ -33,7 +33,7 @@ QStringList UsenExporter::exportLines(const KifuBranchTree& recordTree, const Ki
             terminalCode = TerminalCodes::usen(node->terminalType());
             break;
         }
-        if (node->isActualMove()) mainMoves += UsenCodec::encodeMove(node->move().move.toString());
+        if (node->isActualMove()) mainMoves += UsenCodec::encodeMove(node->move().move);
     }
 
     // 本譜のUSEN文字列を構築
@@ -65,7 +65,7 @@ QStringList UsenExporter::exportLines(const KifuBranchTree& recordTree, const Ki
                     branchTerminal = TerminalCodes::usen(node->terminalType());
                     break;
                 }
-                if (node->isActualMove()) branchMoves += UsenCodec::encodeMove(node->move().move.toString());
+                if (node->isActualMove()) branchMoves += UsenCodec::encodeMove(node->move().move);
             }
 
             // 分岐のUSEN文字列を構築

@@ -82,8 +82,8 @@ private slots:
         auto& p = window.composer().parts();
         // 時間のある対局を終えた状態（対局者と持ち時間・開始日時の記録が残っている）
         MatchPlayers players;
-        players.blackHumanName = QStringLiteral("前の先手");
-        players.whiteHumanName = QStringLiteral("前の後手");
+        players.seat(Turn::Black).humanName = QStringLiteral("前の先手");
+        players.seat(Turn::White).humanName = QStringLiteral("前の後手");
         TimeControl timeControl;
         timeControl.black.mainMs = timeControl.white.mainMs = 600000;
         timeControl.black.incrementMs = timeControl.white.incrementMs = 10000;
@@ -92,7 +92,7 @@ private slots:
 
         // 対局者名も開始日時もない棋譜
         QVERIFY(p.kifuFileController->loadKifuText(QStringLiteral("V2.2\nPI\n+\n+7776FU\n-3334FU\n")));
-        QVERIFY(p.document->players().blackHumanName.isEmpty());
+        QVERIFY(p.document->players().seat(Turn::Black).humanName.isEmpty());
         QVERIFY(!p.document->timeRecord().hasTimeControl());
         QVERIFY(!p.document->timeRecord().startDateTime().isValid());
         QVERIFY(!p.document->timeRecord().endDateTime().isValid());

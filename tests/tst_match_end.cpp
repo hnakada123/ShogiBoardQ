@@ -19,6 +19,10 @@ namespace {
 const QString blackWin = QStringLiteral(
     "5+B+RGS/6GKS/+P+P+P+P+P+P+P+P+P/9/p1p1p1p1p/1s1g1g1s1/2n3n1n/1r2k4/2b6 b NL3P3lp 1");
 
+// 対局ダイアログの持将棋ルールの設定値（GameSettings::StartGame::jishogiRule）
+static constexpr int kSetting24 = 1;
+static constexpr int kSetting27 = 2;
+
 void setRule(int rule)
 {
     QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
@@ -64,9 +68,9 @@ MatchCoordinator::StartOptions humanVsHuman(const QString& sfen = SfenUtils::hir
 MatchCoordinator::StartOptions blackEngine(const QString& sfen)
 {
     MatchCoordinator::StartOptions opt = humanVsHuman(sfen);
-    opt.players.blackIsEngine = true;
-    opt.players.blackEngineName = QStringLiteral("DeclarationTest");
-    opt.enginePath1 = MatchHarness::mockEnginePath();
+    opt.players.seat(Turn::Black).engine = true;
+    opt.players.seat(Turn::Black).engineName = QStringLiteral("DeclarationTest");
+    opt.engine(Turn::Black).path = MatchHarness::mockEnginePath();
     return opt;
 }
 
@@ -117,8 +121,8 @@ private slots:
         h.mc->handleResign();
         QCOMPARE(ended.count(), 1);
         QCOMPARE(processed.count(), 1);
-        QCOMPARE(h.mc->gameOverState().lastInfo.cause, MatchCoordinator::Cause::Timeout);
-        QCOMPARE(h.mc->gameOverState().lastInfo.loser, side);
+        QCOMPARE(h.mc->gameEnd()->cause, MatchCoordinator::Cause::Timeout);
+        QCOMPARE(h.mc->gameEnd()->loser, side);
         QVERIFY(h.lastMessageText().contains(QStringLiteral("時間切れ")));
         QCOMPARE(h.sink.records.last().displayText, blackLoses ? QStringLiteral("▲時間切れ") : QStringLiteral("△時間切れ"));
     }
@@ -138,7 +142,7 @@ private slots:
         QVERIFY(!playMoves(h, {QStringLiteral("7g7f")}));
         QCOMPARE(m_events, QStringList({QStringLiteral("append"), QStringLiteral("append"), QStringLiteral("ended"),
                                          QStringLiteral("dialog"), QStringLiteral("processed")}));
-        QCOMPARE(h.mc->gameOverState().lastInfo.cause, MatchCoordinator::Cause::Jishogi);
+        QCOMPARE(h.mc->gameEnd()->cause, MatchCoordinator::Cause::Jishogi);
         // 持将棋の行は終局した局面の手番（後手）の行
         QCOMPARE(sink.records.last().displayText, QStringLiteral("△持将棋"));
         QCOMPARE(sink.records.last().mover, Turn::White);
@@ -152,8 +156,8 @@ private slots:
         h.start(humanVsHuman());
         QVERIFY(h.playHuman(QStringLiteral("7g7f")));
         h.mc->handleResign();
-        QCOMPARE(h.mc->gameOverState().lastInfo.cause, MatchCoordinator::Cause::Resignation);
-        QCOMPARE(h.mc->gameOverState().lastInfo.loser, Turn::White);
+        QCOMPARE(h.mc->gameEnd()->cause, MatchCoordinator::Cause::Resignation);
+        QCOMPARE(h.mc->gameEnd()->loser, Turn::White);
         QCOMPARE(h.sink.records.last().displayText, QStringLiteral("△投了"));
         QVERIFY(h.lastMessageText().contains(QStringLiteral("後手の投了。先手の勝ちです。")));
     }
@@ -169,7 +173,6 @@ private slots:
         QCOMPARE(info.cause, MatchCoordinator::Cause::BreakOff);
         QCOMPARE(info.loser, Turn::Black);
         QCOMPARE(h.sink.records.last().displayText, QStringLiteral("▲中断"));
-        QVERIFY(h.mc->gameOverState().moveAppended);
         h.mc->handleResign();
         QCOMPARE(ended.count(), 1);
     }
@@ -207,16 +210,16 @@ private slots:
         QFETCH(int, loser);
         MatchHarness h;
         h.mc->start(blackEngine(success ? blackWin : SfenUtils::hirateSfen()));
-        setRule(isDraw ? NyugyokuJudgement::Rule24 : NyugyokuJudgement::Rule27);
+        setRule(isDraw ? kSetting24 : kSetting27);
         emit h.engines.engineInSlot(1)->declaredWin(Turn::Black);
 
         QVERIFY(h.mc->isGameOver());
-        QCOMPARE(int(h.mc->gameOverState().lastInfo.cause), cause);
-        QCOMPARE(int(h.mc->gameOverState().lastInfo.loser), loser);
+        QCOMPARE(int(h.mc->gameEnd()->cause), cause);
+        QCOMPARE(int(h.mc->gameEnd()->loser), loser);
         QCOMPARE(h.messageCount(), 1);
         QCOMPARE(h.lastMessageTitle(), NyugyokuJudgement::resultTitle());
         QVERIFY(h.lastMessageText().contains(QStringLiteral("先手の入玉宣言")));
-        setRule(NyugyokuJudgement::Rule27);
+        setRule(kSetting27);
     }
 
     void engineWin_usesHandicapNames()
@@ -225,7 +228,7 @@ private slots:
         MatchHarness h;
         h.mc->start(blackEngine(blackWin));
         h.useHandicapNames(true);
-        setRule(NyugyokuJudgement::Rule27);
+        setRule(kSetting27);
         emit h.engines.engineInSlot(1)->declaredWin(Turn::Black);
         QVERIFY(h.mc->isGameOver());
         QVERIFY(h.lastMessageText().contains(QStringLiteral("下手の入玉宣言")));
@@ -257,7 +260,7 @@ private slots:
         QStringList moves;
         for (int i = 0; i < 12; ++i) moves.append(cycle.at(i % 4));
         QVERIFY(!playMoves(h, moves));
-        QCOMPARE(h.mc->gameOverState().lastInfo.cause, MatchCoordinator::Cause::Sennichite);
+        QCOMPARE(h.mc->gameEnd()->cause, MatchCoordinator::Cause::Sennichite);
         QCOMPARE(h.sink.records.last().displayText, expectedLine);
         QVERIFY(h.lastMessageText().contains(QStringLiteral("千日手が成立しました")));
     }
@@ -290,8 +293,8 @@ private slots:
         QStringList moves;
         for (int i = 0; i < 12; ++i) moves.append(cycle.at(i % 4));
         QVERIFY(!playMoves(h, moves));
-        QCOMPARE(h.mc->gameOverState().lastInfo.cause, MatchCoordinator::Cause::OuteSennichite);
-        QCOMPARE(h.mc->gameOverState().lastInfo.loser, Turn::Black);
+        QCOMPARE(h.mc->gameEnd()->cause, MatchCoordinator::Cause::OuteSennichite);
+        QCOMPARE(h.mc->gameEnd()->loser, Turn::Black);
         QCOMPARE(h.sink.records.last().displayText, expectedLine);
         QVERIFY(h.lastMessageText().contains(QStringLiteral("先手の連続王手の千日手。後手の勝ちです。")));
     }

@@ -211,8 +211,7 @@ private slots:
         EditHarness h(tree);
         ShogiGameController gc;
 
-        QPoint from(7, 7), to(7, 6);
-        QVERIFY(h.controller.recordBoardMove(from, to, &gc));
+        QVERIFY(h.controller.recordMove(UsiMove::fromString(u"7g7f"), &gc));
         KifuBranchNode* move = tree.root()->childAt(0);
 
         KifuPresentation::configure(QStringLiteral("en"), QStringLiteral("western"), false);
@@ -251,7 +250,6 @@ private slots:
         h.live.startFromRoot();
 
         QVERIFY(!h.controller.canEdit());
-        QVERIFY(!h.controller.canRecordBoardMove());
         QVERIFY(!h.controller.isApplicable(BranchTreeEditController::Operation::DeleteFromHere, f.b2));
         h.live.discard();
         QVERIFY(h.controller.canEdit());
@@ -265,13 +263,12 @@ private slots:
         tree.setRootSfen(kHirateSfen);   // 起動直後と同じく開始局面だけ
         EditHarness h(tree);
         ShogiGameController gc;
-        QVERIFY(h.controller.canRecordBoardMove());
+        QVERIFY(h.controller.canEdit());
 
         QSignalSpy changed(&h.state, &KifuNavigationState::changed);
         // 記録した手は、指す前の局面と一緒に知らせる（定跡ウィンドウの「盤の手を登録」）
         QSignalSpy recorded(&h.controller, &BranchTreeEditController::boardMoveRecorded);
-        QPoint from(7, 7), to(7, 6);
-        QVERIFY(h.controller.recordBoardMove(from, to, &gc));
+        QVERIFY(h.controller.recordMove(UsiMove::fromString(u"7g7f"), &gc));
         QCOMPARE(recorded.count(), 1);
         QCOMPARE(recorded.last().at(0).toString(), tree.root()->sfen());
         QCOMPARE(recorded.last().at(1).toString(), QStringLiteral("7g7f"));
@@ -285,18 +282,14 @@ private slots:
         // 同じ手を指し直しても重複した変化は作らない
         h.document.markSaved(QString());
         h.nav.goToNode(tree.root());
-        from = QPoint(7, 7);
-        to = QPoint(7, 6);
-        QVERIFY(h.controller.recordBoardMove(from, to, &gc));
+        QVERIFY(h.controller.recordMove(UsiMove::fromString(u"7g7f"), &gc));
         QCOMPARE(tree.root()->childCount(), 1);
         QVERIFY(!h.document.isModified());
         QCOMPARE(recorded.count(), 2);
 
         // 違う手は新しい変化になる
         h.nav.goToNode(tree.root());
-        from = QPoint(2, 7);
-        to = QPoint(2, 6);
-        QVERIFY(h.controller.recordBoardMove(from, to, &gc));
+        QVERIFY(h.controller.recordMove(UsiMove::fromString(u"2g2f"), &gc));
         QCOMPARE(tree.root()->childCount(), 2);
         QVERIFY(h.document.isModified());
         QCOMPARE(h.state.currentLineIndex(), 1);
@@ -304,9 +297,7 @@ private slots:
         // 後手番の局面（▲２六歩の後）で先手の駒は動かせず、記録もしない
         QCOMPARE(h.state.currentNode()->ply(), 1);
         const int nodesBefore = tree.nodeCount();
-        from = QPoint(2, 6);
-        to = QPoint(2, 5);
-        QVERIFY(!h.controller.recordBoardMove(from, to, &gc));
+        QVERIFY(!h.controller.recordMove(UsiMove::fromString(u"2f2e"), &gc));
         QCOMPARE(tree.nodeCount(), nodesBefore);
         QCOMPARE(recorded.count(), 3);
         QCOMPARE(recorded.last().at(1).toString(), QStringLiteral("2g2f"));
@@ -319,8 +310,7 @@ private slots:
         tree.setRootSfen(kHirateSfen);
         EditHarness h(tree);
         ShogiGameController gc;
-        QPoint from(7, 7), to(7, 6);
-        QVERIFY(h.controller.recordBoardMove(from, to, &gc));   // 棋譜に ▲７六歩
+        QVERIFY(h.controller.recordMove(UsiMove::fromString(u"7g7f"), &gc));   // 棋譜に ▲７六歩
         h.nav.goToNode(tree.root());
         KifuBranchNode* current = h.state.currentNode();
 

@@ -4,6 +4,7 @@
 /// @file csagamedialog.h
 /// @brief CSA対局ダイアログクラスの定義
 
+#include "recentfilelist.h"
 #include "enginelistsettings.h"
 #include <QDialog>
 #include "networksettings.h"
@@ -38,7 +39,7 @@ public:
      * @brief エンジン情報を格納する構造体
      */
     /// 登録済みエンジン（名前・実行ファイル・作者）
-    using Engine = EngineListSettings::EngineEntry;
+    using Engine = EngineEntry;
 
     /// 対局数の決め方
     enum class GameCountMode {
@@ -154,12 +155,13 @@ private:
     /**
      * @brief 選んだエンジンの設定ダイアログを表示する
      */
-    void showEngineSettingsDialog(const EngineListSettings::EngineEntry& engine);
+    void showEngineSettingsDialog(const EngineEntry& engine);
 
 private:
     std::unique_ptr<Ui::CsaGameDialog> ui; ///< UIオブジェクト
     EngineSelector* m_engineSelector = nullptr; ///< エンジンの選択（QObject parent 所有）
-    QList<NetworkSettings::CsaServerHistoryEntry> m_serverHistory; ///< サーバー接続履歴
+    /// サーバー接続履歴（新しい順・重複なし）
+    RecentList<NetworkSettings::CsaServerHistoryEntry> m_serverHistory{NetworkSettings::kCsaServerHistoryLimit};
     SettingsFormBinding m_form;   ///< 入力欄と設定の対応（「対局」と「詳細」のタブ）
 
     // 設定値のキャッシュ

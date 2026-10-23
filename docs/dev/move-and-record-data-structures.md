@@ -970,7 +970,7 @@ URL セーフな短い文字列で棋譜を表現。分岐対応。
       → emit replaced() → EvaluationGraphPresenter::clear()・EngineDisplayPresenter::clearAll()
         （前の対局・解析の評価値グラフ・通信ログ・思考情報・解析結果を消す）
       → emit headerReset(header) → GameInfoPane::setGameInfo()（対局情報欄）・
-        PlayerInfoPresenter::syncBoardNamesWithGameInfo()（盤の対局者名）
+        PlayerInfoPresenter（盤の対局者名）
 
 4. 表示
    reset → KifuNavigationState::onTreeChanged()（分岐ツリー欄・棋譜欄の分岐の印も reset を受けて作り直す）

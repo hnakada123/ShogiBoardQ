@@ -17,6 +17,9 @@ class TestNavigation : public QObject
     Q_OBJECT
 
 private:
+    /// index 番の手順（KifuBranchTree::allLines()）の末尾の手の ID
+    static int lineEnd(const KifuBranchTree& tree, int index) { return tree.allLines().at(index).nodes.constLast()->nodeId(); }
+
     void buildTestTree(KifuBranchTree& tree)
     {
         tree.setRootSfen(kHirateSfen);
@@ -40,7 +43,7 @@ private slots:
         buildTestTree(tree);
         KifuNavigationState state(&tree);
         KifuNavigationController controller(&state);
-        controller.goToLine(1, 2);
+        controller.goToPlyOnLine(lineEnd(tree, 1), 2);
         auto* parent = state.currentNode();
         auto* main = parent->childAt(0);
         auto* selected = parent->childAt(1);
@@ -82,25 +85,48 @@ private slots:
         KifuNavigationState state(&tree);
         KifuNavigationController controller(&state);
 
-        controller.goToLine(1, 0);
+        controller.goToPlyOnLine(lineEnd(tree, 1), 0);
         QCOMPARE(state.currentNode(), tree.root());
         QCOMPARE(state.currentLineIndex(), 1);
         controller.goForward(3);
         QCOMPARE(state.currentNode()->sfen(), QStringLiteral("bsfen1"));
-        controller.goToLine(0, 2);
+        controller.goToPlyOnLine(lineEnd(tree, 0), 2);
         QCOMPARE(state.currentLineIndex(), 0);
         controller.goForward();
         QCOMPARE(state.currentNode()->sfen(), QStringLiteral("sfen3"));
-        controller.goToLine(1, 20);
+        controller.goToPlyOnLine(lineEnd(tree, 1), 20);
         QCOMPARE(state.currentPly(), 4);
         QCOMPARE(state.currentLineIndex(), 1);
 
-        // 存在しない手順へは移らず、通知も出さない
+        // 存在しない手へは移らず、通知も出さない
         QSignalSpy changed(&state, &KifuNavigationState::changed);
-        controller.goToLine(-1, 0);
-        controller.goToLine(9, 0);
+        controller.goToPlyOnLine(-1, 0);
+        controller.goToPlyOnLine(9999, 0);
         QCOMPARE(state.currentPly(), 4);
         QCOMPARE(changed.count(), 0);
+    }
+
+    /// 手順を末尾の手で覚えると、前に分岐を足しても本譜にしても同じ手順を指す（番号は変わる）
+    void lineEndSurvivesBranchEditing()
+    {
+        KifuBranchTree tree;
+        buildTestTree(tree);
+        KifuNavigationState state(&tree);
+        KifuNavigationController controller(&state);
+        const int branchEnd = lineEnd(tree, 1);
+        // 本譜の4手目の後に変化を足すと、深さ優先の番号では先に数えるので分岐は2番になる
+        ShogiMove move;
+        TestTree::addMove(tree, TestTree::findByPlyOnMainLine(tree, 4), move, QStringLiteral("other"),
+                          QStringLiteral("osfen"));
+        QCOMPARE(tree.findLineIndexForNode(tree.nodeAt(branchEnd)).value_or(-1), 2);
+        controller.goToPlyOnLine(branchEnd, 3);
+        QCOMPARE(state.currentNode()->sfen(), QStringLiteral("bsfen1"));
+        // 分岐を本譜にしても同じ手を指す
+        QVERIFY(tree.moveChild(state.currentNode(), 0));
+        QCOMPARE(state.currentLineIndex(), 0);
+        controller.goToPlyOnLine(branchEnd, 4);
+        QCOMPARE(state.currentNode()->sfen(), QStringLiteral("bsfen2"));
+        QCOMPARE(tree.nodeOnLine(branchEnd, 2), TestTree::findByPlyOnMainLine(tree, 2));
     }
 
     /// 表示中の手が変わるたびに changed() を1回だけ出し、変わらなければ出さない

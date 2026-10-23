@@ -140,7 +140,7 @@ void AnalysisResultsPanel::setModel(KifuAnalysisListModel* model)
 
 void AnalysisResultsPanel::selectRow(int row)
 {
-    if (m_isAnalyzing) return;
+    if (m_runState == RunState::Running) return;
     // 表示の同期を利用者の選択として通知しない。ビューには選択変更を伝えて再描画させる。
     const QSignalBlocker blocker(this);
     const QModelIndex index = m_view->model()->index(row, 0);
@@ -224,7 +224,7 @@ void AnalysisResultsPanel::onRowsInserted(const QModelIndex&, int first, int)
     updateProgress();
 
     // 解析中は最後に確定した行を選んで見せる（解析中の選択の通知は onTableSelectionChanged が無視する）
-    if (m_isAnalyzing) {
+    if (m_runState == RunState::Running) {
         const int lastRow = m_view->model()->rowCount() - 1;
         if (lastRow >= 0) {
             const QModelIndex index = m_view->model()->index(lastRow, 0);
@@ -246,24 +246,10 @@ void AnalysisResultsPanel::onLayoutChanged()
     m_reflowTimer->start();
 }
 
-void AnalysisResultsPanel::setStopButtonEnabled(bool enabled)
-{
-    m_stopButton->setEnabled(enabled);
-
-    // 解析中フラグを更新（enabled=true: 解析中, enabled=false: 解析終了）
-    const bool wasAnalyzing = m_isAnalyzing;
-    m_isAnalyzing = enabled;
-    if (!enabled && wasAnalyzing) {
-        m_progressBar->setValue(qMin(m_view->model()->rowCount(), m_totalPositions));
-        m_statusLabel->setText(tr("解析中止 · %1 / %2局面を解析済み")
-            .arg(m_view->model()->rowCount()).arg(m_totalPositions));
-    }
-}
-
 void AnalysisResultsPanel::onBoardRequested(int row)
 {
     // 解析中は盤面を開かない
-    if (m_isAnalyzing) return;
+    if (m_runState == RunState::Running) return;
     qCDebug(lcAnalysis).noquote() << "onBoardRequested: row=" << row;
     Q_EMIT rowDoubleClicked(row);
 }
@@ -273,7 +259,7 @@ void AnalysisResultsPanel::onTableSelectionChanged(const QModelIndex& current, c
     if (!current.isValid()) return;
 
     // 解析中の選択（最後に確定した行を選んだとき）は知らせない。棋譜は解析の進み具合で移している
-    if (m_isAnalyzing) {
+    if (m_runState == RunState::Running) {
         return;
     }
 
@@ -288,7 +274,16 @@ void AnalysisResultsPanel::beginAnalysis(int totalPositions, const QString& engi
     m_engineLabel->setFullText(engineName);
     m_progressBar->setRange(0, m_totalPositions);
     m_progressBar->setVisible(true);
-    setStopButtonEnabled(true);
+    m_runState = RunState::Running;
+    m_stopButton->setEnabled(true);
+    updateProgress();
+}
+
+void AnalysisResultsPanel::finishAnalysis(bool completed)
+{
+    if (m_runState != RunState::Running) return;
+    m_runState = completed ? RunState::Completed : RunState::Stopped;
+    m_stopButton->setEnabled(false);
     updateProgress();
 }
 
@@ -296,20 +291,27 @@ void AnalysisResultsPanel::updateProgress()
 {
     const int count = m_view->model()->rowCount();
     m_progressBar->setValue(qMin(count, m_totalPositions));
-    if (m_isAnalyzing) {
+    switch (m_runState) {
+    case RunState::Running:
         m_statusLabel->setText(tr("解析中 · %1 / %2局面を解析済み").arg(count).arg(m_totalPositions));
-    } else if (count == 0) {
+        return;
+    case RunState::Stopped:
+        m_statusLabel->setText(tr("解析中止 · %1 / %2局面を解析済み").arg(count).arg(m_totalPositions));
+        break;
+    case RunState::Completed:
+        m_progressBar->setValue(m_progressBar->maximum());
+        m_statusLabel->setText(tr("解析完了 · %1局面").arg(count));
+        break;
+    case RunState::Idle:
+        break;
+    }
+    if (count == 0) {
+        // 結果を消した（別の棋譜を開いた）ら初めの案内に戻す
+        m_runState = RunState::Idle;
         m_statusLabel->setText(tr("解析条件を設定して、棋譜解析を開始してください。"));
         m_progressBar->setVisible(false);
         m_engineLabel->setFullText(QString());
     }
-}
-
-void AnalysisResultsPanel::showAnalysisComplete(int totalMoves)
-{
-    setStopButtonEnabled(false);
-    m_statusLabel->setText(tr("解析完了 · %1局面").arg(totalMoves));
-    m_progressBar->setValue(m_progressBar->maximum());
 }
 
 void AnalysisResultsPanel::applyFontSize(int size)

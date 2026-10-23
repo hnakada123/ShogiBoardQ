@@ -81,6 +81,8 @@ void run(int id, const QueuedInteraction& interaction)
 
 QJsonObject queue(QueuedInteraction interaction, QJsonObject response)
 {
+    // 予約の時点の検査（失敗すれば予約しない）。実行の直前にも run() でもう一度確かめる
+    if (interaction.check) interaction.check();
     const int id = ++nextId();
     auto& all = records();
     all[id].target = interaction.target;

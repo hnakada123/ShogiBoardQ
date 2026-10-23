@@ -9,7 +9,6 @@
 #include "branchtreeeditcontroller.h"
 #include "logcategories.h"
 #include "matchcoordinator.h"
-#include "humanturnpolicy.h"
 #include "positioneditsession.h"
 #include "shogigamecontroller.h"
 #include "shogiview.h"
@@ -28,12 +27,12 @@ BoardMoveController::BoardMoveController(const Deps& deps, QObject* parent)
 
 bool BoardMoveController::acceptsInput() const
 {
-    return isEditing() || m_deps.turnPolicy->isHumanTurnNow();
+    return m_deps.turnPolicy->boardInput() != Input::None;
 }
 
 bool BoardMoveController::isEditing() const
 {
-    return m_deps.positionEdit->isEditing();
+    return m_deps.turnPolicy->boardInput() == Input::Edit;
 }
 
 void BoardMoveController::submit(const QPoint& from, const QPoint& to)
@@ -44,57 +43,34 @@ void BoardMoveController::submit(const QPoint& from, const QPoint& to)
 bool BoardMoveController::playMove(const QPoint& from, const QPoint& to)
 {
     qCDebug(lcUi) << "playMove from=" << from << " to=" << to;
-    BoardInteractionController* board = m_deps.board;
-    using Activity = AppActivityState::Activity;
-
-    switch (m_deps.activity->activity()) {
-    case Activity::DuringPositionEdit: {
-        const bool ok = m_deps.positionEdit->applyEditMove(from, to);
-        if (!ok) qCDebug(lcUi) << "edit-mode move rejected";
-        return ok;
-    }
-    case Activity::Idle: {
-        // 対局していないとき：指した手を表示中の手の次の手（変化）として記録する
-        QPoint hFrom = from, hTo = to;
-        const bool ok = m_deps.branchEdit->recordBoardMove(hFrom, hTo, m_deps.gameController);
-        board->onMoveApplied(hFrom, hTo, ok);
-        return ok;
-    }
-    case Activity::DuringGame:
-        if (!canPlayInGame()) break;
-        [[fallthrough]];
-    case Activity::DuringCsaGame: {
-        // クリックの移動元・移動先を手にする（成り・不成の両方が合法なら対局者に選ばせる）
-        const std::optional<UsiMove> move = m_deps.gameController->prepareMove(from, to);
-        if (!move) break;
-        return playUsiMove(*move);
-    }
-    default:
-        break;
-    }
-    board->onMoveApplied(from, to, false);
+    const Input input = m_deps.turnPolicy->boardInput();
+    if (input == Input::Edit) return m_deps.positionEdit->applyEditMove(from, to);
+    // クリックの移動元・移動先を手にする（成り・不成の両方が合法なら利用者に選ばせる）
+    const std::optional<UsiMove> move =
+        input == Input::None ? std::nullopt : m_deps.gameController->prepareMove(from, to);
+    if (move) return playUsiMove(*move);
+    m_deps.board->onMoveApplied(from, to, false);
     return false;
 }
 
 bool BoardMoveController::playUsiMove(const UsiMove& move)
 {
     qCDebug(lcUi).noquote() << "playUsiMove" << move.toString();
-    using Activity = AppActivityState::Activity;
-    switch (m_deps.activity->activity()) {
-    case Activity::Idle: {
+    switch (m_deps.turnPolicy->boardInput()) {
+    case Input::Variation: {
+        // 対局していないとき：指した手を表示中の手の次の手（変化）として記録する
         const bool ok = m_deps.branchEdit->recordMove(move, m_deps.gameController);
         reportResult(move, ok);
         return ok;
     }
-    case Activity::DuringCsaGame: {
+    case Input::CsaServer: {
         // 通信対局は確認を受けてから確定する。入力側は盤面や履歴を変更しない
         const bool legal = m_deps.gameController->isLegal(move);
         if (legal) emit csaMoveRequested(move);
         reportResult(move, false);
         return legal;
     }
-    case Activity::DuringGame: {
-        if (!canPlayInGame()) break;
+    case Input::Game: {
         const std::optional<RecordEntry> played =
             m_deps.gameController->applyMove(move, m_deps.match->lastMoveDestination());
         reportResult(move, played.has_value());
@@ -106,16 +82,12 @@ bool BoardMoveController::playUsiMove(const UsiMove& move)
         m_deps.match->onHumanMove(*played);
         return true;
     }
-    default:
+    case Input::Edit:   // 局面編集では成り・不成まで決まった手（定跡の手）は指さない
+    case Input::None:
         break;
     }
     reportResult(move, false);
     return false;
-}
-
-bool BoardMoveController::canPlayInGame() const
-{
-    return m_deps.match->canAcceptMove() && m_deps.match->isHumanSide(m_deps.gameController->currentPlayer());
 }
 
 void BoardMoveController::reportResult(const UsiMove& move, bool ok)

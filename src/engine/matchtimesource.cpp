@@ -26,12 +26,7 @@ MatchSearchTiming MatchSearchTiming::fromInput(const UsiGoTimeInput& input)
 
 MatchSearchTiming FixedTimeSource::snapshot(Turn side, bool /*pondering*/) const
 {
-    UsiGoTimeInput input;
-    input.timeControl = m_timing.timeControl;
-    input.btimeMs = m_timing.btimeMs;
-    input.wtimeMs = m_timing.wtimeMs;
-    input.extraMs = m_timing.extraMs;
-    input.marginMs = m_timing.marginMs;
+    UsiGoTimeInput input = m_timing;
     input.sideToMove = side;
     return MatchSearchTiming::fromInput(input);
 }

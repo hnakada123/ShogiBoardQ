@@ -17,20 +17,18 @@
 
 namespace {
 
-/// USI の指し手を順に指し、終局コードがあれば終局の行を足す。指せない手があれば、その手の手前で打ち切る
-void readMoves(const QStringList& moves, const QString& terminalCode, KifLineBuilder& builder, ParseReport& report)
+/// 指し手を順に指し、終局コードがあれば終局の行を足す。指せない手があれば、その手の手前で打ち切る
+void readMoves(const UsenLine& line, KifLineBuilder& builder, ParseReport& report)
 {
-    for (const QString& text : moves) {
+    for (const UsiMove& move : line.moves) {
         const int ply = builder.nextPly();
-        const std::optional<UsiMove> move = UsiMove::parse(text);
-        if (!move || !builder.addMove(*move)) {
-            report.rejectMove(ply, move ? builder.cannotRestore(QStringLiteral("USEN"), ply)
-                                        : QStringLiteral("USEN: Invalid USI move %1: %2").arg(ply).arg(text));
+        if (!builder.addMove(move)) {
+            report.rejectMove(ply, builder.cannotRestore(QStringLiteral("USEN"), ply));
             builder.stop();
             return;
         }
     }
-    if (!terminalCode.isEmpty()) builder.addTerminal(TerminalCodes::fromUsen(terminalCode), builder.sideToMove());
+    if (!line.terminal.isEmpty()) builder.addTerminal(TerminalCodes::fromUsen(line.terminal), builder.sideToMove());
 }
 
 } // namespace
@@ -68,27 +66,17 @@ KifuParseOutcome UsenToSfenConverter::parse(QStringView text, const ParseOptions
         return outcome;
     }
 
-    // 本譜と分岐を分離
-    QString mainlineUsen;
-    QList<QPair<int, QString>> variations;  // (startPly, usenMoves)
-    QString terminalCode;
-    QString warn;
-    if (!parseUsenString(content, mainlineUsen, variations, &terminalCode, &warn)) {
-        outcome.warning = warn;
-        return outcome;
-    }
-
-    // 本譜のデコード
-    QString mainTerminal;
-    const auto decodedMain = UsenCodec::decodeMoves(mainlineUsen, &mainTerminal);
-    if (decodedMain.invalidCount > 0) {
-        outcome.warning = decodedMain.firstError;
+    // 本譜と分岐（"~" で1回だけ分け、手順ごとに指し手にする）
+    QString error;
+    const std::optional<QList<UsenLine>> lines = UsenCodec::decodeLines(content, &error);
+    if (!lines) {
+        outcome.warning = QStringLiteral("USEN: %1").arg(error);
         return outcome;
     }
     KifParseResult& record = outcome.record;
     {
         KifLineBuilder main(*start);
-        readMoves(decodedMain.moves, mainTerminal, main, report);
+        readMoves(lines->constFirst(), main, report);
         if (report.failed()) {
             outcome.warning = report.warnings();
             return outcome;
@@ -96,16 +84,10 @@ KifuParseOutcome UsenToSfenConverter::parse(QStringView text, const ParseOptions
         record.mainline = main.take();
     }
 
-    // 分岐のデコード。USEN の分岐は「直前に記述された手順」から派生する（KIF の「変化：N手」と同じ）
-    for (const auto& var : std::as_const(variations)) {
-        const int startPly = var.first;
-        QString varTerminal;
-        const auto decodedVariation = UsenCodec::decodeMoves(var.second, &varTerminal);
-        if (decodedVariation.invalidCount > 0) {
-            outcome.warning = decodedVariation.firstError;
-            outcome.record = {};
-            return outcome;
-        }
+    // 分岐は「直前に記述された手順」から派生する（KIF の「変化：N手」と同じ）。オフセットはその前の手数
+    for (qsizetype i = 1; i < lines->size(); ++i) {
+        const UsenLine& line = lines->at(i);
+        const int startPly = line.offset + 1;
         const auto base = record.latestBranchPoint(startPly);
         const std::optional<Position> from = base ? base->position : std::nullopt;
         if (!from) {
@@ -114,7 +96,7 @@ KifuParseOutcome UsenToSfenConverter::parse(QStringView text, const ParseOptions
             return outcome;
         }
         KifLineBuilder branch(*from, startPly, base->previousMove, KifLineBuilder::LineKind::Variation);
-        readMoves(decodedVariation.moves, varTerminal, branch, report);
+        readMoves(line, branch, report);
         if (report.failed()) {
             outcome.warning = report.warnings();
             outcome.record = {};
@@ -126,101 +108,4 @@ KifuParseOutcome UsenToSfenConverter::parse(QStringView text, const ParseOptions
     outcome.success = true;
     outcome.warning = report.warnings();
     return outcome;
-}
-
-// ============================================================
-// USEN形式棋譜コンバータ - デコード・パース処理
-// ============================================================
-
-// ============================================================================
-// デコード・パースメソッド
-// ============================================================================
-
-bool UsenToSfenConverter::parseUsenString(const QString& usen,
-                                           QString& mainlineUsen,
-                                           QList<QPair<int, QString>>& variations,
-                                           QString* terminalCode,
-                                           QString* warn)
-{
-    variations.clear();
-    if (terminalCode) terminalCode->clear();
-
-    // 構造: [初期局面]~[本譜]~[分岐1]~[分岐2]...
-    // 各パート: [オフセット].[指し手1][指し手2]...[.終局コード]
-
-    // ~ の前の初期局面部分を除去してから ~ で分割
-    const qsizetype firstTilde = usen.indexOf(QChar('~'));
-    if (firstTilde < 0) {
-        if (warn) *warn = QStringLiteral("USENが空です");
-        return false;
-    }
-
-    // ~ 以降を分割（初期局面部分はスキップ）
-    const QString afterPosition = usen.mid(firstTilde + 1);
-    const QStringList parts = afterPosition.split(QChar('~'), Qt::SkipEmptyParts);
-    if (parts.isEmpty()) {
-        if (warn) *warn = QStringLiteral("USENが空です");
-        return false;
-    }
-
-    // parts[0] = 本譜, parts[1..] = 分岐
-
-    bool foundMainline = false;
-
-    for (qsizetype partIdx = 0; partIdx < parts.size(); ++partIdx) {
-        const QString& part = parts[partIdx];
-
-        const qsizetype dotPos = part.indexOf(QChar('.'));
-        if (dotPos < 0) continue;
-
-        const QString prefix = part.left(dotPos);
-        const QString movesAndTerminal = part.mid(dotPos + 1);
-
-        // 終局コードのチェック (末尾が .x の形式)
-        QString moves = movesAndTerminal;
-        QString terminal;
-
-        // 末尾から終局コードを探す
-        const qsizetype lastDot = movesAndTerminal.lastIndexOf(QChar('.'));
-        if (lastDot >= 0) {
-            const QString possibleTerminal = movesAndTerminal.mid(lastDot + 1);
-            // 1文字の終局コードかチェック
-            if (possibleTerminal.isEmpty() || TerminalCodes::isUsenCode(possibleTerminal)) {
-                terminal = possibleTerminal;
-                moves = movesAndTerminal.left(lastDot);
-            }
-        }
-
-        // 最初のパートを本譜として扱う
-        if (partIdx == 0) {
-            mainlineUsen = QStringLiteral("~") + part;
-            if (terminalCode && !terminal.isEmpty()) {
-                *terminalCode = terminal;
-            }
-            foundMainline = true;
-        } else {
-            // 分岐: prefix は分岐開始位置（0-indexed）
-            // USENのオフセットは「何手目の後から分岐するか」を示す
-            // 例: オフセット2 = 2手目の後から分岐 = 3手目から分岐
-            // したがって startPly = offset + 1
-            bool ok;
-            const int offset = prefix.toInt(&ok);
-            if (ok && offset >= 0) {
-                const int startPly = offset + 1;  // 1-indexed に変換
-                // 分岐の指し手部分を抽出
-                QString varUsen = QStringLiteral("~0.") + moves;
-                if (!terminal.isEmpty()) {
-                    varUsen += QStringLiteral(".") + terminal;
-                }
-                variations.append(qMakePair(startPly, varUsen));
-            }
-        }
-    }
-
-    if (!foundMainline) {
-        if (warn) *warn = QStringLiteral("本譜が見つかりません");
-        return false;
-    }
-
-    return true;
 }

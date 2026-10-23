@@ -17,7 +17,7 @@
 #include "commentcoordinator.h"
 #include "commenteditorpanel.h"
 #include "consecutivegameseries.h"
-#include "considerationtabmanager.h"
+#include "considerationpanel.h"
 #include "considerationuicontroller.h"
 #include "csagamecoordinator.h"
 #include "csagamesession.h"
@@ -158,7 +158,7 @@ void MainWindowComposer::createPanels()
     // ドックの中身（ドックへの配置は createDocks）
     m_c.thinkingPanel = new ThinkingPanel(&m_window);
     m_c.thinkingPanel->setModels(m_c.thinking1, m_c.thinking2, m_c.commLog1, m_c.commLog2);
-    m_c.considerationTab = new ConsiderationTabManager(&m_window);
+    m_c.considerationTab = new ConsiderationPanel(&m_window);
     m_c.considerationTab->setConsiderationThinkingModel(m_c.consideration);
     m_c.usiLog = new UsiLogPanel(&m_window);
     m_c.usiLog->setModels(m_c.commLog1, m_c.commLog2);
@@ -200,11 +200,8 @@ void MainWindowComposer::createPanels()
     ed.parentWidget = &m_window;
     m_c.branchEdit = new BranchTreeEditController(ed, &m_window);
 
-    // 局面編集中は棋譜を移らない。未更新のコメントは破棄してよいか確かめる
-    m_c.kifuNavController->setLeaveGuard([this]() {
-        return !m_activity.is(AppActivityState::Activity::DuringPositionEdit)
-            && m_c.commentCoordinator->confirmLeaveEditingMove();
-    });
+    // 未更新のコメントは破棄してよいか確かめてから棋譜を移る（局面編集中の確認は局面編集を作るときに足す）
+    m_c.kifuNavController->addLeaveGuard(std::bind(&CommentCoordinator::confirmLeaveEditingMove, m_c.commentCoordinator));
 }
 
 // ---------------------------------------------------------------------------
@@ -256,6 +253,8 @@ void MainWindowComposer::createMatchAndAnalysis()
     pd.actions.setTsumePosition = m_ui.actionSetTsumePosition;
     pd.actions.changeTurn = m_ui.actionChangeTurn;
     m_c.positionEdit = new PositionEditSession(pd, &m_window);
+    // 局面編集中は棋譜を移らない
+    m_c.kifuNavController->addLeaveGuard(std::bind(&PositionEditSession::allowsLeavingMove, m_c.positionEdit));
 
     // 盤で指した手の行き先（動作状態ごとに、受け付けるか・どう処理するかを決める）
     BoardMoveController::Deps bd;
@@ -306,7 +305,7 @@ void MainWindowComposer::createPresentersAndDocks()
     jd.book = m_c.josekiBook;
     jd.boardArrows = m_ui.actionShowJosekiArrows;
     jd.navState = m_c.navState;
-    jd.isHumanTurnNow = std::bind(&MainWindowComposer::isHumanTurnNow, this);
+    jd.humanTurn = m_c.humanTurnPolicy.get();
     jd.boardMoves = m_c.boardMoves;
     jd.branchEdit = m_c.branchEdit;
     jd.navController = m_c.kifuNavController;
@@ -319,7 +318,7 @@ void MainWindowComposer::createPresentersAndDocks()
     ad.activity = &m_activity;
     ad.analysis = m_c.analysisSession;
     ad.consideration = m_c.consideration;
-    ad.showConsiderationArrows = std::bind(&MainWindowComposer::showConsiderationArrows, this);
+    ad.considerationSettings = &m_c.considerationTab->settings();
     ad.josekiBook = m_c.josekiBook;
     ad.josekiArrows = m_ui.actionShowJosekiArrows;
     ad.josekiDisplay = m_c.joseki->displayAction();
@@ -396,9 +395,7 @@ void MainWindowComposer::createSessions()
     ud.evalChart = m_c.evalChart;
     ud.branchTree = m_c.branchTreeView;
     ud.consideration = m_c.considerationTab;
-    ud.localGameHasHuman = [this]() {
-        return m_c.match->isHumanSide(Turn::Black) || m_c.match->isHumanSide(Turn::White);
-    };
+    ud.localGameHasHuman = std::bind(&MatchCoordinator::hasHumanPlayer, m_c.match);
     ud.canResumeGame = std::bind(&MatchCoordinator::canResumeInterruptedGame, m_c.match);
     ud.activity = &m_activity;
     m_c.uiStatePolicy = new UiStatePolicyManager(ud, &m_window);
@@ -442,7 +439,6 @@ void MainWindowComposer::createSessions()
     gd.document = m_c.document;
     gd.clock = m_c.clock;
     gd.timePresenter = m_c.timePresenter;
-    gd.playerInfo = m_c.playerInfo;
     gd.kifuFileController = m_c.kifuFileController;
     gd.shogiView = m_c.shogiView;
     gd.appearance = m_c.appearance;
@@ -497,7 +493,7 @@ void MainWindowComposer::createControllers()
 
     ConsiderationUiController::Deps cw;
     cw.parentWidget = &m_window;
-    cw.considerationTabManager = m_c.considerationTab;
+    cw.considerationPanel = m_c.considerationTab;
     cw.session = m_c.analysisSession;
     cw.navState = m_c.navState;
     m_c.considerationUi = new ConsiderationUiController(cw, &m_window);
@@ -511,8 +507,7 @@ void MainWindowComposer::createControllers()
     kd.resultsDock = m_c.dockRegistry->dock(DockRegistry::DockId::AnalysisResults);
     kd.engines = m_c.engines;
     kd.navState = m_c.navState;
-    kd.document = m_c.document;
-    kd.shogiView = m_c.shogiView;
+    kd.pvBoards = m_c.pvClickController;
     kd.navController = m_c.kifuNavController;
     kd.evalChart = m_c.evalChart;
     kd.evalGraph = m_c.evalGraph;

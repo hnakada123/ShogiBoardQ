@@ -12,7 +12,7 @@
 #include "recordentry.h"
 #include "recordline.h"
 #include "recordtime.h"
-#include "usitimingparams.h"
+#include "usigotime.h"
 
 /**
  * @brief CSA通信対局1局ぶんの進行を表す値型
@@ -74,7 +74,7 @@ struct CsaGameProgress {
      * CSA の残り時間は手番の始めに加算するので、手番側は今の手番の加算を含む。USI の
      * btime/wtime の意味（その手番の加算を含まない）にそろえる。遅延時間は今の手にだけ足す。
      */
-    UsiTimingParams engineTiming(int marginMs) const;
+    UsiGoTimeInput engineTiming(int marginMs) const;
 
     /**
      * @brief 着手の棋譜行を組み立てる（盤面の値は呼び出し側が埋める）

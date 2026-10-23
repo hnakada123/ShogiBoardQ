@@ -114,6 +114,7 @@ void BoardChromeWidget::relayoutCards()
 {
     if (!m_geometry) {
         for (PlayerCard* card : m_cards) card->hide();
+        m_cardHeight = 0;
         return;
     }
     const QSize fs = m_geometry->fieldSize();
@@ -139,8 +140,9 @@ void BoardChromeWidget::relayoutCards()
     metrics.badgeHeight = QFontMetrics(metrics.badgeFont).height() + 4;
     metrics.clockHeight = qMax(nameLineHeight + 4, qRound(fs.height() * 0.42));
 
+    m_cardHeight = metrics.cardHeight();
     for (PlayerCard* card : m_cards)
-        card->place(m_geometry->playerCard(card->side(), metrics.cardHeight(), height()), metrics);
+        card->place(m_geometry->playerCard(card->side(), m_cardHeight, height()), metrics);
 }
 
 void BoardChromeWidget::placePieceBoxSelector(const QRect& selector)

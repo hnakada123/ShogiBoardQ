@@ -43,7 +43,7 @@ void TsumeSearchController::showDialogAndStart()
     {
         TsumeShogiSearchDialog dialog(m_deps.parentWidget);
         if (dialog.exec() != QDialog::Accepted) return;
-        const std::optional<EngineListSettings::EngineEntry> engine = dialog.engine();
+        const std::optional<EngineEntry> engine = dialog.engine();
         if (!engine) {
             ErrorBus::instance().postMessage(ErrorBus::ErrorLevel::Warning, tr("詰み探索エンジンの選択が不正です。"));
             return;

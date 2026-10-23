@@ -66,21 +66,21 @@ struct TestHarness {
     static MatchStartOptions hve()
     {
         MatchStartOptions opt = hvh();
-        opt.players.whiteIsEngine = true;
-        opt.enginePath2 = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
-        opt.players.whiteEngineName = QStringLiteral("TestEngine");
+        opt.players.seat(Turn::White).engine = true;
+        opt.engine(Turn::White).path = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
+        opt.players.seat(Turn::White).engineName = QStringLiteral("TestEngine");
         return opt;
     }
 
     static MatchStartOptions eve()
     {
         MatchStartOptions opt = hvh();
-        opt.players.blackIsEngine = true;
-        opt.players.whiteIsEngine = true;
-        opt.enginePath1 = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
-        opt.enginePath2 = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
-        opt.players.blackEngineName = QStringLiteral("Engine1");
-        opt.players.whiteEngineName = QStringLiteral("Engine2");
+        opt.players.seat(Turn::Black).engine = true;
+        opt.players.seat(Turn::White).engine = true;
+        opt.engine(Turn::Black).path = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
+        opt.engine(Turn::White).path = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
+        opt.players.seat(Turn::Black).engineName = QStringLiteral("Engine1");
+        opt.players.seat(Turn::White).engineName = QStringLiteral("Engine2");
         return opt;
     }
 };
@@ -216,8 +216,8 @@ private slots:
         data.players[0].engine = {QStringLiteral("A"), QStringLiteral("/a"), QString()};
         data.players[1].engine = {QStringLiteral("B"), QStringLiteral("/b"), QString()};
         const MatchPlayers players = GameStartOptionsBuilder::playersFromDialog(data);
-        QCOMPARE(players.blackIsEngine, blackIsEngine);
-        QCOMPARE(players.whiteIsEngine, whiteIsEngine);
+        QCOMPARE(players.seat(Turn::Black).engine, blackIsEngine);
+        QCOMPARE(players.seat(Turn::White).engine, whiteIsEngine);
         QCOMPARE(players.name(Turn::Black), blackIsEngine ? QStringLiteral("A") : QStringLiteral("下手さん"));
         QCOMPARE(players.name(Turn::White), whiteIsEngine ? QStringLiteral("B") : QStringLiteral("上手さん"));
     }

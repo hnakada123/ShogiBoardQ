@@ -46,7 +46,7 @@ public:
      * 指し手・予想応手が局面の合法手でなければ選んでいない状態になり、「追加」「更新」は押せない。
      */
     void setEntry(const JosekiMove &entry);
-    /// 入力した定跡手（予想応手がなければ "none"）
+    /// 入力した定跡手（予想応手が「なし」なら nextMove は nullopt）
     JosekiMove entry() const;
 
     /**

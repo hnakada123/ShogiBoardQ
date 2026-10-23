@@ -2,35 +2,15 @@
 #define ENGINELISTSETTINGS_H
 
 /// @file enginelistsettings.h
-/// @brief 登録エンジンの一覧の検索と、機能ごとに選んだエンジンの保存
+/// @brief 機能ごとに選んだエンジンの保存（登録エンジンの一覧と検索は RegisteredEngines）
 
-#include <QList>
 #include <QString>
 
 #include <optional>
 
+#include "registeredengines.h"
+
 namespace EngineListSettings {
-
-struct EngineEntry {
-    QString name;
-    QString path;
-    QString author;
-};
-
-/// 登録済みエンジンの一覧（保存形式は EngineProfileStore が知る）
-QList<EngineEntry> loadEngines();
-
-/// 名前（エンジンの id name）で探した位置。見つからなければ -1
-int indexOfName(const QList<EngineEntry>& engines, const QString& name);
-
-/// 実行ファイルのパス（正規化して比べる）で探した位置。見つからなければ -1
-int indexOfPath(const QList<EngineEntry>& engines, const QString& path);
-
-/// 登録済みエンジンの名前から実行ファイルのパス（未登録なら空）
-QString pathForName(const QString& name);
-
-/// 実行ファイルのパスから登録済みエンジンの名前（未登録なら空）
-QString nameForPath(const QString& path);
 
 /**
  * @brief 機能ごとに選んだエンジンを保存する場所
@@ -56,7 +36,7 @@ SelectionKeys tsumeCollectionSelection();
 std::optional<QString> savedSelectionName(const SelectionKeys& keys);
 
 /// 保存した選択を一覧の位置にする（名前を優先し、無ければ以前の番号・パス）。見つからなければ -1
-int restoreSelection(const SelectionKeys& keys, const QList<EngineEntry>& engines);
+int restoreSelection(const SelectionKeys& keys, const RegisteredEngines& engines);
 
 /// 選んだエンジンの名前を保存する（以前の版の番号・パスは消す）
 void saveSelection(const SelectionKeys& keys, const QString& engineName);

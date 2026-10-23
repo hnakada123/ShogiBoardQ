@@ -115,6 +115,29 @@
 | 2026-10-23 | ダイアログの大きさの保存を `DialogFontScale::Options::size` に揃え、`SettingsFormBinding` に小数・ラジオの組・2択を足した（監査 R10 の1つ目）のに合わせて §11・§13 を更新（15のダイアログのデストラクタ・`done`・`closeEvent` の保存を消した。詰将棋を解く画面・問題一覧の大きさは構造体の設定から `TsumeshogiSettings::playDialogSize`・`collectionDialogSize` に分けた（キーは同じ）。CSA 通信対局・定跡の展開・登録・マージのダイアログの入力欄は表で読み書きする。文字の欄は前後の空白を除いて保存し、コンボは範囲外の位置を端に寄せる） |
 | 2026-10-23 | 画面部品の名残を直した（監査 R10 の2〜4つ目）のに合わせて §11・§13・第18章を更新（エンジン登録の画面の一覧はハンドラの一覧（正本）を `enginesChanged` で作り直す。盤の18色の設定のキー・表示名・ボタン名・透明・分類は `BoardColors::fields()` の表1つにし、`settingskeys.h` の色のキー・配色ダイアログの18行・外観の見本の「4番目以降」を消した。棋譜欄は `RecordPaneAppearanceManager` を廃し、見た目の値 `RecordPane::Appearance` と `applyAppearance()` の1か所にした（列は `KifuRecordListModel::Column`。モデルの付け替えの Connection の名残を消した）） |
 | 2026-10-23 | 通信ログのパネルと評価値グラフの設定を整理した（監査 R10 の5・6つ目）のに合わせて §11・§13・第18章を更新（USI・CSA の通信ログは共通の基底 `LogPanel`（`src/widgets/logpanel.h`）にし、CSA の通信ログにも折り返し・最新へを足した（`NetworkSettings::csaLogWrapLines`）。`EvaluationChartConfigurator` を廃し、設定の値 `EvaluationChartSettings`（`AnalysisSettings::evalChart`。キーは同じ）・軸の計算 `EvaluationChartRange`・ダイアログ `EvaluationChartSettingsDialog`（dialogs。`DialogLauncher` が開く）に分けた。`EvaluationChartWidget` の使われていない get/set 11本・2つのシグナル・中身のない `setFloating` を消した） |
+| 2026-10-23 | 棋譜解析で解析した手順をノード ID で覚えるようにした（監査 U3）のに合わせて §9・§10・§11・§18 を更新（`AnalysisRequest::lineEndNodeId`、`KifuNavigationController::goToPlyOnLine()`（`goToLine()` を置き換え）、`KifuBranchTree::nodeOnLine()`、`EvaluationSeries::analysisLineEnd()`・`analysisLineName()`。解析の後に分岐を足す・本譜にする・並べ替えても、結果の行とグラフの点は解析した手順へ移る）。読み筋盤を開く処理は `PvClickController::showPvBoard()` 1つにし（対局者名は対局情報）、`AnalysisResultHandler` は `KifuAnalysisRowPresenter` に改名して表の行を作るだけにした（候補手の「同　」は `KifMoveText` で作る）） |
+| 2026-10-23 | 盤の手の行き先の規則を `HumanTurnPolicy::boardInput()`（`BoardInput{None, Edit, Variation, Game, CsaServer}`）の1か所にした（監査3章・U7）のに合わせて §6・§15 を更新（`BoardMoveController` の2つの switch と `canPlayInGame` をやめ、待機中の手もクリックを `UsiMove` にしてから `BranchTreeEditController::recordMove()` で記録する。`recordBoardMove(QPoint&, QPoint&)`・`canRecordBoardMove()`（`canEdit()` と同じ）を削除。終了処理は `HumanTurnPolicy` を破棄せず `disable()` にする） |
+| 2026-10-23 | 対局者ごとの値を手番で引く形にした（監査3章）のに合わせて §3・§5・§6 を更新（`MatchPlayers` の6欄を `std::array<MatchPlayers::Seat, 2>`（`seat(Turn)`）に、`MatchStartOptions` の `enginePath1/2`・`josekiOptions[2]` を `std::array<EngineSeat, 2>`（`engine(Turn)`。パスと定跡の条件）にした。連続対局の手番の入れ替えは `MatchStartOptions::swapSides()`・`TimeControl::swapSides()` の2つ） |
+| 2026-10-23 | 入玉宣言の判定を core にまとめた（監査3章）のに合わせて第18章を更新（`JishogiCalculator::judge()` が `Rule{Points24, Points27}` で `Verdict{NotDeclarable, ShortOfPoints, Draw, Win}` を返し、点数の閾値は `winningPoints()`・`requiredPoints()` だけで決める。`result24`・`result27`（core で訳語を返していた）を削除。`NyugyokuJudgement` は文言だけを作り、持将棋ルールは `std::optional<JishogiCalculator::Rule>`（「なし」は nullopt）で受ける） |
+| 2026-10-23 | 時間の型の名残を消した（監査3章）のに合わせて §7・§12 を更新（`UsiTimingParams`（`UsiGoTimeInput` の一部の写し）を削除し、`FixedTimeSource` と `CsaGameProgress::engineTiming()` は `UsiGoTimeInput` を直接使う。通信対局の `snapshot()` は `FixedTimeSource` を変換に使わない） |
+| 2026-10-23 | 人間の考慮時間は対局時計の値を正本にした（監査3章）のに合わせて §6 を更新（人間対人間だけが `QElapsedTimer` で測って時計を上書きしていたのをやめ、`MatchStrategyHost::recordConsiderationTime`・`GameModeStrategy::armTurnTimerIfNeeded`・`disarmTurnTimer` を削除した。待ったは時計の `undo()` だけで戻す） |
+| 2026-10-23 | 局面編集の規則を対局の盤から分けた（監査3章）のに合わせて §6・§13 を更新（`ShogiGameController::editPosition`・`switchPiecePromotionStatusOnRightClick` と game の `PieceMoveRules` を削除し、board の `PositionEditRules`（`apply()`・`canMove()`）にした。必成は `ShogiBoard` が `PieceRules::isDeadSquare` で行うので `shouldAutoPromote` と `updateBoardAndPieceStand` の `promote` 引数を消した。右クリックの成・不成は盤の `promoteOrDemotePiece()` を直接呼ぶ） |
+| 2026-10-23 | 対局中に要る値だけを持つようにした（監査3章）のに合わせて §6 を更新（`MatchGameOverState`（テストだけが読む `hasLast`・`moveAppended`・`when`）を廃し、`MatchCoordinator::gameEnd()`（`std::optional<GameEndInfo>`）にした。`clearGameOverState()` は `clearGameEnd()` に改名。`MatchSessionState` は開始の手順を持たず、書くだけだった `MatchStartOptions::resumeFromBreakOff` を削除。再開は中断までの手順の最後の局面から盤を作る） |
+| 2026-10-23 | 登録エンジンの扱いを1つにした（監査3章）のに合わせて §7・§11・第18章を更新（`EngineEntry` と一覧の検索を値型 `RegisteredEngines`（`src/services/registeredengines.h`。`load()`・`findByName()`・`findByPath()`・`indexOfName()`・`indexOfPath()`）にし、`EngineListSettings` は機能ごとの選択の保存だけにした（`loadEngines`・`indexOfName`・`indexOfPath`・`pathForName`・`nameForPath` を削除。`EngineListSettings` と `EngineProfileStore` が include し合わない）。エンジンが報告したオプションは `UsiLineParser::parseOption()` が直接 `EngineOption` にし、`UsiOptionDeclaration` を削除した） |
+| 2026-10-23 | 「成れた手か」の判定と KI2 の表記を1つにした（監査3章）のに合わせて §5・§8 を更新（`KifMoveText::couldPromote` は `PieceRules::couldPromote` を使い、`Ki2MoveNotation::Annotation::canPromote` を削除した。`Ki2MoveNotation::format` は `KifMoveText::format`（`Notes::withoutSource`・`dropMarkFromModifier`）で文字列を作る） |
+| 2026-10-23 | USEN の符号を `UsiMove` で受け渡すようにした（監査3章）のに合わせて §8 を更新（`UsenCodec::encodeMove(UsiMove)`・`decodeMove()` は `std::optional<UsiMove>`、手順は `decodeLines()` が "~" で1回だけ分けて `UsenLine` の列にする。`decodeMoves`・`UsenDecodeResult`・`UsenToSfenConverter::parseUsenString`（"~0." で組み直していた）を削除） |
+| 2026-10-23 | `ShogiBoard` の公開を絞った（監査3章）のに合わせて §5 を更新（局面を変えるのは置き換え・指し手・局面編集の3つの操作だけにし、駒台の増減・駒の移動の部品を非公開にした。src から呼ばれず局面を変えても知らせない `flipSides()` を削除） |
+| 2026-10-23 | CSA の文字コードの判別をほかの形式と同じにした（監査3章）のに合わせて §8 を更新（宣言の無い CSA は `KifReader::decodeAuto()`（BOM・UTF-8・CP932・EUC-JP）で判別する。旧名の `KifReader::readLinesAuto` を削除） |
+| 2026-10-23 | 盤の拡大・縮小を1つの操作と1つの知らせにした（監査3章）のに合わせて §11 を更新（Ctrl+ホイールは `ShogiView::wheelEvent()` だけで扱い、`MainWindowAppearanceController`・`BoardViewerWidget` の横取りの `eventFilter` をやめた。`enlargeBoard`・`reduceBoard` の `emitSignal` 引数と `BoardViewerWidget::boardResized` を削除し、拡大・縮小は常に `fieldSizeChanged`。`boardTransformAboutToChange` は変えた後の `boardTransformed` にした） |
+| 2026-10-23 | 駒箱の位置を `BoardGeometry` で求めるようにした（監査3章）のに合わせて §11 を更新（`BoardGeometry::pieceBox(cardHeight, areaHeight)`。`ShogiView::pieceBoxRect()` は対局者カードの位置・表示状態を読まない） |
+| 2026-10-23 | 詰将棋問題一覧のプレビュー（`TsumePositionPreview`）を盤と同じ部品で描くようにした（監査3章・U8）。局面は core の `Position`、配置は `BoardGeometry`、木肌は `BoardStaticLayer`（駒台の木目の設定も効く）、持ち駒は `PiecePainter::drawStack` |
+| 2026-10-23 | 解析結果の表と検討タブの名残を直した（監査3章）のに合わせて §9・§11 を更新（`AnalysisResultsPanel` は解析の進みを `RunState{Idle, Running, Stopped, Completed}` 1つで持ち、`setStopButtonEnabled`・`showAnalysisComplete` を `finishAnalysis(completed)` にした（中止を書いてから完了で上書きしない）。検討タブの中身は QWidget のパネルなので `ConsiderationTabManager` を `ConsiderationPanel`（`considerationpanel.h`）に改名し、呼ばれない `setSettings` を削除。検討時間と候補手の数の範囲と既定値は `AnalysisSettings::considerationByoyomiSec`・`considerationMultiPV`（`BoundedSetting`）の1か所。指し手の書体の判定は `MoveFont::font` に寄せた（分岐ツリー・エンジン情報・盤の段・詰将棋のプレビュー）） |
+| 2026-10-23 | 定跡の予想応手の番兵をやめた（監査3章）のに合わせて §8・§11 を更新（`JosekiMove::nextMove` は `std::optional<QString>`（無ければ nullopt。ファイルの "none" は読み書きでだけ扱う）、予想応手を変えない更新は `JosekiBook::updateMove(..., NextMoveUpdate::Keep)`。定跡の表の手は `KifuPresentation::move` で書き、指した後の局面は行を入れ替えたときに1回だけ求める） |
+| 2026-10-23 | ダイアログに置いていた規則を移した（監査3章）のに合わせて §9・§11・§12 を更新（CSA のパスワード欄の組み立ては `CsaClient::loginPassword()`、接続履歴は `RecentList<T>`（`RecentFileList` はその文字列版）。詰将棋問題一覧の判定エンジンは名前でなく、登録時に報告したオプションで `TsumeMateEngine::canVerifyShortestMate()` が決める。`KifuAnalysisDialog` は範囲と思考時間を `options()`（`AnalysisRequest::Options`）で返し、`initPosition`・`startPly`・`endPly`・`byoyomiSec` を削除） |
+| 2026-10-23 | 棋譜ファイルの選択を形式の表から作るようにした（監査3章）のに合わせて §8・§11 を更新（`KifuFormats::readableSuffixes()`・`isReadableFile()`、開くダイアログの絞り込みは widgets の `KifuFileFilter::forOpening()`。棋譜を開く・定跡に棋譜から登録する・定跡の一括取り込みの3つで同じ絞り込み） |
+| 2026-10-23 | 盤の対局者名を1つの経路で決めるようにした（監査3章）のに合わせて §3・§6・§8・§10 を更新（`PlayerInfoPresenter` は文書と動作状態の知らせを自分で受けて `refresh()` で求め直す。`showPlayers`・`showMatchPlayers`・`syncBoardNamesWithGameInfo`、`GameSession::Deps::playerInfo`、合成ルートの2つの接続を削除） |
+| 2026-10-23 | 合成ルートから判断を除いた（監査3章）のに合わせて §6・§8・§10・§14 を更新（`MainWindowComposer::isHumanTurnNow`・`showConsiderationArrows`・`commitPendingEdits`・`hasPendingEdits` とラムダ2つを削除。定跡ウィンドウは `HumanTurnPolicy*`、矢印は `const ConsiderationSettings*` を受け、文書は `addPendingEditor()` で画面ごとのフックを、棋譜の移動は `addLeaveGuard()` で部品ごとの確認を受ける。待った・投了を出すかは `MatchCoordinator::hasHumanPlayer()`） |
+| 2026-10-23 | CLI・自動化 API の操作の表と実装を1つにした（監査3章・U9）のに合わせて §14 を更新（CLI は (名前, 実装, 出力の種類) を1行で登録し、`CliCommands::run()` が引数を検査してから検査済みの JSON をコマンドに渡す（`CliArgs::parse` を削除）。`AutomationInteractions::queue()` は予約の時点でも `check` を走らせ、メソッドの予約前の同じ検査を消した。`dock.configure` は操作名を `DockOperation` にしてから振り分ける。指し手の JSON は `headless/recordjson` の `RecordJson::entry`・`moves` で CLI の `convert-kifu` と `kifu.get` が共有する。`kifu.get` の `format=moves` の `total_plies` もほかの形式と同じく終局の行を1手に数える） |
 
 <!-- chapter-0-end -->
 
@@ -365,7 +388,6 @@ src/
 │   ├── interruptedgamestate.h      #   中断したローカル対局の状態（棋譜に書いた中断の行 terminalNodeId を含む）
 │   ├── sennichitedetector.cpp/.h   #   千日手の検出
 │   ├── nyugyokujudgement.cpp/.h    #   入玉宣言の判定（人間の宣言とエンジンの bestmove win で共通）
-│   ├── piecemoverules.cpp/.h       #   駒の移動ルール（禁じ手・強制成り）
 │   ├── shogigamecontroller.cpp/.h  #   指し手の検証と盤への適用、手番
 │   ├── gamestartoptionsbuilder.cpp/.h # 対局開始ダイアログの値の解釈（時間・対局者）
 │   ├── timecontrolutil.cpp/.h      #   持ち時間の設定を時計へ適用する
@@ -423,7 +445,6 @@ src/
 │   ├── usilineparser.cpp/.h        #   受信行（info・bestmove・checkmate・option・id）を型付きの値にする
 │   ├── usiinfo.h, usimessages.h    #   info 行と、option・bestmove・checkmate の値型
 │   ├── usigotime.cpp/.h            #   go の時間の計算
-│   ├── usitimingparams.h           #   決まった残り時間・決まり・遅延・余裕（FixedTimeSource・CSA の残り時間が使う）
 │   ├── matchtimesource.cpp/.h      #   エンジンの思考に使う時間の出どころ（MatchTimeSource。対局時計の ClockTimeSource・固定の FixedTimeSource）
 │   ├── engineprocessmanager.cpp/.h #   エンジンプロセス管理
 │   ├── engineregistrationhandler.cpp/.h # エンジン登録（ワーカースレッドでの起動・USI オプションの解析・設定の保存）
@@ -495,7 +516,7 @@ src/
 │   ├── pvtableview.cpp/.h          #   読み筋の表（数値の列・「盤面」ボタン・読み筋の描き方・行の高さ。思考の表と棋譜解析の結果の表で使う）
 │   ├── thinkingtableview.cpp/.h    #   思考の表（PvTableView の派生。対局のエンジン2つと検討タブで共用）
 │   ├── engineinfowidget.cpp/.h     #   エンジン情報ウィジェット（探索状況の数値の書式はここで決める）
-│   ├── considerationtabmanager.cpp/.h # 検討タブ（設定 ConsiderationSettings を正本として持ち、実行の状態 RunState で開始/中止のボタンを切り替える）
+│   ├── considerationpanel.cpp/.h # 検討タブ（設定 ConsiderationSettings を正本として持ち、実行の状態 RunState で開始/中止のボタンを切り替える）
 │   ├── considerationsettings.h     #   検討タブの設定の値（エンジン・時間・候補手の数・矢印）
 │   ├── analysisresultspanel.cpp/.h #   棋譜解析の結果ドックの中身
 │   ├── gameinfopane.cpp/.h         #   対局情報ドックの中身（ツールバー＋表。中身は models/gameinfoeditmodel）
@@ -535,6 +556,7 @@ src/
 │   ├── boardinteractioncontroller.cpp/.h # 盤のクリックを移動元・移動先にして行き先へ渡し、ハイライトを出す
 │   ├── boardinputroute.h           #   盤で指した手の行き先（BoardInputRoute: つまめるか・局面編集中か・着手）
 │   ├── positioneditsession.cpp/.h  #   局面編集（開始・終了・編集メニュー・編集中の着手）
+│   ├── positioneditrules.cpp/.h    #   局面編集で駒を盤・駒台・駒箱の間で動かす規則（PositionEditRules::apply）
 │   └── boardimageexporter.cpp/.h   #   盤面画像エクスポート
 │
 ├── dialogs/                        # ダイアログ実装（.ui は同じ場所）
@@ -576,7 +598,7 @@ src/
 │   │   ├── candidatearrowpresenter.cpp/.h  # 候補手の矢印
 │   │   ├── enginedisplaypresenter.cpp/.h   # エンジンの表示の持ち主（枠 E1・E2 とモデルの結び・検討の表示・2つ目のエンジン欄・系列名・消去）
 │   │   ├── usimodelbinding.cpp/.h      # エンジン1台とモデルを結ぶ
-│   │   └── analysisresulthandler.cpp/.h # 棋譜解析の1局面の結果を結果の表の1行にする
+│   │   └── kifuanalysisrowpresenter.cpp/.h # 棋譜解析の1局面の結果を結果の表の1行にする
 │   ├── controllers/                #   利用者操作の処理
 │   │   ├── boardmovecontroller.cpp/.h      # 主画面の BoardInputRoute。盤で指した手を動作状態に応じて処理する
 │   │   ├── humanturnpolicy.cpp/.h          # 盤を人間が操作できる手番か・対局が進行中かの判定
@@ -614,7 +636,8 @@ src/
 │   ├── enginesettingsconstants.h   #   エンジン設定のキー定数
 │   ├── engineprofilestore.cpp/.h   #   登録エンジンの設定（一覧・USIオプション・先読みの設定）の保存形式を知る唯一の場所
 │   ├── engineoption.h              #   USIオプション1つの値（EngineOption）
-│   ├── enginelistsettings.cpp/.h   #   登録エンジン一覧の検索と、機能ごとに選んだエンジンの保存
+│   ├── registeredengines.cpp/.h    #   登録エンジンの一覧と名前・実行ファイルでの検索（EngineEntry・RegisteredEngines）
+│   ├── enginelistsettings.cpp/.h   #   機能ごとに選んだエンジンの保存
 │   ├── apppaths.h                  #   設定・データ・キャッシュの置き場所
 │   ├── applicationtranslations.cpp/.h # 起動時の言語と翻訳の読み込み
 │   ├── notationstyle.cpp/.h        #   表示言語と棋譜の表記の設定（NotationStyle。ApplicationTranslations が決め、KifuPresentation が読む）
@@ -913,7 +936,7 @@ SFEN の盤の欄は `Position::fromSfen()`（`src/core/shogiposition.cpp`）が
 成れない駒（金・玉）や駒でない文字に `+` が付いているとき、行き所のない段に駒があるとき（`PieceRules::isDeadSquare()`）は、不正な SFEN として読まない。
 書き出しは `Position::boardSfen()` が `pieceSfen()` で行う。
 
-行き所のない段・成れる段（`PieceRules::inPromotionZone()`）・成ることもできた手（`couldPromote()`。KIF・KI2 の「不成」）・持ち駒を書き出す順（`kHandOrder`）は `src/core/piecerules.h` に1か所でまとめる。
+行き所のない段・成れる段（`PieceRules::inPromotionZone()`）・成ることもできた手（`couldPromote()`。KIF・KI2 の「不成」、JKF の `promote: false`、英語表記の「=」。`KifMoveText::couldPromote` も KI2 の注記もこれを使う）・持ち駒を書き出す順（`kHandOrder`）は `src/core/piecerules.h` に1か所でまとめる。
 
 #### 駒台（持ち駒）
 
@@ -1151,7 +1174,7 @@ ShogiBoardQは6種類の棋譜フォーマットを読み込める（局面だ�
 | 形式 | 関数 |
 |------|------|
 | KIF・KI2 | `KifToSfenConverter::parse()`・`Ki2ToSfenConverter::parse()`（どちらも `KifTextParser::parse(text, Dialect::Kif / Dialect::Ki2, options)` を呼ぶ） |
-| CSA | `CsaToSfenConverter::parse()`（CSA の文字コード宣言を見てファイルを読む `readFileText()` も持つ。手合割の名前も CSA の変換器が決める） |
+| CSA | `CsaToSfenConverter::parse()`（CSA の文字コード宣言を見てファイルを読む `readFileText()` も持つ。宣言が無ければほかの形式と同じ `KifReader::decodeAuto()` で判別する。手合割の名前も CSA の変換器が決める） |
 | JKF | `JkfToSfenConverter::parse()`（JSON は1回だけ解析する） |
 | USEN | `UsenToSfenConverter::parse()`（指し手の3文字・開始局面・手順の復号は `UsenCodec`（`usencodec.h`）。書き出しの `UsenExporter` と同じ符号表） |
 | USI・SFEN | `UsiToSfenConverter::parse()`（指し手のない局面だけのテキストは `positionOnly` に入れる） |
@@ -1358,7 +1381,7 @@ graph LR
 
 #### 対局者（MatchPlayers）
 
-`MatchPlayers` は先手・後手それぞれについて、エンジンが指すか（`blackIsEngine`・`whiteIsEngine`）と、人間の名前・エンジンの名前を持つ値型である。駒落ちでは先手が下手、後手が上手になる。
+`MatchPlayers` は先手・後手それぞれについて（`seat(Turn)` が返す `MatchPlayers::Seat`）、エンジンが指すか（`engine`）と、人間の名前・エンジンの名前を持つ値型である。駒落ちでは先手が下手、後手が上手になる。
 
 | メソッド | 説明 |
 |---------|------|
@@ -1367,18 +1390,19 @@ graph LR
 | `engineVsEngine()` / `humanVsHuman()` | エンジン同士／人間同士か |
 | `name(side)` | その手番を指す側の名前（エンジンならエンジンの名前） |
 
-対局の条件は `MatchStartOptions::players` で司令塔に渡す。平手か駒落ちかは対局者に持たず、開始局面から判定する（`KifuExportMetadataBuilder::handicapLabel()`）。対局者として表示するのはローカル対局中（`DuringGame`）だけで、`PlayerInfoPresenter::showMatchPlayers()` が動作状態を見て `KifuDocument::players()` を出すか決める（検討・解析・通信対局のエンジンは対局者ではない）。
+対局の条件は `MatchStartOptions::players` で司令塔に渡す。平手か駒落ちかは対局者に持たず、開始局面から判定する（`KifuExportMetadataBuilder::handicapLabel()`）。対局者として表示するのはローカル対局中（`DuringGame`）だけで、`PlayerInfoPresenter` が動作状態を見て `KifuDocument::players()` を出すか決める（検討・解析・通信対局のエンジンは対局者ではない）。
 
 #### 動作状態と対局者による動作分岐
 
-**1. 盤面操作の制御**（`HumanTurnPolicy::isHumanTurnNow()`、`src/ui/controllers/humanturnpolicy.h`）
+**1. 盤面操作の制御**（`HumanTurnPolicy::boardInput()`、`src/ui/controllers/humanturnpolicy.h`）
 
-| 状態 | 人間の駒操作 |
+| 状態 | 盤の手の行き先（`HumanTurnPolicy::BoardInput`） |
 |------|------------|
-| 対局が進んでいない（`Idle`・終局後など） | 棋譜の変化として受け付けるときだけ可能（`BranchTreeEditController::canRecordBoardMove()`） |
-| `DuringGame` | 手番の側を人間が指すとき（`MatchCoordinator::isHumanSide()`）だけ可能。エンジン同士では不可 |
-| `DuringCsaGame` | 自分が人間で、自分の手番（`CsaGameCoordinator::isHumanPlayer()` と `isMyTurn()`）のときだけ可能 |
-| 解析・検討・詰み探索・局面編集 | 不可（局面編集中は `BoardMoveController::acceptsInput()` が判定を使わずに受け付ける） |
+| `DuringPositionEdit` | `Edit`（駒の配置を変える） |
+| `Idle`（終局後を含む） | 対局の棋譜を書いていなければ `Variation`（棋譜の変化として記録。`BranchTreeEditController::canEdit()`） |
+| `DuringGame` | 手を受け付け（`MatchCoordinator::canAcceptMove()`）、手番の側を人間が指すとき（`isHumanSide()`）だけ `Game`。エンジン同士では不可 |
+| `DuringCsaGame` | 対局中（`GameState::InGame`）で自分が人間、自分の手番（`isHumanPlayer()` と `isMyTurn()`）のときだけ `CsaServer` |
+| 解析・検討・詰み探索・終了処理の後（`disable()`） | `None`（指せない） |
 
 **2. エンジンの使用**
 
@@ -1463,7 +1487,7 @@ sequenceDiagram
 #### フロー解説
 
 1. **ユーザー操作**: `ShogiView` がマウスクリックを受け、`clicked` シグナルで `BoardInteractionController` に盤の座標を通知する。駒をつまめるかは行き先（`BoardInputRoute::acceptsInput()`）に聞く。1回目のクリックで駒を選び、設定により `EngineMoveValidator` で合法な移動先を光らせる
-2. **着手要求**: 2回目のクリックで、移動元・移動先を行き先の `BoardInputRoute::submit()` に渡す。主画面の行き先 `BoardMoveController` が、動作状態（`AppActivityState`）に応じて処理を分ける。局面編集中は `PositionEditSession::applyEditMove()`、待機中は棋譜の変化として `BranchTreeEditController::recordBoardMove()`、通信対局は `csaMoveRequested(UsiMove)`、ローカル対局は次のとおり
+2. **着手要求**: 2回目のクリックで、移動元・移動先を行き先の `BoardInputRoute::submit()` に渡す。主画面の行き先 `BoardMoveController` が、動作状態（`AppActivityState`）に応じて処理を分ける。行き先は `HumanTurnPolicy::boardInput()` の1か所で決まる。局面編集中は `PositionEditSession::applyEditMove()`、それ以外はクリックを `ShogiGameController::prepareMove()` で `UsiMove` にしてから、待機中は棋譜の変化として `BranchTreeEditController::recordMove()`、通信対局は `csaMoveRequested(UsiMove)`、ローカル対局は次のとおり
 3. **合法手判定と適用**: ローカル対局では、`MatchCoordinator::isHumanSide()` が真の手番のときだけ `ShogiGameController::prepareMove()` が `EngineMoveValidator` で合法手かを判定し、クリックを `UsiMove` にする。成り・不成の両方が合法なら成りの選び方（`DialogLauncher::choosePromotion()` が `PromoteDialog::ask()` で選ばせる）に従う。`BoardMoveController::playUsiMove()` が `ShogiGameController::applyMove()` で盤を更新し（`ShogiBoard::applyUsiMove()`）、結果は棋譜の1行（`RecordEntry`）で返る
 4. **一手の確定**: `BoardMoveController` が `MatchCoordinator::onHumanMove()` を呼ぶと、対局者の組ごとの Strategy を通して `completeMove()` が時計・考慮時間を確定し、行を `MatchRecordSink`（`GameSession::appendRecord()`）に書く。`GameSession` はライブ対局のセッション（`LiveGameSession`）経由で分岐ツリー（`KifuBranchTree`）に追記する
 5. **表示の同期**:
@@ -1573,7 +1597,7 @@ class ConsiderationUiController : public QObject {
 public:
     struct Deps {
         QWidget* parentWidget = nullptr;                             ///< エンジン設定ダイアログの親
-        ConsiderationTabManager* considerationTabManager = nullptr;  ///< 検討タブ（必須、非所有）
+        ConsiderationPanel* considerationPanel = nullptr;  ///< 検討タブ（必須、非所有）
         AnalysisSession* session = nullptr;                          ///< 検討のセッション（必須、非所有）
         const KifuNavigationState* navState = nullptr;               ///< 検討する局面（表示中の手）
     };
@@ -1948,18 +1972,14 @@ public:
         ShogiView* shogiView = nullptr;
     };
 
-    /// 対局者の名前を盤に出す（対局を始めるとき。GameSession から）
-    void showPlayers(const MatchPlayers& players);
-
-public slots:
-    /// 対局中なら対局者（KifuDocument::players()）の名前を、対局していなければ対局情報の名前を盤に出す
-    /// （KifuDocument::headerEdited から。対局情報欄で書き換えたとき）
-    void showMatchPlayers();
-    void syncBoardNamesWithGameInfo();                                 // 対局情報の名前を盤に出す（KifuDocument::headerReset から）
+private slots:
+    /// 対局中なら対局者（KifuDocument::players()）の名前を、対局していなければ対局情報の名前を盤に出す。
+    /// 文書の playersChanged・headerReset・headerEdited・headerValueSet と動作状態の changed を自分で受ける
+    void refresh();
 };
 ```
 
-**EngineDisplayPresenter** — エンジンの表示の持ち主。枠 E1・E2 のエンジンを思考の表・情報欄・通信ログのモデルと結び（`UsiModelBinding`）、検討タブの実行の状態（`ConsiderationTabManager::setRunState()`）・情報欄・検討の表への読み筋を検討のセッション（`AnalysisSession`）の知らせだけから決める。2つ目のエンジン欄と評価値グラフの系列名は文書の対局者（`KifuDocument::playersChanged`）から、検討・詰み探索ではそのエンジン（`AnalysisSession::engineNamesChanged`）から決める。棋譜を作り直すときの表示の消去は `clearAll()`（`SessionResetCoordinator` が呼ぶ）:
+**EngineDisplayPresenter** — エンジンの表示の持ち主。枠 E1・E2 のエンジンを思考の表・情報欄・通信ログのモデルと結び（`UsiModelBinding`）、検討タブの実行の状態（`ConsiderationPanel::setRunState()`）・情報欄・検討の表への読み筋を検討のセッション（`AnalysisSession`）の知らせだけから決める。2つ目のエンジン欄と評価値グラフの系列名は文書の対局者（`KifuDocument::playersChanged`）から、検討・詰み探索ではそのエンジン（`AnalysisSession::engineNamesChanged`）から決める。棋譜を作り直すときの表示の消去は `clearAll()`（`SessionResetCoordinator` が呼ぶ）:
 
 ```cpp
 // src/ui/presenters/enginedisplaypresenter.h（抜粋）
@@ -2300,15 +2320,12 @@ ShogiBoard（QObject）
 | | `currentPlayer()` / `setCurrentPlayer(turn)` | 手番を返す／手番だけを変える（局面編集の手番変更など） |
 | | `moveNumber()` / `setMoveNumber(n)` | 次に指す手の手数 |
 | **駒操作** | `applyUsiMove(move, mover)` / `applyUsiMove(move)` | USI の指し手を `Position::apply()` で指し、変わったマス・駒台・手番を知らせる（合法手かどうかは確かめない。`mover` を省くと手番側の手。対局の着手の確定 `ShogiGameController::commitMove()` が使う） |
-| | `movePieceToSquare(...)` | 盤上の駒を移動する（配置のみ更新） |
 | | `setPieceAt(square, piece)` | マスの駒を置き換える（局面の組み立て用） |
-| | `updateBoardAndPieceStand(...)` | 盤面と駒台を同時に更新する（局面編集用） |
-| | `promoteOrDemotePiece(file, rank)` | 指定マスの駒の成・不成を切り替える（局面編集用） |
-| | `addPieceToStand(dest)` | 取った駒を駒台に追加する（成駒→元駒に変換） |
-| | `addStandPiece(piece, delta)` / `consumeStandPiece(piece)` | 駒台の枚数を増やす／1枚減らす |
-| | `incrementPieceOnStand(piece)` / `decrementPieceOnStand(piece)` | 駒台の駒を1枚増やす／減らす（駒打ち時） |
-| **盤面リセット** | `resetGameBoard()` | 盤上・両駒台を空にして、全駒を駒箱に戻す（局面編集用） |
-| | `flipSides()` | 先後の配置を反転する |
+| **局面編集** | `updateBoardAndPieceStand(...)` | 盤・駒台・駒箱の間で駒を動かす（`PositionEditRules::apply()` が規則を確かめてから呼ぶ。行き所のない段の歩・香・桂は成駒にする） |
+| | `promoteOrDemotePiece(file, rank)` | 指定マスの駒の成・不成・先後を巡回して替える（右クリック） |
+| | `resetGameBoard()` | 盤上・両駒台を空にして、全駒を駒箱に戻す |
+
+駒台の増減・盤の駒の移動の部品（`addPieceToStand`・`incrementPieceOnStand` など）は、局面編集の操作の内部だけで使う（非公開。単体テストは friend で触る）。
 
 #### シグナル
 
@@ -2567,13 +2584,15 @@ commitMove(player)
 
 ```cpp
 struct MatchPlayers {
-    bool blackIsEngine = false;  ///< 先手（下手）をエンジンが指す
-    bool whiteIsEngine = false;  ///< 後手（上手）をエンジンが指す
-    QString blackHumanName;      ///< 先手の人間の名前
-    QString whiteHumanName;      ///< 後手の人間の名前
-    QString blackEngineName;     ///< 先手のエンジンの名前
-    QString whiteEngineName;     ///< 後手のエンジンの名前
+    struct Seat {
+        bool engine = false;   ///< エンジンが指す
+        QString humanName;     ///< 人間の名前
+        QString engineName;    ///< エンジンの名前
+        QString name() const;  ///< 指す側の名前（エンジンならエンジンの名前）
+    };
+    std::array<Seat, 2> seats;   ///< [0] が先手（下手）、[1] が後手（上手）
 
+    Seat& seat(Turn side);       // 1人分の値は手番で引く
     bool isEngine(Turn side) const;
     bool isHuman(Turn side) const;
     bool hasEngine() const;        // どちらかがエンジン
@@ -2581,6 +2600,7 @@ struct MatchPlayers {
     bool engineVsEngine() const;
     bool humanVsHuman() const;
     QString name(Turn side) const; // 指す側の名前（エンジンならエンジンの名前）
+    void swapSides();              // 先手と後手を入れ替える（連続対局）
 };
 ```
 
@@ -2709,7 +2729,7 @@ game 層
 
 手番は独立したクラスでは持たず、盤（`ShogiBoard`）だけが持つ（6.7節）。
 
-ほかに、終局の型（`matchtypes.h`）、開始の設定（`startoptions.h` の `MatchStartOptions`・`GameStartPreparation`）、時間の決まり（`matchtimesettings.h` の `MatchTimeSettings`）、棋譜の受け手のインターフェース（`matchrecordsink.h`）、中断した対局の状態（`interruptedgamestate.h`）、対局開始ダイアログの値の入れ物（`startgamedatabridge.h`）、千日手の検出（`sennichitedetector`）、入玉宣言の判定（`nyugyokujudgement`）、局面編集の駒の移動ルール（`piecemoverules`）、持ち時間の時計への適用と検証（`timecontrolutil`・`timecontrolvalidator`）がある。
+ほかに、終局の型（`matchtypes.h`）、開始の設定（`startoptions.h` の `MatchStartOptions`・`GameStartPreparation`）、時間の決まり（`matchtimesettings.h` の `MatchTimeSettings`）、棋譜の受け手のインターフェース（`matchrecordsink.h`）、中断した対局の状態（`interruptedgamestate.h`）、対局開始ダイアログの値の入れ物（`startgamedatabridge.h`）、千日手の検出（`sennichitedetector`）、入玉宣言の判定（`nyugyokujudgement`）、持ち時間の時計への適用と検証（`timecontrolutil`・`timecontrolvalidator`）がある。
 
 ### 6.2 MatchCoordinator — 司令塔
 
@@ -2759,12 +2779,12 @@ enum class Cause : int {
 | `players` | 対局者（`MatchPlayers`。先手・後手を人間とエンジンのどちらが指すかと、その名前。[5.6節](#56-matchplayers--対局者)） |
 | `recordLine` | 開始する手順と手数（現在の局面から始めるとき、その局面までの手順） |
 | `sfenStart` | 開始局面のSFEN文字列 |
-| `enginePath1`, `enginePath2` | 先手（下手）・後手（上手）のエンジンの実行パス |
+| `engines` | 先手（下手）・後手（上手）のエンジンの設定 `EngineSeat{path, joseki}`（実行パスと定跡を使う条件。`engine(Turn)` で引く。人間の側は使わない） |
+| `josekiBook` | 対局で使う定跡（対局を始めたときに開いていた定跡の写し。`usesJoseki()` のときだけ写す） |
 | `maxMoves` | 最大手数（0＝無制限） |
 | `autoSave` | 終局した棋譜の自動保存（`MatchAutoSave`: `enabled`・`dir`・`extension`。ローカル対局は `kifu`。保存は `GameSession` が行う） |
-| `resumeFromBreakOff` | 中断した手の途中から再開する |
 
-対局のモード（人間対人間・人間対エンジン・エンジン同士）は列挙型では持たず、`players` の `blackIsEngine`・`whiteIsEngine` で決まる。
+対局のモード（人間対人間・人間対エンジン・エンジン同士）は列挙型では持たず、`players` の `isEngine(Turn)` で決まる。連続対局で手番を入れ替えるときは `swapSides()` が対局者とエンジンの設定を、`TimeControl::swapSides()` が持ち時間の決まりを入れ替える。
 
 **GameEndInfo** — 終局情報:
 
@@ -2775,19 +2795,9 @@ struct GameEndInfo {
 };
 ```
 
-**GameOverState** — 直近の終局状態:
+**終局の情報** — `MatchCoordinator::gameEnd()` が `std::optional<GameEndInfo>` を返す（終局していなければ nullopt。`isGameOver()` はその有無）。
 
-```cpp
-struct GameOverState {
-    bool        isOver       = false;   // 終局済みか
-    bool        moveAppended = false;   // 棋譜に終局手を追記済みか
-    bool        hasLast      = false;   // 直近の終局情報があるか
-    GameEndInfo lastInfo;               // 直近の終局情報（敗者は lastInfo.loser）
-    QDateTime   when;                   // 終局日時
-};
-```
-
-`moveAppended` フラグは棋譜への終局手（「投了」「中断」等）の二重追記を防ぐガードとして機能する。開始の設定・対局者・終局状態は `MatchSessionState`（`src/game/matchsessionstate.h`）が持ち、司令塔は `options()`・`players()`・`gameOverState()` で読ませる。終局状態の変更は `finish()`・`markTerminalRecorded()`・`clearGameOver()` を通す。
+対局の条件（対局者・エンジン・開始局面・最大手数・自動保存・定跡）と終局の情報は `MatchSessionState`（`src/game/matchsessionstate.h`）が持ち、司令塔は `options()`・`players()`・`gameEnd()` で読ませる。開始の手順（`MatchStartOptions::recordLine`）は対局の手順 `record()` になるので、`MatchSessionState::begin()` は持たない（再開した後に古い手順が残らない）。終局は `finish()`（終局済みなら何もしない。終局の行の二重追記もこれで防ぐ）、次の対局の前は `clearEnd()`（司令塔の `clearGameEnd()`）を通す。
 
 #### シグナルと MatchRecordSink — 上位層への知らせ
 
@@ -2814,7 +2824,6 @@ Strategy から司令塔への依頼は `MatchStrategyHost`（`src/game/gamemode
 | `isGameOver()` / `sideToMove()` / `currentPly()` | 終局したか・盤の手番・対局の手順の手数 |
 | `requestEngineMove(side)` | 手番のエンジンに、いまの局面で思考させる |
 | `setWaitingForEngines(waiting)` | エンジンの初期化を待つ間は時計を止める（待ち終えたら、対局中なら動かす） |
-| `recordConsiderationTime(mover, elapsedMs)` | 人間の考慮時間を時計に記録する（人間対人間の手番の計測） |
 | `applyEngineMove(move)` | エンジンの手を盤に指して一手を確定する（反則手ならそのエンジンの負け。指せない手もここで反則手として扱う） |
 | `completeHumanMove(played)` | 盤で指した人間の手で一手を確定する |
 
@@ -2843,9 +2852,8 @@ start(opt)
   ├── 3. AppActivityState を DuringGame にし、gc->newGame(sfenStart)   … 盤が開始局面になり、盤の手番が変わる
   │
   └── 4. createStrategy(opt)
-        ├── 両方エンジン    → EngineVsEngineStrategy（先手 E1・enginePath1、後手 E2・enginePath2）
-        ├── 先手がエンジン  → HumanVsEngineStrategy(エンジンの手番 = Turn::Black, enginePath1)
-        ├── 後手がエンジン  → HumanVsEngineStrategy(エンジンの手番 = Turn::White, enginePath2)
+        ├── 両方エンジン    → EngineVsEngineStrategy（先手 E1・engine(Black).path、後手 E2・engine(White).path）
+        ├── 片方がエンジン  → HumanVsEngineStrategy(エンジンの手番 side, engine(side).path)
         └── 両方人間        → HumanVsHumanStrategy
         → strategy->start()
 
@@ -2858,7 +2866,7 @@ beginPlay()
 
 | Strategy | 処理内容 |
 |---------|---------|
-| `HumanVsHumanStrategy` | 何も準備しない。人間の考慮時間を `QElapsedTimer` で測る（`armTurnTimerIfNeeded()`） |
+| `HumanVsHumanStrategy` | 何も準備しない。人間の手を `completeHumanMove()` で確定するだけ（人間の考慮時間は人間対エンジンと同じく対局時計が測る） |
 | `HumanVsEngineStrategy` | 前のエンジンを破棄→E1 の枠にエンジンを作ってリースを持つ（`acquire(this, 1, エンジンの手番, 名前)`）→起動（初期化は非同期。起動の失敗は戻った後に `engineError` で届く）。初手がエンジンで初期化中なら、`setWaitingForEngines(true)` で時計を止めて待つ |
 | `EngineVsEngineStrategy` | E1（先手）・E2（後手）にエンジンを作って（`acquire()`。リースは `m_black`・`m_white`）起動→両方の初期化が済んでいれば、手番の側のエンジンに思考を依頼（初期化中なら時計を止めて待つ） |
 
@@ -2904,10 +2912,10 @@ sequenceDiagram
     GS->>GS: 時計表示
     GS->>DOC: beginMatch(players, time, continuesRecord)
     Note over DOC: 対局者・持ち時間・開始日時を記録し、<br/>対局情報を作り直す（headerReset）
-    GS->>GS: PlayerInfoPresenter::showPlayers(players)
+    Note over GS: 盤の対局者名は PlayerInfoPresenter が<br/>文書と動作状態の知らせで出す
     GS->>MC: start(plan.options)
 
-    MC->>MC: clearGameOverState(), MatchSessionState::begin()
+    MC->>MC: clearGameEnd(), MatchSessionState::begin()
     MC->>GC: newGame(sfenStart)
 
     alt 両方人間
@@ -2958,7 +2966,7 @@ sequenceDiagram
 | `startingHandicap` | 開始局面の手合割（`Handicaps::kAll` の1つ）。`nullptr` なら表示中の局面から始める（`startsFromCurrentPosition()`） |
 | `maxMoves`・`autoSaveKifu`・`kifuSaveDir`・`isShowHumanInFront`・`consecutiveGames`・`isSwitchTurnEachGame` | 最大手数・自動保存・人を手前に表示・連続対局 |
 
-`PlayerChoice` は対局者1人の選択で、`kind`（`Human`・`Engine`）、人間の名前 `humanName`、エンジン `engine`（`EngineListSettings::EngineEntry`）、時間 `time`（`TimeControlSide`）を持つ。人間とエンジンの印を別々に持たないので、両方に印がある組み合わせは表せない。どちらかがエンジンかは `hasEngine()` で見る。
+`PlayerChoice` は対局者1人の選択で、`kind`（`Human`・`Engine`）、人間の名前 `humanName`、エンジン `engine`（`EngineEntry`）、時間 `time`（`TimeControlSide`）を持つ。人間とエンジンの印を別々に持たないので、両方に印がある組み合わせは表せない。どちらかがエンジンかは `hasEngine()` で見る。
 
 **GameStartPlan** — 対局の開始の計画:
 
@@ -3237,32 +3245,31 @@ MatchCoordinator::gameInterrupted
 
 どちらの手番を人間が指すかは、対局者 `MatchPlayers`（`src/core/matchplayers.h`）の `isHuman(Turn)`・`isEngine(Turn)` で決まる。司令塔の `MatchCoordinator::isHumanSide(Turn)` は、対局を一度でも始めていればその対局の `players().isHuman(side)` を返す。
 
-盤を人間が操作できるかの判定は `HumanTurnPolicy`（`src/ui/controllers/humanturnpolicy.h`）の1か所にある。動作状態（`AppActivityState`）で、ローカル対局なら司令塔、通信対局なら `CsaGameCoordinator` に聞く。
+盤で指した手の行き先の規則は `HumanTurnPolicy`（`src/ui/controllers/humanturnpolicy.h`）の `boardInput()` 1か所にある。動作状態（`AppActivityState`）で、ローカル対局なら司令塔、通信対局なら `CsaGameCoordinator` に聞く。
 
 ```cpp
-bool HumanTurnPolicy::isHumanTurnNow() const
+HumanTurnPolicy::BoardInput HumanTurnPolicy::boardInput() const
 {
-    // 対局していない待機中は、盤上の着手を表示中の手の次の手（変化）として記録する。
-    // 終局後も同じ扱いで、指し継いだ手は分岐ツリーに変化として加わる。
-    if (!isGameActivelyInProgress()) {
-        return m_deps.activity && m_deps.activity->is(AppActivityState::Activity::Idle) && m_deps.branchEdit
-            && m_deps.branchEdit->canRecordBoardMove();
-    }
-
+    if (m_disabled || !m_deps.activity) return BoardInput::None;
     switch (m_deps.activity->activity()) {
-    case AppActivityState::Activity::DuringGame:
-        return m_deps.gameController && m_deps.match->isHumanSide(m_deps.gameController->currentPlayer());
-    case AppActivityState::Activity::DuringCsaGame: {
-        const CsaGameCoordinator* csa = m_deps.csaGame;
-        return csa && csa->isHumanPlayer() && csa->isMyTurn();
+    case AppActivityState::Activity::DuringPositionEdit:
+        return BoardInput::Edit;
+    case AppActivityState::Activity::Idle:
+        return m_deps.branchEdit && m_deps.branchEdit->canEdit() ? BoardInput::Variation : BoardInput::None;
+    case AppActivityState::Activity::DuringGame: {
+        const MatchCoordinator* match = m_deps.match;
+        const bool humanTurn = match && m_deps.gameController && match->canAcceptMove()
+            && match->isHumanSide(m_deps.gameController->currentPlayer());
+        return humanTurn ? BoardInput::Game : BoardInput::None;
     }
+    case AppActivityState::Activity::DuringCsaGame: ...（対局中・人間・自分の手番なら CsaServer）
     default:
-        return false;
+        return BoardInput::None;
     }
 }
 ```
 
-`isGameActivelyInProgress()` はローカル対局なら終局前か、通信対局なら `CsaGameCoordinator::GameState::InGame` かを返す。盤のクリックでは、盤で指した手の行き先 `BoardMoveController` が `acceptsInput()`（局面編集中か、この判定が真か）で使う（`BoardInteractionController` はつまむたびに行き先に聞く）。定跡ウィンドウ（`JosekiWindowController`）には `MainWindowComposer::isHumanTurnNow()` がこの判定を包んで渡す。盤で指した手は `BoardMoveController::playMove()` が動作状態に応じて振り分け、対局中の人間の手は `ShogiGameController::prepareMove()` で `UsiMove` にし、`playUsiMove()` が `applyMove()` で指してから `MatchCoordinator::onHumanMove()` に渡す。
+`isHumanTurnNow()` は行き先が `Variation`・`Game`・`CsaServer` のどれかか、`isGameActivelyInProgress()` はローカル対局なら終局前か、通信対局なら `CsaGameCoordinator::GameState::InGame` かを返す。盤のクリックでは、盤で指した手の行き先 `BoardMoveController` が `acceptsInput()`（行き先が `None` でないか）・`isEditing()`（`Edit` か）で使う（`BoardInteractionController` はつまむたびに行き先に聞く）。定跡ウィンドウ（`JosekiWindowController::Deps::humanTurn`）と矢印（`CandidateArrowPresenter::Deps::humanTurn`）はこの `HumanTurnPolicy` を型付きで受ける。終了処理では `disable()` で何も受け付けなくする（盤の操作が参照し続けるので破棄はしない）。
 
 ### 6.10 ConsecutiveGameSeries — 連続対局制御
 
@@ -3285,7 +3292,8 @@ MatchCoordinator::gameEndProcessed（終局表示・自動保存のあと）
 startNextGame()
   └── 100ms のタイマー → launchPreparedNextGame()
         ├── 残り局数を減らし、局目を増やす
-        ├── switchTurnEachGame → 先後のエンジン名・パス・持ち時間の決まりを std::swap で入れ替え
+        ├── switchTurnEachGame → MatchStartOptions::swapSides()（対局者・エンジンのパスと定跡の条件）と
+        │                        TimeControl::swapSides()（持ち時間の決まり）で先後を入れ替え
         └── emit nextGameReady(GameStartPlan)
               └──▶ GameSession::startNextGame(plan)
                       ├── 独立した棋譜として、開始局面で作り直す（SessionResetCoordinator::resetToNewRecord）
@@ -3751,7 +3759,7 @@ processInfo(info)
 | 関数 | 行 | 値 |
 |------|-----|-----|
 | `parseInfo()` | `info ...` | `UsiInfo` |
-| `parseOption()` | `option name <name> type <type> ...` | `UsiOptionDeclaration`（`usimessages.h`） |
+| `parseOption()` | `option name <name> type <type> ...` | `EngineOption`（`services/engineoption.h`。値は既定値。登録・保存・設定ダイアログと同じ型） |
 | `parseIdName()` / `parseIdAuthor()` | `id name ...` / `id author ...` | `QString` |
 | `isBestMoveLine()` / `parseBestMove()` | `bestmove <move> [ponder <move>]` | `UsiBestMove` |
 | `parseCheckmate()` | `checkmate <pv...>` / `nomate` / `notimplemented` / `timeout` / `unknown` | `UsiCheckmate` |
@@ -4452,7 +4460,7 @@ struct KifuParseOutcome {
 
 #### 対局情報
 
-- 画面で入力中の編集（対局情報欄のセル・コメント欄の未更新の本文）は、上位層へのフック（Hooks パターン）`setHooks(Hooks{commitPendingEdits, hasPendingEdits})` で受け取る。合成ルートが `MainWindowComposer::commitPendingEdits()`・`hasPendingEdits()`（`GameInfoPane` と `CommentCoordinator` をまとめる）を渡す。保存・書き出し・対局の開始の前に確定し、`isModified()` は未確定の編集も未保存に数える。`header()` は読むだけで確定しない
+- 画面で入力中の編集（対局情報欄のセル・コメント欄の未更新の本文）は、上位層へのフック（Hooks パターン）`addPendingEditor(Hooks{commitPendingEdits, hasPendingEdits})` で編集する画面ごとに受け取る。合成ルートが `GameInfoPane`（`commitPendingEditor`・`hasPendingEditor`）と `CommentCoordinator`（`commitPendingComment`・`hasPendingComment`）を1つずつ足す。保存・書き出し・対局の開始の前に確定し、`isModified()` は未確定の編集も未保存に数える。`header()` は読むだけで確定しない
 - `editHeader(items)` は利用者が対局情報欄で編集した内容を受け取る（`GameInfoPane::gameInfoEdited` から）
 - `headerPlayerName(side)` は対局情報の対局者名（先手・後手。駒落ちは下手・上手。なければ省略名）。対局していないときの盤の対局者名（`PlayerInfoPresenter`）と棋譜解析の対局者名（`KifuAnalysisController`）に使う
 - `usesHandicapNames()` は対局者を下手・上手と呼ぶか（駒落ちで、対局情報の見出しが下手・上手のとき）。司令塔の終局の知らせと入玉宣言の判定（`MatchCoordinator::usesHandicapNames()`）・利用者の入玉宣言の確認（`NyugyokuDeclarationHandler`。ローカル対局・通信対局で共通）・BOD のコピーが使う
@@ -4491,9 +4499,9 @@ KifuDocument::setComment(node, comment)
 
 | シグナル | つなぎ先 | 内容 |
 |---------|---------|------|
-| `headerReset(items, beforeMatchStart)` | `GameInfoPane::setGameInfo`・`PlayerInfoPresenter::syncBoardNamesWithGameInfo` | 対局情報を置き換えた（`beforeMatchStart` なら対局を始める前の案内を出す） |
+| `headerReset(items, beforeMatchStart)` | `GameInfoPane::setGameInfo`・`PlayerInfoPresenter`（盤の対局者名） | 対局情報を置き換えた（`beforeMatchStart` なら対局を始める前の案内を出す） |
 | `headerValueSet(key, value)` | `GameInfoPane::updateGameInfoValue` | 対局情報に自動で値を書いた（終了日時など） |
-| `headerEdited()` | `PlayerInfoPresenter::showMatchPlayers` | 対局情報欄で対局情報を書き換えた（対局していなければ盤の対局者名を合わせる） |
+| `headerEdited()` | `PlayerInfoPresenter`（盤の対局者名） | 対局情報欄で対局情報を書き換えた（対局していなければ盤の対局者名を合わせる） |
 | `playersChanged()` | `EngineDisplayPresenter`（自分でつなぐ。2つ目のエンジン欄・評価値グラフの系列名） | 対局者が変わった（対局の開始・棋譜の置き換え） |
 | `commentChanged(nodeId, comment)` / `bookmarkChanged(nodeId, bookmark)` | `KifuRecordListModel::refreshNode`（コメントは `CommentCoordinator::showCurrentComment` も） | ノードのコメント・しおりが変わった |
 
@@ -4599,7 +4607,7 @@ onLoadFinished() → applyLoadResult(result)            ← メインスレッ�
 
 読み込みの結果は `loadFinished(bool)` で知らせる。上書き保存先と未保存の状態は `KifuFileController::finishLoad()` が決める（8.9）。
 
-棋譜の正本は分岐ツリーで、読み込みは文書（分岐ツリーと対局情報）を作り直す。ツリーが変わると、表示中の手（`KifuNavigationState`）が開始局面へ戻って `changed()` を出し、棋譜欄・分岐候補・分岐ツリー・盤・コメント欄などは、それを受けて表示を作り直す（8.10）。対局情報は文書の `headerReset` で対局情報欄（`GameInfoPane::setGameInfo`）と盤の対局者名（`PlayerInfoPresenter::syncBoardNamesWithGameInfo`）に届く。対局の手順は、対局開始時に表示中の手順（`RecordLine`）から司令塔が作る（[対局開始フロー](game-start-flow.md)）。
+棋譜の正本は分岐ツリーで、読み込みは文書（分岐ツリーと対局情報）を作り直す。ツリーが変わると、表示中の手（`KifuNavigationState`）が開始局面へ戻って `changed()` を出し、棋譜欄・分岐候補・分岐ツリー・盤・コメント欄などは、それを受けて表示を作り直す（8.10）。対局情報は文書の `headerReset` で対局情報欄（`GameInfoPane::setGameInfo`）と盤の対局者名（`PlayerInfoPresenter`）に届く。対局の手順は、対局開始時に表示中の手順（`RecordLine`）から司令塔が作る（[対局開始フロー](game-start-flow.md)）。
 
 #### テキスト貼り付け
 
@@ -4675,7 +4683,7 @@ onLoadFinished() → applyLoadResult(result)            ← メインスレッ�
 |------|--------|------|
 | `KifExporter::appendHeaderLines(ctx, out, HeaderOptions)` | KIF・KI2 | 先頭（文字コード宣言・対局情報・平手でない開始局面の盤面図）。KI2 は `HeaderOptions::consumedTime = false` で消費時間を書かない。戻り値は駒落ちの呼び方（下手・上手）で書くか |
 | `KifuNodeReplay`（`kifunodereplay.h`） | KI2・JKF | 手順のノードを指す前の局面と一緒にたどる。`board()`・`mover()`・`previousTo()`（「同」の判定）を読んで書き、`advance(node)` で進める。指せない手はノードの SFEN から局面を取り直す。変化は `branchFrom(parent)` の写しでたどる |
-| `UsenCodec`（`usencodec.h`） | USEN の読み込み・書き出し | 指し手の3文字（`encodeMove`・`decodeMove`）・開始局面（`encodePosition`・`decodePosition`）・1本の手順（`decodeMoves` が `UsenDecodeResult` を返す） |
+| `UsenCodec`（`usencodec.h`） | USEN の読み込み・書き出し | 指し手の3文字と `UsiMove`（`encodeMove`・`decodeMove`）・開始局面（`encodePosition`・`decodePosition`）・手順（`decodeLine`・`decodeLines`。"~" で1回だけ分けて、本譜と変化を `UsenLine{offset, moves, terminal}` にする） |
 | `UsiPosition::commandFor(startSfen, moves)` | USI | 開始局面が空か平手なら `position startpos`、それ以外は `position sfen ...` |
 
 #### KifuExportMetadata — 書き出しの文脈
@@ -4795,7 +4803,7 @@ KifuNavigationState
 | 変更 | `setCurrentNode(node)` / `setCurrentNode(node, lineEnd)` | 移って経路を記憶する |
 | 変更 | `resetToNode(node)` / `goToRoot()` | 選択を忘れて移る |
 
-`KifuNavigationState` は変わったときだけ `changed()` を1回出す（ツリーを作り直して表示中の手が無くなったときは開始局面へ戻る）。カーソルを動かすのは `KifuNavigationController`（`navigation/`。ボタン・棋譜欄・分岐候補欄・分岐ツリー・評価値グラフからの移動。`goToPly()`・`goToNode()`・`goToLine()` など）、`LiveGameSession`（対局中の最新手への追従）、`GameSession`（中断した対局の再開）、`BranchTreeEditController`（分岐の編集）などである。表示の更新は `changed()` を受けた部品が自分で行う。`KifuDisplayPresenter`（棋譜欄・分岐候補欄・分岐ツリー）、`BoardSyncPresenter`（盤と手番）、`CommentCoordinator`（コメント欄）、`EvaluationGraphPresenter`（評価値グラフ）、`AnalysisSession`（検討の追従）、`JosekiWindowController`（定跡ウィンドウ）が接続している。
+`KifuNavigationState` は変わったときだけ `changed()` を1回出す（ツリーを作り直して表示中の手が無くなったときは開始局面へ戻る）。カーソルを動かすのは `KifuNavigationController`（`navigation/`。ボタン・棋譜欄・分岐候補欄・分岐ツリー・評価値グラフからの移動。`goToPly()`・`goToNode()`・`goToPlyOnLine()` など）、`LiveGameSession`（対局中の最新手への追従）、`GameSession`（中断した対局の再開）、`BranchTreeEditController`（分岐の編集）などである。表示の更新は `changed()` を受けた部品が自分で行う。`KifuDisplayPresenter`（棋譜欄・分岐候補欄・分岐ツリー）、`BoardSyncPresenter`（盤と手番）、`CommentCoordinator`（コメント欄）、`EvaluationGraphPresenter`（評価値グラフ）、`AnalysisSession`（検討の追従）、`JosekiWindowController`（定跡ウィンドウ）が接続している。
 
 ### 8.11 フォーマット変換器一覧
 
@@ -4894,7 +4902,7 @@ KI2 の文字列を作る。本譜と変化の指し手の行は同じループ�
 
 **ソース**: `src/kifu/kifreader.h/.cpp`
 
-棋譜ファイルを文字コード（UTF-8・CP932 など）を自動判別して読み込む名前空間（`readAllLinesAuto()`・`readAllTextAuto()`・`splitLines()`）。`KifuLoadParser::readFileText()` が CSA 以外の形式で使う。Shift_JIS の変換は `ShiftJisCodec`（`src/kifu/shiftjiscodec.h`）が受け持つ。
+棋譜ファイルを文字コード（BOM・UTF-8・CP932・EUC-JP の順）を自動判別して読み込む名前空間（判別の `decodeAuto()`、`readAllLinesAuto()`・`readAllTextAuto()`・`splitLines()`）。`KifuLoadParser::readFileText()` が CSA 以外の形式で使い、CSA も文字コードの宣言が無ければ `decodeAuto()` を使う。Shift_JIS の変換は `ShiftJisCodec`（`src/kifu/shiftjiscodec.h`）が受け持つ。
 
 #### ShogiInfoRecord
 
@@ -4924,7 +4932,7 @@ analysis層にはダイアログを知らない部分（`AnalysisSession`・`Ana
 | **結果表示** | 検討タブにリアルタイム表示、盤面に矢印オーバーレイ | 結果一覧テーブル（ドックウィジェット）、評価値グラフ | 詰みの有無のメッセージ（思考情報は E1 の表示にも出る） |
 | **MultiPV** | 対応（複数候補手を同時表示、検討中に変更可） | 送らない（エンジン設定で MultiPV を2以上にしていても、結果は最善の読み筋（multipv 1）で決める） | 非対応（1手順のみ） |
 | **開始・操作** | `ConsiderationUiController` | `KifuAnalysisController` + `AnalysisJob` | `TsumeSearchController` |
-| **結果の表示部品** | `ConsiderationTabManager`（`EngineDisplayPresenter` が状態を設定）・`CandidateArrowPresenter` | `AnalysisResultsPanel` | なし（結果はメッセージで知らせる） |
+| **結果の表示部品** | `ConsiderationPanel`（`EngineDisplayPresenter` が状態を設定）・`CandidateArrowPresenter` | `AnalysisResultsPanel` | なし（結果はメッセージで知らせる） |
 
 ### 9.2 全体構成
 
@@ -4939,7 +4947,7 @@ analysis層にはダイアログを知らない部分（`AnalysisSession`・`Ana
 │        └── AnalysisSession::start(AnalysisOptions)                       │
 │                                                                         │
 │  KifuAnalysisController      棋譜解析の条件ダイアログ・進み具合の表示    │
-│        ├── AnalysisResultHandler  1局面の結果を表の1行に（ui/presenters）│
+│        ├── KifuAnalysisRowPresenter 1局面の結果を表の1行に（ui/presenters）│
 │        └── AnalysisResultsPanel   結果ドックの中身（widgets/）           │
 │        │ 所有                                                           │
 ├────────┼────────────────────────────────────────────────────────────────┤
@@ -4976,9 +4984,12 @@ struct AnalysisRequest {
     Options options;
     QString enginePath;
     QString engineName;
-    int lineIndex = 0;
+    int lineEndNodeId = -1;   // 解析する手順の末尾の手（ノード ID）。-1 は棋譜を移さない
+    QSet<int> branchPlies;
 };
 ```
+
+解析した手順は末尾の手のノード ID で覚える（`allLines()` の番号は分岐を足す・本譜にする・並べ替えると変わる）。結果の行・グラフの点から棋譜を移すときは `KifuNavigationController::goToPlyOnLine(lineEndNodeId, ply)`（`KifuBranchTree::nodeOnLine()` で末尾から ply 手目までさかのぼる）を使い、手順が消えていれば移らない。
 
 解析はいつも範囲の局面を順に調べる。`start()` が範囲を手順の手数に収める（終わりの -1 は末尾まで）。
 
@@ -5022,7 +5033,7 @@ onBestMove()
 | シグナル | 発火タイミング | 受け手 |
 |---------|--------------|------|
 | `plyStarted(ply)` | 局面の解析を始めた | `KifuAnalysisController::onPlyStarted`（前の局面の評価値をグラフに足し、解析中の手へ棋譜欄を移す） |
-| `plyAnalyzed(PlyAnalysis)` | bestmove を受けた | `KifuAnalysisController::onPlyAnalyzed`（`AnalysisResultHandler::append()` で表に1行足す） |
+| `plyAnalyzed(PlyAnalysis)` | bestmove を受けた | `KifuAnalysisController::onPlyAnalyzed`（`KifuAnalysisRowPresenter::append()` で表に1行足す） |
 | `finished(completed)` | 解析を終えた（`completed`: 範囲の全局面を解析した） | `KifuAnalysisController::onFinished` |
 | `errorOccurred(message)` | エンジンのエラー | `KifuAnalysisController::onEngineError` |
 
@@ -5031,7 +5042,7 @@ onBestMove()
 **ソース**: `src/ui/controllers/considerationuicontroller.h/.cpp`（開始）、`src/analysis/analysissession.h/.cpp`（セッション）、`src/analysis/analysisoptions.h`
 
 検討モード（Consideration）は `AnalysisJob` を使わず、検討のセッション `AnalysisSession` が1つのエンジンで局面を調べる。棋譜解析との大きな違いである。
-検討タブの開始/中止のボタン（検討していないとき）→ `ConsiderationTabManager::startConsiderationRequested` → `ConsiderationUiController::startConsideration()` の順に呼ばれ、ここで検討タブの設定（`ConsiderationTabManager::settings()`。`ConsiderationSettings`）から `AnalysisOptions` を作って `AnalysisSession::start()` に渡す（タブのシグナルは `ConsiderationUiController` が自分でつなぐ）。
+検討タブの開始/中止のボタン（検討していないとき）→ `ConsiderationPanel::startConsiderationRequested` → `ConsiderationUiController::startConsideration()` の順に呼ばれ、ここで検討タブの設定（`ConsiderationPanel::settings()`。`ConsiderationSettings`）から `AnalysisOptions` を作って `AnalysisSession::start()` に渡す（タブのシグナルは `ConsiderationUiController` が自分でつなぐ）。
 
 #### 検討モードの開始フロー
 
@@ -5044,7 +5055,7 @@ ConsiderationUiController::startConsideration()
   │     └── 検討タブの設定（settings().engineName）でエンジンが選ばれていない → ErrorBus でエラー通知して return
   │
   ├── 2. エンジンパス取得
-  │     └── EngineListSettings::loadEngines() の登録一覧から
+  │     └── RegisteredEngines::load() の登録一覧から
   │         検討タブで選んだ名前でエントリを引く（見つからない・パスが空ならエラー）
   │
   ├── 3. 検討する局面の決定
@@ -5082,17 +5093,17 @@ struct AnalysisOptions {
 
 ### 9.5 ConsiderationUiController — 検討モードのUI制御
 
-**ソース**: `src/ui/controllers/considerationuicontroller.h`, `src/ui/controllers/considerationuicontroller.cpp`, `src/widgets/considerationtabmanager.h`, `src/widgets/considerationsettings.h`, `src/ui/presenters/enginedisplaypresenter.h`
+**ソース**: `src/ui/controllers/considerationuicontroller.h`, `src/ui/controllers/considerationuicontroller.cpp`, `src/widgets/considerationpanel.h`, `src/widgets/considerationsettings.h`, `src/ui/presenters/enginedisplaypresenter.h`
 
-検討タブ（`ConsiderationTabManager`）の操作を検討のセッション（`AnalysisSession`）へ伝えるだけのコントローラである。検討の表示（ボタン・経過時間・情報欄・検討の表）と矢印には触れない。合成ルートが起動時に1つだけ作る（`MainWindowComponents::considerationUi`）。
+検討タブ（`ConsiderationPanel`）の操作を検討のセッション（`AnalysisSession`）へ伝えるだけのコントローラである。検討の表示（ボタン・経過時間・情報欄・検討の表）と矢印には触れない。合成ルートが起動時に1つだけ作る（`MainWindowComponents::considerationUi`）。
 
 検討の状態は次の3か所に分けて持つ。
 
 | 何を | 正本 | 説明 |
 |------|------|------|
-| 検討の条件（エンジン・時間・候補手の数・矢印） | `ConsiderationTabManager::settings()`（`ConsiderationSettings`） | 利用者が変えると保存して `settingsChanged` を出す。ウィジェットはこの値を出すだけ |
+| 検討の条件（エンジン・時間・候補手の数・矢印） | `ConsiderationPanel::settings()`（`ConsiderationSettings`） | 利用者が変えると保存して `settingsChanged` を出す。ウィジェットはこの値を出すだけ |
 | 検討中かどうか | `AnalysisSession::isConsidering()` | 表示・矢印・コントローラはここだけを見る |
-| 検討タブの実行の状態 | `ConsiderationTabManager::RunState`（`Idle`・`Running`・`Waiting`） | `EngineDisplayPresenter` がセッションの知らせから `setRunState()` で設定する |
+| 検討タブの実行の状態 | `ConsiderationPanel::RunState`（`Idle`・`Running`・`Waiting`） | `EngineDisplayPresenter` がセッションの知らせから `setRunState()` で設定する |
 
 #### UI状態遷移
 
@@ -5122,7 +5133,7 @@ AnalysisSession::considerationSearchStarted → EngineDisplayPresenter
 
 #### 矢印表示のロジック
 
-検討の矢印は `CandidateArrowPresenter`（`src/ui/presenters/candidatearrowpresenter.h/.cpp`。合成ルートが盤に対して1つ作る）が描く。検討中かどうかは `AnalysisSession::isConsidering()` から、読み筋は `Deps::consideration`（検討の表のモデル）から、表示するかは `Deps::showConsiderationArrows`（検討タブの設定 `showArrows` を読む関数）から読む。検討の開始・終了、モデルの変化、検討タブの `settingsChanged` で描き直す。
+検討の矢印は `CandidateArrowPresenter`（`src/ui/presenters/candidatearrowpresenter.h/.cpp`。合成ルートが盤に対して1つ作る）が描く。検討中かどうかは `AnalysisSession::isConsidering()` から、読み筋は `Deps::consideration`（検討の表のモデル）から、表示するかは `Deps::considerationSettings`（検討タブの設定の正本 `ConsiderationPanel::settings()` を指す。`showArrows`）から読む。検討の開始・終了、モデルの変化、検討タブの `settingsChanged` で描き直す。
 
 ```
 CandidateArrowPresenter::refresh()
@@ -5148,12 +5159,12 @@ CandidateArrowPresenter::refresh()
 
 ### 9.6 KifuAnalysisController — 棋譜解析の全体フロー
 
-**ソース**: `src/ui/controllers/kifuanalysiscontroller.h/.cpp`、`src/analysis/analysisjob.h/.cpp`（1回の解析）、`src/ui/presenters/analysisresulthandler.h/.cpp`（結果の表の1行）
+**ソース**: `src/ui/controllers/kifuanalysiscontroller.h/.cpp`、`src/analysis/analysisjob.h/.cpp`（1回の解析）、`src/ui/presenters/kifuanalysisrowpresenter.h/.cpp`（結果の表の1行）
 
 棋譜解析モードの全体ワークフローを管理するコントローラである。ダイアログ表示から、解析ジョブ（`AnalysisJob`）の起動、結果のモデルへの蓄積、評価値グラフ・棋譜欄への反映、完了通知までの全工程を統括する。評価値グラフの点は、局面の結果を受けたときではなく次の局面の解析を始めたとき（`plyStarted`）か解析を終えたときに足す（`m_pendingPlot`）。合成ルートが起動時に1つ作り（`MainWindowComponents::kifuAnalysis`）、メニュー「棋譜解析」は `MenuActionsWiring` が `showDialogAndStart()` へ、「解析中止」は `stop()` へつなぐ。
 
-- **`AnalysisJob`**（analysis 層）: 1回の解析の入力（`AnalysisRequest`：手順 `RecordLine`・範囲と思考時間 `AnalysisRequest::Options`・エンジンのパスと名前・分岐ライン `lineIndex`）・進行・エンジンの利用期間を持つ。`AnalysisJob::Deps::engine` で渡された `Usi` を借りて使う（9.3）
-- **`AnalysisResultHandler`**（ui/presenters）: 1局面の結果（`PlyAnalysis`）を `append()` で結果の表の1行にし、先手から見た評価値を返す（評価値グラフの点に使う）
+- **`AnalysisJob`**（analysis 層）: 1回の解析の入力（`AnalysisRequest`：手順 `RecordLine`・範囲と思考時間 `AnalysisRequest::Options`・エンジンのパスと名前・解析する手順の末尾の手 `lineEndNodeId`）・進行・エンジンの利用期間を持つ。`AnalysisJob::Deps::engine` で渡された `Usi` を借りて使う（9.3）
+- **`KifuAnalysisRowPresenter`**（ui/presenters）: 1局面の結果（`PlyAnalysis`）を `append()` で結果の表の1行にし、先手から見た評価値を返す（評価値グラフの点に使う）。候補手は前の行の読み筋の最初の手で、前の行の局面に至った手と同じマスへの手は `KifMoveText::format` が「同　」と書く
 
 #### Deps 構造体（主要メンバー）
 
@@ -5165,10 +5176,9 @@ CandidateArrowPresenter::refresh()
 | `resultsPanel` | `AnalysisResultsPanel*` | 任意 | 結果の表（無ければ自分で作る）。初めて解析するときに `setModel(analysisModel)` で1度だけモデルを結ぶ |
 | `resultsDock` | `QDockWidget*` | 任意 | 結果の表のドック。解析を始めたときに表示して前に出す |
 | `engines` | `EngineLifecycleManager*` | — | 解析のエンジンを置く枠 E1 |
-| `navState` | `const KifuNavigationState*` | — | 解析する手順（表示中の手順）と分岐ライン番号、分岐がある手（`AnalysisRequest::branchPlies`。結果の表で棋譜欄と同じ印を付ける） |
-| `document` | `const KifuDocument*` | — | 読み筋盤面ダイアログに出す対局者名（対局情報の名前。`KifuDocument::headerPlayerName()`） |
-| `shogiView` | `const ShogiView*` | — | 読み筋盤面ダイアログの向きを本体の盤に合わせる |
-| `navController` | `KifuNavigationController*` | — | 解析中・結果の行を選んだ手へ棋譜を移す（`goToLine`） |
+| `navState` | `const KifuNavigationState*` | — | 解析する手順（表示中の手順）とその末尾の手（`AnalysisRequest::lineEndNodeId`）、分岐がある手（`AnalysisRequest::branchPlies`。結果の表で棋譜欄と同じ印を付ける） |
+| `pvBoards` | `PvClickController*` | — | 結果の行のダブルクリックで読み筋盤を開く（`showPvBoard()`。対局者名・盤の向きは思考の表と同じ規則） |
+| `navController` | `KifuNavigationController*` | — | 解析中・結果の行を選んだ手へ棋譜を移す（`goToPlyOnLine`） |
 | `evalChart` | `EvaluationChartWidget*` | — | 評価値グラフ（点のクリックで解析結果の行へ移る） |
 | `evalGraph` | `EvaluationGraphPresenter*` | — | 評価値グラフの点（解析した局面の評価値を足す） |
 | `engine` | `Usi*` | 任意 | 使うエンジン（テスト用。無ければ解析ごとに枠 E1 に作る） |
@@ -5195,7 +5205,7 @@ showDialogAndStart()
         │     ├── plyAnalyzed → onPlyAnalyzed
         │     ├── errorOccurred → onEngineError
         │     └── finished → onFinished
-        ├── AnalysisResultHandler を作る（参照: モデル・手順・結果ドック・対局者名・盤の向き）
+        ├── KifuAnalysisRowPresenter を作る（参照: モデル・手順・分岐がある手）
         ├── 動作状態を DuringAnalysis にする
         └── AnalysisJob::start() → Usi::startEngine(path, name)
               │   （起動の失敗は戻った後に errorOccurred → onEngineError で届く。同期の失敗の分岐はない）
@@ -5208,7 +5218,7 @@ showDialogAndStart()
               ├─────────────────────────────────────────┤
               │ plyAnalyzed(PlyAnalysis)                 │
               │   → onPlyAnalyzed()                      │
-              │   AnalysisResultHandler::append()        │
+              │   KifuAnalysisRowPresenter::append()     │
               │   → KifuAnalysisListModel に1行追加      │
               │   先手から見た評価値を m_pendingPlot へ  │
               └─────────────────────────────────────────┘
@@ -5222,7 +5232,7 @@ showDialogAndStart()
 
 #### append() — 1局面の結果を表に足す
 
-`AnalysisResultHandler::append(const PlyAnalysis&)` は `plyAnalyzed` のたびに呼ばれ、1局面の結果を `KifuAnalysisRow`（`src/models/kifuanalysisrow.h`）の値にして `KifuAnalysisListModel::appendRow()` で足し、先手から見た評価値を返す（定跡・評価値なしは None）。返した評価値は `KifuAnalysisController` が覚えておき、次の局面の解析を始めたときに評価値グラフへ足す。
+`KifuAnalysisRowPresenter::append(const PlyAnalysis&)` は `plyAnalyzed` のたびに呼ばれ、1局面の結果を `KifuAnalysisRow`（`src/models/kifuanalysisrow.h`）の値にして `KifuAnalysisListModel::appendRow()` で足し、先手から見た評価値を返す（定跡・評価値なしは None）。返した評価値は `KifuAnalysisController` が覚えておき、次の局面の解析を始めたときに評価値グラフへ足す。
 
 | 処理 | 説明 |
 |------|------|
@@ -5236,7 +5246,7 @@ showDialogAndStart()
 
 #### PV盤面ダイアログ
 
-結果テーブルの「盤面」列（列6）をクリックすると `AnalysisResultsPanel::rowDoubleClicked` から `KifuAnalysisController::onResultRowDoubleClicked()` が呼ばれ、`AnalysisResultHandler::showPvBoardDialog()` が `PvBoardDialog`（`src/dialogs/`）を開く。このダイアログは、その局面のSFENから読み筋の指し手を順に再生できるミニ盤面ビューアである。
+結果テーブルの「盤面」列（列6）をクリックすると `AnalysisResultsPanel::rowDoubleClicked` から `KifuAnalysisController::onResultRowDoubleClicked()` が呼ばれ、行の読み筋と、その局面に至った手で `PvClickController::showPvBoard()` が `PvBoardDialog`（`src/dialogs/`）を開く（思考・検討の表と同じ開き方。定跡の行は開かない）。このダイアログは、その局面のSFENから読み筋の指し手を順に再生できるミニ盤面ビューアである。
 
 ### 9.7 TsumeSearchController — 詰将棋探索
 
@@ -5321,10 +5331,10 @@ QDockWidget
 
 | 状態 | 行の選択 | 自動スクロール | 「表示」ボタン | 停止ボタン |
 |------|------------|--------------|--------------|----------|
-| 解析中（`m_isAnalyzing = true`） | 知らせない | 最後に確定した行を選んで見せる | クリック無効 | 有効 |
-| 解析完了（`m_isAnalyzing = false`） | `rowSelected` で知らせる | なし | クリック有効 | 無効 |
+| 解析中（`RunState::Running`） | 知らせない | 最後に確定した行を選んで見せる | クリック無効 | 有効 |
+| 解析を終えた（`Stopped`・`Completed`）・解析前（`Idle`） | `rowSelected` で知らせる | なし | クリック有効 | 無効 |
 
-表の選択モードは常に `SingleSelection` である。解析中は、行が足されるたびに `onRowsInserted()` が最後に確定した行を選んでスクロールする。解析中は選択の変更（`onTableSelectionChanged()`）も盤面列のクリック・Enter（`PvTableView::boardRequested` を受ける `onBoardRequested()`）も無視し、`rowSelected`・`rowDoubleClicked` を出さない。棋譜は解析の進み具合に合わせて `KifuAnalysisController` が移す。解析中かどうかは `setStopButtonEnabled()` で決まる。
+表の選択モードは常に `SingleSelection` である。解析中は、行が足されるたびに `onRowsInserted()` が最後に確定した行を選んでスクロールする。解析中は選択の変更（`onTableSelectionChanged()`）も盤面列のクリック・Enter（`PvTableView::boardRequested` を受ける `onBoardRequested()`）も無視し、`rowSelected`・`rowDoubleClicked` を出さない。棋譜は解析の進み具合に合わせて `KifuAnalysisController` が移す。解析の進みは `RunState{Idle, Running, Stopped, Completed}` 1つで持ち、`beginAnalysis()` で解析中、`finishAnalysis(completed)` で中止か完了にする（進み具合の文・中止ボタンもこの値で決まる）。
 
 #### 列幅の自動調整
 
@@ -5378,7 +5388,7 @@ A-/A+ ボタンで8pt〜24ptの範囲でフォントサイズを調整でき、�
 
 **ソース**: `src/models/kifuanalysisrow.h`
 
-1局面の解析結果を持つ構造体（QObject ではない）。`AnalysisResultHandler` が作り、作った後は変えない。表示する文字列（表記の設定に合わせた手・読み筋、`"mate 3"`・形勢）は表のモデルが作る。
+1局面の解析結果を持つ構造体（QObject ではない）。`KifuAnalysisRowPresenter` が作り、作った後は変えない。表示する文字列（表記の設定に合わせた手・読み筋、`"mate 3"`・形勢）は表のモデルが作る。
 
 | フィールド | 型 | 説明 |
 |-----------|-----|------|
@@ -5530,7 +5540,7 @@ Presenters は「Model → View」の単方向データフローを担当する�
 | `CandidateArrowPresenter` | `candidatearrowpresenter.h` | 対局と検討の候補手の矢印を盤に描く（第9章） |
 | `EngineDisplayPresenter` | `enginedisplaypresenter.h` | エンジンの表示の持ち主。枠 E1・E2 のエンジンとモデルの結び、検討の表示（実行の状態・情報欄・検討の表）、2つ目のエンジン欄と評価値グラフの系列名、表示の消去（`clearAll()`） |
 | `UsiModelBinding` | `usimodelbinding.h` | エンジン1台（`Usi`）の思考情報・情報欄の値・通信ログを、表示のモデルへ反映する。エンジンを親にして作り、エンジンと一緒に破棄される |
-| `AnalysisResultHandler` | `analysisresulthandler.h` | 棋譜解析の1局面の結果を結果の表の1行にする・読み筋盤面の表示（第9章） |
+| `KifuAnalysisRowPresenter` | `kifuanalysisrowpresenter.h` | 棋譜解析の1局面の結果を結果の表の1行にする（第9章） |
 
 棋譜解析結果のドックの中身（`AnalysisResultsPanel`）、思考タブの表（`ThinkingTableView`）とその基底の読み筋の表（`PvTableView`）・`ThinkingPanel` は、部品として `src/widgets/` にある。
 
@@ -5593,12 +5603,7 @@ KifuNavigationState::changed
 
 `Deps` は `document`（`const KifuDocument*`）・`activity`（`const AppActivityState*`。対局中か）・`shogiView` の3つ。
 
-| メソッド・スロット | 説明 |
-|------------------|------|
-| `showPlayers(players)` | 対局者の名前を盤に出す（`GameSession::startGame()` が `KifuDocument::beginMatch()` の後に呼ぶ。動作状態が対局中になる前） |
-| `showMatchPlayers()` | 対局中なら文書の対局者（`KifuDocument::players()`）の名前を、対局していなければ対局情報の名前を盤に出す |
-| `syncBoardNamesWithGameInfo()` | 対局情報の名前（`KifuDocument::headerPlayerName()`）を盤に出す（`KifuDocument::headerReset` から。棋譜の置き換え・対局の開始） |
-| `showMatchPlayers()` | 対局中なら対局者、対局していなければ対局情報の名前を盤に出す（`KifuDocument::headerEdited` から） |
+公開の関数は持たない。文書の知らせ（`playersChanged`・`headerReset`・`headerEdited`・`headerValueSet`）と動作状態の `changed` を自分でつなぎ、そのたびに `refresh()` で求め直す（対局中なら文書の対局者 `KifuDocument::players()`、対局していなければ対局情報の名前 `KifuDocument::headerPlayerName()`）。ほかの部品は盤の名前を書き込まない。
 
 対局情報（開始日時・対局者・手合割・持ち時間・終了日時）を作るのは文書（`KifuDocument::beginMatch()`・`recordMatchEnd()`）で、手合割は開始局面から `KifuExportMetadataBuilder::handicapLabel()` で求め、駒落ちなら対局情報の見出しを下手・上手にする。対局情報欄（`GameInfoPane`）は合成ルートが作り、文書の対局情報を編集する画面としてつなぐ（8.5節）。エンジン名をどこに出すかは 12.7 節を参照。
 
@@ -5633,12 +5638,12 @@ ShogiClock::timeUpdated()（tick・状態の変化・ShogiClock::notifyTimeUpdat
 
 評価値グラフの点（`EvaluationSeries`、`src/models/evaluationseries.h`）を持ち、点を足す・消す・系列の名前を付けるのはこのクラスだけである。グラフ（`EvaluationChartWidget`）は `setSeries()` で渡された点を描くだけで、点の追加・削除・名前の変化はモデルのシグナル（`scoreAdded`・`scoresTrimmed`・`labelsChanged`）で受ける。棋譜をたどるときは縦線を表示中の手数に合わせる。
 
-`EvaluationSeries` は評価値を先手から見た値で持つ（系列は2本）。エンジンの評価値はそれを出した側から見た値なので、先手から見た値への直しは `EvaluationSeries::blackView()` の1か所だけで行う。棋譜解析の点なら、解析した手順の番号（`analysisLineIndex()`）も持つ。
+`EvaluationSeries` は評価値を先手から見た値で持つ（系列は2本）。エンジンの評価値はそれを出した側から見た値なので、先手から見た値への直しは `EvaluationSeries::blackView()` の1か所だけで行う。棋譜解析の点なら、解析した手順の末尾の手のノード ID（`analysisLineEnd()`）と見出しに出す手順の名前（`analysisLineName()`。「本譜」「分岐 N」）も持つ。
 
 | メソッド | 説明 |
 |---------|------|
 | `plotEngineScore(side, ply, score)` | エンジンが指した手の評価値を足す（`MatchCoordinator::engineMovePlayed` からつなぐ。通信対局の自分のエンジンの評価値も `CsaGameSession` が自分の側で呼ぶ）。先手の手は1つ目の系列、後手の手は2つ目の系列に置く。`score` は指した側から見た値で、先手から見た値への直しは `EvaluationSeries` が行う |
-| `beginAnalysis(engineName, lineIndex)` | 棋譜解析を始める（点を消し、1つ目の系列名を解析のエンジン名にし、解析する手順の番号を付ける。`KifuAnalysisController` から） |
+| `beginAnalysis(engineName, lineEndNodeId)` | 棋譜解析を始める（点を消し、1つ目の系列名を解析のエンジン名にし、解析する手順（末尾の手）とその名前を付ける。`KifuAnalysisController` から）。分岐ツリーの形が変わるたび（`nodeAppended`・`childrenReordered`・`subtreeRemoved`・`reset`）に手順の名前を付け直す |
 | `plotAnalysisScore(ply, blackScore)` | 棋譜解析の ply 手目の評価値（先手から見た値）を1つ目の系列に足す |
 | `showCurrentPly()` | 縦線を表示中の手の手数に合わせる（`KifuNavigationState::changed` から）。対局中の手は評価値の点を足すときに描くので動かさない |
 | `trimToPly(maxPly)` | 指定手数より後の点を消す（待った・途中局面からの再開。`MatchCoordinator::movesUndone` から） |
@@ -5672,11 +5677,11 @@ Controllers は「View → Model」方向のイベント処理を担当する。
 | Controller | ソース | 責務 | 主な操作対象 |
 |-----------|--------|------|------------|
 | `BoardMoveController` | `boardmovecontroller.h` | 盤上で指した手を、動作状態に合わせて処理する（局面編集・棋譜の変化の記録・通信対局・対局） | `BoardInteractionController`, `ShogiGameController`, `MatchCoordinator` |
-| `ConsiderationUiController` | `considerationuicontroller.h` | 検討タブの操作（開始・中止・エンジン設定・条件の変更）を検討のセッションへ伝える。表示には触れない | `ConsiderationTabManager`, `AnalysisSession` |
+| `ConsiderationUiController` | `considerationuicontroller.h` | 検討タブの操作（開始・中止・エンジン設定・条件の変更）を検討のセッションへ伝える。表示には触れない | `ConsiderationPanel`, `AnalysisSession` |
 | `KifuAnalysisController` | `kifuanalysiscontroller.h` | 棋譜解析の条件ダイアログ、解析の進み具合の表示、結果の行の選択（第9章） | `AnalysisJob`, `AnalysisResultsPanel`, `EvaluationChartWidget` |
 | `TsumeSearchController` | `tsumesearchcontroller.h` | 詰み探索の条件ダイアログと探索の開始（第9章） | `AnalysisSession` |
 | `LanguageController` | `languagecontroller.h` | 表示言語・棋譜表記の切り替えと再起動の案内 | `QAction`（言語・表記メニュー） |
-| `PvClickController` | `pvclickcontroller.h` | 読み筋行クリック時のPV盤面ダイアログ表示 | `ShogiEngineThinkingModel`, `PvBoardDialog` |
+| `PvClickController` | `pvclickcontroller.h` | 読み筋行クリック時のPV盤面ダイアログ表示（棋譜解析の結果の行も `showPvBoard()` で開く） | `ShogiEngineThinkingModel`, `PvBoardDialog` |
 | `UsiCommandController` | `usicommandcontroller.h` | 手動USIコマンドの送信 | `EngineLifecycleManager`, `UsiLogPanel` |
 | `NyugyokuDeclarationHandler` | `nyugyokudeclarationhandler.h` | 利用者の入玉宣言（確認・宣言・結果の表示）をローカル対局・通信対局で同じ手順で行う | `GameChannel`, `KifuDocument` |
 | `JosekiWindowController` | `josekiwindowcontroller.h` | 定跡ウィンドウの生成・更新と、定跡手から着手への変換 | `JosekiWindow`, `KifuNavigationState`, `BoardMoveController` |
@@ -5694,26 +5699,26 @@ Controllers は「View → Model」方向のイベント処理を担当する。
 
 | `BoardInputRoute` の関数 | `BoardMoveController` での中身 |
 |---|---|
-| `acceptsInput()` | 局面編集中か、`HumanTurnPolicy::isHumanTurnNow()` が真か |
-| `isEditing()` | `PositionEditSession::isEditing()`（動作状態が `DuringPositionEdit` か） |
+| `acceptsInput()` | `HumanTurnPolicy::boardInput()` が `None` でないか |
+| `isEditing()` | `HumanTurnPolicy::boardInput()` が `Edit` か（動作状態が `DuringPositionEdit` か） |
 | `submit(from, to)` | `playMove(from, to)` |
 
 主な処理フロー:
 
 ```
 playMove(from, to)                  ← submit()（盤の操作）から
-  ├── DuringPositionEdit → PositionEditSession::applyEditMove()
-  ├── Idle（対局していない）→ BranchTreeEditController::recordBoardMove()
-  │     （指した手を表示中の手の次の手＝変化として棋譜に記録する）
-  └── DuringGame で人間の手番（MatchCoordinator::canAcceptMove()・isHumanSide()）・DuringCsaGame
+  ├── Edit → PositionEditSession::applyEditMove()
+  ├── None → 受け付けない
+  └── Variation・Game・CsaServer
        → ShogiGameController::prepareMove() で UsiMove にする（成り・不成の選択もここ）
        → playUsiMove(move)
 
 playUsiMove(move)                   ← playMove()、JosekiWindowController（定跡手）から
-  ├── Idle → BranchTreeEditController::recordMove()
-  ├── DuringCsaGame → ShogiGameController::isLegal() なら csaMoveRequested(move) シグナル
+  ├── Variation → BranchTreeEditController::recordMove()
+  │     （指した手を表示中の手の次の手＝変化として棋譜に記録する）
+  ├── CsaServer → ShogiGameController::isLegal() なら csaMoveRequested(move) シグナル
   │     （→ CsaGameCoordinator::onHumanMove(const UsiMove&)。通信対局は確認を受けてから確定するので、盤は動かさない）
-  └── DuringGame で人間の手番
+  └── Game（ローカル対局で人間の手番）
        → ShogiGameController::applyMove(move, MatchCoordinator::lastMoveDestination())
        ├── BoardInteractionController::onMoveApplied() でハイライトを更新
        └── 指せたら MatchCoordinator::onHumanMove(指した手の RecordEntry)
@@ -5726,7 +5731,7 @@ playUsiMove(move)                   ← playMove()、JosekiWindowController（�
 
 **ソース**: `src/ui/controllers/pvclickcontroller.h`, `src/ui/controllers/pvclickcontroller.cpp`
 
-`ThinkingPanel`（思考タブ）や検討タブの読み筋（PV）行の「盤面」ボタンを押した際の処理を担当する。クリックされた行から読み筋データを取得し、`PvBoardDialog`（ミニ盤面ビューア）を表示する。`ThinkingPanel::pvRowClicked`・`ConsiderationTabManager::pvRowClicked` を `onPvRowClicked()` につなぐのは `MainWindowComposer::connectAnalysisAndUi()` である。
+`ThinkingPanel`（思考タブ）や検討タブの読み筋（PV）行の「盤面」ボタンを押した際の処理を担当する。読み筋盤を開く処理 `showPvBoard(pv, lastUsiMove, prevSfen)` は棋譜解析の結果の行（`KifuAnalysisController`）も使い、対局者名と盤の向きの規則をここ1か所で決める。クリックされた行から読み筋データを取得し、`PvBoardDialog`（ミニ盤面ビューア）を表示する。`ThinkingPanel::pvRowClicked`・`ConsiderationPanel::pvRowClicked` を `onPvRowClicked()` につなぐのは `MainWindowComposer::connectAnalysisAndUi()` である。
 
 ```
 onPvRowClicked(ShogiEngineThinkingModel* model, row)
@@ -5736,8 +5741,10 @@ onPvRowClicked(ShogiEngineThinkingModel* model, row)
   ├── 起点の局面が表示中の手順（RecordLine）の何手目かを探し、その直前の局面と、
   │     その局面に至った手（record->lastUsiMove() が空なら RecordLine::usiMove(ply)）を
   │     ハイライトに使う
-  ├── 先手/後手名を決める（最後に始めた対局の対局者 KifuDocument::players()。名前が無ければ「先手」「後手」）
-  └── PvBoardDialog を作成・表示
+  └── showPvBoard(pv, lastUsiMove, prevSfen)
+       ├── 先手/後手名を決める（対局情報の名前 KifuDocument::headerPlayerName()。対局を始めると対局者の名前が入る。
+       │     名前が無ければ「先手」「後手」）、盤の向きを本体の盤に合わせる
+       └── PvBoardDialog を作成・表示
        └── ダイアログ閉じた時 → pvDialogClosed(model) シグナル（表の選択を外す）
 ```
 
@@ -5839,12 +5846,12 @@ wire()
 
 ```
 ConsiderationUiController のコンストラクタ
-  ├── ConsiderationTabManager::startConsiderationRequested → startConsideration()
+  ├── ConsiderationPanel::startConsiderationRequested → startConsideration()
   │     └── 検討タブの設定（settings()）から AnalysisOptions を作り、AnalysisSession::start()
-  ├── ConsiderationTabManager::stopConsiderationRequested → AnalysisSession::stop()
-  ├── ConsiderationTabManager::engineSettingsRequested(engine) → onEngineSettingsRequested()
+  ├── ConsiderationPanel::stopConsiderationRequested → AnalysisSession::stop()
+  ├── ConsiderationPanel::engineSettingsRequested(engine) → onEngineSettingsRequested()
   │     └── ChangeEngineSettingsDialog(engine, 親) を開く（検討タブは widgets にあり、dialogs を include できない）
-  └── ConsiderationTabManager::settingsChanged → onSettingsChanged()
+  └── ConsiderationPanel::settingsChanged → onSettingsChanged()
         （検討中なら、エンジンが変われば中止して始め直し、候補手の数が変われば updateMultiPV()）
 
 EngineDisplayPresenter のコンストラクタ
@@ -5856,7 +5863,7 @@ EngineDisplayPresenter のコンストラクタ
 
 MainWindowComposer::connectAnalysisAndUi()
   ├── AnalysisSession::messageRequested → UiNotificationService::showInformation（結果やエラーの知らせ）
-  └── ConsiderationTabManager::settingsChanged → CandidateArrowPresenter::scheduleRefresh（矢印の表示の設定）
+  └── ConsiderationPanel::settingsChanged → CandidateArrowPresenter::scheduleRefresh（矢印の表示の設定）
 ```
 
 棋譜ナビゲーションで局面が変わったときは、`AnalysisSession` が `KifuNavigationState::changed` を受けて検討中の局面をエンジンに送り直す。
@@ -5888,9 +5895,7 @@ CsaGameSession のコンストラクタ
 
 | 接続 | つなぐ場所 |
 |------|-----------|
-| `GameSession::beginMatchRecord()` が `KifuDocument::beginMatch()` の後に `showPlayers(players)` を呼ぶ（ローカル対局・通信対局で共通。通信対局はサーバーが知らせた対局者名） | `GameSession`（`src/app/gamesession.cpp`） |
-| `KifuDocument::headerReset` → `syncBoardNamesWithGameInfo()` | `MainWindowComposer::connectRecord()` |
-| `KifuDocument::headerEdited` → `showMatchPlayers()` | `MainWindowComposer::connectRecord()` |
+| `KifuDocument::playersChanged`・`headerReset`・`headerEdited`・`headerValueSet`、`AppActivityState::changed` → `refresh()` | `PlayerInfoPresenter` のコンストラクタ（自分でつなぐ） |
 
 #### その他の接続
 
@@ -5898,7 +5903,7 @@ CsaGameSession のコンストラクタ
 |------|------|
 | 棋譜をたどる操作 | `connectRecord()` が、棋譜欄・評価値グラフのナビゲーションボタン、`RecordPane::mainRowChanged`・`branchRowActivated`、`BranchTreeView::nodeActivated`、`EvaluationChartWidget::plyClicked` を `KifuNavigationController` の `select*()` へつなぐ。表示の更新は `KifuNavigationState::changed` を受けた `KifuDisplayPresenter`・`BoardSyncPresenter`・`CommentCoordinator` などが各自で行う |
 | 分岐の編集 | 分岐ツリー（`BranchTreeView::nodeContextMenuAboutToShow(nodeId, menu)`）と分岐候補欄の右クリックを `BranchTreeEditController` へつなぐ。棋譜の文書の `commentChanged` を `BranchTreeView::refreshNode` へつなぎ、図のコメントの印と説明を合わせる |
-| 読み筋のクリック | `ThinkingPanel`・`ConsiderationTabManager` の `pvRowClicked` を `PvClickController::onPvRowClicked` へ、`pvDialogClosed` を各表の選択解除へつなぐ |
+| 読み筋のクリック | `ThinkingPanel`・`ConsiderationPanel` の `pvRowClicked` を `PvClickController::onPvRowClicked` へ、`pvDialogClosed` を各表の選択解除へつなぐ |
 | 時計・評価値 | 時計は `TimeDisplayPresenter` がコンストラクタで `ShogiClock::timeUpdated` を自分でつなぐ。`connectGame()` が `MatchCoordinator::engineMovePlayed`・`movesUndone` を `EvaluationGraphPresenter` へつなぐ |
 
 ### 10.5 Coordinators — 複数オブジェクト間の調整
@@ -5960,7 +5965,7 @@ KifuFileController::chooseAndLoadKifuFile() など（画面からの読み込み
          ├── 局面だけ（SFEN・BOD）→ loadPositionFromSfen() → KifuDocument::replaceWithPosition(sfen)
          └── applyRecord() → KifuDocument::replaceWithRecord(record, initialSfen, gameInfo)
               （KifuBranchTreeBuilder::buildFromKifParseResult() でツリーを作り直し、対局情報を置き換える）
-              → headerReset(items) → GameInfoPane::setGameInfo()・PlayerInfoPresenter::syncBoardNamesWithGameInfo()
+              → headerReset(items) → GameInfoPane::setGameInfo()・PlayerInfoPresenter（盤の対局者名）
        → loadFinished(success) → KifuFileController::onAsyncLoadFinished() → finishLoad()（上書き保存先・未保存の状態）
                                → UiStatePolicyManager::enableNavigationIfAllowed()
 ```
@@ -6174,7 +6179,7 @@ static constexpr int kMaxSquareSize = 150;
 | `chrome()` | 対局者カード・時計・手番の札（`BoardChromeWidget`）。名前・時計は `view->chrome()->card(Turn::Black)->setName()`・`setClockText()`、手番・時計の警告は `view->chrome()->setActiveSide(Turn)`・`setUrgency()` を直接呼ぶ |
 | `clickedSquare(QPoint)` | ウィジェット座標からマス（盤・駒台・駒箱）を求める |
 | `boardGeometry()` | 盤・駒台・座標の文字の位置（`BoardGeometry`。11.1.3） |
-| `enlargeBoard() / reduceBoard()` | 盤の拡大/縮小（±1px。`fieldSize` は読み出し専用のプロパティで、変わると `fieldSizeChanged`） |
+| `enlargeBoard() / reduceBoard()` | 盤の拡大/縮小（±1px。メニュー・ボタン・Ctrl+ホイール（`wheelEvent()`）の操作はすべてここを通る。つまんでいる駒を放してから変え、変わると `fieldSizeChanged` で知らせる。主画面は `MainWindowAppearanceController`、読み筋盤などは `BoardViewerWidget` がこの知らせでウィンドウを合わせる） |
 | `toImage(qreal)` | 現在の盤面を QImage として出力 |
 
 #### 11.1.5 ハイライトと矢印
@@ -6213,7 +6218,7 @@ Urgency::Warn5  → 強い警告色（残5秒・秒読み）
 | ThinkingPanel | QWidget | 思考ドック | 対局・棋譜解析のエンジン2つ分の情報欄（`EngineInfoWidget`）と思考の表（`ThinkingTableView`）、文字の大きさのボタン、対局中の候補手の矢印の表示設定。2つ目のエンジンは `setSecondEngineVisible()` で出す。読み筋の「盤面」ボタンは `pvRowClicked(ShogiEngineThinkingModel*, int)` で通知する |
 | PvTableView | IncrementalTableView | 思考の表・棋譜解析の結果の表 | 読み筋の表。数値の列の右寄せ3桁区切り、「盤面」ボタン（クリックか Enter で `boardRequested(int)`）、読み筋の描き方、行の高さと文字の大きさ（`setFontPointSize()`）を受け持つ。列の役割は `Columns`（`numeric`・`board`・`pv`）で渡し、列幅は使う側が決める |
 | ThinkingTableView | PvTableView | 思考ドック・検討ドック | 思考の表。対局のエンジン2つと検討タブで共用し、列幅（保存と復元）を受け持つ。「盤面」ボタンは `pvRowClicked(ShogiEngineThinkingModel*, int)` で知らせる |
-| ConsiderationTabManager | QWidget | 検討ドック | 検討タブの操作（エンジン選択・時間・MultiPV・矢印の表示・開始/中止）と表を作る。設定は `ConsiderationSettings` を正本として持ち（`settings()`・`setSettings()`・`settingsChanged`）、開始/中止のボタンと経過時間は実行の状態 `RunState`（`Idle`・`Running`・`Waiting`。`EngineDisplayPresenter` が `setRunState()` で設定する）で決まる |
+| ConsiderationPanel | QWidget | 検討ドック | 検討タブの操作（エンジン選択・時間・MultiPV・矢印の表示・開始/中止）と表を作る。設定は `ConsiderationSettings` を正本として持ち（`settings()`・`setSettings()`・`settingsChanged`）、開始/中止のボタンと経過時間は実行の状態 `RunState`（`Idle`・`Running`・`Waiting`。`EngineDisplayPresenter` が `setRunState()` で設定する）で決まる |
 | UsiLogPanel / CsaLogPanel / CommentEditorPanel | LogPanel / LogPanel / QWidget | USI通信ログ・CSA通信ログ・棋譜コメントの各ドック | 各ドックの中身。通信ログの2つは共通の基底 `LogPanel`（ログ・文字の大きさ・折り返し・最新へ・全てコピー・消去・コマンドの欄）の派生で、操作列に足す部品（エンジン名・接続状態）とコマンドの送り先だけを決める。`CsaLogPanel` は CSA通信対局の待機ダイアログ（`CsaWaitingDialog`）のログ窓にもそのまま入れる |
 | BranchTreeView | QGraphicsView | 分岐ツリーのドック（ドックの中身そのもの。objectName は `branchTreeView`） | 分岐ツリーの図（`KifuBranchTree` を読むだけの観察者）。`setTree(tree)` でツリーの型付きの知らせを自分で受け、`nodeAppended` で手順の末尾に1手足しただけならその手だけを描き足し、それ以外（新しい変化・並べ替え・削除・作り直し）は作り直す。外とは `KifuBranchNode` の ID だけでやり取りする（`setCurrentNode(nodeId, center)`・`currentNodeId()`、シグナル `nodeActivated(nodeId)`・`nodeContextMenuAboutToShow(nodeId, menu)`、スロット `refreshNode(nodeId)`）。描く前に届いた表示中の手は、描いた時点で目立たせる。キー・マウス・ホイール・右クリックは `QGraphicsView` のイベント関数の上書きで受ける（イベントフィルタは使わない）。折りたたみもノード ID で指定する（`setCollapsed`・`isCollapsed`・`isCollapsible`・`expandAll`）。選べるかは `setClickEnabled()`（`UiStatePolicyManager` が決める）。テスト・自動化用に `isDrawn(nodeId)`・`laneOf(nodeId)`・`rebuildCount()` を持つ。行（変化）の折りたたみと段の割り当ては値型 `BranchTreeLayout`（`branchtreelayout.h/.cpp`）が計算する |
 | BranchNodeItem | QGraphicsPathItem | BranchTreeView の中 | 図の1手（開始局面も同じクラスで、少し大きく太い枠で描く）。ノード ID・行・手数を型付きのメンバで持ち、`setCurrent()`・`setComment()`・`setCollapsedBadge()` で見た目を変える。`BranchTreeItemRoles`（`src/common/branchtreeitemroles.h`）の項目は自動化 API が読むためだけに付ける |
@@ -6224,7 +6229,7 @@ Urgency::Warn5  → 強い警告色（残5秒・秒読み）
 | MenuWindow | QWidget | メニューのドック（棋譜ドックとタブにまとめる。`src/dialogs/`） | メニュー項目をボタン形式で表示（タブ付き、お気に入り、カスタマイズモード）。作るのは `MenuWindowController` |
 | MenuButtonWidget | QWidget | MenuWindow 内 | QAction をアイコン＋テキストで表示するカスタムボタン、D&D対応 |
 
-ドックのパネル（RecordPane・ThinkingPanel・GameInfoPane・ConsiderationTabManager・UsiLogPanel・CsaLogPanel・CommentEditorPanel・AnalysisResultsPanel・BranchTreeView）は、どれも `QWidget` の派生で、部品をコンストラクタで作りきる。外から後で中身を作らせる公開の関数（以前の `buildUi()` など）や、中身を返す関数（以前の `containerWidget()` など）は持たない。`DockRegistry::createAll()` はパネルそのものをドックに入れる。
+ドックのパネル（RecordPane・ThinkingPanel・GameInfoPane・ConsiderationPanel・UsiLogPanel・CsaLogPanel・CommentEditorPanel・AnalysisResultsPanel・BranchTreeView）は、どれも `QWidget` の派生で、部品をコンストラクタで作りきる。外から後で中身を作らせる公開の関数（以前の `buildUi()` など）や、中身を返す関数（以前の `containerWidget()` など）は持たない。`DockRegistry::createAll()` はパネルそのものをドックに入れる。
 
 #### 汎用部品
 
@@ -6278,7 +6283,7 @@ Urgency::Warn5  → 強い警告色（残5秒・秒読み）
 | `TsumeCollectionDialog` | `tsumeCollectionSelection()`（内蔵の項目「Hayanagi（内蔵・31手まで）」と、名前に KomoringHeights を含む登録エンジンだけ） | 「設定」ボタンなし |
 | `CsaGameDialog` | `csaGameSelection()` | ダイアログ自身 |
 | `StartGameDialog`（`PlayerSetupWidget` が使う。内蔵の項目を「人間」にする） | `GameSettings::StartGame::player1`・`player2` の `engineName`（以前の版の `engineNumber`・`enginePath` も読む） | `PlayerSetupWidget::engineSettingsRequested(engine)` を出し、ダイアログが開く |
-| `ConsiderationTabManager`（検討タブ） | `considerationSelection()` | `engineSettingsRequested(engine)` を出し、`ConsiderationUiController::onEngineSettingsRequested()` が開く |
+| `ConsiderationPanel`（検討タブ） | `considerationSelection()` | `engineSettingsRequested(engine)` を出し、`ConsiderationUiController::onEngineSettingsRequested()` が開く |
 
 `KifuAnalysisDialog`・`TsumeShogiSearchDialog` は選んだエンジンを `engine()`（`std::optional<EngineEntry>`）で返す。`KifuAnalysisController`・`TsumeSearchController` はそこからパスと名前を取る。
 テストは `tests/tst_engineselector.cpp`（名前での保存と復元、以前の版の番号、未登録、内蔵の項目と絞り込み、詰将棋問題一覧の以前の版の保存値、「設定」と読み直し）。
@@ -6348,7 +6353,7 @@ Urgency::Warn5  → 強い警告色（残5秒・秒読み）
 | CsaWaitingDialog | QDialog | なし | CSA通信対局の接続待機表示（状態遷移・ログ表示） |
 | EngineRegistrationDialog | QDialog | engineregistrationdialog.ui | USIエンジンの登録・削除・option自動取得 |
 | EvaluationChartSettingsDialog | QDialog | なし | 評価値グラフの表示設定。今の設定と軸を受け取り、選んだ値を `settings()`（`EvaluationChartSettings`）で返す。評価値グラフの「表示設定…」（`settingsRequested`）を受けて `DialogLauncher::displayEvaluationChartSettings()` が開き、`setChartSettings()` でグラフに渡す |
-| ChangeEngineSettingsDialog | QDialog | changeenginesettingsdialog.ui | USI engine options の編集（テキスト/スピン/チェック/コンボ/ファイル選択）。`ChangeEngineSettingsDialog(engine, parent)` で登録エンジン1つ（`EngineListSettings::EngineEntry`）を渡して作り、見出しにエンジン名と作者名を出す |
+| ChangeEngineSettingsDialog | QDialog | changeenginesettingsdialog.ui | USI engine options の編集（テキスト/スピン/チェック/コンボ/ファイル選択）。`ChangeEngineSettingsDialog(engine, parent)` で登録エンジン1つ（`EngineEntry`）を渡して作り、見出しにエンジン名と作者名を出す |
 | PromoteDialog | QDialog | promotedialog.ui | 成り/不成の選択確認（`ask(parent)` で出して答えを返す。主画面の盤と詰将棋を解く画面で共通） |
 | VersionDialog | QDialog | versiondialog.ui | バージョン情報表示 |
 | PvBoardDialog | QDialog | なし | 読み筋（PV）再生ウィンドウ（ShogiView を内蔵、ナビゲーションボタン付き）。読み筋の値は `PvLine`（`pvline.h`。各手数の局面 `positions()`・手の表記 `moveText(ply)`・読み筋全体の表記 `displayPv()`・直前の手のハイライト `highlight(ply)`）で、表示する手数は `BoardViewerWidget` だけが持つ |
@@ -6512,7 +6517,7 @@ Qt の公式サンプルコードを参考にした自動折り返しレイア�
 ほぼすべてのウィジェットとダイアログにフォントサイズ増減（A+/A-）機能がある。サイズは設定の宣言の表の `Setting<int>`（例: `GameSettings::kifuPaneFontSize`）で保存・復元する。仕組みは次の2つだけ。
 
 - **ダイアログ**: `DialogFontScale::install(this, 宣言, options)` を呼ぶ。初期値の読み込み、変更のたびの保存、全部品への反映をまとめて任せる。ダイアログに `FontSizeHelper` のメンバや A-/A+ 用の connect・`applyFontSize()` は書かない（§12.5）
-- **ドックのパネル**: `FontSizeHelper` を持ち、置いた A-/A+ のボタンを `FontSizeControl` で結ぶ。`fontSizeChanged` を表示の作り直しにつなぐ。ThinkingPanel・ConsiderationTabManager・UsiLogPanel・CsaLogPanel・GameInfoPane・RecordPane（`GameSettings::kifuPaneFontSize`。範囲と保存は RecordPane の `FontSizeHelper` が持つ）・CommentEditorPanel・AnalysisResultsPanel・JosekiWindow・MenuWindow（`AppSettings::menuWindowFontSize`）が使う
+- **ドックのパネル**: `FontSizeHelper` を持ち、置いた A-/A+ のボタンを `FontSizeControl` で結ぶ。`fontSizeChanged` を表示の作り直しにつなぐ。ThinkingPanel・ConsiderationPanel・UsiLogPanel・CsaLogPanel・GameInfoPane・RecordPane（`GameSettings::kifuPaneFontSize`。範囲と保存は RecordPane の `FontSizeHelper` が持つ）・CommentEditorPanel・AnalysisResultsPanel・JosekiWindow・MenuWindow（`AppSettings::menuWindowFontSize`）が使う
 
 A-/A+ のボタンの文字・見た目・説明と、範囲の端で押せなくする処理は、どちらも `FontSizeControl` が決める。
 
@@ -7060,7 +7065,7 @@ MyDialog::MyDialog(QWidget* parent)
 
 **ソース**: `src/ui/presenters/playerinfopresenter.h/.cpp`、`src/ui/presenters/enginedisplaypresenter.h/.cpp`（クラスの概要は 10.2 節）
 
-盤の対局者名は `PlayerInfoPresenter` が対局者（`MatchPlayers`、[5.6節](#56-matchplayers--対局者)）から決める。対局中（動作状態が `DuringGame`）は最後に始めた対局の対局者（`KifuDocument::players()`）を出し、対局していなければ対局情報の名前を出す（`PlayerInfoPresenter::showMatchPlayers()`）。エンジン名（通信ログの見出し・2つ目のエンジン欄・評価値グラフの系列名・検討タブ）は `EngineDisplayPresenter` が決める。
+盤の対局者名は `PlayerInfoPresenter` が対局者（`MatchPlayers`、[5.6節](#56-matchplayers--対局者)）から決める。対局中（動作状態が `DuringGame`）は最後に始めた対局の対局者（`KifuDocument::players()`）を出し、対局していなければ対局情報の名前を出す（`PlayerInfoPresenter` が文書と動作状態の知らせで決める）。エンジン名（通信ログの見出し・2つ目のエンジン欄・評価値グラフの系列名・検討タブ）は `EngineDisplayPresenter` が決める。
 
 #### 通信ログの見出し（E1・E2）
 
@@ -7124,7 +7129,7 @@ ShogiClock::setCurrentPlayer(firstPlayer)
 | オブジェクト | 設定方法 | 役割 |
 |-------------|---------|------|
 | `KifuNavigationState` | コンストラクタ | 表示中の手・選んだ手順の管理（非所有）。分岐ツリー（`KifuBranchTree`）は `state()->tree()` から辿る |
-| 移動前の確認 | `setLeaveGuard(std::function<bool()>)` | 利用者の操作で別の手へ移る前の確認。合成ルートが「局面編集中でない」かつ「未更新のコメントを破棄してよい」を渡す |
+| 移動前の確認 | `addLeaveGuard(std::function<bool()>)` | 利用者の操作で別の手へ移る前の確認（足した順に聞き、1つでも false なら移らない）。合成ルートが `PositionEditSession::allowsLeavingMove()`（局面編集中でない）と `CommentCoordinator::confirmLeaveEditingMove()`（未更新のコメントを破棄してよい）を足す |
 
 #### 局面送りの6つの操作（QAction）
 
@@ -7156,7 +7161,7 @@ ShogiClock::setCurrentPlayer(firstPlayer)
 | 移動 | `goToFirst()` / `goToLast()` / `goBack(n)` / `goForward(n)` | 上の局面送りの動作 |
 | 移動 | `goToPly(int ply)` | 選んでいる手順の指定手数へ移動 |
 | 移動 | `goToNode(node)` | 指定ノードへ移動（開始局面からの経路を選んだ手順として記憶する） |
-| 移動 | `goToLine(int lineIndex, int ply)` | `KifuBranchTree::allLines()` の lineIndex 番の手順の ply 手目へ移動し、その手順の終わりまでを選ぶ |
+| 移動 | `goToPlyOnLine(int lineEndNodeId, int ply)` | lineEndNodeId の手で終わる手順の ply 手目へ移動し、その手順の終わりまでを選ぶ（手が無ければ移らない） |
 | 移動 | `goToMainLineAtCurrentPly()` | 本譜の同じ手数へ戻る（選択を忘れる） |
 | 操作 | `selectRecordRow(int row)` | 棋譜欄の行を選んだ |
 | 操作 | `selectBranchCandidateRow(int row)` | 分岐候補欄の行を選んだ（候補の後ろの行は「本譜へ戻る」） |
@@ -7388,7 +7393,9 @@ finish():
 
 ```cpp
 bool applyEditMove(from, to):
-  1. gc->editPosition(from, to, view->pieceBoxSide()) で駒を移動
+  1. PositionEditRules::apply(*view->board(), from, to, view->pieceBoxSide()) で駒を移動
+     （玉を持ち駒にする・二歩・味方の駒の上・駒台に無い駒・玉を取る形は断る。行き所のない段の歩・香・桂は
+      ShogiBoard が PieceRules::isDeadSquare で成駒にする）
   2. view->endDrag() でドラッグ状態を解除
   3. board->onMoveApplied() でハイライトを更新
   （盤・駒台・駒箱の変化は ShogiBoard の通知で変わった所だけ描き直される）
@@ -7546,7 +7553,7 @@ MainWindow のメンバは `ui`・`m_composer`・`m_skipCloseConfirmation`（自
 
 - **依存はポインタで渡す**: 部品は `Deps` 構造体で、ほかの部品のポインタを受け取る。たとえば `GameSession::Deps` は `activity`・`match`・`analysis`・`engines`・`consecutive`・`reset`・`navState`・`liveSession` などをポインタで持つ。生成前の部品を指すための `std::function<X*()>` のゲッターは使わない。
 - **状態は AppActivityState を指す**: 動作状態を使う部品は `&m_activity`（`AppActivityState*`）を受け取り（`GameSession`・`AutomationContext`・`MatchCoordinator`・`AnalysisSession`・`UiStatePolicyManager`・`HumanTurnPolicy`・`BoardMoveController`・`CsaGameSession` など）、使うときに読む。棋譜に付く状態（対局者・上書き保存先・対局情報）を使う部品は棋譜の文書 `KifuDocument*` を受け取る（`GameSession`・`KifuFileController`・`PlayerInfoPresenter`・`PvClickController`・`KifuAnalysisController`・`MatchCoordinator`・`AutomationContext` など。読むだけの部品は `const`）。
-- **作った後に渡すもの**: 司令塔（`MatchCoordinator`）は棋譜の受け手の `GameSession` より先に作るので、受け手だけ `createSessions()` で `setRecordSink()` によって渡す。ほかに、`KifuNavigationController::setLeaveGuard()`・`ShogiGameController::setPromotionChooser()` が、できあがった部品の判定関数を受け取る。盤の操作の行き先（`BoardInteractionController::setInputRoute()`）は、`BoardMoveController` が自分のコンストラクタで自分を渡す。
+- **作った後に渡すもの**: 司令塔（`MatchCoordinator`）は棋譜の受け手の `GameSession` より先に作るので、受け手だけ `createSessions()` で `setRecordSink()` によって渡す。ほかに、`KifuNavigationController::addLeaveGuard()`（局面編集中でない `PositionEditSession::allowsLeavingMove()` と、未更新のコメントの確認 `CommentCoordinator::confirmLeaveEditingMove()`）・`ShogiGameController::setPromotionChooser()` が、できあがった部品の関数を受け取る。合成ルートは判断を持たず、部品の関数を結ぶだけにする。盤の操作の行き先（`BoardInteractionController::setInputRoute()`）は、`BoardMoveController` が自分のコンストラクタで自分を渡す。
 - **`std::function` はフックだけ**: 上位へ問い合わせ・操作を委ねるフック（`KifuDocument::Hooks::commitPendingEdits`、`UiStatePolicyManager::Deps` の `localGameHasHuman`・`canResumeGame`、`JosekiWindowController::Deps::isHumanTurnNow` など）と、層の境界をまたぐ関数（`AutomationContext` のお気に入りの取得・設定）にだけ使う。司令塔（`MatchCoordinator`）はフックを持たず、シグナルと棋譜の受け手（`MatchRecordSink`）で上位に知らせる（[4.3節](#43-シグナルと-stdfunction-コールバック)）。
 
 二重ポインタ（`T**`）で相手の変数に書き込む形は使わない。起動するクラスだけが使うダイアログ（CSA 通信対局の接続ダイアログ、局面集ビューア）は、その起動役（`DialogLauncher`）が持つ。
@@ -7608,13 +7615,13 @@ MainWindow::MainWindow()
 
 エラーの分類は `ErrorKind`（`src/headless/errorkinds.h`）の表1つで決める。メソッドは `AutomationError(ErrorKind, message, hint)` を投げ、`AutomationDispatcher::makeError()` が `error.code` に分類の JSON-RPC のコード（`ErrorKinds::rpcCode()`）、`error.data.slug` に分類の語（`ErrorKinds::slug()`）を入れる。CLI の失敗（`CliOutput::fail(ErrorKind, message)`・`failEvent()`）も同じ語を `code` に書くので、同じ失敗はどの経路でも同じ語になる（既存ファイルへの書き込みは `file_exists`、引数の誤りは `invalid_argument`、知らないメソッド・コマンドは `unknown_operation`、棋譜が読めないときは `parse_error`）。`shogiboardq-cli environment` は既定のソケット（`AutomationServer::defaultSocketPath()`）・エンドポイントファイル（`endpointFilePath()`）・設定ファイルの場所、1メッセージの上限（`AutomationServer::kMaxMessageBytes`）と分類の表（`ErrorKinds::toJson()`）を出し、MCP サーバーはこれを読んで値を写さない。分類の一覧は [MCP サーバーの設計](mcp-server.md#エラーの分類) を参照。
 
-応答の後に行う UI 操作（`board.click`・`dialog.clickButton`・`action.trigger`・`dialog.close`・`widget.showDock`・`widget.click`・`widget.setValue`・`widget.clickCell`・`widget.editCell`・`dock.configure`・`menu.select`・`branch.click`）は、`AutomationInteractions::queue(QueuedInteraction{target, check, perform}, response)`（`src/automation/automationinteractions.h`）で予約する。モーダルダイアログを開く操作でも応答を返せるよう、操作は応答を書いた後のイベントループで行う。受付の時点の検査に加えて実行の直前に `check` でもう一度確かめ（対象が隠れた・無効になった・別のダイアログに遮られたなど）、`perform` が投げた `AutomationError` も含めて結果を記録する（実行時の失敗は握りつぶさない）。応答には `"queued": true` と操作の番号 `"interaction"` が付き、`ui.interaction {id}` で状態（`pending`・`running`（開いたモーダルダイアログが閉じるまで）・`done`・`failed`（`error` に `code`・`message`・`data.slug`）・`cancelled`（実行前に対象が消えた））を引ける。記録は新しいものから `kHistoryLimit`（256）件まで残す。`app.quit` だけはこの仕組みを使わず、`AutomationDeferredCall` で応答の後に終了する。マウス入力は `AutomationInput::sendClick()`・`sendDrag()`（`automationinput.h`）の2つで送り（盤・表のセル・分岐ツリー・ドックのタイトルバー）、部品の読み（`widget.text`）と書き（`widget.setValue`）は型ごとのアダプタの表 `AutomationWidgetAdapters::describe()`・`writer()`（`automationwidgetadapters.h`）で行う（型を足すときは表に1行足す）。MCP サーバーの `AppClient.call_queued()` はこの番号で操作の実行を待つ（[MCP サーバーの設計](mcp-server.md)）。
+応答の後に行う UI 操作（`board.click`・`dialog.clickButton`・`action.trigger`・`dialog.close`・`widget.showDock`・`widget.click`・`widget.setValue`・`widget.clickCell`・`widget.editCell`・`dock.configure`・`menu.select`・`branch.click`）は、`AutomationInteractions::queue(QueuedInteraction{target, check, perform}, response)`（`src/automation/automationinteractions.h`）で予約する。モーダルダイアログを開く操作でも応答を返せるよう、操作は応答を書いた後のイベントループで行う。`check` は予約の時点（`queue()` が走らせ、失敗すれば予約せずにエラーの応答）と実行の直前（対象が隠れた・無効になった・別のダイアログに遮られたなど）の2回走り（メソッドは同じ検査を予約の前に書かない）、`perform` が投げた `AutomationError` も含めて結果を記録する（実行時の失敗は握りつぶさない）。応答には `"queued": true` と操作の番号 `"interaction"` が付き、`ui.interaction {id}` で状態（`pending`・`running`（開いたモーダルダイアログが閉じるまで）・`done`・`failed`（`error` に `code`・`message`・`data.slug`）・`cancelled`（実行前に対象が消えた））を引ける。記録は新しいものから `kHistoryLimit`（256）件まで残す。`app.quit` だけはこの仕組みを使わず、`AutomationDeferredCall` で応答の後に終了する。マウス入力は `AutomationInput::sendClick()`・`sendDrag()`（`automationinput.h`）の2つで送り（盤・表のセル・分岐ツリー・ドックのタイトルバー）、部品の読み（`widget.text`）と書き（`widget.setValue`）は型ごとのアダプタの表 `AutomationWidgetAdapters::describe()`・`writer()`（`automationwidgetadapters.h`）で行う（型を足すときは表に1行足す）。MCP サーバーの `AppClient.call_queued()` はこの番号で操作の実行を待つ（[MCP サーバーの設計](mcp-server.md)）。
 
 #### 14.5.2 DockRegistry（ドックの作成）
 
 **ファイル**: `src/ui/coordinators/dockregistry.h/.cpp`、`src/app/mainwindowcomposer_create.cpp`（`createDocks()`）
 
-12 個のドック（棋譜、対局情報、思考、検討、USI 通信ログ、CSA 通信ログ、棋譜コメント、分岐ツリー、評価値グラフ、メニュー、定跡、棋譜解析）の名前・規定の配置・状態の保存は `DockRegistry` の表で決まる（表の中身は 10.5 節の「DockRegistry — ドックの表」）。ドックの中身（`RecordPane`・`ThinkingPanel`・`ConsiderationTabManager`・`UsiLogPanel`・`CsaLogPanel`・`CommentEditorPanel`・`BranchTreeView`・`AnalysisResultsPanel` など）は、どれもコンストラクタで部品を作りきる `QWidget` で、合成ルートが先に作る。メニューウィンドウと定跡ウィンドウも、`MenuWindowController`・`JosekiWindowController` がコンストラクタで作る。`DockRegistry::createAll()` はパネルそのものをドックに入れるだけである。棋譜解析の結果のドックを解析の開始時に出すのは `KifuAnalysisController`（`Deps::resultsDock`）である。
+12 個のドック（棋譜、対局情報、思考、検討、USI 通信ログ、CSA 通信ログ、棋譜コメント、分岐ツリー、評価値グラフ、メニュー、定跡、棋譜解析）の名前・規定の配置・状態の保存は `DockRegistry` の表で決まる（表の中身は 10.5 節の「DockRegistry — ドックの表」）。ドックの中身（`RecordPane`・`ThinkingPanel`・`ConsiderationPanel`・`UsiLogPanel`・`CsaLogPanel`・`CommentEditorPanel`・`BranchTreeView`・`AnalysisResultsPanel` など）は、どれもコンストラクタで部品を作りきる `QWidget` で、合成ルートが先に作る。メニューウィンドウと定跡ウィンドウも、`MenuWindowController`・`JosekiWindowController` がコンストラクタで作る。`DockRegistry::createAll()` はパネルそのものをドックに入れるだけである。棋譜解析の結果のドックを解析の開始時に出すのは `KifuAnalysisController`（`Deps::resultsDock`）である。
 
 `MainWindowComposer::createPresentersAndDocks()` の最後に呼ぶ `createDocks()` は、中身の部品を `DockId` の順に `DockRegistry::Contents` に詰めて渡すだけである。
 
@@ -7647,7 +7654,7 @@ m_c.dockLayoutManager = new DockLayoutManager(&m_window, m_c.dockRegistry, &m_wi
 - `showCurrentComment()` — `KifuNavigationState::changed()` を受けて、表示中の手のコメントをコメント欄（`CommentEditorPanel`）に出す
 - `onCommentUpdated()` — コメント欄の「コメント更新」を表示中のノードに書く
 - `onBookmarkEditRequested()` — 棋譜欄の「しおり」ボタンで、表示中の手のしおりを編集する
-- `confirmLeaveEditingMove()` — 別の手へ移る前に、未更新のコメントを破棄してよいか確認する（合成ルートが `KifuNavigationController::setLeaveGuard()` に渡す）
+- `confirmLeaveEditingMove()` — 別の手へ移る前に、未更新のコメントを破棄してよいか確認する（合成ルートが `KifuNavigationController::addLeaveGuard()` に足す）
 
 編集する手は、`Deps::navState` の表示中の手（`KifuNavigationState`）から決める。
 
@@ -7749,7 +7756,7 @@ sequenceDiagram
     Note over GS: 時計に持ち時間を設定（TimeControlUtil::applyToClock）<br/>→ 時計の表示
     GS->>DOC: beginMatch(players, time, continuesRecord)
     Note over DOC: 対局者・持ち時間・開始日時を記録し、<br/>対局情報を作り直す（headerReset → 対局情報欄・盤の対局者名）
-    GS->>GS: PlayerInfoPresenter::showPlayers()<br/>（盤の対局者名。エンジンの表示は playersChanged を受けた EngineDisplayPresenter）
+    Note over GS: 盤の対局者名は playersChanged を受けた PlayerInfoPresenter、<br/>エンジンの表示は EngineDisplayPresenter
     GS->>MC: start(MatchStartOptions)
     Note over MC: 動作状態を DuringGame にし、<br/>盤を開始局面にする
     MC->>ST: 対局者の組で Strategy を作って start()
@@ -7865,12 +7872,12 @@ sequenceDiagram
 | `BoardSyncPresenter` | 表示中の手の局面に盤を合わせ、指し手のハイライトと手番を示す（`src/ui/presenters/`） |
 
 **補足:**
-- `BoardMoveController::playMove()` が動作状態（`AppActivityState`）で振り分ける。局面編集中は `PositionEditSession::applyEditMove()`、待機中は `BranchTreeEditController::recordBoardMove()`、通信対局中は `csaMoveRequested(UsiMove)` シグナル、対局中は上のフローである。定跡ウィンドウの手は `playUsiMove()` から同じ処理に入る。どの場合も `onMoveApplied()` で手を受け付けたかを盤の操作へ返す
+- `BoardMoveController::playMove()` が行き先（`HumanTurnPolicy::boardInput()`）で振り分ける。局面編集中は `PositionEditSession::applyEditMove()`、待機中は `BranchTreeEditController::recordMove()`、通信対局中は `csaMoveRequested(UsiMove)` シグナル、対局中は上のフローである。定跡ウィンドウの手は `playUsiMove()` から同じ処理に入る。どの場合も `onMoveApplied()` で手を受け付けたかを盤の操作へ返す
 - 成り・不成は `ShogiGameController::prepareMove()` が合法性と合わせて決め、クリックを1回だけ `UsiMove` にする（盤に指すのは `applyMove()`）。両方とも合法なら成りダイアログ（`setPromotionChooser()` で渡す `DialogLauncher::choosePromotion()`）で選ばせ、成りだけが合法（行き所のない駒）なら成る（6.6 節）
 - `MatchCoordinator::onHumanMove()` は対局者の組の Strategy（人間対エンジンなら `HumanVsEngineStrategy`）に渡す。Strategy は `MatchStrategyHost::completeHumanMove()` で一手を確定させ、エンジンの手番なら `requestEngineMove()` で `Usi::requestMatchMove()`（position と go）を頼み、`matchMoveReady` シグナルで受けた応手を `applyEngineMove()` で指す
 - 手番は `ShogiBoard` だけが持ち、`ShogiBoard::turnChanged` を `BoardChromeWidget::setActiveSide()` が受けて盤の手番表示を切り替える。時計の表示は `TimeDisplayPresenter` が `ShogiClock::timeUpdated` を直接受けて合わせる
 - 人間同士の対局ではエンジンとの通信はなく、司令塔が一手を確定して手番が交互に切り替わる。通信対局では `BoardMoveController` が `csaMoveRequested(UsiMove)` シグナルで手を `CsaGameCoordinator::onHumanMove(const UsiMove&)` へ送る（15.5）
-- 対局していないときに盤で指した手は、`BranchTreeEditController::recordBoardMove()` が棋譜の変化として記録する
+- 対局していないときに盤で指した手は、`BranchTreeEditController::recordMove()` が棋譜の変化として記録する
 
 ---
 
@@ -7939,7 +7946,7 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant User as ユーザー
-    participant CTM as ConsiderationTabManager
+    participant CTM as ConsiderationPanel
     participant CUI as ConsiderationUiController
     participant EDP as EngineDisplayPresenter
     participant AS as AnalysisSession
@@ -8001,7 +8008,7 @@ sequenceDiagram
 
 | クラス | 責務 |
 |--------|------|
-| `ConsiderationTabManager` | 検討ドックの中身（`src/widgets/`）。エンジン選択・時間設定・MultiPV設定・矢印・開始/中止ボタン。設定は `ConsiderationSettings` を正本として持ち（`settings()`・`setSettings()`・`settingsChanged`）、保存・復元も担う。ボタンと経過時間は実行の状態（`RunState`）で決まる |
+| `ConsiderationPanel` | 検討ドックの中身（`src/widgets/`）。エンジン選択・時間設定・MultiPV設定・矢印・開始/中止ボタン。設定は `ConsiderationSettings` を正本として持ち（`settings()`・`setSettings()`・`settingsChanged`）、保存・復元も担う。ボタンと経過時間は実行の状態（`RunState`）で決まる |
 | `ConsiderationUiController` | 検討タブの開始・中止・条件の変更（エンジン・候補手の数）・エンジン設定を検討のセッションへ伝える。表示には触れない（`src/ui/controllers/`） |
 | `EngineDisplayPresenter` | 検討タブの実行の状態・情報欄・検討の表への読み筋を、`AnalysisSession` の知らせだけから決める（`src/ui/presenters/`） |
 | `ConsiderationPositionResolver` | 表示中の手順から検討する局面（`UsiPosition`。直前の手を含む）を決める（`src/kifu/`） |
@@ -8013,9 +8020,9 @@ sequenceDiagram
 | `CandidateArrowPresenter` | 検討中（`AnalysisSession::isConsidering()`）なら、検討の表のモデルの候補手から盤の矢印を描く（`src/ui/presenters/`） |
 
 **補足:**
-- 検討モードのMultiPVは動的に変更可能。`ConsiderationTabManager::settingsChanged` → `ConsiderationUiController::onSettingsChanged()` → `AnalysisSession::updateMultiPV()` の経路で伝わり、探索をやり直す
+- 検討モードのMultiPVは動的に変更可能。`ConsiderationPanel::settingsChanged` → `ConsiderationUiController::onSettingsChanged()` → `AnalysisSession::updateMultiPV()` の経路で伝わり、探索をやり直す
 - 局面変更・MultiPV変更のやり直しは、`AnalysisSession` がエンジンに頼み直すだけで行う。探索していなければすぐ始め、探索中ならエンジンの側（`UsiEngineSession::search`）で stop を送り、結果を捨ててから最後の依頼だけを始めるので、二重に再開しない。`AnalysisSession` の状態は探索中（`Searching`）と次の局面を待つ（`Waiting`）だけ
-- 矢印表示は `CandidateArrowPresenter` が、検討中かどうかを `AnalysisSession::isConsidering()` から、表示の有無を検討タブの設定（`Deps::showConsiderationArrows`）から、候補手を検討の表のモデル（`Deps::consideration`）から読み、`ShogiView` に矢印を描く
+- 矢印表示は `CandidateArrowPresenter` が、検討中かどうかを `AnalysisSession::isConsidering()` から、表示の有無を検討タブの設定（`Deps::considerationSettings`）から、候補手を検討の表のモデル（`Deps::consideration`）から読み、`ShogiView` に矢印を描く
 - 検討中にエンジンを変えると、`ConsiderationUiController::onSettingsChanged()` が検討を止めて新しいエンジンで始め直す
 
 ---
@@ -9210,7 +9217,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | AnalysisJob | C | analysis | 棋譜解析1回の入力・進行・エンジンの利用期間を管理する（局面ごとに `PlyAnalysis` を出す） | 第9章 |
 | AnalysisOptions | S | analysis | 検討・詰み探索の開始オプション | 第9章 |
 | AnalysisRequest | S | analysis | 棋譜解析の依頼（手順・範囲と思考時間 `Options`・エンジン・分岐ライン） | 第9章 |
-| AnalysisResultHandler | C | ui/presenters | 棋譜解析の1局面の結果（`PlyAnalysis`）を結果の表の1行にし、先手から見た評価値を返す | 第9章, 第10章 |
+| KifuAnalysisRowPresenter | C | ui/presenters | 棋譜解析の1局面の結果（`PlyAnalysis`）を結果の表の1行にし、先手から見た評価値を返す | 第9章, 第10章 |
 | AnalysisResultsPanel | C | widgets | 棋譜解析の結果ドックの中身（結果の表・停止ボタン・文字の大きさ） | 第9章, 第11章 |
 | AnalysisSession | C | analysis | 検討・詰み探索（1つのエンジンで局面を調べる）のセッション | 第9章 |
 | AnalysisSettings | NS | services | 解析・検討の設定の宣言の表 | 第9章, 第12章 |
@@ -9253,7 +9260,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | ConsecutiveGameSeries | C | game | エンジン同士の連続対局（局数・手番の入れ替え・次局の計画） | 第6章 |
 | ConsiderationPositionResolver | C | kifu | 表示中の手順から検討する局面と直前の手を決める | 第9章 |
 | ConsiderationSettings | S | widgets | 検討タブの設定の値（エンジン・時間・候補手の数・矢印） | 第9章 |
-| ConsiderationTabManager | C | widgets | 検討ドックの中身（ツールバー・エンジン情報・候補手の表）。設定の正本と実行の状態（`RunState`）を持つ | 第9章, 第11章 |
+| ConsiderationPanel | C | widgets | 検討ドックの中身（ツールバー・エンジン情報・候補手の表）。設定の正本と実行の状態（`RunState`）を持つ | 第9章, 第11章 |
 | ConsiderationUiController | C | ui/controllers | 検討タブの開始・中止・条件の変更・エンジン設定を検討のセッションへ伝える | 第9章, 第10章 |
 | CsaClient | C | network | CSAプロトコル通信クライアント | 第12章 |
 | CsaExporter | C | kifu/formats | CSA形式の書き出し | 第8章 |
@@ -9319,7 +9326,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | HumanVsHumanStrategy | C | game | 人間対人間の Strategy | 第6章 |
 | InterruptedGameState | S | game | 中断したローカル対局の状態（アプリ起動中だけ保持する） | 第6章 |
 | ItemTextDelegate | C | widgets | 項目の文字を、配置を覚えて描くデリゲート | 第11章 |
-| JishogiCalculator | C | core | 持将棋の点数計算・判定 | 第12章 |
+| JishogiCalculator | C | core | 持将棋の点数計算と宣言の判定（`judge()` が `Verdict` を返す。点数の閾値はここだけ。文言は `NyugyokuJudgement`・`JishogiScoreDialog` が作る） | 第12章 |
 | JishogiScoreDialog | C | dialogs | 持将棋の点数ダイアログ（`showFor()` が局面から点数と王手を計算して開く） | 第10章 |
 | JkfExporter | C | kifu/formats | JKF形式の書き出し | 第8章 |
 | JkfToSfenConverter | C | kifu/formats | JKF形式→SFEN変換器 | 第8章 |
@@ -9674,7 +9681,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | boardsyncpresenter | 第10章 | 表示中の手の局面に盤を合わせ、ハイライトと手番を示す |
 | playerinfopresenter | 第10章, 第12章 | 盤の対局者名の表示 |
 | timedisplaypresenter | 第10章 | 時間表示更新（`ShogiClock::timeUpdated` を直接受ける） |
-| analysisresulthandler | 第9章, 第10章 | 棋譜解析の1局面の結果を結果の表の1行にする・読み筋盤面の表示 |
+| kifuanalysisrowpresenter | 第9章, 第10章 | 棋譜解析の1局面の結果を結果の表の1行にする |
 | candidatearrowpresenter | 第9章, 第10章 | 検討と対局のエンジンの読みを盤上の矢印にする |
 | kifudisplaypresenter | 第10章 | 棋譜欄・分岐候補欄・分岐ツリーに、表示中の手と手順を映す |
 | enginedisplaypresenter | 第9章, 第10章 | エンジンの表示の持ち主（枠 E1・E2 とモデルの結び・検討の表示・2つ目のエンジン欄・系列名・表示の消去） |
@@ -9757,7 +9764,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | timecontroleditor | 第11章 | 片方の対局者の持ち時間・秒読み・加算の欄 |
 | settingsformbinding | 第11章 | 入力欄と設定の宣言の対応の表 |
 | analysisresultspanel | 第9章, 第11章 | 棋譜解析の結果ドックの中身（結果の表・停止ボタン・文字の大きさ） |
-| considerationtabmanager | 第9章, 第11章 | 検討ドックの中身（ツールバー・エンジン情報・候補手の表。設定の正本と実行の状態） |
+| considerationpanel | 第9章, 第11章 | 検討ドックの中身（ツールバー・エンジン情報・候補手の表。設定の正本と実行の状態） |
 | considerationsettings | 第9章 | 検討タブの設定の値（エンジン・時間・候補手の数・矢印） |
 | gameinfopane | 第11章 | 対局情報ドックの中身（ツールバー＋表） |
 | tableheaderview | 第11章 | 表の見出し。列幅は利用者がドラッグしたときだけ `sectionResizedByUser` で知らせて保存する |
@@ -9827,7 +9834,8 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | apppaths | 第12章 | 設定・データ・キャッシュの置き場所（環境変数で別の場所へ切り替えられる） |
 | engineprofilestore | 第7章 | 登録エンジンの設定（一覧・USIオプション・先読みの設定）の保存形式を知る唯一の場所 |
 | engineoption | 第7章 | USIオプション1つの値（`EngineOption`） |
-| enginelistsettings | 第7章 | 登録エンジン一覧の検索（名前・パス）と機能ごとに選んだエンジンの保存 |
+| registeredengines | 第7章 | 登録エンジンの一覧と検索（名前・パス。GUI・CLI・自動化 API で共通） |
+| enginelistsettings | 第7章 | 機能ごとに選んだエンジンの保存 |
 | piecesoundplayer | 第10章 | 駒音（駒を指したときの効果音）の再生 |
 | piecestylecatalog | 第12章 | 駒のセットの表（ID・分類・表示名・画像の場所） |
 | appearancestate | 第12章 | 外観（駒のセット・配色・見た目）をまとめた値 |

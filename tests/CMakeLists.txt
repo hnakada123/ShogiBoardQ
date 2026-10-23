@@ -60,6 +60,7 @@ set(SETTINGS_SOURCES
     ${SRC}/services/piecestylecatalog.cpp
     ${SRC}/services/docksettings.cpp
     ${SRC}/services/enginelistsettings.cpp
+    ${SRC}/services/registeredengines.cpp
     ${SRC}/services/engineprofilestore.cpp
     ${SRC}/services/tsumeshogisettings.cpp
 )
@@ -433,6 +434,7 @@ add_shogi_test(tst_startgamedialog
     ${SRC}/widgets/fontsizehelper.cpp
     ${SRC}/common/logcategories.cpp
     ${SRC}/services/enginelistsettings.cpp
+    ${SRC}/services/registeredengines.cpp
     ${SRC}/services/engineprofilestore.cpp
     ${SRC}/services/settingscommon.cpp
 )
@@ -462,6 +464,7 @@ add_shogi_test(tst_engineprofilestore
     ${SRC}/widgets/fontsizehelper.cpp
     ${SRC}/common/logcategories.cpp
     ${SRC}/services/enginelistsettings.cpp
+    ${SRC}/services/registeredengines.cpp
     ${SRC}/services/engineprofilestore.cpp
     ${SRC}/services/settingscommon.cpp
 )
@@ -792,7 +795,7 @@ add_shogi_test(tst_tsumeshogi_export_header
 )
 
 # ============================================================
-# Unit: 棋譜解析の1局面の結果（PlyAnalysisCollector・AnalysisResultHandler）テスト
+# Unit: 棋譜解析の1局面の結果（PlyAnalysisCollector・KifuAnalysisRowPresenter）テスト
 # ============================================================
 add_shogi_test(tst_analysis_results tst_analysis_results.cpp)
 target_link_libraries(tst_analysis_results PRIVATE shogiboardq_static)

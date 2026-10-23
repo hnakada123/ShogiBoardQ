@@ -72,7 +72,6 @@ void AutomationCommands::registerUiCommands(AutomationDispatcher& dispatcher, co
             }
         }
         if (!view) throw AutomationError(ErrorKind::NotFound, QStringLiteral("No visible board in the target window"));
-        requireInteractive(view);
         const QPoint square(file, rank);
         squareClickPosition(view, square); // 不正な座標は応答前に拒否する。
         const auto mouseButton = button == QLatin1String("left") ? Qt::LeftButton : Qt::RightButton;
@@ -108,7 +107,6 @@ void AutomationCommands::registerUiCommands(AutomationDispatcher& dispatcher, co
         }
         if (index >= matches.size()) throw AutomationError(ErrorKind::NotFound, QStringLiteral("No matching visible button"));
         auto* button = matches[index];
-        requireInteractive(button);
         return AutomationInteractions::queue(
             {button, [button]() { requireInteractive(button); }, [button]() { button->click(); }},
             QJsonObject{{QStringLiteral("object_name"), button->objectName()}, {QStringLiteral("text"), button->text()}});
@@ -143,11 +141,6 @@ void AutomationCommands::registerUiCommands(AutomationDispatcher& dispatcher, co
         if (!action) {
             throw AutomationError(ErrorKind::NotFound, QStringLiteral("Action \"%1\" does not exist").arg(name));
         }
-        if (!action->isEnabled()) {
-            throw AutomationError(ErrorKind::InvalidState,
-                                  QStringLiteral("Action \"%1\" is disabled in the current state").arg(name));
-        }
-        requireInteractive(context.mainWindow);
         // モーダルダイアログを開く動作でも応答が返るように、次のイベントループ反復で実行する
         QWidget* mainWindow = context.mainWindow;
         return AutomationInteractions::queue(
@@ -156,7 +149,7 @@ void AutomationCommands::registerUiCommands(AutomationDispatcher& dispatcher, co
                  requireInteractive(mainWindow);
                  if (!action->isEnabled())
                      throw AutomationError(ErrorKind::InvalidState,
-                                           QStringLiteral("Action \"%1\" became disabled").arg(name));
+                                           QStringLiteral("Action \"%1\" is disabled in the current state").arg(name));
              },
              [action]() { action->trigger(); }},
             QJsonObject{{QStringLiteral("name"), name}, {QStringLiteral("triggered"), true}});
@@ -216,7 +209,6 @@ void AutomationCommands::registerUiCommands(AutomationDispatcher& dispatcher, co
         if (!window || window == context.mainWindow) {
             throw AutomationError(ErrorKind::NotFound, QStringLiteral("No open dialog matches \"%1\"").arg(target));
         }
-        requireInteractive(window);
         // モーダルダイアログの exec() を抜けさせるため、応答後に閉じる
         return AutomationInteractions::queue(
             {window, [window]() { requireInteractive(window); },

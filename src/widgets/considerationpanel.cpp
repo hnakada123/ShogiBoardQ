@@ -1,7 +1,7 @@
-/// @file considerationtabmanager.cpp
+/// @file considerationpanel.cpp
 /// @brief 検討タブ管理クラスの実装（状態管理・設定・イベント処理）
 
-#include "considerationtabmanager.h"
+#include "considerationpanel.h"
 #include "fontsizecontrol.h"
 #include "engineselector.h"
 #include "engineinfowidget.h"
@@ -26,7 +26,7 @@
 #include <QVBoxLayout>
 #include <initializer_list>
 
-ConsiderationTabManager::ConsiderationTabManager(QWidget* parent)
+ConsiderationPanel::ConsiderationPanel(QWidget* parent)
     : QWidget(parent)
     , m_considerationFontSize(AnalysisSettings::considerationFontSize, 8, 24)
 {
@@ -46,25 +46,13 @@ ConsiderationTabManager::ConsiderationTabManager(QWidget* parent)
     layout->addWidget(m_considerationView, 1);
 }
 
-ConsiderationTabManager::~ConsiderationTabManager()
+ConsiderationPanel::~ConsiderationPanel()
 {
 }
 
 // ===================== 検討の条件 =====================
 
-void ConsiderationTabManager::setSettings(const ConsiderationSettings& settings)
-{
-    ConsiderationSettings next = settings;
-    next.multiPV = qBound(1, next.multiPV, 10);
-    next.byoyomiSec = qBound(1, next.byoyomiSec, 3600);
-    if (next == m_settings) return;
-    m_settings = next;
-    showSettings();
-    saveSettings();
-    emit settingsChanged(m_settings);
-}
-
-void ConsiderationTabManager::onControlChanged()
+void ConsiderationPanel::onControlChanged()
 {
     // 画面の値を読み直し、変わった条件を保存して知らせる
     ConsiderationSettings next = m_settings;
@@ -81,7 +69,7 @@ void ConsiderationTabManager::onControlChanged()
     emit settingsChanged(m_settings);
 }
 
-void ConsiderationTabManager::showSettings()
+void ConsiderationPanel::showSettings()
 {
     const QSignalBlocker engineBlocker(m_engineComboBox);
     const QSignalBlocker unlimitedBlocker(m_unlimitedTimeRadioButton);
@@ -97,7 +85,7 @@ void ConsiderationTabManager::showSettings()
     updateTimeControls();
 }
 
-void ConsiderationTabManager::saveSettings() const
+void ConsiderationPanel::saveSettings() const
 {
     if (!m_settings.engineName.isEmpty())
         EngineListSettings::saveSelection(EngineListSettings::considerationSelection(), m_settings.engineName);
@@ -106,50 +94,49 @@ void ConsiderationTabManager::saveSettings() const
     AnalysisSettings::considerationMultiPV.set(m_settings.multiPV);
 }
 
-void ConsiderationTabManager::reloadEngines()
+void ConsiderationPanel::reloadEngines()
 {
     m_engineSelector->reload();
 }
 
-void ConsiderationTabManager::loadEnginesAndSettings()
+void ConsiderationPanel::loadEnginesAndSettings()
 {
     // エンジンの一覧（登録順）。保存した選択を復元し、無ければ先頭のエンジン
     EngineSelector::Options engineOptions;
     engineOptions.keys = EngineListSettings::considerationSelection();
     m_engineSelector = new EngineSelector({m_engineComboBox, m_btnEngineSettings, nullptr}, engineOptions, this);
     connect(m_engineSelector, &EngineSelector::settingsRequested,
-            this, &ConsiderationTabManager::engineSettingsRequested);
+            this, &ConsiderationPanel::engineSettingsRequested);
     if (const std::optional<EngineSelector::Engine> engine = m_engineSelector->selected())
         m_settings.engineName = engine->name;
     m_settings.unlimitedTime = AnalysisSettings::considerationUnlimitedTime();
-    const int seconds = AnalysisSettings::considerationByoyomiSec();
-    m_settings.byoyomiSec = seconds > 0 ? seconds : 20;
-    m_settings.multiPV = qBound(1, AnalysisSettings::considerationMultiPV(), 10);
+    m_settings.byoyomiSec = AnalysisSettings::considerationByoyomiSec();
+    m_settings.multiPV = AnalysisSettings::considerationMultiPV();
     showSettings();
 
     // 利用者がどれを変えても、画面の値から条件を読み直す
-    connect(m_engineSelector, &EngineSelector::selectionChanged, this, &ConsiderationTabManager::onControlChanged);
-    connect(m_unlimitedTimeRadioButton, &QRadioButton::toggled, this, &ConsiderationTabManager::onControlChanged);
-    connect(m_considerationTimeRadioButton, &QRadioButton::toggled, this, &ConsiderationTabManager::onControlChanged);
+    connect(m_engineSelector, &EngineSelector::selectionChanged, this, &ConsiderationPanel::onControlChanged);
+    connect(m_unlimitedTimeRadioButton, &QRadioButton::toggled, this, &ConsiderationPanel::onControlChanged);
+    connect(m_considerationTimeRadioButton, &QRadioButton::toggled, this, &ConsiderationPanel::onControlChanged);
     connect(m_byoyomiSecSpinBox, QOverload<int>::of(&QSpinBox::valueChanged),
-            this, &ConsiderationTabManager::onControlChanged);
+            this, &ConsiderationPanel::onControlChanged);
     connect(m_multiPVComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
-            this, &ConsiderationTabManager::onControlChanged);
-    connect(m_showArrowsCheckBox, &QCheckBox::toggled, this, &ConsiderationTabManager::onControlChanged);
+            this, &ConsiderationPanel::onControlChanged);
+    connect(m_showArrowsCheckBox, &QCheckBox::toggled, this, &ConsiderationPanel::onControlChanged);
 }
 
 // ===================== エンジン名 =====================
 
-void ConsiderationTabManager::setConsiderationEngineName(const QString& name)
+void ConsiderationPanel::setConsiderationEngineName(const QString& name)
 {
     m_considerationInfo->setDisplayNameFallback(name);
 }
 
 // ===================== 実行の状態 =====================
 
-void ConsiderationTabManager::setRunState(RunState state)
+void ConsiderationPanel::setRunState(RunState state)
 {
-    qCDebug(lcUi).noquote() << "[ConsiderationTabManager::setRunState]" << static_cast<int>(state);
+    qCDebug(lcUi).noquote() << "[ConsiderationPanel::setRunState]" << static_cast<int>(state);
     m_runState = state;
     switch (state) {
     case RunState::Idle:
@@ -169,7 +156,7 @@ void ConsiderationTabManager::setRunState(RunState state)
     updateRunButton();
 }
 
-void ConsiderationTabManager::updateRunButton()
+void ConsiderationPanel::updateRunButton()
 {
     const bool running = m_runState != RunState::Idle;
     m_btnStopConsideration->setText(running ? tr("検討中止") : tr("検討開始"));
@@ -178,13 +165,13 @@ void ConsiderationTabManager::updateRunButton()
     m_btnStopConsideration->setEnabled(running || m_startConsiderationEnabled);
 }
 
-void ConsiderationTabManager::onRunButtonClicked()
+void ConsiderationPanel::onRunButtonClicked()
 {
     if (m_runState == RunState::Idle) emit startConsiderationRequested();
     else emit stopConsiderationRequested();
 }
 
-void ConsiderationTabManager::setStartConsiderationEnabled(bool enabled)
+void ConsiderationPanel::setStartConsiderationEnabled(bool enabled)
 {
     m_startConsiderationEnabled = enabled;
     updateRunButton();
@@ -192,14 +179,14 @@ void ConsiderationTabManager::setStartConsiderationEnabled(bool enabled)
 
 // ===================== 経過時間 =====================
 
-void ConsiderationTabManager::resetElapsedTime()
+void ConsiderationPanel::resetElapsedTime()
 {
     m_elapsedTimer->stop();
     m_elapsedSeconds = 0;
     m_elapsedTimeLabel->setText(tr("経過: 0:00"));
 }
 
-void ConsiderationTabManager::onElapsedTimerTick()
+void ConsiderationPanel::onElapsedTimerTick()
 {
     m_elapsedSeconds++;
     // 時間を決めた検討は、その秒数で止める
@@ -215,7 +202,7 @@ void ConsiderationTabManager::onElapsedTimerTick()
 
 // ===================== 設定の操作 =====================
 
-void ConsiderationTabManager::updateTimeControls()
+void ConsiderationPanel::updateTimeControls()
 {
     const bool idle = m_runState == RunState::Idle;
     const bool unlimited = !m_unlimitedTimeRadioButton || m_unlimitedTimeRadioButton->isChecked();
@@ -227,15 +214,15 @@ void ConsiderationTabManager::updateTimeControls()
 }
 
 // ============================================================
-// ConsiderationTabManager のUI構築・フォント管理
+// ConsiderationPanel のUI構築・フォント管理
 // ============================================================
 
-void ConsiderationTabManager::clearViewSelection(const ShogiEngineThinkingModel* model)
+void ConsiderationPanel::clearViewSelection(const ShogiEngineThinkingModel* model)
 {
     if (m_considerationView->thinkingModel() == model) m_considerationView->clearRowSelection();
 }
 
-void ConsiderationTabManager::buildToolbarControls()
+void ConsiderationPanel::buildToolbarControls()
 {
     // ツールバー（FlowLayout使用）
     m_considerationToolbar = new QWidget(this);
@@ -246,7 +233,7 @@ void ConsiderationTabManager::buildToolbarControls()
         QStringLiteral("considerationFontDecrease"), QStringLiteral("considerationFontIncrease"));
     m_btnConsiderationFontDecrease = qobject_cast<QToolButton*>(fontButtons->decreaseButton());
     m_btnConsiderationFontIncrease = qobject_cast<QToolButton*>(fontButtons->increaseButton());
-    connect(&m_considerationFontSize, &FontSizeHelper::fontSizeChanged, this, &ConsiderationTabManager::applyFontSize);
+    connect(&m_considerationFontSize, &FontSizeHelper::fontSizeChanged, this, &ConsiderationPanel::applyFontSize);
 
     // エンジン選択コンボボックス
     m_engineComboBox = new QComboBox(m_considerationToolbar);
@@ -276,7 +263,8 @@ void ConsiderationTabManager::buildToolbarControls()
     // 検討時間スピンボックス
     m_byoyomiSecSpinBox = new QSpinBox(m_considerationToolbar);
     m_byoyomiSecSpinBox->setObjectName(QStringLiteral("considerationSeconds"));
-    m_byoyomiSecSpinBox->setRange(1, 3600);
+    m_byoyomiSecSpinBox->setRange(AnalysisSettings::considerationByoyomiSec.minimum(),
+                                  AnalysisSettings::considerationByoyomiSec.maximum());
     m_byoyomiSecSpinBox->setValue(20);
     m_byoyomiSecSpinBox->setToolTip(tr("検討時間（秒）を指定します"));
 
@@ -292,7 +280,7 @@ void ConsiderationTabManager::buildToolbarControls()
     // 経過時間更新タイマー
     m_elapsedTimer = new QTimer(this);
     m_elapsedTimer->setInterval(1000);
-    connect(m_elapsedTimer, &QTimer::timeout, this, &ConsiderationTabManager::onElapsedTimerTick);
+    connect(m_elapsedTimer, &QTimer::timeout, this, &ConsiderationPanel::onElapsedTimerTick);
 
     // 候補手の数
     m_multiPVLabel = new QLabel(tr("候補手の数"), m_considerationToolbar);
@@ -316,10 +304,10 @@ void ConsiderationTabManager::buildToolbarControls()
     m_btnStopConsideration->setText(tr("検討開始"));
     m_btnStopConsideration->setToolTip(tr("検討を開始します"));
     m_btnStopConsideration->setStyleSheet(ButtonStyles::primaryAction());
-    connect(m_btnStopConsideration, &QToolButton::clicked, this, &ConsiderationTabManager::onRunButtonClicked);
+    connect(m_btnStopConsideration, &QToolButton::clicked, this, &ConsiderationPanel::onRunButtonClicked);
 }
 
-void ConsiderationTabManager::layoutToolbar()
+void ConsiderationPanel::layoutToolbar()
 {
     auto* toolbarLayout = new FlowLayout(m_considerationToolbar, 2, 16, 6);
     // 関連する操作を同じ行に保ち、グループ単位で折り返す。
@@ -340,7 +328,7 @@ void ConsiderationTabManager::layoutToolbar()
     addGroup({m_elapsedTimeLabel, m_btnStopConsideration});
 }
 
-void ConsiderationTabManager::buildConsiderationView()
+void ConsiderationPanel::buildConsiderationView()
 {
     // EngineInfoWidget（検討タブ用）
     m_considerationInfo = new EngineInfoWidget(AnalysisSettings::ThinkingTable::Consideration, this, false);
@@ -350,9 +338,9 @@ void ConsiderationTabManager::buildConsiderationView()
     // 読み筋の表
     m_considerationView = new ThinkingTableView(AnalysisSettings::ThinkingTable::Consideration, this);
     m_considerationView->setObjectName(QStringLiteral("considerationView"));
-    connect(m_considerationView, &ThinkingTableView::pvRowClicked, this, &ConsiderationTabManager::pvRowClicked);
+    connect(m_considerationView, &ThinkingTableView::pvRowClicked, this, &ConsiderationPanel::pvRowClicked);
     connect(m_considerationView, &ThinkingTableView::thinkingRowContextMenuAboutToShow,
-            this, &ConsiderationTabManager::rowContextMenuAboutToShow);
+            this, &ConsiderationPanel::rowContextMenuAboutToShow);
 
     // buildConsiderationUi() より前に setConsiderationThinkingModel() が呼ばれた場合、
     // 保存済みモデルをビューに適用する
@@ -361,7 +349,7 @@ void ConsiderationTabManager::buildConsiderationView()
 
 // ===================== モデル設定 =====================
 
-void ConsiderationTabManager::setConsiderationThinkingModel(ShogiEngineThinkingModel* m)
+void ConsiderationPanel::setConsiderationThinkingModel(ShogiEngineThinkingModel* m)
 {
     m_considerationModel = m;
     if (m) m_considerationView->setThinkingModel(m);
@@ -369,7 +357,7 @@ void ConsiderationTabManager::setConsiderationThinkingModel(ShogiEngineThinkingM
 
 // ===================== スロット（UI関連） =====================
 
-void ConsiderationTabManager::applyFontSize()
+void ConsiderationPanel::applyFontSize()
 {
     const int size = m_considerationFontSize.fontSize();
     QFont font;

@@ -10,7 +10,7 @@
 #include <array>
 
 class AnalysisSession;
-class ConsiderationTabManager;
+class ConsiderationPanel;
 class CsaLogPanel;
 class EngineLifecycleManager;
 class EvaluationGraphPresenter;
@@ -50,7 +50,7 @@ public:
         ShogiEngineThinkingModel* consideration = nullptr; ///< 検討の表
         KifuAnalysisListModel* analysisModel = nullptr;   ///< 棋譜解析の結果
         ThinkingPanel* thinkingPanel = nullptr;           ///< 思考ドック（2つ目のエンジン欄・エンジン名）
-        ConsiderationTabManager* considerationTab = nullptr; ///< 検討ドック
+        ConsiderationPanel* considerationTab = nullptr; ///< 検討ドック
         EvaluationGraphPresenter* evalGraph = nullptr;    ///< 評価値グラフの系列名
         UsiLogPanel* usiLog = nullptr;
         CsaLogPanel* csaLog = nullptr;

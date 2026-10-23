@@ -29,7 +29,6 @@ class LiveGameSession;
 class LocalGameChannel;
 class MainWindowAppearanceController;
 class NyugyokuDeclarationHandler;
-class PlayerInfoPresenter;
 class SessionResetCoordinator;
 class ShogiClock;
 class ShogiView;
@@ -62,7 +61,6 @@ public:
         KifuDocument* document = nullptr;                   ///< 棋譜の文書（対局者・持ち時間・開始と終了の日時・対局情報）
         ShogiClock* clock = nullptr;                        ///< 対局の時計
         TimeDisplayPresenter* timePresenter = nullptr;      ///< 時計の表示
-        PlayerInfoPresenter* playerInfo = nullptr;          ///< 対局者の表示
         KifuFileController* kifuFileController = nullptr;   ///< 未保存の棋譜の確認
         ShogiView* shogiView = nullptr;                     ///< 手前に表示している側
         MainWindowAppearanceController* appearance = nullptr; ///< 「人を手前に表示する」の盤の反転

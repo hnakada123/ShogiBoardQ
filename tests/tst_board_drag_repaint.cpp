@@ -9,6 +9,7 @@
 #include <QWindow>
 #include <QtMath>
 
+#include "positioneditrules.h"
 #include "piecestylecatalog.h"
 #include "pvtext.h"
 #include "appsettings.h"
@@ -537,14 +538,14 @@ private slots:
         };
         for (const auto& [from, to] : edits) {
             ui.view.startDrag(from);
-            QVERIFY2(ui.gc.editPosition(from, to, ui.view.pieceBoxSide()),
+            QVERIFY2(PositionEditRules::apply(*ui.gc.board(), from, to, ui.view.pieceBoxSide()),
                      qPrintable(QStringLiteral("edit %1,%2 -> %3,%4").arg(from.x()).arg(from.y())
                                     .arg(to.x()).arg(to.y())));
             ui.view.endDrag();
             QCoreApplication::processEvents();
             QCOMPARE(stalePixels(ui), 0);
         }
-        ui.gc.switchPiecePromotionStatusOnRightClick(7, 7);
+        ui.gc.board()->promoteOrDemotePiece(7, 7);
         QCoreApplication::processEvents();
         QCOMPARE(stalePixels(ui), 0);
     }

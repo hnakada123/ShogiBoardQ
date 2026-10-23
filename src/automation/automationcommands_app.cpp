@@ -75,7 +75,7 @@ QString playModeName(const AppActivityState& state, const MatchPlayers& players,
     }
     if (players.humanVsHuman()) return QStringLiteral("human_vs_human");
     const QString seats = players.engineVsEngine() ? QStringLiteral("engine_vs_engine")
-                        : players.blackIsEngine  ? QStringLiteral("engine_vs_human")
+                        : players.isEngine(Turn::Black)  ? QStringLiteral("engine_vs_human")
                                                  : QStringLiteral("human_vs_engine");
     const bool handicap = KifuExportMetadataBuilder::isHandicap(KifuExportMetadataBuilder::handicapLabel(startSfen));
     return handicap ? QStringLiteral("handicap_") + seats : seats;
@@ -161,8 +161,8 @@ void AutomationCommands::registerAppCommands(AutomationDispatcher& dispatcher, c
             engines[QStringLiteral("black")] = analysisEngine;
             engines[QStringLiteral("white")] = QString();
         } else {
-            engines[QStringLiteral("black")] = players.blackEngineName;
-            engines[QStringLiteral("white")] = players.whiteEngineName;
+            engines[QStringLiteral("black")] = players.engineName(Turn::Black);
+            engines[QStringLiteral("white")] = players.engineName(Turn::White);
         }
         result[QStringLiteral("engines")] = engines;
         // 通信対局を一度も始めていなければ（司令塔が待機のまま）出さない

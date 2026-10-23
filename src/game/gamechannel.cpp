@@ -40,7 +40,9 @@ Turn LocalGameChannel::sideToMove() const
 
 std::optional<NyugyokuJudgement::Result> LocalGameChannel::declareNyugyoku()
 {
-    return m_match->declareNyugyoku(m_match->sideToMove(), NyugyokuJudgement::configuredRule());
+    // 持将棋ルールが「なし」なら宣言の前に止めている（NyugyokuDeclarationHandler）。届いたら27点法で判定する
+    return m_match->declareNyugyoku(m_match->sideToMove(),
+                                    NyugyokuJudgement::configuredRule().value_or(JishogiCalculator::Rule::Points27));
 }
 
 MatchPlayers LocalGameChannel::players() const

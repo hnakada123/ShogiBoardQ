@@ -54,7 +54,7 @@ TsumeShogiSearchDialog::TsumeShogiSearchDialog(QWidget *parent)
 
 TsumeShogiSearchDialog::~TsumeShogiSearchDialog() = default;
 
-std::optional<EngineListSettings::EngineEntry> TsumeShogiSearchDialog::engine() const
+std::optional<EngineEntry> TsumeShogiSearchDialog::engine() const
 {
     return m_engineSelector->selected();
 }
@@ -71,7 +71,7 @@ bool TsumeShogiSearchDialog::unlimitedTimeFlag() const
 
 bool TsumeShogiSearchDialog::hasValidEngine() const
 {
-    const std::optional<EngineListSettings::EngineEntry> selected = engine();
+    const std::optional<EngineEntry> selected = engine();
     return selected && !selected->name.isEmpty() && !selected->path.isEmpty();
 }
 
@@ -84,7 +84,7 @@ void TsumeShogiSearchDialog::updateEngineSelection()
         : tr("使用できるエンジンがありません。「設定」→「エンジン設定」で登録してください。"));
 }
 
-void TsumeShogiSearchDialog::showEngineSettingsDialog(const EngineListSettings::EngineEntry& engine)
+void TsumeShogiSearchDialog::showEngineSettingsDialog(const EngineEntry& engine)
 {
     ChangeEngineSettingsDialog dialog(engine, this);
     dialog.exec();

@@ -37,7 +37,7 @@ class TimeDisplayPresenter;
 // 画面部品
 class BranchTreeView;
 class CommentEditorPanel;
-class ConsiderationTabManager;
+class ConsiderationPanel;
 class CsaLogPanel;
 class EvaluationChartWidget;
 class GameInfoPane;
@@ -134,7 +134,7 @@ struct MainWindowComponents {
     // --- 画面部品 ---
     RecordPane* recordPane = nullptr;
     ThinkingPanel* thinkingPanel = nullptr;             ///< 思考ドック
-    ConsiderationTabManager* considerationTab = nullptr; ///< 検討ドック
+    ConsiderationPanel* considerationTab = nullptr; ///< 検討ドック
     UsiLogPanel* usiLog = nullptr;                      ///< USI通信ログドック
     CsaLogPanel* csaLog = nullptr;                      ///< CSA通信ログドック
     CommentEditorPanel* commentEditor = nullptr;        ///< 棋譜コメントドック

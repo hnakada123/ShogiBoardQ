@@ -170,6 +170,18 @@ QRect BoardGeometry::playerCard(Turn side, int cardHeight, int areaHeight) const
     return QRect(area.left(), qBound(0, top, std::max(0, areaHeight - cardHeight)), area.width(), cardHeight);
 }
 
+QRect BoardGeometry::pieceBox(int cardHeight, int areaHeight) const
+{
+    const Turn leftSide = flipped() ? Turn::Black : Turn::White;
+    const QRect area = stand(leftSide);
+    const int above = cardHeight > 0 ? playerCard(leftSide, cardHeight, areaHeight).bottom() : area.bottom();
+    const int top = above + standGap() + 1;
+    const int bottom = m_board.top() + m_board.height();
+    const int height = qMin(bottom - top, qRound(m_field.height() * 3.2));
+    if (height <= 0) return {};
+    return QRect(area.left(), bottom - height, area.width(), height);
+}
+
 QRect BoardGeometry::pieceBoxLabel(const QRect& box)
 {
     if (box.isEmpty()) return {};

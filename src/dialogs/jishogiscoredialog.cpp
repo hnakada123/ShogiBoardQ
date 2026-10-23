@@ -74,10 +74,11 @@ JishogiScoreDialog::JishogiScoreDialog(const JishogiCalculator::JishogiResult& r
                .arg(result.gote.piecesInEnemyTerritory), QStringLiteral("piecesInCamp"));
     addRow(grid, tr("王手がかかっていない"), conditionText(!senteInCheck),
            conditionText(!goteInCheck), QStringLiteral("notInCheck"));
-    addRow(grid, tr("24点法"), ruleText(result.sente, senteInCheck, true, true),
-           ruleText(result.gote, goteInCheck, false, true), QStringLiteral("rule24"), true);
-    addRow(grid, tr("27点法"), ruleText(result.sente, senteInCheck, true, false),
-           ruleText(result.gote, goteInCheck, false, false), QStringLiteral("rule27"), true);
+    using Rule = JishogiCalculator::Rule;
+    addRow(grid, tr("24点法"), ruleText(result.sente, senteInCheck, true, Rule::Points24),
+           ruleText(result.gote, goteInCheck, false, Rule::Points24), QStringLiteral("rule24"), true);
+    addRow(grid, tr("27点法"), ruleText(result.sente, senteInCheck, true, Rule::Points27),
+           ruleText(result.gote, goteInCheck, false, Rule::Points27), QStringLiteral("rule27"), true);
     contentLayout->addLayout(grid);
 
     const QString notes = tr("点数：飛・角（龍・馬）は5点、その他は1点。玉は数えません。\n"
@@ -180,17 +181,16 @@ QString JishogiScoreDialog::conditionText(bool met)
 }
 
 QString JishogiScoreDialog::ruleText(const JishogiCalculator::PlayerScore& score,
-                                    bool inCheck, bool isSente, bool rule24)
+                                    bool inCheck, bool isSente, JishogiCalculator::Rule rule)
 {
-    const int requiredPoints = rule24 ? 24 : (isSente ? 28 : 27);
+    using Verdict = JishogiCalculator::Verdict;
+    const int requiredPoints = JishogiCalculator::requiredPoints(rule, isSente);
     QString text;
-    if (!JishogiCalculator::meetsDeclarationConditions(score, inCheck)) {
-        text = tr("条件未達");
-    } else if (score.declarationPoints < requiredPoints) {
-        text = tr("点数不足");
-    } else {
-        text = tr("宣言時：%1").arg(rule24 ? JishogiCalculator::result24(score, inCheck)
-                                            : JishogiCalculator::result27(score, isSente, inCheck));
+    switch (JishogiCalculator::judge(score, rule, isSente, inCheck)) {
+    case Verdict::NotDeclarable: text = tr("条件未達"); break;
+    case Verdict::ShortOfPoints: text = tr("点数不足"); break;
+    case Verdict::Draw: text = tr("宣言時：%1").arg(tr("引き分け")); break;
+    case Verdict::Win: text = tr("宣言時：%1").arg(tr("勝ち")); break;
     }
     if (score.declarationPoints < requiredPoints) {
         text += QLatin1Char('\n') + tr("あと%1点").arg(requiredPoints - score.declarationPoints);

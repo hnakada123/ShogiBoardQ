@@ -12,7 +12,7 @@
 #include "commentcoordinator.h"
 #include "commenteditorpanel.h"
 #include "consecutivegameseries.h"
-#include "considerationtabmanager.h"
+#include "considerationpanel.h"
 #include "considerationuicontroller.h"
 #include "dialoglauncher.h"
 #include "errorbus.h"
@@ -97,8 +97,10 @@ void MainWindowComposer::connectRecord()
     // 対局情報（対局情報欄は文書の対局情報を編集する画面）
     GameInfoPane* gameInfo = m_c.gameInfoPane;
     // 入力中の編集（対局情報欄のセル・コメント欄の本文）は、保存・書き出しの前に文書へ確定し、未保存に数える
-    document->setHooks({std::bind(&MainWindowComposer::commitPendingEdits, this),
-                        std::bind(&MainWindowComposer::hasPendingEdits, this)});
+    document->addPendingEditor({std::bind(&GameInfoPane::commitPendingEditor, m_c.gameInfoPane),
+                                std::bind(&GameInfoPane::hasPendingEditor, m_c.gameInfoPane)});
+    document->addPendingEditor({std::bind(&CommentCoordinator::commitPendingComment, m_c.commentCoordinator),
+                                std::bind(&CommentCoordinator::hasPendingComment, m_c.commentCoordinator)});
     // 文書を置き換えたら、ツリーから作られない表示（評価値グラフ・エンジンの表示・解析結果）を消す
     connect(document, &KifuDocument::replaced, m_c.evalGraph, &EvaluationGraphPresenter::clear);
     connect(document, &KifuDocument::replaced, m_c.engineDisplay, &EngineDisplayPresenter::clearAll);
@@ -106,8 +108,6 @@ void MainWindowComposer::connectRecord()
     connect(document, &KifuDocument::headerValueSet, gameInfo, &GameInfoPane::updateGameInfoValue);
     connect(gameInfo, &GameInfoPane::gameInfoEdited, document, &KifuDocument::editHeader);
     // 盤の対局者名は、対局していなければ対局情報に合わせる（対局情報欄で書き換えたときも）
-    connect(document, &KifuDocument::headerReset, m_c.playerInfo, &PlayerInfoPresenter::syncBoardNamesWithGameInfo);
-    connect(document, &KifuDocument::headerEdited, m_c.playerInfo, &PlayerInfoPresenter::showMatchPlayers);
     gameInfo->setGameInfo(document->header(), true);
 
     // 読み込み・書き出し
@@ -115,7 +115,7 @@ void MainWindowComposer::connectRecord()
     connect(loader, &KifuLoadCoordinator::errorOccurred,
             m_c.notificationService, &UiNotificationService::displayErrorMessage);
     connect(m_c.dialogLauncher, &DialogLauncher::engineListChanged,
-            m_c.considerationTab, &ConsiderationTabManager::reloadEngines);
+            m_c.considerationTab, &ConsiderationPanel::reloadEngines);
     connect(m_c.dialogLauncher, &DialogLauncher::sfenCollectionPositionSelected,
             m_c.kifuFileController, &KifuFileController::onSfenCollectionPositionSelected);
     connect(m_c.evalChart, &EvaluationChartWidget::settingsRequested,
@@ -172,7 +172,7 @@ void MainWindowComposer::connectGame()
 
 void MainWindowComposer::connectAnalysisAndUi()
 {
-    ConsiderationTabManager* consideration = m_c.considerationTab;
+    ConsiderationPanel* consideration = m_c.considerationTab;
     ThinkingPanel* thinking = m_c.thinkingPanel;
     AnalysisSession* analysis = m_c.analysisSession;
 
@@ -183,7 +183,7 @@ void MainWindowComposer::connectAnalysisAndUi()
     // 候補手の矢印の表示状態を思考ドックの設定欄に出し、設定が変わったら描き直す
     connect(m_c.arrows, &CandidateArrowPresenter::displayStateChanged, thinking, &ThinkingPanel::setArrowDisplayState);
     connect(thinking, &ThinkingPanel::arrowSettingsChanged, m_c.arrows, &CandidateArrowPresenter::scheduleRefresh);
-    connect(consideration, &ConsiderationTabManager::settingsChanged, m_c.arrows, &CandidateArrowPresenter::scheduleRefresh);
+    connect(consideration, &ConsiderationPanel::settingsChanged, m_c.arrows, &CandidateArrowPresenter::scheduleRefresh);
     // 盤で指した手と対局で指された手（定跡ウィンドウの「盤の手を登録」がオンなら定跡に登録する）
     JosekiRegistrationController* registration = m_c.josekiRegistration;
     connect(m_c.branchEdit, &BranchTreeEditController::boardMoveRecorded,
@@ -192,7 +192,7 @@ void MainWindowComposer::connectAnalysisAndUi()
     // 思考の表・検討の表・棋譜解析の結果の表の右クリックに「定跡に登録」を足す
     connect(thinking, &ThinkingPanel::rowContextMenuAboutToShow,
             registration, &JosekiRegistrationController::onThinkingRowContextMenu);
-    connect(consideration, &ConsiderationTabManager::rowContextMenuAboutToShow,
+    connect(consideration, &ConsiderationPanel::rowContextMenuAboutToShow,
             registration, &JosekiRegistrationController::onThinkingRowContextMenu);
     connect(m_c.analysisResults, &AnalysisResultsPanel::rowContextMenuAboutToShow,
             registration, &JosekiRegistrationController::onAnalysisRowContextMenu);
@@ -200,9 +200,9 @@ void MainWindowComposer::connectAnalysisAndUi()
     // 読み筋のクリック（思考の表と検討の表）。読み筋ダイアログを閉じたら、その表の選択を外す
     PvClickController* pv = m_c.pvClickController;
     connect(thinking, &ThinkingPanel::pvRowClicked, pv, &PvClickController::onPvRowClicked);
-    connect(consideration, &ConsiderationTabManager::pvRowClicked, pv, &PvClickController::onPvRowClicked);
+    connect(consideration, &ConsiderationPanel::pvRowClicked, pv, &PvClickController::onPvRowClicked);
     connect(pv, &PvClickController::pvDialogClosed, thinking, &ThinkingPanel::clearSelection);
-    connect(pv, &PvClickController::pvDialogClosed, consideration, &ConsiderationTabManager::clearViewSelection);
+    connect(pv, &PvClickController::pvDialogClosed, consideration, &ConsiderationPanel::clearViewSelection);
 
     // USI コマンドの手入力
     connect(m_c.usiLog, &UsiLogPanel::usiCommandRequested, m_c.usiCommandController, &UsiCommandController::sendCommand);

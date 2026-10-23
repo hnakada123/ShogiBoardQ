@@ -3,10 +3,8 @@
 
 #include "josekitablemodel.h"
 
-#include "kifmovetext.h"
 #include "kifupresentation.h"
 #include "sfenreplay.h"
-#include "shogiposition.h"
 
 #include <QColor>
 #include <QLocale>
@@ -19,22 +17,12 @@ JosekiTableModel::JosekiTableModel(QObject *parent)
 QString JosekiTableModel::moveText(const QString &usiMove, const QString &sfen)
 {
     if (usiMove.isEmpty()) return QString();
-    if (usiMove == QStringLiteral("none")) return tr("なし");
-    if (KifuPresentation::options().notation == KifuPresentation::Notation::Western)
-        return KifuPresentation::move(sfen, usiMove, KifuPresentation::options());
-
-    Position board;
-    (void)board.assignSfen(sfen);
-    const Turn mover = board.sideToMove();
-    const auto move = UsiMove::parse(usiMove);
-    if (!move) return (mover == Turn::Black ? QStringLiteral("▲") : QStringLiteral("△")) + usiMove;
-    const Piece moving = move->isDrop() ? move->dropPieceFor(mover) : board.pieceAt(move->from);
-    return KifMoveText::format(mover, moving, *move);
+    return KifuPresentation::move(sfen, usiMove, KifuPresentation::options());
 }
 
 bool JosekiTableModel::hasNoReply(const JosekiMove &move)
 {
-    return move.nextMove.isEmpty() || move.nextMove == QLatin1String("none");
+    return !move.nextMove.has_value();
 }
 
 QString JosekiTableModel::derivedReplyText(const QString &moveText)
@@ -52,6 +40,9 @@ void JosekiTableModel::setMoves(const QString &sfen, const QList<JosekiMove> &mo
     m_derivedReplies = derivedReplies;
     m_frequencyTotal = 0;
     for (const JosekiMove &move : moves) m_frequencyTotal += qMax(move.frequency, 0);
+    // 予想応手の表記に使う、定跡手を指した後の局面（表示のたびに指し直さない）
+    m_afterSfens.clear();
+    for (const JosekiMove &move : moves) m_afterSfens.append(SfenReplay::positionAfter(sfen, move.move));
     // 行の数だけを増減させ、残る行は中身を差し替える（列幅と表示位置は保つ）
     if (newRows < oldRows) {
         beginRemoveRows(QModelIndex(), newRows, oldRows - 1);
@@ -97,7 +88,7 @@ QVariant JosekiTableModel::data(const QModelIndex &index, int role) const
         switch (column) {
         case Move: return m_humanCanPlay ? move.move + QLatin1Char('\n') + tr("ダブルクリックで着手") : move.move;
         case NextMove:
-            if (derivedReply.isEmpty()) return move.nextMove;
+            if (derivedReply.isEmpty()) return move.nextMove.value_or(QString());
             return tr("予想応手は「なし」です。\n次の局面の定跡手で出現頻度（同じなら評価値）が最も高い手を表示しています。\n"
                       "やねうら王はこの手を先読みに使います。") + QLatin1Char('\n') + derivedReply;
         case Comment: return move.comment;
@@ -117,9 +108,9 @@ QVariant JosekiTableModel::data(const QModelIndex &index, int role) const
     case Play: return m_humanCanPlay ? tr("着手") : QString();
     case Move: return moveText(move.move, m_sfen);
     case NextMove: {
-        const QString after = SfenReplay::positionAfter(m_sfen, move.move);
+        const QString &after = m_afterSfens.at(index.row());
         if (!derivedReply.isEmpty()) return derivedReplyText(moveText(derivedReply, after));
-        return moveText(move.nextMove, after);
+        return move.nextMove ? moveText(*move.nextMove, after) : tr("なし");
     }
     case Edit: return tr("編集");
     case Delete: return tr("削除");

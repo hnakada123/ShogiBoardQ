@@ -5,6 +5,7 @@
 /// @brief 棋譜の形式（読み込み・保存・変換で共通）と、その判定
 
 #include <QString>
+#include <QStringList>
 #include <optional>
 
 /// 棋譜の形式
@@ -30,6 +31,11 @@ std::optional<KifuFormat> fromPath(const QString& path);
 
 /// 棋譜ファイルとして保存できる形式か（Kif・Ki2・Csa・Jkf・Usi・Usen）
 bool isSavable(KifuFormat format);
+
+/// ファイルとして開ける形式の拡張子（"kif" "kifu" … と、JKF の "json"）。形式の指定がなければ全部
+QStringList readableSuffixes(std::optional<KifuFormat> format = std::nullopt);
+/// 開ける棋譜ファイルか（拡張子が readableSuffixes にある。.json は中身で JKF か判定する）
+bool isReadableFile(const QString& path);
 
 /// テキストの内容から形式を判定する（分からなければ Kif）
 KifuFormat detect(const QString& content);

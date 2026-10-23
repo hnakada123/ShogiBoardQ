@@ -20,7 +20,7 @@
  * USENの主な構造:
  * - ~0. で始まるバージョン指定（0 = 平手初期局面）
  * - base36でエンコードされた指し手列（3文字 = 1手。符号表は UsenCodec）
- * - 分岐は ~(startPly). で区切られる
+ * - 分岐は ~(オフセット). で区切られる（オフセットは分岐する手の1つ前の手数）
  * - 末尾に終局理由 (.i=反則, .r=投了, .t=時間切れ, .p=中断, .j=持将棋)
  */
 class UsenToSfenConverter
@@ -32,15 +32,6 @@ public:
 private:
     /// "~" の前に書いた開始局面（なければ平手）
     static QString initialSfenOf(const QString& content, StartKind* kind);
-
-    // ---- USEN デコードヘルパ ----
-
-    // USEN文字列を解析して本譜と分岐に分割
-    static bool parseUsenString(const QString& usen, 
-                                QString& mainlineUsen,
-                                QList<QPair<int, QString>>& variations,  // (startPly, usenMoves)
-                                QString* terminalCode,
-                                QString* warn);
 
 };
 

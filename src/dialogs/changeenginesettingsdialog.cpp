@@ -16,7 +16,7 @@ constexpr QSize kMinimumSize{400, 300};
 } // namespace
 
 // 将棋エンジンの設定を変更するダイアログ
-ChangeEngineSettingsDialog::ChangeEngineSettingsDialog(const EngineListSettings::EngineEntry& engine,
+ChangeEngineSettingsDialog::ChangeEngineSettingsDialog(const EngineEntry& engine,
                                                        QWidget* parent)
     : QDialog(parent)
     , ui(std::make_unique<Ui::ChangeEngineSettingsDialog>())

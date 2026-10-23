@@ -178,9 +178,9 @@ std::optional<QString> parseIdField(const QString& line, QLatin1String field)
 
 } // namespace
 
-std::optional<UsiOptionDeclaration> UsiLineParser::parseOption(const QString& line, QString* error)
+std::optional<EngineOption> UsiLineParser::parseOption(const QString& line, QString* error)
 {
-    const auto fail = [error](const QString& message) -> std::optional<UsiOptionDeclaration> {
+    const auto fail = [error](const QString& message) -> std::optional<EngineOption> {
         if (error) *error = message;
         return std::nullopt;
     };
@@ -191,7 +191,7 @@ std::optional<UsiOptionDeclaration> UsiLineParser::parseOption(const QString& li
     const qsizetype typeIndex = tokens.indexOf(QStringLiteral("type"), 2);
     if (typeIndex <= 2 || typeIndex + 1 >= tokens.size()) return fail(QStringLiteral("Missing 'type' section"));
 
-    UsiOptionDeclaration option;
+    EngineOption option;
     option.name = tokens.mid(2, typeIndex - 2).join(QLatin1Char(' '));
     option.type = tokens.at(typeIndex + 1);
 
@@ -200,6 +200,7 @@ std::optional<UsiOptionDeclaration> UsiLineParser::parseOption(const QString& li
     if (option.type == QLatin1String(OptionTypeString) || option.type == QLatin1String(OptionTypeFilename)) {
         const qsizetype defaultIndex = tokens.indexOf(QStringLiteral("default"), typeIndex + 2);
         if (defaultIndex >= 0) option.defaultValue = tokens.mid(defaultIndex + 1).join(QLatin1Char(' '));
+        option.currentValue = option.defaultValue;
         return option;
     }
 
@@ -212,11 +213,12 @@ std::optional<UsiOptionDeclaration> UsiLineParser::parseOption(const QString& li
         const QString value = tokens.mid(i + 1, j - (i + 1)).join(QLatin1Char(' '));
         if (value.isEmpty()) return fail(QStringLiteral("%1 value is missing").arg(key));
         if (key == u"default") option.defaultValue = value;
-        else if (key == u"min") option.minValue = value;
-        else if (key == u"max") option.maxValue = value;
-        else option.comboValues.append(value);
+        else if (key == u"min") option.min = value;
+        else if (key == u"max") option.max = value;
+        else option.valueList.append(value);
         i = j;
     }
+    option.currentValue = option.defaultValue;
     return option;
 }
 

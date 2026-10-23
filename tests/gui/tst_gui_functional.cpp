@@ -46,6 +46,7 @@
 #include <QToolBar>
 #include <QToolButton>
 #include <QTableWidget>
+#include "positioneditrules.h"
 #include "piecestylecatalog.h"
 #include "../game_info_table_helper.h"
 #include "../header_drag_helper.h"
@@ -98,7 +99,7 @@
 #include "menubuttonwidget.h"
 #include "enginelistsettings.h"
 #include "commenteditorpanel.h"
-#include "considerationtabmanager.h"
+#include "considerationpanel.h"
 #include "thinkingtableview.h"
 #include "gameinfopane.h"
 #include "analysissettings.h"
@@ -2265,7 +2266,7 @@ private slots:
         const int standRank = side == 10 ? type : 10 - type;
         const Piece piece = model->pieceCharacter(side, standRank);
         auto* gc = window->findChild<ShogiGameController*>(); QVERIFY(gc);
-        QVERIFY(gc->editPosition({12, type}, {side, standRank}));
+        QVERIFY(PositionEditRules::apply(*gc->board(), {12, type}, {side, standRank}));
         QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, editPoint(side, standRank));
         QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, editPoint(4, destinationRank));
         QCOMPARE(model->pieceCharacter(4, destinationRank), promote(piece));
@@ -2299,7 +2300,7 @@ private slots:
             {{7, 7}, {13, 1}}, {{7, 7}, {10, 9}}, {{7, 7}, {11, 1}},
             {{7, 7}, {10, 7}}, {{7, 7}, {7, 7}}};
         for (const auto& move : invalid) {
-            QVERIFY(!gc->editPosition(move.first, move.second));
+            QVERIFY(!PositionEditRules::apply(*gc->board(), move.first, move.second));
             QCOMPARE(boardSfen(), before);
             QCOMPARE(model->position().handsSfen(), hand);
         }
@@ -2998,7 +2999,7 @@ private slots:
             QVERIFY(!QTest::currentTestFailed());
             dialogTimer.stop();
 
-            auto* manager = window->findChild<ConsiderationTabManager*>();
+            auto* manager = window->findChild<ConsiderationPanel*>();
             QVERIFY(manager);
             auto* toggle = window->findChild<QToolButton*>("btnConsiderationStart");
             if (!toggle) {
@@ -3207,9 +3208,9 @@ private slots:
         QToolButton* start = nullptr;
         for (auto* b : dock->findChildren<QToolButton*>()) if (b->text() == QStringLiteral("検討開始")) start = b;
         QVERIFY(start); QVERIFY(start->isEnabled());
-        auto* manager = window->findChild<ConsiderationTabManager*>(); QVERIFY(manager);
-        QSignalSpy starts(manager, &ConsiderationTabManager::startConsiderationRequested);
-        QSignalSpy stops(manager, &ConsiderationTabManager::stopConsiderationRequested);
+        auto* manager = window->findChild<ConsiderationPanel*>(); QVERIFY(manager);
+        QSignalSpy starts(manager, &ConsiderationPanel::startConsiderationRequested);
+        QSignalSpy stops(manager, &ConsiderationPanel::stopConsiderationRequested);
         QTest::mouseClick(start, Qt::LeftButton);
         QTRY_COMPARE_WITH_TIMEOUT(start->text(), QStringLiteral("検討中止"), 3000);
         bool infoFound = false;
@@ -3502,9 +3503,9 @@ private slots:
             dialog.resize(650, 440);
             QTest::mouseClick(buttons->button(QDialogButtonBox::Ok), Qt::LeftButton);
             QCOMPARE(dialog.result(), int(QDialog::Accepted));
-            QCOMPARE(dialog.startPly(), 0);
-            QCOMPARE(dialog.endPly(), 0);
-            QCOMPARE(dialog.byoyomiSec(), 10);
+            QCOMPARE(dialog.options().startPly, 0);
+            QCOMPARE(dialog.options().endPly, 0);
+            QCOMPARE(dialog.options().movetimeMs, 10000);
         }
         {
             KifuAnalysisDialog restored;
@@ -3568,7 +3569,7 @@ private slots:
             model.appendRow(item);
         }
         QCOMPARE(progress->value(), 24);
-        presenter.showAnalysisComplete(24);
+        presenter.finishAnalysis(true);
         QTest::qWait(50);
         QCOMPARE(table->columnWidth(0), 200);
         QVERIFY(status->text().contains(QStringLiteral("解析完了")));
@@ -3720,9 +3721,9 @@ private slots:
     }
     void registration()
     {
-        QCOMPARE(EngineListSettings::loadEngines().size(), 0);
+        QCOMPARE(RegisteredEngines::load().entries().size(), 0);
         armDialog("register"); click("actionEngineSettings");
-        const auto engines = EngineListSettings::loadEngines();
+        const auto engines = RegisteredEngines::load().entries();
         QCOMPARE(engines.size(), 1); QCOMPARE(engines.first().name, QString("Audit USI"));
     }
     void gameInfoPresentation()
@@ -4012,7 +4013,7 @@ private slots:
     void engineConsiderationLayout()
     {
         sampleGame();
-        auto* manager = window->findChild<ConsiderationTabManager*>(); QVERIFY(manager);
+        auto* manager = window->findChild<ConsiderationPanel*>(); QVERIFY(manager);
         auto* view = manager->considerationView(); QVERIFY(view);
         auto* model = manager->considerationModel(); QVERIFY(model);
         QDockWidget* dock = nullptr;
@@ -4025,20 +4026,16 @@ private slots:
         auto* toolbar = dock->findChild<QWidget*>("considerationToolbar");
         auto* increase = dock->findChild<QToolButton*>("considerationFontIncrease");
         QVERIFY(unlimited && timed && seconds && toolbar && increase);
-        ConsiderationSettings settings = manager->settings();
-        settings.unlimitedTime = true;
-        settings.byoyomiSec = 20;
-        manager->setSettings(settings);
+        QTest::mouseClick(unlimited, Qt::LeftButton);
         QVERIFY(!seconds->isEnabled());
         QTest::mouseClick(timed, Qt::LeftButton);
         QVERIFY(!unlimited->isChecked()); QVERIFY(seconds->isEnabled());
         QTest::mouseClick(unlimited, Qt::LeftButton);
         QVERIFY(!timed->isChecked()); QVERIFY(!seconds->isEnabled());
-        settings.unlimitedTime = false;
-        manager->setSettings(settings);
-        manager->setRunState(ConsiderationTabManager::RunState::Running);
+        QTest::mouseClick(timed, Qt::LeftButton);
+        manager->setRunState(ConsiderationPanel::RunState::Running);
         QVERIFY(!seconds->isEnabled()); QVERIFY(!timed->isEnabled());
-        manager->setRunState(ConsiderationTabManager::RunState::Idle);
+        manager->setRunState(ConsiderationPanel::RunState::Idle);
         QVERIFY(seconds->isEnabled()); QVERIFY(timed->isEnabled());
 
         const QString pv = QStringLiteral("▲７六歩(77)△３四歩(33)▲２六歩(27)△８四歩(83)▲２五歩(26)△８五歩(84)▲７七角(88)△３二金(41)");
@@ -4053,8 +4050,9 @@ private slots:
             row.multipv = rank;
             model->updateByMultipv(row, 6);
         }
-        settings.multiPV = 6;
-        manager->setSettings(settings);
+        auto* multiPV = dock->findChild<QComboBox*>("considerationMultiPV"); QVERIFY(multiPV);
+        multiPV->setCurrentIndex(multiPV->findData(6));
+        QCOMPARE(manager->settings().multiPV, 6);
         manager->setConsiderationEngineName(QStringLiteral("YaneuraOu NNUE 9.10git 64ZEN2"));
         auto* summary = new UsiCommLogModel(window.get());
         summary->setEngineName(QStringLiteral("YaneuraOu NNUE 9.10git 64ZEN2"));
@@ -4073,7 +4071,7 @@ private slots:
         QVERIFY(view->columnWidth(1) < 100);
         QVERIFY(view->columnWidth(ShogiEngineThinkingModel::BoardColumn) < 100);
         QVERIFY(view->columnWidth(ShogiEngineThinkingModel::PvColumn) > view->viewport()->width() / 2);
-        QSignalSpy pvClicked(manager, &ConsiderationTabManager::pvRowClicked);
+        QSignalSpy pvClicked(manager, &ConsiderationPanel::pvRowClicked);
         const auto index = model->index(2, ShogiEngineThinkingModel::BoardColumn);
         QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, view->visualRect(index).center());
         QCOMPARE(pvClicked.size(), 1);
@@ -4102,13 +4100,11 @@ private slots:
             QVERIFY(view->columnWidth(col) >= view->fontMetrics().horizontalAdvance(model->headerData(col, Qt::Horizontal).toString()));
         QCOMPARE(AnalysisSettings::thinkingViewColumnWidths(AnalysisSettings::ThinkingTable::Consideration).at(2), 180);
 
-        ConsiderationTabManager restored;
+        ConsiderationPanel restored;
         restored.setConsiderationThinkingModel(model);
         QCOMPARE(restored.considerationView()->columnWidth(2), 180);
         QCOMPARE(restored.considerationInfo()->columnWidths().at(0), 290);
-        ConsiderationSettings restoredSettings = restored.settings();
-        restoredSettings.unlimitedTime = true;
-        restored.setSettings(restoredSettings);
+        restored.findChild<QRadioButton*>("considerationUnlimited")->click();
         QVERIFY(!restored.findChild<QSpinBox*>("considerationSeconds")->isEnabled());
     }
     void engineInfoLayout()

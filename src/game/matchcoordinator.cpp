@@ -69,7 +69,7 @@ void MatchCoordinator::start(const StartOptions& opt)
     resolved.recordLine = resolved.recordLine.upTo(resolved.recordLine.currentPly);
     resolved.sfenStart = resolved.recordLine.lastSfen();
 
-    clearGameOverState();
+    clearGameEnd();
     m_session.begin(resolved);
     m_record = resolved.recordLine;
     m_activityLease = m_activity->begin(AppActivityState::Activity::DuringGame, this);
@@ -99,25 +99,18 @@ Turn MatchCoordinator::sideToMove() const
     return m_gc->currentPlayer();
 }
 
-void MatchCoordinator::recordConsiderationTime(Turn mover, qint64 elapsedMs)
-{
-    m_clock->setMeasuredConsiderationTime(mover, elapsedMs);
-}
-
 void MatchCoordinator::createStrategy(const StartOptions& opt)
 {
     m_strategy.reset();
     const MatchPlayers& players = opt.players;
     if (players.engineVsEngine()) {
         m_strategy = std::make_unique<EngineVsEngineStrategy>(
-            strategyHost(), EngineVsEngineStrategy::Engines{opt.enginePath1, players.blackEngineName,
-                                                            opt.enginePath2, players.whiteEngineName});
-    } else if (players.blackIsEngine) {
-        m_strategy = std::make_unique<HumanVsEngineStrategy>(strategyHost(), Turn::Black, opt.enginePath1,
-                                                             players.blackEngineName);
-    } else if (players.whiteIsEngine) {
-        m_strategy = std::make_unique<HumanVsEngineStrategy>(strategyHost(), Turn::White, opt.enginePath2,
-                                                             players.whiteEngineName);
+            strategyHost(), EngineVsEngineStrategy::Engines{opt.engine(Turn::Black).path, players.engineName(Turn::Black),
+                                                            opt.engine(Turn::White).path, players.engineName(Turn::White)});
+    } else if (players.hasEngine()) {
+        const Turn side = players.isEngine(Turn::Black) ? Turn::Black : Turn::White;
+        m_strategy = std::make_unique<HumanVsEngineStrategy>(strategyHost(), side, opt.engine(side).path,
+                                                             players.engineName(side));
     } else {
         m_strategy = std::make_unique<HumanVsHumanStrategy>(strategyHost());
     }
@@ -220,7 +213,7 @@ void MatchCoordinator::requestEngineMove(Turn side)
     }
     // 定跡を使う対局者なら、条件に合う定跡手をエンジンに探索させずに指す
     const StartOptions& opt = m_session.options();
-    const JosekiPlayOptions& joseki = opt.josekiOptions.at(side == Turn::Black ? 0 : 1);
+    const JosekiPlayOptions& joseki = opt.engine(side).joseki;
     if (joseki.enabled) {
         const QString sfen = m_record.lastSfen();
         if (const std::optional<JosekiPick> pick =
@@ -247,11 +240,6 @@ void MatchCoordinator::forceImmediateMove()
     if (isGameOver()) return;
     // 人間の手番に「すぐ指させる」を押しても先読みは止めない
     if (Usi* engine = engineFor(m_gc->currentPlayer())) engine->requestImmediateMove();
-}
-
-void MatchCoordinator::disarmTurnTimer()
-{
-    if (m_strategy) m_strategy->disarmTurnTimer();
 }
 
 // ============================================================
@@ -304,7 +292,7 @@ void MatchCoordinator::handleEngineWin(Turn side)
     if (isGameOver()) emit gameOverMessage(NyugyokuJudgement::resultTitle(), result.message);
 }
 
-NyugyokuJudgement::Result MatchCoordinator::declareNyugyoku(Turn declarer, int rule)
+NyugyokuJudgement::Result MatchCoordinator::declareNyugyoku(Turn declarer, JishogiCalculator::Rule rule)
 {
     const NyugyokuJudgement::Result result =
         NyugyokuJudgement::judge(m_gc->board()->position(), declarer == Turn::Black, rule, usesHandicapNames());
@@ -380,9 +368,9 @@ void MatchCoordinator::handleEngineError(const QString& message)
 // 終局の記録
 // ============================================================
 
-void MatchCoordinator::clearGameOverState()
+void MatchCoordinator::clearGameEnd()
 {
-    m_session.clearGameOver();
+    m_session.clearEnd();
 }
 
 void MatchCoordinator::endGame(const GameEndInfo& info, std::optional<Turn> engineLoser, Notice notice)
@@ -394,7 +382,6 @@ void MatchCoordinator::endGame(const GameEndInfo& info, std::optional<Turn> engi
     // 時計を止める。終局の行の時間を確定しても、秒読み・加算はしない
     m_clock->markGameOver();
     m_clock->stopClock();
-    disarmTurnTimer();
     // 対局のエンジンに終局を知らせて終える（負けた側・勝った側・引き分け）
     for (const Turn side : {Turn::Black, Turn::White}) {
         MatchEngineSeat* seat = m_strategy ? m_strategy->engineSeat(side) : nullptr;
@@ -442,7 +429,6 @@ void MatchCoordinator::appendTerminalRecord(const GameEndInfo& info)
     m_clock->commitMove(mover);
     const RecordEntry entry = RecordEntry::ending(terminal, mover, m_clock->recordTime(mover));
     if (m_sink && m_sink->canAppendRecord()) m_sink->appendRecord(entry);
-    m_session.markTerminalRecorded();
 }
 
 QString MatchCoordinator::resultMessage(const GameEndInfo& info) const
@@ -499,10 +485,6 @@ bool MatchCoordinator::undoTwoPlies()
 
         // 時計を取り消した自分の手を指し始めたときへ戻し、考慮時間は今から測り直す
         m_clock->undo();
-        if (m_strategy) {
-            m_strategy->disarmTurnTimer();
-            m_strategy->armTurnTimerIfNeeded();
-        }
         if (m_sink) m_sink->undoRecords(2);
         // 戻す前の局面で始めた先読みは当たらない
         for (const Turn side : {Turn::Black, Turn::White})
@@ -526,8 +508,6 @@ void MatchCoordinator::captureInterruptedGame()
     state->clock = m_clock->pauseAndSnapshot();
     if (isGameOver()) return;
     state->options = m_session.options();
-    state->options.sfenStart = m_record.lastSfen();
-    state->options.resumeFromBreakOff = true;
     state->record = m_record;
     m_interruptedGame = std::move(state);
 }
@@ -553,17 +533,16 @@ bool MatchCoordinator::resumeInterruptedGame()
     const auto state = std::move(m_interruptedGame);
     emit resumeAvailabilityChanged();
 
-    clearGameOverState();
+    clearGameEnd();
     m_session.begin(state->options);
     m_activityLease = m_activity->begin(AppActivityState::Activity::DuringGame, this);
     m_record = state->record;
-    m_gc->board()->setSfen(state->options.sfenStart);
+    m_gc->board()->setSfen(m_record.lastSfen());
 
     // 時計のスナップショットは持ち時間の決まりと時間切れの扱いも含む
     m_clock->restoreSnapshot(state->clock);
 
     createStrategy(state->options);
-    if (m_strategy) m_strategy->armTurnTimerIfNeeded();
     // 対局開始通知でUIを整えてから、呼び出し側が初手探索を起動する。
     return true;
 }

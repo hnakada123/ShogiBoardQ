@@ -19,7 +19,7 @@ namespace {
 
 
 /// analyze / mate に共通する開始イベントの内容
-QJsonObject startedFields(const EngineListSettings::EngineEntry& engine, const CliPosition& position)
+QJsonObject startedFields(const EngineEntry& engine, const CliPosition& position)
 {
     QJsonObject obj;
     obj[QStringLiteral("engine")] = engine.name;
@@ -178,19 +178,16 @@ private:
 
 } // namespace
 
-int CliCommands::analyze(const QStringList& args)
+int CliCommands::analyze(const QJsonObject& params)
 {
-    int exitCode = 0;
-    const auto params = CliArgs::parse(QStringLiteral("analyze"), args, true, &exitCode);
-    if (!params) return exitCode;
 
     QString error;
-    const auto engine = CliArgs::resolveEngine(*params, &error);
+    const auto engine = CliArgs::resolveEngine(params, &error);
     if (!engine) return CliOutput::failEvent(ErrorKind::EngineNotFound, error);
-    const auto position = CliArgs::resolvePosition(*params, &error);
+    const auto position = CliArgs::resolvePosition(params, &error);
     if (!position) return CliOutput::failEvent(ErrorKind::InvalidArgument, error);
-    const int seconds = params->value(QStringLiteral("seconds")).toInt();
-    const int multiPv = params->value(QStringLiteral("multipv")).toInt();
+    const int seconds = params.value(QStringLiteral("seconds")).toInt();
+    const int multiPv = params.value(QStringLiteral("multipv")).toInt();
 
     EngineAnalysisRunner runner;
     QEventLoop loop;
@@ -199,7 +196,7 @@ int CliCommands::analyze(const QStringList& args)
     QObject::connect(&runner, &EngineAnalysisRunner::positionFinished, &reporter, &AnalyzeReporter::onPositionFinished);
     QObject::connect(&runner, &EngineAnalysisRunner::finished, &reporter, &AnalyzeReporter::onFinished);
     QObject::connect(&runner, &EngineAnalysisRunner::errorOccurred, &reporter, &AnalyzeReporter::onError);
-    CliStopWatcher watcher(params->value(QStringLiteral("stdin_control")).toBool());
+    CliStopWatcher watcher(params.value(QStringLiteral("stdin_control")).toBool());
     QObject::connect(&watcher, &CliStopWatcher::stopRequested, &runner, &EngineAnalysisRunner::stop);
 
     EngineAnalysisRunner::Request request;
@@ -219,29 +216,26 @@ int CliCommands::analyze(const QStringList& args)
     return reporter.exitCode();
 }
 
-int CliCommands::analyzeKifu(const QStringList& args)
+int CliCommands::analyzeKifu(const QJsonObject& params)
 {
-    int exitCode = 0;
-    const auto params = CliArgs::parse(QStringLiteral("analyze-kifu"), args, true, &exitCode);
-    if (!params) return exitCode;
 
     QString error;
-    const auto engine = CliArgs::resolveEngine(*params, &error);
+    const auto engine = CliArgs::resolveEngine(params, &error);
     if (!engine) return CliOutput::failEvent(ErrorKind::EngineNotFound, error);
 
     // 本譜を棋譜の変換と同じく読む
     KifuConversionService::Request conversion;
-    conversion.inputPath = params->value(QStringLiteral("input_path")).toString();
-    conversion.text = params->value(QStringLiteral("text")).toString();
-    const QString inputName = params->value(QStringLiteral("input_format")).toString();
+    conversion.inputPath = params.value(QStringLiteral("input_path")).toString();
+    conversion.text = params.value(QStringLiteral("text")).toString();
+    const QString inputName = params.value(QStringLiteral("input_format")).toString();
     if (inputName != QLatin1String("auto")) conversion.inputFormat = KifuFormats::fromName(inputName);
     conversion.outputFormat = KifuFormat::Sfen;
     const KifuConversionService::Result record = KifuConversionService::convert(conversion);
     if (!record.ok) return CliOutput::failEvent(record.failure);
 
     const int moveCount = static_cast<int>(record.usiMoves.size());
-    const int fromPly = params->value(QStringLiteral("from_ply")).toInt();
-    const int toPly = params->contains(QStringLiteral("to_ply")) ? params->value(QStringLiteral("to_ply")).toInt() : moveCount;
+    const int fromPly = params.value(QStringLiteral("from_ply")).toInt();
+    const int toPly = params.contains(QStringLiteral("to_ply")) ? params.value(QStringLiteral("to_ply")).toInt() : moveCount;
     if (fromPly > toPly || toPly > moveCount) {
         return CliOutput::failEvent(ErrorKind::InvalidArgument,
                                     QStringLiteral("The ply range %1-%2 is outside the main line (0-%3)")
@@ -266,8 +260,8 @@ int CliCommands::analyzeKifu(const QStringList& args)
         }
         plan.positions << *position;
     }
-    const int seconds = params->value(QStringLiteral("seconds_per_position")).toInt();
-    const int multiPv = params->value(QStringLiteral("multipv")).toInt();
+    const int seconds = params.value(QStringLiteral("seconds_per_position")).toInt();
+    const int multiPv = params.value(QStringLiteral("multipv")).toInt();
 
     EngineAnalysisRunner::Request request;
     request.enginePath = engine->path;
@@ -283,7 +277,7 @@ int CliCommands::analyzeKifu(const QStringList& args)
     QObject::connect(&runner, &EngineAnalysisRunner::positionFinished, &reporter, &KifuAnalyzeReporter::onPositionFinished);
     QObject::connect(&runner, &EngineAnalysisRunner::finished, &reporter, &KifuAnalyzeReporter::onFinished);
     QObject::connect(&runner, &EngineAnalysisRunner::errorOccurred, &reporter, &KifuAnalyzeReporter::onError);
-    CliStopWatcher watcher(params->value(QStringLiteral("stdin_control")).toBool());
+    CliStopWatcher watcher(params.value(QStringLiteral("stdin_control")).toBool());
     QObject::connect(&watcher, &CliStopWatcher::stopRequested, &runner, &EngineAnalysisRunner::stop);
 
     QJsonObject started;
@@ -304,25 +298,22 @@ int CliCommands::analyzeKifu(const QStringList& args)
     return reporter.exitCode();
 }
 
-int CliCommands::mate(const QStringList& args)
+int CliCommands::mate(const QJsonObject& params)
 {
-    int exitCode = 0;
-    const auto params = CliArgs::parse(QStringLiteral("mate"), args, true, &exitCode);
-    if (!params) return exitCode;
 
     QString error;
-    const auto engine = CliArgs::resolveEngine(*params, &error);
+    const auto engine = CliArgs::resolveEngine(params, &error);
     if (!engine) return CliOutput::failEvent(ErrorKind::EngineNotFound, error);
-    const auto position = CliArgs::resolvePosition(*params, &error);
+    const auto position = CliArgs::resolvePosition(params, &error);
     if (!position) return CliOutput::failEvent(ErrorKind::InvalidArgument, error);
-    const int seconds = params->value(QStringLiteral("seconds")).toInt();
+    const int seconds = params.value(QStringLiteral("seconds")).toInt();
 
     MateSearchRunner runner;
     QEventLoop loop;
     MateReporter reporter(&runner, &loop);
     QObject::connect(&runner, &MateSearchRunner::finished, &reporter, &MateReporter::onFinished);
     QObject::connect(&runner, &MateSearchRunner::errorOccurred, &reporter, &MateReporter::onError);
-    CliStopWatcher watcher(params->value(QStringLiteral("stdin_control")).toBool());
+    CliStopWatcher watcher(params.value(QStringLiteral("stdin_control")).toBool());
     QObject::connect(&watcher, &CliStopWatcher::stopRequested, &runner, &MateSearchRunner::stop);
 
     MateSearchRunner::Request request;

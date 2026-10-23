@@ -14,7 +14,7 @@ JosekiMove bookMove(const QString &usi, int value, int depth, int frequency)
 {
     JosekiMove move;
     move.move = usi;
-    move.nextMove = QStringLiteral("none");
+    move.nextMove = std::nullopt;
     move.value = value;
     move.depth = depth;
     move.frequency = frequency;

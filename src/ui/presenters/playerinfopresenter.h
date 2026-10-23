@@ -18,6 +18,8 @@ class ShogiView;
  *
  * 対局中は対局者、対局していなければ対局情報の名前（初期値は「先手」「後手」）を出す。
  * 対局者と対局情報は棋譜の文書（KifuDocument）が持ち、このクラスは書き換えない。
+ * 文書の知らせ（対局者・対局情報の作り直しと編集）と動作状態の変化を自分で受け、そのたびに求め直す
+ * （ほかの部品は名前を書き込まない）。
  * エンジンの表示（通信ログの見出し・2つ目のエンジン欄・評価値グラフの系列名）は EngineDisplayPresenter が受け持つ。
  */
 class PlayerInfoPresenter : public QObject
@@ -34,14 +36,9 @@ public:
     explicit PlayerInfoPresenter(const Deps& deps, QObject* parent = nullptr);
     ~PlayerInfoPresenter() override;
 
-    /// 対局者の名前を盤に出す（対局を始めるとき。動作状態が対局中になる前に呼ぶ）
-    void showPlayers(const MatchPlayers& players);
-
-public slots:
-    /// 対局中なら対局者の名前を、対局していなければ対局情報の名前を盤に出す（対局情報欄で書き換えたときも）
-    void showMatchPlayers();
-    /// 対局情報の名前を盤に出す（棋譜の置き換え）
-    void syncBoardNamesWithGameInfo();
+private slots:
+    /// 対局中なら対局者の名前を、対局していなければ対局情報の名前を盤に出す
+    void refresh();
 
 private:
     void setBoardNames(const QString& black, const QString& white);

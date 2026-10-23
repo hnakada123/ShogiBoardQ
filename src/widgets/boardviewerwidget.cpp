@@ -47,8 +47,8 @@ BoardViewerWidget::BoardViewerWidget(Features features, ButtonLabels labels, Sho
     m_view->setNameFontScale(0.30);  // GUI本体と同じ対局者名の大きさ
     m_view->setBoard(m_board);
     m_view->chrome()->setClockEnabled(false);
-    // Ctrl+ホイールの拡大・縮小は、ウィンドウを盤に合わせるためこちらで処理する
-    m_view->installEventFilter(this);
+    // 拡大・縮小（ボタン・Ctrl+ホイール）で盤の大きさが変わったら、ウィンドウを盤に合わせる
+    connect(m_view, &ShogiView::fieldSizeChanged, this, &BoardViewerWidget::onBoardZoomed);
 
     auto* layout = new QVBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
@@ -200,21 +200,18 @@ bool BoardViewerWidget::isFlipped() const
 
 void BoardViewerWidget::toggleFlip()
 {
-    emit boardTransformAboutToChange();
     setFlipped(!isFlipped());
+    emit boardTransformed();
     emit flipToggled(isFlipped());
 }
 
-void BoardViewerWidget::enlargeBoard() { zoom(true); }
-void BoardViewerWidget::reduceBoard() { zoom(false); }
+void BoardViewerWidget::enlargeBoard() { m_view->enlargeBoard(); }
+void BoardViewerWidget::reduceBoard() { m_view->reduceBoard(); }
 
-void BoardViewerWidget::zoom(bool enlarge)
+void BoardViewerWidget::onBoardZoomed()
 {
-    emit boardTransformAboutToChange();
-    if (enlarge) m_view->enlargeBoard(false);
-    else m_view->reduceBoard(false);
     if (m_features & FitWindowOnZoom) fitToBoard();
-    emit boardResized();
+    emit boardTransformed();
 }
 
 void BoardViewerWidget::fitToBoard()
@@ -236,17 +233,3 @@ void BoardViewerWidget::fitToBoard()
     top->resize((m_view->size() + controls).boundedTo(available));
 }
 
-bool BoardViewerWidget::eventFilter(QObject* watched, QEvent* event)
-{
-    if (watched == m_view && event->type() == QEvent::Wheel) {
-        auto* wheel = static_cast<QWheelEvent*>(event);
-        if (wheel->modifiers() & Qt::ControlModifier) {
-            const int delta = wheel->angleDelta().y();
-            if (delta > 0) enlargeBoard();
-            else if (delta < 0) reduceBoard();
-            wheel->accept();
-            return true;
-        }
-    }
-    return QWidget::eventFilter(watched, event);
-}

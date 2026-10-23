@@ -5,7 +5,7 @@
 /// @brief テスト用: 秒で持ち時間の決まりを作る
 
 #include "timecontrol.h"
-#include "usitimingparams.h"
+#include "usigotime.h"
 
 namespace TestTime {
 
@@ -23,9 +23,9 @@ inline TimeControl rules(int main1Sec, int main2Sec, int byo1Sec, int byo2Sec, i
 }
 
 /// 時計をつながないエンジン向けの条件: 両者同じ秒読みと、USI の意味の残り時間（ミリ秒）
-inline UsiTimingParams byoyomiTiming(qint64 byoyomiMs, qint64 btimeMs, qint64 wtimeMs)
+inline UsiGoTimeInput byoyomiTiming(qint64 byoyomiMs, qint64 btimeMs, qint64 wtimeMs)
 {
-    UsiTimingParams timing;
+    UsiGoTimeInput timing;
     timing.timeControl.black.byoyomiMs = byoyomiMs;
     timing.timeControl.white.byoyomiMs = byoyomiMs;
     timing.btimeMs = btimeMs;

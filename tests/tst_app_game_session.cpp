@@ -108,8 +108,8 @@ private slots:
         QSignalSpy ended(p.match, &MatchCoordinator::gameEnded);
         p.gameSession->resign();
         QCOMPARE(ended.count(), 1);
-        QCOMPARE(p.match->gameOverState().lastInfo.cause, MatchCoordinator::Cause::Resignation);
-        QCOMPARE(p.match->gameOverState().lastInfo.loser, Turn::Black);
+        QCOMPARE(p.match->gameEnd()->cause, MatchCoordinator::Cause::Resignation);
+        QCOMPARE(p.match->gameEnd()->loser, Turn::Black);
         p.gameSession->resign();
         QCOMPARE(ended.count(), 1);
         // 終局の行を書き、待機中に戻る
@@ -125,7 +125,7 @@ private slots:
         QSignalSpy ended(p.match, &MatchCoordinator::gameEnded);
         p.gameSession->breakOff();
         QCOMPARE(ended.count(), 1);
-        QCOMPARE(p.match->gameOverState().lastInfo.cause, MatchCoordinator::Cause::BreakOff);
+        QCOMPARE(p.match->gameEnd()->cause, MatchCoordinator::Cause::BreakOff);
     }
 
     void networkCommandsDoNotEndLocalMatch()
@@ -138,7 +138,7 @@ private slots:
         ActivityLease csa = window.composer().activity().begin(AppActivityState::Activity::DuringCsaGame, nullptr);
         p.gameSession->resign();
         p.gameSession->breakOff();
-        QVERIFY(!p.match->gameOverState().isOver);
+        QVERIFY(!p.match->isGameOver());
     }
 
     /// 通信対局の盤上の着手は、司令塔の状態（対局中・人間の手番）のときだけ受け付ける
@@ -204,7 +204,7 @@ private slots:
         QCOMPARE(appended.count(), 0);
         QCOMPARE(p.branchTree->root()->nodeId(), rootId);
         QCOMPARE(window.composer().activity().activity(), AppActivityState::Activity::Idle);
-        QVERIFY(!p.match->gameOverState().isOver);
+        QVERIFY(!p.match->isGameOver());
     }
 
     // 手合割（平手）から始めるとき、開始前の整理は1回だけ行い、平手の局面から始める

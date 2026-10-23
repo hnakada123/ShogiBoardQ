@@ -30,6 +30,13 @@ bool readAllLinesAuto(const QString& filePath,
                       QString* warn = nullptr);
 
 /**
+ * @brief 文字コードを自動判別してバイト列をテキストにする（BOM → UTF-8 → CP932 → EUC-JP → ローカル 8bit）
+ * @param usedEncoding 実際に使われたエンコーディング名
+ * @param warn どれとも決められずにローカル 8bit で読んだときの注意を追記する先
+ */
+QString decodeAuto(const QByteArray& bytes, QString* usedEncoding = nullptr, QString* warn = nullptr);
+
+/**
  * @brief 文字コードを自動判別してファイル全体をテキストとして取得する（改行は変換しない）
  * @return 読み込み成功なら true
  */
@@ -40,15 +47,6 @@ bool readAllTextAuto(const QString& filePath,
 
 /// テキストを行に分ける（先頭の BOM を除き、CRLF・CR を LF とみなす）
 QStringList splitLines(const QString& text);
-
-/// 互換API（旧名）: 既存コードが KifReader::readLinesAuto() を呼んでいても動作する
-inline bool readLinesAuto(const QString& filePath,
-                          QStringList& outLines,
-                          QString* usedEncoding = nullptr,
-                          QString* warn = nullptr)
-{
-    return readAllLinesAuto(filePath, outLines, usedEncoding, warn);
-}
 
 } // namespace KifReader
 

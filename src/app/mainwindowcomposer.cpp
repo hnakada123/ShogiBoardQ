@@ -7,7 +7,7 @@
 
 #include "appsettings.h"
 #include "commentcoordinator.h"
-#include "considerationtabmanager.h"
+#include "considerationpanel.h"
 #include "docklayoutmanager.h"
 #include "gameinfopane.h"
 #include "enginelifecyclemanager.h"
@@ -57,35 +57,12 @@ void MainWindowComposer::finalizeUi()
     // 盤・棋譜欄・分岐・手番と対局者名の初期表示（対局は始めない。盤の対局者名は対局情報の初期値「先手」「後手」）
     m_c.shogiView->applyBoardAndRender(m_c.gameController->board());
     m_c.kifuDisplay->refresh();
-    m_c.playerInfo->showMatchPlayers();
 
     // ウィンドウの大きさと、起動時のドックのレイアウト
     AppSettings::loadWindowSize(&m_window);
     m_c.dockLayoutManager->restoreStartupLayoutIfSet();
 
     m_c.appearance->installAppToolTips();
-}
-
-bool MainWindowComposer::isHumanTurnNow() const
-{
-    return m_c.humanTurnPolicy && m_c.humanTurnPolicy->isHumanTurnNow();
-}
-
-bool MainWindowComposer::showConsiderationArrows() const
-{
-    return !m_c.considerationTab || m_c.considerationTab->settings().showArrows;
-}
-
-void MainWindowComposer::commitPendingEdits()
-{
-    if (m_c.gameInfoPane) m_c.gameInfoPane->commitPendingEditor();
-    if (m_c.commentCoordinator) m_c.commentCoordinator->commitPendingComment();
-}
-
-bool MainWindowComposer::hasPendingEdits() const
-{
-    return (m_c.gameInfoPane && m_c.gameInfoPane->hasPendingEditor())
-        || (m_c.commentCoordinator && m_c.commentCoordinator->hasPendingComment());
 }
 
 void MainWindowComposer::shutdown()
@@ -104,8 +81,8 @@ void MainWindowComposer::shutdown()
         m_c.engines->destroyEngines();
     }
 
-    // 終了処理中に盤がクリックされても、操作できない手番として扱う
-    m_c.humanTurnPolicy.reset();
+    // 終了処理中に盤がクリックされても、操作できない手番として扱う（盤の操作が参照し続けるので破棄はしない）
+    if (m_c.humanTurnPolicy) m_c.humanTurnPolicy->disable();
 }
 
 bool MainWindowComposer::confirmClose()

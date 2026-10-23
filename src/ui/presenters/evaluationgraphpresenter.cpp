@@ -19,7 +19,14 @@ EvaluationGraphPresenter::EvaluationGraphPresenter(const Deps& deps, QObject* pa
 {
     Q_ASSERT(m_evalChart);
     m_evalChart->setSeries(m_series);
-    if (m_navState) connect(m_navState, &KifuNavigationState::changed, this, &EvaluationGraphPresenter::showCurrentPly);
+    if (m_navState) {
+        connect(m_navState, &KifuNavigationState::changed, this, &EvaluationGraphPresenter::showCurrentPly);
+        const KifuBranchTree* tree = m_navState->tree();
+        connect(tree, &KifuBranchTree::nodeAppended, this, &EvaluationGraphPresenter::refreshAnalysisLineName);
+        connect(tree, &KifuBranchTree::childrenReordered, this, &EvaluationGraphPresenter::refreshAnalysisLineName);
+        connect(tree, &KifuBranchTree::subtreeRemoved, this, &EvaluationGraphPresenter::refreshAnalysisLineName);
+        connect(tree, &KifuBranchTree::reset, this, &EvaluationGraphPresenter::refreshAnalysisLineName);
+    }
 }
 
 EvaluationGraphPresenter::~EvaluationGraphPresenter() = default;
@@ -60,12 +67,27 @@ void EvaluationGraphPresenter::plotEngineScore(Turn side, int ply, const UsiScor
     m_evalChart->setCurrentPly(ply);
 }
 
-void EvaluationGraphPresenter::beginAnalysis(const QString& engineName, int lineIndex)
+void EvaluationGraphPresenter::beginAnalysis(const QString& engineName, int lineEndNodeId)
 {
     m_series->clear();
     m_series->setName(0, engineName);
     m_series->setName(1, QString());
-    m_series->setAnalysisLineIndex(lineIndex);
+    m_series->setAnalysisLine(lineEndNodeId, lineName(lineEndNodeId));
+}
+
+void EvaluationGraphPresenter::refreshAnalysisLineName()
+{
+    const int lineEnd = m_series->analysisLineEnd();
+    if (lineEnd >= 0) m_series->setAnalysisLine(lineEnd, lineName(lineEnd));
+}
+
+QString EvaluationGraphPresenter::lineName(int lineEndNodeId) const
+{
+    if (!m_navState) return QString();
+    const KifuBranchTree* tree = m_navState->tree();
+    const std::optional<int> index = tree->findLineIndexForNode(tree->nodeAt(lineEndNodeId));
+    if (!index) return QString();
+    return *index == 0 ? tr("本譜") : tr("分岐 %1").arg(*index);
 }
 
 void EvaluationGraphPresenter::plotAnalysisScore(int ply, const UsiScore& blackScore)

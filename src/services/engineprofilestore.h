@@ -8,7 +8,7 @@
 #include <QString>
 
 #include "engineoption.h"
-#include "enginelistsettings.h"
+#include "registeredengines.h"
 
 /**
  * @brief 登録エンジンの設定を読み書きする
@@ -43,9 +43,9 @@ struct LaunchOptions {
 };
 
 // --- エンジン一覧 ---
-QList<EngineListSettings::EngineEntry> loadEngines();
+QList<EngineEntry> loadEngines();
 /// エンジン一覧を置き換える
-void saveEngines(const QList<EngineListSettings::EngineEntry>& engines);
+void saveEngines(const QList<EngineEntry>& engines);
 
 // --- エンジンごとの設定 ---
 /// 保存したオプション（エンジンが報告した順）

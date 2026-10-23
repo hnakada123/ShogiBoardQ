@@ -12,9 +12,9 @@
 /// 後手をテスト用の USI エンジンが指す（人間対エンジンではエンジンは E1 の枠）
 static void useWhiteEngine(MatchStartOptions& options, const QString& name)
 {
-    options.players.whiteIsEngine = true;
-    options.players.whiteEngineName = name;
-    options.enginePath2 = MatchHarness::mockEnginePath();
+    options.players.seat(Turn::White).engine = true;
+    options.players.seat(Turn::White).engineName = name;
+    options.engine(Turn::White).path = MatchHarness::mockEnginePath();
 }
 
 class TestGameStartOptions : public QObject
@@ -92,8 +92,8 @@ private slots:
         options.recordLine = line;
         options.josekiBook.putMove(line.sfenAt(1), {QStringLiteral("8c8d"), QStringLiteral("none"), 0, 0, 1, {}});
         options.josekiBook.putMove(line.sfenAt(1), {QStringLiteral("3c3d"), QStringLiteral("none"), 0, 0, 2, {}});
-        options.josekiOptions[1].enabled = true;
-        options.josekiOptions[1].method = JosekiPlayOptions::FirstMove;
+        options.engine(Turn::White).joseki.enabled = true;
+        options.engine(Turn::White).joseki.method = JosekiPlayOptions::FirstMove;
         useWhiteEngine(options, QStringLiteral("BookTest"));
         MatchHarness h;
         h.mc->start(options);
@@ -134,9 +134,9 @@ private slots:
         data.players[1].joseki.enabled = true;
         data.players[1].joseki.maxPly = 0;  // 範囲に収める
         const MatchStartOptions options = GameStartOptionsBuilder::buildStartOptions(SfenUtils::hirateSfen(), data);
-        QVERIFY(!options.josekiOptions[0].enabled);
-        QVERIFY(options.josekiOptions[1].enabled);
-        QCOMPARE(options.josekiOptions[1].maxPly, 1);
+        QVERIFY(!options.engine(Turn::Black).joseki.enabled);
+        QVERIFY(options.engine(Turn::White).joseki.enabled);
+        QCOMPARE(options.engine(Turn::White).joseki.maxPly, 1);
     }
     void startOptionsAndNames()
     {
@@ -155,8 +155,8 @@ private slots:
         QVERIFY(h.mc->options().autoSave.isActive());
         QCOMPARE(h.mc->options().autoSave.dir, m_config.path());
         QCOMPARE(h.mc->options().autoSave.extension, QStringLiteral("kifu"));
-        QCOMPARE(h.mc->players().blackHumanName, data.players[0].humanName);
-        QCOMPARE(h.mc->players().whiteHumanName, data.players[1].humanName);
+        QCOMPARE(h.mc->players().seat(Turn::Black).humanName, data.players[0].humanName);
+        QCOMPARE(h.mc->players().seat(Turn::White).humanName, data.players[1].humanName);
     }
     void humanSideControlsFlip()
     {

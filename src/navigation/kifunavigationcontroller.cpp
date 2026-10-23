@@ -104,14 +104,13 @@ void KifuNavigationController::goToNode(KifuBranchNode* node)
     if (node) m_state->setCurrentNode(node);
 }
 
-void KifuNavigationController::goToLine(int lineIndex, int ply)
+void KifuNavigationController::goToPlyOnLine(int lineEndNodeId, int ply)
 {
-    const auto lines = m_state->tree()->allLines();
-    if (lineIndex < 0 || lineIndex >= lines.size()) return;
-    const auto& nodes = lines.at(lineIndex).nodes;
-    if (nodes.isEmpty()) return;
-    // 分岐の手順を選んだので、その手順の終わりまでを以降の「進む」でたどる
-    m_state->setCurrentNode(nodes.at(qBound(0, ply, static_cast<int>(nodes.size()) - 1)), nodes.constLast());
+    const KifuBranchTree* tree = m_state->tree();
+    KifuBranchNode* node = tree->nodeOnLine(lineEndNodeId, ply);
+    if (!node) return;
+    // 手順を選んだので、その手順の終わりまでを以降の「進む」でたどる
+    m_state->setCurrentNode(node, tree->nodeAt(lineEndNodeId));
 }
 
 void KifuNavigationController::goToMainLineAtCurrentPly()
@@ -128,7 +127,14 @@ void KifuNavigationController::goToMainLineAtCurrentPly()
 
 bool KifuNavigationController::confirmLeave()
 {
-    if (!m_leaveGuard || m_leaveGuard()) return true;
+    bool allowed = true;
+    for (const std::function<bool()>& guard : std::as_const(m_leaveGuards)) {
+        if (guard && !guard()) {
+            allowed = false;
+            break;
+        }
+    }
+    if (allowed) return true;
     emit navigationRejected();
     return false;
 }

@@ -101,7 +101,6 @@ void AutomationCommands::registerWidgetCommands(AutomationDispatcher& dispatcher
         const QPersistentModelIndex index = requireIndex(table, params);
         const QString text = params.value(QStringLiteral("text")).toString();
         const bool commit = params.value(QStringLiteral("commit")).toBool();
-        requireCell(table, index, true);
         return AutomationInteractions::queue(
             {table, [table, index]() { requireCell(table, index, true); },
              [table, index, text, commit]() { editCell(table, index, text, commit); }},
@@ -123,7 +122,6 @@ void AutomationCommands::registerWidgetCommands(AutomationDispatcher& dispatcher
     dispatcher.registerMethod(QStringLiteral("widget.showDock"), [context](const QJsonObject& params) {
         auto* dock = qobject_cast<QDockWidget*>(targetWidget(context, params, false));
         if (!dock) throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("Widget must be a dock"));
-        AutomationWidgets::requireInteractive(dock->parentWidget());
         return AutomationInteractions::queue(
             {dock, [dock]() { AutomationWidgets::requireInteractive(dock->parentWidget()); },
              [dock]() {
@@ -146,7 +144,6 @@ void AutomationCommands::registerWidgetCommands(AutomationDispatcher& dispatcher
         if (widget->window() != AutomationWidgets::requireWindow(context,
                 params.value(QStringLiteral("target")).toString()))
             throw AutomationError(ErrorKind::NotAllowed, QStringLiteral("Widget belongs to another window"));
-        AutomationWidgets::requireInteractive(widget, false, true);
         if (params.value(QStringLiteral("submit")).toBool() && !qobject_cast<QLineEdit*>(widget))
             throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("submit requires a line edit"));
         // 型ごとの検査と書き方は AutomationWidgetAdapters の表
@@ -158,7 +155,6 @@ void AutomationCommands::registerWidgetCommands(AutomationDispatcher& dispatcher
     dispatcher.registerMethod(QStringLiteral("widget.clickCell"), [context](const QJsonObject& params) {
         auto* table = requireTable(context, params);
         const QPersistentModelIndex index = requireIndex(table, params);
-        requireCell(table, index, false);
         return AutomationInteractions::queue(
             {table, [table, index]() { requireCell(table, index, false); },
              [table, index]() { clickCell(table, index); }},

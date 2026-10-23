@@ -74,11 +74,11 @@ struct ScopedEnv {
 MatchCoordinator::StartOptions humanVsEngine(bool engineIsBlack, const QString& path, const QString& name)
 {
     MatchCoordinator::StartOptions opt;
-    opt.players.blackIsEngine = engineIsBlack;
-    opt.players.whiteIsEngine = !engineIsBlack;
+    opt.players.seat(Turn::Black).engine = engineIsBlack;
+    opt.players.seat(Turn::White).engine = !engineIsBlack;
     opt.sfenStart = SfenUtils::hirateSfen();
-    (engineIsBlack ? opt.enginePath1 : opt.enginePath2) = path;
-    (engineIsBlack ? opt.players.blackEngineName : opt.players.whiteEngineName) = name;
+    (engineIsBlack ? opt.engine(Turn::Black).path : opt.engine(Turn::White).path) = path;
+    (engineIsBlack ? opt.players.seat(Turn::Black).engineName : opt.players.seat(Turn::White).engineName) = name;
     return opt;
 }
 
@@ -92,10 +92,8 @@ void Tst_MatchCoordinator::initialState_notStartedAndNotOver()
 {
     MatchHarness h;
     QCOMPARE(h.activity.activity(), AppActivityState::Activity::Idle);
-    const auto& st = h.mc->gameOverState();
-    QVERIFY(!st.isOver);
-    QVERIFY(!st.hasLast);
-    QVERIFY(!st.moveAppended);
+    QVERIFY(!h.mc->isGameOver());
+    QVERIFY(!h.mc->gameEnd());
     QCOMPARE(h.mc->currentPly(), 0);
     QVERIFY(h.sink.records.isEmpty());
 }
@@ -182,12 +180,11 @@ void Tst_MatchCoordinator::resign_recordsTerminalAndAnnounces()
 
     h.mc->handleResign();
 
-    const auto& st = h.mc->gameOverState();
-    QVERIFY(st.isOver);
-    QVERIFY(st.hasLast);
-    QVERIFY(st.moveAppended);
-    QCOMPARE(st.lastInfo.cause, MatchCoordinator::Cause::Resignation);
-    QCOMPARE(st.lastInfo.loser, Turn::Black);
+    QVERIFY(h.mc->isGameOver());
+    QCOMPARE(h.mc->gameEnd()->cause, MatchCoordinator::Cause::Resignation);
+    QCOMPARE(h.mc->gameEnd()->loser, Turn::Black);
+    // 終局の行を棋譜に書いた
+    QCOMPARE(h.sink.records.last().terminal, TerminalType::Resign);
     // 終局したら動作状態は待機に戻る（終局を見る部品はこの変化で知る）
     QCOMPARE(h.activity.activity(), AppActivityState::Activity::Idle);
     QCOMPARE(ended.count(), 1);
@@ -213,20 +210,20 @@ void Tst_MatchCoordinator::resign_secondCallIgnored()
     h.mc->handleBreakOff();
     QCOMPARE(ended.count(), 0);
     QCOMPARE(h.sink.records.size(), 1);
-    QCOMPARE(h.mc->gameOverState().lastInfo.cause, MatchCoordinator::Cause::Resignation);
+    QCOMPARE(h.mc->gameEnd()->cause, MatchCoordinator::Cause::Resignation);
 }
 
 void Tst_MatchCoordinator::clearGameOverState_clears()
 {
     MatchHarness h;
-    h.mc->clearGameOverState();   // 対局していなくても何も起きない
+    h.mc->clearGameEnd();   // 対局していなくても何も起きない
     h.startHumanVsHuman();
     h.mc->handleResign();
 
-    h.mc->clearGameOverState();
+    h.mc->clearGameEnd();
 
-    QVERIFY(!h.mc->gameOverState().isOver);
-    QVERIFY(!h.mc->gameOverState().hasLast);
+    QVERIFY(!h.mc->isGameOver());
+    QVERIFY(!h.mc->gameEnd().has_value());
 }
 
 void Tst_MatchCoordinator::breakOff_appendsTerminalOnceWithoutMessage()
@@ -238,9 +235,8 @@ void Tst_MatchCoordinator::breakOff_appendsTerminalOnceWithoutMessage()
 
     h.mc->handleBreakOff();
 
-    QVERIFY(h.mc->gameOverState().isOver);
-    QCOMPARE(h.mc->gameOverState().lastInfo.cause, MatchCoordinator::Cause::BreakOff);
-    QVERIFY(h.mc->gameOverState().moveAppended);
+    QVERIFY(h.mc->isGameOver());
+    QCOMPARE(h.mc->gameEnd()->cause, MatchCoordinator::Cause::BreakOff);
     QCOMPARE(h.sink.records.size(), 2);
     QCOMPARE(h.sink.records.last().terminal, TerminalType::Interrupt);
     // 中断は知らせない。再開できる
@@ -255,8 +251,8 @@ void Tst_MatchCoordinator::playerTimeOut_recordsTimeout()
     MatchHarness h;
     h.startHumanVsHuman();
     h.mc->handlePlayerTimeOut(Turn::White);
-    QCOMPARE(h.mc->gameOverState().lastInfo.cause, MatchCoordinator::Cause::Timeout);
-    QCOMPARE(h.mc->gameOverState().lastInfo.loser, Turn::White);
+    QCOMPARE(h.mc->gameEnd()->cause, MatchCoordinator::Cause::Timeout);
+    QCOMPARE(h.mc->gameEnd()->loser, Turn::White);
     QCOMPARE(h.sink.records.last().terminal, TerminalType::Timeout);
     QCOMPARE(h.sink.records.last().mover, Turn::White);
     QVERIFY(h.lastMessageText().contains(QStringLiteral("後手の時間切れ")));
@@ -288,8 +284,8 @@ void Tst_MatchCoordinator::nyugyokuDeclaration_success()
     h.startHumanVsHuman();
     QSignalSpy processed(h.mc.get(), &MatchCoordinator::gameEndProcessed);
     h.mc->handleNyugyokuDeclaration(Turn::Black, success, isDraw);
-    QCOMPARE(int(h.mc->gameOverState().lastInfo.cause), cause);
-    QCOMPARE(int(h.mc->gameOverState().lastInfo.loser), loser);
+    QCOMPARE(int(h.mc->gameEnd()->cause), cause);
+    QCOMPARE(int(h.mc->gameEnd()->loser), loser);
     QCOMPARE(int(h.sink.records.last().terminal), terminal);
     // 宣言の結果は呼び出し側のダイアログで知らせるので、ここでは知らせない
     QCOMPARE(h.messageCount(), 0);
@@ -376,9 +372,9 @@ void Tst_MatchCoordinator::humanVsEngine_engineResignLosesEngineSide()
 
     emit engine->resigned(engineIsBlack ? Turn::Black : Turn::White);
 
-    QVERIFY(h.mc->gameOverState().isOver);
-    QCOMPARE(h.mc->gameOverState().lastInfo.cause, MatchCoordinator::Cause::Resignation);
-    QCOMPARE(h.mc->gameOverState().lastInfo.loser, engineIsBlack ? Turn::Black : Turn::White);
+    QVERIFY(h.mc->isGameOver());
+    QCOMPARE(h.mc->gameEnd()->cause, MatchCoordinator::Cause::Resignation);
+    QCOMPARE(h.mc->gameEnd()->loser, engineIsBlack ? Turn::Black : Turn::White);
 }
 
 void Tst_MatchCoordinator::humanVsEngine_engineWinIsJudgedOnBoard()
@@ -392,8 +388,8 @@ void Tst_MatchCoordinator::humanVsEngine_engineWinIsJudgedOnBoard()
 
     // エンジンの入玉宣言（bestmove win）も盤面で判定する。初期局面では条件を満たさず宣言側の負け
     emit engine->declaredWin(Turn::Black);
-    QCOMPARE(h.mc->gameOverState().lastInfo.cause, MatchCoordinator::Cause::IllegalMove);
-    QCOMPARE(h.mc->gameOverState().lastInfo.loser, Turn::Black);
+    QCOMPARE(h.mc->gameEnd()->cause, MatchCoordinator::Cause::IllegalMove);
+    QCOMPARE(h.mc->gameEnd()->loser, Turn::Black);
     QCOMPARE(h.messageCount(), 1);
 
     // 先手玉２二、敵陣に15枚・持ち駒と合わせて28点（27点法で宣言勝ち）
@@ -407,8 +403,8 @@ void Tst_MatchCoordinator::humanVsEngine_engineWinIsJudgedOnBoard()
     QSignalSpy ready2(engine2, &Usi::engineInitialized);
     QTRY_COMPARE_WITH_TIMEOUT(ready2.count(), 1, 5000);
     emit engine2->declaredWin(Turn::Black);
-    QCOMPARE(h2.mc->gameOverState().lastInfo.cause, MatchCoordinator::Cause::NyugyokuWin);
-    QCOMPARE(h2.mc->gameOverState().lastInfo.loser, Turn::White);
+    QCOMPARE(h2.mc->gameEnd()->cause, MatchCoordinator::Cause::NyugyokuWin);
+    QCOMPARE(h2.mc->gameEnd()->loser, Turn::White);
     QCOMPARE(h2.sink.records.last().terminal, TerminalType::DeclarationWin);
 }
 
@@ -421,26 +417,26 @@ void Tst_MatchCoordinator::humanVsEngine_engineStartFailure_breaksOffAfterStart(
 
     // 起動の失敗は開始処理の中で通知されるが、中断は開始処理を終えてから行う
     QCOMPARE(h.messageCount(), 0);
-    QVERIFY(!h.mc->gameOverState().isOver);
+    QVERIFY(!h.mc->isGameOver());
 
     QTRY_VERIFY_WITH_TIMEOUT(h.messageCount() > 0, 1000);
     QCOMPARE(h.lastMessageTitle(), QStringLiteral("対局中断"));
-    QVERIFY2(h.lastMessageText().contains(opt.enginePath2), qPrintable(h.lastMessageText()));
-    QVERIFY(h.mc->gameOverState().isOver);
-    QCOMPARE(h.mc->gameOverState().lastInfo.cause, MatchCoordinator::Cause::BreakOff);
+    QVERIFY2(h.lastMessageText().contains(opt.engine(Turn::White).path), qPrintable(h.lastMessageText()));
+    QVERIFY(h.mc->isGameOver());
+    QCOMPARE(h.mc->gameEnd()->cause, MatchCoordinator::Cause::BreakOff);
 }
 
 void Tst_MatchCoordinator::engineVsEngine_engineStartFailure_breaksOffOnce()
 {
     MatchHarness h;
     MatchCoordinator::StartOptions opt;
-    opt.players.blackIsEngine = true;
-    opt.players.whiteIsEngine = true;
+    opt.players.seat(Turn::Black).engine = true;
+    opt.players.seat(Turn::White).engine = true;
     opt.sfenStart = SfenUtils::hirateSfen();
-    opt.players.blackEngineName = QStringLiteral("MissingEngine1");
-    opt.enginePath1 = m_config.filePath(QStringLiteral("missing-engine-1"));
-    opt.players.whiteEngineName = QStringLiteral("MissingEngine2");
-    opt.enginePath2 = m_config.filePath(QStringLiteral("missing-engine-2"));
+    opt.players.seat(Turn::Black).engineName = QStringLiteral("MissingEngine1");
+    opt.engine(Turn::Black).path = m_config.filePath(QStringLiteral("missing-engine-1"));
+    opt.players.seat(Turn::White).engineName = QStringLiteral("MissingEngine2");
+    opt.engine(Turn::White).path = m_config.filePath(QStringLiteral("missing-engine-2"));
     h.mc->start(opt);
 
     QTRY_VERIFY_WITH_TIMEOUT(h.messageCount() > 0, 1000);
@@ -448,8 +444,8 @@ void Tst_MatchCoordinator::engineVsEngine_engineStartFailure_breaksOffOnce()
     // 2つ目のエンジンのエラーは、中断した後なので知らせない
     QCOMPARE(h.messageCount(), 1);
     QCOMPARE(h.lastMessageTitle(), QStringLiteral("対局中断"));
-    QVERIFY2(h.lastMessageText().contains(opt.enginePath1), qPrintable(h.lastMessageText()));
-    QCOMPARE(h.mc->gameOverState().lastInfo.cause, MatchCoordinator::Cause::BreakOff);
+    QVERIFY2(h.lastMessageText().contains(opt.engine(Turn::Black).path), qPrintable(h.lastMessageText()));
+    QCOMPARE(h.mc->gameEnd()->cause, MatchCoordinator::Cause::BreakOff);
 }
 
 void Tst_MatchCoordinator::humanVsEngine_engineExit_breaksOff()
@@ -463,7 +459,7 @@ void Tst_MatchCoordinator::humanVsEngine_engineExit_breaksOff()
     QCOMPARE(h.lastMessageTitle(), QStringLiteral("対局中断"));
     QVERIFY2(h.lastMessageText().contains(QStringLiteral("Engine exited unexpectedly.")),
              qPrintable(h.lastMessageText()));
-    QCOMPARE(h.mc->gameOverState().lastInfo.cause, MatchCoordinator::Cause::BreakOff);
+    QCOMPARE(h.mc->gameEnd()->cause, MatchCoordinator::Cause::BreakOff);
 }
 
 // ============================================================

@@ -382,10 +382,10 @@ private slots:
         deps.thinkingPanel = &tab;
         EngineDisplayPresenter displays(deps);
         MatchPlayers engines;
-        engines.blackIsEngine = true;
-        engines.whiteIsEngine = true;
-        engines.blackEngineName = QStringLiteral("Engine A");
-        engines.whiteEngineName = QStringLiteral("Engine B");
+        engines.seat(Turn::Black).engine = true;
+        engines.seat(Turn::White).engine = true;
+        engines.seat(Turn::Black).engineName = QStringLiteral("Engine A");
+        engines.seat(Turn::White).engineName = QStringLiteral("Engine B");
         document.beginMatch(engines, {}, false);
         QVERIFY(tab.info1()->isVisibleTo(page));
         QVERIFY(tab.info2()->isVisibleTo(page));
@@ -393,9 +393,9 @@ private slots:
         QVERIFY(views.at(1)->isVisibleTo(page));
 
         MatchPlayers humanEngine;
-        humanEngine.whiteIsEngine = true;
-        humanEngine.blackHumanName = QStringLiteral("Human");
-        humanEngine.whiteEngineName = QStringLiteral("Engine B");
+        humanEngine.seat(Turn::White).engine = true;
+        humanEngine.seat(Turn::Black).humanName = QStringLiteral("Human");
+        humanEngine.seat(Turn::White).engineName = QStringLiteral("Engine B");
         document.beginMatch(humanEngine, {}, false);
         QVERIFY(!tab.info2()->isVisibleTo(page));
         QVERIFY(!views.at(1)->isVisibleTo(page));
@@ -442,9 +442,7 @@ private slots:
         deps.document = &document;
         deps.activity = &activity;
         deps.shogiView = &view;
-        PlayerInfoPresenter wiring(deps);
-        connect(&document, &KifuDocument::headerReset, &wiring, &PlayerInfoPresenter::syncBoardNamesWithGameInfo);
-        connect(&document, &KifuDocument::headerEdited, &wiring, &PlayerInfoPresenter::showMatchPlayers);
+        PlayerInfoPresenter wiring(deps);   // 文書と動作状態の知らせを自分で受ける
         QCOMPARE(view.chrome()->card(Turn::Black)->nameLabel()->fullText(), QStringLiteral("▲先手"));
         // 対局情報欄で名前を書き換えると、対局していなければすぐ盤の名前も変わる
         QList<KifGameInfoItem> edited = document.header();
@@ -454,17 +452,25 @@ private slots:
         QCOMPARE(view.chrome()->card(Turn::Black)->nameLabel()->fullText(), QStringLiteral("▲一郎"));
         document.editHeader(KifuDocument::defaultHeader());
         QCOMPARE(view.chrome()->card(Turn::White)->nameLabel()->fullText(), QStringLiteral("▽後手"));
-        // 対局していないときの表示でも対局情報の名前を残す
-        wiring.showMatchPlayers();
-        QCOMPARE(view.chrome()->card(Turn::Black)->nameLabel()->fullText(), QStringLiteral("▲先手"));
         QCOMPARE(document.headerPlayerName(Turn::Black), QStringLiteral("先手"));
 
-        // 対局後の「新規」でも前の対局者名を残さない
+        // 対局中は対局者の名前（対局情報を書き換えても変えない）
         MatchPlayers humans;
-        humans.blackHumanName = QStringLiteral("太郎");
-        humans.whiteHumanName = QStringLiteral("花子");
-        wiring.showPlayers(humans);
+        humans.seat(Turn::Black).humanName = QStringLiteral("太郎");
+        humans.seat(Turn::White).humanName = QStringLiteral("花子");
+        document.beginMatch(humans, TimeControl{}, false);
+        ActivityLease game = activity.begin(AppActivityState::Activity::DuringGame, &document);
         QCOMPARE(view.chrome()->card(Turn::Black)->nameLabel()->fullText(), QStringLiteral("▲太郎"));
+        edited = document.header();
+        for (KifGameInfoItem& item : edited)
+            if (item.key == GameInfoKeys::kBlackPlayer) item.value = QStringLiteral("一郎");
+        document.editHeader(edited);
+        QCOMPARE(view.chrome()->card(Turn::Black)->nameLabel()->fullText(), QStringLiteral("▲太郎"));
+        // 終局したら対局情報の名前
+        game.reset();
+        QCOMPARE(view.chrome()->card(Turn::Black)->nameLabel()->fullText(), QStringLiteral("▲一郎"));
+
+        // 対局後の「新規」でも前の対局者名を残さない
         document.startNew(SfenUtils::hirateSfen());
         QCOMPARE(view.chrome()->card(Turn::Black)->nameLabel()->fullText(), QStringLiteral("▲先手"));
         QCOMPARE(view.chrome()->card(Turn::White)->nameLabel()->fullText(), QStringLiteral("▽後手"));
@@ -482,7 +488,7 @@ private slots:
         KifuDocument::Hooks hooks;
         hooks.commitPendingEdits = std::bind(&GameInfoPane::commitPendingEditor, controller);
         hooks.hasPendingEdits = std::bind(&GameInfoPane::hasPendingEditor, controller);
-        document.setHooks(hooks);
+        document.addPendingEditor(hooks);
         connect(&document, &KifuDocument::headerReset, controller, &GameInfoPane::setGameInfo);
         connect(&document, &KifuDocument::headerValueSet, controller, &GameInfoPane::updateGameInfoValue);
         connect(controller, &GameInfoPane::gameInfoEdited, &document, &KifuDocument::editHeader);
@@ -505,8 +511,8 @@ private slots:
         editor->setText(QStringLiteral("入力途中の備考"));
 
         MatchPlayers players;
-        players.blackHumanName = QStringLiteral("太郎");
-        players.whiteHumanName = QStringLiteral("花子");
+        players.seat(Turn::Black).humanName = QStringLiteral("太郎");
+        players.seat(Turn::White).humanName = QStringLiteral("花子");
         document.beginMatch(players, TimeControl{{300000, 30000, 0}, {300000, 30000, 0}}, false);
         const QDateTime start = document.timeRecord().startDateTime();
         QCOMPARE(table.rowCount(), 9);
@@ -519,7 +525,7 @@ private slots:
         QCOMPARE(table.text(7, 1), QStringLiteral("自宅"));
         QCOMPARE(table.text(8, 1), QStringLiteral("入力途中の備考"));
         QVERIFY(!controller->hasPendingEditor());
-        std::swap(players.blackHumanName, players.whiteHumanName);
+        std::swap(players.seat(Turn::Black).humanName, players.seat(Turn::White).humanName);
         document.beginMatch(players, TimeControl{}, false);
         QCOMPARE(table.text(5, 1), QStringLiteral("無制限"));
         QCOMPARE(table.text(8, 1), QStringLiteral("入力途中の備考"));
@@ -527,8 +533,8 @@ private slots:
         // 駒落ちは対局者を下手・上手で書き、前の対局の先手・後手の行を残さない。
         // 先後で違う持ち時間は両方を書く。
         tree.setRootSfen(QStringLiteral("lnsgkgsnl/1r7/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"));  // 角落ち
-        players.blackHumanName = QStringLiteral("下手さん");
-        players.whiteHumanName = QStringLiteral("上手さん");
+        players.seat(Turn::Black).humanName = QStringLiteral("下手さん");
+        players.seat(Turn::White).humanName = QStringLiteral("上手さん");
         document.beginMatch(players, TimeControl{{60000, 2000, 0}, {120000, 3000, 0}}, false);
         QCOMPARE(table.rowCount(), 9);
         QCOMPARE(table.text(2, 0), GameInfoKeys::kShitatePlayer);
@@ -542,8 +548,8 @@ private slots:
             QVERIFY(item.key != GameInfoKeys::kWhitePlayer);
         }
         // 棋譜の途中から続ける対局は、対局情報を残して対局者名だけを書き換える
-        players.blackHumanName = QStringLiteral("新しい下手");
-        players.whiteHumanName = QStringLiteral("新しい上手");
+        players.seat(Turn::Black).humanName = QStringLiteral("新しい下手");
+        players.seat(Turn::White).humanName = QStringLiteral("新しい上手");
         document.beginMatch(players, TimeControl{}, true);
         QCOMPARE(table.text(2, 1), QStringLiteral("新しい下手"));
         QCOMPARE(table.text(3, 1), QStringLiteral("新しい上手"));
@@ -551,8 +557,8 @@ private slots:
         QVERIFY(!controller->hasPendingEditor());
 
         tree.setRootSfen(SfenUtils::hirateSfen());
-        players.blackHumanName = QStringLiteral("太郎");
-        players.whiteHumanName = QStringLiteral("花子");
+        players.seat(Turn::Black).humanName = QStringLiteral("太郎");
+        players.seat(Turn::White).humanName = QStringLiteral("花子");
         document.beginMatch(players, TimeControl{{60000, 2000, 0}, {120000, 3000, 0}}, false);
         QCOMPARE(table.rowCount(), 9);
         QCOMPARE(table.text(2, 0), GameInfoKeys::kBlackPlayer);

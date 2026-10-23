@@ -9,10 +9,10 @@
 #include <QStringList>
 
 /**
- * @brief USIエンジンの個別オプションを保持する構造体
+ * @brief USIエンジンの個別オプション（エンジンが報告した定義と、保存した値）
  *
- * USIプロトコルの "option" コマンドで報告されるオプション情報を格納する。
- *
+ * "option name <name> type <type> [default/min/max/var ...]" を UsiLineParser::parseOption が読んでこの型にし
+ * （currentValue は既定値）、登録・設定の保存（EngineProfileStore）・設定ダイアログで同じ型を使う。
  */
 struct EngineOption
 {

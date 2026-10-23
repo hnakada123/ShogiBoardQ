@@ -92,7 +92,6 @@ void AutomationCommands::registerNavigationCommands(AutomationDispatcher& dispat
         auto* source = AutomationWidgets::requireWidget(context, params, false);
         QMenu* menu = menuFor(source);
         QWidget* window = AutomationWidgets::requireWindow(context, params.value(QStringLiteral("target")).toString());
-        requireMenuInteractive(window, source, menu);
         const QJsonArray path = params.value(QStringLiteral("path")).toArray();
         QAction* action = nullptr;
         QMenu* current = menu;

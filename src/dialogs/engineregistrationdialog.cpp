@@ -183,7 +183,7 @@ void EngineRegistrationDialog::rebuildEngineList()
     const QString selectedName = current ? current->text() : QString();
     const int selectedRow = ui->engineListWidget->currentRow();
     ui->engineListWidget->clear();
-    for (const EngineListSettings::EngineEntry& engine : std::as_const(m_handler->engineList())) {
+    for (const EngineEntry& engine : std::as_const(m_handler->engineList())) {
         auto* item = new QListWidgetItem(engine.name, ui->engineListWidget);
         item->setToolTip(engine.path);
     }
