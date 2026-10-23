@@ -186,6 +186,21 @@ private slots:
         p.document->markSaved(QString());
     }
 
+    /// 指し手0手の棋譜は、手合割の名前だけで平手の開始局面なら読まない（開くものが無い）。駒落ちは開く
+    void emptyRecordNeedsNonStandardStart()
+    {
+        MainWindow window;
+        auto& p = window.composer().parts();
+        UiNotificationService::ScopedCapture shown;
+        const QString header = QStringLiteral("手数----指手---------消費時間--\n");
+        QVERIFY(!p.kifuFileController->loadKifuText(QStringLiteral("手合割：平手\n") + header));
+        QVERIFY(shown.errors().join(QLatin1Char('\n')).contains(QStringLiteral("指し手を取得できませんでした")));
+        QVERIFY2(p.kifuFileController->loadKifuText(QStringLiteral("手合割：香落ち\n") + header),
+                 qPrintable(shown.errors().join(QLatin1Char('\n'))));
+        QCOMPARE(p.branchTree->root()->sfen(), QStringLiteral("lnsgkgsn1/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"));
+        p.document->markSaved(QString());
+    }
+
     /// 開いたままの局面集ビューア・棋譜貼り付けから、対局などを始めた後に反映しても棋譜を置き換えない
     void recordIsNotReplacedOutsideIdle()
     {

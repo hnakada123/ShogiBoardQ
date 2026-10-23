@@ -5,6 +5,7 @@
 #include "kifubranchtree.h"
 #include "kifudocument.h"
 #include "logcategories.h"
+#include "shogiposition.h"
 
 #include <QtConcurrentRun>
 #include <utility>
@@ -116,9 +117,12 @@ bool KifuLoadCoordinator::applyLoadResult(const KifuLoadResult& result)
 bool KifuLoadCoordinator::applyRecord(const KifuLoadResult& result)
 {
     const KifParseResult& res = result.record;
-    // 指し手が0手でも、開始局面が書かれていれば棋譜として読む（局面編集から保存した棋譜など。形式によらない）
+    // 指し手が0手でも、平手以外の開始局面が書かれていれば棋譜として読む（局面編集から保存した棋譜・
+    // 駒落ちの開始局面など。形式によらない）。平手の開始局面だけの棋譜は開くものが無いので読まない
     const bool hasMoves = !res.mainline.usiMoves().isEmpty() || res.mainline.endsWithTerminal();
-    if (result.startKind == StartKind::Default && !hasMoves) {
+    const bool namedHirate = result.startKind == StartKind::Default
+        || (result.startKind == StartKind::Handicap && Position::fromSfen(result.startSfen()) == Position::hirate());
+    if (namedHirate && !hasMoves) {
         emit errorOccurred(tr("読み込み失敗 %1 から指し手を取得できませんでした。").arg(result.filePath));
         return false;
     }
