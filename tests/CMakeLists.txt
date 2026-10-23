@@ -1156,6 +1156,7 @@ add_shogi_test(tst_evaluationchart
     tst_evaluationchart.cpp
     ${SRC}/widgets/evaluationchartwidget.cpp
     ${SRC}/models/evaluationseries.cpp
+    ${SRC}/models/scoretext.cpp
     ${SRC}/widgets/evaluationchartview.cpp
     ${SRC}/widgets/evaluationchartrange.cpp
     ${SRC}/dialogs/evaluationchartsettingsdialog.cpp

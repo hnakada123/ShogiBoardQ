@@ -122,8 +122,8 @@ private slots:
         QCOMPARE(widget.axes().yLimit, 1000);
         QCOMPARE(widget.axes().xLimit, 20);
         QCOMPARE(series(widget)->at(2).y(), 1000.0);
-        QVERIFY(view(widget)->summary.contains(QStringLiteral("5")));
-        QVERIFY(view(widget)->summary.contains(QStringLiteral("先手勝ち")));
+        // 詰みの語は思考の表・棋譜解析の表と同じ「5手詰」。どちらの勝ちかを添える
+        QVERIFY2(view(widget)->summary.contains(QStringLiteral("先手勝ち・5手詰")), qPrintable(view(widget)->summary));
         widget.appendScoreP1(21, UsiScore::cp(1800));
         QCOMPARE(widget.axes().yLimit, 2000);
         QCOMPARE(widget.axes().xLimit, 30);
@@ -191,24 +191,26 @@ private slots:
         QTest::addColumn<QString>("mate");
         QTest::addColumn<bool>("invert");
         QTest::addColumn<int>("direction");
-        QTest::newRow("sente-mate") << QStringLiteral("5") << false << 1;
-        QTest::newRow("gote-mate") << QStringLiteral("5") << true << -1;
-        QTest::newRow("gote-mated") << QStringLiteral("-5") << true << 1;
-        QTest::newRow("unknown-win") << QStringLiteral("+") << false << 1;
-        QTest::newRow("unknown-loss") << QStringLiteral("-") << false << -1;
-        QTest::newRow("mated-now") << QStringLiteral("0") << false << -1;
-        QTest::newRow("gote-mated-now") << QStringLiteral("0") << true << 1;
+        QTest::addColumn<QString>("text");
+        QTest::newRow("sente-mate") << QStringLiteral("5") << false << 1 << QStringLiteral("先手勝ち・5手詰");
+        QTest::newRow("gote-mate") << QStringLiteral("5") << true << -1 << QStringLiteral("後手勝ち・5手詰");
+        QTest::newRow("gote-mated") << QStringLiteral("-5") << true << 1 << QStringLiteral("先手勝ち・5手詰");
+        QTest::newRow("unknown-win") << QStringLiteral("+") << false << 1 << QStringLiteral("先手勝ち・詰み");
+        QTest::newRow("unknown-loss") << QStringLiteral("-") << false << -1 << QStringLiteral("後手勝ち・詰み");
+        QTest::newRow("mated-now") << QStringLiteral("0") << false << -1 << QStringLiteral("後手勝ち・0手詰");
+        QTest::newRow("gote-mated-now") << QStringLiteral("0") << true << 1 << QStringLiteral("先手勝ち・0手詰");
     }
     void matePerspective()
     {
         QFETCH(QString, mate);
         QFETCH(bool, invert);
         QFETCH(int, direction);
+        QFETCH(QString, text);
         TestChart widget;
         const UsiScore score = mateScore(mate);
         widget.appendScoreP2(12, invert ? score.negated() : score);
         QCOMPARE(series(widget, 1)->at(0).y(), double(direction * widget.axes().yLimit));
-        QVERIFY(view(widget)->summary.contains(direction > 0 ? QStringLiteral("先手勝ち") : QStringLiteral("後手勝ち")));
+        QVERIFY2(view(widget)->summary.contains(text), qPrintable(view(widget)->summary));
         QVERIFY(view(widget)->markers.first().edge);
     }
 

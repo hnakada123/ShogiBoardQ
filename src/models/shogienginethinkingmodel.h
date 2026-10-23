@@ -31,10 +31,8 @@ public:
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
     QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
 
-    /// 評価値の表示（cp は QVariant の数、詰みは「3手詰」）。上下限の記号は別列に出す
+    /// 評価値の表示（cp は QVariant の数、詰みは ScoreText の「3手詰」）。上下限の記号は別列に出す
     static QVariant scoreDisplay(const UsiScore& score);
-    /// 詰みの評価値の表示（列幅の見積もりにも使う）
-    static QString mateScoreText(int plies);
     /// 「盤面」列のボタンの文字（列幅の見積もりにも使う）
     static QString boardButtonText();
 

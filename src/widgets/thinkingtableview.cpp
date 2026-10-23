@@ -2,6 +2,7 @@
 /// @brief 思考の表の実装
 
 #include "thinkingtableview.h"
+#include "scoretext.h"
 
 #include "shogienginethinkingmodel.h"
 #include "tablemodelutils.h"
@@ -86,7 +87,7 @@ void ThinkingTableView::fitColumns()
         setColumnWidth(column, width);
     }
     // 評価値列は、訳語の長い詰みの表示（英語では "Mate in 99 plies"）も省略せずに表示する。
-    const int mateWidth = metrics.horizontalAdvance(ShogiEngineThinkingModel::mateScoreText(-99)) + 20;
+    const int mateWidth = metrics.horizontalAdvance(ScoreText::mateIn(-99)) + 20;
     setColumnWidth(Column::ScoreColumn, qMax(columnWidth(Column::ScoreColumn), mateWidth));
     // 検討の読み筋は、狭いドックでも横スクロールで読めるよう幅を確保する（残りの幅があれば伸ばす）
     if (m_table == AnalysisSettings::ThinkingTable::Consideration)

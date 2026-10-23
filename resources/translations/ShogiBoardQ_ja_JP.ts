@@ -4338,52 +4338,50 @@
 <context>
     <name>EvaluationChartWidget</name>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="413"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="415"/>
         <source>先手</source>
         <translation>先手</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="413"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="415"/>
         <source>後手</source>
         <translation>後手</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="414"/>
         <source>%1勝ち・詰みまで%2手</source>
-        <translation>%1勝ち・詰みまで%2手</translation>
+        <translation type="vanished">%1勝ち・詰みまで%2手</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="415"/>
         <source>%1勝ち・詰み</source>
-        <translation>%1勝ち・詰み</translation>
+        <translation type="vanished">%1勝ち・詰み</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="418"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="420"/>
         <source>%1（表示範囲外）</source>
         <translation>%1（表示範囲外）</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="425"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="427"/>
         <source>先手エンジン</source>
         <translation>先手エンジン</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="425"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="427"/>
         <source>後手エンジン</source>
         <translation>後手エンジン</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="479"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="481"/>
         <source>%1：%2</source>
         <translation>%1：%2</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="488"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="490"/>
         <source>%1手目  |  %2</source>
         <translation>%1手目  |  %2</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="489"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="491"/>
         <source>評価値なし</source>
         <translation>評価値なし</translation>
     </message>
@@ -4397,13 +4395,13 @@
     </message>
     <message>
         <location filename="../../src/widgets/evaluationchartview.cpp" line="54"/>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="280"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="281"/>
         <source>先手有利</source>
         <translation>先手有利</translation>
     </message>
     <message>
         <location filename="../../src/widgets/evaluationchartview.cpp" line="57"/>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="280"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="281"/>
         <source>後手有利</source>
         <translation>後手有利</translation>
     </message>
@@ -4413,7 +4411,7 @@
         <translation>%1手目</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="562"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="564"/>
         <source>%1
 %2手目：%3
 先手視点の評価値</source>
@@ -4422,54 +4420,59 @@
 先手視点の評価値</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="173"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="174"/>
         <source>最初に戻る</source>
         <translation>最初に戻る</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="145"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="146"/>
         <source>表示範囲:</source>
         <translation>表示範囲:</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="148"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="149"/>
         <source>自動</source>
         <translation>自動</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="148"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="149"/>
         <source>手動固定</source>
         <translation>手動固定</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="154"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="155"/>
         <source>表示設定…</source>
         <translation>表示設定…</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="174"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="175"/>
         <source>10手戻る</source>
         <translation>10手戻る</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="175"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="176"/>
         <source>1手戻る</source>
         <translation>1手戻る</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="176"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="177"/>
         <source>1手進む</source>
         <translation>1手進む</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="177"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="178"/>
         <source>10手進む</source>
         <translation>10手進む</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="178"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="179"/>
         <source>最後に進む</source>
         <translation>最後に進む</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="417"/>
+        <source>%1勝ち・%2</source>
+        <translation>%1勝ち・%2</translation>
     </message>
 </context>
 <context>
@@ -11134,6 +11137,19 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
     </message>
 </context>
 <context>
+    <name>ScoreText</name>
+    <message>
+        <location filename="../../src/models/scoretext.cpp" line="8"/>
+        <source>%1手詰</source>
+        <translation>%1手詰</translation>
+    </message>
+    <message>
+        <location filename="../../src/models/scoretext.cpp" line="13"/>
+        <source>詰み</source>
+        <translation>詰み</translation>
+    </message>
+</context>
+<context>
     <name>SettingsResetController</name>
     <message>
         <location filename="../../src/ui/controllers/settingsresetcontroller.cpp" line="21"/>
@@ -11404,74 +11420,72 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>ShogiEngineThinkingModel</name>
     <message>
-        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="56"/>
+        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="57"/>
         <source>下限値：この値以上</source>
         <translation>下限値：この値以上</translation>
     </message>
     <message>
-        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="57"/>
+        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="58"/>
         <source>上限値：この値以下</source>
         <translation>上限値：この値以下</translation>
     </message>
     <message>
-        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="102"/>
         <source>詰み</source>
-        <translation>詰み</translation>
+        <translation type="vanished">詰み</translation>
     </message>
     <message>
-        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="109"/>
         <source>%1手詰</source>
-        <translation>%1手詰</translation>
+        <translation type="vanished">%1手詰</translation>
     </message>
     <message>
-        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="114"/>
+        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="110"/>
         <source>表示</source>
         <translation>表示</translation>
     </message>
     <message>
-        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="121"/>
+        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="117"/>
         <source>探索開始局面の手番側から見た評価値です。正は手番側有利、負は相手側有利です。</source>
         <translation>探索開始局面の手番側から見た評価値です。正は手番側有利、負は相手側有利です。</translation>
     </message>
     <message>
-        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="123"/>
+        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="119"/>
         <source>++：下限値（この値以上）
 --：上限値（この値以下）</source>
         <translation>++：下限値（この値以上）
 --：上限値（この値以下）</translation>
     </message>
     <message>
-        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="132"/>
+        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="128"/>
         <source>時間(ms)</source>
         <translation>時間(ms)</translation>
     </message>
     <message>
-        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="134"/>
+        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="130"/>
         <source>深さ</source>
         <translation>深さ</translation>
     </message>
     <message>
-        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="136"/>
+        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="132"/>
         <source>ノード数</source>
         <translation>ノード数</translation>
     </message>
     <message>
-        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="138"/>
+        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="134"/>
         <source>評価値</source>
         <translation>評価値</translation>
     </message>
     <message>
-        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="140"/>
+        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="136"/>
         <source>上下限</source>
         <translation>上下限</translation>
     </message>
     <message>
-        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="142"/>
+        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="138"/>
         <source>盤面</source>
         <translation>盤面</translation>
     </message>
     <message>
-        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="144"/>
+        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="140"/>
         <source>読み筋</source>
         <translation>読み筋</translation>
     </message>

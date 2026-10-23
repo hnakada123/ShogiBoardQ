@@ -832,6 +832,8 @@ set(SRC_MODELS
     src/models/kifurecordlistmodel.h
     src/models/shogienginethinkingmodel.cpp
     src/models/shogienginethinkingmodel.h
+    src/models/scoretext.cpp
+    src/models/scoretext.h
     src/models/shogiinforecord.cpp
     src/models/shogiinforecord.h
     src/models/evaluationseries.cpp

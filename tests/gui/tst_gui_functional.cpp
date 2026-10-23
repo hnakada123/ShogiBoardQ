@@ -3265,7 +3265,7 @@ private slots:
         QTest::qWait(100);
         QVERIFY(graph->isVisible());
         QVERIFY(graph->axes().yLimit <= 2000);
-        QVERIFY(graph->chartViewWidget()->accessibleName().contains(QStringLiteral("詰みまで7手")));
+        QVERIFY(graph->chartViewWidget()->accessibleName().contains(QStringLiteral("後手勝ち・7手詰")));
         snapshot("evaluation-graph-main");
         QVERIFY(graph->chartViewWidget()->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/evaluation-graph-export.png")));
     }
