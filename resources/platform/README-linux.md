@@ -37,8 +37,8 @@ Hayanagi は同じフォルダの `book/hayanagi_book.db` を定跡として使�
 
 ## 動作環境とソース
 
-x86_64 Linux の X11 / XWayland 環境向けです。公式の配布版は glibc 2.38 以降
-（Ubuntu 24.04 以降、Debian 13、Fedora 39 以降など）で動作します。OpenGL・fontconfig・HarfBuzz は
+x86_64 Linux の X11 / XWayland 環境向けです。公式の配布版は glibc 2.38 以降と GCC 14 以降の libstdc++
+（Ubuntu 24.04 以降、Debian 13、Fedora 40 以降など）で動作します。OpenGL・fontconfig・HarfBuzz は
 システムのものを使います（通常のデスクトップには入っています）。動作条件はダウンロード元の
 リリースノートでも確認してください。
 

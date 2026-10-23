@@ -104,7 +104,10 @@
 </div>
 <p>Packaging needs network access: linuxdeploy and appimagetool are downloaded the first time.</p>
 <blockquote>
-<p><strong>About glibc:</strong> an AppImage runs only on systems whose glibc is the same as or newer than that of the build system. Built on the latest Arch Linux, it requires glibc 2.43 or later and does not start on, for example, Ubuntu 24.04 (glibc 2.39). Release packages are therefore built in a container pinned to Arch Linux as of 2024-07-15 (glibc 2.39, Qt 6.7.2; see <a href="#package-run">5.1</a>). That AppImage requires glibc 2.38 or later and libstdc++ from GCC 12 or later, and runs on Ubuntu 24.04 or later, Debian 13, Fedora 39 or later, and similar.</p>
+<p><strong>About glibc:</strong> an AppImage runs only on systems whose glibc is the same as or newer than that of the build system. Built on the latest Arch Linux, it requires glibc 2.43 or later and does not start on, for example, Ubuntu 24.04 (glibc 2.39). Release packages are therefore built in a container pinned to Arch Linux as of 2024-07-15 (glibc 2.39, Qt 6.7.2; see <a href="#package-run">5.1</a>). That AppImage requires glibc 2.38 or later and libstdc++ from GCC 14 or later, and runs on Ubuntu 24.04 or later, Debian 13, Fedora 40 or later, and similar (not on Fedora 39, whose libstdc++ is from GCC 13).</p>
+</blockquote>
+<blockquote>
+<p><strong>About the bundled OpenSSL and libcurl:</strong> the other packages in the container stay at the versions of that time, but the bundled OpenSSL and libcurl, and the network libraries libcurl uses (nghttp2, nghttp3, ngtcp2, libssh2), are replaced with newer versions (OpenSSL 3.6.5 and curl 8.23.0 as of October 2026; see <a href="#package-run">5.1</a>). OpenSSL 3.3.1 and curl 8.8.0 of that time lack later fixes such as CVE-2024-6119. OpenSSL cannot be taken from the system instead: the bundled libcurl (used by libproxy, which Qt Network loads, to fetch proxy auto-configuration files) needs OpenSSL 3.5 or later functions, so the app would not start on Ubuntu 24.04 with OpenSSL 3.0. AppRun points the bundled OpenSSL to its own settings (<code>usr/share/ShogiBoardQ/openssl.cnf</code>) with <code>OPENSSL_CONF</code>: the system settings are written for the distribution's OpenSSL, and upstream OpenSSL cannot read Fedora's (crypto policies), which disabled TLS for network play.</p>
 </blockquote>
 </section>
 <section id="setup" class="level2">
@@ -191,6 +194,8 @@ python3 scripts/qt_licenses.py prepare --version 6.7.2 \
 <li>The first run creates the build image (<code>scripts/linux-container/Dockerfile</code>, about 3 GB). Downloads from the Arch Linux Archive are slow and take tens of minutes.</li>
 <li>Inside the container, <code>scripts/build-linux.sh</code> runs as your user. It uses <code>build-container</code> instead of the usual <code>build</code> directory and writes the outputs to the repository root.</li>
 <li>Some keys that signed packages at that time have since expired. The image verifies signatures against the official keyring but does not require the keys to be currently trusted.</li>
+<li>The bundled OpenSSL and libcurl, and the network libraries libcurl uses (nghttp2, nghttp3, ngtcp2, libssh2), are replaced with newer versions, because the versions of that time lack later fixes. Current Arch packages are installed after checking their SHA-256 (<code>scripts/linux-container/packages.sha256</code>) and signatures; curl, whose current package uses newer glibc functions, is rebuilt in the image from the same version's Arch PKGBUILD.</li>
+<li>To update them, download the new packages and their <code>.sig</code> files on your machine, check the signatures with <code>pacman-key --verify</code>, and update <code>packages.sha256</code>. For curl, set <code>CURL_PKGVER</code> and <code>CURL_PKGBUILD_SHA256</code> (the SHA-256 of the PKGBUILD at the Arch tag) in the Dockerfile; the tag signature is checked with the key in <code>curl-signing-key.asc</code>. First make sure the glibc version a new package needs (the highest <code>GLIBC_</code> in <code>objdump -T</code>) is 2.38 or lower; rebuild in the image any package that needs more. Changing <code>scripts/linux-container/</code> makes <code>build-linux-container.sh</code> rebuild the image.</li>
 </ul>
 <p>You can also build directly on Arch Linux. Such an AppImage requires the host's glibc version or later (2.43 as of October 2026).</p>
 <pre><code>./scripts/build-linux.sh</code></pre>
@@ -226,7 +231,7 @@ python3 scripts/qt_licenses.py prepare --version 6.7.2 \
 <li>Check the required tools (cmake and python3; ninja recommended)</li>
 <li>Configure CMake and build in Release mode (ShogiBoardQ and Hayanagi)</li>
 <li>Check the executable, translation files, and the 3- to 13-move collections (one file per move count)</li>
-<li>Download linuxdeploy, its Qt plugin, and appimagetool (first time only; saved in the build directory)</li>
+<li>Download linuxdeploy, its Qt plugin, and appimagetool (first time only; saved in the build directory). Before running them, check them against the SHA-256 values in <code>build-linux.sh</code>. They are continuous builds that upstream replaces, so a replacement makes the check fail and stop; then review the upstream release digest and changes before updating the values</li>
 <li>Create the AppDir and generate the AppImage (files needed to run, plus Qt and bundled library license notices)</li>
 <li>Create the ZIP with the AppImage, puzzle collections, and Hayanagi</li>
 </ol>
@@ -237,7 +242,7 @@ python3 scripts/qt_licenses.py prepare --version 6.7.2 \
 <p>The AppImage contains only the files needed to start and run the application, plus license notices.</p>
 <pre><code>ShogiBoardQ-linux-x86_64.AppImage
 └── (extracted)
-    ├── AppRun                          ← starts the app with the bundled Qt only
+    ├── AppRun                          ← starts the app with only the bundled Qt and OpenSSL settings
     ├── shogiboardq.desktop
     ├── shogiboardq.png
     └── usr/
@@ -256,6 +261,7 @@ python3 scripts/qt_licenses.py prepare --version 6.7.2 \
         │   └── tls/libqopensslbackend.so       ← TLS for CSA network play (OpenSSL)
         └── share/
             ├── applications/, icons/
+            ├── ShogiBoardQ/openssl.cnf ← settings the bundled OpenSSL reads (empty; the system's are not read)
             └── licenses/ShogiBoardQ/
                 ├── NOTICE*.md, SOURCE_CODE*.md, GPL-3.0.txt, LGPL-3.0.txt
                 ├── QT-NOTICES.md, qt/          ← notices of the bundled Qt modules
@@ -362,7 +368,7 @@ gh release create 2026.10.07 --title "ShogiBoardQ 2026.10.07" \
 2. chmod +x ShogiBoardQ-linux-x86_64.AppImage Hayanagi/hayanagi
 3. ./ShogiBoardQ-linux-x86_64.AppImage
 
-Requirements: x86_64 Linux with glibc 2.38 or later (Ubuntu 24.04 or later, Debian 13, Fedora 39 or later, etc.)
+Requirements: x86_64 Linux with glibc 2.38 or later and libstdc++ from GCC 14 or later (Ubuntu 24.04 or later, Debian 13, Fedora 40 or later, etc.)
 Without FUSE, start it with --appimage-extract-and-run.</code></pre>
 <blockquote>
 <p>The repository's <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/.github/workflows/release.yml">release.yml</a> builds all three operating systems for tags beginning with <code>v</code> or when run manually, but its Linux job runs on Ubuntu. Until collecting the bundled library notices supports Ubuntu, that job cannot create the Linux package, so the ZIP built in the Arch Linux container is attached manually.</p>

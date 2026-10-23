@@ -36,9 +36,9 @@ ShogiBoardQ を Linux でビルドし、`ShogiBoardQ-linux.zip` を作って Git
 
 配布物を作るときはネットワークに接続できる必要がある。初回に linuxdeploy と appimagetool をダウンロードするため。
 
-> **glibc について**: AppImage は、ビルドした環境と同じか、より新しい glibc のシステムでしか動かない。最新の Arch Linux でビルドすると glibc 2.43 以降が必要になり、Ubuntu 24.04（glibc 2.39）などで起動できない。そのためリリース用は、2024年7月15日の Arch Linux（glibc 2.39・Qt 6.7.2）に固定したコンテナでビルドする（[5.1](#package-run)）。この AppImage は glibc 2.38 以降と GCC 12 以降の libstdc++ を必要とし、Ubuntu 24.04 以降、Debian 13、Fedora 39 以降などで動く。
+> **glibc について**: AppImage は、ビルドした環境と同じか、より新しい glibc のシステムでしか動かない。最新の Arch Linux でビルドすると glibc 2.43 以降が必要になり、Ubuntu 24.04（glibc 2.39）などで起動できない。そのためリリース用は、2024年7月15日の Arch Linux（glibc 2.39・Qt 6.7.2）に固定したコンテナでビルドする（[5.1](#package-run)）。この AppImage は glibc 2.38 以降と GCC 14 以降の libstdc++ を必要とし、Ubuntu 24.04 以降、Debian 13、Fedora 40 以降などで動く（Fedora 39 は libstdc++ が GCC 13 で動かない）。
 
-> **同梱の OpenSSL・libcurl について**: 固定したスナップショットの OpenSSL 3.3.1・libcurl 8.8.0 をそのまま同梱しているので、その後の修正（CVE-2024-6119 など）は入っていない（2026-10-23 のセキュリティ監査 S17）。OpenSSL だけをシステムのもの（ディストリビューションが更新する）に替えることはできない。同梱の libcurl（Qt Network が読む libproxy の libpxbackend が使う）が OpenSSL 3.2・3.3 の関数を使うため、OpenSSL 3.0 の Ubuntu 24.04 では libcurl を読めず、アプリが起動しなくなる。TLS のプラグイン `libqopensslbackend.so` と `libQt6Network.so.6` は OpenSSL 3.0 の関数だけを使う。更新するときは、OpenSSL・libcurl・libproxy をまとめて同梱から外すか、新しい OpenSSL をコンテナで作って同梱し、[5.4](#test) の glibc の版の確認と、Ubuntu 24.04 での起動・CSA の TLS 接続を確かめる。
+> **同梱の OpenSSL・libcurl について**: コンテナのほかのパッケージは当時の版のままだが、同梱する OpenSSL・libcurl と、libcurl が使う通信のライブラリ（nghttp2・nghttp3・ngtcp2・libssh2）は新しい版に替える（2026年10月時点で OpenSSL 3.6.5・curl 8.23.0。[5.1](#package-run)）。当時の OpenSSL 3.3.1・curl 8.8.0 には、その後の修正（CVE-2024-6119 など）が入っていない。OpenSSL をシステムのものに替えることはできない。同梱の libcurl（Qt Network が読む libproxy が、プロキシの自動設定（PAC）の取得に使う）が OpenSSL 3.5 以降の関数を使うため、OpenSSL 3.0 の Ubuntu 24.04 では起動できなくなる。同梱の OpenSSL には、AppRun の `OPENSSL_CONF` で同梱の設定（`usr/share/ShogiBoardQ/openssl.cnf`）を読ませる。システムの設定はディストリビューションの OpenSSL 向けで、上流の OpenSSL は Fedora の設定（暗号ポリシー）を読めず、通信対局の TLS が使えなくなっていた。
 
 <a id="setup"></a>
 
@@ -180,6 +180,8 @@ python3 scripts/qt_licenses.py prepare --version 6.7.2 \
 - 初回はビルド環境のイメージ（`scripts/linux-container/Dockerfile`、約3GB）を作る。Arch Linux Archive からのダウンロードは遅く、数十分かかる。
 - コンテナの中で、自分のユーザーとして `scripts/build-linux.sh` を実行する。ビルドディレクトリは普段の `build` と分けて `build-container` を使い、出力はリポジトリ直下に置く。
 - 当時のパッケージに署名した鍵には、その後に期限が切れたものがある。イメージでは、署名を公式の鍵束で確かめたうえで鍵の信頼度は問わない設定にしている。
+- 同梱する OpenSSL・libcurl と、libcurl が使う通信のライブラリ（nghttp2・nghttp3・ngtcp2・libssh2）は、当時の版には修正が入っていないので新しい版に替える。今の Arch のパッケージを `scripts/linux-container/packages.sha256` の SHA-256 と署名で確かめて入れ、新しい glibc の関数を使う curl は同じ版の Arch の PKGBUILD でイメージの中で作り直す。
+- 版を上げるときは、手元で新しいパッケージと `.sig` を取得して `pacman-key --verify` で署名を確かめ、`packages.sha256` を書き換える。curl は Arch のタグの PKGBUILD の SHA-256 を Dockerfile の `CURL_PKGVER`・`CURL_PKGBUILD_SHA256` に書く（タグの署名は `curl-signing-key.asc` の鍵で確かめる）。新しいパッケージが要る glibc の版（`objdump -T` の `GLIBC_` の最大）が 2.38 以下であることを先に確かめ、超えるものはイメージの中で作り直す。`scripts/linux-container/` を変えると、`build-linux-container.sh` がイメージを作り直す。
 
 手元の Arch Linux でそのまま作ることもできる。その場合の AppImage は、手元の glibc（2026年10月時点で 2.43）以降を必要とする。
 
@@ -223,7 +225,7 @@ AppImage には、アプリの起動と動作に必要なファイルとライ�
 ```
 ShogiBoardQ-linux-x86_64.AppImage
 └── （展開時）
-    ├── AppRun                          ← 同梱の Qt だけを使って起動する
+    ├── AppRun                          ← 同梱の Qt と、同梱の OpenSSL の設定だけを使って起動する
     ├── shogiboardq.desktop
     ├── shogiboardq.png
     └── usr/
@@ -242,6 +244,7 @@ ShogiBoardQ-linux-x86_64.AppImage
         │   └── tls/libqopensslbackend.so       ← 通信対局の TLS 接続（OpenSSL）
         └── share/
             ├── applications/, icons/
+            ├── ShogiBoardQ/openssl.cnf ← 同梱の OpenSSL が読む設定（空。システムの設定は読まない）
             └── licenses/ShogiBoardQ/
                 ├── NOTICE*.md, SOURCE_CODE*.md, GPL-3.0.txt, LGPL-3.0.txt
                 ├── QT-NOTICES.md, qt/          ← 同梱する Qt モジュールの文書
@@ -365,7 +368,7 @@ gh release upload 2026.10.07 ShogiBoardQ-linux.zip
 2. chmod +x ShogiBoardQ-linux-x86_64.AppImage Hayanagi/hayanagi
 3. ./ShogiBoardQ-linux-x86_64.AppImage
 
-動作条件: x86_64 の Linux、glibc 2.38 以降（Ubuntu 24.04 以降、Debian 13、Fedora 39 以降など）
+動作条件: x86_64 の Linux、glibc 2.38 以降・GCC 14 以降の libstdc++（Ubuntu 24.04 以降、Debian 13、Fedora 40 以降など）
 FUSE がない場合は --appimage-extract-and-run を付けて起動できます。
 ```
 

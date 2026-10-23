@@ -3,7 +3,8 @@
 # 古い Arch Linux のコンテナで Linux 版（AppImage / ZIP）を作る。
 #
 # 最新の Arch でビルドすると AppImage が新しい glibc を必要とし、Ubuntu 24.04 などで起動できない。
-# このスクリプトは scripts/linux-container/Dockerfile の環境（2024-07-15 の Arch: glibc 2.39・Qt 6.7.2）で
+# このスクリプトは scripts/linux-container/Dockerfile の環境（2024-07-15 の Arch: glibc 2.39・Qt 6.7.2。
+# 同梱する OpenSSL・curl などの通信のライブラリだけは新しい版に替える）で
 # scripts/build-linux.sh を実行する。ビルドディレクトリは普段の build と分けて build-container を使い、
 # 出力（ShogiBoardQ-linux-x86_64.AppImage / ShogiBoardQ-linux.zip）はリポジトリ直下に置く。
 # 詳細: docs/dev/linux-build-and-release.md
@@ -25,7 +26,9 @@ set -euo pipefail
 
 SNAPSHOT="${SHOGIBOARDQ_ARCH_SNAPSHOT:-2024/07/15}"
 BASE_IMAGE="${SHOGIBOARDQ_ARCH_IMAGE:-archlinux:base-devel-20240714.0.246936}"
-IMAGE="shogiboardq-build:arch-${SNAPSHOT//\//}"
+# イメージの名前に Dockerfile などの中身のハッシュを入れ、書き換えたら作り直す
+CONTEXT_HASH=$(cat "$(dirname "$0")"/linux-container/* | sha256sum | cut -c1-12)
+IMAGE="shogiboardq-build:arch-${SNAPSHOT//\//}-${CONTEXT_HASH}"
 BUILD_DIR="build-container"
 read -r -a DOCKER_CMD <<< "${DOCKER:-docker}"
 
