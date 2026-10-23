@@ -51,12 +51,12 @@
         <translation type="vanished">(Book)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/presenters/analysisresulthandler.cpp" line="140"/>
+        <location filename="../../src/ui/presenters/analysisresulthandler.cpp" line="123"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/ui/presenters/analysisresulthandler.cpp" line="141"/>
+        <location filename="../../src/ui/presenters/analysisresulthandler.cpp" line="124"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
@@ -5252,14 +5252,44 @@ Use Edit → Start Position Editing to correct the position.</translation>
 <context>
     <name>GameStartOptionsBuilder</name>
     <message>
-        <location filename="../../src/game/gamestartoptionsbuilder.cpp" line="52"/>
         <source>対局を開始できません。
 通常の対局には、先手と後手の王・玉を盤上に1枚ずつ配置してください。
 現在の枚数：先手 %1枚、後手 %2枚
 「編集」→「局面編集開始」で配置を修正してください。</source>
-        <translation>Cannot start the game.
+        <translation type="vanished">Cannot start the game.
 A regular game requires exactly one black king and one white king on the board.
 Current counts: Black %1, White %2
+Use Edit → Start Position Editing to correct the position.</translation>
+    </message>
+    <message>
+        <location filename="../../src/game/gamestartoptionsbuilder.cpp" line="54"/>
+        <source>通常の対局には、先手と後手の王・玉を盤上に1枚ずつ配置してください。
+現在の枚数：先手 %1枚、後手 %2枚</source>
+        <translation>A regular game requires exactly one black king and one white king on the board.
+Current counts: Black %1, White %2</translation>
+    </message>
+    <message>
+        <location filename="../../src/game/gamestartoptionsbuilder.cpp" line="63"/>
+        <source>駒の数が上限を超えています（盤と駒台の合計）。</source>
+        <translation>There are more pieces than the game has (board and piece stands combined).</translation>
+    </message>
+    <message>
+        <location filename="../../src/game/gamestartoptionsbuilder.cpp" line="66"/>
+        <source>駒台に王・玉があります。</source>
+        <translation>A king is on a piece stand.</translation>
+    </message>
+    <message>
+        <location filename="../../src/game/gamestartoptionsbuilder.cpp" line="69"/>
+        <source>手番でない側の玉に王手がかかっています。</source>
+        <translation>The king of the side not to move is in check.</translation>
+    </message>
+    <message>
+        <location filename="../../src/game/gamestartoptionsbuilder.cpp" line="76"/>
+        <source>対局を開始できません。
+%1
+「編集」→「局面編集開始」で配置を修正してください。</source>
+        <translation>Cannot start the game.
+%1
 Use Edit → Start Position Editing to correct the position.</translation>
     </message>
 </context>
@@ -6618,63 +6648,63 @@ Positive values favor the side to move, negative values are unfavorable.</transl
 <context>
     <name>JosekiRegistrationController</name>
     <message>
-        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="78"/>
+        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="73"/>
         <source>読み筋の最初の手を定跡に登録</source>
         <translation>Register the First PV Move in the Book</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="80"/>
+        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="75"/>
         <source>読み筋の最初の手（%1）を定跡に登録</source>
         <translation>Register the First PV Move (%1) in the Book</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="87"/>
+        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="82"/>
         <source>この行には局面に合った読み筋がありません</source>
         <translation>This row has no PV that matches the position</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="89"/>
+        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="84"/>
         <source>定跡ウィンドウで定跡を開くと登録できます（読み書き中は登録できません）</source>
         <translation>Available after opening a book in the Joseki window (not while it is being loaded or saved)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="91"/>
+        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="86"/>
         <source>読み筋の2手目を予想応手にします。登録済みの手は評価値・深さ・予想応手だけを書き換えます</source>
         <translation>The second PV move becomes the expected response. A move already in the book only gets its score, depth and expected response updated</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="113"/>
+        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="108"/>
         <source>結果をまとめて定跡に登録...</source>
         <translation>Register Results in the Book...</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="56"/>
-        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="126"/>
+        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="51"/>
+        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="121"/>
         <source>%1 を定跡に登録しました</source>
         <translation>Registered %1 in the book</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="51"/>
+        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="46"/>
         <source>定跡の読み書き中のため、盤の手を登録できませんでした</source>
         <translation>Could not register the board move because the book is being loaded or saved</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="129"/>
+        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="124"/>
         <source>定跡の %1 の評価値・深さ・予想応手を書き換えました</source>
         <translation>Updated the score, depth and expected response of %1 in the book</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="174"/>
+        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="169"/>
         <source>定跡に %1 手を登録し、%2 手を書き換えました（定跡ウィンドウで保存してください）</source>
         <translation>Registered %1 moves and updated %2 moves in the book (save the book in the Joseki window)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="175"/>
+        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="170"/>
         <source>定跡に %1 手を登録しました（定跡ウィンドウで保存してください）</source>
         <translation>Registered %1 moves in the book (save the book in the Joseki window)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="177"/>
+        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="172"/>
         <source>結果をまとめて定跡に登録</source>
         <translation>Register Results in the Book</translation>
     </message>
@@ -7794,22 +7824,22 @@ Do you want to save them?</translation>
 <context>
     <name>KifuAnalysisListModel</name>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="114"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="105"/>
         <source>この局面からの読み筋を盤面で表示します。</source>
         <translation>Show the continuation from this position on a board.</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="122"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="113"/>
         <source>表示</source>
         <translation>Show</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="169"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="160"/>
         <source>棋譜で実際に指された手。この手を指した後の局面を評価します。</source>
         <translation>The move played in the game. The score evaluates the position after this move.</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="170"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="161"/>
         <source>直前の局面でエンジンが推奨した手。解析範囲の先頭では空欄になります。</source>
         <translation>The engine’s recommended move from the preceding position. Blank for the first position analyzed.</translation>
     </message>
@@ -7818,117 +7848,117 @@ Do you want to save them?</translation>
         <translation type="vanished">A circle indicates that the played move matches the recommended move.</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="59"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="53"/>
         <source>=== 開始局面 ===</source>
         <translation>=== Starting Position ===</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="84"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="75"/>
         <source>先手勝ち</source>
         <translation>Black wins</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="84"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="75"/>
         <source>後手勝ち</source>
         <translation>White wins</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="89"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="80"/>
         <source>互角</source>
         <translation>Even</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="91"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="82"/>
         <source>やや有利</source>
         <translation>Slight</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="92"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="83"/>
         <source>有利</source>
         <translation>Better</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="93"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="84"/>
         <source>優勢</source>
         <translation>Superior</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="94"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="85"/>
         <source>勝勢</source>
         <translation>Winning</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="95"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="86"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="95"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="86"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="96"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="87"/>
         <source>%1：%2</source>
         <translation>%1: %2</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="171"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="162"/>
         <source>実際の指し手と候補手が一致すると◯を表示します。</source>
         <translation>A circle indicates that the played move matches the recommended move.</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="172"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="163"/>
         <source>先手視点の評価値。正は先手有利、負は後手有利です。未取得は「-」で表示します。</source>
         <translation>Score from Black’s perspective. Positive favors Black; negative favors White. A dash means no score is available.</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="173"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="164"/>
         <source>評価値から判定した形勢です。</source>
         <translation>Position assessment based on the score.</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="174"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="165"/>
         <source>直前の解析局面からの評価値の増減（先手視点）。比較できない場合は「-」で表示します。</source>
         <translation>Score change since the preceding position, from Black’s perspective. A dash means the scores cannot be compared.</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="175"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="166"/>
         <source>クリックまたはEnterキーで読み筋を盤面に表示します。</source>
         <translation>Click or press Enter to show the continuation on a board.</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="176"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="167"/>
         <source>この手を指した後の局面からの読み筋です。</source>
         <translation>The continuation from the position after this move.</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="186"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="177"/>
         <source>指し手</source>
         <translation>Move</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="187"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="178"/>
         <source>候補手</source>
         <translation>Best Move</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="188"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="179"/>
         <source>一致</source>
         <translation>Match</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="189"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="180"/>
         <source>評価値</source>
         <translation>Score</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="190"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="181"/>
         <source>形勢</source>
         <translation>Position</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="191"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="182"/>
         <source>評価値差</source>
         <translation>Score change</translation>
     </message>
@@ -7937,12 +7967,12 @@ Do you want to save them?</translation>
         <translation type="vanished">Diff</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="192"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="183"/>
         <source>盤面</source>
         <translation>Board</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="193"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="184"/>
         <source>読み筋</source>
         <translation>PV</translation>
     </message>
@@ -8735,77 +8765,77 @@ Positions: SFEN / BOD (board diagram)</translation>
         <translation type="vanished">Error</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="119"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="177"/>
         <source>（定跡）</source>
         <translation>(Book)</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="125"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="183"/>
         <source>対局日</source>
         <translation>Game Date</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="125"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="183"/>
         <source>開始日時</source>
         <translation>Start Time</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="126"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="184"/>
         <source>終了日時</source>
         <translation>End Time</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="126"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="184"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="127"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="185"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="127"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="185"/>
         <source>下手</source>
         <translation>Shitate</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="128"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="186"/>
         <source>上手</source>
         <translation>Uwate</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="128"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="186"/>
         <source>手合割</source>
         <translation>Handicap</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="129"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="187"/>
         <source>持ち時間</source>
         <translation>Time control</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="129"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="187"/>
         <source>棋戦</source>
         <translation>Event</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="130"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="188"/>
         <source>場所</source>
         <translation>Site</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="130"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="188"/>
         <source>備考</source>
         <translation>Notes</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="131"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="189"/>
         <source>戦型</source>
         <translation>Opening</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="131"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="189"/>
         <source>表題</source>
         <translation>Title</translation>
     </message>
@@ -8865,7 +8895,7 @@ Positions: SFEN / BOD (board diagram)</translation>
         <translation>Left Five-Piece Handicap</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="143"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="201"/>
         <source>局面指定</source>
         <translation>Custom position</translation>
     </message>
@@ -8895,17 +8925,17 @@ Positions: SFEN / BOD (board diagram)</translation>
         <translation>Ten-Piece Handicap</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="143"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="201"/>
         <source>その他</source>
         <translation>Other</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="147"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="205"/>
         <source>無制限</source>
         <translation>Unlimited</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="155"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="213"/>
         <source>%1+%2秒加算</source>
         <translation>%1 + %2 s increment</translation>
     </message>
@@ -11381,44 +11411,43 @@ Are you sure you want to declare?</translation>
         <translation>Engine Settings</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/playersetupwidget.cpp" line="83"/>
         <source>定跡</source>
-        <translation>Book</translation>
+        <translation type="vanished">Book</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/playersetupwidget.cpp" line="85"/>
-        <location filename="../../src/widgets/playersetupwidget.cpp" line="155"/>
+        <location filename="../../src/widgets/playersetupwidget.cpp" line="72"/>
+        <location filename="../../src/widgets/playersetupwidget.cpp" line="152"/>
         <source>定跡を使う</source>
         <translation>Use book</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/playersetupwidget.cpp" line="87"/>
+        <location filename="../../src/widgets/playersetupwidget.cpp" line="74"/>
         <source>条件…</source>
         <translation>Conditions…</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/playersetupwidget.cpp" line="111"/>
+        <location filename="../../src/widgets/playersetupwidget.cpp" line="108"/>
         <source>人間</source>
         <translation>Human</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/playersetupwidget.cpp" line="155"/>
+        <location filename="../../src/widgets/playersetupwidget.cpp" line="152"/>
         <source>定跡を使う（%1）</source>
         <translation>Use book (%1)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/playersetupwidget.cpp" line="157"/>
+        <location filename="../../src/widgets/playersetupwidget.cpp" line="154"/>
         <source>定跡ウィンドウで開いている定跡の手を、エンジンに探索させずに指します</source>
         <translation>Plays moves from the book open in the Joseki window without letting the engine search</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/playersetupwidget.cpp" line="158"/>
+        <location filename="../../src/widgets/playersetupwidget.cpp" line="155"/>
         <source>定跡ウィンドウで定跡ファイルを開くと使えます</source>
         <translation>Available after opening a book file in the Joseki window</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/playersetupwidget.cpp" line="175"/>
-        <location filename="../../src/widgets/playersetupwidget.cpp" line="209"/>
+        <location filename="../../src/widgets/playersetupwidget.cpp" line="172"/>
+        <location filename="../../src/widgets/playersetupwidget.cpp" line="206"/>
         <source>You</source>
         <translation>You</translation>
     </message>
@@ -11464,17 +11493,17 @@ Are you sure you want to declare?</translation>
 <context>
     <name>PvBoardDialog</name>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="32"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="30"/>
         <source>読み筋表示</source>
         <translation>Principal Variation Display</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="62"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="54"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="63"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="55"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
@@ -11495,37 +11524,37 @@ Are you sure you want to declare?</translation>
         <translation type="vanished">Flip the board</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="105"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="97"/>
         <source>最初の局面に戻る</source>
         <translation>Go to First Position</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="105"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="97"/>
         <source>1手戻る</source>
         <translation>Go Back 1 Move</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="105"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="97"/>
         <source>1手進む</source>
         <translation>Go Forward 1 Move</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="105"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="97"/>
         <source>最後の局面まで進む</source>
         <translation>Go to Last Position</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="110"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="102"/>
         <source>閉じる</source>
         <translation>Close</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="137"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="129"/>
         <source>手数: %1 / %2</source>
         <translation>Move: %1 / %2</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="139"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="131"/>
         <source> (開始局面)</source>
         <translation> (Initial Position)</translation>
     </message>
@@ -11533,12 +11562,12 @@ Are you sure you want to declare?</translation>
 <context>
     <name>PvClickController</name>
     <message>
-        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="58"/>
+        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="57"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="58"/>
+        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="57"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
@@ -14004,17 +14033,17 @@ This cannot be undone. Reset history?</translation>
         <translation>Finding a solution. Use Stop or Resume play to cancel.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="579"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="578"/>
         <source>正解手順: %1 / %2手</source>
         <translation>Solution: %1 / %2 plies</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="580"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="579"/>
         <source>正解手順の一例を再生中です。「対局に戻る」で元の局面から続けられます。</source>
         <translation>Viewing one solution. Select Resume play to continue from your original position.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="583"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="582"/>
         <source>正解手順: 未確認</source>
         <translation>Solution: unverified</translation>
     </message>
@@ -14254,22 +14283,22 @@ This cannot be undone. Reset history?</translation>
         <translation>Tsume Position Generator</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="556"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="555"/>
         <source>エンジン設定</source>
         <translation>Engine Settings</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="559"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="558"/>
         <source>エンジン:</source>
         <translation>Engine:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="567"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="566"/>
         <source>設定...</source>
         <translation>Settings...</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="583"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="582"/>
         <source>※ エンジンは最短手順を返す設定で使用してください（KomoringHeights の場合: PostSearchLevel = MinLength）</source>
         <translation>Note: configure the engine to return the shortest mate sequence (for KomoringHeights: PostSearchLevel = MinLength).</translation>
     </message>
@@ -14278,132 +14307,132 @@ This cannot be undone. Reset history?</translation>
         <translation type="vanished">All variations and final moves are checked for alternative mates, including promotion choices. Positions with alternatives or inconclusive results are excluded.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="585"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="584"/>
         <source>主手順の攻手が一意な局面だけを出力します（成・不成も区別）。玉方が早く詰む変化での別の詰め方は許容し、判定不能の局面は出力しません。</source>
         <translation>Only positions whose main line has a unique attacking move at every step are output (promotion and non-promotion count as different moves). Alternative mates in variations where the king is mated sooner are allowed; inconclusive positions are excluded.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="634"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="633"/>
         <source>最終手の複数解を許容する</source>
         <translation>Allow multiple mating moves on the final move</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="636"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="635"/>
         <source>オンにすると、主手順の最終手に複数の詰手があっても採択します（1手詰の初手は除く）。オフにすると最終手も一意な局面だけを出力します。</source>
         <translation>When enabled, positions are accepted even if the final move of the main line has several mating moves (except the first move of a mate-in-1). When disabled, the final move must also be unique.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="591"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="590"/>
         <source>生成設定</source>
         <translation>Generation Settings</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="570"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="569"/>
         <source>最短手順を返す詰将棋エンジンを使用してください。</source>
         <translation>Use a mate-solving engine configured to return the shortest solution.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="576"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="575"/>
         <source>エンジン設定・採択条件について</source>
         <translation>About engine settings and acceptance criteria</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="609"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="608"/>
         <source> 手詰</source>
         <translation>-move mate</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="610"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="609"/>
         <source>目標手数:</source>
         <translation>Target moves:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="611"/>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="615"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="610"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="614"/>
         <source> 枚</source>
         <translation> pieces</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="611"/>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="615"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="610"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="614"/>
         <source> 枚</source>
         <comment>1 のとき</comment>
         <translation> piece</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="613"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="612"/>
         <source>攻方の盤上の駒と持駒の合計枚数の上限です。</source>
         <translation>Maximum total number of attacking pieces on the board and in hand.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="614"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="613"/>
         <source>攻め駒上限:</source>
         <translation>Max attack pieces:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="617"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="616"/>
         <source>玉を除く、玉方の盤上の駒の枚数の上限です。</source>
         <translation>Maximum number of defending pieces on the board, excluding the king.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="618"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="617"/>
         <source>守り駒上限:</source>
         <translation>Max defense pieces:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="619"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="618"/>
         <source> 局面</source>
         <translation> positions</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="619"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="618"/>
         <source> 局面</source>
         <comment>1 のとき</comment>
         <translation> position</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="623"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="622"/>
         <source>採択した局面がこの件数に達すると終了します。0 は停止するまで生成を続けます。</source>
         <translation>Finish when this many positions are accepted. Set to 0 to continue until stopped.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="630"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="629"/>
         <source> マス（玉中心）</source>
         <translation> squares (from king)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="630"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="629"/>
         <source> マス（玉中心）</source>
         <comment>1 のとき</comment>
         <translation> square (from king)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="632"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="631"/>
         <source>配置範囲:</source>
         <translation>Placement range:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="627"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="626"/>
         <source> 秒</source>
         <translation> sec</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="628"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="627"/>
         <source>候補・駒除去後の詰み探索と、それぞれの余詰検査全体に使う時間です。検査時間を超えた局面は採択しません。</source>
         <translation>Time allowed for each mate search and for each complete alternative-mate check, including after removing a piece. Positions that exceed the verification time are excluded.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="629"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="628"/>
         <source>探索時間/局面:</source>
         <translation>Search time/pos:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="622"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="621"/>
         <source>無制限</source>
         <translation>Unlimited</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="624"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="623"/>
         <source>生成上限:</source>
         <translation>Max positions:</translation>
     </message>
@@ -14412,12 +14441,12 @@ This cannot be undone. Reset history?</translation>
         <translation type="vanished">Alternative check:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="650"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="649"/>
         <source>開始</source>
         <translation>Start</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="654"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="653"/>
         <source>停止</source>
         <translation>Stop</translation>
     </message>
@@ -14430,87 +14459,87 @@ This cannot be undone. Reset history?</translation>
         <translation type="vanished">Elapsed: 00:00:00</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="686"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="685"/>
         <source>結果一覧</source>
         <translation>Results</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="693"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="692"/>
         <source>#</source>
         <translation>#</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="693"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="692"/>
         <source>SFEN</source>
         <translation>SFEN</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="693"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="692"/>
         <source>手数</source>
         <translation>Moves</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="693"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="692"/>
         <source>盤面</source>
         <translation>Board</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="639"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="638"/>
         <source>既定値に戻す</source>
         <translation>Restore defaults</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="641"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="640"/>
         <source>生成設定を既定値に戻します。</source>
         <translation>Restore the default generation settings.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="652"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="651"/>
         <source>現在の結果をクリアして、新しく生成を開始します。</source>
         <translation>Clear the current results and start a new generation run.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="656"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="655"/>
         <source>生成を停止します。採択済みの局面は保存・コピーできます。</source>
         <translation>Stop generation. Accepted positions can still be saved or copied.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="669"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="668"/>
         <source>生成上限に対する採択局面数</source>
         <translation>Accepted positions out of the generation limit</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="692"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="691"/>
         <source>生成した詰将棋局面</source>
         <translation>Generated tsume-shogi positions</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="717"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="716"/>
         <source>手順も出力</source>
         <translation>Include moves</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="719"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="718"/>
         <source>ファイル保存・コピー時に、SFEN の後ろに USI 形式の詰み手順（moves ...）を付加します</source>
         <translation>When saving or copying, append the mate sequence in USI format (moves ...) after the SFEN</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="724"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="723"/>
         <source>選択した局面をコピー（Ctrl+C）。Ctrl・Shift キーで複数選択できます。</source>
         <translation>Copy selected positions (Ctrl+C). Use Ctrl or Shift to select multiple rows.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="729"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="728"/>
         <source>ファイル保存</source>
         <translation>Save to File</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="722"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="721"/>
         <source>選択コピー</source>
         <translation>Copy Selected</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="726"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="725"/>
         <source>全コピー</source>
         <translation>Copy All</translation>
     </message>
@@ -14523,7 +14552,7 @@ This cannot be undone. Reset history?</translation>
         <translation type="vanished">Increase font size</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="746"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="745"/>
         <source>閉じる</source>
         <translation>Close</translation>
     </message>
@@ -14614,27 +14643,27 @@ This cannot be undone. Reset history?</translation>
         <translation>Defender</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="352"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="351"/>
         <source>条件に合う局面を探索しています。
 採択した局面から順に表示します。</source>
         <translation>Searching for positions that meet the criteria.
 Accepted positions will appear here as they are found.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="353"/>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="709"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="352"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="708"/>
         <source>生成した局面がここに表示されます。
 設定を確認して「開始」を押してください。</source>
         <translation>Generated positions will appear here.
 Check the settings and press Start.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="363"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="362"/>
         <source>%v / %m 局面</source>
         <translation>%v / %m positions</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="363"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="362"/>
         <source>%1 局面（無制限）</source>
         <translation>%1 positions (unlimited)</translation>
     </message>
@@ -14644,27 +14673,27 @@ Check the settings and press Start.</translation>
         <translation>Idle</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="436"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="435"/>
         <source>探索中</source>
         <translation>Searching</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="441"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="440"/>
         <source>トリミング中（候補 %1/%2）</source>
         <translation>Trimming (candidate %1/%2)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="446"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="445"/>
         <source>余詰検査中（問い合わせ %1 回）</source>
         <translation>Checking alternative mates (%1 queries)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="451"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="450"/>
         <source>検査で除外: %1 局面（うち判定不能: %2 局面）</source>
         <translation>Excluded by verification: %1 positions (%2 inconclusive)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="457"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="456"/>
         <source>状態: %1</source>
         <translation>Status: %1</translation>
     </message>
@@ -14830,17 +14859,17 @@ Check the settings and press Start.</translation>
 <context>
     <name>UsiProtocolHandler</name>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="114"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="113"/>
         <source>Timeout waiting for usiok</source>
         <translation>Timeout waiting for usiok</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="114"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="113"/>
         <source>Timeout waiting for readyok</source>
         <translation>Timeout waiting for readyok</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="289"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="288"/>
         <source>Invalid bestmove format: %1</source>
         <translation>Invalid bestmove format: %1</translation>
     </message>

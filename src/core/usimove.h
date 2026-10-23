@@ -45,6 +45,8 @@ struct UsiMove {
     static inline std::optional<UsiMove> parse(QStringView text);
     /// 正しいと分かっている USI の文字列から作る（読めなければ無効な指し手）
     static UsiMove fromString(QStringView text) { return parse(text).value_or(UsiMove{}); }
+    /// USI の指し手の書き方どおりの文字列か（前後の空白・小文字の駒打ちを認めない。受信行や局面集の語を見分ける）
+    static inline bool isExact(QStringView text);
 
     /// USI 文字列にする（無効な指し手は空文字列）
     inline QString toString() const;
@@ -111,6 +113,12 @@ std::optional<UsiMove> UsiMove::parse(QStringView text)
     move.to = *to;
     move.promote = (text.size() == 5);
     return move;
+}
+
+bool UsiMove::isExact(QStringView text)
+{
+    const std::optional<UsiMove> move = parse(text);
+    return move && move->toString() == text;
 }
 
 QString UsiMove::toString() const

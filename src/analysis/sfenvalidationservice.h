@@ -31,8 +31,8 @@ struct SfenValidation {
 /**
  * @brief SFEN を検査し、手番・持駒・王手・合法手数を返す
  *
- * 手番と手数の欄はここで、盤面と持駒の整合（駒数上限、玉の重複）と
- * 王手・合法手は内蔵の Hayanagi `shogi::Position` で調べる。
+ * 手番と手数の欄はここで、盤面と持駒の文法は Position::fromSfen、局面として成り立つか（駒数上限・玉・
+ * 手番でない側への王手）と王手・合法手の数は core の PositionValidator で調べ、結果を値と JSON にする。
  * 詰将棋の慣例に合わせ、攻方の玉が無い局面も有効とする（両玉が無い局面は無効）。
  */
 class SfenValidationService
@@ -41,7 +41,7 @@ public:
     /// "startpos" と "position sfen ..." 形式も受け付ける
     static SfenValidation validate(const QString& sfen);
 
-    /// 局面に USI 手を順に適用した後の SFEN を返す。不正な手があれば空文字列と error
+    /// 局面に USI 手を順に適用した後の SFEN を返す（合法手だけを指す）。不正な手があれば空文字列と error
     static QString applyUsiMoves(const QString& sfen, const QStringList& moves, QString* error = nullptr);
 };
 

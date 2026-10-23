@@ -41,8 +41,9 @@ public:
      */
     static std::optional<GameStartPlan> plan(const GameStartRequest& request, QString* error);
 
-    /// 通常の対局に使える局面か（先手・後手の玉が盤上に1枚ずつ）。使えなければ理由を返す
-    static bool validateKings(const QString& sfen, QString* whyNot);
+    /// 通常の対局に使える局面か（先手・後手の玉が盤上に1枚ずつで、PositionValidator の検査を通る）。
+    /// 使えなければ理由を返す
+    static bool validatePosition(const QString& sfen, QString* whyNot);
 
     /// StartGameDialogData から時間の決まりを組み立てる（秒読みと加算が両方あれば秒読みを使う）
     static MatchTimeSettings buildTimeSettings(const StartGameDialogData& data);

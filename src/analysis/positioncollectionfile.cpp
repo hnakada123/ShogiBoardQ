@@ -5,8 +5,8 @@
 
 #include "sfenutils.h"
 #include "sfenvalidationservice.h"
+#include "usimove.h"
 
-#include <QRegularExpression>
 
 namespace PositionCollectionFile {
 
@@ -15,13 +15,6 @@ namespace {
 bool isKeyword(const QString& token, QLatin1StringView keyword)
 {
     return token.compare(keyword, Qt::CaseInsensitive) == 0;
-}
-
-bool isUsiMove(const QString& token)
-{
-    static const QRegularExpression pattern(
-        QStringLiteral("^(?:[1-9][a-i][1-9][a-i]\\+?|[PLNSGBR]\\*[1-9][a-i])$"));
-    return pattern.match(token).hasMatch();
 }
 
 } // namespace
@@ -62,7 +55,7 @@ LineKind parseLine(const QString& text, int lineNumber, Line* line)
         if (!isKeyword(tokens.at(next), QLatin1StringView("moves"))) return LineKind::Invalid;
         result.moves = tokens.mid(next + 1);
         for (const QString& move : std::as_const(result.moves))
-            if (!isUsiMove(move)) return LineKind::Invalid;
+            if (!UsiMove::isExact(move)) return LineKind::Invalid;
     }
     if (!SfenValidationService::validate(result.startSfen).valid) return LineKind::Invalid;
 

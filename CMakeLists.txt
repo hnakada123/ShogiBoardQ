@@ -250,6 +250,8 @@ set(SRC_CORE
     src/core/legalmovestatus.h
     src/core/matchplayers.h
     src/core/piecerules.h
+    src/core/positionvalidator.cpp
+    src/core/positionvalidator.h
     src/core/pvtext.cpp
     src/core/pvtext.h
     src/core/shogiposition.cpp
