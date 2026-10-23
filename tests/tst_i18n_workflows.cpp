@@ -47,6 +47,12 @@
 class TestI18nWorkflows : public QObject
 {
     Q_OBJECT
+
+    /// 先手の投了の行の表記（表示言語に合わせた終局語）
+    static QString resignLabel()
+    {
+        return KifuPresentation::entryLabel(RecordEntry::ending(TerminalType::Resign, Turn::Black), QString());
+    }
     QTemporaryDir m_config;
 private slots:
     void initTestCase() { qputenv("XDG_CONFIG_HOME", m_config.path().toUtf8()); qputenv("SHOGIBOARDQ_CONFIG_HOME", m_config.path().toUtf8()); }
@@ -84,16 +90,16 @@ private slots:
         AppSettings::language.set(language);
         AppSettings::moveNotation.set(notation);
         AppSettings::notationOrigin.set(alwaysOrigin);
-        QCOMPARE(KifuPresentation::status("投了"), QStringLiteral("投了"));
+        QCOMPARE(resignLabel(), QStringLiteral("▲投了"));
         {
             const ApplicationTranslations translations(QStringLiteral(TRANSLATIONS_DIR));
             QCOMPARE(translations.language(), language);
             QCoreApplication::processEvents();
-            QCOMPARE(KifuPresentation::status("投了"), resign);
+            QCOMPARE(resignLabel(), QStringLiteral("▲") + resign);
             QCOMPARE(KifuPresentation::rankLabel(1), firstRank);
             QCOMPARE(KifuPresentation::options().alwaysOrigin, alwaysOrigin);
         }
-        QCOMPARE(KifuPresentation::status("投了"), QStringLiteral("投了"));
+        QCOMPARE(resignLabel(), QStringLiteral("▲投了"));
     }
 
     void startupQtTranslationsLiveForScope()
@@ -122,7 +128,7 @@ private slots:
         QTest::ignoreMessage(QtWarningMsg, "Translation file not found: \"en\"");
         const ApplicationTranslations translations(emptyDirectory.path());
         QCOMPARE(translations.language(), QStringLiteral("en"));
-        QCOMPARE(KifuPresentation::status("投了"), QStringLiteral("投了"));
+        QCOMPARE(resignLabel(), QStringLiteral("▲投了"));
         QCOMPARE(KifuPresentation::rankLabel(1), QStringLiteral("a"));
         QVERIFY(KifuPresentation::options().alwaysOrigin);
     }
@@ -218,13 +224,12 @@ private slots:
         deps.liveSession = &session;
         deps.document = &document;
         GameSession service(deps);
-        const QString terminal = (plies == 2 ? QStringLiteral("▲") : QStringLiteral("△"))
-            + QStringLiteral("時間切れ");
-        service.appendRecord(RecordEntry::ending(TerminalType::Timeout,
-            plies == 2 ? Turn::Black : Turn::White, RecordTime::fromMilliseconds(1000, 1000)));
+        const RecordEntry timeout = RecordEntry::ending(TerminalType::Timeout,
+            plies == 2 ? Turn::Black : Turn::White, RecordTime::fromMilliseconds(1000, 1000));
+        service.appendRecord(timeout);
         const auto index = rows.index(plies + 1, 0);
         QVERIFY(rows.nodeAt(plies + 1)->isTerminal());
-        QVERIFY(index.data().toString().endsWith(KifuPresentation::status(terminal)));
+        QVERIFY(index.data().toString().endsWith(KifuPresentation::entryLabel(timeout, QString())));
         if (language == "en") QVERIFY(index.data().toString().endsWith("Time loss"));
         auto* end = session.liveNode();
         QCOMPARE(end->terminalType(), TerminalType::Timeout);
@@ -360,6 +365,7 @@ private slots:
         // 棋譜解析の結果の表も同じ（表記の設定を変えたら作り直す）
         KifuAnalysisListModel results;
         KifuAnalysisRow result;
+        result.ply = 1;
         result.move = QStringLiteral("▲７六歩(77)");
         result.evaluation = UsiScore::cp(10);
         result.evaluationDifference = 0;
@@ -369,16 +375,19 @@ private slots:
         result.sfen = imported.startSfen();
         result.usiPv = QStringLiteral("7g7f 3c3d");
         results.appendRow(result);
-        const auto cell = [&results](int row, int column) { return results.index(row, column).data().toString(); };
-        QCOMPARE(cell(0, KifuAnalysisListModel::MoveColumn), western ? QStringLiteral("▲P-7f") : QStringLiteral("▲７六歩(77)"));
+        const auto cell = [&results](int resultRow, int column) { return results.index(resultRow, column).data().toString(); };
+        // 手数は表が付ける（棋譜欄と同じ書式）
+        QCOMPARE(cell(0, KifuAnalysisListModel::MoveColumn), western ? QStringLiteral("   1 ▲P-7f") : QStringLiteral("   1 ▲７六歩(77)"));
         QCOMPARE(cell(0, KifuAnalysisListModel::PvColumn), pv);
         // 行ごとに、その行の値から表記を作る
         result.lastUsiMove = QStringLiteral("2g2f");
         results.appendRow(result);
-        QCOMPARE(cell(1, KifuAnalysisListModel::MoveColumn), western ? QStringLiteral("▲P-2f") : QStringLiteral("▲７六歩(77)"));
+        QCOMPARE(cell(1, KifuAnalysisListModel::MoveColumn), western ? QStringLiteral("   1 ▲P-2f") : QStringLiteral("   1 ▲７六歩(77)"));
         result.beforeSfen.clear();
+        result.branch = true;
         results.appendRow(result);
-        QCOMPARE(cell(2, KifuAnalysisListModel::MoveColumn), western ? QStringLiteral("2g2f") : QStringLiteral("▲７六歩(77)"));
+        QCOMPARE(cell(2, KifuAnalysisListModel::MoveColumn),
+                 western ? QStringLiteral("   1 2g2f [+]") : QStringLiteral("   1 ▲７六歩(77)+"));
         result.usiPv = QStringLiteral("7g7f");
         results.appendRow(result);
         QCOMPARE(cell(3, KifuAnalysisListModel::PvColumn), western ? QStringLiteral("▲P-7f") : info->pv());

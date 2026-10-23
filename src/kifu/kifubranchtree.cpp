@@ -33,7 +33,6 @@ void KifuBranchTree::setRootSfen(const QString& sfen)
     beginBatchUpdate();
     clear();
     m_root = createNode();
-    m_root->record().displayText = tr("開始局面");
     m_root->record().sfen = sfen;
     endBatchUpdate();
 }

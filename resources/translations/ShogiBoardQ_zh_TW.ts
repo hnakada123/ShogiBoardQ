@@ -35,17 +35,16 @@
 <context>
     <name>AnalysisResultHandler</name>
     <message>
-        <location filename="../../src/ui/presenters/analysisresulthandler.cpp" line="49"/>
         <source>（定跡）</source>
-        <translation>（定跡）</translation>
+        <translation type="vanished">（定跡）</translation>
     </message>
     <message>
-        <location filename="../../src/ui/presenters/analysisresulthandler.cpp" line="149"/>
+        <location filename="../../src/ui/presenters/analysisresulthandler.cpp" line="140"/>
         <source>先手</source>
         <translation>先手</translation>
     </message>
     <message>
-        <location filename="../../src/ui/presenters/analysisresulthandler.cpp" line="150"/>
+        <location filename="../../src/ui/presenters/analysisresulthandler.cpp" line="141"/>
         <source>後手</source>
         <translation>後手</translation>
     </message>
@@ -1293,19 +1292,19 @@
         <translation>刪除此著及之後的著法…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="129"/>
+        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="127"/>
         <source>手順の削除</source>
         <translation>刪除著法</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="130"/>
+        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="128"/>
         <source>「%1」以降の %2 手を削除します。
 この操作は取り消せません。</source>
         <translation>將刪除「%1」及之後的 %2 步。
 此操作無法復原。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="132"/>
+        <location filename="../../src/ui/controllers/branchtreeeditcontroller.cpp" line="130"/>
         <source>削除する</source>
         <translation>刪除</translation>
     </message>
@@ -1361,47 +1360,47 @@
         <translation>&lt;p&gt;（按兩下展開）&lt;/p&gt;</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreeview.cpp" line="260"/>
+        <location filename="../../src/widgets/branchtreeview.cpp" line="233"/>
         <source>開始局面</source>
         <translation>初始局面</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreeview.cpp" line="384"/>
+        <location filename="../../src/widgets/branchtreeview.cpp" line="357"/>
         <source>%1手目</source>
         <translation>第 %1 手</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreeview.cpp" line="705"/>
+        <location filename="../../src/widgets/branchtreeview.cpp" line="678"/>
         <source>この変化を展開する</source>
         <translation>展開此變化</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreeview.cpp" line="705"/>
+        <location filename="../../src/widgets/branchtreeview.cpp" line="678"/>
         <source>この変化を折りたたむ</source>
         <translation>摺疊此變化</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreeview.cpp" line="708"/>
+        <location filename="../../src/widgets/branchtreeview.cpp" line="681"/>
         <source>すべての変化を展開する</source>
         <translation>展開所有變化</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreeview.cpp" line="709"/>
+        <location filename="../../src/widgets/branchtreeview.cpp" line="682"/>
         <source>変化を詰めて表示する</source>
         <translation>緊湊顯示變化</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreeview.cpp" line="713"/>
+        <location filename="../../src/widgets/branchtreeview.cpp" line="686"/>
         <source>拡大</source>
         <translation>放大</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreeview.cpp" line="715"/>
+        <location filename="../../src/widgets/branchtreeview.cpp" line="688"/>
         <source>縮小</source>
         <translation>縮小</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreeview.cpp" line="717"/>
+        <location filename="../../src/widgets/branchtreeview.cpp" line="690"/>
         <source>標準の大きさ（100%）</source>
         <translation>標準大小（100%）</translation>
     </message>
@@ -4459,17 +4458,17 @@ ABC abc 0123456789</translation>
 <context>
     <name>GameSession</name>
     <message>
-        <location filename="../../src/app/gamesession.cpp" line="169"/>
+        <location filename="../../src/app/gamesession.cpp" line="170"/>
         <source>保存していない定跡</source>
         <translation>未儲存的定跡</translation>
     </message>
     <message>
-        <location filename="../../src/app/gamesession.cpp" line="215"/>
+        <location filename="../../src/app/gamesession.cpp" line="216"/>
         <source>無制限</source>
         <translation>無限制</translation>
     </message>
     <message>
-        <location filename="../../src/app/gamesession.cpp" line="217"/>
+        <location filename="../../src/app/gamesession.cpp" line="218"/>
         <source>対局：▲%1 △%2（%3 開始、持ち時間 %4）</source>
         <translation>對局：▲%1 △%2（%3 開始，用時 %4）</translation>
     </message>
@@ -6670,7 +6669,7 @@ OKを選択すると保存先が指定できます。</source>
     <name>KifuAnalysisController</name>
     <message>
         <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="56"/>
-        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="99"/>
+        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="103"/>
         <source>解析対象の棋譜データが不正です。</source>
         <translation>用於分析的棋譜資料無效。</translation>
     </message>
@@ -6680,12 +6679,12 @@ OKを選択すると保存先が指定できます。</source>
         <translation>引擎選擇無效。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="157"/>
+        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="162"/>
         <source>エンジン初期化に失敗しました。エンジン設定を確認してください。</source>
         <translation>引擎初始化失敗。請檢查引擎設定。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="229"/>
+        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="234"/>
         <source>エンジンエラー: %1</source>
         <translation>引擎錯誤：%1</translation>
     </message>
@@ -6833,22 +6832,22 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>KifuAnalysisListModel</name>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="110"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="114"/>
         <source>この局面からの読み筋を盤面で表示します。</source>
         <translation>在棋盤上顯示此局面的後續變化。</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="118"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="122"/>
         <source>表示</source>
         <translation>顯示</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="165"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="169"/>
         <source>棋譜で実際に指された手。この手を指した後の局面を評価します。</source>
         <translation>對局中實際指下的著法。評價值對應此著法後的局面。</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="166"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="170"/>
         <source>直前の局面でエンジンが推奨した手。解析範囲の先頭では空欄になります。</source>
         <translation>引擎在上一局面推薦的著法。分析範圍的首個局面留空。</translation>
     </message>
@@ -6857,122 +6856,127 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">實際著法與推薦著法一致時顯示圓圈。</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="80"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="59"/>
+        <source>=== 開始局面 ===</source>
+        <translation>=== 初始局面 ===</translation>
+    </message>
+    <message>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="84"/>
         <source>先手勝ち</source>
         <translation>先手勝</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="80"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="84"/>
         <source>後手勝ち</source>
         <translation>後手勝</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="85"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="89"/>
         <source>互角</source>
         <translation>均勢</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="87"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="91"/>
         <source>やや有利</source>
         <translation>稍有利</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="88"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="92"/>
         <source>有利</source>
         <translation>有利</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="89"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="93"/>
         <source>優勢</source>
         <translation>優勢</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="90"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="94"/>
         <source>勝勢</source>
         <translation>勝勢</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="91"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="95"/>
         <source>先手</source>
         <translation>先手</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="91"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="95"/>
         <source>後手</source>
         <translation>後手</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="92"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="96"/>
         <source>%1：%2</source>
         <translation>%1：%2</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="167"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="171"/>
         <source>実際の指し手と候補手が一致すると◯を表示します。</source>
         <translation>實際著法與推薦著法一致時顯示圓圈。</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="168"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="172"/>
         <source>先手視点の評価値。正は先手有利、負は後手有利です。未取得は「-」で表示します。</source>
         <translation>評價值以先手為基準。正值有利於先手，負值有利於後手。未取得評價值時顯示橫線。</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="169"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="173"/>
         <source>評価値から判定した形勢です。</source>
         <translation>根據評價值判斷的形勢。</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="170"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="174"/>
         <source>直前の解析局面からの評価値の増減（先手視点）。比較できない場合は「-」で表示します。</source>
         <translation>相較於上一分析局面的評價值變化，以先手為基準。無法比較時顯示橫線。</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="171"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="175"/>
         <source>クリックまたはEnterキーで読み筋を盤面に表示します。</source>
         <translation>按一下或按 Enter 在棋盤上顯示後續變化。</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="172"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="176"/>
         <source>この手を指した後の局面からの読み筋です。</source>
         <translation>執行此著法後的局面變化。</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="182"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="186"/>
         <source>指し手</source>
         <translation>著法</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="183"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="187"/>
         <source>候補手</source>
         <translation>候選著法</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="184"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="188"/>
         <source>一致</source>
         <translation>一致</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="185"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="189"/>
         <source>評価値</source>
         <translation>評價值</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="186"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="190"/>
         <source>形勢</source>
         <translation>形勢</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="187"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="191"/>
         <source>評価値差</source>
         <translation>評價值變化</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="188"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="192"/>
         <source>盤面</source>
         <translation>棋盤</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="189"/>
+        <location filename="../../src/models/kifuanalysislistmodel.cpp" line="193"/>
         <source>読み筋</source>
         <translation>主要變化</translation>
     </message>
@@ -7011,12 +7015,12 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>KifuBranchListModel</name>
     <message>
-        <location filename="../../src/models/kifubranchlistmodel.cpp" line="48"/>
+        <location filename="../../src/models/kifubranchlistmodel.cpp" line="47"/>
         <source>本譜へ戻る</source>
         <translation>返回主線</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifubranchlistmodel.cpp" line="74"/>
+        <location filename="../../src/models/kifubranchlistmodel.cpp" line="73"/>
         <source>分岐候補</source>
         <translation>候選變化</translation>
     </message>
@@ -7024,9 +7028,8 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>KifuBranchTree</name>
     <message>
-        <location filename="../../src/kifu/kifubranchtree.cpp" line="36"/>
         <source>開始局面</source>
-        <translation>初始局面</translation>
+        <translation type="vanished">初始局面</translation>
     </message>
 </context>
 <context>
@@ -7472,24 +7475,24 @@ OKを選択すると保存先が指定できます。</source>
         <translation>載入棋譜失敗。%1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifuloadcoordinator.cpp" line="93"/>
+        <location filename="../../src/ui/coordinators/kifuloadcoordinator.cpp" line="94"/>
         <source>無効なSFEN形式です。</source>
         <translation>SFEN 格式無效。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifuloadcoordinator.cpp" line="112"/>
+        <location filename="../../src/ui/coordinators/kifuloadcoordinator.cpp" line="113"/>
         <source>棋譜の読み込みで警告があります:
 %1</source>
         <translation>載入棋譜時的警告：
 %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifuloadcoordinator.cpp" line="122"/>
+        <location filename="../../src/ui/coordinators/kifuloadcoordinator.cpp" line="126"/>
         <source>読み込み失敗 %1 から指し手を取得できませんでした。</source>
         <translation>載入失敗：無法從 %1 取得著法。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifuloadcoordinator.cpp" line="128"/>
+        <location filename="../../src/ui/coordinators/kifuloadcoordinator.cpp" line="132"/>
         <source>棋譜の分岐元または開始手数が不正です。</source>
         <translation>棋譜的分支來源或起始手數無效。</translation>
     </message>
@@ -7679,77 +7682,77 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">錯誤</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="131"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="119"/>
         <source>（定跡）</source>
         <translation>（定跡）</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="142"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="125"/>
         <source>対局日</source>
         <translation>對局日期</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="142"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="125"/>
         <source>開始日時</source>
         <translation>開始時間</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="143"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="126"/>
         <source>終了日時</source>
         <translation>結束時間</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="143"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="126"/>
         <source>先手</source>
         <translation>先手</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="144"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="127"/>
         <source>後手</source>
         <translation>後手</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="144"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="127"/>
         <source>下手</source>
         <translation>下手</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="145"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="128"/>
         <source>上手</source>
         <translation>上手</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="145"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="128"/>
         <source>手合割</source>
         <translation>讓子</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="146"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="129"/>
         <source>持ち時間</source>
         <translation>用時規則</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="146"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="129"/>
         <source>棋戦</source>
         <translation>賽事</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="147"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="130"/>
         <source>場所</source>
         <translation>地點</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="147"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="130"/>
         <source>備考</source>
         <translation>備注</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="148"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="131"/>
         <source>戦型</source>
         <translation>戰型</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="148"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="131"/>
         <source>表題</source>
         <translation>標題</translation>
     </message>
@@ -7809,7 +7812,7 @@ OKを選択すると保存先が指定できます。</source>
         <translation>去左五枚</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="160"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="143"/>
         <source>局面指定</source>
         <translation>指定局面</translation>
     </message>
@@ -7839,17 +7842,17 @@ OKを選択すると保存先が指定できます。</source>
         <translation>去十枚</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="160"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="143"/>
         <source>その他</source>
         <translation>其他</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="164"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="147"/>
         <source>無制限</source>
         <translation>不限時</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="172"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="155"/>
         <source>%1+%2秒加算</source>
         <translation>%1+每步加%2秒</translation>
     </message>
@@ -7862,27 +7865,27 @@ OKを選択すると保存先が指定できます。</source>
         <translation>=== 初始局面 ===</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifurecordlistmodel.cpp" line="62"/>
+        <location filename="../../src/models/kifurecordlistmodel.cpp" line="60"/>
         <source>（１手 / 合計）</source>
         <translation>（每手／累計）</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifurecordlistmodel.cpp" line="97"/>
+        <location filename="../../src/models/kifurecordlistmodel.cpp" line="95"/>
         <source>指し手</source>
         <translation>著法</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifurecordlistmodel.cpp" line="98"/>
+        <location filename="../../src/models/kifurecordlistmodel.cpp" line="96"/>
         <source>消費時間</source>
         <translation>用時</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifurecordlistmodel.cpp" line="99"/>
+        <location filename="../../src/models/kifurecordlistmodel.cpp" line="97"/>
         <source>しおり</source>
         <translation>書籤</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifurecordlistmodel.cpp" line="100"/>
+        <location filename="../../src/models/kifurecordlistmodel.cpp" line="98"/>
         <source>コメント</source>
         <translation>註解</translation>
     </message>
@@ -10205,9 +10208,8 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>千日手評價值</translation>
     </message>
     <message>
-        <location filename="../../src/ui/presenters/analysisresulthandler.cpp" line="22"/>
         <source>=== 開始局面 ===</source>
-        <translation>=== 初始局面 ===</translation>
+        <translation type="vanished">=== 初始局面 ===</translation>
     </message>
     <message>
         <source>（１手 / 合計）</source>

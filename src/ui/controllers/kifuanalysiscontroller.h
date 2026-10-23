@@ -23,7 +23,6 @@ class KifuAnalysisDialog;
 class KifuAnalysisListModel;
 class KifuNavigationController;
 class KifuNavigationState;
-class KifuRecordListModel;
 class QWidget;
 class ShogiView;
 class Usi;
@@ -51,7 +50,6 @@ public:
         EngineLifecycleManager* engines = nullptr;          ///< 解析のエンジンを置く枠 E1（表示は枠を結ぶ側が行う）
         // --- 解析する手順と、結果の反映先（無くてもよい） ---
         const KifuNavigationState* navState = nullptr;      ///< 解析する手順（表示中の手順）
-        const KifuRecordListModel* recordModel = nullptr;   ///< 結果の表に出す手の表記（手数・分岐の印付き）
         const KifuDocument* document = nullptr;   ///< 対局者名（対局情報）
         const ShogiView* shogiView = nullptr;               ///< 読み筋の盤の向きを本体の盤に合わせる
         KifuNavigationController* navController = nullptr;  ///< 解析中・結果の行を選んだ手へ棋譜を移す
@@ -92,8 +90,10 @@ private slots:
     void onAnalysisPlyClicked(int lineIndex, int ply);
 
 private:
-    /// 解析する手順（表示中の手順。結果の表の表記は棋譜欄と同じにする）
+    /// 解析する手順（表示中の手順。分岐を選んでいればその分岐。終局の行は含まない）
     RecordLine displayedLine() const;
+    /// 表示中の手順のうち、分岐がある手の手数（結果の表で棋譜欄と同じ印を付ける）
+    QSet<int> displayedBranchPlies() const;
     void showError(const QString& message) const;
     /// 直前の局面の確定した評価値をグラフに足す
     void publishCommittedEvaluation();

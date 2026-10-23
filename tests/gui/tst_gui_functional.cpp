@@ -3560,7 +3560,8 @@ private slots:
         const QString pv = QStringLiteral("▲７六歩(77)△３四歩(33)▲２六歩(27)△８四歩(83)▲２五歩(26)△８五歩(84)▲７七角(88)");
         for (int row = 0; row < 24; ++row) {
             KifuAnalysisRow item;
-            item.move = QStringLiteral("%1 ▲７六歩(77)").arg(row);
+            item.ply = row;
+            item.move = QStringLiteral("▲７六歩(77)");
             item.evaluation = UsiScore::cp(row * 25);
             item.evaluationDifference = 25;
             item.pv = pv;

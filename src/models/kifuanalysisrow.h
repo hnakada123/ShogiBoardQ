@@ -17,13 +17,15 @@
  */
 struct KifuAnalysisRow {
     int ply = -1;                             ///< 解析した局面の手数（sfen の局面）
-    QString move;                             ///< 指した手（棋譜の表記）
+    QString move;                             ///< 指した手（棋譜の表記 RecordEntry::displayText。開始局面の行は空）
+    bool branch = false;                      ///< 指した手に分岐がある（表で棋譜欄と同じ印を付ける）
     QString lastUsiMove;                      ///< 指した手（USI。読み筋の盤で強調する）
     QString beforeSfen;                       ///< 指す前の局面
     QString sfen;                             ///< 指した後の局面（読み筋の始まり）
     UsiScore evaluation;                      ///< 先手から見た評価値（定跡・未取得は None）
     std::optional<int> evaluationDifference;  ///< 直前の解析局面からの評価値の増減（比べられなければ nullopt）
-    QString pv;                               ///< 読み筋（漢字表記）
+    bool book = false;                        ///< 定跡（読み筋の代わりに定跡の印を出す）
+    QString pv;                               ///< 読み筋（漢字表記。定跡は空）
     QString usiPv;                            ///< 読み筋（USI。空白区切り）
     int depth = -1;                           ///< 読み筋の探索深さ（無ければ -1）
     QString candidateMove;                    ///< 候補手（直前の行の読み筋の最初の手。漢字表記）

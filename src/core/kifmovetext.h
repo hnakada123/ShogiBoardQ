@@ -21,6 +21,7 @@ enum class SameSquare {
 struct Notes {
     QString modifier;                ///< 相対位置の修飾語（「右」「上」「打」など。KI2 と同じ語）
     bool declinedPromotion = false;  ///< 成れるのに成らなかった（「不成」と書く）
+    bool withoutSource = false;      ///< 移動元「(77)」を書かない（局面で修飾語を決められない KI2 の手）
 };
 
 /**
@@ -60,6 +61,7 @@ inline void append(QString& out, Turn mover, Piece moving, const UsiMove& move, 
     }
     if (move.promote) out += QChar(u'成');
     else if (notes.declinedPromotion) out += QStringLiteral("不成");
+    if (notes.withoutSource) return;
     out += QLatin1Char('(');
     out += QChar(u'0' + move.from.file);
     out += QChar(u'0' + move.from.rank);

@@ -100,7 +100,8 @@ bool GameSession::canAppendRecord() const
 
 void GameSession::appendRecord(const RecordEntry& entry)
 {
-    if (entry.displayText.isEmpty() || !m_deps.liveSession->canAddMove()) return;
+    // 終局でも指し手でもない行（終局の種類が決まらなかった終局）は記録しない
+    if ((!entry.isTerminal() && !entry.move.move.isValid()) || !m_deps.liveSession->canAddMove()) return;
     qCDebug(lcApp).noquote() << "appendRecord: text=" << entry.displayText;
     RecordEntry recorded = entry;
     // 棋譜の途中から続けた対局では、消費時間の累計を同じ側の直前の累計から続ける

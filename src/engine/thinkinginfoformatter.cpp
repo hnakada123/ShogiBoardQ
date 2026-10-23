@@ -137,7 +137,7 @@ QString ThinkingInfoFormatter::searchedMoveLabel()
     const QString key = hand + QChar(0) + usi;
     const auto it = m_searchedLabels.constFind(key);
     if (it != m_searchedLabels.cend()) return it.value();
-    const QString label = KifuPresentation::label(hand, m_baseSfen, usi);
+    const QString label = KifuPresentation::moveLabel(hand, m_baseSfen, usi);
     m_searchedLabels.insert(key, label);
     return label;
 }

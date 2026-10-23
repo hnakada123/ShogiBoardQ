@@ -43,7 +43,7 @@ JosekiMergeDialog::JosekiMergeDialog(JosekiBookSession *session, const RecordLin
         row.sfen = line.sfenAt(static_cast<int>(i));
         row.usiMove = entry.move.move.toString();
         if (row.usiMove.isEmpty()) continue;
-        row.moveText = KifuPresentation::label(entry.displayText, row.sfen, row.usiMove);
+        row.moveText = KifuPresentation::entryLabel(entry, row.sfen);
         m_rows.append(row);
     }
     setupUi();

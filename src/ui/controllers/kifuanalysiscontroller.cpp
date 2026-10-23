@@ -11,10 +11,10 @@
 #include "evaluationgraphpresenter.h"
 #include "kifuanalysisdialog.h"
 #include "kifuanalysislistmodel.h"
+#include "kifubranchnode.h"
 #include "kifudocument.h"
 #include "kifunavigationcontroller.h"
 #include "kifunavigationstate.h"
-#include "kifurecordlistmodel.h"
 #include "logcategories.h"
 #include "shogiview.h"
 #include "enginelifecyclemanager.h"
@@ -72,6 +72,7 @@ std::optional<AnalysisRequest> KifuAnalysisController::requestFromDialog(const K
     AnalysisRequest request;
     request.line = displayedLine();
     request.lineIndex = m_deps.navState ? m_deps.navState->currentLineIndex() : 0;
+    request.branchPlies = displayedBranchPlies();
     request.enginePath = engine->path;
     request.engineName = engine->name;
     const int last = request.line.moveCount();
@@ -83,14 +84,17 @@ std::optional<AnalysisRequest> KifuAnalysisController::requestFromDialog(const K
 
 RecordLine KifuAnalysisController::displayedLine() const
 {
-    // 表示中の手順（分岐を選んでいればその分岐。終局の行は含まない）。解析中に棋譜欄を切り替えても
-    // 解析には影響しないよう、表の表記（手数・分岐の印付き）はここで値にしておく
-    RecordLine line = m_deps.navState ? m_deps.navState->currentRecordLine() : RecordLine{};
-    if (const KifuRecordListModel* model = m_deps.recordModel) {
-        for (int ply = 1; ply <= line.moveCount() && ply < model->rowCount(); ++ply)
-            line.entries[ply - 1].displayText = model->data(model->index(ply, KifuRecordListModel::MoveColumn)).toString();
-    }
-    return line;
+    return m_deps.navState ? m_deps.navState->currentRecordLine() : RecordLine{};
+}
+
+QSet<int> KifuAnalysisController::displayedBranchPlies() const
+{
+    QSet<int> plies;
+    if (!m_deps.navState) return plies;
+    const QList<KifuBranchNode*> path = m_deps.navState->selectedPath();
+    for (const KifuBranchNode* node : path)
+        if (node->parent() && node->parent()->hasBranch()) plies.insert(node->ply());
+    return plies;
 }
 
 bool KifuAnalysisController::start(AnalysisRequest request)
@@ -142,6 +146,7 @@ bool KifuAnalysisController::start(AnalysisRequest request)
     AnalysisResultHandler::Refs refs;
     refs.analysisModel = m_deps.analysisModel;
     refs.line = &m_job->line();
+    refs.branchPlies = request.branchPlies;
     refs.presenter = m_resultsPanel;
     if (const KifuDocument* document = m_deps.document) {
         refs.blackPlayerName = document->headerPlayerName(Turn::Black);

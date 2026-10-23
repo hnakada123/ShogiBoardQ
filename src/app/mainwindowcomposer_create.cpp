@@ -516,7 +516,6 @@ void MainWindowComposer::createControllers()
     kd.resultsDock = m_c.dockRegistry->dock(DockRegistry::DockId::AnalysisResults);
     kd.engines = m_c.engines;
     kd.navState = m_c.navState;
-    kd.recordModel = m_c.kifuRecord;
     kd.document = m_c.document;
     kd.shogiView = m_c.shogiView;
     kd.navController = m_c.kifuNavController;

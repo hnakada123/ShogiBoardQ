@@ -4,13 +4,13 @@
 #include "ki2exporter.h"
 #include "ki2movenotation.h"
 #include "kifexporter.h"
+#include "kifmovetext.h"
 #include "kifunodereplay.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
 #include "logcategories.h"
 #include "kifuexportcommon.h"
 
-#include <QRegularExpression>
 
 // ========================================
 // ヘルパ関数
@@ -36,12 +36,19 @@ static QStringList ki2MoveTexts(const QList<KifuBranchNode*>& nodes, const QStri
             continue;
         }
         const bool needsText = node->ply() >= fromPly;
+        const BoardSquare previousTo = replay.previousTo();
         QString text;
         if (needsText && replay.canWrite(node))
-            text = Ki2MoveNotation::format(replay.board(), replay.mover(), node->move().move, replay.previousTo());
+            text = Ki2MoveNotation::format(replay.board(), replay.mover(), node->move().move, previousTo);
         if (!replay.advance(node) && needsText) {
-            static const QRegularExpression fromPosPattern(QStringLiteral("\\([0-9０-９]+[0-9０-９]+\\)$"));
-            text = node->displayText().trimmed().remove(fromPosPattern);
+            // 局面の上で指せない手（反則の後など）は修飾語を決められないので、移動元を書かない KIF の表記にする
+            const ShogiMove move = node->move();
+            KifMoveText::Notes notes;
+            notes.withoutSource = true;
+            notes.declinedPromotion = KifMoveText::couldPromote(move.movingPiece, move.move);
+            text = move.movingPiece == Piece::None
+                ? node->displayText().trimmed()
+                : KifMoveText::format(move.mover(), move.movingPiece, move.move, previousTo, notes);
         }
         out << text;
     }

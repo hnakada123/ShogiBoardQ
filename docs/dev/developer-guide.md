@@ -102,6 +102,7 @@
 | 2026-10-16 | 盤の位置を値の型 `BoardGeometry` に、対局者カードを `PlayerCard` にしたのに合わせて §1.5・§11.1・§11.5・§12.6・第18章を更新（`ShogiViewLayout`（`shogiviewlayout.h/.cpp`）を削除し、盤・マス・駒台のセル・座標の文字・カードの位置を `BoardGeometry::Params` から1度だけ計算してウィジェット座標で持つ。ShogiView は `boardGeometry()` で返し、`rebuildGeometry()` で作り直す。`calculateSquareRectangleBasedOnBoardState()`・`cachedFieldRect()`・マスの矩形のキャッシュ・`setFieldSize()`（`fieldSize` は読み出し専用）・`updateBoardSize()`・`setStandGapCols()` を削除。`BoardChromeWidget` は `setBoardLayout()` を `setBoardGeometry()` に置き換え、名前・時計・札の関数（`setBlackPlayerName()`・`setBlackClockText()`・`blackNameLabel()`・`turnBadge()`・`visibleCardRect()` など）を `card(Turn)` が返す `PlayerCard` の `setName()`・`setClockText()`・`nameLabel()`・`clockLabel()`・`turnBadge()` に移した） |
 | 2026-10-23 | 動作状態に持ち主を付けた（監査 R1）のに合わせて §1.5・§3.4・§4.2・§6.2・第14章を更新（`AppState` を廃止して合成ルートが `AppActivityState` を持ち、部品は `AppActivityState*` を受け取る。状態を変えるのは `begin()` が返す `ActivityLease` を持つ部品だけで、別の部品が別の動作を始めると前の持ち主に `revoked` が届く。局面編集は待機中だけ始め、取り上げられたら編集した局面で編集を終える） |
 | 2026-10-23 | 定跡の状態の持ち主を整理した（監査 R2）のに合わせて §1.5・§10.3・§11.3・第18章を更新（定跡の表示・「盤の手を登録」は `JosekiWindowController` の `QAction`、「盤に定跡手を表示」はメニューの `QAction` を正本にし、定跡ウィンドウ・盤の矢印（`CandidateArrowPresenter`）・盤の手の登録（`JosekiRegistrationController::recordBoardMove`）はそれを読む。前回のファイルと履歴の復元・遅延読込は `JosekiBookSession`（`restore`・`startDeferredLoad`・`lastFilePath`）が持ち、定跡を変える関数は `canEdit()` でなければ何もしない。棋譜からのマージは表示中の手順・棋譜ファイルの本譜（`RecordLine`）を `JosekiMergeDialog` に渡し、`importMoves` で登録して保存しない。「登録済」は定跡に手があるか。`JosekiMergeEntries`・`KifuMergeEntry`・`JosekiMoveKey`・マージの印を削除） |
+| 2026-10-23 | 棋譜の表記を値から作るようにした（監査 R3 の段階1）のに合わせて §9.6・第18章を更新（`KifuPresentation::entryLabel(RecordEntry, 指す前の局面)`・`numberedLabel`・`bookLabel` を足し、表示の文字列から手数・分岐の印・終局語を正規表現で読み戻す `label`・`status` を削除。`RecordEntry::displayText` は棋譜の表記だけにし、棋譜解析は表示の文字列を書き戻さない（結果の行は棋譜の表記・分岐の有無・定跡かを値で持ち、表のモデルが表示のたびに作る）。分岐ツリーの図の色は `RecordEntry::mover` で決める） |
 
 <!-- chapter-0-end -->
 
@@ -5140,8 +5141,7 @@ CandidateArrowPresenter::refresh()
 | `resultsPanel` | `AnalysisResultsPanel*` | 任意 | 結果の表（無ければ自分で作る）。初めて解析するときに `setModel(analysisModel)` で1度だけモデルを結ぶ |
 | `resultsDock` | `QDockWidget*` | 任意 | 結果の表のドック。解析を始めたときに表示して前に出す |
 | `engines` | `EngineLifecycleManager*` | — | 解析のエンジンを置く枠 E1 |
-| `navState` | `const KifuNavigationState*` | — | 解析する手順（表示中の手順）と分岐ライン番号 |
-| `recordModel` | `const KifuRecordListModel*` | — | 結果の表に出す手の表記（手数・分岐の印付き）を棋譜欄から取る |
+| `navState` | `const KifuNavigationState*` | — | 解析する手順（表示中の手順）と分岐ライン番号、分岐がある手（`AnalysisRequest::branchPlies`。結果の表で棋譜欄と同じ印を付ける） |
 | `document` | `const KifuDocument*` | — | 読み筋盤面ダイアログに出す対局者名（対局情報の名前。`KifuDocument::headerPlayerName()`） |
 | `shogiView` | `const ShogiView*` | — | 読み筋盤面ダイアログの向きを本体の盤に合わせる |
 | `navController` | `KifuNavigationController*` | — | 解析中・結果の行を選んだ手へ棋譜を移す（`goToLine`） |
