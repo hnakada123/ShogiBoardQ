@@ -14,6 +14,7 @@
 #include "humanvsenginestrategy.h"
 #include "humanvshumanstrategy.h"
 #include "logcategories.h"
+#include "matchengineseat.h"
 #include "matchrecordsink.h"
 #include "sfenutils.h"
 #include "shogiboard.h"
@@ -43,14 +44,10 @@ MatchCoordinator::MatchCoordinator(const Deps& deps, QObject* parent)
     , m_clock(deps.clock)
     , m_activity(deps.activity)
     , m_engines(deps.engines)
+    , m_clockTime(deps.clock)
     , m_document(deps.document)
 {
     Q_ASSERT(m_gc && m_clock && m_activity && m_engines);
-
-    connect(m_engines, &EngineLifecycleManager::engineResigned, this, &MatchCoordinator::handleEngineResign);
-    connect(m_engines, &EngineLifecycleManager::engineDeclaredWin, this, &MatchCoordinator::handleEngineWin);
-    // 起動の失敗は開始の処理から戻った後に届く（Usi::startEngine）ので、そのまま中断してよい
-    connect(m_engines, &EngineLifecycleManager::engineError, this, &MatchCoordinator::handleEngineError);
     connect(m_clock, &ShogiClock::playerTimeOut, this, &MatchCoordinator::handlePlayerTimeOut);
 }
 
@@ -124,7 +121,22 @@ void MatchCoordinator::createStrategy(const StartOptions& opt)
     } else {
         m_strategy = std::make_unique<HumanVsHumanStrategy>(strategyHost());
     }
+    // エンジンの投了・宣言勝ちと、起動の失敗・異常終了を受ける（起動の失敗は start から戻った後に届くので、
+    // そのまま中断してよい）
+    for (const Turn side : {Turn::Black, Turn::White}) {
+        MatchEngineSeat* seat = m_strategy->engineSeat(side);
+        if (!seat) continue;
+        connect(seat, &MatchEngineSeat::resigned, this, &MatchCoordinator::handleEngineResign);
+        connect(seat, &MatchEngineSeat::declaredWin, this, &MatchCoordinator::handleEngineWin);
+        connect(seat, &MatchEngineSeat::errorOccurred, this, &MatchCoordinator::handleEngineError);
+    }
     m_strategy->start();
+}
+
+Usi* MatchCoordinator::engineFor(Turn side) const
+{
+    const MatchEngineSeat* seat = m_strategy ? m_strategy->engineSeat(side) : nullptr;
+    return seat ? seat->engine() : nullptr;
 }
 
 bool MatchCoordinator::usesHandicapNames() const
@@ -198,7 +210,7 @@ bool MatchCoordinator::completeMove(RecordEntry played, std::optional<UsiScore> 
 
 void MatchCoordinator::requestEngineMove(Turn side)
 {
-    Usi* engine = m_engines->engineFor(side);
+    Usi* engine = engineFor(side);
     if (!engine) return;
     const UsiPosition position = m_record.usiPosition(currentPly());
     // 定跡を使う対局者なら、条件に合う定跡手をエンジンに探索させずに指す
@@ -229,7 +241,7 @@ void MatchCoordinator::forceImmediateMove()
 {
     if (isGameOver()) return;
     // 人間の手番に「すぐ指させる」を押しても先読みは止めない
-    if (Usi* engine = m_engines->engineFor(m_gc->currentPlayer())) engine->requestImmediateMove();
+    if (Usi* engine = engineFor(m_gc->currentPlayer())) engine->requestImmediateMove();
 }
 
 void MatchCoordinator::disarmTurnTimer()
@@ -315,8 +327,7 @@ void MatchCoordinator::handleBreakOff()
     captureInterruptedGame();
     // 時計の精算時に時間切れが確定した場合、中断に上書きしない。
     if (isGameOver()) return;
-    // 中断の後に届く bestmove resign を終局にしない
-    m_engines->disconnectArbiterSignals();
+    // 中断の後に届く bestmove resign は、終局の知らせ（MatchEngineSeat::finish）の後なので受けない。
     // quit に応答しない場合も terminate/kill まで進める。中断後の思考表示は保持する。
     endGame({Cause::BreakOff, m_gc->currentPlayer()}, std::nullopt, Notice::Interrupt);
 }
@@ -352,8 +363,8 @@ void MatchCoordinator::handleEngineError(const QString& message)
 {
     if (isGameOver() || !m_strategy) return;
     qCWarning(lcGame).noquote() << "[USI-ERROR]" << message;
-    for (Usi* engine : {m_engines->engineInSlot(1), m_engines->engineInSlot(2)}) {
-        if (engine) engine->cancelCurrentOperation();
+    for (const Turn side : {Turn::Black, Turn::White}) {
+        if (Usi* engine = engineFor(side)) engine->cancelCurrentOperation();
     }
     if (!players().hasEngine()) return;
     handleBreakOff();
@@ -379,7 +390,13 @@ void MatchCoordinator::endGame(const GameEndInfo& info, std::optional<Turn> engi
     m_clock->markGameOver();
     m_clock->stopClock();
     disarmTurnTimer();
-    m_engines->notifyGameOver(engineLoser);
+    // 対局のエンジンに終局を知らせて終える（負けた側・勝った側・引き分け）
+    for (const Turn side : {Turn::Black, Turn::White}) {
+        MatchEngineSeat* seat = m_strategy ? m_strategy->engineSeat(side) : nullptr;
+        if (!seat) continue;
+        seat->finish(!engineLoser ? GameOverResult::Draw
+                                  : (*engineLoser == side ? GameOverResult::Lose : GameOverResult::Win));
+    }
     appendTerminalRecord(info);
     m_activityLease.reset();
     // 終局の行を棋譜に書いた後で、時刻と UI を更新させる
@@ -484,7 +501,7 @@ bool MatchCoordinator::undoTwoPlies()
         if (m_sink) m_sink->undoRecords(2);
         // 戻す前の局面で始めた先読みは当たらない
         for (const Turn side : {Turn::Black, Turn::White})
-            if (Usi* engine = m_engines->engineFor(side)) engine->forgetPonder();
+            if (Usi* engine = engineFor(side)) engine->forgetPonder();
     }
     emit movesUndone(currentPly());
     return true;

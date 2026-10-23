@@ -10,6 +10,8 @@
 #include "shogitypes.h"
 
 class EngineLifecycleManager;
+class MatchEngineSeat;
+class MatchTimeSource;
 struct UsiMatchMove;
 
 /**
@@ -20,7 +22,10 @@ struct UsiMatchMove;
  */
 class MatchStrategyHost {
 public:
+    /// エンジンの枠（対局で指すエンジン MatchEngineSeat はここから借りる）
     virtual EngineLifecycleManager& engines() = 0;
+    /// 対局のエンジンが持ち時間を読む出どころ（対局時計）
+    virtual MatchTimeSource* timeSource() = 0;
     virtual bool isGameOver() const = 0;
     /// 盤の手番
     virtual Turn sideToMove() const = 0;
@@ -65,6 +70,10 @@ public:
 
     /// 手番がエンジンなら思考を始める（対局の開始・再開の直後に呼ぶ）
     virtual void startInitialMoveIfNeeded() {}
+
+    /// side の手番を指すエンジン（人間の手番なら nullptr）。司令塔は投了・宣言勝ち・エラーをここから受け、
+    /// 思考の依頼と終局の知らせもここへ送る
+    virtual MatchEngineSeat* engineSeat(Turn /*side*/) const { return nullptr; }
 
     /// 人間の考慮時間の計測を始める・打ち切る（人間対人間だけが使う）
     virtual void armTurnTimerIfNeeded() {}

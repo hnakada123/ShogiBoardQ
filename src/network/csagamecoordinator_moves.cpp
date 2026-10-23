@@ -5,9 +5,11 @@
 
 #include "csamoveconverter.h"
 #include "logcategories.h"
+#include "matchengineseat.h"
 #include "shogiboard.h"
 #include "shogiclock.h"
 #include "shogigamecontroller.h"
+#include "usi.h"
 #include <QSignalBlocker>
 
 // ============================================================
@@ -189,30 +191,22 @@ void CsaGameCoordinator::onMoveConfirmed(const QString& move, int consumedTimeMs
 
 void CsaGameCoordinator::startEngineThinking()
 {
-    if (!m_engineController || !m_engineController->isReady() || m_playerType != PlayerType::Engine) {
+    if (!m_engineSeat || !m_engineSeat->isReady() || m_playerType != PlayerType::Engine) {
         return;
     }
 
     emit logMessage(tr("エンジンが思考中..."), false);
 
-    connect(m_engineController, &CsaEngineController::thinkingFinished,
-            this, &CsaGameCoordinator::onEngineThinkingFinished, Qt::UniqueConnection);
     // 持ち時間はこの司令塔（MatchTimeSource）がサーバーの残り時間から返す
-    m_engineController->thinkAsync(m_progress.usiPosition());
+    m_engineSeat->engine()->requestMatchMove(m_progress.usiPosition());
 }
 
-void CsaGameCoordinator::onEngineThinkingFinished(const CsaEngineController::ThinkingResult& result)
+void CsaGameCoordinator::onEngineMoveReady(const UsiMatchMove& result)
 {
     if (!isMyTurn()) return;
     if (m_gameState != GameState::InGame) return;
 
-    if (result.resign) {
-        emit logMessage(tr("エンジンが投了しました"), false);
-        performResign();
-        return;
-    }
-
-    if (!result.valid) {
+    if (!result.move.isValid()) {
         emit logMessage(tr("エンジンが有効な指し手を返しませんでした"), true);
         return;
     }

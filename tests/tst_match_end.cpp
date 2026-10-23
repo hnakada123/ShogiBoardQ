@@ -12,6 +12,7 @@
 #include "nyugyokujudgement.h"
 #include "settingscommon.h"
 #include "terminaltype.h"
+#include "usi.h"
 
 namespace {
 // 先手玉は敵陣にあり、敵陣15枚と持ち駒で28点。
@@ -56,6 +57,16 @@ MatchCoordinator::StartOptions humanVsHuman(const QString& sfen = SfenUtils::hir
 {
     MatchCoordinator::StartOptions opt;
     opt.sfenStart = sfen;
+    return opt;
+}
+
+/// 先手をエンジン（テスト用の USI エンジン）が指す対局
+MatchCoordinator::StartOptions blackEngine(const QString& sfen)
+{
+    MatchCoordinator::StartOptions opt = humanVsHuman(sfen);
+    opt.players.blackIsEngine = true;
+    opt.players.blackEngineName = QStringLiteral("DeclarationTest");
+    opt.enginePath1 = MatchHarness::mockEnginePath();
     return opt;
 }
 
@@ -195,9 +206,9 @@ private slots:
         QFETCH(int, cause);
         QFETCH(int, loser);
         MatchHarness h;
-        h.mc->start(humanVsHuman(success ? blackWin : SfenUtils::hirateSfen()));
+        h.mc->start(blackEngine(success ? blackWin : SfenUtils::hirateSfen()));
         setRule(isDraw ? NyugyokuJudgement::Rule24 : NyugyokuJudgement::Rule27);
-        emit h.engines.engineDeclaredWin(Turn::Black);
+        emit h.engines.engineInSlot(1)->declaredWin(Turn::Black);
 
         QVERIFY(h.mc->isGameOver());
         QCOMPARE(int(h.mc->gameOverState().lastInfo.cause), cause);
@@ -212,10 +223,10 @@ private slots:
     {
         // 駒落ちでは入玉宣言結果の説明も宣言側を下手・上手と呼ぶ
         MatchHarness h;
-        h.mc->start(humanVsHuman(blackWin));
+        h.mc->start(blackEngine(blackWin));
         h.useHandicapNames(true);
         setRule(NyugyokuJudgement::Rule27);
-        emit h.engines.engineDeclaredWin(Turn::Black);
+        emit h.engines.engineInSlot(1)->declaredWin(Turn::Black);
         QVERIFY(h.mc->isGameOver());
         QVERIFY(h.lastMessageText().contains(QStringLiteral("下手の入玉宣言")));
     }

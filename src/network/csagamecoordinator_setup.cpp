@@ -3,7 +3,9 @@
 
 #include "csagamecoordinator.h"
 
-#include "csaenginecontroller.h"
+#include "matchengineseat.h"
+#include "usi.h"
+#include "enginelistsettings.h"
 #include "csamoveconverter.h"
 #include "logcategories.h"
 #include "parsecommon.h"
@@ -12,6 +14,7 @@
 #include "shogiboard.h"
 #include "shogiclock.h"
 #include "shogigamecontroller.h"
+#include "usi.h"
 #include <QSignalBlocker>
 
 void CsaGameCoordinator::setGameState(GameState state)
@@ -90,25 +93,31 @@ void CsaGameCoordinator::setupClock()
 
 void CsaGameCoordinator::startEngine()
 {
-    if (!m_engineController) {
-        m_engineController = new CsaEngineController(m_engines, this);
-        connect(m_engineController, &CsaEngineController::logMessage,
-                this, &CsaGameCoordinator::logMessage);
-        connect(m_engineController, &CsaEngineController::initialized,
-                this, &CsaGameCoordinator::onEngineControllerInitialized);
-        connect(m_engineController, &CsaEngineController::engineError,
-                this, &CsaGameCoordinator::onEngineControllerError);
-        connect(m_engineController, &CsaEngineController::resignRequested,
-                this, &CsaGameCoordinator::onEngineControllerResign);
-        connect(m_engineController, &CsaEngineController::winDeclarationRequested,
-                this, &CsaGameCoordinator::onEngineControllerWinDeclaration);
+    if (!m_engineSeat) {
+        m_engineSeat = new MatchEngineSeat(m_engines, this);
+        connect(m_engineSeat, &MatchEngineSeat::initialized, this, &CsaGameCoordinator::onEngineInitialized);
+        connect(m_engineSeat, &MatchEngineSeat::errorOccurred, this, &CsaGameCoordinator::onEngineError);
+        connect(m_engineSeat, &MatchEngineSeat::resigned, this, &CsaGameCoordinator::onEngineResigned);
+        connect(m_engineSeat, &MatchEngineSeat::declaredWin, this, &CsaGameCoordinator::onEngineDeclaredWin);
+        connect(m_engineSeat, &MatchEngineSeat::moveReady, this, &CsaGameCoordinator::onEngineMoveReady);
     }
-    CsaEngineController::InitParams params;
-    params.enginePath = m_options.enginePath;
+    // ダイアログで選んだエンジンのパスを優先し、無ければ名前で登録一覧から引く
+    // （番号は登録一覧が変わるとずれるため使わない）
+    MatchEngineSeat::Params params;
+    params.enginePath = m_options.enginePath.isEmpty() ? EngineListSettings::pathForName(m_options.engineName)
+                                                       : m_options.enginePath;
+    if (params.enginePath.isEmpty()) {
+        onEngineError(tr("エンジンパスが指定されていません"));
+        return;
+    }
+    params.slot = 1;
+    params.side = m_progress.isBlackSide ? Turn::Black : Turn::White;
     params.engineName = m_options.engineName;
+    params.role = QStringLiteral("CSA");
+    // 持ち時間はこの司令塔（MatchTimeSource）がサーバーの残り時間から返す
     params.timeSource = this;
     // USI初期化の待機中にもTCPのGame_Summaryが届く。readyokを待って合意する。
-    m_engineController->initialize(params);
+    m_engineSeat->start(params);
 }
 
 QString CsaGameCoordinator::unsupportedConditionReason(const CsaClient::GameSummary& summary,
@@ -186,7 +195,7 @@ void CsaGameCoordinator::onGameSummaryReceived(const CsaClient::GameSummary& sum
         return;
     }
 
-    if (m_playerType == PlayerType::Engine && (!m_engineController || !m_engineController->isReady())) {
+    if (m_playerType == PlayerType::Engine && (!m_engineSeat || !m_engineSeat->isReady())) {
         // 初めての対局か、前局の終局で終えたエンジンを起動し直す
         startEngine();
         // 起動に失敗したら対局条件は拒否済み
@@ -194,8 +203,8 @@ void CsaGameCoordinator::onGameSummaryReceived(const CsaClient::GameSummary& sum
     }
 
     emit logMessage(tr("対局条件に同意します..."));
-    // エンジンの初期化中は readyok を待って同意する（onEngineControllerInitialized）
-    if (!m_engineController || !m_engineController->isStarting()) m_client->agree(summary.gameId);
+    // エンジンの初期化中は readyok を待って同意する（onEngineInitialized）
+    if (!m_engineSeat || !m_engineSeat->isInitializing()) m_client->agree(summary.gameId);
 }
 
 // ============================================================
@@ -241,9 +250,7 @@ void CsaGameCoordinator::reconnectForNextGame()
 void CsaGameCoordinator::cleanup()
 {
     clearPendingVerdict();
-    if (m_engineController) {
-        m_engineController->cleanup();
-    }
+    if (m_engineSeat) m_engineSeat->release();
     m_client->disconnectFromServer();
 }
 

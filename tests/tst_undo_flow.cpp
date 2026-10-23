@@ -65,7 +65,7 @@ struct Harness : QObject {
     std::unique_ptr<KifuDisplayPresenter> display;
     ShogiClock clock;
     AppActivityState activity;
-    EngineLifecycleManager engines{&clock};
+    EngineLifecycleManager engines;
     LiveSessionSink sink{session};
     std::unique_ptr<MatchCoordinator> match;
     int highlightPly = -1;

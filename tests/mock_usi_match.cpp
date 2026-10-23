@@ -14,7 +14,9 @@ int main()
     const char* modeEnv = std::getenv("SBQ_MATCH_PONDER_MODE");
     const std::string mode = modeEnv ? modeEnv : "hidden";
     int searches = 0;
-    int delay = 0;
+    // 指し手を返すまでの時間（setoption name ReplyDelay でも変えられる）
+    const char* replyDelayEnv = std::getenv("SBQ_MATCH_REPLY_DELAY_MS");
+    int delay = replyDelayEnv ? std::atoi(replyDelayEnv) : 0;
     std::thread worker;
     auto join = [&] { if (worker.joinable()) worker.join(); };
     std::string line;

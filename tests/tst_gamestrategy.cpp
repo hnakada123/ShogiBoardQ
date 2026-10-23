@@ -143,6 +143,27 @@ private slots:
         QCOMPARE(h.sink.records.size(), count);
         QCOMPARE(h.mc->currentPly(), 0);
     }
+    /// 人間が先に指した後も、エンジンの初期化を待つ間は時計を止める（エンジンの持ち時間を減らさない。監査 U4）
+    void humanMoveWaitsForInitializingEngine()
+    {
+        qputenv("SBQ_MATCH_INIT_DELAY_MS", "400");
+        MatchHarness h;
+        h.clock.setTimeControl(TestTime::rules(600, 600, 0, 0, 2, 2));
+        MatchCoordinator::StartOptions opt;
+        opt.sfenStart = SfenUtils::hirateSfen();
+        opt.players.whiteIsEngine = true;
+        opt.players.whiteEngineName = QStringLiteral("SlowStart");
+        opt.enginePath2 = MatchHarness::mockEnginePath();
+        h.start(opt);
+        // 人間の初手は、エンジンの初期化中も計時する
+        QVERIFY(h.clock.isRunning());
+        QVERIFY(h.playHuman(QStringLiteral("7g7f")));
+        QVERIFY(!h.clock.isRunning());
+        // 初期化が済むと時計を動かし、エンジンに指させる
+        QTRY_VERIFY_WITH_TIMEOUT(h.clock.isRunning(), 5000);
+        QTRY_COMPARE_WITH_TIMEOUT(h.mc->currentPly(), 2, 5000);
+        qunsetenv("SBQ_MATCH_INIT_DELAY_MS");
+    }
     void eveRejectsHumanInput()
     {
         MatchHarness h;

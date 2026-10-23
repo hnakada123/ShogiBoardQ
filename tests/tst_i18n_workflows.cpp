@@ -212,7 +212,7 @@ private slots:
         KifuDocument document(&tree);
         ShogiGameController gc;
         ShogiClock clock;
-        EngineLifecycleManager engines(&clock);
+        EngineLifecycleManager engines;
         MatchCoordinator match({&gc, &clock, &activity, &engines, &document});
         CsaGameCoordinator csa;
         GameSession::Deps deps;

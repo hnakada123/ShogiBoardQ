@@ -107,6 +107,7 @@
 | 2026-10-23 | 局面の検査を core の `PositionValidator`（`src/core/positionvalidator.h`）に集めた（監査 R4 の段階2）のに合わせて §1.5・§6.4・第18章を更新（駒の数・駒台の玉・玉の重複と有無・手番でない側への王手を1か所で見る。`SfenValidationService` は結果を値と JSON にするだけ、合法手だけを指すのは `EngineMoveValidator::applyIfLegal`、対局の開始は `GameStartOptionsBuilder::validatePosition`（旧 `validateKings`）。詰将棋問題一覧の局面の識別子・読み込みの検査・詰み手順の確認（`TsumeCollection::positionId`・`parse`・`validMateLine`）も core で行い、Hayanagi は詰み探索だけに使う。CLI の `resolvePosition` は手を1回だけ指す。USI の指し手の正規表現2つは `UsiMove::isExact` にした） |
 | 2026-10-23 | 入力中の編集の確定と未保存の判定を文書に一本化した（監査 R6）のに合わせて §4・§10・§11・第18章を更新（対局情報欄の「対局情報更新」ボタン・`GameInfoPane::applyChanges`・`gameInfoUpdated`・`GameInfoEditModel` の反映済みの内容（`m_applied`・`markApplied`・`isDirty`）を削除。盤の対局者名は `KifuDocument::headerEdited` で合わせる。`KifuDocument::Hooks` は `commitPendingEdits`・`hasPendingEdits` の2つにし、合成ルートが対局情報欄とコメント欄をまとめて登録する。対局情報を読むだけ（`header()`）では入力中のセルを確定しない） |
 | 2026-10-23 | 文書の置き換えを1つの知らせにした（監査 R7）のに合わせて §6・§9・§10・§14・第18章を更新（`KifuDocument::replaced` を受けて評価値グラフ・エンジンの表示が自分で消える。`SessionResetCoordinator::clearBeforeKifuLoad`・`KifuFileController::Deps::clearUiBeforeKifuLoad`・局面編集の開始で評価値グラフを消す配線を削除。連続対局の次局と通信対局の開始も `prepareGameStart()` を通る） |
+| 2026-10-23 | 対局で指すエンジン1台を `MatchEngineSeat`（`src/game/matchengineseat.h`）にまとめた（監査 R8 の前半）のに合わせて §1・§6・§7・§12・第18章を更新（人間対エンジン・エンジン同士の Strategy と通信対局が共有し、終局の知らせは `finish()` の1通り。`EngineLifecycleManager` はリース・取り上げの知らせ・表示の消去だけにし、手番・時計・投了などの中継（`engineFor`・`startEngine`・`notifyGameOver`・`disconnectArbiterSignals`・`engineResigned`・`engineDeclaredWin`・`engineError`・`slotFor`）を削除。`CsaEngineController` を削除。対局時計の `ClockTimeSource` は司令塔が持つ。人間が先に指した後もエンジンの初期化を待つ間は時計を止める） |
 
 <!-- chapter-0-end -->
 
@@ -350,7 +351,8 @@ src/
 │   ├── humanvshumanstrategy.cpp/.h #   人間対人間の進め方
 │   ├── humanvsenginestrategy.cpp/.h #  人間対エンジンの進め方
 │   ├── enginevsenginestrategy.cpp/.h # エンジン同士の進め方
-│   ├── enginelifecyclemanager.cpp/.h # エンジンの枠（E1・E2）での生成・起動・破棄（対局・検討・棋譜解析・CSA 通信対局で共有）
+│   ├── enginelifecyclemanager.cpp/.h # エンジンの枠（E1・E2）のリース・取り上げの知らせ・表示の消去（対局・検討・棋譜解析・CSA 通信対局で共有）
+│   ├── matchengineseat.cpp/.h      #   対局で指すエンジン1台（枠のリース・手番・持ち時間の出どころ・知らせ・終局の手順。Strategy と通信対局が持つ）
 │   ├── startoptions.h              #   対局開始の設定（MatchStartOptions）
 │   ├── startgamedatabridge.h       #   対局開始ダイアログから game 層へ渡す値
 │   ├── interruptedgamestate.h      #   中断したローカル対局の状態（棋譜に書いた中断の行 terminalNodeId を含む）
@@ -447,7 +449,6 @@ src/
 │   ├── csagamecoordinator*.cpp/.h  #   CSA対局調整（_moves が指し手の進行、_setup が対局の準備）。自分のエンジンの時間の出どころ（MatchTimeSource）も兼ねる
 │   ├── csagamechannel.cpp/.h       #   通信対局の窓口（GameChannel の実装。操作はサーバーへ送り、入玉宣言の成否はサーバーが判定する）
 │   ├── csagameprogress.cpp/.h      #   1局ぶんの進行（持ち時間・手順 RecordLine・終局行）の値型
-│   ├── csaenginecontroller.cpp/.h  #   通信対局で指すエンジンの制御（EngineLifecycleManager の枠を使う）
 │   └── csamoveconverter.cpp/.h     #   CSA と USI の指し手の変換（toCsa / toUsi）
 │
 ├── navigation/                     # ナビゲーション
@@ -1377,9 +1378,9 @@ graph LR
 | エンジン対エンジン | 先手（下手）のエンジン | 後手（上手）のエンジン |
 | 検討・詰み探索（`AnalysisSession`） | 解析用 | — |
 | 棋譜解析（`KifuAnalysisController`） | 解析用 | — |
-| CSA 通信対局（`CsaEngineController`） | 対局用 | — |
+| CSA 通信対局（`CsaGameCoordinator` の `MatchEngineSeat`） | 対局用 | — |
 
-どの用途も、エンジンは `EngineLifecycleManager::acquire(owner, slot, side, name)` で枠に作り、使う側は返された move-only の `EngineLease` を持っている間だけエンジンを使う（`engine()`。手放す `reset()`・破棄で枠を空け、持ち主には知らせない）。ほかの持ち主が同じ枠を取った・`destroyEngines()` で全部の枠を破棄したときは、前の持ち主に `engineRevoked(owner)` で知らせ、そのリースは空になる（枠に入っているかは `holds(engine)`）。リースを持つのは `AnalysisSession`・`KifuAnalysisController`・`CsaEngineController`・`HumanVsEngineStrategy`・`EngineVsEngineStrategy`。思考情報と通信ログの表示は `EngineDisplayPresenter` が枠のエンジンに結ぶ。
+どの用途も、エンジンは `EngineLifecycleManager::acquire(owner, slot, name)` で枠に作り、使う側は返された move-only の `EngineLease` を持っている間だけエンジンを使う（`engine()`。手放す `reset()`・破棄で枠を空け、持ち主には知らせない）。ほかの持ち主が同じ枠を取った・`destroyEngines()` で全部の枠を破棄したときは、前の持ち主に `engineRevoked(owner)` で知らせ、そのリースは空になる（枠に入っているかは `holds(engine)`）。リースを持つのは `AnalysisSession`・`KifuAnalysisController`・`MatchEngineSeat`（対局で指すエンジン。`HumanVsEngineStrategy`・`EngineVsEngineStrategy`・`CsaGameCoordinator` が持つ）。枠の部品は手番や時計を知らず、エンジンの知らせも中継しない。思考情報と通信ログの表示は `EngineDisplayPresenter` が枠のエンジンに結ぶ。
 
 **3. メニュー・ボタンの有効/無効**
 
@@ -1654,7 +1655,7 @@ struct Deps {
 
 ```cpp
 // src/app/mainwindowcomposer_create.cpp（createMatchAndAnalysis、抜粋）
-m_c.engines = new EngineLifecycleManager(m_c.clock, &m_window);
+m_c.engines = new EngineLifecycleManager(&m_window);
 
 MatchCoordinator::Deps md;
 md.gc = m_c.gameController;
@@ -2683,7 +2684,8 @@ game 層
 | **MatchCoordinator** | `matchcoordinator.h/.cpp` | 対局の司令塔。対局の手順（`RecordLine`）を持ち、一手の確定（時計・棋譜・千日手・最大手数）、終局の判定と記録、待った、中断と再開を受け持つ |
 | **GameModeStrategy** | `gamemodestrategy.h`、`humanvshumanstrategy`・`humanvsenginestrategy`・`enginevsenginestrategy` の `.h/.cpp` | 対局モード別に、手番ごとに誰が指すかを決める。司令塔への依頼は `MatchStrategyHost` を通す |
 | **MatchSessionState** | `matchsessionstate.h` | 開始の設定（`MatchStartOptions`）・対局者（`MatchPlayers`）・終局状態を持つ（エンジンの先読みの局面は `UsiMatchHandler` だけが持つ） |
-| **EngineLifecycleManager** | `enginelifecyclemanager.h/.cpp` | エンジンの枠 E1・E2 の生成・起動・破棄と、手番との対応（対局・検討・棋譜解析・CSA 通信対局で共有）。使う側には `acquire()` で move-only の `EngineLease` を渡し、枠をほかの持ち主に取られた前の持ち主には `engineRevoked` で知らせる。エンジンの投了・入玉宣言を手番の知らせにする |
+| **EngineLifecycleManager** | `enginelifecyclemanager.h/.cpp` | エンジンの枠 E1・E2 の生成・破棄（対局・検討・棋譜解析・CSA 通信対局で共有）。使う側には `acquire()` で move-only の `EngineLease` を渡し、枠をほかの持ち主に取られた前の持ち主には `engineRevoked` で知らせる |
+| **MatchEngineSeat** | `matchengineseat.h/.cpp` | 対局で指すエンジン1台。枠からエンジンを借り、手番と持ち時間の出どころを渡して起動し、初期化・指し手・投了・入玉宣言勝ち・エラーを自分のシグナルで知らせる。終局は `finish(GameOverResult)` で、ローカル対局・通信対局で同じ手順 |
 | **ShogiGameController** | `shogigamecontroller.h/.cpp` | 対局の盤を持ち、指し手の合法性の検証と適用、棋譜の表記を行う（「同」の基準は呼び出し側が手順から渡す） |
 | **GameStartOptionsBuilder** | `gamestartoptionsbuilder.h/.cpp` | 対局開始ダイアログの値と表示中の手順から、開始の計画（`GameStartPlan`）を作る。状態を持たない |
 | **ConsecutiveGameSeries** | `consecutivegameseries.h/.cpp` | エンジン同士の連続対局の局数と、次局の計画 |
@@ -2735,7 +2737,7 @@ enum class Cause : int {
 };
 ```
 
-エンジンの投了・入玉宣言は `EngineLifecycleManager` の `engineResigned(Turn)`・`engineDeclaredWin(Turn)` で、エンジンの手番として届く。人間対エンジンでは、エンジンが後手でもエンジンは1つ目の枠（E1）に入る。エンジン同士では先手が E1、後手が E2 である。枠は思考情報・通信ログの表示先の区別で、投了などの判定は枠ではなくエンジンの手番で行う。
+エンジンの投了・入玉宣言は `MatchEngineSeat` の `resigned(Turn)`・`declaredWin(Turn)` で、エンジンの手番として届く（司令塔が Strategy の `engineSeat(side)` ごとにつなぐ）。人間対エンジンでは、エンジンが後手でもエンジンは1つ目の枠（E1）に入る。エンジン同士では先手が E1、後手が E2 である。枠は思考情報・通信ログの表示先の区別で、投了などの判定は枠ではなくエンジンの手番で行う。
 
 **StartOptions**（`MatchStartOptions`、`src/game/startoptions.h`）— 対局開始のための設定:
 
@@ -3573,7 +3575,7 @@ bestmove の手が局面に指せないときも `moveReady` は出し（先読�
 
 **ソース**: `src/engine/usi.h`, `src/engine/usi.cpp`
 
-`Usi` クラスは GUI からエンジン1台を使う窓口である。対局（`HumanVsEngineStrategy`・`EngineVsEngineStrategy`。エンジンは `EngineLifecycleManager` が作る）、検討・詰み探索（`AnalysisSession`）、棋譜解析（`AnalysisJob`）、通信対局（`CsaEngineController`）が使う。思考タブを使わない詰みの問い合わせ（詰将棋の局面生成 `TsumeshogiGenerator`・詰み判定 `TsumeMateEngine`・CLI の `MateSearchRunner`・`TsumeVerificationRunner`）は `Usi` を使わず、`MateOracle`（`UsiEngineSession` を持つ）で頼む。`Usi` は内部のコンポーネント（7.1節の表）を持ち、要求の受け付けとシグナルの中継を行う。思考の表・通信ログのモデルには触れない。
+`Usi` クラスは GUI からエンジン1台を使う窓口である。対局（`HumanVsEngineStrategy`・`EngineVsEngineStrategy`）と通信対局（`CsaGameCoordinator`）は `MatchEngineSeat` 経由で（エンジンは `EngineLifecycleManager` が作る）、検討・詰み探索（`AnalysisSession`）、棋譜解析（`AnalysisJob`）は直接使う。思考タブを使わない詰みの問い合わせ（詰将棋の局面生成 `TsumeshogiGenerator`・詰み判定 `TsumeMateEngine`・CLI の `MateSearchRunner`・`TsumeVerificationRunner`）は `Usi` を使わず、`MateOracle`（`UsiEngineSession` を持つ）で頼む。`Usi` は内部のコンポーネント（7.1節の表）を持ち、要求の受け付けとシグナルの中継を行う。思考の表・通信ログのモデルには触れない。
 
 #### コンストラクタと依存関係
 
@@ -3581,7 +3583,7 @@ bestmove の手が局面に指せないときも `moveReady` は出し（先読�
 explicit Usi(QObject* parent = nullptr);
 ```
 
-コンストラクタで `UsiEngineSession`（`EngineProcessManager`・`UsiProtocolHandler` を持つ）・`ThinkingInfoFormatter`・`UsiMatchHandler` を作り、`connect()` でシグナルを接続する。対局の持ち時間の出どころは `setMatchTimeSource(MatchTimeSource*)` で後から渡す（非所有。`EngineLifecycleManager` が対局のエンジンに対局時計の `ClockTimeSource` を、`CsaEngineController` が `CsaGameCoordinator` を渡す）。ログの識別（`E1`・`E2` と手番）は `setLogIdentity()` で設定する。
+コンストラクタで `UsiEngineSession`（`EngineProcessManager`・`UsiProtocolHandler` を持つ）・`ThinkingInfoFormatter`・`UsiMatchHandler` を作り、`connect()` でシグナルを接続する。対局の持ち時間の出どころは `setMatchTimeSource(MatchTimeSource*)` で後から渡す（非所有。`MatchEngineSeat::start()` が、ローカル対局では司令塔の対局時計の `ClockTimeSource` を、通信対局では `CsaGameCoordinator` を渡す）。ログの識別（`E1`・`E2` と手番）は `setLogIdentity()` で設定する。
 
 表示する側は、次の3つの読み取り専用の窓口からシグナルを受ける。
 
@@ -3639,11 +3641,11 @@ UsiMatchHandler → Usi
 
 | シグナル | 用途 | 主な接続先 |
 |---------|------|----------|
-| `engineInitialized()` | 初期化（usi〜readyok）の完了 | 対局の Strategy、AnalysisJob、CsaEngineController |
-| `matchMoveReady(UsiMatchMove)` | 対局の思考で指し手が決まった（指した側・指し手・考えた時間・評価値） | HumanVsEngineStrategy・EngineVsEngineStrategy、CsaEngineController |
-| `resigned(Turn)` | 対局の探索に投了で答えた | EngineLifecycleManager（→ `engineResigned(Turn)` → MatchCoordinator）、CsaEngineController |
-| `declaredWin(Turn)` | 対局の探索に入玉宣言勝ちで答えた | EngineLifecycleManager（→ `engineDeclaredWin(Turn)` → MatchCoordinator）、CsaEngineController |
-| `errorOccurred(message)` | エンジンエラー | EngineLifecycleManager（対局のエンジン。→ `engineError` → MatchCoordinator）、AnalysisSession、AnalysisJob、CsaEngineController |
+| `engineInitialized()` | 初期化（usi〜readyok）の完了 | MatchEngineSeat（→ 対局の Strategy・CsaGameCoordinator）、AnalysisJob |
+| `matchMoveReady(UsiMatchMove)` | 対局の思考で指し手が決まった（指した側・指し手・考えた時間・評価値） | MatchEngineSeat（→ HumanVsEngineStrategy・EngineVsEngineStrategy・CsaGameCoordinator） |
+| `resigned(Turn)` | 対局の探索に投了で答えた | MatchEngineSeat（→ MatchCoordinator・CsaGameCoordinator） |
+| `declaredWin(Turn)` | 対局の探索に入玉宣言勝ちで答えた | MatchEngineSeat（→ MatchCoordinator・CsaGameCoordinator） |
+| `errorOccurred(message)` | エンジンエラー | MatchEngineSeat（対局のエンジン。→ MatchCoordinator・CsaGameCoordinator）、AnalysisSession、AnalysisJob |
 | `searchCandidateChanged()` | 候補手が変わった | CandidateArrowPresenter |
 
 検討・棋譜解析・詰み探索の結果は、`protocol()` の `bestMoveReceived(UsiBestMove)`・`checkmateReceived(UsiCheckmate)`・`infoReceived(UsiInfo)` で受ける（`AnalysisSession`・`AnalysisJob`）。`thinking()` の `thinkingInfoUpdated(ThinkingInfoRow)` は思考の表への表示に使い、棋譜解析の結果（読み筋の漢字表記を含む）はこれに頼らない。
@@ -3699,7 +3701,7 @@ processInfo(info)
 
 `checkmateReceived` は `presentCheckmate(result)` にもつながっている。詰みの結果なら、バッファを先に処理してから、詰み手順を score mate の info として `processInfo()` に通し、info を出さないエンジンでも詰み手順を思考タブに残す。
 
-評価値の最後の値は `UsiProtocolHandler` が探索ごとに覚え（multipv 1 の値）、`UsiBestMove::score` に入れて知らせる。評価値グラフの `EvaluationGraphPresenter` や `CsaEngineController` は、これを使う。
+評価値の最後の値は `UsiProtocolHandler` が探索ごとに覚え（multipv 1 の値）、`UsiBestMove::score` に入れて知らせる。評価値グラフの `EvaluationGraphPresenter` や通信対局の `CsaGameCoordinator`（`UsiMatchMove::score`）は、これを使う。
 
 #### 通信ログの整形
 
@@ -3974,9 +3976,9 @@ ThinkingInfoFormatter           UsiModelBinding              UsiCommLogModel
 
 ```
                 ┌─────────────────────────────────────┐
-                │ 対局の Strategy / EngineLifecycle-  │
-                │ Manager、AnalysisSession、          │
-                │ AnalysisJob、CsaEngineController    │
+                │ MatchEngineSeat（対局の Strategy・  │
+                │ CsaGameCoordinator）、              │
+                │ AnalysisSession、AnalysisJob        │
                 └─────────────────┬───────────────────┘
                                   │ シグナル/スロット
                                   ▼
@@ -6717,7 +6719,7 @@ CsaClientとゲームシステム（ShogiGameController, ShogiClock等）の橋�
 - 盤面への指し手適用（`playCsaMove()` が `toUsi()` で得た指し手を `ShogiGameController::applyRecordedMove()` で指す。確定後は `ShogiGameController::notifyMoveCommitted()` でローカル対局と同じ経路の `moveCommitted` を出す）
 - 対局の手順を `CsaGameProgress::record`（`RecordLine`）1つに積み、確定した棋譜行を `recordEntryReady` で知らせる
 - GUI側の時計制御（サーバーの権威的な消費時間でGUI時計を補正。表示用の `ShogiClock` はサーバーの残り時間の写しで、計算には使わない）
-- USIエンジンの起動・思考管理（エンジン vs サーバー対局時。`CsaEngineController`。エンジンはローカルの対局・検討と同じ `EngineLifecycleManager` の枠 E1 に置く）
+- USIエンジンの起動・思考管理（エンジン vs サーバー対局時。ローカル対局と同じ `MatchEngineSeat`。エンジンはローカルの対局・検討と同じ `EngineLifecycleManager` の枠 E1 に置く）
 - 自分のエンジンの時間の出どころ（`MatchTimeSource` を継承する。`snapshot()` は `CsaGameProgress::engineTiming(margin)` のサーバーの残り時間・決まり・遅延・余裕から、`elapsedThisTurn()` は手番が変わるたびに始める自分の `QElapsedTimer` から返す。投了の消費時間もこの値で、表示用の時計を読まない）
 - 対局結果の日本語変換と表示
 
@@ -6826,7 +6828,7 @@ struct Deps {
 };
 ```
 
-盤のビュー・棋譜欄・ハイライトの部品は持たない。盤への着手は `ShogiGameController`、棋譜行は `recordEntryReady`、移動元・移動先のハイライトは `moveHighlightRequested`、通信ログは `csaCommLogAppended` で知らせる。エンジンで指すときは `CsaEngineController` が `EngineLifecycleManager::acquire(this, 1, …)` で枠 E1 にエンジンを作ってリース（`m_lease`）を持ち（`InitParams::timeSource` に司令塔自身を渡し、`Usi::setMatchTimeSource()` でつなぐ）、終局の `sendGameOver()`・`sendQuit()` でリースを手放して片付ける（`cleanup()`）。通信対局の最中にほかの処理が枠を取ったとき（`engineRevoked`）は、エンジンの異常と同じくエラーとして知らせる（`onEngineRevoked()` → `onEngineError()`）。同じ接続の次の対局条件（`onGameSummaryReceived()`）は、エンジンが思考を頼める状態（`isReady()`）でなければ起動し直し、起動して初期化している間（`isStarting()`）は readyok を待ってから同意する（`onEngineControllerInitialized()`）。それ以外はすぐ同意する。思考の依頼は `thinkAsync(const UsiPosition&)` で、時間は渡さない。思考情報・USI通信ログのモデルは枠が持つ。
+盤のビュー・棋譜欄・ハイライトの部品は持たない。盤への着手は `ShogiGameController`、棋譜行は `recordEntryReady`、移動元・移動先のハイライトは `moveHighlightRequested`、通信ログは `csaCommLogAppended` で知らせる。エンジンで指すときは、ローカル対局と同じ `MatchEngineSeat`（`m_engineSeat`）が枠 E1 にエンジンを借りて起動する（`Params::timeSource` に司令塔自身を渡す）。終局は `MatchEngineSeat::finish()`（勝ち・負け・引き分け。探索・先読みを止めて gameover と quit）で、ローカル対局と同じ手順で知らせ、接続を終えるときに `release()` で枠を空ける。通信対局の最中にほかの処理が枠を取ったときは、エンジンの異常と同じく `errorOccurred` → `onEngineError()` で知らせる。同じ接続の次の対局条件（`onGameSummaryReceived()`）は、エンジンが思考を頼める状態（`isReady()`）でなければ起動し直し、起動して初期化している間（`isInitializing()`）は readyok を待ってから同意する（`onEngineInitialized()`）。それ以外はすぐ同意する。思考の依頼は `Usi::requestMatchMove(const UsiPosition&)` で、時間は渡さない（エンジンが `MatchTimeSource` として司令塔から読む）。指し手は `MatchEngineSeat::moveReady` → `onEngineMoveReady(UsiMatchMove)`、投了・入玉宣言勝ちは `resigned`・`declaredWin` で届く。思考情報・USI通信ログのモデルは枠が持つ。
 
 ### 12.4 CsaGameSession — CSA通信対局の画面への反映
 
@@ -8012,7 +8014,7 @@ sequenceDiagram
     participant Srv as CSAサーバー
     participant SGC as ShogiGameController
     participant GS as GameSession
-    participant CEC as CsaEngineController
+    participant MES as MatchEngineSeat
 
     User->>CGD: 接続情報を入力しOK（DialogLauncher::displayCsaGameDialog）
     CGD->>CGS: startGame(dialog->selection())
@@ -8028,7 +8030,7 @@ sequenceDiagram
     Srv-->>CC: LOGIN:username OK
     CC-->>CGC: loginSucceeded シグナル
     opt エンジンが指す場合
-        CGC->>CEC: エンジンを起動（initialize → EngineLifecycleManager の枠）
+        CGC->>MES: エンジンを起動（start → EngineLifecycleManager の枠 E1）
     end
 
     Note over Srv: マッチング処理
@@ -8054,8 +8056,8 @@ sequenceDiagram
                 User->>CGC: 盤面クリック → BoardMoveController::csaMoveRequested → onHumanMove()
                 CGC->>SGC: prepareMove()（盤は変えずに合法性と成りを確定）
             else エンジンが指す場合
-                CGC->>CEC: thinkAsync(position)（Usi::requestMatchMove()。時間は CsaGameCoordinator（MatchTimeSource）から読む）
-                CEC-->>CGC: thinkingFinished（bestmove）
+                CGC->>MES: engine()->requestMatchMove(position)（時間は CsaGameCoordinator（MatchTimeSource）から読む）
+                MES-->>CGC: moveReady（bestmove）
             end
             CGC->>CC: sendMove("+7776FU")（CsaMoveConverter::toCsa()）
             CC->>Srv: +7776FU
@@ -8091,7 +8093,7 @@ sequenceDiagram
 | `GameSession` | 通信対局の棋譜（作り直し・対局者・持ち時間・開始と終了の日時・着手の行・自動保存）をローカル対局と同じ流れで受け持つ。投了・中断・入玉宣言は `CsaGameChannel` 経由でサーバーへ送る（`src/app/`） |
 | `CsaGameCoordinator` | CSA通信対局の進行管理（合成ルートが起動時に1つ作る）。1局の進行（持ち時間・手数・手順）は `CsaGameProgress` に持ち、手順は `record`（`RecordLine`）1つだけ。自分の手番は持たず `CsaClient::isMyTurn()` を見る |
 | `CsaClient` | CSAプロトコルのTCP/IP通信実装。メッセージの送受信と状態管理。Game_Summary は `GameSummary`（`myTurn` は `std::optional<Turn>`、`toMove` は `Turn`）にまとめる |
-| `CsaEngineController` | エンジンで指すときの `Usi` の起動と思考（エンジンの枠は `EngineLifecycleManager` を使う） |
+| `MatchEngineSeat` | エンジンで指すときの `Usi` の起動・知らせ・終局の手順（ローカル対局と共有。エンジンの枠は `EngineLifecycleManager` を使う） |
 | `ShogiGameController` | 盤面データの更新と、着手確定の知らせ（`moveCommitted`） |
 
 **補足:**
@@ -8099,7 +8101,7 @@ sequenceDiagram
 - CSA形式の指し手（例: `+7776FU`）とUSI形式の指し手（例: `7g7f`）の変換は `CsaMoveConverter`（`toCsa()`・`toUsi()`）だけが担当する。どちらも指す前の盤の駒を読み、盤は動かさない。棋譜の表記は `KifMoveText::format()` で作り、盤への適用は `ShogiGameController::applyRecordedMove()` が行う
 - 自分の手も相手の手も、サーバーからの確認（`moveConfirmed`／`moveReceived`）を受けてから盤に指す。盤で入力した手はその時点では盤を変えない
 - 解釈できない指し手行が届いたときは、すぐ終局させずサーバーの裁定（`#ILLEGAL_MOVE` と勝敗）を待つ
-- エンジン対局時は `CsaEngineController` が `Usi` を持ち、`matchMoveReady` で受けた応手を `thinkingFinished` で `CsaGameCoordinator` に返す
+- エンジン対局時は `MatchEngineSeat` が `Usi` を借り、`matchMoveReady` で受けた応手を `moveReady` で `CsaGameCoordinator` に返す
 - 着手確定の知らせは、ローカル対局と同じ `ShogiGameController::moveCommitted`（`notifyMoveCommitted()` が出す）で、駒音はこれを受ける
 - 終局原因（投了・時間切れ・千日手・入玉宣言等）は `CsaClient::GameEndCause` 列挙型で分類され、対応する結果表示が行われる
 
@@ -9223,7 +9225,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | CandidateArrowPresenter | C | ui/presenters | 検討と対局のエンジンの読みを盤上の矢印にする | 第9章, 第10章 |
 | ChangeEngineSettingsDialog | C | dialogs | エンジン設定変更ダイアログ | 第11章 |
 | CliCommandSpecs | NS | cli | `shogiboardq-cli` の全コマンドの引数の表（オプション名は引数名の `_` を `-` にしたもの。`parse()`・`usage()`） | 第14章 |
-| ClockTimeSource | C | engine | ローカル対局の対局時計から読むエンジンの時間の出どころ（`MatchTimeSource` の実装。`EngineLifecycleManager` が持つ） | 第7章 |
+| ClockTimeSource | C | engine | ローカル対局の対局時計から読むエンジンの時間の出どころ（`MatchTimeSource` の実装。`MatchCoordinator` が持つ） | 第7章 |
 | CollapsibleGroupBox | C | widgets | 折りたたみ可能なグループボックス | 第11章 |
 | CommentCoordinator | C | ui/coordinators | コメント編集の統合調整 | 第14章 |
 | ConsecutiveGameSeries | C | game | エンジン同士の連続対局（局数・手番の入れ替え・次局の計画） | 第6章 |
@@ -9232,7 +9234,6 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | ConsiderationTabManager | C | widgets | 検討ドックの中身（ツールバー・エンジン情報・候補手の表）。設定の正本と実行の状態（`RunState`）を持つ | 第9章, 第11章 |
 | ConsiderationUiController | C | ui/controllers | 検討タブの開始・中止・条件の変更・エンジン設定を検討のセッションへ伝える | 第9章, 第10章 |
 | CsaClient | C | network | CSAプロトコル通信クライアント | 第12章 |
-| CsaEngineController | C | network | 通信対局でエンジンが指すときの Usi の起動と思考 | 第12章 |
 | CsaExporter | C | kifu/formats | CSA形式の書き出し | 第8章 |
 | CsaGameChannel | C | network | 通信対局の窓口（`GameChannel` の実装。操作はサーバーへ送り、入玉宣言の成否はサーバーが判定する） | 第6章, 第12章 |
 | CsaGameCoordinator | C | network | CSAネットワーク対局の統合調整。自分のエンジンの時間の出どころ（`MatchTimeSource`）も兼ねる | 第12章 |
@@ -9354,6 +9355,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | MainWindowComposer | C | app | 合成ルート。部品の生成・依存の注入・シグナル接続・初期表示 | 第3章, 第4章, 第14章 |
 | MatchAutoSave | S | game | 終局した棋譜の自動保存の指定（有効・保存先・形式。ローカル対局・通信対局で同じ） | 第6章 |
 | MatchCoordinator | C | game | ローカル対局（人間・エンジン）の司令塔。手順・一手の確定・終局・待った・中断と再開 | 第6章 |
+| MatchEngineSeat | C | game | 対局で指すエンジン1台（枠のリース・手番・持ち時間の出どころ・知らせ・終局の手順）。人間対エンジン・エンジン同士・通信対局で共有 | 第6章, 第12章 |
 | MatchPlayers | S | core | 対局者（先手・後手を人間とエンジンのどちらが指すかと、その名前） | 第3章, 第5章 |
 | MatchRecordSink | C | game | 対局の棋譜の受け手のインターフェース（実装は `GameSession`） | 第6章 |
 | MatchSessionState | C | game | 対局の設定と終了状態の持ち主 | 第6章 |
@@ -9501,12 +9503,13 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | ファイル | 解説章 | 内容 |
 |---------|--------|------|
 | matchcoordinator | 第4章, 第6章 | ローカル対局の司令塔 |
+| matchengineseat | 第6章, 第12章 | 対局で指すエンジン1台 |
 | matchsessionstate | 第6章 | 対局の設定と終了状態 |
 | matchrecordsink | 第6章 | 対局の棋譜の受け手（インターフェース） |
 | gamechannel | 第6章 | 対局相手の窓口 `GameChannel`（投了・中断・即指し・入玉宣言をローカル対局と通信対局で同じ操作に）とローカル対局の実装 `LocalGameChannel` |
 | matchautosave | 第6章 | 終局した棋譜の自動保存の指定（ローカル対局・通信対局で同じ） |
 | gamemodestrategy | 第6章 | 対局モード別の Strategy（実装は humanvs*strategy・enginevsenginestrategy） |
-| enginelifecyclemanager | 第6章 | エンジンの枠 E1・E2 の生成・起動・破棄（対局・検討・棋譜解析・通信対局で共有）と枠のリース `EngineLease` |
+| enginelifecyclemanager | 第6章 | エンジンの枠 E1・E2 の生成・破棄（対局・検討・棋譜解析・通信対局で共有）と枠のリース `EngineLease` |
 | shogigamecontroller | 第6章 | 対局フロー制御（指し手の検証と盤への適用） |
 | timecontrolutil | 第12章 | 持ち時間の時計への適用 |
 | consecutivegameseries | 第6章 | エンジン同士の連続対局（局数・手番の入れ替え・次局の計画） |
@@ -9613,7 +9616,6 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | csagamechannel | 第6章, 第12章 | 通信対局の窓口（`GameChannel` の実装） |
 | csagameprogress | 第12章 | 1局ぶんの進行の値型 |
 | csamoveconverter | 第12章 | CSA と USI の指し手の変換（`toCsa`・`toUsi`） |
-| csaenginecontroller | 第12章 | 通信対局でエンジンが指すときの Usi の起動と思考 |
 
 #### navigation/（第13章）
 

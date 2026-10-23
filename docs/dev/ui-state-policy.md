@@ -175,7 +175,7 @@ MatchCoordinator::resumeAvailabilityChanged ──► refreshResumeAvailability(
     → stop() → リースを手放す（Idle） → considerationModeEnded
 ```
 
-**注意**: CSA通信対局は `CsaGameCoordinator`（エンジンのエラーは `CsaEngineController::engineError` → `onEngineControllerError()`）と `CsaGameSession` が独自にエラー管理するため、`MatchCoordinator::handleEngineError()` では対象外。
+**注意**: CSA通信対局は `CsaGameCoordinator`（エンジンのエラーは `MatchEngineSeat::errorOccurred` → `onEngineError()`）と `CsaGameSession` が独自にエラー管理するため、`MatchCoordinator::handleEngineError()` では対象外。
 
 ## 設計上の注意点
 

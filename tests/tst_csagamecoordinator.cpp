@@ -80,7 +80,7 @@ struct FakeCsaServer {
 struct Harness {
     ShogiGameController gc;
     ShogiClock clock;
-    EngineLifecycleManager engines{&clock};
+    EngineLifecycleManager engines;
     CsaGameCoordinator coordinator{CsaGameCoordinator::Deps{&gc, &clock, &engines}};
     FakeCsaServer server;
 

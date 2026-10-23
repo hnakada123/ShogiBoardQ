@@ -33,7 +33,7 @@ struct Deps {
 ```
 
 - 司令塔は `MainWindowComposer::createMatchAndAnalysis()`（`src/app/mainwindowcomposer_create.cpp`）が起動時に一度だけ作り、作り直さない。時計 `ShogiClock` とエンジンの枠 `EngineLifecycleManager` も合成ルートが作り、エンジンの枠は検討・詰み探索（`AnalysisSession`）と共有する。
-- コンストラクタは、エンジンの投了・入玉宣言勝ち・エラー（`EngineLifecycleManager::engineResigned`・`engineDeclaredWin`・`engineError`。起動の失敗は開始の処理から戻った後に届くので、エラーも直接つなぐ）と時計の `ShogiClock::playerTimeOut` を自分のスロットにつなぐ。時計の `timeUpdated` は受けない（表示は `TimeDisplayPresenter` が時計から直接受ける）。
+- コンストラクタは時計の `ShogiClock::playerTimeOut` を自分のスロットにつなぐ。エンジンの投了・入玉宣言勝ち・エラー（`MatchEngineSeat::resigned`・`declaredWin`・`errorOccurred`。起動の失敗は開始の処理から戻った後に届くので、エラーも直接つなぐ）は、Strategy を作ったときに `engineSeat(side)` ごとにつなぐ。対局のエンジンが持ち時間を読む `ClockTimeSource` も司令塔が持つ（`MatchStrategyHost::timeSource()`）。時計の `timeUpdated` は受けない（表示は `TimeDisplayPresenter` が時計から直接受ける）。
 - 棋譜の受け手は `MainWindowComposer::createSessions()` が `setRecordSink(GameSession)` で設定する。司令塔のシグナルの受け先は `MainWindowComposer::connectGame()`（`src/app/mainwindowcomposer_wire.cpp`）がつなぐ（6章）。
 - 司令塔は Hooks（コールバックの構造体）を持たない。手番のコピーも持たず、手番は盤の手番（`ShogiGameController::currentPlayer()`）だけを使う。
 
@@ -50,7 +50,7 @@ struct Deps {
 | 時計 | `clock()`（表示への通知は中継しない。`completeMove()` は時計の通知を止めて値を変えた後に `ShogiClock::notifyTimeUpdated()` を呼ぶ） |
 | 読み取り | `record()`、`currentPly()`、`options()`、`players()`、`isHumanSide()`、`sideToMove()`、`gameOverState()`、`isGameOver()`、`interruptedGame()`、`canResumeInterruptedGame()`、`usesHandicapNames()` |
 
-終局処理はどれも `endGame()` を通り、終局状態の確定 → 時計の停止 → エンジンへの通知（`EngineLifecycleManager::notifyGameOver()`）→ 終局行の追記 → 動作状態を待機に戻す → `gameEnded` → 知らせ（結果の `gameOverMessage`・`gameEndProcessed`）の順に進む。棋譜の自動保存は司令塔ではなく、`gameEnded` を受けた `GameSession::finishMatchRecord()` が行う（通信対局と同じ流れ）。知らせ方は `Notice` で選び、中断（`Interrupt`）は `gameInterrupted` だけを出し、入玉宣言（`Declaration`）は結果を呼び出し側のダイアログで知らせる。流れの詳細は [対局開始から投了までのフロー](game-play-to-resignation-flow.md) を参照。
+終局処理はどれも `endGame()` を通り、終局状態の確定 → 時計の停止 → エンジンへの通知（Strategy の `engineSeat(side)` ごとに `MatchEngineSeat::finish()`）→ 終局行の追記 → 動作状態を待機に戻す → `gameEnded` → 知らせ（結果の `gameOverMessage`・`gameEndProcessed`）の順に進む。棋譜の自動保存は司令塔ではなく、`gameEnded` を受けた `GameSession::finishMatchRecord()` が行う（通信対局と同じ流れ）。知らせ方は `Notice` で選び、中断（`Interrupt`）は `gameInterrupted` だけを出し、入玉宣言（`Declaration`）は結果を呼び出し側のダイアログで知らせる。流れの詳細は [対局開始から投了までのフロー](game-play-to-resignation-flow.md) を参照。
 
 ---
 
@@ -143,7 +143,7 @@ Strategy は手番ごとに誰が指すかだけを決め、一手の確定と�
 | `MatchTimekeeper` | 時間の決まりと残り時間は `ShogiClock`、表示は `TimeDisplayPresenter`（`ShogiClock::timeUpdated` を直接受ける）、エンジンが読む時間は `ClockTimeSource`（`MatchTimeSource`）、`go` の時間は `UsiGoTimeCalculator` |
 | `MatchUndoHandler` | `MatchCoordinator::undoTwoPlies()` と `MatchRecordSink::undoRecords()`、表示は `movesUndone` |
 | `MatchTurnHandler` | `MatchCoordinator::createStrategy()`・`onHumanMove()`・`beginPlay()`・`handleEngineError()` |
-| `EngineGameOverNotifier` | `EngineLifecycleManager::notifyGameOver()` |
+| `EngineGameOverNotifier` | `MatchEngineSeat::finish()`（`endGame()` が手番ごとに呼ぶ） |
 | `StrategyContext`（`MatchStrategyContext`） | `MatchStrategyHost` |
 | `MatchCoordinatorHooks`（UI・Time・Engine・Game）・`UndoHooks` | 6章のシグナルと `MatchRecordSink` |
 | `MatchCoordinatorWiring` | `MainWindowComposer::createMatchAndAnalysis()`・`createSessions()`・`connectGame()` |

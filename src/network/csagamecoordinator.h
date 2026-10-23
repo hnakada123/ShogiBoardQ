@@ -15,18 +15,19 @@
 #include <QTimer>
 
 #include "csaclient.h"
-#include "csaenginecontroller.h"
 #include "csagameprogress.h"
 #include "matchautosave.h"
 #include "matchtimesource.h"
 #include "recordentry.h"
 #include "recordline.h"
 #include "shogimove.h"
+#include "usimatchhandler.h"
 #include "usimove.h"
 
 class ShogiGameController;
 class ShogiClock;
 class EngineLifecycleManager;
+class MatchEngineSeat;
 class Usi;
 
 /**
@@ -236,11 +237,11 @@ private slots:
     void reconnectForNextGame();
     void onRawMessageReceived(const QString& message);
     void onRawMessageSent(const QString& message);
-    void onEngineControllerResign();
-    void onEngineControllerWinDeclaration();
-    void onEngineControllerInitialized();
-    void onEngineControllerError(const QString& message);
-    void onEngineThinkingFinished(const CsaEngineController::ThinkingResult& result);
+    void onEngineResigned();
+    void onEngineDeclaredWin();
+    void onEngineInitialized();
+    void onEngineError(const QString& message);
+    void onEngineMoveReady(const UsiMatchMove& move);
     void onVerdictTimeout();
 
 private:
@@ -280,13 +281,11 @@ private:
     bool applyConfirmedMove(const QString& move, int consumedTimeMs, bool nowMyTurn);
 
     CsaClient* m_client;
-    CsaEngineController* m_engineController = nullptr;
+    MatchEngineSeat* m_engineSeat = nullptr;   ///< 自分の手を指すエンジン（枠 E1）
 
     QPointer<ShogiGameController> m_gameController;
     QPointer<ShogiClock> m_clock;
     EngineLifecycleManager* m_engines = nullptr;  ///< 非所有
-
-    // エンジン初期化用（CsaEngineControllerに渡す）
 
     GameState m_gameState = GameState::Idle;
     PlayerType m_playerType = PlayerType::Human;

@@ -214,7 +214,7 @@ void MainWindowComposer::createPanels()
 void MainWindowComposer::createMatchAndAnalysis()
 {
     // エンジンの枠（E1・E2）は対局と検討で共有する（同時には動かない）
-    m_c.engines = new EngineLifecycleManager(m_c.clock, &m_window);
+    m_c.engines = new EngineLifecycleManager(&m_window);
 
     MatchCoordinator::Deps md;
     md.gc = m_c.gameController;

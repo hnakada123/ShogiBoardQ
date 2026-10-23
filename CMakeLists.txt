@@ -299,6 +299,8 @@ set(SRC_GAME
     src/game/matchautosave.h
     src/game/matchcoordinator.cpp
     src/game/matchcoordinator.h
+    src/game/matchengineseat.cpp
+    src/game/matchengineseat.h
     src/game/matchrecordsink.h
     src/game/matchsessionstate.h
     src/kifu/kifudocument.cpp
@@ -514,8 +516,6 @@ set(SRC_NETWORK
     src/network/csaclient.h
     src/network/csaclient_commands.cpp
     src/network/csaclient_parser.cpp
-    src/network/csaenginecontroller.cpp
-    src/network/csaenginecontroller.h
     src/network/csagamechannel.cpp
     src/network/csagamechannel.h
     src/network/csagamecoordinator.cpp

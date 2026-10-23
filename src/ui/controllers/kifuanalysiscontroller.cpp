@@ -135,7 +135,7 @@ bool KifuAnalysisController::start(AnalysisRequest request)
     if (EvaluationGraphPresenter* graph = m_deps.evalGraph) graph->beginAnalysis(request.engineName, request.lineIndex);
 
     // 解析のエンジンは枠 E1 に置く（思考情報・通信ログは E1 の表示に出る）
-    if (!m_deps.engine) m_lease = m_deps.engines->acquire(this, 1, std::nullopt, request.engineName);
+    if (!m_deps.engine) m_lease = m_deps.engines->acquire(this, 1, request.engineName);
     Usi* engine = m_deps.engine ? m_deps.engine : m_lease.engine();
     m_job = std::make_unique<AnalysisJob>(request, AnalysisJob::Deps{engine});
     connect(m_job.get(), &AnalysisJob::plyStarted, this, &KifuAnalysisController::onPlyStarted);

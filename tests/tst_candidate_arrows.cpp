@@ -160,7 +160,7 @@ private slots:
         view.setBoard(&board);
         ShogiClock clock;
         AppActivityState activity;
-        EngineLifecycleManager engines(&clock);
+        EngineLifecycleManager engines;
         AnalysisSession session(AnalysisSession::Deps{&engines, &activity});
         ShogiEngineThinkingModel model;
         bool showArrows = true;

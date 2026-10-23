@@ -45,6 +45,7 @@ public:
 
     bool isConsidering() const { return m_mode == Mode::Consideration; }
     bool isTsumeSearching() const { return m_mode == Mode::Tsume; }
+    /// stop() でエンジンを手放している最中（その間の開始・停止の要求は受けない）
     bool isShutdownInProgress() const;
     /// 検討・詰み探索に使っているエンジン（使っていなければ nullptr）
     Usi* engine() const;
@@ -112,6 +113,7 @@ private:
     UsiPosition m_position;                       ///< 検討・詰み探索する局面
     int m_byoyomiMs = 0;                          ///< 検討の時間制限（ms）
     int m_multiPV = 1;                            ///< 検討の候補手数
+    bool m_stopping = false;                      ///< stop() の処理中
 };
 
 #endif // ANALYSISSESSION_H

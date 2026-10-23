@@ -31,7 +31,7 @@ Usi* AnalysisSession::engine() const
 
 bool AnalysisSession::isShutdownInProgress() const
 {
-    return m_deps.engines->isShutdownInProgress();
+    return m_stopping;
 }
 
 // ============================================================
@@ -53,7 +53,7 @@ bool AnalysisSession::start(const AnalysisOptions& opt)
                                              this);
 
     // エンジンは E1 の枠に置く（対局の手番は持たない）
-    m_lease = m_deps.engines->acquire(this, 1, std::nullopt, opt.engineName);
+    m_lease = m_deps.engines->acquire(this, 1, opt.engineName);
     Usi* engine = m_lease.engine();
     m_engine = engine;
     m_restartTimer.stop();
@@ -95,9 +95,9 @@ void AnalysisSession::stop()
 {
     if (isShutdownInProgress()) return;
     // 自分のエンジンだけを止める（検討していなければ何もしない。ほかの処理のエンジンには触れない）
-    m_deps.engines->setShutdownInProgress(true);
+    m_stopping = true;
     const Mode previous = endSession();
-    m_deps.engines->setShutdownInProgress(false);
+    m_stopping = false;
     if (previous == Mode::None) return;
     // 自分の動作状態のときだけ待機中に戻す（ほかの部品が始めた動作は変えない）
     m_activityLease.reset();

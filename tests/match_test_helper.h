@@ -53,7 +53,7 @@ struct MatchHarness {
     ShogiGameController gc;
     ShogiClock clock;
     AppActivityState activity;
-    EngineLifecycleManager engines{&clock};
+    EngineLifecycleManager engines;
     RecordingSink sink;
     std::unique_ptr<MatchCoordinator> mc;
     std::unique_ptr<QSignalSpy> messages;  ///< 終局・中断の知らせ（gameOverMessage）
