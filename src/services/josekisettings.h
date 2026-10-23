@@ -5,7 +5,6 @@
 /// @brief 定跡設定の永続化
 ///
 /// 定跡ウィンドウ・定跡手編集・定跡マージに関する設定を提供します。
-/// 呼び出し元: josekiwindow.cpp, josekimovedialog.cpp, josekimergedialog.cpp
 
 #include <QString>
 #include <QStringList>

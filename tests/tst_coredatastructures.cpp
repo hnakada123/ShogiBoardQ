@@ -9,7 +9,14 @@
 #include "shogiboard.h"
 #include "shogigamecontroller.h"
 #include "jishogicalculator.h"
-#include "notationutils.h"
+#include "handicaps.h"
+
+/// 盤のクリック（移動元・移動先）の手を指す（盤の操作と同じく prepareMove で決めてから指す）。指せなければ nullopt
+static std::optional<RecordEntry> clickMove(ShogiGameController& gc, const QPoint& from, const QPoint& to)
+{
+    const std::optional<UsiMove> move = gc.prepareMove(from, to);
+    return move ? gc.applyRecordedMove(*move, {}) : std::nullopt;
+}
 
 class TestCoreDataStructures : public QObject
 {
@@ -368,21 +375,7 @@ private slots:
         QCOMPARE(ShogiNotation::rankKanji(0), QString());
     }
 
-    void notationUtils_formatSfenMove()
-    {
-        QCOMPARE(NotationUtils::formatSfenMove(7, 7, 7, 6, false), QStringLiteral("7g7f"));
-        QCOMPARE(NotationUtils::formatSfenMove(8, 2, 2, 2, true), QStringLiteral("8b2b+"));
-        QCOMPARE(NotationUtils::formatSfenMove(1, 1, 9, 9, false), QStringLiteral("1a9i"));
-    }
-
-    void notationUtils_formatSfenDrop()
-    {
-        QCOMPARE(NotationUtils::formatSfenDrop(QChar('P'), 5, 5), QStringLiteral("P*5e"));
-        QCOMPARE(NotationUtils::formatSfenDrop(QChar('R'), 1, 1), QStringLiteral("R*1a"));
-        QCOMPARE(NotationUtils::formatSfenDrop(QChar('G'), 9, 9), QStringLiteral("G*9i"));
-    }
-
-    void notationUtils_mapHandicapToSfen_data()
+    void handicaps_byLabel_data()
     {
         QTest::addColumn<QString>("label");
         QTest::addColumn<QString>("expectedSfen");
@@ -405,19 +398,20 @@ private slots:
             << QStringLiteral("1nsgkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
         QTest::newRow("surrounding-whitespace") << QStringLiteral(" \t　右香落ち　\n")
             << QStringLiteral("1nsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
-        // 未知のラベルは平手にフォールバック
-        QTest::newRow("unknown") << QStringLiteral("unknown") << kEven;
-        QTest::newRow("empty") << QString() << kEven;
-        QTest::newRow("unknown-prefix") << QStringLiteral("不明な香落ち") << kEven;
-        QTest::newRow("unknown-suffix") << QStringLiteral("五枚落ち不明") << kEven;
+        // 未知のラベルは無い（空の局面）
+        QTest::newRow("unknown") << QStringLiteral("unknown") << QString();
+        QTest::newRow("empty") << QString() << QString();
+        QTest::newRow("unknown-prefix") << QStringLiteral("不明な香落ち") << QString();
+        QTest::newRow("unknown-suffix") << QStringLiteral("五枚落ち不明") << QString();
     }
 
-    void notationUtils_mapHandicapToSfen()
+    void handicaps_byLabel()
     {
         QFETCH(QString, label);
         QFETCH(QString, expectedSfen);
 
-        QCOMPARE(NotationUtils::mapHandicapToSfen(label), expectedSfen);
+        const Handicaps::Handicap* handicap = Handicaps::byLabel(label);
+        QCOMPARE(handicap ? QString::fromLatin1(handicap->sfen) : QString(), expectedSfen);
     }
 
     // GC の手番更新が盤面モデルの手番にも反映されること
@@ -602,7 +596,7 @@ private slots:
         gc.newGame(initial);
         const Position before = gc.board()->position();
         QSignalSpy committed(&gc, &ShogiGameController::moveCommitted);
-        QVERIFY(!gc.validateAndMove(from, to, {}));
+        QVERIFY(!clickMove(gc, from, to));
         QCOMPARE(gc.board()->position(), before);
         QCOMPARE(gc.board()->toSfen(), initial);
         QCOMPARE(committed.count(), 0);
@@ -630,7 +624,6 @@ private slots:
         QCOMPARE(played->move.move, *UsiMove::parse(u"P*5e"));
         QCOMPARE(played->mover, black ? Turn::Black : Turn::White);
         QCOMPARE(played->sfen, gc.board()->toSfen());
-        QCOMPARE(gc.lastMove(), *UsiMove::parse(u"P*5e"));
         QCOMPARE(played->displayText, black ? QStringLiteral("▲５五歩打") : QStringLiteral("△５五歩打"));
     }
 
@@ -703,14 +696,11 @@ private slots:
         gc.setPromotionChooser([&promotionQuestions] { ++promotionQuestions; return false; });
         if (illegalAttempt) {
             QPoint empty(7, 6), dest(7, 5);
-            QVERIFY(!gc.validateAndMove(empty, dest, {}));
+            QVERIFY(!clickMove(gc, empty, dest));
         }
-        QPoint from(7, 7), to(7, 6);
-        QVERIFY(gc.validateAndMove(from, to, {}));
-        from = QPoint(3, 3); to = QPoint(3, 4);
-        QVERIFY(gc.validateAndMove(from, to, {}));
-        from = QPoint(8, 8); to = QPoint(2, 2);
-        QVERIFY(gc.validateAndMove(from, to, {}));
+        QVERIFY(clickMove(gc, QPoint(7, 7), QPoint(7, 6)));
+        QVERIFY(clickMove(gc, QPoint(3, 3), QPoint(3, 4)));
+        QVERIFY(clickMove(gc, QPoint(8, 8), QPoint(2, 2)));
         QCOMPARE(promotionQuestions, 1);
     }
 
@@ -736,7 +726,6 @@ private slots:
         QVERIFY(played);
         QCOMPARE(promotionQuestions, 0);
         QCOMPARE(played->move.isPromotion(), promote);
-        QCOMPARE(gc.lastMove().promote, promote);
     }
 
     /// 盤のクリック操作で成り・不成を選べるときは、成りの選び方の答えどおりに指す
@@ -747,9 +736,9 @@ private slots:
             QString initial = QStringLiteral("lnsgkgsnl/1r5b1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL b - 3");
             gc.newGame(initial);
             gc.setPromotionChooser([choice] { return choice; });
-            QPoint from(8, 8), to(2, 2);
-            QVERIFY(gc.validateAndMove(from, to, {}));
-            QCOMPARE(gc.lastMove().promote, choice);
+            const std::optional<RecordEntry> played = clickMove(gc, QPoint(8, 8), QPoint(2, 2));
+            QVERIFY(played);
+            QCOMPARE(played->move.isPromotion(), choice);
             QCOMPARE(gc.board()->pieceCharacter(2, 2), choice ? Piece::BlackHorse : Piece::BlackBishop);
         }
     }

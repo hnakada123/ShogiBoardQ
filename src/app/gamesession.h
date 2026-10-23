@@ -126,8 +126,8 @@ private:
     QString josekiBookName() const;
     /// 対局者・持ち時間・開始日時を文書に記録し、対局者を表示する（ローカル対局・通信対局で共通）
     void beginMatchRecord(const MatchPlayers& players, const TimeControl& timeControl, bool continuesRecord);
-    /// 終局した棋譜の後始末（commit ならライブ対局を確定し、終了日時を記録して自動保存する）
-    void finishMatchRecord(bool commit);
+    /// 終局した棋譜の後始末（ライブ対局を確定して終了日時を記録し、autoSave なら自動保存する）
+    void finishMatchRecord(bool autoSave);
     /// 読み込んだ棋譜の途中から続けた対局の対局者・日時を、分岐の最初の手のメモにする
     void noteContinuedMatch(const MatchPlayers& players);
 

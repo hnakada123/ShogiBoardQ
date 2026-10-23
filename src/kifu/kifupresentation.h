@@ -18,14 +18,6 @@ namespace KifuPresentation {
 using Notation = NotationStyle::Notation;
 using Options = NotationStyle::Options;
 
-inline QString resolveLanguage(const QString& setting, const QString& systemLocale)
-{
-    return NotationStyle::resolveLanguage(setting, systemLocale);
-}
-inline void configure(const QString& language, const QString& notation, bool alwaysOrigin)
-{
-    NotationStyle::configure(language, notation, alwaysOrigin);
-}
 inline Options options() { return NotationStyle::options(); }
 /// 表記の設定（configure）を変えるたびに増える番号。表示用の文字列を覚えた側は、番号が変わったら作り直す
 inline int revision() { return NotationStyle::revision(); }

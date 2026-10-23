@@ -5,9 +5,6 @@
 /// @brief 対局・棋譜設定の永続化
 ///
 /// 棋譜ファイルI/O・棋譜欄・対局開始・棋譜貼り付け・局面集・持将棋に関する設定を提供します。
-/// 呼び出し元: kifufilecontroller.cpp, kifusavecoordinator.cpp, recordpane.cpp,
-///             startgamedialog.cpp, kifupastedialog.cpp, sfencollectiondialog.cpp,
-///             jishogiscoredialogcontroller.cpp, commenteditorpanel.cpp, gameinfopanecontroller.cpp
 
 #include <QString>
 #include <QStringList>

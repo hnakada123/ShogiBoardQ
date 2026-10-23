@@ -44,11 +44,6 @@ JosekiBookSession::~JosekiBookSession() = default;
 // 定跡データの読み取り
 // ============================================================
 
-QString JosekiBookSession::positionKey(const QString &sfen)
-{
-    return JosekiBook::positionKey(sfen);
-}
-
 QString JosekiBookSession::registeredSfen(const QString &sfen) const
 {
     return m_book.registeredSfen(sfen);

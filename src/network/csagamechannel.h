@@ -5,6 +5,8 @@
 /// @brief 通信対局の窓口（操作はサーバーへ送り、入玉宣言の成否はサーバーが判定する）
 
 #include "gamechannel.h"
+#include "matchplayers.h"
+#include "timecontrol.h"
 
 class CsaGameCoordinator;
 
@@ -21,9 +23,9 @@ public:
     bool judgesDeclaration() const override { return false; }
     std::optional<NyugyokuJudgement::Result> declareNyugyoku() override;
     /// サーバーが知らせた対局者名（エンジンで指していても対局者名で記録する）
-    MatchPlayers players() const override;
+    MatchPlayers players() const;
     /// サーバーの対局条件の持ち時間
-    TimeControl timeControl() const override;
+    TimeControl timeControl() const;
 
 private:
     CsaGameCoordinator* m_coordinator = nullptr;   ///< 非所有

@@ -5,7 +5,6 @@
 /// @brief 詰将棋設定の永続化
 ///
 /// 詰将棋局面生成ダイアログに関する設定を提供します。
-/// 呼び出し元: tsumeshogigeneratordialog.cpp
 
 #include <QString>
 #include <QSize>

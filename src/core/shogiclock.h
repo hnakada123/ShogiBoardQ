@@ -115,12 +115,7 @@ public:
 
     /// 時計表示（HH:MM:SS）。制限ありは残り時間を切り上げ、無制限は累積消費時間を切り捨て。
     QString timeString(Turn player) const;
-    /// 直近の手の考慮時間（MM:SS）
-    QString considerationTimeString(Turn player) const;
-    /// 総考慮時間（HH:MM:SS、実測msを秒に切り捨て）
-    QString totalConsiderationTimeString(Turn player) const;
-    /// 棋譜欄用の考慮/総考慮文字列（"MM:SS/HH:MM:SS"）
-    QString considerationAndTotalTime(Turn player) const;
+    /// 棋譜に書く直前の手の考慮時間と累計（累計は実測msを秒に切り捨て）
     RecordTime recordTime(Turn player) const
     {
         // 棋譜の秒数は従来どおり累計秒の差分。計測自体はミリ秒で保持する。

@@ -215,11 +215,11 @@ private slots:
         QVERIFY(h.controller.recordMove(UsiMove::fromString(u"7g7f"), &gc));
         KifuBranchNode* move = tree.root()->childAt(0);
 
-        KifuPresentation::configure(QStringLiteral("en"), QStringLiteral("western"), false);
+        NotationStyle::configure(QStringLiteral("en"), QStringLiteral("western"), false);
         m_confirmText.clear();
         QTimer::singleShot(0, this, &TestBranchTreeEditing::inspectDeleteConfirmation);
         const bool deleted = h.controller.apply(BranchTreeEditController::Operation::DeleteFromHere, move);
-        KifuPresentation::configure(QStringLiteral("ja"), QStringLiteral("japanese"), false);
+        NotationStyle::configure(QStringLiteral("ja"), QStringLiteral("japanese"), false);
         QVERIFY(!deleted);
         QVERIFY2(m_confirmText.contains(QStringLiteral("P-7f")), qPrintable(m_confirmText));
         QVERIFY2(!m_confirmText.contains(QStringLiteral("七")), qPrintable(m_confirmText));

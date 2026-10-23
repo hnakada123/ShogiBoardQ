@@ -802,10 +802,10 @@ add_shogi_test(tst_analysis_results tst_analysis_results.cpp)
 target_link_libraries(tst_analysis_results PRIVATE shogiboardq_static)
 
 # ============================================================
-# Unit: ConsiderationPositionResolver テスト
+# Unit: 検討する局面（KifuNavigationState::currentUsiPosition）テスト
 # ============================================================
-add_shogi_test(tst_consideration_resolver tst_consideration_resolver.cpp)
-target_link_libraries(tst_consideration_resolver PRIVATE shogiboardq_static)
+add_shogi_test(tst_consideration_position tst_consideration_position.cpp)
+target_link_libraries(tst_consideration_position PRIVATE shogiboardq_static)
 
 # ============================================================
 # Unit: 詰み探索フロー統合テスト

@@ -316,8 +316,6 @@ QWidget *JosekiWindow::buildToolbar()
 
 void JosekiWindow::setupUi()
 {
-    setWindowTitle(tr("定跡ウィンドウ"));
-
     auto *mainLayout = new QVBoxLayout(this);
     mainLayout->setSpacing(6);
     mainLayout->setContentsMargins(8, 8, 8, 8);
@@ -398,7 +396,6 @@ void JosekiWindow::setupUi()
 
     updateRecentFilesMenu();
     updateStatusDisplay();
-    updateWindowTitle();
 }
 
 void JosekiWindow::applyFontSize()
@@ -491,7 +488,6 @@ void JosekiWindow::onFilePathChanged()
     // 中身が変わったときの表の作り直しは onContentChanged（名前を付けて保存は中身を変えない）
     m_fileChosen = true;
     showFilePath();
-    updateWindowTitle();
     updateStatusDisplay();
 }
 
@@ -520,7 +516,6 @@ void JosekiWindow::onEditableChanged()
 void JosekiWindow::onModifiedChanged(bool modified)
 {
     m_saveButton->setEnabled(!m_session->isBusy() && modified);
-    updateWindowTitle();
     if (m_dockWidget) m_dockWidget->setWindowTitle(modified ? tr("定跡") + QStringLiteral(" *") : tr("定跡"));
     updateStatusDisplay();
 }
@@ -875,16 +870,6 @@ void JosekiWindow::updatePositionSummary()
     m_positionSummaryLabel->setText(tr("%1 (%2番)").arg(positionDesc, turn));
     m_positionSummaryLabel->setToolTip(m_currentSfen);
     m_currentSfenLabel->setText(tr("局面SFEN: %1").arg(m_currentSfen));
-}
-
-void JosekiWindow::updateWindowTitle()
-{
-    QString title = tr("定跡ウィンドウ");
-    if (!m_session->filePath().isEmpty())
-        title = QFileInfo(m_session->filePath()).fileName() + QStringLiteral(" - ") + title;
-    if (m_session->isModified())
-        title = QStringLiteral("* ") + title;
-    setWindowTitle(title);
 }
 
 void JosekiWindow::showFilePath()

@@ -42,7 +42,7 @@ public:
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
     QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
 
-    /// 先手から見た評価値の表示（定跡・未取得は「-」、詰みは "mate 3" など）
+    /// 先手から見た評価値の表示（定跡・未取得は「-」、詰みは思考の表と同じ「3手詰」）
     static QVariant evaluationText(const UsiScore& score);
     /// 先手から見た評価値から判定した形勢（互角・先手：有利 など。評価値がなければ空）
     static QString judgementText(const UsiScore& score);

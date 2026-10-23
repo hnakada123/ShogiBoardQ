@@ -354,7 +354,7 @@ private slots:
         const QList<CellState> states = {CellState::Plain, CellState::Selected, CellState::Hover,
                                          CellState::Focus, CellState::Disabled, CellState::Active};
         for (const QString& notation : {QStringLiteral("japanese"), QStringLiteral("western")}) {
-            KifuPresentation::configure(QStringLiteral("ja_JP"), notation, false);
+            NotationStyle::configure(QStringLiteral("ja_JP"), notation, false);
             for (const CellState state : states) {
                 const QString where = QStringLiteral("%1, state %2").arg(notation).arg(int(state));
 
@@ -432,7 +432,7 @@ private slots:
                 QVERIFY2(renderRecord(false) == recordExpected, qPrintable(QStringLiteral("record: ") + where));
             }
         }
-        KifuPresentation::configure(QStringLiteral("ja_JP"), QStringLiteral("auto"), false);
+        NotationStyle::configure(QStringLiteral("ja_JP"), QStringLiteral("auto"), false);
     }
 
     // 思考情報は1行で複数の値が変わる。値が変わらなければ表を更新せず、

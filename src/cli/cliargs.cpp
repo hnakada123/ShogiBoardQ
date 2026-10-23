@@ -13,19 +13,17 @@
 #include <QFileInfo>
 #include <QJsonArray>
 
-std::optional<CliPosition> CliArgs::resolvePosition(const QJsonObject& params, QString* error)
+std::optional<UsiPosition> CliArgs::resolvePosition(const QJsonObject& params, QString* error)
 {
-    CliPosition position;
     const QString sfenArg = params.value(QStringLiteral("sfen")).toString().trimmed();
     const SfenValidation validation = SfenValidationService::validate(sfenArg.isEmpty() ? QStringLiteral("startpos") : sfenArg);
     if (!validation.valid) {
         if (error) *error = QStringLiteral("Invalid SFEN: %1").arg(validation.errors.join(QStringLiteral("; ")));
         return std::nullopt;
     }
-    position.startSfen = validation.normalizedSfen;
 
     // 合法手だけを1手ずつ指す（盤の局面は1回だけ進める）
-    UsiPosition usi(*Position::fromSfen(position.startSfen));
+    UsiPosition usi(*Position::fromSfen(validation.normalizedSfen));
     const QJsonArray moveArray = params.value(QStringLiteral("moves")).toArray();
     for (const QJsonValue& value : moveArray) {
         const QString text = value.toString();
@@ -38,11 +36,8 @@ std::optional<CliPosition> CliArgs::resolvePosition(const QJsonObject& params, Q
             return std::nullopt;
         }
         usi = *next;
-        position.moves << text;
     }
-    position.position = usi;
-    position.finalSfen = usi.sfen();
-    return position;
+    return usi;
 }
 
 std::optional<EngineEntry> CliArgs::resolveEngine(const QJsonObject& params, QString* error)

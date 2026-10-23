@@ -20,10 +20,11 @@ void TsumeGameSession::stopWorker()
     m_defenseTimer.stop();
     m_analyzer->cancel();
     if (!m_watcher) return;
-    disconnect(m_watcher.get(), nullptr, this, nullptr);
+    // ワーカーは値だけを持つので、止めるよう知らせたら終わるのを待たない（結果は捨てる）
     m_stop->store(true);
-    m_watcher->waitForFinished();
-    m_watcher.reset();
+    disconnect(m_watcher, nullptr, this, nullptr);
+    connect(m_watcher, &QFutureWatcherBase::finished, m_watcher, &QObject::deleteLater);
+    m_watcher = nullptr;
 }
 
 void TsumeGameSession::configureEngine(const QString& path, TsumeProgressStore* store)
@@ -126,9 +127,9 @@ void TsumeGameSession::search()
         beginDefenseEvaluation();
         return;
     }
-    m_stop = std::make_shared<std::atomic_bool>(false);
-    m_watcher = std::make_unique<QFutureWatcher<shogi::TsumeResult>>(this);
-    connect(m_watcher.get(), &QFutureWatcher<shogi::TsumeResult>::finished,
+    m_stop = makeCancelFlag();
+    m_watcher = new QFutureWatcher<shogi::TsumeResult>(this);
+    connect(m_watcher, &QFutureWatcher<shogi::TsumeResult>::finished,
             this, &TsumeGameSession::searchFinished);
     const auto position = m_position;
     const auto attacker = m_attacker;
@@ -231,9 +232,11 @@ void TsumeGameSession::evaluationFinished(const TsumeEvaluation& result)
 
 void TsumeGameSession::searchFinished()
 {
-    if (sender() != m_watcher.get()) return;
-    const auto result = m_watcher->result();
-    m_watcher.release()->deleteLater();
+    QFutureWatcher<shogi::TsumeResult>* watcher = m_watcher;
+    if (!watcher || sender() != watcher) return;
+    m_watcher = nullptr;
+    const auto result = watcher->result();
+    watcher->deleteLater();
     using Status = shogi::TsumeStatus;
     if (result.status == Status::Timeout || result.status == Status::Cancelled) {
         setState(State::Paused);

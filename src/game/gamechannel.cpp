@@ -4,13 +4,11 @@
 #include "gamechannel.h"
 
 #include "matchcoordinator.h"
-#include "shogiclock.h"
 
-LocalGameChannel::LocalGameChannel(MatchCoordinator* match, const ShogiClock* clock)
+LocalGameChannel::LocalGameChannel(MatchCoordinator* match)
     : m_match(match)
-    , m_clock(clock)
 {
-    Q_ASSERT(m_match && m_clock);
+    Q_ASSERT(m_match);
 }
 
 void LocalGameChannel::resign()
@@ -43,14 +41,4 @@ std::optional<NyugyokuJudgement::Result> LocalGameChannel::declareNyugyoku()
     // 持将棋ルールが「なし」なら宣言の前に止めている（NyugyokuDeclarationHandler）。届いたら27点法で判定する
     return m_match->declareNyugyoku(m_match->sideToMove(),
                                     NyugyokuJudgement::configuredRule().value_or(JishogiCalculator::Rule::Points27));
-}
-
-MatchPlayers LocalGameChannel::players() const
-{
-    return m_match->players();
-}
-
-TimeControl LocalGameChannel::timeControl() const
-{
-    return m_clock->timeControl();
 }

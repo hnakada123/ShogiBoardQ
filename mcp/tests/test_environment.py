@@ -41,7 +41,5 @@ def test_python_errors_use_the_shared_words(env):
 
 def test_app_errors_take_the_slug_from_the_application(env):
     assert AppError(-32003, "exists", {"slug": "file_exists"}).code == "file_exists"
-    # Without data.slug the code is looked up in the shared table.
-    assert AppError(-32006, "bad record").code == "parse_error"
-    assert AppError(-32700, "not json").code == "invalid_json"
-    assert AppError(-1, "odd").code == "app_error"
+    # The application always sends data.slug; a reply without it is an internal error.
+    assert AppError(-32006, "bad record").code == "internal_error"

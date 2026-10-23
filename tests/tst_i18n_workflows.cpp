@@ -61,7 +61,7 @@ private slots:
         AppSettings::language.set("system");
         AppSettings::moveNotation.set("auto");
         AppSettings::notationOrigin.set(false);
-        KifuPresentation::configure("ja_JP", "auto", false);
+        NotationStyle::configure("ja_JP", "auto", false);
         ApplicationFonts::initialize();
     }
 
@@ -182,7 +182,7 @@ private slots:
         QTranslator translator;
         QVERIFY(translator.load(QStringLiteral(TRANSLATIONS_DIR "/ShogiBoardQ_") + language + ".qm"));
         qApp->installTranslator(&translator);
-        KifuPresentation::configure(language, "auto", false);
+        NotationStyle::configure(language, "auto", false);
         const QString initial = SfenUtils::hirateSfen();
         const QStringList usiMoves = QStringList{"7g7f", "3c3d"}.mid(0, plies);
         auto moves = TestReplay::buildGameMoves(initial, usiMoves);
@@ -261,10 +261,10 @@ private slots:
         KifuAnalysisListModel model;
         KifuAnalysisRowPresenter::Refs refs;
         refs.analysisModel = &model;
-        RecordLine line = RecordLine::fromPositions(history, TestReplay::buildGameMoves(initial, moves));
+        RecordLine line = TestReplay::recordLine(history, TestReplay::buildGameMoves(initial, moves));
         refs.line = &line;
         KifuAnalysisRowPresenter handler(refs);
-        KifuPresentation::configure("en", "auto", false);
+        NotationStyle::configure("en", "auto", false);
         PlyAnalysis first;
         first.ply = 0;
         first.score = UsiScore::cp(100);
@@ -320,7 +320,7 @@ private slots:
         QTranslator translator;
         QVERIFY(translator.load(QStringLiteral(TRANSLATIONS_DIR "/ShogiBoardQ_") + language + ".qm"));
         qApp->installTranslator(&translator);
-        KifuPresentation::configure(language, notation, false);
+        NotationStyle::configure(language, notation, false);
         const bool western = KifuPresentation::options().notation == KifuPresentation::Notation::Western;
         ApplicationFonts::initialize({}, language);
 
@@ -351,9 +351,9 @@ private slots:
         const QString pv = thinking.data(thinking.index(0, ShogiEngineThinkingModel::PvColumn), Qt::DisplayRole).toString();
         QCOMPARE(pv, western ? QStringLiteral("▲P-7f △P-3d") : japanesePv);
         // 表示用の読み筋は覚えておくが、表記の設定を変えたら作り直す
-        KifuPresentation::configure(language, western ? QStringLiteral("japanese") : QStringLiteral("western"), true);
+        NotationStyle::configure(language, western ? QStringLiteral("japanese") : QStringLiteral("western"), true);
         QCOMPARE(info->displayPv(), western ? japanesePv : QStringLiteral("▲P7g-7f △P3c-3d"));
-        KifuPresentation::configure(language, notation, false);
+        NotationStyle::configure(language, notation, false);
         QCOMPARE(info->displayPv(), pv);
         if (western) {
             QCOMPARE(info->displayPv(true), QStringLiteral("▲P7g-7f △P3c-3d"));
@@ -464,10 +464,10 @@ private slots:
             request.outputFormat = format;
             const auto localized = KifuConversionService::convert(request);
             QVERIFY2(localized.ok, qPrintable(localized.failure.message));
-            KifuPresentation::configure("ja_JP", "japanese", false);
+            NotationStyle::configure("ja_JP", "japanese", false);
             const auto japanese = KifuConversionService::convert(request);
             QCOMPARE(localized.lines, japanese.lines);
-            KifuPresentation::configure(language, notation, false);
+            NotationStyle::configure(language, notation, false);
         }
         qApp->removeTranslator(&translator);
     }

@@ -46,6 +46,13 @@ public:
     bool isOnMainLine() const;
     /// 表示中の手順の、手数 currentPly までの手順（終局の行は除く。対局中はライブの手も含む）
     RecordLine currentRecordLine() const;
+    /**
+     * @brief 表示中の局面を、開始局面からの手順（直前の手を含む）で返す
+     *
+     * 検討でエンジンに送る局面。読み筋の1手目が直前の手と同じマスなら「同」と書くので、局面だけでなく手順で持つ。
+     * ツリーが空なら平手。局面を読めなければ nullopt
+     */
+    std::optional<UsiPosition> currentUsiPosition() const;
     /// node の次に進む手（選んだ子。選んでいなければ最初の子）
     KifuBranchNode* nextNode(const KifuBranchNode* node) const;
 

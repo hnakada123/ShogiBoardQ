@@ -15,23 +15,8 @@ MenuWindowController::MenuWindowController(const Deps& deps, QObject* parent)
     , m_menuBar(deps.menuBar)
     , m_menuWindow(new MenuWindow(deps.parentWidget))
 {
-
-    // シグナルを接続
-    connect(m_menuWindow, &MenuWindow::actionTriggered,
-            this, &MenuWindowController::actionTriggered);
-    connect(m_menuWindow, &MenuWindow::favoritesChanged,
-            this, &MenuWindowController::favoritesChanged);
-
     // カテゴリ情報を収集して設定（ドックの表示の切り替えはドックを作った後に collectCategoriesFromMenuBar() で足す）
     collectCategoriesFromMenuBar();
-}
-
-void MenuWindowController::displayMenuWindow()
-{
-    // ウィンドウを表示する
-    m_menuWindow->show();
-    m_menuWindow->raise();
-    m_menuWindow->activateWindow();
 }
 
 void MenuWindowController::collectCategoriesFromMenuBar()

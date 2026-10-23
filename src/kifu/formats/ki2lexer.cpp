@@ -7,16 +7,6 @@
 
 #include <QRegularExpression>
 
-namespace {
-
-bool isTurnMark(QChar ch)
-{
-    return ch == QChar(u'▲') || ch == QChar(u'△') || ch == QChar(u'▽')
-        || ch == QChar(u'☗') || ch == QChar(u'☖');
-}
-
-} // namespace
-
 namespace Ki2Lexer {
 
 // === 正規表現アクセサ ===
@@ -35,7 +25,7 @@ const QRegularExpression& resultPatternCaptureRe()
 bool isKi2MoveLine(const QString& line)
 {
     const QString t = line.trimmed();
-    return !t.isEmpty() && isTurnMark(t.at(0));
+    return !t.isEmpty() && ShogiNotation::isTurnMark(t.at(0));
 }
 
 // === 結果行解析 ===

@@ -57,6 +57,7 @@
 #include "mainwindow.h"
 #include "mainwindowcomposer.h"
 #include "boardchromewidget.h"
+#include "shogigamecontroller.h"
 #include "shogiview.h"
 #include "shogiviewhighlighting.h"
 #include "boardinteractioncontroller.h"
@@ -2839,7 +2840,7 @@ private slots:
         QTranslator translator;
         QVERIFY(translator.load(QStringLiteral(APP_BUILD "/ShogiBoardQ_") + language + ".qm"));
         qApp->installTranslator(&translator);
-        KifuPresentation::configure(language, notation, false);
+        NotationStyle::configure(language, notation, false);
         ApplicationFonts::initialize({}, language);
         const bool western = KifuPresentation::options().notation == KifuPresentation::Notation::Western;
         window = std::make_unique<MainWindow>();
@@ -2895,7 +2896,7 @@ private slots:
             snapshot(QStringLiteral("i18n-en-flipped"));
         window.reset();
         qApp->removeTranslator(&translator);
-        KifuPresentation::configure("ja_JP", "auto", false);
+        NotationStyle::configure("ja_JP", "auto", false);
         ApplicationFonts::initialize();
     }
     void languageSettings()

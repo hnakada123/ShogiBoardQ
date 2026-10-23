@@ -80,16 +80,6 @@ inline QString fontButton()
     return panelToolButton();
 }
 
-/// ▲▼ 棋譜ナビゲーションボタン（緑）
-inline QString navigationButton()
-{
-    return detail::buildDualStyle(
-        "#4F9272", "white", "#3d7259",
-        "#5ba583", "#3d7259",
-        "#b0c4b8", "#e0e0e0", "#9eb3a5",
-        "padding: 3px 4px; font-weight: bold; min-width: 28px; max-width: 36px;");
-}
-
 /// 横長ナビゲーションボタン（テキスト付きダイアログ用）
 inline QString wideNavigationButton()
 {
@@ -184,26 +174,6 @@ inline QString fileOperation()
         "padding: 4px 8px;");
 }
 
-/// カスタマイズ/歯車ボタン（オレンジ）
-inline QString customizeSettings()
-{
-    return QStringLiteral(
-        "QPushButton, QToolButton {"
-        "  font-size: 16px; font-weight: bold;"
-        "  border: none; border-radius: 4px;"
-        "  padding: 4px 6px; min-width: 28px;"
-        "  background-color: #FF9800; color: white;"
-        "}"
-        "QPushButton:hover, QToolButton:hover { background-color: #F57C00; }"
-        "QPushButton:pressed, QToolButton:pressed { background-color: #E65100; }"
-        "QPushButton:checked, QToolButton:checked {"
-        "  background-color: #E65100; color: white;"
-        "}"
-        "QPushButton:disabled, QToolButton:disabled {"
-        "  background-color: #ffe0b2; color: #bdbdbd;"
-        "}");
-}
-
 /// MenuButtonWidget メインボタン（線画アイコン用の淡い背景）
 inline QString menuMainButton()
 {
@@ -249,36 +219,6 @@ inline QString menuRemoveButton()
         "QPushButton:disabled, QToolButton:disabled {"
         "  background-color: #ffcdd2; color: #ef9a9a; border: 1px solid #ffcdd2;"
         "}");
-}
-
-/// テーブル内「着手」ボタン（青、パディング小）
-inline QString tablePlayButton()
-{
-    return detail::buildPushStyle(
-        "#1976d2", "white",
-        "#1e88e5", "#1565c0",
-        "#b0bec5", "#eceff1",
-        "padding: 2px 8px;");
-}
-
-/// テーブル内「編集」ボタン（緑、白文字）
-inline QString tableEditButton()
-{
-    return detail::buildPushStyle(
-        "#e8f5e9", "#2e7d32",
-        "#c8e6c9", "#a5d6a7",
-        "#f5f5f5", "#9e9e9e",
-        "padding: 2px 8px;");
-}
-
-/// テーブル内「削除」ボタン（赤）
-inline QString tableDeleteButton()
-{
-    return detail::buildPushStyle(
-        "#f44336", "white",
-        "#E53935", "#c62828",
-        "#ffcdd2", "#ef9a9a",
-        "padding: 2px 8px;");
 }
 
 /// テーブル内「登録」ボタン（青）

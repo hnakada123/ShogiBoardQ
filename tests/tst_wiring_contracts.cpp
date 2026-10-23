@@ -116,7 +116,7 @@ private slots:
         QCOMPARE(p.document->players().name(Turn::Black), QStringLiteral("太郎"));
         QCOMPARE(p.document->players().name(Turn::White), QStringLiteral("花子"));
         QVERIFY(p.liveGameSession->isActive());
-        QCOMPARE(p.match->clock()->timeControl().black.mainMs, 180000);
+        QCOMPARE(p.clock->timeControl().black.mainMs, 180000);
         QCOMPARE(p.document->timeRecord().timeControl().black.mainMs, 180000);
         QVERIFY(p.document->timeRecord().startDateTime().isValid());
 

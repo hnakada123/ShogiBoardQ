@@ -119,7 +119,7 @@ void Tst_MatchCoordinator::start_keepsRecordLineUpToCurrentPly()
 {
     MatchHarness h;
     MatchCoordinator::StartOptions opt;
-    opt.recordLine = RecordLine::fromPositions(
+    opt.recordLine = TestReplay::recordLine(
         TestReplay::buildSfenRecord(SfenUtils::hirateSfen(), {"7g7f", "3c3d", "2g2f"}, false),
         TestReplay::buildGameMoves(SfenUtils::hirateSfen(), {"7g7f", "3c3d", "2g2f"}));
     opt.recordLine.currentPly = 2;
@@ -332,7 +332,7 @@ void Tst_MatchCoordinator::undoTwoPlies_onlyOnHumanTurn()
     MatchHarness h;
     MatchCoordinator::StartOptions opt = humanVsEngine(false, MatchHarness::mockEnginePath(), QStringLiteral("UndoTest"));
     const QStringList opening{QStringLiteral("7g7f"), QStringLiteral("3c3d")};
-    opt.recordLine = RecordLine::fromPositions(TestReplay::buildSfenRecord(SfenUtils::hirateSfen(), opening, false),
+    opt.recordLine = TestReplay::recordLine(TestReplay::buildSfenRecord(SfenUtils::hirateSfen(), opening, false),
                                                TestReplay::buildGameMoves(SfenUtils::hirateSfen(), opening));
     opt.recordLine.currentPly = 2;
     h.mc->start(opt);

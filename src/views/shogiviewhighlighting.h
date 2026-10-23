@@ -34,14 +34,11 @@ public:
     // ──────────────── ハイライト ────────────────
     /// 層のマスを置き換える（変わったマスだけ描き直す）
     void setHighlights(BoardHighlightLayer layer, const QList<QPoint>& squares);
-    /// 全ての層を消す
-    void clearHighlights();
     const QList<QPoint>& highlights(BoardHighlightLayer layer) const;
 
     // ──────────────── 矢印管理 ────────────────
     void setArrows(const QList<ShogiView::Arrow>& arrows);
     const QList<ShogiView::Arrow>& arrows() const { return m_arrows; }
-    void clearArrows();
 
     // ──────────────── 描画 ────────────────
     /// dirty（再描画範囲）に掛からないマスは描かない。

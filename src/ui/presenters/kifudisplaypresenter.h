@@ -39,8 +39,6 @@ public:
 public slots:
     /// 表示中の手・手順・ツリーに合わせて描き直す
     void refresh();
-    /// 表示（表記・言語）だけを描き直す
-    void refreshLabels();
 
 private:
     /// 分岐が増えた・減った・並びが変わったので、棋譜欄の分岐の印（「+」）を描き直す

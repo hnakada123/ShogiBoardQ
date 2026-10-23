@@ -23,7 +23,6 @@ class KifuBranchTree;
  */
 struct BranchLine {
     int lineIndex = 0;                      // 0=本譜、1以降=分岐
-    QString name;                           // "本譜", "分岐1"...
     QList<KifuBranchNode*> nodes;         // ノード列（ルートから終端まで）
     int branchPly = 0;                      // 分岐開始手数（本譜は0）
     KifuBranchNode* branchPoint = nullptr;  // 分岐点のノード（本譜はnullptr）

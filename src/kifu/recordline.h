@@ -29,19 +29,6 @@ struct RecordLine {
     QList<RecordEntry> entries; ///< entries[i] は i+1 手目。末尾は終局の行のことがある
     int currentPly = 0;         ///< 表示中の手数（0 は開始局面）
 
-    /// 局面列（[0] が開始局面、[i] が i 手目の後）と指し手列から作る。
-    /// 指し手が局面より多ければ、局面のある手までにする
-    static RecordLine fromPositions(const QStringList& sfens, const QList<ShogiMove>& moves)
-    {
-        RecordLine line;
-        line.startSfen = sfens.value(0);
-        const qsizetype count = qMin(moves.size(), sfens.size() - 1);
-        for (qsizetype i = 0; i < count; ++i)
-            line.entries << RecordEntry::played(moves.at(i), {}, sfens.at(i + 1));
-        line.currentPly = line.moveCount();
-        return line;
-    }
-
     bool isEmpty() const { return startSfen.isEmpty(); }
     bool endsWithTerminal() const { return !entries.isEmpty() && entries.last().isTerminal(); }
     /// 終局の行（なければ nullptr）

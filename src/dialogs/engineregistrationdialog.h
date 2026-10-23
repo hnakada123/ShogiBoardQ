@@ -46,6 +46,7 @@ private slots:
 
     // 登録処理の進行状態変化時のスロット
     void onRegistrationInProgressChanged(bool inProgress);
+    // 選んだエンジンに合わせて削除・設定ボタンを有効にする
     void updateSelectionState();
 
 private:

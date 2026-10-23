@@ -21,7 +21,6 @@
 #include "boardchromewidget.h"
 #include "boardgeometry.h"
 #include "boardstaticlayer.h"
-#include "shogigamecontroller.h"
 #include "shogiviewinteraction.h"
 #include "boardcolors.h"
 #include "boardvisuals.h"
@@ -114,7 +113,6 @@ public:
     };
     void setArrows(const QList<Arrow>& arrows);  // 矢印をセット（複数可）
     const QList<Arrow>& arrows() const;            // 現在の候補手矢印
-    void clearArrows();                            // 矢印をクリア
 
     // ───────────────────────────── 操作/状態切替 ────────────────────────────
 
@@ -152,10 +150,6 @@ public:
 
     // ── 状態管理
     using Urgency = BoardChromeWidget::Urgency;
-
-    // しきい値（ミリ秒）
-    static constexpr qint64 kWarn10Ms = BoardChromeWidget::kWarn10Ms;
-    static constexpr qint64 kWarn5Ms  = BoardChromeWidget::kWarn5Ms;
 
     // ハイライト/矢印の管理クラスへのアクセサ
     ShogiViewHighlighting* highlighting() const;

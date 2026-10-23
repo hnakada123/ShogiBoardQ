@@ -46,7 +46,7 @@ private slots:
         QFETCH(QString, expectedPosition);
         QString initial = SfenUtils::hirateSfen();
         initial = initial.left(initial.lastIndexOf(' ') + 1) + QString::number(counter);
-        RecordLine line = RecordLine::fromPositions(TestReplay::buildSfenRecord(initial, moves, false),
+        RecordLine line = TestReplay::recordLine(TestReplay::buildSfenRecord(initial, moves, false),
                                                     TestReplay::buildGameMoves(initial, moves));
         line.currentPly = 3; // 後続の4手目を含めない
 
@@ -84,7 +84,7 @@ private slots:
     {
         const QString initial = SfenUtils::hirateSfen();
         const QStringList moves{QStringLiteral("7g7f")};
-        RecordLine line = RecordLine::fromPositions(TestReplay::buildSfenRecord(initial, moves, false),
+        RecordLine line = TestReplay::recordLine(TestReplay::buildSfenRecord(initial, moves, false),
                                                     TestReplay::buildGameMoves(initial, moves));
         line.currentPly = 1;
         MatchStartOptions options;

@@ -82,12 +82,6 @@ inline bool isHirateStart(const QString& sfenLike)
     return normalizeSfenKey(sfenLike) == hirateKey;
 }
 
-/// 盤面部分が平手初期配置かを判定する
-inline bool isHirateBoardSfen(const QString& boardSfen)
-{
-    return boardSfen == hirateBoardSfen();
-}
-
 } // namespace SfenUtils
 
 #endif // SFENUTILS_H

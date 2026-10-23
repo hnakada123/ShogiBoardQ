@@ -55,8 +55,6 @@ public:
     void start(const QString& enginePath, const QString& engineName);
     /// エンジンを止める（以後の応答は知らせない）
     void quit();
-    /// 起動して初期化を終えたか
-    bool isReady() const;
     /// 問い合わせの答えを待っているか
     bool isAsking() const { return m_asking; }
 
@@ -87,7 +85,6 @@ private slots:
 private:
     UsiEngineSession* m_session = nullptr;   ///< QObject parent 所有
     bool m_started = false;
-    bool m_ready = false;
     bool m_asking = false;
 };
 

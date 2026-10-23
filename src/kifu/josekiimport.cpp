@@ -23,25 +23,7 @@ namespace {
 std::optional<Turn> winnerOf(const RecordLine &line)
 {
     const RecordEntry *terminal = line.terminal();
-    if (!terminal) return std::nullopt;
-    // 終局の行は終局を記録した側（RecordEntry::endingSide。投了・時間切れ・反則負けは負けた側、
-    // 入玉宣言勝ち・反則勝ちは勝った側、詰み・不戦は手番側）を持つ
-    const Turn recorder = terminal->mover;
-    const Turn opponent = recorder == Turn::Black ? Turn::White : Turn::Black;
-    switch (terminal->terminal) {
-    case TerminalType::Resign:
-    case TerminalType::Checkmate:
-    case TerminalType::Timeout:
-    case TerminalType::IllegalLoss:
-    case TerminalType::Forfeit:
-        return opponent;
-    case TerminalType::IllegalWin:
-    case TerminalType::DeclarationWin:
-    case TerminalType::ForfeitWin:
-        return recorder;
-    default:
-        return std::nullopt;
-    }
+    return terminal ? terminal->winner() : std::nullopt;
 }
 
 } // namespace

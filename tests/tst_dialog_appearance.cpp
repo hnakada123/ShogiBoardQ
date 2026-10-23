@@ -20,6 +20,7 @@
 #include <QTextBrowser>
 #include <QTranslator>
 #include <QTimer>
+#include <QHeaderView>
 #include <QTableWidget>
 #include <QLibraryInfo>
 #include <memory>
@@ -60,6 +61,7 @@
 #include "versiondialog.h"
 #include "evaluationchartsettingsdialog.h"
 #include "longlongspinbox.h"
+#include "test_replay.h"
 
 namespace {
 // テストで作る入力ダイアログの文字の大きさとウィンドウの大きさの保存先
@@ -476,7 +478,7 @@ private slots:
         JosekiMergeDialog emptyMerge(&josekiBook, RecordLine{});
         QVERIFY(!emptyMerge.findChild<QPushButton*>(QStringLiteral("registerAllMoves"))->isEnabled());
         const QString sfen = SfenUtils::hirateSfen();
-        RecordLine line = RecordLine::fromPositions({sfen, SfenReplay::positionAfter(sfen, QStringLiteral("7g7f"))},
+        RecordLine line = TestReplay::recordLine({sfen, SfenReplay::positionAfter(sfen, QStringLiteral("7g7f"))},
                                                     {ShogiMove(*UsiMove::parse(u"7g7f"), Piece::BlackPawn)});
         line.entries[0].displayText = QStringLiteral("▲７六歩(77)");
         JosekiMergeDialog merge(&josekiBook, line);
@@ -491,9 +493,16 @@ private slots:
         QVERIFY(all->isEnabled());
         merge.show();
         QVERIFY(QTest::qWaitForWindowExposed(&merge));
+        // 最後の「状態」の列は表の右端まで伸びる（文字の大きさを変えても）
+        const auto lastColumnReachesRight = [table]() {
+            const QHeaderView* header = table->horizontalHeader();
+            return header->sectionViewportPosition(3) + header->sectionSize(3) >= table->viewport()->width();
+        };
+        QVERIFY(lastColumnReachesRight());
         for (int i = 0; i < 12; ++i) QTest::mouseClick(fontButtons(&merge)[1], Qt::LeftButton);
         QTest::qWait(30);
         QVERIFY(table->rowHeight(0) >= table->cellWidget(0, 2)->sizeHint().height());
+        QVERIFY(lastColumnReachesRight());
         snapshot(&merge, QStringLiteral("joseki-merge-populated-large"));
         merge.reject();
 

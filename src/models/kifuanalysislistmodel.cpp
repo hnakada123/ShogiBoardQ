@@ -2,6 +2,7 @@
 /// @brief 棋譜解析の結果の表のモデルの実装
 
 #include "kifuanalysislistmodel.h"
+#include "shogienginethinkingmodel.h"
 #include "movefont.h"
 #include "applicationfonts.h"
 #include "kifupresentation.h"
@@ -61,12 +62,11 @@ QString KifuAnalysisListModel::display(const Entry& entry, DisplayKind kind, boo
     });
 }
 
-// 先手から見た評価値の表示（定跡・未取得は「-」、詰みは "mate 3" など）
+// 先手から見た評価値の表示（定跡・未取得は「-」、詰みは思考の表と同じ「3手詰」。勝ち負けは形勢の列）
 QVariant KifuAnalysisListModel::evaluationText(const UsiScore& score)
 {
-    if (score.isCp()) return score.value;
-    if (!score.isMate()) return QStringLiteral("-");
-    return QStringLiteral("mate %1").arg(score.mateText());
+    if (!score.isCp() && !score.isMate()) return QStringLiteral("-");
+    return ShogiEngineThinkingModel::scoreDisplay(score);
 }
 
 // 先手から見た評価値を形勢（互角・やや有利・有利・優勢・勝勢）にする

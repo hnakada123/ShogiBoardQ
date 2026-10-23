@@ -159,7 +159,7 @@ private slots:
             window.reset();
         }
         QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
-        KifuPresentation::configure("ja_JP", "auto", false);
+        NotationStyle::configure("ja_JP", "auto", false);
     }
     // 対局中に盤を反転しても、時計の残り時間と手番の側の表示はそのまま
     void flipBoardKeepsClockDisplay() {
@@ -264,7 +264,7 @@ private slots:
         qputenv("AUDIT_ENGINE_WAIT_FOR_STOP", "1");
         startWindowGame();
         auto* match = window->composer().parts().match;
-        auto* clock = match->clock();
+        auto* clock = window->composer().parts().clock;
         auto* view = window->findChild<ShogiView*>();
         auto* resume = child<QAction>(*window, "actionResumeGame");
         QVERIFY(!resume->isEnabled());
@@ -476,13 +476,13 @@ private slots:
         settings.sync();
         startWindowGame();
         auto* match = window->composer().parts().match;
-        QVERIFY(match); QVERIFY(match->clock());
-        qInfo() << "unchecked timeout: enforcesTimeout=" << match->clock()->enforcesTimeout();
+        QVERIFY(match); QVERIFY(window->composer().parts().clock);
+        qInfo() << "unchecked timeout: enforcesTimeout=" << window->composer().parts().clock->enforcesTimeout();
         dialogTimer.start(10);
         QTest::qWait(1300);
         dialogTimer.stop();
         qInfo() << "unchecked timeout: gameOver=" << match->isGameOver();
-        QVERIFY(!match->clock()->enforcesTimeout());
+        QVERIFY(!window->composer().parts().clock->enforcesTimeout());
         QVERIFY(!match->isGameOver());
     }
     void preparedGameInfoSurvivesStart_data() {
@@ -576,7 +576,7 @@ private slots:
         auto* view = window->findChild<ShogiView*>();
         auto* match = window->composer().parts().match;
         QVERIFY(match);
-        auto* clock = match->clock();
+        auto* clock = window->composer().parts().clock;
         QVERIFY(clock);
         auto* record = window->findChild<RecordPane*>();
         const QString sfen = window->composer().parts().navState->currentSfen();
@@ -636,7 +636,7 @@ private slots:
         editPosition(QStringLiteral("9/4+r4/9/9/9/9/9/9/9"), whiteToMove);
         startWindowGame();
         QCOMPARE(messages.size(), 1);
-        QVERIFY(!window->composer().parts().match->clock()->isRunning());
+        QVERIFY(!window->composer().parts().clock->isRunning());
         messages.clear();
         QString expectedBoard;
         if (preset == 0) {
@@ -649,7 +649,7 @@ private slots:
         startWindowGame();
         QVERIFY2(!messages.join('\n').contains(QStringLiteral("対局を開始できません")),
                  qPrintable(messages.join('\n')));
-        QVERIFY(window->composer().parts().match->clock()->isRunning());
+        QVERIFY(window->composer().parts().clock->isRunning());
         QCOMPARE(window->composer().activity().activity(), AppActivityState::Activity::DuringGame);
         QVERIFY(window->composer().parts().document->players().humanVsHuman());
         auto* view = window->findChild<ShogiView*>();
@@ -719,7 +719,7 @@ private slots:
         QTranslator translator;
         QVERIFY(translator.load(QStringLiteral(APP_BUILD "/ShogiBoardQ_") + language + ".qm"));
         qApp->installTranslator(&translator);
-        KifuPresentation::configure(language, "auto", false);
+        NotationStyle::configure(language, "auto", false);
         QTemporaryDir dir;
         QVERIFY(dir.isValid());
         auto& settings = SettingsCommon::openSettings();

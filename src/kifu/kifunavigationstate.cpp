@@ -73,6 +73,13 @@ RecordLine KifuNavigationState::currentRecordLine() const
     return KifuBranchTree::toRecordLine(selectedPath(), currentPly());
 }
 
+std::optional<UsiPosition> KifuNavigationState::currentUsiPosition() const
+{
+    const RecordLine line = currentRecordLine();
+    if (line.isEmpty()) return UsiPosition(Position::hirate());
+    return line.usiPosition(qBound(0, line.currentPly, line.moveCount()));
+}
+
 KifuBranchNode* KifuNavigationState::nextNode(const KifuBranchNode* node) const
 {
     if (!node) return nullptr;

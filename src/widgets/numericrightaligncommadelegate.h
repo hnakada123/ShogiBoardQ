@@ -42,7 +42,7 @@ public:
             return m_enUS.toString(dv);
         }
 
-        // 数値以外（例: "mate 1"）はそのまま
+        // 数値以外（例: 「3手詰」）はそのまま
         return QStyledItemDelegate::displayText(value, QLocale::c());
     }
 

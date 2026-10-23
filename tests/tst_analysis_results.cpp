@@ -35,7 +35,7 @@ UsiBestMove bestMove(const UsiScore& score)
     return result;
 }
 
-/// 棋譜解析の表の「mate 5」「mate +」「mate +0」などの表示から、先手から見た評価値を作る
+/// USI の「mate 5」「mate +」「mate +0」などから、先手から見た評価値を作る
 UsiScore mateScore(const QString& text)
 {
     const QString mate = text.mid(QStringLiteral("mate ").size());
@@ -160,10 +160,10 @@ private slots:
     {
         const QString hirate = SfenUtils::hirateSfen();
         const QStringList moves{QStringLiteral("7g7f")};
-        RecordLine line = RecordLine::fromPositions(TestReplay::buildSfenRecord(hirate, moves, false),
+        RecordLine line = TestReplay::recordLine(TestReplay::buildSfenRecord(hirate, moves, false),
                                                     TestReplay::buildGameMoves(hirate, moves));
         line.entries[0].displayText = QStringLiteral("▲７六歩(77)");
-        KifuPresentation::configure(QStringLiteral("en"), QStringLiteral("western"), false);
+        NotationStyle::configure(QStringLiteral("en"), QStringLiteral("western"), false);
         KifuAnalysisListModel model;
         KifuAnalysisRowPresenter::Refs refs;
         refs.analysisModel = &model;
@@ -175,10 +175,10 @@ private slots:
         const auto cell = [&model](int row) { return model.index(row, KifuAnalysisListModel::MoveColumn).data().toString(); };
         QCOMPARE(model.row(1)->move, QStringLiteral("▲７六歩(77)"));
         QCOMPARE(cell(1), QStringLiteral("   1 ▲P-7f [+]"));
-        KifuPresentation::configure(QStringLiteral("ja_JP"), QStringLiteral("japanese"), false);
+        NotationStyle::configure(QStringLiteral("ja_JP"), QStringLiteral("japanese"), false);
         QCOMPARE(cell(1), QStringLiteral("   1 ▲７六歩(77)+"));
         QCOMPARE(cell(0), QStringLiteral("=== 開始局面 ==="));
-        KifuPresentation::configure(QStringLiteral("ja_JP"), QStringLiteral("auto"), false);
+        NotationStyle::configure(QStringLiteral("ja_JP"), QStringLiteral("auto"), false);
     }
 
     /// 候補手は前の行の読み筋の最初の手。前の行の局面に至った手と同じマスへの手は「同　」と書く
@@ -187,7 +187,7 @@ private slots:
         const QString hirate = SfenUtils::hirateSfen();
         const QStringList moves{QStringLiteral("7g7f"), QStringLiteral("3c3d"), QStringLiteral("8h2b+"),
                                 QStringLiteral("3a2b")};
-        const RecordLine line = RecordLine::fromPositions(TestReplay::buildSfenRecord(hirate, moves, false),
+        const RecordLine line = TestReplay::recordLine(TestReplay::buildSfenRecord(hirate, moves, false),
                                                           TestReplay::buildGameMoves(hirate, moves));
         KifuAnalysisListModel model;
         KifuAnalysisRowPresenter::Refs refs;
@@ -269,24 +269,27 @@ private slots:
     void mateJudgement_data()
     {
         QTest::addColumn<QString>("score");
+        QTest::addColumn<QString>("display");
         QTest::addColumn<QString>("judgement");
-        QTest::newRow("positive") << QStringLiteral("mate 5") << QStringLiteral("先手勝ち");
-        QTest::newRow("negative") << QStringLiteral("mate -5") << QStringLiteral("後手勝ち");
-        QTest::newRow("positive-sign") << QStringLiteral("mate +") << QStringLiteral("先手勝ち");
-        QTest::newRow("negative-sign") << QStringLiteral("mate -") << QStringLiteral("後手勝ち");
-        QTest::newRow("mated") << QStringLiteral("mate 0") << QStringLiteral("後手勝ち");
-        QTest::newRow("opponent-mated") << QStringLiteral("mate +0") << QStringLiteral("先手勝ち");
+        // 評価値の列は思考の表と同じ表記（手数が無ければ「詰み」）。どちらの勝ちかは形勢の列で示す
+        QTest::newRow("positive") << QStringLiteral("mate 5") << QStringLiteral("5手詰") << QStringLiteral("先手勝ち");
+        QTest::newRow("negative") << QStringLiteral("mate -5") << QStringLiteral("-5手詰") << QStringLiteral("後手勝ち");
+        QTest::newRow("positive-sign") << QStringLiteral("mate +") << QStringLiteral("詰み") << QStringLiteral("先手勝ち");
+        QTest::newRow("negative-sign") << QStringLiteral("mate -") << QStringLiteral("詰み") << QStringLiteral("後手勝ち");
+        QTest::newRow("mated") << QStringLiteral("mate 0") << QStringLiteral("0手詰") << QStringLiteral("後手勝ち");
+        QTest::newRow("opponent-mated") << QStringLiteral("mate +0") << QStringLiteral("0手詰") << QStringLiteral("先手勝ち");
     }
 
     void mateJudgement()
     {
         QFETCH(QString, score);
+        QFETCH(QString, display);
         QFETCH(QString, judgement);
         KifuAnalysisListModel model;
         KifuAnalysisRow row;
         row.evaluation = mateScore(score);
         model.appendRow(row);
-        QCOMPARE(model.index(0, 3).data().toString(), score);
+        QCOMPARE(model.index(0, 3).data().toString(), display);
         QCOMPARE(model.index(0, 4).data().toString(), judgement);
     }
 };

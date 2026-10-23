@@ -83,10 +83,11 @@ void TsumePositionAnalyzer::cancel()
     m_cacheTimer.stop();
     m_engine->cancel();
     if (!m_watcher) return;
-    disconnect(m_watcher.get(), nullptr, this, nullptr);
+    // ワーカーは値だけを持つので、止めるよう知らせたら終わるのを待たない（結果は捨てる）
     m_stop->store(true);
-    m_watcher->waitForFinished();
-    m_watcher.reset();
+    disconnect(m_watcher, nullptr, this, nullptr);
+    connect(m_watcher, &QFutureWatcherBase::finished, m_watcher, &QObject::deleteLater);
+    m_watcher = nullptr;
 }
 
 void TsumePositionAnalyzer::evaluate(const QString& sfen, int milliseconds, bool requireLine)
@@ -111,9 +112,9 @@ void TsumePositionAnalyzer::evaluate(const QString& sfen, int milliseconds, bool
         m_cacheTimer.start(0);
         return;
     }
-    m_stop = std::make_shared<std::atomic_bool>(false);
-    m_watcher = std::make_unique<QFutureWatcher<TsumeEvaluation>>(this);
-    connect(m_watcher.get(), &QFutureWatcher<TsumeEvaluation>::finished, this, &TsumePositionAnalyzer::internalFinished);
+    m_stop = makeCancelFlag();
+    m_watcher = new QFutureWatcher<TsumeEvaluation>(this);
+    connect(m_watcher, &QFutureWatcher<TsumeEvaluation>::finished, this, &TsumePositionAnalyzer::internalFinished);
     const auto stop = m_stop;
     m_watcher->setFuture(QtConcurrent::run([position, milliseconds, requireLine, stop]() {
         return evaluateInternal(position, milliseconds, requireLine, *stop);
@@ -122,9 +123,11 @@ void TsumePositionAnalyzer::evaluate(const QString& sfen, int milliseconds, bool
 
 void TsumePositionAnalyzer::internalFinished()
 {
-    if (sender() != m_watcher.get()) return;
-    auto result = m_watcher->result();
-    m_watcher.release()->deleteLater();
+    QFutureWatcher<TsumeEvaluation>* watcher = m_watcher;
+    if (!watcher || sender() != watcher) return;
+    m_watcher = nullptr;
+    auto result = watcher->result();
+    watcher->deleteLater();
     if (result.status == TsumeEvaluation::Status::Unknown)
         result.detail = tr("内蔵判定の時間または31手の上限に達しました。KomoringHeightsで再判定できます。");
     complete(result);

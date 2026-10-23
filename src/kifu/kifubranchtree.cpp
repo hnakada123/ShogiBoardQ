@@ -206,11 +206,9 @@ void KifuBranchTree::collectLinesRecursive(KifuBranchNode* node,
         line.nodes = currentPath;
 
         if (lineIndex == 0) {
-            line.name = QStringLiteral("本譜");
             line.branchPly = 0;
             line.branchPoint = nullptr;
         } else {
-            line.name = QStringLiteral("分岐%1").arg(lineIndex);
             // 分岐点を探す（最後に見つかった分岐点を使用）
             // 例: Line 2 (７七角分岐) の場合、3手目で本譜から分岐し、
             // さらに5手目でLine 1から分岐する。この場合、branchPointは
@@ -308,7 +306,7 @@ void KifuBranchTree::setComment(int nodeId, const QString& comment)
     }
 }
 
-// === データ抽出（ResolvedRow互換）===
+// === 手順の取り出し ===
 
 RecordLine KifuBranchTree::exportLine(int lineIndex) const
 {

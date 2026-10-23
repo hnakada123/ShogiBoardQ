@@ -37,8 +37,6 @@ void ShogiGameController::newGame(const QString& startSfen)
     qCDebug(lcGame) << "ShogiGameController::newGame:" << startSfen;
 
     board()->setSfen(startSfen);
-
-    m_lastMove = UsiMove{};
 }
 
 // ============================================================
@@ -74,12 +72,6 @@ LegalMoveStatus ShogiGameController::legalStatus(const UsiMove& move, Turn mover
     return EngineMoveValidator::legalStatus(board()->position(), mover, move);
 }
 
-std::optional<RecordEntry> ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, BoardSquare previousTo)
-{
-    const auto move = prepareMove(outFrom, outTo);
-    return move ? applyRecordedMove(*move, previousTo) : std::nullopt;
-}
-
 std::optional<UsiMove> ShogiGameController::prepareMove(const QPoint& outFrom, const QPoint& outTo)
 {
     const int fileFrom = outFrom.x();
@@ -94,7 +86,7 @@ std::optional<UsiMove> ShogiGameController::prepareMove(const QPoint& outFrom, c
     const std::optional<UsiMove> candidate =
         (boardFrom || handFrom) ? BoardCoordinates::usiMoveFromSquares(outFrom, outTo, false) : std::nullopt;
     if (!candidate) {
-        qCWarning(lcGame) << "validateAndMove: invalid coordinates" << outFrom << outTo;
+        qCWarning(lcGame) << "prepareMove: invalid coordinates" << outFrom << outTo;
         emit endDragSignal();
         return std::nullopt;
     }
@@ -103,7 +95,7 @@ std::optional<UsiMove> ShogiGameController::prepareMove(const QPoint& outFrom, c
     const Piece moving = candidate->isDrop() ? candidate->dropPieceFor(mover)
                                              : board()->pieceCharacter(fileFrom, rankFrom);
     if (moving == Piece::None) {
-        qCWarning(lcGame) << "validateAndMove: the source square is empty.";
+        qCWarning(lcGame) << "prepareMove: the source square is empty.";
         emit endDragSignal();
         return std::nullopt;
     }
@@ -166,7 +158,6 @@ std::optional<RecordEntry> ShogiGameController::commitMove(const UsiMove& move, 
     }
     RecordEntry entry = RecordEntry::played(ShogiMove(move, moving, captured),
                                             KifMoveText::format(mover, moving, move, previousTo), board()->toSfen());
-    m_lastMove = move;
     return entry;
 }
 

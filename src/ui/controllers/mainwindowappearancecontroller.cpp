@@ -9,7 +9,6 @@
 #include <QToolBar>
 #include <QToolButton>
 #include <QVBoxLayout>
-#include <QWheelEvent>
 #include <utility>
 
 #include "apptooltipfilter.h"

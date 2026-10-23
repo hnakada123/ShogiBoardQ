@@ -48,11 +48,6 @@ public:
     ~MenuWindowController() override = default;
 
     /**
-     * @brief メニューウィンドウを表示する
-     */
-    void displayMenuWindow();
-
-    /**
      * @brief メニューウィンドウを取得
      * @return MenuWindowへのポインタ（コンストラクタで作る。ドックに入れると所有はドックに移る）
      */
@@ -60,19 +55,6 @@ public:
 
     /// メニューバーの項目からメニューウィンドウの分類を作り直す（メニューに項目を足した後に呼ぶ）
     void collectCategoriesFromMenuBar();
-
-signals:
-    /**
-     * @brief アクションがトリガーされたシグナル
-     * @param action トリガーされたアクション
-     */
-    void actionTriggered(QAction* action);
-
-    /**
-     * @brief お気に入りリストが変更されたシグナル
-     * @param favorites 新しいお気に入りリスト
-     */
-    void favoritesChanged(const QStringList& favorites);
 
 private:
     /**

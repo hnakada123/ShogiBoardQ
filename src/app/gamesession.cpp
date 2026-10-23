@@ -57,7 +57,7 @@ GameSession::GameSession(const Deps& deps, QObject* parent)
     , m_deps(deps)
 {
     Q_ASSERT(m_deps.activity && m_deps.match && m_deps.clock && m_deps.csaGame);
-    m_localChannel = std::make_unique<LocalGameChannel>(m_deps.match, m_deps.clock);
+    m_localChannel = std::make_unique<LocalGameChannel>(m_deps.match);
     m_csaChannel = std::make_unique<CsaGameChannel>(m_deps.csaGame);
 
     // 棋譜を変えたら、中断した対局は再開できない
@@ -286,7 +286,7 @@ void GameSession::onCsaGameEnded(CsaClient::GameResult result, CsaClient::GameEn
     Q_UNUSED(cause)
     Q_UNUSED(consumedTimeMs)
     // 終局行は司令塔が recordEntryReady で渡し済み。次の対局が始まる前に確定して書き出す
-    finishMatchRecord(/*commit=*/true);
+    finishMatchRecord(/*autoSave=*/true);
 }
 
 // ============================================================
@@ -315,20 +315,21 @@ void GameSession::resetToInitialState()
 void GameSession::onGameEnded(const MatchCoordinator::GameEndInfo& info)
 {
     qCDebug(lcApp).nospace() << "onGameEnded cause=" << static_cast<int>(info.cause) << " loser=" << info.loser;
-    // 中断した対局は再開できるよう、ライブ対局を確定せず、自動保存もしない（再開で中断の行を除く）
+    // 中断した対局も記録は確定する（再開は中断の行を除いて記録し直す。待つ間も変化の手・分岐の編集・
+    // 評価値グラフの追従ができ、棋譜を変えたら再開できなくなる）。中断は自動保存しない
     const bool breakOff = info.cause == MatchCoordinator::Cause::BreakOff;
     if (breakOff) m_deps.consecutive->reset();
-    finishMatchRecord(/*commit=*/!breakOff);
+    finishMatchRecord(/*autoSave=*/!breakOff);
 }
 
-void GameSession::finishMatchRecord(bool commit)
+void GameSession::finishMatchRecord(bool autoSave)
 {
     // 終局の行は追記済み。確定しないと、変化の手・分岐の編集・評価値グラフの追従が止まったままになる
-    if (commit) m_deps.liveSession->commit();
+    m_deps.liveSession->commit();
     // 終局時刻の記録と対局情報への反映（投了手を含めるため、終局手の追記の後で行う）
     m_deps.document->recordMatchEnd();
     // 連続対局の次局・通信対局の次の対局が始まる前に書き出す
-    if (commit && m_autoSave.isActive())
+    if (autoSave && m_autoSave.isActive())
         m_deps.kifuFileController->autoSaveKifu(m_autoSave.dir, m_autoSave.extension);
 }
 

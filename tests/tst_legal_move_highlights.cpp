@@ -196,7 +196,7 @@ private slots:
     void invalidation_data()
     {
         QTest::addColumn<QString>("operation");
-        for (const char* op : {"applied", "rejected", "clear", "view-clear", "reset", "turn", "disable", "edit"})
+        for (const char* op : {"applied", "rejected", "clear", "reset", "turn", "disable", "edit"})
             QTest::newRow(op) << QString::fromLatin1(op);
     }
 
@@ -209,7 +209,6 @@ private slots:
         if (operation == "applied" || operation == "rejected")
             ui.controller->onMoveApplied(QPoint(7, 7), QPoint(7, 6), operation == "applied");
         else if (operation == "clear") ui.controller->clearAllHighlights();
-        else if (operation == "view-clear") ui.view.highlighting()->clearHighlights();
         else if (operation == "reset") ui.gc.board()->setSfen(SfenUtils::hirateSfen());
         else if (operation == "turn") ui.gc.setCurrentPlayer(Turn::White);
         else if (operation == "disable") ui.controller->setInputRoute(nullptr);

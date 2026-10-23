@@ -5,6 +5,7 @@
 /// @brief 棋譜の1行（指した手か終局）
 
 #include <QMetaType>
+#include <optional>
 #include "shogimove.h"
 #include "terminaltype.h"
 #include "recordtime.h"
@@ -61,6 +62,31 @@ struct RecordEntry {
             return loser == Turn::Black ? Turn::White : Turn::Black;
         default:
             return sideToMove;
+        }
+    }
+
+    /**
+     * @brief 終局の行の勝った側（endingSide の逆。記録した側 mover と終局の種類から決める）
+     *
+     * 投了・詰み・時間切れ・反則負け・不戦敗は記録した側の負け、入玉宣言勝ち・反則勝ち・不戦勝は記録した側の勝ち。
+     * 勝敗の付かない終局（千日手・持将棋・中断など）と指し手の行は nullopt
+     */
+    std::optional<Turn> winner() const
+    {
+        if (!isTerminal()) return std::nullopt;
+        switch (terminal) {
+        case TerminalType::Resign:
+        case TerminalType::Checkmate:
+        case TerminalType::Timeout:
+        case TerminalType::IllegalLoss:
+        case TerminalType::Forfeit:
+            return mover == Turn::Black ? Turn::White : Turn::Black;
+        case TerminalType::IllegalWin:
+        case TerminalType::DeclarationWin:
+        case TerminalType::ForfeitWin:
+            return mover;
+        default:
+            return std::nullopt;
         }
     }
 

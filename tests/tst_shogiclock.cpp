@@ -8,6 +8,12 @@
 
 using TestTime::rules;
 
+/// 棋譜に書く累計の考慮時間（"HH:MM:SS"）
+static QString recordTotal(const ShogiClock& clock, Turn side)
+{
+    return clock.recordTime(side).toText().section(QLatin1Char('/'), 1);
+}
+
 class TestShogiClock : public QObject
 {
     Q_OBJECT
@@ -38,7 +44,7 @@ private slots:
         clock.restoreSnapshot(state);
         clock.commitMove(Turn::Black);
         QCOMPARE(clock.remainingMs(Turn::Black), baseMs + 17000);
-        QCOMPARE(clock.totalConsiderationTimeString(Turn::Black), QStringLiteral("00:00:03"));
+        QCOMPARE(recordTotal(clock, Turn::Black), QStringLiteral("00:00:03"));
         clock.setCurrentPlayer(Turn::White);
         clock.commitMove(Turn::White);
         clock.setCurrentPlayer(Turn::Black);
@@ -48,7 +54,7 @@ private slots:
         clock.restoreSnapshot(state);
         clock.commitMove(Turn::Black);
         QCOMPARE(clock.remainingMs(Turn::Black), baseMs + 22000);
-        QCOMPARE(clock.totalConsiderationTimeString(Turn::Black), QStringLiteral("00:00:08"));
+        QCOMPARE(recordTotal(clock, Turn::Black), QStringLiteral("00:00:08"));
         clock.startClock();
         QTest::qWait(60);
         QVERIFY(!clock.isGameOver());
@@ -72,21 +78,21 @@ private slots:
         QCOMPARE(clock.timeString(Turn::Black), QStringLiteral("00:00:01"));
         if (switchBeforeCommit) clock.setCurrentPlayer(Turn::White);
         clock.commitMove(Turn::Black);
-        QCOMPARE(clock.timeString(Turn::Black), clock.totalConsiderationTimeString(Turn::Black));
+        QCOMPARE(clock.timeString(Turn::Black), recordTotal(clock, Turn::Black));
         QCOMPARE(clock.timeString(Turn::Black), QStringLiteral("00:00:01"));
         clock.setCurrentPlayer(Turn::White);
         clock.setMeasuredConsiderationTime(Turn::White, 2999);
         QCOMPARE(clock.timeString(Turn::White), QStringLiteral("00:00:02"));
         if (switchBeforeCommit) clock.setCurrentPlayer(Turn::Black);
         clock.commitMove(Turn::White);
-        QCOMPARE(clock.timeString(Turn::White), clock.totalConsiderationTimeString(Turn::White));
+        QCOMPARE(clock.timeString(Turn::White), recordTotal(clock, Turn::White));
         clock.setCurrentPlayer(Turn::Black);
         clock.setConsiderationTimeMs(Turn::Black, 750);
         QCOMPARE(clock.timeString(Turn::Black), QStringLiteral("00:00:02"));
         clock.markGameOver();
         clock.commitMove(Turn::Black);
-        QCOMPARE(clock.timeString(Turn::Black), clock.totalConsiderationTimeString(Turn::Black));
-        QCOMPARE(clock.considerationAndTotalTime(Turn::Black), QStringLiteral("00:01/00:00:02"));
+        QCOMPARE(clock.timeString(Turn::Black), recordTotal(clock, Turn::Black));
+        QCOMPARE(clock.recordTime(Turn::Black).toText(), QStringLiteral("00:01/00:00:02"));
         // 表示用の累積時間をエンジン向けの残り時間へ流用しない。
         QCOMPARE(clock.remainingMs(Turn::Black), 0LL);
         QCOMPARE(clock.remainingMs(Turn::White), 0LL);
@@ -105,7 +111,7 @@ private slots:
         QVERIFY(!clock.isGameOver());
         clock.finishTurn();
         clock.commitMove(Turn::Black);
-        QCOMPARE(clock.timeString(Turn::Black), clock.totalConsiderationTimeString(Turn::Black));
+        QCOMPARE(clock.timeString(Turn::Black), recordTotal(clock, Turn::Black));
         clock.stopClock();
     }
 
@@ -168,7 +174,7 @@ private slots:
         QCOMPARE(clock.remainingMs(Turn::Black), state.of(Turn::Black).remainingMs);
         QCOMPARE(clock.remainingMs(Turn::White), state.of(Turn::White).remainingMs);
         QCOMPARE(clock.byoyomiApplied(Turn::Black), byoyomi != 0);
-        QCOMPARE(clock.totalConsiderationTimeString(Turn::Black), QStringLiteral("00:00:00"));
+        QCOMPARE(recordTotal(clock, Turn::Black), QStringLiteral("00:00:00"));
         clock.startClock();
         QTest::qSleep(40);
         clock.finishTurn();
@@ -282,7 +288,7 @@ private slots:
         QVERIFY(clock.byoyomiApplied(Turn::White));
         QCOMPARE(clock.remainingMs(Turn::White), 10000LL);
         QCOMPARE(clock.byoyomiMs(Turn::Black), 10000LL);
-        QCOMPARE(clock.totalConsiderationTimeString(Turn::Black), QStringLiteral("00:00:01"));
+        QCOMPARE(recordTotal(clock, Turn::Black), QStringLiteral("00:00:01"));
         QCOMPARE(clock.pauseAndSnapshot().history.size(), before.history.size());
         QVERIFY(!clock.isUnlimited());
     }

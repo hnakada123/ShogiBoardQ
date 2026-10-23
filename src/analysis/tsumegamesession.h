@@ -5,6 +5,7 @@
 #include <QFutureWatcher>
 #include <QStringList>
 #include <memory>
+#include "threadtypes.h"
 #include "tsume.h"
 #include "tsumeevaluation.h"
 #include <QElapsedTimer>
@@ -82,8 +83,9 @@ private:
     QElapsedTimer m_turnElapsed;
     QTimer m_defenseTimer;
     std::vector<Snapshot> m_history;
-    std::unique_ptr<QFutureWatcher<shogi::TsumeResult>> m_watcher;
-    std::shared_ptr<std::atomic_bool> m_stop;
+    /// 内蔵の詰み探索のワーカー（親は this。止めた探索は終わるのを待たずに捨て、終わったら自分で消える）
+    QFutureWatcher<shogi::TsumeResult>* m_watcher = nullptr;
+    CancelFlag m_stop;
 };
 
 #endif

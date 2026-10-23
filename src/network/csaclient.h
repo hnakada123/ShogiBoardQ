@@ -270,8 +270,6 @@ public:
 
     bool isMyTurn() const { return m_isMyTurn; }
 
-    /// 送った指し手・意思表示に対するサーバーの確認を待っているか
-    bool isAwaitingMoveConfirmation() const { return m_awaitingMoveConfirmation; }
 
     // --- 接続の維持 ---
 

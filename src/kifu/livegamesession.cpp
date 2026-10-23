@@ -89,9 +89,7 @@ void LiveGameSession::appendRecord(const RecordEntry& entry)
     if (node) {
         placeBeforeUndoneSiblings(node);
         m_liveParent = node;
-        RecordEntry recorded = entry;
-        recorded.sfen = node->sfen();
-        m_entries.append(recorded);
+        ++m_moveCount;
         if (entry.isTerminal()) m_hasTerminal = true;
         // 足した手へ移ってからツリーの変更を知らせる（表示は足した手を見て1回だけ描き直す）
         m_navState->setCurrentNode(node);
@@ -116,7 +114,7 @@ void LiveGameSession::setFirstMoveNote(const QString& note)
 
 bool LiveGameSession::canUndoMoves(int count) const
 {
-    if (!m_active || m_hasTerminal || count <= 0 || count > m_entries.size()) return false;
+    if (!m_active || m_hasTerminal || count <= 0 || count > m_moveCount) return false;
     // 対局開始位置（分岐起点・ルート）より前には戻らない。
     const KifuBranchNode* node = m_liveParent;
     for (int i = 0; i < count; ++i) {
@@ -135,7 +133,7 @@ bool LiveGameSession::undoMoves(int count)
     // 以前の棋譜にあった手を再利用して取り消した場合は、その棋譜の並び順を保つ。
     if (m_createdNodeIds.contains(undoneHead->nodeId())) m_undoneNodeIds.insert(undoneHead->nodeId());
     m_liveParent = undoneHead->parent();
-    m_entries.resize(m_entries.size() - count);
+    m_moveCount -= count;
     m_navState->setCurrentNode(liveNode());
     return true;
 }
@@ -163,7 +161,7 @@ KifuBranchNode* LiveGameSession::commit()
         qCWarning(lcKifu) << "Cannot commit - session not active";
         return nullptr;
     }
-    KifuBranchNode* result = m_entries.isEmpty() ? nullptr : m_liveParent;
+    KifuBranchNode* result = m_moveCount == 0 ? nullptr : m_liveParent;
     reset();
     emit activeChanged();
     return result;
@@ -183,7 +181,7 @@ void LiveGameSession::reset()
     m_branchPoint = nullptr;
     m_anchorNodeId = -1;
     m_liveParent = nullptr;
-    m_entries.clear();
+    m_moveCount = 0;
     m_createdNodeIds.clear();
     m_undoneNodeIds.clear();
     m_firstMoveNote.clear();

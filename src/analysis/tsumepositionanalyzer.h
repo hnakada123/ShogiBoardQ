@@ -2,6 +2,7 @@
 #define TSUMEPOSITIONANALYZER_H
 
 #include "tsumeevaluation.h"
+#include "threadtypes.h"
 #include "tsume.h"
 #include <QFutureWatcher>
 #include <QObject>
@@ -39,8 +40,9 @@ private:
     bool m_active = false;
     TsumeEvaluation m_cached;
     QTimer m_cacheTimer;
-    std::unique_ptr<QFutureWatcher<TsumeEvaluation>> m_watcher;
-    std::shared_ptr<std::atomic_bool> m_stop;
+    /// 内蔵の判定のワーカー（親は this。止めた判定は終わるのを待たずに捨て、終わったら自分で消える）
+    QFutureWatcher<TsumeEvaluation>* m_watcher = nullptr;
+    CancelFlag m_stop;
 };
 
 #endif

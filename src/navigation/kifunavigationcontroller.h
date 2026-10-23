@@ -44,7 +44,6 @@ public:
 
     /// 局面送りの6つの操作をまとめて有効・無効にする（対局中などは無効）
     void setStepActionsEnabled(bool on);
-    bool stepActionsEnabled() const;
 
     /// 利用者の操作で別の手へ移る前の確認。false なら移らない
     /// 移動前の確認を足す（足した順に聞き、1つでも false なら移らない）

@@ -282,12 +282,12 @@ private slots:
         QFETCH(bool, promoteBishop);
         const auto saved = KifuPresentation::options();
         const auto restore = qScopeGuard([saved] {
-            KifuPresentation::configure(QStringLiteral("ja_JP"),
+            NotationStyle::configure(QStringLiteral("ja_JP"),
                 saved.notation == KifuPresentation::Notation::Japanese ? QStringLiteral("japanese")
                                                                       : QStringLiteral("western"),
                 saved.alwaysOrigin);
         });
-        KifuPresentation::configure(QStringLiteral("ja_JP"),
+        NotationStyle::configure(QStringLiteral("ja_JP"),
             western ? QStringLiteral("western") : QStringLiteral("japanese"), true);
         QStringList moves = QStringLiteral(
             "7g7f 7a6b 2g2f 8c8d 2f2e 3c3d 2e2d 2c2d 2h2d 4a3b 2d2h 6c6d 7i7h").split(' ');

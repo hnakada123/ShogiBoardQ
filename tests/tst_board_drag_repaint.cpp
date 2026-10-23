@@ -35,6 +35,13 @@
 /// 盤面の変わらない部分を描いた画像が、盤の反転・大きさ・配色・質感の変更に追従すること。
 /// 対局画面の外観（駒・将棋盤・背景・駒台・対局者情報）をどれに変えても、描き残しが出ないこと。
 /// 読み筋ウィンドウ・局面集ビューアで局面を替えても、変わった所だけを描き直すこと。
+/// 盤のクリック（移動元・移動先）の手を指す（盤の操作と同じく prepareMove で決めてから指す）。指せなければ nullopt
+static std::optional<RecordEntry> clickMove(ShogiGameController& gc, const QPoint& from, const QPoint& to)
+{
+    const std::optional<UsiMove> move = gc.prepareMove(from, to);
+    return move ? gc.applyRecordedMove(*move, {}) : std::nullopt;
+}
+
 class TestBoardDragRepaint : public QObject
 {
     Q_OBJECT
@@ -190,7 +197,7 @@ class TestBoardDragRepaint : public QObject
         };
         for (const auto& [from, to] : game) {
             QPoint f = from, t = to;
-            const std::optional<RecordEntry> played = gc.validateAndMove(f, t, {});
+            const std::optional<RecordEntry> played = clickMove(gc, f, t);
             if (!played) return {};
             history.append(played->sfen);
         }
@@ -511,7 +518,7 @@ private slots:
             QCoreApplication::processEvents();
             ui.controller->onLeftClick(to);
             QPoint f = from, t = to;
-            const bool ok = ui.gc.validateAndMove(f, t, {}).has_value();
+            const bool ok = clickMove(ui.gc, f, t).has_value();
             QVERIFY(ok);
             ui.controller->onMoveApplied(f, t, ok);
             QCoreApplication::processEvents();
@@ -736,7 +743,7 @@ private slots:
             settle();
             ui.controller->onLeftClick(to);
             QPoint f = from, t = to;
-            const bool ok = ui.gc.validateAndMove(f, t, {}).has_value();
+            const bool ok = clickMove(ui.gc, f, t).has_value();
             QVERIFY(ok);
             ++ply;
             ui.controller->onMoveApplied(f, t, ok);

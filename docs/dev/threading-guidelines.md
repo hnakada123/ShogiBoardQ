@@ -78,18 +78,25 @@ void loadInWorker(KifuDocument* document);  // 禁止
 
 ## 6. stale結果の破棄
 
-非同期処理の結果が古くなった場合に備え、`JobGeneration` を使用する。
+古くなった結果は、結果を受ける側が「今待っているジョブの結果か」で捨てる。ジョブごとに `QFutureWatcher` を作って持ち、
+完了の知らせの送り主が今のワーカーでなければ何もしない。止めたジョブは、止めるよう知らせたら終わるのを待たずに
+ワーカーとの接続を切り、終わったら自分で消えるようにする（ワーカーは値だけを持つので待たなくてよい）。
 
 ```cpp
-// リクエスト時に世代番号をインクリメント
-++m_currentGeneration;
-auto gen = m_currentGeneration;
+// 止める（詰将棋の TsumeGameSession・TsumePositionAnalyzer）
+m_stop->store(true);
+disconnect(m_watcher, nullptr, this, nullptr);
+connect(m_watcher, &QFutureWatcherBase::finished, m_watcher, &QObject::deleteLater);
+m_watcher = nullptr;
 
-// 結果受信時に世代番号を照合
-void onResultReady(JobGeneration gen, const Result& result)
+// 結果を受ける
+void onFinished()
 {
-    if (gen != m_currentGeneration)
-        return;  // stale結果を破棄
+    QFutureWatcher<Result>* watcher = m_watcher;
+    if (!watcher || sender() != watcher) return;   // 止めたジョブの結果は捨てる
+    m_watcher = nullptr;
+    const Result result = watcher->result();
+    watcher->deleteLater();
     // 最新の結果を処理
 }
 ```

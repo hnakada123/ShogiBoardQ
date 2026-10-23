@@ -87,7 +87,7 @@
 78. `tst_tsumeshogi_generator`
 79. `tst_tsumeshogi_export_header`
 80. `tst_analysis_results`
-81. `tst_consideration_resolver`
+81. `tst_consideration_position`
 82. `tst_tsume_search`
 83. `tst_image_export`
 84. `tst_sfen_collection`

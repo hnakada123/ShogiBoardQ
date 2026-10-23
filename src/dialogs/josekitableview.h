@@ -49,7 +49,6 @@ public:
 
     /// 定跡手が無いときに表の中に出す案内（空なら隠す）
     void setEmptyGuide(const QString &text);
-    QLabel *emptyGuideLabel() const { return m_emptyGuide; }
 
 signals:
     void rowActionRequested(JosekiTableView::RowAction action, int row);

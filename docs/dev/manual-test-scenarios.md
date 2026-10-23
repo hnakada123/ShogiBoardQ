@@ -164,7 +164,7 @@
 **重点確認ポイント:**
 - `MatchCoordinator::endGame()` のフロー（時計の停止、エンジンへの通知、終局手の追記、動作状態を `Idle` に戻して `gameEnded`）
 - `MatchCoordinator::appendTerminalRecord()` による終局手追記（`MatchRecordSink::appendRecord` 経由）
-- `GameSession::onGameEnded` の `finishMatchRecord()` で `LiveGameSession::commit()` が呼ばれ（中断以外）、終局日時が記録され（`KifuDocument::recordMatchEnd()`）、自動保存を設定していれば棋譜が保存されるか
+- `GameSession::onGameEnded` の `finishMatchRecord()` で `LiveGameSession::commit()` が呼ばれ（中断も。中断して再開を待つ間も盤で変化を指せ、分岐を編集できるか）、終局日時が記録され（`KifuDocument::recordMatchEnd()`）、自動保存を設定していれば棋譜が保存されるか
 - `UiStatePolicyManager` の状態遷移（`DuringGame` → `Idle`）
 - `HumanTurnPolicy::isGameActivelyInProgress()` が `false` を返すか
 - `MatchCoordinator::gameOverState().isOver` の設定

@@ -268,11 +268,6 @@ const QList<ShogiView::Arrow>& ShogiView::arrows() const
     return m_highlighting->arrows();
 }
 
-void ShogiView::clearArrows()
-{
-    m_highlighting->clearArrows();
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // 対局者カードの配置
 // ─────────────────────────────────────────────────────────────────────────────
