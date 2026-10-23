@@ -9,6 +9,7 @@
 #include <QStringList>
 #include <optional>
 
+#include "recordtime.h"
 #include "shogiposition.h"
 #include "shogitypes.h"
 
@@ -22,32 +23,20 @@ namespace KifLexer {
 
 // === 正規表現アクセサ ===
 
-/// KIF時間正規表現: ( m:ss / H:MM:SS )
-const QRegularExpression& kifTimeRe();
-
 /// 変化の行（"変化：12手" など。KIF と KI2 で同じ）。1番目のキャプチャが手数
 const QRegularExpression& variationHeaderCaptureRe();
 
-// === 時間解析 ===
+// === 手数で始まる行 ===
 
-/// 時間正規表現マッチから "mm:ss/HH:MM:SS" を正規化
-QString normalizeTimeMatch(const QRegularExpressionMatch& m);
+/// 手数で始まる行の1手（"1 ７六歩(77)   ( 0:01/00:00:01) *コメント"）
+struct NumberedMove {
+    QString text;                    ///< 指し手・終局語の表記（手数・消費時間・コメント・分岐の印を除く）
+    std::optional<RecordTime> time;  ///< 消費時間と累計（書かれていなければ空。読めない値は表記のまま残す）
+    QString comment;                 ///< 行内のコメント（* の後ろ。行末まで）
+};
 
-/// 時間マッチから累計時間部分 "HH:MM:SS" を抽出
-QString extractCumTimeFromMatch(const QRegularExpressionMatch& tm);
-
-// === 行内トークン抽出 ===
-
-/// rest から時間・次手番号を抽出し、rest を時間/次手を除いた部分に置換
-void stripTimeAndNextMove(QString& rest, const QString& lineStr, int skipOffset,
-                          QRegularExpressionMatch& tm, QString& timeText, int& nextMoveStartIdx);
-
-/// rest からインラインコメント（*／＊）を除去し commentBuf に蓄積
-void stripInlineComment(QString& rest, QString& commentBuf);
-
-/// lineStr を次の指し手位置まで進める
-void advanceToNextMove(QString& lineStr, int skipOffset,
-                       const QRegularExpressionMatch& tm, int nextMoveStartIdx);
+/// 手数で始まる行を読む。1行に複数の手が並ぶこともある（表記のない手は読み飛ばす）
+QList<NumberedMove> readNumberedMoves(const QString& line);
 
 // === BOD盤面解析 ===
 

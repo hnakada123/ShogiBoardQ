@@ -2,7 +2,6 @@
 /// @brief KIF形式固有の字句解析・トークン化の実装・BOD盤面解析
 
 #include "kiflexer.h"
-#include "parsecommon.h"
 
 #include <QRegularExpression>
 #include "shoginotation.h"
@@ -41,16 +40,44 @@ std::optional<int> startsWithMoveNumber(const QString& line)
     return digits;
 }
 
+namespace {
+
+/// 消費時間（"( m:ss/H:MM:SS)"。分と時間は何桁でもよい）
 const QRegularExpression& kifTimeRe()
 {
-    static const auto& re = *[]() {
-        static const QRegularExpression r(
-            QStringLiteral("\\(\\s*([0-9０-９]+)[:：]([0-9０-９]{2})(?:\\s*[／/]\\s*([0-9０-９]+)[:：]([0-9０-９]{2})[:：]([0-9０-９]{2}))?\\s*\\)")
-            );
-        return &r;
-    }();
+    static const QRegularExpression re(
+        QStringLiteral("\\(\\s*([0-9０-９]+)[:：]([0-9０-９]{2})(?:\\s*[／/]\\s*([0-9０-９]+)[:：]([0-9０-９]{2})[:：]([0-9０-９]{2}))?\\s*\\)"));
     return re;
 }
+
+/// 消費時間の欄を値にする（秒・分が60以上なら読めない表記として残す）
+RecordTime timeOf(const QRegularExpressionMatch& m)
+{
+    const auto number = [&m](int index) { return static_cast<qint64>(ShogiNotation::numberFromDigits(m.captured(index))); };
+    const bool hasTotal = m.lastCapturedIndex() >= 5 && !m.captured(3).isEmpty();
+    const qint64 minutes = number(1), seconds = number(2);
+    const qint64 hours = hasTotal ? number(3) : 0;
+    const qint64 totalMinutes = hasTotal ? number(4) : 0;
+    const qint64 totalSeconds = hasTotal ? number(5) : 0;
+    if (seconds >= 60 || totalMinutes >= 60 || totalSeconds >= 60) {
+        RecordTime unreadable;
+        unreadable.importedText = m.captured(0);
+        return unreadable;
+    }
+    return RecordTime::fromMilliseconds((minutes * 60 + seconds) * 1000,
+                                        ((hours * 60 + totalMinutes) * 60 + totalSeconds) * 1000);
+}
+
+/// 行内のコメントの始まり（* か ＊。なければ -1）
+qsizetype commentStart(const QString& text)
+{
+    const qsizetype ascii = text.indexOf(QChar(u'*'));
+    const qsizetype wide = text.indexOf(QChar(u'＊'));
+    if (ascii < 0) return wide;
+    return wide < 0 ? ascii : qMin(ascii, wide);
+}
+
+} // namespace
 
 const QRegularExpression& variationHeaderCaptureRe()
 {
@@ -61,89 +88,42 @@ const QRegularExpression& variationHeaderCaptureRe()
     return re;
 }
 
-// === 時間解析 ===
-
-QString normalizeTimeMatch(const QRegularExpressionMatch& m)
+QList<NumberedMove> readNumberedMoves(const QString& source)
 {
-    const int mm = ShogiNotation::numberFromDigits(m.captured(1));
-    const int ss = ShogiNotation::numberFromDigits(m.captured(2));
-    const bool hasCum = m.lastCapturedIndex() >= 5 && m.captured(3).size();
-    const int HH = hasCum ? ShogiNotation::numberFromDigits(m.captured(3)) : 0;
-    const int MM = hasCum ? ShogiNotation::numberFromDigits(m.captured(4)) : 0;
-    const int SS = hasCum ? ShogiNotation::numberFromDigits(m.captured(5)) : 0;
-    auto z2 = [](int x){ return QStringLiteral("%1").arg(x, 2, 10, QLatin1Char('0')); };
-    return z2(mm) + QLatin1Char(':') + z2(ss) + QLatin1Char('/') +
-           z2(HH) + QLatin1Char(':') + z2(MM) + QLatin1Char(':') + z2(SS);
-}
-
-QString extractCumTimeFromMatch(const QRegularExpressionMatch& tm)
-{
-    auto z2 = [](int x){ return QStringLiteral("%1").arg(x, 2, 10, QLatin1Char('0')); };
-    const bool hasCum = tm.lastCapturedIndex() >= 5 && tm.captured(3).size();
-    if (!hasCum) return QStringLiteral("00:00:00");
-    const int HH = ShogiNotation::numberFromDigits(tm.captured(3));
-    const int MM = ShogiNotation::numberFromDigits(tm.captured(4));
-    const int SS = ShogiNotation::numberFromDigits(tm.captured(5));
-    return z2(HH) + QLatin1Char(':') + z2(MM) + QLatin1Char(':') + z2(SS);
-}
-
-// === 行内トークン抽出 ===
-
-void stripTimeAndNextMove(QString& rest, const QString& lineStr, int skipOffset,
-                          QRegularExpressionMatch& tm, QString& timeText, int& nextMoveStartIdx)
-{
-    tm = kifTimeRe().match(rest);
-    if (tm.hasMatch()) {
-        timeText = normalizeTimeMatch(tm);
-        nextMoveStartIdx = static_cast<int>(tm.capturedEnd(0));
-        rest = rest.left(tm.capturedStart(0)).trimmed();
-    } else {
-        QRegularExpressionMatch nextM = nextMoveNumberRe().match(rest);
-        if (nextM.hasMatch()) {
-            nextMoveStartIdx = static_cast<int>(nextM.capturedStart());
-            rest = rest.left(nextMoveStartIdx).trimmed();
-        } else {
-            nextMoveStartIdx = -1;
-        }
-    }
-    // 消費時間欄がない行では、分岐ありを示す行末の「+」が指し手に残るので取り除く
     static const QRegularExpression s_branchMark(QStringLiteral("\\s*[+＋]$"));
-    rest.remove(s_branchMark);
-    Q_UNUSED(lineStr);
-    Q_UNUSED(skipOffset);
-}
+    QList<NumberedMove> moves;
+    QString line = source;
+    while (!line.isEmpty()) {
+        const std::optional<int> digits = startsWithMoveNumber(line);
+        if (!digits) break;
+        int i = *digits;
+        while (i < line.size() && line.at(i).isSpace()) ++i;
+        if (i >= line.size()) break;
 
-void stripInlineComment(QString& rest, QString& commentBuf)
-{
-    int commentIdx = static_cast<int>(rest.indexOf(QChar(u'*')));
-    if (commentIdx < 0) commentIdx = static_cast<int>(rest.indexOf(QChar(u'＊')));
-    if (commentIdx >= 0) {
-        const QString inlineC = rest.mid(commentIdx + 1).trimmed();
-        if (!inlineC.isEmpty()) {
-            KifuParseCommon::appendLine(commentBuf, inlineC);
+        NumberedMove move;
+        QString rest = line.mid(i).trimmed();
+        // コメントは行末まで（コメントの中の数字を次の手と見ない）
+        if (const qsizetype comment = commentStart(rest); comment >= 0) {
+            move.comment = rest.mid(comment + 1).trimmed();
+            rest = rest.left(comment).trimmed();
         }
-        rest = rest.left(commentIdx).trimmed();
-    }
-}
-
-void advanceToNextMove(QString& lineStr, int skipOffset,
-                       const QRegularExpressionMatch& tm, int nextMoveStartIdx)
-{
-    if (nextMoveStartIdx != -1) {
-        if (tm.hasMatch()) {
-            int consumed = skipOffset + static_cast<int>(tm.capturedEnd(0));
-            lineStr = lineStr.mid(consumed).trimmed();
-        } else {
-            QRegularExpressionMatch nm = nextMoveNumberRe().match(lineStr, skipOffset);
-            if (nm.hasMatch()) {
-                lineStr = lineStr.mid(nm.capturedStart()).trimmed();
-            } else {
-                lineStr.clear();
-            }
+        // 消費時間の欄、なければ次の手の手数で、この手の表記が終わる
+        QString next;
+        if (const QRegularExpressionMatch time = kifTimeRe().match(rest); time.hasMatch()) {
+            move.time = timeOf(time);
+            next = rest.mid(time.capturedEnd(0)).trimmed();
+            rest = rest.left(time.capturedStart(0)).trimmed();
+        } else if (const QRegularExpressionMatch number = nextMoveNumberRe().match(rest); number.hasMatch()) {
+            next = rest.mid(number.capturedStart()).trimmed();
+            rest = rest.left(number.capturedStart()).trimmed();
         }
-    } else {
-        lineStr.clear();
+        // 消費時間欄がない行では、分岐ありを示す行末の「+」が指し手に残るので取り除く
+        rest.remove(s_branchMark);
+        move.text = rest;
+        if (!move.text.isEmpty()) moves.append(move);
+        line = next;
     }
+    return moves;
 }
 
 } // namespace KifLexer

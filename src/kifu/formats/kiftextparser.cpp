@@ -109,37 +109,20 @@ private:
     }
 
     /// 手数で始まる行（KIF。"1 ７六歩(77) ( 0:01/00:00:01)"。1行に複数の手が並ぶこともある）
-    void readNumberedLine(QString line)
+    void readNumberedLine(const QString& line)
     {
-        const QString original = line;
-        while (!line.isEmpty() && !m_builder.ended()) {
-            const auto digits = KifLexer::startsWithMoveNumber(line);
-            if (!digits) break;
-            int i = *digits;
-            while (i < line.size() && line.at(i).isSpace()) ++i;
-            if (i >= line.size()) break;
-
-            QString rest = line.mid(i).trimmed();
-            QRegularExpressionMatch tm;
-            QString timeText;
-            int nextMoveStart = -1;
-            QString inlineComment;
-            KifLexer::stripTimeAndNextMove(rest, line, i, tm, timeText, nextMoveStart);
-            KifLexer::stripInlineComment(rest, inlineComment);
-            KifLexer::advanceToNextMove(line, i, tm, nextMoveStart);
-            if (rest.isEmpty()) continue;
-
-            if (const TerminalType terminal = TerminalTypes::fromWord(rest); terminal != TerminalType::None) {
-                // 千日手と消費時間のない終局は、累計だけを残す
-                const QString total = tm.hasMatch() ? KifLexer::extractCumTimeFromMatch(tm) : QStringLiteral("00:00:00");
-                const QString time = (terminal == TerminalType::Repetition || timeText.isEmpty())
-                    ? QStringLiteral("00:00/") + total : timeText;
-                m_builder.addTerminal(terminal, m_builder.sideToMove(), RecordTime::fromText(time));
-            } else {
-                const RecordTime time = timeText.isEmpty() ? KifLineBuilder::zeroTime() : RecordTime::fromText(timeText);
-                if (!readMove(rest, time, original)) return;
+        const QList<KifLexer::NumberedMove> moves = KifLexer::readNumberedMoves(line);
+        for (const KifLexer::NumberedMove& move : moves) {
+            if (m_builder.ended()) return;
+            const RecordTime time = move.time.value_or(KifLineBuilder::zeroTime());
+            if (const TerminalType terminal = TerminalTypes::fromWord(move.text); terminal != TerminalType::None) {
+                // 千日手の行は、消費時間を数えずに累計だけを残す
+                m_builder.addTerminal(terminal, m_builder.sideToMove(),
+                                      terminal == TerminalType::Repetition ? RecordTime::fromMilliseconds(0, time.totalMs) : time);
+            } else if (!readMove(move.text, time, line)) {
+                return;
             }
-            if (!inlineComment.isEmpty()) m_builder.appendComment(inlineComment);
+            if (!move.comment.isEmpty()) m_builder.appendComment(move.comment);
         }
     }
 
