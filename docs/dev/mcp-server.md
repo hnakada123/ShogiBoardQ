@@ -310,7 +310,7 @@ MCP サーバーは `AppClient.call_queued()` で操作の実行を待つ（5 �
 | `AutomationInteractions` / `QueuedInteraction` | `src/automation/automationinteractions.{h,cpp}` | 応答の後に行う UI 操作の予約（`queue()`）・実行の直前の再検査・結果の記録と `ui.interaction` の答え（`status()`） |
 | `AutomationInput` | `src/automation/automationinput.{h,cpp}` | 通常のマウス入力（`sendClick()`・`sendDrag()`） |
 | `AutomationWidgets` / `AutomationWidgetAdapters` | `src/automation/automationwidgets.{h,cpp}`・`automationwidgetadapters.{h,cpp}` | ウィンドウ・部品の検索と操作可否の検査（`requireInteractive()`）／部品の型ごとの読み（`describe()`）と書き（`writer()`）の表 |
-| `ScreenshotService` | `src/services/screenshotservice.{h,cpp}` | ウィンドウの PNG 保存。リリースビルドでも使える。F12 のショートカット（`DebugScreenshotShortcut`）はデバッグビルド専用 |
+| `ScreenshotService` | `src/ui/controllers/screenshotservice.{h,cpp}` | ウィンドウの PNG 保存。リリースビルドでも使える。F12 のショートカット（`DebugScreenshotShortcut`）はデバッグビルド専用 |
 
 MainWindow には `startAutomationServer(socketPath)` の委譲メソッドだけを追加し、生成と依存注入は `MainWindowComposer::startAutomationServer()`（`src/app/mainwindowcomposer_automation.cpp`）で行う（[composition-root.md](composition-root.md)）。`KifuFileController` には確認ダイアログを出さない非対話 API（`loadKifuFile`、`loadKifuText`、`applySfenPosition`、`saveKifuToPath`、`hasUnsavedChanges`）と `exportLines(format)` を置く。
 

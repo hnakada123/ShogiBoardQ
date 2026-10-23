@@ -26,7 +26,7 @@
 #include "usentosfenconverter.h"
 #include "livegamesession.h"
 #include "kifufilecontroller.h"
-#include "kifuloadcoordinator.h"
+#include "kifuloader.h"
 #include "shogiboard.h"
 #include "shogigamecontroller.h"
 #include "matchtimerecord.h"
@@ -48,14 +48,14 @@ struct FileHarness {
     {
         KifuFileController::Deps deps;
         deps.document = &document;
-        deps.loadCoordinator = &loader;
+        deps.loader = &loader;
         deps.gameController = &gc;
         deps.navState = nav;
         controller = std::make_unique<KifuFileController>(deps);
     }
 
     KifuDocument document;
-    KifuLoadCoordinator loader;
+    KifuLoader loader;
     ShogiGameController gc;
     std::unique_ptr<KifuFileController> controller;
 };

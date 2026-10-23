@@ -58,7 +58,7 @@ class SessionResetCoordinator;
 
 // 棋譜のファイル
 class KifuFileController;
-class KifuLoadCoordinator;
+class KifuLoader;
 
 // 表示
 class AnalysisResultsPanel;
@@ -87,7 +87,7 @@ class PieceSoundPlayer;
 class PvClickController;
 class SettingsResetController;
 class TsumeSearchController;
-class UiNotificationService;
+class NotificationPresenter;
 class UiStatePolicyManager;
 class UsiCommandController;
 
@@ -160,7 +160,7 @@ struct MainWindowComponents {
     std::unique_ptr<SessionResetCoordinator> sessionReset;
 
     // --- 棋譜のファイル ---
-    KifuLoadCoordinator* kifuLoadCoordinator = nullptr;
+    KifuLoader* kifuLoader = nullptr;
     KifuFileController* kifuFileController = nullptr;
     JosekiBookSession* josekiBook = nullptr;            ///< 開いている定跡ファイル（定跡ウィンドウが表示・編集する）
 
@@ -173,7 +173,7 @@ struct MainWindowComponents {
     AnalysisResultsPanel* analysisResults = nullptr;
     DockLayoutManager* dockLayoutManager = nullptr;
     UiStatePolicyManager* uiStatePolicy = nullptr;
-    UiNotificationService* notificationService = nullptr;
+    NotificationPresenter* notifications = nullptr;
 
     // --- 利用者の操作 ---
     MainWindowActions* actions = nullptr;

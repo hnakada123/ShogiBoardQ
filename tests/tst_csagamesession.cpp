@@ -9,7 +9,7 @@
 #include "csagamesession.h"
 #include "matchrecordsink.h"
 #include "recordentry.h"
-#include "uinotificationservice.h"
+#include "notificationpresenter.h"
 #include "uistatepolicymanager.h"
 
 namespace {
@@ -49,7 +49,7 @@ private slots:
         CsaGameCoordinator coordinator;
         AppActivityState activity;
         BoardInteractionController board(nullptr, nullptr);
-        UiNotificationService notifications({});
+        NotificationPresenter notifications({});
         CsaGameSession::Deps deps;
         deps.coordinator = &coordinator;
         deps.activity = &activity;

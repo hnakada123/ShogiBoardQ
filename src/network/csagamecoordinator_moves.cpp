@@ -44,7 +44,7 @@ void CsaGameCoordinator::clearPendingVerdict()
 void CsaGameCoordinator::onVerdictTimeout()
 {
     if (m_pendingFailureText.isEmpty()) return;
-    if (m_gameState != GameState::InGame) {
+    if (m_phase != Phase::Playing) {
         clearPendingVerdict();
         return;
     }
@@ -131,7 +131,6 @@ void CsaGameCoordinator::finishMove(const RecordEntry& played, int consumedTimeM
     const bool isBlackMove = played.mover == Turn::Black;
     p.recordMoveTime(isBlackMove, consumedTimeMs);
     // 次の手番の考慮時間を数え始める
-    m_turnSide = (nowMyTurn == p.isBlackSide) ? Turn::Black : Turn::White;
     m_turnTimer.start();
     syncClockAfterMove(nowMyTurn);
 
@@ -152,7 +151,7 @@ void CsaGameCoordinator::finishMove(const RecordEntry& played, int consumedTimeM
 
 bool CsaGameCoordinator::applyConfirmedMove(const QString& move, int consumedTimeMs, bool nowMyTurn)
 {
-    if (m_gameState != GameState::InGame || !m_gameController || failIfVerdictPending()) return false;
+    if (m_phase != Phase::Playing || !m_gameController || failIfVerdictPending()) return false;
     QPoint from, to;
     const QString problem = validateMoveText(move, &from, &to);
     if (!problem.isEmpty()) {
@@ -175,7 +174,7 @@ bool CsaGameCoordinator::applyConfirmedMove(const QString& move, int consumedTim
 void CsaGameCoordinator::onMoveReceived(const QString& move, int consumedTimeMs)
 {
     emit logMessage(tr("相手の指し手: %1 (消費時間: %2ms)").arg(move).arg(consumedTimeMs), false);
-    if (applyConfirmedMove(move, consumedTimeMs, true) && m_playerType == PlayerType::Engine)
+    if (applyConfirmedMove(move, consumedTimeMs, true) && !isHumanPlayer())
         startEngineThinking();
 }
 
@@ -191,7 +190,7 @@ void CsaGameCoordinator::onMoveConfirmed(const QString& move, int consumedTimeMs
 
 void CsaGameCoordinator::startEngineThinking()
 {
-    if (!m_engineSeat || !m_engineSeat->isReady() || m_playerType != PlayerType::Engine) {
+    if (!m_engineSeat || !m_engineSeat->isReady() || isHumanPlayer()) {
         return;
     }
 
@@ -209,7 +208,6 @@ void CsaGameCoordinator::startEngineThinking()
 void CsaGameCoordinator::onEngineMoveReady(const UsiMatchMove& result)
 {
     if (!isMyTurn()) return;
-    if (m_gameState != GameState::InGame) return;
 
     if (!result.move.isValid()) {
         emit logMessage(tr("エンジンが有効な指し手を返しませんでした"), true);

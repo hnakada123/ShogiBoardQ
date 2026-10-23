@@ -4,6 +4,7 @@
 /// @file setting.h
 /// @brief 設定ファイルの1項目（キーと既定値）を1行で宣言する型
 
+#include <QByteArray>
 #include <QList>
 #include <QSettings>
 #include <QString>
@@ -29,13 +30,14 @@
  * @endcode
  *
  * 値の範囲を絞る・形式を変換するなど処理が要る項目は、この型を使った関数として書く。
+ * キーは実行時に組み立ててもよい（対局者ごとの項目など。宣言はキーの写しを持つ）。
  */
 template <typename T>
 class Setting
 {
 public:
-    Setting(const char* key, T defaultValue)
-        : m_key(key), m_default(std::move(defaultValue))
+    Setting(QByteArray key, T defaultValue)
+        : m_key(std::move(key)), m_default(std::move(defaultValue))
     {
     }
 
@@ -58,11 +60,11 @@ public:
     /// 保存した値を消す（以後は既定値を返す）
     void remove() const { SettingsCommon::openSettings().remove(QLatin1String(m_key)); }
 
-    const char* key() const { return m_key; }
+    const char* key() const { return m_key.constData(); }
     const T& defaultValue() const { return m_default; }
 
 private:
-    const char* m_key;
+    QByteArray m_key;
     T m_default;
 };
 
@@ -76,8 +78,8 @@ template <typename T>
 class BoundedSetting : public Setting<T>
 {
 public:
-    BoundedSetting(const char* key, T defaultValue, T minimum, T maximum)
-        : Setting<T>(key, std::move(defaultValue)), m_min(std::move(minimum)), m_max(std::move(maximum))
+    BoundedSetting(QByteArray key, T defaultValue, T minimum, T maximum)
+        : Setting<T>(std::move(key), std::move(defaultValue)), m_min(std::move(minimum)), m_max(std::move(maximum))
     {
     }
 
@@ -98,15 +100,15 @@ private:
  */
 template <typename T>
 struct SettingField {
-    const char* key;
+    QByteArray key;
     std::function<QVariant(const T&)> read;
     std::function<void(T&, const QVariant&)> write;
 
-    /// メンバ member をキー key に保存する項目
+    /// メンバ member をキー key に保存する項目（キーは実行時に組み立ててもよい）
     template <typename M>
-    static SettingField of(const char* key, M T::* member)
+    static SettingField of(QByteArray key, M T::* member)
     {
-        return {key, [member](const T& object) { return QVariant::fromValue(object.*member); },
+        return {std::move(key), [member](const T& object) { return QVariant::fromValue(object.*member); },
                 [member](T& object, const QVariant& value) { object.*member = value.template value<M>(); }};
     }
 };
@@ -121,6 +123,8 @@ struct SettingField {
  *     {SettingField<PieceSoundTone>::of("PieceSound/pitch", &PieceSoundTone::pitchSemitones), ...},
  *     &PieceSoundTone::clamped};
  * @endcode
+ * グループ名だけ違う組（対局者ごとの項目など）は、グループ名からこの値を作る関数を1つ書き、
+ * 組ごとにその関数で宣言する（JosekiSettings::playOptions1・playOptions2）。
  */
 template <typename T>
 class StructSetting

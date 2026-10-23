@@ -30,7 +30,7 @@
 #include "considerationuicontroller.h"
 #include "appsettings.h"
 #include "matchcoordinator.h"
-#include "kifuloadcoordinator.h"
+#include "kifuloader.h"
 #include "kifufilecontroller.h"
 #include "dialoglauncher.h"
 #include "kifuanalysislistmodel.h"
@@ -207,19 +207,19 @@ private slots:
         const QString fixture = QCoreApplication::applicationDirPath() + QStringLiteral("/fixtures/test_basic.kif");
 
         QVERIFY(files->loadKifuFile(fixture));
-        const QPointer<KifuLoadCoordinator> first = parts.kifuLoadCoordinator;
+        const QPointer<KifuLoader> first = parts.kifuLoader;
         QVERIFY(first);
         QVERIFY(files->loadKifuText(QStringLiteral("position startpos moves 7g7f 3c3d")));
         QVERIFY(files->applySfenPosition(QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b G 1")));
         QVERIFY(files->loadKifuFile(fixture));
         first->loadFileAsync(fixture);
         first->loadTextAsync(QStringLiteral("position startpos moves 2g2f"));
-        QSignalSpy finished(first.data(), &KifuLoadCoordinator::loadFinished);
+        QSignalSpy finished(first.data(), &KifuLoader::loadFinished);
         QTRY_COMPARE(finished.count(), 1);
 
         QVERIFY(first);
-        QCOMPARE(parts.kifuLoadCoordinator, first.data());
-        QCOMPARE(window.findChildren<KifuLoadCoordinator*>().size(), 1);
+        QCOMPARE(parts.kifuLoader, first.data());
+        QCOMPARE(window.findChildren<KifuLoader*>().size(), 1);
         // 後から始めた読み込みが残る（先の非同期読み込みは打ち切られる）
         QCOMPARE(parts.branchTree->mainRecordLine().usiMoves(), QStringList{QStringLiteral("2g2f")});
     }

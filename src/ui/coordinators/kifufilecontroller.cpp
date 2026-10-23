@@ -13,10 +13,10 @@
 #include "kifudocument.h"
 #include "kifuexport.h"
 #include "kifuioservice.h"
-#include "kifuloadcoordinator.h"
+#include "kifuloader.h"
 #include "kifunavigationstate.h"
 #include "kifupastedialog.h"
-#include "kifusavecoordinator.h"
+#include "kifusavedialogs.h"
 #include "logcategories.h"
 #include "shogiboard.h"
 #include "shogigamecontroller.h"
@@ -35,8 +35,8 @@ KifuFileController::KifuFileController(const Deps& deps, QObject* parent)
     : QObject(parent)
     , m_deps(deps)
 {
-    Q_ASSERT(m_deps.document && m_deps.loadCoordinator && m_deps.gameController && m_deps.navState);
-    connect(m_deps.loadCoordinator, &KifuLoadCoordinator::loadFinished, this, &KifuFileController::onAsyncLoadFinished);
+    Q_ASSERT(m_deps.document && m_deps.loader && m_deps.gameController && m_deps.navState);
+    connect(m_deps.loader, &KifuLoader::loadFinished, this, &KifuFileController::onAsyncLoadFinished);
 }
 
 bool KifuFileController::hasUnsavedChanges() const
@@ -59,7 +59,7 @@ bool KifuFileController::refuseReplacingRecord()
 
 bool KifuFileController::confirmDiscardUnsaved()
 {
-    return KifuSaveCoordinator::confirmDiscardUnsaved(m_deps.parentWidget, hasUnsavedChanges(), [this]() {
+    return KifuSaveDialogs::confirmDiscardUnsaved(m_deps.parentWidget, hasUnsavedChanges(), [this]() {
         overwriteKifuFile();
         return !hasUnsavedChanges();
     });
@@ -111,12 +111,12 @@ void KifuFileController::onKifuPasteImportRequested(const QString& content)
 void KifuFileController::onSfenCollectionPositionSelected(const QString& sfen)
 {
     if (refuseReplacingRecord() || !confirmDiscardUnsaved()) return;
-    finishLoad(m_deps.loadCoordinator->loadPositionFromSfen(sfen), Source::Collection, QString());
+    finishLoad(m_deps.loader->loadPositionFromSfen(sfen), Source::Collection, QString());
 }
 
 void KifuFileController::startAsyncLoad(const QString& input, Source source)
 {
-    KifuLoadCoordinator* coordinator = m_deps.loadCoordinator;
+    KifuLoader* coordinator = m_deps.loader;
     if (m_loadProgress) m_loadProgress->deleteLater();
     m_pendingSource = source;
     m_pendingLoadPath = source == Source::File ? input : QString();
@@ -124,7 +124,7 @@ void KifuFileController::startAsyncLoad(const QString& input, Source source)
     m_loadProgress = new QProgressDialog(tr("棋譜を読み込み中..."), tr("キャンセル"), 0, 0, m_deps.parentWidget);
     m_loadProgress->setWindowModality(Qt::WindowModal);
     m_loadProgress->setMinimumDuration(0);
-    connect(m_loadProgress, &QProgressDialog::canceled, coordinator, &KifuLoadCoordinator::cancelLoad);
+    connect(m_loadProgress, &QProgressDialog::canceled, coordinator, &KifuLoader::cancelLoad);
     m_asyncLoadPending = true;
     m_loadProgress->show();
     if (source == Source::Text) coordinator->loadTextAsync(input);
@@ -171,21 +171,21 @@ void KifuFileController::finishLoad(bool success, Source source, const QString& 
 bool KifuFileController::loadKifuFile(const QString& filePath)
 {
     // 拡張子が .json などでも、内容から形式を判定して読み込む
-    const bool loaded = m_deps.loadCoordinator->loadFile(filePath);
+    const bool loaded = m_deps.loader->loadFile(filePath);
     finishLoad(loaded, Source::File, filePath);
     return loaded;
 }
 
 bool KifuFileController::loadKifuText(const QString& content)
 {
-    const bool loaded = m_deps.loadCoordinator->loadText(content);
+    const bool loaded = m_deps.loader->loadText(content);
     if (loaded) m_deps.document->markUnsavedContent();
     return loaded;
 }
 
 bool KifuFileController::applySfenPosition(const QString& sfen)
 {
-    const bool loaded = m_deps.loadCoordinator->loadPositionFromSfen(sfen);
+    const bool loaded = m_deps.loader->loadPositionFromSfen(sfen);
     finishLoad(loaded, Source::Position, QString());
     return loaded;
 }
@@ -213,7 +213,7 @@ void KifuFileController::saveKifuToFile()
     }
 
     QString error;
-    const QString path = KifuSaveCoordinator::saveViaDialog(
+    const QString path = KifuSaveDialogs::saveViaDialog(
         m_deps.parentWidget, [this](KifuFormat format) { return exportLines(format); },
         KifuIoService::makeDefaultSaveFileName(m_deps.document->players(), QDateTime::currentDateTime()),
         hasBranches, hasTimeInfo, &error);
@@ -246,7 +246,7 @@ bool KifuFileController::writeToPath(const QString& filePath, QWidget* dialogPar
     // 名前を付けて保存と同じ基準（拡張子）で保存形式を決める。
     // KIF 固定で書くと .csa などに保存したファイルが KIF 内容で上書きされてしまう
     const QStringList lines = exportLines(KifuSaveFile::saveFormatForPath(filePath));
-    const bool ok = KifuSaveCoordinator::overwriteExisting(dialogParent, filePath, lines, errorText);
+    const bool ok = KifuSaveDialogs::overwriteExisting(dialogParent, filePath, lines, errorText);
     if (ok) markSaved(filePath, tr("棋譜を上書き保存しました: %1").arg(filePath));
     return ok;
 }

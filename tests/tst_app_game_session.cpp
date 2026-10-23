@@ -155,17 +155,18 @@ private slots:
         HumanTurnPolicy policy(deps);
         QVERIFY(!policy.isHumanTurnNow());
 
-        csa->m_gameState = CsaGameCoordinator::GameState::InGame;
-        csa->m_playerType = CsaGameCoordinator::PlayerType::Human;
+        csa->m_phase = CsaGameCoordinator::Phase::Playing;
+        csa->m_options.playerType = CsaGameCoordinator::PlayerType::Human;
         csa->m_client->m_isMyTurn = true;
         QVERIFY(policy.isHumanTurnNow());
         csa->m_client->m_isMyTurn = false;
         QVERIFY(!policy.isHumanTurnNow());
         csa->m_client->m_isMyTurn = true;
-        csa->m_playerType = CsaGameCoordinator::PlayerType::Engine;
+        csa->m_options.playerType = CsaGameCoordinator::PlayerType::Engine;
         QVERIFY(!policy.isHumanTurnNow());
-        csa->m_playerType = CsaGameCoordinator::PlayerType::Human;
-        csa->m_gameState = CsaGameCoordinator::GameState::GameOver;
+        csa->m_options.playerType = CsaGameCoordinator::PlayerType::Human;
+        csa->m_phase = CsaGameCoordinator::Phase::Ended;
+        QCOMPARE(csa->gameState(), CsaGameCoordinator::GameState::GameOver);
         QVERIFY(!policy.isHumanTurnNow());
     }
 

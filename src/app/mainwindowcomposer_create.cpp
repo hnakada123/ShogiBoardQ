@@ -45,7 +45,7 @@
 #include "kifudisplaypresenter.h"
 #include "kifudocument.h"
 #include "kifufilecontroller.h"
-#include "kifuloadcoordinator.h"
+#include "kifuloader.h"
 #include "kifunavigationcontroller.h"
 #include "kifunavigationstate.h"
 #include "kifurecordlistmodel.h"
@@ -72,7 +72,7 @@
 #include "thinkingpanel.h"
 #include "timedisplaypresenter.h"
 #include "tsumesearchcontroller.h"
-#include "uinotificationservice.h"
+#include "notificationpresenter.h"
 #include "uistatepolicymanager.h"
 #include "usicommandcontroller.h"
 #include "usicommlogmodel.h"
@@ -399,19 +399,19 @@ void MainWindowComposer::createSessions()
     ud.canResumeGame = std::bind(&MatchCoordinator::canResumeInterruptedGame, m_c.match);
     ud.activity = &m_activity;
     m_c.uiStatePolicy = new UiStatePolicyManager(ud, &m_window);
-    m_c.notificationService = new UiNotificationService({&m_window}, &m_window);
+    m_c.notifications = new NotificationPresenter({&m_window}, &m_window);
     m_c.pieceSoundPlayer = new PieceSoundPlayer(&m_window);
     // メニュー「駒音」はチェックマークを見せるためアイコンを出さず、設定のオン・オフを映す
     m_ui.actionPieceSound->setIconVisibleInMenu(false);
     m_ui.actionPieceSound->setChecked(m_c.pieceSoundPlayer->isEnabled());
 
     // 棋譜の読み込み・保存
-    m_c.kifuLoadCoordinator = new KifuLoadCoordinator(m_c.document, &m_window);
+    m_c.kifuLoader = new KifuLoader(m_c.document, &m_window);
 
     SessionResetCoordinator::Deps rd;
     rd.document = m_c.document;
     rd.liveSession = m_c.liveGameSession;
-    rd.kifuLoader = m_c.kifuLoadCoordinator;
+    rd.kifuLoader = m_c.kifuLoader;
     rd.evalGraph = m_c.evalGraph;
     rd.engineDisplay = m_c.engineDisplay;
     m_c.sessionReset = std::make_unique<SessionResetCoordinator>(rd);
@@ -419,7 +419,7 @@ void MainWindowComposer::createSessions()
     KifuFileController::Deps fd;
     fd.parentWidget = &m_window;
     fd.document = m_c.document;
-    fd.loadCoordinator = m_c.kifuLoadCoordinator;
+    fd.loader = m_c.kifuLoader;
     fd.gameController = m_c.gameController;
     fd.navState = m_c.navState;
     fd.activity = &m_activity;
@@ -457,7 +457,7 @@ void MainWindowComposer::createSessions()
     cd.boardMoves = m_c.boardMoves;
     cd.csaLog = m_c.csaLog;
     cd.evalGraph = m_c.evalGraph;
-    cd.notifications = m_c.notificationService;
+    cd.notifications = m_c.notifications;
     cd.appearance = m_c.appearance;
     cd.statusBar = m_ui.statusbar;
     cd.parentWidget = &m_window;

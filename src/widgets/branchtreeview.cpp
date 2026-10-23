@@ -108,7 +108,7 @@ BranchTreeView::BranchTreeView(QWidget* parent)
     setFocusPolicy(Qt::StrongFocus);
 
     m_compactLayout = AnalysisSettings::branchTreeCompactLayout();
-    m_zoomPercent = qBound(kMinZoomPercent, AnalysisSettings::branchTreeZoomPercent(), kMaxZoomPercent);
+    m_zoomPercent = AnalysisSettings::branchTreeZoomPercent();
     applyZoom();
 
     rebuild();
@@ -499,7 +499,8 @@ void BranchTreeView::setCompactLayout(bool compact)
 
 void BranchTreeView::setZoomPercent(int percent)
 {
-    const int clamped = qBound(kMinZoomPercent, percent, kMaxZoomPercent);
+    const int clamped = qBound(AnalysisSettings::branchTreeZoomPercent.minimum(), percent,
+                               AnalysisSettings::branchTreeZoomPercent.maximum());
     if (clamped == m_zoomPercent) return;
     m_zoomPercent = clamped;
     AnalysisSettings::branchTreeZoomPercent.set(clamped);
@@ -682,11 +683,11 @@ void BranchTreeView::showContextMenu(const QPoint& viewportPos, const QPoint& gl
     compactAction->setChecked(m_compactLayout);
     menu.addSeparator();
     QAction* zoomInAction = menu.addAction(tr("拡大"));
-    zoomInAction->setEnabled(m_zoomPercent < kMaxZoomPercent);
+    zoomInAction->setEnabled(m_zoomPercent < AnalysisSettings::branchTreeZoomPercent.maximum());
     QAction* zoomOutAction = menu.addAction(tr("縮小"));
-    zoomOutAction->setEnabled(m_zoomPercent > kMinZoomPercent);
+    zoomOutAction->setEnabled(m_zoomPercent > AnalysisSettings::branchTreeZoomPercent.minimum());
     QAction* zoomResetAction = menu.addAction(tr("標準の大きさ（100%）"));
-    zoomResetAction->setEnabled(m_zoomPercent != 100);
+    zoomResetAction->setEnabled(m_zoomPercent != AnalysisSettings::branchTreeZoomPercent.defaultValue());
 
     QAction* chosen = menu.exec(globalPos);
     if (chosen == nullptr) return;

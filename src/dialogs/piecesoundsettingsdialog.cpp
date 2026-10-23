@@ -20,7 +20,7 @@
 PieceSoundSettingsDialog::PieceSoundSettingsDialog(PieceSoundPlayer* player, QWidget* parent)
     : QDialog(parent)
     , m_player(player)
-    , m_initialVolume(player ? player->volume() : PieceSoundPlayer::kDefaultVolume)
+    , m_initialVolume(player ? player->volume() : AppSettings::pieceSoundVolume.defaultValue())
     , m_initialTone(player ? player->tone() : PieceSoundTone{})
     , m_volumeSlider(new QSlider(Qt::Horizontal, this))
     , m_pitchSlider(new QSlider(Qt::Horizontal, this))
@@ -46,7 +46,7 @@ PieceSoundSettingsDialog::PieceSoundSettingsDialog(PieceSoundPlayer* player, QWi
 
     // --- 音量 / 音の高さ（横スライダー） ---
     auto* grid = new QGridLayout();
-    m_volumeSlider->setRange(PieceSoundPlayer::kMinVolume, PieceSoundPlayer::kMaxVolume);
+    m_volumeSlider->setRange(AppSettings::pieceSoundVolume.minimum(), AppSettings::pieceSoundVolume.maximum());
     m_volumeSlider->setPageStep(10);
     m_volumeSlider->setTickInterval(10);
     m_volumeSlider->setTickPosition(QSlider::TicksBelow);
@@ -202,9 +202,9 @@ void PieceSoundSettingsDialog::previewSound()
 
 void PieceSoundSettingsDialog::restoreDefaults()
 {
-    applySliders(PieceSoundPlayer::kDefaultVolume, PieceSoundTone{});
+    applySliders(AppSettings::pieceSoundVolume.defaultValue(), PieceSoundTone{});
     if (m_player) {
-        m_player->setVolume(PieceSoundPlayer::kDefaultVolume);
+        m_player->setVolume(AppSettings::pieceSoundVolume.defaultValue());
         m_player->setTone(PieceSoundTone{});
         m_player->preview();
     }

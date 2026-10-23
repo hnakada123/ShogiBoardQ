@@ -12,6 +12,7 @@
 #include <QStandardPaths>
 #include <QTimer>
 
+#include "analysissettings.h"
 #include "branchtreeeditcontroller.h"
 #include "kiflinebuilder.h"
 #include "shogiposition.h"
@@ -517,9 +518,9 @@ private slots:
     {
         BranchTreeView view;
         view.setZoomPercent(1000);
-        QCOMPARE(view.zoomPercent(), BranchTreeView::kMaxZoomPercent);
+        QCOMPARE(view.zoomPercent(), AnalysisSettings::branchTreeZoomPercent.maximum());
         view.setZoomPercent(1);
-        QCOMPARE(view.zoomPercent(), BranchTreeView::kMinZoomPercent);
+        QCOMPARE(view.zoomPercent(), AnalysisSettings::branchTreeZoomPercent.minimum());
         view.setZoomPercent(100);
     }
 };

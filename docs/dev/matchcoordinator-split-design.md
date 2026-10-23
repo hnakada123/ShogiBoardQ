@@ -115,7 +115,7 @@ Strategy は手番ごとに誰が指すかだけを決め、一手の確定と�
 | `movesUndone(ply)` | `EvaluationGraphPresenter::trimToPly()` |
 | `engineMovePlayed(side, ply, score)` | `EvaluationGraphPresenter::plotEngineScore()` |
 | `gameEnded(info)` | `GameSession::onGameEnded()` |
-| `gameOverMessage(title, message)` | `UiNotificationService::showInformation()` |
+| `gameOverMessage(title, message)` | `NotificationPresenter::showInformation()` |
 | `gameEndProcessed(info)` | `GameSession::onGameEndProcessed()` |
 | `gameInterrupted()` | `GameSession::onGameInterrupted()` |
 | `resumeAvailabilityChanged()` | `UiStatePolicyManager::refreshResumeAvailability()` |

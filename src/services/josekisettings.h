@@ -124,31 +124,28 @@ inline const Setting<double> josekiExpandMinRatio{"JosekiExpand/minRatioPercent"
 /// 盤に定跡手の矢印を出す（「表示」メニュー・定跡ウィンドウ。デフォルト: false）
 inline const Setting<bool> boardArrowsVisible{"JosekiWindow/boardArrowsVisible", false};
 
+/// 対局者が定跡を使う条件を、グループ group の項目に保存する設定
+inline StructSetting<JosekiPlayOptions> playOptionsSetting(const char* group)
+{
+    using Field = SettingField<JosekiPlayOptions>;
+    const auto key = [group](const char* name) { return QByteArray(group) + '/' + name; };
+    return {{Field::of(key("enabled"), &JosekiPlayOptions::enabled),
+             Field::of(key("maxPly"), &JosekiPlayOptions::maxPly),
+             Field::of(key("method"), &JosekiPlayOptions::method),
+             Field::of(key("valueDiff"), &JosekiPlayOptions::valueDiff),
+             Field::of(key("useMinValue"), &JosekiPlayOptions::useMinValue),
+             Field::of(key("minValue"), &JosekiPlayOptions::minValue),
+             Field::of(key("minDepth"), &JosekiPlayOptions::minDepth),
+             Field::of(key("minRatioPercent"), &JosekiPlayOptions::minRatioPercent),
+             Field::of(key("minFrequency"), &JosekiPlayOptions::minFrequency)},
+            &JosekiPlayOptions::normalized};
+}
+
 /// 先手／下手の対局者が定跡を使う条件（対局開始ダイアログの対局者の欄）
-inline const StructSetting<JosekiPlayOptions> playOptions1{
-    {SettingField<JosekiPlayOptions>::of("JosekiPlay1/enabled", &JosekiPlayOptions::enabled),
-     SettingField<JosekiPlayOptions>::of("JosekiPlay1/maxPly", &JosekiPlayOptions::maxPly),
-     SettingField<JosekiPlayOptions>::of("JosekiPlay1/method", &JosekiPlayOptions::method),
-     SettingField<JosekiPlayOptions>::of("JosekiPlay1/valueDiff", &JosekiPlayOptions::valueDiff),
-     SettingField<JosekiPlayOptions>::of("JosekiPlay1/useMinValue", &JosekiPlayOptions::useMinValue),
-     SettingField<JosekiPlayOptions>::of("JosekiPlay1/minValue", &JosekiPlayOptions::minValue),
-     SettingField<JosekiPlayOptions>::of("JosekiPlay1/minDepth", &JosekiPlayOptions::minDepth),
-     SettingField<JosekiPlayOptions>::of("JosekiPlay1/minRatioPercent", &JosekiPlayOptions::minRatioPercent),
-     SettingField<JosekiPlayOptions>::of("JosekiPlay1/minFrequency", &JosekiPlayOptions::minFrequency)},
-    &JosekiPlayOptions::normalized};
+inline const StructSetting<JosekiPlayOptions> playOptions1 = playOptionsSetting("JosekiPlay1");
 
 /// 後手／上手の対局者が定跡を使う条件
-inline const StructSetting<JosekiPlayOptions> playOptions2{
-    {SettingField<JosekiPlayOptions>::of("JosekiPlay2/enabled", &JosekiPlayOptions::enabled),
-     SettingField<JosekiPlayOptions>::of("JosekiPlay2/maxPly", &JosekiPlayOptions::maxPly),
-     SettingField<JosekiPlayOptions>::of("JosekiPlay2/method", &JosekiPlayOptions::method),
-     SettingField<JosekiPlayOptions>::of("JosekiPlay2/valueDiff", &JosekiPlayOptions::valueDiff),
-     SettingField<JosekiPlayOptions>::of("JosekiPlay2/useMinValue", &JosekiPlayOptions::useMinValue),
-     SettingField<JosekiPlayOptions>::of("JosekiPlay2/minValue", &JosekiPlayOptions::minValue),
-     SettingField<JosekiPlayOptions>::of("JosekiPlay2/minDepth", &JosekiPlayOptions::minDepth),
-     SettingField<JosekiPlayOptions>::of("JosekiPlay2/minRatioPercent", &JosekiPlayOptions::minRatioPercent),
-     SettingField<JosekiPlayOptions>::of("JosekiPlay2/minFrequency", &JosekiPlayOptions::minFrequency)},
-    &JosekiPlayOptions::normalized};
+inline const StructSetting<JosekiPlayOptions> playOptions2 = playOptionsSetting("JosekiPlay2");
 
 /// 対局者（1=先手／下手、2=後手／上手）が定跡を使う条件の保存先
 inline const StructSetting<JosekiPlayOptions> &playOptions(int side)

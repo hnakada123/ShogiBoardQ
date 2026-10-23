@@ -6,11 +6,12 @@
 #include "piecesoundsettingsdialog.h"
 
 #include <QCoreApplication>
+#include <QDesktopServices>
 #include <QDockWidget>
 #include <QMessageBox>
+#include <QUrl>
 #include <utility>
 
-#include "aboutcoordinator.h"
 #include "boardcolordialog.h"
 #include "fontsettingsdialog.h"
 #include "engineregistrationdialog.h"
@@ -25,6 +26,7 @@
 #include "sfencollectiondialog.h"
 #include "tsumeshogigeneratordialog.h"
 #include "tsumecollectiondialog.h"
+#include "versiondialog.h"
 #include "kifufilecontroller.h"
 #include "logcategories.h"
 
@@ -36,12 +38,13 @@ DialogLauncher::DialogLauncher(const Deps& deps, QObject* parent)
 
 void DialogLauncher::displayVersionInformation()
 {
-    AboutCoordinator::showVersionDialog(m_deps.parentWidget);
+    VersionDialog dialog(m_deps.parentWidget);
+    dialog.exec();
 }
 
 void DialogLauncher::openProjectWebsite()
 {
-    AboutCoordinator::openProjectWebsite();
+    QDesktopServices::openUrl(QUrl(QStringLiteral("https://hnakada123.github.io/ShogiBoardQ/")));
 }
 
 void DialogLauncher::displayEngineSettingsDialog()

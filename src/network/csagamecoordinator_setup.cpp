@@ -17,18 +17,10 @@
 #include "usi.h"
 #include <QSignalBlocker>
 
-void CsaGameCoordinator::setGameState(GameState state)
-{
-    if (m_gameState != state) {
-        m_gameState = state;
-        emit gameStateChanged(state);
-    }
-}
-
-void CsaGameCoordinator::setupInitialPosition()
+bool CsaGameCoordinator::setupInitialPosition()
 {
     if (!m_gameController || !m_gameController->board()) {
-        return;
+        return true;
     }
 
     const QSignalBlocker replayNotifications(m_gameController);
@@ -56,8 +48,8 @@ void CsaGameCoordinator::setupInitialPosition()
                 << "Failed to replay CSA move from Game_Summary:" << move;
             emit logMessage(tr("初期局面の指し手再生に失敗しました: %1").arg(move), true);
             emit errorOccurred(tr("サーバーから受信した初期局面データが不正です: %1").arg(move));
-            setGameState(GameState::Error);
-            return;
+            setPhase(Phase::Failed);
+            return false;
         }
 
         // 再開局面の指し手は Game_Summary の消費時間（,T）を付けて記録する
@@ -65,13 +57,13 @@ void CsaGameCoordinator::setupInitialPosition()
         entry.time = p.initialMoveTime(p.moveCount());
         p.record.entries.append(entry);
     }
+    return true;
 }
 
 void CsaGameCoordinator::setupClock()
 {
     // 再開局面（仕様 3.2.3）: 初期局面と規定の持時間から、Game_Summary の指し手が既に完了した状態にする
     m_progress.startClockFromSummary();
-    m_turnSide = m_progress.summary.toMove;
     m_turnTimer.start();
 
     if (!m_clock) {
@@ -181,29 +173,26 @@ void CsaGameCoordinator::onGameSummaryReceived(const CsaClient::GameSummary& sum
     emit logMessage(tr("先手: %1, 後手: %2").arg(summary.blackName, summary.whiteName));
     logGameConditions(summary);
 
-    setGameState(GameState::WaitingForAgree);
-
+    // 拒否するとクライアントが対局待ちに戻る（仕様 3.3）
     if (!moreGamesWanted()) {
         emit logMessage(tr("予定の対局数を終えているので、対局条件を拒否します"), true);
         m_client->reject(summary.gameId);
-        setGameState(GameState::WaitingForMatch);
         m_client->disconnectFromServer();
         return;
     }
 
-    const QString rejectReason = unsupportedConditionReason(summary, m_playerType);
+    const QString rejectReason = unsupportedConditionReason(summary, m_options.playerType);
     if (!rejectReason.isEmpty()) {
         emit logMessage(tr("対局条件を拒否します: %1").arg(rejectReason), true);
         m_client->reject(summary.gameId);
-        setGameState(GameState::WaitingForMatch);
         return;
     }
 
-    if (m_playerType == PlayerType::Engine && (!m_engineSeat || !m_engineSeat->isReady())) {
+    if (!isHumanPlayer() && (!m_engineSeat || !m_engineSeat->isReady())) {
         // 初めての対局か、前局の終局で終えたエンジンを起動し直す
         startEngine();
         // 起動に失敗したら対局条件は拒否済み
-        if (m_gameState != GameState::WaitingForAgree) return;
+        if (gameState() != GameState::WaitingForAgree) return;
     }
 
     emit logMessage(tr("対局条件に同意します..."));
@@ -223,9 +212,11 @@ bool CsaGameCoordinator::moreGamesWanted() const
 void CsaGameCoordinator::connectForGame()
 {
     m_lastGameEndedByServer = false;
-    setGameState(GameState::Connecting);
+    // 段階を先に変えておき、接続の状態の知らせ（接続中）で知らせる。すぐ失敗したときは Error になる
+    m_phase = Phase::Active;
     emit logMessage(tr("サーバー %1:%2 に接続中...").arg(m_options.host).arg(m_options.port));
     m_client->connectToServer(m_options.host, m_options.port, m_options.transport);
+    publishGameState();
 }
 
 void CsaGameCoordinator::handleGameCountAfterEnd()
@@ -245,7 +236,7 @@ void CsaGameCoordinator::handleGameCountAfterEnd()
 
 void CsaGameCoordinator::reconnectForNextGame()
 {
-    if (m_gameState != GameState::GameOver || !moreGamesWanted()) return;
+    if (m_phase != Phase::Ended || !moreGamesWanted()) return;
     if (m_client->connectionState() != CsaClient::ConnectionState::Disconnected) return;
     emit logMessage(tr("次の対局のために再接続します（%1局目まで終了）").arg(m_completedGames));
     connectForGame();

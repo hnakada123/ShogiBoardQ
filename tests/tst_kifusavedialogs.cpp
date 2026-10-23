@@ -1,5 +1,5 @@
 /// @file tst_kifusavecoordinator.cpp
-/// @brief KifuSaveCoordinator の保存形式判定と上書き保存のテスト
+/// @brief KifuSaveDialogs の保存形式判定と上書き保存のテスト
 
 #include <QtTest>
 #include <QFile>
@@ -11,7 +11,7 @@
 #include <QAbstractButton>
 #include <QTimer>
 
-#include "kifusavecoordinator.h"
+#include "kifusavedialogs.h"
 #include "kifusavefile.h"
 #include "kifuioservice.h"
 
@@ -41,7 +41,7 @@ public slots:
     }
 };
 
-class TestKifuSaveCoordinator : public QObject
+class TestKifuSaveDialogs : public QObject
 {
     Q_OBJECT
 
@@ -115,7 +115,7 @@ private slots:
         SaveFormat actual = SaveFormat::Kif;
         QTimer::singleShot(0, &responder, &SaveDialogResponder::respond);
         QString error;
-        const auto path = KifuSaveCoordinator::saveViaDialog(nullptr,
+        const auto path = KifuSaveDialogs::saveViaDialog(nullptr,
             [&](SaveFormat format) {
                 ++generated;
                 actual = format;
@@ -156,7 +156,7 @@ private slots:
         int saves = 0;
         const QString path = writeFails ? dir.path() : dir.filePath(QStringLiteral("record.kifu"));
         if (dirty) QTimer::singleShot(0, &responder, &SaveDialogResponder::respond);
-        const bool accepted = KifuSaveCoordinator::confirmDiscardUnsaved(nullptr, dirty, [&]() {
+        const bool accepted = KifuSaveDialogs::confirmDiscardUnsaved(nullptr, dirty, [&]() {
             ++saves;
             return KifuSaveFile::write(path, {QStringLiteral("unsaved record")});
         });
@@ -172,9 +172,9 @@ private slots:
         responder.cancelFile = true;
         int generated = 0;
         QTimer::singleShot(0, &responder, &SaveDialogResponder::respond);
-        const bool accepted = KifuSaveCoordinator::confirmDiscardUnsaved(nullptr, true, [&]() {
+        const bool accepted = KifuSaveDialogs::confirmDiscardUnsaved(nullptr, true, [&]() {
             QTimer::singleShot(0, &responder, &SaveDialogResponder::respond);
-            return !KifuSaveCoordinator::saveViaDialog(nullptr, [&](SaveFormat) {
+            return !KifuSaveDialogs::saveViaDialog(nullptr, [&](SaveFormat) {
                 ++generated;
                 return QStringList{QStringLiteral("unsaved record")};
             }, QString()).isEmpty();
@@ -262,7 +262,7 @@ private slots:
             responder.respond();
         });
         QString error;
-        const bool ok = KifuSaveCoordinator::overwriteExisting(&parent, path, lines, &error);
+        const bool ok = KifuSaveDialogs::overwriteExisting(&parent, path, lines, &error);
         QVERIFY(messageText.contains(QString::fromUtf8("您")));
         QVERIFY2(error.isEmpty(), qPrintable(error));  // キャンセルはエラーとして通知しない
         if (answer == QMessageBox::Save) {
@@ -289,7 +289,7 @@ private slots:
             }
         });
         QString error;
-        QVERIFY(KifuSaveCoordinator::overwriteExisting(&parent,
+        QVERIFY(KifuSaveDialogs::overwriteExisting(&parent,
             path, {QStringLiteral("#KIF version=2.0 encoding=UTF-8"), QString::fromUtf8("先手：鈴木")}, &error));
         QVERIFY(!asked);
         QVERIFY(readAllBytes(path).startsWith("#KIF version=2.0 encoding=Shift_JIS"));
@@ -451,5 +451,5 @@ private slots:
     }
 };
 
-QTEST_MAIN(TestKifuSaveCoordinator)
-#include "tst_kifusavecoordinator.moc"
+QTEST_MAIN(TestKifuSaveDialogs)
+#include "tst_kifusavedialogs.moc"

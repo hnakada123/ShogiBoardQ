@@ -101,6 +101,31 @@ private slots:
         s.remove(QStringLiteral("TsumePlay"));
     }
 
+    /// グループ名・番号だけ違う組は、組み立てたキーに保存し、組ごとに別のキーになること
+    void groupedSettingsUseBuiltKeys()
+    {
+        using GameSettings::StartGame::player1;
+        using GameSettings::StartGame::player2;
+        QCOMPARE(QByteArray(player1.engineName.key()), QByteArray("GameSettings/engineName1"));
+        QCOMPARE(QByteArray(player2.addEachMoveSec.key()), QByteArray("GameSettings/addEachMoveSec2"));
+        QVERIFY(player1.isHuman.defaultValue());
+        QVERIFY(!player2.isHuman.defaultValue());
+        QVERIFY(player2.isEngine.defaultValue());
+
+        QSettings& s = SettingsCommon::openSettings();
+        s.remove(QStringLiteral("JosekiPlay1"));
+        s.remove(QStringLiteral("JosekiPlay2"));
+        JosekiPlayOptions options;
+        options.enabled = true;
+        options.maxPly = 12;
+        JosekiSettings::playOptions2.set(options);
+        QCOMPARE(s.value(QStringLiteral("JosekiPlay2/maxPly")).toInt(), 12);
+        QVERIFY(!s.contains(QStringLiteral("JosekiPlay1/maxPly")));
+        QCOMPARE(JosekiSettings::playOptions(2)().maxPly, 12);
+        QCOMPARE(JosekiSettings::playOptions1().maxPly, JosekiPlayOptions{}.maxPly);
+        s.remove(QStringLiteral("JosekiPlay2"));
+    }
+
     /// ListSetting: 配列（size と 番号/項目）で保存し、実行時に決めたキーでも読み書きできること
     void listSettingUsesArrayFormat()
     {

@@ -131,13 +131,13 @@ m_dialogs = new DialogLauncher(deps, m_deps.parentWidget);
 | `Usi`（エンジン） | 対局・検討・詰み探索・棋譜解析・通信対局の開始ごと（`EngineLifecycleManager::acquire()` で作り、使う側には move-only の `EngineLease` を渡す。リースを手放す・ほかの持ち主が枠を取る・`destroyEngines()` で `destroySeat()` が `deleteLater`） | `EngineLifecycleManager` (QObject parent)。使う権利は `EngineLease` の持ち主 |
 | `QProcess` (エンジン) | エンジン起動/停止ごと | `EngineProcessManager`（`std::unique_ptr`。停止時は終了を見届けるオブジェクトへ移す） |
 
-`MatchCoordinator`・`GameSession`・`KifuLoadCoordinator` は再生成しない。
+`MatchCoordinator`・`GameSession`・`KifuLoader` は再生成しない。
 
 | オブジェクト | 生成タイミング | 所有者 |
 |-------------|---------------|--------|
 | `MatchCoordinator` | 起動時に1回（`MainWindowComposer::createMatchAndAnalysis()`） | MainWindow (QObject parent) |
 | `GameSession` | 起動時に1回（`MainWindowComposer::createSessions()`） | MainWindow (QObject parent) |
-| `KifuLoadCoordinator` | 起動時に1回（`MainWindowComposer::createSessions()`） | MainWindow (QObject parent) |
+| `KifuLoader` | 起動時に1回（`MainWindowComposer::createSessions()`） | MainWindow (QObject parent) |
 
 **寿命コメントの記法:**
 
@@ -227,7 +227,7 @@ engine->deleteLater();
 ```cpp
 // MainWindowComponents — 一度だけ作られる司令塔への参照（親は MainWindow。MainWindowComposer が起動時に作る）
 MatchCoordinator* match = nullptr;
-KifuLoadCoordinator* kifuLoadCoordinator = nullptr;  // 親は MainWindow。起動時に作る
+KifuLoader* kifuLoader = nullptr;  // 親は MainWindow。起動時に作る
 
 // 再生成されるエンジンへの非所有参照（AnalysisSession。EngineLifecycleManager が作り直す）
 QPointer<Usi> m_engine;
@@ -317,7 +317,7 @@ MainWindow 自身が持つのは `ui` と `m_composer`（`MainWindowComposer`）
 | 合成ルート | `std::unique_ptr`（MainWindow） | `m_composer` |
 | 非QObject サービス | `std::unique_ptr`（MainWindowComponents） | `humanTurnPolicy`, `sessionReset` |
 | 値で持つ記録 | MainWindowComponents のメンバ（値） | `timeRecord`（`MatchTimeRecord`） |
-| QObject の部品 | QObject parent（MainWindow）+ 生ポインタ | `match`, `gameSession`, `boardSync`, `commentCoordinator`, `kifuLoadCoordinator` |
+| QObject の部品 | QObject parent（MainWindow）+ 生ポインタ | `match`, `gameSession`, `boardSync`, `commentCoordinator`, `kifuLoader` |
 | ドックの中身 | QObject parent（MainWindow。ドックに置くとドックが親になる）+ 生ポインタ | `thinkingPanel`, `considerationTab`, `gameInfoPane` |
 | UI ウィジェット | QObject parent (レイアウト経由) | `shogiView`, `evalChart`, `recordPane` |
 | 自動化 API のサーバー | QObject parent（MainWindow）+ 生ポインタ。`--automation` 指定時だけ作る | `automationServer` |

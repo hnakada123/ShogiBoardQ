@@ -69,7 +69,7 @@ GameInfoPane::GameInfoPane(QWidget* parent)
     : QWidget(parent)
     , m_model(new GameInfoEditModel(this))
     , m_fontSize(GameSettings::gameInfoFontSize, 8, 24)
-    , m_keyColumnWidth(qBound(0, GameSettings::gameInfoKeyColumnWidth(), 600))
+    , m_keyColumnWidth(GameSettings::gameInfoKeyColumnWidth())
 {
     auto* mainLayout = new QVBoxLayout(this);
     mainLayout->setContentsMargins(0, 0, 0, 0);
@@ -420,6 +420,6 @@ void GameInfoPane::updateTablePresentation()
 void GameInfoPane::onSectionResizedByUser(int logicalIndex, int /*oldSize*/, int newSize)
 {
     if (logicalIndex != GameInfoEditModel::KeyColumn) return;
-    m_keyColumnWidth = newSize;
     GameSettings::gameInfoKeyColumnWidth.set(newSize);
+    m_keyColumnWidth = GameSettings::gameInfoKeyColumnWidth();
 }

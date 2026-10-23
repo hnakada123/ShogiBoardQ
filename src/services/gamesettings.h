@@ -49,8 +49,8 @@ inline const Setting<int> commentFontSize{"FontSize/comment", 10};
 /// 対局情報タブのフォントサイズ（デフォルト: 10）
 inline const Setting<int> gameInfoFontSize{"FontSize/gameInfo", 10};
 
-/// 対局情報の項目列幅（0: 内容に合わせて自動調整）
-inline const Setting<int> gameInfoKeyColumnWidth{"GameInfo/keyColumnWidth", 0};
+/// 対局情報の項目列幅（0: 内容に合わせて自動調整。最大 600）
+inline const BoundedSetting<int> gameInfoKeyColumnWidth{"GameInfo/keyColumnWidth", 0, 0, 600};
 
 // --- 対局開始 ---
 
@@ -78,19 +78,19 @@ struct Player {
     Setting<int> addEachMoveSec;
 };
 
-inline const Player player1{
-    {"GameSettings/isHuman1", true}, {"GameSettings/isEngine1", false},
-    {"GameSettings/humanName1", QString()}, {"GameSettings/engineNumber1", 0},
-    {"GameSettings/engineName1", QString()}, {"GameSettings/enginePath1", QString()},
-    {"GameSettings/basicTimeHour1", 0}, {"GameSettings/basicTimeMinutes1", 0},
-    {"GameSettings/byoyomiSec1", 0}, {"GameSettings/addEachMoveSec1", 0}};
+/// 対局者 number（'1' か '2'）の項目（キーは "GameSettings/<項目><番号>"）。human は人間が指すかの既定値
+inline Player playerSettings(char number, bool human)
+{
+    const auto key = [number](const char* name) { return QByteArray("GameSettings/") + name + number; };
+    return {{key("isHuman"), human}, {key("isEngine"), !human},
+            {key("humanName"), QString()}, {key("engineNumber"), 0},
+            {key("engineName"), QString()}, {key("enginePath"), QString()},
+            {key("basicTimeHour"), 0}, {key("basicTimeMinutes"), 0},
+            {key("byoyomiSec"), 0}, {key("addEachMoveSec"), 0}};
+}
 
-inline const Player player2{
-    {"GameSettings/isHuman2", false}, {"GameSettings/isEngine2", true},
-    {"GameSettings/humanName2", QString()}, {"GameSettings/engineNumber2", 0},
-    {"GameSettings/engineName2", QString()}, {"GameSettings/enginePath2", QString()},
-    {"GameSettings/basicTimeHour2", 0}, {"GameSettings/basicTimeMinutes2", 0},
-    {"GameSettings/byoyomiSec2", 0}, {"GameSettings/addEachMoveSec2", 0}};
+inline const Player player1 = playerSettings('1', true);
+inline const Player player2 = playerSettings('2', false);
 
 /// 後手／上手の持ち時間を先手と別に設定するか
 inline const Setting<bool> separateSecondPlayerTime{"GameSettings/isGroupBoxSecondPlayerTimeSettingsChecked", false};

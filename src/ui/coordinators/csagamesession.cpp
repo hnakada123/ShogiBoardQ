@@ -13,7 +13,7 @@
 #include "logcategories.h"
 #include "mainwindowappearancecontroller.h"
 #include "shogiview.h"
-#include "uinotificationservice.h"
+#include "notificationpresenter.h"
 
 #include <QMessageBox>
 #include <QStatusBar>
@@ -42,7 +42,7 @@ CsaGameSession::CsaGameSession(const Deps& deps, QObject* parent)
     }
     if (m_deps.notifications) {
         connect(c, &CsaGameCoordinator::errorOccurred,
-                m_deps.notifications, &UiNotificationService::displayErrorMessage);
+                m_deps.notifications, &NotificationPresenter::displayErrorMessage);
     }
     if (CsaLogPanel* log = m_deps.csaLog) {
         connect(c, &CsaGameCoordinator::connectionStateChanged, log, &CsaLogPanel::setConnected);

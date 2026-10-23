@@ -8,7 +8,7 @@
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
 #include "kifudocument.h"
-#include "kifuloadcoordinator.h"
+#include "kifuloader.h"
 #include "livegamesession.h"
 #include "sfenutils.h"
 

@@ -312,15 +312,16 @@ add_shogi_test(tst_jkfexporter tst_jkfexporter.cpp)
 target_link_libraries(tst_jkfexporter PRIVATE shogiboardq_static)
 
 # ============================================================
-# Unit 8a-2: KifuSaveFile・KifuSaveCoordinator (拡張子による保存形式の判定・上書き保存・確認)
+# Unit 8a-2: KifuSaveFile・KifuSaveDialogs (拡張子による保存形式の判定・上書き保存・確認)
 # ============================================================
-add_shogi_test(tst_kifusavecoordinator
-    tst_kifusavecoordinator.cpp
+add_shogi_test(tst_kifusavedialogs
+    tst_kifusavedialogs.cpp
     ${SRC}/kifu/kifusavefile.cpp
     ${SRC}/kifu/kifuformat.cpp
     ${SRC}/kifu/kifreader.cpp
     ${SRC}/common/logcategories.cpp
-    ${SRC}/ui/coordinators/kifusavecoordinator.cpp
+    ${SRC}/dialogs/kifusavedialogs.cpp
+    ${SRC}/widgets/unsavedchangesprompt.cpp
     ${SRC}/kifu/kifuioservice.cpp
     ${SRC}/kifu/shiftjiscodec.cpp
     ${SRC}/services/settingscommon.cpp

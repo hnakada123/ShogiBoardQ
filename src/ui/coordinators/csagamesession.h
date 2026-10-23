@@ -21,7 +21,7 @@ class MainWindowAppearanceController;
 class QStatusBar;
 class QWidget;
 class ShogiView;
-class UiNotificationService;
+class NotificationPresenter;
 struct RecordEntry;
 
 /**
@@ -45,7 +45,7 @@ public:
         BoardMoveController* boardMoves = nullptr;         ///< 人間が盤で選んだ手をサーバーへ送る
         CsaLogPanel* csaLog = nullptr;                     ///< CSA の通信ログ・接続状態・手入力のコマンド
         EvaluationGraphPresenter* evalGraph = nullptr;     ///< 自分のエンジンの評価値
-        UiNotificationService* notifications = nullptr;    ///< 司令塔のエラー
+        NotificationPresenter* notifications = nullptr;    ///< 司令塔のエラー
         MainWindowAppearanceController* appearance = nullptr; ///< 後手のとき盤を反転する
         QStatusBar* statusBar = nullptr;
         QWidget* parentWidget = nullptr;                   ///< 待機・結果ダイアログの親

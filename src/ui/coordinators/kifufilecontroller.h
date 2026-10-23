@@ -14,7 +14,7 @@
 
 class AppActivityState;
 class KifuDocument;
-class KifuLoadCoordinator;
+class KifuLoader;
 class KifuNavigationState;
 class KifuPasteDialog;
 class QProgressDialog;
@@ -36,7 +36,7 @@ public:
     struct Deps {
         QWidget* parentWidget = nullptr;                ///< ダイアログの親（必須）
         KifuDocument* document = nullptr;               ///< 開いている棋譜（必須）
-        KifuLoadCoordinator* loadCoordinator = nullptr; ///< 読み込み（全部の読み込みで1つを使い回す。必須）
+        KifuLoader* loader = nullptr; ///< 読み込み（全部の読み込みで1つを使い回す。必須）
         ShogiGameController* gameController = nullptr;  ///< 盤（局面のコピー。必須）
         const KifuNavigationState* navState = nullptr;  ///< 表示中の手（局面のコピー・現在の手までのコピー。必須）
         /// 動作状態（棋譜を置き換えてよいかの判定。必須）

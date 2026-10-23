@@ -33,11 +33,6 @@ class PieceSoundPlayer : public QObject
     Q_OBJECT
 
 public:
-    static constexpr int kMinVolume = 0;
-    static constexpr int kMaxVolume = 100;
-    /// 既定の音量（%）。標準の駒音（piece_move.wav）はこの音量で聴くことを前提に調整されている
-    static constexpr int kDefaultVolume = 30;
-
     explicit PieceSoundPlayer(QObject* parent = nullptr);
 
     /// 駒音が有効かどうか

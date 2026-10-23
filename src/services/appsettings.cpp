@@ -6,7 +6,6 @@
 #include "settingskeys.h"
 #include "piecestylecatalog.h"
 #include <QSettings>
-#include <QWidget>
 
 namespace AppSettings {
 
@@ -93,27 +92,6 @@ QString appearanceSection()
 void setAppearanceSection(const QString& id)
 {
     SettingsCommon::openSettings().setValue(SettingsKeys::kAppearanceSection, id);
-}
-
-// --- メインウィンドウ ---
-
-void loadWindowSize(QWidget* mainWindow)
-{
-    if (!mainWindow) return;
-    const QSize sz = mainWindowSize();
-    if (sz.isValid() && sz.width() > 100 && sz.height() > 100)
-        mainWindow->resize(sz);
-}
-
-void saveWindowAndBoard(QWidget* mainWindow, int boardSquareSize)
-{
-    if (!mainWindow) return;
-    mainWindowSize.set(mainWindow->size());
-    squareSize.set(boardSquareSize);
-    const QSettings& s = SettingsCommon::openSettings();
-    if (s.status() != QSettings::NoError) {
-        qWarning("AppSettings: Failed to save settings (status=%d)", static_cast<int>(s.status()));
-    }
 }
 
 } // namespace AppSettings

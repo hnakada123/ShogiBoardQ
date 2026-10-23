@@ -389,8 +389,8 @@ void MenuWindow::onTabChanged(int index)
 
 void MenuWindow::onButtonSizeIncrease()
 {
-    if (m_buttonSize < kMaxButtonSize) {
-        m_buttonSize = qMin(kMaxButtonSize, m_buttonSize + 8);
+    if (m_buttonSize < AppSettings::menuWindowButtonSize.maximum()) {
+        m_buttonSize = qMin(AppSettings::menuWindowButtonSize.maximum(), m_buttonSize + 8);
         m_iconSize = m_buttonSize / 3;
         updateAllButtonSizes();
     }
@@ -398,8 +398,8 @@ void MenuWindow::onButtonSizeIncrease()
 
 void MenuWindow::onButtonSizeDecrease()
 {
-    if (m_buttonSize > kMinButtonSize) {
-        m_buttonSize = qMax(kMinButtonSize, m_buttonSize - 8);
+    if (m_buttonSize > AppSettings::menuWindowButtonSize.minimum()) {
+        m_buttonSize = qMax(AppSettings::menuWindowButtonSize.minimum(), m_buttonSize - 8);
         m_iconSize = m_buttonSize / 3;
         updateAllButtonSizes();
     }
@@ -413,8 +413,8 @@ void MenuWindow::updateAllButtonSizes()
         }
     }
     equalizeButtonHeights();
-    m_buttonSizeDecreaseBtn->setEnabled(m_buttonSize > kMinButtonSize);
-    m_buttonSizeIncreaseBtn->setEnabled(m_buttonSize < kMaxButtonSize);
+    m_buttonSizeDecreaseBtn->setEnabled(m_buttonSize > AppSettings::menuWindowButtonSize.minimum());
+    m_buttonSizeIncreaseBtn->setEnabled(m_buttonSize < AppSettings::menuWindowButtonSize.maximum());
     AppSettings::menuWindowButtonSize.set(m_buttonSize);
 }
 
@@ -427,7 +427,7 @@ void MenuWindow::closeEvent(QCloseEvent* event)
 void MenuWindow::loadSettings()
 {
     m_favoriteActionNames = AppSettings::menuWindowFavorites();
-    m_buttonSize = qBound(kMinButtonSize, AppSettings::menuWindowButtonSize(), kMaxButtonSize);
+    m_buttonSize = AppSettings::menuWindowButtonSize();
     m_savedTabIndex = AppSettings::menuWindowCurrentTab();
     m_iconSize = m_buttonSize / 3;
     resize(AppSettings::menuWindowSize());

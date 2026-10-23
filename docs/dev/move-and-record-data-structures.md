@@ -814,7 +814,7 @@ KifuNavigationState::setCurrentNode() / resetToNode() / goToRoot()
 
 対局中の手順は `MatchCoordinator` が `RecordLine`（`record()`）で持つ。棋譜の正本ではなく、対局の作業用の手順である。
 
-- 棋譜の読み込み（`KifuLoadCoordinator`）はこの手順を書かない
+- 棋譜の読み込み（`KifuLoader`）はこの手順を書かない
 - 対局開始時に、表示中の手順（`MatchStartOptions::recordLine`）を開始する手数まで切って作る（`MatchCoordinator::start()`、8.2）
 - 一手を確定するたびに、`MatchCoordinator` が手順に行を足し、同じ行を `MatchRecordSink::appendRecord()` で渡して分岐ツリーに積む。
   待ったでは末尾2手を取り除き、`MatchRecordSink::undoRecords(2)` で分岐ツリー側も戻す（8.5）
@@ -935,12 +935,12 @@ URL セーフな短い文字列で棋譜を表現。分岐対応。
 
 ```
 1. KifuFileController::chooseAndLoadKifuFile() → startAsyncLoad(filePath, false)
-   → KifuLoadCoordinator::loadFileAsync(filePath)
+   → KifuLoader::loadFileAsync(filePath)
    → KifuLoadParser::parseFile()（ワーカースレッド）
        ├─ KifuFormats::detectFile() で形式を決める
        ├─ readFileText() で文字コードを判別して1回読む
        └─ parseContent() → KifToSfenConverter::parse()（KifTextParser::parse(text, Dialect::Kif)）
-   → KifuLoadCoordinator::onLoadFinished() → applyLoadResult(result)
+   → KifuLoader::onLoadFinished() → applyLoadResult(result)
      （同期版の loadFile()・loadText() も applyLoadResult() を通る）
 
 2. KIF の変換器が KifuParseOutcome を返し、parseContent() が KifuLoadResult に写す（棋譜は KifuLoadResult::record）
@@ -952,7 +952,7 @@ URL セーフな短い文字列で棋譜を表現。分岐対応。
         KIF/KI2/USEN は「変化：N手」の N-1 手目を持つ手順のうち最後に書かれたもの、
         JKF は形式上の親（branchPoint()）を分岐元にする）
 
-3. KifuLoadCoordinator::applyRecord()
+3. KifuLoader::applyRecord()
    a. 指し手が無く、開始局面が手合割の名前だけの平手なら失敗（局面図・局面指定・駒落ちの開始局面は0手でも読む）
    b. KifuDocument::replaceWithRecord(record, result.gameInfo)
       → KifuBranchTreeBuilder::buildFromKifParseResult(tree, record)（開始局面は record.mainline.startSfen）

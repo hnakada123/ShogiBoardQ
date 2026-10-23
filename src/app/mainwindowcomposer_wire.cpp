@@ -30,7 +30,7 @@
 #include "kifudisplaypresenter.h"
 #include "kifudocument.h"
 #include "kifufilecontroller.h"
-#include "kifuloadcoordinator.h"
+#include "kifuloader.h"
 #include "kifunavigationcontroller.h"
 #include "kifurecordlistmodel.h"
 #include "mainwindowactions.h"
@@ -45,7 +45,7 @@
 #include "shogiview.h"
 #include "thinkingpanel.h"
 #include "timedisplaypresenter.h"
-#include "uinotificationservice.h"
+#include "notificationpresenter.h"
 #include "uistatepolicymanager.h"
 #include "usicommandcontroller.h"
 #include "usilogpanel.h"
@@ -111,9 +111,9 @@ void MainWindowComposer::connectRecord()
     gameInfo->setGameInfo(document->header(), true);
 
     // 読み込み・書き出し
-    KifuLoadCoordinator* loader = m_c.kifuLoadCoordinator;
-    connect(loader, &KifuLoadCoordinator::errorOccurred,
-            m_c.notificationService, &UiNotificationService::displayErrorMessage);
+    KifuLoader* loader = m_c.kifuLoader;
+    connect(loader, &KifuLoader::errorOccurred,
+            m_c.notifications, &NotificationPresenter::displayErrorMessage);
     connect(m_c.dialogLauncher, &DialogLauncher::engineListChanged,
             m_c.considerationTab, &ConsiderationPanel::reloadEngines);
     connect(m_c.dialogLauncher, &DialogLauncher::sfenCollectionPositionSelected,
@@ -158,7 +158,7 @@ void MainWindowComposer::connectGame()
             m_c.uiStatePolicy, &UiStatePolicyManager::refreshResumeAvailability);
 
     connect(match, &MatchCoordinator::gameEnded, session, &GameSession::onGameEnded);
-    connect(match, &MatchCoordinator::gameOverMessage, m_c.notificationService, &UiNotificationService::showInformation);
+    connect(match, &MatchCoordinator::gameOverMessage, m_c.notifications, &NotificationPresenter::showInformation);
     connect(match, &MatchCoordinator::gameEndProcessed, session, &GameSession::onGameEndProcessed);
     connect(match, &MatchCoordinator::gameInterrupted, session, &GameSession::onGameInterrupted);
 
@@ -178,7 +178,7 @@ void MainWindowComposer::connectAnalysisAndUi()
 
     // 検討タブの操作は ConsiderationUiController、表示は EngineDisplayPresenter が自分でつなぐ
     connect(analysis, &AnalysisSession::messageRequested,
-            m_c.notificationService, &UiNotificationService::showInformation);
+            m_c.notifications, &NotificationPresenter::showInformation);
 
     // 候補手の矢印の表示状態を思考ドックの設定欄に出し、設定が変わったら描き直す
     connect(m_c.arrows, &CandidateArrowPresenter::displayStateChanged, thinking, &ThinkingPanel::setArrowDisplayState);
@@ -229,5 +229,5 @@ void MainWindowComposer::connectAnalysisAndUi()
                                            m_ui.menuSavedLayouts);
 
     connect(&ErrorBus::instance(), &ErrorBus::messagePosted,
-            m_c.notificationService, &UiNotificationService::displayMessage);
+            m_c.notifications, &NotificationPresenter::displayMessage);
 }

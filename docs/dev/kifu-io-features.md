@@ -51,7 +51,7 @@ USEN Files (*.usen)
   - `chooseAndLoadKifuFile()` — ファイルを選び、未保存の棋譜を確かめてから読み込む（読み込み中は進捗ダイアログを出し、キャンセルできる）
   - `onSfenCollectionPositionSelected(sfen)` — SFEN局面集で選んだ局面を反映する
   - 読み込みの後始末（上書き保存先と未保存の状態）は、ダイアログからの非同期の読み込みも自動化 API の同期の読み込みも `finishLoad(success, source, path)` 1つで行う。読み込んだものの出どころ（`Source`）で決まる：棋譜ファイル（`File`）は上書き保存先にして変更なしとし、貼り付けた棋譜（`Text`）と自動化 API で反映した局面（`Position`）は未保存にし、局面集から反映した局面（`Collection`）は変更なしで上書き保存先を持たない（自動化 API のテキストの読み込み `loadKifuText()` は、貼り付けの後始末のうちダイアログとステータスバーを除いた `KifuDocument::markUnsavedContent()` だけを直接呼ぶ）
-- **`KifuLoadCoordinator`** (`src/ui/coordinators/kifuloadcoordinator.h/.cpp`) — 読み込んだ結果を棋譜の文書（`KifuDocument`）に載せる
+- **`KifuLoader`** (`src/kifu/kifuloader.h/.cpp`) — 読み込んだ結果を棋譜の文書（`KifuDocument`）に載せる
   - `loadFileAsync(filePath)` / `loadTextAsync(content)` — ワーカーで `KifuLoadParser` を呼び、終わったら `loadFinished` を出す
   - `cancelLoad()` — 読み込み中の処理を捨てる
   - `loadFile(filePath)` / `loadText(content)` — 同期版（自動化 API・テスト）
@@ -105,7 +105,7 @@ USEN Files (*.usen)
 - **`KifuDocument`** (`src/kifu/kifudocument.h/.cpp`) — 開いている棋譜の文書。分岐ツリー・対局情報・対局の記録（対局者・持ち時間・開始と終了の日時）・上書き保存先を持つ
   - `isModified()` — 未保存かどうか。ツリーの revision・コメントとしおりの変更・対局情報が、最後に保存（または読み込み）した時点と違うか、貼り付けた棋譜などファイルにない内容を読み込んだかで求める（変更のたびに印を付けない）
   - `markSaved(path)` / `markUnsavedContent()` — 保存した・ファイルから読み込んだ／ファイルにない内容を読み込んだ
-- **`KifuSaveCoordinator`** (`src/ui/coordinators/kifusavecoordinator.h/.cpp`) — 保存で利用者に聞くこと（名前空間）
+- **`KifuSaveDialogs`** (`src/dialogs/kifusavedialogs.h/.cpp`) — 保存で利用者に聞くこと（静的な関数だけのクラス。未保存の確認は定跡と同じ `UnsavedChangesPrompt`）
   - `saveViaDialog()` — 保存ダイアログで全6形式（KIF/KI2/CSA/JKF/USEN/USI）から選ばせる
   - `overwriteExisting()` — `.kif`/`.ki2` に Shift_JIS で表せない文字があれば UTF-8 で保存するか確かめる
   - `confirmDiscardUnsaved()` — 未保存の変更の保存・破棄・キャンセルを確かめる
@@ -179,7 +179,7 @@ USEN Files (*.usen)
 
 - **編集(E) → 棋譜貼り付け…** (`actionPasteKifu`)
 
-`KifuFileController::pasteKifuFromClipboard()` が `KifuPasteDialog` を開く。ダイアログでクリップボードの内容を貼り付けて「取り込む」を押すと、`importRequested` を受けた `KifuFileController::onKifuPasteImportRequested()` が未保存の棋譜を確かめてから `KifuLoadCoordinator::loadTextAsync()` で読み込む。貼り付けた棋譜はファイル由来ではないので、上書き保存先を持たず未保存とする（`KifuDocument::markUnsavedContent()`）。
+`KifuFileController::pasteKifuFromClipboard()` が `KifuPasteDialog` を開く。ダイアログでクリップボードの内容を貼り付けて「取り込む」を押すと、`importRequested` を受けた `KifuFileController::onKifuPasteImportRequested()` が未保存の棋譜を確かめてから `KifuLoader::loadTextAsync()` で読み込む。貼り付けた棋譜はファイル由来ではないので、上書き保存先を持たず未保存とする（`KifuDocument::markUnsavedContent()`）。
 
 ### 自動判定対応フォーマット
 
@@ -204,7 +204,7 @@ USEN Files (*.usen)
 - **`KifuFileController`** (`src/ui/coordinators/kifufilecontroller.h/.cpp`)
   - `pasteKifuFromClipboard()` — ダイアログを開く
   - `onKifuPasteImportRequested(content)` — 取り込む
-- **`KifuLoadCoordinator`** (`src/ui/coordinators/kifuloadcoordinator.h/.cpp`)
+- **`KifuLoader`** (`src/kifu/kifuloader.h/.cpp`)
   - `loadTextAsync(content)` — 自動判定した形式で読み込み
 - **`KifuLoadParser`** (`src/kifu/kifuloadparser.h/.cpp`)
   - `parseText(content)` — `KifuFormats::detect()` で形式を判定し、`parseContent(content, format)` でテキストのまま解析する（一時ファイルは作らない）
@@ -215,13 +215,13 @@ USEN Files (*.usen)
 
 ```
 ファイル読み込み:
-  MenuActionsWiring → KifuFileController → KifuLoadCoordinator → KifuLoadParser (ワーカー)
+  MenuActionsWiring → KifuFileController → KifuLoader → KifuLoadParser (ワーカー)
                                                                  → 各形式 Converter (KifToSfenConverter 等)
-                                         KifuLoadCoordinator → KifuDocument (文書の置き換え。KifuBranchTree の作り直し)
+                                         KifuLoader → KifuDocument (文書の置き換え。KifuBranchTree の作り直し)
 
 ファイル保存:
   MenuActionsWiring → KifuFileController → KifuExport (各形式への変換) → 各形式 Exporter
-                                         → KifuSaveCoordinator → KifuSaveFile
+                                         → KifuSaveDialogs → KifuSaveFile
                                          → KifuDocument::markSaved (保存した時点・上書き保存先)
 
 クリップボードコピー:
@@ -230,7 +230,7 @@ USEN Files (*.usen)
 
 クリップボード貼り付け:
   MenuActionsWiring → KifuFileController → KifuPasteDialog (入力)
-                                         → KifuLoadCoordinator → KifuLoadParser (形式判定と読み込み)
+                                         → KifuLoader → KifuLoadParser (形式判定と読み込み)
 
 画像出力:
   MenuActionsWiring → ImageExportController → BoardImageExporter (保存/クリップボードコピー)

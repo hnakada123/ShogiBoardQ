@@ -1,7 +1,7 @@
 /// @file tst_app_kifu_load.cpp
 /// @brief 棋譜の読み込み（ファイル・貼り付け・局面）を、本体の合成ルートで組み立てた部品で確かめるテスト
 ///
-/// 読み込みは KifuFileController → KifuLoadCoordinator → 分岐ツリーの1本の経路を通る。
+/// 読み込みは KifuFileController → KifuLoader → 分岐ツリーの1本の経路を通る。
 /// 形式の判定・上書き保存先・未保存の印・失敗時に元の棋譜を残すことを、振る舞いで確かめる。
 
 #include <QtTest>
@@ -17,12 +17,12 @@
 #include "kifubranchtree.h"
 #include "kifuexport.h"
 #include "kifufilecontroller.h"
-#include "kifuloadcoordinator.h"
+#include "kifuloader.h"
 #include "kifunavigationstate.h"
 #include "kifurecordlistmodel.h"
 #include "mainwindow.h"
 #include "mainwindowcomposer.h"
-#include "uinotificationservice.h"
+#include "notificationpresenter.h"
 
 namespace {
 
@@ -182,7 +182,7 @@ private slots:
         const QString text = KifuExport::lines(*p.document, static_cast<KifuFormat>(format)).join(QLatin1Char('\n'));
         p.document->replaceWithPosition(SfenUtils::hirateSfen());
         p.document->markSaved(QString());
-        UiNotificationService::ScopedCapture shown;
+        NotificationPresenter::ScopedCapture shown;
         QVERIFY2(p.kifuFileController->loadKifuText(text), qPrintable(text + shown.errors().join(QLatin1Char('\n'))));
         QCOMPARE(p.branchTree->root()->sfen(), position);
         p.document->markSaved(QString());
@@ -193,7 +193,7 @@ private slots:
     {
         MainWindow window;
         auto& p = window.composer().parts();
-        UiNotificationService::ScopedCapture shown;
+        NotificationPresenter::ScopedCapture shown;
         const QString header = QStringLiteral("手数----指手---------消費時間--\n");
         QVERIFY(!p.kifuFileController->loadKifuText(QStringLiteral("手合割：平手\n") + header));
         QVERIFY(shown.errors().join(QLatin1Char('\n')).contains(QStringLiteral("指し手を取得できませんでした")));
@@ -233,9 +233,9 @@ private slots:
         QVERIFY(p.kifuFileController->loadKifuFile(fixture(QStringLiteral("test_basic.kif"))));
         const QStringList before = p.branchTree->mainRecordLine().usiMoves();
         const QString target = p.document->filePath();
-        QSignalSpy errors(p.kifuLoadCoordinator, &KifuLoadCoordinator::errorOccurred);
+        QSignalSpy errors(p.kifuLoader, &KifuLoader::errorOccurred);
         // 知らせはダイアログにせず記録する（自動化 API と同じ）
-        UiNotificationService::ScopedCapture shown;
+        NotificationPresenter::ScopedCapture shown;
 
         QVERIFY(!p.kifuFileController->loadKifuFile(fixture(QStringLiteral("missing.kif"))));
         QVERIFY(!p.kifuFileController->loadKifuText(QStringLiteral("this is not a kifu")));
@@ -253,7 +253,7 @@ private slots:
         p.evalGraph->beginAnalysis(QStringLiteral("Engine"), 0);
         p.evalGraph->plotAnalysisScore(1, UsiScore::cp(120));
         QCOMPARE(p.evalGraph->series()->count(0), 1);
-        UiNotificationService::ScopedCapture shown;
+        NotificationPresenter::ScopedCapture shown;
         QVERIFY(!p.kifuFileController->loadKifuText(QStringLiteral("this is not a kifu")));
         QCOMPARE(p.evalGraph->series()->count(0), 1);
         QVERIFY(p.kifuFileController->loadKifuFile(fixture(QStringLiteral("test_basic.kif"))));
@@ -265,9 +265,9 @@ private slots:
     {
         MainWindow window;
         auto& p = window.composer().parts();
-        QSignalSpy finished(p.kifuLoadCoordinator, &KifuLoadCoordinator::loadFinished);
-        p.kifuLoadCoordinator->loadFileAsync(fixture(QStringLiteral("test_branch.kif")));
-        p.kifuLoadCoordinator->loadTextAsync(QStringLiteral("position startpos moves 9g9f"));
+        QSignalSpy finished(p.kifuLoader, &KifuLoader::loadFinished);
+        p.kifuLoader->loadFileAsync(fixture(QStringLiteral("test_branch.kif")));
+        p.kifuLoader->loadTextAsync(QStringLiteral("position startpos moves 9g9f"));
         QTRY_COMPARE(finished.count(), 1);
         QVERIFY(finished.last().first().toBool());
         QCOMPARE(p.branchTree->mainRecordLine().usiMoves(), QStringList{QStringLiteral("9g9f")});
