@@ -23,7 +23,12 @@ std::optional<UsiPosition> CliArgs::resolvePosition(const QJsonObject& params, Q
     }
 
     // 合法手だけを1手ずつ指す（盤の局面は1回だけ進める）
-    UsiPosition usi(*Position::fromSfen(validation.normalizedSfen));
+    const std::optional<Position> start = Position::fromSfen(validation.normalizedSfen);
+    if (!start) {
+        if (error) *error = QStringLiteral("Invalid SFEN: %1").arg(validation.normalizedSfen);
+        return std::nullopt;
+    }
+    UsiPosition usi(*start);
     const QJsonArray moveArray = params.value(QStringLiteral("moves")).toArray();
     for (const QJsonValue& value : moveArray) {
         const QString text = value.toString();

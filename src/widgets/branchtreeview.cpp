@@ -171,15 +171,16 @@ void BranchTreeView::syncRowsFromTree(const QList<BranchLine>& lines)
         const BranchLine& line = lines.at(lineIdx);
         BranchTreeLayout::Row row;
         row.startPly = line.branchPly > 0 ? line.branchPly : 1;
-        row.length = static_cast<int>(line.nodes.size());
+        row.length = line.length();
+        // 手は、その手を初めて含むラインの行に描く。変化で初めて出る手は分岐した手から終端まで
+        const QList<KifuBranchNode*> added = line.nodesFrom(lineIdx > 0 ? row.startPly : 0);
         // 変化の先頭の手（折りたたみ状態をツリーの再構築後も保つためのキー）
-        if (lineIdx > 0 && row.startPly < line.nodes.size()) {
-            row.headNodeId = line.nodes.at(row.startPly)->nodeId();
+        if (lineIdx > 0 && !added.isEmpty()) {
+            row.headNodeId = added.first()->nodeId();
             heads.insert(row.headNodeId);
         }
         if (line.branchPoint != nullptr) row.parent = rowOf(line.branchPoint->nodeId());
-        // 手は、その手を初めて含むラインの行に描く
-        for (const KifuBranchNode* node : line.nodes) {
+        for (const KifuBranchNode* node : added) {
             if (!m_rowOf.contains(node->nodeId())) m_rowOf.insert(node->nodeId(), static_cast<int>(lineIdx));
         }
         m_layout.rows.append(row);
@@ -209,9 +210,8 @@ void BranchTreeView::rebuild()
 
     m_columnSpacing = 110.0;
     for (qsizetype row = 0; row < lines.size(); ++row) {
-        const QList<KifuBranchNode*>& nodes = lines.at(row).nodes;
-        for (qsizetype ply = qMax(1, m_layout.rows.at(row).startPly); ply < nodes.size(); ++ply)
-            m_columnSpacing = qMax(m_columnSpacing, requiredColumnSpacing(nodes.at(ply)));
+        const QList<KifuBranchNode*> nodes = lines.at(row).nodesFrom(qMax(1, m_layout.rows.at(row).startPly));
+        for (const KifuBranchNode* node : nodes) m_columnSpacing = qMax(m_columnSpacing, requiredColumnSpacing(node));
     }
 
     // 手数見出しの帯（上端に固定して表示する。下に隠れたノードが透けないよう不透明にする）
@@ -236,10 +236,10 @@ void BranchTreeView::rebuild()
     for (qsizetype row = 0; row < lines.size(); ++row) {
         const int r = static_cast<int>(row);
         if (m_layout.laneForRow(r) < 0) continue;   // 折りたたみで隠れている
-        const QList<KifuBranchNode*>& nodes = lines.at(row).nodes;
+        const QList<KifuBranchNode*> nodes = lines.at(row).nodesFrom(qMax(1, m_layout.rows.at(row).startPly));
         const int lastPly = m_layout.lastVisiblePly(r);
-        for (int ply = qMax(1, m_layout.rows.at(row).startPly); ply <= lastPly && ply < nodes.size(); ++ply) {
-            const KifuBranchNode* node = nodes.at(ply);
+        for (const KifuBranchNode* node : nodes) {
+            if (node->ply() > lastPly) break;
             const BranchNodeItem* prev = m_items.value(node->parent()->nodeId(), startItem);
             addEdge(prev, addNode(r, node));
         }

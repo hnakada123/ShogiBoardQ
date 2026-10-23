@@ -159,6 +159,55 @@ private slots:
         tree.reset();
     }
 
+    void longLineIsListedWithoutDeepRecursion()
+    {
+        // 手順の一覧を作るのも手数の深さの再帰にしない（7万手の棋譜を開くと落ちていた。セキュリティ監査 S5）
+        KifuBranchTree tree;
+        tree.setRootSfen(kHirateSfen);
+        KifuBranchNode* current = tree.root();
+        KifuBranchNode* middle = nullptr;
+        for (int i = 0; i < 200000; ++i) {
+            current = TestTree::addMove(tree, current, ShogiMove(), QStringLiteral("m"), QStringLiteral("s"));
+            if (i == 100000) middle = current;
+        }
+        const QList<BranchLine> lines = tree.allLines();
+        QCOMPARE(lines.size(), 1);
+        QCOMPARE(lines.at(0).leaf, current);
+        QCOMPARE(lines.at(0).length(), 200001);
+        QCOMPARE(lines.at(0).nodesFrom(199999).size(), 2);
+        QCOMPARE(tree.findLineIndexForNode(middle), std::optional<int>(0));
+        QCOMPARE(tree.sfenListForLine(0).size(), 200001);
+    }
+
+    void linesAreBuiltFromTheirLeaves()
+    {
+        // 手順はノードの列を持たず、終端から作る。分岐点は経路で最後に「最初の子でない」手の親
+        KifuBranchTree tree;
+        buildTestTree(tree);
+        KifuBranchNode* n4 = TestTree::findByPlyOnMainLine(tree, 4);
+        QVERIFY(n4);
+        // 変化の中の変化（3手目の変化の2手目＝4手目から、さらに分かれる）
+        KifuBranchNode* b1 = tree.allLines().at(1).nodesFrom(3).first();
+        KifuBranchNode* nested = TestTree::addMove(tree, b1, ShogiMove(), QStringLiteral("△１四歩"), QStringLiteral("nested"));
+
+        const QList<BranchLine> lines = tree.allLines();
+        QCOMPARE(lines.size(), 3);
+        QCOMPARE(lines.at(0).branchPly, 0);
+        QCOMPARE(lines.at(0).length(), 8);
+        QCOMPARE(lines.at(1).branchPly, 3);
+        QCOMPARE(lines.at(1).nodes().size(), 5);
+        QCOMPARE(lines.at(1).nodes().at(2), n4->parent()->parent());   // 分岐の前は本譜の手
+        QCOMPARE(lines.at(2).leaf, nested);
+        QCOMPARE(lines.at(2).branchPly, 4);
+        QCOMPARE(lines.at(2).branchPoint, b1);
+        QCOMPARE(lines.at(2).nodesFrom(4), QList<KifuBranchNode*>({nested}));
+        QVERIFY(lines.at(2).nodesFrom(5).isEmpty());
+        QCOMPARE(tree.findLineIndexForNode(b1), std::optional<int>(1));
+        QCOMPARE(tree.findLineIndexForNode(nested), std::optional<int>(2));
+        QCOMPARE(tree.findLineIndexForNode(n4), std::optional<int>(0));
+        QCOMPARE(tree.exportLine(2).moveCount(), 4);
+    }
+
     void setRootSfen()
     {
         KifuBranchTree tree;
@@ -220,7 +269,7 @@ private slots:
 
         // Path to branch end node
         auto& branchLine = lines[1];
-        auto* branchEnd = branchLine.nodes.last();
+        auto* branchEnd = branchLine.leaf;
         auto path = tree.pathToNode(branchEnd);
         QVERIFY(!path.isEmpty());
         QCOMPARE(path.first()->ply(), 0); // starts at root

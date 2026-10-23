@@ -16,19 +16,12 @@
 #include "terminalcodes.h"
 
 #include <QDateTime>
-#include <QRegularExpression>
 #include <QStringList>
-
-static const QRegularExpression& newlineRe()
-{
-    static const QRegularExpression re(QStringLiteral("\r?\n"));
-    return re;
-}
 
 static void appendCsaComments(const QString& comment, QStringList& out)
 {
     if (comment.isEmpty()) return;
-    const QStringList lines = comment.split(newlineRe(), Qt::KeepEmptyParts);
+    const QStringList lines = KifuExportCommon::splitLines(comment);
     for (const QString& line : lines) out << (QStringLiteral("'*") + line);
 }
 
@@ -73,10 +66,10 @@ QStringList CsaExporter::exportLines(const KifuBranchTree& recordTree, const Kif
         if (whitePlayer.isEmpty()) whitePlayer = resolvedWhite;
     }
     if (!blackPlayer.isEmpty()) {
-        out << QStringLiteral("N+%1").arg(blackPlayer);
+        out << QStringLiteral("N+%1").arg(KifuExportCommon::singleLine(blackPlayer));
     }
     if (!whitePlayer.isEmpty()) {
-        out << QStringLiteral("N-%1").arg(whitePlayer);
+        out << QStringLiteral("N-%1").arg(KifuExportCommon::singleLine(whitePlayer));
     }
 
     // 5) 棋譜情報（対局者名以外）
@@ -109,7 +102,7 @@ QStringList CsaExporter::exportLines(const KifuBranchTree& recordTree, const Kif
             value = CsaFormatter::escapeNote(val);
         if (csaKey == QLatin1String("START_TIME")) hasStartTime = true;
         if (csaKey.startsWith(QLatin1String("TIME"))) hasTime = true;
-        out << QStringLiteral("$%1:%2").arg(csaKey, value);
+        out << QStringLiteral("$%1:%2").arg(csaKey, KifuExportCommon::singleLine(value));
     }
 
     // 5-2) 対局情報に開始日時がなくても、このアプリで対局した開始時刻が分かれば記録する。

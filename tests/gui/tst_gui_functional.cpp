@@ -157,7 +157,7 @@ class GuiAudit : public QObject
     /// ライン line の ply 手目の ID
     int lineNodeId(int line, int ply) const
     {
-        return window->composer().parts().branchTree->allLines().at(line).nodes.at(ply)->nodeId();
+        return window->composer().parts().branchTree->allLines().at(line).nodes().at(ply)->nodeId();
     }
     bool hasKifuPasteDialog() const
     {

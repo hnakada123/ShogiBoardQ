@@ -5,6 +5,7 @@
 /// @brief エンジンに探索させる局面（開始局面と指し手の列）の値
 
 #include <QMetaType>
+#include <algorithm>
 #include <QString>
 #include <QStringList>
 #include <QStringView>
@@ -34,6 +35,14 @@ public:
     /// 開始局面（完全な SFEN）から手を順に指した局面。読めない・指せない手があれば nullopt
     static std::optional<UsiPosition> fromMoves(QStringView startSfen, const QList<UsiMove>& moves);
     /**
+     * @brief 開始局面から moves を順に指した手順の、fromPly〜toPly 手目の後の各局面
+     *
+     * 指した手の列は全部の局面で共有する（局面ごとに手順を複製すると、手数の二乗のメモリになる）。
+     * 範囲が手順の外か、読めない・指せない手があれば nullopt
+     */
+    static std::optional<QList<UsiPosition>> alongMoves(QStringView startSfen, const QList<UsiMove>& moves,
+                                                        int fromPly, int toPly);
+    /**
      * @brief position コマンド（"position startpos moves ..." / "position sfen ... moves ..."）を読む
      *
      * "position " を省いた形・SFEN だけの形（手数を省いた3つの欄も）も受け付ける。読めなければ nullopt を返し、error に理由を入れる
@@ -45,7 +54,7 @@ public:
     /// 開始局面（完全な SFEN）
     QString startSfen() const { return m_valid ? m_start.toSfen() : QString(); }
     /// 開始局面から指した手（USI 形式）
-    const QStringList& moves() const { return m_moves; }
+    QStringList moves() const { return m_moves.first(m_moveCount); }
     /// 指した後の局面（探索する局面）
     const Position& position() const { return m_position; }
     /// 探索する局面の SFEN
@@ -73,14 +82,20 @@ public:
     {
         if (a.m_valid != b.m_valid) return false;
         if (!a.m_valid) return true;
-        return a.m_start == b.m_start && a.m_moves == b.m_moves && a.m_lastMove == b.m_lastMove;
+        return a.m_start == b.m_start && a.m_moveCount == b.m_moveCount
+               && std::equal(a.m_moves.cbegin(), a.m_moves.cbegin() + a.m_moveCount, b.m_moves.cbegin())
+               && a.m_lastMove == b.m_lastMove;
     }
     friend bool operator!=(const UsiPosition& a, const UsiPosition& b) { return !(a == b); }
 
 private:
+    /// この局面から1手指す（指せなければ false。そのときは使わない）
+    bool advance(const UsiMove& move);
+
     bool m_valid = false;
     Position m_start;
-    QStringList m_moves;
+    QStringList m_moves;          ///< 指した手。先頭の m_moveCount 手がこの局面の手順（alongMoves の局面どうしで共有する）
+    qsizetype m_moveCount = 0;
     Position m_position;
     std::optional<UsiMove> m_lastMove;
 };

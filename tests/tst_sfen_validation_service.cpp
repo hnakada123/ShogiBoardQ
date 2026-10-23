@@ -4,6 +4,9 @@
 #include <QtTest>
 
 #include "positionvalidator.h"
+#include "shogiposition.h"
+
+#include <limits>
 #include "sfenutils.h"
 #include "sfenvalidationservice.h"
 
@@ -118,6 +121,25 @@ private slots:
         const QString illegal = SfenValidationService::applyUsiMoves(QStringLiteral("startpos"), {QStringLiteral("7g7e")}, &error);
         QVERIFY(illegal.isEmpty());
         QVERIFY(error.contains(QStringLiteral("7g7e")));
+    }
+
+    void boundsMoveNumberAndHands()
+    {
+        // 手数と持ち駒の枚数に上限を設け、指したり足したりしても桁あふれさせない（セキュリティ監査 S13）
+        const QString board = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL");
+        QVERIFY(Position::fromSfen(board + QStringLiteral(" b - 10000000")));
+        QVERIFY(!Position::fromSfen(board + QStringLiteral(" b - 10000001")));
+        QVERIFY(!Position::fromSfen(board + QStringLiteral(" b - 2147483647")));
+        QVERIFY(Position::fromSfen(QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b 99P 1")));
+        QVERIFY(!Position::fromSfen(QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b 99P1P 1")));
+        QVERIFY(!Position::fromSfen(QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b 99P99P 1")));
+
+        Position position = *Position::fromSfen(QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b 98P 1"));
+        position.addToHand(Piece::BlackPawn, std::numeric_limits<int>::max());
+        QCOMPARE(position.handCount(Piece::BlackPawn), Position::kMaxHandCount);
+        QVERIFY(Position::fromSfen(position.toSfen()));   // 書いた SFEN は読み直せる
+        position.setMoveNumber(std::numeric_limits<int>::max());
+        QCOMPARE(position.moveNumber(), Position::kMaxMoveNumber);
     }
 };
 

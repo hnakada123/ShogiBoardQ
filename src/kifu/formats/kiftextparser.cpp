@@ -36,18 +36,19 @@ Position initialPosition(const QStringList& lines, StartKind* kind)
         return bod;
     }
 
+    // 手合割の行は「手合割：」「手合：」で始まる行だけ（コメントや対局者名の中の「手合割：」は読まない。
+    // 行の途中を読むと、対局者名やコメントに書いた手合割で開始局面が変わる。セキュリティ監査 S9）
+    static const QRegularExpression s_handicapKey(QStringLiteral("^手合割?[\\s　]*[:：]"));
     QString found;
+    QString name;
     for (const QString& raw : lines) {
         const QString line = raw.trimmed();
-        if (line.contains(QStringLiteral("手合割")) || line.contains(QStringLiteral("手合"))) {
+        if (const QRegularExpressionMatch key = s_handicapKey.match(line); key.hasMatch()) {
             found = line;
+            name = line.mid(key.capturedEnd()).trimmed();
             break;
         }
     }
-    static const QRegularExpression s_afterColon(QStringLiteral("^.*[:：]"));
-    QString name = found;
-    name.remove(s_afterColon);
-    name = name.trimmed();
     if (name.isEmpty()) name = QStringLiteral("平手");
     *kind = found.isEmpty() ? StartKind::Default : StartKind::Handicap;
     // 知らない手合割の名前は平手にする

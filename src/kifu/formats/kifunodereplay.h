@@ -21,6 +21,9 @@ class KifuNodeReplay
 public:
     /// startSfen の局面から始める。読めなければ fallbackSfen（根のノードの局面など）から
     explicit KifuNodeReplay(const QString& startSfen, const QString& fallbackSfen = QString());
+    /// node の手を指した後の局面から始める（変化を書くときに、分岐元までの手を指し直さない）。
+    /// node の SFEN が読めなければ synced() が false
+    static KifuNodeReplay after(const KifuBranchNode* node);
 
     const Position& board() const { return m_board; }
     /// 次の手を指す側

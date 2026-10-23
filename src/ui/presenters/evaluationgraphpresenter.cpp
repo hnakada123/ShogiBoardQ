@@ -36,7 +36,7 @@ int EvaluationGraphPresenter::recordLength() const
     if (!m_navState) return 0;
     const QList<BranchLine> lines = m_navState->tree()->allLines();
     const int index = m_navState->currentLineIndex();
-    return (index >= 0 && index < lines.size()) ? static_cast<int>(lines.at(index).nodes.size()) - 1 : 0;
+    return (index >= 0 && index < lines.size()) ? lines.at(index).length() - 1 : 0;
 }
 
 void EvaluationGraphPresenter::setEngine1Name(const QString& name)

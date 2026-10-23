@@ -5,6 +5,7 @@
 #include "usiposition.h"
 
 #include <QCoreApplication>
+#include <limits>
 
 #include "piecerules.h"
 #include "sfenutils.h"
@@ -68,7 +69,7 @@ std::optional<Position> Position::fromSfen(QStringView sfen, QString* error)
     if (fields[1] != u"b" && fields[1] != u"w") return fail(translated("SFEN board parse error: %1").arg(shown));
     bool ok = false;
     const int moveNumber = fields[3].toInt(&ok);
-    if (!ok || moveNumber <= 0) return fail(translated("SFEN board parse error: %1").arg(shown));
+    if (!ok || moveNumber <= 0 || moveNumber > kMaxMoveNumber) return fail(translated("SFEN board parse error: %1").arg(shown));
 
     Position position;
     position.m_sideToMove = fields[1] == u"b" ? Turn::Black : Turn::White;
@@ -114,6 +115,9 @@ std::optional<Position> Position::fromSfen(QStringView sfen, QString* error)
             }
             const Piece piece = i < hands.size() ? charToPiece(hands.at(i)) : Piece::None;
             if (piece == Piece::None) return fail(translated("SFEN piece stand parse error: %1").arg(shown));
+            // 同じ駒を何度書いても、SFEN に書き戻せる枚数まで（それより多い局面は読み直せない）
+            if (position.handCount(piece) + number > kMaxHandCount)
+                return fail(translated("SFEN piece stand parse error: %1").arg(shown));
             position.addToHand(piece, number);
             ++i;
         }
@@ -243,13 +247,17 @@ int Position::handCount(Piece piece) const
 void Position::setHandCount(Piece piece, int count)
 {
     const int slot = handSlot(piece);
-    if (slot >= 0) m_hands[static_cast<size_t>(slot)] = count < 0 ? 0 : count;
+    if (slot >= 0) m_hands[static_cast<size_t>(slot)] = qBound(0, count, kMaxHandCount);
 }
 
 void Position::addToHand(Piece piece, int count)
 {
+    // 枚数は kMaxHandCount で頭打ちにする（局面図の「歩2147483647」などで桁あふれさせない）
     const int slot = handSlot(piece);
-    if (slot >= 0 && count > 0) m_hands[static_cast<size_t>(slot)] += count;
+    if (slot >= 0 && count > 0) {
+        int& hand = m_hands[static_cast<size_t>(slot)];
+        hand = qMin(kMaxHandCount, hand + qMin(count, kMaxHandCount));
+    }
 }
 
 bool Position::takeFromHand(Piece piece)
@@ -324,6 +332,6 @@ bool Position::apply(const UsiMove& move, DropRule rule)
         setPieceAt(move.to, moving);
     }
     m_sideToMove = opponent(mover);
-    ++m_moveNumber;
+    if (m_moveNumber < std::numeric_limits<int>::max()) ++m_moveNumber;
     return true;
 }

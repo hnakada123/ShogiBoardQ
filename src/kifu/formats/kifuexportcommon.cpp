@@ -7,9 +7,27 @@
 
 namespace KifuExportCommon {
 
+QString singleLine(const QString& text)
+{
+    QString out = text;
+    for (QChar& ch : out) {
+        const char16_t u = ch.unicode();
+        if ((u < 0x20 && u != u'\t') || u == 0x7F) ch = QLatin1Char(' ');
+    }
+    return out;
+}
+
+QStringList splitLines(const QString& text)
+{
+    static const QRegularExpression newlineRe(QStringLiteral("\\r\\n|[\\r\\n]"));
+    QStringList lines = text.split(newlineRe, Qt::KeepEmptyParts);
+    for (QString& line : lines) line = singleLine(line);
+    return lines;
+}
+
 QString fwColonLine(const QString& key, const QString& value)
 {
-    return QStringLiteral("%1：%2").arg(key, value);
+    return QStringLiteral("%1：%2").arg(singleLine(key), singleLine(value));
 }
 
 QString removeTurnMarker(const QString& move)
@@ -22,7 +40,7 @@ void appendKifBookmarks(const QString& bookmark, QStringList& out)
 {
     if (bookmark.trimmed().isEmpty()) return;
 
-    const QStringList lines = bookmark.split(QLatin1Char('\n'), Qt::SkipEmptyParts);
+    const QStringList lines = splitLines(bookmark);
     for (const QString& name : lines) {
         const QString t = name.trimmed();
         if (!t.isEmpty()) out << (QStringLiteral("&") + t);
@@ -33,8 +51,7 @@ void appendKifComments(const QString& comment, QStringList& out)
 {
     if (comment.trimmed().isEmpty()) return;
 
-    static const QRegularExpression newlineRe(QStringLiteral("\r?\n"));
-    const QStringList lines = comment.split(newlineRe, Qt::KeepEmptyParts);
+    const QStringList lines = splitLines(comment);
     for (const QString& raw : lines) {
         const QString t = raw.trimmed();
         // 後方互換: コメント中の【しおり】マーカーを & 行として出力

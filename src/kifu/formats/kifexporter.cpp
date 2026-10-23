@@ -170,7 +170,7 @@ QStringList KifExporter::exportLines(const KifuBranchTree& recordTree, const Kif
             // 変化ヘッダ（空行 + 変化：N手）と、分岐点以降の指し手
             out << QString();
             out << QStringLiteral("変化：%1手").arg(line.branchPly);
-            outputMoveNodes(line.nodes, line.branchPly, out);
+            outputMoveNodes(line.nodesFrom(line.branchPly), line.branchPly, out);
         }
     }
 

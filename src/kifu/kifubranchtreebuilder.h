@@ -31,9 +31,9 @@ public:
 private:
     KifuBranchTreeBuilder() = default;
 
-    static QList<KifuBranchNode*> addKifLineToTree(KifuBranchTree* tree,
-                                                  const RecordLine& line,
-                                                  QList<KifuBranchNode*> path);
+    /// from の後に手順の手を足し、足したノードを返す
+    static QList<KifuBranchNode*> addKifLineToTree(KifuBranchTree* tree, const RecordLine& line,
+                                                  KifuBranchNode* from);
 };
 
 #endif // KIFUBRANCHTREEBUILDER_H

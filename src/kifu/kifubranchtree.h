@@ -20,12 +20,21 @@ class KifuBranchTree;
 
 /**
  * @brief 分岐ラインの情報
+ *
+ * ノードの列は手順ごとに持たず、終端から親をたどって作る（手順ごとに持つと、手数×変化の数のメモリになる）。
  */
 struct BranchLine {
     int lineIndex = 0;                      // 0=本譜、1以降=分岐
-    QList<KifuBranchNode*> nodes;         // ノード列（ルートから終端まで）
+    KifuBranchNode* leaf = nullptr;         // 終端のノード（手がなければルート）
     int branchPly = 0;                      // 分岐開始手数（本譜は0）
     KifuBranchNode* branchPoint = nullptr;  // 分岐点のノード（本譜はnullptr）
+
+    /// ルートから終端までのノード（呼ぶたびに作る）
+    QList<KifuBranchNode*> nodes() const { return nodesFrom(0); }
+    /// fromPly 手目から終端までのノード（fromPly が終端より後なら空）
+    QList<KifuBranchNode*> nodesFrom(int fromPly) const;
+    /// ルートから終端までのノードの数（開始局面を含む）
+    int length() const;
 };
 
 /**
@@ -249,10 +258,7 @@ private:
     std::unique_ptr<KifuBranchNode> createNode();
     void forgetSubtree(const KifuBranchNode* node);
     bool moveChildSilently(KifuBranchNode* child, int index);
-    void collectLinesRecursive(KifuBranchNode* node,
-                               QList<KifuBranchNode*>& currentPath,
-                               QList<BranchLine>& lines,
-                               int& lineIndex) const;
+    void collectLines() const;
     void invalidateLineCache();
 
     /// 構造の変更を知らせる（一括更新中は endBatchUpdate() まで遅らせる）
@@ -267,6 +273,7 @@ private:
     QList<Change> m_pendingChanges;       ///< 一括更新中の変更（古い順）
 
     mutable QList<BranchLine> m_linesCache;
+    mutable QHash<const KifuBranchNode*, int> m_lineIndexByLeaf;   ///< 終端のノード → 手順の番号
     mutable bool m_linesCacheDirty = true;
     quint64 m_revision = 0;               ///< 構造変更の回数（revision() 参照）
 };

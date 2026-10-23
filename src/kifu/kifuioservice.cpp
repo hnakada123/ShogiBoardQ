@@ -13,17 +13,27 @@
 
 namespace {
 
-// ファイル名に使えない/避けたい文字を置換し、空ならプレースホルダを返す
+// ファイル名の1つの名前の部分の長さの上限（文字数。2つの名前と日時で、ファイル名の上限 255 バイトに収まる）
+constexpr int kMaxNamePartLength = 40;
+
+// ファイル名に使えない/避けたい文字を置換し、空ならプレースホルダを返す。制御文字（NUL を含む）と
+// 文字の向きを変える制御文字も置き換え、長さを切る（通信対局のサーバーが送る対局者名にも使う。セキュリティ監査 S21）
 QString sanitizeForFileName(const QString& s, const QString& placeholder)
 {
     QString t = s;
     if (t.isEmpty()) return placeholder;
 
-    static const QRegularExpression badChars(R"([\\/:*?"<>|\r\n\t])");
+    static const QRegularExpression badChars(QStringLiteral("[\\\\/:*?\"<>|\\x{0}-\\x{1F}\\x{7F}\\x{200E}\\x{200F}"
+                                                            "\\x{202A}-\\x{202E}\\x{2066}-\\x{2069}]"));
     t.replace(badChars, QStringLiteral("_"));
     t = t.simplified();
     t.replace(QLatin1Char(' '), QLatin1Char('_'));
-    return t;
+    if (t.size() > kMaxNamePartLength) {
+        qsizetype end = kMaxNamePartLength;
+        if (t.at(end - 1).isHighSurrogate()) --end;   // サロゲートペアを分けない
+        t.truncate(end);
+    }
+    return t.isEmpty() ? placeholder : t;
 }
 
 } // namespace

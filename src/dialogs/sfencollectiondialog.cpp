@@ -2,6 +2,7 @@
 /// @brief SFEN局面集ビューアダイアログクラスの実装
 
 #include "sfencollectiondialog.h"
+#include "boundedfile.h"
 #include "buttonstyles.h"
 #include "boardviewerwidget.h"
 #include "shogiboard.h"
@@ -19,7 +20,6 @@
 #include <QLabel>
 #include <QTimer>
 #include <QMenu>
-#include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QMessageBox>
@@ -170,16 +170,17 @@ void SfenCollectionDialog::onOpenFileClicked()
 bool SfenCollectionDialog::loadFromFile(const QString& filePath)
 {
     QFileInfo fi(filePath);
-    QFile file(filePath);
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+    // 通常のファイルだけを上限まで読む（FIFO・デバイス・巨大なファイルで止まらない）
+    QByteArray contents;
+    if (BoundedFile::read(filePath, BoundedFile::kMaxCollectionBytes, contents) != BoundedFile::Result::Ok) {
         QMessageBox::warning(this, tr("エラー"),
                              tr("ファイルを開けませんでした: %1").arg(fi.fileName()));
         return false;
     }
 
-    QTextStream in(&file);
+    QTextStream in(contents);
     QString text = in.readAll();
-    file.close();
+    text.replace(QStringLiteral("\r\n"), QStringLiteral("\n"));
 
     // 局面が1つもないファイルでは、表示中の局面集をそのまま残す
     int skippedLines = 0;

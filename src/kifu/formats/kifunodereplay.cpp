@@ -11,6 +11,13 @@ KifuNodeReplay::KifuNodeReplay(const QString& startSfen, const QString& fallback
     m_mover = m_board.sideToMove();
 }
 
+KifuNodeReplay KifuNodeReplay::after(const KifuBranchNode* node)
+{
+    KifuNodeReplay replay(node->sfen());
+    if (node->isActualMove() && node->move().move.isValid()) replay.m_previousTo = node->move().move.to;
+    return replay;
+}
+
 bool KifuNodeReplay::canWrite(const KifuBranchNode* node) const
 {
     return m_synced && node->isActualMove() && node->move().move.isValid();

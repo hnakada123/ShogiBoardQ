@@ -18,7 +18,7 @@ class TestNavigation : public QObject
 
 private:
     /// index 番の手順（KifuBranchTree::allLines()）の末尾の手の ID
-    static int lineEnd(const KifuBranchTree& tree, int index) { return tree.allLines().at(index).nodes.constLast()->nodeId(); }
+    static int lineEnd(const KifuBranchTree& tree, int index) { return tree.allLines().at(index).leaf->nodeId(); }
 
     void buildTestTree(KifuBranchTree& tree)
     {

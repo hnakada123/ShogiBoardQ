@@ -218,6 +218,30 @@ private slots:
         QCOMPARE(result.variations.at(2).line.entries.at(0).displayText, QStringLiteral("▲６八金左(78)"));
     }
 
+    /// 変化の入れ子が深すぎる棋譜は、読み直せる深さ（300段）までを書く。再帰でスタックを使い切らない（セキュリティ監査 S5）
+    void deeplyNestedVariationsAreCapped()
+    {
+        const QString initial = QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b - 1");
+        KifuBranchTree tree;
+        tree.setRootSfen(initial);
+        // 玉の往復（変化の側）と横への1歩（本筋の側）を、変化の中の変化として400段重ねる
+        const QStringList alongVariation = {"5i5h", "5a5b", "5h5i", "5b5a"};
+        const QStringList alongMain = {"5i4i", "5a4a", "5h4h", "5b4b"};
+        KifuBranchNode* current = tree.root();
+        for (int depth = 0; depth < 400; ++depth) {
+            addMove(tree, current, alongMain.at(depth % 4));
+            current = addMove(tree, current, alongVariation.at(depth % 4));
+        }
+
+        const QByteArray json = exportJkf(tree, initial);
+        KifParseResult result;
+        QString error;
+        QVERIFY2(readJkf(json, result, &error), qPrintable(error));
+        QCOMPARE(result.mainline.usiMoves(), QStringList({"5i4i"}));
+        QCOMPARE(result.variations.size(), 300);
+        QCOMPARE(result.variations.last().line.usiMoves(), QStringList({alongVariation.at(299 % 4), alongMain.at(300 % 4)}));
+    }
+
     /// 終局は分岐ツリーの終局の種類から special にする（反則勝ちは手番で符号が決まる）
     void terminalSpecials_data()
     {

@@ -2,10 +2,10 @@
 /// @brief 開いている詰将棋の局面集の実装
 
 #include "tsumecollectionsession.h"
+#include "boundedfile.h"
 
 #include "tsumepositionanalyzer.h"
 
-#include <QFile>
 #include <algorithm>
 
 TsumeCollectionSession::TsumeCollectionSession(QObject* parent)
@@ -27,12 +27,12 @@ TsumeCollectionSession::~TsumeCollectionSession() = default;
 
 bool TsumeCollectionSession::load(const QString& path, QString* errorMessage, QList<int>* invalidLines)
 {
-    QFile file(path);
-    if (!file.open(QIODevice::ReadOnly)) {
-        if (errorMessage) *errorMessage = file.errorString();
+    QByteArray contents;
+    const BoundedFile::Result read = BoundedFile::read(path, BoundedFile::kMaxCollectionBytes, contents);
+    if (read != BoundedFile::Result::Ok) {
+        if (errorMessage) *errorMessage = BoundedFile::describe(read, path, BoundedFile::kMaxCollectionBytes);
         return false;
     }
-    const QByteArray contents = file.readAll();
     const TsumeCollection::Result parsed = TsumeCollection::parse(QString::fromUtf8(contents));
     if (parsed.problems.isEmpty()) {
         if (errorMessage) errorMessage->clear();

@@ -21,6 +21,7 @@ KifuBranchTree::~KifuBranchTree() = default;
 void KifuBranchTree::clear()
 {
     m_linesCache.clear();  // ダングリングポインタ防止
+    m_lineIndexByLeaf.clear();
     invalidateLineCache();
     m_nodeById.clear();
     m_root.reset();
@@ -166,23 +167,24 @@ QList<KifuBranchNode*> KifuBranchTree::pathToNode(KifuBranchNode* node) const
     return path;
 }
 
+QList<KifuBranchNode*> BranchLine::nodesFrom(int fromPly) const
+{
+    QList<KifuBranchNode*> nodes;
+    if (leaf == nullptr || fromPly > leaf->ply()) return nodes;
+    nodes.resize(leaf->ply() - qMax(fromPly, 0) + 1);
+    qsizetype i = nodes.size();
+    for (KifuBranchNode* node = leaf; node != nullptr && i > 0; node = node->parent()) nodes[--i] = node;
+    return nodes;
+}
+
+int BranchLine::length() const
+{
+    return leaf != nullptr ? leaf->ply() + 1 : 0;
+}
+
 QList<BranchLine> KifuBranchTree::allLines() const
 {
-    if (!m_linesCacheDirty) {
-        return m_linesCache;
-    }
-
-    m_linesCache.clear();
-    if (m_root == nullptr) {
-        m_linesCacheDirty = false;
-        return m_linesCache;
-    }
-
-    QList<KifuBranchNode*> currentPath;
-    int lineIndex = 0;
-    collectLinesRecursive(m_root.get(), currentPath, m_linesCache, lineIndex);
-
-    m_linesCacheDirty = false;
+    if (m_linesCacheDirty) collectLines();
     return m_linesCache;
 }
 
@@ -192,52 +194,41 @@ void KifuBranchTree::invalidateLineCache()
     ++m_revision;
 }
 
-void KifuBranchTree::collectLinesRecursive(KifuBranchNode* node,
-                                           QList<KifuBranchNode*>& currentPath,
-                                           QList<BranchLine>& lines,
-                                           int& lineIndex) const
+void KifuBranchTree::collectLines() const
 {
-    currentPath.append(node);
+    m_linesCache.clear();
+    m_lineIndexByLeaf.clear();
+    m_linesCacheDirty = false;
+    if (m_root == nullptr) return;
 
-    if (node->childCount() == 0) {
-        // 葉ノード - このパスを1つのラインとして記録
-        BranchLine line;
-        line.lineIndex = lineIndex;
-        line.nodes = currentPath;
-
-        if (lineIndex == 0) {
-            line.branchPly = 0;
-            line.branchPoint = nullptr;
-        } else {
-            // 分岐点を探す（最後に見つかった分岐点を使用）
-            // 例: Line 2 (７七角分岐) の場合、3手目で本譜から分岐し、
-            // さらに5手目でLine 1から分岐する。この場合、branchPointは
-            // 5手目の親（4手目の「△８四歩」）であるべき。
-            for (int i = 0; i < currentPath.size(); ++i) {
-                KifuBranchNode* n = currentPath.at(i);
-                if (n->parent() != nullptr && n->parent()->childCount() > 1) {
-                    // このノードの親が分岐点
-                    if (!n->isMainLine()) {
-                        line.branchPly = n->ply();
-                        line.branchPoint = n->parent();
-                        // breakしない: 最後に見つかった分岐点を使う
-                    }
-                }
-            }
+    // 深さ優先で、最初の子（本譜）の手順を先に並べる。長い手順でもスタックを使い切らないよう、
+    // 再帰せずに明示のスタックでたどる（セキュリティ監査 S5）。
+    // 分岐点は、ルートからの経路で最後の「親の最初の子でない」ノードの親
+    // （例: 3手目で本譜から分かれ、5手目でさらに分かれた変化の分岐点は4手目の手）
+    struct Frame {
+        KifuBranchNode* node;
+        int branchPly;
+        KifuBranchNode* branchPoint;
+    };
+    QList<Frame> stack{{m_root.get(), 0, nullptr}};
+    while (!stack.isEmpty()) {
+        const Frame frame = stack.takeLast();
+        KifuBranchNode* node = frame.node;
+        if (node->childCount() == 0) {
+            BranchLine line;
+            line.lineIndex = static_cast<int>(m_linesCache.size());
+            line.leaf = node;
+            line.branchPly = frame.branchPly;
+            line.branchPoint = frame.branchPoint;
+            m_lineIndexByLeaf.insert(node, line.lineIndex);
+            m_linesCache.append(line);
+            continue;
         }
-
-        lines.append(line);
-        lineIndex++;
-    } else {
-        // 子ノードを再帰的に処理
-        // 最初の子（本譜）を先に処理
-        for (int i = 0; i < node->childCount(); ++i) {
+        for (int i = node->childCount() - 1; i >= 0; --i) {
             KifuBranchNode* child = node->childAt(i);
-            collectLinesRecursive(child, currentPath, lines, lineIndex);
+            stack.append(i == 0 ? Frame{child, frame.branchPly, frame.branchPoint} : Frame{child, child->ply(), node});
         }
     }
-
-    currentPath.removeLast();
 }
 
 int KifuBranchTree::lineCount() const
@@ -258,44 +249,14 @@ std::optional<int> KifuBranchTree::findLineIndexForNode(KifuBranchNode* node) co
     if (node == nullptr) {
         return std::nullopt;
     }
+    if (m_linesCacheDirty) collectLines();
 
-    QList<BranchLine> lines = allLines();
-
-    // まず、このノードが終端であるラインを探す（子がないノード）
-    if (node->childCount() == 0) {
-        for (const BranchLine& line : std::as_const(lines)) {
-            if (!line.nodes.isEmpty() && line.nodes.last() == node) {
-                return line.lineIndex;
-            }
-        }
-    }
-
-    // 次に、このノードの後に分岐があるかチェック
-    // ノードから終端までのパスを辿り、その終端が属するラインを返す
-    KifuBranchNode* current = node;
-    while (current->childCount() > 0) {
-        // 最初の子を辿る（このノードが属する「主要な」パス）
-        current = current->childAt(0);
-    }
-
-    // 終端ノードが属するラインを探す
-    for (const BranchLine& line : std::as_const(lines)) {
-        if (!line.nodes.isEmpty() && line.nodes.last() == current) {
-            // このラインに対象ノードが含まれているか確認
-            if (line.nodes.contains(node)) {
-                return line.lineIndex;
-            }
-        }
-    }
-
-    // フォールバック: ノードを含む最初のラインを返す
-    for (const BranchLine& line : std::as_const(lines)) {
-        if (line.nodes.contains(node)) {
-            return line.lineIndex;
-        }
-    }
-
-    return std::nullopt;
+    // ノードを含む最初の手順は、ノードから最初の子をたどった終端の手順
+    const KifuBranchNode* leaf = node;
+    while (leaf->childCount() > 0) leaf = leaf->childAt(0);
+    const auto it = m_lineIndexByLeaf.constFind(leaf);
+    if (it == m_lineIndexByLeaf.constEnd()) return std::nullopt;
+    return *it;
 }
 
 void KifuBranchTree::setComment(int nodeId, const QString& comment)
@@ -314,7 +275,8 @@ RecordLine KifuBranchTree::exportLine(int lineIndex) const
     const QList<BranchLine> lines = allLines();
     if (lineIndex < 0 || lineIndex >= lines.size()) return result;
 
-    for (const KifuBranchNode* node : std::as_const(lines.at(lineIndex).nodes)) {
+    const QList<KifuBranchNode*> nodes = lines.at(lineIndex).nodes();
+    for (const KifuBranchNode* node : nodes) {
         if (node->ply() == 0) {
             result.startSfen = node->sfen();
             result.openingComment = node->comment();
@@ -336,8 +298,9 @@ QStringList KifuBranchTree::sfenListForLine(int lineIndex) const
         return result;
     }
 
-    const BranchLine& line = lines.at(lineIndex);
-    for (KifuBranchNode* node : std::as_const(line.nodes)) {
+    const QList<KifuBranchNode*> nodes = lines.at(lineIndex).nodes();
+    result.reserve(nodes.size());
+    for (KifuBranchNode* node : nodes) {
         result.append(node->sfen());
     }
 
@@ -403,6 +366,7 @@ bool KifuBranchTree::removeSubtree(KifuBranchNode* node)
     const int nodeId = node->nodeId();
     forgetSubtree(node);
     m_linesCache.clear();  // ダングリングポインタ防止
+    m_lineIndexByLeaf.clear();
     parent->takeChild(node);
     invalidateLineCache();
     notify({Change::Kind::Removed, parent->nodeId(), nodeId});

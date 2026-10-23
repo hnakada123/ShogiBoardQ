@@ -3,8 +3,10 @@
 #include <QByteArray>
 #include <QDir>
 #include <QFile>
+#include <QTemporaryDir>
 #include <QTemporaryFile>
 
+#include "boundedfile.h"
 #include "kifreader.h"
 #include "shiftjiscodec.h"
 
@@ -85,6 +87,34 @@ private slots:
         QVERIFY(!ShiftJisCodec::decodeWithPlatform(QByteArray::fromHex("81")).has_value());
         QVERIFY(!ShiftJisCodec::encodeWithPlatform(QStringLiteral("\U0001F600")).has_value());
         QVERIFY(!ShiftJisCodec::encode(QStringLiteral("\U0001F600")).has_value());
+    }
+
+    /// 通常のファイルだけを上限まで読む（ディレクトリ・FIFO・デバイス・大きすぎるファイルは読まない。セキュリティ監査 S14）
+    void readsOnlyBoundedRegularFiles()
+    {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        QByteArray bytes;
+        QCOMPARE(BoundedFile::read(dir.path(), 100, bytes), BoundedFile::Result::NotRegularFile);
+        QCOMPARE(BoundedFile::read(dir.filePath(QStringLiteral("missing.kif")), 100, bytes), BoundedFile::Result::OpenFailed);
+        const QString path = dir.filePath(QStringLiteral("a.kif"));
+        {
+            QFile file(path);
+            QVERIFY(file.open(QIODevice::WriteOnly));
+            file.write(QByteArray(101, 'x'));
+        }
+        QCOMPARE(BoundedFile::read(path, 100, bytes), BoundedFile::Result::TooLarge);
+        QVERIFY(bytes.isEmpty());
+        QCOMPARE(BoundedFile::read(path, 101, bytes), BoundedFile::Result::Ok);
+        QCOMPARE(bytes.size(), 101);
+#ifndef Q_OS_WIN
+        if (QFileInfo::exists(QStringLiteral("/dev/zero"))) {
+            QStringList lines;
+            QString warn;
+            QVERIFY(!KifReader::readAllLinesAuto(QStringLiteral("/dev/zero"), lines, nullptr, &warn));
+            QVERIFY(warn.contains(QStringLiteral("not a regular file")));
+        }
+#endif
     }
 };
 
