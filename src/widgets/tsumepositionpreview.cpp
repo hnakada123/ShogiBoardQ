@@ -49,7 +49,9 @@ void TsumePositionPreview::paintEvent(QPaintEvent*)
                      tr("攻方"));
     painter.translate(0, kHeaderHeight);
 
-    const BoardColors colors = BoardAppearance::instance().colors();
+    // 盤・駒台は盤と同じ配色と木目。周りは盤の背景色で塗らず、カードの地のままにする
+    BoardColors colors = BoardAppearance::instance().colors();
+    colors.background = Qt::transparent;
     const BoardVisuals visuals = BoardAppearance::instance().visuals();
     m_staticLayer.draw(painter, view, m_geometry, colors, visuals);
 
