@@ -1,5 +1,5 @@
 /// @file engineanalysisrunner.cpp
-/// @brief 登録エンジンで 1 局面を一定時間解析する実行器の実装
+/// @brief 登録エンジンで局面を順に一定時間ずつ解析する実行器の実装
 
 #include "engineanalysisrunner.h"
 
@@ -25,6 +25,8 @@ void EngineAnalysisRunner::start(const Request& request)
 {
     m_latest.clear();
     m_done = false;
+    m_stopRequested = false;
+    m_index = 0;
     m_request = request;
     m_elapsed.invalidate();
     // 起動の失敗は errorOccurred で届く
@@ -35,21 +37,33 @@ void EngineAnalysisRunner::onSessionReady()
 {
     if (m_done) return;
     m_session->handler()->sendSetOption(QStringLiteral("MultiPV"), QString::number(qMax(1, m_request.multiPv)));
+    if (m_request.positions.isEmpty()) {
+        finish(false);
+        return;
+    }
+    searchCurrent();
+}
+
+void EngineAnalysisRunner::searchCurrent()
+{
+    m_latest.clear();
+    emit positionStarted(m_index);
     UsiSearchRequest search;
-    search.position = m_request.position;
+    search.position = m_request.positions.at(m_index);
     search.go = UsiGo::infinite();
     search.stopAfterMs = qMax(100, m_request.thinkMs);
     search.replyTimeoutMs = kBestmoveGraceMs;
-    m_session->search(search);
     m_elapsed.start();
+    if (!m_session->search(search)) fail(QStringLiteral("No position to analyse"));
 }
 
 void EngineAnalysisRunner::stop()
 {
-    if (m_done) return;
+    if (m_done || m_stopRequested) return;
+    m_stopRequested = true;
     // 初期化が終わる前（探索を送る前）なら、そのまま終える
     if (m_session->isInitializing()) {
-        finish({}, {});
+        finish(true);
         return;
     }
     m_session->stop();
@@ -65,18 +79,27 @@ void EngineAnalysisRunner::onInfo(const UsiInfo& info)
 void EngineAnalysisRunner::onBestMove(const UsiBestMove& result)
 {
     if (m_done) return;
-    finish(result.move, result.ponder);
+    emit positionFinished(m_index, result.move, result.ponder);
+    if (m_done) return;
+    if (m_stopRequested || m_index + 1 >= m_request.positions.size()) {
+        finish(m_stopRequested);
+        return;
+    }
+    ++m_index;
+    searchCurrent();
 }
 
 void EngineAnalysisRunner::onNoResponse()
 {
-    if (m_done) return;
-    m_done = true;
-    m_session->quit();
-    emit errorOccurred(QStringLiteral("The engine did not answer bestmove after stop"));
+    fail(QStringLiteral("The engine did not answer bestmove after stop"));
 }
 
 void EngineAnalysisRunner::onSessionError(const QString& message)
+{
+    fail(message);
+}
+
+void EngineAnalysisRunner::fail(const QString& message)
 {
     if (m_done) return;
     m_done = true;
@@ -84,9 +107,9 @@ void EngineAnalysisRunner::onSessionError(const QString& message)
     emit errorOccurred(message);
 }
 
-void EngineAnalysisRunner::finish(const QString& bestmove, const QString& ponder)
+void EngineAnalysisRunner::finish(bool stopped)
 {
     m_done = true;
     m_session->quit();
-    emit finished(bestmove, ponder);
+    emit finished(stopped);
 }

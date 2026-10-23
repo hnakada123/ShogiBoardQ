@@ -173,7 +173,7 @@ cmake --build build --target translations
   - `paramspec.cpp/.h` - 引数の表の部品 `ParamSpec`（名前・型・必須・範囲・既定値・選択肢・説明）と `OperationSpec`。JSON Schema の出力（`ParamSpecs::inputSchema()`）と検査（`validate()`）。CLI・自動化 API・MCP で共有する
   - `automationmethodspecs.cpp/.h` - 自動化 API の全メソッドの引数の表 `AutomationMethodSpecs`。メソッドは補われた値を読み、`AutomationParams` は範囲が画面の状態で決まる引数にだけ使う
   - `outputpath.cpp/.h` - 書き出し先の事前検査 `OutputPath::check`（絶対パス・ディレクトリでない・上書きの許可・置き場所。CLI の出力先と `kifu.save` で共通。MCP の `paths.py` も同じ分類）
-  - `kifuconversionservice`, `enginecatalog`, `engineanalysisrunner`, `matesearchrunner`, `tsumeverificationrunner`（詰みの問い合わせは `MateOracle`） - CLI と自動化 API が使うサービス（局面の検証は `analysis/sfenvalidationservice`）。失敗は `Failure` で返す
+  - `kifuconversionservice`, `enginecatalog`, `engineanalysisrunner`（局面の列を1つのエンジンで順に解析。CLI の analyze・analyze-kifu）, `matesearchrunner`, `tsumeverificationrunner`（詰みの問い合わせは `MateOracle`） - CLI と自動化 API が使うサービス（局面の検証は `analysis/sfenvalidationservice`）。失敗は `Failure` で返す
 - **cli/**: `shogiboardq-cli`（GUI を起動しない JSON 出力コマンド。`mcp/` の MCP サーバーが呼び出す）
   - `clicommandspecs.cpp/.h` - 全コマンドの引数の表 `CliCommandSpecs`（オプション名は引数名の `_` を `-` にしたもの）。オプションの登録・使い方の文・コマンドラインから検査済みの JSON への変換（真偽値はフラグ、文字列の配列は空白区切り）をこの表から行う。各コマンドは `CliArgs::parse()` で読み、`resolvePosition(params)`・`resolveEngine(params)` で解決する
   - `environment` コマンドは自動化 API の既定のソケット・エンドポイントファイル・設定ファイルの場所、1メッセージの上限（`AutomationServer::kMaxMessageBytes`）、エラーの分類の表を出す。MCP サーバー（`mcp/shogiboardq_mcp/environment.py`）はこれを読み、場所や上限・語を Python に写さない

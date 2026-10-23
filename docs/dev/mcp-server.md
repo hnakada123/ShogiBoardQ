@@ -67,7 +67,7 @@ shogiboardq-cli            ShogiBoardQ --automation
 | `analyze_position` | 登録エンジンで局面を解析するジョブを開始 | `engine`、`sfen`、`moves`、`seconds`(1-600)、`multipv`(1-10) | `analyze`（JSON Lines） |
 | `analysis_status` | 解析ジョブの状態と最新の読み筋 | `job_id`、`max_pv_moves` | （ジョブ管理） |
 | `analysis_result` | 解析ジョブの最終結果（実行中なら途中結果） | `job_id`、`max_pv_moves` | （ジョブ管理） |
-| `analyze_kifu` | 棋譜の本譜を全手または指定範囲で連続解析 | `engine`、`input_path` または `text`、`from_ply`、`to_ply`、`seconds_per_position`、`multipv` | `convert-kifu` + `analyze` |
+| `analyze_kifu` | 棋譜の本譜を全手または指定範囲で連続解析 | `engine`、`input_path` または `text`、`from_ply`、`to_ply`、`seconds_per_position`、`multipv` | `analyze-kifu` |
 | `kifu_analysis_status` / `kifu_analysis_result` | 手数別の評価・読み筋・進捗・部分結果 | `job_id`、`offset`、`max_positions`、`max_pv_moves` | （ジョブ管理） |
 | `search_mate` | `go mate` 対応エンジンで詰みを探索するジョブを開始 | `engine`、`sfen`、`moves`、`seconds`(1-600) | `mate`（JSON Lines） |
 | `mate_status` | 詰み探索ジョブの状態と PV | `job_id` | （ジョブ管理） |
@@ -157,7 +157,7 @@ MCPの汎用GUI操作は `SHOGIBOARDQ_ALLOW_UNRESTRICTED_UI=1` の明示指定�
 
 `analyze_kifu` は本譜の開始局面（0手目）から終局面までを既定で解析する。
 `from_ply` / `to_ply` は両端を含む。分岐を含む入力では `has_branches` を返す。
-各局面へ元の開始局面と着手履歴を渡すため、千日手判定に必要な履歴を維持する。
+CLI の `analyze-kifu` がエンジンを1回だけ起動し、各局面へ元の開始局面と着手履歴を渡すため、千日手判定に必要な履歴を維持する。
 `lines` の評価は手番側、`score_cp_black` / `score_mate_black` は先手側に統一した値。
 `cancel_job` で中断でき、完了済み局面と停止時に返った部分結果を取得できる。
 GUIの棋譜解析結果や評価値グラフへの書き込みは行わない。
@@ -190,6 +190,7 @@ shogiboardq-cli <command> [options]
 | `convert-kifu` | `--input-path PATH` / `--text STR`、`--input-format auto\|kif\|ki2\|csa\|jkf\|usi\|usen`、`--output-format kif\|ki2\|csa\|jkf\|usi\|usen\|sfen`、`--output-path PATH`、`--overwrite`（旧名 `--input`・`--output`） | `{ok, input_format, output_format, text \| output_path, initial_sfen, ply_count, usi_moves[], sfens[], moves[], game_info[], has_branches, line_count, warnings[]}`。`moves[]` は本譜の各行（`{ply, text, usi, time, comment, bookmark}`。終局の行は `usi` なし、`time`・`comment`・`bookmark` は空なら省く）で、`KifuConversionService::Result::mainline`（`RecordLine`。`KifuBranchTree::exportLine(0)`）から作る。`text` は GUI の保存・コピーと同じ書き出しの表（`KifuExport::lines(tree, metadata, format)`）で作る |
 | `validate-sfen` | `--sfen SFEN` | `{ok, valid, normalized_sfen, turn, hands{black,white}, in_check, legal_move_count, kings{black,white}, errors[]}` |
 | `list-engines` | - | `{ok, engines:[{name,path,author,exists}]}` |
+| `analyze-kifu` | `--engine NAME (--input-path PATH \| --text STR) [--input-format auto\|...] [--from-ply N] [--to-ply N] [--seconds-per-position N] [--multipv M] [--stdin-control]`（本譜を1つのエンジンで順に解析。`--from-ply` 既定 0（開始局面）、`--to-ply` 既定は本譜の最後、1局面 1-600 秒 既定 1） | JSON Lines: `started{total_positions, from_ply, to_ply, has_branches, warnings}` → `progress{current_ply, completed}`（局面を始めるごと）→ `position{ply, sfen, played_move, bestmove, ponder, lines[], score_cp_black \| score_mate_black, partial}`（局面を終えるごと。評価値は先手から見た値）→ `finished{completed, stopped}`。範囲が本譜の外なら `invalid_argument` |
 | `analyze` | `--engine NAME [--sfen SFEN] [--moves "7g7f 3c3d"] [--seconds N] [--multipv M] [--stdin-control]`（`--sfen` 既定 `startpos`、`--seconds` 1-600 既定 10、`--multipv` 1-10 既定 1） | JSON Lines: `started` → `info`（読み筋更新ごと）→ `result{bestmove, ponder, lines[]}` |
 | `mate` | `--engine NAME --sfen SFEN [--moves ...] [--seconds N] [--stdin-control]`（`--sfen` 必須、`--seconds` 1-600 既定 10） | JSON Lines: `started` → `result{status: mate\|nomate\|unknown\|notimplemented, pv[], plies}` |
 | `generate-tsume` | `--engine NAME [--target-moves N] [--max-positions K] [--timeout-ms T] [--max-attack-pieces A] [--max-defend-pieces D] [--attack-range R] [--no-add-remaining-to-defender-hand] [--no-allow-final-move-alternatives] [--stdin-control]`（既定: 手数 3（1-19）、件数 5（1-100）、5000 ms（500-60000）、攻め方 4（1-10）、玉方 1（0-10）、範囲 3（1-8）、余り駒を玉方の持ち駒にする・最終手の別解を許す。旧名 `--max-attack`・`--max-defend`・`--no-remaining-to-hand`・`--no-final-alternatives`） | JSON Lines: `started` → `progress`（約 1 秒ごと）→ `position{sfen,pv}`（発見ごと）→ `finished{found,generated,elapsed_ms}`。stdin に `stop` を受け取ると停止 |
@@ -365,7 +366,7 @@ mcp/
 
 ## 6. ジョブの状態遷移
 
-ジョブは MCP サーバーのプロセス内に保持する（サーバー再起動で消える）。局面解析・詰み探索・生成は CLI のサブプロセス 1 つが 1 ジョブに対応する。棋譜全体解析は各局面を順次 CLI に渡し、局面間も含めて同時実行枠を 1 つ使用する。
+ジョブは MCP サーバーのプロセス内に保持する（サーバー再起動で消える）。局面解析・棋譜全体の解析・詰み探索・生成は、CLI のサブプロセス 1 つが 1 ジョブに対応する。棋譜全体の解析は CLI の `analyze-kifu` が1つのエンジンで局面を順に解析し、局面ごとの結果（先手から見た評価値つき）を `position` イベントで返す。`text` で渡した棋譜は一時ファイルにし、CLI が読み込んだ（`started` を出した）後で消す（`JobManager.start(..., until="started")`）。
 
 ```
             start tool            CLI が result/finished を出力

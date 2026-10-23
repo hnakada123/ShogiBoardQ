@@ -20,6 +20,7 @@ PACKAGE_DIR = Path(__file__).resolve().parents[1] / "shogiboardq_mcp"
 # Tools built on an operation: tool -> (kind, operation, parameters the tool does not expose).
 BUILT_ON = {
     "convert_kifu": ("command", "convert-kifu", set()),
+    "analyze_kifu": ("command", "analyze-kifu", {"stdin_control"}),
     "validate_sfen": ("command", "validate-sfen", set()),
     "render_board_image": ("command", "render-board", set()),
     "analyze_position": ("command", "analyze", {"stdin_control"}),
@@ -86,8 +87,8 @@ def test_every_called_method_and_command_exists():
     loaded = json.loads(specs.SPECS_PATH.read_text(encoding="utf-8"))
     for method in set(re.findall(r'client\.call(?:_queued)?\("([a-zA-Z]+\.[a-zA-Z]+)"', sources)):
         assert method in loaded["method"], method
-    for command in set(re.findall(r'_command\("([a-z-]+)"', sources)):
+    for command in set(re.findall(r'\bcommand\("([a-z-]+)"', sources)):
         assert command in loaded["command"], command
     # The job manager adds --stdin-control to the commands it runs as jobs
-    for command in ("analyze", "mate", "generate-tsume"):
+    for command in ("analyze", "analyze-kifu", "mate", "generate-tsume"):
         assert "stdin_control" in loaded["command"][command]["properties"], command

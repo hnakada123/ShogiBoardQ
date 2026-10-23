@@ -41,9 +41,15 @@ int CliOutput::fail(const Failure& failure)
 
 int CliOutput::failEvent(ErrorKind kind, const QString& message)
 {
+    return failEvent(Failure{kind, message});
+}
+
+int CliOutput::failEvent(const Failure& failure)
+{
     QJsonObject obj;
-    obj[QStringLiteral("code")] = ErrorKinds::slug(kind);
-    obj[QStringLiteral("message")] = message;
+    obj[QStringLiteral("code")] = ErrorKinds::slug(failure.kind);
+    obj[QStringLiteral("message")] = failure.message;
+    if (!failure.hint.isEmpty()) obj[QStringLiteral("hint")] = failure.hint;
     printEvent(QStringLiteral("error"), obj);
     return 1;
 }

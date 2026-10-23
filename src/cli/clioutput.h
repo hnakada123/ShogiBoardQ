@@ -29,6 +29,8 @@ int fail(const Failure& failure);
 
 /// `{"event":"error","code","message"}` を書き、終了コード 1 を返す（code は分類の語）
 int failEvent(ErrorKind kind, const QString& message);
+/// 分類つきの失敗をエラーのイベントにする（対処 hint があれば添える）
+int failEvent(const Failure& failure);
 
 /// 使い方（CliCommandSpecs の表から作る）をテキストで標準出力に書く
 void printUsage();
