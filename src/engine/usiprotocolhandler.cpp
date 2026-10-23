@@ -125,13 +125,16 @@ std::optional<UsiOptionDeclaration> UsiProtocolHandler::reportedOption(const QSt
 // 探索
 // ============================================================
 
-void UsiProtocolHandler::startSearch(const UsiPosition& position, const UsiGo& go)
+bool UsiProtocolHandler::startSearch(const UsiPosition& position, const UsiGo& go)
 {
-    if (!position.isEmpty()) {
-        m_baseSfen = position.sfen();
-        emit positionChanged(position);
-        sendCommand(position.command());
+    // 局面を送らない go は前の局面を探索してしまうので送らない
+    if (position.isEmpty()) {
+        qCWarning(lcEngine) << "startSearch: no position to search";
+        return false;
     }
+    m_baseSfen = position.sfen();
+    emit positionChanged(position);
+    sendCommand(position.command());
 
     m_activeSearchSeq = ++m_seq;
     m_searchScore = {};
@@ -145,6 +148,7 @@ void UsiProtocolHandler::startSearch(const UsiPosition& position, const UsiGo& g
     if (m_searchKind == SearchKind::Mate) invalidateCandidate();
     else beginCandidateSearch(m_searchKind == SearchKind::Ponder);
     sendCommand(go.command());
+    return true;
 }
 
 void UsiProtocolHandler::sendStop()
@@ -155,6 +159,19 @@ void UsiProtocolHandler::sendStop()
     if (m_searchKind == SearchKind::Ponder) m_predictedMove.clear();
     setState(State::Stopping);
     sendCommand(QStringLiteral("stop"));
+}
+
+void UsiProtocolHandler::abandonSearch()
+{
+    if (!isSearching()) return;
+    // 結果は取り消した探索のものとして捨てる（finishSearch で待機に戻り、searchEnded を出す）
+    ++m_seq;
+    m_predictedMove.clear();
+    invalidateCandidate();
+    if (m_state == State::Searching) {
+        setState(State::Stopping);
+        sendCommand(QStringLiteral("stop"));
+    }
 }
 
 void UsiProtocolHandler::sendPonderHit()
@@ -245,6 +262,8 @@ void UsiProtocolHandler::onDataReceived(const QString& line)
         return;
     }
     if (const auto info = UsiLineParser::parseInfo(line)) {
+        // 取り消した探索の info は思考の表に出さない
+        if (isStaleResult()) return;
         updateSearch(*info);
         emit infoReceived(*info);
         return;
@@ -281,13 +300,17 @@ void UsiProtocolHandler::handleBestMove(const QString& line)
     if (isStaleResult()) {
         qCDebug(lcEngine) << "[drop-bestmove] (cancelled search)" << line;
         finishSearch();
+        emit searchEnded();
         return;
     }
     std::optional<UsiBestMove> parsed = UsiLineParser::parseBestMove(line);
     if (!parsed) {
+        const QPointer<UsiProtocolHandler> guard(this);
         emit errorOccurred(tr("Invalid bestmove format: %1").arg(line));
+        if (!guard) return;
         cancelCurrentOperation();
         finishSearch();
+        emit searchEnded();
         return;
     }
 
@@ -300,7 +323,9 @@ void UsiProtocolHandler::handleBestMove(const QString& line)
     // 外れた先読みの結果（予測局面での投了・宣言勝ちを含む）は、次の先読みの予想に使わない
     m_predictedMove = result.pondering || !result.isMove() ? QString() : result.ponder;
     finishSearch();
+    const QPointer<UsiProtocolHandler> guard(this);
     emit bestMoveReceived(result);
+    if (guard) emit searchEnded();
 }
 
 void UsiProtocolHandler::handleCheckmate(const UsiCheckmate& checkmate)
@@ -308,12 +333,15 @@ void UsiProtocolHandler::handleCheckmate(const UsiCheckmate& checkmate)
     if (isStaleResult()) {
         qCDebug(lcEngine) << "[drop-checkmate] (cancelled search)";
         finishSearch();
+        emit searchEnded();
         return;
     }
     UsiCheckmate result = checkmate;
     result.stopped = m_state == State::Stopping;
     finishSearch();
+    const QPointer<UsiProtocolHandler> guard(this);
     emit checkmateReceived(result);
+    if (guard) emit searchEnded();
 }
 
 void UsiProtocolHandler::updateSearch(const UsiInfo& info)

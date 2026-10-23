@@ -30,8 +30,8 @@ class EngineProcessManager;
  * 状態に合うコマンドだけを送る。受信行は UsiLineParser で型付きの値にしてシグナルで知らせる。
  * bestmove・checkmate には、その探索の文脈（経過時間・最後の評価値・先読みか・stop の後か）を添える。
  *
- * 取り消した探索（cancelCurrentOperation の後）に遅れて届いた結果は知らせない。
- * プロセスの起動と終了は UsiEngineSession が行う。
+ * 取り消した探索（cancelCurrentOperation・abandonSearch の後）に遅れて届いた結果と info は知らせない。
+ * プロセスの起動と終了と、探索の切り替え（前の探索を止めてから次を始める）は UsiEngineSession が行う。
  */
 class UsiProtocolHandler : public QObject
 {
@@ -110,13 +110,16 @@ public:
 
     /**
      * @brief 局面を送って探索を始める（全種類の go の入口）
-     * @param position 探索する局面（空なら position コマンドを送らない）
+     * @return 局面が空なら何も送らず false
      *
      * 探索の文脈（経過時間・評価値・候補手）をここで新しくする。先読みは直前の bestmove の ponder の手を予想とする。
+     * 探索中に呼ばない（切り替えは UsiEngineSession::search が前の探索の結果を待ってから行う）。
      */
-    void startSearch(const UsiPosition& position, const UsiGo& go);
+    bool startSearch(const UsiPosition& position, const UsiGo& go);
     /// 探索中なら stop を送る（停止待ちの間はもう一度は送らない）
     void sendStop();
+    /// 今の探索をやめる。探索中なら stop を送り、その結果は知らせない（停止待ちなら知らせないだけにする）
+    void abandonSearch();
     /// 先読みが当たった。先読みの探索を本探索にする（停止待ち・回収済みなら送らない）
     void sendPonderHit();
 
@@ -144,6 +147,9 @@ signals:
 
     void bestMoveReceived(const UsiBestMove& result);
     void checkmateReceived(const UsiCheckmate& result);
+    /// 探索の結果（知らせなかった取り消した探索の結果も）を受け、探索していない状態に戻った。
+    /// 結果の知らせ（bestMoveReceived・checkmateReceived）の後に届く
+    void searchEnded();
     void infoReceived(const UsiInfo& info);
     void errorOccurred(const QString& message);
 

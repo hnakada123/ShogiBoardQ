@@ -195,10 +195,15 @@ void CsaGameCoordinator::startEngineThinking()
         return;
     }
 
+    const std::optional<UsiPosition> position = m_progress.usiPosition();
+    if (!position) {
+        emit logMessage(tr("エンジンに送る局面を作れません"), true);
+        return;
+    }
     emit logMessage(tr("エンジンが思考中..."), false);
 
     // 持ち時間はこの司令塔（MatchTimeSource）がサーバーの残り時間から返す
-    m_engineSeat->engine()->requestMatchMove(m_progress.usiPosition());
+    m_engineSeat->engine()->requestMatchMove(*position);
 }
 
 void CsaGameCoordinator::onEngineMoveReady(const UsiMatchMove& result)

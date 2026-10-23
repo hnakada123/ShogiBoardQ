@@ -6,11 +6,13 @@
 
 #include <QtTest>
 #include <QSignalSpy>
+#include <QTemporaryDir>
 
 #include "engineprocessmanager.h"
 #include "kifupresentation.h"
 #include "thinkinginfoformatter.h"
 #include "usiinfo.h"
+#include "usienginesession.h"
 #include "usilineparser.h"
 #include "usiprotocolhandler.h"
 
@@ -51,16 +53,46 @@ UsiGoTime byoyomi(qint64 btime, qint64 byoyomiMs)
 class TestUsiProtocolHandler : public QObject
 {
     Q_OBJECT
+    QTemporaryDir m_config;
 
 private:
-    static bool startProcess(EngineProcessManager& process)
+    static QString mockEnginePath()
     {
         QString path = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
 #ifdef Q_OS_WIN
         path += QStringLiteral(".exe");
 #endif
+        return path;
+    }
+
+    static bool startProcess(EngineProcessManager& process)
+    {
         QSignalSpy started(&process, &EngineProcessManager::processStarted);
-        return process.startProcessAsync(path) && (!started.isEmpty() || started.wait(5000));
+        return process.startProcessAsync(mockEnginePath()) && (!started.isEmpty() || started.wait(5000));
+    }
+
+    /// テスト用エンジンを起動して初期化を待つ
+    static bool startSession(UsiEngineSession& session)
+    {
+        QSignalSpy ready(&session, &UsiEngineSession::ready);
+        session.startAsync(mockEngine(), QStringLiteral("SessionTest"));
+        return ready.wait(5000) || !ready.isEmpty();
+    }
+    static QString mockEngine() { return mockEnginePath(); }
+
+    static QStringList sentCommands(const QSignalSpy& spy)
+    {
+        QStringList sent;
+        for (const auto& args : spy) sent.append(args.first().toString());
+        return sent;
+    }
+
+    static UsiSearchRequest infiniteSearch(const char* command)
+    {
+        UsiSearchRequest request;
+        request.position = usiPosition(command);
+        request.go = UsiGo::infinite();
+        return request;
     }
 
     /// 初期化を終えて待機の状態にする
@@ -74,6 +106,9 @@ private:
 private slots:
     void initTestCase()
     {
+        QVERIFY(m_config.isValid());
+        qputenv("SHOGIBOARDQ_CONFIG_HOME", m_config.path().toUtf8());
+        qputenv("XDG_CONFIG_HOME", m_config.path().toUtf8());
         qRegisterMetaType<UsiInfo>();
         qRegisterMetaType<UsiBestMove>();
         qRegisterMetaType<UsiCheckmate>();
@@ -115,7 +150,7 @@ private slots:
         handler.onDataReceived(QStringLiteral("bestmove 7g7f"));
         QCOMPARE(handler.state(), UsiProtocolHandler::State::Ready);
 
-        handler.startSearch(UsiPosition{}, UsiGo::mate(1000));
+        handler.startSearch(usiPosition("position startpos"), UsiGo::mate(1000));
         QCOMPARE(handler.searchKind(), UsiProtocolHandler::SearchKind::Mate);
         handler.onDataReceived(QStringLiteral("checkmate nomate"));
         QCOMPARE(handler.state(), UsiProtocolHandler::State::Ready);
@@ -164,7 +199,7 @@ private slots:
         QSignalSpy commands(&process, &EngineProcessManager::commandSent);
         handler.onDataReceived(QStringLiteral("bestmove 8c8d ponder 2g2f"));
         UsiGoTime goTime = byoyomi(290000, 4750);
-        handler.startSearch(UsiPosition{}, UsiGo::ponder(goTime));
+        handler.startSearch(usiPosition("position startpos"), UsiGo::ponder(goTime));
         QCOMPARE(handler.searchCandidate().predictedMove, QStringLiteral("2g2f"));
         QCOMPARE(handler.searchKind(), UsiProtocolHandler::SearchKind::Ponder);
         QCOMPARE(commands.last().at(0).toString(), QStringLiteral("go ponder btime 290000 wtime 0 byoyomi 4750"));
@@ -184,7 +219,7 @@ private slots:
         goTime.wtime = 2000;
         goTime.binc = 300;
         goTime.winc = 400;
-        handler.startSearch(UsiPosition{}, UsiGo::ponder(goTime));
+        handler.startSearch(usiPosition("position startpos"), UsiGo::ponder(goTime));
         QCOMPARE(commands.last().at(0).toString(), QStringLiteral("go ponder btime 1000 wtime 2000 binc 300 winc 400"));
     }
 
@@ -213,7 +248,7 @@ private slots:
         QCOMPARE(commands.last().at(0).toString(), QStringLiteral("go mate 3000"));
         QCOMPARE(started.count(), 2);
         handler.onDataReceived(QStringLiteral("checkmate nomate"));
-        handler.startSearch(UsiPosition{}, UsiGo::mate(0));
+        handler.startSearch(usiPosition("position startpos"), UsiGo::mate(0));
         QCOMPARE(commands.last().at(0).toString(), QStringLiteral("go mate infinite"));
     }
 
@@ -222,7 +257,7 @@ private slots:
     {
         UsiProtocolHandler handler;
         QSignalSpy bestmove(&handler, &UsiProtocolHandler::bestMoveReceived);
-        handler.startSearch(UsiPosition{}, UsiGo::ponder({}));
+        handler.startSearch(usiPosition("position startpos"), UsiGo::ponder({}));
         handler.sendStop();
         handler.onDataReceived(QStringLiteral("bestmove resign"));
         QCOMPARE(bestmove.count(), 1);
@@ -231,7 +266,7 @@ private slots:
         QCOMPARE(bestAt(bestmove, 0).special, SpecialMove::Resign);
 
         // 当たった先読みは本探索の結果になる
-        handler.startSearch(UsiPosition{}, UsiGo::ponder({}));
+        handler.startSearch(usiPosition("position startpos"), UsiGo::ponder({}));
         handler.sendPonderHit();
         handler.onDataReceived(QStringLiteral("bestmove resign"));
         QVERIFY(!bestAt(bestmove, 1).pondering);
@@ -255,7 +290,7 @@ private slots:
         QSignalSpy commands(&process, &EngineProcessManager::commandSent);
         QSignalSpy bestmove(&handler, &UsiProtocolHandler::bestMoveReceived);
         handler.onDataReceived(QStringLiteral("bestmove 8c8d ponder 2g2f"));
-        handler.startSearch(UsiPosition{}, UsiGo::ponder({}));
+        handler.startSearch(usiPosition("position startpos"), UsiGo::ponder({}));
         commands.clear();
         handler.sendStop();
         QCOMPARE(handler.state(), UsiProtocolHandler::State::Stopping);
@@ -271,7 +306,7 @@ private slots:
         handler.sendStop();      // 探索していなければ stop も送らない
         QCOMPARE(commands.count(), 1);
         // 外れた先読みの ponder は次の先読みの予想にしない
-        handler.startSearch(UsiPosition{}, UsiGo::ponder({}));
+        handler.startSearch(usiPosition("position startpos"), UsiGo::ponder({}));
         QVERIFY(handler.searchCandidate().predictedMove.isEmpty());
     }
 
@@ -321,7 +356,7 @@ private slots:
         QVERIFY(!handler.searchCandidate().active);
 
         // 次の探索では前の評価値を使わない
-        handler.startSearch(UsiPosition{}, UsiGo::infinite());
+        handler.startSearch(usiPosition("position startpos"), UsiGo::infinite());
         handler.onDataReceived(QStringLiteral("bestmove 7g7f"));
         QVERIFY(bestAt(bestmove, 1).score.isNone());
     }
@@ -389,12 +424,126 @@ private slots:
     }
 
     /// 取り消した探索に遅れて届いた結果は知らせない。次の探索の結果は知らせる
+    /// 局面を送らない go は送らない（前の局面を探索してしまう）
+    void emptyPositionIsNotSearched()
+    {
+        UsiProtocolHandler handler;
+        QSignalSpy started(&handler, &UsiProtocolHandler::searchStarted);
+        QVERIFY(!handler.startSearch(UsiPosition{}, UsiGo::infinite()));
+        QCOMPARE(started.count(), 0);
+        QVERIFY(!handler.isSearching());
+
+        UsiEngineSession session;
+        QVERIFY(!session.search(UsiSearchRequest{}));
+        QVERIFY(!session.handler()->isSearching());
+    }
+
+    /// 捨てた探索の結果と info は知らせず、待機に戻ったことだけを知らせる
+    void abandonedSearchResultIsDropped()
+    {
+        UsiProtocolHandler handler;
+        QSignalSpy bestmove(&handler, &UsiProtocolHandler::bestMoveReceived);
+        QSignalSpy info(&handler, &UsiProtocolHandler::infoReceived);
+        QSignalSpy ended(&handler, &UsiProtocolHandler::searchEnded);
+        handler.startSearch(usiPosition("position startpos"), UsiGo::infinite());
+        handler.abandonSearch();
+        QCOMPARE(handler.state(), UsiProtocolHandler::State::Stopping);
+        handler.onDataReceived(QStringLiteral("info depth 3 score cp 10 pv 7g7f"));
+        handler.onDataReceived(QStringLiteral("bestmove 7g7f"));
+        QCOMPARE(bestmove.count(), 0);
+        QCOMPARE(info.count(), 0);
+        QCOMPARE(ended.count(), 1);
+        QCOMPARE(handler.state(), UsiProtocolHandler::State::Ready);
+    }
+
+    // ================================================================
+    // 探索の切り替え（UsiEngineSession）
+    // ================================================================
+
+    /// 探索中に次を頼むと stop を送り、前の結果を捨ててから最後の依頼だけを始める（R8・U5）
+    void sessionSearchWhileSearchingKeepsLatest()
+    {
+        qputenv("SBQ_MATCH_REPLY_DELAY_MS", "5000");
+        UsiEngineSession session;
+        QVERIFY(startSession(session));
+        QSignalSpy commands(session.process(), &EngineProcessManager::commandSent);
+        QSignalSpy bestmove(session.handler(), &UsiProtocolHandler::bestMoveReceived);
+        QVERIFY(session.search(infiniteSearch("position startpos")));
+        QVERIFY(session.search(infiniteSearch("position startpos moves 7g7f")));
+        UsiSearchRequest latest = infiniteSearch("position startpos moves 2g2f");
+        latest.options = {{QStringLiteral("MultiPV"), QStringLiteral("2")}};
+        QVERIFY(session.search(latest));
+        QTRY_VERIFY(sentCommands(commands).contains(QStringLiteral("position startpos moves 2g2f")));
+        session.stop();
+        QTRY_COMPARE(bestmove.count(), 1);
+        qunsetenv("SBQ_MATCH_REPLY_DELAY_MS");
+        QVERIFY(bestAt(bestmove, 0).baseSfen.contains(QStringLiteral("PPPPPPP1P")));
+        const QStringList sent = sentCommands(commands);
+        QCOMPARE(sent, QStringList({QStringLiteral("position startpos"), QStringLiteral("go infinite"),
+                                    QStringLiteral("stop"), QStringLiteral("setoption name MultiPV value 2"),
+                                    QStringLiteral("position startpos moves 2g2f"), QStringLiteral("go infinite"),
+                                    QStringLiteral("stop")}));
+    }
+
+    /// まだ始めていない探索を止めると、始めてすぐ stop を送り、その結果は届く
+    void sessionStopBeforeQueuedSearchStarts()
+    {
+        UsiEngineSession session;
+        QSignalSpy ready(&session, &UsiEngineSession::ready);
+        session.startAsync(mockEngine(), QStringLiteral("SessionTest"));
+        QVERIFY(session.isInitializing());
+        QSignalSpy commands(session.process(), &EngineProcessManager::commandSent);
+        QSignalSpy bestmove(session.handler(), &UsiProtocolHandler::bestMoveReceived);
+        qputenv("SBQ_MATCH_REPLY_DELAY_MS", "5000");
+        QVERIFY(session.search(infiniteSearch("position startpos")));
+        session.stop();
+        QTRY_COMPARE(bestmove.count(), 1);
+        qunsetenv("SBQ_MATCH_REPLY_DELAY_MS");
+        const QStringList sent = sentCommands(commands);
+        const qsizetype go = sent.indexOf(QStringLiteral("go infinite"));
+        QVERIFY(go > 0);
+        QCOMPARE(sent.at(go + 1), QStringLiteral("stop"));
+        QVERIFY(bestAt(bestmove, 0).stopped);
+    }
+
+    /// 取りやめた探索の結果は届かない
+    void sessionCancelSearchDropsResult()
+    {
+        qputenv("SBQ_MATCH_REPLY_DELAY_MS", "5000");
+        UsiEngineSession session;
+        QVERIFY(startSession(session));
+        QSignalSpy bestmove(session.handler(), &UsiProtocolHandler::bestMoveReceived);
+        QSignalSpy ended(session.handler(), &UsiProtocolHandler::searchEnded);
+        QVERIFY(session.search(infiniteSearch("position startpos")));
+        session.cancelSearch();
+        QTRY_COMPARE(ended.count(), 1);
+        qunsetenv("SBQ_MATCH_REPLY_DELAY_MS");
+        QCOMPARE(bestmove.count(), 0);
+        QVERIFY(!session.handler()->isSearching());
+    }
+
+    /// 捨てる探索の stop に答えないエンジンは、次の探索を始められないのでエラーにする
+    void sessionUnansweredStopIsError()
+    {
+        qputenv("SBQ_MATCH_REPLY_DELAY_MS", "60000");
+        qputenv("SBQ_MATCH_STOP_DELAY_MS", "60000");
+        UsiEngineSession session;
+        QVERIFY(startSession(session));
+        QSignalSpy errors(&session, &UsiEngineSession::errorOccurred);
+        QVERIFY(session.search(infiniteSearch("position startpos")));
+        QVERIFY(session.search(infiniteSearch("position startpos moves 7g7f")));
+        QTRY_VERIFY_WITH_TIMEOUT(errors.count() == 1, UsiSearchRequest::kStopReplyMs + 3000);
+        qunsetenv("SBQ_MATCH_REPLY_DELAY_MS");
+        qunsetenv("SBQ_MATCH_STOP_DELAY_MS");
+        QVERIFY(!session.isRunning() || !session.handler()->isSearching());
+    }
+
     void cancelledSearchResultIsDropped()
     {
         UsiProtocolHandler handler;
         QSignalSpy bestmove(&handler, &UsiProtocolHandler::bestMoveReceived);
         QSignalSpy checkmate(&handler, &UsiProtocolHandler::checkmateReceived);
-        handler.startSearch(UsiPosition{}, UsiGo::infinite());
+        handler.startSearch(usiPosition("position startpos"), UsiGo::infinite());
         handler.cancelCurrentOperation();
         // エンジンはまだ考えているので、取り消した後も stop は送る
         QVERIFY(handler.isSearching());
@@ -402,12 +551,12 @@ private slots:
         QCOMPARE(bestmove.count(), 0);
         QCOMPARE(handler.state(), UsiProtocolHandler::State::Ready);
 
-        handler.startSearch(UsiPosition{}, UsiGo::mate(1000));
+        handler.startSearch(usiPosition("position startpos"), UsiGo::mate(1000));
         handler.cancelCurrentOperation();
         handler.onDataReceived(QStringLiteral("checkmate nomate"));
         QCOMPARE(checkmate.count(), 0);
 
-        handler.startSearch(UsiPosition{}, UsiGo::infinite());
+        handler.startSearch(usiPosition("position startpos"), UsiGo::infinite());
         handler.onDataReceived(QStringLiteral("bestmove 2g2f"));
         QCOMPARE(bestmove.count(), 1);
         QCOMPARE(bestAt(bestmove, 0).move, QStringLiteral("2g2f"));
@@ -466,7 +615,7 @@ private slots:
     {
         UsiProtocolHandler handler;
         QSignalSpy checkmate(&handler, &UsiProtocolHandler::checkmateReceived);
-        handler.startSearch(UsiPosition{}, UsiGo::mate(0));
+        handler.startSearch(usiPosition("position startpos"), UsiGo::mate(0));
         handler.sendStop();
         handler.onDataReceived(QStringLiteral("checkmate 5e5d"));
         QVERIFY(checkmateAt(checkmate, 0).stopped);

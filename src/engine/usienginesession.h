@@ -4,11 +4,14 @@
 /// @file usienginesession.h
 /// @brief USI エンジン1台への接続（起動・初期化・探索・終了）。GUI と CLI が共用する
 
+#include <QList>
 #include <QObject>
+#include <QPair>
 #include <QProcess>
 #include <QString>
 #include <QTimer>
 #include <functional>
+#include <optional>
 #include <vector>
 
 #include "usigotime.h"
@@ -19,8 +22,13 @@ class UsiProtocolHandler;
 
 /// 探索1回の依頼
 struct UsiSearchRequest {
-    UsiPosition position;      ///< 探索する局面（空なら position コマンドを送らない）
+    UsiPosition position;      ///< 探索する局面（空の依頼は受け付けない）
     UsiGo go;                  ///< go の種類と時間
+    /// 始める直前に go を決める（あれば go の代わりに使う。対局では前の探索の停止を待つ間も時計が進むので、
+    /// 送るときの残り時間で決める）
+    std::function<UsiGo()> goAtStart;
+    /// position の前に送るオプション（検討の候補手の数など。前の探索を止めた後に送る）
+    QList<QPair<QString, QString>> options;
     int stopAfterMs = 0;       ///< この時間が過ぎたら stop を送る（0 は送らない）
     /// 結果を待つ時間。stopAfterMs があれば stop の後から、なければ go の後から数える（0 は待ち続ける）。
     /// 過ぎたら searchTimedOut を知らせる
@@ -54,9 +62,11 @@ struct UsiSearchRequest {
  * @brief USI エンジン1台への接続
  *
  * プロセス（EngineProcessManager）と状態機械（UsiProtocolHandler）を持ち、起動から readyok までと終了を行う。
- * 初期化の間に頼まれた探索・オプション・コマンドは、初期化が終わってから順に送る。
+ * 初期化の間に頼まれたオプション・コマンドは、初期化が終わってから順に送る。
  * search() は「go → 一定時間で stop → 結果を一定時間待つ」を1回で頼む入口で、結果は handler() の
  * bestMoveReceived・checkmateReceived、待ちきれなければ searchTimedOut で知らせる。
+ * 探索は最後に頼まれたものだけを行う。探索中に次を頼まれたら stop を送り、前の結果を捨ててから始める
+ * （エンジンに探索を重ねて頼まない）。
  */
 class UsiEngineSession : public QObject
 {
@@ -84,10 +94,19 @@ public:
     /// 起動待ちか初期化中か
     bool isInitializing() const;
 
-    /// 探索を頼む（初期化中なら初期化の後で始める）
-    void search(const UsiSearchRequest& request);
-    /// 探索を止める（初期化中なら、まだ始めていない探索を取りやめる）
+    /**
+     * @brief 探索を頼む（最後に頼んだものだけを行う）
+     * @return 局面が空なら何もせず false
+     *
+     * 初期化中なら初期化の後で始める。探索中なら stop を送ってその結果を捨て、届いてから始める
+     * （stop に kStopReplyMs 答えなければ errorOccurred）。始めた探索の結果は1回だけ届く
+     * （次の search・cancelSearch・cancelCurrentOperation で取り消さなければ）。
+     */
+    bool search(const UsiSearchRequest& request);
+    /// 最後に頼んだ探索をできるだけ早く終わらせる（結果は届く）。まだ始めていなければ、始めてすぐ stop を送る
     void stop();
+    /// 最後に頼んだ探索を取りやめる（結果は知らせない。探索中なら stop を送り、結果を捨てる）
+    void cancelSearch();
     /// 初期化の後に行う（初期化中でなければすぐ行う）
     void whenReady(std::function<void()> action);
     /// 探索・初期化の結果を待つのをやめる（遅れて届いた結果は知らせない）
@@ -111,13 +130,19 @@ private slots:
     void onHandlerError(const QString& message);
     void onStopTimer();
     void onSearchFinished();
+    /// 探索していない状態に戻った（待っている依頼があれば始める）
+    void onSearchEnded();
+    /// 捨てる探索が stop に答えない
+    void onAbandonTimeout();
     void reportLaunchFailure();
 
 private:
     void launch(const QString& enginePath);
     /// 起動の失敗を、呼び出しから戻った後に errorOccurred で知らせる
     void failLaunch(const QString& enginePath);
-    void startRequestedSearch(const UsiSearchRequest& request);
+    void startQueuedSearch();
+    /// 今の探索の結果を捨てる（stop を送り、答えを待つ期限を数える）
+    void abandonRunningSearch();
     void clearSearchTimers();
 
     EngineProcessManager* m_process = nullptr; ///< QObject parent 所有
@@ -135,6 +160,9 @@ private:
     QTimer m_stopTimer;            ///< stopAfterMs で stop を送る
     QTimer m_replyTimer;           ///< 結果を待つ期限
     int m_replyTimeoutMs = 0;      ///< stop の後に結果を待つ時間（stopAfterMs があるとき）
+    std::optional<UsiSearchRequest> m_queued;  ///< まだ始めていない最後の依頼（初期化・前の探索の停止を待つ）
+    bool m_stopQueued = false;     ///< m_queued を始めたらすぐ stop を送る
+    QTimer m_abandonTimer;         ///< 捨てる探索の結果を待つ期限
 };
 
 #endif // USIENGINESESSION_H

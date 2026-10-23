@@ -7,6 +7,7 @@
 #include <QList>
 #include <QString>
 #include <QStringList>
+#include <optional>
 
 #include "recordentry.h"
 #include "usimove.h"
@@ -108,15 +109,15 @@ struct RecordLine {
         return out;
     }
 
-    /// ply 手目の後の局面を、開始局面からの手順としてエンジンに送る値（手順が無ければ空）
-    UsiPosition usiPosition(int ply) const
+    /// ply 手目の後の局面を、開始局面からの手順としてエンジンに送る値（手順が無い・局面を読めなければ nullopt）
+    std::optional<UsiPosition> usiPosition(int ply) const
     {
-        if (isEmpty()) return {};
+        if (isEmpty()) return std::nullopt;
         const int last = qBound(0, ply, moveCount());
         QList<UsiMove> played;
         played.reserve(last);
         for (int i = 1; i <= last; ++i) played << usiMove(i);
-        return UsiPosition::fromMoves(startSfen, played).value_or(UsiPosition{});
+        return UsiPosition::fromMoves(startSfen, played);
     }
 };
 

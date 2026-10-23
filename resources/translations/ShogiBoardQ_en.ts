@@ -195,48 +195,48 @@ Analyzed moves: %1</translation>
 <context>
     <name>AnalysisSession</name>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="140"/>
-        <location filename="../../src/analysis/analysissession.cpp" line="225"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="136"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="196"/>
         <source>詰み探索</source>
         <translation>Mate Search</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="140"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="136"/>
         <source>検討</source>
         <translation>Consideration</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="141"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="137"/>
         <source>エンジンエラー: %1</source>
         <translation>Engine error: %1</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="233"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="204"/>
         <source>詰みあり（手順 %1 手）</source>
         <translation>Mate found (%1 moves)</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="236"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="207"/>
         <source>詰みなし</source>
         <translation>No mate</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="239"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="210"/>
         <source>（エンジン側）未実装</source>
         <translation>(Engine) Not implemented</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="242"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="213"/>
         <source>時間内に詰みを判定できませんでした</source>
         <translation>Could not determine mate within the time limit</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="249"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="220"/>
         <source>エンジンが応答しなかったため、詰み探索を打ち切りました</source>
         <translation>The mate search was stopped because the engine did not respond.</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="254"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="225"/>
         <source>探索が完了しました</source>
         <translation>Search completed</translation>
     </message>
@@ -2030,6 +2030,11 @@ Discard the changes and move?</translation>
         <source>検討エンジンの選択が不正です。</source>
         <translation>Invalid consideration engine selection.</translation>
     </message>
+    <message>
+        <location filename="../../src/ui/controllers/considerationuicontroller.cpp" line="61"/>
+        <source>検討する局面を読めません。</source>
+        <translation>Cannot read the position to analyze.</translation>
+    </message>
 </context>
 <context>
     <name>CsaClient</name>
@@ -2456,6 +2461,11 @@ Discard the changes and move?</translation>
         <translation>Move confirmed: %1 (Time: %2ms)</translation>
     </message>
     <message>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="200"/>
+        <source>エンジンに送る局面を作れません</source>
+        <translation>Could not build the position to send to the engine</translation>
+    </message>
+    <message>
         <source>サーバーからの指し手確認を解釈できません: %1</source>
         <translation type="vanished">Cannot interpret the move confirmation from the server: %1</translation>
     </message>
@@ -2563,7 +2573,7 @@ Discard the changes and move?</translation>
         <translation>Engine %1 started</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="198"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="203"/>
         <source>エンジンが思考中...</source>
         <translation>Engine is thinking...</translation>
     </message>
@@ -2572,7 +2582,7 @@ Discard the changes and move?</translation>
         <translation type="vanished">Engine resigned</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="210"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="215"/>
         <source>エンジンが有効な指し手を返しませんでした</source>
         <translation>Engine did not return a valid move</translation>
     </message>
@@ -2581,17 +2591,17 @@ Discard the changes and move?</translation>
         <translation type="vanished">Engine move: from=(%1,%2) to=(%3,%4) promote=%5</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="216"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="221"/>
         <source>盤面が取得できませんでした</source>
         <translation>Could not get board state</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="224"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="229"/>
         <source>指し手の駒種変換に失敗しました</source>
         <translation>Failed to convert move piece type</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="228"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="233"/>
         <source>CSA形式の指し手: %1</source>
         <translation>CSA format move: %1</translation>
     </message>
@@ -10336,47 +10346,52 @@ Please restart the application to apply the changes.</translation>
 <context>
     <name>MatchCoordinator</name>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="236"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="218"/>
+        <source>エンジンに送る局面を作れません</source>
+        <translation>Could not build the position to send to the engine</translation>
+    </message>
+    <message>
+        <location filename="../../src/game/matchcoordinator.cpp" line="241"/>
         <source>%1（定跡）</source>
         <translation>%1 (book)</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="237"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="242"/>
         <source>%1（定跡 %2%）</source>
         <translation>%1 (book %2%)</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="446"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="451"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="446"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="451"/>
         <source>下手</source>
         <translation>Shitate</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="447"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="452"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="447"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="452"/>
         <source>上手</source>
         <translation>Uwate</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="453"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="458"/>
         <source>%1の投了。%2の勝ちです。</source>
         <translation>%1 resigned. %2 wins.</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="455"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="460"/>
         <source>%1の時間切れ。%2の勝ちです。</source>
         <translation>%1 ran out of time. %2 wins.</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="457"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="462"/>
         <source>最大手数に達しました。持将棋です。</source>
         <translation>Maximum moves reached. Jishogi (impasse).</translation>
     </message>
@@ -10385,27 +10400,27 @@ Please restart the application to apply the changes.</translation>
         <translation type="vanished">%1 declared entering king. %2 wins.</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="459"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="464"/>
         <source>%1の反則負け。%2の勝ちです。</source>
         <translation>%1 committed a foul. %2 wins.</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="461"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="466"/>
         <source>千日手が成立しました。</source>
         <translation>Sennichite (draw by repetition).</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="463"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="468"/>
         <source>%1の連続王手の千日手。%2の勝ちです。</source>
         <translation>Perpetual check by %1. %2 wins.</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="468"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="473"/>
         <source>対局が終了しました。</source>
         <translation>The game has ended.</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="407"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="412"/>
         <source>対局終了</source>
         <translation>Game Over</translation>
     </message>
@@ -10434,7 +10449,7 @@ Please restart the application to apply the changes.</translation>
         <translation type="vanished">Search completed</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="371"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="376"/>
         <source>エンジンエラー: %1</source>
         <translation>Engine error: %1</translation>
     </message>
@@ -10443,7 +10458,7 @@ Please restart the application to apply the changes.</translation>
         <translation type="vanished">Consideration</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="371"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="376"/>
         <source>対局中断</source>
         <translation>Game interrupted</translation>
     </message>
@@ -13728,22 +13743,27 @@ This cannot be undone. Reset history?</translation>
         <translation>Select a KomoringHeights version that can verify the shortest mate length.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/tsumemateengine.cpp" line="116"/>
+        <location filename="../../src/engine/tsumemateengine.cpp" line="90"/>
+        <source>詰みを調べる局面を読めません。</source>
+        <translation>Cannot read the position to check for mate.</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/tsumemateengine.cpp" line="122"/>
         <source>エンジンが判定を完了できませんでした。時間を増やして再判定できます。</source>
         <translation>The engine could not complete the search. Increase the time and retry.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/tsumemateengine.cpp" line="133"/>
+        <location filename="../../src/engine/tsumemateengine.cpp" line="139"/>
         <source>判定エンジンを実行できません: %1</source>
         <translation>Could not run the mate solver: %1</translation>
     </message>
     <message>
-        <location filename="../../src/engine/tsumemateengine.cpp" line="136"/>
+        <location filename="../../src/engine/tsumemateengine.cpp" line="142"/>
         <source>判定エンジンが終了しました。実行ファイルを確認してください。</source>
         <translation>The mate solver exited. Check its executable file.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/tsumemateengine.cpp" line="141"/>
+        <location filename="../../src/engine/tsumemateengine.cpp" line="147"/>
         <source>制限時間内に判定が完了しませんでした。不詰とは判定していません。</source>
         <translation>The search did not finish within the time limit. This does not mean there is no mate.</translation>
     </message>
@@ -14722,7 +14742,7 @@ Check the settings and press Start.</translation>
 <context>
     <name>Usi</name>
     <message>
-        <location filename="../../src/engine/usienginesession.cpp" line="64"/>
+        <location filename="../../src/engine/usienginesession.cpp" line="67"/>
         <source>Engine file path is empty.</source>
         <translation>Engine file path is empty.</translation>
     </message>
@@ -14736,17 +14756,18 @@ Check the settings and press Start.</translation>
     </message>
     <message>
         <location filename="../../src/engine/usi.cpp" line="93"/>
+        <location filename="../../src/engine/usienginesession.cpp" line="252"/>
         <source>Timeout waiting for bestmove.</source>
         <translation>Timeout waiting for bestmove.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usienginesession.cpp" line="122"/>
+        <location filename="../../src/engine/usienginesession.cpp" line="127"/>
         <source>Engine exited unexpectedly.</source>
         <translation>Engine exited unexpectedly.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usienginesession.cpp" line="80"/>
-        <location filename="../../src/engine/usienginesession.cpp" line="116"/>
+        <location filename="../../src/engine/usienginesession.cpp" line="83"/>
+        <location filename="../../src/engine/usienginesession.cpp" line="121"/>
         <source>Failed to start engine: %1</source>
         <translation>Failed to start engine: %1</translation>
     </message>
@@ -14854,7 +14875,7 @@ Check the settings and press Start.</translation>
 <context>
     <name>UsiMatchHandler</name>
     <message>
-        <location filename="../../src/engine/usimatchhandler.cpp" line="133"/>
+        <location filename="../../src/engine/usimatchhandler.cpp" line="127"/>
         <source>Invalid bestmove format: &quot;%1&quot;</source>
         <translation>Invalid bestmove format: &quot;%1&quot;</translation>
     </message>
@@ -14872,7 +14893,7 @@ Check the settings and press Start.</translation>
         <translation>Timeout waiting for readyok</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="288"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="309"/>
         <source>Invalid bestmove format: %1</source>
         <translation>Invalid bestmove format: %1</translation>
     </message>

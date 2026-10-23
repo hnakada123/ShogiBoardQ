@@ -40,7 +40,8 @@ Q_DECLARE_METATYPE(MateAnswer)
  *
  * UsiEngineSession を所有し、ask() に answered() で答える。打ち切りの方針（制限時間＋余裕で stop を送り、
  * その後も答えなければ timedOut）は UsiSearchRequest::mate の1か所で決める。
- * 起動中に頼んだ問い合わせは、初期化が終わってから送る。
+ * 起動中に頼んだ問い合わせは、初期化が終わってから送る。答えを待つ間に次を頼むと、前の問い合わせは
+ * エンジンの側で止めて答えを捨て、次の問い合わせにだけ答える。
  */
 class MateOracle : public QObject
 {
@@ -59,10 +60,11 @@ public:
     /// 問い合わせの答えを待っているか
     bool isAsking() const { return m_asking; }
 
-    /// 詰みを問い合わせる。limitMs が 0 以下なら go mate infinite で、打ち切らない
-    void ask(const UsiPosition& position, int limitMs);
+    /// 詰みを問い合わせる。limitMs が 0 以下なら go mate infinite で、打ち切らない。
+    /// 起動していない・局面が空なら問い合わせず false
+    bool ask(const UsiPosition& position, int limitMs);
     /// go mate infinite で問い合わせ、deadlineMs までに答えなければ stop を送らずに timedOut を知らせる
-    void askWithin(const UsiPosition& position, int deadlineMs);
+    bool askWithin(const UsiPosition& position, int deadlineMs);
     /// 問い合わせを打ち切る（答えは Unknown で届く）
     void stop();
 

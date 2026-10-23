@@ -1,5 +1,5 @@
 /// @file analysissession.cpp
-/// @brief 検討・詰み探索のセッションの実装（開始・停止・やり直しを1つの状態遷移として扱う）
+/// @brief 検討・詰み探索のセッションの実装
 
 #include "analysissession.h"
 
@@ -16,8 +16,6 @@ AnalysisSession::AnalysisSession(const Deps& deps, QObject* parent)
     , m_deps(deps)
 {
     Q_ASSERT(m_deps.engines && m_deps.activity);
-    m_restartTimer.setSingleShot(true);
-    connect(&m_restartTimer, &QTimer::timeout, this, &AnalysisSession::restartConsiderationDeferred);
     if (m_deps.navState)
         connect(m_deps.navState, &KifuNavigationState::changed, this, &AnalysisSession::followDisplayedPosition);
     connect(m_deps.engines, &EngineLifecycleManager::engineRevoked, this, &AnalysisSession::onEngineRevoked);
@@ -40,7 +38,7 @@ bool AnalysisSession::isShutdownInProgress() const
 
 bool AnalysisSession::start(const AnalysisOptions& opt)
 {
-    if (isShutdownInProgress()) return false;
+    if (isShutdownInProgress() || opt.position.isEmpty()) return false;
 
     // 前のセッションは知らせずに終え、ほかの処理のエンジンも止めて（持ち主には知らせる）から始める
     endSession();
@@ -56,7 +54,6 @@ bool AnalysisSession::start(const AnalysisOptions& opt)
     m_lease = m_deps.engines->acquire(this, 1, opt.engineName);
     Usi* engine = m_lease.engine();
     m_engine = engine;
-    m_restartTimer.stop();
     connect(engine, &Usi::errorOccurred, this, &AnalysisSession::onEngineError);
     connect(engine, &Usi::searchTimedOut, this, &AnalysisSession::onSearchTimedOut);
 
@@ -119,7 +116,6 @@ void AnalysisSession::onActivityRevoked(QObject* owner)
 AnalysisSession::Mode AnalysisSession::endSession()
 {
     const Mode previous = m_mode;
-    m_restartTimer.stop();
     m_mode = Mode::None;
     m_state = State::Idle;
     if (m_engine) {
@@ -166,7 +162,7 @@ void AnalysisSession::followDisplayedPosition()
 
 bool AnalysisSession::updatePosition(const UsiPosition& position)
 {
-    if (m_mode != Mode::Consideration || m_position == position) return false;
+    if (m_mode != Mode::Consideration || position.isEmpty() || m_position == position) return false;
     m_position = position;
     requestConsiderationRestart();
     return true;
@@ -174,44 +170,19 @@ bool AnalysisSession::updatePosition(const UsiPosition& position)
 
 void AnalysisSession::requestConsiderationRestart()
 {
-    if (m_mode == Mode::Consideration) emit considerationResultsCleared();
-    if (!m_engine || m_mode != Mode::Consideration) return;
-    switch (m_state) {
-    case State::Searching:
-        if (!m_engine->isInitializing()) {
-            // stop の応答を受けるまで次の go を送らない。
-            m_state = State::StoppingSearch;
-            m_engine->stop();
-            return;
-        }
-        m_engine->stop(); // 初期化待ちの古い探索要求を取り消す
-        [[fallthrough]];
-    case State::Waiting:
-        m_state = State::RestartQueued;
-        m_restartTimer.start(0);
-        break;
-    default: break; // 初期化中・再開待ちには最新の設定だけを保存する
-    }
+    if (m_mode != Mode::Consideration) return;
+    emit considerationResultsCleared();
+    if (!m_engine) return;
+    // 探索中なら、エンジンの側で止めて結果を捨ててから始める（初期化中なら最後の依頼だけを初期化の後で始める）
+    m_state = State::Searching;
+    startSearch();
 }
 
 void AnalysisSession::onConsiderationBestMoveReceived(const UsiBestMove& /*result*/)
 {
-    if (m_mode != Mode::Consideration) return;
-    if (m_state == State::StoppingSearch) {
-        m_state = State::RestartQueued;
-        m_restartTimer.start(0);
-    } else if (m_state == State::Searching) {
-        m_state = State::Waiting;
-        emit considerationWaitingStarted();
-    }
-}
-
-void AnalysisSession::restartConsiderationDeferred()
-{
-    if (m_mode != Mode::Consideration || m_state != State::RestartQueued || !m_engine) return;
-    emit considerationResultsCleared();
-    m_state = State::Searching;
-    startSearch();
+    if (m_mode != Mode::Consideration || m_state != State::Searching) return;
+    m_state = State::Waiting;
+    emit considerationWaitingStarted();
 }
 
 // ============================================================

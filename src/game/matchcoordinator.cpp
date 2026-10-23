@@ -212,7 +212,12 @@ void MatchCoordinator::requestEngineMove(Turn side)
 {
     Usi* engine = engineFor(side);
     if (!engine) return;
-    const UsiPosition position = m_record.usiPosition(currentPly());
+    const std::optional<UsiPosition> position = m_record.usiPosition(currentPly());
+    if (!position) {
+        // 対局の手順は指せた手だけなので起きないはず。エンジンに前の局面を探索させない
+        handleEngineError(tr("エンジンに送る局面を作れません"));
+        return;
+    }
     // 定跡を使う対局者なら、条件に合う定跡手をエンジンに探索させずに指す
     const StartOptions& opt = m_session.options();
     const JosekiPlayOptions& joseki = opt.josekiOptions.at(side == Turn::Black ? 0 : 1);
@@ -221,12 +226,12 @@ void MatchCoordinator::requestEngineMove(Turn side)
         if (const std::optional<JosekiPick> pick =
                 JosekiMovePicker::pick(opt.josekiBook, sfen, joseki, *QRandomGenerator::global())) {
             if (const std::optional<UsiMove> move = UsiMove::parse(pick->move.move)) {
-                engine->requestBookMove(position, *move, kBookMoveDelayMs, bookMoveLabel(sfen, *pick));
+                engine->requestBookMove(*position, *move, kBookMoveDelayMs, bookMoveLabel(sfen, *pick));
                 return;
             }
         }
     }
-    engine->requestMatchMove(position);
+    engine->requestMatchMove(*position);
 }
 
 QString MatchCoordinator::bookMoveLabel(const QString& sfen, const JosekiPick& pick)

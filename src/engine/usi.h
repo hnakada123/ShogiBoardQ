@@ -75,19 +75,22 @@ public:
     void requestBookMove(const UsiPosition& position, const UsiMove& move, int delayMs, const QString& label);
     /// 先読みの局面を捨てる（待った・中断で局面が戻ったとき）
     void forgetPonder();
-    /// 対局中の「すぐ指させる」。定跡手を待っていればすぐ指す。準備中に頼まれた探索は残し、それを送った後で stop を送る
+    /// 対局中の「すぐ指させる」。定跡手を待っていればすぐ指す。準備中に頼まれた探索は残し、始めてから stop を送る
     void requestImmediateMove();
     void sendGameOverCommand(GameOverResult result);
 
     // --- 検討・棋譜解析・詰み探索 ---
 
+    // 探索は最後に頼んだものだけを行う（探索中なら止めて結果を捨ててから始める。UsiEngineSession::search）。
+    // 局面が空なら何もせず false を返す
+
     /// 検討: 候補手の数を送って position + go infinite を送り、byoyomiMilliSec 後に stop を送る（0 なら送らない）
-    void startConsideration(const UsiPosition& position, int byoyomiMilliSec, int multiPV);
+    bool startConsideration(const UsiPosition& position, int byoyomiMilliSec, int multiPV);
     /// 探索1回を頼む（棋譜解析の1局面など）
-    void search(const UsiSearchRequest& request);
+    bool search(const UsiSearchRequest& request);
     /// 詰み探索（go mate）
-    void startMateSearch(const UsiPosition& position, int timeLimitMs);
-    /// 探索を止める（初期化中なら、まだ送っていない探索を取りやめる）
+    bool startMateSearch(const UsiPosition& position, int timeLimitMs);
+    /// 最後に頼んだ探索をできるだけ早く終わらせる（結果は届く。まだ始めていなければ始めてすぐ止める）
     void stop();
     /// setoption name <name> value <value> を送る（初期化中なら完了後に送る）
     void sendSetOptionCommand(const QString& name, const QString& value);

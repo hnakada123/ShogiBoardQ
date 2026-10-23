@@ -55,22 +55,23 @@ bool MateOracle::isReady() const
     return m_ready && !m_session->isInitializing();
 }
 
-void MateOracle::ask(const UsiPosition& position, int limitMs)
+bool MateOracle::ask(const UsiPosition& position, int limitMs)
 {
-    if (!m_started) return;
+    if (!m_started || !m_session->search(UsiSearchRequest::mate(position, limitMs))) return false;
     m_asking = true;
-    m_session->search(UsiSearchRequest::mate(position, limitMs));
+    return true;
 }
 
-void MateOracle::askWithin(const UsiPosition& position, int deadlineMs)
+bool MateOracle::askWithin(const UsiPosition& position, int deadlineMs)
 {
-    if (!m_started) return;
-    m_asking = true;
+    if (!m_started) return false;
     UsiSearchRequest request;
     request.position = position;
     request.go = UsiGo::mate(0);
     request.replyTimeoutMs = qMax(1, deadlineMs);
-    m_session->search(request);
+    if (!m_session->search(request)) return false;
+    m_asking = true;
+    return true;
 }
 
 void MateOracle::stop()
@@ -78,7 +79,7 @@ void MateOracle::stop()
     if (!m_asking) return;
     if (m_session->isInitializing()) {
         // まだ送っていない問い合わせを取りやめる（エンジンからは何も届かない）
-        m_session->stop();
+        m_session->cancelSearch();
         m_asking = false;
         emit answered({MateAnswer::Kind::Unknown, {}});
         return;

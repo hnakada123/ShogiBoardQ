@@ -5,6 +5,7 @@
 /// @brief 詰み探索（メニューの「詰み探索」: 条件ダイアログを出して表示中の局面を探索する）
 
 #include <QObject>
+#include <optional>
 
 #include "analysisoptions.h"
 
@@ -32,7 +33,7 @@ public:
     explicit TsumeSearchController(const Deps& deps, QObject* parent = nullptr);
 
     /// 表示中の局面を詰み探索する position コマンド（局面が無ければ空）
-    UsiPosition positionForMate() const;
+    std::optional<UsiPosition> positionForMate() const;
 
 public slots:
     /// 条件ダイアログを出し、選んだ条件で探索を始める（ダイアログを閉じてから始める）

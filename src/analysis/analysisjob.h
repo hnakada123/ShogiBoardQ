@@ -10,6 +10,7 @@
 #include <QPointer>
 #include <QSet>
 #include <QStringList>
+#include <optional>
 
 #include "pvtext.h"
 #include "recordline.h"
@@ -112,7 +113,7 @@ private:
     void finish(bool completed);
 
     AnalysisRequest m_request;
-    QList<UsiPosition> m_positions;   ///< 手順の各局面（[0] が開始局面）
+    QList<std::optional<UsiPosition>> m_positions;   ///< 手順の各局面（[0] が開始局面。読めない局面は nullopt）
     QPointer<Usi> m_engine;
     State m_state = State::Ready;
     QString m_error;

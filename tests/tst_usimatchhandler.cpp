@@ -9,6 +9,7 @@
 #include "usilineparser.h"
 #include "boardcoordinates.h"
 #include "engineprocessmanager.h"
+#include "usienginesession.h"
 #include "usiprotocolhandler.h"
 #include "usimatchhandler.h"
 #include "matchtimesource.h"
@@ -29,10 +30,11 @@ public:
     ShogiClock clock;
     ClockTimeSource clockTime{&clock};
     ShogiGameController game;
-    EngineProcessManager process;
-    UsiProtocolHandler protocol{&process};
+    UsiEngineSession session;   ///< 探索の依頼と切り替え（プロセスと状態機械はこのテストが直接動かす）
+    EngineProcessManager& process = *session.process();
+    UsiProtocolHandler& protocol = *session.handler();
     ThinkingInfoFormatter formatter;
-    UsiMatchHandler match{&protocol};
+    UsiMatchHandler match{&session};
     QStringList commands;
     UsiPosition position = *UsiPosition::parse(u"position startpos moves 7g7f");
     int errors = 0;

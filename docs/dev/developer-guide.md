@@ -108,6 +108,7 @@
 | 2026-10-23 | 入力中の編集の確定と未保存の判定を文書に一本化した（監査 R6）のに合わせて §4・§10・§11・第18章を更新（対局情報欄の「対局情報更新」ボタン・`GameInfoPane::applyChanges`・`gameInfoUpdated`・`GameInfoEditModel` の反映済みの内容（`m_applied`・`markApplied`・`isDirty`）を削除。盤の対局者名は `KifuDocument::headerEdited` で合わせる。`KifuDocument::Hooks` は `commitPendingEdits`・`hasPendingEdits` の2つにし、合成ルートが対局情報欄とコメント欄をまとめて登録する。対局情報を読むだけ（`header()`）では入力中のセルを確定しない） |
 | 2026-10-23 | 文書の置き換えを1つの知らせにした（監査 R7）のに合わせて §6・§9・§10・§14・第18章を更新（`KifuDocument::replaced` を受けて評価値グラフ・エンジンの表示が自分で消える。`SessionResetCoordinator::clearBeforeKifuLoad`・`KifuFileController::Deps::clearUiBeforeKifuLoad`・局面編集の開始で評価値グラフを消す配線を削除。連続対局の次局と通信対局の開始も `prepareGameStart()` を通る） |
 | 2026-10-23 | 対局で指すエンジン1台を `MatchEngineSeat`（`src/game/matchengineseat.h`）にまとめた（監査 R8 の前半）のに合わせて §1・§6・§7・§12・第18章を更新（人間対エンジン・エンジン同士の Strategy と通信対局が共有し、終局の知らせは `finish()` の1通り。`EngineLifecycleManager` はリース・取り上げの知らせ・表示の消去だけにし、手番・時計・投了などの中継（`engineFor`・`startEngine`・`notifyGameOver`・`disconnectArbiterSignals`・`engineResigned`・`engineDeclaredWin`・`engineError`・`slotFor`）を削除。`CsaEngineController` を削除。対局時計の `ClockTimeSource` は司令塔が持つ。人間が先に指した後もエンジンの初期化を待つ間は時計を止める） |
+| 2026-10-23 | 探索の切り替えを `UsiEngineSession::search` にまとめた（監査 R8 の後半・U5）のに合わせて §7・§9 を更新（最後の依頼だけを行い、探索中なら stop で止めて結果と info を捨ててから始める。空の局面は受け付けない。`UsiMatchHandler` の先読み停止待ち（`PonderStop`）と `AnalysisSession` の `StoppingSearch`・`RestartQueued`・再開のタイマーを削除。`stop()` は最後の依頼に効き、`cancelSearch()` を足した。`RecordLine::usiPosition`・`ConsiderationPositionResolver::resolve` は `std::optional` を返す） |
 
 <!-- chapter-0-end -->
 
@@ -3445,8 +3446,19 @@ stateDiagram-v2
 `usi` → `usiok` → `setoption` → `isready` → `readyok` → `usinewgame` の順に進める。
 各応答はQtシグナルで受信し、usiok・readyokにはそれぞれ既定5秒のタイマーを設ける（`UsiEngineSession::setInitializationTimeoutMs()` で延ばせる）。
 成功は `UsiProtocolHandler::initializationFinished(true)` → `UsiEngineSession::ready` → `Usi::engineInitialized`、失敗は `UsiEngineSession::errorOccurred` → `Usi::errorOccurred` で通知する。
-初期化中の要求（対局の思考・検討・詰み探索・setoption・USI コンソールの入力）は `UsiEngineSession::whenReady()` と `search()` が保管し、初期化完了後に順に送る。
+初期化中の要求（setoption・USI コンソールの入力・対局の思考の依頼）は `UsiEngineSession::whenReady()` が保管して初期化完了後に順に行い、探索の依頼（`search()`）は最後の1つだけを覚えて、その後で始める。
 キャンセル（`cancelCurrentOperation()`）時は保留要求とタイマーを破棄し、遅れて届いた結果も知らせない。
+
+#### 探索の切り替え（UsiEngineSession::search）
+
+探索は最後に頼まれたものだけを行う。エンジンに探索を重ねて頼まない（position・go を探索中に送らない）。
+
+- 局面が空の依頼は受け付けない（`search()` が false を返し、何も送らない。局面を送らない go は前の局面を探索してしまうため）。局面を作れない呼び出し元（`RecordLine::usiPosition()`・`ConsiderationPositionResolver::resolve()` は `std::optional` を返す）がそれぞれ失敗として扱う。
+- 探索中に次を頼まれたら、`UsiProtocolHandler::abandonSearch()` で stop を送り（停止待ちなら送らない）、その結果と info は知らせずに捨てる。結果が届いて待機に戻ったこと（`searchEnded`）を受けて、覚えている最後の依頼を始める。stop に `UsiSearchRequest::kStopReplyMs` 答えなければ `errorOccurred`。
+- 依頼のオプション（`UsiSearchRequest::options`。検討の候補手の数など）は、前の探索を止めた後、position の前に送る。go の時間を送るときに決める依頼（`goAtStart`。対局では停止を待つ間も時計が進む）もある。
+- `stop()` は最後に頼んだ探索をできるだけ早く終わらせ、結果は届く（まだ始めていなければ、始めてすぐ stop を送る）。`cancelSearch()` は取りやめ、結果は知らせない。
+
+検討のやり直し（`AnalysisSession`）・先読みの外れ（`UsiMatchHandler`）・詰みの問い合わせ（`MateOracle`）は、どれもこの入口に頼み直すだけで、止めて待つ状態を自分では持たない。
 エンジンの登録には、起動して usi〜usiok だけ行う `probeAsync()` を使う（7.9節。失敗の知らせ方は `startAsync()` と同じ）。
 
 ### 7.3 EngineProcessManager — プロセス管理
@@ -3505,7 +3517,7 @@ enum class State {
 enum class SearchKind { Main, Ponder, Mate };
 ```
 
-`startSearch(position, go)` で `Searching` に入り、`go` の種類（`UsiGo::Kind`）から `SearchKind` が決まる。`sendPonderHit()` は `Ponder` → `Main` に切り替える（予想手が的中した場合）。`sendStop()` は `Searching` から `Stopping` にする。bestmove・checkmate の受信（`finishSearch()`）で `Ready` に戻る。`cancelCurrentOperation()` は探索の世代（`m_seq`）を進めて、遅れて届く結果を捨てる。
+`startSearch(position, go)` で `Searching` に入り、`go` の種類（`UsiGo::Kind`）から `SearchKind` が決まる（局面が空なら何も送らず false）。`sendPonderHit()` は `Ponder` → `Main` に切り替える（予想手が的中した場合）。`sendStop()` は `Searching` から `Stopping` にする。bestmove・checkmate の受信（`finishSearch()`）で `Ready` に戻り、結果の知らせの後に `searchEnded` を出す。`cancelCurrentOperation()`・`abandonSearch()`（探索中なら stop も送る）は探索の世代（`m_seq`）を進めて、遅れて届く結果と info を捨てる。
 
 #### 主要コマンド送信メソッド
 
@@ -3516,7 +3528,7 @@ go に載せる内容は `UsiGo`（`src/engine/usigotime.h`）で表す。時計
 | `sendUsi()` | `usi` |
 | `sendIsReady()` | `isready` |
 | `sendUsiNewGame()` | `usinewgame` |
-| `startSearch(position, go)` | `position.command()`（`UsiPosition` が空でなければ）に続けて `go.command()` |
+| `startSearch(position, go)` | `position.command()` に続けて `go.command()`（局面が空なら送らない） |
 | └ `UsiGo::clock(time)` | `go btime X wtime Y byoyomi Z` / `go btime X wtime Y binc A winc B` |
 | └ `UsiGo::ponder(time)` | `go ponder btime X wtime Y ...` |
 | └ `UsiGo::infinite()` | `go infinite`（検討・棋譜解析） |
@@ -3535,7 +3547,7 @@ go に載せる内容は `UsiGo`（`src/engine/usigotime.h`）で表す。時計
 onDataReceived(line)
   │
   ├── bestmove 行 → handleBestMove()
-  │     ├── 取り消した探索の結果（世代が違う）→ 破棄
+  │     ├── 取り消した探索の結果（世代が違う）→ 破棄（searchEnded だけ出す）
   │     ├── UsiLineParser::parseBestMove() が失敗 → errorOccurred
   │     └── 探索の文脈を添えて emit bestMoveReceived(UsiBestMove)
   │           （elapsedMs・最後の評価値 score・baseSfen・pondering・stopped。
@@ -3546,6 +3558,7 @@ onDataReceived(line)
   │           （Result は Mate / NoMate / NotImplemented / Unknown、手順は pv）
   │
   ├── info 行 → UsiLineParser::parseInfo()
+  │     ├── 取り消した探索の info → 破棄
   │     └── updateSearch(info)（最後の評価値・候補手を更新）→ emit infoReceived(UsiInfo)
   │
   ├── "readyok" → handleReadyOk()
@@ -3560,9 +3573,9 @@ onDataReceived(line)
 
 同期の `waitFor*` APIは設けず、応答シグナルとタイマーで進行する。
 初期化は `initializationFinished(bool)`、対局の着手は `Usi::matchMoveReady` で通知する。
-`UsiMatchHandler` は本探索・先読み停止待ちを管理し、先読みの局面（`m_ponder`。`ponderPosition()` で読める）はこの部品だけが持つ。
+`UsiMatchHandler` は本探索・定跡手の待ちを管理し、先読みの局面（`m_ponder`。`ponderPosition()` で読める）はこの部品だけが持つ。探索は `UsiEngineSession::search()` に頼む。
 手番の探索を頼まれたとき、頼まれた局面と先読みの局面が値として等しければ（`UsiPosition` の比較）`ponderhit` で続け、外れた場合は
-旧探索の `bestmove` を回収してから次の `go` を送る。待ったで局面が戻ったときは `forgetPonder()` で先読みの局面を捨てる（`MatchCoordinator::undoTwoPlies()` が両方のエンジンに呼ぶ）。
+次の探索を頼むだけで、`UsiEngineSession` が先読みを stop で回収し、その結果を捨ててから `go` を送る（go の時間は送るときの残り時間で決める）。定跡手を指すときは `cancelSearch()` で先読みを止める。待ったで局面が戻ったときは `forgetPonder()` で先読みの局面を捨てる（`MatchCoordinator::undoTwoPlies()` が両方のエンジンに呼ぶ）。
 bestmove の手が局面に指せないときも `moveReady` は出し（先読みはしない）、対局の側が反則手として扱う。
 持ち時間は時間の出どころ（`setTimeSource(MatchTimeSource*)`。無ければ時間の決まりのない対局として扱う）だけから読む。思考を始めるときに `MatchTimeSource::snapshot(side, pondering)` が返す `MatchSearchTiming`（`input`（`UsiGoTimeInput`）・`timeoutMs`・`expired`。`UsiMatchHandler::SearchTiming` はその別名）で `go` を送り、その手に使える残り時間を期限に使う。無制限対局には30分の安全上限を設ける（`timeoutMs`）。bestmove を受けたら `MatchTimeSource::finishTurn()` で手番の時間を精算する（時間切れなら false）。
 `cancelCurrentOperation()` は探索の世代を更新し、取消済みの結果の採用を防ぐ。
@@ -3600,12 +3613,14 @@ explicit Usi(QObject* parent = nullptr);
 | `startEngine(path, name)` | エンジンを起動して初期化を始める（値は返さない。完了は `engineInitialized`、失敗は戻った後に `errorOccurred`） |
 | `requestMatchMove(position)` | 対局の思考を依頼する（`position` は `UsiPosition`。時間は `setMatchTimeSource()` で渡した出どころから読む。先読みの当たり・外れは `UsiMatchHandler` が判断する。指し手は `matchMoveReady`） |
 | `forgetPonder()` | 先読みの局面を捨てる（待ったなどで局面が戻ったとき） |
-| `requestImmediateMove()` | 対局中の「すぐ指させる」（準備中に頼まれた探索の後で stop を送る） |
+| `requestImmediateMove()` | 対局中の「すぐ指させる」（準備中に頼まれた探索は始めてすぐ stop を送る） |
 | `sendGameOverCommand(result)` | `gameover` を送る |
 | `startConsideration(position, byoyomiMs, multiPV)` | 検討。MultiPV を送って position + go infinite、時間が来たら stop |
 | `search(request)` | 探索1回を頼む（棋譜解析の1局面など。`UsiSearchRequest`。局面は `UsiSearchRequest::position`（`UsiPosition`）） |
 | `startMateSearch(position, ms)` | 詰み探索（`go mate`） |
-| `stop()` | 探索を止める（初期化中なら、まだ送っていない探索を取りやめる） |
+| `stop()` | 最後に頼んだ探索をできるだけ早く終わらせる（結果は届く。まだ始めていなければ始めてすぐ止める） |
+
+探索を頼む3つ（`startConsideration`・`search`・`startMateSearch`）は、局面が空なら何もせず false を返す。探索中に頼むと、前の探索を止めて結果を捨ててから始める（7.2節「探索の切り替え」）。
 | `sendSetOptionCommand(name, value)` / `sendConsoleCommand(command)` | setoption の送信 / USI コンソールの入力をそのまま送る。任意の文字列を送れるのは後者だけ |
 | `quit(clearThinking)` | プロセスを止める |
 | `cancelCurrentOperation()` | 探索の世代を進め、保留中の要求と取消済みの結果を捨てる |
@@ -7994,7 +8009,7 @@ sequenceDiagram
 
 **補足:**
 - 検討モードのMultiPVは動的に変更可能。`ConsiderationTabManager::settingsChanged` → `ConsiderationUiController::onSettingsChanged()` → `AnalysisSession::updateMultiPV()` の経路で伝わり、探索をやり直す
-- 局面変更・MultiPV変更のやり直しは `AnalysisSession` の状態（`State`）で1つにまとめる。探索中なら stop を送って bestmove を待ち（`StoppingSearch`）、それから新しい局面で go を送る（`RestartQueued`）ので、二重に再開しない
+- 局面変更・MultiPV変更のやり直しは、`AnalysisSession` がエンジンに頼み直すだけで行う。探索していなければすぐ始め、探索中ならエンジンの側（`UsiEngineSession::search`）で stop を送り、結果を捨ててから最後の依頼だけを始めるので、二重に再開しない。`AnalysisSession` の状態は探索中（`Searching`）と次の局面を待つ（`Waiting`）だけ
 - 矢印表示は `CandidateArrowPresenter` が、検討中かどうかを `AnalysisSession::isConsidering()` から、表示の有無を検討タブの設定（`Deps::showConsiderationArrows`）から、候補手を検討の表のモデル（`Deps::consideration`）から読み、`ShogiView` に矢印を描く
 - 検討中にエンジンを変えると、`ConsiderationUiController::onSettingsChanged()` が検討を止めて新しいエンジンで始め直す
 

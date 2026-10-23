@@ -5,6 +5,7 @@
 /// @brief 検討モード向け局面解決ロジックの定義
 
 #include <QString>
+#include <optional>
 
 #include "recordline.h"
 #include "usiposition.h"
@@ -20,8 +21,9 @@ public:
     /**
      * @brief 手順 line の row 手目の後の局面を検討する
      * @param fallbackSfen 手順が無いとき（分岐ツリーが空）に検討する局面（空なら平手）
+     * @return 局面を読めなければ nullopt
      */
-    static UsiPosition resolve(const RecordLine& line, int row, const QString& fallbackSfen = {});
+    static std::optional<UsiPosition> resolve(const RecordLine& line, int row, const QString& fallbackSfen = {});
 };
 
 #endif // CONSIDERATIONPOSITIONRESOLVER_H

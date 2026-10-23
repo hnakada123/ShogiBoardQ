@@ -34,12 +34,15 @@ public:
     void setInitializationTimeoutMs(int) {}
     void cancelCurrentOperation() {}
     void quit() {}
-    void search(const UsiSearchRequest& request)
+    bool search(const UsiSearchRequest& request)
     {
+        if (request.position.isEmpty()) return false;
         m_handler->positions.append(request.position.command());
         m_handler->timeouts.append(request.go.mateTimeMs);
+        return true;
     }
     void stop() { ++m_handler->stops; }
+    void cancelSearch() {}
     UsiProtocolHandler* handler() const { return m_handler; }
 signals:
     void ready();

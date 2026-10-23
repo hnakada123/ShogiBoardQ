@@ -11,15 +11,15 @@
 
 namespace {
 
-/// 手順の各局面（[0] が開始局面）。局面だけを送り、そこに至った手を読み筋の「同」の判定に使う
-QList<UsiPosition> positionsOf(const RecordLine& line)
+/// 手順の各局面（[0] が開始局面。読めない局面は nullopt）。局面だけを送り、そこに至った手を読み筋の「同」の判定に使う
+QList<std::optional<UsiPosition>> positionsOf(const RecordLine& line)
 {
-    QList<UsiPosition> positions;
+    QList<std::optional<UsiPosition>> positions;
     if (line.isEmpty()) return positions;
     positions.reserve(line.moveCount() + 1);
     for (int ply = 0; ply <= line.moveCount(); ++ply) {
         const std::optional<UsiMove> lastMove = ply > 0 ? std::optional<UsiMove>(line.usiMove(ply)) : std::nullopt;
-        positions << UsiPosition::fromSfen(line.sfenAt(ply), lastMove).value_or(UsiPosition{});
+        positions << UsiPosition::fromSfen(line.sfenAt(ply), lastMove);
     }
     return positions;
 }
@@ -119,8 +119,17 @@ void AnalysisJob::onInitialized()
 
 void AnalysisJob::analyzePly(int ply)
 {
+    // 読めない局面（壊れた SFEN）はエンジンに送らずに飛ばす（前の局面の結果をこの手数の結果にしない）
+    while (ply <= m_request.options.endPly && !m_positions.at(ply)) {
+        qCWarning(lcAnalysis) << "analyzePly: skip unreadable position at ply" << ply;
+        ++ply;
+    }
+    if (ply > m_request.options.endPly) {
+        finish(true);
+        return;
+    }
     m_ply = ply;
-    const UsiPosition& position = m_positions.at(ply);
+    const UsiPosition& position = *m_positions.at(ply);
     qCDebug(lcAnalysis).noquote() << "analyzePly: ply=" << ply << "position=" << position.command();
     m_collector.begin(ply, position);
     emit plyStarted(ply);

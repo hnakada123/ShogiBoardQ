@@ -45,8 +45,11 @@ void MateQueryLoop::step()
     }
     m_awaiting = true;
     m_queryTimer.start();
-    m_oracle->ask(UsiPosition::parse(query->sfen).value_or(UsiPosition{}), query->limitMs);
+    const std::optional<UsiPosition> position = UsiPosition::parse(query->sfen);
+    const bool asked = position && m_oracle->ask(*position, query->limitMs);
     emit queryStarted(*query);
+    // 読めない局面はエンジンに聞かず、判定できなかったとする
+    if (!asked) onAnswered({MateAnswer::Kind::Unknown, {}});
 }
 
 void MateQueryLoop::onAnswered(const MateAnswer& answer)

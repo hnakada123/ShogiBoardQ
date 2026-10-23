@@ -55,13 +55,18 @@ void ConsiderationUiController::startConsideration()
 
     // 表示中の手順（分岐ツリー）から、検討する局面と直前の手を決める
     const RecordLine line = m_navState->currentRecordLine();
-    const UsiPosition position = ConsiderationPositionResolver::resolve(line, line.currentPly, m_navState->currentSfen());
+    const std::optional<UsiPosition> position =
+        ConsiderationPositionResolver::resolve(line, line.currentPly, m_navState->currentSfen());
+    if (!position) {
+        ErrorBus::instance().postMessage(ErrorBus::ErrorLevel::Warning, tr("検討する局面を読めません。"));
+        return;
+    }
 
     AnalysisOptions opt;
     opt.mode = AnalysisOptions::Mode::Consideration;
     opt.enginePath = engines.at(index).path;
     opt.engineName = engines.at(index).name;
-    opt.position = position;
+    opt.position = *position;
     opt.byoyomiMs = settings.byoyomiMs();
     opt.multiPV = settings.multiPV;
     qCDebug(lcUi).noquote() << "startConsideration: engine=" << opt.engineName
