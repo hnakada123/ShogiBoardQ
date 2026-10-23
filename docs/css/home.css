@@ -636,9 +636,21 @@
 .dl-note {
     max-width: 820px;
     margin: 2rem auto 0;
-    text-align: center;
+    text-align: left;
     font-size: 0.9rem;
     color: var(--color-text-muted);
+    word-break: auto-phrase;
+}
+
+/* 中国語は auto-phrase が効かないので、文に入れた <wbr> と句読点の位置だけで折り返す */
+.dl-note:lang(zh) {
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+}
+
+/* 「リリースノート」のようなリンクの語の途中で折り返さない */
+.dl-note a {
+    white-space: nowrap;
 }
 
 .build-box {
