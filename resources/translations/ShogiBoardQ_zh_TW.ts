@@ -12283,18 +12283,19 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>TsumePositionPreview</name>
     <message>
-        <location filename="../../src/widgets/tsumepositionpreview.cpp" line="49"/>
+        <location filename="../../src/widgets/tsumepositionpreview.cpp" line="51"/>
         <source>攻方</source>
         <translation>進攻方</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/tsumepositionpreview.cpp" line="47"/>
+        <location filename="../../src/widgets/tsumepositionpreview.cpp" line="49"/>
         <source>玉方</source>
         <translation>防守方</translation>
     </message>
     <message>
+        <location filename="../../src/widgets/tsumepositionpreview.cpp" line="103"/>
         <source>なし</source>
-        <translation type="vanished">無</translation>
+        <translation>無</translation>
     </message>
 </context>
 <context>

@@ -160,7 +160,7 @@ cmake --build build --target translations
     - `dockregistry` - ドックの表 `DockRegistry`（`DockId`・`DockSpec`）。12個のドックをこの表だけから作り（`createAll()`）、規定の場所に置き（同じ場所のドックは表で前のドックのタブに重ねる。起動時と `resetToDefault()` で同じ配置）、浮動・表示・位置を保存・復元する（`saveStates()`・`DockSettings::DockState`）。ドックを足すときは `DockId` と表に1行足す
     - `docklayoutmanager` - 名前付きレイアウト・起動時のレイアウト・ドックの固定（ドックは `DockRegistry` から取る）
 
-- **views/**: 盤の描画と入力（`shogiview.cpp/.h`）。盤・マス・駒台のセル・座標の文字・対局者カードの位置は `boardgeometry`（`BoardGeometry`。マスの大きさ・反転・筋と段の数から1度だけ計算する変えない値で、すべてウィジェット座標。`ShogiView::boardGeometry()`）、盤に重ねる対局者カード・編集終了ボタン・駒箱の先後切り替えは `boardchromewidget`（カードは1側1枚の `playercard`（`PlayerCard`。手番の札・名前・時計を子に持つ）で、`chrome()->card(Turn)` で触る）、局面によらない部分の画像は `boardstaticlayer`、ドラッグは `shogiviewinteraction`、ハイライト（層 `BoardHighlightLayer` ごとのマスの値。色は層で決まる）と矢印は `shogiviewhighlighting`
+- **views/**: 盤の描画と入力（`shogiview.cpp/.h`）。盤・マス・駒台のセル・座標の文字・対局者カードの位置は `boardgeometry`（`BoardGeometry`。マスの大きさ・反転・筋と段の数・駒台の大きさ（盤は2列4段。詰将棋問題一覧のプレビュー `TsumePositionPreview` は持ち駒を1列に並べて枚数を横に書くので幅を広く段を多くする）から1度だけ計算する変えない値で、すべてウィジェット座標。`ShogiView::boardGeometry()`）、盤に重ねる対局者カード・編集終了ボタン・駒箱の先後切り替えは `boardchromewidget`（カードは1側1枚の `playercard`（`PlayerCard`。手番の札・名前・時計を子に持つ）で、`chrome()->card(Turn)` で触る）、局面によらない部分の画像は `boardstaticlayer`、ドラッグは `shogiviewinteraction`、ハイライト（層 `BoardHighlightLayer` ごとのマスの値。色は層で決まる）と矢印は `shogiviewhighlighting`
 - **automation/**: 自動化 API（`ShogiBoardQ --automation`）。引数の表・エラーの分類などの共有部品は headless/（設計: `docs/dev/mcp-server.md`）
   - `automationserver.cpp/.h` - QLocalServer で改行区切り JSON-RPC 2.0 を待ち受け
   - `automationdispatcher.cpp/.h` - JSON-RPC 解析とメソッド表（GUI 非依存）。メソッドを呼ぶ前に引数を表で検査し（知らない引数は拒否）、既定値を補う。エラー応答（`makeError()`）は `error.code` と `error.data.slug` を分類から決める

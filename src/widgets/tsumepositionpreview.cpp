@@ -19,6 +19,8 @@ TsumePositionPreview::TsumePositionPreview(const QString& sfen, QWidget* parent)
     params.squareSize = kSquareSize;
     params.flipped = m_position.sideToMove() == Turn::White;   // 攻方を手前にする
     params.font = font();
+    params.standColumns = kStandColumns;
+    params.standRows = kStandRows;
     m_geometry = BoardGeometry(params);
     setMinimumSize(sizeHint());
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
@@ -64,14 +66,7 @@ void TsumePositionPreview::paintEvent(QPaintEvent*)
                                    m_geometry.square(file, rank), visuals);
         }
     }
-    for (const Turn side : {Turn::Black, Turn::White}) {
-        for (const Piece piece : BoardGeometry::standPieces(side)) {
-            const QRect cell = m_geometry.standCell(piece);
-            PiecePainter::drawStack(painter, PieceImageProvider::instance().icon(piece, flipped),
-                                    m_position.handCount(piece), cell.width(), m_geometry.standPieceArea(cell), visuals,
-                                    colors);
-        }
-    }
+    for (const Turn side : {Turn::Black, Turn::White}) drawHand(painter, side, colors, visuals);
 
     // 筋・段の文字（盤と同じ帯）
     QFont font = painter.font();
@@ -83,4 +78,27 @@ void TsumePositionPreview::paintEvent(QPaintEvent*)
     painter.setFont(font);
     for (int file = 1; file <= Position::kFiles; ++file)
         painter.drawText(m_geometry.fileLabel(file), Qt::AlignCenter, QString::number(file));
+}
+
+void TsumePositionPreview::drawHand(QPainter& painter, Turn side, const BoardColors& colors, const BoardVisuals& visuals)
+{
+    const QRect stand = m_geometry.stand(side);
+    const QSize field = m_geometry.fieldSize();
+    QFont font = painter.font();
+    font.setPixelSize(qRound(field.width() * 0.58));
+    font.setBold(true);
+    painter.setFont(font);
+    painter.setPen(colors.grid);
+    int row = 0;
+    for (const Piece piece : BoardGeometry::standPieces(side)) {
+        const int count = m_position.handCount(piece);
+        if (count <= 0) continue;
+        const QRect line(stand.left(), stand.top() + row * field.height(), stand.width(), field.height());
+        const QRect pieceRect(line.left(), line.top(), field.width(), field.height());
+        PiecePainter::draw(painter, PieceImageProvider::instance().icon(piece, m_geometry.flipped()),
+                           pieceRect.adjusted(1, 1, -1, -1), visuals);
+        painter.drawText(line.adjusted(field.width(), 0, -1, 0), Qt::AlignCenter, QString::number(count));
+        ++row;
+    }
+    if (row == 0) painter.drawText(QRect(stand.topLeft(), QSize(stand.width(), field.height())), Qt::AlignCenter, tr("なし"));
 }

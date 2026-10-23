@@ -39,6 +39,10 @@ public:
         int files = 9;
         int ranks = 9;
         QFont font;                   ///< 段の文字の幅を測る書体
+        /// 駒台の大きさ（マスの幅・高さの何倍か）。盤は2列4段で、standCell() はこの並びのときだけ使える。
+        /// 詰将棋問題一覧のプレビューは持ち駒を1列に並べ、枚数を横に書くので、幅を広く段を多くする
+        double standColumns = 2.0;
+        int standRows = 4;
     };
 
     BoardGeometry();
@@ -72,9 +76,9 @@ public:
     /// 段の文字の帯（反転していなければ盤の右、反転していれば左）
     QRect rankLabel(int rank) const;
 
-    /// 駒台
+    /// 駒台（反転していなければ先手は盤の右で下端を揃え、後手は盤の左で上端を揃える。反転すると入れ替わる）
     QRect stand(Turn side) const { return side == Turn::Black ? m_blackStand : m_whiteStand; }
-    /// 駒（成駒は生駒）を置く駒台のセル。駒台に置けない駒なら空
+    /// 駒（成駒は生駒）を置く駒台のセル（2列4段の駒台のとき）。駒台に置けない駒なら空
     QRect standCell(Piece piece) const;
     /// 駒台に並ぶ駒（先手は先手の生駒8つ、後手は後手の生駒8つ）
     static const std::array<Piece, 8>& standPieces(Turn side);

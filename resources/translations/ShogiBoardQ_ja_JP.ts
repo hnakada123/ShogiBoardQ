@@ -12706,18 +12706,19 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>TsumePositionPreview</name>
     <message>
-        <location filename="../../src/widgets/tsumepositionpreview.cpp" line="49"/>
+        <location filename="../../src/widgets/tsumepositionpreview.cpp" line="51"/>
         <source>攻方</source>
         <translation>攻方</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/tsumepositionpreview.cpp" line="47"/>
+        <location filename="../../src/widgets/tsumepositionpreview.cpp" line="49"/>
         <source>玉方</source>
         <translation>玉方</translation>
     </message>
     <message>
+        <location filename="../../src/widgets/tsumepositionpreview.cpp" line="103"/>
         <source>なし</source>
-        <translation type="vanished">なし</translation>
+        <translation>なし</translation>
     </message>
 </context>
 <context>

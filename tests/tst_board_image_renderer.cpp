@@ -126,6 +126,36 @@ private slots:
         }
     }
 
+    /// 駒台の大きさは条件で変えられる（詰将棋問題一覧のプレビューは1列の持ち駒の一覧）。手前の駒台は盤の右で
+    /// 下端を、奥の駒台は盤の左で上端を揃え、全体の幅は盤と両側の駒台・間の和
+    void standSizeFollowsParams()
+    {
+        for (const bool flip : {false, true}) {
+            BoardGeometry::Params params;
+            params.squareSize = 24;
+            params.flipped = flip;
+            const BoardGeometry standard(params);
+            params.standColumns = 1.8;
+            params.standRows = 7;
+            const BoardGeometry list(params);
+            const QSize field = list.fieldSize();
+            const Turn nearSide = flip ? Turn::White : Turn::Black;
+            const Turn farSide = flip ? Turn::Black : Turn::White;
+            QCOMPARE(list.stand(nearSide).size(), QSize(qRound(field.width() * 1.8), field.height() * 7));
+            QCOMPARE(list.stand(farSide).size(), list.stand(nearSide).size());
+            QCOMPARE(list.stand(nearSide).bottom(), list.board().bottom());
+            QVERIFY(list.stand(nearSide).left() > list.board().right());
+            QCOMPARE(list.stand(farSide).top(), list.board().top());
+            QVERIFY(list.stand(farSide).right() < list.board().left());
+            QCOMPARE(list.viewSize().width() - list.board().width(),
+                     2 * (list.board().left() - list.stand(farSide).left()));
+            // 盤のマスの大きさは駒台の大きさによらない
+            QCOMPARE(list.fieldSize(), standard.fieldSize());
+            QCOMPARE(list.board().size(), standard.board().size());
+            QCOMPARE(standard.stand(nearSide).size(), QSize(field.width() * 2, field.height() * 4));
+        }
+    }
+
     void initTestCase()
     {
         QVERIFY(m_config.isValid());
