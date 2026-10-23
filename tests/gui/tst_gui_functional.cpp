@@ -3247,8 +3247,7 @@ private slots:
         sampleGame();
         auto* graph = window->composer().parts().evalChart;
         QVERIFY(graph);
-        graph->setAutomaticRange(true);
-        graph->setLabelFontSize(10);
+        graph->setChartSettings(EvaluationChartSettings{});   // 自動の範囲・10pt
         window->composer().parts().evalGraph->setEngine1Name(QStringLiteral("Hayanagi 1.5.0"));
         window->composer().parts().evalGraph->setEngine2Name(QStringLiteral("YaneuraOu"));
         for (int ply = 1; ply <= 40; ++ply) {

@@ -30,8 +30,11 @@ class TestTsumeshogiGeneratorGui : public QObject
 
     QPushButton* button(TsumeshogiGeneratorDialog& dialog, const char* name)
     { return dialog.findChild<QPushButton*>(QLatin1String(name)); }
-    void addResult(TsumeshogiGeneratorDialog& dialog)
-    { QVERIFY(QMetaObject::invokeMethod(&dialog, "onPositionFound", Q_ARG(QString, sfen), Q_ARG(QStringList, pv))); }
+    void addResult(TsumeshogiGeneratorDialog& dialog, const QString& position = QString())
+    {
+        const QString found = position.isEmpty() ? sfen : position;
+        QVERIFY(QMetaObject::invokeMethod(&dialog, "onPositionFound", Q_ARG(QString, found), Q_ARG(QStringList, pv)));
+    }
     void registerEngine()
     {
         auto& settings = SettingsCommon::openSettings();
@@ -73,15 +76,16 @@ private slots:
         QCOMPARE(dialog.findChild<QScrollArea*>()->verticalScrollBar()->maximum(), 0);
         QVERIFY(dialog.grab().save(QStringLiteral(AUDIT_DIR "/screenshots/tsumeshogi-generator-empty.png")));
         limit->setValue(3);
+        // 2つ目は手数だけ違う局面（コピーの順を見分ける）
+        const QString second = sfen.chopped(1) + QStringLiteral("3");
         addResult(dialog);
-        addResult(dialog);
+        addResult(dialog, second);
         QCOMPARE(progress->maximum(), 3);
         QCOMPARE(progress->value(), 2);
         QVERIFY(button(dialog, "generatorSave")->isEnabled());
         QVERIFY(button(dialog, "generatorCopyAll")->isEnabled());
         QVERIFY(!button(dialog, "generatorCopySelected")->isEnabled());
         // 逆順に選んでも表示順でコピーし、SFEN全文と手順を保持する。
-        table->item(0, 1)->setText(sfen + QStringLiteral(" first"));
         table->selectionModel()->select(table->model()->index(1, 0), QItemSelectionModel::Select | QItemSelectionModel::Rows);
         table->selectionModel()->select(table->model()->index(0, 0), QItemSelectionModel::Select | QItemSelectionModel::Rows);
         dialog.findChild<QCheckBox*>(QStringLiteral("generatorIncludePv"))->setChecked(true);
@@ -89,8 +93,7 @@ private slots:
         QTRY_VERIFY(table->hasFocus());
         QTest::keyClick(table, Qt::Key_C, Qt::ControlModifier);
         const QString moves = QStringLiteral(" moves ") + pv.join(QLatin1Char(' '));
-        QCOMPARE(QApplication::clipboard()->text(), sfen + " first" + moves + '\n' + sfen + moves);
-        table->item(0, 1)->setText(sfen);
+        QCOMPARE(QApplication::clipboard()->text(), sfen + moves + '\n' + second + moves);
         table->setCurrentCell(0, 1);
         QTest::keyClick(table, Qt::Key_Return);
         QTRY_VERIFY(dialog.findChild<PvBoardDialog*>());
