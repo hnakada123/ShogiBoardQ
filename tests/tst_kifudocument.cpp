@@ -107,7 +107,7 @@ private slots:
         const KifuLoadResult loaded = KifuLoadParser::parseText(text);
         QVERIFY2(loaded.success, qPrintable(loaded.error));
         KifuBranchTree tree;
-        KifuBranchTreeBuilder::buildFromKifParseResult(&tree, loaded.record, loaded.initialSfen);
+        KifuBranchTreeBuilder::buildFromKifParseResult(&tree, loaded.record);
         QCOMPARE(tree.mainRecordLine().usiMoves().join(QLatin1Char(' ')), moves);
     }
 
@@ -955,7 +955,7 @@ private slots:
         KifParseResult record;
         record.mainline.startSfen = kHirateSfen;
         const QList<KifGameInfoItem> header = {{QStringLiteral("先手"), QStringLiteral("読み込んだ先手")}};
-        QVERIFY(document.replaceWithRecord(record, kHirateSfen, header));
+        QVERIFY(document.replaceWithRecord(record, header));
         QCOMPARE(reset.count(), 1);
         QCOMPARE(playersChanged.count(), 1);
         QVERIFY(document.players().blackEngineName.isEmpty());

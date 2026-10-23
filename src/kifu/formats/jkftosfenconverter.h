@@ -31,7 +31,7 @@ public:
 private:
     static bool parseJson(const QByteArray& data, QJsonObject& root, QString* warn);
     static QList<KifGameInfoItem> gameInfoFromRoot(const QJsonObject& root);
-    static QString buildInitialSfen(const QJsonObject& root, QString* detectedLabel = nullptr);
+    static QString buildInitialSfen(const QJsonObject& root, StartKind* kind = nullptr);
     static bool readRecord(const QJsonArray& moves, const Position& start, KifParseResult& out, ParseReport& report);
 };
 

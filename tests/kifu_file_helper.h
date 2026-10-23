@@ -70,17 +70,17 @@ RecordLine mainline(const QString& path, QString* error = nullptr)
     return parse<Converter>(path, result, error) ? result.mainline : RecordLine{};
 }
 
-/// 開始局面（読めなければ平手）
+/// 開始局面（読めなければ平手）。kind には開始局面の書き方を入れる（読めなければ Default）
 template <typename Converter>
-QString initialSfen(const QString& path, QString* detectedLabel = nullptr)
+QString initialSfen(const QString& path, StartKind* kind = nullptr)
 {
     const KifuParseOutcome outcome = parseFile<Converter>(path);
-    if (!outcome.success || outcome.initialSfen.isEmpty()) {
-        if (detectedLabel) *detectedLabel = QStringLiteral("平手(既定)");
+    if (!outcome.success || outcome.record.mainline.startSfen.isEmpty()) {
+        if (kind) *kind = StartKind::Default;
         return SfenUtils::hirateSfen();
     }
-    if (detectedLabel) *detectedLabel = outcome.teaiLabel;
-    return outcome.initialSfen;
+    if (kind) *kind = outcome.startKind;
+    return outcome.record.mainline.startSfen;
 }
 
 /// 対局情報（USI・USEN は持たないので空）
@@ -111,7 +111,7 @@ inline bool parseUsi(const QString& path, QString& baseSfen, QStringList& usiMov
     const KifuParseOutcome outcome = parseFile<UsiToSfenConverter>(path);
     if (warn) *warn += outcome.warning;
     if (!outcome.success) return false;
-    baseSfen = outcome.initialSfen;
+    baseSfen = outcome.record.mainline.startSfen;
     usiMoves = outcome.record.mainline.usiMoves();
     if (terminalCode) {
         const RecordEntry* terminal = outcome.record.mainline.terminal();

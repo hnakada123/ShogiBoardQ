@@ -44,9 +44,9 @@ QList<NumberedMove> readNumberedMoves(const QString& line);
  * @brief 局面図（BOD・「配置：」）を局面にする
  *
  * 盤の9段・両者の持駒・手番（「後手番」「上手番」）・手数（「手数＝N」の次の手）を読む。
- * 9段がそろわなければ false。detectedLabel には "BOD" か "配置" を入れる
+ * 9段がそろわなければ false
  */
-bool readBodPosition(const QStringList& lines, Position& out, QString* detectedLabel = nullptr);
+bool readBodPosition(const QStringList& lines, Position& out);
 
 } // namespace KifLexer
 

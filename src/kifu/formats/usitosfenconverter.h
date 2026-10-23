@@ -47,15 +47,13 @@ public:
      * @brief 最初の position/SFEN らしき行を読む
      *
      * 指し手も終局コードもない局面（.sfen ファイルなど）は positionOnly に局面だけを返す。
-     * 手合割の名前は平手なら「平手」、それ以外は「局面指定」
+     * 開始局面の書き方は平手なら手合割（StartKind::Handicap）、それ以外は局面の値（StartKind::Specified）
      */
     static KifuParseOutcome parse(QStringView text, const ParseOptions& options = {});
 
 private:
     // 行の中から解析対象の行（最初の position/SFEN らしき行、なければ最初の非空行）を選ぶ
     static bool selectPositionLine(const QStringList& lines, QString& content, QString* warn);
-    // 開始局面の SFEN から表示用の手合のラベルを決める
-    static QString labelForBaseSfen(const QString& baseSfen);
 
     // USI position コマンド文字列を解析して初期局面SFENと指し手列を取得
     // 入力例: "position startpos moves 2g2f 3c3d"

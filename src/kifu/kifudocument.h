@@ -63,8 +63,7 @@ public:
     /// 対局情報は既定の項目にする（keepHeader なら今の対局情報を残す）
     void startNew(const QString& sfen, bool keepHeader = false);
     /// 読み込んだ棋譜にする。分岐元が不正ならツリーを変えずに false
-    [[nodiscard]] bool replaceWithRecord(const KifParseResult& record, const QString& startSfen,
-                                         const QList<KifGameInfoItem>& header);
+    [[nodiscard]] bool replaceWithRecord(const KifParseResult& record, const QList<KifGameInfoItem>& header);
     /// 局面だけの棋譜にする（SFEN・BOD の読み込み）。対局情報は空
     void replaceWithPosition(const QString& sfen);
 

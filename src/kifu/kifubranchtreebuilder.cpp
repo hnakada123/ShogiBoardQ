@@ -6,9 +6,7 @@
 #include "kifubranchnode.h"
 #include "kifparsetypes.h"
 
-bool KifuBranchTreeBuilder::buildFromKifParseResult(KifuBranchTree* tree,
-                                                   const KifParseResult& result,
-                                                   const QString& startSfen)
+bool KifuBranchTreeBuilder::buildFromKifParseResult(KifuBranchTree* tree, const KifParseResult& result)
 {
     if (!tree) return false;
     // 分岐元は本譜か先に書かれた変化で、その手順が分岐の手の前まで続いている
@@ -19,7 +17,7 @@ bool KifuBranchTreeBuilder::buildFromKifParseResult(KifuBranchTree* tree,
     }
 
     tree->beginBatchUpdate();
-    tree->setRootSfen(startSfen);
+    tree->setRootSfen(result.mainline.startSfen);
     QList<QList<KifuBranchNode*>> paths;
     paths.append(addKifLineToTree(tree, result.mainline, {tree->root()}));
     for (const auto& variation : result.variations) {

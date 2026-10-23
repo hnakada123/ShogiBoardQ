@@ -126,10 +126,10 @@ private slots:
     void detectInitialSfen_handicap()
     {
         // 駒落ち局面（四枚落ち）: 初期局面が ~ の前にエンコードされている
-        QString label;
+        StartKind kind = StartKind::Handicap;
         QString sfen = KifuFile::initialSfen<UsenToSfenConverter>(
-            fixturePath(QStringLiteral("test_handicap.usen")), &label);
-        QCOMPARE(label, QStringLiteral("局面指定"));
+            fixturePath(QStringLiteral("test_handicap.usen")), &kind);
+        QCOMPARE(kind, StartKind::Specified);
         QCOMPARE(sfen, QStringLiteral("1nsgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"));
     }
 
@@ -177,9 +177,9 @@ private slots:
 
     void detectInitialSfen_nonExistentFile()
     {
-        QString label;
+        StartKind kind = StartKind::Handicap;
         QString sfen = KifuFile::initialSfen<UsenToSfenConverter>(
-            fixturePath(QStringLiteral("nonexistent.usen")), &label);
+            fixturePath(QStringLiteral("nonexistent.usen")), &kind);
         // Falls back to hirate
         QCOMPARE(sfen, kHirateSfen);
     }

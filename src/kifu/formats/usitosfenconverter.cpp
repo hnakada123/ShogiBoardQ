@@ -148,10 +148,6 @@ static bool looksLikePositionLine(const QString& line)
 // 解析
 // ============================================================================
 
-QString UsiToSfenConverter::labelForBaseSfen(const QString& baseSfen)
-{
-    return baseSfen == SfenUtils::hirateSfen() ? QStringLiteral("平手") : QStringLiteral("局面指定");
-}
 
 KifuParseOutcome UsiToSfenConverter::parse(QStringView text, const ParseOptions& options)
 {
@@ -173,12 +169,12 @@ KifuParseOutcome UsiToSfenConverter::parse(QStringView text, const ParseOptions&
         outcome.warning = QStringLiteral("Unknown USI position format: %1\n").arg(content.left(80));
         return outcome;
     }
-    outcome.teaiLabel = labelForBaseSfen(baseSfen);
-    outcome.initialSfen = start->toSfen();
+    outcome.startKind = *start == Position::hirate() ? StartKind::Handicap : StartKind::Specified;
+    outcome.record.mainline.startSfen = start->toSfen();
     // 指し手のない局面（.sfen ファイルなど）は局面だけを読む
     if (usiMoves.isEmpty() && terminalCode.isEmpty()) {
         outcome.success = true;
-        outcome.positionOnly = outcome.initialSfen;
+        outcome.positionOnly = true;
         outcome.warning = report.warnings();
         return outcome;
     }

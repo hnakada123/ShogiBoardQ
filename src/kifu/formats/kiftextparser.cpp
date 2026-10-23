@@ -26,11 +26,12 @@ QString tagOf(Dialect dialect)
     return dialect == Dialect::Kif ? QStringLiteral("KIF") : QStringLiteral("KI2");
 }
 
-/// 開始局面（局面図、なければ手合割と手番の行）。label には手合割の名前（局面図なら "BOD"）を入れる
-Position initialPosition(const QStringList& lines, QString* label)
+/// 開始局面（局面図、なければ手合割と手番の行）。kind にはその書き方を入れる
+Position initialPosition(const QStringList& lines, StartKind* kind)
 {
     Position bod;
-    if (KifLexer::readBodPosition(lines, bod, label)) {
+    if (KifLexer::readBodPosition(lines, bod)) {
+        *kind = StartKind::Diagram;
         qCDebug(lcKifu).noquote() << "BOD detected. sfen =" << bod.toSfen();
         return bod;
     }
@@ -48,7 +49,7 @@ Position initialPosition(const QStringList& lines, QString* label)
     name.remove(s_afterColon);
     name = name.trimmed();
     if (name.isEmpty()) name = QStringLiteral("平手");
-    if (label) *label = found.isEmpty() ? QStringLiteral("平手(既定)") : name;
+    *kind = found.isEmpty() ? StartKind::Default : StartKind::Handicap;
     Position initial = Position::fromSfen(NotationUtils::mapHandicapToSfen(name)).value_or(Position::hirate());
     // 局面図がなくても、明示された手番を優先する（駒落ちは上手番・下手番と書く）。
     for (const QString& raw : lines) {
@@ -207,7 +208,7 @@ KifuParseOutcome parse(QStringView text, Dialect dialect, const ParseOptions& op
 
     KifParseResult& record = outcome.record;
     {
-        KifLineBuilder main(initialPosition(lines, &outcome.teaiLabel));
+        KifLineBuilder main(initialPosition(lines, &outcome.startKind));
         if (!BlockReader(dialect, report, main).read(lines, 0, boundaries.first())) {
             outcome.warning = report.warnings();
             return outcome;
@@ -236,7 +237,6 @@ KifuParseOutcome parse(QStringView text, Dialect dialect, const ParseOptions& op
     qCDebug(lcKifu).noquote() << tag << "parsed: mainline moves =" << record.mainline.moveCount()
                               << "variations =" << record.variations.size();
     outcome.success = true;
-    outcome.initialSfen = record.mainline.startSfen;
     outcome.gameInfo = gameInfoOf(lines, dialect);
     outcome.warning = report.warnings();
     return outcome;
@@ -246,13 +246,14 @@ KifuParseOutcome parseBod(QStringView text)
 {
     KifuParseOutcome outcome;
     Position position;
-    if (!KifLexer::readBodPosition(text.toString().split(QLatin1Char('\n')), position, &outcome.teaiLabel)) {
+    if (!KifLexer::readBodPosition(text.toString().split(QLatin1Char('\n')), position)) {
         outcome.warning = QStringLiteral("BOD: the board diagram could not be read.\n");
         return outcome;
     }
     outcome.success = true;
-    outcome.positionOnly = position.toSfen();
-    outcome.initialSfen = outcome.positionOnly;
+    outcome.startKind = StartKind::Diagram;
+    outcome.positionOnly = true;
+    outcome.record.mainline.startSfen = position.toSfen();
     return outcome;
 }
 

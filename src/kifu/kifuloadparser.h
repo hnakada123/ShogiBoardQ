@@ -14,13 +14,14 @@ struct KifuLoadResult {
     bool success = false;
     KifuFormat format = KifuFormat::Kif;  ///< 読んだ形式
     QString filePath;
-    QString initialSfen;
-    QString teaiLabel;
-    QString positionOnly;
+    StartKind startKind = StartKind::Default;
+    bool positionOnly = false;            ///< 指し手のない局面だけの棋譜（USI・SFEN・BOD）
     QString error;
     QString warning;
     QList<KifGameInfoItem> gameInfo;
-    KifParseResult record;
+    KifParseResult record;                ///< 開始局面は record.mainline.startSfen だけ
+
+    const QString& startSfen() const { return record.mainline.startSfen; }
 };
 
 namespace KifuLoadParser {
@@ -29,7 +30,7 @@ KifuLoadResult parseFile(const QString& path, std::optional<KifuFormat> format =
                          const CancelFlag& cancel = {});
 /// 貼り付けたテキストの形式を判定して読む
 KifuLoadResult parseText(const QString& content, const CancelFlag& cancel = {});
-/// 形式が決まっているテキストを読む（指し手のない USI・SFEN と BOD は局面だけを positionOnly に返す）。
+/// 形式が決まっているテキストを読む（指し手のない USI・SFEN と BOD は positionOnly にする）。
 /// sourceName は失敗時のメッセージに使う（ファイル名など。空でもよい）
 KifuLoadResult parseContent(const QString& content, KifuFormat format,
                             const CancelFlag& cancel = {}, const QString& sourceName = QString());

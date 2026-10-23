@@ -45,7 +45,7 @@ KifuParseOutcome JkfToSfenConverter::parse(QStringView text, const ParseOptions&
         outcome.warning = jsonError;
         return outcome;
     }
-    const QString initial = buildInitialSfen(root, &outcome.teaiLabel);
+    const QString initial = buildInitialSfen(root, &outcome.startKind);
     const std::optional<Position> start = Position::fromSfen(initial);
     if (!start) {
         outcome.warning = QStringLiteral("JKF: invalid initial position");
@@ -57,7 +57,6 @@ KifuParseOutcome JkfToSfenConverter::parse(QStringView text, const ParseOptions&
         return outcome;
     }
     outcome.success = true;
-    outcome.initialSfen = outcome.record.mainline.startSfen;
     outcome.gameInfo = gameInfoFromRoot(root);
     outcome.warning = report.warnings();
     return outcome;
@@ -101,10 +100,10 @@ bool JkfToSfenConverter::parseJson(const QByteArray& rawData, QJsonObject& root,
     return true;
 }
 
-QString JkfToSfenConverter::buildInitialSfen(const QJsonObject& root, QString* detectedLabel)
+QString JkfToSfenConverter::buildInitialSfen(const QJsonObject& root, StartKind* kind)
 {
     if (!root.contains(QStringLiteral("initial"))) {
-        if (detectedLabel) *detectedLabel = QStringLiteral("平手");
+        if (kind) *kind = StartKind::Default;
         return JkfMoveParser::presetToSfen(QStringLiteral("HIRATE"));
     }
 
@@ -113,7 +112,7 @@ QString JkfToSfenConverter::buildInitialSfen(const QJsonObject& root, QString* d
 
     if (preset == QStringLiteral("OTHER")) {
         if (initial.contains(QStringLiteral("data"))) {
-            if (detectedLabel) *detectedLabel = QStringLiteral("任意局面");
+            if (kind) *kind = StartKind::Diagram;
             const QJsonObject data = initial[QStringLiteral("data")].toObject();
             return JkfMoveParser::buildSfenFromInitialData(data);
         }
@@ -121,7 +120,7 @@ QString JkfToSfenConverter::buildInitialSfen(const QJsonObject& root, QString* d
     }
 
     const Handicaps::Handicap* handicap = Handicaps::byJkfPreset(preset);
-    if (detectedLabel) *detectedLabel = handicap ? Handicaps::labelOf(*handicap) : preset;
+    if (kind) *kind = StartKind::Handicap;
     // 知らない preset は開始局面が分からない
     return handicap ? QString::fromLatin1(handicap->sfen) : QString();
 }

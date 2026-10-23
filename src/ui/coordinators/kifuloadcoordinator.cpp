@@ -108,7 +108,7 @@ bool KifuLoadCoordinator::applyLoadResult(const KifuLoadResult& result)
         if (!result.error.isEmpty()) emit errorOccurred(result.error);
         return false;
     }
-    if (!result.positionOnly.isEmpty()) return loadPositionFromSfen(result.positionOnly);
+    if (result.positionOnly) return loadPositionFromSfen(result.startSfen());
     if (!result.warning.isEmpty()) emit errorOccurred(tr("棋譜の読み込みで警告があります:\n%1").arg(result.warning));
     return applyRecord(result);
 }
@@ -116,20 +116,19 @@ bool KifuLoadCoordinator::applyLoadResult(const KifuLoadResult& result)
 bool KifuLoadCoordinator::applyRecord(const KifuLoadResult& result)
 {
     const KifParseResult& res = result.record;
-    // 局面編集から保存した棋譜は指し手が0手でも、有効な開始局面図を持つ
-    const bool hasPositionDiagram = result.teaiLabel == QStringLiteral("BOD") || result.teaiLabel == QStringLiteral("配置");
+    // 指し手が0手でも、開始局面が書かれていれば棋譜として読む（局面編集から保存した棋譜など。形式によらない）
     const bool hasMoves = !res.mainline.usiMoves().isEmpty() || res.mainline.endsWithTerminal();
-    if (!hasPositionDiagram && !hasMoves) {
+    if (result.startKind == StartKind::Default && !hasMoves) {
         emit errorOccurred(tr("読み込み失敗 %1 から指し手を取得できませんでした。").arg(result.filePath));
         return false;
     }
 
     // 文書を読んだ棋譜で置き換える（ツリーの変更の通知は作り終えてから1回）。表示中の手は開始局面へ戻る
-    if (!m_document->replaceWithRecord(res, result.initialSfen, result.gameInfo)) {
+    if (!m_document->replaceWithRecord(res, result.gameInfo)) {
         emit errorOccurred(tr("棋譜の分岐元または開始手数が不正です。"));
         return false;
     }
-    qCDebug(lcKifu).noquote() << "kifu loaded:" << result.filePath << "teai=" << result.teaiLabel
+    qCDebug(lcKifu).noquote() << "kifu loaded:" << result.filePath << "start=" << static_cast<int>(result.startKind)
                               << "nodes=" << m_document->tree()->nodeCount() << "lines=" << m_document->tree()->lineCount();
     return true;
 }

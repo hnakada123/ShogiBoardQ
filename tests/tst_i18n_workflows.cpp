@@ -242,7 +242,7 @@ private slots:
         QVERIFY2(reloaded.success, qPrintable(reloaded.error));
         QCOMPARE(reloaded.record.mainline.usiMoves(), usiMoves);
         KifuBranchTree reopened;
-        KifuBranchTreeBuilder::buildFromKifParseResult(&reopened, reloaded.record, reloaded.initialSfen);
+        KifuBranchTreeBuilder::buildFromKifParseResult(&reopened, reloaded.record);
         QCOMPARE(reopened.mainLine().last()->terminalType(), TerminalType::Timeout);
     }
 
@@ -306,9 +306,9 @@ private slots:
         const auto imported = KifuLoadParser::parseText(kif);
         QVERIFY2(imported.success, qPrintable(imported.error));
         KifuBranchTree tree;
-        KifuBranchTreeBuilder::buildFromKifParseResult(&tree, imported.record, imported.initialSfen);
+        KifuBranchTreeBuilder::buildFromKifParseResult(&tree, imported.record);
         KifuExportMetadata context;
-        context.startSfen = imported.initialSfen;
+        context.startSfen = imported.startSfen();
         context.gameInfoItems = imported.gameInfo;
         context.gameInfoProvided = true;
         const QStringList expected = KifuExport::lines(tree, context, KifuFormat::Kif);
@@ -342,7 +342,7 @@ private slots:
         row.score = UsiScore::cp(25);
         row.pvKanji = QStringLiteral("▲７六歩(77)△３四歩(33)");
         row.usiPv = QStringLiteral("7g7f 3c3d");
-        row.baseSfen = imported.initialSfen;
+        row.baseSfen = imported.startSfen();
         thinking.appendRow(row);
         const ShogiInfoRecord* info = thinking.recordAt(0);
         const QString pv = thinking.data(thinking.index(0, ShogiEngineThinkingModel::PvColumn), Qt::DisplayRole).toString();
@@ -365,9 +365,9 @@ private slots:
         result.evaluation = UsiScore::cp(10);
         result.evaluationDifference = 0;
         result.pv = info->pv();
-        result.beforeSfen = imported.initialSfen;
+        result.beforeSfen = imported.startSfen();
         result.lastUsiMove = QStringLiteral("7g7f");
-        result.sfen = imported.initialSfen;
+        result.sfen = imported.startSfen();
         result.usiPv = QStringLiteral("7g7f 3c3d");
         results.appendRow(result);
         const auto cell = [&results](int row, int column) { return results.index(row, column).data().toString(); };
@@ -397,9 +397,9 @@ private slots:
         }
         QVERIFY(!rows.index(1, 3).data(Qt::FontRole).isValid()); // 注釈はUIの書体。
         QVERIFY(!rows.index(4, 0).data(Qt::FontRole).isValid()); // 翻訳された終局もUIの書体。
-        const PvLine board(imported.initialSfen, {"7g7f", "3c3d"});
+        const PvLine board(imported.startSfen(), {"7g7f", "3c3d"});
         QCOMPARE(board.displayPv(info->pv()), pv);
-        PvBoardDialog pvDialog(imported.initialSfen, {"7g7f", "3c3d"});
+        PvBoardDialog pvDialog(imported.startSfen(), {"7g7f", "3c3d"});
         pvDialog.setKanjiPv(info->pv());
         bool foundPv = false;
         for (const auto* label : pvDialog.findChildren<QLabel*>()) {
