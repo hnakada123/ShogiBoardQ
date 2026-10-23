@@ -11,7 +11,6 @@
 
 class EngineSelector;
 class QCheckBox;
-class QLabel;
 class QLineEdit;
 class QPushButton;
 class QStackedWidget;
@@ -72,8 +71,6 @@ private:
     QStackedWidget* m_labelPages = nullptr;
     QStackedWidget* m_inputPages = nullptr;
     QPushButton* m_engineSettings = nullptr;
-    QWidget* m_josekiRow = nullptr;          ///< 「定跡を使う」と「条件…」（エンジンのときだけ出す）
-    QLabel* m_josekiLabel = nullptr;
     QCheckBox* m_useJoseki = nullptr;
     QPushButton* m_josekiConditions = nullptr;
 };
