@@ -42,7 +42,7 @@
 | B4 | 局面編集中に「検討開始」を押すと、編集を終えないまま検討が始まる。盤は編集の表示のまま残り、「編集終了」は効かず、編集メニューは隠れる。検討するのは編集前の局面になる。検討を止めて編集を始め直すと、編集した内容は消える | 検討開始ボタンは対局中以外のすべての状態で押せる（`uistatepolicymanager.cpp:101`、テスト `tst_app_ui_state_policy.cpp:566-576` もそれを期待）。`AnalysisSession::start`（`analysissession.cpp:50`）が動作状態を「検討中」に上書きし、`PositionEditSession::finish()`（`positioneditsession.cpp:72`）は `isEditing()` が偽なので何もしない | コードで確認<br>**状態: 済（1cc6f94b）**。つなぎとして検討開始ボタンを局面編集中は無効にした。根本は R1 |
 | B5 | コメント欄で書きかけて「コメント更新」を押していない内容が、保存に含まれず、終了・新規・開くでも確認なしに消える。対局中に相手が指すと、`showCurrentComment` が書きかけの内容を上書きする | 確認が出るのは利用者の局面移動のときだけ（`kifunavigationcontroller.cpp:129-134`）。`KifuFileController::hasUnsavedChanges()`（`kifufilecontroller.cpp:40-43`）は文書の `isModified()` しか見ない | コードで確認<br>**状態: 済（1cc6f94b）**。未更新の本文を文書の未保存に数え、書き出す前に書いていた手に確定する。表示中の手が対局の進行などで変わったときも、書いていた手に確定してから切り替える |
 | B6 | エンジン登録で option 行が不正なエンジンを登録すると、そのエンジンがハンドラの一覧にだけ残る。以後、画面の行とハンドラの一覧の番号がずれ、ツールチップ・「設定」・「削除」が別のエンジンを指す。次の登録が成功すると、失敗したエンジンも設定に保存される | `EngineRegistrationHandler::registerEngine`（`engineregistrationhandler.cpp:170`）が一覧に足してからオプションを解析し、失敗しても取り除かない。画面は行番号でハンドラの一覧を引く | コードで確認<br>**状態: 済（ec32d120）** |
-| B7 | マージで登録した定跡手を表から消しても、マージのダイアログでは「✓登録済」のままで押せない。「全て登録」もその手を飛ばす | 「登録済」は定跡に手があるかではなく、保存されない印（`JosekiBook::m_mergeRegistered`）で決める。`JosekiBook::removeMove`（`josekibook.cpp:336-349`）は印を消さない | コードで確認<br>**状態: 済（ec32d120）**。つなぎとして `removeMove` で印も消す。印ごとの廃止は R2 |
+| B7 | マージで登録した定跡手を表から消しても、マージのダイアログでは「✓登録済」のままで押せない。「全て登録」もその手を飛ばす | 「登録済」は定跡に手があるかではなく、保存されない印（`JosekiBook::m_mergeRegistered`）で決める。`JosekiBook::removeMove`（`josekibook.cpp:336-349`）は印を消さない | コードで確認<br>**状態: 済（ec32d120）**。つなぎとして `removeMove` で印も消す。印ごとの廃止は R2（52c25f32 で廃止し、「登録済」は定跡に手があるかで決める） |
 | B8 | 定跡ドックを閉じるときの確認で「破棄」を選んでも、定跡は捨てられない。未保存のまま残って盤の矢印・対局に使われ、アプリの終了時にもう一度聞かれる | `JosekiFileController::confirmDiscardChanges`（`josekifilecontroller.cpp:152-177`）は「破棄」で true を返すだけで、セッションを元に戻さない。セッションをウィンドウの外へ出す前の名残 | コードで確認<br>**状態: 済（ec32d120）** |
 | B9 | 定跡ウィンドウの「自動読込」をオフにして起動すると、前回のファイルの記録が消える。後でオンにしても、次の起動では読み込まない | 起動時の `setRecentFiles`（`josekiwindow.cpp:453`）が `recentFilesChanged` → `saveSettings` を呼び、まだファイルを開いていないので空のパスを保存する（`josekiwindow.cpp:469-470`、`josekibooksession.cpp:174-177`） | コードで確認<br>**状態: 済（ec32d120）** |
 | B10 | 通信対局を始めても、前の対局・棋譜解析の評価値グラフの点、思考の表、解析結果が消えない。同じ接続の次局も同じ | `GameSession::onCsaGameStarted`（`gamesession.cpp:268`）は `resetToNewRecord` だけを呼ぶ。表示を消すのは `prepareGameStart` と `clearBeforeKifuLoad` だけ（`sessionresetcoordinator.cpp:38-41,56-60`） | コードで確認<br>**状態: 済（ea3264f4）** |
@@ -58,8 +58,8 @@
 
 | # | 疑い | 根拠 |
 |---|---|---|
-| U1 | 局面編集の後に0手のまま CSA・JKF・USEN で保存した棋譜を GUI で開くと「指し手を取得できませんでした」で失敗する（KIF の局面図と USI は開ける） | `kifuloadcoordinator.cpp:120` が手合割の名前の文字列（`teaiLabel`）で局面図の有無を決めている（R5）。CLI では読み込めることを確認 |
-| U2 | 英語表記で棋譜解析を始め、後で日本語表記に切り替えると、結果の表の指し手の列が英語のまま残る（逆は作り直される） | 棋譜解析が表示用の行を `RecordEntry::displayText` に書き戻している（`kifuanalysiscontroller.cpp:90`、`kifupresentation.cpp:92`）（R3） |
+| U1 | 局面編集の後に0手のまま CSA・JKF・USEN で保存した棋譜を GUI で開くと「指し手を取得できませんでした」で失敗する（KIF の局面図と USI は開ける） | `kifuloadcoordinator.cpp:120` が手合割の名前の文字列（`teaiLabel`）で局面図の有無を決めている（R5）。CLI では読み込めることを確認<br>**状態: 済（a08a5886・c6a53e53）**。平手の開始局面を手合割の名前だけで書いた0手の棋譜は、開くものが無いので今までどおり読まない |
+| U2 | 英語表記で棋譜解析を始め、後で日本語表記に切り替えると、結果の表の指し手の列が英語のまま残る（逆は作り直される） | 棋譜解析が表示用の行を `RecordEntry::displayText` に書き戻している（`kifuanalysiscontroller.cpp:90`、`kifupresentation.cpp:92`）（R3）<br>**状態: 済（759b737b）** |
 | U3 | 棋譜解析の後に分岐を足す・本譜にする・並べ替えると、結果の行の選択やグラフの点のクリックで別の手順へ移る | 解析した手順を `allLines()` の番号で覚えている（`kifuanalysiscontroller.cpp:110,194,235,242,252`、`evaluationchartwidget.cpp:316`）。番号は深さ優先の並び |
 | U4 | 人間対エンジンで人間が先に指すと、エンジンの初期化を待つ間もエンジンの持ち時間が減る（最大で初期化の期限の5秒） | 初手がエンジンなら初期化中は時計を止める（`humanvsenginestrategy.cpp:63`）が、人間が指した後の依頼（`:36`）では止めない |
 | U5 | 局面を読めないと position を送らずに go を送り、前の局面の結果が返る（棋譜解析なら別の手数の結果として記録される）。今の呼び出し元は読める局面だけを渡すはず | 空の `UsiPosition` が「position を送らない」の意味になっていて、`value_or(UsiPosition{})` が6か所ある（R8） |
@@ -141,6 +141,8 @@
 
 **影響**: dialogs 4〜6・kifu 5・ui 2・app 3。差し引き約500行減（`josekiwindow.cpp` は250〜300行減）。`tst_josekiwindow` は friend でのアクセスが19か所ある。
 
+**状態: 済（52c25f32・ca627f15）**。仕様の判断: マージの「1手ずつ登録して即時保存」はやめ、ほかの編集と同じく未保存にして「保存」で書き込む（ガイドも直した）。案から変えた点: 「登録済」は定跡に手があるか（`hasMove`）で決めるので、すでにある手は「登録済」で押せない（出現頻度を数えるのは「複数の棋譜から...」）。マージのダイアログは開いている定跡が替わっても閉じず、登録先の表示と登録済みの印を合わせる。定跡を変える関数は読み書き中だけでなく、前回のファイルの読み込みを待っている間も何もしない（`canEdit()`）。人間が指せるかは定跡ウィンドウの引き出し1本（`setHumanCanPlayProvider`）にし、押し込みの `setHumanCanPlay` を消した。`josekiwindow.cpp` は951行から926行（`JosekiMergeEntries` などを合わせ src 全体で約310行減）
+
 ### R3. 指し手と読み筋の表記を文字列で受け渡している（kifu・engine・analysis・models・widgets・dialogs）。U2 の原因
 
 3つの範囲の監査で別々に見つかった。
@@ -186,6 +188,8 @@
 
 **影響**: 段階1は約12ファイル・300〜400行。段階2は約12ファイルで、差し引き約150行減。
 
+**状態: 済（段階1 759b737b、段階2 235f4a20）**。U2 も直った。案から変えた点: 入口は `entryLabel(RecordEntry, 指す前の局面 SFEN)` にした（局面は英語表記のときだけ読む。`RecordEntry` が局面を持つのは R4 の段階3）。棋譜解析の結果の行は棋譜の表記・分岐の有無（`AnalysisRequest::branchPlies`）・定跡かを値で持つ。読み筋の値は `PvText`（core。`PvText::play` が1回だけ指し、指せた手と指せなかった語を持つ）で、思考の表の行の文字列5つは `PvText` 1つと至った手になった。表示の覚え方は `NotationTextCache` 1つ。詰将棋の正解手順も読み筋と同じ表記（「同」を使う）にし、`TsumeshogiKanjiBuilder` を消した。KI2 の書き出しで指せない手は、表記の文字列から移動元を削らずに指し手の値から作る（`KifMoveText::Notes::withoutSource`）
+
 ### R4. 局面を SFEN 文字列で受け渡す名残と、局面の検査・指し手の適用の3系統（core・kifu・analysis・engine・cli）。B13 の原因
 
 **問題**
@@ -223,7 +227,11 @@
 
 **影響**: 段階1は約10ファイル・200行。段階2は7〜9ファイル・追加と削除がそれぞれ約150行。段階3は約40ファイル（`node->sfen()` だけで28か所）なので、段階1・2の後で効果を見て決める。
 
-**状態: 段階1は済（fbfe89d6）**。分岐元 `KifBranchPoint` は `std::optional<Position>` を持ち、`JosekiBook::movesAt(Position)` を足し、`findMatchingChild` は指し手で比べる。局面図と CSA の局面の行の書き出しは `Position` を受け取る。position 文字列の読み取りは `UsiPosition::parse` 1つ（`Position::fromSfenLike` はそれに任せる）。`KifuNodeReplay`・`JkfFormatter::sfenToJkfData`・`SfenDiffUtils` は書き出しや表示の入口で文字列を受け取るので、段階1では変えていない
+**状態: 段階1・2は済（段階1 fbfe89d6、段階2 5b1e1b32）、段階3は見送り**。分岐元 `KifBranchPoint` は `std::optional<Position>` を持ち、`JosekiBook::movesAt(Position)` を足し、`findMatchingChild` は指し手で比べる。局面図と CSA の局面の行の書き出しは `Position` を受け取る。position 文字列の読み取りは `UsiPosition::parse` 1つ（`Position::fromSfenLike` はそれに任せる）。`KifuNodeReplay`・`JkfFormatter::sfenToJkfData`・`SfenDiffUtils` は書き出しや表示の入口で文字列を受け取るので、段階1では変えていない
+
+段階2: core に `PositionValidator`（`check()`・`boardProblem()`）と `EngineMoveValidator::applyIfLegal` を置き、`SfenValidationService` は結果を JSON にするだけにした。対局の開始（`validatePosition`。旧 `validateKings`）・詰将棋問題一覧（`positionId`・`parse`・`validMateLine`）・CLI の `resolvePosition`（1回だけ指す）も同じ検査を使い、Hayanagi は詰み探索（`TsumeSearch` を使う詰将棋の部品）だけに使う。USI の指し手の正規表現2つは `UsiMove::isExact` にした。局面のキーは `Position::positionKey` 1つ（`positionId` もそれを返す）。
+
+段階3（`RecordEntry` が `Position` を持つ）は見送る。段階1・2の後に残る SFEN 文字列は、分岐ツリーのノード・棋譜の書き出し・表示の入口が受け取るものだけで、局面を何度も読み直す処理（定跡の引き・分岐の照合・読み筋の表記）は値で受け渡すようになった。残る読み直しは英語表記の棋譜欄で表示中の行の数だけで、測れるほどの負荷ではない。一方で `node->sfen()` を使う28か所を含む約40ファイルを書き換える必要があり、利点に見合わない。読み直しが目立つ場面が出たら、ノードに `Position` を足す形で再検討する
 
 ### R5. 棋譜の読み込みの字句解析と読み込み結果（kifu/formats）。B1・B2・B3・U1 の原因
 
