@@ -41,7 +41,6 @@ KifuExportMetadata metadataOf(const KifuDocument& document)
     document.commitPendingEdits();
     KifuExportMetadata metadata;
     metadata.gameInfoItems = document.header();
-    metadata.gameInfoProvided = true;
     metadata.startSfen = document.startSfen();
     metadata.players = document.players();
     const MatchTimeRecord& time = document.timeRecord();

@@ -43,7 +43,7 @@ QList<KifGameInfoItem> mergeForMatch(const QList<KifGameInfoItem>& automaticItem
 {
     QList<KifGameInfoItem> items = automaticItems;
     // 対局者の見出しは平手（先手・後手）と駒落ち（下手・上手）で変わるため、前の対局の行を残さない
-    QSet<QString> replacedKeys = {GameInfoKeys::kEndDateTime, QStringLiteral("消費時間"), QStringLiteral("結果"),
+    QSet<QString> replacedKeys = {GameInfoKeys::kEndDateTime, GameInfoKeys::kConsumedTime, GameInfoKeys::kResult,
                                   GameInfoKeys::kBlackPlayer, GameInfoKeys::kWhitePlayer,
                                   GameInfoKeys::kShitatePlayer, GameInfoKeys::kUwatePlayer};
     for (const auto& item : automaticItems) replacedKeys.insert(item.key);

@@ -9,11 +9,16 @@
 #include "matchplayers.h"
 #include "timecontrol.h"
 
+/**
+ * @brief 棋譜を書き出すときの対局情報と対局の記録
+ *
+ * 対局情報（gameInfoItems）は書かれたとおりに書く（日時や対局者を作り出さない）。棋譜の文書からは
+ * KifuExport::metadataOf で作る。
+ */
 struct KifuExportMetadata {
-    bool gameInfoProvided = false; ///< 空のメタデータも明示的な編集結果として扱う
-    QList<KifGameInfoItem> gameInfoItems;  ///< 明示された対局情報（空でも gameInfoProvided なら採用）
+    QList<KifGameInfoItem> gameInfoItems;  ///< 書き出す対局情報（そのまま書く）
     QString startSfen;
-    MatchPlayers players;  ///< 対局情報が無いときに書く対局者（名前が無ければ先手・後手・Engine）
+    MatchPlayers players;  ///< CSA の N+・N- の補い（対局情報に対局者が無いとき。名前が無ければ先手・後手・Engine）
 
     // --- 時間制御情報（CSA出力用） ---
     TimeControl timeControl;               ///< 持ち時間（双方とも時間制限がなければ書かない）
@@ -22,9 +27,6 @@ struct KifuExportMetadata {
 };
 
 namespace KifuExportMetadataBuilder {
-/// Compact は従来の簡易KIF保存の日時書式を維持する。
-enum class HeaderStyle { Full, Compact };
-QList<KifGameInfoItem> collect(const KifuExportMetadata& ctx, HeaderStyle style = HeaderStyle::Full);
 void resolvePlayerNames(const KifuExportMetadata& ctx, QString& black, QString& white);
 /// 開始局面から対局情報の手合割（平手 / その他）を決める
 QString handicapLabel(const QString& startSfen);

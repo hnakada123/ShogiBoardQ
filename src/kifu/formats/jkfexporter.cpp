@@ -41,8 +41,7 @@ static QJsonObject buildJkfHeader(const KifuExportMetadata& ctx)
 {
     QJsonObject header;
 
-    const QList<KifGameInfoItem> items = KifuExportMetadataBuilder::collect(ctx);
-    for (const auto& item : std::as_const(items)) {
+    for (const auto& item : std::as_const(ctx.gameInfoItems)) {
         const QString key = item.key.trimmed();
         const QString val = item.value.trimmed();
         if (!key.isEmpty()) {

@@ -129,8 +129,6 @@ private slots:
         for (int i = 0; i < usi.size(); ++i) tip = addTestMove(tree, tip, usi[i], pretty[i]);
         KifuExportMetadata context;
         context.startSfen = kHirateSfen;
-        // 読み込んだ棋譜（日時の記載なし）の対局情報をそのまま渡す（画面・CLI の変換と同じ）
-        context.gameInfoProvided = true;
         context.gameInfoItems = {{QStringLiteral("先手"), QStringLiteral("鈴木")},
                                  {QStringLiteral("後手"), QStringLiteral("山田")}};
         const QString csa = KifuExport::lines(tree, context, KifuFormat::Csa).join(QLatin1Char('\n'));
@@ -153,7 +151,6 @@ private slots:
         addTestMove(tree, tree.root(), usi.first(), QStringLiteral("▲７六歩(77)"));
         KifuExportMetadata context;
         context.startSfen = kHirateSfen;
-        context.gameInfoProvided = true;
         context.gameInfoItems = {{QStringLiteral("持ち時間"), QStringLiteral("無制限")}};
         const QString csa = KifuExport::lines(tree, context, KifuFormat::Csa).join(QLatin1Char('\n'));
         QVERIFY2(!csa.contains(QStringLiteral("$TIME")), qPrintable(csa));
@@ -434,24 +431,26 @@ private slots:
         QCOMPARE(timeControlText(TimeControl{black, white}, true), QStringLiteral("下手 01:00+2 / 上手 02:00+3"));
     }
 
-    /// 駒落ちの棋譜は柿木形式と同じく対局者を下手・上手で書き、CSA では下手が先手（N+）になる
+    /// 駒落ちの棋譜は柿木形式と同じく対局者を下手・上手で書き、CSA では下手が先手（N+）になる。
+    /// 対局情報は対局を始めたときに文書が作る（書き出しは作らない）
     void handicapHeaderUsesShitateUwate()
     {
         KifuBranchTree tree;
-        KifuExportMetadata ctx;
-        ctx.startSfen = QStringLiteral("lnsgkgsnl/1r7/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");  // 角落ち
-        ctx.players.blackIsEngine = true;
-        ctx.players.whiteIsEngine = true;
-        ctx.players.blackEngineName = QStringLiteral("下手エンジン");
-        ctx.players.whiteEngineName = QStringLiteral("上手エンジン");
-        ctx.timeControl = TimeControl{{60000, 2000, 0}, {120000, 3000, 0}};
-        const QString kif = KifuExport::lines(tree, ctx, KifuFormat::Kif).join(QLatin1Char('\n'));
+        tree.setRootSfen(QStringLiteral("lnsgkgsnl/1r7/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"));  // 角落ち
+        KifuDocument document(&tree);
+        MatchPlayers players;
+        players.blackIsEngine = true;
+        players.whiteIsEngine = true;
+        players.blackEngineName = QStringLiteral("下手エンジン");
+        players.whiteEngineName = QStringLiteral("上手エンジン");
+        document.beginMatch(players, TimeControl{{60000, 2000, 0}, {120000, 3000, 0}}, false);
+        const QString kif = KifuExport::lines(document, KifuFormat::Kif).join(QLatin1Char('\n'));
         QVERIFY2(kif.contains(QStringLiteral("下手：下手エンジン")), qPrintable(kif));
         QVERIFY(kif.contains(QStringLiteral("上手：上手エンジン")));
         QVERIFY(!kif.contains(QStringLiteral("先手：")));
         QVERIFY(!kif.contains(QStringLiteral("後手：")));
         QVERIFY(kif.contains(QStringLiteral("持ち時間：下手 01:00+2 / 上手 02:00+3")));
-        const QString csa = KifuExport::lines(tree, ctx, KifuFormat::Csa).join(QLatin1Char('\n'));
+        const QString csa = KifuExport::lines(document, KifuFormat::Csa).join(QLatin1Char('\n'));
         QVERIFY2(csa.contains(QStringLiteral("N+下手エンジン")), qPrintable(csa));
         QVERIFY(csa.contains(QStringLiteral("N-上手エンジン")));
         QVERIFY(csa.contains(QStringLiteral("$TIME+:60+2+0")));
@@ -459,19 +458,20 @@ private slots:
         QVERIFY(!csa.contains(QStringLiteral("$TIME:")));
 
         // 平手は従来どおり先手・後手
-        ctx.startSfen = kHirateSfen;
-        ctx.timeControl.white = ctx.timeControl.black;
-        const QString hirate = KifuExport::lines(tree, ctx, KifuFormat::Kif).join(QLatin1Char('\n'));
-        QVERIFY(hirate.contains(QStringLiteral("先手：下手エンジン")));
+        document.startNew(kHirateSfen);
+        document.beginMatch(players, TimeControl{{60000, 2000, 0}, {60000, 2000, 0}}, false);
+        const QString hirate = KifuExport::lines(document, KifuFormat::Kif).join(QLatin1Char('\n'));
+        QVERIFY2(hirate.contains(QStringLiteral("先手：下手エンジン")), qPrintable(hirate));
         QVERIFY(hirate.contains(QStringLiteral("持ち時間：01:00+2")));
-        QVERIFY(KifuExport::lines(tree, ctx, KifuFormat::Csa).contains(QStringLiteral("$TIME:60+2+0")));
+        QVERIFY(KifuExport::lines(document, KifuFormat::Csa).contains(QStringLiteral("$TIME:60+2+0")));
 
         // 読み込んだ棋譜の見出しが先手・後手なら、駒落ちでも局面図をその呼び方にそろえる
+        KifuExportMetadata ctx;
         ctx.startSfen = QStringLiteral("lnsgkgsnl/1r7/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
-        ctx.gameInfoProvided = true;
         ctx.gameInfoItems = {{QStringLiteral("先手"), QStringLiteral("A")}, {QStringLiteral("後手"), QStringLiteral("B")},
                              {QStringLiteral("手合割"), QStringLiteral("角落ち")}};
-        const QString keepsHeader = KifuExport::lines(tree, ctx, KifuFormat::Kif).join(QLatin1Char('\n'));
+        KifuBranchTree empty;
+        const QString keepsHeader = KifuExport::lines(empty, ctx, KifuFormat::Kif).join(QLatin1Char('\n'));
         QVERIFY2(keepsHeader.contains(QStringLiteral("後手の持駒：なし")), qPrintable(keepsHeader));
         QVERIFY(keepsHeader.contains(QStringLiteral("後手番")));
         QVERIFY(!keepsHeader.contains(QStringLiteral("上手の持駒")));
@@ -578,14 +578,12 @@ private slots:
     {
         KifuBranchTree tree;
         KifuExportMetadata ctx;
-        ctx.gameInfoProvided = true;
         ctx.startSfen = kHirateSfen;
+        // 対局情報が空なら、日時や対局者を作り出さない
         const QString kif = KifuExport::lines(tree, ctx, KifuFormat::Kif).join(QLatin1Char('\n'));
         QVERIFY(!kif.contains(QStringLiteral("開始日時：")));
         QVERIFY(!kif.contains(QStringLiteral("先手：")));
         QVERIFY(!kif.contains(QStringLiteral("後手：")));
-        ctx.gameInfoProvided = false;
-        QVERIFY(KifuExport::lines(tree, ctx, KifuFormat::Kif).join(QLatin1Char('\n')).contains(QStringLiteral("開始日時：")));
     }
 
     void removedGameInfoPreservesCustomPosition()
@@ -594,7 +592,6 @@ private slots:
         KifuBranchTree tree;
         tree.setRootSfen(initial);
         KifuExportMetadata ctx;
-        ctx.gameInfoProvided = true;
         ctx.startSfen = initial;
         QTemporaryFile kif;
         QVERIFY(KifuTestHelper::writeToTempFile(kif, KifuExport::lines(tree, ctx, KifuFormat::Kif).join(QLatin1Char('\n')).toUtf8(), QStringLiteral("kif")));
@@ -1024,10 +1021,11 @@ private slots:
 
         KifuExportMetadata ctx;
         ctx.startSfen = kHirateSfen;
+        ctx.gameInfoItems = {{QStringLiteral("手合割"), QStringLiteral("平手")}};
         auto lines = KifuExport::lines(tree, ctx, KifuFormat::Kif);
         QVERIFY(!lines.isEmpty());
 
-        // Should contain "手合割：平手"
+        // 対局情報の「手合割：平手」をそのまま書く
         bool foundHandicap = false;
         for (const auto& line : std::as_const(lines)) {
             if (line.contains(QStringLiteral("手合割"))) {
@@ -1276,7 +1274,6 @@ private slots:
         // ２手目の変化：後手の金は 41・61 のどちらも 52 へ動ける
         addTestMove(tree, m1, QStringLiteral("4a5b"), QStringLiteral("△５二金(41)"));
         KifuExportMetadata ctx;
-        ctx.gameInfoProvided = true;
         ctx.startSfen = kHirateSfen;
 
         QTemporaryFile ki2;
@@ -1300,7 +1297,6 @@ private slots:
         auto* v2 = addTestMove(tree, m1, QStringLiteral("8c8d"), QStringLiteral("△８四歩(83)"));
         TestTree::addTerminalMove(tree, v2, TerminalType::Timeout, Turn::Black);
         KifuExportMetadata ctx;
-        ctx.gameInfoProvided = true;
         ctx.startSfen = kHirateSfen;
         const QString text = KifuExport::lines(tree, ctx, KifuFormat::Ki2).join(QLatin1Char('\n'));
         QVERIFY2(text.contains(QStringLiteral("まで2手で詰み")), qPrintable(text));

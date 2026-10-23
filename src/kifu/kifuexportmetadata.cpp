@@ -5,60 +5,6 @@
 #include "notationutils.h"
 #include <QObject>
 
-QList<KifGameInfoItem> KifuExportMetadataBuilder::collect(const KifuExportMetadata& ctx, HeaderStyle style)
-{
-    QList<KifGameInfoItem> items;
-
-    // 0) 呼び出し側が対局情報を直接渡した場合（CLI などテーブルを持たない環境）
-    if (ctx.gameInfoProvided || !ctx.gameInfoItems.isEmpty()) {
-        return ctx.gameInfoItems;
-    }
-
-    // b) 自動生成
-    QString black, white;
-    resolvePlayerNames(ctx, black, white);
-
-    // 開始日時の決定（ctx.gameStartDateTimeが有効ならそれを使用、なければ現在時刻）
-    const QDateTime startDateTime = ctx.gameStartDateTime.isValid()
-        ? ctx.gameStartDateTime
-        : QDateTime::currentDateTime();
-
-    // 対局日
-    if (style == HeaderStyle::Full) items.push_back({
-        QStringLiteral("対局日"),
-        startDateTime.toString(QStringLiteral("yyyy/MM/dd"))
-    });
-
-    // 開始日時（秒まで表示）
-    items.push_back({
-        QStringLiteral("開始日時"),
-        startDateTime.toString(style == HeaderStyle::Full
-            ? QStringLiteral("yyyy/MM/dd HH:mm:ss") : QStringLiteral("yyyy/MM/dd HH:mm"))
-    });
-
-    const QString handicap = handicapLabel(ctx.startSfen);
-    items.push_back({ blackPlayerKey(handicap), black });
-    items.push_back({ whitePlayerKey(handicap), white });
-
-    items.push_back({ GameInfoKeys::kHandicap, handicap });
-
-    // 持ち時間（時間制御が有効な場合のみ）
-    if (!ctx.timeControl.isUnlimited()) {
-        items.push_back({ GameInfoKeys::kTimeControl,
-                          timeControlText(ctx.timeControl, isHandicap(handicap)) });
-    }
-
-    // 終了日時（ctx.gameEndDateTimeが有効な場合のみ）
-    if (ctx.gameEndDateTime.isValid()) {
-        items.push_back({
-            QStringLiteral("終了日時"),
-            ctx.gameEndDateTime.toString(QStringLiteral("yyyy/MM/dd HH:mm:ss"))
-        });
-    }
-
-    return items;
-}
-
 void KifuExportMetadataBuilder::resolvePlayerNames(const KifuExportMetadata& ctx, QString& outBlack, QString& outWhite)
 {
     const MatchPlayers& players = ctx.players;
@@ -91,13 +37,13 @@ QString KifuExportMetadataBuilder::handicapLabel(const QString& startSfen)
             return label;
         }
     }
-    return QStringLiteral("その他");
+    return GameInfoKeys::kHandicapOther;
 }
 
 bool KifuExportMetadataBuilder::isHandicap(const QString& handicapLabel)
 {
     const QString label = handicapLabel.trimmed();
-    return !label.isEmpty() && label != QStringLiteral("平手") && label != QStringLiteral("その他");
+    return !label.isEmpty() && label != QStringLiteral("平手") && label != GameInfoKeys::kHandicapOther;
 }
 
 QString KifuExportMetadataBuilder::blackPlayerKey(const QString& handicapLabel)

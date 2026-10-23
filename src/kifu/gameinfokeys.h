@@ -22,6 +22,10 @@ inline const QString kBlackShortName = QStringLiteral("先手省略名");
 inline const QString kWhiteShortName = QStringLiteral("後手省略名");
 
 inline const QString kHandicap = QStringLiteral("手合割");
+/// 手合割の値「その他」（駒落ちの初期配置でない局面。局面図で開始局面を書く）
+inline const QString kHandicapOther = QStringLiteral("その他");
+inline const QString kConsumedTime = QStringLiteral("消費時間");
+inline const QString kResult = QStringLiteral("結果");
 inline const QString kTimeControl = QStringLiteral("持ち時間");
 inline const QString kEvent = QStringLiteral("棋戦");
 inline const QString kSite = QStringLiteral("場所");
