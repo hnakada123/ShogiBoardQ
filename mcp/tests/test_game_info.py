@@ -42,18 +42,17 @@ class GameInfoUi(KifuUi):
         assert error and "invalid_state" in text
 
     async def dirty(self):
-        return await self.button_enabled("Apply")
+        # Edits enter the record as soon as a cell is committed; the record is the only "unsaved" state.
+        return (await self.call("get_app_state"))["dirty"]
 
 
-async def test_apply_updates_names_and_record_dirty(kifu_env, tmp_path):
+async def test_edits_update_names_and_record_dirty(kifu_env, tmp_path):
     async with mcp_session(kifu_env) as session:
         ui = GameInfoUi(session, tmp_path)
         await ui.open()
         await ui.edit("先手", "編集後の先手")
         await ui.edit("後手", "編集後の後手")
         assert await ui.dirty()
-        await ui.button("Apply")
-        assert not await ui.dirty()
         assert (await ui.call("get_widget_text", widget="blackNameLabel"))["widgets"][0]["text"].endswith("編集後の先手")
         assert (await ui.call("get_widget_text", widget="whiteNameLabel"))["widgets"][0]["text"].endswith("編集後の後手")
         await ui.call("capture_screenshot", output_dir=str(tmp_path))
@@ -128,19 +127,18 @@ async def test_add_custom_row_and_round_trip(kifu_env, tmp_path):
         await ui.button("AddRow")
         await ui.call("edit_table_cell", widget="gameInfoTable", row=count, column=0, text="備考")
         await ui.edit("備考", "追加した情報")
-        await ui.button("Apply")
         path = tmp_path / "custom.jkf"
         await ui.call("save_kifu", path=str(path))
         await ui.call("load_kifu", path=str(path))
         assert ["備考", "追加した情報"] in await ui.rows()
 
 
-async def test_active_editor_apply(kifu_env, tmp_path):
+async def test_active_editor_is_saved(kifu_env, tmp_path):
     async with mcp_session(kifu_env) as session:
         ui = GameInfoUi(session, tmp_path)
         await ui.open()
         await ui.edit("先手", "入力中の名前", commit=False)
-        await ui.button("Apply")
+        assert await ui.dirty()
         path = tmp_path / "active.kifu"
         await ui.call("save_kifu", path=str(path))
         assert "入力中の名前" in path.read_text(encoding="utf-8")
@@ -195,7 +193,6 @@ async def test_saved_edits_can_be_undone_and_redone(kifu_env, tmp_path):
     async with mcp_session(kifu_env) as session:
         ui = GameInfoUi(session, tmp_path)
         await ui.open()
-        await ui.assert_button_disabled("Apply")
         assert not (await ui.call("get_app_state"))["dirty"]
         await ui.edit("先手", "一度保存した名前")
         path = tmp_path / "saved.kifu"
@@ -206,7 +203,6 @@ async def test_saved_edits_can_be_undone_and_redone(kifu_env, tmp_path):
         await ui.button("Redo")
         assert not (await ui.call("get_app_state"))["dirty"]
         await ui.edit("後手", "再編集")
-        await ui.button("Apply")
         _, _, error = result_data(await session.call_tool("save_kifu", {"path": str(path)}))
         assert error and (await ui.call("get_app_state"))["dirty"]
         await ui.call("load_kifu", path=str(path), discard_unsaved=True)
@@ -268,8 +264,8 @@ async def test_discard_to_sfen_resets_metadata_history(kifu_env, tmp_path):
                       discard_unsaved=True)
         await ui.assert_button_disabled("Undo")
         await ui.assert_button_disabled("Redo")
+        # The discarded edit does not survive (a pasted position itself counts as unsaved content)
         assert await ui.rows() == []
-        assert not await ui.dirty()
 
 
 @pytest.mark.parametrize("source", ["pasted_sfen", "handicap_record"])
