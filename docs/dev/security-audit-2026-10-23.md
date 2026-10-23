@@ -22,7 +22,7 @@
   - 「疑い」: 実行もしておらず、経路も確かめきれていない。
 - 監査ではソースを変更していない。実験は、利用者の設定とホームに触れない隔離した設定ディレクトリで行った。
 
-> **修正の進み具合**: S1 から順に直し、各項目の見出しの下に「状態」を書いた。S17 以外は済。
+> **修正の進み具合**: S1 から順に直し、各項目の見出しの下に「状態」を書いた。すべて済。
 >
 > **この文書の置き場所**: リポジトリは公開で、`docs/` は GitHub Pages で公開される。そのため、直すまでは git 管理外に置き、High・Medium を直したコミットを push してから `docs/dev/` に移した。
 
@@ -384,7 +384,11 @@ UBSan 版で実行して確かめた箇所は次のとおり。
 
 ### S17【Low】AppImage に古いライブラリを同梱している
 
-**状態: 見送り（方針の文書は ed949d24）**。OpenSSL だけをシステムのものにすると、同梱の libcurl（libproxy の libpxbackend が使う）が OpenSSL 3.2・3.3 の関数を使うため、OpenSSL 3.0 の Ubuntu 24.04 で起動できなくなる（`readelf` で確認。TLS のプラグインと libQt6Network は 3.0 の関数だけ）。配布物を作り直して対象のディストリビューションで確かめる必要があるので、次のリリースの作業として `docs/dev/linux-build-and-release.md` に方針を書いた
+**状態: 済（ccf2a774）**。コンテナのイメージで、同梱する OpenSSL・libcurl と、libcurl が使う通信のライブラリを新しい版に替えた（OpenSSL 3.6.5・curl 8.23.0・nghttp2 1.70.0・nghttp3 1.18.0・ngtcp2 1.25.0・libssh2 1.11.1）。OpenSSL などは今の Arch のパッケージ（GLIBC_2.38 まで）を `scripts/linux-container/packages.sha256` の SHA-256 と署名で確かめて入れ、curl は今の Arch のパッケージが glibc 2.43 の関数を使うので、同じ版の Arch の PKGBUILD でイメージの中で作り直す（タグの署名は `curl-signing-key.asc` で確かめる）。OpenSSL をシステムのものに替えなかったのは、Qt 6.7 が既定でシステムのプロキシ設定を使って libproxy を読み、その libcurl が OpenSSL 3.5 以降の関数を使うため（Ubuntu 24.04 の OpenSSL 3.0 では起動できない）。配布物の glibc の要求は 2.38 のまま。あわせて次の2つを直した（どちらも前回のリリースからの問題）。
+- Fedora では、同梱の上流版 OpenSSL が Fedora の設定ファイル（暗号ポリシー）を読めずに初期化に失敗し、通信対局の TLS が使えなかった。AppRun が `OPENSSL_CONF` で同梱の空の設定（`usr/share/ShogiBoardQ/openssl.cnf`）を読ませる。
+- 動作条件の記述を、実際に要る GCC 14 の libstdc++（`CXXABI_1.3.15`）に合わせ、「Fedora 39 以降」を「Fedora 40 以降」に直した（Fedora 39 の libstdc++ は GCC 13 で起動できない）。
+
+確認: 作った ZIP の AppImage を、Ubuntu 24.04（OpenSSL 3.0.13）・Debian 13（`libcom-err2` を入れたもの）・Fedora 40 のコンテナと手元の Arch で Xvfb 上で起動し、自己署名の TLS サーバーへの接続で証明書のエラーが出ること、その証明書をシステムの信頼ストアに入れるとハンドシェイクが通りログインの行が届くことを確かめた。読み込まれるのが同梱の OpenSSL・libcurl であることは `/proc/<pid>/maps` で確かめた。最小構成の Debian 13 のコンテナでは、krb5 が使う `libcom_err.so.2`（linuxdeploy が同梱しない）が無くて起動しない。これも前回のリリースからで、通常のデスクトップには e2fsprogs と一緒に入っている。Qt 6.7.2（サポート終了）は替えていない。
 
 - **場所**: `scripts/linux-container/Dockerfile`。Arch の 2024-07-15 のスナップショットに固定している。
 - **確認**: `build-container/AppDir/usr/lib` を調べた。
