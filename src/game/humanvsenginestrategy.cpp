@@ -5,7 +5,7 @@
 
 #include "enginelifecyclemanager.h"
 #include "logcategories.h"
-#include "usi.h"
+#include "matchengineseat.h"
 
 HumanVsEngineStrategy::HumanVsEngineStrategy(MatchStrategyHost& host, Turn engineSide, QString enginePath,
                                              QString engineName, QObject* parent)
@@ -14,7 +14,10 @@ HumanVsEngineStrategy::HumanVsEngineStrategy(MatchStrategyHost& host, Turn engin
     , m_engineSide(engineSide)
     , m_enginePath(std::move(enginePath))
     , m_engineName(std::move(engineName))
+    , m_seat(new MatchEngineSeat(&host.engines(), this))
 {
+    connect(m_seat, &MatchEngineSeat::initialized, this, &HumanVsEngineStrategy::onEngineInitialized);
+    connect(m_seat, &MatchEngineSeat::moveReady, this, &HumanVsEngineStrategy::onEngineMoveReady);
 }
 
 void HumanVsEngineStrategy::start()
@@ -23,17 +26,19 @@ void HumanVsEngineStrategy::start()
 
     // 前の対局のエンジンは破棄する。人間対エンジンではエンジンは常に E1 の枠に置く
     m_host.engines().destroyEngines();
-    m_engine = m_host.engines().acquire(this, 1, m_engineSide, m_engineName);
-    Usi* engine = m_engine.engine();
-    connect(engine, &Usi::engineInitialized, this, &HumanVsEngineStrategy::onEngineInitialized);
-    connect(engine, &Usi::matchMoveReady, this, &HumanVsEngineStrategy::onEngineMoveReady);
-    m_host.engines().startEngine(engine, m_enginePath, m_engineName);
+    MatchEngineSeat::Params params;
+    params.slot = 1;
+    params.side = m_engineSide;
+    params.enginePath = m_enginePath;
+    params.engineName = m_engineName;
+    params.timeSource = m_host.timeSource();
+    m_seat->start(params);
 }
 
 void HumanVsEngineStrategy::onHumanMove(const RecordEntry& played)
 {
     if (!m_host.completeHumanMove(played)) return;
-    if (m_host.sideToMove() == m_engineSide) requestEngineMove();
+    if (m_host.sideToMove() == m_engineSide) requestEngineMoveWhenReady();
 }
 
 void HumanVsEngineStrategy::onEngineMoveReady(const UsiMatchMove& move)
@@ -45,9 +50,10 @@ void HumanVsEngineStrategy::onEngineMoveReady(const UsiMatchMove& move)
 
 void HumanVsEngineStrategy::onEngineInitialized()
 {
-    if (!m_initialMoveRequested || m_host.isGameOver()) return;
+    if (!m_moveWanted || m_host.isGameOver()) return;
+    m_moveWanted = false;
     m_host.setWaitingForEngines(false);
-    startInitialMoveIfNeeded();
+    if (m_host.sideToMove() == m_engineSide && !m_waitingForMove) requestEngineMove();
 }
 
 void HumanVsEngineStrategy::startInitialMoveIfNeeded()
@@ -55,11 +61,14 @@ void HumanVsEngineStrategy::startInitialMoveIfNeeded()
     if (m_host.isGameOver() || m_waitingForMove) return;
     // 人間の初手は、相手エンジンの初期化中も計時を続ける。
     if (m_host.sideToMove() != m_engineSide) return;
+    requestEngineMoveWhenReady();
+}
 
-    m_initialMoveRequested = true;
-    Usi* engine = m_host.engines().engineFor(m_engineSide);
-    if (engine && engine->isInitializing()) {
-        // エンジンの初期化を待つ間は、エンジンの持ち時間を減らさない
+void HumanVsEngineStrategy::requestEngineMoveWhenReady()
+{
+    if (m_seat->isInitializing()) {
+        // エンジンの初期化を待つ間は、エンジンの持ち時間を減らさない（人間が先に指した後も同じ）
+        m_moveWanted = true;
         m_host.setWaitingForEngines(true);
         return;
     }
@@ -68,7 +77,7 @@ void HumanVsEngineStrategy::startInitialMoveIfNeeded()
 
 void HumanVsEngineStrategy::requestEngineMove()
 {
-    if (!m_host.engines().engineFor(m_engineSide)) return;
+    if (!m_seat->engine()) return;
     m_waitingForMove = true;
     m_host.requestEngineMove(m_engineSide);
 }

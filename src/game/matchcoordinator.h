@@ -13,6 +13,7 @@
 #include "gamemodestrategy.h"
 #include "interruptedgamestate.h"
 #include "matchsessionstate.h"
+#include "matchtimesource.h"
 #include "matchtypes.h"
 #include "nyugyokujudgement.h"
 #include "recordline.h"
@@ -153,6 +154,7 @@ signals:
 private:
     // --- MatchStrategyHost ---
     EngineLifecycleManager& engines() override { return *m_engines; }
+    MatchTimeSource* timeSource() override { return &m_clockTime; }
     void requestEngineMove(Turn side) override;
     void setWaitingForEngines(bool waiting) override;
     void recordConsiderationTime(Turn mover, qint64 elapsedMs) override;
@@ -160,6 +162,8 @@ private:
     bool completeHumanMove(const RecordEntry& played) override;
 
     void createStrategy(const StartOptions& opt);
+    /// side の手番を指すエンジン（人間の手番・対局していなければ nullptr）
+    Usi* engineFor(Turn side) const;
     /// 情報欄の「探索手」に出す定跡手の表示（例「▲７六歩(77)（定跡 82.1%）」）
     static QString bookMoveLabel(const QString& sfen, const JosekiPick& pick);
     /// 一手を確定する。engineScore はエンジンの手のとき（グラフに足す評価値）
@@ -196,6 +200,7 @@ private:
     ActivityLease m_activityLease;   ///< 対局中の動作状態（開始・再開で受け取り、終局で手放す）
     MatchRecordSink* m_sink = nullptr;
     EngineLifecycleManager* m_engines = nullptr;
+    ClockTimeSource m_clockTime;   ///< 対局のエンジンが持ち時間を読む対局時計
     const KifuDocument* m_document = nullptr;
     std::unique_ptr<GameModeStrategy> m_strategy;
     MatchSessionState m_session;

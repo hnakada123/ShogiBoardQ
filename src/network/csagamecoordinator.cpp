@@ -3,7 +3,8 @@
 
 #include "csagamecoordinator.h"
 #include "csamoveconverter.h"
-#include "csaenginecontroller.h"
+#include "matchengineseat.h"
+#include "usi.h"
 #include "shogigamecontroller.h"
 #include "shogiclock.h"
 #include "shogiboard.h"
@@ -173,7 +174,7 @@ void CsaGameCoordinator::declareWin()
 void CsaGameCoordinator::forceImmediateMove()
 {
     if (m_gameState != GameState::InGame || m_playerType != PlayerType::Engine || !isMyTurn()) return;
-    if (m_engineController) m_engineController->stopThinking();
+    if (Usi* engine = m_engineSeat ? m_engineSeat->engine() : nullptr) engine->stop();
 }
 
 void CsaGameCoordinator::onConnectionStateChanged(CsaClient::ConnectionState state)
@@ -336,24 +337,24 @@ void CsaGameCoordinator::onClientGameEnded(CsaClient::GameResult result, CsaClie
     // 終局行を棋譜へ渡す（対局の手順は終局の行を含めない）
     emit recordEntryReady(m_progress.endRecord(result, cause, blackToMove, actualConsumedTimeMs));
 
-    // エンジンに gameover を送って終える（同じ接続で次の対局条件が来たら起動し直す）
-    if (m_engineController) {
+    // エンジンに gameover を送って終える（ローカル対局の終局と同じ手順。同じ接続で次の対局条件が来たら起動し直す）
+    if (m_engineSeat) {
         switch (result) {
         case CsaClient::GameResult::Win:
-            m_engineController->sendGameOver(GameOverResult::Win);
+            m_engineSeat->finish(GameOverResult::Win);
             break;
         case CsaClient::GameResult::Lose:
-            m_engineController->sendGameOver(GameOverResult::Lose);
+            m_engineSeat->finish(GameOverResult::Lose);
             break;
         case CsaClient::GameResult::Draw:
-            m_engineController->sendGameOver(GameOverResult::Draw);
+            m_engineSeat->finish(GameOverResult::Draw);
             break;
         case CsaClient::GameResult::Censored:
         case CsaClient::GameResult::Chudan:
         case CsaClient::GameResult::Unknown:
-            m_engineController->sendQuit();
             break;
         }
+        m_engineSeat->release();
     }
     // 対局数を数えてログアウトの要否を先に決める。終局の通知を受ける側（結果の表示・自動保存）は
     // moreGamesWanted() で続行の有無を見られ、結果のダイアログが LOGOUT を遅らせない
@@ -402,7 +403,7 @@ void CsaGameCoordinator::onRawMessageSent(const QString& message)
     emit csaCommLogAppended(QStringLiteral("◀ ") + displayMsg);
 }
 
-void CsaGameCoordinator::onEngineControllerResign()
+void CsaGameCoordinator::onEngineResigned()
 {
     if (m_gameState == GameState::InGame) {
         emit logMessage(tr("エンジンが投了を選択しました"));
@@ -410,7 +411,7 @@ void CsaGameCoordinator::onEngineControllerResign()
     }
 }
 
-void CsaGameCoordinator::onEngineControllerWinDeclaration()
+void CsaGameCoordinator::onEngineDeclaredWin()
 {
     if (m_gameState == GameState::InGame) {
         // 宣言の成否はサーバーが判定する
@@ -419,13 +420,16 @@ void CsaGameCoordinator::onEngineControllerWinDeclaration()
     }
 }
 
-void CsaGameCoordinator::onEngineControllerInitialized()
+void CsaGameCoordinator::onEngineInitialized()
 {
+    emit logMessage(tr("エンジン %1 を起動しました").arg(m_options.engineName));
     if (m_gameState == GameState::WaitingForAgree) m_client->agree(m_progress.summary.gameId);
 }
 
-void CsaGameCoordinator::onEngineControllerError(const QString& message)
+void CsaGameCoordinator::onEngineError(const QString& message)
 {
+    if (m_engineSeat) m_engineSeat->release();
+    emit logMessage(message, true);
     failGame(message);
 }
 

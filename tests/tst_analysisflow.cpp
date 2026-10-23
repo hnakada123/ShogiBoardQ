@@ -47,7 +47,7 @@ namespace {
 struct AnalysisHarness {
     ShogiClock clock;
     AppActivityState activity;
-    EngineLifecycleManager engines{&clock};
+    EngineLifecycleManager engines;
     AnalysisSession session{AnalysisSession::Deps{&engines, &activity}};
 };
 
@@ -87,7 +87,7 @@ public:
     UsiCommLogModel logModel;
     ShogiEngineThinkingModel thinkingModel;
     ShogiClock clock;
-    EngineLifecycleManager engines{&clock};
+    EngineLifecycleManager engines;
     Usi* usi = nullptr;
     QSignalSpy errors{&ErrorBus::instance(), &ErrorBus::messagePosted};
 

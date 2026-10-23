@@ -26,8 +26,10 @@
 #include "recordpane.h"
 #include "settingscommon.h"
 #include "engineprofilestore.h"
-#include "csaenginecontroller.h"
 #include "enginelifecyclemanager.h"
+#include "matchengineseat.h"
+#include "matchtimesource.h"
+#include "usi.h"
 #include "shogiclock.h"
 #include "shogigamecontroller.h"
 #include "thinkingpanel.h"
@@ -410,37 +412,36 @@ private slots:
     void csaPonder()
     {
         QFETCH(bool, hit);
-        ShogiClock clock;
-        EngineLifecycleManager engines(&clock);
-        CsaEngineController controller(&engines);
+        EngineLifecycleManager engines;
+        MatchEngineSeat seat(&engines);
         // 通信対局の残り時間の代わりに、決まった残り時間を読ませる
         UsiTimingParams timing;
         timing.timeControl.black.mainMs = timing.timeControl.white.mainMs = 60000;
         timing.btimeMs = timing.wtimeMs = 60000;
         FixedTimeSource matchTime(timing);
-        CsaEngineController::InitParams init;
-        init.enginePath = QStringLiteral(AUDIT_DIR "/mock_usi.py");
-        init.engineName = "Audit USI";
-        init.timeSource = &matchTime;
-        controller.initialize(init);
-        QVERIFY(controller.isStarting());
-        QTRY_VERIFY(controller.isReady());
+        MatchEngineSeat::Params params;
+        params.enginePath = QStringLiteral(AUDIT_DIR "/mock_usi.py");
+        params.engineName = "Audit USI";
+        params.role = QStringLiteral("CSA");
+        params.timeSource = &matchTime;
+        QSignalSpy results(&seat, &MatchEngineSeat::moveReady);
+        QSignalSpy resigned(&seat, &MatchEngineSeat::resigned);
+        seat.start(params);
+        QVERIFY(seat.isInitializing());
+        QTRY_VERIFY(seat.isReady());
         UsiPosition position = *UsiPosition::parse(u"position startpos");
-        QSignalSpy results(&controller, &CsaEngineController::thinkingFinished);
-        controller.thinkAsync(position);
+        seat.engine()->requestMatchMove(position);
         QTRY_COMPARE(results.size(), 1);
-        auto result = qvariant_cast<CsaEngineController::ThinkingResult>(results.takeFirst().first());
-        QVERIFY(result.valid);
+        auto result = qvariant_cast<UsiMatchMove>(results.takeFirst().first());
         QCOMPARE(result.move.to, (BoardSquare{7, 6}));
         QTRY_VERIFY(commands().join('\n').contains("go ponder "));
         const auto before = commands().size();
         const QString opponent = hit ? QStringLiteral("3c3d") : QStringLiteral("4c4d");
         position = *UsiPosition::parse(QStringLiteral("position startpos moves 7g7f ") + opponent);
-        controller.thinkAsync(position);
+        seat.engine()->requestMatchMove(position);
         QTRY_COMPARE(results.size(), 1);
-        result = qvariant_cast<CsaEngineController::ThinkingResult>(results.takeFirst().first());
-        QVERIFY(result.valid);
-        QVERIFY(!result.resign);
+        result = qvariant_cast<UsiMatchMove>(results.takeFirst().first());
+        QVERIFY(resigned.isEmpty());
         QCOMPARE(result.move.to, (BoardSquare{2, 6}));
         const auto sent = commands().mid(before);
         if (hit) {
@@ -450,16 +451,16 @@ private slots:
             QCOMPARE(sent.first(), QStringLiteral("stop"));
             QVERIFY(sent.contains(position.command()));
         }
-        // 再初期化では前局の予測を引き継がない。
-        controller.cleanup();
-        controller.initialize(init);
+        // 起動し直したエンジンには前局の予測を引き継がない。
+        seat.release();
+        seat.start(params);
+        QTRY_VERIFY(seat.isReady());
         position = *UsiPosition::parse(u"position startpos");
         const auto restart = commands().size();
-        controller.thinkAsync(position);
+        seat.engine()->requestMatchMove(position);
         QTRY_COMPARE(results.size(), 1);
-        QVERIFY(qvariant_cast<CsaEngineController::ThinkingResult>(results.takeFirst().first()).valid);
         QVERIFY(!commands().mid(restart).contains("ponderhit"));
-        controller.sendQuit();
+        seat.release();
         QVERIFY(!commands().join('\n').contains("ERROR"));
     }
 };

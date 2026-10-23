@@ -27,7 +27,7 @@ struct TestHarness {
     ShogiClock clock;
     ShogiGameController gc;
     AppActivityState activity;
-    EngineLifecycleManager engines{&clock};
+    EngineLifecycleManager engines;
     std::unique_ptr<MatchCoordinator> match;
 
     TestHarness()

@@ -61,7 +61,7 @@
 | U1 | 局面編集の後に0手のまま CSA・JKF・USEN で保存した棋譜を GUI で開くと「指し手を取得できませんでした」で失敗する（KIF の局面図と USI は開ける） | `kifuloadcoordinator.cpp:120` が手合割の名前の文字列（`teaiLabel`）で局面図の有無を決めている（R5）。CLI では読み込めることを確認<br>**状態: 済（a08a5886・c6a53e53）**。平手の開始局面を手合割の名前だけで書いた0手の棋譜は、開くものが無いので今までどおり読まない |
 | U2 | 英語表記で棋譜解析を始め、後で日本語表記に切り替えると、結果の表の指し手の列が英語のまま残る（逆は作り直される） | 棋譜解析が表示用の行を `RecordEntry::displayText` に書き戻している（`kifuanalysiscontroller.cpp:90`、`kifupresentation.cpp:92`）（R3）<br>**状態: 済（759b737b）** |
 | U3 | 棋譜解析の後に分岐を足す・本譜にする・並べ替えると、結果の行の選択やグラフの点のクリックで別の手順へ移る | 解析した手順を `allLines()` の番号で覚えている（`kifuanalysiscontroller.cpp:110,194,235,242,252`、`evaluationchartwidget.cpp:316`）。番号は深さ優先の並び |
-| U4 | 人間対エンジンで人間が先に指すと、エンジンの初期化を待つ間もエンジンの持ち時間が減る（最大で初期化の期限の5秒） | 初手がエンジンなら初期化中は時計を止める（`humanvsenginestrategy.cpp:63`）が、人間が指した後の依頼（`:36`）では止めない |
+| U4 | 人間対エンジンで人間が先に指すと、エンジンの初期化を待つ間もエンジンの持ち時間が減る（最大で初期化の期限の5秒） | 初手がエンジンなら初期化中は時計を止める（`humanvsenginestrategy.cpp:63`）が、人間が指した後の依頼（`:36`）では止めない<br>**状態: 済（R8a のコミット）**。人間の手の後も初期化中なら時計を止めて待つ（`HumanVsEngineStrategy::requestEngineMoveWhenReady`。テスト `tst_gamestrategy` の `humanMoveWaitsForInitializingEngine`） |
 | U5 | 局面を読めないと position を送らずに go を送り、前の局面の結果が返る（棋譜解析なら別の手数の結果として記録される）。今の呼び出し元は読める局面だけを渡すはず | 空の `UsiPosition` が「position を送らない」の意味になっていて、`value_or(UsiPosition{})` が6か所ある（R8） |
 | U6 | 中断して再開を待つ間、ライブ記録が有効のまま残る。盤で変化を指せない、分岐を編集できない、グラフの縦線が追わない。前回 B5 と同じ症状（意図の確認が要る） | `gamesession.cpp:320` |
 | U7 | 終了処理の後に盤のクリックが届くと、解放済みの `HumanTurnPolicy` を読む（経路は狭い） | `mainwindowcomposer.cpp:103` で破棄するが、`BoardMoveController` は生ポインタを持ったまま（`boardmovecontroller.cpp:31`） |
@@ -275,7 +275,7 @@
 
 **影響**: widgets 2・models 1・kifu 1・ui 3・app 1、±150行。`tst_game_info_pane`・GUI テスト・ガイド1か所。
 
-**状態: 済（R7 と同じコミット）**。「対局情報更新」ボタン・`m_applied`・`gameInfoUpdated`・未反映の表示を消し、盤の対局者名は `KifuDocument::headerEdited` で合わせる。`KifuDocument::Hooks` は `commitPendingEdits`・`hasPendingEdits` の2つにし、合成ルートが対局情報欄の入力中のセルとコメント欄の未更新の本文をまとめて渡す。案から変えた点: 対局情報 `header()` は入力中のセルを確定しなくなった（読むだけで文書を変えない）。確定は保存・書き出し・対局の開始・対局情報を残す新しい棋譜（`startNew(keepHeader)`）の前。入力中のセルの確定には Ctrl+Enter も使え、欄の下に案内を出す
+**状態: 済（3b008cdb）**。「対局情報更新」ボタン・`m_applied`・`gameInfoUpdated`・未反映の表示を消し、盤の対局者名は `KifuDocument::headerEdited` で合わせる。`KifuDocument::Hooks` は `commitPendingEdits`・`hasPendingEdits` の2つにし、合成ルートが対局情報欄の入力中のセルとコメント欄の未更新の本文をまとめて渡す。案から変えた点: 対局情報 `header()` は入力中のセルを確定しなくなった（読むだけで文書を変えない）。確定は保存・書き出し・対局の開始・対局情報を残す新しい棋譜（`startNew(keepHeader)`）の前。入力中のセルの確定には Ctrl+Enter も使え、欄の下に案内を出す
 
 ### R7. 文書の置き換えと、文書の外の表示の消去（app・ui）。B10 の原因
 
@@ -297,7 +297,7 @@
 
 **影響**: 6〜7ファイル、約150行。
 
-**状態: 済（R6 と同じコミット）**。`KifuDocument::replaced` を受けて評価値グラフ（`EvaluationGraphPresenter::clear`）とエンジンの表示（`EngineDisplayPresenter::clearAll`）が自分で消す。`clearBeforeKifuLoad`・`KifuFileController::Deps::clearUiBeforeKifuLoad`・局面編集の配線を消し、連続対局の次局と通信対局の開始は `prepareGameStart` だけを通す（ツリーの作り直しは1回）。案から変えた点: `resetToNewRecord` は新規・局面編集の入口として残した（対局の準備を伴わない）。局面編集でもエンジンの表示が消えるようになった。読み込みに失敗したときは文書を置き換えないので、前の表示が残る
+**状態: 済（3b008cdb）**。`KifuDocument::replaced` を受けて評価値グラフ（`EvaluationGraphPresenter::clear`）とエンジンの表示（`EngineDisplayPresenter::clearAll`）が自分で消す。`clearBeforeKifuLoad`・`KifuFileController::Deps::clearUiBeforeKifuLoad`・局面編集の配線を消し、連続対局の次局と通信対局の開始は `prepareGameStart` だけを通す（ツリーの作り直しは1回）。案から変えた点: `resetToNewRecord` は新規・局面編集の入口として残した（対局の準備を伴わない）。局面編集でもエンジンの表示が消えるようになった。読み込みに失敗したときは文書を置き換えないので、前の表示が残る
 
 ### R8. エンジンの枠が対局の仲介を兼ね、探索の切り替えを使う側が書いている（engine・game・network・analysis）。B16・U5 の原因
 
@@ -326,6 +326,8 @@
 - `UsiEngineSession::search` を「探索中なら stop を送り、最新の依頼だけを覚え、前の結果を捨ててから始める」にし、空の局面は拒否する。`AnalysisSession` の状態は Searching と Waiting だけになり、`PonderStop` は要らなくなる。
 
 **影響**: 約15ファイル、差し引き約280行減。`tst_background_tasks`・`tst_match_end`・`tst_gamestrategy`・`tst_csagamecoordinator`・`tst_usimatchhandler`・`tst_analysisflow`・`tst_usiprotocolhandler` を書き換える。
+
+**状態: 前半（枠と仲介）は済（R8a のコミット）**。`MatchEngineSeat`（game）を作り、人間対エンジン・エンジン同士の Strategy と `CsaGameCoordinator` が持つ。終局の知らせは `MatchEngineSeat::finish()` の1通り。`EngineLifecycleManager` は `acquire(owner, slot, name)`・`engineInSlot`・`holds`・`destroyEngines` と知らせ（`enginesChanged`・`engineRevoked`・`displayClearRequested`）だけになり、名残4つと `CsaEngineController` を消した（`m_shutdownInProgress` は `AnalysisSession` 自身の印にした）。U4 も直した。案から変えた点: 投了・入玉宣言勝ち・エラーは `MatchStrategyHost` を通さず、司令塔が Strategy を作ったときに `engineSeat(side)` のシグナルへ直接つなぐ（Strategy は中継しない）。対局時計の `ClockTimeSource` は司令塔が持ち、`MatchStrategyHost::timeSource()` で Strategy に渡す。ほかの持ち主に枠を取られたときは `MatchEngineSeat::errorOccurred` で知らせるので、ローカル対局も通信対局と同じく中断になる
 
 ### R9. MCP・CLI・自動化 API の表の二重管理と失敗の分類（mcp・cli・automation）。B14 の原因
 

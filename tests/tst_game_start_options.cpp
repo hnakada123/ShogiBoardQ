@@ -9,6 +9,14 @@
 #include "thinkinginfoformatter.h"
 #include "test_replay.h"
 
+/// 後手をテスト用の USI エンジンが指す（人間対エンジンではエンジンは E1 の枠）
+static void useWhiteEngine(MatchStartOptions& options, const QString& name)
+{
+    options.players.whiteIsEngine = true;
+    options.players.whiteEngineName = name;
+    options.enginePath2 = MatchHarness::mockEnginePath();
+}
+
 class TestGameStartOptions : public QObject
 {
     Q_OBJECT
@@ -48,6 +56,7 @@ private slots:
         QVERIFY(h.playHuman(QStringLiteral("5g5f")));
         MatchStartOptions options;
         options.recordLine = line;
+        useWhiteEngine(options, QStringLiteral("StartTest"));
         h.mc->start(options);
         QCOMPARE(h.mc->currentPly(), 3);
         QCOMPARE(h.mc->record().sfens(), line.sfens().mid(0, 4));
@@ -55,13 +64,11 @@ private slots:
         QCOMPARE(h.gc.currentPlayer(), Turn::White);
 
         // 手番（後手）のエンジンに、選んだ手順の局面で思考させる
-        EngineLease lease = h.engines.acquire(this, 1, Turn::White, QStringLiteral("StartTest"));
-        Usi* engine = lease.engine();
+        Usi* engine = h.engines.engineInSlot(1);
         QVERIFY(engine);
         QSignalSpy initialized(engine, &Usi::engineInitialized);
         QSignalSpy ready(engine, &Usi::matchMoveReady);
         QSignalSpy sent(engine->process(), &EngineProcessManager::commandSent);
-        h.engines.startEngine(engine, MatchHarness::mockEnginePath(), QStringLiteral("StartTest"));
         QTRY_COMPARE_WITH_TIMEOUT(initialized.count(), 1, 5000);
         h.mc->strategyHost().requestEngineMove(Turn::White);
         QTRY_COMPARE_WITH_TIMEOUT(ready.count(), 1, 5000);
@@ -87,17 +94,16 @@ private slots:
         options.josekiBook.putMove(line.sfenAt(1), {QStringLiteral("3c3d"), QStringLiteral("none"), 0, 0, 2, {}});
         options.josekiOptions[1].enabled = true;
         options.josekiOptions[1].method = JosekiPlayOptions::FirstMove;
+        useWhiteEngine(options, QStringLiteral("BookTest"));
         MatchHarness h;
         h.mc->start(options);
 
-        EngineLease lease = h.engines.acquire(this, 1, Turn::White, QStringLiteral("BookTest"));
-        Usi* engine = lease.engine();
+        Usi* engine = h.engines.engineInSlot(1);
         QVERIFY(engine);
         QSignalSpy initialized(engine, &Usi::engineInitialized);
         QSignalSpy ready(engine, &Usi::matchMoveReady);
         QSignalSpy sent(engine->process(), &EngineProcessManager::commandSent);
         QSignalSpy status(engine->thinking(), &ThinkingInfoFormatter::searchStatusUpdated);
-        h.engines.startEngine(engine, MatchHarness::mockEnginePath(), QStringLiteral("BookTest"));
         QTRY_COMPARE_WITH_TIMEOUT(initialized.count(), 1, 5000);
         sent.clear();
         QElapsedTimer elapsed;

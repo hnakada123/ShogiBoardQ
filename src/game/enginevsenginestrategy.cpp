@@ -7,41 +7,52 @@
 
 #include "enginelifecyclemanager.h"
 #include "logcategories.h"
-#include "usi.h"
+#include "matchengineseat.h"
 
 EngineVsEngineStrategy::EngineVsEngineStrategy(MatchStrategyHost& host, Engines engines, QObject* parent)
     : QObject(parent)
     , m_host(host)
     , m_engines(std::move(engines))
+    , m_black(new MatchEngineSeat(&host.engines(), this))
+    , m_white(new MatchEngineSeat(&host.engines(), this))
 {
+    for (MatchEngineSeat* seat : {m_black, m_white}) {
+        connect(seat, &MatchEngineSeat::initialized, this, &EngineVsEngineStrategy::kickNextTurn);
+        connect(seat, &MatchEngineSeat::moveReady, this, &EngineVsEngineStrategy::onEngineMoveReady);
+    }
 }
 
 void EngineVsEngineStrategy::start()
 {
-    EngineLifecycleManager& seats = m_host.engines();
-    seats.destroyEngines();
-    m_black = seats.acquire(this, 1, Turn::Black, m_engines.blackName);
-    m_white = seats.acquire(this, 2, Turn::White, m_engines.whiteName);
-    Usi* black = m_black.engine();
-    Usi* white = m_white.engine();
-    for (Usi* engine : {black, white}) {
-        connect(engine, &Usi::engineInitialized, this, &EngineVsEngineStrategy::kickNextTurn);
-        connect(engine, &Usi::matchMoveReady, this, &EngineVsEngineStrategy::onEngineMoveReady);
-    }
-    seats.startEngine(black, m_engines.blackPath, m_engines.blackName);
-    seats.startEngine(white, m_engines.whitePath, m_engines.whiteName);
+    m_host.engines().destroyEngines();
+    MatchEngineSeat::Params black;
+    black.slot = 1;
+    black.side = Turn::Black;
+    black.enginePath = m_engines.blackPath;
+    black.engineName = m_engines.blackName;
+    black.timeSource = m_host.timeSource();
+    MatchEngineSeat::Params white = black;
+    white.slot = 2;
+    white.side = Turn::White;
+    white.enginePath = m_engines.whitePath;
+    white.engineName = m_engines.whiteName;
+    m_black->start(black);
+    m_white->start(white);
     kickNextTurn();
+}
+
+MatchEngineSeat* EngineVsEngineStrategy::engineSeat(Turn side) const
+{
+    return side == Turn::Black ? m_black : m_white;
 }
 
 void EngineVsEngineStrategy::kickNextTurn()
 {
     if (m_waitingForMove || m_host.isGameOver()) return;
-    Usi* black = m_host.engines().engineFor(Turn::Black);
-    Usi* white = m_host.engines().engineFor(Turn::White);
-    if (!black || !white) return;
+    if (!m_black->engine() || !m_white->engine()) return;
 
     // どちらかのエンジンの初期化を待つ間は、持ち時間を減らさない
-    const bool initializing = black->isInitializing() || white->isInitializing();
+    const bool initializing = m_black->isInitializing() || m_white->isInitializing();
     m_host.setWaitingForEngines(initializing);
     if (initializing) return;
     m_waitingForMove = true;

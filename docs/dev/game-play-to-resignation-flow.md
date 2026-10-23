@@ -44,7 +44,7 @@
     ▼
 ┌────────────────────────────────────────────────────────────┐
 │ 終局処理（MatchCoordinator::endGame）                      │
-│  1. 時計を止め、エンジンへ gameover を送る（notifyGameOver）│
+│  1. 時計を止め、エンジンへ gameover を送る（finish）       │
 │  2. 棋譜に終局行（「▲投了」など）を書き、動作状態を待機に  │
 │     戻して gameEnded を出す                                │
 │  3. 知らせ方（Notice）に応じて、結果の知らせ               │
@@ -172,11 +172,11 @@ Strategy は対局開始時（と再開時）に `MatchCoordinator::createStrate
 | 後手がエンジン（`whiteIsEngine`） | `HumanVsEngineStrategy`（`m_engineSide = Turn::White`、`enginePath2`） | E1 |
 | どちらも人間 | `HumanVsHumanStrategy` | なし |
 
-Strategy は `MatchStrategyHost`（`src/game/gamemodestrategy.h`。`MatchCoordinator` が private に実装する）を通して、エンジンの枠（`engines()`）・盤の手番（`sideToMove()`）・手数（`currentPly()`）・終局したか（`isGameOver()`）を読み、一手の確定（`completeHumanMove()`・`applyEngineMove()`）、エンジンへの思考の依頼（`requestEngineMove(side)`）、エンジンの初期化を待つ間の時計の停止（`setWaitingForEngines()`）、人間の考慮時間の記録（`recordConsiderationTime()`）を司令塔に頼む。Strategy は手番ごとに誰が指すかだけを決める。
+Strategy は `MatchStrategyHost`（`src/game/gamemodestrategy.h`。`MatchCoordinator` が private に実装する）を通して、エンジンの枠（`engines()`）・持ち時間の出どころ（`timeSource()`。対局時計の `ClockTimeSource`）・盤の手番（`sideToMove()`）・手数（`currentPly()`）・終局したか（`isGameOver()`）を読み、一手の確定（`completeHumanMove()`・`applyEngineMove()`）、エンジンへの思考の依頼（`requestEngineMove(side)`）、エンジンの初期化を待つ間の時計の停止（`setWaitingForEngines()`）、人間の考慮時間の記録（`recordConsiderationTime()`）を司令塔に頼む。Strategy は手番ごとに誰が指すかだけを決める。
 
-エンジンは `EngineLifecycleManager`（`src/game/enginelifecyclemanager.cpp`）の枠（E1・E2。思考情報と通信ログの表示先）に置き、枠ごとにどちらの手番を指すかを覚える（`acquire(owner, slot, side, name)`、`engineFor(side)`）。`acquire()` は move-only の `EngineLease` を返し、Strategy はそれを持っている間だけエンジンを使う（手放すと枠を空ける。ほかの持ち主が同じ枠を取った・`destroyEngines()` で全部の枠を破棄したときは、前の持ち主に `engineRevoked(owner)` で知らせる）。`EngineLifecycleManager` は合成ルートが対局の時計を渡して作り、司令塔（`MatchCoordinator::Deps::engines`）・検討・詰み探索（`AnalysisSession`）・棋譜解析・通信対局が共有する。人間対エンジンでは、エンジンは手番によらず E1 に置く。
+対局で指すエンジンは、Strategy が持つ `MatchEngineSeat`（`src/game/matchengineseat.cpp`）1台ずつで扱う（`GameModeStrategy::engineSeat(side)`。司令塔の `engineFor(side)` もここから引く）。`MatchEngineSeat::start(Params)` は `EngineLifecycleManager`（`src/game/enginelifecyclemanager.cpp`）の枠（E1・E2。思考情報と通信ログの表示先）からエンジンを借り（`acquire(owner, slot, name)` が返す move-only の `EngineLease`）、指す手番と持ち時間の出どころを渡して起動する。エンジンの初期化・指し手・投了・入玉宣言勝ち・エラーは `MatchEngineSeat` のシグナル（`initialized`・`moveReady`・`resigned`・`declaredWin`・`errorOccurred`）で届く。ほかの持ち主が同じ枠を取った・`destroyEngines()` で全部の枠を破棄したとき（`engineRevoked(owner)`）も `errorOccurred` で知らせる。`EngineLifecycleManager` は合成ルートが作り、司令塔（`MatchCoordinator::Deps::engines`）・検討・詰み探索（`AnalysisSession`）・棋譜解析・通信対局が共有する。枠の部品はリース・取り上げの知らせ・表示の消去だけを受け持ち、手番や時計は知らない。人間対エンジンでは、エンジンは手番によらず E1 に置く。
 
-エンジンへの思考依頼は非同期である。依頼した関数はすぐに戻り、指し手は `Usi::matchMoveReady(const UsiMatchMove&)` シグナルで Strategy の `onEngineMoveReady()` に届く。`UsiMatchMove`（`src/engine/usimatchhandler.h`）は、指した側・指し手・考えた時間・最善の読み筋の評価値を持つ。先読みの局面は `UsiMatchHandler` だけが持ち、`UsiMatchMove` には載せない。
+エンジンへの思考依頼は非同期である。依頼した関数はすぐに戻り、指し手は `Usi::matchMoveReady(const UsiMatchMove&)` → `MatchEngineSeat::moveReady` で Strategy の `onEngineMoveReady()` に届く。人間が先に指した後でもエンジンが初期化中なら、Strategy は初期化を待つ間時計を止め（`setWaitingForEngines(true)`）、`initialized` を受けてから思考を頼む。`UsiMatchMove`（`src/engine/usimatchhandler.h`）は、指した側・指し手・考えた時間・最善の読み筋の評価値を持つ。先読みの局面は `UsiMatchHandler` だけが持ち、`UsiMatchMove` には載せない。
 
 ### 2.1 一手の確定: MatchCoordinator::completeMove()
 
@@ -321,7 +321,7 @@ onEngineMoveReady(move)   ← Usi::matchMoveReady
 
 **ファイル:** `src/core/shogiclock.cpp`
 
-`ShogiClock` は先手・後手の状態（残り時間・考慮時間・総考慮時間・秒読みに入っているか）を `SideState` にまとめて持ち、API はすべて `Turn` で受ける。50ms ごとの tick（`updateClock()`）で、時計の手番の側の残り時間と考慮時間を進める。時計は合成ルート（`MainWindowComposer::createBoard()`）が作り、司令塔（`MatchCoordinator::Deps::clock`）・`EngineLifecycleManager`（コンストラクタ）・`GameSession`・`TimeDisplayPresenter` に渡す。`EngineLifecycleManager` はこの時計を読む時間の出どころ `ClockTimeSource`（`src/engine/matchtimesource.h`）を持ち、`acquire()` が手番を持つエンジンに `Usi::setMatchTimeSource()` でつなぐ。対局を始めるときは `GameSession::startGame()` が `TimeControlUtil::applyToClock()` で持ち時間の決まりと開始局面の手番を時計に入れ、棋譜の文書（`KifuDocument::beginMatch()`）が `MatchTimeRecord`（`src/kifu/matchtimerecord.h`。対局情報と棋譜に書く持ち時間と開始・終了の日時）に記録する。持ち時間の決まりと表示の仕様は [時間設定の仕様](game-time-control-spec.md) を参照。
+`ShogiClock` は先手・後手の状態（残り時間・考慮時間・総考慮時間・秒読みに入っているか）を `SideState` にまとめて持ち、API はすべて `Turn` で受ける。50ms ごとの tick（`updateClock()`）で、時計の手番の側の残り時間と考慮時間を進める。時計は合成ルート（`MainWindowComposer::createBoard()`）が作り、司令塔（`MatchCoordinator::Deps::clock`）・`GameSession`・`TimeDisplayPresenter` に渡す。司令塔はこの時計を読む時間の出どころ `ClockTimeSource`（`src/engine/matchtimesource.h`）を持ち（`MatchStrategyHost::timeSource()`）、`MatchEngineSeat::start()` が対局のエンジンに `Usi::setMatchTimeSource()` でつなぐ。対局を始めるときは `GameSession::startGame()` が `TimeControlUtil::applyToClock()` で持ち時間の決まりと開始局面の手番を時計に入れ、棋譜の文書（`KifuDocument::beginMatch()`）が `MatchTimeRecord`（`src/kifu/matchtimerecord.h`。対局情報と棋譜に書く持ち時間と開始・終了の日時）に記録する。持ち時間の決まりと表示の仕様は [時間設定の仕様](game-time-control-spec.md) を参照。
 
 ### 3.1 時間計測の仕組み
 
@@ -583,20 +583,20 @@ void MatchCoordinator::handleResign()
 
 #### エンジンへの終了通知
 
-**ファイル:** `src/game/enginelifecyclemanager.cpp`
+**ファイル:** `src/game/matchcoordinator.cpp`、`src/game/matchengineseat.cpp`
 
-`notifyGameOver(std::optional<Turn> loser)` は、すべての終局処理（`endGame()`）で共通に使う。手番を持つ枠のエンジン（対局のエンジン）ごとに、指している手番で結果を決める。
+すべての終局処理（`endGame()`）は、Strategy の `engineSeat(side)` ごとに `MatchEngineSeat::finish(GameOverResult)` を呼ぶ。結果は枠ではなく、エンジンが指している手番で決める。
 
 | 引数 | 通知内容 |
 |---|---|
 | 負けた側（`Turn`） | 負けた側を指すエンジンに `"gameover lose"`、相手を指すエンジンに `"gameover win"` |
 | `nullopt`（引き分け・中断） | すべてのエンジンに `"gameover draw"` |
 
-人間同士ではエンジンが無いので何も送らない。人間対エンジンではエンジンは E1 にあり、その手番で勝ち負けを決める。どの通知でも、エンジンの今の処理を取り消し（`Usi::cancelCurrentOperation()`。遅れて届いた bestmove で着手・先読みを再開させない）、`stop` と `gameover` を送ったあと `Usi::quit(false)` で `quit` を送ってプロセスを終了させる（応答しなければ強制終了する。思考情報の表示は残す）。
+人間同士ではエンジンが無いので何も送らない。人間対エンジンではエンジンは E1 にあり、その手番で勝ち負けを決める。`finish()` はまずエンジンの知らせの接続を外し（終局の後に届く投了の bestmove などを受けない）、エンジンの今の処理を取り消し（`Usi::cancelCurrentOperation()`。遅れて届いた bestmove で着手・先読みを再開させない）、`stop` と `gameover` を送ったあと `Usi::quit(false)` で `quit` を送ってプロセスを終了させる（応答しなければ強制終了する。思考情報の表示は残す）。通信対局（`CsaGameCoordinator`）の終局も同じ `finish()` を使う。
 
 ### 5.4 エンジン投了: handleEngineResign(Turn side)
 
-**ファイル:** `src/engine/usimatchhandler.cpp`、`src/game/enginelifecyclemanager.cpp`、`src/game/matchcoordinator.cpp`
+**ファイル:** `src/engine/usimatchhandler.cpp`、`src/game/matchengineseat.cpp`、`src/game/matchcoordinator.cpp`
 
 エンジンが `bestmove resign` を返した場合の処理。
 
@@ -610,17 +610,17 @@ UsiMatchHandler::onBestMoveReceived()
     （手番の探索の結果だけを扱う。外れた先読みの結果は使わない）
     ↓  emit resigned(探索した手番)   … 時計を精算する前に知らせる
 Usi::resigned(side)
-    ↓  （EngineLifecycleManager::acquire() が、手番を持つエンジンだけ接続）
-EngineLifecycleManager::engineResigned(side)
-    ↓  （MatchCoordinator のコンストラクタが接続）
+    ↓  （MatchEngineSeat::start() が接続）
+MatchEngineSeat::resigned(side)
+    ↓  （MatchCoordinator が Strategy を作ったときに engineSeat(side) ごとに接続）
 MatchCoordinator::handleEngineResign(side)   ← side はエンジンの手番（Turn）
     └─ endGame({Resignation, side}, side, Notice::Announce)
            投了したエンジンに "gameover lose"（エンジン同士なら相手に "gameover win"）、どちらも quit
 ```
 
 - 手番は `UsiMatchHandler` が探索した局面（`position`）から求める。人間対エンジンではエンジンが後手でも E1 に入るが、知らせはエンジンの手番で出る。
-- 入玉宣言勝ちの `bestmove win` も同じく `UsiMatchHandler` の `declaredWin(side)` → `Usi::declaredWin` → `EngineLifecycleManager::engineDeclaredWin(side)` → `MatchCoordinator::handleEngineWin(side)` に届く（8.5）。
-- 中断のときは `EngineLifecycleManager::disconnectArbiterSignals()` で両方の接続を外す（8.2）。
+- 入玉宣言勝ちの `bestmove win` も同じく `UsiMatchHandler` の `declaredWin(side)` → `Usi::declaredWin` → `MatchEngineSeat::declaredWin(side)` → `MatchCoordinator::handleEngineWin(side)` に届く（8.5）。
+- 中断の後に届く `bestmove resign` は、`endGame()` の `MatchEngineSeat::finish()` が接続を外した後なので受けない（8.2）。
 
 `resign`・`win` の bestmove は `Usi::matchMoveReady` では知らせない（`UsiMatchHandler::onBestMoveReceived()` が特殊な指し手を先に処理する）。
 
@@ -645,7 +645,13 @@ void MatchCoordinator::endGame(const GameEndInfo& info, std::optional<Turn> engi
     m_clock->markGameOver();
     m_clock->stopClock();
     disarmTurnTimer();
-    m_engines->notifyGameOver(engineLoser);
+    // 対局のエンジンに終局を知らせて終える（負けた側・勝った側・引き分け）
+    for (const Turn side : {Turn::Black, Turn::White}) {
+        MatchEngineSeat* seat = m_strategy ? m_strategy->engineSeat(side) : nullptr;
+        if (!seat) continue;
+        seat->finish(!engineLoser ? GameOverResult::Draw
+                                  : (*engineLoser == side ? GameOverResult::Lose : GameOverResult::Win));
+    }
     appendTerminalRecord(info);
     m_activityLease.reset();
     // 終局の行を棋譜に書いた後で、時刻と UI を更新させる
@@ -856,8 +862,7 @@ void MatchCoordinator::handleBreakOff()
     captureInterruptedGame();
     // 時計の精算時に時間切れが確定した場合、中断に上書きしない。
     if (isGameOver()) return;
-    // 中断の後に届く bestmove resign を終局にしない
-    m_engines->disconnectArbiterSignals();
+    // 中断の後に届く bestmove resign は、終局の知らせ（MatchEngineSeat::finish）の後なので受けない。
     // quit に応答しない場合も terminate/kill まで進める。中断後の思考表示は保持する。
     endGame({Cause::BreakOff, m_gc->currentPlayer()}, std::nullopt, Notice::Interrupt);
 }
@@ -873,12 +878,9 @@ MatchCoordinator::handleBreakOff()
     │
     ├─ (3) 時計を止めたときの精算で時間切れが確定していれば return
     │
-    ├─ (4) エンジンの投了・勝ち宣言の知らせを切断
-    │      EngineLifecycleManager::disconnectArbiterSignals()
-    │
-    └─ (5) endGame({BreakOff, 手番の側}, nullopt, Notice::Interrupt)
+    └─ (4) endGame({BreakOff, 手番の側}, nullopt, Notice::Interrupt)
            ├─ 時計を終局状態にして止め、計測を打ち切る
-           ├─ エンジンへ "gameover draw" と quit
+           ├─ MatchEngineSeat::finish(Draw): 知らせの接続を外し、エンジンへ "gameover draw" と quit
            ├─ 終局行 "▲中断" / "△中断" を追記し、待機に戻して gameEnded
            └─ 再開用の状態があれば emit gameInterrupted()
                   → GameSession::onGameInterrupted() が中断の行を MatchCoordinator::attachInterruptedRecord() で結びつけ、
@@ -955,7 +957,7 @@ NyugyokuDeclarationHandler::handleDeclaration(activeChannel())   （src/ui/contr
 
 エンジンの宣言: "bestmove win"
     ↓
-UsiMatchHandler::declaredWin(side) → Usi::declaredWin → EngineLifecycleManager::engineDeclaredWin(side)
+UsiMatchHandler::declaredWin(side) → Usi::declaredWin → MatchEngineSeat::declaredWin(side)
     ↓
 MatchCoordinator::handleEngineWin(side)
     ├─ NyugyokuJudgement::judgeEngineDeclaration() で盤面から判定
@@ -994,9 +996,9 @@ MatchCoordinator::handleEngineIllegalMove(Turn side)
 Usi::errorOccurred(message)
     （UsiMatchHandler::timedOut を受けた Usi::onMatchTimeout() の "Timeout waiting for bestmove." もここに出る。
       時計の時間切れで終局していれば timedOut は出さない）
-    ↓  （EngineLifecycleManager::acquire() が、手番を持つエンジンだけ接続）
-EngineLifecycleManager::engineError
-    ↓  （MatchCoordinator のコンストラクタが直接接続。起動の失敗は開始の処理から戻った後に届くので、そのまま中断してよい）
+    ↓  （MatchEngineSeat::start() が接続。ほかの持ち主が枠を取ったとき（engineRevoked）も同じ知らせを出す）
+MatchEngineSeat::errorOccurred
+    ↓  （MatchCoordinator が Strategy を作ったときに接続。起動の失敗は開始の処理から戻った後に届くので、そのまま中断してよい）
 MatchCoordinator::handleEngineError(msg)
     ├─ 終局済み・Strategy が無いなら何もしない
     ├─ 両枠のエンジンの今の処理を取り消す（Usi::cancelCurrentOperation()）
@@ -1041,7 +1043,7 @@ MatchCoordinator::handleResign()
     └─ endGame({Resignation, loser = 手番の側}, loser, Notice::Announce)
         ├─ MatchSessionState::finish(info)
         ├─ 時計を終局状態にして止め、計測を打ち切る
-        ├─ EngineLifecycleManager::notifyGameOver(loser)   // HvE: E1 に "gameover win/lose" + quit
+        ├─ MatchEngineSeat::finish(win/lose)               // HvE: E1 に "gameover win/lose" + quit
         ├─ appendTerminalRecord(info)
         │   ├─ 投了した側の考慮時間を確定
         │   ├─ MatchRecordSink::appendRecord("▲投了")      ──→ (A)

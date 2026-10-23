@@ -371,7 +371,6 @@ void Tst_MatchCoordinator::humanVsEngine_engineResignLosesEngineSide()
     Usi* engine = h.engines.engineInSlot(1);
     QVERIFY(engine);
     QCOMPARE(h.engines.engineInSlot(2), nullptr);
-    QCOMPARE(h.engines.engineFor(engineIsBlack ? Turn::Black : Turn::White), engine);
     QSignalSpy ready(engine, &Usi::engineInitialized);
     QTRY_COMPARE_WITH_TIMEOUT(ready.count(), 1, 5000);
 
