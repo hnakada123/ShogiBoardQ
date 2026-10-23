@@ -7,6 +7,7 @@
 #include <QtConcurrentRun>
 
 #include "mateoracle.h"
+#include "logcategories.h"
 #include "matequeryloop.h"
 
 namespace {
@@ -215,6 +216,12 @@ void TsumeshogiGenerator::onProgressTimerTimeout()
 
 void TsumeshogiGenerator::cleanup()
 {
+    // 生成の結果のまとめ（事前選別が時間切れで判定できずに通した局面の数は、選別の時間の調整の目安）
+    if (m_running) {
+        qCInfo(lcAnalysis).noquote() << "tsume generation ended: generated" << m_generatedCount << "found" << m_foundCount
+                                     << "screening unknown" << m_screenUnknownCount << "rejected" << m_verificationRejected
+                                     << "inconclusive" << m_verificationInconclusive;
+    }
     m_running = false;
     // 上限到達・エラーでも先行生成を中止する。フラグを手放す前にワーカーへ通知する
     if (m_cancelFlag) m_cancelFlag->store(true);

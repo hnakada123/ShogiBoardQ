@@ -80,7 +80,7 @@ private slots:
         auto& p = window.composer().parts();
         ThinkingInfoRow row;
         row.pv = PvText::play(SfenUtils::hirateSfen(), QStringLiteral("7g7f"));
-        p.thinking1->appendRow(row);
+        p.thinking1->prependRow(row, 10);
         emit p.thinkingPanel->pvRowClicked(p.thinking1, 0);
         PvBoardDialog* board = nullptr;
         const auto widgets = QApplication::topLevelWidgets();

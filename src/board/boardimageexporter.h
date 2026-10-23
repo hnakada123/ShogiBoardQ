@@ -5,6 +5,8 @@
 /// @brief 盤面画像のクリップボードコピー・ファイル保存機能
 
 #include <QObject>
+#include <QCoreApplication>
+
 class QWidget;
 class QImage;
 
@@ -14,6 +16,8 @@ class QImage;
  * クリップボードへのコピーと、複数画像フォーマットでのファイル保存に対応する。
  */
 class BoardImageExporter final {
+    Q_DECLARE_TR_FUNCTIONS(BoardImageExporter)
+
 public:
     /// 盤面画像をクリップボードにコピーする
     static void copyToClipboard(QWidget* boardWidget);

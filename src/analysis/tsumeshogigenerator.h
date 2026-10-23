@@ -99,7 +99,7 @@ private:
     QSet<QString> m_foundSfens;  ///< 発見済みSFEN（重複排除用）
     int m_verificationRejected = 0;
     int m_verificationInconclusive = 0;
-    int m_screenUnknownCount = 0; ///< 事前選別が時間切れで未確定のままキューに積んだ局面数
+    int m_screenUnknownCount = 0; ///< 事前選別が時間切れで未確定のままキューに積んだ局面数（終了時にログへ出す）
 
     QElapsedTimer m_elapsedTimer; ///< 全体経過時間
     QTimer m_progressTimer;       ///< プログレス更新タイマー

@@ -12,7 +12,7 @@
 #include "livegamesession.h"
 #include "kifunavigationstate.h"
 #include "kifunavigationcontroller.h"
-#include "kiftosfenconverter.h"
+#include "kiftextparser.h"
 #include "test_replay.h"
 
 static const QString kHirateSfen =
@@ -106,7 +106,7 @@ private slots:
         // Load KIF with branches
         KifParseResult result;
         QString error;
-        bool ok = KifuFile::parse<KifToSfenConverter>(
+        bool ok = KifuFile::parse<KifuFormat::Kif>(
             fixturePath(QStringLiteral("test_branch.kif")), result, &error);
 
         if (!ok) {
@@ -211,7 +211,7 @@ private slots:
     {
         // 1. Load KIF
         QString error;
-        QStringList moves = KifuFile::usiMoves<KifToSfenConverter>(
+        QStringList moves = KifuFile::usiMoves<KifuFormat::Kif>(
             fixturePath(QStringLiteral("test_basic.kif")), &error);
 
         if (moves.isEmpty()) {

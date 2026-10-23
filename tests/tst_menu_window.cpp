@@ -396,7 +396,6 @@ void TestMenuWindow::favoriteDragStartsOnButton()
     w.findChild<QToolButton*>(QStringLiteral("menuCustomize"))->click();
     auto* card = w.findChild<QTabWidget*>()->widget(0)->findChild<MenuButtonWidget*>();
     auto* button = card->findChild<QPushButton*>();
-    QSignalSpy started(card, &MenuButtonWidget::dragStarted);
     QSignalSpy triggered(actions[0], &QAction::triggered);
     QTimer cancel;
     cancel.setSingleShot(true);
@@ -407,8 +406,9 @@ void TestMenuWindow::favoriteDragStartsOnButton()
     QMouseEvent move(QEvent::MouseMove, destination, button->mapToGlobal(destination),
                      Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
     QApplication::sendEvent(button, &move);
+    // ドラッグを始めた（終えた QDrag はボタンの子として次のイベントループまで残る）
+    QVERIFY(card->findChild<QDrag*>());
     QTest::mouseRelease(button, Qt::LeftButton);
-    QCOMPARE(started.count(), 1);
     QCOMPARE(triggered.count(), 0);
 }
 

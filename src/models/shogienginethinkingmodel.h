@@ -53,9 +53,6 @@ public:
      */
     void updateByMultipv(const ThinkingInfoRow& row, int maxMultiPV);
 
-    /// 末尾に行を足す（同じ内容でも足す）
-    void appendRow(const ThinkingInfoRow& row);
-
     /// 指定行数を超えた古い行（末尾）を削除する
     void trimToMaxRows(int maxRows);
 

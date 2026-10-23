@@ -92,12 +92,6 @@ signals:
     void removeFromFavorites(const QString& actionName);
 
     /**
-     * @brief ドラッグ開始シグナル
-     * @param actionName ドラッグ中のアクション名
-     */
-    void dragStarted(const QString& actionName);
-
-    /**
      * @brief ドロップ受け入れシグナル
      * @param sourceActionName ドラッグ元のアクション名
      * @param targetActionName ドロップ先のアクション名

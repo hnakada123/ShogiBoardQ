@@ -2869,7 +2869,7 @@ private slots:
             row.nodes = 10000;
             row.score = UsiScore::cp(35);
             row.pv = PvText::play(initial + QStringLiteral(" b - 1"), QStringLiteral("7g7f 3c3d 8h2b+"));
-            thinking->appendRow(row);
+            thinking->prependRow(row, 10);
         }
         QTest::qWait(100);
         snapshot(QStringLiteral("i18n-%1-%2").arg(language, notation));

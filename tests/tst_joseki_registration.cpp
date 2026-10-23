@@ -128,7 +128,7 @@ private slots:
         info.depth = 24;
         info.score = UsiScore::cp(-30);
         info.pv = PvText::play(afterBlack(), QStringLiteral("3c3d 2g2f"));
-        thinking.appendRow(info);
+        thinking.prependRow(info, 10);
         JosekiBookSession book;
         JosekiRegistrationController controller(deps(&book, nullptr));
 
@@ -148,15 +148,15 @@ private slots:
 
         // 登録できないとき・読み筋が無い行は押せない
         waitForDeferredLoad(book);
-        thinking.appendRow(info);
+        thinking.prependRow(info, 10);
         QMenu disabledMenu;
         controller.onThinkingRowContextMenu(&thinking, 0, &disabledMenu);
         QVERIFY(!disabledMenu.findChild<QAction *>(QStringLiteral("josekiRegisterPv"))->isEnabled());
         book.newBook();
         info.pv = PvText::play(afterBlack(), QStringList{});
-        thinking.appendRow(info);
+        thinking.prependRow(info, 10);
         QMenu noPvMenu;
-        controller.onThinkingRowContextMenu(&thinking, thinking.rowCount() - 1, &noPvMenu);
+        controller.onThinkingRowContextMenu(&thinking, 0, &noPvMenu);   // 新しい行は先頭
         QVERIFY(!noPvMenu.findChild<QAction *>(QStringLiteral("josekiRegisterPv"))->isEnabled());
     }
 

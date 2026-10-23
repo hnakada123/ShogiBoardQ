@@ -100,7 +100,7 @@ cmake --build build --target translations
   - `josekimovepicker.cpp/.h` - 対局で指す定跡手を選ぶ `JosekiMovePicker`（条件 `JosekiPlayOptions`（`core/josekiplayoptions.h`。意味はやねうら王の定跡オプションに合わせる。保存は `JosekiSettings::playOptions1/2`）に合い、局面で指せる手から、出現頻度に比例・評価値で選ぶ・先頭の手のどれかで選ぶ）
   - `kifupresentation.cpp/.h` - 画面に出す棋譜の表記 `KifuPresentation`（指し手・読み筋・終局語。ファイルやプロトコルには使わない）。棋譜の1行は値から作る（`entryLabel(RecordEntry, 指す前の局面)`。終局は `RecordEntry::terminal` から訳す。棋譜欄の手数と分岐の印は `numberedLabel`）。`RecordEntry::displayText` は棋譜の表記（KIF の指し手・終局語）で、表示の文字列を書き戻さない。日本語の指し手は `KifMoveText`、段の漢数字は `ShogiNotation`、英語表記で移動元を付けるかは KI2 と同じ判定（`Ki2MoveNotation::annotate()` の `Annotation::sources`。合法手で決めるのでピンされた駒は数えない）。`Notation`・`Options` は `NotationStyle` の別名で、`options`・`revision` は `NotationStyle` へ転送する（表記の設定を変えるのは `NotationStyle::configure`）
   - **formats/**: Format converters（テキストを読む。ファイルは `KifuLoadParser` が読んで渡す）
-    - `kiftosfenconverter`, `ki2tosfenconverter`, `csatosfenconverter`, etc. - 形式ごとに `parse(text, options)` を1つだけ持ち、`KifuParseOutcome` を返す（BOD は `KifTextParser::parseBod`）
+    - `csatosfenconverter`, `jkftosfenconverter`, etc. - 形式ごとに `parse(text, options)` を1つだけ持ち、`KifuParseOutcome` を返す（KIF・KI2 は `KifTextParser::parseKif`・`parseKi2`、BOD は `KifTextParser::parseBod`）
     - `kiftextparser.cpp/.h` - KIF・KI2 で共有する読み取り（行の分類・「変化：N手」の区切り・開始局面）。指し手の文法は `kifmovegrammar`（KIF の手は KI2 の手＋移動元）
     - `kiflinebuilder.cpp/.h` - 全形式で共通の手順の組み立て（`KifLineBuilder`。指しながら `RecordEntry` を作り、表記は `KifMoveText::format` で作る）
     - `*exporter` - 形式ごとの書き出し。KIF・KI2 の先頭（文字コード宣言・対局情報・盤面図）は `KifExporter::appendHeaderLines(ctx, out, HeaderOptions)` で共有し、KI2 の本譜と変化は `appendKi2Moves` の1つのループで書く

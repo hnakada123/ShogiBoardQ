@@ -227,14 +227,6 @@ void ShogiEngineThinkingModel::trimToMaxRows(int maxRows)
     endRemoveRows();
 }
 
-void ShogiEngineThinkingModel::appendRow(const ThinkingInfoRow& row)
-{
-    const int position = static_cast<int>(m_rows.size());
-    beginInsertRows(QModelIndex(), position, position);
-    m_rows.append(ShogiInfoRecord(row));
-    endInsertRows();
-}
-
 void ShogiEngineThinkingModel::clear()
 {
     beginResetModel();
