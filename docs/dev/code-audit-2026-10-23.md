@@ -102,6 +102,8 @@
 
 **影響**: 約12ファイル、300行前後。
 
+**状態: 済（2f255623）**。案から変えた点: 取り上げの知らせ `revoked` は、始めた部品の準備が済んでから受け手が処理するよう次のイベントループで届ける。局面編集は取り上げられたら編集した局面で編集を終える（編集を捨てない）。欄が1つだけの `AppState` を廃止して合成ルートが `AppActivityState` を持つ（3章の「合成ルートの関数注入と AppState」のうち AppState の部分）。`UiStatePolicyManager` の別名 `AppState`・テストだけが使う既定のコンストラクタと `stateChanged`・何もしない `enableNavigationIfAllowed` も消した。入口の可否の検査は、棋譜の置き換え（B11）と局面編集の開始（待機中だけ）に入れ、検討の開始はリースの取り上げで扱う
+
 ### R2. 定跡まわりの状態と登録の経路（dialogs・ui・kifu・app）。B7・B8・B9 の原因
 
 前回の後に増えた定跡の機能で、状態の正本が画面部品にあり、登録の経路が2系統ある。
@@ -221,6 +223,8 @@
 
 **影響**: 段階1は約10ファイル・200行。段階2は7〜9ファイル・追加と削除がそれぞれ約150行。段階3は約40ファイル（`node->sfen()` だけで28か所）なので、段階1・2の後で効果を見て決める。
 
+**状態: 段階1は済（fbfe89d6）**。分岐元 `KifBranchPoint` は `std::optional<Position>` を持ち、`JosekiBook::movesAt(Position)` を足し、`findMatchingChild` は指し手で比べる。局面図と CSA の局面の行の書き出しは `Position` を受け取る。position 文字列の読み取りは `UsiPosition::parse` 1つ（`Position::fromSfenLike` はそれに任せる）。`KifuNodeReplay`・`JkfFormatter::sfenToJkfData`・`SfenDiffUtils` は書き出しや表示の入口で文字列を受け取るので、段階1では変えていない
+
 ### R5. 棋譜の読み込みの字句解析と読み込み結果（kifu/formats）。B1・B2・B3・U1 の原因
 
 **問題**
@@ -243,6 +247,8 @@
 - 持ち時間は値の型で持ち、書式の読み書きを1組にする。
 
 **影響**: 約16ファイル、約250行。
+
+**状態: 済（3813d6ef・a08a5886・f30dd3b1・cb5b8b7e）**。案から変えた点: 字句解析は `KifLexer::readNumberedMoves` が `NumberedMove{表記, optional<RecordTime>, コメント}` を返す（手数は返さない。行内のコメントは行末までとし、コメントの中の数字で手順を打ち切らない）。結果行の `ResultLine` は B2 で入れた。開始局面の書き方は `StartKind` にし、手合割の名前は持たない（使う所がない）。`positionOnly` は bool にした。持ち時間は値の型 `TimeControl` を `TimeControlText`（`format`・`parse`・`parseSide`）で読み書きする
 
 ### R6. 入力中の編集の確定と未保存の判定が2通り（widgets・models・kifu・ui）。B5 の原因
 
