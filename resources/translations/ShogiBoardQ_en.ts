@@ -14460,18 +14460,19 @@ This cannot be undone. Reset history?</translation>
 <context>
     <name>TsumePositionPreview</name>
     <message>
-        <location filename="../../src/widgets/tsumepositionpreview.cpp" line="49"/>
+        <location filename="../../src/widgets/tsumepositionpreview.cpp" line="51"/>
         <source>攻方</source>
         <translation>Attacker</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/tsumepositionpreview.cpp" line="47"/>
+        <location filename="../../src/widgets/tsumepositionpreview.cpp" line="49"/>
         <source>玉方</source>
         <translation>Defender</translation>
     </message>
     <message>
+        <location filename="../../src/widgets/tsumepositionpreview.cpp" line="103"/>
         <source>なし</source>
-        <translation type="vanished">None</translation>
+        <translation>None</translation>
     </message>
 </context>
 <context>

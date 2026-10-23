@@ -39,6 +39,8 @@ BoardGeometry::BoardGeometry(const Params& params)
 {
     m_params.squareSize = std::clamp(m_params.squareSize, kMinSquareSize, kMaxSquareSize);
     m_params.standGapCols = qBound(0.0, m_params.standGapCols, 2.0);
+    m_params.standColumns = qBound(1.0, m_params.standColumns, 4.0);
+    m_params.standRows = std::clamp(m_params.standRows, 1, m_params.ranks);
     const int sq = m_params.squareSize;
     m_field = QSize(sq, qRound(sq * kSquareAspectRatio));
     m_labelPixelSize = std::max(8, qRound(m_field.width() * 0.24));
@@ -46,29 +48,24 @@ BoardGeometry::BoardGeometry(const Params& params)
 
     // 盤と駒台の間。段の文字が収まる幅より狭くしない
     const int gapPx = std::max(qRound(sq * m_params.standGapCols), rankLabelWidth(m_params.font, m_labelPixelSize, sq));
-    const double gapCols = double(gapPx) / double(sq);
-    const int blackShift = qRound((2.0 + gapCols) * sq);   // 盤の筋2から先手の駒台まで
-    const int whiteShift = qRound((9.0 + gapCols) * sq);   // 盤の筋2から後手の駒台まで
-    const int standGapPx = qRound(gapCols * sq);
+    const QSize standSize(qRound(m_field.width() * m_params.standColumns), m_field.height() * m_params.standRows);
 
     // 盤の左上。四辺に座標の帯（盤の縁より狭くしない）と影・外側の余白を取る
     const int outerMargin = std::max(4, qRound(m_field.width() * 0.12));
     const int boardMargin = std::max(m_coordinateBand, std::max(2, qRound(sq * 0.28)));
     const QMarginsF shadow = BoardSurfacePainter::shadowMargins(m_field.width());
-    const QPoint origin(blackShift, outerMargin + qCeil(shadow.top()) + boardMargin);
+    const QPoint origin(standSize.width() + gapPx, outerMargin + qCeil(shadow.top()) + boardMargin);
     m_board = QRect(origin, QSize(m_field.width() * files(), m_field.height() * ranks()));
     m_surface = QRectF(m_board.adjusted(-boardMargin, -boardMargin, boardMargin, boardMargin));
 
-    // 駒台は2列4段。反転していなければ先手は盤の右下、後手は左上。反転すると入れ替わる
-    const QSize standSize(m_field.width() * 2, m_field.height() * 4);
-    const QRect lowerLeftOfRight = boardLocalSquare(flipped() ? 1 : 2, flipped() ? 9 : 6);
-    const QRect upperLeftOfLeft = boardLocalSquare(flipped() ? 1 : 2, flipped() ? 4 : 1);
-    const QRect black(lowerLeftOfRight.topLeft() + QPoint(flipped() ? -blackShift : blackShift, 0) + origin, standSize);
-    const QRect white(upperLeftOfLeft.topLeft() + QPoint(flipped() ? whiteShift : -whiteShift, 0) + origin, standSize);
-    m_blackStand = black;
-    m_whiteStand = white;
+    // 手前の側の駒台は盤の右で下端を揃え、奥の側の駒台は盤の左で上端を揃える
+    const QRect right(QPoint(m_board.left() + m_board.width() + gapPx, m_board.top() + m_board.height() - standSize.height()),
+                      standSize);
+    const QRect left(QPoint(m_board.left() - gapPx - standSize.width(), m_board.top()), standSize);
+    m_blackStand = flipped() ? left : right;
+    m_whiteStand = flipped() ? right : left;
 
-    m_viewSize = QSize(m_field.width() * (files() + 4) + standGapPx * 2,
+    m_viewSize = QSize(m_board.width() + (standSize.width() + gapPx) * 2,
                        qCeil(m_surface.height()) + qCeil(shadow.top()) + qCeil(shadow.bottom()) + outerMargin * 2);
 }
 
