@@ -48,8 +48,8 @@ EngineRegistrationHandler::~EngineRegistrationHandler()
 // 設定ファイルからエンジンリストを読み込む。
 void EngineRegistrationHandler::loadEnginesFromSettings()
 {
-    m_engineList.clear();
     m_engineList = EngineProfileStore::loadEngines();
+    emit enginesChanged();
 }
 
 const QList<EngineListSettings::EngineEntry>& EngineRegistrationHandler::engineList() const
@@ -179,6 +179,7 @@ void EngineRegistrationHandler::registerEngine(const QString& engineName, const 
     EngineProfileStore::saveOptions(m_engineIdName, m_engineOptions);
 
     setRegistrationInProgress(false);
+    emit enginesChanged();
     emit engineRegistered(m_engineIdName);
 }
 
@@ -210,6 +211,7 @@ void EngineRegistrationHandler::removeEngineAt(int index)
 
     EngineProfileStore::saveEngines(m_engineList);
     EngineProfileStore::removeEngine(removeEngineName);
+    emit enginesChanged();
 }
 
 // --- USIプロトコル解析 ---

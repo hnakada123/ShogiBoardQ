@@ -6,7 +6,6 @@
 #include "enginesettingsoptionhandler.h"
 #include "enginedialogsettings.h"
 #include "engineprofilestore.h"
-#include "dialogutils.h"
 #include "buttonstyles.h"
 #include "ui_changeenginesettingsdialog.h"
 
@@ -31,11 +30,7 @@ ChangeEngineSettingsDialog::ChangeEngineSettingsDialog(const EngineListSettings:
     createOptionWidgets();
 }
 
-ChangeEngineSettingsDialog::~ChangeEngineSettingsDialog()
-{
-    // ウィンドウサイズを保存
-    DialogUtils::saveDialogSize(this, EngineDialogSettings::engineSettingsDialogSize);
-}
+ChangeEngineSettingsDialog::~ChangeEngineSettingsDialog() = default;
 
 // エンジンオプションに基づいてUIコンポーネントを作成して配置する。
 void ChangeEngineSettingsDialog::createOptionWidgets()
@@ -80,18 +75,16 @@ void ChangeEngineSettingsDialog::createOptionWidgets()
     // ボタンスタイルを適用
     ui->restoreButton->setStyleSheet(ButtonStyles::undoRedo());
 
-    // 文字の大きさ（作ったオプションの部品を含む）
+    // ダイアログの最小サイズを設定（リサイズ可能にする）
+    this->setMinimumSize(kMinimumSize);
+
+    // 文字の大きさ（作ったオプションの部品を含む）と、閉じたときに保存する大きさ
     DialogFontScale::Options fontOptions;
     fontOptions.maxSize = 20;
     fontOptions.decrease = ui->fontDecreaseButton;
     fontOptions.increase = ui->fontIncreaseButton;
+    fontOptions.size = &EngineDialogSettings::engineSettingsDialogSize;
     DialogFontScale::install(this, EngineDialogSettings::engineSettingsFontSize, fontOptions);
-
-    // ダイアログの最小サイズを設定（リサイズ可能にする）
-    this->setMinimumSize(kMinimumSize);
-
-    // 保存されているウィンドウサイズを復元
-    DialogUtils::restoreDialogSize(this, EngineDialogSettings::engineSettingsDialogSize());
 }
 
 void ChangeEngineSettingsDialog::createPonderWidgets(QVBoxLayout* layout)

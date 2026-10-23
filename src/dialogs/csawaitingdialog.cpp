@@ -31,8 +31,8 @@ CsaWaitingDialog::CsaWaitingDialog(CsaGameCoordinator* coordinator, QWidget* par
     DialogFontScale::Options fontOptions;
     fontOptions.decrease = m_btnFontDecrease;
     fontOptions.increase = m_btnFontIncrease;
+    fontOptions.size = &NetworkSettings::csaWaitingDialogSize;
     DialogFontScale::install(this, NetworkSettings::csaWaitingDialogFontSize, fontOptions);
-    DialogUtils::restoreDialogSize(this, NetworkSettings::csaWaitingDialogSize());
 
     createLogWindow();
     connectSignalsAndSlots();
@@ -49,7 +49,6 @@ CsaWaitingDialog::CsaWaitingDialog(CsaGameCoordinator* coordinator, QWidget* par
 
 CsaWaitingDialog::~CsaWaitingDialog()
 {
-    DialogUtils::saveDialogSize(this, NetworkSettings::csaWaitingDialogSize);
     if (m_logWindow) {
         NetworkSettings::csaLogWindowSize.set(m_logWindow->size());
         m_logWindow->close();

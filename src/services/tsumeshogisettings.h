@@ -13,8 +13,9 @@
 
 namespace TsumeshogiSettings {
 
+/// 詰将棋を解くダイアログの大きさ（閉じたときに DialogFontScale が保存する）
+inline const Setting<QSize> playDialogSize{"TsumePlay/size", QSize(760, 760)};
 struct PlayPreferences {
-    QSize size{760, 760};
     QString lastFile;
     int problemIndex = 0;
     int timeoutSec = 5;
@@ -23,15 +24,15 @@ struct PlayPreferences {
 };
 /// 詰将棋を解くダイアログの設定（既定値は PlayPreferences の既定値）
 inline const StructSetting<PlayPreferences> playPreferences{
-    {SettingField<PlayPreferences>::of("TsumePlay/size", &PlayPreferences::size),
-     SettingField<PlayPreferences>::of("TsumePlay/file", &PlayPreferences::lastFile),
+    {SettingField<PlayPreferences>::of("TsumePlay/file", &PlayPreferences::lastFile),
      SettingField<PlayPreferences>::of("TsumePlay/index", &PlayPreferences::problemIndex),
      SettingField<PlayPreferences>::of("TsumePlay/timeout", &PlayPreferences::timeoutSec),
      SettingField<PlayPreferences>::of("TsumePlay/squareSize", &PlayPreferences::squareSize),
      SettingField<PlayPreferences>::of("TsumePlay/boardRotated", &PlayPreferences::boardRotated)}};
 
+/// 詰将棋問題一覧の大きさ（閉じたときに DialogFontScale が保存する）
+inline const Setting<QSize> collectionDialogSize{"TsumeCollection/size", QSize(1100, 800)};
 struct CollectionPreferences {
-    QSize size{1100, 800};
     QString lastFile;
     int pageSize = 10;
     int page = 1;
@@ -40,8 +41,7 @@ struct CollectionPreferences {
 };
 /// 詰将棋問題一覧の設定（既定値は CollectionPreferences の既定値）
 inline const StructSetting<CollectionPreferences> collectionPreferences{
-    {SettingField<CollectionPreferences>::of("TsumeCollection/size", &CollectionPreferences::size),
-     SettingField<CollectionPreferences>::of("TsumeCollection/file", &CollectionPreferences::lastFile),
+    {SettingField<CollectionPreferences>::of("TsumeCollection/file", &CollectionPreferences::lastFile),
      SettingField<CollectionPreferences>::of("TsumeCollection/pageSize", &CollectionPreferences::pageSize),
      SettingField<CollectionPreferences>::of("TsumeCollection/page", &CollectionPreferences::page),
      SettingField<CollectionPreferences>::of("TsumeCollection/filter", &CollectionPreferences::filter),

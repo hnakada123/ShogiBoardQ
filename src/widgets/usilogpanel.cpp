@@ -2,106 +2,71 @@
 /// @brief USI通信ログパネルクラスの実装
 
 #include "usilogpanel.h"
-#include "fontsizecontrol.h"
-#include "buttonstyles.h"
-#include "applicationfonts.h"
 #include "elidelabel.h"
 
-#include <QAction>
-#include <QApplication>
-#include <QClipboard>
-#include <QWidget>
-#include <QPlainTextDocumentLayout>
-#include <QPlainTextEdit>
-#include <QVBoxLayout>
+#include <QComboBox>
 #include <QHBoxLayout>
-#include <QToolButton>
-#include <QToolBar>
-#include <QPushButton>
 #include <QLabel>
 #include <QLineEdit>
-#include <QComboBox>
-#include <QTextCursor>
-#include <QTextDocument>
-#include <QTextCharFormat>
-#include <QSizePolicy>
-#include <QScrollBar>
+#include <QPlainTextEdit>
+#include <QPushButton>
 
 #include "analysissettings.h"
 #include "usicommlogmodel.h"
 
 namespace {
-// ログの末尾へ1行足しても、直前の行の文字配置を捨てない。
-// QPlainTextDocumentLayout は、直前の行の末尾に段落の区切りと新しい行を足した変化として
-// 受け取り、文字の変わらない直前の行も配置し直す。ログは長い行が多く、ドックが裏のタブに
-// あっても Qt は表示中として扱うので、追記のたびに2行分の文字配置を計算していた。
-class LogDocumentLayout final : public QPlainTextDocumentLayout
-{
-public:
-    using QPlainTextDocumentLayout::QPlainTextDocumentLayout;
+const QColor kEngine1Color(0x20, 0x60, 0xa0);
+const QColor kEngine2Color(0xa0, 0x20, 0x60);
 
-protected:
-    void documentChanged(int from, int charsRemoved, int charsAdded) override
-    {
-        const QTextDocument* doc = document();
-        if (charsRemoved == 0 && charsAdded > 1 && from + charsAdded == doc->characterCount() - 1
-            && doc->characterAt(from) == QChar::ParagraphSeparator) {
-            // 変わったのは区切りの後ろ（新しい行）だけとして渡す
-            QPlainTextDocumentLayout::documentChanged(from + 1, 0, charsAdded - 1);
-            return;
-        }
-        QPlainTextDocumentLayout::documentChanged(from, charsRemoved, charsAdded);
-    }
-};
-
-void relaxToolbarWidth(QWidget* toolbar)
+LogPanel::Names usiNames()
 {
-    if (!toolbar) return;
-    toolbar->setMinimumWidth(0);
-    QSizePolicy pol = toolbar->sizePolicy();
-    pol.setHorizontalPolicy(QSizePolicy::Ignored);
-    toolbar->setSizePolicy(pol);
+    return {QStringLiteral("usiLogView"), QStringLiteral("usiLogToolbar"), QStringLiteral("usiLogWrap"),
+            QStringLiteral("usiLogLatest"), QStringLiteral("usiLogCopy"), QStringLiteral("usiLogClear"),
+            QStringLiteral("usiCommandInput"), QStringLiteral("usiCommandSend")};
 }
 } // namespace
 
 UsiLogPanel::UsiLogPanel(QWidget* parent)
-    : QWidget(parent)
-    , m_fontSize(AnalysisSettings::usiLogFontSize, 8, 24)
+    : LogPanel(AnalysisSettings::usiLogFontSize, AnalysisSettings::usiLogWrapLines, usiNames(), parent)
 {
-    auto* layout = new QVBoxLayout(this);
-    layout->setContentsMargins(4, 4, 4, 4);
-    layout->setSpacing(4);
+    logView()->setAccessibleName(tr("USI通信ログ"));
+    logView()->setPlaceholderText(tr("エンジンとの通信ログを表示します（▶ 送信 / ◀ 受信）"));
 
-    buildToolbar();
-    layout->addWidget(m_toolbar);
-
-    m_logView = new QPlainTextEdit(this);
-    {
-        // QPlainTextEdit が自分で作る文書と同じ設定にして、行の配置だけを差し替える
-        auto* document = new QTextDocument(m_logView);
-        document->setDocumentLayout(new LogDocumentLayout(document));
-        document->setDefaultFont(m_logView->font());
-        document->documentLayout()->setPaintDevice(m_logView->viewport());
-        m_logView->setDocument(document);
+    // 操作列のエンジン名（エンジンごとのログの色）
+    m_engine1Label = new ElideLabel(this);
+    m_engine1Label->setFullText(QStringLiteral("E1: ---"));
+    m_engine1Label->setStyleSheet(QStringLiteral("QLabel { color: %1; font-weight: bold; }").arg(kEngine1Color.name()));
+    m_engine2Label = new ElideLabel(this);
+    m_engine2Label->setFullText(QStringLiteral("E2: ---"));
+    m_engine2Label->setStyleSheet(QStringLiteral("QLabel { color: %1; font-weight: bold; }").arg(kEngine2Color.name()));
+    for (auto* label : {m_engine1Label, m_engine2Label}) {
+        label->setElideMode(Qt::ElideRight);
+        label->setMaximumWidth(220);
+        label->setMinimumWidth(50);
+        label->setContentsMargins(6, 0, 6, 0);
+        addToolbarWidget(label);
     }
-    m_logView->setObjectName(QStringLiteral("usiLogView"));
-    m_logView->setAccessibleName(tr("USI通信ログ"));
-    m_logView->setReadOnly(true);
-    // 対局・検討を繰り返しても通信履歴でメモリーが増え続けないようにする。
-    m_logView->setMaximumBlockCount(5000);
-    m_logView->setFont(ApplicationFonts::monospaceFont());
-    m_logView->setLineWrapMode(m_wrapAction->isChecked()
-                                  ? QPlainTextEdit::WidgetWidth : QPlainTextEdit::NoWrap);
-    m_logView->setPlaceholderText(tr("エンジンとの通信ログを表示します（▶ 送信 / ◀ 受信）"));
-    m_logView->document()->setDocumentMargin(6);
-    layout->addWidget(m_logView, 1);
-    connect(m_logView, &QPlainTextEdit::textChanged, this, &UsiLogPanel::updateLogActions);
 
-    buildCommandBar();
-    layout->addWidget(m_commandBar);
+    // コマンドの送信先
+    m_targetCombo = new QComboBox(this);
+    m_targetCombo->setObjectName(QStringLiteral("usiCommandTarget"));
+    m_targetCombo->addItem(QStringLiteral("E1"), 0);
+    m_targetCombo->addItem(QStringLiteral("E2"), 1);
+    m_targetCombo->addItem(QStringLiteral("E1+E2"), 2);
+    m_targetCombo->setMinimumWidth(70);
+    m_targetCombo->setToolTip(tr("コマンドの送信先を選択"));
+    m_targetCombo->setAccessibleName(tr("送信先"));
+    m_targetCombo->setCurrentIndex(AnalysisSettings::usiLogCommandTarget());
+    auto* targetLabel = new QLabel(tr("送信先"), this);
+    targetLabel->setBuddy(m_targetCombo);
+    commandLayout()->insertWidget(0, targetLabel);
+    commandLayout()->insertWidget(1, m_targetCombo);
+    commandInput()->setAccessibleName(tr("USIコマンド"));
+    commandInput()->setPlaceholderText(tr("USIコマンドを入力してEnter"));
+    sendButton()->setToolTip(tr("選択した送信先へUSIコマンドを送信"));
 
-    applyFontSize();
-    updateLogActions();
+    connect(m_targetCombo, &QComboBox::currentIndexChanged, this, &UsiLogPanel::onTargetChanged);
+    connect(this, &LogPanel::commandEntered, this, &UsiLogPanel::sendToTarget);
 }
 
 UsiLogPanel::~UsiLogPanel() = default;
@@ -127,200 +92,15 @@ void UsiLogPanel::setModels(UsiCommLogModel* log1, UsiCommLogModel* log2)
     }
 }
 
-void UsiLogPanel::appendColoredLog(const QString& logLine, const QColor& lineColor)
-{
-    if (logLine.isEmpty()) return;
-
-    // 表示用カーソルを動かさず追記する。過去ログの閲覧位置と選択範囲を保つ。
-    auto* vertical = m_logView->verticalScrollBar();
-    auto* horizontal = m_logView->horizontalScrollBar();
-    const int oldVertical = vertical->value();
-    const int oldHorizontal = horizontal->value();
-    QTextDocument* document = m_logView->document();
-    const QTextCursor original = m_logView->textCursor();
-    const bool follow = oldVertical == vertical->maximum() && !original.hasSelection();
-    // 末尾への追記で動くのは、末尾にある表示用カーソルの端だけ。先頭ログの削除には
-    // 表示用カーソル自身が追従するので、末尾にないときは戻す処理を省く
-    // （カーソルの位置決めは行の文字配置を毎回計算し直すため重い）。
-    const int end = document->characterCount() - 1;
-    const bool restoreCursor = original.position() == end || original.anchor() == end;
-    // 数値の位置ではなくカーソルで保持し、先頭ログの削除に追従させる。
-    // 末尾を選択している場合も追記で選択が伸びないよう、両端を個別に固定する。
-    QTextCursor position;
-    QTextCursor anchor;
-    if (restoreCursor) {
-        position = QTextCursor(document);
-        position.setPosition(original.position());
-        position.setKeepPositionOnInsert(true);
-        anchor = QTextCursor(document);
-        anchor.setPosition(original.anchor());
-        anchor.setKeepPositionOnInsert(true);
-    }
-
-    QTextCharFormat coloredFormat;
-    coloredFormat.setForeground(lineColor);
-    QTextCursor cursor(document);
-    cursor.beginEditBlock();
-    // 編集中に末尾へ移る。編集の外で移ると、最終行の文字配置を計算し直す。
-    cursor.movePosition(QTextCursor::End);
-    if (!document->isEmpty()) cursor.insertBlock();
-    cursor.insertText(logLine, coloredFormat);
-    cursor.endEditBlock();
-
-    const int adjustedVertical = vertical->value();
-    if (restoreCursor) {
-        QTextCursor restored(document);
-        restored.setPosition(anchor.position());
-        restored.setPosition(position.position(), QTextCursor::KeepAnchor);
-        m_logView->setTextCursor(restored);
-    }
-    vertical->setValue(follow ? vertical->maximum() : adjustedVertical);
-    horizontal->setValue(oldHorizontal);
-}
-
 void UsiLogPanel::appendStatus(const QString& message)
 {
     if (message.isEmpty()) return;
-    appendColoredLog(QStringLiteral("⚙ ") + message, QColor(0x66, 0x66, 0x66));
+    appendLine(QStringLiteral("⚙ ") + message, QColor(0x66, 0x66, 0x66));
 }
 
-void UsiLogPanel::clear()
+void UsiLogPanel::sendToTarget(const QString& command)
 {
-    m_logView->clear();
-}
-
-// ===================== ツールバー構築 =====================
-
-void UsiLogPanel::buildToolbar()
-{
-    // 幅が狭いドックでは標準の拡張メニューへ操作を退避する。
-    m_toolbar = new QToolBar(this);
-    m_toolbar->setObjectName(QStringLiteral("usiLogToolbar"));
-    m_toolbar->setStyleSheet(ButtonStyles::panelToolButton());
-
-    m_btnFontDecrease = new QToolButton(m_toolbar);
-    m_btnFontIncrease = new QToolButton(m_toolbar);
-    new FontSizeControl(m_btnFontDecrease, m_btnFontIncrease, &m_fontSize);
-    m_btnFontDecrease->setFixedSize(28, 24);
-    m_btnFontIncrease->setFixedSize(28, 24);
-    connect(&m_fontSize, &FontSizeHelper::fontSizeChanged, this, &UsiLogPanel::applyFontSize);
-
-    m_engine1Label = new ElideLabel(m_toolbar);
-    m_engine1Label->setFullText(QStringLiteral("E1: ---"));
-    m_engine1Label->setStyleSheet(QStringLiteral("QLabel { color: #2060a0; font-weight: bold; }"));
-    m_engine2Label = new ElideLabel(m_toolbar);
-    m_engine2Label->setFullText(QStringLiteral("E2: ---"));
-    m_engine2Label->setStyleSheet(QStringLiteral("QLabel { color: #a02060; font-weight: bold; }"));
-    for (auto* label : {m_engine1Label, m_engine2Label}) {
-        label->setElideMode(Qt::ElideRight);
-        label->setMaximumWidth(220);
-        label->setMinimumWidth(50);
-        label->setContentsMargins(6, 0, 6, 0);
-    }
-
-    m_toolbar->addWidget(m_btnFontDecrease);
-    m_toolbar->addWidget(m_btnFontIncrease);
-    m_toolbar->addSeparator();
-    m_toolbar->addWidget(m_engine1Label);
-    m_toolbar->addWidget(m_engine2Label);
-    auto* spacer = new QWidget(m_toolbar);
-    spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
-    m_toolbar->addWidget(spacer);
-
-    m_wrapAction = m_toolbar->addAction(tr("折り返し"));
-    m_wrapAction->setObjectName(QStringLiteral("usiLogWrap"));
-    m_wrapAction->setToolTip(tr("長い行をウィンドウ幅で折り返す"));
-    m_wrapAction->setCheckable(true);
-    m_wrapAction->setChecked(AnalysisSettings::usiLogWrapLines());
-    connect(m_wrapAction, &QAction::toggled, this, &UsiLogPanel::onWrapToggled);
-
-    m_latestAction = m_toolbar->addAction(tr("最新へ"));
-    m_latestAction->setObjectName(QStringLiteral("usiLogLatest"));
-    m_latestAction->setToolTip(tr("最新のログへ移動（末尾では新着ログに自動追従）"));
-    connect(m_latestAction, &QAction::triggered, this, &UsiLogPanel::scrollToLatest);
-    m_toolbar->addSeparator();
-    m_copyAction = m_toolbar->addAction(tr("全てコピー"));
-    m_copyAction->setObjectName(QStringLiteral("usiLogCopy"));
-    m_copyAction->setToolTip(tr("ログ全体をクリップボードへコピー"));
-    connect(m_copyAction, &QAction::triggered, this, &UsiLogPanel::copyAll);
-    m_clearAction = m_toolbar->addAction(tr("消去"));
-    m_clearAction->setObjectName(QStringLiteral("usiLogClear"));
-    m_clearAction->setToolTip(tr("表示中のログを消去"));
-    connect(m_clearAction, &QAction::triggered, this, &UsiLogPanel::clear);
-    relaxToolbarWidth(m_toolbar);
-}
-
-void UsiLogPanel::buildCommandBar()
-{
-    m_commandBar = new QWidget(this);
-    auto* layout = new QHBoxLayout(m_commandBar);
-    layout->setContentsMargins(0, 0, 0, 0);
-    layout->setSpacing(4);
-
-    m_targetCombo = new QComboBox(m_commandBar);
-    m_targetCombo->setObjectName(QStringLiteral("usiCommandTarget"));
-    m_targetCombo->addItem(QStringLiteral("E1"), 0);
-    m_targetCombo->addItem(QStringLiteral("E2"), 1);
-    m_targetCombo->addItem(QStringLiteral("E1+E2"), 2);
-    m_targetCombo->setMinimumWidth(70);
-    m_targetCombo->setToolTip(tr("コマンドの送信先を選択"));
-    m_targetCombo->setAccessibleName(tr("送信先"));
-    m_targetCombo->setCurrentIndex(AnalysisSettings::usiLogCommandTarget());
-    auto* targetLabel = new QLabel(tr("送信先"), m_commandBar);
-    targetLabel->setBuddy(m_targetCombo);
-
-    m_commandInput = new QLineEdit(m_commandBar);
-    m_commandInput->setObjectName(QStringLiteral("usiCommandInput"));
-    m_commandInput->setAccessibleName(tr("USIコマンド"));
-    m_commandInput->setPlaceholderText(tr("USIコマンドを入力してEnter"));
-    m_commandInput->setClearButtonEnabled(true);
-    m_commandInput->setFont(ApplicationFonts::monospaceFont());
-
-    m_sendButton = new QPushButton(tr("送信"), m_commandBar);
-    m_sendButton->setObjectName(QStringLiteral("usiCommandSend"));
-    m_sendButton->setToolTip(tr("選択した送信先へUSIコマンドを送信"));
-    m_sendButton->setEnabled(false);
-
-    layout->addWidget(targetLabel);
-    layout->addWidget(m_targetCombo);
-    layout->addWidget(m_commandInput, 1);
-    layout->addWidget(m_sendButton);
-
-    m_commandBar->setLayout(layout);
-    relaxToolbarWidth(m_commandBar);
-
-    connect(m_commandInput, &QLineEdit::returnPressed,
-            this, &UsiLogPanel::onCommandEntered);
-    connect(m_sendButton, &QPushButton::clicked, this, &UsiLogPanel::onCommandEntered);
-    connect(m_commandInput, &QLineEdit::textChanged, this, &UsiLogPanel::updateSendButton);
-    connect(m_targetCombo, &QComboBox::currentIndexChanged, this, &UsiLogPanel::onTargetChanged);
-}
-
-// ===================== フォント管理 =====================
-
-void UsiLogPanel::applyFontSize()
-{
-    const int size = m_fontSize.fontSize();
-    QFont logFont = m_logView->font();
-    logFont.setPointSize(size);
-    m_logView->setFont(logFont);
-    QFont font = m_commandInput->font();
-    font.setPointSize(size);
-    m_commandInput->setFont(font);
-}
-
-// ===================== イベント処理 =====================
-
-void UsiLogPanel::onCommandEntered()
-{
-    QString command = m_commandInput->text().trimmed();
-    if (command.isEmpty()) return;
-
-    int target = m_targetCombo->currentData().toInt();
-    emit usiCommandRequested(target, command);
-
-    m_commandInput->clear();
-    m_commandInput->setFocus();
+    emit usiCommandRequested(m_targetCombo->currentData().toInt(), command);
 }
 
 void UsiLogPanel::onEngine1NameChanged()
@@ -343,47 +123,12 @@ void UsiLogPanel::onEngine2NameChanged()
 
 void UsiLogPanel::onLog1Line(const QString& line)
 {
-    appendColoredLog(line, QColor(0x20, 0x60, 0xa0));
+    appendLine(line, kEngine1Color);
 }
 
 void UsiLogPanel::onLog2Line(const QString& line)
 {
-    appendColoredLog(line, QColor(0xa0, 0x20, 0x60));
-}
-
-void UsiLogPanel::onWrapToggled(bool checked)
-{
-    auto* scroll = m_logView->verticalScrollBar();
-    const bool follow = scroll->value() == scroll->maximum() && !m_logView->textCursor().hasSelection();
-    m_logView->setLineWrapMode(checked ? QPlainTextEdit::WidgetWidth : QPlainTextEdit::NoWrap);
-    if (follow) scroll->setValue(scroll->maximum());
-    AnalysisSettings::usiLogWrapLines.set(checked);
-}
-
-void UsiLogPanel::scrollToLatest()
-{
-    QTextCursor cursor = m_logView->textCursor();
-    cursor.clearSelection();
-    m_logView->setTextCursor(cursor);
-    m_logView->verticalScrollBar()->setValue(m_logView->verticalScrollBar()->maximum());
-}
-
-void UsiLogPanel::copyAll()
-{
-    QApplication::clipboard()->setText(m_logView->toPlainText());
-}
-
-void UsiLogPanel::updateLogActions()
-{
-    const bool hasLog = !m_logView->document()->isEmpty();
-    m_copyAction->setEnabled(hasLog);
-    m_clearAction->setEnabled(hasLog);
-    m_latestAction->setEnabled(hasLog);
-}
-
-void UsiLogPanel::updateSendButton()
-{
-    m_sendButton->setEnabled(!m_commandInput->text().trimmed().isEmpty());
+    appendLine(line, kEngine2Color);
 }
 
 void UsiLogPanel::onTargetChanged(int index)

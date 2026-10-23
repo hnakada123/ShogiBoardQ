@@ -6,7 +6,6 @@
 #include "changeenginesettingsdialog.h"
 #include "ui_kifuanalysisdialog.h"
 #include "analysissettings.h"
-#include "dialogutils.h"
 #include "enginelistsettings.h"
 #include "engineselector.h"
 #include "buttonstyles.h"
@@ -97,19 +96,12 @@ KifuAnalysisDialog::KifuAnalysisDialog(QWidget *parent)
     DialogFontScale::Options fontOptions;
     fontOptions.decrease = ui->btnFontDecrease;
     fontOptions.increase = ui->btnFontIncrease;
+    fontOptions.size = &AnalysisSettings::kifuAnalysisDialogSize;
     DialogFontScale::install(this, AnalysisSettings::kifuAnalysisFontSize, fontOptions);
-
-    // ウィンドウサイズを復元
-    DialogUtils::restoreDialogSize(this, AnalysisSettings::kifuAnalysisDialogSize());
 }
 
 KifuAnalysisDialog::~KifuAnalysisDialog() = default;
 
-void KifuAnalysisDialog::done(int result)
-{
-    DialogUtils::saveDialogSize(this, AnalysisSettings::kifuAnalysisDialogSize);
-    QDialog::done(result);
-}
 
 void KifuAnalysisDialog::updateSummary()
 {

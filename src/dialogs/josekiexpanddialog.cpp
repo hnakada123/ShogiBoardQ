@@ -26,14 +26,12 @@ JosekiExpandDialog::JosekiExpandDialog(QWidget *parent)
     m_maxPlies->setObjectName(QStringLiteral("josekiExpandMaxPlies"));
     m_maxPlies->setRange(1, 60);
     m_maxPlies->setSuffix(tr(" 手先まで"));
-    m_maxPlies->setValue(qBound(1, JosekiSettings::josekiExpandMaxPlies(), 60));
     form->addRow(tr("展開する手数:"), m_maxPlies);
 
     m_movesPerPosition = new QSpinBox(this);
     m_movesPerPosition->setObjectName(QStringLiteral("josekiExpandMovesPerPosition"));
     m_movesPerPosition->setRange(1, 20);
     m_movesPerPosition->setSuffix(tr(" 手まで"));
-    m_movesPerPosition->setValue(qBound(1, JosekiSettings::josekiExpandMovesPerPosition(), 20));
     m_movesPerPosition->setToolTip(tr("1つの局面から展開する定跡手の数（定跡の表の上から）"));
     form->addRow(tr("1局面の定跡手:"), m_movesPerPosition);
 
@@ -42,7 +40,6 @@ JosekiExpandDialog::JosekiExpandDialog(QWidget *parent)
     m_minRatio->setRange(0.0, 100.0);
     m_minRatio->setDecimals(1);
     m_minRatio->setSuffix(QStringLiteral(" %"));
-    m_minRatio->setValue(qBound(0.0, JosekiSettings::josekiExpandMinRatio(), 100.0));
     m_minRatio->setToolTip(tr("その局面の出現頻度の合計に対する割合（定跡ウィンドウの「比率」）がこれより低い手は展開しません"));
     form->addRow(tr("比率の下限:"), m_minRatio);
 
@@ -58,6 +55,12 @@ JosekiExpandDialog::JosekiExpandDialog(QWidget *parent)
     mainLayout->addWidget(buttons);
     connect(buttons, &QDialogButtonBox::accepted, this, &QDialog::accept);
     connect(buttons, &QDialogButtonBox::rejected, this, &QDialog::reject);
+
+    // 入力欄の値（範囲は欄が収める）。決めたときに保存する
+    m_form.add(m_maxPlies, JosekiSettings::josekiExpandMaxPlies);
+    m_form.add(m_movesPerPosition, JosekiSettings::josekiExpandMovesPerPosition);
+    m_form.add(m_minRatio, JosekiSettings::josekiExpandMinRatio);
+    m_form.load();
 
     DialogFontScale::Options fontOptions;
     fontOptions.size = &JosekiSettings::josekiExpandDialogSize;
@@ -77,10 +80,6 @@ JosekiLines::ExpandOptions JosekiExpandDialog::options() const
 
 void JosekiExpandDialog::done(int result)
 {
-    if (result == QDialog::Accepted) {
-        JosekiSettings::josekiExpandMaxPlies.set(m_maxPlies->value());
-        JosekiSettings::josekiExpandMovesPerPosition.set(m_movesPerPosition->value());
-        JosekiSettings::josekiExpandMinRatio.set(m_minRatio->value());
-    }
+    if (result == QDialog::Accepted) m_form.save();
     QDialog::done(result);
 }

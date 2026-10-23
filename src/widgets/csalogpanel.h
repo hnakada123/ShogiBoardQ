@@ -4,23 +4,17 @@
 /// @file csalogpanel.h
 /// @brief CSA通信ログパネルクラスの定義
 
-#include <QWidget>
+#include "logpanel.h"
 
-#include "fontsizehelper.h"
-
-class QPlainTextEdit;
-class QToolButton;
-class QPushButton;
-class QLineEdit;
 class QLabel;
 
 /**
  * @brief CSA通信ログの表示・操作を担うパネル
  *
- * CSA通信ログドック（と通信対局の待機ダイアログのログ）の中身。部品はコンストラクタで作る。
- * ツールバー（文字の大きさ・接続状態・コピー・クリア）、ログ表示エリア、コマンド入力バーを持つ。
+ * CSA通信ログドック（と通信対局の待機ダイアログのログ）の中身（共通の部分は LogPanel）。
+ * 操作列に接続状態を出し、コマンドはサーバーに接続している間だけ送れる。
  */
-class CsaLogPanel : public QWidget
+class CsaLogPanel : public LogPanel
 {
     Q_OBJECT
 
@@ -29,35 +23,18 @@ public:
     ~CsaLogPanel() override;
 
     /// ログ行を追記
-    void append(const QString& line);
+    void append(const QString& line) { appendLine(line); }
 
-    /// ログをクリア
-    void clear();
     void setConnected(bool connected);
 
 signals:
     /// CSAコマンド送信シグナル
     void csaRawCommandRequested(const QString& command);
 
-private slots:
-    void onCommandEntered();
-    void updateSendButton();
-    void copyLog();
+protected:
+    bool canSend() const override { return m_connected; }
 
 private:
-    void buildToolbar();
-    void buildCommandBar();
-    void applyFontSize();
-
-    QWidget* m_toolbar = nullptr;
-    QPlainTextEdit* m_logView = nullptr;
-    QToolButton* m_btnFontIncrease = nullptr;
-    QToolButton* m_btnFontDecrease = nullptr;
-    FontSizeHelper m_fontSize;   ///< ログ・コマンド入力の文字の大きさ（変更のたびに保存する）
-
-    QWidget* m_commandBar = nullptr;
-    QPushButton* m_btnSendToServer = nullptr;
-    QLineEdit* m_commandInput = nullptr;
     QLabel* m_connectionStatus = nullptr;
     bool m_connected = false;
 };

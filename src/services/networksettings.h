@@ -15,6 +15,8 @@ namespace NetworkSettings {
 
 /// CSA通信ログのフォントサイズ（デフォルト: 10）
 inline const Setting<int> csaLogFontSize{"FontSize/csaLog", 10};
+/// CSA通信ログの長い行を折り返すか
+inline const Setting<bool> csaLogWrapLines{"CsaLog/wrapLines", false};
 
 /// CSA待機ダイアログのフォントサイズ（デフォルト: 10）
 inline const Setting<int> csaWaitingDialogFontSize{"FontSize/csaWaitingDialog", 10};

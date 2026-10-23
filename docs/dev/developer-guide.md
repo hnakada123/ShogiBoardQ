@@ -112,6 +112,9 @@
 | 2026-10-23 | CLI・自動化 API・MCP が共有する GUI 非依存の部品を `src/headless/` に分けた（監査 R9 の段階1）のに合わせて §1.5・§14・第18章を更新（引数の表・エラーの分類・変換・エンジンの実行器。core〜analysis だけを使う規則を層の検査に足した。JSON-RPC のコードは `errorkinds.h` に移した。書き出し先の検査を `OutputPath::check` 1つにし、出力先がディレクトリのときは CLI も `invalid_argument`。`Failure` に対処 `hint` を足した） |
 | 2026-10-23 | CLI の引数名を MCP のツールに揃え、MCP のスキーマを C++ の表から作るようにした（監査 R9 の段階2）のに合わせて §14・第18章を更新（`convert-kifu` の `input_path`・`output_path`、`render-board` の `output_path`、`generate-tsume` の `max_attack_pieces`・`max_defend_pieces`・`add_remaining_to_defender_hand`・`allow_final_move_alternatives`、`verify-tsume` の `timeout_seconds`。旧名は `ParamSpec::alias`・`aliasFlag` で受け付ける。既定値が true の真偽値は `--no-<名前>`。全引数を `--params-json` で渡せる。指し手は `ParamSpec::pattern` で検査。MCP は `specs.json`（`describe` の出力）からスキーマを作り、`--params-json` で渡す） |
 | 2026-10-23 | CLI に棋譜全体の解析 `analyze-kifu` を足した（監査 R9 の段階3）のに合わせて §14・第18章を更新（`EngineAnalysisRunner` は局面の列を1つのエンジンで順に解析する。MCP の `analyze_kifu` は1つのジョブ） |
+| 2026-10-23 | ダイアログの大きさの保存を `DialogFontScale::Options::size` に揃え、`SettingsFormBinding` に小数・ラジオの組・2択を足した（監査 R10 の1つ目）のに合わせて §11・§13 を更新（15のダイアログのデストラクタ・`done`・`closeEvent` の保存を消した。詰将棋を解く画面・問題一覧の大きさは構造体の設定から `TsumeshogiSettings::playDialogSize`・`collectionDialogSize` に分けた（キーは同じ）。CSA 通信対局・定跡の展開・登録・マージのダイアログの入力欄は表で読み書きする。文字の欄は前後の空白を除いて保存し、コンボは範囲外の位置を端に寄せる） |
+| 2026-10-23 | 画面部品の名残を直した（監査 R10 の2〜4つ目）のに合わせて §11・§13・第18章を更新（エンジン登録の画面の一覧はハンドラの一覧（正本）を `enginesChanged` で作り直す。盤の18色の設定のキー・表示名・ボタン名・透明・分類は `BoardColors::fields()` の表1つにし、`settingskeys.h` の色のキー・配色ダイアログの18行・外観の見本の「4番目以降」を消した。棋譜欄は `RecordPaneAppearanceManager` を廃し、見た目の値 `RecordPane::Appearance` と `applyAppearance()` の1か所にした（列は `KifuRecordListModel::Column`。モデルの付け替えの Connection の名残を消した）） |
+| 2026-10-23 | 通信ログのパネルと評価値グラフの設定を整理した（監査 R10 の5・6つ目）のに合わせて §11・§13・第18章を更新（USI・CSA の通信ログは共通の基底 `LogPanel`（`src/widgets/logpanel.h`）にし、CSA の通信ログにも折り返し・最新へを足した（`NetworkSettings::csaLogWrapLines`）。`EvaluationChartConfigurator` を廃し、設定の値 `EvaluationChartSettings`（`AnalysisSettings::evalChart`。キーは同じ）・軸の計算 `EvaluationChartRange`・ダイアログ `EvaluationChartSettingsDialog`（dialogs。`DialogLauncher` が開く）に分けた。`EvaluationChartWidget` の使われていない get/set 11本・2つのシグナル・中身のない `setFloating` を消した） |
 
 <!-- chapter-0-end -->
 
@@ -487,8 +490,7 @@ src/
 │   └── boardsurfacepainter.cpp/.h  #   盤・駒台の木肌と縁の描画
 │
 ├── widgets/                        # カスタムQtウィジェット
-│   ├── recordpane.cpp/.h           #   棋譜表示ペイン
-│   ├── recordpaneappearancemanager.cpp/.h # 棋譜欄の外観
+│   ├── recordpane.cpp/.h           #   棋譜表示ペイン（見た目は値 Appearance を applyAppearance() の1か所で反映）
 │   ├── thinkingpanel.cpp/.h        #   思考ドックの中身（エンジン2つ分の情報と思考の表）
 │   ├── pvtableview.cpp/.h          #   読み筋の表（数値の列・「盤面」ボタン・読み筋の描き方・行の高さ。思考の表と棋譜解析の結果の表で使う）
 │   ├── thinkingtableview.cpp/.h    #   思考の表（PvTableView の派生。対局のエンジン2つと検討タブで共用）
@@ -500,8 +502,11 @@ src/
 │   ├── branchtreeview.cpp/.h       #   分岐ツリーの図（QGraphicsView の派生でドックの中身。KifuBranchTree の変更の知らせを受けて描き直す。外とはノード ID でやり取りする）
 │   ├── branchnodeitem.cpp/.h       #   分岐ツリーの図の1手（開始局面を含む）の図形
 │   ├── branchtreelayout.cpp/.h     #   分岐ツリーの行の折りたたみと段の割り当て
-│   ├── evaluationchartwidget.cpp/.h #  評価値グラフ（EvaluationSeries を描くだけ。evaluationchartview・evaluationchartconfigurator と組）
-│   ├── usilogpanel.cpp/.h          #   USI通信ログドックの中身（CSA は csalogpanel）
+│   ├── evaluationchartwidget.cpp/.h #  評価値グラフ（EvaluationSeries を描くだけ。evaluationchartview と組。表示設定のダイアログは dialogs/evaluationchartsettingsdialog）
+│   ├── evaluationchartrange.cpp/.h #   評価値グラフの軸の範囲と目盛りの計算（EvaluationChartRange::compute）
+│   ├── logpanel.cpp/.h             #   通信ログのパネルの共通部分 LogPanel（ログ・折り返し・最新へ・コピー・消去・コマンドの欄）
+│   ├── usilogpanel.cpp/.h          #   USI通信ログドックの中身（LogPanel の派生。CSA は csalogpanel）
+│   ├── toolbarwidth.h              #   ドックの操作列がドックの最小幅を広げないようにする（ToolbarWidth::relax）
 │   ├── commenteditorpanel.cpp/.h   #   棋譜コメントドックの中身
 │   ├── tableheaderview.cpp/.h      #   表の見出し。列幅は利用者がドラッグしたときだけ sectionResizedByUser で保存する
 │   ├── incrementaltableview.cpp/.h #   行の追加で表示領域全体を描き直さない表
@@ -538,6 +543,7 @@ src/
 │   ├── csagamedialog.cpp/.h/.ui    #   CSA対局接続ダイアログ
 │   ├── csawaitingdialog.cpp/.h     #   CSA待機ダイアログ（ログ窓は widgets/csalogpanel）
 │   ├── engineregistrationdialog.cpp/.h/.ui # エンジン登録ダイアログ
+│   ├── evaluationchartsettingsdialog.cpp/.h # 評価値グラフの表示設定（範囲・目盛り・文字の大きさ）
 │   ├── changeenginesettingsdialog.cpp/.h/.ui # エンジン設定変更（登録エンジン1つを渡して作る。enginesettingsoptionhandler がオプションの部品を作る）
 │   ├── promotedialog.cpp/.h/.ui    #   成/不成選択ダイアログ（PromoteDialog::ask()。主画面の盤と詰将棋を解く画面で共通）
 │   ├── versiondialog.cpp/.h/.ui    #   バージョン情報ダイアログ
@@ -6208,10 +6214,10 @@ Urgency::Warn5  → 強い警告色（残5秒・秒読み）
 | PvTableView | IncrementalTableView | 思考の表・棋譜解析の結果の表 | 読み筋の表。数値の列の右寄せ3桁区切り、「盤面」ボタン（クリックか Enter で `boardRequested(int)`）、読み筋の描き方、行の高さと文字の大きさ（`setFontPointSize()`）を受け持つ。列の役割は `Columns`（`numeric`・`board`・`pv`）で渡し、列幅は使う側が決める |
 | ThinkingTableView | PvTableView | 思考ドック・検討ドック | 思考の表。対局のエンジン2つと検討タブで共用し、列幅（保存と復元）を受け持つ。「盤面」ボタンは `pvRowClicked(ShogiEngineThinkingModel*, int)` で知らせる |
 | ConsiderationTabManager | QWidget | 検討ドック | 検討タブの操作（エンジン選択・時間・MultiPV・矢印の表示・開始/中止）と表を作る。設定は `ConsiderationSettings` を正本として持ち（`settings()`・`setSettings()`・`settingsChanged`）、開始/中止のボタンと経過時間は実行の状態 `RunState`（`Idle`・`Running`・`Waiting`。`EngineDisplayPresenter` が `setRunState()` で設定する）で決まる |
-| UsiLogPanel / CsaLogPanel / CommentEditorPanel | QWidget | USI通信ログ・CSA通信ログ・棋譜コメントの各ドック | 各ドックの中身。`CsaLogPanel` は CSA通信対局の待機ダイアログ（`CsaWaitingDialog`）のログ窓にもそのまま入れる |
+| UsiLogPanel / CsaLogPanel / CommentEditorPanel | LogPanel / LogPanel / QWidget | USI通信ログ・CSA通信ログ・棋譜コメントの各ドック | 各ドックの中身。通信ログの2つは共通の基底 `LogPanel`（ログ・文字の大きさ・折り返し・最新へ・全てコピー・消去・コマンドの欄）の派生で、操作列に足す部品（エンジン名・接続状態）とコマンドの送り先だけを決める。`CsaLogPanel` は CSA通信対局の待機ダイアログ（`CsaWaitingDialog`）のログ窓にもそのまま入れる |
 | BranchTreeView | QGraphicsView | 分岐ツリーのドック（ドックの中身そのもの。objectName は `branchTreeView`） | 分岐ツリーの図（`KifuBranchTree` を読むだけの観察者）。`setTree(tree)` でツリーの型付きの知らせを自分で受け、`nodeAppended` で手順の末尾に1手足しただけならその手だけを描き足し、それ以外（新しい変化・並べ替え・削除・作り直し）は作り直す。外とは `KifuBranchNode` の ID だけでやり取りする（`setCurrentNode(nodeId, center)`・`currentNodeId()`、シグナル `nodeActivated(nodeId)`・`nodeContextMenuAboutToShow(nodeId, menu)`、スロット `refreshNode(nodeId)`）。描く前に届いた表示中の手は、描いた時点で目立たせる。キー・マウス・ホイール・右クリックは `QGraphicsView` のイベント関数の上書きで受ける（イベントフィルタは使わない）。折りたたみもノード ID で指定する（`setCollapsed`・`isCollapsed`・`isCollapsible`・`expandAll`）。選べるかは `setClickEnabled()`（`UiStatePolicyManager` が決める）。テスト・自動化用に `isDrawn(nodeId)`・`laneOf(nodeId)`・`rebuildCount()` を持つ。行（変化）の折りたたみと段の割り当ては値型 `BranchTreeLayout`（`branchtreelayout.h/.cpp`）が計算する |
 | BranchNodeItem | QGraphicsPathItem | BranchTreeView の中 | 図の1手（開始局面も同じクラスで、少し大きく太い枠で描く）。ノード ID・行・手数を型付きのメンバで持ち、`setCurrent()`・`setComment()`・`setCollapsedBadge()` で見た目を変える。`BranchTreeItemRoles`（`src/common/branchtreeitemroles.h`）の項目は自動化 API が読むためだけに付ける |
-| EvaluationChartWidget | QWidget | MainWindow 下部（QDockWidget） | Qt Charts による評価値グラフ（2エンジン対応、ゼロライン、カーソル線）。点は `setSeries()` で渡された `EvaluationSeries`（書き手は `EvaluationGraphPresenter`）を描くだけ |
+| EvaluationChartWidget | QWidget | MainWindow 下部（QDockWidget） | Qt Charts による評価値グラフ（2エンジン対応、ゼロライン、カーソル線）。点は `setSeries()` で渡された `EvaluationSeries`（書き手は `EvaluationGraphPresenter`）を描くだけ。表示の設定は値 `EvaluationChartSettings`（`chartSettings()`・`setChartSettings()`。変えると `AnalysisSettings::evalChart` に保存）、軸は `EvaluationChartRange::compute()` が設定・点の範囲・描く場所の大きさから決める（`axes()`）。「表示設定…」は `settingsRequested` を出すだけで、ダイアログは `DialogLauncher` が開く |
 | EngineInfoWidget | QWidget | 思考・検討のページ内（エンジンごとの情報欄） | `UsiCommLogModel` の値を1行の表に出す（エンジン名・予想手・探索手・深さ・ノード数・探索局面数/秒・ハッシュ使用率。予想手の列は隠せる）。探索状況（`EngineSearchStatus`）の数値の書式（3桁区切り・百分率）はここで決める。列幅は保存する |
 | GameInfoPane | QWidget | 対局情報ドック（思考などのドックとタブにまとめる） | 対局情報のツールバー（元に戻す・切り取り・行の追加など）＋ QTableView。中身・編集の履歴は `GameInfoEditModel`（`src/models/`）。編集は表に入れた時点で文書に入る（「対局情報更新」のボタンは無い）。合成ルートが作り、棋譜の文書（`KifuDocument`）の対局情報を編集する画面としてつなぐ（文書の `headerReset` で中身を入れ、表が変わると `gameInfoEdited` で文書に返す） |
 | AnalysisResultsPanel | QWidget | 棋譜解析の結果ドック | 結果の表（`PvTableView`）・停止ボタン・文字の大きさ。モデルは `setModel()` で1度だけ結ぶ。列幅は自分で保存する。ドックの表示は `KifuAnalysisController` が行う（9.8節） |
@@ -6341,6 +6347,7 @@ Urgency::Warn5  → 強い警告色（残5秒・秒読み）
 | CsaGameDialog | QDialog | csagamedialog.ui | CSA通信対局設定（サーバー接続情報・対局者選択。エンジンは `EngineSelector` で選ぶ） |
 | CsaWaitingDialog | QDialog | なし | CSA通信対局の接続待機表示（状態遷移・ログ表示） |
 | EngineRegistrationDialog | QDialog | engineregistrationdialog.ui | USIエンジンの登録・削除・option自動取得 |
+| EvaluationChartSettingsDialog | QDialog | なし | 評価値グラフの表示設定。今の設定と軸を受け取り、選んだ値を `settings()`（`EvaluationChartSettings`）で返す。評価値グラフの「表示設定…」（`settingsRequested`）を受けて `DialogLauncher::displayEvaluationChartSettings()` が開き、`setChartSettings()` でグラフに渡す |
 | ChangeEngineSettingsDialog | QDialog | changeenginesettingsdialog.ui | USI engine options の編集（テキスト/スピン/チェック/コンボ/ファイル選択）。`ChangeEngineSettingsDialog(engine, parent)` で登録エンジン1つ（`EngineListSettings::EngineEntry`）を渡して作り、見出しにエンジン名と作者名を出す |
 | PromoteDialog | QDialog | promotedialog.ui | 成り/不成の選択確認（`ask(parent)` で出して答えを返す。主画面の盤と詰将棋を解く画面で共通） |
 | VersionDialog | QDialog | versiondialog.ui | バージョン情報表示 |
@@ -6395,11 +6402,8 @@ StartGameDialog::StartGameDialog(QWidget *parent)
     connectSignalsAndSlots();   // シグナル/スロット接続
 }
 
-StartGameDialog::~StartGameDialog()
-{
-    // ui は unique_ptr が解放する（ここでは大きさを保存するだけ）
-    DialogUtils::saveDialogSize(this, GameSettings::startGameDialogSize);
-}
+// ui は unique_ptr が解放する（大きさは DialogFontScale が閉じたときに保存する）
+StartGameDialog::~StartGameDialog() = default;
 ```
 
 ポイント:
@@ -6938,7 +6942,7 @@ layout1=@ByteArray(<QMainWindow::saveState() のバイト列>)
 | `General` | 一般設定 | 最後の棋譜ディレクトリ、言語、指し手の表記、GUI共通フォント |
 | `FontSize` | フォントサイズ | 各タブ・ダイアログのフォントサイズ |
 | `UI` | UI状態 | 最後に選択したタブ、ツールバー表示 |
-| `EvalChart` | 評価値グラフ | Y軸上限、X軸上限、軸ラベルサイズ |
+| `EvalChart` | 評価値グラフ | 表示範囲の自動・固定、Y軸上限、X軸上限、目盛り間隔、軸ラベルサイズ（`AnalysisSettings::evalChart` の構造体 `EvaluationChartSettings` を項目ごとのキーに保存） |
 | `Consideration` | 検討設定 | エンジン名、時間無制限フラグ、候補手数 |
 | `KifuAnalysis` | 棋譜解析設定 | 思考時間、エンジン名、解析範囲 |
 | `GameSettings` | 対局開始ダイアログ | 対局者・持ち時間・開始局面・最大手数など前回の対局条件 |
@@ -7026,22 +7030,17 @@ MyDialog::MyDialog(QWidget* parent)
 {
     setupUi();
 
-    // 文字の大きさ（初期値の読み込みと変更のたびの保存）。A-/A+ を渡さなければ決定ボタンの列に作る
+    // 文字の大きさ（初期値の読み込みと変更のたびの保存）。A-/A+ を渡さなければ決定ボタンの列に作る。
+    // 大きさは作るときに戻し、閉じたときに保存する
     DialogFontScale::Options fontOptions;
     fontOptions.decrease = ui->buttonFontDecrease;
     fontOptions.increase = ui->buttonFontIncrease;
+    fontOptions.size = &GameSettings::myDialogSize;
     DialogFontScale::install(this, GameSettings::myDialogFontSize, fontOptions);
-
-    DialogUtils::restoreDialogSize(this, GameSettings::myDialogSize);
-}
-
-MyDialog::~MyDialog()
-{
-    DialogUtils::saveDialogSize(this, GameSettings::myDialogSize);
 }
 ```
 
-`DialogFontScale`（`src/widgets/dialogfontscale.h`）は宣言から初期値を読み、A-/A+ で変わるたびに同じ宣言へ保存する。`Options` には範囲（`minSize`・`maxSize`。既定 8〜24）、ダイアログが置いたボタン（`decrease`・`increase`）と大きさの表示（`sizeLabel`）、ダイアログの大きさの宣言（`size`。渡すと開くときに戻し、閉じるときに保存する）を渡せる。`DialogUtils::restoreDialogSize` / `saveDialogSize`（`src/widgets/dialogutils.h`）も宣言をそのまま受け取る。保存はデストラクタのほか、`done()` や `closeEvent` で行ってもよい。実際のコードでは `KifuPasteDialog` が同じ形になっている。
+`DialogFontScale`（`src/widgets/dialogfontscale.h`）は宣言から初期値を読み、A-/A+ で変わるたびに同じ宣言へ保存する。`Options` には範囲（`minSize`・`maxSize`。既定 8〜24）、ダイアログが置いたボタン（`decrease`・`increase`）と大きさの表示（`sizeLabel`）、ダイアログの大きさの宣言（`size`。渡すと開くときに戻し、閉じるときに保存する）を渡せる。ダイアログはこの `size` を使い、`DialogUtils::restoreDialogSize` / `saveDialogSize` を自分で呼ばない（`closeEvent` だけで保存すると、Esc や「閉じる」で閉じたときに取りこぼす）。ダイアログでないウィンドウ（定跡ウィンドウ）だけが `DialogUtils` を直接使う。
 
 永続化すべき主な設定項目:
 - **ウィンドウサイズ**: ユーザーがリサイズ可能なダイアログ
@@ -9263,7 +9262,8 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | CsaGameDialog | C | dialogs | CSA対局接続ダイアログ | 第11章 |
 | CsaGameProgress | S | network | 通信対局1局ぶんの進行（手順 `RecordLine`・持ち時間・消費時間） | 第12章 |
 | CsaGameSession | C | ui/coordinators | 通信対局の開始（待機ダイアログ）と、進行の画面への反映（棋譜・自動保存は `GameSession`） | 第10章, 第12章 |
-| CsaLogPanel | C | widgets | CSA通信ログドックの中身（通信ログ・接続状態・手入力のコマンド） | 第11章, 第12章 |
+| CsaLogPanel | C | widgets | CSA通信ログドックの中身（`LogPanel` の派生。接続状態・接続中だけ送れるコマンド） | 第11章, 第12章 |
+| LogPanel | C | widgets | 通信ログのパネルの共通部分（USI・CSA） | 第11章 |
 | CsaMoveConverter | NS | network | CSA と USI の指し手の変換（`toCsa`・`toUsi`） | 第12章 |
 | CsaToSfenConverter | C | kifu/formats | CSA形式→SFEN変換器 | 第8章 |
 | CsaWaitingDialog | C | dialogs | CSA接続待機ダイアログ | 第11章 |
@@ -9296,6 +9296,8 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | ErrorBus | C | common | アプリ全体のエラー通知イベントバス（シングルトン） | 第4章, 第12章 |
 | ErrorKinds | NS | automation | CLI・自動化 API・MCP で共有するエラーの分類（enum `ErrorKind`）と、語（slug）・JSON-RPC のコードの表（`slug()`・`rpcCode()`・`toJson()`） | 第14章 |
 | EvaluationChartWidget | C | widgets | 評価値グラフチャートウィジェット（`EvaluationSeries` を描くだけ） | 第11章 |
+| EvaluationChartRange | N | widgets | 評価値グラフの軸の範囲と目盛りの計算（`compute()` が `EvaluationChartAxes` を返す） | 第11章 |
+| EvaluationChartSettingsDialog | C | dialogs | 評価値グラフの表示設定のダイアログ | 第11章 |
 | EvaluationGraphPresenter | C | ui/presenters | 評価値グラフの点の書き手（対局・通信対局・棋譜解析）と表示中の手数 | 第10章 |
 | EvaluationSeries | C | models | 評価値グラフの点（先手から見た評価値の列が2本・系列名・解析した手順の番号） | 第10章 |
 | FixedTimeSource | C | engine | 決まった残り時間を返すエンジンの時間の出どころ（時計のない対局・テスト） | 第7章 |
@@ -9481,7 +9483,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | UsiExporter | C | kifu/formats | USI形式の書き出し | 第8章 |
 | UsiInfo | S | engine | info 行を解析した値（UsiScore を含む） | 第7章 |
 | UsiLineParser | NS | engine | エンジンからの受信行（info・bestmove・checkmate・option・id）を型付きの値にする | 第7章 |
-| UsiLogPanel | C | widgets | USI通信ログドックの中身 | 第7章, 第11章 |
+| UsiLogPanel | C | widgets | USI通信ログドックの中身（`LogPanel` の派生。エンジン名・送信先） | 第7章, 第11章 |
 | UsiMatchHandler | C | engine | 対局での position/go/bestmove のやり取り（先読みを含む） | 第7章 |
 | UsiModelBinding | C | ui/presenters | エンジン1台の思考情報・通信ログを、表示のモデルへ反映する | 第7章, 第10章 |
 | UsiMove | S | core | USI と1対1に対応する指し手の値型（ヘッダーだけで完結する） | 第2章, 第5章 |
@@ -9734,6 +9736,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | branchnodeitem | 第11章 | 分岐ツリーの図の1手の図形（`BranchNodeItem`） |
 | branchtreelayout | 第11章 | 分岐ツリーの行の折りたたみと段の割り当て |
 | evaluationchartwidget | 第11章 | 評価値チャート（`EvaluationSeries` を描くだけ） |
+| evaluationchartrange | 第11章 | 評価値グラフの軸の範囲と目盛りの計算 |
 | engineinfowidget | 第11章 | エンジン情報（探索状況の書式を決める。列幅を自分で保存） |
 | menubuttonwidget | 第11章 | メニューボタン |
 | collapsiblegroupbox | 第11章 | 折りたたみボックス |
@@ -9761,11 +9764,13 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | thinkingpanel | 第11章 | 思考ドックの中身（エンジン2つ分の情報と思考の表、候補手の矢印の表示設定） |
 | pvtableview | 第11章 | 読み筋の表（数値の列・「盤面」ボタン・読み筋の描き方。思考の表と棋譜解析の結果の表で使う） |
 | thinkingtableview | 第11章 | 思考の表（`PvTableView` の派生。対局のエンジン2つと検討タブで共用。列幅） |
-| csalogpanel | 第11章, 第12章 | CSA通信ログドックの中身（通信ログ・接続状態・手入力のコマンド） |
+| csalogpanel | 第11章, 第12章 | CSA通信ログドックの中身（`LogPanel` の派生。接続状態・手入力のコマンド） |
+| logpanel | 第11章 | 通信ログのパネルの共通部分 `LogPanel` |
+| toolbarwidth | 第11章 | ドックの操作列がドックの最小幅を広げないようにする |
 | itemtextdelegate | 第11章 | 項目の文字を、配置を覚えて描くデリゲート |
 | tablemodelutils | 第11章 | 表へのモデルの付け替え（Qt が置き換えた選択モデルを解放する） |
 | tablebuttondelegate | 第11章 | 表のセルを控えめなボタンとして描画する（読み筋の盤面・定跡手の着手と編集など） |
-| usilogpanel | 第7章, 第11章 | USI通信ログドックの中身 |
+| usilogpanel | 第7章, 第11章 | USI通信ログドックの中身（`LogPanel` の派生） |
 
 #### dialogs/（第11章）
 
@@ -9775,6 +9780,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | kifuanalysisdialog | 第11章 | 棋譜解析 |
 | csagamedialog | 第11章 | CSA対局 |
 | engineregistrationdialog | 第11章 | エンジン登録 |
+| evaluationchartsettingsdialog | 第11章 | 評価値グラフの表示設定 |
 | changeenginesettingsdialog | 第11章 | エンジン設定変更 |
 | promotedialog | 第6章, 第11章 | 成/不成確認（`PromoteDialog::ask()`） |
 | versiondialog | 第11章 | バージョン情報 |

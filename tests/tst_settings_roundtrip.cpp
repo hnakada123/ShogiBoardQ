@@ -90,7 +90,7 @@ private slots:
         s.setValue(QStringLiteral("TsumePlay/squareSize"), 50);
         const TsumeshogiSettings::PlayPreferences partial = TsumeshogiSettings::playPreferences();
         QCOMPARE(partial.squareSize, 50);
-        QCOMPARE(partial.size, TsumeshogiSettings::PlayPreferences{}.size);
+        QCOMPARE(partial.problemIndex, TsumeshogiSettings::PlayPreferences{}.problemIndex);
         QCOMPARE(partial.timeoutSec, TsumeshogiSettings::PlayPreferences{}.timeoutSec);
 
         TsumeshogiSettings::PlayPreferences preferences;
@@ -269,12 +269,12 @@ private slots:
         QVERIFY(AppSettings::boardColors() == custom);
         settings.sync();
         QSettings restored(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-        QCOMPARE(restored.value(SettingsKeys::kBoardBackgroundColor).toString(), custom.background.name());
-        QCOMPARE(restored.value(SettingsKeys::kBoardSurfaceColor).toString(), custom.board.name());
-        QCOMPARE(restored.value(SettingsKeys::kBoardStandColor).toString(), custom.stand.name());
-        QCOMPARE(restored.value(SettingsKeys::kBoardGridColor).toString(), custom.grid.name());
+        QCOMPARE(restored.value(QStringLiteral("BoardColors/background")).toString(), custom.background.name());
+        QCOMPARE(restored.value(QStringLiteral("BoardColors/board")).toString(), custom.board.name());
+        QCOMPARE(restored.value(QStringLiteral("BoardColors/stand")).toString(), custom.stand.name());
+        QCOMPARE(restored.value(QStringLiteral("BoardColors/grid")).toString(), custom.grid.name());
 
-        settings.setValue(SettingsKeys::kBoardGridColor, QStringLiteral("invalid-color"));
+        settings.setValue(QStringLiteral("BoardColors/grid"), QStringLiteral("invalid-color"));
         auto expected = custom;
         expected.grid = defaults.grid;
         QVERIFY(AppSettings::boardColors() == expected);
@@ -315,10 +315,10 @@ private slots:
         auto& settings = SettingsCommon::openSettings();
         settings.sync();
         QSettings restored(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-        QCOMPARE(QColor(restored.value(SettingsKeys::kBoardNameBackgroundColor).toString()), custom.nameBackground);
-        QCOMPARE(QColor(restored.value(SettingsKeys::kBoardClockCriticalTextColor).toString()), custom.clockCriticalText);
+        QCOMPARE(QColor(restored.value(QStringLiteral("BoardColors/nameBackground")).toString()), custom.nameBackground);
+        QCOMPARE(QColor(restored.value(QStringLiteral("BoardColors/clockCriticalText")).toString()), custom.clockCriticalText);
 
-        settings.setValue(SettingsKeys::kBoardTurnTextColor, QStringLiteral("invalid-color"));
+        settings.setValue(QStringLiteral("BoardColors/turnText"), QStringLiteral("invalid-color"));
         custom.turnText = defaults.turnText;
         QVERIFY(AppSettings::boardColors() == custom);
         custom.nameBackground = QColor(Qt::transparent);
@@ -355,17 +355,23 @@ private slots:
 
     void analysisSettings_evalChart()
     {
-        AnalysisSettings::evalChartYLimit.set(3000);
-        QCOMPARE(AnalysisSettings::evalChartYLimit(), 3000);
-
-        AnalysisSettings::evalChartXLimit.set(300);
-        QCOMPARE(AnalysisSettings::evalChartXLimit(), 300);
-
-        AnalysisSettings::evalChartXInterval.set(20);
-        QCOMPARE(AnalysisSettings::evalChartXInterval(), 20);
-
-        AnalysisSettings::evalChartLabelFontSize.set(12);
-        QCOMPARE(AnalysisSettings::evalChartLabelFontSize(), 12);
+        EvaluationChartSettings chart;
+        chart.automatic = false;
+        chart.yLimit = 3000;
+        chart.xLimit = 300;
+        chart.xInterval = 20;
+        chart.labelFontSize = 12;
+        AnalysisSettings::evalChart.set(chart);
+        QVERIFY(AnalysisSettings::evalChart() == chart);
+        // 以前の版と同じキーに1項目ずつ保存する
+        QSettings& settings = SettingsCommon::openSettings();
+        QCOMPARE(settings.value(QStringLiteral("EvalChart/yLimit")).toInt(), 3000);
+        QCOMPARE(settings.value(QStringLiteral("EvalChart/automaticRange")).toBool(), false);
+        // 範囲外の値は読むときに範囲に収める
+        settings.setValue(QStringLiteral("EvalChart/yLimit"), 5);
+        settings.setValue(QStringLiteral("EvalChart/labelFontSize"), 99);
+        QCOMPARE(AnalysisSettings::evalChart().yLimit, EvaluationChartSettings::kMinYLimit);
+        QCOMPARE(AnalysisSettings::evalChart().labelFontSize, EvaluationChartSettings::kMaxFontSize);
     }
 
     void analysisSettings_fontSizes()
@@ -732,8 +738,9 @@ private slots:
         TsumeshogiSettings::tsumeshogiGeneratorLastSaveDirectory.set(QStringLiteral("/tmp/tsume"));
         QCOMPARE(TsumeshogiSettings::tsumeshogiGeneratorLastSaveDirectory(), QStringLiteral("/tmp/tsume"));
 
+        TsumeshogiSettings::collectionDialogSize.set(QSize(1200, 850));
+        QCOMPARE(TsumeshogiSettings::collectionDialogSize(), QSize(1200, 850));
         TsumeshogiSettings::CollectionPreferences collection;
-        collection.size = QSize(1200, 850);
         collection.lastFile = QStringLiteral("/tmp/problems.sfen");
         collection.pageSize = 50;
         collection.page = 7;
@@ -741,7 +748,6 @@ private slots:
         collection.timeoutSec = 30;
         TsumeshogiSettings::collectionPreferences.set(collection);
         const auto restored = TsumeshogiSettings::collectionPreferences();
-        QCOMPARE(restored.size, collection.size);
         QCOMPARE(restored.lastFile, collection.lastFile);
         QCOMPARE(restored.pageSize, collection.pageSize);
         QCOMPARE(restored.page, collection.page);

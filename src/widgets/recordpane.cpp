@@ -8,8 +8,10 @@
 #include "buttonstyles.h"
 #include "kifurecordlistmodel.h"
 #include "kifubranchlistmodel.h"
+#include "kifumovedelegate.h"
 #include "recordhighlightdelegate.h"
 #include "gamesettings.h"
+#include "tablestyles.h"
 
 #include "logcategories.h"
 #include <QTextBrowser>
@@ -26,15 +28,86 @@
 #include <QSize>
 #include <QModelIndex>
 #include <QItemSelectionModel>
+#include <QPalette>
+#include <QSignalBlocker>
 #include <QTimer>
+
+namespace {
+using Column = KifuRecordListModel::Column;
+
+/// 行を選ぶ表と、選んだ行の色（棋譜欄と分岐候補欄で同じ）
+void setupSelection(QTableView* view)
+{
+    view->setSelectionBehavior(QAbstractItemView::SelectRows);
+    view->setSelectionMode(QAbstractItemView::SingleSelection);
+    QPalette palette = view->palette();
+    for (const QPalette::ColorGroup group : {QPalette::Active, QPalette::Inactive}) {
+        palette.setColor(group, QPalette::Highlight, TableStyles::selectionBackground());
+        palette.setColor(group, QPalette::HighlightedText, TableStyles::selectionText());
+    }
+    view->setPalette(palette);
+}
+
+/// 表の文字の大きさと行の高さ
+void applyTableFont(QTableView* view, int fontSize)
+{
+    QFont font = view->font();
+    font.setPointSize(fontSize);
+    view->setFont(font);
+    view->verticalHeader()->setDefaultSectionSize(KifuMoveDelegate::textHeight(view->font()) + 4);
+}
+} // namespace
 
 RecordPane::RecordPane(QWidget* parent)
     : QWidget(parent)
     , m_fontSize(GameSettings::kifuPaneFontSize)
-    , m_appearanceManager(GameSettings::kifuPaneFontSize())
 {
+    m_appearance.fontSize = m_fontSize.fontSize();
+    m_appearance.timeVisible = GameSettings::kifuTimeColumnVisible();
+    m_appearance.bookmarkVisible = GameSettings::kifuBookmarkColumnVisible();
+    m_appearance.commentVisible = GameSettings::kifuCommentColumnVisible();
     buildUi();
     wireSignals(); // モデルに依存しないシグナルだけ先に配線
+    applyAppearance();
+}
+
+QString RecordPane::tableStyleSheet(int fontSize)
+{
+    return TableStyles::header(fontSize) + TableStyles::selection()
+         + QStringLiteral("QTableView { background-color: #ffffff; color: #303841; }");
+}
+
+void RecordPane::applyAppearance()
+{
+    // 文字の大きさとスタイルシート（行のクリックを止めている間は、選択とフォーカスの印を出さない）
+    applyTableFont(m_kifu, m_appearance.fontSize);
+    applyTableFont(m_branch, m_appearance.fontSize);
+    QString kifuStyle = tableStyleSheet(m_appearance.fontSize);
+    if (!m_appearance.navigationEnabled) {
+        kifuStyle += QStringLiteral("QTableView::item:focus { background-color: transparent; }"
+                                    "QTableView::item:selected:focus { background-color: transparent; }");
+    }
+    m_kifu->setStyleSheet(kifuStyle);
+    m_branch->setStyleSheet(tableStyleSheet(m_appearance.fontSize));
+
+    // 行のクリック
+    m_kifu->viewport()->setAttribute(Qt::WA_TransparentForMouseEvents, !m_appearance.navigationEnabled);
+    m_kifu->setFocusPolicy(m_appearance.navigationEnabled ? Qt::StrongFocus : Qt::NoFocus);
+
+    // 列の表示。指し手・消費時間は内容に合わせ、しおり・コメントの最右の表示列だけを伸ばす
+    m_kifu->setColumnHidden(Column::TimeColumn, !m_appearance.timeVisible);
+    m_kifu->setColumnHidden(Column::BookmarkColumn, !m_appearance.bookmarkVisible);
+    m_kifu->setColumnHidden(Column::CommentColumn, !m_appearance.commentVisible);
+    if (QHeaderView* header = m_kifu->horizontalHeader(); header && header->count() == Column::ColumnCount) {
+        header->setSectionResizeMode(Column::MoveColumn, QHeaderView::ResizeToContents);
+        header->setSectionResizeMode(Column::TimeColumn, QHeaderView::ResizeToContents);
+        header->setSectionResizeMode(Column::BookmarkColumn,
+                                     m_appearance.bookmarkVisible && !m_appearance.commentVisible
+                                         ? QHeaderView::Stretch : QHeaderView::ResizeToContents);
+        header->setSectionResizeMode(Column::CommentColumn, QHeaderView::Stretch);
+    }
+    updateBranchAppearance();
+    m_kifu->viewport()->update();
 }
 
 void RecordPane::buildUi()
@@ -62,7 +135,6 @@ void RecordPane::buildKifuTable()
     m_kifu->setTextElideMode(Qt::ElideRight);
     // 行が増えてスクロールが必要になっても、棋譜欄とウィンドウの横幅を変えない。
     m_kifu->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
-    m_kifu->setStyleSheet(RecordPaneAppearanceManager::kifuTableStyleSheet(m_appearanceManager.fontSize()));
 }
 
 void RecordPane::buildToolButtons()
@@ -92,7 +164,7 @@ void RecordPane::buildToolButtons()
     m_btnToggleTime = new QPushButton(this);
     m_btnToggleTime->setObjectName(QStringLiteral("kifuToggleTime"));
     m_btnToggleTime->setCheckable(true);
-    m_btnToggleTime->setChecked(GameSettings::kifuTimeColumnVisible());
+    m_btnToggleTime->setChecked(m_appearance.timeVisible);
     m_btnToggleTime->setIcon(QIcon(QStringLiteral(":/images/actions/actionToggleTimeColumn.svg")));
     m_btnToggleTime->setIconSize(QSize(20, 20));
     m_btnToggleTime->setToolTip(tr("消費時間列の表示/非表示"));
@@ -103,7 +175,7 @@ void RecordPane::buildToolButtons()
     m_btnToggleBookmark = new QPushButton(this);
     m_btnToggleBookmark->setObjectName(QStringLiteral("kifuToggleBookmark"));
     m_btnToggleBookmark->setCheckable(true);
-    m_btnToggleBookmark->setChecked(GameSettings::kifuBookmarkColumnVisible());
+    m_btnToggleBookmark->setChecked(m_appearance.bookmarkVisible);
     m_btnToggleBookmark->setIcon(QIcon(QStringLiteral(":/images/actions/actionToggleBookmarkColumn.svg")));
     m_btnToggleBookmark->setIconSize(QSize(20, 20));
     m_btnToggleBookmark->setToolTip(tr("しおり列の表示/非表示"));
@@ -114,7 +186,7 @@ void RecordPane::buildToolButtons()
     m_btnToggleComment = new QPushButton(this);
     m_btnToggleComment->setObjectName(QStringLiteral("kifuToggleComment"));
     m_btnToggleComment->setCheckable(true);
-    m_btnToggleComment->setChecked(GameSettings::kifuCommentColumnVisible());
+    m_btnToggleComment->setChecked(m_appearance.commentVisible);
     m_btnToggleComment->setIcon(QIcon(QStringLiteral(":/images/actions/actionToggleCommentColumn.svg")));
     m_btnToggleComment->setIconSize(QSize(20, 20));
     m_btnToggleComment->setToolTip(tr("コメント列の表示/非表示"));
@@ -192,7 +264,6 @@ void RecordPane::buildBranchPanel()
     m_branch->verticalHeader()->setDefaultSectionSize(branchRowHeight);
     m_branch->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
     m_branch->setWordWrap(false);
-    m_branch->setStyleSheet(RecordPaneAppearanceManager::branchTableStyleSheet(m_appearanceManager.fontSize()));
 
     m_branchContainer = new QWidget(this);
     auto* branchLay = new QVBoxLayout(m_branchContainer);
@@ -213,7 +284,6 @@ void RecordPane::buildBranchPanel()
         "QToolButton:focus { border: 1px solid #52799c; }"));
     branchLay->addWidget(m_branchToggle);
     branchLay->addWidget(m_branch, 1);
-    updateBranchAppearance();
 }
 
 void RecordPane::buildMainLayout()
@@ -263,15 +333,9 @@ void RecordPane::wireSignals()
     connect(m_btnToggleBookmark, &QPushButton::toggled, this, &RecordPane::onToggleBookmarkColumn);
     connect(m_btnToggleComment, &QPushButton::toggled, this, &RecordPane::onToggleCommentColumn);
 
-    // 棋譜表の選択ハイライトを統一
-    setupKifuSelectionAppearance();
-
-    // 分岐候補欄の選択ハイライトを統一
-    setupBranchViewSelectionAppearance();
-
-    // 初期フォントサイズを適用
-    m_appearanceManager.applyFontToViews(m_kifu, m_branch);
-    updateBranchAppearance();
+    // 棋譜表と分岐候補欄の選択ハイライトを揃える
+    setupSelection(m_kifu);
+    setupSelection(m_branch);
 }
 
 void RecordPane::updateKifuTableWidth()
@@ -311,63 +375,28 @@ void RecordPane::updateKifuTableWidth()
 
 void RecordPane::setModels(KifuRecordListModel* recModel, KifuBranchListModel* brModel)
 {
-    qCDebug(lcUi) << "setModels called";
-    qCDebug(lcUi) << "m_kifu styleSheet in setModels:" << m_kifu->styleSheet().left(100) << "...";
-
-    // --- 棋譜テーブル ---
+    // --- 棋譜テーブル（前のモデルの知らせは外す。選択モデルは付け替えで作り直される）---
+    if (QAbstractItemModel* previous = m_kifu->model()) disconnect(previous, nullptr, this, nullptr);
     TableModelUtils::setModel(m_kifu, recModel);
-
-    // 行追加→自動スクロール（多重接続防止）
-    if (auto* model = m_kifu->model()) {
-        if (m_connRowsInserted)
-            disconnect(m_connRowsInserted);
-        m_connRowsInserted = connect(model, &QAbstractItemModel::rowsInserted,
-                                     this, &RecordPane::onKifuRowsInserted);
+    if (recModel) {
+        // 行が足されたら末尾へ送る
+        connect(recModel, &QAbstractItemModel::rowsInserted, this, &RecordPane::onKifuRowsInserted);
     }
-
-    // 注意: 行選択の中継は後続の connectCurrentRow で行うため、ここでは接続しない
-    if (m_connRowChanged) {
-        disconnect(m_connRowChanged);
-        m_connRowChanged = {};
-    }
-
-    m_appearanceManager.applyColumnVisibility(m_kifu);
-    m_kifu->setSelectionBehavior(QAbstractItemView::SelectRows);
-    m_kifu->setSelectionMode(QAbstractItemView::SingleSelection);
-
-    // ① 先に既存接続を解除
-    if (m_connKifuCurrentRow) {
-        QObject::disconnect(m_connKifuCurrentRow);
-        m_connKifuCurrentRow = {};
-    }
-
-    // ② selectionModel() が確実にできてから接続
-    if (auto* sel = m_kifu->selectionModel()) {
-        m_connKifuCurrentRow =
-            connect(sel, &QItemSelectionModel::currentRowChanged,
-                    this, &RecordPane::onKifuCurrentRowChanged);
-    } else {
-        connectKifuCurrentRowChanged();
-    }
-
-    // モデルに行がある場合、最初の行を選択する
-    if (recModel && recModel->rowCount() > 0) {
-        qCDebug(lcUi) << "[RecordPane] setModels: model has rows, selecting first row";
-        if (auto* sel = m_kifu->selectionModel()) {
-            const QModelIndex top = m_kifu->model()->index(0, 0);
-            sel->setCurrentIndex(top,
-                                 QItemSelectionModel::ClearAndSelect
-                                     | QItemSelectionModel::Rows);
-            qCDebug(lcUi) << "[RecordPane] initial row selected";
+    if (QItemSelectionModel* selection = m_kifu->selectionModel()) {
+        connect(selection, &QItemSelectionModel::currentRowChanged, this, &RecordPane::onKifuCurrentRowChanged);
+        // 行がある場合、最初の行を選択する
+        if (recModel && recModel->rowCount() > 0) {
+            selection->setCurrentIndex(recModel->index(0, 0),
+                                       QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
         }
     }
+    applyAppearance();
 
     // --- 分岐テーブル ---
     TableModelUtils::setModel(m_branch, brModel);
     if (auto* hh2 = m_branch->horizontalHeader()) {
         hh2->setSectionResizeMode(0, QHeaderView::Stretch);
     }
-
 }
 
 QTableView* RecordPane::kifuView() const { return m_kifu; }
@@ -375,7 +404,18 @@ QTableView* RecordPane::branchView() const { return m_branch; }
 
 void RecordPane::setKifuViewEnabled(bool on)
 {
-    m_appearanceManager.setKifuViewEnabled(m_kifu, on, m_navigationDisabled);
+    qCDebug(lcUi) << "setKifuViewEnabled called, on=" << on;
+    m_appearance.navigationEnabled = on;
+    if (!on) {
+        // 対局中は行を選ばない（選択の知らせは出さない）
+        m_kifu->clearFocus();
+        if (QItemSelectionModel* selection = m_kifu->selectionModel()) {
+            const QSignalBlocker blocker(selection);
+            selection->clearSelection();
+            selection->setCurrentIndex(QModelIndex(), QItemSelectionModel::Clear);
+        }
+    }
+    applyAppearance();
 }
 
 void RecordPane::onKifuRowsInserted(const QModelIndex& parent, int first, int last)
@@ -404,49 +444,31 @@ void RecordPane::onKifuCurrentRowChanged(const QModelIndex& cur, const QModelInd
     emit mainRowChanged(row);
 }
 
-void RecordPane::connectKifuCurrentRowChanged()
-{
-    if (!m_kifu) return;
-    if (auto* sel = m_kifu->selectionModel()) {
-        if (m_connKifuCurrentRow) {
-            QObject::disconnect(m_connKifuCurrentRow);
-        }
-        m_connKifuCurrentRow =
-            connect(sel, &QItemSelectionModel::currentRowChanged,
-                    this, &RecordPane::onKifuCurrentRowChanged);
-    }
-}
-
-void RecordPane::setupKifuSelectionAppearance()
-{
-    RecordPaneAppearanceManager::setupSelectionPalette(m_kifu);
-}
-
-void RecordPane::setupBranchViewSelectionAppearance()
-{
-    RecordPaneAppearanceManager::setupSelectionPalette(m_branch);
-}
-
 void RecordPane::onFontSizeChanged(int size)
 {
-    m_appearanceManager.setFontSize(size);
-    m_appearanceManager.applyFontToViews(m_kifu, m_branch);
-    updateBranchAppearance();
+    m_appearance.fontSize = size;
+    applyAppearance();
 }
 
 void RecordPane::onToggleTimeColumn(bool checked)
 {
-    m_appearanceManager.toggleTimeColumn(m_kifu, checked);
+    m_appearance.timeVisible = checked;
+    GameSettings::kifuTimeColumnVisible.set(checked);
+    applyAppearance();
 }
 
 void RecordPane::onToggleBookmarkColumn(bool checked)
 {
-    m_appearanceManager.toggleBookmarkColumn(m_kifu, checked);
+    m_appearance.bookmarkVisible = checked;
+    GameSettings::kifuBookmarkColumnVisible.set(checked);
+    applyAppearance();
 }
 
 void RecordPane::onToggleCommentColumn(bool checked)
 {
-    m_appearanceManager.toggleCommentColumn(m_kifu, checked);
+    m_appearance.commentVisible = checked;
+    GameSettings::kifuCommentColumnVisible.set(checked);
+    applyAppearance();
 }
 
 // ============================================================

@@ -12,10 +12,11 @@ class EvaluationChartView;
 class QLabel;
 class QTimer;
 class QGridLayout;
+#include "evaluationchartrange.h"
 #include "usiscore.h"
 
+class QComboBox;
 class QPushButton;
-class EvaluationChartConfigurator;
 class EvaluationSeries;
 
 class EvaluationChartWidget : public QWidget
@@ -32,17 +33,11 @@ public:
     /// 足された点をすぐ描く（点は少し待ってからまとめて描く。棋譜解析で1局面ずつ届くとき）
     void flushPendingScores();
 
-    int yAxisLimit() const;
-    int yAxisInterval() const;
-    int xAxisLimit() const;
-    int xAxisInterval() const;
-    int labelFontSize() const;
-    void setYAxisLimit(int limit);
-    void setYAxisInterval(int interval);
-    void setXAxisLimit(int limit);
-    void setXAxisInterval(int interval);
-    void setLabelFontSize(int size);
-    void setAutomaticRange(bool automatic);
+    /// 表示の設定（範囲・目盛り・文字の大きさ。変えると保存する）
+    const EvaluationChartSettings& chartSettings() const { return m_settings; }
+    void setChartSettings(const EvaluationChartSettings& settings);
+    /// 今の軸（設定・点の範囲・描く場所の大きさから決めた範囲と目盛り）
+    const EvaluationChartAxes& axes() const { return m_axes; }
     void setCurrentPly(int ply);
     void setRecordLength(int plies);
     int currentPly() const { return m_currentPly; }
@@ -59,8 +54,8 @@ public:
     QPushButton* lastButton() const { return m_navButtons[NavLast]; }
 
 signals:
-    void yAxisSettingsChanged(int limit, int interval);
-    void xAxisSettingsChanged(int limit, int interval);
+    /// 「表示設定…」を押した（表示設定のダイアログは上の層が開き、setChartSettings で戻す）
+    void settingsRequested();
     void plyClicked(int ply);
     void analysisPlyClicked(int lineIndex, int ply);
 
@@ -69,12 +64,8 @@ protected:
     void resizeEvent(QResizeEvent* event) override;
     bool eventFilter(QObject* obj, QEvent* ev) override;
 
-public slots:
-    void setFloating(bool floating);
-
 private slots:
-    void applyYAxisSettings();
-    void applyXAxisSettings();
+    void onRangeModeChanged(int index);
     void applyFontSize();
     void onPlotAreaChanged();
     void onScoreAdded(int series, int ply);
@@ -84,6 +75,12 @@ private slots:
 private:
     enum NavButton { NavFirst, NavBack10, NavPrev, NavNext, NavFwd10, NavLast, NavButtonCount };
     using Score = UsiScore;
+    int yAxisLimit() const { return m_axes.yLimit; }
+    int xAxisLimit() const { return m_axes.xLimit; }
+    /// 軸を決め直し、変わった軸を描き直す
+    void updateAxes();
+    void applyYAxis();
+    void applyXAxis();
     void setupAxes();
     void setupChart();
     void setupSeries();
@@ -112,10 +109,15 @@ private:
     QValueAxis* m_axY = nullptr;
     EvaluationChartView* m_chartView = nullptr;
     QLabel* m_tooltip = nullptr;
-    EvaluationChartConfigurator* m_configurator = nullptr;
+    EvaluationChartSettings m_settings;   ///< 表示の設定（AnalysisSettings::evalChart に保存する）
+    EvaluationChartAxes m_axes;
+    int m_maxCp = 0;                      ///< 点の評価値の絶対値の最大（詰みを除く）
+    int m_maxPly = 0;
+    QSizeF m_plotSize{800, 240};          ///< 描く場所の大きさ（目盛りの間引きに使う）
     QGridLayout* m_toolbarLayout = nullptr;
     QWidget* m_rangeSelector = nullptr;
-    QWidget* m_settingsButton = nullptr;
+    QComboBox* m_rangeMode = nullptr;
+    QPushButton* m_settingsButton = nullptr;
     QWidget* m_navBar = nullptr;
     QPushButton* m_navButtons[NavButtonCount] = {};
     bool m_navigationEnabled = true;

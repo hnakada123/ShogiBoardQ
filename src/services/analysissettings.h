@@ -5,14 +5,54 @@
 /// @brief 解析・検討設定の永続化
 ///
 /// 評価値グラフ・解析タブ・棋譜解析・検討モード・読み筋盤面に関する設定を提供します。
-/// 呼び出し元: evaluationchartwidget.cpp, thinkingpanel.cpp, kifuanalysisdialog.cpp,
+/// 呼び出し元: evaluationchartwidget.cpp, evaluationchartsettingsdialog.cpp, thinkingpanel.cpp, kifuanalysisdialog.cpp,
 ///             analysisresultspanel.cpp, considerationtabmanager.cpp,
 ///             pvboarddialog.cpp
 
 #include <QSize>
 #include <QList>
 #include <QString>
+#include <QtGlobal>
 #include "setting.h"
+
+/// 評価値グラフの表示の設定（保存する値。値の範囲はここだけで決める）
+struct EvaluationChartSettings {
+    static constexpr int kMinYLimit = 100;
+    static constexpr int kMaxYLimit = 100000;
+    static constexpr int kMinXLimit = 1;
+    static constexpr int kMaxXLimit = 10000;
+    static constexpr int kMaxYInterval = 100000;
+    static constexpr int kMaxXInterval = 10000;
+    static constexpr int kMinFontSize = 8;
+    static constexpr int kMaxFontSize = 18;
+
+    bool automatic = true;   ///< 表示範囲を点に合わせる（false なら yLimit・xLimit で固定）
+    int yLimit = 2000;       ///< 固定の評価値の範囲（±）
+    int xLimit = 500;        ///< 固定の手数の上限
+    int yInterval = 0;       ///< 評価値の目盛り間隔の希望（0 は自動）
+    int xInterval = 0;       ///< 手数の目盛り間隔の希望（0 は自動）
+    int labelFontSize = 10;  ///< 軸の文字の大きさ
+
+    /// 範囲に収めた値
+    EvaluationChartSettings normalized() const
+    {
+        EvaluationChartSettings result = *this;
+        result.yLimit = qBound(kMinYLimit, yLimit, kMaxYLimit);
+        result.xLimit = qBound(kMinXLimit, xLimit, kMaxXLimit);
+        result.yInterval = qBound(0, yInterval, kMaxYInterval);
+        result.xInterval = qBound(0, xInterval, kMaxXInterval);
+        result.labelFontSize = qBound(kMinFontSize, labelFontSize, kMaxFontSize);
+        return result;
+    }
+    static EvaluationChartSettings normalizedOf(const EvaluationChartSettings& settings) { return settings.normalized(); }
+
+    friend bool operator==(const EvaluationChartSettings& a, const EvaluationChartSettings& b)
+    {
+        return a.automatic == b.automatic && a.yLimit == b.yLimit && a.xLimit == b.xLimit && a.yInterval == b.yInterval
+            && a.xInterval == b.xInterval && a.labelFontSize == b.labelFontSize;
+    }
+    friend bool operator!=(const EvaluationChartSettings& a, const EvaluationChartSettings& b) { return !(a == b); }
+};
 
 namespace AnalysisSettings {
 
@@ -26,21 +66,16 @@ inline const Setting<bool> branchTreeCompactLayout{"BranchTree/compactLayout", t
 
 // --- 評価値グラフ ---
 
-/// 評価値上限（デフォルト: 2000）
-inline const Setting<int> evalChartYLimit{"EvalChart/yLimit", 2000};
-
-/// 手数上限（デフォルト: 500）
-inline const Setting<int> evalChartXLimit{"EvalChart/xLimit", 500};
-
-/// 手数間隔（デフォルト: 0 = 自動）
-inline const Setting<int> evalChartXInterval{"EvalChart/xInterval", 0};
-
-/// 軸ラベルフォントサイズ（デフォルト: 10）
-inline const Setting<int> evalChartLabelFontSize{"EvalChart/labelFontSize", 10};
-
-inline const Setting<bool> evalChartAutomaticRange{"EvalChart/automaticRange", true};
-/// 0 は画面サイズに応じた自動目盛り
-inline const Setting<int> evalChartYInterval{"EvalChart/yInterval", 0};
+/// 評価値グラフの表示の設定（キーは以前の版と同じ。範囲は EvaluationChartSettings で決める）
+inline const StructSetting<EvaluationChartSettings> evalChart{
+    {SettingField<EvaluationChartSettings>::of("EvalChart/automaticRange", &EvaluationChartSettings::automatic),
+     SettingField<EvaluationChartSettings>::of("EvalChart/yLimit", &EvaluationChartSettings::yLimit),
+     SettingField<EvaluationChartSettings>::of("EvalChart/xLimit", &EvaluationChartSettings::xLimit),
+     SettingField<EvaluationChartSettings>::of("EvalChart/yInterval", &EvaluationChartSettings::yInterval),
+     SettingField<EvaluationChartSettings>::of("EvalChart/xInterval", &EvaluationChartSettings::xInterval),
+     SettingField<EvaluationChartSettings>::of("EvalChart/labelFontSize", &EvaluationChartSettings::labelFontSize)},
+    &EvaluationChartSettings::normalizedOf};
+/// 表示設定ダイアログの大きさ
 inline const Setting<QSize> evalChartSettingsSize{"EvalChart/settingsSize", QSize(420, 320)};
 
 // --- 解析タブ ---

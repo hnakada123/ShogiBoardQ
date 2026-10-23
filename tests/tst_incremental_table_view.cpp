@@ -19,7 +19,7 @@
 #include "tablebuttondelegate.h"
 #include "pvtextdelegate.h"
 #include "recordhighlightdelegate.h"
-#include "recordpaneappearancemanager.h"
+#include "recordpane.h"
 #include "shogienginethinkingmodel.h"
 #include "shogiinforecord.h"
 #include "tablestyles.h"
@@ -190,7 +190,7 @@ private slots:
         view.verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
         view.setWordWrap(false);
         view.setTextElideMode(Qt::ElideRight);
-        view.setStyleSheet(RecordPaneAppearanceManager::kifuTableStyleSheet(10));
+        view.setStyleSheet(RecordPane::tableStyleSheet(10));
         view.setModel(&model);
         view.horizontalHeader()->setStretchLastSection(true);
         view.resize(420, 260);
@@ -500,7 +500,7 @@ private slots:
         IncrementalTableView view;
         view.setItemDelegate(new RecordHighlightDelegate(&view));
         view.verticalHeader()->setVisible(false);
-        view.setStyleSheet(RecordPaneAppearanceManager::kifuTableStyleSheet(10));
+        view.setStyleSheet(RecordPane::tableStyleSheet(10));
         view.setModel(&first);
         view.resize(420, 260);
         view.show();

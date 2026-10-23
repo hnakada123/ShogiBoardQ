@@ -39,7 +39,6 @@ private slots:
     void applyColor(const QColor& color);
     void refreshButtons();
     void restoreDefaults();
-    void savePickerSize();
     void rebuildPresets();
     void applyPreset(int index);
     void applyTheme(int index);
@@ -87,8 +86,7 @@ private:
     void createAppearancePage();
     void addSection(const QString& id, QWidget* page, const QString& title);
     void syncThemeSelection();
-    void addColorField(QFormLayout* form, BoardColors::Member member,
-                       const QString& label, const QString& objectName);
+    void addColorField(QFormLayout* form, const BoardColors::Field& field);
     void syncPresetSelection();
     QIcon presetIcon(const BoardColors& colors, const QString& style = QString(),
                      const BoardVisuals& visuals = BoardVisuals{}) const;

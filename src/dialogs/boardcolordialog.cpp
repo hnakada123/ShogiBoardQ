@@ -3,7 +3,6 @@
 #include "appearancestate.h"
 #include "piecestylecatalog.h"
 #include "boardappearance.h"
-#include "dialogutils.h"
 #include "dialogfontscale.h"
 #include "pieceimageprovider.h"
 #include "boardsurfacepainter.h"
@@ -19,6 +18,7 @@
 #include <QSignalBlocker>
 #include <QTabWidget>
 #include <QVBoxLayout>
+#include <optional>
 #include <utility>
 #include <QCheckBox>
 #include <QSpinBox>
@@ -77,19 +77,21 @@ BoardColorDialog::BoardColorDialog(QWidget* parent)
     m_picker->setOption(QColorDialog::DontUseNativeDialog);
     m_picker->setWindowModality(Qt::WindowModal);
     connect(m_picker, &QColorDialog::colorSelected, this, &BoardColorDialog::applyColor);
-    connect(m_picker, &QDialog::finished, this, &BoardColorDialog::savePickerSize);
     connect(&BoardAppearance::instance(), &BoardAppearance::colorsChanged,
             this, &BoardColorDialog::refreshButtons);
     rebuildPresets();
     refreshButtons();
-    DialogUtils::restoreDialogSize(this, AppSettings::boardColorDialogSize());
-    DialogFontScale::install(this, AppSettings::boardColorsDialogFontSize);
-    DialogFontScale::install(m_picker, AppSettings::colorPickerDialogFontSize);
+    // 文字の大きさと、閉じたときに保存する大きさ（色の選択も同じ）
+    DialogFontScale::Options dialogOptions;
+    dialogOptions.size = &AppSettings::boardColorDialogSize;
+    DialogFontScale::install(this, AppSettings::boardColorsDialogFontSize, dialogOptions);
+    DialogFontScale::Options pickerOptions;
+    pickerOptions.size = &AppSettings::boardColorPickerSize;
+    DialogFontScale::install(m_picker, AppSettings::colorPickerDialogFontSize, pickerOptions);
 }
 
 BoardColorDialog::~BoardColorDialog()
 {
-    DialogUtils::saveDialogSize(this, AppSettings::boardColorDialogSize);
     AppSettings::boardColorDialogTab.set(m_tabs->currentIndex());
     const int section = m_sections->currentIndex();
     if (section >= 0 && section < m_sectionIds.size()) AppSettings::setAppearanceSection(m_sectionIds.at(section));
@@ -117,41 +119,35 @@ void BoardColorDialog::createColorPages()
         m_tabs->addTab(widget, title);
         return form;
     };
+    // 色の表（BoardColors::fields）の分類ごとに1つのタブ
     const QString transparentNote = tr("背景や枠線のアルファ値を0にすると透明になります。");
-    auto* form = page(tr("盤・駒台"));
-    addColorField(form, &BoardColors::background, tr("将棋盤の背景"), QStringLiteral("backgroundColorButton"));
-    addColorField(form, &BoardColors::board, tr("将棋盤"), QStringLiteral("boardColorButton"));
-    addColorField(form, &BoardColors::stand, tr("駒台"), QStringLiteral("standColorButton"));
-    addColorField(form, &BoardColors::grid, tr("マス罫線"), QStringLiteral("gridColorButton"));
-
-    form = page(tr("カード全体"), tr("対局者名と持ち時間を囲むカードの色を設定します。"));
-    addColorField(form, &BoardColors::cardBackground, tr("カードの背景"), QStringLiteral("cardBackgroundColorButton"));
-    addColorField(form, &BoardColors::cardBorder, tr("通常の枠線"), QStringLiteral("cardBorderColorButton"));
-    addColorField(form, &BoardColors::activeCardBorder, tr("手番側の枠線"), QStringLiteral("activeCardBorderColorButton"));
-
-    form = page(tr("手番"), tr("「手番」バッジの色を設定します。") + QChar(0x0a) + transparentNote);
-    addColorField(form, &BoardColors::turnBackground, tr("手番の背景"), QStringLiteral("turnBackgroundColorButton"));
-    addColorField(form, &BoardColors::turnBorder, tr("手番の枠線"), QStringLiteral("turnBorderColorButton"));
-    addColorField(form, &BoardColors::turnText, tr("手番の文字"), QStringLiteral("turnTextColorButton"));
-
-    form = page(tr("対局者名"), transparentNote);
-    addColorField(form, &BoardColors::nameBackground, tr("対局者名の背景"), QStringLiteral("nameBackgroundColorButton"));
-    addColorField(form, &BoardColors::nameBorder, tr("対局者名の枠線"), QStringLiteral("nameBorderColorButton"));
-    addColorField(form, &BoardColors::nameText, tr("対局者名の文字"), QStringLiteral("nameTextColorButton"));
-
-    form = page(tr("持ち時間"), transparentNote);
-    addColorField(form, &BoardColors::clockBackground, tr("持ち時間の背景"), QStringLiteral("clockBackgroundColorButton"));
-    addColorField(form, &BoardColors::clockBorder, tr("持ち時間の枠線"), QStringLiteral("clockBorderColorButton"));
-    addColorField(form, &BoardColors::clockText, tr("持ち時間の文字"), QStringLiteral("clockTextColorButton"));
-    addColorField(form, &BoardColors::clockWarningText, tr("残り10秒以下の文字"), QStringLiteral("clockWarningTextColorButton"));
-    addColorField(form, &BoardColors::clockCriticalText, tr("秒読み・残り5秒以下の文字"), QStringLiteral("clockCriticalTextColorButton"));
+    std::optional<BoardColors::Group> group;
+    QFormLayout* form = nullptr;
+    for (const BoardColors::Field& field : BoardColors::fields()) {
+        if (field.group != group) {
+            group = field.group;
+            switch (field.group) {
+            case BoardColors::Group::Board: form = page(tr("盤・駒台")); break;
+            case BoardColors::Group::Card:
+                form = page(tr("カード全体"), tr("対局者名と持ち時間を囲むカードの色を設定します。"));
+                break;
+            case BoardColors::Group::Turn:
+                form = page(tr("手番"), tr("「手番」バッジの色を設定します。") + QChar(0x0a) + transparentNote);
+                break;
+            case BoardColors::Group::Name: form = page(tr("対局者名"), transparentNote); break;
+            case BoardColors::Group::Clock: form = page(tr("持ち時間"), transparentNote); break;
+            }
+        }
+        addColorField(form, field);
+    }
 }
 
-void BoardColorDialog::addColorField(QFormLayout* form, BoardColors::Member member,
-                                    const QString& label, const QString& objectName)
+void BoardColorDialog::addColorField(QFormLayout* form, const BoardColors::Field& field)
 {
+    const BoardColors::Member member = field.member;
+    const QString label = QCoreApplication::translate("BoardColorDialog", field.label);
     auto* button = new QPushButton(this);
-    button->setObjectName(objectName);
+    button->setObjectName(QString::fromLatin1(field.objectName));
     button->setAccessibleName(label);
     button->setMinimumHeight(36);
     button->setIconSize(QSize(36, 22));
@@ -169,7 +165,6 @@ void BoardColorDialog::chooseColor()
         m_picker->setWindowTitle(tr("%1の色").arg(field.label));
         m_picker->setOption(QColorDialog::ShowAlphaChannel, BoardColors::supportsTransparency(field.member));
         m_picker->setCurrentColor(BoardAppearance::instance().colors().*field.member);
-        DialogUtils::restoreDialogSize(m_picker, AppSettings::boardColorPickerSize());
         m_picker->open();
         return;
     }
@@ -208,11 +203,6 @@ void BoardColorDialog::refreshButtons()
 void BoardColorDialog::restoreDefaults()
 {
     BoardAppearance::instance().setColors(BoardColors{});
-}
-
-void BoardColorDialog::savePickerSize()
-{
-    DialogUtils::saveDialogSize(m_picker, AppSettings::boardColorPickerSize);
 }
 
 void BoardColorDialog::rebuildPresets()

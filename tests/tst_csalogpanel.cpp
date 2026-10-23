@@ -7,6 +7,9 @@
 #include <QTemporaryDir>
 
 #include "csalogpanel.h"
+#include "networksettings.h"
+
+#include <QAction>
 
 class TestCsaLogPanel : public QObject
 {
@@ -81,6 +84,27 @@ private slots:
         QCOMPARE(scroll->value(), scroll->maximum());
         for (int i = 0; i < 5000; ++i) panel.append(QString::number(i));
         QCOMPARE(view->document()->blockCount(), 5000);
+    }
+
+    /// 通信ログの操作（折り返し・全てコピー・消去）は USI 通信ログと同じ LogPanel の部品
+    void sharesLogActionsWithUsiLog()
+    {
+        CsaLogPanel panel;
+        auto* copy = panel.findChild<QAction*>("csaLogCopy");
+        auto* clear = panel.findChild<QAction*>("csaLogClear");
+        auto* wrap = panel.findChild<QAction*>("csaLogWrap");
+        auto* view = panel.findChild<QPlainTextEdit*>("csaLogView");
+        QVERIFY(copy && clear && wrap && view);
+        QVERIFY(!copy->isEnabled() && !clear->isEnabled());
+        panel.append(QStringLiteral("LOGIN:user OK"));
+        QVERIFY(copy->isEnabled() && clear->isEnabled());
+        wrap->trigger();
+        QCOMPARE(view->lineWrapMode(), QPlainTextEdit::WidgetWidth);
+        QVERIFY(NetworkSettings::csaLogWrapLines());
+        wrap->trigger();
+        clear->trigger();
+        QVERIFY(view->document()->isEmpty());
+        QVERIFY(!copy->isEnabled());
     }
 };
 

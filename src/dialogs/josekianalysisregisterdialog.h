@@ -6,6 +6,8 @@
 
 #include <QDialog>
 
+#include "settingsformbinding.h"
+
 class QCheckBox;
 class QPushButton;
 class QSpinBox;
@@ -46,6 +48,7 @@ private:
     QCheckBox *m_black = nullptr;
     QCheckBox *m_white = nullptr;
     QPushButton *m_okButton = nullptr;
+    SettingsFormBinding m_form;   ///< 入力欄と設定の対応（決めたときに保存する）
 };
 
 #endif // JOSEKIANALYSISREGISTERDIALOG_H

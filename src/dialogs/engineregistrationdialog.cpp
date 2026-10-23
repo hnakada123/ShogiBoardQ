@@ -5,7 +5,6 @@
 #include "dialogfontscale.h"
 #include "engineregistrationhandler.h"
 #include "enginedialogsettings.h"
-#include "dialogutils.h"
 #include "ui_engineregistrationdialog.h"
 #include "changeenginesettingsdialog.h"
 #include "buttonstyles.h"
@@ -29,14 +28,8 @@ EngineRegistrationDialog::EngineRegistrationDialog(QWidget *parent)
     // シグナル・スロットの接続を行う。
     initializeSignals();
 
-    // 設定ファイルからエンジン名と絶対パス付きの実行ファイル名を読み込む。
+    // 設定ファイルから登録エンジンを読み込む（画面の一覧は enginesChanged で作る）
     m_handler->loadEnginesFromSettings();
-
-    // GUIのリストウィジェットにエンジン名を追加する。
-    for (const EngineListSettings::EngineEntry& engine : std::as_const(m_handler->engineList())) {
-        ui->engineListWidget->addItem(engine.name);
-        ui->engineListWidget->item(ui->engineListWidget->count() - 1)->setToolTip(engine.path);
-    }
 
     // ボタンスタイルを適用
     ui->addEngineButton->setStyleSheet(ButtonStyles::primaryAction());
@@ -49,10 +42,9 @@ EngineRegistrationDialog::EngineRegistrationDialog(QWidget *parent)
     fontOptions.maxSize = 20;
     fontOptions.decrease = ui->fontDecreaseButton;
     fontOptions.increase = ui->fontIncreaseButton;
+    fontOptions.size = &EngineDialogSettings::engineRegistrationDialogSize;
     DialogFontScale::install(this, EngineDialogSettings::engineRegistrationFontSize, fontOptions);
 
-    // 保存されているウィンドウサイズを復元
-    DialogUtils::restoreDialogSize(this, EngineDialogSettings::engineRegistrationDialogSize());
     if (ui->engineListWidget->count() > 0) ui->engineListWidget->setCurrentRow(0);
     ui->engineListWidget->setAccessibleName(tr("登録済みエンジン"));
     ui->addEngineButton->setAutoDefault(false);
@@ -68,9 +60,6 @@ EngineRegistrationDialog::~EngineRegistrationDialog()
     disconnect(ui->engineListWidget, nullptr, this, nullptr);
     // 進行中の登録処理をキャンセルする
     m_handler->cancelRegistration();
-
-    // ウィンドウサイズを保存
-    DialogUtils::saveDialogSize(this, EngineDialogSettings::engineRegistrationDialogSize);
 }
 
 // シグナル・スロットの接続を行う。
@@ -99,6 +88,7 @@ void EngineRegistrationDialog::initializeSignals() const
     connect(ui->closeButton, &QPushButton::clicked, this, &QDialog::accept);
 
     // ハンドラシグナルの接続
+    connect(m_handler.get(), &EngineRegistrationHandler::enginesChanged, this, &EngineRegistrationDialog::rebuildEngineList);
     connect(m_handler.get(), &EngineRegistrationHandler::engineRegistered, this, &EngineRegistrationDialog::onEngineRegistered);
     connect(m_handler.get(), &EngineRegistrationHandler::errorOccurred, this, &EngineRegistrationDialog::onHandlerError);
     connect(m_handler.get(), &EngineRegistrationHandler::registrationInProgressChanged, this, &EngineRegistrationDialog::onRegistrationInProgressChanged);
@@ -160,13 +150,8 @@ void EngineRegistrationDialog::removeEngine()
         return;
     }
 
-    // ここからは選択されたエンジンが正確に一つであることが保証されている。
-    QListWidgetItem* selectedItem = items.first();
-    int index = ui->engineListWidget->row(selectedItem);
-    std::unique_ptr<QListWidgetItem> takenItem(ui->engineListWidget->takeItem(index));
-
-    // ハンドラにエンジン削除を委譲する。
-    m_handler->removeEngineAt(index);
+    // ハンドラの一覧から消す（画面の一覧は enginesChanged で作り直す）
+    m_handler->removeEngineAt(ui->engineListWidget->row(items.first()));
 }
 
 // 設定ボタンが押されたときに呼び出されるスロット
@@ -192,14 +177,28 @@ void EngineRegistrationDialog::configureEngine()
     dialog.exec();
 }
 
-// エンジン登録完了時のスロット
+void EngineRegistrationDialog::rebuildEngineList()
+{
+    const QListWidgetItem* current = ui->engineListWidget->currentItem();
+    const QString selectedName = current ? current->text() : QString();
+    const int selectedRow = ui->engineListWidget->currentRow();
+    ui->engineListWidget->clear();
+    for (const EngineListSettings::EngineEntry& engine : std::as_const(m_handler->engineList())) {
+        auto* item = new QListWidgetItem(engine.name, ui->engineListWidget);
+        item->setToolTip(engine.path);
+    }
+    const QList<QListWidgetItem*> same = ui->engineListWidget->findItems(selectedName, Qt::MatchExactly);
+    if (!same.isEmpty()) ui->engineListWidget->setCurrentItem(same.constFirst());
+    else if (ui->engineListWidget->count() > 0)
+        ui->engineListWidget->setCurrentRow(qBound(0, selectedRow, ui->engineListWidget->count() - 1));
+    updateSelectionState();
+}
+
+// エンジン登録完了時のスロット（登録したエンジンを選ぶ）
 void EngineRegistrationDialog::onEngineRegistered(const QString& engineName)
 {
-    // エンジン名をリストに追加する。
-    ui->engineListWidget->addItem(engineName);
-    const int row = ui->engineListWidget->count() - 1;
-    ui->engineListWidget->item(row)->setToolTip(m_handler->engineAt(row).path);
-    ui->engineListWidget->setCurrentRow(row);
+    const QList<QListWidgetItem*> items = ui->engineListWidget->findItems(engineName, Qt::MatchExactly);
+    if (!items.isEmpty()) ui->engineListWidget->setCurrentItem(items.constFirst());
 }
 
 // ハンドラエラー時のスロット

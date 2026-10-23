@@ -179,8 +179,8 @@ cmake --build build --target translations
   - `environment` コマンドは自動化 API の既定のソケット・エンドポイントファイル・設定ファイルの場所、1メッセージの上限（`AutomationServer::kMaxMessageBytes`）、エラーの分類の表を出す。MCP サーバー（`mcp/shogiboardq_mcp/environment.py`）はこれを読み、場所や上限・語を Python に写さない
   - `describe` コマンドは CLI と自動化 API の表を JSON Schema で出す。MCP のツールのスキーマはその出力を保存した `mcp/shogiboardq_mcp/specs.json` から作る（引数名は CLI・自動化 API・MCP で同じ）ので、引数を変えたら `python3 -m shogiboardq_mcp.specs build/shogiboardq-cli`（mcp/ で）で作り直す（`mcp/tests/test_param_specs.py` が古さを検査する）。CLI は `--params-json '<JSON>'` でも引数を受け、MCP サーバーはこれで渡す。以前のオプション名は旧名（`ParamSpec::alias`・`aliasFlag`）で受け付ける
 - **widgets/**: Custom Qt widgets
-  - ドックのパネル（`thinkingpanel`・`gameinfopane`・`recordpane`・`considerationtabmanager`・`usilogpanel`・`csalogpanel`・`commenteditorpanel`・`analysisresultspanel`・`branchtreeview`）はすべて `QWidget` の派生で、部品をコンストラクタで作りきる。`DockRegistry` はパネルそのものをドックに入れる（`buildUi()`・`containerWidget()` のような、外から後で中身を作らせる・取り出す公開の関数は持たない）
-  - `thinkingpanel`・`thinkingtableview`（思考の表。対局と検討タブで共用）・`pvtableview`（読み筋の表 `PvTableView`。数値の列・「盤面」ボタン（`boardRequested`）・読み筋の描き方・行の高さを受け持ち、思考の表の基底で棋譜解析の結果の表にも使う。行の右クリックのメニューの項目は受け手が `rowContextMenuAboutToShow(row, menu)` で足す）・`engineinfowidget`（探索状況の書式はここで決める）, `gameinfopane`（対局情報。中身は `models/gameinfoeditmodel`）, `recordpane`, `considerationtabmanager`（検討タブ。設定 `ConsiderationSettings`（`considerationsettings.h`）を正本として持ち、開始/中止のボタンは実行の状態 `RunState` で決まる）, `evaluationchartwidget`（評価値グラフ。`EvaluationSeries` を描くだけ）, `analysisresultspanel`（棋譜解析の結果の表。列は `KifuAnalysisListModel::Column`、モデルは `setModel()` で1度だけ結ぶ。ドックを出すのは `KifuAnalysisController`）, `branchtreeview`（分岐ツリーの図 `BranchTreeView`。`QGraphicsView` の派生でドックの中身そのもの。`setTree()` でツリーの変更の知らせを自分で受け、手順の末尾に1手足しただけならその手だけを描き足し、それ以外は作り直す。外とは `KifuBranchNode` の ID だけでやり取りする（`setCurrentNode(nodeId)`・`nodeActivated(nodeId)`・`nodeContextMenuAboutToShow(nodeId, menu)`・`refreshNode(nodeId)`）。行・段・折りたたみの配置は `branchtreelayout`）・`branchnodeitem`（図の1手（開始局面を含む）の図形 `BranchNodeItem`。ノード ID・行・手数を型付きのメンバで持ち、`BranchTreeItemRoles` は自動化 API のためだけに付ける）
+  - ドックのパネル（`thinkingpanel`・`gameinfopane`・`recordpane`・`considerationtabmanager`・`usilogpanel`・`csalogpanel`・`commenteditorpanel`・`analysisresultspanel`・`branchtreeview`）はすべて `QWidget` の派生で、部品をコンストラクタで作りきる（USI・CSA の通信ログは共通の基底 `logpanel` の `LogPanel`。ログ・折り返し・最新へ・コピー・消去・コマンドの欄）。`DockRegistry` はパネルそのものをドックに入れる（`buildUi()`・`containerWidget()` のような、外から後で中身を作らせる・取り出す公開の関数は持たない）
+  - `thinkingpanel`・`thinkingtableview`（思考の表。対局と検討タブで共用）・`pvtableview`（読み筋の表 `PvTableView`。数値の列・「盤面」ボタン（`boardRequested`）・読み筋の描き方・行の高さを受け持ち、思考の表の基底で棋譜解析の結果の表にも使う。行の右クリックのメニューの項目は受け手が `rowContextMenuAboutToShow(row, menu)` で足す）・`engineinfowidget`（探索状況の書式はここで決める）, `gameinfopane`（対局情報。中身は `models/gameinfoeditmodel`）, `recordpane`, `considerationtabmanager`（検討タブ。設定 `ConsiderationSettings`（`considerationsettings.h`）を正本として持ち、開始/中止のボタンは実行の状態 `RunState` で決まる）, `evaluationchartwidget`（評価値グラフ。`EvaluationSeries` を描くだけ。表示の設定は値 `EvaluationChartSettings`（`AnalysisSettings::evalChart`）、軸は `evaluationchartrange` の `EvaluationChartRange::compute`。「表示設定…」は `settingsRequested` を出し、`DialogLauncher` が dialogs の `EvaluationChartSettingsDialog` を開く）, `analysisresultspanel`（棋譜解析の結果の表。列は `KifuAnalysisListModel::Column`、モデルは `setModel()` で1度だけ結ぶ。ドックを出すのは `KifuAnalysisController`）, `branchtreeview`（分岐ツリーの図 `BranchTreeView`。`QGraphicsView` の派生でドックの中身そのもの。`setTree()` でツリーの変更の知らせを自分で受け、手順の末尾に1手足しただけならその手だけを描き足し、それ以外は作り直す。外とは `KifuBranchNode` の ID だけでやり取りする（`setCurrentNode(nodeId)`・`nodeActivated(nodeId)`・`nodeContextMenuAboutToShow(nodeId, menu)`・`refreshNode(nodeId)`）。行・段・折りたたみの配置は `branchtreelayout`）・`branchnodeitem`（図の1手（開始局面を含む）の図形 `BranchNodeItem`。ノード ID・行・手数を型付きのメンバで持ち、`BranchTreeItemRoles` は自動化 API のためだけに付ける）
   - `tableheaderview` - 表の見出し。列幅は利用者がドラッグしたときだけ `sectionResizedByUser` で保存する
   - `fontsizehelper` - A-/A+ の文字の大きさ（範囲・保存・変更の通知）
   - `fontsizecontrol` - A-/A+ のボタンの組 `FontSizeControl`（文字・見た目・ツールチップと、範囲の端で押せなくする処理はここだけ）。ドックのパネル（思考・検討・棋譜・対局情報・コメント・通信ログ・棋譜解析の結果・定跡ウィンドウ・メニューウィンドウ）が使う。ボタンは役割のプロパティ `FontSizeControl::kRoleProperty`（値は `decrease`・`increase`）で探せる
@@ -275,7 +275,7 @@ grep -c 'type="unfinished"' resources/translations/*.ts | \
 **追加手順:**
 1. ドメイン別ヘッダーに `inline const Setting<T> name{"Group/key", 既定値};` を1行足す
 2. 読むときは `NS::name()`、書くときは `NS::name.set(value)`、既定値は `NS::name.defaultValue()`。既定値が翻訳文や実行時の場所で決まる項目は、宣言の既定値を空にして `NS::name.valueOr(tr("..."))` で読む
-3. ダイアログのコンストラクタで読み込み、デストラクタ・`done()`・`closeEvent` で保存する。ウィンドウサイズは `DialogUtils::restoreDialogSize` / `saveDialogSize`（または `DialogFontScale::Options::size`）、A-/A+ は `DialogFontScale::install(this, 宣言, options)` に宣言をそのまま渡す。ダイアログに `FontSizeHelper` のメンバや A-/A+ 用の connect・`applyFontSize()` は書かない。入力欄の値は `SettingsFormBinding`（`src/widgets/settingsformbinding.h`）に欄と宣言を `add()` すれば、読み込み・保存・既定値に戻すを1つの表で行える
+3. ダイアログのウィンドウサイズと A-/A+ は `DialogFontScale::install(this, 文字の大きさの宣言, options)` に渡す（`options.size` に大きさの宣言を入れれば、作るときに戻し、閉じた（Hide の）ときに保存する。デストラクタ・`done()`・`closeEvent` で `DialogUtils::saveDialogSize` を書かない）。ダイアログに `FontSizeHelper` のメンバや A-/A+ 用の connect・`applyFontSize()` は書かない。入力欄の値は `SettingsFormBinding`（`src/widgets/settingsformbinding.h`。数値・小数・チェック・ラジオの組（位置か2択）・コンボ・文字の欄）に欄と宣言を `add()` すれば、読み込み・保存・既定値に戻すを1つの表で行える（文字は前後の空白を除いて保存し、範囲外の位置は端に寄せる）。大きさを構造体の設定（`StructSetting`）に入れない
 4. 値の範囲を絞る項目は `BoundedSetting<T>{"Group/key", 既定値, 最小, 最大}`、構造体を項目ごとのキーに保存する項目は `StructSetting<T>{{SettingField<T>::of("Group/key", &T::member), ...}, 整える関数}`、配列で保存する項目は `ListSetting<T>{配列のキー, 要素のキー}`（配列のキーは実行時に作ってもよい）・`StructListSetting<T>{配列のキー, {項目...}}` で宣言する（いずれも `setting.h`。使い方は `Setting<T>` と同じ）。これらで表せない処理（以前の版の値の引き継ぎ、`AppSettings::boardVisuals` の駒台の木目の代替のような未保存の項目の代わり、`kifuAnalysisColumnWidths` の `QVariantList` のような独自の保存形式）が要る項目だけを関数として `.cpp` に書く。その場合も `SettingsCommon::openSettings()` を使う（設定ファイルを `QSettings` で直接開くのは、`beginReadArray` などでグループの状態を変えたまま読み書きを続ける配列データ（`EngineProfileStore`）だけ）
 
 **実装例:**
@@ -292,18 +292,13 @@ MyDialog::MyDialog(QWidget* parent)
 {
     setupUi();
 
-    // 文字の大きさ（初期値の読み込みと変更のたびの保存）。A-/A+ を渡さなければ決定ボタンの列に作る
+    // 文字の大きさ（初期値の読み込みと変更のたびの保存）。A-/A+ を渡さなければ決定ボタンの列に作る。
+    // 大きさは作るときに戻し、閉じたときに保存する
     DialogFontScale::Options fontOptions;
     fontOptions.decrease = ui->buttonFontDecrease;
     fontOptions.increase = ui->buttonFontIncrease;
+    fontOptions.size = &GameSettings::myDialogSize;
     DialogFontScale::install(this, GameSettings::myDialogFontSize, fontOptions);
-
-    DialogUtils::restoreDialogSize(this, GameSettings::myDialogSize);
-}
-
-MyDialog::~MyDialog()
-{
-    DialogUtils::saveDialogSize(this, GameSettings::myDialogSize);
 }
 ```
 

@@ -1153,7 +1153,8 @@ add_shogi_test(tst_evaluationchart
     ${SRC}/widgets/evaluationchartwidget.cpp
     ${SRC}/models/evaluationseries.cpp
     ${SRC}/widgets/evaluationchartview.cpp
-    ${SRC}/widgets/evaluationchartconfigurator.cpp
+    ${SRC}/widgets/evaluationchartrange.cpp
+    ${SRC}/dialogs/evaluationchartsettingsdialog.cpp
     ${SRC}/core/usiscore.cpp
     ${SRC}/widgets/dialogfontscale.cpp
     ${SRC}/widgets/fontsizecontrol.cpp
@@ -1169,6 +1170,7 @@ add_shogi_test(tst_evaluationchart
 add_shogi_test(tst_csalogpanel
     tst_csalogpanel.cpp
     ${SRC}/widgets/csalogpanel.cpp
+    ${SRC}/widgets/logpanel.cpp
     ${SRC}/widgets/fontsizecontrol.cpp
     ${SRC}/widgets/fontsizehelper.cpp
     ${SRC}/style/applicationfonts.cpp
@@ -1179,6 +1181,7 @@ add_shogi_test(tst_csalogpanel
 add_shogi_test(tst_usilogpanel
     tst_usilogpanel.cpp
     ${SRC}/widgets/usilogpanel.cpp
+    ${SRC}/widgets/logpanel.cpp
     ${SRC}/widgets/fontsizecontrol.cpp
     ${SRC}/widgets/fontsizehelper.cpp
     ${SRC}/widgets/elidelabel.cpp
@@ -1258,6 +1261,10 @@ target_link_libraries(tst_automation_security PRIVATE shogiboardq_static)
 # 引数の表（CLI・自動化 API・MCP で共有）
 add_shogi_test(tst_position_collection_file tst_position_collection_file.cpp)
 target_link_libraries(tst_position_collection_file PRIVATE shogiboardq_static)
+
+# 入力欄と設定の宣言の対応（ダイアログの読み込み・保存・既定値に戻す）
+add_shogi_test(tst_settings_form_binding tst_settings_form_binding.cpp)
+target_link_libraries(tst_settings_form_binding PRIVATE shogiboardq_static)
 
 add_shogi_test(tst_param_specs tst_param_specs.cpp ${SRC}/cli/clicommandspecs.cpp)
 target_link_libraries(tst_param_specs PRIVATE shogiboardq_static)

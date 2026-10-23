@@ -2,6 +2,7 @@
 /// @brief 棋譜コメント編集パネルクラスの実装
 
 #include "commenteditorpanel.h"
+#include "toolbarwidth.h"
 #include "fontsizecontrol.h"
 #include "editactions.h"
 #include "dialogutils.h"
@@ -29,17 +30,6 @@
 #include <QMimeData>
 #include <QShortcut>
 #include <QTextDocument>
-
-namespace {
-void relaxToolbarWidth(QWidget* toolbar)
-{
-    if (!toolbar) return;
-    toolbar->setMinimumWidth(0);
-    QSizePolicy pol = toolbar->sizePolicy();
-    pol.setHorizontalPolicy(QSizePolicy::Ignored);
-    toolbar->setSizePolicy(pol);
-}
-} // namespace
 
 CommentEditorPanel::CommentEditorPanel(QWidget* parent)
     : QWidget(parent)
@@ -379,7 +369,7 @@ void CommentEditorPanel::buildCommentToolbar(QWidget* parentWidget)
     toolbarLayout->addWidget(linkHint);
 
     m_commentToolbar->setLayout(toolbarLayout);
-    relaxToolbarWidth(m_commentToolbar);
+    ToolbarWidth::relax(m_commentToolbar);
 }
 
 void CommentEditorPanel::updateEditingIndicator()

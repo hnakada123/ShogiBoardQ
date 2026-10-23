@@ -40,10 +40,11 @@ JosekiBookMergeDialog::JosekiBookMergeDialog(const QString &directory, QWidget *
     m_preferCurrent->setObjectName(QStringLiteral("josekiBookMergePreferCurrent"));
     m_preferIncoming = new QRadioButton(tr("予想応手・評価値・深さ・コメントは足す定跡の値にする"), this);
     m_preferIncoming->setObjectName(QStringLiteral("josekiBookMergePreferIncoming"));
-    (JosekiSettings::josekiBookMergePreferIncoming() ? m_preferIncoming : m_preferCurrent)->setChecked(true);
+    m_form.add(m_preferCurrent, m_preferIncoming, JosekiSettings::josekiBookMergePreferIncoming);
     m_sumFrequency = new QCheckBox(tr("出現頻度を足し合わせる"), this);
     m_sumFrequency->setObjectName(QStringLiteral("josekiBookMergeSumFrequency"));
-    m_sumFrequency->setChecked(JosekiSettings::josekiBookMergeSumFrequency());
+    m_form.add(m_sumFrequency, JosekiSettings::josekiBookMergeSumFrequency);
+    m_form.load();
     m_sumFrequency->setToolTip(tr("足し合わせないときは、上で選んだ側の出現頻度にします"));
     auto *sameMoveRows = new QVBoxLayout;
     sameMoveRows->addWidget(m_preferCurrent);
@@ -90,10 +91,7 @@ JosekiBook::MergeOptions JosekiBookMergeDialog::options() const
 
 void JosekiBookMergeDialog::done(int result)
 {
-    if (result == QDialog::Accepted) {
-        JosekiSettings::josekiBookMergePreferIncoming.set(m_preferIncoming->isChecked());
-        JosekiSettings::josekiBookMergeSumFrequency.set(m_sumFrequency->isChecked());
-    }
+    if (result == QDialog::Accepted) m_form.save();
     QDialog::done(result);
 }
 

@@ -8,7 +8,6 @@
 #include "fontsizehelper.h"
 
 #include "buttonstyles.h"
-#include "dialogutils.h"
 #include "gamesettings.h"
 
 #include <QApplication>
@@ -103,21 +102,17 @@ JishogiScoreDialog::JishogiScoreDialog(const JishogiCalculator::JishogiResult& r
     fontOptions.decrease = m_fontDecrease;
     fontOptions.increase = m_fontIncrease;
     fontOptions.sizeLabel = m_fontSizeLabel;
+    // 旧レイアウト用の小さい保存サイズは捨て、比較表の標準サイズから始める
+    const QSize savedSize = GameSettings::jishogiScoreDialogSize();
+    if (savedSize.width() < minimumWidth() || savedSize.height() < minimumHeight())
+        GameSettings::jishogiScoreDialogSize.set(QSize());
+    fontOptions.size = &GameSettings::jishogiScoreDialogSize;
     const DialogFontScale* scale = DialogFontScale::install(this, GameSettings::jishogiScoreFontSize, fontOptions);
     connect(scale->fontSize(), &FontSizeHelper::fontSizeChanged, this, &JishogiScoreDialog::fitValueCells);
     fitValueCells();
-
-    // 旧レイアウト用の小さい保存サイズは比較表の標準サイズへ移行する。
-    const QSize savedSize = GameSettings::jishogiScoreDialogSize();
-    if (savedSize.width() >= minimumWidth() && savedSize.height() >= minimumHeight()) {
-        DialogUtils::restoreDialogSize(this, savedSize);
-    }
 }
 
-JishogiScoreDialog::~JishogiScoreDialog()
-{
-    DialogUtils::saveDialogSize(this, GameSettings::jishogiScoreDialogSize);
-}
+JishogiScoreDialog::~JishogiScoreDialog() = default;
 
 QHBoxLayout* JishogiScoreDialog::createButtons()
 {
