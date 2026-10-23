@@ -1012,6 +1012,32 @@ private slots:
         QCOMPARE(line.entries[1].time.totalMs, (120LL * 3600 + 30 * 60) * 1000);
     }
 
+    // 行内のコメントは行末まで（コメントの中の数字を次の手と見ない）。消費時間の後ろのコメントもその手に付く
+    void inlineComment_runsToEndOfLine()
+    {
+        const KifuParseOutcome outcome = KifToSfenConverter::parse(QStringLiteral(
+            "手数----指手---------消費時間--\n"
+            "   1 ７六歩(77) *角道 2手目へ\n"
+            "   2 ３四歩(33)   ( 0:05/00:00:05) *同じく\n"));
+        QVERIFY2(outcome.success, qPrintable(outcome.warning));
+        const RecordLine& line = outcome.record.mainline;
+        QCOMPARE(line.entries.size(), 2);
+        QCOMPARE(line.entries[0].comment, QStringLiteral("角道 2手目へ"));
+        QCOMPARE(line.entries[1].comment, QStringLiteral("同じく"));
+        QCOMPARE(line.entries[1].time.elapsedMs, 5000LL);
+    }
+
+    // 秒が60以上の消費時間は読めない表記として残す（書き出すと同じ表記に戻る）
+    void consumedTime_outOfRangeIsKeptAsWritten()
+    {
+        const KifuParseOutcome outcome = KifToSfenConverter::parse(QStringLiteral(
+            "手数----指手---------消費時間--\n   1 ７六歩(77)   ( 0:75/00:00:75)\n"));
+        QVERIFY2(outcome.success, qPrintable(outcome.warning));
+        const RecordTime& time = outcome.record.mainline.entries[0].time;
+        QVERIFY(!time.valid);
+        QCOMPARE(time.importedText, QStringLiteral("( 0:75/00:00:75)"));
+    }
+
     // 指し手の表記は手から作り直す（「同歩」は「同　歩」、移動元を付ける）
     void displayText_isGeneratedFromTheMove()
     {
