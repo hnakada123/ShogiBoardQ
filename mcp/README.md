@@ -23,8 +23,8 @@ ShogiBoardQ の機能を [Model Context Protocol (MCP)](https://modelcontextprot
 | `SHOGIBOARDQ_EXECUTABLE` | `ShogiBoardQ` のパス。アプリ操作系ツールで起動中のアプリが無いとき `--automation` 付きで起動します |
 | `SHOGIBOARDQ_AUTOMATION_SOCKET` | 自動化ソケットのパス（アプリ側の `--automation-socket` と共通） |
 | `SHOGIBOARDQ_ALLOW_UNRESTRICTED_UI` | `1` のとき汎用GUI操作を許可します。既定は無効。GUI経由のファイル操作・エンジン登録にはディレクトリ制限が適用されないため、アプリと同等の権限を与える設定です |
-| `SHOGIBOARDQ_ALLOWED_DIRS` | 読み書きを許可するディレクトリ（`:` 区切り、Windows は `;`）。既定はホームディレクトリ |
-| `SHOGIBOARDQ_OUTPUT_DIR` | スクリーンショットなど出力先未指定時のディレクトリ。既定は一時ディレクトリ配下の `shogiboardq-mcp` |
+| `SHOGIBOARDQ_ALLOWED_DIRS` | 読み書きを許可するディレクトリ（`:` 区切り、Windows は `;`）。既定はホームディレクトリ。その下の `.` で始まるファイル・ディレクトリは使えません（使うときはそのディレクトリ自体を指定します） |
+| `SHOGIBOARDQ_OUTPUT_DIR` | スクリーンショットなど出力先未指定時のディレクトリ。既定はサーバーごとに一時ディレクトリに作る、自分だけが開けるフォルダ（`shogiboardq-output-*`） |
 | `SHOGIBOARDQ_QUIT_APP_ON_EXIT` | `1` のとき、サーバーが起動したアプリをサーバー終了時に閉じ、終了を待ちます。応答しない場合はその子プロセスだけを強制終了します（既定は残す） |
 | `SHOGIBOARDQ_MCP_DEBUG` | `1` で詳細ログを標準エラーに出します |
 
@@ -94,7 +94,8 @@ UIを操作するツール（`click_board_square`・`click_dialog_button`・`clo
 CSA待機画面の「通信ログ」を開いた後、次の操作でコマンドを送信できます。
 `submit=true` は単一行のテキスト入力欄だけに対応し、通常の Enter キー入力として処理します。
 汎用GUI操作（`trigger_action`、`click_widget`、`set_widget_value`、`click_table_cell`、
-`edit_table_cell`、`click_dialog_button`、`select_menu_action`）は、起動環境で
+`edit_table_cell`、`click_dialog_button`、`select_menu_action`）と、ほかのアプリと共有するクリップボードを読む
+`get_clipboard` は、起動環境で
 `SHOGIBOARDQ_ALLOW_UNRESTRICTED_UI=1` を指定した場合だけ使えます。通常の棋譜読み書きは
 `load_kifu` / `save_kifu` を使ってください。この設定をツール呼び出しで変更することはできません。
 CSAパスワードは表示状態に関係なく読み取り時に伏せ字となり、APIから表示を切り替える操作も拒否します。
@@ -363,7 +364,9 @@ MCP サーバーだけの失敗には `app_unavailable`・`cli_not_found`・`tim
 
 - 自動化 API は `ShogiBoardQ --automation` を付けたときだけ有効で、ソケットは所有者のみアクセスできます。ネットワークには公開しません。
 - 専用ツールのファイル引数は最終シンボリックリンク先まで検査します。絶対パスのみ受け付け、`SHOGIBOARDQ_ALLOWED_DIRS`（既定はホーム）の外は拒否します。既存ファイルは `overwrite: true` が無ければ上書きしません。
-- エンジンは ShogiBoardQ に登録済みの名前だけを受け付け、任意の実行ファイルパスは受け付けません。
+- 許可ディレクトリの下でも、`.` で始まる名前のファイル・ディレクトリ（設定・資格情報・起動スクリプトの置き場所）は読み書きしません。
+- 読み書きできるのは棋譜の拡張子（読み込みは `.kif` `.kifu` `.ki2` `.ki2u` `.csa` `.jkf` `.json` `.usi` `.usen` `.sfen`、書き出しは `.json` を除く同じ拡張子）と、盤面画像の `.png` `.jpg` `.jpeg` `.bmp` `.webp` のファイルだけです。一覧は `shogiboardq-cli environment` の `kifu_read_suffixes`・`kifu_write_suffixes`・`image_write_suffixes` です。
+- エンジンは ShogiBoardQ に登録済みの名前だけを受け付け、任意の実行ファイルパスは受け付けません。汎用GUI操作を有効にしても、エンジン登録ダイアログの「追加」（選んだ実行ファイルを起動する）は操作できません。
 - 汎用GUI操作は既定で無効です。有効化するとGUI経由ではファイル制限を保証しません。ローカル自動化ソケットも同一OSユーザーの信頼された操作用であり、MCPのファイル制限とは別です。
 - `trigger_action` は汎用GUI操作を有効化した場合も許可リスト方式で、終了・上書き保存・Webサイトを開く動作は実行しません。言語切替と名前付きレイアウト管理には対応しています。
 

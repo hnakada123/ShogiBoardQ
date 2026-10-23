@@ -4,6 +4,8 @@
 #include <QtTest>
 
 #include <QElapsedTimer>
+#include <QFile>
+#include <QFileInfo>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QLocalSocket>
@@ -158,6 +160,63 @@ private slots:
         const QJsonObject pong = parse(request(socketPath, R"({"jsonrpc":"2.0","id":3,"method":"ping"})" "\n"));
         QCOMPARE(pong.value(QStringLiteral("result")).toString(), QStringLiteral("pong"));
         server.close();
+    }
+
+    /// ソケットの用意は、利用者のファイルとフォルダを壊さず、ほかの待ち受けを奪わない（セキュリティ監査 S10・S11）
+    void listenDoesNotTouchOtherFiles()
+    {
+#ifdef Q_OS_WIN
+        QSKIP("Windows uses named pipes");
+#endif
+        QTemporaryDir dir(QDir::tempPath() + QStringLiteral("/sbq-XXXXXX"));
+        QVERIFY(dir.isValid());
+        QString error;
+        {
+            AutomationServer server;
+            QVERIFY(!server.listen(QStringLiteral("relative.sock"), &error));
+            QVERIFY(error.contains(QStringLiteral("absolute")));
+        }
+        // ソケットでないファイルは消さない
+        const QString plain = dir.filePath(QStringLiteral("plain"));
+        {
+            QFile file(plain);
+            QVERIFY(file.open(QIODevice::WriteOnly));
+            file.write("keep");
+        }
+        {
+            AutomationServer server;
+            QVERIFY(!server.listen(plain, &error));
+            QVERIFY(QFile::exists(plain));
+        }
+        // 既にあるフォルダの権限は変えない。ほかの利用者が書けるフォルダは使わない
+        const QString shared = dir.filePath(QStringLiteral("shared"));
+        QVERIFY(QDir().mkpath(shared));
+        const QFile::Permissions open = QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner | QFile::ReadGroup
+                                        | QFile::ExeGroup | QFile::ReadOther | QFile::WriteOther | QFile::ExeOther;
+        QVERIFY(QFile::setPermissions(shared, open));
+        {
+            AutomationServer server;
+            QVERIFY(!server.listen(QDir(shared).filePath(QStringLiteral("a.sock")), &error));
+            QVERIFY(error.contains(QStringLiteral("others cannot write")));
+            QCOMPARE(QFile::permissions(shared) & open, open);
+        }
+        // 待ち受け中のソケットは奪わない。終わった後の残骸は消して使い直す
+        const QString socketPath = QDir(dir.filePath(QStringLiteral("own"))).filePath(QStringLiteral("a.sock"));
+        AutomationServer first;
+        QVERIFY2(first.listen(socketPath, &error), qPrintable(error));
+        QVERIFY(QFileInfo(QFileInfo(socketPath).absolutePath()).permissions().testFlag(QFile::ExeOwner));
+        QVERIFY(!(QFileInfo(QFileInfo(socketPath).absolutePath()).permissions() & (QFile::WriteGroup | QFile::WriteOther)));
+        {
+            AutomationServer second;
+            QVERIFY(!second.listen(socketPath, &error));
+            QVERIFY(error.contains(QStringLiteral("already listening")));
+        }
+        QVERIFY(QFile::exists(AutomationServer::endpointFilePath()));   // 後の失敗は前の情報を消さない
+        first.close();
+        QVERIFY(!QFile::exists(AutomationServer::endpointFilePath()));
+        AutomationServer again;
+        QVERIFY2(again.listen(socketPath, &error), qPrintable(error));
+        again.close();
     }
 
     void deferredCallbackMayDeleteItsParent()

@@ -2,6 +2,7 @@
 /// @brief スクリーンショットサービスの実装
 
 #include "screenshotservice.h"
+#include "apppaths.h"
 #include "logcategories.h"
 
 #include <QDateTime>
@@ -19,7 +20,9 @@ ScreenshotService::ScreenshotService(QMainWindow* mainWindow)
 
 QString ScreenshotService::defaultOutputDirectory()
 {
-    return QDir::temp().filePath(QStringLiteral("shogiboardq-screenshots"));
+    // 利用者ごとのキャッシュの下に置く（共有の一時ディレクトリの固定名は、別の利用者に先に作られると
+    // 画像を読まれ、中のリンクをたどって書かされる。セキュリティ監査 S10）
+    return QDir(AppPaths::cacheDirectory()).filePath(QStringLiteral("screenshots"));
 }
 
 void ScreenshotService::setOutputDirectory(const QString& dir)

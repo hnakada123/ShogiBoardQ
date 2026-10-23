@@ -8,6 +8,7 @@
 #include <QImage>
 #include <QSize>
 #include <QString>
+#include <QStringList>
 
 /**
  * @brief `ShogiView` を画面に出さずに描画し、PNG などの画像にする
@@ -29,7 +30,10 @@ public:
     /// 描画に失敗すると null 画像を返し、failure に理由を入れる（局面・指し手・大きさの誤りは invalid_argument）
     static QImage render(const QString& sfen, const Options& options, Failure* failure = nullptr);
 
-    /// 画像ファイルに保存する。形式は拡張子から決まる（png/jpg/bmp/webp など）
+    /// 画像ファイルの拡張子（"png" "jpg" "jpeg" "bmp" "webp"）。MCP サーバーは書き出し先をこれに限る
+    static QStringList fileSuffixes();
+
+    /// 画像ファイルに保存する。形式は拡張子から決まる（fileSuffixes。拡張子がなければ png）
     static bool renderToFile(const QString& sfen, const QString& outputPath, const Options& options,
                              Failure* failure = nullptr, QSize* outSize = nullptr);
 };

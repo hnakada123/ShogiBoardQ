@@ -537,7 +537,7 @@ void MainWindowComposer::createControllers()
     m_c.images = new ImageExportController({&m_window, m_c.shogiView, m_c.evalChart}, &m_window);
     m_c.settingsReset = new SettingsResetController(&m_window);
 #ifdef QT_DEBUG
-    // デバッグ用スクリーンショット（F12 で /tmp/shogiboardq-debug/ に PNG 保存）
+    // デバッグ用スクリーンショット（F12 でキャッシュのフォルダの screenshots/ に PNG 保存）
     m_c.debugScreenshot = new DebugScreenshotShortcut(&m_window, &m_window);
 #endif
 }

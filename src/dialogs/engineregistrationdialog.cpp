@@ -48,6 +48,9 @@ EngineRegistrationDialog::EngineRegistrationDialog(QWidget *parent)
     if (ui->engineListWidget->count() > 0) ui->engineListWidget->setCurrentRow(0);
     ui->engineListWidget->setAccessibleName(tr("登録済みエンジン"));
     ui->addEngineButton->setAutoDefault(false);
+    // 追加は選んだ実行ファイルを起動するので、自動化 API からは押させない（GUI の操作を許した MCP でも
+    // 任意のプログラムを実行させない。セキュリティ監査 S8）
+    ui->addEngineButton->setProperty("automationSensitive", true);
     ui->removeEngineButton->setAutoDefault(false);
     ui->configureEngineButton->setAutoDefault(false);
     updateSelectionState();

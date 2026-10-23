@@ -30,6 +30,16 @@ def test_environment_describes_the_application(env):
     assert {"invalid_argument", "file_exists", "not_found", "parse_error", "unsaved_changes"} <= set(slugs)
 
 
+def test_environment_lists_the_file_extensions(env):
+    # paths.py lets agents read and write only these kinds of files (test_paths.py copies the lists).
+    from test_paths import SUFFIXES
+    from shogiboardq_mcp import paths
+
+    for key, expected in SUFFIXES.items():
+        assert env[key] == expected, key
+    assert "json" not in env[paths.KIFU_WRITE]
+
+
 def test_python_errors_use_the_shared_words(env):
     shared = {k["slug"] for k in env["error_kinds"]}
     sources = "".join(p.read_text(encoding="utf-8") for p in PACKAGE_DIR.glob("*.py"))

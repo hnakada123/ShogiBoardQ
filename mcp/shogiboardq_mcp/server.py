@@ -9,6 +9,7 @@ import os
 from collections.abc import Awaitable, Callable
 from typing import Any
 
+import jsonschema
 import mcp.types as types
 from mcp.server.lowlevel import Server
 from mcp.server.stdio import stdio_server
@@ -30,6 +31,27 @@ TOOL_DEFAULTS: dict[str, dict[str, Any]] = {
     tool.name: {key: prop["default"] for key, prop in tool.input_schema.get("properties", {}).items() if "default" in prop}
     for tool in ALL_TOOLS
 }
+
+
+# The lowlevel mcp Server does not check the arguments against the inputSchema either, so the server does it:
+# unknown arguments, ranges narrowed for MCP (max_chars, timeout_seconds, ...) and required/oneOf rules.
+TOOL_VALIDATORS: dict[str, jsonschema.protocols.Validator] = {
+    tool.name: jsonschema.validators.validator_for(tool.input_schema, default=jsonschema.Draft202012Validator)(
+        tool.input_schema)
+    for tool in ALL_TOOLS
+}
+
+
+def check_arguments(name: str, arguments: dict[str, Any] | None) -> None:
+    """Raise invalid_argument when the arguments do not match the tool's inputSchema."""
+    validator = TOOL_VALIDATORS.get(name)
+    if validator is None:
+        return
+    error = jsonschema.exceptions.best_match(validator.iter_errors(arguments or {}))
+    if error is not None:
+        where = "/".join(str(part) for part in error.absolute_path)
+        raise ToolError("invalid_argument", f"Invalid arguments for {name}" + (f" ({where})" if where else "")
+                        + f": {error.message}")
 
 
 def with_defaults(name: str, arguments: dict[str, Any] | None) -> dict[str, Any]:
@@ -130,6 +152,7 @@ def build_server() -> tuple[Server, JobManager, AppClient]:
         try:
             if name in UNRESTRICTED_TOOLS:
                 require_unrestricted_ui()
+            check_arguments(name, arguments)
             return await handler(with_defaults(name, arguments))
         except ToolError as exc:
             log.info("tool %s failed: %s", name, exc)

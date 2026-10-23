@@ -35,13 +35,19 @@ public:
 
     AutomationDispatcher& dispatcher() { return m_dispatcher; }
 
-    /// 待ち受けを開始する。socketPath が空なら既定のパスを使う
+    /**
+     * @brief 待ち受けを開始する。socketPath が空なら既定のパスを使う
+     *
+     * Unix ではパスは絶対パスに限る。ソケットのフォルダは、無ければ所有者専用で作り、あれば自分の持ち物で
+     * ほかの利用者が書けないことを確かめる（変えない）。前回の残骸は、ソケットで待ち受けがないときだけ消す。
+     */
     [[nodiscard]] bool listen(const QString& socketPath, QString* error = nullptr);
     void close();
     bool isListening() const;
     QString socketPath() const { return m_socketPath; }
 
-    /// 既定のソケットパス（環境変数 SHOGIBOARDQ_AUTOMATION_SOCKET → RuntimeLocation/shogiboardq/automation.sock、Windows は名前付きパイプ名）
+    /// 既定のソケットパス（環境変数 SHOGIBOARDQ_AUTOMATION_SOCKET → RuntimeLocation/shogiboardq/automation.sock。
+    /// RuntimeLocation が使えなければ設定のフォルダの automation.sock。Windows は名前付きパイプ名）
     static QString defaultSocketPath();
     /// エンドポイント情報ファイル（設定ディレクトリの automation-endpoint.json）
     static QString endpointFilePath();

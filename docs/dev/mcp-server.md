@@ -61,7 +61,7 @@ shogiboardq-cli            ShogiBoardQ --automation
 
 | ツール | 内容 | 主な引数 | CLI コマンド |
 |---|---|---|---|
-| `convert_kifu` | 棋譜ファイル／文字列を KIF・KI2・CSA・JKF・USI・USEN・SFEN 列に変換 | `input_path` または `text`、`input_format`（既定 auto）、`output_format`、`output_path`、`overwrite`、`max_chars` | `convert-kifu` |
+| `convert_kifu` | 棋譜ファイル／文字列を KIF・KI2・CSA・JKF・USI・USEN・SFEN 列に変換 | `input_path` または `text`、`input_format`（既定 auto）、`output_format`、`output_path`、`overwrite`、`max_chars`、`max_moves`（`usi_moves`・`moves`・`sfens` に並べる手の数。既定 2000。超えたら `moves_truncated`） | `convert-kifu` |
 | `validate_sfen` | SFEN の妥当性、手番、持駒、王手の有無、合法手数 | `sfen` | `validate-sfen` |
 | `list_engines` | 設定済み USI エンジン（名前・パス・作者・実行ファイルの有無） | なし | `list-engines` |
 | `analyze_position` | 登録エンジンで局面を解析するジョブを開始 | `engine`、`sfen`、`moves`、`seconds`(1-600)、`multipv`(1-10) | `analyze`（JSON Lines） |
@@ -103,7 +103,7 @@ shogiboardq-cli            ShogiBoardQ --automation
 | `list_menu_actions` / `select_menu_action` | 定跡・局面集の履歴、定跡マージ、保存済みレイアウトの動的メニュー | `target?`、`widget`、選択時 `path` | `menu.items` / `menu.select` |
 | `menu_favorites` | お気に入りの取得、登録・解除・並べ替えと保存 | `actions?`（省略時は取得） | `menu.favorites` |
 | `click_branch_node` | 分岐ツリーのノードへ移動 | `target?`、`widget`、`id` | `branch.click` |
-| `get_clipboard` | クリップボードのテキストと画像の有無・サイズ | `max_chars` | `clipboard.get` |
+| `get_clipboard` | クリップボードのテキストと画像の有無・サイズ（ほかのアプリと共有するので、汎用GUI操作と同じく `SHOGIBOARDQ_ALLOW_UNRESTRICTED_UI=1` が要る） | `max_chars` | `clipboard.get` |
 | `edit_table_cell` | 編集可能なテーブルセルに入力し、必要に応じて確定 | `target?`、`widget`、`row`、`column`、`text`、`commit?` | `widget.editCell` |
 | `widget.showDock` | `{widget}` | `{object_name, queued:true, interaction}`（ドック表示・前面化） | `-32602` 型違い、`-32002` 操作不可、`-32005` 対象なし |
 | `widget.click` | `{target?, widget}` | `{object_name, queued:true, interaction}`（ボタンクリック） | 同上 |
@@ -186,7 +186,7 @@ shogiboardq-cli <command> [options]
 |---|---|---|
 | `version` | - | `{"ok":true,"version":"2026.09.25"}` |
 | `describe` | - | `{ok, commands:[{name, summary, input_schema}], methods:[{name, summary, input_schema}]}`（CLI の全コマンドと自動化 API の全メソッドの引数の表を JSON Schema で出す） |
-| `environment` | - | `{ok, version, socket_path, endpoint_file, settings_file, max_message_bytes, error_kinds:[{slug, rpc_code}]}`（自動化 API の既定のソケット・エンドポイントファイル・設定ファイルの場所と1メッセージの上限を、アプリと同じ計算（`AutomationServer::defaultSocketPath()`・`endpointFilePath()`・`SettingsCommon::settingsFilePath()`・`AutomationServer::kMaxMessageBytes`）で出し、エラーの分類の表（`ErrorKinds::toJson()`）を添える。MCP サーバーはこれを読んで値を写さない） |
+| `environment` | - | `{ok, version, socket_path, endpoint_file, settings_file, max_message_bytes, error_kinds:[{slug, rpc_code}], kifu_read_suffixes, kifu_write_suffixes, image_write_suffixes}`（自動化 API の既定のソケット・エンドポイントファイル・設定ファイルの場所と1メッセージの上限を、アプリと同じ計算（`AutomationServer::defaultSocketPath()`・`endpointFilePath()`・`SettingsCommon::settingsFilePath()`・`AutomationServer::kMaxMessageBytes`）で出し、エラーの分類の表（`ErrorKinds::toJson()`）と、MCP サーバーが読み書きを許すファイルの拡張子（`KifuFormats::readableSuffixes()`・`writableSuffixes()`・`BoardImageRenderer::fileSuffixes()`）を添える。MCP サーバーはこれを読んで値を写さない） |
 | `convert-kifu` | `--input-path PATH` / `--text STR`、`--input-format auto\|kif\|ki2\|csa\|jkf\|usi\|usen`、`--output-format kif\|ki2\|csa\|jkf\|usi\|usen\|sfen`、`--output-path PATH`、`--overwrite`（旧名 `--input`・`--output`） | `{ok, input_format, output_format, text \| output_path, initial_sfen, ply_count, usi_moves[], sfens[], moves[], game_info[], has_branches, line_count, warnings[]}`。`moves[]` は本譜の各行（`{ply, text, usi, time, comment, bookmark}`。終局の行は `usi` なし、`time`・`comment`・`bookmark` は空なら省く）で、`KifuConversionService::Result::mainline`（`RecordLine`。`KifuBranchTree::exportLine(0)`）から作る。`text` は GUI の保存・コピーと同じ書き出しの表（`KifuExport::lines(tree, metadata, format)`）で作る |
 | `validate-sfen` | `--sfen SFEN` | `{ok, valid, normalized_sfen, turn, hands{black,white}, in_check, legal_move_count, kings{black,white}, errors[]}` |
 | `list-engines` | - | `{ok, engines:[{name,path,author,exists}]}` |
@@ -219,7 +219,7 @@ ShogiBoardQ --automation [--automation-socket PATH]
 
 | 項目 | 値 |
 |---|---|
-| ソケットパス（Linux/macOS） | `--automation-socket` → 環境変数 `SHOGIBOARDQ_AUTOMATION_SOCKET` → `QStandardPaths::RuntimeLocation`（`$XDG_RUNTIME_DIR`。取れなければ一時ディレクトリ）`/shogiboardq/automation.sock`（`AutomationServer::defaultSocketPath()`）。Unix ドメインソケットの制限により 100 バイト以内 |
+| ソケットパス（Linux/macOS） | `--automation-socket` → 環境変数 `SHOGIBOARDQ_AUTOMATION_SOCKET` → `QStandardPaths::RuntimeLocation`（`$XDG_RUNTIME_DIR`）`/shogiboardq/automation.sock`（`AutomationServer::defaultSocketPath()`）。RuntimeLocation が取れなければ設定のフォルダの `automation.sock`（共有の一時ディレクトリの固定名は使わない）。絶対パスに限り、Unix ドメインソケットの制限と Qt が bind に使う一時フォルダの分で Linux は 99 バイト、macOS は 95 バイト以内。ソケットのフォルダは、無ければ所有者専用（0700）で作り、あれば自分の持ち物でほかの利用者が書けないことを確かめる（権限は変えない）。前回の残骸は、ソケットで待ち受けがないときだけ消し、ほかのアプリが待ち受けていれば起動しない。終了時のエンドポイントファイルは自分の pid のものだけ消す |
 | ソケット名（Windows） | 環境変数 `SHOGIBOARDQ_AUTOMATION_SOCKET` → `shogiboardq-automation-<ユーザー名>`（名前付きパイプ） |
 | エンドポイント情報 | 設定ファイル（`SettingsCommon::settingsFilePath()`）と同じフォルダの `automation-endpoint.json`（`AutomationServer::endpointFilePath()`。`{"socket":..., "pid":..., "version":...}`）。起動時に書き、終了時に削除する。MCP サーバーはこれを読んで接続先を決める |
 | プロトコル | 改行区切りの JSON-RPC 2.0（1 行 1 メッセージ、UTF-8）。バッチは未対応（`-32600`） |
@@ -391,10 +391,15 @@ mcp/
 
 - 自動化ソケットは所有者限定（Unix ドメインソケットの権限 / 名前付きパイプの UserAccess）。TCP や HTTP は開かない。
 - ファイル引数は絶対パスのみ。`SHOGIBOARDQ_ALLOWED_DIRS`（既定: ホーム配下）の外は拒否する。上書きは `overwrite: true` が無ければ拒否する。検査は MCP サーバー側（`paths.py`）で行い、CLI/アプリ側は絶対パスの要求と既存ファイルの拒否だけを行う。
-- エンジンは `[Engines]` に登録済みの名前だけ。実行ファイルパスは受け付けない。
+- 許可ディレクトリより下に `.` で始まる名前があるパス（シンボリックリンクをたどった先で判定）は `not_allowed` にする。既定の許可ディレクトリはホーム全体なので、これがないと操られたエージェントが資格情報（`~/.netrc` など）を読み、起動時に実行されるファイル（シェルの起動ファイルなど）に書ける（2026-10-23 のセキュリティ監査の S1・S2）。隠しディレクトリを使うときは、そのディレクトリ自体を許可ディレクトリに入れる。
+- 拡張子は、棋譜の読み込みが `kifu_read_suffixes`、棋譜の書き出しが `kifu_write_suffixes`（読むだけの `.json` を含まない）、盤面画像が `image_write_suffixes` に限り、それ以外は `invalid_argument` にする。一覧は `shogiboardq-cli environment` から読む（`paths.allowed_suffixes()`）。
+- クリップボードはほかのアプリと共有するので、`get_clipboard` も汎用GUI操作と同じく `SHOGIBOARDQ_ALLOW_UNRESTRICTED_UI=1` が要る。
+- エンジンは `[Engines]` に登録済みの名前だけ。実行ファイルパスは受け付けない。汎用GUI操作を許したときも、エンジン登録ダイアログの「追加」（`addEngineButton`。選んだ実行ファイルを起動して確かめる）は `automationSensitive` で押せない（2026-10-23 のセキュリティ監査の S8）。それ以外の GUI 操作（通信対局の接続先の指定など）はアプリと同じ権限で行える。
 - 自動化 API は既定で無効。`--automation` を付けたときだけ有効になり、起動時に標準出力へソケットパスを出す。
 - `trigger_action` は許可リスト方式。終了・上書き保存・Web サイトを開く動作は除外する。動的メニューは作成元が明示的に公開したものだけ操作できる。
-- 出力サイズは既定で抑える（棋譜テキスト 30,000 文字、手順 200 手、読み筋 20 手、生成局面 20 件など）。
+- 出力サイズは既定で抑える（棋譜テキスト 30,000 文字、手順 200 手、`convert_kifu` の手の一覧 2000 手・対局情報と警告 200 件、読み筋 20 手、生成局面 20 件など）。
+- ツールの引数は、ハンドラを呼ぶ前に inputSchema で検査する（`server.check_arguments`。mcp の lowlevel Server は検査しない）。知らない引数、MCP で狭めた範囲、`oneOf` の外れは `invalid_argument`。
+- 1回で終わる CLI の呼び出しは同時に4つまで（`cli_backend.MAX_CONCURRENT_COMMANDS`。ジョブとは別）。標準出力は 64 MiB まで読み、超えたら止める。要求が取り消されたら CLI（とエンジン）を終わらせる。
 
 ## 8. ビルド構成とソース配置
 

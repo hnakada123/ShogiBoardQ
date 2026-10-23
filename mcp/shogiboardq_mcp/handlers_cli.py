@@ -20,6 +20,9 @@ from . import specs
 from .cli_backend import run_cli
 from .jobs import Job, JobManager
 
+# Game information and warnings returned at most (a record can have any number of header lines).
+MAX_LIST_ITEMS = 200
+
 Result = tuple[str, dict[str, Any]]
 
 
@@ -77,12 +80,25 @@ class CliTools:
         structured = {k: result[k] for k in ("input_format", "output_format", "initial_sfen", "ply_count",
                                               "usi_moves", "sfens", "moves", "game_info", "has_branches", "warnings")
                       if k in result}
+        # The lists follow the record, so cap them like the text (max_chars): a long record must not flood the client.
+        max_moves = int(args["max_moves"])
+        moves_truncated = len(structured.get("usi_moves", [])) > max_moves
+        if moves_truncated:
+            structured["usi_moves"] = structured["usi_moves"][:max_moves]
+            structured["moves"] = structured.get("moves", [])[:max_moves]
+            structured["sfens"] = structured.get("sfens", [])[:max_moves + 1]
+        structured["moves_truncated"] = moves_truncated
+        for key in ("game_info", "warnings"):
+            if key in structured:
+                structured[key] = structured[key][:MAX_LIST_ITEMS]
         text_lines = [
             f"Converted {result['input_format'].upper()} → {result['output_format'].upper()}: "
             f"{result['ply_count']} moves from {'the initial position' if result['initial_sfen'].startswith('lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b -') else result['initial_sfen']}."
         ]
         if result.get("has_branches"):
             text_lines.append("The record has variations; only the main line is exported.")
+        if moves_truncated:
+            text_lines.append(f"Only the first {max_moves} moves are listed (moves_truncated); ply_count has the full count.")
         if result.get("warnings"):
             text_lines.append("Warnings: " + "; ".join(result["warnings"]))
         if output_path is not None:
@@ -128,7 +144,8 @@ class CliTools:
         return text, {"engines": engines}
 
     async def render_board_image(self, args: dict[str, Any]) -> Result:
-        output_path = paths.resolve_write_path(args["output_path"], bool(args.get("overwrite")))
+        output_path = paths.resolve_write_path(args["output_path"], bool(args.get("overwrite")),
+                                               suffixes=paths.IMAGE_WRITE)
         result = await run_cli(self.command("render-board", args, output_path=str(output_path)))
         structured = {"output_path": result["output_path"], "width": result["width"], "height": result["height"]}
         return f"Board image written to {result['output_path']} ({result['width']}x{result['height']} px).", structured

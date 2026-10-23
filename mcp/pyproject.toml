@@ -10,7 +10,10 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "GPL-3.0-or-later" }
 authors = [{ name = "ShogiBoardQ contributors" }]
-dependencies = ["mcp>=2,<3"]  # 2.x は最新の 2026-07-28 と 2024-11-05〜2025-11-25 の両方を話す
+dependencies = [
+    "mcp>=2,<3",  # 2.x は最新の 2026-07-28 と 2024-11-05〜2025-11-25 の両方を話す
+    "jsonschema>=4",  # ツールの引数を inputSchema で検査する（mcp の lowlevel Server は検査しない）
+]
 
 [project.optional-dependencies]
 test = ["pytest>=8", "anyio>=4"]

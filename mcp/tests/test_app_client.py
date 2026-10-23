@@ -103,3 +103,9 @@ async def test_call_queued_raises_a_failure_at_run_time(monkeypatch, state):
     assert raised.value.code == "invalid_state"
     assert raised.value.rpc_code == -32002
     assert "blocked" in raised.value.message
+
+
+def test_windows_pipe_address_has_the_pipe_prefix():
+    # A bare QLocalServer name would open a file in the current directory instead of the named pipe.
+    assert app_client.AppClient.pipe_address("shogiboardq-automation-user") == "\\\\.\\pipe\\shogiboardq-automation-user"
+    assert app_client.AppClient.pipe_address("\\\\.\\pipe\\custom") == "\\\\.\\pipe\\custom"

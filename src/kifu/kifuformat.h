@@ -36,6 +36,8 @@ bool isSavable(KifuFormat format);
 QStringList readableSuffixes(std::optional<KifuFormat> format = std::nullopt);
 /// 開ける棋譜ファイルか（拡張子が readableSuffixes にある。.json は中身で JKF か判定する）
 bool isReadableFile(const QString& path);
+/// 変換・保存で書く棋譜ファイルの拡張子（"kif" "kifu" … "sfen"。読むだけの "json" は含まない）
+QStringList writableSuffixes();
 
 /// テキストの内容から形式を判定する（分からなければ Kif）
 KifuFormat detect(const QString& content);
