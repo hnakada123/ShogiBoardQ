@@ -38,10 +38,11 @@ JosekiAnalysisRegisterDialog::JosekiAnalysisRegisterDialog(int minPly, int maxPl
 
     m_black = new QCheckBox(tr("先手番の局面"), this);
     m_black->setObjectName(QStringLiteral("josekiRegisterBlack"));
-    m_black->setChecked(JosekiSettings::josekiAnalysisRegisterBlack());
+    m_form.add(m_black, JosekiSettings::josekiAnalysisRegisterBlack);
     m_white = new QCheckBox(tr("後手番の局面"), this);
     m_white->setObjectName(QStringLiteral("josekiRegisterWhite"));
-    m_white->setChecked(JosekiSettings::josekiAnalysisRegisterWhite());
+    m_form.add(m_white, JosekiSettings::josekiAnalysisRegisterWhite);
+    m_form.load();
     auto *sideRow = new QHBoxLayout;
     sideRow->addWidget(m_black);
     sideRow->addWidget(m_white);
@@ -89,10 +90,7 @@ JosekiAnalysisRegisterDialog::Range JosekiAnalysisRegisterDialog::range() const
 
 void JosekiAnalysisRegisterDialog::done(int result)
 {
-    if (result == QDialog::Accepted) {
-        JosekiSettings::josekiAnalysisRegisterBlack.set(m_black->isChecked());
-        JosekiSettings::josekiAnalysisRegisterWhite.set(m_white->isChecked());
-    }
+    if (result == QDialog::Accepted) m_form.save();
     QDialog::done(result);
 }
 

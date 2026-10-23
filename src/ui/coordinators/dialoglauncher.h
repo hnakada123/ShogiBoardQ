@@ -18,6 +18,7 @@ class CsaGameSession;
 class SfenCollectionDialog;
 class PieceSoundPlayer;
 class KifuFileController;
+class EvaluationChartWidget;
 
 /**
  * @brief メニューから開くダイアログを、必要な部品を渡して開く
@@ -25,7 +26,7 @@ class KifuFileController;
  * 責務:
  * - バージョン情報、エンジン設定、成り確認、持将棋判定、
  *   詰将棋の対局・生成、メニューウィンドウ、CSA通信対局、
- *   局面集ビューア、駒音・盤の外観・文字の大きさの設定の各ダイアログ起動
+ *   局面集ビューア、駒音・盤の外観・文字の大きさ・評価値グラフの表示の設定の各ダイアログ起動
  */
 class DialogLauncher : public QObject
 {
@@ -41,6 +42,7 @@ public:
         CsaGameSession* csaSession = nullptr;              ///< 通信対局を始める
         PieceSoundPlayer* pieceSoundPlayer = nullptr;
         QDockWidget* menuWindowDock = nullptr;
+        EvaluationChartWidget* evalChart = nullptr;        ///< 表示設定を変える評価値グラフ
     };
 
     explicit DialogLauncher(const Deps& deps, QObject* parent = nullptr);
@@ -63,6 +65,8 @@ public slots:
     void displayPieceSoundSettingsDialog();
     void displayBoardAppearanceDialog();
     void displayFontSettingsDialog();
+    /// 評価値グラフの「表示設定…」（決めた設定をグラフに渡す）
+    void displayEvaluationChartSettings();
 
 signals:
     void sfenCollectionPositionSelected(const QString& sfen);

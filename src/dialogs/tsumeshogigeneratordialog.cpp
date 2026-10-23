@@ -54,6 +54,7 @@ TsumeshogiGeneratorDialog::TsumeshogiGeneratorDialog(QWidget* parent)
     DialogFontScale::Options fontOptions;
     fontOptions.decrease = m_footerUi.fontDecrease;
     fontOptions.increase = m_footerUi.fontIncrease;
+    fontOptions.size = &TsumeshogiSettings::tsumeshogiGeneratorDialogSize;
     auto* fontScale = DialogFontScale::install(this, TsumeshogiSettings::tsumeshogiGeneratorFontSize, fontOptions);
     connect(fontScale->fontSize(), &FontSizeHelper::fontSizeChanged, this, &TsumeshogiGeneratorDialog::fitToFont);
     fitToFont();
@@ -65,10 +66,9 @@ TsumeshogiGeneratorDialog::TsumeshogiGeneratorDialog(QWidget* parent)
             this, &TsumeshogiGeneratorDialog::showEngineSettingsDialog);
     bindSettings();
     loadSettings();
-    DialogUtils::restoreDialogSize(this, TsumeshogiSettings::tsumeshogiGeneratorDialogSize());
 
     // 初期状態
-    setRunningState(false);
+    setRunState(RunState::NotStarted);
     setStatusText(!m_engineSelector->hasEngines()
         ? tr("設定メニューで詰将棋エンジンを登録してください。") : tr("待機中"));
 }
@@ -153,7 +153,6 @@ void TsumeshogiGeneratorDialog::loadSettings()
 
 void TsumeshogiGeneratorDialog::saveSettings()
 {
-    DialogUtils::saveDialogSize(this, TsumeshogiSettings::tsumeshogiGeneratorDialogSize);
     m_engineSelector->saveSelection();
     m_conditionsForm.save();
     m_displayForm.save();
@@ -161,7 +160,7 @@ void TsumeshogiGeneratorDialog::saveSettings()
 
 void TsumeshogiGeneratorDialog::onStartClicked()
 {
-    if (m_running) return;
+    if (isRunning()) return;
     const std::optional<Engine> engine = m_engineSelector->selected();
     if (!engine) {
         QMessageBox::critical(this, tr("エラー"), tr("将棋エンジンが選択されていません。"));
@@ -180,16 +179,15 @@ void TsumeshogiGeneratorDialog::onStartClicked()
     settings.posGenSettings.maxDefendPieces = m_settingsUi.maxDefend->value();
     settings.posGenSettings.attackRange = m_settingsUi.attackRange->value();
 
-    // 結果テーブルをクリア
+    // 結果をクリア
+    m_results.clear();
     m_resultsUi.table->setRowCount(0);
 
     // ファイル保存時のコメントヘッダ用に、この実行の設定と開始日時を控える
     m_lastRunSettings = settings;
     m_lastRunStartedAt = QDateTime::currentDateTime();
-    m_stopRequested = false;
-    m_runFailed = false;
 
-    setRunningState(true);
+    setRunState(RunState::Running);
     onProgressUpdated(0, 0, 0);
     onVerificationStatsUpdated(0, 0);
     setStatusText(tr("エンジンを起動中"));
@@ -198,8 +196,8 @@ void TsumeshogiGeneratorDialog::onStartClicked()
 
 void TsumeshogiGeneratorDialog::onStopClicked()
 {
-    if (!m_running) return;
-    m_stopRequested = true;
+    if (!isRunning()) return;
+    m_state = RunState::Stopping;
     m_generator->stop();
 }
 
@@ -209,7 +207,8 @@ void TsumeshogiGeneratorDialog::onStopClicked()
 
 void TsumeshogiGeneratorDialog::onPositionFound(const QString& sfen, const QStringList& pv)
 {
-    const int row = m_resultsUi.table->rowCount();
+    const int row = static_cast<int>(m_results.size());
+    m_results.append({sfen, pv});
     const auto* scroll = m_resultsUi.table->verticalScrollBar();
     const bool followResults = scroll->value() == scroll->maximum();
     m_resultsUi.table->insertRow(row);
@@ -219,7 +218,6 @@ void TsumeshogiGeneratorDialog::onPositionFound(const QString& sfen, const QStri
     m_resultsUi.table->setItem(row, 0, itemNum);
 
     auto* itemSfen = new QTableWidgetItem(sfen);
-    itemSfen->setData(Qt::UserRole, QVariant(pv));
     itemSfen->setToolTip(sfen);
     m_resultsUi.table->setItem(row, 1, itemSfen);
 
@@ -244,23 +242,23 @@ void TsumeshogiGeneratorDialog::onProgressUpdated(int tried, int found, qint64 e
 
 void TsumeshogiGeneratorDialog::onGeneratorFinished()
 {
-    setRunningState(false);
-    if (m_runFailed) return;
-    setStatusText(m_stopRequested ? tr("停止しました（%1 局面を採択）").arg(m_resultsUi.table->rowCount())
-                                 : tr("生成完了（%1 局面を採択）").arg(m_resultsUi.table->rowCount()));
+    // エラーのときは onGeneratorError が状態と表示を決めている
+    if (m_state == RunState::Failed) return;
+    setRunState(m_state == RunState::Stopping ? RunState::Stopped : RunState::Finished);
+    setStatusText(m_state == RunState::Stopped ? tr("停止しました（%1 局面を採択）").arg(m_results.size())
+                                              : tr("生成完了（%1 局面を採択）").arg(m_results.size()));
 }
 
 void TsumeshogiGeneratorDialog::onGeneratorError(const QString& message)
 {
-    m_runFailed = true;
-    setRunningState(false);
+    setRunState(RunState::Failed);
     setStatusText(tr("エラー: %1").arg(message));
     QMessageBox::warning(this, tr("エラー"), message);
 }
 
 void TsumeshogiGeneratorDialog::onSaveToFile()
 {
-    if (m_resultsUi.table->rowCount() == 0) return;
+    if (m_results.isEmpty()) return;
 
     const QString filePath = QFileDialog::getSaveFileName(
         this,
@@ -275,7 +273,7 @@ void TsumeshogiGeneratorDialog::onSaveToFile()
     const QStringList header = TsumeshogiExportHeaderBuilder::build(
         QStringLiteral(APP_VERSION), m_lastRunStartedAt, m_lastRunSettings);
     QStringList lines;
-    for (int row = 0; row < m_resultsUi.table->rowCount(); ++row) lines.append(exportLine(row));
+    for (const Result& result : std::as_const(m_results)) lines.append(exportLine(result));
     QString errorMessage;
     if (!TsumeCollectionWriter::save(filePath, header, lines, &errorMessage)) {
         QMessageBox::warning(this, tr("エラー"), tr("ファイルを保存できませんでした: %1").arg(errorMessage));
@@ -284,35 +282,31 @@ void TsumeshogiGeneratorDialog::onSaveToFile()
 
 void TsumeshogiGeneratorDialog::onCopySelected()
 {
-    auto selectedRows = m_resultsUi.table->selectionModel()->selectedRows(1);
-    if (selectedRows.isEmpty()) return;
-    std::sort(selectedRows.begin(), selectedRows.end(),
-              [](const QModelIndex& left, const QModelIndex& right) { return left.row() < right.row(); });
+    QList<int> rows;
+    const QModelIndexList selected = m_resultsUi.table->selectionModel()->selectedRows();
+    for (const QModelIndex& index : selected) {
+        if (index.row() < m_results.size()) rows.append(index.row());
+    }
+    if (rows.isEmpty()) return;
+    std::sort(rows.begin(), rows.end());
 
     QStringList lines;
-    for (const auto& index : std::as_const(selectedRows)) {
-        lines.append(exportLine(index.row()));
-    }
+    for (const int row : std::as_const(rows)) lines.append(exportLine(m_results.at(row)));
     QApplication::clipboard()->setText(lines.join('\n'));
 }
 
 void TsumeshogiGeneratorDialog::onCopyAll()
 {
-    if (m_resultsUi.table->rowCount() == 0) return;
+    if (m_results.isEmpty()) return;
 
     QStringList lines;
-    for (int row = 0; row < m_resultsUi.table->rowCount(); ++row) {
-        const QString line = exportLine(row);
-        if (!line.isEmpty()) {
-            lines.append(line);
-        }
-    }
+    for (const Result& result : std::as_const(m_results)) lines.append(exportLine(result));
     QApplication::clipboard()->setText(lines.join('\n'));
 }
 
 void TsumeshogiGeneratorDialog::onRestoreDefaults()
 {
-    if (m_running) return;
+    if (isRunning()) return;
     // 既定値は設定の宣言の表のもの
     m_conditionsForm.reset();
 }
@@ -325,16 +319,11 @@ void TsumeshogiGeneratorDialog::onResultTableClicked(const QModelIndex& index)
 
 void TsumeshogiGeneratorDialog::onResultTableActivated(const QModelIndex& index)
 {
-    if (!index.isValid()) return;
+    if (!index.isValid() || index.row() >= m_results.size()) return;
+    const Result& result = m_results.at(index.row());
+    if (result.pv.isEmpty()) return;
 
-    const auto* sfenItem = m_resultsUi.table->item(index.row(), 1);
-    if (!sfenItem) return;
-
-    const QString sfen = sfenItem->text();
-    const QStringList pv = sfenItem->data(Qt::UserRole).toStringList();
-    if (pv.isEmpty()) return;
-
-    auto* dlg = new PvBoardDialog(PvText::play(sfen, pv), this);
+    auto* dlg = new PvBoardDialog(PvText::play(result.sfen, result.pv), this);
     dlg->setPlayerNames(tr("攻方"), tr("玉方"));
     dlg->setAttribute(Qt::WA_DeleteOnClose);
     dlg->show();
@@ -342,22 +331,22 @@ void TsumeshogiGeneratorDialog::onResultTableActivated(const QModelIndex& index)
 
 void TsumeshogiGeneratorDialog::updateResultActions()
 {
-    const bool hasResults = m_resultsUi.table->rowCount() > 0;
+    const bool hasResults = !m_results.isEmpty();
     m_resultsUi.save->setEnabled(hasResults);
     m_resultsUi.copyAll->setEnabled(hasResults);
     m_resultsUi.copySelected->setEnabled(m_resultsUi.table->selectionModel()->hasSelection());
     m_resultsUi.emptyText->setVisible(!hasResults);
-    m_resultsUi.emptyText->setText(m_running
+    m_resultsUi.emptyText->setText(isRunning()
         ? tr("条件に合う局面を探索しています。\n採択した局面から順に表示します。")
         : tr("生成した局面がここに表示されます。\n設定を確認して「開始」を押してください。"));
 }
 
 void TsumeshogiGeneratorDialog::updateProgressBar()
 {
-    const int limit = m_lastRunStartedAt.isValid() ? m_lastRunSettings.maxPositionsToFind
-                                                : m_settingsUi.maxPositions->value();
-    const int found = m_resultsUi.table->rowCount();
-    m_progressUi.bar->setRange(0, limit > 0 ? limit : (m_running ? 0 : qMax(1, found)));
+    const int limit = m_state != RunState::NotStarted ? m_lastRunSettings.maxPositionsToFind
+                                                      : m_settingsUi.maxPositions->value();
+    const int found = static_cast<int>(m_results.size());
+    m_progressUi.bar->setRange(0, limit > 0 ? limit : (isRunning() ? 0 : qMax(1, found)));
     m_progressUi.bar->setValue(found);
     m_progressUi.bar->setFormat(limit > 0 ? tr("%v / %m 局面") : tr("%1 局面（無制限）").arg(found));
 }
@@ -412,9 +401,10 @@ void TsumeshogiGeneratorDialog::applyTableHeaderStyle()
     m_resultsUi.table->setStyleSheet(TableStyles::thinking(font().pointSize()));
 }
 
-void TsumeshogiGeneratorDialog::setRunningState(bool running)
+void TsumeshogiGeneratorDialog::setRunState(RunState state)
 {
-    m_running = running;
+    m_state = state;
+    const bool running = isRunning();
     m_progressUi.start->setEnabled(!running && m_engineSelector->hasEngines());
     m_progressUi.stop->setEnabled(running);
     m_engineSelector->setEnabled(!running);
@@ -456,12 +446,9 @@ void TsumeshogiGeneratorDialog::setStatusText(const QString& status)
     m_progressUi.status->setText(tr("状態: %1").arg(status));
 }
 
-QString TsumeshogiGeneratorDialog::exportLine(int row) const
+QString TsumeshogiGeneratorDialog::exportLine(const Result& result) const
 {
-    const auto* item = m_resultsUi.table->item(row, 1);
-    if (!item) return QString();
-    return TsumeCollectionWriter::line(item->text(), item->data(Qt::UserRole).toStringList(),
-                                       m_resultsUi.includePv->isChecked());
+    return TsumeCollectionWriter::line(result.sfen, result.pv, m_resultsUi.includePv->isChecked());
 }
 
 QString TsumeshogiGeneratorDialog::formatElapsedTime(qint64 ms) const

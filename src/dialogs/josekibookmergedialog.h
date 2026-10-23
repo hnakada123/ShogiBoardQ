@@ -6,6 +6,8 @@
 
 #include <QDialog>
 
+#include "settingsformbinding.h"
+
 #include "josekibook.h"
 
 class QCheckBox;
@@ -44,6 +46,7 @@ private:
     QRadioButton *m_preferIncoming = nullptr;
     QCheckBox *m_sumFrequency = nullptr;
     QPushButton *m_okButton = nullptr;
+    SettingsFormBinding m_form;   ///< 入力欄と設定の対応（決めたときに保存する）
 };
 
 #endif // JOSEKIBOOKMERGEDIALOG_H

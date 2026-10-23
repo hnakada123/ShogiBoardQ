@@ -4,6 +4,7 @@
 /// @file settingsformbinding.h
 /// @brief 入力欄と設定の宣言（Setting<T>）の対応の表（読み込み・保存・既定値に戻すを1か所で）
 
+#include <QList>
 #include <QString>
 #include <functional>
 #include <vector>
@@ -12,6 +13,7 @@
 
 class QAbstractButton;
 class QComboBox;
+class QDoubleSpinBox;
 class QGroupBox;
 class QLineEdit;
 class QSpinBox;
@@ -26,13 +28,19 @@ class SettingsFormBinding
 {
 public:
     void add(QSpinBox* box, const Setting<int>& setting);
+    /// 小数の欄
+    void add(QDoubleSpinBox* box, const Setting<double>& setting);
     /// チェックボックス・ラジオボタン（checked）
     void add(QAbstractButton* button, const Setting<bool>& setting);
     /// チェックできるグループ（checked）
     void add(QGroupBox* group, const Setting<bool>& setting);
-    /// コンボの選んだ位置
+    /// コンボの選んだ位置（範囲外の値は端に寄せる）
     void add(QComboBox* combo, const Setting<int>& setting);
-    /// 文字の欄。defaultText があれば、未保存のときと既定値に戻すときにその値を使う
+    /// ラジオボタンの組の選んだ位置（buttons の順。範囲外の値は先頭）
+    void add(const QList<QAbstractButton*>& buttons, const Setting<int>& setting);
+    /// 2つのラジオボタンの組（buttons[0] が false、buttons[1] が true）
+    void add(QAbstractButton* falseButton, QAbstractButton* trueButton, const Setting<bool>& setting);
+    /// 文字の欄（前後の空白を除いて保存する）。defaultText があれば、未保存のときと既定値に戻すときにその値を使う
     void add(QLineEdit* edit, const Setting<QString>& setting, std::function<QString()> defaultText = {});
 
     /// 保存した値を入力欄に入れる

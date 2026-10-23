@@ -14,6 +14,8 @@
 #include "boardcolordialog.h"
 #include "fontsettingsdialog.h"
 #include "engineregistrationdialog.h"
+#include "evaluationchartsettingsdialog.h"
+#include "evaluationchartwidget.h"
 #include "promotedialog.h"
 #include "shogiview.h"
 #include "jishogiscoredialog.h"
@@ -154,4 +156,12 @@ void DialogLauncher::displayFontSettingsDialog()
 {
     FontSettingsDialog dialog(m_deps.parentWidget);
     dialog.exec();
+}
+
+void DialogLauncher::displayEvaluationChartSettings()
+{
+    EvaluationChartWidget* chart = m_deps.evalChart;
+    if (!chart) return;
+    EvaluationChartSettingsDialog dialog(chart->chartSettings(), chart->axes(), chart);
+    if (dialog.exec() == QDialog::Accepted) chart->setChartSettings(dialog.settings());
 }

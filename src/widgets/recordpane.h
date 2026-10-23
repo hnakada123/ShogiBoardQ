@@ -5,10 +5,10 @@
 /// @brief 棋譜欄ペインクラスの定義
 
 
+#include <QString>
 #include <QWidget>
 #include <QPersistentModelIndex>
 #include "fontsizehelper.h"
-#include "recordpaneappearancemanager.h"
 
 class QTableView; class QPushButton; class QSplitter; class QToolButton;
 class KifuRecordListModel; class KifuBranchListModel;
@@ -16,6 +16,15 @@ class KifuRecordListModel; class KifuBranchListModel;
 class RecordPane : public QWidget {
     Q_OBJECT
 public:
+    /// 棋譜欄の見た目（文字の大きさ・表示する列・行のクリック）。applyAppearance() の1か所で表に反映する
+    struct Appearance {
+        int fontSize = 10;
+        bool timeVisible = true;
+        bool bookmarkVisible = true;
+        bool commentVisible = true;
+        bool navigationEnabled = true;   ///< 行のクリックで局面を移れる（対局中は無効）
+    };
+
     explicit RecordPane(QWidget* parent=nullptr);
     void setModels(KifuRecordListModel* recModel, KifuBranchListModel* brModel);
 
@@ -24,7 +33,11 @@ public:
 
     /// 棋譜欄の行のクリックを有効・無効にする（局面送りのボタンは KifuNavigationController の QAction に従う）
     void setKifuViewEnabled(bool on);
-    bool isNavigationDisabled() const { return m_navigationDisabled; }
+    bool isNavigationDisabled() const { return !m_appearance.navigationEnabled; }
+    const Appearance& appearance() const { return m_appearance; }
+
+    /// 棋譜欄・分岐候補欄の表のスタイルシート（見出しの文字の大きさと選択の色）
+    static QString tableStyleSheet(int fontSize);
 
     // 局面送りのボタン（KifuNavigationController::bindButtons で QAction に結び付ける）
     QPushButton* firstButton()  const { return m_btn1; }
@@ -37,9 +50,6 @@ public:
     QPushButton* fontIncreaseButton() const { return m_btnFontUp; }
     QPushButton* fontDecreaseButton() const { return m_btnFontDown; }
     QPushButton* bookmarkEditButton() const { return m_btnBookmarkEdit; }
-
-    void setupKifuSelectionAppearance();
-    void setupBranchViewSelectionAppearance();
 
 signals:
     void mainRowChanged(int row);
@@ -57,6 +67,8 @@ private:
     void buildBranchPanel();
     void buildMainLayout();
     void wireSignals();
+    /// m_appearance を表・列・分岐候補の開閉ボタンに反映する
+    void applyAppearance();
     void updateKifuTableWidth();
     void updateBranchAppearance();
 
@@ -71,10 +83,9 @@ private:
     QPushButton *m_btnToggleBookmark=nullptr;  // しおり列トグル
     QPushButton *m_btnToggleComment=nullptr;   // コメント列トグル
     QSplitter *m_lr=nullptr;
-    QMetaObject::Connection m_connKifuCurrentRow;
 
     FontSizeHelper m_fontSize;  ///< 棋譜と分岐候補の文字の大きさ（変更のたびに保存する）
-    RecordPaneAppearanceManager m_appearanceManager{10};
+    Appearance m_appearance;
 
 private slots:
     void onBranchToggled(bool expanded);
@@ -82,8 +93,6 @@ private slots:
     void onFontSizeChanged(int size);
     void onKifuRowsInserted(const QModelIndex& parent, int first, int last);
     void onKifuCurrentRowChanged(const QModelIndex& cur, const QModelIndex& prev);
-
-    void connectKifuCurrentRowChanged();  ///< currentRowChanged 接続を再構築
 
     /// 分岐候補欄のマウスクリック（QAbstractItemView::clicked）
     void onBranchClicked(const QModelIndex& index);
@@ -95,24 +104,16 @@ private slots:
     void onBranchContextMenuRequested(const QPoint& pos);
 
 private:
-    QMetaObject::Connection m_connRowChanged;
-    QMetaObject::Connection m_connRowsInserted;
-
     // シングルクリックで activated も発火する環境で、同じ行に対する
     // clicked → activated の二重処理を防ぐ（同一イベントループ周回内のみ有効）
     QPersistentModelIndex m_lastClickedBranchIndex;
     bool m_branchClickGuard = false;
 
 public slots:
-
-    // 列表示トグルスロット
+    // 列の表示（列のボタン。表示は保存する）
     void onToggleTimeColumn(bool checked);
     void onToggleBookmarkColumn(bool checked);
     void onToggleCommentColumn(bool checked);
-
-private:
-    // 対局中フラグ（ナビゲーション無効化時にtrue）
-    bool m_navigationDisabled = false;
 };
 
 #endif // RECORDPANE_H

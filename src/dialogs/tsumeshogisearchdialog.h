@@ -32,7 +32,6 @@ public:
 
 public slots:
     void accept() override;
-    void done(int result) override;
 
 private slots:
     void showEngineSettingsDialog(const EngineListSettings::EngineEntry& engine);

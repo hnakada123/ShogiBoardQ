@@ -7,6 +7,7 @@
 #include "enginelistsettings.h"
 #include <QDialog>
 #include "networksettings.h"
+#include "settingsformbinding.h"
 #include <QList>
 
 #include <memory>
@@ -140,12 +141,6 @@ private:
      */
     void saveGameSettings();
 
-    /// 「詳細」タブの設定を NetworkSettings から読み込む
-    void loadAdvancedSettings();
-
-    /// 「詳細」タブの設定を NetworkSettings に保存する
-    void saveAdvancedSettings();
-
     /// 自動保存の形式コンボボックスに選択肢を入れる
     void populateAutoSaveFormats();
 
@@ -165,6 +160,7 @@ private:
     std::unique_ptr<Ui::CsaGameDialog> ui; ///< UIオブジェクト
     EngineSelector* m_engineSelector = nullptr; ///< エンジンの選択（QObject parent 所有）
     QList<NetworkSettings::CsaServerHistoryEntry> m_serverHistory; ///< サーバー接続履歴
+    SettingsFormBinding m_form;   ///< 入力欄と設定の対応（「対局」と「詳細」のタブ）
 
     // 設定値のキャッシュ
 

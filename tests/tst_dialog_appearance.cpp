@@ -58,7 +58,7 @@
 #include "tsumeshogigeneratordialog.h"
 #include "tsumeshogisearchdialog.h"
 #include "versiondialog.h"
-#include "evaluationchartconfigurator.h"
+#include "evaluationchartsettingsdialog.h"
 #include "longlongspinbox.h"
 
 namespace {
@@ -660,25 +660,16 @@ private slots:
 
     void evaluationSettings()
     {
-        EvaluationChartConfigurator configurator;
-        QTimer::singleShot(0, this, &TestDialogAppearance::checkEvaluationSettings);
-        QVERIFY(QMetaObject::invokeMethod(&configurator, "showSettings", Qt::DirectConnection));
-    }
-
-private:
-    void checkEvaluationSettings()
-    {
-        auto* dialog = qobject_cast<QDialog*>(QApplication::activeModalWidget());
-        QVERIFY(dialog);
-        // 検査に失敗しても、モーダルループが残らないようにする。
-        QTimer::singleShot(1000, dialog, &QDialog::reject);
-        const auto buttons = fontButtons(dialog);
+        EvaluationChartSettingsDialog dialog{EvaluationChartSettings{}, EvaluationChartAxes{}};
+        dialog.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&dialog));
+        const auto buttons = fontButtons(&dialog);
         QVERIFY(buttons[0] && buttons[1]);
-        const int initial = dialog->font().pointSize();
+        const int initial = dialog.font().pointSize();
         QTest::mouseClick(buttons[1], Qt::LeftButton);
-        QCOMPARE(dialog->font().pointSize(), initial + 1);
-        snapshot(dialog, QStringLiteral("evaluation-settings"));
-        dialog->reject();
+        QCOMPARE(dialog.font().pointSize(), initial + 1);
+        snapshot(&dialog, QStringLiteral("evaluation-settings"));
+        dialog.reject();
     }
 };
 

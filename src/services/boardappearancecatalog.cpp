@@ -154,8 +154,9 @@ void BoardAppearanceCatalog::apply(Component component, const BoardAppearanceSam
     } else if (component == Component::Background) {
         colors.background = sample.colors.background;
     } else {
-        const auto members = BoardColors::members();
-        for (size_t i = 4; i < members.size(); ++i) colors.*members[i] = sample.colors.*members[i];
+        // 対局者のカードの色（盤・駒台・背景より後ろの分類）
+        for (const BoardColors::Field& field : BoardColors::fields())
+            if (field.group != BoardColors::Group::Board) colors.*field.member = sample.colors.*field.member;
     }
 }
 

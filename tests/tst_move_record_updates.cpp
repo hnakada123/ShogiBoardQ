@@ -1,4 +1,6 @@
 #include <QtTest>
+#include <QChartView>
+#include <QValueAxis>
 #include <QSignalSpy>
 #include <QScopeGuard>
 #include <QHeaderView>
@@ -24,7 +26,7 @@
 #include "livegamesession.h"
 #include "kifurecordlistmodel.h"
 #include "recordhighlightdelegate.h"
-#include "recordpaneappearancemanager.h"
+#include "recordpane.h"
 #include "sfenutils.h"
 #include "shogimove.h"
 #include "kifmovetext.h"
@@ -378,7 +380,7 @@ private slots:
             QTableView plain;
             for (QTableView* view : {&cut, &plain}) {
                 view->setModel(&model);
-                view->setStyleSheet(RecordPaneAppearanceManager::kifuTableStyleSheet(10));
+                view->setStyleSheet(RecordPane::tableStyleSheet(10));
                 view->setWordWrap(false);
                 view->setTextElideMode(Qt::ElideRight);
                 view->verticalHeader()->setVisible(false);
@@ -412,13 +414,16 @@ private slots:
         EvaluationChartWidget chart;
         EvaluationGraphPresenter presenter({&chart, &nav, &live});
 
-        QSignalSpy axis(&chart, &EvaluationChartWidget::xAxisSettingsChanged);
+        auto* xAxis = qobject_cast<QValueAxis*>(
+            static_cast<QChartView*>(chart.chartViewWidget())->chart()->axes(Qt::Horizontal).constFirst());
+        QVERIFY(xAxis);
+        QSignalSpy axis(xAxis, &QValueAxis::maxChanged);
         for (int ply = 1; ply <= 120; ++ply) nav.setCurrentNode(TestTree::findByPlyOnMainLine(tree, ply));
 
         QVERIFY(!axis.isEmpty());
         int previous = 0;
         for (const auto& arguments : std::as_const(axis)) {
-            const int limit = arguments.at(0).toInt();
+            const int limit = qRound(arguments.at(0).toReal());
             QVERIFY2(limit >= previous, qPrintable(QStringLiteral("x axis shrank from %1 to %2")
                                                        .arg(previous).arg(limit)));
             previous = limit;

@@ -7,7 +7,6 @@
 #include "changeenginesettingsdialog.h"
 #include "gamesettings.h"
 #include "buttonstyles.h"
-#include "dialogutils.h"
 #include "josekiplayoptionsdialog.h"
 #include "playersetupwidget.h"
 #include "timecontroleditor.h"
@@ -117,21 +116,16 @@ StartGameDialog::StartGameDialog(QWidget *parent)
     fontOptions.maxSize = MaxFontSize;
     fontOptions.decrease = ui->pushButtonFontSizeDown;
     fontOptions.increase = ui->pushButtonFontSizeUp;
+    fontOptions.size = &GameSettings::startGameDialogSize;
     DialogFontScale::install(this, GameSettings::startGameDialogFontSize, fontOptions);
 
     loadGameSettings();
     connectSignalsAndSlots();
     updateTimeSettingsTitle();
     updateKifuSaveEnabled();
-
-    // ウィンドウサイズを復元
-    DialogUtils::restoreDialogSize(this, GameSettings::startGameDialogSize());
 }
 
-StartGameDialog::~StartGameDialog()
-{
-    DialogUtils::saveDialogSize(this, GameSettings::startGameDialogSize);
-}
+StartGameDialog::~StartGameDialog() = default;
 
 void StartGameDialog::buildPlayerSections()
 {

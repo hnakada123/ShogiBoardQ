@@ -6,6 +6,8 @@
 
 #include <QDialog>
 
+#include "settingsformbinding.h"
+
 #include "josekilines.h"
 
 class QDoubleSpinBox;
@@ -30,6 +32,7 @@ private:
     QSpinBox *m_maxPlies = nullptr;
     QSpinBox *m_movesPerPosition = nullptr;
     QDoubleSpinBox *m_minRatio = nullptr;
+    SettingsFormBinding m_form;   ///< 入力欄と設定の対応（決めたときに保存する）
 };
 
 #endif // JOSEKIEXPANDDIALOG_H

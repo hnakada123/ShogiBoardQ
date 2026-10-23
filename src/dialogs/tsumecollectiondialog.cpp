@@ -42,7 +42,6 @@ TsumeCollectionDialog::TsumeCollectionDialog(QWidget* parent)
     connect(m_session, &TsumeCollectionSession::evaluationChanged, this, &TsumeCollectionDialog::updateCards);
     buildUi();
     const auto preferences = TsumeshogiSettings::collectionPreferences();
-    DialogUtils::restoreDialogSize(this, preferences.size);
     // 判定エンジン: 内蔵の Hayanagi か、登録した KomoringHeights（未保存なら登録したものを優先する）
     TsumeshogiSettings::migrateCollectionEngineSelection();
     EngineSelector::Options engineOptions;
@@ -182,13 +181,13 @@ void TsumeCollectionDialog::buildUi()
     DialogFontScale::Options fontOptions;
     fontOptions.decrease = fontDecrease;
     fontOptions.increase = fontIncrease;
+    fontOptions.size = &TsumeshogiSettings::collectionDialogSize;
     DialogFontScale::install(this, TsumeshogiSettings::tsumeCollectionFontSize, fontOptions);
 }
 
 void TsumeCollectionDialog::savePreferences()
 {
     TsumeshogiSettings::CollectionPreferences preferences;
-    preferences.size = size();
     preferences.lastFile = m_session->filePath();
     preferences.pageSize = m_pageSize->currentData().toInt();
     preferences.page = m_page->value();

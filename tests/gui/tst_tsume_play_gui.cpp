@@ -331,8 +331,8 @@ private slots:
         QFETCH(QSize, windowSize);
         QFETCH(int, squareSize);
         QFETCH(int, fontSize);
+        TsumeshogiSettings::playDialogSize.set(windowSize);
         auto preferences = TsumeshogiSettings::playPreferences();
-        preferences.size = windowSize;
         preferences.squareSize = squareSize;
         TsumeshogiSettings::playPreferences.set(preferences);
         TsumeshogiSettings::tsumePlayFontSize.set(fontSize);
@@ -372,8 +372,8 @@ private slots:
         QFETCH(QSize, windowSize);
         QFETCH(int, squareSize);
         QFETCH(int, fontSize);
+        TsumeshogiSettings::playDialogSize.set(windowSize);
         auto preferences = TsumeshogiSettings::playPreferences();
-        preferences.size = windowSize;
         preferences.squareSize = squareSize;
         TsumeshogiSettings::playPreferences.set(preferences);
         TsumeshogiSettings::tsumePlayFontSize.set(fontSize);

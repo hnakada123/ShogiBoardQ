@@ -66,9 +66,22 @@ private slots:
     void showEngineSettingsDialog(const EngineListSettings::EngineEntry& engine);
 
 private:
-    /// エンジン情報
     /// 登録済みエンジン（名前・実行ファイル・作者）
     using Engine = EngineListSettings::EngineEntry;
+    /// 生成の進み
+    enum class RunState {
+        NotStarted,  ///< まだ開始していない
+        Running,
+        Stopping,    ///< 停止を頼み、終わるのを待っている
+        Finished,    ///< 目標の数を採択した・探索を終えた
+        Stopped,     ///< 利用者が止めた
+        Failed       ///< エラーで終わった
+    };
+    /// 採択した局面（結果の表の行と同じ順。保存・コピー・盤の表示はここから読む）
+    struct Result {
+        QString sfen;
+        QStringList pv;
+    };
 
     void setupUi();
     void buildFormSection(QVBoxLayout* mainLayout);
@@ -82,10 +95,11 @@ private:
     /// 表の行の高さ・見た目を今の文字に合わせる
     void fitToFont();
     void applyTableHeaderStyle();
-    void setRunningState(bool running);
+    void setRunState(RunState state);
+    bool isRunning() const { return m_state == RunState::Running || m_state == RunState::Stopping; }
     void setStatusText(const QString& status);
     QString formatElapsedTime(qint64 ms) const;
-    QString exportLine(int row) const;
+    QString exportLine(const Result& result) const;
 
     /// エンジンと生成設定（スクロールできる上段）
     struct SettingsPanel {
@@ -146,9 +160,8 @@ private:
     // 直近の生成で使った設定と開始日時（ファイル保存時のコメントヘッダに記録する）
     TsumeshogiGenerator::Settings m_lastRunSettings;
     QDateTime m_lastRunStartedAt;
-    bool m_running = false;
-    bool m_stopRequested = false;
-    bool m_runFailed = false;
+    RunState m_state = RunState::NotStarted;
+    QList<Result> m_results;   ///< 採択した局面（表は表示だけ）
 };
 
 #endif // TSUMESHOGIGENERATORDIALOG_H

@@ -670,8 +670,8 @@ set(SRC_WIDGETS
     src/widgets/engineinfowidget.h
     src/widgets/engineselector.cpp
     src/widgets/engineselector.h
-    src/widgets/evaluationchartconfigurator.cpp
-    src/widgets/evaluationchartconfigurator.h
+    src/widgets/evaluationchartrange.cpp
+    src/widgets/evaluationchartrange.h
     src/widgets/evaluationchartview.cpp
     src/widgets/evaluationchartview.h
     src/widgets/evaluationchartwidget.cpp
@@ -717,8 +717,6 @@ set(SRC_WIDGETS
     src/widgets/recordhighlightdelegate.h
     src/widgets/recordpane.cpp
     src/widgets/recordpane.h
-    src/widgets/recordpaneappearancemanager.cpp
-    src/widgets/recordpaneappearancemanager.h
     src/widgets/settingsformbinding.cpp
     src/widgets/settingsformbinding.h
     src/widgets/tablebuttondelegate.h
@@ -732,8 +730,11 @@ set(SRC_WIDGETS
     src/widgets/timecontroleditor.h
     src/widgets/tsumepositionpreview.cpp
     src/widgets/tsumepositionpreview.h
+    src/widgets/logpanel.cpp
+    src/widgets/logpanel.h
     src/widgets/usilogpanel.cpp
     src/widgets/usilogpanel.h
+    src/widgets/toolbarwidth.h
 )
 
 set(SRC_DIALOGS
@@ -747,6 +748,8 @@ set(SRC_DIALOGS
     src/dialogs/csagamedialog.h
     src/dialogs/csawaitingdialog.cpp
     src/dialogs/csawaitingdialog.h
+    src/dialogs/evaluationchartsettingsdialog.cpp
+    src/dialogs/evaluationchartsettingsdialog.h
     src/dialogs/engineregistrationdialog.cpp
     src/dialogs/engineregistrationdialog.h
     src/dialogs/enginesettingsoptionhandler.cpp

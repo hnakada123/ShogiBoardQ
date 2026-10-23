@@ -4,7 +4,6 @@
 #include "josekimovedialog.h"
 #include "dialogfontscale.h"
 #include "buttonstyles.h"
-#include "dialogutils.h"
 #include "josekimoveinputwidget.h"
 #include "josekisettings.h"
 #include "enginemovevalidator.h"
@@ -28,9 +27,6 @@ JosekiMoveDialog::JosekiMoveDialog(QWidget *parent, bool isEdit)
     , m_isEdit(isEdit)
 {
     setupUi(isEdit);
-
-    // ウィンドウサイズを復元
-    DialogUtils::restoreDialogSize(this, JosekiSettings::josekiMoveDialogSize());
 }
 
 void JosekiMoveDialog::setupUi(bool isEdit)
@@ -167,6 +163,7 @@ void JosekiMoveDialog::setupUi(bool isEdit)
     fontOptions.maxSize = 18;
     fontOptions.decrease = m_fontDecreaseBtn;
     fontOptions.increase = m_fontIncreaseBtn;
+    fontOptions.size = &JosekiSettings::josekiMoveDialogSize;
     DialogFontScale::install(this, JosekiSettings::josekiMoveDialogFontSize, fontOptions);
     updateValidation();
 }
@@ -221,7 +218,6 @@ void JosekiMoveDialog::done(int result)
         updateValidation();
         return;
     }
-    DialogUtils::saveDialogSize(this, JosekiSettings::josekiMoveDialogSize);
     QDialog::done(result);
 }
 

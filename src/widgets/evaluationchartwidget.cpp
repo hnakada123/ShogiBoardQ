@@ -1,12 +1,12 @@
 /// @file evaluationchartwidget.cpp
 /// @brief 評価値グラフの構築・軸更新・棋譜ナビゲーション
 #include "evaluationchartwidget.h"
-#include "evaluationchartconfigurator.h"
 #include "evaluationchartview.h"
 #include "evaluationseries.h"
 #include "buttonstyles.h"
 
 #include <QChart>
+#include <QComboBox>
 #include <QLineSeries>
 #include <QValueAxis>
 #include <QGridLayout>
@@ -15,6 +15,7 @@
 #include <QFontMetrics>
 #include <QMouseEvent>
 #include <QPushButton>
+#include <QSignalBlocker>
 #include <QTimer>
 #include <limits>
 #include <QLabel>
@@ -26,9 +27,9 @@ EvaluationChartWidget::EvaluationChartWidget(QWidget* parent)
     , m_axX(new QValueAxis())
     , m_axY(new QValueAxis())
     , m_chartView(new EvaluationChartView(m_chart, this))
-    , m_configurator(new EvaluationChartConfigurator(this))
+    , m_settings(AnalysisSettings::evalChart())
 {
-    m_configurator->loadSettings();
+    m_axes = EvaluationChartRange::compute(m_settings, 0, 0, m_plotSize);
     setupAxes();
     setupChart();
     setupSeries();
@@ -42,10 +43,7 @@ EvaluationChartWidget::EvaluationChartWidget(QWidget* parent)
     refreshData();
 }
 
-EvaluationChartWidget::~EvaluationChartWidget()
-{
-    m_configurator->saveSettings();
-}
+EvaluationChartWidget::~EvaluationChartWidget() = default;
 
 void EvaluationChartWidget::changeEvent(QEvent* event)
 {
@@ -74,10 +72,10 @@ void EvaluationChartWidget::setupAxes()
         axis->setGridLinePen(QPen(QColor(QStringLiteral("#E2E8F0")), 1));
         axis->setLineVisible(false);
     }
-    m_axX->setRange(0, xAxisLimit());
-    m_axX->setTickInterval(xAxisInterval());
-    m_axY->setRange(-yAxisLimit(), yAxisLimit());
-    m_axY->setTickInterval(yAxisInterval());
+    m_axX->setRange(0, m_axes.xLimit);
+    m_axX->setTickInterval(m_axes.xInterval);
+    m_axY->setRange(-m_axes.yLimit, m_axes.yLimit);
+    m_axY->setTickInterval(m_axes.yInterval);
 }
 
 void EvaluationChartWidget::setupChart()
@@ -126,12 +124,6 @@ void EvaluationChartWidget::setupChartViewAndLayout()
     layout->addWidget(m_chartView, 1);
     setMinimumSize(320, 230);
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-    connect(m_configurator, &EvaluationChartConfigurator::yAxisSettingsChanged,
-            this, &EvaluationChartWidget::applyYAxisSettings);
-    connect(m_configurator, &EvaluationChartConfigurator::xAxisSettingsChanged,
-            this, &EvaluationChartWidget::applyXAxisSettings);
-    connect(m_configurator, &EvaluationChartConfigurator::fontSizeChanged,
-            this, &EvaluationChartWidget::applyFontSize);
     connect(m_chart, &QChart::plotAreaChanged, this, &EvaluationChartWidget::onPlotAreaChanged);
 }
 
@@ -145,8 +137,23 @@ QWidget* EvaluationChartWidget::createToolbar()
     // 左右の列を同じ幅にして、ナビゲーションボタンを中央に置く。
     m_toolbarLayout->setColumnStretch(0, 1);
     m_toolbarLayout->setColumnStretch(2, 1);
-    m_rangeSelector = m_configurator->createRangeSelector(toolbar);
-    m_settingsButton = m_configurator->createSettingsButton(toolbar);
+    // 表示範囲（自動・固定）と表示設定のボタン
+    m_rangeSelector = new QWidget(toolbar);
+    auto* rangeLayout = new QHBoxLayout(m_rangeSelector);
+    rangeLayout->setContentsMargins(0, 0, 0, 0);
+    rangeLayout->setSpacing(8);
+    auto* rangeLabel = new QLabel(tr("表示範囲:"), m_rangeSelector);
+    m_rangeMode = new QComboBox(m_rangeSelector);
+    m_rangeMode->setObjectName(QStringLiteral("evalRangeMode"));
+    m_rangeMode->addItems({tr("自動"), tr("手動固定")});
+    m_rangeMode->setCurrentIndex(m_settings.automatic ? 0 : 1);
+    rangeLabel->setBuddy(m_rangeMode);
+    rangeLayout->addWidget(rangeLabel);
+    rangeLayout->addWidget(m_rangeMode);
+    connect(m_rangeMode, &QComboBox::currentIndexChanged, this, &EvaluationChartWidget::onRangeModeChanged);
+    m_settingsButton = new QPushButton(tr("表示設定…"), toolbar);
+    m_settingsButton->setObjectName(QStringLiteral("evalDisplaySettings"));
+    connect(m_settingsButton, &QPushButton::clicked, this, &EvaluationChartWidget::settingsRequested);
     m_toolbarLayout->addWidget(m_rangeSelector, 0, 0, Qt::AlignLeft);
     m_toolbarLayout->addWidget(createNavigationBar(toolbar), 0, 1);
     m_toolbarLayout->addWidget(m_settingsButton, 0, 2, Qt::AlignRight);
@@ -206,43 +213,60 @@ void EvaluationChartWidget::updateNavigationPlacement()
 }
 
 QWidget* EvaluationChartWidget::chartViewWidget() const { return m_chartView; }
-int EvaluationChartWidget::yAxisLimit() const { return m_configurator->yAxisLimit(); }
-int EvaluationChartWidget::yAxisInterval() const { return m_configurator->yAxisInterval(); }
-int EvaluationChartWidget::xAxisLimit() const { return m_configurator->xAxisLimit(); }
-int EvaluationChartWidget::xAxisInterval() const { return m_configurator->xAxisInterval(); }
-int EvaluationChartWidget::labelFontSize() const { return m_configurator->labelFontSize(); }
-void EvaluationChartWidget::setYAxisLimit(int limit) { m_configurator->setYAxisLimit(limit); }
-void EvaluationChartWidget::setXAxisLimit(int limit) { m_configurator->setXAxisLimit(limit); }
-void EvaluationChartWidget::setYAxisInterval(int interval) { m_configurator->setYAxisInterval(interval); }
-void EvaluationChartWidget::setXAxisInterval(int interval) { m_configurator->setXAxisInterval(interval); }
-void EvaluationChartWidget::setLabelFontSize(int size) { m_configurator->setLabelFontSize(size); }
-void EvaluationChartWidget::setAutomaticRange(bool automatic) { m_configurator->setAutomaticRange(automatic); }
-
-void EvaluationChartWidget::applyYAxisSettings()
+void EvaluationChartWidget::setChartSettings(const EvaluationChartSettings& settings)
 {
-    m_axY->setRange(-yAxisLimit(), yAxisLimit());
-    m_axY->setTickInterval(yAxisInterval());
+    const EvaluationChartSettings normalized = settings.normalized();
+    const bool fontChanged = normalized.labelFontSize != m_settings.labelFontSize;
+    m_settings = normalized;
+    AnalysisSettings::evalChart.set(m_settings);
+    if (m_rangeMode) {
+        const QSignalBlocker blocker(m_rangeMode);
+        m_rangeMode->setCurrentIndex(m_settings.automatic ? 0 : 1);
+    }
+    if (fontChanged) applyFontSize();
+    updateAxes();
+}
+
+void EvaluationChartWidget::onRangeModeChanged(int index)
+{
+    EvaluationChartSettings settings = m_settings;
+    settings.automatic = index == 0;
+    setChartSettings(settings);
+}
+
+void EvaluationChartWidget::updateAxes()
+{
+    const EvaluationChartAxes axes = EvaluationChartRange::compute(m_settings, m_maxCp, m_maxPly, m_plotSize);
+    const bool yChanged = axes.yLimit != m_axes.yLimit || axes.yInterval != m_axes.yInterval;
+    const bool xChanged = axes.xLimit != m_axes.xLimit || axes.xInterval != m_axes.xInterval;
+    m_axes = axes;
+    if (yChanged) applyYAxis();
+    if (xChanged) applyXAxis();
+}
+
+void EvaluationChartWidget::applyYAxis()
+{
+    m_axY->setRange(-m_axes.yLimit, m_axes.yLimit);
+    m_axY->setTickInterval(m_axes.yInterval);
     rebuildSeries();
     updateReferenceLines();
     updatePresentation();
     clearHover();
-    emit yAxisSettingsChanged(yAxisLimit(), yAxisInterval());
 }
 
-void EvaluationChartWidget::applyXAxisSettings()
+void EvaluationChartWidget::applyXAxis()
 {
-    m_axX->setRange(0, xAxisLimit());
-    m_axX->setTickInterval(xAxisInterval());
+    m_axX->setRange(0, m_axes.xLimit);
+    m_axX->setTickInterval(m_axes.xInterval);
     updateReferenceLines();
     updatePresentation();
     clearHover();
-    emit xAxisSettingsChanged(xAxisLimit(), xAxisInterval());
 }
 
 void EvaluationChartWidget::applyFontSize()
 {
     QFont labels = font();
-    labels.setPointSize(labelFontSize());
+    labels.setPointSize(m_settings.labelFontSize);
     m_axX->setLabelsFont(labels);
     m_axY->setLabelsFont(labels);
     m_chartView->setFont(labels);
@@ -257,7 +281,11 @@ void EvaluationChartWidget::onPlotAreaChanged()
     const int headerRows = m_chartView->width() >= 700 ? 2 : 3;
     const QMargins margins(8, (fm.height() + 7) * headerRows + 8, hintWidth + 8, 8);
     if (m_chart->margins() != margins) m_chart->setMargins(margins);
-    m_configurator->updatePlotSize(m_chart->plotArea().size());
+    const QSizeF plotSize = m_chart->plotArea().size();
+    if (plotSize.width() > 0 && plotSize.height() > 0 && plotSize != m_plotSize) {
+        m_plotSize = plotSize;
+        updateAxes();
+    }
     updatePresentation();
     clearHover();
 }
@@ -321,7 +349,6 @@ bool EvaluationChartWidget::eventFilter(QObject* obj, QEvent* event)
     return QWidget::eventFilter(obj, event);
 }
 
-void EvaluationChartWidget::setFloating(bool floating) { Q_UNUSED(floating) }
 
 // ============================================================
 // 生の評価データ保持・詰みと範囲外表示・バッチ更新
@@ -422,7 +449,9 @@ void EvaluationChartWidget::refreshData()
         }
     }
     const int yLimitBefore = yAxisLimit();
-    m_configurator->updateDataRange(maxCp, maxPly);
+    m_maxCp = maxCp;
+    m_maxPly = maxPly;
+    updateAxes();
     // 対局中は棋譜欄の行追加で記録の長さだけが伸びて呼ばれる。点が変わっていなければ、
     // 点を収める縦の表示範囲が変わったときだけ系列を作り直す。
     if (m_scoresChanged || yAxisLimit() != yLimitBefore) rebuildSeries();

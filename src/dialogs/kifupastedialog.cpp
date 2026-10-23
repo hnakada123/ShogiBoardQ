@@ -4,7 +4,6 @@
 #include "kifupastedialog.h"
 #include "buttonstyles.h"
 #include "gamesettings.h"
-#include "dialogutils.h"
 #include "applicationfonts.h"
 #include "dialogfontscale.h"
 #include "fontsizehelper.h"
@@ -35,26 +34,15 @@ KifuPasteDialog::KifuPasteDialog(QWidget* parent)
     fontOptions.decrease = m_btnFontSizeDown;
     fontOptions.increase = m_btnFontSizeUp;
     fontOptions.sizeLabel = m_fontSizeLabel;
+    fontOptions.size = &GameSettings::kifuPasteDialogSize;
     auto* fontScale = DialogFontScale::install(this, GameSettings::kifuPasteDialogFontSize, fontOptions);
     connect(fontScale->fontSize(), &FontSizeHelper::fontSizeChanged, this, &KifuPasteDialog::fitToFont);
     fitToFont();
     updateInputActions();
     updateClipboardAction();
-
-    // ウィンドウサイズを復元
-    DialogUtils::restoreDialogSize(this, GameSettings::kifuPasteDialogSize());
 }
 
-KifuPasteDialog::~KifuPasteDialog()
-{
-    DialogUtils::saveDialogSize(this, GameSettings::kifuPasteDialogSize);
-}
-
-void KifuPasteDialog::closeEvent(QCloseEvent* event)
-{
-    DialogUtils::saveDialogSize(this, GameSettings::kifuPasteDialogSize);
-    QDialog::closeEvent(event);
-}
+KifuPasteDialog::~KifuPasteDialog() = default;
 
 void KifuPasteDialog::setupUi()
 {

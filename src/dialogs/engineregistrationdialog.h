@@ -35,6 +35,9 @@ private slots:
     // 設定ボタンが押されたときに呼び出されるスロット
     void configureEngine();
 
+    /// 画面の一覧をハンドラの一覧（正本）から作り直す（選んでいたエンジンは名前で選び直す）
+    void rebuildEngineList();
+
     // エンジン登録完了時のスロット
     void onEngineRegistered(const QString& engineName);
 
@@ -44,10 +47,6 @@ private slots:
     // 登録処理の進行状態変化時のスロット
     void onRegistrationInProgressChanged(bool inProgress);
     void updateSelectionState();
-
-    // フォントサイズを増加する
-
-    // フォントサイズを減少する
 
 private:
     std::unique_ptr<Ui::EngineRegistrationDialog> ui;

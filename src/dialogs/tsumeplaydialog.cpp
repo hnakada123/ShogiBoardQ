@@ -2,7 +2,6 @@
 #include "appsettings.h"
 #include "boardinteractioncontroller.h"
 #include "dialogfontscale.h"
-#include "dialogutils.h"
 #include "fontsizehelper.h"
 #include "shogiboard.h"
 #include "sfenutils.h"
@@ -47,7 +46,6 @@ TsumePlayDialog::TsumePlayDialog(QWidget* parent)
     m_game->newGame(initialSfen);
     buildUi();
     const auto preferences = TsumeshogiSettings::playPreferences();
-    DialogUtils::restoreDialogSize(this, preferences.size);
     m_problemUi.timeout->setValue(std::clamp(preferences.timeoutSec, 1, 600));
     m_view->setSquareSize(std::clamp(preferences.squareSize, 20, 150));
     m_boardRotated = preferences.boardRotated;
@@ -66,7 +64,6 @@ TsumePlayDialog::~TsumePlayDialog()
     m_solution->cancel();
     m_session->cancel();
     auto preferences = TsumeshogiSettings::playPreferences();
-    preferences.size = size();
     preferences.timeoutSec = m_problemUi.timeout->value();
     preferences.squareSize = m_view->squareSize();
     preferences.boardRotated = m_boardRotated;
@@ -167,6 +164,7 @@ void TsumePlayDialog::buildUi()
     DialogFontScale::Options fontOptions;
     fontOptions.decrease = fontDecrease;
     fontOptions.increase = fontIncrease;
+    fontOptions.size = &TsumeshogiSettings::playDialogSize;
     auto* fontScale = DialogFontScale::install(this, TsumeshogiSettings::tsumePlayFontSize, fontOptions);
     connect(fontScale->fontSize(), &FontSizeHelper::fontSizeChanged, this, &TsumePlayDialog::fitInfoToFont);
     fitInfoToFont();

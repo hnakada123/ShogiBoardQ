@@ -11,6 +11,7 @@
 #include <QTemporaryDir>
 #include <QTimer>
 #include "evaluationchartwidget.h"
+#include "evaluationchartsettingsdialog.h"
 #include "evaluationchartview.h"
 #include "evaluationseries.h"
 #include "analysissettings.h"
@@ -32,7 +33,12 @@ UsiScore mateScore(const QString& text)
 class TestChart : public EvaluationChartWidget
 {
 public:
-    TestChart() { setSeries(&m_points); }
+    TestChart()
+    {
+        setSeries(&m_points);
+        // 主画面では DialogLauncher が表示設定のダイアログを開く
+        connect(this, &EvaluationChartWidget::settingsRequested, this, &TestChart::openSettings);
+    }
     EvaluationSeries& points() { return m_points; }
     /// 対局のエンジンの手と同じく、点を足して表示中の手をその手にする
     void appendScoreP1(int ply, const UsiScore& blackScore) { m_points.setScore(0, ply, Turn::Black, blackScore); setCurrentPly(ply); }
@@ -44,8 +50,22 @@ public:
     void trimToPly(int maxPly) { m_points.trimToPly(maxPly); }
     int countP1() const { return m_points.count(0); }
     int countP2() const { return m_points.count(1); }
+    /// 表示範囲を固定にする（手数の上限は設定のまま）
+    void fixYRange(int yLimit)
+    {
+        EvaluationChartSettings settings = chartSettings();
+        settings.automatic = false;
+        settings.yLimit = yLimit;
+        setChartSettings(settings);
+    }
 
 private:
+    void openSettings()
+    {
+        EvaluationChartSettingsDialog dialog(chartSettings(), axes(), this);
+        if (dialog.exec() == QDialog::Accepted) setChartSettings(dialog.settings());
+    }
+
     EvaluationSeries m_points;
 };
 } // namespace
@@ -99,40 +119,71 @@ private slots:
         widget.appendScoreP1(1, UsiScore::cp(120));
         widget.appendScoreP1(10, UsiScore::cp(450));
         widget.appendScoreP1(11, UsiScore::mate(5));
-        QCOMPARE(widget.yAxisLimit(), 1000);
-        QCOMPARE(widget.xAxisLimit(), 20);
+        QCOMPARE(widget.axes().yLimit, 1000);
+        QCOMPARE(widget.axes().xLimit, 20);
         QCOMPARE(series(widget)->at(2).y(), 1000.0);
         QVERIFY(view(widget)->summary.contains(QStringLiteral("5")));
         QVERIFY(view(widget)->summary.contains(QStringLiteral("先手勝ち")));
         widget.appendScoreP1(21, UsiScore::cp(1800));
-        QCOMPARE(widget.yAxisLimit(), 2000);
-        QCOMPARE(widget.xAxisLimit(), 30);
+        QCOMPARE(widget.axes().yLimit, 2000);
+        QCOMPARE(widget.axes().xLimit, 30);
         // 大きな通常評価値を勝手に詰みへ変換しない。
         widget.appendScoreP1(22, UsiScore::cp(31111));
-        QVERIFY(widget.yAxisLimit() >= 31111);
+        QVERIFY(widget.axes().yLimit >= 31111);
         QVERIFY(!view(widget)->summary.contains(QStringLiteral("詰み")));
         widget.clearAll();
-        QCOMPARE(widget.yAxisLimit(), 1000);
-        QCOMPARE(widget.xAxisLimit(), 20);
+        QCOMPARE(widget.axes().yLimit, 1000);
+        QCOMPARE(widget.axes().xLimit, 20);
+    }
+
+    // 軸は設定・点の範囲・描く場所の大きさだけで決まる
+    void rangeFollowsSettings()
+    {
+        const QSizeF plot(800, 240);
+        EvaluationChartSettings settings;
+        EvaluationChartAxes axes = EvaluationChartRange::compute(settings, 0, 0, plot);
+        QCOMPARE(axes.yLimit, 1000);
+        QCOMPARE(axes.xLimit, 20);
+        axes = EvaluationChartRange::compute(settings, 1800, 21, plot);
+        QCOMPARE(axes.yLimit, 2000);
+        QCOMPARE(axes.xLimit, 30);
+
+        settings.automatic = false;
+        settings.yLimit = 3000;
+        settings.xLimit = 300;
+        axes = EvaluationChartRange::compute(settings, 1800, 21, plot);
+        QCOMPARE(axes.yLimit, 3000);
+        QCOMPARE(axes.xLimit, 300);
+        // 狭い場所では目盛りを間引く
+        QVERIFY(EvaluationChartRange::compute(settings, 0, 0, QSizeF(200, 100)).xInterval > axes.xInterval);
+        // 希望の間隔は、文字が重ならない最小の間隔以上の倍数にする
+        settings.xInterval = 7;
+        const int interval = EvaluationChartRange::compute(settings, 0, 0, plot).xInterval;
+        QCOMPARE(interval % 7, 0);
+        QVERIFY(interval >= axes.xInterval);
+        QVERIFY(interval - 7 < axes.xInterval);
     }
 
     void fixedRangePreservesRawScores()
     {
         TestChart widget;
-        widget.setYAxisLimit(1000);
-        widget.setXAxisLimit(20);
+        EvaluationChartSettings fixed;
+        fixed.automatic = false;
+        fixed.yLimit = 1000;
+        fixed.xLimit = 20;
+        widget.setChartSettings(fixed);
         widget.appendScoreP1(2, UsiScore::cp(4500));
         widget.appendScoreP2(3, UsiScore::cp(-6500));
-        QCOMPARE(widget.yAxisLimit(), 1000);
+        QCOMPARE(widget.axes().yLimit, 1000);
         QCOMPARE(series(widget)->at(0).y(), 1000.0);
         QCOMPARE(series(widget, 1)->at(0).y(), -1000.0);
         QVERIFY(view(widget)->summary.contains(QStringLiteral("-6500")));
         QVERIFY(view(widget)->summary.contains(QStringLiteral("表示範囲外")));
-        widget.setYAxisLimit(10000);
+        widget.fixYRange(10000);
         QCOMPARE(series(widget)->at(0).y(), 4500.0);
         QCOMPARE(series(widget, 1)->at(0).y(), -6500.0);
         widget.appendScoreP1(100, UsiScore::cp(0));
-        QCOMPARE(widget.xAxisLimit(), 20);
+        QCOMPARE(widget.axes().xLimit, 20);
     }
 
     void matePerspective_data()
@@ -156,7 +207,7 @@ private slots:
         TestChart widget;
         const UsiScore score = mateScore(mate);
         widget.appendScoreP2(12, invert ? score.negated() : score);
-        QCOMPARE(series(widget, 1)->at(0).y(), double(direction * widget.yAxisLimit()));
+        QCOMPARE(series(widget, 1)->at(0).y(), double(direction * widget.axes().yLimit));
         QVERIFY(view(widget)->summary.contains(direction > 0 ? QStringLiteral("先手勝ち") : QStringLiteral("後手勝ち")));
         QVERIFY(view(widget)->markers.first().edge);
     }
@@ -168,12 +219,12 @@ private slots:
         widget.resize(1200, 400);
         widget.show();
         QTest::qWait(30);
-        const int wideInterval = widget.xAxisInterval();
+        const int wideInterval = widget.axes().xInterval;
         widget.resize(380, 300);
         QTest::qWait(30);
-        QVERIFY(widget.xAxisInterval() > wideInterval);
-        QCOMPARE(widget.xAxisLimit(), 120);
-        const qreal tickSlots = double(widget.xAxisLimit()) / widget.xAxisInterval();
+        QVERIFY(widget.axes().xInterval > wideInterval);
+        QCOMPARE(widget.axes().xLimit, 120);
+        const qreal tickSlots = double(widget.axes().xLimit) / widget.axes().xInterval;
         QVERIFY(view(widget)->chart()->plotArea().width() / tickSlots >= 50);
     }
 
@@ -226,14 +277,14 @@ private slots:
         widget.show();
         QVERIFY(QTest::qWaitForWindowExposed(&widget));
         QSignalSpy replaced(series(widget), &QXYSeries::pointsReplaced);
-        QSignalSpy xAxis(&widget, &EvaluationChartWidget::xAxisSettingsChanged);
+        const EvaluationChartAxes axes = widget.axes();
 
         widget.setRecordLength(15);
         widget.setCurrentPly(6);
         widget.setRecordLength(15);
         widget.setCurrentPly(9);
         QCOMPARE(replaced.count(), 0);
-        QCOMPARE(xAxis.count(), 0);
+        QVERIFY(widget.axes() == axes);
         QCOMPARE(widget.currentPly(), 9);
 
         // 作り直した場合（新しく作って同じ手へ移動）と、点・現在の手の印・表示・線が同じ
@@ -267,11 +318,10 @@ private slots:
         QCOMPARE(replaced.count(), 1);
         widget.setRecordLength(25);
         QCOMPARE(replaced.count(), 1);
-        QCOMPARE(widget.xAxisLimit(), 30);
+        QCOMPARE(widget.axes().xLimit, 30);
         QCOMPARE(series(widget)->count(), 15);
         // 点を収める縦の表示範囲が変わるときは、同じ点でも表示する値が変わるので作り直す
-        widget.setAutomaticRange(false);
-        widget.setYAxisLimit(500);
+        widget.fixYRange(500);
         QVERIFY(replaced.count() >= 2);
     }
 
@@ -285,25 +335,28 @@ private slots:
             m_accept = false;
             QTimer::singleShot(0, this, &TestEvaluationChart::editSettings);
             widget.findChild<QPushButton*>(QStringLiteral("evalDisplaySettings"))->click();
-            QCOMPARE(widget.yAxisLimit(), 1000);
-            QCOMPARE(widget.labelFontSize(), 10);
+            QCOMPARE(widget.axes().yLimit, 1000);
+            QCOMPARE(widget.chartSettings().labelFontSize, 10);
             m_accept = true;
             QTimer::singleShot(0, this, &TestEvaluationChart::editSettings);
             widget.findChild<QPushButton*>(QStringLiteral("evalDisplaySettings"))->click();
-            QCOMPARE(widget.yAxisLimit(), 32000);
-            QCOMPARE(widget.yAxisInterval(), 16000);
+            QCOMPARE(widget.axes().yLimit, 32000);
+            QCOMPARE(widget.axes().yInterval, 16000);
         }
         EvaluationChartWidget restored;
         restored.resize(1000, 420);
         restored.show();
         QTest::qWait(30);
-        QCOMPARE(restored.yAxisLimit(), 32000);
-        QCOMPARE(restored.yAxisInterval(), 16000);
-        QCOMPARE(restored.xAxisLimit(), 120);
-        QCOMPARE(restored.labelFontSize(), 11);
+        QCOMPARE(restored.axes().yLimit, 32000);
+        QCOMPARE(restored.axes().yInterval, 16000);
+        QCOMPARE(restored.axes().xLimit, 120);
+        QCOMPARE(restored.chartSettings().labelFontSize, 11);
         QCOMPARE(AnalysisSettings::evalChartSettingsSize(), QSize(500, 380));
+        QVERIFY(!AnalysisSettings::evalChart().automatic);
+        QCOMPARE(AnalysisSettings::evalChart().yLimit, 32000);
         restored.findChild<QComboBox*>(QStringLiteral("evalRangeMode"))->setCurrentIndex(0);
-        QCOMPARE(restored.yAxisLimit(), 1000);
+        QCOMPARE(restored.axes().yLimit, 1000);
+        QVERIFY(AnalysisSettings::evalChart().automatic);
     }
 
     void navigationAndHover()
@@ -311,7 +364,7 @@ private slots:
         TestChart widget;
         widget.resize(1000, 400);
         widget.appendScoreP1(5, UsiScore::cp(4500));
-        widget.setYAxisLimit(1000);
+        widget.fixYRange(1000);
         widget.show();
         QTest::qWait(30);
         auto* chartView = view(widget);
@@ -384,8 +437,8 @@ private slots:
         m_accept = true;
         QTimer::singleShot(0, this, &TestEvaluationChart::editSettings);
         settings->click();
-        QCOMPARE(widget.yAxisLimit(), 32000);
-        QCOMPARE(widget.labelFontSize(), 11);
+        QCOMPARE(widget.axes().yLimit, 32000);
+        QCOMPARE(widget.chartSettings().labelFontSize, 11);
 
         widget.setNavigationEnabled(true);
         for (auto* button : buttons) QVERIFY(button->isEnabled());

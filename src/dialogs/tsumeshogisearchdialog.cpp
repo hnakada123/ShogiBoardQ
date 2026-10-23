@@ -8,7 +8,6 @@
 #include "analysissettings.h"
 #include "buttonstyles.h"
 #include "changeenginesettingsdialog.h"
-#include "dialogutils.h"
 
 #include <QAbstractItemView>
 
@@ -49,8 +48,8 @@ TsumeShogiSearchDialog::TsumeShogiSearchDialog(QWidget *parent)
     DialogFontScale::Options fontOptions;
     fontOptions.decrease = ui->toolButtonFontDecrease;
     fontOptions.increase = ui->toolButtonFontIncrease;
+    fontOptions.size = &AnalysisSettings::tsumeSearchDialogSize;
     DialogFontScale::install(this, AnalysisSettings::tsumeSearchFontSize, fontOptions);
-    DialogUtils::restoreDialogSize(this, AnalysisSettings::tsumeSearchDialogSize());
 }
 
 TsumeShogiSearchDialog::~TsumeShogiSearchDialog() = default;
@@ -101,8 +100,3 @@ void TsumeShogiSearchDialog::accept()
     QDialog::accept();
 }
 
-void TsumeShogiSearchDialog::done(int result)
-{
-    DialogUtils::saveDialogSize(this, AnalysisSettings::tsumeSearchDialogSize);
-    QDialog::done(result);
-}

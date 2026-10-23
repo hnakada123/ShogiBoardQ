@@ -46,9 +46,6 @@ public:
     // 1手あたりの思考時間（秒数）を取得する。
     int byoyomiSec() const;
 
-protected:
-    void done(int result) override;
-
 private slots:
     /// 選んだエンジンの設定ダイアログを開く
     void showEngineSettingsDialog(const EngineListSettings::EngineEntry& engine);

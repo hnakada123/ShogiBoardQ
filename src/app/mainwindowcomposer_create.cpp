@@ -372,10 +372,6 @@ void MainWindowComposer::createDocks()
     // メニューウィンドウの分類に、ドックの表示の切り替えも入れる
     m_c.menuWindowController->collectCategoriesFromMenuBar();
 
-    // 評価値グラフは浮動のときに表示を変える
-    QDockWidget* chartDock = docks->dock(Id::EvalChart);
-    connect(chartDock, &QDockWidget::topLevelChanged, m_c.evalChart, &EvaluationChartWidget::setFloating);
-    m_c.evalChart->setFloating(chartDock->isFloating());
     // 定跡ウィンドウはドックが前面に出ている間だけ更新する
     QDockWidget* josekiDock = docks->dock(Id::Joseki);
     m_c.joseki->josekiWindow()->setDockWidget(josekiDock);
@@ -541,6 +537,7 @@ void MainWindowComposer::createControllers()
     dl.csaSession = m_c.csaSession;
     dl.pieceSoundPlayer = m_c.pieceSoundPlayer;
     dl.menuWindowDock = m_c.dockRegistry->dock(DockRegistry::DockId::Menu);
+    dl.evalChart = m_c.evalChart;
     m_c.dialogLauncher = new DialogLauncher(dl, &m_window);
     // 成り・不成を選べる着手では、成りダイアログで対局者に選ばせる
     m_c.gameController->setPromotionChooser(std::bind(&DialogLauncher::choosePromotion, m_c.dialogLauncher));

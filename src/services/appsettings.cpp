@@ -32,40 +32,13 @@ void setPieceStyle(const QString& style)
 
 // --- 盤面の配色 ---
 
-namespace {
-struct ColorSetting {
-    const char* key;
-    BoardColors::Member member;
-};
-constexpr ColorSetting kColorSettings[] = {
-    {SettingsKeys::kBoardBackgroundColor, &BoardColors::background},
-    {SettingsKeys::kBoardSurfaceColor, &BoardColors::board},
-    {SettingsKeys::kBoardStandColor, &BoardColors::stand},
-    {SettingsKeys::kBoardGridColor, &BoardColors::grid},
-    {SettingsKeys::kBoardCardBackgroundColor, &BoardColors::cardBackground},
-    {SettingsKeys::kBoardCardBorderColor, &BoardColors::cardBorder},
-    {SettingsKeys::kBoardActiveCardBorderColor, &BoardColors::activeCardBorder},
-    {SettingsKeys::kBoardTurnBackgroundColor, &BoardColors::turnBackground},
-    {SettingsKeys::kBoardTurnBorderColor, &BoardColors::turnBorder},
-    {SettingsKeys::kBoardTurnTextColor, &BoardColors::turnText},
-    {SettingsKeys::kBoardNameBackgroundColor, &BoardColors::nameBackground},
-    {SettingsKeys::kBoardNameBorderColor, &BoardColors::nameBorder},
-    {SettingsKeys::kBoardNameTextColor, &BoardColors::nameText},
-    {SettingsKeys::kBoardClockBackgroundColor, &BoardColors::clockBackground},
-    {SettingsKeys::kBoardClockBorderColor, &BoardColors::clockBorder},
-    {SettingsKeys::kBoardClockTextColor, &BoardColors::clockText},
-    {SettingsKeys::kBoardClockWarningTextColor, &BoardColors::clockWarningText},
-    {SettingsKeys::kBoardClockCriticalTextColor, &BoardColors::clockCriticalText},
-};
-}
-
 BoardColors boardColors()
 {
     QSettings& s = SettingsCommon::openSettings();
     BoardColors colors;
-    for (const auto& entry : kColorSettings) {
-        QColor& color = colors.*entry.member;
-        color = QColor(s.value(entry.key, color.name(QColor::HexArgb)).toString());
+    for (const BoardColors::Field& field : BoardColors::fields()) {
+        QColor& color = colors.*field.member;
+        color = QColor(s.value(field.key, color.name(QColor::HexArgb)).toString());
     }
     return colors.normalized();
 }
@@ -74,9 +47,9 @@ void setBoardColors(const BoardColors& colors)
 {
     QSettings& s = SettingsCommon::openSettings();
     const BoardColors normalized = colors.normalized();
-    for (const auto& entry : kColorSettings) {
-        const QColor color = normalized.*entry.member;
-        s.setValue(entry.key, color.name(color.alpha() == 255 ? QColor::HexRgb : QColor::HexArgb));
+    for (const BoardColors::Field& field : BoardColors::fields()) {
+        const QColor color = normalized.*field.member;
+        s.setValue(field.key, color.name(color.alpha() == 255 ? QColor::HexRgb : QColor::HexArgb));
     }
 }
 

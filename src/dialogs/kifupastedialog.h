@@ -27,9 +27,6 @@ public:
     explicit KifuPasteDialog(QWidget* parent = nullptr);
     ~KifuPasteDialog() override;
 
-protected:
-    void closeEvent(QCloseEvent* event) override;
-
     /**
      * @brief 入力されたテキストを取得
      * @return ユーザーが入力/貼り付けたテキスト

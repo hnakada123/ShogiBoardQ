@@ -1761,8 +1761,8 @@ private slots:
         const Turn beforeTurn = board()->board()->currentPlayer();
 
         auto* evalChart = window->composer().parts().evalChart; QVERIFY(evalChart);
-        const int xAxisLimit = evalChart->xAxisLimit();
-        const int yAxisLimit = evalChart->yAxisLimit();
+        const int xAxisLimit = evalChart->axes().xLimit;
+        const int yAxisLimit = evalChart->axes().yLimit;
         // 対局のエンジンの手の点と、描画待ちの点（棋譜解析と同じく少し待ってから描く点）を足す
         EvaluationGraphPresenter* evalGraph = window->composer().parts().evalGraph; QVERIFY(evalGraph);
         evalGraph->plotEngineScore(Turn::Black, 1, UsiScore::cp(150));
@@ -1778,8 +1778,8 @@ private slots:
         QCOMPARE(evalChart->series()->count(0), 0);
         QCOMPARE(evalChart->series()->count(1), 0);
         QCOMPARE(evalChart->currentPly(), 0);
-        QCOMPARE(evalChart->xAxisLimit(), xAxisLimit);
-        QCOMPARE(evalChart->yAxisLimit(), yAxisLimit);
+        QCOMPARE(evalChart->axes().xLimit, xAxisLimit);
+        QCOMPARE(evalChart->axes().yLimit, yAxisLimit);
         QCOMPARE(model->rowCount(), 1);
         QCOMPARE(view->currentIndex().row(), 0);
         QCOMPARE(model->currentHighlightRow(), 0);
@@ -3263,7 +3263,7 @@ private slots:
         }
         QTest::qWait(100);
         QVERIFY(graph->isVisible());
-        QVERIFY(graph->yAxisLimit() <= 2000);
+        QVERIFY(graph->axes().yLimit <= 2000);
         QVERIFY(graph->chartViewWidget()->accessibleName().contains(QStringLiteral("詰みまで7手")));
         snapshot("evaluation-graph-main");
         QVERIFY(graph->chartViewWidget()->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/evaluation-graph-export.png")));

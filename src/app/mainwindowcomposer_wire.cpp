@@ -118,6 +118,8 @@ void MainWindowComposer::connectRecord()
             m_c.considerationTab, &ConsiderationTabManager::reloadEngines);
     connect(m_c.dialogLauncher, &DialogLauncher::sfenCollectionPositionSelected,
             m_c.kifuFileController, &KifuFileController::onSfenCollectionPositionSelected);
+    connect(m_c.evalChart, &EvaluationChartWidget::settingsRequested,
+            m_c.dialogLauncher, &DialogLauncher::displayEvaluationChartSettings);
     connect(m_c.kifuFileController, &KifuFileController::statusMessage, m_ui.statusbar, &QStatusBar::showMessage);
 }
 

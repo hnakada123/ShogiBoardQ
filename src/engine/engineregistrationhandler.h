@@ -30,7 +30,7 @@ public:
     /// 設定ファイルからエンジンリストを読み込む
     void loadEnginesFromSettings();
 
-    /// エンジンリストを取得する
+    /// 登録エンジンの一覧（正本。画面の一覧は enginesChanged で作り直す）
     const QList<EngineListSettings::EngineEntry>& engineList() const;
 
     /// 指定インデックスのエンジン情報を取得する
@@ -55,7 +55,9 @@ public:
     bool isRegistrationInProgress() const;
 
 signals:
-    /// エンジン登録が完了したとき
+    /// 登録エンジンの一覧が変わった（読み込み・登録・削除）
+    void enginesChanged();
+    /// エンジン登録が完了したとき（一覧は先に enginesChanged で知らせる）
     void engineRegistered(const QString& engineName);
 
     /// エラーが発生したとき
