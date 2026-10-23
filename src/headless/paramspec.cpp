@@ -4,6 +4,7 @@
 #include "paramspec.h"
 
 #include <QJsonArray>
+#include <QRegularExpression>
 
 using Type = ParamSpec::Type;
 
@@ -40,6 +41,7 @@ QJsonObject propertySchema(const ParamSpec& spec)
         if (!spec.choices.isEmpty()) schema[QStringLiteral("enum")] = QJsonArray::fromStringList(spec.choices);
         if (spec.minimum) schema[QStringLiteral("minLength")] = static_cast<double>(*spec.minimum);
         if (spec.maximum) schema[QStringLiteral("maxLength")] = static_cast<double>(*spec.maximum);
+        if (!spec.pattern.isEmpty()) schema[QStringLiteral("pattern")] = spec.pattern;
         break;
     case Type::Boolean:
         schema[QStringLiteral("type")] = QStringLiteral("boolean");
@@ -50,6 +52,7 @@ QJsonObject propertySchema(const ParamSpec& spec)
         QJsonObject items{{QStringLiteral("type"), spec.type == Type::StringArray ? QStringLiteral("string")
                                                                                    : QStringLiteral("integer")}};
         if (spec.itemMinimum) items[QStringLiteral("minimum")] = static_cast<double>(*spec.itemMinimum);
+        if (!spec.pattern.isEmpty()) items[QStringLiteral("pattern")] = spec.pattern;
         schema[QStringLiteral("items")] = items;
         if (spec.minimum) schema[QStringLiteral("minItems")] = static_cast<double>(*spec.minimum);
         if (spec.maximum) schema[QStringLiteral("maxItems")] = static_cast<double>(*spec.maximum);
@@ -90,6 +93,14 @@ bool inRange(const ParamSpec& spec, qint64 value)
     return (!spec.minimum || value >= *spec.minimum) && (!spec.maximum || value <= *spec.maximum);
 }
 
+/// 正規表現の pattern に合うか（JSON Schema と同じく、文字列のどこかに合えばよい。表の pattern は ^…$ で書く）
+bool matchesPattern(const ParamSpec& spec, const QString& text)
+{
+    if (spec.pattern.isEmpty()) return true;
+    const QRegularExpression expression(spec.pattern);
+    return expression.match(text).hasMatch();
+}
+
 bool check(const ParamSpec& spec, const QJsonValue& value, QString* error)
 {
     const auto fail = [error, &spec](const QString& what) {
@@ -108,6 +119,7 @@ bool check(const ParamSpec& spec, const QJsonValue& value, QString* error)
         if (!spec.choices.isEmpty() && !spec.choices.contains(text))
             return fail(QStringLiteral("must be one of ") + spec.choices.join(QStringLiteral(", ")));
         if (!inRange(spec, text.size())) return fail(QStringLiteral("length must be ") + rangeText(spec));
+        if (!matchesPattern(spec, text)) return fail(QStringLiteral("must match ") + spec.pattern);
         return true;
     }
     case Type::Boolean:
@@ -120,6 +132,8 @@ bool check(const ParamSpec& spec, const QJsonValue& value, QString* error)
         for (const QJsonValue& item : array) {
             if (spec.type == Type::StringArray && !item.isString())
                 return fail(QStringLiteral("must contain only strings"));
+            if (spec.type == Type::StringArray && !matchesPattern(spec, item.toString()))
+                return fail(QStringLiteral("must contain only items matching ") + spec.pattern);
             if (spec.type == Type::IntegerArray
                 && (!isInteger(item) || (spec.itemMinimum && item.toDouble() < static_cast<double>(*spec.itemMinimum))))
                 return fail(QStringLiteral("must contain only integers of at least %1").arg(spec.itemMinimum.value_or(0)));
@@ -195,6 +209,11 @@ ParamSpec object(const QString& name, const QString& description, const QList<Pa
 ParamSpec any(const QString& name, const QString& description)
 {
     return make(name, Type::Any, description);
+}
+
+QString usiMovePattern()
+{
+    return QStringLiteral("^(?:[1-9][a-i][1-9][a-i]\\+?|[PLNSGBR]\\*[1-9][a-i])$");
 }
 
 QJsonObject inputSchema(const OperationSpec& operation)

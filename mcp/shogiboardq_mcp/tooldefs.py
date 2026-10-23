@@ -10,33 +10,34 @@ from typing import Any
 
 import mcp.types as types
 
-USI_MOVE_PATTERN = r"^(?:[1-9][a-i][1-9][a-i]\+?|[PLNSGBR]\*[1-9][a-i])$"
+from . import specs
 
-ENGINE = {
-    "type": "string",
-    "minLength": 1,
-    "description": "Name of a USI engine registered in ShogiBoardQ, exactly as returned by list_engines.",
+# Tools that pass their arguments on take the input schema from the C++ tables (specs.json, generated from
+# `shogiboardq-cli describe`): the CLI commands and automation methods have the same parameter names as the tools.
+# Descriptions there name automation methods and CLI commands; the tools show the MCP tool names instead.
+_OPERATION_TOOL_NAMES = {
+    "widget.text": "get_widget_text",
+    "widget.click": "click_widget",
+    "widget.setValue": "set_widget_value",
+    "menu.items": "list_menu_actions",
+    "action.list": "list_actions",
+    "list-engines": "list_engines",
 }
-SFEN = {
-    "type": "string",
-    "minLength": 1,
-    "description": "Position in SFEN (board, side to move b/w, hands, move number), or 'startpos' for the initial "
-    "position. A leading 'position sfen ' is accepted.",
-}
-MOVES = {
-    "type": "array",
-    "items": {"type": "string", "pattern": USI_MOVE_PATTERN},
-    "default": [],
-    "maxItems": 1000,
-    "description": "USI moves played after the start position, e.g. [\"7g7f\", \"3c3d\"]. Drops use 'P*5e'.",
-}
+
+
+def _spec(kind: str, name: str, **changes: Any) -> dict[str, Any]:
+    """Input schema of the CLI command (kind "command") or automation method (kind "method") a tool calls."""
+    schema = specs.schema(kind, name, **changes)
+    for prop in schema["properties"].values():
+        if "description" in prop:
+            for operation, tool in _OPERATION_TOOL_NAMES.items():
+                prop["description"] = prop["description"].replace(operation, tool)
+    return schema
+
+
+ENGINE = specs.operation("command", "analyze")["properties"]["engine"]
 JOB_ID = {"type": "string", "minLength": 1, "description": "Job id returned by the tool that started the job."}
 ABS_PATH_DESC = "Absolute path inside an allowed directory (default: the user's home directory)."
-OVERWRITE = {
-    "type": "boolean",
-    "default": False,
-    "description": "Allow replacing an existing file. Without it an existing file is an error.",
-}
 MAX_PV_MOVES = {
     "type": "integer",
     "minimum": 1,
@@ -200,20 +201,13 @@ PHASE1_TOOLS: list[types.Tool] = [
         "jkf, usi, usen, or sfen (one SFEN per position of the main line). Returns the converted text (truncated "
         "to max_chars) plus the main-line USI moves, SFEN list and game information. Pass output_path to write "
         "the result to a file instead of returning the text. Does not require the GUI.",
-        {
-            "properties": {
-                "input_path": {"type": "string", "description": "Kifu file to read. " + ABS_PATH_DESC},
-                "text": {"type": "string", "minLength": 1, "maxLength": 2_000_000, "description": "Kifu text instead of a file."},
-                "input_format": {"type": "string", "enum": ["auto", *KIFU_FORMATS], "default": "auto"},
-                "output_format": {"type": "string", "enum": [*KIFU_FORMATS, "sfen"]},
-                "output_path": {"type": "string", "description": "Write the converted record here (extension decides KIF/KI2 Shift_JIS encoding). " + ABS_PATH_DESC},
-                "overwrite": OVERWRITE,
-                "max_chars": {"type": "integer", "minimum": 1000, "maximum": 500_000, "default": 30000,
-                              "description": "Maximum characters of converted text to return."},
-            },
-            "required": ["output_format"],
-            "oneOf": [{"required": ["input_path"]}, {"required": ["text"]}],
-        },
+        {**_spec("command", "convert-kifu",
+                 override={"input_path": {"description": "Kifu file to read. " + ABS_PATH_DESC},
+                           "output_path": {"description": "Write the converted record here (extension decides KIF/KI2 "
+                                                          "Shift_JIS encoding). " + ABS_PATH_DESC}},
+                 extra={"max_chars": {"type": "integer", "minimum": 1000, "maximum": 500_000, "default": 30000,
+                                      "description": "Maximum characters of converted text to return."}}),
+         "oneOf": [{"required": ["input_path"]}, {"required": ["text"]}]},
         {
             "type": "object",
             "properties": {
@@ -241,7 +235,7 @@ PHASE1_TOOLS: list[types.Tool] = [
         "Check whether a SFEN string is a legal shogi position. Returns the normalized SFEN, side to move, "
         "pieces in hand, whether the side to move is in check, the number of legal moves and the reasons if it "
         "is invalid. Tsume positions without the attacker's king are accepted.",
-        {"properties": {"sfen": SFEN}, "required": ["sfen"]},
+        _spec("command", "validate-sfen"),
         {
             "type": "object",
             "properties": {
@@ -282,16 +276,7 @@ PHASE1_TOOLS: list[types.Tool] = [
         "Start analysing a position with a registered USI engine for a fixed number of seconds and return a "
         "job id immediately. Poll analysis_status for progress and analysis_result for the final evaluation, "
         "best move and principal variations (MultiPV lines).",
-        {
-            "properties": {
-                "engine": ENGINE,
-                "sfen": {**SFEN, "default": "startpos"},
-                "moves": MOVES,
-                "seconds": {"type": "integer", "minimum": 1, "maximum": 600, "default": 10, "description": "Thinking time in seconds."},
-                "multipv": {"type": "integer", "minimum": 1, "maximum": 10, "default": 1, "description": "Number of candidate lines."},
-            },
-            "required": ["engine"],
-        },
+        _spec("command", "analyze", drop=["stdin_control"]),
         JOB_START_OUTPUT,
     ),
     _tool(
@@ -317,15 +302,7 @@ PHASE1_TOOLS: list[types.Tool] = [
         "Start a mate (tsume) search with a registered engine that supports 'go mate' and return a job id. "
         "Poll mate_status for the result: mate with the mating sequence, nomate, unknown (time ran out) or "
         "notimplemented (the engine cannot search for mate).",
-        {
-            "properties": {
-                "engine": ENGINE,
-                "sfen": SFEN,
-                "moves": MOVES,
-                "seconds": {"type": "integer", "minimum": 1, "maximum": 600, "default": 10},
-            },
-            "required": ["engine", "sfen"],
-        },
+        _spec("command", "mate", drop=["stdin_control"]),
         JOB_START_OUTPUT,
     ),
     _tool(
@@ -343,20 +320,7 @@ PHASE1_TOOLS: list[types.Tool] = [
         "solver, checked with the engine's 'go mate', verified to have a unique solution and trimmed of "
         "unnecessary pieces. Returns a job id; poll tsume_generation_status for found positions and call "
         "stop_tsume_generation to end early. Requires an engine that supports 'go mate' (e.g. KomoringHeights).",
-        {
-            "properties": {
-                "engine": ENGINE,
-                "target_moves": {"type": "integer", "minimum": 1, "maximum": 19, "default": 3, "description": "Mate length in plies (odd)."},
-                "max_positions": {"type": "integer", "minimum": 1, "maximum": 100, "default": 5, "description": "Stop after this many problems."},
-                "timeout_ms": {"type": "integer", "minimum": 500, "maximum": 60000, "default": 5000, "description": "Engine time per candidate, per trimming step and per verification."},
-                "max_attack_pieces": {"type": "integer", "minimum": 1, "maximum": 10, "default": 4},
-                "max_defend_pieces": {"type": "integer", "minimum": 0, "maximum": 10, "default": 1, "description": "Defending pieces other than the king."},
-                "attack_range": {"type": "integer", "minimum": 1, "maximum": 8, "default": 3, "description": "Placement range around the king in squares."},
-                "add_remaining_to_defender_hand": {"type": "boolean", "default": True, "description": "Give unused pieces to the defender's hand (tsume convention)."},
-                "allow_final_move_alternatives": {"type": "boolean", "default": True, "description": "Accept problems whose final mating move has alternatives."},
-            },
-            "required": ["engine"],
-        },
+        _spec("command", "generate-tsume", drop=["stdin_control"]),
         JOB_START_OUTPUT,
     ),
     _tool(
@@ -387,16 +351,8 @@ PHASE1_TOOLS: list[types.Tool] = [
         "Check a tsume shogi problem for a unique solution of the given length using a registered engine that "
         "supports 'go mate'. Returns unique (main line included), multiple (a cook exists), nomate, wrong_length, "
         "unknown (time budget exhausted) or invalid. Runs synchronously; keep timeout_seconds small.",
-        {
-            "properties": {
-                "engine": ENGINE,
-                "sfen": SFEN,
-                "target_moves": {"type": "integer", "minimum": 1, "maximum": 39, "description": "Expected mate length in plies (odd)."},
-                "timeout_seconds": {"type": "integer", "minimum": 1, "maximum": 50, "default": 15},
-                "allow_final_move_alternatives": {"type": "boolean", "default": True},
-            },
-            "required": ["engine", "sfen", "target_moves"],
-        },
+        # The call waits for the result, so the budget is shorter than the CLI allows
+        _spec("command", "verify-tsume", override={"timeout_seconds": {"maximum": 50}}),
         {
             "type": "object",
             "properties": {
@@ -417,19 +373,7 @@ PHASE1_TOOLS: list[types.Tool] = [
         "Render a position as a PNG image (same piece images and colours as the ShogiBoardQ GUI) and return the "
         "file path. Optionally highlight the last move and show player names. Labels such as the turn badge and the "
         "rank coordinates follow the interface language and move notation set in ShogiBoardQ.",
-        {
-            "properties": {
-                "sfen": {**SFEN, "default": "startpos"},
-                "output_path": {"type": "string", "description": "Destination .png path. " + ABS_PATH_DESC},
-                "square_size": {"type": "integer", "minimum": 20, "maximum": 150, "default": 50, "description": "Square width in pixels."},
-                "flip": {"type": "boolean", "default": False, "description": "View from white's (gote's) side."},
-                "last_move": {"type": "string", "pattern": USI_MOVE_PATTERN, "description": "USI move to highlight."},
-                "black_name": {"type": "string", "maxLength": 64},
-                "white_name": {"type": "string", "maxLength": 64},
-                "overwrite": OVERWRITE,
-            },
-            "required": ["output_path"],
-        },
+        _spec("command", "render-board", override={"output_path": {"description": "Destination .png path. " + ABS_PATH_DESC}}),
         {
             "type": "object",
             "properties": {"output_path": {"type": "string"}, "width": {"type": "integer"}, "height": {"type": "integer"}},
@@ -489,7 +433,7 @@ PHASE2_TOOLS: list[types.Tool] = [
         "Set position",
         "Replace the position shown in ShogiBoardQ with the given SFEN (the record is cleared). Fails with "
         "unsaved_changes when the current record has unsaved edits unless discard_unsaved is true.",
-        {"properties": {"sfen": SFEN, "discard_unsaved": {"type": "boolean", "default": False}}, "required": ["sfen"]},
+        _spec("method", "position.set"),
         {"type": "object", "properties": {"sfen": {"type": "string"}}, "required": ["sfen"]},
         destructive=True,
     ),
@@ -498,14 +442,8 @@ PHASE2_TOOLS: list[types.Tool] = [
         "Load kifu",
         "Load a game record into ShogiBoardQ from a file (KIF/KI2/CSA/JKF/USI/USEN/SFEN) or from text. Fails "
         "with unsaved_changes when the current record has unsaved edits unless discard_unsaved is true.",
-        {
-            "properties": {
-                "path": {"type": "string", "description": "Kifu file. " + ABS_PATH_DESC},
-                "text": {"type": "string", "minLength": 1, "maxLength": 2_000_000},
-                "discard_unsaved": {"type": "boolean", "default": False},
-            },
-            "oneOf": [{"required": ["path"]}, {"required": ["text"]}],
-        },
+        {**_spec("method", "kifu.load", override={"path": {"description": "Kifu file. " + ABS_PATH_DESC}}),
+         "oneOf": [{"required": ["path"]}, {"required": ["text"]}]},
         {"type": "object", "properties": {"total_plies": {"type": "integer"}, "start_sfen": {"type": "string"},
                                           "kifu_file": {"type": "string"}}, "required": ["total_plies"]},
         destructive=True,
@@ -515,8 +453,7 @@ PHASE2_TOOLS: list[types.Tool] = [
         "Save kifu",
         "Save the record shown in ShogiBoardQ to a file. The format follows the extension (.kif .kifu .ki2 .csa "
         ".ki2u .jkf .usen .usi). Existing files are only replaced with overwrite=true.",
-        {"properties": {"path": {"type": "string", "description": "Destination file. " + ABS_PATH_DESC}, "overwrite": OVERWRITE},
-         "required": ["path"]},
+        _spec("method", "kifu.save", override={"path": {"description": "Destination file. " + ABS_PATH_DESC}}),
         {"type": "object", "properties": {"path": {"type": "string"}, "format": {"type": "string"}}, "required": ["path"]},
     ),
     _tool(
@@ -526,15 +463,9 @@ PHASE2_TOOLS: list[types.Tool] = [
         "being displayed (the variation when one is shown; line=main for the main line) with ply, Japanese "
         "notation, USI move, time and comment, limited by from_ply/max_moves; the other formats return the "
         "exported text (with all variations) truncated to max_chars.",
-        {
-            "properties": {
-                "format": {"type": "string", "enum": ["moves", *KIFU_FORMATS], "default": "moves"},
-                "line": {"type": "string", "enum": ["current", "main"], "default": "current"},
-                "from_ply": {"type": "integer", "minimum": 1, "maximum": 100000, "default": 1},
-                "max_moves": {"type": "integer", "minimum": 1, "maximum": 100000, "default": 200},
-                "max_chars": {"type": "integer", "minimum": 1000, "maximum": 500_000, "default": 30000},
-            }
-        },
+        _spec("method", "kifu.get", extra={"max_chars": {"type": "integer", "minimum": 1000, "maximum": 500_000,
+                                                        "default": 30000,
+                                                        "description": "Maximum characters of exported text to return."}}),
         {"type": "object", "properties": {"format": {"type": "string"}, "total_plies": {"type": "integer"},
                                           "moves": {"type": "array", "items": {"type": "object"}},
                                           "text": {"type": "string"}, "truncated": {"type": "boolean"}},
@@ -545,7 +476,7 @@ PHASE2_TOOLS: list[types.Tool] = [
         "goto_ply",
         "Go to ply",
         "Navigate the record shown in ShogiBoardQ to the given ply (0 = start position) on the current line.",
-        {"properties": {"ply": {"type": "integer", "minimum": 0, "maximum": 100000}}, "required": ["ply"]},
+        _spec("method", "kifu.goto"),
         {"type": "object", "properties": {"ply": {"type": "integer"}, "sfen": {"type": "string"}}, "required": ["ply"]},
         idempotent=True,
     ),
@@ -566,7 +497,7 @@ PHASE2_TOOLS: list[types.Tool] = [
         "actionCopySFEN, actionFlipBoard. Only allow-listed actions run; quitting, overwriting the current file "
         "are refused. Language changes take effect after restarting the app. Actions that open dialogs return immediately; inspect them with "
         "list_dialogs and get_widget_text.",
-        {"properties": {"name": {"type": "string", "pattern": "^action[A-Za-z0-9_]+$"}}, "required": ["name"]},
+        _spec("method", "action.trigger"),
         {"type": "object", "properties": {"name": {"type": "string"}, "triggered": {"type": "boolean"}}, "required": ["name", "triggered"]},
         unrestricted=True,
     ),
@@ -580,12 +511,7 @@ PHASE2_TOOLS: list[types.Tool] = [
         "a move is accepted or the engine finishes. Use get_widget_text/capture_screenshot to inspect the "
         "result. A promotion dialog can be answered with click_dialog_button. Hidden, disabled or modally "
         "blocked boards are refused; normal game input rules still apply.",
-        {"properties": {
-            "target": {"type": "string", "default": "main", "description": "'main', or a dialog name such as tsumePlayDialog."},
-            "file": {"type": "integer", "minimum": 1, "maximum": 11},
-            "rank": {"type": "integer", "minimum": 1, "maximum": 9},
-            "button": {"type": "string", "enum": ["left", "right"], "default": "left"},
-        }, "required": ["file", "rank"]},
+        _spec("method", "board.click"),
         {"type": "object", "properties": {"target": {"type": "string"}, "file": {"type": "integer"},
             "rank": {"type": "integer"}, "queued": {"type": "boolean"}}, "required": ["target", "file", "rank", "queued"]},
     ),
@@ -596,12 +522,7 @@ PHASE2_TOOLS: list[types.Tool] = [
         "(e.g. 成る in a promotion dialog). index selects the zero-based occurrence when several buttons "
         "match, such as tsumeProblemCard in the problem collection. The click is queued so that modal "
         "dialogs return immediately. A dialog blocked by another modal window cannot be clicked.",
-        {"properties": {
-            "target": {"type": "string", "minLength": 1, "description": "Dialog object name, selector or title substring."},
-            "widget": {"type": "string", "minLength": 1},
-            "text": {"type": "string", "minLength": 1},
-            "index": {"type": "integer", "minimum": 0, "maximum": 1000, "default": 0},
-        }, "required": ["target"], "oneOf": [{"required": ["widget"]}, {"required": ["text"]}]},
+        {**_spec("method", "dialog.clickButton"), "oneOf": [{"required": ["widget"]}, {"required": ["text"]}]},
         {"type": "object", "properties": {"queued": {"type": "boolean"}, "object_name": {"type": "string"},
             "text": {"type": "string"}}, "required": ["queued", "object_name", "text"]},
         unrestricted=True,
@@ -626,20 +547,7 @@ PHASE2_TOOLS: list[types.Tool] = [
         "For float, optional geometry is the global client rectangle (Qt minimum sizes still apply). "
         "Operations are queued and blocked by modal dialogs; poll list_docks to check completion. "
         "Use trigger_action(actionResetDockLayout) to reset the layout.",
-        {"properties": {
-            "widget": {"type": "string", "minLength": 1},
-            "operation": {"type": "string", "enum": ["show", "hide", "float", "dock", "tabify", "drag"]},
-            "x": {"type": "integer", "minimum": -100000, "maximum": 100000},
-            "y": {"type": "integer", "minimum": -100000, "maximum": 100000},
-            "area": {"type": "string", "enum": ["left", "right", "top", "bottom"]},
-            "relative_to": {"type": "string", "minLength": 1},
-            "geometry": {"type": "object", "properties": {
-                "x": {"type": "integer", "minimum": -100000, "maximum": 100000},
-                "y": {"type": "integer", "minimum": -100000, "maximum": 100000},
-                "width": {"type": "integer", "minimum": 1, "maximum": 16384},
-                "height": {"type": "integer", "minimum": 1, "maximum": 16384}},
-                "required": ["x", "y", "width", "height"], "additionalProperties": False},
-        }, "required": ["widget", "operation"]},
+        _spec("method", "dock.configure"),
         {"type": "object", "properties": {"queued": {"type": "boolean"}, "object_name": {"type": "string"}},
          "required": ["queued", "object_name"]},
     ),
@@ -648,7 +556,7 @@ PHASE2_TOOLS: list[types.Tool] = [
         "Show and raise a dock panel, including panels tabbed behind another dock. Select by object "
         "name (e.g. ConsiderationDock or ThinkingDock); get_widget_text lists dock names. "
         "The operation is queued and refused when the main window is modally blocked.",
-        {"properties": {"widget": {"type": "string", "minLength": 1}}, "required": ["widget"]},
+        _spec("method", "widget.showDock"),
         {"type": "object", "properties": {"queued": {"type": "boolean"}, "object_name": {"type": "string"}},
          "required": ["queued", "object_name"]},
     ),
@@ -658,8 +566,7 @@ PHASE2_TOOLS: list[types.Tool] = [
         "considerationFontIncrease and considerationEngineSettings. Uses normal button signals. "
         "The click is queued; inspect the result with get_widget_text. Hidden, disabled and modally "
         "blocked widgets are refused.",
-        {"properties": {"target": {"type": "string", "default": "main"},
-                        "widget": {"type": "string", "minLength": 1}}, "required": ["widget"]},
+        _spec("method", "widget.click"),
         {"type": "object", "properties": {"queued": {"type": "boolean"}, "object_name": {"type": "string"}},
          "required": ["queued", "object_name"]},
         unrestricted=True,
@@ -668,7 +575,7 @@ PHASE2_TOOLS: list[types.Tool] = [
         "get_clipboard", "Read clipboard",
         "Read the running application's clipboard text and image dimensions. Use after copy menu actions "
         "to verify their actual output. Text is limited by max_chars; truncated indicates omitted text.",
-        {"properties": {"max_chars": {"type": "integer", "minimum": 1, "maximum": 1_000_000, "default": 30000}}},
+        _spec("method", "clipboard.get"),
         {"type": "object", "properties": {"text": {"type": "string"}, "truncated": {"type": "boolean"},
                                           "has_image": {"type": "boolean"}, "image_width": {"type": "integer"},
                                           "image_height": {"type": "integer"}},
@@ -679,12 +586,7 @@ PHASE2_TOOLS: list[types.Tool] = [
         "edit_table_cell", "Edit table cell",
         "Edit a visible, editable table cell through its standard line editor. Row and column are zero-based. "
         "By default Enter commits the edit; commit=false leaves the editor open. Read-only or modally blocked cells are refused.",
-        {"properties": {"target": {"type": "string", "default": "main"},
-                        "widget": {"type": "string", "minLength": 1},
-                        "row": {"type": "integer", "minimum": 0, "maximum": 1_000_000_000},
-                        "column": {"type": "integer", "minimum": 0, "maximum": 1_000_000_000},
-                        "text": {"type": "string", "maxLength": 32767}, "commit": {"type": "boolean", "default": True}},
-         "required": ["widget", "row", "column", "text"]},
+        _spec("method", "widget.editCell"),
         {"type": "object", "properties": {"queued": {"type": "boolean"}, "object_name": {"type": "string"}},
          "required": ["queued", "object_name"]},
         unrestricted=True,
@@ -698,10 +600,7 @@ PHASE2_TOOLS: list[types.Tool] = [
         "considerationArrows. Normal change signals run; the operation is queued so dialogs can open. "
         "Use submit=true on a line edit to press Enter after entering text (for example csaCommandInput). "
         "Requires SHOGIBOARDQ_ALLOW_UNRESTRICTED_UI=1. Hidden, disabled, read-only or modally blocked widgets and out-of-range values are refused. Password fields accept write-only input; revealing them is forbidden.",
-        {"properties": {"target": {"type": "string", "default": "main"},
-                        "widget": {"type": "string", "minLength": 1},
-                        "value": {"type": ["string", "number", "boolean"]},
-                        "submit": {"type": "boolean", "default": False}}, "required": ["widget", "value"]},
+        _spec("method", "widget.setValue"),
         {"type": "object", "properties": {"queued": {"type": "boolean"}, "object_name": {"type": "string"}},
          "required": ["queued", "object_name"]},
         unrestricted=True,
@@ -711,10 +610,7 @@ PHASE2_TOOLS: list[types.Tool] = [
         "Click a zero-based row and column in a table identified by object name or selector through normal mouse events. "
         "Use considerationView column 5 (header 盤面) to open the principal variation board. Scrolls the cell "
         "into view; hidden, disabled and modally blocked cells are refused. Returns when queued.",
-        {"properties": {"target": {"type": "string", "default": "main"},
-                        "widget": {"type": "string", "minLength": 1},
-                        "row": {"type": "integer", "minimum": 0, "maximum": 1_000_000_000},
-                        "column": {"type": "integer", "minimum": 0, "maximum": 1_000_000_000}}, "required": ["widget", "row", "column"]},
+        _spec("method", "widget.clickCell"),
         {"type": "object", "properties": {"queued": {"type": "boolean"}, "object_name": {"type": "string"}},
          "required": ["queued", "object_name"]},
         unrestricted=True,
@@ -724,12 +620,9 @@ PHASE2_TOOLS: list[types.Tool] = [
         "Capture screenshot",
         "Save a PNG screenshot of the ShogiBoardQ main window (target='main') or of an open dialog identified "
         "by its object name, selector or window title, and return the file path.",
-        {
-            "properties": {
-                "target": {"type": "string", "default": "main", "description": "'main', a dialog object name, or a window title substring."},
-                "output_dir": {"type": "string", "description": "Directory for the PNG. Defaults to SHOGIBOARDQ_OUTPUT_DIR or a temp directory. " + ABS_PATH_DESC},
-            }
-        },
+        _spec("method", "screenshot.capture",
+              override={"output_dir": {"description": "Directory for the PNG. Defaults to SHOGIBOARDQ_OUTPUT_DIR or a temp "
+                                                      "directory. " + ABS_PATH_DESC}}),
         {"type": "object", "properties": {"path": {"type": "string"}, "width": {"type": "integer"}, "height": {"type": "integer"}},
          "required": ["path"]},
         idempotent=True,
@@ -748,8 +641,7 @@ PHASE2_TOOLS: list[types.Tool] = [
         "Close dialog",
         "Close an open dialog (reject it) identified by its object name, selector or window title substring. Use it to "
         "dismiss dialogs opened by trigger_action or error message boxes.",
-        {"properties": {"target": {"type": "string", "minLength": 1, "description": "Dialog object name, selector or title substring."}},
-         "required": ["target"]},
+        _spec("method", "dialog.close"),
         {"type": "object", "properties": {"closed": {"type": "boolean"}, "object_name": {"type": "string"}, "title": {"type": "string"}},
          "required": ["closed"]},
         idempotent=True,
@@ -761,16 +653,7 @@ PHASE2_TOOLS: list[types.Tool] = [
         "window when target is omitted). Restrict to one widget by object name or selector. Intended for verifying "
         "what the GUI shows. Widgets include geometry relative to the target window; boards include board_sfen "
         "(board pieces only), flipped, square_size and candidate arrows. Combo boxes and tabs include current_index.",
-        {
-            "properties": {
-                "target": {"type": "string", "default": "main", "description": "'main', or a dialog object name, selector or title substring."},
-                "widget": {"type": "string", "description": "Object name or selector of a widget to read. Returned selectors also identify unnamed widgets in click_widget and set_widget_value; reacquire after reopening a dialog."},
-                "max_rows": {"type": "integer", "minimum": 1, "maximum": 1000, "default": 50, "description": "Row limit for tables and lists."},
-                "max_widgets": {"type": "integer", "minimum": 1, "maximum": 3000, "default": 300},
-                "include_children": {"type": "boolean", "default": False,
-                                     "description": "Also describe descendants of the selected widget, e.g. a dock panel."},
-            }
-        },
+        _spec("method", "widget.text"),
         {"type": "object", "properties": {"widgets": {"type": "array", "items": {"type": "object"}}}, "required": ["widgets"]},
         read_only=True,
     ),
@@ -781,8 +664,7 @@ PHASE2_TOOLS += [
         "list_menu_actions", "List menu items",
         "Read a menu (or a menu button) by object name or widget selector. Returns nested items with zero-based "
         "indices for select_menu_action. Includes dynamic saved layouts, joseki merge/history and collection history.",
-        {"properties": {"target": {"type": "string", "default": "main"},
-                        "widget": {"type": "string", "minLength": 1}}, "required": ["widget"]},
+        _spec("method", "menu.items"),
         {"type": "object", "properties": {"items": {"type": "array", "items": {"type": "object"}}}, "required": ["items"]},
         read_only=True,
     ),
@@ -790,10 +672,7 @@ PHASE2_TOOLS += [
         "select_menu_action", "Select menu item",
         "Trigger an allowed menu item using a path of indices from list_menu_actions. "
         "For example [0,0] selects the first action of the first saved layout. Disabled or blocked actions are refused.",
-        {"properties": {"target": {"type": "string", "default": "main"},
-                        "widget": {"type": "string", "minLength": 1},
-                        "path": {"type": "array", "items": {"type": "integer", "minimum": 0}, "minItems": 1, "maxItems": 10}},
-         "required": ["widget", "path"]},
+        _spec("method", "menu.select"),
         {"type": "object", "properties": {"queued": {"type": "boolean"}, "text": {"type": "string"}}, "required": ["queued", "text"]},
         unrestricted=True,
     ),
@@ -801,7 +680,8 @@ PHASE2_TOOLS += [
         "menu_favorites", "Get or replace menu favorites",
         "Read favorites and available action names. With actions, replace the ordered list (add/remove/reorder) "
         "and persist it. Empty actions clears favorites. Unknown names and duplicates are rejected.",
-        {"properties": {"actions": {"type": "array", "items": {"type": "string", "minLength": 1}, "maxItems": 200, "uniqueItems": True}}},
+        _spec("method", "menu.favorites",
+              override={"actions": {"items": {"type": "string", "minLength": 1}, "uniqueItems": True}}),
         {"type": "object", "properties": {"actions": {"type": "array", "items": {"type": "string"}},
                                           "available_actions": {"type": "array", "items": {"type": "string"}}},
          "required": ["actions", "available_actions"]},
@@ -810,9 +690,7 @@ PHASE2_TOOLS += [
         "click_branch_node", "Select branch tree node",
         "Click a branch tree node identified by id from get_widget_text(widget='branchTreeView'). "
         "Scrolls to the node and follows the normal GUI navigation path. Refresh node ids after reloading a record.",
-        {"properties": {"target": {"type": "string", "default": "main"},
-                        "widget": {"type": "string", "minLength": 1, "default": "branchTreeView"},
-                        "id": {"type": "integer", "minimum": 1, "maximum": 1_000_000_000}}, "required": ["id"]},
+        _spec("method", "branch.click"),
         {"type": "object", "properties": {"queued": {"type": "boolean"}, "id": {"type": "integer"}}, "required": ["queued", "id"]},
     ),
 ]

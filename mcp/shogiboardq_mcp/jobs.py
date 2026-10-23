@@ -50,6 +50,7 @@ class Job:
     data: dict[str, Any] = field(default_factory=dict)
     result: dict[str, Any] | None = None
     error: str | None = None
+    error_code: str | None = None   # the error kind of the CLI's error event
     stop_requested: bool = False
 
     @property
@@ -116,7 +117,8 @@ class JobManager:
         if job.state == "failed" and not job.events:
             raise ToolError("cli_failed", job.error or "job failed to start")
         if job.state == "failed":
-            raise ToolError("job_failed", job.error or "job failed to start")
+            # The CLI's error kind (invalid_argument, engine_not_found, ...) as for the commands that answer at once
+            raise ToolError(job.error_code or "job_failed", job.error or "job failed to start")
         return job
 
     async def _run_single(self, job: Job) -> None:
@@ -262,6 +264,7 @@ class JobManager:
             job.state = "stopped" if (job.stop_requested or event.get("stopped")) else "finished"
         elif name == "error":
             job.error = event.get("message", "unknown error")
+            job.error_code = event.get("code")
             job.state = "failed"
 
     # ------------------------------------------------------------------ queries
