@@ -40,10 +40,6 @@ QString playerName(const QList<KifGameInfoItem>& header, Turn side);
 /// 書き出す棋譜の局面図（持駒・手番）と終局行で、対局者を下手・上手と呼ぶか。
 /// 対局情報の見出し（下手・上手か先手・後手か）に合わせ、見出しに対局者がなければ開始局面の手合割で決める
 bool usesHandicapNames(const QList<KifGameInfoItem>& header, const QString& startSfen);
-/// 対局情報の持ち時間。秒読みは「mm:ss+秒」、フィッシャー加算は「mm:ss+秒秒加算」で区別する
-QString timeControlText(const TimeControlSide& side);
-/// 先後の持ち時間。同じなら1つで、違えば「先手 mm:ss+秒 / 後手 mm:ss+秒」（駒落ちは下手・上手）
-QString timeControlText(const TimeControl& timeControl, bool handicap);
 }
 
 #endif // KIFUEXPORTMETADATA_H

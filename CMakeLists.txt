@@ -409,6 +409,8 @@ set(SRC_KIFU
     src/kifu/kifubranchtreebuilder.h
     src/kifu/kifuexportmetadata.cpp
     src/kifu/kifuexportmetadata.h
+    src/kifu/timecontroltext.cpp
+    src/kifu/timecontroltext.h
     src/kifu/kifuformat.cpp
     src/kifu/kifuformat.h
     src/kifu/kifuioservice.cpp

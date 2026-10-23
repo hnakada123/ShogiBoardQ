@@ -85,6 +85,7 @@ target_link_libraries(position_test PRIVATE Qt6::Core)
 
 add_library(kifupresentation_test STATIC
     ${SRC}/kifu/kifupresentation.cpp
+    ${SRC}/kifu/timecontroltext.cpp
     ${SRC}/kifu/formats/ki2movenotation.cpp
     ${SRC}/services/notationstyle.cpp
     ${EMV_SOURCES}

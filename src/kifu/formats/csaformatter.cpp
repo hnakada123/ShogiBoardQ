@@ -2,6 +2,7 @@
 /// @brief CSA形式の文字列生成ヘルパ関数の実装
 
 #include "csaformatter.h"
+#include "timecontroltext.h"
 #include "gameinfokeys.h"
 #include "kifuexportcommon.h"
 
@@ -76,84 +77,51 @@ QString convertToCsaDateTime(const QString& dateTimeStr)
     return dateTimeStr;
 }
 
+namespace {
+
+/// 持ち時間の決まりを CSA の $TIME の値（"秒+秒読み+加算"）にする
+QString csaTimeValue(const TimeControlSide& side)
+{
+    return QStringLiteral("%1+%2+%3").arg(side.mainMs / 1000).arg(side.byoyomiMs / 1000).arg(side.incrementMs / 1000);
+}
+
+} // namespace
+
 QString convertToCsaTime(const QString& timeStr)
 {
-    // 対局情報の持ち時間（フィッシャー加算）: "mm:ss+加算秒秒加算" → "$TIME:秒+0+加算"
-    static const QRegularExpression reIncrement(
-        QStringLiteral("^(\\d+):(\\d{2})\\+(\\d+)秒加算$"));
-    const QRegularExpressionMatch inc = reIncrement.match(timeStr);
-    if (inc.hasMatch()) {
-        const int totalSeconds = inc.captured(1).toInt() * 60 + inc.captured(2).toInt();
-        return QStringLiteral("$TIME:%1+0+%2").arg(totalSeconds).arg(inc.captured(3).toInt());
-    }
-
-    // 対局情報の持ち時間（切れ負け）: "mm:ss" → "$TIME:秒+0+0"
-    static const QRegularExpression reSuddenDeath(QStringLiteral("^(\\d+):(\\d{2})$"));
-    const QRegularExpressionMatch sd = reSuddenDeath.match(timeStr);
-    if (sd.hasMatch()) {
-        const int totalSeconds = sd.captured(1).toInt() * 60 + sd.captured(2).toInt();
-        return QStringLiteral("$TIME:%1+0+0").arg(totalSeconds);
-    }
-
-    // 対局情報の持ち時間: "mm:ss+秒読み" → "$TIME:秒+秒読み+0"
-    static const QRegularExpression reV22(
-        QStringLiteral("(\\d+):(\\d{2})\\+(\\d+)"));
-    QRegularExpressionMatch m = reV22.match(timeStr);
-    if (m.hasMatch()) {
-        int minutes = m.captured(1).toInt();
-        int seconds = m.captured(2).toInt();
-        int byoyomi = m.captured(3).toInt();
-        int totalSeconds = minutes * 60 + seconds;
-        return QStringLiteral("$TIME:%1+%2+0").arg(totalSeconds).arg(byoyomi);
-    }
+    // このアプリの書式（"mm:ss"・"mm:ss+秒読み"・"mm:ss+加算秒秒加算"）は TimeControlText で読む
+    if (const std::optional<TimeControlSide> side = TimeControlText::parseSide(timeStr))
+        return QStringLiteral("$TIME:") + csaTimeValue(*side);
 
     // 既にV3.0形式: "秒+秒読み+フィッシャー"
     static const QRegularExpression reV30(
         QStringLiteral("^(\\d+(?:\\.\\d+)?)\\+(\\d+(?:\\.\\d+)?)\\+(\\d+(?:\\.\\d+)?)$"));
-    QRegularExpressionMatch m2 = reV30.match(timeStr);
-    if (m2.hasMatch()) {
-        return QStringLiteral("$TIME:%1").arg(timeStr);
+    if (reV30.match(timeStr).hasMatch()) return QStringLiteral("$TIME:%1").arg(timeStr);
+
+    // ほかのソフトの書式: "○分" や "○分○秒"
+    static const QRegularExpression reMinSec(QStringLiteral("(\\d+)分(?:(\\d+)秒)?"));
+    if (const QRegularExpressionMatch m = reMinSec.match(timeStr); m.hasMatch()) {
+        const int minutes = m.captured(1).toInt();
+        const int seconds = m.captured(2).isEmpty() ? 0 : m.captured(2).toInt();
+        return QStringLiteral("$TIME:%1+0+0").arg(minutes * 60 + seconds);
     }
 
-    // "○分" や "○秒" 形式
-    static const QRegularExpression reMinSec(
-        QStringLiteral("(\\d+)分(?:(\\d+)秒)?"));
-    QRegularExpressionMatch m3 = reMinSec.match(timeStr);
-    if (m3.hasMatch()) {
-        int minutes = m3.captured(1).toInt();
-        int seconds = m3.captured(2).isEmpty() ? 0 : m3.captured(2).toInt();
-        int totalSeconds = minutes * 60 + seconds;
-        return QStringLiteral("$TIME:%1+0+0").arg(totalSeconds);
-    }
-
-    // 秒読み形式: "○秒"
+    // 秒読みだけ: "○秒"
     static const QRegularExpression reSec(QStringLiteral("(\\d+)秒"));
-    QRegularExpressionMatch m4 = reSec.match(timeStr);
-    if (m4.hasMatch()) {
-        int seconds = m4.captured(1).toInt();
-        return QStringLiteral("$TIME:0+%1+0").arg(seconds);
-    }
+    if (const QRegularExpressionMatch m = reSec.match(timeStr); m.hasMatch())
+        return QStringLiteral("$TIME:0+%1+0").arg(m.captured(1).toInt());
 
     return QStringLiteral("$TIME_LIMIT:%1").arg(timeStr);
 }
 
 QStringList convertToCsaTimeLines(const QString& timeStr)
 {
-    // 先後で違う持ち時間（KifuExportMetadataBuilder::timeControlText の
-    // "先手 mm:ss+秒 / 後手 mm:ss+秒"、駒落ちは下手・上手）は CSA V3.0 の $TIME+ と $TIME- に分ける
-    static const QRegularExpression rePerSide(
-        QStringLiteral("^(?:先手|下手) (.+) / (?:後手|上手) (.+)$"));
-    const QRegularExpressionMatch m = rePerSide.match(timeStr.trimmed());
-    if (m.hasMatch()) {
-        static const QString prefix = QStringLiteral("$TIME:");
-        const QString black = convertToCsaTime(m.captured(1));
-        const QString white = convertToCsaTime(m.captured(2));
-        if (black.startsWith(prefix) && white.startsWith(prefix)) {
-            return { QStringLiteral("$TIME+:") + black.mid(prefix.size()),
-                     QStringLiteral("$TIME-:") + white.mid(prefix.size()) };
-        }
+    // 先後で違う持ち時間（"先手 mm:ss+秒 / 後手 mm:ss+秒"、駒落ちは下手・上手）は CSA V3.0 の $TIME+ と $TIME- に分ける
+    if (const std::optional<TimeControlText::Parsed> parsed = TimeControlText::parse(timeStr); parsed && parsed->perSide) {
+        return {QStringLiteral("$TIME+:") + csaTimeValue(parsed->timeControl.black),
+                QStringLiteral("$TIME-:") + csaTimeValue(parsed->timeControl.white)};
     }
-    return { convertToCsaTime(timeStr) };
+    return {convertToCsaTime(timeStr)};
 }
 
 namespace {

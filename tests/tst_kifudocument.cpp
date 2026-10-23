@@ -10,6 +10,7 @@
 #include "csaformatter.h"
 
 #include "kifudocument.h"
+#include "timecontroltext.h"
 #include "kifuexport.h"
 #include "kifubranchtree.h"
 #include "branchtree_test_util.h"
@@ -413,22 +414,40 @@ private slots:
     /// 対局情報の持ち時間は秒読みと加算を書き分ける
     void timeControlTextDistinguishesIncrement()
     {
-        using KifuExportMetadataBuilder::timeControlText;
-        QCOMPARE(timeControlText(TimeControlSide{600000, 10000, 0}), QStringLiteral("10:00+10"));
-        QCOMPARE(timeControlText(TimeControlSide{300000, 0, 10000}), QStringLiteral("05:00+10秒加算"));
-        QCOMPARE(timeControlText(TimeControlSide{7200000, 0, 0}), QStringLiteral("120:00"));
-        QCOMPARE(timeControlText(TimeControlSide{0, 30000, 0}), QStringLiteral("00:00+30"));
+        using TimeControlText::format;
+        QCOMPARE(format(TimeControlSide{600000, 10000, 0}), QStringLiteral("10:00+10"));
+        QCOMPARE(format(TimeControlSide{300000, 0, 10000}), QStringLiteral("05:00+10秒加算"));
+        QCOMPARE(format(TimeControlSide{7200000, 0, 0}), QStringLiteral("120:00"));
+        QCOMPARE(format(TimeControlSide{0, 30000, 0}), QStringLiteral("00:00+30"));
     }
 
     /// 先後で持ち時間が違えば両方を書き、駒落ちの見出しは下手・上手にする
+    /// 持ち時間の値は書いたとおりに読み戻せる（先後・下手上手・秒読み・加算）
+    void timeControlTextRoundTrips()
+    {
+        const TimeControl tc{{60000, 2000, 0}, {120000, 0, 3000}};
+        for (const bool handicap : {false, true}) {
+            const auto parsed = TimeControlText::parse(TimeControlText::format(tc, handicap));
+            QVERIFY(parsed);
+            QCOMPARE(parsed->timeControl, tc);
+            QVERIFY(parsed->perSide);
+            QCOMPARE(parsed->handicapNames, handicap);
+        }
+        const auto same = TimeControlText::parse(QStringLiteral("10:00+30"));
+        QVERIFY(same && !same->perSide);
+        QCOMPARE(same->timeControl.white.byoyomiMs, 30000);
+        QVERIFY(!TimeControlText::parse(QStringLiteral("10分")));
+        QVERIFY(!TimeControlText::parse(QStringLiteral("10:75")));
+    }
+
     void timeControlTextPerSide()
     {
-        using KifuExportMetadataBuilder::timeControlText;
+        using TimeControlText::format;
         const TimeControlSide black{60000, 2000, 0};
         const TimeControlSide white{120000, 3000, 0};
-        QCOMPARE(timeControlText(TimeControl{black, black}, false), QStringLiteral("01:00+2"));
-        QCOMPARE(timeControlText(TimeControl{black, white}, false), QStringLiteral("先手 01:00+2 / 後手 02:00+3"));
-        QCOMPARE(timeControlText(TimeControl{black, white}, true), QStringLiteral("下手 01:00+2 / 上手 02:00+3"));
+        QCOMPARE(format(TimeControl{black, black}, false), QStringLiteral("01:00+2"));
+        QCOMPARE(format(TimeControl{black, white}, false), QStringLiteral("先手 01:00+2 / 後手 02:00+3"));
+        QCOMPARE(format(TimeControl{black, white}, true), QStringLiteral("下手 01:00+2 / 上手 02:00+3"));
     }
 
     /// 駒落ちの棋譜は柿木形式と同じく対局者を下手・上手で書き、CSA では下手が先手（N+）になる。

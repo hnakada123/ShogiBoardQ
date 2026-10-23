@@ -7,6 +7,7 @@
 #include "sfenreplay.h"
 #include "shogiposition.h"
 #include "terminaltype.h"
+#include "timecontroltext.h"
 
 #include <QCoreApplication>
 #include <QRegularExpression>
@@ -159,20 +160,25 @@ QString infoValue(const QString& key, const QString& raw)
             QT_TRANSLATE_NOOP("KifuPresentation", "局面指定"), QT_TRANSLATE_NOOP("KifuPresentation", "その他")};
         for (const char* value : others) if (raw == QString::fromUtf8(value)) return translated(value);
     }
-    if (key == QStringLiteral("持ち時間") && raw == QStringLiteral("無制限"))
+    if (key == GameInfoKeys::kTimeControl && raw == QStringLiteral("無制限"))
         return translated(QT_TRANSLATE_NOOP("KifuPresentation", "無制限"));
-    if (key == QStringLiteral("持ち時間")) {
-        // 先後で違う持ち時間（"先手 mm:ss+秒 / 後手 mm:ss+秒"、駒落ちは下手・上手）は、見出しと各側を訳す
-        static const QRegularExpression perSide(QStringLiteral("^(先手|下手) (.+) / (後手|上手) (.+)$"));
-        const QRegularExpressionMatch side = perSide.match(raw);
-        if (side.hasMatch())
-            return QStringLiteral("%1 %2 / %3 %4").arg(infoKey(side.captured(1)), infoValue(key, side.captured(2)),
-                                                       infoKey(side.captured(3)), infoValue(key, side.captured(4)));
-        // フィッシャー加算の書式（KifuExportMetadataBuilder::timeControlText）を表示言語に合わせる
-        static const QRegularExpression increment(QStringLiteral("^(\\d+:\\d{2})\\+(\\d+)秒加算$"));
-        const QRegularExpressionMatch m = increment.match(raw);
-        if (m.hasMatch())
-            return translated(QT_TRANSLATE_NOOP("KifuPresentation", "%1+%2秒加算")).arg(m.captured(1), m.captured(2));
+    if (key == GameInfoKeys::kTimeControl) {
+        // このアプリの持ち時間の書式（TimeControlText）を表示言語に合わせる。先後で違えば見出しと各側を訳す
+        if (const std::optional<TimeControlText::Parsed> parsed = TimeControlText::parse(raw)) {
+            const auto side = [](const TimeControlSide& value) {
+                if (value.incrementMs < 1000 || value.byoyomiMs >= 1000) return TimeControlText::format(value);
+                TimeControlSide main = value;
+                main.incrementMs = 0;
+                return translated(QT_TRANSLATE_NOOP("KifuPresentation", "%1+%2秒加算"))
+                    .arg(TimeControlText::format(main)).arg(value.incrementMs / 1000);
+            };
+            const TimeControl& tc = parsed->timeControl;
+            if (!parsed->perSide) return side(tc.black);
+            const bool handicap = parsed->handicapNames;
+            return QStringLiteral("%1 %2 / %3 %4")
+                .arg(infoKey(handicap ? GameInfoKeys::kShitatePlayer : GameInfoKeys::kBlackPlayer), side(tc.black),
+                     infoKey(handicap ? GameInfoKeys::kUwatePlayer : GameInfoKeys::kWhitePlayer), side(tc.white));
+        }
     }
     return raw;
 }
