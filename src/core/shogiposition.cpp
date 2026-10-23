@@ -2,6 +2,7 @@
 /// @brief 局面の値（SFEN の読み書き・指し手の適用）の実装
 
 #include "shogiposition.h"
+#include "usiposition.h"
 
 #include <QCoreApplication>
 
@@ -130,35 +131,9 @@ bool Position::assignSfen(QStringView sfen, QString* error)
 
 std::optional<Position> Position::fromSfenLike(QStringView text, QString* error)
 {
-    QStringView rest = text.trimmed();
-    if (rest.startsWith(u"position ")) rest = rest.sliced(9).trimmed();
-    QStringView movesPart;
-    if (const qsizetype moves = rest.indexOf(u" moves"); moves >= 0) {
-        movesPart = rest.sliced(moves + 6).trimmed();
-        rest = rest.left(moves).trimmed();
-    } else if (rest.endsWith(u"moves")) {
-        rest = rest.chopped(5).trimmed();
-    }
-    if (rest.startsWith(u"sfen ")) rest = rest.sliced(5).trimmed();
-
-    std::optional<Position> position;
-    if (rest == u"startpos") {
-        position = hirate();
-    } else if (rest.count(QLatin1Char(' ')) == 2) {
-        position = fromSfen(rest.toString() + QStringLiteral(" 1"), error);
-    } else {
-        position = fromSfen(rest, error);
-    }
+    const std::optional<UsiPosition> position = UsiPosition::parse(text, error);
     if (!position) return std::nullopt;
-
-    for (const QStringView token : movesPart.tokenize(QLatin1Char(' '), Qt::SkipEmptyParts)) {
-        const auto move = UsiMove::parse(token);
-        if (!move || !position->apply(*move, DropRule::Lenient)) {
-            if (error) *error = QStringLiteral("Move cannot be applied: %1").arg(token);
-            return std::nullopt;
-        }
-    }
-    return position;
+    return position->position();
 }
 
 // ============================================================
@@ -351,11 +326,4 @@ bool Position::apply(const UsiMove& move, DropRule rule)
     m_sideToMove = opponent(mover);
     ++m_moveNumber;
     return true;
-}
-
-std::optional<Position> Position::after(const UsiMove& move, DropRule rule) const
-{
-    Position next = *this;
-    if (!next.apply(move, rule)) return std::nullopt;
-    return next;
 }

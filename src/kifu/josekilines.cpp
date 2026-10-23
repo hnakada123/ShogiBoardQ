@@ -26,7 +26,7 @@ public:
         , m_previous(previous)
         , m_options(options)
     {
-        m_visited.insert(JosekiBook::positionKey(start.toSfen()));
+        m_visited.insert(start.positionKey());
     }
 
     ExpandResult run()
@@ -40,7 +40,7 @@ private:
     QList<UsiMove> movesAt(const Position &position) const
     {
         QList<UsiMove> chosen;
-        const QList<JosekiMove> moves = m_book.movesAt(position.toSfen());
+        const QList<JosekiMove> moves = m_book.movesAt(position);
         qint64 total = 0;
         for (const JosekiMove &move : moves) total += qMax(move.frequency, 0);
         const EngineMoveValidator::Context context = EngineMoveValidator::load(position);
@@ -70,7 +70,7 @@ private:
             extended = true;
             ++m_result.moveCount;
             m_path.append(move);
-            const QString key = JosekiBook::positionKey(next.toSfen());
+            const QString key = next.positionKey();
             if (m_visited.contains(key)) {
                 // 別の手順で着いた局面から先は、先に着いた手順で展開している
                 ++m_result.transpositions;

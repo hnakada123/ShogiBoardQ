@@ -220,7 +220,7 @@ KifuParseOutcome parse(QStringView text, Dialect dialect, const ParseOptions& op
         const auto match = KifLexer::variationHeaderCaptureRe().match(lines.at(boundaries.at(b)));
         const int startPly = ShogiNotation::numberFromDigits(match.captured(1));
         const auto base = record.latestBranchPoint(startPly);
-        const std::optional<Position> start = base ? Position::fromSfen(base->sfen) : std::nullopt;
+        const std::optional<Position> start = base ? base->position : std::nullopt;
         if (!start) {
             report.warn(QStringLiteral("%1: invalid variation start: %2").arg(tag).arg(startPly));
             continue;

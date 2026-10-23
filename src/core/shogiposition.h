@@ -43,7 +43,8 @@ public:
     static std::optional<Position> fromSfen(QStringView sfen, QString* error = nullptr);
     /// SFEN を読めたらこの局面をそれで置き換えて true。読めなければ変えずに false
     bool assignSfen(QStringView sfen, QString* error = nullptr);
-    /// "startpos"・"sfen ..."・"position ..." の形と、手数を省いた3つの欄も受け付ける（moves 以降は指して進める）
+    /// "startpos"・"sfen ..."・"position ..." の形と、手数を省いた3つの欄も受け付ける（moves 以降は指して進める。
+    /// 読み方は UsiPosition::parse と同じ）
     static std::optional<Position> fromSfenLike(QStringView text, QString* error = nullptr);
 
     /// SFEN（"盤 手番 持ち駒 手数"）
@@ -115,8 +116,6 @@ public:
         m_sideToMove = saved;
         return false;
     }
-    /// 指した後の局面（指せなければ nullopt）
-    std::optional<Position> after(const UsiMove& move, DropRule rule = DropRule::RequireHand) const;
 
     friend bool operator==(const Position& a, const Position& b)
     {

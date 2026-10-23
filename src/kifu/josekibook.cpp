@@ -94,6 +94,13 @@ QByteArray JosekiBook::keyOf(const QString &sfen)
     return key;
 }
 
+QByteArray JosekiBook::keyOf(const Position &position)
+{
+    QByteArray key = position.positionKey().toUtf8();
+    key.squeeze();
+    return key;
+}
+
 QList<JosekiBook::Range> JosekiBook::rangesOf(const Records &records)
 {
     QList<Range> ranges;
@@ -107,12 +114,15 @@ QList<JosekiBook::Range> JosekiBook::rangesOf(const Records &records)
 
 JosekiBook::Range JosekiBook::resolve(const Records &records, const QString &sfen)
 {
+    return resolve(records, plyOf(sfen));
+}
+
+JosekiBook::Range JosekiBook::resolve(const Records &records, std::optional<int> ply)
+{
     const QList<Range> ranges = rangesOf(records);
-    if (ranges.size() > 1) {
-        if (const std::optional<int> ply = plyOf(sfen)) {
-            for (const Range &range : ranges) {
-                if (records.at(range.header).value == *ply) return range;
-            }
+    if (ranges.size() > 1 && ply) {
+        for (const Range &range : ranges) {
+            if (records.at(range.header).value == *ply) return range;
         }
     }
     return ranges.first();
@@ -235,11 +245,22 @@ QList<int> JosekiBook::registeredPlies(const QString &sfen) const
 
 QList<JosekiMove> JosekiBook::movesAt(const QString &sfen) const
 {
-    QList<JosekiMove> moves;
     const auto it = m_positions.constFind(keyOf(sfen));
-    if (it == m_positions.constEnd()) return moves;
-    const Range range = resolve(*it, sfen);
-    for (qsizetype i = range.header + 1; i < range.end; ++i) moves.append(unpack(it->at(i)));
+    if (it == m_positions.constEnd()) return {};
+    return movesIn(*it, resolve(*it, sfen));
+}
+
+QList<JosekiMove> JosekiBook::movesAt(const Position &position) const
+{
+    const auto it = m_positions.constFind(keyOf(position));
+    if (it == m_positions.constEnd()) return {};
+    return movesIn(*it, resolve(*it, position.moveNumber()));
+}
+
+QList<JosekiMove> JosekiBook::movesIn(const Records &records, Range range) const
+{
+    QList<JosekiMove> moves;
+    for (qsizetype i = range.header + 1; i < range.end; ++i) moves.append(unpack(records.at(i)));
     return moves;
 }
 

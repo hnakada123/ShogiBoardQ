@@ -2,6 +2,7 @@
 /// @brief 公開仕様の局面・終局・コメントを読み込み、他形式への保存後も保持する。
 
 #include <QtTest>
+#include "shogiposition.h"
 
 #include "kifuconversionservice.h"
 #include "kifuloadparser.h"
@@ -291,7 +292,7 @@ private slots:
     void whiteToMoveTerminalRoundTrip()
     {
         const QString sfen = QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 w - 1");
-        const QString text = BodTextGenerator::generate(sfen, 0, {})
+        const QString text = BodTextGenerator::generate(*Position::fromSfen(sfen), 0, {})
             + QStringLiteral("\n手数----指手---------消費時間--\n1 ４一玉(51)\n2 投了\n");
         for (const Format fmt : {Format::Usi, Format::Usen}) {
             const auto saved = convert(text, fmt);

@@ -100,7 +100,8 @@ void Collector::addGame(const KifParseResult &record)
         const KifVariation &variation = record.variations.at(i);
         QString start = variation.line.startSfen;
         if (start.isEmpty()) {
-            if (const auto point = record.branchPoint(variation.parentVariation, variation.startPly)) start = point->sfen;
+            if (const auto point = record.branchPoint(variation.parentVariation, variation.startPly); point && point->position)
+                start = point->position->toSfen();
         }
         addLine(start, variation.line, winner, seenInGame);
     }

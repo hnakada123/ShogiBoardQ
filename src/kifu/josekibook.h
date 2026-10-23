@@ -14,6 +14,7 @@
 #include <optional>
 
 #include "josekitypes.h"
+#include "shogiposition.h"
 
 class JosekiBook;
 struct JosekiLoadResult;
@@ -60,6 +61,8 @@ public:
     QList<int> registeredPlies(const QString &sfen) const;
     /// 局面の定跡手（無ければ空）
     QList<JosekiMove> movesAt(const QString &sfen) const;
+    /// 局面の値の定跡手（手順をたどるときに、局面を文字列にせずに引く）
+    QList<JosekiMove> movesAt(const Position &position) const;
     bool hasMove(const QString &sfen, const QString &usiMove) const;
     /// 局面の定跡手のうち、出現頻度が、同じなら評価値が最も高い手（それも同じならファイルで先の手。局面が無ければ空）。
     /// やねうら王は予想応手が "none" の定跡手を指すと、次の局面のこの手を先読みに使う
@@ -130,10 +133,14 @@ private:
     static constexpr quint16 kHeader = 0xFFFF;
 
     static QByteArray keyOf(const QString &sfen);
+    static QByteArray keyOf(const Position &position);
     /// records の登録の範囲（ファイルの順）
     static QList<Range> rangesOf(const Records &records);
     /// sfen と同じ手数の登録の範囲、無ければ最初の登録の範囲（records は空でない）
     static Range resolve(const Records &records, const QString &sfen);
+    static Range resolve(const Records &records, std::optional<int> ply);
+    /// 登録の範囲の定跡手
+    QList<JosekiMove> movesIn(const Records &records, Range range) const;
     /// 範囲の中の指し手の位置（無ければ -1）
     static qsizetype indexOf(const Records &records, Range range, quint16 move);
 

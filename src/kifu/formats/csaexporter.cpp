@@ -142,10 +142,9 @@ QStringList CsaExporter::exportLines(const KifuBranchTree& recordTree, const Kif
         out << QStringLiteral("+");
     } else {
         QString convErr;
-        const auto csaPos =
-            SfenCsaPositionConverter::toCsaPositionLines(ctx.startSfen, &convErr);
-        if (csaPos && !csaPos->isEmpty()) {
-            out << *csaPos;
+        const std::optional<Position> start = Position::fromSfenLike(ctx.startSfen, &convErr);
+        if (start) {
+            out << SfenCsaPositionConverter::toCsaPositionLines(*start);
         } else {
             qCWarning(lcKifu).noquote()
                 << "SFEN->CSA position conversion failed. fallback to PI. error=" << convErr;

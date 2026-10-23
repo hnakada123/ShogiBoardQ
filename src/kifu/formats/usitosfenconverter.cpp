@@ -53,45 +53,6 @@
 
 namespace {
 
-// USI指し手として有効かどうかを簡易判定
-static bool isValidUsiMove(const QString& str)
-{
-    if (str.isEmpty()) return false;
-
-    // 駒打ち: P*5e (長さ4)
-    if (str.size() == 4 && str.at(1) == QChar('*')) {
-        const QChar piece = str.at(0).toUpper();
-        if (QStringLiteral("PLNSGBR").contains(piece)) {
-            const QChar toFile = str.at(2);
-            const QChar toRank = str.at(3);
-            if (toFile >= '1' && toFile <= '9' && toRank >= 'a' && toRank <= 'i') {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    // 通常移動: 7g7f (長さ4) または 7g7f+ (長さ5)
-    if (str.size() >= 4 && str.size() <= 5) {
-        const QChar fromFile = str.at(0);
-        const QChar fromRank = str.at(1);
-        const QChar toFile = str.at(2);
-        const QChar toRank = str.at(3);
-
-        if (fromFile >= '1' && fromFile <= '9' &&
-            fromRank >= 'a' && fromRank <= 'i' &&
-            toFile >= '1' && toFile <= '9' &&
-            toRank >= 'a' && toRank <= 'i') {
-            if (str.size() == 5 && str.at(4) != QChar('+')) {
-                return false;
-            }
-            return true;
-        }
-    }
-
-    return false;
-}
-
 // ---- SFEN / position 行のトークン判定 ----
 
 static bool equalsKeyword(const QString& token, const char* keyword)
@@ -285,7 +246,7 @@ bool UsiToSfenConverter::parseUsiPositionString(const QString& usiStr,
             if (terminalCode) *terminalCode = token.toLower();
             break;
         }
-        if (isValidUsiMove(token)) {
+        if (UsiMove::parse(token)) {
             usiMoves.append(token);
         } else if (warn) {
             *warn += QStringLiteral("Skipping unknown token: %1\n").arg(token);

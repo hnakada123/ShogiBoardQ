@@ -40,26 +40,14 @@ std::optional<QString> fromCsaPositionLines(const QStringList& csaLines, QString
     return board.toSfen();
 }
 
-std::optional<QStringList> toCsaPositionLines(const QString& sfen, QString* outError)
+QStringList toCsaPositionLines(const Position& position)
 {
-    const QString trimmed = sfen.trimmed();
-    if (trimmed.isEmpty()) {
-        if (outError) *outError = QStringLiteral("sfen is empty");
-        return std::nullopt;
-    }
-    QString error;
-    const std::optional<Position> position = Position::fromSfenLike(trimmed, &error);
-    if (!position) {
-        if (outError) *outError = QStringLiteral("invalid sfen format: %1").arg(error);
-        return std::nullopt;
-    }
-
     // 盤（P1〜P9。各段は9筋から1筋へ）
     QStringList out;
     for (int rank = 1; rank <= 9; ++rank) {
         QString line = QStringLiteral("P%1").arg(rank);
         for (int file = 9; file >= 1; --file) {
-            const Piece piece = position->pieceAt(file, rank);
+            const Piece piece = position.pieceAt(file, rank);
             if (piece == Piece::None) {
                 line += QStringLiteral(" * ");
             } else {
@@ -75,12 +63,12 @@ std::optional<QStringList> toCsaPositionLines(const QString& sfen, QString* outE
         QString line = side == Turn::Black ? QStringLiteral("P+") : QStringLiteral("P-");
         for (const PieceKind kind : PieceRules::kHandOrder) {
             const Piece piece = makePiece(side, kind);
-            for (int k = 0; k < position->handCount(piece); ++k) line += QStringLiteral("00") + ShogiNotation::csaPieceCode(piece);
+            for (int k = 0; k < position.handCount(piece); ++k) line += QStringLiteral("00") + ShogiNotation::csaPieceCode(piece);
         }
         if (line.size() > 2) out << line;
     }
 
-    out << (position->sideToMove() == Turn::White ? QStringLiteral("-") : QStringLiteral("+"));
+    out << (position.sideToMove() == Turn::White ? QStringLiteral("-") : QStringLiteral("+"));
     return out;
 }
 

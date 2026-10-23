@@ -1,4 +1,5 @@
 #include <QtTest>
+#include "shogiposition.h"
 #include <QSignalSpy>
 #include <QJsonDocument>
 #include <QJsonArray>
@@ -245,7 +246,7 @@ private slots:
         QString initial = kHirateSfen;
         initial.replace(QStringLiteral(" b "), QStringLiteral(" w "));
         const QString turnLine = handicapNames ? QStringLiteral("上手番") : QStringLiteral("後手番");
-        const QString text = (withBod ? BodTextGenerator::generate(initial, 0, {}, handicapNames) : turnLine)
+        const QString text = (withBod ? BodTextGenerator::generate(*Position::fromSfen(initial), 0, {}, handicapNames) : turnLine)
             + QStringLiteral("\n手数----指手---------消費時間--\n1 ３四歩(33)\n2 投了\n");
         QTemporaryFile file;
         QVERIFY(KifuTestHelper::writeToTempFile(file, text.toUtf8(), QStringLiteral("kif")));
@@ -521,7 +522,7 @@ private slots:
     void bodReadsShitateUwateHands()
     {
         const QString sfen = QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 w 2Pr 1");
-        const QString bod = BodTextGenerator::generate(sfen, 0, {}, true);
+        const QString bod = BodTextGenerator::generate(*Position::fromSfen(sfen), 0, {}, true);
         QVERIFY2(bod.contains(QStringLiteral("上手の持駒：")) && bod.contains(QStringLiteral("下手の持駒：")),
                  qPrintable(bod));
         QVERIFY(!bod.contains(QStringLiteral("なし")));

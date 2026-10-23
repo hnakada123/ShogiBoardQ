@@ -440,13 +440,6 @@ QString positionKey(const QString& sfen)
     return SfenUtils::normalizeSfenKey(sfen);
 }
 
-/// 手数を除いた局面（盤面・手番・持ち駒）が一致するか。どちらかが不完全なら false
-bool isSamePosition(const QString& sfenA, const QString& sfenB)
-{
-    const QString keyA = positionKey(sfenA);
-    return !keyA.isEmpty() && keyA == positionKey(sfenB);
-}
-
 /// デフォルト構築された（駒種未設定の）ShogiMove でないか
 bool isValidMove(const ShogiMove& move)
 {
@@ -462,8 +455,10 @@ KifuBranchNode* KifuBranchTree::findMatchingChild(KifuBranchNode* parent, const 
     }
 
     const TerminalType termType = entry.terminal;
-    const auto& sfen = entry.sfen;
     const auto& move = entry.move;
+    // 指し手を持たない行（KIF 本譜由来のノードなど）だけ局面で比べる。キーは1回だけ作る
+    QString key;
+    bool keyMade = false;
 
     for (int i = 0; i < parent->childCount(); ++i) {
         KifuBranchNode* child = parent->childAt(i);
@@ -479,15 +474,18 @@ KifuBranchNode* KifuBranchTree::findMatchingChild(KifuBranchNode* parent, const 
             continue;
         }
 
-        // 同じ親から異なる手を指して同じ局面になることはないので、局面一致＝同じ手
-        if (isSamePosition(child->sfen(), sfen)) {
-            return child;
+        // 同じ親から同じ手を指せば同じ局面、違う手なら違う局面なので、両方に指し手があれば手で比べる
+        if (isValidMove(move) && isValidMove(child->move())) {
+            if (child->move() == move) return child;
+            continue;
         }
 
-        // KIF 本譜由来のノードなど SFEN が欠けている場合に備えて ShogiMove でも比較する
-        if (isValidMove(move) && isValidMove(child->move()) && child->move() == move) {
-            return child;
+        // 指し手が欠けていれば、手数を除いた局面で比べる
+        if (!keyMade) {
+            key = positionKey(entry.sfen);
+            keyMade = true;
         }
+        if (!key.isEmpty() && key == positionKey(child->sfen())) return child;
     }
 
     return nullptr;

@@ -2,6 +2,7 @@
 /// @brief 棋譜の形式の判定（貼り付けたテキスト・ファイル・名前）の回帰テスト
 
 #include <QtTest>
+#include "shogiposition.h"
 
 #include "bodtextgenerator.h"
 #include "kifuformat.h"
@@ -19,9 +20,9 @@ private slots:
 
         const QString sfen = QStringLiteral(
             "lnsgkgsnl/1r5b1/p1pppp1pp/1p4p2/9/2P4P1/PP1PPPP1P/1B5R1/LNSGKGSNL b - 5");
-        const QString bod = BodTextGenerator::generate(sfen, 4, QStringLiteral("△８四歩(83)"));
+        const QString bod = BodTextGenerator::generate(*Position::fromSfen(sfen), 4, QStringLiteral("△８四歩(83)"));
         QTest::newRow("bod-last-move") << bod << Format::Bod;
-        QTest::newRow("bod-no-last-move") << BodTextGenerator::generate(sfen, 4, {}) << Format::Bod;
+        QTest::newRow("bod-no-last-move") << BodTextGenerator::generate(*Position::fromSfen(sfen), 4, {}) << Format::Bod;
         QTest::newRow("bod-with-comment") << bod + QStringLiteral("\n*候補手は▲２五歩\n") << Format::Bod;
         QTest::newRow("ki2-with-bod") << bod + QStringLiteral("\n  ▲２五歩  △８五歩\n") << Format::Ki2;
         QTest::newRow("kif-with-bod") << bod + QStringLiteral("\n手数----指手---------消費時間--\n1 ２五歩(26)\n") << Format::Kif;

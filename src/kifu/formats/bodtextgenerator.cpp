@@ -8,19 +8,15 @@
 
 #include <QStringList>
 
-QString BodTextGenerator::generate(const QString& sfenStr, int moveIndex, const QString& lastMoveStr,
+QString BodTextGenerator::generate(const Position& position, int moveIndex, const QString& lastMoveStr,
                                    bool handicapNames)
 {
-    if (sfenStr.isEmpty()) return QString();
-    const std::optional<Position> position = Position::fromSfenLike(sfenStr);
-    if (!position) return QString();
-
     // 持ち駒を日本語文字列にする（飛・角・金・銀・桂・香・歩の順。2枚以上は漢数字を添える）
     auto handToString = [&position](Turn side) -> QString {
         QString result;
         for (const PieceKind kind : PieceRules::kHandOrder) {
             const Piece piece = makePiece(side, kind);
-            const int count = position->handCount(piece);
+            const int count = position.handCount(piece);
             if (count <= 0) continue;
             result += ShogiNotation::movePieceName(toBlack(piece));
             if (count > 1) result += ShogiNotation::kanjiNumber(count);
@@ -33,7 +29,7 @@ QString BodTextGenerator::generate(const QString& sfenStr, int moveIndex, const 
     auto rankText = [&position](int rank) {
         QString line;
         for (int file = 9; file >= 1; --file) {
-            const Piece piece = position->pieceAt(file, rank);
+            const Piece piece = position.pieceAt(file, rank);
             if (piece == Piece::None) {
                 line += QStringLiteral(" ・");
                 continue;
@@ -61,10 +57,10 @@ QString BodTextGenerator::generate(const QString& sfenStr, int moveIndex, const 
 
     bodLines << QStringLiteral("+---------------------------+");
     bodLines << QStringLiteral("%1の持駒：%2").arg(blackName, handToString(Turn::Black));
-    bodLines << (position->sideToMove() == Turn::Black ? blackName : whiteName) + QStringLiteral("番");
+    bodLines << (position.sideToMove() == Turn::Black ? blackName : whiteName) + QStringLiteral("番");
 
     if (moveIndex > 0) {
-        const int displayMoveNum = position->moveNumber() - 1;
+        const int displayMoveNum = position.moveNumber() - 1;
         if (!lastMoveStr.isEmpty()) {
             bodLines << QStringLiteral("手数＝%1  %2  まで").arg(displayMoveNum).arg(lastMoveStr);
         } else {
