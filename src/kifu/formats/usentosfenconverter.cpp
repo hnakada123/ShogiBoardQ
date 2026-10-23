@@ -107,7 +107,7 @@ KifuParseOutcome UsenToSfenConverter::parse(QStringView text, const ParseOptions
             return outcome;
         }
         const auto base = record.latestBranchPoint(startPly);
-        const std::optional<Position> from = base ? Position::fromSfen(base->sfen) : std::nullopt;
+        const std::optional<Position> from = base ? base->position : std::nullopt;
         if (!from) {
             outcome.warning = QStringLiteral("USEN: invalid variation start: %1").arg(startPly);
             outcome.record = {};

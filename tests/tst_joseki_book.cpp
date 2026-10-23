@@ -14,6 +14,7 @@
 #endif
 
 #include "josekibook.h"
+#include "shogiposition.h"
 #include "josekibooksession.h"
 #include "josekimergeentries.h"
 #include "josekitablemodel.h"
@@ -663,6 +664,9 @@ void TestJosekiBook::load_keepsRegistrationsPerPly()
     QCOMPARE(book.movesAt(at23).size(), 2);
     QCOMPARE(book.movesAt(at23).at(1).nextMove, QStringLiteral("4a3b"));
     QCOMPARE(book.movesAt(kHirateSfen + QStringLiteral(" 1")).first().move, QStringLiteral("6g6f"));
+    // 局面の値で引いても同じ（手数で登録を選ぶ）
+    QCOMPARE(book.movesAt(*Position::fromSfen(at23)).at(1).nextMove, QStringLiteral("4a3b"));
+    QCOMPARE(book.movesAt(*Position::fromSfen(at21)).at(1).comment, QStringLiteral("21手目のコメント"));
     QCOMPARE(book.registeredSfen(at23), at23);
     QCOMPARE(book.registeredSfen(kHirateSfen), at21);
 

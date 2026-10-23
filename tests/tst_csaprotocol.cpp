@@ -7,6 +7,7 @@
 /// - SfenCsaPositionConverter（CSA↔SFEN局面変換）
 
 #include <QtTest>
+#include "shogiposition.h"
 #include <QCoreApplication>
 #include <QTcpServer>
 #include <QSslServer>
@@ -332,13 +333,11 @@ private slots:
         const QString sfen =
             QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
 
-        QString error;
-        auto csaLines = SfenCsaPositionConverter::toCsaPositionLines(sfen, &error);
-        QVERIFY2(csaLines.has_value(), qPrintable(error));
-        QVERIFY(!csaLines->isEmpty());
+        const QStringList csaLines = SfenCsaPositionConverter::toCsaPositionLines(*Position::fromSfen(sfen));
+        QVERIFY(!csaLines.isEmpty());
         // P1 行が含まれること
         bool hasP1 = false;
-        for (const QString& line : std::as_const(*csaLines)) {
+        for (const QString& line : std::as_const(csaLines)) {
             if (line.startsWith(QStringLiteral("P1"))) {
                 hasP1 = true;
                 QVERIFY(line.contains(QStringLiteral("-KY")));
@@ -534,33 +533,6 @@ private slots:
         QCOMPARE(gs.timeUnitMs(false), 1000);
     }
 
-    // ========================================
-    // 異常系: SfenCsaPositionConverter SFEN 不正入力
-    // ========================================
-
-    void toCsaPositionLines_abnormal_data()
-    {
-        QTest::addColumn<QString>("sfen");
-
-        QTest::newRow("empty_string")
-            << QString();
-        QTest::newRow("garbage_string")
-            << QStringLiteral("not a valid sfen at all");
-        QTest::newRow("incomplete_sfen")
-            << QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp");
-        QTest::newRow("invalid_chars")
-            << QStringLiteral("XXXXXXXXX/XXXXXXXXX/XXXXXXXXX/9/9/9/9/9/9 b - 1");
-    }
-
-    void toCsaPositionLines_abnormal()
-    {
-        QFETCH(QString, sfen);
-
-        QString error;
-        // Must not crash regardless of input
-        (void)SfenCsaPositionConverter::toCsaPositionLines(sfen, &error);
-        QVERIFY(true);
-    }
 
     // ========================================
     // 異常系: CsaClient 状態ガード（不正状態でのメソッド呼び出し）
@@ -859,13 +831,12 @@ private slots:
     {
         QFETCH(QString, sfen);
         QString error;
-        const auto csa = SfenCsaPositionConverter::toCsaPositionLines(sfen, &error);
-        QVERIFY2(csa.has_value(), qPrintable(error));
-        const auto decoded = SfenCsaPositionConverter::fromCsaPositionLines(*csa, &error);
+        const QStringList csa = SfenCsaPositionConverter::toCsaPositionLines(*Position::fromSfen(sfen));
+        const auto decoded = SfenCsaPositionConverter::fromCsaPositionLines(csa, &error);
         QVERIFY2(decoded.has_value(), qPrintable(error));
         QCOMPARE(*decoded, sfen);
         QStringList crlf;
-        for (const auto& line : *csa) crlf.append(line + QStringLiteral("\r\n"));
+        for (const auto& line : csa) crlf.append(line + QStringLiteral("\r\n"));
         QCOMPARE(SfenCsaPositionConverter::fromCsaPositionLines(crlf), decoded);
     }
 
@@ -877,12 +848,11 @@ private slots:
         QString error;
 
         // SFEN → CSA
-        auto csaLines = SfenCsaPositionConverter::toCsaPositionLines(originalSfen, &error);
-        QVERIFY2(csaLines.has_value(), qPrintable(error));
-        QVERIFY(!csaLines->isEmpty());
+        const QStringList csaLines = SfenCsaPositionConverter::toCsaPositionLines(*Position::fromSfen(originalSfen));
+        QVERIFY(!csaLines.isEmpty());
 
         // CSA → SFEN（ラウンドトリップ）
-        auto roundTripSfen = SfenCsaPositionConverter::fromCsaPositionLines(*csaLines, &error);
+        auto roundTripSfen = SfenCsaPositionConverter::fromCsaPositionLines(csaLines, &error);
         QVERIFY2(roundTripSfen.has_value(), qPrintable(error));
 
         QCOMPARE(*roundTripSfen, originalSfen);

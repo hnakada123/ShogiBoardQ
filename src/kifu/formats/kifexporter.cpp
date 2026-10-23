@@ -219,9 +219,5 @@ QStringList KifExporter::sfenToBodLines(const QString& sfen, bool handicapNames)
                       && position->sideToMove() == Turn::Black)) {
         return {};
     }
-    const QString bodText = BodTextGenerator::generate(position->toSfen(), 0, QString(), handicapNames);
-    if (bodText.isEmpty()) {
-        return {};
-    }
-    return bodText.split(QLatin1Char('\n'));
+    return BodTextGenerator::generate(*position, 0, QString(), handicapNames).split(QLatin1Char('\n'));
 }

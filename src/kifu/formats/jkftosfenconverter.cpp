@@ -203,7 +203,7 @@ bool addJkfForks(KifParseResult& out, int parent, const QList<JkfFork>& forks, P
 {
     for (const auto& fork : forks) {
         const auto from = out.branchPoint(parent, fork.ply);
-        const std::optional<Position> start = from ? Position::fromSfen(from->sfen) : std::nullopt;
+        const std::optional<Position> start = from ? from->position : std::nullopt;
         if (!start) {
             report.fail(QStringLiteral("JKF: invalid fork at ply %1").arg(fork.ply));
             return false;

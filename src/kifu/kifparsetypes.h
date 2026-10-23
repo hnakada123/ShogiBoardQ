@@ -10,6 +10,7 @@
 #include <optional>
 
 #include "recordline.h"
+#include "shogiposition.h"
 #include "usimove.h"
 
 /// KIFの「(キーワード)：(内容)」行を表すペア
@@ -41,7 +42,7 @@ struct KifVariation {
 struct KifBranchPoint {
     int parentVariation = -1;  ///< 分岐元の手順。-1 は本譜
     int startPly = 1;          ///< 変化の最初の手の手数
-    QString sfen;              ///< 変化の最初の手を指す前の局面
+    std::optional<Position> position;  ///< 変化の最初の手を指す前の局面（手順の局面が読めなければ空）
     std::optional<UsiMove> previousMove;  ///< その局面に至った手（「同」の解決用。開始局面なら nullopt）
 };
 
@@ -71,7 +72,7 @@ struct KifParseResult {
         KifBranchPoint point;
         point.parentVariation = parent;
         point.startPly = startPly;
-        point.sfen = line.sfenAt(offset);
+        point.position = Position::fromSfen(line.sfenAt(offset));
         if (offset > 0) {
             point.previousMove = line.entries.at(offset - 1).move.move;
         } else if (parent >= 0) {

@@ -402,15 +402,16 @@ bool KifuFileController::copyBodToClipboard()
         emit statusMessage(tr("BOD形式の局面データがありません"), 3000);
         return false;
     }
+    const std::optional<Position> position = Position::fromSfen(sfen);
+    if (!position) {
+        emit statusMessage(tr("SFEN形式の解析に失敗しました"), 3000);
+        return false;
+    }
     // 最終手は表示中の手（局面図の「手数＝N ▲７六歩 まで」）
     const KifuBranchNode* node = m_deps.navState->currentNode();
     const int ply = node ? node->ply() : 0;
     const QString lastMove = node && node->isActualMove() ? node->displayText() : QString();
     // 駒落ちは KIF の局面図と同じく、対局情報の見出しに合わせて下手・上手と呼ぶ
-    const QString bodText = BodTextGenerator::generate(sfen, ply, lastMove, m_deps.document->usesHandicapNames());
-    if (bodText.isEmpty()) {
-        emit statusMessage(tr("SFEN形式の解析に失敗しました"), 3000);
-        return false;
-    }
+    const QString bodText = BodTextGenerator::generate(*position, ply, lastMove, m_deps.document->usesHandicapNames());
     return setClipboardText(bodText, tr("BOD形式の局面をクリップボードにコピーしました"));
 }
