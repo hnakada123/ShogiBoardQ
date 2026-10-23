@@ -42,16 +42,8 @@ public:
 
     // --- 指し手処理 ---
 
-    /**
-     * @brief 盤のクリック操作（表示の座標）による着手を検証し、合法手であれば指す
-     *
-     * 成り・不成の両方が合法なら、成りの選び方（setPromotionChooser）で対局者に選ばせる。
-     * @param previousTo 局面に至った手の移動先（「同」表記の基準。開始局面は無効なマス）
-     * @return 指した手（盤に指せなければ nullopt）
-     */
-    std::optional<RecordEntry> validateAndMove(QPoint& outFrom, QPoint& outTo, BoardSquare previousTo);
-
-    /// 盤面を変更せず、クリック操作の合法性と成り・不成を確定する。
+    /// 盤面を変更せず、クリック操作（表示の座標）の合法性と成り・不成を確定する。
+    /// 成り・不成の両方が合法なら、成りの選び方（setPromotionChooser）で対局者に選ばせる
     std::optional<UsiMove> prepareMove(const QPoint& from, const QPoint& to);
 
     /// 手番の側の合法手か（成り・不成も指し手どおりに判定する）
@@ -62,9 +54,6 @@ public:
 
     /// 確かめ済みの手、またはサーバーが裁定する手を指す。盤面に適用できない手は変更せず nullopt
     std::optional<RecordEntry> applyRecordedMove(const UsiMove& move, BoardSquare previousTo);
-
-    /// 直前に指した手（指せたときに更新する）
-    const UsiMove& lastMove() const { return m_lastMove; }
 
     /**
      * @brief 着手の確定を知らせる（盤・手順・棋譜・時計を更新し終えた後に、対局の司令塔が呼ぶ）
@@ -98,7 +87,6 @@ private:
     std::unique_ptr<ShogiBoard> m_board; ///< 将棋盤（所有。起動から終了まで同じ1つ）
 
     PromotionChooser m_promotionChooser; ///< 成り・不成の選び方
-    UsiMove m_lastMove;                  ///< 直前に指した手
 
     /// 成り・不成それぞれで合法手か
     LegalMoveStatus legalStatus(const UsiMove& move, Turn mover) const;

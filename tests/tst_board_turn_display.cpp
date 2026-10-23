@@ -20,6 +20,12 @@
 Q_DECLARE_METATYPE(ShogiView::Urgency)
 
 /// 盤の手番が対局者カードの手番の印の唯一の出どころであることと、時計の警告・配色の反映を確かめる
+/// 棋譜に書く累計の考慮時間（"HH:MM:SS"）
+static QString recordTotal(const ShogiClock& clock, Turn side)
+{
+    return clock.recordTime(side).toText().section(QLatin1Char('/'), 1);
+}
+
 class TestBoardTurnDisplay : public QObject
 {
     Q_OBJECT
@@ -91,9 +97,9 @@ private slots:
         clock.commitMove(Turn::White);
         presenter.showTimes(0, 0, Turn::White);
         QCOMPARE(view.chrome()->card(Turn::Black)->clockLabel()->text(),
-                 QStringLiteral("消費 ") + clock.totalConsiderationTimeString(Turn::Black));
+                 QStringLiteral("消費 ") + recordTotal(clock, Turn::Black));
         QCOMPARE(view.chrome()->card(Turn::White)->clockLabel()->text(),
-                 QStringLiteral("消費 ") + clock.totalConsiderationTimeString(Turn::White));
+                 QStringLiteral("消費 ") + recordTotal(clock, Turn::White));
 
         clock.setTimeControl(TestTime::rules(10, 10, 0, 0, 0, 0));
         presenter.showTimes(9501, 10000, Turn::Black);

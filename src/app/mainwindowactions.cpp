@@ -7,8 +7,6 @@
 #include "kifufilecontroller.h"
 #include "positioneditsession.h"
 #include "sessionresetcoordinator.h"
-#include "shogiboard.h"
-#include "shogigamecontroller.h"
 
 #include <QCoreApplication>
 #include <QWidget>
@@ -17,7 +15,7 @@ MainWindowActions::MainWindowActions(const Deps& deps, QObject* parent)
     : QObject(parent)
     , m_deps(deps)
 {
-    Q_ASSERT(m_deps.window && m_deps.gameController && m_deps.gameSession && m_deps.positionEdit
+    Q_ASSERT(m_deps.window && m_deps.gameSession && m_deps.positionEdit
              && m_deps.kifuFileController && m_deps.reset);
 }
 

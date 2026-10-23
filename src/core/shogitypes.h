@@ -29,14 +29,6 @@ inline QDebug operator<<(QDebug debug, Turn t)
     return debug.nospace() << (t == Turn::Black ? "Black" : "White");
 }
 
-/// SFEN文字列をパースした結果を保持する構造体
-struct SfenComponents {
-    QString board;
-    QString stand;
-    Turn turn;
-    int moveNumber;
-};
-
 /// bestmove の特殊手を表す列挙型（エンジンからの受信用）
 enum class SpecialMove { None, Resign, Win, Draw };
 

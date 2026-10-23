@@ -11,6 +11,7 @@
 
 #include "branchtreelayout.h"
 
+struct BranchLine;
 class BranchNodeItem;
 class KifuBranchNode;
 class KifuBranchTree;
@@ -50,9 +51,6 @@ public:
     void setCurrentNode(int nodeId, bool center = false);
     /// 目立たせている手の ID（描いていなければ -1）
     int currentNodeId() const;
-
-    /// 手の表記を描き直す（表記の設定・言語を変えたとき）
-    void refreshLabels();
 
     /// 選んで移れるか（対局中などは選べない）
     void setClickEnabled(bool enabled) { m_clickEnabled = enabled; }
@@ -117,7 +115,7 @@ private:
     void onStructureChanged();
 
     /// ツリーの全ラインから行の配置を作り直す
-    void syncRowsFromTree();
+    void syncRowsFromTree(const QList<BranchLine>& lines);
     /// 手順の末尾に加わった手を描き足す。描き足せなければ（新しい変化など）false
     bool appendNode(const KifuBranchNode* node);
 

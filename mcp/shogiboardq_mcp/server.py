@@ -126,7 +126,7 @@ def build_server() -> tuple[Server, JobManager, AppClient]:
     async def dispatch_tool(name: str, arguments: dict[str, Any] | None) -> ToolOutcome:
         handler = handlers.get(name)
         if handler is None:
-            return _error_result("unknown_tool", f"Unknown tool {name!r}")
+            return _error_result("unknown_operation", f"Unknown tool {name!r}")
         try:
             if name in UNRESTRICTED_TOOLS:
                 require_unrestricted_ui()

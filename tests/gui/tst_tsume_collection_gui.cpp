@@ -232,7 +232,7 @@ private slots:
     }
     void cleanup()
     {
-        KifuPresentation::configure("ja_JP", "auto", false);
+        NotationStyle::configure("ja_JP", "auto", false);
     }
     void paginationAndPersistence_data()
     {
@@ -246,7 +246,7 @@ private slots:
         QTranslator translator;
         QVERIFY(translator.load(QStringLiteral(APP_BUILD "/ShogiBoardQ_") + language + ".qm"));
         qApp->installTranslator(&translator);
-        KifuPresentation::configure(language, "auto", false);
+        NotationStyle::configure(language, "auto", false);
         {
             TsumeCollectionDialog window;
             QVERIFY(window.loadFile(collectionPath()));

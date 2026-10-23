@@ -36,7 +36,6 @@ MateOracle::~MateOracle()
 void MateOracle::start(const QString& enginePath, const QString& engineName)
 {
     m_asking = false;
-    m_ready = false;
     m_started = true;
     // 起動の失敗は、戻った後に errorOccurred で届く
     m_session->startAsync(enginePath, engineName);
@@ -45,14 +44,8 @@ void MateOracle::start(const QString& enginePath, const QString& engineName)
 void MateOracle::quit()
 {
     m_started = false;
-    m_ready = false;
     m_asking = false;
     m_session->quit();
-}
-
-bool MateOracle::isReady() const
-{
-    return m_ready && !m_session->isInitializing();
 }
 
 bool MateOracle::ask(const UsiPosition& position, int limitMs)
@@ -90,7 +83,6 @@ void MateOracle::stop()
 void MateOracle::onReady()
 {
     if (!m_started) return;
-    m_ready = true;
     emit ready();
 }
 
@@ -112,7 +104,6 @@ void MateOracle::onError(const QString& message)
 {
     if (!m_started) return;
     m_started = false;
-    m_ready = false;
     m_asking = false;
     emit errorOccurred(message);
 }

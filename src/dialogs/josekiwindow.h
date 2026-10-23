@@ -138,7 +138,6 @@ private:
     void clearTable();
     void updateStatusDisplay();
     void updatePositionSummary();
-    void updateWindowTitle();
     void showFilePath();
     void updateRecentFilesMenu();
 

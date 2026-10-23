@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Any
 
 from . import paths
-from .environment import environment, error_slug
+from .environment import environment
 from .errors import ToolError
 
 log = logging.getLogger(__name__)
@@ -33,8 +33,8 @@ class AppError(ToolError):
     """A JSON-RPC error returned by the application."""
 
     def __init__(self, rpc_code: int, message: str, data: dict | None = None):
-        # The application names the error kind in data.slug (the same words as shogiboardq-cli).
-        slug = (data or {}).get("slug") or error_slug(rpc_code)
+        # The application always names the error kind in data.slug (the same words as shogiboardq-cli).
+        slug = (data or {}).get("slug") or "internal_error"
         super().__init__(slug, message, data)
         self.rpc_code = rpc_code
 

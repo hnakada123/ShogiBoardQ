@@ -527,7 +527,8 @@ private slots:
         const QList<QPushButton*> buttons = {h.recordPane.firstButton(), h.recordPane.lastButton(),
                                              chart.prevButton(), chart.fwd10Button()};
         h.nav.setStepActionsEnabled(false);
-        QVERIFY(!h.nav.stepActionsEnabled());
+        for (int step = 0; step < KifuNavigationController::StepCount; ++step)
+            QVERIFY(!h.nav.action(static_cast<KifuNavigationController::Step>(step))->isEnabled());
         for (QPushButton* const button : buttons) QVERIFY(!button->isEnabled());
         chart.firstButton()->click();
         QCOMPARE(h.state.currentPly(), lastPly);

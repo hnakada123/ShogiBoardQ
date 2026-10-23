@@ -18,7 +18,7 @@ private:
     static PvLine lineOf(const QString& sfen, const QStringList& moves) { return PvLine(PvText::play(sfen, moves)); }
 
 private slots:
-    void init() { KifuPresentation::configure(QStringLiteral("ja_JP"), QStringLiteral("japanese"), false); }
+    void init() { NotationStyle::configure(QStringLiteral("ja_JP"), QStringLiteral("japanese"), false); }
 
     /// 各手数の局面は手数を数え、指せない手の手前で打ち切る
     void positionsCountPliesAndStopAtUnplayableMove()
@@ -45,7 +45,7 @@ private slots:
 
     void westernMoveText()
     {
-        KifuPresentation::configure(QStringLiteral("en"), QStringLiteral("western"), false);
+        NotationStyle::configure(QStringLiteral("en"), QStringLiteral("western"), false);
         const PvLine line = lineOf(SfenUtils::hirateSfen(), {QStringLiteral("7g7f")});
         QCOMPARE(line.moveText(1), QStringLiteral("▲P-7f"));
     }

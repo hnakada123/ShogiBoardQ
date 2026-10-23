@@ -50,7 +50,7 @@ RecordLine lineOf(const QStringList &moves)
 {
     const QString start = SfenUtils::hirateSfen();
     const QStringList sfens = TestReplay::buildSfenRecord(start, moves, false);
-    RecordLine line = RecordLine::fromPositions(sfens, TestReplay::buildGameMoves(start, moves));
+    RecordLine line = TestReplay::recordLine(sfens, TestReplay::buildGameMoves(start, moves));
     for (qsizetype i = 0; i < line.entries.size(); ++i)
         line.entries[i].displayText = JosekiTableModel::moveText(moves.at(i), sfens.at(i));
     line.currentPly = 1;
@@ -804,7 +804,7 @@ void TestJosekiWindow::testConfirmClose()
     JosekiWindow window(&session);
     const QString path = m_tempDir.filePath(QStringLiteral("close.db"));
     QVERIFY(seedWindow(window, path));
-    const QString key = JosekiBookSession::positionKey(initialSfen());
+    const QString key = JosekiBook::positionKey(initialSfen());
     QVERIFY(window.m_session->updateMove(initialSfen(), {QStringLiteral("7g7f"), QStringLiteral("none"), 99, 32, 1, {}}));
     m_responseRole = static_cast<QMessageBox::ButtonRole>(role);
     m_messageSeen = false;
@@ -830,7 +830,7 @@ void TestJosekiWindow::testDockCloseDiscardRevertsBook()
     window.setDockWidget(&dock);
     const QString path = m_tempDir.filePath(QStringLiteral("dock-close.db"));
     QVERIFY(seedWindow(window, path));
-    const QString key = JosekiBookSession::positionKey(initialSfen());
+    const QString key = JosekiBook::positionKey(initialSfen());
     QVERIFY(window.m_session->updateMove(initialSfen(), {QStringLiteral("7g7f"), QStringLiteral("none"), 99, 32, 1, {}}));
     QVERIFY(window.m_session->isModified());
 
@@ -1023,7 +1023,7 @@ void TestJosekiWindow::testEditReplyAndLargeFrequency()
     JosekiWindow window(&session);
     const QString path = m_tempDir.filePath(QStringLiteral("edit-reply.db"));
     QVERIFY(seedWindow(window, path));
-    const QString key = JosekiBookSession::positionKey(initialSfen());
+    const QString key = JosekiBook::positionKey(initialSfen());
     QVERIFY(window.m_session->updateMove(initialSfen(), {QStringLiteral("7g7f"), QStringLiteral("8c8d"), 10, 32, 2000000, {}}));
     window.updateJosekiDisplay();
     window.show();
@@ -1078,14 +1078,14 @@ void TestJosekiWindow::testEmptyAndStoppedDisplay()
     window.setCurrentSfen(initialSfen());
     window.show();
     QVERIFY(QTest::qWaitForWindowExposed(&window));
-    QVERIFY(window.m_tableView->emptyGuideLabel()->isVisible());
+    QVERIFY(window.m_tableView->findChild<QLabel *>(QStringLiteral("josekiEmptyGuide"))->isVisible());
     window.resize(1100, 700);
     QCoreApplication::processEvents();
-    QVERIFY(window.m_tableView->viewport()->rect().contains(window.m_tableView->emptyGuideLabel()->geometry()));
+    QVERIFY(window.m_tableView->viewport()->rect().contains(window.m_tableView->findChild<QLabel *>(QStringLiteral("josekiEmptyGuide"))->geometry()));
     window.m_stopButton->click();
     QVERIFY(!window.isDisplayEnabled());
     QVERIFY(window.m_stopButton->isVisible()); // 空の定跡でも再開できる
-    QVERIFY(window.m_tableView->emptyGuideLabel()->text().contains(QStringLiteral("停止")));
+    QVERIFY(window.m_tableView->findChild<QLabel *>(QStringLiteral("josekiEmptyGuide"))->text().contains(QStringLiteral("停止")));
     window.setCurrentSfen(QString());
     QCOMPARE(window.m_positionSummaryLabel->text(), QStringLiteral("(未設定)"));
     QVERIFY(window.m_sfenLineLabel->text().isEmpty());

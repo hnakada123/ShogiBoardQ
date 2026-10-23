@@ -184,11 +184,8 @@ void PlayerCard::refreshName()
     const bool black = m_side == Turn::Black;
     const QString mark = black ? (m_flipped ? QStringLiteral("▼") : QStringLiteral("▲"))
                                : (m_flipped ? QStringLiteral("△") : QStringLiteral("▽"));
+    // ツールチップは eventFilter が名前（向きのマークなし）を GlobalToolTip で出す
     m_name->setFullText(mark + m_nameBase);
-    m_name->setToolTip(QStringLiteral(
-        "<div style='background-color:#FFF9C4; color:#333;"
-        "border:1px solid #C49B00; padding:6px; white-space:nowrap;'>%1</div>")
-        .arg(m_nameBase.toHtmlEscaped()));
 }
 
 void PlayerCard::setClockText(const QString& text)

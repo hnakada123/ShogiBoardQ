@@ -225,8 +225,7 @@ void MainWindowComposer::connectAnalysisAndUi()
     md.settingsReset = m_c.settingsReset;
     MenuActionsWiring::wire(md);
     m_c.dockLayoutManager->wireMenuActions(m_ui.actionResetDockLayout, m_ui.actionSaveDockLayout,
-                                           /*clearStartupLayout*/ nullptr, m_ui.actionLockDocks,
-                                           m_ui.menuSavedLayouts);
+                                           m_ui.actionLockDocks, m_ui.menuSavedLayouts);
 
     connect(&ErrorBus::instance(), &ErrorBus::messagePosted,
             m_c.notifications, &NotificationPresenter::displayMessage);

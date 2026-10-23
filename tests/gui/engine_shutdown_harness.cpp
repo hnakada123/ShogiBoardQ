@@ -162,7 +162,7 @@ private slots:
                     m_stage = 3;
                     m_searches = m_info = 0;
                     trigger("actionResumeGame");
-                    auto* clock = match->clock();
+                    auto* clock = m_window.composer().parts().clock;
                     if (match->isGameOver() || match->record().sfens() != saved.record.sfens()
                         || qAbs(clock->remainingMs(Turn::Black) - saved.clock.of(Turn::Black).remainingMs) > 100
                         || qAbs(clock->remainingMs(Turn::White) - saved.clock.of(Turn::White).remainingMs) > 100) {

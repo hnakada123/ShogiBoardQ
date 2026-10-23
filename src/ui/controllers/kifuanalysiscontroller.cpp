@@ -26,8 +26,14 @@
 KifuAnalysisController::KifuAnalysisController(const Deps& deps, QObject* parent)
     : QObject(parent)
     , m_deps(deps)
+    , m_resultsPanel(deps.resultsPanel)
 {
-    Q_ASSERT(m_deps.activity && m_deps.analysisModel);
+    Q_ASSERT(m_deps.activity && m_deps.analysisModel && m_resultsPanel);
+    m_resultsPanel->setModel(m_deps.analysisModel);
+    connect(m_resultsPanel, &AnalysisResultsPanel::stopRequested, this, &KifuAnalysisController::stop);
+    connect(m_resultsPanel, &AnalysisResultsPanel::rowDoubleClicked,
+            this, &KifuAnalysisController::onResultRowDoubleClicked);
+    connect(m_resultsPanel, &AnalysisResultsPanel::rowSelected, this, &KifuAnalysisController::onResultRowSelected);
     if (m_deps.engines)
         connect(m_deps.engines, &EngineLifecycleManager::engineRevoked, this, &KifuAnalysisController::onEngineRevoked);
     connect(m_deps.activity, &AppActivityState::revoked, this, &KifuAnalysisController::onActivityRevoked);
@@ -117,15 +123,6 @@ bool KifuAnalysisController::start(AnalysisRequest request)
     m_startPly = request.options.startPly;
     m_deps.analysisModel->clear();
 
-    if (!m_resultsPanel) {
-        if (!m_deps.resultsPanel) m_ownedResultsPanel = std::make_unique<AnalysisResultsPanel>();
-        m_resultsPanel = m_deps.resultsPanel ? m_deps.resultsPanel : m_ownedResultsPanel.get();
-        m_resultsPanel->setModel(m_deps.analysisModel);
-        connect(m_resultsPanel, &AnalysisResultsPanel::stopRequested, this, &KifuAnalysisController::stop);
-        connect(m_resultsPanel, &AnalysisResultsPanel::rowDoubleClicked,
-                this, &KifuAnalysisController::onResultRowDoubleClicked);
-        connect(m_resultsPanel, &AnalysisResultsPanel::rowSelected, this, &KifuAnalysisController::onResultRowSelected);
-    }
     if (QDockWidget* dock = m_deps.resultsDock) {
         dock->setVisible(true);
         dock->raise();

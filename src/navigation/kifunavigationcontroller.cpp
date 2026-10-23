@@ -50,11 +50,6 @@ void KifuNavigationController::setStepActionsEnabled(bool on)
     for (QAction* const stepAction : m_actions) stepAction->setEnabled(on);
 }
 
-bool KifuNavigationController::stepActionsEnabled() const
-{
-    return m_actions.front()->isEnabled();
-}
-
 // ============================================================
 // 移動
 // ============================================================

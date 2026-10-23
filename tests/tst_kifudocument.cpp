@@ -17,7 +17,7 @@
 #include "branchtree_test_util.h"
 #include "kifubranchnode.h"
 #include "kifunavigationstate.h"
-#include "notationutils.h"
+#include "handicaps.h"
 #include "kiftosfenconverter.h"
 #include "ki2tosfenconverter.h"
 #include "csatosfenconverter.h"
@@ -315,7 +315,7 @@ private slots:
     {
         QFETCH(QString, format);
         QFETCH(int, moveCount);
-        const QString initial = NotationUtils::mapHandicapToSfen(QStringLiteral("角落ち"));
+        const QString initial = QString::fromLatin1(Handicaps::byLabel(u"角落ち")->sfen);
         KifuBranchTree tree;
         tree.setRootSfen(initial);
         auto* tip = tree.root();

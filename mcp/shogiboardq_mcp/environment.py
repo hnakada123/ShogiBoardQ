@@ -42,12 +42,3 @@ def _load(_key: tuple[str, ...]) -> dict:
         if isinstance(data, dict) and data.get("ok"):
             return data
     raise ToolError("cli_failed", f"shogiboardq-cli environment exited with code {out.returncode} without a result")
-
-
-def error_slug(rpc_code: int) -> str:
-    """The slug of a JSON-RPC error code (for errors that do not carry ``data.slug``)."""
-    try:
-        kinds = environment().get("error_kinds", [])
-    except ToolError:
-        kinds = []
-    return next((k["slug"] for k in kinds if k.get("rpc_code") == rpc_code), "app_error")

@@ -105,7 +105,7 @@ public:
 
     /// 人間の手を受け付けるか（終局していない・棋譜に書ける）
     bool canAcceptMove() const;
-    /// 人間が盤で指した（ShogiGameController::validateAndMove が指した後）
+    /// 人間が盤で指した（盤のクリックの手を ShogiGameController が指した後）
     void onHumanMove(const RecordEntry& played);
     /// 手番のエンジンにすぐ指させる
     void forceImmediateMove();
@@ -126,10 +126,6 @@ public:
     void handleNyugyokuDeclaration(Turn declarer, bool success, bool isDraw);
     /// 人間の入玉宣言を盤面から判定（rule は Rule24・Rule27）して終局し、判定結果を返す（知らせは呼び出し側）
     NyugyokuJudgement::Result declareNyugyoku(Turn declarer, JishogiCalculator::Rule rule);
-
-    // --- 時計 ---
-
-    ShogiClock* clock() const { return m_clock; }
 
     /// Strategy から呼ぶ操作（テストから一手を確定するときにも使う）
     MatchStrategyHost& strategyHost() { return *this; }

@@ -196,7 +196,6 @@ void DockLayoutManager::updateSavedLayoutsMenu()
 
 void DockLayoutManager::wireMenuActions(QAction* resetLayout,
                                         QAction* saveLayoutAs,
-                                        QAction* clearStartupLayout,
                                         QAction* lockDocks,
                                         QMenu* savedLayoutsMenu)
 {
@@ -205,9 +204,6 @@ void DockLayoutManager::wireMenuActions(QAction* resetLayout,
     }
     if (saveLayoutAs) {
         connect(saveLayoutAs, &QAction::triggered, this, &DockLayoutManager::saveLayoutAs);
-    }
-    if (clearStartupLayout) {
-        connect(clearStartupLayout, &QAction::triggered, this, &DockLayoutManager::clearStartupLayout);
     }
     if (lockDocks) {
         lockDocks->setChecked(DockSettings::docksLocked());

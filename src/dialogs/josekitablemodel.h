@@ -37,7 +37,6 @@ public:
     const QList<JosekiMove> &moves() const { return m_moves; }
     /// 予想応手が無い
     static bool hasNoReply(const JosekiMove &move);
-    const QString &sfen() const { return m_sfen; }
     bool humanCanPlay() const { return m_humanCanPlay; }
 
     /// 定跡手の表記（KifuPresentation::move。表示言語と表記の設定に合わせる）。定跡の表は手ごとに独立しているので「同」は使わない

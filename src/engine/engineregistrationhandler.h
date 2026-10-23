@@ -2,7 +2,7 @@
 #define ENGINEREGISTRATIONHANDLER_H
 
 /// @file engineregistrationhandler.h
-/// @brief エンジン登録ハンドラクラスの定義（ワーカースレッド管理・USI解析・設定永続化）
+/// @brief エンジン登録ハンドラクラスの定義（エンジンの起動・USI オプションの読み取り・設定の保存）
 
 #include <QObject>
 #include "engineoption.h"
@@ -12,8 +12,8 @@ class UsiEngineSession;
 
 /// エンジン登録の実行処理を担当するハンドラ
 ///
-/// ワーカースレッドでエンジンプロセスとの通信を行い、
-/// USIオプション解析と設定永続化はメインスレッドで実行する。
+/// エンジンを UsiEngineSession で起動し（メインスレッドで非同期に usi〜usiok を待つ）、
+/// 報告された USI オプションを読んで、登録一覧と設定ファイルに保存する。
 class EngineRegistrationHandler : public QObject
 {
     Q_OBJECT

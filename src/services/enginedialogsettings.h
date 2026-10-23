@@ -5,9 +5,6 @@
 /// @brief エンジン設定ダイアログの永続化
 ///
 /// エンジン設定変更・エンジン登録ダイアログに関する設定を提供します。
-/// 呼び出し元: changeenginesettingsdialog.cpp, engineregistrationdialog.cpp
-///
-/// @note namespace 名は EngineDialogSettings（engine/enginesettingscoordinator.h との名前衝突を回避）
 
 #include <QSize>
 #include "setting.h"

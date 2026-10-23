@@ -1058,7 +1058,7 @@ private slots:
         QCOMPARE(ended.count(), 1);
         QCOMPARE(ended.at(0).at(2).toInt(), 4000);
         QCOMPARE(client.connectionState(), CsaClient::ConnectionState::GameOver);
-        QVERIFY(!client.isAwaitingMoveConfirmation());
+        QVERIFY(!client.awaitingMoveConfirmation());
         QVERIFY(CsaClient::isWaitingState(client.connectionState()));
 
         for (const char* line : {"BEGIN Game_Summary", "Game_ID:second", "Name+:A", "Name-:B",
@@ -1419,7 +1419,7 @@ private slots:
 
         client.sendMove(QStringLiteral("+7776FU"));
         QVERIFY(server.waitForLine(QStringLiteral("+7776FU")));
-        QVERIFY(client.isAwaitingMoveConfirmation());
+        QVERIFY(client.awaitingMoveConfirmation());
 
         // 確認が届くまで次の手も意思表示も送らない（手番外送信は #ILLEGAL_ACTION）
         client.sendMove(QStringLiteral("+2726FU"));
@@ -1431,7 +1431,7 @@ private slots:
 
         server.send("+7776FU,T1");
         QTRY_COMPARE(confirmed.count(), 1);
-        QVERIFY(!client.isAwaitingMoveConfirmation());
+        QVERIFY(!client.awaitingMoveConfirmation());
         QVERIFY(!client.isMyTurn());
 
         client.sendMove(QStringLiteral("+2726FU"));

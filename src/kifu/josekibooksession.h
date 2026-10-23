@@ -68,8 +68,6 @@ public:
 
     // --- 定跡データの読み取り ---
 
-    /// 定跡の局面のキー（手数を除いた SFEN）
-    static QString positionKey(const QString &sfen);
     bool isEmpty() const { return m_book.isEmpty(); }
     int positionCount() const { return m_book.positionCount(); }
     /// 局面の定跡手（無ければ空）
@@ -152,7 +150,7 @@ public:
      */
     bool startMergeBook(const QString &filePath, const JosekiBook::MergeOptions &options);
 
-public slots:
+    /// 変更の有無を設定する（読み込み・保存・変更の後に自分で呼ぶ。テストでは保存した状態に戻すのにも使う）
     void setModified(bool modified);
 
 signals:

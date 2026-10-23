@@ -372,9 +372,6 @@ void CsaClient::processResultLine(const QString& line)
         cause = GameEndCause::Jishogi;
     } else if (firstLine == QStringLiteral("#MAX_MOVES")) {
         cause = GameEndCause::MaxMoves;
-    } else if (firstLine == QStringLiteral("#CHUDAN")) {
-        cause = GameEndCause::Chudan;
-        emit gameInterrupted();
     } else if (firstLine == QStringLiteral("#ILLEGAL_ACTION")) {
         cause = GameEndCause::IllegalAction;
     }

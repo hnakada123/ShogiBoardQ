@@ -5,6 +5,8 @@
 
 #include <QPainter>
 
+#include <utility>
+
 ShogiViewHighlighting::ShogiViewHighlighting(ShogiView* view, QObject* parent)
     : QObject(parent)
     , m_view(view)
@@ -15,6 +17,35 @@ ShogiViewHighlighting::ShogiViewHighlighting(ShogiView* view, QObject* parent)
 // ハイライト
 // ─────────────────────────────────────────────────────────────────────────────
 
+
+namespace {
+
+/// 矢印の太さ・矢じり・順位の丸印の大きさ（マスの大きさで決まる。描くときと描き直す範囲で同じ値を使う）
+struct ArrowMetrics {
+    explicit ArrowMetrics(int squareSize)
+        : width(qMax(3, squareSize / 12))
+        , headSize(qMax(10, squareSize / 4))
+        , labelFontSize(qMax(10, squareSize / 4))
+        , circleRadius(static_cast<int>(labelFontSize * 0.8))
+    {
+    }
+    int width;
+    int headSize;
+    int labelFontSize;
+    int circleRadius;
+};
+
+/// 矢印の始点と終点のマス。駒打ちは駒台のセルを始点にし、盤上の移動と同じ矢印で描く
+std::pair<QRect, QRect> arrowEnds(const BoardGeometry& geometry, const ShogiView::Arrow& arrow)
+{
+    const QRect from = (arrow.fromFile == 0 || arrow.fromRank == 0)
+        ? geometry.standCell(arrow.dropPiece)
+        : geometry.square(arrow.fromFile, arrow.fromRank);
+    return {from, geometry.square(arrow.toFile, arrow.toRank)};
+}
+
+} // namespace
+
 void ShogiViewHighlighting::setHighlights(BoardHighlightLayer layer, const QList<QPoint>& squares)
 {
     QList<QPoint>& current = m_layers[static_cast<std::size_t>(layer)];
@@ -23,14 +54,6 @@ void ShogiViewHighlighting::setHighlights(BoardHighlightLayer layer, const QList
     updateSquares(current);
     current = squares;
     updateSquares(current);
-}
-
-void ShogiViewHighlighting::clearHighlights()
-{
-    for (std::size_t layer = 0; layer < m_layers.size(); ++layer) {
-        updateSquares(m_layers[layer]);
-        m_layers[layer].clear();
-    }
 }
 
 const QList<QPoint>& ShogiViewHighlighting::highlights(BoardHighlightLayer layer) const
@@ -66,37 +89,21 @@ void ShogiViewHighlighting::setArrows(const QList<ShogiView::Arrow>& arrows)
     else m_view->update(dirty);
 }
 
-void ShogiViewHighlighting::clearArrows()
-{
-    if (m_arrows.isEmpty()) return;
-    const QRect dirty = arrowsPaintRect(m_arrows);
-    m_arrows.clear();
-    if (dirty.isEmpty()) m_view->update();
-    else m_view->update(dirty);
-}
-
 QRect ShogiViewHighlighting::arrowsPaintRect(const QList<ShogiView::Arrow>& arrows) const
 {
     if (!m_view->board()) return {};
-    const int squareSize = m_view->squareSize();
-    // drawArrows と同じ太さ・矢じり・順位の丸印の大きさに、アンチエイリアスの分を足す
-    const int arrowWidth = qMax(3, squareSize / 12);
-    const int arrowHeadSize = qMax(10, squareSize / 4);
-    const int circleRadius = static_cast<int>(qMax(10, squareSize / 4) * 0.8);
-    const int margin = qMax(arrowHeadSize, circleRadius) + arrowWidth + 2;
+    const BoardGeometry& geometry = m_view->boardGeometry();
+    // 描く矢印と同じ太さ・矢じり・順位の丸印の大きさに、アンチエイリアスの分を足す
+    const ArrowMetrics metrics(geometry.squareSize());
+    const int margin = qMax(metrics.headSize, metrics.circleRadius) + metrics.width + 2;
     QRect rect;
     for (const ShogiView::Arrow& arrow : arrows) {
-        const QRect toRect = m_view->fieldRect(QPoint(arrow.toFile, arrow.toRank));
-        const QRect fromRect = (arrow.fromFile == 0 || arrow.fromRank == 0)
-            ? m_view->standPieceRect(arrow.dropPiece)
-            : m_view->fieldRect(QPoint(arrow.fromFile, arrow.fromRank));
+        const auto [fromRect, toRect] = arrowEnds(geometry, arrow);
         if (fromRect.isEmpty() || toRect.isEmpty()) continue;
         rect |= (fromRect | toRect).adjusted(-margin, -margin, margin, margin);
     }
     return rect;
 }
-
-
 
 void ShogiViewHighlighting::drawHighlights(QPainter& painter, const QRegion& dirty)
 {
@@ -140,20 +147,16 @@ void ShogiViewHighlighting::drawArrows(QPainter& painter)
     painter.save();
     painter.setRenderHint(QPainter::Antialiasing, true);
 
+    const BoardGeometry& geometry = m_view->boardGeometry();
+    const ArrowMetrics metrics(geometry.squareSize());
+    const int arrowWidth = metrics.width;
+    const int arrowHeadSize = metrics.headSize;
     for (const ShogiView::Arrow& arrow : std::as_const(m_arrows)) {
-        const BoardGeometry& geometry = m_view->boardGeometry();
-        const QRect toRect = geometry.square(arrow.toFile, arrow.toRank);
-        // 駒打ちは該当する駒台セルを始点とし、盤上の移動と同じ矢印で描く。
-        const QRect fromRect = (arrow.fromFile == 0 || arrow.fromRank == 0)
-            ? geometry.standCell(arrow.dropPiece)
-            : geometry.square(arrow.fromFile, arrow.fromRank);
+        const auto [fromRect, toRect] = arrowEnds(geometry, arrow);
         if (fromRect.isEmpty() || toRect.isEmpty()) continue;
 
         const QPointF from(fromRect.center());
         const QPointF to(toRect.center());
-
-        const int arrowWidth = qMax(3, geometry.squareSize() / 12);
-        const int arrowHeadSize = qMax(10, geometry.squareSize() / 4);
 
         QColor color = arrow.color;
 
@@ -186,13 +189,12 @@ void ShogiViewHighlighting::drawArrows(QPainter& painter)
         if (arrow.priority >= 1 && m_arrows.size() >= 2) {
             QPointF center((from.x() + to.x()) / 2.0, (from.y() + to.y()) / 2.0);
 
-            const int fontSize = qMax(10, geometry.squareSize() / 4);
             QFont font = painter.font();
-            font.setPointSize(fontSize);
+            font.setPointSize(metrics.labelFontSize);
             font.setBold(true);
             painter.setFont(font);
 
-            const int circleRadius = static_cast<int>(fontSize * 0.8);
+            const int circleRadius = metrics.circleRadius;
             painter.setPen(Qt::NoPen);
             painter.setBrush(QColor(255, 255, 255, 230));
             painter.drawEllipse(center, circleRadius, circleRadius);

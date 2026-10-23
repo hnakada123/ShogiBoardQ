@@ -2,7 +2,7 @@
 /// @brief 棋譜形式間で共有する対局情報と対局者名の生成
 #include "kifuexportmetadata.h"
 #include "gameinfokeys.h"
-#include "notationutils.h"
+#include "handicaps.h"
 #include <QObject>
 
 void KifuExportMetadataBuilder::resolvePlayerNames(const KifuExportMetadata& ctx, QString& outBlack, QString& outWhite)
@@ -27,14 +27,13 @@ QString KifuExportMetadataBuilder::handicapLabel(const QString& startSfen)
 
     // 駒落ちの初期配置（持駒なし・正しい手番）なら手合割名を使う。
     // それ以外は局面図で表す「その他」にする。
-    const QString label = NotationUtils::handicapLabelForSfen(trimmed);
-    if (!label.isEmpty()) {
-        const QString preset = NotationUtils::mapHandicapToSfen(label);
+    if (const Handicaps::Handicap* handicap = Handicaps::byBoard(trimmed)) {
+        const QString preset = QString::fromLatin1(handicap->sfen);
         const QString hands = trimmed.section(QLatin1Char(' '), 2, 2);
         const QString turn = trimmed.section(QLatin1Char(' '), 1, 1);
         if ((hands.isEmpty() || hands == QLatin1String("-"))
             && (turn.isEmpty() || turn == preset.section(QLatin1Char(' '), 1, 1))) {
-            return label;
+            return Handicaps::labelOf(*handicap);
         }
     }
     return GameInfoKeys::kHandicapOther;

@@ -234,5 +234,6 @@ void JosekiMergeDialog::fitRowsToFont()
 {
     m_tableWidget->verticalHeader()->setDefaultSectionSize(QFontMetrics(m_tableWidget->font()).height() + 16);
     m_tableWidget->resizeRowsToContents();
-    m_tableWidget->resizeColumnsToContents();
+    // 最後の「状態」の列は表の右端まで伸ばす（内容の幅に縮めない）
+    for (int column = 0; column < m_tableWidget->columnCount() - 1; ++column) m_tableWidget->resizeColumnToContents(column);
 }

@@ -106,6 +106,13 @@ inline int kanjiNumeralValue(QChar ch)
     return value > 0 ? value : -1;
 }
 
+/// 手番の印（▲△▽☗☖）か。KIF・KI2 の指し手の前に付く
+inline bool isTurnMark(QChar ch)
+{
+    return ch == QChar(u'▲') || ch == QChar(u'△') || ch == QChar(u'▽')
+        || ch == QChar(u'☗') || ch == QChar(u'☖');
+}
+
 // ============================================================
 // 駒の名前
 // ============================================================
@@ -143,13 +150,6 @@ inline QString boardPieceName(Piece piece)
     }
 }
 
-/// SFEN の駒文字（先後どちらでも）と成りの有無から駒の名前（指し手の表記）
-inline QString movePieceName(QChar sfenLetter, bool promoted)
-{
-    const Piece base = toBlack(charToPiece(sfenLetter.toUpper()));
-    return movePieceName(promoted ? promote(base) : base);
-}
-
 /// 駒の名前（成香・杏・竜・王などの別表記も読む）を先手の駒にする。読めなければ None
 inline Piece pieceFromName(QStringView name)
 {
@@ -165,21 +165,6 @@ inline Piece pieceFromName(QStringView name)
     };
     for (const auto& entry : table) {
         if (name == QStringView(entry.text)) return entry.piece;
-    }
-    return Piece::None;
-}
-
-/// 文字列の中で最初に出てくる駒の名前（成香などの2文字の名前を優先）を先手の駒にする。なければ None。
-/// 指し手の行（"７六歩(77)"、"同　成銀(42)"、"５五角打"）から駒を読むのに使う
-inline Piece findPieceName(QStringView text)
-{
-    for (qsizetype i = 0; i < text.size(); ++i) {
-        if (i + 1 < text.size()) {
-            const Piece twoChars = pieceFromName(text.mid(i, 2));
-            if (twoChars != Piece::None) return twoChars;
-        }
-        const Piece oneChar = pieceFromName(text.mid(i, 1));
-        if (oneChar != Piece::None) return oneChar;
     }
     return Piece::None;
 }

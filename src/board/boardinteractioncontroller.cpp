@@ -29,8 +29,12 @@ BoardInteractionController::BoardInteractionController(ShogiView* view,
         return;
     }
 
-    // 手番が替わったら（指した・手番だけを変えた）、つまんでいた駒と行き先の表示をやめる
-    connect(m_gc->board(), &ShogiBoard::turnChanged, this, &BoardInteractionController::cancelPendingClick);
+    // 盤は起動から終了まで1つ（表示の盤と同じ）。手番が替わった（指した・手番だけを変えた）・局面を置き換えたら、
+    // つまんでいた駒と行き先の表示をやめる。局面が変わったら行き先の表示だけを消す
+    ShogiBoard* board = m_gc->board();
+    connect(board, &ShogiBoard::turnChanged, this, &BoardInteractionController::cancelPendingClick);
+    connect(board, &ShogiBoard::boardReset, this, &BoardInteractionController::cancelPendingClick);
+    connect(board, &ShogiBoard::dataChanged, this, &BoardInteractionController::clearLegalMoveHighlights);
 }
 
 void BoardInteractionController::setInputRoute(BoardInputRoute* route)
@@ -197,12 +201,6 @@ void BoardInteractionController::selectPieceAndHighlight(const QPoint& field)
     // 選択状態を保持してハイライトする
     m_clickPoint = field;
     m_view->highlighting()->setHighlights(BoardHighlightLayer::Selection, {field});
-
-    // 対局開始で盤モデルが差し替わるため、選択時に現在の盤へ接続する。
-    connect(board, &ShogiBoard::boardReset,
-            this, &BoardInteractionController::cancelPendingClick, Qt::UniqueConnection);
-    connect(board, &ShogiBoard::dataChanged,
-            this, &BoardInteractionController::clearLegalMoveHighlights, Qt::UniqueConnection);
     refreshLegalMoveHighlights();
 }
 

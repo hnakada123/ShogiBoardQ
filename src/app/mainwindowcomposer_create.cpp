@@ -25,7 +25,6 @@
 #include "dialoglauncher.h"
 #include "dockregistry.h"
 #include "docklayoutmanager.h"
-#include "docksettings.h"
 #include "enginedisplaypresenter.h"
 #include "enginelifecyclemanager.h"
 #include "evaluationchartwidget.h"
@@ -375,10 +374,9 @@ void MainWindowComposer::createDocks()
     QDockWidget* josekiDock = docks->dock(Id::Joseki);
     m_c.joseki->josekiWindow()->setDockWidget(josekiDock);
     m_c.joseki->attachDock(josekiDock);
-    m_ui.actionLockDocks->setChecked(DockSettings::docksLocked());
 
+    // ドックの固定と保存したレイアウトのメニューは wireMenuActions() でつなぐ（connectAnalysisAndUi）
     m_c.dockLayoutManager = new DockLayoutManager(&m_window, docks, &m_window);
-    m_c.dockLayoutManager->setSavedLayoutsMenu(m_ui.menuSavedLayouts);
 }
 
 // ---------------------------------------------------------------------------
@@ -517,7 +515,6 @@ void MainWindowComposer::createControllers()
     // 複数の部品にまたがる利用者の操作（局面編集の開始・新規・終了）
     MainWindowActions::Deps ad;
     ad.window = &m_window;
-    ad.gameController = m_c.gameController;
     ad.gameSession = m_c.gameSession;
     ad.positionEdit = m_c.positionEdit;
     ad.kifuFileController = m_c.kifuFileController;

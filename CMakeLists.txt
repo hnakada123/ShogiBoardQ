@@ -326,8 +326,6 @@ set(SRC_GAME
 )
 
 set(SRC_KIFU
-    src/kifu/considerationpositionresolver.cpp
-    src/kifu/considerationpositionresolver.h
     src/kifu/formats/bodtextgenerator.cpp
     src/kifu/formats/bodtextgenerator.h
     src/kifu/formats/csaexporter.cpp
@@ -368,8 +366,6 @@ set(SRC_KIFU
     src/kifu/formats/kiftosfenconverter.h
     src/kifu/formats/kifuexportcommon.cpp
     src/kifu/formats/kifuexportcommon.h
-    src/kifu/formats/notationutils.cpp
-    src/kifu/formats/notationutils.h
     src/kifu/formats/parsecommon.cpp
     src/kifu/formats/parsecommon.h
     src/kifu/formats/sfencsapositionconverter.cpp

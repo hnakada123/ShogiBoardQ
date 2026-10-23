@@ -20,7 +20,7 @@ ChangeEngineSettingsDialog::ChangeEngineSettingsDialog(const EngineEntry& engine
                                                        QWidget* parent)
     : QDialog(parent)
     , ui(std::make_unique<Ui::ChangeEngineSettingsDialog>())
-    , m_optionHandler(std::make_unique<EngineSettingsOptionHandler>(this, this))
+    , m_optionHandler(std::make_unique<EngineSettingsOptionHandler>(this))   // 所有は unique_ptr だけ（QObject の親にしない）
 {
     ui->setupUi(this);
     m_optionHandler->setEngineName(engine.name);

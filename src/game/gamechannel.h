@@ -6,13 +6,10 @@
 
 #include <optional>
 
-#include "matchplayers.h"
 #include "nyugyokujudgement.h"
 #include "shogitypes.h"
-#include "timecontrol.h"
 
 class MatchCoordinator;
-class ShogiClock;
 
 /**
  * @brief 対局中の利用者の操作の送り先
@@ -41,18 +38,13 @@ public:
      * @return こちらで判定したときはその結果（終局済み）。サーバーが判定するときは nullopt
      */
     virtual std::optional<NyugyokuJudgement::Result> declareNyugyoku() = 0;
-
-    /// 対局者
-    virtual MatchPlayers players() const = 0;
-    /// 持ち時間の決まり
-    virtual TimeControl timeControl() const = 0;
 };
 
 /// ローカル対局（人間・エンジン）の窓口
 class LocalGameChannel final : public GameChannel
 {
 public:
-    LocalGameChannel(MatchCoordinator* match, const ShogiClock* clock);
+    explicit LocalGameChannel(MatchCoordinator* match);
 
     void resign() override;
     void breakOff() override;
@@ -61,12 +53,9 @@ public:
     Turn sideToMove() const override;
     bool judgesDeclaration() const override { return true; }
     std::optional<NyugyokuJudgement::Result> declareNyugyoku() override;
-    MatchPlayers players() const override;
-    TimeControl timeControl() const override;
 
 private:
     MatchCoordinator* m_match = nullptr;   ///< 非所有
-    const ShogiClock* m_clock = nullptr;   ///< 非所有
 };
 
 #endif // GAMECHANNEL_H

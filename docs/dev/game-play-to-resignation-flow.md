@@ -708,7 +708,7 @@ struct MatchGameOverState {
 
 | シグナル | 受信先 | 処理内容 |
 |---|---|---|
-| `gameEnded` | `GameSession::onGameEnded()` | `finishMatchRecord()`: ライブ対局セッションの確定・終局時刻の記録・棋譜の自動保存（設定時）。中断は確定も保存もせず、連続対局の設定を戻す（7.3） |
+| `gameEnded` | `GameSession::onGameEnded()` | `finishMatchRecord()`: ライブ対局セッションの確定・終局時刻の記録・棋譜の自動保存（設定時）。中断も確定する（再開は中断の行を除いて記録し直す）が保存はせず、連続対局の設定を戻す（7.3） |
 | `gameOverMessage` | `NotificationPresenter::showInformation()` | 結果のダイアログ（`QMessageBox::information`） |
 | `gameEndProcessed` | `GameSession::onGameEndProcessed()` | エンジン同士の連続対局なら次局へ（7.4） |
 | `gameInterrupted` | `GameSession::onGameInterrupted()` | 中断の行を `attachInterruptedRecord()` で中断した対局に結びつけ、「対局再開」を使えるようにする（8.2） |
@@ -795,7 +795,7 @@ void MatchCoordinator::appendTerminalRecord(const GameEndInfo& info)
 ```
 GameSession::onGameEnded(info)
     ├─ 中断なら連続対局の設定を戻す（ConsecutiveGameSeries::reset()）
-    └─ finishMatchRecord(commit = 中断でない)   … 通信対局の終局（onCsaGameEnded）も commit = true で同じ関数を通る
+    └─ finishMatchRecord(autoSave = 中断でない)   … 通信対局の終局（onCsaGameEnded）も autoSave = true で同じ関数を通る
            ├─ (1) commit なら、ライブ対局のセッションを確定する（LiveGameSession::commit()）
            │      中断は再開できるよう確定しない（再開で中断の行を除く）
            ├─ (2) 終局時刻を記録し、対局情報に反映（終局行を書いた後で行う）

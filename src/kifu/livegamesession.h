@@ -45,7 +45,7 @@ public:
     /// 対局を始めた局面の手数
     int anchorPly() const;
     /// 対局で指した手の数（終局の行を含む）
-    int moveCount() const { return static_cast<int>(m_entries.size()); }
+    int moveCount() const { return m_moveCount; }
     /// 手を足せるか（対局中で、終局の行をまだ書いていない）
     bool canAddMove() const { return m_active && !m_hasTerminal; }
 
@@ -100,7 +100,7 @@ private:
     KifuBranchNode* m_branchPoint = nullptr;
     int m_anchorNodeId = -1;                 ///< 対局を始めた局面のノード（消えたら記録をやめる）
     KifuBranchNode* m_liveParent = nullptr;  ///< 最後に足した手（まだなければ nullptr）
-    QList<RecordEntry> m_entries;            ///< 対局で足した行（待ったで巻き戻す）
+    int m_moveCount = 0;                     ///< 対局で足した行の数（待ったで減らす）
     QSet<int> m_createdNodeIds;              ///< このセッションで新しく作ったノード
     QSet<int> m_undoneNodeIds;               ///< 待ったで取り消した手順の先頭のノード
     QString m_firstMoveNote;                 ///< 次に新しく作るノードへ付けるコメント（棋譜の途中から続けた対局の情報）

@@ -1,9 +1,8 @@
 /// @file tst_consideration_resolver.cpp
-/// @brief 検討する局面と直前の手を、分岐ツリーの表示中の手順から決めるテスト
+/// @brief 検討する局面（KifuNavigationState::currentUsiPosition。直前の手を含む）のテスト
 
 #include <QtTest>
 
-#include "considerationpositionresolver.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
 #include "branchtree_test_util.h"
@@ -52,6 +51,13 @@ struct SampleTree {
         nav.setCurrentNode(node);
         return nav.currentRecordLine();
     }
+
+    /// node を表示したときに検討する局面
+    UsiPosition positionAt(KifuBranchNode* node)
+    {
+        nav.setCurrentNode(node);
+        return *nav.currentUsiPosition();
+    }
 };
 
 /// 局面に至った直前の手（USI。無ければ空）
@@ -68,7 +74,7 @@ BoardSquare previousTo(const UsiPosition& position)
 
 } // namespace
 
-class TestConsiderationResolver : public QObject
+class TestConsiderationPosition : public QObject
 {
     Q_OBJECT
 
@@ -76,20 +82,18 @@ private slots:
     void startPosition_hasNoPreviousMove();
     void midGame_usesMovesUpToDisplayedPly();
     void previousMove_isTheMoveJustPlayed();
-    void rowOutOfRange_isClamped();
     void branch_usesDisplayedBranch();
     void terminalMove_isNotPartOfLine();
     void nonHirateStart_usesSfenCommand();
     void dropMove_destinationIsDropSquare();
-    void emptyLine_usesFallbackSfen();
-    void emptyLine_withoutFallback_isStartpos();
+    void emptyTree_isStartpos();
 };
 
-void TestConsiderationResolver::startPosition_hasNoPreviousMove()
+void TestConsiderationPosition::startPosition_hasNoPreviousMove()
 {
     SampleTree t;
     const RecordLine line = t.lineAt(t.tree.root());
-    const UsiPosition r = *ConsiderationPositionResolver::resolve(line, line.currentPly);
+    const UsiPosition r = *t.nav.currentUsiPosition();
 
     QCOMPARE(line.currentPly, 0);
     QCOMPARE(r.command(), QStringLiteral("position startpos"));
@@ -98,47 +102,33 @@ void TestConsiderationResolver::startPosition_hasNoPreviousMove()
     QVERIFY(lastUsi(r).isEmpty());
 }
 
-void TestConsiderationResolver::midGame_usesMovesUpToDisplayedPly()
+void TestConsiderationPosition::midGame_usesMovesUpToDisplayedPly()
 {
     SampleTree t;
     const RecordLine line = t.lineAt(t.ply2);
-    const UsiPosition r = *ConsiderationPositionResolver::resolve(line, line.currentPly);
+    const UsiPosition r = *t.nav.currentUsiPosition();
 
     QCOMPARE(line.currentPly, 2);
     QCOMPARE(r.command(), QStringLiteral("position startpos moves 7g7f 3c3d"));
 }
 
-void TestConsiderationResolver::previousMove_isTheMoveJustPlayed()
+void TestConsiderationPosition::previousMove_isTheMoveJustPlayed()
 {
     // 2手目（△３四歩）の後の局面では、直前の手は △３四歩。3手目の ▲２六歩 ではない
     SampleTree t;
     const RecordLine line = t.lineAt(t.ply2);
-    const UsiPosition r = *ConsiderationPositionResolver::resolve(line, line.currentPly);
+    const UsiPosition r = *t.nav.currentUsiPosition();
 
     QCOMPARE(lastUsi(r), QStringLiteral("3c3d"));
     QCOMPARE(previousTo(r).file, 3);
     QCOMPARE(previousTo(r).rank, 4);
 }
 
-void TestConsiderationResolver::rowOutOfRange_isClamped()
-{
-    SampleTree t;
-    const RecordLine line = t.lineAt(t.ply3);
-
-    const UsiPosition before = *ConsiderationPositionResolver::resolve(line, -5);
-    QCOMPARE(before.command(), QStringLiteral("position startpos"));
-    QVERIFY(lastUsi(before).isEmpty());
-
-    const UsiPosition after = *ConsiderationPositionResolver::resolve(line, 99);
-    QCOMPARE(after.command(), QStringLiteral("position startpos moves 7g7f 3c3d 2g2f"));
-    QCOMPARE(lastUsi(after), QStringLiteral("2g2f"));
-}
-
-void TestConsiderationResolver::branch_usesDisplayedBranch()
+void TestConsiderationPosition::branch_usesDisplayedBranch()
 {
     SampleTree t;
     const RecordLine line = t.lineAt(t.branch2);
-    const UsiPosition r = *ConsiderationPositionResolver::resolve(line, line.currentPly);
+    const UsiPosition r = *t.nav.currentUsiPosition();
 
     QCOMPARE(line.currentPly, 2);
     QCOMPARE(line.sfenAt(2), kAfter84);
@@ -148,7 +138,7 @@ void TestConsiderationResolver::branch_usesDisplayedBranch()
     QCOMPARE(previousTo(r).rank, 4);
 }
 
-void TestConsiderationResolver::terminalMove_isNotPartOfLine()
+void TestConsiderationPosition::terminalMove_isNotPartOfLine()
 {
     SampleTree t;
     KifuBranchNode* resign = TestTree::addTerminalMove(t.tree, t.ply3, TerminalType::Resign, Turn::White);
@@ -157,12 +147,12 @@ void TestConsiderationResolver::terminalMove_isNotPartOfLine()
     QCOMPARE(line.moveCount(), 3);
     QCOMPARE(line.displayTexts().size(), 3);
     QCOMPARE(line.currentPly, 3);
-    const UsiPosition r = *ConsiderationPositionResolver::resolve(line, line.currentPly);
+    const UsiPosition r = *t.nav.currentUsiPosition();
     QCOMPARE(r.command(), QStringLiteral("position startpos moves 7g7f 3c3d 2g2f"));
     QCOMPARE(lastUsi(r), QStringLiteral("2g2f"));
 }
 
-void TestConsiderationResolver::nonHirateStart_usesSfenCommand()
+void TestConsiderationPosition::nonHirateStart_usesSfenCommand()
 {
     const QString start = QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b G 1");
     const QString after = QStringLiteral("4k4/9/4G4/9/9/9/9/9/4K4 w - 2");
@@ -172,13 +162,12 @@ void TestConsiderationResolver::nonHirateStart_usesSfenCommand()
                                         QStringLiteral("▲５三金打"), after);
     KifuNavigationState nav(&tree);
     nav.setCurrentNode(drop);
-    const RecordLine line = nav.currentRecordLine();
-    const UsiPosition r = *ConsiderationPositionResolver::resolve(line, line.currentPly);
+    const UsiPosition r = *nav.currentUsiPosition();
 
     QCOMPARE(r.command(), QStringLiteral("position sfen ") + start + QStringLiteral(" moves G*5c"));
 }
 
-void TestConsiderationResolver::dropMove_destinationIsDropSquare()
+void TestConsiderationPosition::dropMove_destinationIsDropSquare()
 {
     const QString start = QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b G 1");
     const QString after = QStringLiteral("4k4/9/4G4/9/9/9/9/9/4K4 w - 2");
@@ -188,33 +177,22 @@ void TestConsiderationResolver::dropMove_destinationIsDropSquare()
                                         QStringLiteral("▲５三金打"), after);
     KifuNavigationState nav(&tree);
     nav.setCurrentNode(drop);
-    const UsiPosition r = *ConsiderationPositionResolver::resolve(nav.currentRecordLine(), 1);
+    const UsiPosition r = *nav.currentUsiPosition();
 
     QCOMPARE(lastUsi(r), QStringLiteral("G*5c"));
     QCOMPARE(previousTo(r).file, 5);
     QCOMPARE(previousTo(r).rank, 3);
 }
 
-void TestConsiderationResolver::emptyLine_usesFallbackSfen()
+void TestConsiderationPosition::emptyTree_isStartpos()
 {
-    const QString sfen = QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b G 1");
-    QCOMPARE(ConsiderationPositionResolver::resolve(RecordLine{}, 0, sfen)->command(),
-             QStringLiteral("position sfen ") + sfen);
-    QCOMPARE(ConsiderationPositionResolver::resolve(RecordLine{}, 0, QStringLiteral("position sfen ") + sfen)->command(),
-             QStringLiteral("position sfen ") + sfen);
-    QCOMPARE(ConsiderationPositionResolver::resolve(RecordLine{}, 0, QStringLiteral("startpos"))->command(),
-             QStringLiteral("position startpos"));
-    QCOMPARE(ConsiderationPositionResolver::resolve(RecordLine{}, 0, kHirate)->command(),
-             QStringLiteral("position startpos"));
-}
-
-void TestConsiderationResolver::emptyLine_withoutFallback_isStartpos()
-{
-    const UsiPosition r = *ConsiderationPositionResolver::resolve(RecordLine{}, 3);
+    KifuBranchTree tree;
+    KifuNavigationState nav(&tree);
+    const UsiPosition r = *nav.currentUsiPosition();
     QCOMPARE(r.command(), QStringLiteral("position startpos"));
     QVERIFY(lastUsi(r).isEmpty());
     QCOMPARE(previousTo(r).file, 0);
 }
 
-QTEST_MAIN(TestConsiderationResolver)
-#include "tst_consideration_resolver.moc"
+QTEST_MAIN(TestConsiderationPosition)
+#include "tst_consideration_position.moc"

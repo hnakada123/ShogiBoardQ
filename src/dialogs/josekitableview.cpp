@@ -40,6 +40,7 @@ JosekiTableView::JosekiTableView(JosekiTableModel *model, QWidget *parent)
     horizontalHeader()->setStretchLastSection(true);
 
     m_emptyGuide = new QLabel(viewport());
+    m_emptyGuide->setObjectName(QStringLiteral("josekiEmptyGuide"));
     m_emptyGuide->setWordWrap(true);
     m_emptyGuide->setAttribute(Qt::WA_TransparentForMouseEvents);
     m_emptyGuide->setAlignment(Qt::AlignCenter);

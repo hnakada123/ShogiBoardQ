@@ -87,7 +87,6 @@ public:
      */
     void wireMenuActions(QAction* resetLayout,
                          QAction* saveLayoutAs,
-                         QAction* clearStartupLayout,
                          QAction* lockDocks,
                          QMenu* savedLayoutsMenu);
 

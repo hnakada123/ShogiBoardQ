@@ -370,22 +370,6 @@ QString ShogiClock::timeString(Turn player) const
     return hhmmss(remainingDisplaySec(player));
 }
 
-QString ShogiClock::considerationTimeString(Turn player) const
-{
-    const int sec = side(player).lastMoveShownSec;
-    return QString::asprintf("%02d:%02d", sec / 60, sec % 60);
-}
-
-QString ShogiClock::totalConsiderationTimeString(Turn player) const
-{
-    return hhmmss(static_cast<int>(qMax<qint64>(0, side(player).totalConsiderationMs) / 1000));
-}
-
-QString ShogiClock::considerationAndTotalTime(Turn player) const
-{
-    return recordTime(player).toText();
-}
-
 // ============================================================
 // 内部ヘルパ
 // ============================================================

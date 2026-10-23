@@ -30,6 +30,7 @@
 #include "considerationuicontroller.h"
 #include "appsettings.h"
 #include "matchcoordinator.h"
+#include "shogigamecontroller.h"
 #include "kifuloader.h"
 #include "kifufilecontroller.h"
 #include "dialoglauncher.h"

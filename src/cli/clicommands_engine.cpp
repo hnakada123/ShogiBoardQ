@@ -19,15 +19,15 @@ namespace {
 
 
 /// analyze / mate に共通する開始イベントの内容
-QJsonObject startedFields(const EngineEntry& engine, const CliPosition& position)
+QJsonObject startedFields(const EngineEntry& engine, const UsiPosition& position)
 {
     QJsonObject obj;
     obj[QStringLiteral("engine")] = engine.name;
     obj[QStringLiteral("engine_path")] = engine.path;
-    obj[QStringLiteral("position")] = position.position.command();
-    obj[QStringLiteral("start_sfen")] = position.startSfen;
-    obj[QStringLiteral("sfen")] = position.finalSfen;
-    obj[QStringLiteral("moves")] = QJsonArray::fromStringList(position.moves);
+    obj[QStringLiteral("position")] = position.command();
+    obj[QStringLiteral("start_sfen")] = position.startSfen();
+    obj[QStringLiteral("sfen")] = position.sfen();
+    obj[QStringLiteral("moves")] = QJsonArray::fromStringList(position.moves());
     return obj;
 }
 
@@ -202,7 +202,7 @@ int CliCommands::analyze(const QJsonObject& params)
     EngineAnalysisRunner::Request request;
     request.enginePath = engine->path;
     request.engineName = engine->name;
-    request.positions = {position->position};
+    request.positions = {*position};
     request.thinkMs = seconds * 1000;
     request.multiPv = multiPv;
 
@@ -319,7 +319,7 @@ int CliCommands::mate(const QJsonObject& params)
     MateSearchRunner::Request request;
     request.enginePath = engine->path;
     request.engineName = engine->name;
-    request.position = position->position;
+    request.position = *position;
     request.timeMs = seconds * 1000;
 
     QJsonObject started = startedFields(*engine, *position);

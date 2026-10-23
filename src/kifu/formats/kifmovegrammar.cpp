@@ -9,12 +9,6 @@
 
 namespace {
 
-bool isTurnMark(QChar ch)
-{
-    return ch == QChar(u'▲') || ch == QChar(u'△') || ch == QChar(u'▽')
-        || ch == QChar(u'☗') || ch == QChar(u'☖');
-}
-
 bool isBlank(QChar ch)
 {
     return ch.isSpace() || ch == QChar(u'　');
@@ -53,7 +47,7 @@ std::optional<MoveText> parseMoveText(QStringView text)
         while (i < text.size() && isBlank(text.at(i))) ++i;
     };
     skipBlanks();
-    if (i < text.size() && isTurnMark(text.at(i))) ++i;
+    if (i < text.size() && ShogiNotation::isTurnMark(text.at(i))) ++i;
     skipBlanks();
 
     MoveText move;

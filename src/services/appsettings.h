@@ -5,9 +5,6 @@
 /// @brief アプリケーション全般設定の永続化
 ///
 /// 言語・UI状態・駒音・メニューウィンドウ・メインウィンドウに関する設定を提供します。
-/// 呼び出し元: main.cpp, mainwindowuibootstrapper.cpp, mainwindowlifecyclewiring.cpp,
-///             mainwindowappearancecontroller.cpp, languagecontroller.cpp, menuwindow.cpp,
-///             playerinfowiring.cpp
 
 #include <QString>
 #include <QStringList>
@@ -58,8 +55,6 @@ inline const Setting<QString> uiFontFamily{"General/uiFontFamily", QString()};
 inline const Setting<QSize> fontSettingsDialogSize{"SizeRelated/fontSettingsDialogSize", QSize(520, 300)};
 
 // --- UI状態 ---
-
-/// 最後に選択されたタブインデックス（デフォルト: 0＝対局情報）
 
 /// ツールバーの表示状態（デフォルト: true）
 inline const Setting<bool> toolbarVisible{"UI/toolbarVisible", true};

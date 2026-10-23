@@ -13,22 +13,22 @@ class TestKifuPresentation : public QObject
 {
     Q_OBJECT
 private slots:
-    void cleanup() { configure(QStringLiteral("ja_JP"), QStringLiteral("auto"), false); }
+    void cleanup() { NotationStyle::configure(QStringLiteral("ja_JP"), QStringLiteral("auto"), false); }
 
     void languageAndCoordinates()
     {
-        QCOMPARE(resolveLanguage("system", "zh_Hant_HK"), QStringLiteral("zh_TW"));
-        QCOMPARE(resolveLanguage("system", "zh_CN"), QStringLiteral("zh_CN"));
-        QCOMPARE(resolveLanguage("system", "en_US"), QStringLiteral("en"));
-        QCOMPARE(resolveLanguage("system", "fr_FR"), QStringLiteral("en"));
-        configure("en", "auto", false);
+        QCOMPARE(NotationStyle::resolveLanguage("system", "zh_Hant_HK"), QStringLiteral("zh_TW"));
+        QCOMPARE(NotationStyle::resolveLanguage("system", "zh_CN"), QStringLiteral("zh_CN"));
+        QCOMPARE(NotationStyle::resolveLanguage("system", "en_US"), QStringLiteral("en"));
+        QCOMPARE(NotationStyle::resolveLanguage("system", "fr_FR"), QStringLiteral("en"));
+        NotationStyle::configure("en", "auto", false);
         QCOMPARE(rankLabel(1), QStringLiteral("a"));
         QCOMPARE(rankLabel(9), QStringLiteral("i"));
-        configure("zh_CN", "auto", false);
+        NotationStyle::configure("zh_CN", "auto", false);
         QCOMPARE(rankLabel(6), QStringLiteral("六"));
-        configure("ja_JP", "western", false);
+        NotationStyle::configure("ja_JP", "western", false);
         QCOMPARE(rankLabel(6), QStringLiteral("f"));
-        configure("en", "japanese", false);
+        NotationStyle::configure("en", "japanese", false);
         QCOMPARE(rankLabel(6), QStringLiteral("六"));
     }
 
@@ -60,7 +60,7 @@ private slots:
 
     void handicapPvAndCanonicalPreservation()
     {
-        configure("en", "auto", false);
+        NotationStyle::configure("en", "auto", false);
         const QString hirate = SfenUtils::hirateSfen();
         QString whiteStart = hirate;
         whiteStart.replace(" b ", " w ");
@@ -71,7 +71,7 @@ private slots:
         const RecordEntry first = RecordEntry::played(moves.at(0), QStringLiteral("▲７六歩(77)"), QString());
         QCOMPARE(entryLabel(first, hirate), QStringLiteral("▲P-7f"));
         QCOMPARE(entryLabel(RecordEntry::ending(TerminalType::Resign, Turn::White), hirate), QStringLiteral("△投了"));
-        configure("zh_CN", "auto", false);
+        NotationStyle::configure("zh_CN", "auto", false);
         const QString canonical = QStringLiteral("▲同　飛成(28)");
         QCOMPARE(moveLabel(canonical, hirate, "2h2b+"), canonical);
         QCOMPARE(entryLabel(first, hirate), QStringLiteral("▲７六歩(77)"));

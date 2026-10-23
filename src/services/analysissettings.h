@@ -5,9 +5,6 @@
 /// @brief 解析・検討設定の永続化
 ///
 /// 評価値グラフ・解析タブ・棋譜解析・検討モード・読み筋盤面に関する設定を提供します。
-/// 呼び出し元: evaluationchartwidget.cpp, evaluationchartsettingsdialog.cpp, thinkingpanel.cpp, kifuanalysisdialog.cpp,
-///             analysisresultspanel.cpp, considerationpanel.cpp,
-///             pvboarddialog.cpp
 
 #include <QSize>
 #include <QList>

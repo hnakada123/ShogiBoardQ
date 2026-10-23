@@ -154,11 +154,6 @@ void BranchTreeView::onStructureChanged()
     rebuild();
 }
 
-void BranchTreeView::refreshLabels()
-{
-    rebuild();
-}
-
 void BranchTreeView::refreshNode(int nodeId)
 {
     BranchNodeItem* item = m_items.value(nodeId, nullptr);
@@ -166,12 +161,10 @@ void BranchTreeView::refreshNode(int nodeId)
     if (item && node) item->setComment(node->comment());
 }
 
-void BranchTreeView::syncRowsFromTree()
+void BranchTreeView::syncRowsFromTree(const QList<BranchLine>& lines)
 {
     m_layout.rows.clear();
     m_rowOf.clear();
-    if (!m_tree) return;
-    const QList<BranchLine> lines = m_tree->allLines();
     m_layout.rows.reserve(lines.size());
     QSet<int> heads;
     for (qsizetype lineIdx = 0; lineIdx < lines.size(); ++lineIdx) {
@@ -210,9 +203,9 @@ void BranchTreeView::rebuild()
     m_headerBand = nullptr;
     m_currentItem = nullptr;
 
-    syncRowsFromTree();
-    m_layout.assignLanes(m_compactLayout);
     const QList<BranchLine> lines = m_tree ? m_tree->allLines() : QList<BranchLine>();
+    syncRowsFromTree(lines);
+    m_layout.assignLanes(m_compactLayout);
 
     m_columnSpacing = 110.0;
     for (qsizetype row = 0; row < lines.size(); ++row) {

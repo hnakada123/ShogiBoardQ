@@ -60,14 +60,6 @@ void KifuDisplayPresenter::refresh()
     if (m_deps.treeView) m_deps.treeView->setCurrentNode(current ? current->nodeId() : -1);
 }
 
-void KifuDisplayPresenter::refreshLabels()
-{
-    m_deps.recordModel->refreshAll();
-    m_deps.branchModel->refreshAll();
-    if (m_deps.treeView) m_deps.treeView->refreshLabels();
-    refresh();
-}
-
 void KifuDisplayPresenter::selectCurrentRow(int row)
 {
     m_deps.recordModel->setCurrentHighlightRow(row);

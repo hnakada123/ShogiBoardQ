@@ -163,10 +163,6 @@ private:
     /// サーバー接続履歴（新しい順・重複なし）
     RecentList<NetworkSettings::CsaServerHistoryEntry> m_serverHistory{NetworkSettings::kCsaServerHistoryLimit};
     SettingsFormBinding m_form;   ///< 入力欄と設定の対応（「対局」と「詳細」のタブ）
-
-    // 設定値のキャッシュ
-
-    // 詳細設定のキャッシュ
 };
 
 #endif // CSAGAMEDIALOG_H

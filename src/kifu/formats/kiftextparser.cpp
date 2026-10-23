@@ -9,7 +9,7 @@
 #include "kifmovegrammar.h"
 #include "kifreader.h"
 #include "logcategories.h"
-#include "notationutils.h"
+#include "handicaps.h"
 #include "parsecommon.h"
 #include "shoginotation.h"
 #include "shogiposition.h"
@@ -50,7 +50,10 @@ Position initialPosition(const QStringList& lines, StartKind* kind)
     name = name.trimmed();
     if (name.isEmpty()) name = QStringLiteral("平手");
     *kind = found.isEmpty() ? StartKind::Default : StartKind::Handicap;
-    Position initial = Position::fromSfen(NotationUtils::mapHandicapToSfen(name)).value_or(Position::hirate());
+    // 知らない手合割の名前は平手にする
+    const Handicaps::Handicap* handicap = Handicaps::byLabel(name);
+    Position initial = handicap ? Position::fromSfen(QString::fromLatin1(handicap->sfen)).value_or(Position::hirate())
+                                : Position::hirate();
     // 局面図がなくても、明示された手番を優先する（駒落ちは上手番・下手番と書く）。
     for (const QString& raw : lines) {
         const QString t = raw.trimmed();

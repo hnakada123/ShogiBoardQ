@@ -5,7 +5,6 @@
 
 #include "analysissession.h"
 #include "changeenginesettingsdialog.h"
-#include "considerationpositionresolver.h"
 #include "considerationpanel.h"
 #include "registeredengines.h"
 #include "errorbus.h"
@@ -53,9 +52,7 @@ void ConsiderationUiController::startConsideration()
     }
 
     // 表示中の手順（分岐ツリー）から、検討する局面と直前の手を決める
-    const RecordLine line = m_navState->currentRecordLine();
-    const std::optional<UsiPosition> position =
-        ConsiderationPositionResolver::resolve(line, line.currentPly, m_navState->currentSfen());
+    const std::optional<UsiPosition> position = m_navState->currentUsiPosition();
     if (!position) {
         ErrorBus::instance().postMessage(ErrorBus::ErrorLevel::Warning, tr("検討する局面を読めません。"));
         return;

@@ -14,7 +14,7 @@ class TestPvText : public QObject
     Q_OBJECT
 
 private slots:
-    void cleanup() { configure(QStringLiteral("ja_JP"), QStringLiteral("auto"), false); }
+    void cleanup() { NotationStyle::configure(QStringLiteral("ja_JP"), QStringLiteral("auto"), false); }
 
     /// 詰んだ局面ではエンジンが指し手の代わりに resign・win を返す。生の USI の語を出さず終局語にする
     void declarationsBecomeTerminalWords()
@@ -98,7 +98,7 @@ private slots:
     /// 英語表記は1手ずつ空白で区切り、移動元の要否は局面で決める。終局の宣言も同じ行に付ける
     void westernNotation()
     {
-        configure(QStringLiteral("en"), QStringLiteral("western"), false);
+        NotationStyle::configure(QStringLiteral("en"), QStringLiteral("western"), false);
         const PvText line = PvText::play(SfenUtils::hirateSfen(), QStringLiteral("7g7f 3c3d 8h2b+ resign"));
         QCOMPARE(pv(line), QStringLiteral("▲P-7f △P-3d ▲Bx2b+ △投了"));
         QCOMPARE(pv(line, true), QStringLiteral("▲P7g-7f △P3c-3d ▲B8hx2b+ △投了"));

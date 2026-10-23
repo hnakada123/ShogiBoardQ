@@ -31,8 +31,10 @@ QImage BoardImageRenderer::render(const QString& sfen, const Options& options, F
         return fail(ErrorKind::InvalidArgument,
                     QStringLiteral("Invalid SFEN: %1").arg(validation.errors.join(QStringLiteral("; "))));
     }
-    if (options.squareSize < 20 || options.squareSize > 150) {
-        return fail(ErrorKind::InvalidArgument, QStringLiteral("square_size must be between 20 and 150"));
+    // CLI・自動化 API の引数の表も同じ範囲を検査する。表を通さずに呼ばれても盤の範囲の外は描かない
+    if (options.squareSize < BoardGeometry::kMinSquareSize || options.squareSize > BoardGeometry::kMaxSquareSize) {
+        return fail(ErrorKind::InvalidArgument, QStringLiteral("square_size must be between %1 and %2")
+                                                    .arg(BoardGeometry::kMinSquareSize).arg(BoardGeometry::kMaxSquareSize));
     }
     std::optional<UsiMove> lastMove;
     if (!options.lastMoveUsi.isEmpty()) {

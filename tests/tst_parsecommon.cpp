@@ -21,8 +21,8 @@ private slots:
     void numberFromDigits_data();
     void numberFromDigits();
     void kanjiNumeralValue();
-    void findPieceName_data();
-    void findPieceName();
+    void pieceFromName_data();
+    void pieceFromName();
     // ---- isKifCommentLine ----
     void isKifCommentLine_ascii();
     void isKifCommentLine_fullwidth();
@@ -179,7 +179,7 @@ void TestParseCommon::kanjiNumeralValue()
     QCOMPARE(ShogiNotation::kanjiNumeralValue(QChar('1')), -1);
 }
 
-void TestParseCommon::findPieceName_data()
+void TestParseCommon::pieceFromName_data()
 {
     QTest::addColumn<QString>("text");
     QTest::addColumn<Piece>("piece");
@@ -194,23 +194,19 @@ void TestParseCommon::findPieceName_data()
     QTest::newRow("promoted-silver-alias") << QStringLiteral("全") << Piece::BlackPromotedSilver;
     QTest::newRow("promoted-knight-alias") << QStringLiteral("圭") << Piece::BlackPromotedKnight;
     QTest::newRow("promoted-lance-alias") << QStringLiteral("杏") << Piece::BlackPromotedLance;
-    // 指し手の行から読む（「成」「不成」「打」は駒ではない）
-    QTest::newRow("move-line") << QStringLiteral("７六歩(77)") << Piece::BlackPawn;
-    QTest::newRow("move-promotes") << QStringLiteral("２二角成(88)") << Piece::BlackBishop;
-    QTest::newRow("move-declines") << QStringLiteral("４三銀不成(54)") << Piece::BlackSilver;
-    QTest::newRow("move-same-promoted") << QStringLiteral("同　成桂(33)") << Piece::BlackPromotedKnight;
-    QTest::newRow("move-drop") << QStringLiteral("５五香打") << Piece::BlackLance;
+    // 「成」「不成」「打」や指し手の行は駒の名前ではない
+    QTest::newRow("move-line") << QStringLiteral("７六歩(77)") << Piece::None;
     QTest::newRow("empty") << QString() << Piece::None;
     QTest::newRow("ascii") << QStringLiteral("P") << Piece::None;
     QTest::newRow("digit") << QStringLiteral("1") << Piece::None;
     QTest::newRow("promote-only") << QStringLiteral("成") << Piece::None;
 }
 
-void TestParseCommon::findPieceName()
+void TestParseCommon::pieceFromName()
 {
     QFETCH(QString, text);
     QFETCH(Piece, piece);
-    QCOMPARE(ShogiNotation::findPieceName(text), piece);
+    QCOMPARE(ShogiNotation::pieceFromName(text), piece);
 }
 
 // ==== helper functions ====

@@ -305,10 +305,12 @@ bool KifuFileController::copyRecord(KifuFormat format)
     Messages m;
     switch (format) {
     case KifuFormat::Kif:
-    case KifuFormat::Sfen:
-    case KifuFormat::Bod:
         m = {tr("KIF形式の棋譜データがありません"), tr("KIF形式の棋譜をクリップボードにコピーしました")};
         break;
+    case KifuFormat::Sfen:
+    case KifuFormat::Bod:
+        // 局面だけの形式は棋譜としてはコピーしない（局面のコピーは別の操作）
+        return false;
     case KifuFormat::Ki2:
         m = {tr("KI2形式の棋譜データがありません"), tr("KI2形式の棋譜をクリップボードにコピーしました")};
         break;

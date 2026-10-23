@@ -8,6 +8,7 @@
 #include <QStringList>
 #include <optional>
 
+#include "recordline.h"
 #include "shogimove.h"
 #include "shogiposition.h"
 #include "usimove.h"
@@ -50,6 +51,19 @@ inline QList<ShogiMove> buildGameMoves(const QString& initialSfen, const QString
     QList<ShogiMove> moves;
     for (const auto& step : *steps) moves.append(step.first);
     return moves;
+}
+
+/// 局面列（[0] が開始局面、[i] が i 手目の後）と指し手列から手順を作る。
+/// 指し手が局面より多ければ、局面のある手までにする
+inline RecordLine recordLine(const QStringList& sfens, const QList<ShogiMove>& moves)
+{
+    RecordLine line;
+    line.startSfen = sfens.value(0);
+    const qsizetype count = qMin(moves.size(), sfens.size() - 1);
+    for (qsizetype i = 0; i < count; ++i)
+        line.entries << RecordEntry::played(moves.at(i), {}, sfens.at(i + 1));
+    line.currentPly = line.moveCount();
+    return line;
 }
 
 } // namespace TestReplay

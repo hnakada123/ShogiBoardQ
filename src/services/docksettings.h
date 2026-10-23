@@ -5,7 +5,6 @@
 /// @brief ドック配置設定の永続化
 ///
 /// ドックウィジェットの配置・表示状態・レイアウト管理に関する設定を提供します。
-/// 呼び出し元: dockregistry.cpp, docklayoutmanager.cpp
 
 #include <QString>
 #include <QStringList>

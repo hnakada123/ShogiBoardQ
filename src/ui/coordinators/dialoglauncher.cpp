@@ -5,7 +5,6 @@
 #include "piecesoundplayer.h"
 #include "piecesoundsettingsdialog.h"
 
-#include <QCoreApplication>
 #include <QDesktopServices>
 #include <QDockWidget>
 #include <QMessageBox>
@@ -63,9 +62,7 @@ void DialogLauncher::displayJishogiScoreDialog()
 {
     auto* sv = m_deps.shogiView;
     if (!sv || !sv->board()) {
-        QMessageBox::warning(m_deps.parentWidget,
-                             QCoreApplication::translate("MainWindow", "エラー"),
-                             QCoreApplication::translate("MainWindow", "盤面データがありません。"));
+        QMessageBox::warning(m_deps.parentWidget, tr("エラー"), tr("盤面データがありません。"));
         return;
     }
 

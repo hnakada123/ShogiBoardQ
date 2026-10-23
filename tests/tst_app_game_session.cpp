@@ -235,7 +235,6 @@ private slots:
         p.document->markSaved(QString());
         startFromDialog(window);
         ShogiClock* clock = p.clock;
-        QCOMPARE(p.match->clock(), clock);
         QVERIFY(clock->remainingMs(Turn::Black) > 0);
         QVERIFY(clock->isRunning());
         QCOMPARE(window.composer().activity().activity(), AppActivityState::Activity::DuringGame);
@@ -353,7 +352,7 @@ private slots:
         settings.sync();
     }
 
-    /// 中断した対局の状態は司令塔だけが持ち、「再開」の有効・無効も司令塔に問い合わせる
+    /// 中断した対局の状態は司令塔だけが持ち、「再開」の有効・無効も司令塔に問い合わせる（U6）
     void interruptedGameResumesFromCoordinatorState()
     {
         humanVsHumanSettings();
@@ -365,6 +364,9 @@ private slots:
         p.gameSession->breakOff();
         QVERIFY(p.match->canResumeInterruptedGame());
         QVERIFY(p.uiStatePolicy->isEnabled(UiStatePolicyManager::UiElement::GameResume));
+        // 再開を待つ間も記録は確定している（盤で変化を指せ、分岐を編集でき、評価値グラフも追う）
+        QVERIFY(!p.liveGameSession->isActive());
+        QCOMPARE(p.humanTurnPolicy->boardInput(), HumanTurnPolicy::BoardInput::Variation);
         const int interruptNode = p.match->interruptedGame()->terminalNodeId;
         QVERIFY(p.branchTree->nodeAt(interruptNode));
 

@@ -140,7 +140,7 @@ CsaClient::CsaClient(QObject* parent)
             this, &CsaClient::onSocketDisconnected);
     connect(m_socket, &QTcpSocket::errorOccurred,
             this, &CsaClient::onSocketError);
-    // USI待機の入れ子イベントループでも受信する。readyRead自体は再帰的に発火しない。
+    // 受信の処理（終局・切断の知らせを含む）はソケットの readyRead の外で行う。処理の中でソケットを閉じてもよい
     connect(m_socket, &QTcpSocket::readyRead,
             this, &CsaClient::onReadyRead, Qt::QueuedConnection);
 

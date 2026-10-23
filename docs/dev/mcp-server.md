@@ -202,7 +202,7 @@ shogiboardq-cli <command> [options]
 - オプションは引数の表 `CliCommandSpecs`（`src/cli/clicommandspecs.{h,cpp}`）に1か所で宣言する。引数名は MCP のツールの引数名と同じで、オプション名は引数名の `_` を `-` にしたもの（`max_positions` → `--max-positions`）。`CliCommands::run()` が表（`main.cpp` の (名前, 実装, 出力の種類) の1行と、同じ名前の `CliCommandSpecs`）からコマンドを選び、コマンドラインを検査済みの JSON（既定値を補ったもの）にしてからコマンドに渡す（使い方の誤りもコマンドの出力の種類で書く。表の片方にしか無いコマンドは `unknown_operation`）。真偽値はフラグ（指定すれば true。既定値が true のものは `--no-<名前>` で false）、文字列の配列（`--moves`）は空白区切りの1つの値。全部の引数を `--params-json '<JSON オブジェクト>'` で渡すこともでき（MCP サーバーはこれを使う）、コマンドラインのオプションが優先する。以前の名前は旧名（`ParamSpec::aliases`。JSON Schema には出さない）として受け付ける。指し手（`moves` の要素・`last_move`）は USI の形の正規表現（`ParamSpecs::usiMovePattern()`。JSON Schema の `pattern`）で検査する。知らないオプション・必須の欠け・範囲外・選択肢外は `invalid_argument`。各コマンドはこの JSON を読み、局面は `CliArgs::resolvePosition(params)`、エンジンは `CliArgs::resolveEngine(params)` で解決する。引数なし・`--help` のときの使い方の文（`CliCommandSpecs::usage()`）も同じ表から作る。範囲と既定値の一覧は `shogiboardq-cli describe` で確かめる。
 - エラーは `CliOutput::fail(ErrorKind, message)` が `{"ok":false,"error":{"code":語,"message":"..."}}` を標準出力に書いて終了コード 1。JSON Lines コマンドでは `CliOutput::failEvent(ErrorKind, message)` が `{"event":"error","code":語,"message":"..."}` を出してから終了する。`code` はエラーの分類（[エラーの分類](#エラーの分類)）の語で、CLI が使うのは `invalid_argument`（引数の誤り・読めない局面）、`unknown_operation`（知らないコマンド）、`engine_not_found`、`engine_error`、`parse_error`（`convert-kifu` の棋譜が読めない・開始局面が不正）、`not_found`（`convert-kifu` の入力ファイルがない）、`render_error`（盤面を描けない。局面・`--last-move` の誤りは `invalid_argument`）、出力ファイルの問題（`OutputPath::check()` が分類を返す。`kifu.save` と MCP の `paths.py` も同じ分類。相対パスとディレクトリを指すときは `invalid_argument`、既存ファイルで `--overwrite` なしは `file_exists`（`error.hint` に対処）、親ディレクトリがないときは `not_found`、書き込みの失敗は `file_error`）。
 - エンジンは設定ファイル（`SettingsCommon::settingsFilePath()`）の `[Engines]` に登録済みの名前だけを受け付ける（`EngineListSettings::loadEngines()`）。任意パスは受け付けない。エンジンのオプションは GUI と同じく設定ファイルの値を適用する（`UsiEngineSession::startAsync()` が `EngineProfileStore::launchOptions()` で読み、`UsiProtocolHandler::setLaunchOptions()` に渡す）。
-- 局面は `--sfen`（`startpos` も可）と `--moves`（USI 手を空白区切り）で指定し、`CliArgs::resolvePosition(params)` が `UsiPosition::fromMoves()` で探索させる局面（`CliPosition::position`）にする（読めない手・指せない手は `invalid_argument`）。エンジンには `UsiPosition::command()`（平手なら `position startpos moves ...`、それ以外は `position sfen ... moves ...`）を送る。
+- 局面は `--sfen`（`startpos` も可）と `--moves`（USI 手を空白区切り）で指定し、`CliArgs::resolvePosition(params)` が合法手だけを指して探索させる局面（`UsiPosition`。開始局面・手順・最後の局面もこの値から返す）にする（読めない手・指せない手は `invalid_argument`）。エンジンには `UsiPosition::command()`（平手なら `position startpos moves ...`、それ以外は `position sfen ... moves ...`）を送る。
 - `--output-path` の既存ファイルは `--overwrite` が無ければ拒否する。ディレクトリ制限は MCP サーバー側で行う（CLI 単体では行わない）。
 - 長時間コマンドは `SIGTERM`/`SIGINT` でも停止処理（エンジンへの `quit`）を行って終了する（Windows は stdin の `stop` のみ）。
 - JSON の出力と棋譜の形式は表示言語に依存しない。`render-board` だけは、GUI と同じ表示言語・棋譜表記・書体の設定（`ApplicationTranslations`・`ApplicationFonts`）を描画前に適用し、「手番」などの表示と段の表記（一〜九／a〜i）を GUI に合わせる。
@@ -331,7 +331,7 @@ mcp/
     cli_backend.py          CLI の探索と実行（同期コマンド／ジョブ用サブプロセス）
     jobs.py                 ジョブ管理（状態、イベント、停止、期限切れ）
     app_client.py           自動化 API クライアント（接続、再接続、アプリの自動起動。アプリのエラーの語は data.slug）
-    environment.py          shogiboardq-cli environment の結果（環境変数の組ごとに1回読む）と、コードから語を引く error_slug()
+    environment.py          shogiboardq-cli environment の結果（環境変数の組ごとに1回読む）
     paths.py                パス方針（絶対パス、許可ディレクトリ、上書き）とエンドポイント・既定のソケットの解決
     formatting.py           人が読むテキスト要約の生成
   tests/                    pytest（mcp SDK のクライアントで stdio 経由にツールを呼ぶ）

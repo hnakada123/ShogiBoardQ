@@ -13,21 +13,13 @@
 #include "errorkinds.h"
 #include "usiposition.h"
 
-/// 引数の sfen・moves から組み立てた局面
-struct CliPosition {
-    QString startSfen;        ///< 正規化した開始局面（startpos は平手 SFEN に展開）
-    QStringList moves;        ///< USI 手順
-    UsiPosition position;     ///< エンジンに探索させる局面
-    QString finalSfen;        ///< 手順適用後の SFEN
-};
-
 namespace CliArgs {
 
-/// 引数の "sfen"・"moves"（CliCommandSpecs::parse で読んだ値）から局面を解決する。失敗時は nullopt と error
-std::optional<CliPosition> resolvePosition(const QJsonObject& params, QString* error);
+/// 引数の "sfen"・"moves"（CliCommandSpecs::parse で読んだ値）から、エンジンに探索させる局面を解決する
+/// （開始局面は正規化した SFEN、手は合法手だけ）。失敗時は nullopt と error
+std::optional<UsiPosition> resolvePosition(const QJsonObject& params, QString* error);
 /// 引数の "engine" の登録エンジンを解決する。失敗時は nullopt と error
 std::optional<EngineEntry> resolveEngine(const QJsonObject& params, QString* error);
-
 
 } // namespace CliArgs
 
