@@ -304,6 +304,17 @@ async def test_joseki_add_edit_save_delete_and_merge(coverage_env, tmp_path):
         await ui.call("goto_ply", ply=0)
         await ui.call("show_dock", widget="JosekiWindowDock")
         assert (await ui.read("josekiTable"))["row_count"] == 1
+        # マージの登録は定跡を変えるだけで保存しない（ほかの編集と同じく「保存」で書き込む）
+        assert "3c3d" not in book.read_text()
+        await ui.click("保存", root="JosekiWindowDock")
+        for _ in range(100):
+            buttons = {w.get("text"): w["enabled"] for w in await ui.widgets(root="JosekiWindowDock")
+                       if w["class"] in ("QPushButton", "QToolButton")}
+            if buttons.get("保存") is False and buttons.get("マージ ▼"):
+                break
+            await asyncio.sleep(0.05)
+        else:
+            pytest.fail(f"Saving the merged moves did not finish: {buttons}")
         assert "3c3d" in book.read_text()
         await ui.click("新規", root="JosekiWindowDock")
         await ui.rows("josekiTable", 0)
