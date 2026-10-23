@@ -13,7 +13,7 @@ class QWidget;
  * @brief MainWindow 全体や任意ウィジェットのスクリーンショットを PNG 保存する
  *
  * デバッグビルドの F12（`DebugScreenshotShortcut`）と、自動化 API の `screenshot.capture` から使う。
- * 既定の保存先は一時ディレクトリ配下の `shogiboardq-screenshots`。
+ * 既定の保存先は利用者ごとのキャッシュの下の `screenshots`（`AppPaths::cacheDirectory()`）。
  */
 class ScreenshotService final {
 public:

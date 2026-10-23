@@ -68,6 +68,15 @@ class AppClient:
         seen: set[str] = set()
         return [c for c in candidates if not (c in seen or seen.add(c))]
 
+    @staticmethod
+    def pipe_address(name: str) -> str:
+        """The Windows named pipe for a QLocalServer name (Qt adds the \\\\.\\pipe\\ prefix to bare names).
+
+        Opening a bare name would open a file of that name in the current directory instead of the pipe.
+        """
+        prefix = "\\\\.\\pipe\\"
+        return name if name.startswith(prefix) else prefix + name
+
     async def _open(self, socket_path: str) -> tuple[asyncio.StreamReader, asyncio.StreamWriter]:
         # Responses can be as large as the application's message limit (kifu text included).
         limit = int(environment()["max_message_bytes"])
@@ -75,7 +84,8 @@ class AppClient:
             loop = asyncio.get_running_loop()
             reader = asyncio.StreamReader(limit=limit)
             protocol = asyncio.StreamReaderProtocol(reader)
-            transport, _ = await loop.create_pipe_connection(lambda: protocol, socket_path)  # type: ignore[attr-defined]
+            transport, _ = await loop.create_pipe_connection(  # type: ignore[attr-defined]
+                lambda: protocol, self.pipe_address(socket_path))
             writer = asyncio.StreamWriter(transport, protocol, reader, loop)
             return reader, writer
         return await asyncio.open_unix_connection(socket_path, limit=limit)

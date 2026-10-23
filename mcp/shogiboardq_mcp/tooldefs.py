@@ -204,7 +204,10 @@ PHASE1_TOOLS: list[types.Tool] = [
                            "output_path": {"description": "Write the converted record here (extension decides KIF/KI2 "
                                                           "Shift_JIS encoding). " + ABS_PATH_DESC}},
                  extra={"max_chars": {"type": "integer", "minimum": 1000, "maximum": 500_000, "default": 30000,
-                                      "description": "Maximum characters of converted text to return."}}),
+                                      "description": "Maximum characters of converted text to return."},
+                        "max_moves": {"type": "integer", "minimum": 1, "maximum": 100_000, "default": 2000,
+                                      "description": "Maximum main-line moves listed in usi_moves, moves and sfens "
+                                                     "(ply_count is always the full count)."}}),
          "oneOf": [{"required": ["input_path"]}, {"required": ["text"]}]},
         {
             "type": "object",
@@ -221,6 +224,7 @@ PHASE1_TOOLS: list[types.Tool] = [
                 "warnings": {"type": "array", "items": {"type": "string"}},
                 "text": {"type": "string"},
                 "truncated": {"type": "boolean"},
+                "moves_truncated": {"type": "boolean"},
                 "output_path": {"type": "string"},
             },
             "required": ["input_format", "output_format", "initial_sfen", "ply_count", "usi_moves"],
@@ -572,13 +576,15 @@ PHASE2_TOOLS: list[types.Tool] = [
     _tool(
         "get_clipboard", "Read clipboard",
         "Read the running application's clipboard text and image dimensions. Use after copy menu actions "
-        "to verify their actual output. Text is limited by max_chars; truncated indicates omitted text.",
+        "to verify their actual output. Text is limited by max_chars; truncated indicates omitted text. "
+        "The clipboard is shared with every other application, so this is a generic GUI tool.",
         _spec("method", "clipboard.get"),
         {"type": "object", "properties": {"text": {"type": "string"}, "truncated": {"type": "boolean"},
                                           "has_image": {"type": "boolean"}, "image_width": {"type": "integer"},
                                           "image_height": {"type": "integer"}},
          "required": ["text", "truncated", "has_image", "image_width", "image_height"]},
         read_only=True,
+        unrestricted=True,
     ),
     _tool(
         "edit_table_cell", "Edit table cell",

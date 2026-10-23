@@ -14,8 +14,6 @@ DebugScreenshotShortcut::DebugScreenshotShortcut(QMainWindow* mainWindow, QObjec
     : QObject(parent)
     , m_service(std::make_unique<ScreenshotService>(mainWindow))
 {
-    // 従来どおりデバッグ用の保存先を使う
-    m_service->setOutputDirectory(QStringLiteral("/tmp/shogiboardq-debug"));
     auto* shortcut = new QShortcut(Qt::Key_F12, mainWindow);
     connect(shortcut, &QShortcut::activated, this, &DebugScreenshotShortcut::onShortcutActivated);
 }

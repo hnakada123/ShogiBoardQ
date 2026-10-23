@@ -70,6 +70,12 @@ QImage BoardImageRenderer::render(const QString& sfen, const Options& options, F
     return image;
 }
 
+QStringList BoardImageRenderer::fileSuffixes()
+{
+    return {QStringLiteral("png"), QStringLiteral("jpg"), QStringLiteral("jpeg"), QStringLiteral("bmp"),
+            QStringLiteral("webp")};
+}
+
 bool BoardImageRenderer::renderToFile(const QString& sfen, const QString& outputPath, const Options& options,
                                       Failure* failure, QSize* outSize)
 {

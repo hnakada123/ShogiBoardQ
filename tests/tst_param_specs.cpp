@@ -201,6 +201,12 @@ private slots:
         QCOMPARE(OutputPath::check(dir.filePath(QStringLiteral("missing/game.kif")), false, QStringLiteral("--overwrite"))->kind,
                  ErrorKind::NotFound);
         QVERIFY(!OutputPath::check(dir.filePath(QStringLiteral("new.kif")), false, QStringLiteral("--overwrite")));
+        // シンボリックリンクには書かない。リンク先がまだ無くても、上書きを許しても（セキュリティ監査 S15）
+        const QString dangling = dir.filePath(QStringLiteral("link.kif"));
+        if (QFile::link(dir.filePath(QStringLiteral("other/created.kif")), dangling)) {
+            QCOMPARE(OutputPath::check(dangling, false, QStringLiteral("--overwrite"))->kind, ErrorKind::InvalidArgument);
+            QCOMPARE(OutputPath::check(dangling, true, QStringLiteral("--overwrite"))->kind, ErrorKind::InvalidArgument);
+        }
         // 分類つきの失敗は自動化 API にそのまま写す
         const AutomationError error(*exists);
         QCOMPARE(error.kind(), ErrorKind::FileExists);

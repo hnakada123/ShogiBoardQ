@@ -23,7 +23,12 @@ set -u
 REPO=$(cd "$(dirname "$0")/../.." && pwd)
 HOME_DIR=${SHOGIBOARDQ_HEADLESS_HOME:-${XDG_STATE_HOME:-$HOME/.local/state}/shogiboardq-mcp-headless}
 REAL_CONFIG=${XDG_CONFIG_HOME:-$HOME/.config}
-RUNTIME=/tmp/shogiboardq-mcp-headless-$(id -u)
+# 実行時のフォルダ（ソケット・Xvfb の記録）。XDG_RUNTIME_DIR が無ければ一時ディレクトリに自分の名前で作る
+if [ -n "${XDG_RUNTIME_DIR:-}" ] && [ -d "$XDG_RUNTIME_DIR" ]; then
+    RUNTIME=$XDG_RUNTIME_DIR/shogiboardq-mcp-headless
+else
+    RUNTIME=${TMPDIR:-/tmp}/shogiboardq-mcp-headless-$(id -u)
+fi
 
 log() { printf '%s\n' "shogiboardq-mcp-headless: $*" >&2; }
 
@@ -32,8 +37,13 @@ if ! command -v Xvfb >/dev/null 2>&1; then
     exit 1
 fi
 
-mkdir -p "$HOME_DIR/config/ShogiBoardQ" "$HOME_DIR/cache" "$HOME_DIR/data" "$HOME_DIR/state" "$RUNTIME"
-chmod 700 "$RUNTIME"
+mkdir -p "$HOME_DIR/config/ShogiBoardQ" "$HOME_DIR/cache" "$HOME_DIR/data" "$HOME_DIR/state"
+# 別の利用者が先に作ったフォルダ・リンクは使わない（ソケットを差し替えられる）
+mkdir -p -m 700 "$RUNTIME" 2>/dev/null
+if [ -L "$RUNTIME" ] || [ ! -d "$RUNTIME" ] || [ ! -O "$RUNTIME" ] || ! chmod 700 "$RUNTIME"; then
+    log "実行時のフォルダ $RUNTIME を自分専用にできません"
+    exit 1
+fi
 if [ ! -f "$HOME_DIR/config/ShogiBoardQ/ShogiBoardQ.ini" ] && [ -f "$REAL_CONFIG/ShogiBoardQ/ShogiBoardQ.ini" ]; then
     cp "$REAL_CONFIG/ShogiBoardQ/ShogiBoardQ.ini" "$HOME_DIR/config/ShogiBoardQ/ShogiBoardQ.ini"
 fi

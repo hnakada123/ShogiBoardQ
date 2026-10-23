@@ -11,6 +11,9 @@ std::optional<Failure> OutputPath::check(const QString& path, bool overwrite, co
     const QFileInfo info(path);
     if (path.isEmpty() || !info.isAbsolute())
         return Failure{ErrorKind::InvalidArgument, QStringLiteral("Output path must be absolute: %1").arg(path)};
+    // シンボリックリンクには書かない（リンク先がまだ無いと、上書きの許可なしにリンク先に作ってしまう。セキュリティ監査 S15）
+    if (info.isSymLink())
+        return Failure{ErrorKind::InvalidArgument, QStringLiteral("Output path is a symbolic link: %1").arg(path)};
     if (info.exists() && !info.isFile())
         return Failure{ErrorKind::InvalidArgument, QStringLiteral("Output path is not a regular file: %1").arg(path)};
     if (info.exists() && !overwrite) {

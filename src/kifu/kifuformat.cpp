@@ -81,6 +81,15 @@ bool isReadableFile(const QString& path)
     return readableSuffixes().contains(QFileInfo(path).suffix().toLower());
 }
 
+QStringList writableSuffixes()
+{
+    QStringList suffixes;
+    for (const auto& entry : kNames) {
+        if (entry.format != KifuFormat::Bod) suffixes.append(QString::fromLatin1(entry.name));
+    }
+    return suffixes;
+}
+
 KifuFormat detectFile(const QString& filePath)
 {
     if (const auto format = fromPath(filePath)) return *format == KifuFormat::Sfen ? KifuFormat::Usi : *format;

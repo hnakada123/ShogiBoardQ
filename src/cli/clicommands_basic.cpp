@@ -75,6 +75,10 @@ int CliCommands::environment(const QJsonObject& /*params*/)
     obj[QStringLiteral("settings_file")] = SettingsCommon::settingsFilePath();
     obj[QStringLiteral("max_message_bytes")] = static_cast<double>(AutomationServer::kMaxMessageBytes);
     obj[QStringLiteral("error_kinds")] = ErrorKinds::toJson();
+    // MCP サーバーが読み書きを許すファイルの拡張子
+    obj[QStringLiteral("kifu_read_suffixes")] = QJsonArray::fromStringList(KifuFormats::readableSuffixes());
+    obj[QStringLiteral("kifu_write_suffixes")] = QJsonArray::fromStringList(KifuFormats::writableSuffixes());
+    obj[QStringLiteral("image_write_suffixes")] = QJsonArray::fromStringList(BoardImageRenderer::fileSuffixes());
     CliOutput::printJson(obj);
     return 0;
 }

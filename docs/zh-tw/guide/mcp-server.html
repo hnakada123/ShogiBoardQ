@@ -140,7 +140,7 @@
                         <tr><td><strong>click_board_square</strong> / click_dialog_button</td><td>點擊棋盤和駒台，選擇題目、回答升變等對話方塊。座標會跟隨棋盤的翻轉和大小</td></tr>
                         <tr><td><strong>show_dock</strong> / click_widget / set_widget_value / click_table_cell</td><td>顯示面板，操作按鈕、設定、棋譜和讀筋表格，並在可編輯的輸入框中輸入文字</td></tr>
                         <tr><td><strong>edit_table_cell</strong></td><td>在對局資訊等可編輯的表格儲存格中輸入文字。也可以保持編輯狀態而不確認</td></tr>
-                        <tr><td><strong>get_clipboard</strong></td><td>取得剪貼簿的文字，以及是否有圖片和圖片尺寸</td></tr>
+                        <tr><td><strong>get_clipboard</strong></td><td>取得剪貼簿的文字，以及是否有圖片和圖片尺寸（剪貼簿與其他應用程式共用，因此只有在 <code>SHOGIBOARDQ_ALLOW_UNRESTRICTED_UI=1</code> 時才能使用）</td></tr>
                         <tr><td><strong>list_docks</strong> / configure_dock</td><td>確認面板狀態，分離、停駐到上下左右、合併為分頁、顯示或隱藏，以及拖曳標題列</td></tr>
                     </tbody>
                 </table>
@@ -209,11 +209,11 @@ pip install -e mcp</code></pre>
                     <tbody>
                         <tr><td><code>SHOGIBOARDQ_EXECUTABLE</code></td><td><code>ShogiBoardQ</code> 的路徑。應用程式操作工具在沒有執行中的應用程式時會加上 <code>--automation</code> 啟動它。也會自動找到同一目錄中的 <code>shogiboardq-cli</code></td></tr>
                         <tr><td><code>SHOGIBOARDQ_CLI</code></td><td><code>shogiboardq-cli</code> 的路徑（放在其他位置時）</td></tr>
-                        <tr><td><code>SHOGIBOARDQ_ALLOWED_DIRS</code></td><td>允許讀寫的目錄（Linux/macOS 用 <code>:</code> 分隔，Windows 用 <code>;</code> 分隔）。預設是家目錄</td></tr>
-                        <tr><td><code>SHOGIBOARDQ_OUTPUT_DIR</code></td><td>截圖等的預設輸出位置。預設是暫存目錄下的 <code>shogiboardq-mcp</code></td></tr>
+                        <tr><td><code>SHOGIBOARDQ_ALLOWED_DIRS</code></td><td>允許讀寫的目錄（Linux/macOS 用 <code>:</code> 分隔，Windows 用 <code>;</code> 分隔）。預設是家目錄。其下名稱以 <code>.</code> 開頭的檔案和資料夾不能使用（如需使用，請直接指定該資料夾）</td></tr>
+                        <tr><td><code>SHOGIBOARDQ_OUTPUT_DIR</code></td><td>截圖等的預設輸出位置。預設是每次啟動伺服器時在暫存目錄中建立、只有自己能開啟的資料夾（<code>shogiboardq-output-*</code>）</td></tr>
                         <tr><td><code>SHOGIBOARDQ_AUTOMATION_SOCKET</code></td><td>自動化通訊端的路徑（與應用程式的 <code>--automation-socket</code> 相同）</td></tr>
                         <tr><td><code>SHOGIBOARDQ_QUIT_APP_ON_EXIT</code></td><td>設為 <code>1</code> 時，伺服器結束時會關閉由伺服器啟動的應用程式（預設保留）</td></tr>
-                        <tr><td><code>SHOGIBOARDQ_ALLOW_UNRESTRICTED_UI</code></td><td>設為 <code>1</code> 時可以使用通用的 GUI 操作工具（trigger_action、click_widget、set_widget_value、click_table_cell、edit_table_cell、click_dialog_button、select_menu_action）。預設停用。透過 GUI 進行的檔案操作和引擎註冊不受目錄限制，因此相當於授予與應用程式相同的權限</td></tr>
+                        <tr><td><code>SHOGIBOARDQ_ALLOW_UNRESTRICTED_UI</code></td><td>設為 <code>1</code> 時可以使用通用的 GUI 操作工具（trigger_action、click_widget、set_widget_value、click_table_cell、edit_table_cell、click_dialog_button、select_menu_action），以及讀取與其他應用程式共用之剪貼簿的 get_clipboard。預設停用。透過 GUI 進行的檔案操作和引擎註冊不受目錄限制，因此相當於授予與應用程式相同的權限</td></tr>
                         <tr><td><code>PYTHONPATH</code></td><td>未執行 <code>pip install -e mcp</code> 時，指定儲存庫的 <code>mcp</code> 目錄</td></tr>
                     </tbody>
                 </table>
@@ -480,7 +480,8 @@ PYTHONPATH = "/path/to/ShogiBoardQ/mcp"</code></pre>
                     <li>通用的 GUI 操作（trigger_action、click_widget、set_widget_value 等）預設停用，只有在伺服器的環境變數中指定 <code>SHOGIBOARDQ_ALLOW_UNRESTRICTED_UI=1</code> 時才能使用。一般的棋譜讀寫請使用 load_kifu / save_kifu</li>
                     <li>網路對局的密碼在讀取時會被遮蓋；使用者正在顯示密碼時，會拒絕擷取畫面</li>
                     <li>檔案只接受絕對路徑，<code>SHOGIBOARDQ_ALLOWED_DIRS</code>（預設是家目錄）以外的路徑會被拒絕。沒有明確指定 <code>overwrite</code> 時不會覆寫既有檔案</li>
-                    <li>引擎只接受在 ShogiBoardQ 中註冊的名稱</li>
+                    <li>即使在允許的目錄下，也不會讀寫名稱以 <code>.</code> 開頭的檔案和資料夾（存放設定、認證資訊和啟動指令碼的位置）。只能讀寫棋譜（.kif、.kifu、.ki2、.ki2u、.csa、.jkf、.usi、.usen、.sfen，讀取時還包括 .json）和棋盤圖片（.png、.jpg、.jpeg、.bmp、.webp）檔案</li>
+                    <li>引擎只接受在 ShogiBoardQ 中註冊的名稱。即使啟用通用的 GUI 操作，也無法操作引擎註冊中的「新增」（會啟動所選的執行檔）</li>
                     <li>選單操作採用允許清單，不執行結束和覆寫儲存。可以切換語言和管理已命名的面板佈局</li>
                     <li>通常用戶端也會在執行工具前要求確認（取決於用戶端的設定）</li>
                 </ul>
