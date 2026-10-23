@@ -22,6 +22,7 @@
 #include "gamesettings.h"
 #include "settingscommon.h"
 #include "kifupresentation.h"
+#include "recordentry.h"
 #include "gamestartoptionsbuilder.h"
 #include "mainwindow.h"
 #include "mainwindowcomposer.h"
@@ -749,9 +750,8 @@ private slots:
         QCOMPARE(match->gameOverState().lastInfo.cause,MatchCoordinator::Cause::Timeout);
         auto* model = window->findChild<RecordPane*>()->kifuView()->model();
         QCOMPARE(model->rowCount(), plies + 2);
-        const QString terminal = (plies % 2 == 0 ? QStringLiteral("▲") : QStringLiteral("△"))
-            + QStringLiteral("時間切れ");
-        QVERIFY(model->index(plies + 1, 0).data().toString().endsWith(KifuPresentation::status(terminal)));
+        const RecordEntry terminal = RecordEntry::ending(TerminalType::Timeout, plies % 2 == 0 ? Turn::Black : Turn::White);
+        QVERIFY(model->index(plies + 1, 0).data().toString().endsWith(KifuPresentation::entryLabel(terminal, QString())));
         if (language == "en") QVERIFY(model->index(plies + 1, 0).data().toString().endsWith("Time loss"));
         QVERIFY(window->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/timeout-%1-%2.png")
             .arg(language).arg(plies)));

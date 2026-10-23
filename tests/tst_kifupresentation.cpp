@@ -1,6 +1,7 @@
 #include <QtTest>
 #include <QTranslator>
 #include "kifupresentation.h"
+#include "recordentry.h"
 #include "sfenreplay.h"
 #include "sfenutils.h"
 #include "test_replay.h"
@@ -63,12 +64,18 @@ private slots:
         QString whiteStart = hirate;
         whiteStart.replace(" b ", " w ");
         QCOMPARE(pv(whiteStart, "3c3d 7g7f", "△３四歩(33)▲７六歩(77)"), QStringLiteral("△P-3d ▲P-7f"));
-        QCOMPARE(label("   1 ▲７六歩(77)+", hirate, "7g7f"), QStringLiteral("   1 ▲P-7f [+]"));
+        QCOMPARE(numberedLabel(1, moveLabel("▲７六歩(77)", hirate, "7g7f"), true), QStringLiteral("   1 ▲P-7f [+]"));
+        // 棋譜の1行は値から作る（手・終局の種類・指した側。表示の文字列を読み直さない）
         const auto moves = TestReplay::buildGameMoves(hirate, {"7g7f", "3c3d", "8h2b+"});
-        QCOMPARE(usiMove(moves.at(2)), QStringLiteral("8h2b+"));
+        const RecordEntry first = RecordEntry::played(moves.at(0), QStringLiteral("▲７六歩(77)"), QString());
+        QCOMPARE(entryLabel(first, hirate), QStringLiteral("▲P-7f"));
+        QCOMPARE(entryLabel(RecordEntry::ending(TerminalType::Resign, Turn::White), hirate), QStringLiteral("△投了"));
         configure("zh_CN", "auto", false);
         const QString canonical = QStringLiteral("▲同　飛成(28)");
-        QCOMPARE(label(canonical, hirate, "2h2b+"), canonical);
+        QCOMPARE(moveLabel(canonical, hirate, "2h2b+"), canonical);
+        QCOMPARE(entryLabel(first, hirate), QStringLiteral("▲７六歩(77)"));
+        // 日本語表記で棋譜の表記が無ければ指し手から作る
+        QCOMPARE(entryLabel(RecordEntry::played(moves.at(0), QString(), QString()), hirate), QStringLiteral("▲７六歩(77)"));
     }
 
     void metadataPreservesUserContent()
@@ -82,7 +89,6 @@ private slots:
         QCOMPARE(infoValue("持ち時間", "各10分"), QStringLiteral("各10分"));
         QCOMPARE(infoValue("持ち時間", "下手 01:00+2 / 上手 05:00+10秒加算"),
                  QStringLiteral("下手 01:00+2 / 上手 05:00+10秒加算"));
-        QCOMPARE(status("投了についてのコメント"), QStringLiteral("投了についてのコメント"));
     }
 };
 QTEST_GUILESS_MAIN(TestKifuPresentation)

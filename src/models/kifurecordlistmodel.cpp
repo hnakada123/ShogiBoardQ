@@ -43,10 +43,8 @@ bool KifuRecordListModel::isBranchRow(const KifuBranchNode* node) const
 QString KifuRecordListModel::moveText(const KifuBranchNode* node, bool fullOrigin) const
 {
     if (!node->parent()) return tr("=== 開始局面 ===");
-    const QString usi = node->isTerminal() ? QString() : KifuPresentation::usiMove(node->move());
-    return QString::number(node->ply()).rightJustified(4, QLatin1Char(' ')) + QLatin1Char(' ')
-        + KifuPresentation::moveLabel(node->displayText(), node->parent()->sfen(), usi, fullOrigin)
-        + (isBranchRow(node) ? KifuPresentation::branchMark() : QString());
+    return KifuPresentation::numberedLabel(
+        node->ply(), KifuPresentation::entryLabel(node->record(), node->parent()->sfen(), fullOrigin), isBranchRow(node));
 }
 
 QVariant KifuRecordListModel::data(const QModelIndex& index, int role) const

@@ -163,6 +163,23 @@ private slots:
         QVERIFY2(timed.contains(QStringLiteral("$TIME:600+10+0")), qPrintable(timed));
     }
 
+    /// KI2 の書き出しで、局面の上で指せない手（読み込んだ棋譜の反則手の後など）は、指し手の値から
+    /// 移動元を書かない表記にする（棋譜の表記の文字列を削って作らない）
+    void ki2UnplayableMoveUsesMoveValue()
+    {
+        KifuBranchTree tree;
+        tree.setRootSfen(kHirateSfen);
+        KifuBranchNode* first = addTestMove(tree, tree.root(), QStringLiteral("7g7f"), QStringLiteral("▲７六歩(77)"));
+        // 5五に後手の駒はない。表記の文字列は使わないことを確かめるため、指し手と違う文字列にしておく
+        const ShogiMove ghost(*UsiMove::parse(u"5e5f"), Piece::WhitePawn);
+        TestTree::addMove(tree, first, ghost, QStringLiteral("（読めない手）"), first->sfen());
+        KifuExportMetadata context;
+        context.startSfen = kHirateSfen;
+        const QString text = KifuExport::lines(tree, context, KifuFormat::Ki2).join(QLatin1Char('\n'));
+        QVERIFY2(text.contains(QStringLiteral("△５六歩")), qPrintable(text));
+        QVERIFY2(!text.contains(QStringLiteral("(55)")) && !text.contains(QStringLiteral("読めない")), qPrintable(text));
+    }
+
     /// KI2 では、盤上の同じ駒もその地点へ動ける場合だけ「打」を付ける（日本将棋連盟の棋譜表記）
     void ki2DropMarkerOnlyWhenAmbiguous()
     {

@@ -8,6 +8,7 @@
 #include <QMetaType>
 #include <QObject>
 #include <QPointer>
+#include <QSet>
 #include <QStringList>
 
 #include "recordline.h"
@@ -29,6 +30,7 @@ struct AnalysisRequest {
     QString enginePath;
     QString engineName;
     int lineIndex = 0;
+    QSet<int> branchPlies;  ///< 分岐がある手の手数（結果の表で分岐の印を付ける）
 };
 
 /// 1局面の解析の結果（bestmove の時点で1回だけ作る）

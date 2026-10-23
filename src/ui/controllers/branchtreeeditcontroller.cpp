@@ -122,9 +122,7 @@ bool BranchTreeEditController::confirmDeletion(KifuBranchNode* node) const
     const int count = KifuBranchTree::subtreeSize(node);
     // 手は分岐ツリーと同じ表記（英語式の表記・終局の訳）で示す
     const KifuBranchNode* parent = node->parent();
-    const QString moveText = KifuPresentation::label(
-        node->displayText(), parent ? parent->sfen() : QString(),
-        node->isTerminal() ? QString() : KifuPresentation::usiMove(node->move()));
+    const QString moveText = KifuPresentation::entryLabel(node->record(), parent ? parent->sfen() : QString());
     // 「Yes」は KDE で訳されないため、操作名のボタンで尋ねる
     return DialogUtils::confirmAction(m_deps.parentWidget, tr("手順の削除"),
                                       tr("「%1」以降の %2 手を削除します。\nこの操作は取り消せません。")

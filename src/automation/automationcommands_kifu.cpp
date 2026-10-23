@@ -164,7 +164,7 @@ void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, 
                     if (emitted >= maxMoves) { truncated = true; break; }
                     QJsonObject move;
                     move[QStringLiteral("ply")] = node->ply();
-                    move[QStringLiteral("text")] = node->displayText();
+                    move[QStringLiteral("text")] = node->ply() == 0 ? QStringLiteral("開始局面") : node->displayText();
                     if (node->isActualMove()) move[QStringLiteral("usi")] = node->move().move.toString();
                     if (!node->timeText().isEmpty()) move[QStringLiteral("time")] = node->timeText();
                     if (!node->comment().isEmpty()) move[QStringLiteral("comment")] = node->comment();

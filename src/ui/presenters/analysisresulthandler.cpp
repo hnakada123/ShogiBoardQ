@@ -17,16 +17,6 @@
 #include "pvboarddialog.h"
 
 namespace {
-QString resolveMoveLabel(const AnalysisResultHandler::Refs& refs, int ply)
-{
-    if (ply == 0) return QObject::tr("=== 開始局面 ===");
-    if (refs.line && ply > 0 && ply <= refs.line->moveCount()) {
-        const QString label = refs.line->displayText(ply);
-        if (!label.isEmpty()) return label;
-    }
-    return QStringLiteral("ply %1").arg(ply);
-}
-
 QString resolveLastUsiMove(const AnalysisResultHandler::Refs& refs, int ply)
 {
     return refs.line ? refs.line->usiMove(ply).toString() : QString();
@@ -46,9 +36,7 @@ UsiScore AnalysisResultHandler::append(const PlyAnalysis& result)
 
     const UsiScore score = result.book ? UsiScore{} : result.score;
     const QString usiPv = result.book ? QString() : result.usiPv.join(QLatin1Char(' '));
-    const QString pv = result.book ? tr("（定跡）") : result.pvKanji;
-
-    const QString moveLabel = resolveMoveLabel(m_refs, ply);
+    const QString pv = result.book ? QString() : result.pvKanji;
 
     const QString position = m_refs.line && ply <= m_refs.line->moveCount()
         ? SfenUtils::normalizePositionLikeSfen(m_refs.line->sfenAt(ply)) : QString();
@@ -64,11 +52,13 @@ UsiScore AnalysisResultHandler::append(const PlyAnalysis& result)
         m_previousCp.reset();
     }
 
-    qCDebug(lcAnalysis).noquote() << "append: ply=" << ply << "moveLabel=" << moveLabel << "pv=" << pv.left(30);
+    qCDebug(lcAnalysis).noquote() << "append: ply=" << ply << "book=" << result.book << "pv=" << pv.left(30);
 
     KifuAnalysisRow resultRow;
     resultRow.ply = ply;
-    resultRow.move = moveLabel;
+    if (m_refs.line) resultRow.move = m_refs.line->displayText(ply);
+    resultRow.branch = m_refs.branchPlies.contains(ply);
+    resultRow.book = result.book;
     resultRow.evaluation = blackScore;
     resultRow.evaluationDifference = difference;
     resultRow.pv = pv;
@@ -125,7 +115,8 @@ void AnalysisResultHandler::showPvBoardDialog(int row)
         return;
     }
 
-    const QString kanjiPv = item->pv;
+    // 定跡の行は読み筋が無いので、局面だけを出す
+    const QString kanjiPv = item->book ? KifuPresentation::bookLabel() : item->pv;
     if (kanjiPv.isEmpty()) {
         qCDebug(lcAnalysis).noquote() << "showPvBoardDialog: kanjiPv is empty";
         return;

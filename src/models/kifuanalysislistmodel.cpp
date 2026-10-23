@@ -55,9 +55,13 @@ QString KifuAnalysisListModel::display(const Entry& entry, DisplayKind kind, boo
     if (text.isNull()) {
         const KifuAnalysisRow& r = entry.row;
         switch (kind) {
-        case MoveDisplay: text = KifuPresentation::label(r.move, r.beforeSfen, r.lastUsiMove, full); break;
-        case CandidateDisplay: text = KifuPresentation::label(r.candidateMove, r.candidateSfen, r.candidateUsi, full); break;
-        case PvDisplay: text = KifuPresentation::pv(r.sfen, r.usiPv, r.pv, full); break;
+        case MoveDisplay:
+            text = r.ply == 0 ? tr("=== 開始局面 ===")
+                              : KifuPresentation::numberedLabel(
+                                    r.ply, KifuPresentation::moveLabel(r.move, r.beforeSfen, r.lastUsiMove, full), r.branch);
+            break;
+        case CandidateDisplay: text = KifuPresentation::moveLabel(r.candidateMove, r.candidateSfen, r.candidateUsi, full); break;
+        case PvDisplay: text = r.book ? KifuPresentation::bookLabel() : KifuPresentation::pv(r.sfen, r.usiPv, r.pv, full); break;
         case DisplayKindCount: break;
         }
         // 空の表示も作ったことを覚える

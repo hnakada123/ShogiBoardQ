@@ -17,7 +17,8 @@
  */
 struct RecordEntry {
     ShogiMove move;
-    QString displayText;    ///< 棋譜欄の表記（"▲７六歩(77)"、"△投了"）
+    QString displayText;    ///< 棋譜の表記（KIF の指し手 "▲７六歩(77)"、終局 "△投了"）。画面の表記は
+                            ///< KifuPresentation::entryLabel が表記の設定に合わせて作り、ここには書き戻さない
     QString sfen;           ///< この行の後の局面（終局の行は直前の局面）
     RecordTime time;
     TerminalType terminal = TerminalType::None;

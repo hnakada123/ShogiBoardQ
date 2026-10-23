@@ -23,7 +23,6 @@
 #include <QMouseEvent>
 #include <QNativeGestureEvent>
 #include <QPainterPath>
-#include <QRegularExpression>
 #include <QScrollBar>
 #include <QSet>
 #include <QTimer>
@@ -41,67 +40,41 @@ constexpr qreal kStepY  = 56.0;
 constexpr qreal kHeaderHeight = 22.0;   ///< 手数見出しの帯の高さ
 constexpr int kZoomStep = 10;
 
-/// 分岐ツリーの手に表示する表記（KifuPresentation の表記設定に従う）
-struct NodeText {
-    QString canonical;   ///< 手番記号・手数を除いた棋譜の表記
-    QString beforeSfen;
-    QString usiMove;
-};
-
-NodeText nodeText(const KifuBranchNode* node)
-{
-    static const QRegularExpression kDropHeadNumber(QStringLiteral(R"(^\s*[0-9０-９]+\s*)"));
-    NodeText text;
-    text.canonical = node->displayText();
-    text.canonical.replace(kDropHeadNumber, QString());
-    text.canonical = text.canonical.trimmed();
-    if (text.canonical.endsWith(QLatin1Char('+'))) {
-        text.canonical.chop(1);
-        text.canonical = text.canonical.trimmed();
-    }
-    text.beforeSfen = node->parent() ? node->parent()->sfen() : QString();
-    text.usiMove = node->isTerminal() ? QString() : KifuPresentation::usiMove(node->move());
-    return text;
-}
-
 QFont baseFont(int pointSize)
 {
     return QFont(QApplication::font().family(), pointSize);
 }
 
 /// 手の表記に使う書体（日本語表記の指し手は日本語の書体）
-QFont labelFont(const NodeText& text)
+QFont labelFont(const KifuBranchNode* node)
 {
     QFont font = baseFont(10);
-    if (!text.usiMove.isEmpty() && KifuPresentation::options().notation == KifuPresentation::Notation::Japanese)
+    if (node->isActualMove() && KifuPresentation::options().notation == KifuPresentation::Notation::Japanese)
         font = ApplicationFonts::japaneseFont(font);
     return font;
 }
 
-QString labelOf(const NodeText& text)
+/// 分岐ツリーの手の表記（KifuPresentation の表記設定に従う）
+QString labelOf(const KifuBranchNode* node, bool fullOrigin = false)
 {
-    return KifuPresentation::label(text.canonical, text.beforeSfen, text.usiMove);
+    return KifuPresentation::entryLabel(node->record(), node->parent() ? node->parent()->sfen() : QString(), fullOrigin);
 }
 
 /// 列の間隔に必要な幅（表記の幅＋余白）
 qreal requiredColumnSpacing(const KifuBranchNode* node)
 {
-    const NodeText text = nodeText(node);
-    return QFontMetrics(labelFont(text)).horizontalAdvance(labelOf(text)) + 48;
+    return QFontMetrics(labelFont(node)).horizontalAdvance(labelOf(node)) + 48;
 }
 
-/// 手の中身（先手の手は青、後手の手は橙）
+/// 手の中身（先手の手は青、後手の手は橙。終局の行は終局を記録した側）
 BranchNodeItem::Content moveContent(const KifuBranchNode* node)
 {
-    const NodeText text = nodeText(node);
-    const bool black = text.beforeSfen.isEmpty() ? (node->ply() % 2) == 1
-        : text.beforeSfen.section(QLatin1Char(' '), 1, 1) == QStringLiteral("b");
     BranchNodeItem::Content content;
-    content.label = labelOf(text);
+    content.label = labelOf(node);
     // 手の表記（読み上げ形式）
-    content.tooltip = KifuPresentation::label(text.canonical, text.beforeSfen, text.usiMove, true).toHtmlEscaped();
-    content.font = labelFont(text);
-    content.fill = black ? QColor(196, 230, 255) : QColor(255, 223, 196);
+    content.tooltip = labelOf(node, true).toHtmlEscaped();
+    content.font = labelFont(node);
+    content.fill = node->record().mover == Turn::Black ? QColor(196, 230, 255) : QColor(255, 223, 196);
     return content;
 }
 

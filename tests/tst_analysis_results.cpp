@@ -11,6 +11,9 @@
 #include "analysisresulthandler.h"
 #include "kifuanalysislistmodel.h"
 #include "kifuanalysisrow.h"
+#include "kifupresentation.h"
+#include "sfenutils.h"
+#include "test_replay.h"
 #include "usilineparser.h"
 
 namespace {
@@ -149,6 +152,33 @@ private slots:
         QCOMPARE(model.row(1)->ply, 3);
     }
 
+    /// 手の列は棋譜の表記（RecordEntry::displayText）から表示のたびに作り、手数と分岐の印を付ける。
+    /// 英語表記で解析した後に日本語表記へ切り替えても日本語で出す
+    void moveColumnFollowsNotation()
+    {
+        const QString hirate = SfenUtils::hirateSfen();
+        const QStringList moves{QStringLiteral("7g7f")};
+        RecordLine line = RecordLine::fromPositions(TestReplay::buildSfenRecord(hirate, moves, false),
+                                                    TestReplay::buildGameMoves(hirate, moves));
+        line.entries[0].displayText = QStringLiteral("▲７六歩(77)");
+        KifuPresentation::configure(QStringLiteral("en"), QStringLiteral("western"), false);
+        KifuAnalysisListModel model;
+        AnalysisResultHandler::Refs refs;
+        refs.analysisModel = &model;
+        refs.line = &line;
+        refs.branchPlies = {1};
+        AnalysisResultHandler handler(refs);
+        handler.append(result(0, UsiScore::cp(30), {QStringLiteral("7g7f")}));
+        handler.append(result(1, UsiScore::cp(10), {QStringLiteral("3c3d")}));
+        const auto cell = [&model](int row) { return model.index(row, KifuAnalysisListModel::MoveColumn).data().toString(); };
+        QCOMPARE(model.row(1)->move, QStringLiteral("▲７六歩(77)"));
+        QCOMPARE(cell(1), QStringLiteral("   1 ▲P-7f [+]"));
+        KifuPresentation::configure(QStringLiteral("ja_JP"), QStringLiteral("japanese"), false);
+        QCOMPARE(cell(1), QStringLiteral("   1 ▲７六歩(77)+"));
+        QCOMPARE(cell(0), QStringLiteral("=== 開始局面 ==="));
+        KifuPresentation::configure(QStringLiteral("ja_JP"), QStringLiteral("auto"), false);
+    }
+
     void bookResultHasNoScoreOrPv()
     {
         KifuAnalysisListModel model;
@@ -159,7 +189,10 @@ private slots:
         book.ply = 1;
         book.book = true;
         QVERIFY(handler.append(book).isNone());
-        QCOMPARE(model.row(0)->pv, QStringLiteral("（定跡）"));
+        QVERIFY(model.row(0)->book);
+        QCOMPARE(model.row(0)->pv, QString());
+        // 定跡の印は表示するときに表示言語で作る（行には書かない）
+        QCOMPARE(model.index(0, KifuAnalysisListModel::PvColumn).data().toString(), QStringLiteral("（定跡）"));
         QCOMPARE(model.row(0)->usiPv, QString());
         QCOMPARE(model.row(0)->depth, -1);
     }

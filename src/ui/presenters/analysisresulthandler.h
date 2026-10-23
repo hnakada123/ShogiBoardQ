@@ -29,6 +29,7 @@ public:
     struct Refs {
         KifuAnalysisListModel* analysisModel = nullptr;  ///< 解析結果モデル（非所有）
         const RecordLine* line = nullptr;               ///< 実行が所有する解析対象
+        QSet<int> branchPlies;                           ///< 分岐がある手の手数（表で分岐の印を付ける）
         AnalysisResultsPanel* presenter = nullptr;   ///< 結果表示プレゼンタ（非所有）
         QString blackPlayerName;                         ///< 先手名
         QString whitePlayerName;                         ///< 後手名
