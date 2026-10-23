@@ -10,6 +10,7 @@
 #include "applicationtranslations.h"
 #include "dialogfontscale.h"
 #include "engineprofilestore.h"
+#include "networksettings.h"
 #include "settingsresetcontroller.h"
 
 #include <QApplication>
@@ -69,6 +70,8 @@ int main(int argc, char *argv[])
     a.setApplicationVersion(QStringLiteral(APP_VERSION));
     // 以前の版の設定ファイルにあるエンジンごとの設定を、今の保存先へ移す
     EngineProfileStore::migrateLegacyOptionGroups();
+    // 以前の版が平文で保存した通信対局のパスワードを、ダイアログを開くのを待たずに消す
+    NetworkSettings::csaLegacyPassword.remove();
     // 2倍表示の大きな盤でも駒画像がキャッシュに収まるようにする。
     ApplicationRendering::reservePixmapCacheForPieces();
 

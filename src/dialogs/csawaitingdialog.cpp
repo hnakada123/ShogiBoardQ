@@ -85,6 +85,8 @@ void CsaWaitingDialog::setupUi()
     // 詳細メッセージラベル
     m_detailLabel = new QLabel(this);
     m_detailLabel->setObjectName(QStringLiteral("csaWaitingDetail"));
+    // サーバーから受け取った行をそのまま出すので、HTML として解釈させない（<img> でローカルファイルを読ませない）
+    m_detailLabel->setTextFormat(Qt::PlainText);
     m_detailLabel->setAlignment(Qt::AlignCenter);
     m_detailLabel->setWordWrap(true);
     m_detailLabel->setStyleSheet(QStringLiteral("color: gray;"));

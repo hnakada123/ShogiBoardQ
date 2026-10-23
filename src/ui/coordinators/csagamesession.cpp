@@ -143,14 +143,15 @@ void CsaGameSession::onEngineScoreUpdated(const UsiScore& score, int ply)
 void CsaGameSession::showGameEndDialog(const QString& title, const QString& message)
 {
     // 対局を続けるときは、結果の表示が次の対局の開始を止めないようにする
+    auto* box = new QMessageBox(QMessageBox::Information, title, message, QMessageBox::Ok, m_deps.parentWidget);
+    box->setAttribute(Qt::WA_DeleteOnClose);
+    box->setTextFormat(Qt::PlainText);
     if (m_deps.coordinator->moreGamesWanted()) {
-        auto* box = new QMessageBox(QMessageBox::Information, title, message, QMessageBox::Ok, m_deps.parentWidget);
-        box->setAttribute(Qt::WA_DeleteOnClose);
         box->setModal(false);
         box->show();
         return;
     }
-    QMessageBox::information(m_deps.parentWidget, title, message);
+    box->exec();
 }
 
 void CsaGameSession::showStatus(const QString& message, int timeoutMs) const

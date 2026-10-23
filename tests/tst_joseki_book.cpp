@@ -1038,11 +1038,19 @@ void TestJosekiBook::tableModel_showsDerivedReplyInGray()
 
     QCOMPARE(next(0, Qt::DisplayRole).toString(), QStringLiteral("（△３四歩(33)）"));
     QCOMPARE(next(0, Qt::ForegroundRole).value<QColor>(), QColor(Qt::darkGray));
-    QVERIFY(next(0, Qt::ToolTipRole).toString().endsWith(QStringLiteral("\n3c3d")));
+    QVERIFY(next(0, Qt::ToolTipRole).toString().endsWith(QStringLiteral("<br/>3c3d</qt>")));
 
     QCOMPARE(next(1, Qt::DisplayRole).toString(), QStringLiteral("△８四歩(83)"));
     QVERIFY(!next(1, Qt::ForegroundRole).isValid());
-    QCOMPARE(next(1, Qt::ToolTipRole).toString(), QStringLiteral("8c8d"));
+    QCOMPARE(next(1, Qt::ToolTipRole).toString(), QStringLiteral("<qt>8c8d</qt>"));
+
+    // 定跡ファイルのコメントは HTML として描かせない（セキュリティ監査 S12）
+    JosekiMove commented = makeMove(QStringLiteral("6g6f"));
+    commented.comment = QStringLiteral("<img src=\"/dev/zero\">注意");
+    JosekiTableModel commentModel;
+    commentModel.setMoves(hirate, {commented}, true);
+    QCOMPARE(commentModel.index(0, JosekiTableModel::Comment).data(Qt::ToolTipRole).toString(),
+             QStringLiteral("<qt>&lt;img src=&quot;/dev/zero&quot;&gt;注意</qt>"));
 
     QCOMPARE(next(2, Qt::DisplayRole).toString(), QStringLiteral("なし"));
     QVERIFY(!next(2, Qt::ForegroundRole).isValid());
