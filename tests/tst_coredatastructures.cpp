@@ -1,4 +1,5 @@
 #include <QtTest>
+#include "positioneditrules.h"
 #include "position_test_helper.h"
 #include <QSignalSpy>
 
@@ -458,27 +459,27 @@ private slots:
         const int states = rank == 5 || rank == 8 ? 2 : 4;
         // 全駒種・先後・成駒を駒箱へ戻すと、生駒・先手向きに統一される。
         for (int state = 0; state < states; ++state) {
-            QVERIFY(gc.editPosition({12, rank}, {5, 5}));
+            QVERIFY(PositionEditRules::apply(*gc.board(), {12, rank}, {5, 5}));
             QCOMPARE(board->pieceCharacter(5, 5), piece);
             QCOMPARE(board->pieceBoxCount(piece), initialBox.value(piece) - 1);
             for (int step = 0; step < state; ++step)
-                gc.switchPiecePromotionStatusOnRightClick(5, 5);
+                gc.board()->promoteOrDemotePiece(5, 5);
             const Piece expected = state < 2 ? piece : toWhite(piece);
             if (states == 4)
                 QCOMPARE(board->pieceCharacter(5, 5), state % 2 ? promote(expected) : expected);
             else
                 QCOMPARE(board->pieceCharacter(5, 5), state ? toWhite(piece) : piece);
-            QVERIFY(gc.editPosition({5, 5}, {12, rank}));
+            QVERIFY(PositionEditRules::apply(*gc.board(), {5, 5}, {12, rank}));
             QCOMPARE(board->pieceBox(), initialBox);
             QCOMPARE(board->position().handsSfen(), QStringLiteral("-"));
         }
         // 駒箱と両駒台との往復。王・玉の持ち駒化は引き続き拒否する。
         for (int stand : {10, 11}) {
             const int standRank = stand == 10 ? rank : 10 - rank;
-            QCOMPARE(gc.editPosition({12, rank}, {stand, standRank}), rank != 8);
+            QCOMPARE(PositionEditRules::apply(*gc.board(), {12, rank}, {stand, standRank}), rank != 8);
             if (rank != 8) {
                 QCOMPARE(board->pieceStandCount(stand == 10 ? piece : toWhite(piece)), 1);
-                QVERIFY(gc.editPosition({stand, standRank}, {12, rank}));
+                QVERIFY(PositionEditRules::apply(*gc.board(), {stand, standRank}, {12, rank}));
             }
             QCOMPARE(board->pieceBox(), initialBox);
         }
@@ -496,21 +497,21 @@ private slots:
         auto* board = gc.board();
         const auto initialBox = board->pieceBox();
         const Piece piece = toWhite(board->pieceCharacter(12, rank));
-        QVERIFY(gc.editPosition({12, rank}, {5, 1}, Turn::White));
+        QVERIFY(PositionEditRules::apply(*gc.board(), {12, rank}, {5, 1}, Turn::White));
         QCOMPARE(board->pieceCharacter(5, 1), piece);
         QCOMPARE(board->pieceBoxCount(piece), initialBox.value(toBlack(piece)) - 1);
-        QVERIFY(gc.editPosition({5, 1}, {12, rank}, Turn::White));
+        QVERIFY(PositionEditRules::apply(*gc.board(), {5, 1}, {12, rank}, Turn::White));
         QCOMPARE(board->pieceBox(), initialBox);
         // 行き所のない駒の自動成りも、選択した先後で判定する。
-        QVERIFY(gc.editPosition({12, rank}, {5, 9}, Turn::White));
+        QVERIFY(PositionEditRules::apply(*gc.board(), {12, rank}, {5, 9}, Turn::White));
         QCOMPARE(board->pieceCharacter(5, 9), rank <= 3 ? promote(piece) : piece);
-        QVERIFY(gc.editPosition({5, 9}, {12, rank}, Turn::White));
+        QVERIFY(PositionEditRules::apply(*gc.board(), {5, 9}, {12, rank}, Turn::White));
         for (int stand : {10, 11}) {
             const int standRank = stand == 10 ? rank : 10 - rank;
-            QCOMPARE(gc.editPosition({12, rank}, {stand, standRank}, Turn::White), rank != 8);
+            QCOMPARE(PositionEditRules::apply(*gc.board(), {12, rank}, {stand, standRank}, Turn::White), rank != 8);
             if (rank != 8) {
                 QCOMPARE(board->pieceStandCount(stand == 10 ? toBlack(piece) : piece), 1);
-                QVERIFY(gc.editPosition({stand, standRank}, {12, rank}, Turn::White));
+                QVERIFY(PositionEditRules::apply(*gc.board(), {stand, standRank}, {12, rank}, Turn::White));
             }
             QCOMPARE(board->pieceBox(), initialBox);
         }
@@ -523,10 +524,10 @@ private slots:
         ShogiGameController gc;
         QString empty = QStringLiteral("9/9/9/9/9/9/9/9/9 w - 1");
         gc.newGame(empty);
-        QVERIFY(gc.editPosition({12, 1}, {5, 7}, Turn::Black));
-        QVERIFY(!gc.editPosition({12, 1}, {5, 3}, Turn::Black));
-        QVERIFY(gc.editPosition({12, 1}, {5, 3}, Turn::White));
-        QVERIFY(!gc.editPosition({12, 1}, {5, 5}, Turn::White));
+        QVERIFY(PositionEditRules::apply(*gc.board(), {12, 1}, {5, 7}, Turn::Black));
+        QVERIFY(!PositionEditRules::apply(*gc.board(), {12, 1}, {5, 3}, Turn::Black));
+        QVERIFY(PositionEditRules::apply(*gc.board(), {12, 1}, {5, 3}, Turn::White));
+        QVERIFY(!PositionEditRules::apply(*gc.board(), {12, 1}, {5, 5}, Turn::White));
         QCOMPARE(gc.board()->pieceCharacter(5, 7), Piece::BlackPawn);
         QCOMPARE(gc.board()->pieceCharacter(5, 3), Piece::WhitePawn);
         QCOMPARE(gc.board()->pieceBoxCount(Piece::BlackPawn), 16);
@@ -540,15 +541,15 @@ private slots:
         ShogiGameController gc;
         QString empty = QStringLiteral("9/9/9/9/9/9/9/9/9 b - 1");
         gc.newGame(empty);
-        QVERIFY(gc.editPosition({12, 8}, {5, 1}));
-        gc.switchPiecePromotionStatusOnRightClick(5, 1);
-        QVERIFY(gc.editPosition({12, 8}, {5, 9}));
+        QVERIFY(PositionEditRules::apply(*gc.board(), {12, 8}, {5, 1}));
+        gc.board()->promoteOrDemotePiece(5, 1);
+        QVERIFY(PositionEditRules::apply(*gc.board(), {12, 8}, {5, 9}));
         const Position before = gc.board()->position();
         const auto box = gc.board()->pieceBox();
-        QVERIFY(!gc.editPosition({12, 8}, {5, 5}));
-        QVERIFY(!gc.editPosition({5, 1}, {12, 1}));
-        QVERIFY(!gc.editPosition({12, 1}, {12, 1}));
-        QVERIFY(!gc.editPosition({12, 0}, {5, 5}));
+        QVERIFY(!PositionEditRules::apply(*gc.board(), {12, 8}, {5, 5}));
+        QVERIFY(!PositionEditRules::apply(*gc.board(), {5, 1}, {12, 1}));
+        QVERIFY(!PositionEditRules::apply(*gc.board(), {12, 1}, {12, 1}));
+        QVERIFY(!PositionEditRules::apply(*gc.board(), {12, 0}, {5, 5}));
         QCOMPARE(gc.board()->position(), before);
         QCOMPARE(gc.board()->pieceBox(), box);
     }
@@ -571,7 +572,7 @@ private slots:
         QString initial = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
         gc.newGame(initial);
         const Position before = gc.board()->position();
-        QVERIFY(!gc.editPosition(from, to));
+        QVERIFY(!PositionEditRules::apply(*gc.board(), from, to));
         QCOMPARE(gc.board()->position(), before);
         QCOMPARE(gc.currentPlayer(), Turn::White);
         QCOMPARE(gc.board()->currentPlayer(), Turn::White);

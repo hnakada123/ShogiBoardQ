@@ -43,8 +43,8 @@ public:
 
     void setEngine1Name(const QString& name);
     void setEngine2Name(const QString& name);
-    /// 棋譜解析を始める（点を消し、解析のエンジン名と解析する手順の番号を付ける）
-    void beginAnalysis(const QString& engineName, int lineIndex);
+    /// 棋譜解析を始める（点を消し、解析のエンジン名と解析する手順（末尾の手のノード ID）を付ける）
+    void beginAnalysis(const QString& engineName, int lineEndNodeId);
     /// 棋譜解析の ply 手目の評価値（先手から見た値）を足す
     void plotAnalysisScore(int ply, const UsiScore& blackScore);
 
@@ -65,8 +65,14 @@ public slots:
     /// 縦線を表示中の手の手数に合わせる
     void showCurrentPly();
 
+private slots:
+    /// 分岐を足す・本譜にする・並べ替えると手順の番号が変わるので、解析した手順の名前を付け直す
+    void refreshAnalysisLineName();
+
 private:
     int recordLength() const;
+    /// lineEndNodeId の手で終わる手順の名前（「本譜」「分岐 N」。手が無ければ空）
+    QString lineName(int lineEndNodeId) const;
 
     EvaluationChartWidget* m_evalChart = nullptr;
     const KifuNavigationState* m_navState = nullptr;

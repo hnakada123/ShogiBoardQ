@@ -5,7 +5,7 @@
 #include <QTemporaryDir>
 
 #include "analysisresultspanel.h"
-#include "considerationtabmanager.h"
+#include "considerationpanel.h"
 #include "thinkingtableview.h"
 #include "kifuanalysislistmodel.h"
 #include "numericrightaligncommadelegate.h"
@@ -43,7 +43,7 @@ private slots:
     void considerationSetupDoesNotAccumulateDelegates()
     {
         ShogiEngineThinkingModel model;
-        ConsiderationTabManager manager;
+        ConsiderationPanel manager;
         for (int i = 0; i < 100; ++i)
             manager.setConsiderationThinkingModel(&model);
         QCOMPARE(manager.considerationView()->findChildren<NumericRightAlignCommaDelegate*>().size(), 1);
@@ -64,7 +64,7 @@ private slots:
     void considerationModelSwitchReleasesSelectionModels()
     {
         ShogiEngineThinkingModel first, second;
-        ConsiderationTabManager manager;
+        ConsiderationPanel manager;
         for (int i = 0; i < 100; ++i) {
             manager.setConsiderationThinkingModel(i % 2 ? &first : &second);
             QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);

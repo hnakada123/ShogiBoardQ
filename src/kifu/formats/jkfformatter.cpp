@@ -4,6 +4,7 @@
 #include "jkfformatter.h"
 #include "jkfmoveparser.h"
 #include "ki2movenotation.h"
+#include "kifmovetext.h"
 #include "shogiposition.h"
 #include "shoginotation.h"
 
@@ -95,7 +96,7 @@ QJsonObject moveToJkf(const Position& board, Turn mover, const UsiMove& move, Bo
     const Ki2MoveNotation::Annotation annotation = Ki2MoveNotation::annotate(board, mover, move);
     if (move.promote) {
         result[QStringLiteral("promote")] = true;
-    } else if (annotation.canPromote) {
+    } else if (KifMoveText::couldPromote(board.pieceAt(move.from), move)) {
         result[QStringLiteral("promote")] = false;
     }
     const QString relative = JkfMoveParser::modifierToRelative(annotation.modifiers);

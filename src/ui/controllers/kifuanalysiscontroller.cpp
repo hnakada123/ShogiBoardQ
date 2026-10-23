@@ -3,7 +3,6 @@
 
 #include "kifuanalysiscontroller.h"
 
-#include "analysisresulthandler.h"
 #include "analysisresultspanel.h"
 #include "appactivitystate.h"
 #include "errorbus.h"
@@ -12,11 +11,13 @@
 #include "kifuanalysisdialog.h"
 #include "kifuanalysislistmodel.h"
 #include "kifubranchnode.h"
-#include "kifudocument.h"
+#include "kifubranchtree.h"
 #include "kifunavigationcontroller.h"
 #include "kifunavigationstate.h"
+#include "kifuanalysisrow.h"
+#include "kifuanalysisrowpresenter.h"
 #include "logcategories.h"
-#include "shogiview.h"
+#include "pvclickcontroller.h"
 #include "enginelifecyclemanager.h"
 
 #include <QDockWidget>
@@ -71,14 +72,14 @@ std::optional<AnalysisRequest> KifuAnalysisController::requestFromDialog(const K
     }
     AnalysisRequest request;
     request.line = displayedLine();
-    request.lineIndex = m_deps.navState ? m_deps.navState->currentLineIndex() : 0;
+    if (m_deps.navState) {
+        const QList<KifuBranchNode*> path = m_deps.navState->selectedPath();
+        if (!path.isEmpty()) request.lineEndNodeId = path.constLast()->nodeId();
+    }
     request.branchPlies = displayedBranchPlies();
     request.enginePath = engine->path;
     request.engineName = engine->name;
-    const int last = request.line.moveCount();
-    request.options.startPly = dialog.initPosition() ? 0 : qBound(0, dialog.startPly(), last);
-    request.options.endPly = dialog.initPosition() ? last : qBound(request.options.startPly, dialog.endPly(), last);
-    request.options.movetimeMs = dialog.byoyomiSec() * 1000;
+    request.options = dialog.options();   // 範囲は解析する手順の手数（setMaxPly）に収めてある
     return request;
 }
 
@@ -108,11 +109,11 @@ bool KifuAnalysisController::start(AnalysisRequest request)
     request.options.endPly = request.options.endPly < 0 ? last
         : qBound(request.options.startPly, request.options.endPly, last);
     stop();
-    m_resultHandler.reset();
+    m_rows.reset();
     m_pendingPlot.reset();
     m_job.reset();
     m_stoppedByUser = false;
-    m_lineIndex = request.lineIndex;
+    m_lineEndNodeId = request.lineEndNodeId;
     m_startPly = request.options.startPly;
     m_deps.analysisModel->clear();
 
@@ -132,7 +133,7 @@ bool KifuAnalysisController::start(AnalysisRequest request)
     m_resultsPanel->beginAnalysis(request.options.endPly - request.options.startPly + 1, request.engineName);
 
     // 評価値グラフは解析の結果だけにする（条件ダイアログをやめたときは消さない）
-    if (EvaluationGraphPresenter* graph = m_deps.evalGraph) graph->beginAnalysis(request.engineName, request.lineIndex);
+    if (EvaluationGraphPresenter* graph = m_deps.evalGraph) graph->beginAnalysis(request.engineName, request.lineEndNodeId);
 
     // 解析のエンジンは枠 E1 に置く（思考情報・通信ログは E1 の表示に出る）
     if (!m_deps.engine) m_lease = m_deps.engines->acquire(this, 1, request.engineName);
@@ -143,17 +144,11 @@ bool KifuAnalysisController::start(AnalysisRequest request)
     connect(m_job.get(), &AnalysisJob::errorOccurred, this, &KifuAnalysisController::onEngineError);
     connect(m_job.get(), &AnalysisJob::finished, this, &KifuAnalysisController::onFinished);
 
-    AnalysisResultHandler::Refs refs;
+    KifuAnalysisRowPresenter::Refs refs;
     refs.analysisModel = m_deps.analysisModel;
     refs.line = &m_job->line();
     refs.branchPlies = request.branchPlies;
-    refs.presenter = m_resultsPanel;
-    if (const KifuDocument* document = m_deps.document) {
-        refs.blackPlayerName = document->headerPlayerName(Turn::Black);
-        refs.whitePlayerName = document->headerPlayerName(Turn::White);
-    }
-    refs.boardFlipped = m_deps.shogiView && m_deps.shogiView->flipMode();
-    m_resultHandler = std::make_unique<AnalysisResultHandler>(refs);
+    m_rows = std::make_unique<KifuAnalysisRowPresenter>(refs);
 
     m_running = true;
     m_activityLease = m_deps.activity->begin(AppActivityState::Activity::DuringAnalysis, this);
@@ -184,11 +179,11 @@ void KifuAnalysisController::onActivityRevoked(QObject* owner)
     if (owner == this) stop();
 }
 
-void KifuAnalysisController::finishRun()
+void KifuAnalysisController::finishRun(bool completed)
 {
     if (!m_running) return;
     m_running = false;
-    if (m_resultsPanel) m_resultsPanel->setStopButtonEnabled(false);
+    if (m_resultsPanel) m_resultsPanel->finishAnalysis(completed);
     // 自分の動作状態のときだけ待機中に戻す（ほかの部品が始めた動作は変えない）
     m_activityLease.reset();
     syncResultSelection();
@@ -202,12 +197,12 @@ void KifuAnalysisController::onPlyStarted(int ply)
 {
     publishCommittedEvaluation();
     // 解析している手を棋譜欄・盤に出す
-    if (m_deps.navController) m_deps.navController->goToLine(m_lineIndex, ply);
+    if (m_deps.navController) m_deps.navController->goToPlyOnLine(m_lineEndNodeId, ply);
 }
 
 void KifuAnalysisController::onPlyAnalyzed(const PlyAnalysis& result)
 {
-    const UsiScore blackScore = m_resultHandler->append(result);
+    const UsiScore blackScore = m_rows->append(result);
     // グラフには次の局面に移るときに足す（定跡など評価値のない結果は表には残し、グラフには足さない）
     if (!blackScore.isNone()) m_pendingPlot = PendingPlot{result.ply, blackScore};
 }
@@ -223,9 +218,7 @@ void KifuAnalysisController::onFinished(bool completed)
 {
     qCDebug(lcAnalysis).noquote() << "analysis finished, completed=" << completed << "stoppedByUser=" << m_stoppedByUser;
     publishCommittedEvaluation();
-    const bool reportComplete = m_running && !m_stoppedByUser && completed;
-    finishRun();
-    if (reportComplete && m_resultsPanel) m_resultsPanel->showAnalysisComplete(m_deps.analysisModel->rowCount());
+    finishRun(!m_stoppedByUser && completed);
 }
 
 void KifuAnalysisController::onEngineError(const QString& message)
@@ -242,25 +235,30 @@ void KifuAnalysisController::onEngineError(const QString& message)
 void KifuAnalysisController::syncResultSelection()
 {
     if (m_running || !m_resultsPanel || !m_deps.navState) return;
+    // 表示中の手が解析した手順の上にあれば、その手の結果の行を選ぶ
     const KifuNavigationState* nav = m_deps.navState;
-    const int row = nav->currentLineIndex() == m_lineIndex ? nav->currentPly() - m_startPly : -1;
-    m_resultsPanel->selectRow(row);
+    const KifuBranchNode* current = nav->currentNode();
+    const bool onLine = current && nav->tree()->nodeOnLine(m_lineEndNodeId, current->ply()) == current;
+    m_resultsPanel->selectRow(onLine ? current->ply() - m_startPly : -1);
 }
 
 void KifuAnalysisController::onResultRowSelected(int row)
 {
     if (m_running || row < 0 || row >= m_deps.analysisModel->rowCount()) return;
-    if (m_deps.navController) m_deps.navController->goToLine(m_lineIndex, m_startPly + row);
+    if (m_deps.navController) m_deps.navController->goToPlyOnLine(m_lineEndNodeId, m_startPly + row);
 }
 
 void KifuAnalysisController::onResultRowDoubleClicked(int row)
 {
-    if (m_resultHandler) m_resultHandler->showPvBoardDialog(row);
+    // 読み筋の無い行（定跡）は開かない。行は解析した局面と、そこに至った手を持つ
+    const KifuAnalysisRow* item = m_deps.analysisModel->row(row);
+    if (!m_deps.pvBoards || !item || item->book || !item->pv.isDisplayable() || item->pv.baseSfen().isEmpty()) return;
+    m_deps.pvBoards->showPvBoard(item->pv, item->lastUsiMove);
 }
 
-void KifuAnalysisController::onAnalysisPlyClicked(int lineIndex, int ply)
+void KifuAnalysisController::onAnalysisPlyClicked(int lineEndNodeId, int ply)
 {
-    if (m_deps.navController) m_deps.navController->goToLine(lineIndex, ply);
+    if (m_deps.navController) m_deps.navController->goToPlyOnLine(lineEndNodeId, ply);
 }
 
 void KifuAnalysisController::showError(const QString& message) const

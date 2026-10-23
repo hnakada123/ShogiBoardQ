@@ -104,9 +104,9 @@ private slots:
         QCOMPARE(h.mc->currentPly(), 0);
         QCOMPARE(h.sink.records.size(), 1);
         QCOMPARE(h.sink.records.first().terminal, TerminalType::IllegalLoss);
-        QVERIFY(h.mc->gameOverState().isOver);
-        QCOMPARE(h.mc->gameOverState().lastInfo.cause, MatchCoordinator::Cause::IllegalMove);
-        QCOMPARE(h.mc->gameOverState().lastInfo.loser, Turn::Black);
+        QVERIFY(h.mc->isGameOver());
+        QCOMPARE(h.mc->gameEnd()->cause, MatchCoordinator::Cause::IllegalMove);
+        QCOMPARE(h.mc->gameEnd()->loser, Turn::Black);
     }
     void limitRecordsMoveBeforeEnding()
     {
@@ -116,7 +116,7 @@ private slots:
         QCOMPARE(h.sink.records.size(), 2);
         QCOMPARE(h.sink.records.first().terminal, TerminalType::None);
         QCOMPARE(h.sink.records.last().terminal, TerminalType::Impasse);
-        QVERIFY(h.mc->gameOverState().isOver);
+        QVERIFY(h.mc->isGameOver());
         QCOMPARE(h.messageCount(), 1);
     }
     void repetitionUsesMatchRecord()
@@ -151,9 +151,9 @@ private slots:
         h.clock.setTimeControl(TestTime::rules(600, 600, 0, 0, 2, 2));
         MatchCoordinator::StartOptions opt;
         opt.sfenStart = SfenUtils::hirateSfen();
-        opt.players.whiteIsEngine = true;
-        opt.players.whiteEngineName = QStringLiteral("SlowStart");
-        opt.enginePath2 = MatchHarness::mockEnginePath();
+        opt.players.seat(Turn::White).engine = true;
+        opt.players.seat(Turn::White).engineName = QStringLiteral("SlowStart");
+        opt.engine(Turn::White).path = MatchHarness::mockEnginePath();
         h.start(opt);
         // 人間の初手は、エンジンの初期化中も計時する
         QVERIFY(h.clock.isRunning());

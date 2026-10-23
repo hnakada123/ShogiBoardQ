@@ -233,7 +233,7 @@ void StartGameDialog::swapSides()
 // エンジン設定ダイアログ
 // ============================================================
 
-void StartGameDialog::showEngineSettingsDialog(const EngineListSettings::EngineEntry& engine)
+void StartGameDialog::showEngineSettingsDialog(const EngineEntry& engine)
 {
     ChangeEngineSettingsDialog dialog(engine, this);
     dialog.exec();

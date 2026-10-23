@@ -2,6 +2,7 @@
 /// @brief エンジン情報表示ウィジェットクラスの実装
 
 #include "engineinfowidget.h"
+#include "movefont.h"
 #include "tableheaderview.h"
 #include "itemtextdelegate.h"
 #include "kifumovedelegate.h"
@@ -294,8 +295,7 @@ void EngineInfoWidget::updateTableGeometry()
     m_tableGeometryPending = false;
     if (!m_fixedColumnWidths) {
         const QFont headingFont = m_table->font();
-        const bool japanese = KifuPresentation::options().notation == KifuPresentation::Notation::Japanese;
-        const QFont moveFont = japanese ? ApplicationFonts::japaneseFont(headingFont) : headingFont;
+        const QFont moveFont = MoveFont::font(headingFont);
         const QFontMetrics headingMetrics(headingFont);
         const QFontMetrics moveMetrics(moveFont);
         if (headingFont != m_measuredHeadingFont || moveFont != m_measuredMoveFont
@@ -306,7 +306,7 @@ void EngineInfoWidget::updateTableGeometry()
             m_headingWidths = QList<MeasuredText>(COL_COUNT);
 
             // 通常の探索情報は初期幅に収め、更新や次の思考開始で列の位置を動かさない。
-            const QString moveSample = japanese ? QStringLiteral("▲９九銀不成(99)") : QStringLiteral("▲B8hx2b+");
+            const QString moveSample = MoveFont::usesJapaneseFont() ? QStringLiteral("▲９九銀不成(99)") : QStringLiteral("▲B8hx2b+");
             QString samples[] = {QString(), moveSample, moveSample, QStringLiteral("999/999"),
                                  QStringLiteral("999,999,999,999"), QStringLiteral("999,999,999"), QStringLiteral("999%")};
             // 数字の幅が一定でない書体でも、想定桁数の範囲では列を広げずに済むようにする。

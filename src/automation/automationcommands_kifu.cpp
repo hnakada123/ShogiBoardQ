@@ -2,6 +2,7 @@
 /// @brief 自動化 API の kifu.* メソッドの実装
 
 #include "automationcommands.h"
+#include "recordjson.h"
 #include "kifunavigationstate.h"
 #include "automationdispatcher.h"
 #include "automationparams.h"
@@ -151,18 +152,14 @@ void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, 
                 const QList<BranchLine> lines = !tree->isEmpty() ? tree->allLines() : QList<BranchLine>();
                 const BranchLine line = (lineIndex >= 0 && lineIndex < lines.size()) ? lines.at(lineIndex) : BranchLine();
                 result[QStringLiteral("line")] = lineIndex >= 0 && lineIndex < lines.size() ? lineIndex : 0;
-                result[QStringLiteral("total_plies")] = static_cast<int>(KifuBranchTree::toRecordLine(line.nodes).usiMoves().size());
+                // 手数はほかの形式・get_app_state と同じく手順の行数（終局の行も1手に数える）
+                result[QStringLiteral("total_plies")] = qMax(0, static_cast<int>(line.nodes.size()) - 1);
                 int emitted = 0;
                 for (const KifuBranchNode* node : std::as_const(line.nodes)) {
                     if (node->ply() < fromPly) continue;
                     if (emitted >= maxMoves) { truncated = true; break; }
-                    QJsonObject move;
-                    move[QStringLiteral("ply")] = node->ply();
-                    move[QStringLiteral("text")] = node->ply() == 0 ? QStringLiteral("開始局面") : node->displayText();
-                    if (node->isActualMove()) move[QStringLiteral("usi")] = node->move().move.toString();
-                    if (!node->timeText().isEmpty()) move[QStringLiteral("time")] = node->timeText();
-                    if (!node->comment().isEmpty()) move[QStringLiteral("comment")] = node->comment();
-                    if (!node->bookmark().isEmpty()) move[QStringLiteral("bookmark")] = node->bookmark();
+                    QJsonObject move = RecordJson::entry(node->ply(), node->record());
+                    if (node->ply() == 0) move[QStringLiteral("text")] = QStringLiteral("開始局面");
                     moves.append(move);
                     ++emitted;
                 }

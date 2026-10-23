@@ -141,7 +141,7 @@ private slots:
     void registeredName_duplicateIdNameGetsNumber()
     {
         EngineRegistrationHandler handler;
-        EngineListSettings::EngineEntry existing;
+        EngineEntry existing;
         existing.name = QStringLiteral("YaneuraOu NNUE");
         existing.path = QStringLiteral("/engines/a/YaneuraOu");
         handler.m_engineList.append(existing);
@@ -152,7 +152,7 @@ private slots:
                                {QStringLiteral("option name Threads type spin default 1 min 1 max 64")});
         QCOMPARE(registered.count(), 1);
         QCOMPARE(registered.first().first().toString(), QStringLiteral("YaneuraOu NNUE (2)"));
-        const auto engines = EngineListSettings::loadEngines();
+        const auto engines = RegisteredEngines::load().entries();
         QCOMPARE(engines.size(), 2);
         QCOMPARE(engines.at(1).name, QStringLiteral("YaneuraOu NNUE (2)"));
         QCOMPARE(engines.at(1).path, QStringLiteral("/engines/b/YaneuraOu"));
@@ -168,7 +168,7 @@ private slots:
     void registerEngine_invalidOptionsLeavesListUnchanged()
     {
         EngineRegistrationHandler handler;
-        const QList<EngineListSettings::EngineEntry> before = EngineListSettings::loadEngines();
+        const QList<EngineEntry> before = RegisteredEngines::load().entries();
         handler.m_engineList = before;
         QSignalSpy registered(&handler, &EngineRegistrationHandler::engineRegistered);
         QSignalSpy failed(&handler, &EngineRegistrationHandler::errorOccurred);
@@ -192,14 +192,14 @@ private slots:
                                {QStringLiteral("option name Threads type spin default 1 min 1 max 64")});
         QCOMPARE(registered.count(), 1);
         QCOMPARE(changed.count(), 1);
-        const auto engines = EngineListSettings::loadEngines();
+        const auto engines = RegisteredEngines::load().entries();
         QCOMPARE(engines.size(), before.size() + 1);
         QCOMPARE(engines.last().name, QStringLiteral("Good"));
 
         // 消すと一覧と設定から消え、画面に知らせる
         handler.removeEngineAt(static_cast<int>(handler.engineList().size()) - 1);
         QCOMPARE(changed.count(), 2);
-        QCOMPARE(EngineListSettings::loadEngines().size(), before.size());
+        QCOMPARE(RegisteredEngines::load().entries().size(), before.size());
     }
 
     void parseOptionLine_multiWordName_parsesSpinOption()
@@ -323,7 +323,7 @@ private slots:
         file.write("#!/bin/sh\nexit 0\n");
         file.close();
 
-        EngineListSettings::EngineEntry engine;
+        EngineEntry engine;
         engine.name = QStringLiteral("test-engine");
         engine.path = basePath;
         handler.m_engineList.append(engine);

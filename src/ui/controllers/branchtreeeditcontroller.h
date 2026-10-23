@@ -51,11 +51,8 @@ public:
 
     explicit BranchTreeEditController(const Deps& deps, QObject* parent = nullptr);
 
-    /// 編集できる状態か（棋譜があり、対局中でない）
+    /// 分岐の編集・盤の手の記録・定跡の展開ができるか（対局の棋譜を書いていない。棋譜が空でも開始局面から記録する）
     bool canEdit() const;
-
-    /// 盤上で指した手を記録できる状態か（対局中でない。棋譜が空でも開始局面から記録する）
-    bool canRecordBoardMove() const;
 
     /// 指定ノードに操作を適用する（右クリックメニュー・テストから使う）。
     /// 削除は confirmDelete が true のとき確認する。適用したら true
@@ -65,17 +62,12 @@ public:
     bool isApplicable(Operation operation, KifuBranchNode* node) const;
 
     /**
-     * @brief 対局していないときに盤上で指した手を、現在の手の次の手（変化）として記録する
-     * @param from 移動元（盤上 1-9、駒台 10/11）。成り判定などで書き換わる
-     * @param to 移動先
+     * @brief 対局していないときに盤上で指した手（定跡の手を含む）を、表示中の手の次の手（変化）として記録する
      * @param gc 合法判定と指し手表記の生成に使う（盤面は指した後の局面になる）
      * @return 合法手で、記録（または同じ手の既存ノードへ移動）できたら true
      *
      * 同じ手が既にあればそのノードへ移るだけで、新しい変化は作らない。
      */
-    bool recordBoardMove(QPoint& from, QPoint& to, ShogiGameController* gc);
-
-    /// 成り・不成まで決まった手（定跡の手など）を、recordBoardMove と同じく変化として記録する
     bool recordMove(const UsiMove& move, ShogiGameController* gc);
 
     /**

@@ -2,7 +2,7 @@
 /// @brief 最短手数を確認できる詰み探索エンジンで詰みを判定するクラスの実装
 
 #include "tsumemateengine.h"
-#include "enginelistsettings.h"
+#include "registeredengines.h"
 #include "mateoracle.h"
 #include "usienginesession.h"
 #include "usiprotocolhandler.h"
@@ -35,6 +35,23 @@ QList<QPair<QString, QString>> TsumeMateEngine::requiredOptions()
             {QStringLiteral("MultiPV"), QStringLiteral("1")}};
 }
 
+bool TsumeMateEngine::canVerifyShortestMate(
+    const std::function<std::optional<EngineOption>(const QString&)>& lookup)
+{
+    const std::optional<EngineOption> postSearchLevel = lookup(QStringLiteral("PostSearchLevel"));
+    return postSearchLevel && postSearchLevel->valueList.contains(QStringLiteral("MinLength"))
+        && lookup(QStringLiteral("GenerateAllLegalMoves")) && lookup(QStringLiteral("RootIsAndNodeIfChecked"));
+}
+
+bool TsumeMateEngine::canVerifyShortestMate(const QList<EngineOption>& options)
+{
+    return canVerifyShortestMate([&options](const QString& name) -> std::optional<EngineOption> {
+        for (const EngineOption& option : options)
+            if (option.name == name) return option;
+        return std::nullopt;
+    });
+}
+
 void TsumeMateEngine::setExecutable(const QString& path)
 {
     if (path == m_executable) return;
@@ -61,20 +78,15 @@ void TsumeMateEngine::search(const QString& sfen, int milliseconds)
     // 登録済みなら保存済みの設定を送る（名前で設定を引く）。最短手数の確認に必要な値だけ上書きする
     m_oracle->session()->handler()->setSessionOptions(requiredOptions());
     // 起動できなかったときは、戻った後に onSessionError で届く
-    m_oracle->start(m_executable, EngineListSettings::nameForPath(m_executable));
+    const std::optional<EngineEntry> registered = RegisteredEngines::load().findByPath(m_executable);
+    m_oracle->start(m_executable, registered ? registered->name : QString());
 }
 
 void TsumeMateEngine::onReady()
 {
     if (m_phase != Phase::Starting) return;
     const UsiProtocolHandler* handler = m_oracle->session()->handler();
-    const auto postSearchLevel = handler->reportedOption(QStringLiteral("PostSearchLevel"));
-    const bool supported =
-        handler->reportedEngineName().contains(QStringLiteral("KomoringHeights"), Qt::CaseInsensitive)
-        && postSearchLevel && postSearchLevel->comboValues.contains(QStringLiteral("MinLength"))
-        && handler->reportedOption(QStringLiteral("GenerateAllLegalMoves"))
-        && handler->reportedOption(QStringLiteral("RootIsAndNodeIfChecked"));
-    if (!supported) {
+    if (!canVerifyShortestMate([handler](const QString& name) { return handler->reportedOption(name); })) {
         fail(tr("最短手数を確認できるKomoringHeightsを選択してください。"));
         return;
     }

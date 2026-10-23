@@ -31,7 +31,8 @@ struct AnalysisRequest {
     Options options;
     QString enginePath;
     QString engineName;
-    int lineIndex = 0;
+    /// 解析する手順の末尾の手（KifuBranchTree のノード ID。結果の行・グラフの点から棋譜を移すときに使う。-1 は移さない）
+    int lineEndNodeId = -1;
     QSet<int> branchPlies;  ///< 分岐がある手の手数（結果の表で分岐の印を付ける）
 };
 

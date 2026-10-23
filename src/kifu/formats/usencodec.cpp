@@ -15,60 +15,52 @@ constexpr QStringView kBase36Chars = u"0123456789abcdefghijklmnopqrstuvwxyz";
 constexpr int kMaxCode = 36 * 36 * 36 - 1;
 constexpr int kDropBase = 81;
 
+/// 駒打ちの駒（先手の生駒）と USEN の駒のコード
 struct DropPiece {
     int code;
-    char usi;
+    Piece piece;
 };
-constexpr DropPiece kDropPieces[] = {{9, 'G'}, {10, 'P'}, {11, 'L'}, {12, 'N'}, {13, 'S'}, {14, 'B'}, {15, 'R'}};
+constexpr DropPiece kDropPieces[] = {{9, Piece::BlackGold},    {10, Piece::BlackPawn},   {11, Piece::BlackLance},
+                                     {12, Piece::BlackKnight}, {13, Piece::BlackSilver}, {14, Piece::BlackBishop},
+                                     {15, Piece::BlackRook}};
 
-int dropCodeOf(QChar usiPiece)
+int dropCodeOf(Piece piece)
 {
-    const char c = usiPiece.toUpper().toLatin1();
-    for (const DropPiece& piece : kDropPieces)
-        if (piece.usi == c) return piece.code;
+    for (const DropPiece& drop : kDropPieces)
+        if (drop.piece == piece) return drop.code;
     return -1;
 }
 
-QChar dropPieceOf(int code)
+Piece dropPieceOf(int code)
 {
-    for (const DropPiece& piece : kDropPieces)
-        if (piece.code == code) return QLatin1Char(piece.usi);
-    return {};
+    for (const DropPiece& drop : kDropPieces)
+        if (drop.code == code) return drop.piece;
+    return Piece::None;
 }
 
-/// USI のマス（"7g"）を USEN のマス番号にする（読めなければ -1）
-int squareOf(QChar file, QChar rank)
+/// 盤のマスを USEN のマス番号にする（盤の外なら -1）
+int squareOf(BoardSquare square)
 {
-    const int f = file.toLatin1() - '0';
-    const int r = rank.toLatin1() - 'a' + 1;
-    if (f < 1 || f > 9 || r < 1 || r > 9) return -1;
-    return (r - 1) * 9 + (f - 1);
+    return square.isValid() ? (square.rank - 1) * 9 + (square.file - 1) : -1;
 }
 
-QString squareText(int square)
+BoardSquare squareAt(int index)
 {
-    return QString::number(square % 9 + 1) + QLatin1Char(static_cast<char>('a' + square / 9));
+    return BoardSquare{index % 9 + 1, index / 9 + 1};
 }
 
 } // namespace
 
-QString encodeMove(const QString& usiMove)
+QString encodeMove(const UsiMove& move)
 {
-    if (usiMove.size() < 4) return {};
-    const bool promotion = usiMove.endsWith(QLatin1Char('+'));
-    int from = -1;
-    if (usiMove.at(1) == QLatin1Char('*')) {
-        const int code = dropCodeOf(usiMove.at(0));
-        if (code >= 0) from = kDropBase + code;
-    } else {
-        from = squareOf(usiMove.at(0), usiMove.at(1));
-    }
-    const int to = squareOf(usiMove.at(2), usiMove.at(3));
+    const int from = move.isDrop() ? (dropCodeOf(move.drop) >= 0 ? kDropBase + dropCodeOf(move.drop) : -1)
+                                   : squareOf(move.from);
+    const int to = squareOf(move.to);
     if (from < 0 || to < 0) {
-        qCWarning(lcKifu) << "USEN: cannot encode move" << usiMove;
+        qCWarning(lcKifu) << "USEN: cannot encode move" << move.toString();
         return {};
     }
-    int code = (from * 81 + to) * 2 + (promotion ? 1 : 0);
+    int code = (from * 81 + to) * 2 + (move.promote ? 1 : 0);
     QString text(3, QLatin1Char('0'));
     for (int i = 2; i >= 0; --i) {
         text[i] = kBase36Chars.at(code % 36);
@@ -77,28 +69,30 @@ QString encodeMove(const QString& usiMove)
     return text;
 }
 
-QString decodeMove(QStringView threeChars)
+std::optional<UsiMove> decodeMove(QStringView threeChars)
 {
-    if (threeChars.size() != 3) return {};
+    if (threeChars.size() != 3) return std::nullopt;
     int code = 0;
     for (const QChar c : threeChars) {
         const qsizetype digit = kBase36Chars.indexOf(c.toLower());
-        if (digit < 0) return {};
+        if (digit < 0) return std::nullopt;
         code = code * 36 + static_cast<int>(digit);
     }
-    if (code > kMaxCode) return {};
-    const bool promotion = (code % 2 == 1);
+    if (code > kMaxCode) return std::nullopt;
+    UsiMove move;
+    move.promote = (code % 2 == 1);
     const int from = (code / 2) / 81;
-    const int to = (code / 2) % 81;
+    move.to = squareAt((code / 2) % 81);
     if (from >= kDropBase) {
-        const QChar piece = dropPieceOf(from - kDropBase);
-        if (piece.isNull()) {
+        move.drop = dropPieceOf(from - kDropBase);
+        if (move.drop == Piece::None || move.promote) {
             qCWarning(lcKifu) << "USEN: unknown drop code" << threeChars;
-            return {};
+            return std::nullopt;
         }
-        return piece + QStringLiteral("*") + squareText(to);
+    } else {
+        move.from = squareAt(from);
     }
-    return squareText(from) + squareText(to) + (promotion ? QStringLiteral("+") : QString());
+    return move;
 }
 
 QString encodePosition(const QString& sfen)
@@ -125,48 +119,60 @@ QString decodePosition(QStringView part)
     return sfen;
 }
 
-UsenDecodeResult decodeMoves(const QString& usen, QString* terminal)
+std::optional<UsenLine> decodeLine(QStringView part, QString* error)
 {
-    UsenDecodeResult result;
-    QString moves = usen;
-    // "~X." の前置きを除く
-    if (moves.startsWith(QLatin1Char('~'))) {
-        const qsizetype dot = moves.indexOf(QLatin1Char('.'));
-        if (dot >= 0) moves = moves.mid(dot + 1);
-    }
-    // 終局コードを除く
-    if (terminal) terminal->clear();
+    const auto fail = [error](const QString& message) -> std::optional<UsenLine> {
+        if (error) *error = message;
+        return std::nullopt;
+    };
+    UsenLine line;
+    const qsizetype dot = part.indexOf(QLatin1Char('.'));
+    if (dot < 0) return fail(QStringLiteral("No '.' after the line offset in '%1'").arg(part));
+    bool ok = false;
+    line.offset = part.left(dot).toInt(&ok);
+    if (!ok || line.offset < 0) return fail(QStringLiteral("Invalid line offset '%1'").arg(part.left(dot)));
+
+    // 末尾の ".<終局コード>"（未終局は空のコード）
+    QStringView moves = part.mid(dot + 1);
     const qsizetype lastDot = moves.lastIndexOf(QLatin1Char('.'));
     if (lastDot >= 0) {
-        const QString code = moves.mid(lastDot + 1);
+        const QString code = moves.mid(lastDot + 1).toString();
         if (code.isEmpty() || TerminalCodes::isUsenCode(code)) {
-            if (terminal) *terminal = code;
+            line.terminal = code;
             moves = moves.left(lastDot);
         }
     }
 
-    qsizetype i = 0;
-    int moveNumber = 0;
-    for (; i + 2 < moves.size(); i += 3) {
-        ++moveNumber;
-        const QStringView threeChars = QStringView(moves).mid(i, 3);
-        const QString usi = decodeMove(threeChars);
-        if (!usi.isEmpty()) {
-            result.moves.append(usi);
-            continue;
-        }
-        // 無効な指し手を下流へ渡さず、棋譜全体を失敗として扱う
-        ++result.invalidCount;
-        if (result.firstError.isEmpty())
-            result.firstError = QStringLiteral("Move %1 '%2' could not be decoded").arg(moveNumber).arg(threeChars);
+    for (qsizetype i = 0; i < moves.size(); i += 3) {
+        const int moveNumber = static_cast<int>(i / 3) + 1;
+        if (i + 3 > moves.size()) return fail(QStringLiteral("Incomplete USEN move at %1").arg(moveNumber));
+        const std::optional<UsiMove> move = decodeMove(moves.mid(i, 3));
+        if (!move)
+            return fail(QStringLiteral("Move %1 '%2' could not be decoded").arg(moveNumber).arg(moves.mid(i, 3)));
+        line.moves.append(*move);
     }
-    if (i != moves.size()) {
-        ++result.invalidCount;
-        if (result.firstError.isEmpty())
-            result.firstError = QStringLiteral("Incomplete USEN move at %1").arg(moveNumber + 1);
+    return line;
+}
+
+std::optional<QList<UsenLine>> decodeLines(QStringView usen, QString* error)
+{
+    const qsizetype tilde = usen.indexOf(QLatin1Char('~'));
+    if (tilde < 0) {
+        if (error) *error = QStringLiteral("No '~' before the moves");
+        return std::nullopt;
     }
-    if (result.invalidCount > 0) result.moves.clear();
-    return result;
+    QList<UsenLine> lines;
+    const QList<QStringView> parts = usen.mid(tilde + 1).split(QLatin1Char('~'), Qt::SkipEmptyParts);
+    for (const QStringView part : parts) {
+        std::optional<UsenLine> line = decodeLine(part, error);
+        if (!line) return std::nullopt;
+        lines.append(std::move(*line));
+    }
+    if (lines.isEmpty()) {
+        if (error) *error = QStringLiteral("No moves");
+        return std::nullopt;
+    }
+    return lines;
 }
 
 } // namespace UsenCodec

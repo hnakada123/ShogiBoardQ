@@ -4,7 +4,7 @@
 #include "enginedisplaypresenter.h"
 
 #include "analysissession.h"
-#include "considerationtabmanager.h"
+#include "considerationpanel.h"
 #include "csalogpanel.h"
 #include "engineinfowidget.h"
 #include "enginelifecyclemanager.h"
@@ -82,7 +82,7 @@ void EngineDisplayPresenter::clearAll()
         panel->info1()->setDisplayNameFallback(QString());
         panel->info2()->setDisplayNameFallback(QString());
     }
-    if (ConsiderationTabManager* tab = m_deps.considerationTab) {
+    if (ConsiderationPanel* tab = m_deps.considerationTab) {
         if (tab->considerationInfo()) tab->considerationInfo()->setModel(nullptr);
         // 検討の実行の状態（ボタン・経過時間）は AnalysisSession の知らせだけから決める
         tab->setConsiderationEngineName(QString());
@@ -98,25 +98,25 @@ void EngineDisplayPresenter::onConsiderationSearchStarted()
     // 検討は E1 のエンジンで行う。候補手の数は検討のやり直しのたびに合わせる
     if (UsiModelBinding* binding = m_bindings[0]; binding && m_deps.consideration && m_deps.analysis)
         binding->setConsideration(m_deps.consideration, m_deps.analysis->considerationMultiPV());
-    if (ConsiderationTabManager* tab = m_deps.considerationTab) {
+    if (ConsiderationPanel* tab = m_deps.considerationTab) {
         // 検討タブと思考タブのエンジン欄に E1 の情報欄をつなぐ
         if (tab->considerationInfo()) tab->considerationInfo()->setModel(m_deps.commLog1);
-        tab->setRunState(ConsiderationTabManager::RunState::Running);
+        tab->setRunState(ConsiderationPanel::RunState::Running);
     }
     if (m_deps.thinkingPanel) m_deps.thinkingPanel->info1()->setModel(m_deps.commLog1);
 }
 
 void EngineDisplayPresenter::onConsiderationWaitingStarted()
 {
-    if (ConsiderationTabManager* tab = m_deps.considerationTab)
-        tab->setRunState(ConsiderationTabManager::RunState::Waiting);
+    if (ConsiderationPanel* tab = m_deps.considerationTab)
+        tab->setRunState(ConsiderationPanel::RunState::Waiting);
 }
 
 void EngineDisplayPresenter::onConsiderationModeEnded()
 {
     if (UsiModelBinding* binding = m_bindings[0]) binding->setConsideration(nullptr, 1);
-    if (ConsiderationTabManager* tab = m_deps.considerationTab)
-        tab->setRunState(ConsiderationTabManager::RunState::Idle);
+    if (ConsiderationPanel* tab = m_deps.considerationTab)
+        tab->setRunState(ConsiderationPanel::RunState::Idle);
 }
 
 void EngineDisplayPresenter::clearConsideration()
@@ -147,8 +147,8 @@ void EngineDisplayPresenter::onPlayersChanged()
     setSecondEngineVisible(players.engineVsEngine());
     // 評価値グラフは先手のエンジンを1つ目、後手のエンジンを2つ目の系列として描く
     if (EvaluationGraphPresenter* graph = m_deps.evalGraph) {
-        graph->setEngine1Name(players.blackEngineName);
-        graph->setEngine2Name(players.whiteEngineName);
+        graph->setEngine1Name(players.engineName(Turn::Black));
+        graph->setEngine2Name(players.engineName(Turn::White));
     }
 }
 

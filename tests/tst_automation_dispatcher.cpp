@@ -191,12 +191,27 @@ private slots:
         QTRY_VERIFY(performed);
         QCOMPARE(status(doneId).value(QStringLiteral("state")).toString(), QStringLiteral("done"));
 
-        // 実行の直前の検査で止まった操作は、分類つきの失敗として残る
+        // 予約の時点の検査で止まった操作は、予約せずにその場で失敗する
         bool notPerformed = true;
+        bool rejected = false;
+        try {
+            queue({target, []() { throw AutomationError(ErrorKind::InvalidState, QStringLiteral("hidden")); },
+                   [&notPerformed]() { notPerformed = false; }},
+                  {});
+        } catch (const AutomationError&) {
+            rejected = true;
+        }
+        QVERIFY(rejected);
+
+        // 実行の直前の検査で止まった操作は、分類つきの失敗として残る
+        bool hidden = false;
         const int failedId = queue({target,
-                                    []() { throw AutomationError(ErrorKind::InvalidState, QStringLiteral("hidden")); },
+                                    [&hidden]() {
+                                        if (hidden) throw AutomationError(ErrorKind::InvalidState, QStringLiteral("hidden"));
+                                    },
                                     [&notPerformed]() { notPerformed = false; }},
                                    {}).value(QStringLiteral("interaction")).toInt();
+        hidden = true;   // 応答の後に対象が隠れた
         QTRY_COMPARE(status(failedId).value(QStringLiteral("state")).toString(), QStringLiteral("failed"));
         QVERIFY(notPerformed);
         const QJsonObject error = status(failedId).value(QStringLiteral("error")).toObject();

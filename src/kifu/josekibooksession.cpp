@@ -67,9 +67,9 @@ bool JosekiBookSession::addMove(const QString &sfen, const JosekiMove &move)
     return true;
 }
 
-bool JosekiBookSession::updateMove(const QString &sfen, const JosekiMove &move)
+bool JosekiBookSession::updateMove(const QString &sfen, const JosekiMove &move, JosekiBook::NextMoveUpdate next)
 {
-    if (!canEdit() || !m_book.updateMove(sfen, move)) return false;
+    if (!canEdit() || !m_book.updateMove(sfen, move, next)) return false;
     setModified(true);
     emit contentChanged();
     return true;
@@ -128,8 +128,10 @@ JosekiBookSession::EngineRegistration JosekiBookSession::registerEnginePv(const 
     if (!canEdit() || sfen.isEmpty() || pv.isEmpty() || pv.constFirst().isEmpty()) return EngineRegistration::Invalid;
     JosekiMove move;
     move.move = pv.constFirst();
-    // 読み筋が1手だけなら、登録済みの手の予想応手は変えない（null は変えない印）
-    move.nextMove = pv.size() > 1 ? pv.at(1) : QString();
+    // 読み筋が1手だけなら、登録済みの手の予想応手は変えない
+    if (pv.size() > 1) move.nextMove = pv.at(1);
+    const JosekiBook::NextMoveUpdate next =
+        pv.size() > 1 ? JosekiBook::NextMoveUpdate::Replace : JosekiBook::NextMoveUpdate::Keep;
     move.value = valueOf(score);
     move.depth = qMax(depth, 0);
     const QList<JosekiMove> existing = m_book.movesAt(sfen);
@@ -138,11 +140,10 @@ JosekiBookSession::EngineRegistration JosekiBookSession::registerEnginePv(const 
         // 出現頻度とコメントは残す
         move.frequency = current.frequency;
         move.comment = current.comment;
-        (void)updateMove(sfen, move);
+        (void)updateMove(sfen, move, next);
         return EngineRegistration::Updated;
     }
     move.frequency = 1;
-    if (move.nextMove.isNull()) move.nextMove = QStringLiteral("none");
     addMove(sfen, move);
     return EngineRegistration::Added;
 }

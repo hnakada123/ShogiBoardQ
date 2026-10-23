@@ -258,7 +258,8 @@ void BoardInteractionController::togglePiecePromotionOnClick(const QPoint& field
     if (file >= kBlackStandFile) return;
     if (board->pieceCharacter(file, rank) == Piece::None) return;
 
-    m_gc->switchPiecePromotionStatusOnRightClick(file, rank);
+    // 二歩や行き所のない段で成れない形は盤が飛ばす
+    m_gc->board()->promoteOrDemotePiece(file, rank);
 
     clearSelectionHighlight();
 }

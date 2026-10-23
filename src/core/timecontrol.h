@@ -8,6 +8,8 @@
 
 #include "shogitypes.h"
 
+#include <utility>
+
 /// 片方の対局者の持ち時間の決まり（ミリ秒）
 struct TimeControlSide {
     qint64 mainMs = 0;       ///< 持ち時間の初期値
@@ -33,6 +35,8 @@ struct TimeControl {
 
     const TimeControlSide& side(Turn t) const { return t == Turn::Black ? black : white; }
     TimeControlSide& side(Turn t) { return t == Turn::Black ? black : white; }
+    /// 先手と後手の決まりを入れ替える（連続対局で1局ごとに手番を替える）
+    void swapSides() { std::swap(black, white); }
 
     /// 双方とも時間制限がない（消費時間だけを数える）
     bool isUnlimited() const { return !black.hasLimit() && !white.hasLimit(); }

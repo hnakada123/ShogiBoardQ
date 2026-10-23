@@ -313,8 +313,6 @@ set(SRC_GAME
     src/game/matchtypes.h
     src/game/nyugyokujudgement.cpp
     src/game/nyugyokujudgement.h
-    src/game/piecemoverules.cpp
-    src/game/piecemoverules.h
     src/game/sennichitedetector.cpp
     src/game/sennichitedetector.h
     src/game/shogigamecontroller.cpp
@@ -508,7 +506,6 @@ set(SRC_ENGINE
     src/engine/usimessages.h
     src/engine/usiprotocolhandler.cpp
     src/engine/usiprotocolhandler.h
-    src/engine/usitimingparams.h
 )
 
 set(SRC_NETWORK
@@ -539,6 +536,8 @@ set(SRC_BOARD
     src/board/boardinputroute.h
     src/board/boardinteractioncontroller.cpp
     src/board/boardinteractioncontroller.h
+    src/board/positioneditrules.cpp
+    src/board/positioneditrules.h
     src/board/positioneditsession.cpp
     src/board/positioneditsession.h
 )
@@ -596,8 +595,8 @@ set(SRC_UI
     src/ui/coordinators/kifusavecoordinator.h
     src/ui/coordinators/uistatepolicymanager.cpp
     src/ui/coordinators/uistatepolicymanager.h
-    src/ui/presenters/analysisresulthandler.cpp
-    src/ui/presenters/analysisresulthandler.h
+    src/ui/presenters/kifuanalysisrowpresenter.cpp
+    src/ui/presenters/kifuanalysisrowpresenter.h
     src/ui/presenters/boardsyncpresenter.cpp
     src/ui/presenters/boardsyncpresenter.h
     src/ui/presenters/candidatearrowpresenter.cpp
@@ -654,8 +653,8 @@ set(SRC_WIDGETS
     src/widgets/collapsiblegroupbox.h
     src/widgets/commenteditorpanel.cpp
     src/widgets/commenteditorpanel.h
-    src/widgets/considerationtabmanager.cpp
-    src/widgets/considerationtabmanager.h
+    src/widgets/considerationpanel.cpp
+    src/widgets/considerationpanel.h
     src/widgets/countspinbox.cpp
     src/widgets/countspinbox.h
     src/widgets/csalogpanel.cpp
@@ -699,6 +698,8 @@ set(SRC_WIDGETS
     src/widgets/itemtextpainter.cpp
     src/widgets/itemtextpainter.h
     src/widgets/kifumovedelegate.h
+    src/widgets/kifufilefilter.cpp
+    src/widgets/kifufilefilter.h
     src/widgets/layoutboundarywidget.cpp
     src/widgets/layoutboundarywidget.h
     src/widgets/longlongspinbox.cpp
@@ -863,6 +864,8 @@ set(SRC_SERVICES
     src/services/docksettings.h
     src/services/enginedialogsettings.h
     src/services/enginelistsettings.cpp
+    src/services/registeredengines.cpp
+    src/services/registeredengines.h
     src/services/enginelistsettings.h
     src/services/engineoption.h
     src/services/engineprofilestore.cpp
@@ -908,7 +911,6 @@ set(SRC_COMMON
     src/common/errorbus.h
     src/core/jishogicalculator.cpp
     src/core/jishogicalculator.h
-    src/common/recentfilelist.cpp
     src/common/recentfilelist.h
     src/kifu/kifupresentation.cpp
     src/kifu/kifupresentation.h
@@ -938,6 +940,8 @@ set(SRC_HEADLESS
     src/headless/matesearchrunner.h
     src/headless/outputpath.cpp
     src/headless/outputpath.h
+    src/headless/recordjson.cpp
+    src/headless/recordjson.h
     src/headless/paramspec.cpp
     src/headless/paramspec.h
     src/headless/tsumeverificationrunner.cpp

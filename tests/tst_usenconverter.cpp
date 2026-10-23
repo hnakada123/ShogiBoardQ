@@ -27,6 +27,18 @@ private:
         return QCoreApplication::applicationDirPath() + QStringLiteral("/fixtures/") + name;
     }
 
+    /// 棋譜の "~" より後を読み、本譜の手を USI の文字列にする（読めなければ空）
+    static QStringList mainMoves(const QString& usen, QString* terminal = nullptr, QString* error = nullptr)
+    {
+        const std::optional<QList<UsenLine>> lines = UsenCodec::decodeLines(usen, error);
+        if (terminal) *terminal = lines ? lines->constFirst().terminal : QString();
+        QStringList moves;
+        if (lines) {
+            for (const UsiMove& move : lines->constFirst().moves) moves.append(move.toString());
+        }
+        return moves;
+    }
+
 private slots:
     /// 符号表は読み書きで1つ（UsenCodec）。盤上の手・成り・7種の駒打ちが往復すること
     void codecMoveRoundTrip_data()
@@ -38,16 +50,20 @@ private slots:
     void codecMoveRoundTrip()
     {
         QFETCH(QString, usi);
-        const QString code = UsenCodec::encodeMove(usi);
+        const QString code = UsenCodec::encodeMove(UsiMove::fromString(usi));
         QCOMPARE(code.size(), 3);
-        QCOMPARE(UsenCodec::decodeMove(code), usi);
+        QCOMPARE(UsenCodec::decodeMove(code).value_or(UsiMove{}).toString(), usi);
     }
     void codecRejectsUnknownCodes()
     {
-        QVERIFY(UsenCodec::encodeMove(QStringLiteral("K*5e")).isEmpty());
-        QVERIFY(UsenCodec::encodeMove(QStringLiteral("0a1b")).isEmpty());
-        QVERIFY(UsenCodec::decodeMove(u"zzz").isEmpty());
-        QVERIFY(UsenCodec::decodeMove(u"7k").isEmpty());
+        // 玉は打てない。盤の外のマスは符号にできない
+        UsiMove kingDrop;
+        kingDrop.drop = Piece::BlackKing;
+        kingDrop.to = BoardSquare{5, 5};
+        QVERIFY(UsenCodec::encodeMove(kingDrop).isEmpty());
+        QVERIFY(UsenCodec::encodeMove(UsiMove{}).isEmpty());
+        QVERIFY(!UsenCodec::decodeMove(u"zzz"));
+        QVERIFY(!UsenCodec::decodeMove(u"7k"));
     }
     void codecPositionRoundTrip()
     {
@@ -106,9 +122,7 @@ private slots:
     {
         // Decode the base36-encoded moves from the USEN string
         QString usen = QStringLiteral("~0.7ku2jm6y236e5t24be9qc");
-        // Extract move portion (after "~0.")
-        QString moveStr = usen.mid(3);
-        QStringList decoded = UsenCodec::decodeMoves(usen).moves;
+        const QStringList decoded = mainMoves(usen);
         QCOMPARE(decoded.size(), 7);
         QCOMPARE(decoded, kExpectedUsiMoves);
     }
@@ -206,8 +220,9 @@ private slots:
 
     void decodeUsenMoves_empty()
     {
-        QStringList decoded = UsenCodec::decodeMoves(QString()).moves;
-        QCOMPARE(decoded.size(), 0);
+        QString error;
+        QVERIFY(mainMoves(QString(), nullptr, &error).isEmpty());
+        QVERIFY(!error.isEmpty());
     }
 
     // ========================================
@@ -217,8 +232,7 @@ private slots:
     void decodeUsenMoves_invalidChars()
     {
         // Characters outside base36 range
-        QStringList decoded = UsenCodec::decodeMoves(QStringLiteral("~0.!!!")).moves;
-        QVERIFY(decoded.isEmpty());
+        QVERIFY(mainMoves(QStringLiteral("~0.!!!")).isEmpty());
     }
 
     // ========================================
@@ -228,8 +242,9 @@ private slots:
     void decodeUsenMoves_truncated()
     {
         // Only 1 or 2 chars (incomplete 3-char move encoding)
-        QStringList decoded = UsenCodec::decodeMoves(QStringLiteral("~0.7k")).moves;
-        QVERIFY(decoded.isEmpty());
+        QString error;
+        QVERIFY(mainMoves(QStringLiteral("~0.7k"), nullptr, &error).isEmpty());
+        QVERIFY(error.contains(QStringLiteral("Incomplete")));
     }
 
     // ========================================
@@ -279,8 +294,7 @@ private slots:
     {
         // Test decoding with terminal output parameter
         QString terminal;
-        QStringList decoded = UsenCodec::decodeMoves(
-            QStringLiteral("~0.7ku2jm6y236e5t24be9qc.r"), &terminal).moves;
+        const QStringList decoded = mainMoves(QStringLiteral("~0.7ku2jm6y236e5t24be9qc.r"), &terminal);
         QCOMPARE(decoded.size(), 7);
         // Terminal code should be "r" (resign)
         QCOMPARE(terminal, QStringLiteral("r"));
@@ -309,26 +323,38 @@ private slots:
         QFETCH(QString, usenInput);
 
         // Must not crash regardless of input
-        QStringList decoded = UsenCodec::decodeMoves(usenInput).moves;
-        QVERIFY(decoded.isEmpty());
-        const auto strict = UsenCodec::decodeMoves(usenInput);
-        if (usenInput != QStringLiteral("~0.")) {
-            QVERIFY(strict.invalidCount > 0);
-            QVERIFY(!strict.firstError.isEmpty());
-        }
+        QString error;
+        QVERIFY(mainMoves(usenInput, nullptr, &error).isEmpty());
+        // "~0." は手の無い本譜として読める
+        if (usenInput != QStringLiteral("~0.")) QVERIFY(!error.isEmpty());
     }
     // ========================================
     // Strict API: 正常入力
     // ========================================
 
+    /// 本譜と変化は "~" で1回だけ分けて読む（オフセットはそのまま、変化の終局コードも読む）
+    void decodeLinesSplitsMainAndVariations()
+    {
+        QString error;
+        const auto lines = UsenCodec::decodeLines(QStringLiteral("~0.7ku2jm.r~1.6y2.p"), &error);
+        QVERIFY2(lines, qPrintable(error));
+        QCOMPARE(lines->size(), 2);
+        QCOMPARE(lines->at(0).offset, 0);
+        QCOMPARE(lines->at(0).moves.size(), 2);
+        QCOMPARE(lines->at(0).terminal, QStringLiteral("r"));
+        QCOMPARE(lines->at(1).offset, 1);
+        QCOMPARE(lines->at(1).moves.size(), 1);
+        QCOMPARE(lines->at(1).terminal, QStringLiteral("p"));
+        // 変化の手が読めなければ全体を読まない
+        QVERIFY(!UsenCodec::decodeLines(QStringLiteral("~0.7ku~1.!!!"), &error));
+        QVERIFY(error.contains(QStringLiteral("Move 1")));
+    }
+
     void decodeUsenMovesStrict_validInput()
     {
-        const QString usen = QStringLiteral("~0.7ku2jm6y236e5t24be9qc");
-        UsenDecodeResult result = UsenCodec::decodeMoves(usen);
-        QCOMPARE(result.invalidCount, 0);
-        QVERIFY(result.firstError.isEmpty());
-        QCOMPARE(result.moves.size(), 7);
-        QCOMPARE(result.moves, kExpectedUsiMoves);
+        QString error;
+        QCOMPARE(mainMoves(QStringLiteral("~0.7ku2jm6y236e5t24be9qc"), nullptr, &error), kExpectedUsiMoves);
+        QVERIFY(error.isEmpty());
     }
 
     // ========================================
@@ -339,11 +365,9 @@ private slots:
     {
         // 不正なbase36があれば、部分的な指し手列も下流へ渡さない。
         // 続く "7ku" は正常 (7g7f)
-        const QString usen = QStringLiteral("~0.!!!7ku");
-        UsenDecodeResult result = UsenCodec::decodeMoves(usen);
-        QCOMPARE(result.invalidCount, 1);
-        QVERIFY(!result.firstError.isEmpty());
-        QVERIFY(result.moves.isEmpty());
+        QString error;
+        QVERIFY(mainMoves(QStringLiteral("~0.!!!7ku"), nullptr, &error).isEmpty());
+        QVERIFY(error.contains(QStringLiteral("Move 1")));
     }
 
     // ========================================
@@ -352,13 +376,10 @@ private slots:
 
     void decodeUsenMovesStrict_allInvalid()
     {
-        const QString usen = QStringLiteral("~0.!!!@@@");
-        UsenDecodeResult result = UsenCodec::decodeMoves(usen);
-        QCOMPARE(result.invalidCount, 2);
-        QVERIFY(!result.firstError.isEmpty());
-        // firstError は最初のエラーのみ
-        QVERIFY(result.firstError.contains(QStringLiteral("1")));
-        QVERIFY(result.moves.isEmpty());
+        QString error;
+        QVERIFY(mainMoves(QStringLiteral("~0.!!!@@@"), nullptr, &error).isEmpty());
+        // 最初に読めなかった手だけを知らせる
+        QVERIFY(error.contains(QStringLiteral("Move 1")));
     }
 
     // ========================================
@@ -368,11 +389,9 @@ private slots:
     void decodeUsenMovesStrict_withTerminal()
     {
         QString terminal;
-        UsenDecodeResult result = UsenCodec::decodeMoves(
-            QStringLiteral("~0.7ku2jm.r"), &terminal);
-        QCOMPARE(result.invalidCount, 0);
-        QVERIFY(result.firstError.isEmpty());
-        QCOMPARE(result.moves.size(), 2);
+        QString error;
+        QCOMPARE(mainMoves(QStringLiteral("~0.7ku2jm.r"), &terminal, &error).size(), 2);
+        QVERIFY(error.isEmpty());
         QCOMPARE(terminal, QStringLiteral("r"));
     }
 

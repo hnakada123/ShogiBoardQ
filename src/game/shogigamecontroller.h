@@ -73,12 +73,6 @@ public:
      */
     void notifyMoveCommitted(Turn mover, int ply);
 
-    /// 局面編集モードで駒を移動し、盤面を更新する
-    bool editPosition(const QPoint& outFrom, const QPoint& outTo, Turn pieceBoxSide = Turn::Black);
-
-    /// 局面編集モードで右クリックによる成/不成を切り替える
-    void switchPiecePromotionStatusOnRightClick(const int fileFrom, const int rankFrom) const;
-
     // --- 成り制御 ---
 
     /// 成り・不成を対局者に選ばせる関数（成るなら true）。未設定なら成らない

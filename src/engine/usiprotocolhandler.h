@@ -102,7 +102,7 @@ public:
     /// usi〜usiok でエンジンが報告した option 行（報告の順。読めない行も含む）
     QStringList reportedOptionLines() const { return m_reportedOptionLines; }
     /// エンジンが報告したオプションの定義（報告がなければ nullopt）
-    std::optional<UsiOptionDeclaration> reportedOption(const QString& name) const;
+    std::optional<EngineOption> reportedOption(const QString& name) const;
     /// GUI 側で先読みを許しているか（エンジンのオプションの報告とは別）
     bool isPonderEnabled() const { return m_launchOptions.ponderEnabled; }
 
@@ -200,7 +200,7 @@ private:
     // --- 初期化で送るオプションとエンジンの報告 ---
     EngineProfileStore::LaunchOptions m_launchOptions;   ///< 保存した設定で送るオプションと先読みの設定
     QList<QPair<QString, QString>> m_sessionOptions;
-    QHash<QString, UsiOptionDeclaration> m_reportedOptions;
+    QHash<QString, EngineOption> m_reportedOptions;
     QStringList m_reportedOptionLines;
     QString m_reportedEngineName;
     QString m_reportedEngineAuthor;

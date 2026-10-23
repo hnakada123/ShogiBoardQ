@@ -164,15 +164,13 @@ public:
     void setEditExitButtonVisible(bool visible);
 
 public slots:
-    // 盤拡大/縮小（マスの幅を ±1）
-    // emitSignal=falseの場合、fieldSizeChangedシグナルを発火しない
-    // （イベントフィルターで処理する場合に使用）
-    void enlargeBoard(bool emitSignal = true);
-    void reduceBoard(bool emitSignal = true);
+    /// 盤を拡大・縮小する（マスの幅を ±1。Ctrl+ホイールもここ）。変わったら fieldSizeChanged で知らせる
+    void enlargeBoard();
+    void reduceBoard();
 
 signals:
     void positionChanged();
-    void fieldSizeChanged(QSize fieldSize);  // マスの大きさを変えた（拡大・縮小）
+    void fieldSizeChanged(QSize fieldSize);  // 利用者が盤を拡大・縮小した（setSquareSize では出さない）
     void clicked(const QPoint&);             // 左クリック
     void rightClicked(const QPoint&);        // 右クリック
 
@@ -204,7 +202,9 @@ private:
 
     /// 盤の位置を計算し直す（マスの大きさ・反転・盤を変えたとき）
     void  rebuildGeometry(int squareSize, bool flipped);
-    void  applyBoardScaleChange(int squareSize, bool emitSignal);
+    void  applyBoardScaleChange(int squareSize);
+    /// 拡大・縮小する（つまんでいる駒は放す）。変えたら fieldSizeChanged
+    void  zoomTo(int squareSize);
 
 private:
     // ───────────────────────────── 内部状態（モデル/描画/入力） ────────────────

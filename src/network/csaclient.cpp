@@ -80,6 +80,14 @@ bool CsaClient::isWaitingState(ConnectionState state)
         || state == ConnectionState::GameOver;
 }
 
+QString CsaClient::loginPassword(const QString& password, const QString& gameName, std::optional<Turn> preferred)
+{
+    if (gameName.isEmpty()) return password;
+    QString token = gameName;
+    if (preferred) token += *preferred == Turn::Black ? QStringLiteral("-b") : QStringLiteral("-w");
+    return token + QLatin1Char(',') + password;
+}
+
 QString CsaClient::gameResultText(GameResult result)
 {
     switch (result) {

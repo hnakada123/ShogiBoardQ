@@ -702,7 +702,8 @@ private slots:
                               QStringLiteral("option name Broken")}));
         const auto multiPv = handler.reportedOption(QStringLiteral("Multi PV"));
         QVERIFY(multiPv);
-        QCOMPARE(multiPv->maxValue, QStringLiteral("500"));
+        QCOMPARE(multiPv->max, QStringLiteral("500"));
+        QCOMPARE(multiPv->currentValue, QStringLiteral("1"));
         QVERIFY(!handler.reportedOption(QStringLiteral("Broken")));
     }
 

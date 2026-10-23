@@ -6,7 +6,6 @@
 
 #include "shogitypes.h"
 #include "usigotime.h"
-#include "usitimingparams.h"
 
 class ShogiClock;
 
@@ -43,14 +42,15 @@ public:
 class FixedTimeSource final : public MatchTimeSource
 {
 public:
-    explicit FixedTimeSource(const UsiTimingParams& timing = {}) : m_timing(timing) {}
-    void setTiming(const UsiTimingParams& timing) { m_timing = timing; }
+    /// timing の手番（sideToMove）は使わず、思考する側にする
+    explicit FixedTimeSource(const UsiGoTimeInput& timing = {}) : m_timing(timing) {}
+    void setTiming(const UsiGoTimeInput& timing) { m_timing = timing; }
 
     MatchSearchTiming snapshot(Turn side, bool pondering) const override;
     qint64 elapsedThisTurn(Turn) const override { return 0; }
 
 private:
-    UsiTimingParams m_timing;
+    UsiGoTimeInput m_timing;
 };
 
 /// ローカル対局の対局時計から読む出どころ

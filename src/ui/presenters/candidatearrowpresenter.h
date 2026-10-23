@@ -11,6 +11,7 @@
 #include <optional>
 #include <array>
 
+struct ConsiderationSettings;
 class AnalysisSession;
 class AppActivityState;
 class EngineLifecycleManager;
@@ -36,7 +37,8 @@ public:
         AnalysisSession* analysis = nullptr;           ///< 検討中か（正本はセッション）
         ShogiEngineThinkingModel* consideration = nullptr; ///< 検討の読み筋（検討中の矢印の元）
         /// 検討の候補手の矢印を出すか（検討タブの設定）。無ければ出す
-        std::function<bool()> showConsiderationArrows;
+        /// 検討の条件（検討タブの正本 ConsiderationPanel::settings()。showArrows で検討の矢印を出す。無ければいつでも出す）
+        const ConsiderationSettings* considerationSettings = nullptr;
         const JosekiBookSession* josekiBook = nullptr; ///< 定跡手の矢印の元（定跡ウィンドウで開いている定跡）
         const QAction* josekiArrows = nullptr;         ///< 「盤に定跡手を表示」（無ければ定跡手の矢印を出さない）
         const QAction* josekiDisplay = nullptr;        ///< 定跡ウィンドウの定跡の表示（オフなら出さない。無ければ出す）

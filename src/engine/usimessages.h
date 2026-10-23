@@ -11,16 +11,6 @@
 #include "shogitypes.h"
 #include "usiscore.h"
 
-/// エンジンが報告したオプションの定義（"option name <name> type <type> [default/min/max/var ...]"）
-struct UsiOptionDeclaration {
-    QString name;
-    QString type;
-    QString defaultValue;
-    QString minValue;
-    QString maxValue;
-    QStringList comboValues;
-};
-
 /**
  * @brief bestmove（探索の結果）
  *

@@ -54,7 +54,7 @@ signals:
     /// 人間かエンジンかが変わった
     void kindChanged();
     /// 「エンジン設定」が押された
-    void engineSettingsRequested(const EngineListSettings::EngineEntry& engine);
+    void engineSettingsRequested(const EngineEntry& engine);
     /// 定跡の「条件…」が押された（side はコンストラクタに渡した番号）
     void josekiConditionsRequested(int side);
 

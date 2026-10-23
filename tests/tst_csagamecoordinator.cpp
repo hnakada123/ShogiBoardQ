@@ -195,7 +195,7 @@ private slots:
         QVERIFY(h.engines.engineInSlot(1));
         // 時間の出どころは対局の残り時間（加算を含まない）・決まり
         const MatchSearchTiming timing = h.coordinator.snapshot(Turn::White, false);
-        const UsiTimingParams expected = h.coordinator.progress().engineTiming(1000);
+        const UsiGoTimeInput expected = h.coordinator.progress().engineTiming(1000);
         QCOMPARE(timing.input.wtimeMs, expected.wtimeMs);
         QCOMPARE(timing.input.btimeMs, expected.btimeMs);
         QCOMPARE(timing.input.timeControl.white.incrementMs, qint64(10000));
@@ -491,7 +491,7 @@ private slots:
         QCOMPARE(progress.blackRemainingMs, 0);
         QCOMPARE(progress.blackTotalMs, 70000);
         QCOMPARE(progress.whiteRemainingMs, 65000);
-        const UsiTimingParams timing = progress.engineTiming(-100);
+        const UsiGoTimeInput timing = progress.engineTiming(-100);
         QCOMPARE(timing.wtimeMs, 60000);
         QCOMPARE(timing.btimeMs, 0);
         QCOMPARE(timing.marginMs, 0);
@@ -519,7 +519,6 @@ private slots:
         rd.kifuLoader = &loader;
         rd.evalGraph = &graph;
         SessionResetCoordinator reset(rd);
-        PlayerInfoPresenter playerInfo({&document, &activity});
         GameSession::Deps sd;
         sd.activity = &activity;
         sd.match = &match;
@@ -528,7 +527,6 @@ private slots:
         sd.liveSession = &live;
         sd.document = &document;
         sd.clock = &h.clock;
-        sd.playerInfo = &playerInfo;
         sd.csaGame = &h.coordinator;
         GameSession recordService(sd);
 

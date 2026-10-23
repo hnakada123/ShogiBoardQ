@@ -3,6 +3,8 @@
 
 #include "josekimergecontroller.h"
 
+#include "gamesettings.h"
+#include "kifufilefilter.h"
 #include "josekibookmergedialog.h"
 #include "josekibooksession.h"
 #include "josekiimportdialog.h"
@@ -41,10 +43,11 @@ void JosekiMergeController::mergeFromKifuFile()
     if (!m_deps.session->canEdit()) return;
 
     // 形式はファイルから判定する（棋譜を開くときと同じ形式を読める）
+    // 前回のフォルダは棋譜を開くときと同じ
     const QString kifuFilePath = QFileDialog::getOpenFileName(
-        m_deps.parentWidget, tr("棋譜ファイルを選択"), QDir::homePath(),
-        tr("棋譜ファイル (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.json *.usi *.sfen *.usen);;すべてのファイル (*)"));
+        m_deps.parentWidget, tr("棋譜ファイルを選択"), GameSettings::lastKifuDirectory(), KifuFileFilter::forOpening());
     if (kifuFilePath.isEmpty()) return;
+    GameSettings::lastKifuDirectory.set(QFileInfo(kifuFilePath).absolutePath());
 
     // 棋譜ファイルの本譜（棋譜を開くときと同じ読み込み）
     const KifuLoadResult loaded = KifuLoadParser::parseFile(kifuFilePath);

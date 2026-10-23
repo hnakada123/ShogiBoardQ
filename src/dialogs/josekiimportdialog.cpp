@@ -3,6 +3,7 @@
 
 #include "josekiimportdialog.h"
 
+#include "kifufilefilter.h"
 #include "dialogfontscale.h"
 #include "josekibooksession.h"
 #include "josekisettings.h"
@@ -212,8 +213,7 @@ void JosekiImportDialog::appendPaths(const QStringList &paths)
 void JosekiImportDialog::addFiles()
 {
     const QStringList files = QFileDialog::getOpenFileNames(
-        this, tr("棋譜ファイルを追加"), JosekiSettings::josekiImportLastDirectory(),
-        tr("棋譜ファイル (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.json *.usi *.usen);;すべてのファイル (*)"));
+        this, tr("棋譜ファイルを追加"), JosekiSettings::josekiImportLastDirectory(), KifuFileFilter::forOpening());
     if (files.isEmpty()) return;
     JosekiSettings::josekiImportLastDirectory.set(QFileInfo(files.constFirst()).absolutePath());
     appendPaths(files);

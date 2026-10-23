@@ -78,8 +78,7 @@ private slots:
                                 m.to = BoardSquare{file, rank - 1};
                                 auto status = EngineMoveValidator::legalStatus(board.position(), turn, m);
                                 if (status.nonPromotingMoveExists) {
-                                    board.movePieceToSquare(Piece::BlackPawn,
-                                                          file, rank, file, rank - 1, false);
+                                    QVERIFY(board.applyUsiMove(m, turn));
                                     moved = true;
                                 }
                             }

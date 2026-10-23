@@ -157,8 +157,7 @@ void GameSession::startGameFromDialog()
         return;
     }
     // 定跡を使うエンジンには、始めた時点の定跡の写しを渡す（対局中に定跡ウィンドウで変えても影響しない）
-    const auto& joseki = plan->options.josekiOptions;
-    if (m_deps.josekiBook && (joseki[0].enabled || joseki[1].enabled))
+    if (m_deps.josekiBook && plan->options.usesJoseki())
         plan->options.josekiBook = m_deps.josekiBook->snapshot();
     startGame(*plan, /*beginSeries=*/true);
 }
@@ -204,7 +203,7 @@ void GameSession::beginMatchRecord(const MatchPlayers& players, const TimeContro
 {
     m_deps.document->beginMatch(players, timeControl, continuesRecord);
     if (continuesRecord) noteContinuedMatch(players);
-    m_deps.playerInfo->showPlayers(players);
+    // 盤の対局者名は PlayerInfoPresenter が文書と動作状態の知らせで出す
 }
 
 void GameSession::noteContinuedMatch(const MatchPlayers& players)
@@ -300,7 +299,7 @@ void GameSession::resetToInitialState()
     if (m_deps.csaGame) m_deps.csaGame->stopGame();
     // 対局・棋譜解析のエンジンも止める（思考情報の表示は作り直しで消す）
     if (m_deps.engines) m_deps.engines->destroyEngines(false);
-    m_deps.match->clearGameOverState();
+    m_deps.match->clearGameEnd();
     m_deps.consecutive->reset();
     discardInterruptedGame();
 

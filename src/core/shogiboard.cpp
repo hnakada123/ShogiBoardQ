@@ -186,7 +186,7 @@ void ShogiBoard::incrementPieceOnStand(const Piece dest)
 // ============================================================
 
 // 局面編集中に使用される。将棋盤と駒台の駒を更新する。
-void ShogiBoard::updateBoardAndPieceStand(const Piece source, const Piece dest, const int fileFrom, const int rankFrom, const int fileTo, const int rankTo, const bool promote)
+void ShogiBoard::updateBoardAndPieceStand(const Piece source, const Piece dest, const int fileFrom, const int rankFrom, const int fileTo, const int rankTo)
 {
     if (fileTo < BoardConstants::kBlackStandFile) {
         // 指したマスに相手の駒があった場合、自分の駒台に加える
@@ -200,7 +200,8 @@ void ShogiBoard::updateBoardAndPieceStand(const Piece source, const Piece dest, 
         decrementPieceOnStand(source);
     }
 
-    movePieceToSquare(source, fileFrom, rankFrom, fileTo, rankTo, promote);
+    // 行き所のない段に置いた歩・香・桂は movePieceToSquare が成駒にする
+    movePieceToSquare(source, fileFrom, rankFrom, fileTo, rankTo, false);
 }
 
 QMap<Piece, int> ShogiBoard::pieceBox() const
@@ -222,25 +223,6 @@ void ShogiBoard::resetGameBoard()
 }
 
 // 先手の配置を後手の配置に変更し、後手の配置を先手の配置に変更する。
-void ShogiBoard::flipSides()
-{
-    Position flipped;
-    flipped.setSideToMove(m_position.sideToMove());
-    flipped.setMoveNumber(m_position.moveNumber());
-    for (int rank = 1; rank <= Position::kRanks; ++rank) {
-        for (int file = 1; file <= Position::kFiles; ++file) {
-            flipped.setPieceAt({10 - file, 10 - rank}, flipSide(m_position.pieceAt(file, rank)));
-        }
-    }
-    for (const Turn side : {Turn::Black, Turn::White}) {
-        for (int kind = 0; kind < kHandKindCount; ++kind) {
-            const Piece piece = makePiece(side, static_cast<PieceKind>(kind));
-            flipped.setHandCount(flipSide(piece), m_position.handCount(piece));
-        }
-    }
-    m_position = flipped;
-}
-
 // 局面編集中に右クリックで成駒/不成駒/先後を巡回変換する（禁置き段＋二歩をスキップ）。
 void ShogiBoard::promoteOrDemotePiece(const int fileFrom, const int rankFrom)
 {

@@ -92,6 +92,13 @@ public:
     /// 駒台とカード・駒箱の間
     int standGap() const;
 
+    /**
+     * @brief 局面編集の駒箱（左の駒台の外側の対局者カードのさらに下、盤の下端に揃える）
+     * @param cardHeight 対局者カードの高さ（カードを出していなければ 0）
+     * @param areaHeight カードを収める高さ（ウィジェットの高さ）
+     */
+    QRect pieceBox(int cardHeight, int areaHeight) const;
+
     /// 駒箱（反転によらず左上から王・飛・角・金・銀・桂・香・歩の2列4段）の見出し・先後の切り替え・セル
     static QRect pieceBoxLabel(const QRect& box);
     static QRect pieceBoxSideSelector(const QRect& box);

@@ -84,12 +84,12 @@ private slots:
         QCOMPARE(result.updated, 0);
         const JosekiMove black = book.movesAt(hirate()).constFirst();
         QCOMPARE(black.move, QStringLiteral("7g7f"));
-        QCOMPARE(black.nextMove, QStringLiteral("3c3d"));
+        QCOMPARE(black.nextMove.value_or(QString()), QStringLiteral("3c3d"));
         QCOMPARE(black.value, 50);
         QCOMPARE(black.depth, 12);
         const JosekiMove white = book.movesAt(afterBlack()).constFirst();
         QCOMPARE(white.move, QStringLiteral("3c3d"));
-        QCOMPARE(white.nextMove, QStringLiteral("2g2f"));
+        QCOMPARE(white.nextMove.value_or(QString()), QStringLiteral("2g2f"));
         QCOMPARE(white.value, -80);
         QCOMPARE(white.depth, 11);
 
@@ -142,7 +142,7 @@ private slots:
         action->trigger();
         const JosekiMove move = book.movesAt(afterBlack()).constFirst();
         QCOMPARE(move.move, QStringLiteral("3c3d"));
-        QCOMPARE(move.nextMove, QStringLiteral("2g2f"));
+        QCOMPARE(move.nextMove.value_or(QString()), QStringLiteral("2g2f"));
         QCOMPARE(move.value, -30);
         QCOMPARE(move.depth, 24);
 
@@ -202,7 +202,7 @@ private slots:
         QCOMPARE(book.movesAt(afterBlack()).size(), 1);
         const JosekiMove added = book.movesAt(afterBlack()).constFirst();
         QCOMPARE(added.move, QStringLiteral("3c3d"));
-        QCOMPARE(added.nextMove, QStringLiteral("none"));
+        QVERIFY(!added.nextMove);
         QCOMPARE(added.value, 0);
         QCOMPARE(added.depth, 0);
         QCOMPARE(added.frequency, 1);

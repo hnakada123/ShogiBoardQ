@@ -47,7 +47,8 @@ public:
     bool stepActionsEnabled() const;
 
     /// 利用者の操作で別の手へ移る前の確認。false なら移らない
-    void setLeaveGuard(std::function<bool()> guard) { m_leaveGuard = std::move(guard); }
+    /// 移動前の確認を足す（足した順に聞き、1つでも false なら移らない）
+    void addLeaveGuard(std::function<bool()> guard) { m_leaveGuards.append(std::move(guard)); }
 
     KifuNavigationState* state() const { return m_state; }
 
@@ -64,8 +65,8 @@ public slots:
     void goToPly(int ply);
     /// 指定ノードへ移る（開始局面からの経路を選んだ手順として記憶する）
     void goToNode(KifuBranchNode* node);
-    /// lineIndex 番の手順（KifuBranchTree::allLines()）の ply 手目へ移る
-    void goToLine(int lineIndex, int ply);
+    /// lineEndNodeId の手で終わる手順の ply 手目へ移る（KifuBranchTree::nodeOnLine。手が無ければ移らない）
+    void goToPlyOnLine(int lineEndNodeId, int ply);
     /// 本譜の同じ手数へ移る（本譜が短ければ本譜の最終手）
     void goToMainLineAtCurrentPly();
 
@@ -96,7 +97,7 @@ signals:
 
 private:
     KifuNavigationState* m_state = nullptr;   ///< 表示中の手（非所有）
-    std::function<bool()> m_leaveGuard;       ///< 移動前の確認（未設定なら常に移動する）
+    QList<std::function<bool()>> m_leaveGuards;   ///< 移動前の確認（無ければ常に移動する）
     std::array<QAction*, StepCount> m_actions{}; ///< 局面送りの操作（Step の順）
 };
 

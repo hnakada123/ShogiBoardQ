@@ -9,25 +9,37 @@
 #include "matchcoordinator.h"
 #include "shogigamecontroller.h"
 
-bool HumanTurnPolicy::isHumanTurnNow() const
+HumanTurnPolicy::BoardInput HumanTurnPolicy::boardInput() const
 {
-    // 対局していない待機中は、盤上の着手を表示中の手の次の手（変化）として記録する。
-    // 終局後も同じ扱いで、指し継いだ手は分岐ツリーに変化として加わる。
-    if (!isGameActivelyInProgress()) {
-        return m_deps.activity && m_deps.activity->is(AppActivityState::Activity::Idle) && m_deps.branchEdit
-            && m_deps.branchEdit->canRecordBoardMove();
-    }
-
+    if (m_disabled || !m_deps.activity) return BoardInput::None;
     switch (m_deps.activity->activity()) {
-    case AppActivityState::Activity::DuringGame:
-        return m_deps.gameController && m_deps.match->isHumanSide(m_deps.gameController->currentPlayer());
+    case AppActivityState::Activity::DuringPositionEdit:
+        return BoardInput::Edit;
+    case AppActivityState::Activity::Idle:
+        // 対局していない待機中は、盤上の着手を表示中の手の次の手（変化）として記録する。
+        // 終局後も同じ扱いで、指し継いだ手は分岐ツリーに変化として加わる。
+        return m_deps.branchEdit && m_deps.branchEdit->canEdit() ? BoardInput::Variation : BoardInput::None;
+    case AppActivityState::Activity::DuringGame: {
+        const MatchCoordinator* match = m_deps.match;
+        const bool humanTurn = match && m_deps.gameController && match->canAcceptMove()
+            && match->isHumanSide(m_deps.gameController->currentPlayer());
+        return humanTurn ? BoardInput::Game : BoardInput::None;
+    }
     case AppActivityState::Activity::DuringCsaGame: {
         const CsaGameCoordinator* csa = m_deps.csaGame;
-        return csa && csa->isHumanPlayer() && csa->isMyTurn();
+        const bool myTurn = csa && csa->gameState() == CsaGameCoordinator::GameState::InGame && csa->isHumanPlayer()
+            && csa->isMyTurn();
+        return myTurn ? BoardInput::CsaServer : BoardInput::None;
     }
     default:
-        return false;
+        return BoardInput::None;
     }
+}
+
+bool HumanTurnPolicy::isHumanTurnNow() const
+{
+    const BoardInput input = boardInput();
+    return input == BoardInput::Variation || input == BoardInput::Game || input == BoardInput::CsaServer;
 }
 
 bool HumanTurnPolicy::isGameActivelyInProgress() const

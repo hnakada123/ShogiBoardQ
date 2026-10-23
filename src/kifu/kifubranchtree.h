@@ -120,6 +120,9 @@ public:
      * @brief ノードIDからノードを取得
      */
     KifuBranchNode* nodeAt(int nodeId) const;
+    /// lineEndNodeId の手で終わる手順の ply 手目のノード（ply が手順より後なら末尾。手が無ければ nullptr）。
+    /// 手順を手の ID で覚えると、分岐を足す・本譜にする・並べ替えても同じ手順を指す
+    KifuBranchNode* nodeOnLine(int lineEndNodeId, int ply) const;
 
     /**
      * @brief 親ノードの子から、同じ指し手を表す既存ノードを探す

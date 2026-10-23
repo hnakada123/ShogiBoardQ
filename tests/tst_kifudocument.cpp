@@ -476,10 +476,10 @@ private slots:
         tree.setRootSfen(QStringLiteral("lnsgkgsnl/1r7/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"));  // 角落ち
         KifuDocument document(&tree);
         MatchPlayers players;
-        players.blackIsEngine = true;
-        players.whiteIsEngine = true;
-        players.blackEngineName = QStringLiteral("下手エンジン");
-        players.whiteEngineName = QStringLiteral("上手エンジン");
+        players.seat(Turn::Black).engine = true;
+        players.seat(Turn::White).engine = true;
+        players.seat(Turn::Black).engineName = QStringLiteral("下手エンジン");
+        players.seat(Turn::White).engineName = QStringLiteral("上手エンジン");
         document.beginMatch(players, TimeControl{{60000, 2000, 0}, {120000, 3000, 0}}, false);
         const QString kif = KifuExport::lines(document, KifuFormat::Kif).join(QLatin1Char('\n'));
         QVERIFY2(kif.contains(QStringLiteral("下手：下手エンジン")), qPrintable(kif));
@@ -950,7 +950,7 @@ private slots:
         pending.append({QStringLiteral("場所"), QStringLiteral("将棋会館")});
         KifuDocument::Hooks hooks;
         hooks.commitPendingEdits = [&document, pending]() { document.editHeader(pending); };
-        document.setHooks(hooks);
+        document.addPendingEditor(hooks);
         document.startNew(kHirateSfen, true);
         QCOMPARE(document.header(), pending);
     }
@@ -972,7 +972,7 @@ private slots:
             document.editHeader(pending);
         };
         hooks.hasPendingEdits = [&hasPending]() { return hasPending; };
-        document.setHooks(hooks);
+        document.addPendingEditor(hooks);
 
         QVERIFY(document.isModified());
         QVERIFY(document.header() != pending);  // 読むだけでは確定しない
@@ -1005,9 +1005,9 @@ private slots:
         setupBasicTree(tree);
         KifuDocument document(&tree);
         MatchPlayers players;
-        players.blackIsEngine = true;
-        players.blackEngineName = QStringLiteral("Engine A");
-        players.whiteHumanName = QStringLiteral("人間");
+        players.seat(Turn::Black).engine = true;
+        players.seat(Turn::Black).engineName = QStringLiteral("Engine A");
+        players.seat(Turn::White).humanName = QStringLiteral("人間");
         document.beginMatch(players, TimeControl{{60000, 0, 0}, {60000, 0, 0}}, false);
         document.recordMatchEnd();
         document.markSaved(QStringLiteral("/tmp/a.kif"));
@@ -1022,7 +1022,7 @@ private slots:
         QVERIFY(document.replaceWithRecord(record, header));
         QCOMPARE(reset.count(), 1);
         QCOMPARE(playersChanged.count(), 1);
-        QVERIFY(document.players().blackEngineName.isEmpty());
+        QVERIFY(document.players().seat(Turn::Black).engineName.isEmpty());
         QVERIFY(!document.timeRecord().startDateTime().isValid());
         QVERIFY(document.filePath().isEmpty());
         QVERIFY(!document.isModified());
@@ -1050,8 +1050,8 @@ private slots:
         document.editHeader(header);
 
         MatchPlayers players;
-        players.blackHumanName = QStringLiteral("先手さん");
-        players.whiteHumanName = QStringLiteral("後手さん");
+        players.seat(Turn::Black).humanName = QStringLiteral("先手さん");
+        players.seat(Turn::White).humanName = QStringLiteral("後手さん");
         document.beginMatch(players, TimeControl{}, false);
         const QList<KifGameInfoItem> items = document.header();
         auto valueOf = [&items](const QString& key) {

@@ -8,7 +8,7 @@
 #include "mainwindowcomposer.h"
 #include "branchtreeview.h"
 #include "commenteditorpanel.h"
-#include "considerationtabmanager.h"
+#include "considerationpanel.h"
 #include "dialoglauncher.h"
 #include "enginelistsettings.h"
 #include "engineprofilestore.h"
@@ -105,7 +105,7 @@ private slots:
         MainWindow window;
         auto* tab = window.composer().parts().considerationTab;
         QVERIFY(tab->settings().engineName.isEmpty());
-        EngineListSettings::EngineEntry engine;
+        EngineEntry engine;
         engine.name = QStringLiteral("NewEngine");
         engine.path = QStringLiteral("/engines/new/engine");
         EngineProfileStore::saveEngines({engine});

@@ -26,7 +26,7 @@ public:
     ~TsumeShogiSearchDialog() override;
 
     /// 選んでいるエンジン（未登録なら std::nullopt）
-    std::optional<EngineListSettings::EngineEntry> engine() const;
+    std::optional<EngineEntry> engine() const;
     int byoyomiSec() const;
     bool unlimitedTimeFlag() const;
 
@@ -34,7 +34,7 @@ public slots:
     void accept() override;
 
 private slots:
-    void showEngineSettingsDialog(const EngineListSettings::EngineEntry& engine);
+    void showEngineSettingsDialog(const EngineEntry& engine);
     void updateEngineSelection();
 
 private:

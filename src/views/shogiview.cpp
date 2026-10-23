@@ -3,7 +3,7 @@
 
 #include "shogiview.h"
 
-#include "applicationfonts.h"
+#include "movefont.h"
 #include "appsettings.h"
 #include "boardappearance.h"
 #include "boardconstants.h"
@@ -151,15 +151,20 @@ void ShogiView::rebuildGeometry(int squareSize, bool flipped)
     relayoutChrome();
 }
 
-void ShogiView::applyBoardScaleChange(int squareSize, bool emitSignal)
+void ShogiView::applyBoardScaleChange(int squareSize)
 {
     rebuildGeometry(squareSize, flipMode());
     updateGeometry();
-
-    if (emitSignal) {
-        emit fieldSizeChanged(fieldSize());
-    }
     update();
+}
+
+void ShogiView::zoomTo(int size)
+{
+    if (size < BoardGeometry::kMinSquareSize || size > BoardGeometry::kMaxSquareSize || size == squareSize()) return;
+    // ドラッグ中の駒の位置はマスの大きさで決まるので放す
+    endDrag();
+    applyBoardScaleChange(size);
+    emit fieldSizeChanged(fieldSize());
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -171,23 +176,17 @@ void ShogiView::setSquareSize(int size)
     if (size < BoardGeometry::kMinSquareSize || size > BoardGeometry::kMaxSquareSize) {
         return;
     }
-    applyBoardScaleChange(size, false);
+    applyBoardScaleChange(size);
 }
 
-void ShogiView::enlargeBoard(bool emitSignal)
+void ShogiView::enlargeBoard()
 {
-    if (squareSize() >= BoardGeometry::kMaxSquareSize) {
-        return;
-    }
-    applyBoardScaleChange(squareSize() + 1, emitSignal);
+    zoomTo(squareSize() + 1);
 }
 
-void ShogiView::reduceBoard(bool emitSignal)
+void ShogiView::reduceBoard()
 {
-    if (squareSize() <= BoardGeometry::kMinSquareSize) {
-        return;
-    }
-    applyBoardScaleChange(squareSize() - 1, emitSignal);
+    zoomTo(squareSize() - 1);
 }
 
 void ShogiView::setPositionEditMode(bool positionEditMode)
@@ -239,7 +238,7 @@ void ShogiView::configureFixedSizing(int squarePx)
 {
     setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
     const int s = (squarePx > 0) ? squarePx : squareSize();
-    applyBoardScaleChange(std::clamp(s, BoardGeometry::kMinSquareSize, BoardGeometry::kMaxSquareSize), false);
+    applyBoardScaleChange(std::clamp(s, BoardGeometry::kMinSquareSize, BoardGeometry::kMaxSquareSize));
 }
 
 // ============================================================
@@ -532,15 +531,7 @@ void ShogiView::onBoardReset()
 QRect ShogiView::pieceBoxRect() const
 {
     if (!positionEditMode() || !m_board) return {};
-    // 駒箱は左の駒台の下側の対局者カードのさらに下、盤の下端に揃えて置く
-    const Turn leftSide = flipMode() ? Turn::Black : Turn::White;
-    const QRect stand = m_geometry.stand(leftSide);
-    const PlayerCard* card = m_chrome->card(leftSide);
-    const int top = (card->isHidden() ? stand.bottom() : card->geometry().bottom()) + m_geometry.standGap() + 1;
-    const int bottom = m_geometry.board().top() + m_geometry.board().height();
-    const int height = qMin(bottom - top, qRound(fieldSize().height() * 3.2));
-    if (height <= 0) return {};
-    return QRect(stand.left(), bottom - height, stand.width(), height);
+    return m_geometry.pieceBox(m_chrome->cardHeight(), height());
 }
 
 QRect ShogiView::pieceBoxCellRect(int rank) const
@@ -572,9 +563,7 @@ void ShogiView::drawRanksAndFiles(QPainter* painter) const
     QFont font = painter->font();
     font.setPixelSize(m_geometry.labelPixelSize());
     font.setBold(false);
-    QFont rankFont = font;
-    if (KifuPresentation::options().notation == KifuPresentation::Notation::Japanese)
-        rankFont = ApplicationFonts::japaneseFont(rankFont);
+    const QFont rankFont = MoveFont::font(font);   // 段の漢数字は指し手と同じ書体
     painter->setPen(m_boardColors.grid);
     painter->setFont(rankFont);
     for (int rank = 1; rank <= m_board->ranks(); ++rank) {

@@ -415,11 +415,11 @@ private slots:
     /// 以前の版が保存した番号・パスも読み、保存し直すと名前に置き換える
     void engineSelection_storedByName()
     {
-        using EngineListSettings::EngineEntry;
-        const QList<EngineEntry> engines{{QStringLiteral("A"), QStringLiteral("/engines/a"), {}},
+        const QList<EngineEntry> entries{{QStringLiteral("A"), QStringLiteral("/engines/a"), {}},
                                          {QStringLiteral("B"), QStringLiteral("/engines/b"), {}},
                                          {QStringLiteral("C"), QStringLiteral("/engines/c"), {}}};
-        const QList<EngineEntry> reordered{engines.at(2), engines.at(0), engines.at(1)};
+        const RegisteredEngines engines(entries);
+        const RegisteredEngines reordered({entries.at(2), entries.at(0), entries.at(1)});
         QSettings& s = SettingsCommon::openSettings();
         for (const auto& keys : {EngineListSettings::considerationSelection(), EngineListSettings::kifuAnalysisSelection(),
                                  EngineListSettings::tsumeSearchSelection(),

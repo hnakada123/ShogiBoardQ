@@ -38,7 +38,7 @@
 #include "kifuconversionservice.h"
 #include "sfenreplay.h"
 #include "sfenutils.h"
-#include "analysisresulthandler.h"
+#include "kifuanalysisrowpresenter.h"
 #include "kifuanalysislistmodel.h"
 #include "kifuanalysisrow.h"
 #include "kifuanalysisdialog.h"
@@ -259,11 +259,11 @@ private slots:
         QVERIFY(!history.last().isEmpty());
         QStringList moves{QStringLiteral("3c3d")};
         KifuAnalysisListModel model;
-        AnalysisResultHandler::Refs refs;
+        KifuAnalysisRowPresenter::Refs refs;
         refs.analysisModel = &model;
         RecordLine line = RecordLine::fromPositions(history, TestReplay::buildGameMoves(initial, moves));
         refs.line = &line;
-        AnalysisResultHandler handler(refs);
+        KifuAnalysisRowPresenter handler(refs);
         KifuPresentation::configure("en", "auto", false);
         PlyAnalysis first;
         first.ply = 0;

@@ -36,14 +36,19 @@ public:
     /// 結果テーブルビューを返す
     PvTableView* view() const { return m_view; }
 
-    /// 解析中止ボタンの有効/無効を切り替える
-    void setStopButtonEnabled(bool enabled);
+    /// 解析の進み（進み具合の文・中止ボタン・行の選択と盤面の表示を受け付けるかを決める）
+    enum class RunState {
+        Idle,       ///< まだ解析していない
+        Running,
+        Stopped,    ///< 途中で止めた
+        Completed,  ///< 最後まで解析した
+    };
 
-    /// 対象局面数と使用エンジンを表示して進捗を開始する
+    /// 対象局面数と使用エンジンを表示して解析中にする
     void beginAnalysis(int totalPositions, const QString& engineName);
-
-    /// 解析完了メッセージを表示する
-    void showAnalysisComplete(int totalMoves);
+    /// 解析を終えた（completed なら最後まで解析した、そうでなければ途中で止めた）
+    void finishAnalysis(bool completed);
+    RunState runState() const { return m_runState; }
 
     /// 表示中の局面に合わせて行を選ぶ（通知しない。範囲外なら選択解除、解析中は変更しない）
     void selectRow(int row);
@@ -112,7 +117,7 @@ private:
     int m_reflowFromRow = -1;      ///< 次の列幅合わせで測り始める行（足した・変わった行。-1 は無し）
     int m_totalPositions = 0;
 
-    bool m_isAnalyzing = false;    ///< 解析中（最後に確定した行を選び、利用者の選択・盤面の表示は無視する）
+    RunState m_runState = RunState::Idle;   ///< 解析中は最後に確定した行を選び、利用者の選択・盤面の表示は無視する
 };
 
 #endif // ANALYSISRESULTSPANEL_H

@@ -63,6 +63,24 @@ bool isSavable(KifuFormat format)
     return format != KifuFormat::Sfen && format != KifuFormat::Bod;
 }
 
+QStringList readableSuffixes(std::optional<KifuFormat> format)
+{
+    QStringList suffixes;
+    for (const auto& entry : kNames) {
+        if (entry.format == KifuFormat::Bod) continue;   // 局面図はファイルで開かない
+        if (!format || entry.format == *format) suffixes.append(QString::fromLatin1(entry.name));
+        // JKF は .json で配布されることも多い
+        if (entry.format == KifuFormat::Jkf && (!format || *format == KifuFormat::Jkf))
+            suffixes.append(QStringLiteral("json"));
+    }
+    return suffixes;
+}
+
+bool isReadableFile(const QString& path)
+{
+    return readableSuffixes().contains(QFileInfo(path).suffix().toLower());
+}
+
 KifuFormat detectFile(const QString& filePath)
 {
     if (const auto format = fromPath(filePath)) return *format == KifuFormat::Sfen ? KifuFormat::Usi : *format;
@@ -70,7 +88,7 @@ KifuFormat detectFile(const QString& filePath)
     // JKF は .json で配布されることも多い。拡張子で決まらないときは内容で判定する。
     QStringList lines;
     QString usedEncoding;
-    if (KifReader::readLinesAuto(filePath, lines, &usedEncoding, nullptr)) {
+    if (KifReader::readAllLinesAuto(filePath, lines, &usedEncoding, nullptr)) {
         switch (const KifuFormat detected = detect(lines.join(QLatin1Char('\n')))) {
         case KifuFormat::Ki2:
         case KifuFormat::Csa:

@@ -12,12 +12,12 @@
  * @brief 応答の後に行う UI 操作1つ
  *
  * モーダルダイアログを開く操作でも応答を返せるよう、操作は応答の後のイベントループで行う。
- * そのため受付の時点の検査に加えて、実行の直前に check でもう一度確かめる（応答の後に
- * 対象が隠れた・別のダイアログに遮られた、など）。
+ * check は予約の時点（失敗すればその場でエラーの応答）と、実行の直前（応答の後に対象が隠れた・
+ * 別のダイアログに遮られた、など）の2回走る。メソッドは同じ検査を予約の前に書かない。
  */
 struct QueuedInteraction {
     QPointer<QObject> target;     ///< 操作の対象。実行前に消えたら取り消す
-    std::function<void()> check;  ///< 実行の直前の検査（AutomationError を投げて止める。省略可）
+    std::function<void()> check;  ///< 予約の時点と実行の直前の検査（AutomationError を投げて止める。省略可）
     std::function<void()> perform; ///< 操作。AutomationError を投げれば失敗として記録する
 };
 
@@ -32,7 +32,8 @@ namespace AutomationInteractions {
 
 inline constexpr int kHistoryLimit = 256;
 
-/// interaction を予約し、response に "queued": true と "interaction"（番号）を足して返す
+/// interaction の check を走らせてから予約し、response に "queued": true と "interaction"（番号）を足して返す。
+/// check が失敗すれば予約せずに AutomationError を投げる
 QJsonObject queue(QueuedInteraction interaction, QJsonObject response);
 
 /// 番号の操作の状態 {interaction, state, error?}。知らない番号・古くて消えた番号は AutomationError（NotFound）

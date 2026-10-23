@@ -27,10 +27,13 @@ public:
      */
     JosekiMoveInputWidget(const QString &name, const QString &title, bool hasNoneOption, QWidget *parent = nullptr);
 
-    /// 選んだ指し手（USI。「なし」は "none"、選んでいなければ空）
+    /// 「なし」の項目の値（usiMove・setUsiMove で使う）
+    static inline const QString kNoMove = QStringLiteral("none");
+
+    /// 選んだ指し手（USI。「なし」は kNoMove、選んでいなければ空）
     QString usiMove() const;
 
-    /// usiMove を選ぶ（"none" は「なし」）。今の局面の合法手になければ、局面が変わったときに選び直す
+    /// usiMove を選ぶ（kNoMove は「なし」）。今の局面の合法手になければ、局面が変わったときに選び直す
     void setUsiMove(const QString &usiMove);
 
     /// 合法手を並べる局面（空なら何も並べない）。選んでいた手が合法手にあれば選んだままにする

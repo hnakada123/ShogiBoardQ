@@ -35,11 +35,11 @@
 
 namespace {
 /// 定跡手の入力欄に指し手と予想応手を入れる（値は既定値）
-void setMoves(JosekiMoveDialog &dialog, const QString &move, const QString &next = QStringLiteral("none"))
+void setMoves(JosekiMoveDialog &dialog, const QString &move, const QString &next = QString())
 {
     JosekiMove entry;
     entry.move = move;
-    entry.nextMove = next;
+    if (!next.isEmpty()) entry.nextMove = next;
     entry.depth = 32;
     entry.frequency = 1;
     dialog.setEntry(entry);
@@ -995,7 +995,7 @@ void TestJosekiWindow::testReplyValidationAndPreview()
     // 一覧で選び直すと、予想応手の一覧も着手後の局面に替わる
     moves->setCurrentIndex(moves->findData(QStringLiteral("2g2f")));
     QCOMPARE(dialog.entry().move, QStringLiteral("2g2f"));
-    QCOMPARE(dialog.entry().nextMove, QStringLiteral("8c8d"));
+    QCOMPARE(dialog.entry().nextMove.value_or(QString()), QStringLiteral("8c8d"));
     dialog.show();
     QVERIFY(QTest::qWaitForWindowExposed(&dialog));
     const QString shots = qEnvironmentVariable("JOSEKI_SCREENSHOT_DIR");
@@ -1011,7 +1011,7 @@ void TestJosekiWindow::acceptMoveEdit()
     auto *reply = dialog->findChild<JosekiMoveInputWidget*>(QStringLiteral("nextMoveInput"));
     QVERIFY(reply && reply->isVisible());
     JosekiMove edited = dialog->entry();
-    QCOMPARE(edited.nextMove, QStringLiteral("8c8d"));
+    QCOMPARE(edited.nextMove.value_or(QString()), QStringLiteral("8c8d"));
     edited.nextMove = QStringLiteral("3c3d");
     dialog->setEntry(edited);
     dialog->accept();
@@ -1030,12 +1030,12 @@ void TestJosekiWindow::testEditReplyAndLargeFrequency()
     QVERIFY(QTest::qWaitForWindowExposed(&window));
     QTimer::singleShot(0, this, &TestJosekiWindow::acceptMoveEdit);
     window.editMoveAt(0);
-    QCOMPARE(window.m_model->moves().first().nextMove, QStringLiteral("3c3d"));
+    QCOMPARE(window.m_model->moves().first().nextMove.value_or(QString()), QStringLiteral("3c3d"));
     QCOMPARE(window.m_model->moves().first().frequency, 2000000);
     QVERIFY(window.m_session->save(path));
     const auto saved = JosekiBookFile::load(path);
     QVERIFY(saved.success);
-    QCOMPARE(saved.book.movesAt(key).first().nextMove, QStringLiteral("3c3d"));
+    QCOMPARE(saved.book.movesAt(key).first().nextMove.value_or(QString()), QStringLiteral("3c3d"));
     QCOMPARE(saved.book.movesAt(key).first().frequency, 2000000);
 }
 

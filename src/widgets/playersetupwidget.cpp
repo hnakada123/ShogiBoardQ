@@ -122,7 +122,7 @@ PlayerChoice PlayerSetupWidget::choice() const
 {
     PlayerChoice choice;
     choice.humanName = m_humanName->text();
-    if (const std::optional<EngineListSettings::EngineEntry> engine = m_selector->selected()) {
+    if (const std::optional<EngineEntry> engine = m_selector->selected()) {
         choice.kind = PlayerChoice::Kind::Engine;
         choice.engine = *engine;
         choice.joseki = josekiOptions();
@@ -170,13 +170,13 @@ void PlayerSetupWidget::setChoice(const PlayerChoice& choice)
 void PlayerSetupWidget::load()
 {
     m_humanName->setText(m_saved.humanName.valueOr(tr("You")));
-    const QList<EngineListSettings::EngineEntry>& engines = m_selector->engines();
+    const RegisteredEngines& engines = m_selector->engines();
     int index = -1;
     if (!m_saved.isHuman()) {
         const QString name = m_saved.engineName();
         if (!name.isEmpty()) {
             // 保存したエンジンが削除されていれば人間に戻す（別のエンジンに替えない）
-            index = EngineListSettings::indexOfName(engines, name);
+            index = engines.indexOfName(name);
         } else {
             // 名前の無い以前の版は番号・パスで探す。何も保存していなければ先頭の登録エンジン
             index = EngineListSettings::restoreSelection({nullptr, m_saved.engineNumber.key(),
@@ -185,7 +185,7 @@ void PlayerSetupWidget::load()
             if (index < 0 && !engines.isEmpty()) index = 0;
         }
     }
-    if (index >= 0) m_selector->select(engines.at(index).name);
+    if (index >= 0) m_selector->select(engines.entries().at(index).name);
     else m_selector->selectBuiltin();
     setJosekiOptions(JosekiSettings::playOptions(m_side)());
     updatePages();
@@ -204,7 +204,7 @@ void PlayerSetupWidget::save() const
 void PlayerSetupWidget::reset(bool engine)
 {
     m_humanName->setText(tr("You"));
-    if (engine && m_selector->hasEngines()) m_selector->select(m_selector->engines().first().name);
+    if (engine && m_selector->hasEngines()) m_selector->select(m_selector->engines().entries().first().name);
     else m_selector->selectBuiltin();
     setJosekiOptions(JosekiPlayOptions{});
 }

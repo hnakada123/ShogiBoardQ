@@ -398,7 +398,7 @@ private slots:
         TestChart widget;
         widget.resize(1000, 400);
         widget.appendScoreP1(5, UsiScore::cp(450));
-        widget.points().setAnalysisLineIndex(analysisLine);
+        widget.points().setAnalysisLine(analysisLine, analysisLine >= 0 ? QStringLiteral("本譜") : QString());
         widget.show();
         QVERIFY(QTest::qWaitForWindowExposed(&widget));
         auto* chartView = view(widget);
@@ -501,10 +501,12 @@ private slots:
         TestChart widget;
         widget.resize(1000, 400);
         widget.appendScoreP1(3, UsiScore::cp(50));
-        widget.points().setAnalysisLineIndex(2);
+        widget.points().setAnalysisLine(2, QStringLiteral("分岐 1"));
         widget.show();
         QTest::qWait(30);
         auto* chartView = view(widget);
+        // 見出しに解析した手順の名前を出す
+        QVERIFY(chartView->summary.startsWith(QStringLiteral("分岐 1  |  ")));
         QSignalSpy normal(&widget, &EvaluationChartWidget::plyClicked);
         QSignalSpy analysis(&widget, &EvaluationChartWidget::analysisPlyClicked);
         const QPoint point = chartView->mapFromScene(chartView->chart()->mapToScene(

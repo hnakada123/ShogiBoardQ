@@ -11,10 +11,10 @@
 #include "shogitypes.h"
 
 /**
- * @brief 持将棋（入玉宣言法）の点数計算を行うユーティリティクラス
+ * @brief 持将棋（入玉宣言法）の点数計算と宣言の判定
  *
- * 盤面と持ち駒から24点法・27点法の宣言判定を行う。
- *
+ * 盤面と持ち駒から宣言点数を数え、24点法・27点法で宣言の成否を判定する。点数の閾値はここだけで決める
+ * （判定の説明の文言は、対局の判定 NyugyokuJudgement と点数のダイアログが作る）。
  */
 class JishogiCalculator
 {
@@ -35,6 +35,20 @@ public:
         PlayerScore gote;  ///< 後手の点数
     };
 
+    /// 持将棋の点数法
+    enum class Rule {
+        Points24,  ///< 24点法（31点以上で勝ち、24〜30点で持将棋）
+        Points27,  ///< 27点法（先手28点・後手27点以上で勝ち）
+    };
+
+    /// 宣言の判定
+    enum class Verdict {
+        NotDeclarable,  ///< 宣言条件（玉が敵陣・敵陣に10枚以上・王手なし）を満たさない（宣言すれば負け）
+        ShortOfPoints,  ///< 条件は満たすが点数が足りない（宣言すれば負け）
+        Draw,           ///< 持将棋（24点法の24〜30点）
+        Win,            ///< 宣言勝ち
+    };
+
     // --- 公開API ---
 
     /// 局面（盤と持ち駒）から点数を計算する
@@ -44,19 +58,14 @@ public:
     /// @param kingInCheck 玉が王手されているかどうか
     static bool meetsDeclarationConditions(const PlayerScore& score, bool kingInCheck);
 
-    /// 24点法での判定文字列を取得する
-    /// - 31点以上: 勝ち
-    /// - 24〜30点: 引き分け（持将棋成立）
-    /// - 24点未満または条件未達: 宣言失敗
-    /// @param kingInCheck 玉が王手されているかどうか
-    static QString result24(const PlayerScore& score, bool kingInCheck);
+    /// 宣言側（isSente）の宣言を rule で判定する
+    static Verdict judge(const PlayerScore& score, Rule rule, bool isSente, bool kingInCheck);
 
-    /// 27点法での判定文字列を取得する
-    /// - 先手: 28点以上で勝ち
-    /// - 後手: 27点以上で勝ち
-    /// @param isSente true=先手, false=後手
-    /// @param kingInCheck 玉が王手されているかどうか
-    static QString result27(const PlayerScore& score, bool isSente, bool kingInCheck);
+    /// 宣言して負けにならない宣言点数の下限（24点法は持将棋の24点、27点法は勝ちの点数）
+    static int requiredPoints(Rule rule, bool isSente);
+
+    /// 勝ちに要る宣言点数（24点法は31点、27点法は先手28点・後手27点）
+    static int winningPoints(Rule rule, bool isSente);
 
 private:
     // --- 内部ヘルパー ---

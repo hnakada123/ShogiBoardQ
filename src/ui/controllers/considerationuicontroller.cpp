@@ -6,8 +6,8 @@
 #include "analysissession.h"
 #include "changeenginesettingsdialog.h"
 #include "considerationpositionresolver.h"
-#include "considerationtabmanager.h"
-#include "enginelistsettings.h"
+#include "considerationpanel.h"
+#include "registeredengines.h"
 #include "errorbus.h"
 #include "kifunavigationstate.h"
 #include "logcategories.h"
@@ -15,40 +15,39 @@
 ConsiderationUiController::ConsiderationUiController(const Deps& deps, QObject* parent)
     : QObject(parent)
     , m_parentWidget(deps.parentWidget)
-    , m_considerationTabManager(deps.considerationTabManager)
+    , m_considerationPanel(deps.considerationPanel)
     , m_session(deps.session)
     , m_navState(deps.navState)
 {
-    if (m_considerationTabManager) {
-        connect(m_considerationTabManager, &ConsiderationTabManager::startConsiderationRequested,
+    if (m_considerationPanel) {
+        connect(m_considerationPanel, &ConsiderationPanel::startConsiderationRequested,
                 this, &ConsiderationUiController::startConsideration);
-        connect(m_considerationTabManager, &ConsiderationTabManager::stopConsiderationRequested,
+        connect(m_considerationPanel, &ConsiderationPanel::stopConsiderationRequested,
                 this, &ConsiderationUiController::stopConsideration);
-        connect(m_considerationTabManager, &ConsiderationTabManager::engineSettingsRequested,
+        connect(m_considerationPanel, &ConsiderationPanel::engineSettingsRequested,
                 this, &ConsiderationUiController::onEngineSettingsRequested);
-        connect(m_considerationTabManager, &ConsiderationTabManager::settingsChanged,
+        connect(m_considerationPanel, &ConsiderationPanel::settingsChanged,
                 this, &ConsiderationUiController::onSettingsChanged);
     }
 }
 
 void ConsiderationUiController::startConsideration()
 {
-    if (!m_session || !m_navState || !m_considerationTabManager) return;
+    if (!m_session || !m_navState || !m_considerationPanel) return;
     // エンジン破棄中の場合は検討開始を拒否（ハングアップ防止）
     if (m_session->isShutdownInProgress()) {
         qCDebug(lcUi) << "startConsideration: engine shutdown in progress, ignoring";
         return;
     }
-    const ConsiderationSettings settings = m_considerationTabManager->settings();
+    const ConsiderationSettings settings = m_considerationPanel->settings();
     if (settings.engineName.isEmpty()) {
         ErrorBus::instance().postMessage(ErrorBus::ErrorLevel::Error, tr("将棋エンジンが選択されていません。"));
         return;
     }
     // エンジンは名前（検討タブで選んだもの）で引く。番号で引くと、タブの一覧を作った後に
     // 登録が変わったときに名前とパスが食い違う
-    const QList<EngineListSettings::EngineEntry> engines = EngineListSettings::loadEngines();
-    const int index = EngineListSettings::indexOfName(engines, settings.engineName);
-    if (index < 0 || engines.at(index).path.isEmpty()) {
+    const std::optional<EngineEntry> engine = RegisteredEngines::load().findByName(settings.engineName);
+    if (!engine || engine->path.isEmpty()) {
         ErrorBus::instance().postMessage(ErrorBus::ErrorLevel::Warning, tr("検討エンジンの選択が不正です。"));
         return;
     }
@@ -64,8 +63,8 @@ void ConsiderationUiController::startConsideration()
 
     AnalysisOptions opt;
     opt.mode = AnalysisOptions::Mode::Consideration;
-    opt.enginePath = engines.at(index).path;
-    opt.engineName = engines.at(index).name;
+    opt.enginePath = engine->path;
+    opt.engineName = engine->name;
     opt.position = *position;
     opt.byoyomiMs = settings.byoyomiMs();
     opt.multiPV = settings.multiPV;
@@ -75,7 +74,7 @@ void ConsiderationUiController::startConsideration()
     m_session->start(opt);
 }
 
-void ConsiderationUiController::onEngineSettingsRequested(const EngineListSettings::EngineEntry& engine)
+void ConsiderationUiController::onEngineSettingsRequested(const EngineEntry& engine)
 {
     qCDebug(lcUi) << "onEngineSettingsRequested engine=" << engine.name;
     ChangeEngineSettingsDialog dialog(engine, m_parentWidget);

@@ -341,7 +341,7 @@ bool EvaluationChartWidget::eventFilter(QObject* obj, QEvent* event)
         if (mouse->button() == Qt::LeftButton && m_chart->plotArea().contains(chartPos)) {
             if (!m_navigationEnabled) return true;
             const int ply = qMax(0, qRound(m_chart->mapToValue(chartPos, m_series[0]).x()));
-            if (m_evaluation->analysisLineIndex() >= 0) emit analysisPlyClicked(m_evaluation->analysisLineIndex(), ply);
+            if (m_evaluation->analysisLineEnd() >= 0) emit analysisPlyClicked(m_evaluation->analysisLineEnd(), ply);
             else emit plyClicked(ply);
             return true;
         }
@@ -487,11 +487,8 @@ void EvaluationChartWidget::updatePresentation()
     }
     m_chartView->summary = tr("%1手目  |  %2").arg(m_currentPly)
         .arg(values.isEmpty() ? tr("評価値なし") : values.join(QStringLiteral("   /   ")));
-    const int analysisLine = m_evaluation->analysisLineIndex();
-    if (analysisLine >= 0) {
-        const QString lineName = analysisLine == 0 ? tr("本譜") : tr("分岐 %1").arg(analysisLine);
-        m_chartView->summary.prepend(lineName + QStringLiteral("  |  "));
-    }
+    if (!m_evaluation->analysisLineName().isEmpty())
+        m_chartView->summary.prepend(m_evaluation->analysisLineName() + QStringLiteral("  |  "));
     m_chartView->setAccessibleName(m_chartView->summary);
     m_chartView->currentPly = m_currentPly;
     m_chartView->xLimit = xAxisLimit();

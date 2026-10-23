@@ -57,7 +57,8 @@ signals:
     /// 「表示設定…」を押した（表示設定のダイアログは上の層が開き、setChartSettings で戻す）
     void settingsRequested();
     void plyClicked(int ply);
-    void analysisPlyClicked(int lineIndex, int ply);
+    /// 棋譜解析の点をクリックした（lineEndNodeId は解析した手順の末尾の手。EvaluationSeries::analysisLineEnd）
+    void analysisPlyClicked(int lineEndNodeId, int ply);
 
 protected:
     void changeEvent(QEvent* event) override;

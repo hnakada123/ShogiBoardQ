@@ -8,18 +8,18 @@
 #include <QString>
 #include <optional>
 
-#include "enginelistsettings.h"
+#include "registeredengines.h"
 
 /**
  * @brief 登録済みエンジンの名前解決と一覧の JSON 化
  *
  * 自動化 API と CLI は任意の実行ファイルパスを受け付けず、
- * `EngineListSettings::loadEngines()` にある名前だけをエンジンとして使う。
+ * 登録エンジンの一覧（`RegisteredEngines`）にある名前だけをエンジンとして使う。
  */
 namespace EngineCatalog {
 
 /// 名前が一致する登録エンジンを返す。見つからなければ nullopt を返し、error に候補名を含む説明を入れる
-std::optional<EngineListSettings::EngineEntry> findByName(const QString& name, QString* error = nullptr);
+std::optional<EngineEntry> findByName(const QString& name, QString* error = nullptr);
 
 /// 登録エンジン一覧を JSON 配列にする（name, path, author, exists）
 QJsonArray toJson();

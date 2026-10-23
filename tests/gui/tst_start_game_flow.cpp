@@ -289,7 +289,7 @@ private slots:
         const auto history = match->record().sfens();
         const auto board = view->board()->position().boardSfen();
         child<QAction>(*window, "actionBreakOffGame")->trigger();
-        QVERIFY(match->gameOverState().isOver);
+        QVERIFY(match->isGameOver());
         QVERIFY(resume->isEnabled());
         QVERIFY(match->interruptedGame());
         const auto saved = match->interruptedGame()->clock;
@@ -304,7 +304,7 @@ private slots:
         table->selectRow(0);
         QTest::qWait(25);
         resume->trigger();
-        QVERIFY(!match->gameOverState().isOver);
+        QVERIFY(!match->isGameOver());
         QVERIFY(!resume->isEnabled());
         QCOMPARE(match->record().sfens(), history);
         QCOMPARE(view->board()->position().boardSfen(), board);
@@ -322,13 +322,13 @@ private slots:
         playNext();
         QTRY_COMPARE(match->record().sfens().size(), pausePly + 2);
         QCOMPARE(match->record().sfens().mid(0, history.size()), history);
-        QVERIFY(!match->gameOverState().isOver);
+        QVERIFY(!match->isGameOver());
         child<QAction>(*window, "actionBreakOffGame")->trigger();
         QVERIFY(resume->isEnabled());
         const qint64 left = clock->remainingTurnTimeMs(clock->currentPlayer());
         QTest::qWait(100);
         resume->trigger();
-        QVERIFY(!match->gameOverState().isOver);
+        QVERIFY(!match->isGameOver());
         QVERIFY(qAbs(clock->remainingTurnTimeMs(clock->currentPlayer()) - left) < 100);
     }
 
@@ -481,9 +481,9 @@ private slots:
         dialogTimer.start(10);
         QTest::qWait(1300);
         dialogTimer.stop();
-        qInfo() << "unchecked timeout: gameOver=" << match->gameOverState().isOver;
+        qInfo() << "unchecked timeout: gameOver=" << match->isGameOver();
         QVERIFY(!match->clock()->enforcesTimeout());
-        QVERIFY(!match->gameOverState().isOver);
+        QVERIFY(!match->isGameOver());
     }
     void preparedGameInfoSurvivesStart_data() {
         QTest::addColumn<int>("preset");
@@ -701,8 +701,8 @@ private slots:
         QTest::mouseClick(board,Qt::LeftButton,Qt::NoModifier,square(7,6));
         dialogTimer.stop();
         QVERIFY(record->kifuView()->model()->rowCount() >= 2);
-        qInfo() << "maxMoves=1, after first move: gameOver=" << match->gameOverState().isOver;
-        QVERIFY(match->gameOverState().isOver);
+        qInfo() << "maxMoves=1, after first move: gameOver=" << match->isGameOver();
+        QVERIFY(match->isGameOver());
         QCOMPARE(ended.count(),1);
     }
     void timeoutHasCorrectCause_data() {
@@ -745,8 +745,8 @@ private slots:
         dialogTimer.start(10);
         QTest::qWait(1300);
         dialogTimer.stop();
-        QVERIFY(match->gameOverState().isOver);
-        QCOMPARE(match->gameOverState().lastInfo.cause,MatchCoordinator::Cause::Timeout);
+        QVERIFY(match->isGameOver());
+        QCOMPARE(match->gameEnd()->cause,MatchCoordinator::Cause::Timeout);
         auto* model = window->findChild<RecordPane*>()->kifuView()->model();
         QCOMPARE(model->rowCount(), plies + 2);
         const RecordEntry terminal = RecordEntry::ending(TerminalType::Timeout, plies % 2 == 0 ? Turn::Black : Turn::White);
@@ -782,7 +782,7 @@ private slots:
         settings.sync();
         startWindowGame();
         dialogTimer.start(10);
-        QTRY_VERIFY_WITH_TIMEOUT(window->composer().parts().match->gameOverState().isOver
+        QTRY_VERIFY_WITH_TIMEOUT(window->composer().parts().match->isGameOver()
                                  && window->composer().parts().consecutiveGames->currentGameNumber() == 2, 10000);
         dialogTimer.stop();
         const QStringList files = QDir(dir.path()).entryList({"*.kifu"},QDir::Files);

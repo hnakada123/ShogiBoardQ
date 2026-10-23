@@ -290,6 +290,13 @@ public:
     /// 対局待ち状態（ログイン済みで対局中でない）か。終局後もここに含む
     static bool isWaitingState(ConnectionState state);
 
+    /**
+     * @brief LOGIN に送るパスワード（shogi-server の「ゲーム名[-b|-w],パスワード」）
+     * @param gameName 希望するゲーム名（空ならパスワードだけ）
+     * @param preferred 希望する手番（-b は先手、-w は後手。無ければ付けない）
+     */
+    static QString loginPassword(const QString& password, const QString& gameName, std::optional<Turn> preferred);
+
     /// 対局結果・終局の原因の表示名（「勝ち」「投了」など）
     static QString gameResultText(GameResult result);
     static QString gameEndCauseText(GameEndCause cause);

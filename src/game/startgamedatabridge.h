@@ -7,7 +7,7 @@
 #include <QString>
 #include <array>
 
-#include "enginelistsettings.h"
+#include "registeredengines.h"
 #include "handicaps.h"
 #include "josekiplayoptions.h"
 #include "timecontrol.h"
@@ -18,7 +18,7 @@ struct PlayerChoice {
 
     Kind kind = Kind::Human;
     QString humanName;                       ///< 人間の対局者名
-    EngineListSettings::EngineEntry engine;  ///< エンジン（kind が Engine のとき。名前・実行ファイル・作者）
+    EngineEntry engine;  ///< エンジン（kind が Engine のとき。名前・実行ファイル・作者）
     TimeControlSide time;                    ///< 持ち時間・秒読み・加算
     JosekiPlayOptions joseki;                ///< 定跡を使う条件（kind が Engine のとき。定跡ウィンドウで開いている定跡を使う）
 

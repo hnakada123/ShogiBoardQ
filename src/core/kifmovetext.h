@@ -6,6 +6,7 @@
 
 #include <QString>
 
+#include "piecerules.h"
 #include "shoginotation.h"
 #include "usimove.h"
 
@@ -21,20 +22,21 @@ enum class SameSquare {
 struct Notes {
     QString modifier;                ///< 相対位置の修飾語（「右」「上」「打」など。KI2 と同じ語）
     bool declinedPromotion = false;  ///< 成れるのに成らなかった（「不成」と書く）
-    bool withoutSource = false;      ///< 移動元「(77)」を書かない（局面で修飾語を決められない KI2 の手）
+    bool withoutSource = false;      ///< 移動元「(77)」を書かない（KI2 の手）
+    /// 駒打ちの「打」を修飾語にあるときだけ書く（KI2。盤上の同じ駒も動けるときだけ付く）。
+    /// false なら駒打ちには必ず「打」を書く（KIF）
+    bool dropMarkFromModifier = false;
 };
 
 /**
- * @brief 成ることもできた手か（成れる駒が、敵陣に入る・敵陣から出る・敵陣の中で動く）
+ * @brief 成ることもできたのに成らなかった手か（規則は PieceRules::couldPromote）
  * @param moving 動かした駒（成る前の駒。色で敵陣を決める）
  *
- * 成る手・駒打ちは false。成らなかった手が true なら、KIF・KI2 では「不成」と書く。
+ * 成る手・駒打ちは false。true なら KIF・KI2 では「不成」、JKF では promote: false、英語表記では「=」と書く。
  */
 inline bool couldPromote(Piece moving, const UsiMove& move)
 {
-    if (move.isDrop() || move.promote || promote(moving) == moving) return false;
-    const auto inZone = [black = isBlackPiece(moving)](int rank) { return black ? rank <= 3 : rank >= 7; };
-    return inZone(move.from.rank) || inZone(move.to.rank);
+    return !move.isDrop() && !move.promote && PieceRules::couldPromote(moving, move.from.rank, move.to.rank);
 }
 
 /**
@@ -56,7 +58,7 @@ inline void append(QString& out, Turn mover, Piece moving, const UsiMove& move, 
     out += ShogiNotation::movePieceName(moving);
     out += notes.modifier;
     if (move.isDrop()) {
-        if (!notes.modifier.contains(u'打')) out += QChar(u'打');
+        if (!notes.dropMarkFromModifier && !notes.modifier.contains(u'打')) out += QChar(u'打');
         return;
     }
     if (move.promote) out += QChar(u'成');

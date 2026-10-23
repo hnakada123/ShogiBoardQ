@@ -89,8 +89,9 @@ public:
 
     /// 定跡手を足す。同じ指し手があれば置き換える
     bool addMove(const QString &sfen, const JosekiMove &move);
-    /// move.move の定跡手の値・コメント・予想応手を書き換える。無ければ false
-    bool updateMove(const QString &sfen, const JosekiMove &move);
+    /// move.move の定跡手の値・コメント（と、Replace なら予想応手）を書き換える。無ければ false
+    bool updateMove(const QString &sfen, const JosekiMove &move,
+                    JosekiBook::NextMoveUpdate next = JosekiBook::NextMoveUpdate::Replace);
     /// 定跡手を消す。無ければ false
     bool removeMove(const QString &sfen, const QString &usiMove);
     /// 定跡手を index 番目へ移す（JosekiBook::moveTo）。並びが変わったら true

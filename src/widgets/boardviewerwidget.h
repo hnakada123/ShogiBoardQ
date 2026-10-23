@@ -89,22 +89,18 @@ public slots:
 signals:
     /// 表示する局面を替えた（setSfenList・局面送り）
     void currentIndexChanged(int index);
-    /// 拡大・縮小・回転の直前（盤の選択やドラッグを取り消すため）
-    void boardTransformAboutToChange();
+    /// 拡大・縮小・回転した（盤の選択を取り消すため。つまんでいた駒は盤が放している）
+    void boardTransformed();
     /// 回転ボタンで向きを変えた
     void flipToggled(bool flipped);
-    /// 拡大・縮小で盤の大きさが変わった
-    void boardResized();
-
-protected:
-    bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
     void buildToolbar(ButtonLabels labels);
     void buildNavigation(ButtonLabels labels);
     void showCurrent();
     void updateNavigationButtons();
-    void zoom(bool enlarge);
+    /// 盤の大きさが変わった（ボタン・Ctrl+ホイール）
+    void onBoardZoomed();
 
     Features m_features;
     ShogiBoard* m_board = nullptr;

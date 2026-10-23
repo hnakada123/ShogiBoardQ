@@ -273,30 +273,6 @@ private slots:
         // SFENの往復でも未使用の玉を復元できる。
         board.setSfen(QStringLiteral("4k4/9/9/9/9/9/9/9/9 b R 1"));
         QCOMPARE(board.pieceBoxCount(Piece::BlackKing), 1);
-        board.flipSides();
-        QCOMPARE(board.pieceBoxCount(Piece::BlackKing), 1);
-    }
-
-    void flipSides()
-    {
-        // Use a clearly asymmetric position:
-        // K at rank1 file9, P at rank2 file9, k at rank9 file1
-        ShogiBoard board;
-        board.setSfen(QStringLiteral("K8/P8/9/9/9/9/9/9/8k b - 1"));
-
-        const auto& data = board.position().squares();
-        // P at rank2 file9: index = (2-1)*9 + (9-1) = 17
-        QCOMPARE(data[17], Piece::BlackPawn);
-        // rank8 file1: index = (8-1)*9 + (1-1) = 63, should be empty
-        QCOMPARE(data[63], Piece::None);
-
-        board.flipSides();
-
-        // After 180 rotation + case swap:
-        // P at [17] -> p at [80-17] = [63]
-        QCOMPARE(board.position().squares()[63], Piece::WhitePawn);
-        // Original [17] should now be empty
-        QCOMPARE(board.position().squares()[17], Piece::None);
     }
 
     // === Signals ===
@@ -345,7 +321,7 @@ private slots:
         // 駒を取ると、取った側の駒台が増える
         board.setSfen(QStringLiteral("lnsgkgsnl/1r5b1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL b - 1"));
         spy.clear();
-        board.updateBoardAndPieceStand(Piece::BlackBishop, Piece::WhiteBishop, 8, 8, 2, 2, false);
+        board.updateBoardAndPieceStand(Piece::BlackBishop, Piece::WhiteBishop, 8, 8, 2, 2);
         QCOMPARE(spy.count(), 1);
         QCOMPARE(spy.at(0).at(0).value<Piece>(), Piece::BlackBishop);
         QCOMPARE(board.pieceStandCount(Piece::BlackBishop), 1);

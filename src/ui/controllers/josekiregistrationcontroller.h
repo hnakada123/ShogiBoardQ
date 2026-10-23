@@ -65,7 +65,7 @@ public:
     BatchResult registerAnalysisRows(int fromPly, int toPly, bool black, bool white);
 
 public slots:
-    /// 思考の表の行の右クリック（ThinkingPanel・ConsiderationTabManager::rowContextMenuAboutToShow）
+    /// 思考の表の行の右クリック（ThinkingPanel・ConsiderationPanel::rowContextMenuAboutToShow）
     void onThinkingRowContextMenu(ShogiEngineThinkingModel* model, int row, QMenu* menu);
     /// 棋譜解析の結果の表の行の右クリック（AnalysisResultsPanel::rowContextMenuAboutToShow）
     void onAnalysisRowContextMenu(int row, QMenu* menu);

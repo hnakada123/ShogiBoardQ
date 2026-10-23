@@ -7,7 +7,7 @@
 #include <QDialog>
 #include <memory>
 
-#include "enginelistsettings.h"
+#include "registeredengines.h"
 
 class EngineSettingsOptionHandler;
 class QCheckBox;
@@ -24,7 +24,7 @@ class ChangeEngineSettingsDialog : public QDialog
 
 public:
     /// engine のオプションと先読みの設定を読み、変更する画面を作る（作者名は見出しに出す）
-    explicit ChangeEngineSettingsDialog(const EngineListSettings::EngineEntry& engine, QWidget* parent = nullptr);
+    explicit ChangeEngineSettingsDialog(const EngineEntry& engine, QWidget* parent = nullptr);
 
     // デストラクタ
     ~ChangeEngineSettingsDialog() override;

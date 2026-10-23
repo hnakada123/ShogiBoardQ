@@ -206,7 +206,7 @@ void TsumePlayDialog::buildBoardControls(QVBoxLayout* layout)
     m_viewer->reduceButton()->setObjectName(QStringLiteral("tsumeReduceBoard"));
     m_viewer->enlargeButton()->setObjectName(QStringLiteral("tsumeEnlargeBoard"));
     m_viewer->flipButton()->setObjectName(QStringLiteral("tsumeFlipBoard"));
-    connect(m_viewer, &BoardViewerWidget::boardTransformAboutToChange, this, &TsumePlayDialog::cancelBoardSelection);
+    connect(m_viewer, &BoardViewerWidget::boardTransformed, this, &TsumePlayDialog::cancelBoardSelection);
     connect(m_viewer, &BoardViewerWidget::flipToggled, this, &TsumePlayDialog::onFlipToggled);
     m_interaction = new BoardInteractionController(m_view, m_game, this);
     // 「表示」→「指せるマスを表示」の設定に従う（メイン画面と同じ）

@@ -32,6 +32,11 @@ class TestNyugyokuJudgement : public QObject
 private:
     QTemporaryDir m_config;
 
+    // 対局ダイアログの持将棋ルールの設定値（GameSettings::StartGame::jishogiRule）
+    static constexpr int kSettingNone = 0;
+    static constexpr int kSetting24 = 1;
+    static constexpr int kSetting27 = 2;
+
     static void setRule(int rule)
     {
         QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
@@ -52,25 +57,26 @@ private slots:
     {
         QTest::addColumn<QString>("sfen");
         QTest::addColumn<bool>("sente");
-        QTest::addColumn<int>("rule");
+        QTest::addColumn<bool>("rule24");
         QTest::addColumn<bool>("success");
         QTest::addColumn<bool>("isDraw");
         QTest::addColumn<QString>("verdict");
-        QTest::newRow("27-win") << kWin << true << int(NyugyokuJudgement::Rule27) << true << false << "条件達成: 勝ち";
-        QTest::newRow("27-short") << kShort << true << int(NyugyokuJudgement::Rule27) << false << false << "点数不足: 宣言失敗";
-        QTest::newRow("24-draw") << kWin << true << int(NyugyokuJudgement::Rule24) << true << true << "24〜30点: 引き分け";
-        QTest::newRow("24-win") << kMany << true << int(NyugyokuJudgement::Rule24) << true << false << "31点以上: 勝ち";
-        QTest::newRow("24-short") << kShort << true << int(NyugyokuJudgement::Rule24) << false << false << "24点未満: 宣言失敗";
-        QTest::newRow("in-check") << kInCheck << true << int(NyugyokuJudgement::Rule27) << false << false << "条件未達: 宣言失敗";
+        QTest::newRow("27-win") << kWin << true << false << true << false << "条件達成: 勝ち";
+        QTest::newRow("27-short") << kShort << true << false << false << false << "点数不足: 宣言失敗";
+        QTest::newRow("24-draw") << kWin << true << true << true << true << "24〜30点: 引き分け";
+        QTest::newRow("24-win") << kMany << true << true << true << false << "31点以上: 勝ち";
+        QTest::newRow("24-short") << kShort << true << true << false << false << "24点未満: 宣言失敗";
+        QTest::newRow("in-check") << kInCheck << true << false << false << false << "条件未達: 宣言失敗";
         // 後手は敵陣の駒が5枚しかない
-        QTest::newRow("white-few-pieces") << kWin << false << int(NyugyokuJudgement::Rule27) << false << false << "条件未達: 宣言失敗";
+        QTest::newRow("white-few-pieces") << kWin << false << false << false << false << "条件未達: 宣言失敗";
     }
 
     void judge()
     {
         QFETCH(QString, sfen);
         QFETCH(bool, sente);
-        QFETCH(int, rule);
+        QFETCH(bool, rule24);
+        const JishogiCalculator::Rule rule = rule24 ? JishogiCalculator::Rule::Points24 : JishogiCalculator::Rule::Points27;
         QFETCH(bool, success);
         QFETCH(bool, isDraw);
         QFETCH(QString, verdict);
@@ -92,18 +98,18 @@ private slots:
     {
         ShogiBoard board;
         board.setSfen(kWin);
-        setRule(NyugyokuJudgement::Rule24);
+        setRule(kSetting24);
         auto result = NyugyokuJudgement::judgeEngineDeclaration(board.position(), true);
         QVERIFY(result.success && result.isDraw);
 
         // 「なし」でもエンジンの宣言は取り消せないため、27点法で判定して説明する
-        setRule(NyugyokuJudgement::RuleNone);
+        setRule(kSettingNone);
         result = NyugyokuJudgement::judgeEngineDeclaration(board.position(), true);
         QVERIFY(result.success && !result.isDraw);
         QVERIFY(result.message.startsWith(QStringLiteral("持将棋ルールが「なし」のため、27点法で判定しました。")));
 
         board.setSfen(kShort);
-        setRule(NyugyokuJudgement::Rule27);
+        setRule(kSetting27);
         result = NyugyokuJudgement::judgeEngineDeclaration(board.position(), true);
         QVERIFY(!result.success);
         QCOMPARE(result.resultText, QStringLiteral("宣言失敗（負け）"));

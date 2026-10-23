@@ -117,6 +117,13 @@ KifuBranchNode* KifuBranchTree::nodeAt(int nodeId) const
     return m_nodeById.value(nodeId, nullptr);
 }
 
+KifuBranchNode* KifuBranchTree::nodeOnLine(int lineEndNodeId, int ply) const
+{
+    KifuBranchNode* node = nodeAt(lineEndNodeId);
+    while (node && node->ply() > ply && node->parent()) node = node->parent();
+    return node;
+}
+
 RecordLine KifuBranchTree::toRecordLine(const QList<KifuBranchNode*>& nodes, int currentPly)
 {
     RecordLine line;

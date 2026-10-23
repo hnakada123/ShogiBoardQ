@@ -3,6 +3,8 @@
 
 #include "ki2movenotation.h"
 
+#include "kifmovetext.h"
+
 #include "enginemovevalidator.h"
 #include "shogiposition.h"
 #include "shoginotation.h"
@@ -157,7 +159,6 @@ Annotation annotate(const Position& board, Turn mover, const UsiMove& move)
         if (candidate.isDrop() || candidate.to != move.to) continue;
         if (toBlack(board.pieceAt(candidate.from)) != moving) continue;
         if (!sources.contains(candidate.from)) sources.append(candidate.from);
-        if (!move.isDrop() && candidate.from == move.from && candidate.promote) annotation.canPromote = true;
     }
 
     annotation.sources = sources;
@@ -171,24 +172,13 @@ Annotation annotate(const Position& board, Turn mover, const UsiMove& move)
 
 QString format(const Position& board, Turn mover, const UsiMove& move, BoardSquare previousTo)
 {
-    const Piece moving = move.isDrop() ? move.drop : toBlack(board.pieceAt(move.from));
-
-    QString text = (mover == Turn::Black) ? QStringLiteral("▲") : QStringLiteral("△");
-    if (previousTo.isValid() && previousTo == move.to) {
-        text += QStringLiteral("同　");
-    } else {
-        text += ShogiNotation::fileZenkaku(move.to.file) + ShogiNotation::rankKanji(move.to.rank);
-    }
-    text += ShogiNotation::movePieceName(moving);
-
-    const Annotation annotation = annotate(board, mover, move);
-    text += annotation.modifiers;
-    if (move.promote) {
-        text += QStringLiteral("成");
-    } else if (annotation.canPromote) {
-        text += QStringLiteral("不成");
-    }
-    return text;
+    const Piece moving = move.isDrop() ? move.drop : board.pieceAt(move.from);
+    KifMoveText::Notes notes;
+    notes.modifier = annotate(board, mover, move).modifiers;
+    notes.declinedPromotion = KifMoveText::couldPromote(moving, move);
+    notes.withoutSource = true;
+    notes.dropMarkFromModifier = true;
+    return KifMoveText::format(mover, moving, move, previousTo, notes);
 }
 
 } // namespace Ki2MoveNotation

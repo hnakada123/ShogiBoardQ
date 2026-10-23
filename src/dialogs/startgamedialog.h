@@ -70,7 +70,7 @@ private slots:
     void onStartRequested();
 
     /// 選んだエンジンの設定ダイアログを表示する
-    void showEngineSettingsDialog(const EngineListSettings::EngineEntry& engine);
+    void showEngineSettingsDialog(const EngineEntry& engine);
     /// 対局者 side（1=先手／下手、2=後手／上手）の定跡を使う条件のダイアログを表示する
     void showJosekiConditionsDialog(int side);
 

@@ -482,7 +482,7 @@ private slots:
 
         int asked = 0;
         bool allow = false;
-        h.nav.setLeaveGuard([&asked, &allow]() { ++asked; return allow; });
+        h.nav.addLeaveGuard([&asked, &allow]() { ++asked; return allow; });
 
         h.nav.onNextClicked();
         h.nav.onFirstClicked();

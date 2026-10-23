@@ -41,11 +41,11 @@ namespace EngineProfileStore {
 // エンジン一覧
 // ============================================================
 
-QList<EngineListSettings::EngineEntry> loadEngines()
+QList<EngineEntry> loadEngines()
 {
     QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
     const int size = settings.beginReadArray(EnginesGroupName);
-    QList<EngineListSettings::EngineEntry> engines;
+    QList<EngineEntry> engines;
     engines.reserve(size);
     for (int i = 0; i < size; ++i) {
         settings.setArrayIndex(i);
@@ -56,7 +56,7 @@ QList<EngineListSettings::EngineEntry> loadEngines()
     return engines;
 }
 
-void saveEngines(const QList<EngineListSettings::EngineEntry>& engines)
+void saveEngines(const QList<EngineEntry>& engines)
 {
     QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
     // 前の一覧の要素を残さない
@@ -195,8 +195,8 @@ int migrateLegacyOptionGroups()
     // 以前の版の配列の要素は "1/name" の形、GUI の設定は "gui/..." の形で置かれていた
     static const QRegularExpression kArrayElement(QStringLiteral("^\\d+/"));
     int migrated = 0;
-    const QList<EngineListSettings::EngineEntry> engines = loadEngines();
-    for (const EngineListSettings::EngineEntry& engine : engines) {
+    const QList<EngineEntry> engines = loadEngines();
+    for (const EngineEntry& engine : engines) {
         // エンジン一覧と同じ名前のグループは、以前の版でも一覧と混ざって読めない
         if (engine.name.isEmpty() || engine.name == QLatin1String(EnginesGroupName)) continue;
         const QString target = engineOptionsGroup(engine.name);

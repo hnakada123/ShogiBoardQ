@@ -49,6 +49,8 @@ public:
     void setNameFontScale(double scale);
     /// 対局者のカード
     PlayerCard* card(Turn side) const { return m_cards[side == Turn::Black ? 0 : 1]; }
+    /// 対局者カードの高さ（BoardGeometry::pieceBox に渡す。カードを置いていなければ 0）
+    int cardHeight() const { return m_cardHeight; }
     /// 駒箱の先後切り替えボタンを置く（空なら隠す）
     void placePieceBoxSelector(const QRect& selector);
     void setPieceBoxSide(Turn side);
@@ -91,6 +93,7 @@ private:
 
     std::optional<BoardGeometry> m_geometry;    ///< 盤の位置（盤が無ければ空）
     double m_nameFontScale = 0.36;
+    int m_cardHeight = 0;   ///< 対局者カードの高さ（名前と時計の書体で決まる。カードを出していなければ 0）
     bool m_clockEnabled = true;
 
     // 手番表示の状態

@@ -1,5 +1,6 @@
 #include "candidatearrowpresenter.h"
 
+#include "considerationsettings.h"
 #include "analysissession.h"
 #include "analysissettings.h"
 #include "appactivitystate.h"
@@ -173,7 +174,7 @@ void CandidateArrowPresenter::refresh()
         appendJosekiArrows(arrows, board->position().toSfen(board->currentPlayer(), board->position().moveNumber()));
         const QString sfen = board->position().toSfen(board->currentPlayer(), 1);
         if (considerationActive()) {
-            const bool show = !m_sources.showConsiderationArrows || m_sources.showConsiderationArrows();
+            const bool show = !m_sources.considerationSettings || m_sources.considerationSettings->showArrows;
             if (ShogiEngineThinkingModel* model = m_sources.consideration; show && model) {
                 for (int row = 0; row < model->rowCount(); ++row) {
                     const auto* record = model->recordAt(row);

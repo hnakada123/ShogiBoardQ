@@ -191,7 +191,8 @@ void KifuDocument::clearMatchEnd()
 
 void KifuDocument::commitPendingEdits() const
 {
-    if (m_hooks.commitPendingEdits) m_hooks.commitPendingEdits();
+    for (const Hooks& editor : m_editors)
+        if (editor.commitPendingEdits) editor.commitPendingEdits();
 }
 
 QList<KifGameInfoItem> KifuDocument::header() const
@@ -250,7 +251,8 @@ void KifuDocument::setBookmark(KifuBranchNode* node, const QString& bookmark)
 bool KifuDocument::isModified() const
 {
     // 入力中の編集は、確定せずに未保存に数える（確定するのは保存・書き出し・対局の開始のとき）
-    if (m_hooks.hasPendingEdits && m_hooks.hasPendingEdits()) return true;
+    for (const Hooks& editor : m_editors)
+        if (editor.hasPendingEdits && editor.hasPendingEdits()) return true;
     if (m_unsavedContent || m_tree->revision() != m_saved.treeRevision
         || m_annotationRevision != m_saved.annotationRevision) {
         return true;

@@ -55,7 +55,7 @@ JosekiMoveInputWidget::JosekiMoveInputWidget(const QString &name, const QString 
     , m_hasNoneOption(hasNoneOption)
 {
     // 予想応手は「なし」から始める
-    if (hasNoneOption) m_requested = QStringLiteral("none");
+    if (hasNoneOption) m_requested = kNoMove;
     setObjectName(name);
     setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
     auto *layout = new QVBoxLayout(this);
@@ -101,7 +101,7 @@ void JosekiMoveInputWidget::populate()
     {
         const QSignalBlocker blocker(m_combo);
         m_combo->clear();
-        if (m_hasNoneOption) m_combo->addItem(tr("なし"), QStringLiteral("none"));
+        if (m_hasNoneOption) m_combo->addItem(tr("なし"), kNoMove);
         if (!m_currentSfen.isEmpty()) {
             const QList<LegalMove> moves = legalMovesOf(m_currentSfen);
             for (const LegalMove &move : moves) m_combo->addItem(move.text, move.move.toString());

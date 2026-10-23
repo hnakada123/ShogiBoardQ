@@ -25,11 +25,12 @@ EngineSelector::EngineSelector(const Widgets& widgets, const Options& options, Q
 
 void EngineSelector::loadList()
 {
-    const QList<Engine> all = EngineListSettings::loadEngines();
-    m_engines.clear();
-    for (const Engine& engine : all) {
-        if (!m_options.filter || m_options.filter(engine)) m_engines.append(engine);
+    QList<Engine> engines;
+    const RegisteredEngines all = RegisteredEngines::load();
+    for (const Engine& engine : all.entries()) {
+        if (!m_options.filter || m_options.filter(engine)) engines.append(engine);
     }
+    m_engines = RegisteredEngines(engines);
 }
 
 void EngineSelector::restoreSaved()
@@ -41,7 +42,7 @@ void EngineSelector::restoreSaved()
     QString name;
     if (!builtin) {
         const int index = EngineListSettings::restoreSelection(m_options.keys, m_engines);
-        if (index >= 0) name = m_engines.at(index).name;
+        if (index >= 0) name = m_engines.entries().at(index).name;
     }
     populate(name, builtin);
 }
@@ -61,12 +62,12 @@ void EngineSelector::populate(const QString& selectName, bool builtin)
         const QSignalBlocker blocker(m_combo);
         m_combo->clear();
         if (!m_options.builtinLabel.isEmpty()) m_combo->addItem(m_options.builtinLabel);
-        for (const Engine& engine : std::as_const(m_engines)) {
+        for (const Engine& engine : m_engines.entries()) {
             m_combo->addItem(engine.name, engine.path);
             m_combo->setItemData(m_combo->count() - 1, engine.name, Qt::ToolTipRole);
         }
         const int offset = m_options.builtinLabel.isEmpty() ? 0 : 1;
-        const int index = EngineListSettings::indexOfName(m_engines, selectName);
+        const int index = m_engines.indexOfName(selectName);
         // 選んでいなければ先頭の登録エンジン（無ければ内蔵の項目）
         if (builtin) m_combo->setCurrentIndex(0);
         else if (index >= 0) m_combo->setCurrentIndex(index + offset);
@@ -78,14 +79,14 @@ void EngineSelector::populate(const QString& selectName, bool builtin)
 int EngineSelector::engineIndexAt(int comboIndex) const
 {
     const int index = comboIndex - (m_options.builtinLabel.isEmpty() ? 0 : 1);
-    return index >= 0 && index < m_engines.size() ? index : -1;
+    return index >= 0 && index < m_engines.entries().size() ? index : -1;
 }
 
 std::optional<EngineSelector::Engine> EngineSelector::selected() const
 {
     const int index = engineIndexAt(m_combo->currentIndex());
     if (index < 0) return std::nullopt;
-    return m_engines.at(index);
+    return m_engines.entries().at(index);
 }
 
 bool EngineSelector::isBuiltinSelected() const
@@ -95,7 +96,7 @@ bool EngineSelector::isBuiltinSelected() const
 
 void EngineSelector::select(const QString& name)
 {
-    const int index = EngineListSettings::indexOfName(m_engines, name);
+    const int index = m_engines.indexOfName(name);
     if (index >= 0) m_combo->setCurrentIndex(index + (m_options.builtinLabel.isEmpty() ? 0 : 1));
 }
 

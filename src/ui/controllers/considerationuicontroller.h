@@ -8,17 +8,17 @@
 #include <QString>
 
 #include "considerationsettings.h"
-#include "enginelistsettings.h"
+#include "registeredengines.h"
 
 class QWidget;
-class ConsiderationTabManager;
+class ConsiderationPanel;
 class AnalysisSession;
 class KifuNavigationState;
 
 /**
  * @brief 検討タブの操作を検討のセッションへ伝える
  *
- * - 開始は検討タブの条件（ConsiderationTabManager::settings()）を読んで、表示中の局面で検討のセッションを始める
+ * - 開始は検討タブの条件（ConsiderationPanel::settings()）を読んで、表示中の局面で検討のセッションを始める
  * - 検討中に条件が変わったら、エンジンが変われば始め直し、候補手の数が変われば探索をやり直させる
  * - 検討の状態の表示（ボタン・経過時間・情報欄）は EngineDisplayPresenter、矢印は CandidateArrowPresenter が受け持つ
  */
@@ -29,7 +29,7 @@ class ConsiderationUiController : public QObject
 public:
     struct Deps {
         QWidget* parentWidget = nullptr;                             ///< エンジン設定ダイアログの親
-        ConsiderationTabManager* considerationTabManager = nullptr;  ///< 検討タブ（必須、非所有）
+        ConsiderationPanel* considerationPanel = nullptr;  ///< 検討タブ（必須、非所有）
         AnalysisSession* session = nullptr;                          ///< 検討のセッション（必須、非所有）
         const KifuNavigationState* navState = nullptr;               ///< 検討する局面（表示中の手）
     };
@@ -40,7 +40,7 @@ public slots:
     /// 検討タブの条件で、表示中の局面の検討を始める
     void startConsideration();
     /// 検討タブからのエンジン設定の要求
-    void onEngineSettingsRequested(const EngineListSettings::EngineEntry& engine);
+    void onEngineSettingsRequested(const EngineEntry& engine);
     /// 検討タブの条件が変わった（検討中ならエンジン・候補手の数の変更を反映する）
     void onSettingsChanged(const ConsiderationSettings& settings);
 
@@ -49,7 +49,7 @@ private slots:
 
 private:
     QWidget* m_parentWidget = nullptr;
-    ConsiderationTabManager* m_considerationTabManager = nullptr;
+    ConsiderationPanel* m_considerationPanel = nullptr;
     AnalysisSession* m_session = nullptr;
     const KifuNavigationState* m_navState = nullptr;
 };

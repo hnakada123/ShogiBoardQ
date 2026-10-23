@@ -64,6 +64,9 @@ private slots:
 // 基本点数計算テスト
 // ============================================================================
 
+using Rule = JishogiCalculator::Rule;
+using Verdict = JishogiCalculator::Verdict;
+
 void TestJishogiCalculator::calculate_emptyBoard_zeroPoints()
 {
     auto board = emptyBoard();
@@ -287,9 +290,9 @@ void TestJishogiCalculator::getResult24_thirtyOneOrMore_win()
     score.kingInEnemyTerritory = true;
     score.piecesInEnemyTerritory = 10;
 
-    QString result = JishogiCalculator::result24(score, false);
+    const Verdict result = JishogiCalculator::judge(score, Rule::Points24, true, false);
 
-    QCOMPARE(result, QObject::tr("勝ち"));
+    QCOMPARE(result, Verdict::Win);
 }
 
 void TestJishogiCalculator::getResult24_twentyFourToThirty_draw()
@@ -300,11 +303,11 @@ void TestJishogiCalculator::getResult24_twentyFourToThirty_draw()
 
     // 24点 → 引き分け
     score.declarationPoints = 24;
-    QCOMPARE(JishogiCalculator::result24(score, false), QObject::tr("引き分け"));
+    QCOMPARE(JishogiCalculator::judge(score, Rule::Points24, true, false), Verdict::Draw);
 
     // 30点 → 引き分け
     score.declarationPoints = 30;
-    QCOMPARE(JishogiCalculator::result24(score, false), QObject::tr("引き分け"));
+    QCOMPARE(JishogiCalculator::judge(score, Rule::Points24, true, false), Verdict::Draw);
 }
 
 void TestJishogiCalculator::getResult24_lessThanTwentyFour_lose()
@@ -314,7 +317,7 @@ void TestJishogiCalculator::getResult24_lessThanTwentyFour_lose()
     score.kingInEnemyTerritory = true;
     score.piecesInEnemyTerritory = 10;
 
-    QCOMPARE(JishogiCalculator::result24(score, false), QObject::tr("負け"));
+    QCOMPARE(JishogiCalculator::judge(score, Rule::Points24, true, false), Verdict::ShortOfPoints);
 }
 
 void TestJishogiCalculator::getResult24_conditionsNotMet_lose()
@@ -325,7 +328,7 @@ void TestJishogiCalculator::getResult24_conditionsNotMet_lose()
     score.kingInEnemyTerritory = false; // 条件不成立
     score.piecesInEnemyTerritory = 10;
 
-    QCOMPARE(JishogiCalculator::result24(score, false), QObject::tr("負け"));
+    QCOMPARE(JishogiCalculator::judge(score, Rule::Points24, true, false), Verdict::NotDeclarable);
 }
 
 // ============================================================================
@@ -339,7 +342,7 @@ void TestJishogiCalculator::getResult27_sente_twentyEightOrMore_win()
     score.kingInEnemyTerritory = true;
     score.piecesInEnemyTerritory = 10;
 
-    QCOMPARE(JishogiCalculator::result27(score, true, false), QObject::tr("勝ち"));
+    QCOMPARE(JishogiCalculator::judge(score, Rule::Points27, true, false), Verdict::Win);
 }
 
 void TestJishogiCalculator::getResult27_sente_twentySeven_lose()
@@ -350,7 +353,7 @@ void TestJishogiCalculator::getResult27_sente_twentySeven_lose()
     score.kingInEnemyTerritory = true;
     score.piecesInEnemyTerritory = 10;
 
-    QCOMPARE(JishogiCalculator::result27(score, true, false), QObject::tr("負け"));
+    QCOMPARE(JishogiCalculator::judge(score, Rule::Points27, true, false), Verdict::ShortOfPoints);
 }
 
 void TestJishogiCalculator::getResult27_gote_twentySevenOrMore_win()
@@ -360,7 +363,7 @@ void TestJishogiCalculator::getResult27_gote_twentySevenOrMore_win()
     score.kingInEnemyTerritory = true;
     score.piecesInEnemyTerritory = 10;
 
-    QCOMPARE(JishogiCalculator::result27(score, false, false), QObject::tr("勝ち"));
+    QCOMPARE(JishogiCalculator::judge(score, Rule::Points27, false, false), Verdict::Win);
 }
 
 void TestJishogiCalculator::getResult27_gote_twentySix_lose()
@@ -371,7 +374,7 @@ void TestJishogiCalculator::getResult27_gote_twentySix_lose()
     score.kingInEnemyTerritory = true;
     score.piecesInEnemyTerritory = 10;
 
-    QCOMPARE(JishogiCalculator::result27(score, false, false), QObject::tr("負け"));
+    QCOMPARE(JishogiCalculator::judge(score, Rule::Points27, false, false), Verdict::ShortOfPoints);
 }
 
 void TestJishogiCalculator::getResult27_conditionsNotMet_lose()
@@ -382,7 +385,7 @@ void TestJishogiCalculator::getResult27_conditionsNotMet_lose()
     score.piecesInEnemyTerritory = 10;
 
     // 王手がかかっている → 条件不成立
-    QCOMPARE(JishogiCalculator::result27(score, true, true), QObject::tr("負け"));
+    QCOMPARE(JishogiCalculator::judge(score, Rule::Points27, true, true), Verdict::NotDeclarable);
 }
 
 // ============================================================================
@@ -476,7 +479,7 @@ void TestJishogiCalculator::calculate_exactThreshold_24point_boundary()
     QVERIFY(JishogiCalculator::meetsDeclarationConditions(result.sente, false));
 
     // 24点法: 26点 → 引き分け
-    QCOMPARE(JishogiCalculator::result24(result.sente, false), QObject::tr("引き分け"));
+    QCOMPARE(JishogiCalculator::judge(result.sente, Rule::Points24, true, false), Verdict::Draw);
 }
 
 void TestJishogiCalculator::calculate_exactThreshold_27point_sente_boundary()
@@ -487,11 +490,11 @@ void TestJishogiCalculator::calculate_exactThreshold_27point_sente_boundary()
     score.kingInEnemyTerritory = true;
     score.piecesInEnemyTerritory = 10;
 
-    QCOMPARE(JishogiCalculator::result27(score, true, false), QObject::tr("勝ち"));
+    QCOMPARE(JishogiCalculator::judge(score, Rule::Points27, true, false), Verdict::Win);
 
     // 1点少ない27点は負け
     score.declarationPoints = 27;
-    QCOMPARE(JishogiCalculator::result27(score, true, false), QObject::tr("負け"));
+    QCOMPARE(JishogiCalculator::judge(score, Rule::Points27, true, false), Verdict::ShortOfPoints);
 }
 
 void TestJishogiCalculator::calculate_exactThreshold_27point_gote_boundary()
@@ -502,11 +505,11 @@ void TestJishogiCalculator::calculate_exactThreshold_27point_gote_boundary()
     score.kingInEnemyTerritory = true;
     score.piecesInEnemyTerritory = 10;
 
-    QCOMPARE(JishogiCalculator::result27(score, false, false), QObject::tr("勝ち"));
+    QCOMPARE(JishogiCalculator::judge(score, Rule::Points27, false, false), Verdict::Win);
 
     // 1点少ない26点は負け
     score.declarationPoints = 26;
-    QCOMPARE(JishogiCalculator::result27(score, false, false), QObject::tr("負け"));
+    QCOMPARE(JishogiCalculator::judge(score, Rule::Points27, false, false), Verdict::ShortOfPoints);
 }
 
 QTEST_MAIN(TestJishogiCalculator)

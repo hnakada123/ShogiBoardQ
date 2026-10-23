@@ -31,11 +31,6 @@ bool BranchTreeEditController::canEdit() const
     return !m_deps.liveSession->isActive();
 }
 
-bool BranchTreeEditController::canRecordBoardMove() const
-{
-    return !m_deps.liveSession->isActive();
-}
-
 bool BranchTreeEditController::isApplicable(Operation operation, KifuBranchNode* node) const
 {
     if (node == nullptr || node->parent() == nullptr || !canEdit()) return false;
@@ -182,7 +177,7 @@ bool BranchTreeEditController::apply(Operation operation, KifuBranchNode* node, 
 
 KifuBranchNode* BranchTreeEditController::prepareRecordParent(ShogiGameController* gc) const
 {
-    if (gc == nullptr || !canRecordBoardMove()) return nullptr;
+    if (gc == nullptr || !canEdit()) return nullptr;
     KifuBranchNode* parent = m_deps.navState->currentNode();
     if (parent == nullptr) parent = m_deps.tree->root();
     // 終局手（投了など）を表示中なら、その直前の局面から指したものとする
@@ -193,15 +188,6 @@ KifuBranchNode* BranchTreeEditController::prepareRecordParent(ShogiGameControlle
     return parent;
 }
 
-bool BranchTreeEditController::recordBoardMove(QPoint& from, QPoint& to, ShogiGameController* gc)
-{
-    KifuBranchNode* parent = prepareRecordParent(gc);
-    if (parent == nullptr) return false;
-    // 成り・不成は利用者に確認する
-    const std::optional<UsiMove> move = gc->prepareMove(from, to);
-    return move && addMove(parent, *move, gc);
-}
-
 bool BranchTreeEditController::recordMove(const UsiMove& move, ShogiGameController* gc)
 {
     KifuBranchNode* parent = prepareRecordParent(gc);
@@ -210,7 +196,7 @@ bool BranchTreeEditController::recordMove(const UsiMove& move, ShogiGameControll
 
 int BranchTreeEditController::addVariationLines(KifuBranchNode* parent, const QList<RecordLine>& lines)
 {
-    if (parent == nullptr || !canRecordBoardMove()) return 0;
+    if (parent == nullptr || !canEdit()) return 0;
     int created = 0;
     // ツリーの変更はまとめて知らせる（分岐ツリーの図・棋譜欄の描き直しは1回）
     m_deps.tree->beginBatchUpdate();

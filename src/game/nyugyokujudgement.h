@@ -6,23 +6,24 @@
 
 #include <QCoreApplication>
 #include <QString>
+#include <optional>
+
+#include "jishogicalculator.h"
 
 class Position;
 
 /**
  * @brief 盤面から入玉宣言の成否を判定し、結果の説明を作る
  *
- * 宣言条件（玉が敵陣・敵陣に玉以外の駒が10枚以上・王手がかかっていない）と
- * 宣言点数を、対局ダイアログで選んだ持将棋ルール（24点法・27点法）で判定する。
+ * 宣言条件（玉が敵陣・敵陣に玉以外の駒が10枚以上・王手がかかっていない）と宣言点数を、
+ * 対局ダイアログで選んだ持将棋ルール（24点法・27点法）で判定する。判定は core の
+ * JishogiCalculator::judge が行い、ここは結果の説明の文言だけを作る。
  */
 class NyugyokuJudgement
 {
     Q_DECLARE_TR_FUNCTIONS(NyugyokuJudgement)
 
 public:
-    /// 持将棋ルール（対局ダイアログの設定値と同じ）
-    enum Rule { RuleNone = 0, Rule24 = 1, Rule27 = 2 };
-
     struct Result {
         bool success = false;  ///< 宣言勝ち、または持将棋（引き分け）
         bool isDraw = false;   ///< 持将棋（24点法の24〜30点）
@@ -30,12 +31,15 @@ public:
         QString message;       ///< 宣言条件の判定を含む結果の説明
     };
 
-    /// 対局ダイアログで選んだ持将棋ルール
-    static int configuredRule();
+    /// 対局ダイアログで選んだ持将棋ルール（「なし」なら nullopt）
+    static std::optional<JishogiCalculator::Rule> configuredRule();
+    /// 対局ダイアログの設定値（0: なし、1: 24点法、2: 27点法）を持将棋ルールにする
+    static std::optional<JishogiCalculator::Rule> ruleFromSetting(int value);
 
-    /// 宣言側（declarerIsSente）の入玉宣言を盤面から判定する。rule は Rule24 または Rule27。
+    /// 宣言側（declarerIsSente）の入玉宣言を盤面から判定する。
     /// handicapNames なら結果の説明で宣言側を下手・上手と呼ぶ
-    static Result judge(const Position& position, bool declarerIsSente, int rule, bool handicapNames = false);
+    static Result judge(const Position& position, bool declarerIsSente, JishogiCalculator::Rule rule,
+                        bool handicapNames = false);
 
     /// エンジンの宣言を、設定した持将棋ルールで判定する。
     /// 「なし」の場合は宣言を取り消せないため、27点法（CSAの標準）で判定してその旨を説明に加える。

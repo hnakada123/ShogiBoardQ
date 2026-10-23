@@ -12,7 +12,7 @@
 #include "dockregistry.h"
 #include "branchtreeview.h"
 #include "commenteditorpanel.h"
-#include "considerationtabmanager.h"
+#include "considerationpanel.h"
 #include "csalogpanel.h"
 #include "thinkingpanel.h"
 #include "usilogpanel.h"
@@ -312,7 +312,7 @@ private slots:
         window.setCentralWidget(new QWidget(&window));
         QMenu menu;
         ThinkingPanel thinking(&window);
-        ConsiderationTabManager consideration;
+        ConsiderationPanel consideration;
         UsiLogPanel usiLog;
         CsaLogPanel csaLog;
         CommentEditorPanel comment;

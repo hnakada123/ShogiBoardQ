@@ -187,7 +187,7 @@ quint32 JosekiBook::storeComment(const QString &comment, quint32 index)
 
 void JosekiBook::assign(PackedMove &target, const JosekiMove &move)
 {
-    target.next = encodeMove(move.nextMove);
+    target.next = move.nextMove ? encodeMove(*move.nextMove) : kNoMove;
     target.value = move.value;
     target.depth = move.depth;
     target.frequency = move.frequency;
@@ -198,7 +198,7 @@ JosekiMove JosekiBook::unpack(const PackedMove &packed) const
 {
     JosekiMove move;
     move.move = decodeMove(packed.move);
-    move.nextMove = decodeMove(packed.next);
+    if (packed.next != kNoMove) move.nextMove = decodeMove(packed.next);
     move.value = packed.value;
     move.depth = packed.depth;
     move.frequency = packed.frequency;
@@ -303,7 +303,7 @@ void JosekiBook::putMove(const QString &sfen, const JosekiMove &move)
     records.insert(range.end, added);
 }
 
-bool JosekiBook::updateMove(const QString &sfen, const JosekiMove &move)
+bool JosekiBook::updateMove(const QString &sfen, const JosekiMove &move, NextMoveUpdate next)
 {
     const auto it = m_positions.find(keyOf(sfen));
     const std::optional<quint16> code = findMoveCode(move.move);
@@ -311,7 +311,7 @@ bool JosekiBook::updateMove(const QString &sfen, const JosekiMove &move)
     const qsizetype index = indexOf(*it, resolve(*it, sfen), *code);
     if (index < 0) return false;
     PackedMove &existing = (*it)[index];
-    if (!move.nextMove.isNull()) existing.next = encodeMove(move.nextMove);
+    if (next == NextMoveUpdate::Replace) existing.next = move.nextMove ? encodeMove(*move.nextMove) : kNoMove;
     existing.value = move.value;
     existing.depth = move.depth;
     existing.frequency = move.frequency;

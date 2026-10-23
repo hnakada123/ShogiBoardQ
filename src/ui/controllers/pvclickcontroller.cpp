@@ -46,20 +46,24 @@ void PvClickController::onPvRowClicked(ShogiEngineThinkingModel* model, int row)
     }
     qCDebug(lcUi) << "onPvRowClicked: row=" << row << "base=" << baseSfen;
 
-    auto* dlg = new PvBoardDialog(pv, qobject_cast<QWidget*>(parent()));
+    PvBoardDialog* dlg = showPvBoard(pv, lastUsiMove, prevSfen);
     m_dialogSources.insert(dlg, model);
     connect(dlg, &QDialog::finished, this, &PvClickController::onPvDialogFinished);
+}
 
-    // 対局者名（最後に始めた対局の対局者。名前が無ければ先手・後手）
-    const MatchPlayers players = m_deps.document ? m_deps.document->players() : MatchPlayers{};
-    const QString blackName = players.name(Turn::Black);
-    const QString whiteName = players.name(Turn::White);
+PvBoardDialog* PvClickController::showPvBoard(const PvText& pv, const QString& lastUsiMove, const QString& prevSfen)
+{
+    auto* dlg = new PvBoardDialog(pv, qobject_cast<QWidget*>(parent()));
+    // 対局者名（対局情報の名前。無ければ先手・後手）
+    const QString blackName = m_deps.document ? m_deps.document->headerPlayerName(Turn::Black) : QString();
+    const QString whiteName = m_deps.document ? m_deps.document->headerPlayerName(Turn::White) : QString();
     dlg->setPlayerNames(blackName.isEmpty() ? tr("先手") : blackName, whiteName.isEmpty() ? tr("後手") : whiteName);
     dlg->setFlipMode(m_deps.shogiView && m_deps.shogiView->flipMode());
     if (!lastUsiMove.isEmpty()) dlg->setLastMove(lastUsiMove);
     if (!prevSfen.isEmpty()) dlg->setPrevSfenForHighlight(prevSfen);
     dlg->setAttribute(Qt::WA_DeleteOnClose);
     dlg->show();
+    return dlg;
 }
 
 void PvClickController::onPvDialogFinished()

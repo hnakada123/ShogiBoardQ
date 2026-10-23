@@ -110,15 +110,14 @@ MatchTimeSettings GameStartOptionsBuilder::buildTimeSettings(const StartGameDial
 
 MatchPlayers GameStartOptionsBuilder::playersFromDialog(const StartGameDialogData& data)
 {
-    const PlayerChoice& black = data.players[0];
-    const PlayerChoice& white = data.players[1];
     MatchPlayers players;
-    players.blackIsEngine = black.isEngine();
-    players.whiteIsEngine = white.isEngine();
-    players.blackHumanName = black.humanName;
-    players.whiteHumanName = white.humanName;
-    if (black.isEngine()) players.blackEngineName = black.engine.name;
-    if (white.isEngine()) players.whiteEngineName = white.engine.name;
+    for (std::size_t i = 0; i < data.players.size(); ++i) {
+        const PlayerChoice& choice = data.players[i];
+        MatchPlayers::Seat& seat = players.seats[i];
+        seat.engine = choice.isEngine();
+        seat.humanName = choice.humanName;
+        if (choice.isEngine()) seat.engineName = choice.engine.name;
+    }
     return players;
 }
 
@@ -144,11 +143,10 @@ MatchStartOptions GameStartOptionsBuilder::buildStartOptions(const QString& star
     MatchStartOptions opt;
     opt.players = playersFromDialog(dlg);
     opt.sfenStart = startSfen;
-    if (dlg.players[0].isEngine()) opt.enginePath1 = dlg.players[0].engine.path;
-    if (dlg.players[1].isEngine()) opt.enginePath2 = dlg.players[1].engine.path;
     // 定跡を使えるのはエンジンの対局者だけ（定跡そのものは対局を始める側が写して渡す）
     for (std::size_t i = 0; i < dlg.players.size(); ++i) {
-        if (dlg.players[i].isEngine()) opt.josekiOptions[i] = dlg.players[i].joseki.normalized();
+        const PlayerChoice& choice = dlg.players[i];
+        if (choice.isEngine()) opt.engines[i] = {choice.engine.path, choice.joseki.normalized()};
     }
     opt.maxMoves = dlg.maxMoves;
     opt.autoSave.enabled = dlg.autoSaveKifu;

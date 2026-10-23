@@ -130,23 +130,20 @@ private:
 
 } // namespace
 
-int CliCommands::generateTsume(const QStringList& args)
+int CliCommands::generateTsume(const QJsonObject& params)
 {
-    int exitCode = 0;
-    const auto params = CliArgs::parse(QStringLiteral("generate-tsume"), args, true, &exitCode);
-    if (!params) return exitCode;
 
     QString error;
-    const auto engine = CliArgs::resolveEngine(*params, &error);
+    const auto engine = CliArgs::resolveEngine(params, &error);
     if (!engine) return CliOutput::failEvent(ErrorKind::EngineNotFound, error);
     // 範囲と既定値は CliCommandSpecs の表で決まる
-    const int targetMoves = params->value(QStringLiteral("target_moves")).toInt();
+    const int targetMoves = params.value(QStringLiteral("target_moves")).toInt();
     if (targetMoves % 2 == 0) return CliOutput::failEvent(ErrorKind::InvalidArgument, QStringLiteral("target_moves must be odd"));
-    const int maxPositions = params->value(QStringLiteral("max_positions")).toInt();
-    const int timeoutMs = params->value(QStringLiteral("timeout_ms")).toInt();
-    const int maxAttack = params->value(QStringLiteral("max_attack_pieces")).toInt();
-    const int maxDefend = params->value(QStringLiteral("max_defend_pieces")).toInt();
-    const int attackRange = params->value(QStringLiteral("attack_range")).toInt();
+    const int maxPositions = params.value(QStringLiteral("max_positions")).toInt();
+    const int timeoutMs = params.value(QStringLiteral("timeout_ms")).toInt();
+    const int maxAttack = params.value(QStringLiteral("max_attack_pieces")).toInt();
+    const int maxDefend = params.value(QStringLiteral("max_defend_pieces")).toInt();
+    const int attackRange = params.value(QStringLiteral("attack_range")).toInt();
 
     TsumeshogiGenerator::Settings settings;
     settings.enginePath = engine->path;
@@ -154,11 +151,11 @@ int CliCommands::generateTsume(const QStringList& args)
     settings.targetMoves = targetMoves;
     settings.timeoutMs = timeoutMs;
     settings.maxPositionsToFind = maxPositions;
-    settings.allowFinalMoveAlternatives = params->value(QStringLiteral("allow_final_move_alternatives")).toBool();
+    settings.allowFinalMoveAlternatives = params.value(QStringLiteral("allow_final_move_alternatives")).toBool();
     settings.posGenSettings.maxAttackPieces = maxAttack;
     settings.posGenSettings.maxDefendPieces = maxDefend;
     settings.posGenSettings.attackRange = attackRange;
-    settings.posGenSettings.addRemainingToDefenderHand = params->value(QStringLiteral("add_remaining_to_defender_hand")).toBool();
+    settings.posGenSettings.addRemainingToDefenderHand = params.value(QStringLiteral("add_remaining_to_defender_hand")).toBool();
 
     TsumeshogiGenerator generator;
     QEventLoop loop;
@@ -168,7 +165,7 @@ int CliCommands::generateTsume(const QStringList& args)
     QObject::connect(&generator, &TsumeshogiGenerator::verificationStatsUpdated, &reporter, &GenerateReporter::onVerificationStats);
     QObject::connect(&generator, &TsumeshogiGenerator::finished, &reporter, &GenerateReporter::onFinished);
     QObject::connect(&generator, &TsumeshogiGenerator::errorOccurred, &reporter, &GenerateReporter::onError);
-    CliStopWatcher watcher(params->value(QStringLiteral("stdin_control")).toBool());
+    CliStopWatcher watcher(params.value(QStringLiteral("stdin_control")).toBool());
     QObject::connect(&watcher, &CliStopWatcher::stopRequested, &reporter, &GenerateReporter::onStopRequested);
 
     QJsonObject started;
@@ -188,20 +185,17 @@ int CliCommands::generateTsume(const QStringList& args)
     return reporter.exitCode();
 }
 
-int CliCommands::verifyTsume(const QStringList& args)
+int CliCommands::verifyTsume(const QJsonObject& params)
 {
-    int exitCode = 0;
-    const auto params = CliArgs::parse(QStringLiteral("verify-tsume"), args, false, &exitCode);
-    if (!params) return exitCode;
 
     QString error;
-    const auto engine = CliArgs::resolveEngine(*params, &error);
+    const auto engine = CliArgs::resolveEngine(params, &error);
     if (!engine) return CliOutput::fail(ErrorKind::EngineNotFound, error);
-    const int targetMoves = params->value(QStringLiteral("target_moves")).toInt();
+    const int targetMoves = params.value(QStringLiteral("target_moves")).toInt();
     if (targetMoves % 2 == 0) return CliOutput::fail(ErrorKind::InvalidArgument, QStringLiteral("target_moves must be odd"));
-    const int timeoutMs = params->value(QStringLiteral("timeout_seconds")).toInt() * 1000;
+    const int timeoutMs = params.value(QStringLiteral("timeout_seconds")).toInt() * 1000;
 
-    const SfenValidation validation = SfenValidationService::validate(params->value(QStringLiteral("sfen")).toString());
+    const SfenValidation validation = SfenValidationService::validate(params.value(QStringLiteral("sfen")).toString());
     if (!validation.valid) return CliOutput::fail(ErrorKind::InvalidArgument, QStringLiteral("Invalid SFEN: %1").arg(validation.errors.join(QStringLiteral("; "))));
 
     TsumeVerificationRunner runner;
@@ -218,7 +212,7 @@ int CliCommands::verifyTsume(const QStringList& args)
     request.sfen = validation.normalizedSfen;
     request.targetMoves = targetMoves;
     request.timeoutMs = timeoutMs;
-    request.allowFinalMoveAlternatives = params->value(QStringLiteral("allow_final_move_alternatives")).toBool();
+    request.allowFinalMoveAlternatives = params.value(QStringLiteral("allow_final_move_alternatives")).toBool();
 
     // 詰将棋の局面でなければ（受方の玉がない・王手がかかっているなど）、エンジンを起動せずに status invalid を返す
     if (!runner.start(request)) {

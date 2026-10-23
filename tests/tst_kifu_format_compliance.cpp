@@ -2,6 +2,7 @@
 /// @brief 公開仕様の局面・終局・コメントを読み込み、他形式への保存後も保持する。
 
 #include <QtTest>
+#include <QStringEncoder>
 #include "shogiposition.h"
 
 #include "kifuconversionservice.h"
@@ -529,6 +530,23 @@ private slots:
         QCOMPARE(fromText.record.variations.size(), 1);
         QCOMPARE(fromText.gameInfo.size(), fromFile.gameInfo.size());
         QCOMPARE(fromText.startSfen(), fromFile.startSfen());
+    }
+
+    // 文字コードの宣言の無い CSA も、ほかの形式と同じ順（BOM・UTF-8・CP932・EUC-JP）で判別する
+    void csaWithoutDeclarationDetectsUtf16Bom()
+    {
+        const QString text = QStringLiteral("V2.2\nN+先手太郎\nN-後手花子\nPI\n+\n+7776FU\n-3334FU\n%TORYO\n");
+        QTemporaryFile file(QDir::tempPath() + QStringLiteral("/parse_XXXXXX.csa"));
+        QVERIFY(file.open());
+        QStringEncoder encoder(QStringConverter::Utf16LE);
+        file.write(QByteArray("\xFF\xFE") + QByteArray(encoder(text)));
+        file.close();
+        const auto loaded = KifuLoadParser::parseFile(file.fileName());
+        QVERIFY2(loaded.success, qPrintable(loaded.error));
+        QCOMPARE(loaded.record.mainline.usiMoves(), QStringList({QStringLiteral("7g7f"), QStringLiteral("3c3d")}));
+        bool foundName = false;
+        for (const auto& item : loaded.gameInfo) foundName = foundName || item.value == QStringLiteral("先手太郎");
+        QVERIFY(foundName);
     }
 };
 

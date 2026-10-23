@@ -16,11 +16,13 @@ int main()
     std::string sfen;
     for (std::string line; std::getline(std::cin, line);) {
         if (line == "usi") {
-            std::cout << "id name " << (mode == "unsupported" ? "Other" : "KomoringHeights mock") << '\n'
-                      << "option name PostSearchLevel type combo default MinLength var None var MinLength\n"
-                      << "option name GenerateAllLegalMoves type check default false\n"
-                      << "option name RootIsAndNodeIfChecked type check default true\n"
-                      << "option name NodesLimit type spin default 1 min 0 max 1000\n"
+            // 最短手数を確認できないエンジンは、そのためのオプションを報告しない
+            std::cout << "id name " << (mode == "unsupported" ? "Other" : "KomoringHeights mock") << '\n';
+            if (mode != "unsupported")
+                std::cout << "option name PostSearchLevel type combo default MinLength var None var MinLength\n"
+                          << "option name GenerateAllLegalMoves type check default false\n"
+                          << "option name RootIsAndNodeIfChecked type check default true\n";
+            std::cout << "option name NodesLimit type spin default 1 min 0 max 1000\n"
                       << "option name Threads type spin default 1 min 1 max 64\n"
                       << "option name USI_Hash type spin default 16 min 1 max 4096\n"
                       << "usiok" << std::endl;

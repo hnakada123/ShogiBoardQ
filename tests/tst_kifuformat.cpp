@@ -51,6 +51,19 @@ private slots:
         QCOMPARE(KifuFormats::detect(text), expected);
     }
 
+    // 開ける拡張子は形式の表から作る（JKF の .json を含み、局面図は含まない）
+    void readableSuffixesComeFromTheTable()
+    {
+        const QStringList all = KifuFormats::readableSuffixes();
+        for (const char* suffix : {"kif", "kifu", "ki2", "ki2u", "csa", "jkf", "json", "usi", "usen", "sfen"})
+            QVERIFY2(all.contains(QLatin1String(suffix)), suffix);
+        QVERIFY(!all.contains(QStringLiteral("bod")));
+        QCOMPARE(KifuFormats::readableSuffixes(KifuFormat::Jkf), QStringList({QStringLiteral("jkf"), QStringLiteral("json")}));
+        QCOMPARE(KifuFormats::readableSuffixes(KifuFormat::Kif), QStringList({QStringLiteral("kif"), QStringLiteral("kifu")}));
+        QVERIFY(KifuFormats::isReadableFile(QStringLiteral("/games/a.JSON")));
+        QVERIFY(!KifuFormats::isReadableFile(QStringLiteral("/games/a.txt")));
+    }
+
     // 拡張子で決まる形式と、.json・未知の拡張子の内容による判定
     void detectFileFormat_data()
     {

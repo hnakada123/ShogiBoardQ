@@ -9,7 +9,7 @@
 #include <QStringList>
 #include <optional>
 
-#include "enginelistsettings.h"
+#include "registeredengines.h"
 #include "errorkinds.h"
 #include "usiposition.h"
 
@@ -23,17 +23,10 @@ struct CliPosition {
 
 namespace CliArgs {
 
-/**
- * @brief 表（CliCommandSpecs）のコマンド command の引数を読み、検査して既定値を補う
- *
- * 失敗したら invalid_argument を書き（events なら JSON Lines のイベントで）、*exitCode に終了コードを入れる。
- */
-std::optional<QJsonObject> parse(const QString& command, const QStringList& args, bool events, int* exitCode);
-
 /// 引数の "sfen"・"moves"（CliCommandSpecs::parse で読んだ値）から局面を解決する。失敗時は nullopt と error
 std::optional<CliPosition> resolvePosition(const QJsonObject& params, QString* error);
 /// 引数の "engine" の登録エンジンを解決する。失敗時は nullopt と error
-std::optional<EngineListSettings::EngineEntry> resolveEngine(const QJsonObject& params, QString* error);
+std::optional<EngineEntry> resolveEngine(const QJsonObject& params, QString* error);
 
 
 } // namespace CliArgs

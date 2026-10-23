@@ -427,13 +427,13 @@ private slots:
         // 後手番の局面から、後手（と先手）をエンジンが指す
         MatchStartOptions opt;
         opt.sfenStart = afterFirstMove;
-        opt.players.whiteIsEngine = true;
-        opt.players.whiteEngineName = engineName;
-        opt.enginePath2 = QStringLiteral(MOCK_USI_EXECUTABLE);
+        opt.players.seat(Turn::White).engine = true;
+        opt.players.seat(Turn::White).engineName = engineName;
+        opt.engine(Turn::White).path = QStringLiteral(MOCK_USI_EXECUTABLE);
         if (bothEngines) {
-            opt.players.blackIsEngine = true;
-            opt.players.blackEngineName = engineName;
-            opt.enginePath1 = QStringLiteral(MOCK_USI_EXECUTABLE);
+            opt.players.seat(Turn::Black).engine = true;
+            opt.players.seat(Turn::Black).engineName = engineName;
+            opt.engine(Turn::Black).path = QStringLiteral(MOCK_USI_EXECUTABLE);
         }
         game.newGame(opt.sfenStart);
         match.start(opt);
@@ -459,7 +459,7 @@ private slots:
         match.handleBreakOff();
         QVERIFY(elapsed.elapsed() < 200);
         QCOMPARE(ended.size(), 1);
-        QCOMPARE(match.gameOverState().lastInfo.cause, MatchCoordinator::Cause::BreakOff);
+        QCOMPARE(match.gameEnd()->cause, MatchCoordinator::Cause::BreakOff);
         QList<QPointer<QProcess>> retiring;
         for (auto* process : qApp->findChildren<QProcess*>())
             if (!existing.contains(process)) retiring.append(process);
@@ -558,13 +558,13 @@ private slots:
             MatchStartOptions opt;
             opt.sfenStart = SfenUtils::hirateSfen();
             if (engineIsBlack) {
-                opt.players.blackIsEngine = true;
-                opt.players.blackEngineName = engineName;
-                opt.enginePath1 = QStringLiteral(MOCK_USI_EXECUTABLE);
+                opt.players.seat(Turn::Black).engine = true;
+                opt.players.seat(Turn::Black).engineName = engineName;
+                opt.engine(Turn::Black).path = QStringLiteral(MOCK_USI_EXECUTABLE);
             } else {
-                opt.players.whiteIsEngine = true;
-                opt.players.whiteEngineName = engineName;
-                opt.enginePath2 = QStringLiteral(MOCK_USI_EXECUTABLE);
+                opt.players.seat(Turn::White).engine = true;
+                opt.players.seat(Turn::White).engineName = engineName;
+                opt.engine(Turn::White).path = QStringLiteral(MOCK_USI_EXECUTABLE);
             }
             game.newGame(opt.sfenStart);
             match.start(opt);

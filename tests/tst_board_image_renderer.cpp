@@ -507,12 +507,9 @@ private slots:
             for (const int count : {1, 2, 5, 18}) {
                 model.setSfen(QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b - 1"));
                 const auto before = renderView(view, dpr);
-                model.incrementPieceOnStand(Piece::BlackBishop);
-                model.incrementPieceOnStand(Piece::WhiteBishop);
-                for (int i = 0; i < count; ++i) {
-                    model.incrementPieceOnStand(Piece::BlackPawn);
-                    model.incrementPieceOnStand(Piece::WhitePawn);
-                }
+                // 両方の駒台に角1枚と歩 count 枚
+                const QString pawns = count > 1 ? QString::number(count) : QString();
+                model.setSfen(QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b B%1Pb%1p 1").arg(pawns));
                 const auto after = renderView(view, dpr);
                 for (const bool black : {true, false}) {
                     const QRect stand = black ? layout.stand(Turn::Black) : layout.stand(Turn::White);
@@ -550,8 +547,7 @@ private slots:
             const auto layout = viewLayout(view);
             model.setSfen(QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b - 1"));
             const auto before = renderView(view, 2);
-            model.incrementPieceOnStand(Piece::BlackBishop);
-            model.incrementPieceOnStand(Piece::WhiteBishop);
+            model.setSfen(QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b Bb 1"));
             const auto after = renderView(view, 2);
             for (const bool black : {true, false}) {
                 const QRect stand = black ? layout.stand(Turn::Black) : layout.stand(Turn::White);

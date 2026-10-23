@@ -10,6 +10,7 @@
 #include "gameinfokeys.h"
 #include "kiflinebuilder.h"
 #include "terminalcodes.h"
+#include "kifreader.h"
 #include "shiftjiscodec.h"
 #include "shogiposition.h"
 
@@ -29,6 +30,7 @@ bool CsaToSfenConverter::readFileText(const QString& path, QString& outText, QSt
     }
 
     const QByteArray raw = f.readAll();
+    // CSA V3 の文字コードの宣言（'encoding=...）があればそれに従う
     const QByteArray head = raw.left(128);
     const bool utf8Header  = head.contains("CSA encoding=UTF-8")
                           || head.contains("'encoding=UTF-8");
@@ -36,35 +38,19 @@ bool CsaToSfenConverter::readFileText(const QString& path, QString& outText, QSt
                           || head.contains("CSA encoding=Shift_JIS")
                           || head.contains("'encoding=SHIFT_JIS")
                           || head.contains("'encoding=Shift_JIS");
-
-    QString text;
-
     if (utf8Header) {
         QStringDecoder dec(QStringDecoder::Utf8);
-        text = dec(raw);
-    } else if (sjisHeader) {
-        if (auto decoded = ShiftJisCodec::decode(raw)) {
-            text = std::move(*decoded);
-        } else {
-            QStringDecoder dec(QStringDecoder::System);
-            text = dec(raw);
-        }
-    } else {
-        QStringDecoder decUtf8(QStringDecoder::Utf8);
-        QString t = decUtf8(raw);
-        if (!decUtf8.hasError() && !t.isEmpty()) {
-            text = t;
-        } else {
-            if (auto decoded = ShiftJisCodec::decode(raw)) {
-                text = std::move(*decoded);
-            } else {
-                QStringDecoder decSys(QStringDecoder::System);
-                text = decSys(raw);
-            }
+        outText = dec(raw);
+        return true;
+    }
+    if (sjisHeader) {
+        if (std::optional<QString> decoded = ShiftJisCodec::decode(raw)) {
+            outText = std::move(*decoded);
+            return true;
         }
     }
-
-    outText = std::move(text);
+    // 宣言が無い（宣言どおりに読めない）ときは、ほかの棋譜と同じ順で判別する（BOM・UTF-8・CP932・EUC-JP）
+    outText = KifReader::decodeAuto(raw, nullptr, warn);
     return true;
 }
 

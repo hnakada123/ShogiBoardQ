@@ -159,7 +159,7 @@ void KifuAnalysisDialog::setMaxPly(int maxPly)
     updateSummary();
 }
 
-void KifuAnalysisDialog::showEngineSettingsDialog(const EngineListSettings::EngineEntry& engine)
+void KifuAnalysisDialog::showEngineSettingsDialog(const EngineEntry& engine)
 {
     ChangeEngineSettingsDialog dialog(engine, this);
     dialog.exec();
@@ -170,26 +170,16 @@ void KifuAnalysisDialog::processEngineSettings()
 {
     if (!m_engineSelector->selected()) return;
 
-    // "開始局面から最終手まで"にチェックが入っている場合
-    if (ui->radioButtonInitPosition->isChecked()) {
-        m_initPosition = true;
-        m_startPly = 0;
-        m_endPly = m_maxPly;
-    }
-    // 範囲指定にチェックが入っている場合
-    else if (ui->radioButtonRangePosition->isChecked()) {
-        m_initPosition = false;
-        m_startPly = ui->spinBoxStartPly->value();
-        m_endPly = ui->spinBoxEndPly->value();
-    }
+    // 範囲（「開始局面から最終手まで」か範囲指定）と1局面の思考時間
+    const bool fullRange = !ui->radioButtonRangePosition->isChecked();
+    m_options.startPly = fullRange ? 0 : qBound(0, ui->spinBoxStartPly->value(), m_maxPly);
+    m_options.endPly = fullRange ? m_maxPly : qBound(m_options.startPly, ui->spinBoxEndPly->value(), m_maxPly);
+    m_options.movetimeMs = ui->byoyomiSec->value() * 1000;
 
-    // 1手あたりの思考時間（秒数）を取得する。
-    m_byoyomiSec = ui->byoyomiSec->value();
-    
     // 設定を保存
     m_engineSelector->saveSelection();
-    AnalysisSettings::kifuAnalysisByoyomiSec.set(m_byoyomiSec);
-    AnalysisSettings::kifuAnalysisFullRange.set(m_initPosition);
+    AnalysisSettings::kifuAnalysisByoyomiSec.set(ui->byoyomiSec->value());
+    AnalysisSettings::kifuAnalysisFullRange.set(fullRange);
     AnalysisSettings::kifuAnalysisStartPly.set(ui->spinBoxStartPly->value());
     AnalysisSettings::kifuAnalysisEndPly.set(ui->spinBoxEndPly->value());
     accept();
@@ -198,30 +188,6 @@ void KifuAnalysisDialog::processEngineSettings()
 std::optional<KifuAnalysisDialog::Engine> KifuAnalysisDialog::engine() const
 {
     return m_engineSelector->selected();
-}
-
-// 1手あたりの思考時間（秒数）を取得する。
-int KifuAnalysisDialog::byoyomiSec() const
-{
-    return m_byoyomiSec;
-}
-
-// "開始局面から最終手まで"を選択したかどうかのフラグを取得する。
-bool KifuAnalysisDialog::initPosition() const
-{
-    return m_initPosition;
-}
-
-// 範囲指定の開始手数を取得する
-int KifuAnalysisDialog::startPly() const
-{
-    return m_startPly;
-}
-
-// 範囲指定の終了手数を取得する
-int KifuAnalysisDialog::endPly() const
-{
-    return m_endPly;
 }
 
 // 範囲指定の数値欄の前後に置く文字列を設定する。

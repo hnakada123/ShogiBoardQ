@@ -26,9 +26,8 @@ MainWindowAppearanceController::MainWindowAppearanceController(const Deps& deps,
     setupCentralWidgetContainer(deps.centralWidget);
     configureToolBarFromUi(deps.toolBar, deps.toolBarAction);
     setupBoardInCenter();
+    // 拡大・縮小（メニュー・Ctrl+ホイール）で盤の大きさが変わったら中央の領域を合わせる
     connect(m_deps.shogiView, &ShogiView::fieldSizeChanged, this, &MainWindowAppearanceController::fitCentralToBoard);
-    // Ctrl+ホイールで盤の大きさを変える
-    m_deps.shogiView->installEventFilter(this);
 }
 
 void MainWindowAppearanceController::setupCentralWidgetContainer(QWidget* centralWidget)
@@ -43,15 +42,6 @@ void MainWindowAppearanceController::setupCentralWidgetContainer(QWidget* centra
 
 bool MainWindowAppearanceController::eventFilter(QObject* watched, QEvent* event)
 {
-    if (watched == m_deps.shogiView && event->type() == QEvent::Wheel) {
-        auto* wheelEvent = static_cast<QWheelEvent*>(event);
-        if (wheelEvent->modifiers() & Qt::ControlModifier) {
-            const int delta = wheelEvent->angleDelta().y();
-            if (delta > 0) m_deps.shogiView->enlargeBoard(true);
-            else if (delta < 0) m_deps.shogiView->reduceBoard(true);
-            return true;
-        }
-    }
     if (watched == m_mainWindow && event->type() == QEvent::WindowStateChange) {
         // 通常表示の固定幅が全画面表示・最大化時のサイズ変更を妨げないようにする。
         if (m_mainWindow->isFullScreen() || m_mainWindow->isMaximized()) {
@@ -166,14 +156,14 @@ void MainWindowAppearanceController::onActionEnlargeBoardTriggered()
 {
     ShogiView* view = m_deps.shogiView;
     if (!view) return;
-    view->enlargeBoard(true);
+    view->enlargeBoard();
 }
 
 void MainWindowAppearanceController::onActionShrinkBoardTriggered()
 {
     ShogiView* view = m_deps.shogiView;
     if (!view) return;
-    view->reduceBoard(true);
+    view->reduceBoard();
 }
 
 void MainWindowAppearanceController::onToolBarVisibilityToggled(bool visible)

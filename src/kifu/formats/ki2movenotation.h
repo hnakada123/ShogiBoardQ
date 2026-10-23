@@ -37,17 +37,16 @@ namespace Ki2MoveNotation {
 [[nodiscard]] std::optional<UsiMove> resolve(const KifMoveGrammar::MoveText& text, const Position& board,
                                              Turn mover, BoardSquare previousTo);
 
-/// 局面の上の指し手に、KI2 で付ける語
+/// 局面の上の指し手に、KI2 で付ける語（「不成」は KifMoveText::couldPromote で決める）
 struct Annotation {
     QString modifiers;        ///< 修飾語（右・左・直・上・引・寄。「左上」のように2字のこともある）。盤上の同じ駒も動ける駒打ちは「打」
-    bool canPromote = false;  ///< 成ることもできる手（成らない手は「不成」と書く）
     /// 同じ駒で同じマスへ動ける盤上の駒の位置（指した駒を含む。2つ以上なら移動元に紛れがある。
     /// 画面の英語表記が移動元を付けるかもこれで決める）
     QList<BoardSquare> sources;
 };
 
 /**
- * @brief 局面と指し手から、KI2 で付ける修飾語・「打」と、成れる手かどうかを決める
+ * @brief 局面と指し手から、KI2 で付ける修飾語・「打」を決める
  * @param board 指す前の局面
  * @param mover 指す側
  * @param move 指し手
@@ -64,7 +63,7 @@ Annotation annotate(const Position& board, Turn mover, const UsiMove& move);
  * @param move 指し手
  * @param previousTo 直前の手の移動先。同じマスなら「同　」と書く
  *
- * 修飾語・「打」・「不成」は必要なときだけ付ける。
+ * 修飾語・「打」・「不成」は必要なときだけ付ける。文字列は KifMoveText で作る（KIF の手から移動元を除いた形）。
  */
 QString format(const Position& board, Turn mover, const UsiMove& move, BoardSquare previousTo);
 

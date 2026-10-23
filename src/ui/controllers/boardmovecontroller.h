@@ -8,26 +8,26 @@
 #include <QPoint>
 
 #include "boardinputroute.h"
+#include "humanturnpolicy.h"
 #include "usimove.h"
 
 class AppActivityState;
 class BoardInteractionController;
 class BranchTreeEditController;
-class HumanTurnPolicy;
 class MatchCoordinator;
 class PositionEditSession;
 class ShogiGameController;
 class ShogiView;
 
 /**
- * @brief 主画面の盤で指した手の行き先（BoardInputRoute）。動作状態ごとに受け付けるかと処理を決める
+ * @brief 主画面の盤で指した手の行き先（BoardInputRoute）
  *
- * つまめるか（acceptsInput）は、局面編集中なら常に、それ以外は HumanTurnPolicy の判定（待機中は変化を
- * 記録できるとき、対局中は人間の手番）で決まる。決まった手は動作状態に合わせて処理する。
- * - 局面編集中: 駒の配置を変える（PositionEditSession）
- * - 待機中: 表示中の手の次の手（変化）として棋譜に記録する（BranchTreeEditController）
- * - 通信対局中: サーバーへ送るよう知らせる（盤は確認を受けてから動かす）
- * - 対局中で人間の手番: 合法手なら指し、対局の司令塔へ渡す
+ * 受け付けるかと行き先は HumanTurnPolicy::boardInput() の1か所で決まる。このクラスは行き先ごとに処理する。
+ * - 局面編集: 駒の配置を変える（PositionEditSession）
+ * - 変化: 表示中の手の次の手として棋譜に記録する（BranchTreeEditController）
+ * - 通信対局: サーバーへ送るよう知らせる（盤は確認を受けてから動かす）
+ * - 対局: 合法手なら指し、対局の司令塔へ渡す
+ * 局面編集のほかは、クリックの移動元・移動先を UsiMove にしてから同じ処理に渡す。
  * どの場合も、手を受け付けたかを盤の操作へ返す（つまんだ駒の表示を戻すため）。
  */
 class BoardMoveController : public QObject, public BoardInputRoute
@@ -43,7 +43,7 @@ public:
         MatchCoordinator* match = nullptr;                  ///< 対局の司令塔（必須）
         PositionEditSession* positionEdit = nullptr;        ///< 局面編集（必須）
         BranchTreeEditController* branchEdit = nullptr;     ///< 変化の記録（必須）
-        const HumanTurnPolicy* turnPolicy = nullptr;        ///< 人間が指せる手番か（必須）
+        const HumanTurnPolicy* turnPolicy = nullptr;        ///< 盤の手の行き先（必須）
     };
 
     /// 盤の操作（deps.board）の行き先になる
@@ -70,8 +70,7 @@ signals:
     void csaMoveRequested(const UsiMove& move);
 
 private:
-    /// 対局で人間の手番か（司令塔が手を受け付けるか）
-    bool canPlayInGame() const;
+    using Input = HumanTurnPolicy::BoardInput;
     /// 指した手の結果を盤の操作へ返す（ハイライト・つまんだ駒の表示）
     void reportResult(const UsiMove& move, bool ok);
 

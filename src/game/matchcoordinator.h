@@ -44,7 +44,6 @@ class MatchCoordinator : public QObject, private MatchStrategyHost {
 public:
     using Cause = MatchCause;
     using GameEndInfo = MatchGameEndInfo;
-    using GameOverState = MatchGameOverState;
     using StartOptions = MatchStartOptions;
 
     struct Deps {
@@ -85,6 +84,8 @@ public:
     /// 対局者（人間・エンジンの組と名前）
     const MatchPlayers& players() const { return m_session.players(); }
     bool isHumanSide(Turn side) const;
+    /// どちらかの手番を人間が指す（待った・投了・入玉宣言を出すか）
+    bool hasHumanPlayer() const { return isHumanSide(Turn::Black) || isHumanSide(Turn::White); }
     /// 手番（盤の手番）
     Turn sideToMove() const override;
 
@@ -113,9 +114,10 @@ public:
 
     // --- 終局 ---
 
-    const GameOverState& gameOverState() const { return m_session.gameOver(); }
-    bool isGameOver() const override { return m_session.gameOver().isOver; }
-    void clearGameOverState();
+    /// 終局の情報（原因と負けた側。終局していなければ nullopt）
+    const std::optional<GameEndInfo>& gameEnd() const { return m_session.end(); }
+    bool isGameOver() const override { return m_session.end().has_value(); }
+    void clearGameEnd();
 
     void handleResign();
     void handleBreakOff();
@@ -123,7 +125,7 @@ public:
     /// 入玉宣言の判定結果で終局する（宣言の結果は呼び出し側のダイアログで知らせる）
     void handleNyugyokuDeclaration(Turn declarer, bool success, bool isDraw);
     /// 人間の入玉宣言を盤面から判定（rule は Rule24・Rule27）して終局し、判定結果を返す（知らせは呼び出し側）
-    NyugyokuJudgement::Result declareNyugyoku(Turn declarer, int rule);
+    NyugyokuJudgement::Result declareNyugyoku(Turn declarer, JishogiCalculator::Rule rule);
 
     // --- 時計 ---
 
@@ -157,7 +159,6 @@ private:
     MatchTimeSource* timeSource() override { return &m_clockTime; }
     void requestEngineMove(Turn side) override;
     void setWaitingForEngines(bool waiting) override;
-    void recordConsiderationTime(Turn mover, qint64 elapsedMs) override;
     bool applyEngineMove(const UsiMatchMove& move) override;
     bool completeHumanMove(const RecordEntry& played) override;
 
@@ -168,7 +169,6 @@ private:
     static QString bookMoveLabel(const QString& sfen, const JosekiPick& pick);
     /// 一手を確定する。engineScore はエンジンの手のとき（グラフに足す評価値）
     bool completeMove(RecordEntry played, std::optional<UsiScore> engineScore);
-    void disarmTurnTimer();
 
     // --- 終局 ---
     void handleEngineResign(Turn side);

@@ -1,7 +1,7 @@
-#ifndef CONSIDERATIONTABMANAGER_H
-#define CONSIDERATIONTABMANAGER_H
+#ifndef CONSIDERATIONPANEL_H
+#define CONSIDERATIONPANEL_H
 
-/// @file considerationtabmanager.h
+/// @file considerationpanel.h
 /// @brief 検討ドックの中身（ツールバー・エンジン情報・候補手の表）
 
 #include <QWidget>
@@ -36,7 +36,7 @@ class ThinkingTableView;
  * - 実行の状態（RunState）は検討の表示の持ち主（EngineDisplayPresenter）が設定する。開始/中止のボタンは
  *   状態に応じて startConsiderationRequested か stopConsiderationRequested を出す
  */
-class ConsiderationTabManager : public QWidget
+class ConsiderationPanel : public QWidget
 {
     Q_OBJECT
 
@@ -50,8 +50,8 @@ public:
     Q_ENUM(RunState)
 
     /// ツールバー・情報・表を作り、保存した検討の条件を出す
-    explicit ConsiderationTabManager(QWidget* parent = nullptr);
-    ~ConsiderationTabManager() override;
+    explicit ConsiderationPanel(QWidget* parent = nullptr);
+    ~ConsiderationPanel() override;
     /// 検討の表が model を出していれば選択を外す（読み筋ダイアログを閉じたとき）
     void clearViewSelection(const ShogiEngineThinkingModel* model);
 
@@ -65,14 +65,12 @@ public:
 
     /// 検討の条件（正本）
     const ConsiderationSettings& settings() const { return m_settings; }
-    /// 検討の条件を変える（画面に出して保存し、変わったら settingsChanged を出す）
-    void setSettings(const ConsiderationSettings& settings);
 
     /// 検討しているエンジンの名前（情報欄に出す）
     void setConsiderationEngineName(const QString& name);
 
     /// 実行の状態（Running にするたびに経過時間を数え直す）
-    void setRunState(ConsiderationTabManager::RunState state);
+    void setRunState(ConsiderationPanel::RunState state);
     RunState runState() const { return m_runState; }
 
     // 検討開始ボタンの有効/無効（検討中は中止操作を優先して無効化しない）
@@ -86,14 +84,14 @@ public slots:
     void reloadEngines();
 
 signals:
-    /// 検討の条件が変わった（利用者の操作・setSettings）
+    /// 検討の条件が変わった（利用者の操作）
     void settingsChanged(const ConsiderationSettings& settings);
     /// 開始/中止のボタンを押した（検討していないとき）
     void startConsiderationRequested();
     /// 開始/中止のボタンを押した（検討しているとき）
     void stopConsiderationRequested();
     // エンジン設定ボタンが押されたシグナル
-    void engineSettingsRequested(const EngineListSettings::EngineEntry& engine);
+    void engineSettingsRequested(const EngineEntry& engine);
 
     // 読み筋の行の「盤面」ボタンが押された
     void pvRowClicked(ShogiEngineThinkingModel* model, int row);
@@ -148,4 +146,4 @@ private:
     bool m_startConsiderationEnabled = true;
 };
 
-#endif // CONSIDERATIONTABMANAGER_H
+#endif // CONSIDERATIONPANEL_H

@@ -1,15 +1,25 @@
+/// @file tsumepositionpreview.cpp
+/// @brief 詰将棋問題一覧の初期局面の小さな表示の実装
+
 #include "tsumepositionpreview.h"
-#include "pieceimageprovider.h"
+
 #include "boardappearance.h"
-#include "boardsurfacepainter.h"
-#include "piecepainter.h"
 #include "kifupresentation.h"
-#include "applicationfonts.h"
+#include "movefont.h"
+#include "pieceimageprovider.h"
+#include "piecepainter.h"
+
 #include <QPainter>
 
-TsumePositionPreview::TsumePositionPreview(const QString& sfen, QWidget* parent) : QWidget(parent)
+TsumePositionPreview::TsumePositionPreview(const QString& sfen, QWidget* parent)
+    : QWidget(parent)
+    , m_position(Position::fromSfenLike(sfen).value_or(Position{}))
 {
-    m_position.set_sfen(sfen.toStdString(), true);
+    BoardGeometry::Params params;
+    params.squareSize = kSquareSize;
+    params.flipped = m_position.sideToMove() == Turn::White;   // 攻方を手前にする
+    params.font = font();
+    m_geometry = BoardGeometry(params);
     setMinimumSize(sizeHint());
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     setAttribute(Qt::WA_TransparentForMouseEvents);
@@ -18,67 +28,57 @@ TsumePositionPreview::TsumePositionPreview(const QString& sfen, QWidget* parent)
     connect(&BoardAppearance::instance(), &BoardAppearance::visualsChanged, this, &TsumePositionPreview::appearanceChanged);
 }
 
+QSize TsumePositionPreview::sizeHint() const
+{
+    return m_geometry.viewSize() + QSize(0, kHeaderHeight);
+}
+
 void TsumePositionPreview::appearanceChanged() { update(); }
 
 void TsumePositionPreview::paintEvent(QPaintEvent*)
 {
     QPainter painter(this);
-    // プレビュー内の文字は固定の24pxマスに合わせる。
-    QFont boardFont = font();
-    boardFont.setPixelSize(13);
-    painter.setFont(boardFont);
-    painter.translate((width() - 336) / 2, 0);
-    // 翻訳された役割名は駒台幅に収めず、筋番号と別の行で表示する。
+    painter.setRenderHint(QPainter::SmoothPixmapTransform, true);
+    const QSize view = m_geometry.viewSize();
+    painter.translate((width() - view.width()) / 2, 0);
+
+    // 翻訳された役割名は駒台幅に収めず、筋番号と別の行で表示する（玉方の駒台は左、攻方は右）
     painter.setPen(palette().color(QPalette::Text));
-    painter.drawText(QRect(2, 0, 164, kHeaderHeight), Qt::AlignLeft | Qt::AlignVCenter, tr("玉方"));
-    painter.drawText(QRect(170, 0, 165, kHeaderHeight), Qt::AlignRight | Qt::AlignVCenter, tr("攻方"));
+    painter.drawText(QRect(2, 0, view.width() / 2 - 2, kHeaderHeight), Qt::AlignLeft | Qt::AlignVCenter, tr("玉方"));
+    painter.drawText(QRect(view.width() / 2, 0, view.width() / 2 - 2, kHeaderHeight), Qt::AlignRight | Qt::AlignVCenter,
+                     tr("攻方"));
     painter.translate(0, kHeaderHeight);
-    const auto colors = BoardAppearance::instance().colors();
-    const auto visuals = BoardAppearance::instance().visuals();
-    const bool flipped = m_position.side_to_move() == shogi::Color::White;
-    BoardSurfacePainter::draw(painter, QRect(55, 24, 216, 216), colors.board, visuals.woodGrain, 24);
-    BoardSurfacePainter::draw(painter, QRect(2, 24, 48, 216), colors.stand, visuals.woodGrain, 24);
-    BoardSurfacePainter::draw(painter, QRect(289, 24, 46, 216), colors.stand, visuals.woodGrain, 24);
-    painter.setPen(colors.grid);
-    for (int i = 0; i <= 9; ++i) {
-        painter.drawLine(55 + i * 24, 24, 55 + i * 24, 240);
-        painter.drawLine(55, 24 + i * 24, 271, 24 + i * 24);
-    }
-    painter.setPen(palette().color(QPalette::Text));
-    if (KifuPresentation::options().notation == KifuPresentation::Notation::Japanese)
-        painter.setFont(ApplicationFonts::japaneseFont(boardFont));
-    for (int i = 0; i < 9; ++i) {
-        painter.drawText(QRect(55 + i * 24, 2, 24, 20), Qt::AlignCenter, QString::number(flipped ? i + 1 : 9 - i));
-        painter.drawText(QRect(272, 24 + i * 24, 16, 24), Qt::AlignCenter,
-                         KifuPresentation::rankLabel(flipped ? 9 - i : i + 1));
-    }
-    painter.setFont(boardFont);
-    // Hayanagi の駒種（1 = 歩 〜 14 = 竜）は PieceKind と同じ順で、1つずれる
-    const auto pieceOf = [](int type, shogi::Color color) {
-        return makePiece(color == shogi::Color::White ? Turn::White : Turn::Black, static_cast<PieceKind>(type - 1));
-    };
-    for (int square = 0; square < 81; ++square) {
-        const int piece = m_position.piece_at(square);
-        if (!piece) continue;
-        int row = shogi::square_row(square), column = shogi::square_col(square);
-        if (flipped) { row = 8 - row; column = 8 - column; }
-        const Piece code = pieceOf(static_cast<int>(shogi::piece_type(piece)), shogi::piece_color(piece));
-        PiecePainter::draw(painter, PieceImageProvider::instance().icon(code, flipped),
-                           QRect(56 + column * 24, 25 + row * 24, 22, 22), visuals);
-    }
-    for (int side = 0; side < 2; ++side) {
-        const auto owner = side == 1 ? m_position.side_to_move() : shogi::opposite(m_position.side_to_move());
-        const int x = side == 1 ? 290 : 3;
-        painter.setPen(colors.grid);
-        int y = 30;
-        for (int kind = 7; kind >= 1; --kind) {
-            const int count = m_position.hand_count(owner, static_cast<shogi::PieceType>(kind));
-            if (!count) continue;
-            const Piece code = pieceOf(kind, owner);
-            PiecePainter::draw(painter, PieceImageProvider::instance().icon(code, flipped), QRect(x, y, 23, 23), visuals);
-            painter.drawText(QRect(x + 24, y, 21, 23), Qt::AlignCenter, QString::number(count));
-            y += 29;
+
+    const BoardColors colors = BoardAppearance::instance().colors();
+    const BoardVisuals visuals = BoardAppearance::instance().visuals();
+    m_staticLayer.draw(painter, view, m_geometry, colors, visuals);
+
+    const bool flipped = m_geometry.flipped();
+    for (int rank = 1; rank <= Position::kRanks; ++rank) {
+        for (int file = 1; file <= Position::kFiles; ++file) {
+            const Piece piece = m_position.pieceAt(file, rank);
+            if (piece != Piece::None)
+                PiecePainter::draw(painter, PieceImageProvider::instance().icon(piece, flipped),
+                                   m_geometry.square(file, rank), visuals);
         }
-        if (y == 30) painter.drawText(QRect(x, y, 45, 23), Qt::AlignCenter, tr("なし"));
     }
+    for (const Turn side : {Turn::Black, Turn::White}) {
+        for (const Piece piece : BoardGeometry::standPieces(side)) {
+            const QRect cell = m_geometry.standCell(piece);
+            PiecePainter::drawStack(painter, PieceImageProvider::instance().icon(piece, flipped),
+                                    m_position.handCount(piece), cell.width(), m_geometry.standPieceArea(cell), visuals,
+                                    colors);
+        }
+    }
+
+    // 筋・段の文字（盤と同じ帯）
+    QFont font = painter.font();
+    font.setPixelSize(m_geometry.labelPixelSize());
+    painter.setPen(colors.grid);
+    painter.setFont(MoveFont::font(font));   // 段の漢数字は指し手と同じ書体
+    for (int rank = 1; rank <= Position::kRanks; ++rank)
+        painter.drawText(m_geometry.rankLabel(rank), Qt::AlignCenter, KifuPresentation::rankLabel(rank));
+    painter.setFont(font);
+    for (int file = 1; file <= Position::kFiles; ++file)
+        painter.drawText(m_geometry.fileLabel(file), Qt::AlignCenter, QString::number(file));
 }

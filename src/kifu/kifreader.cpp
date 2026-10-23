@@ -107,6 +107,36 @@ static bool decodeByBom(const QByteArray& bytes, QString& out, QString* usedEnco
 
 // --- public API ------------------------------------------------------------
 
+QString decodeAuto(const QByteArray& bytes, QString* usedEncoding, QString* warn)
+{
+    QString text;
+    // 1) BOM 優先
+    if (decodeByBom(bytes, text, usedEncoding)) return text;
+    // 2) UTF-8 を試す（置換文字の有無で判定）
+    bool okUtf8 = false;
+    QString sUtf8 = decodeWith(bytes, "UTF-8", okUtf8);
+    if (okUtf8) {
+        if (usedEncoding) *usedEncoding = QStringLiteral("utf-8");
+        return sUtf8;
+    }
+    // 3) CP932 / Shift_JIS
+    if (auto sSj = ShiftJisCodec::decode(bytes)) {
+        if (usedEncoding) *usedEncoding = QStringLiteral("cp932");
+        return std::move(*sSj);
+    }
+    // 4) EUC-JP（稀）
+    bool okEuc = false;
+    QString sEuc = decodeWith(bytes, "EUC-JP", okEuc);
+    if (okEuc) {
+        if (usedEncoding) *usedEncoding = QStringLiteral("euc-jp");
+        return sEuc;
+    }
+    // 5) 仕方なくローカル 8bit
+    if (usedEncoding) *usedEncoding = QStringLiteral("local8bit(fallback)");
+    if (warn) *warn += QStringLiteral("fallback: local8bit was used; encoding could not be detected precisely.\n");
+    return QString::fromLocal8Bit(bytes);
+}
+
 bool readAllTextAuto(const QString& filePath,
                      QString& outText,
                      QString* usedEncoding,
@@ -120,45 +150,10 @@ bool readAllTextAuto(const QString& filePath,
         return false;
     }
     const QByteArray bytes = f.readAll();
-
-    QString text;
-    // 1) BOM 優先
-    if (!decodeByBom(bytes, text, usedEncoding)) {
-        // 2) UTF-8 を試す（置換文字の有無で判定）
-        bool okUtf8 = false;
-        QString sUtf8 = decodeWith(bytes, "UTF-8", okUtf8);
-        if (okUtf8) {
-            text = std::move(sUtf8);
-            if (usedEncoding) *usedEncoding = QStringLiteral("utf-8");
-        } else {
-            // 3) CP932 / Shift_JIS
-            if (auto sSj = ShiftJisCodec::decode(bytes)) {
-                text = std::move(*sSj);
-                if (usedEncoding) *usedEncoding = QStringLiteral("cp932");
-            } else {
-                // 4) EUC-JP（稀）
-                bool okEuc = false;
-                QString sEuc = decodeWith(bytes, "EUC-JP", okEuc);
-                if (okEuc) {
-                    text = std::move(sEuc);
-                    if (usedEncoding) *usedEncoding = QStringLiteral("euc-jp");
-                } else {
-                    // 5) 仕方なくローカル 8bit
-                    text = QString::fromLocal8Bit(bytes);
-                    if (usedEncoding) *usedEncoding = QStringLiteral("local8bit(fallback)");
-                    if (warn) *warn += QStringLiteral("fallback: local8bit was used; encoding could not be detected precisely.\n");
-                }
-            }
-        }
-    }
-
-    if (usedEncoding) {
-        qCDebug(lcKifu).noquote() << QStringLiteral("readAllTextAuto: encoding = %1, bytes = %2")
-                                          .arg(*usedEncoding)
-                                          .arg(bytes.size());
-    }
-
-    outText = std::move(text);
+    QString encoding;
+    outText = decodeAuto(bytes, &encoding, warn);
+    qCDebug(lcKifu).noquote() << QStringLiteral("readAllTextAuto: encoding = %1, bytes = %2").arg(encoding).arg(bytes.size());
+    if (usedEncoding) *usedEncoding = encoding;
     return true;
 }
 

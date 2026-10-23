@@ -47,8 +47,8 @@ std::optional<NyugyokuJudgement::Result> CsaGameChannel::declareNyugyoku()
 MatchPlayers CsaGameChannel::players() const
 {
     MatchPlayers players;
-    players.blackHumanName = m_coordinator->gameSummary().blackName;
-    players.whiteHumanName = m_coordinator->gameSummary().whiteName;
+    players.seat(Turn::Black).humanName = m_coordinator->gameSummary().blackName;
+    players.seat(Turn::White).humanName = m_coordinator->gameSummary().whiteName;
     return players;
 }
 

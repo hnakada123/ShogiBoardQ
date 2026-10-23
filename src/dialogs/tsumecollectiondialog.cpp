@@ -1,4 +1,6 @@
 #include "tsumecollectiondialog.h"
+#include "engineprofilestore.h"
+#include "tsumemateengine.h"
 #include "dialogfontscale.h"
 #include "dialogutils.h"
 #include "engineselector.h"
@@ -26,10 +28,10 @@
 #include <QSignalBlocker>
 
 namespace {
-/// 長手数の判定に使える登録エンジン（KomoringHeights）
-bool isMateEngine(const EngineListSettings::EngineEntry& engine)
+/// 長手数の判定に使える登録エンジン（登録時に報告したオプションで最短手数を確認できるもの。KomoringHeights）
+bool isMateEngine(const EngineEntry& engine)
 {
-    return engine.name.contains(QStringLiteral("KomoringHeights"), Qt::CaseInsensitive);
+    return TsumeMateEngine::canVerifyShortestMate(EngineProfileStore::loadOptions(engine.name));
 }
 } // namespace
 

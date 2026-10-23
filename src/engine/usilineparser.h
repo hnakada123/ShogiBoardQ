@@ -7,6 +7,7 @@
 #include <QString>
 #include <optional>
 
+#include "engineoption.h"
 #include "usiinfo.h"
 #include "usimessages.h"
 
@@ -26,7 +27,7 @@ std::optional<UsiInfo> parseInfo(const QString& line);
  *
  * 形式が違えば error に理由を入れて nullopt。種類に合わない属性より後ろは読まない。
  */
-std::optional<UsiOptionDeclaration> parseOption(const QString& line, QString* error = nullptr);
+std::optional<EngineOption> parseOption(const QString& line, QString* error = nullptr);
 
 /// "id name <name>" の名前。名前がなければ nullopt
 std::optional<QString> parseIdName(const QString& line);

@@ -31,7 +31,7 @@ class TestEngineProfileStore : public QObject
         return result;
     }
 
-    EngineListSettings::EngineEntry engine() const { return {m_engine, QString(), QString()}; }
+    EngineEntry engine() const { return {m_engine, QString(), QString()}; }
 
     static void clickButton(ChangeEngineSettingsDialog& dialog, QDialogButtonBox::StandardButton button)
     {

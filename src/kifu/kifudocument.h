@@ -37,7 +37,7 @@ class KifuDocument : public QObject
     Q_OBJECT
 
 public:
-    /// 上位層へのコールバック（文書を編集する画面の、まだ文書に入っていない入力。画面がなければ空）
+    /// 上位層へのコールバック（文書を編集する画面1つの、まだ文書に入っていない入力）
     struct Hooks {
         /// 入力中の編集（対局情報欄のセル・コメント欄の未更新の本文）を文書に確定する
         /// （保存・書き出し・対局の開始の前に呼ぶ）
@@ -48,7 +48,8 @@ public:
 
     explicit KifuDocument(KifuBranchTree* tree, QObject* parent = nullptr);
 
-    void setHooks(Hooks hooks) { m_hooks = std::move(hooks); }
+    /// 文書を編集する画面を足す（対局情報欄・コメント欄。確定と「入力中か」は足した画面すべてに聞く）
+    void addPendingEditor(Hooks hooks) { m_editors.append(std::move(hooks)); }
     /// 画面で入力中の内容（対局情報欄のセル・コメント欄の未更新の本文）を文書に確定する。保存・書き出しの前に呼ぶ
     void commitPendingEdits() const;
 
@@ -154,7 +155,7 @@ private:
     };
 
     KifuBranchTree* m_tree = nullptr;   ///< 棋譜の正本（非所有）
-    Hooks m_hooks;
+    QList<Hooks> m_editors;   ///< 文書を編集する画面（画面がなければ空）
     QList<KifGameInfoItem> m_header;
     MatchPlayers m_players;
     MatchTimeRecord m_timeRecord;
