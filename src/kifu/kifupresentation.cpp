@@ -1,4 +1,5 @@
 #include "kifupresentation.h"
+#include "gameinfokeys.h"
 #include "handicaps.h"
 #include "ki2movenotation.h"
 #include "kifmovetext.h"
@@ -150,7 +151,7 @@ QString infoKey(const QString& canonical)
 
 QString infoValue(const QString& key, const QString& raw)
 {
-    if (key == QStringLiteral("手合割")) {
+    if (key == GameInfoKeys::kHandicap) {
         // 手合割の名前は core の表（Handicaps::kAll）と同じ語。表にない「局面指定」「その他」だけここに書く
         for (const Handicaps::Handicap& handicap : Handicaps::kAll)
             if (raw == Handicaps::labelOf(handicap)) return translated(handicap.label);

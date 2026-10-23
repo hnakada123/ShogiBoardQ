@@ -310,7 +310,6 @@ private slots:
         KifuExportMetadata context;
         context.startSfen = imported.startSfen();
         context.gameInfoItems = imported.gameInfo;
-        context.gameInfoProvided = true;
         const QStringList expected = KifuExport::lines(tree, context, KifuFormat::Kif);
 
         QTranslator translator;

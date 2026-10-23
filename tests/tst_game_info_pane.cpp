@@ -358,7 +358,6 @@ private slots:
         KifuBranchTree tree;
         KifuExportMetadata context;
         context.gameInfoItems = m_controller->gameInfo();
-        context.gameInfoProvided = true;
         const QString kif = KifuExport::lines(tree, context, KifuFormat::Kif).join(QLatin1Char('\n'));
         QVERIFY(!kif.contains(QStringLiteral("未開始")));
         QVERIFY(!kif.contains(QStringLiteral("未設定")));

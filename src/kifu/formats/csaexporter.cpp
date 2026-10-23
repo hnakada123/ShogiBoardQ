@@ -47,7 +47,7 @@ QStringList CsaExporter::exportLines(const KifuBranchTree& recordTree, const Kif
     out << QStringLiteral("V3.0");
 
     // 3) 棋譜情報を先に収集（対局者名もここから取得）
-    const QList<KifGameInfoItem> header = KifuExportMetadataBuilder::collect(ctx);
+    const QList<KifGameInfoItem>& header = ctx.gameInfoItems;
 
     // 4) 対局者名（駒落ちの下手は先手、上手は後手）
     const auto isBlackKey = [](const QString& key) {
