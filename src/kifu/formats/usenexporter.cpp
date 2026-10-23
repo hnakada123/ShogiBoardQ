@@ -59,8 +59,8 @@ QStringList UsenExporter::exportLines(const KifuBranchTree& recordTree, const Ki
             QString branchTerminal;
 
             // 分岐点より後の各手（分岐ツリーのノード）
-            for (qsizetype i = line.branchPly; i < line.nodes.size(); ++i) {
-                const KifuBranchNode* node = line.nodes.at(i);
+            const QList<KifuBranchNode*> nodes = line.nodesFrom(line.branchPly);
+            for (const KifuBranchNode* node : nodes) {
                 if (node->isTerminal()) {
                     branchTerminal = TerminalCodes::usen(node->terminalType());
                     break;

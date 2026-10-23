@@ -4230,12 +4230,17 @@ enum class TerminalType {
 ```cpp
 struct BranchLine {
     int lineIndex = 0;                      // 0=本譜、1以降=分岐
-    QString name;                           // "本譜", "分岐1", ...
-    QList<KifuBranchNode*> nodes;           // ルートから終端までのノード列
+    KifuBranchNode* leaf = nullptr;         // 終端のノード（手がなければルート）
     int branchPly = 0;                      // 分岐開始手数（本譜は0）
     KifuBranchNode* branchPoint = nullptr;  // 分岐点のノード（本譜は nullptr）
+
+    QList<KifuBranchNode*> nodes() const;            // ルートから終端まで（呼ぶたびに作る）
+    QList<KifuBranchNode*> nodesFrom(int fromPly) const;  // fromPly 手目から終端まで
+    int length() const;                               // ルートから終端までのノードの数
 };
 ```
+
+ラインはノードの列を持たず、終端から親をたどって作る（手順ごとに列を持つと手数×変化の数のメモリになる）。変化の手だけが要るときは `nodesFrom(branchPly)` を使う。
 
 `allLines()` で全ラインを取得でき、`exportLine(lineIndex)`（末尾の終局の行と開始局面のコメント・しおりを含む `RecordLine`。書き出し・CLI 用）/ `sfenListForLine(lineIndex)` でライン単位のデータ抽出が可能。
 

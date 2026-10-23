@@ -3,6 +3,8 @@
 
 #include "csagameprogress.h"
 
+#include <limits>
+
 CsaGameProgress CsaGameProgress::forSummary(const CsaClient::GameSummary& summary)
 {
     CsaGameProgress progress;
@@ -17,6 +19,16 @@ Turn CsaGameProgress::sideToMove() const
     return opponent(record.entries.constLast().mover);
 }
 
+namespace {
+
+/// 時間の足し算（int の範囲で止める。サーバーが送る値を何手分足しても桁あふれさせない）
+int addMs(int a, qint64 b)
+{
+    return static_cast<int>(qBound(qint64(std::numeric_limits<int>::min()), a + b, qint64(std::numeric_limits<int>::max())));
+}
+
+} // namespace
+
 void CsaGameProgress::startClockFromSummary()
 {
     const CsaClient::GameSummary& s = summary;
@@ -29,14 +41,14 @@ void CsaGameProgress::startClockFromSummary()
         int& remaining = black ? remainingBlack : remainingWhite;
         int& consumed = black ? consumedBlack : consumedWhite;
         const int consumedMs = s.positionMoveConsumedMs(i);
-        remaining += s.incrementMs(black);
-        consumed += consumedMs;
+        remaining = addMs(remaining, s.incrementMs(black));
+        consumed = addMs(consumed, consumedMs);
         // 残り時間を超えた分は秒読みで指したものとして、残りは 0 にする（仕様 3.2.2.1）
         remaining = qMax(0, remaining - consumedMs);
     }
 
-    if (s.toMove == Turn::Black) remainingBlack += s.incrementMs(true);
-    else remainingWhite += s.incrementMs(false);
+    if (s.toMove == Turn::Black) remainingBlack = addMs(remainingBlack, s.incrementMs(true));
+    else remainingWhite = addMs(remainingWhite, s.incrementMs(false));
 
     blackTotalMs = consumedBlack;
     whiteTotalMs = consumedWhite;
@@ -48,11 +60,11 @@ void CsaGameProgress::recordMoveTime(bool blackMove, int consumedMs)
 {
     int& total = blackMove ? blackTotalMs : whiteTotalMs;
     int& remaining = blackMove ? blackRemainingMs : whiteRemainingMs;
-    total += consumedMs;
+    total = addMs(total, consumedMs);
     remaining = qMax(0, remaining - consumedMs);
     // CSAの加算は次の手番の開始時に、その手番側の加算時間で行う。
-    if (blackMove) whiteRemainingMs += summary.incrementMs(false);
-    else blackRemainingMs += summary.incrementMs(true);
+    if (blackMove) whiteRemainingMs = addMs(whiteRemainingMs, summary.incrementMs(false));
+    else blackRemainingMs = addMs(blackRemainingMs, summary.incrementMs(true));
 }
 
 RecordTime CsaGameProgress::initialMoveTime(int index) const

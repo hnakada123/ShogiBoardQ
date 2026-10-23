@@ -76,6 +76,7 @@ private slots:
     void putMove_keepsFirstRegisteredSfen();
     void putMove_replacesInPlace();
     void load_keepsRegistrationsPerPly();
+    void load_mergesManyRepeatedLines();
     void mergeFrom_combinesBooks();
     void session_startMergeBook();
     void load_duplicateMoveAndLegacyHands();
@@ -619,6 +620,39 @@ void TestJosekiBook::session_startMergeBook()
     QVERIFY(session.startMergeBook(dir.filePath(QStringLiteral("missing.db")), {}));
     QVERIFY(failed.wait(5000));
     QCOMPARE(session.positionCount(), 3);
+}
+
+void TestJosekiBook::load_mergesManyRepeatedLines()
+{
+    // 同じ局面の sfen 行が何度もある定跡。手数ごとの登録は読み終えてからまとめて表に入れる
+    // （行ごとに表の中を探し直すと、行の数の二乗の時間になっていた。セキュリティ監査 S6）
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath(QStringLiteral("repeated.db"));
+    {
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        QByteArray text = "#YANEURAOU-DB2016 1.00\n";
+        for (int ply = 1; ply <= 5000; ++ply) text += "sfen " + kHirateSfen.toUtf8() + " " + QByteArray::number(ply) + "\n7g7f 3c3d 0 1 1\n";
+        // 3手目の登録に、もう1度同じ手（読み捨てる）と新しい手を足す
+        text += "sfen " + kHirateSfen.toUtf8() + " 3\n7g7f 8c8d 9 9 9\n2g2f 8c8d 5 16 2\n#3手目の続き\n";
+        file.write(text);
+    }
+    const JosekiLoadResult loaded = JosekiBookFile::load(path);
+    QVERIFY(loaded.success);
+    const JosekiBook& book = loaded.book;
+    QCOMPARE(book.positionCount(), 1);
+    QCOMPARE(book.registeredPlies(kHirateSfen).size(), 5000);
+    QCOMPARE(book.registeredPlies(kHirateSfen).first(), 1);
+    QCOMPARE(book.registeredPlies(kHirateSfen).last(), 5000);
+    const QString at3 = kHirateSfen + QStringLiteral(" 3");
+    const QList<JosekiMove> moves = book.movesAt(at3);
+    QCOMPARE(moves.size(), 2);
+    QCOMPARE(moves.at(0).move, QStringLiteral("7g7f"));
+    QCOMPARE(moves.at(0).nextMove.value_or(QString()), QStringLiteral("3c3d"));   // 先の行を使う
+    QCOMPARE(moves.at(1).move, QStringLiteral("2g2f"));
+    QCOMPARE(moves.at(1).comment, QStringLiteral("3手目の続き"));
+    QCOMPARE(book.movesAt(kHirateSfen + QStringLiteral(" 4")).size(), 1);
 }
 
 void TestJosekiBook::load_keepsRegistrationsPerPly()

@@ -225,16 +225,18 @@ class KifuBranchTree : public QObject {
 
     // allLines() キャッシュ
     mutable QList<BranchLine> m_linesCache;              // DFS走査結果のキャッシュ
+    mutable QHash<const KifuBranchNode*, int> m_lineIndexByLeaf;  // 終端のノード → 手順の番号
     mutable bool              m_linesCacheDirty = true;  // キャッシュ無効化フラグ
     quint64                   m_revision = 0;            // 構造変更の回数（revision()）
 };
 ```
 
 **allLines() キャッシュ**: `allLines()` はツリー全体をDFS走査して全ラインを構築するが、
-結果をキャッシュし、ツリー構造が変更されるまで再利用する。キャッシュは、ノードの追加（`addRecord()`）、
+結果をキャッシュし、ツリー構造が変更されるまで再利用する。走査は再帰せずに明示のスタックで行う（手数の深さの再帰は、長い棋譜でスタックを使い切る）。
+ラインはノードの列を持たず終端のノードだけを持つ（手順ごとに列を持つと、手数×変化の数のメモリになる）。`findLineIndexForNode()` は、ノードから最初の子をたどった終端のラインを `m_lineIndexByLeaf` で引く。キャッシュは、ノードの追加（`addRecord()`）、
 `clear()`・`setRootSfen()`、ノードの削除（`removeLeaf()`・`removeSubtree()`）、子の並べ替え（`moveChild()`・`promoteToMainLine()`）で無効化され、そのたびに `revision()` が増える。
 `revision()` は、棋譜の文書（`KifuDocument`）が保存した時点と比べて未保存かを決めるのと、表示中の手（`KifuNavigationState`）が同じ構造をもう知らせたかを見るのに使う。
-コメント変更（`setComment()`）ではキャッシュは無効化されない（`BranchLine::nodes` はポインタを保持しており、ノードデータの変更はポインタ経由で自動的に反映される）。
+コメント変更（`setComment()`）ではキャッシュは無効化されない（`BranchLine` はノードへのポインタを保持しており、ノードデータの変更はポインタ経由で自動的に反映される）。
 
 **変更の通知**: 構造の変更は、変わった所をノード ID で示す型付きのシグナルで知らせる。知らせを出さない変更の関数は無い。
 
@@ -259,12 +261,17 @@ class KifuBranchTree : public QObject {
 ```cpp
 struct BranchLine {
     int lineIndex = 0;                      // 0=本譜、1以降=分岐
-    QString name;                           // "本譜", "分岐1", "分岐2"...
-    QList<KifuBranchNode*> nodes;           // ノード列（ルートから終端まで）
+    KifuBranchNode* leaf = nullptr;         // 終端のノード（手がなければルート）
     int branchPly = 0;                      // 分岐開始手数（本譜は0）
     KifuBranchNode* branchPoint = nullptr;  // 分岐点のノード（本譜はnullptr）
+
+    QList<KifuBranchNode*> nodes() const;            // ルートから終端まで（呼ぶたびに終端から親をたどって作る）
+    QList<KifuBranchNode*> nodesFrom(int fromPly) const;  // fromPly 手目から終端まで
+    int length() const;                               // ルートから終端までのノードの数
 };
 ```
+
+変化を書き出す・描くときは `nodesFrom(branchPly)` で変化の手だけを取る（全部の変化で `nodes()` を作ると、手数×変化の数の時間になる）。
 
 ### 2.5 データ例: 分岐を含むツリー構造
 
@@ -298,10 +305,10 @@ struct BranchLine {
 
 **allLines() の結果**:
 
-| lineIndex | name | branchPly | nodes |
+| lineIndex | branchPly | leaf | nodes() |
 |---|---|---|---|
-| 0 | "本譜" | 0 | [1, 2, 3, 4, 6] |
-| 1 | "分岐1" | 3 | [1, 2, 3, 5, 7] |
+| 0 | 0 | 6 | [1, 2, 3, 4, 6] |
+| 1 | 3 | 7 | [1, 2, 3, 5, 7] |
 
 分岐点（ply=2, nodeId=3）より前のノードは両ラインで共有される。
 

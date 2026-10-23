@@ -19,7 +19,7 @@ namespace KifLexer {
 
 /// 行頭が手数（半/全角数字）で始まるか判定。BOD「手数＝」等は除外。
 /// 成功時は先頭数字の桁数を返す。
-[[nodiscard]] std::optional<int> startsWithMoveNumber(const QString& line);
+[[nodiscard]] std::optional<int> startsWithMoveNumber(QStringView line);
 
 // === 正規表現アクセサ ===
 

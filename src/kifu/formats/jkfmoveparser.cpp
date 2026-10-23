@@ -128,7 +128,8 @@ KifMoveText::Notes notesOf(const QJsonObject& move)
 Time timeOf(const QJsonObject& timeObj)
 {
     const auto seconds = [](const QJsonObject& hms) {
-        return qint64(hms[QStringLiteral("h")].toInt(0)) * 3600 + hms[QStringLiteral("m")].toInt(0) * 60
+        // 時・分・秒は int で読むので、掛け算は qint64 でする（大きな値で桁あふれさせない）
+        return qint64(hms[QStringLiteral("h")].toInt(0)) * 3600 + qint64(hms[QStringLiteral("m")].toInt(0)) * 60
             + hms[QStringLiteral("s")].toInt(0);
     };
     Time time;

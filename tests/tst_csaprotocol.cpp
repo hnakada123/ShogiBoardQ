@@ -7,6 +7,8 @@
 /// - SfenCsaPositionConverter（CSA↔SFEN局面変換）
 
 #include <QtTest>
+
+#include <limits>
 #include "shogiposition.h"
 #include <QCoreApplication>
 #include <QTcpServer>
@@ -191,6 +193,15 @@ private slots:
         QCOMPARE(gs.incrementMs(false), 20000);
         QCOMPARE(gs.delayMs(true), 3000);
         QCOMPARE(gs.delayMs(false), 0);
+
+        // サーバーが送る大きな値は上限で止め、ミリ秒への換算で桁あふれさせない（セキュリティ監査 S13）
+        gs.timeBlack.timeUnit = QStringLiteral("1min");
+        gs.timeBlack.totalTime = 100000;
+        gs.timeBlack.increment = std::numeric_limits<int>::max();
+        QCOMPARE(gs.totalTimeMs(true), CsaClient::kMaxTimeMs);
+        QCOMPARE(gs.incrementMs(true), CsaClient::kMaxTimeMs);
+        QCOMPARE(gs.unitsToMs(true, std::numeric_limits<int>::max()), CsaClient::kMaxTimeMs);
+        QCOMPARE(gs.unitsToMs(true, 2), 120000);
     }
 
     // ========================================
@@ -1285,6 +1296,22 @@ private slots:
         QTRY_COMPARE(client.connectionState(), CsaClient::ConnectionState::Disconnected);
         QCOMPARE(errors.count(), 1);
         QVERIFY(client.m_receiveBuffer.isEmpty());
+    }
+
+    void csaClient_controlCharactersInLinesBecomeSpaces()
+    {
+        // 行の途中の CR は空白にする（対局者名に残ると、保存した棋譜を読み直したときに別の行になる。セキュリティ監査 S9）
+        LocalServer server;
+        QVERIFY(server.listen());
+        CsaClient client;
+        QVERIFY(bringToWaiting(client, server));
+        for (const char* line : {"BEGIN Game_Summary", "Game_ID:g1", "Name+:Alice\rPI82HI22KA", "Name-:B\x01ob",
+                                 "Your_Turn:+", "To_Move:+", "END Game_Summary"}) {
+            server.send(line);
+        }
+        QTRY_COMPARE(client.connectionState(), CsaClient::ConnectionState::GameReady);
+        QCOMPARE(client.gameSummary().blackName, QStringLiteral("Alice PI82HI22KA"));
+        QCOMPARE(client.gameSummary().whiteName, QStringLiteral("B ob"));
     }
 
     void csaClient_summaryLimits_data()

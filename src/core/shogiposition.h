@@ -27,6 +27,10 @@ public:
     static constexpr int kFiles = 9;
     static constexpr int kRanks = 9;
     static constexpr int kSquareCount = kFiles * kRanks;
+    /// 持ち駒1種の枚数の上限（SFEN に書ける2桁。駒の数として正しいかは PositionValidator が見る）
+    static constexpr int kMaxHandCount = 99;
+    /// 手数の上限（読み込む SFEN・局面図の手数。これを超える値で桁あふれさせない）
+    static constexpr int kMaxMoveNumber = 10000000;
 
     /// 空の盤・持ち駒なし・先手番・1手目
     Position();
@@ -88,7 +92,7 @@ public:
     void setSideToMove(Turn side) { m_sideToMove = side; }
     /// 次に指す手の手数（SFEN の4つ目の欄）
     int moveNumber() const { return m_moveNumber; }
-    void setMoveNumber(int number) { m_moveNumber = number < 1 ? 1 : number; }
+    void setMoveNumber(int number) { m_moveNumber = number < 1 ? 1 : (number > kMaxMoveNumber ? kMaxMoveNumber : number); }
 
     // --- 指し手 ---
     /// 打つ駒が持ち駒にない手・駒のあるマスへ打つ手を許すか

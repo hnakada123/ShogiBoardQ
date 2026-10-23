@@ -55,6 +55,8 @@ struct KifBranchPoint {
 struct KifParseResult {
     RecordLine mainline;             ///< 本譜
     QList<KifVariation> variations;  ///< 変化リスト（書かれた順）
+    /// 手数ごとに、その手を自分の手として持つ最後の変化の番号（-1 はどの変化も持たない）。addVariation で更新する
+    QList<int> lastVariationAtPly;
 
     /// 手順（-1 は本譜）
     const RecordLine& lineAt(int variation) const
@@ -93,12 +95,9 @@ struct KifParseResult {
     std::optional<KifBranchPoint> latestBranchPoint(int startPly) const
     {
         if (startPly < 1) return std::nullopt;
-        for (int i = static_cast<int>(variations.size()) - 1; i >= 0; --i) {
-            const KifVariation& variation = variations.at(i);
-            if (variation.startPly < startPly && startPly - variation.startPly <= variation.line.moveCount())
-                return branchPoint(i, startPly);
-        }
-        return branchPoint(-1, startPly);
+        // 変化ごとに全部の変化を調べ直すと、変化の数の二乗の時間になる（セキュリティ監査 S6）
+        const qsizetype ply = startPly - 1;
+        return branchPoint(ply < lastVariationAtPly.size() ? lastVariationAtPly.at(ply) : -1, startPly);
     }
 
     /// 手順の最初の手の手数（-1 は本譜）
@@ -115,6 +114,10 @@ struct KifParseResult {
         variation.parentVariation = from.parentVariation;
         line.startPly = from.startPly;
         variation.line = std::move(line);
+        const qsizetype first = variation.startPly;
+        const qsizetype end = first + variation.line.moveCount();
+        if (lastVariationAtPly.size() < end) lastVariationAtPly.resize(end, -1);
+        for (qsizetype ply = first; ply < end; ++ply) lastVariationAtPly[ply] = static_cast<int>(variations.size());
         variations.append(std::move(variation));
     }
 };

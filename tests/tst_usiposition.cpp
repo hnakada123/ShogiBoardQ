@@ -120,6 +120,42 @@ private slots:
         QVERIFY(!UsiPosition::fromMoves(kHirate, {UsiMove::fromString(u"5e5d")}));
         QVERIFY(!UsiPosition::fromMoves(QStringLiteral("bad"), {}));
     }
+
+    void alongMoves_sharesTheLineAndKeepsEachPosition()
+    {
+        // 手順の各局面は手の列を共有するが、値としてはそれぞれの手数までの局面（セキュリティ監査 S6）
+        const QList<UsiMove> moves = {UsiMove::fromString(u"7g7f"), UsiMove::fromString(u"3c3d"),
+                                      UsiMove::fromString(u"2g2f")};
+        const auto positions = UsiPosition::alongMoves(kHirate, moves, 1, 3);
+        QVERIFY(positions);
+        QCOMPARE(positions->size(), 3);
+        for (int ply = 1; ply <= 3; ++ply) {
+            const UsiPosition& position = positions->at(ply - 1);
+            QCOMPARE(position, *UsiPosition::fromMoves(kHirate, moves.mid(0, ply)));
+            QCOMPARE(position.moves().size(), ply);
+            QCOMPARE(*position.lastMove(), moves.at(ply - 1));
+        }
+        QCOMPARE(positions->at(0).command(), QStringLiteral("position startpos moves 7g7f"));
+        // 共有している後ろの手は、別の手を足しても他の局面に影響しない
+        const auto other = positions->at(0).withMove(UsiMove::fromString(u"8c8d"));
+        QVERIFY(other);
+        QCOMPARE(other->command(), QStringLiteral("position startpos moves 7g7f 8c8d"));
+        QCOMPARE(positions->at(2).command(), QStringLiteral("position startpos moves 7g7f 3c3d 2g2f"));
+        QVERIFY(!UsiPosition::alongMoves(kHirate, moves, 2, 4));
+        QVERIFY(!UsiPosition::alongMoves(kHirate, {UsiMove::fromString(u"5e5d")}, 0, 1));
+    }
+
+    void fromMoves_longLineIsLinear()
+    {
+        // 玉の往復を20万手。手ごとに手順を複製すると手数の二乗の時間とメモリになっていた
+        const QList<UsiMove> cycle = {UsiMove::fromString(u"5i5h"), UsiMove::fromString(u"5a5b"),
+                                      UsiMove::fromString(u"5h5i"), UsiMove::fromString(u"5b5a")};
+        QList<UsiMove> moves;
+        for (int i = 0; i < 200000; ++i) moves << cycle.at(i % 4);
+        const auto position = UsiPosition::fromMoves(kHirate, moves);
+        QVERIFY(position);
+        QCOMPARE(position->moves().size(), 200000);
+    }
 };
 
 QTEST_MAIN(TestUsiPosition)

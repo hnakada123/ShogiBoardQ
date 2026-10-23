@@ -206,7 +206,7 @@ cmake --build build --target translations
   - `piecestylecatalog.cpp/.h` - 駒のセットの表 `PieceStyleCatalog`（ID・分類 `Family`・表示名・画像の場所）。駒のセットを足すときはこの表に1行足す（外観ダイアログの絞り込みの番号は `Family` の値）
   - `notationstyle.cpp/.h` - 表示言語と棋譜の表記の設定 `NotationStyle`（`Notation`・`Options`・`resolveLanguage`・`configure`・`options`・`revision`）。起動時に `ApplicationTranslations` が設定し、kifu の `KifuPresentation` が読む
   - `appearancestate.cpp/.h` - 外観（駒のセット・配色・見た目）をまとめた値 `AppearanceState`（`current()`・`apply()`）。おすすめの組み合わせは `boardappearancecatalog` の `combinations()`
-- **common/**: 共有の土台（`appactivitystate`（動作状態 `AppActivityState` と持ち主のリース `ActivityLease`）・`boardcolors.h`・`boardvisuals.h`・`branchtreeitemroles.h`・`errorbus`・`logcategories`・`threadtypes.h`・`tsumeevaluation.h`・`recentfilelist`（最近使ったファイルの一覧 `RecentFileList`。新しい順・重複なし・上限つき。定跡の `JosekiBookSession` と局面集ビューアが使う））
+- **common/**: 共有の土台（`appactivitystate`（動作状態 `AppActivityState` と持ち主のリース `ActivityLease`）・`boardcolors.h`・`boardvisuals.h`・`branchtreeitemroles.h`・`errorbus`・`logcategories`・`threadtypes.h`・`tsumeevaluation.h`・`boundedfile.h`（利用者が選んだ棋譜・局面集を、通常のファイルだけ上限つきで読む `BoundedFile::read`）・`recentfilelist`（最近使ったファイルの一覧 `RecentFileList`。新しい順・重複なし・上限つき。定跡の `JosekiBookSession` と局面集ビューアが使う））
 
 ### UI Files
 

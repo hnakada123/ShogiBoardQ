@@ -3,13 +3,17 @@
 
 #include "josekibook.h"
 
+#include "kifuexportcommon.h"
 #include "logcategories.h"
 #include "sfenutils.h"
 #include "usimove.h"
 
 #include <QCoreApplication>
 #include <QFile>
+#include <QFileInfo>
+#include <QHash>
 #include <QSaveFile>
+#include <QSet>
 #include <QTextStream>
 
 #include <algorithm>
@@ -474,7 +478,8 @@ JosekiLoadResult load(const QString &filePath)
 {
     JosekiLoadResult result;
     QFile file(filePath);
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+    // 通常のファイルだけを読む（FIFO・デバイスは読み終わらない。セキュリティ監査 S14）。大きな定跡も読めるよう、大きさは制限しない
+    if (!QFileInfo(filePath).isFile() || !file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         result.errorMessage = translated(QT_TRANSLATE_NOOP("JosekiBook", "ファイルを開けませんでした: %1")).arg(filePath);
         return result;
     }
@@ -485,9 +490,24 @@ JosekiLoadResult load(const QString &filePath)
     int currentPly = 1;
     bool hasCurrent = false;
     JosekiBook::Records pending;
+    QSet<quint16> pendingMoves;   // pending の指し手（同じ指し手の2行目以降は読み捨てる）
     // コメント行を直前の定跡手に付けるか（重なって読み捨てた指し手の後のコメントは付けない）
     bool attachComment = false;
-    const auto flush = [&book, &currentKey, &currentPly, &pending]() {
+
+    // 同じ局面の sfen 行が前にもあった局面の登録（手数ごと。ファイルの順）。読み終えてから表に入れる
+    // （行ごとに表の中の登録を探し直すと、同じ局面の行の数の二乗の時間になる。セキュリティ監査 S6）
+    struct Registration {
+        int ply = 1;
+        JosekiBook::Records moves;
+        QSet<quint16> codes;
+    };
+    struct RepeatedPosition {
+        QList<Registration> registrations;
+        QHash<int, qsizetype> byPly;   // 手数 → registrations の位置
+    };
+    QHash<QByteArray, RepeatedPosition> repeated;
+
+    const auto flush = [&book, &currentKey, &currentPly, &pending, &pendingMoves, &repeated]() {
         if (pending.isEmpty()) return;
         JosekiBook::PackedMove header;
         header.move = JosekiBook::kHeader;
@@ -502,22 +522,48 @@ JosekiLoadResult load(const QString &filePath)
             book.m_positions.insert(currentKey, records);
         } else {
             // 同じ局面の sfen 行が前にもあった。手数違いなら別の登録、同じ手数ならその続き（同じ指し手は前の行を使う）
-            const QList<JosekiBook::Range> ranges = JosekiBook::rangesOf(*it);
-            const auto same = std::find_if(ranges.cbegin(), ranges.cend(), [&it, &header](const JosekiBook::Range &range) {
-                return it->at(range.header).value == header.value;
-            });
-            if (same == ranges.cend()) {
-                it->append(header);
-                it->append(pending);
+            RepeatedPosition &position = repeated[currentKey];
+            if (position.registrations.isEmpty()) {
+                for (const JosekiBook::Range &range : JosekiBook::rangesOf(*it)) {
+                    Registration registration;
+                    registration.ply = it->at(range.header).value;
+                    for (qsizetype i = range.header + 1; i < range.end; ++i) {
+                        registration.moves.append(it->at(i));
+                        registration.codes.insert(it->at(i).move);
+                    }
+                    position.byPly.insert(registration.ply, position.registrations.size());
+                    position.registrations.append(registration);
+                }
+            }
+            const auto same = position.byPly.constFind(currentPly);
+            if (same == position.byPly.constEnd()) {
+                position.byPly.insert(currentPly, position.registrations.size());
+                position.registrations.append(Registration{currentPly, pending, pendingMoves});
             } else {
-                qsizetype end = same->end;
+                Registration &registration = position.registrations[*same];
                 for (const JosekiBook::PackedMove &move : std::as_const(pending)) {
-                    if (JosekiBook::indexOf(*it, JosekiBook::Range{same->header, end}, move.move) >= 0) continue;
-                    it->insert(end++, move);
+                    if (registration.codes.contains(move.move)) continue;
+                    registration.moves.append(move);
+                    registration.codes.insert(move.move);
                 }
             }
         }
         pending.clear();
+        pendingMoves.clear();
+    };
+    // 同じ局面の行が何度もあった局面の登録を表に入れる
+    const auto mergeRepeated = [&book, &repeated]() {
+        for (auto it = repeated.cbegin(); it != repeated.cend(); ++it) {
+            JosekiBook::Records records;
+            for (const Registration &registration : it->registrations) {
+                JosekiBook::PackedMove header;
+                header.move = JosekiBook::kHeader;
+                header.value = registration.ply;
+                records.append(header);
+                records.append(registration.moves);
+            }
+            book.m_positions.insert(it.key(), records);
+        }
     };
 
     QTextStream in(&file);
@@ -576,9 +622,9 @@ JosekiLoadResult load(const QString &filePath)
         hasMoveLine = true;
         const quint16 code = book.encodeMove(parts.at(0));
         // 1つの登録に同じ指し手が重なっていれば、最初の行を使う
-        attachComment = std::none_of(pending.cbegin(), pending.cend(),
-                                     [code](const JosekiBook::PackedMove &move) { return move.move == code; });
+        attachComment = !pendingMoves.contains(code);
         if (!attachComment) continue;
+        pendingMoves.insert(code);
         JosekiBook::PackedMove move;
         move.move = code;
         move.next = book.encodeMove(parts.at(1));
@@ -589,6 +635,7 @@ JosekiLoadResult load(const QString &filePath)
         pending.append(move);
     }
     flush();
+    mergeRepeated();
 
     if (!hasValidHeader) {
         result.errorMessage = translated(QT_TRANSLATE_NOOP("JosekiBook",
@@ -654,7 +701,8 @@ JosekiSaveResult save(const QString &filePath, const JosekiBook &book)
             book.appendMoveText(out, packed.next);
             out += ' ' + QByteArray::number(packed.value) + ' ' + QByteArray::number(packed.depth) + ' '
                 + QByteArray::number(packed.frequency) + '\n';
-            const QString comment = book.m_comments.value(packed.comment);
+            // コメントは1行に書く（改行が残ると、次の行が定跡手として読まれる）
+            const QString comment = KifuExportCommon::singleLine(book.m_comments.value(packed.comment));
             if (!comment.isEmpty()) out += '#' + comment.toUtf8() + '\n';
         }
         if (out.size() >= kChunkSize) {

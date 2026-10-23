@@ -22,14 +22,14 @@ using KifuExportCommon::buildEndingLine;
 
 // ヘルパ関数: 手順のノードを KI2 の指し手の文字列にする
 //
-// 局面は開始局面からノードの指し手（USI）を順に盤へ適用して追い、修飾語・打・不成を局面から決める。
-// fromPly 手目より前の手は局面を進めるだけで、文字列は空にする。終局ノードと開始局面も空。
+// 局面は replay（nodes の最初の手を指す前の局面）からノードの指し手（USI）を順に盤へ適用して追い、
+// 修飾語・打・不成を局面から決める。fromPly 手目より前の手は局面を進めるだけで、文字列は空にする。
+// 終局ノードと開始局面も空。
 // 指し手を持たない・局面に合わないノードは、表示の文字列から移動元を除いて書き、局面はノードから取り直す。
-static QStringList ki2MoveTexts(const QList<KifuBranchNode*>& nodes, const QString& startSfen, int fromPly)
+static QStringList ki2MoveTexts(const QList<KifuBranchNode*>& nodes, KifuNodeReplay replay, int fromPly)
 {
     QStringList out;
     out.reserve(nodes.size());
-    KifuNodeReplay replay(startSfen, nodes.isEmpty() ? QString() : nodes.first()->sfen());
     for (const KifuBranchNode* node : nodes) {
         if (!node->isActualMove()) {
             out << QString();
@@ -53,6 +53,29 @@ static QStringList ki2MoveTexts(const QList<KifuBranchNode*>& nodes, const QStri
         out << text;
     }
     return out;
+}
+
+// 本譜の開始局面（読めなければ根のノードの局面）からたどる
+static KifuNodeReplay replayFrom(const QList<KifuBranchNode*>& nodes, const QString& startSfen)
+{
+    return KifuNodeReplay(startSfen, nodes.isEmpty() ? QString() : nodes.first()->sfen());
+}
+
+// 変化の分岐した手を指す前の局面。分岐元の手の後の局面から始め、手順ごとに開始局面から指し直さない
+// （分岐元の SFEN が読めないときだけ、開始局面から分岐元まで指して進める）
+static KifuNodeReplay replayAtBranch(const BranchLine& line, const QString& startSfen)
+{
+    if (line.branchPoint != nullptr) {
+        KifuNodeReplay replay = KifuNodeReplay::after(line.branchPoint);
+        if (replay.synced()) return replay;
+    }
+    const QList<KifuBranchNode*> path = line.nodes();
+    KifuNodeReplay replay = replayFrom(path, startSfen);
+    for (const KifuBranchNode* node : path) {
+        if (node->ply() >= line.branchPly) break;
+        replay.advance(node);
+    }
+    return replay;
 }
 
 // ========================================
@@ -137,7 +160,8 @@ QStringList Ki2Exporter::exportLines(const KifuBranchTree& recordTree, const Kif
 
     // 3) 指し手（修飾語・打・不成は局面と指し手から決める）と終了行
     const Ki2Written written =
-        appendKi2Moves(mainNodes, ki2MoveTexts(mainNodes, ctx.startSfen, 1), 1, false, handicapNames, out);
+        appendKi2Moves(mainNodes, ki2MoveTexts(mainNodes, replayFrom(mainNodes, ctx.startSfen), 1), 1, false,
+                       handicapNames, out);
     const KifuBranchNode* terminal = written.terminal;
     out << buildEndingLine(written.lastMovePly, terminal ? terminal->terminalType() : TerminalType::None,
                            terminal ? terminal->terminalSide() : Turn::Black, handicapNames);
@@ -153,8 +177,9 @@ QStringList Ki2Exporter::exportLines(const KifuBranchTree& recordTree, const Kif
             const BranchLine& line = lines.at(lineIdx);
             out << QString();
             out << QStringLiteral("変化：%1手").arg(line.branchPly);
-            appendKi2Moves(line.nodes, ki2MoveTexts(line.nodes, ctx.startSfen, line.branchPly), line.branchPly,
-                           true, handicapNames, out);
+            const QList<KifuBranchNode*> nodes = line.nodesFrom(line.branchPly);
+            appendKi2Moves(nodes, ki2MoveTexts(nodes, replayAtBranch(line, ctx.startSfen), line.branchPly),
+                           line.branchPly, true, handicapNames, out);
         }
     }
 

@@ -131,7 +131,13 @@ QString SfenValidationService::applyUsiMoves(const QString& sfenLike, const QStr
         if (error) *error = base.errors.join(QStringLiteral("; "));
         return {};
     }
-    Position position = *Position::fromSfen(base.normalizedSfen);
+    // 確かめた局面の SFEN は読み直せる（読めなければ、空の値を参照せずに失敗にする）
+    const std::optional<Position> start = Position::fromSfen(base.normalizedSfen);
+    if (!start) {
+        if (error) *error = QStringLiteral("Invalid SFEN: %1").arg(base.normalizedSfen);
+        return {};
+    }
+    Position position = *start;
     for (const QString& text : moves) {
         const std::optional<UsiMove> move = UsiMove::parse(text);
         if (!move || !EngineMoveValidator::applyIfLegal(position, *move)) {

@@ -296,7 +296,7 @@ void CsaClient::processGameMessage(const QString& line)
         const bool moverIsBlack = m_isMyTurn ? m_gameSummary.isBlackSide() : !m_gameSummary.isBlackSide();
 
         // 終局手の消費時間を保存（ミリ秒に変換）
-        m_endMoveConsumedTimeMs = consumedTime * m_gameSummary.timeUnitMs(moverIsBlack);
+        m_endMoveConsumedTimeMs = m_gameSummary.unitsToMs(moverIsBlack, consumedTime);
         qCDebug(lcNetwork) << "End move consumed time:" << m_endMoveConsumedTimeMs << "ms";
         m_awaitingMoveConfirmation = false;
         return;
@@ -397,7 +397,7 @@ void CsaClient::processMoveLine(const QString& line)
 
     // 手番を判定（指し手の先頭文字で判定）し、指した側の時間単位でミリ秒に変換
     const bool isBlackMove = move.startsWith(QLatin1Char('+'));
-    const int consumedTimeMs = consumedTime * m_gameSummary.timeUnitMs(isBlackMove);
+    const int consumedTimeMs = m_gameSummary.unitsToMs(isBlackMove, consumedTime);
     const bool wasMyTurn = m_isMyTurn;
 
     // 手番を更新（相手が指したら自分の手番に）

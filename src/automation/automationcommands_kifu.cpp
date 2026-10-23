@@ -91,6 +91,10 @@ void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, 
             if (!QFileInfo::exists(path)) {
                 throw AutomationError(ErrorKind::NotFound, QStringLiteral("File not found: %1").arg(path));
             }
+            // FIFO・デバイスは読み終わらず、メインスレッドを止める
+            if (!QFileInfo(path).isFile()) {
+                throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("Not a regular file: %1").arg(path));
+            }
             ok = controller->loadKifuFile(path);
         } else {
             ok = controller->loadKifuText(text);
@@ -114,6 +118,11 @@ void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, 
         const bool overwrite = params.value(QStringLiteral("overwrite")).toBool();
         if (const std::optional<Failure> problem = OutputPath::check(path, overwrite, QStringLiteral("overwrite=true")))
             throw AutomationError(*problem);
+        // 棋譜の拡張子のファイルにだけ保存する（ほかの名前を KIF で書かない。セキュリティ監査 S15）
+        if (!KifuSaveFile::hasKnownSaveExtension(path)) {
+            throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("Not a record file name: %1").arg(path),
+                                  QStringLiteral("Use .kif, .kifu, .ki2, .ki2u, .csa, .jkf, .usi or .usen"));
+        }
         const QFileInfo info(path);
         KifuFileController* controller = requireFileController(context);
         QString error;
@@ -127,7 +136,7 @@ void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, 
         }
         QJsonObject result;
         result[QStringLiteral("path")] = path;
-        result[QStringLiteral("format")] = KifuSaveFile::hasKnownSaveExtension(path) ? info.suffix().toLower() : QStringLiteral("kif");
+        result[QStringLiteral("format")] = info.suffix().toLower();
         return result;
     });
 
@@ -153,10 +162,10 @@ void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, 
                 const BranchLine line = (lineIndex >= 0 && lineIndex < lines.size()) ? lines.at(lineIndex) : BranchLine();
                 result[QStringLiteral("line")] = lineIndex >= 0 && lineIndex < lines.size() ? lineIndex : 0;
                 // 手数はほかの形式・get_app_state と同じく手順の行数（終局の行も1手に数える）
-                result[QStringLiteral("total_plies")] = qMax(0, static_cast<int>(line.nodes.size()) - 1);
+                result[QStringLiteral("total_plies")] = qMax(0, line.length() - 1);
                 int emitted = 0;
-                for (const KifuBranchNode* node : std::as_const(line.nodes)) {
-                    if (node->ply() < fromPly) continue;
+                const QList<KifuBranchNode*> nodes = line.nodesFrom(fromPly);
+                for (const KifuBranchNode* node : nodes) {
                     if (emitted >= maxMoves) { truncated = true; break; }
                     QJsonObject move = RecordJson::entry(node->ply(), node->record());
                     if (node->ply() == 0) move[QStringLiteral("text")] = QStringLiteral("開始局面");

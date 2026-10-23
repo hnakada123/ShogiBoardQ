@@ -143,6 +143,38 @@ private slots:
         QVERIFY(!live.contains(QStringLiteral("$END_TIME")));
     }
 
+    /// 対局情報・コメント・しおりの改行（CR だけも）は、書き出した棋譜で別の行にならない（セキュリティ監査 S9）
+    void lineBreaksInValuesDoNotAddLines()
+    {
+        KifuBranchTree tree;
+        tree.setRootSfen(kHirateSfen);
+        KifuBranchNode* move = addTestMove(tree, tree.root(), QStringLiteral("7g7f"), QStringLiteral("▲７六歩(77)"));
+        move->record().comment = QStringLiteral("一行目\r手合割：香落ち\n三行目");
+        move->record().bookmark = QStringLiteral("しおり\r+2726FU");
+        KifuExportMetadata context;
+        context.startSfen = kHirateSfen;
+        context.gameInfoItems = {{QStringLiteral("先手"), QStringLiteral("Alice\r手合割：香落ち")},
+                                 {QStringLiteral("後手"), QStringLiteral("Bob\nPI82HI22KA")},
+                                 {QStringLiteral("棋戦\r手合割"), QStringLiteral("x")}};
+        for (const KifuFormat format : {KifuFormat::Kif, KifuFormat::Ki2, KifuFormat::Csa}) {
+            const QString text = KifuExport::lines(tree, context, format).join(QLatin1Char('\n'));
+            QVERIFY2(!text.contains(QLatin1Char('\r')), qPrintable(text));
+            const QStringList lines = text.split(QLatin1Char('\n'));
+            for (const QString& line : lines) {
+                QVERIFY2(!line.startsWith(QStringLiteral("手合割")), qPrintable(text));
+                QVERIFY2(!line.startsWith(QStringLiteral("PI82")), qPrintable(text));
+                QVERIFY2(!line.startsWith(QStringLiteral("+2726FU")), qPrintable(text));
+            }
+            // 読み直しても開始局面は平手のまま
+            const KifuParseOutcome outcome = format == KifuFormat::Kif ? KifuFile::parseText<KifuFormat::Kif>(text, {})
+                : format == KifuFormat::Ki2 ? KifuFile::parseText<KifuFormat::Ki2>(text, {})
+                : KifuFile::parseText<KifuFormat::Csa>(text, {});
+            QVERIFY2(outcome.success, qPrintable(outcome.warning));
+            QCOMPARE(outcome.record.mainline.startSfen, kHirateSfen);
+            QCOMPARE(outcome.record.mainline.usiMoves(), QStringList({QStringLiteral("7g7f")}));
+        }
+    }
+
     /// 持ち時間「無制限」は CSA の時間行を書かない（$TIME_LIMIT:無制限 にしない）
     void csaOmitsTimeForUnlimitedGame()
     {

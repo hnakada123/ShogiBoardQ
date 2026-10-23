@@ -9,6 +9,7 @@
 #include <QChar>
 #include <QString>
 #include <QStringView>
+#include <limits>
 
 #include "shogitypes.h"
 
@@ -87,13 +88,16 @@ inline int digitValue(QChar ch)
     return -1;
 }
 
-/// 半角・全角の数字の並びを数にする（数字でない文字は飛ばす。数字がなければ 0）
+/// 半角・全角の数字の並びを数にする（数字でない文字は飛ばす。数字がなければ 0。int に収まらない数は int の最大値）
 inline int numberFromDigits(QStringView text)
 {
+    constexpr int kMax = std::numeric_limits<int>::max();
     int value = 0;
     for (const QChar ch : text) {
         const int digit = digitValue(ch);
-        if (digit >= 0) value = value * 10 + digit;
+        if (digit < 0) continue;
+        if (value > (kMax - digit) / 10) return kMax;
+        value = value * 10 + digit;
     }
     return value;
 }

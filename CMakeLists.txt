@@ -929,6 +929,7 @@ set(SRC_HEADLESS
     src/headless/errorkinds.cpp
     src/headless/errorkinds.h
     src/headless/kifuconversionservice.cpp
+    src/common/boundedfile.h
     src/headless/kifuconversionservice.h
     src/headless/matesearchrunner.cpp
     src/headless/matesearchrunner.h

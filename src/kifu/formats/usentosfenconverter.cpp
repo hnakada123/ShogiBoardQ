@@ -8,6 +8,7 @@
 #include "sfenutils.h"
 #include "usencodec.h"
 
+#include <limits>
 #include <utility>
 #include "logcategories.h"
 
@@ -87,7 +88,8 @@ KifuParseOutcome UsenToSfenConverter::parse(QStringView text, const ParseOptions
     // 分岐は「直前に記述された手順」から派生する（KIF の「変化：N手」と同じ）。オフセットはその前の手数
     for (qsizetype i = 1; i < lines->size(); ++i) {
         const UsenLine& line = lines->at(i);
-        const int startPly = line.offset + 1;
+        // オフセットが int の最大値なら次の手数を作れないので、読めない分岐にする（桁あふれさせない）
+        const int startPly = line.offset < std::numeric_limits<int>::max() ? line.offset + 1 : 0;
         const auto base = record.latestBranchPoint(startPly);
         const std::optional<Position> from = base ? base->position : std::nullopt;
         if (!from) {

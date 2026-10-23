@@ -118,7 +118,7 @@ public:
 
     RecordLine line() const { return KifuBranchTree::toRecordLine(tree.mainLine()); }
     /// index 番の手順（KifuBranchTree::allLines()）の末尾の手の ID
-    int lineEnd(int index = 0) const { return tree.allLines().at(index).nodes.constLast()->nodeId(); }
+    int lineEnd(int index = 0) const { return tree.allLines().at(index).leaf->nodeId(); }
     /// 本譜を解析する依頼（エンジンと範囲は呼ぶ側が決める）
     AnalysisRequest request() const
     {
@@ -437,7 +437,7 @@ private slots:
         TestTree::addMove(h.tree, first, moves.first(), branchMoves.first(), sfens.last());
         auto ctrl = h.controller();
         AnalysisRequest request;
-        request.line = KifuBranchTree::toRecordLine(h.tree.allLines().at(1).nodes);
+        request.line = KifuBranchTree::toRecordLine(h.tree.allLines().at(1).nodes());
         request.lineEndNodeId = h.lineEnd(1);
         request.options.startPly = 1;
         request.enginePath = mockEngine();

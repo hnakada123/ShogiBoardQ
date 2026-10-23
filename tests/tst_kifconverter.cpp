@@ -417,13 +417,14 @@ private slots:
 
         int treeCommentCount = 0;
         const BranchLine& mainLine = lines.at(0);
-        for (KifuBranchNode* node : std::as_const(mainLine.nodes)) {
+        const QList<KifuBranchNode*> mainNodes = mainLine.nodes();
+        for (KifuBranchNode* node : mainNodes) {
             if (!node->comment().isEmpty()) {
                 ++treeCommentCount;
             }
         }
-        qWarning("[TEST] KifuBranchNode comment count: %d / %lld main line nodes",
-                 treeCommentCount, mainLine.nodes.size());
+        qWarning("[TEST] KifuBranchNode comment count: %d / %d main line nodes",
+                 treeCommentCount, mainLine.length());
         QVERIFY2(treeCommentCount > 0,
                  qPrintable(QStringLiteral(
                      "No comments found in KifuBranchNode tree! "
@@ -449,12 +450,12 @@ private slots:
         const QList<BranchLine> lines = tree.allLines();
         QCOMPARE(lines.size(), 2);
 
-        KifuBranchNode* mainTerminal = lines.at(0).nodes.last();
+        KifuBranchNode* mainTerminal = lines.at(0).leaf;
         QVERIFY(mainTerminal->isTerminal());
         QCOMPARE(mainTerminal->sfen(), QStringLiteral("b2 b - 3"));
         QCOMPARE(mainTerminal->sfen(), mainTerminal->parent()->sfen());
 
-        KifuBranchNode* varTerminal = lines.at(1).nodes.last();
+        KifuBranchNode* varTerminal = lines.at(1).leaf;
         QVERIFY(varTerminal->isTerminal());
         QCOMPARE(varTerminal->sfen(), QStringLiteral("v2 b - 3"));
         QCOMPARE(varTerminal->sfen(), varTerminal->parent()->sfen());

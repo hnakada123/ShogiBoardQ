@@ -145,19 +145,24 @@ QString normalizeCsaCommentLine(const QString& line)
 
 std::optional<qint64> parseTimeTokenMs(const QString& token)
 {
+    // 1手の消費時間の上限（秒。約115日）。これを超える値・負の値は読めない値にする
+    // （ミリ秒への換算と累計で桁あふれさせない。セキュリティ監査 S13）
+    constexpr qint64 kMaxSeconds = 10'000'000;
     if (!token.startsWith(QLatin1Char('T'))) return std::nullopt;
     const QString t = token.mid(1).trimmed();
     if (t.isEmpty()) return std::nullopt;
 
     const qsizetype dot = t.indexOf(QLatin1Char('.'));
     if (dot < 0) {
-        bool ok = false; const qint64 sec = t.toLongLong(&ok); if (!ok) return std::nullopt;
+        bool ok = false; const qint64 sec = t.toLongLong(&ok);
+        if (!ok || sec < 0 || sec > kMaxSeconds) return std::nullopt;
         return sec * 1000;
     }
     const QString secPart = t.left(dot);
     const QString msPart  = t.mid(dot + 1);
     bool okS = false, okM = false;
-    const qint64 sec = secPart.toLongLong(&okS); if (!okS) return std::nullopt;
+    const qint64 sec = secPart.toLongLong(&okS);
+    if (!okS || sec < 0 || sec > kMaxSeconds) return std::nullopt;
     QString ms3 = msPart.left(3); while (ms3.size() < 3) ms3.append(QLatin1Char('0'));
     const qint64 milli = ms3.toLongLong(&okM); if (!okM) return std::nullopt;
     return sec * 1000 + milli;

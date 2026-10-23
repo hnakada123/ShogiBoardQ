@@ -2,11 +2,11 @@
 /// @brief 棋譜ファイルの文字コード自動判別読み込み機能の実装
 
 #include "kifreader.h"
+#include "boundedfile.h"
 
 #include <QByteArray>
 #include "logcategories.h"
 #include "shiftjiscodec.h"
-#include <QFile>
 #include <QStringDecoder>
 
 namespace KifReader {
@@ -144,12 +144,12 @@ bool readAllTextAuto(const QString& filePath,
 {
     outText.clear();
 
-    QFile f(filePath);
-    if (!f.open(QIODevice::ReadOnly)) {
-        if (warn) *warn += QStringLiteral("open failed: %1\n").arg(filePath);
+    QByteArray bytes;
+    const BoundedFile::Result read = BoundedFile::read(filePath, BoundedFile::kMaxKifuBytes, bytes);
+    if (read != BoundedFile::Result::Ok) {
+        if (warn) *warn += BoundedFile::describe(read, filePath, BoundedFile::kMaxKifuBytes) + QLatin1Char('\n');
         return false;
     }
-    const QByteArray bytes = f.readAll();
     QString encoding;
     outText = decodeAuto(bytes, &encoding, warn);
     qCDebug(lcKifu).noquote() << QStringLiteral("readAllTextAuto: encoding = %1, bytes = %2").arg(encoding).arg(bytes.size());

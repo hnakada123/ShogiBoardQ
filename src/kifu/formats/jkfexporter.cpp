@@ -72,15 +72,20 @@ static QJsonObject buildJkfInitial(const QString& startSfen)
     return initial;
 }
 
+// 書き出す変化の入れ子の深さの上限。forks は入れ子ごとに JSON を3段深くし、Qt の JSON の読み込みは
+// 1024 段までなので、これより深い変化は読み直せない。再帰とスタックの深さもこれで抑える（セキュリティ監査 S5）
+static constexpr int kMaxForkDepth = 300;
+
 /**
  * @brief first から最初の子をたどった手順を JKF の moves の要素の列にする
  * @param replay first を指す前の局面。指し手を適用して進める
+ * @param depth first の手順の変化の入れ子の深さ（本譜は 0）
  *
  * 指し手は、ノードの指し手（USI）と局面から作る。分岐点では、親の2番目以降の子からの手順を、
  * 代わられる手（先頭の子）の要素の forks に入れる。局面に合わない指し手のノードは書かず、
- * 局面をノードから取り直して続ける。
+ * 局面をノードから取り直して続ける。入れ子が kMaxForkDepth を超える変化は書かない。
  */
-static QJsonArray buildJkfMoves(const KifuBranchNode* first, KifuNodeReplay replay)
+static QJsonArray buildJkfMoves(const KifuBranchNode* first, KifuNodeReplay replay, int depth = 0)
 {
     QJsonArray moves;
     for (const KifuBranchNode* node = first; node != nullptr; node = node->childAt(0)) {
@@ -88,9 +93,14 @@ static QJsonArray buildJkfMoves(const KifuBranchNode* first, KifuNodeReplay repl
         QJsonArray forks;
         const KifuBranchNode* parent = node->parent();
         if (parent != nullptr && parent->childAt(0) == node && parent->hasBranch()) {
-            for (int i = 1; i < parent->childCount(); ++i) {
-                const QJsonArray fork = buildJkfMoves(parent->childAt(i), replay.branchFrom(parent));
-                if (!fork.isEmpty()) forks.append(fork);
+            if (depth >= kMaxForkDepth) {
+                qCWarning(lcKifu).noquote() << "toJkfLines: skipped variations nested deeper than" << kMaxForkDepth
+                                            << "at ply" << node->ply();
+            } else {
+                for (int i = 1; i < parent->childCount(); ++i) {
+                    const QJsonArray fork = buildJkfMoves(parent->childAt(i), replay.branchFrom(parent), depth + 1);
+                    if (!fork.isEmpty()) forks.append(fork);
+                }
             }
         }
 

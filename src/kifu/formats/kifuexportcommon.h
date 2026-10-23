@@ -11,7 +11,18 @@
 
 namespace KifuExportCommon {
 
-/// 「キー：値」の対局情報行（全角コロン）
+/**
+ * @brief 1行に書く値（対局情報のキーと値・対局者名・定跡のコメント）の改行と制御文字を空白にする
+ *
+ * 読み込みは CR だけでも改行とみなすので、値に改行が残ると、読み直したときに別の行（手合割・指し手など）
+ * として読まれる（通信対局のサーバーや読み込んだ棋譜から来た値でも起きる。セキュリティ監査 S9）。
+ */
+QString singleLine(const QString& text);
+
+/// 複数行の本文（コメント・しおり）を行に分ける。CR LF・CR・LF のどれも改行とし、行の中の制御文字は空白にする
+QStringList splitLines(const QString& text);
+
+/// 「キー：値」の対局情報行（全角コロン。キーと値は singleLine で1行にする）
 QString fwColonLine(const QString& key, const QString& value);
 
 /// 指し手の先頭の手番記号（▲△）を除く

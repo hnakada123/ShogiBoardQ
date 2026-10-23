@@ -21,7 +21,7 @@ const QRegularExpression& nextMoveNumberRe()
 
 namespace KifLexer {
 
-std::optional<int> startsWithMoveNumber(const QString& line)
+std::optional<int> startsWithMoveNumber(QStringView line)
 {
     int i = 0, digits = 0;
     while (i < line.size()) {
@@ -92,34 +92,61 @@ QList<NumberedMove> readNumberedMoves(const QString& source)
 {
     static const QRegularExpression s_branchMark(QStringLiteral("\\s*[+＋]$"));
     QList<NumberedMove> moves;
-    QString line = source;
+    // 行の残りは複製せずに位置で進め、コメントの始まりと消費時間の欄は行の先頭から1度ずつしか探さない
+    // （手ごとに残り全体を複製して探し直すと、1行に多くの手を並べた行で二乗の時間になる。セキュリティ監査 S6）
+    const QStringView all(source);
+    const qsizetype commentAt = commentStart(source);
+    // 正規表現は既定では照合のたびに文字列全体の UTF-16 を確かめるので、行を1度確かめて省く
+    const QRegularExpression::MatchOptions options = all.isValidUtf16()
+        ? QRegularExpression::DontCheckSubjectStringMatchOption : QRegularExpression::NoMatchOption;
+    const auto find = [options](const QRegularExpression& re, QStringView subject, qsizetype offset = 0) {
+        return re.matchView(subject, offset, QRegularExpression::NormalMatch, options);
+    };
+    QRegularExpressionMatch nextTime = find(kifTimeRe(), all);   // まだ使っていない最初の消費時間の欄
+    QStringView line = all;
     while (!line.isEmpty()) {
         const std::optional<int> digits = startsWithMoveNumber(line);
         if (!digits) break;
-        int i = *digits;
+        qsizetype i = *digits;
         while (i < line.size() && line.at(i).isSpace()) ++i;
         if (i >= line.size()) break;
 
         NumberedMove move;
-        QString rest = line.mid(i).trimmed();
+        QStringView rest = line.mid(i).trimmed();
+        const qsizetype restStart = rest.data() - all.data();
         // コメントは行末まで（コメントの中の数字を次の手と見ない）
-        if (const qsizetype comment = commentStart(rest); comment >= 0) {
-            move.comment = rest.mid(comment + 1).trimmed();
+        if (commentAt >= restStart && commentAt < restStart + rest.size()) {
+            const qsizetype comment = commentAt - restStart;
+            move.comment = rest.mid(comment + 1).trimmed().toString();
             rest = rest.left(comment).trimmed();
         }
+        // 消費時間の欄（手の表記の中で最初のもの）。行の先頭から探した欄がこの手より前なら、ここから探し直す
+        if (nextTime.hasMatch() && nextTime.capturedStart(0) < restStart) nextTime = find(kifTimeRe(), all, restStart);
+        qsizetype timeStart = -1, timeEnd = -1;
+        QRegularExpressionMatch time;
+        if (nextTime.hasMatch() && nextTime.capturedEnd(0) <= restStart + rest.size()) {
+            time = nextTime;
+            timeStart = time.capturedStart(0) - restStart;
+            timeEnd = time.capturedEnd(0) - restStart;
+        } else if (nextTime.hasMatch() && nextTime.capturedStart(0) < restStart + rest.size()) {
+            // 欄がコメントの始まりをまたぐ（まれ）。手の表記の中だけで探す
+            time = find(kifTimeRe(), rest);
+            timeStart = time.capturedStart(0);
+            timeEnd = time.capturedEnd(0);
+        }
         // 消費時間の欄、なければ次の手の手数で、この手の表記が終わる
-        QString next;
-        if (const QRegularExpressionMatch time = kifTimeRe().match(rest); time.hasMatch()) {
+        QStringView next;
+        if (time.hasMatch()) {
             move.time = timeOf(time);
-            next = rest.mid(time.capturedEnd(0)).trimmed();
-            rest = rest.left(time.capturedStart(0)).trimmed();
-        } else if (const QRegularExpressionMatch number = nextMoveNumberRe().match(rest); number.hasMatch()) {
+            next = rest.mid(timeEnd).trimmed();
+            rest = rest.left(timeStart).trimmed();
+        } else if (const QRegularExpressionMatch number = find(nextMoveNumberRe(), rest); number.hasMatch()) {
             next = rest.mid(number.capturedStart()).trimmed();
             rest = rest.left(number.capturedStart()).trimmed();
         }
         // 消費時間欄がない行では、分岐ありを示す行末の「+」が指し手に残るので取り除く
-        rest.remove(s_branchMark);
-        move.text = rest;
+        move.text = rest.toString();
+        move.text.remove(s_branchMark);
         if (!move.text.isEmpty()) moves.append(move);
         line = next;
     }
@@ -358,7 +385,9 @@ bool readBodPosition(const QStringList& lines, Position& out)
     for (const QString& l : std::as_const(lines)) {
         auto mt = reTeSu.match(l);
         if (mt.hasMatch()) {
-            position.setMoveNumber(zenk2ascii(mt.captured(1)).toInt() + 1);
+            // 「手数＝N」の次の手。大きすぎる数は手数の上限で止める（読めなければ 0 として 1 手目）
+            const qint64 played = zenk2ascii(mt.captured(1)).toLongLong();
+            position.setMoveNumber(static_cast<int>(qBound(qint64(1), played + 1, qint64(Position::kMaxMoveNumber))));
             break;
         }
     }

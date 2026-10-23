@@ -5,6 +5,7 @@
 /// 本ファイルはファイルI/O・パーサ状態管理・オーケストレーションを担当する。
 
 #include "csatosfenconverter.h"
+#include "boundedfile.h"
 #include "csaformatter.h"
 #include "csalexer.h"
 #include "gameinfokeys.h"
@@ -14,7 +15,6 @@
 #include "shiftjiscodec.h"
 #include "shogiposition.h"
 
-#include <QFile>
 #include <QStringDecoder>
 
 // ============================================================
@@ -23,13 +23,12 @@
 
 bool CsaToSfenConverter::readFileText(const QString& path, QString& outText, QString* warn)
 {
-    QFile f(path);
-    if (!f.open(QIODevice::ReadOnly)) {
-        if (warn) *warn += QStringLiteral("Failed to open: %1\n").arg(path);
+    QByteArray raw;
+    const BoundedFile::Result read = BoundedFile::read(path, BoundedFile::kMaxKifuBytes, raw);
+    if (read != BoundedFile::Result::Ok) {
+        if (warn) *warn += BoundedFile::describe(read, path, BoundedFile::kMaxKifuBytes) + QLatin1Char('\n');
         return false;
     }
-
-    const QByteArray raw = f.readAll();
     // CSA V3 の文字コードの宣言（'encoding=...）があればそれに従う
     const QByteArray head = raw.left(128);
     const bool utf8Header  = head.contains("CSA encoding=UTF-8")
@@ -63,8 +62,10 @@ QStringList CsaToSfenConverter::splitStatements(const QString& rawText, QString*
     QStringList outLines;
     // 初期配置を含めてマルチステートメントを展開する。コメントと文字列値の
     // カンマは本文として保持し、複数対局の指し手を一つの棋譜に混ぜない。
+    // 行の残りは複製せずに位置で進める（「,」ごとに残りを複製すると、長い行で二乗の時間になる。セキュリティ監査 S6）
     const QStringList physicalLines = text.split(QLatin1Char('\n'));
-    for (QString line : physicalLines) {
+    for (const QString& physicalLine : physicalLines) {
+        QStringView line(physicalLine);
         while (!line.isEmpty()) {
             line = line.trimmed();
             if (line == QLatin1String("/")) {
@@ -74,10 +75,10 @@ QStringList CsaToSfenConverter::splitStatements(const QString& rawText, QString*
             const qsizetype comma = line.indexOf(QLatin1Char(','));
             if (comma < 0 || line.startsWith(QLatin1Char('\''))
                 || line.startsWith(QLatin1Char('N')) || line.startsWith(QLatin1Char('$'))) {
-                outLines.append(line);
+                outLines.append(line.toString());
                 break;
             }
-            outLines.append(line.left(comma));
+            outLines.append(line.left(comma).toString());
             line = line.mid(comma + 1);
         }
     }

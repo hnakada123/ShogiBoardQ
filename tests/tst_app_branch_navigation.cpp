@@ -236,7 +236,7 @@ private slots:
         MainWindow window;
         auto& p = window.composer().parts();
         QVERIFY(loadRecord(p));
-        p.kifuNavController->goToPlyOnLine(p.branchTree->allLines().at(1).nodes.constLast()->nodeId(), 3);
+        p.kifuNavController->goToPlyOnLine(p.branchTree->allLines().at(1).leaf->nodeId(), 3);
         QCOMPARE(p.navState->currentLineIndex(), 1);
         p.liveGameSession->startFromRoot();
         QVERIFY(p.liveGameSession->isActive());

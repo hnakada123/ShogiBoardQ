@@ -23,6 +23,11 @@ int CsaClient::TimeControl::unitMs() const
     return kMsPerSecond;
 }
 
+int CsaClient::TimeControl::toMs(qint64 units) const
+{
+    return static_cast<int>(qBound(qint64(0), units * unitMs(), qint64(kMaxTimeMs)));
+}
+
 CsaClient::GameSummary::GameSummary()
 {
     clear();
@@ -70,7 +75,7 @@ int CsaClient::GameSummary::positionMoveConsumedMs(int index) const
 {
     if (index < 0 || index >= moves.size()) return 0;
     const bool black = moves.at(index).startsWith(QLatin1Char('+'));
-    return moveConsumedTimes.value(index, 0) * timeUnitMs(black);
+    return unitsToMs(black, moveConsumedTimes.value(index, 0));
 }
 
 bool CsaClient::isWaitingState(ConnectionState state)
@@ -367,6 +372,11 @@ void CsaClient::onReadyRead()
             QByteArray bytes = m_receiveBuffer.left(newlineIndex);
             m_receiveBuffer.remove(0, newlineIndex + 1);
             if (bytes.endsWith('\r')) bytes.chop(1);
+            // 行の途中の CR などの制御文字は空白にする（対局者名などに残ると、保存した棋譜を読み直したときに
+            // 別の行として読まれる。セキュリティ監査 S9）
+            for (char& byte : bytes) {
+                if ((static_cast<unsigned char>(byte) < 0x20 && byte != '\t') || byte == 0x7F) byte = ' ';
+            }
             if (bytes.isEmpty()) continue;
             const QString line = QString::fromUtf8(bytes);
             emit rawMessageReceived(line);

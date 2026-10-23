@@ -2,6 +2,8 @@
 
 #include "kifmovetext.h"
 #include "shoginotation.h"
+
+#include <limits>
 #include "shogimove.h"
 
 class TestShogiNotation : public QObject
@@ -126,6 +128,15 @@ private slots:
     {
         QCOMPARE(UsiMove::fromString(u"0a1a").toString(), QString());
         QCOMPARE(ShogiMove().move.toString(), QString());
+    }
+
+    void numberFromDigits_saturates()
+    {
+        // 桁の多い数（「変化：99999999999手」など）は int の最大値で止める（セキュリティ監査 S13）
+        QCOMPARE(ShogiNotation::numberFromDigits(u"１２３"), 123);
+        QCOMPARE(ShogiNotation::numberFromDigits(u"2147483647"), std::numeric_limits<int>::max());
+        QCOMPARE(ShogiNotation::numberFromDigits(u"99999999999"), std::numeric_limits<int>::max());
+        QCOMPARE(ShogiNotation::numberFromDigits(u"2147483648"), std::numeric_limits<int>::max());
     }
 };
 

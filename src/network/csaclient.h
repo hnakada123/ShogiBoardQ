@@ -96,6 +96,10 @@ public:
      *
      * 値は Time_Unit の単位時間で保持し、*Ms() でミリ秒に換算する。
      */
+    /// 1つの時間の値（持時間・秒読み・加算・1手の消費時間）の上限（ミリ秒。7日）。
+    /// サーバーが送る大きな値で、持ち時間の計算を桁あふれさせない（セキュリティ監査 S13）
+    static constexpr int kMaxTimeMs = 7 * 24 * 60 * 60 * 1000;
+
     struct TimeControl {
         QString timeUnit = QStringLiteral("1sec"); ///< 時間単位（1sec/1min/1msec）
         int totalTime = 0;          ///< 持時間の初期値
@@ -107,11 +111,13 @@ public:
         bool specified = false;     ///< Time 階層が記述されたか
 
         int unitMs() const;                 ///< 時間単位をミリ秒に換算
-        int totalTimeMs() const { return totalTime * unitMs(); }
-        int byoyomiMs() const { return byoyomi * unitMs(); }
-        int incrementMs() const { return increment * unitMs(); }
-        int delayMs() const { return delay * unitMs(); }
-        int leastTimePerMoveMs() const { return leastTimePerMove * unitMs(); }
+        /// 単位時間の数をミリ秒にする（0〜kMaxTimeMs。サーバーが送る大きな値で桁あふれさせない）
+        int toMs(qint64 units) const;
+        int totalTimeMs() const { return toMs(totalTime); }
+        int byoyomiMs() const { return toMs(byoyomi); }
+        int incrementMs() const { return toMs(increment); }
+        int delayMs() const { return toMs(delay); }
+        int leastTimePerMoveMs() const { return toMs(leastTimePerMove); }
         /// 時間無制限か（Time 階層の省略、または全時間要素の省略）
         bool isUnlimited() const
         {
@@ -154,6 +160,8 @@ public:
         const TimeControl& timeFor(bool black) const { return black ? timeBlack : timeWhite; }
         TimeControl& timeFor(bool black) { return black ? timeBlack : timeWhite; }
         int timeUnitMs(bool black) const { return timeFor(black).unitMs(); }
+        /// black の側の単位時間の数をミリ秒にする（TimeControl::toMs）
+        int unitsToMs(bool black, qint64 units) const { return timeFor(black).toMs(units); }
         int totalTimeMs(bool black) const { return timeFor(black).totalTimeMs(); }
         int byoyomiMs(bool black) const { return timeFor(black).byoyomiMs(); }
         int incrementMs(bool black) const { return timeFor(black).incrementMs(); }

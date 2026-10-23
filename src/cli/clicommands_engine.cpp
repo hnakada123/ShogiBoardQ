@@ -252,14 +252,13 @@ int CliCommands::analyzeKifu(const QJsonObject& params)
         if (!move) return CliOutput::failEvent(ErrorKind::InvalidContent, QStringLiteral("Unreadable move: %1").arg(text));
         played << *move;
     }
-    for (int ply = fromPly; ply <= toPly; ++ply) {
-        const std::optional<UsiPosition> position = UsiPosition::fromMoves(record.initialSfen, played.mid(0, ply));
-        if (!position) {
-            return CliOutput::failEvent(ErrorKind::InvalidContent,
-                                        QStringLiteral("The position after %1 moves could not be built").arg(ply));
-        }
-        plan.positions << *position;
+    // 手順を1度だけたどり、手の列は全部の局面で共有する（局面ごとに手順を作り直すと、手数の三乗の時間になる）
+    const std::optional<QList<UsiPosition>> positions = UsiPosition::alongMoves(record.initialSfen, played, fromPly, toPly);
+    if (!positions) {
+        return CliOutput::failEvent(ErrorKind::InvalidContent,
+                                    QStringLiteral("The positions %1-%2 of the main line could not be built").arg(fromPly).arg(toPly));
     }
+    plan.positions = *positions;
     const int seconds = params.value(QStringLiteral("seconds_per_position")).toInt();
     const int multiPv = params.value(QStringLiteral("multipv")).toInt();
 
