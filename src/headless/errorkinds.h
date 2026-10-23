@@ -7,6 +7,8 @@
 #include <QJsonArray>
 #include <QString>
 
+#include <utility>
+
 /**
  * @brief エラーの分類
  *
@@ -31,11 +33,32 @@ enum class ErrorKind {
     RenderError,       ///< 盤面画像を描けない（render_error）
 };
 
+/// JSON-RPC のエラーコード（標準 + アプリ固有）
+namespace AutomationErrorCode {
+constexpr int ParseError = -32700;
+constexpr int InvalidRequest = -32600;
+constexpr int MethodNotFound = -32601;
+constexpr int InvalidParams = -32602;
+constexpr int InternalError = -32603;
+constexpr int NotAllowed = -32001;      ///< 許可リスト外の動作
+constexpr int InvalidState = -32002;    ///< 現在の状態では実行できない
+constexpr int FileError = -32003;       ///< パスが不正・既存ファイル・入出力失敗
+constexpr int UnsavedChanges = -32004;  ///< 未保存の変更がある
+constexpr int NotFound = -32005;        ///< 対象が見つからない
+constexpr int InvalidContent = -32006;  ///< 棋譜などの中身が読めない
+constexpr int EngineError = -32007;     ///< エンジンの起動・探索の失敗
+} // namespace AutomationErrorCode
+
 /// 分類つきの失敗。GUI に依存しないサービスが返し、CLI（CliOutput::fail）と自動化 API（AutomationError）は
 /// 分類をそのまま写す（呼び出し側で分類を推し量らない）
 struct Failure {
+    Failure() = default;
+    Failure(ErrorKind failureKind, QString failureMessage, QString failureHint = QString())
+        : kind(failureKind), message(std::move(failureMessage)), hint(std::move(failureHint)) {}
+
     ErrorKind kind = ErrorKind::InternalError;
     QString message;
+    QString hint;   ///< 対処の方法（無ければ空。CLI は error.hint、自動化 API は error.data.hint に出す）
 };
 
 namespace ErrorKinds {

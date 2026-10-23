@@ -25,7 +25,7 @@ void printEvent(const QString& name, QJsonObject fields = QJsonObject());
 /// `{"ok":false,"error":{"code","message"}}` を書き、終了コード 1 を返す（code は分類の語）
 int fail(ErrorKind kind, const QString& message);
 /// サービスが返した分類つきの失敗を書く
-inline int fail(const Failure& failure) { return fail(failure.kind, failure.message); }
+int fail(const Failure& failure);
 
 /// `{"event":"error","code","message"}` を書き、終了コード 1 を返す（code は分類の語）
 int failEvent(ErrorKind kind, const QString& message);

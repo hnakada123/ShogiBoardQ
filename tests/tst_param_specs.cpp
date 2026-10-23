@@ -11,7 +11,11 @@
 #include "automationmethodspecs.h"
 #include "clicommandspecs.h"
 #include "errorkinds.h"
+#include "outputpath.h"
 #include "paramspec.h"
+
+#include <QFile>
+#include <QTemporaryDir>
 
 using namespace ParamSpecs;
 
@@ -122,6 +126,31 @@ private slots:
         }
         QCOMPARE(ErrorKinds::slug(ErrorKind::FileExists), QStringLiteral("file_exists"));
         QCOMPARE(AutomationError(ErrorKind::InvalidContent, QString()).code(), AutomationErrorCode::InvalidContent);
+    }
+
+    /// 書き出し先の検査は CLI と kifu.save で同じ分類（MCP の paths.py とも同じ）
+    void outputPathCheckClassifiesProblems()
+    {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QString existing = dir.filePath(QStringLiteral("game.kif"));
+        QFile file(existing);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.close();
+        QCOMPARE(OutputPath::check(QStringLiteral("relative.kif"), false, QStringLiteral("--overwrite"))->kind,
+                 ErrorKind::InvalidArgument);
+        QCOMPARE(OutputPath::check(dir.path(), true, QStringLiteral("--overwrite"))->kind, ErrorKind::InvalidArgument);
+        const std::optional<Failure> exists = OutputPath::check(existing, false, QStringLiteral("--overwrite"));
+        QCOMPARE(exists->kind, ErrorKind::FileExists);
+        QVERIFY(exists->hint.contains(QStringLiteral("--overwrite")));
+        QVERIFY(!OutputPath::check(existing, true, QStringLiteral("--overwrite")));
+        QCOMPARE(OutputPath::check(dir.filePath(QStringLiteral("missing/game.kif")), false, QStringLiteral("--overwrite"))->kind,
+                 ErrorKind::NotFound);
+        QVERIFY(!OutputPath::check(dir.filePath(QStringLiteral("new.kif")), false, QStringLiteral("--overwrite")));
+        // 分類つきの失敗は自動化 API にそのまま写す
+        const AutomationError error(*exists);
+        QCOMPARE(error.kind(), ErrorKind::FileExists);
+        QCOMPARE(error.hint(), exists->hint);
     }
 
     /// 表にあるメソッドは、呼ぶ前に引数を検査し既定値を補う

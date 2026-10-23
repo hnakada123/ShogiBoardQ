@@ -14,28 +14,15 @@
 
 #include "errorkinds.h"
 
-/// JSON-RPC のエラーコード（標準 + アプリ固有）
-namespace AutomationErrorCode {
-constexpr int ParseError = -32700;
-constexpr int InvalidRequest = -32600;
-constexpr int MethodNotFound = -32601;
-constexpr int InvalidParams = -32602;
-constexpr int InternalError = -32603;
-constexpr int NotAllowed = -32001;      ///< 許可リスト外の動作
-constexpr int InvalidState = -32002;    ///< 現在の状態では実行できない
-constexpr int FileError = -32003;       ///< パスが不正・既存ファイル・入出力失敗
-constexpr int UnsavedChanges = -32004;  ///< 未保存の変更がある
-constexpr int NotFound = -32005;        ///< 対象が見つからない
-constexpr int InvalidContent = -32006;  ///< 棋譜などの中身が読めない
-constexpr int EngineError = -32007;     ///< エンジンの起動・探索の失敗
-} // namespace AutomationErrorCode
-
 /// メソッド実装が投げるエラー。分類（ErrorKind）が JSON-RPC のコードと `data.slug` を決め、`data.hint` に対処方法を入れる
 class AutomationError
 {
 public:
     AutomationError(ErrorKind kind, QString message, QString hint = QString())
         : m_kind(kind), m_message(std::move(message)), m_hint(std::move(hint)) {}
+    /// 分類つきの失敗（GUI に依存しないサービスが返したもの）をそのまま写す
+    explicit AutomationError(const Failure& failure)
+        : m_kind(failure.kind), m_message(failure.message), m_hint(failure.hint) {}
     ErrorKind kind() const { return m_kind; }
     int code() const { return ErrorKinds::rpcCode(m_kind); }
     const QString& message() const { return m_message; }

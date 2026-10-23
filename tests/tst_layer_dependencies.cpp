@@ -26,7 +26,7 @@ private:
     /// 下の層は上の層をインクルードしない。下から順に
     /// common（ログ・エラー通知）・core → services → kifu・engine → game → analysis・network・navigation
     /// → style（ウィジェットの書体・見た目）→ models → views・widgets・board → dialogs → ui → app。
-    /// automation・cli は外側の入口
+    /// automation・cli は外側の入口。headless（CLI・自動化 API・MCP が共有する部品）は core〜analysis だけを使う
     static QList<LayerRule> layerRules()
     {
         const auto dirs = [](std::initializer_list<const char*> names) {
@@ -34,7 +34,8 @@ private:
             for (const char* name : names) list.append(QString::fromLatin1(name) + QLatin1Char('/'));
             return list;
         };
-        const QStringList gui = dirs({"app", "ui", "dialogs", "widgets", "views", "board", "automation", "cli", "style"});
+        const QStringList gui =
+            dirs({"app", "ui", "dialogs", "widgets", "views", "board", "automation", "cli", "style", "headless"});
         return {
             // ログの分類（logcategories）とエラーの通知（errorbus）は common の土台を使う
             {QStringLiteral("src/core"),
@@ -57,7 +58,10 @@ private:
             {QStringLiteral("src/board"), dirs({"app", "ui", "dialogs", "automation", "cli"})},
             {QStringLiteral("src/dialogs"), dirs({"app", "ui", "automation", "cli"})},
             {QStringLiteral("src/ui"), dirs({"app", "automation", "cli"})},
-            // 自動化 API・CLI 共通サービスは MainWindow・ダイアログ・ウィジェットに依存しない
+            // CLI・自動化 API・MCP が共有する部品は GUI にも通信対局・棋譜ナビゲーションにも依存しない
+            {QStringLiteral("src/headless"), dirs({"app", "ui", "dialogs", "widgets", "views", "board", "automation", "cli",
+                                                   "style", "network", "navigation", "models"})},
+            // 自動化 API は MainWindow・ダイアログ・ウィジェットに依存しない
             {QStringLiteral("src/automation"), dirs({"app", "dialogs", "widgets", "cli"})},
             {QStringLiteral("src/cli"), dirs({"app", "dialogs", "widgets", "views", "ui"})},
         };

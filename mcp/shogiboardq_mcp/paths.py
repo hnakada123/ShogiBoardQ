@@ -67,6 +67,7 @@ def resolve_read_path(raw: str, what: str = "path") -> Path:
 
 
 def resolve_write_path(raw: str, overwrite: bool, what: str = "output_path") -> Path:
+    # The error kinds match OutputPath::check (src/headless/outputpath.cpp), which the CLI and kifu.save use.
     path = _require_absolute(raw, what)
     resolved = _check_allowed(path)
     if resolved.exists():

@@ -16,6 +16,7 @@
 #include "enginecatalog.h"
 #include "kifuconversionservice.h"
 #include "kifusavefile.h"
+#include "outputpath.h"
 #include "sfenvalidationservice.h"
 
 #include <QCoreApplication>
@@ -139,10 +140,9 @@ int CliCommands::convertKifu(const QStringList& args)
     request.outputFormat = *KifuFormats::fromName(params->value(QStringLiteral("output_format")).toString());
 
     const QString outputPath = params->value(QStringLiteral("output")).toString();
-    QString error;
-    if (const auto problem = outputPath.isEmpty() ? std::nullopt
-            : CliArgs::checkOutputPath(outputPath, params->value(QStringLiteral("overwrite")).toBool(), &error)) {
-        return CliOutput::fail(*problem, error);
+    if (const std::optional<Failure> problem = outputPath.isEmpty() ? std::nullopt
+            : OutputPath::check(outputPath, params->value(QStringLiteral("overwrite")).toBool(), QStringLiteral("--overwrite"))) {
+        return CliOutput::fail(*problem);
     }
 
     const KifuConversionService::Result result = KifuConversionService::convert(request);
@@ -165,6 +165,7 @@ int CliCommands::convertKifu(const QStringList& args)
     if (outputPath.isEmpty()) {
         obj[QStringLiteral("text")] = result.lines.join(QLatin1Char('\n')) + QLatin1Char('\n');
     } else {
+        QString error;
         if (!KifuSaveFile::write(outputPath, result.lines, &error)) {
             return CliOutput::fail(ErrorKind::FileError, error);
         }
@@ -180,10 +181,10 @@ int CliCommands::renderBoard(const QStringList& args)
     const auto params = CliArgs::parse(QStringLiteral("render-board"), args, false, &exitCode);
     if (!params) return exitCode;
 
-    QString error;
     const QString outputPath = params->value(QStringLiteral("output")).toString();
-    if (const auto problem = CliArgs::checkOutputPath(outputPath, params->value(QStringLiteral("overwrite")).toBool(), &error)) {
-        return CliOutput::fail(*problem, error);
+    if (const std::optional<Failure> problem =
+            OutputPath::check(outputPath, params->value(QStringLiteral("overwrite")).toBool(), QStringLiteral("--overwrite"))) {
+        return CliOutput::fail(*problem);
     }
 
     BoardImageRenderer::Options options;

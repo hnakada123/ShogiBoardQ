@@ -361,6 +361,8 @@
 
 **影響**: Python 4ファイルで約600行減、C++ は約20ファイルの移動と約250行の追加。
 
+**状態: 段階1は済（R9 段階1のコミット）**。段階1: GUI に依存しない共有部品（`paramspec`・`errorkinds`・`automationmethodspecs`・`kifuconversionservice`・`enginecatalog`・`engineanalysisrunner`・`matesearchrunner`・`tsumeverificationrunner`）を `src/headless/` に移し、core〜analysis だけを使う規則を層の検査に足した（下の層も headless を使わない）。JSON-RPC のコード `AutomationErrorCode` は `errorkinds.h` に移し、`errorkinds.cpp` は `automationdispatcher.h` を使わない。出力先の検査は `OutputPath::check` 1つにして CLI と `kifu.save` が使い、ディレクトリを指すときは3経路とも `invalid_argument`（MCP の `paths.py` は前から同じ分類）。`Failure` に対処 `hint` を足し、CLI は `error.hint`、自動化 API は `AutomationError(Failure)` で `data.hint` に出す。案から変えた点: `BoardImageRenderer` は `ShogiView` で描くので views を使い、`src/automation/` に残した（CLI も使う）
+
 ### R10. 画面部品の名残（widgets・dialogs・services）。B6・B17 の原因
 
 それぞれ独立した小〜中の書き直しで、いつでも進められる。
