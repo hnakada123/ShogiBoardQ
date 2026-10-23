@@ -81,28 +81,3 @@ bool KifuExportMetadataBuilder::usesHandicapNames(const QList<KifGameInfoItem>& 
     }
     return isHandicap(handicapLabel(startSfen));
 }
-
-QString KifuExportMetadataBuilder::timeControlText(const TimeControl& timeControl, bool handicap)
-{
-    const QString blackText = timeControlText(timeControl.black);
-    const QString whiteText = timeControlText(timeControl.white);
-    if (blackText == whiteText) return blackText;
-    // CsaFormatter::convertToCsaTimeLines と KifuPresentation::infoValue がこの書式を読む
-    return QStringLiteral("%1 %2 / %3 %4")
-        .arg(handicap ? GameInfoKeys::kShitatePlayer : GameInfoKeys::kBlackPlayer, blackText,
-             handicap ? GameInfoKeys::kUwatePlayer : GameInfoKeys::kWhitePlayer, whiteText);
-}
-
-QString KifuExportMetadataBuilder::timeControlText(const TimeControlSide& side)
-{
-    const qint64 mainSec = side.mainMs / 1000;
-    QString text = QStringLiteral("%1:%2")
-        .arg(mainSec / 60, 2, 10, QLatin1Char('0'))
-        .arg(mainSec % 60, 2, 10, QLatin1Char('0'));
-    if (side.byoyomiMs >= 1000) {
-        text += QStringLiteral("+%1").arg(side.byoyomiMs / 1000);
-    } else if (side.incrementMs >= 1000) {
-        text += QStringLiteral("+%1秒加算").arg(side.incrementMs / 1000);
-    }
-    return text;
-}

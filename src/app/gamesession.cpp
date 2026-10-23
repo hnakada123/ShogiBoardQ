@@ -25,6 +25,7 @@
 #include "playerinfopresenter.h"
 #include "sessionresetcoordinator.h"
 #include "sfenutils.h"
+#include "timecontroltext.h"
 #include "shogiclock.h"
 #include "shogiview.h"
 #include "startgamedialog.h"
@@ -211,7 +212,7 @@ void GameSession::noteContinuedMatch(const MatchPlayers& players)
     const MatchTimeRecord& record = m_deps.document->timeRecord();
     const bool handicap = KifuExportMetadataBuilder::isHandicap(KifuExportMetadataBuilder::handicapLabel(recordStartSfen()));
     const QString timeText = record.hasTimeControl()
-        ? KifuExportMetadataBuilder::timeControlText(record.timeControl(), handicap) : tr("無制限");
+        ? TimeControlText::format(record.timeControl(), handicap) : tr("無制限");
     const QDateTime start = record.startDateTime().isValid() ? record.startDateTime() : QDateTime::currentDateTime();
     m_deps.liveSession->setFirstMoveNote(tr("対局：▲%1 △%2（%3 開始、持ち時間 %4）")
                                              .arg(players.name(Turn::Black), players.name(Turn::White),

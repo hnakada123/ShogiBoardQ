@@ -176,48 +176,48 @@
 <context>
     <name>AnalysisSession</name>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="132"/>
-        <location filename="../../src/analysis/analysissession.cpp" line="217"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="140"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="225"/>
         <source>詰み探索</source>
         <translation>詰み探索</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="132"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="140"/>
         <source>検討</source>
         <translation>検討</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="133"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="141"/>
         <source>エンジンエラー: %1</source>
         <translation>エンジンエラー: %1</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="225"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="233"/>
         <source>詰みあり（手順 %1 手）</source>
         <translation>詰みあり（手順 %1 手）</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="228"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="236"/>
         <source>詰みなし</source>
         <translation>詰みなし</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="231"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="239"/>
         <source>（エンジン側）未実装</source>
         <translation>（エンジン側）未実装</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="234"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="242"/>
         <source>時間内に詰みを判定できませんでした</source>
         <translation>時間内に詰みを判定できませんでした</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="241"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="249"/>
         <source>エンジンが応答しなかったため、詰み探索を打ち切りました</source>
         <translation>エンジンが応答しなかったため、詰み探索を打ち切りました</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="246"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="254"/>
         <source>探索が完了しました</source>
         <translation>探索が完了しました</translation>
     </message>
@@ -4673,17 +4673,17 @@ ABC abc 0123456789</translation>
 <context>
     <name>GameSession</name>
     <message>
-        <location filename="../../src/app/gamesession.cpp" line="168"/>
+        <location filename="../../src/app/gamesession.cpp" line="169"/>
         <source>保存していない定跡</source>
         <translation>保存していない定跡</translation>
     </message>
     <message>
-        <location filename="../../src/app/gamesession.cpp" line="214"/>
+        <location filename="../../src/app/gamesession.cpp" line="215"/>
         <source>無制限</source>
         <translation>無制限</translation>
     </message>
     <message>
-        <location filename="../../src/app/gamesession.cpp" line="216"/>
+        <location filename="../../src/app/gamesession.cpp" line="217"/>
         <source>対局：▲%1 △%2（%3 開始、持ち時間 %4）</source>
         <translation>対局：▲%1 △%2（%3 開始、持ち時間 %4）</translation>
     </message>
@@ -6879,23 +6879,23 @@ OKを選択すると保存先が指定できます。</translation>
 <context>
     <name>KifuAnalysisController</name>
     <message>
-        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="55"/>
-        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="98"/>
+        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="56"/>
+        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="99"/>
         <source>解析対象の棋譜データが不正です。</source>
         <translation>解析対象の棋譜データが不正です。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="68"/>
+        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="69"/>
         <source>エンジン選択が不正です。</source>
         <translation>エンジン選択が不正です。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="156"/>
+        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="157"/>
         <source>エンジン初期化に失敗しました。エンジン設定を確認してください。</source>
         <translation>エンジン初期化に失敗しました。エンジン設定を確認してください。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="223"/>
+        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="229"/>
         <source>エンジンエラー: %1</source>
         <translation>エンジンエラー: %1</translation>
     </message>
@@ -7242,12 +7242,12 @@ OKを選択すると保存先が指定できます。</translation>
 <context>
     <name>KifuDocument</name>
     <message>
-        <location filename="../../src/kifu/kifudocument.cpp" line="91"/>
+        <location filename="../../src/kifu/kifudocument.cpp" line="92"/>
         <source>先手</source>
         <translation>先手</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifudocument.cpp" line="92"/>
+        <location filename="../../src/kifu/kifudocument.cpp" line="93"/>
         <source>後手</source>
         <translation>後手</translation>
     </message>
@@ -7671,17 +7671,17 @@ OKを選択すると保存先が指定できます。</translation>
     </message>
     <message>
         <location filename="../../src/kifu/kifuloadparser.cpp" line="40"/>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="99"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="98"/>
         <source>棋譜ファイルの読み込みに失敗しました: %1%2</source>
         <translation>棋譜ファイルの読み込みに失敗しました: %1%2</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="95"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="94"/>
         <source>BOD形式の解析に失敗しました。%1</source>
         <translation>BOD形式の解析に失敗しました。%1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="98"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="97"/>
         <source>棋譜の読み込みに失敗しました。%1</source>
         <translation>棋譜の読み込みに失敗しました。%1</translation>
     </message>
@@ -7698,17 +7698,17 @@ OKを選択すると保存先が指定できます。</translation>
 %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifuloadcoordinator.cpp" line="123"/>
+        <location filename="../../src/ui/coordinators/kifuloadcoordinator.cpp" line="122"/>
         <source>読み込み失敗 %1 から指し手を取得できませんでした。</source>
         <translation>読み込み失敗 %1 から指し手を取得できませんでした。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifuloadcoordinator.cpp" line="129"/>
+        <location filename="../../src/ui/coordinators/kifuloadcoordinator.cpp" line="128"/>
         <source>棋譜の分岐元または開始手数が不正です。</source>
         <translation>棋譜の分岐元または開始手数が不正です。</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="114"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="112"/>
         <source>貼り付けるテキストが空です。</source>
         <translation>貼り付けるテキストが空です。</translation>
     </message>
@@ -7893,77 +7893,77 @@ OKを選択すると保存先が指定できます。</translation>
         <translation type="vanished">エラー</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="129"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="131"/>
         <source>（定跡）</source>
         <translation>（定跡）</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="140"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="142"/>
         <source>対局日</source>
         <translation>対局日</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="140"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="142"/>
         <source>開始日時</source>
         <translation>開始日時</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="141"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="143"/>
         <source>終了日時</source>
         <translation>終了日時</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="141"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="143"/>
         <source>先手</source>
         <translation>先手</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="142"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="144"/>
         <source>後手</source>
         <translation>後手</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="142"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="144"/>
         <source>下手</source>
         <translation>下手</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="143"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="145"/>
         <source>上手</source>
         <translation>上手</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="143"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="145"/>
         <source>手合割</source>
         <translation>手合割</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="144"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="146"/>
         <source>持ち時間</source>
         <translation>持ち時間</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="144"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="146"/>
         <source>棋戦</source>
         <translation>棋戦</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="145"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="147"/>
         <source>場所</source>
         <translation>場所</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="145"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="147"/>
         <source>備考</source>
         <translation>備考</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="146"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="148"/>
         <source>戦型</source>
         <translation>戦型</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="146"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="148"/>
         <source>表題</source>
         <translation>表題</translation>
     </message>
@@ -8023,7 +8023,7 @@ OKを選択すると保存先が指定できます。</translation>
         <translation>左五枚落ち</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="158"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="160"/>
         <source>局面指定</source>
         <translation>局面指定</translation>
     </message>
@@ -8053,17 +8053,17 @@ OKを選択すると保存先が指定できます。</translation>
         <translation>十枚落ち</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="158"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="160"/>
         <source>その他</source>
         <translation>その他</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="162"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="164"/>
         <source>無制限</source>
         <translation>無制限</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="174"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="172"/>
         <source>%1+%2秒加算</source>
         <translation>%1+%2秒加算</translation>
     </message>
@@ -9978,27 +9978,27 @@ OKを選択すると保存先が指定できます。</translation>
         <translation>画像を保存できませんでした: %1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="67"/>
+        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="13"/>
         <source>先手</source>
         <translation>先手</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="67"/>
+        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="13"/>
         <source>後手</source>
         <translation>後手</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="68"/>
+        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="14"/>
         <source>Engine</source>
         <translation>エンジン</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="69"/>
+        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="15"/>
         <source>Engine1</source>
         <translation>エンジン1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="69"/>
+        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="15"/>
         <source>Engine2</source>
         <translation>エンジン2</translation>
     </message>

@@ -2,6 +2,7 @@
 /// @brief 開いている棋譜の文書の実装
 
 #include "kifudocument.h"
+#include "timecontroltext.h"
 
 #include "gameinfokeys.h"
 #include "kifubranchnode.h"
@@ -32,7 +33,7 @@ QList<KifGameInfoItem> matchStartItems(const QDateTime& start, const QString& bl
     // 未開始の「未設定」と、時間制限のない対局を区別する
     items.append({GameInfoKeys::kTimeControl,
                   timeControl.isUnlimited() ? QStringLiteral("無制限")
-                                            : KifuExportMetadataBuilder::timeControlText(
+                                            : TimeControlText::format(
                                                   timeControl, KifuExportMetadataBuilder::isHandicap(handicapLabel))});
     return items;
 }
