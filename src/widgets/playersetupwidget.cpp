@@ -67,7 +67,24 @@ PlayerSetupWidget::PlayerSetupWidget(int side, const GameSettings::StartGame::Pl
     m_engineSettings->setStyleSheet(ButtonStyles::secondaryNeutral());
     m_engineSettings->setAutoDefault(false);
 
-    // 人間なら「名前」と入力欄、エンジンなら「エンジン設定」ボタンを出す（見出しの列は空ける）
+    // エンジンなら、定跡ウィンドウで開いている定跡を使うか（エンジンに探索させずに定跡手を指す）と、その条件。
+    // 「エンジン設定」と同じ行に置く（行を足すと対局開始ダイアログが縦に伸びる）
+    m_useJoseki = new QCheckBox(tr("定跡を使う"), this);
+    m_useJoseki->setObjectName(QStringLiteral("checkBoxUseJoseki") + n);
+    m_josekiConditions = new QPushButton(tr("条件…"), this);
+    m_josekiConditions->setObjectName(QStringLiteral("pushButtonJosekiConditions") + n);
+    m_josekiConditions->setStyleSheet(ButtonStyles::secondaryNeutral());
+    m_josekiConditions->setAutoDefault(false);
+    connect(m_josekiConditions, &QPushButton::clicked, this, &PlayerSetupWidget::onJosekiConditionsClicked);
+    auto* engineRow = new QWidget(this);
+    auto* engineLayout = new QHBoxLayout(engineRow);
+    engineLayout->setContentsMargins(0, 0, 0, 0);
+    engineLayout->addWidget(m_engineSettings);
+    engineLayout->addSpacing(12);
+    engineLayout->addWidget(m_useJoseki);
+    engineLayout->addWidget(m_josekiConditions);
+
+    // 人間なら「名前」と入力欄、エンジンなら「エンジン設定」と定跡を出す（見出しの列は空ける）
     m_labelPages = new QStackedWidget(this);
     m_labelPages->setObjectName(QStringLiteral("stackedWidgetLabel") + n);
     m_labelPages->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
@@ -77,32 +94,12 @@ PlayerSetupWidget::PlayerSetupWidget(int side, const GameSettings::StartGame::Pl
     m_inputPages->setObjectName(QStringLiteral("stackedWidgetPlayer") + n);
     m_inputPages->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
     m_inputPages->addWidget(makePage(m_inputPages, QStringLiteral("pageHuman") + n, m_humanName));
-    m_inputPages->addWidget(makePage(m_inputPages, QStringLiteral("pageEngine") + n, m_engineSettings));
-
-    // エンジンなら、定跡ウィンドウで開いている定跡を使うか（エンジンに探索させずに定跡手を指す）と、その条件
-    m_josekiLabel = new QLabel(tr("定跡"), this);
-    m_josekiLabel->setObjectName(QStringLiteral("labelJoseki") + n);
-    m_useJoseki = new QCheckBox(tr("定跡を使う"), this);
-    m_useJoseki->setObjectName(QStringLiteral("checkBoxUseJoseki") + n);
-    m_josekiConditions = new QPushButton(tr("条件…"), this);
-    m_josekiConditions->setObjectName(QStringLiteral("pushButtonJosekiConditions") + n);
-    m_josekiConditions->setStyleSheet(ButtonStyles::secondaryNeutral());
-    m_josekiConditions->setAutoDefault(false);
-    m_josekiLabel->setBuddy(m_useJoseki);
-    m_josekiRow = new QWidget(this);
-    auto* josekiLayout = new QHBoxLayout(m_josekiRow);
-    josekiLayout->setContentsMargins(0, 0, 0, 0);
-    josekiLayout->addWidget(m_useJoseki);
-    josekiLayout->addWidget(m_josekiConditions);
-    josekiLayout->addStretch();
-    connect(m_josekiConditions, &QPushButton::clicked, this, &PlayerSetupWidget::onJosekiConditionsClicked);
+    m_inputPages->addWidget(makePage(m_inputPages, QStringLiteral("pageEngine") + n, engineRow));
 
     grid->addWidget(typeLabel, 0, 0);
     grid->addWidget(combo, 0, 1);
     grid->addWidget(m_labelPages, 1, 0);
     grid->addWidget(m_inputPages, 1, 1);
-    grid->addWidget(m_josekiLabel, 2, 0);
-    grid->addWidget(m_josekiRow, 2, 1);
     setJosekiBookName(QString());
 
     // コンボの先頭（内蔵の項目）を「人間」にする。エンジンは名前で保存し、以前の版の番号・パスも読む
@@ -217,7 +214,4 @@ void PlayerSetupWidget::updatePages()
     const int page = isEngine() ? kEnginePage : kHumanPage;
     m_labelPages->setCurrentIndex(page);
     m_inputPages->setCurrentIndex(page);
-    // 定跡を使えるのはエンジンだけ
-    m_josekiLabel->setVisible(isEngine());
-    m_josekiRow->setVisible(isEngine());
 }
