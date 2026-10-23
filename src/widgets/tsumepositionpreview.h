@@ -28,7 +28,7 @@ protected:
 
 private:
     static constexpr int kHeaderHeight = 22;
-    static constexpr int kSquareSize = 22;
+    static constexpr int kSquareSize = 26;
     void appearanceChanged();
 
     Position m_position;

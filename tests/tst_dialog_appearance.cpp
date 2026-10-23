@@ -62,6 +62,7 @@
 #include "evaluationchartsettingsdialog.h"
 #include "longlongspinbox.h"
 #include "test_replay.h"
+#include "tsumepositionpreview.h"
 
 namespace {
 // テストで作る入力ダイアログの文字の大きさとウィンドウの大きさの保存先
@@ -330,6 +331,22 @@ private slots:
         QVERIFY(browser->toPlainText().contains(QStringLiteral("openssl 3.6.0-1")));
         documents->setCurrentIndex(0);
         QVERIFY(browser->toPlainText().startsWith(QStringLiteral("Notice")));
+    }
+
+    /// 詰将棋問題一覧のプレビューは、盤と駒台の周りを盤の背景色で塗らず、カードの地のままにする
+    void tsumePreviewKeepsCardBackground()
+    {
+        QWidget card;
+        card.setAutoFillBackground(true);
+        QPalette palette = card.palette();
+        palette.setColor(QPalette::Window, Qt::white);
+        card.setPalette(palette);
+        auto* preview = new TsumePositionPreview(QStringLiteral("4k4/9/9/9/9/9/9/9/9 b G 1"), &card);
+        preview->resize(preview->sizeHint());
+        card.resize(preview->sizeHint());
+        const QImage image = card.grab().toImage();
+        // 見出しの行のすぐ下の左端は盤・駒台の外
+        QCOMPARE(image.pixelColor(1, preview->sizeHint().height() - 2).rgb(), QColor(Qt::white).rgb());
     }
 
     void soundNumericInput()
