@@ -57,6 +57,8 @@ public:
     static QList<UsiMove> legalMoves(const Position& position, Turn turn);
     static QList<UsiMove> pseudoLegalMoves(const Position& position, Turn turn);
     static bool isInCheck(const Position& position, Turn turn);
+    /// 手番側の合法手（成りの指定を含む）なら指して true。合法でなければ局面を変えずに false
+    static bool applyIfLegal(Position& position, const UsiMove& move);
 
 #ifdef SHOGIBOARDQ_TESTING
     /// 連続適用・取り消しの検証用。通常の判定では生成しない。

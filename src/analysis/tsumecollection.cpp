@@ -1,6 +1,7 @@
 #include "tsumecollection.h"
-#include "position.h"
+#include "enginemovevalidator.h"
 #include "positioncollectionfile.h"
+#include "positionvalidator.h"
 #include <algorithm>
 #include <QCryptographicHash>
 #include <QFile>
@@ -66,23 +67,26 @@ int TsumeCollection::verifiedMateLength(const QByteArray& contents, const Result
 
 QString TsumeCollection::positionId(const QString& sfen)
 {
-    shogi::Position position;
-    if (!position.set_sfen(sfen.toStdString(), true)) return {};
-    return QString::fromStdString(position.to_sfen()).section(QLatin1Char(' '), 0, 2);
+    const std::optional<Position> position = Position::fromSfen(sfen);
+    if (!position || PositionValidator::boardProblem(*position) != PositionValidator::Problem::None) return {};
+    return position->positionKey();
 }
 
 bool TsumeCollection::validMateLine(const QString& sfen, const QStringList& pv)
 {
     if (pv.isEmpty() || pv.size() % 2 != 1) return false;
-    shogi::Position position;
-    if (!position.set_sfen(sfen.toStdString(), true)) return false;
-    const auto attacker = position.side_to_move();
-    for (const auto& move : pv) {
-        const bool attack = position.side_to_move() == attacker;
-        if (!position.apply_usi_move(move.toStdString())) return false;
-        if (attack && !position.is_in_check(position.side_to_move())) return false;
+    std::optional<Position> position = Position::fromSfen(sfen);
+    if (!position || PositionValidator::boardProblem(*position) != PositionValidator::Problem::None) return false;
+    const Turn attacker = position->sideToMove();
+    for (const QString& text : pv) {
+        // 攻方の手はすべて王手で、どの手も合法手
+        const bool attack = position->sideToMove() == attacker;
+        const std::optional<UsiMove> move = UsiMove::parse(text);
+        if (!move || !EngineMoveValidator::applyIfLegal(*position, *move)) return false;
+        if (attack && !EngineMoveValidator::isInCheck(*position, position->sideToMove())) return false;
     }
-    return position.is_in_check(position.side_to_move()) && position.generate_legal_moves().empty();
+    const EngineMoveValidator::Context end = EngineMoveValidator::load(*position);
+    return EngineMoveValidator::checkCount(end) > 0 && EngineMoveValidator::legalMoveCount(end) == 0;
 }
 
 TsumeCollection::Result TsumeCollection::parse(const QString& text)
@@ -94,14 +98,15 @@ TsumeCollection::Result TsumeCollection::parse(const QString& text)
         // position コマンドの行は指した後の局面を問題にし、SFEN に添えた手順は参考手順として持つ
         const bool played = line.movesPlayed && !line.moves.isEmpty();
         TsumeProblem problem{played ? line.position() : line.startSfen, line.referenceMoves(), line.lineNumber};
-        shogi::Position position;
-        bool valid = !problem.sfen.isEmpty() && position.set_sfen(problem.sfen.toStdString(), true);
+        // 玉方（手番でない側）の玉があり、王手がかかっていない局面だけを問題にする
+        const std::optional<Position> position = Position::fromSfen(problem.sfen);
+        bool valid = position.has_value();
         if (valid) {
-            const auto defender = shogi::opposite(position.side_to_move());
-            valid = position.find_king(defender) >= 0 && !position.is_in_check(defender);
+            const PositionValidator::Report report = PositionValidator::check(*position);
+            valid = report.isValid() && (position->sideToMove() == Turn::Black ? report.whiteKing : report.blackKing);
         }
         if (valid) {
-            result.positionIds.append(QString::fromStdString(position.to_sfen()).section(QLatin1Char(' '), 0, 2));
+            result.positionIds.append(position->positionKey());
             result.problems.append(problem);
         } else {
             result.invalidLines.append(line.lineNumber);

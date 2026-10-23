@@ -45,8 +45,8 @@ KI2 と JKF の書き出しは、ノードを指す前の局面と一緒にた�
 CSA の読み込み（`CsaLexer`）も、開始局面（PI・P1〜P9・P+/P-・00AL）を `Position` に組み立て（`parseStartPos()`）、指し手の行を局面の上の
 `UsiMove` にする（`parseMoveLine()`。盤は変えない）。移動元の駒と指し手の駒種が合わない手は読まない。局面への適用は `KifLineBuilder::addMove()` が行い、
 持っていない駒を打つ手は指さない（`Position::DropRule::RequireHand`）。
-思考情報の読み筋の漢字化（`PvNotationFormatter`）も、思考を始めた局面（`ThinkingInfoFormatter::setSearchPosition` が探索の `UsiPosition` から決める）を
-`Position` に持ち、info 行ごとに作業用の局面へ写して（値の代入）指し手を進め、`KifMoveText::append` で書く。
+読み筋（`PvText::play`）も、思考を始めた局面（`ThinkingInfoFormatter::setSearchPosition` が探索の `UsiPosition` から決める）を
+`Position` にして info 行ごとに指し手を進め、指せた手（指した側・動かした駒）を値で持つ。表記は `KifuPresentation::pv` が `KifMoveText::append` で書く。
 読み筋の最初の手の「同」の基準は、探索の局面に至った手（`UsiPosition::lastMove()`。先読み中は予想した相手の手）の移動先である。
 詰将棋の局面生成（`TsumeshogiPositionGenerator`）と駒を1枚除く処理（`TsumeCandidateJob`）も `Position` で局面を持つ。
 
@@ -996,7 +996,7 @@ URL セーフな短い文字列で棋譜を表現。分岐対応。
 
 `GameSession::startGameFromDialog()` は、表示中の手順（`KifuNavigationState::currentRecordLine()`）と表示中のノードIDを
 `GameStartRequest` に入れて `GameStartOptionsBuilder::plan()` に渡す。`plan()` は手順を表示中の手数で切り（`RecordLine::upTo()`）、
-その局面の玉の数を検証（`validateKings()`）してから、開始の計画（`GameStartPlan`）を返す。
+その局面を検証（`validatePosition()`。玉の数と `PositionValidator` の検査）してから、開始の計画（`GameStartPlan`）を返す。
 計画の `preparation` は `GameStartPreparation::Mode::CurrentPosition` と開始ノードIDを持つ。
 検証に失敗した場合は計画を作らず、棋譜・時計・セッションを変更しない。
 

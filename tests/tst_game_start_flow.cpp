@@ -255,13 +255,16 @@ private slots:
                 QTest::newRow(qPrintable(sfen)) << sfen;
             }
         }
+        // 玉が1枚ずつでも、手番でない側の玉に王手がかかっている局面・駒の数が上限を超える局面は始められない
+        QTest::newRow("opponent-in-check") << QStringLiteral("4k4/4G4/9/9/9/9/9/9/4K4 b - 1");
+        QTest::newRow("too-many-pawns") << QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b 19P 1");
     }
 
     void plan_invalidKings()
     {
         QFETCH(QString, sfen);
         QString why;
-        QVERIFY(!GameStartOptionsBuilder::validateKings(sfen, &why));
+        QVERIFY(!GameStartOptionsBuilder::validatePosition(sfen, &why));
         QVERIFY(!why.isEmpty());
         GameStartRequest request;
         request.dialogData = humanDialog(-1);

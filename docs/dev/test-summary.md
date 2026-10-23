@@ -110,7 +110,7 @@
 101. `tst_automation_dispatcher`
 102. `tst_nyugyoku_judgement`
 103. `tst_usilineparser`
-104. `tst_pvnotationformatter`
+104. `tst_pvtext`
 105. `tst_sfen_validation_service`
 106. `tst_game_info_pane`
 107. `tst_kifu_conversion_service`

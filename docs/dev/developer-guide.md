@@ -103,6 +103,8 @@
 | 2026-10-23 | 動作状態に持ち主を付けた（監査 R1）のに合わせて §1.5・§3.4・§4.2・§6.2・第14章を更新（`AppState` を廃止して合成ルートが `AppActivityState` を持ち、部品は `AppActivityState*` を受け取る。状態を変えるのは `begin()` が返す `ActivityLease` を持つ部品だけで、別の部品が別の動作を始めると前の持ち主に `revoked` が届く。局面編集は待機中だけ始め、取り上げられたら編集した局面で編集を終える） |
 | 2026-10-23 | 定跡の状態の持ち主を整理した（監査 R2）のに合わせて §1.5・§10.3・§11.3・第18章を更新（定跡の表示・「盤の手を登録」は `JosekiWindowController` の `QAction`、「盤に定跡手を表示」はメニューの `QAction` を正本にし、定跡ウィンドウ・盤の矢印（`CandidateArrowPresenter`）・盤の手の登録（`JosekiRegistrationController::recordBoardMove`）はそれを読む。前回のファイルと履歴の復元・遅延読込は `JosekiBookSession`（`restore`・`startDeferredLoad`・`lastFilePath`）が持ち、定跡を変える関数は `canEdit()` でなければ何もしない。棋譜からのマージは表示中の手順・棋譜ファイルの本譜（`RecordLine`）を `JosekiMergeDialog` に渡し、`importMoves` で登録して保存しない。「登録済」は定跡に手があるか。`JosekiMergeEntries`・`KifuMergeEntry`・`JosekiMoveKey`・マージの印を削除） |
 | 2026-10-23 | 棋譜の表記を値から作るようにした（監査 R3 の段階1）のに合わせて §9.6・第18章を更新（`KifuPresentation::entryLabel(RecordEntry, 指す前の局面)`・`numberedLabel`・`bookLabel` を足し、表示の文字列から手数・分岐の印・終局語を正規表現で読み戻す `label`・`status` を削除。`RecordEntry::displayText` は棋譜の表記だけにし、棋譜解析は表示の文字列を書き戻さない（結果の行は棋譜の表記・分岐の有無・定跡かを値で持ち、表のモデルが表示のたびに作る）。分岐ツリーの図の色は `RecordEntry::mover` で決める） |
+| 2026-10-23 | 読み筋を値 `PvText`（`src/core/pvtext.h`）で受け渡すようにした（監査 R3 の段階2）のに合わせて §1.5・§3.1・§7.6〜7.8・§9.6・§9.9・第18章を更新（`PvText::play` が局面の上で1回だけ指し、表記は `KifuPresentation::pv`・`pvMove` が作る。思考の表の行・棋譜解析の結果・読み筋盤・詰将棋の正解手順は同じ値を使い、`PvNotationFormatter`・`TsumeshogiKanjiBuilder` と、文字列の `pv(sfen, usi, 漢字)`・`PvBoardDialog::setKanjiPv` を削除。思考の表と棋譜解析の結果の表の表示の覚え方は `NotationTextCache` 1つにした） |
+| 2026-10-23 | 局面の検査を core の `PositionValidator`（`src/core/positionvalidator.h`）に集めた（監査 R4 の段階2）のに合わせて §1.5・§6.4・第18章を更新（駒の数・駒台の玉・玉の重複と有無・手番でない側への王手を1か所で見る。`SfenValidationService` は結果を値と JSON にするだけ、合法手だけを指すのは `EngineMoveValidator::applyIfLegal`、対局の開始は `GameStartOptionsBuilder::validatePosition`（旧 `validateKings`）。詰将棋問題一覧の局面の識別子・読み込みの検査・詰み手順の確認（`TsumeCollection::positionId`・`parse`・`validMateLine`）も core で行い、Hayanagi は詰み探索だけに使う。CLI の `resolvePosition` は手を1回だけ指す。USI の指し手の正規表現2つは `UsiMove::isExact` にした） |
 
 <!-- chapter-0-end -->
 
@@ -308,6 +310,8 @@ src/
 ├── core/                           # 純粋なゲームロジック（Qt GUI非依存）
 │   ├── shogitypes.h                #   手番（Turn）と駒（Piece。種類＋後手なら16。並びは fmv と同じ）
 │   ├── piecerules.h                #   行き所のない駒・成れる段・持ち駒の並びの規則
+│   ├── positionvalidator.cpp/.h    #   局面として成り立つかの検査（駒の数・玉・手番でない側への王手）と王手・合法手の数
+│   ├── pvtext.cpp/.h               #   局面の上で指した読み筋の値（PvText。表記は KifuPresentation::pv）
 │   ├── shogiposition.cpp/.h        #   局面の値（Position）。SFEN の読み書きと指し手の適用はここだけ
 │   ├── shogiboard.cpp/.h           #   表示・局面編集に使う盤（Position を1つ持ち、変更をシグナルで知らせる）
 │   ├── usiposition.cpp/.h          #   エンジンに探索させる局面（UsiPosition。開始局面・指し手の列・直前の手）
@@ -415,7 +419,6 @@ src/
 │   ├── thinkinginfoformatter.cpp/.h #  info 行を思考の表・情報欄に出す値に整える
 │   ├── thinkinginforow.h           #   思考の表・検討の表の1行分の表示データ
 │   ├── enginesearchstatus.h        #   探索状況（探索中の手・深さ・ノード数・NPS・ハッシュ使用率）の値。info 1行ごとに1回送る
-│   ├── pvnotationformatter.cpp/.h  #   読み筋の漢字表記
 │   ├── mateoracle.cpp/.h           #   詰みの問い合わせ（go mate）の部品 MateOracle と答え MateAnswer
 │   ├── matequeryloop.cpp/.h        #   引き出し型の問い合わせ元（MateQuerySource）を MateOracle で回す
 │   ├── tsumemateengine.cpp/.h      #   詰み判定エンジン（KomoringHeights。MateOracle::askWithin で問い合わせる）
@@ -425,7 +428,7 @@ src/
 │   ├── analysisjob.cpp/.h          #   棋譜解析1回（AnalysisJob）と1局面の結果（PlyAnalysis・PlyAnalysisCollector）
 │   ├── analysissession.cpp/.h      #   検討・詰み探索のセッション（1つのエンジンで局面を調べる）
 │   ├── analysisoptions.h           #   検討・詰み探索の開始オプション
-│   ├── sfenvalidationservice.cpp/.h #  SFEN の妥当性検査（自動化・CLI と共有）
+│   ├── sfenvalidationservice.cpp/.h #  SFEN の妥当性検査の結果を値と JSON にする（検査は core の PositionValidator。自動化・CLI と共有）
 │   ├── tsumeshogigenerator.cpp/.h  #   詰将棋局面の自動生成（候補の待ち行列・問い合わせの中継・結果の集計。候補の生成・選別・検証・書き出しは tsumeshogi* に分ける）
 │   ├── tsumecandidatejob.cpp/.h    #   詰将棋の候補1つの処理（手数の確認・唯一解の検査・要らない駒の除去）
 │   ├── tsumeverificationjob.cpp/.h #   総予算つきの唯一解の検査（生成と CLI の余詰検査で共通）
@@ -2212,7 +2215,7 @@ src/core/
 
 局面そのもの（盤・持ち駒・手番・手数）は QObject ではない値の型 `Position` が持つ。SFEN の読み書きと指し手の適用はここだけで行う。
 `ShogiBoard` は画面に出す盤で、`Position` を1つ持ち（`position()`）、変更をシグナルで知らせる包みである。
-1手の再生（`SfenReplay`）・棋譜の変換器（`KifLineBuilder`）と書き出し・読み筋の漢字化（`PvNotationFormatter`）・合法手判定（`EngineMoveValidator::load()`）など、
+1手の再生（`SfenReplay`）・棋譜の変換器（`KifLineBuilder`）と書き出し・読み筋（`PvText::play`）・合法手判定（`EngineMoveValidator::load()`）など、
 計算のための一時的な局面は `Position` で持ち、`ShogiBoard` は作らない。
 
 **ソース**: `src/core/shogiposition.h`、`src/core/shogiposition.cpp`（SFEN の読み書き・持ち駒・指し手の適用）、
@@ -2915,7 +2918,7 @@ sequenceDiagram
 #### 責務
 
 - ダイアログの値（`StartGameDialogData`）と表示中の手順から開始の手順を決める（現在の局面からならその手数までの手順、手合割ならそのプリセットの局面だけの手順）
-- 開始局面（両方の玉が盤上に1枚ずつあるか）を検証する（`validateKings()`）
+- 開始局面（両方の玉が盤上に1枚ずつあり、`PositionValidator` の検査を通るか）を検証する（`validatePosition()`）
 - 対局者・時間の決まり・開始前の棋譜の整え方・盤の反転・連続対局の設定を、値としてまとめる
 
 #### 主要な型定義
@@ -2969,7 +2972,7 @@ struct MatchTimeSettings {
 | メソッド | 説明 |
 |---------|------|
 | `plan(request, &error)` | 開始の計画を作る。不正な開始局面や開始できない条件では `std::nullopt` を返し、`error` に利用者に見せる理由を入れる |
-| `validateKings(sfen, &whyNot)` | 通常の対局に使える局面か（先手・後手の玉が盤上に1枚ずつ） |
+| `validatePosition(sfen, &whyNot)` | 通常の対局に使える局面か（先手・後手の玉が盤上に1枚ずつで、駒の数・駒台の玉・手番でない側への王手の検査（`PositionValidator`）を通る） |
 | `buildStartOptions(startSfen, dlg)` | ダイアログの設定から `MatchStartOptions` を作る（対局者は `playersFromDialog()`） |
 | `buildTimeSettings(data)` | ダイアログの設定から `MatchTimeSettings` を作る。秒読みとフィッシャー加算が両方あれば秒読みを使う |
 | `needsHumanAtBottomFlip(dlg, bottomSide)` | 「人を手前に表示する」で盤を反転するか（人間対エンジンで、人間の側が手前でないとき） |
@@ -3673,11 +3676,10 @@ flushInfoBuffer()
 ```
 processInfo(info)
   │
-  ├── 1. PvNotationFormatter に直前の手の移動先を設定
-  │     （探索の局面と直前の手は setSearchPosition で設定済み）
+  ├── 1. PvText::play(探索の局面, info.pv, 直前の手の移動先) で読み筋を局面の上で指す
+  │     （探索の局面と直前の手は setSearchPosition で設定済み。表記は表示する側が作る）
   │
-  ├── 2. format(info) で読み筋・探索手を漢字表記にする
-  │     └── 盤面コピー上で指し手をシミュレートし、漢字読み筋を生成
+  ├── 2. 探索手（currmove、無ければ読み筋の最初の手）の表示を作る
   │
   ├── 3. EngineSearchStatus を作って searchStatusUpdated を発行
   │     （UsiModelBinding が UsiCommLogModel::updateStatus() で前の値に重ねる）
@@ -3688,7 +3690,7 @@ processInfo(info)
   │     info に含まれなかった項目は -1・空で、受け手は前の値を残す（EngineSearchStatus::merge）
   │
   └── 4. ThinkingInfoRow を作って thinkingInfoUpdated を発行
-        ├── 時間・深さ・ノード数・評価値・読み筋がすべて空なら発行しない
+        ├── 時間・深さ・ノード数・評価値が無く、表に出す読み筋（PvText::isDisplayable）も無ければ発行しない
         └── 評価値は UsiScore のまま渡す（手番側から見た値。文字列にはしない）
 ```
 
@@ -3706,9 +3708,9 @@ processInfo(info)
 ⚠ E1: warning: ...                     （エラー：⚠）
 ```
 
-### 7.7 UsiLineParser と PvNotationFormatter — 受信行の解析と読み筋の表記
+### 7.7 UsiLineParser と PvText — 受信行の解析と読み筋の値
 
-**ソース**: `src/engine/usiinfo.h`, `src/engine/usimessages.h`, `src/core/usiscore.h`, `src/engine/usilineparser.h/.cpp`, `src/engine/pvnotationformatter.h/.cpp`
+**ソース**: `src/engine/usiinfo.h`, `src/engine/usimessages.h`, `src/core/usiscore.h`, `src/engine/usilineparser.h/.cpp`, `src/core/pvtext.h/.cpp`
 
 エンジンの受信行の解釈はアプリ全体で `UsiLineParser`（名前空間の関数群）の1か所にまとめる。`UsiProtocolHandler` が受信時に1回だけ解析し、型付きの値でシグナルを出す。思考タブ（`ThinkingInfoFormatter`）、棋譜解析（`PlyAnalysisCollector`）、
 自動化・CLI（`EngineAnalysisRunner`）、候補手の矢印（`UsiProtocolHandler::updateSearch`）は、どれもこの値を使う。
@@ -3748,36 +3750,30 @@ processInfo(info)
 
 `UsiBestMove`（`move`・`ponder`・`special`）は解析器が入れる。`baseSfen`・`elapsedMs`・`score`・`pondering`・`stopped` という探索の文脈は `UsiProtocolHandler` が入れる。`resign`・`win`・`draw` は `move` に入り、`special`（`SpecialMove`）でも判別できる（`isMove()` は通常の指し手のとき true）。`UsiCheckmate` は `result`（`Mate`・`NoMate`・`NotImplemented`・`Unknown`）・`pv`・`stopped` を持つ。詰みの答えとしての解釈は `MateAnswer::fromCheckmate()`（`src/engine/mateoracle.h`）の1か所で行い、`stopped` の付いた応答（打ち切った探索の途中の結果かもしれない）は `Unknown` にする。
 
-#### PvNotationFormatter — 読み筋の漢字表記
+#### PvText — 読み筋の値
 
-`UsiInfo` の `pv` と `currmove` を、思考を始めた局面の上で進めて漢字表記にする（盤面に結び付いた表示用の変換だけを持つ）。
-結果は `pvKanjiStr()`（漢字表記）、`pvUsiStr()`（局面に合った手までの USI 形式）、`searchedHand()` / `searchedUsi()`（探索手）。
+読み筋は、局面の上で指した値 `PvText`（`src/core/pvtext.h`）で受け渡す。思考の表の行（`ThinkingInfoRow::pv`）・棋譜解析の結果（`PlyAnalysis::pv`・`KifuAnalysisRow::pv`）・読み筋盤（`PvLine`・`PvBoardDialog`）・詰将棋の正解手順の表示が同じ値を使う。
+`PvText::play(開始局面, USI の語, 開始局面に至った手の移動先)` が1回だけ作り、表記は表示するときに `KifuPresentation::pv(pv, fullOrigin)`（1手は `pvMove(pv, ply)`）がその時の表記の設定で作る。
 評価値は文字列にせず、`UsiScore` のまま `ThinkingInfoRow` に載せる。表示の文字列（`"120++"`、`"3手詰"`）は表のモデル（`ShogiEngineThinkingModel::scoreDisplay()`）が作る（lowerbound は "++"、upperbound は "--"）。
-
-#### 読み筋（PV）の漢字変換処理
-
-読み筋は、思考を始めた局面から日本語にする。局面は `setPosition(sfen)`、直前の手の移動先は `setPreviousMove(to)` で設定する
-（どちらも `ThinkingInfoFormatter` が呼ぶ。`ThinkingInfoFormatter::setSearchPosition(UsiPosition)` が探索の局面の SFEN と `lastMove()` から決める）。
-`PvNotationFormatter` はその局面を値（`Position`）で持ち、`format()` の中の `formatPv()` が
-info ごとに作業用の局面へ写して（値の代入）、指し手を順に進める。
 
 ```
 入力: "7g7f 3c3d 8h2b+ 3a2b B*4e"（平手）
 
-変換処理:
-  各指し手について:
+PvText::play:
+  各語について:
     1. UsiMove::parse() で指し手を読む
     2. 盤の上で動かす駒を決める（駒打ちは指す側の持駒）。
-       指す側の駒でない・持っていない・行き先が自分の駒なら、そこで変換をやめる
-    3. KifMoveText::append() で文字列に足す（手番の印は局面の手番から。「同」は詰めて書く）
-    4. Position::applyAs() で局面を進める（取った駒は持ち駒に加わる）
+       指す側の駒でない・持っていない・行き先が自分の駒なら、そこで止め、そこから後の語は rest() に残す
+    3. 指した手を Step{move, mover, moving} として足し、局面を進める（取った駒は持ち駒に加わる）
 
-出力: "▲７六歩(77)△３四歩(33)▲２二角成(88)△同銀(31)▲４五角打"
+KifuPresentation::pv（日本語表記）:
+  KifMoveText::append() で続けて書く（手番の印は指した側から。「同」は詰めて書く）
+  出力: "▲７六歩(77)△３四歩(33)▲２二角成(88)△同銀(31)▲４五角打"
 ```
 
-- 初手が直前の手（探索の局面の `UsiPosition::lastMove()`。先読み中は予想した相手の手）と同じマスへ行くなら「同」と書く。
-- 末尾の `(57.54%)` のような指し手でない語はそのまま付ける。`resign`・`win` は「投了」「入玉勝ち」にする。
-- 局面と合わない指し手で変換をやめたときは、そこまでの漢字表記を残し、USI 形式の読み筋は残さない。
+- 初手が開始局面に至った手（探索の局面の `UsiPosition::lastMove()`。先読み中は予想した相手の手）と同じマスへ行くなら「同」と書く。
+- 末尾の `(57.54%)` のような指し手でない語（`annotation()`）はそのまま付ける。`resign`・`win`（`declaration()`）は手番の印と終局語（表示言語に合わせる）にする。
+- 局面と合わない手の手前までが指せた手（`steps()`・`usiMoves()`・`firstMove()`）で、候補手の矢印・定跡への登録・読み筋盤はこれを使う。1手も指せず終局の宣言も無い読み筋は表に出さない（`isDisplayable()`）。そのときの表記はエンジンが送った語のまま。
 
 ### 7.8 ShogiEngineThinkingModel — 思考情報テーブルモデル
 
@@ -3800,7 +3796,7 @@ info ごとに作業用の局面へ写して（値の代入）、指し手を順
 
 モデルは列0〜3を数で返し、ビューが `NumericRightAlignCommaDelegate` で3桁区切り・右寄せに描く（`ThinkingTableView` の基底の読み筋の表 `PvTableView` が設定する）。列幅は利用者がドラッグしたときだけ保存する（`TableHeaderView::sectionResizedByUser`）。depth/seldepth の形の深さは、表ではなく `UsiCommLogModel` 側の欄（7.6節の手順3）に出る。
 
-列4（盤面）をクリックする（選んで Enter でもよい）と、`PvClickController::onPvRowClicked(model, row)` が読み筋の盤面ダイアログ（`PvBoardDialog`）を開く。`baseSfen` と `usiPv`（空ならエンジンが送った `enginePv`）から局面をたどる。
+列4（盤面）をクリックする（選んで Enter でもよい）と、`PvClickController::onPvRowClicked(model, row)` が読み筋の盤面ダイアログ（`PvBoardDialog`）を開く。行の読み筋（`PvText`）の指せた手で局面をたどる（開始局面が無ければ、表示中の局面の上でエンジンが送った語を指し直す）。
 
 #### 2つの更新モード
 
@@ -3809,7 +3805,7 @@ info ごとに作業用の局面へ写して（値の代入）、指し手を順
 | 通常モード | `prependRow(row, maxRows)` | 思考タブ：新しい情報を先頭に追加（時系列の逆順表示）。先頭と同じ内容なら足さず、`maxRows`（`UsiModelBinding` は 500）を超えた古い行は消す |
 | MultiPVモード | `updateByMultipv(row, maxMultiPV)` | 検討タブ：multipv 番号に基づいて行を更新/挿入 |
 
-どちらも、漢字の読み筋が空の行は `UsiModelBinding::onThinkingRow()` が表に出さない（詰み探索の中間結果など）。ほかに `appendRow()`（同じ内容でも末尾に足す）・`trimToMaxRows()`・`clear()` を持つ。
+どちらも、表に出す読み筋の無い行（`PvText::isDisplayable()` が偽）は `UsiModelBinding::onThinkingRow()` が表に出さない（詰み探索の中間結果など）。ほかに `appendRow()`（同じ内容でも末尾に足す）・`trimToMaxRows()`・`clear()` を持つ。
 
 #### updateByMultipv() のロジック
 
@@ -3829,7 +3825,7 @@ updateByMultipv(row, maxMultiPV)
 
 **ソース**: `src/models/shogiinforecord.h`, `src/models/shogiinforecord.cpp`
 
-1行分の思考情報を保持する値クラスである（QObject ではない）。値は `ThinkingInfoRow`（`src/engine/thinkinginforow.h`）のまま持ち、表示する文字列は表のモデルが作る。読み筋の表示だけは、表記の設定ごとに作った文字列を覚えておく（英語表記では局面をたどって作るので重い）。覚えた文字列は、`KifuPresentation::revision()`（表記の設定を変えるたびに増える番号）が変わったら作り直す。
+1行分の思考情報を保持する値クラスである（QObject ではない）。値は `ThinkingInfoRow`（`src/engine/thinkinginforow.h`）のまま持ち、表示する文字列は表のモデルが作る。読み筋の表示だけは、表記の設定ごとに作った文字列を覚えておく（英語表記では局面をたどって作るので重い）。覚えるのは `NotationTextCache`（`src/models/notationtextcache.h`。棋譜解析の結果の表と共通）で、`KifuPresentation::revision()`（表記の設定を変えるたびに増える番号）が変わったら作り直す。
 
 `ThinkingInfoRow` の項目:
 
@@ -3839,10 +3835,7 @@ updateByMultipv(row, maxMultiPV)
 | `depth` | int | 探索深さ。無ければ -1 |
 | `nodes` | qint64 | ノード数。無ければ -1 |
 | `score` | UsiScore | 評価値（手番側から見た値） |
-| `pvKanji` | QString | 漢字表記の読み筋 |
-| `usiPv` | QString | 局面に合った手までの USI 形式の読み筋（スペース区切り） |
-| `enginePv` | QStringList | エンジンが送った読み筋（局面との照合前の USI 形式の指し手） |
-| `baseSfen` | QString | 読み筋の開始局面 SFEN |
+| `pv` | PvText | 読み筋（開始局面 `baseSfen()`・指せた手・指せなかった語） |
 | `lastUsiMove` | QString | 開始局面に至った最後の指し手（ハイライト用） |
 | `multipv` | int | MultiPV 番号（1〜。1 が最善） |
 
@@ -4987,11 +4980,10 @@ onBestMove()
 |---|---|
 | `ply` | 手数 |
 | `score` | 評価値（`UsiBestMove::score`。その局面の手番側から見た値。定跡は None） |
-| `usiPv` | 最善の読み筋（局面に合った手まで。resign などの宣言は含まない） |
-| `pvKanji` | 同じ読み筋の漢字表記（局面に合わなければエンジンの読み筋のまま） |
+| `pv` | 最善の読み筋（`PvText`。解析した局面の上で指した手と、指せなかった語） |
 | `book` | info が1つも届かずに bestmove が届いた（定跡） |
 
-`PlyAnalysisCollector`（Qt のイベントループを知らない）は、1局面の info のうち最善の読み筋（multipv 1）の最後の行を覚え、`finish(bestMove)` で `PlyAnalysis` にする。エンジン設定で MultiPV を2以上にしていても、結果は最善の読み筋で決める。漢字表記は探索した局面の上で `PvNotationFormatter` を使ってここで作るので、思考情報の表示（`ThinkingInfoFormatter`）の接続の順序に頼らない。info 行の解釈は `UsiLineParser`（第7章）が行い、このクラスは行を読み直さない。
+`PlyAnalysisCollector`（Qt のイベントループを知らない）は、1局面の info のうち最善の読み筋（multipv 1）の最後の行を覚え、`finish(bestMove)` で `PlyAnalysis` にする。エンジン設定で MultiPV を2以上にしていても、結果は最善の読み筋で決める。読み筋は探索した局面の上でここで指す（`PvText::play`）ので、思考情報の表示（`ThinkingInfoFormatter`）の接続の順序に頼らない。info 行の解釈は `UsiLineParser`（第7章）が行い、このクラスは行を読み直さない。
 
 #### シグナル一覧
 
@@ -5202,10 +5194,10 @@ showDialogAndStart()
 
 | 処理 | 説明 |
 |------|------|
-| 定跡手判定 | `PlyAnalysis::book`（info を1件も受け取らずに `bestmove` が来た）なら評価値なし・読み筋「（定跡）」として処理 |
+| 定跡手判定 | `PlyAnalysis::book`（info を1件も受け取らずに `bestmove` が来た）なら評価値なし・読み筋なしにし、行の `book` を立てる（表は読み筋の欄に表示言語の「（定跡）」を出す） |
 | 評価値符号反転 | 局面の手番が後手（SFEN の手番が `w`。局面がなければ奇数手）の場合、エンジンの評価値（`PlyAnalysis::score`。手番側から見た値）の符号を反転して先手基準に統一 |
 | 詰み表示 | 評価値が詰みなら `UsiScore` が持つ。表示の `"mate N"` 形式への変換は `KifuAnalysisListModel::evaluationText` |
-| 読み筋 | 漢字表記（`PlyAnalysis::pvKanji`）を表示し、USI 形式（`usiPv`）を読み筋盤面ダイアログに使う |
+| 読み筋 | `PlyAnalysis::pv`（`PvText`）をそのまま行に入れる。表記は表のモデルが表示のたびに作り、読み筋盤面ダイアログにも同じ値を渡す |
 | 候補手抽出 | 前行の読み筋の最初の指し手を候補手として設定（前行の局面がこの手の前の局面と同じときだけ） |
 | 「同」表記 | 候補手の移動先が直前の手の移動先と同じなら「同　」と書く |
 | 評価値差 | 直前の数値の評価値との差分を計算（比較できなければ `-`） |
@@ -5358,12 +5350,14 @@ A-/A+ ボタンで8pt〜24ptの範囲でフォントサイズを調整でき、�
 
 | フィールド | 型 | 説明 |
 |-----------|-----|------|
-| `move` | `QString` | 指した手（棋譜の表記） |
+| `move` | `QString` | 指した手（棋譜の表記 `RecordEntry::displayText`。手数・分岐の印は表が付ける） |
+| `branch` | `bool` | 指した手に分岐がある（棋譜欄と同じ印を付ける） |
+| `book` | `bool` | 定跡（読み筋の代わりに「（定跡）」を出す） |
 | `lastUsiMove` | `QString` | 指した手（USI。読み筋の盤で強調する） |
 | `beforeSfen` / `sfen` | `QString` | 指す前の局面・指した後の局面（読み筋の始まり） |
 | `evaluation` | `UsiScore` | 先手から見た評価値（定跡・未取得は None） |
 | `evaluationDifference` | `std::optional<int>` | 直前の解析局面からの評価値の増減（比べられなければ nullopt） |
-| `pv` / `usiPv` | `QString` | 読み筋（漢字表記）・読み筋（USI。PvBoardDialog 用） |
+| `pv` | `PvText` | 読み筋（表記は表のモデルが作る。PvBoardDialog にもこの値を渡す） |
 | `candidateMove` / `candidateUsi` / `candidateSfen` | `QString` | 候補手（直前の行の読み筋の最初の手）の漢字表記・USI・指す局面 |
 
 ### 9.10 エンジン管理の違い：AnalysisSession 経由 vs 直接 Usi
@@ -9396,11 +9390,12 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | Position | C | core | 局面の値（盤・持ち駒・手番・手数）。SFEN の読み書きと指し手の適用 | 第2章, 第5章 |
 | PositionCollectionFile | NS | analysis | 局面集ファイル（1行1局面）の規則。局面集ビューアと詰将棋問題一覧で共有 | 第9章, 第11章 |
 | PositionEditSession | C | board | 局面編集の開始・終了・編集メニュー・編集中の着手（編集中かは動作状態で決まる） | 第13章 |
+| PositionValidator | NS | core | 局面として成り立つかの検査（駒の数・駒台の玉・玉の重複と有無・手番でない側への王手）と王手・合法手の数 | 第3章 |
 | PromoteDialog | C | dialogs | 成/不成確認ダイアログ（`ask()`。主画面の盤と詰将棋を解く画面で共通） | 第6章, 第11章 |
 | PvBoardDialog | C | dialogs | 読み筋盤面表示ダイアログ | 第11章 |
 | PvClickController | C | ui/controllers | 読み筋クリックの制御 | 第10章 |
 | PvLine | C | dialogs | 読み筋盤の読み筋1本の値（各手数の局面・手の表記・直前の手のハイライト `PvLine::Highlight`） | 第11章 |
-| PvNotationFormatter | C | engine | UsiInfo の読み筋・探索手を局面の上で漢字表記にする | 第7章 |
+| PvText | C | core | 局面の上で指した読み筋の値（表記は `KifuPresentation::pv`） | 第7章 |
 | PvTableView | C | widgets | 読み筋の表（数値の列・「盤面」ボタン・読み筋の描き方。思考の表と棋譜解析の結果の表で使う） | 第11章 |
 | QueuedInteraction | S | automation | 応答の後に行う UI 操作1つ（対象・実行直前の検査・操作） | 第14章 |
 | RecentFileList | C | common | 最近使ったファイルの一覧（新しい順・重複なし・上限つき） | 第11章 |
@@ -9415,7 +9410,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | SettingsFormBinding | C | widgets | 入力欄と設定の宣言（`Setting<T>`）の対応の表（読み込み・保存・既定値に戻す） | 第11章 |
 | SfenReplay | NS | core | 局面に USI の1手を指す（`applyLenient()`・`positionAfter()`） | 第13章 |
 | SfenUtils | NS | core | SFEN文字列のユーティリティ（ヘッダーオンリー） | 第2章, 第5章 |
-| SfenValidationService | C | analysis | SFEN 文字列の妥当性検査（GUI 非依存） | 第9章 |
+| SfenValidationService | C | analysis | SFEN 文字列の妥当性検査の結果を値と JSON にする（検査は core の `PositionValidator`。GUI 非依存） | 第9章 |
 | ShiftJisCodec | NS | kifu | Shift_JIS（CP932）の変換（ICU のない Qt でも使える） | 第8章 |
 | ShogiBoard | C | core | 表示・局面編集に使う盤（Position を1つ持ち、変更をシグナルで知らせる） | 第5章 |
 | ShogiClock | C | core | 対局時計・時間管理 | 第5章 |
@@ -9531,7 +9526,6 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | engineprocessmanager | 第7章 | エンジンプロセス管理 |
 | usimatchhandler | 第7章 | 対局・解析での USI のやり取り（position/go/bestmove） |
 | matchtimesource | 第7章 | エンジンの思考に使う時間の出どころ（`MatchTimeSource`・`ClockTimeSource`・`FixedTimeSource`） |
-| pvnotationformatter | 第7章 | 読み筋の漢字表記 |
 | engineoptiondescriptions | 第7章 | オプション説明 |
 | usienginesession | 第7章 | USI エンジン1台への接続（起動・初期化・探索・終了）。GUI と CLI が共用する |
 | usilineparser | 第7章 | エンジンからの受信行（info・bestmove・checkmate・option・id）を型付きの値にする |
@@ -9600,7 +9594,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | analysissession | 第9章 | 検討・詰み探索のセッション |
 | analysisoptions | 第9章 | 検討・詰み探索の開始オプション |
 | analysisjob | 第9章 | 棋譜解析1回（`AnalysisJob`）と1局面の結果（`PlyAnalysis`・`PlyAnalysisCollector`） |
-| sfenvalidationservice | 第9章 | SFEN 文字列の妥当性検査（GUI 非依存） |
+| sfenvalidationservice | 第9章 | SFEN 文字列の妥当性検査の結果（検査は core の PositionValidator。GUI 非依存） |
 | positioncollectionfile | 第9章 | 局面集ファイル（1行1局面）の規則 |
 | tsumecollectionsession | 第9章 | 詰将棋集の進捗・解析待ちの管理 |
 | tsumeshogigenerator | 第9章 | 詰将棋局面の自動生成（候補の待ち行列・問い合わせの中継・結果の集計） |

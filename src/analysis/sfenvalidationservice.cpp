@@ -3,22 +3,23 @@
 
 #include "sfenvalidationservice.h"
 
+#include "enginemovevalidator.h"
+#include "piecerules.h"
+#include "positionvalidator.h"
 #include "sfenutils.h"
-
-#include <position.h>
+#include "shogiposition.h"
 
 #include <QJsonArray>
 
 namespace {
 
-const char* const kHandLetters = " PLNSGBR";
-
-QMap<QString, int> handCounts(const shogi::Position& position, shogi::Color color)
+/// 持ち駒の枚数（"R","B","G","S","N","L","P" → 枚数）
+QMap<QString, int> handCounts(const Position& position, Turn side)
 {
     QMap<QString, int> counts;
-    for (int kind = 1; kind <= 7; ++kind) {
-        const int count = position.hand_count(color, static_cast<shogi::PieceType>(kind));
-        if (count > 0) counts.insert(QString(QLatin1Char(kHandLetters[kind])), count);
+    for (const PieceKind kind : PieceRules::kHandOrder) {
+        const int count = position.handCount(makePiece(side, kind));
+        if (count > 0) counts.insert(pieceSfen(makePiece(Turn::Black, kind)), count);
     }
     return counts;
 }
@@ -28,6 +29,20 @@ QJsonObject handToJson(const QMap<QString, int>& hand)
     QJsonObject obj;
     for (auto it = hand.cbegin(); it != hand.cend(); ++it) obj[it.key()] = it.value();
     return obj;
+}
+
+QString problemText(PositionValidator::Problem problem)
+{
+    using Problem = PositionValidator::Problem;
+    switch (problem) {
+    case Problem::PieceCountOver: return QStringLiteral("Piece count is over the limit (board and hands combined)");
+    case Problem::KingInHand: return QStringLiteral("A king cannot be in hand");
+    case Problem::DuplicatedKing: return QStringLiteral("A side has more than one king");
+    case Problem::NoKing: return QStringLiteral("Both kings are missing");
+    case Problem::OpponentInCheck: return QStringLiteral("The side not to move is in check; the position cannot arise in a game");
+    case Problem::None: break;
+    }
+    return {};
 }
 
 } // namespace
@@ -82,27 +97,27 @@ SfenValidation SfenValidationService::validate(const QString& sfenLike)
     result.turn = turn;
     result.moveNumber = moveNumber;
 
-    shogi::Position position;
-    if (!position.set_sfen(full.toStdString(), true)) {
+    const std::optional<Position> position = Position::fromSfen(full);
+    if (!position) {
         result.errors.append(QStringLiteral("Board or hand is invalid (unknown piece letter, wrong rank length, "
-                                            "piece count over the limit, duplicated king, or both kings missing)"));
+                                            "or a piece that can never move again)"));
         return result;
     }
-
-    result.blackKing = position.find_king(shogi::Color::Black) >= 0;
-    result.whiteKing = position.find_king(shogi::Color::White) >= 0;
-    result.blackHand = handCounts(position, shogi::Color::Black);
-    result.whiteHand = handCounts(position, shogi::Color::White);
-
-    const shogi::Color mover = position.side_to_move();
-    const shogi::Color opponent = shogi::opposite(mover);
-    result.inCheck = position.find_king(mover) >= 0 && position.is_in_check(mover);
-    result.opponentInCheck = position.find_king(opponent) >= 0 && position.is_in_check(opponent);
-    result.legalMoveCount = static_cast<int>(position.generate_legal_moves().size());
-    result.normalizedSfen = QString::fromStdString(position.to_sfen());
-
-    if (result.opponentInCheck) {
-        result.errors.append(QStringLiteral("The side not to move is in check; the position cannot arise in a game"));
+    const PositionValidator::Report report = PositionValidator::check(*position);
+    result.blackKing = report.blackKing;
+    result.whiteKing = report.whiteKing;
+    if (!report.isWellFormed()) {
+        result.errors.append(problemText(report.problem));
+        return result;
+    }
+    result.blackHand = handCounts(*position, Turn::Black);
+    result.whiteHand = handCounts(*position, Turn::White);
+    result.inCheck = report.inCheck;
+    result.opponentInCheck = report.opponentInCheck;
+    result.legalMoveCount = report.legalMoveCount;
+    result.normalizedSfen = position->toSfen();
+    if (!report.isValid()) {
+        result.errors.append(problemText(report.problem));
         return result;
     }
     result.valid = true;
@@ -116,13 +131,13 @@ QString SfenValidationService::applyUsiMoves(const QString& sfenLike, const QStr
         if (error) *error = base.errors.join(QStringLiteral("; "));
         return {};
     }
-    shogi::Position position;
-    position.set_sfen(base.normalizedSfen.toStdString(), true);
-    for (const QString& move : moves) {
-        if (!position.apply_usi_move(move.toStdString())) {
-            if (error) *error = QStringLiteral("Illegal or malformed USI move: %1").arg(move);
+    Position position = *Position::fromSfen(base.normalizedSfen);
+    for (const QString& text : moves) {
+        const std::optional<UsiMove> move = UsiMove::parse(text);
+        if (!move || !EngineMoveValidator::applyIfLegal(position, *move)) {
+            if (error) *error = QStringLiteral("Illegal or malformed USI move: %1").arg(text);
             return {};
         }
     }
-    return QString::fromStdString(position.to_sfen());
+    return position.toSfen();
 }

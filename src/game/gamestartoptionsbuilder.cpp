@@ -6,6 +6,7 @@
 #include <QCoreApplication>
 
 #include "logcategories.h"
+#include "positionvalidator.h"
 #include "sfenutils.h"
 
 // ============================================================
@@ -24,7 +25,7 @@ std::optional<GameStartPlan> GameStartOptionsBuilder::plan(const GameStartReques
     }
     line = line.upTo(qBound(0, line.currentPly, line.moveCount()));
     const QString sfen = line.lastSfen();
-    if (!validateKings(sfen, error)) return std::nullopt;
+    if (!validatePosition(sfen, error)) return std::nullopt;
 
     GameStartPlan result;
     result.options = buildStartOptions(sfen, dlg);
@@ -40,21 +41,41 @@ std::optional<GameStartPlan> GameStartOptionsBuilder::plan(const GameStartReques
     return result;
 }
 
-bool GameStartOptionsBuilder::validateKings(const QString& sfen, QString* whyNot)
+bool GameStartOptionsBuilder::validatePosition(const QString& sfen, QString* whyNot)
 {
     // 駒箱に入っている王・玉は通常対局の盤上の玉として数えない。
     // 局面編集や詰将棋用の片玉局面は許可し、通常対局の開始時だけ検証する。
-    const QString board = canonicalizeSfen(sfen).section(QLatin1Char(' '), 0, 0);
-    const auto blackKings = board.count(QLatin1Char('K'));
-    const auto whiteKings = board.count(QLatin1Char('k'));
-    if (blackKings == 1 && whiteKings == 1) return true;
+    const std::optional<Position> position = Position::fromSfen(canonicalizeSfen(sfen));
+    const int blackKings = position ? position->countOnBoard(makePiece(Turn::Black, PieceKind::King)) : 0;
+    const int whiteKings = position ? position->countOnBoard(makePiece(Turn::White, PieceKind::King)) : 0;
+    const auto localized = [](const char* text) { return QCoreApplication::translate("GameStartOptionsBuilder", text); };
+    QString reason;
+    if (blackKings != 1 || whiteKings != 1) {
+        reason = localized(QT_TRANSLATE_NOOP("GameStartOptionsBuilder",
+                                             "通常の対局には、先手と後手の王・玉を盤上に1枚ずつ配置してください。\n"
+                                             "現在の枚数：先手 %1枚、後手 %2枚"))
+                     .arg(blackKings).arg(whiteKings);
+    } else {
+        using Problem = PositionValidator::Problem;
+        switch (PositionValidator::check(*position).problem) {
+        case Problem::None: return true;
+        case Problem::PieceCountOver:
+            reason = localized(QT_TRANSLATE_NOOP("GameStartOptionsBuilder", "駒の数が上限を超えています（盤と駒台の合計）。"));
+            break;
+        case Problem::KingInHand:
+            reason = localized(QT_TRANSLATE_NOOP("GameStartOptionsBuilder", "駒台に王・玉があります。"));
+            break;
+        case Problem::OpponentInCheck:
+            reason = localized(QT_TRANSLATE_NOOP("GameStartOptionsBuilder", "手番でない側の玉に王手がかかっています。"));
+            break;
+        case Problem::DuplicatedKing:
+        case Problem::NoKing: break;  // 玉の枚数は上で確かめた
+        }
+    }
     if (whyNot) {
-        *whyNot = QCoreApplication::translate("GameStartOptionsBuilder",
-                                              "対局を開始できません。\n"
-                                              "通常の対局には、先手と後手の王・玉を盤上に1枚ずつ配置してください。\n"
-                                              "現在の枚数：先手 %1枚、後手 %2枚\n"
-                                              "「編集」→「局面編集開始」で配置を修正してください。")
-                      .arg(blackKings).arg(whiteKings);
+        *whyNot = localized(QT_TRANSLATE_NOOP("GameStartOptionsBuilder",
+                                              "対局を開始できません。\n%1\n「編集」→「局面編集開始」で配置を修正してください。"))
+                      .arg(reason);
     }
     return false;
 }

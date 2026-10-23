@@ -6,6 +6,7 @@
 #include "clicommandspecs.h"
 #include "clioutput.h"
 #include "enginecatalog.h"
+#include "enginemovevalidator.h"
 #include "sfenvalidationservice.h"
 
 #include <QDir>
@@ -37,30 +38,24 @@ std::optional<CliPosition> CliArgs::resolvePosition(const QJsonObject& params, Q
     }
     position.startSfen = validation.normalizedSfen;
 
+    // 合法手だけを1手ずつ指す（盤の局面は1回だけ進める）
+    UsiPosition usi(*Position::fromSfen(position.startSfen));
     const QJsonArray moveArray = params.value(QStringLiteral("moves")).toArray();
-    for (const QJsonValue& move : moveArray) position.moves << move.toString();
-    QString applyError;
-    position.finalSfen = SfenValidationService::applyUsiMoves(position.startSfen, position.moves, &applyError);
-    if (position.finalSfen.isEmpty()) {
-        if (error) *error = applyError;
-        return std::nullopt;
-    }
-
-    QList<UsiMove> moves;
-    for (const QString& text : std::as_const(position.moves)) {
+    for (const QJsonValue& value : moveArray) {
+        const QString text = value.toString();
         const std::optional<UsiMove> move = UsiMove::parse(text);
-        if (!move) {
-            if (error) *error = QStringLiteral("Invalid USI move: %1").arg(text);
+        std::optional<UsiPosition> next;
+        if (move && EngineMoveValidator::isLegal(EngineMoveValidator::load(usi.position()), *move))
+            next = usi.withMove(*move);
+        if (!next) {
+            if (error) *error = QStringLiteral("Illegal or malformed USI move: %1").arg(text);
             return std::nullopt;
         }
-        moves << *move;
+        usi = *next;
+        position.moves << text;
     }
-    const std::optional<UsiPosition> usi = UsiPosition::fromMoves(position.startSfen, moves);
-    if (!usi) {
-        if (error) *error = QStringLiteral("Moves cannot be applied to the start position");
-        return std::nullopt;
-    }
-    position.position = *usi;
+    position.position = usi;
+    position.finalSfen = usi.sfen();
     return position;
 }
 

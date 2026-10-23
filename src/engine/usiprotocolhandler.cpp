@@ -8,7 +8,6 @@
 #include "usilineparser.h"
 
 #include <QPointer>
-#include <QRegularExpression>
 
 UsiProtocolHandler::UsiProtocolHandler(EngineProcessManager* process, QObject* parent)
     : QObject(parent)
@@ -326,8 +325,7 @@ void UsiProtocolHandler::updateSearch(const UsiInfo& info)
     if (!m_searchCandidate.active || info.pv.isEmpty()) return;
     // info string の中身はパーサが読み筋にしない
     const QString& move = info.pv.first();
-    static const QRegularExpression validMove(QStringLiteral("^(?:[1-9][a-i][1-9][a-i]\\+?|[PLNSGBR]\\*[1-9][a-i])$"));
-    if (!validMove.match(move).hasMatch() || move == m_searchCandidate.move) return;
+    if (!UsiMove::isExact(move) || move == m_searchCandidate.move) return;
     m_searchCandidate.move = move;
     emit searchCandidateChanged();
 }

@@ -166,6 +166,11 @@ bool EngineMoveValidator::isInCheck(const Position& position, Turn turn)
     return checkCount(load(position, turn)) > 0;
 }
 
+bool EngineMoveValidator::applyIfLegal(Position& position, const UsiMove& move)
+{
+    return isLegal(load(position), move) && position.apply(move);
+}
+
 #ifdef SHOGIBOARDQ_TESTING
 bool EngineMoveValidator::syncContext(SimulationContext& simulation, const Position& position, Turn turn)
 {

@@ -114,7 +114,7 @@ std::optional<ShogiView::Arrow> CandidateArrowPresenter::arrowForMove(
     const QString& move, const QString& baseSfen, int priority)
 {
     const auto parsed = UsiMove::parse(move);
-    if (!parsed || move.trimmed() != parsed->toString()) return std::nullopt;
+    if (!parsed || !UsiMove::isExact(move.trimmed())) return std::nullopt;
     ShogiView::Arrow arrow;
     arrow.toFile = parsed->to.file;
     arrow.toRank = parsed->to.rank;

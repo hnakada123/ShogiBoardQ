@@ -59,6 +59,8 @@ cmake --build build --target translations
   - `shogiposition.cpp/.h` - 局面の値 `Position`（盤81マス・持ち駒・手番・手数）。SFEN の読み書きと指し手の適用（`apply`）はここだけ。計算のための局面はこの値で持つ
   - `shogiboard.cpp/.h` - 表示・局面編集に使う盤。`Position` を1つ持ち（`position()`）、変更をシグナルで知らせる QObject
   - `shogitypes.h`・`piecerules.h` - 手番と駒（`Piece` は種類＋後手なら16。並びは fmv と同じ）。行き所のない駒・成れる段・持ち駒の並びの規則
+  - `positionvalidator.cpp/.h` - 局面の検査 `PositionValidator`（`check()`：駒の数・駒台の玉・玉の重複と有無・手番でない側への王手と、手番側の王手・合法手の数。`boardProblem()` は盤と持ち駒だけ）。validate-sfen（`SfenValidationService` は結果を JSON にするだけ）・局面集・詰将棋問題一覧・対局の開始で同じ規則を使う。合法手だけを指すのは `EngineMoveValidator::applyIfLegal`。Hayanagi は詰み探索だけに使う
+  - `pvtext.cpp/.h` - 読み筋の値 `PvText`（`PvText::play(開始局面, USI の語, 至った手の移動先)` が局面の上で1回だけ指し、指せた手（指した側・動かした駒）と指せなかった語を持つ）。思考の表・棋譜解析・読み筋盤・詰将棋の正解手順で共通。表記は kifu の `KifuPresentation::pv`・`pvMove` が表示のたびに作る
   - `usiposition.cpp/.h` - エンジンに探索させる局面 `UsiPosition`（開始局面・指し手の列・直前の手）。kifu の `RecordLine` が作るので core に置く。position 文字列は `UsiPosition::commandFor(startSfen, moves)` だけで作る（`command()` と USI 形式の書き出し `UsiExporter` で共有）
   - `shogimove.cpp/.h`・`usimove.h` - Move representation
   - `enginemovevalidator.cpp/.h` - Move legality validation（`fmv::Converter` を境界に `fmvlegalcore` のビットボード合法手生成を使う）
@@ -117,7 +119,7 @@ cmake --build build --target translations
   - `usi.cpp/.h` - GUI から使うエンジン1台の窓口
   - `usienginesession.cpp/.h` - 起動と初期化（usi〜readyok）。GUI と CLI の実行器が共有する。`startAsync()`・`probeAsync()` は値を返さず、起動の失敗は必ず呼び出しから戻った後に `errorOccurred` で知らせる（知らせる前に `quit()`・次の起動をしたら知らせない）ので、使う側は起動の途中の再入に備えない（`Usi::startEngine`・`MateOracle::start` も同じ）
   - `usiprotocolhandler.cpp/.h` - USI protocol implementation
-  - `thinkinginfoformatter.cpp/.h`・`enginesearchstatus.h` - info を思考の表の行と探索状況 `EngineSearchStatus`（数値のまま。info 1行ごとに `searchStatusUpdated` で1回送り、書式は表示する側が決める）にする
+  - `thinkinginfoformatter.cpp/.h`・`enginesearchstatus.h` - info を思考の表の行（読み筋は `PvText`）と探索状況 `EngineSearchStatus`（数値のまま。info 1行ごとに `searchStatusUpdated` で1回送り、書式は表示する側が決める）にする
   - `usilineparser.cpp/.h` - 受信行（info・bestmove・checkmate・option・id）を型付きの値にする
   - `mateoracle.cpp/.h` - 詰みの問い合わせ（go mate）の部品 `MateOracle` と答え `MateAnswer`（`UsiCheckmate` からの変換は `MateAnswer::fromCheckmate` だけ）
   - `matequeryloop.cpp/.h` - 引き出し型の問い合わせ元 `MateQuerySource` を `MateOracle` で回す `MateQueryLoop`
@@ -190,9 +192,9 @@ cmake --build build --target translations
   - `josekitableview`（定跡ウィンドウの定跡手の表 `JosekiTableView`。ボタンの列・ダブルクリック・右クリックのメニュー（着手・編集・削除・先頭へ/上へ/下へ移動・出現頻度/評価値の順に並べる・コピー）を行の操作 `rowActionRequested` にする。並びは定跡ファイルに書く順で、盤の矢印の番号・対局の「表の先頭の手」も同じ。`JosekiBook::moveTo`・`sortMoves`）・`josekiexpanddialog`（定跡を棋譜に展開する条件）・`josekiimportdialog`（複数の棋譜・フォルダから定跡に登録。集めるのはワーカースレッドで、進み具合と中止を出す。定跡ウィンドウへのドロップでも開く）・`josekibookmergedialog`（別の定跡ファイルを足す条件）・`josekianalysisregisterdialog`（棋譜解析の結果をまとめて登録する手数と手番）・`josekimergedialog`（表示中の手順・棋譜ファイルの本譜の手を選んで登録。「登録済」は定跡に手があるか（`hasMove`）で、登録は `importMoves`）。定跡ウィンドウの「盤の手を登録」（保存しない設定で、起動するとオフ）の登録は `JosekiRegistrationController` が行う
   - `josekimovedialog`・`josekimoveinputwidget` - 定跡手の追加・編集。指し手は局面の合法手を棋譜の表記で並べた一覧から選ぶ（`JosekiMoveInputWidget`。一覧のオブジェクト名は `<name>Combo`。予想応手は着手後の局面の合法手で、先頭が「なし」）。値の受け渡しは `JosekiMoveDialog::setEntry(const JosekiMove&)`・`entry()`
   - `promotedialog` - 成り・不成の確認。`PromoteDialog::ask(parent)` で尋ねる（主画面の `DialogLauncher::choosePromotion()` と詰将棋を解く画面で共通）
-  - `pvboarddialog`・`pvline` - 読み筋盤。読み筋1本の値 `PvLine`（各手数の局面 `positions()`・手の表記 `moveText(ply)`・`displayPv()`・直前の手のハイライト `highlight(ply)` が返す `PvLine::Highlight`）。表示する手数は `BoardViewerWidget` だけが持つ
+  - `pvboarddialog`・`pvline` - 読み筋盤（`PvBoardDialog(PvText)`）。読み筋1本の値 `PvLine`（`PvText` から作る。各手数の局面 `positions()`・手の表記 `moveText(ply)`・`displayPv()`・直前の手のハイライト `highlight(ply)` が返す `PvLine::Highlight`）。表示する手数は `BoardViewerWidget` だけが持つ
   - `tsumeplaydialog` - 詰将棋を解く画面。対局と正解手順の再生は `Mode { Playing, Reviewing }`、部品の有効・無効は `controlStates()` の表1か所で決める。挑戦・正答の記録は `analysis/tsumegamesession`（`TsumeGameSession`）が付ける
-- **models/**: Qt models for lists and data binding（`shogienginethinkingmodel`・`kifuanalysislistmodel`: 思考の表・棋譜解析の結果の表。行は `ShogiInfoRecord`・`KifuAnalysisRow`（`kifuanalysisrow.h`）の値で持つ、`usicommlogmodel`: エンジン1台の情報欄と通信ログの行の知らせ、`evaluationseries`: 評価値グラフの点。先手から見た値で持ち、向きの直しは `blackView()` だけ）
+- **models/**: Qt models for lists and data binding（`shogienginethinkingmodel`・`kifuanalysislistmodel`: 思考の表・棋譜解析の結果の表。行は `ShogiInfoRecord`・`KifuAnalysisRow`（`kifuanalysisrow.h`）の値で持ち、表記の設定ごとの表示は `NotationTextCache` で覚える、`usicommlogmodel`: エンジン1台の情報欄と通信ログの行の知らせ、`evaluationseries`: 評価値グラフの点。先手から見た値で持ち、向きの直しは `blackView()` だけ）
 - **services/**: Cross-cutting services (settings, time keeping)
   - `engineprofilestore.cpp/.h` - 登録エンジンの設定（一覧・USIオプション・先読みの設定）の保存形式を知る唯一の場所（ほかの部品は設定ファイルを開かずにこの関数を使う）
   - `piecestylecatalog.cpp/.h` - 駒のセットの表 `PieceStyleCatalog`（ID・分類 `Family`・表示名・画像の場所）。駒のセットを足すときはこの表に1行足す（外観ダイアログの絞り込みの番号は `Family` の値）

@@ -68,6 +68,20 @@ private slots:
         QVERIFY(!UsiMove::parse(text));
     }
 
+    /// 受信行や局面集の語は、USI の書き方どおりのときだけ指し手とみなす（前後の空白・小文字の駒打ちは除く）
+    void isExact_rejectsLooseSpelling()
+    {
+        QVERIFY(UsiMove::isExact(u"7g7f"));
+        QVERIFY(UsiMove::isExact(u"8h2b+"));
+        QVERIFY(UsiMove::isExact(u"P*5e"));
+        QVERIFY(UsiMove::parse(u" 7g7f"));
+        QVERIFY(!UsiMove::isExact(u" 7g7f"));
+        QVERIFY(UsiMove::parse(u"p*5e"));
+        QVERIFY(!UsiMove::isExact(u"p*5e"));
+        QVERIFY(!UsiMove::isExact(u"resign"));
+        QVERIFY(!UsiMove::isExact(u"(57.54%)"));
+    }
+
     void notation_squares()
     {
         QCOMPARE(UsiNotation::squareText({1, 1}), QStringLiteral("1a"));
