@@ -412,7 +412,7 @@ T["zh-cn"] = {
         "linux": ("Linux", "x86_64（AppImage）",
                   ["解压 ZIP", "为 <code>ShogiBoardQ-linux-x86_64.AppImage</code> 添加执行权限后运行"], "Linux 版（ZIP）"),
     },
-    "dl_note": "各安装包均附带诘棋题集（6,000 道）和将棋引擎 Hayanagi（含定式文件）。系统要求和更新内容请参阅<a href=\"{rel}\">发布说明</a>（日文）。",
+    "dl_note": "各安装包<wbr>均附带<wbr>诘棋题集（6,000 道）<wbr>和<wbr>将棋引擎 Hayanagi（含定式文件）。系统要求<wbr>和<wbr>更新内容<wbr>请参阅<wbr><a href=\"{rel}\">发布说明</a>（日文）。",
     "build_title": "从源代码构建",
     "build_desc": "获取包含子模块的仓库后，即可使用 Qt 6 和 CMake 构建。各操作系统的步骤请参阅构建指南（macOS 为英文）。",
     "build_links": ["Linux 构建指南", "Windows 构建指南", "macOS 构建指南"],
@@ -539,7 +539,7 @@ T["zh-tw"] = {
         "linux": ("Linux", "x86_64（AppImage）",
                   ["解壓縮 ZIP", "為 <code>ShogiBoardQ-linux-x86_64.AppImage</code> 加上執行權限後執行"], "Linux 版（ZIP）"),
     },
-    "dl_note": "各套件皆附有詰棋題集（6,000 道）與將棋引擎 Hayanagi（含定跡檔案）。系統需求與更新內容請參閱<a href=\"{rel}\">發行說明</a>（日文）。",
+    "dl_note": "各套件<wbr>皆附有<wbr>詰棋題集（6,000 道）<wbr>與<wbr>將棋引擎 Hayanagi（含定跡檔案）。系統需求<wbr>與<wbr>更新內容<wbr>請參閱<wbr><a href=\"{rel}\">發行說明</a>（日文）。",
     "build_title": "從原始碼建置",
     "build_desc": "取得含子模組的儲存庫後，即可使用 Qt 6 與 CMake 建置。各作業系統的步驟請參閱建置指南（macOS 為英文）。",
     "build_links": ["Linux 建置指南", "Windows 建置指南", "macOS 建置指南"],
@@ -589,7 +589,7 @@ def page(code):
     # その言語の利用ガイドの目次があればそこへ、なければ英語版へ
     guide = "guide/" if os.path.exists(os.path.join(DOCS, m["dir"], "guide", "index.html")) else "../en/guide/"
     url = SITE + m["dir"]
-    css_v = "20261009.2"
+    css_v = "20261024"
 
     def gl(slug):
         # 翻訳済みのガイドがあればその言語のページへ、なければ英語版へ（# 以降はページ内の節）
