@@ -12,6 +12,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
+# 読み取りだけ（KPI の比較で前回の実行の成果物を読む）
+permissions:
+  contents: read
+  actions: read
+
 jobs:
   build-and-test:
     if: github.event_name != 'schedule'

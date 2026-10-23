@@ -41,6 +41,12 @@ DESKTOP_PATH="resources/platform/shogiboardq.desktop"
 LINUXDEPLOY_URL="https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage"
 LINUXDEPLOY_QT_URL="https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage"
 APPIMAGETOOL_URL="https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage"
+# 取得したツールの SHA-256（2026-10-06 に取得して 2026.10 のリリースのビルドに使った continuous 版）。
+# continuous は上流が差し替えるので、一致しなければ実行せずに止まる（セキュリティ監査 S18）。
+# 新しい版を使うときは、上流のリリースの digest と中身を確かめてからここを更新する。
+LINUXDEPLOY_SHA256="8aea8da0f7f7039d2a2cecb14657d752a222a5e1d3825caeef186c82f751cdd1"
+LINUXDEPLOY_QT_SHA256="cfc1055b2b9dbc08412b579f20990b7b41a17b61beaa5847dc9477c96c9e9617"
+APPIMAGETOOL_SHA256="95cbe7cce9717fce90c484e34052ee7c7f1d7635b33c12525b4776826a7d29b6"
 LINUXDEPLOY="${BUILD_DIR}/linuxdeploy-x86_64.AppImage"
 LINUXDEPLOY_QT="${BUILD_DIR}/linuxdeploy-plugin-qt-x86_64.AppImage"
 APPIMAGETOOL="${BUILD_DIR}/appimagetool-x86_64.AppImage"
@@ -226,18 +232,24 @@ info "linuxdeploy を準備中..."
 download_if_missing() {
     local url="$1"
     local dest="$2"
+    local sha256="$3"
     if [[ ! -f "$dest" ]]; then
         info "ダウンロード中: $(basename "$dest")"
-        curl -fSL -o "$dest" "$url"
-        chmod +x "$dest"
+        curl -fSL -o "${dest}.part" "$url"
+        mv "${dest}.part" "$dest"
     else
         info "キャッシュ済み: $(basename "$dest")"
     fi
+    # 取得した版もキャッシュも、実行する前に確かめる
+    if ! echo "${sha256}  ${dest}" | sha256sum -c --quiet - >/dev/null 2>&1; then
+        die "$(basename "$dest") の SHA-256 が想定と違います（上流が差し替えた可能性があります）。中身を確かめてから build-linux.sh の値を更新してください。"
+    fi
+    chmod +x "$dest"
 }
 
-download_if_missing "$LINUXDEPLOY_URL" "$LINUXDEPLOY"
-download_if_missing "$LINUXDEPLOY_QT_URL" "$LINUXDEPLOY_QT"
-download_if_missing "$APPIMAGETOOL_URL" "$APPIMAGETOOL"
+download_if_missing "$LINUXDEPLOY_URL" "$LINUXDEPLOY" "$LINUXDEPLOY_SHA256"
+download_if_missing "$LINUXDEPLOY_QT_URL" "$LINUXDEPLOY_QT" "$LINUXDEPLOY_QT_SHA256"
+download_if_missing "$APPIMAGETOOL_URL" "$APPIMAGETOOL" "$APPIMAGETOOL_SHA256"
 
 # ──────────────────────────────────────────────
 # Step 8: AppDir 作成 + linuxdeploy 実行
