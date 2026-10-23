@@ -24,6 +24,7 @@ int validateSfen(const QStringList& args);
 int convertKifu(const QStringList& args);
 int renderBoard(const QStringList& args);
 int analyze(const QStringList& args);
+int analyzeKifu(const QStringList& args);
 int mate(const QStringList& args);
 int generateTsume(const QStringList& args);
 int verifyTsume(const QStringList& args);

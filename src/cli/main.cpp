@@ -26,6 +26,7 @@ int CliCommands::run(const QStringList& arguments)
         {QStringLiteral("convert-kifu"), &CliCommands::convertKifu},
         {QStringLiteral("render-board"), &CliCommands::renderBoard},
         {QStringLiteral("analyze"), &CliCommands::analyze},
+        {QStringLiteral("analyze-kifu"), &CliCommands::analyzeKifu},
         {QStringLiteral("mate"), &CliCommands::mate},
         {QStringLiteral("generate-tsume"), &CliCommands::generateTsume},
         {QStringLiteral("verify-tsume"), &CliCommands::verifyTsume},

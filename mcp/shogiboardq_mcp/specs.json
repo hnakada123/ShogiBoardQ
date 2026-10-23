@@ -49,6 +49,77 @@
    ],
    "type": "object"
   },
+  "analyze-kifu": {
+   "additionalProperties": false,
+   "properties": {
+    "engine": {
+     "description": "Name of a USI engine registered in ShogiBoardQ, exactly as listed by list-engines.",
+     "minLength": 1,
+     "type": "string"
+    },
+    "from_ply": {
+     "default": 0,
+     "description": "First position (0 = the start position, N = after N moves).",
+     "maximum": 10000,
+     "minimum": 0,
+     "type": "integer"
+    },
+    "input_format": {
+     "default": "auto",
+     "description": "Input format ('auto' detects it from the content).",
+     "enum": [
+      "auto",
+      "kif",
+      "ki2",
+      "csa",
+      "jkf",
+      "usi",
+      "usen"
+     ],
+     "type": "string"
+    },
+    "input_path": {
+     "description": "Kifu file (absolute path). Either input_path or text is required.",
+     "minLength": 1,
+     "type": "string"
+    },
+    "multipv": {
+     "default": 1,
+     "description": "Number of candidate lines.",
+     "maximum": 10,
+     "minimum": 1,
+     "type": "integer"
+    },
+    "seconds_per_position": {
+     "default": 1,
+     "description": "Thinking time per position in seconds.",
+     "maximum": 600,
+     "minimum": 1,
+     "type": "integer"
+    },
+    "stdin_control": {
+     "default": false,
+     "description": "Stop when a line 'stop' arrives on stdin or stdin is closed.",
+     "type": "boolean"
+    },
+    "text": {
+     "description": "Kifu text. Either input_path or text is required.",
+     "maxLength": 2000000,
+     "minLength": 1,
+     "type": "string"
+    },
+    "to_ply": {
+     "description": "Last position (inclusive; default: the end of the main line).",
+     "maximum": 10000,
+     "minimum": 0,
+     "type": "integer"
+    }
+   },
+   "required": [
+    "engine"
+   ],
+   "type": "object"
+  },
   "convert-kifu": {
    "additionalProperties": false,
    "properties": {

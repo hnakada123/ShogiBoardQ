@@ -9,6 +9,8 @@ from __future__ import annotations
 import json
 import os
 import tempfile
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
@@ -27,7 +29,7 @@ class CliTools:
 
     # ------------------------------------------------------------------ helpers
     @staticmethod
-    def _command(command: str, args: dict[str, Any], **values: Any) -> list[str]:
+    def command(command: str, args: dict[str, Any], **values: Any) -> list[str]:
         """The CLI call for a tool: the arguments that belong to the command, as --params-json.
 
         The commands have the same parameter names as the tools (CliCommandSpecs), so they pass unchanged;
@@ -37,34 +39,40 @@ class CliTools:
                   if value is not None}
         return [command, "--params-json", json.dumps(params, ensure_ascii=False)]
 
+    @staticmethod
+    @contextmanager
+    def kifu_input(args: dict[str, Any]) -> Iterator[str]:
+        """The record a tool reads: input_path (checked against the allowed directories) or text.
+
+        Long records do not fit on a command line, so text is handed over as a temporary file that is removed
+        when the block ends; none may be left behind, even on errors.
+        """
+        if args.get("input_path"):
+            yield str(paths.resolve_read_path(args["input_path"], "input_path"))
+            return
+        suffix = {"auto": ".txt", "kif": ".kif", "ki2": ".ki2", "csa": ".csa", "jkf": ".jkf",
+                  "usi": ".usi", "usen": ".usen"}[args.get("input_format", "auto")]
+        fd, name = tempfile.mkstemp(prefix="shogiboardq-mcp-", suffix=suffix)
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as fh:
+                fh.write(args["text"])
+            yield name
+        finally:
+            try:
+                Path(name).unlink()
+            except OSError:
+                pass
+
     # ------------------------------------------------------------------ simple tools
     async def convert_kifu(self, args: dict[str, Any]) -> Result:
-        # Check both paths before creating the temporary file, so a rejected path leaves nothing behind.
-        input_path = None
-        if args.get("input_path"):
-            input_path = paths.resolve_read_path(args["input_path"], "input_path")
+        # Check the output path first, so a rejected path leaves no temporary file behind.
         output_path = None
         if args.get("output_path"):
             output_path = paths.resolve_write_path(args["output_path"], bool(args.get("overwrite")))
-        temp_path: Path | None = None
-        try:
-            if input_path is None:
-                # Long records do not fit on a command line; hand the text over as a temporary file.
-                suffix = {"auto": ".txt", "kif": ".kif", "ki2": ".ki2", "csa": ".csa", "jkf": ".jkf",
-                          "usi": ".usi", "usen": ".usen"}[args["input_format"]]
-                fd, name = tempfile.mkstemp(prefix="shogiboardq-mcp-", suffix=suffix)
-                temp_path = Path(name)
-                with os.fdopen(fd, "w", encoding="utf-8") as fh:
-                    fh.write(args["text"])
-            cli_args = self._command("convert-kifu", args, text=None, input_path=str(input_path or temp_path),
-                                     output_path=str(output_path) if output_path is not None else None)
+        with self.kifu_input(args) as input_path:
+            cli_args = self.command("convert-kifu", args, text=None, input_path=input_path,
+                                    output_path=str(output_path) if output_path is not None else None)
             result = await run_cli(cli_args, timeout=120)
-        finally:
-            if temp_path is not None:
-                try:
-                    temp_path.unlink()
-                except OSError:
-                    pass
 
         structured = {k: result[k] for k in ("input_format", "output_format", "initial_sfen", "ply_count",
                                               "usi_moves", "sfens", "moves", "game_info", "has_branches", "warnings")
@@ -90,7 +98,7 @@ class CliTools:
         return "\n".join(text_lines), structured
 
     async def validate_sfen(self, args: dict[str, Any]) -> Result:
-        result = await run_cli(self._command("validate-sfen", args))
+        result = await run_cli(self.command("validate-sfen", args))
         structured = {k: v for k, v in result.items() if k != "ok"}
         structured["sfen"] = args["sfen"]
         if result["valid"]:
@@ -121,13 +129,13 @@ class CliTools:
 
     async def render_board_image(self, args: dict[str, Any]) -> Result:
         output_path = paths.resolve_write_path(args["output_path"], bool(args.get("overwrite")))
-        result = await run_cli(self._command("render-board", args, output_path=str(output_path)))
+        result = await run_cli(self.command("render-board", args, output_path=str(output_path)))
         structured = {"output_path": result["output_path"], "width": result["width"], "height": result["height"]}
         return f"Board image written to {result['output_path']} ({result['width']}x{result['height']} px).", structured
 
     async def verify_tsume(self, args: dict[str, Any]) -> Result:
         timeout_s = int(args["timeout_seconds"])
-        result = await run_cli(self._command("verify-tsume", args), timeout=timeout_s + 30)
+        result = await run_cli(self.command("verify-tsume", args), timeout=timeout_s + 30)
         structured = {k: result[k] for k in ("status", "pv", "queries", "elapsed_ms", "sfen", "target_moves") if k in result}
         explanations = {
             "unique": f"Unique solution in {args['target_moves']} plies: {' '.join(result.get('pv', []))}",
@@ -144,7 +152,7 @@ class CliTools:
     async def analyze_position(self, args: dict[str, Any]) -> Result:
         seconds = int(args["seconds"])
         multipv = int(args["multipv"])
-        cli_args = self._command("analyze", args)
+        cli_args = self.command("analyze", args)
         summary = {"engine": args["engine"], "seconds": seconds, "multipv": multipv,
                    "sfen": args.get("sfen") or "startpos", "moves": args.get("moves") or []}
         job = await self.jobs.start("analysis", cli_args, summary)
@@ -202,7 +210,7 @@ class CliTools:
 
     async def search_mate(self, args: dict[str, Any]) -> Result:
         seconds = int(args["seconds"])
-        cli_args = self._command("mate", args)
+        cli_args = self.command("mate", args)
         summary = {"engine": args["engine"], "seconds": seconds, "sfen": args["sfen"], "moves": args.get("moves") or []}
         job = await self.jobs.start("mate", cli_args, summary)
         return (
@@ -238,7 +246,7 @@ class CliTools:
     async def generate_tsume(self, args: dict[str, Any]) -> Result:
         # The CLI checks the arguments (an even target_moves is invalid_argument) when the job starts
         target = int(args["target_moves"])
-        cli_args = self._command("generate-tsume", args)
+        cli_args = self.command("generate-tsume", args)
         summary = {"engine": args["engine"], "target_moves": target,
                    "max_positions": int(args["max_positions"])}
         job = await self.jobs.start("tsume_generation", cli_args, summary)

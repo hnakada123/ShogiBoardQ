@@ -111,6 +111,7 @@
 | 2026-10-23 | 探索の切り替えを `UsiEngineSession::search` にまとめた（監査 R8 の後半・U5）のに合わせて §7・§9 を更新（最後の依頼だけを行い、探索中なら stop で止めて結果と info を捨ててから始める。空の局面は受け付けない。`UsiMatchHandler` の先読み停止待ち（`PonderStop`）と `AnalysisSession` の `StoppingSearch`・`RestartQueued`・再開のタイマーを削除。`stop()` は最後の依頼に効き、`cancelSearch()` を足した。`RecordLine::usiPosition`・`ConsiderationPositionResolver::resolve` は `std::optional` を返す） |
 | 2026-10-23 | CLI・自動化 API・MCP が共有する GUI 非依存の部品を `src/headless/` に分けた（監査 R9 の段階1）のに合わせて §1.5・§14・第18章を更新（引数の表・エラーの分類・変換・エンジンの実行器。core〜analysis だけを使う規則を層の検査に足した。JSON-RPC のコードは `errorkinds.h` に移した。書き出し先の検査を `OutputPath::check` 1つにし、出力先がディレクトリのときは CLI も `invalid_argument`。`Failure` に対処 `hint` を足した） |
 | 2026-10-23 | CLI の引数名を MCP のツールに揃え、MCP のスキーマを C++ の表から作るようにした（監査 R9 の段階2）のに合わせて §14・第18章を更新（`convert-kifu` の `input_path`・`output_path`、`render-board` の `output_path`、`generate-tsume` の `max_attack_pieces`・`max_defend_pieces`・`add_remaining_to_defender_hand`・`allow_final_move_alternatives`、`verify-tsume` の `timeout_seconds`。旧名は `ParamSpec::alias`・`aliasFlag` で受け付ける。既定値が true の真偽値は `--no-<名前>`。全引数を `--params-json` で渡せる。指し手は `ParamSpec::pattern` で検査。MCP は `specs.json`（`describe` の出力）からスキーマを作り、`--params-json` で渡す） |
+| 2026-10-23 | CLI に棋譜全体の解析 `analyze-kifu` を足した（監査 R9 の段階3）のに合わせて §14・第18章を更新（`EngineAnalysisRunner` は局面の列を1つのエンジンで順に解析する。MCP の `analyze_kifu` は1つのジョブ） |
 
 <!-- chapter-0-end -->
 
@@ -649,7 +650,7 @@ src/
 │   ├── outputpath.cpp/.h           #   書き出し先の事前検査 OutputPath::check（CLI の出力先と kifu.save で共通）
 │   ├── enginecatalog.cpp/.h        #   登録エンジンの名前解決
 │   ├── kifuconversionservice.cpp/.h #  棋譜の形式変換
-│   ├── engineanalysisrunner.cpp/.h #   登録エンジンで1局面を解析
+│   ├── engineanalysisrunner.cpp/.h #   登録エンジンで局面を順に解析（analyze・analyze-kifu。エンジンは1回だけ起動）
 │   ├── matesearchrunner.cpp/.h     #   登録エンジンで詰み探索（MateOracle の1回の問い合わせ）
 │   └── tsumeverificationrunner.cpp/.h # 余詰の検査（TsumeVerificationJob を MateQueryLoop で回す）
 │

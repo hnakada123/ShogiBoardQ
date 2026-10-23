@@ -35,7 +35,6 @@ def _spec(kind: str, name: str, **changes: Any) -> dict[str, Any]:
     return schema
 
 
-ENGINE = specs.operation("command", "analyze")["properties"]["engine"]
 JOB_ID = {"type": "string", "minLength": 1, "description": "Job id returned by the tool that started the job."}
 ABS_PATH_DESC = "Absolute path inside an allowed directory (default: the user's home directory)."
 MAX_PV_MOVES = {
@@ -45,7 +44,6 @@ MAX_PV_MOVES = {
     "default": 12,
     "description": "Maximum number of moves returned per principal variation.",
 }
-KIFU_FORMATS = ["kif", "ki2", "csa", "jkf", "usi", "usen"]
 
 JOB_START_OUTPUT = {
     "type": "object",
@@ -711,15 +709,10 @@ PHASE1_TOOLS += [
         "Accepts a file or text. The range is inclusive: ply 0 is the initial position, ply N is after N moves. "
         "Each position retains the move history for repetition. Poll kifu_analysis_status/result; cancel_job stops it. "
         "Variations are not analyzed; has_branches and warnings are returned.",
-        {"properties": {"engine": ENGINE, "input_path": {"type": "string", "minLength": 1, "description": ABS_PATH_DESC},
-                        "text": {"type": "string", "minLength": 1, "maxLength": 2_000_000},
-                        "input_format": {"type": "string", "enum": ["auto", *KIFU_FORMATS], "default": "auto"},
-                        "from_ply": {"type": "integer", "minimum": 0, "maximum": 10000, "default": 0},
-                        "to_ply": {"type": "integer", "minimum": 0, "maximum": 10000},
-                        "seconds_per_position": {"type": "integer", "minimum": 1, "maximum": 600, "default": 1},
-                        "multipv": {"type": "integer", "minimum": 1, "maximum": 10, "default": 1}},
-         "required": ["engine"], "oneOf": [{"required": ["input_path"], "not": {"required": ["text"]}},
-                                            {"required": ["text"], "not": {"required": ["input_path"]}}]},
+        {**_spec("command", "analyze-kifu", drop=["stdin_control"],
+                 override={"input_path": {"description": "Kifu file to read. " + ABS_PATH_DESC}}),
+         "oneOf": [{"required": ["input_path"], "not": {"required": ["text"]}},
+                   {"required": ["text"], "not": {"required": ["input_path"]}}]},
         JOB_START_OUTPUT,
     ),
     *[_tool(

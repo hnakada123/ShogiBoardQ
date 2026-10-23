@@ -169,6 +169,22 @@ const QList<OperationSpec>& CliCommandSpecs::all()
         {QStringLiteral("analyze"), QStringLiteral("Analyse a position with a registered engine (JSON Lines)"),
          {engine(), sfen(false), moves(), stdinControl(), seconds(QStringLiteral("Thinking time in seconds."), 10),
           integer(QStringLiteral("multipv"), QStringLiteral("Number of candidate lines."), 1, 10).withDefault(1)}},
+        {QStringLiteral("analyze-kifu"),
+         QStringLiteral("Analyse every main-line position of a record with one engine process (JSON Lines)"),
+         {engine(),
+          path(QStringLiteral("input_path"), QStringLiteral("Kifu file (absolute path). Either input_path or text is required."))
+              .alias(QStringLiteral("input")),
+          string(QStringLiteral("text"), QStringLiteral("Kifu text. Either input_path or text is required.")).length(1, 2000000),
+          choice(QStringLiteral("input_format"), QStringLiteral("Input format ('auto' detects it from the content)."),
+                 QStringList{QStringLiteral("auto")} + kifuFormats())
+              .withDefault(QStringLiteral("auto")),
+          integer(QStringLiteral("from_ply"), QStringLiteral("First position (0 = the start position, N = after N moves)."), 0, 10000)
+              .withDefault(0),
+          integer(QStringLiteral("to_ply"), QStringLiteral("Last position (inclusive; default: the end of the main line)."), 0, 10000),
+          integer(QStringLiteral("seconds_per_position"), QStringLiteral("Thinking time per position in seconds."), 1, 600)
+              .withDefault(1),
+          integer(QStringLiteral("multipv"), QStringLiteral("Number of candidate lines."), 1, 10).withDefault(1),
+          stdinControl()}},
         {QStringLiteral("mate"), QStringLiteral("Search for a mate with an engine that supports go mate (JSON Lines)"),
          {engine(), sfen(true), moves(), stdinControl(), seconds(QStringLiteral("Search time in seconds."), 10)}},
         {QStringLiteral("generate-tsume"), QStringLiteral("Generate tsume problems (JSON Lines)"),

@@ -1,4 +1,4 @@
-"""Whole-record analysis using the shared CLI position analyzer and job lifecycle."""
+"""Whole-record analysis: one `shogiboardq-cli analyze-kifu` job (one engine process for every position)."""
 
 from __future__ import annotations
 
@@ -16,33 +16,18 @@ class KifuAnalysisTools:
         self.cli = cli
 
     async def analyze_kifu(self, args: dict[str, Any]):
-        _, record = await self.cli.convert_kifu({
-            **{key: args[key] for key in ("input_path", "text", "input_format") if key in args},
-            "output_format": "sfen", "max_chars": 1,
-        })
-        sfens = record["sfens"]
-        moves = record["usi_moves"]
-        start = int(args["from_ply"])
-        end = int(args.get("to_ply", len(moves)))
-        if start < 0 or end < start or end >= len(sfens) or end > len(moves):
-            raise ToolError("invalid_argument", "Requested ply range is outside the main line")
-        seconds = int(args["seconds_per_position"])
-        multipv = int(args["multipv"])
-        def steps():
-            for ply in range(start, end + 1):
-                # Build history lazily, keeping memory linear in the record length.
-                command = ["analyze", "--engine", args["engine"], "--sfen", record["initial_sfen"],
-                           "--seconds", str(seconds), "--multipv", str(multipv)]
-                if ply:
-                    command += ["--moves", " ".join(moves[:ply])]
-                yield {"args": command, "ply": ply, "sfen": sfens[ply],
-                       "played_move": moves[ply - 1] if ply else None}
-
-        summary = {"engine": args["engine"], "from_ply": start, "to_ply": end,
-                   "total_positions": end - start + 1, "seconds_per_position": seconds, "multipv": multipv,
-                   "has_branches": record.get("has_branches", False), "warnings": record.get("warnings", [])}
-        job = await self.jobs.start_sequence(steps(), summary)
-        return f"Started kifu analysis {job.id}: positions {start} through {end}. Poll kifu_analysis_status.", job.status_base()
+        # Text is handed over as a temporary file (a long record does not fit on a command line); the CLI reads it
+        # before it reports "started", and the file is removed then.
+        with self.cli.kifu_input(args) as input_path:
+            cli_args = self.cli.command("analyze-kifu", args, text=None, input_path=input_path)
+            summary = {"engine": args["engine"], "seconds_per_position": int(args["seconds_per_position"]),
+                       "multipv": int(args["multipv"])}
+            job = await self.jobs.start("kifu_analysis", cli_args, summary, until="started")
+        started = job.data.get("started", {})
+        job.summary.update({key: started[key] for key in ("from_ply", "to_ply", "total_positions", "has_branches",
+                                                          "warnings") if key in started})
+        return (f"Started kifu analysis {job.id}: positions {started.get('from_ply')} through {started.get('to_ply')}. "
+                "Poll kifu_analysis_status."), job.status_base()
 
     async def status(self, args: dict[str, Any]):
         job = self.jobs.get(args["job_id"])
@@ -54,14 +39,14 @@ class KifuAnalysisTools:
         max_pv = int(args["max_pv_moves"])
         page = []
         for position in positions[offset:offset + limit]:
-            item = dict(position)
+            item = {key: value for key, value in position.items() if key != "event"}
             item["lines"] = [{**line, "pv": line.get("pv", [])[:max_pv]} for line in position.get("lines", [])]
             page.append(item)
         result = {**job.status_base(), "completed": len(positions), "positions": page,
-                  "current_ply": job.data.get("current_ply"), "offset": offset,
+                  "current_ply": job.data.get("progress", {}).get("current_ply"), "offset": offset,
                   "next_offset": offset + len(page), "truncated": offset + len(page) < len(positions),
                   "partial": job.state != "finished"}
-        text = [f"{job.id}: {job.state}, {len(positions)}/{job.summary['total_positions']} positions; "
+        text = [f"{job.id}: {job.state}, {len(positions)}/{job.summary.get('total_positions', '?')} positions; "
                 f"returning {len(page)} from offset {offset}."]
         if job.error:
             text.append(f"Error: {job.error}")
