@@ -104,8 +104,10 @@ QList<KifGameInfoItem> KifuDocument::defaultHeader()
 
 void KifuDocument::startNew(const QString& sfen, bool keepHeader)
 {
+    // 残す対局情報には、対局情報欄で入力中のセルも入れる
+    if (keepHeader) commitPendingEdits();
     m_tree->setRootSfen(sfen);
-    finishReplacement(keepHeader ? header() : defaultHeader(), true);
+    finishReplacement(keepHeader ? m_header : defaultHeader(), true);
 }
 
 bool KifuDocument::replaceWithRecord(const KifParseResult& record, const QList<KifGameInfoItem>& header)
@@ -130,6 +132,7 @@ void KifuDocument::finishReplacement(const QList<KifGameInfoItem>& header, bool 
     m_filePath.clear();
     m_unsavedContent = false;
     m_saved = {m_tree->revision(), m_annotationRevision, m_header};
+    emit replaced();
     emit headerReset(m_header, beforeMatchStart);
     emit playersChanged();
 }
@@ -157,7 +160,7 @@ void KifuDocument::beginMatch(const MatchPlayers& players, const TimeControl& ti
         return;
     }
 
-    flushPendingHeaderEdits();
+    commitPendingEdits();
     const QString handicap = KifuExportMetadataBuilder::handicapLabel(startSfen());
     const QList<KifGameInfoItem> header =
         mergeForMatch(matchStartItems(m_timeRecord.startDateTime(), players.name(Turn::Black),
@@ -186,20 +189,13 @@ void KifuDocument::clearMatchEnd()
 // 対局情報
 // ============================================================
 
-void KifuDocument::flushPendingHeaderEdits() const
-{
-    if (m_hooks.flushPendingHeaderEdits) m_hooks.flushPendingHeaderEdits();
-}
-
 void KifuDocument::commitPendingEdits() const
 {
-    flushPendingHeaderEdits();
-    if (m_hooks.commitPendingComment) m_hooks.commitPendingComment();
+    if (m_hooks.commitPendingEdits) m_hooks.commitPendingEdits();
 }
 
 QList<KifGameInfoItem> KifuDocument::header() const
 {
-    flushPendingHeaderEdits();
     return m_header;
 }
 
@@ -207,6 +203,7 @@ void KifuDocument::editHeader(const QList<KifGameInfoItem>& items)
 {
     if (items == m_header) return;
     m_header = items;
+    emit headerEdited();
 }
 
 void KifuDocument::setHeaderValue(const QString& key, const QString& value)
@@ -252,9 +249,8 @@ void KifuDocument::setBookmark(KifuBranchNode* node, const QString& bookmark)
 
 bool KifuDocument::isModified() const
 {
-    flushPendingHeaderEdits();
-    // コメント欄の未更新の本文は、確定せずに未保存に数える（確定するのは保存・書き出しのとき）
-    if (m_hooks.hasPendingComment && m_hooks.hasPendingComment()) return true;
+    // 入力中の編集は、確定せずに未保存に数える（確定するのは保存・書き出し・対局の開始のとき）
+    if (m_hooks.hasPendingEdits && m_hooks.hasPendingEdits()) return true;
     if (m_unsavedContent || m_tree->revision() != m_saved.treeRevision
         || m_annotationRevision != m_saved.annotationRevision) {
         return true;
@@ -271,7 +267,7 @@ bool KifuDocument::hasRecordContent() const
 
 void KifuDocument::markSaved(const QString& filePath)
 {
-    flushPendingHeaderEdits();
+    commitPendingEdits();
     m_saved = {m_tree->revision(), m_annotationRevision, m_header};
     m_unsavedContent = false;
     // 保存形式を拡張子で決められるファイルだけを上書き保存先にする。

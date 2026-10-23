@@ -18,6 +18,7 @@
 #include "errorbus.h"
 #include "docklayoutmanager.h"
 #include "evaluationchartwidget.h"
+#include "enginedisplaypresenter.h"
 #include "evaluationgraphpresenter.h"
 #include "gameinfopane.h"
 #include "gamesession.h"
@@ -95,16 +96,18 @@ void MainWindowComposer::connectRecord()
 
     // 対局情報（対局情報欄は文書の対局情報を編集する画面）
     GameInfoPane* gameInfo = m_c.gameInfoPane;
-    document->setHooks({std::bind(&GameInfoPane::commitPendingEditor, gameInfo),
-                        std::bind(&CommentCoordinator::commitPendingComment, m_c.commentCoordinator),
-                        std::bind(&CommentCoordinator::hasPendingComment, m_c.commentCoordinator)});
+    // 入力中の編集（対局情報欄のセル・コメント欄の本文）は、保存・書き出しの前に文書へ確定し、未保存に数える
+    document->setHooks({std::bind(&MainWindowComposer::commitPendingEdits, this),
+                        std::bind(&MainWindowComposer::hasPendingEdits, this)});
+    // 文書を置き換えたら、ツリーから作られない表示（評価値グラフ・エンジンの表示・解析結果）を消す
+    connect(document, &KifuDocument::replaced, m_c.evalGraph, &EvaluationGraphPresenter::clear);
+    connect(document, &KifuDocument::replaced, m_c.engineDisplay, &EngineDisplayPresenter::clearAll);
     connect(document, &KifuDocument::headerReset, gameInfo, &GameInfoPane::setGameInfo);
     connect(document, &KifuDocument::headerValueSet, gameInfo, &GameInfoPane::updateGameInfoValue);
-    connect(document, &KifuDocument::saved, gameInfo, &GameInfoPane::applyChanges);
     connect(gameInfo, &GameInfoPane::gameInfoEdited, document, &KifuDocument::editHeader);
-    // 盤の対局者名は、対局していなければ対局情報に合わせる
+    // 盤の対局者名は、対局していなければ対局情報に合わせる（対局情報欄で書き換えたときも）
     connect(document, &KifuDocument::headerReset, m_c.playerInfo, &PlayerInfoPresenter::syncBoardNamesWithGameInfo);
-    connect(gameInfo, &GameInfoPane::gameInfoUpdated, m_c.playerInfo, &PlayerInfoPresenter::onGameInfoUpdated);
+    connect(document, &KifuDocument::headerEdited, m_c.playerInfo, &PlayerInfoPresenter::showMatchPlayers);
     gameInfo->setGameInfo(document->header(), true);
 
     // 読み込み・書き出し
@@ -135,7 +138,6 @@ void MainWindowComposer::connectBoard()
     // 局面編集（棋譜は編集した局面だけになる）
     PositionEditSession* edit = m_c.positionEdit;
     connect(edit, &PositionEditSession::editingStarted, m_c.actions, &MainWindowActions::resetRecordForEditedPosition);
-    connect(edit, &PositionEditSession::editingStarted, m_c.evalGraph, &EvaluationGraphPresenter::clear);
     connect(edit, &PositionEditSession::editingFinished, m_c.actions, &MainWindowActions::resetRecordForEditedPosition);
 }
 

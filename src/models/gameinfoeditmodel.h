@@ -15,9 +15,8 @@
  *
  * - 読み込んだ項目の名前は編集できない。行を追加した項目は名前も編集できる。
  * - 利用者の編集・行の追加と削除は1操作ずつ履歴に積み、undo()/redo() で行き来する。
- * - 未反映の変更は、反映済みの内容（setItems() か markApplied() の時点）と比べて決める。
- * - 自動で書き換える値（対局者名・終了日時など）は、反映済みの内容と履歴にも書き込むので、
- *   未反映の変更に数えず、元に戻しても古い値に戻らない。
+ *   内容は変わるたびに文書へ渡す（GameInfoPane::gameInfoEdited）ので、未保存かは文書が決める。
+ * - 自動で書き換える値（対局者名・終了日時など）は履歴にも書き込むので、元に戻しても古い値に戻らない。
  *
  * 表示用の値（Qt::DisplayRole・Qt::EditRole）は書いたままの文字列。項目名・値の表記の切り替えは
  * Qt::AccessibleTextRole・Qt::ToolTipRole と、表の描画（GameInfoPane）で行う。
@@ -40,14 +39,10 @@ public:
     Qt::ItemFlags flags(const QModelIndex& index) const override;
     QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
 
-    /// 読み込んだ対局情報で置き換え、反映済みにして履歴を消す
+    /// 読み込んだ対局情報で置き換え、履歴を消す
     /// （beforeMatchStart: 対局前の案内文「対局開始時に設定」などを出す）
     void setItems(const QList<KifGameInfoItem>& items, bool beforeMatchStart = false);
     QList<KifGameInfoItem> items() const;
-
-    bool isDirty() const;
-    /// 今の内容を反映済みにする
-    void markApplied();
 
     /// 自動で決まる値を書く。項目が無ければ末尾に足す（その項目名は編集できない）
     void setAutomaticValue(const QString& key, const QString& value);
@@ -62,7 +57,7 @@ public:
     void redo();
 
 signals:
-    /// 履歴か未反映の変更の有無が変わったかもしれない（操作ボタンの状態を合わせる）
+    /// 元に戻せるか・やり直せるかが変わったかもしれない（操作ボタンの状態を合わせる）
     void editStateChanged();
 
 private:
@@ -84,7 +79,6 @@ private:
     QString presentedText(int row, int column) const;
 
     Rows m_rows;
-    QList<KifGameInfoItem> m_applied;   ///< 反映済みの内容
     QList<Rows> m_history;              ///< 編集の履歴（m_history[m_historyIndex] が今の内容）
     int m_historyIndex = 0;
     bool m_beforeMatchStart = false;

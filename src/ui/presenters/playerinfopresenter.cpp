@@ -44,8 +44,3 @@ void PlayerInfoPresenter::syncBoardNamesWithGameInfo()
     setBoardNames(m_deps.document->headerPlayerName(Turn::Black), m_deps.document->headerPlayerName(Turn::White));
 }
 
-void PlayerInfoPresenter::onGameInfoUpdated(const QList<KifGameInfoItem>& /*items*/)
-{
-    // 反映した対局情報は文書に入っている
-    syncBoardNamesWithGameInfo();
-}

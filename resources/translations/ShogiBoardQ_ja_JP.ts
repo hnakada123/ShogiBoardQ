@@ -4413,28 +4413,28 @@ ABC abc 0123456789</translation>
         <translation>内容</translation>
     </message>
     <message>
-        <location filename="../../src/models/gameinfoeditmodel.cpp" line="215"/>
+        <location filename="../../src/models/gameinfoeditmodel.cpp" line="193"/>
         <source>未開始（対局開始時に設定）</source>
         <translation>未開始（対局開始時に設定）</translation>
     </message>
     <message>
-        <location filename="../../src/models/gameinfoeditmodel.cpp" line="215"/>
-        <location filename="../../src/models/gameinfoeditmodel.cpp" line="219"/>
+        <location filename="../../src/models/gameinfoeditmodel.cpp" line="193"/>
+        <location filename="../../src/models/gameinfoeditmodel.cpp" line="197"/>
         <source>未設定</source>
         <translation>未設定</translation>
     </message>
     <message>
-        <location filename="../../src/models/gameinfoeditmodel.cpp" line="217"/>
+        <location filename="../../src/models/gameinfoeditmodel.cpp" line="195"/>
         <source>未設定（名前を入力できます）</source>
         <translation>未設定（名前を入力できます）</translation>
     </message>
     <message>
-        <location filename="../../src/models/gameinfoeditmodel.cpp" line="219"/>
+        <location filename="../../src/models/gameinfoeditmodel.cpp" line="197"/>
         <source>未設定（対局設定から反映）</source>
         <translation>未設定（対局設定から反映）</translation>
     </message>
     <message>
-        <location filename="../../src/models/gameinfoeditmodel.cpp" line="221"/>
+        <location filename="../../src/models/gameinfoeditmodel.cpp" line="199"/>
         <source>任意入力</source>
         <translation>任意入力</translation>
     </message>
@@ -4442,7 +4442,7 @@ ABC abc 0123456789</translation>
 <context>
     <name>GameInfoPane</name>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="97"/>
+        <location filename="../../src/widgets/gameinfopane.cpp" line="96"/>
         <source>対局情報</source>
         <translation>対局情報</translation>
     </message>
@@ -4497,42 +4497,39 @@ ABC abc 0123456789</translation>
         <translation type="vanished">貼り付け (Ctrl+V)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="356"/>
+        <location filename="../../src/widgets/gameinfopane.cpp" line="344"/>
         <source>行を追加</source>
         <translation>行を追加</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="356"/>
+        <location filename="../../src/widgets/gameinfopane.cpp" line="344"/>
         <source>新しい行を追加する</source>
         <translation>新しい行を追加する</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="357"/>
+        <location filename="../../src/widgets/gameinfopane.cpp" line="345"/>
         <source>行を削除</source>
         <translation>行を削除</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="358"/>
+        <location filename="../../src/widgets/gameinfopane.cpp" line="346"/>
         <source>選択行を削除する（元に戻す操作で復元できます）</source>
         <translation>選択行を削除する（元に戻す操作で復元できます）</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="368"/>
         <source>対局情報更新</source>
-        <translation>対局情報更新</translation>
+        <translation type="vanished">対局情報更新</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="370"/>
         <source>編集した対局情報を棋譜に反映する (Ctrl+Enter)</source>
-        <translation>編集した対局情報を棋譜に反映する (Ctrl+Enter)</translation>
+        <translation type="vanished">編集した対局情報を棋譜に反映する (Ctrl+Enter)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="427"/>
         <source>未反映の変更があります</source>
-        <translation>未反映の変更があります</translation>
+        <translation type="vanished">未反映の変更があります</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="427"/>
+        <location filename="../../src/widgets/gameinfopane.cpp" line="356"/>
         <source>内容をダブルクリックして編集</source>
         <translation>内容をダブルクリックして編集</translation>
     </message>

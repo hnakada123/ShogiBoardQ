@@ -4,11 +4,9 @@
 /// @file playerinfopresenter.h
 /// @brief 盤の対局者名の表示
 
-#include <QList>
 #include <QObject>
 #include <QString>
 
-#include "kifparsetypes.h"
 #include "matchplayers.h"
 
 class AppActivityState;
@@ -36,16 +34,14 @@ public:
     explicit PlayerInfoPresenter(const Deps& deps, QObject* parent = nullptr);
     ~PlayerInfoPresenter() override;
 
-    /// 対局中なら対局者の名前を、対局していなければ対局情報の名前を盤に出す
-    void showMatchPlayers();
     /// 対局者の名前を盤に出す（対局を始めるとき。動作状態が対局中になる前に呼ぶ）
     void showPlayers(const MatchPlayers& players);
 
 public slots:
-    /// 対局情報の名前を盤に出す（棋譜の置き換え・対局情報の反映）
+    /// 対局中なら対局者の名前を、対局していなければ対局情報の名前を盤に出す（対局情報欄で書き換えたときも）
+    void showMatchPlayers();
+    /// 対局情報の名前を盤に出す（棋譜の置き換え）
     void syncBoardNamesWithGameInfo();
-    /// 対局情報欄で反映した対局情報の名前を盤に出す
-    void onGameInfoUpdated(const QList<KifGameInfoItem>& items);
 
 private:
     void setBoardNames(const QString& black, const QString& white);

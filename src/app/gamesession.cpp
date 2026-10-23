@@ -222,8 +222,7 @@ void GameSession::noteContinuedMatch(const MatchPlayers& players)
 
 void GameSession::startNextGame(const GameStartPlan& plan)
 {
-    // 次局は独立した棋譜として、同じ開始局面から始める（上書き保存先も持たない）
-    m_deps.reset->resetToNewRecord(plan.preparation.rootSfen);
+    // 次局は独立した棋譜として、同じ開始局面から始める（上書き保存先も持たない。棋譜は prepareGameStart が作る）
     startGame(plan, /*beginSeries=*/false);
 }
 
@@ -265,12 +264,12 @@ void GameSession::onCsaGameStarted(const QString& blackName, const QString& whit
                                    const QList<RecordEntry>& initialRecords)
 {
     qCDebug(lcApp) << "onCsaGameStarted:" << blackName << "vs" << whiteName;
-    // 前の対局・棋譜解析の評価値グラフ・思考・解析結果を消す（ローカル対局の開始と同じ）
-    m_deps.reset->clearBeforeKifuLoad();
-    // 利用者が対局情報に書きかけた内容（棋戦・場所など）は、棋譜の作り直しで消さない。
-    // 対局者・持ち時間・開始日時はサーバーの対局条件
-    m_deps.reset->resetToNewRecord(m_deps.csaGame->startSfen(), /*keepHeader=*/true);
-    m_deps.liveSession->startFromRoot();
+    // ローカル対局の新しい棋譜と同じく作る（前の対局・棋譜解析の評価値グラフ・思考・解析結果は消え、
+    // 利用者が対局情報に書きかけた内容（棋戦・場所など）は残す）。対局者・持ち時間・開始日時はサーバーの対局条件
+    GameStartPreparation preparation;
+    preparation.mode = GameStartPreparation::Mode::NewGame;
+    preparation.rootSfen = m_deps.csaGame->startSfen();
+    m_deps.reset->prepareGameStart(preparation);
     beginMatchRecord(m_csaChannel->players(), m_csaChannel->timeControl(), /*continuesRecord=*/false);
     m_autoSave = m_deps.csaGame->options().autoSave;
     // 再開局面の既存手順を棋譜へ入れる（以後の着手は recordEntryReady で届く）
@@ -305,7 +304,6 @@ void GameSession::resetToInitialState()
     m_deps.consecutive->reset();
     discardInterruptedGame();
 
-    m_deps.reset->clearBeforeKifuLoad();
     // 前の対局者・持ち時間・上書き保存先も残さない（盤には対局情報の初期値「先手」「後手」を出す）
     // 動作状態は、止めた検討・通信対局・解析がそれぞれ手放す（「新規」は待機中だけ）
     m_deps.reset->resetToNewRecord(SfenUtils::hirateSfen());

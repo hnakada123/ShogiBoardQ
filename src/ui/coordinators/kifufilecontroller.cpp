@@ -117,13 +117,11 @@ void KifuFileController::onKifuPasteImportRequested(const QString& content)
 void KifuFileController::onSfenCollectionPositionSelected(const QString& sfen)
 {
     if (refuseReplacingRecord() || !confirmDiscardUnsaved()) return;
-    if (m_deps.clearUiBeforeKifuLoad) m_deps.clearUiBeforeKifuLoad();
     finishLoad(m_deps.loadCoordinator->loadPositionFromSfen(sfen), Source::Collection, QString());
 }
 
 void KifuFileController::startAsyncLoad(const QString& input, Source source)
 {
-    if (m_deps.clearUiBeforeKifuLoad) m_deps.clearUiBeforeKifuLoad();
     KifuLoadCoordinator* coordinator = m_deps.loadCoordinator;
     if (m_loadProgress) m_loadProgress->deleteLater();
     m_pendingSource = source;
@@ -178,7 +176,6 @@ void KifuFileController::finishLoad(bool success, Source source, const QString& 
 
 bool KifuFileController::loadKifuFile(const QString& filePath)
 {
-    if (m_deps.clearUiBeforeKifuLoad) m_deps.clearUiBeforeKifuLoad();
     // 拡張子が .json などでも、内容から形式を判定して読み込む
     const bool loaded = m_deps.loadCoordinator->loadFile(filePath);
     finishLoad(loaded, Source::File, filePath);
@@ -187,7 +184,6 @@ bool KifuFileController::loadKifuFile(const QString& filePath)
 
 bool KifuFileController::loadKifuText(const QString& content)
 {
-    if (m_deps.clearUiBeforeKifuLoad) m_deps.clearUiBeforeKifuLoad();
     const bool loaded = m_deps.loadCoordinator->loadText(content);
     if (loaded) m_deps.document->markUnsavedContent();
     return loaded;
@@ -195,7 +191,6 @@ bool KifuFileController::loadKifuText(const QString& content)
 
 bool KifuFileController::applySfenPosition(const QString& sfen)
 {
-    if (m_deps.clearUiBeforeKifuLoad) m_deps.clearUiBeforeKifuLoad();
     const bool loaded = m_deps.loadCoordinator->loadPositionFromSfen(sfen);
     finishLoad(loaded, Source::Position, QString());
     return loaded;

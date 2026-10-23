@@ -3731,12 +3731,10 @@ private slots:
         auto* dock = window->findChild<QDockWidget*>("GameInfoDock");
         auto* controller = window->findChild<GameInfoPane*>();
         GameInfoTable table{window->findChild<QTableView*>("gameInfoTable")};
-        auto* apply = window->findChild<QPushButton*>("gameInfoApply");
-        QVERIFY(dock && controller && table.view && apply);
+        QVERIFY(dock && controller && table.view);
         window->resize(1400, 1120);
         dock->show(); dock->raise();
         QTest::qWait(50);
-        QVERIFY(!apply->isEnabled());
         QCOMPARE(table.rowCount(), 9);
         QVERIFY(table.text(1, 1).isEmpty());
         QCOMPARE(table.text(2, 1), QStringLiteral("先手"));
@@ -3755,7 +3753,6 @@ private slots:
         QTRY_VERIFY(record()->kifuView()->model()->rowCount() > 90);
         dock->show(); dock->raise();
         QCOMPARE(table.view->columnWidth(0), 160);
-        QVERIFY(!apply->isEnabled());
         QTest::qWait(50);
         snapshot("game-info-loaded");
 
@@ -3773,11 +3770,11 @@ private slots:
         QVERIFY(editor);
         const QString note = QStringLiteral("長い備考も、ウィンドウの幅に合わせて折り返して表示します。会場や対局条件などの情報を編集できます。");
         editor->setText(note);
-        QVERIFY(apply->isEnabled());
-        QTest::mouseClick(apply, Qt::LeftButton);
-        QCOMPARE(table.text(noteRow, 1), note);
-        QVERIFY(!apply->isEnabled());
+        QVERIFY(controller->hasPendingEditor());
+        // 入力中のセルも書き出す前に確定する
         const QString saved = copy("actionCopyKIF");
+        QCOMPARE(table.text(noteRow, 1), note);
+        QVERIFY(!controller->hasPendingEditor());
         QVERIFY(saved.contains(QStringLiteral("備考：") + note));
         armDialog("discard");
         click("actionNewGame");
@@ -3788,11 +3785,11 @@ private slots:
         // 読み込んだ棋譜の対局者名を将棋盤に残さない
         QVERIFY(board()->chrome()->card(Turn::Black)->nameLabel()->fullText().endsWith(QStringLiteral("先手")));
         QVERIFY(board()->chrome()->card(Turn::White)->nameLabel()->fullText().endsWith(QStringLiteral("後手")));
-        QVERIFY(!controller->isDirty());
+        QVERIFY(!controller->hasPendingEditor());
         paste(saved);
         dock->show(); dock->raise();
         QCOMPARE(table.view->columnWidth(0), 160);
-        QVERIFY(!controller->isDirty());
+        QVERIFY(!controller->hasPendingEditor());
         QCOMPARE(table.text(noteRow, 1), note);
 
         dock->setFloating(true);

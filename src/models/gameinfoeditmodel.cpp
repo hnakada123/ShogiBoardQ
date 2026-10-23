@@ -19,7 +19,7 @@ bool isWhitePlayerKey(const QString& key)
     return key == GameInfoKeys::kWhitePlayer || key == GameInfoKeys::kUwatePlayer;
 }
 
-// 表の行・履歴の行・反映済みの項目（どれも key と value を持つ）から項目を探す
+// 表の行・履歴の行（どちらも key と value を持つ）から項目を探す
 template <typename Entries>
 auto findKey(Entries& entries, const QString& key)
 {
@@ -99,7 +99,6 @@ void GameInfoEditModel::setItems(const QList<KifGameInfoItem>& items, bool befor
     rows.reserve(items.size());
     for (const KifGameInfoItem& item : items) rows.append({item.key, item.value, false});
     resetRows(rows);
-    m_applied = items;
     resetHistory();
     emit editStateChanged();
 }
@@ -110,21 +109,6 @@ QList<KifGameInfoItem> GameInfoEditModel::items() const
     result.reserve(m_rows.size());
     for (const Row& row : m_rows) result.append({row.key, row.value});
     return result;
-}
-
-bool GameInfoEditModel::isDirty() const
-{
-    if (m_rows.size() != m_applied.size()) return true;
-    for (qsizetype i = 0; i < m_rows.size(); ++i) {
-        if (m_rows.at(i).key != m_applied.at(i).key || m_rows.at(i).value != m_applied.at(i).value) return true;
-    }
-    return false;
-}
-
-void GameInfoEditModel::markApplied()
-{
-    m_applied = items();
-    emit editStateChanged();
 }
 
 void GameInfoEditModel::setAutomaticValue(const QString& key, const QString& value)
@@ -143,12 +127,6 @@ void GameInfoEditModel::setAutomaticValue(const QString& key, const QString& val
         const auto entry = findKey(state, key);
         if (entry == state.end()) state.append({key, value, false});
         else entry->value = value;
-    }
-    const auto applied = findKey(m_applied, key);
-    if (applied == m_applied.end()) {
-        m_applied.append({key, value});
-    } else {
-        applied->value = value;
     }
     emit editStateChanged();
 }

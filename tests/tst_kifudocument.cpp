@@ -940,20 +940,48 @@ private slots:
         QVERIFY(document.isModified());
     }
 
-    /// 対局情報を読む前に、対局情報欄の入力中のセルを確定させる
-    void headerFlushesPendingEdits()
+    /// 対局情報を残して新しい棋譜にするときは、対局情報欄で入力中のセルも残す
+    void startNewKeepsPendingHeaderEdits()
     {
         KifuBranchTree tree;
-        setupBasicTree(tree);
+        tree.setRootSfen(kHirateSfen);
         KifuDocument document(&tree);
         QList<KifGameInfoItem> pending = document.header();
         pending.append({QStringLiteral("場所"), QStringLiteral("将棋会館")});
         KifuDocument::Hooks hooks;
-        hooks.flushPendingHeaderEdits = [&document, pending]() { document.editHeader(pending); };
+        hooks.commitPendingEdits = [&document, pending]() { document.editHeader(pending); };
+        document.setHooks(hooks);
+        document.startNew(kHirateSfen, true);
+        QCOMPARE(document.header(), pending);
+    }
+
+    /// 入力中の編集は未保存に数え、書き出す・保存するときに確定させる
+    void pendingEditsAreCountedAndCommittedOnExport()
+    {
+        KifuBranchTree tree;
+        setupBasicTree(tree);
+        KifuDocument document(&tree);
+        document.markSaved(QStringLiteral("/tmp/a.kif"));
+        QList<KifGameInfoItem> pending = document.header();
+        pending.append({QStringLiteral("場所"), QStringLiteral("将棋会館")});
+        bool hasPending = true;
+        KifuDocument::Hooks hooks;
+        hooks.commitPendingEdits = [&document, &hasPending, pending]() {
+            if (!hasPending) return;
+            hasPending = false;
+            document.editHeader(pending);
+        };
+        hooks.hasPendingEdits = [&hasPending]() { return hasPending; };
         document.setHooks(hooks);
 
         QVERIFY(document.isModified());
+        QVERIFY(document.header() != pending);  // 読むだけでは確定しない
+        const QStringList kif = KifuExport::lines(document, KifuFormat::Kif);
+        QVERIFY2(kif.contains(QStringLiteral("場所：将棋会館")), qPrintable(kif.join(QLatin1Char('\n'))));
         QCOMPARE(document.header(), pending);
+        QVERIFY(document.isModified());
+        document.markSaved(QStringLiteral("/tmp/a.kif"));
+        QVERIFY(!document.isModified());
     }
 
     /// 貼り付けた棋譜はファイルにないので未保存で、上書き保存先も持たない

@@ -13,6 +13,7 @@
 #include "game_info_table_helper.h"
 #include "header_drag_helper.h"
 #include "gamesettings.h"
+#include "gameinfoeditmodel.h"
 #include "gameinfokeys.h"
 #include "playerinfopresenter.h"
 #include "enginedisplaypresenter.h"
@@ -99,7 +100,7 @@ private slots:
         QTest::mouseClick(m_controller->findChild<QToolButton*>(QStringLiteral("gameInfoPaste")), Qt::LeftButton);
         QCOMPARE(editor->text(), QStringLiteral("Black"));
         m_controller->commitPendingEditor();
-        QVERIFY(!m_controller->isDirty());
+        QVERIFY(!m_controller->hasPendingEditor());
     }
 
     void synchronizedNamesSurviveUndo()
@@ -108,12 +109,10 @@ private slots:
         // 対局者名は文書が自動で書く（続ける対局の対局者）。元に戻す・やり直すで古い名前に戻さない
         m_controller->updateGameInfoValue(QStringLiteral("先手"), QStringLiteral("New black"));
         m_controller->updateGameInfoValue(QStringLiteral("後手"), QStringLiteral("New white"));
-        QVERIFY(m_controller->isDirty());
         m_controller->undo();
         QCOMPARE(m_table.text(0, 1), QStringLiteral("New black"));
         QCOMPARE(m_table.text(1, 1), QStringLiteral("New white"));
         QCOMPARE(m_table.text(2, 1), QStringLiteral("Original"));
-        QVERIFY(!m_controller->isDirty());
         m_controller->redo();
         QCOMPARE(m_table.text(2, 1), QStringLiteral("Edited event"));
     }
@@ -125,11 +124,10 @@ private slots:
         auto* editor = qobject_cast<QLineEdit*>(QApplication::focusWidget());
         QVERIFY(editor);
         editor->setText(QStringLiteral("In progress"));
-        QVERIFY(m_controller->isDirty());
+        QVERIFY(m_controller->hasPendingEditor());
         m_controller->commitPendingEditor();
         QCOMPARE(m_controller->gameInfo().at(0).value, QStringLiteral("In progress"));
-        m_controller->applyChanges();
-        QVERIFY(!m_controller->isDirty());
+        QVERIFY(!m_controller->hasPendingEditor());
     }
 
     void endTimePreservesPendingEditorAndHistory()
@@ -149,11 +147,11 @@ private slots:
         const QString endTime = QStringLiteral("2026/09/27 10:00:00");
         m_controller->updateGameInfoValue(QStringLiteral("終了日時"), endTime);
         QCOMPARE(m_table.text(0, 1), QStringLiteral("Pending player"));
-        QVERIFY(m_controller->isDirty());
+        // 自動で書く前に入力中のセルを確定する
+        QVERIFY(!m_controller->hasPendingEditor());
         m_controller->undo();
         QCOMPARE(m_table.text(0, 1), QStringLiteral("Black"));
         QCOMPARE(m_table.text(3, 1), endTime);
-        QVERIFY(!m_controller->isDirty());
         m_controller->redo();
         QCOMPARE(m_table.text(0, 1), QStringLiteral("Pending player"));
         QCOMPARE(m_table.text(3, 1), endTime);
@@ -173,7 +171,7 @@ private slots:
         QCOMPARE(m_table.rowCount(), 1);
         QCOMPARE(m_table.text(0, 1), QStringLiteral("Next game"));
         QVERIFY(!(m_table.editable(0, 0)));
-        QVERIFY(!m_controller->isDirty());
+        QVERIFY(!m_controller->model()->canUndo());
     }
 
     void controlsFollowSelectionAndClipboard()
@@ -184,10 +182,10 @@ private slots:
         auto* remove = m_controller->findChild<QToolButton*>(QStringLiteral("gameInfoRemoveRow"));
         auto* undo = m_controller->findChild<QToolButton*>(QStringLiteral("gameInfoUndo"));
         auto* redo = m_controller->findChild<QToolButton*>(QStringLiteral("gameInfoRedo"));
-        auto* apply = m_controller->findChild<QPushButton*>(QStringLiteral("gameInfoApply"));
+        // 編集は表に入れた時点で棋譜に入るので、「対局情報更新」のボタンは無い
+        QVERIFY(!m_controller->findChild<QPushButton*>(QStringLiteral("gameInfoApply")));
         QVERIFY(!undo->isEnabled());
         QVERIFY(!redo->isEnabled());
-        QVERIFY(!apply->isEnabled());
         m_table.setCurrentCell(0, 0);
         QApplication::clipboard()->setText(QStringLiteral("new value"));
         QVERIFY(copy->isEnabled());
@@ -200,11 +198,9 @@ private slots:
         QVERIFY(!paste->isEnabled());
         QTest::mouseClick(cut, Qt::LeftButton);
         QVERIFY(undo->isEnabled());
-        QVERIFY(apply->isEnabled());
         QTest::mouseClick(undo, Qt::LeftButton);
         QVERIFY(!undo->isEnabled());
         QVERIFY(redo->isEnabled());
-        QVERIFY(!apply->isEnabled());
         m_table.view->clearSelection();
         QVERIFY(!remove->isEnabled());
         QVERIFY(!copy->isEnabled());
@@ -216,7 +212,8 @@ private slots:
     void editingHintStaysOnOneLine()
     {
         auto* status = m_controller->findChild<QLabel*>(QStringLiteral("gameInfoEditing"));
-        auto* apply = m_controller->findChild<QPushButton*>(QStringLiteral("gameInfoApply"));
+        // 案内文の前の最後のボタン
+        auto* apply = m_controller->findChild<QToolButton*>(QStringLiteral("gameInfoRemoveRow"));
         QVERIFY(status && apply);
         // QLabel は折り返し可能だと、平均文字幅の 20 字分より長い1行を短く折り返した幅を sizeHint にする。
         // 訳文（英語など）と同じ程度の長さで確かめる。
@@ -228,44 +225,42 @@ private slots:
         QVERIFY(status->width() >= status->fontMetrics().horizontalAdvance(status->text()));
     }
 
-    void pendingEditEnablesApplyAndEscapeClearsIt()
+    /// 入力中のセルは確定するまで未保存に数え、Esc で捨てると数えない。確定すると表と文書に入る
+    void pendingEditIsCountedUntilEscape()
     {
-        auto* apply = m_controller->findChild<QPushButton*>(QStringLiteral("gameInfoApply"));
-        auto* status = m_controller->findChild<QLabel*>(QStringLiteral("gameInfoEditing"));
         m_table.setCurrentCell(0, 1);
         m_table.editCurrent();
         auto* editor = qobject_cast<QLineEdit*>(QApplication::focusWidget());
         QVERIFY(editor);
         QTest::keyClicks(editor, "Changed");
-        QVERIFY(apply->isEnabled());
-        QVERIFY(status->text().contains(QStringLiteral("未反映")));
+        QVERIFY(m_controller->hasPendingEditor());
         QTest::keyClick(editor, Qt::Key_Escape);
-        QTRY_VERIFY(!apply->isEnabled());
+        QTRY_VERIFY(!m_controller->hasPendingEditor());
         QCOMPARE(m_table.text(0, 1), QStringLiteral("Black"));
         m_table.editCurrent();
         editor = qobject_cast<QLineEdit*>(QApplication::focusWidget());
         QVERIFY(editor);
         QTest::keyClicks(editor, "Updated");
-        QSignalSpy updated(m_controller.data(), &GameInfoPane::gameInfoUpdated);
-        QTest::mouseClick(apply, Qt::LeftButton);
-        QCOMPARE(updated.count(), 1);
+        QSignalSpy edited(m_controller.data(), &GameInfoPane::gameInfoEdited);
+        m_controller->commitPendingEditor();
+        QVERIFY(edited.count() >= 1);
         QCOMPARE(m_table.text(0, 1), QStringLiteral("Updated"));
-        QVERIFY(!m_controller->isDirty());
-        QVERIFY(!apply->isEnabled());
+        QVERIFY(!m_controller->hasPendingEditor());
     }
 
-    void applyShortcutCommitsPendingEdit()
+    /// Ctrl+Enter は入力中のセルを確定する
+    void commitShortcutCommitsPendingEdit()
     {
         m_table.setCurrentCell(2, 1);
         m_table.editCurrent();
         auto* editor = qobject_cast<QLineEdit*>(QApplication::focusWidget());
         QVERIFY(editor);
         QTest::keyClicks(editor, "New event");
-        QSignalSpy updated(m_controller.data(), &GameInfoPane::gameInfoUpdated);
+        QSignalSpy edited(m_controller.data(), &GameInfoPane::gameInfoEdited);
         QTest::keyClick(editor, Qt::Key_Return, Qt::ControlModifier);
-        QTRY_COMPARE(updated.count(), 1);
+        QTRY_VERIFY(edited.count() >= 1);
         QCOMPARE(m_controller->gameInfo().at(2).value, QStringLiteral("New event"));
-        QVERIFY(!m_controller->isDirty());
+        QVERIFY(!m_controller->hasPendingEditor());
     }
 
     void removeRowsCanBeUndone()
@@ -279,7 +274,6 @@ private slots:
         QCOMPARE(m_table.rowCount(), 3);
         QCOMPARE(m_table.text(1, 1), QStringLiteral("White"));
         QVERIFY(!(m_table.editable(1, 0)));
-        QVERIFY(!m_controller->isDirty());
         m_controller->redo();
         QCOMPARE(m_table.rowCount(), 2);
         m_controller->addRow();
@@ -309,7 +303,6 @@ private slots:
         QCOMPARE(m_table.toolTip(2, 1), QStringLiteral("<qt>Original</qt>"));
         m_controller->updateGameInfoValue(QStringLiteral("棋戦"), QStringLiteral("Automatic"));
         QCOMPARE(m_table.toolTip(2, 1), QStringLiteral("<qt>Automatic</qt>"));
-        QVERIFY(!m_controller->isDirty());
     }
 
     void fontAndColumnWidthAreRestored()
@@ -344,7 +337,7 @@ private slots:
             QCOMPARE(m_table.text(row, 0), keys.at(row));
             QCOMPARE(m_table.text(row, 1), values.at(row));
         }
-        QVERIFY(!m_controller->isDirty());
+        QVERIFY(!m_controller->model()->canUndo());
         QVERIFY(m_table.accessibleText(1, 1).contains(QStringLiteral("未開始")));
         m_table.setCurrentCell(2, 1);
         m_table.editCurrent();
@@ -353,7 +346,8 @@ private slots:
         QCOMPARE(editor->text(), QStringLiteral("先手"));
         QVERIFY(editor->placeholderText().contains(QStringLiteral("名前を入力")));
         m_controller->commitPendingEditor();
-        QVERIFY(!m_controller->isDirty());
+        QVERIFY(!m_controller->hasPendingEditor());
+        QVERIFY(!m_controller->model()->canUndo());  // 同じ文字のままなら編集に数えない
 
         KifuBranchTree tree;
         KifuExportMetadata context;
@@ -450,7 +444,15 @@ private slots:
         deps.shogiView = &view;
         PlayerInfoPresenter wiring(deps);
         connect(&document, &KifuDocument::headerReset, &wiring, &PlayerInfoPresenter::syncBoardNamesWithGameInfo);
+        connect(&document, &KifuDocument::headerEdited, &wiring, &PlayerInfoPresenter::showMatchPlayers);
         QCOMPARE(view.chrome()->card(Turn::Black)->nameLabel()->fullText(), QStringLiteral("▲先手"));
+        // 対局情報欄で名前を書き換えると、対局していなければすぐ盤の名前も変わる
+        QList<KifGameInfoItem> edited = document.header();
+        for (KifGameInfoItem& item : edited)
+            if (item.key == GameInfoKeys::kBlackPlayer) item.value = QStringLiteral("一郎");
+        document.editHeader(edited);
+        QCOMPARE(view.chrome()->card(Turn::Black)->nameLabel()->fullText(), QStringLiteral("▲一郎"));
+        document.editHeader(KifuDocument::defaultHeader());
         QCOMPARE(view.chrome()->card(Turn::White)->nameLabel()->fullText(), QStringLiteral("▽後手"));
         // 対局していないときの表示でも対局情報の名前を残す
         wiring.showMatchPlayers();
@@ -478,7 +480,8 @@ private slots:
         auto* controller = &gameInfo;
         // 合成ルートと同じつなぎ方（mainwindowcomposer_wire.cpp）
         KifuDocument::Hooks hooks;
-        hooks.flushPendingHeaderEdits = std::bind(&GameInfoPane::commitPendingEditor, controller);
+        hooks.commitPendingEdits = std::bind(&GameInfoPane::commitPendingEditor, controller);
+        hooks.hasPendingEdits = std::bind(&GameInfoPane::hasPendingEditor, controller);
         document.setHooks(hooks);
         connect(&document, &KifuDocument::headerReset, controller, &GameInfoPane::setGameInfo);
         connect(&document, &KifuDocument::headerValueSet, controller, &GameInfoPane::updateGameInfoValue);
@@ -515,7 +518,7 @@ private slots:
         QCOMPARE(table.text(6, 1), QStringLiteral("練習対局"));
         QCOMPARE(table.text(7, 1), QStringLiteral("自宅"));
         QCOMPARE(table.text(8, 1), QStringLiteral("入力途中の備考"));
-        QVERIFY(!controller->isDirty());
+        QVERIFY(!controller->hasPendingEditor());
         std::swap(players.blackHumanName, players.whiteHumanName);
         document.beginMatch(players, TimeControl{}, false);
         QCOMPARE(table.text(5, 1), QStringLiteral("無制限"));
@@ -545,7 +548,7 @@ private slots:
         QCOMPARE(table.text(2, 1), QStringLiteral("新しい下手"));
         QCOMPARE(table.text(3, 1), QStringLiteral("新しい上手"));
         QCOMPARE(table.text(5, 1), QStringLiteral("下手 01:00+2 / 上手 02:00+3"));
-        QVERIFY(!controller->isDirty());
+        QVERIFY(!controller->hasPendingEditor());
 
         tree.setRootSfen(SfenUtils::hirateSfen());
         players.blackHumanName = QStringLiteral("太郎");

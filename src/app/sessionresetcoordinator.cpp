@@ -30,31 +30,25 @@ KifuBranchNode* SessionResetCoordinator::prepareGameStart(const GameStartPrepara
     }
     if (!node) {
         // 新しい棋譜（前の棋譜の対局の記録・上書き保存先は残さない）。対局情報は利用者が対局の前に
-        // 書いた項目（棋戦・場所など）を残し、対局者・日時・持ち時間は対局の開始で作り直す
+        // 書いた項目（棋戦・場所など）を残し、対局者・日時・持ち時間は対局の開始で作り直す。
+        // 評価値グラフとエンジンの表示は、文書の置き換えを受けて消える
         m_deps.document->startNew(SfenUtils::normalizeStart(preparation.rootSfen), /*keepHeader=*/true);
         node = tree->root();
+    } else {
+        // 現在局面から続けるときは、それまでの評価値を残す
+        if (m_deps.engineDisplay) m_deps.engineDisplay->clearAll();
+        m_deps.evalGraph->trimToPly(node->ply());
     }
-
-    if (m_deps.engineDisplay) m_deps.engineDisplay->clearAll();
-    // 現在局面から続けるときは、それまでの評価値を残す
-    if (fromCurrent) m_deps.evalGraph->trimToPly(node->ply());
-    else m_deps.evalGraph->clear();
 
     m_deps.liveSession->startFromNode(node);
     return node;
 }
 
-void SessionResetCoordinator::resetToNewRecord(const QString& sfen, bool keepHeader)
+void SessionResetCoordinator::resetToNewRecord(const QString& sfen)
 {
     // 読み込み途中の棋譜は捨てる（ツリーはここで作り直す）
     m_deps.kifuLoader->cancelLoad();
     m_deps.liveSession->discard();
-    // 評価値グラフの系列名は、対局者が消えたことを受けて EngineDisplayPresenter が消す
-    m_deps.document->startNew(sfen, keepHeader);
-}
-
-void SessionResetCoordinator::clearBeforeKifuLoad()
-{
-    if (m_deps.engineDisplay) m_deps.engineDisplay->clearAll();
-    m_deps.evalGraph->clear();
+    // 評価値グラフ・エンジンの表示は、文書の置き換えを受けて消える
+    m_deps.document->startNew(sfen);
 }

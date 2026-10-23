@@ -79,6 +79,10 @@ private:
     bool isHumanTurnNow() const;
     /// 検討の候補手の矢印を盤に出すか（検討タブの設定）
     bool showConsiderationArrows() const;
+    /// 入力中の編集（対局情報欄のセル・コメント欄の本文）を文書に確定する（KifuDocument::Hooks）
+    void commitPendingEdits();
+    /// 文書に入っていない入力中の編集があるか（KifuDocument::Hooks）
+    bool hasPendingEdits() const;
 
     MainWindow& m_window;
     Ui::MainWindow& m_ui;

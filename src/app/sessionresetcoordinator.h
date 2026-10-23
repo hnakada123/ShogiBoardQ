@@ -19,8 +19,9 @@ class LiveGameSession;
  * @brief 棋譜（文書）とエンジン・解析の表示を作り直す処理を1か所にまとめる
  *
  * 棋譜の作り直しは文書の置き換え（KifuDocument::startNew）で、対局情報・対局の記録・上書き保存先も一緒に消える。
- * 棋譜欄・分岐・盤・コメントは、ツリーと表示中の手が変わると各部品が自分で合わせるので、ここでは触らない。
- * ここで消すのは、ツリーから作られない表示（評価値グラフと、EngineDisplayPresenter が持つエンジンの表示）だけ。
+ * 棋譜欄・分岐・盤・コメントは、ツリーと表示中の手が変わると各部品が自分で合わせ、ツリーから作られない表示
+ * （評価値グラフと、EngineDisplayPresenter が持つエンジンの表示）は文書の置き換え（KifuDocument::replaced）を
+ * 受けて自分で消す。ここで表示に触るのは、文書を置き換えずに現在局面から対局を続けるときだけ。
  */
 class SessionResetCoordinator
 {
@@ -43,12 +44,8 @@ public:
      */
     KifuBranchNode* prepareGameStart(const GameStartPreparation& preparation);
 
-    /// 局面 sfen だけの新しい棋譜にする（新規・局面編集・通信対局の開始）。
-    /// keepHeader なら、利用者が対局情報に書きかけた内容を残す（通信対局の開始）
-    void resetToNewRecord(const QString& sfen, bool keepHeader = false);
-
-    /// 棋譜を読み込む前に、前の対局の通信ログ・思考情報・評価値グラフを消す
-    void clearBeforeKifuLoad();
+    /// 局面 sfen だけの新しい棋譜にする（新規・局面編集）
+    void resetToNewRecord(const QString& sfen);
 
 private:
     Deps m_deps;

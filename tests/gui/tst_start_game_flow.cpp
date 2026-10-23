@@ -510,7 +510,6 @@ private slots:
         QCOMPARE(table.text(3, 1), QStringLiteral("後手"));
         table.setText(6, 1, QStringLiteral("練習対局"));
         table.setText(7, 1, QStringLiteral("自宅"));
-        controller->applyChanges();
         window->activateWindow();
         table.view->setFocus();
         QTRY_VERIFY(table.view->hasFocus());
@@ -519,7 +518,7 @@ private slots:
         table.editCurrent();
         auto* editor = qobject_cast<QLineEdit*>(QApplication::focusWidget());
         QVERIFY(editor);
-        editor->setText(QStringLiteral("更新ボタンを押す前の備考"));
+        editor->setText(QStringLiteral("確定する前の備考"));
         const QDateTime before = QDateTime::currentDateTime().addSecs(-1);
         requestedPreset = preset;
         startWindowGame();
@@ -532,14 +531,14 @@ private slots:
         QCOMPARE(table.text(5, 1), QStringLiteral("05:00+30"));
         QCOMPARE(table.text(6, 1), QStringLiteral("練習対局"));
         QCOMPARE(table.text(7, 1), QStringLiteral("自宅"));
-        QCOMPARE(table.text(8, 1), QStringLiteral("更新ボタンを押す前の備考"));
-        QVERIFY(!controller->isDirty());
+        QCOMPARE(table.text(8, 1), QStringLiteral("確定する前の備考"));
+        QVERIFY(!controller->hasPendingEditor());
         // 書き出しは文書の対局情報（入力中だったセルも確定して入っている）
         const QString kif = KifuExport::lines(*window->composer().parts().document, KifuFormat::Kif)
                                 .join(QLatin1Char('\n'));
         QVERIFY(kif.contains(QStringLiteral("棋戦：練習対局")));
         QVERIFY(kif.contains(QStringLiteral("場所：自宅")));
-        QVERIFY(kif.contains(QStringLiteral("備考：更新ボタンを押す前の備考")));
+        QVERIFY(kif.contains(QStringLiteral("備考：確定する前の備考")));
         QVERIFY(!kif.contains(QStringLiteral("未開始")));
         window->composer().parts().match->handleBreakOff();
     }

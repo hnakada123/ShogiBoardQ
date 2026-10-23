@@ -146,9 +146,10 @@ trigger_action(name="actionResetDockLayout")
 
 対局情報は `show_dock(widget="GameInfoDock")` で表示し、
 `get_widget_text(widget="gameInfoTable")` で行を確認できます。
-`edit_table_cell(widget="gameInfoTable", row=1, column=1, text="対局者名")` は0始まりの行・列を編集します。
-`gameInfoApply`、`gameInfoUndo`、`gameInfoRedo`、`gameInfoCut`、`gameInfoCopy`、`gameInfoPaste`、
-`gameInfoAddRow`、`gameInfoFontIncrease`、`gameInfoFontDecrease` は `click_widget` で操作できます。
+`edit_table_cell(widget="gameInfoTable", row=1, column=1, text="対局者名")` は0始まりの行・列を編集します
+（編集した内容はそのまま棋譜に入ります）。
+`gameInfoUndo`、`gameInfoRedo`、`gameInfoCut`、`gameInfoCopy`、`gameInfoPaste`、
+`gameInfoAddRow`、`gameInfoRemoveRow`、`gameInfoFontIncrease`、`gameInfoFontDecrease` は `click_widget` で操作できます。
 浮動ウィンドウでは `target="GameInfoDock"` を指定します。
 `get_widget_text(widget="blackNameLabel")` / `whiteNameLabel` は盤面に表示される対局者名の全文を返します。
 
