@@ -79,8 +79,6 @@ private:
     bool isHumanTurnNow() const;
     /// 検討の候補手の矢印を盤に出すか（検討タブの設定）
     bool showConsiderationArrows() const;
-    /// 今、定跡手の矢印を盤に出してよいか（定跡ウィンドウで表示を止めていない・対局中なら人間の手番）
-    bool josekiArrowsAllowed() const;
 
     MainWindow& m_window;
     Ui::MainWindow& m_ui;

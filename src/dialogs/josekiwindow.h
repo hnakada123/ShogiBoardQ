@@ -13,9 +13,10 @@
 #include "fontsizehelper.h"
 #include "josekilines.h"
 #include "josekitableview.h"
+#include "recordline.h"
 
+class QAction;
 class QCheckBox;
-class QCloseEvent;
 class QDockWidget;
 class QDragEnterEvent;
 class QDropEvent;
@@ -39,6 +40,8 @@ class JosekiTableModel;
  * - ファイルの利用者操作（開く・新規・保存・履歴）と確認ダイアログは JosekiFileController
  * - 定跡手の追加・編集・削除のダイアログは JosekiEditController、マージは JosekiMergeController
  * - 表の中身は JosekiTableModel（「着手」「編集」「削除」の列はボタンとして描く）
+ * - 定跡の表示の停止・盤の手の登録・盤の矢印は、渡された QAction を正本にする（ボタンとチェックはそれに結ぶだけ）
+ * - 前回のファイルの読み込みは、初めて表示したときにセッションに頼む（JosekiBookSession::startDeferredLoad）
  */
 class JosekiWindow : public QWidget
 {
@@ -50,56 +53,45 @@ class JosekiWindow : public QWidget
 #endif
 
 public:
+    /// 定跡ウィンドウのボタンとチェックが結ぶ切り替え（どれも checkable。無いものはウィンドウが作る）
+    struct Actions {
+        QAction *display = nullptr;           ///< 定跡を表に出す（外すと「■ 停止」の状態。盤の矢印も出さない）
+        QAction *recordBoardMoves = nullptr;  ///< 盤で指した手を登録する（「盤の手を登録」）
+        QAction *boardArrows = nullptr;       ///< 盤に定跡手の矢印を出す（「表示」メニューの「盤に定跡手を表示」）
+    };
+
     /// session は開いている定跡（必須。非所有で、ウィンドウより長く生きる）
+    JosekiWindow(JosekiBookSession *session, const Actions &actions, QWidget *parent = nullptr);
+    /// 切り替えの QAction をすべてウィンドウが作る
     explicit JosekiWindow(JosekiBookSession *session, QWidget *parent = nullptr);
     ~JosekiWindow() override;
 
     void setCurrentSfen(const QString &sfen);
-    void setHumanCanPlay(bool canPlay);
-    /// 定跡手を指せるかを問い合わせる関数。設定すると、表示の更新や着手のたびにその場で判定する
+    /// 定跡手を指せるかを問い合わせる関数。表示の更新や着手のたびにその場で判定する
     /// （定跡ファイルを開いた直後など、局面が変わらないときも最新の状態にするため）
     void setHumanCanPlayProvider(std::function<bool()> provider);
+    /// 定跡手を指せるかを問い合わせ直し、変わっていれば表の「着手」を作り直す
+    void updateHumanCanPlay();
     void setDockWidget(QDockWidget *dock);
     [[nodiscard]] bool confirmClose();
 
-    /// 表示中の手順を受け取り、マージダイアログを開く（requestKifuDataForMerge への応答）
-    void setKifuDataForMerge(const QStringList &sfenList,
-                             const QStringList &moveList,
-                             const QStringList &japaneseMoveList,
-                             int currentPly);
+    /// 表示中の手順の手を選んで登録するダイアログを開く（requestKifuDataForMerge への応答）
+    void openMergeForLine(const RecordLine &line);
     /// 定跡手を盤に指せなかったことを知らせる
     void showMoveFailed(const QString &usiMove);
-    /// 定跡を表に出しているか（「■ 停止」で止めていなければ true。盤の矢印も止めているときは出さない）
-    bool isDisplayEnabled() const { return m_displayEnabled; }
-    /// 定跡に手を登録できるか（前回のファイルの読み込みを待っておらず、読み書き中でない）。
-    /// 前回のファイルは初めて表示したときに読み込み、それまでのデータを置き換えるので、その前は登録させない
-    bool canRegisterMoves() const;
-    /// 「盤の手を登録」がオンか
-    bool isRecordingBoardMoves() const;
     /// 表示中の手順が定跡を外れた手を出す（ply > 0 ならその手数の手 moveText、0 ならすべて定跡、負なら出さない）
     void setBookDeviation(int ply, const QString &moveText);
-
-public slots:
-    /// 「盤に矢印」のチェック（「表示」メニューの「盤に定跡手を表示」と同じ状態にする）
-    void setBoardArrowsChecked(bool checked);
-    /// 盤で指した手・対局で指された手（sfen は指す前の局面）。「盤の手を登録」がオンなら、
-    /// まだ無い手を予想応手なし・評価値0・深さ0・出現頻度1で登録する（ある手は変えない）
-    void recordBoardMove(const QString &sfen, const QString &usiMove);
 
 signals:
     void josekiMoveSelected(const QString &usiMove);
     void requestKifuDataForMerge();
-    /// 「盤に矢印」のチェックを変えた
-    void boardArrowsToggled(bool checked);
-    /// 「■ 停止」「▶ 再開」で定跡の表示を止めた・再開した
-    void displayEnabledChanged(bool enabled);
     /// 「棋譜に展開...」で、表示中の局面から定跡を棋譜の変化に展開する条件を選んだ
     void expandRequested(const JosekiLines::ExpandOptions &options);
     /// 定跡を外れた手（の表示）を押した（その手数へ移る）
     void deviationPlyRequested(int ply);
 
 protected:
-    void closeEvent(QCloseEvent *event) override;
+    /// 初めて表示したときに前回のファイルを読み込む
     void showEvent(QShowEvent *event) override;
     /// 定跡ファイル（.db）1つのドロップは開き、棋譜ファイル・フォルダは複数の棋譜から登録するダイアログに並べる
     void dragEnterEvent(QDragEnterEvent *event) override;
@@ -109,13 +101,11 @@ protected:
 private slots:
     // --- 開いている定跡の変化 ---
     void onFilePathChanged();
-    void onBookLoaded();
     void onRecentFilesChanged();
-    void onBusyChanged(bool busy);
+    /// 読み書き中か・前回のファイルの読み込みを待つかが変わった（定跡を変えられるかが変わる）
+    void onEditableChanged();
     void onModifiedChanged(bool modified);
-    /// マージの登録の保存が終わった（定跡が変わったので表を作り直す）
-    void onMergeFinished();
-    /// 定跡の中身が変わった（ほかの部品が登録したときも、表を作り直す）
+    /// 定跡の中身が変わった（このウィンドウの編集も、ほかの部品の登録も、表はここで作り直す）
     void onContentChanged();
 
     // --- 定跡手の操作 ---
@@ -126,8 +116,10 @@ private slots:
     // --- 表示 ---
     void onSfenDetailToggled(bool checked);
     void onAutoLoadCheckBoxChanged(Qt::CheckState state);
-    void onStopButtonClicked();
-    void onRecordBoardMovesToggled(bool checked);
+    /// 「■ 停止」「▶ 再開」を押した（表示の切り替えを変える）
+    void onStopButtonClicked(bool stopped);
+    /// 表示の切り替えが変わった（ボタンの文字と表を合わせる）
+    void onDisplayToggled(bool displayed);
     void onExpandButtonClicked();
     void onDeviationClicked();
     void onRestoreStatusDisplay();
@@ -151,7 +143,9 @@ private:
     void updateRecentFilesMenu();
 
     // --- 定跡手の操作 ---
-    bool isIoBusy() const;
+    /// 定跡を変えられるか（読み書き中でなく、前回のファイルの読み込みを待っていない）
+    bool canEdit() const;
+    bool isDisplayEnabled() const;
     void editMoveAt(int row);
     void deleteMoveAt(int row);
     void playMoveAt(int row);
@@ -195,6 +189,7 @@ private:
     /// 表示中の手順が定跡を外れた手（押すとその手へ移る）
     QPushButton  *m_deviationButton = nullptr;
     int           m_deviationPly = -1;
+    Actions       m_actions;
 
     // === 状態表示 ===
     QLabel       *m_currentSfenLabel = nullptr;
@@ -214,11 +209,10 @@ private:
     bool          m_humanCanPlay = true;
     std::function<bool()> m_humanCanPlayProvider;
     bool          m_autoLoadEnabled = true;
-    bool          m_displayEnabled = true;
     /// 表に出している局面。同じ局面が続けて設定されたときに表を作り直さないための覚え
     QString       m_displayedSfen;
-    /// 遅延読込（初めて表示するときに前回のファイルを読み込む）。空なら読み込まない
-    QString       m_pendingAutoLoadPath;
+    /// 新規・読み込み・保存でファイルを選んだ（選ぶまではファイル名の欄に「未選択」と出す）
+    bool          m_fileChosen = false;
     /// ドロップされたファイル・フォルダ（ドロップの処理の後で開く）
     QStringList   m_droppedPaths;
 

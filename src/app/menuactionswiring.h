@@ -7,7 +7,6 @@
 namespace Ui { class MainWindow; }
 class AnalysisSession;
 class BoardInteractionController;
-class CandidateArrowPresenter;
 class DialogLauncher;
 class GameSession;
 class ImageExportController;
@@ -42,7 +41,6 @@ struct Deps {
     MainWindowAppearanceController* appearance = nullptr; ///< 盤の反転・拡大・縮小、ツールバー
     ImageExportController* images = nullptr;           ///< 盤・評価値グラフの画像
     BoardInteractionController* boardController = nullptr; ///< 合法手の表示
-    CandidateArrowPresenter* arrows = nullptr;         ///< 盤の定跡手の矢印
     PieceSoundPlayer* pieceSound = nullptr;            ///< 駒音
     SettingsResetController* settingsReset = nullptr;  ///< 設定の初期化
 };

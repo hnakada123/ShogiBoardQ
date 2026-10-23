@@ -16,7 +16,6 @@
 #include "josekibook.h"
 #include "shogiposition.h"
 #include "josekibooksession.h"
-#include "josekimergeentries.h"
 #include "josekitablemodel.h"
 #include "josekitypes.h"
 
@@ -65,16 +64,15 @@ private slots:
     void saveAndLoad_emptyBook();
     void failedSave_preservesOriginal();
     void saveFailureChild();
-    void mergeFailure_canRetryWithoutDoubleCounting();
+    void session_rejectsEditsWhileBusyOrWaiting();
     void japaneseMove_usesPositionTurn();
     void japaneseMove_noneReply();
     void tableModel_showsFrequencyRatio();
     void tableModel_showsDerivedReplyInGray();
-    void mergeEntries_readOtherKifuFormats();
 
     // --- Merge ---
-    void registerMergeMove_newEntry_addsWithFrequency1();
-    void registerMergeMove_existing_incrementsFrequency();
+    void addPlayedMove_newEntry_addsWithFrequency1();
+    void addPlayedMove_existing_incrementsFrequency();
     void putMove_keepsFirstRegisteredSfen();
     void putMove_replacesInPlace();
     void load_keepsRegistrationsPerPly();
@@ -204,14 +202,13 @@ void TestJosekiBook::clear_resetsAll()
 {
     JosekiBook repo;
     repo.putMove(kHirateSfenWithPly, makeMove(QStringLiteral("7g7f")));
-    repo.registerMergeMove(kHirateSfenWithPly, QStringLiteral("2g2f"));
+    repo.addPlayedMove(kHirateSfenWithPly, QStringLiteral("2g2f"));
 
     repo.clear();
 
     QVERIFY(repo.isEmpty());
     QCOMPARE(repo.positionCount(), 0);
     QVERIFY(!repo.contains(kHirateSfen));
-    QVERIFY(repo.mergeRegistered().isEmpty());
 }
 
 void TestJosekiBook::find_nullForUnknown()
@@ -436,11 +433,11 @@ void TestJosekiBook::save_writesExpectedFormat()
 // マージ操作テスト
 // =============================================================
 
-void TestJosekiBook::registerMergeMove_newEntry_addsWithFrequency1()
+void TestJosekiBook::addPlayedMove_newEntry_addsWithFrequency1()
 {
     JosekiBook repo;
 
-    repo.registerMergeMove(kHirateSfenWithPly, QStringLiteral("7g7f"));
+    QVERIFY(repo.addPlayedMove(kHirateSfenWithPly, QStringLiteral("7g7f")));
 
     QVERIFY(repo.contains(kHirateSfen));
     const QList<JosekiMove> &moves = repo.movesAt(kHirateSfen);
@@ -449,24 +446,16 @@ void TestJosekiBook::registerMergeMove_newEntry_addsWithFrequency1()
     QCOMPARE(moves[0].frequency, 1);
     QCOMPARE(moves[0].nextMove, QStringLiteral("none"));
 
-    // マージ登録済みセットに記録されている
-    QVERIFY(repo.isMergeRegistered(kHirateSfenWithPly, QStringLiteral("7g7f")));
-    QVERIFY(repo.mergeRegistered().contains({kHirateSfen, QStringLiteral("7g7f")}));
-
     // 局面は登録したときの手数付きの SFEN で覚える
     QCOMPARE(repo.registeredSfen(kHirateSfen), kHirateSfenWithPly);
-
-    // 定跡手を消すと登録済みの印も消える（マージでもう一度登録できる）
-    QVERIFY(repo.removeMove(kHirateSfenWithPly, QStringLiteral("7g7f")));
-    QVERIFY(!repo.isMergeRegistered(kHirateSfenWithPly, QStringLiteral("7g7f")));
 }
 
-void TestJosekiBook::registerMergeMove_existing_incrementsFrequency()
+void TestJosekiBook::addPlayedMove_existing_incrementsFrequency()
 {
     JosekiBook repo;
     repo.putMove(kHirateSfen, makeMove(QStringLiteral("7g7f"), 30, 10, 5));
 
-    repo.registerMergeMove(kHirateSfenWithPly, QStringLiteral("7g7f"));
+    QVERIFY(!repo.addPlayedMove(kHirateSfenWithPly, QStringLiteral("7g7f")));
 
     const QList<JosekiMove> &moves = repo.movesAt(kHirateSfen);
     QCOMPARE(moves.size(), 1);
@@ -673,7 +662,7 @@ void TestJosekiBook::load_keepsRegistrationsPerPly()
     // 編集は引いた登録だけを変える。最後の手を消すとその登録だけが消える
     QVERIFY(book.updateMove(at23, makeMove(QStringLiteral("4i5h"), 7, 20, 4)));
     QCOMPARE(book.movesAt(at21).size(), 2);
-    book.registerMergeMove(at23, QStringLiteral("6g6f"));
+    book.addPlayedMove(at23, QStringLiteral("6g6f"));
     QCOMPARE(book.movesAt(at23).at(1).frequency, 4);
     QCOMPARE(book.movesAt(at21).at(0).frequency, 2);
 
@@ -851,47 +840,51 @@ void TestJosekiBook::saveFailureChild()
 #endif
 }
 
-void TestJosekiBook::mergeFailure_canRetryWithoutDoubleCounting()
+/// 読み書き中と前回のファイルの読み込み待ちの間は、定跡を変えない（保存する写し・読み込む定跡と食い違うため）
+void TestJosekiBook::session_rejectsEditsWhileBusyOrWaiting()
 {
     QTemporaryDir dir;
     QVERIFY(dir.isValid());
+    const QString path = dir.filePath(QStringLiteral("book.db"));
     JosekiBookSession session;
-    session.addMove(kHirateSfenWithPly, makeMove(QStringLiteral("7g7f"), 30, 10, 5));
-    const QString directory = dir.filePath(QStringLiteral("book-dir"));
-    QVERIFY(QDir().mkpath(directory));
-    const QString path = directory + QStringLiteral("/book.db");
-    QVERIFY(session.save(path));
-    QVERIFY(QFile::remove(path));
-    QVERIFY(QDir().rmdir(directory));
+    QVERIFY(session.addMove(kHirateSfenWithPly, makeMove(QStringLiteral("7g7f"), 30, 10, 5)));
+    const QList<JosekiImport::Move> played{{kHirateSfenWithPly, QStringLiteral("7g7f"), 1, {}}};
 
-    // 保存できなければ何も変えない（登録済みの印も付けない）。保存はワーカースレッドで行い、終わりを知らせる
-    const KifuMergeEntry entry{1, kHirateSfenWithPly, QStringLiteral("7g7f"), {}, false};
-    QSignalSpy finished(&session, &JosekiBookSession::mergeFinished);
-    QSignalSpy failed(&session, &JosekiBookSession::saveFailed);
-    QVERIFY(session.startRegisterMergeMoves({entry}));
-    QVERIFY(session.isBusy());
-    QCOMPARE(session.activity(), JosekiBookSession::Activity::Saving);
-    QVERIFY(!session.startRegisterMergeMoves({entry}));  // 保存中は始めない
-    QVERIFY(finished.wait());
-    QCOMPARE(finished.takeFirst().at(0).toBool(), false);
-    QCOMPARE(failed.count(), 1);
-    QVERIFY(!failed.takeFirst().at(0).toString().isEmpty());
-    QVERIFY(!session.isBusy());
+    QSignalSpy saved(&session, &JosekiBookSession::saved);
+    QVERIFY(session.startSave(path));
+    QVERIFY(!session.canEdit());
+    QVERIFY(!session.addMove(kHirateSfenWithPly, makeMove(QStringLiteral("2g2f"))));
+    QCOMPARE(session.importMoves(played).updated, 0);
+    QVERIFY(saved.wait());
+    QVERIFY(session.canEdit());
+    QCOMPARE(session.movesAt(kHirateSfen).size(), 1);
     QCOMPARE(session.movesAt(kHirateSfen).first().frequency, 5);
-    QVERIFY(session.mergeRegisteredMoves().isEmpty());
 
-    // 保存できるようになれば登録でき、同じ手をもう一度登録しても数えない
-    QVERIFY(QDir().mkpath(directory));
-    for (int i = 0; i < 2; ++i) {
-        QVERIFY(session.startRegisterMergeMoves({entry}));
-        QVERIFY(finished.wait());
-        QCOMPARE(finished.takeFirst().at(0).toBool(), true);
-    }
-    QCOMPARE(session.movesAt(kHirateSfen).first().frequency, 6);
-    QVERIFY(!session.isModified());
-    const JosekiLoadResult loaded = JosekiBookFile::load(path);
-    QVERIFY(loaded.success);
-    QCOMPARE(loaded.book.movesAt(kHirateSfen).first().frequency, 6);
+    // 前回のファイルを読み込むまで（初めて使うまで）も変えない。別の定跡を作れば待つのをやめる
+    JosekiBookSession restored;
+    QSignalSpy waiting(&restored, &JosekiBookSession::deferredLoadChanged);
+    restored.restore({path}, path, true);
+    QCOMPARE(restored.deferredLoadPath(), path);
+    QCOMPARE(waiting.count(), 1);
+    QVERIFY(!restored.canEdit());
+    QVERIFY(!restored.addMove(kHirateSfenWithPly, makeMove(QStringLiteral("2g2f"))));
+    QCOMPARE(restored.importMoves(played).added, 0);
+    QVERIFY(restored.isEmpty());
+    QSignalSpy loaded(&restored, &JosekiBookSession::loaded);
+    restored.startDeferredLoad();
+    QVERIFY(restored.deferredLoadPath().isEmpty());
+    QVERIFY(loaded.wait());
+    QVERIFY(restored.canEdit());
+    QCOMPARE(restored.importMoves(played).updated, 1);
+    QCOMPARE(restored.movesAt(kHirateSfen).first().frequency, 6);
+    QVERIFY(restored.isModified());
+
+    JosekiBookSession abandoned;
+    abandoned.restore({path}, path, true);
+    abandoned.newBook();
+    QVERIFY(abandoned.deferredLoadPath().isEmpty());
+    QVERIFY(abandoned.canEdit());
+    QCOMPARE(abandoned.lastFilePath(), path);  // 新しい定跡はファイルではないので、前回のファイルは覚えておく
 }
 
 void TestJosekiBook::japaneseMove_usesPositionTurn()
@@ -1015,28 +1008,6 @@ void TestJosekiBook::tableModel_showsDerivedReplyInGray()
     // 導いた応手を渡さなければ「なし」のまま
     model.setMoves(hirate, {makeMove(QStringLiteral("7g7f"))}, true);
     QCOMPARE(next(0, Qt::DisplayRole).toString(), QStringLiteral("なし"));
-}
-
-/// 棋譜ファイルからのマージは KIF 以外の形式も読む（形式はファイルから判定する）
-void TestJosekiBook::mergeEntries_readOtherKifuFormats()
-{
-    QTemporaryDir dir;
-    QVERIFY(dir.isValid());
-    const QString path = dir.filePath(QStringLiteral("game.csa"));
-    {
-        QFile file(path);
-        QVERIFY(file.open(QIODevice::WriteOnly));
-        file.write("V2.2\nPI\n+\n+7776FU\n-3334FU\n%TORYO\n");
-    }
-    QList<KifuMergeEntry> entries;
-    QString error;
-    QVERIFY2(JosekiMergeEntries::fromKifuFile(path, entries, &error), qPrintable(error));
-    QCOMPARE(entries.size(), 2);
-    QCOMPARE(entries.at(0).usiMove, QStringLiteral("7g7f"));
-    QCOMPARE(JosekiBook::positionKey(entries.at(0).sfen), JosekiBook::positionKey(SfenUtils::hirateSfen()));
-    QCOMPARE(entries.at(1).usiMove, QStringLiteral("3c3d"));
-    QCOMPARE(JosekiBook::positionKey(entries.at(1).sfen),
-             JosekiBook::positionKey(SfenReplay::positionAfter(SfenUtils::hirateSfen(), QStringLiteral("7g7f"))));
 }
 
 QTEST_MAIN(TestJosekiBook)

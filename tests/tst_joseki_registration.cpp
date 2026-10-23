@@ -4,6 +4,7 @@
 #include <QtTest>
 #include <QAction>
 #include <QMenu>
+#include <QTemporaryDir>
 
 #include "josekibooksession.h"
 #include "josekiregistrationcontroller.h"
@@ -46,21 +47,30 @@ private:
                                     UsiScore{}, -1));
     }
 
-    bool m_canRegister = true;
-    bool canRegister() const { return m_canRegister; }
+    QTemporaryDir m_dir;
 
-    JosekiRegistrationController::Deps deps(JosekiBookSession *book, const KifuAnalysisListModel *model)
+    /// 前回のファイルの読み込みを待たせる（待っている間は定跡を変えられないので登録できない）
+    void waitForDeferredLoad(JosekiBookSession &book)
+    {
+        const QString path = m_dir.filePath(QStringLiteral("pending.db"));
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.close();
+        book.restore({path}, path, true);
+        QVERIFY(!book.canEdit());
+    }
+
+    static JosekiRegistrationController::Deps deps(JosekiBookSession *book, const KifuAnalysisListModel *model,
+                                                   const QAction *recordBoardMoves = nullptr)
     {
         JosekiRegistrationController::Deps d;
         d.book = book;
-        d.canRegister = std::bind(&TestJosekiRegistration::canRegister, this);
+        d.recordBoardMoves = recordBoardMoves;
         d.analysisModel = model;
         return d;
     }
 
 private slots:
-    void init() { m_canRegister = true; }
-
     /// 結果の表の行は先手から見た評価値なので、後手番の局面では符号を直して登録する
     void analysisRows_registerWithSideToMoveValue()
     {
@@ -101,10 +111,10 @@ private slots:
         QCOMPARE(controller.registerAnalysisRows(0, 0, false, true).added, 0);
         QVERIFY(book.isEmpty());
 
-        m_canRegister = false;
+        waitForDeferredLoad(book);
         QCOMPARE(controller.registerAnalysisRows(0, 2, true, true).added, 0);
         QVERIFY(book.isEmpty());
-        m_canRegister = true;
+        book.newBook();
         QCOMPARE(controller.registerAnalysisRows(1, 2, true, true).added, 1);
         QVERIFY(book.hasPosition(afterBlack()));
         QVERIFY(!book.hasPosition(hirate()));
@@ -138,12 +148,12 @@ private slots:
         QCOMPARE(move.depth, 24);
 
         // 登録できないとき・読み筋が無い行は押せない
-        m_canRegister = false;
+        waitForDeferredLoad(book);
         thinking.appendRow(info);
         QMenu disabledMenu;
         controller.onThinkingRowContextMenu(&thinking, 0, &disabledMenu);
         QVERIFY(!disabledMenu.findChild<QAction *>(QStringLiteral("josekiRegisterPv"))->isEnabled());
-        m_canRegister = true;
+        book.newBook();
         info.usiPv.clear();
         thinking.appendRow(info);
         QMenu noPvMenu;
@@ -170,6 +180,46 @@ private slots:
         controller.onAnalysisRowContextMenu(2, &bookMenu);
         QVERIFY(!bookMenu.findChild<QAction *>(QStringLiteral("josekiRegisterPv"))->isEnabled());
         QVERIFY(bookMenu.findChild<QAction *>(QStringLiteral("josekiRegisterAnalysis"))->isEnabled());
+    }
+
+    /// 「盤の手を登録」: オンの間だけ、まだ無い手を予想応手なし・評価値0・深さ0・出現頻度1で登録する（ある手は変えない）。
+    /// 定跡を変えられないとき（前回のファイルの読み込み待ち）は登録しない
+    void boardMoves_registeredOnlyWhileChecked()
+    {
+        JosekiBookSession book;
+        QVERIFY(book.addMove(hirate(), {QStringLiteral("7g7f"), QStringLiteral("none"), 10, 32, 1, {}}));
+        book.setModified(false);
+        QAction record;
+        record.setCheckable(true);
+        JosekiRegistrationController controller(deps(&book, nullptr, &record));
+
+        // オフ（起動したとき）なら登録しない
+        controller.recordBoardMove(afterBlack(), QStringLiteral("3c3d"));
+        QVERIFY(!book.hasPosition(afterBlack()));
+        QVERIFY(!book.isModified());
+
+        record.setChecked(true);
+        controller.recordBoardMove(afterBlack(), QStringLiteral("3c3d"));
+        QCOMPARE(book.movesAt(afterBlack()).size(), 1);
+        const JosekiMove added = book.movesAt(afterBlack()).constFirst();
+        QCOMPARE(added.move, QStringLiteral("3c3d"));
+        QCOMPARE(added.nextMove, QStringLiteral("none"));
+        QCOMPARE(added.value, 0);
+        QCOMPARE(added.depth, 0);
+        QCOMPARE(added.frequency, 1);
+        QVERIFY(book.isModified());
+
+        // 登録済みの手は変えない
+        controller.recordBoardMove(hirate(), QStringLiteral("7g7f"));
+        const JosekiMove kept = book.movesAt(hirate()).constFirst();
+        QCOMPARE(kept.value, 10);
+        QCOMPARE(kept.depth, 32);
+        QCOMPARE(kept.frequency, 1);
+
+        // 前回のファイルの読み込みを待っている間（読み込むと定跡を置き換える）は登録しない
+        waitForDeferredLoad(book);
+        controller.recordBoardMove(afterBlack(), QStringLiteral("8c8d"));
+        QVERIFY(!book.hasMove(afterBlack(), QStringLiteral("8c8d")));
     }
 };
 

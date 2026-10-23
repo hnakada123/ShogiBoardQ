@@ -366,18 +366,12 @@ bool JosekiBook::removeMove(const QString &sfen, const QString &usiMove)
     // 登録の最後の定跡手なら見出しも消し、登録が無くなれば局面も消す
     if (range.end - range.header == 2) it->removeAt(range.header);
     if (it->isEmpty()) m_positions.erase(it);
-    // マージで登録した印も消す（消した手は、マージでもう一度登録できる）
-    m_mergeRegistered.remove({positionKey(sfen), usiMove});
     return true;
 }
 
-bool JosekiBook::registerMergeMove(const QString &sfen, const QString &usiMove, int count, const QString &comment)
+bool JosekiBook::addPlayedMove(const QString &sfen, const QString &usiMove, int count, const QString &comment)
 {
-    const QString key = positionKey(sfen);
-    m_mergeRegistered.insert({key, usiMove});
-    QByteArray keyBytes = key.toUtf8();
-    keyBytes.squeeze();
-    Records &records = m_positions[keyBytes];
+    Records &records = m_positions[keyOf(sfen)];
     const Range range = findOrCreate(records, sfen);
     const quint16 code = encodeMove(usiMove);
     const qsizetype index = indexOf(records, range, code);
@@ -462,18 +456,12 @@ JosekiBook::MergeStats JosekiBook::mergeFrom(const JosekiBook &other, const Merg
     return stats;
 }
 
-bool JosekiBook::isMergeRegistered(const QString &sfen, const QString &usiMove) const
-{
-    return m_mergeRegistered.contains({positionKey(sfen), usiMove});
-}
-
 void JosekiBook::clear()
 {
     m_positions.clear();
     m_tokens.clear();
     m_tokenCodes.clear();
     m_comments = QStringList{QString()};
-    m_mergeRegistered.clear();
 }
 
 // ============================================================

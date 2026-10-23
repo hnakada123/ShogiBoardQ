@@ -101,6 +101,7 @@
 | 2026-10-16 | 分岐ツリーの変更の知らせを型付きにし、図を `BranchTreeView`・`BranchNodeItem` に作り直したのに合わせて §1.5・§1.8・§3.5・§4.4・§4.5・§6.9・§8.2・§8.3・§8.6・§8.7・§10.2〜§10.4・§11.1・§11.2・§11.5・§13.1・§13.3・§16.2・第18章を更新（`KifuBranchTree::treeChanged` を `nodeAppended`・`childrenReordered`・`subtreeRemoved`・`reset` に分け、一括更新は知らせを遅らせて順に出す。`*Quiet` の関数・`newestNode()` を削除し、`addMove`・`addTerminalMove`・`findByPlyOnMainLine`・`findBySfen` はテスト用の `TestTree`（`tests/branchtree_test_util.h`）に移した。ノードは子を `std::unique_ptr` で所有する。`BranchTreeManager` を削除し、図はツリーの知らせを自分で受けて、外とはノード ID でやり取りする（`KifuNavigationController::selectBranchTreeNode(nodeId)`・`BranchTreeEditController::onNodeContextMenuAboutToShow(nodeId, menu)`）） |
 | 2026-10-16 | 盤の位置を値の型 `BoardGeometry` に、対局者カードを `PlayerCard` にしたのに合わせて §1.5・§11.1・§11.5・§12.6・第18章を更新（`ShogiViewLayout`（`shogiviewlayout.h/.cpp`）を削除し、盤・マス・駒台のセル・座標の文字・カードの位置を `BoardGeometry::Params` から1度だけ計算してウィジェット座標で持つ。ShogiView は `boardGeometry()` で返し、`rebuildGeometry()` で作り直す。`calculateSquareRectangleBasedOnBoardState()`・`cachedFieldRect()`・マスの矩形のキャッシュ・`setFieldSize()`（`fieldSize` は読み出し専用）・`updateBoardSize()`・`setStandGapCols()` を削除。`BoardChromeWidget` は `setBoardLayout()` を `setBoardGeometry()` に置き換え、名前・時計・札の関数（`setBlackPlayerName()`・`setBlackClockText()`・`blackNameLabel()`・`turnBadge()`・`visibleCardRect()` など）を `card(Turn)` が返す `PlayerCard` の `setName()`・`setClockText()`・`nameLabel()`・`clockLabel()`・`turnBadge()` に移した） |
 | 2026-10-23 | 動作状態に持ち主を付けた（監査 R1）のに合わせて §1.5・§3.4・§4.2・§6.2・第14章を更新（`AppState` を廃止して合成ルートが `AppActivityState` を持ち、部品は `AppActivityState*` を受け取る。状態を変えるのは `begin()` が返す `ActivityLease` を持つ部品だけで、別の部品が別の動作を始めると前の持ち主に `revoked` が届く。局面編集は待機中だけ始め、取り上げられたら編集した局面で編集を終える） |
+| 2026-10-23 | 定跡の状態の持ち主を整理した（監査 R2）のに合わせて §1.5・§10.3・§11.3・第18章を更新（定跡の表示・「盤の手を登録」は `JosekiWindowController` の `QAction`、「盤に定跡手を表示」はメニューの `QAction` を正本にし、定跡ウィンドウ・盤の矢印（`CandidateArrowPresenter`）・盤の手の登録（`JosekiRegistrationController::recordBoardMove`）はそれを読む。前回のファイルと履歴の復元・遅延読込は `JosekiBookSession`（`restore`・`startDeferredLoad`・`lastFilePath`）が持ち、定跡を変える関数は `canEdit()` でなければ何もしない。棋譜からのマージは表示中の手順・棋譜ファイルの本譜（`RecordLine`）を `JosekiMergeDialog` に渡し、`importMoves` で登録して保存しない。「登録済」は定跡に手があるか。`JosekiMergeEntries`・`KifuMergeEntry`・`JosekiMoveKey`・マージの印を削除） |
 
 <!-- chapter-0-end -->
 
@@ -378,9 +379,8 @@ src/
 │   ├── considerationpositionresolver.cpp/.h # 検討する局面の決定
 │   ├── kifparsetypes.h             #   棋譜の読み込み結果の型（KifParseResult・KifuParseOutcome・ParseOptions）
 │   ├── josekibook.cpp/.h           #   定跡のデータの値型 JosekiBook（局面のキー→JosekiPosition の map 1つ）と、定跡ファイル（YANEURAOU-DB2016）の読み書き JosekiBookFile::load/save（ワーカースレッドから呼べる）
-│   ├── josekibooksession.cpp/.h    #   開いている定跡ファイル（JosekiBook の値・変更状態・読み書き）
-│   ├── josekimergeentries.cpp/.h   #   棋譜から定跡にマージする指し手の一覧
-│   ├── josekitypes.h               #   定跡手の値型 JosekiMove・定跡手の見分け方 JosekiMoveKey（局面のキーと USI の指し手の組）・マージの候補
+│   ├── josekibooksession.cpp/.h    #   開いている定跡ファイル（JosekiBook の値・変更状態・読み書き・履歴と前回のファイルの遅延読込。変えられないとき canEdit() は変更を受け付けない）
+│   ├── josekitypes.h               #   定跡手の値型 JosekiMove
 │   └── formats/                    #   形式ごとの変換器（テキストを読む。ファイルは KifuLoadParser が読んで渡す）
 │       ├── kiftosfenconverter.cpp/.h   #   KIF の parse()（ki2・csa・jkf・usen・usi の *tosfenconverter も形式ごとに parse() を1つ持つ）
 │       ├── kiftextparser.cpp/.h        #   KIF・KI2 で共有する読み取り（行の分類・変化の区切り・開始局面）
@@ -5726,7 +5726,7 @@ onPvRowClicked(ShogiEngineThinkingModel* model, row)
 | `LanguageController` | 言語メニュー（システム・日本語・英語・簡体字・繁体字）と棋譜表記のメニューを処理し、言語を変えたら再起動を案内する |
 | `UsiCommandController` | `UsiLogPanel` の手動コマンド入力欄からのUSIコマンドを、エンジンの枠（`EngineLifecycleManager` の E1・E2）のエンジンに送る。エンジン未起動時は通信ログにエラーを表示する |
 | `NyugyokuDeclarationHandler` | 利用者の入玉宣言を行う（`handleDeclaration(GameChannel*)`。`GameSession::declareNyugyoku()` が `activeChannel()` を渡す。コンストラクタは親ウィジェットと `const KifuDocument*`）。対局中でなければ警告、人間の手番でなければ案内を出す。窓口がこちらで判定する対局（`judgesDeclaration()`。ローカル対局）なら持将棋ルール（24点法・27点法）が選ばれているかを確かめる。確認（宣言する側は `KifuDocument::usesHandicapNames()` で下手・上手とも呼ぶ）の後で `GameChannel::declareNyugyoku()` で宣言し、判定結果が返れば（ローカル対局は `MatchCoordinator::declareNyugyoku(declarer, rule)` が盤面から判定して終局する）ダイアログで知らせる。通信対局はサーバーが判定して終局を知らせる |
-| `JosekiWindowController` | 定跡ウィンドウ（`JosekiWindow`）を作ってドックに載せ、ドックが前面にある間だけ局面に合わせて更新する。定跡手を選ぶと USI 文字列を `UsiMove::parse()` で `UsiMove` にし、成りの選択を出さずに `BoardMoveController::playUsiMove()` で指す。指せたかは `playUsiMove()` の戻り値で判定し、指せなければ定跡ウィンドウに失敗を知らせる。人間の手番かどうかは `HumanTurnPolicy`（合成ルートが `isHumanTurnNow` として渡す）に聞く。定跡へのマージには、表示中の手順（`RecordLine`）の局面・USI の指し手・表記を渡す |
+| `JosekiWindowController` | 定跡ウィンドウ（`JosekiWindow`）を作ってドックに載せ、ドックが前面にある間だけ局面に合わせて更新する。定跡手を選ぶと USI 文字列を `UsiMove::parse()` で `UsiMove` にし、成りの選択を出さずに `BoardMoveController::playUsiMove()` で指す。指せたかは `playUsiMove()` の戻り値で判定し、指せなければ定跡ウィンドウに失敗を知らせる。人間の手番かどうかは `HumanTurnPolicy`（合成ルートが `isHumanTurnNow` として渡す）に聞く。定跡へのマージには、表示中の手順（`RecordLine`）をそのまま渡す。定跡の表示（「■ 停止」）と「盤の手を登録」の checkable な `QAction` を持ち（表示は設定に保存する）、メニューの「盤に定跡手を表示」と合わせて定跡ウィンドウ・盤の矢印・盤の手の登録に渡す |
 | `MenuWindowController` | メニューバーの項目をカテゴリごとに集めて `MenuWindow` を作り（初回だけ）、押されたボタンの `QAction` を `actionTriggered` で知らせる |
 | `BranchTreeEditController` | 分岐ツリーの右クリックメニューで分岐を編集する（本譜にする・並べ替え・削除）。対局していないときの盤上の着手を、現在の手の次の手（変化）として記録する |
 | `ImageExportController` | メニューの「盤面の画像」「評価値グラフの画像」のコピー・保存（`copyBoardToClipboard()`・`saveBoardImage()` など） |
@@ -6328,7 +6328,7 @@ Urgency::Warn5  → 強い警告色（残5秒・秒読み）
 | KifuPasteDialog | QDialog | なし | クリップボードからの棋譜テキスト取り込み（形式自動判定） |
 | JosekiWindow | QWidget | なし | 定跡データベースの表示・編集・マージ（独立ウィンドウ） |
 | JosekiMoveDialog | QDialog | なし | 定跡手の追加・編集（やねうら王形式）。指し手は局面の合法手を棋譜の表記で並べた一覧から選び（`JosekiMoveInputWidget`。一覧は `moveInputCombo`）、予想応手は着手後の局面の合法手と先頭の「なし」から選ぶ（`nextMoveInputCombo`）。値は `setEntry(const JosekiMove&)`・`entry()` で受け渡し、編集モードでは渡した指し手を変えない |
-| JosekiMergeDialog | QDialog | なし | 棋譜データから定跡ファイルへのマージ（個別・一括登録）。登録済みの印は `setRegisteredMoves(QSet<JosekiMoveKey>)`（`JosekiBookSession::mergeRegisteredMoves()` の値） |
+| JosekiMergeDialog | QDialog | なし | 表示中の手順・棋譜ファイルの本譜（`RecordLine`）の手を、開いている定跡に1手ずつか全部登録する（`JosekiBookSession::importMoves`。保存はしない）。「登録済」は定跡に手があるか（`hasMove`）で決め、定跡が変わると表を作り直す |
 | MenuWindow | QWidget | なし | メニュー項目のボタン一覧表示（お気に入り・カテゴリ別タブ） |
 
 ---
@@ -9303,7 +9303,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | JishogiScoreDialog | C | dialogs | 持将棋の点数ダイアログ（`showFor()` が局面から点数と王手を計算して開く） | 第10章 |
 | JkfExporter | C | kifu/formats | JKF形式の書き出し | 第8章 |
 | JkfToSfenConverter | C | kifu/formats | JKF形式→SFEN変換器 | 第8章 |
-| JosekiBook | C | kifu | 定跡のデータの値型（局面のキー `positionKey()` から `JosekiPosition`（登録したときの SFEN・定跡手）を引く map 1つ。マージで登録した印は `JosekiMoveKey` の集合）。読み書きは `JosekiBookFile::load()`・`save()` | 第8章, 第11章 |
+| JosekiBook | C | kifu | 定跡のデータの値型（局面のキー `positionKey()` から `JosekiPosition`（登録したときの SFEN・定跡手）を引く map 1つ。棋譜で指された手を数えるのは `addPlayedMove()`）。読み書きは `JosekiBookFile::load()`・`save()` | 第8章, 第11章 |
 | JosekiBookSession | C | kifu | 開いている定跡ファイル（`JosekiBook` の値・変更状態・読み書き） | 第8章, 第11章 |
 | JosekiMergeDialog | C | dialogs | 定跡結合ダイアログ | 第11章 |
 | JosekiMoveDialog | C | dialogs | 定跡手入力ダイアログ（値は `setEntry()`・`entry()`） | 第11章 |

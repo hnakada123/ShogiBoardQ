@@ -19,19 +19,15 @@ namespace JosekiImport {
 
 namespace {
 
-bool whiteToMove(const QString &sfen)
-{
-    return sfen.section(QLatin1Char(' '), 1, 1) == QLatin1String("w");
-}
-
 /// 本譜の勝った側（勝敗の付かない終局や、終局の行が無ければ nullopt）
 std::optional<Turn> winnerOf(const RecordLine &line)
 {
     const RecordEntry *terminal = line.terminal();
     if (!terminal) return std::nullopt;
-    // 終局の行の局面は最後の手の後。その手番が投了・宣言などをした側
-    const Turn mover = whiteToMove(terminal->sfen) ? Turn::White : Turn::Black;
-    const Turn opponent = mover == Turn::Black ? Turn::White : Turn::Black;
+    // 終局の行は終局を記録した側（RecordEntry::endingSide。投了・時間切れ・反則負けは負けた側、
+    // 入玉宣言勝ち・反則勝ちは勝った側、詰み・不戦は手番側）を持つ
+    const Turn recorder = terminal->mover;
+    const Turn opponent = recorder == Turn::Black ? Turn::White : Turn::Black;
     switch (terminal->terminal) {
     case TerminalType::Resign:
     case TerminalType::Checkmate:
@@ -42,7 +38,7 @@ std::optional<Turn> winnerOf(const RecordLine &line)
     case TerminalType::IllegalWin:
     case TerminalType::DeclarationWin:
     case TerminalType::ForfeitWin:
-        return mover;
+        return recorder;
     default:
         return std::nullopt;
     }
@@ -114,7 +110,7 @@ void Collector::addLine(const QString &startSfen, const RecordLine &line, std::o
     int ply = line.startPly;
     for (const RecordEntry &entry : line.entries) {
         if (entry.isTerminal() || ply > m_options.maxPly || before.isEmpty()) break;
-        const Turn mover = whiteToMove(before) ? Turn::White : Turn::Black;
+        const Turn mover = entry.mover;
         bool take = true;
         switch (m_options.sides) {
         case Sides::Both: break;

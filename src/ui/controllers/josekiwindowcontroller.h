@@ -20,14 +20,18 @@ class JosekiBookSession;
 class KifuNavigationController;
 class JosekiWindow;
 class KifuNavigationState;
+class QAction;
 class QDockWidget;
-class ShogiGameController;
 
 /**
  * @brief 定跡ウィンドウを作って表示中の手の局面に合わせ、選んだ定跡手を盤への着手として要求する
  *
  * 表示中の手（KifuNavigationState）が変わるたびに、定跡ウィンドウが前面にあれば局面と、表示中の手順が定跡を
  * 外れた手を合わせる。定跡ウィンドウの「棋譜に展開...」で、表示中の局面から定跡を棋譜の変化に展開する。
+ *
+ * 定跡の表示の切り替え（displayAction。保存する）と「盤の手を登録」（recordBoardMovesAction。保存しない）の
+ * QAction を持ち、「盤に定跡手を表示」（メニューの QAction。保存する）と合わせて定跡ウィンドウに渡す。
+ * 盤の矢印（CandidateArrowPresenter）と盤の手の登録（JosekiRegistrationController）もこの QAction を読む。
  */
 class JosekiWindowController : public QObject
 {
@@ -37,7 +41,7 @@ public:
     struct Deps {
         QWidget* parentWidget = nullptr;
         JosekiBookSession* book = nullptr;               ///< 開いている定跡（必須・非所有）
-        ShogiGameController* gameController = nullptr;  ///< 定跡手の成り・不成を指定する（非所有）
+        QAction* boardArrows = nullptr;                  ///< 「表示」メニューの「盤に定跡手を表示」（必須）
         /// 表示中の手。定跡ウィンドウの局面と、棋譜のマージに使う（非所有）
         const KifuNavigationState* navState = nullptr;
         /// 盤面クリックと同じ「人間が今指せるか」の判定
@@ -70,6 +74,11 @@ public:
      */
     JosekiWindow* josekiWindow() const { return m_josekiWindow; }
 
+    /// 定跡を表に出し、盤に矢印を出すか（「■ 停止」で外す。設定に保存する）
+    QAction* displayAction() const { return m_displayAction; }
+    /// 盤で指した手・対局で指された手を定跡に登録するか（「盤の手を登録」。起動するとオフ）
+    QAction* recordBoardMovesAction() const { return m_recordBoardMovesAction; }
+
     /**
      * @brief 定跡ウィンドウを入れたドックを登録する
      *
@@ -95,6 +104,10 @@ private slots:
 
     /// 表示中の局面から定跡を棋譜の変化に展開する
     void onExpandRequested(const JosekiLines::ExpandOptions& options);
+    /// 定跡の表示を止めた・再開した（保存し、定跡を外れた手の表示を合わせる）
+    void onDisplayToggled(bool displayed);
+    /// 「盤に定跡手を表示」を変えた（保存する）
+    void onBoardArrowsToggled(bool visible);
 
 private:
     /// 人間が今指せるか（盤面クリックと同じ判定）
@@ -106,12 +119,13 @@ private:
     QWidget* m_parentWidget = nullptr;
     const JosekiBookSession* m_book = nullptr;
     BranchTreeEditController* m_branchEdit = nullptr;
-    ShogiGameController* m_gameController = nullptr;
     const KifuNavigationState* m_navState = nullptr;
     std::function<bool()> m_isHumanTurnNow;  ///< 人間が今指せるか
     BoardMoveController* m_boardMoves = nullptr;
 
     // 内部オブジェクト
+    QAction* m_displayAction = nullptr;
+    QAction* m_recordBoardMovesAction = nullptr;
     JosekiWindow* m_josekiWindow = nullptr;
     /// 定跡ウィンドウを入れたドック（無ければ nullptr。単独のウィンドウとして使う場合）
     QDockWidget* m_dockWidget = nullptr;

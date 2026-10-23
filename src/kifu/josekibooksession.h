@@ -9,10 +9,8 @@
 #include <QObject>
 
 #include "recentfilelist.h"
-#include <QSet>
 #include <QString>
 #include <QStringList>
-#include <optional>
 
 #include "josekibook.h"
 #include "josekiimport.h"
@@ -34,10 +32,12 @@ struct JosekiBookMergeResult {
  * 定跡データの読み取り・変更・保存はすべてここを通す（データは外に見せない）。局面は手数付きの SFEN の
  * ままで渡してよい（定跡の局面のキーにするのはここ）。
  *
- * 保存できたら「変更なし」にし、ファイルパスと履歴を更新する。保存の経路は save（同期）・
- * startSave（非同期）・startRegisterMergeMoves（登録して非同期で保存）だけ。
+ * 保存できたら「変更なし」にし、ファイルパスと履歴を更新する。保存の経路は save（同期）と startSave（非同期）だけ。
  * 読み込みと非同期の保存はワーカースレッドで行い（threading-guidelines: 値オブジェクトだけを渡す）、
  * 完了をシグナルで知らせる。画面（メッセージ・カーソル・ボタン）は扱わない。
+ *
+ * 前回のファイルは、初めて使うとき（定跡ウィンドウを初めて表示したとき）に読み込む（restore・startDeferredLoad）。
+ * 読み書き中と、前回のファイルの読み込みを待っている間は定跡を変えられない（canEdit。変更の関数は何もせずに false）。
  */
 class JosekiBookSession : public QObject
 {
@@ -63,6 +63,8 @@ public:
     bool isModified() const { return m_modified; }
     bool isBusy() const { return m_activity != Activity::Idle; }
     Activity activity() const { return m_activity; }
+    /// 定跡を変えられるか（読み書き中でなく、前回のファイルの読み込みを待っていない）
+    bool canEdit() const { return !isBusy() && m_deferredLoadPath.isEmpty(); }
 
     // --- 定跡データの読み取り ---
 
@@ -80,15 +82,13 @@ public:
     bool hasMove(const QString &sfen, const QString &usiMove) const { return m_book.hasMove(sfen, usiMove); }
     /// 局面の定跡手のうち、やねうら王が先頭に並べる手（JosekiBook::leadingMove。無ければ空）
     QString leadingMove(const QString &sfen) const { return m_book.leadingMove(sfen); }
-    /// 棋譜からマージで登録した指し手（局面のキーと指し手の組）
-    const QSet<JosekiMoveKey> &mergeRegisteredMoves() const { return m_book.mergeRegistered(); }
     /// 今の定跡の写し（対局で使う。中身は共有するので、大きな定跡でも写しを作るのは軽い）
     JosekiBook snapshot() const { return m_book; }
 
-    // --- 定跡データの変更（変更ありにする） ---
+    // --- 定跡データの変更（変更ありにする。canEdit でなければ何もせずに false・空の結果） ---
 
     /// 定跡手を足す。同じ指し手があれば置き換える
-    void addMove(const QString &sfen, const JosekiMove &move);
+    bool addMove(const QString &sfen, const JosekiMove &move);
     /// move.move の定跡手の値・コメント・予想応手を書き換える。無ければ false
     bool updateMove(const QString &sfen, const JosekiMove &move);
     /// 定跡手を消す。無ければ false
@@ -105,24 +105,33 @@ public:
      *
      * 登録済みの手なら評価値・深さ・予想応手だけを書き換え（出現頻度とコメントは残す。読み筋が1手なら予想応手も残す）、
      * 無ければ出現頻度1で足す。
-     * 読み筋が空なら何もしない（Invalid）
+     * 読み筋が空・定跡を変えられなければ何もしない（Invalid）
      */
     EngineRegistration registerEnginePv(const QString &sfen, const QStringList &pv, const UsiScore &score, int depth);
     /// 定跡の評価値（手番側から見た値）。詰みはやねうら王と同じく ±(32000 − 手数)、評価値が無ければ 0
     static int valueOf(const UsiScore &score);
-    /// 複数の棋譜から集めた手を登録する（あれば出現頻度に数を足し、無ければ予想応手なし・評価値0・深さ0で足す。
-    /// コメントは定跡にコメントの無い手だけに入れる）。マージで登録した印も付ける。読み書き中は何もしない
+    /// 棋譜から集めた手を登録する（あれば出現頻度に数を足し、無ければ予想応手なし・評価値0・深さ0で足す。
+    /// コメントは定跡にコメントの無い手だけに入れる。JosekiBook::addPlayedMove）。保存はしない
     ImportStats importMoves(const QList<JosekiImport::Move> &moves);
 
     // --- 最近使ったファイル ---
 
     const QStringList &recentFiles() const { return m_recentFiles.files(); }
-    void setRecentFiles(const QStringList &files);
     void addRecentFile(const QString &filePath);
     void removeRecentFile(const QString &filePath);
     void clearRecentFiles();
-    /// 次回に自動で読み込むファイル。「履歴をクリア」した後は、開き直すか保存して履歴に戻るまで空
-    QString lastFilePathForSettings() const;
+    /**
+     * @brief 前回の履歴と前回のファイルを戻す（起動時に1回）
+     * @param deferLoad 前回のファイルを、初めて使うとき（startDeferredLoad）に読み込む
+     */
+    void restore(const QStringList &recentFiles, const QString &lastFilePath, bool deferLoad);
+    /// 次回に読み込む前回のファイル。読み込みを待っていればそのファイル、開いているファイルが履歴にあればそれ、
+    /// 何も開いていなければ履歴に残っている前回のファイル。「履歴をクリア」した後は、開き直すか保存するまで空
+    QString lastFilePath() const;
+    /// 前回のファイルの読み込みを待っているファイル（無ければ空）
+    const QString &deferredLoadPath() const { return m_deferredLoadPath; }
+    /// 前回のファイルの読み込みを始める（待っていなければ何もしない）
+    void startDeferredLoad();
 
     // --- ファイル ---
 
@@ -134,14 +143,6 @@ public:
     bool startLoad(const QString &filePath);
     /// 今のデータの写しを保存し始める（読み込み中・保存中は false）。完了は saved() / saveFailed()
     bool startSave(const QString &filePath);
-    /**
-     * @brief 棋譜の指し手を定跡に登録し、今の定跡ファイルに保存し始める（まだ登録していない手だけ）
-     *
-     * 大きな定跡でも画面を止めないように、保存はワーカースレッドで行う。保存できたときだけ登録を定跡に入れて
-     * 登録済みの印を付け、できなければ何も変えない（失敗は saveFailed() でも知らせる）。どちらも mergeFinished()
-     * で知らせる。「全て登録」でも保存は1回。読み込み中・保存中・保存先がなければ始めずに false
-     */
-    bool startRegisterMergeMoves(const QList<KifuMergeEntry> &entries);
     /**
      * @brief 別の定跡ファイルを読み込み、今の定跡に足し始める（JosekiBook::mergeFrom）
      *
@@ -165,8 +166,8 @@ signals:
     /// 非同期の保存ができた（変更なし・ファイルパス・履歴は更新済み）
     void saved(const QString &filePath);
     void saveFailed(const QString &errorMessage);
-    /// startRegisterMergeMoves() の保存が終わった（registered: 登録して保存できた）
-    void mergeFinished(bool registered);
+    /// 前回のファイルの読み込みを待つかが変わった（canEdit が変わる）
+    void deferredLoadChanged();
     /// 定跡の中身が変わった（読み込み・新規・定跡手の追加・編集・削除・マージ。盤の矢印を描き直す）
     void contentChanged();
     /// startMergeBook() で定跡ファイルを足した
@@ -184,6 +185,8 @@ private:
     void setActivity(Activity activity);
     /// filePath に保存できたことを記録する（変更なし・最近使ったファイルの先頭）
     void markSaved(const QString &filePath);
+    /// 前回のファイルの読み込みを待たなくする（別のファイルを開いた・作った・保存した・履歴から消えた）
+    void cancelDeferredLoad();
 
     JosekiBook m_book;
     QString m_filePath;
@@ -196,8 +199,8 @@ private:
     QString m_pendingMergeBookFilePath;
     QString m_pendingLoadFilePath;
     QString m_pendingSaveFilePath;
-    /// 保存中のマージの結果（保存できたら定跡にする）
-    std::optional<JosekiBook> m_pendingMerge;
+    QString m_deferredLoadPath;     ///< 初めて使うときに読み込む前回のファイル
+    QString m_restoredLastFilePath; ///< 起動時に戻した前回のファイル（何も開いていない間は覚えておく）
 };
 
 #endif // JOSEKIBOOKSESSION_H

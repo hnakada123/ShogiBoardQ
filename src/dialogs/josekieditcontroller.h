@@ -18,7 +18,7 @@ class QWidget;
  * 入力・確認のダイアログを出し、決まったら JosekiBookSession に書く。ダイアログを開いている間に
  * 局面が進んでも（対局中にエンジンが指すなど）、開いたときの局面（引数の targetSfen）に書く
  * （引数は呼んだときに写すので、表の局面・行を渡してよい）。
- * 読み書き中は何もしない（ダイアログを閉じた時点で読み書き中なら書かない）。
+ * 定跡を変えられないとき（JosekiBookSession::canEdit）は何もしない（ダイアログを閉じた時点で変えられなければ書かない）。
  */
 class JosekiEditController : public QObject
 {
@@ -40,7 +40,7 @@ public:
     bool deleteMove(const QString &targetSfen, const QString &targetMove);
 
 private:
-    bool isBusy() const;
+    bool canEdit() const;
 
     Deps m_deps;
 };

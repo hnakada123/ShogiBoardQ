@@ -37,6 +37,7 @@
 #include "engineregistrationdialog.h"
 #include "fontsettingsdialog.h"
 #include "jishogiscoredialog.h"
+#include "josekibooksession.h"
 #include "josekimergedialog.h"
 #include "josekimovedialog.h"
 #include "kifuanalysisdialog.h"
@@ -45,6 +46,7 @@
 #include "promotedialog.h"
 #include "pvboarddialog.h"
 #include "sfencollectiondialog.h"
+#include "sfenreplay.h"
 #include "sfenutils.h"
 #include "shogiview.h"
 #include "boardviewerwidget.h"
@@ -98,7 +100,13 @@ class TestDialogAppearance : public QObject
         if (name == QLatin1String("engines")) return std::make_unique<EngineRegistrationDialog>();
         if (name == QLatin1String("fontSettings")) return std::make_unique<FontSettingsDialog>();
         if (name == QLatin1String("jishogi")) return std::make_unique<JishogiScoreDialog>(JishogiCalculator::JishogiResult{}, false, false);
-        if (name == QLatin1String("josekiMerge")) return std::make_unique<JosekiMergeDialog>();
+        if (name == QLatin1String("josekiMerge")) {
+            // 登録先の定跡はダイアログと一緒に消す
+            auto* book = new JosekiBookSession;
+            auto dialog = std::make_unique<JosekiMergeDialog>(book, RecordLine{});
+            book->setParent(dialog.get());
+            return dialog;
+        }
         if (name == QLatin1String("josekiMove")) return std::make_unique<JosekiMoveDialog>();
         if (name == QLatin1String("analysis")) return std::make_unique<KifuAnalysisDialog>();
         if (name == QLatin1String("paste")) return std::make_unique<KifuPasteDialog>();
@@ -461,18 +469,23 @@ private slots:
         list->clear();
         QVERIFY(hint->text().contains(QStringLiteral("追加")));
 
-        JosekiMergeDialog merge;
+        // マージ: 指し手が無ければ「全て登録」を押せない。登録済みかは定跡の中身で決まる
+        JosekiBookSession josekiBook;
+        JosekiMergeDialog emptyMerge(&josekiBook, RecordLine{});
+        QVERIFY(!emptyMerge.findChild<QPushButton*>(QStringLiteral("registerAllMoves"))->isEnabled());
+        const QString sfen = SfenUtils::hirateSfen();
+        RecordLine line = RecordLine::fromPositions({sfen, SfenReplay::positionAfter(sfen, QStringLiteral("7g7f"))},
+                                                    {ShogiMove(*UsiMove::parse(u"7g7f"), Piece::BlackPawn)});
+        line.entries[0].displayText = QStringLiteral("▲７六歩(77)");
+        JosekiMergeDialog merge(&josekiBook, line);
         auto* all = merge.findChild<QPushButton*>(QStringLiteral("registerAllMoves"));
         auto* table = merge.findChild<QTableWidget*>();
         QVERIFY(all && table);
-        QVERIFY(!all->isEnabled());
-        const QString sfen = SfenUtils::hirateSfen();
-        merge.setKifuData({{1, sfen, QStringLiteral("7g7f"), QStringLiteral("▲７六歩"), true}});
         QVERIFY(all->isEnabled());
-        merge.setRegisteredMoves({JosekiMoveKey{sfen.section(QLatin1Char(' '), 0, 2), QStringLiteral("7g7f")}});
+        QVERIFY(josekiBook.addMove(sfen, {QStringLiteral("7g7f"), QStringLiteral("none"), 0, 0, 1, {}}));
         QVERIFY(!all->isEnabled());
         QVERIFY(!table->cellWidget(0, 2)->isEnabled());
-        merge.setRegisteredMoves({});
+        QVERIFY(josekiBook.removeMove(sfen, QStringLiteral("7g7f")));
         QVERIFY(all->isEnabled());
         merge.show();
         QVERIFY(QTest::qWaitForWindowExposed(&merge));

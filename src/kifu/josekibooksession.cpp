@@ -3,6 +3,7 @@
 
 #include "josekibooksession.h"
 
+#include <QFileInfo>
 #include <QtConcurrentRun>
 #include <algorithm>
 #include <utility>
@@ -57,16 +58,18 @@ QString JosekiBookSession::registeredSfen(const QString &sfen) const
 // 定跡データの変更
 // ============================================================
 
-void JosekiBookSession::addMove(const QString &sfen, const JosekiMove &move)
+bool JosekiBookSession::addMove(const QString &sfen, const JosekiMove &move)
 {
+    if (!canEdit()) return false;
     m_book.putMove(sfen, move);
     setModified(true);
     emit contentChanged();
+    return true;
 }
 
 bool JosekiBookSession::updateMove(const QString &sfen, const JosekiMove &move)
 {
-    if (!m_book.updateMove(sfen, move)) return false;
+    if (!canEdit() || !m_book.updateMove(sfen, move)) return false;
     setModified(true);
     emit contentChanged();
     return true;
@@ -74,7 +77,7 @@ bool JosekiBookSession::updateMove(const QString &sfen, const JosekiMove &move)
 
 bool JosekiBookSession::removeMove(const QString &sfen, const QString &usiMove)
 {
-    if (!m_book.removeMove(sfen, usiMove)) return false;
+    if (!canEdit() || !m_book.removeMove(sfen, usiMove)) return false;
     setModified(true);
     emit contentChanged();
     return true;
@@ -82,7 +85,7 @@ bool JosekiBookSession::removeMove(const QString &sfen, const QString &usiMove)
 
 bool JosekiBookSession::moveMoveTo(const QString &sfen, const QString &usiMove, int index)
 {
-    if (!m_book.moveTo(sfen, usiMove, index)) return false;
+    if (!canEdit() || !m_book.moveTo(sfen, usiMove, index)) return false;
     setModified(true);
     emit contentChanged();
     return true;
@@ -90,7 +93,7 @@ bool JosekiBookSession::moveMoveTo(const QString &sfen, const QString &usiMove, 
 
 bool JosekiBookSession::sortMoves(const QString &sfen, JosekiBook::SortKey key)
 {
-    if (!m_book.sortMoves(sfen, key)) return false;
+    if (!canEdit() || !m_book.sortMoves(sfen, key)) return false;
     setModified(true);
     emit contentChanged();
     return true;
@@ -99,9 +102,9 @@ bool JosekiBookSession::sortMoves(const QString &sfen, JosekiBook::SortKey key)
 JosekiBookSession::ImportStats JosekiBookSession::importMoves(const QList<JosekiImport::Move> &moves)
 {
     ImportStats stats;
-    if (isBusy() || moves.isEmpty()) return stats;
+    if (!canEdit() || moves.isEmpty()) return stats;
     for (const JosekiImport::Move &move : moves) {
-        if (m_book.registerMergeMove(move.sfen, move.usiMove, move.count, move.comment)) ++stats.added;
+        if (m_book.addPlayedMove(move.sfen, move.usiMove, move.count, move.comment)) ++stats.added;
         else ++stats.updated;
     }
     setModified(true);
@@ -122,7 +125,7 @@ int JosekiBookSession::valueOf(const UsiScore &score)
 JosekiBookSession::EngineRegistration JosekiBookSession::registerEnginePv(const QString &sfen, const QStringList &pv,
                                                                           const UsiScore &score, int depth)
 {
-    if (sfen.isEmpty() || pv.isEmpty() || pv.constFirst().isEmpty()) return EngineRegistration::Invalid;
+    if (!canEdit() || sfen.isEmpty() || pv.isEmpty() || pv.constFirst().isEmpty()) return EngineRegistration::Invalid;
     JosekiMove move;
     move.move = pv.constFirst();
     // 読み筋が1手だけなら、登録済みの手の予想応手は変えない（null は変えない印）
@@ -148,12 +151,6 @@ JosekiBookSession::EngineRegistration JosekiBookSession::registerEnginePv(const 
 // 最近使ったファイル
 // ============================================================
 
-void JosekiBookSession::setRecentFiles(const QStringList &files)
-{
-    m_recentFiles.setFiles(files);
-    emit recentFilesChanged();
-}
-
 void JosekiBookSession::addRecentFile(const QString &filePath)
 {
     m_recentFiles.add(filePath);
@@ -162,18 +159,53 @@ void JosekiBookSession::addRecentFile(const QString &filePath)
 
 void JosekiBookSession::removeRecentFile(const QString &filePath)
 {
-    if (m_recentFiles.remove(filePath)) emit recentFilesChanged();
+    if (!m_recentFiles.remove(filePath)) return;
+    if (filePath == m_deferredLoadPath) cancelDeferredLoad();
+    emit recentFilesChanged();
 }
 
 void JosekiBookSession::clearRecentFiles()
 {
     m_recentFiles.clear();
+    // 履歴から消えた（「履歴をクリア」した）前回のファイルは、自動で読み込まない
+    cancelDeferredLoad();
     emit recentFilesChanged();
 }
 
-QString JosekiBookSession::lastFilePathForSettings() const
+void JosekiBookSession::restore(const QStringList &recentFiles, const QString &lastFilePath, bool deferLoad)
 {
-    return m_recentFiles.files().contains(m_filePath) ? m_filePath : QString();
+    m_recentFiles.setFiles(recentFiles);
+    m_restoredLastFilePath = lastFilePath;
+    if (deferLoad && !lastFilePath.isEmpty() && m_recentFiles.files().contains(lastFilePath)
+        && QFileInfo::exists(lastFilePath)) {
+        m_deferredLoadPath = lastFilePath;
+        emit deferredLoadChanged();
+    }
+    emit recentFilesChanged();
+}
+
+QString JosekiBookSession::lastFilePath() const
+{
+    const QStringList &recent = m_recentFiles.files();
+    if (!m_deferredLoadPath.isEmpty()) return m_deferredLoadPath;
+    if (!m_filePath.isEmpty()) return recent.contains(m_filePath) ? m_filePath : QString();
+    // 何も開いていない（自動読込をしない・新規にした）間は、履歴に残っている前回のファイルを覚えておく
+    return recent.contains(m_restoredLastFilePath) ? m_restoredLastFilePath : QString();
+}
+
+void JosekiBookSession::startDeferredLoad()
+{
+    if (m_deferredLoadPath.isEmpty() || isBusy()) return;
+    const QString filePath = std::exchange(m_deferredLoadPath, QString());
+    emit deferredLoadChanged();
+    startLoad(filePath);
+}
+
+void JosekiBookSession::cancelDeferredLoad()
+{
+    if (m_deferredLoadPath.isEmpty()) return;
+    m_deferredLoadPath.clear();
+    emit deferredLoadChanged();
 }
 
 // ============================================================
@@ -182,6 +214,7 @@ QString JosekiBookSession::lastFilePathForSettings() const
 
 void JosekiBookSession::newBook()
 {
+    cancelDeferredLoad();
     m_book.clear();
     m_filePath.clear();
     setModified(false);
@@ -191,6 +224,7 @@ void JosekiBookSession::newBook()
 
 void JosekiBookSession::markSaved(const QString &filePath)
 {
+    cancelDeferredLoad();
     const bool changed = m_filePath != filePath;
     m_filePath = filePath;
     addRecentFile(filePath);
@@ -223,25 +257,9 @@ bool JosekiBookSession::save(const QString &filePath, QString *errorMessage)
     return true;
 }
 
-bool JosekiBookSession::startRegisterMergeMoves(const QList<KifuMergeEntry> &entries)
-{
-    if (isBusy() || m_filePath.isEmpty()) return false;
-    // 保存できるまで編集中のデータと登録済みの印を変えない（写しに登録して保存する）
-    JosekiBook updated = m_book;
-    for (const KifuMergeEntry &entry : entries) {
-        if (!updated.isMergeRegistered(entry.sfen, entry.usiMove)) updated.registerMergeMove(entry.sfen, entry.usiMove);
-    }
-    m_pendingMerge = updated;
-    m_pendingSaveFilePath = m_filePath;
-    setActivity(Activity::Saving);
-    // ワーカーには値の写しを渡す（保存中は定跡を変えられないので、写しはデータを共有したまま）
-    m_saveWatcher.setFuture(QtConcurrent::run(&JosekiBookFile::save, m_filePath, std::move(updated)));
-    return true;
-}
-
 bool JosekiBookSession::startMergeBook(const QString &filePath, const JosekiBook::MergeOptions &options)
 {
-    if (isBusy()) return false;
+    if (!canEdit()) return false;
     m_pendingMergeBookFilePath = filePath;
     setActivity(Activity::Merging);
     // 足している間は定跡を変えられないので、写しはデータを共有したまま渡す（足すときにワーカーで複製する）
@@ -267,6 +285,8 @@ void JosekiBookSession::onMergeBookFinished()
 bool JosekiBookSession::startLoad(const QString &filePath)
 {
     if (isBusy()) return false;
+    // 前回のファイルより先に別のファイルを開いたら、前回のファイルは読み込まない
+    cancelDeferredLoad();
     m_pendingLoadFilePath = filePath;
     setActivity(Activity::Loading);
     m_loadWatcher.setFuture(QtConcurrent::run(&JosekiBookFile::load, filePath));
@@ -306,18 +326,11 @@ void JosekiBookSession::onSaveFinished()
 {
     const JosekiSaveResult result = m_saveWatcher.result();
     const QString filePath = std::exchange(m_pendingSaveFilePath, QString());
-    std::optional<JosekiBook> merged = std::exchange(m_pendingMerge, std::nullopt);
     setActivity(Activity::Idle);
     if (!result.success) {
         emit saveFailed(result.errorMessage);
-        if (merged) emit mergeFinished(false);
         return;
     }
-    if (merged) m_book = std::move(*merged);
     markSaved(filePath);
     emit saved(filePath);
-    if (merged) {
-        emit mergeFinished(true);
-        emit contentChanged();
-    }
 }

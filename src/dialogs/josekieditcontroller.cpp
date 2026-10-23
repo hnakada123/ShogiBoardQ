@@ -18,16 +18,16 @@ JosekiEditController::JosekiEditController(const Deps &deps, QObject *parent)
     Q_ASSERT(m_deps.session && m_deps.parentWidget);
 }
 
-bool JosekiEditController::isBusy() const
+bool JosekiEditController::canEdit() const
 {
-    return m_deps.session->isBusy();
+    return m_deps.session->canEdit();
 }
 
 bool JosekiEditController::addMove(const QString &targetSfen)
 {
     // 引数は表の局面（ダイアログを開いている間に変わる）を指すことがあるので写しを使う
     const QString sfen = targetSfen;
-    if (isBusy()) return false;
+    if (!canEdit()) return false;
     if (sfen.isEmpty()) {
         QMessageBox::warning(m_deps.parentWidget, tr("定跡手追加"),
             tr("局面が設定されていません。\n将棋盤で局面を表示してから定跡手を追加してください。"));
@@ -36,7 +36,7 @@ bool JosekiEditController::addMove(const QString &targetSfen)
 
     JosekiMoveDialog dialog(m_deps.parentWidget, false);
     dialog.setCurrentSfen(sfen);
-    if (dialog.exec() != QDialog::Accepted || isBusy()) return false;
+    if (dialog.exec() != QDialog::Accepted || !canEdit()) return false;
 
     const JosekiMove newMove = dialog.entry();
     if (m_deps.session->hasMove(sfen, newMove.move)
@@ -54,12 +54,12 @@ bool JosekiEditController::editMove(const QString &targetSfen, const JosekiMove 
 {
     const QString sfen = targetSfen;
     const JosekiMove current = target;
-    if (isBusy()) return false;
+    if (!canEdit()) return false;
     JosekiMoveDialog dialog(m_deps.parentWidget, true);
     dialog.setCurrentSfen(sfen);
     dialog.setEntry(current);
     dialog.setEditMoveDisplay(JosekiTableModel::moveText(current.move, sfen));
-    if (dialog.exec() != QDialog::Accepted || isBusy()) return false;
+    if (dialog.exec() != QDialog::Accepted || !canEdit()) return false;
     return m_deps.session->updateMove(sfen, dialog.entry());
 }
 
@@ -67,12 +67,12 @@ bool JosekiEditController::deleteMove(const QString &targetSfen, const QString &
 {
     const QString sfen = targetSfen;
     const QString usiMove = targetMove;
-    if (isBusy()) return false;
+    if (!canEdit()) return false;
     if (!DialogUtils::confirmAction(m_deps.parentWidget, tr("削除確認"),
                                     tr("定跡手「%1」を削除しますか？")
                                         .arg(JosekiTableModel::moveText(usiMove, sfen)),
                                     tr("削除する"))
-        || isBusy()) {
+        || !canEdit()) {
         return false;
     }
     return m_deps.session->removeMove(sfen, usiMove);

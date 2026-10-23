@@ -6,7 +6,6 @@
 
 #include "analysissession.h"
 #include "boardinteractioncontroller.h"
-#include "candidatearrowpresenter.h"
 #include "dialoglauncher.h"
 #include "gamesession.h"
 #include "imageexportcontroller.h"
@@ -89,7 +88,6 @@ void wireDisplayMenu(const Deps& d)
     QObject::connect(ui->actionShrinkBoard, &QAction::triggered, appearance, &MainWindowAppearanceController::onActionShrinkBoardTriggered);
     QObject::connect(ui->actionBoardAppearance, &QAction::triggered, d.dialogs, &DialogLauncher::displayBoardAppearanceDialog);
     QObject::connect(ui->actionLegalMoves, &QAction::toggled, d.boardController, &BoardInteractionController::setLegalMovesVisible);
-    QObject::connect(ui->actionShowJosekiArrows, &QAction::toggled, d.arrows, &CandidateArrowPresenter::setJosekiArrowsVisible);
     QObject::connect(ui->actionFontSettings, &QAction::triggered, d.dialogs, &DialogLauncher::displayFontSettingsDialog);
     QObject::connect(ui->actionToolBar, &QAction::toggled, appearance, &MainWindowAppearanceController::onToolBarVisibilityToggled);
     // ツールバーだけにある項目
