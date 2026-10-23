@@ -7,6 +7,15 @@
 namespace {
 // 通知はメインスレッドからのみ表示する（UI アクセスはメインスレッド限定）
 NotificationPresenter::ScopedCapture* s_activeCapture = nullptr;
+
+// 知らせの文には CSA サーバーの受信行や棋譜の行が入るので、HTML として解釈させない
+// （QMessageBox の静的関数は文を自動判定し、リンクを外部のアプリで開く）
+void showPlainMessage(QWidget* parent, QMessageBox::Icon icon, const QString& title, const QString& message)
+{
+    QMessageBox box(icon, title, message, QMessageBox::Ok, parent);
+    box.setTextFormat(Qt::PlainText);
+    box.exec();
+}
 }
 
 NotificationPresenter::ScopedCapture::ScopedCapture()
@@ -42,14 +51,14 @@ void NotificationPresenter::displayMessage(ErrorBus::ErrorLevel level, const QSt
 
     switch (level) {
     case ErrorBus::ErrorLevel::Info:
-        QMessageBox::information(m_deps.parentWidget, tr("Information"), message);
+        showPlainMessage(m_deps.parentWidget, QMessageBox::Information, tr("Information"), message);
         break;
     case ErrorBus::ErrorLevel::Warning:
-        QMessageBox::warning(m_deps.parentWidget, tr("Warning"), message);
+        showPlainMessage(m_deps.parentWidget, QMessageBox::Warning, tr("Warning"), message);
         break;
     case ErrorBus::ErrorLevel::Error:
     case ErrorBus::ErrorLevel::Critical:
-        QMessageBox::critical(m_deps.parentWidget, tr("Error"), message);
+        showPlainMessage(m_deps.parentWidget, QMessageBox::Critical, tr("Error"), message);
         break;
     }
 }
@@ -60,5 +69,5 @@ void NotificationPresenter::showInformation(const QString& title, const QString&
         s_activeCapture->m_notices.append(message);
         return;
     }
-    QMessageBox::information(m_deps.parentWidget, title, message);
+    showPlainMessage(m_deps.parentWidget, QMessageBox::Information, title, message);
 }

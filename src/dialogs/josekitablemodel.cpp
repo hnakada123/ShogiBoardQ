@@ -9,6 +9,18 @@
 #include <QColor>
 #include <QLocale>
 
+namespace {
+
+// ツールチップは文字を見て HTML として描くことがあるので、定跡ファイルのコメントなどは文字のまま出す
+// （<img> でローカルのファイルを読ませない。セキュリティ監査 S12）
+QString plainToolTip(const QString &text)
+{
+    if (text.isEmpty()) return {};
+    return QStringLiteral("<qt>%1</qt>").arg(text.toHtmlEscaped().replace(QLatin1Char('\n'), QStringLiteral("<br/>")));
+}
+
+} // namespace
+
 JosekiTableModel::JosekiTableModel(QObject *parent)
     : QAbstractTableModel(parent)
 {
@@ -86,12 +98,12 @@ QVariant JosekiTableModel::data(const QModelIndex &index, int role) const
     }
     if (role == Qt::ToolTipRole) {
         switch (column) {
-        case Move: return m_humanCanPlay ? move.move + QLatin1Char('\n') + tr("ダブルクリックで着手") : move.move;
+        case Move: return plainToolTip(m_humanCanPlay ? move.move + QLatin1Char('\n') + tr("ダブルクリックで着手") : move.move);
         case NextMove:
-            if (derivedReply.isEmpty()) return move.nextMove.value_or(QString());
-            return tr("予想応手は「なし」です。\n次の局面の定跡手で出現頻度（同じなら評価値）が最も高い手を表示しています。\n"
-                      "やねうら王はこの手を先読みに使います。") + QLatin1Char('\n') + derivedReply;
-        case Comment: return move.comment;
+            if (derivedReply.isEmpty()) return plainToolTip(move.nextMove.value_or(QString()));
+            return plainToolTip(tr("予想応手は「なし」です。\n次の局面の定跡手で出現頻度（同じなら評価値）が最も高い手を表示しています。\n"
+                                   "やねうら王はこの手を先読みに使います。") + QLatin1Char('\n') + derivedReply);
+        case Comment: return plainToolTip(move.comment);
         default: return {};
         }
     }

@@ -32,6 +32,12 @@ void EngineProcessManager::sendCommand(const QString& command)
         qCWarning(lcEngine) << logPrefix() << "プロセス未準備、コマンド無視:" << command;
         return;
     }
+    // USI のコマンドは1行。改行を含む文字列（設定の値・コンソールへの貼り付け）は、別のコマンドとして
+    // 読まれるので送らない（セキュリティ監査の多層防御）
+    if (command.contains(QLatin1Char('\n')) || command.contains(QLatin1Char('\r'))) {
+        qCWarning(lcEngine) << logPrefix() << "改行を含むコマンドは送らない:" << command;
+        return;
+    }
 
     if (m_process->write((command + "\n").toUtf8()) == -1) {
         qCWarning(lcEngine) << logPrefix() << "コマンド送信失敗:" << command;
