@@ -3,16 +3,14 @@
 
 #include "thinkinginfoformatter.h"
 #include "kifupresentation.h"
-#include "pvnotationformatter.h"
+#include "pvtext.h"
 #include "usimove.h"
 
 #include <QTimer>
-#include <memory>
 #include <utility>
 
 ThinkingInfoFormatter::ThinkingInfoFormatter(QObject* parent)
     : QObject(parent)
-    , m_formatter(std::make_unique<PvNotationFormatter>())
 {
 }
 
@@ -28,8 +26,6 @@ void ThinkingInfoFormatter::setSearchPosition(const UsiPosition& position)
     const std::optional<UsiMove>& last = position.lastMove();
     m_lastUsiMove = last ? last->toString() : QString();
     m_previousTo = last ? last->to : BoardSquare{};
-    // 読み筋の手番の印（▲△）は、この局面の手番から決まる
-    m_formatter->setPosition(m_baseSfen);
 }
 
 // ============================================================
@@ -55,12 +51,11 @@ void ThinkingInfoFormatter::flushInfoBuffer()
 
 void ThinkingInfoFormatter::processInfo(const UsiInfo& info)
 {
-    // 読み筋・探索手を、思考を始めた局面の上で漢字表記にする
-    m_formatter->setPreviousMove(m_previousTo);
-    m_formatter->format(info);
+    // 読み筋を探索の局面の上で指す（表記は表示する側が作る）
+    const PvText pv = PvText::play(m_baseSfen, info.pv, m_previousTo);
 
     EngineSearchStatus status;
-    status.searchedMove = searchedMoveLabel();
+    status.searchedMove = searchedMoveLabel(!info.currmove.isEmpty() ? info.currmove : pv.usiMoves().value(0));
     status.depth = info.depth;
     status.seldepth = info.depth >= 0 ? info.seldepth : -1;
     status.nodes = info.nodes;
@@ -73,11 +68,8 @@ void ThinkingInfoFormatter::processInfo(const UsiInfo& info)
     row.depth = info.depth;
     row.nodes = info.nodes;
     row.score = info.score;
-    row.pvKanji = m_formatter->pvKanjiStr();
-    if (row.timeMs < 0 && row.depth < 0 && row.nodes < 0 && row.score.isNone() && row.pvKanji.isEmpty()) return;
-    row.usiPv = m_formatter->pvUsiStr();
-    row.enginePv = info.pv;
-    row.baseSfen = m_baseSfen;
+    if (row.timeMs < 0 && row.depth < 0 && row.nodes < 0 && row.score.isNone() && !pv.isDisplayable()) return;
+    row.pv = pv;
     row.lastUsiMove = m_lastUsiMove;
     row.multipv = qMax(1, info.multipv);
     emit thinkingInfoUpdated(row);
@@ -116,10 +108,9 @@ void ThinkingInfoFormatter::presentCheckmate(const UsiCheckmate& result)
 // 情報欄
 // ============================================================
 
-QString ThinkingInfoFormatter::searchedMoveLabel()
+QString ThinkingInfoFormatter::searchedMoveLabel(const QString& usi)
 {
-    const QString hand = m_formatter->searchedHand();
-    if (hand.isEmpty()) return {};
+    if (usi.isEmpty()) return {};
 
     // info ごとに呼ばれ、同じ手が何度も届く。英語表記では局面を読み直して表記を作るので、
     // 局面と表記の設定が同じ間は、手ごとに作った表示を使う
@@ -133,11 +124,11 @@ QString ThinkingInfoFormatter::searchedMoveLabel()
         m_searchedNotation = notation;
         m_searchedAlwaysOrigin = style.alwaysOrigin;
     }
-    const QString usi = m_formatter->searchedUsi();
-    const QString key = hand + QChar(0) + usi;
-    const auto it = m_searchedLabels.constFind(key);
+    const auto it = m_searchedLabels.constFind(usi);
     if (it != m_searchedLabels.cend()) return it.value();
-    const QString label = KifuPresentation::moveLabel(hand, m_baseSfen, usi);
-    m_searchedLabels.insert(key, label);
+    // 局面と合わない手（前の局面の探索の残りなど）は出さない
+    const PvText move = PvText::play(m_baseSfen, QStringList{usi}, m_previousTo);
+    const QString label = move.moveCount() > 0 ? KifuPresentation::pvMove(move, 1) : QString();
+    m_searchedLabels.insert(usi, label);
     return label;
 }

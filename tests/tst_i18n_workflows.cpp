@@ -268,13 +268,13 @@ private slots:
         PlyAnalysis first;
         first.ply = 0;
         first.score = UsiScore::cp(100);
-        first.usiPv = {QStringLiteral("3c3d"), QStringLiteral("7g7f")};
+        first.pv = PvText::play(history.at(0), QStringList{QStringLiteral("3c3d"), QStringLiteral("7g7f")});
         handler.append(first);
         QCOMPARE(model.index(0, 3).data().toString(), QStringLiteral("-100"));
         PlyAnalysis second;
         second.ply = 1;
         second.score = UsiScore::cp(200);
-        second.usiPv = {QStringLiteral("7g7f")};
+        second.pv = PvText::play(history.at(1), QStringList{QStringLiteral("7g7f")});
         handler.append(second);
         QCOMPARE(model.index(1, 3).data().toString(), QStringLiteral("200"));
         QCOMPARE(model.index(1, 1).data().toString(), QStringLiteral("△P-3d"));
@@ -344,22 +344,21 @@ private slots:
         row.depth = 5;
         row.nodes = 100;
         row.score = UsiScore::cp(25);
-        row.pvKanji = QStringLiteral("▲７六歩(77)△３四歩(33)");
-        row.usiPv = QStringLiteral("7g7f 3c3d");
-        row.baseSfen = imported.startSfen();
+        const QString japanesePv = QStringLiteral("▲７六歩(77)△３四歩(33)");
+        row.pv = PvText::play(imported.startSfen(), QStringLiteral("7g7f 3c3d"));
         thinking.appendRow(row);
         const ShogiInfoRecord* info = thinking.recordAt(0);
         const QString pv = thinking.data(thinking.index(0, ShogiEngineThinkingModel::PvColumn), Qt::DisplayRole).toString();
-        QCOMPARE(pv, western ? QStringLiteral("▲P-7f △P-3d") : info->pv());
+        QCOMPARE(pv, western ? QStringLiteral("▲P-7f △P-3d") : japanesePv);
         // 表示用の読み筋は覚えておくが、表記の設定を変えたら作り直す
         KifuPresentation::configure(language, western ? QStringLiteral("japanese") : QStringLiteral("western"), true);
-        QCOMPARE(info->displayPv(), western ? info->pv() : QStringLiteral("▲P7g-7f △P3c-3d"));
+        QCOMPARE(info->displayPv(), western ? japanesePv : QStringLiteral("▲P7g-7f △P3c-3d"));
         KifuPresentation::configure(language, notation, false);
         QCOMPARE(info->displayPv(), pv);
         if (western) {
             QCOMPARE(info->displayPv(true), QStringLiteral("▲P7g-7f △P3c-3d"));
             ThinkingInfoRow shorter = row;
-            shorter.usiPv = QStringLiteral("7g7f");
+            shorter.pv = PvText::play(imported.startSfen(), QStringLiteral("7g7f"));
             QCOMPARE(ShogiInfoRecord(shorter).displayPv(), QStringLiteral("▲P-7f"));
         }
         // 棋譜解析の結果の表も同じ（表記の設定を変えたら作り直す）
@@ -369,11 +368,10 @@ private slots:
         result.move = QStringLiteral("▲７六歩(77)");
         result.evaluation = UsiScore::cp(10);
         result.evaluationDifference = 0;
-        result.pv = info->pv();
+        result.pv = info->pv();  // 思考の表と同じ読み筋の値
         result.beforeSfen = imported.startSfen();
         result.lastUsiMove = QStringLiteral("7g7f");
         result.sfen = imported.startSfen();
-        result.usiPv = QStringLiteral("7g7f 3c3d");
         results.appendRow(result);
         const auto cell = [&results](int resultRow, int column) { return results.index(resultRow, column).data().toString(); };
         // 手数は表が付ける（棋譜欄と同じ書式）
@@ -388,9 +386,9 @@ private slots:
         results.appendRow(result);
         QCOMPARE(cell(2, KifuAnalysisListModel::MoveColumn),
                  western ? QStringLiteral("   1 2g2f [+]") : QStringLiteral("   1 ▲７六歩(77)+"));
-        result.usiPv = QStringLiteral("7g7f");
+        result.pv = PvText::play(imported.startSfen(), QStringLiteral("7g7f"));
         results.appendRow(result);
-        QCOMPARE(cell(3, KifuAnalysisListModel::PvColumn), western ? QStringLiteral("▲P-7f") : info->pv());
+        QCOMPARE(cell(3, KifuAnalysisListModel::PvColumn), western ? QStringLiteral("▲P-7f") : QStringLiteral("▲７六歩(77)"));
         // UIの書体と棋譜の書体を分け、ビュー個別の文字サイズを維持する。
         QFont viewFont = QApplication::font();
         viewFont.setPointSize(19);
@@ -405,10 +403,9 @@ private slots:
         }
         QVERIFY(!rows.index(1, 3).data(Qt::FontRole).isValid()); // 注釈はUIの書体。
         QVERIFY(!rows.index(4, 0).data(Qt::FontRole).isValid()); // 翻訳された終局もUIの書体。
-        const PvLine board(imported.startSfen(), {"7g7f", "3c3d"});
-        QCOMPARE(board.displayPv(info->pv()), pv);
-        PvBoardDialog pvDialog(imported.startSfen(), {"7g7f", "3c3d"});
-        pvDialog.setKanjiPv(info->pv());
+        const PvLine board(info->pv());
+        QCOMPARE(board.displayPv(), pv);
+        PvBoardDialog pvDialog(info->pv());
         bool foundPv = false;
         for (const auto* label : pvDialog.findChildren<QLabel*>()) {
             if (label->text() == pv) {

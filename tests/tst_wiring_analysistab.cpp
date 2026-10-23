@@ -79,9 +79,7 @@ private slots:
         MainWindow window;
         auto& p = window.composer().parts();
         ThinkingInfoRow row;
-        row.pvKanji = QStringLiteral("▲７六歩");
-        row.usiPv = QStringLiteral("7g7f");
-        row.baseSfen = SfenUtils::hirateSfen();
+        row.pv = PvText::play(SfenUtils::hirateSfen(), QStringLiteral("7g7f"));
         p.thinking1->appendRow(row);
         emit p.thinkingPanel->pvRowClicked(p.thinking1, 0);
         PvBoardDialog* board = nullptr;

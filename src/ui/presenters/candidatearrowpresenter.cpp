@@ -177,9 +177,10 @@ void CandidateArrowPresenter::refresh()
             if (ShogiEngineThinkingModel* model = m_sources.consideration; show && model) {
                 for (int row = 0; row < model->rowCount(); ++row) {
                     const auto* record = model->recordAt(row);
-                    if (!record || positionKey(record->baseSfen()) != positionKey(sfen)) continue;
-                    const auto move = record->usiPv().simplified().section(QLatin1Char(' '), 0, 0);
-                    if (auto arrow = arrowForMove(move, record->baseSfen(), record->multipv()))
+                    if (!record || positionKey(record->pv().baseSfen()) != positionKey(sfen)) continue;
+                    const std::optional<UsiMove> move = record->pv().firstMove();
+                    if (!move) continue;
+                    if (auto arrow = arrowForMove(move->toString(), record->pv().baseSfen(), record->multipv()))
                         arrows.append(*arrow);
                 }
             }

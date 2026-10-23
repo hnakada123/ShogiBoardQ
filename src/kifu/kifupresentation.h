@@ -8,6 +8,7 @@
 #include "notationstyle.h"
 #include "shogimove.h"
 
+class PvText;
 struct RecordEntry;
 
 // Presentation only. Never use these strings in a file writer or a protocol.
@@ -32,8 +33,16 @@ QString rankLabel(int rank);
 /// 局面 beforeSfen の上の1手 usi の表記（style の表記。駒のない移動元や読めない手は usi のまま）
 QString move(const QString& beforeSfen, const QString& usi, Options style,
              bool includeSide = true);
-QString pv(const QString& beforeSfen, const QString& usiMoves, const QString& japanese,
-           bool fullOrigin = false);
+/**
+ * @brief 読み筋の表記（fullOrigin なら英語表記で移動元をすべて付ける）
+ *
+ * 日本語表記は棋譜と同じ KIF の表記を続けて書き、同じマスへの手は「同」と書く（開始局面に至った手も見る）。
+ * 英語表記は1手ずつ空白で区切る。終局の宣言（resign・win）は手番の印と終局語、末尾の注記はそのまま付ける。
+ * 局面と合う手が1つも無ければ、エンジンが送った語のまま返す。
+ */
+QString pv(const PvText& line, bool fullOrigin = false);
+/// 読み筋の ply 手目（1から）の表記（日本語表記は「同」も付ける）
+QString pvMove(const PvText& line, int ply);
 /// 1手の表記（手数・分岐の印は付けない）。日本語表記なら棋譜の表記 kifText、英語表記なら指す前の局面
 /// beforeSfen と指し手 usi から作る（usi が無ければ kifText のまま）
 QString moveLabel(const QString& kifText, const QString& beforeSfen, const QString& usi, bool fullOrigin = false);

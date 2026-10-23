@@ -89,6 +89,7 @@ add_library(kifupresentation_test STATIC
     ${SRC}/kifu/formats/ki2movenotation.cpp
     ${SRC}/services/notationstyle.cpp
     ${EMV_SOURCES}
+    ${SRC}/core/pvtext.cpp
     ${SRC}/core/sfenreplay.cpp
     ${SRC}/core/shogimove.cpp
     ${SRC}/core/terminaltype.cpp)
@@ -1067,11 +1068,11 @@ target_link_libraries(tst_automation_dispatcher PRIVATE shogiboardq_static)
 add_shogi_test(tst_nyugyoku_judgement tst_nyugyoku_judgement.cpp)
 target_link_libraries(tst_nyugyoku_judgement PRIVATE shogiboardq_static)
 
-# info 行の解析（UsiInfoParser）と、読み筋の漢字表記（PvNotationFormatter）
+# info 行の解析（UsiInfoParser）と、読み筋の値と表記（PvText・KifuPresentation::pv）
 add_shogi_test(tst_usilineparser tst_usilineparser.cpp)
 target_link_libraries(tst_usilineparser PRIVATE shogiboardq_static)
-add_shogi_test(tst_pvnotationformatter tst_pvnotationformatter.cpp)
-target_link_libraries(tst_pvnotationformatter PRIVATE shogiboardq_static)
+add_shogi_test(tst_pvtext tst_pvtext.cpp)
+target_link_libraries(tst_pvtext PRIVATE shogiboardq_static)
 
 add_shogi_test(tst_sfen_validation_service tst_sfen_validation_service.cpp)
 target_link_libraries(tst_sfen_validation_service PRIVATE shogiboardq_static)

@@ -35,8 +35,6 @@ UsiScore AnalysisResultHandler::append(const PlyAnalysis& result)
     if (!m_refs.analysisModel || ply < 0) return {};
 
     const UsiScore score = result.book ? UsiScore{} : result.score;
-    const QString usiPv = result.book ? QString() : result.usiPv.join(QLatin1Char(' '));
-    const QString pv = result.book ? QString() : result.pvKanji;
 
     const QString position = m_refs.line && ply <= m_refs.line->moveCount()
         ? SfenUtils::normalizePositionLikeSfen(m_refs.line->sfenAt(ply)) : QString();
@@ -52,7 +50,7 @@ UsiScore AnalysisResultHandler::append(const PlyAnalysis& result)
         m_previousCp.reset();
     }
 
-    qCDebug(lcAnalysis).noquote() << "append: ply=" << ply << "book=" << result.book << "pv=" << pv.left(30);
+    qCDebug(lcAnalysis).noquote() << "append: ply=" << ply << "book=" << result.book << "pv=" << result.pv.usiText().left(30);
 
     KifuAnalysisRow resultRow;
     resultRow.ply = ply;
@@ -61,8 +59,7 @@ UsiScore AnalysisResultHandler::append(const PlyAnalysis& result)
     resultRow.book = result.book;
     resultRow.evaluation = blackScore;
     resultRow.evaluationDifference = difference;
-    resultRow.pv = pv;
-    resultRow.usiPv = usiPv;
+    if (!result.book) resultRow.pv = result.pv;
     resultRow.depth = result.book ? -1 : result.depth;
     if (m_refs.line && ply > 0 && ply <= m_refs.line->moveCount() + 1)
         resultRow.beforeSfen = SfenUtils::normalizePositionLikeSfen(m_refs.line->sfenAt(ply - 1));
@@ -73,7 +70,7 @@ UsiScore AnalysisResultHandler::append(const PlyAnalysis& result)
     // 候補手（前の行の読み筋の最初の指し手）
     if (const KifuAnalysisRow* previous = m_refs.analysisModel->row(m_refs.analysisModel->rowCount() - 1)) {
         if (!resultRow.beforeSfen.isEmpty() && resultRow.beforeSfen == previous->sfen) {
-            resultRow.candidateUsi = previous->usiPv.simplified().section(QLatin1Char(' '), 0, 0);
+            if (const std::optional<UsiMove> first = previous->pv.firstMove()) resultRow.candidateUsi = first->toString();
             resultRow.candidateSfen = previous->sfen;
         }
         if (!resultRow.candidateUsi.isEmpty()) {
@@ -115,27 +112,13 @@ void AnalysisResultHandler::showPvBoardDialog(int row)
         return;
     }
 
-    // 定跡の行は読み筋が無いので、局面だけを出す
-    const QString kanjiPv = item->book ? KifuPresentation::bookLabel() : item->pv;
-    if (kanjiPv.isEmpty()) {
-        qCDebug(lcAnalysis).noquote() << "showPvBoardDialog: kanjiPv is empty";
+    // 読み筋の無い行（定跡）は開かない。各結果は解析した局面を持つので、表の行番号を手数として読み直さない
+    if (item->book || !item->pv.isDisplayable() || item->pv.baseSfen().isEmpty()) {
+        qCDebug(lcAnalysis).noquote() << "showPvBoardDialog: no pv";
         return;
     }
 
-    const QString baseSfen = item->sfen;
-    // 各結果は対象局面を保持している。表示行番号を手数として再解釈しない。
-    if (baseSfen.isEmpty()) return;
-
-    QStringList usiMoves;
-    const QString usiPvStr = item->usiPv;
-    if (!usiPvStr.isEmpty()) {
-        usiMoves = usiPvStr.split(QLatin1Char(' '), Qt::SkipEmptyParts);
-    }
-
-    QWidget* parentWidget = m_refs.presenter;
-
-    auto* dlg = new PvBoardDialog(baseSfen, usiMoves, parentWidget);
-    dlg->setKanjiPv(kanjiPv);
+    auto* dlg = new PvBoardDialog(item->pv, m_refs.presenter);
 
     const QString blackName = m_refs.blackPlayerName.isEmpty() ? tr("先手") : m_refs.blackPlayerName;
     const QString whiteName = m_refs.whitePlayerName.isEmpty() ? tr("後手") : m_refs.whitePlayerName;

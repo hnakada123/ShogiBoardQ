@@ -13,6 +13,7 @@
 class BoardViewerWidget;
 class QLabel;
 class PvLine;
+class PvText;
 
 /**
  * @brief 読み筋（PV: Principal Variation）を再生する別ウィンドウダイアログ
@@ -28,22 +29,9 @@ class PvBoardDialog : public QDialog
     Q_OBJECT
 
 public:
-    /**
-     * @brief コンストラクタ
-     * @param baseSfen 読み筋開始時点の局面（SFEN形式）
-     * @param pvMoves 読み筋の手（USI形式の手のリスト、例: {"7g7f", "3c3d", ...}）
-     * @param parent 親ウィジェット
-     */
-    explicit PvBoardDialog(const QString& baseSfen,
-                           const QStringList& pvMoves,
-                           QWidget* parent = nullptr);
+    /// pv は読み筋（開始局面の上で指した手。読み筋の欄の表記は表記の設定に合わせて作る）
+    explicit PvBoardDialog(const PvText& pv, QWidget* parent = nullptr);
     ~PvBoardDialog() override;
-
-    /**
-     * @brief 漢字表記の読み筋を設定
-     * @param kanjiPv 漢字形式の読み筋（例: "▲７六歩△３四歩..."）
-     */
-    void setKanjiPv(const QString& kanjiPv);
 
     /**
      * @brief 対局者名を設定
@@ -78,7 +66,6 @@ private:
 
 private:
     std::unique_ptr<PvLine> m_line;
-    QString m_kanjiPv;     ///< エンジンの読み筋の漢字表記（日本語表記のときの読み筋の欄）
     QString m_lastMove;    ///< 起動時の局面に至った手
     QString m_prevSfen;    ///< 起動時の局面に至る前の局面
 

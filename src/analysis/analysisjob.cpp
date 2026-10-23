@@ -4,7 +4,6 @@
 #include "analysisjob.h"
 
 #include "logcategories.h"
-#include "pvnotationformatter.h"
 #include "usi.h"
 #include "usienginesession.h"
 
@@ -59,16 +58,8 @@ PlyAnalysis PlyAnalysisCollector::finish(const UsiBestMove& bestMove) const
     result.score = bestMove.score;
     result.depth = m_bestDepth;
 
-    PvNotationFormatter formatter;
-    formatter.setPosition(m_position.sfen());
     const std::optional<UsiMove>& last = m_position.lastMove();
-    formatter.setPreviousMove(last ? last->to : BoardSquare{});
-    UsiInfo pv;
-    pv.pv = m_bestPv;
-    formatter.format(pv);
-    result.pvKanji = formatter.pvKanjiStr();
-    if (result.pvKanji.isEmpty()) result.pvKanji = m_bestPv.join(QLatin1Char(' '));
-    result.usiPv = formatter.pvUsiStr().split(QLatin1Char(' '), Qt::SkipEmptyParts);
+    result.pv = PvText::play(m_position.sfen(), m_bestPv, last ? last->to : BoardSquare{});
     return result;
 }
 

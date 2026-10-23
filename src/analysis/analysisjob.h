@@ -11,6 +11,7 @@
 #include <QSet>
 #include <QStringList>
 
+#include "pvtext.h"
 #include "recordline.h"
 #include "usiinfo.h"
 #include "usimessages.h"
@@ -37,8 +38,7 @@ struct AnalysisRequest {
 struct PlyAnalysis {
     int ply = -1;
     UsiScore score;       ///< 最善の読み筋（multipv 1）の最後の評価値（その局面の手番側から見た値。定跡は None）
-    QStringList usiPv;    ///< 最善の読み筋（局面に合った手まで。resign などの宣言は含まない）
-    QString pvKanji;      ///< 同じ読み筋の漢字表記（局面に合わなければエンジンの読み筋のまま）
+    PvText pv;            ///< 最善の読み筋（解析した局面の上で指した手と、指せなかった語）
     int depth = -1;       ///< 最善の読み筋を出したときの探索深さ（無ければ -1）
     bool book = false;    ///< info が1つも届かずに bestmove が届いた（定跡）
 };
@@ -49,7 +49,7 @@ Q_DECLARE_METATYPE(PlyAnalysis)
  * @brief 1局面の info を集めて、bestmove で結果（PlyAnalysis）にする（Qt のイベントループを知らない）
  *
  * 読み筋は最善の読み筋（multipv 1）の最後の行から、評価値は bestmove が持つ値（UsiBestMove::score）から取る。
- * 読み筋の漢字表記は、探索した局面の上でここで作る（思考情報の表示の整形には頼らない）。
+ * 読み筋は、探索した局面の上でここで指す（思考情報の表示の整形には頼らない）。
  */
 class PlyAnalysisCollector
 {

@@ -948,7 +948,9 @@ private slots:
         KifuDocument document(&tree);
         QList<KifGameInfoItem> pending = document.header();
         pending.append({QStringLiteral("場所"), QStringLiteral("将棋会館")});
-        document.setHooks({[&document, pending]() { document.editHeader(pending); }});
+        KifuDocument::Hooks hooks;
+        hooks.flushPendingHeaderEdits = [&document, pending]() { document.editHeader(pending); };
+        document.setHooks(hooks);
 
         QVERIFY(document.isModified());
         QCOMPARE(document.header(), pending);

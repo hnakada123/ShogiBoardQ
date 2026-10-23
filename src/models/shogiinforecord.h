@@ -5,8 +5,8 @@
 /// @brief 思考の表の1行（エンジンの info 1件）
 
 #include <QString>
-#include <QStringList>
 
+#include "notationtextcache.h"
 #include "thinkinginforow.h"
 
 /**
@@ -26,14 +26,10 @@ public:
     int depth() const { return m_row.depth; }
     qint64 nodes() const { return m_row.nodes; }
     const UsiScore& score() const { return m_row.score; }
-    /// 漢字表記の読み筋
-    QString pv() const { return m_row.pvKanji; }
+    /// 読み筋（開始局面は pv().baseSfen()）
+    const PvText& pv() const { return m_row.pv; }
     /// 表に出す読み筋（表記の設定に合わせる。fullOrigin なら移動元をすべて付ける）
     QString displayPv(bool fullOrigin = false) const;
-    QString usiPv() const { return m_row.usiPv; }
-    /// エンジンが送った読み筋（局面との照合前）。usiPv() が空のとき（局面と合わない手があったとき）に使う
-    QStringList enginePv() const { return m_row.enginePv; }
-    QString baseSfen() const { return m_row.baseSfen; }
     QString lastUsiMove() const { return m_row.lastUsiMove; }
     int multipv() const { return m_row.multipv; }
 
@@ -41,15 +37,8 @@ public:
     bool hasSameContent(const ThinkingInfoRow& row) const;
 
 private:
-    /// 表記の設定が変わったら覚えた文字列を捨てる
-    void invalidateDisplayIfStyleChanged() const;
-
     ThinkingInfoRow m_row;
-    mutable QString m_displayCache;
-    mutable QString m_tooltipCache;
-    mutable bool m_displayValid = false;
-    mutable bool m_tooltipValid = false;
-    mutable int m_cacheRevision = -1;   ///< 覚えた文字列を作ったときの表記の設定（KifuPresentation::revision）
+    NotationTextCache<1> m_display;  ///< 表に出す読み筋
 };
 
 #endif // SHOGIINFORECORD_H

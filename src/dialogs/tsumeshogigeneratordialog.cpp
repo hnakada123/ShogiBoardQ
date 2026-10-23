@@ -20,9 +20,9 @@
 #include <QToolButton>
 #include "changeenginesettingsdialog.h"
 #include "pvboarddialog.h"
+#include "pvtext.h"
 #include "tsumecollectionwriter.h"
 #include "tsumeshogiexportheaderbuilder.h"
-#include "tsumeshogikanjibuilder.h"
 #include "tablestyles.h"
 #include <QApplication>
 #include <QClipboard>
@@ -334,9 +334,8 @@ void TsumeshogiGeneratorDialog::onResultTableActivated(const QModelIndex& index)
     const QStringList pv = sfenItem->data(Qt::UserRole).toStringList();
     if (pv.isEmpty()) return;
 
-    auto* dlg = new PvBoardDialog(sfen, pv, this);
+    auto* dlg = new PvBoardDialog(PvText::play(sfen, pv), this);
     dlg->setPlayerNames(tr("攻方"), tr("玉方"));
-    dlg->setKanjiPv(TsumeshogiKanjiBuilder::buildKanjiPv(sfen, pv));
     dlg->setAttribute(Qt::WA_DeleteOnClose);
     dlg->show();
 }

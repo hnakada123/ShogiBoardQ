@@ -477,7 +477,9 @@ private slots:
         GameInfoPane gameInfo;
         auto* controller = &gameInfo;
         // 合成ルートと同じつなぎ方（mainwindowcomposer_wire.cpp）
-        document.setHooks({std::bind(&GameInfoPane::commitPendingEditor, controller)});
+        KifuDocument::Hooks hooks;
+        hooks.flushPendingHeaderEdits = std::bind(&GameInfoPane::commitPendingEditor, controller);
+        document.setHooks(hooks);
         connect(&document, &KifuDocument::headerReset, controller, &GameInfoPane::setGameInfo);
         connect(&document, &KifuDocument::headerValueSet, controller, &GameInfoPane::updateGameInfoValue);
         connect(controller, &GameInfoPane::gameInfoEdited, &document, &KifuDocument::editHeader);

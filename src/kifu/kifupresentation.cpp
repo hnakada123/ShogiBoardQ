@@ -3,9 +3,9 @@
 #include "handicaps.h"
 #include "ki2movenotation.h"
 #include "kifmovetext.h"
+#include "pvtext.h"
 #include "recordentry.h"
 #include "shoginotation.h"
-#include "sfenreplay.h"
 #include "shogiposition.h"
 #include "terminaltype.h"
 #include "timecontroltext.h"
@@ -17,6 +17,29 @@ namespace {
 QString translated(const char* source)
 {
     return QCoreApplication::translate("KifuPresentation", source);
+}
+
+/// 英語表記の1手（board は指す前の局面、moving は動かす駒）
+QString western(const Position& board, const UsiMove& move, Piece moving, Options style, bool side)
+{
+    const Turn mover = board.sideToMove();
+    QString result = side ? QString(QChar(mover == Turn::Black ? u'▲' : u'△')) : QString();
+    result += pieceSfen(toBlack(moving));
+    const QString text = move.toString();
+    const QStringView to = QStringView(text).mid(2, 2);
+    if (move.isDrop()) {
+        result += QLatin1Char('*');
+        result += to;
+        return result;
+    }
+    // 同じ駒で同じマスへ動ける駒がほかにあれば移動元を付ける（KI2 の修飾語と同じ判定）
+    if (style.alwaysOrigin || Ki2MoveNotation::annotate(board, mover, move).sources.size() > 1)
+        result += QStringView(text).left(2);
+    result += board.pieceAt(move.to) == Piece::None ? QLatin1Char('-') : QLatin1Char('x');
+    result += to;
+    if (move.promote) result += QLatin1Char('+');
+    else if (KifMoveText::couldPromote(moving, move)) result += QLatin1Char('=');
+    return result;
 }
 
 /// 局面の上の1手の表記。読めない手はそのまま返し、駒のない移動元からは駒を作らない
@@ -32,24 +55,15 @@ QString format(const Position& board, const QString& usi, Options style, bool si
         const QString text = KifMoveText::format(mover, moving, *move);
         return side ? text : text.mid(1);
     }
+    return western(board, *move, moving, style, side);
+}
 
-    QString result = side ? QString(QChar(mover == Turn::Black ? u'▲' : u'△')) : QString();
-    result += pieceSfen(toBlack(moving));
-    const QString text = move->toString();
-    const QStringView to = QStringView(text).mid(2, 2);
-    if (move->isDrop()) {
-        result += QLatin1Char('*');
-        result += to;
-        return result;
-    }
-    // 同じ駒で同じマスへ動ける駒がほかにあれば移動元を付ける（KI2 の修飾語と同じ判定）
-    if (style.alwaysOrigin || Ki2MoveNotation::annotate(board, mover, *move).sources.size() > 1)
-        result += QStringView(text).left(2);
-    result += board.pieceAt(move->to) == Piece::None ? QLatin1Char('-') : QLatin1Char('x');
-    result += to;
-    if (move->promote) result += QLatin1Char('+');
-    else if (KifMoveText::couldPromote(moving, *move)) result += QLatin1Char('=');
-    return result;
+/// 読み筋の表記の設定（fullOrigin なら移動元をすべて付ける）
+Options pvStyle(bool fullOrigin)
+{
+    Options style = options();
+    style.alwaysOrigin = fullOrigin || style.alwaysOrigin;
+    return style;
 }
 } // namespace
 
@@ -67,20 +81,64 @@ QString move(const QString& beforeSfen, const QString& usi, Options style, bool 
     return format(board, usi, style, includeSide);
 }
 
-QString pv(const QString& beforeSfen, const QString& usiMoves, const QString& japanese, bool fullOrigin)
+QString pv(const PvText& line, bool fullOrigin)
 {
-    if (options().notation == Notation::Japanese && !japanese.isEmpty()) return japanese;
-    Position board;
-    if (beforeSfen.isEmpty() || !board.assignSfen(beforeSfen)) return usiMoves.isEmpty() ? japanese : usiMoves;
-    Options style = options();
-    style.alwaysOrigin = fullOrigin || style.alwaysOrigin;
-    QStringList result;
-    const auto moves = usiMoves.simplified().split(QLatin1Char(' '), Qt::SkipEmptyParts);
-    for (const auto& usi : moves) {
-        result.append(format(board, usi, style, true));
-        if (!SfenReplay::applyLenient(board, usi)) break;
+    const QList<PvText::Step>& steps = line.steps();
+    const TerminalType declaration = line.declaration();
+    // 局面と合う手が無ければ、エンジンが送った語のまま出す
+    if (steps.isEmpty() && declaration == TerminalType::None) return line.rest().join(QLatin1Char(' '));
+
+    const Options style = pvStyle(fullOrigin);
+    const bool japanese = style.notation == Notation::Japanese;
+    QString text;
+    if (japanese) {
+        // 日本語表記は棋譜と同じ KIF の表記を続けて書き、同じマスへの手は「同」と書く
+        text.reserve(steps.size() * 10);
+        BoardSquare previousTo = line.previousTo();
+        for (const PvText::Step& step : steps) {
+            KifMoveText::append(text, step.mover, step.moving, step.move, previousTo, KifMoveText::SameSquare::Compact);
+            previousTo = step.move.to;
+        }
+    } else {
+        Position board;
+        board.assignSfen(line.baseSfen());
+        QStringList moves;
+        moves.reserve(steps.size());
+        for (const PvText::Step& step : steps) {
+            moves.append(western(board, step.move, step.moving, style, true));
+            board.apply(step.move);
+        }
+        text = moves.join(QLatin1Char(' '));
     }
-    return result.isEmpty() ? japanese : result.join(QLatin1Char(' '));
+    const QString separator = japanese || text.isEmpty() ? QString() : QStringLiteral(" ");
+    if (declaration != TerminalType::None) {
+        // resign・win は指せた手の次の手番の終局の宣言
+        Turn side = Turn::Black;
+        if (!steps.isEmpty()) side = opponent(steps.constLast().mover);
+        else if (const std::optional<Position> base = Position::fromSfen(line.baseSfen())) side = base->sideToMove();
+        text += separator + QChar(side == Turn::Black ? u'▲' : u'△') + TerminalTypes::displayLabel(declaration);
+    } else if (const QString note = line.annotation(); !note.isEmpty()) {
+        text += QLatin1Char(' ') + note;
+    }
+    return text;
+}
+
+QString pvMove(const PvText& line, int ply)
+{
+    const QList<PvText::Step>& steps = line.steps();
+    if (ply < 1 || ply > steps.size()) return {};
+    const PvText::Step& step = steps.at(ply - 1);
+    const Options style = options();
+    if (style.notation == Notation::Japanese) {
+        const BoardSquare previousTo = ply == 1 ? line.previousTo() : steps.at(ply - 2).move.to;
+        QString text;
+        KifMoveText::append(text, step.mover, step.moving, step.move, previousTo, KifMoveText::SameSquare::Compact);
+        return text;
+    }
+    Position board;
+    board.assignSfen(line.baseSfen());
+    for (int i = 0; i < ply - 1; ++i) board.apply(steps.at(i).move);
+    return western(board, step.move, step.moving, style, true);
 }
 
 QString moveLabel(const QString& kifText, const QString& beforeSfen, const QString& usi, bool fullOrigin)

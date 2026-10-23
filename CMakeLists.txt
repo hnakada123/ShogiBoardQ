@@ -250,6 +250,8 @@ set(SRC_CORE
     src/core/legalmovestatus.h
     src/core/matchplayers.h
     src/core/piecerules.h
+    src/core/pvtext.cpp
+    src/core/pvtext.h
     src/core/shogiposition.cpp
     src/core/shogiposition.h
     src/core/recordtime.h
@@ -479,8 +481,6 @@ set(SRC_ENGINE
     src/engine/engineregistrationhandler.h
     src/engine/matchtimesource.cpp
     src/engine/matchtimesource.h
-    src/engine/pvnotationformatter.cpp
-    src/engine/pvnotationformatter.h
     src/engine/thinkinginfoformatter.cpp
     src/engine/thinkinginfoformatter.h
     src/engine/thinkinginforow.h
@@ -805,8 +805,6 @@ set(SRC_DIALOGS
     src/dialogs/tsumeplaydialog.h
     src/dialogs/tsumeshogigeneratordialog.cpp
     src/dialogs/tsumeshogigeneratordialog.h
-    src/dialogs/tsumeshogikanjibuilder.cpp
-    src/dialogs/tsumeshogikanjibuilder.h
     src/dialogs/tsumeshogisearchdialog.cpp
     src/dialogs/tsumeshogisearchdialog.h
     src/dialogs/versiondialog.cpp
@@ -819,6 +817,7 @@ set(SRC_MODELS
     src/models/kifuanalysislistmodel.cpp
     src/models/kifuanalysislistmodel.h
     src/models/kifuanalysisrow.h
+    src/models/notationtextcache.h
     src/models/kifubranchlistmodel.cpp
     src/models/kifubranchlistmodel.h
     src/models/kifurecordlistmodel.cpp

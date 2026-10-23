@@ -10,6 +10,7 @@
 #include <QtMath>
 
 #include "piecestylecatalog.h"
+#include "pvtext.h"
 #include "appsettings.h"
 #include "boardappearance.h"
 #include "boardappearancecatalog.h"
@@ -607,7 +608,7 @@ private slots:
     {
         const QStringList positions = positionsAfterPvMoves();
         QCOMPARE(positions.size(), 5);
-        PvBoardDialog dialog(validSfen(), pvMoves());
+        PvBoardDialog dialog(PvText::play(validSfen(), pvMoves()));
         dialog.show();
         QVERIFY(QTest::qWaitForWindowExposed(&dialog));
         auto* view = dialog.findChild<ShogiView*>();
