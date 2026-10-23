@@ -430,7 +430,6 @@ void MainWindowComposer::createSessions()
     fd.gameController = m_c.gameController;
     fd.navState = m_c.navState;
     fd.activity = &m_activity;
-    fd.clearUiBeforeKifuLoad = std::bind(&SessionResetCoordinator::clearBeforeKifuLoad, m_c.sessionReset.get());
     m_c.kifuFileController = new KifuFileController(fd, &m_window);
 
     // 対局の利用者の操作と、対局の手順の書き先

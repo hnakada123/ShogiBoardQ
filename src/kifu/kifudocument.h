@@ -39,12 +39,11 @@ class KifuDocument : public QObject
 public:
     /// 上位層へのコールバック（文書を編集する画面の、まだ文書に入っていない入力。画面がなければ空）
     struct Hooks {
-        /// 対局情報欄の入力中のセルを確定する（対局情報を読む前に呼ぶ）
-        std::function<void()> flushPendingHeaderEdits;
-        /// コメント欄の未更新の本文を、書いていた手に確定する（書き出す前に呼ぶ）
-        std::function<void()> commitPendingComment;
-        /// コメント欄に未更新の本文があるか（未保存に数える）
-        std::function<bool()> hasPendingComment;
+        /// 入力中の編集（対局情報欄のセル・コメント欄の未更新の本文）を文書に確定する
+        /// （保存・書き出し・対局の開始の前に呼ぶ）
+        std::function<void()> commitPendingEdits;
+        /// 文書に入っていない入力中の編集があるか（未保存に数える）
+        std::function<bool()> hasPendingEdits;
     };
 
     explicit KifuDocument(KifuBranchTree* tree, QObject* parent = nullptr);
@@ -84,7 +83,7 @@ public:
 
     // --- 対局情報（ヘッダー） ---
 
-    /// 対局情報（入力中のセルを確定してから読む）
+    /// 対局情報（入力中のセルは含まない。保存・書き出しは commitPendingEdits で確定してから読む）
     QList<KifGameInfoItem> header() const;
     /// 利用者が対局情報を編集した（保存した時点と違えば未保存）
     void editHeader(const QList<KifGameInfoItem>& items);
@@ -122,11 +121,16 @@ public:
     static QList<KifGameInfoItem> defaultHeader();
 
 signals:
+    /// 文書の中身を置き換えた（新規・読み込み・局面の反映・新しい棋譜での対局の開始）。
+    /// ツリーから作られない表示（評価値グラフ・エンジンの表示）は、これを受けて自分で消す
+    void replaced();
     /// 対局情報を置き換えた（beforeMatchStart: 対局を始める前の案内を出す）
     void headerReset(const QList<KifGameInfoItem>& items, bool beforeMatchStart);
+    /// 対局情報欄で対局情報を書き換えた（盤の対局者名を合わせる）
+    void headerEdited();
     /// 対局情報に自動で値を書いた（終了日時など。未保存に数えない）
     void headerValueSet(const QString& key, const QString& value);
-    /// 保存した・ファイルから読み込んだ（対局情報欄の未反映の表示を消す）
+    /// 保存した・ファイルから読み込んだ
     void saved();
     /// 対局者が変わった（対局の開始・棋譜の置き換え）
     void playersChanged();
@@ -140,7 +144,6 @@ private:
     void finishReplacement(const QList<KifGameInfoItem>& header, bool beforeMatchStart);
     /// 対局情報の値を自動で書く（保存した時点の内容にも書くので、未保存に数えない）
     void setHeaderValue(const QString& key, const QString& value);
-    void flushPendingHeaderEdits() const;
     /// 保存する中身がある（指し手・開始局面のコメントがある、またはファイルと結びついている）
     bool hasRecordContent() const;
 

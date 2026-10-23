@@ -215,9 +215,8 @@
 **重点確認ポイント:**
 - `GameSession::resetToInitialState()` の実行順序（「新規」は `MainWindowActions::resetToInitialState()` が未保存の確認をしてから呼ぶ）:
   1. 検討・詰み探索（`AnalysisSession::stop()`。自分のエンジンだけを手放す）と通信対局（`CsaGameCoordinator::stopGame()`）を止め、対局・棋譜解析のエンジンも `EngineLifecycleManager::destroyEngines(false)` で止めて（持ち主には `engineRevoked` で知らせる）、司令塔の終局状態・連続対局・中断した対局を消す
-  2. `SessionResetCoordinator::clearBeforeKifuLoad()` — 通信ログ・思考情報・検討・解析結果（`EngineDisplayPresenter::clearAll()`）と評価値グラフを消す
-  3. `SessionResetCoordinator::resetToNewRecord()` — 読み込み途中の棋譜を捨て（`KifuLoadCoordinator::cancelLoad()`）、`KifuDocument::startNew()` で平手の開始局面だけの棋譜にする。文書の置き換えで対局情報は既定の項目になり、対局者・持ち時間・終局日時・上書き保存先も消え、盤の対局者名は対局情報の初期値（「先手」「後手」）に戻る（`headerReset` → `PlayerInfoPresenter::syncBoardNamesWithGameInfo()`）
-  4. 動作状態を `Idle` に戻す
+  2. `SessionResetCoordinator::resetToNewRecord()` — 読み込み途中の棋譜を捨て（`KifuLoadCoordinator::cancelLoad()`）、`KifuDocument::startNew()` で平手の開始局面だけの棋譜にする。文書の置き換え（`KifuDocument::replaced`）を受けて、通信ログ・思考情報・検討・解析結果（`EngineDisplayPresenter::clearAll()`）と評価値グラフが消える。文書の置き換えで対局情報は既定の項目になり、対局者・持ち時間・終局日時・上書き保存先も消え、盤の対局者名は対局情報の初期値（「先手」「後手」）に戻る（`headerReset` → `PlayerInfoPresenter::syncBoardNamesWithGameInfo()`）
+  3. 動作状態を `Idle` に戻す
 - 動作状態（`AppActivityState::activity()`） が `Idle` に戻り、`KifuDocument::players()` が空・`KifuDocument::filePath()` が空になるか
 - 分岐ツリーの開始局面（`KifuBranchTree::root()`）が平手 SFEN に戻り、表示中の手（`KifuNavigationState::currentSfen()`）も平手になるか
 - 司令塔の終局状態が `MatchCoordinator::clearGameOverState()` で消えるか（対局の手順 `MatchCoordinator::record()` は次の対局の開始で置き換わる）

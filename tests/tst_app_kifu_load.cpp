@@ -9,6 +9,8 @@
 #include <QTemporaryDir>
 
 #include "appactivitystate.h"
+#include "evaluationgraphpresenter.h"
+#include "evaluationseries.h"
 #include "kifudocument.h"
 #include "sfenutils.h"
 #include "kifubranchnode.h"
@@ -241,6 +243,21 @@ private slots:
         QVERIFY(shown.errors().size() >= 2);
         QCOMPARE(p.branchTree->mainRecordLine().usiMoves(), before);
         QCOMPARE(p.document->filePath(), target);
+    }
+
+    /// 棋譜を置き換えると、文書の置き換えの知らせを受けて前の評価値グラフが消える。読めなかったときは残す
+    void replacingRecordClearsEvaluationGraph()
+    {
+        MainWindow window;
+        auto& p = window.composer().parts();
+        p.evalGraph->beginAnalysis(QStringLiteral("Engine"), 0);
+        p.evalGraph->plotAnalysisScore(1, UsiScore::cp(120));
+        QCOMPARE(p.evalGraph->series()->count(0), 1);
+        UiNotificationService::ScopedCapture shown;
+        QVERIFY(!p.kifuFileController->loadKifuText(QStringLiteral("this is not a kifu")));
+        QCOMPARE(p.evalGraph->series()->count(0), 1);
+        QVERIFY(p.kifuFileController->loadKifuFile(fixture(QStringLiteral("test_basic.kif"))));
+        QCOMPARE(p.evalGraph->series()->count(0), 0);
     }
 
     /// 非同期の読み込みも同じ経路で入り、後から始めた読み込みが残る

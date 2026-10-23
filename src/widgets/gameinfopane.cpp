@@ -25,7 +25,6 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QMimeData>
-#include <QPushButton>
 #include <QShortcut>
 #include <QStyledItemDelegate>
 #include <QTableView>
@@ -104,7 +103,7 @@ GameInfoPane::GameInfoPane(QWidget* parent)
         connect(shortcut, &QShortcut::activated, this, slot);
     };
     for (const auto key : {Qt::Key_Return, Qt::Key_Enter})
-        addShortcut(QKeySequence(Qt::CTRL | key), &GameInfoPane::applyChanges);
+        addShortcut(QKeySequence(Qt::CTRL | key), &GameInfoPane::commitPendingEditor);
 
     // 内容が変わったら、項目名の列幅と行の高さを合わせ、操作ボタンの状態を更新する
     connect(m_model, &QAbstractItemModel::modelReset, this, &GameInfoPane::updateTablePresentation);
@@ -161,14 +160,13 @@ void GameInfoPane::updateGameInfoValue(const QString& key, const QString& value)
 }
 
 // ============================================================
-// 未反映の変更
+// 入力中のセル
 // ============================================================
 
-bool GameInfoPane::isDirty() const
+bool GameInfoPane::hasPendingEditor() const
 {
     const auto* editor = activeEditor();
-    if (editor && editor->text() != m_table->currentIndex().data(Qt::EditRole).toString()) return true;
-    return m_model->isDirty();
+    return editor && editor->text() != m_table->currentIndex().data(Qt::EditRole).toString();
 }
 
 void GameInfoPane::commitPendingEditor()
@@ -180,16 +178,6 @@ void GameInfoPane::commitPendingEditor()
         emit delegate->commitData(editor);
         emit delegate->closeEditor(editor, QAbstractItemDelegate::NoHint);
     }
-}
-
-void GameInfoPane::applyChanges()
-{
-    commitPendingEditor();
-    if (!m_model->isDirty()) return;
-    m_model->markApplied();
-    const QList<KifGameInfoItem> items = gameInfo();
-    emit gameInfoUpdated(items);
-    qCDebug(lcUi).noquote() << "[GameInfoPane] applyChanges: Game info updated, items=" << items.size();
 }
 
 // ============================================================
@@ -364,17 +352,10 @@ void GameInfoPane::buildToolbar()
     connect(m_btnAddRow, &QToolButton::clicked, this, &GameInfoPane::addRow);
     connect(m_btnRemoveRow, &QToolButton::clicked, this, &GameInfoPane::removeRow);
 
-    auto* apply = group();
-    m_btnUpdate = new QPushButton(tr("対局情報更新"), m_toolbar);
-    m_btnUpdate->setObjectName(QStringLiteral("gameInfoApply"));
-    m_btnUpdate->setToolTip(tr("編集した対局情報を棋譜に反映する (Ctrl+Enter)"));
-    m_btnUpdate->setMinimumHeight(28);
-    m_btnUpdate->setStyleSheet(ButtonStyles::primaryAction());
-    connect(m_btnUpdate, &QPushButton::clicked, this, &GameInfoPane::applyChanges);
-    apply->addWidget(m_btnUpdate);
-
-    m_editingLabel = new QLabel(m_toolbar);
+    // 編集は表に入れた時点で棋譜に入る（保存すればファイルにも書く）
+    m_editingLabel = new QLabel(tr("内容をダブルクリックして編集"), m_toolbar);
     m_editingLabel->setObjectName(QStringLiteral("gameInfoEditing"));
+    m_editingLabel->setStyleSheet(QStringLiteral("QLabel { color: #596773; }"));
     // FlowLayout は sizeHint の幅で並べるため、折り返し可能なラベルは次の行に回ったとき
     // 余白があっても短く折り返される。案内文は短いので1行で表示する。
     m_editingLabel->setWordWrap(false);
@@ -422,15 +403,6 @@ void GameInfoPane::updateEditingIndicator()
     const auto* mime = QApplication::clipboard()->mimeData();
     m_editActions->setEnabled(EditActions::Paste, editable && mime && mime->hasText());
     m_btnRemoveRow->setEnabled(selected);
-    const bool dirty = isDirty();
-    m_btnUpdate->setEnabled(dirty);
-    m_editingLabel->setText(dirty ? tr("未反映の変更があります") : tr("内容をダブルクリックして編集"));
-    // フォーカスの移動やクリップボードの変化のたびに呼ばれる。同じスタイルシートでも付け直すと
-    // Qt はスタイルを適用し直して描き直すので、変わったときだけ付ける
-    const QString style = dirty
-        ? QStringLiteral("QLabel { color: #8a5800; font-weight: bold; }")
-        : QStringLiteral("QLabel { color: #596773; }");
-    if (m_editingLabel->styleSheet() != style) m_editingLabel->setStyleSheet(style);
 }
 
 void GameInfoPane::updateTablePresentation()

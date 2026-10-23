@@ -8,7 +8,6 @@
 #include <QPointer>
 #include <QString>
 #include <QStringList>
-#include <functional>
 #include <optional>
 
 #include "kifuformat.h"
@@ -42,8 +41,6 @@ public:
         const KifuNavigationState* navState = nullptr;  ///< 表示中の手（局面のコピー・現在の手までのコピー。必須）
         /// 動作状態（棋譜を置き換えてよいかの判定。必須）
         const AppActivityState* activity = nullptr;
-        /// 棋譜を読み込む前に前の対局のログ・グラフ・コメントを消す
-        std::function<void()> clearUiBeforeKifuLoad;
     };
 
     explicit KifuFileController(const Deps& deps, QObject* parent = nullptr);

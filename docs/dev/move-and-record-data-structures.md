@@ -935,8 +935,6 @@ URL セーフな短い文字列で棋譜を表現。分岐対応。
 
 ```
 1. KifuFileController::chooseAndLoadKifuFile() → startAsyncLoad(filePath, false)
-   → prepareForKifuLoad()（SessionResetCoordinator::clearBeforeKifuLoad()。
-     前の対局の通信ログ・思考情報・評価値グラフを消す）
    → KifuLoadCoordinator::loadFileAsync(filePath)
    → KifuLoadParser::parseFile()（ワーカースレッド）
        ├─ KifuFormats::detectFile() で形式を決める
@@ -955,12 +953,12 @@ URL セーフな短い文字列で棋譜を表現。分岐対応。
         JKF は形式上の親（branchPoint()）を分岐元にする）
 
 3. KifuLoadCoordinator::applyRecord()
-   a. 指し手も局面図（BOD・配置）もなければ失敗
-   b. KifuDocument::replaceWithRecord(record, initialSfen, result.gameInfo)
-      → KifuBranchTreeBuilder::buildFromKifParseResult(tree, record, initialSfen)
+   a. 指し手が無く、開始局面が手合割の名前だけの平手なら失敗（局面図・局面指定・駒落ちの開始局面は0手でも読む）
+   b. KifuDocument::replaceWithRecord(record, result.gameInfo)
+      → KifuBranchTreeBuilder::buildFromKifParseResult(tree, record)（開始局面は record.mainline.startSfen）
       ├─ 変化の分岐元が先に書かれた手順で、分岐の手の前まで続いているかを確かめる
       │  （だめならツリーを変えずに false）
-      ├─ beginBatchUpdate() → tree->clear() + tree->setRootSfen(initialSfen)
+      ├─ beginBatchUpdate() → tree->clear() + tree->setRootSfen(開始局面)
       ├─ addKifLineToTree(tree, mainline, {root})  // 本譜
       │   → root → move1 → move2 → ... → endNode（各行を addRecord() で積む）
       ├─ for each variation:
@@ -969,6 +967,8 @@ URL セーフな短い文字列で棋譜を表現。分岐対応。
       └─ endBatchUpdate()  // 作り直しを含むので reset を1回だけ出す
    c. 文書の後始末（KifuDocument::finishReplacement()）: 対局情報を読んだものにし、前の対局者・持ち時間・
       上書き保存先を消し、今の内容を保存した時点とする
+      → emit replaced() → EvaluationGraphPresenter::clear()・EngineDisplayPresenter::clearAll()
+        （前の対局・解析の評価値グラフ・通信ログ・思考情報・解析結果を消す）
       → emit headerReset(header) → GameInfoPane::setGameInfo()（対局情報欄）・
         PlayerInfoPresenter::syncBoardNamesWithGameInfo()（盤の対局者名）
 
@@ -979,7 +979,6 @@ URL セーフな短い文字列で棋譜を表現。分岐対応。
      → BoardSyncPresenter（開始局面の盤）・CommentCoordinator（開始局面のコメント）など
    loadFinished(true) → KifuFileController::onAsyncLoadFinished() → finishLoad()
                         （ファイルなら KifuDocument::markSaved(path) で上書き保存先にする。貼り付けた棋譜は markUnsavedContent()）
-                      → UiStatePolicyManager::enableNavigationIfAllowed()
 ```
 
 **読み込み後のデータ状態**:

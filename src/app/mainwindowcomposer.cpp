@@ -6,8 +6,10 @@
 #include "ui_mainwindow.h"
 
 #include "appsettings.h"
+#include "commentcoordinator.h"
 #include "considerationtabmanager.h"
 #include "docklayoutmanager.h"
+#include "gameinfopane.h"
 #include "enginelifecyclemanager.h"
 #include "humanturnpolicy.h"
 #include "josekiwindow.h"
@@ -72,6 +74,18 @@ bool MainWindowComposer::isHumanTurnNow() const
 bool MainWindowComposer::showConsiderationArrows() const
 {
     return !m_c.considerationTab || m_c.considerationTab->settings().showArrows;
+}
+
+void MainWindowComposer::commitPendingEdits()
+{
+    if (m_c.gameInfoPane) m_c.gameInfoPane->commitPendingEditor();
+    if (m_c.commentCoordinator) m_c.commentCoordinator->commitPendingComment();
+}
+
+bool MainWindowComposer::hasPendingEdits() const
+{
+    return (m_c.gameInfoPane && m_c.gameInfoPane->hasPendingEditor())
+        || (m_c.commentCoordinator && m_c.commentCoordinator->hasPendingComment());
 }
 
 void MainWindowComposer::shutdown()

@@ -275,6 +275,8 @@
 
 **影響**: widgets 2・models 1・kifu 1・ui 3・app 1、±150行。`tst_game_info_pane`・GUI テスト・ガイド1か所。
 
+**状態: 済（R7 と同じコミット）**。「対局情報更新」ボタン・`m_applied`・`gameInfoUpdated`・未反映の表示を消し、盤の対局者名は `KifuDocument::headerEdited` で合わせる。`KifuDocument::Hooks` は `commitPendingEdits`・`hasPendingEdits` の2つにし、合成ルートが対局情報欄の入力中のセルとコメント欄の未更新の本文をまとめて渡す。案から変えた点: 対局情報 `header()` は入力中のセルを確定しなくなった（読むだけで文書を変えない）。確定は保存・書き出し・対局の開始・対局情報を残す新しい棋譜（`startNew(keepHeader)`）の前。入力中のセルの確定には Ctrl+Enter も使え、欄の下に案内を出す
+
 ### R7. 文書の置き換えと、文書の外の表示の消去（app・ui）。B10 の原因
 
 **問題**
@@ -294,6 +296,8 @@
 **書き直し案**: 文書の置き換えを1つの知らせにし、評価値グラフとエンジンの表示がそれを受けて自分で消す（「現在局面から続ける」ときだけ切り詰める）。通信対局の開始も `prepareGameStart` を通す。`SessionResetCoordinator` は `prepareGameStart` だけになり、`KifuFileController` のフックと配線1本も消える。
 
 **影響**: 6〜7ファイル、約150行。
+
+**状態: 済（R6 と同じコミット）**。`KifuDocument::replaced` を受けて評価値グラフ（`EvaluationGraphPresenter::clear`）とエンジンの表示（`EngineDisplayPresenter::clearAll`）が自分で消す。`clearBeforeKifuLoad`・`KifuFileController::Deps::clearUiBeforeKifuLoad`・局面編集の配線を消し、連続対局の次局と通信対局の開始は `prepareGameStart` だけを通す（ツリーの作り直しは1回）。案から変えた点: `resetToNewRecord` は新規・局面編集の入口として残した（対局の準備を伴わない）。局面編集でもエンジンの表示が消えるようになった。読み込みに失敗したときは文書を置き換えないので、前の表示が残る
 
 ### R8. エンジンの枠が対局の仲介を兼ね、探索の切り替えを使う側が書いている（engine・game・network・analysis）。B16・U5 の原因
 

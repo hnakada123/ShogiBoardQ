@@ -4942,28 +4942,28 @@ Each screen keeps its current text size.</translation>
         <translation>Value</translation>
     </message>
     <message>
-        <location filename="../../src/models/gameinfoeditmodel.cpp" line="215"/>
+        <location filename="../../src/models/gameinfoeditmodel.cpp" line="193"/>
         <source>未開始（対局開始時に設定）</source>
         <translation>Not started (set when the game starts)</translation>
     </message>
     <message>
-        <location filename="../../src/models/gameinfoeditmodel.cpp" line="215"/>
-        <location filename="../../src/models/gameinfoeditmodel.cpp" line="219"/>
+        <location filename="../../src/models/gameinfoeditmodel.cpp" line="193"/>
+        <location filename="../../src/models/gameinfoeditmodel.cpp" line="197"/>
         <source>未設定</source>
         <translation>Not set</translation>
     </message>
     <message>
-        <location filename="../../src/models/gameinfoeditmodel.cpp" line="217"/>
+        <location filename="../../src/models/gameinfoeditmodel.cpp" line="195"/>
         <source>未設定（名前を入力できます）</source>
         <translation>Not set (enter a player name)</translation>
     </message>
     <message>
-        <location filename="../../src/models/gameinfoeditmodel.cpp" line="219"/>
+        <location filename="../../src/models/gameinfoeditmodel.cpp" line="197"/>
         <source>未設定（対局設定から反映）</source>
         <translation>Not set (from game settings)</translation>
     </message>
     <message>
-        <location filename="../../src/models/gameinfoeditmodel.cpp" line="221"/>
+        <location filename="../../src/models/gameinfoeditmodel.cpp" line="199"/>
         <source>任意入力</source>
         <translation>Optional</translation>
     </message>
@@ -4971,7 +4971,7 @@ Each screen keeps its current text size.</translation>
 <context>
     <name>GameInfoPane</name>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="97"/>
+        <location filename="../../src/widgets/gameinfopane.cpp" line="96"/>
         <source>対局情報</source>
         <translation>Game Info</translation>
     </message>
@@ -5026,42 +5026,39 @@ Discard changes and continue?</translation>
         <translation type="vanished">Paste (Ctrl+V)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="356"/>
+        <location filename="../../src/widgets/gameinfopane.cpp" line="344"/>
         <source>行を追加</source>
         <translation>Add row</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="356"/>
+        <location filename="../../src/widgets/gameinfopane.cpp" line="344"/>
         <source>新しい行を追加する</source>
         <translation>Add a new row</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="357"/>
+        <location filename="../../src/widgets/gameinfopane.cpp" line="345"/>
         <source>行を削除</source>
         <translation>Delete row</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="358"/>
+        <location filename="../../src/widgets/gameinfopane.cpp" line="346"/>
         <source>選択行を削除する（元に戻す操作で復元できます）</source>
         <translation>Delete the selected row (can be restored with Undo)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="368"/>
         <source>対局情報更新</source>
-        <translation>Update Game Info</translation>
+        <translation type="vanished">Update Game Info</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="370"/>
         <source>編集した対局情報を棋譜に反映する (Ctrl+Enter)</source>
-        <translation>Apply edited game info to the record (Ctrl+Enter)</translation>
+        <translation type="vanished">Apply edited game info to the record (Ctrl+Enter)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="427"/>
         <source>未反映の変更があります</source>
-        <translation>Unapplied changes</translation>
+        <translation type="vanished">Unapplied changes</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="427"/>
+        <location filename="../../src/widgets/gameinfopane.cpp" line="356"/>
         <source>内容をダブルクリックして編集</source>
         <translation>Double-click a value to edit</translation>
     </message>

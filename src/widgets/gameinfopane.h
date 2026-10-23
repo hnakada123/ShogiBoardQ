@@ -16,18 +16,17 @@ class EditActions;
 class GameInfoEditModel;
 class QLabel;
 class QLineEdit;
-class QPushButton;
 class QTableView;
 class QToolButton;
 
 /**
- * @brief 対局情報の表と、その編集の操作（元に戻す・切り取り・行の追加・反映など）
+ * @brief 対局情報の表と、その編集の操作（元に戻す・切り取り・行の追加など）
  *
  * 棋譜の文書（KifuDocument）の対局情報を編集する画面。表の中身が変わるたびに gameInfoEdited で
- * 文書に知らせ、文書が対局情報を置き換えたら setGameInfo で表を作り直す。
- * 表の中身・履歴・未反映かどうかは GameInfoEditModel が持つ。このクラスは表の見た目
+ * 文書に知らせ、文書が対局情報を置き換えたら setGameInfo で表を作り直す。未保存かは文書が決める
+ * （入力中のセルは hasPendingEditor で数え、保存の前に commitPendingEditor で確定する）。
+ * 表の中身と履歴は GameInfoEditModel が持つ。このクラスは表の見た目
  * （項目名の列幅・行の高さ・文字の大きさ）と、ボタン・ショートカットの操作を受け持つ。
- * 「対局情報更新」で編集を確定すると gameInfoUpdated を出す。
  */
 class GameInfoPane : public QWidget
 {
@@ -47,9 +46,9 @@ public:
     /// 終了日時などを自動で更新する（編集中の他の項目と履歴は保つ）
     void updateGameInfoValue(const QString& key, const QString& value);
 
-    /// 未反映の変更があるか（入力中のセルも含む）
-    bool isDirty() const;
-    /// 入力中のセルを確定する（保存・確認の前に使う）
+    /// 入力中のセルに、まだ表に入れていない文字があるか（未保存に数える）
+    bool hasPendingEditor() const;
+    /// 入力中のセルを確定する（保存・確認の前に使う。Ctrl+Enter でも確定する）
     void commitPendingEditor();
 
     int fontSize() const { return m_fontSize.fontSize(); }
@@ -65,12 +64,8 @@ public slots:
     void addRow();
     /// 選択した行を削除する（元に戻す操作で復元できる）
     void removeRow();
-    /// 編集を確定して gameInfoUpdated を出す
-    void applyChanges();
 
 signals:
-    /// 「対局情報更新」で編集を確定した
-    void gameInfoUpdated(const QList<KifGameInfoItem>& items);
     /// 表の中身が変わった（文書の対局情報を合わせる）
     void gameInfoEdited(const QList<KifGameInfoItem>& items);
 
@@ -101,7 +96,6 @@ private:
     QToolButton* m_btnAddRow = nullptr;
     QToolButton* m_btnRemoveRow = nullptr;
     QLabel* m_editingLabel = nullptr;
-    QPushButton* m_btnUpdate = nullptr;
 
     FontSizeHelper m_fontSize;      ///< 表の文字の大きさ（変更のたびに保存する）
     int m_keyColumnWidth = 0;       ///< 利用者が決めた項目名の列幅（0 は内容に合わせる）
