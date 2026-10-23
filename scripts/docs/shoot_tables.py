@@ -9,6 +9,8 @@ scenarios (window ja / zh 1300x980, en 1400x1000 unless noted):
   tsumi  tsumi-search/tsumi-search-thinking.png (the Tsume Initial Setup position, from a fresh start)
   wide   screenshot-main.png (all languages 1400x1000), with sample_kifu/main-<lang>.kif
   game   game-play/game-03-playing-thinking-tab.png (Human vs YaneuraOu; the human moves come from humanplay.py)
+  info   game-play/game-06-game-info.png (Human vs YaneuraOu, 5 minutes + 10 seconds; the human resigns after
+         20 moves and the Game Info tab is shown)
   lang   multilanguage/main-screen.png (every language shows the Japanese record sample_kifu/sample-ja.kif)
 
 Images are written to <output dir>/<lang dir>/<path>, laid out like docs/images (ja at the top, the others
@@ -302,8 +304,36 @@ def scenario_game():
     quit_app()
 
 
+def scenario_info():
+    require_yaneuraou()
+    launch(*((1400, 1000) if LANG == "en" else (1300, 980)))
+    rpc("action.trigger", {"name": "actionStartGame"})
+    time.sleep(1.5)
+    # 先手が人間、後手がやねうら王、持ち時間5分・1手ごとに10秒加算（後手は同じ設定）
+    for key, value in [("comboBoxPlayer1", 0), ("comboBoxPlayer2", 1), ("basicTimeHour1", 0),
+                       ("basicTimeMinutes1", 5), ("byoyomiSec1", 0), ("addEachMoveSec1", 10)]:
+        rpc("widget.setValue", {"target": "StartGameDialog", "widget": key, "value": value})
+    rpc("dialog.clickButton", {"target": "StartGameDialog", "text": GAME_START})
+    time.sleep(2)
+    env = dict(os.environ, SBQ_HAYANAGI=HAYANAGI_PATH)
+    subprocess.run(["python3", os.path.join(HERE, "humanplay.py"), os.path.join(SOCKDIR, NAME + ".sock"), "20",
+                    "600"], env=env, check=True, stdout=subprocess.DEVNULL)
+    # 人間の手番で投了し、結果の知らせを閉じる
+    wait_until(lambda: rpc("app.state")["sfen"].split()[1] == "b", timeout=60, step=0.2)
+    rpc("action.trigger", {"name": "actionResign"})
+    time.sleep(1.5)
+    for window in rpc("dialog.list")["windows"]:
+        if window.get("class") == "QMessageBox":
+            rpc("dialog.close", {"target": window["selector"]})
+    time.sleep(1)
+    rpc("widget.showDock", {"widget": "GameInfoDock"})
+    time.sleep(1)
+    capture("game-play/game-06-game-info.png")
+    quit_app()
+
+
 SCENARIOS = {"main": scenario_main, "tsumi": scenario_tsumi, "wide": scenario_wide, "game": scenario_game,
-             "lang": scenario_lang}
+             "info": scenario_info, "lang": scenario_lang}
 
 if __name__ == "__main__":
     SCENARIOS[SCENARIO]()
