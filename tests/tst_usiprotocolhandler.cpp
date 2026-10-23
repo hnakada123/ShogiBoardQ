@@ -8,6 +8,7 @@
 #include <QSignalSpy>
 
 #include "engineprocessmanager.h"
+#include "kifupresentation.h"
 #include "thinkinginfoformatter.h"
 #include "usiinfo.h"
 #include "usilineparser.h"
@@ -482,7 +483,8 @@ private slots:
         formatter.processInfo(*UsiLineParser::parseInfo(QStringLiteral("info depth 3 score cp 500 pv 5h5e 5a4b")));
         QCOMPARE(rows.count(), 1);
         const auto row = qvariant_cast<ThinkingInfoRow>(rows.at(0).at(0));
-        QVERIFY2(row.pvKanji.startsWith(QStringLiteral("▲同飛(58)")), qPrintable(row.pvKanji));
+        const QString pv = KifuPresentation::pv(row.pv);
+        QVERIFY2(pv.startsWith(QStringLiteral("▲同飛(58)")), qPrintable(pv));
     }
 
     void checkmate_solved_addsThinkingRow()
@@ -500,8 +502,8 @@ private slots:
         const auto row = qvariant_cast<ThinkingInfoRow>(rows.at(0).at(0));
         QVERIFY(row.score.isMate());
         QCOMPARE(row.score.value, 3);
-        QCOMPARE(row.pvKanji, QStringLiteral("▲１二銀打△３一玉(21)▲２一飛打"));
-        QCOMPARE(row.usiPv, QStringLiteral("S*1b 2a3a R*2a"));
+        QCOMPARE(KifuPresentation::pv(row.pv), QStringLiteral("▲１二銀打△３一玉(21)▲２一飛打"));
+        QCOMPARE(row.pv.usiText(), QStringLiteral("S*1b 2a3a R*2a"));
     }
 
     // ================================================================

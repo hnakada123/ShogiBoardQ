@@ -7,7 +7,6 @@
 #include <QObject>
 #include <QList>
 #include <QHash>
-#include <memory>
 
 #include "enginesearchstatus.h"
 #include "thinkinginforow.h"
@@ -15,13 +14,12 @@
 #include "usimessages.h"
 #include "usiposition.h"
 
-class PvNotationFormatter;
 
 /**
  * @brief エンジンの info 行を表示用の値に整えて知らせる
  *
  * 解析済みの info（UsiInfo）を思考の表の行（ThinkingInfoRow）と、情報欄の探索状況（EngineSearchStatus。
- * 探索中の手・深さ・ノード数・NPS・ハッシュ使用率）に整えて、info 1行ごとに1回ずつ知らせる。読み筋は探索の局面から漢字表記にする。
+ * 探索中の手・深さ・ノード数・NPS・ハッシュ使用率）に整えて、info 1行ごとに1回ずつ知らせる。読み筋は探索の局面の上で指した値（PvText）にする。
  * 表示する側（モデル・ウィジェット）には触れず、翻訳する文字列も作らない。
  */
 class ThinkingInfoFormatter : public QObject
@@ -57,8 +55,8 @@ signals:
     void searchStatusUpdated(const EngineSearchStatus& status);
 
 private:
-    /// 探索中の手の表示（無ければ空）
-    QString searchedMoveLabel();
+    /// 探索中の手 usi（currmove、無ければ読み筋の最初の手）の表示（無ければ空）
+    QString searchedMoveLabel(const QString& usi);
 
     BoardSquare m_previousTo;           ///< 探索の局面に至った手の移動先（「同」の基準）
     QString m_baseSfen;                 ///< 探索の局面の SFEN
@@ -69,11 +67,10 @@ private:
     QString m_searchedSfenSource;       ///< 覚えた表示を作ったときの局面SFEN
     int m_searchedNotation = -1;        ///< 覚えた表示を作ったときの表記（KifuPresentation::Notation）
     bool m_searchedAlwaysOrigin = false;
-    QHash<QString, QString> m_searchedLabels;  ///< 探索手（漢字表記 + U+0000 + USI形式）→ 表示
+    QHash<QString, QString> m_searchedLabels;  ///< 探索手（USI形式）→ 表示
 
     QList<UsiInfo> m_infoBuffer;        ///< infoバッファ
     bool m_flushScheduled = false;      ///< フラッシュ予約済みフラグ
-    std::unique_ptr<PvNotationFormatter> m_formatter; ///< 読み筋を漢字表記にする（局面を持つので再利用）
 };
 
 #endif // THINKINGINFOFORMATTER_H

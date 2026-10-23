@@ -23,11 +23,9 @@ namespace {
 constexpr QSize kMinimumSize{400, 500};
 } // namespace
 
-PvBoardDialog::PvBoardDialog(const QString& baseSfen,
-                             const QStringList& pvMoves,
-                             QWidget* parent)
+PvBoardDialog::PvBoardDialog(const PvText& pv, QWidget* parent)
     : QDialog(parent)
-    , m_line(std::make_unique<PvLine>(baseSfen, pvMoves))
+    , m_line(std::make_unique<PvLine>(pv))
 {
     setWindowTitle(tr("読み筋表示"));
     setMinimumSize(kMinimumSize);
@@ -36,6 +34,8 @@ PvBoardDialog::PvBoardDialog(const QString& baseSfen,
     // ウィンドウは開くたびに盤に合わせる（fitToBoard）ので、ウィンドウの大きさは保存しない
     DialogFontScale::install(this, AppSettings::pvBoardDialogFontSize);
 
+    m_pvLabel->setText(m_line->displayPv());
+    m_pvLabel->setToolTip(m_line->displayPv(true));
     // 読み筋の各手数の局面を盤に渡す（0 が開始局面）。表示する手数はビューアの番号だけで持つ
     m_viewer->setSfenList(m_line->positions());
 
@@ -48,14 +48,6 @@ PvBoardDialog::PvBoardDialog(const QString& baseSfen,
 }
 
 PvBoardDialog::~PvBoardDialog() = default;
-
-void PvBoardDialog::setKanjiPv(const QString& kanjiPv)
-{
-    m_kanjiPv = kanjiPv;
-    m_pvLabel->setText(m_line->displayPv(m_kanjiPv));
-    m_pvLabel->setToolTip(m_line->displayPv(m_kanjiPv, true));
-    updatePlyDisplay();
-}
 
 void PvBoardDialog::setPlayerNames(const QString& blackName, const QString& whiteName)
 {

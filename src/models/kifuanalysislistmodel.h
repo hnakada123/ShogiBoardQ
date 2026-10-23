@@ -9,6 +9,7 @@
 #include <QVariant>
 
 #include "kifuanalysisrow.h"
+#include "notationtextcache.h"
 
 /**
  * @brief 棋譜解析の結果の表（1行が1局面）
@@ -57,11 +58,10 @@ private:
     /// 表示用の表記の種類
     enum DisplayKind { MoveDisplay, CandidateDisplay, PvDisplay, DisplayKindCount };
 
-    /// 1行と、表示用に作った表記（[種類][移動元をすべて付けるか]）
+    /// 1行と、表示用に作った表記
     struct Entry {
         KifuAnalysisRow row;
-        mutable QString texts[DisplayKindCount][2];
-        mutable int revision = -1;   ///< texts を作ったときの表記の設定（KifuPresentation::revision）
+        NotationTextCache<DisplayKindCount> texts;
     };
 
     /// 表記の設定に合わせた手・候補手・読み筋

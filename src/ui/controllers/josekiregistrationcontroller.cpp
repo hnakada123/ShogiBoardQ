@@ -19,11 +19,6 @@
 
 namespace {
 
-QStringList splitPv(const QString& usiPv)
-{
-    return usiPv.split(QLatin1Char(' '), Qt::SkipEmptyParts);
-}
-
 /// SFEN の手番が後手か
 bool whiteToMove(const QString& sfen)
 {
@@ -65,7 +60,7 @@ JosekiRegistrationController::Target JosekiRegistrationController::targetOf(cons
 {
     Target target;
     target.sfen = row.sfen;
-    target.pv = splitPv(row.usiPv);
+    target.pv = row.pv.usiMoves();
     // 結果の表は先手から見た評価値で持つので、局面の手番側から見た値に戻す
     target.score = whiteToMove(row.sfen) ? row.evaluation.negated() : row.evaluation;
     target.depth = row.depth;
@@ -98,8 +93,8 @@ void JosekiRegistrationController::onThinkingRowContextMenu(ShogiEngineThinkingM
     const ShogiInfoRecord* record = model ? model->recordAt(row) : nullptr;
     if (!record || !menu) return;
     Target target;
-    target.sfen = record->baseSfen();
-    target.pv = splitPv(record->usiPv());
+    target.sfen = record->pv().baseSfen();
+    target.pv = record->pv().usiMoves();
     target.score = record->score();
     target.depth = record->depth();
     addRegisterAction(menu, target);

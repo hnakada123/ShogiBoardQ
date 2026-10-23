@@ -186,9 +186,7 @@ private slots:
         master->setChecked(true);
         ThinkingInfoRow record;
         record.score = UsiScore::cp(30);
-        record.pvKanji = QStringLiteral("▲７六歩");
-        record.usiPv = QStringLiteral("7g7f 3c3d");
-        record.baseSfen = SfenUtils::hirateSfen();
+        record.pv = PvText::play(SfenUtils::hirateSfen(), QStringLiteral("7g7f 3c3d"));
         record.multipv = 1;
         model.updateByMultipv(record, 3);
         // 検討中かは検討のセッションが決める（矢印は検討の表から作る）
@@ -203,9 +201,7 @@ private slots:
         QVERIFY(!ponder->isEnabled());
         ThinkingInfoRow second;
         second.score = UsiScore::cp(20);
-        second.pvKanji = QStringLiteral("▲２六歩");
-        second.usiPv = QStringLiteral("2g2f");
-        second.baseSfen = SfenUtils::hirateSfen();
+        second.pv = PvText::play(SfenUtils::hirateSfen(), QStringLiteral("2g2f"));
         second.multipv = 2;
         model.updateByMultipv(second, 3);
         QTRY_COMPARE(view.arrows().size(), 2);

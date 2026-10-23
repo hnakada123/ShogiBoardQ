@@ -32,7 +32,7 @@ void KifuAnalysisListModel::appendRow(const KifuAnalysisRow& row)
 {
     const int position = static_cast<int>(m_rows.size());
     beginInsertRows(QModelIndex(), position, position);
-    m_rows.append(Entry{row, {}, -1});
+    m_rows.append(Entry{row, {}});
     endInsertRows();
 }
 
@@ -46,28 +46,19 @@ void KifuAnalysisListModel::clear()
 // 表の描画と列幅の計算のたびに呼ばれる。表記の設定が前と同じなら、前に作った文字列を返す
 QString KifuAnalysisListModel::display(const Entry& entry, DisplayKind kind, bool full) const
 {
-    const int revision = KifuPresentation::revision();
-    if (entry.revision != revision) {
-        for (auto& texts : entry.texts) texts[0] = texts[1] = QString();
-        entry.revision = revision;
-    }
-    QString& text = entry.texts[kind][full ? 1 : 0];
-    if (text.isNull()) {
-        const KifuAnalysisRow& r = entry.row;
+    const KifuAnalysisRow& r = entry.row;
+    return entry.texts.text(kind, full, [&r, kind, full] {
         switch (kind) {
         case MoveDisplay:
-            text = r.ply == 0 ? tr("=== 開始局面 ===")
+            return r.ply == 0 ? tr("=== 開始局面 ===")
                               : KifuPresentation::numberedLabel(
                                     r.ply, KifuPresentation::moveLabel(r.move, r.beforeSfen, r.lastUsiMove, full), r.branch);
-            break;
-        case CandidateDisplay: text = KifuPresentation::moveLabel(r.candidateMove, r.candidateSfen, r.candidateUsi, full); break;
-        case PvDisplay: text = r.book ? KifuPresentation::bookLabel() : KifuPresentation::pv(r.sfen, r.usiPv, r.pv, full); break;
+        case CandidateDisplay: return KifuPresentation::moveLabel(r.candidateMove, r.candidateSfen, r.candidateUsi, full);
+        case PvDisplay: return r.book ? KifuPresentation::bookLabel() : KifuPresentation::pv(r.pv, full);
         case DisplayKindCount: break;
         }
-        // 空の表示も作ったことを覚える
-        if (text.isNull()) text = QLatin1String("");
-    }
-    return text;
+        return QString();
+    });
 }
 
 // 先手から見た評価値の表示（定跡・未取得は「-」、詰みは "mate 3" など）

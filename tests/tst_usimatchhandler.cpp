@@ -5,6 +5,7 @@
 #include <algorithm>
 
 #include "enginesettingsconstants.h"
+#include "kifupresentation.h"
 #include "usilineparser.h"
 #include "boardcoordinates.h"
 #include "engineprocessmanager.h"
@@ -357,8 +358,8 @@ private slots:
         h.formatter.processInfo(*UsiLineParser::parseInfo(QStringLiteral("info depth 1 score cp 0 pv 8d8e 2f2e 8e8f")));
         QCOMPARE(rows.count(), 1);
         const auto row = qvariant_cast<ThinkingInfoRow>(rows.at(0).at(0));
-        QCOMPARE(row.pvKanji, QStringLiteral("△８五歩(84)▲２五歩(26)△８六歩(85)"));
-        QCOMPARE(row.usiPv, QStringLiteral("8d8e 2f2e 8e8f"));
+        QCOMPARE(KifuPresentation::pv(row.pv), QStringLiteral("△８五歩(84)▲２五歩(26)△８六歩(85)"));
+        QCOMPARE(row.pv.usiText(), QStringLiteral("8d8e 2f2e 8e8f"));
     }
     void receivedBeforeDeadlineSurvivesUiDelay()
     {

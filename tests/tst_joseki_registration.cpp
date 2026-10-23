@@ -22,7 +22,7 @@ KifuAnalysisRow analysisRow(int ply, const QString &sfen, const QString &usiPv, 
     KifuAnalysisRow row;
     row.ply = ply;
     row.sfen = sfen;
-    row.usiPv = usiPv;
+    row.pv = PvText::play(sfen, usiPv);
     row.evaluation = blackScore;
     row.depth = depth;
     return row;
@@ -127,8 +127,7 @@ private slots:
         ThinkingInfoRow info;
         info.depth = 24;
         info.score = UsiScore::cp(-30);
-        info.usiPv = QStringLiteral("3c3d 2g2f");
-        info.baseSfen = afterBlack();
+        info.pv = PvText::play(afterBlack(), QStringLiteral("3c3d 2g2f"));
         thinking.appendRow(info);
         JosekiBookSession book;
         JosekiRegistrationController controller(deps(&book, nullptr));
@@ -154,7 +153,7 @@ private slots:
         controller.onThinkingRowContextMenu(&thinking, 0, &disabledMenu);
         QVERIFY(!disabledMenu.findChild<QAction *>(QStringLiteral("josekiRegisterPv"))->isEnabled());
         book.newBook();
-        info.usiPv.clear();
+        info.pv = PvText::play(afterBlack(), QStringList{});
         thinking.appendRow(info);
         QMenu noPvMenu;
         controller.onThinkingRowContextMenu(&thinking, thinking.rowCount() - 1, &noPvMenu);

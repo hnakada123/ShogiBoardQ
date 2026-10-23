@@ -91,6 +91,7 @@
 #include "sfencollectiondialog.h"
 #include "kifupastedialog.h"
 #include "josekiwindow.h"
+#include "pvtext.h"
 #include "josekimovedialog.h"
 #include "josekimoveinputwidget.h"
 #include "menuwindow.h"
@@ -2865,9 +2866,7 @@ private slots:
             row.depth = 8;
             row.nodes = 10000;
             row.score = UsiScore::cp(35);
-            row.pvKanji = QStringLiteral("▲７六歩(77)△３四歩(33)▲２二角成(88)");
-            row.usiPv = QStringLiteral("7g7f 3c3d 8h2b+");
-            row.baseSfen = initial + QStringLiteral(" b - 1");
+            row.pv = PvText::play(initial + QStringLiteral(" b - 1"), QStringLiteral("7g7f 3c3d 8h2b+"));
             thinking->appendRow(row);
         }
         QTest::qWait(100);
@@ -3564,7 +3563,8 @@ private slots:
             item.move = QStringLiteral("▲７六歩(77)");
             item.evaluation = UsiScore::cp(row * 25);
             item.evaluationDifference = 25;
-            item.pv = pv;
+            // 開始局面の無い読み筋は、エンジンが送った語のまま表示する
+            item.pv = PvText::play(QString(), QStringList{pv});
             item.candidateMove = QStringLiteral("▲７六歩(77)");
             model.appendRow(item);
         }
@@ -4052,7 +4052,8 @@ private slots:
             row.depth = 22;
             row.nodes = 29113787;
             row.score = UsiScore::cp(150 - rank * 10);
-            row.pvKanji = pv + pv;
+            // 開始局面の無い読み筋は、エンジンが送った語のまま表示する
+            row.pv = PvText::play(QString(), QStringList{pv + pv});
             row.multipv = rank;
             model->updateByMultipv(row, 6);
         }

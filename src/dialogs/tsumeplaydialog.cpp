@@ -28,8 +28,8 @@
 #include <QVBoxLayout>
 #include <algorithm>
 #include "applicationfonts.h"
-#include "tsumeshogikanjibuilder.h"
 #include "kifupresentation.h"
+#include "pvtext.h"
 #include <limits>
 
 TsumePlayDialog::TsumePlayDialog(QWidget* parent)
@@ -573,8 +573,7 @@ void TsumePlayDialog::updateReplayInfo()
         m_infoUi.solutionStatus->setText(tr("正解手順を確認中…"));
         m_infoUi.status->setText(tr("正解手順を取得しています。探索中止または対局に戻る操作で中断できます。"));
     } else if (m_solution->available()) {
-        const QString text = KifuPresentation::pv(m_problem.sfen, m_solution->moves().join(QLatin1Char(' ')),
-            TsumeshogiKanjiBuilder::buildKanjiPv(m_problem.sfen, m_solution->moves()));
+        const QString text = KifuPresentation::pv(PvText::play(m_problem.sfen, m_solution->moves()));
         if (m_infoUi.solutionText->toPlainText() != text) m_infoUi.solutionText->setPlainText(text);
         m_infoUi.solutionStatus->setText(tr("正解手順: %1 / %2手").arg(ply).arg(m_solution->totalPlies()));
         m_infoUi.status->setText(tr("正解手順の一例を再生中です。「対局に戻る」で元の局面から続けられます。"));

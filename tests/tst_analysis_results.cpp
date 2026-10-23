@@ -56,8 +56,10 @@ PlyAnalysis result(int ply, const UsiScore& score, const QStringList& pv = {})
     PlyAnalysis analysis;
     analysis.ply = ply;
     analysis.score = score;
-    analysis.usiPv = pv;
-    analysis.pvKanji = pv.join(QLatin1Char(' '));
+    // 読み筋は平手の盤の上で、手数の偶奇で決めた手番の側から指す
+    QString base = SfenUtils::hirateSfen();
+    if (ply % 2 == 1) base.replace(QStringLiteral(" b "), QStringLiteral(" w "));
+    analysis.pv = PvText::play(base, pv);
     return analysis;
 }
 } // namespace
@@ -78,8 +80,8 @@ private slots:
         QCOMPARE(analysis.ply, 1);
         QVERIFY(!analysis.book);
         QCOMPARE(analysis.score.value, 50);
-        QCOMPARE(analysis.usiPv, (QStringList{QStringLiteral("3c3d"), QStringLiteral("2g2f")}));
-        QCOMPARE(analysis.pvKanji, QStringLiteral("△３四歩(33)▲２六歩(27)"));
+        QCOMPARE(analysis.pv.usiMoves(), (QStringList{QStringLiteral("3c3d"), QStringLiteral("2g2f")}));
+        QCOMPARE(KifuPresentation::pv(analysis.pv), QStringLiteral("△３四歩(33)▲２六歩(27)"));
         QCOMPARE(analysis.depth, 10);
     }
 
@@ -95,8 +97,8 @@ private slots:
         QCOMPARE(analysis.score.value, 200);
         // 深さも最善の読み筋のもの（定跡に登録するときに使う）
         QCOMPARE(analysis.depth, 10);
-        QCOMPARE(analysis.usiPv.join(QLatin1Char(' ')), QStringLiteral("7g7f 3c3d"));
-        QCOMPARE(analysis.pvKanji, QStringLiteral("▲７六歩(77)△３四歩(33)"));
+        QCOMPARE(analysis.pv.usiText(), QStringLiteral("7g7f 3c3d"));
+        QCOMPARE(KifuPresentation::pv(analysis.pv), QStringLiteral("▲７六歩(77)△３四歩(33)"));
     }
 
     void collectorDropsBookPercentAndResign()
@@ -104,15 +106,15 @@ private slots:
         PlyAnalysisCollector collector;
         collector.begin(0, position("position startpos"));
         collector.addInfo(info("info score cp 120 pv 7g7f 3c3d (100.00%)"));
-        QCOMPARE(collector.finish(bestMove(UsiScore::cp(120))).usiPv.join(QLatin1Char(' ')),
-                 QStringLiteral("7g7f 3c3d"));
+        QCOMPARE(collector.finish(bestMove(UsiScore::cp(120))).pv.usiText(), QStringLiteral("7g7f 3c3d"));
 
         // 詰んだ局面ではエンジンが「pv resign」を返す。resign を候補手や読み筋の盤面表示に使わない
         collector.begin(2, position("position startpos moves 7g7f 3c3d"));
         collector.addInfo(info("info score mate -1 pv resign"));
         const PlyAnalysis resigned = collector.finish(bestMove(UsiScore::mate(-1)));
-        QVERIFY(resigned.usiPv.isEmpty());
-        QCOMPARE(resigned.pvKanji, QStringLiteral("▲投了"));
+        QVERIFY(resigned.pv.usiMoves().isEmpty());
+        QVERIFY(!resigned.pv.firstMove());
+        QCOMPARE(KifuPresentation::pv(resigned.pv), QStringLiteral("▲投了"));
     }
 
     /// info が1つも届かずに bestmove が届いたら定跡
@@ -123,7 +125,7 @@ private slots:
         const PlyAnalysis book = collector.finish(bestMove(UsiScore{}));
         QCOMPARE(book.ply, 1);
         QVERIFY(book.book);
-        QVERIFY(book.usiPv.isEmpty());
+        QVERIFY(book.pv.isEmpty());
         // 次の局面は前の局面の読み筋を引き継がない
         collector.addInfo(info("info score cp 10 pv 3c3d"));
         collector.begin(2, position("position startpos moves 7g7f 3c3d"));
@@ -145,7 +147,7 @@ private slots:
         // ply=3 は後手番なので先手から見た値に符号を直す
         QCOMPARE(handler.append(result(3, UsiScore::cp(80), {QStringLiteral("3c3d")})).value, -80);
         QCOMPARE(model.rowCount(), 2);
-        QCOMPARE(model.row(0)->usiPv, QStringLiteral("7g7f"));
+        QCOMPARE(model.row(0)->pv.usiText(), QStringLiteral("7g7f"));
         // 行は局面の手数と読み筋の深さも持つ（定跡に登録するときに使う）
         QCOMPARE(model.row(0)->ply, 2);
         QCOMPARE(model.row(0)->depth, 18);
@@ -190,10 +192,9 @@ private slots:
         book.book = true;
         QVERIFY(handler.append(book).isNone());
         QVERIFY(model.row(0)->book);
-        QCOMPARE(model.row(0)->pv, QString());
+        QVERIFY(model.row(0)->pv.isEmpty());
         // 定跡の印は表示するときに表示言語で作る（行には書かない）
         QCOMPARE(model.index(0, KifuAnalysisListModel::PvColumn).data().toString(), QStringLiteral("（定跡）"));
-        QCOMPARE(model.row(0)->usiPv, QString());
         QCOMPARE(model.row(0)->depth, -1);
     }
 

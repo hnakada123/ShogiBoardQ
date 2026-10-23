@@ -44,7 +44,7 @@ void UsiModelBinding::onThinkingRow(const ThinkingInfoRow& row)
 {
     // 読み筋のない行（詰み探索の途中や、停止時の time・nodes だけの行）は表に出さない。
     // 検討の表では multipv 1 扱いになり、最善手の行を空の読み筋で上書きしてしまう
-    if (row.pvKanji.isEmpty()) return;
+    if (!row.pv.isDisplayable()) return;
     if (m_thinking) m_thinking->prependRow(row, kMaxThinkingRows);
     if (m_consideration) m_consideration->updateByMultipv(row, m_considerationMaxMultiPV);
 }

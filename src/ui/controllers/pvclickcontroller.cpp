@@ -7,6 +7,7 @@
 #include "kifunavigationstate.h"
 #include "logcategories.h"
 #include "pvboarddialog.h"
+#include "pvtext.h"
 #include "sfenutils.h"
 #include "shogienginethinkingmodel.h"
 #include "shogiinforecord.h"
@@ -23,16 +24,15 @@ void PvClickController::onPvRowClicked(ShogiEngineThinkingModel* model, int row)
     const ShogiInfoRecord* record = model && row >= 0 && row < model->rowCount() ? model->recordAt(row) : nullptr;
     if (!record || record->pv().isEmpty()) return;
 
-    // 局面に合った手までの USI の読み筋。局面と合わない手があって残っていなければ、
-    // その行の info でエンジンが送った読み筋をそのまま使う
-    QStringList usiMoves = record->usiPv().split(QLatin1Char(' '), Qt::SkipEmptyParts);
-    if (usiMoves.isEmpty()) usiMoves = record->enginePv();
-
-    // 読み筋を出したときの局面。無ければ表示中の局面とみなす
+    // 読み筋を出したときの局面。無ければ表示中の局面の上で、エンジンが送った語を指し直す
+    PvText pv = record->pv();
     const RecordLine line = m_deps.navState ? m_deps.navState->currentRecordLine() : RecordLine{};
-    QString baseSfen = record->baseSfen();
-    if (baseSfen.isEmpty()) baseSfen = m_deps.navState ? m_deps.navState->currentSfen() : QString();
-    if (baseSfen.isEmpty()) baseSfen = SfenUtils::hirateSfen();
+    if (pv.baseSfen().isEmpty()) {
+        QString current = m_deps.navState ? m_deps.navState->currentSfen() : QString();
+        if (current.isEmpty()) current = SfenUtils::hirateSfen();
+        pv = PvText::play(current, pv.rest());
+    }
+    const QString baseSfen = pv.baseSfen();
 
     // 読み筋の局面が表示中の手順の何手目かを探し、その局面に至った手をハイライトに使う
     QString lastUsiMove = record->lastUsiMove();
@@ -46,8 +46,7 @@ void PvClickController::onPvRowClicked(ShogiEngineThinkingModel* model, int row)
     }
     qCDebug(lcUi) << "onPvRowClicked: row=" << row << "base=" << baseSfen;
 
-    auto* dlg = new PvBoardDialog(baseSfen, usiMoves, qobject_cast<QWidget*>(parent()));
-    dlg->setKanjiPv(record->pv());
+    auto* dlg = new PvBoardDialog(pv, qobject_cast<QWidget*>(parent()));
     m_dialogSources.insert(dlg, model);
     connect(dlg, &QDialog::finished, this, &PvClickController::onPvDialogFinished);
 

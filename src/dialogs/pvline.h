@@ -10,14 +10,15 @@
 #include <QStringList>
 #include <optional>
 
+#include "pvtext.h"
 #include "shogitypes.h"
 #include "usimove.h"
 
 /**
- * @brief 読み筋1本の値
+ * @brief 読み筋盤に出す読み筋1本
  *
- * 開始局面から読み筋の手を順に指し（指せない手の手前で打ち切る）、各手数の局面・手の表記・
- * ハイライトする直前の手を作る。表示する手数は持たない（読み筋盤のビューアの番号を使う）。
+ * 読み筋（PvText。指せない手の手前で打ち切ってある）の各手数の局面・手の表記・ハイライトする直前の手を作る。
+ * 表示する手数は持たない（読み筋盤のビューアの番号を使う）。
  */
 class PvLine
 {
@@ -28,16 +29,16 @@ public:
         std::optional<QPoint> to;
     };
 
-    PvLine(const QString& baseSfen, const QStringList& pvMoves);
+    explicit PvLine(const PvText& pv);
 
     /// 指せた手の数
-    int moveCount() const { return static_cast<int>(m_steps.size()); }
+    int moveCount() const { return m_pv.moveCount(); }
     /// 各手数の局面（0 が開始局面、i が i 手指した後）
-    QStringList positions() const;
+    const QStringList& positions() const { return m_positions; }
     /// ply 手目の表記（ply は 1 から。日本語表記は「同」も付ける）
     QString moveText(int ply) const;
-    /// 読み筋全体の表記。日本語表記で japanese（エンジンの読み筋の漢字表記）があればそれを使う
-    QString displayPv(const QString& japanese, bool fullOrigin = false) const;
+    /// 読み筋全体の表記（表記の設定に合わせる。fullOrigin なら移動元をすべて付ける）
+    QString displayPv(bool fullOrigin = false) const;
 
     /**
      * @brief 開始局面に至った手を設定する（開始局面のハイライトに使う）
@@ -50,18 +51,10 @@ public:
     Highlight highlight(int ply) const;
 
 private:
-    struct Step {
-        UsiMove move;
-        Turn mover = Turn::Black;
-        QString sfen;     ///< 指した後の局面
-        QString japanese; ///< 日本語の表記
-    };
-
     Highlight arrivalHighlight() const;
 
-    QString m_baseSfen;
-    QStringList m_moves;
-    QList<Step> m_steps;
+    PvText m_pv;
+    QStringList m_positions;  ///< [0] が開始局面、[i] が i 手指した後
     QString m_lastMove;
     QString m_previousSfen;
 };

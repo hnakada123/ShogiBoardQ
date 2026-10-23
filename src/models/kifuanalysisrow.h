@@ -7,6 +7,7 @@
 #include <QString>
 #include <optional>
 
+#include "pvtext.h"
 #include "usiscore.h"
 
 /**
@@ -25,8 +26,7 @@ struct KifuAnalysisRow {
     UsiScore evaluation;                      ///< 先手から見た評価値（定跡・未取得は None）
     std::optional<int> evaluationDifference;  ///< 直前の解析局面からの評価値の増減（比べられなければ nullopt）
     bool book = false;                        ///< 定跡（読み筋の代わりに定跡の印を出す）
-    QString pv;                               ///< 読み筋（漢字表記。定跡は空）
-    QString usiPv;                            ///< 読み筋（USI。空白区切り）
+    PvText pv;                                ///< 読み筋（sfen の局面の上で指した手。定跡は空）
     int depth = -1;                           ///< 読み筋の探索深さ（無ければ -1）
     QString candidateMove;                    ///< 候補手（直前の行の読み筋の最初の手。漢字表記）
     QString candidateUsi;                     ///< 候補手（USI）

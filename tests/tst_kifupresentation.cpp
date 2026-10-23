@@ -1,6 +1,7 @@
 #include <QtTest>
 #include <QTranslator>
 #include "kifupresentation.h"
+#include "pvtext.h"
 #include "recordentry.h"
 #include "sfenreplay.h"
 #include "sfenutils.h"
@@ -63,7 +64,7 @@ private slots:
         const QString hirate = SfenUtils::hirateSfen();
         QString whiteStart = hirate;
         whiteStart.replace(" b ", " w ");
-        QCOMPARE(pv(whiteStart, "3c3d 7g7f", "△３四歩(33)▲７六歩(77)"), QStringLiteral("△P-3d ▲P-7f"));
+        QCOMPARE(pv(PvText::play(whiteStart, QStringLiteral("3c3d 7g7f"))), QStringLiteral("△P-3d ▲P-7f"));
         QCOMPARE(numberedLabel(1, moveLabel("▲７六歩(77)", hirate, "7g7f"), true), QStringLiteral("   1 ▲P-7f [+]"));
         // 棋譜の1行は値から作る（手・終局の種類・指した側。表示の文字列を読み直さない）
         const auto moves = TestReplay::buildGameMoves(hirate, {"7g7f", "3c3d", "8h2b+"});

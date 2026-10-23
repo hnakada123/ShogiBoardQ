@@ -25,6 +25,7 @@
 #include <memory>
 
 #include "enginesettingsconstants.h"
+#include "pvtext.h"
 #include "applicationfonts.h"
 #include "appsettings.h"
 #include "settingscommon.h"
@@ -112,7 +113,8 @@ class TestDialogAppearance : public QObject
         if (name == QLatin1String("paste")) return std::make_unique<KifuPasteDialog>();
         if (name == QLatin1String("sound")) return std::make_unique<PieceSoundSettingsDialog>(nullptr);
         if (name == QLatin1String("promotion")) return std::make_unique<PromoteDialog>();
-        if (name == QLatin1String("pv")) return std::make_unique<PvBoardDialog>(SfenUtils::hirateSfen(), QStringList{QStringLiteral("7g7f")});
+        if (name == QLatin1String("pv"))
+            return std::make_unique<PvBoardDialog>(PvText::play(SfenUtils::hirateSfen(), QStringList{QStringLiteral("7g7f")}));
         if (name == QLatin1String("sfen")) return std::make_unique<SfenCollectionDialog>();
         if (name == QLatin1String("startGame")) return std::make_unique<StartGameDialog>();
         if (name == QLatin1String("tsumeCollection")) return std::make_unique<TsumeCollectionDialog>();

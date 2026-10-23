@@ -163,7 +163,8 @@ class TestIncrementalTableView : public QObject
         row.depth = i % 20;
         row.nodes = qint64(i) * 12345;
         row.score = UsiScore::cp((i * 37) % 900 - 300);
-        row.pvKanji = pv;
+        // 開始局面の無い読み筋は、エンジンが送った語のまま表示する
+        row.pv = PvText::play(QString(), QStringList{pv});
         return row;
     }
 

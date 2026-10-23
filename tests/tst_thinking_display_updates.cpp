@@ -37,16 +37,15 @@
 /// 思考の表に足すときに、古い行を消さない
 inline constexpr int kUnlimitedRows = std::numeric_limits<int>::max();
 
-inline ThinkingInfoRow thinkingRow(qint64 timeMs, int depth, qint64 nodes, const UsiScore& score, const QString& pv,
-                                    const QString& usiPv = {})
+/// 読み筋の欄には pv をそのまま出す（開始局面の無い読み筋は、エンジンが送った語のまま表示する）
+inline ThinkingInfoRow thinkingRow(qint64 timeMs, int depth, qint64 nodes, const UsiScore& score, const QString& pv)
 {
     ThinkingInfoRow row;
     row.timeMs = timeMs;
     row.depth = depth;
     row.nodes = nodes;
     row.score = score;
-    row.pvKanji = pv;
-    row.usiPv = usiPv;
+    row.pv = PvText::play(QString(), QStringList{pv});
     return row;
 }
 
