@@ -36,13 +36,13 @@ shogiboardq_mcp（Python, 公式 mcp SDK）           mcp/shogiboardq_mcp/
 shogiboardq-cli            ShogiBoardQ --automation
 （QApplication offscreen）  （GUI 本体。src/automation/ のサーバーが受け付ける）
    │                        │
-   └── 共通の非 GUI クラス ──┘  src/automation/ のサービス、kifu/formats、engine/UsiEngineSession・MateOracle、analysis/Tsume*
+   └── 共通の非 GUI クラス ──┘  src/headless/ の部品、kifu/formats、engine/UsiEngineSession・MateOracle、analysis/Tsume*
 ```
 
 | 層 | 役割 | 実装 |
 |---|---|---|
 | MCP サーバー | ツール定義（JSON Schema）、引数検証、パス方針、ジョブ管理、アプリの自動起動・再接続、エラー変換 | `mcp/shogiboardq_mcp/`（Python 3.10+、`mcp>=2,<3`。SDK 1.x では版を示して終了する） |
-| CLI | アプリを起動せずに使える機能（棋譜変換、SFEN 検証、エンジン一覧、解析、詰み探索、詰将棋生成・余詰検査、盤面画像） | `src/cli/` + `src/automation/` の共通サービス |
+| CLI | アプリを起動せずに使える機能（棋譜変換、SFEN 検証、エンジン一覧、解析、詰み探索、詰将棋生成・余詰検査、盤面画像） | `src/cli/` + `src/headless/` の共通部品（盤面画像は `src/automation/` の `BoardImageRenderer`） |
 | 自動化 API | 起動中のアプリの状態取得・操作（局面、棋譜、メニュー動作、スクリーンショット、ダイアログ内容） | `src/automation/`（`--automation` 指定時のみ有効） |
 
 設計上の原則:
@@ -199,7 +199,7 @@ shogiboardq-cli <command> [options]
 共通仕様:
 
 - オプションは引数の表 `CliCommandSpecs`（`src/cli/clicommandspecs.{h,cpp}`）に1か所で宣言する。オプション名は引数名の `_` を `-` にしたもの（`max_positions` → `--max-positions`）。`CliArgs::parse(command, args, events, exitCode)` が表からオプションを登録し、コマンドラインを検査済みの JSON（既定値を補ったもの）にする。真偽値はフラグ（指定すれば true）、文字列の配列（`--moves`）は空白区切りの1つの値。知らないオプション・必須の欠け・範囲外・選択肢外は `invalid_argument`。各コマンドはこの JSON を読み、局面は `CliArgs::resolvePosition(params)`、エンジンは `CliArgs::resolveEngine(params)` で解決する。引数なし・`--help` のときの使い方の文（`CliCommandSpecs::usage()`）も同じ表から作る。範囲と既定値の一覧は `shogiboardq-cli describe` で確かめる。
-- エラーは `CliOutput::fail(ErrorKind, message)` が `{"ok":false,"error":{"code":語,"message":"..."}}` を標準出力に書いて終了コード 1。JSON Lines コマンドでは `CliOutput::failEvent(ErrorKind, message)` が `{"event":"error","code":語,"message":"..."}` を出してから終了する。`code` はエラーの分類（[エラーの分類](#エラーの分類)）の語で、CLI が使うのは `invalid_argument`（引数の誤り・読めない局面）、`unknown_operation`（知らないコマンド）、`engine_not_found`、`engine_error`、`parse_error`（`convert-kifu` の棋譜が読めない・開始局面が不正）、`not_found`（`convert-kifu` の入力ファイルがない）、`render_error`（盤面を描けない。局面・`--last-move` の誤りは `invalid_argument`）、出力ファイルの問題（`CliArgs::checkOutputPath()` が分類を返す。相対パスは `invalid_argument`、既存ファイルで `--overwrite` なしは `file_exists`、ディレクトリを指すときと書き込みの失敗は `file_error`、親ディレクトリがないときは `not_found`）。
+- エラーは `CliOutput::fail(ErrorKind, message)` が `{"ok":false,"error":{"code":語,"message":"..."}}` を標準出力に書いて終了コード 1。JSON Lines コマンドでは `CliOutput::failEvent(ErrorKind, message)` が `{"event":"error","code":語,"message":"..."}` を出してから終了する。`code` はエラーの分類（[エラーの分類](#エラーの分類)）の語で、CLI が使うのは `invalid_argument`（引数の誤り・読めない局面）、`unknown_operation`（知らないコマンド）、`engine_not_found`、`engine_error`、`parse_error`（`convert-kifu` の棋譜が読めない・開始局面が不正）、`not_found`（`convert-kifu` の入力ファイルがない）、`render_error`（盤面を描けない。局面・`--last-move` の誤りは `invalid_argument`）、出力ファイルの問題（`OutputPath::check()` が分類を返す。`kifu.save` と MCP の `paths.py` も同じ分類。相対パスとディレクトリを指すときは `invalid_argument`、既存ファイルで `--overwrite` なしは `file_exists`（`error.hint` に対処）、親ディレクトリがないときは `not_found`、書き込みの失敗は `file_error`）。
 - エンジンは設定ファイル（`SettingsCommon::settingsFilePath()`）の `[Engines]` に登録済みの名前だけを受け付ける（`EngineListSettings::loadEngines()`）。任意パスは受け付けない。エンジンのオプションは GUI と同じく設定ファイルの値を適用する（`UsiEngineSession::startAsync()` が `EngineProfileStore::launchOptions()` で読み、`UsiProtocolHandler::setLaunchOptions()` に渡す）。
 - 局面は `--sfen`（`startpos` も可）と `--moves`（USI 手を空白区切り）で指定し、`CliArgs::resolvePosition(params)` が `UsiPosition::fromMoves()` で探索させる局面（`CliPosition::position`）にする（読めない手・指せない手は `invalid_argument`）。エンジンには `UsiPosition::command()`（平手なら `position startpos moves ...`、それ以外は `position sfen ... moves ...`）を送る。
 - `--output` の既存ファイルは `--overwrite` が無ければ拒否する。ディレクトリ制限は MCP サーバー側で行う（CLI 単体では行わない）。
@@ -236,7 +236,7 @@ ShogiBoardQ --automation [--automation-socket PATH]
 | `position.get` | - | `{sfen, start_sfen, ply, moves[]}` | - |
 | `position.set` | `{sfen, discard_unsaved?}` | `{sfen}` | `-32602` 不正 SFEN、`-32004` 未保存 |
 | `kifu.load` | `{path?, text?, discard_unsaved?}` | `{total_plies, start_sfen, kifu_file, warnings?}` | `-32602` 相対パス・`path` と `text` の一方だけを渡していない、`-32005` ファイルなし、`-32004` 未保存、`invalid_state` 対局・検討・解析・局面編集の間、`-32006`（`parse_error`）読込失敗（理由をメッセージに含め、エラーダイアログは出さない） |
-| `kifu.save` | `{path, overwrite?}` | `{path, format}` | `-32602` 相対パス、`-32003`（`file_exists`）既存ファイル、`-32005` ディレクトリなし、`-32003`（`file_error`）書き込みの失敗・.kif・.ki2 に Shift_JIS で表せない文字（確認ダイアログは出さず、文字を示して `.kifu`・`.ki2u` を案内） |
+| `kifu.save` | `{path, overwrite?}` | `{path, format}` | `-32602` 相対パス・ディレクトリを指す（`OutputPath::check`）、`-32003`（`file_exists`）既存ファイル、`-32005` ディレクトリなし、`-32003`（`file_error`）書き込みの失敗・.kif・.ki2 に Shift_JIS で表せない文字（確認ダイアログは出さず、文字を示して `.kifu`・`.ki2u` を案内） |
 | `kifu.get` | `{format?, line?: "current"\|"main", from_ply?, max_moves?, max_chars?}` | `{format, total_plies, line, moves:[{ply,text,usi,time,comment}], text?, truncated}`（`moves` は表示中の手順。`line="main"` で本譜） | - |
 | `kifu.goto` | `{ply}` | `{ply, sfen}` | `-32602` 範囲外 |
 | `action.list` | - | `{actions:[{name,text,enabled,checked,checkable}]}` | - |
@@ -249,7 +249,7 @@ ShogiBoardQ --automation [--automation-socket PATH]
 | `widget.text` | `{target?, widget?, max_rows?, max_widgets?, include_children?}` | `{widgets:[{object_name,class,text?,items?,rows?}]}` | `-32005` 対象なし |
 | `ui.interaction` | `{id}` | `{interaction, state: "pending"\|"running"\|"done"\|"failed"\|"cancelled", error?:{code, message, data:{slug, hint?}}}`（予約した UI 操作の状態） | `-32005` 知らない番号・古くて消えた番号 |
 
-引数はメソッドごとの表 `AutomationMethodSpecs`（`src/automation/automationmethodspecs.{h,cpp}`）に宣言する。`AutomationDispatcher::handleRequest()` はメソッドを呼ぶ前に `ParamSpecs::validate()` で表と照らし、知らない引数・必須の欠け・型違い・範囲外・選択肢外を `-32602`（`error.data.hint` は `shogiboardq-cli describe` の案内）で返し、既定値を補った引数をメソッドに渡す。各メソッドは補われた値を読むだけで、`AutomationParams`（`requireString`・`optionalInt`・`requireInt`）は範囲が画面の状態で決まる引数（表の行・列、コンボやスピンの値など）や操作によって必須になる引数（`dock.configure` の `area`・`relative_to`）にだけ使う。表は `shogiboardq-cli describe` の `methods` に JSON Schema として出る。
+引数はメソッドごとの表 `AutomationMethodSpecs`（`src/headless/automationmethodspecs.{h,cpp}`）に宣言する。`AutomationDispatcher::handleRequest()` はメソッドを呼ぶ前に `ParamSpecs::validate()` で表と照らし、知らない引数・必須の欠け・型違い・範囲外・選択肢外を `-32602`（`error.data.hint` は `shogiboardq-cli describe` の案内）で返し、既定値を補った引数をメソッドに渡す。各メソッドは補われた値を読むだけで、`AutomationParams`（`requireString`・`optionalInt`・`requireInt`）は範囲が画面の状態で決まる引数（表の行・列、コンボやスピンの値など）や操作によって必須になる引数（`dock.configure` の `area`・`relative_to`）にだけ使う。表は `shogiboardq-cli describe` の `methods` に JSON Schema として出る。
 
 `action.trigger` の許可リストは `src/automation/automationactionpolicy.cpp` で管理する。終了（`actionQuit`）、上書き保存（`actionSave`）、Web サイトを開く動作は除外する。言語切替（システム・日本語・英語・簡体字・繁体字の `actionLanguage*`）とドックレイアウト保存・初期化は許可する。言語はアプリ再起動後に反映する。
 
@@ -272,7 +272,7 @@ MCP サーバーは `AppClient.call_queued()` で操作の実行を待つ（5 �
 
 ### エラーの分類
 
-エラーの分類は `ErrorKind`（`src/automation/errorkinds.{h,cpp}`）の表1つで決め、CLI・自動化 API・MCP サーバーで同じ失敗は同じ語（slug）にする。`ErrorKinds::slug(kind)` が語、`ErrorKinds::rpcCode(kind)` が JSON-RPC のコード（`AutomationErrorCode` の値）を返し、`ErrorKinds::toJson()` が全分類を `shogiboardq-cli environment` の `error_kinds` に出す。
+エラーの分類は `ErrorKind`（`src/headless/errorkinds.{h,cpp}`）の表1つで決め、CLI・自動化 API・MCP サーバーで同じ失敗は同じ語（slug）にする。`ErrorKinds::slug(kind)` が語、`ErrorKinds::rpcCode(kind)` が JSON-RPC のコード（`AutomationErrorCode` の値）を返し、`ErrorKinds::toJson()` が全分類を `shogiboardq-cli environment` の `error_kinds` に出す。
 
 | `ErrorKind` | 語（slug） | JSON-RPC のコード | 意味 |
 |---|---|---|---|
@@ -300,9 +300,9 @@ MCP サーバーは `AppClient.call_queued()` で操作の実行を待つ（5 �
 |---|---|---|
 | `AutomationServer` | `src/automation/automationserver.{h,cpp}` | `QLocalServer` の待ち受け、接続ごとの行バッファ、応答の書き出し、エンドポイント情報の作成・削除 |
 | `AutomationDispatcher` | `src/automation/automationdispatcher.{h,cpp}` | JSON-RPC 2.0 の解析・検証、メソッド表、呼ぶ前の引数の検査（`AutomationMethodSpecs`）、エラー応答の生成（`makeError()` が `error.data.slug` を付ける。GUI 非依存で単体テスト可能） |
-| `ErrorKind` / `ErrorKinds` | `src/automation/errorkinds.{h,cpp}` | エラーの分類と、語・JSON-RPC のコードの表（`slug()`・`rpcCode()`・`toJson()`）。CLI の `CliOutput::fail()`・`failEvent()` と `AutomationError` が使う |
-| `ParamSpec` / `OperationSpec` | `src/automation/paramspec.{h,cpp}` | 引数1つの仕様（名前・型・必須・範囲・既定値・選択肢・説明）と操作1つの仕様。`ParamSpecs::inputSchema()`・`toJson()`（JSON Schema）と `validate()`（知らない引数の拒否・必須・型・範囲・選択肢の検査と既定値の補完）。CLI・自動化 API・MCP で共有する |
-| `AutomationMethodSpecs` | `src/automation/automationmethodspecs.{h,cpp}` | 自動化 API の全メソッドの引数の表（`all()`・`find()`） |
+| `ErrorKind` / `ErrorKinds` | `src/headless/errorkinds.{h,cpp}` | エラーの分類と、語・JSON-RPC のコードの表（`slug()`・`rpcCode()`・`toJson()`）。CLI の `CliOutput::fail()`・`failEvent()` と `AutomationError` が使う |
+| `ParamSpec` / `OperationSpec` | `src/headless/paramspec.{h,cpp}` | 引数1つの仕様（名前・型・必須・範囲・既定値・選択肢・説明）と操作1つの仕様。`ParamSpecs::inputSchema()`・`toJson()`（JSON Schema）と `validate()`（知らない引数の拒否・必須・型・範囲・選択肢の検査と既定値の補完）。CLI・自動化 API・MCP で共有する |
+| `AutomationMethodSpecs` | `src/headless/automationmethodspecs.{h,cpp}` | 自動化 API の全メソッドの引数の表（`all()`・`find()`） |
 | `AutomationContext` | `src/automation/automationcontext.h` | MainWindow 側の依存を注入する Deps 構造体。部品と状態（動作状態 `AppActivityState`・棋譜の文書 `KifuDocument`・`KifuNavigationState`）は非所有ポインタで受け取り、関数で受け取るのは dialogs 層のメニューウィンドウのお気に入りと終了要求だけ |
 | `AutomationCommands*` | `src/automation/automationcommands_{app,position,kifu,navigation,ui,widget,dock}.cpp` | 各メソッドの実装。既存の `KifuFileController` / `KifuNavigationController` / `UiStatePolicyManager` / `ScreenshotService` を呼ぶ。`kifu.get` の形式指定のテキストは `KifuExport::lines(*document, format)`、`moves` は分岐ツリーから作り、`app.state` の `kifu_file`・`engines`・`play_mode` は `KifuDocument::filePath()`・`players()` を読む |
 | `AutomationActionPolicy` | `src/automation/automationactionpolicy.{h,cpp}` | `QAction` の許可リスト |
@@ -400,11 +400,12 @@ CLI が GUI 本体と同じクラスを使えるように、`CMakeLists.txt` の
 
 | ディレクトリ | 内容 |
 |---|---|
-| `src/automation/` | エラーの分類の表（`ErrorKind`・`ErrorKinds`）、共通サービス（`KifuConversionService`、`BoardImageRenderer`、`EngineCatalog`、`EngineAnalysisRunner`、`MateSearchRunner`、`TsumeVerificationRunner`。局面の検証は `src/analysis/` の `SfenValidationService`）と自動化 API（`AutomationServer` ほか） |
+| `src/headless/` | CLI・自動化 API・MCP が共有する GUI 非依存の部品: 引数の表（`ParamSpec`・`AutomationMethodSpecs`）、エラーの分類の表（`ErrorKind`・`ErrorKinds`・`Failure`）、書き出し先の検査（`OutputPath`）、共通サービス（`KifuConversionService`、`EngineCatalog`、`EngineAnalysisRunner`、`MateSearchRunner`、`TsumeVerificationRunner`。局面の検証は `src/analysis/` の `SfenValidationService`） |
+| `src/automation/` | 自動化 API（`AutomationServer` ほか）と盤面画像（`BoardImageRenderer`。CLI も使う） |
 | `src/cli/` | `shogiboardq-cli` のエントリーポイントとコマンド実装（`CliCommands*`）、コマンドの引数の表 `CliCommandSpecs` と引数の解釈 `CliArgs`。JSON 出力と stdin の `stop` 監視 |
 | `mcp/` | Python パッケージとテスト |
 
-`src/automation/` は `app/`・`dialogs/`・`widgets/` に依存しない（`views/ShogiView` は盤面画像のために使う）。レイヤー依存テスト（`tst_layer_dependencies`）にルールを追加する。
+`src/headless/` は core〜analysis だけを使い（GUI にも通信対局にも依存しない）、`src/automation/` は `app/`・`dialogs/`・`widgets/` に依存しない（`views/ShogiView` は盤面画像のために使う）。どちらもレイヤー依存テスト（`tst_layer_dependencies`）が検査する。
 
 ## 9. テスト
 

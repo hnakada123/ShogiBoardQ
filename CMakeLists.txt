@@ -919,7 +919,29 @@ set(SRC_COMMON
     src/analysis/tsumepositionutil.h
 )
 
-# 自動化 API（--automation）と CLI が共有する GUI 非依存サービス
+# CLI・自動化 API・MCP が共有する GUI 非依存の部品（引数の表・エラーの分類・変換・エンジンの実行器）
+set(SRC_HEADLESS
+    src/headless/automationmethodspecs.cpp
+    src/headless/automationmethodspecs.h
+    src/headless/engineanalysisrunner.cpp
+    src/headless/engineanalysisrunner.h
+    src/headless/enginecatalog.cpp
+    src/headless/enginecatalog.h
+    src/headless/errorkinds.cpp
+    src/headless/errorkinds.h
+    src/headless/kifuconversionservice.cpp
+    src/headless/kifuconversionservice.h
+    src/headless/matesearchrunner.cpp
+    src/headless/matesearchrunner.h
+    src/headless/outputpath.cpp
+    src/headless/outputpath.h
+    src/headless/paramspec.cpp
+    src/headless/paramspec.h
+    src/headless/tsumeverificationrunner.cpp
+    src/headless/tsumeverificationrunner.h
+)
+
+# 自動化 API（--automation）。盤面画像（boardimagerenderer）は CLI も使う
 set(SRC_AUTOMATION
     src/automation/automationactionpolicy.cpp
     src/automation/automationactionpolicy.h
@@ -934,8 +956,6 @@ set(SRC_AUTOMATION
     src/automation/automationcontext.h
     src/automation/automationdispatcher.cpp
     src/automation/automationdispatcher.h
-    src/automation/automationmethodspecs.cpp
-    src/automation/automationmethodspecs.h
     src/automation/automationparams.h
     src/automation/automationserver.cpp
     src/automation/automationserver.h
@@ -949,20 +969,6 @@ set(SRC_AUTOMATION
     src/automation/automationwidgets.h
     src/automation/boardimagerenderer.cpp
     src/automation/boardimagerenderer.h
-    src/automation/engineanalysisrunner.cpp
-    src/automation/engineanalysisrunner.h
-    src/automation/enginecatalog.cpp
-    src/automation/enginecatalog.h
-    src/automation/errorkinds.cpp
-    src/automation/errorkinds.h
-    src/automation/kifuconversionservice.cpp
-    src/automation/kifuconversionservice.h
-    src/automation/matesearchrunner.cpp
-    src/automation/matesearchrunner.h
-    src/automation/paramspec.cpp
-    src/automation/paramspec.h
-    src/automation/tsumeverificationrunner.cpp
-    src/automation/tsumeverificationrunner.h
 )
 
 # shogiboardq-cli（GUI を起動しない実行ファイル）
@@ -1004,6 +1010,7 @@ set(SBQ_INCLUDE_DIRS
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/src/app
     ${CMAKE_CURRENT_SOURCE_DIR}/src/automation
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/headless
     ${CMAKE_CURRENT_SOURCE_DIR}/src/core
     ${CMAKE_CURRENT_SOURCE_DIR}/src/game
     ${CMAKE_CURRENT_SOURCE_DIR}/src/kifu
@@ -1065,6 +1072,7 @@ qt_add_library(shogiboardq_objects OBJECT
     ${SRC_MODELS}
     ${SRC_SERVICES}
     ${SRC_COMMON}
+    ${SRC_HEADLESS}
     ${SRC_AUTOMATION}
     ${UI_FILES}
 )

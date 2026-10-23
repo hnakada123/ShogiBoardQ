@@ -75,24 +75,3 @@ std::optional<EngineListSettings::EngineEntry> CliArgs::resolveEngine(const QJso
     return entry;
 }
 
-std::optional<ErrorKind> CliArgs::checkOutputPath(const QString& path, bool overwrite, QString* error)
-{
-    const QFileInfo info(path);
-    if (path.isEmpty() || !info.isAbsolute()) {
-        if (error) *error = QStringLiteral("Output path must be absolute");
-        return ErrorKind::InvalidArgument;
-    }
-    if (info.exists() && info.isDir()) {
-        if (error) *error = QStringLiteral("Output path is a directory: %1").arg(path);
-        return ErrorKind::FileError;
-    }
-    if (info.exists() && !overwrite) {
-        if (error) *error = QStringLiteral("Output file already exists (pass --overwrite to replace it): %1").arg(path);
-        return ErrorKind::FileExists;
-    }
-    if (!info.dir().exists()) {
-        if (error) *error = QStringLiteral("Output directory does not exist: %1").arg(info.dir().path());
-        return ErrorKind::NotFound;
-    }
-    return std::nullopt;
-}

@@ -3,7 +3,6 @@
 
 #include "errorkinds.h"
 
-#include "automationdispatcher.h"
 
 #include <QJsonObject>
 

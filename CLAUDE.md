@@ -160,17 +160,20 @@ cmake --build build --target translations
     - `docklayoutmanager` - 名前付きレイアウト・起動時のレイアウト・ドックの固定（ドックは `DockRegistry` から取る）
 
 - **views/**: 盤の描画と入力（`shogiview.cpp/.h`）。盤・マス・駒台のセル・座標の文字・対局者カードの位置は `boardgeometry`（`BoardGeometry`。マスの大きさ・反転・筋と段の数から1度だけ計算する変えない値で、すべてウィジェット座標。`ShogiView::boardGeometry()`）、盤に重ねる対局者カード・編集終了ボタン・駒箱の先後切り替えは `boardchromewidget`（カードは1側1枚の `playercard`（`PlayerCard`。手番の札・名前・時計を子に持つ）で、`chrome()->card(Turn)` で触る）、局面によらない部分の画像は `boardstaticlayer`、ドラッグは `shogiviewinteraction`、ハイライト（層 `BoardHighlightLayer` ごとのマスの値。色は層で決まる）と矢印は `shogiviewhighlighting`
-- **automation/**: 自動化 API（`ShogiBoardQ --automation`）と、CLI・MCP サーバーが共有する GUI 非依存サービス（設計: `docs/dev/mcp-server.md`）
+- **automation/**: 自動化 API（`ShogiBoardQ --automation`）。引数の表・エラーの分類などの共有部品は headless/（設計: `docs/dev/mcp-server.md`）
   - `automationserver.cpp/.h` - QLocalServer で改行区切り JSON-RPC 2.0 を待ち受け
   - `automationdispatcher.cpp/.h` - JSON-RPC 解析とメソッド表（GUI 非依存）。メソッドを呼ぶ前に引数を表で検査し（知らない引数は拒否）、既定値を補う。エラー応答（`makeError()`）は `error.code` と `error.data.slug` を分類から決める
-  - `errorkinds.cpp/.h` - エラーの分類 `ErrorKind` と、語（slug）・JSON-RPC のコードの表（`ErrorKinds::slug()`・`rpcCode()`・`toJson()`）。CLI（`CliOutput::fail(ErrorKind, ...)`）・自動化 API（`AutomationError(ErrorKind, ...)`）・MCP サーバーで同じ失敗は同じ語にする。分類を足すときは enum と表に1行ずつ足す
-  - `paramspec.cpp/.h` - 引数の表の部品 `ParamSpec`（名前・型・必須・範囲・既定値・選択肢・説明）と `OperationSpec`。JSON Schema の出力（`ParamSpecs::inputSchema()`）と検査（`validate()`）。CLI・自動化 API・MCP で共有する
-  - `automationmethodspecs.cpp/.h` - 自動化 API の全メソッドの引数の表 `AutomationMethodSpecs`。メソッドは補われた値を読み、`AutomationParams` は範囲が画面の状態で決まる引数にだけ使う
   - `automationcommands_*.cpp` - app / position / kifu / ui の各メソッド、`automationactionpolicy` は QAction 許可リスト
   - `automationinteractions.cpp/.h` - 応答の後に行う UI 操作の予約 `AutomationInteractions::queue(QueuedInteraction{target, check, perform}, response)`。実行の直前に `check` で再検査し、結果（pending・running・done・failed と分類つきの error・cancelled）を記録して `ui.interaction` で返す（応答に `"queued": true` と `"interaction"` の番号）。UI を操作するメソッドはこれで予約し、`AutomationDeferredCall` を直接使うのは `app.quit` だけ。実行時の失敗は握りつぶさない。MCP サーバーは `AppClient.call_queued()` で実行を待つ
   - `automationinput.cpp/.h` - 通常のマウス入力 `AutomationInput::sendClick()`・`sendDrag()`（盤・表のセル・分岐ツリー・ドックのタイトルバー）
   - `automationwidgetadapters.cpp/.h` - 部品の型ごとの読み（`describe()`・`widget.text`）と書き（`writer()`・`widget.setValue`）の表 `AutomationWidgetAdapters`。型を足すときは表に1行足す
-  - `kifuconversionservice`, `boardimagerenderer`, `engineanalysisrunner`, `matesearchrunner`, `tsumeverificationrunner`（詰みの問い合わせは `MateOracle`） - CLI と共有するサービス（局面の検証は `analysis/sfenvalidationservice`）
+  - `boardimagerenderer` - 盤面画像（`ShogiView` で描くので views を使う。CLI の render-board も使う）
+- **headless/**: CLI・自動化 API・MCP サーバーが共有する GUI 非依存の部品（core〜analysis だけを使う。`tests/tst_layer_dependencies.cpp`）
+  - `errorkinds.cpp/.h` - エラーの分類 `ErrorKind` と、語（slug）・JSON-RPC のコードの表（`ErrorKinds::slug()`・`rpcCode()`・`toJson()`。数値は `AutomationErrorCode`）、分類つきの失敗 `Failure`（分類・文・対処）。CLI（`CliOutput::fail(ErrorKind, ...)`・`fail(Failure)`）・自動化 API（`AutomationError(ErrorKind, ...)`・`AutomationError(Failure)`）・MCP サーバーで同じ失敗は同じ語にする。分類を足すときは enum と表に1行ずつ足す
+  - `paramspec.cpp/.h` - 引数の表の部品 `ParamSpec`（名前・型・必須・範囲・既定値・選択肢・説明）と `OperationSpec`。JSON Schema の出力（`ParamSpecs::inputSchema()`）と検査（`validate()`）。CLI・自動化 API・MCP で共有する
+  - `automationmethodspecs.cpp/.h` - 自動化 API の全メソッドの引数の表 `AutomationMethodSpecs`。メソッドは補われた値を読み、`AutomationParams` は範囲が画面の状態で決まる引数にだけ使う
+  - `outputpath.cpp/.h` - 書き出し先の事前検査 `OutputPath::check`（絶対パス・ディレクトリでない・上書きの許可・置き場所。CLI の出力先と `kifu.save` で共通。MCP の `paths.py` も同じ分類）
+  - `kifuconversionservice`, `enginecatalog`, `engineanalysisrunner`, `matesearchrunner`, `tsumeverificationrunner`（詰みの問い合わせは `MateOracle`） - CLI と自動化 API が使うサービス（局面の検証は `analysis/sfenvalidationservice`）。失敗は `Failure` で返す
 - **cli/**: `shogiboardq-cli`（GUI を起動しない JSON 出力コマンド。`mcp/` の MCP サーバーが呼び出す）
   - `clicommandspecs.cpp/.h` - 全コマンドの引数の表 `CliCommandSpecs`（オプション名は引数名の `_` を `-` にしたもの）。オプションの登録・使い方の文・コマンドラインから検査済みの JSON への変換（真偽値はフラグ、文字列の配列は空白区切り）をこの表から行う。各コマンドは `CliArgs::parse()` で読み、`resolvePosition(params)`・`resolveEngine(params)` で解決する
   - `environment` コマンドは自動化 API の既定のソケット・エンドポイントファイル・設定ファイルの場所、1メッセージの上限（`AutomationServer::kMaxMessageBytes`）、エラーの分類の表を出す。MCP サーバー（`mcp/shogiboardq_mcp/environment.py`）はこれを読み、場所や上限・語を Python に写さない
@@ -318,7 +321,7 @@ MyDialog::~MyDialog()
 - When adding new features, prefer creating new classes in appropriate directories (`app/`, `controllers/`, `services/`, etc.) rather than adding code to MainWindow.
 - **Deps/Hooks/Refs パターン**: `docs/dev/done/deps-hooks-refs-pattern.md` に従う。依存注入に3種の構造体パターン（Deps=外部依存注入、Hooks=上位層へのコールバック、Refs=親状態への参照）を使い分ける
 - **スレッド安全性**: `docs/dev/threading-guidelines.md` に従う。UIアクセスはメインスレッド限定、ワーカーには値オブジェクトのみ渡す
-- **層の依存**: 下の層は上の層を include しない。順に core・common → services → kifu → engine → game → analysis・network・navigation → style → models → views・widgets → board → dialogs → ui → app。`automation`・`cli` は GUI に依存しない（規則は `tests/tst_layer_dependencies.cpp` が検査する）
+- **層の依存**: 下の層は上の層を include しない。順に core・common → services → kifu → engine → game → analysis・network・navigation → style → models → views・widgets → board → dialogs → ui → app。`headless` は core〜analysis だけを使い、`automation`・`cli` は MainWindow・ダイアログ・ウィジェットに依存しない（規則は `tests/tst_layer_dependencies.cpp` が検査する）
 - **クラス名の役割**: `*Wiring` はシグナルの接続だけ、`*Presenter` は表示への反映、`*Controller` は利用者操作の処理、`*Coordinator` は複数の部品にまたがる流れ。役割が変わったら名前も変える
 - **ファイルの分割**: 1ファイル1000行の上限（`tests/tst_structural_kpi.cpp`）に近づいたら、行数で `_ui`・`_draw` などに機械的に分けず、責務を別のクラスに切り出す
 

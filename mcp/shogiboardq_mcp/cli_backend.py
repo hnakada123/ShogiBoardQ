@@ -90,7 +90,9 @@ async def run_cli(args: list[str], timeout: float = 60.0) -> dict:
         raise ToolError(result.get("code", "cli_failed"), result.get("message", "unknown error"))
     if not result.get("ok", True):
         error = result.get("error") or {}
-        raise ToolError(error.get("code", "cli_failed"), error.get("message", "unknown error"))
+        hint = error.get("hint")
+        raise ToolError(error.get("code", "cli_failed"), error.get("message", "unknown error"),
+                        {"hint": hint} if hint else None)
     return result
 
 

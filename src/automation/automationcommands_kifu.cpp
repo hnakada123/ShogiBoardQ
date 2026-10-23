@@ -12,10 +12,10 @@
 #include "kifufilecontroller.h"
 #include "kifunavigationcontroller.h"
 #include "kifusavefile.h"
+#include "outputpath.h"
 #include "sfenutils.h"
 #include "uinotificationservice.h"
 
-#include <QDir>
 #include <QFileInfo>
 #include <QJsonArray>
 
@@ -111,15 +111,9 @@ void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, 
     dispatcher.registerMethod(QStringLiteral("kifu.save"), [context](const QJsonObject& params) {
         const QString path = params.value(QStringLiteral("path")).toString();
         const bool overwrite = params.value(QStringLiteral("overwrite")).toBool();
-        requireAbsolutePath(path);
+        if (const std::optional<Failure> problem = OutputPath::check(path, overwrite, QStringLiteral("overwrite=true")))
+            throw AutomationError(*problem);
         const QFileInfo info(path);
-        if (info.exists() && !overwrite) {
-            throw AutomationError(ErrorKind::FileExists, QStringLiteral("File already exists: %1").arg(path),
-                                  QStringLiteral("Pass overwrite=true to replace it"));
-        }
-        if (!info.dir().exists()) {
-            throw AutomationError(ErrorKind::NotFound, QStringLiteral("Directory does not exist: %1").arg(info.dir().path()));
-        }
         KifuFileController* controller = requireFileController(context);
         QString error;
         if (!controller->saveKifuToPath(path, &error)) {

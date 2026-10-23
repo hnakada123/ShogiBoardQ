@@ -109,6 +109,7 @@
 | 2026-10-23 | 文書の置き換えを1つの知らせにした（監査 R7）のに合わせて §6・§9・§10・§14・第18章を更新（`KifuDocument::replaced` を受けて評価値グラフ・エンジンの表示が自分で消える。`SessionResetCoordinator::clearBeforeKifuLoad`・`KifuFileController::Deps::clearUiBeforeKifuLoad`・局面編集の開始で評価値グラフを消す配線を削除。連続対局の次局と通信対局の開始も `prepareGameStart()` を通る） |
 | 2026-10-23 | 対局で指すエンジン1台を `MatchEngineSeat`（`src/game/matchengineseat.h`）にまとめた（監査 R8 の前半）のに合わせて §1・§6・§7・§12・第18章を更新（人間対エンジン・エンジン同士の Strategy と通信対局が共有し、終局の知らせは `finish()` の1通り。`EngineLifecycleManager` はリース・取り上げの知らせ・表示の消去だけにし、手番・時計・投了などの中継（`engineFor`・`startEngine`・`notifyGameOver`・`disconnectArbiterSignals`・`engineResigned`・`engineDeclaredWin`・`engineError`・`slotFor`）を削除。`CsaEngineController` を削除。対局時計の `ClockTimeSource` は司令塔が持つ。人間が先に指した後もエンジンの初期化を待つ間は時計を止める） |
 | 2026-10-23 | 探索の切り替えを `UsiEngineSession::search` にまとめた（監査 R8 の後半・U5）のに合わせて §7・§9 を更新（最後の依頼だけを行い、探索中なら stop で止めて結果と info を捨ててから始める。空の局面は受け付けない。`UsiMatchHandler` の先読み停止待ち（`PonderStop`）と `AnalysisSession` の `StoppingSearch`・`RestartQueued`・再開のタイマーを削除。`stop()` は最後の依頼に効き、`cancelSearch()` を足した。`RecordLine::usiPosition`・`ConsiderationPositionResolver::resolve` は `std::optional` を返す） |
+| 2026-10-23 | CLI・自動化 API・MCP が共有する GUI 非依存の部品を `src/headless/` に分けた（監査 R9 の段階1）のに合わせて §1.5・§14・第18章を更新（引数の表・エラーの分類・変換・エンジンの実行器。core〜analysis だけを使う規則を層の検査に足した。JSON-RPC のコードは `errorkinds.h` に移した。書き出し先の検査を `OutputPath::check` 1つにし、出力先がディレクトリのときは CLI も `invalid_argument`。`Failure` に対処 `hint` を足した） |
 
 <!-- chapter-0-end -->
 
@@ -629,21 +630,24 @@ src/
 │   ├── threadtypes.h               #   スレッド間で使う共通型（ジョブの世代番号・キャンセルフラグ）
 │   └── tsumeevaluation.h           #   詰みの判定結果（詰み・不詰・不明と手数・読み筋）
 │
-├── automation/                     # 自動化 API（--automation）と、CLI と共有する GUI 非依存のサービス
+├── automation/                     # 自動化 API（--automation）
 │   ├── automationserver.cpp/.h     #   QLocalServer で改行区切りの JSON-RPC 2.0 を待ち受け
 │   ├── automationdispatcher.cpp/.h #   JSON-RPC の解析とメソッド表（GUI 非依存）。呼ぶ前に引数を表で検査し既定値を補う
-│   ├── errorkinds.cpp/.h           #   エラーの分類 ErrorKind と語（slug）・JSON-RPC のコードの表（CLI・自動化 API・MCP で共有）
-│   ├── paramspec.cpp/.h            #   引数の表の部品 ParamSpec・OperationSpec（JSON Schema の出力と検査。CLI・自動化 API・MCP で共有）
-│   ├── automationmethodspecs.cpp/.h #  自動化 API の全メソッドの引数の表 AutomationMethodSpecs
 │   ├── automationcommands_*.cpp    #   app・position・kifu・ui・dock・navigation・widget などのメソッド
 │   ├── automationactionpolicy.cpp/.h # 実行してよい QAction の許可リスト
 │   ├── automationwidgets.cpp/.h    #   ウィンドウ列挙・部品の検索・操作可否の検査・内容の列挙
 │   ├── automationwidgetadapters.cpp/.h # 部品の型ごとの読み（widget.text）と書き（widget.setValue）の表
 │   ├── automationinteractions.cpp/.h # 応答の後に行う UI 操作の予約・実行直前の再検査・結果の記録（ui.interaction）
 │   ├── automationinput.cpp/.h      #   通常のマウス入力（sendClick・sendDrag）
+│   └── boardimagerenderer.cpp/.h   #   SFEN から盤面画像を描画（ShogiView を使う。CLI の render-board も使う）
+│
+├── headless/                       # CLI・自動化 API・MCP が共有する GUI 非依存の部品（core〜analysis だけを使う）
+│   ├── errorkinds.cpp/.h           #   エラーの分類 ErrorKind と語（slug）・JSON-RPC のコードの表、分類つきの失敗 Failure
+│   ├── paramspec.cpp/.h            #   引数の表の部品 ParamSpec・OperationSpec（JSON Schema の出力と検査）
+│   ├── automationmethodspecs.cpp/.h #  自動化 API の全メソッドの引数の表 AutomationMethodSpecs（CLI の describe も出す）
+│   ├── outputpath.cpp/.h           #   書き出し先の事前検査 OutputPath::check（CLI の出力先と kifu.save で共通）
 │   ├── enginecatalog.cpp/.h        #   登録エンジンの名前解決
 │   ├── kifuconversionservice.cpp/.h #  棋譜の形式変換
-│   ├── boardimagerenderer.cpp/.h   #   SFEN から盤面画像を描画
 │   ├── engineanalysisrunner.cpp/.h #   登録エンジンで1局面を解析
 │   ├── matesearchrunner.cpp/.h     #   登録エンジンで詰み探索（MateOracle の1回の問い合わせ）
 │   └── tsumeverificationrunner.cpp/.h # 余詰の検査（TsumeVerificationJob を MateQueryLoop で回す）
@@ -653,7 +657,7 @@ src/
     ├── clicommands_*.cpp/.h        #   各コマンド（describe は引数の表を JSON Schema で、environment は場所・上限・エラーの分類を出す）
     ├── clicommandspecs.cpp/.h      #   全コマンドの引数の表 CliCommandSpecs（オプションの登録・使い方の文・JSON への変換と検査）
     ├── cliargs.cpp/.h              #   表で読んだ引数の解釈（parse()・局面 resolvePosition()・エンジン resolveEngine()）
-    ├── clioutput.cpp/.h            #   JSON 出力（失敗は fail(ErrorKind, ...)・failEvent(ErrorKind, ...)）
+    ├── clioutput.cpp/.h            #   JSON 出力（失敗は fail(Failure)・fail(ErrorKind, ...)・failEvent(ErrorKind, ...)）
     └── clistopwatcher.cpp/.h       #   長時間コマンドの停止要求の監視
 ```
 
@@ -7599,9 +7603,9 @@ MainWindow::MainWindow()
 
 部品は `AutomationContext` に詰めて渡す（部品のポインタと、状態として `AppActivityState`・`KifuNavigationState`）。メソッドの実装（`automationcommands_*.cpp`）は MainWindow を知らない。
 
-メソッドの引数は `AutomationMethodSpecs`（`src/automation/automationmethodspecs.h`）の表に、名前・型・必須・範囲・既定値・選択肢を `ParamSpec`（`src/automation/paramspec.h`）で1行ずつ宣言する。`AutomationDispatcher::handleRequest()` はメソッドを呼ぶ前に `ParamSpecs::validate()` で引数を検査し（知らない引数・必須の欠け・型・範囲・選択肢の誤りは `-32602`）、既定値を補った引数をメソッドに渡す。メソッドは補われた値を読むだけで、`AutomationParams`（`requireString`・`optionalInt`・`requireInt`）は範囲が画面の状態で決まる引数（表の行・列など）にだけ使う。CLI の引数も同じ部品の表 `CliCommandSpecs`（`src/cli/clicommandspecs.h`）で宣言し、`shogiboardq-cli describe` が両方の表を JSON Schema として出す。MCP サーバーのツールのスキーマがこの表と一致することは `mcp/tests/test_param_specs.py` が検査する。引数を足すときは表に1行足し、MCP のツール（`mcp/shogiboardq_mcp/tooldefs.py`）のスキーマも合わせる。設計は [MCP サーバーの設計](mcp-server.md) を参照。外部からアプリを操作するときは、この自動化 API を使う。
+メソッドの引数は `AutomationMethodSpecs`（`src/headless/automationmethodspecs.h`）の表に、名前・型・必須・範囲・既定値・選択肢を `ParamSpec`（`src/headless/paramspec.h`）で1行ずつ宣言する。`AutomationDispatcher::handleRequest()` はメソッドを呼ぶ前に `ParamSpecs::validate()` で引数を検査し（知らない引数・必須の欠け・型・範囲・選択肢の誤りは `-32602`）、既定値を補った引数をメソッドに渡す。メソッドは補われた値を読むだけで、`AutomationParams`（`requireString`・`optionalInt`・`requireInt`）は範囲が画面の状態で決まる引数（表の行・列など）にだけ使う。CLI の引数も同じ部品の表 `CliCommandSpecs`（`src/cli/clicommandspecs.h`）で宣言し、`shogiboardq-cli describe` が両方の表を JSON Schema として出す。MCP サーバーのツールのスキーマがこの表と一致することは `mcp/tests/test_param_specs.py` が検査する。引数を足すときは表に1行足し、MCP のツール（`mcp/shogiboardq_mcp/tooldefs.py`）のスキーマも合わせる。設計は [MCP サーバーの設計](mcp-server.md) を参照。外部からアプリを操作するときは、この自動化 API を使う。
 
-エラーの分類は `ErrorKind`（`src/automation/errorkinds.h`）の表1つで決める。メソッドは `AutomationError(ErrorKind, message, hint)` を投げ、`AutomationDispatcher::makeError()` が `error.code` に分類の JSON-RPC のコード（`ErrorKinds::rpcCode()`）、`error.data.slug` に分類の語（`ErrorKinds::slug()`）を入れる。CLI の失敗（`CliOutput::fail(ErrorKind, message)`・`failEvent()`）も同じ語を `code` に書くので、同じ失敗はどの経路でも同じ語になる（既存ファイルへの書き込みは `file_exists`、引数の誤りは `invalid_argument`、知らないメソッド・コマンドは `unknown_operation`、棋譜が読めないときは `parse_error`）。`shogiboardq-cli environment` は既定のソケット（`AutomationServer::defaultSocketPath()`）・エンドポイントファイル（`endpointFilePath()`）・設定ファイルの場所、1メッセージの上限（`AutomationServer::kMaxMessageBytes`）と分類の表（`ErrorKinds::toJson()`）を出し、MCP サーバーはこれを読んで値を写さない。分類の一覧は [MCP サーバーの設計](mcp-server.md#エラーの分類) を参照。
+エラーの分類は `ErrorKind`（`src/headless/errorkinds.h`）の表1つで決める。メソッドは `AutomationError(ErrorKind, message, hint)` を投げ、`AutomationDispatcher::makeError()` が `error.code` に分類の JSON-RPC のコード（`ErrorKinds::rpcCode()`）、`error.data.slug` に分類の語（`ErrorKinds::slug()`）を入れる。CLI の失敗（`CliOutput::fail(ErrorKind, message)`・`failEvent()`）も同じ語を `code` に書くので、同じ失敗はどの経路でも同じ語になる（既存ファイルへの書き込みは `file_exists`、引数の誤りは `invalid_argument`、知らないメソッド・コマンドは `unknown_operation`、棋譜が読めないときは `parse_error`）。`shogiboardq-cli environment` は既定のソケット（`AutomationServer::defaultSocketPath()`）・エンドポイントファイル（`endpointFilePath()`）・設定ファイルの場所、1メッセージの上限（`AutomationServer::kMaxMessageBytes`）と分類の表（`ErrorKinds::toJson()`）を出し、MCP サーバーはこれを読んで値を写さない。分類の一覧は [MCP サーバーの設計](mcp-server.md#エラーの分類) を参照。
 
 応答の後に行う UI 操作（`board.click`・`dialog.clickButton`・`action.trigger`・`dialog.close`・`widget.showDock`・`widget.click`・`widget.setValue`・`widget.clickCell`・`widget.editCell`・`dock.configure`・`menu.select`・`branch.click`）は、`AutomationInteractions::queue(QueuedInteraction{target, check, perform}, response)`（`src/automation/automationinteractions.h`）で予約する。モーダルダイアログを開く操作でも応答を返せるよう、操作は応答を書いた後のイベントループで行う。受付の時点の検査に加えて実行の直前に `check` でもう一度確かめ（対象が隠れた・無効になった・別のダイアログに遮られたなど）、`perform` が投げた `AutomationError` も含めて結果を記録する（実行時の失敗は握りつぶさない）。応答には `"queued": true` と操作の番号 `"interaction"` が付き、`ui.interaction {id}` で状態（`pending`・`running`（開いたモーダルダイアログが閉じるまで）・`done`・`failed`（`error` に `code`・`message`・`data.slug`）・`cancelled`（実行前に対象が消えた））を引ける。記録は新しいものから `kHistoryLimit`（256）件まで残す。`app.quit` だけはこの仕組みを使わず、`AutomationDeferredCall` で応答の後に終了する。マウス入力は `AutomationInput::sendClick()`・`sendDrag()`（`automationinput.h`）の2つで送り（盤・表のセル・分岐ツリー・ドックのタイトルバー）、部品の読み（`widget.text`）と書き（`widget.setValue`）は型ごとのアダプタの表 `AutomationWidgetAdapters::describe()`・`writer()`（`automationwidgetadapters.h`）で行う（型を足すときは表に1行足す）。MCP サーバーの `AppClient.call_queued()` はこの番号で操作の実行を待つ（[MCP サーバーの設計](mcp-server.md)）。
 
@@ -8573,7 +8577,9 @@ statusBar()->showMessage(tr("手数: %1").arg(moveCount));
 │
 ├─ ウィジェットの書体・アプリのスタイル・スタイルシート ──→ src/style/
 │
-├─ 自動化 API、CLI と共有する GUI 非依存のサービス ──→ src/automation/
+├─ 自動化 API ──→ src/automation/
+│
+├─ CLI・自動化 API・MCP が共有する GUI 非依存の部品（引数の表・エラーの分類・変換・エンジンの実行器）──→ src/headless/
 │
 ├─ CLI（shogiboardq-cli）のコマンド ──→ src/cli/
 │
