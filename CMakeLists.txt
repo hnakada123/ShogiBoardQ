@@ -7,6 +7,37 @@ set(APP_VERSION "2026.10.23")
 
 project(ShogiBoardQ VERSION ${APP_VERSION} LANGUAGES CXX)
 
+# ==== 実行ファイルの堅牢化 ====
+# スタックの保護・FORTIFY・制御フローの保護・PIE・RELRO（セキュリティ監査 S16）。
+# 配布する実行ファイル（同梱の Hayanagi も）に付けるので、Hayanagi を組み込む前に設定する。
+# ディストリビューションが同じフラグを足しても同じ値になる
+option(ENABLE_HARDENING "Build with stack protector, FORTIFY_SOURCE, CET, PIE and full RELRO" ON)
+
+if(ENABLE_HARDENING)
+    set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+    include(CheckPIESupported)
+    check_pie_supported()
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+        add_compile_options(-fstack-protector-strong)
+        # FORTIFY は最適化したビルドでだけ働く（Debug で付けると警告になる。サニタイザーとは併用しない）
+        if(NOT ENABLE_SANITIZERS)
+            add_compile_options($<$<NOT:$<CONFIG:Debug>>:-U_FORTIFY_SOURCE> $<$<NOT:$<CONFIG:Debug>>:-D_FORTIFY_SOURCE=3>)
+        endif()
+        if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64|amd64|i.86)$")
+            add_compile_options(-fcf-protection=full)
+        endif()
+        if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+            add_link_options(-Wl,-z,relro -Wl,-z,now -Wl,-z,noexecstack)
+        endif()
+    elseif(MSVC)
+        add_compile_options(/guard:cf)
+        add_link_options(/guard:cf)
+        if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+            add_link_options(/CETCOMPAT)
+        endif()
+    endif()
+endif()
+
 # Hayanagi is built both as a USI engine and as the embedded tsume opponent.
 if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/Hayanagi/CMakeLists.txt")
     message(FATAL_ERROR
@@ -898,6 +929,7 @@ set(SRC_COMMON
     src/style/applicationstyle.cpp
     src/style/applicationstyle.h
     src/common/boardcolors.h
+    src/common/boundedfile.h
     src/common/boardvisuals.h
     src/common/branchtreeitemroles.h
     src/style/buttonstyles.h
@@ -929,7 +961,6 @@ set(SRC_HEADLESS
     src/headless/errorkinds.cpp
     src/headless/errorkinds.h
     src/headless/kifuconversionservice.cpp
-    src/common/boundedfile.h
     src/headless/kifuconversionservice.h
     src/headless/matesearchrunner.cpp
     src/headless/matesearchrunner.h

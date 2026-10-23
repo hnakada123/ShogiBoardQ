@@ -38,6 +38,8 @@ ShogiBoardQ を Linux でビルドし、`ShogiBoardQ-linux.zip` を作って Git
 
 > **glibc について**: AppImage は、ビルドした環境と同じか、より新しい glibc のシステムでしか動かない。最新の Arch Linux でビルドすると glibc 2.43 以降が必要になり、Ubuntu 24.04（glibc 2.39）などで起動できない。そのためリリース用は、2024年7月15日の Arch Linux（glibc 2.39・Qt 6.7.2）に固定したコンテナでビルドする（[5.1](#package-run)）。この AppImage は glibc 2.38 以降と GCC 12 以降の libstdc++ を必要とし、Ubuntu 24.04 以降、Debian 13、Fedora 39 以降などで動く。
 
+> **同梱の OpenSSL・libcurl について**: 固定したスナップショットの OpenSSL 3.3.1・libcurl 8.8.0 をそのまま同梱しているので、その後の修正（CVE-2024-6119 など）は入っていない（2026-10-23 のセキュリティ監査 S17）。OpenSSL だけをシステムのもの（ディストリビューションが更新する）に替えることはできない。同梱の libcurl（Qt Network が読む libproxy の libpxbackend が使う）が OpenSSL 3.2・3.3 の関数を使うため、OpenSSL 3.0 の Ubuntu 24.04 では libcurl を読めず、アプリが起動しなくなる。TLS のプラグイン `libqopensslbackend.so` と `libQt6Network.so.6` は OpenSSL 3.0 の関数だけを使う。更新するときは、OpenSSL・libcurl・libproxy をまとめて同梱から外すか、新しい OpenSSL をコンテナで作って同梱し、[5.4](#test) の glibc の版の確認と、Ubuntu 24.04 での起動・CSA の TLS 接続を確かめる。
+
 <a id="setup"></a>
 
 ## 2. 開発環境のセットアップ
@@ -206,7 +208,7 @@ python3 scripts/qt_licenses.py prepare --version 6.7.2 \
 1. 前提ツールの確認（cmake・python3。ninja を推奨）
 2. CMake の構成と Release ビルド（ShogiBoardQ と Hayanagi）
 3. 実行ファイル・翻訳ファイルと、3〜13手詰の問題集（各手数1ファイル）の確認
-4. linuxdeploy・Qt プラグイン・appimagetool のダウンロード（初回のみ。ビルドディレクトリに保存）
+4. linuxdeploy・Qt プラグイン・appimagetool のダウンロード（初回のみ。ビルドディレクトリに保存）。実行する前に `build-linux.sh` に書いた SHA-256 と照らし合わせる。どれも上流が差し替える continuous 版なので、差し替えられると一致せずに止まる。そのときは上流のリリースの digest と変更を確かめてから値を更新する
 5. AppDir の作成と AppImage の生成（実行に必要なファイルと、Qt・同梱ライブラリのライセンス文書）
 6. AppImage・問題集・Hayanagi を含む ZIP の作成
 

@@ -16,8 +16,9 @@ on:
         default: false
         type: boolean
 
+# 既定は読み取りだけ。Release に書き込むのは publish-release だけ（ビルドや SBOM のツールにトークンを渡さない）
 permissions:
-  contents: write
+  contents: read
 
 env:
   # Match the Qt SDK and the sources used to prepare bundled license notices.
@@ -74,7 +75,7 @@ jobs:
           submodules: recursive
           ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
 
-      - uses: actions/cache@v6
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
         with:
           path: build/qt-sources
           key: qt-sources-${{ env.QT_VERSION }}-${{ env.QT_SOURCE_SHA256 }}
@@ -108,7 +109,7 @@ jobs:
           submodules: recursive
           ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
 
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
         with:
           name: qt-license-documents
           path: build/qt-licenses
@@ -151,7 +152,7 @@ jobs:
           submodules: recursive
           ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
 
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
         with:
           name: qt-license-documents
           path: build/qt-licenses
@@ -320,15 +321,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download release artifacts
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
         with:
           pattern: release-package-*
           path: release-assets
           merge-multiple: true
 
       - name: Install Syft
+        env:
+          # 版と SHA-256 を固定する（取得元のスクリプトを確かめずに実行しない）
+          SYFT_VERSION: "1.54.1"
+          SYFT_SHA256: "c069905b391cc4c20a5ba65ad5c10be2a7ba074f8ea6ad203e24d14e303dad47"
         run: |
-          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b ./
+          set -euo pipefail
+          archive="syft_${SYFT_VERSION}_linux_amd64.tar.gz"
+          curl -fsSL -o "$archive" "https://github.com/anchore/syft/releases/download/v${SYFT_VERSION}/${archive}"
+          echo "${SYFT_SHA256}  ${archive}" | sha256sum -c -
+          tar -xzf "$archive" syft
           ./syft version
 
       - name: Generate SHA256 and SBOM
@@ -352,9 +361,11 @@ jobs:
     # 手動実行は publish をオンにしたときだけ Release に添付する（既定はビルドと確認だけ）。
     if: github.event_name == 'push' || inputs.publish
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Download product packages
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
         with:
           pattern: release-package-*
           path: release-assets
@@ -363,11 +374,13 @@ jobs:
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
+          # 入力はシェルの文に埋め込まず、環境変数で渡す
+          INPUT_TAG: ${{ inputs.tag }}
         run: |
           set -euo pipefail
           TAG="${GITHUB_REF_NAME}"
           if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
-            TAG="${{ inputs.tag }}"
+            TAG="${INPUT_TAG}"
           fi
           VERSION="${TAG#v}"
 
