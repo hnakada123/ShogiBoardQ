@@ -437,10 +437,19 @@ HERE="$(dirname "$(readlink -f "$0")")"
 # Qt プラグインは同梱のものを使用し、別バージョンの Qt の読み込みを防ぐ。
 export QT_PLUGIN_PATH="${HERE}/usr/plugins"
 export QT_QPA_PLATFORM_PLUGIN_PATH="${HERE}/usr/plugins/platforms"
+# 同梱の OpenSSL には同梱の設定を読ませる。システムの設定はディストリビューションの OpenSSL 向けで、
+# 上流の OpenSSL は Fedora の設定（暗号ポリシー）を読めず、通信対局の TLS が使えなくなる。
+export OPENSSL_CONF="${HERE}/usr/share/ShogiBoardQ/openssl.cnf"
 
 exec "${HERE}/usr/bin/ShogiBoardQ" "$@"
 APPRUN_EOF
 chmod +x "$APPDIR/AppRun"
+mkdir -p "${APPDIR}/usr/share/ShogiBoardQ"
+cat > "${APPDIR}/usr/share/ShogiBoardQ/openssl.cnf" <<'OPENSSL_EOF'
+# Settings of the OpenSSL bundled with ShogiBoardQ (AppRun sets OPENSSL_CONF to this file).
+# Intentionally empty: OpenSSL's built-in defaults apply. The system's openssl.cnf is written for the
+# distribution's own OpenSSL and is not read (upstream OpenSSL cannot read Fedora's crypto-policy settings).
+OPENSSL_EOF
 
 # Step 8f: appimagetool で AppImage を生成
 # linuxdeploy --output appimage は依存ライブラリを再デプロイしてしまうため、

@@ -104,7 +104,10 @@
 </div>
 <p>制作发布包时需要联网，因为首次会下载 linuxdeploy 和 appimagetool。</p>
 <blockquote>
-<p><strong>关于 glibc：</strong> AppImage 只能在 glibc 与构建环境相同或更新的系统上运行。在最新的 Arch Linux 上构建时，需要 glibc 2.43 及以上，无法在 Ubuntu 24.04（glibc 2.39）等系统上启动。因此用于发布的发布包在固定为 2024 年 7 月 15 日 Arch Linux（glibc 2.39、Qt 6.7.2）的容器中构建（<a href="#package-run">5.1</a>）。该 AppImage 需要 glibc 2.38 及以上和 GCC 12 及以上的 libstdc++，可在 Ubuntu 24.04 及以上、Debian 13、Fedora 39 及以上等系统上运行。</p>
+<p><strong>关于 glibc：</strong> AppImage 只能在 glibc 与构建环境相同或更新的系统上运行。在最新的 Arch Linux 上构建时，需要 glibc 2.43 及以上，无法在 Ubuntu 24.04（glibc 2.39）等系统上启动。因此用于发布的发布包在固定为 2024 年 7 月 15 日 Arch Linux（glibc 2.39、Qt 6.7.2）的容器中构建（<a href="#package-run">5.1</a>）。该 AppImage 需要 glibc 2.38 及以上和 GCC 14 及以上的 libstdc++，可在 Ubuntu 24.04 及以上、Debian 13、Fedora 40 及以上等系统上运行（Fedora 39 的 libstdc++ 来自 GCC 13，无法运行）。</p>
+</blockquote>
+<blockquote>
+<p><strong>关于随附的 OpenSSL 和 libcurl：</strong> 容器中的其他软件包保持当时的版本，但随附的 OpenSSL、libcurl 以及 libcurl 使用的网络库（nghttp2、nghttp3、ngtcp2、libssh2）会替换为新版本（2026 年 10 月时为 OpenSSL 3.6.5、curl 8.23.0。见 <a href="#package-run">5.1</a>）。当时的 OpenSSL 3.3.1、curl 8.8.0 缺少之后的修复（如 CVE-2024-6119）。OpenSSL 无法改用系统自带的版本：随附的 libcurl（Qt Network 加载的 libproxy 用它获取代理自动配置（PAC））需要 OpenSSL 3.5 及以上的函数，在 OpenSSL 3.0 的 Ubuntu 24.04 上应用将无法启动。AppRun 通过 <code>OPENSSL_CONF</code> 让随附的 OpenSSL 读取随附的配置（<code>usr/share/ShogiBoardQ/openssl.cnf</code>）。系统的配置是为发行版的 OpenSSL 编写的，上游 OpenSSL 无法读取 Fedora 的配置（加密策略），曾导致联网对局无法使用 TLS。</p>
 </blockquote>
 </section>
 <section id="setup" class="level2">
@@ -191,6 +194,8 @@ python3 scripts/qt_licenses.py prepare --version 6.7.2 \
 <li>首次运行时会创建构建环境镜像（<code>scripts/linux-container/Dockerfile</code>，约 3GB）。从 Arch Linux Archive 下载较慢，需要数十分钟。</li>
 <li>在容器中以自己的用户运行 <code>scripts/build-linux.sh</code>。构建目录与平时的 <code>build</code> 分开，使用 <code>build-container</code>，输出放在仓库根目录。</li>
 <li>为当时的软件包签名的密钥中，有些后来已过期。镜像中用官方密钥环验证签名，但不要求密钥当前受信任。</li>
+<li>随附的 OpenSSL、libcurl 以及 libcurl 使用的网络库（nghttp2、nghttp3、ngtcp2、libssh2）因当时的版本缺少后来的修复，会替换为新版本。当前的 Arch 软件包先用 SHA-256（<code>scripts/linux-container/packages.sha256</code>）和签名验证后再安装；当前软件包会用到新版 glibc 函数的 curl，则在镜像中用同一版本的 Arch PKGBUILD 重新构建。</li>
+<li>升级版本时，在本机下载新的软件包及其 <code>.sig</code>，用 <code>pacman-key --verify</code> 验证签名，然后改写 <code>packages.sha256</code>。curl 则在 Dockerfile 的 <code>CURL_PKGVER</code>、<code>CURL_PKGBUILD_SHA256</code> 中写入 Arch 标签处 PKGBUILD 的 SHA-256（标签的签名用 <code>curl-signing-key.asc</code> 中的密钥验证）。请先确认新软件包需要的 glibc 版本（<code>objdump -T</code> 中 <code>GLIBC_</code> 的最大值）不超过 2.38，超过的软件包在镜像中重新构建。修改 <code>scripts/linux-container/</code> 后，<code>build-linux-container.sh</code> 会重新创建镜像。</li>
 </ul>
 <p>也可以直接在 Arch Linux 上制作。这样制作的 AppImage 需要本机的 glibc 版本及以上（2026 年 10 月时为 2.43）。</p>
 <pre><code>./scripts/build-linux.sh</code></pre>
@@ -226,7 +231,7 @@ python3 scripts/qt_licenses.py prepare --version 6.7.2 \
 <li>检查所需工具（cmake、python3；推荐 ninja）</li>
 <li>配置 CMake 并以 Release 方式构建（ShogiBoardQ 与 Hayanagi）</li>
 <li>检查可执行文件、翻译文件，以及 3〜13 手诘的题集（每种手数各 1 个文件）</li>
-<li>下载 linuxdeploy、其 Qt 插件和 appimagetool（仅首次；保存在构建目录中）</li>
+<li>下载 linuxdeploy、其 Qt 插件和 appimagetool（仅首次；保存在构建目录中）。运行前与 <code>build-linux.sh</code> 中记录的 SHA-256 核对。它们都是上游会替换的 continuous 版本，被替换后核对不一致就会停止；此时先确认上游发布的 digest 和改动，再更新这些值</li>
 <li>创建 AppDir 并生成 AppImage（运行所需的文件，以及 Qt 与随附库的许可文档）</li>
 <li>制作包含 AppImage、题集和 Hayanagi 的 ZIP</li>
 </ol>
@@ -237,7 +242,7 @@ python3 scripts/qt_licenses.py prepare --version 6.7.2 \
 <p>AppImage 中只收录启动和运行应用程序所需的文件以及许可文档。</p>
 <pre><code>ShogiBoardQ-linux-x86_64.AppImage
 └── （解压后）
-    ├── AppRun                          ← 只使用随附的 Qt 启动
+    ├── AppRun                          ← 只使用随附的 Qt 和随附的 OpenSSL 配置启动
     ├── shogiboardq.desktop
     ├── shogiboardq.png
     └── usr/
@@ -256,6 +261,7 @@ python3 scripts/qt_licenses.py prepare --version 6.7.2 \
         │   └── tls/libqopensslbackend.so       ← 联网对局的 TLS 连接（OpenSSL）
         └── share/
             ├── applications/, icons/
+            ├── ShogiBoardQ/openssl.cnf ← 随附的 OpenSSL 读取的配置（为空，不读取系统的配置）
             └── licenses/ShogiBoardQ/
                 ├── NOTICE*.md, SOURCE_CODE*.md, GPL-3.0.txt, LGPL-3.0.txt
                 ├── QT-NOTICES.md, qt/          ← 随附的 Qt 模块的文档
@@ -362,7 +368,7 @@ gh release create 2026.10.07 --title "ShogiBoardQ 2026.10.07" \
 2. chmod +x ShogiBoardQ-linux-x86_64.AppImage Hayanagi/hayanagi
 3. ./ShogiBoardQ-linux-x86_64.AppImage
 
-运行条件：x86_64 的 Linux，glibc 2.38 及以上（Ubuntu 24.04 及以上、Debian 13、Fedora 39 及以上等）
+运行条件：x86_64 的 Linux，glibc 2.38 及以上、GCC 14 及以上的 libstdc++（Ubuntu 24.04 及以上、Debian 13、Fedora 40 及以上等）
 没有 FUSE 时，可加上 --appimage-extract-and-run 启动。</code></pre>
 <blockquote>
 <p>仓库中的 <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/.github/workflows/release.yml">release.yml</a> 会在推送以 <code>v</code> 开头的标签或手动运行时构建三种操作系统，但其 Linux 任务运行在 Ubuntu 上。在随附库许可文档的收集支持 Ubuntu 之前，该任务无法制作 Linux 发布包，因此目前手动附加在 Arch Linux 容器中制作的 ZIP。</p>

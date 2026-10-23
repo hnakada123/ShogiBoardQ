@@ -104,7 +104,10 @@
 </div>
 <p>配布物を作るときはネットワークに接続できる必要がある。初回に linuxdeploy と appimagetool をダウンロードするため。</p>
 <blockquote>
-<p><strong>glibc について</strong>: AppImage は、ビルドした環境と同じか、より新しい glibc のシステムでしか動かない。最新の Arch Linux でビルドすると glibc 2.43 以降が必要になり、Ubuntu 24.04（glibc 2.39）などで起動できない。そのためリリース用は、2024年7月15日の Arch Linux（glibc 2.39・Qt 6.7.2）に固定したコンテナでビルドする（<a href="#package-run">5.1</a>）。この AppImage は glibc 2.38 以降と GCC 12 以降の libstdc++ を必要とし、Ubuntu 24.04 以降、Debian 13、Fedora 39 以降などで動く。</p>
+<p><strong>glibc について</strong>: AppImage は、ビルドした環境と同じか、より新しい glibc のシステムでしか動かない。最新の Arch Linux でビルドすると glibc 2.43 以降が必要になり、Ubuntu 24.04（glibc 2.39）などで起動できない。そのためリリース用は、2024年7月15日の Arch Linux（glibc 2.39・Qt 6.7.2）に固定したコンテナでビルドする（<a href="#package-run">5.1</a>）。この AppImage は glibc 2.38 以降と GCC 14 以降の libstdc++ を必要とし、Ubuntu 24.04 以降、Debian 13、Fedora 40 以降などで動く（Fedora 39 は libstdc++ が GCC 13 で動かない）。</p>
+</blockquote>
+<blockquote>
+<p><strong>同梱の OpenSSL・libcurl について</strong>: コンテナのほかのパッケージは当時の版のままだが、同梱する OpenSSL・libcurl と、libcurl が使う通信のライブラリ（nghttp2・nghttp3・ngtcp2・libssh2）は新しい版に替える（2026年10月時点で OpenSSL 3.6.5・curl 8.23.0。<a href="#package-run">5.1</a>）。当時の OpenSSL 3.3.1・curl 8.8.0 には、その後の修正（CVE-2024-6119 など）が入っていない。OpenSSL をシステムのものに替えることはできない。同梱の libcurl（Qt Network が読む libproxy が、プロキシの自動設定（PAC）の取得に使う）が OpenSSL 3.5 以降の関数を使うため、OpenSSL 3.0 の Ubuntu 24.04 では起動できなくなる。同梱の OpenSSL には、AppRun の <code>OPENSSL_CONF</code> で同梱の設定（<code>usr/share/ShogiBoardQ/openssl.cnf</code>）を読ませる。システムの設定はディストリビューションの OpenSSL 向けで、上流の OpenSSL は Fedora の設定（暗号ポリシー）を読めず、通信対局の TLS が使えなくなっていた。</p>
 </blockquote>
 </section>
 <section id="setup" class="level2">
@@ -191,6 +194,8 @@ python3 scripts/qt_licenses.py prepare --version 6.7.2 \
 <li>初回はビルド環境のイメージ（<code>scripts/linux-container/Dockerfile</code>、約3GB）を作る。Arch Linux Archive からのダウンロードは遅く、数十分かかる。</li>
 <li>コンテナの中で、自分のユーザーとして <code>scripts/build-linux.sh</code> を実行する。ビルドディレクトリは普段の <code>build</code> と分けて <code>build-container</code> を使い、出力はリポジトリ直下に置く。</li>
 <li>当時のパッケージに署名した鍵には、その後に期限が切れたものがある。イメージでは、署名を公式の鍵束で確かめたうえで鍵の信頼度は問わない設定にしている。</li>
+<li>同梱する OpenSSL・libcurl と、libcurl が使う通信のライブラリ（nghttp2・nghttp3・ngtcp2・libssh2）は、当時の版には修正が入っていないので新しい版に替える。今の Arch のパッケージを <code>scripts/linux-container/packages.sha256</code> の SHA-256 と署名で確かめて入れ、新しい glibc の関数を使う curl は同じ版の Arch の PKGBUILD でイメージの中で作り直す。</li>
+<li>版を上げるときは、手元で新しいパッケージと <code>.sig</code> を取得して <code>pacman-key --verify</code> で署名を確かめ、<code>packages.sha256</code> を書き換える。curl は Arch のタグの PKGBUILD の SHA-256 を Dockerfile の <code>CURL_PKGVER</code>・<code>CURL_PKGBUILD_SHA256</code> に書く（タグの署名は <code>curl-signing-key.asc</code> の鍵で確かめる）。新しいパッケージが要る glibc の版（<code>objdump -T</code> の <code>GLIBC_</code> の最大）が 2.38 以下であることを先に確かめ、超えるものはイメージの中で作り直す。<code>scripts/linux-container/</code> を変えると、<code>build-linux-container.sh</code> がイメージを作り直す。</li>
 </ul>
 <p>手元の Arch Linux でそのまま作ることもできる。その場合の AppImage は、手元の glibc（2026年10月時点で 2.43）以降を必要とする。</p>
 <pre><code>./scripts/build-linux.sh</code></pre>
@@ -226,7 +231,7 @@ python3 scripts/qt_licenses.py prepare --version 6.7.2 \
 <li>前提ツールの確認（cmake・python3。ninja を推奨）</li>
 <li>CMake の構成と Release ビルド（ShogiBoardQ と Hayanagi）</li>
 <li>実行ファイル・翻訳ファイルと、3〜13手詰の問題集（各手数1ファイル）の確認</li>
-<li>linuxdeploy・Qt プラグイン・appimagetool のダウンロード（初回のみ。ビルドディレクトリに保存）</li>
+<li>linuxdeploy・Qt プラグイン・appimagetool のダウンロード（初回のみ。ビルドディレクトリに保存）。実行する前に <code>build-linux.sh</code> に書いた SHA-256 と照らし合わせる。どれも上流が差し替える continuous 版なので、差し替えられると一致せずに止まる。そのときは上流のリリースの digest と変更を確かめてから値を更新する</li>
 <li>AppDir の作成と AppImage の生成（実行に必要なファイルと、Qt・同梱ライブラリのライセンス文書）</li>
 <li>AppImage・問題集・Hayanagi を含む ZIP の作成</li>
 </ol>
@@ -237,7 +242,7 @@ python3 scripts/qt_licenses.py prepare --version 6.7.2 \
 <p>AppImage には、アプリの起動と動作に必要なファイルとライセンス文書だけを収録する。</p>
 <pre><code>ShogiBoardQ-linux-x86_64.AppImage
 └── （展開時）
-    ├── AppRun                          ← 同梱の Qt だけを使って起動する
+    ├── AppRun                          ← 同梱の Qt と、同梱の OpenSSL の設定だけを使って起動する
     ├── shogiboardq.desktop
     ├── shogiboardq.png
     └── usr/
@@ -256,6 +261,7 @@ python3 scripts/qt_licenses.py prepare --version 6.7.2 \
         │   └── tls/libqopensslbackend.so       ← 通信対局の TLS 接続（OpenSSL）
         └── share/
             ├── applications/, icons/
+            ├── ShogiBoardQ/openssl.cnf ← 同梱の OpenSSL が読む設定（空。システムの設定は読まない）
             └── licenses/ShogiBoardQ/
                 ├── NOTICE*.md, SOURCE_CODE*.md, GPL-3.0.txt, LGPL-3.0.txt
                 ├── QT-NOTICES.md, qt/          ← 同梱する Qt モジュールの文書
@@ -362,7 +368,7 @@ gh release create 2026.10.07 --title "ShogiBoardQ 2026.10.07" \
 2. chmod +x ShogiBoardQ-linux-x86_64.AppImage Hayanagi/hayanagi
 3. ./ShogiBoardQ-linux-x86_64.AppImage
 
-動作条件: x86_64 の Linux、glibc 2.38 以降（Ubuntu 24.04 以降、Debian 13、Fedora 39 以降など）
+動作条件: x86_64 の Linux、glibc 2.38 以降・GCC 14 以降の libstdc++（Ubuntu 24.04 以降、Debian 13、Fedora 40 以降など）
 FUSE がない場合は --appimage-extract-and-run を付けて起動できます。</code></pre>
 <blockquote>
 <p>リポジトリの <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/.github/workflows/release.yml">release.yml</a> は <code>v</code> で始まるタグや手動実行で3つの OS をビルドするが、Linux のジョブは Ubuntu で動く。同梱ライブラリの文書の収集が Ubuntu に対応するまでは Linux の配布物を作れないため、現在は Arch Linux のコンテナで作った ZIP を手動で添付する。</p>

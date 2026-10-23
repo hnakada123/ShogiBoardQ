@@ -90,7 +90,7 @@ ShogiBoardQ は、USI エンジンとの対局・検討・棋譜解析、6,000�
 |----|----------|----------|----------|
 | Windows | `ShogiBoardQ-windows.zip` | Windows 10 / 11（64ビット） | ZIP をすべて展開し、`ShogiBoardQ.exe` を起動 |
 | macOS | `ShogiBoardQ-macos.zip` | Apple Silicon 搭載の Mac | ZIP を展開して DMG を開き、`ShogiBoardQ.app` をアプリケーションフォルダへ。初回起動が止められたら「システム設定」→「プライバシーとセキュリティ」で許可 |
-| Linux | `ShogiBoardQ-linux.zip` | x86_64、glibc 2.38 以降（Ubuntu 24.04 以降、Debian 13、Fedora 39 以降など） | ZIP を展開し、AppImage に実行権限を付けて起動（下記） |
+| Linux | `ShogiBoardQ-linux.zip` | x86_64、glibc 2.38 以降・GCC 14 以降の libstdc++（Ubuntu 24.04 以降、Debian 13、Fedora 40 以降など） | ZIP を展開し、AppImage に実行権限を付けて起動（下記） |
 
 各パッケージには、詰将棋問題集（6,000題）と将棋エンジン Hayanagi（定跡を含む）を同梱しています。
 

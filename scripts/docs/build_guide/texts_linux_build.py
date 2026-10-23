@@ -123,6 +123,7 @@ ShogiBoardQ-linux-x86_64.AppImage
         │   └── tls/libqopensslbackend.so       ← {c['tls']}
         └── share/
             ├── applications/, icons/
+            ├── ShogiBoardQ/openssl.cnf ← {c['sslconf']}
             └── licenses/ShogiBoardQ/
                 ├── NOTICE*.md, SOURCE_CODE*.md, GPL-3.0.txt, LGPL-3.0.txt
                 ├── QT-NOTICES.md, qt/          ← {c['qt']}
@@ -225,8 +226,16 @@ T["ja"] = {
         ("note", "**glibc について**: AppImage は、ビルドした環境と同じか、より新しい glibc のシステムでしか動かない。"
                  "最新の Arch Linux でビルドすると glibc 2.43 以降が必要になり、Ubuntu 24.04（glibc 2.39）などで起動できない。"
                  "そのためリリース用は、2024年7月15日の Arch Linux（glibc 2.39・Qt 6.7.2）に固定したコンテナでビルドする"
-                 "（[5.1](#package-run)）。この AppImage は glibc 2.38 以降と GCC 12 以降の libstdc++ を必要とし、"
-                 "Ubuntu 24.04 以降、Debian 13、Fedora 39 以降などで動く。"),
+                 "（[5.1](#package-run)）。この AppImage は glibc 2.38 以降と GCC 14 以降の libstdc++ を必要とし、"
+                 "Ubuntu 24.04 以降、Debian 13、Fedora 40 以降などで動く（Fedora 39 は libstdc++ が GCC 13 で動かない）。"),
+        ("note", "**同梱の OpenSSL・libcurl について**: コンテナのほかのパッケージは当時の版のままだが、同梱する OpenSSL・"
+                 "libcurl と、libcurl が使う通信のライブラリ（nghttp2・nghttp3・ngtcp2・libssh2）は新しい版に替える"
+                 "（2026年10月時点で OpenSSL 3.6.5・curl 8.23.0。[5.1](#package-run)）。当時の OpenSSL 3.3.1・curl 8.8.0 には、"
+                 "その後の修正（CVE-2024-6119 など）が入っていない。OpenSSL をシステムのものに替えることはできない。同梱の "
+                 "libcurl（Qt Network が読む libproxy が、プロキシの自動設定（PAC）の取得に使う）が OpenSSL 3.5 以降の関数を"
+                 "使うため、OpenSSL 3.0 の Ubuntu 24.04 では起動できなくなる。同梱の OpenSSL には、AppRun の `OPENSSL_CONF` で同梱の"
+                 "設定（`usr/share/ShogiBoardQ/openssl.cnf`）を読ませる。システムの設定はディストリビューションの OpenSSL 向けで、"
+                 "上流の OpenSSL は Fedora の設定（暗号ポリシー）を読めず、通信対局の TLS が使えなくなっていた。"),
 
         ("h2", "setup", "2. 開発環境のセットアップ"),
         ("h3", "setup-arch", "2.1 Arch Linux と Docker（配布物を作る場合）"),
@@ -291,6 +300,15 @@ T["ja"] = {
             "分けて `build-container` を使い、出力はリポジトリ直下に置く。",
             "当時のパッケージに署名した鍵には、その後に期限が切れたものがある。イメージでは、署名を公式の鍵束で確かめた"
             "うえで鍵の信頼度は問わない設定にしている。",
+            "同梱する OpenSSL・libcurl と、libcurl が使う通信のライブラリ（nghttp2・nghttp3・ngtcp2・libssh2）は、当時の版"
+            "には修正が入っていないので新しい版に替える。今の Arch のパッケージを `scripts/linux-container/packages.sha256` "
+            "の SHA-256 と署名で確かめて入れ、新しい glibc の関数を使う curl は同じ版の Arch の PKGBUILD でイメージの中で"
+            "作り直す。",
+            "版を上げるときは、手元で新しいパッケージと `.sig` を取得して `pacman-key --verify` で署名を確かめ、"
+            "`packages.sha256` を書き換える。curl は Arch のタグの PKGBUILD の SHA-256 を Dockerfile の `CURL_PKGVER`・"
+            "`CURL_PKGBUILD_SHA256` に書く（タグの署名は `curl-signing-key.asc` の鍵で確かめる）。新しいパッケージが要る glibc "
+            "の版（`objdump -T` の `GLIBC_` の最大）が 2.38 以下であることを先に確かめ、超えるものはイメージの中で作り直す。"
+            "`scripts/linux-container/` を変えると、`build-linux-container.sh` がイメージを作り直す。",
         ]),
         ("p", "手元の Arch Linux でそのまま作ることもできる。その場合の AppImage は、手元の glibc（2026年10月時点で 2.43）"
               "以降を必要とする。"),
@@ -313,7 +331,9 @@ T["ja"] = {
             "前提ツールの確認（cmake・python3。ninja を推奨）",
             "CMake の構成と Release ビルド（ShogiBoardQ と Hayanagi）",
             "実行ファイル・翻訳ファイルと、3〜13手詰の問題集（各手数1ファイル）の確認",
-            "linuxdeploy・Qt プラグイン・appimagetool のダウンロード（初回のみ。ビルドディレクトリに保存）",
+            "linuxdeploy・Qt プラグイン・appimagetool のダウンロード（初回のみ。ビルドディレクトリに保存）。実行する前に "
+            "`build-linux.sh` に書いた SHA-256 と照らし合わせる。どれも上流が差し替える continuous 版なので、差し替えられると"
+            "一致せずに止まる。そのときは上流のリリースの digest と変更を確かめてから値を更新する",
             "AppDir の作成と AppImage の生成（実行に必要なファイルと、Qt・同梱ライブラリのライセンス文書）",
             "AppImage・問題集・Hayanagi を含む ZIP の作成",
         ]),
@@ -322,7 +342,8 @@ T["ja"] = {
         ("h3", "appimage", "5.2 AppImage の中身"),
         ("p", "AppImage には、アプリの起動と動作に必要なファイルとライセンス文書だけを収録する。"),
         ("code", appimage_tree({
-            "extracted": "（展開時）", "apprun": "同梱の Qt だけを使って起動する", "exe": "実行ファイル",
+            "extracted": "（展開時）", "apprun": "同梱の Qt と、同梱の OpenSSL の設定だけを使って起動する",
+            "sslconf": "同梱の OpenSSL が読む設定（空。システムの設定は読まない）", "exe": "実行ファイル",
             "qtconf": "Qt プラグインの検索先", "qm": "アプリの翻訳（4言語）", "lib": "Qt と依存ライブラリ",
             "im": "日本語入力（compose・fcitx5・ibus）", "sqlite": "詰将棋の解答履歴・解析キャッシュ", "tls": "通信対局の TLS 接続（OpenSSL）",
             "qt": "同梱する Qt モジュールの文書", "source": "Qt の取得元・ビルド時の版",
@@ -397,7 +418,7 @@ T["ja"] = {
 2. chmod +x ShogiBoardQ-linux-x86_64.AppImage Hayanagi/hayanagi
 3. ./ShogiBoardQ-linux-x86_64.AppImage
 
-動作条件: x86_64 の Linux、glibc 2.38 以降（Ubuntu 24.04 以降、Debian 13、Fedora 39 以降など）
+動作条件: x86_64 の Linux、glibc 2.38 以降・GCC 14 以降の libstdc++（Ubuntu 24.04 以降、Debian 13、Fedora 40 以降など）
 FUSE がない場合は --appimage-extract-and-run を付けて起動できます。
 """),
         ("note", f"リポジトリの [release.yml]({RELEASE_YML}) は `v` で始まるタグや手動実行で3つの OS をビルドするが、"
@@ -504,7 +525,18 @@ T["en"] = {
                  "system. Built on the latest Arch Linux, it requires glibc 2.43 or later and does not start on, for example, "
                  "Ubuntu 24.04 (glibc 2.39). Release packages are therefore built in a container pinned to Arch Linux as of "
                  "2024-07-15 (glibc 2.39, Qt 6.7.2; see [5.1](#package-run)). That AppImage requires glibc 2.38 or later and "
-                 "libstdc++ from GCC 12 or later, and runs on Ubuntu 24.04 or later, Debian 13, Fedora 39 or later, and similar."),
+                 "libstdc++ from GCC 14 or later, and runs on Ubuntu 24.04 or later, Debian 13, Fedora 40 or later, and similar "
+                 "(not on Fedora 39, whose libstdc++ is from GCC 13)."),
+        ("note", "**About the bundled OpenSSL and libcurl:** the other packages in the container stay at the versions of that "
+                 "time, but the bundled OpenSSL and libcurl, and the network libraries libcurl uses (nghttp2, nghttp3, ngtcp2, "
+                 "libssh2), are replaced with newer versions (OpenSSL 3.6.5 and curl 8.23.0 as of October 2026; see "
+                 "[5.1](#package-run)). OpenSSL 3.3.1 and curl 8.8.0 of that time lack later fixes such as CVE-2024-6119. "
+                 "OpenSSL cannot be taken from the system instead: the bundled libcurl (used by libproxy, which Qt Network "
+                 "loads, to fetch proxy auto-configuration files) needs OpenSSL 3.5 or later functions, so the app would not "
+                 "start on Ubuntu 24.04 with OpenSSL 3.0. AppRun points the bundled OpenSSL to its own settings "
+                 "(`usr/share/ShogiBoardQ/openssl.cnf`) with `OPENSSL_CONF`: the system settings are written for the "
+                 "distribution's OpenSSL, and upstream OpenSSL cannot read Fedora's (crypto policies), which disabled TLS for "
+                 "network play."),
 
         ("h2", "setup", "2. Setting up the development environment"),
         ("h3", "setup-arch", "2.1 Arch Linux and Docker (for packaging)"),
@@ -571,6 +603,16 @@ T["en"] = {
             "`build` directory and writes the outputs to the repository root.",
             "Some keys that signed packages at that time have since expired. The image verifies signatures against the "
             "official keyring but does not require the keys to be currently trusted.",
+            "The bundled OpenSSL and libcurl, and the network libraries libcurl uses (nghttp2, nghttp3, ngtcp2, libssh2), "
+            "are replaced with newer versions, because the versions of that time lack later fixes. Current Arch packages "
+            "are installed after checking their SHA-256 (`scripts/linux-container/packages.sha256`) and signatures; curl, "
+            "whose current package uses newer glibc functions, is rebuilt in the image from the same version's Arch PKGBUILD.",
+            "To update them, download the new packages and their `.sig` files on your machine, check the signatures with "
+            "`pacman-key --verify`, and update `packages.sha256`. For curl, set `CURL_PKGVER` and `CURL_PKGBUILD_SHA256` "
+            "(the SHA-256 of the PKGBUILD at the Arch tag) in the Dockerfile; the tag signature is checked with the key in "
+            "`curl-signing-key.asc`. First make sure the glibc version a new package needs (the highest `GLIBC_` in "
+            "`objdump -T`) is 2.38 or lower; rebuild in the image any package that needs more. Changing "
+            "`scripts/linux-container/` makes `build-linux-container.sh` rebuild the image.",
         ]),
         ("p", "You can also build directly on Arch Linux. Such an AppImage requires the host's glibc version or later "
               "(2.43 as of October 2026)."),
@@ -593,7 +635,10 @@ T["en"] = {
             "Check the required tools (cmake and python3; ninja recommended)",
             "Configure CMake and build in Release mode (ShogiBoardQ and Hayanagi)",
             "Check the executable, translation files, and the 3- to 13-move collections (one file per move count)",
-            "Download linuxdeploy, its Qt plugin, and appimagetool (first time only; saved in the build directory)",
+            "Download linuxdeploy, its Qt plugin, and appimagetool (first time only; saved in the build directory). Before "
+            "running them, check them against the SHA-256 values in `build-linux.sh`. They are continuous builds that "
+            "upstream replaces, so a replacement makes the check fail and stop; then review the upstream release digest and "
+            "changes before updating the values",
             "Create the AppDir and generate the AppImage (files needed to run, plus Qt and bundled library license notices)",
             "Create the ZIP with the AppImage, puzzle collections, and Hayanagi",
         ]),
@@ -602,7 +647,8 @@ T["en"] = {
         ("h3", "appimage", "5.2 Contents of the AppImage"),
         ("p", "The AppImage contains only the files needed to start and run the application, plus license notices."),
         ("code", appimage_tree({
-            "extracted": "(extracted)", "apprun": "starts the app with the bundled Qt only", "exe": "executable",
+            "extracted": "(extracted)", "apprun": "starts the app with only the bundled Qt and OpenSSL settings",
+            "sslconf": "settings the bundled OpenSSL reads (empty; the system's are not read)", "exe": "executable",
             "qtconf": "Qt plugin location", "qm": "application translations (4 languages)", "lib": "Qt and dependencies",
             "im": "Japanese input (compose, fcitx5, ibus)", "sqlite": "tsume history and analysis cache", "tls": "TLS for CSA network play (OpenSSL)",
             "qt": "notices of the bundled Qt modules", "source": "Qt source record and build version",
@@ -678,7 +724,7 @@ T["en"] = {
 2. chmod +x ShogiBoardQ-linux-x86_64.AppImage Hayanagi/hayanagi
 3. ./ShogiBoardQ-linux-x86_64.AppImage
 
-Requirements: x86_64 Linux with glibc 2.38 or later (Ubuntu 24.04 or later, Debian 13, Fedora 39 or later, etc.)
+Requirements: x86_64 Linux with glibc 2.38 or later and libstdc++ from GCC 14 or later (Ubuntu 24.04 or later, Debian 13, Fedora 40 or later, etc.)
 Without FUSE, start it with --appimage-extract-and-run.
 """),
         ("note", f"The repository's [release.yml]({RELEASE_YML}) builds all three operating systems for tags beginning with `v` "
@@ -784,7 +830,15 @@ T["zh-cn"] = {
         ("note", "**关于 glibc：** AppImage 只能在 glibc 与构建环境相同或更新的系统上运行。在最新的 Arch Linux 上构建时，"
                  "需要 glibc 2.43 及以上，无法在 Ubuntu 24.04（glibc 2.39）等系统上启动。因此用于发布的发布包在固定为 "
                  "2024 年 7 月 15 日 Arch Linux（glibc 2.39、Qt 6.7.2）的容器中构建（[5.1](#package-run)）。该 AppImage 需要 "
-                 "glibc 2.38 及以上和 GCC 12 及以上的 libstdc++，可在 Ubuntu 24.04 及以上、Debian 13、Fedora 39 及以上等系统上运行。"),
+                 "glibc 2.38 及以上和 GCC 14 及以上的 libstdc++，可在 Ubuntu 24.04 及以上、Debian 13、Fedora 40 及以上等系统上运行"
+                 "（Fedora 39 的 libstdc++ 来自 GCC 13，无法运行）。"),
+        ("note", "**关于随附的 OpenSSL 和 libcurl：** 容器中的其他软件包保持当时的版本，但随附的 OpenSSL、libcurl 以及 libcurl "
+                 "使用的网络库（nghttp2、nghttp3、ngtcp2、libssh2）会替换为新版本（2026 年 10 月时为 OpenSSL 3.6.5、curl 8.23.0。"
+                 "见 [5.1](#package-run)）。当时的 OpenSSL 3.3.1、curl 8.8.0 缺少之后的修复（如 CVE-2024-6119）。OpenSSL 无法改用"
+                 "系统自带的版本：随附的 libcurl（Qt Network 加载的 libproxy 用它获取代理自动配置（PAC））需要 OpenSSL 3.5 及以上"
+                 "的函数，在 OpenSSL 3.0 的 Ubuntu 24.04 上应用将无法启动。AppRun 通过 `OPENSSL_CONF` 让随附的 OpenSSL 读取随附的"
+                 "配置（`usr/share/ShogiBoardQ/openssl.cnf`）。系统的配置是为发行版的 OpenSSL 编写的，上游 OpenSSL 无法读取 Fedora "
+                 "的配置（加密策略），曾导致联网对局无法使用 TLS。"),
 
         ("h2", "setup", "2. 搭建开发环境"),
         ("h3", "setup-arch", "2.1 Arch Linux 与 Docker（制作发布包时）"),
@@ -845,6 +899,14 @@ T["zh-cn"] = {
             "在容器中以自己的用户运行 `scripts/build-linux.sh`。构建目录与平时的 `build` 分开，使用 `build-container`，"
             "输出放在仓库根目录。",
             "为当时的软件包签名的密钥中，有些后来已过期。镜像中用官方密钥环验证签名，但不要求密钥当前受信任。",
+            "随附的 OpenSSL、libcurl 以及 libcurl 使用的网络库（nghttp2、nghttp3、ngtcp2、libssh2）因当时的版本缺少后来的"
+            "修复，会替换为新版本。当前的 Arch 软件包先用 SHA-256（`scripts/linux-container/packages.sha256`）和签名验证后"
+            "再安装；当前软件包会用到新版 glibc 函数的 curl，则在镜像中用同一版本的 Arch PKGBUILD 重新构建。",
+            "升级版本时，在本机下载新的软件包及其 `.sig`，用 `pacman-key --verify` 验证签名，然后改写 `packages.sha256`。"
+            "curl 则在 Dockerfile 的 `CURL_PKGVER`、`CURL_PKGBUILD_SHA256` 中写入 Arch 标签处 PKGBUILD 的 SHA-256（标签的签名"
+            "用 `curl-signing-key.asc` 中的密钥验证）。请先确认新软件包需要的 glibc 版本（`objdump -T` 中 `GLIBC_` 的最大值）"
+            "不超过 2.38，超过的软件包在镜像中重新构建。修改 `scripts/linux-container/` 后，`build-linux-container.sh` 会重新"
+            "创建镜像。",
         ]),
         ("p", "也可以直接在 Arch Linux 上制作。这样制作的 AppImage 需要本机的 glibc 版本及以上（2026 年 10 月时为 2.43）。"),
         ("code", RUN),
@@ -866,7 +928,9 @@ T["zh-cn"] = {
             "检查所需工具（cmake、python3；推荐 ninja）",
             "配置 CMake 并以 Release 方式构建（ShogiBoardQ 与 Hayanagi）",
             "检查可执行文件、翻译文件，以及 3〜13 手诘的题集（每种手数各 1 个文件）",
-            "下载 linuxdeploy、其 Qt 插件和 appimagetool（仅首次；保存在构建目录中）",
+            "下载 linuxdeploy、其 Qt 插件和 appimagetool（仅首次；保存在构建目录中）。运行前与 `build-linux.sh` 中记录的 "
+            "SHA-256 核对。它们都是上游会替换的 continuous 版本，被替换后核对不一致就会停止；此时先确认上游发布的 digest 和"
+            "改动，再更新这些值",
             "创建 AppDir 并生成 AppImage（运行所需的文件，以及 Qt 与随附库的许可文档）",
             "制作包含 AppImage、题集和 Hayanagi 的 ZIP",
         ]),
@@ -875,7 +939,8 @@ T["zh-cn"] = {
         ("h3", "appimage", "5.2 AppImage 的内容"),
         ("p", "AppImage 中只收录启动和运行应用程序所需的文件以及许可文档。"),
         ("code", appimage_tree({
-            "extracted": "（解压后）", "apprun": "只使用随附的 Qt 启动", "exe": "可执行文件",
+            "extracted": "（解压后）", "apprun": "只使用随附的 Qt 和随附的 OpenSSL 配置启动",
+            "sslconf": "随附的 OpenSSL 读取的配置（为空，不读取系统的配置）", "exe": "可执行文件",
             "qtconf": "Qt 插件的位置", "qm": "应用程序翻译（4 种语言）", "lib": "Qt 及其依赖库",
             "im": "日语输入（compose、fcitx5、ibus）", "sqlite": "诘棋作答记录与分析缓存", "tls": "联网对局的 TLS 连接（OpenSSL）",
             "qt": "随附的 Qt 模块的文档", "source": "Qt 的来源与构建时版本",
@@ -942,7 +1007,7 @@ T["zh-cn"] = {
 2. chmod +x ShogiBoardQ-linux-x86_64.AppImage Hayanagi/hayanagi
 3. ./ShogiBoardQ-linux-x86_64.AppImage
 
-运行条件：x86_64 的 Linux，glibc 2.38 及以上（Ubuntu 24.04 及以上、Debian 13、Fedora 39 及以上等）
+运行条件：x86_64 的 Linux，glibc 2.38 及以上、GCC 14 及以上的 libstdc++（Ubuntu 24.04 及以上、Debian 13、Fedora 40 及以上等）
 没有 FUSE 时，可加上 --appimage-extract-and-run 启动。
 """),
         ("note", f"仓库中的 [release.yml]({RELEASE_YML}) 会在推送以 `v` 开头的标签或手动运行时构建三种操作系统，"
@@ -1043,7 +1108,15 @@ T["zh-tw"] = {
         ("note", "**關於 glibc：** AppImage 只能在 glibc 與建置環境相同或更新的系統上執行。在最新的 Arch Linux 上建置時，"
                  "需要 glibc 2.43 以上，無法在 Ubuntu 24.04（glibc 2.39）等系統上啟動。因此用於發行的發行套件在固定為 "
                  "2024 年 7 月 15 日 Arch Linux（glibc 2.39、Qt 6.7.2）的容器中建置（[5.1](#package-run)）。該 AppImage 需要 "
-                 "glibc 2.38 以上和 GCC 12 以上的 libstdc++，可在 Ubuntu 24.04 以上、Debian 13、Fedora 39 以上等系統上執行。"),
+                 "glibc 2.38 以上和 GCC 14 以上的 libstdc++，可在 Ubuntu 24.04 以上、Debian 13、Fedora 40 以上等系統上執行"
+                 "（Fedora 39 的 libstdc++ 來自 GCC 13，無法執行）。"),
+        ("note", "**關於隨附的 OpenSSL 和 libcurl：** 容器中的其他套件維持當時的版本，但隨附的 OpenSSL、libcurl 以及 libcurl "
+                 "使用的網路程式庫（nghttp2、nghttp3、ngtcp2、libssh2）會替換為新版本（2026 年 10 月時為 OpenSSL 3.6.5、curl 8.23.0。"
+                 "見 [5.1](#package-run)）。當時的 OpenSSL 3.3.1、curl 8.8.0 缺少之後的修正（如 CVE-2024-6119）。OpenSSL 無法改用"
+                 "系統內建的版本：隨附的 libcurl（Qt Network 載入的 libproxy 用它取得代理伺服器自動設定（PAC））需要 OpenSSL 3.5 "
+                 "以上的函式，在 OpenSSL 3.0 的 Ubuntu 24.04 上應用程式將無法啟動。AppRun 透過 `OPENSSL_CONF` 讓隨附的 OpenSSL 讀取"
+                 "隨附的設定（`usr/share/ShogiBoardQ/openssl.cnf`）。系統的設定是為發行版的 OpenSSL 撰寫的，上游 OpenSSL 無法讀取 "
+                 "Fedora 的設定（加密原則），曾導致網路對局無法使用 TLS。"),
 
         ("h2", "setup", "2. 建立開發環境"),
         ("h3", "setup-arch", "2.1 Arch Linux 與 Docker（製作發行套件時）"),
@@ -1104,6 +1177,14 @@ T["zh-tw"] = {
             "在容器中以自己的使用者執行 `scripts/build-linux.sh`。建置目錄與平時的 `build` 分開，使用 `build-container`，"
             "輸出放在儲存庫根目錄。",
             "為當時的套件簽章的金鑰中，有些後來已過期。映像中以官方金鑰圈驗證簽章，但不要求金鑰目前受信任。",
+            "隨附的 OpenSSL、libcurl 以及 libcurl 使用的網路程式庫（nghttp2、nghttp3、ngtcp2、libssh2）因當時的版本缺少後來"
+            "的修正，會替換為新版本。目前的 Arch 套件先以 SHA-256（`scripts/linux-container/packages.sha256`）和簽章驗證後"
+            "再安裝；目前套件會用到新版 glibc 函式的 curl，則在映像中以同一版本的 Arch PKGBUILD 重新建置。",
+            "升級版本時，在本機下載新的套件及其 `.sig`，以 `pacman-key --verify` 驗證簽章，然後改寫 `packages.sha256`。"
+            "curl 則在 Dockerfile 的 `CURL_PKGVER`、`CURL_PKGBUILD_SHA256` 中寫入 Arch 標籤處 PKGBUILD 的 SHA-256（標籤的簽章"
+            "以 `curl-signing-key.asc` 中的金鑰驗證）。請先確認新套件需要的 glibc 版本（`objdump -T` 中 `GLIBC_` 的最大值）"
+            "不超過 2.38，超過的套件在映像中重新建置。修改 `scripts/linux-container/` 後，`build-linux-container.sh` 會重新"
+            "建立映像。",
         ]),
         ("p", "也可以直接在 Arch Linux 上製作。這樣製作的 AppImage 需要本機的 glibc 版本以上（2026 年 10 月時為 2.43）。"),
         ("code", RUN),
@@ -1125,7 +1206,9 @@ T["zh-tw"] = {
             "檢查所需工具（cmake、python3；建議使用 ninja）",
             "設定 CMake 並以 Release 方式建置（ShogiBoardQ 與 Hayanagi）",
             "檢查執行檔、翻譯檔，以及 3〜13 手詰的題集（每種手數各 1 個檔案）",
-            "下載 linuxdeploy、其 Qt 外掛程式和 appimagetool（僅第一次；儲存在建置目錄中）",
+            "下載 linuxdeploy、其 Qt 外掛程式和 appimagetool（僅第一次；儲存在建置目錄中）。執行前與 `build-linux.sh` 中記錄"
+            "的 SHA-256 核對。它們都是上游會替換的 continuous 版本，被替換後核對不一致就會停止；此時先確認上游發行的 digest "
+            "和變更，再更新這些值",
             "建立 AppDir 並產生 AppImage（執行所需的檔案，以及 Qt 與隨附程式庫的授權文件）",
             "製作包含 AppImage、題集和 Hayanagi 的 ZIP",
         ]),
@@ -1134,7 +1217,8 @@ T["zh-tw"] = {
         ("h3", "appimage", "5.2 AppImage 的內容"),
         ("p", "AppImage 中只收錄啟動與執行應用程式所需的檔案以及授權文件。"),
         ("code", appimage_tree({
-            "extracted": "（解壓縮後）", "apprun": "只使用隨附的 Qt 啟動", "exe": "執行檔",
+            "extracted": "（解壓縮後）", "apprun": "只使用隨附的 Qt 和隨附的 OpenSSL 設定啟動",
+            "sslconf": "隨附的 OpenSSL 讀取的設定（為空，不讀取系統的設定）", "exe": "執行檔",
             "qtconf": "Qt 外掛程式的位置", "qm": "應用程式翻譯（4 種語言）", "lib": "Qt 及其相依程式庫",
             "im": "日文輸入（compose、fcitx5、ibus）", "sqlite": "詰棋作答紀錄與分析快取", "tls": "網路對局的 TLS 連線（OpenSSL）",
             "qt": "隨附的 Qt 模組的文件", "source": "Qt 的來源與建置時版本",
@@ -1201,7 +1285,7 @@ T["zh-tw"] = {
 2. chmod +x ShogiBoardQ-linux-x86_64.AppImage Hayanagi/hayanagi
 3. ./ShogiBoardQ-linux-x86_64.AppImage
 
-執行條件：x86_64 的 Linux，glibc 2.38 以上（Ubuntu 24.04 以上、Debian 13、Fedora 39 以上等）
+執行條件：x86_64 的 Linux，glibc 2.38 以上、GCC 14 以上的 libstdc++（Ubuntu 24.04 以上、Debian 13、Fedora 40 以上等）
 沒有 FUSE 時，可加上 --appimage-extract-and-run 啟動。
 """),
         ("note", f"儲存庫中的 [release.yml]({RELEASE_YML}) 會在推送以 `v` 開頭的標籤或手動執行時建置三種作業系統，"
