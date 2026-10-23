@@ -2,6 +2,7 @@
 /// @brief エンジン思考結果の表示用リストモデルの実装
 
 #include "shogienginethinkingmodel.h"
+#include "scoretext.h"
 #include "movefont.h"
 #include "kifupresentation.h"
 #include "applicationfonts.h"
@@ -99,14 +100,9 @@ QVariant ShogiEngineThinkingModel::scoreDisplay(const UsiScore& score)
     case UsiScore::Kind::Cp:
         return score.value;
     case UsiScore::Kind::Mate:
-        return score.mateCountKnown ? mateScoreText(score.value) : tr("詰み");
+        return ScoreText::mate(score);
     }
     return QVariant();
-}
-
-QString ShogiEngineThinkingModel::mateScoreText(int plies)
-{
-    return tr("%1手詰").arg(plies);
 }
 
 QString ShogiEngineThinkingModel::boardButtonText()

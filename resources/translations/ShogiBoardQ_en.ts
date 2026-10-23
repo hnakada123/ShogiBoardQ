@@ -4815,52 +4815,50 @@ Move %3: %4</source>
 Move %3: %4</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="413"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="415"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="413"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="415"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="414"/>
         <source>%1勝ち・詰みまで%2手</source>
-        <translation>%1 wins · mate in %2 plies</translation>
+        <translation type="vanished">%1 wins · mate in %2 plies</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="415"/>
         <source>%1勝ち・詰み</source>
-        <translation>%1 wins · mate</translation>
+        <translation type="vanished">%1 wins · mate</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="418"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="420"/>
         <source>%1（表示範囲外）</source>
         <translation>%1 (outside range)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="425"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="427"/>
         <source>先手エンジン</source>
         <translation>Black engine</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="425"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="427"/>
         <source>後手エンジン</source>
         <translation>White engine</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="479"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="481"/>
         <source>%1：%2</source>
         <translation>%1: %2</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="488"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="490"/>
         <source>%1手目  |  %2</source>
         <translation>Move %1  |  %2</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="489"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="491"/>
         <source>評価値なし</source>
         <translation>No evaluation</translation>
     </message>
@@ -4918,13 +4916,13 @@ Move %3: %4</translation>
     </message>
     <message>
         <location filename="../../src/widgets/evaluationchartview.cpp" line="54"/>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="280"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="281"/>
         <source>先手有利</source>
         <translation>Black advantage</translation>
     </message>
     <message>
         <location filename="../../src/widgets/evaluationchartview.cpp" line="57"/>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="280"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="281"/>
         <source>後手有利</source>
         <translation>White advantage</translation>
     </message>
@@ -4934,7 +4932,7 @@ Move %3: %4</translation>
         <translation>Move %1</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="562"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="564"/>
         <source>%1
 %2手目：%3
 先手視点の評価値</source>
@@ -4943,54 +4941,59 @@ Move %2: %3
 Score from Black’s perspective</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="173"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="174"/>
         <source>最初に戻る</source>
         <translation>Go to Start</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="145"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="146"/>
         <source>表示範囲:</source>
         <translation>Range:</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="148"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="149"/>
         <source>自動</source>
         <translation>Automatic</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="148"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="149"/>
         <source>手動固定</source>
         <translation>Fixed</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="154"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="155"/>
         <source>表示設定…</source>
         <translation>Display settings…</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="174"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="175"/>
         <source>10手戻る</source>
         <translation>Go Back 10 Moves</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="175"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="176"/>
         <source>1手戻る</source>
         <translation>Go Back 1 Move</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="176"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="177"/>
         <source>1手進む</source>
         <translation>Go Forward 1 Move</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="177"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="178"/>
         <source>10手進む</source>
         <translation>Go Forward 10 Moves</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="178"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="179"/>
         <source>最後に進む</source>
         <translation>Go to End</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="417"/>
+        <source>%1勝ち・%2</source>
+        <translation>%1 wins · %2</translation>
     </message>
 </context>
 <context>
@@ -12757,6 +12760,19 @@ Do you want to continue?</translation>
     </message>
 </context>
 <context>
+    <name>ScoreText</name>
+    <message>
+        <location filename="../../src/models/scoretext.cpp" line="8"/>
+        <source>%1手詰</source>
+        <translation>Mate in %1 plies</translation>
+    </message>
+    <message>
+        <location filename="../../src/models/scoretext.cpp" line="13"/>
+        <source>詰み</source>
+        <translation>Checkmate</translation>
+    </message>
+</context>
+<context>
     <name>SettingsResetController</name>
     <message>
         <location filename="../../src/ui/controllers/settingsresetcontroller.cpp" line="21"/>
@@ -13075,7 +13091,7 @@ Choose a file with one SFEN position per line.</translation>
 <context>
     <name>ShogiEngineThinkingModel</name>
     <message>
-        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="114"/>
+        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="110"/>
         <source>表示</source>
         <translation>Show</translation>
     </message>
@@ -13084,69 +13100,67 @@ Choose a file with one SFEN position per line.</translation>
         <translation type="vanished">Time</translation>
     </message>
     <message>
-        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="56"/>
+        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="57"/>
         <source>下限値：この値以上</source>
         <translation>Lower bound: at least this value</translation>
     </message>
     <message>
-        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="57"/>
+        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="58"/>
         <source>上限値：この値以下</source>
         <translation>Upper bound: at most this value</translation>
     </message>
     <message>
-        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="102"/>
         <source>詰み</source>
-        <translation>Checkmate</translation>
+        <translation type="vanished">Checkmate</translation>
     </message>
     <message>
-        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="109"/>
         <source>%1手詰</source>
-        <translation>Mate in %1 plies</translation>
+        <translation type="vanished">Mate in %1 plies</translation>
     </message>
     <message>
-        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="121"/>
+        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="117"/>
         <source>探索開始局面の手番側から見た評価値です。正は手番側有利、負は相手側有利です。</source>
         <translation>Score from the perspective of the side to move in the search starting position. Positive values favor that side; negative values favor the opponent.</translation>
     </message>
     <message>
-        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="123"/>
+        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="119"/>
         <source>++：下限値（この値以上）
 --：上限値（この値以下）</source>
         <translation>++: lower bound (at least this value)
 --: upper bound (at most this value)</translation>
     </message>
     <message>
-        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="132"/>
+        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="128"/>
         <source>時間(ms)</source>
         <translation>Time (ms)</translation>
     </message>
     <message>
-        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="134"/>
+        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="130"/>
         <source>深さ</source>
         <translation>Depth</translation>
     </message>
     <message>
-        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="136"/>
+        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="132"/>
         <source>ノード数</source>
         <translation>Nodes</translation>
     </message>
     <message>
-        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="138"/>
+        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="134"/>
         <source>評価値</source>
         <translation>Score</translation>
     </message>
     <message>
-        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="140"/>
+        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="136"/>
         <source>上下限</source>
         <translation>Bound</translation>
     </message>
     <message>
-        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="142"/>
+        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="138"/>
         <source>盤面</source>
         <translation>Board</translation>
     </message>
     <message>
-        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="144"/>
+        <location filename="../../src/models/shogienginethinkingmodel.cpp" line="140"/>
         <source>読み筋</source>
         <translation>PV</translation>
     </message>

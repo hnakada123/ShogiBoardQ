@@ -1,6 +1,7 @@
 /// @file evaluationchartwidget.cpp
 /// @brief 評価値グラフの構築・軸更新・棋譜ナビゲーション
 #include "evaluationchartwidget.h"
+#include "scoretext.h"
 #include "evaluationchartview.h"
 #include "evaluationseries.h"
 #include "buttonstyles.h"
@@ -410,9 +411,10 @@ qreal EvaluationChartWidget::displayedValue(const Score& score) const
 QString EvaluationChartWidget::scoreText(const Score& score) const
 {
     if (score.isMate()) {
+        // 詰みの語は表と同じ（ScoreText）。グラフは先手から見た値なので、どちらの勝ちかを添えて手数は正にする
         const QString side = score.mateSign() > 0 ? tr("先手") : tr("後手");
-        return score.mateCountKnown ? tr("%1勝ち・詰みまで%2手").arg(side).arg(qAbs(score.value))
-                                    : tr("%1勝ち・詰み").arg(side);
+        const QString mate = score.mateCountKnown ? ScoreText::mateIn(qAbs(score.value)) : ScoreText::mateUnknown();
+        return tr("%1勝ち・%2").arg(side, mate);
     }
     const QString value = score.value > 0 ? QStringLiteral("+%1").arg(score.value) : QString::number(score.value);
     return qAbs(qint64(score.value)) > yAxisLimit() ? tr("%1（表示範囲外）").arg(value) : value;
