@@ -394,9 +394,16 @@ SHOGIBOARDQ_TEST_MATE_ENGINE=$PWD/build/tests/mock_mate_engine \
 python3 -m pytest -q mcp/tests
 ```
 
-`test_param_specs.py` は `shogiboardq-cli describe` が出す CLI のコマンドと自動化 API のメソッドの引数の表
-（JSON Schema）と、各ツールの `inputSchema` の型・選択肢・既定値・範囲が一致することを検査します。
-CLI や自動化 API の引数を変えたときは、`tooldefs.py` のスキーマも合わせてください。
+引数を CLI や自動化 API にそのまま渡すツールの `inputSchema` は、`shogiboardq-cli describe` が出す
+CLI のコマンドと自動化 API のメソッドの引数の表（JSON Schema）を保存した `shogiboardq_mcp/specs.json` から作ります
+（ツールの引数名は CLI・自動化 API と同じです）。CLI や自動化 API の引数を変えたときは、次で作り直してください。
+`test_param_specs.py` は `specs.json` が `describe` の出力と同じことと、ツールが表の引数を出していることを検査します。
+
+```bash
+cd mcp
+python3 -m shogiboardq_mcp.specs ../build/shogiboardq-cli
+```
+
 `test_environment.py` は `shogiboardq-cli environment` の出力と、MCP サーバーが使うエラーの語が
 分類の表（または MCP サーバーだけの語の一覧）にあることを検査します。
 

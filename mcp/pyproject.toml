@@ -21,5 +21,8 @@ shogiboardq-mcp = "shogiboardq_mcp.__main__:main"
 [tool.setuptools.packages.find]
 include = ["shogiboardq_mcp*"]
 
+[tool.setuptools.package-data]
+shogiboardq_mcp = ["specs.json"]  # the C++ parameter tables (python3 -m shogiboardq_mcp.specs <cli> regenerates it)
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -1,0 +1,1002 @@
+{
+ "command": {
+  "analyze": {
+   "additionalProperties": false,
+   "properties": {
+    "engine": {
+     "description": "Name of a USI engine registered in ShogiBoardQ, exactly as listed by list-engines.",
+     "minLength": 1,
+     "type": "string"
+    },
+    "moves": {
+     "default": [],
+     "description": "USI moves played after the start position, e.g. [\"7g7f\", \"3c3d\"] (space separated on the command line). Drops use 'P*5e'.",
+     "items": {
+      "pattern": "^(?:[1-9][a-i][1-9][a-i]\\+?|[PLNSGBR]\\*[1-9][a-i])$",
+      "type": "string"
+     },
+     "maxItems": 1000,
+     "type": "array"
+    },
+    "multipv": {
+     "default": 1,
+     "description": "Number of candidate lines.",
+     "maximum": 10,
+     "minimum": 1,
+     "type": "integer"
+    },
+    "seconds": {
+     "default": 10,
+     "description": "Thinking time in seconds.",
+     "maximum": 600,
+     "minimum": 1,
+     "type": "integer"
+    },
+    "sfen": {
+     "default": "startpos",
+     "description": "Position in SFEN (board, side to move b/w, hands, move number), or 'startpos' for the initial position. A leading 'position sfen ' is accepted.",
+     "minLength": 1,
+     "type": "string"
+    },
+    "stdin_control": {
+     "default": false,
+     "description": "Stop when a line 'stop' arrives on stdin or stdin is closed.",
+     "type": "boolean"
+    }
+   },
+   "required": [
+    "engine"
+   ],
+   "type": "object"
+  },
+  "convert-kifu": {
+   "additionalProperties": false,
+   "properties": {
+    "input_format": {
+     "default": "auto",
+     "description": "Input format ('auto' detects it from the content).",
+     "enum": [
+      "auto",
+      "kif",
+      "ki2",
+      "csa",
+      "jkf",
+      "usi",
+      "usen"
+     ],
+     "type": "string"
+    },
+    "input_path": {
+     "description": "Input kifu file (absolute path). Either input_path or text is required.",
+     "minLength": 1,
+     "type": "string"
+    },
+    "output_format": {
+     "description": "Output format ('sfen' lists the position after each move).",
+     "enum": [
+      "kif",
+      "ki2",
+      "csa",
+      "jkf",
+      "usi",
+      "usen",
+      "sfen"
+     ],
+     "type": "string"
+    },
+    "output_path": {
+     "description": "Write the result to this file (absolute path) instead of returning it.",
+     "minLength": 1,
+     "type": "string"
+    },
+    "overwrite": {
+     "default": false,
+     "description": "Allow replacing an existing file. Without it an existing file is an error.",
+     "type": "boolean"
+    },
+    "text": {
+     "description": "Input kifu text. Either input_path or text is required.",
+     "maxLength": 2000000,
+     "minLength": 1,
+     "type": "string"
+    }
+   },
+   "required": [
+    "output_format"
+   ],
+   "type": "object"
+  },
+  "describe": {
+   "additionalProperties": false,
+   "properties": {},
+   "type": "object"
+  },
+  "environment": {
+   "additionalProperties": false,
+   "properties": {},
+   "type": "object"
+  },
+  "generate-tsume": {
+   "additionalProperties": false,
+   "properties": {
+    "add_remaining_to_defender_hand": {
+     "default": true,
+     "description": "Give the pieces not on the board to the defender's hand.",
+     "type": "boolean"
+    },
+    "allow_final_move_alternatives": {
+     "default": true,
+     "description": "Accept positions whose final mating move has alternatives.",
+     "type": "boolean"
+    },
+    "attack_range": {
+     "default": 3,
+     "description": "Placement range around the king.",
+     "maximum": 8,
+     "minimum": 1,
+     "type": "integer"
+    },
+    "engine": {
+     "description": "Name of a USI engine registered in ShogiBoardQ, exactly as listed by list-engines.",
+     "minLength": 1,
+     "type": "string"
+    },
+    "max_attack_pieces": {
+     "default": 4,
+     "description": "Maximum attacking pieces on board and in hand.",
+     "maximum": 10,
+     "minimum": 1,
+     "type": "integer"
+    },
+    "max_defend_pieces": {
+     "default": 1,
+     "description": "Maximum defending pieces other than the king.",
+     "maximum": 10,
+     "minimum": 0,
+     "type": "integer"
+    },
+    "max_positions": {
+     "default": 5,
+     "description": "Stop after this many positions.",
+     "maximum": 100,
+     "minimum": 1,
+     "type": "integer"
+    },
+    "stdin_control": {
+     "default": false,
+     "description": "Stop when a line 'stop' arrives on stdin or stdin is closed.",
+     "type": "boolean"
+    },
+    "target_moves": {
+     "default": 3,
+     "description": "Mate length in plies (odd).",
+     "maximum": 19,
+     "minimum": 1,
+     "type": "integer"
+    },
+    "timeout_ms": {
+     "default": 5000,
+     "description": "Engine time per candidate, per trimming step and per verification.",
+     "maximum": 60000,
+     "minimum": 500,
+     "type": "integer"
+    }
+   },
+   "required": [
+    "engine"
+   ],
+   "type": "object"
+  },
+  "list-engines": {
+   "additionalProperties": false,
+   "properties": {},
+   "type": "object"
+  },
+  "mate": {
+   "additionalProperties": false,
+   "properties": {
+    "engine": {
+     "description": "Name of a USI engine registered in ShogiBoardQ, exactly as listed by list-engines.",
+     "minLength": 1,
+     "type": "string"
+    },
+    "moves": {
+     "default": [],
+     "description": "USI moves played after the start position, e.g. [\"7g7f\", \"3c3d\"] (space separated on the command line). Drops use 'P*5e'.",
+     "items": {
+      "pattern": "^(?:[1-9][a-i][1-9][a-i]\\+?|[PLNSGBR]\\*[1-9][a-i])$",
+      "type": "string"
+     },
+     "maxItems": 1000,
+     "type": "array"
+    },
+    "seconds": {
+     "default": 10,
+     "description": "Search time in seconds.",
+     "maximum": 600,
+     "minimum": 1,
+     "type": "integer"
+    },
+    "sfen": {
+     "description": "Position in SFEN (board, side to move b/w, hands, move number), or 'startpos' for the initial position. A leading 'position sfen ' is accepted.",
+     "minLength": 1,
+     "type": "string"
+    },
+    "stdin_control": {
+     "default": false,
+     "description": "Stop when a line 'stop' arrives on stdin or stdin is closed.",
+     "type": "boolean"
+    }
+   },
+   "required": [
+    "engine",
+    "sfen"
+   ],
+   "type": "object"
+  },
+  "render-board": {
+   "additionalProperties": false,
+   "properties": {
+    "black_name": {
+     "description": "Name shown for black (sente).",
+     "maxLength": 64,
+     "minLength": 0,
+     "type": "string"
+    },
+    "flip": {
+     "default": false,
+     "description": "View from the white (gote) side.",
+     "type": "boolean"
+    },
+    "last_move": {
+     "description": "USI move to highlight.",
+     "pattern": "^(?:[1-9][a-i][1-9][a-i]\\+?|[PLNSGBR]\\*[1-9][a-i])$",
+     "type": "string"
+    },
+    "output_path": {
+     "description": "Output image path (absolute, .png recommended).",
+     "minLength": 1,
+     "type": "string"
+    },
+    "overwrite": {
+     "default": false,
+     "description": "Allow replacing an existing file. Without it an existing file is an error.",
+     "type": "boolean"
+    },
+    "sfen": {
+     "default": "startpos",
+     "description": "Position in SFEN (board, side to move b/w, hands, move number), or 'startpos' for the initial position. A leading 'position sfen ' is accepted.",
+     "minLength": 1,
+     "type": "string"
+    },
+    "square_size": {
+     "default": 50,
+     "description": "Square width in pixels.",
+     "maximum": 150,
+     "minimum": 20,
+     "type": "integer"
+    },
+    "white_name": {
+     "description": "Name shown for white (gote).",
+     "maxLength": 64,
+     "minLength": 0,
+     "type": "string"
+    }
+   },
+   "required": [
+    "output_path"
+   ],
+   "type": "object"
+  },
+  "validate-sfen": {
+   "additionalProperties": false,
+   "properties": {
+    "sfen": {
+     "description": "Position in SFEN (board, side to move b/w, hands, move number), or 'startpos' for the initial position. A leading 'position sfen ' is accepted.",
+     "minLength": 1,
+     "type": "string"
+    }
+   },
+   "required": [
+    "sfen"
+   ],
+   "type": "object"
+  },
+  "verify-tsume": {
+   "additionalProperties": false,
+   "properties": {
+    "allow_final_move_alternatives": {
+     "default": true,
+     "description": "Accept alternatives on the final mating move (otherwise they are a cook).",
+     "type": "boolean"
+    },
+    "engine": {
+     "description": "Name of a USI engine registered in ShogiBoardQ, exactly as listed by list-engines.",
+     "minLength": 1,
+     "type": "string"
+    },
+    "sfen": {
+     "description": "Position in SFEN (board, side to move b/w, hands, move number), or 'startpos' for the initial position. A leading 'position sfen ' is accepted.",
+     "minLength": 1,
+     "type": "string"
+    },
+    "target_moves": {
+     "description": "Expected mate length in plies (odd).",
+     "maximum": 39,
+     "minimum": 1,
+     "type": "integer"
+    },
+    "timeout_seconds": {
+     "default": 15,
+     "description": "Total engine time budget in seconds.",
+     "maximum": 120,
+     "minimum": 1,
+     "type": "integer"
+    }
+   },
+   "required": [
+    "engine",
+    "sfen",
+    "target_moves"
+   ],
+   "type": "object"
+  },
+  "version": {
+   "additionalProperties": false,
+   "properties": {},
+   "type": "object"
+  }
+ },
+ "method": {
+  "action.list": {
+   "additionalProperties": false,
+   "properties": {},
+   "type": "object"
+  },
+  "action.trigger": {
+   "additionalProperties": false,
+   "properties": {
+    "name": {
+     "description": "QAction object name (see action.list).",
+     "maxLength": 1000,
+     "minLength": 1,
+     "pattern": "^action[A-Za-z0-9_]+$",
+     "type": "string"
+    }
+   },
+   "required": [
+    "name"
+   ],
+   "type": "object"
+  },
+  "app.ping": {
+   "additionalProperties": false,
+   "properties": {},
+   "type": "object"
+  },
+  "app.quit": {
+   "additionalProperties": false,
+   "properties": {},
+   "type": "object"
+  },
+  "app.state": {
+   "additionalProperties": false,
+   "properties": {},
+   "type": "object"
+  },
+  "app.version": {
+   "additionalProperties": false,
+   "properties": {},
+   "type": "object"
+  },
+  "board.click": {
+   "additionalProperties": false,
+   "properties": {
+    "button": {
+     "default": "left",
+     "enum": [
+      "left",
+      "right"
+     ],
+     "type": "string"
+    },
+    "file": {
+     "maximum": 11,
+     "minimum": 1,
+     "type": "integer"
+    },
+    "rank": {
+     "maximum": 9,
+     "minimum": 1,
+     "type": "integer"
+    },
+    "target": {
+     "default": "main",
+     "description": "'main', or a dialog object name, selector or title substring.",
+     "type": "string"
+    }
+   },
+   "required": [
+    "file",
+    "rank"
+   ],
+   "type": "object"
+  },
+  "branch.click": {
+   "additionalProperties": false,
+   "properties": {
+    "id": {
+     "description": "Node id from widget.text.",
+     "maximum": 1000000000,
+     "minimum": 1,
+     "type": "integer"
+    },
+    "target": {
+     "default": "main",
+     "description": "'main', or a dialog object name, selector or title substring.",
+     "type": "string"
+    },
+    "widget": {
+     "default": "branchTreeView",
+     "description": "Widget object name or selector from widget.text.",
+     "maxLength": 1000,
+     "minLength": 1,
+     "type": "string"
+    }
+   },
+   "required": [
+    "id"
+   ],
+   "type": "object"
+  },
+  "clipboard.get": {
+   "additionalProperties": false,
+   "properties": {
+    "max_chars": {
+     "default": 30000,
+     "maximum": 1000000,
+     "minimum": 1,
+     "type": "integer"
+    }
+   },
+   "type": "object"
+  },
+  "dialog.clickButton": {
+   "additionalProperties": false,
+   "properties": {
+    "index": {
+     "default": 0,
+     "description": "Zero-based occurrence among matches.",
+     "maximum": 1000,
+     "minimum": 0,
+     "type": "integer"
+    },
+    "target": {
+     "description": "Dialog object name, selector or title substring.",
+     "maxLength": 1000,
+     "minLength": 1,
+     "type": "string"
+    },
+    "text": {
+     "description": "Exact button text.",
+     "maxLength": 1000,
+     "minLength": 1,
+     "type": "string"
+    },
+    "widget": {
+     "description": "Widget object name or selector from widget.text.",
+     "maxLength": 1000,
+     "minLength": 1,
+     "type": "string"
+    }
+   },
+   "required": [
+    "target"
+   ],
+   "type": "object"
+  },
+  "dialog.close": {
+   "additionalProperties": false,
+   "properties": {
+    "target": {
+     "description": "Dialog object name, selector or title substring.",
+     "maxLength": 1000,
+     "minLength": 1,
+     "type": "string"
+    }
+   },
+   "required": [
+    "target"
+   ],
+   "type": "object"
+  },
+  "dialog.list": {
+   "additionalProperties": false,
+   "properties": {},
+   "type": "object"
+  },
+  "dock.configure": {
+   "additionalProperties": false,
+   "properties": {
+    "area": {
+     "description": "For operation=dock.",
+     "enum": [
+      "left",
+      "right",
+      "top",
+      "bottom"
+     ],
+     "type": "string"
+    },
+    "geometry": {
+     "additionalProperties": false,
+     "description": "For operation=float: global client rectangle.",
+     "properties": {
+      "height": {
+       "maximum": 16384,
+       "minimum": 1,
+       "type": "integer"
+      },
+      "width": {
+       "maximum": 16384,
+       "minimum": 1,
+       "type": "integer"
+      },
+      "x": {
+       "maximum": 100000,
+       "minimum": -100000,
+       "type": "integer"
+      },
+      "y": {
+       "maximum": 100000,
+       "minimum": -100000,
+       "type": "integer"
+      }
+     },
+     "required": [
+      "x",
+      "y",
+      "width",
+      "height"
+     ],
+     "type": "object"
+    },
+    "operation": {
+     "enum": [
+      "show",
+      "hide",
+      "float",
+      "dock",
+      "tabify",
+      "drag"
+     ],
+     "type": "string"
+    },
+    "relative_to": {
+     "description": "For operation=tabify.",
+     "maxLength": 1000,
+     "minLength": 1,
+     "type": "string"
+    },
+    "widget": {
+     "description": "Widget object name or selector from widget.text.",
+     "maxLength": 1000,
+     "minLength": 1,
+     "type": "string"
+    },
+    "x": {
+     "maximum": 100000,
+     "minimum": -100000,
+     "type": "integer"
+    },
+    "y": {
+     "maximum": 100000,
+     "minimum": -100000,
+     "type": "integer"
+    }
+   },
+   "required": [
+    "widget",
+    "operation"
+   ],
+   "type": "object"
+  },
+  "dock.list": {
+   "additionalProperties": false,
+   "properties": {},
+   "type": "object"
+  },
+  "kifu.get": {
+   "additionalProperties": false,
+   "properties": {
+    "format": {
+     "default": "moves",
+     "enum": [
+      "moves",
+      "kif",
+      "ki2",
+      "csa",
+      "jkf",
+      "usi",
+      "usen"
+     ],
+     "type": "string"
+    },
+    "from_ply": {
+     "default": 1,
+     "maximum": 100000,
+     "minimum": 1,
+     "type": "integer"
+    },
+    "line": {
+     "default": "current",
+     "description": "Line for format=moves.",
+     "enum": [
+      "current",
+      "main"
+     ],
+     "type": "string"
+    },
+    "max_moves": {
+     "default": 200,
+     "maximum": 100000,
+     "minimum": 1,
+     "type": "integer"
+    }
+   },
+   "type": "object"
+  },
+  "kifu.goto": {
+   "additionalProperties": false,
+   "properties": {
+    "ply": {
+     "maximum": 100000,
+     "minimum": 0,
+     "type": "integer"
+    }
+   },
+   "required": [
+    "ply"
+   ],
+   "type": "object"
+  },
+  "kifu.load": {
+   "additionalProperties": false,
+   "properties": {
+    "discard_unsaved": {
+     "default": false,
+     "description": "Discard unsaved edits of the current record.",
+     "type": "boolean"
+    },
+    "path": {
+     "description": "Kifu file (absolute path).",
+     "type": "string"
+    },
+    "text": {
+     "description": "Kifu text.",
+     "maxLength": 2000000,
+     "minLength": 1,
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "kifu.save": {
+   "additionalProperties": false,
+   "properties": {
+    "overwrite": {
+     "default": false,
+     "description": "Allow replacing an existing file.",
+     "type": "boolean"
+    },
+    "path": {
+     "description": "Destination file (absolute path).",
+     "minLength": 1,
+     "type": "string"
+    }
+   },
+   "required": [
+    "path"
+   ],
+   "type": "object"
+  },
+  "menu.favorites": {
+   "additionalProperties": false,
+   "properties": {
+    "actions": {
+     "description": "Ordered favorite action names.",
+     "items": {
+      "type": "string"
+     },
+     "maxItems": 200,
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "menu.items": {
+   "additionalProperties": false,
+   "properties": {
+    "target": {
+     "default": "main",
+     "description": "'main', or a dialog object name, selector or title substring.",
+     "type": "string"
+    },
+    "widget": {
+     "description": "Widget object name or selector from widget.text.",
+     "maxLength": 1000,
+     "minLength": 1,
+     "type": "string"
+    }
+   },
+   "required": [
+    "widget"
+   ],
+   "type": "object"
+  },
+  "menu.select": {
+   "additionalProperties": false,
+   "properties": {
+    "path": {
+     "description": "Indices from menu.items.",
+     "items": {
+      "minimum": 0,
+      "type": "integer"
+     },
+     "maxItems": 10,
+     "minItems": 1,
+     "type": "array"
+    },
+    "target": {
+     "default": "main",
+     "description": "'main', or a dialog object name, selector or title substring.",
+     "type": "string"
+    },
+    "widget": {
+     "description": "Widget object name or selector from widget.text.",
+     "maxLength": 1000,
+     "minLength": 1,
+     "type": "string"
+    }
+   },
+   "required": [
+    "widget",
+    "path"
+   ],
+   "type": "object"
+  },
+  "position.get": {
+   "additionalProperties": false,
+   "properties": {},
+   "type": "object"
+  },
+  "position.set": {
+   "additionalProperties": false,
+   "properties": {
+    "discard_unsaved": {
+     "default": false,
+     "description": "Discard unsaved edits of the current record.",
+     "type": "boolean"
+    },
+    "sfen": {
+     "description": "Position in SFEN (board, side to move b/w, hands, move number), or 'startpos' for the initial position. A leading 'position sfen ' is accepted.",
+     "minLength": 1,
+     "type": "string"
+    }
+   },
+   "required": [
+    "sfen"
+   ],
+   "type": "object"
+  },
+  "screenshot.capture": {
+   "additionalProperties": false,
+   "properties": {
+    "output_dir": {
+     "description": "Directory for the PNG.",
+     "type": "string"
+    },
+    "target": {
+     "default": "main",
+     "description": "'main', or a dialog object name, selector or title substring.",
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "ui.interaction": {
+   "additionalProperties": false,
+   "properties": {
+    "id": {
+     "description": "The interaction number returned by the queued operation.",
+     "maximum": 2147483647,
+     "minimum": 1,
+     "type": "integer"
+    }
+   },
+   "required": [
+    "id"
+   ],
+   "type": "object"
+  },
+  "widget.click": {
+   "additionalProperties": false,
+   "properties": {
+    "target": {
+     "default": "main",
+     "description": "'main', or a dialog object name, selector or title substring.",
+     "type": "string"
+    },
+    "widget": {
+     "description": "Widget object name or selector from widget.text.",
+     "maxLength": 1000,
+     "minLength": 1,
+     "type": "string"
+    }
+   },
+   "required": [
+    "widget"
+   ],
+   "type": "object"
+  },
+  "widget.clickCell": {
+   "additionalProperties": false,
+   "properties": {
+    "column": {
+     "maximum": 1000000000,
+     "minimum": 0,
+     "type": "integer"
+    },
+    "row": {
+     "maximum": 1000000000,
+     "minimum": 0,
+     "type": "integer"
+    },
+    "target": {
+     "default": "main",
+     "description": "'main', or a dialog object name, selector or title substring.",
+     "type": "string"
+    },
+    "widget": {
+     "description": "Widget object name or selector from widget.text.",
+     "maxLength": 1000,
+     "minLength": 1,
+     "type": "string"
+    }
+   },
+   "required": [
+    "widget",
+    "row",
+    "column"
+   ],
+   "type": "object"
+  },
+  "widget.editCell": {
+   "additionalProperties": false,
+   "properties": {
+    "column": {
+     "maximum": 1000000000,
+     "minimum": 0,
+     "type": "integer"
+    },
+    "commit": {
+     "default": true,
+     "description": "Press Enter to commit the edit.",
+     "type": "boolean"
+    },
+    "row": {
+     "maximum": 1000000000,
+     "minimum": 0,
+     "type": "integer"
+    },
+    "target": {
+     "default": "main",
+     "description": "'main', or a dialog object name, selector or title substring.",
+     "type": "string"
+    },
+    "text": {
+     "maxLength": 32767,
+     "minLength": 0,
+     "type": "string"
+    },
+    "widget": {
+     "description": "Widget object name or selector from widget.text.",
+     "maxLength": 1000,
+     "minLength": 1,
+     "type": "string"
+    }
+   },
+   "required": [
+    "widget",
+    "row",
+    "column",
+    "text"
+   ],
+   "type": "object"
+  },
+  "widget.setValue": {
+   "additionalProperties": false,
+   "properties": {
+    "submit": {
+     "default": false,
+     "description": "Press Enter on a line edit after the text.",
+     "type": "boolean"
+    },
+    "target": {
+     "default": "main",
+     "description": "'main', or a dialog object name, selector or title substring.",
+     "type": "string"
+    },
+    "value": {
+     "type": [
+      "string",
+      "number",
+      "boolean"
+     ]
+    },
+    "widget": {
+     "description": "Widget object name or selector from widget.text.",
+     "maxLength": 1000,
+     "minLength": 1,
+     "type": "string"
+    }
+   },
+   "required": [
+    "widget",
+    "value"
+   ],
+   "type": "object"
+  },
+  "widget.showDock": {
+   "additionalProperties": false,
+   "properties": {
+    "widget": {
+     "description": "Widget object name or selector from widget.text.",
+     "maxLength": 1000,
+     "minLength": 1,
+     "type": "string"
+    }
+   },
+   "required": [
+    "widget"
+   ],
+   "type": "object"
+  },
+  "widget.text": {
+   "additionalProperties": false,
+   "properties": {
+    "include_children": {
+     "default": false,
+     "description": "Also describe descendants of the selected widget, e.g. a dock panel.",
+     "type": "boolean"
+    },
+    "max_rows": {
+     "default": 50,
+     "description": "Row limit for tables and lists.",
+     "maximum": 1000,
+     "minimum": 1,
+     "type": "integer"
+    },
+    "max_widgets": {
+     "default": 300,
+     "description": "Widget limit.",
+     "maximum": 3000,
+     "minimum": 1,
+     "type": "integer"
+    },
+    "target": {
+     "default": "main",
+     "description": "'main', or a dialog object name, selector or title substring.",
+     "type": "string"
+    },
+    "widget": {
+     "description": "Object name or selector of a widget to read. Returned selectors also identify unnamed widgets in widget.click and widget.setValue; reacquire them after reopening a dialog.",
+     "maxLength": 1000,
+     "minLength": 1,
+     "type": "string"
+    }
+   },
+   "type": "object"
+  }
+ }
+}

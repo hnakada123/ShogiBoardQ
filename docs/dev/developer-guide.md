@@ -110,6 +110,7 @@
 | 2026-10-23 | 対局で指すエンジン1台を `MatchEngineSeat`（`src/game/matchengineseat.h`）にまとめた（監査 R8 の前半）のに合わせて §1・§6・§7・§12・第18章を更新（人間対エンジン・エンジン同士の Strategy と通信対局が共有し、終局の知らせは `finish()` の1通り。`EngineLifecycleManager` はリース・取り上げの知らせ・表示の消去だけにし、手番・時計・投了などの中継（`engineFor`・`startEngine`・`notifyGameOver`・`disconnectArbiterSignals`・`engineResigned`・`engineDeclaredWin`・`engineError`・`slotFor`）を削除。`CsaEngineController` を削除。対局時計の `ClockTimeSource` は司令塔が持つ。人間が先に指した後もエンジンの初期化を待つ間は時計を止める） |
 | 2026-10-23 | 探索の切り替えを `UsiEngineSession::search` にまとめた（監査 R8 の後半・U5）のに合わせて §7・§9 を更新（最後の依頼だけを行い、探索中なら stop で止めて結果と info を捨ててから始める。空の局面は受け付けない。`UsiMatchHandler` の先読み停止待ち（`PonderStop`）と `AnalysisSession` の `StoppingSearch`・`RestartQueued`・再開のタイマーを削除。`stop()` は最後の依頼に効き、`cancelSearch()` を足した。`RecordLine::usiPosition`・`ConsiderationPositionResolver::resolve` は `std::optional` を返す） |
 | 2026-10-23 | CLI・自動化 API・MCP が共有する GUI 非依存の部品を `src/headless/` に分けた（監査 R9 の段階1）のに合わせて §1.5・§14・第18章を更新（引数の表・エラーの分類・変換・エンジンの実行器。core〜analysis だけを使う規則を層の検査に足した。JSON-RPC のコードは `errorkinds.h` に移した。書き出し先の検査を `OutputPath::check` 1つにし、出力先がディレクトリのときは CLI も `invalid_argument`。`Failure` に対処 `hint` を足した） |
+| 2026-10-23 | CLI の引数名を MCP のツールに揃え、MCP のスキーマを C++ の表から作るようにした（監査 R9 の段階2）のに合わせて §14・第18章を更新（`convert-kifu` の `input_path`・`output_path`、`render-board` の `output_path`、`generate-tsume` の `max_attack_pieces`・`max_defend_pieces`・`add_remaining_to_defender_hand`・`allow_final_move_alternatives`、`verify-tsume` の `timeout_seconds`。旧名は `ParamSpec::alias`・`aliasFlag` で受け付ける。既定値が true の真偽値は `--no-<名前>`。全引数を `--params-json` で渡せる。指し手は `ParamSpec::pattern` で検査。MCP は `specs.json`（`describe` の出力）からスキーマを作り、`--params-json` で渡す） |
 
 <!-- chapter-0-end -->
 
@@ -9245,7 +9246,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | BranchTreeView | C | widgets | 分岐ツリーの図（ツリーの変更を受けて描き直す・表示中の手の強調・クリックとキー操作。外とはノード ID でやり取りする） | 第11章, 第13章 |
 | CandidateArrowPresenter | C | ui/presenters | 検討と対局のエンジンの読みを盤上の矢印にする | 第9章, 第10章 |
 | ChangeEngineSettingsDialog | C | dialogs | エンジン設定変更ダイアログ | 第11章 |
-| CliCommandSpecs | NS | cli | `shogiboardq-cli` の全コマンドの引数の表（オプション名は引数名の `_` を `-` にしたもの。`parse()`・`usage()`） | 第14章 |
+| CliCommandSpecs | NS | cli | `shogiboardq-cli` の全コマンドの引数の表（引数名は MCP のツールと同じ。オプション名は引数名の `_` を `-` にしたもの、旧名・`--no-<名前>`・`--params-json` も受ける。`parse()`・`usage()`） | 第14章 |
 | ClockTimeSource | C | engine | ローカル対局の対局時計から読むエンジンの時間の出どころ（`MatchTimeSource` の実装。`MatchCoordinator` が持つ） | 第7章 |
 | CollapsibleGroupBox | C | widgets | 折りたたみ可能なグループボックス | 第11章 |
 | CommentCoordinator | C | ui/coordinators | コメント編集の統合調整 | 第14章 |

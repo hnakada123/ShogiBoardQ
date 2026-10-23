@@ -40,7 +40,10 @@ const QList<OperationSpec>& AutomationMethodSpecs::all()
         {QStringLiteral("app.quit"), QStringLiteral("Quit without the unsaved-changes prompt."), {}},
         {QStringLiteral("position.get"), QStringLiteral("Current position, start position and moves."), {}},
         {QStringLiteral("position.set"), QStringLiteral("Replace the position (the record is cleared)."),
-         {string(QStringLiteral("sfen"), QStringLiteral("SFEN or 'startpos'.")).atLeast(1).require(),
+         {string(QStringLiteral("sfen"),
+                 QStringLiteral("Position in SFEN (board, side to move b/w, hands, move number), or 'startpos' for the "
+                                "initial position. A leading 'position sfen ' is accepted."))
+              .atLeast(1).require(),
           discardUnsaved()}},
         {QStringLiteral("kifu.load"), QStringLiteral("Load a record from a file or text."),
          {string(QStringLiteral("path"), QStringLiteral("Kifu file (absolute path).")),
@@ -71,13 +74,20 @@ const QList<OperationSpec>& AutomationMethodSpecs::all()
           integer(QStringLiteral("index"), QStringLiteral("Zero-based occurrence among matches."), 0, 1000).withDefault(0)}},
         {QStringLiteral("action.list"), QStringLiteral("Menu actions that action.trigger may run."), {}},
         {QStringLiteral("action.trigger"), QStringLiteral("Trigger an allow-listed menu action."),
-         {string(QStringLiteral("name"), QStringLiteral("QAction object name.")).length(1, 1000).require()}},
+         {string(QStringLiteral("name"), QStringLiteral("QAction object name (see action.list)."))
+              .length(1, 1000).matching(QStringLiteral("^action[A-Za-z0-9_]+$")).require()}},
         {QStringLiteral("screenshot.capture"), QStringLiteral("Save a PNG of the main window or a dialog."),
          {target(), string(QStringLiteral("output_dir"), QStringLiteral("Directory for the PNG."))}},
         {QStringLiteral("widget.text"), QStringLiteral("Describe the widgets of a window."),
-         {target(), widget(), integer(QStringLiteral("max_rows"), QStringLiteral("Row limit for tables and lists."), 1, 1000).withDefault(50),
-          integer(QStringLiteral("max_widgets"), QString(), 1, 3000).withDefault(300),
-          boolean(QStringLiteral("include_children"), QStringLiteral("Also describe descendants of the selected widget."))}},
+         {target(),
+          string(QStringLiteral("widget"),
+                 QStringLiteral("Object name or selector of a widget to read. Returned selectors also identify unnamed widgets "
+                                "in widget.click and widget.setValue; reacquire them after reopening a dialog."))
+              .length(1, 1000),
+          integer(QStringLiteral("max_rows"), QStringLiteral("Row limit for tables and lists."), 1, 1000).withDefault(50),
+          integer(QStringLiteral("max_widgets"), QStringLiteral("Widget limit."), 1, 3000).withDefault(300),
+          boolean(QStringLiteral("include_children"),
+                  QStringLiteral("Also describe descendants of the selected widget, e.g. a dock panel."))}},
         {QStringLiteral("widget.click"), QStringLiteral("Click a button."), {target(), widget().require()}},
         {QStringLiteral("widget.setValue"), QStringLiteral("Change a combo box, spin box, check box, list, tab, color or text field."),
          {target(), widget().require(), any(QStringLiteral("value"), QString()).require(),

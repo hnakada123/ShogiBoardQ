@@ -133,13 +133,13 @@ int CliCommands::convertKifu(const QStringList& args)
 
     // 形式の名前は表の選択肢で検査済み
     KifuConversionService::Request request;
-    request.inputPath = params->value(QStringLiteral("input")).toString();
+    request.inputPath = params->value(QStringLiteral("input_path")).toString();
     request.text = params->value(QStringLiteral("text")).toString();
     const QString inputName = params->value(QStringLiteral("input_format")).toString();
     if (inputName != QLatin1String("auto")) request.inputFormat = KifuFormats::fromName(inputName);
     request.outputFormat = *KifuFormats::fromName(params->value(QStringLiteral("output_format")).toString());
 
-    const QString outputPath = params->value(QStringLiteral("output")).toString();
+    const QString outputPath = params->value(QStringLiteral("output_path")).toString();
     if (const std::optional<Failure> problem = outputPath.isEmpty() ? std::nullopt
             : OutputPath::check(outputPath, params->value(QStringLiteral("overwrite")).toBool(), QStringLiteral("--overwrite"))) {
         return CliOutput::fail(*problem);
@@ -181,7 +181,7 @@ int CliCommands::renderBoard(const QStringList& args)
     const auto params = CliArgs::parse(QStringLiteral("render-board"), args, false, &exitCode);
     if (!params) return exitCode;
 
-    const QString outputPath = params->value(QStringLiteral("output")).toString();
+    const QString outputPath = params->value(QStringLiteral("output_path")).toString();
     if (const std::optional<Failure> problem =
             OutputPath::check(outputPath, params->value(QStringLiteral("overwrite")).toBool(), QStringLiteral("--overwrite"))) {
         return CliOutput::fail(*problem);

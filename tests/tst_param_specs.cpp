@@ -99,6 +99,60 @@ private slots:
         QVERIFY(CliCommandSpecs::usage().contains(QStringLiteral("--max-positions n")));
     }
 
+    /// 引数の名前は MCP と同じ。旧名・--no-<名前>・--params-json でも渡せ、コマンドラインのオプションが優先する
+    void cliAcceptsAliasesNegationAndJson()
+    {
+        const OperationSpec* generate = CliCommandSpecs::find(QStringLiteral("generate-tsume"));
+        const OperationSpec* verify = CliCommandSpecs::find(QStringLiteral("verify-tsume"));
+        const OperationSpec* convert = CliCommandSpecs::find(QStringLiteral("convert-kifu"));
+        const OperationSpec* analyze = CliCommandSpecs::find(QStringLiteral("analyze"));
+        QVERIFY(generate && verify && convert && analyze);
+        QString error;
+        auto params = CliCommandSpecs::parse(*generate, {QStringLiteral("--engine"), QStringLiteral("E"),
+                                                         QStringLiteral("--max-attack"), QStringLiteral("3"),
+                                                         QStringLiteral("--no-remaining-to-hand"),
+                                                         QStringLiteral("--no-final-alternatives")}, &error);
+        QVERIFY2(params, qPrintable(error));
+        QCOMPARE(params->value(QStringLiteral("max_attack_pieces")).toInt(), 3);
+        QCOMPARE(params->value(QStringLiteral("add_remaining_to_defender_hand")).toBool(true), false);
+        QCOMPARE(params->value(QStringLiteral("allow_final_move_alternatives")).toBool(true), false);
+        params = CliCommandSpecs::parse(*generate, {QStringLiteral("--engine"), QStringLiteral("E"),
+                                                    QStringLiteral("--no-add-remaining-to-defender-hand")}, &error);
+        QVERIFY2(params, qPrintable(error));
+        QCOMPARE(params->value(QStringLiteral("add_remaining_to_defender_hand")).toBool(true), false);
+        QCOMPARE(params->value(QStringLiteral("allow_final_move_alternatives")).toBool(false), true);
+
+        // ミリ秒の旧名は秒に切り上げる
+        params = CliCommandSpecs::parse(*verify, {QStringLiteral("--engine"), QStringLiteral("E"), QStringLiteral("--sfen"),
+                                                  QStringLiteral("startpos"), QStringLiteral("--target-moves"), QStringLiteral("3"),
+                                                  QStringLiteral("--timeout-ms"), QStringLiteral("1500")}, &error);
+        QVERIFY2(params, qPrintable(error));
+        QCOMPARE(params->value(QStringLiteral("timeout_seconds")).toInt(), 2);
+
+        params = CliCommandSpecs::parse(*convert, {QStringLiteral("--input"), QStringLiteral("/in.kif"), QStringLiteral("--output"),
+                                                   QStringLiteral("/out.csa"), QStringLiteral("--output-format"), QStringLiteral("csa")},
+                                        &error);
+        QVERIFY2(params, qPrintable(error));
+        QCOMPARE(params->value(QStringLiteral("input_path")).toString(), QStringLiteral("/in.kif"));
+        QCOMPARE(params->value(QStringLiteral("output_path")).toString(), QStringLiteral("/out.csa"));
+
+        params = CliCommandSpecs::parse(*analyze, {QStringLiteral("--params-json"),
+                                                   QStringLiteral(R"({"engine":"E","moves":["7g7f","P*5e"],"multipv":2})"),
+                                                   QStringLiteral("--multipv"), QStringLiteral("3")}, &error);
+        QVERIFY2(params, qPrintable(error));
+        QCOMPARE(params->value(QStringLiteral("multipv")).toInt(), 3);
+        QCOMPARE(params->value(QStringLiteral("moves")).toArray(), (QJsonArray{QStringLiteral("7g7f"), QStringLiteral("P*5e")}));
+        QVERIFY(!CliCommandSpecs::parse(*analyze, {QStringLiteral("--params-json"), QStringLiteral("[1]")}, &error));
+        QVERIFY2(error.contains(QStringLiteral("JSON object")), qPrintable(error));
+        QVERIFY(!CliCommandSpecs::parse(*analyze, {QStringLiteral("--params-json"), QStringLiteral(R"({"engine":"E","multipv":0})")},
+                                        &error));
+        QVERIFY2(error.contains(QStringLiteral("\"multipv\"")), qPrintable(error));
+        // 指し手は USI の形だけ（JSON Schema の pattern と同じ規則）
+        QVERIFY(!CliCommandSpecs::parse(*analyze, {QStringLiteral("--engine"), QStringLiteral("E"), QStringLiteral("--moves"),
+                                                   QStringLiteral("7g7f 76fu")}, &error));
+        QVERIFY2(error.contains(QStringLiteral("matching")), qPrintable(error));
+    }
+
     /// 自動化 API に登録したメソッドと表のメソッドは同じ
     void everyRegisteredMethodHasASpec()
     {
