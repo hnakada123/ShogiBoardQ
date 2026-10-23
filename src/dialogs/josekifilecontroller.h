@@ -31,8 +31,6 @@ public:
 
     /// 未保存の変更があれば保存・破棄・取りやめを聞く（保存は終わるまで待つ）。続けてよければ true
     [[nodiscard]] bool confirmDiscardChanges();
-    /// 保存先がなければ選ばせて保存する（マージの前）。保存先があれば true
-    [[nodiscard]] bool ensureFilePath();
     /// 未保存の変更を捨てて、保存した内容に戻す（ファイルがなければ空の定跡にする。変更がなければ何もしない）
     void revertChanges();
     /// ファイルを読み込み始める
@@ -50,8 +48,6 @@ public slots:
     void clearRecentFiles();
 
 signals:
-    /// 開いている定跡を替える直前（マージのダイアログを閉じる）
-    void bookSwitching();
     /// 状態表示に出す文（「読み込み中...」など）
     void statusMessage(const QString &text);
 

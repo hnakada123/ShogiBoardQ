@@ -205,7 +205,6 @@ private slots:
         QCOMPARE(added.frequency, 2);
         QCOMPARE(added.nextMove, QStringLiteral("none"));
         QCOMPARE(added.comment, QStringLiteral("棋譜のコメント"));
-        QVERIFY(session.mergeRegisteredMoves().contains({JosekiBookSession::positionKey(after), QStringLiteral("3c3d")}));
     }
 
     /// ダイアログ: フォルダの棋譜をワーカースレッドで集めて登録し、条件を保存する

@@ -2,124 +2,74 @@
 #define JOSEKIMERGEDIALOG_H
 
 /// @file josekimergedialog.h
-/// @brief 定跡統合ダイアログクラスの定義
+/// @brief 棋譜の手を選んで定跡に登録するダイアログ
 
 #include <QDialog>
-#include <QTableWidget>
-#include <QPushButton>
-#include <QLabel>
-#include <QCheckBox>
-#include <QVBoxLayout>
 #include <QList>
 #include <QString>
-#include <QSet>
-#include <QButtonGroup>
-#include <QCloseEvent>
-#include <functional>
 
-#include "josekitypes.h"
+#include "recordline.h"
+
+class JosekiBookSession;
+class QButtonGroup;
+class QLabel;
+class QPushButton;
+class QTableWidget;
 
 /**
- * @brief 定跡マージダイアログクラス
- * 
- * 現在の棋譜から指し手を選択して定跡にマージするためのダイアログ
+ * @brief 棋譜の手順（表示中の手順か棋譜ファイルの本譜）の手を、定跡に1手ずつか全部登録するダイアログ
+ *
+ * 行は手順の手（手数・表記）で、定跡に同じ局面・同じ指し手があれば「登録済」にして登録させない（定跡の中身で決める）。
+ * 登録済みでない手を JosekiBookSession::importMoves で出現頻度1で足し、保存はしない
+ * （定跡ウィンドウのほかの編集と同じく、定跡ウィンドウの「保存」で保存する）。
+ * 登録先はいつも開いている定跡で、定跡が変わると表を作り直し、開いている定跡ファイルが替わると登録先の表示を替える。
+ * 定跡を変えられないとき（読み書き中・前回のファイルの読み込み待ち）は使えなくする。
  */
 class JosekiMergeDialog : public QDialog
 {
     Q_OBJECT
 
 public:
-    /**
-     * @brief コンストラクタ
-     * @param parent 親ウィジェット
-     */
-    explicit JosekiMergeDialog(QWidget *parent = nullptr);
+    /// line の手を session の定跡に登録する（line.currentPly の手に印を付ける）
+    JosekiMergeDialog(JosekiBookSession *session, const RecordLine &line, QWidget *parent = nullptr);
     ~JosekiMergeDialog() override;
-
-    /**
-     * @brief 棋譜データを設定する
-     * @param entries 棋譜エントリのリスト
-     */
-    void setKifuData(const QList<KifuMergeEntry> &entries);
-    
-    /**
-     * @brief マージ先の定跡ファイル名を設定する
-     * @param filePath 定跡ファイルのパス
-     */
-    void setTargetJosekiFile(const QString &filePath);
-    
-    /**
-     * @brief 登録済みの指し手セットを設定する
-     * @param registeredMoves 登録済みの指し手（局面のキーと USI の指し手の組）
-     */
-    void setRegisteredMoves(const QSet<JosekiMoveKey> &registeredMoves);
-
-    /// 指し手を定跡に登録し始める関数（登録して定跡ファイルに保存し始めたら true）。
-    /// 保存が終わったら、呼び出し側が setRegisteredMoves() と finishRegistration() で知らせる
-    using Registrar = std::function<bool(const QList<KifuMergeEntry> &entries)>;
-    /// 登録する関数を設定する。空にすると登録できなくなる（定跡ファイルを替えたとき）
-    void setRegistrar(Registrar registrar);
-    /// 登録の保存が終わった（このダイアログの「全て登録」なら、登録できたときに件数を知らせる）
-    void finishRegistration(bool registered);
 
 private slots:
     /// 行の「登録」ボタン
     void onRegisterButtonClicked(int row);
-    
-    /**
-     * @brief 「全て登録」ボタンがクリックされた時のスロット
-     */
     void onRegisterAllButtonClicked();
-    
-    
-
-protected:
-    void closeEvent(QCloseEvent *event) override;
-
-private:
-    /**
-     * @brief UIを構築する
-     */
-    void setupUi();
-    
-    /**
-     * @brief テーブルを更新する
-     */
+    /// 定跡が変わった（登録済みの印を作り直す）
     void updateTable();
-    
-    /**
-     * @brief フォントサイズを適用する
-     */
+    /// 読み書き中・前回のファイルの読み込み待ちは使えなくする
+    void updateEnabled();
+    /// 登録先（開いている定跡ファイル）の表示
+    void updateTargetLabel();
     /// 文字の大きさに合わせて行の高さと列の幅を決め直す
     void fitRowsToFont();
-    /// 指し手を登録し始める（保存し始めたら true）
-    bool registerEntries(const QList<KifuMergeEntry> &entries);
-    
-    /// 指し手の見分け方（局面のキー・USI の指し手。JosekiBook と同じ）
-    static JosekiMoveKey moveKey(const KifuMergeEntry &entry);
-    
-    /**
-     * @brief 登録済みかどうかを確認する
-     * @param sfen 局面SFEN
-     * @param usiMove USI形式の指し手
-     * @return 登録済みならtrue
-     */
-    bool isRegistered(const QString &sfen, const QString &usiMove) const;
 
-    QTableWidget *m_tableWidget = nullptr;       ///< 棋譜表示テーブル
-    QPushButton *m_registerAllButton = nullptr;  ///< 全て登録ボタン
-    QPushButton *m_closeButton = nullptr;        ///< 閉じるボタン
-    QPushButton *m_fontIncreaseBtn = nullptr;    ///< フォント拡大ボタン
-    QPushButton *m_fontDecreaseBtn = nullptr;    ///< フォント縮小ボタン
-    QLabel *m_statusLabel = nullptr;             ///< 状態ラベル
-    QLabel *m_targetFileLabel = nullptr;         ///< マージ先ファイルラベル
-    QLabel *m_autoSaveLabel = nullptr;           ///< 自動保存説明ラベル
+private:
+    /// 手順の1手
+    struct Row {
+        int ply = 0;
+        QString sfen;      ///< 指す前の局面
+        QString usiMove;
+        QString moveText;  ///< 棋譜の表記
+    };
 
-    QList<KifuMergeEntry> m_entries; ///< 棋譜エントリ
-    QSet<JosekiMoveKey> m_registeredMoves; ///< 登録済みの指し手（局面のキーと USI の指し手の組）
-    Registrar m_registrar;
-    /// 保存中の「全て登録」の件数（このダイアログが頼んでいなければ 0）
-    int m_pendingRegisterAllCount = 0;
+    void setupUi();
+    bool isRegistered(const Row &row) const;
+
+    JosekiBookSession *m_session = nullptr;
+    QList<Row> m_rows;
+    int m_currentPly = 0;
+
+    QTableWidget *m_tableWidget = nullptr;
+    QPushButton *m_registerAllButton = nullptr;
+    QPushButton *m_closeButton = nullptr;
+    QPushButton *m_fontIncreaseBtn = nullptr;
+    QPushButton *m_fontDecreaseBtn = nullptr;
+    QLabel *m_statusLabel = nullptr;
+    QLabel *m_targetFileLabel = nullptr;
     QButtonGroup *m_registerButtons = nullptr;  ///< 行の「登録」ボタン（id が行）
 };
 

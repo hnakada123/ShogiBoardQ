@@ -60,7 +60,6 @@ void JosekiFileController::open()
 void JosekiFileController::newBook()
 {
     if (!confirmDiscardChanges()) return;
-    emit bookSwitching();
     m_deps.session->newBook();
 }
 
@@ -110,7 +109,6 @@ void JosekiFileController::revertChanges()
     if (isBusy() || !m_deps.session->isModified()) return;
     const QString filePath = m_deps.session->filePath();
     if (filePath.isEmpty()) {
-        emit bookSwitching();
         m_deps.session->newBook();
     } else {
         openFile(filePath);
@@ -120,20 +118,17 @@ void JosekiFileController::revertChanges()
 void JosekiFileController::openFile(const QString &filePath)
 {
     if (isBusy()) return;
-    emit bookSwitching();
     m_deps.session->startLoad(filePath);
 }
 
 void JosekiFileController::saveTo(const QString &filePath)
 {
     if (isBusy()) return;
-    if (filePath != m_deps.session->filePath()) emit bookSwitching();
     m_deps.session->startSave(filePath);
 }
 
 bool JosekiFileController::saveNow(const QString &filePath)
 {
-    if (filePath != m_deps.session->filePath()) emit bookSwitching();
     QString errorMessage;
     if (m_deps.session->save(filePath, &errorMessage)) return true;
     QMessageBox::warning(m_deps.parentWidget, tr("エラー"), errorMessage);
@@ -187,19 +182,6 @@ bool JosekiFileController::confirmDiscardChanges()
         return !filePath.isEmpty() && saveNow(filePath);
     }
     return choice == QMessageBox::Discard;
-}
-
-bool JosekiFileController::ensureFilePath()
-{
-    if (!m_deps.session->filePath().isEmpty()) return true;
-    const QMessageBox::StandardButton result = QMessageBox::question(
-        m_deps.parentWidget, tr("保存先の指定"),
-        tr("定跡ファイルの保存先が設定されていません。\nOKを選択すると保存先が指定できます。"),
-        QMessageBox::Ok | QMessageBox::Cancel, QMessageBox::Ok);
-    if (result != QMessageBox::Ok) return false;
-    const QString filePath = withBookSuffix(QFileDialog::getSaveFileName(
-        m_deps.parentWidget, tr("定跡ファイルの保存先を指定"), QDir::homePath(), bookFileFilter()));
-    return !filePath.isEmpty() && saveNow(filePath);
 }
 
 QString JosekiFileController::selectSaveFilePath()

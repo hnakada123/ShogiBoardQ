@@ -1,4 +1,5 @@
 #include <QtTest>
+#include <QAction>
 #include <QCheckBox>
 #include <QTemporaryDir>
 #include "analysissession.h"
@@ -6,7 +7,6 @@
 #include "appactivitystate.h"
 #include "enginelifecyclemanager.h"
 #include "josekibooksession.h"
-#include "josekisettings.h"
 #include "candidatearrowpresenter.h"
 #include "thinkingpanel.h"
 #include "sfenutils.h"
@@ -104,10 +104,9 @@ private slots:
         QVERIFY(!CandidateArrowPresenter::arrowForMove("7g0f", black, 1));
     }
     /// 定跡手の矢印: 表の順に番号を付け、出現頻度の高い手ほど濃い緑にする。定跡が変われば描き直し、
-    /// 表示を許さないとき（定跡ウィンドウで止めた・対局中のエンジンの手番）は出さない
+    /// 「盤に定跡手を表示」がオフのとき・定跡ウィンドウで表示を止めたときは出さない
     void josekiArrows()
     {
-        JosekiSettings::boardArrowsVisible.set(false);
         const QString hirate = SfenUtils::hirateSfen();
         ShogiBoard board;
         board.setSfen(hirate);
@@ -116,17 +115,21 @@ private slots:
         JosekiBookSession book;
         book.addMove(hirate, {QStringLiteral("7g7f"), QStringLiteral("none"), 0, 0, 30, {}});
         book.addMove(hirate, {QStringLiteral("2g2f"), QStringLiteral("none"), 0, 0, 10, {}});
-        bool allowed = true;
+        QAction arrowsAction;
+        arrowsAction.setCheckable(true);
+        QAction displayAction;
+        displayAction.setCheckable(true);
+        displayAction.setChecked(true);
         CandidateArrowPresenter::Deps deps;
         deps.view = &view;
         deps.josekiBook = &book;
-        deps.josekiArrowsAllowed = [&allowed]() { return allowed; };
+        deps.josekiArrows = &arrowsAction;
+        deps.josekiDisplay = &displayAction;
         CandidateArrowPresenter presenter(deps);
         presenter.refresh();
         QVERIFY(view.arrows().isEmpty());
 
-        presenter.setJosekiArrowsVisible(true);
-        QVERIFY(JosekiSettings::boardArrowsVisible());
+        arrowsAction.setChecked(true);
         QTRY_COMPARE(view.arrows().size(), 2);
         QCOMPARE(view.arrows().at(0).priority, 1);
         QCOMPARE(view.arrows().at(1).priority, 2);
@@ -136,19 +139,16 @@ private slots:
 
         book.addMove(hirate, {QStringLiteral("5g5f"), QStringLiteral("none"), 0, 0, 0, {}});
         QTRY_COMPARE(view.arrows().size(), 3);
-        allowed = false;
-        presenter.scheduleRefresh();
+        displayAction.setChecked(false);
         QTRY_VERIFY(view.arrows().isEmpty());
-        allowed = true;
-        presenter.scheduleRefresh();
+        displayAction.setChecked(true);
         QTRY_COMPARE(view.arrows().size(), 3);
         board.setSfen(QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b - 1"));
         presenter.refresh();
         QVERIFY(view.arrows().isEmpty());
         board.setSfen(hirate);
-        presenter.setJosekiArrowsVisible(false);
+        arrowsAction.setChecked(false);
         QTRY_VERIFY(view.arrows().isEmpty());
-        QVERIFY(!JosekiSettings::boardArrowsVisible());
     }
     void considerationAndSettings()
     {

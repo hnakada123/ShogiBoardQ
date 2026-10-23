@@ -4,8 +4,8 @@
 #include "analysissettings.h"
 #include "appactivitystate.h"
 #include "enginelifecyclemanager.h"
+#include "humanturnpolicy.h"
 #include "josekibooksession.h"
-#include "josekisettings.h"
 #include "kifupresentation.h"
 #include "matchcoordinator.h"
 #include "sfenreplay.h"
@@ -13,6 +13,8 @@
 #include "shogiboard.h"
 #include "shogienginethinkingmodel.h"
 #include "usi.h"
+
+#include <QAction>
 
 namespace {
 QString positionKey(const QString& sfen)
@@ -30,7 +32,6 @@ CandidateArrowPresenter::CandidateArrowPresenter(const Deps& deps, QObject* pare
     : QObject(parent)
     , m_view(deps.view)
     , m_sources(deps)
-    , m_josekiArrowsVisible(JosekiSettings::boardArrowsVisible())
 {
     Q_ASSERT(deps.view);
     m_refreshTimer.setSingleShot(true);
@@ -57,20 +58,17 @@ CandidateArrowPresenter::CandidateArrowPresenter(const Deps& deps, QObject* pare
     }
     if (deps.josekiBook)
         connect(deps.josekiBook, &JosekiBookSession::contentChanged, this, &CandidateArrowPresenter::scheduleRefresh);
-}
-
-void CandidateArrowPresenter::setJosekiArrowsVisible(bool visible)
-{
-    if (m_josekiArrowsVisible == visible) return;
-    m_josekiArrowsVisible = visible;
-    JosekiSettings::boardArrowsVisible.set(visible);
-    scheduleRefresh();
+    for (const QAction* action : {deps.josekiArrows, deps.josekiDisplay})
+        if (action) connect(action, &QAction::toggled, this, &CandidateArrowPresenter::scheduleRefresh);
 }
 
 void CandidateArrowPresenter::appendJosekiArrows(QList<ShogiView::Arrow>& arrows, const QString& sfen) const
 {
-    if (!m_josekiArrowsVisible || !m_sources.josekiBook) return;
-    if (m_sources.josekiArrowsAllowed && !m_sources.josekiArrowsAllowed()) return;
+    if (!m_sources.josekiBook || !m_sources.josekiArrows || !m_sources.josekiArrows->isChecked()) return;
+    if (m_sources.josekiDisplay && !m_sources.josekiDisplay->isChecked()) return;
+    // 対局中は人間の手番だけ（エンジンの手番に定跡手を見せても使えない）
+    const HumanTurnPolicy* turn = m_sources.humanTurn;
+    if (turn && turn->isGameActivelyInProgress() && !turn->isHumanTurnNow()) return;
     const QList<JosekiMove> moves = m_sources.josekiBook->movesAt(sfen);
     int maxFrequency = 0;
     for (const JosekiMove& move : moves) maxFrequency = qMax(maxFrequency, move.frequency);

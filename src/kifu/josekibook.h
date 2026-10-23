@@ -7,7 +7,6 @@
 #include <QByteArray>
 #include <QHash>
 #include <QList>
-#include <QSet>
 #include <QString>
 #include <QStringList>
 #include <QStringView>
@@ -41,7 +40,6 @@ namespace JosekiBookFile {
  * 指し手の文字列とコメントは別の表に入れ、取り出すときに JosekiMove に戻す。
  *
  * 定跡手のない登録は持たない（最後の定跡手を消すと登録も消える）。
- * 棋譜からマージで登録した指し手の印（局面のキーと指し手の組）も持つ。
  */
 class JosekiBook
 {
@@ -84,11 +82,9 @@ public:
     /// それも同じなら元の順）。並びが変わったら true
     bool sortMoves(const QString &sfen, SortKey key);
 
-    /// 棋譜からのマージで登録する（あれば出現頻度を count 増やし、無ければ出現頻度 count で足す）。登録済みの印を付ける。
-    /// comment はコメントの無い手にだけ入れる。新しく足したら true
-    bool registerMergeMove(const QString &sfen, const QString &usiMove, int count = 1, const QString &comment = QString());
-    /// マージで登録した印のある指し手か
-    bool isMergeRegistered(const QString &sfen, const QString &usiMove) const;
+    /// 棋譜で指された手を数える（あれば出現頻度を count 増やし、無ければ予想応手なし・評価値0・深さ0・
+    /// 出現頻度 count で足す）。comment はコメントの無い手にだけ入れる。新しく足したら true
+    bool addPlayedMove(const QString &sfen, const QString &usiMove, int count = 1, const QString &comment = QString());
 
     /// 別の定跡を足すときの、同じ指し手の扱い
     struct MergeOptions {
@@ -103,8 +99,6 @@ public:
     };
     /// other の局面と定跡手を足す。今の定跡に無い局面は手数違いの登録もそのまま写す
     MergeStats mergeFrom(const JosekiBook &other, const MergeOptions &options);
-    /// マージで登録した印（局面のキーと指し手の組）
-    const QSet<JosekiMoveKey> &mergeRegistered() const { return m_mergeRegistered; }
 
     void clear();
 
@@ -164,7 +158,6 @@ private:
     QHash<QString, quint16> m_tokenCodes;  ///< m_tokens の逆引き
     /// コメント（[0] は空）。消した定跡手のコメントは次に読み込むまで残る
     QStringList m_comments{QString()};
-    QSet<JosekiMoveKey> m_mergeRegistered;
 };
 
 /// 定跡ファイルの読み込み結果（ワーカースレッドで作り、メインスレッドで使う値）

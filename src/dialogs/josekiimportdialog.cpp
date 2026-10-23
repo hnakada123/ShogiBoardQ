@@ -288,7 +288,7 @@ void JosekiImportDialog::onFinished()
         m_status->setText(tr("中止しました（定跡は変えていません）"));
         return;
     }
-    if (m_session->isBusy()) {
+    if (!m_session->canEdit()) {
         m_status->setText(tr("定跡の読み書き中のため、登録できませんでした"));
         return;
     }

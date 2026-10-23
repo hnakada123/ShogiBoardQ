@@ -393,8 +393,6 @@ set(SRC_KIFU
     src/kifu/josekiimport.h
     src/kifu/josekilines.cpp
     src/kifu/josekilines.h
-    src/kifu/josekimergeentries.cpp
-    src/kifu/josekimergeentries.h
     src/kifu/josekimovepicker.cpp
     src/kifu/josekimovepicker.h
     src/kifu/josekitypes.h

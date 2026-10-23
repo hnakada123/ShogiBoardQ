@@ -299,6 +299,19 @@ void MainWindowComposer::createPresentersAndDocks()
     // 開いている定跡（定跡ウィンドウが表示・編集し、盤の矢印と対局でも使う）
     m_c.josekiBook = new JosekiBookSession(&m_window);
 
+    // 定跡ウィンドウ。定跡手を指せるかは盤のクリックと同じ判定を使う。定跡の表示・「盤に定跡手を表示」・
+    // 「盤の手を登録」の QAction は盤の矢印と定跡への登録も読む
+    JosekiWindowController::Deps jd;
+    jd.parentWidget = &m_window;
+    jd.book = m_c.josekiBook;
+    jd.boardArrows = m_ui.actionShowJosekiArrows;
+    jd.navState = m_c.navState;
+    jd.isHumanTurnNow = std::bind(&MainWindowComposer::isHumanTurnNow, this);
+    jd.boardMoves = m_c.boardMoves;
+    jd.branchEdit = m_c.branchEdit;
+    jd.navController = m_c.kifuNavController;
+    m_c.joseki = new JosekiWindowController(jd, &m_window);
+
     CandidateArrowPresenter::Deps ad;
     ad.view = m_c.shogiView;
     ad.match = m_c.match;
@@ -308,9 +321,10 @@ void MainWindowComposer::createPresentersAndDocks()
     ad.consideration = m_c.consideration;
     ad.showConsiderationArrows = std::bind(&MainWindowComposer::showConsiderationArrows, this);
     ad.josekiBook = m_c.josekiBook;
-    ad.josekiArrowsAllowed = std::bind(&MainWindowComposer::josekiArrowsAllowed, this);
+    ad.josekiArrows = m_ui.actionShowJosekiArrows;
+    ad.josekiDisplay = m_c.joseki->displayAction();
+    ad.humanTurn = m_c.humanTurnPolicy.get();
     m_c.arrows = new CandidateArrowPresenter(ad, &m_window);
-    m_ui.actionShowJosekiArrows->setChecked(m_c.arrows->josekiArrowsVisible());
 
     PlayerInfoPresenter::Deps pd;
     pd.document = m_c.document;
@@ -320,23 +334,10 @@ void MainWindowComposer::createPresentersAndDocks()
 
     m_c.menuWindowController = new MenuWindowController({&m_window, m_window.menuBar()}, &m_window);
 
-    // 定跡ウィンドウ。定跡手を指せるかは盤のクリックと同じ判定を使う
-    JosekiWindowController::Deps jd;
-    jd.parentWidget = &m_window;
-    jd.book = m_c.josekiBook;
-    jd.gameController = m_c.gameController;
-    jd.navState = m_c.navState;
-    jd.isHumanTurnNow = std::bind(&MainWindowComposer::isHumanTurnNow, this);
-    jd.boardMoves = m_c.boardMoves;
-    jd.branchEdit = m_c.branchEdit;
-    jd.navController = m_c.kifuNavController;
-    m_c.joseki = new JosekiWindowController(jd, &m_window);
-    m_c.joseki->josekiWindow()->setBoardArrowsChecked(m_c.arrows->josekiArrowsVisible());
-
-    // 思考の表・棋譜解析の結果から定跡に登録する（定跡ウィンドウで定跡を開いているときだけ）
+    // 思考の表・棋譜解析の結果と盤で指した手から定跡に登録する（定跡を変えられるときだけ）
     JosekiRegistrationController::Deps rd;
     rd.book = m_c.josekiBook;
-    rd.canRegister = std::bind(&JosekiWindow::canRegisterMoves, m_c.joseki->josekiWindow());
+    rd.recordBoardMoves = m_c.joseki->recordBoardMovesAction();
     rd.analysisModel = m_c.analysis;
     rd.parentWidget = &m_window;
     rd.statusBar = m_ui.statusbar;

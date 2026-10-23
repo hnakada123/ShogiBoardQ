@@ -24,7 +24,6 @@
 #include "boardinteractioncontroller.h"
 #include "boardmovecontroller.h"
 #include "analysisresultspanel.h"
-#include "josekiwindow.h"
 #include "josekiregistrationcontroller.h"
 #include "josekiwindowcontroller.h"
 #include "kifudisplaypresenter.h"
@@ -181,16 +180,12 @@ void MainWindowComposer::connectAnalysisAndUi()
     connect(m_c.arrows, &CandidateArrowPresenter::displayStateChanged, thinking, &ThinkingPanel::setArrowDisplayState);
     connect(thinking, &ThinkingPanel::arrowSettingsChanged, m_c.arrows, &CandidateArrowPresenter::scheduleRefresh);
     connect(consideration, &ConsiderationTabManager::settingsChanged, m_c.arrows, &CandidateArrowPresenter::scheduleRefresh);
-    // 定跡手の矢印: 「表示」メニューと定跡ウィンドウの「盤に矢印」を同じ状態にし、定跡の表示を止めたら描き直す
-    JosekiWindow* josekiWindow = m_c.joseki->josekiWindow();
-    connect(m_ui.actionShowJosekiArrows, &QAction::toggled, josekiWindow, &JosekiWindow::setBoardArrowsChecked);
-    connect(josekiWindow, &JosekiWindow::boardArrowsToggled, m_ui.actionShowJosekiArrows, &QAction::setChecked);
-    connect(josekiWindow, &JosekiWindow::displayEnabledChanged, m_c.arrows, &CandidateArrowPresenter::scheduleRefresh);
     // 盤で指した手と対局で指された手（定跡ウィンドウの「盤の手を登録」がオンなら定跡に登録する）
-    connect(m_c.branchEdit, &BranchTreeEditController::boardMoveRecorded, josekiWindow, &JosekiWindow::recordBoardMove);
-    connect(m_c.gameSession, &GameSession::gameMoveRecorded, josekiWindow, &JosekiWindow::recordBoardMove);
-    // 思考の表・検討の表・棋譜解析の結果の表の右クリックに「定跡に登録」を足す
     JosekiRegistrationController* registration = m_c.josekiRegistration;
+    connect(m_c.branchEdit, &BranchTreeEditController::boardMoveRecorded,
+            registration, &JosekiRegistrationController::recordBoardMove);
+    connect(m_c.gameSession, &GameSession::gameMoveRecorded, registration, &JosekiRegistrationController::recordBoardMove);
+    // 思考の表・検討の表・棋譜解析の結果の表の右クリックに「定跡に登録」を足す
     connect(thinking, &ThinkingPanel::rowContextMenuAboutToShow,
             registration, &JosekiRegistrationController::onThinkingRowContextMenu);
     connect(consideration, &ConsiderationTabManager::rowContextMenuAboutToShow,
@@ -222,7 +217,6 @@ void MainWindowComposer::connectAnalysisAndUi()
     md.appearance = m_c.appearance;
     md.images = m_c.images;
     md.boardController = m_c.boardController;
-    md.arrows = m_c.arrows;
     md.pieceSound = m_c.pieceSoundPlayer;
     md.settingsReset = m_c.settingsReset;
     MenuActionsWiring::wire(md);

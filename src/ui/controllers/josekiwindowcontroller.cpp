@@ -11,11 +11,11 @@
 #include "josekiwindow.h"
 #include "kifubranchnode.h"
 #include "kifunavigationcontroller.h"
+#include "josekisettings.h"
 #include "kifupresentation.h"
-#include "shogigamecontroller.h"
-#include "boardcoordinates.h"
 #include "kifunavigationstate.h"
 
+#include <QAction>
 #include <QDockWidget>
 #include <QMessageBox>
 #include <functional>
@@ -25,13 +25,21 @@ JosekiWindowController::JosekiWindowController(const Deps& deps, QObject* parent
     , m_parentWidget(deps.parentWidget)
     , m_book(deps.book)
     , m_branchEdit(deps.branchEdit)
-    , m_gameController(deps.gameController)
     , m_navState(deps.navState)
     , m_isHumanTurnNow(deps.isHumanTurnNow)
     , m_boardMoves(deps.boardMoves)
+    , m_displayAction(new QAction(tr("定跡を表示"), this))
+    , m_recordBoardMovesAction(new QAction(tr("盤の手を登録"), this))
 {
-    Q_ASSERT(deps.book && m_gameController && m_navState && m_boardMoves && m_branchEdit && deps.navController);
-    m_josekiWindow = new JosekiWindow(deps.book, m_parentWidget);
+    Q_ASSERT(deps.book && deps.boardArrows && m_navState && m_boardMoves && m_branchEdit && deps.navController);
+    m_displayAction->setCheckable(true);
+    m_displayAction->setChecked(JosekiSettings::josekiWindowDisplayEnabled());
+    m_recordBoardMovesAction->setCheckable(true);
+    deps.boardArrows->setChecked(JosekiSettings::boardArrowsVisible());
+    connect(m_displayAction, &QAction::toggled, this, &JosekiWindowController::onDisplayToggled);
+    connect(deps.boardArrows, &QAction::toggled, this, &JosekiWindowController::onBoardArrowsToggled);
+    m_josekiWindow = new JosekiWindow(deps.book, {m_displayAction, m_recordBoardMovesAction, deps.boardArrows},
+                                      m_parentWidget);
 
     // 定跡手選択シグナルを接続
     connect(m_josekiWindow, &JosekiWindow::josekiMoveSelected,
@@ -82,10 +90,21 @@ void JosekiWindowController::updateJosekiWindow()
     updateBookDeviation();
 }
 
+void JosekiWindowController::onDisplayToggled(bool displayed)
+{
+    JosekiSettings::josekiWindowDisplayEnabled.set(displayed);
+    updateBookDeviation();
+}
+
+void JosekiWindowController::onBoardArrowsToggled(bool visible)
+{
+    JosekiSettings::boardArrowsVisible.set(visible);
+}
+
 void JosekiWindowController::updateBookDeviation()
 {
     const RecordLine line = m_navState->currentRecordLine();
-    if (m_book->isEmpty() || line.moveCount() == 0 || !m_josekiWindow->isDisplayEnabled()) {
+    if (m_book->isEmpty() || line.moveCount() == 0 || !m_displayAction->isChecked()) {
         m_josekiWindow->setBookDeviation(-1, QString());
         return;
     }
@@ -141,7 +160,7 @@ void JosekiWindowController::onJosekiMoveSelected(const QString& usiMove)
     }
     // 最後に表示を更新した後で終局・手番交代していれば、着手ボタンを消して何もしない
     if (!determineHumanCanPlay()) {
-        m_josekiWindow->setHumanCanPlay(false);
+        m_josekiWindow->updateHumanCanPlay();
         return;
     }
 
@@ -159,9 +178,8 @@ void JosekiWindowController::onJosekiMoveSelected(const QString& usiMove)
 
 void JosekiWindowController::onRequestKifuDataForMerge()
 {
-    // 表示中の手順（分岐を選んでいればその分岐）の局面・指し手・表記をそろえて渡す
-    const RecordLine line = m_navState ? m_navState->currentRecordLine() : RecordLine{};
-    qCDebug(lcUi) << "onRequestKifuDataForMerge: moves=" << line.moveCount()
-                  << "currentPly=" << line.currentPly;
-    m_josekiWindow->setKifuDataForMerge(line.sfens(), line.usiMoves(), line.displayTexts(), line.currentPly);
+    // 表示中の手順（分岐を選んでいればその分岐）を渡す
+    const RecordLine line = m_navState->currentRecordLine();
+    qCDebug(lcUi) << "onRequestKifuDataForMerge: moves=" << line.moveCount() << "currentPly=" << line.currentPly;
+    m_josekiWindow->openMergeForLine(line);
 }
