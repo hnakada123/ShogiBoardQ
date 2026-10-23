@@ -22,13 +22,11 @@ public:
     /**
      * @brief ツリーを取り込んだ棋譜で作り直す
      * @param tree 対象ツリー（クリアして再構築）
-     * @param result 取り込んだ棋譜。変化の分岐元は先に書かれた手順（KifParseResult::addVariation で足したもの）
-     * @param startSfen 開始局面のSFEN
+     * @param result 取り込んだ棋譜（開始局面は本譜の startSfen）。変化の分岐元は先に書かれた手順
+     *               （KifParseResult::addVariation で足したもの）
      * @return 分岐元が先に書かれた手順でない変化があれば、ツリーを変えずに false
      */
-    static bool buildFromKifParseResult(KifuBranchTree* tree,
-                                        const KifParseResult& result,
-                                        const QString& startSfen);
+    static bool buildFromKifParseResult(KifuBranchTree* tree, const KifParseResult& result);
 
 private:
     KifuBranchTreeBuilder() = default;

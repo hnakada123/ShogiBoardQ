@@ -31,7 +31,7 @@ public:
 
 private:
     /// "~" の前に書いた開始局面（なければ平手）
-    static QString initialSfenOf(const QString& content, QString* detectedLabel);
+    static QString initialSfenOf(const QString& content, StartKind* kind);
 
     // ---- USEN デコードヘルパ ----
 

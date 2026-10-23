@@ -107,10 +107,9 @@ void KifuDocument::startNew(const QString& sfen, bool keepHeader)
     finishReplacement(keepHeader ? header() : defaultHeader(), true);
 }
 
-bool KifuDocument::replaceWithRecord(const KifParseResult& record, const QString& startSfen,
-                                     const QList<KifGameInfoItem>& header)
+bool KifuDocument::replaceWithRecord(const KifParseResult& record, const QList<KifGameInfoItem>& header)
 {
-    if (!KifuBranchTreeBuilder::buildFromKifParseResult(m_tree, record, startSfen)) return false;
+    if (!KifuBranchTreeBuilder::buildFromKifParseResult(m_tree, record)) return false;
     finishReplacement(header, false);
     return true;
 }

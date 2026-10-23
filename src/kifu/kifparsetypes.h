@@ -189,19 +189,27 @@ private:
     bool m_failed = false;
 };
 
+/// 棋譜の開始局面の書き方
+enum class StartKind {
+    Default,    ///< 書かれていない（平手とみなす）
+    Handicap,   ///< 手合割の名前（平手・香落ちなど。USI の startpos・JKF の preset を含む）
+    Diagram,    ///< 局面図（KIF・KI2 の BOD と「配置」、JKF の data）
+    Specified,  ///< 局面の値（SFEN・USEN の局面、CSA の平手以外の局面）
+};
+
 /**
  * @brief 1回の解析で得る棋譜のすべて（形式ごとの parse() が返す）
  *
- * 棋譜（本譜・変化）・開始局面・手合割の名前・対局情報・警告を同じ解析で作る。
+ * 棋譜（本譜・変化）・開始局面の書き方・対局情報・警告を同じ解析で作る。
+ * 開始局面は本譜の開始局面（record.mainline.startSfen）だけに置く。
  */
 struct KifuParseOutcome {
     bool success = false;
     KifParseResult record;
-    QString initialSfen;               ///< 開始局面（record.mainline.startSfen と同じ）
-    QString teaiLabel;                 ///< 手合割の名前（局面図なら "BOD"、USI・CSA は「平手」「局面指定」）
+    StartKind startKind = StartKind::Default;
+    bool positionOnly = false;         ///< 指し手のない局面だけの棋譜（USI・SFEN・BOD）
     QList<KifGameInfoItem> gameInfo;   ///< 対局情報（書かれた順）
     QString warning;                   ///< 警告（失敗したときは理由）
-    QString positionOnly;              ///< 指し手のない局面だけの棋譜（USI・SFEN・BOD）の局面
 };
 
 #endif // KIFPARSETYPES_H

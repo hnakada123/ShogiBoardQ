@@ -271,13 +271,13 @@ private slots:
 
     void detectInitialSfen_nonExistentFile()
     {
-        QString label;
+        StartKind kind = StartKind::Handicap;
         QString sfen = KifuFile::initialSfen<Ki2ToSfenConverter>(
-            fixturePath(QStringLiteral("nonexistent.ki2")), &label);
+            fixturePath(QStringLiteral("nonexistent.ki2")), &kind);
         // Falls back to hirate
         QCOMPARE(sfen,
                  QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"));
-        QCOMPARE(label, QStringLiteral("平手(既定)"));
+        QCOMPARE(kind, StartKind::Default);
     }
 
     // ========================================
@@ -418,7 +418,7 @@ private slots:
         QCOMPARE(fromText.variations[0].line.usiMoves(), QStringList({QStringLiteral("8c8d")}));
         // 対局情報と開始局面も同じ解析で得る
         QCOMPARE(outcome.gameInfo.size(), 2);
-        QCOMPARE(outcome.initialSfen, kHirateSfen);
+        QCOMPARE(outcome.record.mainline.startSfen, kHirateSfen);
         QCOMPARE(fromText.mainline.startSfen, kHirateSfen);
     }
 

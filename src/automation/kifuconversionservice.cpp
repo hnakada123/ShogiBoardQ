@@ -43,21 +43,17 @@ KifuConversionService::Result KifuConversionService::convert(const Request& requ
                           loaded.error.isEmpty() ? QStringLiteral("Failed to parse the kifu") : loaded.error};
         return result;
     }
-    if (!loaded.positionOnly.isEmpty()) {
-        loaded.initialSfen = loaded.positionOnly;
-        loaded.record.mainline.startSfen = loaded.positionOnly;
-    }
     result.gameInfo = loaded.gameInfo;
     result.hasBranches = !loaded.record.variations.isEmpty();
 
     // 一時的な分岐ツリーを組み立てて、GUI と同じ書き出しの表で出力する
     KifuBranchTree tree;
-    if (!KifuBranchTreeBuilder::buildFromKifParseResult(&tree, loaded.record, loaded.initialSfen)) {
+    if (!KifuBranchTreeBuilder::buildFromKifParseResult(&tree, loaded.record)) {
         result.failure = {ErrorKind::InvalidContent, QStringLiteral("Invalid variation parent or starting ply")};
         return result;
     }
 
-    result.initialSfen = tree.root() ? tree.root()->sfen() : loaded.initialSfen;
+    result.initialSfen = tree.root() ? tree.root()->sfen() : loaded.startSfen();
     // 開始局面は render-board と同じく、盤と持駒として成り立つかを確かめる（駒数の上限・玉の重複。
     // 表記の説明の図のような、手番でない側に王手がかかっている局面は受け付ける）
     if (const SfenValidation start = SfenValidationService::validate(result.initialSfen); start.normalizedSfen.isEmpty()) {

@@ -304,7 +304,7 @@ namespace KifLexer {
 
 // === BOD盤面解析 ===
 
-bool readBodPosition(const QStringList& lines, Position& out, QString* detectedLabel)
+bool readBodPosition(const QStringList& lines, Position& out)
 {
     Position position;
     int rows = 0;
@@ -328,7 +328,6 @@ bool readBodPosition(const QStringList& lines, Position& out, QString* detectedL
             }
         }
         rows = currentRankIdx;
-        if (detectedLabel) *detectedLabel = QStringLiteral("配置");
     } else {
         // 段の漢数字で段を決める（同じ段が2度あれば後の行）
         QList<int> seen;
@@ -341,7 +340,6 @@ bool readBodPosition(const QStringList& lines, Position& out, QString* detectedL
             if (!seen.contains(rank)) seen.append(rank);
         }
         rows = static_cast<int>(seen.size());
-        if (detectedLabel && rows > 0) *detectedLabel = QStringLiteral("BOD");
     }
     if (rows != 9) return false;
 

@@ -251,7 +251,7 @@ private slots:
         QVERIFY2(loaded.success, qPrintable(loaded.error));
         // 棋譜の正本（分岐ツリー）では、終局行は直前の局面を持つ終局ノードになる
         KifuBranchTree tree;
-        KifuBranchTreeBuilder::buildFromKifParseResult(&tree, loaded.record, loaded.initialSfen);
+        KifuBranchTreeBuilder::buildFromKifParseResult(&tree, loaded.record);
         const QList<KifuBranchNode*> mainLine = tree.mainLine();
         QCOMPARE(mainLine.size(), 3);
         QVERIFY(mainLine.last()->isTerminal());
@@ -328,11 +328,11 @@ private slots:
         QFETCH(QStringList, moves);
         const auto loaded = KifuLoadParser::parseText(text);
         QVERIFY2(loaded.success, qPrintable(loaded.error));
-        QCOMPARE(loaded.initialSfen, sfen);
+        QCOMPARE(loaded.startSfen(), sfen);
         QCOMPARE(loaded.record.mainline.startSfen, sfen);
         QCOMPARE(loaded.record.mainline.usiMoves(), moves);
         KifuBranchTree tree;
-        KifuBranchTreeBuilder::buildFromKifParseResult(&tree, loaded.record, loaded.initialSfen);
+        KifuBranchTreeBuilder::buildFromKifParseResult(&tree, loaded.record);
         QCOMPARE(tree.root()->sfen(), sfen);
     }
 
@@ -527,7 +527,7 @@ private slots:
         QCOMPARE(fromText.record.mainline.usiMoves(), fromFile.record.mainline.usiMoves());
         QCOMPARE(fromText.record.variations.size(), 1);
         QCOMPARE(fromText.gameInfo.size(), fromFile.gameInfo.size());
-        QCOMPARE(fromText.initialSfen, fromFile.initialSfen);
+        QCOMPARE(fromText.startSfen(), fromFile.startSfen());
     }
 };
 

@@ -350,9 +350,9 @@ private slots:
         // 指し手も終局コードもなければ、局面だけの棋譜として読む
         const KifuParseOutcome outcome = KifuFile::parseFile<UsiToSfenConverter>(tmp.fileName());
         QVERIFY2(outcome.success, qPrintable(outcome.warning));
-        QCOMPARE(outcome.positionOnly, kHirateSfen);
-        QCOMPARE(outcome.initialSfen, kHirateSfen);
-        QCOMPARE(outcome.teaiLabel, QStringLiteral("平手"));
+        QVERIFY(outcome.positionOnly);
+        QCOMPARE(outcome.record.mainline.startSfen, kHirateSfen);
+        QCOMPARE(outcome.startKind, StartKind::Handicap);
         QVERIFY(outcome.record.mainline.entries.isEmpty());
     }
 
@@ -380,9 +380,9 @@ private slots:
         QVERIFY(terminal.isEmpty());
         QVERIFY2(warn.isEmpty(), qPrintable(warn));
 
-        QString label;
-        QCOMPARE(KifuFile::initialSfen<UsiToSfenConverter>(tmp.fileName(), &label), baseSfen);
-        QCOMPARE(label, QStringLiteral("局面指定"));
+        StartKind kind = StartKind::Default;
+        QCOMPARE(KifuFile::initialSfen<UsiToSfenConverter>(tmp.fileName(), &kind), baseSfen);
+        QCOMPARE(kind, StartKind::Specified);
     }
 
     void parseUsiFile_bareSfenWithoutMoveNumber()

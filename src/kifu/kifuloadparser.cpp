@@ -83,8 +83,7 @@ KifuLoadResult KifuLoadParser::parseContent(const QString& content, KifuFormat f
 
     KifuParseOutcome outcome = parserFor(format)(content, ParseOptions{});
     result.success = outcome.success;
-    result.initialSfen = outcome.initialSfen;
-    result.teaiLabel = outcome.teaiLabel;
+    result.startKind = outcome.startKind;
     result.positionOnly = outcome.positionOnly;
     result.warning = outcome.warning;
     result.gameInfo = outcome.gameInfo;
@@ -100,9 +99,8 @@ KifuLoadResult KifuLoadParser::parseContent(const QString& content, KifuFormat f
         }
         return result;
     }
-    if (!result.positionOnly.isEmpty() || canceled(cancel)) return result;
-    if (result.initialSfen.isEmpty()) result.initialSfen = SfenUtils::hirateSfen();
-    if (result.record.mainline.startSfen.isEmpty()) result.record.mainline.startSfen = result.initialSfen;
+    if (canceled(cancel)) return result;
+    if (result.record.mainline.startSfen.isEmpty()) result.record.mainline.startSfen = SfenUtils::hirateSfen();
     return result;
 }
 

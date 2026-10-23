@@ -216,8 +216,7 @@ KifuParseOutcome CsaToSfenConverter::parse(QStringView text, const ParseOptions&
     if (report.failed()) return outcome;
 
     outcome.record.mainline = builder.take();
-    outcome.initialSfen = outcome.record.mainline.startSfen;
-    outcome.teaiLabel = start == Position::hirate() ? QStringLiteral("平手") : QStringLiteral("局面指定");
+    outcome.startKind = start == Position::hirate() ? StartKind::Handicap : StartKind::Specified;
     outcome.gameInfo = gameInfoOf(lines);
     outcome.success = true;
     return outcome;

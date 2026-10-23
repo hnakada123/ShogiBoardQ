@@ -75,7 +75,8 @@ private slots:
         variation.parentVariation = parent;
         variation.startPly = startPly;
         result.variations.append(variation);
-        QVERIFY(!KifuBranchTreeBuilder::buildFromKifParseResult(&tree, result, QStringLiteral("replacement")));
+        result.mainline.startSfen = QStringLiteral("replacement");
+        QVERIFY(!KifuBranchTreeBuilder::buildFromKifParseResult(&tree, result));
         QCOMPARE(tree.root()->nodeId(), rootId);
         QCOMPARE(tree.root()->sfen(), QStringLiteral("original"));
         QCOMPARE(changed.count(), 0);
@@ -136,10 +137,10 @@ private slots:
         const QByteArray content = QStringLiteral("手合割：　%1　\n").arg(handicap).toUtf8();
         QVERIFY(KifuTestHelper::writeToTempFile(tmp, content, QStringLiteral("kif")));
 
-        QString detectedLabel;
-        QCOMPARE(KifuFile::initialSfen<KifToSfenConverter>(tmp.fileName(), &detectedLabel),
+        StartKind kind = StartKind::Default;
+        QCOMPARE(KifuFile::initialSfen<KifToSfenConverter>(tmp.fileName(), &kind),
                  expectedSfen);
-        QCOMPARE(detectedLabel, handicap);
+        QCOMPARE(kind, StartKind::Handicap);
 
         KifParseResult result;
         QString error;
@@ -272,12 +273,12 @@ private slots:
 
     void detectInitialSfen_nonExistentFile()
     {
-        QString label;
+        StartKind kind = StartKind::Handicap;
         QString sfen = KifuFile::initialSfen<KifToSfenConverter>(
-            fixturePath(QStringLiteral("nonexistent.kif")), &label);
+            fixturePath(QStringLiteral("nonexistent.kif")), &kind);
         // Falls back to hirate
         QCOMPARE(sfen, kHirateSfen);
-        QCOMPARE(label, QStringLiteral("平手(既定)"));
+        QCOMPARE(kind, StartKind::Default);
     }
 
     // ========================================
@@ -405,15 +406,9 @@ private slots:
         QVERIFY2(dispCommentCount > 0,
                  "No comments found in the parsed mainline");
 
-        // 3. 初期SFENを取得
-        QString initialSfen = KifuFile::initialSfen<KifToSfenConverter>(path);
-        if (initialSfen.isEmpty()) {
-            initialSfen = kHirateSfen;
-        }
-
-        // 4. KifuBranchTree を構築
+        // 3. KifuBranchTree を構築（開始局面は本譜の開始局面）
         KifuBranchTree tree;
-        KifuBranchTreeBuilder::buildFromKifParseResult(&tree, result, initialSfen);
+        KifuBranchTreeBuilder::buildFromKifParseResult(&tree, result);
         QVERIFY2(tree.nodeCount() > 0, "Branch tree is empty after build");
 
         // 5. ツリーノードのコメントを確認
@@ -449,7 +444,7 @@ private slots:
         res.variations = { var };
 
         KifuBranchTree tree;
-        KifuBranchTreeBuilder::buildFromKifParseResult(&tree, res, QStringLiteral("b0 b - 1"));
+        KifuBranchTreeBuilder::buildFromKifParseResult(&tree, res);
 
         const QList<BranchLine> lines = tree.allLines();
         QCOMPARE(lines.size(), 2);
@@ -486,7 +481,7 @@ private slots:
         KifuBranchTree tree;
         QSignalSpy spy(&tree, &KifuBranchTree::reset);
         QSignalSpy appended(&tree, &KifuBranchTree::nodeAppended);
-        KifuBranchTreeBuilder::buildFromKifParseResult(&tree, res, QStringLiteral("b0 b - 1"));
+        KifuBranchTreeBuilder::buildFromKifParseResult(&tree, res);
 
         QCOMPARE(tree.nodeCount(), 6);   // root + 本譜3 + 変化2
         QCOMPARE(spy.count(), 1);
@@ -520,7 +515,7 @@ private slots:
 
         for (int i = 0; i < 20; ++i) {
             KifuBranchTree tree;
-            KifuBranchTreeBuilder::buildFromKifParseResult(&tree, res, QStringLiteral("b0 b - 1"));
+            KifuBranchTreeBuilder::buildFromKifParseResult(&tree, res);
 
             QCOMPARE(tree.lineCount(), 3);
             KifuBranchNode* a3 = TestTree::findBySfen(tree, QStringLiteral("a3 w - 4"), 3);
@@ -877,8 +872,8 @@ private slots:
             QCOMPARE(fromText.variations[i].line.usiMoves(), fromFile.variations[i].line.usiMoves());
         }
         // 開始局面と対局情報も同じ解析で得る
-        QCOMPARE(outcome.initialSfen, KifuFile::initialSfen<KifToSfenConverter>(path));
-        QCOMPARE(outcome.initialSfen, fromText.mainline.startSfen);
+        QCOMPARE(outcome.record.mainline.startSfen, KifuFile::initialSfen<KifToSfenConverter>(path));
+        QCOMPARE(outcome.record.mainline.startSfen, fromText.mainline.startSfen);
         QCOMPARE(outcome.gameInfo.size(), KifuFile::gameInfo<KifToSfenConverter>(path).size());
     }
 

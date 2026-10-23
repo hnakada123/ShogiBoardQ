@@ -35,23 +35,21 @@ void readMoves(const QStringList& moves, const QString& terminalCode, KifLineBui
 
 } // namespace
 
-QString UsenToSfenConverter::initialSfenOf(const QString& content, QString* detectedLabel)
+QString UsenToSfenConverter::initialSfenOf(const QString& content, StartKind* kind)
 {
     // ~ の前の部分が初期局面（空なら平手）
     const qsizetype tildePos = content.indexOf(QChar('~'));
     if (tildePos < 0) {
-        if (detectedLabel) *detectedLabel = QStringLiteral("平手(既定)");
+        if (kind) *kind = StartKind::Default;
         return SfenUtils::hirateSfen();
     }
     const QString positionPart = content.left(tildePos);
     if (positionPart.isEmpty()) {
-        if (detectedLabel) *detectedLabel = QStringLiteral("平手");
+        if (kind) *kind = StartKind::Handicap;
         return SfenUtils::hirateSfen();
     }
-
-    const QString sfen = UsenCodec::decodePosition(positionPart);
-    if (detectedLabel) *detectedLabel = QStringLiteral("局面指定");
-    return sfen;
+    if (kind) *kind = StartKind::Specified;
+    return UsenCodec::decodePosition(positionPart);
 }
 
 KifuParseOutcome UsenToSfenConverter::parse(QStringView text, const ParseOptions& options)
@@ -64,7 +62,7 @@ KifuParseOutcome UsenToSfenConverter::parse(QStringView text, const ParseOptions
         return outcome;
     }
 
-    const std::optional<Position> start = Position::fromSfen(initialSfenOf(content, &outcome.teaiLabel));
+    const std::optional<Position> start = Position::fromSfen(initialSfenOf(content, &outcome.startKind));
     if (!start) {
         outcome.warning = QStringLiteral("USEN: invalid initial position");
         return outcome;
@@ -126,7 +124,6 @@ KifuParseOutcome UsenToSfenConverter::parse(QStringView text, const ParseOptions
     }
 
     outcome.success = true;
-    outcome.initialSfen = record.mainline.startSfen;
     outcome.warning = report.warnings();
     return outcome;
 }

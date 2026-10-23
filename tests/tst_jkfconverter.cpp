@@ -75,12 +75,12 @@ private slots:
 
     void detectInitialSfen_nonExistentFile()
     {
-        QString label;
+        StartKind kind = StartKind::Handicap;
         QString sfen = KifuFile::initialSfen<JkfToSfenConverter>(
-            fixturePath(QStringLiteral("nonexistent.jkf")), &label);
+            fixturePath(QStringLiteral("nonexistent.jkf")), &kind);
         // Falls back to hirate
         QCOMPARE(sfen, kHirateSfen);
-        QCOMPARE(label, QStringLiteral("平手(既定)"));
+        QCOMPARE(kind, StartKind::Default);
     }
 
     // ========================================

@@ -10,6 +10,7 @@
 
 #include "appactivitystate.h"
 #include "kifudocument.h"
+#include "sfenutils.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
 #include "kifuexport.h"
@@ -158,6 +159,31 @@ private slots:
         QCOMPARE(p.navState->currentSfen(), position);
         QVERIFY(!p.document->isModified());
         QVERIFY(p.document->filePath().isEmpty());
+    }
+
+    /// 局面編集の後に0手のまま保存した棋譜は、どの形式でも開ける（開始局面が書かれていれば指し手は要らない）
+    void positionOnlyRecordsOpenInEveryFormat_data()
+    {
+        QTest::addColumn<int>("format");
+        for (const KifuFormat format : {KifuFormat::Kif, KifuFormat::Ki2, KifuFormat::Csa, KifuFormat::Jkf,
+                                        KifuFormat::Usen, KifuFormat::Usi})
+            QTest::newRow(qPrintable(KifuFormats::name(format))) << static_cast<int>(format);
+    }
+
+    void positionOnlyRecordsOpenInEveryFormat()
+    {
+        QFETCH(int, format);
+        MainWindow window;
+        auto& p = window.composer().parts();
+        const QString position = QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b G 1");
+        p.document->replaceWithPosition(position);
+        const QString text = KifuExport::lines(*p.document, static_cast<KifuFormat>(format)).join(QLatin1Char('\n'));
+        p.document->replaceWithPosition(SfenUtils::hirateSfen());
+        p.document->markSaved(QString());
+        UiNotificationService::ScopedCapture shown;
+        QVERIFY2(p.kifuFileController->loadKifuText(text), qPrintable(text + shown.errors().join(QLatin1Char('\n'))));
+        QCOMPARE(p.branchTree->root()->sfen(), position);
+        p.document->markSaved(QString());
     }
 
     /// 開いたままの局面集ビューア・棋譜貼り付けから、対局などを始めた後に反映しても棋譜を置き換えない
