@@ -8,7 +8,7 @@
 #include <memory>
 #include <optional>
 
-#include "kifuloadcoordinator.h"
+#include "kifuloader.h"
 #include "kifuloadparser.h"
 #include "sfenutils.h"
 #include "sfenreplay.h"
@@ -39,7 +39,7 @@ struct KifuHarness {
     KifuBranchTree tree;
     KifuNavigationState nav{&tree};
     KifuDocument document{&tree};
-    KifuLoadCoordinator loader{&document};
+    KifuLoader loader{&document};
 
     QStringList positions() const
     {
@@ -207,8 +207,8 @@ private slots:
     {
         for (const auto& extension : {"kif", "ki2", "csa", "jkf", "usi", "usen"}) {
             KifuHarness h;
-            QSignalSpy finished(&h.loader, &KifuLoadCoordinator::loadFinished);
-            QSignalSpy errors(&h.loader, &KifuLoadCoordinator::errorOccurred);
+            QSignalSpy finished(&h.loader, &KifuLoader::loadFinished);
+            QSignalSpy errors(&h.loader, &KifuLoader::errorOccurred);
             h.loader.loadFileAsync(fixture(QStringLiteral("test_basic.") + QString::fromLatin1(extension)));
             QCOMPARE(finished.size(), 0);
             QTRY_COMPARE(finished.size(), 1);
@@ -221,7 +221,7 @@ private slots:
     void replacementAndCancelDoNotApplyOldResults()
     {
         KifuHarness h;
-        QSignalSpy finished(&h.loader, &KifuLoadCoordinator::loadFinished);
+        QSignalSpy finished(&h.loader, &KifuLoader::loadFinished);
         h.loader.loadFileAsync(fixture(QStringLiteral("test_branch.kif")));
         QString position = SfenUtils::hirateSfen();
         position.replace(QStringLiteral(" b "), QStringLiteral(" w "));
@@ -241,8 +241,8 @@ private slots:
         KifuHarness h;
         QVERIFY(h.loader.loadText(QStringLiteral("position startpos moves 7g7f")));
         const auto before = h.positions();
-        QSignalSpy finished(&h.loader, &KifuLoadCoordinator::loadFinished);
-        QSignalSpy errors(&h.loader, &KifuLoadCoordinator::errorOccurred);
+        QSignalSpy finished(&h.loader, &KifuLoader::loadFinished);
+        QSignalSpy errors(&h.loader, &KifuLoader::errorOccurred);
         h.loader.loadFileAsync(fixture(QStringLiteral("missing.kif")));
         QTRY_COMPARE(finished.size(), 1);
         QVERIFY(!finished.first().first().toBool());

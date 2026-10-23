@@ -56,6 +56,8 @@ struct CsaGameProgress {
 
     /// 指された手数（再開局面の手を含む）
     int moveCount() const { return record.moveCount(); }
+    /// 今の手番（手順の最後の局面の手番。手順が無ければ To_Move）
+    Turn sideToMove() const;
     /// 直前の手の移動先（「同」の判定用。手が無ければ無効な升）
     BoardSquare previousTo() const { return record.destinationOf(record.moveCount()); }
     /// エンジンに探索させる今の局面（開始局面からの手順。読めなければ nullopt）

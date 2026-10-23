@@ -53,8 +53,8 @@ TsumeCollectionDialog::TsumeCollectionDialog(QWidget* parent)
     m_engineSelector = new EngineSelector({m_engine, nullptr, nullptr}, engineOptions, this);
     const int pageSizeIndex = m_pageSize->findData(preferences.pageSize);
     m_pageSize->setCurrentIndex(std::max(0, pageSizeIndex));
-    m_filter->setCurrentIndex(std::clamp(preferences.filter, 0, 3));
-    m_timeout->setValue(std::clamp(preferences.timeoutSec, 1, 600));
+    m_filter->setCurrentIndex(std::clamp(preferences.filter, 0, m_filter->count() - 1));
+    m_timeout->setValue(preferences.timeoutSec);
     m_session->setTimeoutMs(m_timeout->value() * 1000);
     connect(m_timeout, &QSpinBox::valueChanged, this, &TsumeCollectionDialog::timeoutChanged);
     connect(m_engineSelector, &EngineSelector::selectionChanged, this, &TsumeCollectionDialog::engineChanged);

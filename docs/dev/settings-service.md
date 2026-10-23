@@ -144,7 +144,7 @@ GameSettings::commentFontSize.remove();                           // 保存値�
 
 | 型 | 保存の形 | 使っている宣言 |
 |---|---|---|
-| `BoundedSetting<T>(キー, 既定値, 最小, 最大)` | 1つのキー。読みも書きも `qBound` で範囲に収める（`minimum()`・`maximum()`） | `AppSettings::pieceSoundVolume`（0〜100）、`AppSettings::appearancePieceFilter`（0〜`PieceStyleCatalog::Family::Count` − 1。0 は「すべて」）、`AnalysisSettings::usiLogCommandTarget`（0〜2） |
+| `BoundedSetting<T>(キー, 既定値, 最小, 最大)` | 1つのキー。読みも書きも `qBound` で範囲に収める（`minimum()`・`maximum()`） | `AppSettings::pieceSoundVolume`（0〜100）、`AppSettings::appearancePieceFilter`（0〜`PieceStyleCatalog::Family::Count` − 1。0 は「すべて」）、`AnalysisSettings::usiLogCommandTarget`（0〜2）、`AppSettings::menuWindowButtonSize`（48〜120）、`AnalysisSettings::branchTreeZoomPercent`（50〜200）、`GameSettings::gameInfoKeyColumnWidth`（0〜600）。画面は範囲の定数を持たず、`minimum()`・`maximum()` を読む |
 | `StructSetting<T>({項目...}, 整える関数)` | 構造体のメンバごとに1つのキー。項目は `SettingField<T>::of(キー, &T::メンバ)`。保存していない項目は `T{}` の既定値のまま。整える関数（省略可）は読んだ値と書く値の両方に掛ける。項目ごとの保存の有無は `StructSetting<T>::isSaved(キー)` | `AppSettings::pieceSoundTone`（`PieceSoundTone::clamped` で範囲に収める）、`TsumeshogiSettings::playPreferences`・`collectionPreferences` |
 | `ListSetting<T>(配列のキー, 要素のキー)` | QSettings の配列（`<配列のキー>/size` と `<配列のキー>/<番号>/<要素のキー>`）。配列のキーは実行時に作ってもよい | `JosekiSettings::josekiWindowColumnWidths`、`AnalysisSettings::engineInfoColumnWidths(ThinkingTable)`・`thinkingViewColumnWidths(ThinkingTable)`（表の番号でキーを作る関数の中で使う） |
 | `StructListSetting<T>(配列のキー, {項目...})` | 構造体の配列。要素ごとに `SettingField<T>` の項目を書く | `NetworkSettings::csaServerHistory`（`CsaServerHistoryEntry` の `host`・`port`・`useTls`・`id`。新しい順で最大 `kCsaServerHistoryLimit` = 10 件。件数を絞るのは `CsaGameDialog`） |
@@ -178,8 +178,10 @@ m_form.add(ui->lineEditKifuSaveDir, Saved::kifuSaveDir, &defaultKifuSaveDir);
 
 ### 同じ形の項目をまとめる
 
-`Setting<T>` をメンバに持つ構造体を作り、インスタンスごとにキーを宣言できる。
-対局開始ダイアログの対局者ごとの項目は `GameSettings::StartGame::Player` にまとめ、`player1`（先手／下手）と `player2`（後手／上手）を宣言している。
+`Setting<T>` をメンバに持つ構造体を作り、インスタンスごとにキーを宣言できる。キーは実行時に組み立ててよい（`Setting`・`SettingField` はキーの写しを持つ）ので、
+グループ名や番号だけ違う組は、キーを組み立てて宣言を返す関数を1つ書き、組ごとにその関数で宣言する。
+対局開始ダイアログの対局者ごとの項目は `GameSettings::StartGame::Player` にまとめ、`playerSettings('1', true)` で `player1`（先手／下手）、`playerSettings('2', false)` で `player2`（後手／上手）を宣言している。
+定跡を使う条件（`StructSetting<JosekiPlayOptions>`）も `JosekiSettings::playOptionsSetting("JosekiPlay1")`・`("JosekiPlay2")` で宣言する。
 
 ```cpp
 // src/dialogs/startgamedialog.cpp: saveTime(const Saved::Player& saved, ...) は player1・player2 を同じ関数で書く
@@ -299,7 +301,6 @@ INI ファイル内のキーは `グループ名/キー名` の形式で、宣�
 | 独自の保存形式 | `AppSettings::boardColors` / `setBoardColors`（色を `#RRGGBB`・`#AARRGGBB` の文字列で保存し、不正な色は標準色に戻す）、`AnalysisSettings::kifuAnalysisColumnWidths` / `setKifuAnalysisColumnWidths`（1つのキーに `QVariantList` で保存）、`DockSettings::dockState` / `setDockState`（グループ名を引数で受ける。キーは `<グループ>/floating`・`/visible`・`/geometry`。グループは `DockRegistry` の表の `settingsGroup`。表示の既定値も引数で受ける） |
 | キーを実行時に作る | `AnalysisSettings::engineInfoColumnWidths` / `thinkingViewColumnWidths`（表 `ThinkingTable` の番号でキーを作り、`ListSetting<int>` で読み書きする） |
 | グループの中の名前の一覧 | `DockSettings::savedDockLayoutNames` / `saveDockLayout` / `loadDockLayout` / `deleteDockLayout` |
-| 複数の宣言をまとめて読み書きする | `AppSettings::loadWindowSize` / `saveWindowAndBoard` |
 
 関数は namespace のドメイン別ヘッダーに宣言し、`.cpp` で `SettingsCommon::openSettings()` を使って実装する。キーは `settingskeys.h` の定数に置く。
 

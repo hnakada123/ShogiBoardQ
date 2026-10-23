@@ -77,7 +77,7 @@
     </message>
     <message>
         <location filename="../../src/widgets/analysisresultspanel.cpp" line="98"/>
-        <location filename="../../src/widgets/analysisresultspanel.cpp" line="311"/>
+        <location filename="../../src/widgets/analysisresultspanel.cpp" line="308"/>
         <source>解析条件を設定して、棋譜解析を開始してください。</source>
         <translation>請選擇分析設定，開始分析棋譜。</translation>
     </message>
@@ -92,17 +92,17 @@
         <translation>評價值以先手為基準（正值有利於先手，負值有利於後手）。選擇一行可跳至對應局面；按一下「顯示」可查看後續變化。</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/analysisresultspanel.cpp" line="299"/>
+        <location filename="../../src/widgets/analysisresultspanel.cpp" line="301"/>
         <source>解析中止 · %1 / %2局面を解析済み</source>
         <translation>已停止 · 已分析 %1 / %2 個局面</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/analysisresultspanel.cpp" line="296"/>
+        <location filename="../../src/widgets/analysisresultspanel.cpp" line="298"/>
         <source>解析中 · %1 / %2局面を解析済み</source>
         <translation>分析中 · 已分析 %1 / %2 個局面</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/analysisresultspanel.cpp" line="303"/>
+        <location filename="../../src/widgets/analysisresultspanel.cpp" line="305"/>
         <source>解析完了 · %1局面</source>
         <translation>分析完成 · %1 個局面</translation>
     </message>
@@ -1368,37 +1368,37 @@
         <translation>第 %1 手</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreeview.cpp" line="676"/>
+        <location filename="../../src/widgets/branchtreeview.cpp" line="677"/>
         <source>この変化を展開する</source>
         <translation>展開此變化</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreeview.cpp" line="676"/>
+        <location filename="../../src/widgets/branchtreeview.cpp" line="677"/>
         <source>この変化を折りたたむ</source>
         <translation>摺疊此變化</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreeview.cpp" line="679"/>
+        <location filename="../../src/widgets/branchtreeview.cpp" line="680"/>
         <source>すべての変化を展開する</source>
         <translation>展開所有變化</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreeview.cpp" line="680"/>
+        <location filename="../../src/widgets/branchtreeview.cpp" line="681"/>
         <source>変化を詰めて表示する</source>
         <translation>緊湊顯示變化</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreeview.cpp" line="684"/>
+        <location filename="../../src/widgets/branchtreeview.cpp" line="685"/>
         <source>拡大</source>
         <translation>放大</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreeview.cpp" line="686"/>
+        <location filename="../../src/widgets/branchtreeview.cpp" line="687"/>
         <source>縮小</source>
         <translation>縮小</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreeview.cpp" line="688"/>
+        <location filename="../../src/widgets/branchtreeview.cpp" line="689"/>
         <source>標準の大きさ（100%）</source>
         <translation>標準大小（100%）</translation>
     </message>
@@ -2114,14 +2114,14 @@
         <translation>對局中無法開始新對局</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="227"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="217"/>
         <source>サーバー %1:%2 に接続中...</source>
         <translation>正在連線到伺服器 %1:%2...</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="140"/>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="154"/>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="164"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="184"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="198"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="208"/>
         <source>相手の手番です</source>
         <translation>對手行棋</translation>
     </message>
@@ -2130,167 +2130,167 @@
         <translation type="vanished">生成 CSA 著法失敗。</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="169"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="213"/>
         <source>対局条件に入玉宣言ルール（Declaration:Jishogi）がありません。宣言は反則負けと判定される可能性があります</source>
         <translation>對局條件中沒有入玉宣言規則（Declaration:Jishogi）。宣言可能被判為犯規負</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="185"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="229"/>
         <source>接続完了。ログイン中...</source>
         <translation>已連線。正在登入...</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="199"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="244"/>
         <source>サーバーが切断しました。%1秒後に再接続します</source>
         <translation>伺服器已中斷連線。%1 秒後重新連線</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="205"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="249"/>
         <source>サーバーから切断されました</source>
         <translation>已中斷與伺服器的連線</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="217"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="265"/>
         <source>エラー: %1</source>
         <translation>錯誤：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="241"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="289"/>
         <source>ログイン成功。対局待ち中...</source>
         <translation>登入成功。正在等待對局...</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="251"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="295"/>
         <source>ログイン失敗: %1</source>
         <translation>登入失敗：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="259"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="303"/>
         <source>ログアウト完了</source>
         <translation>已登出</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="427"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="464"/>
         <source>エンジン %1 を起動しました</source>
         <translation>引擎 %1 已啟動</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="132"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="124"/>
         <source>未対応の Format です: %1</source>
         <translation>不支援的 Format：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="136"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="128"/>
         <source>時間無制限の対局はエンジンでは行えません</source>
         <translation>引擎無法進行無時間限制的對局</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="144"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="136"/>
         <source>持時間: 無制限</source>
         <translation>持時：無限制</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="153"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="145"/>
         <source>, 遅延: %1秒</source>
         <translation>，延遲：%1 秒</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="154"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="146"/>
         <source>, 最少消費: %1秒</source>
         <translation>，每手最少用時：%1 秒</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="156"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="148"/>
         <source>先手の</source>
         <translation>先手的</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="156"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="148"/>
         <source>後手の</source>
         <translation>後手的</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="162"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="154"/>
         <source>最大手数: %1手</source>
         <translation>最大手數：%1 手</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="165"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="157"/>
         <source>入玉宣言ルール: %1</source>
         <translation>入玉宣言規則：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="166"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="158"/>
         <source>入玉宣言ルール: なし</source>
         <translation>入玉宣言規則：無</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="168"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="160"/>
         <source>未知のプロトコルバージョンです: %1</source>
         <translation>未知的通訊協定版本：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="171"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="163"/>
         <source>Protocol_Mode が Server ではありません: %1</source>
         <translation>Protocol_Mode 不是 Server：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="180"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="172"/>
         <source>対局条件を受信しました</source>
         <translation>已收到對局條件</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="181"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="173"/>
         <source>先手: %1, 後手: %2</source>
         <translation>先手：%1，後手：%2</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="234"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="225"/>
         <source>予定の対局数（%1局）を終えたのでログアウトします</source>
         <translation>已完成預定的 %1 局對局，正在登出</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="239"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="230"/>
         <source>%1/%2局</source>
         <translation>第 %1/%2 局</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="240"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="231"/>
         <source>%1局目まで終了</source>
         <translation>已完成 %1 局</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="242"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="233"/>
         <source>次の対局条件を待ちます（%1）</source>
         <translation>等待下一局的對局條件（%1）</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="250"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="241"/>
         <source>次の対局のために再接続します（%1局目まで終了）</source>
         <translation>為下一局重新連線（已完成 %1 局）</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="149"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="141"/>
         <source>持時間: %1秒, 秒読み: %2秒, 加算: %3秒</source>
         <translation>持時：%1 秒，讀秒：%2 秒，加時：%3 秒</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="114"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="106"/>
         <source>エンジンパスが指定されていません</source>
         <translation>未指定引擎路徑</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="187"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="178"/>
         <source>予定の対局数を終えているので、対局条件を拒否します</source>
         <translation>預定的對局已完成，拒絕對局條件</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="196"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="186"/>
         <source>対局条件を拒否します: %1</source>
         <translation>拒絕對局條件：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="420"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="457"/>
         <source>エンジンが入玉宣言を選択しました</source>
         <translation>引擎選擇入玉宣言</translation>
     </message>
@@ -2299,52 +2299,52 @@
         <translation type="vanished">持時：%1 秒，讀秒：%2 秒</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="209"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="198"/>
         <source>対局条件に同意します...</source>
         <translation>正在同意對局條件...</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="267"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="311"/>
         <source>対局開始！</source>
         <translation>對局開始！</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="291"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="331"/>
         <source>対局が拒否されました (ID: %1, 拒否者: %2)</source>
         <translation>對局被拒絕（ID：%1，拒絕方：%2）</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="334"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="371"/>
         <source>対局終了: %1 (%2)</source>
         <translation>對局結束：%1（%2）</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="381"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="418"/>
         <source>対局が中断されました</source>
         <translation>對局已中斷</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="386"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="423"/>
         <source>[RECV] %1</source>
         <translation>[接收] %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="392"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="429"/>
         <source>[SEND] %1</source>
         <translation>[傳送] %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="411"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="448"/>
         <source>エンジンが投了を選択しました</source>
         <translation>引擎選擇認輸</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="57"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="49"/>
         <source>初期局面の指し手再生に失敗しました: %1</source>
         <translation>重放初始局面著法失敗：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="58"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="50"/>
         <source>サーバーから受信した初期局面データが不正です: %1</source>
         <translation>伺服器傳送了無效的初始局面資料：%1</translation>
     </message>
@@ -2369,32 +2369,32 @@
         <translation>收到座標無效的著法：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="177"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="176"/>
         <source>相手の指し手: %1 (消費時間: %2ms)</source>
         <translation>對手著法：%1（用時：%2 毫秒）</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="200"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="199"/>
         <source>エンジンに送る局面を作れません</source>
         <translation>無法產生要傳送給引擎的局面</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="159"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="158"/>
         <source>サーバーからの指し手を解釈できません: %1</source>
         <translation>無法解析來自伺服器的著法：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="167"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="166"/>
         <source>指し手の適用に失敗しました: %1</source>
         <translation>套用著法失敗：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="168"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="167"/>
         <source>サーバーからの指し手を盤面に適用できません: %1</source>
         <translation>無法將伺服器著法套用到棋盤：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="184"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="183"/>
         <source>指し手確認: %1 (消費時間: %2ms)</source>
         <translation>著法已確認：%1（用時：%2 毫秒）</translation>
     </message>
@@ -2411,7 +2411,7 @@
         <translation type="vanished">無法轉換伺服器的著法確認：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="203"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="202"/>
         <source>エンジンが思考中...</source>
         <translation>引擎思考中...</translation>
     </message>
@@ -2420,22 +2420,22 @@
         <translation type="vanished">引擎認輸</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="215"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="213"/>
         <source>エンジンが有効な指し手を返しませんでした</source>
         <translation>引擎未傳回有效著法</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="221"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="219"/>
         <source>盤面が取得できませんでした</source>
         <translation>無法取得棋盤狀態</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="229"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="227"/>
         <source>指し手の駒種変換に失敗しました</source>
         <translation>轉換移動棋子種類失敗</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="233"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="231"/>
         <source>CSA形式の指し手: %1</source>
         <translation>CSA 格式著法：%1</translation>
     </message>
@@ -5164,30 +5164,30 @@ YaneuraOu 定跡格式的著法行至少需要 5 個欄位
 <context>
     <name>JosekiFileController</name>
     <message>
-        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="18"/>
+        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="19"/>
         <source>定跡ファイル (*.db);;すべてのファイル (*)</source>
         <translation>定跡檔案 (*.db);;所有檔案 (*)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="56"/>
+        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="57"/>
         <source>定跡ファイルを開く</source>
         <translation>開啟定跡檔案</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="88"/>
-        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="134"/>
-        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="140"/>
-        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="145"/>
+        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="89"/>
+        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="135"/>
+        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="141"/>
+        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="146"/>
         <source>エラー</source>
         <translation>錯誤</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="88"/>
+        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="89"/>
         <source>ファイルが見つかりません: %1</source>
         <translation>找不到檔案：%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="100"/>
+        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="101"/>
         <source>最近使ったファイル履歴をクリアしました</source>
         <translation>已清除最近使用的檔案歷史</translation>
     </message>
@@ -5200,12 +5200,12 @@ YaneuraOu 定跡格式的著法行至少需要 5 個欄位
         <translation type="vanished">正在儲存...</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="162"/>
+        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="163"/>
         <source>処理中</source>
         <translation>處理中</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="163"/>
+        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="164"/>
         <source>ファイルの読み込み/保存が完了するまでお待ちください。</source>
         <translation>請等待檔案載入或儲存完成。</translation>
     </message>
@@ -5220,39 +5220,36 @@ YaneuraOu 定跡格式的著法行至少需要 5 個欄位
 是否儲存？</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="169"/>
+        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="172"/>
         <source>未保存の定跡</source>
         <translation>未儲存的定跡</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="169"/>
+        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="173"/>
         <source>定跡に未保存の変更があります。保存しますか？</source>
         <translation>定跡有尚未儲存的修改。是否儲存？</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="171"/>
+        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="170"/>
         <source>新しい定跡（まだファイルに保存していません）</source>
         <translation>新定跡（尚未儲存到檔案）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="172"/>
+        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="171"/>
         <source>定跡ファイル: %1</source>
         <translation>定跡檔案：%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="173"/>
         <source>保存</source>
-        <translation>儲存</translation>
+        <translation type="vanished">儲存</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="174"/>
         <source>破棄</source>
-        <translation>放棄</translation>
+        <translation type="vanished">放棄</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekifilecontroller.cpp" line="175"/>
         <source>キャンセル</source>
-        <translation>取消</translation>
+        <translation type="vanished">取消</translation>
     </message>
     <message>
         <source>保存先の指定</source>
@@ -7691,6 +7688,69 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>KifuLoadCoordinator</name>
     <message>
+        <source>棋譜ファイルの読み込みに失敗しました: %1%2</source>
+        <translation type="vanished">載入棋譜檔案失敗：%1%2</translation>
+    </message>
+    <message>
+        <source>BOD形式の解析に失敗しました。%1</source>
+        <translation type="vanished">解析 BOD 格式失敗。%1</translation>
+    </message>
+    <message>
+        <source>棋譜の読み込みに失敗しました。%1</source>
+        <translation type="vanished">載入棋譜失敗。%1</translation>
+    </message>
+    <message>
+        <source>無効なSFEN形式です。</source>
+        <translation type="vanished">SFEN 格式無效。</translation>
+    </message>
+    <message>
+        <source>棋譜の読み込みで警告があります:
+%1</source>
+        <translation type="vanished">載入棋譜時的警告：
+%1</translation>
+    </message>
+    <message>
+        <source>読み込み失敗 %1 から指し手を取得できませんでした。</source>
+        <translation type="vanished">載入失敗：無法從 %1 取得著法。</translation>
+    </message>
+    <message>
+        <source>棋譜の分岐元または開始手数が不正です。</source>
+        <translation type="vanished">棋譜的分支來源或起始手數無效。</translation>
+    </message>
+    <message>
+        <source>貼り付けるテキストが空です。</source>
+        <translation type="vanished">要貼上的文字為空。</translation>
+    </message>
+    <message>
+        <source>一時ファイルの作成に失敗しました。</source>
+        <translation type="vanished">建立暫存檔案失敗。</translation>
+    </message>
+</context>
+<context>
+    <name>KifuLoader</name>
+    <message>
+        <location filename="../../src/kifu/kifuloader.cpp" line="94"/>
+        <source>無効なSFEN形式です。</source>
+        <translation>SFEN 格式無效。</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifuloader.cpp" line="113"/>
+        <source>棋譜の読み込みで警告があります:
+%1</source>
+        <translation>載入棋譜時的警告：
+%1</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifuloader.cpp" line="126"/>
+        <source>読み込み失敗 %1 から指し手を取得できませんでした。</source>
+        <translation>載入失敗：無法從 %1 取得著法。</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifuloader.cpp" line="132"/>
+        <source>棋譜の分岐元または開始手数が不正です。</source>
+        <translation>棋譜的分支來源或起始手數無效。</translation>
+    </message>
+    <message>
         <location filename="../../src/kifu/kifuloadparser.cpp" line="40"/>
         <location filename="../../src/kifu/kifuloadparser.cpp" line="98"/>
         <source>棋譜ファイルの読み込みに失敗しました: %1%2</source>
@@ -7707,35 +7767,9 @@ OKを選択すると保存先が指定できます。</source>
         <translation>載入棋譜失敗。%1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifuloadcoordinator.cpp" line="94"/>
-        <source>無効なSFEN形式です。</source>
-        <translation>SFEN 格式無效。</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/coordinators/kifuloadcoordinator.cpp" line="113"/>
-        <source>棋譜の読み込みで警告があります:
-%1</source>
-        <translation>載入棋譜時的警告：
-%1</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/coordinators/kifuloadcoordinator.cpp" line="126"/>
-        <source>読み込み失敗 %1 から指し手を取得できませんでした。</source>
-        <translation>載入失敗：無法從 %1 取得著法。</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/coordinators/kifuloadcoordinator.cpp" line="132"/>
-        <source>棋譜の分岐元または開始手数が不正です。</source>
-        <translation>棋譜的分支來源或起始手數無效。</translation>
-    </message>
-    <message>
         <location filename="../../src/kifu/kifuloadparser.cpp" line="112"/>
         <source>貼り付けるテキストが空です。</source>
         <translation>要貼上的文字為空。</translation>
-    </message>
-    <message>
-        <source>一時ファイルの作成に失敗しました。</source>
-        <translation type="vanished">建立暫存檔案失敗。</translation>
     </message>
 </context>
 <context>
@@ -8123,26 +8157,131 @@ OKを選択すると保存先が指定できます。</source>
     </message>
 </context>
 <context>
+    <name>KifuSaveDialogs</name>
+    <message>
+        <location filename="../../src/dialogs/kifusavedialogs.cpp" line="20"/>
+        <source>Shift_JISで保存できない文字</source>
+        <translation>無法以 Shift_JIS 儲存的字元</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/kifusavedialogs.cpp" line="21"/>
+        <source>次の文字はShift_JISで保存できません：%1
+
+UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を記録します。</source>
+        <translation>以下字元無法以 Shift_JIS 儲存：%1
+
+是否改用 UTF-8 儲存？檔案第一行將記錄「encoding=UTF-8」。</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/kifusavedialogs.cpp" line="25"/>
+        <source>UTF-8で保存</source>
+        <translation>以 UTF-8 儲存</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/kifusavedialogs.cpp" line="26"/>
+        <source>キャンセル</source>
+        <translation>取消</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/kifusavedialogs.cpp" line="58"/>
+        <source>KIF形式 UTF-8 (*.kifu);;KIF形式 Shift_JIS (*.kif);;KI2形式 UTF-8 (*.ki2u);;KI2形式 Shift_JIS (*.ki2);;CSA形式 (*.csa);;JKF形式 (*.jkf);;USEN形式 (*.usen);;USI形式 (*.usi);;すべてのファイル (*)</source>
+        <translation>KIF UTF-8 (*.kifu);;KIF Shift_JIS (*.kif);;KI2 UTF-8 (*.ki2u);;KI2 Shift_JIS (*.ki2);;CSA (*.csa);;JKF (*.jkf);;USEN (*.usen);;USI (*.usi);;所有檔案 (*)</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/kifusavedialogs.cpp" line="71"/>
+        <source>名前を付けて保存</source>
+        <translation>另存為</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/kifusavedialogs.cpp" line="83"/>
+        <source>KI2形式で保存</source>
+        <translation>儲存為 KI2</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/kifusavedialogs.cpp" line="84"/>
+        <source>KI2形式は消費時間に対応していないため、消費時間の情報は保存されません。
+保存を続けますか？</source>
+        <translation>KI2 格式不支援用時資訊，將不會儲存用時。
+繼續嗎？</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/kifusavedialogs.cpp" line="91"/>
+        <source>CSA形式で保存</source>
+        <translation>儲存為 CSA</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/kifusavedialogs.cpp" line="92"/>
+        <source>CSA形式は分岐に対応していないため、分岐の情報は保存されません。
+保存を続けますか？</source>
+        <translation>CSA 格式不支援變化分支，將不會儲存分支資訊。
+繼續嗎？</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/kifusavedialogs.cpp" line="101"/>
+        <source>USEN形式で保存</source>
+        <translation>以 USEN 格式儲存</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/kifusavedialogs.cpp" line="102"/>
+        <source>USEN形式は消費時間・コメント・しおりに対応していないため、これらの情報は保存されません。
+詰み・反則勝ちなど一部の終局理由も保存されません。
+保存を続けますか？</source>
+        <translation>USEN 格式不支援用時、註解和書籤，這些資訊不會被儲存。
+部分終局原因（如將死、犯規勝）也不會被儲存。
+要繼續儲存嗎？</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/kifusavedialogs.cpp" line="110"/>
+        <location filename="../../src/dialogs/kifusavedialogs.cpp" line="116"/>
+        <source>USI形式で保存</source>
+        <translation>儲存為 USI</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/kifusavedialogs.cpp" line="111"/>
+        <source>USI形式は分岐に対応していないため、分岐の情報は保存されません。
+保存を続けますか？</source>
+        <translation>USI 格式不支援變化分支，將不會儲存分支資訊。
+繼續嗎？</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/kifusavedialogs.cpp" line="117"/>
+        <source>USI形式は消費時間に対応していないため、消費時間の情報は保存されません。
+保存を続けますか？</source>
+        <translation>USI 格式不支援用時資訊，將不會儲存用時。
+繼續嗎？</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/kifusavedialogs.cpp" line="134"/>
+        <source>未保存の棋譜</source>
+        <translation>未儲存的棋譜</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/kifusavedialogs.cpp" line="134"/>
+        <source>棋譜に未保存の変更があります。保存しますか？</source>
+        <translation>棋譜有尚未儲存的修改。是否儲存？</translation>
+    </message>
+</context>
+<context>
     <name>LanguageController</name>
     <message>
-        <location filename="../../src/ui/controllers/languagecontroller.cpp" line="94"/>
+        <location filename="../../src/ui/controllers/languagecontroller.cpp" line="61"/>
         <source>言語設定</source>
         <translation>語言</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/languagecontroller.cpp" line="95"/>
+        <location filename="../../src/ui/controllers/languagecontroller.cpp" line="62"/>
         <source>設定を変更しました。
 変更を反映するにはアプリケーションを再起動してください。</source>
         <translation>設定已修改。
 請重新啟動應用程式以套用設定。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/languagecontroller.cpp" line="157"/>
+        <location filename="../../src/ui/controllers/languagecontroller.cpp" line="96"/>
         <source>棋譜表記の読み方</source>
         <translation>棋譜記法說明</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/languagecontroller.cpp" line="158"/>
+        <location filename="../../src/ui/controllers/languagecontroller.cpp" line="97"/>
         <source>表記設定は表示だけに適用されます。棋譜の保存形式は変わりません。
 
 英語表記：K=玉、R=飛、B=角、G=金、S=銀、N=桂、L=香、P=歩。
@@ -8830,12 +8969,12 @@ OKを選択すると保存先が指定できます。</source>
         <translation>English</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/dialoglauncher.cpp" line="64"/>
+        <location filename="../../src/ui/coordinators/dialoglauncher.cpp" line="67"/>
         <source>エラー</source>
         <translation>錯誤</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/dialoglauncher.cpp" line="65"/>
+        <location filename="../../src/ui/coordinators/dialoglauncher.cpp" line="68"/>
         <source>盤面データがありません。</source>
         <translation>沒有棋盤資料。</translation>
     </message>
@@ -9063,6 +9202,24 @@ OKを選択すると保存先が指定できます。</source>
         <location filename="../../src/dialogs/menuwindow.cpp" line="337"/>
         <source>編集完了</source>
         <translation>完成編輯</translation>
+    </message>
+</context>
+<context>
+    <name>NotificationPresenter</name>
+    <message>
+        <location filename="../../src/ui/presenters/notificationpresenter.cpp" line="45"/>
+        <source>Information</source>
+        <translation>資訊</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/presenters/notificationpresenter.cpp" line="48"/>
+        <source>Warning</source>
+        <translation>警告</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/presenters/notificationpresenter.cpp" line="52"/>
+        <source>Error</source>
+        <translation>錯誤</translation>
     </message>
 </context>
 <context>
@@ -10029,112 +10186,92 @@ OKを選択すると保存先が指定できます。</source>
         <translation>關閉檔案失敗：%1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifusavecoordinator.cpp" line="65"/>
         <source>KIF形式 UTF-8 (*.kifu);;KIF形式 Shift_JIS (*.kif);;KI2形式 UTF-8 (*.ki2u);;KI2形式 Shift_JIS (*.ki2);;CSA形式 (*.csa);;JKF形式 (*.jkf);;USEN形式 (*.usen);;USI形式 (*.usi);;すべてのファイル (*)</source>
-        <translation>KIF UTF-8 (*.kifu);;KIF Shift_JIS (*.kif);;KI2 UTF-8 (*.ki2u);;KI2 Shift_JIS (*.ki2);;CSA (*.csa);;JKF (*.jkf);;USEN (*.usen);;USI (*.usi);;所有檔案 (*)</translation>
+        <translation type="vanished">KIF UTF-8 (*.kifu);;KIF Shift_JIS (*.kif);;KI2 UTF-8 (*.ki2u);;KI2 Shift_JIS (*.ki2);;CSA (*.csa);;JKF (*.jkf);;USEN (*.usen);;USI (*.usi);;所有檔案 (*)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifusavecoordinator.cpp" line="90"/>
         <source>KI2形式で保存</source>
-        <translation>儲存為 KI2</translation>
+        <translation type="vanished">儲存為 KI2</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifusavecoordinator.cpp" line="91"/>
         <source>KI2形式は消費時間に対応していないため、消費時間の情報は保存されません。
 保存を続けますか？</source>
-        <translation>KI2 格式不支援用時資訊，將不會儲存用時。
+        <translation type="vanished">KI2 格式不支援用時資訊，將不會儲存用時。
 繼續嗎？</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifusavecoordinator.cpp" line="98"/>
         <source>CSA形式で保存</source>
-        <translation>儲存為 CSA</translation>
+        <translation type="vanished">儲存為 CSA</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifusavecoordinator.cpp" line="99"/>
         <source>CSA形式は分岐に対応していないため、分岐の情報は保存されません。
 保存を続けますか？</source>
-        <translation>CSA 格式不支援變化分支，將不會儲存分支資訊。
+        <translation type="vanished">CSA 格式不支援變化分支，將不會儲存分支資訊。
 繼續嗎？</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifusavecoordinator.cpp" line="108"/>
         <source>USEN形式で保存</source>
-        <translation>以 USEN 格式儲存</translation>
+        <translation type="vanished">以 USEN 格式儲存</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifusavecoordinator.cpp" line="109"/>
         <source>USEN形式は消費時間・コメント・しおりに対応していないため、これらの情報は保存されません。
 詰み・反則勝ちなど一部の終局理由も保存されません。
 保存を続けますか？</source>
-        <translation>USEN 格式不支援用時、註解和書籤，這些資訊不會被儲存。
+        <translation type="vanished">USEN 格式不支援用時、註解和書籤，這些資訊不會被儲存。
 部分終局原因（如將死、犯規勝）也不會被儲存。
 要繼續儲存嗎？</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifusavecoordinator.cpp" line="117"/>
-        <location filename="../../src/ui/coordinators/kifusavecoordinator.cpp" line="123"/>
         <source>USI形式で保存</source>
-        <translation>儲存為 USI</translation>
+        <translation type="vanished">儲存為 USI</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifusavecoordinator.cpp" line="118"/>
         <source>USI形式は分岐に対応していないため、分岐の情報は保存されません。
 保存を続けますか？</source>
-        <translation>USI 格式不支援變化分支，將不會儲存分支資訊。
+        <translation type="vanished">USI 格式不支援變化分支，將不會儲存分支資訊。
 繼續嗎？</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifusavecoordinator.cpp" line="124"/>
         <source>USI形式は消費時間に対応していないため、消費時間の情報は保存されません。
 保存を続けますか？</source>
-        <translation>USI 格式不支援用時資訊，將不會儲存用時。
+        <translation type="vanished">USI 格式不支援用時資訊，將不會儲存用時。
 繼續嗎？</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifusavecoordinator.cpp" line="142"/>
         <source>未保存の棋譜</source>
-        <translation>未儲存的棋譜</translation>
+        <translation type="vanished">未儲存的棋譜</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifusavecoordinator.cpp" line="143"/>
         <source>棋譜に未保存の変更があります。保存しますか？</source>
-        <translation>棋譜有尚未儲存的修改。是否儲存？</translation>
+        <translation type="vanished">棋譜有尚未儲存的修改。是否儲存？</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifusavecoordinator.cpp" line="146"/>
         <source>保存</source>
-        <translation>儲存</translation>
+        <translation type="vanished">儲存</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifusavecoordinator.cpp" line="147"/>
         <source>破棄</source>
-        <translation>放棄</translation>
+        <translation type="vanished">放棄</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifusavecoordinator.cpp" line="30"/>
-        <location filename="../../src/ui/coordinators/kifusavecoordinator.cpp" line="148"/>
         <source>キャンセル</source>
-        <translation>取消</translation>
+        <translation type="vanished">取消</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifusavecoordinator.cpp" line="24"/>
         <source>Shift_JISで保存できない文字</source>
-        <translation>無法以 Shift_JIS 儲存的字元</translation>
+        <translation type="vanished">無法以 Shift_JIS 儲存的字元</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifusavecoordinator.cpp" line="25"/>
         <source>次の文字はShift_JISで保存できません：%1
 
 UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を記録します。</source>
-        <translation>以下字元無法以 Shift_JIS 儲存：%1
+        <translation type="vanished">以下字元無法以 Shift_JIS 儲存：%1
 
 是否改用 UTF-8 儲存？檔案第一行將記錄「encoding=UTF-8」。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifusavecoordinator.cpp" line="29"/>
         <source>UTF-8で保存</source>
-        <translation>以 UTF-8 儲存</translation>
+        <translation type="vanished">以 UTF-8 儲存</translation>
     </message>
     <message>
         <location filename="../../src/kifu/kifusavefile.cpp" line="71"/>
@@ -10142,9 +10279,8 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>以下字元無法以 Shift_JIS 儲存：%1。請改用 UTF-8 格式（.kifu、.ki2u）儲存。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifusavecoordinator.cpp" line="78"/>
         <source>名前を付けて保存</source>
-        <translation>另存為</translation>
+        <translation type="vanished">另存為</translation>
     </message>
     <message>
         <source>後手勝ち</source>
@@ -12754,19 +12890,34 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>UiNotificationService</name>
     <message>
-        <location filename="../../src/services/uinotificationservice.cpp" line="45"/>
         <source>Information</source>
-        <translation>資訊</translation>
+        <translation type="vanished">資訊</translation>
     </message>
     <message>
-        <location filename="../../src/services/uinotificationservice.cpp" line="48"/>
         <source>Warning</source>
-        <translation>警告</translation>
+        <translation type="vanished">警告</translation>
     </message>
     <message>
-        <location filename="../../src/services/uinotificationservice.cpp" line="52"/>
         <source>Error</source>
-        <translation>錯誤</translation>
+        <translation type="vanished">錯誤</translation>
+    </message>
+</context>
+<context>
+    <name>UnsavedChangesPrompt</name>
+    <message>
+        <location filename="../../src/widgets/unsavedchangesprompt.cpp" line="15"/>
+        <source>保存</source>
+        <translation>儲存</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/unsavedchangesprompt.cpp" line="16"/>
+        <source>破棄</source>
+        <translation>放棄</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/unsavedchangesprompt.cpp" line="17"/>
+        <source>キャンセル</source>
+        <translation>取消</translation>
     </message>
 </context>
 <context>

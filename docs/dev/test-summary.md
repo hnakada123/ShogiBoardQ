@@ -35,7 +35,7 @@
 26. `tst_kifubranchlistmodel`
 27. `tst_kifudocument`
 28. `tst_jkfexporter`
-29. `tst_kifusavecoordinator`
+29. `tst_kifusavedialogs`
 30. `tst_kifu_comment_sync`
 31. `tst_josekiwindow`
 32. `tst_positionedit_gamestart`

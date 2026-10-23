@@ -43,50 +43,22 @@ public:
     explicit LanguageController(const Deps& deps, QObject* parent = nullptr);
 
     /**
-     * @brief 言語メニューの状態を更新
+     * @brief 言語メニューのチェックを保存した言語に合わせる
      */
     void updateMenuState();
 
-public slots:
-    /**
-     * @brief システム言語が選択された
-     */
-    void onSystemLanguageTriggered();
-
-    /**
-     * @brief 日本語が選択された
-     */
-    void onJapaneseTriggered();
-
-    /**
-     * @brief 英語が選択された
-     */
-    void onEnglishTriggered();
-
 private slots:
-    void onChineseSimplifiedTriggered();
-    void onChineseTraditionalTriggered();
+    /// 言語の項目が選ばれた（項目の data が言語コード）
+    void onLanguageTriggered(QAction* action);
     void onNotationTriggered(QAction* action);
     void onOriginTriggered(bool enabled);
     void showNotationHelp();
 
 private:
-    void setActions(QAction* systemAction, QAction* japaneseAction, QAction* englishAction,
-                    QAction* simplifiedAction, QAction* traditionalAction);
     void setNotationActions(QAction* automatic, QAction* japanese, QAction* western, QAction* origin, QAction* help);
     void restartNotice();
-    /**
-     * @brief 言語を変更する
-     * @param lang 言語コード（"system", "ja_JP", "en"）
-     */
-    void changeLanguage(const QString& lang);
 
-    QActionGroup* m_actionGroup = nullptr;
-    QAction* m_systemAction = nullptr;
-    QAction* m_japaneseAction = nullptr;
-    QAction* m_englishAction = nullptr;
-    QAction* m_simplifiedAction = nullptr;
-    QAction* m_traditionalAction = nullptr;
+    QActionGroup* m_languageGroup = nullptr;   ///< 言語の項目（data は "system"・"ja_JP"・"en"・"zh_CN"・"zh_TW"）
     QActionGroup* m_notationGroup = nullptr;
     QWidget* m_parentWidget = nullptr;
 };

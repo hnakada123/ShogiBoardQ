@@ -221,8 +221,6 @@ private:
     int m_iconSize = 24;     // アイコンサイズ
 
     // 定数
-    static constexpr int kMinButtonSize = 48;
-    static constexpr int kMaxButtonSize = 120;
     static constexpr int kMinFontSize = 7;
     static constexpr int kMaxFontSize = 24;
 };

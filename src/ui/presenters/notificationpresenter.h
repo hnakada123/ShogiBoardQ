@@ -1,20 +1,20 @@
-#ifndef UINOTIFICATIONSERVICE_H
-#define UINOTIFICATIONSERVICE_H
+#ifndef NOTIFICATIONPRESENTER_H
+#define NOTIFICATIONPRESENTER_H
 
-/// @file uinotificationservice.h
-/// @brief エラー通知ダイアログ表示サービスの定義
+/// @file notificationpresenter.h
+/// @brief エラー・情報の知らせをダイアログで出す NotificationPresenter の定義
 
 #include "errorbus.h"
 #include <QObject>
 #include <QStringList>
 
 /**
- * @brief エラー通知表示を一元管理するサービス
+ * @brief エラー・情報の知らせをダイアログで出す（知らせの表示の唯一の持ち主）
  *
- * MainWindow から displayErrorMessage / onErrorBusOccurred のロジックを分離し、
- * ErrorBus / KifuLoadCoordinator / CSA 通信対局の司令塔からのエラー通知を受け取る。
+ * ErrorBus・KifuLoader・CSA 通信対局・終局・検討の終了などの知らせを受け取り、
+ * メッセージボックスで出す。自動化 API の呼び出し中は ScopedCapture で記録だけする。
  */
-class UiNotificationService : public QObject
+class NotificationPresenter : public QObject
 {
     Q_OBJECT
 
@@ -44,13 +44,13 @@ public:
         const QStringList& notices() const { return m_notices; }
 
     private:
-        friend class UiNotificationService;
+        friend class NotificationPresenter;
         QStringList m_errors;
         QStringList m_notices;
         ScopedCapture* m_previous = nullptr;
     };
 
-    explicit UiNotificationService(const Deps& deps, QObject* parent = nullptr);
+    explicit NotificationPresenter(const Deps& deps, QObject* parent = nullptr);
 
 public slots:
     void displayErrorMessage(const QString& message);
@@ -62,4 +62,4 @@ private:
     Deps m_deps;
 };
 
-#endif // UINOTIFICATIONSERVICE_H
+#endif // NOTIFICATIONPRESENTER_H

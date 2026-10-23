@@ -5,6 +5,7 @@
 
 #include <QTest>
 #include <QComboBox>
+#include <QLabel>
 #include <QRadioButton>
 #include <QSpinBox>
 #include <QTemporaryDir>
@@ -519,6 +520,22 @@ private slots:
         QVERIFY(h.lastError().isEmpty());
         ctrl->stop();
         QVERIFY(!ctrl->isRunning());
+    }
+
+    /// 結果が出る前に止めても「解析中止」の状態文を残し、結果を消したときだけ初めの案内に戻す
+    void stopBeforeFirstResultKeepsStoppedStatus()
+    {
+        TestHelper h;
+        auto ctrl = h.controller();
+        QVERIFY(h.startAnalysis(*ctrl));
+        auto* status = h.resultsPanel.findChild<QLabel*>(QStringLiteral("analysisStatusLabel"));
+        QVERIFY(status);
+        QVERIFY(status->text().contains(QStringLiteral("解析中")));
+        ctrl->stop();
+        QTRY_VERIFY(!ctrl->isRunning());
+        QVERIFY2(status->text().contains(QStringLiteral("解析中止")), qPrintable(status->text()));
+        h.analysisModel.clear();
+        QVERIFY2(!status->text().contains(QStringLiteral("解析中止")), qPrintable(status->text()));
     }
 
     void startWithEngineInitFailure()

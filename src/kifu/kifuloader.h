@@ -1,7 +1,7 @@
-#ifndef KIFULOADCOORDINATOR_H
-#define KIFULOADCOORDINATOR_H
+#ifndef KIFULOADER_H
+#define KIFULOADER_H
 
-/// @file kifuloadcoordinator.h
+/// @file kifuloader.h
 /// @brief 棋譜ファイル・貼り付けた棋譜・局面を読み、分岐ツリーを作り直す
 
 #include <QFutureWatcher>
@@ -21,13 +21,13 @@ class KifuDocument;
  * 表示（棋譜欄・分岐・盤）は、ツリーが変わると表示中の手（KifuNavigationState）が開始局面へ戻り、
  * それを受けた部品が合わせる。
  */
-class KifuLoadCoordinator : public QObject
+class KifuLoader : public QObject
 {
     Q_OBJECT
 
 public:
-    explicit KifuLoadCoordinator(KifuDocument* document, QObject* parent = nullptr);
-    ~KifuLoadCoordinator() override;
+    explicit KifuLoader(KifuDocument* document, QObject* parent = nullptr);
+    ~KifuLoader() override;
 
     // --- 非同期（画面からの読み込み。終わったら loadFinished） ---
     /// ファイルを読む（形式は拡張子と内容から判定する）
@@ -60,4 +60,4 @@ private:
     CancelFlag m_loadCancel;
 };
 
-#endif // KIFULOADCOORDINATOR_H
+#endif // KIFULOADER_H

@@ -18,8 +18,6 @@
 #include "piecestylecatalog.h"
 #include "setting.h"
 
-class QWidget;
-
 namespace AppSettings {
 
 // --- 補助ダイアログ（DialogFontScale）の文字の大きさと大きさ ---
@@ -76,7 +74,7 @@ void setPieceStyle(const QString& style);
 /// 駒音（駒を指したときの効果音）の有効/無効（デフォルト: true）
 inline const Setting<bool> pieceSoundEnabled{"Sound/pieceSoundEnabled", true};
 
-/// 駒音の音量 0〜100 %（デフォルト: 30。範囲外の値は丸める）
+/// 駒音の音量 0〜100 %（デフォルト: 30。範囲外の値は丸める）。標準の駒音（piece_move.wav）は既定の音量で聴くことを前提に調整されている
 inline const BoundedSetting<int> pieceSoundVolume{"Sound/pieceSoundVolume", 30, 0, 100};
 
 /// 駒音の音質（音の高さ・3バンドEQ。デフォルト: すべて 0。範囲外の値は丸める）
@@ -110,8 +108,8 @@ inline const Setting<QStringList> menuWindowFavorites{"MenuWindow/favorites", QS
 /// メニューウィンドウのサイズ（デフォルト: 500x400）
 inline const Setting<QSize> menuWindowSize{"MenuWindow/size", QSize(500, 400)};
 
-/// メニューウィンドウのボタンサイズ（デフォルト: 104）
-inline const Setting<int> menuWindowButtonSize{"MenuWindow/buttonSize", 104};
+/// メニューウィンドウのボタンサイズ（デフォルト: 104。48〜120）
+inline const BoundedSetting<int> menuWindowButtonSize{"MenuWindow/buttonSize", 104, 48, 120};
 
 /// メニューウィンドウのフォントサイズ（デフォルト: 12）
 inline const Setting<int> menuWindowFontSize{"MenuWindow/fontSize", 12};
@@ -126,12 +124,6 @@ inline const Setting<QSize> mainWindowSize{"SizeRelated/mainWindowSize", QSize(1
 
 /// 盤のマスの大きさ（ピクセル、デフォルト: 50）。範囲外の保存値は読む側で既定値へ戻す
 inline const Setting<int> squareSize{"SizeRelated/squareSize", 50};
-
-/// メインウィンドウのサイズを読み込んで適用
-void loadWindowSize(QWidget* mainWindow);
-
-/// メインウィンドウのサイズと盤マスサイズをINIに保存
-void saveWindowAndBoard(QWidget* mainWindow, int squareSize);
 
 } // namespace AppSettings
 

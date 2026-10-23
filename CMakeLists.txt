@@ -417,6 +417,8 @@ set(SRC_KIFU
     src/kifu/kifuformat.h
     src/kifu/kifuioservice.cpp
     src/kifu/kifuioservice.h
+    src/kifu/kifuloader.cpp
+    src/kifu/kifuloader.h
     src/kifu/kifuloadparser.cpp
     src/kifu/kifuloadparser.h
     src/kifu/kifunavigationstate.cpp
@@ -549,6 +551,8 @@ set(SRC_UI
     src/ui/controllers/branchtreeeditcontroller.h
     src/ui/controllers/considerationuicontroller.cpp
     src/ui/controllers/considerationuicontroller.h
+    src/ui/controllers/debugscreenshotshortcut.cpp
+    src/ui/controllers/debugscreenshotshortcut.h
     src/ui/controllers/humanturnpolicy.cpp
     src/ui/controllers/humanturnpolicy.h
     src/ui/controllers/imageexportcontroller.cpp
@@ -569,14 +573,14 @@ set(SRC_UI
     src/ui/controllers/nyugyokudeclarationhandler.h
     src/ui/controllers/pvclickcontroller.cpp
     src/ui/controllers/pvclickcontroller.h
+    src/ui/controllers/screenshotservice.cpp
+    src/ui/controllers/screenshotservice.h
     src/ui/controllers/settingsresetcontroller.cpp
     src/ui/controllers/settingsresetcontroller.h
     src/ui/controllers/tsumesearchcontroller.cpp
     src/ui/controllers/tsumesearchcontroller.h
     src/ui/controllers/usicommandcontroller.cpp
     src/ui/controllers/usicommandcontroller.h
-    src/ui/coordinators/aboutcoordinator.cpp
-    src/ui/coordinators/aboutcoordinator.h
     src/ui/coordinators/commentcoordinator.cpp
     src/ui/coordinators/commentcoordinator.h
     src/ui/coordinators/csagamesession.cpp
@@ -589,10 +593,6 @@ set(SRC_UI
     src/ui/coordinators/dockregistry.h
     src/ui/coordinators/kifufilecontroller.cpp
     src/ui/coordinators/kifufilecontroller.h
-    src/ui/coordinators/kifuloadcoordinator.cpp
-    src/ui/coordinators/kifuloadcoordinator.h
-    src/ui/coordinators/kifusavecoordinator.cpp
-    src/ui/coordinators/kifusavecoordinator.h
     src/ui/coordinators/uistatepolicymanager.cpp
     src/ui/coordinators/uistatepolicymanager.h
     src/ui/presenters/kifuanalysisrowpresenter.cpp
@@ -607,6 +607,8 @@ set(SRC_UI
     src/ui/presenters/evaluationgraphpresenter.h
     src/ui/presenters/kifudisplaypresenter.cpp
     src/ui/presenters/kifudisplaypresenter.h
+    src/ui/presenters/notificationpresenter.cpp
+    src/ui/presenters/notificationpresenter.h
     src/ui/presenters/playerinfopresenter.cpp
     src/ui/presenters/playerinfopresenter.h
     src/ui/presenters/timedisplaypresenter.cpp
@@ -731,6 +733,8 @@ set(SRC_WIDGETS
     src/widgets/timecontroleditor.h
     src/widgets/tsumepositionpreview.cpp
     src/widgets/tsumepositionpreview.h
+    src/widgets/unsavedchangesprompt.cpp
+    src/widgets/unsavedchangesprompt.h
     src/widgets/logpanel.cpp
     src/widgets/logpanel.h
     src/widgets/usilogpanel.cpp
@@ -791,6 +795,8 @@ set(SRC_DIALOGS
     src/dialogs/kifuanalysisdialog.h
     src/dialogs/kifupastedialog.cpp
     src/dialogs/kifupastedialog.h
+    src/dialogs/kifusavedialogs.cpp
+    src/dialogs/kifusavedialogs.h
     src/dialogs/menuwindow.cpp
     src/dialogs/menuwindow.h
     src/dialogs/piecesoundsettingsdialog.cpp
@@ -858,8 +864,6 @@ set(SRC_SERVICES
     src/services/piecestylecatalog.h
     src/services/appearancestate.cpp
     src/services/appearancestate.h
-    src/services/debugscreenshotshortcut.cpp
-    src/services/debugscreenshotshortcut.h
     src/services/docksettings.cpp
     src/services/docksettings.h
     src/services/enginedialogsettings.h
@@ -881,8 +885,6 @@ set(SRC_SERVICES
     src/services/piecesoundprocessor.cpp
     src/services/piecesoundprocessor.h
     src/services/piecesoundtone.h
-    src/services/screenshotservice.cpp
-    src/services/screenshotservice.h
     src/services/setting.h
     src/services/settingscommon.cpp
     src/services/settingscommon.h
@@ -890,8 +892,6 @@ set(SRC_SERVICES
     src/services/settingsservice.h
     src/services/tsumeshogisettings.cpp
     src/services/tsumeshogisettings.h
-    src/services/uinotificationservice.cpp
-    src/services/uinotificationservice.h
 )
 
 set(SRC_COMMON

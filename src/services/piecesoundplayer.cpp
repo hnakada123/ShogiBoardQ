@@ -49,11 +49,11 @@ void PieceSoundPlayer::setEnabled(bool enabled)
 
 void PieceSoundPlayer::setVolume(int percent)
 {
-    const int clamped = qBound(kMinVolume, percent, kMaxVolume);
+    AppSettings::pieceSoundVolume.set(percent);
+    const int clamped = AppSettings::pieceSoundVolume();
     if (m_volume == clamped) return;
 
     m_volume = clamped;
-    AppSettings::pieceSoundVolume.set(clamped);
     applyVolume();
     emit volumeChanged(clamped);
 }
@@ -106,7 +106,7 @@ void PieceSoundPlayer::applyVolume()
     if (!m_effect) return;
 
     // スライダーの % 値は知覚に合わせた対数スケールとして扱い、線形振幅へ変換する
-    const float perceived = static_cast<float>(m_volume) / static_cast<float>(kMaxVolume);
+    const float perceived = static_cast<float>(m_volume) / static_cast<float>(AppSettings::pieceSoundVolume.maximum());
     const float linear = QtAudio::convertVolume(perceived,
                                                 QtAudio::LogarithmicVolumeScale,
                                                 QtAudio::LinearVolumeScale);

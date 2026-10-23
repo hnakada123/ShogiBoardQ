@@ -22,7 +22,7 @@
 #include "evaluationchartwidget.h"
 #include "evaluationgraphpresenter.h"
 #include "gamesession.h"
-#include "kifuloadcoordinator.h"
+#include "kifuloader.h"
 #include "matchcoordinator.h"
 #include "playerinfopresenter.h"
 #include "sessionresetcoordinator.h"
@@ -214,6 +214,56 @@ private slots:
         h.server.send("#WIN");
         QTRY_COMPARE(h.coordinator.gameState(), CsaGameCoordinator::GameState::GameOver);
         QVERIFY(!h.engines.engineInSlot(1));
+    }
+
+    /// 対局の進み具合は、接続の段階をクライアントの状態から、対局中と終局後を司令塔の段階から求める
+    void gameStateFollowsConnectionAndGame()
+    {
+        Harness h;
+        QSignalSpy states(&h.coordinator, &CsaGameCoordinator::gameStateChanged);
+        QVERIFY(h.start("+"));
+        QList<CsaGameCoordinator::GameState> seen;
+        for (const QList<QVariant>& args : std::as_const(states))
+            seen << args.at(0).value<CsaGameCoordinator::GameState>();
+        const QList<CsaGameCoordinator::GameState> expected{
+            CsaGameCoordinator::GameState::Connecting, CsaGameCoordinator::GameState::LoggingIn,
+            CsaGameCoordinator::GameState::WaitingForMatch, CsaGameCoordinator::GameState::WaitingForAgree,
+            CsaGameCoordinator::GameState::InGame};
+        QCOMPARE(seen, expected);
+
+        // 終局の後にサーバーが切っても、再接続の判断のために GameOver のまま
+        h.server.send("%TORYO,T1");
+        h.server.send("#RESIGN");
+        h.server.send("#LOSE");
+        QTRY_COMPARE(h.coordinator.gameState(), CsaGameCoordinator::GameState::GameOver);
+        h.server.peer->disconnectFromHost();
+        QTRY_VERIFY(!h.coordinator.isConnected());
+        QCOMPARE(h.coordinator.gameState(), CsaGameCoordinator::GameState::GameOver);
+
+        // 止めると待機中に戻る
+        h.coordinator.stopGame();
+        QCOMPARE(h.coordinator.gameState(), CsaGameCoordinator::GameState::Idle);
+    }
+
+    /// 接続を始められなかったときは、接続中のまま残らず Error になり、もう一度始められる
+    void connectionThatCannotStartEndsInError()
+    {
+        CsaGameCoordinator coordinator;
+        QSignalSpy errors(&coordinator, &CsaGameCoordinator::errorOccurred);
+        CsaGameCoordinator::StartOptions options;
+        options.host = QStringLiteral("127.0.0.1");
+        options.port = 0;
+        coordinator.startGame(options);
+        QCOMPARE(coordinator.gameState(), CsaGameCoordinator::GameState::Error);
+        QCOMPARE(errors.size(), 1);
+
+        FakeCsaServer server;
+        QVERIFY(server.listen());
+        options.port = server.port();
+        coordinator.startGame(options);
+        QCOMPARE(errors.size(), 1);
+        QVERIFY(server.accept());
+        QTRY_COMPARE(coordinator.gameState(), CsaGameCoordinator::GameState::LoggingIn);
     }
 
     /// 引き分けの終局もローカル対局と同じく、探索を止めてから gameover draw を送る
@@ -510,7 +560,7 @@ private slots:
         AppActivityState activity;
         KifuDocument document(&tree);
         MatchCoordinator match({&h.gc, &h.clock, &activity, &h.engines, &document});
-        KifuLoadCoordinator loader(&document);
+        KifuLoader loader(&document);
         EvaluationChartWidget chart;
         EvaluationGraphPresenter graph({&chart, &nav, &live});
         SessionResetCoordinator::Deps rd;

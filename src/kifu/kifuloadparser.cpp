@@ -37,7 +37,7 @@ KifuLoadResult KifuLoadParser::parseFile(const QString& path, std::optional<Kifu
         KifuLoadResult result;
         result.filePath = path;
         result.warning = warning;
-        result.error = QCoreApplication::translate("KifuLoadCoordinator", "棋譜ファイルの読み込みに失敗しました: %1%2")
+        result.error = QCoreApplication::translate("KifuLoader", "棋譜ファイルの読み込みに失敗しました: %1%2")
                            .arg(QFileInfo(path).fileName(), QLatin1Char('\n') + warning);
         return result;
     }
@@ -91,11 +91,11 @@ KifuLoadResult KifuLoadParser::parseContent(const QString& content, KifuFormat f
     if (!result.success) {
         const QString detail = result.warning.isEmpty() ? QString() : QLatin1Char('\n') + result.warning;
         if (format == KifuFormat::Bod) {
-            result.error = QCoreApplication::translate("KifuLoadCoordinator", "BOD形式の解析に失敗しました。%1").arg(result.warning);
+            result.error = QCoreApplication::translate("KifuLoader", "BOD形式の解析に失敗しました。%1").arg(result.warning);
         } else {
             result.error = sourceName.isEmpty()
-                ? QCoreApplication::translate("KifuLoadCoordinator", "棋譜の読み込みに失敗しました。%1").arg(detail)
-                : QCoreApplication::translate("KifuLoadCoordinator", "棋譜ファイルの読み込みに失敗しました: %1%2").arg(sourceName, detail);
+                ? QCoreApplication::translate("KifuLoader", "棋譜の読み込みに失敗しました。%1").arg(detail)
+                : QCoreApplication::translate("KifuLoader", "棋譜ファイルの読み込みに失敗しました: %1%2").arg(sourceName, detail);
         }
         return result;
     }
@@ -109,7 +109,7 @@ KifuLoadResult KifuLoadParser::parseText(const QString& content, const CancelFla
     KifuLoadResult result;
     if (canceled(cancel)) return result;
     if (content.trimmed().isEmpty()) {
-        result.error = QCoreApplication::translate("KifuLoadCoordinator", "貼り付けるテキストが空です。");
+        result.error = QCoreApplication::translate("KifuLoader", "貼り付けるテキストが空です。");
         return result;
     }
     return parseContent(content, KifuFormats::detect(content), cancel);

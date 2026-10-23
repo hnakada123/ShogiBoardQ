@@ -92,6 +92,7 @@ cmake --build build --target translations
   - `kifuloadparser.cpp/.h` - 棋譜の読み込み口（ファイルの文字コードの判別と形式ごとの変換器への振り分け）
   - `kifparsetypes.h` - 読み込み結果（`KifParseResult`・形式ごとの `parse()` が返す `KifuParseOutcome`）と、読めない手の扱い（`ParseOptions`・`ParseReport`。ここだけで決める）
   - `kifuioservice.cpp/.h`・`kifusavefile.cpp/.h` - Kifu file I/O
+  - `kifuloader.cpp/.h` - 棋譜ファイル・貼り付けた棋譜・局面を読み（`KifuLoadParser` をワーカースレッドで）、`KifuDocument` を置き換える `KifuLoader`（合成ルートが1つ作り、全部の読み込みで使い回す）
   - `josekibook.cpp/.h` - 定跡のデータの値型 `JosekiBook`（局面のキー `JosekiBook::positionKey()`（手数を除いた SFEN）から局面の登録を引く表1つ。同じ局面を手数違いで別々に登録したファイルは手数ごとの登録のまま持ち、引くときは同じ手数の登録、無ければ最初の登録を使う。大きな定跡も読めるよう、指し手を16ビットの番号にした詰めた形で持ち、`movesAt()` で `JosekiMove` に戻す（予想応手は `std::optional`。無ければ nullopt でファイルには "none"。値を書き換えて予想応手を残すのは `updateMove(..., NextMoveUpdate::Keep)`）。最後の定跡手を消すと登録も消える。棋譜で指された手を数えるのは `addPlayedMove`。やねうら王が予想応手 "none" の定跡手の後に先読みに使う手（次の局面で出現頻度、次に評価値が最も高い手）は `leadingMove()` で、定跡ウィンドウの表が予想応手の列に灰色で出す）と、やねうら王定跡形式の読み書き `JosekiBookFile::load()`・`save()`（ワーカースレッドから呼べる）
   - `josekibooksession.cpp/.h` - 開いている定跡ファイル（`JosekiBook` の値・変更状態・非同期の読み書き・履歴と前回のファイル）。合成ルートが1つ作り（`MainWindowComponents::josekiBook`）、定跡ウィンドウはそれを表示・編集する（ウィンドウのマージの操作は dialogs の `JosekiMergeController`、定跡手の追加・編集・削除は `JosekiEditController`）。定跡を変える関数は、変えられないとき（`canEdit()` が false。読み書き中と、前回のファイルを初めて使うときに読み込む `restore`〜`startDeferredLoad` の待ちの間）は何もせず false・0件を返す。どの登録も保存はしない（定跡ウィンドウの「保存」で保存する）。エンジンの読み筋の登録 `registerEnginePv`（2手目を予想応手。登録済みの手は評価値・深さ・予想応手だけ書き換える。評価値は `valueOf` で詰みを ±(32000−手数)）、複数の棋譜から集めた手の登録 `importMoves`、別の定跡ファイルを足す `startMergeBook`（ワーカーで `JosekiBook::mergeFrom`。どれも保存はしない）
   - `josekilines.cpp/.h` - 定跡と棋譜の手順 `JosekiLines`（`expand`: 表示中の局面から定跡手を表の順にたどって棋譜の変化の手順 `RecordLine` にする。手数・1局面の手の数・比率の下限で絞り、別の手順で同じ局面に着いたら止める。`firstDeviation`: 手順が定跡を外れた最初の手）
@@ -130,7 +131,7 @@ cmake --build build --target translations
 
 - **network/**: CSA通信対局
   - `csaclient.cpp/.h` - CSA protocol client（受信の解釈は `csaclient_parser.cpp`、送信は `csaclient_commands.cpp`）
-  - `csagamecoordinator.cpp/.h` - CSA game coordination（手順と持ち時間は `CsaGameProgress`）
+  - `csagamecoordinator.cpp/.h` - CSA game coordination（手順と持ち時間と手番は `CsaGameProgress`。対局の状態 `gameState()` は持たずに、接続の段階を `CsaClient::ConnectionState` から、対局中・終局後・失敗を司令塔の段階 `Phase` から求める）
   - `csagamechannel.cpp/.h` - 通信対局の窓口 `CsaGameChannel`（`GameChannel` の実装。操作はサーバーへ送り、入玉宣言の成否はサーバーが判定する）
 
 - **navigation/**: ナビゲーション機能
@@ -154,7 +155,7 @@ cmake --build build --target translations
   - **controllers/**: 利用者操作の処理
     - `boardmovecontroller`（主画面の `BoardInputRoute`。行き先ごとに手を処理する）, `humanturnpolicy`（盤の手の行き先 `boardInput()`（`BoardInput`。動作状態ごとの規則はここだけ）・人間が指せる手番か・対局が進行中か）, `considerationuicontroller`（検討タブの操作を `AnalysisSession` へ伝えるだけ）, `josekiwindowcontroller`（定跡ウィンドウを表示中の局面に合わせ、表示中の手順が定跡を外れた手を出す。「棋譜に展開...」は `JosekiLines::expand` の手順を `BranchTreeEditController::addVariationLines` で変化として足す。定跡の表示（「■ 停止」）・「盤の手を登録」の checkable な `QAction` を持ち、メニューの「盤に定跡手を表示」と合わせて正本にする。定跡ウィンドウのボタン・チェック、盤の矢印、盤の手の登録はこの `QAction` を読む）, `josekiregistrationcontroller`（思考の表・検討の表・棋譜解析の結果の表の右クリックで読み筋の最初の手を定跡に登録し、「盤の手を登録」がオンなら盤で指した手（`BranchTreeEditController::boardMoveRecorded`）と対局で指された手（`GameSession::gameMoveRecorded`。人間・エンジンとも、ローカル・通信対局とも）を登録する。定跡を変えられないとき（`JosekiBookSession::canEdit`）は押せない）, `menuwindowcontroller`, `pvclickcontroller`, etc.
   - **coordinators/**: 複数の部品にまたがる UI の流れ
-    - `dialoglauncher`, `kifuloadcoordinator`, `kifufilecontroller`（棋譜の開く・保存・貼り付け・コピー）, `csagamesession`, etc.
+    - `dialoglauncher`, `kifufilecontroller`（棋譜の開く・保存・貼り付け・コピー。読み込みは kifu の `KifuLoader`、保存で聞くダイアログは dialogs の `KifuSaveDialogs`）, `csagamesession`, etc.
     - `uistatepolicymanager` - 動作状態ごとのメニュー・ボタンの有効/無効（コンパイル時の表）
     - `dockregistry` - ドックの表 `DockRegistry`（`DockId`・`DockSpec`）。12個のドックをこの表だけから作り（`createAll()`）、規定の場所に置き（同じ場所のドックは表で前のドックのタブに重ねる。起動時と `resetToDefault()` で同じ配置）、浮動・表示・位置を保存・復元する（`saveStates()`・`DockSettings::DockState`）。ドックを足すときは `DockId` と表に1行足す
     - `docklayoutmanager` - 名前付きレイアウト・起動時のレイアウト・ドックの固定（ドックは `DockRegistry` から取る）
@@ -277,7 +278,7 @@ grep -c 'type="unfinished"' resources/translations/*.ts | \
 1. ドメイン別ヘッダーに `inline const Setting<T> name{"Group/key", 既定値};` を1行足す
 2. 読むときは `NS::name()`、書くときは `NS::name.set(value)`、既定値は `NS::name.defaultValue()`。既定値が翻訳文や実行時の場所で決まる項目は、宣言の既定値を空にして `NS::name.valueOr(tr("..."))` で読む
 3. ダイアログのウィンドウサイズと A-/A+ は `DialogFontScale::install(this, 文字の大きさの宣言, options)` に渡す（`options.size` に大きさの宣言を入れれば、作るときに戻し、閉じた（Hide の）ときに保存する。デストラクタ・`done()`・`closeEvent` で `DialogUtils::saveDialogSize` を書かない）。ダイアログに `FontSizeHelper` のメンバや A-/A+ 用の connect・`applyFontSize()` は書かない。入力欄の値は `SettingsFormBinding`（`src/widgets/settingsformbinding.h`。数値・小数・チェック・ラジオの組（位置か2択）・コンボ・文字の欄）に欄と宣言を `add()` すれば、読み込み・保存・既定値に戻すを1つの表で行える（文字は前後の空白を除いて保存し、範囲外の位置は端に寄せる）。大きさを構造体の設定（`StructSetting`）に入れない
-4. 値の範囲を絞る項目は `BoundedSetting<T>{"Group/key", 既定値, 最小, 最大}`、構造体を項目ごとのキーに保存する項目は `StructSetting<T>{{SettingField<T>::of("Group/key", &T::member), ...}, 整える関数}`、配列で保存する項目は `ListSetting<T>{配列のキー, 要素のキー}`（配列のキーは実行時に作ってもよい）・`StructListSetting<T>{配列のキー, {項目...}}` で宣言する（いずれも `setting.h`。使い方は `Setting<T>` と同じ）。これらで表せない処理（以前の版の値の引き継ぎ、`AppSettings::boardVisuals` の駒台の木目の代替のような未保存の項目の代わり、`kifuAnalysisColumnWidths` の `QVariantList` のような独自の保存形式）が要る項目だけを関数として `.cpp` に書く。その場合も `SettingsCommon::openSettings()` を使う（設定ファイルを `QSettings` で直接開くのは、`beginReadArray` などでグループの状態を変えたまま読み書きを続ける配列データ（`EngineProfileStore`）だけ）
+4. 値の範囲を絞る項目は `BoundedSetting<T>{"Group/key", 既定値, 最小, 最大}`、構造体を項目ごとのキーに保存する項目は `StructSetting<T>{{SettingField<T>::of("Group/key", &T::member), ...}, 整える関数}`、配列で保存する項目は `ListSetting<T>{配列のキー, 要素のキー}`（配列のキーは実行時に作ってもよい）・`StructListSetting<T>{配列のキー, {項目...}}` で宣言する（いずれも `setting.h`。使い方は `Setting<T>` と同じ）。グループ名や番号だけ違う組は、キーを組み立てて宣言を返す関数を1つ書き、組ごとにその関数で宣言する（`JosekiSettings::playOptionsSetting`・`GameSettings::StartGame::playerSettings`）。値の範囲は宣言に書き、読む側で `qBound` し直さない（範囲は `minimum()`・`maximum()` で読める）。これらで表せない処理（以前の版の値の引き継ぎ、`AppSettings::boardVisuals` の駒台の木目の代替のような未保存の項目の代わり、`kifuAnalysisColumnWidths` の `QVariantList` のような独自の保存形式）が要る項目だけを関数として `.cpp` に書く。その場合も `SettingsCommon::openSettings()` を使う（設定ファイルを `QSettings` で直接開くのは、`beginReadArray` などでグループの状態を変えたまま読み書きを続ける配列データ（`EngineProfileStore`）だけ）
 
 **実装例:**
 ```cpp

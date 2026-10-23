@@ -11,6 +11,12 @@ CsaGameProgress CsaGameProgress::forSummary(const CsaClient::GameSummary& summar
     return progress;
 }
 
+Turn CsaGameProgress::sideToMove() const
+{
+    if (record.entries.isEmpty()) return summary.toMove;
+    return opponent(record.entries.constLast().mover);
+}
+
 void CsaGameProgress::startClockFromSummary()
 {
     const CsaClient::GameSummary& s = summary;

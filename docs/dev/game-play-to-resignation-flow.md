@@ -709,7 +709,7 @@ struct MatchGameOverState {
 | シグナル | 受信先 | 処理内容 |
 |---|---|---|
 | `gameEnded` | `GameSession::onGameEnded()` | `finishMatchRecord()`: ライブ対局セッションの確定・終局時刻の記録・棋譜の自動保存（設定時）。中断は確定も保存もせず、連続対局の設定を戻す（7.3） |
-| `gameOverMessage` | `UiNotificationService::showInformation()` | 結果のダイアログ（`QMessageBox::information`） |
+| `gameOverMessage` | `NotificationPresenter::showInformation()` | 結果のダイアログ（`QMessageBox::information`） |
 | `gameEndProcessed` | `GameSession::onGameEndProcessed()` | エンジン同士の連続対局なら次局へ（7.4） |
 | `gameInterrupted` | `GameSession::onGameInterrupted()` | 中断の行を `attachInterruptedRecord()` で中断した対局に結びつけ、「対局再開」を使えるようにする（8.2） |
 
@@ -1051,7 +1051,7 @@ MatchCoordinator::handleResign()
         ├─ m_activityLease.reset()（動作状態を Idle に） ──→ (B)
         ├─ emit gameEnded(info)                            ──→ (C)
         ├─ emit gameOverMessage("対局終了", "先手の投了。後手の勝ちです。")
-        │                                    ──→ UiNotificationService::showInformation()
+        │                                    ──→ NotificationPresenter::showInformation()
         └─ emit gameEndProcessed(info)                     ──→ (D)
 
 (A) GameSession::appendRecord(entry)

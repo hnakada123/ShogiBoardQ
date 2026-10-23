@@ -1,7 +1,8 @@
-/// @file kifusavecoordinator.cpp
+/// @file kifusavedialogs.cpp
 /// @brief 棋譜の保存ダイアログ・未保存の確認の実装
 
-#include "kifusavecoordinator.h"
+#include "kifusavedialogs.h"
+#include "unsavedchangesprompt.h"
 
 #include <QFileDialog>
 #include <QApplication>
@@ -13,28 +14,22 @@
 
 #include "gamesettings.h"
 
-namespace KifuSaveCoordinator {
-
-namespace {
-
-/// Shift_JIS で表せない文字があるとき、UTF-8 で保存するか確認する。保存するなら true
-bool confirmUtf8Fallback(QWidget* parent, const QString& characters)
+bool KifuSaveDialogs::confirmUtf8Fallback(QWidget* parent, const QString& characters)
 {
     QMessageBox box(
-        QMessageBox::Warning, QObject::tr("Shift_JISで保存できない文字"),
-        QObject::tr("次の文字はShift_JISで保存できません：%1\n\n"
+        QMessageBox::Warning, tr("Shift_JISで保存できない文字"),
+        tr("次の文字はShift_JISで保存できません：%1\n\n"
                     "UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を記録します。").arg(characters),
         QMessageBox::Save | QMessageBox::Cancel,
         parent);
-    box.button(QMessageBox::Save)->setText(QObject::tr("UTF-8で保存"));
-    box.button(QMessageBox::Cancel)->setText(QObject::tr("キャンセル"));
+    box.button(QMessageBox::Save)->setText(tr("UTF-8で保存"));
+    box.button(QMessageBox::Cancel)->setText(tr("キャンセル"));
     box.setDefaultButton(QMessageBox::Save);
     box.setEscapeButton(QMessageBox::Cancel);
     return box.exec() == QMessageBox::Save;
 }
 
-/// 情報が失われる形式への保存を確認する。続行なら true
-bool confirmLossySave(QWidget* parent, const QString& title, const QString& message)
+bool KifuSaveDialogs::confirmLossySave(QWidget* parent, const QString& title, const QString& message)
 {
     const auto result = QMessageBox::warning(
         parent, title, message,
@@ -43,9 +38,7 @@ bool confirmLossySave(QWidget* parent, const QString& title, const QString& mess
     return result == QMessageBox::Ok;
 }
 
-} // namespace
-
-QString saveViaDialog(QWidget* parent,
+QString KifuSaveDialogs::saveViaDialog(QWidget* parent,
                       const KifuSaveFile::LineGenerator& generateLines,
                       const QString& defaultFileName,
                       bool hasBranches,
@@ -62,7 +55,7 @@ QString saveViaDialog(QWidget* parent,
         defaultName = QDir(lastDir).filePath(defaultName);
 
     // フィルタを作成（KIF/KI2/CSA/JKF/USEN/USI形式が選択可能）
-    const QString filter = QObject::tr(
+    const QString filter = tr(
         "KIF形式 UTF-8 (*.kifu);;"
         "KIF形式 Shift_JIS (*.kif);;"
         "KI2形式 UTF-8 (*.ki2u);;"
@@ -75,7 +68,7 @@ QString saveViaDialog(QWidget* parent,
 
     QString selectedFilter;
     const QString chosenPath = QFileDialog::getSaveFileName(
-        parent, QObject::tr("名前を付けて保存"), defaultName, filter, &selectedFilter);
+        parent, tr("名前を付けて保存"), defaultName, filter, &selectedFilter);
     const QString path = KifuSaveFile::pathForSelectedFilter(chosenPath, selectedFilter);
     if (path.isEmpty()) return QString();
 
@@ -87,16 +80,16 @@ QString saveViaDialog(QWidget* parent,
     case KifuFormat::Ki2:
         if (hasTimeInfo && !confirmLossySave(
                 parent,
-                QObject::tr("KI2形式で保存"),
-                QObject::tr("KI2形式は消費時間に対応していないため、消費時間の情報は保存されません。\n保存を続けますか？"))) {
+                tr("KI2形式で保存"),
+                tr("KI2形式は消費時間に対応していないため、消費時間の情報は保存されません。\n保存を続けますか？"))) {
             return QString();
         }
         break;
     case KifuFormat::Csa:
         if (hasBranches && !confirmLossySave(
                 parent,
-                QObject::tr("CSA形式で保存"),
-                QObject::tr("CSA形式は分岐に対応していないため、分岐の情報は保存されません。\n保存を続けますか？"))) {
+                tr("CSA形式で保存"),
+                tr("CSA形式は分岐に対応していないため、分岐の情報は保存されません。\n保存を続けますか？"))) {
             return QString();
         }
         break;
@@ -105,8 +98,8 @@ QString saveViaDialog(QWidget* parent,
     case KifuFormat::Usen:
         if (hasTimeInfo && !confirmLossySave(
                 parent,
-                QObject::tr("USEN形式で保存"),
-                QObject::tr("USEN形式は消費時間・コメント・しおりに対応していないため、これらの情報は保存されません。\n"
+                tr("USEN形式で保存"),
+                tr("USEN形式は消費時間・コメント・しおりに対応していないため、これらの情報は保存されません。\n"
                             "詰み・反則勝ちなど一部の終局理由も保存されません。\n保存を続けますか？"))) {
             return QString();
         }
@@ -114,14 +107,14 @@ QString saveViaDialog(QWidget* parent,
     case KifuFormat::Usi:
         if (hasBranches && !confirmLossySave(
                 parent,
-                QObject::tr("USI形式で保存"),
-                QObject::tr("USI形式は分岐に対応していないため、分岐の情報は保存されません。\n保存を続けますか？"))) {
+                tr("USI形式で保存"),
+                tr("USI形式は分岐に対応していないため、分岐の情報は保存されません。\n保存を続けますか？"))) {
             return QString();
         }
         if (hasTimeInfo && !confirmLossySave(
                 parent,
-                QObject::tr("USI形式で保存"),
-                QObject::tr("USI形式は消費時間に対応していないため、消費時間の情報は保存されません。\n保存を続けますか？"))) {
+                tr("USI形式で保存"),
+                tr("USI形式は消費時間に対応していないため、消費時間の情報は保存されません。\n保存を続けますか？"))) {
             return QString();
         }
         break;
@@ -135,25 +128,21 @@ QString saveViaDialog(QWidget* parent,
     return path;
 }
 
-bool confirmDiscardUnsaved(QWidget* parent, bool isDirty, const std::function<bool()>& save)
+bool KifuSaveDialogs::confirmDiscardUnsaved(QWidget* parent, bool isDirty, const std::function<bool()>& save)
 {
     if (!isDirty) return true;
-    QMessageBox box(
-        QMessageBox::Warning, QObject::tr("未保存の棋譜"),
-        QObject::tr("棋譜に未保存の変更があります。保存しますか？"),
-        QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel,
-        parent);
-    box.button(QMessageBox::Save)->setText(QObject::tr("保存"));
-    box.button(QMessageBox::Discard)->setText(QObject::tr("破棄"));
-    box.button(QMessageBox::Cancel)->setText(QObject::tr("キャンセル"));
-    box.setDefaultButton(QMessageBox::Save);
-    box.setEscapeButton(QMessageBox::Cancel);
-    const int choice = box.exec();
-    if (choice == QMessageBox::Save) return save();
-    return choice == QMessageBox::Discard;
+    switch (UnsavedChangesPrompt::ask(parent, tr("未保存の棋譜"), tr("棋譜に未保存の変更があります。保存しますか？"))) {
+    case UnsavedChangesPrompt::Choice::Save:
+        return save();
+    case UnsavedChangesPrompt::Choice::Discard:
+        return true;
+    case UnsavedChangesPrompt::Choice::Cancel:
+        break;
+    }
+    return false;
 }
 
-bool overwriteExisting(QWidget* parent, const QString& path, const QStringList& lines, QString* outError)
+bool KifuSaveDialogs::overwriteExisting(QWidget* parent, const QString& path, const QStringList& lines, QString* outError)
 {
     // 親ウィンドウが無い（自動化 API から保存する）ときは確認を出さずエラーにする
     if (!parent) return KifuSaveFile::write(path, lines, outError);
@@ -162,4 +151,3 @@ bool overwriteExisting(QWidget* parent, const QString& path, const QStringList& 
     });
 }
 
-} // namespace KifuSaveCoordinator

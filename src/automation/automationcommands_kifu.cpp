@@ -15,7 +15,7 @@
 #include "kifusavefile.h"
 #include "outputpath.h"
 #include "sfenutils.h"
-#include "uinotificationservice.h"
+#include "notificationpresenter.h"
 
 #include <QFileInfo>
 #include <QJsonArray>
@@ -85,7 +85,7 @@ void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, 
             context, params.value(QStringLiteral("discard_unsaved")).toBool());
         bool ok = false;
         // 読み込み失敗のダイアログは出さず、内容をエラー応答で返す
-        const UiNotificationService::ScopedCapture capture;
+        const NotificationPresenter::ScopedCapture capture;
         if (!path.isEmpty()) {
             requireAbsolutePath(path);
             if (!QFileInfo::exists(path)) {

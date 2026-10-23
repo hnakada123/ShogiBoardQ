@@ -58,8 +58,8 @@ namespace AnalysisSettings {
 
 // --- 分岐ツリー ---
 
-/// 分岐ツリーの表示倍率（%、デフォルト: 100）
-inline const Setting<int> branchTreeZoomPercent{"BranchTree/zoomPercent", 100};
+/// 分岐ツリーの表示倍率（%、デフォルト: 100。50〜200）
+inline const BoundedSetting<int> branchTreeZoomPercent{"BranchTree/zoomPercent", 100, 50, 200};
 
 /// 変化を空いた段に詰めて表示するか（デフォルト: true）
 inline const Setting<bool> branchTreeCompactLayout{"BranchTree/compactLayout", true};

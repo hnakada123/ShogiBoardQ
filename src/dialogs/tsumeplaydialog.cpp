@@ -46,8 +46,8 @@ TsumePlayDialog::TsumePlayDialog(QWidget* parent)
     m_game->newGame(initialSfen);
     buildUi();
     const auto preferences = TsumeshogiSettings::playPreferences();
-    m_problemUi.timeout->setValue(std::clamp(preferences.timeoutSec, 1, 600));
-    m_view->setSquareSize(std::clamp(preferences.squareSize, 20, 150));
+    m_problemUi.timeout->setValue(preferences.timeoutSec);
+    m_view->setSquareSize(std::clamp(preferences.squareSize, BoardGeometry::kMinSquareSize, BoardGeometry::kMaxSquareSize));
     m_boardRotated = preferences.boardRotated;
     updateTimeLimit();
     connect(m_session, &TsumeGameSession::positionChanged, this, &TsumePlayDialog::onSessionPositionChanged);

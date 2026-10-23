@@ -12,7 +12,7 @@ class EngineDisplayPresenter;
 class EvaluationGraphPresenter;
 class KifuBranchNode;
 class KifuDocument;
-class KifuLoadCoordinator;
+class KifuLoader;
 class LiveGameSession;
 
 /**
@@ -29,7 +29,7 @@ public:
     struct Deps {
         KifuDocument* document = nullptr;
         LiveGameSession* liveSession = nullptr;
-        KifuLoadCoordinator* kifuLoader = nullptr;
+        KifuLoader* kifuLoader = nullptr;
         EvaluationGraphPresenter* evalGraph = nullptr;
         EngineDisplayPresenter* engineDisplay = nullptr;   ///< 通信ログ・思考情報・検討・解析結果の表示
     };

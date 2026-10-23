@@ -213,6 +213,8 @@ void AnalysisResultsPanel::onModelReset()
 {
     m_reflowAllRows = true;
     m_reflowTimer->start();
+    // 結果を消した（別の棋譜を開いた）ら、解析中でなければ初めの案内に戻す
+    if (m_runState != RunState::Running && m_view->model()->rowCount() == 0) m_runState = RunState::Idle;
     updateProgress();
 }
 
@@ -303,14 +305,10 @@ void AnalysisResultsPanel::updateProgress()
         m_statusLabel->setText(tr("解析完了 · %1局面").arg(count));
         break;
     case RunState::Idle:
-        break;
-    }
-    if (count == 0) {
-        // 結果を消した（別の棋譜を開いた）ら初めの案内に戻す
-        m_runState = RunState::Idle;
         m_statusLabel->setText(tr("解析条件を設定して、棋譜解析を開始してください。"));
         m_progressBar->setVisible(false);
         m_engineLabel->setFullText(QString());
+        break;
     }
 }
 

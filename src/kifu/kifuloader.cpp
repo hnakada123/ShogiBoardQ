@@ -1,7 +1,7 @@
-/// @file kifuloadcoordinator.cpp
+/// @file kifuloader.cpp
 /// @brief 棋譜を読み、分岐ツリーを作り直す
 
-#include "kifuloadcoordinator.h"
+#include "kifuloader.h"
 #include "kifubranchtree.h"
 #include "kifudocument.h"
 #include "logcategories.h"
@@ -10,14 +10,14 @@
 #include <QtConcurrentRun>
 #include <utility>
 
-KifuLoadCoordinator::KifuLoadCoordinator(KifuDocument* document, QObject* parent)
+KifuLoader::KifuLoader(KifuDocument* document, QObject* parent)
     : QObject(parent)
     , m_document(document)
 {
     Q_ASSERT(m_document);
 }
 
-KifuLoadCoordinator::~KifuLoadCoordinator()
+KifuLoader::~KifuLoader()
 {
     if (m_loadCancel) m_loadCancel->store(true);
 }
@@ -26,7 +26,7 @@ KifuLoadCoordinator::~KifuLoadCoordinator()
 // 非同期の読み込み
 // ============================================================
 
-void KifuLoadCoordinator::cancelLoad()
+void KifuLoader::cancelLoad()
 {
     if (!m_loadWatcher) return;
     m_loadCancel->store(true);
@@ -37,7 +37,7 @@ void KifuLoadCoordinator::cancelLoad()
     emit loadFinished(false);
 }
 
-void KifuLoadCoordinator::startLoad(const QString& input, bool text)
+void KifuLoader::startLoad(const QString& input, bool text)
 {
     // 以前のジョブは値だけを所有するため、完了を待たずに破棄できる。
     if (m_loadCancel) m_loadCancel->store(true);
@@ -49,17 +49,17 @@ void KifuLoadCoordinator::startLoad(const QString& input, bool text)
     const auto cancel = m_loadCancel;
     m_loadWatcher = new QFutureWatcher<KifuLoadResult>(this);
     connect(m_loadWatcher, &QFutureWatcher<KifuLoadResult>::finished,
-            this, &KifuLoadCoordinator::onLoadFinished);
+            this, &KifuLoader::onLoadFinished);
     m_loadWatcher->setFuture(QtConcurrent::run([input, text, cancel]() {
         return text ? KifuLoadParser::parseText(input, cancel)
                     : KifuLoadParser::parseFile(input, std::nullopt, cancel);
     }));
 }
 
-void KifuLoadCoordinator::loadFileAsync(const QString& filePath) { startLoad(filePath, false); }
-void KifuLoadCoordinator::loadTextAsync(const QString& content) { startLoad(content, true); }
+void KifuLoader::loadFileAsync(const QString& filePath) { startLoad(filePath, false); }
+void KifuLoader::loadTextAsync(const QString& content) { startLoad(content, true); }
 
-void KifuLoadCoordinator::onLoadFinished()
+void KifuLoader::onLoadFinished()
 {
     if (sender() != m_loadWatcher) return;
     auto* watcher = std::exchange(m_loadWatcher, nullptr);
@@ -73,19 +73,19 @@ void KifuLoadCoordinator::onLoadFinished()
 // 同期の読み込み
 // ============================================================
 
-bool KifuLoadCoordinator::loadFile(const QString& filePath)
+bool KifuLoader::loadFile(const QString& filePath)
 {
     cancelLoad();
     return applyLoadResult(KifuLoadParser::parseFile(filePath));
 }
 
-bool KifuLoadCoordinator::loadText(const QString& content)
+bool KifuLoader::loadText(const QString& content)
 {
     cancelLoad();
     return applyLoadResult(KifuLoadParser::parseText(content));
 }
 
-bool KifuLoadCoordinator::loadPositionFromSfen(const QString& sfenStr)
+bool KifuLoader::loadPositionFromSfen(const QString& sfenStr)
 {
     cancelLoad();
     QString sfen = sfenStr.trimmed();
@@ -103,7 +103,7 @@ bool KifuLoadCoordinator::loadPositionFromSfen(const QString& sfenStr)
 // 読み込み結果をツリーに載せる
 // ============================================================
 
-bool KifuLoadCoordinator::applyLoadResult(const KifuLoadResult& result)
+bool KifuLoader::applyLoadResult(const KifuLoadResult& result)
 {
     if (!result.success) {
         if (!result.error.isEmpty()) emit errorOccurred(result.error);
@@ -114,7 +114,7 @@ bool KifuLoadCoordinator::applyLoadResult(const KifuLoadResult& result)
     return applyRecord(result);
 }
 
-bool KifuLoadCoordinator::applyRecord(const KifuLoadResult& result)
+bool KifuLoader::applyRecord(const KifuLoadResult& result)
 {
     const KifParseResult& res = result.record;
     // 指し手が0手でも、平手以外の開始局面が書かれていれば棋譜として読む（局面編集から保存した棋譜・

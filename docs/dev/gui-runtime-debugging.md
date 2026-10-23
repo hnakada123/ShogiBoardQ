@@ -20,7 +20,7 @@
 | `shogi.ui` | `kifudisplaycoordinator.cpp` | UI層・プレゼンタ |
 | `shogi.ui.policy` | `uistatepolicymanager.cpp` | UI状態管理 |
 | `shogi.navigation` | `kifunavigationcontroller.cpp` | 棋譜ナビゲーション |
-| `shogi.kifu` | `kifuloadcoordinator.cpp` | 棋譜読み込み |
+| `shogi.kifu` | `kifuloader.cpp` | 棋譜読み込み |
 | `shogi.board` | `boardinteractioncontroller.cpp` | 盤面操作 |
 | `shogi.core` | `shogiboard.cpp` | コアロジック |
 | `shogi.engine` | `usi.cpp` | USIエンジン通信 |

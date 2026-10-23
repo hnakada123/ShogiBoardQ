@@ -11,80 +11,47 @@
 #include <QScreen>
 #include <QWidget>
 
+#include <utility>
+
 LanguageController::LanguageController(const Deps& deps, QObject* parent)
     : QObject(parent)
-    , m_actionGroup(new QActionGroup(this))
+    , m_languageGroup(new QActionGroup(this))
     , m_parentWidget(deps.parentWidget)
 {
-    m_actionGroup->setExclusive(true);
-    setActions(deps.systemLanguage, deps.japanese, deps.english, deps.chineseSimplified, deps.chineseTraditional);
+    const std::pair<QAction*, const char*> languages[] = {
+        {deps.systemLanguage, "system"}, {deps.japanese, "ja_JP"}, {deps.english, "en"},
+        {deps.chineseSimplified, "zh_CN"}, {deps.chineseTraditional, "zh_TW"}};
+    for (const auto& [action, code] : languages) {
+        if (!action) continue;
+        action->setData(QString::fromLatin1(code));
+        action->setIconVisibleInMenu(false);
+        m_languageGroup->addAction(action);
+    }
+    connect(m_languageGroup, &QActionGroup::triggered, this, &LanguageController::onLanguageTriggered);
+    updateMenuState();
+
     if (deps.notationAuto && deps.notationJapanese && deps.notationWestern && deps.notationOrigin && deps.notationHelp) {
         setNotationActions(deps.notationAuto, deps.notationJapanese, deps.notationWestern, deps.notationOrigin,
                            deps.notationHelp);
     }
 }
 
-void LanguageController::setActions(QAction* systemAction, QAction* japaneseAction, QAction* englishAction,
-                                    QAction* simplifiedAction, QAction* traditionalAction)
-{
-    m_systemAction = systemAction;
-    m_japaneseAction = japaneseAction;
-    m_englishAction = englishAction;
-
-    if (m_systemAction) {
-        m_actionGroup->addAction(m_systemAction);
-        m_systemAction->setIconVisibleInMenu(false);
-        connect(m_systemAction, &QAction::triggered, this, &LanguageController::onSystemLanguageTriggered);
-    }
-    if (m_japaneseAction) {
-        m_actionGroup->addAction(m_japaneseAction);
-        m_japaneseAction->setIconVisibleInMenu(false);
-        connect(m_japaneseAction, &QAction::triggered, this, &LanguageController::onJapaneseTriggered);
-    }
-    if (m_englishAction) {
-        m_actionGroup->addAction(m_englishAction);
-        m_englishAction->setIconVisibleInMenu(false);
-        connect(m_englishAction, &QAction::triggered, this, &LanguageController::onEnglishTriggered);
-    }
-
-    m_simplifiedAction = simplifiedAction;
-    m_traditionalAction = traditionalAction;
-    for (auto* action : {m_simplifiedAction, m_traditionalAction}) {
-        if (!action) continue;
-        m_actionGroup->addAction(action);
-        action->setIconVisibleInMenu(false);
-    }
-    if (m_simplifiedAction) connect(m_simplifiedAction, &QAction::triggered, this, &LanguageController::onChineseSimplifiedTriggered);
-    if (m_traditionalAction) connect(m_traditionalAction, &QAction::triggered, this, &LanguageController::onChineseTraditionalTriggered);
-    // 初期状態を設定
-    updateMenuState();
-}
-
 void LanguageController::updateMenuState()
 {
-    QString current = AppSettings::language();
-    if (m_simplifiedAction) m_simplifiedAction->setChecked(current == "zh_CN");
-    if (m_traditionalAction) m_traditionalAction->setChecked(current == "zh_TW");
-
-    if (m_systemAction) {
-        m_systemAction->setChecked(current == "system");
-    }
-    if (m_japaneseAction) {
-        m_japaneseAction->setChecked(current == "ja_JP");
-    }
-    if (m_englishAction) {
-        m_englishAction->setChecked(current == "en");
-    }
+    // 保存した言語がどの項目でもなければ、どれもチェックしない
+    const QString current = AppSettings::language();
+    const QList<QAction*> actions = m_languageGroup->actions();
+    for (QAction* action : actions) action->setChecked(action->data().toString() == current);
 }
 
-void LanguageController::changeLanguage(const QString& lang)
+void LanguageController::onLanguageTriggered(QAction* action)
 {
-    QString current = AppSettings::language();
-    if (current == lang) return;
-
-    AppSettings::language.set(lang);
-
-    restartNotice();
+    const QString language = action->data().toString();
+    if (AppSettings::language() != language) {
+        AppSettings::language.set(language);
+        restartNotice();
+    }
+    updateMenuState();
 }
 
 void LanguageController::restartNotice()
@@ -97,34 +64,6 @@ void LanguageController::restartNotice()
 
 }
 
-void LanguageController::onSystemLanguageTriggered()
-{
-    changeLanguage("system");
-    updateMenuState();
-}
-
-void LanguageController::onJapaneseTriggered()
-{
-    changeLanguage("ja_JP");
-    updateMenuState();
-}
-
-void LanguageController::onEnglishTriggered()
-{
-    changeLanguage("en");
-    updateMenuState();
-}
-
-void LanguageController::onChineseSimplifiedTriggered()
-{
-    changeLanguage(QStringLiteral("zh_CN"));
-    updateMenuState();
-}
-void LanguageController::onChineseTraditionalTriggered()
-{
-    changeLanguage(QStringLiteral("zh_TW"));
-    updateMenuState();
-}
 void LanguageController::setNotationActions(QAction* automatic, QAction* japanese, QAction* western, QAction* origin, QAction* help)
 {
     connect(help, &QAction::triggered, this, &LanguageController::showNotationHelp);

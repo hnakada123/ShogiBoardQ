@@ -1,37 +1,37 @@
-/// @file uinotificationservice.cpp
-/// @brief エラー通知ダイアログ表示サービスの実装
+/// @file notificationpresenter.cpp
+/// @brief エラー・情報の知らせをダイアログで出す NotificationPresenter の実装
 
-#include "uinotificationservice.h"
+#include "notificationpresenter.h"
 #include <QMessageBox>
 
 namespace {
 // 通知はメインスレッドからのみ表示する（UI アクセスはメインスレッド限定）
-UiNotificationService::ScopedCapture* s_activeCapture = nullptr;
+NotificationPresenter::ScopedCapture* s_activeCapture = nullptr;
 }
 
-UiNotificationService::ScopedCapture::ScopedCapture()
+NotificationPresenter::ScopedCapture::ScopedCapture()
     : m_previous(s_activeCapture)
 {
     s_activeCapture = this;
 }
 
-UiNotificationService::ScopedCapture::~ScopedCapture()
+NotificationPresenter::ScopedCapture::~ScopedCapture()
 {
     s_activeCapture = m_previous;
 }
 
-UiNotificationService::UiNotificationService(const Deps& deps, QObject* parent)
+NotificationPresenter::NotificationPresenter(const Deps& deps, QObject* parent)
     : QObject(parent)
     , m_deps(deps)
 {
 }
 
-void UiNotificationService::displayErrorMessage(const QString& message)
+void NotificationPresenter::displayErrorMessage(const QString& message)
 {
     displayMessage(ErrorBus::ErrorLevel::Error, message);
 }
 
-void UiNotificationService::displayMessage(ErrorBus::ErrorLevel level, const QString& message)
+void NotificationPresenter::displayMessage(ErrorBus::ErrorLevel level, const QString& message)
 {
     // エラーを表示しても盤面の描画と操作は止めない（棋譜の読み込み失敗などは表示中の局面に影響しない）
     if (s_activeCapture != nullptr) {
@@ -54,7 +54,7 @@ void UiNotificationService::displayMessage(ErrorBus::ErrorLevel level, const QSt
     }
 }
 
-void UiNotificationService::showInformation(const QString& title, const QString& message)
+void NotificationPresenter::showInformation(const QString& title, const QString& message)
 {
     if (s_activeCapture != nullptr) {
         s_activeCapture->m_notices.append(message);

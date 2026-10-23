@@ -58,8 +58,9 @@ void MainWindowComposer::finalizeUi()
     m_c.shogiView->applyBoardAndRender(m_c.gameController->board());
     m_c.kifuDisplay->refresh();
 
-    // ウィンドウの大きさと、起動時のドックのレイアウト
-    AppSettings::loadWindowSize(&m_window);
+    // ウィンドウの大きさ（小さすぎる保存値は使わない）と、起動時のドックのレイアウト
+    const QSize windowSize = AppSettings::mainWindowSize();
+    if (windowSize.width() > 100 && windowSize.height() > 100) m_window.resize(windowSize);
     m_c.dockLayoutManager->restoreStartupLayoutIfSet();
 
     m_c.appearance->installAppToolTips();
@@ -71,7 +72,8 @@ void MainWindowComposer::shutdown()
     m_shutdownDone = true;
 
     // 設定保存（ウィンドウ・盤のマスサイズ・ドックの配置）
-    AppSettings::saveWindowAndBoard(&m_window, m_c.shogiView ? m_c.shogiView->squareSize() : 0);
+    AppSettings::mainWindowSize.set(m_window.size());
+    if (m_c.shogiView) AppSettings::squareSize.set(m_c.shogiView->squareSize());
     if (m_c.dockLayoutManager) {
         m_c.dockLayoutManager->saveDockStates();
     }

@@ -65,8 +65,10 @@ public:
     /**
      * @brief 通信対局の進み具合（司令塔から見た状態）
      *
-     * 接続の状態（CsaClient::ConnectionState）とは別に持つ。接続が切れても、終局後は再接続の判断のために
-     * GameOver のまま、ログイン失敗・不正な局面・対局中でない切断は Error として残す。
+     * 持たずに求める（gameState()）。接続の段階（接続中・ログイン中・対局待ち・対局条件の確認中）は
+     * 接続の状態（CsaClient::ConnectionState）から、対局中・終局後・失敗は司令塔の段階（Phase）から決める。
+     * 接続が切れても、終局後は再接続の判断のために GameOver のまま、ログイン失敗・不正な局面・
+     * 対局中でない切断は Error として残す。
      */
     enum class GameState {
         Idle,               ///< 待機中
@@ -129,7 +131,7 @@ public:
     void startGame(const StartOptions& options);
     void stopGame();
 
-    GameState gameState() const { return m_gameState; }
+    GameState gameState() const;
     bool isConnected() const
     {
         // RemoteHostClosedErrorではソケットの状態が切り替わる前に切断通知が届く。
@@ -141,7 +143,7 @@ public:
     TurnState turnState() const;
     bool isMyTurn() const;
     bool isBlackSide() const;
-    bool isHumanPlayer() const { return m_playerType == PlayerType::Human; }
+    bool isHumanPlayer() const { return m_options.playerType == PlayerType::Human; }
     int blackTotalTimeMs() const { return m_progress.blackTotalMs; }
     int whiteTotalTimeMs() const { return m_progress.whiteTotalMs; }
     int blackRemainingMs() const { return m_progress.blackRemainingMs; }
@@ -245,8 +247,19 @@ private slots:
     void onVerdictTimeout();
 
 private:
-    void setGameState(GameState state);
-    void setupInitialPosition();
+    /// 司令塔だけが知る段階（接続の段階は CsaClient が持つ）
+    enum class Phase {
+        Off,        ///< 始めていない・止めた・ログアウトした
+        Active,     ///< 接続してから対局が始まるまで（再接続の後も）
+        Playing,    ///< 対局が始まってから終局を記録するまで
+        Ended,      ///< 終局を記録した後（同じ接続で次の対局条件を待つ。サーバーが切っても GameOver のまま）
+        Failed      ///< 続けられない失敗（ログイン失敗・不正な局面・エンジンの失敗）
+    };
+    void setPhase(Phase phase);
+    /// gameState() が前に知らせた値から変わっていれば gameStateChanged を出す
+    void publishGameState();
+    /// 開始局面と再開局面の手を盤に並べる。手を指せなければ失敗にして false
+    bool setupInitialPosition();
     void setupClock();
     void performResign();
     void failGame(const QString& message);
@@ -287,11 +300,10 @@ private:
     QPointer<ShogiClock> m_clock;
     EngineLifecycleManager* m_engines = nullptr;  ///< 非所有
 
-    GameState m_gameState = GameState::Idle;
-    PlayerType m_playerType = PlayerType::Human;
+    Phase m_phase = Phase::Off;
+    GameState m_publishedState = GameState::Idle;  ///< 最後に gameStateChanged で知らせた値
     bool m_lastGameEndedByServer = false; ///< 直前の終局がサーバーの裁定によるもの（再接続の条件）
     int m_completedGames = 0;            ///< この接続（再接続を含む）で終えた対局数
-    int m_thinkingMarginMs = 0;          ///< エンジンに渡す持時間から差し引く通信の余裕
     QTimer* m_reconnectTimer;            ///< 終局後の再接続までの待ち
     StartOptions m_options;
 
@@ -299,8 +311,7 @@ private:
 
 
     QTimer* m_verdictTimer;              ///< 裁定待ちのタイムアウト
-    QElapsedTimer m_turnTimer;           ///< 今の手番が始まってからの時間
-    Turn m_turnSide = Turn::Black;       ///< 今の手番
+    QElapsedTimer m_turnTimer;           ///< 今の手番（m_progress.sideToMove()）が始まってからの時間
     QString m_pendingFailureText;        ///< 裁定が届かなかったときの終局理由（空なら待ちなし）
 
     static constexpr int kReconnectDelayMs = 3000; ///< 終局後の再接続までの待ち時間

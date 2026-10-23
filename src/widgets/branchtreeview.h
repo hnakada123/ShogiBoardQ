@@ -35,9 +35,6 @@ class BranchTreeView : public QGraphicsView
     Q_OBJECT
 
 public:
-    static constexpr int kMinZoomPercent = 50;
-    static constexpr int kMaxZoomPercent = 200;
-
     explicit BranchTreeView(QWidget* parent = nullptr);
     ~BranchTreeView() override;
 
