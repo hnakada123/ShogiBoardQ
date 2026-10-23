@@ -44,8 +44,8 @@ void BoardImageExporter::saveImage(QWidget* parent, QWidget* boardWidget, const 
     for (const QByteArray& f : std::as_const(supportedFormats))
         fmts.insert(QString::fromLatin1(f).toLower());
     if (fmts.isEmpty()) {
-        QMessageBox::critical(parent, QObject::tr("Error"),
-                              QObject::tr("No writable image formats are available."));
+        QMessageBox::critical(parent, tr("Error"),
+                              tr("No writable image formats are available."));
         return;
     }
 
@@ -66,7 +66,7 @@ void BoardImageExporter::saveImage(QWidget* parent, QWidget* boardWidget, const 
     const QString defExt = hasFormat(fmts, "png") ? "png" : map[filters.first()].ext;
     QString selFilter = filters.isEmpty() ? QString() : filters.first();
 
-    QString path = QFileDialog::getSaveFileName(parent, QObject::tr("Output the image"),
+    QString path = QFileDialog::getSaveFileName(parent, tr("Output the image"),
                                                 QDir(dir).filePath(base + "." + defExt), filters.join(";;"), &selFilter);
     if (path.isEmpty()) return;
 
@@ -76,15 +76,15 @@ void BoardImageExporter::saveImage(QWidget* parent, QWidget* boardWidget, const 
         const auto f = map.value(selFilter);
         path += "." + f.ext; fmt = f.key;
     } else { if (suffix=="jpg") suffix="jpeg"; fmt=suffix; if (!hasFormat(fmts, fmt)) {
-            QMessageBox::critical(parent, QObject::tr("Error"),
-                                  QObject::tr("This image format is not available: %1").arg(suffix));
+            QMessageBox::critical(parent, tr("Error"),
+                                  tr("This image format is not available: %1").arg(suffix));
             return; } }
 
     const QImage img = boardWidget->grab().toImage();
     QImageWriter w(path, fmt.toLatin1());
     if (fmt=="jpeg" || fmt=="webp") w.setQuality(95);
     if (!w.write(img)) {
-        QMessageBox::critical(parent, QObject::tr("Error"),
-                              QObject::tr("Failed to save the image: %1").arg(w.errorString()));
+        QMessageBox::critical(parent, tr("Error"),
+                              tr("Failed to save the image: %1").arg(w.errorString()));
     }
 }

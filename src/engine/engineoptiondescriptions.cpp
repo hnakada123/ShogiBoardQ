@@ -2,7 +2,6 @@
 /// @brief USIエンジンオプション説明データベースの実装
 
 #include "engineoptiondescriptions.h"
-#include <QObject>
 
 // ============================================================
 // 静的メンバ変数
@@ -75,18 +74,18 @@ QString EngineOptionDescriptions::categoryDisplayName(EngineOptionCategory categ
 {
     switch (category) {
     case EngineOptionCategory::Basic:
-        return QObject::tr("基本設定");
+        return tr("基本設定");
     case EngineOptionCategory::Thinking:
-        return QObject::tr("思考設定");
+        return tr("思考設定");
     case EngineOptionCategory::TimeControl:
-        return QObject::tr("時間制御");
+        return tr("時間制御");
     case EngineOptionCategory::Book:
-        return QObject::tr("定跡設定");
+        return tr("定跡設定");
     case EngineOptionCategory::GameRule:
-        return QObject::tr("対局ルール");
+        return tr("対局ルール");
     case EngineOptionCategory::Other:
     default:
-        return QObject::tr("その他");
+        return tr("その他");
     }
 }
 
@@ -110,182 +109,182 @@ void EngineOptionDescriptions::initializeDescriptions()
 {
     // --- YaneuraOu: 基本設定 ---
 
-    s_yaneuraouDescriptions["Threads"] = QObject::tr(
+    s_yaneuraouDescriptions["Threads"] = tr(
         "探索に使用するスレッド数");
 
-    s_yaneuraouDescriptions["USI_Hash"] = QObject::tr(
+    s_yaneuraouDescriptions["USI_Hash"] = tr(
         "置換表サイズ(MB)");
 
-    s_yaneuraouDescriptions["MultiPV"] = QObject::tr(
+    s_yaneuraouDescriptions["MultiPV"] = tr(
         "出力する候補手の数");
 
-    s_yaneuraouDescriptions["EvalDir"] = QObject::tr(
+    s_yaneuraouDescriptions["EvalDir"] = tr(
         "評価関数フォルダのパス");
 
     // --- YaneuraOu: Ponder ---
 
-    s_yaneuraouDescriptions["USI_Ponder"] = QObject::tr(
+    s_yaneuraouDescriptions["USI_Ponder"] = tr(
         "相手の手番中の先読み");
 
-    s_yaneuraouDescriptions["Stochastic_Ponder"] = QObject::tr(
+    s_yaneuraouDescriptions["Stochastic_Ponder"] = tr(
         "Ponder時の確率的な応手予測");
 
     // --- YaneuraOu: 探索制限 ---
 
-    s_yaneuraouDescriptions["DepthLimit"] = QObject::tr(
+    s_yaneuraouDescriptions["DepthLimit"] = tr(
         "探索の最大深さ(0で無制限)");
 
-    s_yaneuraouDescriptions["NodesLimit"] = QObject::tr(
+    s_yaneuraouDescriptions["NodesLimit"] = tr(
         "探索ノード数の上限(0で無制限)");
 
     // --- YaneuraOu: 検討モード ---
 
-    s_yaneuraouDescriptions["ConsiderationMode"] = QObject::tr(
+    s_yaneuraouDescriptions["ConsiderationMode"] = tr(
         "検討モードの有効化");
 
-    s_yaneuraouDescriptions["OutputFailLHPV"] = QObject::tr(
+    s_yaneuraouDescriptions["OutputFailLHPV"] = tr(
         "fail-low/fail-high時の読み筋出力");
 
     // --- YaneuraOu: 時間制御 ---
 
-    s_yaneuraouDescriptions["NetworkDelay"] = QObject::tr(
+    s_yaneuraouDescriptions["NetworkDelay"] = tr(
         "通信遅延補正(ミリ秒)");
 
-    s_yaneuraouDescriptions["NetworkDelay2"] = QObject::tr(
+    s_yaneuraouDescriptions["NetworkDelay2"] = tr(
         "秒読み時の最大遅延補正(ミリ秒)");
 
-    s_yaneuraouDescriptions["MinimumThinkingTime"] = QObject::tr(
+    s_yaneuraouDescriptions["MinimumThinkingTime"] = tr(
         "最小思考時間(ミリ秒)");
 
-    s_yaneuraouDescriptions["SlowMover"] = QObject::tr(
+    s_yaneuraouDescriptions["SlowMover"] = tr(
         "序盤の時間配分調整(100が標準)");
 
-    s_yaneuraouDescriptions["RoundUpToFullSecond"] = QObject::tr(
+    s_yaneuraouDescriptions["RoundUpToFullSecond"] = tr(
         "消費時間の秒単位切り上げ");
 
     // --- YaneuraOu: 定跡 ---
 
-    s_yaneuraouDescriptions["USI_OwnBook"] = QObject::tr(
+    s_yaneuraouDescriptions["USI_OwnBook"] = tr(
         "エンジン内蔵定跡の使用");
 
-    s_yaneuraouDescriptions["BookFile"] = QObject::tr(
+    s_yaneuraouDescriptions["BookFile"] = tr(
         "使用する定跡ファイル");
 
-    s_yaneuraouDescriptions["BookDir"] = QObject::tr(
+    s_yaneuraouDescriptions["BookDir"] = tr(
         "定跡フォルダのパス");
 
-    s_yaneuraouDescriptions["BookMoves"] = QObject::tr(
+    s_yaneuraouDescriptions["BookMoves"] = tr(
         "定跡を使用する手数の上限");
 
-    s_yaneuraouDescriptions["BookIgnoreRate"] = QObject::tr(
+    s_yaneuraouDescriptions["BookIgnoreRate"] = tr(
         "定跡を無視する確率(%)");
 
-    s_yaneuraouDescriptions["BookOnTheFly"] = QObject::tr(
+    s_yaneuraouDescriptions["BookOnTheFly"] = tr(
         "定跡の部分読み込み");
 
-    s_yaneuraouDescriptions["NarrowBook"] = QObject::tr(
+    s_yaneuraouDescriptions["NarrowBook"] = tr(
         "最善手に近い定跡手のみの選択");
 
-    s_yaneuraouDescriptions["BookEvalDiff"] = QObject::tr(
+    s_yaneuraouDescriptions["BookEvalDiff"] = tr(
         "定跡の評価値差の許容範囲");
 
-    s_yaneuraouDescriptions["BookEvalBlackLimit"] = QObject::tr(
+    s_yaneuraouDescriptions["BookEvalBlackLimit"] = tr(
         "先手番での定跡採用の評価値下限");
 
-    s_yaneuraouDescriptions["BookEvalWhiteLimit"] = QObject::tr(
+    s_yaneuraouDescriptions["BookEvalWhiteLimit"] = tr(
         "後手番での定跡採用の評価値下限");
 
-    s_yaneuraouDescriptions["BookDepthLimit"] = QObject::tr(
+    s_yaneuraouDescriptions["BookDepthLimit"] = tr(
         "定跡として採用する最小探索深さ（0で深さを問わない）");
 
-    s_yaneuraouDescriptions["ConsiderBookMoveCount"] = QObject::tr(
+    s_yaneuraouDescriptions["ConsiderBookMoveCount"] = tr(
         "定跡選択時の出現頻度考慮");
 
-    s_yaneuraouDescriptions["BookPvMoves"] = QObject::tr(
+    s_yaneuraouDescriptions["BookPvMoves"] = tr(
         "定跡の読み筋出力手数");
 
-    s_yaneuraouDescriptions["IgnoreBookPly"] = QObject::tr(
+    s_yaneuraouDescriptions["IgnoreBookPly"] = tr(
         "定跡の局面の手数を無視（手数違いの同じ局面にも定跡を使う）");
 
-    s_yaneuraouDescriptions["FlippedBook"] = QObject::tr(
+    s_yaneuraouDescriptions["FlippedBook"] = tr(
         "後手定跡の先手定跡からの反転生成");
 
     // --- YaneuraOu: 対局ルール ---
 
-    s_yaneuraouDescriptions["EnteringKingRule"] = QObject::tr(
+    s_yaneuraouDescriptions["EnteringKingRule"] = tr(
         "入玉時の勝敗判定ルール");
 
-    s_yaneuraouDescriptions["MaxMovesToDraw"] = QObject::tr(
+    s_yaneuraouDescriptions["MaxMovesToDraw"] = tr(
         "引き分けとなる手数(0で無効)");
 
-    s_yaneuraouDescriptions["ResignValue"] = QObject::tr(
+    s_yaneuraouDescriptions["ResignValue"] = tr(
         "投了する評価値");
 
-    s_yaneuraouDescriptions["DrawValueBlack"] = QObject::tr(
+    s_yaneuraouDescriptions["DrawValueBlack"] = tr(
         "先手番での引き分けの評価値");
 
-    s_yaneuraouDescriptions["DrawValueWhite"] = QObject::tr(
+    s_yaneuraouDescriptions["DrawValueWhite"] = tr(
         "後手番での引き分けの評価値");
 
     // --- YaneuraOu: その他 ---
 
-    s_yaneuraouDescriptions["NumaPolicy"] = QObject::tr(
+    s_yaneuraouDescriptions["NumaPolicy"] = tr(
         "NUMAメモリ割り当てポリシー");
 
-    s_yaneuraouDescriptions["DebugLogFile"] = QObject::tr(
+    s_yaneuraouDescriptions["DebugLogFile"] = tr(
         "デバッグログの出力先ファイル");
 
-    s_yaneuraouDescriptions["PvInterval"] = QObject::tr(
+    s_yaneuraouDescriptions["PvInterval"] = tr(
         "読み筋の出力間隔(ミリ秒)");
 
-    s_yaneuraouDescriptions["GenerateAllLegalMoves"] = QObject::tr(
+    s_yaneuraouDescriptions["GenerateAllLegalMoves"] = tr(
         "すべての合法手の生成");
 
-    s_yaneuraouDescriptions["FV_SCALE"] = QObject::tr(
+    s_yaneuraouDescriptions["FV_SCALE"] = tr(
         "評価関数のスケーリング係数");
 
     // --- Gikou（技巧） ---
 
-    s_gikouDescriptions["Threads"] = QObject::tr(
+    s_gikouDescriptions["Threads"] = tr(
         "探索に使用するスレッド数");
 
-    s_gikouDescriptions["MultiPV"] = QObject::tr(
+    s_gikouDescriptions["MultiPV"] = tr(
         "候補手の数");
 
-    s_gikouDescriptions["DepthLimit"] = QObject::tr(
+    s_gikouDescriptions["DepthLimit"] = tr(
         "読みの深さ（強さのレベル調節用）");
 
-    s_gikouDescriptions["OwnBook"] = QObject::tr(
+    s_gikouDescriptions["OwnBook"] = tr(
         "定跡の使用");
 
-    s_gikouDescriptions["BookFile"] = QObject::tr(
+    s_gikouDescriptions["BookFile"] = tr(
         "定跡ファイル(戦型選択用)");
 
-    s_gikouDescriptions["BookMaxPly"] = QObject::tr(
+    s_gikouDescriptions["BookMaxPly"] = tr(
         "定跡使用の手数上限");
 
-    s_gikouDescriptions["NarrowBook"] = QObject::tr(
+    s_gikouDescriptions["NarrowBook"] = tr(
         "低勝率の定跡手の除外");
 
-    s_gikouDescriptions["TinyBook"] = QObject::tr(
+    s_gikouDescriptions["TinyBook"] = tr(
         "低出現頻度の定跡手の除外");
 
-    s_gikouDescriptions["MinThinkingTime"] = QObject::tr(
+    s_gikouDescriptions["MinThinkingTime"] = tr(
         "最小思考時間(ミリ秒)");
 
-    s_gikouDescriptions["ByoyomiMargin"] = QObject::tr(
+    s_gikouDescriptions["ByoyomiMargin"] = tr(
         "秒読み時の余裕(ミリ秒)");
 
-    s_gikouDescriptions["SuddenDeathMargin"] = QObject::tr(
+    s_gikouDescriptions["SuddenDeathMargin"] = tr(
         "切れ負けルール時の余裕(秒)");
 
-    s_gikouDescriptions["FischerMargin"] = QObject::tr(
+    s_gikouDescriptions["FischerMargin"] = tr(
         "フィッシャールール時の余裕(ミリ秒)");
 
-    s_gikouDescriptions["ResignScore"] = QObject::tr(
+    s_gikouDescriptions["ResignScore"] = tr(
         "技巧が投了する評価値");
 
-    s_gikouDescriptions["DrawScore"] = QObject::tr(
+    s_gikouDescriptions["DrawScore"] = tr(
         "千日手の評価値");
 }
 

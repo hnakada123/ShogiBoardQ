@@ -12,8 +12,8 @@
 
 | フォーマット | 拡張子 | 変換クラス |
 |---|---|---|
-| KIF | `.kif`, `.kifu` | `KifToSfenConverter` |
-| KI2 | `.ki2`, `.ki2u` | `Ki2ToSfenConverter` |
+| KIF | `.kif`, `.kifu` | `KifTextParser::parseKif` |
+| KI2 | `.ki2`, `.ki2u` | `KifTextParser::parseKi2` |
 | CSA | `.csa` | `CsaToSfenConverter` |
 | JKF | `.jkf`（`.json` は内容で判定） | `JkfToSfenConverter` |
 | USI | `.usi`, `.sfen` | `UsiToSfenConverter` |
@@ -60,8 +60,8 @@ USEN Files (*.usen)
 - **`KifuLoadParser`** (`src/kifu/kifuloadparser.h/.cpp`) — GUI を含まない読み込み口（結果は値 `KifuLoadResult`）
   - `parseFile(path)` — ファイルを1回だけ読み（`readFileText()`：CSA は CSA の文字コード宣言、それ以外は自動判別）、`parseContent()` に渡す
   - `parseContent(content, format)` — `KifuFormat` から形式ごとの `parse()` を表（`parserFor()`）で選んで呼び、結果（`KifuParseOutcome`）を `KifuLoadResult` に写す。指し手のない USI・SFEN と BOD は局面だけを `positionOnly` に返す
-- 各形式の変換器（`src/kifu/formats/*tosfenconverter`）はテキストを読むだけで、ファイルは読まない。形式ごとに1つの関数 `parse(text, options)` だけを持ち、1回の解析で棋譜（本譜・変化）・開始局面・手合割の名前・対局情報・警告を `KifuParseOutcome` に入れて返す（`KifToSfenConverter::parse` / `Ki2ToSfenConverter::parse` / `CsaToSfenConverter::parse` / `JkfToSfenConverter::parse` / `UsenToSfenConverter::parse` / `UsiToSfenConverter::parse`。BOD は `KifTextParser::parseBod`）
-  - KIF・KI2 は `KifTextParser::parse(text, Dialect::Kif / Dialect::Ki2)` が同じ処理で読む（行の分類・「変化：N手」の区切り・コメント・しおり・開始局面・指し手の文法 `KifMoveGrammar`）。KIF の手は「KI2 の手＋移動元 `(xy)`」として読み、移動元が書いてなければ局面の合法手から決める
+- 各形式の変換器（`src/kifu/formats/*tosfenconverter` と `kiftextparser`）はテキストを読むだけで、ファイルは読まない。形式ごとに1つの関数 `parse(text, options)` だけを持ち、1回の解析で棋譜（本譜・変化）・開始局面・手合割の名前・対局情報・警告を `KifuParseOutcome` に入れて返す（`KifTextParser::parseKif` / `KifTextParser::parseKi2` / `CsaToSfenConverter::parse` / `JkfToSfenConverter::parse` / `UsenToSfenConverter::parse` / `UsiToSfenConverter::parse`。BOD は `KifTextParser::parseBod`）
+  - KIF・KI2 は `KifTextParser::parse(text, Dialect::Kif / Dialect::Ki2)`（`parseKif`・`parseKi2`）が同じ処理で読む（行の分類・「変化：N手」の区切り・コメント・しおり・開始局面・指し手の文法 `KifMoveGrammar`）。KIF の手は「KI2 の手＋移動元 `(xy)`」として読み、移動元が書いてなければ局面の合法手から決める
   - どの形式も、手順は `KifLineBuilder` で組み立てる。手を読んだその場で局面を進めて棋譜の行（`RecordEntry`）を作り、棋譜欄の表記は原文を写さずに指し手から `KifMoveText::format()` で作る（書かれていた修飾語・「不成」は残す）
 
 ---
@@ -216,7 +216,7 @@ USEN Files (*.usen)
 ```
 ファイル読み込み:
   MenuActionsWiring → KifuFileController → KifuLoader → KifuLoadParser (ワーカー)
-                                                                 → 各形式 Converter (KifToSfenConverter 等)
+                                                                 → 各形式の parse (KifTextParser::parseKif 等)
                                          KifuLoader → KifuDocument (文書の置き換え。KifuBranchTree の作り直し)
 
 ファイル保存:

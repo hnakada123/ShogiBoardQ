@@ -24,6 +24,18 @@ enum class Dialect { Kif, Ki2 };
 /// 棋譜を読む（本譜・変化・開始局面・手合割の名前・対局情報・警告）
 KifuParseOutcome parse(QStringView text, Dialect dialect, const ParseOptions& options = {});
 
+/// KIF の棋譜を読む（形式ごとの読み込みの入口。手合割の名前は局面図なら "BOD"、手合割の行がなければ "平手(既定)"）
+inline KifuParseOutcome parseKif(QStringView text, const ParseOptions& options = {})
+{
+    return parse(text, Dialect::Kif, options);
+}
+
+/// KI2 の棋譜を読む（移動元を書かないので、局面を追いながら合法手の中から指し手を決める。Ki2MoveNotation）
+inline KifuParseOutcome parseKi2(QStringView text, const ParseOptions& options = {})
+{
+    return parse(text, Dialect::Ki2, options);
+}
+
 /// 局面図（BOD）だけのテキストを読む（局面を positionOnly に入れる）
 KifuParseOutcome parseBod(QStringView text);
 

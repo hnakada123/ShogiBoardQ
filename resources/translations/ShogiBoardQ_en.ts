@@ -1335,6 +1335,36 @@ Stands: %3 / Players: %4</translation>
     </message>
 </context>
 <context>
+    <name>BoardImageExporter</name>
+    <message>
+        <location filename="../../src/board/boardimageexporter.cpp" line="47"/>
+        <location filename="../../src/board/boardimageexporter.cpp" line="79"/>
+        <location filename="../../src/board/boardimageexporter.cpp" line="87"/>
+        <source>Error</source>
+        <translation>Error</translation>
+    </message>
+    <message>
+        <location filename="../../src/board/boardimageexporter.cpp" line="48"/>
+        <source>No writable image formats are available.</source>
+        <translation>No writable image formats are available.</translation>
+    </message>
+    <message>
+        <location filename="../../src/board/boardimageexporter.cpp" line="69"/>
+        <source>Output the image</source>
+        <translation>Save Image</translation>
+    </message>
+    <message>
+        <location filename="../../src/board/boardimageexporter.cpp" line="80"/>
+        <source>This image format is not available: %1</source>
+        <translation>This image format is not available: %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/board/boardimageexporter.cpp" line="88"/>
+        <source>Failed to save the image: %1</source>
+        <translation>Failed to save the image: %1</translation>
+    </message>
+</context>
+<context>
     <name>BoardViewerWidget</name>
     <message>
         <location filename="../../src/widgets/boardviewerwidget.cpp" line="39"/>
@@ -4225,6 +4255,301 @@ Discard changes and move?</translation>
     <message>
         <source>フォントサイズを大きくする</source>
         <translation type="vanished">Increase font size</translation>
+    </message>
+</context>
+<context>
+    <name>EngineOptionDescriptions</name>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="77"/>
+        <source>基本設定</source>
+        <translation>General</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="79"/>
+        <source>思考設定</source>
+        <translation>Search</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="81"/>
+        <source>時間制御</source>
+        <translation>Time control</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="83"/>
+        <source>定跡設定</source>
+        <translation>Opening book</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="85"/>
+        <source>対局ルール</source>
+        <translation>Game rules</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="88"/>
+        <source>その他</source>
+        <translation>Other</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="112"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="248"/>
+        <source>探索に使用するスレッド数</source>
+        <translation>Number of search threads</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="115"/>
+        <source>置換表サイズ(MB)</source>
+        <translation>Transposition table size (MB)</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="118"/>
+        <source>出力する候補手の数</source>
+        <translation>Number of candidate moves to report</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="121"/>
+        <source>評価関数フォルダのパス</source>
+        <translation>Path to the evaluation folder</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="126"/>
+        <source>相手の手番中の先読み</source>
+        <translation>Think during the opponent&apos;s turn</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="129"/>
+        <source>Ponder時の確率的な応手予測</source>
+        <translation>Probabilistic response prediction while pondering</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="134"/>
+        <source>探索の最大深さ(0で無制限)</source>
+        <translation>Maximum search depth (0 for unlimited)</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="137"/>
+        <source>探索ノード数の上限(0で無制限)</source>
+        <translation>Maximum search nodes (0 for unlimited)</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="142"/>
+        <source>検討モードの有効化</source>
+        <translation>Enable analysis mode</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="145"/>
+        <source>fail-low/fail-high時の読み筋出力</source>
+        <translation>Report PV on fail-low/fail-high</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="150"/>
+        <source>通信遅延補正(ミリ秒)</source>
+        <translation>Communication delay allowance (ms)</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="153"/>
+        <source>秒読み時の最大遅延補正(ミリ秒)</source>
+        <translation>Maximum delay allowance in byoyomi (ms)</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="156"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="272"/>
+        <source>最小思考時間(ミリ秒)</source>
+        <translation>Minimum thinking time (ms)</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="159"/>
+        <source>序盤の時間配分調整(100が標準)</source>
+        <translation>Opening time allocation (100 is standard)</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="162"/>
+        <source>消費時間の秒単位切り上げ</source>
+        <translation>Round elapsed time up to whole seconds</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="167"/>
+        <source>エンジン内蔵定跡の使用</source>
+        <translation>Use the engine&apos;s built-in opening book</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="170"/>
+        <source>使用する定跡ファイル</source>
+        <translation>Opening book file</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="173"/>
+        <source>定跡フォルダのパス</source>
+        <translation>Path to the opening book folder</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="176"/>
+        <source>定跡を使用する手数の上限</source>
+        <translation>Maximum ply for book use</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="179"/>
+        <source>定跡を無視する確率(%)</source>
+        <translation>Probability of ignoring the book (%)</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="182"/>
+        <source>定跡の部分読み込み</source>
+        <translation>Load the opening book partially</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="185"/>
+        <source>最善手に近い定跡手のみの選択</source>
+        <translation>Select only book moves close to the best move</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="188"/>
+        <source>定跡の評価値差の許容範囲</source>
+        <translation>Allowed evaluation difference for book moves</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="191"/>
+        <source>先手番での定跡採用の評価値下限</source>
+        <translation>Minimum book evaluation for Black</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="194"/>
+        <source>後手番での定跡採用の評価値下限</source>
+        <translation>Minimum book evaluation for White</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="197"/>
+        <source>定跡として採用する最小探索深さ（0で深さを問わない）</source>
+        <translation>Minimum search depth for book moves (0 accepts any depth)</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="200"/>
+        <source>定跡選択時の出現頻度考慮</source>
+        <translation>Consider frequency when selecting book moves</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="203"/>
+        <source>定跡の読み筋出力手数</source>
+        <translation>Number of book PV moves to report</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="206"/>
+        <source>定跡の局面の手数を無視（手数違いの同じ局面にも定跡を使う）</source>
+        <translation>Ignore the move number of book positions (use the book for the same position at any move number)</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="209"/>
+        <source>後手定跡の先手定跡からの反転生成</source>
+        <translation>Generate White&apos;s book by reversing Black&apos;s book</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="214"/>
+        <source>入玉時の勝敗判定ルール</source>
+        <translation>Entering king rule</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="217"/>
+        <source>引き分けとなる手数(0で無効)</source>
+        <translation>Move limit for a draw (0 to disable)</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="220"/>
+        <source>投了する評価値</source>
+        <translation>Resignation evaluation threshold</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="223"/>
+        <source>先手番での引き分けの評価値</source>
+        <translation>Draw evaluation for Black</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="226"/>
+        <source>後手番での引き分けの評価値</source>
+        <translation>Draw evaluation for White</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="231"/>
+        <source>NUMAメモリ割り当てポリシー</source>
+        <translation>NUMA memory allocation policy</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="234"/>
+        <source>デバッグログの出力先ファイル</source>
+        <translation>Debug log file</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="237"/>
+        <source>読み筋の出力間隔(ミリ秒)</source>
+        <translation>PV output interval (ms)</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="240"/>
+        <source>すべての合法手の生成</source>
+        <translation>Generate all legal moves</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="243"/>
+        <source>評価関数のスケーリング係数</source>
+        <translation>Evaluation scaling factor</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="251"/>
+        <source>候補手の数</source>
+        <translation>Candidate moves</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="254"/>
+        <source>読みの深さ（強さのレベル調節用）</source>
+        <translation>Search depth (playing strength)</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="257"/>
+        <source>定跡の使用</source>
+        <translation>Use opening book</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="260"/>
+        <source>定跡ファイル(戦型選択用)</source>
+        <translation>Opening book file (opening selection)</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="263"/>
+        <source>定跡使用の手数上限</source>
+        <translation>Maximum ply for book use</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="266"/>
+        <source>低勝率の定跡手の除外</source>
+        <translation>Exclude book moves with low win rates</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="269"/>
+        <source>低出現頻度の定跡手の除外</source>
+        <translation>Exclude infrequent book moves</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="275"/>
+        <source>秒読み時の余裕(ミリ秒)</source>
+        <translation>Byoyomi time margin (ms)</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="278"/>
+        <source>切れ負けルール時の余裕(秒)</source>
+        <translation>Sudden death time margin (seconds)</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="281"/>
+        <source>フィッシャールール時の余裕(ミリ秒)</source>
+        <translation>Fischer time margin (ms)</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="284"/>
+        <source>技巧が投了する評価値</source>
+        <translation>Gikou resignation evaluation threshold</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="287"/>
+        <source>千日手の評価値</source>
+        <translation>Repetition evaluation</translation>
     </message>
 </context>
 <context>
@@ -8471,6 +8796,34 @@ Do you want to save them?</translation>
     </message>
 </context>
 <context>
+    <name>KifuExportMetadataBuilder</name>
+    <message>
+        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="15"/>
+        <source>先手</source>
+        <translation>Black</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="16"/>
+        <source>後手</source>
+        <translation>White</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="17"/>
+        <source>Engine</source>
+        <translation>Engine</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="18"/>
+        <source>Engine1</source>
+        <translation>Engine1</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="19"/>
+        <source>Engine2</source>
+        <translation>Engine2</translation>
+    </message>
+</context>
+<context>
     <name>KifuFileController</name>
     <message>
         <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="81"/>
@@ -8693,6 +9046,39 @@ Do you want to save them?</translation>
     </message>
 </context>
 <context>
+    <name>KifuIoService</name>
+    <message>
+        <location filename="../../src/kifu/kifuioservice.cpp" line="72"/>
+        <source>File path is empty.</source>
+        <translation>File path is empty.</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifuioservice.cpp" line="83"/>
+        <source>Some characters cannot be saved in Shift_JIS. Please save as UTF-8.</source>
+        <translation>Some characters cannot be saved in Shift_JIS. Please save as UTF-8.</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifuioservice.cpp" line="96"/>
+        <source>Failed to create directory: %1</source>
+        <translation>Failed to create directory: %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifuioservice.cpp" line="105"/>
+        <source>Could not open the file for writing: %1</source>
+        <translation>Could not open the file for writing: %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifuioservice.cpp" line="111"/>
+        <source>Failed to write data to file.</source>
+        <translation>Failed to write data to file.</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifuioservice.cpp" line="116"/>
+        <source>Failed to close file: %1</source>
+        <translation>Failed to close file: %1</translation>
+    </message>
+</context>
+<context>
     <name>KifuLoadCoordinator</name>
     <message>
         <source>棋譜ファイルの読み込みに失敗しました: %1</source>
@@ -8794,23 +9180,23 @@ Do you want to save them?</translation>
         <translation>The game record has an invalid variation parent or starting ply.</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="40"/>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="98"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="38"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="96"/>
         <source>棋譜ファイルの読み込みに失敗しました: %1%2</source>
         <translation>Failed to load game record file: %1%2</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="94"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="92"/>
         <source>BOD形式の解析に失敗しました。%1</source>
         <translation>Failed to parse BOD format. %1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="97"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="95"/>
         <source>棋譜の読み込みに失敗しました。%1</source>
         <translation>Failed to load the game record.%1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="112"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="110"/>
         <source>貼り付けるテキストが空です。</source>
         <translation>The text to paste is empty.</translation>
     </message>
@@ -9318,6 +9704,14 @@ Do you want to continue?</translation>
         <location filename="../../src/dialogs/kifusavedialogs.cpp" line="134"/>
         <source>棋譜に未保存の変更があります。保存しますか？</source>
         <translation>The game record has unsaved changes. Do you want to save them?</translation>
+    </message>
+</context>
+<context>
+    <name>KifuSaveFile</name>
+    <message>
+        <location filename="../../src/kifu/kifusavefile.cpp" line="71"/>
+        <source>次の文字はShift_JISで保存できません：%1。UTF-8の形式（.kifu・.ki2u）で保存してください。</source>
+        <translation>The following characters cannot be saved in Shift_JIS: %1. Save in a UTF-8 format (.kifu or .ki2u) instead.</translation>
     </message>
 </context>
 <context>
@@ -11997,56 +12391,44 @@ Are you sure you want to declare?</translation>
 <context>
     <name>QObject</name>
     <message>
-        <location filename="../../src/board/boardimageexporter.cpp" line="47"/>
-        <location filename="../../src/board/boardimageexporter.cpp" line="79"/>
-        <location filename="../../src/board/boardimageexporter.cpp" line="87"/>
         <source>Error</source>
-        <translation>Error</translation>
+        <translation type="vanished">Error</translation>
     </message>
     <message>
-        <location filename="../../src/board/boardimageexporter.cpp" line="48"/>
         <source>No writable image formats are available.</source>
-        <translation>No writable image formats are available.</translation>
+        <translation type="vanished">No writable image formats are available.</translation>
     </message>
     <message>
-        <location filename="../../src/board/boardimageexporter.cpp" line="69"/>
         <source>Output the image</source>
-        <translation>Save Image</translation>
+        <translation type="vanished">Save Image</translation>
     </message>
     <message>
-        <location filename="../../src/board/boardimageexporter.cpp" line="80"/>
         <source>This image format is not available: %1</source>
-        <translation>This image format is not available: %1</translation>
+        <translation type="vanished">This image format is not available: %1</translation>
     </message>
     <message>
-        <location filename="../../src/board/boardimageexporter.cpp" line="88"/>
         <source>Failed to save the image: %1</source>
-        <translation>Failed to save the image: %1</translation>
+        <translation type="vanished">Failed to save the image: %1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="13"/>
         <source>先手</source>
-        <translation>Black</translation>
+        <translation type="vanished">Black</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="13"/>
         <source>後手</source>
-        <translation>White</translation>
+        <translation type="vanished">White</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="14"/>
         <source>Engine</source>
-        <translation>Engine</translation>
+        <translation type="vanished">Engine</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="15"/>
         <source>Engine1</source>
-        <translation>Engine1</translation>
+        <translation type="vanished">Engine1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="15"/>
         <source>Engine2</source>
-        <translation>Engine2</translation>
+        <translation type="vanished">Engine2</translation>
     </message>
     <message>
         <source>先手番</source>
@@ -12073,38 +12455,32 @@ Are you sure you want to declare?</translation>
         <translation type="vanished">Select File</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuioservice.cpp" line="71"/>
         <source>File path is empty.</source>
-        <translation>File path is empty.</translation>
+        <translation type="vanished">File path is empty.</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuioservice.cpp" line="82"/>
         <source>Some characters cannot be saved in Shift_JIS. Please save as UTF-8.</source>
-        <translation>Some characters cannot be saved in Shift_JIS. Please save as UTF-8.</translation>
+        <translation type="vanished">Some characters cannot be saved in Shift_JIS. Please save as UTF-8.</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuioservice.cpp" line="95"/>
         <source>Failed to create directory: %1</source>
-        <translation>Failed to create directory: %1</translation>
+        <translation type="vanished">Failed to create directory: %1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuioservice.cpp" line="104"/>
         <source>Could not open the file for writing: %1</source>
-        <translation>Could not open the file for writing: %1</translation>
+        <translation type="vanished">Could not open the file for writing: %1</translation>
     </message>
     <message>
         <source>Shift_JIS encoder is not available on this system.</source>
         <translation type="vanished">Shift_JIS encoder is not available on this system.</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuioservice.cpp" line="110"/>
         <source>Failed to write data to file.</source>
-        <translation>Failed to write data to file.</translation>
+        <translation type="vanished">Failed to write data to file.</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuioservice.cpp" line="115"/>
         <source>Failed to close file: %1</source>
-        <translation>Failed to close file: %1</translation>
+        <translation type="vanished">Failed to close file: %1</translation>
     </message>
     <message>
         <source>Save File</source>
@@ -12135,9 +12511,8 @@ Save as UTF-8 instead? The first line of the file will record &quot;encoding=UTF
         <translation type="vanished">Save as UTF-8</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavefile.cpp" line="71"/>
         <source>次の文字はShift_JISで保存できません：%1。UTF-8の形式（.kifu・.ki2u）で保存してください。</source>
-        <translation>The following characters cannot be saved in Shift_JIS: %1. Save in a UTF-8 format (.kifu or .ki2u) instead.</translation>
+        <translation type="vanished">The following characters cannot be saved in Shift_JIS: %1. Save in a UTF-8 format (.kifu or .ki2u) instead.</translation>
     </message>
     <message>
         <source>KIF形式 UTF-8 (*.kifu);;KIF形式 Shift_JIS (*.kif);;KI2形式 UTF-8 (*.ki2u);;KI2形式 Shift_JIS (*.ki2);;CSA形式 (*.csa);;JKF形式 (*.jkf);;USEN形式 (*.usen);;USI形式 (*.usi);;すべてのファイル (*)</source>
@@ -12304,304 +12679,244 @@ Do you want to continue?</translation>
         <translation type="vanished">Draw</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="78"/>
         <source>基本設定</source>
-        <translation>General</translation>
+        <translation type="vanished">General</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="80"/>
         <source>思考設定</source>
-        <translation>Search</translation>
+        <translation type="vanished">Search</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="82"/>
         <source>時間制御</source>
-        <translation>Time control</translation>
+        <translation type="vanished">Time control</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="84"/>
         <source>定跡設定</source>
-        <translation>Opening book</translation>
+        <translation type="vanished">Opening book</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="86"/>
         <source>対局ルール</source>
-        <translation>Game rules</translation>
+        <translation type="vanished">Game rules</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="89"/>
         <source>その他</source>
-        <translation>Other</translation>
+        <translation type="vanished">Other</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="113"/>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="249"/>
         <source>探索に使用するスレッド数</source>
-        <translation>Number of search threads</translation>
+        <translation type="vanished">Number of search threads</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="116"/>
         <source>置換表サイズ(MB)</source>
-        <translation>Transposition table size (MB)</translation>
+        <translation type="vanished">Transposition table size (MB)</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="119"/>
         <source>出力する候補手の数</source>
-        <translation>Number of candidate moves to report</translation>
+        <translation type="vanished">Number of candidate moves to report</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="122"/>
         <source>評価関数フォルダのパス</source>
-        <translation>Path to the evaluation folder</translation>
+        <translation type="vanished">Path to the evaluation folder</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="127"/>
         <source>相手の手番中の先読み</source>
-        <translation>Think during the opponent&apos;s turn</translation>
+        <translation type="vanished">Think during the opponent&apos;s turn</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="130"/>
         <source>Ponder時の確率的な応手予測</source>
-        <translation>Probabilistic response prediction while pondering</translation>
+        <translation type="vanished">Probabilistic response prediction while pondering</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="143"/>
         <source>検討モードの有効化</source>
-        <translation>Enable analysis mode</translation>
+        <translation type="vanished">Enable analysis mode</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="146"/>
         <source>fail-low/fail-high時の読み筋出力</source>
-        <translation>Report PV on fail-low/fail-high</translation>
+        <translation type="vanished">Report PV on fail-low/fail-high</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="207"/>
         <source>定跡の局面の手数を無視（手数違いの同じ局面にも定跡を使う）</source>
-        <translation>Ignore the move number of book positions (use the book for the same position at any move number)</translation>
+        <translation type="vanished">Ignore the move number of book positions (use the book for the same position at any move number)</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="135"/>
         <source>探索の最大深さ(0で無制限)</source>
-        <translation>Maximum search depth (0 for unlimited)</translation>
+        <translation type="vanished">Maximum search depth (0 for unlimited)</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="138"/>
         <source>探索ノード数の上限(0で無制限)</source>
-        <translation>Maximum search nodes (0 for unlimited)</translation>
+        <translation type="vanished">Maximum search nodes (0 for unlimited)</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="151"/>
         <source>通信遅延補正(ミリ秒)</source>
-        <translation>Communication delay allowance (ms)</translation>
+        <translation type="vanished">Communication delay allowance (ms)</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="154"/>
         <source>秒読み時の最大遅延補正(ミリ秒)</source>
-        <translation>Maximum delay allowance in byoyomi (ms)</translation>
+        <translation type="vanished">Maximum delay allowance in byoyomi (ms)</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="160"/>
         <source>序盤の時間配分調整(100が標準)</source>
-        <translation>Opening time allocation (100 is standard)</translation>
+        <translation type="vanished">Opening time allocation (100 is standard)</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="171"/>
         <source>使用する定跡ファイル</source>
-        <translation>Opening book file</translation>
+        <translation type="vanished">Opening book file</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="174"/>
         <source>定跡フォルダのパス</source>
-        <translation>Path to the opening book folder</translation>
+        <translation type="vanished">Path to the opening book folder</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="177"/>
         <source>定跡を使用する手数の上限</source>
-        <translation>Maximum ply for book use</translation>
+        <translation type="vanished">Maximum ply for book use</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="180"/>
         <source>定跡を無視する確率(%)</source>
-        <translation>Probability of ignoring the book (%)</translation>
+        <translation type="vanished">Probability of ignoring the book (%)</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="189"/>
         <source>定跡の評価値差の許容範囲</source>
-        <translation>Allowed evaluation difference for book moves</translation>
+        <translation type="vanished">Allowed evaluation difference for book moves</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="192"/>
         <source>先手番での定跡採用の評価値下限</source>
-        <translation>Minimum book evaluation for Black</translation>
+        <translation type="vanished">Minimum book evaluation for Black</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="195"/>
         <source>後手番での定跡採用の評価値下限</source>
-        <translation>Minimum book evaluation for White</translation>
+        <translation type="vanished">Minimum book evaluation for White</translation>
     </message>
     <message>
         <source>定跡として採用する最小探索深さ</source>
         <translation type="vanished">Minimum search depth for book moves</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="215"/>
         <source>入玉時の勝敗判定ルール</source>
-        <translation>Entering king rule</translation>
+        <translation type="vanished">Entering king rule</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="218"/>
         <source>引き分けとなる手数(0で無効)</source>
-        <translation>Move limit for a draw (0 to disable)</translation>
+        <translation type="vanished">Move limit for a draw (0 to disable)</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="221"/>
         <source>投了する評価値</source>
-        <translation>Resignation evaluation threshold</translation>
+        <translation type="vanished">Resignation evaluation threshold</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="224"/>
         <source>先手番での引き分けの評価値</source>
-        <translation>Draw evaluation for Black</translation>
+        <translation type="vanished">Draw evaluation for Black</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="227"/>
         <source>後手番での引き分けの評価値</source>
-        <translation>Draw evaluation for White</translation>
+        <translation type="vanished">Draw evaluation for White</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="232"/>
         <source>NUMAメモリ割り当てポリシー</source>
-        <translation>NUMA memory allocation policy</translation>
+        <translation type="vanished">NUMA memory allocation policy</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="235"/>
         <source>デバッグログの出力先ファイル</source>
-        <translation>Debug log file</translation>
+        <translation type="vanished">Debug log file</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="238"/>
         <source>読み筋の出力間隔(ミリ秒)</source>
-        <translation>PV output interval (ms)</translation>
+        <translation type="vanished">PV output interval (ms)</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="244"/>
         <source>評価関数のスケーリング係数</source>
-        <translation>Evaluation scaling factor</translation>
+        <translation type="vanished">Evaluation scaling factor</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="252"/>
         <source>候補手の数</source>
-        <translation>Candidate moves</translation>
+        <translation type="vanished">Candidate moves</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="255"/>
         <source>読みの深さ（強さのレベル調節用）</source>
-        <translation>Search depth (playing strength)</translation>
+        <translation type="vanished">Search depth (playing strength)</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="261"/>
         <source>定跡ファイル(戦型選択用)</source>
-        <translation>Opening book file (opening selection)</translation>
+        <translation type="vanished">Opening book file (opening selection)</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="157"/>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="273"/>
         <source>最小思考時間(ミリ秒)</source>
-        <translation>Minimum thinking time (ms)</translation>
+        <translation type="vanished">Minimum thinking time (ms)</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="163"/>
         <source>消費時間の秒単位切り上げ</source>
-        <translation>Round elapsed time up to whole seconds</translation>
+        <translation type="vanished">Round elapsed time up to whole seconds</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="168"/>
         <source>エンジン内蔵定跡の使用</source>
-        <translation>Use the engine&apos;s built-in opening book</translation>
+        <translation type="vanished">Use the engine&apos;s built-in opening book</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="183"/>
         <source>定跡の部分読み込み</source>
-        <translation>Load the opening book partially</translation>
+        <translation type="vanished">Load the opening book partially</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="186"/>
         <source>最善手に近い定跡手のみの選択</source>
-        <translation>Select only book moves close to the best move</translation>
+        <translation type="vanished">Select only book moves close to the best move</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="198"/>
         <source>定跡として採用する最小探索深さ（0で深さを問わない）</source>
-        <translation>Minimum search depth for book moves (0 accepts any depth)</translation>
+        <translation type="vanished">Minimum search depth for book moves (0 accepts any depth)</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="201"/>
         <source>定跡選択時の出現頻度考慮</source>
-        <translation>Consider frequency when selecting book moves</translation>
+        <translation type="vanished">Consider frequency when selecting book moves</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="204"/>
         <source>定跡の読み筋出力手数</source>
-        <translation>Number of book PV moves to report</translation>
+        <translation type="vanished">Number of book PV moves to report</translation>
     </message>
     <message>
         <source>定跡の手数制限無視</source>
         <translation type="vanished">Ignore the book move limit</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="210"/>
         <source>後手定跡の先手定跡からの反転生成</source>
-        <translation>Generate White&apos;s book by reversing Black&apos;s book</translation>
+        <translation type="vanished">Generate White&apos;s book by reversing Black&apos;s book</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="241"/>
         <source>すべての合法手の生成</source>
-        <translation>Generate all legal moves</translation>
+        <translation type="vanished">Generate all legal moves</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="258"/>
         <source>定跡の使用</source>
-        <translation>Use opening book</translation>
+        <translation type="vanished">Use opening book</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="264"/>
         <source>定跡使用の手数上限</source>
-        <translation>Maximum ply for book use</translation>
+        <translation type="vanished">Maximum ply for book use</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="267"/>
         <source>低勝率の定跡手の除外</source>
-        <translation>Exclude book moves with low win rates</translation>
+        <translation type="vanished">Exclude book moves with low win rates</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="270"/>
         <source>低出現頻度の定跡手の除外</source>
-        <translation>Exclude infrequent book moves</translation>
+        <translation type="vanished">Exclude infrequent book moves</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="276"/>
         <source>秒読み時の余裕(ミリ秒)</source>
-        <translation>Byoyomi time margin (ms)</translation>
+        <translation type="vanished">Byoyomi time margin (ms)</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="279"/>
         <source>切れ負けルール時の余裕(秒)</source>
-        <translation>Sudden death time margin (seconds)</translation>
+        <translation type="vanished">Sudden death time margin (seconds)</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="282"/>
         <source>フィッシャールール時の余裕(ミリ秒)</source>
-        <translation>Fischer time margin (ms)</translation>
+        <translation type="vanished">Fischer time margin (ms)</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="285"/>
         <source>技巧が投了する評価値</source>
-        <translation>Gikou resignation evaluation threshold</translation>
+        <translation type="vanished">Gikou resignation evaluation threshold</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="288"/>
         <source>千日手の評価値</source>
-        <translation>Repetition evaluation</translation>
+        <translation type="vanished">Repetition evaluation</translation>
     </message>
     <message>
         <source>=== 開始局面 ===</source>
@@ -14675,12 +14990,12 @@ This cannot be undone. Reset history?</translation>
 <context>
     <name>TsumeshogiGenerator</name>
     <message>
-        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="189"/>
+        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="190"/>
         <source>エンジンが詰み探索に対応していません。</source>
         <translation>The engine does not support mate search.</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="198"/>
+        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="199"/>
         <source>エンジンが応答しないため生成を中止しました。</source>
         <translation>Generation was aborted because the engine is not responding.</translation>
     </message>

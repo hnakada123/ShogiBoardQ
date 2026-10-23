@@ -5,6 +5,7 @@
 /// @brief USIエンジンオプション説明データベースの定義
 
 
+#include <QCoreApplication>
 #include <QString>
 #include <QHash>
 #include <QList>
@@ -31,6 +32,8 @@ enum class EngineOptionCategory {
  */
 class EngineOptionDescriptions
 {
+    Q_DECLARE_TR_FUNCTIONS(EngineOptionDescriptions)
+
 public:
     /**
      * @brief 指定エンジン・オプションに対する説明を取得する

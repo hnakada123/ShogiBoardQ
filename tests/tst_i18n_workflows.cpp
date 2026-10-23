@@ -346,7 +346,7 @@ private slots:
         row.score = UsiScore::cp(25);
         const QString japanesePv = QStringLiteral("▲７六歩(77)△３四歩(33)");
         row.pv = PvText::play(imported.startSfen(), QStringLiteral("7g7f 3c3d"));
-        thinking.appendRow(row);
+        thinking.prependRow(row, 10);
         const ShogiInfoRecord* info = thinking.recordAt(0);
         const QString pv = thinking.data(thinking.index(0, ShogiEngineThinkingModel::PvColumn), Qt::DisplayRole).toString();
         QCOMPARE(pv, western ? QStringLiteral("▲P-7f △P-3d") : japanesePv);

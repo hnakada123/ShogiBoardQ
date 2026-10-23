@@ -4,7 +4,7 @@
 #include "kifusavefile.h"
 
 #include <QFileInfo>
-#include <QObject>
+#include <QCoreApplication>
 #include <QRegularExpression>
 #include <optional>
 
@@ -68,8 +68,10 @@ bool write(const QString& path, const QStringList& lines, QString* outError, con
         if (!missing.isEmpty()) {
             if (!allowUtf8) {
                 if (outError) {
-                    *outError = QObject::tr("次の文字はShift_JISで保存できません：%1。"
-                                            "UTF-8の形式（.kifu・.ki2u）で保存してください。").arg(missing);
+                    *outError = QCoreApplication::translate("KifuSaveFile",
+                                                            "次の文字はShift_JISで保存できません：%1。"
+                                                            "UTF-8の形式（.kifu・.ki2u）で保存してください。")
+                                    .arg(missing);
                 }
                 return false;
             }

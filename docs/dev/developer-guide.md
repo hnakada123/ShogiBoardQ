@@ -144,6 +144,7 @@
 | 2026-10-23 | 設定の名残を片づけた（監査3章）のに合わせて §4・§19 を更新（範囲のある設定は `BoundedSetting` で宣言し、読む側の `qBound` と画面ごとの範囲の定数を消した。`Setting`・`SettingField` はキーの写しを持ち、グループ名だけ違う組は宣言を返す関数から作る。`UiNotificationService` は `ui/presenters/` の `NotificationPresenter`、`ScreenshotService`・`DebugScreenshotShortcut` は `ui/controllers/` へ移し、`AppSettings::loadWindowSize`・`saveWindowAndBoard` を削除） |
 | 2026-10-23 | 名前を役割に合わせた（監査3章）のに合わせて §6・§8・§10・§15・§17・§19 を更新（`KifuLoadCoordinator` を kifu の `KifuLoader` に、`KifuSaveCoordinator` を dialogs の `KifuSaveDialogs` にし、`AboutCoordinator` を削除。未保存の確認は棋譜と定跡で `UnsavedChangesPrompt::ask()`。`LanguageController` は言語の `QActionGroup` の data で言語を受ける） |
 | 2026-10-23 | 小さな修正と使われていないコードの削除（監査4章）に合わせて §6・§8・§9・§12・§14 を更新（`NotationUtils`・`ConsiderationPositionResolver`（`KifuNavigationState::currentUsiPosition()` に）・`CliPosition`・`ShogiGameController::validateAndMove`・`MatchCoordinator::clock`・`ErrorBus::postError` などを削除。矢印の寸法は `ArrowMetrics`、定跡の取り込みの勝敗は `RecordEntry::winner()`、手番の印は `ShogiNotation::isTurnMark`。詰将棋のワーカーは止めるときに待たない。棋譜解析の表の詰みは「3手詰」） |
+| 2026-10-23 | 監査4章で残した名残を片づけたのに合わせて §8・§9・§16・第18章を更新（中身が1行だけの `KifToSfenConverter`・`Ki2ToSfenConverter` を削除し、KIF・KI2 は `KifTextParser::parseKif()`・`parseKi2()`。テストだけが使っていた `ShogiEngineThinkingModel::appendRow`・`MenuButtonWidget::dragStarted` を削除。QObject でないクラス・名前空間の文言は `Q_DECLARE_TR_FUNCTIONS`・`QCoreApplication::translate` で自分の文脈にした（§16.8）。詰将棋の生成は終わるときに件数の内訳をログに出す） |
 
 <!-- chapter-0-end -->
 
@@ -426,8 +427,8 @@ src/
 │   ├── josekibooksession.cpp/.h    #   開いている定跡ファイル（JosekiBook の値・変更状態・読み書き・履歴と前回のファイルの遅延読込。変えられないとき canEdit() は変更を受け付けない）
 │   ├── josekitypes.h               #   定跡手の値型 JosekiMove
 │   └── formats/                    #   形式ごとの変換器（テキストを読む。ファイルは KifuLoadParser が読んで渡す）
-│       ├── kiftosfenconverter.cpp/.h   #   KIF の parse()（ki2・csa・jkf・usen・usi の *tosfenconverter も形式ごとに parse() を1つ持つ）
-│       ├── kiftextparser.cpp/.h        #   KIF・KI2 で共有する読み取り（行の分類・変化の区切り・開始局面）
+│       ├── kiftextparser.cpp/.h        #   KIF・KI2 の読み取り（parseKif・parseKi2。行の分類・変化の区切り・開始局面を共有）
+│       ├── csatosfenconverter.cpp/.h   #   CSA の parse()（jkf・usen・usi の *tosfenconverter も形式ごとに parse() を1つ持つ）
 │       ├── kifmovegrammar.cpp/.h       #   KIF・KI2 の指し手の文法（KIF の手は KI2 の手＋移動元）
 │       ├── kiflinebuilder.cpp/.h       #   1本の手順の組み立て（全形式で共通。指しながら RecordEntry を作る）
 │       ├── kiflexer.cpp/.h             #   KIF の字句解析（手数・消費時間・BOD。ki2lexer・csalexer も同様）
@@ -1152,7 +1153,7 @@ ShogiBoardQは6種類の棋譜フォーマットを読み込める（局面だ�
 | **文字エンコーディング** | Shift-JIS/UTF-8 | Shift-JIS/UTF-8 | Shift-JIS/UTF-8 | UTF-8 | ASCII | ASCII |
 | **パース難易度** | 中 | **高** | 中 | 中 | **高** | 低 |
 | **拡張子** | `.kif` | `.ki2` | `.csa` | `.jkf` | (URL) | (なし) |
-| **変換器** | `kiftosfenconverter` | `ki2tosfenconverter` | `csatosfenconverter` | `jkftosfenconverter` | `usentosfenconverter` | `usitosfenconverter` |
+| **変換器** | `kiftextparser`（`parseKif`） | `kiftextparser`（`parseKi2`） | `csatosfenconverter` | `jkftosfenconverter` | `usentosfenconverter` | `usitosfenconverter` |
 
 #### 各フォーマットの特記事項
 
@@ -1170,13 +1171,13 @@ ShogiBoardQは6種類の棋譜フォーマットを読み込める（局面だ�
 
 #### 変換器の共通API
 
-形式ごとの変換器（`*ToSfenConverter`）はテキストを読むだけで、ファイルは読まない。ファイルは `KifuLoadParser`（`src/kifu/kifuloadparser.h`）が文字コードを判別して読み、形式を `KifuFormats::detectFile()`・`detect()`（`src/kifu/kifuformat.h`）で判定して、形式ごとの変換器に渡す。形式を表す列挙型は `KifuFormat` の1つで、読み込み・保存・変換で共通に使う。
+形式ごとの変換器（KIF・KI2 は `KifTextParser`、ほかは `*ToSfenConverter`）はテキストを読むだけで、ファイルは読まない。ファイルは `KifuLoadParser`（`src/kifu/kifuloadparser.h`）が文字コードを判別して読み、形式を `KifuFormats::detectFile()`・`detect()`（`src/kifu/kifuformat.h`）で判定して、形式ごとの変換器に渡す。形式を表す列挙型は `KifuFormat` の1つで、読み込み・保存・変換で共通に使う。
 
 変換器は形式ごとに1つの関数 `parse(text, options)`（`static`）だけを持つ。1回の解析で、棋譜（本譜 `mainline` と変化 `variations` の `KifParseResult`）・開始局面・手合割の名前・対局情報・警告をまとめて `KifuParseOutcome`（`src/kifu/kifparsetypes.h`）に入れて返す。
 
 | 形式 | 関数 |
 |------|------|
-| KIF・KI2 | `KifToSfenConverter::parse()`・`Ki2ToSfenConverter::parse()`（どちらも `KifTextParser::parse(text, Dialect::Kif / Dialect::Ki2, options)` を呼ぶ） |
+| KIF・KI2 | `KifTextParser::parseKif()`・`parseKi2()`（どちらも `KifTextParser::parse(text, Dialect::Kif / Dialect::Ki2, options)` を呼ぶ） |
 | CSA | `CsaToSfenConverter::parse()`（CSA の文字コード宣言を見てファイルを読む `readFileText()` も持つ。宣言が無ければほかの形式と同じ `KifReader::decodeAuto()` で判別する。手合割の名前も CSA の変換器が決める） |
 | JKF | `JkfToSfenConverter::parse()`（JSON は1回だけ解析する） |
 | USEN | `UsenToSfenConverter::parse()`（指し手の3文字・開始局面・手順の復号は `UsenCodec`（`usencodec.h`）。書き出しの `UsenExporter` と同じ符号表） |
@@ -3842,7 +3843,7 @@ KifuPresentation::pv（日本語表記）:
 | 通常モード | `prependRow(row, maxRows)` | 思考タブ：新しい情報を先頭に追加（時系列の逆順表示）。先頭と同じ内容なら足さず、`maxRows`（`UsiModelBinding` は 500）を超えた古い行は消す |
 | MultiPVモード | `updateByMultipv(row, maxMultiPV)` | 検討タブ：multipv 番号に基づいて行を更新/挿入 |
 
-どちらも、表に出す読み筋の無い行（`PvText::isDisplayable()` が偽）は `UsiModelBinding::onThinkingRow()` が表に出さない（詰み探索の中間結果など）。ほかに `appendRow()`（同じ内容でも末尾に足す）・`trimToMaxRows()`・`clear()` を持つ。
+どちらも、表に出す読み筋の無い行（`PvText::isDisplayable()` が偽）は `UsiModelBinding::onThinkingRow()` が表に出さない（詰み探索の中間結果など）。ほかに `trimToMaxRows()`・`clear()` を持つ。
 
 #### updateByMultipv() のロジック
 
@@ -4105,7 +4106,7 @@ kifu層（`src/kifu/`）は、棋譜の分岐管理・ナビゲーション状�
 │                                                                 │
 │  ┌─────────────────────────────────────────────────────────┐    │
 │  │ formats/  フォーマット変換器（テキストを読む）             │    │
-│  │  KifToSfenConverter, Ki2ToSfenConverter,                │    │
+│  │  KifTextParser::parseKif, parseKi2,                     │    │
 │  │  CsaToSfenConverter, JkfToSfenConverter,                │    │
 │  │  UsenToSfenConverter, UsiToSfenConverter                │    │
 │  │  共通: KifTextParser（KIF・KI2）, KifLineBuilder        │    │
@@ -4808,8 +4809,8 @@ KifuNavigationState
 
 | クラス | 入力形式 | 概要 | 分岐対応 |
 |--------|---------|------|---------|
-| `KifToSfenConverter` | KIF (.kif, .kifu) | 日本将棋連盟標準形式。移動元座標付き指し手、消費時間、コメント、BOD盤面図を解析（`KifTextParser` で読む） | あり |
-| `Ki2ToSfenConverter` | KI2 (.ki2) | 移動元座標省略形式。盤面状態を追跡し「右」「左」「直」等の修飾語から移動元を推測（`KifTextParser` で読む） | あり |
+| `KifTextParser::parseKif` | KIF (.kif, .kifu) | 日本将棋連盟標準形式。移動元座標付き指し手、消費時間、コメント、BOD盤面図を解析（`KifTextParser` で読む） | あり |
+| `KifTextParser::parseKi2` | KI2 (.ki2) | 移動元座標省略形式。盤面状態を追跡し「右」「左」「直」等の修飾語から移動元を推測（`KifTextParser` で読む） | あり |
 | `CsaToSfenConverter` | CSA (.csa) | コンピュータ将棋協会形式。PI/P1..P9による初期局面、`+`/`-` による指し手、`$` による対局情報を解析 | なし |
 | `JkfToSfenConverter` | JKF (.jkf) | JSON棋譜フォーマット。`header` / `initial` / `moves` の3セクション構造。分岐は `forks` 配列で表現 | あり |
 | `UsenToSfenConverter` | USEN (.usen) | URLセーフ短縮形式。base36エンコードされた指し手列（3文字=1手。符号表は `UsenCodec`）。`~(startPly).` で分岐区切り | あり |
@@ -7908,7 +7909,7 @@ sequenceDiagram
 | `KifuLoader` | 棋譜ファイル・貼り付け・局面を読み、棋譜の文書を置き換える。パースの起動（別スレッド）と結果の適用（`src/kifu/`） |
 | `KifuDocument` | 開いている棋譜の文書。分岐ツリーの作り直しと対局情報の置き換え、前の棋譜の対局者・持ち時間・上書き保存先の消去（`src/kifu/`） |
 | `KifuLoadParser` | 形式判定、ファイルの文字コードの判別、フォーマット変換器への振り分け。結果を `KifuLoadResult` にまとめる（`src/kifu/`） |
-| `KifToSfenConverter` | KIF形式のテキストの解析（`parse()`。中身は KI2 と共有する `KifTextParser`）。手合割→SFEN変換、指し手→USI変換、変化抽出 |
+| `KifTextParser` | KIF形式のテキストの解析（`parseKif()`。KI2 の `parseKi2()` と同じ読み取り）。手合割→SFEN変換、指し手→USI変換、変化抽出 |
 | `KifLineBuilder` | 各形式のパーサが手順を組み立てる部品。手を指しながら局面を進め、棋譜の行（`RecordEntry`）を作る（`src/kifu/formats/`） |
 | `KifuBranchTreeBuilder` | `KifParseResult` から分岐ツリーを組み立てる（`src/kifu/`） |
 | `KifuBranchTree` | 分岐棋譜のツリー構造。本譜と変化を木構造で管理する棋譜の正本 |
@@ -7918,7 +7919,7 @@ sequenceDiagram
 
 **補足:**
 - 同期版の `loadFile()` / `loadText()` / `loadPositionFromSfen()`（自動化 API・テストで使用）と、テキストからの読み込み（`loadTextAsync()`、クリップボード貼り付けで使用、形式を自動判定）も同じ `applyLoadResult()` を通る。SFEN・BOD は局面だけを読み、`loadPositionFromSfen()` で開始局面にする
-- KIF以外の形式も同様のパターンで処理される: `Ki2ToSfenConverter`（KI2形式）、`CsaToSfenConverter`（CSA形式）等。変換器はテキストを読むだけで、ファイルを読むのは `KifuLoadParser` である
+- KIF以外の形式も同様のパターンで処理される: `KifTextParser::parseKi2()`（KI2形式）、`CsaToSfenConverter`（CSA形式）等。変換器はテキストを読むだけで、ファイルを読むのは `KifuLoadParser` である
 - 読み込みが作るのは分岐ツリー（棋譜の正本）だけである。棋譜欄・分岐・盤は、ツリーが変わって表示中の手が開始局面へ戻ったことを受けた各部品が自分で合わせる。対局を始めるときは、表示中の手順（`KifuNavigationState::currentRecordLine()`）から司令塔の手順（`RecordLine`）を作る（15.1、8.7）
 - 各手の後の局面は、パーサが手を読むたびに `KifLineBuilder::addMove()` が局面を進めて作る（8.11）。読めない手・指せない手は `ParseOptions` に従い、既定ではその手の手前で手順を打ち切って警告を出す
 
@@ -8500,6 +8501,7 @@ statusBar()->showMessage(tr("手数: %1").arg(moveCount));
 | 項目 | 説明 |
 |------|------|
 | QObject派生クラス内で使用 | `tr()` は `QObject::tr()` のマクロであり、QObject派生クラスのメンバ関数内で使用する |
+| QObject でないクラス・名前空間 | クラスは `Q_DECLARE_TR_FUNCTIONS(クラス名)` を付けて `tr()` を使う。関数だけの名前空間は `QCoreApplication::translate("文脈名", "...")` に文脈名をリテラルで渡す。`QObject::tr()` を借りると文脈が `QObject` になり、同じ原文の別の箇所と訳を分けられない。`lupdate` は自作の関数に包んだ文字列を拾わない |
 | リテラル文字列のみ | `tr(variable)` はNG。`lupdate` は静的にソースを解析するため、リテラル文字列のみ抽出できる |
 | `%1`, `%2` で引数 | `QString::arg()` と組み合わせて動的な値を埋め込む |
 | `.ui` ファイル | Qt Designer で設定した文字列は自動的に `tr()` でラップされる |
@@ -9309,15 +9311,13 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | JosekiWindowController | C | ui/controllers | 定跡ウィンドウの表示・更新と、選んだ定跡手の着手の要求 | 第10章 |
 | Ki2Exporter | C | kifu/formats | KI2形式の書き出し | 第8章 |
 | Ki2Lexer | NS | kifu/formats | KI2形式固有の行の字句解析（指し手の行・「まで…」の結果の行） | 第8章 |
-| Ki2ToSfenConverter | C | kifu/formats | KI2形式→SFEN変換器 | 第8章 |
 | KifExporter | C | kifu/formats | KIF形式の書き出し | 第8章 |
 | KifLineBuilder | C | kifu/formats | 棋譜の読み込みで1本の手順を組み立てる（全形式で共通。指しながら `RecordEntry` を作る） | 第8章 |
 | KifMoveGrammar | NS | kifu/formats | KIF・KI2 の指し手の文字列の文法（`MoveText`・`parseMoveText()`・`resolve()`） | 第8章 |
 | KifMoveText | NS | core | KIF 形式の指し手の文字列（ヘッダーオンリー） | 第5章 |
 | KifParseResult | S | kifu | 棋譜の変換器が返す、本譜と変化の解析結果 | 第8章 |
 | KifReader | NS | kifu | KIF形式ファイルの読み込み | 第8章 |
-| KifTextParser | NS | kifu/formats | KIF・KI2 のテキストを読む（行の分類・変化の区切り・開始局面を両形式で共有） | 第8章 |
-| KifToSfenConverter | C | kifu/formats | KIF形式→SFEN変換器 | 第8章 |
+| KifTextParser | NS | kifu/formats | KIF・KI2 のテキストを読む（`parseKif`・`parseKi2`。行の分類・変化の区切り・開始局面を両形式で共有） | 第8章 |
 | KifuAnalysisController | C | ui/controllers | 棋譜解析（メニューの「棋譜解析」「解析中止」と、解析の進み具合の表示） | 第9章 |
 | KifuAnalysisDialog | C | dialogs | 棋譜解析設定ダイアログ | 第11章 |
 | KifuAnalysisListModel | C | models | 棋譜解析の結果の表のモデル（8列。行は `KifuAnalysisRow` の値） | 第9章 |
@@ -9571,8 +9571,6 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 
 | ファイル | 解説章 | 内容 |
 |---------|--------|------|
-| kiftosfenconverter | 第8章 | KIF→SFEN変換 |
-| ki2tosfenconverter | 第8章 | KI2→SFEN変換 |
 | csatosfenconverter | 第8章 | CSA→SFEN変換 |
 | jkftosfenconverter | 第8章 | JKF→SFEN変換 |
 | usentosfenconverter | 第8章 | USEN→SFEN変換 |
@@ -9582,7 +9580,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | ki2exporter | 第8章 | KI2形式の書き出し |
 | ki2lexer | 第8章 | KI2形式固有の行の字句解析 |
 | kifexporter | 第8章 | KIF形式の書き出し |
-| kiftextparser | 第8章 | KIF・KI2 で共有する読み取り |
+| kiftextparser | 第8章 | KIF・KI2 の読み取り（`parseKif`・`parseKi2`） |
 | kifmovegrammar | 第8章 | KIF・KI2 の指し手の文法 |
 | kiflinebuilder | 第8章 | 1本の手順の組み立て（全形式で共通） |
 | kifunodereplay | 第8章 | 手順のノードを局面と一緒にたどる（KI2・JKF の書き出し） |

@@ -350,8 +350,6 @@ set(SRC_KIFU
     src/kifu/formats/ki2lexer.h
     src/kifu/formats/ki2movenotation.cpp
     src/kifu/formats/ki2movenotation.h
-    src/kifu/formats/ki2tosfenconverter.cpp
-    src/kifu/formats/ki2tosfenconverter.h
     src/kifu/formats/kifexporter.cpp
     src/kifu/formats/kifexporter.h
     src/kifu/formats/kiflexer.cpp
@@ -362,8 +360,6 @@ set(SRC_KIFU
     src/kifu/formats/kifmovegrammar.h
     src/kifu/formats/kiftextparser.cpp
     src/kifu/formats/kiftextparser.h
-    src/kifu/formats/kiftosfenconverter.cpp
-    src/kifu/formats/kiftosfenconverter.h
     src/kifu/formats/kifuexportcommon.cpp
     src/kifu/formats/kifuexportcommon.h
     src/kifu/formats/parsecommon.cpp

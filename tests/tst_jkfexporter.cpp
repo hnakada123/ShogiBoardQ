@@ -39,7 +39,7 @@ bool readJkf(const QByteArray& json, KifParseResult& result, QString* error)
 {
     QTemporaryFile file;
     if (!KifuTestHelper::writeToTempFile(file, json, QStringLiteral("jkf"))) return false;
-    return KifuFile::parse<JkfToSfenConverter>(file.fileName(), result, error);
+    return KifuFile::parse<KifuFormat::Jkf>(file.fileName(), result, error);
 }
 
 QString jsonText(const QJsonValue& value)

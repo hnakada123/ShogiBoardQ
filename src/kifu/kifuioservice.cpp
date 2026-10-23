@@ -2,6 +2,7 @@
 /// @brief 棋譜ファイルI/Oサービスの実装
 
 #include "kifuioservice.h"
+#include <QCoreApplication>
 #include "shiftjiscodec.h"
 
 #include <QSaveFile>
@@ -68,7 +69,7 @@ bool KifuIoService::writeKifuFile(const QString& filePath,
 {
     if (errorText) errorText->clear();
     if (filePath.isEmpty()) {
-        if (errorText) *errorText = QObject::tr("File path is empty.");
+        if (errorText) *errorText = QCoreApplication::translate("KifuIoService", "File path is empty.");
         return false;
     }
 
@@ -79,7 +80,10 @@ bool KifuIoService::writeKifuFile(const QString& filePath,
     if (useShiftJis) {
         auto sjis = ShiftJisCodec::encode(text);
         if (!sjis) {
-            if (errorText) *errorText = QObject::tr("Some characters cannot be saved in Shift_JIS. Please save as UTF-8.");
+            if (errorText) {
+                *errorText = QCoreApplication::translate(
+                    "KifuIoService", "Some characters cannot be saved in Shift_JIS. Please save as UTF-8.");
+            }
             return false;
         }
         encoded = std::move(*sjis);
@@ -92,7 +96,8 @@ bool KifuIoService::writeKifuFile(const QString& filePath,
         QDir dir;
         if (!dir.mkpath(fi.absolutePath())) {
             if (errorText) {
-                *errorText = QObject::tr("Failed to create directory: %1").arg(fi.absolutePath());
+                *errorText = QCoreApplication::translate("KifuIoService", "Failed to create directory: %1")
+                                 .arg(fi.absolutePath());
             }
             return false;
         }
@@ -101,18 +106,21 @@ bool KifuIoService::writeKifuFile(const QString& filePath,
     QSaveFile file(filePath);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         if (errorText) {
-            *errorText = QObject::tr("Could not open the file for writing: %1").arg(file.errorString());
+            *errorText = QCoreApplication::translate("KifuIoService", "Could not open the file for writing: %1")
+                             .arg(file.errorString());
         }
         return false;
     }
 
     if (file.write(encoded) != encoded.size()) {
-        if (errorText) *errorText = QObject::tr("Failed to write data to file.");
+        if (errorText) *errorText = QCoreApplication::translate("KifuIoService", "Failed to write data to file.");
         return false;
     }
 
     if (!file.commit()) {
-        if (errorText) *errorText = QObject::tr("Failed to close file: %1").arg(file.errorString());
+        if (errorText) {
+            *errorText = QCoreApplication::translate("KifuIoService", "Failed to close file: %1").arg(file.errorString());
+        }
         return false;
     }
     return true;

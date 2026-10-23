@@ -18,8 +18,7 @@
 #include "kifubranchnode.h"
 #include "kifunavigationstate.h"
 #include "handicaps.h"
-#include "kiftosfenconverter.h"
-#include "ki2tosfenconverter.h"
+#include "kiftextparser.h"
 #include "csatosfenconverter.h"
 #include "jkftosfenconverter.h"
 #include "usitosfenconverter.h"
@@ -204,7 +203,7 @@ private slots:
         QVERIFY(KifuTestHelper::writeToTempFile(file, text.toUtf8(), QStringLiteral("ki2")));
         KifParseResult result;
         QString error;
-        QVERIFY2(KifuFile::parse<Ki2ToSfenConverter>(file.fileName(), result, &error), qPrintable(error));
+        QVERIFY2(KifuFile::parse<KifuFormat::Ki2>(file.fileName(), result, &error), qPrintable(error));
         QCOMPARE(result.mainline.usiMoves(), usi);
     }
 
@@ -233,12 +232,12 @@ private slots:
         KifParseResult result;
         QString error;
         bool parsed = false;
-        if (format == "kif") parsed = KifuFile::parse<KifToSfenConverter>(file.fileName(), result, &error);
-        else if (format == "ki2") parsed = KifuFile::parse<Ki2ToSfenConverter>(file.fileName(), result, &error);
-        else if (format == "csa") parsed = KifuFile::parse<CsaToSfenConverter>(file.fileName(), result, &error);
-        else if (format == "jkf") parsed = KifuFile::parse<JkfToSfenConverter>(file.fileName(), result, &error);
-        else if (format == "usi") parsed = KifuFile::parse<UsiToSfenConverter>(file.fileName(), result, &error);
-        else parsed = KifuFile::parse<UsenToSfenConverter>(file.fileName(), result, &error);
+        if (format == "kif") parsed = KifuFile::parse<KifuFormat::Kif>(file.fileName(), result, &error);
+        else if (format == "ki2") parsed = KifuFile::parse<KifuFormat::Ki2>(file.fileName(), result, &error);
+        else if (format == "csa") parsed = KifuFile::parse<KifuFormat::Csa>(file.fileName(), result, &error);
+        else if (format == "jkf") parsed = KifuFile::parse<KifuFormat::Jkf>(file.fileName(), result, &error);
+        else if (format == "usi") parsed = KifuFile::parse<KifuFormat::Usi>(file.fileName(), result, &error);
+        else parsed = KifuFile::parse<KifuFormat::Usen>(file.fileName(), result, &error);
         QVERIFY2(parsed, qPrintable(error));
         QCOMPARE(result.mainline.startSfen, initial);
         QCOMPARE(result.mainline.usiMoves(), usi);
@@ -267,8 +266,8 @@ private slots:
             + QStringLiteral("\n手数----指手---------消費時間--\n1 ３四歩(33)\n2 投了\n");
         QTemporaryFile file;
         QVERIFY(KifuTestHelper::writeToTempFile(file, text.toUtf8(), QStringLiteral("kif")));
-        QCOMPARE(KifuFile::initialSfen<KifToSfenConverter>(file.fileName()), initial);
-        const RecordLine line = KifuFile::mainline<KifToSfenConverter>(file.fileName());
+        QCOMPARE(KifuFile::initialSfen<KifuFormat::Kif>(file.fileName()), initial);
+        const RecordLine line = KifuFile::mainline<KifuFormat::Kif>(file.fileName());
         QCOMPARE(line.entries.size(), 2);
         QVERIFY(line.entries[0].displayText.startsWith(QStringLiteral("△")));
         QCOMPARE(line.entries[1].displayText, QStringLiteral("▲投了"));
@@ -338,8 +337,8 @@ private slots:
         KifParseResult result;
         QString error;
         const bool ok = format == QStringLiteral("kif")
-            ? KifuFile::parse<KifToSfenConverter>(file.fileName(), result, &error)
-            : KifuFile::parse<Ki2ToSfenConverter>(file.fileName(), result, &error);
+            ? KifuFile::parse<KifuFormat::Kif>(file.fileName(), result, &error)
+            : KifuFile::parse<KifuFormat::Ki2>(file.fileName(), result, &error);
         QVERIFY2(ok, qPrintable(error));
         QCOMPARE(result.mainline.usiMoves().size(), moveCount);
         QCOMPARE(result.mainline.startPly, 1);
@@ -365,7 +364,7 @@ private slots:
             .join(QLatin1Char('\n')).toUtf8(), QStringLiteral("usen")));
         KifParseResult result;
         QString error;
-        QVERIFY2(KifuFile::parse<UsenToSfenConverter>(file.fileName(), result, &error), qPrintable(error));
+        QVERIFY2(KifuFile::parse<KifuFormat::Usen>(file.fileName(), result, &error), qPrintable(error));
         QCOMPARE(result.variations.size(), 1);
         QCOMPARE(result.variations[0].line.usiMoves(), QStringList({"P*5e"}));
     }
@@ -399,7 +398,7 @@ private slots:
         QVERIFY(KifuTestHelper::writeToTempFile(file, json, QStringLiteral("jkf")));
         KifParseResult result;
         QString error;
-        QVERIFY2(KifuFile::parse<JkfToSfenConverter>(file.fileName(), result, &error), qPrintable(error));
+        QVERIFY2(KifuFile::parse<KifuFormat::Jkf>(file.fileName(), result, &error), qPrintable(error));
         QCOMPARE(result.mainline.usiMoves(), QStringList({"4f5e"}));
         QCOMPARE(result.mainline.sfens().last(), tree.mainLine().last()->sfen());
     }
@@ -546,7 +545,7 @@ private slots:
         QTemporaryFile file;
         QVERIFY(KifuTestHelper::writeToTempFile(
             file, (bod + QStringLiteral("\n手数----指手---------消費時間--\n")).toUtf8(), QStringLiteral("kif")));
-        QCOMPARE(KifuFile::initialSfen<KifToSfenConverter>(file.fileName()), sfen);
+        QCOMPARE(KifuFile::initialSfen<KifuFormat::Kif>(file.fileName()), sfen);
     }
 
     /// 「局面図をコピー」も、駒落ちは KIF の局面図と同じく下手・上手で書く（途中の局面も同じ）
@@ -632,10 +631,10 @@ private slots:
         ctx.startSfen = initial;
         QTemporaryFile kif;
         QVERIFY(KifuTestHelper::writeToTempFile(kif, KifuExport::lines(tree, ctx, KifuFormat::Kif).join(QLatin1Char('\n')).toUtf8(), QStringLiteral("kif")));
-        QCOMPARE(KifuFile::initialSfen<KifToSfenConverter>(kif.fileName()), initial);
+        QCOMPARE(KifuFile::initialSfen<KifuFormat::Kif>(kif.fileName()), initial);
         QTemporaryFile ki2;
         QVERIFY(KifuTestHelper::writeToTempFile(ki2, KifuExport::lines(tree, ctx, KifuFormat::Ki2).join(QLatin1Char('\n')).toUtf8(), QStringLiteral("ki2")));
-        QCOMPARE(KifuFile::initialSfen<Ki2ToSfenConverter>(ki2.fileName()), initial);
+        QCOMPARE(KifuFile::initialSfen<KifuFormat::Ki2>(ki2.fileName()), initial);
     }
 
     void clipboardExportAfterResume_data()
@@ -681,9 +680,9 @@ private slots:
         KifParseResult result;
         QString error;
         bool ok;
-        if (format == QStringLiteral("csa")) ok = KifuFile::parse<CsaToSfenConverter>(tmp.fileName(), result, &error);
-        else if (format == QStringLiteral("usi")) ok = KifuFile::parse<UsiToSfenConverter>(tmp.fileName(), result, &error);
-        else ok = KifuFile::parse<UsenToSfenConverter>(tmp.fileName(), result, &error);
+        if (format == QStringLiteral("csa")) ok = KifuFile::parse<KifuFormat::Csa>(tmp.fileName(), result, &error);
+        else if (format == QStringLiteral("usi")) ok = KifuFile::parse<KifuFormat::Usi>(tmp.fileName(), result, &error);
+        else ok = KifuFile::parse<KifuFormat::Usen>(tmp.fileName(), result, &error);
         QVERIFY2(ok, qPrintable(error));
         QStringList expected = {QStringLiteral("7g7f"), QStringLiteral("3c3d")};
         if (!branch) expected.append(newUsi);
@@ -756,10 +755,10 @@ private slots:
         KifParseResult result;
         QString error;
         bool ok;
-        if (format == QStringLiteral("kif")) ok = KifuFile::parse<KifToSfenConverter>(tmp.fileName(), result, &error);
-        else if (format == QStringLiteral("ki2")) ok = KifuFile::parse<Ki2ToSfenConverter>(tmp.fileName(), result, &error);
-        else if (format == QStringLiteral("csa")) ok = KifuFile::parse<CsaToSfenConverter>(tmp.fileName(), result, &error);
-        else ok = KifuFile::parse<JkfToSfenConverter>(tmp.fileName(), result, &error);
+        if (format == QStringLiteral("kif")) ok = KifuFile::parse<KifuFormat::Kif>(tmp.fileName(), result, &error);
+        else if (format == QStringLiteral("ki2")) ok = KifuFile::parse<KifuFormat::Ki2>(tmp.fileName(), result, &error);
+        else if (format == QStringLiteral("csa")) ok = KifuFile::parse<KifuFormat::Csa>(tmp.fileName(), result, &error);
+        else ok = KifuFile::parse<KifuFormat::Jkf>(tmp.fileName(), result, &error);
         QVERIFY2(ok, qPrintable(error));
         QCOMPARE(result.mainline.usiMoves(), expectedMoves);
         QVERIFY(result.mainline.entries.size() >= 2);
@@ -797,7 +796,7 @@ private slots:
         QVERIFY(KifuTestHelper::writeToTempFile(tmp, json, QStringLiteral("jkf")));
         KifParseResult result;
         QString error;
-        QVERIFY2(KifuFile::parse<JkfToSfenConverter>(tmp.fileName(), result, &error), qPrintable(error));
+        QVERIFY2(KifuFile::parse<KifuFormat::Jkf>(tmp.fileName(), result, &error), qPrintable(error));
         QCOMPARE(result.mainline.usiMoves(), QStringList({QStringLiteral("7g7f"), QStringLiteral("3c3d"), QStringLiteral("2g2f")}));
         QCOMPARE(result.variations.size(), 3);
         QCOMPARE(result.variations[0].startPly, 1);
@@ -817,7 +816,7 @@ private slots:
         QCOMPARE(secondFork[1].toObject()[QStringLiteral("forks")].toArray().size(), 1);
         QTemporaryFile nestedFile;
         QVERIFY(KifuTestHelper::writeToTempFile(nestedFile, KifuExport::lines(tree, ctx, KifuFormat::Jkf).join(QLatin1Char('\n')).toUtf8(), QStringLiteral("jkf")));
-        QVERIFY2(KifuFile::parse<JkfToSfenConverter>(nestedFile.fileName(), result, &error), qPrintable(error));
+        QVERIFY2(KifuFile::parse<KifuFormat::Jkf>(nestedFile.fileName(), result, &error), qPrintable(error));
         QCOMPARE(result.variations.size(), 4);
         QCOMPARE(result.variations[2].startPly, 3);
         QCOMPARE(result.variations[2].line.usiMoves(), QStringList({"9g9f"}));
@@ -841,7 +840,7 @@ private slots:
                                                QStringLiteral("jkf")));
         KifParseResult result;
         QString error;
-        QVERIFY2(KifuFile::parse<JkfToSfenConverter>(tmp.fileName(), result, &error), qPrintable(error));
+        QVERIFY2(KifuFile::parse<KifuFormat::Jkf>(tmp.fileName(), result, &error), qPrintable(error));
         QCOMPARE(result.variations.size(), 1);
         QCOMPARE(result.variations[0].startPly, 4);
         QCOMPARE(result.variations[0].line.usiMoves(), QStringList({QStringLiteral("3a2b")}));
@@ -1348,7 +1347,7 @@ private slots:
                                                 QStringLiteral("ki2u")));
         KifParseResult result;
         QString error;
-        QVERIFY2(KifuFile::parse<Ki2ToSfenConverter>(ki2.fileName(), result, &error), qPrintable(error));
+        QVERIFY2(KifuFile::parse<KifuFormat::Ki2>(ki2.fileName(), result, &error), qPrintable(error));
         QCOMPARE(result.variations.size(), 1);
         QCOMPARE(result.variations.at(0).line.usiMoves(), QStringList({QStringLiteral("4a5b")}));
     }
@@ -1373,7 +1372,7 @@ private slots:
         QVERIFY(KifuTestHelper::writeToTempFile(ki2, text.toUtf8(), QStringLiteral("ki2u")));
         KifParseResult result;
         QString error;
-        QVERIFY2(KifuFile::parse<Ki2ToSfenConverter>(ki2.fileName(), result, &error), qPrintable(error));
+        QVERIFY2(KifuFile::parse<KifuFormat::Ki2>(ki2.fileName(), result, &error), qPrintable(error));
         QVERIFY(result.mainline.entries.last().displayText.contains(QStringLiteral("詰み")));
         QCOMPARE(result.variations.size(), 1);
         QCOMPARE(result.variations.at(0).line.entries.last().terminal, TerminalType::Timeout);

@@ -266,7 +266,6 @@ void MenuButtonWidget::startDrag()
     mimeData->setData(kFavoriteMimeType, actionName().toUtf8());
     drag->setMimeData(mimeData);
     drag->setPixmap(grab());
-    Q_EMIT dragStarted(actionName());
     drag->exec(Qt::MoveAction);
     if (drag) drag->deleteLater();
 }

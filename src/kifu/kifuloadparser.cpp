@@ -1,12 +1,10 @@
 #include "kifuloadparser.h"
 #include "csatosfenconverter.h"
-#include "ki2tosfenconverter.h"
 #include "jkftosfenconverter.h"
 #include "usentosfenconverter.h"
 #include "usitosfenconverter.h"
 #include "kifreader.h"
 #include "kiftextparser.h"
-#include "kiftosfenconverter.h"
 #include "sfenutils.h"
 
 #include <QCoreApplication>
@@ -60,8 +58,8 @@ KifuParseOutcome parseBod(QStringView text, const ParseOptions& /*options*/)
 Parser parserFor(KifuFormat format)
 {
     switch (format) {
-    case KifuFormat::Kif: return &KifToSfenConverter::parse;
-    case KifuFormat::Ki2: return &Ki2ToSfenConverter::parse;
+    case KifuFormat::Kif: return &KifTextParser::parseKif;
+    case KifuFormat::Ki2: return &KifTextParser::parseKi2;
     case KifuFormat::Csa: return &CsaToSfenConverter::parse;
     case KifuFormat::Jkf: return &JkfToSfenConverter::parse;
     case KifuFormat::Usen: return &UsenToSfenConverter::parse;
@@ -69,7 +67,7 @@ Parser parserFor(KifuFormat format)
     case KifuFormat::Sfen: return &UsiToSfenConverter::parse;
     case KifuFormat::Bod: return &parseBod;
     }
-    return &KifToSfenConverter::parse;
+    return &KifTextParser::parseKif;
 }
 
 } // namespace
