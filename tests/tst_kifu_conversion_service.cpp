@@ -114,7 +114,7 @@ private slots:
         QVERIFY(loaded.warning.contains(QStringLiteral("is a pass")));
     }
 
-    /// 同じ手順なら、どの形式から読んでも KIF の指し手の表記は同じ（「同　銀(31)」「２二角不成(88)」）（B2）
+    /// 同じ手順なら、どの形式から読んでも KIF の指し手の表記は同じ。不成は表記しない（B2）
     void kifMoveTextDoesNotDependOnSource_data()
     {
         QTest::addColumn<QString>("text");
@@ -140,8 +140,60 @@ private slots:
             if (QRegularExpression(QStringLiteral("^\\s+\\d+ ")).match(line).hasMatch()) moveLines << line.simplified();
         QCOMPARE(moveLines, (QStringList{
             QStringLiteral("1 ７六歩(77) ( 0:00/00:00:00)"), QStringLiteral("2 ３四歩(33) ( 0:00/00:00:00)"),
-            QStringLiteral("3 ２二角不成(88) ( 0:00/00:00:00)"), QStringLiteral("4 同 銀(31) ( 0:00/00:00:00)"),
+            QStringLiteral("3 ２二角(88) ( 0:00/00:00:00)"), QStringLiteral("4 同 銀(31) ( 0:00/00:00:00)"),
             QStringLiteral("5 ５八金(49) ( 0:00/00:00:00)")}));
+    }
+
+    /// 旧版が出力した不成を含む棋譜を、他ソフトで読める KIF に直しても手・時間・分岐を保つ
+    void legacyNonPromotionExport()
+    {
+        const auto saved = convertFile(QStringLiteral("test_nonpromotion_branch.kifu"), Format::Kif);
+        QVERIFY2(saved.ok, qPrintable(saved.failure.message));
+        QVERIFY(saved.warnings.isEmpty());
+        QCOMPARE(saved.usiMoves.size(), 42);
+        QCOMPARE(saved.usiMoves.at(13), QStringLiteral("2b8h"));
+        QCOMPARE(saved.usiMoves.at(14), QStringLiteral("7i8h"));
+        QVERIFY(saved.hasBranches);
+        QCOMPARE(saved.mainline.entries.size(), 43);
+        QVERIFY(saved.mainline.terminal());
+        QCOMPARE(saved.mainline.terminal()->terminal, TerminalType::Resign);
+
+        const QString text = saved.lines.join(QLatin1Char('\n'));
+        // KIF 仕様 ８：不成の場合は「不成」を表記しない。直後の「同」の参照先を壊さない。
+        // https://kakinoki.o.oo7.jp/kif_format.html
+        QVERIFY2(!text.contains(QStringLiteral("不成")), qPrintable(text));
+        QVERIFY(text.contains(QStringLiteral("14 ８八角(22)")));
+        QVERIFY(text.contains(QStringLiteral("15 同　銀(79)")));
+        QVERIFY(text.contains(QStringLiteral("21 ６五角成(83)")));
+        QVERIFY(text.contains(QStringLiteral("変化：21手")));
+
+        const auto original = KifuLoadParser::parseFile(fixture(QStringLiteral("test_nonpromotion_branch.kifu")));
+        const auto reread = KifuLoadParser::parseText(text);
+        QVERIFY(original.success);
+        QVERIFY2(reread.success, qPrintable(reread.warning));
+        QVERIFY(reread.warning.isEmpty());
+        QCOMPARE(reread.record.mainline.usiMoves(), saved.usiMoves);
+        QCOMPARE(reread.record.mainline.entries.size(), original.record.mainline.entries.size());
+        for (qsizetype i = 0; i < original.record.mainline.entries.size(); ++i) {
+            const auto& before = original.record.mainline.entries.at(i);
+            const auto& after = reread.record.mainline.entries.at(i);
+            QCOMPARE(after.sfen, before.sfen);
+            QVERIFY(after.time.valid);
+            QCOMPARE(after.time.elapsedMs, before.time.elapsedMs);
+            QCOMPARE(after.time.totalMs, before.time.totalMs);
+            QCOMPARE(after.terminal, before.terminal);
+        }
+        QCOMPARE(original.record.variations.size(), 1);
+        QCOMPARE(reread.record.variations.size(), 1);
+        const auto& branch = reread.record.variations.first();
+        QCOMPARE(branch.startPly, 21);
+        QCOMPARE(branch.parentVariation, -1);
+        QCOMPARE(branch.line.usiMoves(), (QStringList{QStringLiteral("4i5h"), QStringLiteral("7c7d")}));
+        QCOMPARE(branch.line.entries.size(), 2);
+        for (qsizetype i = 0; i < branch.line.entries.size(); ++i) {
+            QCOMPARE(branch.line.entries.at(i).sfen, original.record.variations.first().line.entries.at(i).sfen);
+            QCOMPARE(branch.line.entries.at(i).time.toText(), original.record.variations.first().line.entries.at(i).time.toText());
+        }
     }
 
     /// CSA で局面に合わない手・手番と違う符号の手は、その手の手前までを読む（B3）。後の手で手番がずれない

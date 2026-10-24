@@ -78,7 +78,7 @@ static QString formatKifMoveLine(int moveNo, const QString& kifMove, const QStri
         .arg(moveNoStr, kifMove.leftJustified(KifFormat::kMoveTextWidth), time, branchMark);
 }
 
-// ヘルパ関数: 指し手から KIF の表記を作る（「同　銀(31)」「２二角不成(88)」）。
+// ヘルパ関数: 指し手から KIF の表記を作る（「同　銀(31)」「２二角(88)」）。
 // 読み込んだ原文（displayText）は形式ごとに書き方が違うので使わない。指し手が無いノードだけ原文に頼る
 static QString kifMoveText(const KifuBranchNode* node)
 {
@@ -87,9 +87,9 @@ static QString kifMoveText(const KifuBranchNode* node)
     BoardSquare previousTo;
     if (const KifuBranchNode* parent = node->parent(); parent && parent->isActualMove())
         previousTo = parent->move().move.to;
-    KifMoveText::Notes notes;
-    notes.declinedPromotion = KifMoveText::couldPromote(move.movingPiece, move.move);
-    return KifMoveText::format(move.mover(), move.movingPiece, move.move, previousTo, notes);
+    // KIF 仕様では不成の手に「不成」を付けない（KI2 や画面上の表記とは異なる）。
+    // https://kakinoki.o.oo7.jp/kif_format.html
+    return KifMoveText::format(move.mover(), move.movingPiece, move.move, previousTo);
 }
 
 // ========================================
