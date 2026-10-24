@@ -198,7 +198,15 @@ private slots:
         QVERIFY2(reread.ok, qPrintable(reread.failure.message));
         QCOMPARE(reread.usiMoves, QStringList({"7g7f", "3c3d", "8h2b+", "3a2b"}));
         const QString rereadKif = reread.lines.join(QLatin1Char('\n'));
+        QVERIFY2(rereadKif.contains(QStringLiteral("２二角(88)")), qPrintable(rereadKif));
+        QVERIFY2(!rereadKif.contains(QStringLiteral("不成")), qPrintable(rereadKif));
         QVERIFY2(rereadKif.contains(QStringLiteral("同　飛(82)")), qPrintable(rereadKif));
+        const auto reloaded = KifuLoadParser::parseText(rereadKif);
+        QVERIFY(reloaded.success);
+        QVERIFY(reloaded.warning.isEmpty());
+        QCOMPARE(reloaded.record.variations.size(), 1);
+        QCOMPARE(reloaded.record.variations.first().line.usiMoves(),
+                 (QStringList{QStringLiteral("8h2b"), QStringLiteral("8b2b")}));
     }
 
     void ki2PieceSymbolsAreDetected()

@@ -32,7 +32,8 @@ struct Notes {
  * @brief 成ることもできたのに成らなかった手か（規則は PieceRules::couldPromote）
  * @param moving 動かした駒（成る前の駒。色で敵陣を決める）
  *
- * 成る手・駒打ちは false。true なら KIF・KI2 では「不成」、JKF では promote: false、英語表記では「=」と書く。
+ * 成る手・駒打ちは false。true なら KI2 では「不成」、JKF では promote: false、英語表記では「=」と書く。
+ * KIF ファイルには「不成」を書かない。
  */
 inline bool couldPromote(Piece moving, const UsiMove& move)
 {
