@@ -1,7 +1,8 @@
 /// @file tst_analysisflow.cpp
-/// @brief 棋譜解析（KifuAnalysisController・AnalysisJob）と検討の開始（ConsiderationUiController）のテスト
+/// @brief 棋譜解析（KifuAnalysisController・KifuAnalysisSession・EngineAnalysisRunner）と検討の開始（ConsiderationUiController）のテスト
 ///
-/// 解析の開始・中止・完了・エラーの状態遷移（動作状態と実行中か）と、検討タブの設定で検討を始める流れを確かめる。
+/// 解析の開始・中止・完了・エラーの状態遷移（動作状態と実行中か）と、局面の列の実行器（CLI と共通）、
+/// 検討タブの設定で検討を始める流れを確かめる。
 
 #include <QTest>
 #include <QComboBox>
@@ -17,7 +18,6 @@
 #include <QWidget>
 #include <memory>
 
-#include "analysisjob.h"
 #include "analysisresultspanel.h"
 #include "analysissession.h"
 #include "appactivitystate.h"
@@ -32,6 +32,7 @@
 #include "kifuanalysiscontroller.h"
 #include "kifuanalysisdialog.h"
 #include "kifuanalysislistmodel.h"
+#include "kifuanalysissession.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
 #include "branchtree_test_util.h"
@@ -73,6 +74,18 @@ QString mockEngine()
 {
     return QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
 }
+
+/// テスト用エンジンの振る舞いを変える環境変数を、このスコープの間だけ置く（起動するときに読まれる）
+class ScopedEnv
+{
+public:
+    ScopedEnv(const char* name, const char* value) : m_name(name) { qputenv(name, value); }
+    ~ScopedEnv() { qunsetenv(m_name.constData()); }
+    Q_DISABLE_COPY(ScopedEnv)
+
+private:
+    QByteArray m_name;
+};
 } // namespace
 
 /// 平手から2手の棋譜（表示中の手順）と、棋譜解析の部品
@@ -94,6 +107,7 @@ public:
     ShogiClock clock;
     EngineSlots engines;
     Usi* usi = nullptr;
+    std::unique_ptr<KifuAnalysisSession> session;   ///< controller() が作る解析の実行
     QSignalSpy errors{&ErrorBus::instance(), &ErrorBus::messagePosted};
 
     TestHelper()
@@ -106,6 +120,9 @@ public:
         for (int i = 0; i < moves.size(); ++i) node = TestTree::addMove(tree, node, moves.at(i), usiMoves.at(i), sfenRecord.at(i + 1));
         usi = new Usi();
         new UsiModelBinding(usi, {&logModel, &thinkingModel});
+        // 本体と同じく、評価値グラフの解析の点は解析した手順の手へ移る（合成ルートの接続）
+        QObject::connect(&evalChart, &EvaluationChartWidget::analysisPlyClicked,
+                         &navController, &KifuNavigationController::goToPlyOnLine);
     }
 
     ~TestHelper() { delete usi; }
@@ -128,19 +145,29 @@ public:
         return r;
     }
 
+    /// 解析の実行（borrowEngine ならテスト用のエンジンを使い、そうでなければ枠 E1 に作る）と画面
     std::unique_ptr<KifuAnalysisController> controller(bool borrowEngine = true)
     {
+        session = std::make_unique<KifuAnalysisSession>(
+            KifuAnalysisSession::Deps{&engines, &activity, borrowEngine ? usi : nullptr});
         KifuAnalysisController::Deps d;
-        d.activity = &activity;
+        d.session = session.get();
         d.analysisModel = &analysisModel;
         d.resultsPanel = &resultsPanel;
-        d.evalChart = &evalChart;
         d.evalGraph = &evalGraph;
-        d.engines = &engines;
         d.navState = &nav;
         d.navController = &navController;
-        d.engine = borrowEngine ? usi : nullptr;
         return std::make_unique<KifuAnalysisController>(d);
+    }
+
+    /// 送った position・setoption の行
+    static QStringList sentCommands(const QSignalSpy& commands, const QString& prefix)
+    {
+        QStringList sent;
+        for (const auto& args : std::as_const(commands)) {
+            if (args.first().toString().startsWith(prefix)) sent << args.first().toString();
+        }
+        return sent;
     }
 
     /// 条件ダイアログの既定値（全局面）で解析を始める
@@ -164,48 +191,134 @@ class TestAnalysisFlow : public QObject
 {
     Q_OBJECT
     QTemporaryDir m_config;
+    TestHelper* m_timeoutHelper = nullptr;   ///< timeOutAtSecondPly で応答なしにする解析
+
+public:
+    /// 2つ目の局面を始めたところで、エンジンが stop に答えなかったことにする
+    void timeOutAtSecondPly(int ply)
+    {
+        if (ply == 1 && m_timeoutHelper) emit m_timeoutHelper->usi->session()->searchTimedOut();
+    }
 
 private slots:
-    void jobRunsWithoutUiAndOwnsSnapshot()
+    /// 解析の実行は画面なしで進み、依頼の手順の写しを持つ。解析中は動作状態を「棋譜解析中」にする
+    void sessionRunsWithoutUiAndOwnsSnapshot()
     {
         TestHelper h;
         AnalysisRequest request = h.request();
         request.enginePath = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
         request.engineName = QStringLiteral("HeadlessAnalysis");
         request.options.endPly = 2;
-        AnalysisJob job(request, {h.usi});
-        QSignalSpy positions(&job, &AnalysisJob::plyStarted);
-        QSignalSpy results(&job, &AnalysisJob::plyAnalyzed);
-        QSignalSpy finished(&job, &AnalysisJob::finished);
+        KifuAnalysisSession session({nullptr, &h.activity, h.usi});
+        QSignalSpy positions(&session, &KifuAnalysisSession::plyStarted);
+        QSignalSpy results(&session, &KifuAnalysisSession::plyAnalyzed);
+        QSignalSpy finished(&session, &KifuAnalysisSession::finished);
         auto* process = h.usi->findChild<EngineProcessManager*>();
         QVERIFY(process);
         QSignalSpy commands(process, &EngineProcessManager::commandSent);
+        QVERIFY(session.start(request));
         request.line = RecordLine{};
-        QVERIFY(job.start());
+        QCOMPARE(h.activity.activity(), AppActivityState::Activity::DuringAnalysis);
         QTRY_COMPARE_WITH_TIMEOUT(finished.size(), 1, 5000);
         QCOMPARE(positions.size(), 3);
         QCOMPARE(results.size(), 3);
         QVERIFY(finished.first().first().toBool());   // 範囲の全局面を解析した
         QCOMPARE(results.last().first().value<PlyAnalysis>().ply, 2);
-        // 局面は開始局面からの手順で送る（千日手の判断材料。CLI の analyze-kifu と同じ）
-        QStringList sent;
-        for (const auto& args : std::as_const(commands)) {
-            if (args.first().toString().startsWith(QStringLiteral("position "))) sent << args.first().toString();
-        }
-        QCOMPARE(sent, (QStringList{QStringLiteral("position startpos"), QStringLiteral("position startpos moves 7g7f"),
-                                    QStringLiteral("position startpos moves 7g7f 3c3d")}));
-        QCOMPARE(job.line().sfens(), h.sfenRecord);
-        QVERIFY(!job.isRunning());
-        job.stop();
-        emit h.usi->engineInitialized();
+        // 局面は開始局面からの手順で送る（千日手の判断材料。CLI の analyze-kifu と同じ RecordLine::usiPositions）
+        QCOMPARE(TestHelper::sentCommands(commands, QStringLiteral("position ")),
+                 (QStringList{QStringLiteral("position startpos"), QStringLiteral("position startpos moves 7g7f"),
+                              QStringLiteral("position startpos moves 7g7f 3c3d")}));
+        // 候補手の数は送らない（エンジンの設定のまま。結果は最善の読み筋で決める）
+        QVERIFY(TestHelper::sentCommands(commands, QStringLiteral("setoption name MultiPV")).isEmpty());
+        QCOMPARE(session.request().line.sfens(), h.sfenRecord);
+        QVERIFY(!session.isRunning());
+        QCOMPARE(h.activity.activity(), AppActivityState::Activity::Idle);
+        session.stop();
+        emit h.usi->session()->ready();
         h.engineReplies(QStringLiteral("bestmove 7g7f"));
         QCOMPARE(finished.size(), 1);
         QCOMPARE(results.size(), 3);
     }
 
+    /// 局面の列の実行器（CLI の analyze・analyze-kifu と共通）: 候補手の数は依頼したときだけ送り、stop は
+    /// 解析中の局面の bestmove を待ってその結果を返してから終える（残りの局面は解析しない）
+    void runnerSendsMultiPvAndStopsAfterCurrentPosition()
+    {
+        TestHelper h;
+        EngineAnalysisRunner runner(h.usi->session());
+        QSignalSpy started(&runner, &EngineAnalysisRunner::positionStarted);
+        QSignalSpy results(&runner, &EngineAnalysisRunner::positionFinished);
+        QSignalSpy finished(&runner, &EngineAnalysisRunner::finished);
+        auto* process = h.usi->findChild<EngineProcessManager*>();
+        QVERIFY(process);
+        QSignalSpy commands(process, &EngineProcessManager::commandSent);
+        EngineAnalysisRunner::Request request;
+        request.enginePath = mockEngine();
+        request.engineName = QStringLiteral("RunnerTest");
+        request.positions = h.line().usiPositions(1, 2);
+        request.firstPly = 1;
+        request.thinkMs = 60000;   // stop を送るまで考え続ける
+        request.multiPv = 2;
+        // 最初の局面を始めたところで止める（エンジンの答えの速さによらない）
+        connect(&runner, &EngineAnalysisRunner::positionStarted, &runner, &EngineAnalysisRunner::stop);
+        runner.start(request);
+        QTRY_COMPARE_WITH_TIMEOUT(finished.size(), 1, 5000);
+        QCOMPARE(started.first().first().toInt(), 1);
+        QVERIFY(finished.first().first().toBool());   // 止めた
+        QCOMPARE(results.size(), 1);
+        QCOMPARE(results.first().first().value<PlyAnalysis>().ply, 1);
+        QCOMPARE(started.size(), 1);
+        QVERIFY(runner.isStopRequested());
+        QVERIFY(!runner.isRunning());
+        QCOMPARE(TestHelper::sentCommands(commands, QStringLiteral("setoption name MultiPV")),
+                 QStringList{QStringLiteral("setoption name MultiPV value 2")});
+        QCOMPARE(TestHelper::sentCommands(commands, QStringLiteral("position ")),
+                 QStringList{QStringLiteral("position startpos moves 7g7f")});
+    }
+
     /// 手順をたどれず局面も読めない手数（指せない手と壊れた SFEN）はエンジンに送らずに飛ばし、
     /// 前の局面の結果をその手数の結果にしない（U5）。ほかの手数は局面だけで送る
-    void jobSkipsUnreadablePositions()
+    /// stop の後に bestmove を返さないエンジンは、待つ上限で打ち切ってエラーにする（理由は isTimedOut()）
+    void runnerAbandonsEngineThatIgnoresStop()
+    {
+        const ScopedEnv ignoreStop("SBQ_MATCH_IGNORE_MATE", "1");     // stop に答えない
+        const ScopedEnv noReply("SBQ_MATCH_REPLY_DELAY_MS", "60000"); // 自分からは bestmove を返さない
+        TestHelper h;
+        EngineAnalysisRunner runner(h.usi->session());
+        QSignalSpy results(&runner, &EngineAnalysisRunner::positionFinished);
+        QSignalSpy finished(&runner, &EngineAnalysisRunner::finished);
+        QSignalSpy errors(&runner, &EngineAnalysisRunner::errorOccurred);
+        EngineAnalysisRunner::Request request;
+        request.enginePath = mockEngine();
+        request.engineName = QStringLiteral("SilentAnalysis");
+        request.positions = h.line().usiPositions(0, 0);
+        request.thinkMs = 100;
+        request.replyTimeoutMs = 300;
+        runner.start(request);
+        QVERIFY(!runner.isTimedOut());
+        QTRY_COMPARE_WITH_TIMEOUT(errors.size(), 1, 5000);
+        QVERIFY(runner.isTimedOut());
+        QVERIFY(!runner.isRunning());
+        QCOMPARE(results.size(), 0);
+        QCOMPARE(finished.size(), 0);
+    }
+
+    /// 棋譜解析も CLI と同じく打ち切る。訳した理由を出し、それまでの結果の表を残して待機に戻る
+    void timedOutAnalysisKeepsResultsAndShowsReason()
+    {
+        TestHelper h;
+        auto ctrl = h.controller();
+        m_timeoutHelper = &h;
+        connect(h.session.get(), &KifuAnalysisSession::plyStarted, this, &TestAnalysisFlow::timeOutAtSecondPly);
+        QVERIFY(h.startAnalysis(*ctrl));
+        QTRY_VERIFY_WITH_TIMEOUT(!ctrl->isRunning(), 5000);
+        m_timeoutHelper = nullptr;
+        QVERIFY2(h.lastError().contains(QStringLiteral("停止の指示に10秒以内に応答しませんでした")), qPrintable(h.lastError()));
+        QCOMPARE(h.analysisModel.rowCount(), 1);   // 1つ目の局面の結果は残る
+        QCOMPARE(h.activity.activity(), AppActivityState::Activity::Idle);
+    }
+
+    void sessionSkipsUnreadablePositions()
     {
         TestHelper h;
         AnalysisRequest request = h.request();
@@ -214,10 +327,10 @@ private slots:
         request.enginePath = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
         request.engineName = QStringLiteral("SkipAnalysis");
         request.options.endPly = 2;
-        AnalysisJob job(request, {h.usi});
-        QSignalSpy results(&job, &AnalysisJob::plyAnalyzed);
-        QSignalSpy finished(&job, &AnalysisJob::finished);
-        QVERIFY(job.start());
+        KifuAnalysisSession session({nullptr, &h.activity, h.usi});
+        QSignalSpy results(&session, &KifuAnalysisSession::plyAnalyzed);
+        QSignalSpy finished(&session, &KifuAnalysisSession::finished);
+        QVERIFY(session.start(request));
         QTRY_COMPARE_WITH_TIMEOUT(finished.size(), 1, 5000);
         QList<int> plies;
         for (const auto& args : std::as_const(results)) plies << args.first().value<PlyAnalysis>().ply;
@@ -225,22 +338,41 @@ private slots:
         QVERIFY(finished.first().first().toBool());
     }
 
-    void stoppedJobIgnoresInitializationAndResults()
+    void stoppedSessionIgnoresInitializationAndResults()
     {
         TestHelper h;
         AnalysisRequest request = h.request();
         request.enginePath = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
-        AnalysisJob job(request, {h.usi});
-        QSignalSpy positions(&job, &AnalysisJob::plyStarted);
-        QSignalSpy finished(&job, &AnalysisJob::finished);
-        QVERIFY(job.start());
-        job.stop();
-        emit h.usi->engineInitialized();
+        KifuAnalysisSession session({nullptr, &h.activity, h.usi});
+        QSignalSpy positions(&session, &KifuAnalysisSession::plyStarted);
+        QSignalSpy finished(&session, &KifuAnalysisSession::finished);
+        QVERIFY(session.start(request));
+        session.stop();
+        emit h.usi->session()->ready();
         h.engineReplies(QStringLiteral("bestmove 7g7f"));
         QCOMPARE(positions.size(), 0);
         QCOMPARE(finished.size(), 1);
         QVERIFY(!finished.first().first().toBool());
-        QVERIFY(!job.isRunning());
+        QVERIFY(!session.isRunning());
+        QCOMPARE(h.activity.activity(), AppActivityState::Activity::Idle);
+    }
+
+    /// ほかの処理がエンジンの枠を取ったら、解析をやめて待機に戻す
+    void revokedEngineStopsSession()
+    {
+        TestHelper h;
+        AnalysisRequest request = h.request();
+        request.enginePath = mockEngine();
+        request.engineName = QStringLiteral("RevokedAnalysis");
+        KifuAnalysisSession session({&h.engines, &h.activity, nullptr});
+        QSignalSpy finished(&session, &KifuAnalysisSession::finished);
+        QVERIFY(session.start(request));
+        QVERIFY(h.engines.engineInSlot(1));
+        EngineLease other = h.engines.acquire(this, 1, QStringLiteral("Other"));
+        QCOMPARE(finished.size(), 1);
+        QVERIFY(!finished.first().first().toBool());
+        QVERIFY(!session.isRunning());
+        QCOMPARE(h.activity.activity(), AppActivityState::Activity::Idle);
     }
 
     /// 詰み探索に答えないエンジンは、制限時間＋余裕で stop し、その後も答えなければ打ち切る（U3）
@@ -566,7 +698,7 @@ private slots:
         TestHelper h;
         auto ctrl = h.controller();
         QVERIFY(h.startAnalysis(*ctrl));
-        Q_EMIT h.usi->errorOccurred(QStringLiteral("Engine crashed"));
+        Q_EMIT h.usi->session()->errorOccurred(QStringLiteral("Engine crashed"));
         QVERIFY(!ctrl->isRunning());
         QVERIFY(h.lastError().contains(QStringLiteral("Engine crashed")));
         QCOMPARE(h.activity.activity(), AppActivityState::Activity::Idle);

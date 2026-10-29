@@ -56,7 +56,7 @@ m_c.match = new MatchCoordinator(md, &m_window);
 
 **unique_ptr を使用する基準:**
 - 非QObject クラス（`GameModeStrategy`, `HumanTurnPolicy`, `SessionResetCoordinator` 等）
-- QObject 派生だが parent chain 不要の場合（MainWindow の `m_composer`（`MainWindowComposer`）、`KifuAnalysisController` の `AnalysisJob`、`EngineProcessManager` の `QProcess` など）
+- QObject 派生だが parent chain 不要の場合（MainWindow の `m_composer`（`MainWindowComposer`）、`KifuAnalysisSession` の `EngineAnalysisRunner`、`EngineProcessManager` の `QProcess` など）
 - MainWindow が排他的に寿命を管理するサービス
 
 ```cpp
@@ -334,7 +334,8 @@ MainWindow 自身が持つのは `ui` と `m_composer`（`MainWindowComposer`）
 
 | クラス | QPointer メンバ | 理由 |
 |--------|----------------|------|
-| `AnalysisSession`・`AnalysisJob` | `m_engine`（`Usi`） | エンジンはセッションごとに作り直される |
+| `AnalysisSession` | `m_engine`（`Usi`） | エンジンはセッションごとに作り直される |
+| `EngineAnalysisRunner` | `m_session`（`UsiEngineSession`） | 借りたエンジンは枠の持ち主が破棄することがある |
 | `CandidateArrowPresenter`・`EngineDisplayPresenter` | `m_engines`（E1・E2 の `Usi`） | エンジンの枠の中身は対局・検討ごとに作り直される |
 | `DialogLauncher` | `m_sfenCollectionDialog` など | 閉じると破棄されるダイアログ |
 | `KifuFileController` | `m_kifuPasteDialog` | 同上 |

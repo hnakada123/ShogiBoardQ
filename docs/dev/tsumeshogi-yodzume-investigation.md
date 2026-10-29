@@ -297,7 +297,7 @@ Hayanagiに変更が必要なら、独立リポジトリ `/home/nakada/GitHub/Ha
 
 ## 回帰テスト案
 
-現行 `tests/tst_tsumeshogi_generator.cpp` は候補生成器と `TsumePositionUtil` のテストであり、`TsumeshogiGenerator` 自体の採択・トリミング・flushの経路を検査していない。別途オーケストレータと検証サービスのテストが必要である。
+現行 `tests/tst_tsumeshogi_generator.cpp` は候補生成器と `MateSearchPosition`（旧 `TsumePositionUtil`）のテストであり、`TsumeshogiGenerator` 自体の採択・トリミング・flushの経路を検査していない。別途オーケストレータと検証サービスのテストが必要である。
 
 | ケース | 検証する動作 |
 |---|---|

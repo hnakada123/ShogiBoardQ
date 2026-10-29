@@ -147,6 +147,7 @@
 | 2026-10-23 | 監査4章で残した名残を片づけたのに合わせて §8・§9・§16・第18章を更新（中身が1行だけの `KifToSfenConverter`・`Ki2ToSfenConverter` を削除し、KIF・KI2 は `KifTextParser::parseKif()`・`parseKi2()`。テストだけが使っていた `ShogiEngineThinkingModel::appendRow`・`MenuButtonWidget::dragStarted` を削除。QObject でないクラス・名前空間の文言は `Q_DECLARE_TR_FUNCTIONS`・`QCoreApplication::translate` で自分の文脈にした（§16.8）。詰将棋の生成は終わるときに件数の内訳をログに出す） |
 | 2026-10-29 | 置き場所と名前を責務に合わせた（監査 2026-10-29 の4章）のに合わせて §1.5・§1.6・§3.1・§3.2・§6・§8・§10・§13・§14・第18章・付録を更新（navigation 層をなくして `KifuNavigationController` を `ui/controllers/` へ。`ui/coordinators/` には `CsaGameSession`・`CommentCoordinator` だけを残し、`KifuFileController`・`DialogLauncher` は `ui/controllers/`、`UiStatePolicyManager`・`HumanTurnPolicy` は `ui/policy/`、`DockRegistry`・`DockLayoutManager` は `ui/docks/` へ。エンジンの枠を engine の `EngineSlots` に改名。SFEN の検査を core の `SfenValidator`（JSON は headless の `SfenValidationJson`）に、局面集ファイルを kifu に。盤面画像 `BoardImageRenderer` を cli へ、自動化 API の接続先を headless の `AutomationEndpoint` へ。自動化 API のメソッドを名前空間ごとのファイルに分け直した。`MenuWindow` を widgets へ移し、独立ウィンドウの名残（`menuWindowSize` など）を消した。`KifReader`→`KifuTextDecoder`、`JkfMoveParser`→`JkfCodec`、`BoardImageExporter`→`WidgetImageExporter`（`ui/controllers/`）、`startgamedatabridge.h`→`startgamedialogdata.h`。司令塔だけが使う型を `matchcoordinator.h` にまとめた） |
 | 2026-10-30 | 通信対局の流れをローカル対局と同じ仕組みにした（監査 2026-10-29 の T1）のに合わせて §1.5・§1.6・§6.1〜§6.5・§6.7・§6.9・§8.5・§8.9・§10.2・§10.4・§10.5・§12.1・§12.3・§12.4・§12.8・§14.4・§15.1・§15.5・付録を更新（`CsaGameCoordinator` も `setRecordSink()` で棋譜の受け手 `GameSession` を受け取り、開始で `MatchRecordSink::beginRecord()`、着手と終局で `appendRecord()`、終局で `finishRecord()` を呼ぶ。動作状態 `DuringCsaGame` も司令塔が持ち、シグナル `recordEntryReady` と `GameSession` の `onCsa*` をなくした。ローカル対局の終局も `MatchCoordinator` が `finishRecord()` を呼ぶ。評価値・エラー・通信ログ・盤の手の接続を `CsaGameSession` から合成ルートの `connectGame()` へ移した。時間の決まりを `MatchStartOptions::time` に入れ、`MatchCoordinator::start()` が盤の手番で時計に入れる（`TimeControlUtil`・`matchtimesettings.h`・`MatchStartOptions::sfenStart` を削除）） |
+| 2026-10-30 | 棋譜解析の実行と局面の列の実行器を1つにした（監査 2026-10-29 の T2）のに合わせて §1.5・§7.5・§7.7・§7.11・§9.1〜§9.3・§9.6・§9.7・§9.10・§10.3・付録を更新（棋譜解析の実行は analysis の `KifuAnalysisSession`（エンジンと動作状態のリース）に移し、`KifuAnalysisController` は画面だけにした。GUI の棋譜解析と CLI の analyze・analyze-kifu は analysis の `EngineAnalysisRunner`（借りた `UsiEngineSession` を使う。候補手の数と bestmove を待つ上限は依頼で決める）を共有し、送る局面は `RecordLine::usiPositions()` で作る。`AnalysisJob` を消し、`EngineAnalysisRunner` を headless から analysis へ移した。検討中の局面送りも開始局面からの手順にし、詰み探索の手番合わせは `MateSearchPosition`（`Position` で合わせる）にして `TsumePositionUtil` を消した） |
 
 <!-- chapter-0-end -->
 
@@ -462,13 +463,14 @@ src/
 │   └── tsumeevaluation.h           #   詰みの判定結果（詰み・不詰・不明と手数・読み筋）
 │
 ├── analysis/                       # 解析機能（GUI に依存しない）
-│   ├── analysisjob.cpp/.h          #   棋譜解析1回（AnalysisJob）と1局面の結果（PlyAnalysis・PlyAnalysisCollector）
 │   ├── analysissession.cpp/.h      #   検討・詰み探索のセッション（1つのエンジンで局面を調べる）
 │   ├── analysisoptions.h           #   検討・詰み探索の開始オプション
+│   ├── kifuanalysissession.cpp/.h  #   棋譜解析の実行（エンジン・動作状態のリースと局面の列の解析。画面は KifuAnalysisController）
+│   ├── engineanalysisrunner.cpp/.h #   局面の列を1つのエンジンで順に解析する実行器と1局面の結果（PlyAnalysis・PlyAnalysisCollector）。GUI の棋譜解析と CLI の analyze・analyze-kifu で共通
+│   ├── matesearchposition.h        #   詰み探索に送る局面（途中局面は手順、開始局面は Position で攻方の手番に）
 │   ├── tsumeshogigenerator.cpp/.h  #   詰将棋局面の自動生成（候補の待ち行列・問い合わせの中継・結果の集計。候補の生成・選別・検証・書き出しは tsumeshogi* に分ける）
 │   ├── tsumecandidatejob.cpp/.h    #   詰将棋の候補1つの処理（手数の確認・唯一解の検査・要らない駒の除去）
 │   ├── tsumeverificationjob.cpp/.h #   総予算つきの唯一解の検査（生成と CLI の余詰検査で共通）
-│   ├── tsumepositionutil.h         #   詰み探索の position の組み立て（buildPositionForMate。文字列は UsiPosition::commandFor）
 │   ├── tsumecollection.cpp/.h      #   詰将棋問題集のファイルの読み込みと検証（1行の規則は PositionCollectionFile）
 │   ├── tsumecollectionsession.cpp/.h #  開いている詰将棋の局面集（問題・挑戦状況・絞り込み・手数の判定）
 │   ├── tsumecollectionwriter.cpp/.h #  詰将棋局面の一覧の書き出し
@@ -681,7 +683,6 @@ src/
 │   ├── sfenvalidationjson.cpp/.h   #   SFEN の検査結果の JSON（validate-sfen）
 │   ├── enginecatalog.cpp/.h        #   登録エンジンの名前解決
 │   ├── kifuconversionservice.cpp/.h #  棋譜の形式変換
-│   ├── engineanalysisrunner.cpp/.h #   登録エンジンで局面を順に解析（analyze・analyze-kifu。エンジンは1回だけ起動）
 │   ├── matesearchrunner.cpp/.h     #   登録エンジンで詰み探索（MateOracle の1回の問い合わせ）
 │   └── tsumeverificationrunner.cpp/.h # 余詰の検査（TsumeVerificationJob を MateQueryLoop で回す）
 │
@@ -704,15 +705,15 @@ src/
 | `app/` | 19 | 2,437 | メインウィンドウ、エントリーポイント、合成ルート、対局の流れ（`GameSession`） |
 | `core/` | 52 | 5,986 | 純粋ゲームロジック |
 | `game/` | 29 | 2,636 | 対局管理 |
-| `kifu/` | 53 | 6,660 | 棋譜管理（formatsを除く） |
+| `kifu/` | 53 | 6,688 | 棋譜管理（formatsを除く） |
 | `kifu/formats/` | 55 | 5,942 | フォーマット変換器 |
-| `engine/` | 33 | 4,152 | USIエンジン連携 |
-| `analysis/` | 35 | 4,075 | 解析機能 |
+| `engine/` | 33 | 4,155 | USIエンジン連携 |
+| `analysis/` | 37 | 4,297 | 解析機能 |
 | `network/` | 14 | 3,424 | CSA通信対局 |
 | `style/` | 9 | 812 | ウィジェットの書体と見た目（スタイル・ボタンと表のスタイルシート） |
 | `board/` | 7 | 722 | 盤面操作 |
 | `ui/presenters/` | 20 | 1,567 | 表示への反映 |
-| `ui/controllers/` | 42 | 4,288 | 利用者操作の処理（棋譜の読み書き・ナビゲーション・ダイアログの起動を含む） |
+| `ui/controllers/` | 42 | 4,223 | 利用者操作の処理（棋譜の読み書き・ナビゲーション・ダイアログの起動を含む） |
 | `ui/policy/` | 4 | 503 | 動作状態からの規則（メニュー・ボタンの有効/無効、盤の手の行き先） |
 | `ui/docks/` | 4 | 701 | ドックの表とレイアウト |
 | `ui/coordinators/` | 4 | 335 | 複数の部品にまたがる UI の流れ（通信対局・コメント） |
@@ -722,7 +723,7 @@ src/
 | `models/` | 20 | 1,664 | Qtモデル・表示用データ |
 | `services/` | 47 | 3,781 | 横断サービス・設定の宣言 |
 | `common/` | 12 | 597 | 共有の土台（ログ・エラー通知・共有状態） |
-| `headless/` | 24 | 1,588 | CLI・自動化 API・MCP が共有する GUI 非依存の部品 |
+| `headless/` | 22 | 1,390 | CLI・自動化 API・MCP が共有する GUI 非依存の部品 |
 | `automation/` | 31 | 3,102 | 自動化 API |
 | `cli/` | 15 | 1,730 | `shogiboardq-cli` |
 | **合計** | **731** | **約85,700** | |
@@ -3608,7 +3609,7 @@ bestmove の手が局面に指せないときも `moveReady` は出し（先読�
 
 **ソース**: `src/engine/usi.h`, `src/engine/usi.cpp`
 
-`Usi` クラスは GUI からエンジン1台を使う窓口である。対局（`HumanVsEngineStrategy`・`EngineVsEngineStrategy`）と通信対局（`CsaGameCoordinator`）は `MatchEngineSeat` 経由で（エンジンは `EngineSlots` が作る）、検討・詰み探索（`AnalysisSession`）、棋譜解析（`AnalysisJob`）は直接使う。思考タブを使わない詰みの問い合わせ（詰将棋の局面生成 `TsumeshogiGenerator`・詰み判定 `TsumeMateEngine`・CLI の `MateSearchRunner`・`TsumeVerificationRunner`）は `Usi` を使わず、`MateOracle`（`UsiEngineSession` を持つ）で頼む。`Usi` は内部のコンポーネント（7.1節の表）を持ち、要求の受け付けとシグナルの中継を行う。思考の表・通信ログのモデルには触れない。
+`Usi` クラスは GUI からエンジン1台を使う窓口である。対局（`HumanVsEngineStrategy`・`EngineVsEngineStrategy`）と通信対局（`CsaGameCoordinator`）は `MatchEngineSeat` 経由で（エンジンは `EngineSlots` が作る）、検討・詰み探索（`AnalysisSession`）は直接使い、棋譜解析（`KifuAnalysisSession`）は CLI と共通の局面の列の実行器 `EngineAnalysisRunner` に `session()`（`UsiEngineSession`）を貸す（思考情報・通信ログの表示は `Usi` が結んだまま）。思考タブを使わない詰みの問い合わせ（詰将棋の局面生成 `TsumeshogiGenerator`・詰み判定 `TsumeMateEngine`・CLI の `MateSearchRunner`・`TsumeVerificationRunner`）は `Usi` を使わず、`MateOracle`（`UsiEngineSession` を持つ）で頼む。`Usi` は内部のコンポーネント（7.1節の表）を持ち、要求の受け付けとシグナルの中継を行う。思考の表・通信ログのモデルには触れない。
 
 #### コンストラクタと依存関係
 
@@ -3676,14 +3677,14 @@ UsiMatchHandler → Usi
 
 | シグナル | 用途 | 主な接続先 |
 |---------|------|----------|
-| `engineInitialized()` | 初期化（usi〜readyok）の完了 | MatchEngineSeat（→ 対局の Strategy・CsaGameCoordinator）、AnalysisJob |
+| `engineInitialized()` | 初期化（usi〜readyok）の完了 | MatchEngineSeat（→ 対局の Strategy・CsaGameCoordinator）。棋譜解析の実行器は `UsiEngineSession::ready` を受ける |
 | `matchMoveReady(UsiMatchMove)` | 対局の思考で指し手が決まった（指した側・指し手・考えた時間・評価値） | MatchEngineSeat（→ HumanVsEngineStrategy・EngineVsEngineStrategy・CsaGameCoordinator） |
 | `resigned(Turn)` | 対局の探索に投了で答えた | MatchEngineSeat（→ MatchCoordinator・CsaGameCoordinator） |
 | `declaredWin(Turn)` | 対局の探索に入玉宣言勝ちで答えた | MatchEngineSeat（→ MatchCoordinator・CsaGameCoordinator） |
-| `errorOccurred(message)` | エンジンエラー | MatchEngineSeat（対局のエンジン。→ MatchCoordinator・CsaGameCoordinator）、AnalysisSession、AnalysisJob |
+| `errorOccurred(message)` | エンジンエラー | MatchEngineSeat（対局のエンジン。→ MatchCoordinator・CsaGameCoordinator）、AnalysisSession。棋譜解析の実行器は `UsiEngineSession::errorOccurred` を受ける |
 | `searchCandidateChanged()` | 候補手が変わった | CandidateArrowPresenter |
 
-検討・棋譜解析・詰み探索の結果は、`protocol()` の `bestMoveReceived(UsiBestMove)`・`checkmateReceived(UsiCheckmate)`・`infoReceived(UsiInfo)` で受ける（`AnalysisSession`・`AnalysisJob`）。`thinking()` の `thinkingInfoUpdated(ThinkingInfoRow)` は思考の表への表示に使い、棋譜解析の結果（読み筋の漢字表記を含む）はこれに頼らない。
+検討・棋譜解析・詰み探索の結果は、`protocol()` の `bestMoveReceived(UsiBestMove)`・`checkmateReceived(UsiCheckmate)`・`infoReceived(UsiInfo)` で受ける（`AnalysisSession`・`EngineAnalysisRunner`）。`thinking()` の `thinkingInfoUpdated(ThinkingInfoRow)` は思考の表への表示に使い、棋譜解析の結果（読み筋の漢字表記を含む）はこれに頼らない。
 
 ### 7.6 ThinkingInfoFormatter — 思考情報の整形
 
@@ -3752,8 +3753,8 @@ processInfo(info)
 
 **ソース**: `src/engine/usiinfo.h`, `src/engine/usimessages.h`, `src/core/usiscore.h`, `src/engine/usilineparser.h/.cpp`, `src/core/pvtext.h/.cpp`
 
-エンジンの受信行の解釈はアプリ全体で `UsiLineParser`（名前空間の関数群）の1か所にまとめる。`UsiProtocolHandler` が受信時に1回だけ解析し、型付きの値でシグナルを出す。思考タブ（`ThinkingInfoFormatter`）、棋譜解析（`PlyAnalysisCollector`）、
-自動化・CLI（`EngineAnalysisRunner`）、候補手の矢印（`UsiProtocolHandler::updateSearch`）は、どれもこの値を使う。
+エンジンの受信行の解釈はアプリ全体で `UsiLineParser`（名前空間の関数群）の1か所にまとめる。`UsiProtocolHandler` が受信時に1回だけ解析し、型付きの値でシグナルを出す。思考タブ（`ThinkingInfoFormatter`）、棋譜解析と CLI の局面の列の実行器（`EngineAnalysisRunner`・`PlyAnalysisCollector`）、
+候補手の矢印（`UsiProtocolHandler::updateSearch`）は、どれもこの値を使う。
 値型は盤面や GUI に依存しない。
 
 | 関数 | 行 | 値 |
@@ -4013,7 +4014,7 @@ ThinkingInfoFormatter           UsiModelBinding              UsiCommLogModel
                 ┌─────────────────────────────────────┐
                 │ MatchEngineSeat（対局の Strategy・  │
                 │ CsaGameCoordinator）、              │
-                │ AnalysisSession、AnalysisJob        │
+                │ AnalysisSession、EngineAnalysisRunner│
                 └─────────────────┬───────────────────┘
                                   │ シグナル/スロット
                                   ▼
@@ -4921,7 +4922,7 @@ USIエンジンの思考情報（時間・深さ・ノード数・評価値・�
 
 analysis層（`src/analysis/`）は、USIエンジンを用いた局面・棋譜の解析機能を提供するレイヤーである。**検討（Consideration）**・**棋譜解析（KifuAnalysis）**・**詰将棋探索（TsumeSearch）** の3つのモードを持ち、それぞれ異なるユースケースに対応する。
 
-analysis層にはダイアログを知らない部分（`AnalysisSession`・`AnalysisJob`・詰将棋の生成など）を置く。ダイアログを出してモードを始める部分は `src/ui/controllers/` の `ConsiderationUiController`（検討タブの操作）・`KifuAnalysisController`（棋譜解析）・`TsumeSearchController`（詰み探索）、1局面の結果を表の1行にする部分（`AnalysisResultHandler`）は `src/ui/presenters/`、結果のドックの中身（`AnalysisResultsPanel`）は `src/widgets/`、結果のモデル（`KifuAnalysisListModel`）は `src/models/` にある。
+analysis層にはダイアログを知らない部分（`AnalysisSession`・`KifuAnalysisSession`・局面の列の実行器 `EngineAnalysisRunner`・詰将棋の生成など）を置く。ダイアログを出してモードを始める部分は `src/ui/controllers/` の `ConsiderationUiController`（検討タブの操作）・`KifuAnalysisController`（棋譜解析）・`TsumeSearchController`（詰み探索）、1局面の結果を表の1行にする部分（`AnalysisResultHandler`）は `src/ui/presenters/`、結果のドックの中身（`AnalysisResultsPanel`）は `src/widgets/`、結果のモデル（`KifuAnalysisListModel`）は `src/models/` にある。
 
 ### 9.1 3モードの比較
 
@@ -4930,10 +4931,11 @@ analysis層にはダイアログを知らない部分（`AnalysisSession`・`Ana
 | **目的** | 現在の1局面をリアルタイムで深く分析する | 棋譜の指定範囲を1手ずつ自動解析し、各手の評価値と候補手を算出する | 現在の局面から詰み手順を探索する |
 | **動作状態**（`AppActivityState::Activity`） | `DuringConsideration` | `DuringAnalysis` | `DuringTsumeSearch` |
 | **USIコマンド** | `go infinite`（時間指定があればタイマーで `stop`） | `go infinite` + タイマーで `stop`（1手あたり固定時間） | `go mate <time>` / `go mate infinite` |
-| **エンジン管理** | `AnalysisSession`（エンジンの枠 E1 を対局と共有） | `AnalysisJob` が、`KifuAnalysisController` の渡した枠 E1 の `Usi` を使う | `AnalysisSession`（検討と同じ） |
+| **エンジン管理** | `AnalysisSession`（エンジンの枠 E1 を対局と共有） | `KifuAnalysisSession`（枠 E1。局面の列は `EngineAnalysisRunner` が解析する。CLI の analyze-kifu と共通） | `AnalysisSession`（検討と同じ） |
 | **結果表示** | 検討タブにリアルタイム表示、盤面に矢印オーバーレイ | 結果一覧テーブル（ドックウィジェット）、評価値グラフ | 詰みの有無のメッセージ（思考情報は E1 の表示にも出る） |
+| **送る局面** | 表示中の局面（開始局面からの手順。`KifuNavigationState::currentUsiPosition()`） | 範囲の各局面（開始局面からの手順。`RecordLine::usiPositions()`） | 途中局面は開始局面からの手順、開始局面は攻方の手番（`MateSearchPosition::forLine()`） |
 | **MultiPV** | 対応（複数候補手を同時表示、検討中に変更可） | 送らない（エンジン設定で MultiPV を2以上にしていても、結果は最善の読み筋（multipv 1）で決める） | 非対応（1手順のみ） |
-| **開始・操作** | `ConsiderationUiController` | `KifuAnalysisController` + `AnalysisJob` | `TsumeSearchController` |
+| **開始・操作** | `ConsiderationUiController` | `KifuAnalysisController` + `KifuAnalysisSession` | `TsumeSearchController` |
 | **結果の表示部品** | `ConsiderationPanel`（`EngineDisplayPresenter` が状態を設定）・`CandidateArrowPresenter` | `AnalysisResultsPanel` | なし（結果はメッセージで知らせる） |
 
 ### 9.2 全体構成
@@ -4951,27 +4953,35 @@ analysis層にはダイアログを知らない部分（`AnalysisSession`・`Ana
 │  KifuAnalysisController      棋譜解析の条件ダイアログ・進み具合の表示    │
 │        ├── KifuAnalysisRowPresenter 1局面の結果を表の1行に（ui/presenters）│
 │        └── AnalysisResultsPanel   結果ドックの中身（widgets/）           │
-│        │ 所有                                                           │
+│        │ start / stop と知らせ                                          │
 ├────────┼────────────────────────────────────────────────────────────────┤
 │  analysis 層（src/analysis/）                                           │
 │        ▼                                                                │
-│  AnalysisJob                      AnalysisSession                       │
-│   1回の棋譜解析                    検討・詰み探索のセッション            │
-│   └ PlyAnalysisCollector           開始・停止・やり直しの状態遷移        │
-│     info から1局面の結果を作る      エンジンは E1 の枠に作る             │
+│  KifuAnalysisSession              AnalysisSession                       │
+│   棋譜解析の実行（リース2つ）      検討・詰み探索のセッション            │
+│   └ EngineAnalysisRunner           開始・停止・やり直しの状態遷移        │
+│     局面の列の実行器（CLI と共通）  エンジンは E1 の枠に作る             │
+│     └ PlyAnalysisCollector             │                                │
 │        │                               │                                │
-│        └────────── 使うエンジン（Usi） ┘                                │
+│        └── 使うエンジン（Usi。実行器は session() を借りる） ┘           │
 │                                                                         │
 │  game 層の EngineSlots（枠 E1・E2）がエンジンを持つ           │
 │  models/ の KifuAnalysisListModel … 解析結果の8列テーブルモデル          │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 9.3 AnalysisJob — 棋譜解析1回の進行
+### 9.3 KifuAnalysisSession と EngineAnalysisRunner — 棋譜解析の実行
 
-**ソース**: `src/analysis/analysisjob.h`, `src/analysis/analysisjob.cpp`
+**ソース**: `src/analysis/kifuanalysissession.h/.cpp`（棋譜解析の実行）、`src/analysis/engineanalysisrunner.h/.cpp`（局面の列の実行器。CLI と共通）
 
-`AnalysisJob` は、1回の棋譜解析の入力（`AnalysisRequest`）・進行・エンジンの利用期間を受け持つ。エンジンは所有せず、`Deps::engine` で渡された `Usi` を借りて使う。解析する局面は、手順 `RecordLine` の各局面から作る `QList<UsiPosition>`（`[ply]` ごとに、その局面の SFEN とそこに至った手）である。局面だけを送り（`position sfen ...`）、そこに至った手は読み筋の「同」の判定と盤の強調に使う。画面の応答を待たずに進む。
+棋譜解析の実行は、検討・詰み探索の `AnalysisSession` と同じく、画面を知らない analysis 層の `KifuAnalysisSession` が受け持つ。合成ルートが起動時に1つ作り（`MainWindowComponents::kifuAnalysisSession`）、`KifuAnalysisController`（9.6）が条件ダイアログの値で `start()` を呼び、知らせを画面に反映する。
+
+`KifuAnalysisSession` が持つもの:
+- 枠 E1 のエンジンのリース（`EngineLease`。思考情報・通信ログは E1 の表示に出る。テストでは `Deps::engine` で渡したエンジンを使う）
+- 動作状態「棋譜解析中」のリース（`ActivityLease`）
+- 解析1回の依頼（`request()`）と、局面の列の実行器（`EngineAnalysisRunner`）
+
+ほかの処理がエンジンの枠や動作状態を取ったら（`engineRevoked`・`AppActivityState::revoked`）、自分で解析をやめる。
 
 #### AnalysisRequest 構造体
 
@@ -4993,29 +5003,39 @@ struct AnalysisRequest {
 
 解析した手順は末尾の手のノード ID で覚える（`allLines()` の番号は分岐を足す・本譜にする・並べ替えると変わる）。結果の行・グラフの点から棋譜を移すときは `KifuNavigationController::goToPlyOnLine(lineEndNodeId, ply)`（`KifuBranchTree::nodeOnLine()` で末尾から ply 手目までさかのぼる）を使い、手順が消えていれば移らない。
 
-解析はいつも範囲の局面を順に調べる。`start()` が範囲を手順の手数に収める（終わりの -1 は末尾まで）。
+`start()` は範囲を手順の手数に収め（終わりの -1 は末尾まで）、送る局面を `RecordLine::usiPositions(startPly, endPly)` で作る。手順を1度だけたどり、開始局面からの手順で送る（`position startpos moves ...`。千日手の判断材料をエンジンに渡す）。手順をたどれない（指せない手がある）棋譜だけ、各局面を局面だけで送り、読めない局面は飛ばす。CLI の `analyze-kifu` も同じ関数で局面を作るので、同じ棋譜には同じ局面を送る。
 
-#### 1手の解析サイクル
+#### 局面の列の実行器 EngineAnalysisRunner
+
+GUI の棋譜解析と CLI の `analyze`・`analyze-kifu` が共有する実行器である。借りた `UsiEngineSession`（GUI は枠のエンジンの `Usi::session()`、CLI は自分で作ったもの）を1回だけ起動し、局面を順に解析する。
 
 ```
-start() → Usi::startEngine(path, name)（起動できなければ、戻った後に Usi::errorOccurred → onError）
-  ▼ Usi::engineInitialized
-analyzePly(startPly)
-  │
-  ├── PlyAnalysisCollector::begin(ply, positions[ply])
-  ├── emit plyStarted(ply)
-  └── Usi::search(UsiSearchRequest)
-        position + go infinite を送り、movetimeMs 経過後に stop を送る
+start(Request) → UsiEngineSession::startAsync(path, name)（起動できなければ、戻った後に errorOccurred）
+  ▼ UsiEngineSession::ready
+onSessionReady()
+  ├── multiPv > 0 なら setoption name MultiPV（0 は送らない）
+  └── analyzeFrom(0)
+        ├── 読めない局面（nullopt）は飛ばす
+        ├── PlyAnalysisCollector::begin(ply, position)
+        ├── emit positionStarted(ply)
+        └── UsiEngineSession::search(UsiSearchRequest)
+              position + go infinite を送り、thinkMs 経過後に stop を送る（replyTimeoutMs 待っても bestmove が来なければ errorOccurred）
   ▼ UsiProtocolHandler::infoReceived
-onInfo() → PlyAnalysisCollector::addInfo(info)
+onInfo() → PlyAnalysisCollector::addInfo(info)、読み筋の行は lineUpdated と latestLines()
   ▼ UsiProtocolHandler::bestMoveReceived
 onBestMove()
-  ├── emit plyAnalyzed(PlyAnalysisCollector::finish(bestMove))
-  ├── 次の手あり → analyzePly(ply + 1)
-  └── endPly まで終えた → Usi::quit()、emit finished(true)
+  ├── emit positionFinished(PlyAnalysisCollector::finish(bestMove), bestMove)
+  ├── 止めると頼まれていた → エンジンを終えて finished(true)
+  ├── 次の局面あり → analyzeFrom(添字 + 1)
+  └── 全部終えた → エンジンを終えて finished(false)
 ```
 
-`stop()` とエンジンのエラー（`onError()` → `stop()` → `errorOccurred`）は `finished(false)` を出す。
+止め方は2つある。`stop()` は解析中の局面の bestmove を待ってその結果を返してから終える（CLI の stdin の stop）。`cancel()` は待たずにエンジンを終える（棋譜解析の「解析中止」・枠や動作状態を取られたとき）。stop の後に `replyTimeoutMs` を過ぎても bestmove が来なければ、エンジンを終えて `errorOccurred` を出す（`isTimedOut()` が true。文は CLI 向けの英語なので、棋譜解析は `KifuAnalysisSession` が訳した文に替える）。依頼で決める値は次のとおり。
+
+| 値 | 棋譜解析（GUI） | CLI の analyze・analyze-kifu |
+|---|---|---|
+| `multiPv`（候補手の数） | 0（送らず、エンジンの設定のまま。結果は最善の読み筋で決める） | 引数 `multipv`（既定 1） |
+| `replyTimeoutMs`（stop の後に bestmove を待つ上限） | `kDefaultReplyTimeoutMs`（10秒。それまでの結果は残し、訳した理由を出す） | `kDefaultReplyTimeoutMs`（10秒） |
 
 #### PlyAnalysis と PlyAnalysisCollector
 
@@ -5030,20 +5050,20 @@ onBestMove()
 
 `PlyAnalysisCollector`（Qt のイベントループを知らない）は、1局面の info のうち最善の読み筋（multipv 1）の最後の行を覚え、`finish(bestMove)` で `PlyAnalysis` にする。エンジン設定で MultiPV を2以上にしていても、結果は最善の読み筋で決める。読み筋は探索した局面の上でここで指す（`PvText::play`）ので、思考情報の表示（`ThinkingInfoFormatter`）の接続の順序に頼らない。info 行の解釈は `UsiLineParser`（第7章）が行い、このクラスは行を読み直さない。
 
-#### シグナル一覧
+#### KifuAnalysisSession のシグナル
 
 | シグナル | 発火タイミング | 受け手 |
 |---------|--------------|------|
 | `plyStarted(ply)` | 局面の解析を始めた | `KifuAnalysisController::onPlyStarted`（前の局面の評価値をグラフに足し、解析中の手へ棋譜欄を移す） |
 | `plyAnalyzed(PlyAnalysis)` | bestmove を受けた | `KifuAnalysisController::onPlyAnalyzed`（`KifuAnalysisRowPresenter::append()` で表に1行足す） |
-| `finished(completed)` | 解析を終えた（`completed`: 範囲の全局面を解析した） | `KifuAnalysisController::onFinished` |
-| `errorOccurred(message)` | エンジンのエラー | `KifuAnalysisController::onEngineError` |
+| `finished(completed)` | 解析を終えた（`completed`: 範囲の全局面を解析した。止めた・エラーなら false）。思考情報の表示を消してエンジンを終え、動作状態を待機に戻した後 | `KifuAnalysisController::onFinished` |
+| `errorOccurred(message)` | エンジンのエラーで解析をやめた（`finished(false)` の後） | `KifuAnalysisController::onEngineError` |
 
 ### 9.4 検討モードの開始と AnalysisSession
 
 **ソース**: `src/ui/controllers/considerationuicontroller.h/.cpp`（開始）、`src/analysis/analysissession.h/.cpp`（セッション）、`src/analysis/analysisoptions.h`
 
-検討モード（Consideration）は `AnalysisJob` を使わず、検討のセッション `AnalysisSession` が1つのエンジンで局面を調べる。棋譜解析との大きな違いである。
+検討モード（Consideration）は局面の列の実行器を使わず、検討のセッション `AnalysisSession` が1つのエンジンで局面を調べる。棋譜解析との大きな違いである。
 検討タブの開始/中止のボタン（検討していないとき）→ `ConsiderationPanel::startConsiderationRequested` → `ConsiderationUiController::startConsideration()` の順に呼ばれ、ここで検討タブの設定（`ConsiderationPanel::settings()`。`ConsiderationSettings`）から `AnalysisOptions` を作って `AnalysisSession::start()` に渡す（タブのシグナルは `ConsiderationUiController` が自分でつなぐ）。
 
 #### 検討モードの開始フロー
@@ -5161,11 +5181,11 @@ CandidateArrowPresenter::refresh()
 
 ### 9.6 KifuAnalysisController — 棋譜解析の全体フロー
 
-**ソース**: `src/ui/controllers/kifuanalysiscontroller.h/.cpp`、`src/analysis/analysisjob.h/.cpp`（1回の解析）、`src/ui/presenters/kifuanalysisrowpresenter.h/.cpp`（結果の表の1行）
+**ソース**: `src/ui/controllers/kifuanalysiscontroller.h/.cpp`、`src/analysis/kifuanalysissession.h/.cpp`（解析の実行）、`src/ui/presenters/kifuanalysisrowpresenter.h/.cpp`（結果の表の1行）
 
-棋譜解析モードの全体ワークフローを管理するコントローラである。ダイアログ表示から、解析ジョブ（`AnalysisJob`）の起動、結果のモデルへの蓄積、評価値グラフ・棋譜欄への反映、完了通知までの全工程を統括する。評価値グラフの点は、局面の結果を受けたときではなく次の局面の解析を始めたとき（`plyStarted`）か解析を終えたときに足す（`m_pendingPlot`）。合成ルートが起動時に1つ作り（`MainWindowComponents::kifuAnalysis`）、メニュー「棋譜解析」は `MenuActionsWiring` が `showDialogAndStart()` へ、「解析中止」は `stop()` へつなぐ。
+棋譜解析の画面を受け持つコントローラである。条件ダイアログを出して解析の実行（`KifuAnalysisSession`。9.3）に始めさせ、その知らせを結果のモデル・評価値グラフ・棋譜欄に反映し、完了を結果の表に知らせる。エンジンと動作状態「棋譜解析中」は実行が持つ（検討の `ConsiderationUiController` と `AnalysisSession` と同じ形）。評価値グラフの点は、局面の結果を受けたときではなく次の局面の解析を始めたとき（`plyStarted`）か解析を終えたときに足す（`m_pendingPlot`）。合成ルートが起動時に1つ作り（`MainWindowComponents::kifuAnalysis`）、メニュー「棋譜解析」は `MenuActionsWiring` が `showDialogAndStart()` へ、「解析中止」は `stop()` へつなぐ。
 
-- **`AnalysisJob`**（analysis 層）: 1回の解析の入力（`AnalysisRequest`：手順 `RecordLine`・範囲と思考時間 `AnalysisRequest::Options`・エンジンのパスと名前・解析する手順の末尾の手 `lineEndNodeId`）・進行・エンジンの利用期間を持つ。`AnalysisJob::Deps::engine` で渡された `Usi` を借りて使う（9.3）
+- **`KifuAnalysisSession`**（analysis 層）: 解析の依頼（`AnalysisRequest`：手順 `RecordLine`・範囲と思考時間 `AnalysisRequest::Options`・エンジンのパスと名前・解析する手順の末尾の手 `lineEndNodeId`）と、枠 E1 のエンジン・動作状態のリース、局面の列の実行器を持つ（9.3）
 - **`KifuAnalysisRowPresenter`**（ui/presenters）: 1局面の結果（`PlyAnalysis`）を `append()` で結果の表の1行にし、先手から見た評価値を返す（評価値グラフの点に使う）。候補手は前の行の読み筋の最初の手で、前の行の局面に至った手と同じマスへの手は `KifMoveText::format` が「同　」と書く
 
 #### Deps 構造体（主要メンバー）
@@ -5173,19 +5193,16 @@ CandidateArrowPresenter::refresh()
 | メンバー | 型 | 必須 | 説明 |
 |---------|-----|------|------|
 | `parentWidget` | `QWidget*` | — | 条件ダイアログの親 |
-| `activity` | `AppActivityState*` | 必須 | 解析中は `DuringAnalysis` にする |
+| `session` | `KifuAnalysisSession*` | 必須 | 解析の実行（コンストラクタで知らせをつなぐ） |
 | `analysisModel` | `KifuAnalysisListModel*` | 必須 | 結果蓄積用モデル |
 | `resultsPanel` | `AnalysisResultsPanel*` | 任意 | 結果の表（無ければ自分で作る）。初めて解析するときに `setModel(analysisModel)` で1度だけモデルを結ぶ |
 | `resultsDock` | `QDockWidget*` | 任意 | 結果の表のドック。解析を始めたときに表示して前に出す |
-| `engines` | `EngineSlots*` | — | 解析のエンジンを置く枠 E1 |
 | `navState` | `const KifuNavigationState*` | — | 解析する手順（表示中の手順）とその末尾の手（`AnalysisRequest::lineEndNodeId`）、分岐がある手（`AnalysisRequest::branchPlies`。結果の表で棋譜欄と同じ印を付ける） |
 | `pvBoards` | `PvClickController*` | — | 結果の行のダブルクリックで読み筋盤を開く（`showPvBoard()`。対局者名・盤の向きは思考の表と同じ規則） |
 | `navController` | `KifuNavigationController*` | — | 解析中・結果の行を選んだ手へ棋譜を移す（`goToPlyOnLine`） |
-| `evalChart` | `EvaluationChartWidget*` | — | 評価値グラフ（点のクリックで解析結果の行へ移る） |
 | `evalGraph` | `EvaluationGraphPresenter*` | — | 評価値グラフの点（解析した局面の評価値を足す） |
-| `engine` | `Usi*` | 任意 | 使うエンジン（テスト用。無ければ解析ごとに枠 E1 に作る） |
 
-エラーは `ErrorBus` で知らせる（コールバックは持たない）。
+エラーは `ErrorBus` で知らせる（コールバックは持たない）。評価値グラフの解析の点のクリック（`EvaluationChartWidget::analysisPlyClicked`）は、合成ルートの `connectRecord()` が `KifuNavigationController::goToPlyOnLine` に直接つなぎ、棋譜が移ると `syncResultSelection()` が結果の行を合わせる。
 
 #### 棋譜解析の全体シーケンス
 
@@ -5201,17 +5218,12 @@ showDialogAndStart()
         │
         ├── 解析範囲を手順の手数に収める、前回の解析を止めて結果・評価値グラフをクリア
         ├── resultsDock を表示して前に出す、resultsPanel->beginAnalysis()
-        ├── 枠 E1 に Usi を作ってリースを持ち（acquire(this, 1, ...) → m_lease）、AnalysisJob を作成
-        ├── ジョブのシグナルを接続
-        │     ├── plyStarted → onPlyStarted
-        │     ├── plyAnalyzed → onPlyAnalyzed
-        │     ├── errorOccurred → onEngineError
-        │     └── finished → onFinished
-        ├── KifuAnalysisRowPresenter を作る（参照: モデル・手順・分岐がある手）
-        ├── 動作状態を DuringAnalysis にする
-        └── AnalysisJob::start() → Usi::startEngine(path, name)
+        ├── KifuAnalysisRowPresenter を作る（参照: モデル・実行が持つ依頼の手順・分岐がある手）
+        └── KifuAnalysisSession::start(request)
+              ├── 枠 E1 に Usi を作ってリースを持ち（acquire(this, 1, ...)）、動作状態を DuringAnalysis にする
+              └── EngineAnalysisRunner::start() → UsiEngineSession::startAsync(path, name)
               │   （起動の失敗は戻った後に errorOccurred → onEngineError で届く。同期の失敗の分岐はない）
-              ▼ （以下、AnalysisJob の解析サイクル。9.3 参照）
+              ▼ （以下、局面の列の実行器の解析サイクル。9.3 参照。知らせは KifuAnalysisSession が中継する）
               ┌─────────────────────────────────────────┐
               │ plyStarted(ply) → onPlyStarted()         │
               │   前の局面の評価値（m_pendingPlot）を    │
@@ -5227,9 +5239,9 @@ showDialogAndStart()
               （startPly〜endPly まで繰り返し）
               │
               ▼
-        onFinished(completed)
+        onFinished(completed)   … 実行が動作状態を Idle に戻した後
           └── 最後の評価値をグラフへ足し、停止ボタン無効化、
-              正常完了なら完了表示、動作状態を Idle に戻す
+              正常完了なら完了表示、表示中の手の結果の行を選ぶ
 ```
 
 #### append() — 1局面の結果を表に足す
@@ -5265,7 +5277,7 @@ showDialogAndStart()
   │     └── positionForMate()
   │           ├── 途中局面（line.currentPly > 0）→ line.usiPosition(ply)
   │           │     └── 送るのは "position startpos moves 7g7f 3c3d ..." 形式
-  │           └── 開始局面・手順なし → TsumePositionUtil::buildPositionForMate(sfen) を UsiPosition::parse()
+  │           └── 開始局面・手順なし → MateSearchPosition::attackerToMove(Position) を UsiPosition に
   │                 └── 送るのは "position sfen ..." 形式（玉の有無から攻方を決めて手番を合わせる）
   │           空なら ErrorBus で警告して return
   │
@@ -5295,11 +5307,11 @@ showDialogAndStart()
 
 #### 探索する局面の構築戦略
 
-`TsumeSearchController::Deps` は `parentWidget`・`navState`（`KifuNavigationState`。表示中の手順と局面）・`session`（`AnalysisSession`）を持つ。`positionForMate()` は2つの方式を持つ。
+`TsumeSearchController::Deps` は `parentWidget`・`navState`（`KifuNavigationState`。表示中の手順と局面）・`session`（`AnalysisSession`）を持つ。`positionForMate()` は `MateSearchPosition::forLine(line, currentSfen)`（`src/analysis/matesearchposition.h`）で、次の2つの方式から選ぶ。
 
 1. **moves形式（途中局面）**: `line.currentPly > 0` のとき、`RecordLine::usiPosition(ply)` で開始局面からの指し手列の局面にする（送るのは `"position startpos moves 7g7f 3c3d ..."`、平手以外の開始局面は `"position sfen ... moves ..."`）。エンジンが局面の履歴情報（千日手判定等）を利用できる。
 
-2. **SFEN形式（開始局面）**: 開始局面（詰将棋の問題など）や手順が無いときは、`TsumePositionUtil::buildPositionForMate(sfenLike)` が1つの局面（`line.startSfen`、手順が無ければ `navState->currentSfen()`）から `"position sfen <sfen>"` を作り、`UsiPosition::parse()` で読む。玉の有無から攻方を推定し、手番を合わせる。
+2. **SFEN形式（開始局面）**: 開始局面（詰将棋の問題など）や手順が無いときは、1つの局面（`line.startSfen`、手順が無ければ `navState->currentSfen()`）を `Position` に読み、`MateSearchPosition::attackerToMove()` が玉の有無から攻方を決めて手番にし、手数を1にする（玉が片方だけなら、その玉のない側が攻方。両方あれば手番のまま）。文字列を組み立てて読み直さない。
 
 ### 9.8 AnalysisResultsPanel — 解析結果の表示
 
@@ -5419,16 +5431,16 @@ analysis層の機能は、エンジンの使い方が2つに分かれている�
 
 棋譜解析モード
   │
-  └── KifuAnalysisController → AnalysisJob
+  └── KifuAnalysisController → KifuAnalysisSession → EngineAnalysisRunner
         │
-        ├── 枠 E1 に作った Usi を AnalysisJob::Deps で渡す（借用。リースは KifuAnalysisController が持つ）
-        ├── 局面ごとに Usi::search（position + go infinite、思考時間で stop）を頼む
-        └── 独自の position/go infinite/stop サイクルを実行
+        ├── 枠 E1 に作った Usi の session() を実行器に貸す（リースは KifuAnalysisSession が持つ）
+        ├── 局面ごとに UsiEngineSession::search（position + go infinite、思考時間で stop）を頼む
+        └── 独自の position/go infinite/stop サイクルを実行（CLI の analyze-kifu と同じ実行器）
 ```
 
 **検討・詰将棋探索**: `AnalysisSession` が、対局の司令塔（`MatchCoordinator`）と共有するエンジンの枠（`EngineSlots` の E1）でエンジンを管理する。対局と同じ枠を使うため、エンジンの起動・初期化・シャットダウンが統一されており、思考情報・通信ログも E1 のモデルに出る。対局と検討は同時には動かない（`AnalysisSession` は始めるときに枠のエンジンを破棄し、ほかの持ち主には `engineRevoked` で知らせる。自分の枠をほかの処理に取られたら `engineRevoked` を受けてセッションを終える）。
 
-**棋譜解析**: 複数局面を逐次解析する必要があり、`AnalysisJob` が独自の position/go/stop サイクルを制御する。エンジンは `KifuAnalysisController` が枠 E1 に作ってリースを持ち（`acquire(this, 1, ...)`）、`AnalysisJob` に渡す（テストでは `Deps::engine` で注入できる）。検討・対局などに枠を取られたら `engineRevoked` を受けて（`onEngineRevoked()`）解析を止める。`AnalysisJob` は解析が終わると `Usi::quit()` でエンジンを終わらせ、思考情報・通信ログの表示は枠 E1 の持ち主が結ぶ。
+**棋譜解析**: 複数局面を逐次解析する必要があり、局面の列の実行器 `EngineAnalysisRunner`（CLI と共通）が独自の position/go/stop サイクルを制御する。エンジンは `KifuAnalysisSession` が枠 E1 に作ってリースを持ち（`acquire(this, 1, ...)`）、その `session()` を実行器に貸す（テストでは `Deps::engine` で注入できる）。検討・対局などに枠を取られたら `engineRevoked` を受けて（`onEngineRevoked()`）解析を止める。実行器は解析が終わるとエンジンを終わらせ、`KifuAnalysisSession` が `Usi::quit()` で思考情報の表示も消す。思考情報・通信ログの表示は枠 E1 の持ち主が結ぶ。
 
 ### 9.11 詰みの問い合わせ（MateOracle）と詰将棋の生成
 
@@ -5680,7 +5692,7 @@ Controllers は「View → Model」方向のイベント処理を担当する。
 |-----------|--------|------|------------|
 | `BoardMoveController` | `boardmovecontroller.h` | 盤上で指した手を、動作状態に合わせて処理する（局面編集・棋譜の変化の記録・通信対局・対局） | `BoardInteractionController`, `ShogiGameController`, `MatchCoordinator` |
 | `ConsiderationUiController` | `considerationuicontroller.h` | 検討タブの操作（開始・中止・エンジン設定・条件の変更）を検討のセッションへ伝える。表示には触れない | `ConsiderationPanel`, `AnalysisSession` |
-| `KifuAnalysisController` | `kifuanalysiscontroller.h` | 棋譜解析の条件ダイアログ、解析の進み具合の表示、結果の行の選択（第9章） | `AnalysisJob`, `AnalysisResultsPanel`, `EvaluationChartWidget` |
+| `KifuAnalysisController` | `kifuanalysiscontroller.h` | 棋譜解析の条件ダイアログ、解析の進み具合の表示、結果の行の選択（第9章） | `KifuAnalysisSession`, `AnalysisResultsPanel`, `EvaluationGraphPresenter` |
 | `TsumeSearchController` | `tsumesearchcontroller.h` | 詰み探索の条件ダイアログと探索の開始（第9章） | `AnalysisSession` |
 | `LanguageController` | `languagecontroller.h` | 表示言語・棋譜表記の切り替えと再起動の案内 | `QAction`（言語・表記メニュー） |
 | `PvClickController` | `pvclickcontroller.h` | 読み筋行クリック時のPV盤面ダイアログ表示（棋譜解析の結果の行も `showPvBoard()` で開く） | `ShogiEngineThinkingModel`, `PvBoardDialog` |
@@ -9194,7 +9206,6 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 
 | 名前 | 種別 | ディレクトリ | 説明 | 解説章 |
 |------|------|-------------|------|--------|
-| AnalysisJob | C | analysis | 棋譜解析1回の入力・進行・エンジンの利用期間を管理する（局面ごとに `PlyAnalysis` を出す） | 第9章 |
 | AnalysisOptions | S | analysis | 検討・詰み探索の開始オプション | 第9章 |
 | AnalysisRequest | S | analysis | 棋譜解析の依頼（手順・範囲と思考時間 `Options`・エンジン・分岐ライン） | 第9章 |
 | KifuAnalysisRowPresenter | C | ui/presenters | 棋譜解析の1局面の結果（`PlyAnalysis`）を結果の表の1行にし、先手から見た評価値を返す | 第9章, 第10章 |
@@ -9261,7 +9272,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | DockSettings | NS | services | ドックの状態（`DockState`。浮動・表示・位置）・固定・名前付きレイアウトの設定 | 第12章 |
 | EditActions | C | widgets | 元に戻す〜貼り付けの5つの `QAction`（標準ショートカット・ツールチップ・ボタン。コメント欄・対局情報で共通） | 第11章 |
 | ElideLabel | C | widgets | テキスト省略表示ラベル | 第11章 |
-| EngineAnalysisRunner | C | automation | 登録エンジンで1局面を一定時間解析する実行器（CLI・自動化 API と共有） | 第7章 |
+| EngineAnalysisRunner | C | analysis | 局面の列を1つのエンジンで順に解析する実行器（借りた `UsiEngineSession` を使う。GUI の棋譜解析と CLI の analyze・analyze-kifu で共通） | 第9章 |
 | EngineDisplayPresenter | C | ui/presenters | エンジンの表示の持ち主（枠 E1・E2 とモデルの結び・検討の表示・2つ目のエンジン欄・評価値グラフの系列名・表示の消去） | 第9章, 第10章 |
 | EngineInfoWidget | C | widgets | エンジン情報表示ウィジェット（列幅を自分で保存） | 第11章 |
 | EngineLease | C | game | 枠のエンジンを使う権利（move-only。`EngineSlots::acquire()` が返し、手放すと枠を空ける） | 第6章 |
@@ -9325,7 +9336,8 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | KifParseResult | S | kifu | 棋譜の変換器が返す、本譜と変化の解析結果 | 第8章 |
 | KifuTextDecoder | NS | kifu | KIF形式ファイルの読み込み | 第8章 |
 | KifTextParser | NS | kifu/formats | KIF・KI2 のテキストを読む（`parseKif`・`parseKi2`。行の分類・変化の区切り・開始局面を両形式で共有） | 第8章 |
-| KifuAnalysisController | C | ui/controllers | 棋譜解析（メニューの「棋譜解析」「解析中止」と、解析の進み具合の表示） | 第9章 |
+| KifuAnalysisController | C | ui/controllers | 棋譜解析の画面（メニューの「棋譜解析」「解析中止」・条件ダイアログと、解析の進み具合の表示。実行は `KifuAnalysisSession`） | 第9章 |
+| KifuAnalysisSession | C | analysis | 棋譜解析の実行（枠 E1 のエンジンと動作状態「棋譜解析中」のリース、局面の列の解析） | 第9章 |
 | KifuAnalysisDialog | C | dialogs | 棋譜解析設定ダイアログ | 第11章 |
 | KifuAnalysisListModel | C | models | 棋譜解析の結果の表のモデル（8列。行は `KifuAnalysisRow` の値） | 第9章 |
 | KifuAnalysisRow | S | models | 棋譜解析の結果の表の1行（作った後は変えない値） | 第9章 |
@@ -9378,6 +9390,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | MateOracle | C | engine | エンジン1台への詰みの問い合わせ（go mate。`UsiEngineSession` を持つ） | 第7章, 第9章 |
 | MateQueryLoop | C | engine | 引き出し型の問い合わせ元を `MateOracle` で最後まで回す | 第7章, 第9章 |
 | MateQuerySource | C | engine | 引き出し型の問い合わせ元のインターフェース（`nextQuery()`・`submit()`・`isDone()`） | 第7章, 第9章 |
+| MateSearchPosition | NS | analysis | 詰み探索に送る局面（途中局面は開始局面からの手順、開始局面は `Position` で攻方の手番・手数1に） | 第9章 |
 | MateSearchRunner | C | automation | 登録エンジンで詰みを探す実行器（CLI・自動化 API と共有） | 第9章 |
 | MenuActionsWiring | NS | app | メニュー・ツールバーの項目を、処理する部品へつなぐ（シグナルの接続だけ） | 第4章, 第10章 |
 | MenuButtonWidget | C | widgets | メニューボタンウィジェット | 第11章 |
@@ -9448,7 +9461,6 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | TimeDisplayPresenter | C | ui/presenters | 時計の表示の更新（`ShogiClock::timeUpdated` を直接受ける） | 第10章 |
 | TsumeCandidateJob | C | analysis | 詰将棋の候補1つを採択か棄却まで進める（手数の確認・唯一解の検査・要らない駒の除去） | 第9章 |
 | TsumeCollectionSession | C | analysis | 詰将棋集の進捗・解析待ちの管理 | 第9章 |
-| TsumePositionUtil | C | analysis | 詰み探索の position の組み立て（`buildPositionForMate()`。文字列は `UsiPosition::commandFor()` で作る。ヘッダーオンリー） | 第9章 |
 | TsumeSearchController | C | ui/controllers | 詰み探索（メニューの「詰み探索」: 条件ダイアログを出して表示中の局面を探索する） | 第9章 |
 | TsumeshogiGenerator | C | analysis | 詰将棋局面の自動生成（候補の待ち行列・問い合わせの中継・結果の集計） | 第9章 |
 | TsumeShogiSearchDialog | C | dialogs | 詰将棋探索ダイアログ | 第11章 |
@@ -9600,12 +9612,13 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 |---------|--------|------|
 | analysissession | 第9章 | 検討・詰み探索のセッション |
 | analysisoptions | 第9章 | 検討・詰み探索の開始オプション |
-| analysisjob | 第9章 | 棋譜解析1回（`AnalysisJob`）と1局面の結果（`PlyAnalysis`・`PlyAnalysisCollector`） |
+| kifuanalysissession | 第9章 | 棋譜解析の実行（`KifuAnalysisSession`。エンジン・動作状態のリースと局面の列の解析）と依頼 `AnalysisRequest` |
+| engineanalysisrunner | 第9章 | 局面の列を1つのエンジンで順に解析する実行器（`EngineAnalysisRunner`。GUI の棋譜解析と CLI で共通）と1局面の結果（`PlyAnalysis`・`PlyAnalysisCollector`） |
 | tsumecollectionsession | 第9章 | 詰将棋集の進捗・解析待ちの管理 |
 | tsumeshogigenerator | 第9章 | 詰将棋局面の自動生成（候補の待ち行列・問い合わせの中継・結果の集計） |
 | tsumecandidatejob | 第9章 | 詰将棋の候補1つの処理（手数の確認・唯一解の検査・要らない駒の除去） |
 | tsumeverificationjob | 第9章 | 総予算つきの唯一解の検査（生成と CLI の余詰検査で共通） |
-| tsumepositionutil | 第9章 | 詰み探索の position の組み立て（`UsiPosition::commandFor()` で作る） |
+| matesearchposition | 第9章 | 詰み探索に送る局面（`MateSearchPosition::forLine`・`attackerToMove`） |
 
 棋譜解析・検討・詰み探索の操作は `ui/controllers/`（`KifuAnalysisController`・`ConsiderationUiController`・`TsumeSearchController`）、解析結果の表示は `widgets/`（`AnalysisResultsPanel`）と `ui/presenters/`、解析結果のモデルは `models/` にある。
 
@@ -9859,7 +9872,6 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 |---------|--------|------|
 | automationendpoint | 第14章 | 自動化 API の接続先（既定のソケット・エンドポイントファイル・1メッセージの上限。サーバーと CLI の environment で共通） |
 | automationmethodspecs | 第14章 | 自動化 API の全メソッドの引数の表 |
-| engineanalysisrunner | 第7章 | 登録エンジンで1局面を一定時間解析する実行器（CLI・自動化 API と共有） |
 | errorkinds | 第14章 | エラーの分類 `ErrorKind` と語・JSON-RPC のコードの表（CLI・自動化 API・MCP で共有） |
 | kifuconversionservice | 第8章 | 棋譜ファイル・文字列を各形式へ変換する GUI 非依存サービス（CLI・自動化 API と共有） |
 | matesearchrunner | 第9章 | 登録エンジンで詰みを探す実行器（CLI・自動化 API と共有） |

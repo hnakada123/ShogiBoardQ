@@ -1,10 +1,10 @@
 /// @file tst_tsumeshogi_generator.cpp
-/// @brief 詰将棋局面生成テスト（TsumeshogiPositionGenerator + TsumePositionUtil）
+/// @brief 詰将棋局面生成テスト（TsumeshogiPositionGenerator + MateSearchPosition）
 
 #include <QtTest>
 
+#include "matesearchposition.h"
 #include "tsumeshogipositiongenerator.h"
-#include "tsumepositionutil.h"
 #include "threadtypes.h"
 
 class TestTsumeshogiGenerator : public QObject
@@ -12,6 +12,13 @@ class TestTsumeshogiGenerator : public QObject
     Q_OBJECT
 
 private:
+    /// 単独の局面（手順なし）を詰み探索に送る position コマンド（読めなければ空）
+    static QString matePositionCommand(const QString& sfen)
+    {
+        const std::optional<UsiPosition> position = MateSearchPosition::forLine(RecordLine{}, sfen);
+        return position ? position->command() : QString();
+    }
+
     /// SFEN文字列の基本バリデーション（スペース区切りで4トークン: 盤面 手番 持駒 手数）
     static bool isValidSfenFormat(const QString& sfen)
     {
@@ -133,7 +140,7 @@ private:
 
 private slots:
 
-    // --- TsumePositionUtil::buildPositionForMate ---
+    // --- MateSearchPosition（単独の局面の手番合わせ） ---
     void sfenRecord_returnsPositionWithForcedTurn();
     void onlyDefenderKing_turnIsWhite();
     void onlyAttackerKing_turnIsBlack();
@@ -158,7 +165,7 @@ private slots:
 };
 
 // ============================================================
-// TsumePositionUtil::buildPositionForMate テスト
+// MateSearchPosition テスト
 // ============================================================
 
 void TestTsumeshogiGenerator::sfenRecord_returnsPositionWithForcedTurn()
@@ -167,10 +174,10 @@ void TestTsumeshogiGenerator::sfenRecord_returnsPositionWithForcedTurn()
     QStringList sfenRecord = {
         QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1")
     };
-    const QString result = TsumePositionUtil::buildPositionForMate(sfenRecord.value(0));
+    const QString result = matePositionCommand(sfenRecord.value(0));
     // 両玉あり → 元の手番維持 (b)。平手の開始局面なので position の文字列は startpos（UsiPosition::commandFor）
     QCOMPARE(result, QStringLiteral("position startpos"));
-    const QString whiteToMove = TsumePositionUtil::buildPositionForMate(
+    const QString whiteToMove = matePositionCommand(
         QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 5"));
     QCOMPARE(whiteToMove, QStringLiteral("position sfen lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"));
 }
@@ -186,7 +193,7 @@ void TestTsumeshogiGenerator::onlyDefenderKing_turnIsWhite()
     QStringList sfenRecord = {
         QStringLiteral("9/9/9/9/4K4/9/9/9/9 b - 1")
     };
-    const QString result = TsumePositionUtil::buildPositionForMate(sfenRecord.value(0));
+    const QString result = matePositionCommand(sfenRecord.value(0));
     QVERIFY(result.startsWith(QStringLiteral("position sfen ")));
     QVERIFY(result.contains(QLatin1String(" w ")));
 }
@@ -198,7 +205,7 @@ void TestTsumeshogiGenerator::onlyAttackerKing_turnIsBlack()
     QStringList sfenRecord = {
         QStringLiteral("9/9/9/9/4k4/9/9/9/9 b - 1")
     };
-    const QString result = TsumePositionUtil::buildPositionForMate(sfenRecord.value(0));
+    const QString result = matePositionCommand(sfenRecord.value(0));
     QVERIFY(result.startsWith(QStringLiteral("position sfen ")));
     QVERIFY(result.contains(QLatin1String(" b ")));
 }
@@ -209,19 +216,19 @@ void TestTsumeshogiGenerator::bothKings_preservesTurn()
     QStringList sfenRecordB = {
         QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b - 1")
     };
-    const QString resultB = TsumePositionUtil::buildPositionForMate(sfenRecordB.value(0));
+    const QString resultB = matePositionCommand(sfenRecordB.value(0));
     QVERIFY(resultB.contains(QLatin1String(" b ")));
 
     QStringList sfenRecordW = {
         QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 w - 1")
     };
-    const QString resultW = TsumePositionUtil::buildPositionForMate(sfenRecordW.value(0));
+    const QString resultW = matePositionCommand(sfenRecordW.value(0));
     QVERIFY(resultW.contains(QLatin1String(" w ")));
 }
 
 void TestTsumeshogiGenerator::allSourcesEmpty_returnsEmpty()
 {
-    const QString result = TsumePositionUtil::buildPositionForMate(QString());
+    const QString result = matePositionCommand(QString());
     QVERIFY(result.isEmpty());
 }
 
@@ -229,7 +236,7 @@ void TestTsumeshogiGenerator::fallbackToStartSfen()
 {
     // 渡した局面（開始局面）から組み立てる
     const QString startSfen = QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b - 1");
-    const QString result = TsumePositionUtil::buildPositionForMate(startSfen);
+    const QString result = matePositionCommand(startSfen);
     QVERIFY(result.startsWith(QStringLiteral("position sfen ")));
     QVERIFY(!result.isEmpty());
 }

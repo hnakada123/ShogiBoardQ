@@ -154,10 +154,8 @@ void AnalysisSession::followDisplayedPosition()
     if (m_mode != Mode::Consideration) return;
     const KifuBranchNode* node = m_deps.navState->currentNode();
     if (!node || node->sfen().isEmpty()) return;
-    // 局面に至った手（読み筋の「同」の判定と、矢印の基準）
-    const std::optional<UsiMove> lastMove =
-        node->isActualMove() ? std::optional<UsiMove>(node->move().move) : std::nullopt;
-    if (const auto position = UsiPosition::fromSfen(node->sfen(), lastMove)) updatePosition(*position);
+    // 検討の開始と同じく開始局面からの手順で送る（千日手の判断材料。そこに至った手は読み筋の「同」の判定と矢印の基準）
+    if (const auto position = m_deps.navState->currentUsiPosition()) updatePosition(*position);
 }
 
 bool AnalysisSession::updatePosition(const UsiPosition& position)

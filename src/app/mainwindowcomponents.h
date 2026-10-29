@@ -47,6 +47,7 @@ class UsiLogPanel;
 
 // 対局・検討・通信対局
 class AnalysisSession;
+class KifuAnalysisSession;
 class ConsecutiveGameSeries;
 class CsaGameCoordinator;
 class CsaGameSession;
@@ -152,6 +153,7 @@ struct MainWindowComponents {
     EngineSlots* engines = nullptr;          ///< エンジンの枠 E1・E2（対局と検討で共有）
     MatchCoordinator* match = nullptr;                  ///< ローカル対局の司令塔
     AnalysisSession* analysisSession = nullptr;         ///< 検討・詰み探索
+    KifuAnalysisSession* kifuAnalysisSession = nullptr; ///< 棋譜解析の実行（画面は KifuAnalysisController）
     ConsecutiveGameSeries* consecutiveGames = nullptr;
     CsaGameCoordinator* csaGame = nullptr;              ///< 通信対局の司令塔
     GameSession* gameSession = nullptr;                 ///< 対局の利用者の操作と棋譜の受け手

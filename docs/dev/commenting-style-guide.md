@@ -295,12 +295,12 @@ struct Options {
 public:
     // --- 初期化 ---
 
-    AnalysisJob(AnalysisRequest request, const Deps& deps, QObject* parent = nullptr);
+    explicit KifuAnalysisSession(const Deps& deps, QObject* parent = nullptr);
 
     // --- 操作 API ---
 
-    /// 範囲の局面を順に解析する
-    bool start();
+    /// 解析を始める（前の解析は止める）
+    bool start(AnalysisRequest request);
 
     /// 解析をやめる（finished(false) を出す）
     void stop();
@@ -313,7 +313,7 @@ public:
 // 初期化
 // ============================================================
 
-AnalysisJob::AnalysisJob(AnalysisRequest request, const Deps& deps, QObject* parent)
+KifuAnalysisSession::KifuAnalysisSession(const Deps& deps, QObject* parent)
     : QObject(parent)
 {
     ...
@@ -323,7 +323,7 @@ AnalysisJob::AnalysisJob(AnalysisRequest request, const Deps& deps, QObject* par
 // 操作 API
 // ============================================================
 
-bool AnalysisJob::start()
+bool KifuAnalysisSession::start(AnalysisRequest request)
 {
     ...
 }

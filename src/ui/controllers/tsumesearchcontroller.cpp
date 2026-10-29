@@ -6,7 +6,7 @@
 #include "analysissession.h"
 #include "errorbus.h"
 #include "kifunavigationstate.h"
-#include "tsumepositionutil.h"
+#include "matesearchposition.h"
 #include "tsumeshogisearchdialog.h"
 
 #include <QTimer>
@@ -20,13 +20,8 @@ TsumeSearchController::TsumeSearchController(const Deps& deps, QObject* parent)
 
 std::optional<UsiPosition> TsumeSearchController::positionForMate() const
 {
-    const RecordLine line = m_deps.navState->currentRecordLine();
-    // 途中局面は開始局面からの指し手で送る（エンジンに千日手の判断材料を渡すため）
-    if (!line.isEmpty() && line.currentPly > 0) return line.usiPosition(line.currentPly);
-    // 開始局面（詰将棋の問題など）は、玉の有無から攻方を決めて手番を合わせる
-    const QString command =
-        TsumePositionUtil::buildPositionForMate(line.isEmpty() ? m_deps.navState->currentSfen() : line.startSfen);
-    return UsiPosition::parse(command);
+    // 途中局面は開始局面からの指し手で、開始局面（詰将棋の問題など）は玉の有無から決めた攻方の手番で送る
+    return MateSearchPosition::forLine(m_deps.navState->currentRecordLine(), m_deps.navState->currentSfen());
 }
 
 void TsumeSearchController::showDialogAndStart()

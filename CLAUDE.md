@@ -88,7 +88,7 @@ cmake --build build --target translations
   - `kifudocument.cpp/.h` - 開いている棋譜の文書 `KifuDocument`（分岐ツリー・対局情報・対局の記録（対局者・持ち時間・開始と終了の日時）・上書き保存先）。未保存かどうかは保存した時点との比較で求める（対局情報欄の編集は表に入れた時点で文書に入る。入力中のセル・コメント欄の未更新の本文は `Hooks`（`commitPendingEdits`・`hasPendingEdits`）で、保存・書き出し・対局の開始の前に確定し、未保存に数える）
   - `kifubranchtree.cpp/.h`・`kifubranchnode.cpp/.h` - 分岐ツリー `KifuBranchTree`（ルートを所有し、ノードは子を `std::unique_ptr` で所有する。木の形を変えられるのはツリーだけ）。手を足すのは `addRecord(parent, RecordEntry)` だけ。構造の変更は型付きのシグナル `nodeAppended(parentId, nodeId)`・`childrenReordered(parentId)`・`subtreeRemoved(parentId, nodeId)`・`reset()` で知らせ、`beginBatchUpdate()`〜`endBatchUpdate()` の間は遅らせて順に出す（作り直しを含めば `reset()` 1回）。テストで手を足す・探す補助は `tests/branchtree_test_util.h`（`TestTree`）
   - `kifuexport.cpp/.h` - 形式ごとの書き出しの表（`KifuExport::lines`。GUI の保存・コピーと CLI の変換で共通）
-  - `recordline.h`・`recordentry.h` - 1本の手順と1手の記録。手順の型は `RecordLine` だけ（読み込みの本譜・変化・書き出し・表示中の手順・対局の手順。末尾に終局の行を持てる）。エンジンに送る局面は `usiPosition(ply)`（作れなければ nullopt）
+  - `recordline.h`・`recordentry.h` - 1本の手順と1手の記録。手順の型は `RecordLine` だけ（読み込みの本譜・変化・書き出し・表示中の手順・対局の手順。末尾に終局の行を持てる）。エンジンに送る局面は `usiPosition(ply)`（作れなければ nullopt）と、範囲の各局面を手順を1度だけたどって作る `usiPositions(from, to)`（たどれなければ局面だけ。棋譜解析と CLI の analyze-kifu で共通）
   - `kifuformat.cpp/.h` - 棋譜の形式（読み込み・保存・変換で共通の1つの enum）と判定
   - `kifuloadparser.cpp/.h` - 棋譜の読み込み口（ファイルの文字コードの判別と形式ごとの変換器への振り分け）
   - `kifparsetypes.h` - 読み込み結果（`KifParseResult`・形式ごとの `parse()` が返す `KifuParseOutcome`）と、読めない手の扱い（`ParseOptions`・`ParseReport`。ここだけで決める）
@@ -110,15 +110,16 @@ cmake --build build --target translations
     - `usencodec.cpp/.h` - USEN の符号表 `UsenCodec`（指し手の3文字と `UsiMove` の符号化と復号 `encodeMove`・`decodeMove`、開始局面 `encodePosition`・`decodePosition`、手順 `decodeLine`・`decodeLines`（"~" で1回だけ分けて本譜と変化の `UsenLine` にする））。`UsenToSfenConverter` と `UsenExporter` が使う
 
 - **analysis/**: 解析機能（GUI に依存しない）
-  - `analysissession.cpp/.h` - 検討・詰み探索のセッション
-  - `analysisjob.cpp/.h` - 棋譜解析1回（`AnalysisJob`）。1局面の結果 `PlyAnalysis` は `PlyAnalysisCollector` が multipv 1 の info と bestmove から作る
+  - `analysissession.cpp/.h` - 検討・詰み探索のセッション。検討中に表示中の局面が変わったら `KifuNavigationState::currentUsiPosition()`（開始局面からの手順）で送り直す
+  - `kifuanalysissession.cpp/.h` - 棋譜解析の実行 `KifuAnalysisSession`（`start(AnalysisRequest)`・`stop()`。枠 E1 のエンジンと動作状態「棋譜解析中」のリースを持ち、取り上げられたらやめる。局面は `RecordLine::usiPositions`。stop の後に bestmove を返さないエンジンは CLI と同じ10秒で打ち切り、訳した理由を出す。知らせは `plyStarted`・`plyAnalyzed`・`finished`・`errorOccurred`）。画面（結果の表・評価値グラフ・棋譜の移動）は ui の `KifuAnalysisController`
+  - `engineanalysisrunner.cpp/.h` - 局面の列を1つのエンジンで順に解析する実行器 `EngineAnalysisRunner`（借りた `UsiEngineSession` を起動し、局面ごとに go infinite → 一定時間で stop → bestmove。候補手の数 `multiPv`（0 は送らない）と stop の後に bestmove を待つ上限 `replyTimeoutMs` は依頼で決める。`stop()` は解析中の局面の結果を待ち、`cancel()` は待たない）。GUI の棋譜解析と CLI の analyze・analyze-kifu で共通。1局面の結果 `PlyAnalysis` は `PlyAnalysisCollector` が multipv 1 の info と bestmove から作る
   - `tsumecandidatejob.cpp/.h`・`tsumeverificationjob.cpp/.h` - 詰将棋の候補1つの処理（手数の確認・唯一解の検査・要らない駒の除去）と、総予算つきの唯一解の検査（引き出し型の `MateQuerySource`。生成と CLI の検査で共通）
   - `tsumeshogigenerator.cpp/.h` - 詰将棋の生成（候補の待ち行列・問い合わせの中継・結果の集計）
   - `tsumecollectionsession.cpp/.h` - 詰将棋集の進捗・解析待ちの管理
-  - `tsumepositionutil.h` - 詰み探索の position の組み立て（`TsumePositionUtil::buildPositionForMate`。文字列は `UsiPosition::commandFor` で作る）
+  - `matesearchposition.h` - 詰み探索に送る局面 `MateSearchPosition`（`forLine`: 途中局面は開始局面からの手順、開始局面は `attackerToMove` で玉の有無から決めた攻方の手番・手数1。`Position` で合わせ、文字列を組み立てない）
 
 - **engine/**: USI (Universal Shogi Interface) エンジン連携（対局の仕組みに依存しない）
-  - `usi.cpp/.h` - GUI から使うエンジン1台の窓口
+  - `usi.cpp/.h` - GUI から使うエンジン1台の窓口（局面の列の解析には `session()` の `UsiEngineSession` を渡す）
   - `engineslots.cpp/.h` - エンジンの枠 E1・E2 `EngineSlots`（対局・検討・棋譜解析・CSA 通信対局で共有）。リース・取り上げの知らせ・表示の消去だけを受け持つ。使う側は `acquire(owner, slot, name)` で move-only の `EngineLease`（`engine()`・`reset()`）を受け取り、持っている間だけ使う。手放すと枠を空ける（持ち主には知らせない）。ほかの持ち主が同じ枠を取った・`destroyEngines()` で全部の枠を破棄したときは、前の持ち主に `engineRevoked(owner)` で知らせる（枠にあるかは `holds(engine)`）
   - `usienginesession.cpp/.h` - 起動と初期化（usi〜readyok）と探索の切り替え。GUI と CLI の実行器が共有する。探索（`search(UsiSearchRequest)`）は最後に頼んだものだけを行い、探索中なら stop を送って結果を捨ててから始める（検討のやり直し・先読みの外れ・詰みの問い合わせは頼み直すだけ）。空の局面は受け付けない（false）。`stop()` は最後の依頼をすぐ終わらせて結果を届け、`cancelSearch()` は取りやめる。`startAsync()`・`probeAsync()` は値を返さず、起動の失敗は必ず呼び出しから戻った後に `errorOccurred` で知らせる（知らせる前に `quit()`・次の起動をしたら知らせない）ので、使う側は起動の途中の再入に備えない（`Usi::startEngine`・`MateOracle::start` も同じ）
   - `usiprotocolhandler.cpp/.h` - USI protocol implementation
@@ -174,7 +175,7 @@ cmake --build build --target translations
   - `automationmethodspecs.cpp/.h` - 自動化 API の全メソッドの引数の表 `AutomationMethodSpecs`。メソッドは補われた値を読み、`AutomationParams` は範囲が画面の状態で決まる引数にだけ使う
   - `automationendpoint.cpp/.h` - 自動化 API の接続先 `AutomationEndpoint`（既定のソケットの場所・エンドポイントファイル・1メッセージの上限 `kMaxMessageBytes`）。自動化 API のサーバーと CLI の `environment` が共有する
   - `outputpath.cpp/.h` - 書き出し先の事前検査 `OutputPath::check`（絶対パス・ディレクトリでない・上書きの許可・置き場所。CLI の出力先と `kifu.save` で共通。MCP の `paths.py` も同じ分類）
-  - `kifuconversionservice`, `enginecatalog`, `engineanalysisrunner`（局面の列を1つのエンジンで順に解析。CLI の analyze・analyze-kifu）, `matesearchrunner`, `tsumeverificationrunner`（詰みの問い合わせは `MateOracle`） - CLI と自動化 API が使うサービス（局面の検証は core の `SfenValidator`、その JSON は `sfenvalidationjson`）。失敗は `Failure` で返す
+  - `kifuconversionservice`, `enginecatalog`, `matesearchrunner`, `tsumeverificationrunner`（詰みの問い合わせは `MateOracle`） - CLI と自動化 API が使うサービス（局面の検証は core の `SfenValidator`、その JSON は `sfenvalidationjson`）。失敗は `Failure` で返す
 - **cli/**: `shogiboardq-cli`（GUI を起動しない JSON 出力コマンド。`mcp/` の MCP サーバーが呼び出す）
   - `clicommandspecs.cpp/.h` - 全コマンドの引数の表 `CliCommandSpecs`（オプション名は引数名の `_` を `-` にしたもの）。オプションの登録・使い方の文・コマンドラインから検査済みの JSON への変換（真偽値はフラグ、文字列の配列は空白区切り）をこの表から行う。コマンドの名前・実装・出力の種類（JSON か JSON Lines のイベントか）は `main.cpp` の表の1行で決め、`CliCommands::run()` が引数を表で検査してから、検査済みの JSON をコマンドに渡す（コマンドは `resolvePosition(params)`・`resolveEngine(params)` で解決する）。指し手の JSON は CLI と自動化 API で共通の `headless/recordjson`（`RecordJson::entry`・`moves`）
   - `environment` コマンドは自動化 API の既定のソケット・エンドポイントファイル・設定ファイルの場所、1メッセージの上限（headless の `AutomationEndpoint`。自動化 API のサーバーも同じ値を使う）、エラーの分類の表を出す。MCP サーバー（`mcp/shogiboardq_mcp/environment.py`）はこれを読み、場所や上限・語を Python に写さない

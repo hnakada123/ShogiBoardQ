@@ -38,6 +38,7 @@
 #include "josekiregistrationcontroller.h"
 #include "josekiwindowcontroller.h"
 #include "kifuanalysiscontroller.h"
+#include "kifuanalysissession.h"
 #include "kifuanalysislistmodel.h"
 #include "kifubranchlistmodel.h"
 #include "kifubranchtree.h"
@@ -225,6 +226,7 @@ void MainWindowComposer::createMatchAndAnalysis()
     sd.activity = &m_activity;
     sd.navState = m_c.navState;
     m_c.analysisSession = new AnalysisSession(sd, &m_window);
+    m_c.kifuAnalysisSession = new KifuAnalysisSession({m_c.engines, &m_activity, nullptr}, &m_window);
     m_c.consecutiveGames = new ConsecutiveGameSeries(&m_window);
 
     CsaGameCoordinator::Deps cd;
@@ -494,15 +496,13 @@ void MainWindowComposer::createControllers()
     // 棋譜解析・詰み探索（メニューから始める）
     KifuAnalysisController::Deps kd;
     kd.parentWidget = &m_window;
-    kd.activity = &m_activity;
+    kd.session = m_c.kifuAnalysisSession;
     kd.analysisModel = m_c.analysis;
     kd.resultsPanel = m_c.analysisResults;
     kd.resultsDock = m_c.dockRegistry->dock(DockRegistry::DockId::AnalysisResults);
-    kd.engines = m_c.engines;
     kd.navState = m_c.navState;
     kd.pvBoards = m_c.pvClickController;
     kd.navController = m_c.kifuNavController;
-    kd.evalChart = m_c.evalChart;
     kd.evalGraph = m_c.evalGraph;
     m_c.kifuAnalysis = new KifuAnalysisController(kd, &m_window);
     m_c.tsumeSearch = new TsumeSearchController({&m_window, m_c.navState, m_c.analysisSession}, &m_window);

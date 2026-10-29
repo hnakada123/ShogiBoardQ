@@ -106,6 +106,34 @@ struct RecordLine {
         for (int i = 1; i <= last; ++i) played << usiMove(i);
         return UsiPosition::fromMoves(startSfen, played);
     }
+
+    /**
+     * @brief fromPly〜toPly 手目の後の各局面を、エンジンに送る値にする（[0] が fromPly。範囲は手順に収める）
+     *
+     * 手順を1度だけたどり、開始局面からの手順で送る（千日手の判断材料をエンジンに渡す。手の列は全部の局面で
+     * 共有する）。手順をたどれない（指せない手がある）ときは各局面を局面だけで送り、読めない局面は nullopt。
+     * 棋譜解析（GUI）と CLI の analyze-kifu で同じ局面を送るのに使う。
+     */
+    QList<std::optional<UsiPosition>> usiPositions(int fromPly, int toPly) const
+    {
+        QList<std::optional<UsiPosition>> positions;
+        if (isEmpty()) return positions;
+        const int last = qBound(0, toPly, moveCount());
+        const int first = qBound(0, fromPly, last);
+        positions.reserve(last - first + 1);
+        QList<UsiMove> played;
+        played.reserve(last);
+        for (int ply = 1; ply <= last; ++ply) played << usiMove(ply);
+        if (const std::optional<QList<UsiPosition>> along = UsiPosition::alongMoves(startSfen, played, first, last)) {
+            for (const UsiPosition& position : *along) positions << position;
+            return positions;
+        }
+        for (int ply = first; ply <= last; ++ply) {
+            const std::optional<UsiMove> lastMove = ply > 0 ? std::optional<UsiMove>(played.at(ply - 1)) : std::nullopt;
+            positions << UsiPosition::fromSfen(sfenAt(ply), lastMove);
+        }
+        return positions;
+    }
 };
 
 #endif // RECORDLINE_H

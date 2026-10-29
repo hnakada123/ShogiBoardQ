@@ -7,7 +7,7 @@
 #include <QSet>
 #include <optional>
 
-#include "analysisjob.h"
+#include "engineanalysisrunner.h"
 #include "recordline.h"
 
 class KifuAnalysisListModel;

@@ -107,6 +107,9 @@ public:
     const EngineProcessManager* process() const;
     /// 探索の状態と結果を知らせる部品（bestmove・checkmate・info）
     const UsiProtocolHandler* protocol() const;
+    /// 起動・探索・終了を頼む部品。局面の列の解析（EngineAnalysisRunner。CLI と共通）にだけ渡す
+    /// （思考情報・通信ログの表示はこの窓口が結んだまま）
+    UsiEngineSession* session() const { return m_session; }
 
 signals:
     void engineInitialized();
