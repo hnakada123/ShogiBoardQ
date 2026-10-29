@@ -1,11 +1,10 @@
-/// @file jkfmoveparser.cpp
-/// @brief JKF形式固有の指し手変換・初期局面構築・時間解析の実装
+/// @file jkfcodec.cpp
+/// @brief JKF 形式の値の符号表の実装
 
-#include "jkfmoveparser.h"
+#include "jkfcodec.h"
 #include "handicaps.h"
 #include "kifmovetext.h"
 #include "shoginotation.h"
-#include "sfenutils.h"
 #include "shogiposition.h"
 
 namespace {
@@ -18,14 +17,14 @@ constexpr RelativeEntry kRelatives[] = {
 
 } // namespace
 
-namespace JkfMoveParser {
+namespace JkfCodec {
 
 // --- プリセット・初期局面 ---
 
 QString presetToSfen(const QString& preset)
 {
     const Handicaps::Handicap* handicap = Handicaps::byJkfPreset(preset);
-    return handicap ? QString::fromLatin1(handicap->sfen) : SfenUtils::hirateSfen();
+    return handicap ? QString::fromLatin1(handicap->sfen) : QString();
 }
 
 QString presetFromSfen(const QString& sfen)
@@ -176,4 +175,4 @@ QString modifierToRelative(QStringView modifiers)
 
 
 
-} // namespace JkfMoveParser
+} // namespace JkfCodec

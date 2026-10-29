@@ -72,7 +72,7 @@ BoardInteractionController::onLeftClick(pt)
 
 `onLeftClick()` の処理:
 
-1. 受け付けの確認: 盤で指した手の行き先（`BoardInputRoute`、`src/board/boardinputroute.h`）の `acceptsInput()` が false なら無視する。主画面の行き先は `BoardMoveController` で、`BoardMoveController` のコンストラクタが `setInputRoute(this)` で登録する。局面編集中は常に受け付け、それ以外は `HumanTurnPolicy::isHumanTurnNow()`（`src/ui/controllers/humanturnpolicy.cpp`）で決める。対局中は `MatchCoordinator::isHumanSide(盤の手番)`、通信対局中は人間が指していて自分の手番か、対局していないときは変化として記録できるか（`BranchTreeEditController::canRecordBoardMove()`）。解析中・詰み探索中・検討中は受け付けない。
+1. 受け付けの確認: 盤で指した手の行き先（`BoardInputRoute`、`src/board/boardinputroute.h`）の `acceptsInput()` が false なら無視する。主画面の行き先は `BoardMoveController` で、`BoardMoveController` のコンストラクタが `setInputRoute(this)` で登録する。局面編集中は常に受け付け、それ以外は `HumanTurnPolicy::isHumanTurnNow()`（`src/ui/policy/humanturnpolicy.cpp`）で決める。対局中は `MatchCoordinator::isHumanSide(盤の手番)`、通信対局中は人間が指していて自分の手番か、対局していないときは変化として記録できるか（`BranchTreeEditController::canRecordBoardMove()`）。解析中・詰み探索中・検討中は受け付けない。
 2. 1回目のクリック（駒選択）: 持ち駒のない駒台のマスは無視する。`ShogiView::startDrag()` でドラッグを始め、`selectPieceAndHighlight()` で駒を選ぶ。選んだマスを `BoardHighlightLayer::Selection` の層に、合法な移動先（`EngineMoveValidator` で判定）を `LegalDestinations` の層に出す（メニューで表示を切り替えられる）。相手の駒台や空きマスは選ばない。`m_waitingSecondClick = true` に設定する。
 3. 2回目のクリック（移動先指定）: 同じマスならキャンセルする。別のマスなら行き先の `BoardInputRoute::submit(from, to)` に渡す。成り・不成のダイアログを出している間もドラッグ状態を保つため、ここではドラッグを終えない（`ShogiGameController::endDragSignal` → `ShogiView::endDrag()` で終える。`connectBoard()` が接続）。
 
@@ -174,7 +174,7 @@ Strategy は対局開始時（と再開時）に `MatchCoordinator::createStrate
 
 Strategy は `MatchStrategyHost`（`src/game/gamemodestrategy.h`。`MatchCoordinator` が private に実装する）を通して、エンジンの枠（`engines()`）・持ち時間の出どころ（`timeSource()`。対局時計の `ClockTimeSource`）・盤の手番（`sideToMove()`）・手数（`currentPly()`）・終局したか（`isGameOver()`）を読み、一手の確定（`completeHumanMove()`・`applyEngineMove()`）、エンジンへの思考の依頼（`requestEngineMove(side)`）、エンジンの初期化を待つ間の時計の停止（`setWaitingForEngines()`）、人間の考慮時間の記録（`recordConsiderationTime()`）を司令塔に頼む。Strategy は手番ごとに誰が指すかだけを決める。
 
-対局で指すエンジンは、Strategy が持つ `MatchEngineSeat`（`src/game/matchengineseat.cpp`）1台ずつで扱う（`GameModeStrategy::engineSeat(side)`。司令塔の `engineFor(side)` もここから引く）。`MatchEngineSeat::start(Params)` は `EngineLifecycleManager`（`src/game/enginelifecyclemanager.cpp`）の枠（E1・E2。思考情報と通信ログの表示先）からエンジンを借り（`acquire(owner, slot, name)` が返す move-only の `EngineLease`）、指す手番と持ち時間の出どころを渡して起動する。エンジンの初期化・指し手・投了・入玉宣言勝ち・エラーは `MatchEngineSeat` のシグナル（`initialized`・`moveReady`・`resigned`・`declaredWin`・`errorOccurred`）で届く。ほかの持ち主が同じ枠を取った・`destroyEngines()` で全部の枠を破棄したとき（`engineRevoked(owner)`）も `errorOccurred` で知らせる。`EngineLifecycleManager` は合成ルートが作り、司令塔（`MatchCoordinator::Deps::engines`）・検討・詰み探索（`AnalysisSession`）・棋譜解析・通信対局が共有する。枠の部品はリース・取り上げの知らせ・表示の消去だけを受け持ち、手番や時計は知らない。人間対エンジンでは、エンジンは手番によらず E1 に置く。
+対局で指すエンジンは、Strategy が持つ `MatchEngineSeat`（`src/game/matchengineseat.cpp`）1台ずつで扱う（`GameModeStrategy::engineSeat(side)`。司令塔の `engineFor(side)` もここから引く）。`MatchEngineSeat::start(Params)` は `EngineSlots`（`src/engine/engineslots.cpp`）の枠（E1・E2。思考情報と通信ログの表示先）からエンジンを借り（`acquire(owner, slot, name)` が返す move-only の `EngineLease`）、指す手番と持ち時間の出どころを渡して起動する。エンジンの初期化・指し手・投了・入玉宣言勝ち・エラーは `MatchEngineSeat` のシグナル（`initialized`・`moveReady`・`resigned`・`declaredWin`・`errorOccurred`）で届く。ほかの持ち主が同じ枠を取った・`destroyEngines()` で全部の枠を破棄したとき（`engineRevoked(owner)`）も `errorOccurred` で知らせる。`EngineSlots` は合成ルートが作り、司令塔（`MatchCoordinator::Deps::engines`）・検討・詰み探索（`AnalysisSession`）・棋譜解析・通信対局が共有する。枠の部品はリース・取り上げの知らせ・表示の消去だけを受け持ち、手番や時計は知らない。人間対エンジンでは、エンジンは手番によらず E1 に置く。
 
 エンジンへの思考依頼は非同期である。依頼した関数はすぐに戻り、指し手は `Usi::matchMoveReady(const UsiMatchMove&)` → `MatchEngineSeat::moveReady` で Strategy の `onEngineMoveReady()` に届く。人間が先に指した後でもエンジンが初期化中なら、Strategy は初期化を待つ間時計を止め（`setWaitingForEngines(true)`）、`initialized` を受けてから思考を頼む。`UsiMatchMove`（`src/engine/usimatchhandler.h`）は、指した側・指し手・考えた時間・最善の読み筋の評価値を持つ。先読みの局面は `UsiMatchHandler` だけが持ち、`UsiMatchMove` には載せない。
 
@@ -483,7 +483,7 @@ entries[1] ...
 - `completeMove()` が確定した手を末尾に足す。行の SFEN は `ShogiGameController::commitMove()` が指した後の盤から作る（`ShogiBoard::applyUsiMove()` が SFEN の手数を1つ進める）。
 - エンジンに探索させる局面は `m_record.usiPosition(currentPly())`、次の手の「同」表記の基準は `lastMoveDestination()`（`m_record.destinationOf(currentPly())`）、千日手の判定は `m_record.sfens()` から作る。待った（`undoTwoPlies()`）は末尾の2手を取り除き、両方のエンジンに `Usi::forgetPonder()` で先読みの局面を捨てさせる。
 
-対局の設定・対局者・最大手数・終局状態は `MatchSessionState`（`src/game/matchsessionstate.h`）が持つ。先読みの局面はエンジンの `UsiMatchHandler` だけが持つ。
+対局の設定・対局者・最大手数・終局状態は `MatchSessionState`（`src/game/matchcoordinator.h`）が持つ。先読みの局面はエンジンの `UsiMatchHandler` だけが持つ。
 
 ### 4.2 棋譜行の追記
 
@@ -683,7 +683,7 @@ void MatchCoordinator::endGame(const GameEndInfo& info, std::optional<Turn> engi
 
 `MatchSessionState::finish()` は終局済みなら `false` を返し、そうでなければ `isOver`・`hasLast`・`lastInfo`・`when` を設定する。終局状態はこのクラスの操作（`finish()`・`markTerminalRecorded()`・`clearGameOver()`）でだけ変える。
 
-終局の型は `src/game/matchtypes.h` にある（`MatchCoordinator::Cause`・`GameEndInfo`・`GameOverState` はその using エイリアス）:
+終局の型は `src/game/matchcoordinator.h` にある（`MatchCoordinator::Cause`・`GameEndInfo`・`GameOverState` はその using エイリアス）:
 
 ```cpp
 struct MatchGameEndInfo {
@@ -1024,7 +1024,7 @@ MatchCoordinator::handleEngineError(msg)
 | 千日手 | `Sennichite` | 同一局面の4回目の出現 | `"▲千日手"` |
 | 連続王手の千日手 | `OuteSennichite` | 同一局面の4回目の出現で、一方の手がすべて王手 | `"▲反則負け"` / `"▲反則勝ち"` |
 
-`Cause` は `MatchCoordinator::Cause`（`src/game/matchtypes.h` の `MatchCause`）。棋譜表記の印の側は 6.3 を参照。
+`Cause` は `MatchCoordinator::Cause`（`src/game/matchcoordinator.h` の `MatchCause`）。棋譜表記の印の側は 6.3 を参照。
 
 ---
 
@@ -1084,24 +1084,24 @@ MatchCoordinator::handleResign()
 | 盤で指した手の振り分け | `src/ui/controllers/boardmovecontroller.h` | `src/ui/controllers/boardmovecontroller.cpp` |
 | 部品の生成と配線（司令塔のシグナルの接続） | `src/app/mainwindowcomposer.h` | `src/app/mainwindowcomposer_create.cpp`, `src/app/mainwindowcomposer_wire.cpp` |
 | 盤で指した手の行き先（インターフェース） | `src/board/boardinputroute.h` | - |
-| 盤を人間が操作できるかの判定 | `src/ui/controllers/humanturnpolicy.h` | `src/ui/controllers/humanturnpolicy.cpp` |
+| 盤を人間が操作できるかの判定 | `src/ui/policy/humanturnpolicy.h` | `src/ui/policy/humanturnpolicy.cpp` |
 | 盤（局面と手番） | `src/core/shogiboard.h` | `src/core/shogiboard.cpp` |
 | ゲームコントローラ | `src/game/shogigamecontroller.h` | `src/game/shogigamecontroller.cpp` |
 | 対局司令塔（一手の確定・終局・待った・中断と再開） | `src/game/matchcoordinator.h` | `src/game/matchcoordinator.cpp` |
-| 対局の設定・終局状態 | `src/game/matchsessionstate.h` | - |
+| 対局の設定・終局状態 | `src/game/matchcoordinator.h` | - |
 | 棋譜の受け手のインターフェース | `src/game/matchrecordsink.h` | - |
 | 対局相手の窓口（投了・中断・即指し・入玉宣言） | `src/game/gamechannel.h`、`src/network/csagamechannel.h` | `src/game/gamechannel.cpp`、`src/network/csagamechannel.cpp` |
 | 終局した棋譜の自動保存の指定 | `src/game/matchautosave.h` | - |
-| 終局の型 | `src/game/matchtypes.h` | - |
+| 終局の型 | `src/game/matchcoordinator.h` | - |
 | 対局者 | `src/core/matchplayers.h` | - |
 | Strategy の基底・司令塔への操作（MatchStrategyHost） | `src/game/gamemodestrategy.h` | - |
 | 人間対エンジン | `src/game/humanvsenginestrategy.h` | `src/game/humanvsenginestrategy.cpp` |
 | 人間同士 | `src/game/humanvshumanstrategy.h` | `src/game/humanvshumanstrategy.cpp` |
 | エンジン同士 | `src/game/enginevsenginestrategy.h` | `src/game/enginevsenginestrategy.cpp` |
-| エンジンの枠・終局の通知・投了の知らせ | `src/game/enginelifecyclemanager.h` | `src/game/enginelifecyclemanager.cpp` |
+| エンジンの枠・終局の通知・投了の知らせ | `src/engine/engineslots.h` | `src/engine/engineslots.cpp` |
 | 千日手の判定 | `src/game/sennichitedetector.h` | `src/game/sennichitedetector.cpp` |
 | 入玉宣言の判定 | `src/game/nyugyokujudgement.h` | `src/game/nyugyokujudgement.cpp` |
-| 中断した対局の状態 | `src/game/interruptedgamestate.h` | - |
+| 中断した対局の状態 | `src/game/matchcoordinator.h` | - |
 | 連続対局 | `src/game/consecutivegameseries.h` | `src/game/consecutivegameseries.cpp` |
 | 対局の利用者の操作（開始・投了・中断・再開・入玉宣言）、棋譜の受け手、終局後の処理（ローカル対局・通信対局で共通） | `src/app/gamesession.h` | `src/app/gamesession.cpp` |
 | ライブ対局のセッション | `src/kifu/livegamesession.h` | `src/kifu/livegamesession.cpp` |
@@ -1122,5 +1122,5 @@ MatchCoordinator::handleResign()
 | USIプロトコルハンドラ | `src/engine/usiprotocolhandler.h` | `src/engine/usiprotocolhandler.cpp` |
 | go の時間の計算 | `src/engine/usigotime.h` | `src/engine/usigotime.cpp` |
 | メニューの配線 | `src/app/menuactionswiring.h` | `src/app/menuactionswiring.cpp` |
-| 動作状態ごとのメニュー・盤のクリックの有効/無効 | `src/ui/coordinators/uistatepolicymanager.h` | `src/ui/coordinators/uistatepolicymanager.cpp` |
+| 動作状態ごとのメニュー・盤のクリックの有効/無効 | `src/ui/policy/uistatepolicymanager.h` | `src/ui/policy/uistatepolicymanager.cpp` |
 | 利用者の入玉宣言（確認・宣言・結果の表示） | `src/ui/controllers/nyugyokudeclarationhandler.h` | `src/ui/controllers/nyugyokudeclarationhandler.cpp` |

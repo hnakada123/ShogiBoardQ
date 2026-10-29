@@ -7,10 +7,10 @@
 #include <QTemporaryFile>
 
 #include "boundedfile.h"
-#include "kifreader.h"
+#include "kifutextdecoder.h"
 #include "shiftjiscodec.h"
 
-class TestKifReader : public QObject
+class TestKifuTextDecoder : public QObject
 {
     Q_OBJECT
 
@@ -38,7 +38,7 @@ private slots:
         QFETCH(QString, expectedEncoding);
         QFETCH(QStringList, expectedLines);
 
-        QTemporaryFile file(QDir::tempPath() + QStringLiteral("/kifreader_XXXXXX.txt"));
+        QTemporaryFile file(QDir::tempPath() + QStringLiteral("/kifutextdecoder_XXXXXX.txt"));
         QVERIFY(file.open());
         QCOMPARE(file.write(content), content.size());
         file.close();
@@ -46,7 +46,7 @@ private slots:
         QStringList lines;
         QString usedEncoding;
         QString warn;
-        QVERIFY(KifReader::readAllLinesAuto(file.fileName(), lines, &usedEncoding, &warn));
+        QVERIFY(KifuTextDecoder::readAllLinesAuto(file.fileName(), lines, &usedEncoding, &warn));
 
         QCOMPARE(usedEncoding, expectedEncoding);
         QCOMPARE(lines, expectedLines);
@@ -55,7 +55,7 @@ private slots:
 
     void readAllLinesAuto_decodesShiftJis()
     {
-        QTemporaryFile file(QDir::tempPath() + QStringLiteral("/kifreader_XXXXXX.kif"));
+        QTemporaryFile file(QDir::tempPath() + QStringLiteral("/kifutextdecoder_XXXXXX.kif"));
         QVERIFY(file.open());
         const QByteArray content = QByteArray::fromHex("81a38256985a95e00d0a");  // "▲７六歩\r\n"
         QCOMPARE(file.write(content), content.size());
@@ -63,7 +63,7 @@ private slots:
 
         QStringList lines;
         QString usedEncoding;
-        QVERIFY(KifReader::readAllLinesAuto(file.fileName(), lines, &usedEncoding));
+        QVERIFY(KifuTextDecoder::readAllLinesAuto(file.fileName(), lines, &usedEncoding));
 
         QCOMPARE(usedEncoding, QStringLiteral("cp932"));
         QCOMPARE(lines, (QStringList{QStringLiteral("▲７六歩"), QString()}));
@@ -111,13 +111,13 @@ private slots:
         if (QFileInfo::exists(QStringLiteral("/dev/zero"))) {
             QStringList lines;
             QString warn;
-            QVERIFY(!KifReader::readAllLinesAuto(QStringLiteral("/dev/zero"), lines, nullptr, &warn));
+            QVERIFY(!KifuTextDecoder::readAllLinesAuto(QStringLiteral("/dev/zero"), lines, nullptr, &warn));
             QVERIFY(warn.contains(QStringLiteral("not a regular file")));
         }
 #endif
     }
 };
 
-QTEST_MAIN(TestKifReader)
+QTEST_MAIN(TestKifuTextDecoder)
 
-#include "tst_kifreader.moc"
+#include "tst_kifutextdecoder.moc"

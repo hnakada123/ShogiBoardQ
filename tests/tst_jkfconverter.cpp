@@ -2,7 +2,7 @@
 #include <QCoreApplication>
 
 #include "kifu_file_helper.h"
-#include "jkfmoveparser.h"
+#include "jkfcodec.h"
 #include "jkftosfenconverter.h"
 #include "kifparsetypes.h"
 #include "kifu_test_helper.h"
@@ -46,7 +46,7 @@ private slots:
 
     void presetToSfen_hirate()
     {
-        QString sfen = JkfMoveParser::presetToSfen(QStringLiteral("HIRATE"));
+        QString sfen = JkfCodec::presetToSfen(QStringLiteral("HIRATE"));
         QCOMPARE(sfen, kHirateSfen);
     }
 
@@ -259,9 +259,9 @@ private slots:
 
     void presetToSfen_unknown()
     {
-        // Unknown presets use the documented hirate fallback.
-        QString sfen = JkfMoveParser::presetToSfen(QStringLiteral("UNKNOWN_PRESET"));
-        QCOMPARE(sfen, kHirateSfen);
+        // Unknown presets have no known start position (the reader rejects them).
+        QString sfen = JkfCodec::presetToSfen(QStringLiteral("UNKNOWN_PRESET"));
+        QVERIFY(sfen.isEmpty());
     }
 
     // ========================================

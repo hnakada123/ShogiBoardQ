@@ -11,7 +11,7 @@
 
 #include "analysisjob.h"
 #include "appactivitystate.h"
-#include "enginelifecyclemanager.h"
+#include "engineslots.h"
 
 class AnalysisResultsPanel;
 class KifuAnalysisRowPresenter;
@@ -47,7 +47,7 @@ public:
         KifuAnalysisListModel* analysisModel = nullptr;     ///< 解析結果の表（必須）
         AnalysisResultsPanel* resultsPanel = nullptr;   ///< 解析結果の表（必須。モデルは作るときに結ぶ）
         QDockWidget* resultsDock = nullptr;             ///< 解析を始めたときに出す、結果の表のドック
-        EngineLifecycleManager* engines = nullptr;          ///< 解析のエンジンを置く枠 E1（表示は枠を結ぶ側が行う）
+        EngineSlots* engines = nullptr;          ///< 解析のエンジンを置く枠 E1（表示は枠を結ぶ側が行う）
         // --- 解析する手順と、結果の反映先（無くてもよい） ---
         const KifuNavigationState* navState = nullptr;      ///< 解析する手順（表示中の手順）
         PvClickController* pvBoards = nullptr;              ///< 結果の行のダブルクリックで読み筋盤を開く

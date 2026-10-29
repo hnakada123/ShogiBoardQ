@@ -18,7 +18,7 @@ USI の指し手と1対1の値型と、座標・表記の対応表は1か所に�
 | `ShogiBoard::applyUsiMove()` | `src/core/shogiboard.cpp` | 表示の盤に `Position::apply()` で指し、変わったマス・駒台・手番を知らせる。対局の着手の確定（`ShogiGameController::commitMove()`）が使う |
 | `ShogiGameController::applyMove()` | `src/game/shogigamecontroller.cpp` | 対局で指す。エンジンの手は合法手か確かめ、反則手は盤を変えずに断る（`std::nullopt`）。通信対局の手（サーバーが裁定する）は `applyRecordedMove()`、盤のクリック操作は `validateAndMove()` が成りを選ばせてから同じ確定処理を通る。どれも指した手を `RecordEntry`（4.4）で返す |
 | `ShogiNotation` | `src/core/shoginotation.h` | 全角の筋・漢数字の段、駒の名前（指し手用は成香・成桂・成銀を2文字、局面図用は杏・圭・全）、CSA の駒種 |
-| `KifMoveText::format()` | `src/core/kifmovetext.h` | 「▲７六歩(77)」「△同　銀(31)」「▲５五角打」の形の指し手。対局の棋譜・棋譜の読み込み（全形式。`KifLineBuilder` が指し手から作る）・通信対局・定跡・詰将棋の読み筋が使う |
+| `KifMoveText::format()` | `src/kifu/formats/kifmovetext.h` | 「▲７六歩(77)」「△同　銀(31)」「▲５五角打」の形の指し手。対局の棋譜・棋譜の読み込み（全形式。`KifLineBuilder` が指し手から作る）・通信対局・定跡・詰将棋の読み筋が使う |
 | `SfenReplay` | `src/core/sfenreplay.h` | 局面に USI の1手を指す（`applyLenient()`・`positionAfter()`。合法手かは確かめない）。局面は `Position` で持つ |
 | `KifLineBuilder` | `src/kifu/formats/kiflinebuilder.h` | 棋譜の読み込みで1本の手順（`RecordLine`）を組み立てる（全形式で共通。9.3）。手を指したその場で局面を進めて `RecordEntry` を作る |
 | `UsiPosition` | `src/core/usiposition.h` | エンジンに探索させる局面（開始局面・指し手の列・指した後の局面・直前の手）。`command()` が position コマンドを作り、`RecordLine::usiPosition()` が手順から作る |
@@ -50,7 +50,7 @@ CSA の読み込み（`CsaLexer`）も、開始局面（PI・P1〜P9・P+/P-・0
 読み筋の最初の手の「同」の基準は、探索の局面に至った手（`UsiPosition::lastMove()`。先読み中は予想した相手の手）の移動先である。
 詰将棋の局面生成（`TsumeshogiPositionGenerator`）と駒を1枚除く処理（`TsumeCandidateJob`）も `Position` で局面を持つ。
 
-2つの局面の差分（`SfenDiffUtils`、`src/core/sfendiffutils.h`。局面は `Position::fromSfenLike()` で読む）から手を求めるのは、
+2つの局面の差分（`SfenDiffUtils`、`src/dialogs/sfendiffutils.h`。局面は `Position::fromSfenLike()` で読む）から手を求めるのは、
 読み筋の盤の読み筋の値（`PvLine`、`src/dialogs/pvline.h`）だけである。開始局面に至った手（`PvLine::setArrival()` の `lastMove`）が分からないときに、至る前の局面と開始局面の盤を比べて、開始局面で強調する移動元と移動先を決める。読み筋の手を指した後の局面では、指した手そのものから強調する（`PvLine::highlight(ply)`。駒打ちの移動元は打った側の駒台）。
 棋譜をたどるときの盤のハイライト（`BoardSyncPresenter`）は、表示中のノードの指し手（`KifuBranchNode::move()`）から求める（6.5.2）。
 対局で次の手の「同」の基準は、対局の手順の最後の手の移動先（`MatchCoordinator::lastMoveDestination()` = `RecordLine::destinationOf(currentPly())`）から決め、指すたびに `ShogiGameController` に渡す。待った（`MatchCoordinator::undoTwoPlies()`）や中断の再開の後も、手順から導くので写しを直す処理は無い。
@@ -921,7 +921,7 @@ JSON 形式で棋譜を表現。分岐対応。
 - 変化は、分岐点で代わられる手（親の先頭の子）の要素の `forks` に、親の2番目以降の子からの手順を入れる。変化の中の分岐も同じ。
 - 終局はノードの `TerminalType` から `special` にする（`TerminalCodes::csaSpecial()`。CSA と同じ表で、千日手は王手千日手を区別する）。反則勝ちは、手番でない側の反則
   （先手番なら `-ILLEGAL_ACTION`）。JKF に無い不戦勝・不戦敗は書かない。
-- `initial.preset` は、盤・手番・持ち駒が手合割の開始局面と同じときだけ書き（`JkfMoveParser::presetFromSfen`。
+- `initial.preset` は、盤・手番・持ち駒が手合割の開始局面と同じときだけ書き（`JkfCodec::presetFromSfen`。
   読み込みと同じ表）、それ以外は `OTHER` と `data`（盤と持ち駒）で書く。
 
 ### 7.7 USEN形式（URL Safe sfen-Extended Notation）

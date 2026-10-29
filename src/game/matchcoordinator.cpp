@@ -9,7 +9,7 @@
 
 #include "appactivitystate.h"
 
-#include "enginelifecyclemanager.h"
+#include "engineslots.h"
 #include "enginevsenginestrategy.h"
 #include "humanvsenginestrategy.h"
 #include "humanvshumanstrategy.h"

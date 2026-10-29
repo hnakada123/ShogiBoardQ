@@ -1187,31 +1187,24 @@
 <context>
     <name>BoardImageExporter</name>
     <message>
-        <location filename="../../src/board/boardimageexporter.cpp" line="47"/>
-        <location filename="../../src/board/boardimageexporter.cpp" line="79"/>
-        <location filename="../../src/board/boardimageexporter.cpp" line="87"/>
         <source>Error</source>
-        <translation>錯誤</translation>
+        <translation type="vanished">錯誤</translation>
     </message>
     <message>
-        <location filename="../../src/board/boardimageexporter.cpp" line="48"/>
         <source>No writable image formats are available.</source>
-        <translation>沒有可寫入的圖片格式。</translation>
+        <translation type="vanished">沒有可寫入的圖片格式。</translation>
     </message>
     <message>
-        <location filename="../../src/board/boardimageexporter.cpp" line="69"/>
         <source>Output the image</source>
-        <translation>儲存圖片</translation>
+        <translation type="vanished">儲存圖片</translation>
     </message>
     <message>
-        <location filename="../../src/board/boardimageexporter.cpp" line="80"/>
         <source>This image format is not available: %1</source>
-        <translation>此圖片格式不可用：%1</translation>
+        <translation type="vanished">此圖片格式不可用：%1</translation>
     </message>
     <message>
-        <location filename="../../src/board/boardimageexporter.cpp" line="88"/>
         <source>Failed to save the image: %1</source>
-        <translation>儲存圖片失敗：%1</translation>
+        <translation type="vanished">儲存圖片失敗：%1</translation>
     </message>
 </context>
 <context>
@@ -3401,12 +3394,12 @@
 <context>
     <name>DialogLauncher</name>
     <message>
-        <location filename="../../src/ui/coordinators/dialoglauncher.cpp" line="65"/>
+        <location filename="../../src/ui/controllers/dialoglauncher.cpp" line="65"/>
         <source>エラー</source>
         <translation>錯誤</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/dialoglauncher.cpp" line="65"/>
+        <location filename="../../src/ui/controllers/dialoglauncher.cpp" line="65"/>
         <source>盤面データがありません。</source>
         <translation>沒有棋盤資料。</translation>
     </message>
@@ -3476,101 +3469,101 @@
 <context>
     <name>DockLayoutManager</name>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="48"/>
+        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="48"/>
         <source>ドックレイアウトを保存</source>
         <translation>儲存面板佈局</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="49"/>
+        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="49"/>
         <source>レイアウト名:</source>
         <translation>佈局名稱：</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="64"/>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="104"/>
+        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="64"/>
+        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="104"/>
         <source>確認</source>
         <translation>確認</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="65"/>
+        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="65"/>
         <source>「%1」は既に存在します。上書きしますか？</source>
         <translation>「%1」已存在。覆寫嗎？</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="66"/>
+        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="66"/>
         <source>上書きする</source>
         <translation>覆寫</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="78"/>
+        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="78"/>
         <source>保存完了</source>
         <translation>儲存完成</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="79"/>
+        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="79"/>
         <source>レイアウト「%1」を保存しました。</source>
         <translation>已儲存佈局「%1」。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="88"/>
+        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="88"/>
         <source>エラー</source>
         <translation>錯誤</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="89"/>
+        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="89"/>
         <source>レイアウト「%1」が見つかりません。</source>
         <translation>找不到佈局「%1」。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="105"/>
+        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="105"/>
         <source>レイアウト「%1」を削除しますか？</source>
         <translation>刪除佈局「%1」嗎？</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="105"/>
+        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="105"/>
         <source>削除する</source>
         <translation>刪除</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="117"/>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="127"/>
+        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="117"/>
+        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="127"/>
         <source>設定完了</source>
         <translation>設定完成</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="118"/>
+        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="118"/>
         <source>レイアウト「%1」を起動時のレイアウトに設定しました。</source>
         <translation>已將佈局「%1」設為啟動佈局。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="128"/>
+        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="128"/>
         <source>起動時のレイアウト設定をクリアしました。
 次回起動時はデフォルトレイアウトが使用されます。</source>
         <translation>已清除啟動佈局設定。
 下次啟動時將使用預設佈局。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="158"/>
+        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="158"/>
         <source>（保存済みレイアウトなし）</source>
         <translation>（無已儲存的佈局）</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="172"/>
+        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="172"/>
         <source>復元</source>
         <translation>恢復</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="177"/>
+        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="177"/>
         <source>起動時のレイアウトに設定</source>
         <translation>設為啟動佈局</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="184"/>
+        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="184"/>
         <source>削除</source>
         <translation>刪除</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="192"/>
+        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="192"/>
         <source>起動時のレイアウトをクリア</source>
         <translation>清除啟動佈局</translation>
     </message>
@@ -3578,62 +3571,62 @@
 <context>
     <name>DockRegistry</name>
     <message>
-        <location filename="../../src/ui/coordinators/dockregistry.cpp" line="61"/>
+        <location filename="../../src/ui/docks/dockregistry.cpp" line="61"/>
         <source>棋譜</source>
         <translation>棋譜</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/dockregistry.cpp" line="63"/>
+        <location filename="../../src/ui/docks/dockregistry.cpp" line="63"/>
         <source>対局情報</source>
         <translation>對局資訊</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/dockregistry.cpp" line="65"/>
+        <location filename="../../src/ui/docks/dockregistry.cpp" line="65"/>
         <source>思考</source>
         <translation>思考</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/dockregistry.cpp" line="67"/>
+        <location filename="../../src/ui/docks/dockregistry.cpp" line="67"/>
         <source>検討</source>
         <translation>研究</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/dockregistry.cpp" line="69"/>
+        <location filename="../../src/ui/docks/dockregistry.cpp" line="69"/>
         <source>USI通信ログ</source>
         <translation>USI 記錄</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/dockregistry.cpp" line="71"/>
+        <location filename="../../src/ui/docks/dockregistry.cpp" line="71"/>
         <source>CSA通信ログ</source>
         <translation>CSA 記錄</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/dockregistry.cpp" line="73"/>
+        <location filename="../../src/ui/docks/dockregistry.cpp" line="73"/>
         <source>棋譜コメント</source>
         <translation>註解</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/dockregistry.cpp" line="75"/>
+        <location filename="../../src/ui/docks/dockregistry.cpp" line="75"/>
         <source>分岐ツリー</source>
         <translation>變化樹</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/dockregistry.cpp" line="77"/>
+        <location filename="../../src/ui/docks/dockregistry.cpp" line="77"/>
         <source>評価値グラフ</source>
         <translation>評價值圖表</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/dockregistry.cpp" line="79"/>
+        <location filename="../../src/ui/docks/dockregistry.cpp" line="79"/>
         <source>メニュー</source>
         <translation>選單</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/dockregistry.cpp" line="82"/>
+        <location filename="../../src/ui/docks/dockregistry.cpp" line="82"/>
         <source>定跡</source>
         <translation>定跡</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/dockregistry.cpp" line="84"/>
+        <location filename="../../src/ui/docks/dockregistry.cpp" line="84"/>
         <source>棋譜解析</source>
         <translation>棋譜分析</translation>
     </message>
@@ -3779,294 +3772,294 @@
 <context>
     <name>EngineOptionDescriptions</name>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="77"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="77"/>
         <source>基本設定</source>
         <translation>基本設定</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="79"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="79"/>
         <source>思考設定</source>
         <translation>搜尋設定</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="81"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="81"/>
         <source>時間制御</source>
         <translation>時間控制</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="83"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="83"/>
         <source>定跡設定</source>
         <translation>定跡設定</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="85"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="85"/>
         <source>対局ルール</source>
         <translation>對局規則</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="88"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="88"/>
         <source>その他</source>
         <translation>其他</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="112"/>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="248"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="112"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="248"/>
         <source>探索に使用するスレッド数</source>
         <translation>搜尋執行緒數</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="115"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="115"/>
         <source>置換表サイズ(MB)</source>
         <translation>置換表大小 (MB)</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="118"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="118"/>
         <source>出力する候補手の数</source>
         <translation>輸出候選著法的數量</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="121"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="121"/>
         <source>評価関数フォルダのパス</source>
         <translation>評價函數資料夾路徑</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="126"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="126"/>
         <source>相手の手番中の先読み</source>
         <translation>在對手行棋時思考</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="129"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="129"/>
         <source>Ponder時の確率的な応手予測</source>
         <translation>背景思考時按機率預測應手</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="134"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="134"/>
         <source>探索の最大深さ(0で無制限)</source>
         <translation>最大搜尋深度（0 表示不限）</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="137"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="137"/>
         <source>探索ノード数の上限(0で無制限)</source>
         <translation>最大搜尋節點數（0 表示不限）</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="142"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="142"/>
         <source>検討モードの有効化</source>
         <translation>啟用研究模式</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="145"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="145"/>
         <source>fail-low/fail-high時の読み筋出力</source>
         <translation>在 fail-low/fail-high 時輸出主要變化</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="150"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="150"/>
         <source>通信遅延補正(ミリ秒)</source>
         <translation>通訊延遲補償（毫秒）</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="153"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="153"/>
         <source>秒読み時の最大遅延補正(ミリ秒)</source>
         <translation>讀秒時的最大延遲補償（毫秒）</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="156"/>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="272"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="156"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="272"/>
         <source>最小思考時間(ミリ秒)</source>
         <translation>最短思考時間（毫秒）</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="159"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="159"/>
         <source>序盤の時間配分調整(100が標準)</source>
         <translation>開局時間分配調整（100 為標準）</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="162"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="162"/>
         <source>消費時間の秒単位切り上げ</source>
         <translation>將用時向上取整為秒</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="167"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="167"/>
         <source>エンジン内蔵定跡の使用</source>
         <translation>使用引擎內建定跡</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="170"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="170"/>
         <source>使用する定跡ファイル</source>
         <translation>定跡檔案</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="173"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="173"/>
         <source>定跡フォルダのパス</source>
         <translation>定跡資料夾路徑</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="176"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="176"/>
         <source>定跡を使用する手数の上限</source>
         <translation>使用定跡的最大手數</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="179"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="179"/>
         <source>定跡を無視する確率(%)</source>
         <translation>忽略定跡的機率 (%)</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="182"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="182"/>
         <source>定跡の部分読み込み</source>
         <translation>部分載入定跡</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="185"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="185"/>
         <source>最善手に近い定跡手のみの選択</source>
         <translation>只選擇接近最佳著法的定跡著法</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="188"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="188"/>
         <source>定跡の評価値差の許容範囲</source>
         <translation>定跡著法允許的評價值差</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="191"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="191"/>
         <source>先手番での定跡採用の評価値下限</source>
         <translation>先手採用定跡的最低評價值</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="194"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="194"/>
         <source>後手番での定跡採用の評価値下限</source>
         <translation>後手採用定跡的最低評價值</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="197"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="197"/>
         <source>定跡として採用する最小探索深さ（0で深さを問わない）</source>
         <translation>採用定跡的最低搜尋深度（0 表示不限深度）</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="200"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="200"/>
         <source>定跡選択時の出現頻度考慮</source>
         <translation>選擇定跡時考慮出現頻率</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="203"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="203"/>
         <source>定跡の読み筋出力手数</source>
         <translation>定跡主要變化輸出手數</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="206"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="206"/>
         <source>定跡の局面の手数を無視（手数違いの同じ局面にも定跡を使う）</source>
         <translation>忽略定跡局面的手數（手數不同的相同局面也使用定跡）</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="209"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="209"/>
         <source>後手定跡の先手定跡からの反転生成</source>
         <translation>翻轉先手定跡以生成後手定跡</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="214"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="214"/>
         <source>入玉時の勝敗判定ルール</source>
         <translation>入玉判定規則</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="217"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="217"/>
         <source>引き分けとなる手数(0で無効)</source>
         <translation>和棋手數限制（0 表示停用）</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="220"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="220"/>
         <source>投了する評価値</source>
         <translation>認輸評價值閾值</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="223"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="223"/>
         <source>先手番での引き分けの評価値</source>
         <translation>先手的和棋評價值</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="226"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="226"/>
         <source>後手番での引き分けの評価値</source>
         <translation>後手的和棋評價值</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="231"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="231"/>
         <source>NUMAメモリ割り当てポリシー</source>
         <translation>NUMA 記憶體分配策略</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="234"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="234"/>
         <source>デバッグログの出力先ファイル</source>
         <translation>偵錯記錄檔案</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="237"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="237"/>
         <source>読み筋の出力間隔(ミリ秒)</source>
         <translation>主要變化輸出間隔（毫秒）</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="240"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="240"/>
         <source>すべての合法手の生成</source>
         <translation>生成所有合法著法</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="243"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="243"/>
         <source>評価関数のスケーリング係数</source>
         <translation>評價函數縮放系數</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="251"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="251"/>
         <source>候補手の数</source>
         <translation>候選著法</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="254"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="254"/>
         <source>読みの深さ（強さのレベル調節用）</source>
         <translation>搜尋深度（棋力調節）</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="257"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="257"/>
         <source>定跡の使用</source>
         <translation>使用定跡</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="260"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="260"/>
         <source>定跡ファイル(戦型選択用)</source>
         <translation>定跡檔案（戰型選擇）</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="263"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="263"/>
         <source>定跡使用の手数上限</source>
         <translation>定跡使用手數上限</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="266"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="266"/>
         <source>低勝率の定跡手の除外</source>
         <translation>排除勝率低的定跡著法</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="269"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="269"/>
         <source>低出現頻度の定跡手の除外</source>
         <translation>排除出現頻率低的定跡著法</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="275"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="275"/>
         <source>秒読み時の余裕(ミリ秒)</source>
         <translation>讀秒時的時間餘量（毫秒）</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="278"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="278"/>
         <source>切れ負けルール時の余裕(秒)</source>
         <translation>超時判負規則的時間餘量（秒）</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="281"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="281"/>
         <source>フィッシャールール時の余裕(ミリ秒)</source>
         <translation>菲捨爾規則的時間餘量（毫秒）</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="284"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="284"/>
         <source>技巧が投了する評価値</source>
         <translation>技巧引擎的認輸評價值閾值</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="287"/>
+        <location filename="../../src/dialogs/engineoptiondescriptions.cpp" line="287"/>
         <source>千日手の評価値</source>
         <translation>千日手評價值</translation>
     </message>
@@ -7834,7 +7827,7 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>KifuFileController</name>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="81"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="81"/>
         <source>棋譜ファイルを開く</source>
         <translation>開啟棋譜檔案</translation>
     </message>
@@ -7847,7 +7840,7 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">棋譜檔案 (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.usi *.sfen *.usen);;KIF 檔案 (*.kif *.kifu);;KI2 檔案 (*.ki2 *.ki2u);;CSA 檔案 (*.csa);;JKF 檔案 (*.jkf);;USI/SFEN 檔案 (*.usi *.sfen);;USEN 檔案 (*.usen)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="56"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="56"/>
         <source>対局・検討・解析・局面編集の間は、棋譜を読み込めません</source>
         <translation>對局、研究、分析或局面編輯期間無法載入棋譜</translation>
     </message>
@@ -7856,169 +7849,169 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">棋譜檔案 (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.json *.usi *.sfen *.usen);;KIF 檔案 (*.kif *.kifu);;KI2 檔案 (*.ki2 *.ki2u);;CSA 檔案 (*.csa);;JKF 檔案 (*.jkf *.json);;USI/SFEN 檔案 (*.usi *.sfen);;USEN 檔案 (*.usen)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="124"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="124"/>
         <source>棋譜を読み込み中...</source>
         <translation>正在載入棋譜...</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="124"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="124"/>
         <source>キャンセル</source>
         <translation>取消</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="158"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="158"/>
         <source>棋譜を取り込みました</source>
         <translation>棋譜已匯入</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="166"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="166"/>
         <source>局面を反映しました</source>
         <translation>局面已套用</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="166"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="166"/>
         <source>局面の反映に失敗しました</source>
         <translation>套用局面失敗</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="229"/>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="243"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="229"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="243"/>
         <source>KIF Save Error</source>
         <translation>KIF 儲存錯誤</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="230"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="230"/>
         <source>棋譜を保存しました: %1</source>
         <translation>棋譜已儲存：%1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="259"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="259"/>
         <source>棋譜を上書き保存しました: %1</source>
         <translation>棋譜已覆寫儲存：%1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="267"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="267"/>
         <source>棋譜の自動保存先を作成できません: %1</source>
         <translation>無法建立自動儲存資料夾：%1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="279"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="279"/>
         <source>棋譜データが空のため自動保存をスキップしました</source>
         <translation>棋譜資料為空，已跳過自動儲存</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="284"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="284"/>
         <source>棋譜を自動保存しました: %1</source>
         <translation>已自動儲存棋譜：%1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="288"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="288"/>
         <source>棋譜の自動保存に失敗しました: %1</source>
         <translation>自動儲存棋譜失敗：%1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="302"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="302"/>
         <source>クリップボードへのコピーに失敗しました</source>
         <translation>複製到剪貼簿失敗</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="316"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="316"/>
         <source>KIF形式の棋譜データがありません</source>
         <translation>沒有 KIF 格式棋譜資料</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="316"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="316"/>
         <source>KIF形式の棋譜をクリップボードにコピーしました</source>
         <translation>已將 KIF 格式棋譜複製到剪貼簿</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="323"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="323"/>
         <source>KI2形式の棋譜データがありません</source>
         <translation>沒有 KI2 格式棋譜資料</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="323"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="323"/>
         <source>KI2形式の棋譜をクリップボードにコピーしました</source>
         <translation>已將 KI2 格式棋譜複製到剪貼簿</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="327"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="327"/>
         <source>CSA形式の棋譜データがありません</source>
         <translation>沒有 CSA 格式棋譜資料</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="328"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="328"/>
         <source>CSA形式の棋譜をクリップボードにコピーしました（CSA形式は分岐に対応していないため、本譜のみです）</source>
         <translation>已將 CSA 格式棋譜複製到剪貼簿（CSA 格式不支援變化，僅包含主線）</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="329"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="329"/>
         <source>CSA形式の棋譜をクリップボードにコピーしました</source>
         <translation>已將 CSA 格式棋譜複製到剪貼簿</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="332"/>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="369"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="332"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="369"/>
         <source>USI形式の棋譜データがありません</source>
         <translation>沒有 USI 格式棋譜資料</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="333"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="333"/>
         <source>USI形式の棋譜をクリップボードにコピーしました（USI形式は分岐に対応していないため、本譜のみです）</source>
         <translation>已將 USI 格式棋譜複製到剪貼簿（USI 格式不支援變化，僅包含主線）</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="334"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="334"/>
         <source>USI形式の棋譜をクリップボードにコピーしました</source>
         <translation>已將 USI 格式棋譜複製到剪貼簿</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="337"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="337"/>
         <source>JKF形式の棋譜データがありません</source>
         <translation>沒有 JKF 格式棋譜資料</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="337"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="337"/>
         <source>JKF形式の棋譜をクリップボードにコピーしました</source>
         <translation>已將 JKF 格式棋譜複製到剪貼簿</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="340"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="340"/>
         <source>USEN形式の棋譜データがありません</source>
         <translation>沒有 USEN 格式棋譜資料</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="340"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="340"/>
         <source>USEN形式の棋譜をクリップボードにコピーしました</source>
         <translation>已將 USEN 格式棋譜複製到剪貼簿</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="373"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="373"/>
         <source>USI形式（現在の指し手まで）の棋譜をクリップボードにコピーしました</source>
         <translation>已將截至目前著法的 USI 格式棋譜複製到剪貼簿</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="391"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="391"/>
         <source>SFEN形式の局面データがありません</source>
         <translation>沒有 SFEN 格式局面資料</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="394"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="394"/>
         <source>SFEN形式の局面をクリップボードにコピーしました</source>
         <translation>已將 SFEN 格式局面複製到剪貼簿</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="401"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="401"/>
         <source>BOD形式の局面データがありません</source>
         <translation>沒有 BOD 格式局面資料</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="406"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="406"/>
         <source>SFEN形式の解析に失敗しました</source>
         <translation>解析 SFEN 格式失敗</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="415"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="415"/>
         <source>BOD形式の局面をクリップボードにコピーしました</source>
         <translation>已將 BOD 格式局面複製到剪貼簿</translation>
     </message>
@@ -8168,32 +8161,32 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>KifuNavigationController</name>
     <message>
-        <location filename="../../src/navigation/kifunavigationcontroller.cpp" line="21"/>
+        <location filename="../../src/ui/controllers/kifunavigationcontroller.cpp" line="21"/>
         <source>最初に戻る</source>
         <translation>跳到起點</translation>
     </message>
     <message>
-        <location filename="../../src/navigation/kifunavigationcontroller.cpp" line="22"/>
+        <location filename="../../src/ui/controllers/kifunavigationcontroller.cpp" line="22"/>
         <source>10手戻る</source>
         <translation>後退 10 手</translation>
     </message>
     <message>
-        <location filename="../../src/navigation/kifunavigationcontroller.cpp" line="23"/>
+        <location filename="../../src/ui/controllers/kifunavigationcontroller.cpp" line="23"/>
         <source>1手戻る</source>
         <translation>後退一手</translation>
     </message>
     <message>
-        <location filename="../../src/navigation/kifunavigationcontroller.cpp" line="24"/>
+        <location filename="../../src/ui/controllers/kifunavigationcontroller.cpp" line="24"/>
         <source>1手進む</source>
         <translation>前進一手</translation>
     </message>
     <message>
-        <location filename="../../src/navigation/kifunavigationcontroller.cpp" line="25"/>
+        <location filename="../../src/ui/controllers/kifunavigationcontroller.cpp" line="25"/>
         <source>10手進む</source>
         <translation>前進 10 手</translation>
     </message>
     <message>
-        <location filename="../../src/navigation/kifunavigationcontroller.cpp" line="26"/>
+        <location filename="../../src/ui/controllers/kifunavigationcontroller.cpp" line="26"/>
         <source>最後に進む</source>
         <translation>跳到終點</translation>
     </message>
@@ -9539,17 +9532,16 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>MenuWindow</name>
     <message>
-        <location filename="../../src/dialogs/menuwindow.cpp" line="41"/>
         <source>メニュー</source>
-        <translation>選單</translation>
+        <translation type="vanished">選單</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/menuwindow.cpp" line="55"/>
+        <location filename="../../src/widgets/menuwindow.cpp" line="51"/>
         <source>Decrease button size</source>
         <translation>縮小按鈕</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/menuwindow.cpp" line="63"/>
+        <location filename="../../src/widgets/menuwindow.cpp" line="59"/>
         <source>Increase button size</source>
         <translation>放大按鈕</translation>
     </message>
@@ -9562,43 +9554,43 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">放大字型大小</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/menuwindow.cpp" line="90"/>
-        <location filename="../../src/dialogs/menuwindow.cpp" line="337"/>
+        <location filename="../../src/widgets/menuwindow.cpp" line="86"/>
+        <location filename="../../src/widgets/menuwindow.cpp" line="330"/>
         <source>お気に入り編集</source>
         <translation>編輯收藏</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/menuwindow.cpp" line="92"/>
+        <location filename="../../src/widgets/menuwindow.cpp" line="88"/>
         <source>お気に入りの追加・削除・並べ替え</source>
         <translation>新增、移除或重新排列收藏</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/menuwindow.cpp" line="99"/>
+        <location filename="../../src/widgets/menuwindow.cpp" line="95"/>
         <source>各項目の＋で追加、×で削除できます。お気に入りはドラッグで並べ替えできます。</source>
         <translation>使用＋新增項目，使用×移除項目。拖曳收藏可調整順序。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/menuwindow.cpp" line="107"/>
+        <location filename="../../src/widgets/menuwindow.cpp" line="103"/>
         <source>このタブの項目を検索</source>
         <translation>搜尋此分頁的項目</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/menuwindow.cpp" line="162"/>
+        <location filename="../../src/widgets/menuwindow.cpp" line="155"/>
         <source>お気に入り</source>
         <translation>收藏</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/menuwindow.cpp" line="322"/>
+        <location filename="../../src/widgets/menuwindow.cpp" line="315"/>
         <source>お気に入りはまだありません。「お気に入り編集」を押して、各タブの項目を追加してください。</source>
         <translation>尚無收藏。請選擇「編輯收藏」，從各分頁新增項目。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/menuwindow.cpp" line="323"/>
+        <location filename="../../src/widgets/menuwindow.cpp" line="316"/>
         <source>該当する項目がありません。</source>
         <translation>沒有符合的項目。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/menuwindow.cpp" line="337"/>
+        <location filename="../../src/widgets/menuwindow.cpp" line="330"/>
         <source>編集完了</source>
         <translation>完成編輯</translation>
     </message>
@@ -13493,6 +13485,36 @@ Qt Charts：GPLv3／其他 Qt 模組：LGPLv3 / GPL</translation>
         <source>SOURCE_CODE.md</source>
         <extracomment>Bundled document filename. Use the translated SOURCE_CODE_&lt;language&gt;.md file.</extracomment>
         <translation>SOURCE_CODE_zh_TW.md</translation>
+    </message>
+</context>
+<context>
+    <name>WidgetImageExporter</name>
+    <message>
+        <location filename="../../src/ui/controllers/widgetimageexporter.cpp" line="47"/>
+        <location filename="../../src/ui/controllers/widgetimageexporter.cpp" line="79"/>
+        <location filename="../../src/ui/controllers/widgetimageexporter.cpp" line="87"/>
+        <source>Error</source>
+        <translation>錯誤</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/widgetimageexporter.cpp" line="48"/>
+        <source>No writable image formats are available.</source>
+        <translation>沒有可寫入的圖片格式。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/widgetimageexporter.cpp" line="69"/>
+        <source>Output the image</source>
+        <translation>儲存圖片</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/widgetimageexporter.cpp" line="80"/>
+        <source>This image format is not available: %1</source>
+        <translation>此圖片格式不可用：%1</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/controllers/widgetimageexporter.cpp" line="88"/>
+        <source>Failed to save the image: %1</source>
+        <translation>儲存圖片失敗：%1</translation>
     </message>
 </context>
 </TS>

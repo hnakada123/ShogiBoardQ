@@ -277,7 +277,6 @@ set(SRC_CORE
     src/core/fmvtypes.h
     src/core/handicaps.h
     src/core/josekiplayoptions.h
-    src/core/kifmovetext.h
     src/core/legalmovestatus.h
     src/core/matchplayers.h
     src/core/piecerules.h
@@ -285,10 +284,11 @@ set(SRC_CORE
     src/core/positionvalidator.h
     src/core/pvtext.cpp
     src/core/pvtext.h
+    src/core/sfenvalidator.cpp
+    src/core/sfenvalidator.h
     src/core/shogiposition.cpp
     src/core/shogiposition.h
     src/core/recordtime.h
-    src/core/sfendiffutils.h
     src/core/sfenreplay.cpp
     src/core/sfenreplay.h
     src/core/sfenutils.h
@@ -313,8 +313,6 @@ set(SRC_CORE
 set(SRC_GAME
     src/game/consecutivegameseries.cpp
     src/game/consecutivegameseries.h
-    src/game/enginelifecyclemanager.cpp
-    src/game/enginelifecyclemanager.h
     src/game/enginevsenginestrategy.cpp
     src/game/enginevsenginestrategy.h
     src/game/gamemodestrategy.h
@@ -326,14 +324,12 @@ set(SRC_GAME
     src/game/humanvsenginestrategy.h
     src/game/humanvshumanstrategy.cpp
     src/game/humanvshumanstrategy.h
-    src/game/interruptedgamestate.h
     src/game/matchautosave.h
     src/game/matchcoordinator.cpp
     src/game/matchcoordinator.h
     src/game/matchengineseat.cpp
     src/game/matchengineseat.h
     src/game/matchrecordsink.h
-    src/game/matchsessionstate.h
     src/kifu/kifudocument.cpp
     src/kifu/kifudocument.h
     src/kifu/kifuexport.cpp
@@ -341,14 +337,13 @@ set(SRC_GAME
     src/kifu/matchtimerecord.cpp
     src/kifu/matchtimerecord.h
     src/game/matchtimesettings.h
-    src/game/matchtypes.h
     src/game/nyugyokujudgement.cpp
     src/game/nyugyokujudgement.h
     src/game/sennichitedetector.cpp
     src/game/sennichitedetector.h
     src/game/shogigamecontroller.cpp
     src/game/shogigamecontroller.h
-    src/game/startgamedatabridge.h
+    src/game/startgamedialogdata.h
     src/game/startoptions.h
     src/game/timecontrolutil.cpp
     src/game/timecontrolutil.h
@@ -367,12 +362,12 @@ set(SRC_KIFU
     src/kifu/formats/csalexer.h
     src/kifu/formats/csatosfenconverter.cpp
     src/kifu/formats/csatosfenconverter.h
+    src/kifu/formats/jkfcodec.cpp
+    src/kifu/formats/jkfcodec.h
     src/kifu/formats/jkfexporter.cpp
     src/kifu/formats/jkfexporter.h
     src/kifu/formats/jkfformatter.cpp
     src/kifu/formats/jkfformatter.h
-    src/kifu/formats/jkfmoveparser.cpp
-    src/kifu/formats/jkfmoveparser.h
     src/kifu/formats/jkftosfenconverter.cpp
     src/kifu/formats/jkftosfenconverter.h
     src/kifu/formats/ki2exporter.cpp
@@ -389,6 +384,7 @@ set(SRC_KIFU
     src/kifu/formats/kiflinebuilder.h
     src/kifu/formats/kifmovegrammar.cpp
     src/kifu/formats/kifmovegrammar.h
+    src/kifu/formats/kifmovetext.h
     src/kifu/formats/kiftextparser.cpp
     src/kifu/formats/kiftextparser.h
     src/kifu/formats/kifuexportcommon.cpp
@@ -424,8 +420,6 @@ set(SRC_KIFU
     src/kifu/josekimovepicker.h
     src/kifu/josekitypes.h
     src/kifu/kifparsetypes.h
-    src/kifu/kifreader.cpp
-    src/kifu/kifreader.h
     src/kifu/kifubranchnode.cpp
     src/kifu/kifubranchnode.h
     src/kifu/kifubranchtree.cpp
@@ -434,6 +428,10 @@ set(SRC_KIFU
     src/kifu/kifubranchtreebuilder.h
     src/kifu/kifuexportmetadata.cpp
     src/kifu/kifuexportmetadata.h
+    src/kifu/kifutextdecoder.cpp
+    src/kifu/kifutextdecoder.h
+    src/kifu/positioncollectionfile.cpp
+    src/kifu/positioncollectionfile.h
     src/kifu/timecontroltext.cpp
     src/kifu/timecontroltext.h
     src/kifu/kifuformat.cpp
@@ -462,14 +460,10 @@ set(SRC_ANALYSIS
     src/analysis/analysisoptions.h
     src/analysis/analysissession.cpp
     src/analysis/analysissession.h
-    src/analysis/sfenvalidationservice.cpp
-    src/analysis/sfenvalidationservice.h
     src/analysis/tsumecandidatejob.cpp
     src/analysis/tsumecandidatejob.h
     src/analysis/tsumecollection.cpp
     src/analysis/tsumecollection.h
-    src/analysis/positioncollectionfile.cpp
-    src/analysis/positioncollectionfile.h
     src/analysis/tsumecollectionsession.cpp
     src/analysis/tsumecollectionsession.h
     src/analysis/tsumecollectionwriter.cpp
@@ -499,13 +493,13 @@ set(SRC_ANALYSIS
 )
 
 set(SRC_ENGINE
-    src/engine/engineoptiondescriptions.cpp
-    src/engine/engineoptiondescriptions.h
     src/engine/enginesearchstatus.h
     src/engine/engineprocessmanager.cpp
     src/engine/engineprocessmanager.h
     src/engine/engineregistrationhandler.cpp
     src/engine/engineregistrationhandler.h
+    src/engine/engineslots.cpp
+    src/engine/engineslots.h
     src/engine/matchtimesource.cpp
     src/engine/matchtimesource.h
     src/engine/thinkinginfoformatter.cpp
@@ -515,6 +509,7 @@ set(SRC_ENGINE
     src/engine/mateoracle.h
     src/engine/matequeryloop.cpp
     src/engine/matequeryloop.h
+    src/engine/tsumeevaluation.h
     src/engine/tsumemateengine.cpp
     src/engine/tsumemateengine.h
     src/engine/usi.cpp
@@ -550,14 +545,7 @@ set(SRC_NETWORK
     src/network/csamoveconverter.h
 )
 
-set(SRC_NAVIGATION
-    src/navigation/kifunavigationcontroller.cpp
-    src/navigation/kifunavigationcontroller.h
-)
-
 set(SRC_BOARD
-    src/board/boardimageexporter.cpp
-    src/board/boardimageexporter.h
     src/board/boardinputroute.h
     src/board/boardinteractioncontroller.cpp
     src/board/boardinteractioncontroller.h
@@ -576,8 +564,8 @@ set(SRC_UI
     src/ui/controllers/considerationuicontroller.h
     src/ui/controllers/debugscreenshotshortcut.cpp
     src/ui/controllers/debugscreenshotshortcut.h
-    src/ui/controllers/humanturnpolicy.cpp
-    src/ui/controllers/humanturnpolicy.h
+    src/ui/controllers/dialoglauncher.cpp
+    src/ui/controllers/dialoglauncher.h
     src/ui/controllers/imageexportcontroller.cpp
     src/ui/controllers/imageexportcontroller.h
     src/ui/controllers/josekiregistrationcontroller.cpp
@@ -586,6 +574,10 @@ set(SRC_UI
     src/ui/controllers/josekiwindowcontroller.h
     src/ui/controllers/kifuanalysiscontroller.cpp
     src/ui/controllers/kifuanalysiscontroller.h
+    src/ui/controllers/kifufilecontroller.cpp
+    src/ui/controllers/kifufilecontroller.h
+    src/ui/controllers/kifunavigationcontroller.cpp
+    src/ui/controllers/kifunavigationcontroller.h
     src/ui/controllers/languagecontroller.cpp
     src/ui/controllers/languagecontroller.h
     src/ui/controllers/mainwindowappearancecontroller.cpp
@@ -604,20 +596,12 @@ set(SRC_UI
     src/ui/controllers/tsumesearchcontroller.h
     src/ui/controllers/usicommandcontroller.cpp
     src/ui/controllers/usicommandcontroller.h
+    src/ui/controllers/widgetimageexporter.cpp
+    src/ui/controllers/widgetimageexporter.h
     src/ui/coordinators/commentcoordinator.cpp
     src/ui/coordinators/commentcoordinator.h
     src/ui/coordinators/csagamesession.cpp
     src/ui/coordinators/csagamesession.h
-    src/ui/coordinators/dialoglauncher.cpp
-    src/ui/coordinators/dialoglauncher.h
-    src/ui/coordinators/docklayoutmanager.cpp
-    src/ui/coordinators/docklayoutmanager.h
-    src/ui/coordinators/dockregistry.cpp
-    src/ui/coordinators/dockregistry.h
-    src/ui/coordinators/kifufilecontroller.cpp
-    src/ui/coordinators/kifufilecontroller.h
-    src/ui/coordinators/uistatepolicymanager.cpp
-    src/ui/coordinators/uistatepolicymanager.h
     src/ui/presenters/kifuanalysisrowpresenter.cpp
     src/ui/presenters/kifuanalysisrowpresenter.h
     src/ui/presenters/boardsyncpresenter.cpp
@@ -638,6 +622,14 @@ set(SRC_UI
     src/ui/presenters/timedisplaypresenter.h
     src/ui/presenters/usimodelbinding.cpp
     src/ui/presenters/usimodelbinding.h
+    src/ui/policy/humanturnpolicy.cpp
+    src/ui/policy/humanturnpolicy.h
+    src/ui/policy/uistatepolicymanager.cpp
+    src/ui/policy/uistatepolicymanager.h
+    src/ui/docks/docklayoutmanager.cpp
+    src/ui/docks/docklayoutmanager.h
+    src/ui/docks/dockregistry.cpp
+    src/ui/docks/dockregistry.h
 )
 
 set(SRC_VIEWS
@@ -704,6 +696,8 @@ set(SRC_WIDGETS
     src/widgets/flowlayout.h
     src/widgets/fontsizecontrol.cpp
     src/widgets/fontsizecontrol.h
+    src/widgets/menuwindow.cpp
+    src/widgets/menuwindow.h
     src/widgets/recentfilesmenu.cpp
     src/widgets/recentfilesmenu.h
     src/widgets/editactions.cpp
@@ -776,6 +770,8 @@ set(SRC_DIALOGS
     src/dialogs/csagamedialog.h
     src/dialogs/csawaitingdialog.cpp
     src/dialogs/csawaitingdialog.h
+    src/dialogs/engineoptiondescriptions.cpp
+    src/dialogs/engineoptiondescriptions.h
     src/dialogs/evaluationchartsettingsdialog.cpp
     src/dialogs/evaluationchartsettingsdialog.h
     src/dialogs/engineregistrationdialog.cpp
@@ -820,8 +816,6 @@ set(SRC_DIALOGS
     src/dialogs/kifupastedialog.h
     src/dialogs/kifusavedialogs.cpp
     src/dialogs/kifusavedialogs.h
-    src/dialogs/menuwindow.cpp
-    src/dialogs/menuwindow.h
     src/dialogs/piecesoundsettingsdialog.cpp
     src/dialogs/piecesoundsettingsdialog.h
     src/dialogs/promotedialog.cpp
@@ -832,6 +826,7 @@ set(SRC_DIALOGS
     src/dialogs/pvboarddialog.h
     src/dialogs/sfencollectiondialog.cpp
     src/dialogs/sfencollectiondialog.h
+    src/dialogs/sfendiffutils.h
     src/dialogs/startgamedialog.cpp
     src/dialogs/startgamedialog.h
     src/dialogs/tsumecollectiondialog.cpp
@@ -946,12 +941,13 @@ set(SRC_COMMON
     src/widgets/tablemodelutils.h
     src/style/tablestyles.h
     src/common/threadtypes.h
-    src/common/tsumeevaluation.h
     src/analysis/tsumepositionutil.h
 )
 
 # CLI・自動化 API・MCP が共有する GUI 非依存の部品（引数の表・エラーの分類・変換・エンジンの実行器）
 set(SRC_HEADLESS
+    src/headless/automationendpoint.cpp
+    src/headless/automationendpoint.h
     src/headless/automationmethodspecs.cpp
     src/headless/automationmethodspecs.h
     src/headless/engineanalysisrunner.cpp
@@ -970,20 +966,29 @@ set(SRC_HEADLESS
     src/headless/recordjson.h
     src/headless/paramspec.cpp
     src/headless/paramspec.h
+    src/headless/sfenvalidationjson.cpp
+    src/headless/sfenvalidationjson.h
     src/headless/tsumeverificationrunner.cpp
     src/headless/tsumeverificationrunner.h
 )
 
-# 自動化 API（--automation）。盤面画像（boardimagerenderer）は CLI も使う
+# 自動化 API（--automation）
 set(SRC_AUTOMATION
     src/automation/automationactionpolicy.cpp
     src/automation/automationactionpolicy.h
+    src/automation/automationcommands.cpp
     src/automation/automationcommands.h
+    src/automation/automationcommands_action.cpp
     src/automation/automationcommands_app.cpp
+    src/automation/automationcommands_board.cpp
+    src/automation/automationcommands_branch.cpp
+    src/automation/automationcommands_clipboard.cpp
+    src/automation/automationcommands_dialog.cpp
     src/automation/automationcommands_dock.cpp
     src/automation/automationcommands_kifu.cpp
-    src/automation/automationcommands_navigation.cpp
+    src/automation/automationcommands_menu.cpp
     src/automation/automationcommands_position.cpp
+    src/automation/automationcommands_screenshot.cpp
     src/automation/automationcommands_ui.cpp
     src/automation/automationcommands_widget.cpp
     src/automation/automationcontext.h
@@ -1000,12 +1005,12 @@ set(SRC_AUTOMATION
     src/automation/automationinput.cpp
     src/automation/automationinput.h
     src/automation/automationwidgets.h
-    src/automation/boardimagerenderer.cpp
-    src/automation/boardimagerenderer.h
 )
 
-# shogiboardq-cli（GUI を起動しない実行ファイル）
+# shogiboardq-cli（GUI を起動しない実行ファイル。盤面画像 boardimagerenderer は CLI だけが使う）
 set(SRC_CLI
+    src/cli/boardimagerenderer.cpp
+    src/cli/boardimagerenderer.h
     src/cli/cliargs.cpp
     src/cli/cliargs.h
     src/cli/clicommandspecs.cpp
@@ -1051,11 +1056,12 @@ set(SBQ_INCLUDE_DIRS
     ${CMAKE_CURRENT_SOURCE_DIR}/src/analysis
     ${CMAKE_CURRENT_SOURCE_DIR}/src/engine
     ${CMAKE_CURRENT_SOURCE_DIR}/src/network
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/navigation
     ${CMAKE_CURRENT_SOURCE_DIR}/src/board
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ui
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/controllers
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/coordinators
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/docks
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/policy
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/presenters
     ${CMAKE_CURRENT_SOURCE_DIR}/src/views
     ${CMAKE_CURRENT_SOURCE_DIR}/src/widgets
@@ -1096,7 +1102,6 @@ qt_add_library(shogiboardq_objects OBJECT
     ${SRC_ANALYSIS}
     ${SRC_ENGINE}
     ${SRC_NETWORK}
-    ${SRC_NAVIGATION}
     ${SRC_BOARD}
     ${SRC_UI}
     ${SRC_VIEWS}

@@ -47,7 +47,7 @@ USEN Files (*.usen)
 
 ### 主要クラス
 
-- **`KifuFileController`** (`src/ui/coordinators/kifufilecontroller.h/.cpp`) — メニューからの読み込みの窓口
+- **`KifuFileController`** (`src/ui/controllers/kifufilecontroller.h/.cpp`) — メニューからの読み込みの窓口
   - `chooseAndLoadKifuFile()` — ファイルを選び、未保存の棋譜を確かめてから読み込む（読み込み中は進捗ダイアログを出し、キャンセルできる）
   - `onSfenCollectionPositionSelected(sfen)` — SFEN局面集で選んだ局面を反映する
   - 読み込みの後始末（上書き保存先と未保存の状態）は、ダイアログからの非同期の読み込みも自動化 API の同期の読み込みも `finishLoad(success, source, path)` 1つで行う。読み込んだものの出どころ（`Source`）で決まる：棋譜ファイル（`File`）は上書き保存先にして変更なしとし、貼り付けた棋譜（`Text`）と自動化 API で反映した局面（`Position`）は未保存にし、局面集から反映した局面（`Collection`）は変更なしで上書き保存先を持たない（自動化 API のテキストの読み込み `loadKifuText()` は、貼り付けの後始末のうちダイアログとステータスバーを除いた `KifuDocument::markUnsavedContent()` だけを直接呼ぶ）
@@ -92,12 +92,12 @@ USEN Files (*.usen)
 
 | 対象 | メニュー | 処理クラス |
 |---|---|---|
-| 盤面画像 | ファイル(F) → 将棋盤の画像をファイルに保存… | `ImageExportController::saveBoardImage()` → `BoardImageExporter::saveImage()` |
-| 評価値グラフ | ファイル(F) → 評価値グラフの画像をファイルに保存… | `ImageExportController::saveEvalGraphImage()` → `BoardImageExporter::saveImage()` |
+| 盤面画像 | ファイル(F) → 将棋盤の画像をファイルに保存… | `ImageExportController::saveBoardImage()` → `WidgetImageExporter::saveImage()` |
+| 評価値グラフ | ファイル(F) → 評価値グラフの画像をファイルに保存… | `ImageExportController::saveEvalGraphImage()` → `WidgetImageExporter::saveImage()` |
 
 ### 主要クラス
 
-- **`KifuFileController`** (`src/ui/coordinators/kifufilecontroller.h/.cpp`) — メニューからの保存の窓口
+- **`KifuFileController`** (`src/ui/controllers/kifufilecontroller.h/.cpp`) — メニューからの保存の窓口
   - `saveKifuToFile()` — 名前を付けて保存（既定のファイル名は文書の対局者と日時から作る）。保存したら `KifuDocument::markSaved(path)` で今の内容を保存済みにし、保存形式を拡張子で決められるファイルなら上書き保存先（`KifuDocument::filePath()`）にする
   - `overwriteKifuFile()` — 上書き保存先へ、拡張子で決めた形式で書く。上書き保存先が無ければ名前を付けて保存する
   - `autoSaveKifu(saveDir, extension)` — 対局の終局時の自動保存（ローカル対局・通信対局とも `GameSession::finishMatchRecord()` から。保存先と形式は `MatchAutoSave`。ダイアログなし。名前は対局者と日時から作り、同じ名前があれば連番を付ける）
@@ -115,7 +115,7 @@ USEN Files (*.usen)
   - 表の各関数は `src/kifu/formats/*exporter` の `exportLines(const KifuBranchTree&, const KifuExportMetadata&)`（`KifExporter`・`Ki2Exporter`・`CsaExporter`・`JkfExporter`・`UsenExporter`・`UsiExporter`）。SFEN・BOD は棋譜を書けないので KIF にする
   - 形式をまたいで共有する部品: KIF・KI2 の先頭は `KifExporter::appendHeaderLines()`、KI2・JKF のノードを局面と一緒にたどる処理は `KifuNodeReplay`、USEN の符号化と復号は `UsenCodec`（`UsenToSfenConverter` と共有）、USI の position 文字列は `UsiPosition::commandFor()`
   - GUI の保存・コピーと CLI の変換（`KifuConversionService`）が同じ表を使う
-- **`BoardImageExporter`** (`src/board/boardimageexporter.h/.cpp`) — 盤面・グラフの画像保存
+- **`WidgetImageExporter`** (`src/ui/controllers/widgetimageexporter.h/.cpp`) — 盤面・グラフの画像保存
 
 ---
 
@@ -162,14 +162,14 @@ USEN Files (*.usen)
 
 | 内容 | メソッド |
 |---|---|
-| 盤面を画像としてクリップボードにコピー | `ImageExportController::copyBoardToClipboard()` → `BoardImageExporter::copyToClipboard()` |
-| 評価値グラフを画像としてクリップボードにコピー | `ImageExportController::copyEvalGraphToClipboard()` → `BoardImageExporter::copyToClipboard()` |
+| 盤面を画像としてクリップボードにコピー | `ImageExportController::copyBoardToClipboard()` → `WidgetImageExporter::copyToClipboard()` |
+| 評価値グラフを画像としてクリップボードにコピー | `ImageExportController::copyEvalGraphToClipboard()` → `WidgetImageExporter::copyToClipboard()` |
 
 ### 主要クラス
 
-- **`KifuFileController`** (`src/ui/coordinators/kifufilecontroller.h/.cpp`) — 棋譜・局面のコピー（`KifuExport` で作った行・盤の局面をクリップボードに書き、結果を `statusMessage` でステータスバーに出す）
+- **`KifuFileController`** (`src/ui/controllers/kifufilecontroller.h/.cpp`) — 棋譜・局面のコピー（`KifuExport` で作った行・盤の局面をクリップボードに書き、結果を `statusMessage` でステータスバーに出す）
 - **`ImageExportController`** (`src/ui/controllers/imageexportcontroller.h/.cpp`) — 画像の保存・コピーの窓口
-- **`BoardImageExporter`** (`src/board/boardimageexporter.h/.cpp`) — 盤面・グラフ画像のクリップボードコピー
+- **`WidgetImageExporter`** (`src/ui/controllers/widgetimageexporter.h/.cpp`) — 盤面・グラフ画像のクリップボードコピー
 
 ---
 
@@ -201,7 +201,7 @@ USEN Files (*.usen)
 ### 主要クラス
 
 - **`KifuPasteDialog`** (`src/dialogs/kifupastedialog.h/.cpp`) — 貼り付けるテキストの入力（クリップボードからの貼り付けボタンを持つ）
-- **`KifuFileController`** (`src/ui/coordinators/kifufilecontroller.h/.cpp`)
+- **`KifuFileController`** (`src/ui/controllers/kifufilecontroller.h/.cpp`)
   - `pasteKifuFromClipboard()` — ダイアログを開く
   - `onKifuPasteImportRequested(content)` — 取り込む
 - **`KifuLoader`** (`src/kifu/kifuloader.h/.cpp`)
@@ -233,5 +233,5 @@ USEN Files (*.usen)
                                          → KifuLoader → KifuLoadParser (形式判定と読み込み)
 
 画像出力:
-  MenuActionsWiring → ImageExportController → BoardImageExporter (保存/クリップボードコピー)
+  MenuActionsWiring → ImageExportController → WidgetImageExporter (保存/クリップボードコピー)
 ```

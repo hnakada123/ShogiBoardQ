@@ -6,7 +6,7 @@
 #include "automationparams.h"
 #include "kifufilecontroller.h"
 #include "sfenutils.h"
-#include "sfenvalidationservice.h"
+#include "sfenvalidator.h"
 
 #include <QJsonArray>
 
@@ -29,7 +29,7 @@ void AutomationCommands::registerPositionCommands(AutomationDispatcher& dispatch
     dispatcher.registerMethod(QStringLiteral("position.set"), [context](const QJsonObject& params) {
         const QString sfen = params.value(QStringLiteral("sfen")).toString();
         const bool discard = params.value(QStringLiteral("discard_unsaved")).toBool();
-        const SfenValidation validation = SfenValidationService::validate(sfen);
+        const SfenValidation validation = SfenValidator::validate(sfen);
         if (!validation.valid) {
             throw AutomationError(ErrorKind::InvalidArgument,
                                   QStringLiteral("Invalid SFEN: %1").arg(validation.errors.join(QStringLiteral("; "))));

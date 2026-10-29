@@ -3,7 +3,7 @@
 
 #include "boardimagerenderer.h"
 
-#include "sfenvalidationservice.h"
+#include "sfenvalidator.h"
 #include "shogiboard.h"
 #include "shogiview.h"
 #include "shogiviewhighlighting.h"
@@ -26,7 +26,7 @@ QImage BoardImageRenderer::render(const QString& sfen, const Options& options, F
     if (!qobject_cast<QApplication*>(QCoreApplication::instance())) {
         return fail(ErrorKind::InternalError, QStringLiteral("A QApplication (offscreen is fine) is required to render a board"));
     }
-    const SfenValidation validation = SfenValidationService::validate(sfen);
+    const SfenValidation validation = SfenValidator::validate(sfen);
     if (validation.normalizedSfen.isEmpty()) {
         return fail(ErrorKind::InvalidArgument,
                     QStringLiteral("Invalid SFEN: %1").arg(validation.errors.join(QStringLiteral("; "))));

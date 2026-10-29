@@ -1,8 +1,8 @@
-#ifndef JKFMOVEPARSER_H
-#define JKFMOVEPARSER_H
+#ifndef JKFCODEC_H
+#define JKFCODEC_H
 
-/// @file jkfmoveparser.h
-/// @brief JKF形式固有の指し手変換・初期局面構築・時間解析
+/// @file jkfcodec.h
+/// @brief JKF 形式の値の符号表（preset と開始局面・指し手・消費時間・修飾語。読み込みと書き出しで共通）
 
 #include <QJsonArray>
 #include <QJsonObject>
@@ -14,11 +14,11 @@
 #include "shogitypes.h"
 #include "usimove.h"
 
-namespace JkfMoveParser {
+namespace JkfCodec {
 
 // === プリセット・初期局面 ===
 
-/// JKF preset名（"HIRATE","KY"等）→ SFEN文字列
+/// JKF preset名（"HIRATE","KY"等）→ SFEN文字列。知らない preset は開始局面が分からないので空文字列
 QString presetToSfen(const QString& preset);
 
 /// SFEN文字列 → JKF preset名。盤・手番・持ち駒が手合割の開始局面と同じときだけ返す（空のSFENは平手）。
@@ -56,6 +56,6 @@ QString relativeToModifier(const QString& relative);
 /// 修飾語（右/左/上/引/寄/直/打。"左上" のように並べたもの）から JKF relative 文字列（"LU"）を生成
 QString modifierToRelative(QStringView modifiers);
 
-} // namespace JkfMoveParser
+} // namespace JkfCodec
 
-#endif // JKFMOVEPARSER_H
+#endif // JKFCODEC_H

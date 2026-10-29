@@ -4,7 +4,7 @@
 
 ## 概要
 
-`UiStatePolicyManager`（`src/ui/coordinators/uistatepolicymanager.h/.cpp`）は、アプリケーションの7つの状態に応じて、全UI要素のポリシーを一元管理する状態テーブル駆動型のクラスである。
+`UiStatePolicyManager`（`src/ui/policy/uistatepolicymanager.h/.cpp`）は、アプリケーションの7つの状態に応じて、全UI要素のポリシーを一元管理する状態テーブル駆動型のクラスである。
 
 ## 動作状態（AppActivityState）
 
@@ -157,7 +157,7 @@ MatchCoordinator::resumeAvailabilityChanged ──► refreshResumeAvailability(
 
 ```
 【対局中】
-  Usi::errorOccurred → EngineLifecycleManager::engineError
+  Usi::errorOccurred → EngineSlots::engineError
     → MatchCoordinator::handleEngineError() → handleBreakOff() → endGame()
     → 動作状態のリースを手放す（Idle） → gameEnded（GameSession::onGameEnded()）
 

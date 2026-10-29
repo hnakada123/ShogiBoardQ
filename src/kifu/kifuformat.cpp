@@ -2,7 +2,7 @@
 /// @brief 棋譜の形式の判定の実装
 
 #include "kifuformat.h"
-#include "kifreader.h"
+#include "kifutextdecoder.h"
 #include "logcategories.h"
 
 #include <QFileInfo>
@@ -97,7 +97,7 @@ KifuFormat detectFile(const QString& filePath)
     // JKF は .json で配布されることも多い。拡張子で決まらないときは内容で判定する。
     QStringList lines;
     QString usedEncoding;
-    if (KifReader::readAllLinesAuto(filePath, lines, &usedEncoding, nullptr)) {
+    if (KifuTextDecoder::readAllLinesAuto(filePath, lines, &usedEncoding, nullptr)) {
         switch (const KifuFormat detected = detect(lines.join(QLatin1Char('\n')))) {
         case KifuFormat::Ki2:
         case KifuFormat::Csa:

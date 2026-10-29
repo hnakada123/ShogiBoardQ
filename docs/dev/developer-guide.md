@@ -28,13 +28,13 @@
 | [第4章](#第4章-設計パターンとコーディング規約) | 設計パターンとコーディング規約 | Deps/Hooks/Refs、合成ルート、シグナルと MatchRecordSink、クラス名の役割、コード規約 |
 | [第5章](#第5章-core層純粋なゲームロジック) | core層：純粋なゲームロジック | Position・ShogiBoard、UsiMove・ShogiMove・UsiPosition、EngineMoveValidator、ShogiClock、MatchPlayers |
 | [第6章](#第6章-game層対局管理) | game層：対局管理 | MatchCoordinator、対局者ごとの Strategy、ShogiGameController、GameSession、ConsecutiveGameSeries |
-| [第7章](#第7章-engine層usiエンジン連携) | engine層：USIエンジン連携 | Usi、UsiProtocolHandler、UsiLineParser、EngineLifecycleManager、思考情報の整形 |
+| [第7章](#第7章-engine層usiエンジン連携) | engine層：USIエンジン連携 | Usi、UsiProtocolHandler、UsiLineParser、EngineSlots、思考情報の整形 |
 | [第8章](#第8章-kifu層棋譜管理) | kifu層：棋譜管理 | 分岐ツリー、棋譜モデル、KifuFormat、フォーマット変換 |
 | [第9章](#第9章-analysis層解析機能) | analysis層：解析機能 | 検討・棋譜解析・詰将棋探索の3モード |
 | [第10章](#第10章-ui層プレゼンテーション) | UI層：プレゼンテーション | Presenters/Controllers/Coordinators |
 | [第11章](#第11章-viewswidgetsdialogs層qt-ui部品) | views/widgets/dialogs層：Qt UI部品 | ShogiView描画、ThinkingPanel などのウィジェット、ダイアログ |
 | [第12章](#第12章-network層とservices層) | network層とservices層 | CSA通信、設定の宣言（Setting<T>）、駒音・外観などのサービス |
-| [第13章](#第13章-navigation層とboard層) | navigation層とboard層 | 棋譜ナビゲーション、盤面操作 |
+| [第13章](#第13章-棋譜ナビゲーションとboard層) | 棋譜ナビゲーションとboard層 | 棋譜ナビゲーション、盤面操作 |
 | [第14章](#第14章-mainwindowの役割と構造) | MainWindowの役割と構造 | MainWindowComposer・部品の一覧・動作状態、起動手順 |
 | [第15章](#第15章-機能フロー詳解) | 機能フロー詳解 | 5大ユースケースのシーケンス図 |
 | [第16章](#第16章-国際化i18nと翻訳) | 国際化（i18n）と翻訳 | Qt Linguist、LanguageController |
@@ -145,6 +145,7 @@
 | 2026-10-23 | 名前を役割に合わせた（監査3章）のに合わせて §6・§8・§10・§15・§17・§19 を更新（`KifuLoadCoordinator` を kifu の `KifuLoader` に、`KifuSaveCoordinator` を dialogs の `KifuSaveDialogs` にし、`AboutCoordinator` を削除。未保存の確認は棋譜と定跡で `UnsavedChangesPrompt::ask()`。`LanguageController` は言語の `QActionGroup` の data で言語を受ける） |
 | 2026-10-23 | 小さな修正と使われていないコードの削除（監査4章）に合わせて §6・§8・§9・§12・§14 を更新（`NotationUtils`・`ConsiderationPositionResolver`（`KifuNavigationState::currentUsiPosition()` に）・`CliPosition`・`ShogiGameController::validateAndMove`・`MatchCoordinator::clock`・`ErrorBus::postError` などを削除。矢印の寸法は `ArrowMetrics`、定跡の取り込みの勝敗は `RecordEntry::winner()`、手番の印は `ShogiNotation::isTurnMark`。詰将棋のワーカーは止めるときに待たない。棋譜解析の表の詰みは「3手詰」） |
 | 2026-10-23 | 監査4章で残した名残を片づけたのに合わせて §8・§9・§16・第18章を更新（中身が1行だけの `KifToSfenConverter`・`Ki2ToSfenConverter` を削除し、KIF・KI2 は `KifTextParser::parseKif()`・`parseKi2()`。テストだけが使っていた `ShogiEngineThinkingModel::appendRow`・`MenuButtonWidget::dragStarted` を削除。QObject でないクラス・名前空間の文言は `Q_DECLARE_TR_FUNCTIONS`・`QCoreApplication::translate` で自分の文脈にした（§16.8）。詰将棋の生成は終わるときに件数の内訳をログに出す） |
+| 2026-10-29 | 置き場所と名前を責務に合わせた（監査 2026-10-29 の4章）のに合わせて §1.5・§1.6・§3.1・§3.2・§6・§8・§10・§13・§14・第18章・付録を更新（navigation 層をなくして `KifuNavigationController` を `ui/controllers/` へ。`ui/coordinators/` には `CsaGameSession`・`CommentCoordinator` だけを残し、`KifuFileController`・`DialogLauncher` は `ui/controllers/`、`UiStatePolicyManager`・`HumanTurnPolicy` は `ui/policy/`、`DockRegistry`・`DockLayoutManager` は `ui/docks/` へ。エンジンの枠を engine の `EngineSlots` に改名。SFEN の検査を core の `SfenValidator`（JSON は headless の `SfenValidationJson`）に、局面集ファイルを kifu に。盤面画像 `BoardImageRenderer` を cli へ、自動化 API の接続先を headless の `AutomationEndpoint` へ。自動化 API のメソッドを名前空間ごとのファイルに分け直した。`MenuWindow` を widgets へ移し、独立ウィンドウの名残（`menuWindowSize` など）を消した。`KifReader`→`KifuTextDecoder`、`JkfMoveParser`→`JkfCodec`、`BoardImageExporter`→`WidgetImageExporter`（`ui/controllers/`）、`startgamedatabridge.h`→`startgamedialogdata.h`。司令塔だけが使う型を `matchcoordinator.h` にまとめた） |
 
 <!-- chapter-0-end -->
 
@@ -369,30 +370,25 @@ src/
 │   ├── handicaps.h                 #   手合割の表（名前・JKF の preset・開始局面）
 │   ├── jishogicalculator.cpp/.h    #   持将棋の点数計算・判定
 │   ├── sfenreplay.cpp/.h           #   局面に USI の1手を指す（applyLenient・positionAfter。合法手かは確かめない）
-│   ├── sfendiffutils.h             #   2つの局面（SFEN）の盤上の差分
 │   ├── terminaltype.cpp/.h         #   終局手の種類と、棋譜に書く終局語の対応
 │   ├── shoginotation.h             #   棋譜の表記（筋・段・駒の名前・CSA の駒種）
-│   ├── kifmovetext.h               #   KIF 形式の指し手の文字列
 │   ├── sfenutils.h                 #   SFEN文字列操作
+│   ├── sfenvalidator.cpp/.h        #   SFEN の検査（SfenValidator。手番・手数の欄と PositionValidator の結果と、読めた局面を値で返す）
 │   └── legalmovestatus.h           #   合法手判定の状態
 │
 ├── game/                           # 対局管理（GUI に依存しない）
-│   ├── matchcoordinator.cpp/.h     #   対局の司令塔（開始・着手・終局・待った・中断と再開）。手順は record()、対局者は players()
+│   ├── matchcoordinator.cpp/.h     #   対局の司令塔（開始・着手・終局・待った・中断と再開）。手順は record()、対局者は players()。司令塔だけが使う型（終局の型・対局の設定と終局状態 MatchSessionState・中断した対局の状態）も持つ
 │   ├── matchrecordsink.h           #   対局の棋譜の受け手（司令塔が確定した行を書き込む先）
 │   ├── gamechannel.cpp/.h          #   対局相手の窓口 GameChannel（投了・中断・即指し・入玉宣言をローカル対局と通信対局で同じ操作に）とローカル対局の実装 LocalGameChannel
 │   ├── matchautosave.h             #   終局した棋譜の自動保存の指定 MatchAutoSave（ローカル対局・通信対局で同じ）
-│   ├── matchsessionstate.h         #   対局の設定・終局状態
-│   ├── matchtypes.h                #   終局の原因・終局情報・終局状態の型
 │   ├── matchtimesettings.h         #   対局の時間の決まり（持ち時間・秒読み・加算と、時間切れの扱い）
 │   ├── gamemodestrategy.h          #   対局者の組別の Strategy と、Strategy が司令塔に頼む操作（MatchStrategyHost）
 │   ├── humanvshumanstrategy.cpp/.h #   人間対人間の進め方
 │   ├── humanvsenginestrategy.cpp/.h #  人間対エンジンの進め方
 │   ├── enginevsenginestrategy.cpp/.h # エンジン同士の進め方
-│   ├── enginelifecyclemanager.cpp/.h # エンジンの枠（E1・E2）のリース・取り上げの知らせ・表示の消去（対局・検討・棋譜解析・CSA 通信対局で共有）
 │   ├── matchengineseat.cpp/.h      #   対局で指すエンジン1台（枠のリース・手番・持ち時間の出どころ・知らせ・終局の手順。Strategy と通信対局が持つ）
 │   ├── startoptions.h              #   対局開始の設定（MatchStartOptions）
-│   ├── startgamedatabridge.h       #   対局開始ダイアログから game 層へ渡す値
-│   ├── interruptedgamestate.h      #   中断したローカル対局の状態（棋譜に書いた中断の行 terminalNodeId を含む）
+│   ├── startgamedialogdata.h       #   対局開始ダイアログで選んだ値（対局者1人の選択 PlayerChoice と対局の条件 StartGameDialogData）
 │   ├── sennichitedetector.cpp/.h   #   千日手の検出
 │   ├── nyugyokujudgement.cpp/.h    #   入玉宣言の判定（人間の宣言とエンジンの bestmove win で共通）
 │   ├── shogigamecontroller.cpp/.h  #   指し手の検証と盤への適用、手番
@@ -414,13 +410,14 @@ src/
 │   ├── kifuformat.cpp/.h           #   棋譜の形式（読み込み・保存・変換で共通の KifuFormat）と判定（KifuFormats）
 │   ├── kifuloadparser.cpp/.h       #   棋譜の読み込み口（文字コードの判別と形式ごとの変換器への振り分け）
 │   ├── kifuloader.cpp/.h           #   棋譜ファイル・貼り付け・局面を読み（KifuLoadParser をワーカーで）、文書を置き換える
-│   ├── kifreader.cpp/.h            #   棋譜ファイルの文字コード自動判別読み込み
+│   ├── kifutextdecoder.cpp/.h      #   棋譜・局面のテキストの文字コードの判別（KifuTextDecoder。全形式の読み込みで共通）
 │   ├── kifusavefile.cpp/.h         #   ファイルへの書き出し
 │   ├── kifuioservice.cpp/.h        #   棋譜ファイルI/O
 │   ├── shiftjiscodec.cpp/.h        #   Shift_JIS（CP932）の変換
 │   ├── kifuexport.cpp/.h           #   形式ごとの書き出しの表（KifuExport::lines。GUI と CLI で共通）
 │   ├── kifuexportmetadata.cpp/.h   #   棋譜出力のヘッダー（対局者・手合割など）
 │   ├── kifupresentation.cpp/.h     #   画面に出す棋譜の表記（指し手・読み筋・終局語。表示言語と表記の設定 NotationStyle に合わせる）
+│   ├── positioncollectionfile.cpp/.h # 局面集ファイル（1行1局面）の規則（局面集ビューアと詰将棋問題一覧で共有）
 │   ├── gameinfokeys.h              #   対局情報の項目のキー
 │   ├── kifparsetypes.h             #   棋譜の読み込み結果の型（KifParseResult・KifuParseOutcome・ParseOptions）
 │   ├── josekibook.cpp/.h           #   定跡のデータの値型 JosekiBook（局面のキー→JosekiPosition の map 1つ）と、定跡ファイル（YANEURAOU-DB2016）の読み書き JosekiBookFile::load/save（ワーカースレッドから呼べる）
@@ -431,9 +428,10 @@ src/
 │       ├── csatosfenconverter.cpp/.h   #   CSA の parse()（jkf・usen・usi の *tosfenconverter も形式ごとに parse() を1つ持つ）
 │       ├── kifmovegrammar.cpp/.h       #   KIF・KI2 の指し手の文法（KIF の手は KI2 の手＋移動元）
 │       ├── kiflinebuilder.cpp/.h       #   1本の手順の組み立て（全形式で共通。指しながら RecordEntry を作る）
+│       ├── kifmovetext.h               #   KIF 形式の指し手の文字列（KifMoveText）
 │       ├── kiflexer.cpp/.h             #   KIF の字句解析（手数・消費時間・BOD。ki2lexer・csalexer も同様）
 │       ├── ki2movenotation.cpp/.h      #   KI2 の指し手から移動元を決める
-│       ├── jkfmoveparser.cpp/.h        #   JKF の指し手・初期局面・時間
+│       ├── jkfcodec.cpp/.h             #   JKF の値の符号表（preset と開始局面・指し手・時間・修飾語。読み込みと書き出しで共通）
 │       ├── kifexporter.cpp/.h          #   KIF の書き出し（ki2・csa・jkf・usen・usi の *exporter も同様。KIF・KI2 の先頭は appendHeaderLines で共有）
 │       ├── kifunodereplay.cpp/.h       #   分岐ツリーのノードを指す前の局面と一緒にたどる（KifuNodeReplay。KI2・JKF の書き出しで共有）
 │       ├── usencodec.cpp/.h            #   USEN の符号表（指し手の3文字・開始局面・手順の符号化と復号。読み込みと書き出しで共有）
@@ -446,6 +444,7 @@ src/
 │
 ├── engine/                         # USIエンジン連携（対局の仕組みに依存しない）
 │   ├── usi.cpp/.h                  #   GUI から使うエンジン1台の窓口（手番 side を持ち、bestMoveReceived を出す）
+│   ├── engineslots.cpp/.h          #   エンジンの枠 E1・E2（EngineSlots。リース・取り上げの知らせ・表示の消去。対局・検討・棋譜解析・CSA 通信対局で共有）
 │   ├── usienginesession.cpp/.h     #   起動と初期化（usi〜readyok）。GUI と CLI の実行器が共有する
 │   ├── usiprotocolhandler.cpp/.h   #   USIプロトコル処理
 │   ├── usimatchhandler.cpp/.h      #   対局・解析での USI のやり取り（position/go/bestmove）
@@ -461,18 +460,16 @@ src/
 │   ├── mateoracle.cpp/.h           #   詰みの問い合わせ（go mate）の部品 MateOracle と答え MateAnswer
 │   ├── matequeryloop.cpp/.h        #   引き出し型の問い合わせ元（MateQuerySource）を MateOracle で回す
 │   ├── tsumemateengine.cpp/.h      #   詰み判定エンジン（KomoringHeights。MateOracle::askWithin で問い合わせる）
-│   └── engineoptiondescriptions.cpp/.h # エンジンオプション説明
+│   └── tsumeevaluation.h           #   詰みの判定結果（詰み・不詰・不明と手数・読み筋）
 │
 ├── analysis/                       # 解析機能（GUI に依存しない）
 │   ├── analysisjob.cpp/.h          #   棋譜解析1回（AnalysisJob）と1局面の結果（PlyAnalysis・PlyAnalysisCollector）
 │   ├── analysissession.cpp/.h      #   検討・詰み探索のセッション（1つのエンジンで局面を調べる）
 │   ├── analysisoptions.h           #   検討・詰み探索の開始オプション
-│   ├── sfenvalidationservice.cpp/.h #  SFEN の妥当性検査の結果を値と JSON にする（検査は core の PositionValidator。自動化・CLI と共有）
 │   ├── tsumeshogigenerator.cpp/.h  #   詰将棋局面の自動生成（候補の待ち行列・問い合わせの中継・結果の集計。候補の生成・選別・検証・書き出しは tsumeshogi* に分ける）
 │   ├── tsumecandidatejob.cpp/.h    #   詰将棋の候補1つの処理（手数の確認・唯一解の検査・要らない駒の除去）
 │   ├── tsumeverificationjob.cpp/.h #   総予算つきの唯一解の検査（生成と CLI の余詰検査で共通）
 │   ├── tsumepositionutil.h         #   詰み探索の position の組み立て（buildPositionForMate。文字列は UsiPosition::commandFor）
-│   ├── positioncollectionfile.cpp/.h # 局面集ファイル（1行1局面）の規則（局面集ビューアと詰将棋問題一覧で共有）
 │   ├── tsumecollection.cpp/.h      #   詰将棋問題集のファイルの読み込みと検証（1行の規則は PositionCollectionFile）
 │   ├── tsumecollectionsession.cpp/.h #  開いている詰将棋の局面集（問題・挑戦状況・絞り込み・手数の判定）
 │   ├── tsumecollectionwriter.cpp/.h #  詰将棋局面の一覧の書き出し
@@ -486,10 +483,7 @@ src/
 │   ├── csagameprogress.cpp/.h      #   1局ぶんの進行（持ち時間・手順 RecordLine・終局行）の値型
 │   └── csamoveconverter.cpp/.h     #   CSA と USI の指し手の変換（toCsa / toUsi）
 │
-├── navigation/                     # ナビゲーション
-│   └── kifunavigationcontroller.cpp/.h # 棋譜ナビゲーション（局面送りの6つの QAction・分岐）
-│
-├── style/                          # ウィジェットの書体と見た目（QWidget に依存する。navigation の上、models の下の層）
+├── style/                          # ウィジェットの書体と見た目（QWidget に依存する。analysis・network の上、models の下の層）
 │   ├── applicationfonts.cpp/.h     #   表示言語に応じた書体
 │   ├── applicationstyle.cpp/.h, applicationrendering.cpp/.h # アプリ全体のスタイルと描画の設定
 │   ├── movefont.h                  #   指し手・読み筋の書体の規則（表のモデルの FontRole と KifuMoveDelegate で共通）
@@ -552,6 +546,7 @@ src/
 │   ├── timecontroleditor.cpp/.h    #   片方の対局者の持ち時間・秒読み・加算の欄（TimeControlSide で読み書き）
 │   ├── settingsformbinding.cpp/.h  #   入力欄と設定の宣言（Setting<T>）の対応の表（読み込み・保存・既定値に戻す）
 │   ├── boardviewerwidget.cpp/.h    #   盤と縮小・拡大・回転・局面送り（読み筋・局面集・詰将棋・外観の見本で共通）
+│   ├── menuwindow.cpp/.h           #   メニューのドックの中身（メニュー項目をボタンで並べる。お気に入り・ボタンの大きさ・タブは変えたときに保存）
 │   ├── menubuttonwidget.cpp/.h     #   メニューボタン
 │   ├── collapsiblegroupbox.cpp/.h  #   折りたたみグループボックス
 │   ├── elidelabel.cpp/.h           #   省略ラベル
@@ -563,8 +558,7 @@ src/
 │   ├── boardinteractioncontroller.cpp/.h # 盤のクリックを移動元・移動先にして行き先へ渡し、ハイライトを出す
 │   ├── boardinputroute.h           #   盤で指した手の行き先（BoardInputRoute: つまめるか・局面編集中か・着手）
 │   ├── positioneditsession.cpp/.h  #   局面編集（開始・終了・編集メニュー・編集中の着手）
-│   ├── positioneditrules.cpp/.h    #   局面編集で駒を盤・駒台・駒箱の間で動かす規則（PositionEditRules::apply）
-│   └── boardimageexporter.cpp/.h   #   盤面画像エクスポート
+│   └── positioneditrules.cpp/.h    #   局面編集で駒を盤・駒台・駒箱の間で動かす規則（PositionEditRules::apply）
 │
 ├── dialogs/                        # ダイアログ実装（.ui は同じ場所）
 │   ├── startgamedialog.cpp/.h/.ui  #   対局開始ダイアログ（先手・後手の欄は widgets/playersetupwidget・timecontroleditor）
@@ -574,6 +568,7 @@ src/
 │   ├── engineregistrationdialog.cpp/.h/.ui # エンジン登録ダイアログ
 │   ├── evaluationchartsettingsdialog.cpp/.h # 評価値グラフの表示設定（範囲・目盛り・文字の大きさ）
 │   ├── changeenginesettingsdialog.cpp/.h/.ui # エンジン設定変更（登録エンジン1つを渡して作る。enginesettingsoptionhandler がオプションの部品を作る）
+│   ├── engineoptiondescriptions.cpp/.h # エンジン設定画面のオプションの説明と分類
 │   ├── promotedialog.cpp/.h/.ui    #   成/不成選択ダイアログ（PromoteDialog::ask()。主画面の盤と詰将棋を解く画面で共通）
 │   ├── versiondialog.cpp/.h/.ui    #   バージョン情報ダイアログ
 │   ├── tsumeshogisearchdialog.cpp/.h/.ui # 詰み探索ダイアログ
@@ -584,11 +579,11 @@ src/
 │   ├── fontsettingsdialog.cpp/.h   #   GUI 共通の書体
 │   ├── piecesoundsettingsdialog.cpp/.h # 駒音の設定
 │   ├── jishogiscoredialog.cpp/.h   #   持将棋の点数
-│   ├── sfencollectiondialog.cpp/.h #   SFEN局面集ビューア（1行の規則は analysis の PositionCollectionFile、履歴は RecentFileList・RecentFilesMenu）
+│   ├── sfencollectiondialog.cpp/.h #   SFEN局面集ビューア（1行の規則は kifu の PositionCollectionFile、履歴は RecentFileList・RecentFilesMenu）
 │   ├── pvboarddialog.cpp/.h        #   読み筋盤面ダイアログ（表示する手数は BoardViewerWidget だけが持つ）
 │   ├── pvline.cpp/.h               #   読み筋の値 PvLine（各手数の局面・手の表記・直前の手のハイライト）
+│   ├── sfendiffutils.h             #   2つの局面（SFEN）の盤上の差分（pvline が使う）
 │   ├── kifupastedialog.cpp/.h      #   棋譜貼り付けダイアログ
-│   ├── menuwindow.cpp/.h           #   メニューウィンドウ
 │   ├── josekiwindow.cpp/.h         #   定跡ウィンドウ（画面のみ）
 │   ├── josekitablemodel.cpp/.h     #   定跡ウィンドウの表のモデル（データは kifu/josekibooksession）
 │   ├── josekifilecontroller.cpp/.h #   定跡ファイルの操作（開く・新規・保存・最近使ったファイル）
@@ -609,7 +604,6 @@ src/
 │   │   └── kifuanalysisrowpresenter.cpp/.h # 棋譜解析の1局面の結果を結果の表の1行にする
 │   ├── controllers/                #   利用者操作の処理
 │   │   ├── boardmovecontroller.cpp/.h      # 主画面の BoardInputRoute。盤で指した手を動作状態に応じて処理する
-│   │   ├── humanturnpolicy.cpp/.h          # 盤を人間が操作できる手番か・対局が進行中かの判定
 │   │   ├── mainwindowappearancecontroller.cpp/.h # 盤の拡大・縮小・反転とウィンドウの外観
 │   │   ├── considerationuicontroller.cpp/.h # 検討タブの操作を検討のセッションへ伝える
 │   │   ├── kifuanalysiscontroller.cpp/.h   # 棋譜解析の開始・中止と進行の表示
@@ -621,17 +615,22 @@ src/
 │   │   ├── pvclickcontroller.cpp/.h        # 読み筋のクリック
 │   │   ├── usicommandcontroller.cpp/.h     # USIコマンドの送信
 │   │   ├── imageexportcontroller.cpp/.h    # 盤・評価値グラフの画像のコピー・保存
+│   │   ├── widgetimageexporter.cpp/.h      # 部品の画像のクリップボードへのコピーと、形式を選んだファイルへの保存
+│   │   ├── kifufilecontroller.cpp/.h       # 棋譜の文書とファイル（開く・保存・上書き・自動保存・貼り付け・クリップボードへのコピー）
+│   │   ├── dialoglauncher.cpp/.h           # メニューから開くダイアログの起動
+│   │   ├── kifunavigationcontroller.cpp/.h # 棋譜ナビゲーション（局面送りの6つの QAction・分岐）
 │   │   ├── settingsresetcontroller.cpp/.h  # 設定の初期化
 │   │   ├── screenshotservice.cpp/.h        # スクリーンショットの PNG 保存（自動化 API とデバッグ用のショートカット）
 │   │   ├── debugscreenshotshortcut.cpp/.h  # F12 でスクリーンショットを撮る（デバッグビルド専用）
 │   │   └── nyugyokudeclarationhandler.cpp/.h # 利用者の入玉宣言（確認・宣言・結果の表示。GameChannel 経由）
+│   ├── policy/                     #   動作状態からの規則
+│   │   ├── uistatepolicymanager.cpp/.h  # 動作状態ごとのメニュー・ボタンの有効/無効（コンパイル時の表）
+│   │   └── humanturnpolicy.cpp/.h       # 盤を人間が操作できる手番か・対局が進行中かの判定
+│   ├── docks/                      #   ドック
+│   │   ├── dockregistry.cpp/.h          # ドックの表（DockSpec）から作成・規定の配置・状態の保存と復元
+│   │   └── docklayoutmanager.cpp/.h     # 名前付きレイアウト・起動時のレイアウト・ドックの固定
 │   └── coordinators/               #   複数の部品にまたがる UI の流れ
-│       ├── uistatepolicymanager.cpp/.h  # 動作状態ごとのメニュー・ボタンの有効/無効（コンパイル時の表）
-│       ├── dialoglauncher.cpp/.h        # メニューから開くダイアログの起動
-│       ├── dockregistry.cpp/.h          # ドックの表（DockSpec）から作成・規定の配置・状態の保存と復元
-│       ├── docklayoutmanager.cpp/.h     # 名前付きレイアウト・起動時のレイアウト・ドックの固定
 │       ├── commentcoordinator.cpp/.h    # コメント機能の調整
-│       ├── kifufilecontroller.cpp/.h    # 棋譜の文書とファイル（開く・保存・上書き・自動保存・貼り付け・クリップボードへのコピー）
 │       └── csagamesession.cpp/.h        # CSA通信対局の開始と進行の画面への反映（棋譜と自動保存は GameSession）
 │
 ├── services/                       # クロスカッティングサービス
@@ -662,25 +661,25 @@ src/
 │   ├── logcategories.cpp/.h        #   ログカテゴリ
 │   ├── errorbus.cpp/.h             #   エラー通知バス
 │   ├── recentfilelist.cpp/.h       #   最近使ったファイルの一覧（新しい順・重複なし・上限つき。定跡・局面集で共通）
-│   ├── threadtypes.h               #   スレッド間で使う共通型（ジョブの世代番号・キャンセルフラグ）
-│   └── tsumeevaluation.h           #   詰みの判定結果（詰み・不詰・不明と手数・読み筋）
+│   └── threadtypes.h               #   スレッド間で使う共通型（ジョブの世代番号・キャンセルフラグ）
 │
 ├── automation/                     # 自動化 API（--automation）
 │   ├── automationserver.cpp/.h     #   QLocalServer で改行区切りの JSON-RPC 2.0 を待ち受け
 │   ├── automationdispatcher.cpp/.h #   JSON-RPC の解析とメソッド表（GUI 非依存）。呼ぶ前に引数を表で検査し既定値を補う
-│   ├── automationcommands_*.cpp    #   app・position・kifu・ui・dock・navigation・widget などのメソッド
+│   ├── automationcommands*.cpp     #   メソッド。x.y は automationcommands_x.cpp（名前空間ごとに1ファイル）、登録の一覧は automationcommands.cpp
 │   ├── automationactionpolicy.cpp/.h # 実行してよい QAction の許可リスト
 │   ├── automationwidgets.cpp/.h    #   ウィンドウ列挙・部品の検索・操作可否の検査・内容の列挙
 │   ├── automationwidgetadapters.cpp/.h # 部品の型ごとの読み（widget.text）と書き（widget.setValue）の表
-│   ├── automationinteractions.cpp/.h # 応答の後に行う UI 操作の予約・実行直前の再検査・結果の記録（ui.interaction）
-│   ├── automationinput.cpp/.h      #   通常のマウス入力（sendClick・sendDrag）
-│   └── boardimagerenderer.cpp/.h   #   SFEN から盤面画像を描画（ShogiView を使う。CLI の render-board も使う）
+│   ├── automationinteractions.cpp/.h # 応答の後に行う UI 操作の予約・実行直前の再検査・結果の記録（ui.interaction）と遅延呼び出し AutomationDeferredCall
+│   └── automationinput.cpp/.h      #   通常のマウス入力（sendClick・sendDrag）
 │
 ├── headless/                       # CLI・自動化 API・MCP が共有する GUI 非依存の部品（core〜analysis だけを使う）
 │   ├── errorkinds.cpp/.h           #   エラーの分類 ErrorKind と語（slug）・JSON-RPC のコードの表、分類つきの失敗 Failure
 │   ├── paramspec.cpp/.h            #   引数の表の部品 ParamSpec・OperationSpec（JSON Schema の出力と検査）
 │   ├── automationmethodspecs.cpp/.h #  自動化 API の全メソッドの引数の表 AutomationMethodSpecs（CLI の describe も出す）
+│   ├── automationendpoint.cpp/.h   #   自動化 API の接続先（既定のソケット・エンドポイントファイル・1メッセージの上限。サーバーと CLI の environment で共通）
 │   ├── outputpath.cpp/.h           #   書き出し先の事前検査 OutputPath::check（CLI の出力先と kifu.save で共通）
+│   ├── sfenvalidationjson.cpp/.h   #   SFEN の検査結果の JSON（validate-sfen）
 │   ├── enginecatalog.cpp/.h        #   登録エンジンの名前解決
 │   ├── kifuconversionservice.cpp/.h #  棋譜の形式変換
 │   ├── engineanalysisrunner.cpp/.h #   登録エンジンで局面を順に解析（analyze・analyze-kifu。エンジンは1回だけ起動）
@@ -693,6 +692,7 @@ src/
     ├── clicommandspecs.cpp/.h      #   全コマンドの引数の表 CliCommandSpecs（オプションの登録・使い方の文・JSON への変換と検査）
     ├── cliargs.cpp/.h              #   表で読んだ引数の解釈（parse()・局面 resolvePosition()・エンジン resolveEngine()）
     ├── clioutput.cpp/.h            #   JSON 出力（失敗は fail(Failure)・fail(ErrorKind, ...)・failEvent(ErrorKind, ...)）
+    ├── boardimagerenderer.cpp/.h   #   SFEN から盤面画像を描画（render-board。ShogiView を使う。cli で views を使うのはこれだけ）
     └── clistopwatcher.cpp/.h       #   長時間コマンドの停止要求の監視
 ```
 
@@ -702,29 +702,31 @@ src/
 
 | ディレクトリ | ファイル数 | 行数 | 概要 |
 |-------------|-----------|------|------|
-| `app/` | 23 | 3,049 | メインウィンドウ、エントリーポイント、合成ルート、対局の流れ（`GameSession`） |
-| `core/` | 47 | 5,656 | 純粋ゲームロジック |
-| `game/` | 36 | 2,990 | 対局管理 |
-| `kifu/` | 46 | 5,423 | 棋譜管理（formatsを除く） |
-| `kifu/formats/` | 52 | 7,072 | フォーマット変換器 |
-| `engine/` | 30 | 4,104 | USIエンジン連携 |
-| `analysis/` | 39 | 4,378 | 解析機能 |
-| `network/` | 14 | 3,430 | CSA通信対局 |
-| `navigation/` | 2 | 260 | ナビゲーション |
-| `style/` | 9 | 872 | ウィジェットの書体と見た目（スタイル・ボタンと表のスタイルシート） |
-| `board/` | 6 | 930 | 盤面操作 |
-| `ui/presenters/` | 18 | 1,798 | 表示への反映 |
-| `ui/controllers/` | 30 | 2,786 | 利用者操作の処理 |
-| `ui/coordinators/` | 26 | 3,083 | 複数の部品にまたがる UI の流れ（棋譜の読み書きを含む） |
-| `views/` | 16 | 3,471 | 将棋盤描画 |
-| `widgets/` | 97 | 12,691 | カスタムウィジェット |
-| `dialogs/` | 60 | 13,025 | ダイアログ |
-| `models/` | 16 | 1,718 | Qtモデル・表示用データ |
-| `services/` | 51 | 3,988 | 横断サービス・設定の宣言 |
-| `common/` | 13 | 407 | 共有の土台（ログ・エラー通知・共有状態） |
-| `automation/` | 30 | 3,429 | 自動化 API と、CLI と共有するサービス |
-| `cli/` | 11 | 1,208 | `shogiboardq-cli` |
-| **合計** | **636** | **約85,400** | |
+| `app/` | 19 | 2,476 | メインウィンドウ、エントリーポイント、合成ルート、対局の流れ（`GameSession`） |
+| `core/` | 52 | 5,986 | 純粋ゲームロジック |
+| `game/` | 32 | 2,658 | 対局管理 |
+| `kifu/` | 53 | 6,660 | 棋譜管理（formatsを除く） |
+| `kifu/formats/` | 55 | 5,942 | フォーマット変換器 |
+| `engine/` | 33 | 4,152 | USIエンジン連携 |
+| `analysis/` | 35 | 4,075 | 解析機能 |
+| `network/` | 14 | 3,410 | CSA通信対局 |
+| `style/` | 9 | 812 | ウィジェットの書体と見た目（スタイル・ボタンと表のスタイルシート） |
+| `board/` | 7 | 722 | 盤面操作 |
+| `ui/presenters/` | 20 | 1,567 | 表示への反映 |
+| `ui/controllers/` | 42 | 4,288 | 利用者操作の処理（棋譜の読み書き・ナビゲーション・ダイアログの起動を含む） |
+| `ui/policy/` | 4 | 503 | 動作状態からの規則（メニュー・ボタンの有効/無効、盤の手の行き先） |
+| `ui/docks/` | 4 | 701 | ドックの表とレイアウト |
+| `ui/coordinators/` | 4 | 385 | 複数の部品にまたがる UI の流れ（通信対局・コメント） |
+| `views/` | 18 | 3,172 | 将棋盤描画 |
+| `widgets/` | 105 | 12,952 | カスタムウィジェット |
+| `dialogs/` | 79 | 12,879 | ダイアログ |
+| `models/` | 20 | 1,664 | Qtモデル・表示用データ |
+| `services/` | 47 | 3,781 | 横断サービス・設定の宣言 |
+| `common/` | 12 | 597 | 共有の土台（ログ・エラー通知・共有状態） |
+| `headless/` | 24 | 1,588 | CLI・自動化 API・MCP が共有する GUI 非依存の部品 |
+| `automation/` | 31 | 3,102 | 自動化 API |
+| `cli/` | 15 | 1,730 | `shogiboardq-cli` |
+| **合計** | **734** | **約85,800** | |
 
 ### 1.7 リソース構成
 
@@ -1178,7 +1180,7 @@ ShogiBoardQは6種類の棋譜フォーマットを読み込める（局面だ�
 | 形式 | 関数 |
 |------|------|
 | KIF・KI2 | `KifTextParser::parseKif()`・`parseKi2()`（どちらも `KifTextParser::parse(text, Dialect::Kif / Dialect::Ki2, options)` を呼ぶ） |
-| CSA | `CsaToSfenConverter::parse()`（CSA の文字コード宣言を見てファイルを読む `readFileText()` も持つ。宣言が無ければほかの形式と同じ `KifReader::decodeAuto()` で判別する。手合割の名前も CSA の変換器が決める） |
+| CSA | `CsaToSfenConverter::parse()`（CSA の文字コード宣言を見てファイルを読む `readFileText()` も持つ。宣言が無ければほかの形式と同じ `KifuTextDecoder::decodeAuto()` で判別する。手合割の名前も CSA の変換器が決める） |
 | JKF | `JkfToSfenConverter::parse()`（JSON は1回だけ解析する） |
 | USEN | `UsenToSfenConverter::parse()`（指し手の3文字・開始局面・手順の復号は `UsenCodec`（`usencodec.h`）。書き出しの `UsenExporter` と同じ符号表） |
 | USI・SFEN | `UsiToSfenConverter::parse()`（指し手のない局面だけのテキストは `positionOnly` に入れる） |
@@ -1223,7 +1225,7 @@ ShogiBoardQは6種類の棋譜フォーマットを読み込める（局面だ�
 
 ### 3.1 レイヤー構造
 
-ShogiBoardQ はディレクトリごとに層を作る。下の層は上の層をインクルードしない。下から順に次のとおりで、同じ段に並ぶディレクトリどうしもインクルードしない（`views/`・`widgets/` は `board/` を、`analysis/`・`network/`・`navigation/` は互いを参照しない）。
+ShogiBoardQ はディレクトリごとに層を作る。下の層は上の層をインクルードしない。下から順に次のとおりで、同じ段に並ぶディレクトリどうしもインクルードしない（`views/`・`widgets/` は `board/` を、`analysis/`・`network/` は互いを参照しない）。
 
 ```mermaid
 graph BT
@@ -1232,13 +1234,13 @@ graph BT
     KIFU["kifu/<br/>棋譜（分岐ツリー・形式変換）"]
     ENGINE["engine/<br/>USIエンジン連携"]
     GAME["game/<br/>対局管理"]
-    MID["analysis/ ・ network/ ・ navigation/<br/>解析・CSA通信対局・ナビゲーション"]
+    MID["analysis/ ・ network/<br/>解析・CSA通信対局"]
     STYLE["style/<br/>ウィジェットの書体・見た目"]
     MODELS["models/<br/>Qtモデル・表示用データ"]
     VIEW["views/ ・ widgets/<br/>盤の描画・部品"]
     BOARD["board/<br/>盤面操作"]
     DLG["dialogs/<br/>ダイアログ"]
-    UI["ui/<br/>presenters / controllers<br/>coordinators"]
+    UI["ui/<br/>presenters / controllers<br/>policy / docks / coordinators"]
     APP["app/<br/>MainWindow・合成ルート"]
 
     SVC --> CORE
@@ -1255,7 +1257,7 @@ graph BT
     APP --> UI
 ```
 
-矢印は「上の層が下の層を使ってよい」向きを表す（下の層すべてを使える。ただし `style/` が使えるのは `core/`・`common/`・`services/`・`kifu/` だけで、`engine/`〜`navigation/` は参照しない）。`automation/`（自動化 API と CLI 共有のサービス）と `cli/`（`shogiboardq-cli`）は外側の入口で、`automation/` は `app/`・`dialogs/`・`widgets/` を、`cli/` は GUI の層を参照しない。
+矢印は「上の層が下の層を使ってよい」向きを表す（下の層すべてを使える。ただし `style/` が使えるのは `core/`・`common/`・`services/`・`kifu/` だけで、`engine/`〜`network/` は参照しない）。`automation/`（自動化 API）と `cli/`（`shogiboardq-cli`）は外側の入口で、`automation/` は `app/`・`dialogs/`・`widgets/` を、`cli/` は GUI の層と `automation/` を参照しない（`cli/` の盤面画像 `boardimagerenderer.cpp` だけは、盤を描くために `views/` の `ShogiView` を使う。検査の表に例外として書いてある）。CLI と自動化 API が共有する部品は `headless/` に置き、`core/`〜`analysis/` だけを使う。
 
 #### 各レイヤーの責務
 
@@ -1263,10 +1265,10 @@ graph BT
 |---------|------------|------|
 | **土台** | `core/`, `common/` | 将棋のルール・盤面・駒・指し手（Qt GUI非依存）と、ログ・エラー通知・動作状態（`AppActivityState`・`ActivityLease`）などの共有部品 |
 | **サービス** | `services/` | 設定の宣言・駒画像・駒音・通知など、層を横断して使う機能 |
-| **ドメイン** | `kifu/`, `engine/`, `game/`, `analysis/`, `network/`, `navigation/` | 棋譜・エンジン通信・対局進行・解析・通信対局・ナビゲーションのロジック。`engine/` は `game/` を知らない（`Usi` は `ShogiGameController` を持たない） |
+| **ドメイン** | `kifu/`, `engine/`, `game/`, `analysis/`, `network/` | 棋譜・エンジン通信・対局進行・解析・通信対局のロジック。`engine/` は `game/` を知らない（`Usi` は `ShogiGameController` を持たない） |
 | **見た目** | `style/` | QWidget に依存する書体・アプリ全体のスタイル・ボタンと表のスタイルシート（`ApplicationFonts`・`ApplicationStyle`・`ButtonStyles`・`TableStyles`・`MoveFont`） |
 | **表示部品** | `models/`, `views/`, `widgets/`, `board/`, `dialogs/` | Qt のモデル・盤の描画・ウィジェット・盤面操作・ダイアログ |
-| **UI の組み立て** | `ui/`, `app/` | 表示への反映（Presenter）・利用者操作の処理（Controller）・複数の部品にまたがる流れ（Coordinator）と、MainWindow・合成ルート・メニューの接続（`MenuActionsWiring`） |
+| **UI の組み立て** | `ui/`, `app/` | 表示への反映（Presenter）・利用者操作の処理（Controller）・動作状態からの規則（`policy/`）・ドック（`docks/`）・複数の部品にまたがる流れ（Coordinator）と、MainWindow・合成ルート・メニューの接続（`MenuActionsWiring`） |
 
 ### 3.2 層間の依存ルール
 
@@ -1278,9 +1280,9 @@ graph BT
 | `services/` | `kifu/` より上の全部 |
 | `kifu/` | `engine/` より上の全部 |
 | `engine/` | `game/` より上の全部 |
-| `game/` | `analysis/`・`network/`・`navigation/` より上の全部 |
-| `analysis/`・`network/`・`navigation/` | 互いと、`style/` より上の全部 |
-| `style/` | `engine/`・`game/`・`analysis/`・`network/`・`navigation/` と、`models/` より上の全部 |
+| `game/` | `analysis/`・`network/` より上の全部 |
+| `analysis/`・`network/` | 互いと、`style/` より上の全部 |
+| `style/` | `engine/`・`game/`・`analysis/`・`network/` と、`models/` より上の全部 |
 | `models/` | `views/`・`widgets/`・`board/` より上の全部 |
 | `views/`・`widgets/` | `board/`・`dialogs/`・`ui/`・`app/` |
 | `board/` | `dialogs/`・`ui/`・`app/` |
@@ -1291,7 +1293,7 @@ graph BT
 
 - `analysis/` → `engine/`: 解析機能がUSIエンジンを利用する
 - `network/` → `engine/`: CSA通信対局がUSIエンジンを利用する
-- `navigation/` → `kifu/`: ナビゲーションが棋譜データにアクセスする
+- `ui/controllers/` → `kifu/`: 棋譜ナビゲーション（`KifuNavigationController`）が表示中の手（`KifuNavigationState`）を動かす
 
 **禁止される依存の例**:
 
@@ -1398,7 +1400,7 @@ graph LR
 
 #### 動作状態と対局者による動作分岐
 
-**1. 盤面操作の制御**（`HumanTurnPolicy::boardInput()`、`src/ui/controllers/humanturnpolicy.h`）
+**1. 盤面操作の制御**（`HumanTurnPolicy::boardInput()`、`src/ui/policy/humanturnpolicy.h`）
 
 | 状態 | 盤の手の行き先（`HumanTurnPolicy::BoardInput`） |
 |------|------------|
@@ -1410,7 +1412,7 @@ graph LR
 
 **2. エンジンの使用**
 
-エンジンは `EngineLifecycleManager` の2つの枠（E1・E2。思考情報と通信ログの表示先）に置き、対局・検討・棋譜解析・CSA 通信対局で共有する（同時には動かない）。
+エンジンは `EngineSlots` の2つの枠（E1・E2。思考情報と通信ログの表示先）に置き、対局・検討・棋譜解析・CSA 通信対局で共有する（同時には動かない）。
 
 | 用途 | E1 | E2 |
 |------|----|----|
@@ -1421,11 +1423,11 @@ graph LR
 | 棋譜解析（`KifuAnalysisController`） | 解析用 | — |
 | CSA 通信対局（`CsaGameCoordinator` の `MatchEngineSeat`） | 対局用 | — |
 
-どの用途も、エンジンは `EngineLifecycleManager::acquire(owner, slot, name)` で枠に作り、使う側は返された move-only の `EngineLease` を持っている間だけエンジンを使う（`engine()`。手放す `reset()`・破棄で枠を空け、持ち主には知らせない）。ほかの持ち主が同じ枠を取った・`destroyEngines()` で全部の枠を破棄したときは、前の持ち主に `engineRevoked(owner)` で知らせ、そのリースは空になる（枠に入っているかは `holds(engine)`）。リースを持つのは `AnalysisSession`・`KifuAnalysisController`・`MatchEngineSeat`（対局で指すエンジン。`HumanVsEngineStrategy`・`EngineVsEngineStrategy`・`CsaGameCoordinator` が持つ）。枠の部品は手番や時計を知らず、エンジンの知らせも中継しない。思考情報と通信ログの表示は `EngineDisplayPresenter` が枠のエンジンに結ぶ。
+どの用途も、エンジンは `EngineSlots::acquire(owner, slot, name)` で枠に作り、使う側は返された move-only の `EngineLease` を持っている間だけエンジンを使う（`engine()`。手放す `reset()`・破棄で枠を空け、持ち主には知らせない）。ほかの持ち主が同じ枠を取った・`destroyEngines()` で全部の枠を破棄したときは、前の持ち主に `engineRevoked(owner)` で知らせ、そのリースは空になる（枠に入っているかは `holds(engine)`）。リースを持つのは `AnalysisSession`・`KifuAnalysisController`・`MatchEngineSeat`（対局で指すエンジン。`HumanVsEngineStrategy`・`EngineVsEngineStrategy`・`CsaGameCoordinator` が持つ）。枠の部品は手番や時計を知らず、エンジンの知らせも中継しない。思考情報と通信ログの表示は `EngineDisplayPresenter` が枠のエンジンに結ぶ。
 
 **3. メニュー・ボタンの有効/無効**
 
-`UiStatePolicyManager`（`src/ui/coordinators/uistatepolicymanager.cpp`）が、動作状態ごとにどの UI 要素を有効にするかをコンパイル時の表（`kRules`）で決める。動作状態が変わる（`AppActivityState::changed()`）たびに、表に従ってメニュー・ボタンを更新する。
+`UiStatePolicyManager`（`src/ui/policy/uistatepolicymanager.cpp`）が、動作状態ごとにどの UI 要素を有効にするかをコンパイル時の表（`kRules`）で決める。動作状態が変わる（`AppActivityState::changed()`）たびに、表に従ってメニュー・ボタンを更新する。
 
 | 状態 | 棋譜ナビゲーション | 対局開始メニュー | 棋譜読込 |
 |----------|-----------------|----------------|---------|
@@ -1618,7 +1620,7 @@ public:
 `HumanTurnPolicy` のように QObject でない部品も `Deps` を `const` で保持する。依存が無いものは「操作できない」「対局していない」と答える。
 
 ```cpp
-// src/ui/controllers/humanturnpolicy.h
+// src/ui/policy/humanturnpolicy.h
 
 class HumanTurnPolicy
 {
@@ -1650,7 +1652,7 @@ struct Deps {
     ShogiGameController* gc = nullptr;          ///< 対局の盤（必須、非所有）
     ShogiClock* clock = nullptr;                ///< 対局の時計（必須、非所有）
     AppActivityState* activity = nullptr;       ///< アプリの動作状態（必須、非所有）
-    EngineLifecycleManager* engines = nullptr;  ///< エンジンの枠 E1・E2（必須、非所有。検討と共有する）
+    EngineSlots* engines = nullptr;  ///< エンジンの枠 E1・E2（必須、非所有。検討と共有する）
 };
 ```
 
@@ -1696,7 +1698,7 @@ struct Deps {
 
 ```cpp
 // src/app/mainwindowcomposer_create.cpp（createMatchAndAnalysis、抜粋）
-m_c.engines = new EngineLifecycleManager(&m_window);
+m_c.engines = new EngineSlots(&m_window);
 
 MatchCoordinator::Deps md;
 md.gc = m_c.gameController;
@@ -1816,7 +1818,7 @@ ud.canResumeGame = std::bind(&MatchCoordinator::canResumeInterruptedGame, m_c.ma
 |-------|---------|------|
 | `MenuActionsWiring` | `app/menuactionswiring.h` | メニュー/ツールバーの QAction を処理する部品のスロットへ接続する（ファイル・編集・対局などのメニューごとに関数を分ける） |
 
-言語・表記のメニューは `LanguageController`、局面編集中の盤のメニューは `PositionEditSession`、ドックの配置のメニューは `DockLayoutManager`（`wireMenuActions()`）が、それぞれ自分でつなぐ。CSA通信対局の開始と画面への反映は `CsaGameSession`（`ui/coordinators/`）、メニューから開くダイアログの起動は `DialogLauncher`（`ui/coordinators/dialoglauncher.h`）、盤の対局者名の表示は `PlayerInfoPresenter`、エンジンの表示（思考・検討・通信ログ・2つ目のエンジン欄・評価値グラフの系列名）は `EngineDisplayPresenter`（どちらも `ui/presenters/`）が自分でつなぐ。検討タブの操作は `ConsiderationUiController` が検討のセッションへ伝え、定跡ウィンドウ・メニューウィンドウは配線だけでなく表示も持つので、Controller（`JosekiWindowController`・`MenuWindowController`、`ui/controllers/`）にしている。
+言語・表記のメニューは `LanguageController`、局面編集中の盤のメニューは `PositionEditSession`、ドックの配置のメニューは `DockLayoutManager`（`wireMenuActions()`）が、それぞれ自分でつなぐ。CSA通信対局の開始と画面への反映は `CsaGameSession`（`ui/coordinators/`）、メニューから開くダイアログの起動は `DialogLauncher`（`ui/controllers/dialoglauncher.h`）、盤の対局者名の表示は `PlayerInfoPresenter`、エンジンの表示（思考・検討・通信ログ・2つ目のエンジン欄・評価値グラフの系列名）は `EngineDisplayPresenter`（どちらも `ui/presenters/`）が自分でつなぐ。検討タブの操作は `ConsiderationUiController` が検討のセッションへ伝え、定跡ウィンドウ・メニューウィンドウは配線だけでなく表示も持つので、Controller（`JosekiWindowController`・`MenuWindowController`、`ui/controllers/`）にしている。
 
 #### 典型的な構造
 
@@ -1992,7 +1994,7 @@ class EngineDisplayPresenter : public QObject {
     Q_OBJECT
 public:
     struct Deps {
-        EngineLifecycleManager* engines = nullptr;        ///< エンジンの枠（必須）
+        EngineSlots* engines = nullptr;        ///< エンジンの枠（必須）
         AnalysisSession* analysis = nullptr;              ///< 検討・詰み探索のセッション
         const KifuDocument* document = nullptr;           ///< 対局者（2つ目のエンジン欄・系列名）
         // ... 通信ログ・思考の表（E1/E2）・検討の表・棋譜解析の結果・思考ドック・検討ドック・評価値グラフ・ログ窓
@@ -2638,7 +2640,7 @@ SfenUtils::normalizeStart("startpos")
 
 #### KifMoveText
 
-**ソース**: `src/core/kifmovetext.h`（ヘッダオンリー）
+**ソース**: `src/kifu/formats/kifmovetext.h`（ヘッダオンリー）
 
 `KifMoveText::format(mover, moving, move, previousTo)` が「▲７六歩(77)」「△同　銀(31)」「▲５五角打」の形の指し手を作る。`previousTo` が移動先と同じなら「同　」と書く。対局の棋譜・棋譜の読み込み・通信対局・定跡・詰将棋の読み筋で同じ書式を使う。
 
@@ -2704,7 +2706,7 @@ game 層
   MatchCoordinator（司令塔。対局の手順 RecordLine・終局・待った・中断と再開）
     ├── GameModeStrategy（HumanVsHuman / HumanVsEngine / EngineVsEngine）
     ├── MatchSessionState（開始の設定・対局者・終局状態）
-    ├── EngineLifecycleManager（エンジンの枠 E1・E2。検討と共有）── Usi × 最大2
+    ├── EngineSlots（エンジンの枠 E1・E2。検討と共有）── Usi × 最大2
     ├── ShogiGameController（盤・合法手・棋譜の表記）── 成/不成の選択（DialogLauncher::choosePromotion() → PromoteDialog::ask()）
     └── ShogiClock（対局時計）
   ConsecutiveGameSeries（連続対局）
@@ -2714,8 +2716,8 @@ game 層
 |--------|--------|------|
 | **MatchCoordinator** | `matchcoordinator.h/.cpp` | 対局の司令塔。対局の手順（`RecordLine`）を持ち、一手の確定（時計・棋譜・千日手・最大手数）、終局の判定と記録、待った、中断と再開を受け持つ |
 | **GameModeStrategy** | `gamemodestrategy.h`、`humanvshumanstrategy`・`humanvsenginestrategy`・`enginevsenginestrategy` の `.h/.cpp` | 対局モード別に、手番ごとに誰が指すかを決める。司令塔への依頼は `MatchStrategyHost` を通す |
-| **MatchSessionState** | `matchsessionstate.h` | 開始の設定（`MatchStartOptions`）・対局者（`MatchPlayers`）・終局状態を持つ（エンジンの先読みの局面は `UsiMatchHandler` だけが持つ） |
-| **EngineLifecycleManager** | `enginelifecyclemanager.h/.cpp` | エンジンの枠 E1・E2 の生成・破棄（対局・検討・棋譜解析・CSA 通信対局で共有）。使う側には `acquire()` で move-only の `EngineLease` を渡し、枠をほかの持ち主に取られた前の持ち主には `engineRevoked` で知らせる |
+| **MatchSessionState** | `matchcoordinator.h` | 開始の設定（`MatchStartOptions`）・対局者（`MatchPlayers`）・終局状態を持つ（エンジンの先読みの局面は `UsiMatchHandler` だけが持つ） |
+| **EngineSlots** | `engineslots.h/.cpp` | エンジンの枠 E1・E2 の生成・破棄（対局・検討・棋譜解析・CSA 通信対局で共有）。使う側には `acquire()` で move-only の `EngineLease` を渡し、枠をほかの持ち主に取られた前の持ち主には `engineRevoked` で知らせる |
 | **MatchEngineSeat** | `matchengineseat.h/.cpp` | 対局で指すエンジン1台。枠からエンジンを借り、手番と持ち時間の出どころを渡して起動し、初期化・指し手・投了・入玉宣言勝ち・エラーを自分のシグナルで知らせる。終局は `finish(GameOverResult)` で、ローカル対局・通信対局で同じ手順 |
 | **ShogiGameController** | `shogigamecontroller.h/.cpp` | 対局の盤を持ち、指し手の合法性の検証と適用、棋譜の表記を行う（「同」の基準は呼び出し側が手順から渡す） |
 | **GameStartOptionsBuilder** | `gamestartoptionsbuilder.h/.cpp` | 対局開始ダイアログの値と表示中の手順から、開始の計画（`GameStartPlan`）を作る。状態を持たない |
@@ -2727,7 +2729,7 @@ game 層
 
 手番は独立したクラスでは持たず、盤（`ShogiBoard`）だけが持つ（6.7節）。
 
-ほかに、終局の型（`matchtypes.h`）、開始の設定（`startoptions.h` の `MatchStartOptions`・`GameStartPreparation`）、時間の決まり（`matchtimesettings.h` の `MatchTimeSettings`）、棋譜の受け手のインターフェース（`matchrecordsink.h`）、中断した対局の状態（`interruptedgamestate.h`）、対局開始ダイアログの値の入れ物（`startgamedatabridge.h`）、千日手の検出（`sennichitedetector`）、入玉宣言の判定（`nyugyokujudgement`）、持ち時間の時計への適用と検証（`timecontrolutil`・`timecontrolvalidator`）がある。
+ほかに、終局の型（`matchcoordinator.h` の `MatchCause`・`MatchGameEndInfo`）、開始の設定（`startoptions.h` の `MatchStartOptions`・`GameStartPreparation`）、時間の決まり（`matchtimesettings.h` の `MatchTimeSettings`）、棋譜の受け手のインターフェース（`matchrecordsink.h`）、中断した対局の状態（`matchcoordinator.h` の `InterruptedGameState`）、対局開始ダイアログの値の入れ物（`startgamedialogdata.h`）、千日手の検出（`sennichitedetector`）、入玉宣言の判定（`nyugyokujudgement`）、持ち時間の時計への適用と検証（`timecontrolutil`・`timecontrolvalidator`）がある。
 
 ### 6.2 MatchCoordinator — 司令塔
 
@@ -2742,17 +2744,17 @@ game 層
 | **対局開始** | `start()` で対局の手順・対局者・Strategy を用意し（時計はまだ動かさない）、`beginPlay()` で時計を動かして初手がエンジンなら思考を始める |
 | **手番管理** | 手番は盤（`ShogiGameController::currentPlayer()` が返す `ShogiBoard` の手番）だけを正とし、司令塔はコピーを持たない |
 | **指し手進行** | 人間の着手（`onHumanMove()`）は Strategy に渡す。一手の確定（時計・棋譜・千日手・最大手数）は Strategy から `MatchStrategyHost` 経由で呼ばれる `completeHumanMove()`・`applyEngineMove()` が行う |
-| **エンジン** | エンジンの枠は `EngineLifecycleManager`（Deps の `engines`）が持つ。思考の依頼は `requestEngineMove(side)` で、手番のエンジンに `Usi::requestMatchMove()` を送る |
+| **エンジン** | エンジンの枠は `EngineSlots`（Deps の `engines`）が持つ。思考の依頼は `requestEngineMove(side)` で、手番のエンジンに `Usi::requestMatchMove()` を送る |
 | **終局判定** | 投了・時間切れ・中断・入玉宣言・千日手・連続王手の千日手・最大手数・反則の各終局を処理し、終局の行を棋譜に書く |
 | **棋譜記録** | 確定した行（指し手・終局）を `MatchRecordSink` に書く。受け手は `GameSession` |
 | **待った** | `undoTwoPlies()` で自分と相手の手を1つずつ取り消す（人間の手番のときだけ） |
 | **中断と再開** | 中断した対局の手順と時計を `InterruptedGameState` に残し、棋譜に書いた中断の行を `attachInterruptedRecord(nodeId)` で結びつける（`canResumeInterruptedGame()`、変われば `resumeAvailabilityChanged`）。`resumeInterruptedGame()` で再開する |
 
-検討・詰み探索は司令塔ではなく `AnalysisSession`（`src/analysis/analysissession.h`、第9章）が受け持つ。エンジンの枠（`EngineLifecycleManager`）は検討と共有する。
+検討・詰み探索は司令塔ではなく `AnalysisSession`（`src/analysis/analysissession.h`、第9章）が受け持つ。エンジンの枠（`EngineSlots`）は検討と共有する。
 
 #### 内部型定義
 
-終局原因・終局情報・終局状態は `src/game/matchtypes.h` にあり、`MatchCoordinator::Cause` などはその別名である。対局者（先手・後手）は、盤や対局の進行と同じ `Turn`（`Turn::Black`／`Turn::White`）で表す。
+終局原因・終局情報・終局状態は `src/game/matchcoordinator.h` にあり、`MatchCoordinator::Cause` などはその別名である。対局者（先手・後手）は、盤や対局の進行と同じ `Turn`（`Turn::Black`／`Turn::White`）で表す。
 
 ```cpp
 // 終局原因
@@ -2795,7 +2797,7 @@ struct GameEndInfo {
 
 **終局の情報** — `MatchCoordinator::gameEnd()` が `std::optional<GameEndInfo>` を返す（終局していなければ nullopt。`isGameOver()` はその有無）。
 
-対局の条件（対局者・エンジン・開始局面・最大手数・自動保存・定跡）と終局の情報は `MatchSessionState`（`src/game/matchsessionstate.h`）が持ち、司令塔は `options()`・`players()`・`gameEnd()` で読ませる。開始の手順（`MatchStartOptions::recordLine`）は対局の手順 `record()` になるので、`MatchSessionState::begin()` は持たない（再開した後に古い手順が残らない）。終局は `finish()`（終局済みなら何もしない。終局の行の二重追記もこれで防ぐ）、次の対局の前は `clearEnd()`（司令塔の `clearGameEnd()`）を通す。
+対局の条件（対局者・エンジン・開始局面・最大手数・自動保存・定跡）と終局の情報は `MatchSessionState`（`src/game/matchcoordinator.h`）が持ち、司令塔は `options()`・`players()`・`gameEnd()` で読ませる。開始の手順（`MatchStartOptions::recordLine`）は対局の手順 `record()` になるので、`MatchSessionState::begin()` は持たない（再開した後に古い手順が残らない）。終局は `finish()`（終局済みなら何もしない。終局の行の二重追記もこれで防ぐ）、次の対局の前は `clearEnd()`（司令塔の `clearGameEnd()`）を通す。
 
 #### シグナルと MatchRecordSink — 上位層への知らせ
 
@@ -2818,7 +2820,7 @@ Strategy から司令塔への依頼は `MatchStrategyHost`（`src/game/gamemode
 
 | `MatchStrategyHost` のメソッド | 内容 |
 |-------------------------------|------|
-| `engines()` | エンジンの枠（`EngineLifecycleManager`） |
+| `engines()` | エンジンの枠（`EngineSlots`） |
 | `isGameOver()` / `sideToMove()` / `currentPly()` | 終局したか・盤の手番・対局の手順の手数 |
 | `requestEngineMove(side)` | 手番のエンジンに、いまの局面で思考させる |
 | `setWaitingForEngines(waiting)` | エンジンの初期化を待つ間は時計を止める（待ち終えたら、対局中なら動かす） |
@@ -2832,7 +2834,7 @@ struct Deps {
     ShogiGameController* gc = nullptr;          // 対局の盤（必須、非所有）
     ShogiClock* clock = nullptr;                // 対局の時計（必須、非所有）
     AppActivityState* activity = nullptr;       // アプリの動作状態（必須、非所有）
-    EngineLifecycleManager* engines = nullptr;  // エンジンの枠 E1・E2（必須、非所有。検討と共有する）
+    EngineSlots* engines = nullptr;  // エンジンの枠 E1・E2（必須、非所有。検討と共有する）
 };
 ```
 
@@ -2950,12 +2952,12 @@ sequenceDiagram
 
 | フィールド | 説明 |
 |-----------|------|
-| `dialogData` | 対局開始ダイアログから取り出した値（`StartGameDialogData`、`src/game/startgamedatabridge.h`） |
+| `dialogData` | 対局開始ダイアログから取り出した値（`StartGameDialogData`、`src/game/startgamedialogdata.h`） |
 | `recordLine` | 表示中の手順（`KifuNavigationState::currentRecordLine()`）。現在の局面から始めるときは `currentPly` までを使う |
 | `startNodeId` | 分岐ツリー上の表示中のノード |
 | `bottomSide` | 盤の手前に表示している側（「人を手前に表示する」の判定用） |
 
-**StartGameDialogData** — 対局開始ダイアログで選んだ対局の条件（`src/game/startgamedatabridge.h`）:
+**StartGameDialogData** — 対局開始ダイアログで選んだ対局の条件（`src/game/startgamedialogdata.h`）:
 
 | フィールド | 説明 |
 |-----------|------|
@@ -3225,7 +3227,7 @@ MatchCoordinator::gameInterrupted
 |-----------|------|
 | `activity` | `AppActivityState`（動作状態。対局中の窓口を決める） |
 | `match` / `analysis` / `consecutive` / `csaGame` / `reset` | 対局の司令塔（必須）・検討（「新規」で止める）・連続対局・通信対局の司令塔（必須）・棋譜と表示の作り直し |
-| `engines` | エンジンの枠（`EngineLifecycleManager`。省略可）。「新規」で対局・棋譜解析のエンジンも `destroyEngines(false)` で止める（`AnalysisSession::stop()` は自分のエンジンしか手放さないため） |
+| `engines` | エンジンの枠（`EngineSlots`。省略可）。「新規」で対局・棋譜解析のエンジンも `destroyEngines(false)` で止める（`AnalysisSession::stop()` は自分のエンジンしか手放さないため） |
 | `navState` / `liveSession` / `document` | 表示中の手（現在局面からの開始・再開）・対局の手順の書き先（分岐ツリー）・棋譜の文書（対局者・持ち時間・開始と終了の日時・対局情報） |
 | `clock` / `timePresenter` / `playerInfo` | 時計（必須）・時計の表示・盤の対局者名の表示 |
 | `kifuFileController` / `shogiView` / `appearance` | 未保存の棋譜の確認と棋譜の自動保存・手前に表示している側・「人を手前に表示する」の盤の反転 |
@@ -3243,7 +3245,7 @@ MatchCoordinator::gameInterrupted
 
 どちらの手番を人間が指すかは、対局者 `MatchPlayers`（`src/core/matchplayers.h`）の `isHuman(Turn)`・`isEngine(Turn)` で決まる。司令塔の `MatchCoordinator::isHumanSide(Turn)` は、対局を一度でも始めていればその対局の `players().isHuman(side)` を返す。
 
-盤で指した手の行き先の規則は `HumanTurnPolicy`（`src/ui/controllers/humanturnpolicy.h`）の `boardInput()` 1か所にある。動作状態（`AppActivityState`）で、ローカル対局なら司令塔、通信対局なら `CsaGameCoordinator` に聞く。
+盤で指した手の行き先の規則は `HumanTurnPolicy`（`src/ui/policy/humanturnpolicy.h`）の `boardInput()` 1か所にある。動作状態（`AppActivityState`）で、ローカル対局なら司令塔、通信対局なら `CsaGameCoordinator` に聞く。
 
 ```cpp
 HumanTurnPolicy::BoardInput HumanTurnPolicy::boardInput() const
@@ -3327,7 +3329,7 @@ startNextGame()
 │    ├── MatchCoordinator  (司令塔)                                     │
 │    │     ├── ShogiGameController (盤面/ルール。手番は盤が持つ)         │
 │    │     ├── ShogiClock (時計)                                        │
-│    │     ├── EngineLifecycleManager ── Usi × 2 (エンジン)             │
+│    │     ├── EngineSlots ── Usi × 2 (エンジン)             │
 │    │     ├── GameModeStrategy (対局モード別の手番の進め方)             │
 │    │     └── MatchRecordSink（= GameSession）へ棋譜の行を書く          │
 │    │                                                                  │
@@ -3606,7 +3608,7 @@ bestmove の手が局面に指せないときも `moveReady` は出し（先読�
 
 **ソース**: `src/engine/usi.h`, `src/engine/usi.cpp`
 
-`Usi` クラスは GUI からエンジン1台を使う窓口である。対局（`HumanVsEngineStrategy`・`EngineVsEngineStrategy`）と通信対局（`CsaGameCoordinator`）は `MatchEngineSeat` 経由で（エンジンは `EngineLifecycleManager` が作る）、検討・詰み探索（`AnalysisSession`）、棋譜解析（`AnalysisJob`）は直接使う。思考タブを使わない詰みの問い合わせ（詰将棋の局面生成 `TsumeshogiGenerator`・詰み判定 `TsumeMateEngine`・CLI の `MateSearchRunner`・`TsumeVerificationRunner`）は `Usi` を使わず、`MateOracle`（`UsiEngineSession` を持つ）で頼む。`Usi` は内部のコンポーネント（7.1節の表）を持ち、要求の受け付けとシグナルの中継を行う。思考の表・通信ログのモデルには触れない。
+`Usi` クラスは GUI からエンジン1台を使う窓口である。対局（`HumanVsEngineStrategy`・`EngineVsEngineStrategy`）と通信対局（`CsaGameCoordinator`）は `MatchEngineSeat` 経由で（エンジンは `EngineSlots` が作る）、検討・詰み探索（`AnalysisSession`）、棋譜解析（`AnalysisJob`）は直接使う。思考タブを使わない詰みの問い合わせ（詰将棋の局面生成 `TsumeshogiGenerator`・詰み判定 `TsumeMateEngine`・CLI の `MateSearchRunner`・`TsumeVerificationRunner`）は `Usi` を使わず、`MateOracle`（`UsiEngineSession` を持つ）で頼む。`Usi` は内部のコンポーネント（7.1節の表）を持ち、要求の受け付けとシグナルの中継を行う。思考の表・通信ログのモデルには触れない。
 
 #### コンストラクタと依存関係
 
@@ -4065,7 +4067,7 @@ ThinkingInfoFormatter           UsiModelBinding              UsiCommLogModel
 
 kifu層（`src/kifu/`）は、棋譜の分岐管理・ナビゲーション状態・形式の変換・ファイルの読み書きを担当するレイヤーである。棋譜の「1局の記録全体」を扱い、棋譜の1行（`RecordEntry`：core層の `ShogiMove`・局面SFEN・消費時間・終局・コメント）を組み合わせて分岐ツリーという上位構造を構築する。
 
-棋譜の読み込み（`KifuLoader`）は kifu 層にある。読み込み・保存・書き出しの画面側の流れ（`KifuFileController`）は `src/ui/coordinators/`、保存で利用者に聞くダイアログ（`KifuSaveDialogs`）は `src/dialogs/` にある。kifu層はダイアログやウィジェットを知らない（層の規則）ため上の層に置いているが、棋譜の話題なので本章で扱う。
+棋譜の読み込み（`KifuLoader`）は kifu 層にある。読み込み・保存・書き出しの画面側の流れ（`KifuFileController`）は `src/ui/controllers/`、保存で利用者に聞くダイアログ（`KifuSaveDialogs`）は `src/dialogs/` にある。kifu層はダイアログやウィジェットを知らない（層の規則）ため上の層に置いているが、棋譜の話題なので本章で扱う。
 
 ### 8.1 全体構成
 
@@ -4114,7 +4116,7 @@ kifu層（`src/kifu/`）は、棋譜の分岐管理・ナビゲーション状�
 │  └─────────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────────┘
 
-画面側の流れ（KifuFileController は src/ui/coordinators/）:
+画面側の流れ（KifuFileController は src/ui/controllers/）:
   KifuFileController ─┬→ KifuLoader（kifu）─→ KifuLoadParser（kifu。パース）
                       │                         → KifuDocument を置き換える（分岐ツリーの作り直し。表示は
                       │                           KifuNavigationState::changed を受けた部品が合わせる）
@@ -4657,7 +4659,7 @@ onLoadFinished() → applyLoadResult(result)            ← メインスレッ�
 
 ### 8.9 KifuExport / KifuFileController — 書き出しとファイルの操作
 
-**ソース**: `src/kifu/kifuexport.h/.cpp`、`src/kifu/kifuexportmetadata.h/.cpp`、`src/ui/coordinators/kifufilecontroller.h/.cpp`
+**ソース**: `src/kifu/kifuexport.h/.cpp`、`src/kifu/kifuexportmetadata.h/.cpp`、`src/ui/controllers/kifufilecontroller.h/.cpp`
 
 #### KifuExport — 形式ごとの書き出しの表
 
@@ -4803,7 +4805,7 @@ KifuNavigationState
 | 変更 | `setCurrentNode(node)` / `setCurrentNode(node, lineEnd)` | 移って経路を記憶する |
 | 変更 | `resetToNode(node)` / `goToRoot()` | 選択を忘れて移る |
 
-`KifuNavigationState` は変わったときだけ `changed()` を1回出す（ツリーを作り直して表示中の手が無くなったときは開始局面へ戻る）。カーソルを動かすのは `KifuNavigationController`（`navigation/`。ボタン・棋譜欄・分岐候補欄・分岐ツリー・評価値グラフからの移動。`goToPly()`・`goToNode()`・`goToPlyOnLine()` など）、`LiveGameSession`（対局中の最新手への追従）、`GameSession`（中断した対局の再開）、`BranchTreeEditController`（分岐の編集）などである。表示の更新は `changed()` を受けた部品が自分で行う。`KifuDisplayPresenter`（棋譜欄・分岐候補欄・分岐ツリー）、`BoardSyncPresenter`（盤と手番）、`CommentCoordinator`（コメント欄）、`EvaluationGraphPresenter`（評価値グラフ）、`AnalysisSession`（検討の追従）、`JosekiWindowController`（定跡ウィンドウ）が接続している。
+`KifuNavigationState` は変わったときだけ `changed()` を1回出す（ツリーを作り直して表示中の手が無くなったときは開始局面へ戻る）。カーソルを動かすのは `KifuNavigationController`（`ui/controllers/`。ボタン・棋譜欄・分岐候補欄・分岐ツリー・評価値グラフからの移動。`goToPly()`・`goToNode()`・`goToPlyOnLine()` など）、`LiveGameSession`（対局中の最新手への追従）、`GameSession`（中断した対局の再開）、`BranchTreeEditController`（分岐の編集）などである。表示の更新は `changed()` を受けた部品が自分で行う。`KifuDisplayPresenter`（棋譜欄・分岐候補欄・分岐ツリー）、`BoardSyncPresenter`（盤と手番）、`CommentCoordinator`（コメント欄）、`EvaluationGraphPresenter`（評価値グラフ）、`AnalysisSession`（検討の追従）、`JosekiWindowController`（定跡ウィンドウ）が接続している。
 
 ### 8.11 フォーマット変換器一覧
 
@@ -4837,7 +4839,7 @@ static KifuParseOutcome parse(QStringView text, const ParseOptions& options = {}
 |------|---------|
 | KIF・KI2 | `KifTextParser`（行の分類・変化の区切り・コメント・しおり・開始局面）、`KifMoveGrammar`（指し手の文法）、`KifLexer`（手数と消費時間の字句・BOD の局面図）、`Ki2Lexer`（KI2 の指し手の行・「まで…」の結果の行） |
 | CSA | `CsaLexer`（`parseStartPos(lines, idx, Position&)` で開始局面、`parseMoveLine(line, mover, position, detail)` で指し手を `std::optional<UsiMove>` にする。盤は変えない） |
-| JKF | `JkfMoveParser`（`toUsiMove()`・`notesOf()`・`timeOf()`） |
+| JKF | `JkfCodec`（`toUsiMove()`・`notesOf()`・`timeOf()`） |
 
 #### KifLineBuilder — 1本の手順の組み立て（全形式で共通）
 
@@ -4898,9 +4900,9 @@ KI2 の文字列を作る。本譜と変化の指し手の行は同じループ�
 
 棋譜の読み込み（`KifuLoadParser`・`KifuFileController`）と棋譜の変換（`KifuConversionService`）で使う。
 
-#### KifReader
+#### KifuTextDecoder
 
-**ソース**: `src/kifu/kifreader.h/.cpp`
+**ソース**: `src/kifu/kifutextdecoder.h/.cpp`
 
 棋譜ファイルを文字コード（BOM・UTF-8・CP932・EUC-JP の順）を自動判別して読み込む名前空間（判別の `decodeAuto()`、`readAllLinesAuto()`・`readAllTextAuto()`・`splitLines()`）。`KifuLoadParser::readFileText()` が CSA 以外の形式で使い、CSA も文字コードの宣言が無ければ `decodeAuto()` を使う。Shift_JIS の変換は `ShiftJisCodec`（`src/kifu/shiftjiscodec.h`）が受け持つ。
 
@@ -4960,7 +4962,7 @@ analysis層にはダイアログを知らない部分（`AnalysisSession`・`Ana
 │        │                               │                                │
 │        └────────── 使うエンジン（Usi） ┘                                │
 │                                                                         │
-│  game 層の EngineLifecycleManager（枠 E1・E2）がエンジンを持つ           │
+│  game 層の EngineSlots（枠 E1・E2）がエンジンを持つ           │
 │  models/ の KifuAnalysisListModel … 解析結果の8列テーブルモデル          │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
@@ -5088,8 +5090,8 @@ struct AnalysisOptions {
 
 #### 検討モードと対局エンジンの関係
 
-検討のセッション `AnalysisSession` は、対局の司令塔と同じエンジンの枠（`EngineLifecycleManager` の E1）にエンジンを作り、そのリース（`EngineLease`）を持つ（`acquire(this, 1, std::nullopt, name)`。対局と検討は同時には動かない）。開始すると動作状態を `DuringConsideration`（詰み探索は `DuringTsumeSearch`）にし、`Usi::startEngine()` でエンジンを起動してから（起動の失敗は戻った後に `onEngineError` で届くので、開始中の状態や失敗の覚え書きは持たない）、検討なら `Usi::startConsideration()`（position・MultiPV の setoption・`go infinite`、時間指定があればタイマーで `stop`）、詰み探索なら `Usi::startMateSearch()` で探索を始める。
-探索が終わると次の局面を待つ（`considerationWaitingStarted`）。局面や候補手の数が変わると探索をやり直し（`updatePosition()`・`updateMultiPV()`。やり直しの前に `considerationResultsCleared` で検討の表を消す）、`stop()` で自分のリースだけを手放して `considerationModeEnded` を出す（検討・詰み探索をしていなければ何もしない。ほかの処理のエンジンには触れない）。ほかの処理（棋譜解析・対局など）が枠を取ったときは `EngineLifecycleManager::engineRevoked` を受けて（`onEngineRevoked()`）同じく `stop()` で終える。検討中に表示中の手が変わったときは、`AnalysisSession` 自身が `KifuNavigationState::changed` を受けて `followDisplayedPosition()` で検討をやり直す（9.5 参照）。
+検討のセッション `AnalysisSession` は、対局の司令塔と同じエンジンの枠（`EngineSlots` の E1）にエンジンを作り、そのリース（`EngineLease`）を持つ（`acquire(this, 1, std::nullopt, name)`。対局と検討は同時には動かない）。開始すると動作状態を `DuringConsideration`（詰み探索は `DuringTsumeSearch`）にし、`Usi::startEngine()` でエンジンを起動してから（起動の失敗は戻った後に `onEngineError` で届くので、開始中の状態や失敗の覚え書きは持たない）、検討なら `Usi::startConsideration()`（position・MultiPV の setoption・`go infinite`、時間指定があればタイマーで `stop`）、詰み探索なら `Usi::startMateSearch()` で探索を始める。
+探索が終わると次の局面を待つ（`considerationWaitingStarted`）。局面や候補手の数が変わると探索をやり直し（`updatePosition()`・`updateMultiPV()`。やり直しの前に `considerationResultsCleared` で検討の表を消す）、`stop()` で自分のリースだけを手放して `considerationModeEnded` を出す（検討・詰み探索をしていなければ何もしない。ほかの処理のエンジンには触れない）。ほかの処理（棋譜解析・対局など）が枠を取ったときは `EngineSlots::engineRevoked` を受けて（`onEngineRevoked()`）同じく `stop()` で終える。検討中に表示中の手が変わったときは、`AnalysisSession` 自身が `KifuNavigationState::changed` を受けて `followDisplayedPosition()` で検討をやり直す（9.5 参照）。
 
 ### 9.5 ConsiderationUiController — 検討モードのUI制御
 
@@ -5175,7 +5177,7 @@ CandidateArrowPresenter::refresh()
 | `analysisModel` | `KifuAnalysisListModel*` | 必須 | 結果蓄積用モデル |
 | `resultsPanel` | `AnalysisResultsPanel*` | 任意 | 結果の表（無ければ自分で作る）。初めて解析するときに `setModel(analysisModel)` で1度だけモデルを結ぶ |
 | `resultsDock` | `QDockWidget*` | 任意 | 結果の表のドック。解析を始めたときに表示して前に出す |
-| `engines` | `EngineLifecycleManager*` | — | 解析のエンジンを置く枠 E1 |
+| `engines` | `EngineSlots*` | — | 解析のエンジンを置く枠 E1 |
 | `navState` | `const KifuNavigationState*` | — | 解析する手順（表示中の手順）とその末尾の手（`AnalysisRequest::lineEndNodeId`）、分岐がある手（`AnalysisRequest::branchPlies`。結果の表で棋譜欄と同じ印を付ける） |
 | `pvBoards` | `PvClickController*` | — | 結果の行のダブルクリックで読み筋盤を開く（`showPvBoard()`。対局者名・盤の向きは思考の表と同じ規則） |
 | `navController` | `KifuNavigationController*` | — | 解析中・結果の行を選んだ手へ棋譜を移す（`goToPlyOnLine`） |
@@ -5303,7 +5305,7 @@ showDialogAndStart()
 
 **ソース**: `src/widgets/analysisresultspanel.h`, `src/widgets/analysisresultspanel.cpp`
 
-棋譜解析結果を表示するドックの中身である。`QWidget` の派生で、部品はコンストラクタで作る。列幅管理、自動スクロール、フォントサイズ調整を担当する。合成ルートが作った `AnalysisResultsPanel` を、`DockRegistry`（`ui/coordinators/dockregistry.h`）がそのままドックに入れる。結果のモデルは `setModel(KifuAnalysisListModel*)` で1度だけ結ぶ（同じモデルなら何もしない）。自分の入ったドックは知らず、表示もしない。解析を始めたときにドックを出して前に出すのは `KifuAnalysisController`（`Deps::resultsDock`）である。
+棋譜解析結果を表示するドックの中身である。`QWidget` の派生で、部品はコンストラクタで作る。列幅管理、自動スクロール、フォントサイズ調整を担当する。合成ルートが作った `AnalysisResultsPanel` を、`DockRegistry`（`ui/docks/dockregistry.h`）がそのままドックに入れる。結果のモデルは `setModel(KifuAnalysisListModel*)` で1度だけ結ぶ（同じモデルなら何もしない）。自分の入ったドックは知らず、表示もしない。解析を始めたときにドックを出して前に出すのは `KifuAnalysisController`（`Deps::resultsDock`）である。
 
 #### UIコンポーネント構成
 
@@ -5412,7 +5414,7 @@ analysis層の機能は、エンジンの使い方が2つに分かれている�
   └── ConsiderationUiController / TsumeSearchController
         → AnalysisSession::start(AnalysisOptions)
                           │
-                          └── EngineLifecycleManager の枠 E1 に Usi を作って起動
+                          └── EngineSlots の枠 E1 に Usi を作って起動
                               go infinite / go mate を送信
 
 棋譜解析モード
@@ -5424,7 +5426,7 @@ analysis層の機能は、エンジンの使い方が2つに分かれている�
         └── 独自の position/go infinite/stop サイクルを実行
 ```
 
-**検討・詰将棋探索**: `AnalysisSession` が、対局の司令塔（`MatchCoordinator`）と共有するエンジンの枠（`EngineLifecycleManager` の E1）でエンジンを管理する。対局と同じ枠を使うため、エンジンの起動・初期化・シャットダウンが統一されており、思考情報・通信ログも E1 のモデルに出る。対局と検討は同時には動かない（`AnalysisSession` は始めるときに枠のエンジンを破棄し、ほかの持ち主には `engineRevoked` で知らせる。自分の枠をほかの処理に取られたら `engineRevoked` を受けてセッションを終える）。
+**検討・詰将棋探索**: `AnalysisSession` が、対局の司令塔（`MatchCoordinator`）と共有するエンジンの枠（`EngineSlots` の E1）でエンジンを管理する。対局と同じ枠を使うため、エンジンの起動・初期化・シャットダウンが統一されており、思考情報・通信ログも E1 のモデルに出る。対局と検討は同時には動かない（`AnalysisSession` は始めるときに枠のエンジンを破棄し、ほかの持ち主には `engineRevoked` で知らせる。自分の枠をほかの処理に取られたら `engineRevoked` を受けてセッションを終える）。
 
 **棋譜解析**: 複数局面を逐次解析する必要があり、`AnalysisJob` が独自の position/go/stop サイクルを制御する。エンジンは `KifuAnalysisController` が枠 E1 に作ってリースを持ち（`acquire(this, 1, ...)`）、`AnalysisJob` に渡す（テストでは `Deps::engine` で注入できる）。検討・対局などに枠を取られたら `engineRevoked` を受けて（`onEngineRevoked()`）解析を止める。`AnalysisJob` は解析が終わると `Usi::quit()` でエンジンを終わらせ、思考情報・通信ログの表示は枠 E1 の持ち主が結ぶ。
 
@@ -5655,13 +5657,13 @@ ShogiClock::timeUpdated()（tick・状態の変化・ShogiClock::notifyTimeUpdat
 
 #### EngineDisplayPresenter と UsiModelBinding — エンジンの表示
 
-エンジンは表示のモデルに触れない。`EngineDisplayPresenter`（`enginedisplaypresenter.h`）が、エンジンの枠（`EngineLifecycleManager`）にエンジンが入るたびに `UsiModelBinding` を作り、エンジンのシグナルを思考の表（先頭に足す）・検討の表（multipv の行を更新する）・情報欄と通信ログ（`UsiCommLogModel`）へ反映する。検討の間は E1 のエンジンの読み筋を検討の表にも出す（候補手の数は `AnalysisSession` に合わせる）。
+エンジンは表示のモデルに触れない。`EngineDisplayPresenter`（`enginedisplaypresenter.h`）が、エンジンの枠（`EngineSlots`）にエンジンが入るたびに `UsiModelBinding` を作り、エンジンのシグナルを思考の表（先頭に足す）・検討の表（multipv の行を更新する）・情報欄と通信ログ（`UsiCommLogModel`）へ反映する。検討の間は E1 のエンジンの読み筋を検討の表にも出す（候補手の数は `AnalysisSession` に合わせる）。
 
 `EngineDisplayPresenter` はエンジンの表示の持ち主で、ほかの部品はエンジンの表示を直接変えない。
 
 | 表示 | 決め方 |
 |------|--------|
-| 思考の表・情報欄・通信ログ（E1・E2） | 枠にエンジンが入るたびに `UsiModelBinding` で結ぶ（`EngineLifecycleManager::enginesChanged`）。枠の表示の消去の要求（`displayClearRequested`）で通信ログ・情報欄・思考の表を消す |
+| 思考の表・情報欄・通信ログ（E1・E2） | 枠にエンジンが入るたびに `UsiModelBinding` で結ぶ（`EngineSlots::enginesChanged`）。枠の表示の消去の要求（`displayClearRequested`）で通信ログ・情報欄・思考の表を消す |
 | 検討タブ（実行の状態・情報欄・検討の表） | `AnalysisSession` の知らせだけから決める。`considerationSearchStarted` で E1 の読み筋を検討の表へ出し、検討タブと思考タブの情報欄を E1 のモデルにして `setRunState(Running)`、`considerationWaitingStarted` で `Waiting`、`considerationModeEnded` で `Idle`、`considerationResultsCleared` で検討の表を消す。検討中かどうかの正本は `AnalysisSession::isConsidering()` |
 | 2つ目のエンジン欄・評価値グラフの系列名 | 対局では文書の対局者（`KifuDocument::playersChanged`）から決める（2つ目のエンジン欄はエンジン同士の対局だけ、系列名は先手・後手のエンジン名）。検討・詰み探索では `AnalysisSession::engineNamesChanged` から（2つ目のエンジン欄を隠し、1つ目の系列名・検討タブ・思考タブのエンジン名をそのエンジンにする） |
 | 表示の消去 | `clearAll()` が通信ログ・情報欄・思考の表・検討の表・棋譜解析の結果・USI/CSA の通信ログ窓・エンジン名を消し、検討タブを `Idle` に戻す（`SessionResetCoordinator` が棋譜を作り直すときに呼ぶ） |
@@ -5682,7 +5684,7 @@ Controllers は「View → Model」方向のイベント処理を担当する。
 | `TsumeSearchController` | `tsumesearchcontroller.h` | 詰み探索の条件ダイアログと探索の開始（第9章） | `AnalysisSession` |
 | `LanguageController` | `languagecontroller.h` | 表示言語・棋譜表記の切り替えと再起動の案内 | `QAction`（言語・表記メニュー） |
 | `PvClickController` | `pvclickcontroller.h` | 読み筋行クリック時のPV盤面ダイアログ表示（棋譜解析の結果の行も `showPvBoard()` で開く） | `ShogiEngineThinkingModel`, `PvBoardDialog` |
-| `UsiCommandController` | `usicommandcontroller.h` | 手動USIコマンドの送信 | `EngineLifecycleManager`, `UsiLogPanel` |
+| `UsiCommandController` | `usicommandcontroller.h` | 手動USIコマンドの送信 | `EngineSlots`, `UsiLogPanel` |
 | `NyugyokuDeclarationHandler` | `nyugyokudeclarationhandler.h` | 利用者の入玉宣言（確認・宣言・結果の表示）をローカル対局・通信対局で同じ手順で行う | `GameChannel`, `KifuDocument` |
 | `JosekiWindowController` | `josekiwindowcontroller.h` | 定跡ウィンドウの生成・更新と、定跡手から着手への変換 | `JosekiWindow`, `KifuNavigationState`, `BoardMoveController` |
 | `MenuWindowController` | `menuwindowcontroller.h` | メニューバーの項目を集めてメニューウィンドウを作る | `MenuWindow`, `QMenuBar` |
@@ -5757,10 +5759,10 @@ onPvRowClicked(ShogiEngineThinkingModel* model, row)
 | `ConsiderationUiController` | 検討タブの操作（開始 `startConsideration()`・中止・エンジン変更・エンジン設定・候補手の数）を検討のセッション（`AnalysisSession`）へ伝える。検討タブの表示（ボタン・経過時間）は `EngineDisplayPresenter`、盤の候補手の矢印は `CandidateArrowPresenter` が受け持つ（第9章） |
 | `KifuAnalysisController`・`TsumeSearchController` | 棋譜解析と詰み探索の条件ダイアログを出して始める（第9章）。メニューの項目は `MenuActionsWiring` がつなぐ |
 | `LanguageController` | 言語メニュー（システム・日本語・英語・簡体字・繁体字）と棋譜表記のメニューを処理し、言語を変えたら再起動を案内する |
-| `UsiCommandController` | `UsiLogPanel` の手動コマンド入力欄からのUSIコマンドを、エンジンの枠（`EngineLifecycleManager` の E1・E2）のエンジンに送る。エンジン未起動時は通信ログにエラーを表示する |
+| `UsiCommandController` | `UsiLogPanel` の手動コマンド入力欄からのUSIコマンドを、エンジンの枠（`EngineSlots` の E1・E2）のエンジンに送る。エンジン未起動時は通信ログにエラーを表示する |
 | `NyugyokuDeclarationHandler` | 利用者の入玉宣言を行う（`handleDeclaration(GameChannel*)`。`GameSession::declareNyugyoku()` が `activeChannel()` を渡す。コンストラクタは親ウィジェットと `const KifuDocument*`）。対局中でなければ警告、人間の手番でなければ案内を出す。窓口がこちらで判定する対局（`judgesDeclaration()`。ローカル対局）なら持将棋ルール（24点法・27点法）が選ばれているかを確かめる。確認（宣言する側は `KifuDocument::usesHandicapNames()` で下手・上手とも呼ぶ）の後で `GameChannel::declareNyugyoku()` で宣言し、判定結果が返れば（ローカル対局は `MatchCoordinator::declareNyugyoku(declarer, rule)` が盤面から判定して終局する）ダイアログで知らせる。通信対局はサーバーが判定して終局を知らせる |
 | `JosekiWindowController` | 定跡ウィンドウ（`JosekiWindow`）を作ってドックに載せ、ドックが前面にある間だけ局面に合わせて更新する。定跡手を選ぶと USI 文字列を `UsiMove::parse()` で `UsiMove` にし、成りの選択を出さずに `BoardMoveController::playUsiMove()` で指す。指せたかは `playUsiMove()` の戻り値で判定し、指せなければ定跡ウィンドウに失敗を知らせる。人間の手番かどうかは `HumanTurnPolicy`（合成ルートが `isHumanTurnNow` として渡す）に聞く。定跡へのマージには、表示中の手順（`RecordLine`）をそのまま渡す。定跡の表示（「■ 停止」）と「盤の手を登録」の checkable な `QAction` を持ち（表示は設定に保存する）、メニューの「盤に定跡手を表示」と合わせて定跡ウィンドウ・盤の矢印・盤の手の登録に渡す |
-| `MenuWindowController` | メニューバーの項目をカテゴリごとに集めて `MenuWindow` を作り（初回だけ）、押されたボタンの `QAction` を `actionTriggered` で知らせる |
+| `MenuWindowController` | メニューバーの項目をカテゴリごとに集めて `MenuWindow` を作る（初回だけ）。押されたボタンは `MenuWindow` がその `QAction` を実行する |
 | `BranchTreeEditController` | 分岐ツリーの右クリックメニューで分岐を編集する（本譜にする・並べ替え・削除）。対局していないときの盤上の着手を、現在の手の次の手（変化）として記録する |
 | `ImageExportController` | メニューの「盤面の画像」「評価値グラフの画像」のコピー・保存（`copyBoardToClipboard()`・`saveBoardImage()` など） |
 | `MainWindowAppearanceController` | 盤の拡大・縮小・反転（`flipBoard()`）、ツールバーの表示、ウィンドウ幅と評価値グラフの高さの調整 |
@@ -5912,7 +5914,7 @@ Coordinators は、複数のオブジェクトをまたぐ複雑な処理フロ�
 
 #### 一覧
 
-ソースはすべて `src/ui/coordinators/` にある。棋譜の読み込み器 `KifuLoader` は kifu 層（第8章）、保存で利用者に聞くダイアログ `KifuSaveDialogs` は dialogs 層（第8章）にある。
+`CsaGameSession`・`CommentCoordinator` は `src/ui/coordinators/`、利用者の操作の窓口の `DialogLauncher`・`KifuFileController` は `src/ui/controllers/`、動作状態からの規則 `UiStatePolicyManager` は `src/ui/policy/`、ドックの `DockRegistry`・`DockLayoutManager` は `src/ui/docks/` にある（ここでは流れの説明のためにまとめて扱う）。棋譜の読み込み器 `KifuLoader` は kifu 層（第8章）、保存で利用者に聞くダイアログ `KifuSaveDialogs` は dialogs 層（第8章）にある。
 
 | Coordinator | ソース | 役割 |
 |------------|--------|------|
@@ -5926,7 +5928,7 @@ Coordinators は、複数のオブジェクトをまたぐ複雑な処理フロ�
 
 #### DialogLauncher — ダイアログ統合窓口
 
-**ソース**: `src/ui/coordinators/dialoglauncher.h`, `src/ui/coordinators/dialoglauncher.cpp`
+**ソース**: `src/ui/controllers/dialoglauncher.h`, `src/ui/controllers/dialoglauncher.cpp`
 
 メニューから開くダイアログの起動窓口になる Coordinator である。ダイアログの生成・パラメータ設定・シグナル接続を一元化する。依存（`Deps`）は `MainWindowComposer` が起動時に作って渡す。検討・詰み探索・棋譜解析の条件ダイアログは、それぞれ `ConsiderationUiController`・`TsumeSearchController`・`KifuAnalysisController` が出す。
 
@@ -5984,7 +5986,7 @@ KifuFileController::chooseAndLoadKifuFile() など（画面からの読み込み
 
 #### DockRegistry — ドックの表
 
-**ソース**: `src/ui/coordinators/dockregistry.h`, `src/ui/coordinators/dockregistry.cpp`
+**ソース**: `src/ui/docks/dockregistry.h`, `src/ui/docks/dockregistry.cpp`
 
 メインウィンドウのドックを1つの表（`DockRegistry::specs()`）から作り、置き、状態を保存する。ドックを足すときは `DockId` と表に1行足し、中身の部品を `createAll()` に渡す。
 
@@ -6018,7 +6020,7 @@ KifuFileController::chooseAndLoadKifuFile() など（画面からの読み込み
 
 #### DockLayoutManager — ドックレイアウト管理
 
-**ソース**: `src/ui/coordinators/docklayoutmanager.h`, `src/ui/coordinators/docklayoutmanager.cpp`
+**ソース**: `src/ui/docks/docklayoutmanager.h`, `src/ui/docks/docklayoutmanager.cpp`
 
 `QMainWindow` のドックの配置のうち、名前付きレイアウトの保存・復元・削除、起動時のレイアウト、ドックの固定を受け持つ。コンストラクタは `DockLayoutManager(QMainWindow*, DockRegistry*, QObject*)` で、扱うドックは `DockRegistry::docks()` から取る。規定の配置へのリセットと状態の保存は `DockRegistry` に任せる。
 
@@ -6212,7 +6214,7 @@ Urgency::Warn5  → 強い警告色（残5秒・秒読み）
 | EngineInfoWidget | QWidget | 思考・検討のページ内（エンジンごとの情報欄） | `UsiCommLogModel` の値を1行の表に出す（エンジン名・予想手・探索手・深さ・ノード数・探索局面数/秒・ハッシュ使用率。予想手の列は隠せる）。探索状況（`EngineSearchStatus`）の数値の書式（3桁区切り・百分率）はここで決める。列幅は保存する |
 | GameInfoPane | QWidget | 対局情報ドック（思考などのドックとタブにまとめる） | 対局情報のツールバー（元に戻す・切り取り・行の追加など）＋ QTableView。中身・編集の履歴は `GameInfoEditModel`（`src/models/`）。編集は表に入れた時点で文書に入る（「対局情報更新」のボタンは無い）。合成ルートが作り、棋譜の文書（`KifuDocument`）の対局情報を編集する画面としてつなぐ（文書の `headerReset` で中身を入れ、表が変わると `gameInfoEdited` で文書に返す） |
 | AnalysisResultsPanel | QWidget | 棋譜解析の結果ドック | 結果の表（`PvTableView`）・停止ボタン・文字の大きさ。モデルは `setModel()` で1度だけ結ぶ。列幅は自分で保存する。ドックの表示は `KifuAnalysisController` が行う（9.8節） |
-| MenuWindow | QWidget | メニューのドック（棋譜ドックとタブにまとめる。`src/dialogs/`） | メニュー項目をボタン形式で表示（タブ付き、お気に入り、カスタマイズモード）。作るのは `MenuWindowController` |
+| MenuWindow | QWidget | メニューのドック（棋譜ドックとタブにまとめる。`src/widgets/`） | メニュー項目をボタン形式で表示（タブ付き、お気に入り、カスタマイズモード）。作るのは `MenuWindowController` |
 | MenuButtonWidget | QWidget | MenuWindow 内 | QAction をアイコン＋テキストで表示するカスタムボタン、D&D対応 |
 
 ドックのパネル（RecordPane・ThinkingPanel・GameInfoPane・ConsiderationPanel・UsiLogPanel・CsaLogPanel・CommentEditorPanel・AnalysisResultsPanel・BranchTreeView）は、どれも `QWidget` の派生で、部品をコンストラクタで作りきる。外から後で中身を作らせる公開の関数（以前の `buildUi()` など）や、中身を返す関数（以前の `containerWidget()` など）は持たない。`DockRegistry::createAll()` はパネルそのものをドックに入れる。
@@ -6735,7 +6737,7 @@ CsaClientとゲームシステム（ShogiGameController, ShogiClock等）の橋�
 - 盤面への指し手適用（`playCsaMove()` が `toUsi()` で得た指し手を `ShogiGameController::applyRecordedMove()` で指す。確定後は `ShogiGameController::notifyMoveCommitted()` でローカル対局と同じ経路の `moveCommitted` を出す）
 - 対局の手順を `CsaGameProgress::record`（`RecordLine`）1つに積み、確定した棋譜行を `recordEntryReady` で知らせる
 - GUI側の時計制御（サーバーの権威的な消費時間でGUI時計を補正。表示用の `ShogiClock` はサーバーの残り時間の写しで、計算には使わない）
-- USIエンジンの起動・思考管理（エンジン vs サーバー対局時。ローカル対局と同じ `MatchEngineSeat`。エンジンはローカルの対局・検討と同じ `EngineLifecycleManager` の枠 E1 に置く）
+- USIエンジンの起動・思考管理（エンジン vs サーバー対局時。ローカル対局と同じ `MatchEngineSeat`。エンジンはローカルの対局・検討と同じ `EngineSlots` の枠 E1 に置く）
 - 自分のエンジンの時間の出どころ（`MatchTimeSource` を継承する。`snapshot()` は `CsaGameProgress::engineTiming(margin)` のサーバーの残り時間・決まり・遅延・余裕から、`elapsedThisTurn()` は手番（`CsaGameProgress::sideToMove()`。手順の最後の手の相手）が変わるたびに始める自分の `QElapsedTimer` から返す。投了の消費時間もこの値で、表示用の時計を読まない）
 - 対局結果の日本語変換と表示
 
@@ -6842,7 +6844,7 @@ CSA通信対局では、サーバーが権威的な消費時間（`T` に続く�
 struct Deps {
     ShogiGameController* gameController = nullptr;
     ShogiClock* clock = nullptr;
-    EngineLifecycleManager* engines = nullptr;  ///< エンジンで指すとき、エンジンを置く枠
+    EngineSlots* engines = nullptr;  ///< エンジンで指すとき、エンジンを置く枠
 };
 ```
 
@@ -6942,7 +6944,7 @@ layout1=@ByteArray(<QMainWindow::saveState() のバイト列>)
 | `CsaGameSettings` | CSA通信対局ダイアログ | 対局者、接続先、接続の維持・連続対局・自動保存などの詳細設定 |
 | `*Dock` | ドック状態 | 全12個のドックのフローティング、ジオメトリ、表示状態（グループ名は `DockRegistry` の表の `settingsGroup`） |
 | `CustomDockLayouts` | カスタムレイアウト | 名前付きレイアウトの保存 |
-| `MenuWindow` | メニューウィンドウ | お気に入り、サイズ、ボタンサイズ |
+| `MenuWindow` | メニューウィンドウ | お気に入り、ボタンサイズ、選んだタブ（ドックの大きさは `DockRegistry` が保存する） |
 | `Engines`・エンジン名 | エンジン登録情報 | 登録一覧とUSIオプション（§7.9。宣言の表を使わない） |
 
 #### 宣言と読み書き
@@ -7057,7 +7059,7 @@ MyDialog::MyDialog(QWidget* parent)
 
 #### 通信ログの見出し（E1・E2）
 
-2つの通信ログ（E1=上段, E2=下段）の見出しには、その枠（`EngineLifecycleManager` の E1・E2）に入ったエンジンの名前を出す（`UsiModelBinding` が結ぶときに `UsiCommLogModel::setEngineName()` する）。
+2つの通信ログ（E1=上段, E2=下段）の見出しには、その枠（`EngineSlots` の E1・E2）に入ったエンジンの名前を出す（`UsiModelBinding` が結ぶときに `UsiCommLogModel::setEngineName()` する）。
 
 | 対局者 | E1 | E2 |
 |-------|----|----|
@@ -7102,13 +7104,13 @@ ShogiClock::setCurrentPlayer(firstPlayer)
 ---
 
 <!-- chapter-13-start -->
-## 第13章 navigation層とboard層
+## 第13章 棋譜ナビゲーションとboard層
 
-本章では棋譜ナビゲーション（`src/navigation/`）と盤面操作（`src/board/`）の2層を解説する。ナビゲーション層は棋譜の手を辿るUI操作を統一管理し、盤面層はクリックによる駒操作・局面編集・画像エクスポートを担う。表示中の手を持つ `KifuNavigationState`（`src/kifu/`）と、開始局面から手を順に指して局面列を作る `SfenReplay`（`src/core/`）もここで扱う。
+本章では棋譜ナビゲーション（`src/ui/controllers/kifunavigationcontroller`）と盤面操作（`src/board/`）を解説する。棋譜ナビゲーションは棋譜の手を辿るUI操作を統一管理し、盤面層はクリックによる駒操作・局面編集・画像エクスポートを担う。表示中の手を持つ `KifuNavigationState`（`src/kifu/`）と、開始局面から手を順に指して局面列を作る `SfenReplay`（`src/core/`）もここで扱う。
 
 ### 13.1 KifuNavigationController — 棋譜ナビゲーションコントローラ
 
-**ソース**: `src/navigation/kifunavigationcontroller.h/.cpp`
+**ソース**: `src/ui/controllers/kifunavigationcontroller.h/.cpp`
 
 棋譜を移る利用者の操作（ボタン・棋譜欄の行・分岐候補・分岐ツリー・評価値グラフ）を受けて、表示中の手（`KifuNavigationState`）を動かすコントローラ。表示の更新は行わない。棋譜欄・盤・分岐ツリーなどは `KifuNavigationState::changed()` を受けて、それぞれが自分で表示を合わせる（13.4）。
 
@@ -7389,9 +7391,9 @@ bool applyEditMove(from, to):
   （盤・駒台・駒箱の変化は ShogiBoard の通知で変わった所だけ描き直される）
 ```
 
-### 13.7 BoardImageExporter — 盤面画像エクスポータ
+### 13.7 WidgetImageExporter — 盤面画像エクスポータ
 
-**ソース**: `src/board/boardimageexporter.h/.cpp`
+**ソース**: `src/ui/controllers/widgetimageexporter.h/.cpp`
 
 盤面ウィジェットのキャプチャ画像をクリップボードまたはファイルに保存する静的ユーティリティ。インスタンスを持たず、全メソッドが `static` である。
 
@@ -7453,7 +7455,7 @@ applyLenient(position, usiMove):
 
 テストが手順の局面列や指し手列を作るときは、`tests/test_replay.h` の `TestReplay::buildSfenRecord(initialSfen, usiMoves, hasTerminal)`（開始局面と各手の後の局面の列。`hasTerminal` が `true` のとき終局の行のために最後の局面を複製する）と `TestReplay::buildGameMoves(initialSfen, usiMoves)`（各手の `ShogiMove` の列）を使う。どちらも `Position` で手を順に指すテスト用の関数で、本体の `SfenReplay` には無い。
 
-### 13.9 navigation層とboard層の協調
+### 13.9 棋譜ナビゲーションとboard層の協調
 
 ナビゲーションと盤面操作は独立した層だが、以下の箇所で協調する。
 
@@ -7525,7 +7527,7 @@ MainWindow のメンバは `ui`・`m_composer`・`m_skipCloseConfirmation`（自
 | 盤・時計 | `gameController`（`ShogiGameController`）・`shogiView`・`boardController`（`BoardInteractionController`）・`boardMoves`（`BoardMoveController`）・`boardSync`（`BoardSyncPresenter`）・`positionEdit`（`PositionEditSession`）・`clock`・`timePresenter` |
 | 画面部品 | `recordPane`・`thinkingPanel`・`considerationTab`・`usiLog`・`csaLog`・`commentEditor`・`branchTreeView`・`evalChart`・`gameInfoPane`・`dockRegistry`（`DockRegistry`。12 個のドックは `dock(DockId)` で引く） |
 | 棋譜の表示と編集 | `kifuDisplay`（`KifuDisplayPresenter`）・`branchEdit`（`BranchTreeEditController`）・`commentCoordinator` |
-| 対局・検討・通信対局 | `engines`（`EngineLifecycleManager`。エンジンの枠 E1・E2 を対局・検討・棋譜解析・CSA 通信対局で共有）・`match`（`MatchCoordinator`）・`analysisSession`（`AnalysisSession`）・`consecutiveGames`（`ConsecutiveGameSeries`）・`csaGame`（`CsaGameCoordinator`）・`gameSession`（`GameSession`。対局の棋譜の受け手）・`csaSession`（`CsaGameSession`）・`humanTurnPolicy`・`sessionReset`（`SessionResetCoordinator`） |
+| 対局・検討・通信対局 | `engines`（`EngineSlots`。エンジンの枠 E1・E2 を対局・検討・棋譜解析・CSA 通信対局で共有）・`match`（`MatchCoordinator`）・`analysisSession`（`AnalysisSession`）・`consecutiveGames`（`ConsecutiveGameSeries`）・`csaGame`（`CsaGameCoordinator`）・`gameSession`（`GameSession`。対局の棋譜の受け手）・`csaSession`（`CsaGameSession`）・`humanTurnPolicy`・`sessionReset`（`SessionResetCoordinator`） |
 | 棋譜のファイル | `kifuLoader`・`kifuFileController` |
 | 表示 | `appearance`・`playerInfo`（`PlayerInfoPresenter`）・`engineDisplay`・`evalGraph`・`arrows`（`CandidateArrowPresenter`）・`analysisResults`・`dockLayoutManager`・`uiStatePolicy`・`notificationService` |
 | 利用者の操作 | `actions`（`MainWindowActions`）・`dialogLauncher`・`kifuAnalysis`・`tsumeSearch`・`considerationUi`・`pvClickController`・`usiCommandController`・`joseki`・`menuWindowController`・`languageController`・`images`・`settingsReset` など |
@@ -7577,7 +7579,7 @@ MainWindow::MainWindow()
      └─ finalizeUi()                   // 盤・棋譜欄・対局者名の描画、ウィンドウの大きさとドックの配置の復元、名前・時計のフォント、ツールチップ
 ```
 
-**司令塔（MatchCoordinator）の生成と接続**: 司令塔は `createMatchAndAnalysis()` で、エンジンの枠（`EngineLifecycleManager`）を作った後に `MatchCoordinator::Deps`（`gc`・`clock`・`activity`・`engines`）を渡して1回だけ作る。検討・詰み探索の `AnalysisSession` と通信対局の `CsaGameCoordinator` も同じエンジンの枠を受け取る。
+**司令塔（MatchCoordinator）の生成と接続**: 司令塔は `createMatchAndAnalysis()` で、エンジンの枠（`EngineSlots`）を作った後に `MatchCoordinator::Deps`（`gc`・`clock`・`activity`・`engines`）を渡して1回だけ作る。検討・詰み探索の `AnalysisSession` と通信対局の `CsaGameCoordinator` も同じエンジンの枠を受け取る。
 
 - `createSessions()` が `MatchCoordinator::setRecordSink()` で棋譜の受け手（`GameSession`）を渡す。`connectGame()` が司令塔のシグナルを `GameSession` などへ直接つなぐ（評価値 `engineMovePlayed`、待った `movesUndone`、再開できるか `resumeAvailabilityChanged`、終局 `gameEnded`・`gameOverMessage`・`gameEndProcessed`、中断 `gameInterrupted`、連続対局 `nextGameReady`）。時計の表示は `TimeDisplayPresenter` が `ShogiClock::timeUpdated` を自分でつなぐ。通信対局の棋譜は `GameSession` がコンストラクタで `CsaGameCoordinator` の `gameStarted`・`recordEntryReady`・`gameEnded` を自分でつなぐ（`CsaGameSession` より先に作るので、画面の反映より先に棋譜ができる）。検討のシグナルは `connectAnalysisAndUi()` がつなぐ。
 - 終局の知らせは、終局の行の追記（`MatchRecordSink::appendRecord()`）→ `gameEnded`（`GameSession::onGameEnded()` の `finishMatchRecord()`：ライブ対局のセッションの確定・終局時刻の記録・棋譜の自動保存。アイドルへの遷移は司令塔が先に済ませている）→ `gameOverMessage` → `gameEndProcessed`（連続対局の次局）の順に出る。
@@ -7597,17 +7599,17 @@ MainWindow::MainWindow()
 
 `ShogiBoardQ --automation` で起動したときだけ、`MainWindowComposer::startAutomationServer()`（`MainWindow::startAutomationServer()` から呼ぶ）が作る（親は MainWindow）。`QLocalServer` で改行区切りの JSON-RPC 2.0 を待ち受け、局面・棋譜・UI の操作を外部から行えるようにする。MCP サーバー（`mcp/`）と GUI のテスト（`tests/gui/`）がこれを使う。
 
-部品は `AutomationContext` に詰めて渡す（部品のポインタと、状態として `AppActivityState`・`KifuNavigationState`）。メソッドの実装（`automationcommands_*.cpp`）は MainWindow を知らない。
+部品は `AutomationContext` に詰めて渡す（部品のポインタと、状態として `AppActivityState`・`KifuNavigationState`）。メソッドの実装（`automationcommands_*.cpp`。メソッド `x.y` は `automationcommands_x.cpp` に置き、登録の一覧は `automationcommands.cpp`）は MainWindow を知らない。
 
 メソッドの引数は `AutomationMethodSpecs`（`src/headless/automationmethodspecs.h`）の表に、名前・型・必須・範囲・既定値・選択肢を `ParamSpec`（`src/headless/paramspec.h`）で1行ずつ宣言する。`AutomationDispatcher::handleRequest()` はメソッドを呼ぶ前に `ParamSpecs::validate()` で引数を検査し（知らない引数・必須の欠け・型・範囲・選択肢の誤りは `-32602`）、既定値を補った引数をメソッドに渡す。メソッドは補われた値を読むだけで、`AutomationParams`（`requireString`・`optionalInt`・`requireInt`）は範囲が画面の状態で決まる引数（表の行・列など）にだけ使う。CLI の引数も同じ部品の表 `CliCommandSpecs`（`src/cli/clicommandspecs.h`）で宣言し、`shogiboardq-cli describe` が両方の表を JSON Schema として出す。MCP サーバーのツールのスキーマがこの表と一致することは `mcp/tests/test_param_specs.py` が検査する。引数を足すときは表に1行足し、MCP のツール（`mcp/shogiboardq_mcp/tooldefs.py`）のスキーマも合わせる。設計は [MCP サーバーの設計](mcp-server.md) を参照。外部からアプリを操作するときは、この自動化 API を使う。
 
-エラーの分類は `ErrorKind`（`src/headless/errorkinds.h`）の表1つで決める。メソッドは `AutomationError(ErrorKind, message, hint)` を投げ、`AutomationDispatcher::makeError()` が `error.code` に分類の JSON-RPC のコード（`ErrorKinds::rpcCode()`）、`error.data.slug` に分類の語（`ErrorKinds::slug()`）を入れる。CLI の失敗（`CliOutput::fail(ErrorKind, message)`・`failEvent()`）も同じ語を `code` に書くので、同じ失敗はどの経路でも同じ語になる（既存ファイルへの書き込みは `file_exists`、引数の誤りは `invalid_argument`、知らないメソッド・コマンドは `unknown_operation`、棋譜が読めないときは `parse_error`）。`shogiboardq-cli environment` は既定のソケット（`AutomationServer::defaultSocketPath()`）・エンドポイントファイル（`endpointFilePath()`）・設定ファイルの場所、1メッセージの上限（`AutomationServer::kMaxMessageBytes`）と分類の表（`ErrorKinds::toJson()`）を出し、MCP サーバーはこれを読んで値を写さない。分類の一覧は [MCP サーバーの設計](mcp-server.md#エラーの分類) を参照。
+エラーの分類は `ErrorKind`（`src/headless/errorkinds.h`）の表1つで決める。メソッドは `AutomationError(ErrorKind, message, hint)` を投げ、`AutomationDispatcher::makeError()` が `error.code` に分類の JSON-RPC のコード（`ErrorKinds::rpcCode()`）、`error.data.slug` に分類の語（`ErrorKinds::slug()`）を入れる。CLI の失敗（`CliOutput::fail(ErrorKind, message)`・`failEvent()`）も同じ語を `code` に書くので、同じ失敗はどの経路でも同じ語になる（既存ファイルへの書き込みは `file_exists`、引数の誤りは `invalid_argument`、知らないメソッド・コマンドは `unknown_operation`、棋譜が読めないときは `parse_error`）。`shogiboardq-cli environment` は既定のソケット（`AutomationEndpoint::defaultSocketPath()`）・エンドポイントファイル（`endpointFilePath()`）・設定ファイルの場所、1メッセージの上限（`AutomationEndpoint::kMaxMessageBytes`）と分類の表（`ErrorKinds::toJson()`）を出し、MCP サーバーはこれを読んで値を写さない。分類の一覧は [MCP サーバーの設計](mcp-server.md#エラーの分類) を参照。
 
 応答の後に行う UI 操作（`board.click`・`dialog.clickButton`・`action.trigger`・`dialog.close`・`widget.showDock`・`widget.click`・`widget.setValue`・`widget.clickCell`・`widget.editCell`・`dock.configure`・`menu.select`・`branch.click`）は、`AutomationInteractions::queue(QueuedInteraction{target, check, perform}, response)`（`src/automation/automationinteractions.h`）で予約する。モーダルダイアログを開く操作でも応答を返せるよう、操作は応答を書いた後のイベントループで行う。`check` は予約の時点（`queue()` が走らせ、失敗すれば予約せずにエラーの応答）と実行の直前（対象が隠れた・無効になった・別のダイアログに遮られたなど）の2回走り（メソッドは同じ検査を予約の前に書かない）、`perform` が投げた `AutomationError` も含めて結果を記録する（実行時の失敗は握りつぶさない）。応答には `"queued": true` と操作の番号 `"interaction"` が付き、`ui.interaction {id}` で状態（`pending`・`running`（開いたモーダルダイアログが閉じるまで）・`done`・`failed`（`error` に `code`・`message`・`data.slug`）・`cancelled`（実行前に対象が消えた））を引ける。記録は新しいものから `kHistoryLimit`（256）件まで残す。`app.quit` だけはこの仕組みを使わず、`AutomationDeferredCall` で応答の後に終了する。マウス入力は `AutomationInput::sendClick()`・`sendDrag()`（`automationinput.h`）の2つで送り（盤・表のセル・分岐ツリー・ドックのタイトルバー）、部品の読み（`widget.text`）と書き（`widget.setValue`）は型ごとのアダプタの表 `AutomationWidgetAdapters::describe()`・`writer()`（`automationwidgetadapters.h`）で行う（型を足すときは表に1行足す）。MCP サーバーの `AppClient.call_queued()` はこの番号で操作の実行を待つ（[MCP サーバーの設計](mcp-server.md)）。
 
 #### 14.5.2 DockRegistry（ドックの作成）
 
-**ファイル**: `src/ui/coordinators/dockregistry.h/.cpp`、`src/app/mainwindowcomposer_create.cpp`（`createDocks()`）
+**ファイル**: `src/ui/docks/dockregistry.h/.cpp`、`src/app/mainwindowcomposer_create.cpp`（`createDocks()`）
 
 12 個のドック（棋譜、対局情報、思考、検討、USI 通信ログ、CSA 通信ログ、棋譜コメント、分岐ツリー、評価値グラフ、メニュー、定跡、棋譜解析）の名前・規定の配置・状態の保存は `DockRegistry` の表で決まる（表の中身は 10.5 節の「DockRegistry — ドックの表」）。ドックの中身（`RecordPane`・`ThinkingPanel`・`ConsiderationPanel`・`UsiLogPanel`・`CsaLogPanel`・`CommentEditorPanel`・`BranchTreeView`・`AnalysisResultsPanel` など）は、どれもコンストラクタで部品を作りきる `QWidget` で、合成ルートが先に作る。メニューウィンドウと定跡ウィンドウも、`MenuWindowController`・`JosekiWindowController` がコンストラクタで作る。`DockRegistry::createAll()` はパネルそのものをドックに入れるだけである。棋譜解析の結果のドックを解析の開始時に出すのは `KifuAnalysisController`（`Deps::resultsDock`）である。
 
@@ -7748,7 +7750,7 @@ sequenceDiagram
     GS->>MC: start(MatchStartOptions)
     Note over MC: 動作状態を DuringGame にし、<br/>盤を開始局面にする
     MC->>ST: 対局者の組で Strategy を作って start()
-    ST->>USI: startEngine()（エンジンを使う対局。EngineLifecycleManager 経由）
+    ST->>USI: startEngine()（エンジンを使う対局。EngineSlots 経由）
     Note over USI: エンジンプロセス起動<br/>usi → usiok<br/>isready → readyok
     GS->>MC: beginPlay()（時計の開始）
     MC->>ST: startInitialMoveIfNeeded()
@@ -7907,7 +7909,7 @@ sequenceDiagram
 
 | クラス | 責務 |
 |--------|------|
-| `KifuFileController` | 「棋譜を開く」などのファイル操作の入口。進行ダイアログの表示と、読み込み後の上書き保存先・未保存の状態の設定（`finishLoad()`。`src/ui/coordinators/`） |
+| `KifuFileController` | 「棋譜を開く」などのファイル操作の入口。進行ダイアログの表示と、読み込み後の上書き保存先・未保存の状態の設定（`finishLoad()`。`src/ui/controllers/`） |
 | `KifuLoader` | 棋譜ファイル・貼り付け・局面を読み、棋譜の文書を置き換える。パースの起動（別スレッド）と結果の適用（`src/kifu/`） |
 | `KifuDocument` | 開いている棋譜の文書。分岐ツリーの作り直しと対局情報の置き換え、前の棋譜の対局者・持ち時間・上書き保存先の消去（`src/kifu/`） |
 | `KifuLoadParser` | 形式判定、ファイルの文字コードの判別、フォーマット変換器への振り分け。結果を `KifuLoadResult` にまとめる（`src/kifu/`） |
@@ -8044,7 +8046,7 @@ sequenceDiagram
     Srv-->>CC: LOGIN:username OK
     CC-->>CGC: loginSucceeded シグナル
     opt エンジンが指す場合
-        CGC->>MES: エンジンを起動（start → EngineLifecycleManager の枠 E1）
+        CGC->>MES: エンジンを起動（start → EngineSlots の枠 E1）
     end
 
     Note over Srv: マッチング処理
@@ -8107,7 +8109,7 @@ sequenceDiagram
 | `GameSession` | 通信対局の棋譜（作り直し・対局者・持ち時間・開始と終了の日時・着手の行・自動保存）をローカル対局と同じ流れで受け持つ。投了・中断・入玉宣言は `CsaGameChannel` 経由でサーバーへ送る（`src/app/`） |
 | `CsaGameCoordinator` | CSA通信対局の進行管理（合成ルートが起動時に1つ作る）。1局の進行（持ち時間・手数・手順）は `CsaGameProgress` に持ち、手順は `record`（`RecordLine`）1つだけ。自分の手番は持たず `CsaClient::isMyTurn()` を見る |
 | `CsaClient` | CSAプロトコルのTCP/IP通信実装。メッセージの送受信と状態管理。Game_Summary は `GameSummary`（`myTurn` は `std::optional<Turn>`、`toMove` は `Turn`）にまとめる |
-| `MatchEngineSeat` | エンジンで指すときの `Usi` の起動・知らせ・終局の手順（ローカル対局と共有。エンジンの枠は `EngineLifecycleManager` を使う） |
+| `MatchEngineSeat` | エンジンで指すときの `Usi` の起動・知らせ・終局の手順（ローカル対局と共有。エンジンの枠は `EngineSlots` を使う） |
 | `ShogiGameController` | 盤面データの更新と、着手確定の知らせ（`moveCommitted`） |
 
 **補足:**
@@ -8539,14 +8541,14 @@ statusBar()->showMessage(tr("手数: %1").arg(moveCount));
 │
 ├─ ネットワーク通信（CSA） ──→ src/network/
 │
-├─ ナビゲーション（棋譜移動・分岐） ──→ src/navigation/
+├─ ナビゲーション（棋譜移動・分岐） ──→ src/ui/controllers/
 │
 ├─ 盤面操作（編集・画像出力） ──→ src/board/
 │
 ├─ UI関連
 │    ├─ データ表示の同期 ──→ src/ui/presenters/
 │    ├─ ユーザー操作のハンドリング ──→ src/ui/controllers/
-│    └─ 複数コンポーネントの調整・ダイアログの起動 ──→ src/ui/coordinators/
+│    └─ 複数コンポーネントの調整 ──→ src/ui/coordinators/（動作状態からの規則は src/ui/policy/、ドックは src/ui/docks/）
 │
 ├─ 部品の組み立て（合成ルート。生成とシグナル接続）・メニューのアクションの接続・
 │  利用者操作の振り分け・対局の流れの UI 側 ──→ src/app/
@@ -8570,7 +8572,7 @@ statusBar()->showMessage(tr("手数: %1").arg(moveCount));
 └─ ログ・エラー通知・共有状態などの土台 ──→ src/common/
 ```
 
-置き場所は層の規則にも合わせる。下の層は上の層を `#include` しない。下から順に core・common → services → kifu → engine → game → analysis・network・navigation → style → models → views・widgets → board → dialogs → ui → app で、automation・cli は外側の入口である（analysis・network・navigation は互いを参照しない）。`tests/tst_layer_dependencies.cpp` が `#include` を調べて確かめる（§3.2）。たとえば game のクラスは ui の部品を知らないので、表示や棋譜への反映はシグナルか、上の層が実装するインターフェース（司令塔の棋譜の受け手 `MatchRecordSink` を app の `GameSession` が実装する、など）で知らせる。
+置き場所は層の規則にも合わせる。下の層は上の層を `#include` しない。下から順に core・common → services → kifu → engine → game → analysis・network → style → models → views・widgets → board → dialogs → ui → app で、automation・cli は外側の入口である（analysis・network は互いを参照しない）。`tests/tst_layer_dependencies.cpp` が `#include` を調べて確かめる（§3.2）。たとえば game のクラスは ui の部品を知らないので、表示や棋譜への反映はシグナルか、上の層が実装するインターフェース（司令塔の棋譜の受け手 `MatchRecordSink` を app の `GameSession` が実装する、など）で知らせる。
 
 #### 今回の例: 棋譜タグ機能
 
@@ -9214,8 +9216,8 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | BoardChromeWidget | C | views | 盤に重ねる対局者カード（先手・後手の `PlayerCard`。`card(Turn)`）・編集用ボタン・駒箱の先後切り替え | 第11章 |
 | BoardCoordinates | NS | core | 盤面表示の座標（駒台は筋10・11、駒箱は筋12）と駒・USI の指し手の対応 | 第5章 |
 | BoardGeometry | C | views | 盤・マス・駒台のセル・座標の文字・対局者カードの位置（マスの大きさ・反転・筋と段の数から1度だけ計算する変えない値。ウィジェット座標） | 第11章 |
-| BoardImageExporter | C | board | 盤面画像のクリップボードコピー・ファイル保存 | 第13章 |
-| BoardImageRenderer | C | automation | 盤面画像の描画（GUI を起動しない CLI・自動化 API と共有） | 第13章 |
+| WidgetImageExporter | C | board | 盤面画像のクリップボードコピー・ファイル保存 | 第13章 |
+| BoardImageRenderer | C | cli | 盤面画像の描画（render-board） | 第13章 |
 | BoardInputRoute | C | board | 盤で指した手の行き先のインターフェース（`acceptsInput()`・`isEditing()`・`submit()`） | 第13章 |
 | BoardInteractionController | C | board | 盤のクリックを移動元・移動先にして行き先へ渡す操作と、ハイライト制御 | 第13章 |
 | BoardMoveController | C | ui/controllers | 主画面の `BoardInputRoute`。盤で指した手を、動作状態に合わせて処理する（局面編集・棋譜の変化の記録・通信対局・対局） | 第10章, 第15章 |
@@ -9248,19 +9250,19 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | CsaMoveConverter | NS | network | CSA と USI の指し手の変換（`toCsa`・`toUsi`） | 第12章 |
 | CsaToSfenConverter | C | kifu/formats | CSA形式→SFEN変換器 | 第8章 |
 | CsaWaitingDialog | C | dialogs | CSA接続待機ダイアログ | 第11章 |
-| DialogLauncher | C | ui/coordinators | メニューから開くダイアログの起動 | 第10章 |
+| DialogLauncher | C | ui/controllers | メニューから開くダイアログの起動 | 第10章 |
 | DialogFontScale | C | widgets | ダイアログの A-/A+ と保存（全ダイアログ共通。元の大きさからの差で拡大・縮小する） | 第11章, 第17章 |
 | DialogUtils | NS | widgets | ダイアログの大きさの保存・復元、文字の大きさの適用 | 第11章 |
-| DockLayoutManager | C | ui/coordinators | 名前付きレイアウト・起動時のレイアウト・ドックの固定 | 第10章 |
-| DockRegistry | C | ui/coordinators | ドックの表（`DockSpec`）からの作成・規定の配置・状態の保存と復元 | 第10章, 第14章 |
+| DockLayoutManager | C | ui/docks | 名前付きレイアウト・起動時のレイアウト・ドックの固定 | 第10章 |
+| DockRegistry | C | ui/docks | ドックの表（`DockSpec`）からの作成・規定の配置・状態の保存と復元 | 第10章, 第14章 |
 | DockSettings | NS | services | ドックの状態（`DockState`。浮動・表示・位置）・固定・名前付きレイアウトの設定 | 第12章 |
 | EditActions | C | widgets | 元に戻す〜貼り付けの5つの `QAction`（標準ショートカット・ツールチップ・ボタン。コメント欄・対局情報で共通） | 第11章 |
 | ElideLabel | C | widgets | テキスト省略表示ラベル | 第11章 |
 | EngineAnalysisRunner | C | automation | 登録エンジンで1局面を一定時間解析する実行器（CLI・自動化 API と共有） | 第7章 |
 | EngineDisplayPresenter | C | ui/presenters | エンジンの表示の持ち主（枠 E1・E2 とモデルの結び・検討の表示・2つ目のエンジン欄・評価値グラフの系列名・表示の消去） | 第9章, 第10章 |
 | EngineInfoWidget | C | widgets | エンジン情報表示ウィジェット（列幅を自分で保存） | 第11章 |
-| EngineLease | C | game | 枠のエンジンを使う権利（move-only。`EngineLifecycleManager::acquire()` が返し、手放すと枠を空ける） | 第6章 |
-| EngineLifecycleManager | C | game | エンジンの枠 E1・E2 の生成・起動・破棄と手番との対応（対局・検討・棋譜解析・通信対局で共有。使う側には `EngineLease` を渡し、取り上げたら `engineRevoked`） | 第6章 |
+| EngineLease | C | game | 枠のエンジンを使う権利（move-only。`EngineSlots::acquire()` が返し、手放すと枠を空ける） | 第6章 |
+| EngineSlots | C | game | エンジンの枠 E1・E2 の生成・起動・破棄と手番との対応（対局・検討・棋譜解析・通信対局で共有。使う側には `EngineLease` を渡し、取り上げたら `engineRevoked`） | 第6章 |
 | EngineListSettings | NS | services | 登録エンジン一覧の検索（名前・パス）と機能ごとに選んだエンジンの保存 | 第7章 |
 | EngineMoveValidator | C | core | 合法手判定・合法手の一覧 | 第2章, 第5章 |
 | EngineOptionDescriptions | C | engine | USIエンジンオプション説明データベース | 第7章 |
@@ -9318,7 +9320,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | KifMoveGrammar | NS | kifu/formats | KIF・KI2 の指し手の文字列の文法（`MoveText`・`parseMoveText()`・`resolve()`） | 第8章 |
 | KifMoveText | NS | core | KIF 形式の指し手の文字列（ヘッダーオンリー） | 第5章 |
 | KifParseResult | S | kifu | 棋譜の変換器が返す、本譜と変化の解析結果 | 第8章 |
-| KifReader | NS | kifu | KIF形式ファイルの読み込み | 第8章 |
+| KifuTextDecoder | NS | kifu | KIF形式ファイルの読み込み | 第8章 |
 | KifTextParser | NS | kifu/formats | KIF・KI2 のテキストを読む（`parseKif`・`parseKi2`。行の分類・変化の区切り・開始局面を両形式で共有） | 第8章 |
 | KifuAnalysisController | C | ui/controllers | 棋譜解析（メニューの「棋譜解析」「解析中止」と、解析の進み具合の表示） | 第9章 |
 | KifuAnalysisDialog | C | dialogs | 棋譜解析設定ダイアログ | 第11章 |
@@ -9333,12 +9335,12 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | KifuDocument | C | kifu | 開いている棋譜の文書（分岐ツリー・対局情報・対局の記録・上書き保存先。未保存は保存した時点との比較で求める） | 第8章 |
 | KifuExport | NS | kifu | 形式ごとの書き出しの表（GUI の保存・コピーと CLI の変換で共通） | 第8章 |
 | KifuExportMetadataBuilder | NS | kifu | UI に依存しない棋譜出力メタデータとヘッダの生成 | 第8章 |
-| KifuFileController | C | ui/coordinators | 棋譜の開く・保存・上書き・自動保存・貼り付けと、棋譜・局面のクリップボードへのコピー | 第3章, 第8章 |
+| KifuFileController | C | ui/controllers | 棋譜の開く・保存・上書き・自動保存・貼り付けと、棋譜・局面のクリップボードへのコピー | 第3章, 第8章 |
 | KifuFormats | NS | kifu | 棋譜の形式（読み込み・保存・変換で共通の enum）と判定 | 第8章 |
 | KifuIoService | NS | kifu | 棋譜ファイルI/Oサービス | 第8章 |
 | KifuLoader | C | kifu | 棋譜ファイル・貼り付け・局面を読み、棋譜の文書（`KifuDocument`）を置き換える（読み込みの実体は `KifuLoadParser`） | 第8章, 第15章 |
 | KifuLoadParser | NS | kifu | 棋譜の読み込み口（ファイルの文字コードの判別と、形式ごとの変換器への振り分け） | 第8章 |
-| KifuNavigationController | C | navigation | 棋譜ナビゲーション操作（局面送りの6つの QAction と棋譜欄・評価値グラフのボタンの結び付け・分岐）の処理 | 第13章 |
+| KifuNavigationController | C | ui/controllers | 棋譜ナビゲーション操作（局面送りの6つの QAction と棋譜欄・評価値グラフのボタンの結び付け・分岐）の処理 | 第13章 |
 | KifuNodeReplay | C | kifu/formats | 手順のノードを指す前の局面と一緒にたどる（KI2・JKF の書き出しで共有） | 第8章 |
 | KifuNavigationState | C | kifu | 表示中のノードと手順。変わると `changed()` を出す | 第8章, 第13章 |
 | KifuParseOutcome | S | kifu | 形式ごとの `parse()` が返す1回の解析の結果（棋譜・開始局面・手合割・対局情報・警告） | 第8章 |
@@ -9389,7 +9391,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | PieceStyleCatalog | C | services | 駒のセットの表（ID・分類 `Family`・表示名・画像の場所） | 第12章 |
 | PlayerCard | C | views | 対局者1人のカード（手番の札・名前・時計を子に持ち、`place()` で並べる。`setName()`・`setClockText()`・`applyColors()`） | 第11章, 第12章 |
 | PlayerInfoPresenter | C | ui/presenters | 盤の対局者名を出す | 第10章, 第12章 |
-| PlayerChoice | S | game | 対局開始ダイアログで選んだ対局者1人（人間かエンジンか・名前・エンジン・時間。`startgamedatabridge.h`） | 第6章 |
+| PlayerChoice | S | game | 対局開始ダイアログで選んだ対局者1人（人間かエンジンか・名前・エンジン・時間。`startgamedialogdata.h`） | 第6章 |
 | PlayerSetupWidget | C | widgets | 対局開始ダイアログの対局者1人の欄（「人間」と登録エンジンのコンボ・名前・「エンジン設定」。`EngineSelector` を使う） | 第11章 |
 | PlyAnalysis | S | analysis | 棋譜解析の1局面の結果（評価値・読み筋・定跡か） | 第9章 |
 | PlyAnalysisCollector | C | analysis | 1局面の info と bestmove から `PlyAnalysis` を作る | 第9章 |
@@ -9416,7 +9418,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | SettingsFormBinding | C | widgets | 入力欄と設定の宣言（`Setting<T>`）の対応の表（読み込み・保存・既定値に戻す） | 第11章 |
 | SfenReplay | NS | core | 局面に USI の1手を指す（`applyLenient()`・`positionAfter()`） | 第13章 |
 | SfenUtils | NS | core | SFEN文字列のユーティリティ（ヘッダーオンリー） | 第2章, 第5章 |
-| SfenValidationService | C | analysis | SFEN 文字列の妥当性検査の結果を値と JSON にする（検査は core の `PositionValidator`。GUI 非依存） | 第9章 |
+| SfenValidator | NS | core | SFEN の検査（手番・手数の欄と `PositionValidator` の結果と、読めた局面を値 `SfenValidation` で返す。JSON は headless の `SfenValidationJson`） | 第9章 |
 | ShiftJisCodec | NS | kifu | Shift_JIS（CP932）の変換（ICU のない Qt でも使える） | 第8章 |
 | ShogiBoard | C | core | 表示・局面編集に使う盤（Position を1つ持ち、変更をシグナルで知らせる） | 第5章 |
 | ShogiClock | C | core | 対局時計・時間管理 | 第5章 |
@@ -9450,7 +9452,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | TsumeVerificationJob | C | analysis | 総予算と1回の上限つきの唯一解の検査（生成と CLI の余詰検査で共通） | 第9章 |
 | TsumeVerificationRunner | C | automation | 詰将棋の検証の実行器（CLI・自動化 API と共有） | 第9章 |
 | NotificationPresenter | C | ui | エラー・情報の知らせのダイアログ | 第4章 |
-| UiStatePolicyManager | C | ui/coordinators | 動作状態ごとのメニュー・ボタンの有効・無効（コンパイル時の表） | 第6章, 第10章, 第14章 |
+| UiStatePolicyManager | C | ui/policy | 動作状態ごとのメニュー・ボタンの有効・無効（コンパイル時の表） | 第6章, 第10章, 第14章 |
 | UsenCodec | NS | kifu/formats | USEN の符号（指し手の3文字・開始局面・手順）の符号化と復号 | 第8章 |
 | UsenExporter | C | kifu/formats | USEN形式の書き出し | 第8章 |
 | UsenToSfenConverter | C | kifu/formats | USEN形式→SFEN変換器 | 第8章 |
@@ -9491,9 +9493,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | matchplayers | 第3章, 第5章 | 対局者（`MatchPlayers`） |
 | sfenreplay | 第13章 | 局面に USI の1手を指す |
 | sfenutils | 第2章, 第5章 | SFENユーティリティ |
-| sfendiffutils | 第5章 | 2つの局面の盤上の差分 |
 | shoginotation | 第2章, 第5章 | 棋譜の表記の対応表 |
-| kifmovetext | 第5章 | KIF 形式の指し手の文字列 |
 | legalmovestatus | 第5章 | 合法手ステータス |
 | terminaltype | 第8章 | 終局手の種類と終局語の対応表 |
 | boardcoordinates | 第5章 | 盤面表示の座標（駒台は筋10・11、駒箱は筋12）と駒・USI の指し手の対応 |
@@ -9501,6 +9501,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | jishogicalculator | 第10章, 第12章 | 持将棋の点数計算・判定 |
 | timecontrol | 第5章, 第6章 | 持ち時間の決まり（持ち時間・秒読み・加算・遅延）の値型 |
 | usiscore | 第7章 | USI の評価値（score cp / score mate とその境界） |
+| sfenvalidator | 第9章 | SFEN の検査（`SfenValidator`。手番・手数の欄と `PositionValidator` の結果と、読めた局面を値で返す） |
 
 #### game/（第6章）
 
@@ -9508,12 +9509,10 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 |---------|--------|------|
 | matchcoordinator | 第4章, 第6章 | ローカル対局の司令塔 |
 | matchengineseat | 第6章, 第12章 | 対局で指すエンジン1台 |
-| matchsessionstate | 第6章 | 対局の設定と終了状態 |
 | matchrecordsink | 第6章 | 対局の棋譜の受け手（インターフェース） |
 | gamechannel | 第6章 | 対局相手の窓口 `GameChannel`（投了・中断・即指し・入玉宣言をローカル対局と通信対局で同じ操作に）とローカル対局の実装 `LocalGameChannel` |
 | matchautosave | 第6章 | 終局した棋譜の自動保存の指定（ローカル対局・通信対局で同じ） |
 | gamemodestrategy | 第6章 | 対局モード別の Strategy（実装は humanvs*strategy・enginevsenginestrategy） |
-| enginelifecyclemanager | 第6章 | エンジンの枠 E1・E2 の生成・破棄（対局・検討・棋譜解析・通信対局で共有）と枠のリース `EngineLease` |
 | shogigamecontroller | 第6章 | 対局フロー制御（指し手の検証と盤への適用） |
 | timecontrolutil | 第12章 | 持ち時間の時計への適用 |
 | consecutivegameseries | 第6章 | エンジン同士の連続対局（局数・手番の入れ替え・次局の計画） |
@@ -9521,7 +9520,6 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | gamestartoptionsbuilder | 第6章 | 対局開始ダイアログの値から、対局の開始の計画（局面・対局者・時間・連続対局）を作る |
 | humanvsenginestrategy | 第6章 | 人間対エンジンの Strategy |
 | humanvshumanstrategy | 第6章 | 人間対人間の Strategy |
-| interruptedgamestate | 第6章 | 中断したローカル対局の状態（アプリ起動中だけ保持する。棋譜に書いた中断の行 `terminalNodeId` を含む） |
 | matchtimesettings | 第6章 | 対局の時間の決まり（持ち時間・秒読み・加算と、時間切れの扱い） |
 
 #### engine/（第7章）
@@ -9533,7 +9531,6 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | engineprocessmanager | 第7章 | エンジンプロセス管理 |
 | usimatchhandler | 第7章 | 対局・解析での USI のやり取り（position/go/bestmove） |
 | matchtimesource | 第7章 | エンジンの思考に使う時間の出どころ（`MatchTimeSource`・`ClockTimeSource`・`FixedTimeSource`） |
-| engineoptiondescriptions | 第7章 | オプション説明 |
 | usienginesession | 第7章 | USI エンジン1台への接続（起動・初期化・探索・終了）。GUI と CLI が共用する |
 | usilineparser | 第7章 | エンジンからの受信行（info・bestmove・checkmate・option・id）を型付きの値にする |
 | mateoracle | 第7章, 第9章 | 詰みの問い合わせ（`MateOracle`）と答え（`MateAnswer`） |
@@ -9543,6 +9540,8 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | thinkinginforow | 第7章 | 思考タブの1行分の表示データ |
 | enginesearchstatus | 第7章 | 探索状況（探索中の手・深さ・ノード数・NPS・ハッシュ使用率）の値 |
 | usiinfo | 第7章 | info 行を解析した値（`UsiScore` を含む） |
+| engineslots | 第6章, 第7章 | エンジンの枠 E1・E2（`EngineSlots`）の生成・破棄（対局・検討・棋譜解析・通信対局で共有）と枠のリース `EngineLease` |
+| tsumeevaluation | 第9章 | 詰みの判定結果 |
 
 #### kifu/（第8章）
 
@@ -9559,7 +9558,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | kifunavigationstate | 第8章, 第13章 | 表示中のノード |
 | recordline | 第8章 | 手順の値（RecordLine） |
 | livegamesession | 第8章 | 対局中セッション |
-| kifreader | 第8章 | KIFファイル読み込み |
+| kifutextdecoder | 第8章 | 棋譜・局面のテキストの文字コードの判別（全形式で共通） |
 | kifparsetypes | 第8章 | パース型定義（`KifParseResult`・`KifuParseOutcome`・`ParseOptions`・`ParseReport`） |
 | josekibook | 第8章, 第11章 | 定跡のデータの値型 `JosekiBook` と定跡ファイルの読み書き `JosekiBookFile` |
 | josekibooksession | 第8章, 第11章 | 開いている定跡ファイル（`JosekiBook` の値・変更状態・読み書き） |
@@ -9568,6 +9567,8 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | recordentry | 第8章 | 棋譜の1行（指した手か終局） |
 | shiftjiscodec | 第8章 | Shift_JIS（CP932）の変換（ICU のない Qt でも使える） |
 | kifupresentation | 第11章, 第16章 | 画面に出す棋譜の表記（表示言語と表記の設定に合わせる） |
+| positioncollectionfile | 第9章 | 局面集ファイル（1行1局面）の規則（局面集ビューアと詰将棋問題一覧で共有） |
+| kifuloader | 第8章, 第15章 | 棋譜ファイル・貼り付け・局面を読み、分岐ツリーを作り直す |
 
 #### kifu/formats/（第8章）
 
@@ -9590,6 +9591,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | terminalcodes | 第8章 | 棋譜形式ごとの終局の符号（CSA・JKF・USI・USEN） |
 | usenexporter | 第8章 | USEN形式の書き出し |
 | usiexporter | 第8章 | USI形式の書き出し |
+| kifmovetext | 第5章 | KIF 形式の指し手の文字列 |
 
 #### analysis/（第9章）
 
@@ -9598,8 +9600,6 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | analysissession | 第9章 | 検討・詰み探索のセッション |
 | analysisoptions | 第9章 | 検討・詰み探索の開始オプション |
 | analysisjob | 第9章 | 棋譜解析1回（`AnalysisJob`）と1局面の結果（`PlyAnalysis`・`PlyAnalysisCollector`） |
-| sfenvalidationservice | 第9章 | SFEN 文字列の妥当性検査の結果（検査は core の PositionValidator。GUI 非依存） |
-| positioncollectionfile | 第9章 | 局面集ファイル（1行1局面）の規則 |
 | tsumecollectionsession | 第9章 | 詰将棋集の進捗・解析待ちの管理 |
 | tsumeshogigenerator | 第9章 | 詰将棋局面の自動生成（候補の待ち行列・問い合わせの中継・結果の集計） |
 | tsumecandidatejob | 第9章 | 詰将棋の候補1つの処理（手数の確認・唯一解の検査・要らない駒の除去） |
@@ -9618,12 +9618,6 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | csagameprogress | 第12章 | 1局ぶんの進行の値型 |
 | csamoveconverter | 第12章 | CSA と USI の指し手の変換（`toCsa`・`toUsi`） |
 
-#### navigation/（第13章）
-
-| ファイル | 解説章 | 内容 |
-|---------|--------|------|
-| kifunavigationcontroller | 第13章 | ナビゲーション制御 |
-
 #### style/（第11章, 第16章）
 
 | ファイル | 解説章 | 内容 |
@@ -9641,7 +9635,6 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | boardinteractioncontroller | 第13章 | 盤面操作制御 |
 | boardinputroute | 第13章 | 盤で指した手の行き先 |
 | positioneditsession | 第13章 | 局面編集 |
-| boardimageexporter | 第13章 | 盤面画像出力 |
 
 #### ui/presenters/（第10章）
 
@@ -9669,25 +9662,35 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | pvclickcontroller | 第10章 | 読み筋クリック |
 | usicommandcontroller | 第10章 | USIコマンド送信 |
 | boardmovecontroller | 第10章, 第15章 | 盤で指した手を、動作状態に合わせて処理する（局面編集・棋譜の変化の記録・通信対局・対局） |
-| humanturnpolicy | 第6章 | 人間が盤を操作できる手番か・対局が進行中かの判定 |
 | branchtreeeditcontroller | 第10章 | 分岐ツリーの右クリックメニューからの分岐の編集と、盤上の変化の記録 |
 | kifuanalysiscontroller | 第9章 | 棋譜解析（メニューの「棋譜解析」「解析中止」と、解析の進み具合の表示） |
 | mainwindowappearancecontroller | 第10章 | 盤の反転・拡大縮小、ツールバーなど外観の操作 |
 | settingsresetcontroller | 第10章 | 全設定の初期化と、それに伴う終了確認 |
 | tsumesearchcontroller | 第9章 | 詰み探索（メニューの「詰み探索」: 条件ダイアログを出して表示中の局面を探索する） |
+| dialoglauncher | 第10章 | メニューから開くダイアログの起動 |
+| kifufilecontroller | 第8章 | 棋譜の開く・保存・上書き・自動保存・貼り付け・クリップボードへのコピー |
+| kifunavigationcontroller | 第13章 | 棋譜ナビゲーション（局面送りの6つの QAction・分岐） |
+| widgetimageexporter | 第13章 | 部品（盤・評価値グラフ）の画像のクリップボードへのコピーと、形式を選んだファイルへの保存 |
+
+#### ui/policy/（第6章, 第10章）
+
+| ファイル | 解説章 | 内容 |
+|---------|--------|------|
+| uistatepolicymanager | 第10章, 第14章 | 動作状態ごとの UI の有効・無効 |
+| humanturnpolicy | 第6章 | 人間が盤を操作できる手番か・対局が進行中かの判定 |
+
+#### ui/docks/（第10章, 第14章）
+
+| ファイル | 解説章 | 内容 |
+|---------|--------|------|
+| dockregistry | 第10章, 第14章 | ドックの表からの作成・規定の配置・状態の保存と復元 |
+| docklayoutmanager | 第10章 | 名前付きレイアウト・起動時のレイアウト・ドックの固定 |
 
 #### ui/coordinators/（第10章）
 
 | ファイル | 解説章 | 内容 |
 |---------|--------|------|
-| dialoglauncher | 第10章 | メニューから開くダイアログの起動 |
-| uistatepolicymanager | 第10章, 第14章 | 動作状態ごとの UI の有効・無効 |
-| dockregistry | 第10章, 第14章 | ドックの表からの作成・規定の配置・状態の保存と復元 |
-| docklayoutmanager | 第10章 | 名前付きレイアウト・起動時のレイアウト・ドックの固定 |
 | commentcoordinator | 第14章 | コメント調整 |
-| kifuloader | 第8章, 第15章 | 棋譜ファイル・貼り付け・局面を読み、分岐ツリーを作り直す |
-| kifufilecontroller | 第8章 | 棋譜の開く・保存・上書き・自動保存・貼り付け・クリップボードへのコピー |
-| kifusavedialogs | 第8章 | 棋譜保存の確認・保存ダイアログ |
 | csagamesession | 第10章, 第12章 | 通信対局の開始（待機ダイアログ）と、進行の画面への反映（棋譜・自動保存は gamesession） |
 
 #### views/（第11章）
@@ -9746,6 +9749,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | tablemodelutils | 第11章 | 表へのモデルの付け替え（Qt が置き換えた選択モデルを解放する） |
 | tablebuttondelegate | 第11章 | 表のセルを控えめなボタンとして描画する（読み筋の盤面・定跡手の着手と編集など） |
 | usilogpanel | 第7章, 第11章 | USI通信ログドックの中身（`LogPanel` の派生） |
+| menuwindow | 第11章 | メニューのドックの中身（メニュー項目をボタンで並べる） |
 
 #### dialogs/（第11章）
 
@@ -9764,7 +9768,6 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | pvline | 第11章 | 読み筋盤の読み筋の値 `PvLine` |
 | kifupastedialog | 第11章 | 棋譜ペースト |
 | csawaitingdialog | 第11章 | CSA待機 |
-| menuwindow | 第11章 | メニューウィンドウ |
 | josekiwindow | 第11章 | 定跡ウィンドウ |
 | josekimergedialog | 第11章 | 定跡結合 |
 | josekimovedialog | 第11章 | 定跡手入力 |
@@ -9773,6 +9776,9 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | jishogiscoredialog | 第10章 | 持将棋の点数ダイアログ |
 | josekitablemodel | 第11章 | 定跡の表のモデル（データは `JosekiBookSession`） |
 | josekifilecontroller | 第11章 | 定跡ファイルの操作（開く・保存・結合） |
+| kifusavedialogs | 第8章 | 棋譜保存の確認・保存ダイアログ |
+| engineoptiondescriptions | 第7章 | エンジン設定画面のオプションの説明と分類 |
+| sfendiffutils | 第5章 | 2つの局面の盤上の差分（読み筋の値 `PvLine` が使う） |
 
 #### models/（第11章）
 
@@ -9820,7 +9826,6 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | boardcolors / boardvisuals | 第12章 | 盤の配色と質感の値 |
 | branchtreeitemroles | 第13章 | 分岐ツリーの描画と自動化で共有する項目のキー |
 | threadtypes | 第9章 | スレッド間で使う共通型（ジョブの世代番号・キャンセルフラグ） |
-| tsumeevaluation | 第9章 | 詰みの判定結果 |
 
 #### app/（第1章, 第3章, 第14章）
 
@@ -9840,18 +9845,25 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | ファイル | 解説章 | 内容 |
 |---------|--------|------|
 | automationactionpolicy | 第14章 | 自動化 API が実行してよい QAction の許可リスト |
+| automationcommands / automationcommands_* | 第14章 | メソッドの登録の一覧と、名前空間ごとのメソッドの実装（`x.y` は `automationcommands_x.cpp`） |
 | automationdispatcher | 第14章 | JSON-RPC 2.0 の解析とメソッド表（GUI 非依存） |
 | automationinput | 第14章 | 通常のマウス入力（クリック・ドラッグ）の送信 |
-| automationinteractions | 第14章 | 応答の後に行う UI 操作の予約と結果の記録（`ui.interaction`） |
-| automationmethodspecs | 第14章 | 自動化 API の全メソッドの引数の表 |
+| automationinteractions | 第14章 | 応答の後に行う UI 操作の予約と結果の記録（`ui.interaction`）、遅延呼び出し `AutomationDeferredCall` |
 | automationserver | 第4章, 第14章 | 自動化 API のローカルソケットサーバー（改行区切り JSON-RPC 2.0） |
 | automationwidgetadapters | 第14章 | 部品の型ごとの読み書きの表 |
-| boardimagerenderer | 第13章 | 盤面画像の描画（GUI を起動しない CLI・自動化 API と共有） |
+
+#### headless/（第14章）
+
+| ファイル | 解説章 | 内容 |
+|---------|--------|------|
+| automationendpoint | 第14章 | 自動化 API の接続先（既定のソケット・エンドポイントファイル・1メッセージの上限。サーバーと CLI の environment で共通） |
+| automationmethodspecs | 第14章 | 自動化 API の全メソッドの引数の表 |
 | engineanalysisrunner | 第7章 | 登録エンジンで1局面を一定時間解析する実行器（CLI・自動化 API と共有） |
 | errorkinds | 第14章 | エラーの分類 `ErrorKind` と語・JSON-RPC のコードの表（CLI・自動化 API・MCP で共有） |
 | kifuconversionservice | 第8章 | 棋譜ファイル・文字列を各形式へ変換する GUI 非依存サービス（CLI・自動化 API と共有） |
 | matesearchrunner | 第9章 | 登録エンジンで詰みを探す実行器（CLI・自動化 API と共有） |
 | paramspec | 第14章 | 引数の表の部品（`ParamSpec`・`OperationSpec`）と JSON Schema の出力・検査（CLI・自動化 API・MCP で共有） |
+| sfenvalidationjson | 第14章 | SFEN の検査結果の JSON（validate-sfen） |
 | tsumeverificationrunner | 第9章 | 詰将棋の検証の実行器（CLI・自動化 API と共有） |
 
 #### cli/（第14章）
@@ -9860,6 +9872,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 |---------|--------|------|
 | main / cliargs / clioutput / clicommands_* | 第14章 | `shogiboardq-cli`（GUI を起動しない JSON 出力コマンド。MCP サーバーが呼び出す） |
 | clicommandspecs | 第14章 | 全コマンドの引数の表（オプションの登録・使い方の文・JSON への変換と検査） |
+| boardimagerenderer | 第13章 | 盤面画像の描画（render-board。cli で views を使うのはこれだけ） |
 
 #### resources/（第1章, 第16章）
 

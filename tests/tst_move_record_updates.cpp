@@ -14,7 +14,7 @@
 
 #include "commenteditorpanel.h"
 #include "evaluationchartwidget.h"
-#include "enginelifecyclemanager.h"
+#include "engineslots.h"
 #include "evaluationgraphpresenter.h"
 #include "shogiclock.h"
 #include "kifubranchnode.h"

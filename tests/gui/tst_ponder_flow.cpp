@@ -26,7 +26,7 @@
 #include "recordpane.h"
 #include "settingscommon.h"
 #include "engineprofilestore.h"
-#include "enginelifecyclemanager.h"
+#include "engineslots.h"
 #include "matchengineseat.h"
 #include "matchtimesource.h"
 #include "usi.h"
@@ -412,7 +412,7 @@ private slots:
     void csaPonder()
     {
         QFETCH(bool, hit);
-        EngineLifecycleManager engines;
+        EngineSlots engines;
         MatchEngineSeat seat(&engines);
         // 通信対局の残り時間の代わりに、決まった残り時間を読ませる
         UsiGoTimeInput timing;

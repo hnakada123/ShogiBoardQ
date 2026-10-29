@@ -1,12 +1,12 @@
 /// @file jkftosfenconverter.cpp
 /// @brief JKF形式棋譜コンバータクラスの実装
 ///
-/// 指し手変換・初期局面構築は JkfMoveParser に委譲。
+/// 指し手変換・初期局面構築は JkfCodec に委譲。
 /// 本ファイルはファイルI/O・パーサ状態管理・オーケストレーションを担当する。
 
 #include "jkftosfenconverter.h"
-#include "handicaps.h"
-#include "jkfmoveparser.h"
+#include "sfenutils.h"
+#include "jkfcodec.h"
 #include "kiflinebuilder.h"
 #include "terminalcodes.h"
 #include "shogiposition.h"
@@ -104,7 +104,7 @@ QString JkfToSfenConverter::buildInitialSfen(const QJsonObject& root, StartKind*
 {
     if (!root.contains(QStringLiteral("initial"))) {
         if (kind) *kind = StartKind::Default;
-        return JkfMoveParser::presetToSfen(QStringLiteral("HIRATE"));
+        return SfenUtils::hirateSfen();
     }
 
     const QJsonObject initial = root[QStringLiteral("initial")].toObject();
@@ -114,15 +114,14 @@ QString JkfToSfenConverter::buildInitialSfen(const QJsonObject& root, StartKind*
         if (initial.contains(QStringLiteral("data"))) {
             if (kind) *kind = StartKind::Diagram;
             const QJsonObject data = initial[QStringLiteral("data")].toObject();
-            return JkfMoveParser::buildSfenFromInitialData(data);
+            return JkfCodec::buildSfenFromInitialData(data);
         }
         return {};
     }
 
-    const Handicaps::Handicap* handicap = Handicaps::byJkfPreset(preset);
     if (kind) *kind = StartKind::Handicap;
-    // 知らない preset は開始局面が分からない
-    return handicap ? QString::fromLatin1(handicap->sfen) : QString();
+    // 知らない preset は開始局面が分からない（空文字列）
+    return JkfCodec::presetToSfen(preset);
 }
 
 namespace {
@@ -157,9 +156,9 @@ bool readJkfLine(const QJsonArray& moves, bool isMainline, KifLineBuilder& build
             forks.append(JkfFork{ply, fork.toArray(), builder.totals()});
         }
 
-        const QString comment = JkfMoveParser::extractCommentsFromMoveObj(obj);
+        const QString comment = JkfCodec::extractCommentsFromMoveObj(obj);
         const bool hasTime = obj.contains(QStringLiteral("time"));
-        const JkfMoveParser::Time time = JkfMoveParser::timeOf(obj[QStringLiteral("time")].toObject());
+        const JkfCodec::Time time = JkfCodec::timeOf(obj[QStringLiteral("time")].toObject());
         if (obj.contains(QStringLiteral("special"))) {
             const Turn side = builder.sideToMove();
             const QString special = obj[QStringLiteral("special")].toString();
@@ -179,7 +178,7 @@ bool readJkfLine(const QJsonArray& moves, bool isMainline, KifLineBuilder& build
         }
 
         const QJsonObject moveObject = obj[QStringLiteral("move")].toObject();
-        const std::optional<UsiMove> move = JkfMoveParser::toUsiMove(moveObject);
+        const std::optional<UsiMove> move = JkfCodec::toUsiMove(moveObject);
         if (!move) {
             report.fail(QStringLiteral("JKF: invalid move at ply %1").arg(ply));
             return false;
@@ -190,7 +189,7 @@ bool readJkfLine(const QJsonArray& moves, bool isMainline, KifLineBuilder& build
             recordTime = builder.timeFor(side, time.elapsedMs, time.totalMs);
         }
         // 指せない手は、その手の手前で手順を打ち切る（全形式で同じ）
-        if (!builder.addMove(*move, recordTime, JkfMoveParser::notesOf(moveObject))) {
+        if (!builder.addMove(*move, recordTime, JkfCodec::notesOf(moveObject))) {
             if (!report.rejectMove(ply, builder.cannotRestore(QStringLiteral("JKF"), ply)))
                 return false;
             builder.stop();

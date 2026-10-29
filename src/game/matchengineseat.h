@@ -8,7 +8,7 @@
 #include <QPointer>
 #include <QString>
 
-#include "enginelifecyclemanager.h"
+#include "engineslots.h"
 #include "shogitypes.h"
 #include "usimatchhandler.h"
 
@@ -19,7 +19,7 @@ class Usi;
  * @brief 対局で指すエンジン1台
  *
  * 人間対エンジン・エンジン同士の Strategy と通信対局（CsaGameCoordinator）が持つ。エンジンの枠
- * （EngineLifecycleManager）からエンジンを借り、持ち時間の出どころを渡して起動する。
+ * （EngineSlots）からエンジンを借り、持ち時間の出どころを渡して起動する。
  * エンジンの初期化・指し手・投了・入玉宣言勝ち・エラーを自分のシグナルで知らせる（ほかの持ち主が枠を
  * 取ったときもエラーとして知らせる）。終局ではローカル対局・通信対局と同じ手順でエンジンに知らせる。
  */
@@ -37,7 +37,7 @@ public:
         MatchTimeSource* timeSource = nullptr;  ///< 持ち時間の出どころ（非所有。ローカル対局は対局時計）
     };
 
-    explicit MatchEngineSeat(EngineLifecycleManager* engines, QObject* parent = nullptr);
+    explicit MatchEngineSeat(EngineSlots* engines, QObject* parent = nullptr);
     ~MatchEngineSeat() override;
 
     /// エンジンを枠に置いて起動する（前のエンジンは手放す）。初期化の完了は initialized、
@@ -76,7 +76,7 @@ private slots:
     void onEngineRevoked(QObject* owner);
 
 private:
-    EngineLifecycleManager* m_engines = nullptr;  ///< 非所有（エンジンは枠が持つ）
+    EngineSlots* m_engines = nullptr;  ///< 非所有（エンジンは枠が持つ）
     EngineLease m_lease;
     Turn m_side = Turn::Black;
 };

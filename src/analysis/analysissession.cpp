@@ -6,7 +6,7 @@
 #include "mateoracle.h"
 
 #include "appactivitystate.h"
-#include "enginelifecyclemanager.h"
+#include "engineslots.h"
 #include "kifubranchnode.h"
 #include "kifunavigationstate.h"
 #include "usi.h"
@@ -18,7 +18,7 @@ AnalysisSession::AnalysisSession(const Deps& deps, QObject* parent)
     Q_ASSERT(m_deps.engines && m_deps.activity);
     if (m_deps.navState)
         connect(m_deps.navState, &KifuNavigationState::changed, this, &AnalysisSession::followDisplayedPosition);
-    connect(m_deps.engines, &EngineLifecycleManager::engineRevoked, this, &AnalysisSession::onEngineRevoked);
+    connect(m_deps.engines, &EngineSlots::engineRevoked, this, &AnalysisSession::onEngineRevoked);
     connect(m_deps.activity, &AppActivityState::revoked, this, &AnalysisSession::onActivityRevoked);
 }
 

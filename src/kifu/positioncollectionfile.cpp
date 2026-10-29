@@ -4,7 +4,7 @@
 #include "positioncollectionfile.h"
 
 #include "sfenutils.h"
-#include "sfenvalidationservice.h"
+#include "sfenvalidator.h"
 #include "usimove.h"
 
 
@@ -21,8 +21,8 @@ bool isKeyword(const QString& token, QLatin1StringView keyword)
 
 QString Line::position() const
 {
-    if (!movesPlayed || moves.isEmpty()) return SfenValidationService::validate(startSfen).normalizedSfen;
-    return SfenValidationService::applyUsiMoves(startSfen, moves);
+    if (!movesPlayed || moves.isEmpty()) return SfenValidator::validate(startSfen).normalizedSfen;
+    return SfenValidator::applyUsiMoves(startSfen, moves);
 }
 
 LineKind parseLine(const QString& text, int lineNumber, Line* line)
@@ -57,7 +57,7 @@ LineKind parseLine(const QString& text, int lineNumber, Line* line)
         for (const QString& move : std::as_const(result.moves))
             if (!UsiMove::isExact(move)) return LineKind::Invalid;
     }
-    if (!SfenValidationService::validate(result.startSfen).valid) return LineKind::Invalid;
+    if (!SfenValidator::validate(result.startSfen).valid) return LineKind::Invalid;
 
     if (line) *line = std::move(result);
     return LineKind::Position;

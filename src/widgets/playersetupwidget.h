@@ -7,7 +7,7 @@
 #include <QWidget>
 
 #include "gamesettings.h"
-#include "startgamedatabridge.h"
+#include "startgamedialogdata.h"
 
 class EngineSelector;
 class QCheckBox;

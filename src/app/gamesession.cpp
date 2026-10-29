@@ -2,7 +2,7 @@
 /// @brief 対局の利用者の操作・開始の手順・棋譜の行・終局と中断の後処理
 
 #include "gamesession.h"
-#include "enginelifecyclemanager.h"
+#include "engineslots.h"
 #include "josekibooksession.h"
 
 #include "analysissession.h"

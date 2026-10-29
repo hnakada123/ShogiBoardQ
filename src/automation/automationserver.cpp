@@ -3,7 +3,6 @@
 
 #include "automationserver.h"
 #include "logcategories.h"
-#include "settingscommon.h"
 
 #include <QCoreApplication>
 #include <QDir>
@@ -14,8 +13,6 @@
 #include <QLocalServer>
 #include <QLocalSocket>
 #include <QPointer>
-#include <QLatin1StringView>
-#include <QStandardPaths>
 
 #ifndef Q_OS_WIN
 #include <sys/stat.h>
@@ -23,8 +20,6 @@
 #endif
 
 namespace {
-constexpr QLatin1StringView kEndpointFileName("automation-endpoint.json");
-
 #ifndef Q_OS_WIN
 /// ソケットのフォルダを用意する。無ければ所有者専用で作り、あれば自分の持ち物でほかの利用者が書けないことを確かめる
 /// （既にあるフォルダの権限は変えない。別の利用者が先に作ったフォルダでは、待ち受けを差し替えられる。セキュリティ監査 S10）
@@ -84,31 +79,10 @@ AutomationServer::~AutomationServer()
     close();
 }
 
-QString AutomationServer::defaultSocketPath()
-{
-    QString env = qEnvironmentVariable("SHOGIBOARDQ_AUTOMATION_SOCKET");
-    if (!env.isEmpty()) return env;
-#ifdef Q_OS_WIN
-    const QString user = qEnvironmentVariable("USERNAME", QStringLiteral("user"));
-    return QStringLiteral("shogiboardq-automation-") + user;
-#else
-    // RuntimeLocation（XDG_RUNTIME_DIR など）は所有者だけが使える。使えなければ設定のフォルダに置き、
-    // 共有の一時ディレクトリの固定名は使わない（別の利用者に先に作られると待ち受けを奪われる。セキュリティ監査 S10）
-    const QString runtime = QStandardPaths::writableLocation(QStandardPaths::RuntimeLocation);
-    if (runtime.isEmpty()) return QFileInfo(endpointFilePath()).dir().filePath(QStringLiteral("automation.sock"));
-    return runtime + QStringLiteral("/shogiboardq/automation.sock");
-#endif
-}
-
-QString AutomationServer::endpointFilePath()
-{
-    return QFileInfo(SettingsCommon::settingsFilePath()).dir().filePath(kEndpointFileName);
-}
-
 bool AutomationServer::listen(const QString& socketPath, QString* error)
 {
     close();
-    const QString path = socketPath.isEmpty() ? defaultSocketPath() : socketPath;
+    const QString path = socketPath.isEmpty() ? AutomationEndpoint::defaultSocketPath() : socketPath;
 #ifndef Q_OS_WIN
     // 相対パスは Qt が一時ディレクトリの下として扱うので、絶対パスに限る
     if (!QDir::isAbsolutePath(path)) {
@@ -160,7 +134,7 @@ void AutomationServer::writeEndpointFile()
     info[QStringLiteral("socket")] = m_socketPath;
     info[QStringLiteral("pid")] = static_cast<double>(QCoreApplication::applicationPid());
     info[QStringLiteral("version")] = QCoreApplication::applicationVersion();
-    QFile file(endpointFilePath());
+    QFile file(AutomationEndpoint::endpointFilePath());
     if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
         qCWarning(lcApp) << "automation: cannot write endpoint file" << file.fileName();
         return;
@@ -173,7 +147,7 @@ void AutomationServer::writeEndpointFile()
 void AutomationServer::removeEndpointFile()
 {
     // 後から起動したほかのアプリの情報は消さない
-    QFile file(endpointFilePath());
+    QFile file(AutomationEndpoint::endpointFilePath());
     if (!file.open(QIODevice::ReadOnly)) return;
     const QJsonObject info = QJsonDocument::fromJson(file.readAll()).object();
     file.close();
@@ -201,10 +175,10 @@ void AutomationServer::onReadyRead()
     auto entry = m_buffers.find(socket.data());
     if (entry == m_buffers.end()) return;
     entry->append(socket->readAll());
-    if (entry->size() > kMaxMessageBytes) {
+    if (entry->size() > AutomationEndpoint::kMaxMessageBytes) {
         const QJsonObject error = AutomationDispatcher::makeError(
             QJsonValue::Null, ErrorKind::InvalidRequest,
-            QStringLiteral("Message exceeds %1 bytes").arg(kMaxMessageBytes));
+            QStringLiteral("Message exceeds %1 bytes").arg(AutomationEndpoint::kMaxMessageBytes));
         entry->clear();
         socket->write(QJsonDocument(error).toJson(QJsonDocument::Compact) + '\n');
         socket->disconnectFromServer();

@@ -1,19 +1,14 @@
-/// @file automationcommands_navigation.cpp
-/// @brief メニュー項目、お気に入り、分岐ツリーの自動化操作
+/// @file automationcommands_menu.cpp
+/// @brief 自動化 API の menu.* メソッド（メニュー項目・お気に入り）の実装
 
 #include "automationcommands.h"
-#include "automationinput.h"
 #include "automationinteractions.h"
 #include "automationactionpolicy.h"
 #include "automationparams.h"
 #include "automationwidgets.h"
-#include "branchtreeitemroles.h"
 
 #include <QAction>
 #include <QApplication>
-#include <QGraphicsItem>
-#include <QGraphicsScene>
-#include <QGraphicsView>
 #include <QMainWindow>
 #include <QMenu>
 #include <QPointer>
@@ -66,21 +61,10 @@ void requireMenuInteractive(QWidget* window, QWidget* source, QMenu* menu)
     if (!qobject_cast<QMenu*>(source)) AutomationWidgets::requireInteractive(source, true);
 }
 
-QGraphicsItem* branchNode(QGraphicsView* view, int id)
-{
-    if (view->scene()) {
-        const QList<QGraphicsItem*> sceneItems = view->scene()->items();
-        for (auto* item : sceneItems) {
-            const QVariant value = item->data(BranchTreeItemRoles::NodeId);
-            if (value.isValid() && value.toInt() == id && item->isVisible()) return item;
-        }
-    }
-    throw AutomationError(ErrorKind::NotFound, QStringLiteral("Branch node no longer exists; read widget.text again"));
-}
 
 } // namespace
 
-void AutomationCommands::registerNavigationCommands(AutomationDispatcher& dispatcher, const AutomationContext& context)
+void AutomationCommands::registerMenuCommands(AutomationDispatcher& dispatcher, const AutomationContext& context)
 {
     dispatcher.registerMethod(QStringLiteral("menu.items"), [context](const QJsonObject& params) {
         auto* source = AutomationWidgets::requireWidget(context, params, false);
@@ -153,20 +137,5 @@ void AutomationCommands::registerNavigationCommands(AutomationDispatcher& dispat
         }
         return QJsonObject{{QStringLiteral("actions"), QJsonArray::fromStringList(context.menuFavorites())},
                            {QStringLiteral("available_actions"), QJsonArray::fromStringList(available)}};
-    });
-
-    dispatcher.registerMethod(QStringLiteral("branch.click"), [context](const QJsonObject& params) {
-        auto* view = qobject_cast<QGraphicsView*>(AutomationWidgets::requireWidget(context, params));
-        if (!view) throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("Widget must be a branch graphics view"));
-        const int id = params.value(QStringLiteral("id")).toInt();
-        branchNode(view, id);
-        return AutomationInteractions::queue(
-            {view, [view]() { AutomationWidgets::requireInteractive(view); },
-             [view, id]() {
-                 auto* item = branchNode(view, id);
-                 view->ensureVisible(item);
-                 AutomationInput::sendClick(view->viewport(), view->mapFromScene(item->sceneBoundingRect().center()));
-             }},
-            QJsonObject{{QStringLiteral("id"), id}});
     });
 }

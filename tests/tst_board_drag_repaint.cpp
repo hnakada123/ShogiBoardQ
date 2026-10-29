@@ -23,7 +23,7 @@
 #include "pvboarddialog.h"
 #include "boardviewerwidget.h"
 #include "sfencollectiondialog.h"
-#include "sfenvalidationservice.h"
+#include "sfenvalidator.h"
 #include "shogiboard.h"
 #include "shogigamecontroller.h"
 #include "boardchromewidget.h"
@@ -646,7 +646,7 @@ private slots:
         QCOMPARE(positions.size(), 5);
         // 読めない局面があると、局面集ビューアがエラーを出して止まる
         for (const QString& position : positions)
-            QVERIFY2(SfenValidationService::validate(position).valid, qPrintable(position));
+            QVERIFY2(SfenValidator::validate(position).valid, qPrintable(position));
         QTemporaryDir dir;
         QFile file(dir.filePath(QStringLiteral("positions.sfen")));
         QVERIFY(file.open(QIODevice::WriteOnly | QIODevice::Text));

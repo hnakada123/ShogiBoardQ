@@ -18,7 +18,7 @@
 #include "kifuanalysisrowpresenter.h"
 #include "logcategories.h"
 #include "pvclickcontroller.h"
-#include "enginelifecyclemanager.h"
+#include "engineslots.h"
 
 #include <QDockWidget>
 #include <limits>
@@ -35,7 +35,7 @@ KifuAnalysisController::KifuAnalysisController(const Deps& deps, QObject* parent
             this, &KifuAnalysisController::onResultRowDoubleClicked);
     connect(m_resultsPanel, &AnalysisResultsPanel::rowSelected, this, &KifuAnalysisController::onResultRowSelected);
     if (m_deps.engines)
-        connect(m_deps.engines, &EngineLifecycleManager::engineRevoked, this, &KifuAnalysisController::onEngineRevoked);
+        connect(m_deps.engines, &EngineSlots::engineRevoked, this, &KifuAnalysisController::onEngineRevoked);
     connect(m_deps.activity, &AppActivityState::revoked, this, &KifuAnalysisController::onActivityRevoked);
     if (m_deps.evalChart) {
         connect(m_deps.evalChart, &EvaluationChartWidget::analysisPlyClicked,

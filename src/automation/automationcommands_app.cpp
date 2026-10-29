@@ -1,48 +1,23 @@
 /// @file automationcommands_app.cpp
-/// @brief 自動化 API の app.* メソッドと共通ヘルパの実装
+/// @brief 自動化 API の app.* メソッドの実装
 
 #include "automationcommands.h"
 #include "analysissession.h"
 #include "automationdispatcher.h"
+#include "automationinteractions.h"
 #include "automationwidgets.h"
-#include "kifubranchnode.h"
+#include "csagamecoordinator.h"
 #include "kifudocument.h"
+#include "kifuexportmetadata.h"
 #include "kifufilecontroller.h"
-#include "shogiboard.h"
-#include "shogigamecontroller.h"
+#include "sfenutils.h"
 #include "shogiview.h"
 #include "uistatepolicymanager.h"
-#include "csagamecoordinator.h"
-#include "kifunavigationstate.h"
-#include "kifuexportmetadata.h"
-#include "sfenutils.h"
-#include <QMetaEnum>
 
 #include <QCoreApplication>
 #include <QJsonArray>
 #include <QMainWindow>
-#include <QTimer>
-
-AutomationDeferredCall::AutomationDeferredCall(std::function<void()> callback, QObject* parent)
-    : QObject(parent)
-    , m_callback(std::move(callback))
-{
-}
-
-void AutomationDeferredCall::schedule(std::function<void()> callback, QObject* parent)
-{
-    auto* call = new AutomationDeferredCall(std::move(callback), parent);
-    QTimer::singleShot(0, call, &AutomationDeferredCall::run);
-}
-
-void AutomationDeferredCall::run()
-{
-    // ボタン操作でモーダル画面を閉じると、呼び出し元のボタンや親が破棄されることがある。
-    // 実行前の親破棄では予約を取り消し、実行開始後はコールバックの終了まで自身を保つ。
-    setParent(nullptr);
-    if (m_callback) m_callback();
-    deleteLater();
-}
+#include <QMetaEnum>
 
 namespace {
 
@@ -82,43 +57,6 @@ QString playModeName(const AppActivityState& state, const MatchPlayers& players,
 }
 
 } // namespace
-
-QStringList AutomationCommands::currentLinePositions(const AutomationContext& context)
-{
-    QStringList positions;
-    if (!context.navState) return positions;
-    const QList<KifuBranchNode*> path = context.navState->selectedPath();
-    for (const KifuBranchNode* node : path) positions.append(node->sfen());
-    return positions;
-}
-
-RecordLine AutomationCommands::currentRecordLine(const AutomationContext& context)
-{
-    return context.navState ? context.navState->currentRecordLine() : RecordLine();
-}
-
-int AutomationContext::currentPly() const
-{
-    return navState ? navState->currentPly() : 0;
-}
-
-QString AutomationCommands::currentSfen(const AutomationContext& context)
-{
-    const QString displayed = context.navState ? context.navState->currentSfen() : QString();
-    if (!displayed.isEmpty()) return displayed;
-    return context.gameController ? context.gameController->board()->toSfen() : QString();
-}
-
-void AutomationCommands::registerAll(AutomationDispatcher& dispatcher, const AutomationContext& context)
-{
-    registerAppCommands(dispatcher, context);
-    registerPositionCommands(dispatcher, context);
-    registerKifuCommands(dispatcher, context);
-    registerUiCommands(dispatcher, context);
-    registerWidgetCommands(dispatcher, context);
-    registerDockCommands(dispatcher, context);
-    registerNavigationCommands(dispatcher, context);
-}
 
 void AutomationCommands::registerAppCommands(AutomationDispatcher& dispatcher, const AutomationContext& context)
 {

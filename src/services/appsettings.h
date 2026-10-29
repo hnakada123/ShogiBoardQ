@@ -100,9 +100,6 @@ inline const Setting<QSize> boardColorPickerSize{"SizeRelated/boardColorPickerSi
 /// メニューウィンドウのお気に入りアクションリスト
 inline const Setting<QStringList> menuWindowFavorites{"MenuWindow/favorites", QStringList()};
 
-/// メニューウィンドウのサイズ（デフォルト: 500x400）
-inline const Setting<QSize> menuWindowSize{"MenuWindow/size", QSize(500, 400)};
-
 /// メニューウィンドウのボタンサイズ（デフォルト: 104。48〜120）
 inline const BoundedSetting<int> menuWindowButtonSize{"MenuWindow/buttonSize", 104, 48, 120};
 

@@ -8,7 +8,7 @@
 #include <optional>
 
 #include "matchtimesettings.h"
-#include "startgamedatabridge.h"
+#include "startgamedialogdata.h"
 #include "startoptions.h"
 
 /// 対局を始める操作の入力

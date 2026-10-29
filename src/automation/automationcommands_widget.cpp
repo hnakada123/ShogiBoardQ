@@ -1,5 +1,5 @@
 /// @file automationcommands_widget.cpp
-/// @brief 検討タブなどの通常UI操作を自動化APIへ公開する
+/// @brief 自動化 API の widget.* メソッド（部品の読み取り・クリック・値の設定・表のセル・ドックの表示）の実装
 
 #include "automationcommands.h"
 #include "automationinput.h"
@@ -15,6 +15,7 @@
 #include <QImage>
 #include <QKeyEvent>
 #include <QLineEdit>
+#include <QMainWindow>
 #include <QPersistentModelIndex>
 #include <QTableView>
 
@@ -96,6 +97,22 @@ QPersistentModelIndex requireIndex(QTableView* table, const QJsonObject& params)
 
 void AutomationCommands::registerWidgetCommands(AutomationDispatcher& dispatcher, const AutomationContext& context)
 {
+    dispatcher.registerMethod(QStringLiteral("widget.text"), [context](const QJsonObject& params) {
+        const QString target = params.value(QStringLiteral("target")).toString();
+        const QString widget = params.value(QStringLiteral("widget")).toString();
+        const int maxRows = params.value(QStringLiteral("max_rows")).toInt();
+        const int maxWidgets = params.value(QStringLiteral("max_widgets")).toInt();
+        const bool children = params.value(QStringLiteral("include_children")).toBool();
+        QWidget* window = AutomationWidgets::requireWindow(context, target);
+        QJsonObject result;
+        result[QStringLiteral("window")] = AutomationWidgets::describeWindow(window, window == context.mainWindow);
+        result[QStringLiteral("widgets")] = AutomationWidgets::describeWidgets(window, widget, maxRows, maxWidgets, children);
+        if (!widget.isEmpty() && result.value(QStringLiteral("widgets")).toArray().isEmpty()) {
+            throw AutomationError(ErrorKind::NotFound, QStringLiteral("No readable widget named \"%1\"").arg(widget));
+        }
+        return result;
+    });
+
     dispatcher.registerMethod(QStringLiteral("widget.editCell"), [context](const QJsonObject& params) {
         auto* table = requireTable(context, params);
         const QPersistentModelIndex index = requireIndex(table, params);
@@ -105,18 +122,6 @@ void AutomationCommands::registerWidgetCommands(AutomationDispatcher& dispatcher
             {table, [table, index]() { requireCell(table, index, true); },
              [table, index, text, commit]() { editCell(table, index, text, commit); }},
             named(table));
-    });
-
-    dispatcher.registerMethod(QStringLiteral("clipboard.get"), [](const QJsonObject& params) {
-        const int maxChars = params.value(QStringLiteral("max_chars")).toInt();
-        const auto* clipboard = QApplication::clipboard();
-        const QString text = clipboard->text();
-        const QImage image = clipboard->image();
-        return QJsonObject{{QStringLiteral("text"), text.left(maxChars)},
-                           {QStringLiteral("truncated"), text.size() > maxChars},
-                           {QStringLiteral("has_image"), !image.isNull()},
-                           {QStringLiteral("image_width"), image.width()},
-                           {QStringLiteral("image_height"), image.height()}};
     });
 
     dispatcher.registerMethod(QStringLiteral("widget.showDock"), [context](const QJsonObject& params) {

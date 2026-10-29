@@ -46,7 +46,7 @@ private slots:
         AutomationContext context;
         context.mainWindow = &main;
         AutomationDispatcher dispatcher;
-        AutomationCommands::registerUiCommands(dispatcher, context);
+        AutomationCommands::registerScreenshotCommands(dispatcher, context);
         AutomationCommands::registerWidgetCommands(dispatcher, context);
         const QString target = AutomationWidgets::selector(&dialog);
         const auto text = call(dispatcher, QStringLiteral("widget.text"),

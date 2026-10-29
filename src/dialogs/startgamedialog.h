@@ -10,7 +10,7 @@
 #include <memory>
 
 #include "settingsformbinding.h"
-#include "startgamedatabridge.h"
+#include "startgamedialogdata.h"
 
 namespace Ui {
 class StartGameDialog;

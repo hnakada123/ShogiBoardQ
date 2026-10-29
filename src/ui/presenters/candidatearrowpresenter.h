@@ -14,7 +14,7 @@
 struct ConsiderationSettings;
 class AnalysisSession;
 class AppActivityState;
-class EngineLifecycleManager;
+class EngineSlots;
 class HumanTurnPolicy;
 class JosekiBookSession;
 class MatchCoordinator;
@@ -32,7 +32,7 @@ public:
     struct Deps {
         ShogiView* view = nullptr;                     ///< 矢印を描く盤（必須）
         MatchCoordinator* match = nullptr;             ///< 対局中のエンジンの読み
-        EngineLifecycleManager* engines = nullptr;     ///< 読みを出すエンジンの枠
+        EngineSlots* engines = nullptr;     ///< 読みを出すエンジンの枠
         AppActivityState* activity = nullptr;          ///< 対局中か・終局したか
         AnalysisSession* analysis = nullptr;           ///< 検討中か（正本はセッション）
         ShogiEngineThinkingModel* consideration = nullptr; ///< 検討の読み筋（検討中の矢印の元）

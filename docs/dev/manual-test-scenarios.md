@@ -214,7 +214,7 @@
 
 **重点確認ポイント:**
 - `GameSession::resetToInitialState()` の実行順序（「新規」は `MainWindowActions::resetToInitialState()` が未保存の確認をしてから呼ぶ）:
-  1. 検討・詰み探索（`AnalysisSession::stop()`。自分のエンジンだけを手放す）と通信対局（`CsaGameCoordinator::stopGame()`）を止め、対局・棋譜解析のエンジンも `EngineLifecycleManager::destroyEngines(false)` で止めて（持ち主には `engineRevoked` で知らせる）、司令塔の終局状態・連続対局・中断した対局を消す
+  1. 検討・詰み探索（`AnalysisSession::stop()`。自分のエンジンだけを手放す）と通信対局（`CsaGameCoordinator::stopGame()`）を止め、対局・棋譜解析のエンジンも `EngineSlots::destroyEngines(false)` で止めて（持ち主には `engineRevoked` で知らせる）、司令塔の終局状態・連続対局・中断した対局を消す
   2. `SessionResetCoordinator::resetToNewRecord()` — 読み込み途中の棋譜を捨て（`KifuLoader::cancelLoad()`）、`KifuDocument::startNew()` で平手の開始局面だけの棋譜にする。文書の置き換え（`KifuDocument::replaced`）を受けて、通信ログ・思考情報・検討・解析結果（`EngineDisplayPresenter::clearAll()`）と評価値グラフが消える。文書の置き換えで対局情報は既定の項目になり、対局者・持ち時間・終局日時・上書き保存先も消え、盤の対局者名は対局情報の初期値（「先手」「後手」）に戻る（`headerReset` → `PlayerInfoPresenter()`）
   3. 動作状態を `Idle` に戻す
 - 動作状態（`AppActivityState::activity()`） が `Idle` に戻り、`KifuDocument::players()` が空・`KifuDocument::filePath()` が空になるか
@@ -280,7 +280,7 @@
    - 分岐ナビ中に棋譜欄の行選択の通知で盤面が古い局面に上書きされないか
 
 2. **対局の手順の置き場**
-   - 対局中の手順は司令塔（`MatchCoordinator`、起動時に一度だけ作る）の `record()`（`RecordLine`）だけが持ち、ほかの部品が局面列へのポインタを持っていないか（評価値グラフは `MatchCoordinator::engineMovePlayed` で指した側と手数を受け取り、評価値はエンジンの枠 `EngineLifecycleManager` から読む）
+   - 対局中の手順は司令塔（`MatchCoordinator`、起動時に一度だけ作る）の `record()`（`RecordLine`）だけが持ち、ほかの部品が局面列へのポインタを持っていないか（評価値グラフは `MatchCoordinator::engineMovePlayed` で指した側と手数を受け取り、評価値はエンジンの枠 `EngineSlots` から読む）
    - 盤面同期（`BoardSyncPresenter`）が対局の局面列ではなく、表示中の手（`KifuNavigationState::currentNode()`）の局面から盤面を描いているか
 
 3. **手番の置き場**

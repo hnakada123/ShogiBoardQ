@@ -42,7 +42,7 @@ shogiboardq-cli            ShogiBoardQ --automation
 | 層 | 役割 | 実装 |
 |---|---|---|
 | MCP サーバー | ツール定義（JSON Schema）、引数検証、パス方針、ジョブ管理、アプリの自動起動・再接続、エラー変換 | `mcp/shogiboardq_mcp/`（Python 3.10+、`mcp>=2,<3`。SDK 1.x では版を示して終了する） |
-| CLI | アプリを起動せずに使える機能（棋譜変換、SFEN 検証、エンジン一覧、解析、詰み探索、詰将棋生成・余詰検査、盤面画像） | `src/cli/` + `src/headless/` の共通部品（盤面画像は `src/automation/` の `BoardImageRenderer`） |
+| CLI | アプリを起動せずに使える機能（棋譜変換、SFEN 検証、エンジン一覧、解析、詰み探索、詰将棋生成・余詰検査、盤面画像） | `src/cli/` + `src/headless/` の共通部品（盤面画像は `src/cli/` の `BoardImageRenderer`） |
 | 自動化 API | 起動中のアプリの状態取得・操作（局面、棋譜、メニュー動作、スクリーンショット、ダイアログ内容） | `src/automation/`（`--automation` 指定時のみ有効） |
 
 設計上の原則:
@@ -186,7 +186,7 @@ shogiboardq-cli <command> [options]
 |---|---|---|
 | `version` | - | `{"ok":true,"version":"2026.09.25"}` |
 | `describe` | - | `{ok, commands:[{name, summary, input_schema}], methods:[{name, summary, input_schema}]}`（CLI の全コマンドと自動化 API の全メソッドの引数の表を JSON Schema で出す） |
-| `environment` | - | `{ok, version, socket_path, endpoint_file, settings_file, max_message_bytes, error_kinds:[{slug, rpc_code}], kifu_read_suffixes, kifu_write_suffixes, image_write_suffixes}`（自動化 API の既定のソケット・エンドポイントファイル・設定ファイルの場所と1メッセージの上限を、アプリと同じ計算（`AutomationServer::defaultSocketPath()`・`endpointFilePath()`・`SettingsCommon::settingsFilePath()`・`AutomationServer::kMaxMessageBytes`）で出し、エラーの分類の表（`ErrorKinds::toJson()`）と、MCP サーバーが読み書きを許すファイルの拡張子（`KifuFormats::readableSuffixes()`・`writableSuffixes()`・`BoardImageRenderer::fileSuffixes()`）を添える。MCP サーバーはこれを読んで値を写さない） |
+| `environment` | - | `{ok, version, socket_path, endpoint_file, settings_file, max_message_bytes, error_kinds:[{slug, rpc_code}], kifu_read_suffixes, kifu_write_suffixes, image_write_suffixes}`（自動化 API の既定のソケット・エンドポイントファイル・設定ファイルの場所と1メッセージの上限を、アプリと同じ計算（`AutomationEndpoint::defaultSocketPath()`・`endpointFilePath()`・`SettingsCommon::settingsFilePath()`・`AutomationEndpoint::kMaxMessageBytes`）で出し、エラーの分類の表（`ErrorKinds::toJson()`）と、MCP サーバーが読み書きを許すファイルの拡張子（`KifuFormats::readableSuffixes()`・`writableSuffixes()`・`BoardImageRenderer::fileSuffixes()`）を添える。MCP サーバーはこれを読んで値を写さない） |
 | `convert-kifu` | `--input-path PATH` / `--text STR`、`--input-format auto\|kif\|ki2\|csa\|jkf\|usi\|usen`、`--output-format kif\|ki2\|csa\|jkf\|usi\|usen\|sfen`、`--output-path PATH`、`--overwrite`（旧名 `--input`・`--output`） | `{ok, input_format, output_format, text \| output_path, initial_sfen, ply_count, usi_moves[], sfens[], moves[], game_info[], has_branches, line_count, warnings[]}`。`moves[]` は本譜の各行（`{ply, text, usi, time, comment, bookmark}`。終局の行は `usi` なし、`time`・`comment`・`bookmark` は空なら省く）で、`KifuConversionService::Result::mainline`（`RecordLine`。`KifuBranchTree::exportLine(0)`）から作る。`text` は GUI の保存・コピーと同じ書き出しの表（`KifuExport::lines(tree, metadata, format)`）で作る |
 | `validate-sfen` | `--sfen SFEN` | `{ok, valid, normalized_sfen, turn, hands{black,white}, in_check, legal_move_count, kings{black,white}, errors[]}` |
 | `list-engines` | - | `{ok, engines:[{name,path,author,exists}]}` |
@@ -219,11 +219,11 @@ ShogiBoardQ --automation [--automation-socket PATH]
 
 | 項目 | 値 |
 |---|---|
-| ソケットパス（Linux/macOS） | `--automation-socket` → 環境変数 `SHOGIBOARDQ_AUTOMATION_SOCKET` → `QStandardPaths::RuntimeLocation`（`$XDG_RUNTIME_DIR`）`/shogiboardq/automation.sock`（`AutomationServer::defaultSocketPath()`）。RuntimeLocation が取れなければ設定のフォルダの `automation.sock`（共有の一時ディレクトリの固定名は使わない）。絶対パスに限り、Unix ドメインソケットの制限と Qt が bind に使う一時フォルダの分で Linux は 99 バイト、macOS は 95 バイト以内。ソケットのフォルダは、無ければ所有者専用（0700）で作り、あれば自分の持ち物でほかの利用者が書けないことを確かめる（権限は変えない）。前回の残骸は、ソケットで待ち受けがないときだけ消し、ほかのアプリが待ち受けていれば起動しない。終了時のエンドポイントファイルは自分の pid のものだけ消す |
+| ソケットパス（Linux/macOS） | `--automation-socket` → 環境変数 `SHOGIBOARDQ_AUTOMATION_SOCKET` → `QStandardPaths::RuntimeLocation`（`$XDG_RUNTIME_DIR`）`/shogiboardq/automation.sock`（`AutomationEndpoint::defaultSocketPath()`）。RuntimeLocation が取れなければ設定のフォルダの `automation.sock`（共有の一時ディレクトリの固定名は使わない）。絶対パスに限り、Unix ドメインソケットの制限と Qt が bind に使う一時フォルダの分で Linux は 99 バイト、macOS は 95 バイト以内。ソケットのフォルダは、無ければ所有者専用（0700）で作り、あれば自分の持ち物でほかの利用者が書けないことを確かめる（権限は変えない）。前回の残骸は、ソケットで待ち受けがないときだけ消し、ほかのアプリが待ち受けていれば起動しない。終了時のエンドポイントファイルは自分の pid のものだけ消す |
 | ソケット名（Windows） | 環境変数 `SHOGIBOARDQ_AUTOMATION_SOCKET` → `shogiboardq-automation-<ユーザー名>`（名前付きパイプ） |
-| エンドポイント情報 | 設定ファイル（`SettingsCommon::settingsFilePath()`）と同じフォルダの `automation-endpoint.json`（`AutomationServer::endpointFilePath()`。`{"socket":..., "pid":..., "version":...}`）。起動時に書き、終了時に削除する。MCP サーバーはこれを読んで接続先を決める |
+| エンドポイント情報 | 設定ファイル（`SettingsCommon::settingsFilePath()`）と同じフォルダの `automation-endpoint.json`（`AutomationEndpoint::endpointFilePath()`。`{"socket":..., "pid":..., "version":...}`）。起動時に書き、終了時に削除する。MCP サーバーはこれを読んで接続先を決める |
 | プロトコル | 改行区切りの JSON-RPC 2.0（1 行 1 メッセージ、UTF-8）。バッチは未対応（`-32600`） |
-| メッセージの上限 | 1 メッセージ 8 MiB（`AutomationServer::kMaxMessageBytes`。棋譜テキストを含む）。超えると `-32600`（`invalid_request`）を返して切断する |
+| メッセージの上限 | 1 メッセージ 8 MiB（`AutomationEndpoint::kMaxMessageBytes`。棋譜テキストを含む）。超えると `-32600`（`invalid_request`）を返して切断する |
 | スレッド | すべてメインスレッド。1 リクエストを同期処理して応答する |
 
 ### メソッド一覧
@@ -300,14 +300,15 @@ MCP サーバーは `AppClient.call_queued()` で操作の実行を待つ（5 �
 | クラス | ファイル | 責務 |
 |---|---|---|
 | `AutomationServer` | `src/automation/automationserver.{h,cpp}` | `QLocalServer` の待ち受け、接続ごとの行バッファ、応答の書き出し、エンドポイント情報の作成・削除 |
+| `AutomationEndpoint` | `src/headless/automationendpoint.{h,cpp}` | 既定のソケットの場所・エンドポイントファイル・1メッセージの上限（サーバーと CLI の `environment` で共有） |
 | `AutomationDispatcher` | `src/automation/automationdispatcher.{h,cpp}` | JSON-RPC 2.0 の解析・検証、メソッド表、呼ぶ前の引数の検査（`AutomationMethodSpecs`）、エラー応答の生成（`makeError()` が `error.data.slug` を付ける。GUI 非依存で単体テスト可能） |
 | `ErrorKind` / `ErrorKinds` | `src/headless/errorkinds.{h,cpp}` | エラーの分類と、語・JSON-RPC のコードの表（`slug()`・`rpcCode()`・`toJson()`）。CLI の `CliOutput::fail()`・`failEvent()` と `AutomationError` が使う |
 | `ParamSpec` / `OperationSpec` | `src/headless/paramspec.{h,cpp}` | 引数1つの仕様（名前・型・必須・範囲・既定値・選択肢・説明）と操作1つの仕様。`ParamSpecs::inputSchema()`・`toJson()`（JSON Schema）と `validate()`（知らない引数の拒否・必須・型・範囲・選択肢の検査と既定値の補完）。CLI・自動化 API・MCP で共有する |
 | `AutomationMethodSpecs` | `src/headless/automationmethodspecs.{h,cpp}` | 自動化 API の全メソッドの引数の表（`all()`・`find()`） |
-| `AutomationContext` | `src/automation/automationcontext.h` | MainWindow 側の依存を注入する Deps 構造体。部品と状態（動作状態 `AppActivityState`・棋譜の文書 `KifuDocument`・`KifuNavigationState`）は非所有ポインタで受け取り、関数で受け取るのは dialogs 層のメニューウィンドウのお気に入りと終了要求だけ |
-| `AutomationCommands*` | `src/automation/automationcommands_{app,position,kifu,navigation,ui,widget,dock}.cpp` | 各メソッドの実装。既存の `KifuFileController` / `KifuNavigationController` / `UiStatePolicyManager` / `ScreenshotService` を呼ぶ。`kifu.get` の形式指定のテキストは `KifuExport::lines(*document, format)`、`moves` は分岐ツリーから作り、`app.state` の `kifu_file`・`engines`・`play_mode` は `KifuDocument::filePath()`・`players()` を読む |
+| `AutomationContext` | `src/automation/automationcontext.h` | MainWindow 側の依存を注入する Deps 構造体。部品と状態（動作状態 `AppActivityState`・棋譜の文書 `KifuDocument`・`KifuNavigationState`）は非所有ポインタで受け取り、関数で受け取るのはメニューウィンドウ（widgets 層）のお気に入りと終了要求だけ |
+| `AutomationCommands*` | `src/automation/automationcommands.cpp`・`automationcommands_{app,position,kifu,board,branch,menu,action,dialog,widget,dock,screenshot,clipboard,ui}.cpp` | 各メソッドの実装（メソッド `x.y` は `automationcommands_x.cpp`。登録の一覧と共有の読み取りは `automationcommands.cpp`）。既存の `KifuFileController` / `KifuNavigationController` / `UiStatePolicyManager` / `ScreenshotService` を呼ぶ。`kifu.get` の形式指定のテキストは `KifuExport::lines(*document, format)`、`moves` は分岐ツリーから作り、`app.state` の `kifu_file`・`engines`・`play_mode` は `KifuDocument::filePath()`・`players()` を読む |
 | `AutomationActionPolicy` | `src/automation/automationactionpolicy.{h,cpp}` | `QAction` の許可リスト |
-| `AutomationInteractions` / `QueuedInteraction` | `src/automation/automationinteractions.{h,cpp}` | 応答の後に行う UI 操作の予約（`queue()`）・実行の直前の再検査・結果の記録と `ui.interaction` の答え（`status()`） |
+| `AutomationInteractions` / `QueuedInteraction` | `src/automation/automationinteractions.{h,cpp}` | 応答の後に行う UI 操作の予約（`queue()`）・実行の直前の再検査・結果の記録と `ui.interaction` の答え（`status()`）。次のイベントループで呼ぶ `AutomationDeferredCall`（直接使うのは `app.quit` だけ）もここ |
 | `AutomationInput` | `src/automation/automationinput.{h,cpp}` | 通常のマウス入力（`sendClick()`・`sendDrag()`） |
 | `AutomationWidgets` / `AutomationWidgetAdapters` | `src/automation/automationwidgets.{h,cpp}`・`automationwidgetadapters.{h,cpp}` | ウィンドウ・部品の検索と操作可否の検査（`requireInteractive()`）／部品の型ごとの読み（`describe()`）と書き（`writer()`）の表 |
 | `ScreenshotService` | `src/ui/controllers/screenshotservice.{h,cpp}` | ウィンドウの PNG 保存。リリースビルドでも使える。F12 のショートカット（`DebugScreenshotShortcut`）はデバッグビルド専用 |
@@ -407,12 +408,12 @@ CLI が GUI 本体と同じクラスを使えるように、`CMakeLists.txt` の
 
 | ディレクトリ | 内容 |
 |---|---|
-| `src/headless/` | CLI・自動化 API・MCP が共有する GUI 非依存の部品: 引数の表（`ParamSpec`・`AutomationMethodSpecs`）、エラーの分類の表（`ErrorKind`・`ErrorKinds`・`Failure`）、書き出し先の検査（`OutputPath`）、共通サービス（`KifuConversionService`、`EngineCatalog`、`EngineAnalysisRunner`、`MateSearchRunner`、`TsumeVerificationRunner`。局面の検証は `src/analysis/` の `SfenValidationService`） |
-| `src/automation/` | 自動化 API（`AutomationServer` ほか）と盤面画像（`BoardImageRenderer`。CLI も使う） |
-| `src/cli/` | `shogiboardq-cli` のエントリーポイントとコマンド実装（`CliCommands*`）、コマンドの引数の表 `CliCommandSpecs` と引数の解釈 `CliArgs`。JSON 出力と stdin の `stop` 監視 |
+| `src/headless/` | CLI・自動化 API・MCP が共有する GUI 非依存の部品: 引数の表（`ParamSpec`・`AutomationMethodSpecs`）、エラーの分類の表（`ErrorKind`・`ErrorKinds`・`Failure`）、書き出し先の検査（`OutputPath`）、自動化 API の接続先（`AutomationEndpoint`）、共通サービス（`KifuConversionService`、`EngineCatalog`、`EngineAnalysisRunner`、`MateSearchRunner`、`TsumeVerificationRunner`。局面の検証は `src/core/` の `SfenValidator`、その JSON は `SfenValidationJson`） |
+| `src/automation/` | 自動化 API（`AutomationServer` ほか） |
+| `src/cli/` | `shogiboardq-cli` のエントリーポイントとコマンド実装（`CliCommands*`）、盤面画像（`BoardImageRenderer`）、コマンドの引数の表 `CliCommandSpecs` と引数の解釈 `CliArgs`。JSON 出力と stdin の `stop` 監視 |
 | `mcp/` | Python パッケージとテスト |
 
-`src/headless/` は core〜analysis だけを使い（GUI にも通信対局にも依存しない）、`src/automation/` は `app/`・`dialogs/`・`widgets/` に依存しない（`views/ShogiView` は盤面画像のために使う）。どちらもレイヤー依存テスト（`tst_layer_dependencies`）が検査する。
+`src/headless/` は core〜analysis だけを使い（GUI にも通信対局にも依存しない）、`src/automation/` は `app/`・`dialogs/`・`widgets/` に依存しない（`views/ShogiView` は `board.click` などで盤を探すために使う）。`src/cli/` は GUI の層と `src/automation/` に依存しない（盤面画像の `boardimagerenderer.cpp` だけは盤を描くために `views/` を使う）。どれもレイヤー依存テスト（`tst_layer_dependencies`）が検査する。
 
 ## 9. テスト
 
@@ -421,7 +422,7 @@ CLI が GUI 本体と同じクラスを使えるように、`CMakeLists.txt` の
 | `tst_automation_dispatcher` | C++（Qt Test） | JSON-RPC の解析・エラーコードと `error.data.slug`・メソッド表、予約した UI 操作の結果の記録（実行・直前の検査での失敗・実行前の取り消し） |
 | `tst_param_specs` | C++ | 引数の表の検査（既定値の補完・知らない引数・範囲・型の拒否）、JSON Schema の出力、CLI のオプションの変換、登録した全メソッドに表があること、ディスパッチャが呼ぶ前に検査すること、エラーの分類の語が重ならず表の並びが `ErrorKind` と同じこと |
 | `tst_kifu_conversion_service` | C++ | fixtures の KIF/KI2/CSA/JKF/USI/USEN を相互変換し、手順・初期局面・SFEN 列を検証 |
-| `tst_sfen_validation_service` | C++ | 妥当／不正な SFEN、王手検出、合法手数 |
+| `tst_sfen_validator` | C++ | 妥当／不正な SFEN、王手検出、合法手数 |
 | `tst_usilineparser` | C++ | `info` 行などの受信行の解析（`src/engine/usilineparser`。multipv、score cp/mate、bound、pv、info string、崩れた行）と JSON 出力 |
 | `tst_board_image_renderer` | C++ | offscreen で PNG を生成しサイズと非空を検証 |
 | `mock_mate_engine` | 補助実行ファイル | `go mate <ms>` に Hayanagi の詰み探索で答える USI エンジン（生成・余詰検査・詰み探索の結合テスト用） |

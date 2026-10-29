@@ -40,7 +40,7 @@ Q1: QObject 派生クラスか？
 - `MainWindowComposer` が生成するオブジェクト → MainWindow（`&m_window`）を親に指定
 
 ```cpp
-// Good — parent ownership（EngineLifecycleManager::acquire()）
+// Good — parent ownership（EngineSlots::acquire()）
 auto* engine = new Usi(this);
 
 // Good — 合成ルートでの生成（mainwindowcomposer_create.cpp、MainWindow を親に指定）
@@ -128,7 +128,7 @@ m_dialogs = new DialogLauncher(deps, m_deps.parentWidget);
 
 | オブジェクト | 再生成タイミング | 所有者 |
 |-------------|-----------------|--------|
-| `Usi`（エンジン） | 対局・検討・詰み探索・棋譜解析・通信対局の開始ごと（`EngineLifecycleManager::acquire()` で作り、使う側には move-only の `EngineLease` を渡す。リースを手放す・ほかの持ち主が枠を取る・`destroyEngines()` で `destroySeat()` が `deleteLater`） | `EngineLifecycleManager` (QObject parent)。使う権利は `EngineLease` の持ち主 |
+| `Usi`（エンジン） | 対局・検討・詰み探索・棋譜解析・通信対局の開始ごと（`EngineSlots::acquire()` で作り、使う側には move-only の `EngineLease` を渡す。リースを手放す・ほかの持ち主が枠を取る・`destroyEngines()` で `destroySeat()` が `deleteLater`） | `EngineSlots` (QObject parent)。使う権利は `EngineLease` の持ち主 |
 | `QProcess` (エンジン) | エンジン起動/停止ごと | `EngineProcessManager`（`std::unique_ptr`。停止時は終了を見届けるオブジェクトへ移す） |
 
 `MatchCoordinator`・`GameSession`・`KifuLoader` は再生成しない。
@@ -146,7 +146,7 @@ m_dialogs = new DialogLauncher(deps, m_deps.parentWidget);
 // Created: once at startup by MainWindowComposer, never recreated
 m_c.clock = new ShogiClock(&m_window);
 
-// Lifetime: owned by EngineLifecycleManager (QObject parent=this)
+// Lifetime: owned by EngineSlots (QObject parent=this)
 // Recreated: per game / consideration / mate search start (deleteLater in destroySeat())
 auto* engine = new Usi(this);
 ```
@@ -166,7 +166,7 @@ auto* engine = new Usi(this);
 **ヘッダーでの記述例:**
 
 ```cpp
-// Lifecycle: Recreated per session by EngineLifecycleManager (deleteLater in destroySeat())
+// Lifecycle: Recreated per session by EngineSlots (deleteLater in destroySeat())
 QPointer<Usi> m_engine;
 
 // Lifecycle: created once at startup by MainWindowComposer (parent=MainWindow), never recreated
@@ -194,7 +194,7 @@ std::unique_ptr<MainWindowComposer> m_composer;
 // QPointer — 参照先が破棄されると自動的に nullptr になる（DialogLauncher。閉じると破棄される局面集ビューア）
 QPointer<SfenCollectionDialog> m_sfenCollectionDialog;
 
-// 明示的な nullptr 代入（QPointer でない場合の代替策。EngineLifecycleManager::destroySeat()）
+// 明示的な nullptr 代入（QPointer でない場合の代替策。EngineSlots::destroySeat()）
 Usi* engine = std::exchange(target.engine, nullptr);  // 破棄を予約する前にクリア
 engine->deleteLater();
 ```
@@ -229,7 +229,7 @@ engine->deleteLater();
 MatchCoordinator* match = nullptr;
 KifuLoader* kifuLoader = nullptr;  // 親は MainWindow。起動時に作る
 
-// 再生成されるエンジンへの非所有参照（AnalysisSession。EngineLifecycleManager が作り直す）
+// 再生成されるエンジンへの非所有参照（AnalysisSession。EngineSlots が作り直す）
 QPointer<Usi> m_engine;
 
 // 外部管理オブジェクトへの参照

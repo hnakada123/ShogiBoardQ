@@ -12,7 +12,7 @@
 
 #include "csagamecoordinator.h"
 #include "csagamesession.h"
-#include "enginelifecyclemanager.h"
+#include "engineslots.h"
 #include "engineprocessmanager.h"
 #include "usi.h"
 #include "humanturnpolicy.h"
@@ -80,7 +80,7 @@ struct FakeCsaServer {
 struct Harness {
     ShogiGameController gc;
     ShogiClock clock;
-    EngineLifecycleManager engines;
+    EngineSlots engines;
     CsaGameCoordinator coordinator{CsaGameCoordinator::Deps{&gc, &clock, &engines}};
     FakeCsaServer server;
 

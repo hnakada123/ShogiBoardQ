@@ -26,7 +26,7 @@
 #include "dockregistry.h"
 #include "docklayoutmanager.h"
 #include "enginedisplaypresenter.h"
-#include "enginelifecyclemanager.h"
+#include "engineslots.h"
 #include "evaluationchartwidget.h"
 #include "evaluationgraphpresenter.h"
 #include "gameinfopane.h"
@@ -210,7 +210,7 @@ void MainWindowComposer::createPanels()
 void MainWindowComposer::createMatchAndAnalysis()
 {
     // エンジンの枠（E1・E2）は対局と検討で共有する（同時には動かない）
-    m_c.engines = new EngineLifecycleManager(&m_window);
+    m_c.engines = new EngineSlots(&m_window);
 
     MatchCoordinator::Deps md;
     md.gc = m_c.gameController;

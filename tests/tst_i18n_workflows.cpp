@@ -17,7 +17,7 @@
 #include "kifuexport.h"
 #include "appactivitystate.h"
 #include "csagamecoordinator.h"
-#include "enginelifecyclemanager.h"
+#include "engineslots.h"
 #include "gamesession.h"
 #include "matchcoordinator.h"
 #include "shogiclock.h"
@@ -212,7 +212,7 @@ private slots:
         KifuDocument document(&tree);
         ShogiGameController gc;
         ShogiClock clock;
-        EngineLifecycleManager engines;
+        EngineSlots engines;
         MatchCoordinator match({&gc, &clock, &activity, &engines, &document});
         CsaGameCoordinator csa;
         GameSession::Deps deps;

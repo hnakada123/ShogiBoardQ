@@ -27,7 +27,7 @@
 #include "mainwindow.h"
 #include "mainwindowcomposer.h"
 #include "matchcoordinator.h"
-#include "enginelifecyclemanager.h"
+#include "engineslots.h"
 #include "shogiviewhighlighting.h"
 #include "usi.h"
 #include "kifurecordlistmodel.h"

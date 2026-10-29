@@ -3,7 +3,7 @@
 #include "jkftosfenconverter.h"
 #include "usentosfenconverter.h"
 #include "usitosfenconverter.h"
-#include "kifreader.h"
+#include "kifutextdecoder.h"
 #include "kiftextparser.h"
 #include "sfenutils.h"
 
@@ -18,7 +18,7 @@ bool KifuLoadParser::readFileText(const QString& path, KifuFormat format, QStrin
 {
     if (format == KifuFormat::Csa) return CsaToSfenConverter::readFileText(path, outText, warn);
     QString encoding;
-    return KifReader::readAllTextAuto(path, outText, &encoding, warn);
+    return KifuTextDecoder::readAllTextAuto(path, outText, &encoding, warn);
 }
 
 KifuLoadResult KifuLoadParser::parseFile(const QString& path, std::optional<KifuFormat> requested, const CancelFlag& cancel)

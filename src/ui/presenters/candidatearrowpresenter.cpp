@@ -4,7 +4,7 @@
 #include "analysissession.h"
 #include "analysissettings.h"
 #include "appactivitystate.h"
-#include "enginelifecyclemanager.h"
+#include "engineslots.h"
 #include "humanturnpolicy.h"
 #include "josekibooksession.h"
 #include "kifupresentation.h"
@@ -54,7 +54,7 @@ CandidateArrowPresenter::CandidateArrowPresenter(const Deps& deps, QObject* pare
         connect(model, &QAbstractItemModel::modelReset, this, &CandidateArrowPresenter::scheduleRefresh);
     }
     if (deps.engines) {
-        connect(deps.engines, &EngineLifecycleManager::enginesChanged, this, &CandidateArrowPresenter::bindEngines);
+        connect(deps.engines, &EngineSlots::enginesChanged, this, &CandidateArrowPresenter::bindEngines);
         bindEngines();
     }
     if (deps.josekiBook)

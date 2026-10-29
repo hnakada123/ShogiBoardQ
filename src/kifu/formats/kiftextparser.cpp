@@ -7,7 +7,7 @@
 #include "kiflexer.h"
 #include "kiflinebuilder.h"
 #include "kifmovegrammar.h"
-#include "kifreader.h"
+#include "kifutextdecoder.h"
 #include "logcategories.h"
 #include "handicaps.h"
 #include "parsecommon.h"
@@ -212,7 +212,7 @@ KifuParseOutcome parse(QStringView text, Dialect dialect, const ParseOptions& op
 {
     KifuParseOutcome outcome;
     ParseReport report(options);
-    const QStringList lines = KifReader::splitLines(text.toString());
+    const QStringList lines = KifuTextDecoder::splitLines(text.toString());
     const QString tag = tagOf(dialect);
 
     // 「変化：N手」の行で手順を区切る（最初の区切りまでが本譜）

@@ -6,7 +6,7 @@
 #include <QTableView>
 
 #include "appactivitystate.h"
-#include "enginelifecyclemanager.h"
+#include "engineslots.h"
 #include "matchcoordinator.h"
 #include "matchrecordsink.h"
 #include "recordline.h"
@@ -65,7 +65,7 @@ struct Harness : QObject {
     std::unique_ptr<KifuDisplayPresenter> display;
     ShogiClock clock;
     AppActivityState activity;
-    EngineLifecycleManager engines;
+    EngineSlots engines;
     LiveSessionSink sink{session};
     std::unique_ptr<MatchCoordinator> match;
     int highlightPly = -1;

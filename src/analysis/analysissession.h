@@ -10,7 +10,7 @@
 
 #include "analysisoptions.h"
 #include "appactivitystate.h"
-#include "enginelifecyclemanager.h"
+#include "engineslots.h"
 #include "usimessages.h"
 
 class KifuNavigationState;
@@ -31,7 +31,7 @@ class AnalysisSession : public QObject
 
 public:
     struct Deps {
-        EngineLifecycleManager* engines = nullptr;  ///< エンジンの枠（必須、非所有）
+        EngineSlots* engines = nullptr;  ///< エンジンの枠（必須、非所有）
         AppActivityState* activity = nullptr;       ///< アプリの動作状態（必須、非所有）
         const KifuNavigationState* navState = nullptr; ///< 表示中の手（検討は表示中の局面を追う。非所有）
     };

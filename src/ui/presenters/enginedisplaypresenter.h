@@ -12,7 +12,7 @@
 class AnalysisSession;
 class ConsiderationPanel;
 class CsaLogPanel;
-class EngineLifecycleManager;
+class EngineSlots;
 class EvaluationGraphPresenter;
 class KifuAnalysisListModel;
 class KifuDocument;
@@ -26,7 +26,7 @@ class UsiModelBinding;
 /**
  * @brief エンジンの表示を1か所で受け持つ
  *
- * - 枠 E1・E2（EngineLifecycleManager）にエンジンが入るたびに UsiModelBinding を作り、思考の表・情報欄・
+ * - 枠 E1・E2（EngineSlots）にエンジンが入るたびに UsiModelBinding を作り、思考の表・情報欄・
  *   通信ログのモデルと結ぶ
  * - 検討の表示（検討タブの実行の状態・経過時間・情報欄のモデル・検討の表への読み筋）は、検討のセッション
  *   （AnalysisSession）の知らせだけから決める。検討中かどうかの正本はセッション
@@ -40,7 +40,7 @@ class EngineDisplayPresenter : public QObject
 
 public:
     struct Deps {
-        EngineLifecycleManager* engines = nullptr;        ///< エンジンの枠（必須）
+        EngineSlots* engines = nullptr;        ///< エンジンの枠（必須）
         AnalysisSession* analysis = nullptr;              ///< 検討・詰み探索のセッション
         const KifuDocument* document = nullptr;           ///< 対局者（2つ目のエンジン欄・系列名）
         UsiCommLogModel* commLog1 = nullptr;

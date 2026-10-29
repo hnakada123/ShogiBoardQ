@@ -3,7 +3,7 @@
 
 #include "imageexportcontroller.h"
 
-#include "boardimageexporter.h"
+#include "widgetimageexporter.h"
 #include "evaluationchartwidget.h"
 #include "shogiview.h"
 
@@ -16,21 +16,21 @@ ImageExportController::ImageExportController(const Deps& deps, QObject* parent)
 
 void ImageExportController::copyBoardToClipboard()
 {
-    BoardImageExporter::copyToClipboard(m_deps.shogiView);
+    WidgetImageExporter::copyToClipboard(m_deps.shogiView);
 }
 
 void ImageExportController::copyEvalGraphToClipboard()
 {
-    BoardImageExporter::copyToClipboard(m_deps.evalChart->chartViewWidget());
+    WidgetImageExporter::copyToClipboard(m_deps.evalChart->chartViewWidget());
 }
 
 void ImageExportController::saveBoardImage()
 {
-    BoardImageExporter::saveImage(m_deps.parentWidget, m_deps.shogiView);
+    WidgetImageExporter::saveImage(m_deps.parentWidget, m_deps.shogiView);
 }
 
 void ImageExportController::saveEvalGraphImage()
 {
-    BoardImageExporter::saveImage(m_deps.parentWidget, m_deps.evalChart->chartViewWidget(),
+    WidgetImageExporter::saveImage(m_deps.parentWidget, m_deps.evalChart->chartViewWidget(),
                                   QStringLiteral("EvalGraph"));
 }

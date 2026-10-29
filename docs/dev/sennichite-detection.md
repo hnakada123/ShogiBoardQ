@@ -43,7 +43,7 @@ checkAndHandleSennichite()         ← MatchCoordinator
 |----------|------|
 | `src/game/sennichitedetector.h` | 千日手検出ユーティリティクラスの定義 |
 | `src/game/sennichitedetector.cpp` | 検出ロジックの実装 |
-| `src/game/matchtypes.h` | 終局原因 `MatchCause`（`Sennichite`/`OuteSennichite`） |
+| `src/game/matchcoordinator.h` | 終局原因 `MatchCause`（`Sennichite`/`OuteSennichite`） |
 | `src/game/matchcoordinator.h/.cpp` | 一手の確定ごとの検出呼び出し・終局処理・終局行の追記・ダイアログの文言 |
 
 ## SennichiteDetector クラス
@@ -98,7 +98,7 @@ SFEN 手番フィールド:
 
 ### 終局原因
 
-`MatchCoordinator::Cause` は `MatchCause`（`src/game/matchtypes.h`）の別名。
+`MatchCoordinator::Cause` は `MatchCause`（`src/game/matchcoordinator.h`）の別名。
 
 ```cpp
 enum class MatchCause : int {
