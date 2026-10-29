@@ -231,6 +231,7 @@ void MainWindowComposer::createMatchAndAnalysis()
     cd.gameController = m_c.gameController;
     cd.clock = m_c.clock;
     cd.engines = m_c.engines;
+    cd.activity = &m_activity;
     m_c.csaGame = new CsaGameCoordinator(cd, &m_window);
 
     HumanTurnPolicy::Deps hd;
@@ -435,7 +436,6 @@ void MainWindowComposer::createSessions()
     gd.navState = m_c.navState;
     gd.liveSession = m_c.liveGameSession;
     gd.document = m_c.document;
-    gd.clock = m_c.clock;
     gd.timePresenter = m_c.timePresenter;
     gd.kifuFileController = m_c.kifuFileController;
     gd.shogiView = m_c.shogiView;
@@ -444,17 +444,13 @@ void MainWindowComposer::createSessions()
     gd.nyugyoku = m_c.nyugyokuHandler;
     gd.josekiBook = m_c.josekiBook;
     m_c.gameSession = new GameSession(gd, &m_window);
-    // 司令塔は手順の書き先（GameSession）より先に作るので、ここで渡す
+    // 司令塔（ローカル対局・通信対局）は棋譜の受け手（GameSession）より先に作るので、ここで渡す
     m_c.match->setRecordSink(m_c.gameSession);
+    m_c.csaGame->setRecordSink(m_c.gameSession);
 
     CsaGameSession::Deps cd;
     cd.coordinator = m_c.csaGame;
-    cd.activity = &m_activity;
     cd.shogiView = m_c.shogiView;
-    cd.boardMoves = m_c.boardMoves;
-    cd.csaLog = m_c.csaLog;
-    cd.evalGraph = m_c.evalGraph;
-    cd.notifications = m_c.notifications;
     cd.appearance = m_c.appearance;
     cd.statusBar = m_ui.statusbar;
     cd.parentWidget = &m_window;

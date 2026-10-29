@@ -52,7 +52,7 @@ cmake --build build --target translations
   - `mainwindowcomponents.h` - 合成ルートが作る部品の一覧。動作状態は `src/common/appactivitystate.h` の `AppActivityState` に1つだけ置き（合成ルートが持ち、部品には `AppActivityState*` を渡す）、変えるのは `begin(動作, 持ち主)` が返す move-only の `ActivityLease` を持つ部品だけ（手放すと待機中に戻る。別の部品が別の動作を始めたら、前の持ち主に `revoked(owner)` で次のイベントループで知らせる）
   - `mainwindowactions.cpp/.h` - メニュー・盤・棋譜欄からの利用者操作の振り分け先
   - `menuactionswiring.cpp/.h` - メニュー・ツールバーの項目と処理する部品の接続
-  - `gamesession.cpp/.h` - 対局の開始・終局・再開と、対局の手順の棋譜への追記（`MatchRecordSink`）。ローカル対局と通信対局の棋譜を開始から終局・自動保存まで1本の流れで扱い、投了・中断・即指し・入玉宣言は `activeChannel()`（`GameChannel`）へ送る
+  - `gamesession.cpp/.h` - 対局の開始・終局・再開と、対局の棋譜の受け手（`MatchRecordSink`）。ローカル対局と通信対局の棋譜を開始から終局・自動保存まで1本の流れで扱い（司令塔が通信対局の開始で `beginRecord`、着手と終局で `appendRecord`、終局で `finishRecord` を呼ぶ）、投了・中断・即指し・入玉宣言は `activeChannel()`（`GameChannel`）へ送る
   - `sessionresetcoordinator.cpp/.h` - 対局の開始前（`prepareGameStart`。連続対局の次局・通信対局の開始も）・新規・局面編集で棋譜を作り直す。評価値グラフとエンジンの表示（`EngineDisplayPresenter::clearAll()`）は文書の置き換え（`KifuDocument::replaced`）を受けて自分で消える
 
 - **core/**: 純粋なゲームロジック（Qt GUI非依存）
@@ -74,13 +74,14 @@ cmake --build build --target translations
   - `shoginotation.h` - 筋・段・駒の表記（漢字・全角・CSA）
 
 - **game/**: ゲーム進行・対局管理（GUI に依存しない）
-  - `matchcoordinator.cpp/.h` - 対局の司令塔（開始・着手・終局・待った・中断と再開）。手順は `record()`、対局者は `players()`。エンジンの手番で、定跡を使う対局者（`MatchStartOptions::engine(Turn).joseki`）なら `JosekiMovePicker` で定跡手を選び、`Usi::requestBookMove` で探索させずに最低1秒置いて指す（定跡は対局を始めたときに定跡ウィンドウで開いていた定跡の写し `MatchStartOptions::josekiBook`）
+  - `matchcoordinator.cpp/.h` - 対局の司令塔（開始・着手・終局・待った・中断と再開）。手順は `record()`、対局者は `players()`。開始の条件 `MatchStartOptions`（`startoptions.h`。手順 `recordLine` の `currentPly` の局面から始め、時間の決まり `time` は `start()` が盤の手番で時計に入れる）。終局の行の後で棋譜の受け手の `finishRecord` を呼んでから待機に戻す。エンジンの手番で、定跡を使う対局者（`MatchStartOptions::engine(Turn).joseki`）なら `JosekiMovePicker` で定跡手を選び、`Usi::requestBookMove` で探索させずに最低1秒置いて指す（定跡は対局を始めたときに定跡ウィンドウで開いていた定跡の写し `MatchStartOptions::josekiBook`）
   - `humanvshumanstrategy` / `humanvsenginestrategy` / `enginevsenginestrategy` - 対局者の組ごとの進め方（`MatchStrategyHost` 経由）
   - `matchengineseat.cpp/.h` - 対局で指すエンジン1台 `MatchEngineSeat`（枠のリース・手番・持ち時間の出どころ・知らせの接続・終局の手順）。人間対エンジン・エンジン同士の Strategy（`GameModeStrategy::engineSeat(side)`）と通信対局（`CsaGameCoordinator`）が持つ。初期化・指し手・投了・入玉宣言勝ち・エラー（枠を取り上げられたときも）を自分のシグナルで知らせ、終局は `finish(GameOverResult)`（探索・先読みを止めて gameover と quit）で、ローカル対局・通信対局で同じ手順
   - `gamechannel.cpp/.h` - 対局相手の窓口 `GameChannel`: 投了・中断・即指し・入玉宣言をローカル対局と通信対局で同じ操作にする（ローカル対局は `LocalGameChannel`、通信対局は network の `CsaGameChannel`）
   - `matchautosave.h` - 終局した棋譜の自動保存の指定 `MatchAutoSave`（ローカル対局・通信対局で同じ）
   - `consecutivegameseries.cpp/.h` - エンジン同士の連続対局（局数・手番の入れ替え・次局の計画）
   - `shogigamecontroller.cpp/.h` - Game flow control
+  - `matchrecordsink.h` - 対局の棋譜の受け手 `MatchRecordSink`（新しい棋譜 `beginRecord(MatchRecordStart)`・行の追記と取り消し・終局での確定 `finishRecord`）。ローカル対局と通信対局の司令塔が同じ受け手（`GameSession`）に書く（合成ルートが `setRecordSink()` で渡す）
   - `gamestartoptionsbuilder` - 対局開始ダイアログの値の解釈
 
 - **kifu/**: 棋譜関連（GUI に依存しない）
@@ -131,7 +132,7 @@ cmake --build build --target translations
 
 - **network/**: CSA通信対局
   - `csaclient.cpp/.h` - CSA protocol client（受信の解釈は `csaclient_parser.cpp`、送信は `csaclient_commands.cpp`）
-  - `csagamecoordinator.cpp/.h` - CSA game coordination（手順と持ち時間と手番は `CsaGameProgress`。対局の状態 `gameState()` は持たずに、接続の段階を `CsaClient::ConnectionState` から、対局中・終局後・失敗を司令塔の段階 `Phase` から求める）
+  - `csagamecoordinator.cpp/.h` - CSA game coordination（手順と持ち時間と手番は `CsaGameProgress`。対局の状態 `gameState()` は持たずに、接続の段階を `CsaClient::ConnectionState` から、対局中・終局後・失敗を司令塔の段階 `Phase` から求める）。棋譜はローカル対局と同じ受け手（`MatchRecordSink`）に書き、動作状態 `DuringCsaGame` も自分で持つ（棋譜を作ってから対局中にし、終局では棋譜を確定してから待機に戻す。`MatchCoordinator` と同じ順）
   - `csagamechannel.cpp/.h` - 通信対局の窓口 `CsaGameChannel`（`GameChannel` の実装。操作はサーバーへ送り、入玉宣言の成否はサーバーが判定する）
 
 - **style/**: ウィジェットの書体と見た目（QWidget に依存する。analysis・network の上、models の下の層。`engine`〜`network`・`models` を参照しない）
@@ -151,7 +152,7 @@ cmake --build build --target translations
   - **controllers/**: 利用者操作の処理
     - `boardmovecontroller`（主画面の `BoardInputRoute`。行き先ごとに手を処理する）, `considerationuicontroller`（検討タブの操作を `AnalysisSession` へ伝えるだけ）, `josekiwindowcontroller`（定跡ウィンドウを表示中の局面に合わせ、表示中の手順が定跡を外れた手を出す。「棋譜に展開...」は `JosekiLines::expand` の手順を `BranchTreeEditController::addVariationLines` で変化として足す。定跡の表示（「■ 停止」）・「盤の手を登録」の checkable な `QAction` を持ち、メニューの「盤に定跡手を表示」と合わせて正本にする。定跡ウィンドウのボタン・チェック、盤の矢印、盤の手の登録はこの `QAction` を読む）, `josekiregistrationcontroller`（思考の表・検討の表・棋譜解析の結果の表の右クリックで読み筋の最初の手を定跡に登録し、「盤の手を登録」がオンなら盤で指した手（`BranchTreeEditController::boardMoveRecorded`）と対局で指された手（`GameSession::gameMoveRecorded`。人間・エンジンとも、ローカル・通信対局とも）を登録する。定跡を変えられないとき（`JosekiBookSession::canEdit`）は押せない）, `menuwindowcontroller`, `pvclickcontroller`, `dialoglauncher`, `kifufilecontroller`（棋譜の開く・保存・貼り付け・コピー。読み込みは kifu の `KifuLoader`、保存で聞くダイアログは dialogs の `KifuSaveDialogs`）, `widgetimageexporter`（盤・評価値グラフの画像のコピーと、形式を選んだ保存 `WidgetImageExporter`。決まった場所への PNG の保存は `screenshotservice`）, etc.
     - `kifunavigationcontroller` - 棋譜ナビゲーション（ボタン・分岐）。局面送りの6つの操作は `QAction` の組（`action(Step)`）で1つだけ持ち、棋譜欄と評価値グラフのボタンを `bindButtons()` で結ぶ（有効・無効も QAction に従う。切り替えは `setStepActionsEnabled()`）
-  - **coordinators/**: 複数の部品にまたがる UI の流れ（`csagamesession`・`commentcoordinator`）
+  - **coordinators/**: 複数の部品にまたがる UI の流れ（`csagamesession`（通信対局の待機ダイアログ・結果のダイアログ・ステータスバー・盤の反転だけ。評価値・エラー・通信ログ・盤の手は合成ルートの `connectGame()` がつなぐ）・`commentcoordinator`）
   - **policy/**: 動作状態からの規則
     - `uistatepolicymanager` - 動作状態ごとのメニュー・ボタンの有効/無効（コンパイル時の表）
     - `humanturnpolicy` - 盤の手の行き先 `boardInput()`（`BoardInput`。動作状態ごとの規則はここだけ）・人間が指せる手番か・対局が進行中か

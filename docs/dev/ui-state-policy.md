@@ -21,7 +21,7 @@
 | **Idle** | 待機状態（起動直後・各モード終了後） | 動作を終えた部品がリースを手放したとき |
 | **DuringGame** | 対局中 | `MatchCoordinator::start()`・`resumeInterruptedGame()` |
 | **DuringAnalysis** | 棋譜解析中 | `KifuAnalysisController::start()` |
-| **DuringCsaGame** | CSA通信対局中 | `CsaGameSession::onGameStarted()`（`CsaGameCoordinator::gameStarted` を受ける） |
+| **DuringCsaGame** | CSA通信対局中 | `CsaGameCoordinator::onGameStarted()`（サーバーの START を受け、棋譜を作った後） |
 | **DuringTsumeSearch** | 詰み探索中 | `AnalysisSession::start()`（詰み探索のとき） |
 | **DuringConsideration** | 検討中 | `AnalysisSession::start()`（検討のとき） |
 | **DuringPositionEdit** | 局面編集中 | `PositionEditSession::begin()`（待機中だけ始める） |
@@ -35,8 +35,8 @@ Idle ──MatchCoordinator::start() / resumeInterruptedGame()──────
 Idle ──KifuAnalysisController::start()────────────────────────────► DuringAnalysis
      ◄─KifuAnalysisController::finishRun()（完了・中止・エンジンエラー・エンジンの枠をほかの処理が取った（engineRevoked））
 
-Idle ──CsaGameSession::onGameStarted()────────────────────────────► DuringCsaGame
-     ◄─CsaGameSession::onGameEnded()
+Idle ──CsaGameCoordinator::onGameStarted()（棋譜を作った後）──────► DuringCsaGame
+     ◄─CsaGameCoordinator::onClientGameEnded()（棋譜を確定した後）・stopGame()
 
 Idle ──AnalysisSession::start()（詰み探索）────────────────────────► DuringTsumeSearch
      ◄─AnalysisSession::stop()（探索完了・中止・エンジンエラー・エンジンの枠をほかの処理が取った（engineRevoked））
@@ -48,8 +48,8 @@ Idle ──PositionEditSession::begin()─────────────�
      ◄─PositionEditSession::finish()
 ```
 
-CSA通信対局は、待機ダイアログのキャンセル（`CsaGameSession::onWaitingCancelled()`）や対局が始まらなかったときも
-`CsaGameSession` が Idle に戻す。
+CSA通信対局のリースは、ローカル対局の `MatchCoordinator` と同じく司令塔の `CsaGameCoordinator` が持つ。待機ダイアログの
+キャンセル（`CsaGameSession::onWaitingCancelled()`）・対局が始まらなかったとき・「新規」は、司令塔の `stopGame()` が Idle に戻す。
 
 ## ポリシー（Policy）
 

@@ -76,7 +76,7 @@ MatchCoordinator::StartOptions humanVsEngine(bool engineIsBlack, const QString& 
     MatchCoordinator::StartOptions opt;
     opt.players.seat(Turn::Black).engine = engineIsBlack;
     opt.players.seat(Turn::White).engine = !engineIsBlack;
-    opt.sfenStart = SfenUtils::hirateSfen();
+    opt.recordLine.startSfen = SfenUtils::hirateSfen();
     (engineIsBlack ? opt.engine(Turn::Black).path : opt.engine(Turn::White).path) = path;
     (engineIsBlack ? opt.players.seat(Turn::Black).engineName : opt.players.seat(Turn::White).engineName) = name;
     return opt;
@@ -126,7 +126,6 @@ void Tst_MatchCoordinator::start_keepsRecordLineUpToCurrentPly()
     h.start(opt);
     // 表示中の手（2手目）までを対局の手順にし、後続の手は捨てる
     QCOMPARE(h.mc->currentPly(), 2);
-    QCOMPARE(h.mc->options().sfenStart, h.mc->record().lastSfen());
     QCOMPARE(h.gc.currentPlayer(), Turn::Black);
     QCOMPARE(h.gc.board()->toSfen(), h.mc->record().lastSfen());
 }
@@ -395,7 +394,7 @@ void Tst_MatchCoordinator::humanVsEngine_engineWinIsJudgedOnBoard()
     // 先手玉２二、敵陣に15枚・持ち駒と合わせて28点（27点法で宣言勝ち）
     MatchHarness h2;
     MatchCoordinator::StartOptions opt = humanVsEngine(true, MatchHarness::mockEnginePath(), QStringLiteral("WinTest"));
-    opt.sfenStart = QStringLiteral(
+    opt.recordLine.startSfen = QStringLiteral(
         "5+B+RGS/6GKS/+P+P+P+P+P+P+P+P+P/9/p1p1p1p1p/1s1g1g1s1/2n3n1n/1r2k4/2b6 b NL3P3lp 1");
     h2.mc->start(opt);
     Usi* engine2 = h2.engines.engineInSlot(1);
@@ -432,7 +431,7 @@ void Tst_MatchCoordinator::engineVsEngine_engineStartFailure_breaksOffOnce()
     MatchCoordinator::StartOptions opt;
     opt.players.seat(Turn::Black).engine = true;
     opt.players.seat(Turn::White).engine = true;
-    opt.sfenStart = SfenUtils::hirateSfen();
+    opt.recordLine.startSfen = SfenUtils::hirateSfen();
     opt.players.seat(Turn::Black).engineName = QStringLiteral("MissingEngine1");
     opt.engine(Turn::Black).path = m_config.filePath(QStringLiteral("missing-engine-1"));
     opt.players.seat(Turn::White).engineName = QStringLiteral("MissingEngine2");

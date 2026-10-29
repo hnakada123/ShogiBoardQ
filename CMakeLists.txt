@@ -336,7 +336,6 @@ set(SRC_GAME
     src/kifu/kifuexport.h
     src/kifu/matchtimerecord.cpp
     src/kifu/matchtimerecord.h
-    src/game/matchtimesettings.h
     src/game/nyugyokujudgement.cpp
     src/game/nyugyokujudgement.h
     src/game/sennichitedetector.cpp
@@ -345,8 +344,6 @@ set(SRC_GAME
     src/game/shogigamecontroller.h
     src/game/startgamedialogdata.h
     src/game/startoptions.h
-    src/game/timecontrolutil.cpp
-    src/game/timecontrolutil.h
     src/game/timecontrolvalidator.cpp
     src/game/timecontrolvalidator.h
 )

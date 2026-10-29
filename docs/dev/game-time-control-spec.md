@@ -199,7 +199,7 @@ CSA通信対局でエンジンが指すときも同じ形で送る。CSA の残�
 - [ダイアログの値の確定](../../src/dialogs/startgamedialog.cpp)：共通設定・先後別設定、秒読みと加算の排他、「対局開始」の処理順（値の取得→時間設定の確認→保存→閉じる）。
 - [開始時の時間設定の確認](../../src/dialogs/startgamedialog.cpp)・[判定](../../src/game/timecontrolvalidator.cpp)：片方だけ時間なしと、エンジンが参加する時間無制限を止める警告。
 - [時間の決まりの値](../../src/core/timecontrol.h)：先後の持ち時間・秒読み・加算と、秒読みと加算の排他の正規化。
-- [時間設定の構築](../../src/game/gamestartoptionsbuilder.cpp)：ダイアログの値から時間の決まりを作る。[時計への初期設定](../../src/game/timecontrolutil.cpp)：時間切れ負けの有無と合わせて時計に渡す。
+- [時間設定の構築](../../src/game/gamestartoptionsbuilder.cpp)：ダイアログの値から時間の決まりを作る。[時計への初期設定](../../src/game/matchcoordinator.cpp)：対局の開始で、司令塔（`MatchCoordinator::start()` の `applyTimeSettings()`）が時間切れ負けの有無と合わせて時計に渡す。
 - [連続対局](../../src/game/consecutivegameseries.cpp)：手番の入れ替えで、エンジンと一緒に先後の時間設定を入れ替える。2局目以降も各局の開始で時計・持ち時間の記録・対局者名の表示を行う（[対局の開始](../../src/app/gamesession.cpp)の `GameSession::startGame()`）。
 - [時計本体](../../src/core/shogiclock.cpp)：減算、秒読み、加算（初手の加算を含む）、時間切れ、累積表示の更新、時計と棋譜の消費時間の表記、「待った」用の履歴と巻き戻し、中断・再開用の状態の保存と復元。
 - [待った](../../src/game/matchcoordinator.cpp)（`MatchCoordinator::undoTwoPlies()`）：盤・棋譜を2手戻し、時計を戻して考慮時間を測り直す。

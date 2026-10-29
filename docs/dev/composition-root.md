@@ -48,8 +48,10 @@
 4. `std::function` は、上位へ問い合わせ・操作を委ねる「フック」にだけ使う（例: `UiStatePolicyManager::Deps::canResumeGame`、
    `KifuDocument::Hooks::commitPendingEdits`）。部品の取得には使わない。フックには部品の関数をそのまま結び
    （`std::bind`）、合成ルートに判断を書かない（判断が要るなら、それを持つ部品の関数にする。例:
-   `PositionEditSession::allowsLeavingMove()`・`MatchCoordinator::hasHumanPlayer()`）。司令塔（`MatchCoordinator`）は
-   フックを持たず、シグナルと `MatchRecordSink`（対局の手順の受け手。実体は `GameSession`）で知らせる。
+   `PositionEditSession::allowsLeavingMove()`・`MatchCoordinator::hasHumanPlayer()`）。司令塔（`MatchCoordinator`・
+   `CsaGameCoordinator`）はフックを持たず、シグナルと `MatchRecordSink`（対局の棋譜の受け手。実体は `GameSession`）で
+   知らせる。棋譜を作ってから動作状態を対局中にし、終局では棋譜を確定してから待機に戻すのも司令塔で、シグナルを
+   つないだ順には頼らない。
 5. 層の境界をまたぐときだけ関数で受け取る。例: `AutomationContext` は dialogs 層の
    メニューウィンドウを触れないので、お気に入りの取得・設定を関数で受け取る。
 6. テストは `MainWindow::composer().parts()` と `state()` で部品と状態を読む。`#define private public` は使わない。
@@ -58,9 +60,6 @@
 
 ## 例外
 
-- `MatchCoordinator` は手順の受け手の `GameSession` より先に作るので、受け手だけは `createSessions()` で
-  `setRecordSink()` によって渡す。
-- `GameSession` は `CsaGameSession` より先に作る。どちらもコンストラクタで `CsaGameCoordinator` の
-  `gameStarted`・`gameEnded` をつなぎ、先につないだ `GameSession` が棋譜（作り直し・対局者・終局・自動保存）を
-  済ませてから `CsaGameSession` が画面に反映する（接続の順に頼る）。
+- 司令塔（`MatchCoordinator`・`CsaGameCoordinator`）は棋譜の受け手の `GameSession` より先に作るので、受け手だけは
+  `createSessions()` で `setRecordSink()` によって渡す。
 - `AutomationServer` は `--automation` 指定時だけ `startAutomationServer()` で作る。

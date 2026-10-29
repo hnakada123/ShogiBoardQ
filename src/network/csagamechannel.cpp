@@ -43,16 +43,3 @@ std::optional<NyugyokuJudgement::Result> CsaGameChannel::declareNyugyoku()
     m_coordinator->declareWin();
     return std::nullopt;
 }
-
-MatchPlayers CsaGameChannel::players() const
-{
-    MatchPlayers players;
-    players.seat(Turn::Black).humanName = m_coordinator->gameSummary().blackName;
-    players.seat(Turn::White).humanName = m_coordinator->gameSummary().whiteName;
-    return players;
-}
-
-TimeControl CsaGameChannel::timeControl() const
-{
-    return m_coordinator->gameSummary().timeControl();
-}

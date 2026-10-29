@@ -62,7 +62,7 @@
 - `MatchPlayers` で後手だけがエンジン（`whiteIsEngine`）になっているか
 - エンジンの初期化・接続（USI isready → readyok）
 - `HumanTurnPolicy::isHumanTurnNow()` が先手の手番で `true` を返すか
-- 時計への持ち時間の適用（`GameSession::startGame()` が `TimeControlUtil::applyToClock()` で `ShogiClock` に設定し、`KifuDocument::beginMatch()` が `MatchTimeRecord::begin()` で対局情報用に記録する）
+- 時計への持ち時間の適用（`MatchCoordinator::start()` が `MatchStartOptions::time` を `ShogiClock` に設定し、`KifuDocument::beginMatch()` が `MatchTimeRecord::begin()` で対局情報用に記録する）
 - 対局者名・エンジン名の表示（盤の対局者名は `PlayerInfoPresenter`、評価値グラフの系列名と思考タブの2つ目のエンジン欄は `KifuDocument::playersChanged` → `EngineDisplayPresenter`）
 
 ---
@@ -164,7 +164,7 @@
 **重点確認ポイント:**
 - `MatchCoordinator::endGame()` のフロー（時計の停止、エンジンへの通知、終局手の追記、動作状態を `Idle` に戻して `gameEnded`）
 - `MatchCoordinator::appendTerminalRecord()` による終局手追記（`MatchRecordSink::appendRecord` 経由）
-- `GameSession::onGameEnded` の `finishMatchRecord()` で `LiveGameSession::commit()` が呼ばれ（中断も。中断して再開を待つ間も盤で変化を指せ、分岐を編集できるか）、終局日時が記録され（`KifuDocument::recordMatchEnd()`）、自動保存を設定していれば棋譜が保存されるか
+- 司令塔が終局で呼ぶ `GameSession::finishRecord()` で `LiveGameSession::commit()` が呼ばれ（中断も。中断して再開を待つ間も盤で変化を指せ、分岐を編集できるか）、終局日時が記録され（`KifuDocument::recordMatchEnd()`）、自動保存を設定していれば棋譜が保存されるか
 - `UiStatePolicyManager` の状態遷移（`DuringGame` → `Idle`）
 - `HumanTurnPolicy::isGameActivelyInProgress()` が `false` を返すか
 - `MatchCoordinator::gameOverState().isOver` の設定

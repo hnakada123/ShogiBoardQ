@@ -88,7 +88,6 @@ private slots:
                                                     TestReplay::buildGameMoves(initial, moves));
         line.currentPly = 1;
         MatchStartOptions options;
-        options.sfenStart = initial;
         options.recordLine = line;
         options.josekiBook.putMove(line.sfenAt(1), {QStringLiteral("8c8d"), QStringLiteral("none"), 0, 0, 1, {}});
         options.josekiBook.putMove(line.sfenAt(1), {QStringLiteral("3c3d"), QStringLiteral("none"), 0, 0, 2, {}});
@@ -133,7 +132,7 @@ private slots:
         data.players[1].engine.path = MatchHarness::mockEnginePath();
         data.players[1].joseki.enabled = true;
         data.players[1].joseki.maxPly = 0;  // 範囲に収める
-        const MatchStartOptions options = GameStartOptionsBuilder::buildStartOptions(SfenUtils::hirateSfen(), data);
+        const MatchStartOptions options = GameStartOptionsBuilder::buildStartOptions(data);
         QVERIFY(!options.engine(Turn::Black).joseki.enabled);
         QVERIFY(options.engine(Turn::White).joseki.enabled);
         QCOMPARE(options.engine(Turn::White).joseki.maxPly, 1);
@@ -146,8 +145,7 @@ private slots:
         data.maxMoves = 128;
         data.autoSaveKifu = true;
         data.kifuSaveDir = m_config.path();
-        const MatchStartOptions options = GameStartOptionsBuilder::buildStartOptions(
-            SfenUtils::hirateSfen(), data);
+        const MatchStartOptions options = GameStartOptionsBuilder::buildStartOptions(data);
         MatchHarness h;
         h.mc->start(options);
         QVERIFY(h.mc->players().humanVsHuman());

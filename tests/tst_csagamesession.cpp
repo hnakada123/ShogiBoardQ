@@ -1,5 +1,5 @@
 /// @file tst_csagamesession.cpp
-/// @brief CsaGameSession が通信対局の司令塔のシグナルを画面の部品へ届け、動作状態を切り替えることを確かめる
+/// @brief CsaGameSession が通信対局の司令塔の知らせを画面（ステータスバー・ダイアログ）に出すことを確かめる
 
 #include <QtTest>
 #include <QLabel>
@@ -9,15 +9,7 @@
 #include "csagamecoordinator.h"
 #include "csawaitingdialog.h"
 #include "csagamesession.h"
-#include "matchrecordsink.h"
-#include "recordentry.h"
 #include "notificationpresenter.h"
-#include "uistatepolicymanager.h"
-
-namespace {
-
-/// 書かれた棋譜の行を数える受け手
-} // namespace
 
 class TestCsaGameSession : public QObject
 {
@@ -34,47 +26,20 @@ private slots:
     void logMessageReachesStatusBar()
     {
         CsaGameCoordinator coordinator;
-        AppActivityState activity;
         QStatusBar status;
         CsaGameSession::Deps deps;
         deps.coordinator = &coordinator;
-        deps.activity = &activity;
         deps.statusBar = &status;
         CsaGameSession session(deps);
         emit coordinator.logMessage(QStringLiteral("connected"), false);
         QCOMPARE(status.currentMessage(), QStringLiteral("connected"));
     }
 
-    /// エラー・指し手の強調は中継せず、通知サービス・盤の操作へ1本ずつ直接つながる
-    void coordinatorSignalsReachReceiversDirectly()
-    {
-        CsaGameCoordinator coordinator;
-        AppActivityState activity;
-        NotificationPresenter notifications({});
-        CsaGameSession::Deps deps;
-        deps.coordinator = &coordinator;
-        deps.activity = &activity;
-        deps.notifications = &notifications;
-        CsaGameSession session(deps);
-
-        const QMetaMethod error = QMetaMethod::fromSignal(&CsaGameCoordinator::errorOccurred);
-        QVERIFY(!QObject::disconnect(&coordinator, error, &session, QMetaMethod()));        // 中継しない
-        QVERIFY(QObject::disconnect(&coordinator, error, &notifications, QMetaMethod()));
-        QVERIFY(!QObject::disconnect(&coordinator, error, &notifications, QMetaMethod()));  // 1本だけ
-    }
-
-    /// サーバーから受け取った行は HTML として描かない（リンク・ローカルファイルの画像を出させない。セキュリティ監査 S4）
+    /// サーバーから受け取った行は HTML として描かない（リンク・ローカルファイルの画像を出させない。セキュリティ監査 S4）。
+    /// 司令塔のエラーは合成ルートが NotificationPresenter::displayErrorMessage へつなぐ
     void serverTextIsShownAsPlainText()
     {
-        CsaGameCoordinator coordinator;
-        AppActivityState activity;
         NotificationPresenter notifications({});
-        CsaGameSession::Deps deps;
-        deps.coordinator = &coordinator;
-        deps.activity = &activity;
-        deps.notifications = &notifications;
-        CsaGameSession session(deps);
-
         const QString line = QStringLiteral("REJECT:<a href=\"file:///tmp/x\">click</a>");
         Qt::TextFormat format = Qt::AutoText;
         QString shown;
@@ -85,7 +50,7 @@ private slots:
             shown = box->text();
             box->accept();
         });
-        emit coordinator.errorOccurred(line);
+        notifications.displayErrorMessage(line);
         QCOMPARE(format, Qt::PlainText);
         QCOMPARE(shown, line);
 
@@ -95,29 +60,19 @@ private slots:
         QCOMPARE(detail->textFormat(), Qt::PlainText);
     }
 
-    /// 対局が始まると通信対局中にし、UI もそれに従う。棋譜（行の追記）は GameSession が受け、ここでは受けない
-    void startAndEndSwitchActivity()
+    /// 対局の開始はステータスバーに対局者名で出す。棋譜と動作状態は司令塔が整えるので、ここでは受けない
+    void gameStartIsShownInStatusBar()
     {
         CsaGameCoordinator coordinator;
-        AppActivityState activity;
         QStatusBar status;
         CsaGameSession::Deps deps;
         deps.coordinator = &coordinator;
-        deps.activity = &activity;
         deps.statusBar = &status;
         CsaGameSession session(deps);
-        UiStatePolicyManager::Deps policyDeps;
-        policyDeps.activity = &activity;
-        UiStatePolicyManager policy(policyDeps);
 
-        const QMetaMethod record = QMetaMethod::fromSignal(&CsaGameCoordinator::recordEntryReady);
-        QVERIFY(!QObject::disconnect(&coordinator, record, &session, QMetaMethod()));
-
-        emit coordinator.gameStarted(QStringLiteral("Black"), QStringLiteral("White"), {RecordEntry{}});
-        QCOMPARE(activity.activity(), AppActivityState::Activity::DuringCsaGame);
-        QVERIFY(session.isActive());
-        QCOMPARE(policy.currentState(), UiStatePolicyManager::Activity::DuringCsaGame);
+        emit coordinator.gameStarted(QStringLiteral("Black"), QStringLiteral("White"));
         QVERIFY(status.currentMessage().contains(QStringLiteral("Black")));
+        QVERIFY(status.currentMessage().contains(QStringLiteral("White")));
     }
 };
 QTEST_MAIN(TestCsaGameSession)

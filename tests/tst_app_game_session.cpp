@@ -9,11 +9,10 @@
 #include <QTimer>
 #include <QDir>
 #include <memory>
-// 通信対局の司令塔の手番の状態は、サーバーとのやり取りでしか変わらないため、テストでは直接設定する
-// （CsaGameCoordinator が TestAppGameSession を friend にしている）
+// 通信対局の司令塔の手番の状態と開始・終局は、サーバーとのやり取りでしか変わらないため、テストでは直接設定し、
+// 開始・終局の処理を直接呼ぶ（CsaGameCoordinator が TestAppGameSession を friend にしている）
 #include "appactivitystate.h"
 #include "csagamecoordinator.h"
-#include "csagamesession.h"
 #include "boardchromewidget.h"
 #include "shogiview.h"
 #include "boardmovecontroller.h"
@@ -56,6 +55,20 @@ class TestAppGameSession : public QObject
         settings.setValue("GameSettings/startingPositionNumber", 1);
         if (basicMinutes > 0) settings.setValue("GameSettings/basicTimeMinutes1", basicMinutes);
         settings.sync();
+    }
+
+    /// サーバーとのやり取りの代わりに、通信対局の司令塔の開始の処理を直接呼ぶ（平手・人間・相手の手番）
+    static void startCsaGame(CsaGameCoordinator* csa, const QString& black = QString(), const QString& white = QString())
+    {
+        csa->m_progress.summary.blackName = black;
+        csa->m_progress.summary.whiteName = white;
+        csa->onGameStarted(QStringLiteral("test"));
+    }
+
+    /// 通信対局の司令塔の終局の処理を直接呼ぶ（自分の投了勝ち）
+    static void endCsaGame(CsaGameCoordinator* csa)
+    {
+        csa->onClientGameEnded(CsaClient::GameResult::Win, CsaClient::GameEndCause::Resign, 0);
     }
 
     /// 対局開始ダイアログから人間同士の対局を始める
@@ -251,12 +264,12 @@ private slots:
         humanVsHumanSettings();
         MainWindow window;
         auto& p = window.composer().parts();
-        // サーバーとのやり取りの代わりに、司令塔の知らせを直接出す
-        emit p.csaGame->gameStarted(QStringLiteral("Sente"), QStringLiteral("Gote"), {});
+        // サーバーとのやり取りの代わりに、司令塔の開始の処理を直接呼ぶ
+        startCsaGame(p.csaGame, QStringLiteral("Sente"), QStringLiteral("Gote"));
         QVERIFY(p.liveGameSession->isActive());
         QCOMPARE(window.composer().activity().activity(), AppActivityState::Activity::DuringCsaGame);
 
-        emit p.csaGame->gameEnded(CsaClient::GameResult::Win, CsaClient::GameEndCause::Resign, 0);
+        endCsaGame(p.csaGame);
         QVERIFY(!p.liveGameSession->isActive());
         QVERIFY(p.document->timeRecord().endDateTime().isValid());
         QCOMPARE(window.composer().activity().activity(), AppActivityState::Activity::Idle);
@@ -272,9 +285,9 @@ private slots:
         p.evalGraph->beginAnalysis(QStringLiteral("Engine"), 0);
         p.evalGraph->plotAnalysisScore(1, UsiScore::cp(120));
         QCOMPARE(p.evalGraph->series()->count(0), 1);
-        emit p.csaGame->gameStarted(QStringLiteral("Sente"), QStringLiteral("Gote"), {});
+        startCsaGame(p.csaGame, QStringLiteral("Sente"), QStringLiteral("Gote"));
         QCOMPARE(p.evalGraph->series()->count(0), 0);
-        emit p.csaGame->gameEnded(CsaClient::GameResult::Win, CsaClient::GameEndCause::Resign, 0);
+        endCsaGame(p.csaGame);
         p.document->markSaved(QString());
     }
 
@@ -284,14 +297,12 @@ private slots:
         humanVsHumanSettings();
         MainWindow window;
         auto& p = window.composer().parts();
-        p.csaGame->m_progress.summary.blackName = QStringLiteral("Sente");
-        p.csaGame->m_progress.summary.whiteName = QStringLiteral("Gote");
-        emit p.csaGame->gameStarted(QStringLiteral("Sente"), QStringLiteral("Gote"), {});
+        startCsaGame(p.csaGame, QStringLiteral("Sente"), QStringLiteral("Gote"));
         QCOMPARE(p.shogiView->chrome()->card(Turn::Black)->nameLabel()->fullText(), QStringLiteral("▲Sente"));
         QCOMPARE(p.shogiView->chrome()->card(Turn::White)->nameLabel()->fullText(), QStringLiteral("▽Gote"));
         QCOMPARE(p.document->headerPlayerName(Turn::Black), QStringLiteral("Sente"));
         QCOMPARE(p.document->players().name(Turn::White), QStringLiteral("Gote"));
-        emit p.csaGame->gameEnded(CsaClient::GameResult::Win, CsaClient::GameEndCause::Resign, 0);
+        endCsaGame(p.csaGame);
         p.document->markSaved(QString());
     }
 
@@ -344,8 +355,8 @@ private slots:
 
         // 通信対局は接続ダイアログで選んだ形式
         p.csaGame->m_options.autoSave = {true, dir.path(), QStringLiteral("csa")};
-        emit p.csaGame->gameStarted(QStringLiteral("Sente"), QStringLiteral("Gote"), {});
-        emit p.csaGame->gameEnded(CsaClient::GameResult::Win, CsaClient::GameEndCause::Resign, 0);
+        startCsaGame(p.csaGame, QStringLiteral("Sente"), QStringLiteral("Gote"));
+        endCsaGame(p.csaGame);
         QCOMPARE(savedFiles().size(), 2);
         QVERIFY(savedFiles().filter(QStringLiteral(".csa")).size() == 1);
         settings.setValue("GameSettings/isAutoSaveKifu", false);

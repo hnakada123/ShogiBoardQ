@@ -31,9 +31,9 @@ class TestGameStrategy : public QObject {
 
     static void startTimed(MatchHarness& h, int maxMoves = 0)
     {
-        h.clock.setTimeControl(TestTime::rules(600, 600, 0, 0, 2, 2));
         MatchCoordinator::StartOptions opt;
-        opt.sfenStart = SfenUtils::hirateSfen();
+        opt.recordLine.startSfen = SfenUtils::hirateSfen();
+        opt.time.rules = TestTime::rules(600, 600, 0, 0, 2, 2);
         opt.maxMoves = maxMoves;
         h.mc->start(opt);
     }
@@ -148,9 +148,9 @@ private slots:
     {
         qputenv("SBQ_MATCH_INIT_DELAY_MS", "400");
         MatchHarness h;
-        h.clock.setTimeControl(TestTime::rules(600, 600, 0, 0, 2, 2));
         MatchCoordinator::StartOptions opt;
-        opt.sfenStart = SfenUtils::hirateSfen();
+        opt.recordLine.startSfen = SfenUtils::hirateSfen();
+        opt.time.rules = TestTime::rules(600, 600, 0, 0, 2, 2);
         opt.players.seat(Turn::White).engine = true;
         opt.players.seat(Turn::White).engineName = QStringLiteral("SlowStart");
         opt.engine(Turn::White).path = MatchHarness::mockEnginePath();

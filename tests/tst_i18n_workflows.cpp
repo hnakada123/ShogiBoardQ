@@ -218,7 +218,6 @@ private slots:
         GameSession::Deps deps;
         deps.activity = &activity;
         deps.match = &match;
-        deps.clock = &clock;
         deps.csaGame = &csa;
         deps.navState = &navigation;
         deps.liveSession = &session;

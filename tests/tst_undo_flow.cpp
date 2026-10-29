@@ -36,6 +36,7 @@ const QStringList opening = QStringLiteral(
 class LiveSessionSink final : public MatchRecordSink {
 public:
     explicit LiveSessionSink(LiveGameSession& session) : m_session(session) {}
+    void beginRecord(const MatchRecordStart&) override {}
     bool canAppendRecord() const override { return m_session.canAddMove(); }
     void appendRecord(const RecordEntry& entry) override { m_session.appendRecord(entry); }
     bool canUndoRecords(int count) const override
@@ -46,6 +47,7 @@ public:
     {
         if (m_session.isActive()) QVERIFY(m_session.undoMoves(count));
     }
+    void finishRecord(bool) override {}
 
 private:
     LiveGameSession& m_session;

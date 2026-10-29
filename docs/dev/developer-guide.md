@@ -146,6 +146,7 @@
 | 2026-10-23 | 小さな修正と使われていないコードの削除（監査4章）に合わせて §6・§8・§9・§12・§14 を更新（`NotationUtils`・`ConsiderationPositionResolver`（`KifuNavigationState::currentUsiPosition()` に）・`CliPosition`・`ShogiGameController::validateAndMove`・`MatchCoordinator::clock`・`ErrorBus::postError` などを削除。矢印の寸法は `ArrowMetrics`、定跡の取り込みの勝敗は `RecordEntry::winner()`、手番の印は `ShogiNotation::isTurnMark`。詰将棋のワーカーは止めるときに待たない。棋譜解析の表の詰みは「3手詰」） |
 | 2026-10-23 | 監査4章で残した名残を片づけたのに合わせて §8・§9・§16・第18章を更新（中身が1行だけの `KifToSfenConverter`・`Ki2ToSfenConverter` を削除し、KIF・KI2 は `KifTextParser::parseKif()`・`parseKi2()`。テストだけが使っていた `ShogiEngineThinkingModel::appendRow`・`MenuButtonWidget::dragStarted` を削除。QObject でないクラス・名前空間の文言は `Q_DECLARE_TR_FUNCTIONS`・`QCoreApplication::translate` で自分の文脈にした（§16.8）。詰将棋の生成は終わるときに件数の内訳をログに出す） |
 | 2026-10-29 | 置き場所と名前を責務に合わせた（監査 2026-10-29 の4章）のに合わせて §1.5・§1.6・§3.1・§3.2・§6・§8・§10・§13・§14・第18章・付録を更新（navigation 層をなくして `KifuNavigationController` を `ui/controllers/` へ。`ui/coordinators/` には `CsaGameSession`・`CommentCoordinator` だけを残し、`KifuFileController`・`DialogLauncher` は `ui/controllers/`、`UiStatePolicyManager`・`HumanTurnPolicy` は `ui/policy/`、`DockRegistry`・`DockLayoutManager` は `ui/docks/` へ。エンジンの枠を engine の `EngineSlots` に改名。SFEN の検査を core の `SfenValidator`（JSON は headless の `SfenValidationJson`）に、局面集ファイルを kifu に。盤面画像 `BoardImageRenderer` を cli へ、自動化 API の接続先を headless の `AutomationEndpoint` へ。自動化 API のメソッドを名前空間ごとのファイルに分け直した。`MenuWindow` を widgets へ移し、独立ウィンドウの名残（`menuWindowSize` など）を消した。`KifReader`→`KifuTextDecoder`、`JkfMoveParser`→`JkfCodec`、`BoardImageExporter`→`WidgetImageExporter`（`ui/controllers/`）、`startgamedatabridge.h`→`startgamedialogdata.h`。司令塔だけが使う型を `matchcoordinator.h` にまとめた） |
+| 2026-10-30 | 通信対局の流れをローカル対局と同じ仕組みにした（監査 2026-10-29 の T1）のに合わせて §1.5・§1.6・§6.1〜§6.5・§6.7・§6.9・§8.5・§8.9・§10.2・§10.4・§10.5・§12.1・§12.3・§12.4・§12.8・§14.4・§15.1・§15.5・付録を更新（`CsaGameCoordinator` も `setRecordSink()` で棋譜の受け手 `GameSession` を受け取り、開始で `MatchRecordSink::beginRecord()`、着手と終局で `appendRecord()`、終局で `finishRecord()` を呼ぶ。動作状態 `DuringCsaGame` も司令塔が持ち、シグナル `recordEntryReady` と `GameSession` の `onCsa*` をなくした。ローカル対局の終局も `MatchCoordinator` が `finishRecord()` を呼ぶ。評価値・エラー・通信ログ・盤の手の接続を `CsaGameSession` から合成ルートの `connectGame()` へ移した。時間の決まりを `MatchStartOptions::time` に入れ、`MatchCoordinator::start()` が盤の手番で時計に入れる（`TimeControlUtil`・`matchtimesettings.h`・`MatchStartOptions::sfenStart` を削除）） |
 
 <!-- chapter-0-end -->
 
@@ -378,22 +379,20 @@ src/
 │
 ├── game/                           # 対局管理（GUI に依存しない）
 │   ├── matchcoordinator.cpp/.h     #   対局の司令塔（開始・着手・終局・待った・中断と再開）。手順は record()、対局者は players()。司令塔だけが使う型（終局の型・対局の設定と終局状態 MatchSessionState・中断した対局の状態）も持つ
-│   ├── matchrecordsink.h           #   対局の棋譜の受け手（司令塔が確定した行を書き込む先）
+│   ├── matchrecordsink.h           #   対局の棋譜の受け手（司令塔が新しい棋譜を作らせ、確定した行を書き込み、終局で確定させる先。ローカル対局・通信対局で共通）
 │   ├── gamechannel.cpp/.h          #   対局相手の窓口 GameChannel（投了・中断・即指し・入玉宣言をローカル対局と通信対局で同じ操作に）とローカル対局の実装 LocalGameChannel
 │   ├── matchautosave.h             #   終局した棋譜の自動保存の指定 MatchAutoSave（ローカル対局・通信対局で同じ）
-│   ├── matchtimesettings.h         #   対局の時間の決まり（持ち時間・秒読み・加算と、時間切れの扱い）
 │   ├── gamemodestrategy.h          #   対局者の組別の Strategy と、Strategy が司令塔に頼む操作（MatchStrategyHost）
 │   ├── humanvshumanstrategy.cpp/.h #   人間対人間の進め方
 │   ├── humanvsenginestrategy.cpp/.h #  人間対エンジンの進め方
 │   ├── enginevsenginestrategy.cpp/.h # エンジン同士の進め方
 │   ├── matchengineseat.cpp/.h      #   対局で指すエンジン1台（枠のリース・手番・持ち時間の出どころ・知らせ・終局の手順。Strategy と通信対局が持つ）
-│   ├── startoptions.h              #   対局開始の設定（MatchStartOptions）
+│   ├── startoptions.h              #   対局開始の設定（MatchStartOptions。手順・時間の決まり MatchTimeSettings・対局者など）
 │   ├── startgamedialogdata.h       #   対局開始ダイアログで選んだ値（対局者1人の選択 PlayerChoice と対局の条件 StartGameDialogData）
 │   ├── sennichitedetector.cpp/.h   #   千日手の検出
 │   ├── nyugyokujudgement.cpp/.h    #   入玉宣言の判定（人間の宣言とエンジンの bestmove win で共通）
 │   ├── shogigamecontroller.cpp/.h  #   指し手の検証と盤への適用、手番
 │   ├── gamestartoptionsbuilder.cpp/.h # 対局開始ダイアログの値の解釈（時間・対局者）
-│   ├── timecontrolutil.cpp/.h      #   持ち時間の設定を時計へ適用する
 │   ├── timecontrolvalidator.cpp/.h #   対局開始前の時間設定の検証
 │   └── consecutivegameseries.cpp/.h # エンジン同士の連続対局（局数・手番の入れ替え・次局の計画）
 │
@@ -702,21 +701,21 @@ src/
 
 | ディレクトリ | ファイル数 | 行数 | 概要 |
 |-------------|-----------|------|------|
-| `app/` | 19 | 2,476 | メインウィンドウ、エントリーポイント、合成ルート、対局の流れ（`GameSession`） |
+| `app/` | 19 | 2,437 | メインウィンドウ、エントリーポイント、合成ルート、対局の流れ（`GameSession`） |
 | `core/` | 52 | 5,986 | 純粋ゲームロジック |
-| `game/` | 32 | 2,658 | 対局管理 |
+| `game/` | 29 | 2,636 | 対局管理 |
 | `kifu/` | 53 | 6,660 | 棋譜管理（formatsを除く） |
 | `kifu/formats/` | 55 | 5,942 | フォーマット変換器 |
 | `engine/` | 33 | 4,152 | USIエンジン連携 |
 | `analysis/` | 35 | 4,075 | 解析機能 |
-| `network/` | 14 | 3,410 | CSA通信対局 |
+| `network/` | 14 | 3,424 | CSA通信対局 |
 | `style/` | 9 | 812 | ウィジェットの書体と見た目（スタイル・ボタンと表のスタイルシート） |
 | `board/` | 7 | 722 | 盤面操作 |
 | `ui/presenters/` | 20 | 1,567 | 表示への反映 |
 | `ui/controllers/` | 42 | 4,288 | 利用者操作の処理（棋譜の読み書き・ナビゲーション・ダイアログの起動を含む） |
 | `ui/policy/` | 4 | 503 | 動作状態からの規則（メニュー・ボタンの有効/無効、盤の手の行き先） |
 | `ui/docks/` | 4 | 701 | ドックの表とレイアウト |
-| `ui/coordinators/` | 4 | 385 | 複数の部品にまたがる UI の流れ（通信対局・コメント） |
+| `ui/coordinators/` | 4 | 335 | 複数の部品にまたがる UI の流れ（通信対局・コメント） |
 | `views/` | 18 | 3,172 | 将棋盤描画 |
 | `widgets/` | 105 | 12,952 | カスタムウィジェット |
 | `dialogs/` | 79 | 12,879 | ダイアログ |
@@ -726,7 +725,7 @@ src/
 | `headless/` | 24 | 1,588 | CLI・自動化 API・MCP が共有する GUI 非依存の部品 |
 | `automation/` | 31 | 3,102 | 自動化 API |
 | `cli/` | 15 | 1,730 | `shogiboardq-cli` |
-| **合計** | **734** | **約85,800** | |
+| **合計** | **731** | **約85,700** | |
 
 ### 1.7 リソース構成
 
@@ -2729,7 +2728,7 @@ game 層
 
 手番は独立したクラスでは持たず、盤（`ShogiBoard`）だけが持つ（6.7節）。
 
-ほかに、終局の型（`matchcoordinator.h` の `MatchCause`・`MatchGameEndInfo`）、開始の設定（`startoptions.h` の `MatchStartOptions`・`GameStartPreparation`）、時間の決まり（`matchtimesettings.h` の `MatchTimeSettings`）、棋譜の受け手のインターフェース（`matchrecordsink.h`）、中断した対局の状態（`matchcoordinator.h` の `InterruptedGameState`）、対局開始ダイアログの値の入れ物（`startgamedialogdata.h`）、千日手の検出（`sennichitedetector`）、入玉宣言の判定（`nyugyokujudgement`）、持ち時間の時計への適用と検証（`timecontrolutil`・`timecontrolvalidator`）がある。
+ほかに、終局の型（`matchcoordinator.h` の `MatchCause`・`MatchGameEndInfo`）、開始の設定（`startoptions.h` の `MatchStartOptions`・`GameStartPreparation`・時間の決まり `MatchTimeSettings`）、棋譜の受け手のインターフェース（`matchrecordsink.h` の `MatchRecordSink`・`MatchRecordStart`）、中断した対局の状態（`matchcoordinator.h` の `InterruptedGameState`）、対局開始ダイアログの値の入れ物（`startgamedialogdata.h`）、千日手の検出（`sennichitedetector`）、入玉宣言の判定（`nyugyokujudgement`）、持ち時間の検証（`timecontrolvalidator`）がある。持ち時間を時計に入れるのは司令塔の `start()` である。
 
 ### 6.2 MatchCoordinator — 司令塔
 
@@ -2777,14 +2776,14 @@ enum class Cause : int {
 | フィールド | 説明 |
 |-----------|------|
 | `players` | 対局者（`MatchPlayers`。先手・後手を人間とエンジンのどちらが指すかと、その名前。[5.6節](#56-matchplayers--対局者)） |
-| `recordLine` | 開始する手順と手数（現在の局面から始めるとき、その局面までの手順） |
-| `sfenStart` | 開始局面のSFEN文字列 |
+| `recordLine` | 開始する手順と手数（現在の局面から始めるとき、その局面までの手順）。対局は `currentPly` の局面から始める（開始局面は手順だけが持つ） |
+| `time` | 時間の決まり（`MatchTimeSettings`: 持ち時間の決まり `rules` と時間切れを負けとするか `loseOnTimeout`）。司令塔の `start()` が開始の局面の手番で時計に入れる |
 | `engines` | 先手（下手）・後手（上手）のエンジンの設定 `EngineSeat{path, joseki}`（実行パスと定跡を使う条件。`engine(Turn)` で引く。人間の側は使わない） |
 | `josekiBook` | 対局で使う定跡（対局を始めたときに開いていた定跡の写し。`usesJoseki()` のときだけ写す） |
 | `maxMoves` | 最大手数（0＝無制限） |
 | `autoSave` | 終局した棋譜の自動保存（`MatchAutoSave`: `enabled`・`dir`・`extension`。ローカル対局は `kifu`。保存は `GameSession` が行う） |
 
-対局のモード（人間対人間・人間対エンジン・エンジン同士）は列挙型では持たず、`players` の `isEngine(Turn)` で決まる。連続対局で手番を入れ替えるときは `swapSides()` が対局者とエンジンの設定を、`TimeControl::swapSides()` が持ち時間の決まりを入れ替える。
+対局のモード（人間対人間・人間対エンジン・エンジン同士）は列挙型では持たず、`players` の `isEngine(Turn)` で決まる。連続対局で手番を入れ替えるときは `swapSides()` が対局者・エンジンの設定・持ち時間の決まり（`TimeControl::swapSides()`）を入れ替える。
 
 **GameEndInfo** — 終局情報:
 
@@ -2842,16 +2841,17 @@ struct Deps {
 
 #### start() / beginPlay() — 対局の準備と開始
 
-`start()` は `StartOptions` を受け取り、対局の手順・対局者・Strategy を用意する。Strategy は `players` から選ぶ。
+`start()` は `StartOptions` を受け取り、対局の手順・対局者・時計の決まり・Strategy を用意する。Strategy は `players` から選ぶ。
 
 ```
 start(opt)
   │
-  ├── 1. 中断した対局を捨てる。opt.recordLine を currentPly までにし、その最後の局面を sfenStart にする
+  ├── 1. 中断した対局を捨てる。opt.recordLine を currentPly までにする（その最後の局面から始める）
   ├── 2. 終局状態をクリアし、MatchSessionState::begin(opt)、対局の手順 m_record を設定
-  ├── 3. AppActivityState を DuringGame にし、gc->newGame(sfenStart)   … 盤が開始局面になり、盤の手番が変わる
+  ├── 3. AppActivityState を DuringGame にし、gc->newGame(手順の最後の局面)   … 盤が開始局面になり、盤の手番が変わる
+  ├── 4. applyTimeSettings(opt.time)   … 時間の決まり・時間切れの扱いを時計に入れ、時計の手番を盤の手番にする（まだ動かさない）
   │
-  └── 4. createStrategy(opt)
+  └── 5. createStrategy(opt)
         ├── 両方エンジン    → EngineVsEngineStrategy（先手 E1・engine(Black).path、後手 E2・engine(White).path）
         ├── 片方がエンジン  → HumanVsEngineStrategy(エンジンの手番 side, engine(side).path)
         └── 両方人間        → HumanVsHumanStrategy
@@ -2878,7 +2878,7 @@ beginPlay()
 |---------|-------|------|
 | `engineMovePlayed(Turn, int, UsiScore)` | EvaluationGraphPresenter::plotEngineScore | エンジンの手の後、その手番のエンジンの評価値をグラフに足す |
 | `movesUndone(int)` | EvaluationGraphPresenter::trimToPly | 待ったの後に評価値グラフを戻した手数までにする |
-| `gameEnded(GameEndInfo)` | GameSession::onGameEnded | 終局（終局の行は棋譜に書き、動作状態を待機にした後）。`finishMatchRecord()` でライブ対局のセッションの確定・終局時刻の記録・棋譜の自動保存（中断も確定するが保存はしない） |
+| `gameEnded(GameEndInfo)` | GameSession::onGameEnded | 終局（終局の行を書いた棋譜を `MatchRecordSink::finishRecord()` で確定し、動作状態を待機にした後）。中断なら連続対局をやめる |
 | `gameOverMessage(title, message)` | NotificationPresenter::showInformation | 終局の知らせのダイアログ |
 | `gameEndProcessed(GameEndInfo)` | GameSession::onGameEndProcessed | 終局の後処理（知らせ）の完了。エンジン同士の連続対局の次局はここから |
 | `gameInterrupted()` | GameSession::onGameInterrupted | 中断の行のノードを `attachInterruptedRecord()` で中断した対局に結びつける |
@@ -2908,15 +2908,14 @@ sequenceDiagram
     GS->>SRC: prepareGameStart(plan.preparation)
     Note over SRC: 分岐ツリーを開始局面に整え、<br/>ログ・思考情報・評価値グラフを消し、<br/>LiveGameSession::startFromNode(node)
     GS->>GS: 盤の反転, ConsecutiveGameSeries::beginSeries(plan)
-    GS->>Clock: TimeControlUtil::applyToClock()
-    GS->>GS: 時計表示
     GS->>DOC: beginMatch(players, time, continuesRecord)
     Note over DOC: 対局者・持ち時間・開始日時を記録し、<br/>対局情報を作り直す（headerReset）
     Note over GS: 盤の対局者名は PlayerInfoPresenter が<br/>文書と動作状態の知らせで出す
     GS->>MC: start(plan.options)
 
     MC->>MC: clearGameEnd(), MatchSessionState::begin()
-    MC->>GC: newGame(sfenStart)
+    MC->>GC: newGame(手順の最後の局面)
+    MC->>Clock: applyTimeSettings(options.time)<br/>（時間の決まり・時間切れの扱い・盤の手番）
 
     alt 両方人間
         MC->>MC: HumanVsHumanStrategy::start()
@@ -2926,13 +2925,13 @@ sequenceDiagram
         MC->>USI: EngineVsEngineStrategy::start()<br/>E1・E2 を起動
     end
 
-    GS->>GS: discardInterruptedGame()
+    GS->>GS: 時計表示, discardInterruptedGame()
     GS->>MC: beginPlay()
     MC->>Clock: startClock()
     Note over MC: 初手がエンジン手番なら思考を依頼
 ```
 
-対局の開始は、対局ダイアログからの開始（`startGameFromDialog()` → `startGame(plan, true)`）・連続対局の次局（`startNextGame(plan)` → `startGame(plan, false)`）のどちらも `GameSession::startGame()` を通る。中断した対局の再開だけは `GameSession::resumeInterruptedGame()` から `MatchCoordinator::resumeInterruptedGame()` → `beginPlay()` へ進む（6.9節）。`startGame()` は「棋譜を整える → 時計 → 対局者の表示 → `MatchCoordinator::start()` → `beginPlay()`」の順に1つの関数で行い、開始前の整備を別の部品に依頼するシグナルは使わない。
+対局の開始は、対局ダイアログからの開始（`startGameFromDialog()` → `startGame(plan, true)`）・連続対局の次局（`startNextGame(plan)` → `startGame(plan, false)`）のどちらも `GameSession::startGame()` を通る。中断した対局の再開だけは `GameSession::resumeInterruptedGame()` から `MatchCoordinator::resumeInterruptedGame()` → `beginPlay()` へ進む（6.9節）。`startGame()` は「棋譜を整える → 対局者の表示 → `MatchCoordinator::start()`（時計の決まりもここで入れる） → `beginPlay()`」の順に1つの関数で行い、開始前の整備を別の部品に依頼するシグナルは使わない。
 
 ### 6.4 GameStartOptionsBuilder — 対局開始の計画
 
@@ -2972,8 +2971,7 @@ sequenceDiagram
 
 ```cpp
 struct GameStartPlan {
-    MatchStartOptions options;          // 対局者・開始局面・手順
-    MatchTimeSettings time;             // 時間の決まり
+    MatchStartOptions options;          // 対局者・開始局面・手順・時間の決まり
     GameStartPreparation preparation;   // 開始前に棋譜をどう整えるか
     bool flipBoard = false;             // 「人を手前に表示する」で盤を反転する
     int consecutiveGames = 1;           // 連続対局の局数
@@ -2981,7 +2979,7 @@ struct GameStartPlan {
 };
 ```
 
-**MatchTimeSettings** — 時間の決まり（`src/game/matchtimesettings.h`）:
+**MatchTimeSettings** — 時間の決まり（`src/game/startoptions.h`。`MatchStartOptions::time`）:
 
 ```cpp
 struct MatchTimeSettings {
@@ -2998,13 +2996,13 @@ struct MatchTimeSettings {
 |---------|------|
 | `plan(request, &error)` | 開始の計画を作る。不正な開始局面や開始できない条件では `std::nullopt` を返し、`error` に利用者に見せる理由を入れる |
 | `validatePosition(sfen, &whyNot)` | 通常の対局に使える局面か（先手・後手の玉が盤上に1枚ずつで、駒の数・駒台の玉・手番でない側への王手の検査（`PositionValidator`）を通る） |
-| `buildStartOptions(startSfen, dlg)` | ダイアログの設定から `MatchStartOptions` を作る（対局者は `playersFromDialog()`） |
+| `buildStartOptions(dlg)` | ダイアログの設定から `MatchStartOptions` を作る（対局者は `playersFromDialog()`、時間の決まりは `buildTimeSettings()`。手順は `plan()` が入れる） |
 | `buildTimeSettings(data)` | ダイアログの設定から `MatchTimeSettings` を作る。秒読みとフィッシャー加算が両方あれば秒読みを使う |
 | `needsHumanAtBottomFlip(dlg, bottomSide)` | 「人を手前に表示する」で盤を反転するか（人間対エンジンで、人間の側が手前でないとき） |
 
 「現在の局面から開始」かどうかは、`StartGameDialogData::startsFromCurrentPosition()`（`startingHandicap` が `nullptr`）で決まる。手合割なら、その局面は `startingHandicap->sfen`（`Handicaps::kAll` の1つ）である。現在の局面なら `preparation.mode` は `CurrentPosition` で、表示中の手順と選択ノードを渡す。手順が空なら、表示中の局面（なければ棋譜の開始局面）を開始局面にする。プリセットなら `NewGame` で、`startNodeId` は -1 になる。
 
-計画を適用する `GameSession::startGame()` は6.3節の順に動く。時間の決まりは `TimeControlUtil::applyToClock()` が時計に適用する。このとき `TimeControl::normalized()` が、秒読みとフィッシャー加算が同時に指定されていたら秒読みを優先して加算を0にする。
+計画を適用する `GameSession::startGame()` は6.3節の順に動く。時間の決まりは `MatchCoordinator::start()`（`applyTimeSettings()`）が時計に適用する。このとき `TimeControl::normalized()` が、秒読みとフィッシャー加算が同時に指定されていたら秒読みを優先して加算を0にする。
 
 ### 6.5 SessionResetCoordinator — 棋譜と表示の作り直し
 
@@ -3019,7 +3017,7 @@ struct MatchTimeSettings {
 | `prepareGameStart(preparation)` | `GameSession::startGame()` | 対局を始める局面に棋譜を整え、ライブ対局を始める。始めたノードを返す |
 | `resetToNewRecord(sfen)` | 「新規」（`GameSession::resetToInitialState()`）、局面編集 | 読み込み途中の棋譜を捨て、ライブ対局を破棄して、局面 `sfen` だけの新しい棋譜にする（`KifuDocument::startNew()`） |
 
-評価値グラフとエンジンの表示（通信ログ・思考情報・検討・解析結果。`EngineDisplayPresenter::clearAll()`）は、文書の置き換え（`KifuDocument::replaced`。新規・読み込み・局面の反映・新しい棋譜での対局の開始）を受けて自分で消える。`SessionResetCoordinator` が表示に触るのは、文書を置き換えずに現在局面から対局を続けるとき（評価値グラフを開始の手数で切り詰める）だけ。連続対局の次局（`GameSession::startNextGame()`）と通信対局の開始（`GameSession::onCsaGameStarted()`）も `prepareGameStart()` を通る。
+評価値グラフとエンジンの表示（通信ログ・思考情報・検討・解析結果。`EngineDisplayPresenter::clearAll()`）は、文書の置き換え（`KifuDocument::replaced`。新規・読み込み・局面の反映・新しい棋譜での対局の開始）を受けて自分で消える。`SessionResetCoordinator` が表示に触るのは、文書を置き換えずに現在局面から対局を続けるとき（評価値グラフを開始の手数で切り詰める）だけ。連続対局の次局（`GameSession::startNextGame()`）と通信対局の開始（司令塔が呼ぶ `GameSession::beginRecord()`）も `prepareGameStart()` を通る。
 
 #### prepareGameStart() の処理フロー
 
@@ -3113,7 +3111,7 @@ ShogiBoard::turnChanged(Turn)
   └──▶ BoardInteractionController::cancelPendingClick()   … 1回目のクリックを取り消す
 ```
 
-時計の手番は、司令塔の `completeMove()` が一手を確定するたびに `ShogiClock::setCurrentPlayer(gc->currentPlayer())` で盤に合わせる。対局の開始時は `TimeControlUtil::applyToClock()` が開始局面の手番を時計に設定する。
+時計の手番は、司令塔の `completeMove()` が一手を確定するたびに `ShogiClock::setCurrentPlayer(gc->currentPlayer())` で盤に合わせる。対局の開始時は `MatchCoordinator::start()`（`applyTimeSettings()`）が開始局面の手番を時計に設定する。
 
 #### 人間/エンジンの手番切替
 
@@ -3178,7 +3176,7 @@ public:
 
 ### 6.9 GameSession — 対局の流れの UI 側
 
-`GameSession` は対局の開始・終局・再開の手順と利用者の操作の受け口を受け持つ app 層のクラスである。利用者の操作（対局開始・投了・中断・再開・すぐ指させる・入玉宣言・待った・新規）を受け、投了・中断・すぐ指させる・入玉宣言は対局相手の窓口（`GameChannel`）に頼む。司令塔の終局・中断の知らせを受けて後処理をする。対局の棋譜の受け手（`MatchRecordSink`）でもあり、ローカル対局と通信対局の棋譜を開始から終局・自動保存まで同じ1本の流れ（`beginMatchRecord()`・`finishMatchRecord()`）で扱う。盤・棋譜欄・分岐ツリー・手番の表示は、棋譜（分岐ツリー）と表示中の手が変わると各部品が自分で合わせるので、`GameSession` は表示を直接更新しない。
+`GameSession` は対局の開始・終局・再開の手順と利用者の操作の受け口を受け持つ app 層のクラスである。利用者の操作（対局開始・投了・中断・再開・すぐ指させる・入玉宣言・待った・新規）を受け、投了・中断・すぐ指させる・入玉宣言は対局相手の窓口（`GameChannel`）に頼む。司令塔の終局・中断の知らせを受けて後処理をする。対局の棋譜の受け手（`MatchRecordSink`）でもあり、ローカル対局と通信対局の棋譜を開始から終局・自動保存まで同じ1本の流れ（開始は `beginMatchRecord()`、行は `appendRecord()`、終局は `finishRecord()`）で扱う。どちらの司令塔も、棋譜を作ってから動作状態を対局中にし、終局では棋譜を確定してから待機に戻す。盤・棋譜欄・分岐ツリー・手番の表示は、棋譜（分岐ツリー）と表示中の手が変わると各部品が自分で合わせるので、`GameSession` は表示を直接更新しない。
 
 **ソース**: `src/app/gamesession.h`, `src/app/gamesession.cpp`
 
@@ -3187,25 +3185,27 @@ public:
 | 責務 | 内容 |
 |------|------|
 | **利用者の操作** | `startGameFromDialog()`・`resign()`・`breakOff()`・`makeEngineMoveNow()`・`declareNyugyoku()`・`undoTwoMoves()`・`resumeInterruptedGame()`。投了・中断・すぐ指させるは `activeChannel()` の `GameChannel`（動作状態が `DuringCsaGame` なら `CsaGameChannel`、`DuringGame` なら `LocalGameChannel`、それ以外は nullptr）に頼み、対局の種類で分岐しない。入玉宣言は `NyugyokuDeclarationHandler::handleDeclaration(activeChannel())` に任せる |
-| **対局の開始** | `startGameFromDialog()`（ダイアログ → `GameStartOptionsBuilder::plan()`）と `startGame(plan, beginSeries)`（棋譜を整える → 時計 → `beginMatchRecord(players, timeControl, continuesRecord)`（棋譜の文書に対局者・持ち時間・開始日時を記録して対局情報を作る `KifuDocument::beginMatch()`、続ける対局なら分岐の最初の手のメモ、対局者の表示）→ 自動保存の指定（`MatchStartOptions::autoSave`）を覚える → `MatchCoordinator::start()` → `beginPlay()`）。連続対局の次局は `startNextGame(plan)` |
-| **棋譜の受け手** | `MatchRecordSink` の `canAppendRecord()`・`appendRecord()`・`canUndoRecords()`・`undoRecords()`。行は `LiveGameSession` に追記する（通信対局の行は `CsaGameCoordinator::recordEntryReady` を自分で受けて `appendRecord()` する） |
-| **終局後処理** | `onGameEnded()`・`onCsaGameEnded()` から `finishMatchRecord(autoSave)`（ライブ対局のセッションの確定（中断も。再開は中断の行を除いて記録し直す）、終局時刻の記録 `KifuDocument::recordMatchEnd()`、`m_autoSave.isActive()` なら `KifuFileController::autoSaveKifu(dir, extension)`）・`onGameEndProcessed()`（連続対局の次局の予約） |
+| **対局の開始** | `startGameFromDialog()`（ダイアログ → `GameStartOptionsBuilder::plan()`）と `startGame(plan, beginSeries)`（棋譜を整える → `beginMatchRecord(players, timeControl, continuesRecord)`（棋譜の文書に対局者・持ち時間・開始日時を記録して対局情報を作る `KifuDocument::beginMatch()`、続ける対局なら分岐の最初の手のメモ、対局者の表示）→ 自動保存の指定（`MatchStartOptions::autoSave`）を覚える → `MatchCoordinator::start()`（時計の決まりもここで入る）→ 時計の表示 → `beginPlay()`）。連続対局の次局は `startNextGame(plan)` |
+| **棋譜の受け手** | `MatchRecordSink` の `beginRecord()`・`canAppendRecord()`・`appendRecord()`・`canUndoRecords()`・`undoRecords()`・`finishRecord()`。行は `LiveGameSession` に追記する。合成ルートが `setRecordSink()` で両方の司令塔に渡す |
+| **終局後処理** | 司令塔が終局の行の後で呼ぶ `finishRecord(autoSave)`（ライブ対局のセッションの確定（中断も。再開は中断の行を除いて記録し直す）、終局時刻の記録 `KifuDocument::recordMatchEnd()`、`autoSave` で `m_autoSave.isActive()` なら `KifuFileController::autoSaveKifu(dir, extension)`）・`onGameEnded()`（中断なら連続対局をやめる）・`onGameEndProcessed()`（連続対局の次局の予約） |
 | **中断と再開** | `onGameInterrupted()`・`discardInterruptedGame()`・`resumeInterruptedGame()` |
-| **通信対局の棋譜** | コンストラクタで `CsaGameCoordinator` の `gameStarted`・`recordEntryReady`・`gameEnded` を自分でつなぐ（`CsaGameSession` より先に作るので、画面の反映より先に棋譜ができる）。開始 `onCsaGameStarted()` はローカル対局の新しい棋譜と同じく `SessionResetCoordinator::prepareGameStart()` で棋譜を作り直して（対局情報に書きかけた内容は残し、前の表示は文書の置き換えで消える）ライブ対局を始め、`CsaGameChannel` の対局者・持ち時間で `beginMatchRecord()`、`CsaGameCoordinator::options().autoSave` を覚えて、再開局面の既存手順を追記する。終局 `onCsaGameEnded()` は `finishMatchRecord(true)` |
+| **通信対局の棋譜** | 通信対局の司令塔が対局の開始で呼ぶ `beginRecord(MatchRecordStart)` が、ローカル対局の新しい棋譜と同じく `SessionResetCoordinator::prepareGameStart()` で棋譜を作り直して（対局情報に書きかけた内容は残し、前の表示は文書の置き換えで消える）ライブ対局を始め、サーバーが知らせた対局者・持ち時間で `beginMatchRecord()`、接続ダイアログの自動保存の指定を覚える。再開局面の既存手順・着手・終局の行は司令塔が `appendRecord()` で書き、終局で `finishRecord(true)` を呼ぶ |
 | **リセット** | 「新規」の `resetToInitialState()` |
 
 #### シグナル接続
 
-`MainWindowComposer::connectGame()` が司令塔のシグナルを `GameSession` へつなぐ。
+`MainWindowComposer::connectGame()` が司令塔のシグナルを `GameSession` へつなぐ。棋譜の確定はシグナルではなく、司令塔が受け手を呼ぶ。
 
 ```
-MatchCoordinator::gameEnded（終局の行は書いた後）
+MatchCoordinator::endGame()（終局の行を書いた後）
+    └──▶ MatchRecordSink::finishRecord(autoSave = 中断でない) = GameSession::finishRecord()
+            ├── ライブ対局のセッションを確定（LiveGameSession::commit。中断も確定する）
+            ├── 終局時刻を記録して対局情報に反映（KifuDocument::recordMatchEnd）
+            └── 自動保存（MatchAutoSave::isActive() なら KifuFileController::autoSaveKifu。中断は保存しない）
+
+MatchCoordinator::gameEnded（棋譜を確定し、待機に戻した後）
     └──▶ GameSession::onGameEnded()
-            ├── 中断なら連続対局を打ち切る（ConsecutiveGameSeries::reset）
-            └── finishMatchRecord(autoSave = 中断でない)
-                  ├── ライブ対局のセッションを確定（LiveGameSession::commit。中断は確定しない）
-                  ├── 終局時刻を記録して対局情報に反映（KifuDocument::recordMatchEnd）
-                  └── 自動保存（MatchAutoSave::isActive() なら KifuFileController::autoSaveKifu。中断は保存しない）
+            └── 中断なら連続対局を打ち切る（ConsecutiveGameSeries::reset）
 
 MatchCoordinator::gameEndProcessed（終局の知らせのあと）
     └──▶ GameSession::onGameEndProcessed()
@@ -4457,8 +4457,8 @@ struct KifuParseOutcome {
 
 | メソッド | 呼ぶ側 | 内容 |
 |---------|-------|------|
-| `beginMatch(players, timeControl, continuesRecord)` | `GameSession::beginMatchRecord()`（ローカル対局の `startGame()`・通信対局の `onCsaGameStarted()`） | 対局者と持ち時間を記録し、開始日時を今にする。対局情報を対局日・開始日時・対局者・手合割・持ち時間で作り直す（棋戦・場所・備考など利用者が入力した項目は残す）。読み込んだ棋譜の途中から続ける対局（`continuesRecord`）では、棋譜の対局情報を残して対局者名だけを書き換える |
-| `recordMatchEnd()` | `GameSession::finishMatchRecord()`（ローカル対局・通信対局の終局） | 終了日時を記録して対局情報に書く |
+| `beginMatch(players, timeControl, continuesRecord)` | `GameSession::beginMatchRecord()`（ローカル対局の `startGame()`・通信対局の司令塔が呼ぶ `beginRecord()`） | 対局者と持ち時間を記録し、開始日時を今にする。対局情報を対局日・開始日時・対局者・手合割・持ち時間で作り直す（棋戦・場所・備考など利用者が入力した項目は残す）。読み込んだ棋譜の途中から続ける対局（`continuesRecord`）では、棋譜の対局情報を残して対局者名だけを書き換える |
+| `recordMatchEnd()` | `GameSession::finishRecord()`（ローカル対局・通信対局の司令塔が終局で呼ぶ） | 終了日時を記録して対局情報に書く |
 | `clearMatchEnd()` | `GameSession::resumeInterruptedGame()` | 終了日時を消す（中断した対局を再開した） |
 
 対局が書く値（終了日時・続けた対局の対局者名）は `headerValueSet(key, value)` で知らせ、保存した時点の内容にも書くので未保存に数えない。利用者が対局情報を編集していなければ、`beginMatch()` で作り直した対局情報も変更に数えない。
@@ -4730,7 +4730,7 @@ struct Deps {
 | 読み込み | `loadKifuFile(path)` / `loadKifuText(content)` / `applySfenPosition(sfen)` | 自動化 API 用（ダイアログなし・同期） |
 | 保存 | `saveKifuToFile()` | 名前を付けて保存（`KifuSaveDialogs::saveViaDialog()`） |
 | 保存 | `overwriteKifuFile()` | 上書き保存（上書き保存先が無ければ名前を付けて保存） |
-| 保存 | `autoSaveKifu(dir, extension)` | 対局の終局時の自動保存（ローカル対局・通信対局とも `GameSession::finishMatchRecord()` から。同じ名前があれば連番を付ける） |
+| 保存 | `autoSaveKifu(dir, extension)` | 対局の終局時の自動保存（ローカル対局・通信対局とも、司令塔が終局で呼ぶ `GameSession::finishRecord()` から。同じ名前があれば連番を付ける） |
 | 保存 | `saveKifuToPath(path, errorText)` | ダイアログを出さずに保存（自動化 API 用） |
 | 確認 | `confirmDiscardUnsaved()` / `hasUnsavedChanges()` | 未保存の確認（`KifuDocument::isModified()`） |
 | 出力 | `exportLines(format)` | `KifuExport::lines(*document, format)`（ファイルに書かない） |
@@ -5613,7 +5613,7 @@ KifuNavigationState::changed
 
 **ソース**: `src/ui/presenters/timedisplaypresenter.h`, `src/ui/presenters/timedisplaypresenter.cpp`
 
-対局時計の表示を管理するプレゼンターである。コンストラクタで時計の `ShogiClock::timeUpdated` を自分の `showClock()` に直接つなぎ、残り時間のフォーマットと表示を行う（司令塔は中継しない）。ローカル対局は対局の時計、通信対局はサーバーの残り時間を写した表示用の同じ時計で、どちらも同じ時計を見る。時計そのもの（`ShogiClock`）は合成ルートが作り、持ち時間の決まりは `GameSession`（`TimeControlUtil::applyToClock()`、12.8 節）が渡す。対局情報と棋譜に書く持ち時間・開始終了日時は棋譜の文書の `MatchTimeRecord`（`src/kifu/`。`KifuDocument::timeRecord()`）が持つ。
+対局時計の表示を管理するプレゼンターである。コンストラクタで時計の `ShogiClock::timeUpdated` を自分の `showClock()` に直接つなぎ、残り時間のフォーマットと表示を行う（司令塔は中継しない）。ローカル対局は対局の時計、通信対局はサーバーの残り時間を写した表示用の同じ時計で、どちらも同じ時計を見る。時計そのもの（`ShogiClock`）は合成ルートが作り、持ち時間の決まりは対局の司令塔（ローカル対局は `MatchCoordinator::start()` の `applyTimeSettings()`、12.8 節。通信対局は `CsaGameCoordinator`）が入れる。対局情報と棋譜に書く持ち時間・開始終了日時は棋譜の文書の `MatchTimeRecord`（`src/kifu/`。`KifuDocument::timeRecord()`）が持つ。
 
 | 処理 | 説明 |
 |------|------|
@@ -5870,21 +5870,22 @@ MainWindowComposer::connectAnalysisAndUi()
 
 棋譜ナビゲーションで局面が変わったときは、`AnalysisSession` が `KifuNavigationState::changed` を受けて検討中の局面をエンジンに送り直す。
 
-#### CSA通信対局の配線（CsaGameSession）
+#### CSA通信対局の配線
 
-**ソース**: `src/ui/coordinators/csagamesession.h`, `src/ui/coordinators/csagamesession.cpp`
+CSA 通信対局の接続は Wiring クラスを持たず、ローカル対局と同じく合成ルートの `MainWindowComposer::connectGame()` が `CsaGameCoordinator` のシグナルを実際の受け手へ直接つなぐ（中継シグナルを持たない）。開始・手番・終局の画面への反映（待機ダイアログ・結果のダイアログ・ステータスバー・盤の反転）だけは `CsaGameSession`（10.5 節）が自分のコンストラクタでつなぐ。
 
-CSA 通信対局の接続は Wiring クラスを持たず、`CsaGameSession`（10.5 節）が自分のコンストラクタで `CsaGameCoordinator` のシグナルを実際の受け手へ直接つなぐ（中継シグナルを持たない）。
-
-棋譜の行（`gameStarted`・`recordEntryReady`・`gameEnded`）は、先に作られた `GameSession` が受けて棋譜に足す。着手のハイライトはローカル対局と同じく、棋譜の表示中の手が変わったのを受けて `BoardSyncPresenter` が出す。
+棋譜はシグナルではなく、司令塔が棋譜の受け手（`MatchRecordSink`。ローカル対局と同じ `GameSession`。合成ルートが `setRecordSink()` で渡す）へ書く。動作状態（`DuringCsaGame`）も司令塔が持ち、棋譜を作ってから対局中にし、終局では棋譜を確定してから待機に戻すので、シグナルをつないだ順に頼らない。着手のハイライトはローカル対局と同じく、棋譜の表示中の手が変わったのを受けて `BoardSyncPresenter` が出す。
 
 ```
-CsaGameSession のコンストラクタ
-  ├── gameStarted / gameEnded / turnChanged / logMessage / engineScoreUpdated → 自身のスロット（画面の切り替え）
+MainWindowComposer::connectGame()
+  ├── engineMovePlayed       → EvaluationGraphPresenter::plotEngineScore（ローカル対局の司令塔と同じ形）
   ├── errorOccurred          → NotificationPresenter::displayErrorMessage
   ├── connectionStateChanged / csaCommLogAppended → CsaLogPanel（CSA ログ）
   ├── CsaLogPanel::csaRawCommandRequested   → CsaGameCoordinator::sendRawCommand
   └── BoardMoveController::csaMoveRequested → CsaGameCoordinator::onHumanMove
+
+CsaGameSession のコンストラクタ
+  └── gameStarted / gameEnded / turnChanged / logMessage → 自身のスロット（画面の切り替え）
 ```
 
 通信対局の指し手も `ShogiGameController` が盤に指すので、駒音（`PieceSoundPlayer`）はローカル対局と同じ `ShogiGameController::moveCommitted` で受ける（`connectBoard()`）。
@@ -5975,14 +5976,13 @@ KifuFileController::chooseAndLoadKifuFile() など（画面からの読み込み
 
 **ソース**: `src/ui/coordinators/csagamesession.h`, `src/ui/coordinators/csagamesession.cpp`
 
-通信対局の1回の接続（1局または連続した対局）を進める。通信の手順は `CsaGameCoordinator` が行い、このクラスは接続ダイアログの値で対局を始め、対局の開始・手番・終局を盤の向き・評価値グラフ・ステータスバー・結果のダイアログへ反映する（表示だけを受け持つ）。通信対局の間は動作状態を `DuringCsaGame` にする。棋譜（対局者・開始と終了の日時・着手の行・自動保存）はローカル対局と同じく `GameSession` が受け持ち、`GameSession` は `CsaGameSession` より先に作られて `CsaGameCoordinator` のシグナルを先に受けるので、画面に反映するときには棋譜ができている。
+通信対局の1回の接続（1局または連続した対局）を始め、画面に知らせる。通信の手順は `CsaGameCoordinator` が行い、このクラスは接続ダイアログの値で対局を始め（待機ダイアログ）、対局の開始・手番・終局を盤の向き・ステータスバー・結果のダイアログへ反映する（表示だけを受け持つ）。棋譜（対局者・開始と終了の日時・着手の行・自動保存）と動作状態は、ローカル対局と同じく司令塔と `GameSession` が受け持ち、知らせを受けるときには済んでいる。評価値グラフ・通信ログ・エラー・盤の手は合成ルートがつなぐ。
 
 | 処理 | 説明 |
 |------|------|
-| `startGame(selection)` | 待機ダイアログ（`CsaWaitingDialog`）を出して `CsaGameCoordinator::startGame()` を呼び、対局が始まるかエラー・キャンセルまで待つ |
-| `onGameStarted` | 後手なら盤を反転し（`MainWindowAppearanceController::flipBoard()`）、動作状態を `DuringCsaGame` にしてステータスバーに知らせる（棋譜・対局者の表示は `GameSession::onCsaGameStarted()` が済ませている） |
-| `onEngineScoreUpdated` | 自分のエンジンの評価値を `EvaluationGraphPresenter::plotEngineScore(自分の側, ply, score)` で描く（ローカル対局のエンジンの手と同じ符号の扱い） |
-| `onGameEnded` | 動作状態を `Idle` に戻して結果のダイアログとステータスバーで知らせる（棋譜の確定・終了日時・自動保存は `GameSession::onCsaGameEnded()` が済ませている） |
+| `startGame(selection)` | 待機ダイアログ（`CsaWaitingDialog`）を出して `CsaGameCoordinator::startGame()` を呼び、対局が始まるかエラー・キャンセルまで待つ。始まらなければ司令塔を止める（`stopGame()` が動作状態も戻す） |
+| `onGameStarted` | 後手なら盤を反転し（`MainWindowAppearanceController::flipBoard()`）、ステータスバーに知らせる（棋譜・対局者の表示と動作状態 `DuringCsaGame` は司令塔が済ませている） |
+| `onGameEnded` | 結果のダイアログとステータスバーで知らせる（棋譜の確定・終了日時・自動保存と待機への切り替えは司令塔が済ませている） |
 
 #### DockRegistry — ドックの表
 
@@ -6556,7 +6556,7 @@ network層はCSA（Computer Shogi Association）プロトコルによるネッ�
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-手番・時計表示の同期（12.6）は `src/views/boardchromewidget`・`src/ui/presenters/timedisplaypresenter`、対局者名の表示（12.7）は `src/ui/presenters/playerinfopresenter`・`enginedisplaypresenter`、持ち時間の適用（12.8）は `src/game/timecontrolutil` にある。
+手番・時計表示の同期（12.6）は `src/views/boardchromewidget`・`src/ui/presenters/timedisplaypresenter`、対局者名の表示（12.7）は `src/ui/presenters/playerinfopresenter`・`enginedisplaypresenter`、持ち時間の適用（12.8）は `src/game/matchcoordinator`（`MatchCoordinator::start()`）にある。
 
 ### 12.2 CsaClient — CSAプロトコルクライアント
 
@@ -6735,7 +6735,8 @@ CsaClientとゲームシステム（ShogiGameController, ShogiClock等）の橋�
 - CsaClient のシグナルを受け取り、ゲームシステムに反映
 - CSA形式 ↔ USI形式の指し手変換（`CsaMoveConverter::toUsi()` / `toCsa()`）
 - 盤面への指し手適用（`playCsaMove()` が `toUsi()` で得た指し手を `ShogiGameController::applyRecordedMove()` で指す。確定後は `ShogiGameController::notifyMoveCommitted()` でローカル対局と同じ経路の `moveCommitted` を出す）
-- 対局の手順を `CsaGameProgress::record`（`RecordLine`）1つに積み、確定した棋譜行を `recordEntryReady` で知らせる
+- 対局の手順を `CsaGameProgress::record`（`RecordLine`）1つに積み、確定した棋譜行を棋譜の受け手（`MatchRecordSink`。ローカル対局と同じ `GameSession`）へ書く。対局の開始では `beginRecord(recordStart())`（サーバーの開始局面・対局者名・持ち時間と、接続ダイアログの自動保存）で新しい棋譜を作らせてから再開局面の既存手順を書き、終局では終局の行の後で `finishRecord(true)` を呼ぶ
+- 動作状態。棋譜を作った後で `DuringCsaGame` のリースを取り（`MatchCoordinator::start()` と同じ形）、終局（棋譜の確定の後）と `stopGame()` で手放す
 - GUI側の時計制御（サーバーの権威的な消費時間でGUI時計を補正。表示用の `ShogiClock` はサーバーの残り時間の写しで、計算には使わない）
 - USIエンジンの起動・思考管理（エンジン vs サーバー対局時。ローカル対局と同じ `MatchEngineSeat`。エンジンはローカルの対局・検討と同じ `EngineSlots` の枠 E1 に置く）
 - 自分のエンジンの時間の出どころ（`MatchTimeSource` を継承する。`snapshot()` は `CsaGameProgress::engineTiming(margin)` のサーバーの残り時間・決まり・遅延・余裕から、`elapsedThisTurn()` は手番（`CsaGameProgress::sideToMove()`。手順の最後の手の相手）が変わるたびに始める自分の `QElapsedTimer` から返す。投了の消費時間もこの値で、表示用の時計を読まない）
@@ -6771,6 +6772,7 @@ CsaGameCoordinatorは2種類の対局形態をサポートする。
 
 ```mermaid
 sequenceDiagram
+    participant Sink as GameSession（MatchRecordSink）
     participant UI as CsaGameSession
     participant Coord as CsaGameCoordinator
     participant Client as CsaClient
@@ -6795,13 +6797,16 @@ sequenceDiagram
     Client-->>Coord: gameStarted(gameId)
     Coord->>Coord: setupInitialPosition()
     Coord->>Coord: setupClock()
-    Coord-->>UI: gameStarted(black, white, initialRecords)
+    Coord->>Sink: beginRecord(recordStart()) / 再開局面の手を appendRecord
+    Coord->>Coord: AppActivityState::begin(DuringCsaGame)
+    Coord-->>UI: gameStarted(black, white)
 
     Note over Server,Client: 対局中（指し手のやり取り）
     Server-->>Client: -3334FU,T5
     Client-->>Coord: moveReceived(move, 5000ms)
     Coord->>Coord: playCsaMove()（toUsi → applyRecordedMove）/ finishMove()（CsaGameProgress::recordMoveTime）
-    Coord-->>UI: recordEntryReady(entry) → MatchRecordSink::appendRecord / turnChanged()
+    Coord->>Sink: appendRecord(entry)
+    Coord-->>UI: turnChanged()
 
     UI->>Coord: onHumanMove(UsiMove)
     Coord->>Client: sendMove(+7776FU)
@@ -6812,7 +6817,9 @@ sequenceDiagram
     Note over Server,Client: 対局終了
     Server-->>Client: #RESIGN / #WIN
     Client-->>Coord: gameEnded(Win, Resign)
-    Coord-->>UI: recordEntryReady(終局行) / gameEnded(Win, Resign)
+    Coord->>Sink: appendRecord(終局行) / finishRecord(true)
+    Coord->>Coord: 動作状態を待機に戻す
+    Coord-->>UI: gameEnded(Win, Resign)
 ```
 
 #### 時計管理の仕組み
@@ -6845,24 +6852,24 @@ struct Deps {
     ShogiGameController* gameController = nullptr;
     ShogiClock* clock = nullptr;
     EngineSlots* engines = nullptr;  ///< エンジンで指すとき、エンジンを置く枠
+    AppActivityState* activity = nullptr;  ///< 対局中を「通信対局中」にする（無ければ動作状態を変えない）
 };
 ```
 
-盤のビュー・棋譜欄・ハイライトの部品は持たない。盤への着手は `ShogiGameController`、棋譜行は `recordEntryReady`（盤のハイライトは棋譜の表示中の手から `BoardSyncPresenter` が出す）、通信ログは `csaCommLogAppended` で知らせる。エンジンで指すときは、ローカル対局と同じ `MatchEngineSeat`（`m_engineSeat`）が枠 E1 にエンジンを借りて起動する（`Params::timeSource` に司令塔自身を渡す）。終局は `MatchEngineSeat::finish()`（勝ち・負け・引き分け。探索・先読みを止めて gameover と quit）で、ローカル対局と同じ手順で知らせ、接続を終えるときに `release()` で枠を空ける。通信対局の最中にほかの処理が枠を取ったときは、エンジンの異常と同じく `errorOccurred` → `onEngineError()` で知らせる。同じ接続の次の対局条件（`onGameSummaryReceived()`）は、エンジンが思考を頼める状態（`isReady()`）でなければ起動し直し、起動して初期化している間（`isInitializing()`）は readyok を待ってから同意する（`onEngineInitialized()`）。それ以外はすぐ同意する。思考の依頼は `Usi::requestMatchMove(const UsiPosition&)` で、時間は渡さない（エンジンが `MatchTimeSource` として司令塔から読む）。指し手は `MatchEngineSeat::moveReady` → `onEngineMoveReady(UsiMatchMove)`、投了・入玉宣言勝ちは `resigned`・`declaredWin` で届く。思考情報・USI通信ログのモデルは枠が持つ。
+棋譜の受け手は `setRecordSink(MatchRecordSink*)` で受け取る（司令塔は受け手より先に作るので、合成ルートが `createSessions()` で渡す。`MatchCoordinator` と同じ）。盤のビュー・棋譜欄・ハイライトの部品は持たない。盤への着手は `ShogiGameController`、棋譜行は棋譜の受け手へ書き（盤のハイライトは棋譜の表示中の手から `BoardSyncPresenter` が出す）、通信ログは `csaCommLogAppended`、自分のエンジンの評価値は `engineMovePlayed(side, ply, score)`（`MatchCoordinator` と同じ形。合成ルートが `EvaluationGraphPresenter::plotEngineScore` につなぐ）で知らせる。エンジンで指すときは、ローカル対局と同じ `MatchEngineSeat`（`m_engineSeat`）が枠 E1 にエンジンを借りて起動する（`Params::timeSource` に司令塔自身を渡す）。終局は `MatchEngineSeat::finish()`（勝ち・負け・引き分け。探索・先読みを止めて gameover と quit）で、ローカル対局と同じ手順で知らせ、接続を終えるときに `release()` で枠を空ける。通信対局の最中にほかの処理が枠を取ったときは、エンジンの異常と同じく `errorOccurred` → `onEngineError()` で知らせる。同じ接続の次の対局条件（`onGameSummaryReceived()`）は、エンジンが思考を頼める状態（`isReady()`）でなければ起動し直し、起動して初期化している間（`isInitializing()`）は readyok を待ってから同意する（`onEngineInitialized()`）。それ以外はすぐ同意する。思考の依頼は `Usi::requestMatchMove(const UsiPosition&)` で、時間は渡さない（エンジンが `MatchTimeSource` として司令塔から読む）。指し手は `MatchEngineSeat::moveReady` → `onEngineMoveReady(UsiMatchMove)`、投了・入玉宣言勝ちは `resigned`・`declaredWin` で届く。思考情報・USI通信ログのモデルは枠が持つ。
 
 ### 12.4 CsaGameSession — CSA通信対局の画面への反映
 
 **ソース**: `src/ui/coordinators/csagamesession.h/.cpp`
 
-CSA通信対局の開始（待機ダイアログ）と、`CsaGameCoordinator` の進行を盤の向き・評価値グラフ・ステータスバー・結果のダイアログへ反映するクラス（表示だけ）。通信の手順も棋譜も持たない。棋譜（対局者・持ち時間・開始と終了の日時・着手の行・自動保存）はローカル対局と同じく `GameSession` が受け持つ（6.9 節）。
+CSA通信対局の開始（待機ダイアログ）と、`CsaGameCoordinator` の進行を盤の向き・ステータスバー・結果のダイアログへ反映するクラス（表示だけ）。通信の手順も棋譜も動作状態も持たない。棋譜（対局者・持ち時間・開始と終了の日時・着手の行・自動保存）はローカル対局と同じく司令塔が `GameSession` に書き（6.9 節）、動作状態 `DuringCsaGame` も司令塔が持つ。評価値グラフ・通信ログ・エラー・盤の手の接続は合成ルートの `connectGame()` が行う（10.5 節）。
 
 #### 役割
 
-- コンストラクタで `CsaGameCoordinator` の各シグナル（`gameStarted`・`gameEnded`・`turnChanged`・`logMessage`・`engineScoreUpdated`・`errorOccurred`）と、`CsaLogPanel`・`BoardMoveController::csaMoveRequested` を直接つなぐ。`gameStarted`・`recordEntryReady`・`gameEnded` は先に作られた `GameSession` も受け、棋譜を先に作る
-- `startGame(const CsaGameDialog::Selection&)`: `CsaWaitingDialog` を出して `CsaGameCoordinator::startGame()` を呼び、対局が始まるかエラー・キャンセルまで待つ。呼び出しは `DialogLauncher`（CsaGameDialog で設定を決めた後）
-- 対局開始時: 後手なら盤を反転し、動作状態（`AppActivityState`）を `DuringCsaGame` にする（棋譜と対局情報の作り直し・対局者の表示は `GameSession::onCsaGameStarted()` が `beginMatchRecord()` で済ませている）
-- 自分のエンジンの評価値: `EvaluationGraphPresenter::plotEngineScore(自分の側, ply, score)`（Deps の `evalGraph`）で、ローカル対局のエンジンの手と同じ符号の扱いで描く
-- 終局時: 動作状態を `Idle` に戻して結果を表示する（棋譜の確定・終局日時・自動保存は `GameSession::onCsaGameEnded()` の `finishMatchRecord(true)`。自動保存の指定は接続ダイアログの値を `CsaGameCoordinator::StartOptions::autoSave` に入れて渡す）
+- コンストラクタで `CsaGameCoordinator` の `gameStarted`・`gameEnded`・`turnChanged`・`logMessage` を自分のスロットにつなぐ
+- `startGame(const CsaGameDialog::Selection&)`: `CsaWaitingDialog` を出して `CsaGameCoordinator::startGame()` を呼び、対局が始まるかエラー・キャンセルまで待つ。始まらなければ司令塔を止める。呼び出しは `DialogLauncher`（CsaGameDialog で設定を決めた後）
+- 対局開始時: 後手なら盤を反転してステータスバーに知らせる（棋譜と対局情報の作り直し・対局者の表示と `DuringCsaGame` への切り替えは、司令塔が `gameStarted` の前に済ませている）
+- 終局時: 結果を表示する（棋譜の確定・終局日時・自動保存と待機への切り替えは、司令塔が `gameEnded` の前に済ませている。自動保存の指定は接続ダイアログの値を `CsaGameCoordinator::StartOptions::autoSave` に入れて渡す）
 - 待機ダイアログ（`CsaWaitingDialog`）のログ窓は `CsaLogPanel` を使い、手入力のCSAコマンドは `csaRawCommandRequested` → `CsaGameCoordinator::sendRawCommand` で送る
 
 ### 12.5 設定の永続化 — 宣言の表（`Setting<T>`）
@@ -7070,33 +7077,25 @@ MyDialog::MyDialog(QWidget* parent)
 
 人間対エンジンでは、エンジンが後手でも E1 に置く。思考タブの2つ目のエンジン欄はエンジン同士の対局だけ表示する。評価値グラフは、どの対局でも先手のエンジンを1つ目、後手のエンジンを2つ目の系列として描く（`EngineDisplayPresenter` が `KifuDocument::playersChanged` を受けて `EvaluationGraphPresenter::setEngine1Name()`・`setEngine2Name()` を呼ぶ）。検討・詰み探索のエンジンは E1 だけを使う（`AnalysisSession::engineNamesChanged` → `EngineDisplayPresenter`）。
 
-### 12.8 TimeControlUtil — 持ち時間設定のユーティリティ
+### 12.8 持ち時間の時計への適用（MatchCoordinator::applyTimeSettings）
 
-**ソース**: `src/game/timecontrolutil.h/.cpp`
+**ソース**: `src/game/matchcoordinator.cpp`
 
-`MatchTimeSettings`（`src/game/matchtimesettings.h`。時間の決まり `rules` と `loseOnTimeout`）を `ShogiClock` に適用するユーティリティ名前空間。対局を始めるときに `GameSession::startGame()` が一度だけ呼ぶ。
-
-#### applyToClock()
-
-```cpp
-void applyToClock(ShogiClock& clock,
-                  const MatchTimeSettings& settings,
-                  Turn firstPlayer);
-```
+ローカル対局の持ち時間は、開始の設定 `MatchStartOptions::time`（`MatchTimeSettings`。`src/game/startoptions.h`。時間の決まり `rules` と `loseOnTimeout`）に入れて司令塔に渡し、`MatchCoordinator::start()` が盤を開始局面にした直後に `applyTimeSettings()` で一度だけ時計に入れる（時計はまだ動かさない。`beginPlay()` で動かす）。中断した対局の再開は、時計のスナップショット（持ち時間の決まりと時間切れの扱いを含む）を `ShogiClock::restoreSnapshot()` で戻すので、ここを通らない。通信対局の時計は `CsaGameCoordinator` がサーバーの対局条件から入れる（12.3 節）。
 
 処理の流れ:
 
 1. **決まりの正規化**: `settings.rules.normalized()` で先後の決まりを整える。秒読みと加算の排他、持ち時間0の秒読みの扱いは `TimeControl::normalized()` が受け持つ
 2. **時間切れ負け**: 時間制限があり、`settings.loseOnTimeout` がオンのときだけ `ShogiClock::setLoseOnTimeout(true)` にする
 3. **時計への適用**: `ShogiClock::setTimeControl(rules)` で先後の決まりを渡す（初手の加算も時計が行う）
-4. **最初の手番**: `ShogiClock::setCurrentPlayer(firstPlayer)`。`GameSession::startGame()` は開始局面のSFENの手番（`sideToMove()`）を渡す
+4. **最初の手番**: `ShogiClock::setCurrentPlayer(盤の手番)`。開始局面の手番は盤（`ShogiGameController::currentPlayer()`）から読み、SFEN の文字列を切って求めない
 
 ```
-MatchTimeSettings {rules: TimeControl {black, white}, loseOnTimeout}
-    ↓
+MatchStartOptions::time = MatchTimeSettings {rules: TimeControl {black, white}, loseOnTimeout}
+    ↓ MatchCoordinator::start() → applyTimeSettings()
 ShogiClock::setLoseOnTimeout(limited && loseOnTimeout)
 ShogiClock::setTimeControl(rules.normalized())
-ShogiClock::setCurrentPlayer(firstPlayer)
+ShogiClock::setCurrentPlayer(gc->currentPlayer())
 ```
 
 <!-- chapter-12-end -->
@@ -7581,8 +7580,8 @@ MainWindow::MainWindow()
 
 **司令塔（MatchCoordinator）の生成と接続**: 司令塔は `createMatchAndAnalysis()` で、エンジンの枠（`EngineSlots`）を作った後に `MatchCoordinator::Deps`（`gc`・`clock`・`activity`・`engines`）を渡して1回だけ作る。検討・詰み探索の `AnalysisSession` と通信対局の `CsaGameCoordinator` も同じエンジンの枠を受け取る。
 
-- `createSessions()` が `MatchCoordinator::setRecordSink()` で棋譜の受け手（`GameSession`）を渡す。`connectGame()` が司令塔のシグナルを `GameSession` などへ直接つなぐ（評価値 `engineMovePlayed`、待った `movesUndone`、再開できるか `resumeAvailabilityChanged`、終局 `gameEnded`・`gameOverMessage`・`gameEndProcessed`、中断 `gameInterrupted`、連続対局 `nextGameReady`）。時計の表示は `TimeDisplayPresenter` が `ShogiClock::timeUpdated` を自分でつなぐ。通信対局の棋譜は `GameSession` がコンストラクタで `CsaGameCoordinator` の `gameStarted`・`recordEntryReady`・`gameEnded` を自分でつなぐ（`CsaGameSession` より先に作るので、画面の反映より先に棋譜ができる）。検討のシグナルは `connectAnalysisAndUi()` がつなぐ。
-- 終局の知らせは、終局の行の追記（`MatchRecordSink::appendRecord()`）→ `gameEnded`（`GameSession::onGameEnded()` の `finishMatchRecord()`：ライブ対局のセッションの確定・終局時刻の記録・棋譜の自動保存。アイドルへの遷移は司令塔が先に済ませている）→ `gameOverMessage` → `gameEndProcessed`（連続対局の次局）の順に出る。
+- `createSessions()` が両方の司令塔に `setRecordSink()` で棋譜の受け手（`GameSession`）を渡す（`MatchCoordinator`・`CsaGameCoordinator`）。`connectGame()` が司令塔のシグナルを `GameSession` などへ直接つなぐ（評価値 `engineMovePlayed`、待った `movesUndone`、再開できるか `resumeAvailabilityChanged`、終局 `gameEnded`・`gameOverMessage`・`gameEndProcessed`、中断 `gameInterrupted`、連続対局 `nextGameReady`）。時計の表示は `TimeDisplayPresenter` が `ShogiClock::timeUpdated` を自分でつなぐ。通信対局も `connectGame()` が `CsaGameCoordinator` の評価値 `engineMovePlayed`・エラー `errorOccurred`・通信ログと、盤の手 `BoardMoveController::csaMoveRequested` をつなぐ。通信対局の棋譜はシグナルではなく司令塔が受け手に書き、動作状態も司令塔が持つので、接続の順に頼らない。検討のシグナルは `connectAnalysisAndUi()` がつなぐ。
+- 終局の知らせは、終局の行の追記（`MatchRecordSink::appendRecord()`）→ 棋譜の確定（`MatchRecordSink::finishRecord()`：ライブ対局のセッションの確定・終局時刻の記録・棋譜の自動保存）→ アイドルへの遷移 → `gameEnded`（`GameSession::onGameEnded()`。中断なら連続対局をやめる）→ `gameOverMessage` → `gameEndProcessed`（連続対局の次局）の順に出る。
 - `tests/tst_wiring_contracts.cpp` は本体の部品で、対局の開始と終局が実際の受け手に届くこと（UI 状態・対局者・時計・棋譜の行）と、着手と待ったで司令塔の手順・棋譜・表示中の局面がそろうことを確かめる。
 
 起動時に対局は始めない。`finalizeUi()` が初期局面・対局者名・手番を表示する。
@@ -7743,15 +7742,15 @@ sequenceDiagram
     GS->>GS: startGame(plan, beginSeries=true)
     GS->>SRC: prepareGameStart(plan.preparation)
     Note over SRC: ライブ対局を捨てて開始ノードから始め直す<br/>新しい棋譜なら文書の置き換えで表示が消える<br/>（現在局面から続けるときは評価値グラフを切り詰める）
-    Note over GS: 時計に持ち時間を設定（TimeControlUtil::applyToClock）<br/>→ 時計の表示
     GS->>DOC: beginMatch(players, time, continuesRecord)
     Note over DOC: 対局者・持ち時間・開始日時を記録し、<br/>対局情報を作り直す（headerReset → 対局情報欄・盤の対局者名）
     Note over GS: 盤の対局者名は playersChanged を受けた PlayerInfoPresenter、<br/>エンジンの表示は EngineDisplayPresenter
     GS->>MC: start(MatchStartOptions)
-    Note over MC: 動作状態を DuringGame にし、<br/>盤を開始局面にする
+    Note over MC: 動作状態を DuringGame にし、<br/>盤を開始局面にし、<br/>時計に持ち時間を設定（applyTimeSettings）
     MC->>ST: 対局者の組で Strategy を作って start()
     ST->>USI: startEngine()（エンジンを使う対局。EngineSlots 経由）
     Note over USI: エンジンプロセス起動<br/>usi → usiok<br/>isready → readyok
+    Note over GS: 時計の表示
     GS->>MC: beginPlay()（時計の開始）
     MC->>ST: startInitialMoveIfNeeded()
     alt エンジンが先手の場合
@@ -8061,10 +8060,12 @@ sequenceDiagram
     CC-->>CGC: gameStarted シグナル
     CGC->>CGC: setupInitialPosition() / setupClock()
     CGC->>SGC: 初期局面を設定（既存手順があれば指す）
-    CGC-->>GS: gameStarted(blackName, whiteName, 既存の手順)
-    Note over GS: onCsaGameStarted(): 棋譜を作り直してライブ記録を始め、<br/>beginMatchRecord()（対局者・持ち時間・開始日時）、既存の手順を追記
-    CGC-->>CGS: gameStarted（GameSession の後）
-    Note over CGS: 盤の反転、動作状態を DuringCsaGame にする
+    CGC->>GS: beginRecord(開始局面・対局者・持ち時間・自動保存)（MatchRecordSink）
+    Note over GS: 棋譜を作り直してライブ記録を始め、<br/>beginMatchRecord()（対局者・持ち時間・開始日時）
+    CGC->>GS: appendRecord(既存の手順)
+    Note over CGC: 動作状態を DuringCsaGame にする
+    CGC-->>CGS: gameStarted(blackName, whiteName)
+    Note over CGS: 盤の反転・ステータスバー
 
     loop 対局中
         alt 自分の手番（CsaClient::isMyTurn()）
@@ -8085,7 +8086,7 @@ sequenceDiagram
         end
         CGC->>SGC: CsaMoveConverter::toUsi() → applyRecordedMove()（盤に指す）
         Note over CGC: 時計と CsaGameProgress::record（RecordLine）を更新
-        CGC-->>GS: recordEntryReady → GameSession::appendRecord()（MatchRecordSink）
+        CGC->>GS: appendRecord(entry)（MatchRecordSink）
         CGC->>SGC: notifyMoveCommitted()
         Note over SGC: moveCommitted シグナル<br/>（駒音）
     end
@@ -8093,11 +8094,13 @@ sequenceDiagram
     Srv-->>CC: #RESIGN or #TIME_UP etc.
     CC->>CC: processResultLine()
     CC-->>CGC: gameEnded(result, cause, consumedTimeMs)
-    CGC-->>GS: gameEnded シグナル
-    Note over GS: finishMatchRecord(true): ライブ対局の確定・終局時刻の記録・自動保存
-    CGC-->>CGS: gameEnded シグナル（GameSession の後）
-    Note over CGS: アイドル状態へ・結果のダイアログ
+    CGC->>GS: appendRecord(終局行)（MatchRecordSink）
     CGC->>CC: 予定の対局数を終えたら切断、まだなら次の対局条件を待つ
+    CGC->>GS: finishRecord(true)
+    Note over GS: ライブ対局の確定・終局時刻の記録・自動保存
+    Note over CGC: 動作状態を待機に戻す
+    CGC-->>CGS: gameEnded シグナル
+    Note over CGS: 結果のダイアログ
 ```
 
 **主要クラスの役割:**
@@ -8105,9 +8108,9 @@ sequenceDiagram
 | クラス | 責務 |
 |--------|------|
 | `CsaGameDialog` | CSA通信対局の接続設定UI（ホスト・ポート・ユーザー名・パスワード・エンジン選択（`EngineSelector`）） |
-| `CsaGameSession` | 通信対局の1回の接続を画面に反映する。接続ダイアログの値で `CsaGameCoordinator` に開始を頼み、対局の開始・手番・終局を盤の向き・評価値グラフ・ステータスバー・結果のダイアログへ映す（`src/ui/coordinators/`） |
-| `GameSession` | 通信対局の棋譜（作り直し・対局者・持ち時間・開始と終了の日時・着手の行・自動保存）をローカル対局と同じ流れで受け持つ。投了・中断・入玉宣言は `CsaGameChannel` 経由でサーバーへ送る（`src/app/`） |
-| `CsaGameCoordinator` | CSA通信対局の進行管理（合成ルートが起動時に1つ作る）。1局の進行（持ち時間・手数・手順）は `CsaGameProgress` に持ち、手順は `record`（`RecordLine`）1つだけ。自分の手番は持たず `CsaClient::isMyTurn()` を見る |
+| `CsaGameSession` | 通信対局の1回の接続を画面に反映する。接続ダイアログの値で `CsaGameCoordinator` に開始を頼み（待機ダイアログ）、対局の開始・手番・終局を盤の向き・ステータスバー・結果のダイアログへ映す（`src/ui/coordinators/`） |
+| `GameSession` | 通信対局の棋譜（作り直し・対局者・持ち時間・開始と終了の日時・着手の行・自動保存）を、ローカル対局と同じ棋譜の受け手（`MatchRecordSink`）として受け持つ。投了・中断・入玉宣言は `CsaGameChannel` 経由でサーバーへ送る（`src/app/`） |
+| `CsaGameCoordinator` | CSA通信対局の進行管理（合成ルートが起動時に1つ作る）。1局の進行（持ち時間・手数・手順）は `CsaGameProgress` に持ち、手順は `record`（`RecordLine`）1つだけ。自分の手番は持たず `CsaClient::isMyTurn()` を見る。棋譜は受け手に書き、動作状態 `DuringCsaGame` は自分で持つ（`MatchCoordinator` と同じ順） |
 | `CsaClient` | CSAプロトコルのTCP/IP通信実装。メッセージの送受信と状態管理。Game_Summary は `GameSummary`（`myTurn` は `std::optional<Turn>`、`toMove` は `Turn`）にまとめる |
 | `MatchEngineSeat` | エンジンで指すときの `Usi` の起動・知らせ・終局の手順（ローカル対局と共有。エンジンの枠は `EngineSlots` を使う） |
 | `ShogiGameController` | 盤面データの更新と、着手確定の知らせ（`moveCommitted`） |
@@ -9363,12 +9366,13 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | MatchCoordinator | C | game | ローカル対局（人間・エンジン）の司令塔。手順・一手の確定・終局・待った・中断と再開 | 第6章 |
 | MatchEngineSeat | C | game | 対局で指すエンジン1台（枠のリース・手番・持ち時間の出どころ・知らせ・終局の手順）。人間対エンジン・エンジン同士・通信対局で共有 | 第6章, 第12章 |
 | MatchPlayers | S | core | 対局者（先手・後手を人間とエンジンのどちらが指すかと、その名前） | 第3章, 第5章 |
-| MatchRecordSink | C | game | 対局の棋譜の受け手のインターフェース（実装は `GameSession`） | 第6章 |
+| MatchRecordSink | C | game | 対局の棋譜の受け手のインターフェース（新しい棋譜・行の追記と取り消し・終局での確定。実装は `GameSession`。ローカル対局と通信対局の司令塔が使う） | 第6章, 第12章 |
+| MatchRecordStart | S | game | 司令塔が始める対局の新しい棋譜（開始局面・対局者・持ち時間・自動保存。通信対局の開始で `MatchRecordSink::beginRecord()` に渡す） | 第6章, 第12章 |
 | MatchSessionState | C | game | 対局の設定と終了状態の持ち主 | 第6章 |
-| MatchStartOptions | S | game | 対局開始の設定（対局者・開始局面・手順・エンジンのパス） | 第6章 |
+| MatchStartOptions | S | game | 対局開始の設定（対局者・手順・時間の決まり・エンジンのパス） | 第6章 |
 | MatchStrategyHost | C | game | Strategy が司令塔に頼む操作のインターフェース | 第6章 |
 | MatchTimeRecord | C | kifu | 対局の持ち時間と開始・終了の日時（棋譜の文書が持ち、対局情報と棋譜に書く記録） | 第6章, 第8章 |
-| MatchTimeSettings | S | game | 対局の時間の決まり（持ち時間・秒読み・加算と、時間切れの扱い） | 第6章 |
+| MatchTimeSettings | S | game | 対局の時間の決まり（持ち時間・秒読み・加算と、時間切れの扱い。`MatchStartOptions::time`） | 第6章, 第12章 |
 | MatchTimeSource | C | engine | エンジンの思考に使う時間の出どころのインターフェース（ローカル対局は対局時計、通信対局はサーバーの残り時間） | 第7章, 第12章 |
 | MateAnswer | S | engine | 詰みの問い合わせの答え（`Mate`・`NoMate`・`Unknown`・`Unsupported` と手順。`UsiCheckmate` からの変換は `fromCheckmate()` だけ） | 第7章, 第9章 |
 | MateOracle | C | engine | エンジン1台への詰みの問い合わせ（go mate。`UsiEngineSession` を持つ） | 第7章, 第9章 |
@@ -9440,7 +9444,6 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | ThinkingPanel | C | widgets | 思考ドックの中身（エンジン2つ分の情報と思考の表、候補手の矢印の表示設定） | 第11章 |
 | ThinkingTableView | C | widgets | 思考の表（`PvTableView` の派生。対局のエンジン2つと検討タブで共用。列幅） | 第11章 |
 | TimeControl | S | core | 持ち時間の決まり（持ち時間・秒読み・加算・遅延）の値型 | 第5章, 第6章 |
-| TimeControlUtil | NS | game | 持ち時間設定を `ShogiClock` へ適用するユーティリティ | 第12章 |
 | TimeControlEditor | C | widgets | 片方の対局者の持ち時間・秒読み・加算の欄（`TimeControlSide` で読み書き。秒読みと加算は排他） | 第11章 |
 | TimeDisplayPresenter | C | ui/presenters | 時計の表示の更新（`ShogiClock::timeUpdated` を直接受ける） | 第10章 |
 | TsumeCandidateJob | C | analysis | 詰将棋の候補1つを採択か棄却まで進める（手数の確認・唯一解の検査・要らない駒の除去） | 第9章 |
@@ -9509,18 +9512,16 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 |---------|--------|------|
 | matchcoordinator | 第4章, 第6章 | ローカル対局の司令塔 |
 | matchengineseat | 第6章, 第12章 | 対局で指すエンジン1台 |
-| matchrecordsink | 第6章 | 対局の棋譜の受け手（インターフェース） |
+| matchrecordsink | 第6章, 第12章 | 対局の棋譜の受け手（インターフェース）と、司令塔が始める対局の新しい棋譜 `MatchRecordStart` |
 | gamechannel | 第6章 | 対局相手の窓口 `GameChannel`（投了・中断・即指し・入玉宣言をローカル対局と通信対局で同じ操作に）とローカル対局の実装 `LocalGameChannel` |
 | matchautosave | 第6章 | 終局した棋譜の自動保存の指定（ローカル対局・通信対局で同じ） |
 | gamemodestrategy | 第6章 | 対局モード別の Strategy（実装は humanvs*strategy・enginevsenginestrategy） |
 | shogigamecontroller | 第6章 | 対局フロー制御（指し手の検証と盤への適用） |
-| timecontrolutil | 第12章 | 持ち時間の時計への適用 |
 | consecutivegameseries | 第6章 | エンジン同士の連続対局（局数・手番の入れ替え・次局の計画） |
 | enginevsenginestrategy | 第6章 | エンジン対エンジンの Strategy |
 | gamestartoptionsbuilder | 第6章 | 対局開始ダイアログの値から、対局の開始の計画（局面・対局者・時間・連続対局）を作る |
 | humanvsenginestrategy | 第6章 | 人間対エンジンの Strategy |
 | humanvshumanstrategy | 第6章 | 人間対人間の Strategy |
-| matchtimesettings | 第6章 | 対局の時間の決まり（持ち時間・秒読み・加算と、時間切れの扱い） |
 
 #### engine/（第7章）
 

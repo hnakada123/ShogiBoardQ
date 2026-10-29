@@ -1020,7 +1020,7 @@ SFENの手数欄とツリー上の手数も混同しない。
 `SessionResetCoordinator::prepareGameStart()` がツリーをその局面で作り直し（`KifuBranchTree::setRootSfen()`）、
 ルートからライブ対局を始める。
 `MatchSessionState` が開始オプション（対局者を含む）・終局状態をまとめて所有する（エンジンの先読みの局面はエンジンの `UsiMatchHandler` だけが持つ）。
-持ち時間は `GameSession::startGame()` で一度だけ時計に設定し（`TimeControlUtil::applyToClock()`）、
+持ち時間は対局の開始で一度だけ時計に設定し（`MatchCoordinator::start()` が `MatchStartOptions::time` から）、
 `KifuDocument::beginMatch()` が対局者と、持ち時間・開始日時（`MatchTimeRecord::begin()`）を記録する。`TimeDisplayPresenter` は時計の残り時間を表示するだけにする。
 
 連続対局の次局（`GameSession::startNextGame()`）は、`SessionResetCoordinator::resetToNewRecord()` で独立した棋譜にしてから同じ手順で始める。

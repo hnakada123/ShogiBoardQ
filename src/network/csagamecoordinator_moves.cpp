@@ -6,6 +6,7 @@
 #include "csamoveconverter.h"
 #include "logcategories.h"
 #include "matchengineseat.h"
+#include "matchrecordsink.h"
 #include "shogiboard.h"
 #include "shogiclock.h"
 #include "shogigamecontroller.h"
@@ -134,7 +135,7 @@ void CsaGameCoordinator::finishMove(const RecordEntry& played, int consumedTimeM
     entry.move = played.move;
     entry.sfen = played.sfen;
     p.record.entries.append(entry);
-    emit recordEntryReady(entry);
+    if (m_sink) m_sink->appendRecord(entry);
     emit turnChanged(nowMyTurn);
     // 盤面・棋譜・時計を確定し終えた着手を知らせる（駒音・定跡ウィンドウ。通知は盤面の更新の後）
     m_gameController->notifyMoveCommitted(isBlackMove ? Turn::Black : Turn::White, p.moveCount());
@@ -226,6 +227,6 @@ void CsaGameCoordinator::onEngineMoveReady(const UsiMatchMove& result)
 
     if (m_client->sendMove(csaMove)) {
         emit turnChanged(false);
-        emit engineScoreUpdated(result.score, m_progress.moveCount() + 1);
+        emit engineMovePlayed(black ? Turn::Black : Turn::White, m_progress.moveCount() + 1, result.score);
     }
 }
