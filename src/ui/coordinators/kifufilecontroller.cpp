@@ -200,6 +200,15 @@ void KifuFileController::markSaved(const QString& filePath, const QString& messa
     emit statusMessage(message, 5000);
 }
 
+QString KifuFileController::defaultFileName(const QString& extension) const
+{
+    // 対局情報の対局者名から作る（読み込んだ・貼り付けた棋譜も同じ。対局した棋譜は対局情報に対局者が入っている）
+    const KifuDocument* document = m_deps.document;
+    return KifuIoService::makeDefaultSaveFileName(document->headerPlayerName(Turn::Black),
+                                                  document->headerPlayerName(Turn::White),
+                                                  QDateTime::currentDateTime(), extension);
+}
+
 void KifuFileController::saveKifuToFile()
 {
     const KifuBranchTree* tree = m_deps.document->tree();
@@ -215,7 +224,7 @@ void KifuFileController::saveKifuToFile()
     QString error;
     const QString path = KifuSaveDialogs::saveViaDialog(
         m_deps.parentWidget, [this](KifuFormat format) { return exportLines(format); },
-        KifuIoService::makeDefaultSaveFileName(m_deps.document->players(), QDateTime::currentDateTime()),
+        defaultFileName(QStringLiteral("kifu")),
         hasBranches, hasTimeInfo, &error);
     if (!error.isEmpty()) QMessageBox::warning(m_deps.parentWidget, tr("KIF Save Error"), error);
     if (!path.isEmpty()) markSaved(path, tr("棋譜を保存しました: %1").arg(path));
@@ -260,8 +269,7 @@ void KifuFileController::autoSaveKifu(const QString& saveDir, const QString& ext
     }
     // 名前は対局者と日時から作る。同じ秒に終わった対局があっても上書きしない
     const QDir dir(saveDir);
-    const QString fileName =
-        KifuIoService::makeDefaultSaveFileName(m_deps.document->players(), QDateTime::currentDateTime(), extension);
+    const QString fileName = defaultFileName(extension);
     QString filePath = dir.filePath(fileName);
     const QFileInfo info(fileName);
     for (int serial = 2; QFileInfo::exists(filePath); ++serial)

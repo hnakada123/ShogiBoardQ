@@ -4,12 +4,14 @@
 #include <QJsonDocument>
 #include <QJsonArray>
 #include <QJsonObject>
+#include <QTemporaryDir>
 #include <QTemporaryFile>
 #include <QClipboard>
 #include "kifu_file_helper.h"
 #include "bodtextgenerator.h"
 #include "csaformatter.h"
 
+#include "gameinfokeys.h"
 #include "kifudocument.h"
 #include "timecontroltext.h"
 #include "kifuexport.h"
@@ -136,11 +138,42 @@ private slots:
         QVERIFY2(!csa.contains(QStringLiteral("$START_TIME")), qPrintable(csa));
         QVERIFY2(!csa.contains(QStringLiteral("$END_TIME")), qPrintable(csa));
 
-        // このアプリで対局した開始時刻が分かる場合は記録する
-        context.gameStartDateTime = QDateTime(QDate(2026, 10, 5), QTime(9, 30, 0));
+        // 対局情報の開始日時は CSA でも書く
+        context.gameInfoItems.append({QStringLiteral("開始日時"), QStringLiteral("2026/10/05 09:30:00")});
         const QString live = KifuExport::lines(tree, context, KifuFormat::Csa).join(QLatin1Char('\n'));
         QVERIFY2(live.contains(QStringLiteral("$START_TIME:2026/10/05 09:30:00")), qPrintable(live));
         QVERIFY(!live.contains(QStringLiteral("$END_TIME")));
+    }
+
+    /// CSA の開始日時・持ち時間も KIF と同じく対局情報から書く。対局の後に直した持ち時間を書き、
+    /// 途中から続けた対局（対局情報は元の棋譜のまま）では続けた対局の日時・持ち時間を足さない（監査 F3）
+    void csaWritesTimesFromGameInfo()
+    {
+        KifuBranchTree tree;
+        tree.setRootSfen(kHirateSfen);
+        KifuDocument document(&tree);
+        MatchPlayers players;
+        players.seat(Turn::Black).humanName = QStringLiteral("太郎");
+        players.seat(Turn::White).humanName = QStringLiteral("花子");
+        document.beginMatch(players, TimeControl{{60000, 2000, 0}, {60000, 2000, 0}}, false);
+        QVERIFY(KifuExport::lines(document, KifuFormat::Csa).contains(QStringLiteral("$TIME:60+2+0")));
+
+        QList<KifGameInfoItem> edited = document.header();
+        for (KifGameInfoItem& item : edited)
+            if (item.key == GameInfoKeys::kTimeControl) item.value = QStringLiteral("10:00+10");
+        document.editHeader(edited);
+        QVERIFY(KifuExport::lines(document, KifuFormat::Kif).contains(QStringLiteral("持ち時間：10:00+10")));
+        const QString csa = KifuExport::lines(document, KifuFormat::Csa).join(QLatin1Char('\n'));
+        QVERIFY2(csa.contains(QStringLiteral("$TIME:600+10+0")), qPrintable(csa));
+        QVERIFY(!csa.contains(QStringLiteral("$TIME:60+2+0")));
+
+        // 読み込んだ棋譜（開始日時・持ち時間なし）の途中から続けた対局
+        document.startNew(kHirateSfen);
+        document.editHeader({{GameInfoKeys::kBlackPlayer, QStringLiteral("A")}, {GameInfoKeys::kWhitePlayer, QStringLiteral("B")}});
+        document.beginMatch(players, TimeControl{{60000, 2000, 0}, {60000, 2000, 0}}, true);
+        const QString continued = KifuExport::lines(document, KifuFormat::Csa).join(QLatin1Char('\n'));
+        QVERIFY2(!continued.contains(QStringLiteral("$START_TIME")), qPrintable(continued));
+        QVERIFY(!continued.contains(QStringLiteral("$TIME")));
     }
 
     /// 対局情報・コメント・しおりの改行（CR だけも）は、書き出した棋譜で別の行にならない（セキュリティ監査 S9）
@@ -640,6 +673,31 @@ private slots:
         QVERIFY(files.controller->copyCsaToClipboard());
         const QString csa = QApplication::clipboard()->text();
         QVERIFY2(csa.contains(QStringLiteral("$START_TIME:")) && csa.contains(QStringLiteral("$END_TIME:")), qPrintable(csa));
+    }
+
+    /// 保存ファイル名の既定値は対局情報の対局者名から作る（読み込んだ棋譜も「日時_先手_vs_後手」。監査 U1）。
+    /// 新規の棋譜は対局者名が空なので日時だけ
+    void defaultFileNameUsesGameInfoPlayers()
+    {
+        KifuBranchTree tree;
+        tree.setRootSfen(kHirateSfen);
+        KifuNavigationState nav(&tree);
+        FileHarness files(&tree, &nav);
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+
+        files.controller->autoSaveKifu(dir.path(), QStringLiteral("kifu"));
+        QStringList saved = QDir(dir.path()).entryList(QDir::Files);
+        QCOMPARE(saved.size(), 1);
+        QVERIFY2(saved.first().endsWith(QStringLiteral("_Session.kifu")), qPrintable(saved.first()));
+
+        files.document.editHeader({{GameInfoKeys::kBlackPlayer, QStringLiteral("Alice")},
+                                   {GameInfoKeys::kWhitePlayer, QStringLiteral("Bob")}});
+        QVERIFY(files.document.players().name(Turn::Black).isEmpty());   // 対局の記録には対局者が無い
+        files.controller->autoSaveKifu(dir.path(), QStringLiteral("csa"));
+        saved = QDir(dir.path()).entryList({QStringLiteral("*.csa")}, QDir::Files);
+        QCOMPARE(saved.size(), 1);
+        QVERIFY2(saved.first().endsWith(QStringLiteral("_Alice_vs_Bob.csa")), qPrintable(saved.first()));
     }
 
     void removedGameInfoStaysEmptyOnExport()

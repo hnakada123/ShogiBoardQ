@@ -3,26 +3,6 @@
 #include "kifuexportmetadata.h"
 #include "gameinfokeys.h"
 #include "handicaps.h"
-#include <QCoreApplication>
-
-void KifuExportMetadataBuilder::resolvePlayerNames(const KifuExportMetadata& ctx, QString& outBlack, QString& outWhite)
-{
-    const MatchPlayers& players = ctx.players;
-    // 名前が無いときは、人間なら先手・後手、エンジンなら Engine（エンジン同士なら Engine1・Engine2）
-    const auto fallback = [&players](Turn side) {
-        const bool black = side == Turn::Black;
-        if (!players.isEngine(side))
-            return black ? QCoreApplication::translate("KifuExportMetadataBuilder", "先手")
-                         : QCoreApplication::translate("KifuExportMetadataBuilder", "後手");
-        if (!players.engineVsEngine()) return QCoreApplication::translate("KifuExportMetadataBuilder", "Engine");
-        return black ? QCoreApplication::translate("KifuExportMetadataBuilder", "Engine1")
-                     : QCoreApplication::translate("KifuExportMetadataBuilder", "Engine2");
-    };
-    outBlack = players.name(Turn::Black);
-    outWhite = players.name(Turn::White);
-    if (outBlack.isEmpty()) outBlack = fallback(Turn::Black);
-    if (outWhite.isEmpty()) outWhite = fallback(Turn::White);
-}
 
 QString KifuExportMetadataBuilder::handicapLabel(const QString& startSfen)
 {

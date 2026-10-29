@@ -89,8 +89,8 @@ QList<KifGameInfoItem> KifuDocument::defaultHeader()
 {
     return {{GameInfoKeys::kGameDate, {}},
             {GameInfoKeys::kStartDateTime, {}},
-            {GameInfoKeys::kBlackPlayer, tr("先手")},
-            {GameInfoKeys::kWhitePlayer, tr("後手")},
+            {GameInfoKeys::kBlackPlayer, {}},
+            {GameInfoKeys::kWhitePlayer, {}},
             {GameInfoKeys::kHandicap, QStringLiteral("平手")},
             {GameInfoKeys::kTimeControl, {}},
             {GameInfoKeys::kEvent, {}},

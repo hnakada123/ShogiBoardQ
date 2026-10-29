@@ -6,7 +6,6 @@
 #include <QMessageBox>
 #include <QTemporaryDir>
 #include <QStatusBar>
-#include "boardinteractioncontroller.h"
 #include "csagamecoordinator.h"
 #include "csawaitingdialog.h"
 #include "csagamesession.h"
@@ -51,22 +50,17 @@ private slots:
     {
         CsaGameCoordinator coordinator;
         AppActivityState activity;
-        BoardInteractionController board(nullptr, nullptr);
         NotificationPresenter notifications({});
         CsaGameSession::Deps deps;
         deps.coordinator = &coordinator;
         deps.activity = &activity;
-        deps.boardController = &board;
         deps.notifications = &notifications;
         CsaGameSession session(deps);
 
         const QMetaMethod error = QMetaMethod::fromSignal(&CsaGameCoordinator::errorOccurred);
-        const QMetaMethod highlight = QMetaMethod::fromSignal(&CsaGameCoordinator::moveHighlightRequested);
         QVERIFY(!QObject::disconnect(&coordinator, error, &session, QMetaMethod()));        // 中継しない
         QVERIFY(QObject::disconnect(&coordinator, error, &notifications, QMetaMethod()));
         QVERIFY(!QObject::disconnect(&coordinator, error, &notifications, QMetaMethod()));  // 1本だけ
-        QVERIFY(QObject::disconnect(&coordinator, highlight, &board, QMetaMethod()));
-        QVERIFY(!QObject::disconnect(&coordinator, highlight, &board, QMetaMethod()));
     }
 
     /// サーバーから受け取った行は HTML として描かない（リンク・ローカルファイルの画像を出させない。セキュリティ監査 S4）

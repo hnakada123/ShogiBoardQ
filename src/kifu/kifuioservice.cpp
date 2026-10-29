@@ -38,16 +38,16 @@ QString sanitizeForFileName(const QString& s, const QString& placeholder)
 
 } // namespace
 
-QString KifuIoService::makeDefaultSaveFileName(const MatchPlayers& players, const QDateTime& now, const QString& ext)
+QString KifuIoService::makeDefaultSaveFileName(const QString& black, const QString& white, const QDateTime& now,
+                                              const QString& ext)
 {
     const QDateTime ts = now.isValid() ? now : QDateTime::currentDateTime();
     const QString stamp = ts.toString(QStringLiteral("yyyyMMdd_HHmmss"));
     const QString extension = ext.isEmpty() ? QStringLiteral("kifu") : ext;
 
-    const QString black = players.name(Turn::Black);
-    const QString white = players.name(Turn::White);
-    // 対局をしていない（対局者の名前が無い）ときは、日時だけの名前にする
-    if (black.isEmpty() && white.isEmpty()) return QStringLiteral("%1_Session.%2").arg(stamp, extension);
+    // 対局者の名前が無いときは、日時だけの名前にする
+    if (black.trimmed().isEmpty() && white.trimmed().isEmpty())
+        return QStringLiteral("%1_Session.%2").arg(stamp, extension);
     return QStringLiteral("%1_%2_vs_%3.%4")
         .arg(stamp, sanitizeForFileName(black, QStringLiteral("P1")),
              sanitizeForFileName(white, QStringLiteral("P2")), extension);

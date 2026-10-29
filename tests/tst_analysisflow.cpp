@@ -177,6 +177,9 @@ private slots:
         QSignalSpy positions(&job, &AnalysisJob::plyStarted);
         QSignalSpy results(&job, &AnalysisJob::plyAnalyzed);
         QSignalSpy finished(&job, &AnalysisJob::finished);
+        auto* process = h.usi->findChild<EngineProcessManager*>();
+        QVERIFY(process);
+        QSignalSpy commands(process, &EngineProcessManager::commandSent);
         request.line = RecordLine{};
         QVERIFY(job.start());
         QTRY_COMPARE_WITH_TIMEOUT(finished.size(), 1, 5000);
@@ -184,6 +187,13 @@ private slots:
         QCOMPARE(results.size(), 3);
         QVERIFY(finished.first().first().toBool());   // 範囲の全局面を解析した
         QCOMPARE(results.last().first().value<PlyAnalysis>().ply, 2);
+        // 局面は開始局面からの手順で送る（千日手の判断材料。CLI の analyze-kifu と同じ）
+        QStringList sent;
+        for (const auto& args : std::as_const(commands)) {
+            if (args.first().toString().startsWith(QStringLiteral("position "))) sent << args.first().toString();
+        }
+        QCOMPARE(sent, (QStringList{QStringLiteral("position startpos"), QStringLiteral("position startpos moves 7g7f"),
+                                    QStringLiteral("position startpos moves 7g7f 3c3d")}));
         QCOMPARE(job.line().sfens(), h.sfenRecord);
         QVERIFY(!job.isRunning());
         job.stop();
@@ -193,11 +203,13 @@ private slots:
         QCOMPARE(results.size(), 3);
     }
 
-    /// 読めない局面（壊れた SFEN）はエンジンに送らずに飛ばし、前の局面の結果をその手数の結果にしない（U5）
+    /// 手順をたどれず局面も読めない手数（指せない手と壊れた SFEN）はエンジンに送らずに飛ばし、
+    /// 前の局面の結果をその手数の結果にしない（U5）。ほかの手数は局面だけで送る
     void jobSkipsUnreadablePositions()
     {
         TestHelper h;
         AnalysisRequest request = h.request();
+        request.line.entries[0].move.move = *UsiMove::parse(QStringLiteral("5e5d"));
         request.line.entries[0].sfen = QStringLiteral("broken");
         request.enginePath = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
         request.engineName = QStringLiteral("SkipAnalysis");

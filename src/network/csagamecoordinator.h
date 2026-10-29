@@ -11,7 +11,6 @@
 #include <QStringList>
 #include <QList>
 #include <QPointer>
-#include <QPoint>
 #include <QTimer>
 
 #include "csaclient.h"
@@ -208,7 +207,6 @@ signals:
     /// 棋譜行が確定した（対局中の着手ごと・終局時に1回ずつ）。手順（record()）は更新済み
     void recordEntryReady(const RecordEntry& entry);
     void turnChanged(bool isMyTurn);
-    void moveHighlightRequested(const QPoint& from, const QPoint& to);
     void logMessage(const QString& message, bool isError = false);
     void csaCommLogAppended(const QString& line);
     /// 自分のエンジンの評価値（自分から見た値）。ply は指した後の手数
@@ -278,7 +276,7 @@ private:
     /// 着手後に表示用時計をサーバーが示した残り時間に合わせ、次の手番の時計を動かす
     void syncClockAfterMove(bool startMyTurnClock);
     /// 指し手行の書式・座標を確認し、問題があれば通知文を返す（問題なければ空）
-    QString validateMoveText(const QString& move, QPoint* from, QPoint* to) const;
+    QString validateMoveText(const QString& move) const;
     /// 解釈できない指し手行を記録し、サーバーの裁定を待つ
     void deferVerdict(const QString& logText, const QString& failureText);
     /// 裁定待ちのまま次の行が来たら、続行できないとして終局させる
@@ -287,9 +285,8 @@ private:
     void clearPendingVerdict();
     /// CSA の指し手で盤を進める（盤と合わなければ nullopt）。表記の「同」は CSA の棋譜の直前の手で決める
     std::optional<RecordEntry> playCsaMove(const QString& csaMove);
-    /// 着手を記録して通知する（手数・手番・ハイライト・棋譜行）
-    void finishMove(const RecordEntry& played, int consumedTimeMs, const QPoint& from, const QPoint& to,
-                    bool nowMyTurn);
+    /// 着手を記録して通知する（手数・手番・棋譜行。盤のハイライトは棋譜の表示中の手から出る）
+    void finishMove(const RecordEntry& played, int consumedTimeMs, bool nowMyTurn);
     /// 同じ確定経路で人間・エンジン・相手の着手を記録する。
     bool applyConfirmedMove(const QString& move, int consumedTimeMs, bool nowMyTurn);
 

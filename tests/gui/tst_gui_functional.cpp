@@ -1703,7 +1703,8 @@ private slots:
         const QRgb boardColor = board()->grab().toImage().pixel(center);
         dialogMessages.clear();
         armDialog("messages");
-        paste(QStringLiteral("先手：先手\n後手：後手\n手合割：平手\n手数----指手---------消費時間--\n"), false);
+        // 開始局面も指し手も書かれていない棋譜は読み込めない（手合割を書いた0手の棋譜は開ける）
+        paste(QStringLiteral("先手：先手\n後手：後手\n手数----指手---------消費時間--\n"), false);
         QTRY_VERIFY(dialogHandled);
         QVERIFY(dialogMessages.join('\n').contains(QStringLiteral("指し手を取得できませんでした")));
         for (auto* widget : QApplication::topLevelWidgets()) {
@@ -3738,8 +3739,10 @@ private slots:
         QTest::qWait(50);
         QCOMPARE(table.rowCount(), 9);
         QVERIFY(table.text(1, 1).isEmpty());
-        QCOMPARE(table.text(2, 1), QStringLiteral("先手"));
-        QCOMPARE(table.text(3, 1), QStringLiteral("後手"));
+        // 対局者の名前は空で、入力の案内だけを出す（盤では「先手」「後手」と呼ぶ）
+        QVERIFY(table.text(2, 1).isEmpty());
+        QVERIFY(table.text(3, 1).isEmpty());
+        QVERIFY(table.accessibleText(2, 1).contains(QStringLiteral("名前を入力")));
         QVERIFY(table.text(5, 1).isEmpty());
         QVERIFY(table.accessibleText(1, 1).contains(QStringLiteral("未開始")));
         snapshot("game-info-startup");
@@ -3781,7 +3784,7 @@ private slots:
         click("actionNewGame");
         QCOMPARE(table.rowCount(), 9);
         QVERIFY(table.text(1, 1).isEmpty());
-        QCOMPARE(table.text(2, 1), QStringLiteral("先手"));
+        QVERIFY(table.text(2, 1).isEmpty());
         QVERIFY(table.text(8, 1).isEmpty());
         // 読み込んだ棋譜の対局者名を将棋盤に残さない
         QVERIFY(board()->chrome()->card(Turn::Black)->nameLabel()->fullText().endsWith(QStringLiteral("先手")));

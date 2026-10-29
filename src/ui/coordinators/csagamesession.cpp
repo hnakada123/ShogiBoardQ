@@ -3,7 +3,6 @@
 
 #include "csagamesession.h"
 
-#include "boardinteractioncontroller.h"
 #include "boardmovecontroller.h"
 #include "csagamecoordinator.h"
 #include "csagamedialog.h"
@@ -32,11 +31,7 @@ CsaGameSession::CsaGameSession(const Deps& deps, QObject* parent)
     connect(c, &CsaGameCoordinator::logMessage, this, &CsaGameSession::onLogMessage);
     connect(c, &CsaGameCoordinator::engineScoreUpdated, this, &CsaGameSession::onEngineScoreUpdated);
 
-    // 司令塔と画面の部品を直接つなぐ
-    if (m_deps.boardController) {
-        connect(c, &CsaGameCoordinator::moveHighlightRequested,
-                m_deps.boardController, &BoardInteractionController::showMoveHighlights);
-    }
+    // 司令塔と画面の部品を直接つなぐ（着手のハイライトはローカル対局と同じく棋譜の表示中の手から出る）
     if (m_deps.boardMoves) {
         connect(m_deps.boardMoves, &BoardMoveController::csaMoveRequested, c, &CsaGameCoordinator::onHumanMove);
     }

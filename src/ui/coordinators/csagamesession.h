@@ -11,7 +11,6 @@
 #include "csaclient.h"
 #include "usiscore.h"
 
-class BoardInteractionController;
 class BoardMoveController;
 class CsaGameCoordinator;
 #include "csagamedialog.h"
@@ -41,7 +40,6 @@ public:
         CsaGameCoordinator* coordinator = nullptr;          ///< 通信対局の司令塔（必須）
         AppActivityState* activity = nullptr;              ///< 通信対局中の動作状態（必須）
         ShogiView* shogiView = nullptr;                    ///< 盤の向き
-        BoardInteractionController* boardController = nullptr; ///< 相手の手の強調
         BoardMoveController* boardMoves = nullptr;         ///< 人間が盤で選んだ手をサーバーへ送る
         CsaLogPanel* csaLog = nullptr;                     ///< CSA の通信ログ・接続状態・手入力のコマンド
         EvaluationGraphPresenter* evalGraph = nullptr;     ///< 自分のエンジンの評価値

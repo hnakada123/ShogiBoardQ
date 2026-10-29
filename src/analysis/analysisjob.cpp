@@ -11,14 +11,25 @@
 
 namespace {
 
-/// 手順の各局面（[0] が開始局面。読めない局面は nullopt）。局面だけを送り、そこに至った手を読み筋の「同」の判定に使う
+/// 手順の各局面（[0] が開始局面。読めない局面は nullopt）。そこに至った手は読み筋の「同」の判定に使う
 QList<std::optional<UsiPosition>> positionsOf(const RecordLine& line)
 {
     QList<std::optional<UsiPosition>> positions;
     if (line.isEmpty()) return positions;
-    positions.reserve(line.moveCount() + 1);
-    for (int ply = 0; ply <= line.moveCount(); ++ply) {
-        const std::optional<UsiMove> lastMove = ply > 0 ? std::optional<UsiMove>(line.usiMove(ply)) : std::nullopt;
+    const int moveCount = line.moveCount();
+    positions.reserve(moveCount + 1);
+    QList<UsiMove> played;
+    played.reserve(moveCount);
+    for (int ply = 1; ply <= moveCount; ++ply) played << line.usiMove(ply);
+    // 開始局面からの手順で送る（千日手の判断材料をエンジンに渡す。CLI の analyze-kifu と同じ）。
+    // 手順は1度だけたどり、手の列は全部の局面で共有する
+    if (const std::optional<QList<UsiPosition>> along = UsiPosition::alongMoves(line.startSfen, played, 0, moveCount)) {
+        for (const UsiPosition& position : *along) positions << position;
+        return positions;
+    }
+    // 手順をたどれない棋譜は、各局面を局面だけで送る
+    for (int ply = 0; ply <= moveCount; ++ply) {
+        const std::optional<UsiMove> lastMove = ply > 0 ? std::optional<UsiMove>(played.at(ply - 1)) : std::nullopt;
         positions << UsiPosition::fromSfen(line.sfenAt(ply), lastMove);
     }
     return positions;

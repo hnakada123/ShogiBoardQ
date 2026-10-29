@@ -738,11 +738,13 @@
     <message>
         <location filename="../../src/common/boardcolors.h" line="84"/>
         <location filename="../../src/dialogs/boardcolordialog.cpp" line="554"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="554"/>
         <source>将棋盤</source>
         <translation>棋盘</translation>
     </message>
     <message>
         <location filename="../../src/common/boardcolors.h" line="86"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="558"/>
         <location filename="../../src/dialogs/boardcolordialog.cpp" line="558"/>
         <source>駒台</source>
         <translation>驹台</translation>
@@ -2397,32 +2399,32 @@
         <translation>收到坐标无效的着法：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="176"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="170"/>
         <source>相手の指し手: %1 (消費時間: %2ms)</source>
         <translation>对手着法：%1（用时：%2 毫秒）</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="199"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="193"/>
         <source>エンジンに送る局面を作れません</source>
         <translation>无法生成要发送给引擎的局面</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="158"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="152"/>
         <source>サーバーからの指し手を解釈できません: %1</source>
         <translation>无法解析来自服务器的着法：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="166"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="160"/>
         <source>指し手の適用に失敗しました: %1</source>
         <translation>应用着法失败：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="167"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="161"/>
         <source>サーバーからの指し手を盤面に適用できません: %1</source>
         <translation>无法将服务器着法应用于棋盘：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="183"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="177"/>
         <source>指し手確認: %1 (消費時間: %2ms)</source>
         <translation>着法已确认：%1（用时：%2 毫秒）</translation>
     </message>
@@ -2439,7 +2441,7 @@
         <translation type="vanished">无法转换服务器的着法确认：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="202"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="196"/>
         <source>エンジンが思考中...</source>
         <translation>引擎思考中...</translation>
     </message>
@@ -2448,22 +2450,22 @@
         <translation type="vanished">引擎认输</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="213"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="207"/>
         <source>エンジンが有効な指し手を返しませんでした</source>
         <translation>引擎未返回有效着法</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="219"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="213"/>
         <source>盤面が取得できませんでした</source>
         <translation>无法获取棋盘状态</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="227"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="221"/>
         <source>指し手の駒種変換に失敗しました</source>
         <translation>转换移动棋子种类失败</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="231"/>
+        <location filename="../../src/network/csagamecoordinator_moves.cpp" line="225"/>
         <source>CSA形式の指し手: %1</source>
         <translation>CSA 格式着法：%1</translation>
     </message>
@@ -2908,22 +2910,22 @@
 <context>
     <name>CsaGameSession</name>
     <message>
-        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="84"/>
+        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="79"/>
         <source>通信対局をキャンセルしました</source>
         <translation>网络对局已取消</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="104"/>
+        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="99"/>
         <source>CSA通信対局開始: %1 vs %2</source>
         <translation>CSA 网络对局开始：%1 对 %2</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="115"/>
+        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="110"/>
         <source>対局終了</source>
         <translation>对局结束</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="115"/>
+        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="110"/>
         <source>対局が終了しました。
 
 結果: %1
@@ -2934,17 +2936,17 @@
 原因：%2</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="116"/>
+        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="111"/>
         <source>対局終了: %1 (%2)</source>
         <translation>对局结束：%1（%2）</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="122"/>
+        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="117"/>
         <source>先手番</source>
         <translation>先手行棋</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="122"/>
+        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="117"/>
         <source>後手番</source>
         <translation>后手行棋</translation>
     </message>
@@ -6947,6 +6949,7 @@ YaneuraOu 会以此着法进行后台思考。</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/josekiwindow.cpp" line="519"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="519"/>
         <source>定跡</source>
         <translation>定跡</translation>
     </message>
@@ -7583,14 +7586,12 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>KifuDocument</name>
     <message>
-        <location filename="../../src/kifu/kifudocument.cpp" line="92"/>
         <source>先手</source>
-        <translation>先手</translation>
+        <translation type="vanished">先手</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifudocument.cpp" line="93"/>
         <source>後手</source>
-        <translation>后手</translation>
+        <translation type="vanished">后手</translation>
     </message>
 </context>
 <context>
@@ -7810,29 +7811,24 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>KifuExportMetadataBuilder</name>
     <message>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="15"/>
         <source>先手</source>
-        <translation>先手</translation>
+        <translation type="vanished">先手</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="16"/>
         <source>後手</source>
-        <translation>后手</translation>
+        <translation type="vanished">后手</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="17"/>
         <source>Engine</source>
-        <translation>引擎</translation>
+        <translation type="vanished">引擎</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="18"/>
         <source>Engine1</source>
-        <translation>引擎1</translation>
+        <translation type="vanished">引擎1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="19"/>
         <source>Engine2</source>
-        <translation>引擎2</translation>
+        <translation type="vanished">引擎2</translation>
     </message>
 </context>
 <context>
@@ -7885,144 +7881,144 @@ OKを選択すると保存先が指定できます。</source>
         <translation>应用局面失败</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="220"/>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="234"/>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="229"/>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="243"/>
         <source>KIF Save Error</source>
         <translation>KIF 保存错误</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="221"/>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="230"/>
         <source>棋譜を保存しました: %1</source>
         <translation>棋谱已保存：%1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="250"/>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="259"/>
         <source>棋譜を上書き保存しました: %1</source>
         <translation>棋谱已覆盖保存：%1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="258"/>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="267"/>
         <source>棋譜の自動保存先を作成できません: %1</source>
         <translation>无法创建自动保存文件夹：%1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="271"/>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="279"/>
         <source>棋譜データが空のため自動保存をスキップしました</source>
         <translation>棋谱数据为空，已跳过自动保存</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="276"/>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="284"/>
         <source>棋譜を自動保存しました: %1</source>
         <translation>已自动保存棋谱：%1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="280"/>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="288"/>
         <source>棋譜の自動保存に失敗しました: %1</source>
         <translation>自动保存棋谱失败：%1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="294"/>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="302"/>
         <source>クリップボードへのコピーに失敗しました</source>
         <translation>复制到剪贴板失败</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="308"/>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="316"/>
         <source>KIF形式の棋譜データがありません</source>
         <translation>没有 KIF 格式棋谱数据</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="308"/>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="316"/>
         <source>KIF形式の棋譜をクリップボードにコピーしました</source>
         <translation>已将 KIF 格式棋谱复制到剪贴板</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="315"/>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="323"/>
         <source>KI2形式の棋譜データがありません</source>
         <translation>没有 KI2 格式棋谱数据</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="315"/>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="323"/>
         <source>KI2形式の棋譜をクリップボードにコピーしました</source>
         <translation>已将 KI2 格式棋谱复制到剪贴板</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="319"/>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="327"/>
         <source>CSA形式の棋譜データがありません</source>
         <translation>没有 CSA 格式棋谱数据</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="320"/>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="328"/>
         <source>CSA形式の棋譜をクリップボードにコピーしました（CSA形式は分岐に対応していないため、本譜のみです）</source>
         <translation>已将 CSA 格式棋谱复制到剪贴板（CSA 格式不支持变化，仅包含主线）</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="321"/>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="329"/>
         <source>CSA形式の棋譜をクリップボードにコピーしました</source>
         <translation>已将 CSA 格式棋谱复制到剪贴板</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="324"/>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="361"/>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="332"/>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="369"/>
         <source>USI形式の棋譜データがありません</source>
         <translation>没有 USI 格式棋谱数据</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="325"/>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="333"/>
         <source>USI形式の棋譜をクリップボードにコピーしました（USI形式は分岐に対応していないため、本譜のみです）</source>
         <translation>已将 USI 格式棋谱复制到剪贴板（USI 格式不支持变化，仅包含主线）</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="326"/>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="334"/>
         <source>USI形式の棋譜をクリップボードにコピーしました</source>
         <translation>已将 USI 格式棋谱复制到剪贴板</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="329"/>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="337"/>
         <source>JKF形式の棋譜データがありません</source>
         <translation>没有 JKF 格式棋谱数据</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="329"/>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="337"/>
         <source>JKF形式の棋譜をクリップボードにコピーしました</source>
         <translation>已将 JKF 格式棋谱复制到剪贴板</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="332"/>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="340"/>
         <source>USEN形式の棋譜データがありません</source>
         <translation>没有 USEN 格式棋谱数据</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="332"/>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="340"/>
         <source>USEN形式の棋譜をクリップボードにコピーしました</source>
         <translation>已将 USEN 格式棋谱复制到剪贴板</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="365"/>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="373"/>
         <source>USI形式（現在の指し手まで）の棋譜をクリップボードにコピーしました</source>
         <translation>已将截至当前着法的 USI 格式棋谱复制到剪贴板</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="383"/>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="391"/>
         <source>SFEN形式の局面データがありません</source>
         <translation>没有 SFEN 格式局面数据</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="386"/>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="394"/>
         <source>SFEN形式の局面をクリップボードにコピーしました</source>
         <translation>已将 SFEN 格式局面复制到剪贴板</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="393"/>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="401"/>
         <source>BOD形式の局面データがありません</source>
         <translation>没有 BOD 格式局面数据</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="398"/>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="406"/>
         <source>SFEN形式の解析に失敗しました</source>
         <translation>解析 SFEN 格式失败</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="407"/>
+        <location filename="../../src/ui/coordinators/kifufilecontroller.cpp" line="415"/>
         <source>BOD形式の局面をクリップボードにコピーしました</source>
         <translation>已将 BOD 格式局面复制到剪贴板</translation>
     </message>

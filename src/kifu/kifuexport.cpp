@@ -43,10 +43,6 @@ KifuExportMetadata metadataOf(const KifuDocument& document)
     metadata.gameInfoItems = document.header();
     metadata.startSfen = document.startSfen();
     metadata.players = document.players();
-    const MatchTimeRecord& time = document.timeRecord();
-    metadata.timeControl = time.timeControl();
-    metadata.gameStartDateTime = time.startDateTime();
-    metadata.gameEndDateTime = time.endDateTime();
     return metadata;
 }
 
