@@ -8,7 +8,7 @@
 #include "kifubranchtreebuilder.h"
 #include "kifuexport.h"
 #include "kifuloadparser.h"
-#include "sfenvalidationservice.h"
+#include "sfenvalidator.h"
 
 #include <QFileInfo>
 
@@ -56,7 +56,7 @@ KifuConversionService::Result KifuConversionService::convert(const Request& requ
     result.initialSfen = tree.root() ? tree.root()->sfen() : loaded.startSfen();
     // 開始局面は render-board と同じく、盤と持駒として成り立つかを確かめる（駒数の上限・玉の重複。
     // 表記の説明の図のような、手番でない側に王手がかかっている局面は受け付ける）
-    if (const SfenValidation start = SfenValidationService::validate(result.initialSfen); start.normalizedSfen.isEmpty()) {
+    if (const SfenValidation start = SfenValidator::validate(result.initialSfen); start.normalizedSfen.isEmpty()) {
         result.failure = {ErrorKind::InvalidContent,
                           QStringLiteral("Invalid start position: %1").arg(start.errors.join(QStringLiteral("; ")))};
         return result;

@@ -1,5 +1,7 @@
 #include <QtTest>
 
+#include <algorithm>
+
 #include <QDir>
 #include <QDirIterator>
 #include <QFile>
@@ -18,13 +20,20 @@ class TestLayerDependencies : public QObject
     Q_OBJECT
 
 private:
+    /// 層の決まりの例外（file だけが allowedDir を使ってよい）
+    struct Exception {
+        QString file;
+        QString allowedDir;
+    };
+
     struct LayerRule {
         QString sourceDir;
         QStringList forbiddenDirs;
+        QList<Exception> exceptions = {};
     };
 
     /// 下の層は上の層をインクルードしない。下から順に
-    /// common（ログ・エラー通知）・core → services → kifu・engine → game → analysis・network・navigation
+    /// common（ログ・エラー通知）・core → services → kifu・engine → game → analysis・network
     /// → style（ウィジェットの書体・見た目）→ models → views・widgets・board → dialogs → ui → app。
     /// automation・cli は外側の入口。headless（CLI・自動化 API・MCP が共有する部品）は core〜analysis だけを使う
     static QList<LayerRule> layerRules()
@@ -39,31 +48,32 @@ private:
         return {
             // ログの分類（logcategories）とエラーの通知（errorbus）は common の土台を使う
             {QStringLiteral("src/core"),
-             gui + dirs({"services", "kifu", "engine", "game", "analysis", "network", "navigation", "models"})},
+             gui + dirs({"services", "kifu", "engine", "game", "analysis", "network", "models"})},
             {QStringLiteral("src/common"),
-             gui + dirs({"services", "kifu", "engine", "game", "analysis", "network", "navigation", "models"})},
+             gui + dirs({"services", "kifu", "engine", "game", "analysis", "network", "models"})},
             {QStringLiteral("src/services"),
-             gui + dirs({"kifu", "engine", "game", "analysis", "network", "navigation", "models"})},
-            {QStringLiteral("src/kifu"), gui + dirs({"engine", "game", "analysis", "network", "navigation", "models"})},
-            {QStringLiteral("src/engine"), gui + dirs({"game", "analysis", "network", "navigation", "models"})},
-            {QStringLiteral("src/game"), gui + dirs({"analysis", "network", "navigation", "models"})},
-            {QStringLiteral("src/analysis"), gui + dirs({"network", "navigation", "models"})},
-            {QStringLiteral("src/network"), gui + dirs({"analysis", "navigation", "models"})},
-            {QStringLiteral("src/navigation"), gui + dirs({"analysis", "network", "models"})},
+             gui + dirs({"kifu", "engine", "game", "analysis", "network", "models"})},
+            {QStringLiteral("src/kifu"), gui + dirs({"engine", "game", "analysis", "network", "models"})},
+            {QStringLiteral("src/engine"), gui + dirs({"game", "analysis", "network", "models"})},
+            {QStringLiteral("src/game"), gui + dirs({"analysis", "network", "models"})},
+            {QStringLiteral("src/analysis"), gui + dirs({"network", "models"})},
+            {QStringLiteral("src/network"), gui + dirs({"analysis", "models"})},
             {QStringLiteral("src/style"), dirs({"app", "ui", "dialogs", "widgets", "views", "board", "automation", "cli",
-                                                "engine", "game", "analysis", "network", "navigation", "models"})},
+                                                "engine", "game", "analysis", "network", "models"})},
             {QStringLiteral("src/models"), dirs({"app", "ui", "dialogs", "widgets", "views", "board", "automation", "cli"})},
             {QStringLiteral("src/views"), dirs({"app", "ui", "dialogs", "board", "automation", "cli"})},
             {QStringLiteral("src/widgets"), dirs({"app", "ui", "dialogs", "board", "automation", "cli"})},
             {QStringLiteral("src/board"), dirs({"app", "ui", "dialogs", "automation", "cli"})},
             {QStringLiteral("src/dialogs"), dirs({"app", "ui", "automation", "cli"})},
             {QStringLiteral("src/ui"), dirs({"app", "automation", "cli"})},
-            // CLI・自動化 API・MCP が共有する部品は GUI にも通信対局・棋譜ナビゲーションにも依存しない
+            // CLI・自動化 API・MCP が共有する部品は GUI にも通信対局にも依存しない
             {QStringLiteral("src/headless"), dirs({"app", "ui", "dialogs", "widgets", "views", "board", "automation", "cli",
-                                                   "style", "network", "navigation", "models"})},
+                                                   "style", "network", "models"})},
             // 自動化 API は MainWindow・ダイアログ・ウィジェットに依存しない
             {QStringLiteral("src/automation"), dirs({"app", "dialogs", "widgets", "cli"})},
-            {QStringLiteral("src/cli"), dirs({"app", "dialogs", "widgets", "views", "ui"})},
+            // CLI は自動化 API にも画面にも依存しない。盤面画像（render-board）だけは盤の描画（views の ShogiView）を使う
+            {QStringLiteral("src/cli"), dirs({"app", "dialogs", "widgets", "views", "ui", "automation"}),
+             {{QStringLiteral("src/cli/boardimagerenderer.cpp"), QStringLiteral("views/")}}},
         };
     }
 
@@ -129,6 +139,12 @@ private:
                 const QString includeBasename = QFileInfo(includePath).fileName();
 
                 for (const auto &forbidden : std::as_const(rule.forbiddenDirs)) {
+                    const bool excepted = std::any_of(rule.exceptions.cbegin(), rule.exceptions.cend(),
+                                                      [&](const Exception &e) {
+                                                          return e.file == relPath && e.allowedDir == forbidden;
+                                                      });
+                    if (excepted)
+                        continue;
                     // パスベースの検出: "../dialogs/foo.h" のような形式
                     if (includePath.contains(forbidden)) {
                         violations.append(

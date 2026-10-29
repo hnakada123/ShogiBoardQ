@@ -5,7 +5,7 @@
 
 #include "logcategories.h"
 
-#include "enginelifecyclemanager.h"
+#include "engineslots.h"
 #include "usilogpanel.h"
 #include "usi.h"
 

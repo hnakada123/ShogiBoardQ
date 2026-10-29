@@ -11,7 +11,7 @@
 #include "gameinfokeys.h"
 #include "kiflinebuilder.h"
 #include "terminalcodes.h"
-#include "kifreader.h"
+#include "kifutextdecoder.h"
 #include "shiftjiscodec.h"
 #include "shogiposition.h"
 
@@ -49,7 +49,7 @@ bool CsaToSfenConverter::readFileText(const QString& path, QString& outText, QSt
         }
     }
     // 宣言が無い（宣言どおりに読めない）ときは、ほかの棋譜と同じ順で判別する（BOM・UTF-8・CP932・EUC-JP）
-    outText = KifReader::decodeAuto(raw, nullptr, warn);
+    outText = KifuTextDecoder::decodeAuto(raw, nullptr, warn);
     return true;
 }
 

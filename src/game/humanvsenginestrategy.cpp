@@ -3,7 +3,7 @@
 
 #include "humanvsenginestrategy.h"
 
-#include "enginelifecyclemanager.h"
+#include "engineslots.h"
 #include "logcategories.h"
 #include "matchengineseat.h"
 

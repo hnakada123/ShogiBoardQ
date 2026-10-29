@@ -5,7 +5,7 @@
 #include "analysissession.h"
 #include "analysissettings.h"
 #include "appactivitystate.h"
-#include "enginelifecyclemanager.h"
+#include "engineslots.h"
 #include "josekibooksession.h"
 #include "candidatearrowpresenter.h"
 #include "considerationsettings.h"
@@ -161,7 +161,7 @@ private slots:
         view.setBoard(&board);
         ShogiClock clock;
         AppActivityState activity;
-        EngineLifecycleManager engines;
+        EngineSlots engines;
         AnalysisSession session(AnalysisSession::Deps{&engines, &activity});
         ShogiEngineThinkingModel model;
         ConsiderationSettings considerationSettings;   // 検討タブの設定（showArrows）

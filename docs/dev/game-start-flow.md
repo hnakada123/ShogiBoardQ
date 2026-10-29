@@ -10,7 +10,7 @@
 
 | 値 | 用途 |
 |---|---|
-| `dialogData` | 対局者2人（`PlayerChoice`。人間かエンジンか・名前・エンジン・時間）、開始局面の手合割（`startingHandicap`。`nullptr` なら現在の局面）、最大手数、自動保存、連続対局など（`StartGameDialogData`、`src/game/startgamedatabridge.h`） |
+| `dialogData` | 対局者2人（`PlayerChoice`。人間かエンジンか・名前・エンジン・時間）、開始局面の手合割（`startingHandicap`。`nullptr` なら現在の局面）、最大手数、自動保存、連続対局など（`StartGameDialogData`、`src/game/startgamedialogdata.h`） |
 | `recordLine` | 表示中の手順の開始局面・指し手・現在手数（`KifuNavigationState::currentRecordLine()` の `RecordLine`） |
 | `startNodeId` | 分岐ツリーで表示中のノードのID |
 | `bottomSide` | 盤の手前に表示している側（`ShogiView::flipMode()` から求める）。人間を手前に表示するときの判定に使う |
@@ -42,7 +42,7 @@
 
 ## 対局中と再開
 
-`MatchSessionState`（`src/game/matchsessionstate.h`）は対局設定（対局者・最大手数・自動保存）と終了状態を所有する（エンジンの先読みの局面は `UsiMatchHandler` だけが持つ）。終了状態の変更は `finish()`、`markTerminalRecorded()`、`clearGameOver()` を通し、フィールドへのポインタを他の部品へ渡さない。
+`MatchSessionState`（`src/game/matchcoordinator.h`）は対局設定（対局者・最大手数・自動保存）と終了状態を所有する（エンジンの先読みの局面は `UsiMatchHandler` だけが持つ）。終了状態の変更は `finish()`、`markTerminalRecorded()`、`clearGameOver()` を通し、フィールドへのポインタを他の部品へ渡さない。
 
 Strategy は `MatchStrategyHost`（`src/game/gamemodestrategy.h`。司令塔が private に実装する）を通してエンジンの枠・盤の手番・手数を読み、一手の確定とエンジンへの思考の依頼を司令塔に頼む。司令塔のメンバーには直接触れない。エンジンに探索させる局面（`UsiPosition`）は、その時点の対局の手順（`MatchCoordinator::record()`）から `RecordLine::usiPosition()` で生成する。人間対エンジン、エンジン同士、待ったの後で同じ生成経路を使う。
 

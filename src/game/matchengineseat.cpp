@@ -5,12 +5,12 @@
 
 #include "usi.h"
 
-MatchEngineSeat::MatchEngineSeat(EngineLifecycleManager* engines, QObject* parent)
+MatchEngineSeat::MatchEngineSeat(EngineSlots* engines, QObject* parent)
     : QObject(parent)
     , m_engines(engines)
 {
     Q_ASSERT(m_engines);
-    connect(m_engines, &EngineLifecycleManager::engineRevoked, this, &MatchEngineSeat::onEngineRevoked);
+    connect(m_engines, &EngineSlots::engineRevoked, this, &MatchEngineSeat::onEngineRevoked);
 }
 
 MatchEngineSeat::~MatchEngineSeat() = default;

@@ -1,7 +1,7 @@
-/// @file boardimageexporter.cpp
-/// @brief 盤面画像のクリップボードコピー・ファイル保存機能の実装
+/// @file widgetimageexporter.cpp
+/// @brief 部品の画像のクリップボードへのコピーとファイルへの保存の実装
 
-#include "boardimageexporter.h"
+#include "widgetimageexporter.h"
 #include <QClipboard>
 #include <QApplication>
 #include <QImageWriter>
@@ -26,12 +26,12 @@ static bool hasFormat(const QSet<QString>& fmts, const QString& key) {
 // 公開API
 // ======================================================================
 
-void BoardImageExporter::copyToClipboard(QWidget* boardWidget) {
+void WidgetImageExporter::copyToClipboard(QWidget* boardWidget) {
     if (!boardWidget) return;
     QApplication::clipboard()->setPixmap(boardWidget->grab());
 }
 
-void BoardImageExporter::saveImage(QWidget* parent, QWidget* boardWidget, const QString& baseName) {
+void WidgetImageExporter::saveImage(QWidget* parent, QWidget* boardWidget, const QString& baseName) {
     // 処理フロー:
     // 1. サポートされている画像フォーマットを収集
     // 2. ファイル保存ダイアログを表示

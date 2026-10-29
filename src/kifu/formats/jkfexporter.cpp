@@ -4,7 +4,7 @@
 #include "jkfexporter.h"
 #include "jkfformatter.h"
 #include "terminalcodes.h"
-#include "jkfmoveparser.h"
+#include "jkfcodec.h"
 #include "kifuexportmetadata.h"
 #include "kifparsetypes.h"
 #include "kifubranchnode.h"
@@ -57,7 +57,7 @@ static QJsonObject buildJkfInitial(const QString& startSfen)
 {
     QJsonObject initial;
 
-    const QString preset = JkfMoveParser::presetFromSfen(startSfen);
+    const QString preset = JkfCodec::presetFromSfen(startSfen);
     // 古い読み込み実装にも伝わる基本の手合だけを preset で書く。
     // 後から追加された駒落ちは、標準の OTHER と盤・持駒・手番で正確に表す。
     static const QStringList portablePresets = {

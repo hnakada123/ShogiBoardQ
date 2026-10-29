@@ -8,7 +8,7 @@
 #include "applicationtranslations.h"
 #include "appsettings.h"
 #include "automationmethodspecs.h"
-#include "automationserver.h"
+#include "automationendpoint.h"
 #include "settingscommon.h"
 #include "clicommandspecs.h"
 #include "boardimagerenderer.h"
@@ -18,7 +18,8 @@
 #include "kifuconversionservice.h"
 #include "kifusavefile.h"
 #include "outputpath.h"
-#include "sfenvalidationservice.h"
+#include "sfenvalidationjson.h"
+#include "sfenvalidator.h"
 
 #include <QCoreApplication>
 #include <QJsonArray>
@@ -70,10 +71,10 @@ int CliCommands::environment(const QJsonObject& /*params*/)
     QJsonObject obj;
     obj[QStringLiteral("ok")] = true;
     obj[QStringLiteral("version")] = QCoreApplication::applicationVersion();
-    obj[QStringLiteral("socket_path")] = AutomationServer::defaultSocketPath();
-    obj[QStringLiteral("endpoint_file")] = AutomationServer::endpointFilePath();
+    obj[QStringLiteral("socket_path")] = AutomationEndpoint::defaultSocketPath();
+    obj[QStringLiteral("endpoint_file")] = AutomationEndpoint::endpointFilePath();
     obj[QStringLiteral("settings_file")] = SettingsCommon::settingsFilePath();
-    obj[QStringLiteral("max_message_bytes")] = static_cast<double>(AutomationServer::kMaxMessageBytes);
+    obj[QStringLiteral("max_message_bytes")] = static_cast<double>(AutomationEndpoint::kMaxMessageBytes);
     obj[QStringLiteral("error_kinds")] = ErrorKinds::toJson();
     // MCP サーバーが読み書きを許すファイルの拡張子
     obj[QStringLiteral("kifu_read_suffixes")] = QJsonArray::fromStringList(KifuFormats::readableSuffixes());
@@ -95,7 +96,7 @@ int CliCommands::listEngines(const QJsonObject& /*params*/)
 int CliCommands::validateSfen(const QJsonObject& params)
 {
 
-    QJsonObject obj = SfenValidationService::validate(params.value(QStringLiteral("sfen")).toString()).toJson();
+    QJsonObject obj = SfenValidationJson::toJson(SfenValidator::validate(params.value(QStringLiteral("sfen")).toString()));
     obj[QStringLiteral("ok")] = true;
     CliOutput::printJson(obj);
     return 0;

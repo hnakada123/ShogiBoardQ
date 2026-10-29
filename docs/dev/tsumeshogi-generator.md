@@ -345,7 +345,7 @@ Python側は監査記録 `audit.jsonl` を即時保存し、同じ検証器の�
 - 未登録時の開始、生成中の設定変更・既定値への復帰、結果がない状態での保存・コピー、未選択時の選択コピーは無効にする。再開始時には前回の結果と進捗をリセットする。
 - 盤面列のクリック、行のダブルクリック、Enterキーで盤面と手順を開く。選択コピーはCtrl+Cにも対応し、複数選択した結果を表示順に出力する。結果追加時の自動スクロールは最下部を閲覧している場合だけ行う。
 - 「手順も出力」を有効にすると、ファイル保存・コピーの各行が `<SFEN> moves <USI手順>` になる。無効時は SFEN のみで、SFEN集ダイアログ等の1行1SFEN形式と互換。
-- 「ファイル保存」は先頭に `# ` 始まりのコメント行で ShogiBoardQ のバージョン（`APP_VERSION`）、生成開始日時、生成設定（エンジン、目標手数、攻め駒上限、守り駒上限、配置範囲、探索時間/局面、生成上限、余詰検査）を記録する（`TsumeshogiExportHeaderBuilder::build`）。設定と日時は「開始」時に `m_lastRunSettings` / `m_lastRunStartedAt` に控えたものを使うので、生成後に設定欄を変えても保存内容は変わらない。コピーにはヘッダを付けない。詰将棋問題一覧（`TsumeCollection::parse`）と局面集ビューア（`SfenCollectionDialog`）は同じ1行の規則 `PositionCollectionFile::parse`（`src/analysis/positioncollectionfile.h`）で読み、`#` 始まりの行を読み飛ばす。SFEN に添えた `moves <USI手順>` はどちらも参考手順として扱う（position コマンドの指し手だけを指した後の局面にする）。
+- 「ファイル保存」は先頭に `# ` 始まりのコメント行で ShogiBoardQ のバージョン（`APP_VERSION`）、生成開始日時、生成設定（エンジン、目標手数、攻め駒上限、守り駒上限、配置範囲、探索時間/局面、生成上限、余詰検査）を記録する（`TsumeshogiExportHeaderBuilder::build`）。設定と日時は「開始」時に `m_lastRunSettings` / `m_lastRunStartedAt` に控えたものを使うので、生成後に設定欄を変えても保存内容は変わらない。コピーにはヘッダを付けない。詰将棋問題一覧（`TsumeCollection::parse`）と局面集ビューア（`SfenCollectionDialog`）は同じ1行の規則 `PositionCollectionFile::parse`（`src/kifu/positioncollectionfile.h`）で読み、`#` 始まりの行を読み飛ばす。SFEN に添えた `moves <USI手順>` はどちらも参考手順として扱う（position コマンドの指し手だけを指した後の局面にする）。
 - ファイル保存は `TsumeCollectionWriter::save()` が `QSaveFile` で書き込み完了を確認してから置き換える。閉じる・Escでも生成を停止して設定を保存する。
 - ジェネレータ（`TsumeshogiGenerator`）はダイアログの子として1つだけ生成し、開始のたびに再利用する。`start()` が状態を初期化し、エンジンとの接続（`MateOracle`。画面の思考情報は使わない）は開始ごとに生成・終了時に `deleteLater` で破棄する。
 

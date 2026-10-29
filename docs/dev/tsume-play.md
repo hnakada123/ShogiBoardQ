@@ -25,14 +25,14 @@
 
 ## 読み込める局面集と手数
 
-1行1局面のファイルを読む。1行の規則は局面集ビューアと同じ `PositionCollectionFile`（`src/analysis/positioncollectionfile.h`）で、
+1行1局面のファイルを読む。1行の規則は局面集ビューアと同じ `PositionCollectionFile`（`src/kifu/positioncollectionfile.h`）で、
 `TsumeCollection::parse()` はこれを使う。
 
 - 空行と `#` で始まる行は読み飛ばし、UTF-8 BOM・CRLF・タブ区切りを受け付ける
 - 局面は SFEN の4語（前に `sfen` を付けてもよい）か `startpos`。前に `position` を付けた USI の position コマンドも受け付ける
 - 局面の後には `moves <USI の指し手>` だけを続けられる。SFEN だけの行の `moves ...` は参考手順として分離し、開始局面へ適用しない。
   `position sfen ... moves ...`・`startpos moves ...` のような position コマンドの指し手は指した後の局面を問題にする
-- 局面は `SfenValidationService` で確かめる。余計な語・指し手の形でない語・指せない手がある行は読めない行（`invalidLines`）にする
+- 局面は `SfenValidator` で確かめる。余計な語・指し手の形でない語・指せない手がある行は読めない行（`invalidLines`）にする
 
 攻め方の玉は省略できる。後手攻めでは盤を反転表示する。
 余った駒を玉方へ補完せず、SFENに記載された持駒を使う。

@@ -16,7 +16,7 @@
  *   position コマンドも受け付ける
  * - 局面の後には `moves` と USI の指し手を続けられる。position コマンドの指し手は「指した後の局面」を表し、
  *   SFEN だけの行の指し手は「その局面からの参考手順」（詰将棋局面生成が保存した解答手順）を表す
- * - 局面は SfenValidationService で確かめる。それ以外の語が続く行・指し手の形でない語がある行は読めない行
+ * - 局面は SfenValidator で確かめる。それ以外の語が続く行・指し手の形でない語がある行は読めない行
  */
 namespace PositionCollectionFile {
 

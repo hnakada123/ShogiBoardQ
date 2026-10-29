@@ -5,8 +5,31 @@
 /// @brief 自動化 API の、応答の後に行う UI 操作（予約・実行時の再検査・結果の記録）
 
 #include <QJsonObject>
+#include <QObject>
 #include <QPointer>
 #include <functional>
+
+/**
+ * @brief 応答を返した後にメインスレッドで実行する遅延呼び出し
+ *
+ * モーダルダイアログを開く動作や終了処理を、JSON-RPC の応答送信後に実行するために使う。
+ * `run()` の後に自身を削除する。UI 操作は AutomationInteractions::queue で予約し、
+ * これを直接使うのは app.quit だけ。
+ */
+class AutomationDeferredCall : public QObject
+{
+    Q_OBJECT
+public:
+    explicit AutomationDeferredCall(std::function<void()> callback, QObject* parent = nullptr);
+    /// 次のイベントループ反復で callback を実行するよう予約する
+    static void schedule(std::function<void()> callback, QObject* parent);
+
+public slots:
+    void run();
+
+private:
+    std::function<void()> m_callback;
+};
 
 /**
  * @brief 応答の後に行う UI 操作1つ

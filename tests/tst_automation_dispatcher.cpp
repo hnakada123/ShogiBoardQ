@@ -211,9 +211,9 @@ private slots:
             QVERIFY(!second.listen(socketPath, &error));
             QVERIFY(error.contains(QStringLiteral("already listening")));
         }
-        QVERIFY(QFile::exists(AutomationServer::endpointFilePath()));   // 後の失敗は前の情報を消さない
+        QVERIFY(QFile::exists(AutomationEndpoint::endpointFilePath()));   // 後の失敗は前の情報を消さない
         first.close();
-        QVERIFY(!QFile::exists(AutomationServer::endpointFilePath()));
+        QVERIFY(!QFile::exists(AutomationEndpoint::endpointFilePath()));
         AutomationServer again;
         QVERIFY2(again.listen(socketPath, &error), qPrintable(error));
         again.close();

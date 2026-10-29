@@ -1,8 +1,8 @@
-#ifndef STARTGAMEDATABRIDGE_H
-#define STARTGAMEDATABRIDGE_H
+#ifndef STARTGAMEDIALOGDATA_H
+#define STARTGAMEDIALOGDATA_H
 
-/// @file startgamedatabridge.h
-/// @brief StartGameDialog から game 層へデータを渡す値の型
+/// @file startgamedialogdata.h
+/// @brief 対局開始ダイアログで選んだ値（対局者1人の選択 PlayerChoice と対局の条件 StartGameDialogData）
 
 #include <QString>
 #include <array>
@@ -53,4 +53,4 @@ struct StartGameDialogData {
     bool hasEngine() const { return players[0].isEngine() || players[1].isEngine(); }
 };
 
-#endif // STARTGAMEDATABRIDGE_H
+#endif // STARTGAMEDIALOGDATA_H

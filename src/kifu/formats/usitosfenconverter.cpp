@@ -5,7 +5,7 @@
 #include "shogiposition.h"
 #include "terminalcodes.h"
 #include "kiflinebuilder.h"
-#include "kifreader.h"
+#include "kifutextdecoder.h"
 #include "sfenutils.h"
 
 #include <QRegularExpression>
@@ -119,7 +119,7 @@ KifuParseOutcome UsiToSfenConverter::parse(QStringView text, const ParseOptions&
     QStringList usiMoves;
     QString terminalCode;
     QString warn;
-    if (!selectPositionLine(KifReader::splitLines(text.toString()), content, &warn)
+    if (!selectPositionLine(KifuTextDecoder::splitLines(text.toString()), content, &warn)
         || !parseUsiPositionString(content, baseSfen, usiMoves, &terminalCode, &warn)) {
         outcome.warning = warn;
         return outcome;

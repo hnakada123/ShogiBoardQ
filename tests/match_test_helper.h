@@ -10,7 +10,7 @@
 #include <memory>
 
 #include "appactivitystate.h"
-#include "enginelifecyclemanager.h"
+#include "engineslots.h"
 #include "gameinfokeys.h"
 #include "kifubranchtree.h"
 #include "kifudocument.h"
@@ -53,7 +53,7 @@ struct MatchHarness {
     ShogiGameController gc;
     ShogiClock clock;
     AppActivityState activity;
-    EngineLifecycleManager engines;
+    EngineSlots engines;
     RecordingSink sink;
     std::unique_ptr<MatchCoordinator> mc;
     std::unique_ptr<QSignalSpy> messages;  ///< 終局・中断の知らせ（gameOverMessage）

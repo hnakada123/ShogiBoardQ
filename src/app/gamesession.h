@@ -17,7 +17,7 @@
 class AppActivityState;
 class JosekiBookSession;
 class AnalysisSession;
-class EngineLifecycleManager;
+class EngineSlots;
 class ConsecutiveGameSeries;
 class CsaGameChannel;
 class CsaGameCoordinator;
@@ -53,7 +53,7 @@ public:
         const AppActivityState* activity = nullptr;         ///< 動作状態（対局中の窓口を決める）
         MatchCoordinator* match = nullptr;                  ///< ローカル対局の司令塔
         AnalysisSession* analysis = nullptr;                ///< 検討・詰み探索（「新規」で止める）
-        EngineLifecycleManager* engines = nullptr;          ///< エンジンの枠（「新規」で全部止める。省略可）
+        EngineSlots* engines = nullptr;          ///< エンジンの枠（「新規」で全部止める。省略可）
         ConsecutiveGameSeries* consecutive = nullptr;  ///< 連続対局
         SessionResetCoordinator* reset = nullptr;           ///< 棋譜と表示の作り直し
         KifuNavigationState* navState = nullptr;            ///< 表示中の手（現在局面からの開始・再開）

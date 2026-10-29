@@ -25,8 +25,9 @@ class QLineEdit;
 /**
  * @brief メニューウィンドウクラス
  *
- * GUIメニューの各項目をボタン形式で表示するモードレスウィンドウ。
+ * GUIメニューの各項目をボタン形式で表示するドックのパネル。
  * タブ付きパネル（★お気に入り + カテゴリ別）とカスタマイズモード切替を実装。
+ * お気に入り・ボタンの大きさ・選んだタブは変えたときに保存する（ドックの大きさは DockRegistry が保存する）。
  */
 class MenuWindow : public QWidget
 {
@@ -73,22 +74,10 @@ public:
 
 signals:
     /**
-     * @brief アクションがトリガーされたときのシグナル
-     * @param action トリガーされたアクション
-     */
-    void actionTriggered(QAction* action);
-
-    /**
      * @brief お気に入りリストが変更されたときのシグナル
      * @param favoriteActionNames 新しいお気に入りリスト
      */
     void favoritesChanged(const QStringList& favoriteActionNames);
-
-protected:
-    /**
-     * @brief ウィンドウを閉じる際の処理
-     */
-    void closeEvent(QCloseEvent* event) override;
 
 private slots:
     void updateFilter();
@@ -180,11 +169,6 @@ private:
      * @brief 設定を読み込む
      */
     void loadSettings();
-
-    /**
-     * @brief 設定を保存する
-     */
-    void saveSettings();
 
     /**
      * @brief 全ボタンのサイズを更新

@@ -25,7 +25,7 @@
 
 class ShogiGameController;
 class ShogiClock;
-class EngineLifecycleManager;
+class EngineSlots;
 class MatchEngineSeat;
 class Usi;
 
@@ -95,7 +95,7 @@ public:
     struct Deps {
         ShogiGameController* gameController = nullptr;
         ShogiClock* clock = nullptr;
-        EngineLifecycleManager* engines = nullptr;  ///< エンジンで指すとき、エンジンを置く枠
+        EngineSlots* engines = nullptr;  ///< エンジンで指すとき、エンジンを置く枠
     };
 
     /**
@@ -295,7 +295,7 @@ private:
 
     QPointer<ShogiGameController> m_gameController;
     QPointer<ShogiClock> m_clock;
-    EngineLifecycleManager* m_engines = nullptr;  ///< 非所有
+    EngineSlots* m_engines = nullptr;  ///< 非所有
 
     Phase m_phase = Phase::Off;
     GameState m_publishedState = GameState::Idle;  ///< 最後に gameStateChanged で知らせた値

@@ -20,7 +20,7 @@ class Position;
  * JKF仕様: https://github.com/na2hiro/json-kifu-format
  *
  * JSON は1回だけ解析し、棋譜・開始局面・手合割の名前・対局情報をまとめて返す。
- * 指し手・初期局面の変換は JkfMoveParser、手順の組み立ては KifLineBuilder に任せる。
+ * 指し手・初期局面の変換は JkfCodec、手順の組み立ては KifLineBuilder に任せる。
  */
 class JkfToSfenConverter
 {

@@ -4,48 +4,30 @@
 /// @file automationcommands.h
 /// @brief 自動化 API の JSON-RPC メソッド群の登録
 
-#include <QObject>
-#include <functional>
-
 #include "automationcontext.h"
 #include "recordline.h"
 
 class AutomationDispatcher;
 class KifuFileController;
 
-/**
- * @brief 応答を返した後にメインスレッドで実行する遅延呼び出し
- *
- * モーダルダイアログを開く動作や終了処理を、JSON-RPC の応答送信後に実行するために使う。
- * `run()` の後に自身を削除する。
- */
-class AutomationDeferredCall : public QObject
-{
-    Q_OBJECT
-public:
-    explicit AutomationDeferredCall(std::function<void()> callback, QObject* parent = nullptr);
-    /// 次のイベントループ反復で callback を実行するよう予約する
-    static void schedule(std::function<void()> callback, QObject* parent);
-
-public slots:
-    void run();
-
-private:
-    std::function<void()> m_callback;
-};
-
-/// メソッド群の登録関数。実装は automationcommands_*.cpp に分かれる
+/// メソッド群の登録関数。メソッド `x.y` の実装は automationcommands_x.cpp に置く（名前空間ごとに1ファイル）
 namespace AutomationCommands {
 
 void registerAll(AutomationDispatcher& dispatcher, const AutomationContext& context);
 
-void registerAppCommands(AutomationDispatcher& dispatcher, const AutomationContext& context);      ///< app.*
-void registerPositionCommands(AutomationDispatcher& dispatcher, const AutomationContext& context); ///< position.*
-void registerKifuCommands(AutomationDispatcher& dispatcher, const AutomationContext& context);     ///< kifu.*
-void registerWidgetCommands(AutomationDispatcher& dispatcher, const AutomationContext& context);  ///< widget.* 操作
-void registerDockCommands(AutomationDispatcher& dispatcher, const AutomationContext& context);    ///< dock.*
-void registerNavigationCommands(AutomationDispatcher& dispatcher, const AutomationContext& context); ///< メニュー・分岐ツリー
-void registerUiCommands(AutomationDispatcher& dispatcher, const AutomationContext& context);       ///< action.* / screenshot.* / dialog.* / widget.*
+void registerAppCommands(AutomationDispatcher& dispatcher, const AutomationContext& context);        ///< app.*
+void registerPositionCommands(AutomationDispatcher& dispatcher, const AutomationContext& context);   ///< position.*
+void registerKifuCommands(AutomationDispatcher& dispatcher, const AutomationContext& context);       ///< kifu.*
+void registerBoardCommands(AutomationDispatcher& dispatcher, const AutomationContext& context);      ///< board.*
+void registerBranchCommands(AutomationDispatcher& dispatcher, const AutomationContext& context);     ///< branch.*
+void registerMenuCommands(AutomationDispatcher& dispatcher, const AutomationContext& context);       ///< menu.*
+void registerActionCommands(AutomationDispatcher& dispatcher, const AutomationContext& context);     ///< action.*
+void registerDialogCommands(AutomationDispatcher& dispatcher, const AutomationContext& context);     ///< dialog.*
+void registerWidgetCommands(AutomationDispatcher& dispatcher, const AutomationContext& context);     ///< widget.*
+void registerDockCommands(AutomationDispatcher& dispatcher, const AutomationContext& context);       ///< dock.*
+void registerScreenshotCommands(AutomationDispatcher& dispatcher, const AutomationContext& context); ///< screenshot.*
+void registerClipboardCommands(AutomationDispatcher& dispatcher, const AutomationContext& context);  ///< clipboard.*
+void registerUiCommands(AutomationDispatcher& dispatcher, const AutomationContext& context);         ///< ui.*
 
 /// 現在表示中の局面の SFEN（SFEN 記録があればその値、無ければ盤から組み立てる）
 QString currentSfen(const AutomationContext& context);

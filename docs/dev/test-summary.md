@@ -20,7 +20,7 @@
 11. `tst_usiposition`
 12. `tst_pvline`
 13. `tst_shogiclock`
-14. `tst_kifreader`
+14. `tst_kifutextdecoder`
 15. `tst_app_paths`
 16. `tst_kifuformat`
 17. `tst_kifconverter`
@@ -111,7 +111,7 @@
 102. `tst_nyugyoku_judgement`
 103. `tst_usilineparser`
 104. `tst_pvtext`
-105. `tst_sfen_validation_service`
+105. `tst_sfen_validator`
 106. `tst_game_info_pane`
 107. `tst_kifu_conversion_service`
 108. `tst_kifu_format_compliance`

@@ -28,7 +28,6 @@ set(TEST_INCLUDES
     ${SRC}/kifu
     ${SRC}/kifu/formats
     ${SRC}/board
-    ${SRC}/navigation
     ${SRC}/common
     ${SRC}/style
     ${SRC}/models
@@ -36,6 +35,8 @@ set(TEST_INCLUDES
     ${SRC}/ui
     ${SRC}/ui/controllers
     ${SRC}/ui/coordinators
+    ${SRC}/ui/docks
+    ${SRC}/ui/policy
     ${SRC}/ui/presenters
     ${SRC}/views
     ${SRC}/widgets
@@ -227,11 +228,11 @@ add_shogi_test(tst_shogiclock
 )
 
 # ============================================================
-# Unit 4b: KifReader
+# Unit 4b: KifuTextDecoder
 # ============================================================
-add_shogi_test(tst_kifreader
-    tst_kifreader.cpp
-    ${SRC}/kifu/kifreader.cpp
+add_shogi_test(tst_kifutextdecoder
+    tst_kifutextdecoder.cpp
+    ${SRC}/kifu/kifutextdecoder.cpp
     ${SRC}/kifu/shiftjiscodec.cpp
     ${SRC}/common/logcategories.cpp
 )
@@ -244,7 +245,7 @@ add_shogi_test(tst_app_paths
 add_shogi_test(tst_kifuformat
     tst_kifuformat.cpp
     ${SRC}/kifu/kifuformat.cpp
-    ${SRC}/kifu/kifreader.cpp
+    ${SRC}/kifu/kifutextdecoder.cpp
     ${SRC}/kifu/shiftjiscodec.cpp
     ${SRC}/kifu/formats/bodtextgenerator.cpp
     ${SRC}/common/logcategories.cpp
@@ -318,7 +319,7 @@ add_shogi_test(tst_kifusavedialogs
     tst_kifusavedialogs.cpp
     ${SRC}/kifu/kifusavefile.cpp
     ${SRC}/kifu/kifuformat.cpp
-    ${SRC}/kifu/kifreader.cpp
+    ${SRC}/kifu/kifutextdecoder.cpp
     ${SRC}/common/logcategories.cpp
     ${SRC}/dialogs/kifusavedialogs.cpp
     ${SRC}/widgets/unsavedchangesprompt.cpp
@@ -422,7 +423,7 @@ add_shogi_test(tst_startgamedialog
     ${SRC}/dialogs/josekiplayoptionsdialog.cpp
     ${SRC}/dialogs/changeenginesettingsdialog.ui
     ${SRC}/dialogs/enginesettingsoptionhandler.cpp
-    ${SRC}/engine/engineoptiondescriptions.cpp
+    ${SRC}/dialogs/engineoptiondescriptions.cpp
     ${SRC}/widgets/engineselector.cpp
     ${SRC}/widgets/playersetupwidget.cpp
     ${SRC}/widgets/settingsformbinding.cpp
@@ -456,7 +457,7 @@ add_shogi_test(tst_engineprofilestore
     ${SRC}/dialogs/changeenginesettingsdialog.cpp
     ${SRC}/dialogs/changeenginesettingsdialog.ui
     ${SRC}/dialogs/enginesettingsoptionhandler.cpp
-    ${SRC}/engine/engineoptiondescriptions.cpp
+    ${SRC}/dialogs/engineoptiondescriptions.cpp
     ${SRC}/widgets/collapsiblegroupbox.cpp
     ${SRC}/widgets/longlongspinbox.cpp
     ${SRC}/widgets/dialogutils.cpp
@@ -816,12 +817,12 @@ add_shogi_test(tst_tsume_search
 )
 
 # ============================================================
-# Unit: BoardImageExporter テスト
+# Unit: WidgetImageExporter テスト
 # ============================================================
 add_shogi_test(tst_image_export
     tst_image_export.cpp
     ${SRC}/common/logcategories.cpp
-    ${SRC}/board/boardimageexporter.cpp
+    ${SRC}/ui/controllers/widgetimageexporter.cpp
 )
 
 # ============================================================
@@ -838,8 +839,8 @@ target_link_libraries(tst_sfen_collection PRIVATE hayanagi_tsume)
 add_shogi_test(tst_dock_layout
     tst_dock_layout.cpp
     ${SRC}/common/logcategories.cpp
-    ${SRC}/ui/coordinators/docklayoutmanager.cpp
-    ${SRC}/ui/coordinators/dockregistry.cpp
+    ${SRC}/ui/docks/docklayoutmanager.cpp
+    ${SRC}/ui/docks/dockregistry.cpp
     ${SRC}/widgets/layoutboundarywidget.cpp
     ${SRC}/widgets/opaquebackground.cpp
     ${SRC}/widgets/dialogfontscale.cpp
@@ -867,7 +868,7 @@ add_shogi_test(tst_piece_images
 add_shogi_test(tst_menu_window
     tst_menu_window.cpp
     ${SRC}/common/logcategories.cpp
-    ${SRC}/dialogs/menuwindow.cpp
+    ${SRC}/widgets/menuwindow.cpp
     ${SRC}/widgets/menubuttonwidget.cpp
     ${SRC}/widgets/flowlayout.cpp
     ${SRC}/widgets/fontsizecontrol.cpp
@@ -1078,8 +1079,8 @@ target_link_libraries(tst_usilineparser PRIVATE shogiboardq_static)
 add_shogi_test(tst_pvtext tst_pvtext.cpp)
 target_link_libraries(tst_pvtext PRIVATE shogiboardq_static)
 
-add_shogi_test(tst_sfen_validation_service tst_sfen_validation_service.cpp)
-target_link_libraries(tst_sfen_validation_service PRIVATE shogiboardq_static)
+add_shogi_test(tst_sfen_validator tst_sfen_validator.cpp)
+target_link_libraries(tst_sfen_validator PRIVATE shogiboardq_static)
 
 add_shogi_test(tst_game_info_pane tst_game_info_pane.cpp)
 target_link_libraries(tst_game_info_pane PRIVATE shogiboardq_static)
@@ -1103,9 +1104,11 @@ target_link_libraries(tst_kifu_format_compliance PRIVATE shogiboardq_static)
 
 add_shogi_test(tst_board_image_renderer
     tst_board_image_renderer.cpp
+    ${SRC}/cli/boardimagerenderer.cpp
     ${CMAKE_SOURCE_DIR}/resources/shogiboardq.qrc
 )
 target_link_libraries(tst_board_image_renderer PRIVATE shogiboardq_static)
+target_include_directories(tst_board_image_renderer PRIVATE ${SRC}/cli)
 
 # `go mate <ms>` に答える最小 USI エンジン（生成・余詰検査・詰み探索の結合テスト用）
 add_executable(mock_mate_engine mock_mate_engine.cpp)

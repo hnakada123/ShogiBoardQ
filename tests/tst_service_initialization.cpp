@@ -12,7 +12,7 @@
 #include "csagamecoordinator.h"
 #include "csagamesession.h"
 #include "analysissession.h"
-#include "enginelifecyclemanager.h"
+#include "engineslots.h"
 #include "gamesession.h"
 #include "commentcoordinator.h"
 #include "commenteditorpanel.h"
@@ -129,7 +129,7 @@ private slots:
         QCOMPARE(window.findChildren<GameSession*>().size(), 1);
         QCOMPARE(window.findChildren<MatchCoordinator*>().size(), 1);
         QCOMPARE(window.findChildren<AnalysisSession*>().size(), 1);
-        QCOMPARE(window.findChildren<EngineLifecycleManager*>().size(), 1);
+        QCOMPARE(window.findChildren<EngineSlots*>().size(), 1);
         QCOMPARE(window.findChildren<KifuDisplayPresenter*>().size(), 1);
         QCOMPARE(window.findChildren<BoardSyncPresenter*>().size(), 1);
         QCOMPARE(window.findChildren<BoardMoveController*>().size(), 1);
@@ -184,7 +184,7 @@ private slots:
         MainWindow window;
         auto& parts = window.composer().parts();
         const QPointer<MatchCoordinator> first = parts.match;
-        const QPointer<EngineLifecycleManager> engines = parts.engines;
+        const QPointer<EngineSlots> engines = parts.engines;
         const QPointer<AnalysisSession> analysis = parts.analysisSession;
         QVERIFY(first && engines && analysis);
 

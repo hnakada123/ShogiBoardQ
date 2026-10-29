@@ -5,6 +5,7 @@
 /// @brief 自動化 API のローカルソケットサーバー（改行区切り JSON-RPC 2.0）
 
 #include "automationdispatcher.h"
+#include "automationendpoint.h"
 
 #include <QByteArray>
 #include <QHash>
@@ -20,6 +21,7 @@ class QLocalSocket;
  *
  * - ソケットは所有者だけがアクセスできる（`QLocalServer::UserAccessOption`）
  * - 待ち受け中は設定ディレクトリに `automation-endpoint.json`（ソケットパス・PID・バージョン）を書き、終了時に消す
+ *   （場所と1メッセージの上限は headless の AutomationEndpoint で決める）
  * - すべてメインスレッドで処理する（`--automation` 指定時のみ生成される）
  */
 class AutomationServer : public QObject
@@ -27,16 +29,13 @@ class AutomationServer : public QObject
     Q_OBJECT
 
 public:
-    /// 1 メッセージ（1 行）の上限（棋譜テキストを含む。MCP サーバーは shogiboardq-cli environment で読む）
-    static constexpr qsizetype kMaxMessageBytes = 8 * 1024 * 1024;
-
     explicit AutomationServer(QObject* parent = nullptr);
     ~AutomationServer() override;
 
     AutomationDispatcher& dispatcher() { return m_dispatcher; }
 
     /**
-     * @brief 待ち受けを開始する。socketPath が空なら既定のパスを使う
+     * @brief 待ち受けを開始する。socketPath が空なら既定のパス（AutomationEndpoint::defaultSocketPath）を使う
      *
      * Unix ではパスは絶対パスに限る。ソケットのフォルダは、無ければ所有者専用で作り、あれば自分の持ち物で
      * ほかの利用者が書けないことを確かめる（変えない）。前回の残骸は、ソケットで待ち受けがないときだけ消す。
@@ -45,12 +44,6 @@ public:
     void close();
     bool isListening() const;
     QString socketPath() const { return m_socketPath; }
-
-    /// 既定のソケットパス（環境変数 SHOGIBOARDQ_AUTOMATION_SOCKET → RuntimeLocation/shogiboardq/automation.sock。
-    /// RuntimeLocation が使えなければ設定のフォルダの automation.sock。Windows は名前付きパイプ名）
-    static QString defaultSocketPath();
-    /// エンドポイント情報ファイル（設定ディレクトリの automation-endpoint.json）
-    static QString endpointFilePath();
 
 private slots:
     void onNewConnection();

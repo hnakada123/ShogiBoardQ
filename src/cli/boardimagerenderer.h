@@ -2,7 +2,7 @@
 #define BOARDIMAGERENDERER_H
 
 /// @file boardimagerenderer.h
-/// @brief SFEN から盤面画像を描画する（自動化・CLI 用。QApplication が必要）
+/// @brief SFEN から盤面画像を描画する（CLI の render-board 用。QApplication が必要）
 
 #include "errorkinds.h"
 #include <QImage>

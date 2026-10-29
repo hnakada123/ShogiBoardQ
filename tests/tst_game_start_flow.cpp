@@ -11,7 +11,7 @@
 #include <memory>
 
 #include "appactivitystate.h"
-#include "enginelifecyclemanager.h"
+#include "engineslots.h"
 #include "gamestartoptionsbuilder.h"
 #include "matchcoordinator.h"
 #include "shogiclock.h"
@@ -27,7 +27,7 @@ struct TestHarness {
     ShogiClock clock;
     ShogiGameController gc;
     AppActivityState activity;
-    EngineLifecycleManager engines;
+    EngineSlots engines;
     std::unique_ptr<MatchCoordinator> match;
 
     TestHarness()

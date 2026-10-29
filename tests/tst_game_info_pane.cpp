@@ -17,7 +17,7 @@
 #include "gameinfokeys.h"
 #include "playerinfopresenter.h"
 #include "enginedisplaypresenter.h"
-#include "enginelifecyclemanager.h"
+#include "engineslots.h"
 #include "shogiclock.h"
 #include "kifubranchtree.h"
 #include "kifudocument.h"
@@ -375,9 +375,9 @@ private slots:
         KifuDocument document(&tree);
         // 2つ目のエンジン欄は、文書の対局者から EngineDisplayPresenter が決める
         ShogiClock clock;
-        EngineLifecycleManager lifecycle(&clock);
+        EngineSlots engineSlots(&clock);
         EngineDisplayPresenter::Deps deps;
-        deps.engines = &lifecycle;
+        deps.engines = &engineSlots;
         deps.document = &document;
         deps.thinkingPanel = &tab;
         EngineDisplayPresenter displays(deps);

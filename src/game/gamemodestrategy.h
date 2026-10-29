@@ -9,7 +9,7 @@
 #include "recordentry.h"
 #include "shogitypes.h"
 
-class EngineLifecycleManager;
+class EngineSlots;
 class MatchEngineSeat;
 class MatchTimeSource;
 struct UsiMatchMove;
@@ -23,7 +23,7 @@ struct UsiMatchMove;
 class MatchStrategyHost {
 public:
     /// エンジンの枠（対局で指すエンジン MatchEngineSeat はここから借りる）
-    virtual EngineLifecycleManager& engines() = 0;
+    virtual EngineSlots& engines() = 0;
     /// 対局のエンジンが持ち時間を読む出どころ（対局時計）
     virtual MatchTimeSource* timeSource() = 0;
     virtual bool isGameOver() const = 0;

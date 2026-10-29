@@ -48,7 +48,6 @@ private slots:
     {
         QCOMPARE(AppSettings::language(), QStringLiteral("system"));
         QCOMPARE(AppSettings::toolbarVisible(), true);
-        QCOMPARE(AppSettings::menuWindowSize(), QSize(500, 400));
         QCOMPARE(AppSettings::menuWindowFavorites(), QStringList());
         QCOMPARE(GameSettings::kifuPaneFontSize(), 10);
         QCOMPARE(GameSettings::startGameDialogSize(), QSize(1000, 580));
@@ -359,10 +358,6 @@ private slots:
 
     void appSettings_menuWindow()
     {
-        QSize testSize(900, 700);
-        AppSettings::menuWindowSize.set(testSize);
-        QCOMPARE(AppSettings::menuWindowSize(), testSize);
-
         AppSettings::menuWindowButtonSize.set(64);
         QCOMPARE(AppSettings::menuWindowButtonSize(), 64);
 

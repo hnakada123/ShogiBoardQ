@@ -59,7 +59,8 @@ cmake --build build --target translations
   - `shogiposition.cpp/.h` - 局面の値 `Position`（盤81マス・持ち駒・手番・手数）。SFEN の読み書きと指し手の適用（`apply`）はここだけ。計算のための局面はこの値で持つ
   - `shogiboard.cpp/.h` - 表示・局面編集に使う盤。`Position` を1つ持ち（`position()`）、変更をシグナルで知らせる QObject
   - `shogitypes.h`・`piecerules.h` - 手番と駒（`Piece` は種類＋後手なら16。並びは fmv と同じ）。行き所のない駒・成れる段・持ち駒の並びの規則
-  - `positionvalidator.cpp/.h` - 局面の検査 `PositionValidator`（`check()`：駒の数・駒台の玉・玉の重複と有無・手番でない側への王手と、手番側の王手・合法手の数。`boardProblem()` は盤と持ち駒だけ）。validate-sfen（`SfenValidationService` は結果を JSON にするだけ）・局面集・詰将棋問題一覧・対局の開始で同じ規則を使う。合法手だけを指すのは `EngineMoveValidator::applyIfLegal`。Hayanagi は詰み探索だけに使う
+  - `positionvalidator.cpp/.h` - 局面の検査 `PositionValidator`（`check()`：駒の数・駒台の玉・玉の重複と有無・手番でない側への王手と、手番側の王手・合法手の数。`boardProblem()` は盤と持ち駒だけ）。validate-sfen（`SfenValidator`）・局面集・詰将棋問題一覧・対局の開始で同じ規則を使う。合法手だけを指すのは `EngineMoveValidator::applyIfLegal`。Hayanagi は詰み探索だけに使う
+  - `sfenvalidator.cpp/.h` - SFEN の検査 `SfenValidator::validate`（手番・手数の欄と `Position::fromSfen`・`PositionValidator` の結果を値 `SfenValidation` にし、読めた局面 `position` も返す）と、合法手だけを指した後の SFEN `applyUsiMoves`。JSON にするのは headless の `SfenValidationJson`
   - `pvtext.cpp/.h` - 読み筋の値 `PvText`（`PvText::play(開始局面, USI の語, 至った手の移動先)` が局面の上で1回だけ指し、指せた手（指した側・動かした駒）と指せなかった語を持つ）。思考の表・棋譜解析・読み筋盤・詰将棋の正解手順で共通。表記は kifu の `KifuPresentation::pv`・`pvMove` が表示のたびに作る
   - `usiposition.cpp/.h` - エンジンに探索させる局面 `UsiPosition`（開始局面・指し手の列・直前の手）。kifu の `RecordLine` が作るので core に置く。position 文字列は `UsiPosition::commandFor(startSfen, moves)` だけで作る（`command()` と USI 形式の書き出し `UsiExporter` で共有）
   - `shogimove.cpp/.h`・`usimove.h` - Move representation
@@ -75,7 +76,6 @@ cmake --build build --target translations
 - **game/**: ゲーム進行・対局管理（GUI に依存しない）
   - `matchcoordinator.cpp/.h` - 対局の司令塔（開始・着手・終局・待った・中断と再開）。手順は `record()`、対局者は `players()`。エンジンの手番で、定跡を使う対局者（`MatchStartOptions::engine(Turn).joseki`）なら `JosekiMovePicker` で定跡手を選び、`Usi::requestBookMove` で探索させずに最低1秒置いて指す（定跡は対局を始めたときに定跡ウィンドウで開いていた定跡の写し `MatchStartOptions::josekiBook`）
   - `humanvshumanstrategy` / `humanvsenginestrategy` / `enginevsenginestrategy` - 対局者の組ごとの進め方（`MatchStrategyHost` 経由）
-  - `enginelifecyclemanager.cpp/.h` - エンジンの枠 E1・E2（対局・検討・棋譜解析・CSA 通信対局で共有）。リース・取り上げの知らせ・表示の消去だけを受け持つ。使う側は `acquire(owner, slot, name)` で move-only の `EngineLease`（`engine()`・`reset()`）を受け取り、持っている間だけ使う。手放すと枠を空ける（持ち主には知らせない）。ほかの持ち主が同じ枠を取った・`destroyEngines()` で全部の枠を破棄したときは、前の持ち主に `engineRevoked(owner)` で知らせる（枠にあるかは `holds(engine)`）
   - `matchengineseat.cpp/.h` - 対局で指すエンジン1台 `MatchEngineSeat`（枠のリース・手番・持ち時間の出どころ・知らせの接続・終局の手順）。人間対エンジン・エンジン同士の Strategy（`GameModeStrategy::engineSeat(side)`）と通信対局（`CsaGameCoordinator`）が持つ。初期化・指し手・投了・入玉宣言勝ち・エラー（枠を取り上げられたときも）を自分のシグナルで知らせ、終局は `finish(GameOverResult)`（探索・先読みを止めて gameover と quit）で、ローカル対局・通信対局で同じ手順
   - `gamechannel.cpp/.h` - 対局相手の窓口 `GameChannel`: 投了・中断・即指し・入玉宣言をローカル対局と通信対局で同じ操作にする（ローカル対局は `LocalGameChannel`、通信対局は network の `CsaGameChannel`）
   - `matchautosave.h` - 終局した棋譜の自動保存の指定 `MatchAutoSave`（ローカル対局・通信対局で同じ）
@@ -99,6 +99,7 @@ cmake --build build --target translations
   - `josekiimport.cpp/.h` - 複数の棋譜ファイル・フォルダから定跡に登録する手を集める `JosekiImport`（`expandPaths`・`collect`。条件 `Options`（手数・先手/後手/勝った側・変化・最小出現回数・コメント）。1局で同じ局面と指し手は1回と数える。ワーカースレッドから呼べる）
   - `josekimovepicker.cpp/.h` - 対局で指す定跡手を選ぶ `JosekiMovePicker`（条件 `JosekiPlayOptions`（`core/josekiplayoptions.h`。意味はやねうら王の定跡オプションに合わせる。保存は `JosekiSettings::playOptions1/2`）に合い、局面で指せる手から、出現頻度に比例・評価値で選ぶ・先頭の手のどれかで選ぶ）
   - `kifupresentation.cpp/.h` - 画面に出す棋譜の表記 `KifuPresentation`（指し手・読み筋・終局語。ファイルやプロトコルには使わない）。棋譜の1行は値から作る（`entryLabel(RecordEntry, 指す前の局面)`。終局は `RecordEntry::terminal` から訳す。棋譜欄の手数と分岐の印は `numberedLabel`）。`RecordEntry::displayText` は棋譜の表記（KIF の指し手・終局語）で、表示の文字列を書き戻さない。日本語の指し手は `KifMoveText`、段の漢数字は `ShogiNotation`、英語表記で移動元を付けるかは KI2 と同じ判定（`Ki2MoveNotation::annotate()` の `Annotation::sources`。合法手で決めるのでピンされた駒は数えない）。`Notation`・`Options` は `NotationStyle` の別名で、`options`・`revision` は `NotationStyle` へ転送する（表記の設定を変えるのは `NotationStyle::configure`）
+  - `positioncollectionfile.cpp/.h` - 局面集ファイル（1行1局面）の規則 `PositionCollectionFile`（`parseLine`・`parse`、読めた行 `Line`）。局面集ビューア（`SfenCollectionDialog`）と詰将棋問題一覧（`TsumeCollection::parse`）で共有する。空行・`#` の行は読み飛ばし、局面は SFEN の4語（`sfen` を前置可）か `startpos`（前に `position` 可）、その後は `moves <USI の手>` だけ。position コマンドの手は指した後の局面（`Line::position()`）、SFEN だけの行の手は参考手順（`referenceMoves()`）。局面は core の `SfenValidator` で確かめ、それ以外は読めない行
   - **formats/**: Format converters（テキストを読む。ファイルは `KifuLoadParser` が読んで渡す）
     - `csatosfenconverter`, `jkftosfenconverter`, etc. - 形式ごとに `parse(text, options)` を1つだけ持ち、`KifuParseOutcome` を返す（KIF・KI2 は `KifTextParser::parseKif`・`parseKi2`、BOD は `KifTextParser::parseBod`）
     - `kiftextparser.cpp/.h` - KIF・KI2 で共有する読み取り（行の分類・「変化：N手」の区切り・開始局面）。指し手の文法は `kifmovegrammar`（KIF の手は KI2 の手＋移動元）
@@ -113,12 +114,11 @@ cmake --build build --target translations
   - `tsumecandidatejob.cpp/.h`・`tsumeverificationjob.cpp/.h` - 詰将棋の候補1つの処理（手数の確認・唯一解の検査・要らない駒の除去）と、総予算つきの唯一解の検査（引き出し型の `MateQuerySource`。生成と CLI の検査で共通）
   - `tsumeshogigenerator.cpp/.h` - 詰将棋の生成（候補の待ち行列・問い合わせの中継・結果の集計）
   - `tsumecollectionsession.cpp/.h` - 詰将棋集の進捗・解析待ちの管理
-  - `positioncollectionfile.cpp/.h` - 局面集ファイル（1行1局面）の規則 `PositionCollectionFile`（`parseLine`・`parse`、読めた行 `Line`）。局面集ビューア（`SfenCollectionDialog`）と詰将棋問題一覧（`TsumeCollection::parse`）で共有する。空行・`#` の行は読み飛ばし、局面は SFEN の4語（`sfen` を前置可）か `startpos`（前に `position` 可）、その後は `moves <USI の手>` だけ。position コマンドの手は指した後の局面（`Line::position()`）、SFEN だけの行の手は参考手順（`referenceMoves()`）。局面は `SfenValidationService` で確かめ、それ以外は読めない行
   - `tsumepositionutil.h` - 詰み探索の position の組み立て（`TsumePositionUtil::buildPositionForMate`。文字列は `UsiPosition::commandFor` で作る）
-  - `sfenvalidationservice` など
 
 - **engine/**: USI (Universal Shogi Interface) エンジン連携（対局の仕組みに依存しない）
   - `usi.cpp/.h` - GUI から使うエンジン1台の窓口
+  - `engineslots.cpp/.h` - エンジンの枠 E1・E2 `EngineSlots`（対局・検討・棋譜解析・CSA 通信対局で共有）。リース・取り上げの知らせ・表示の消去だけを受け持つ。使う側は `acquire(owner, slot, name)` で move-only の `EngineLease`（`engine()`・`reset()`）を受け取り、持っている間だけ使う。手放すと枠を空ける（持ち主には知らせない）。ほかの持ち主が同じ枠を取った・`destroyEngines()` で全部の枠を破棄したときは、前の持ち主に `engineRevoked(owner)` で知らせる（枠にあるかは `holds(engine)`）
   - `usienginesession.cpp/.h` - 起動と初期化（usi〜readyok）と探索の切り替え。GUI と CLI の実行器が共有する。探索（`search(UsiSearchRequest)`）は最後に頼んだものだけを行い、探索中なら stop を送って結果を捨ててから始める（検討のやり直し・先読みの外れ・詰みの問い合わせは頼み直すだけ）。空の局面は受け付けない（false）。`stop()` は最後の依頼をすぐ終わらせて結果を届け、`cancelSearch()` は取りやめる。`startAsync()`・`probeAsync()` は値を返さず、起動の失敗は必ず呼び出しから戻った後に `errorOccurred` で知らせる（知らせる前に `quit()`・次の起動をしたら知らせない）ので、使う側は起動の途中の再入に備えない（`Usi::startEngine`・`MateOracle::start` も同じ）
   - `usiprotocolhandler.cpp/.h` - USI protocol implementation
   - `thinkinginfoformatter.cpp/.h`・`enginesearchstatus.h` - info を思考の表の行（読み筋は `PvText`）と探索状況 `EngineSearchStatus`（数値のまま。info 1行ごとに `searchStatusUpdated` で1回送り、書式は表示する側が決める）にする
@@ -134,10 +134,7 @@ cmake --build build --target translations
   - `csagamecoordinator.cpp/.h` - CSA game coordination（手順と持ち時間と手番は `CsaGameProgress`。対局の状態 `gameState()` は持たずに、接続の段階を `CsaClient::ConnectionState` から、対局中・終局後・失敗を司令塔の段階 `Phase` から求める）
   - `csagamechannel.cpp/.h` - 通信対局の窓口 `CsaGameChannel`（`GameChannel` の実装。操作はサーバーへ送り、入玉宣言の成否はサーバーが判定する）
 
-- **navigation/**: ナビゲーション機能
-  - `kifunavigationcontroller.cpp/.h` - 棋譜ナビゲーション（ボタン・分岐）。局面送りの6つの操作は `QAction` の組（`action(Step)`）で1つだけ持ち、棋譜欄と評価値グラフのボタンを `bindButtons()` で結ぶ（有効・無効も QAction に従う。切り替えは `setStepActionsEnabled()`）
-
-- **style/**: ウィジェットの書体と見た目（QWidget に依存する。navigation の上、models の下の層。`engine`〜`navigation`・`models` を参照しない）
+- **style/**: ウィジェットの書体と見た目（QWidget に依存する。analysis・network の上、models の下の層。`engine`〜`network`・`models` を参照しない）
   - `applicationfonts` - 表示言語に応じた書体 `ApplicationFonts`
   - `applicationstyle`・`applicationrendering` - アプリ全体のスタイルと描画の設定
   - `buttonstyles.h`・`tablestyles.h` - ボタン・表のスタイルシート（`ButtonStyles`・`TableStyles`）
@@ -147,16 +144,18 @@ cmake --build build --target translations
   - `boardinteractioncontroller.cpp/.h` - 盤のクリックを移動元・移動先にし、選択・直前の手・合法な移動先のハイライトを出す
   - `boardinputroute.h` - 盤で指した手の行き先 `BoardInputRoute`（つまめるか・局面編集中か・着手の処理。主画面は `BoardMoveController`、詰将棋を解くダイアログは `TsumePlayDialog`）
   - `positioneditsession.cpp/.h` - 局面編集（開始・終了・編集メニュー・編集中の着手）。「編集中か」は動作状態 `DuringPositionEdit` だけで決まる
-  - `boardimageexporter.cpp/.h` - Board image export
 
 - **ui/**: UI層
   - **presenters/**: 表示への反映
     - `enginedisplaypresenter`（エンジンの表示の持ち主。検討の表示は `AnalysisSession` の知らせだけから決める）, `playerinfopresenter`（盤の対局者名）, `evaluationgraphpresenter`（評価値グラフの点の唯一の書き手）, `kifudisplaypresenter`（棋譜欄・分岐）, `boardsyncpresenter`（盤と手番）, `candidatearrowpresenter`（検討・対局のエンジンの読みと、定跡ウィンドウで開いている定跡の定跡手（緑。「表示」→「盤に定跡手を表示」）の矢印）, etc.
   - **controllers/**: 利用者操作の処理
-    - `boardmovecontroller`（主画面の `BoardInputRoute`。行き先ごとに手を処理する）, `humanturnpolicy`（盤の手の行き先 `boardInput()`（`BoardInput`。動作状態ごとの規則はここだけ）・人間が指せる手番か・対局が進行中か）, `considerationuicontroller`（検討タブの操作を `AnalysisSession` へ伝えるだけ）, `josekiwindowcontroller`（定跡ウィンドウを表示中の局面に合わせ、表示中の手順が定跡を外れた手を出す。「棋譜に展開...」は `JosekiLines::expand` の手順を `BranchTreeEditController::addVariationLines` で変化として足す。定跡の表示（「■ 停止」）・「盤の手を登録」の checkable な `QAction` を持ち、メニューの「盤に定跡手を表示」と合わせて正本にする。定跡ウィンドウのボタン・チェック、盤の矢印、盤の手の登録はこの `QAction` を読む）, `josekiregistrationcontroller`（思考の表・検討の表・棋譜解析の結果の表の右クリックで読み筋の最初の手を定跡に登録し、「盤の手を登録」がオンなら盤で指した手（`BranchTreeEditController::boardMoveRecorded`）と対局で指された手（`GameSession::gameMoveRecorded`。人間・エンジンとも、ローカル・通信対局とも）を登録する。定跡を変えられないとき（`JosekiBookSession::canEdit`）は押せない）, `menuwindowcontroller`, `pvclickcontroller`, etc.
-  - **coordinators/**: 複数の部品にまたがる UI の流れ
-    - `dialoglauncher`, `kifufilecontroller`（棋譜の開く・保存・貼り付け・コピー。読み込みは kifu の `KifuLoader`、保存で聞くダイアログは dialogs の `KifuSaveDialogs`）, `csagamesession`, etc.
+    - `boardmovecontroller`（主画面の `BoardInputRoute`。行き先ごとに手を処理する）, `considerationuicontroller`（検討タブの操作を `AnalysisSession` へ伝えるだけ）, `josekiwindowcontroller`（定跡ウィンドウを表示中の局面に合わせ、表示中の手順が定跡を外れた手を出す。「棋譜に展開...」は `JosekiLines::expand` の手順を `BranchTreeEditController::addVariationLines` で変化として足す。定跡の表示（「■ 停止」）・「盤の手を登録」の checkable な `QAction` を持ち、メニューの「盤に定跡手を表示」と合わせて正本にする。定跡ウィンドウのボタン・チェック、盤の矢印、盤の手の登録はこの `QAction` を読む）, `josekiregistrationcontroller`（思考の表・検討の表・棋譜解析の結果の表の右クリックで読み筋の最初の手を定跡に登録し、「盤の手を登録」がオンなら盤で指した手（`BranchTreeEditController::boardMoveRecorded`）と対局で指された手（`GameSession::gameMoveRecorded`。人間・エンジンとも、ローカル・通信対局とも）を登録する。定跡を変えられないとき（`JosekiBookSession::canEdit`）は押せない）, `menuwindowcontroller`, `pvclickcontroller`, `dialoglauncher`, `kifufilecontroller`（棋譜の開く・保存・貼り付け・コピー。読み込みは kifu の `KifuLoader`、保存で聞くダイアログは dialogs の `KifuSaveDialogs`）, `widgetimageexporter`（盤・評価値グラフの画像のコピーと、形式を選んだ保存 `WidgetImageExporter`。決まった場所への PNG の保存は `screenshotservice`）, etc.
+    - `kifunavigationcontroller` - 棋譜ナビゲーション（ボタン・分岐）。局面送りの6つの操作は `QAction` の組（`action(Step)`）で1つだけ持ち、棋譜欄と評価値グラフのボタンを `bindButtons()` で結ぶ（有効・無効も QAction に従う。切り替えは `setStepActionsEnabled()`）
+  - **coordinators/**: 複数の部品にまたがる UI の流れ（`csagamesession`・`commentcoordinator`）
+  - **policy/**: 動作状態からの規則
     - `uistatepolicymanager` - 動作状態ごとのメニュー・ボタンの有効/無効（コンパイル時の表）
+    - `humanturnpolicy` - 盤の手の行き先 `boardInput()`（`BoardInput`。動作状態ごとの規則はここだけ）・人間が指せる手番か・対局が進行中か
+  - **docks/**: ドック
     - `dockregistry` - ドックの表 `DockRegistry`（`DockId`・`DockSpec`）。12個のドックをこの表だけから作り（`createAll()`）、規定の場所に置き（同じ場所のドックは表で前のドックのタブに重ねる。起動時と `resetToDefault()` で同じ配置）、浮動・表示・位置を保存・復元する（`saveStates()`・`DockSettings::DockState`）。ドックを足すときは `DockId` と表に1行足す
     - `docklayoutmanager` - 名前付きレイアウト・起動時のレイアウト・ドックの固定（ドックは `DockRegistry` から取る）
 
@@ -164,23 +163,24 @@ cmake --build build --target translations
 - **automation/**: 自動化 API（`ShogiBoardQ --automation`）。引数の表・エラーの分類などの共有部品は headless/（設計: `docs/dev/mcp-server.md`）
   - `automationserver.cpp/.h` - QLocalServer で改行区切り JSON-RPC 2.0 を待ち受け
   - `automationdispatcher.cpp/.h` - JSON-RPC 解析とメソッド表（GUI 非依存）。メソッドを呼ぶ前に引数を表で検査し（知らない引数は拒否）、既定値を補う。エラー応答（`makeError()`）は `error.code` と `error.data.slug` を分類から決める
-  - `automationcommands_*.cpp` - app / position / kifu / ui の各メソッド、`automationactionpolicy` は QAction 許可リスト
+  - `automationcommands_*.cpp` - メソッドの実装。メソッド `x.y` は `automationcommands_x.cpp`（名前空間ごとに1ファイル。登録の一覧と共有の読み取りは `automationcommands.cpp`）、`automationactionpolicy` は QAction 許可リスト
   - `automationinteractions.cpp/.h` - 応答の後に行う UI 操作の予約 `AutomationInteractions::queue(QueuedInteraction{target, check, perform}, response)`。`check` は予約の時点と実行の直前の2回走る（メソッドは同じ検査を予約の前に書かない）。結果（pending・running・done・failed と分類つきの error・cancelled）を記録して `ui.interaction` で返す（応答に `"queued": true` と `"interaction"` の番号）。UI を操作するメソッドはこれで予約し、`AutomationDeferredCall` を直接使うのは `app.quit` だけ。実行時の失敗は握りつぶさない。MCP サーバーは `AppClient.call_queued()` で実行を待つ
   - `automationinput.cpp/.h` - 通常のマウス入力 `AutomationInput::sendClick()`・`sendDrag()`（盤・表のセル・分岐ツリー・ドックのタイトルバー）
   - `automationwidgetadapters.cpp/.h` - 部品の型ごとの読み（`describe()`・`widget.text`）と書き（`writer()`・`widget.setValue`）の表 `AutomationWidgetAdapters`。型を足すときは表に1行足す
-  - `boardimagerenderer` - 盤面画像（`ShogiView` で描くので views を使う。CLI の render-board も使う）
 - **headless/**: CLI・自動化 API・MCP サーバーが共有する GUI 非依存の部品（core〜analysis だけを使う。`tests/tst_layer_dependencies.cpp`）
   - `errorkinds.cpp/.h` - エラーの分類 `ErrorKind` と、語（slug）・JSON-RPC のコードの表（`ErrorKinds::slug()`・`rpcCode()`・`toJson()`。数値は `AutomationErrorCode`）、分類つきの失敗 `Failure`（分類・文・対処）。CLI（`CliOutput::fail(ErrorKind, ...)`・`fail(Failure)`）・自動化 API（`AutomationError(ErrorKind, ...)`・`AutomationError(Failure)`）・MCP サーバーで同じ失敗は同じ語にする。分類を足すときは enum と表に1行ずつ足す
   - `paramspec.cpp/.h` - 引数の表の部品 `ParamSpec`（名前・型・必須・範囲・既定値・選択肢・説明）と `OperationSpec`。JSON Schema の出力（`ParamSpecs::inputSchema()`）と検査（`validate()`）。CLI・自動化 API・MCP で共有する
   - `automationmethodspecs.cpp/.h` - 自動化 API の全メソッドの引数の表 `AutomationMethodSpecs`。メソッドは補われた値を読み、`AutomationParams` は範囲が画面の状態で決まる引数にだけ使う
+  - `automationendpoint.cpp/.h` - 自動化 API の接続先 `AutomationEndpoint`（既定のソケットの場所・エンドポイントファイル・1メッセージの上限 `kMaxMessageBytes`）。自動化 API のサーバーと CLI の `environment` が共有する
   - `outputpath.cpp/.h` - 書き出し先の事前検査 `OutputPath::check`（絶対パス・ディレクトリでない・上書きの許可・置き場所。CLI の出力先と `kifu.save` で共通。MCP の `paths.py` も同じ分類）
-  - `kifuconversionservice`, `enginecatalog`, `engineanalysisrunner`（局面の列を1つのエンジンで順に解析。CLI の analyze・analyze-kifu）, `matesearchrunner`, `tsumeverificationrunner`（詰みの問い合わせは `MateOracle`） - CLI と自動化 API が使うサービス（局面の検証は `analysis/sfenvalidationservice`）。失敗は `Failure` で返す
+  - `kifuconversionservice`, `enginecatalog`, `engineanalysisrunner`（局面の列を1つのエンジンで順に解析。CLI の analyze・analyze-kifu）, `matesearchrunner`, `tsumeverificationrunner`（詰みの問い合わせは `MateOracle`） - CLI と自動化 API が使うサービス（局面の検証は core の `SfenValidator`、その JSON は `sfenvalidationjson`）。失敗は `Failure` で返す
 - **cli/**: `shogiboardq-cli`（GUI を起動しない JSON 出力コマンド。`mcp/` の MCP サーバーが呼び出す）
   - `clicommandspecs.cpp/.h` - 全コマンドの引数の表 `CliCommandSpecs`（オプション名は引数名の `_` を `-` にしたもの）。オプションの登録・使い方の文・コマンドラインから検査済みの JSON への変換（真偽値はフラグ、文字列の配列は空白区切り）をこの表から行う。コマンドの名前・実装・出力の種類（JSON か JSON Lines のイベントか）は `main.cpp` の表の1行で決め、`CliCommands::run()` が引数を表で検査してから、検査済みの JSON をコマンドに渡す（コマンドは `resolvePosition(params)`・`resolveEngine(params)` で解決する）。指し手の JSON は CLI と自動化 API で共通の `headless/recordjson`（`RecordJson::entry`・`moves`）
-  - `environment` コマンドは自動化 API の既定のソケット・エンドポイントファイル・設定ファイルの場所、1メッセージの上限（`AutomationServer::kMaxMessageBytes`）、エラーの分類の表を出す。MCP サーバー（`mcp/shogiboardq_mcp/environment.py`）はこれを読み、場所や上限・語を Python に写さない
+  - `environment` コマンドは自動化 API の既定のソケット・エンドポイントファイル・設定ファイルの場所、1メッセージの上限（headless の `AutomationEndpoint`。自動化 API のサーバーも同じ値を使う）、エラーの分類の表を出す。MCP サーバー（`mcp/shogiboardq_mcp/environment.py`）はこれを読み、場所や上限・語を Python に写さない
+  - `boardimagerenderer.cpp/.h` - 盤面画像 `BoardImageRenderer`（render-board。`ShogiView` を画面に出さずに描くので、cli で views を使うのはこれだけ）
   - `describe` コマンドは CLI と自動化 API の表を JSON Schema で出す。MCP のツールのスキーマはその出力を保存した `mcp/shogiboardq_mcp/specs.json` から作る（引数名は CLI・自動化 API・MCP で同じ）ので、引数を変えたら `python3 -m shogiboardq_mcp.specs build/shogiboardq-cli`（mcp/ で）で作り直す（`mcp/tests/test_param_specs.py` が古さを検査する）。CLI は `--params-json '<JSON>'` でも引数を受け、MCP サーバーはこれで渡す。以前のオプション名は旧名（`ParamSpec::alias`・`aliasFlag`）で受け付ける
 - **widgets/**: Custom Qt widgets
-  - ドックのパネル（`thinkingpanel`・`gameinfopane`・`recordpane`・`considerationpanel`・`usilogpanel`・`csalogpanel`・`commenteditorpanel`・`analysisresultspanel`・`branchtreeview`）はすべて `QWidget` の派生で、部品をコンストラクタで作りきる（USI・CSA の通信ログは共通の基底 `logpanel` の `LogPanel`。ログ・折り返し・最新へ・コピー・消去・コマンドの欄）。`DockRegistry` はパネルそのものをドックに入れる（`buildUi()`・`containerWidget()` のような、外から後で中身を作らせる・取り出す公開の関数は持たない）
+  - ドックのパネル（`thinkingpanel`・`gameinfopane`・`recordpane`・`considerationpanel`・`usilogpanel`・`csalogpanel`・`commenteditorpanel`・`analysisresultspanel`・`branchtreeview`・`menuwindow`）はすべて `QWidget` の派生で、部品をコンストラクタで作りきる（USI・CSA の通信ログは共通の基底 `logpanel` の `LogPanel`。ログ・折り返し・最新へ・コピー・消去・コマンドの欄）。`DockRegistry` はパネルそのものをドックに入れる（`buildUi()`・`containerWidget()` のような、外から後で中身を作らせる・取り出す公開の関数は持たない）
   - `thinkingpanel`・`thinkingtableview`（思考の表。対局と検討タブで共用）・`pvtableview`（読み筋の表 `PvTableView`。数値の列・「盤面」ボタン（`boardRequested`）・読み筋の描き方・行の高さを受け持ち、思考の表の基底で棋譜解析の結果の表にも使う。行の右クリックのメニューの項目は受け手が `rowContextMenuAboutToShow(row, menu)` で足す）・`engineinfowidget`（探索状況の書式はここで決める）, `gameinfopane`（対局情報。中身は `models/gameinfoeditmodel`）, `recordpane`, `considerationpanel`（検討タブ。設定 `ConsiderationSettings`（`considerationsettings.h`）を正本として持ち、開始/中止のボタンは実行の状態 `RunState` で決まる）, `evaluationchartwidget`（評価値グラフ。`EvaluationSeries` を描くだけ。表示の設定は値 `EvaluationChartSettings`（`AnalysisSettings::evalChart`）、軸は `evaluationchartrange` の `EvaluationChartRange::compute`。「表示設定…」は `settingsRequested` を出し、`DialogLauncher` が dialogs の `EvaluationChartSettingsDialog` を開く）, `analysisresultspanel`（棋譜解析の結果の表。列は `KifuAnalysisListModel::Column`、モデルは `setModel()` で1度だけ結ぶ。ドックを出すのは `KifuAnalysisController`）, `branchtreeview`（分岐ツリーの図 `BranchTreeView`。`QGraphicsView` の派生でドックの中身そのもの。`setTree()` でツリーの変更の知らせを自分で受け、手順の末尾に1手足しただけならその手だけを描き足し、それ以外は作り直す。外とは `KifuBranchNode` の ID だけでやり取りする（`setCurrentNode(nodeId)`・`nodeActivated(nodeId)`・`nodeContextMenuAboutToShow(nodeId, menu)`・`refreshNode(nodeId)`）。行・段・折りたたみの配置は `branchtreelayout`）・`branchnodeitem`（図の1手（開始局面を含む）の図形 `BranchNodeItem`。ノード ID・行・手数を型付きのメンバで持ち、`BranchTreeItemRoles` は自動化 API のためだけに付ける）
   - `tableheaderview` - 表の見出し。列幅は利用者がドラッグしたときだけ `sectionResizedByUser` で保存する
   - `fontsizehelper` - A-/A+ の文字の大きさ（範囲・保存・変更の通知）
@@ -189,7 +189,7 @@ cmake --build build --target translations
   - `recentfilesmenu` - 「履歴」ボタンのメニュー `RecentFilesMenu`（ファイル・区切り・「履歴をクリア」、空なら「（履歴なし）」。選ばれた項目は `fileTriggered(QString)`・`clearTriggered()` で知らせる）。定跡ウィンドウ（`JosekiFileController::openRecent(path)` へ渡す）と局面集ビューアが使う
   - `dialogfontscale` - ダイアログの A-/A+ と保存 `DialogFontScale`（全ダイアログ共通。各部品を元の大きさからの差で拡大・縮小する）
   - `engineselector` - 登録エンジンを選ぶ部品 `EngineSelector`（呼び出し側が置いたコンボ・「設定」ボタン・未登録の案内に結び、一覧の読み込み・保存した選択の復元と保存（`EngineListSettings::SelectionKeys`）・未登録のときの無効化を受け持つ）。設定ダイアログは dialogs にあるので開かず、`settingsRequested(EngineEntry)` で受け手に頼む。棋譜解析・詰み探索・詰将棋生成・詰将棋問題一覧・CSA通信対局のダイアログ、検討タブ、対局開始ダイアログの対局者の欄が使う
-  - `playersetupwidget` - 対局開始ダイアログの対局者1人の欄 `PlayerSetupWidget`（コンボの先頭が「人間」（`EngineSelector` の内蔵の項目）で、その後に登録エンジン。人間なら名前の欄、エンジンなら「エンジン設定」ボタンと「定跡を使う」・「条件…」（条件のダイアログは dialogs の `JosekiPlayOptionsDialog`。定跡を開いていなければ押せない））。選択は `PlayerChoice`（`game/startgamedatabridge.h`）で読み書きし、保存したエンジンが削除されていれば人間に戻す
+  - `playersetupwidget` - 対局開始ダイアログの対局者1人の欄 `PlayerSetupWidget`（コンボの先頭が「人間」（`EngineSelector` の内蔵の項目）で、その後に登録エンジン。人間なら名前の欄、エンジンなら「エンジン設定」ボタンと「定跡を使う」・「条件…」（条件のダイアログは dialogs の `JosekiPlayOptionsDialog`。定跡を開いていなければ押せない））。選択は `PlayerChoice`（`game/startgamedialogdata.h`）で読み書きし、保存したエンジンが削除されていれば人間に戻す
   - `timecontroleditor` - 片方の対局者の持ち時間・秒読み・加算の欄 `TimeControlEditor`（`TimeControlSide` で読み書き。秒読みと加算は排他で、相手側の欄にも `byoyomiEntered`・`incrementEntered` で知らせる）
   - `tablemodelutils.h` - 表へのモデルの付け替え `TableModelUtils::setModel`（Qt が置き換えた選択モデルを解放する）
   - `settingsformbinding` - 入力欄と設定の宣言（`Setting<T>`）の対応の表 `SettingsFormBinding`（`add()` を1度書けば `load()`・`save()`・`reset()`（既定値に戻す）を同じ表で行う。対局開始・詰将棋生成のダイアログが使う）
@@ -206,7 +206,7 @@ cmake --build build --target translations
   - `piecestylecatalog.cpp/.h` - 駒のセットの表 `PieceStyleCatalog`（ID・分類 `Family`・表示名・画像の場所）。駒のセットを足すときはこの表に1行足す（外観ダイアログの絞り込みの番号は `Family` の値）
   - `notationstyle.cpp/.h` - 表示言語と棋譜の表記の設定 `NotationStyle`（`Notation`・`Options`・`resolveLanguage`・`configure`・`options`・`revision`）。起動時に `ApplicationTranslations` が設定し、kifu の `KifuPresentation` が読む
   - `appearancestate.cpp/.h` - 外観（駒のセット・配色・見た目）をまとめた値 `AppearanceState`（`current()`・`apply()`）。おすすめの組み合わせは `boardappearancecatalog` の `combinations()`
-- **common/**: 共有の土台（`appactivitystate`（動作状態 `AppActivityState` と持ち主のリース `ActivityLease`）・`boardcolors.h`・`boardvisuals.h`・`branchtreeitemroles.h`・`errorbus`・`logcategories`・`threadtypes.h`・`tsumeevaluation.h`・`boundedfile.h`（利用者が選んだ棋譜・局面集を、通常のファイルだけ上限つきで読む `BoundedFile::read`）・`recentfilelist`（最近使ったファイルの一覧 `RecentFileList`。新しい順・重複なし・上限つき。定跡の `JosekiBookSession` と局面集ビューアが使う））
+- **common/**: 共有の土台（`appactivitystate`（動作状態 `AppActivityState` と持ち主のリース `ActivityLease`）・`boardcolors.h`・`boardvisuals.h`・`branchtreeitemroles.h`・`errorbus`・`logcategories`・`threadtypes.h`・`boundedfile.h`（利用者が選んだ棋譜・局面集を、通常のファイルだけ上限つきで読む `BoundedFile::read`）・`recentfilelist`（最近使ったファイルの一覧 `RecentFileList`。新しい順・重複なし・上限つき。定跡の `JosekiBookSession` と局面集ビューアが使う））
 
 ### UI Files
 
@@ -318,7 +318,7 @@ MyDialog::MyDialog(QWidget* parent)
 - When adding new features, prefer creating new classes in appropriate directories (`app/`, `controllers/`, `services/`, etc.) rather than adding code to MainWindow.
 - **Deps/Hooks/Refs パターン**: `docs/dev/done/deps-hooks-refs-pattern.md` に従う。依存注入に3種の構造体パターン（Deps=外部依存注入、Hooks=上位層へのコールバック、Refs=親状態への参照）を使い分ける
 - **スレッド安全性**: `docs/dev/threading-guidelines.md` に従う。UIアクセスはメインスレッド限定、ワーカーには値オブジェクトのみ渡す
-- **層の依存**: 下の層は上の層を include しない。順に core・common → services → kifu → engine → game → analysis・network・navigation → style → models → views・widgets → board → dialogs → ui → app。`headless` は core〜analysis だけを使い、`automation`・`cli` は MainWindow・ダイアログ・ウィジェットに依存しない（規則は `tests/tst_layer_dependencies.cpp` が検査する）
+- **層の依存**: 下の層は上の層を include しない。順に core・common → services → kifu → engine → game → analysis・network → style → models → views・widgets → board → dialogs → ui → app。`headless` は core〜analysis だけを使い、`automation`・`cli` は MainWindow・ダイアログ・ウィジェットに依存しない（`cli` は盤面画像 `boardimagerenderer` だけが views を使う。規則は `tests/tst_layer_dependencies.cpp` が検査する）
 - **クラス名の役割**: `*Wiring` はシグナルの接続だけ、`*Presenter` は表示への反映、`*Controller` は利用者操作の処理、`*Coordinator` は複数の部品にまたがる流れ。役割が変わったら名前も変える
 - **ファイルの分割**: 1ファイル1000行の上限（`tests/tst_structural_kpi.cpp`）に近づいたら、行数で `_ui`・`_draw` などに機械的に分けず、責務を別のクラスに切り出す
 

@@ -1,5 +1,5 @@
 /// @file tst_image_export.cpp
-/// @brief 画像エクスポートテスト（BoardImageExporter + QWidget::grab 基礎動作）
+/// @brief 画像エクスポートテスト（WidgetImageExporter + QWidget::grab 基礎動作）
 
 #include <QtTest>
 #include <QApplication>
@@ -8,7 +8,7 @@
 #include <QPixmap>
 #include <QWidget>
 
-#include "boardimageexporter.h"
+#include "widgetimageexporter.h"
 
 class TestImageExport : public QObject
 {
@@ -77,7 +77,7 @@ void TestImageExport::copyToClipboard_widgetExists_clipboardHasImage()
     if (widget.grab().isNull())
         QSKIP("offscreen platform returned null pixmap");
 
-    BoardImageExporter::copyToClipboard(&widget);
+    WidgetImageExporter::copyToClipboard(&widget);
 
     const QClipboard *clipboard = QApplication::clipboard();
     const QPixmap clipPixmap = clipboard->pixmap();
@@ -87,7 +87,7 @@ void TestImageExport::copyToClipboard_widgetExists_clipboardHasImage()
 void TestImageExport::copyToClipboard_nullWidget_noCrash()
 {
     // nullptr を渡してもクラッシュしないことを確認
-    BoardImageExporter::copyToClipboard(nullptr);
+    WidgetImageExporter::copyToClipboard(nullptr);
 }
 
 QTEST_MAIN(TestImageExport)

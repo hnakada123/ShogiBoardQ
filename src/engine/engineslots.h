@@ -1,7 +1,7 @@
-#ifndef ENGINELIFECYCLEMANAGER_H
-#define ENGINELIFECYCLEMANAGER_H
+#ifndef ENGINESLOTS_H
+#define ENGINESLOTS_H
 
-/// @file enginelifecyclemanager.h
+/// @file engineslots.h
 /// @brief エンジンの枠 E1・E2（対局・検討・棋譜解析・通信対局で共有）のリースと取り上げの知らせ
 
 #include <QObject>
@@ -10,15 +10,15 @@
 #include <array>
 
 class Usi;
-class EngineLifecycleManager;
+class EngineSlots;
 
 /**
  * @brief 枠のエンジンを使う権利（move-only）
  *
- * EngineLifecycleManager::acquire が返す。持ち主はこれを持っている間だけ engine() を使う。
+ * EngineSlots::acquire が返す。持ち主はこれを持っている間だけ engine() を使う。
  * 手放す（reset・破棄）と、枠のエンジンを止めて枠を空ける（思考情報・通信ログの表示は残す）。
  * ほかの持ち主が同じ枠を取った・全部の枠を破棄したときは、前の持ち主に
- * EngineLifecycleManager::engineRevoked で知らせ、このリースは空になる（engine() が nullptr）。
+ * EngineSlots::engineRevoked で知らせ、このリースは空になる（engine() が nullptr）。
  */
 class EngineLease
 {
@@ -37,10 +37,10 @@ public:
     void reset();
 
 private:
-    friend class EngineLifecycleManager;
-    EngineLease(EngineLifecycleManager* manager, Usi* engine);
+    friend class EngineSlots;
+    EngineLease(EngineSlots* engineSlots, Usi* engine);
 
-    QPointer<EngineLifecycleManager> m_manager;
+    QPointer<EngineSlots> m_engineSlots;
     QPointer<Usi> m_engine;
 };
 
@@ -51,13 +51,13 @@ private:
  * （後手を指すときも）。表示のモデルには触れない（表示する側が enginesChanged を受けて枠のエンジンとモデルを結ぶ）。
  * 手番・持ち時間・投了などの対局の知らせは、対局で指すエンジン（MatchEngineSeat）が受け持つ。
  */
-class EngineLifecycleManager : public QObject
+class EngineSlots : public QObject
 {
     Q_OBJECT
 
 public:
-    explicit EngineLifecycleManager(QObject* parent = nullptr);
-    ~EngineLifecycleManager() override;
+    explicit EngineSlots(QObject* parent = nullptr);
+    ~EngineSlots() override;
 
     /**
      * @brief 枠（1=E1、2=E2）にエンジンを作り、owner に使わせる
@@ -86,18 +86,18 @@ signals:
 private:
     friend class EngineLease;
 
-    struct Seat {
+    struct Slot {
         Usi* engine = nullptr;
         QPointer<QObject> owner;
     };
-    Seat& seat(int slot) { return m_seats[static_cast<size_t>(slot == 2 ? 1 : 0)]; }
-    const Seat& seat(int slot) const { return m_seats[static_cast<size_t>(slot == 2 ? 1 : 0)]; }
+    Slot& slotAt(int slot) { return m_slots[static_cast<size_t>(slot == 2 ? 1 : 0)]; }
+    const Slot& slotAt(int slot) const { return m_slots[static_cast<size_t>(slot == 2 ? 1 : 0)]; }
     /// 枠を空ける。notifyOwner なら持ち主に engineRevoked で知らせる
-    void destroySeat(Seat& seat, bool clearThinking, bool notifyOwner);
+    void destroySlot(Slot& slot, bool clearThinking, bool notifyOwner);
     /// リースを手放したとき（持ち主には知らせない）
     void release(Usi* engine);
 
-    std::array<Seat, 2> m_seats;
+    std::array<Slot, 2> m_slots;
 };
 
-#endif // ENGINELIFECYCLEMANAGER_H
+#endif // ENGINESLOTS_H

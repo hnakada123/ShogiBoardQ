@@ -9,7 +9,7 @@
 #include <QString>
 
 
-class EngineLifecycleManager;
+class EngineSlots;
 class UsiLogPanel;
 
 /**
@@ -23,7 +23,7 @@ class UsiCommandController : public QObject
     Q_OBJECT
 public:
     struct Deps {
-        EngineLifecycleManager* engines = nullptr;   ///< 送信先のエンジンの枠（E1・E2。対局・検討で共有）
+        EngineSlots* engines = nullptr;   ///< 送信先のエンジンの枠（E1・E2。対局・検討で共有）
         UsiLogPanel* usiLog = nullptr;               ///< 送れなかった知らせを出す通信ログ
     };
 

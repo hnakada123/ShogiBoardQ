@@ -10,7 +10,7 @@
 #include "considerationpanel.h"
 #include "docklayoutmanager.h"
 #include "gameinfopane.h"
-#include "enginelifecyclemanager.h"
+#include "engineslots.h"
 #include "humanturnpolicy.h"
 #include "josekiwindow.h"
 #include "josekiwindowcontroller.h"

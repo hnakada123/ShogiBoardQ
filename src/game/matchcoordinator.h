@@ -11,22 +11,81 @@
 
 #include "appactivitystate.h"
 #include "gamemodestrategy.h"
-#include "interruptedgamestate.h"
-#include "matchsessionstate.h"
 #include "matchtimesource.h"
-#include "matchtypes.h"
 #include "nyugyokujudgement.h"
 #include "recordline.h"
+#include "shogiclock.h"
+#include "shogitypes.h"
 #include "startoptions.h"
 #include "usiscore.h"
 
-class EngineLifecycleManager;
+class EngineSlots;
 class KifuDocument;
 class MatchRecordSink;
-class ShogiClock;
 class ShogiGameController;
 class Usi;
 struct JosekiPick;
+
+/// 終局原因（MatchCoordinator::Cause）
+enum class MatchCause : int {
+    Resignation    = 0,  ///< 投了
+    Timeout        = 1,  ///< 時間切れ
+    BreakOff       = 2,  ///< 中断
+    Jishogi        = 3,  ///< 持将棋／最大手数到達
+    NyugyokuWin    = 4,  ///< 入玉宣言勝ち
+    IllegalMove    = 5,  ///< 反則負け（入玉宣言失敗など）
+    Sennichite     = 6,  ///< 千日手（引き分け）
+    OuteSennichite = 7   ///< 連続王手の千日手（反則負け）
+};
+
+/// 終局情報（MatchCoordinator::GameEndInfo）。対局者（先手・後手）は Turn で表す
+struct MatchGameEndInfo {
+    MatchCause  cause = MatchCause::Resignation;  ///< 終局原因
+    Turn        loser = Turn::Black;              ///< 敗者
+};
+
+/// 中断したローカル対局の状態（アプリ起動中だけ保持する）。再開すると、この手順と時計から続ける
+struct InterruptedGameState {
+    MatchStartOptions options;
+    ShogiClock::Snapshot clock;
+    RecordLine record;           ///< 中断までの対局の手順（「同」表記の基準もここから導く）
+    int terminalNodeId = -1;     ///< 棋譜（分岐ツリー）に書いた中断の行。再開でこの行を除く（書くまでは -1）
+};
+
+/// 対局の条件と終局の所有者。変更は対局上の操作として行い、内部フィールドを公開しない。
+class MatchSessionState
+{
+public:
+    /// 対局を始める。開始の手順（options.recordLine）は対局の手順として MatchCoordinator が持つので、ここには残さない
+    void begin(const MatchStartOptions& options)
+    {
+        m_options = options;
+        m_options.recordLine = RecordLine{};
+        m_started = true;
+        m_end.reset();
+    }
+    /// 一度でも対局を始めたか
+    bool started() const { return m_started; }
+    /// 対局の条件（対局者・エンジン・開始局面・最大手数・自動保存・定跡）
+    const MatchStartOptions& options() const { return m_options; }
+    const MatchPlayers& players() const { return m_options.players; }
+    int maxMoves() const { return m_options.maxMoves; }
+    /// 終局の情報（終局していなければ nullopt）
+    const std::optional<MatchGameEndInfo>& end() const { return m_end; }
+    void clearEnd() { m_end.reset(); }
+    /// 終局する（終局済みなら何もせず false）
+    bool finish(const MatchGameEndInfo& info)
+    {
+        if (m_end) return false;
+        m_end = info;
+        return true;
+    }
+
+private:
+    MatchStartOptions m_options;
+    bool m_started = false;
+    std::optional<MatchGameEndInfo> m_end;
+};
 
 /**
  * @brief ローカル対局（人間・エンジン）の司令塔
@@ -50,7 +109,7 @@ public:
         ShogiGameController* gc = nullptr;          ///< 対局の盤（必須、非所有）
         ShogiClock* clock = nullptr;                ///< 対局の時計（必須、非所有）
         AppActivityState* activity = nullptr;       ///< アプリの動作状態（必須、非所有）
-        EngineLifecycleManager* engines = nullptr;  ///< エンジンの枠 E1・E2（必須、非所有。検討と共有する）
+        EngineSlots* engines = nullptr;  ///< エンジンの枠 E1・E2（必須、非所有。検討と共有する）
         /// 棋譜の文書（終局の知らせ・入玉宣言で対局者を下手・上手と呼ぶかを対局情報から決める。非所有）
         const KifuDocument* document = nullptr;
     };
@@ -151,7 +210,7 @@ signals:
 
 private:
     // --- MatchStrategyHost ---
-    EngineLifecycleManager& engines() override { return *m_engines; }
+    EngineSlots& engines() override { return *m_engines; }
     MatchTimeSource* timeSource() override { return &m_clockTime; }
     void requestEngineMove(Turn side) override;
     void setWaitingForEngines(bool waiting) override;
@@ -195,7 +254,7 @@ private:
     AppActivityState* m_activity = nullptr;
     ActivityLease m_activityLease;   ///< 対局中の動作状態（開始・再開で受け取り、終局で手放す）
     MatchRecordSink* m_sink = nullptr;
-    EngineLifecycleManager* m_engines = nullptr;
+    EngineSlots* m_engines = nullptr;
     ClockTimeSource m_clockTime;   ///< 対局のエンジンが持ち時間を読む対局時計
     const KifuDocument* m_document = nullptr;
     std::unique_ptr<GameModeStrategy> m_strategy;

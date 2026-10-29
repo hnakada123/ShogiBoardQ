@@ -42,7 +42,7 @@ struct AutomationContext {
     KifuFileController* kifuFileController = nullptr;
     const CsaGameCoordinator* csaGame = nullptr;              ///< 通信対局の司令塔
 
-    // メニューウィンドウ（dialogs 層）の操作。automation 層からは直接触れないので関数で受け取る
+    // メニューウィンドウ（widgets 層）の操作。automation 層からは直接触れないので関数で受け取る
     std::function<QStringList()> menuFavorites;
     std::function<QStringList()> availableMenuActions;
     std::function<void(const QStringList&)> setMenuFavorites;

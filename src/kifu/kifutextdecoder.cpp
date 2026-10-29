@@ -1,7 +1,7 @@
-/// @file kifreader.cpp
+/// @file kifutextdecoder.cpp
 /// @brief 棋譜ファイルの文字コード自動判別読み込み機能の実装
 
-#include "kifreader.h"
+#include "kifutextdecoder.h"
 #include "boundedfile.h"
 
 #include <QByteArray>
@@ -9,7 +9,7 @@
 #include "shiftjiscodec.h"
 #include <QStringDecoder>
 
-namespace KifReader {
+namespace KifuTextDecoder {
 
 // --- helpers ---------------------------------------------------------------
 
@@ -176,4 +176,4 @@ QStringList splitLines(const QString& text)
     return lines;
 }
 
-} // namespace KifReader
+} // namespace KifuTextDecoder

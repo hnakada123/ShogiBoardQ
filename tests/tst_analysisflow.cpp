@@ -23,7 +23,7 @@
 #include "appactivitystate.h"
 #include "considerationpanel.h"
 #include "considerationuicontroller.h"
-#include "enginelifecyclemanager.h"
+#include "engineslots.h"
 #include "enginesettingsconstants.h"
 #include "errorbus.h"
 #include "evaluationchartwidget.h"
@@ -52,7 +52,7 @@ namespace {
 struct AnalysisHarness {
     ShogiClock clock;
     AppActivityState activity;
-    EngineLifecycleManager engines;
+    EngineSlots engines;
     AnalysisSession session{AnalysisSession::Deps{&engines, &activity}};
 };
 
@@ -92,7 +92,7 @@ public:
     UsiCommLogModel logModel;
     ShogiEngineThinkingModel thinkingModel;
     ShogiClock clock;
-    EngineLifecycleManager engines;
+    EngineSlots engines;
     Usi* usi = nullptr;
     QSignalSpy errors{&ErrorBus::instance(), &ErrorBus::messagePosted};
 

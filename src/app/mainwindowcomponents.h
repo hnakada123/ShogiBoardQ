@@ -50,7 +50,7 @@ class AnalysisSession;
 class ConsecutiveGameSeries;
 class CsaGameCoordinator;
 class CsaGameSession;
-class EngineLifecycleManager;
+class EngineSlots;
 class GameSession;
 class HumanTurnPolicy;
 class MatchCoordinator;
@@ -149,7 +149,7 @@ struct MainWindowComponents {
     CommentCoordinator* commentCoordinator = nullptr;
 
     // --- 対局・検討・通信対局 ---
-    EngineLifecycleManager* engines = nullptr;          ///< エンジンの枠 E1・E2（対局と検討で共有）
+    EngineSlots* engines = nullptr;          ///< エンジンの枠 E1・E2（対局と検討で共有）
     MatchCoordinator* match = nullptr;                  ///< ローカル対局の司令塔
     AnalysisSession* analysisSession = nullptr;         ///< 検討・詰み探索
     ConsecutiveGameSeries* consecutiveGames = nullptr;

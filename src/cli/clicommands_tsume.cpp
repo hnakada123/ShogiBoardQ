@@ -6,7 +6,7 @@
 #include "cliargs.h"
 #include "clioutput.h"
 #include "clistopwatcher.h"
-#include "sfenvalidationservice.h"
+#include "sfenvalidator.h"
 #include "tsumeshogigenerator.h"
 #include "tsumeverificationrunner.h"
 
@@ -195,7 +195,7 @@ int CliCommands::verifyTsume(const QJsonObject& params)
     if (targetMoves % 2 == 0) return CliOutput::fail(ErrorKind::InvalidArgument, QStringLiteral("target_moves must be odd"));
     const int timeoutMs = params.value(QStringLiteral("timeout_seconds")).toInt() * 1000;
 
-    const SfenValidation validation = SfenValidationService::validate(params.value(QStringLiteral("sfen")).toString());
+    const SfenValidation validation = SfenValidator::validate(params.value(QStringLiteral("sfen")).toString());
     if (!validation.valid) return CliOutput::fail(ErrorKind::InvalidArgument, QStringLiteral("Invalid SFEN: %1").arg(validation.errors.join(QStringLiteral("; "))));
 
     TsumeVerificationRunner runner;

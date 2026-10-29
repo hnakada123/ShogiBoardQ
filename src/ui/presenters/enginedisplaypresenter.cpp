@@ -7,7 +7,7 @@
 #include "considerationpanel.h"
 #include "csalogpanel.h"
 #include "engineinfowidget.h"
-#include "enginelifecyclemanager.h"
+#include "engineslots.h"
 #include "evaluationgraphpresenter.h"
 #include "kifuanalysislistmodel.h"
 #include "kifudocument.h"
@@ -23,8 +23,8 @@ EngineDisplayPresenter::EngineDisplayPresenter(const Deps& deps, QObject* parent
     , m_deps(deps)
 {
     Q_ASSERT(m_deps.engines);
-    connect(m_deps.engines, &EngineLifecycleManager::enginesChanged, this, &EngineDisplayPresenter::bindEngines);
-    connect(m_deps.engines, &EngineLifecycleManager::displayClearRequested,
+    connect(m_deps.engines, &EngineSlots::enginesChanged, this, &EngineDisplayPresenter::bindEngines);
+    connect(m_deps.engines, &EngineSlots::displayClearRequested,
             this, &EngineDisplayPresenter::clearEngineOutput);
     if (AnalysisSession* analysis = m_deps.analysis) {
         connect(analysis, &AnalysisSession::considerationSearchStarted,

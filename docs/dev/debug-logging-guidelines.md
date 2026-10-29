@@ -120,7 +120,7 @@ shogi.<module>
 | `shogi.analysis` | 解析機能 (`src/analysis/`) |
 | `shogi.game` | ゲーム進行 (`src/game/`) |
 | `shogi.board` | 盤面操作 (`src/board/`) |
-| `shogi.navigation` | ナビゲーション (`src/navigation/`) |
+| `shogi.navigation` | 棋譜ナビゲーション (`src/ui/controllers/kifunavigationcontroller.cpp`) |
 | `shogi.core` | 盤面・駒・合法手判定 (`src/core/` ※clock除く) |
 | `shogi.clock` | 対局時計 (`src/core/shogiclock.*`) |
 | `shogi.view` | 盤面描画 (`src/views/`) |

@@ -10,7 +10,6 @@
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
-#include <QCloseEvent>
 #include <QFrame>
 #include <QHash>
 #include <QLabel>
@@ -21,7 +20,7 @@
 #include <utility>
 
 MenuWindow::MenuWindow(QWidget* parent)
-    : QWidget(parent, Qt::Window)
+    : QWidget(parent)
     , m_fontSize(AppSettings::menuWindowFontSize, kMinFontSize, kMaxFontSize)
 {
     setupUi();
@@ -38,9 +37,6 @@ MenuWindow::~MenuWindow()
 
 void MenuWindow::setupUi()
 {
-    setWindowTitle(tr("メニュー"));
-    setAttribute(Qt::WA_DeleteOnClose, false);  // 閉じても破棄しない
-
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
     mainLayout->setContentsMargins(8, 8, 8, 8);
     mainLayout->setSpacing(8);
@@ -120,9 +116,6 @@ void MenuWindow::setupUi()
     m_fontSizeIncreaseBtn->setObjectName(QStringLiteral("menuFontSizeIncrease"));
     connect(m_tabWidget, &QTabWidget::currentChanged, this, &MenuWindow::onTabChanged);
     mainLayout->addWidget(m_tabWidget);
-
-    // ウィンドウサイズ設定
-    resize(AppSettings::menuWindowSize());
 }
 
 void MenuWindow::setCategories(const QList<CategoryInfo>& categories)
@@ -186,7 +179,7 @@ void MenuWindow::setFavorites(const QStringList& favoriteActionNames)
     m_favoriteActionNames = favoriteActionNames;
     updateFavoritesTab();
     updateCustomizeModeForAllTabs();
-    saveSettings();
+    AppSettings::menuWindowFavorites.set(m_favoriteActionNames);
     Q_EMIT favoritesChanged(m_favoriteActionNames);
 }
 
@@ -343,7 +336,6 @@ void MenuWindow::onActionTriggered(QAction* action)
 {
     if (action && action->isEnabled() && action->isVisible()) {
         action->trigger();
-        Q_EMIT actionTriggered(action);
     }
 }
 
@@ -418,24 +410,10 @@ void MenuWindow::updateAllButtonSizes()
     AppSettings::menuWindowButtonSize.set(m_buttonSize);
 }
 
-void MenuWindow::closeEvent(QCloseEvent* event)
-{
-    saveSettings();
-    event->accept();
-}
-
 void MenuWindow::loadSettings()
 {
     m_favoriteActionNames = AppSettings::menuWindowFavorites();
     m_buttonSize = AppSettings::menuWindowButtonSize();
     m_savedTabIndex = AppSettings::menuWindowCurrentTab();
     m_iconSize = m_buttonSize / 3;
-    resize(AppSettings::menuWindowSize());
-}
-
-void MenuWindow::saveSettings()
-{
-    AppSettings::menuWindowFavorites.set(m_favoriteActionNames);
-    AppSettings::menuWindowButtonSize.set(m_buttonSize);
-    AppSettings::menuWindowSize.set(size());
 }

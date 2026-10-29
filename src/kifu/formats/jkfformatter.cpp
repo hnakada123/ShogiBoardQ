@@ -2,7 +2,7 @@
 /// @brief JKF形式の変換ヘルパ関数の実装
 
 #include "jkfformatter.h"
-#include "jkfmoveparser.h"
+#include "jkfcodec.h"
 #include "ki2movenotation.h"
 #include "kifmovetext.h"
 #include "shogiposition.h"
@@ -99,7 +99,7 @@ QJsonObject moveToJkf(const Position& board, Turn mover, const UsiMove& move, Bo
     } else if (KifMoveText::couldPromote(board.pieceAt(move.from), move)) {
         result[QStringLiteral("promote")] = false;
     }
-    const QString relative = JkfMoveParser::modifierToRelative(annotation.modifiers);
+    const QString relative = JkfCodec::modifierToRelative(annotation.modifiers);
     if (!relative.isEmpty()) result[QStringLiteral("relative")] = relative;
     return result;
 }

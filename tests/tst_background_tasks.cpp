@@ -20,7 +20,7 @@
 #include "usiprotocolhandler.h"
 #include "engineprofilestore.h"
 #include "appactivitystate.h"
-#include "enginelifecyclemanager.h"
+#include "engineslots.h"
 #include "matchcoordinator.h"
 #include "matchengineseat.h"
 #include "shogiclock.h"
@@ -109,11 +109,11 @@ private slots:
     /// 枠のエンジンは持ち主のリースで使う。ほかの持ち主が同じ枠を取ると前の持ち主に知らせ、手放しても知らせない
     void engineLeaseRevokesPreviousOwner()
     {
-        EngineLifecycleManager engines;
+        EngineSlots engines;
         QObject first;
         QObject second;
-        QSignalSpy revoked(&engines, &EngineLifecycleManager::engineRevoked);
-        QSignalSpy changed(&engines, &EngineLifecycleManager::enginesChanged);
+        QSignalSpy revoked(&engines, &EngineSlots::engineRevoked);
+        QSignalSpy changed(&engines, &EngineSlots::enginesChanged);
 
         EngineLease a = engines.acquire(&first, 1, QStringLiteral("A"));
         QVERIFY(a.engine());
@@ -422,7 +422,7 @@ private slots:
         ShogiGameController game;
         ShogiClock clock;
         AppActivityState activity;
-        EngineLifecycleManager engines;
+        EngineSlots engines;
         MatchCoordinator match({&game, &clock, &activity, &engines, nullptr});
         // 後手番の局面から、後手（と先手）をエンジンが指す
         MatchStartOptions opt;
@@ -479,7 +479,7 @@ private slots:
     {
         QFETCH(bool, loserIsBlack);
         EngineProfileStore::savePonder(engineName, true, true);
-        EngineLifecycleManager engines;
+        EngineSlots engines;
         FixedTimeSource matchTime(TestTime::byoyomiTiming(5000, 300000, 0));
         // 負けた側のエンジンは思考中、勝った側のエンジンは先読み中
         const Turn loser = loserIsBlack ? Turn::Black : Turn::White;
@@ -553,7 +553,7 @@ private slots:
             ShogiGameController game;
             ShogiClock clock;
             AppActivityState activity;
-            EngineLifecycleManager engines;
+            EngineSlots engines;
             MatchCoordinator match({&game, &clock, &activity, &engines, nullptr});
             MatchStartOptions opt;
             opt.sfenStart = SfenUtils::hirateSfen();

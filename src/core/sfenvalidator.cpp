@@ -1,15 +1,12 @@
-/// @file sfenvalidationservice.cpp
+/// @file sfenvalidator.cpp
 /// @brief SFEN 文字列の妥当性検査の実装
 
-#include "sfenvalidationservice.h"
+#include "sfenvalidator.h"
 
 #include "enginemovevalidator.h"
 #include "piecerules.h"
 #include "positionvalidator.h"
 #include "sfenutils.h"
-#include "shogiposition.h"
-
-#include <QJsonArray>
 
 namespace {
 
@@ -22,13 +19,6 @@ QMap<QString, int> handCounts(const Position& position, Turn side)
         if (count > 0) counts.insert(pieceSfen(makePiece(Turn::Black, kind)), count);
     }
     return counts;
-}
-
-QJsonObject handToJson(const QMap<QString, int>& hand)
-{
-    QJsonObject obj;
-    for (auto it = hand.cbegin(); it != hand.cend(); ++it) obj[it.key()] = it.value();
-    return obj;
 }
 
 QString problemText(PositionValidator::Problem problem)
@@ -47,29 +37,7 @@ QString problemText(PositionValidator::Problem problem)
 
 } // namespace
 
-QJsonObject SfenValidation::toJson() const
-{
-    QJsonObject obj;
-    obj[QStringLiteral("valid")] = valid;
-    obj[QStringLiteral("errors")] = QJsonArray::fromStringList(errors);
-    if (!normalizedSfen.isEmpty()) obj[QStringLiteral("normalized_sfen")] = normalizedSfen;
-    if (!turn.isEmpty()) obj[QStringLiteral("turn")] = turn;
-    if (moveNumber > 0) obj[QStringLiteral("move_number")] = moveNumber;
-    QJsonObject kings;
-    kings[QStringLiteral("black")] = blackKing;
-    kings[QStringLiteral("white")] = whiteKing;
-    obj[QStringLiteral("kings")] = kings;
-    obj[QStringLiteral("in_check")] = inCheck;
-    obj[QStringLiteral("opponent_in_check")] = opponentInCheck;
-    if (legalMoveCount >= 0) obj[QStringLiteral("legal_move_count")] = legalMoveCount;
-    QJsonObject hands;
-    hands[QStringLiteral("black")] = handToJson(blackHand);
-    hands[QStringLiteral("white")] = handToJson(whiteHand);
-    obj[QStringLiteral("hands")] = hands;
-    return obj;
-}
-
-SfenValidation SfenValidationService::validate(const QString& sfenLike)
+SfenValidation SfenValidator::validate(const QString& sfenLike)
 {
     SfenValidation result;
     const QString sfen = SfenUtils::normalizePositionLikeSfen(sfenLike);
@@ -116,6 +84,7 @@ SfenValidation SfenValidationService::validate(const QString& sfenLike)
     result.opponentInCheck = report.opponentInCheck;
     result.legalMoveCount = report.legalMoveCount;
     result.normalizedSfen = position->toSfen();
+    result.position = *position;
     if (!report.isValid()) {
         result.errors.append(problemText(report.problem));
         return result;
@@ -124,20 +93,14 @@ SfenValidation SfenValidationService::validate(const QString& sfenLike)
     return result;
 }
 
-QString SfenValidationService::applyUsiMoves(const QString& sfenLike, const QStringList& moves, QString* error)
+QString SfenValidator::applyUsiMoves(const QString& sfenLike, const QStringList& moves, QString* error)
 {
     const SfenValidation base = validate(sfenLike);
-    if (!base.valid) {
+    if (!base.valid || !base.position) {
         if (error) *error = base.errors.join(QStringLiteral("; "));
         return {};
     }
-    // 確かめた局面の SFEN は読み直せる（読めなければ、空の値を参照せずに失敗にする）
-    const std::optional<Position> start = Position::fromSfen(base.normalizedSfen);
-    if (!start) {
-        if (error) *error = QStringLiteral("Invalid SFEN: %1").arg(base.normalizedSfen);
-        return {};
-    }
-    Position position = *start;
+    Position position = *base.position;
     for (const QString& text : moves) {
         const std::optional<UsiMove> move = UsiMove::parse(text);
         if (!move || !EngineMoveValidator::applyIfLegal(position, *move)) {

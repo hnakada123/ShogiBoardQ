@@ -1,7 +1,7 @@
-/// @file enginelifecyclemanager.cpp
+/// @file engineslots.cpp
 /// @brief エンジンの枠のリースと取り上げの知らせの実装
 
-#include "enginelifecyclemanager.h"
+#include "engineslots.h"
 
 #include "logcategories.h"
 #include "usi.h"
@@ -9,19 +9,19 @@
 #include <algorithm>
 #include <utility>
 
-EngineLifecycleManager::EngineLifecycleManager(QObject* parent)
+EngineSlots::EngineSlots(QObject* parent)
     : QObject(parent)
 {
 }
 
-EngineLifecycleManager::~EngineLifecycleManager() = default;
+EngineSlots::~EngineSlots() = default;
 
 // ============================================================
 // リース
 // ============================================================
 
-EngineLease::EngineLease(EngineLifecycleManager* manager, Usi* engine)
-    : m_manager(manager)
+EngineLease::EngineLease(EngineSlots* engineSlots, Usi* engine)
+    : m_engineSlots(engineSlots)
     , m_engine(engine)
 {
 }
@@ -32,7 +32,7 @@ EngineLease::~EngineLease()
 }
 
 EngineLease::EngineLease(EngineLease&& other) noexcept
-    : m_manager(std::exchange(other.m_manager, nullptr))
+    : m_engineSlots(std::exchange(other.m_engineSlots, nullptr))
     , m_engine(std::exchange(other.m_engine, nullptr))
 {
 }
@@ -41,7 +41,7 @@ EngineLease& EngineLease::operator=(EngineLease&& other) noexcept
 {
     if (this != &other) {
         reset();
-        m_manager = std::exchange(other.m_manager, nullptr);
+        m_engineSlots = std::exchange(other.m_engineSlots, nullptr);
         m_engine = std::exchange(other.m_engine, nullptr);
     }
     return *this;
@@ -50,20 +50,20 @@ EngineLease& EngineLease::operator=(EngineLease&& other) noexcept
 Usi* EngineLease::engine() const
 {
     // 取り上げられたエンジンは枠から外れている（破棄は後で行われるので、ポインタだけでは分からない）
-    return m_manager && m_engine && m_manager->holds(m_engine) ? m_engine.data() : nullptr;
+    return m_engineSlots && m_engine && m_engineSlots->holds(m_engine) ? m_engine.data() : nullptr;
 }
 
 void EngineLease::reset()
 {
-    if (Usi* engine = this->engine()) m_manager->release(engine);
-    m_manager.clear();
+    if (Usi* engine = this->engine()) m_engineSlots->release(engine);
+    m_engineSlots.clear();
     m_engine.clear();
 }
 
-EngineLease EngineLifecycleManager::acquire(QObject* owner, int slot, const QString& engineName)
+EngineLease EngineSlots::acquire(QObject* owner, int slot, const QString& engineName)
 {
-    Seat& target = seat(slot);
-    destroySeat(target, false, target.owner != owner);
+    Slot& target = slotAt(slot);
+    destroySlot(target, false, target.owner != owner);
 
     const QString displayName = engineName.isEmpty() ? QStringLiteral("Engine") : engineName;
     auto* engine = new Usi(this);
@@ -74,16 +74,16 @@ EngineLease EngineLifecycleManager::acquire(QObject* owner, int slot, const QStr
     return EngineLease(this, engine);
 }
 
-Usi* EngineLifecycleManager::engineInSlot(int slot) const
+Usi* EngineSlots::engineInSlot(int slot) const
 {
-    return seat(slot).engine;
+    return slotAt(slot).engine;
 }
 
 // ============================================================
 // 破棄
 // ============================================================
 
-void EngineLifecycleManager::destroySeat(Seat& target, bool clearThinking, bool notifyOwner)
+void EngineSlots::destroySlot(Slot& target, bool clearThinking, bool notifyOwner)
 {
     Usi* engine = std::exchange(target.engine, nullptr);
     const QPointer<QObject> owner = std::exchange(target.owner, nullptr);
@@ -95,21 +95,21 @@ void EngineLifecycleManager::destroySeat(Seat& target, bool clearThinking, bool 
     if (notifyOwner && owner) emit engineRevoked(owner);
 }
 
-void EngineLifecycleManager::release(Usi* engine)
+void EngineSlots::release(Usi* engine)
 {
-    for (Seat& s : m_seats) {
-        if (engine && s.engine == engine) destroySeat(s, false, false);
+    for (Slot& s : m_slots) {
+        if (engine && s.engine == engine) destroySlot(s, false, false);
     }
 }
 
-bool EngineLifecycleManager::holds(const Usi* engine) const
+bool EngineSlots::holds(const Usi* engine) const
 {
-    return engine && std::any_of(m_seats.cbegin(), m_seats.cend(), [engine](const Seat& s) { return s.engine == engine; });
+    return engine && std::any_of(m_slots.cbegin(), m_slots.cend(), [engine](const Slot& s) { return s.engine == engine; });
 }
 
-void EngineLifecycleManager::destroyEngines(bool clearDisplay)
+void EngineSlots::destroyEngines(bool clearDisplay)
 {
-    qCDebug(lcGame).noquote() << "destroyEngines called, clearDisplay=" << clearDisplay;
-    for (Seat& s : m_seats) destroySeat(s, clearDisplay, true);
+    qCDebug(lcEngine).noquote() << "destroyEngines called, clearDisplay=" << clearDisplay;
+    for (Slot& s : m_slots) destroySlot(s, clearDisplay, true);
     if (clearDisplay) emit displayClearRequested();
 }

@@ -3,10 +3,31 @@
 
 #include "automationinteractions.h"
 
-#include "automationcommands.h"
 #include "automationdispatcher.h"
 
+#include <QTimer>
 #include <map>
+
+AutomationDeferredCall::AutomationDeferredCall(std::function<void()> callback, QObject* parent)
+    : QObject(parent)
+    , m_callback(std::move(callback))
+{
+}
+
+void AutomationDeferredCall::schedule(std::function<void()> callback, QObject* parent)
+{
+    auto* call = new AutomationDeferredCall(std::move(callback), parent);
+    QTimer::singleShot(0, call, &AutomationDeferredCall::run);
+}
+
+void AutomationDeferredCall::run()
+{
+    // ボタン操作でモーダル画面を閉じると、呼び出し元のボタンや親が破棄されることがある。
+    // 実行前の親破棄では予約を取り消し、実行開始後はコールバックの終了まで自身を保つ。
+    setParent(nullptr);
+    if (m_callback) m_callback();
+    deleteLater();
+}
 
 namespace AutomationInteractions {
 

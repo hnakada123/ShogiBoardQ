@@ -1,20 +1,20 @@
-#ifndef KIFREADER_H
-#define KIFREADER_H
+#ifndef KIFUTEXTDECODER_H
+#define KIFUTEXTDECODER_H
 
-/// @file kifreader.h
-/// @brief 棋譜ファイルの文字コード自動判別読み込み機能の定義
+/// @file kifutextdecoder.h
+/// @brief 棋譜・局面のテキストの文字コードの判別（全形式の読み込みで共通）
 
 #include <QString>
 #include <QStringList>
 
 /**
- * @brief 棋譜ファイルの文字コード自動判別読み込み
+ * @brief 棋譜ファイルの文字コード自動判別読み込み（KIF に限らず、全形式の読み込みで使う）
  *
  * BOM判定 → UTF-8 → CP932/Shift_JIS → EUC-JP の順で
  * 文字コードを推定し、テキストを行単位で返す。
  *
  */
-namespace KifReader {
+namespace KifuTextDecoder {
 
 /**
  * @brief 文字コードを自動判別してテキストを1行ずつ取得する
@@ -48,6 +48,6 @@ bool readAllTextAuto(const QString& filePath,
 /// テキストを行に分ける（先頭の BOM を除き、CRLF・CR を LF とみなす）
 QStringList splitLines(const QString& text);
 
-} // namespace KifReader
+} // namespace KifuTextDecoder
 
-#endif // KIFREADER_H
+#endif // KIFUTEXTDECODER_H
