@@ -123,6 +123,16 @@
 
 **影響**: network 3・game 3・app 2・ui 1・合成ルート。テストは `tst_csagamesession`・`tst_csagamecoordinator`・`tst_gamestrategy` など。差し引き約100行減。
 
+**状態: 済（6fc258da）**。書き直し案のとおりにした。
+- `MatchRecordSink` に開始の `beginRecord(MatchRecordStart)` と終局の `finishRecord(autoSave)` を足した。`CsaGameCoordinator` も `setRecordSink()` で `GameSession` を受け取り、次の順に呼ぶ。
+  - 開始: `beginRecord`、再開局面の既存手順を `appendRecord`、`DuringCsaGame` のリースを取る、`gameStarted`
+  - 終局: 終局の行を `appendRecord`、`finishRecord(true)`、リースを手放す、`gameEnded`
+- ローカル対局の終局も `MatchCoordinator::endGame()` が `finishRecord` を呼んでから待機に戻す。そのため、ローカル対局の棋譜の確定・自動保存は、待機に戻す前に変わった（通信対局と同じ順）。
+- `recordEntryReady`・`gameStarted` の `initialRecords`・`GameSession` の `onCsa*` と、`CsaGameChannel::players()`・`timeControl()` をなくした。
+- `CsaGameSession` に残したのは、待機ダイアログ・結果のダイアログ・ステータスバー・盤の反転だけ。評価値（`engineScoreUpdated` は `MatchCoordinator` と同じ形の `engineMovePlayed(side, ply, score)` にした）・エラー・通信ログ・盤の手は、合成ルートの `connectGame()` がつなぐ。
+- 時計の設定は `MatchStartOptions::time` に入れ、`MatchCoordinator::start()` が盤の手番で時計に入れる。`TimeControlUtil`・`matchtimesettings.h`・`MatchStartOptions::sfenStart`・`GameSession::Deps::clock` を消した。連続対局の手番の入れ替えも `MatchStartOptions::swapSides()` が持ち時間ごと入れ替える。
+- composition-root.md の「接続の順に頼る」例外を消した。
+
 ### T2. 棋譜解析の実行が UI のコントローラにあり、局面の列の実行器が GUI と CLI で2つある（ui・analysis・headless・cli）。F1 の原因
 
 **問題**
@@ -388,7 +398,7 @@
 | P7 | engine/engineoptiondescriptions | エンジン設定画面の説明文と分類（cpp は373行）。使うのは dialogs の `enginesettingsoptionhandler` だけ | dialogs へ移す<br>**状態: 済（3b4f2a49）** |
 | P8 | core/kifmovetext・sfendiffutils | `KifMoveText`（KIF の表記）は core からの利用が0で、使う11ファイルはすべて kifu 以上。`SfenDiffUtils` の利用は dialogs の `pvline.cpp` の1か所だけ | `KifMoveText` は kifu/formats（`KifMoveGrammar` の隣）へ。`SfenDiffUtils` は使う側へ<br>**状態: 済（3b4f2a49）**。`KifMoveText` は kifu/formats、`SfenDiffUtils` は dialogs へ |
 | P9 | common/boardcolors.h・boardvisuals.h・tsumeevaluation.h | `boardcolors.h` は設定のキー、配色ダイアログの表示名、ボタンの objectName まで持つ（`boardcolors.h:36-41,78-114`）。最も下の層での使い手は services。`tsumeevaluation.h` は詰みの判定結果の値で、使うのは engine と analysis。engine の `MateAnswer` と内容が近い | boardcolors・boardvisuals は T7 で外観と一緒に style へ。tsumeevaluation は engine へ移し、`MateAnswer` と合わせられるか見る<br>**状態: 一部済（3b4f2a49）**。`tsumeevaluation.h` は engine へ移した。`MateAnswer`（エンジンの1回の答え）とは、手数の確定（最短の攻手・最長の応手）と説明を持つ点で役割が違うので、合わせなかった。boardcolors・boardvisuals は T7 で扱う |
-| P10 | game の小さなヘッダー | 責務ではなく、使う側の都合で分かれている。<br>- `matchtypes.h`: 説明は「時間パラメータ等の軽量ヘッダ」だが、時間の型を持たず、include は2つ<br>- `interruptedgamestate.h`・`matchsessionstate.h`: `matchcoordinator.h` からしか include されない<br>- `matchtimesettings.h`・`timecontrolutil`: `GameSession` のためだけにある<br>- `startgamedatabridge.h`: 「bridge」が中の値の型 `PlayerChoice`・`StartGameDialogData` を表していない | 司令塔専用の3つは `matchcoordinator.h` へまとめる。`timecontrolutil` は T1 で消える。`startgamedatabridge` は中身に合う名前にする<br>**状態: 一部済（3b4f2a49）**。`matchtypes.h`・`interruptedgamestate.h`・`matchsessionstate.h` を `matchcoordinator.h` にまとめ、`startgamedatabridge.h` は `startgamedialogdata.h` にした。`matchtimesettings.h`・`timecontrolutil` は T1 で扱う |
+| P10 | game の小さなヘッダー | 責務ではなく、使う側の都合で分かれている。<br>- `matchtypes.h`: 説明は「時間パラメータ等の軽量ヘッダ」だが、時間の型を持たず、include は2つ<br>- `interruptedgamestate.h`・`matchsessionstate.h`: `matchcoordinator.h` からしか include されない<br>- `matchtimesettings.h`・`timecontrolutil`: `GameSession` のためだけにある<br>- `startgamedatabridge.h`: 「bridge」が中の値の型 `PlayerChoice`・`StartGameDialogData` を表していない | 司令塔専用の3つは `matchcoordinator.h` へまとめる。`timecontrolutil` は T1 で消える。`startgamedatabridge` は中身に合う名前にする<br>**状態: 一部済（3b4f2a49）**。`matchtypes.h`・`interruptedgamestate.h`・`matchsessionstate.h` を `matchcoordinator.h` にまとめ、`startgamedatabridge.h` は `startgamedialogdata.h` にした。`matchtimesettings.h`・`timecontrolutil` は T1 で扱う<br>**状態: 済（6fc258da、T1）**。`MatchTimeSettings` は `startoptions.h` へ移し、`timecontrolutil` は `MatchCoordinator::start()` が時計に入れる形にして消した |
 | P11 | automation のファイル分け | メソッドの名前空間と合っていない。<br>- `_ui.cpp` に `board.click`・`ui.interaction`・`widget.text` がある<br>- `widget.*` が2ファイルに分かれている<br>- `_navigation.cpp` の中身は `menu.*` と `branch.click`<br>- 基盤のクラス `AutomationDeferredCall` が commands のヘッダーにある<br>CLAUDE.md は7ファイルのうち4つしか挙げていない | 名前空間の接頭辞ごとに分け直す。`AutomationDeferredCall` は automationinteractions へ移す<br>**状態: 済（3b4f2a49）**。メソッド `x.y` は `automationcommands_x.cpp`（app・position・kifu・board・branch・menu・action・dialog・widget・dock・screenshot・clipboard・ui）。登録の一覧と共有の読み取りは `automationcommands.cpp`、`AutomationDeferredCall` は automationinteractions |
 | P12 | 名前 | `KifReader` は全形式の文字コードの判別に使われている（5ファイル）。`JkfMoveParser` は書き出し側の関数（`presetFromSfen`・`modifierToRelative`）も持ち、`jkftosfenconverter.cpp:122` は `presetToSfen` を書き直している。`board/BoardImageExporter` は盤に限らない画像の書き出し（評価値グラフにも使う）で、ui の `ScreenshotService` と同じく `grab()` して書く | 中身に合う名前にし、画像の書き出しは1つにする<br>**状態: 済（3b4f2a49）**。`KifReader` は `KifuTextDecoder`、`JkfMoveParser` は読み書き両方の符号表なので `UsenCodec` に倣って `JkfCodec` にし、変換器の preset の読み直しを `JkfCodec::presetToSfen`（知らない preset は空）に寄せた。`BoardImageExporter` は `WidgetImageExporter` にして `ScreenshotService` の隣（ui/controllers）へ移した。2つの書き出しは、共通の部分が `QImageWriter` の書き込みだけで、利用者が形式と場所を選ぶ保存と、決まった場所への PNG の保存とで役割が違うので、1つのクラスにはしなかった |
 
