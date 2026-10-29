@@ -188,14 +188,41 @@ private slots:
         p.document->markSaved(QString());
     }
 
-    /// 指し手0手の棋譜は、手合割の名前だけで平手の開始局面なら読まない（開くものが無い）。駒落ちは開く
-    void emptyRecordNeedsNonStandardStart()
+    void emptyHirateRecordsLoad_data()
+    {
+        QTest::addColumn<QString>("text");
+        QTest::newRow("kif") << QStringLiteral("手合割：平手\n手数----指手---------消費時間--\n");
+        QTest::newRow("csa") << QStringLiteral("V3.0\nPI\n+\n");
+        QTest::newRow("jkf") << QStringLiteral("{\"header\":{},\"initial\":{\"preset\":\"HIRATE\"},\"moves\":[{}]}");
+        QTest::newRow("jkf-default") << QStringLiteral("{\"header\":{},\"moves\":[{}]}");
+    }
+
+    /// 平手の開始局面だけの棋譜も開き、棋譜欄と盤面を開始局面へ戻す。
+    void emptyHirateRecordsLoad()
+    {
+        QFETCH(QString, text);
+        MainWindow window;
+        auto& p = window.composer().parts();
+        QVERIFY(p.kifuFileController->loadKifuFile(fixture(QStringLiteral("test_basic.kif"))));
+        NotificationPresenter::ScopedCapture shown;
+        QVERIFY2(p.kifuFileController->loadKifuText(text), qPrintable(shown.errors().join(QLatin1Char('\n'))));
+        QVERIFY(shown.errors().isEmpty());
+        QCOMPARE(p.branchTree->root()->sfen(), SfenUtils::hirateSfen());
+        QCOMPARE(p.branchTree->nodeCount(), 1);
+        QCOMPARE(p.navState->currentNode(), p.branchTree->root());
+        // 貼り付けた棋譜は0手でも保存できるよう、未保存の棋譜として扱う。
+        QVERIFY(p.document->isModified());
+        QVERIFY(p.document->filePath().isEmpty());
+        p.document->markSaved(QString());
+    }
+
+    void emptyRecordNeedsRecognizableContent()
     {
         MainWindow window;
         auto& p = window.composer().parts();
         NotificationPresenter::ScopedCapture shown;
         const QString header = QStringLiteral("手数----指手---------消費時間--\n");
-        QVERIFY(!p.kifuFileController->loadKifuText(QStringLiteral("手合割：平手\n") + header));
+        QVERIFY(!p.kifuFileController->loadKifuText(QStringLiteral("this is not a kifu")));
         QVERIFY(shown.errors().join(QLatin1Char('\n')).contains(QStringLiteral("指し手を取得できませんでした")));
         QVERIFY2(p.kifuFileController->loadKifuText(QStringLiteral("手合割：香落ち\n") + header),
                  qPrintable(shown.errors().join(QLatin1Char('\n'))));

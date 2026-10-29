@@ -37,15 +37,31 @@ std::optional<ResultLine> parseResultLine(const QString& line)
     ResultLine result;
     result.moveCount = ShogiNotation::numberFromDigits(m.captured(1));
 
-    // 「まで77手で千日手」などは終局語の表で読む。「先手の勝ち」だけの行は投了とみなす
-    result.terminal = TerminalTypes::findWord(line);
-    if (result.terminal == TerminalType::None && line.contains(QChar(u'勝'))) result.terminal = TerminalType::Resign;
-    if (result.terminal == TerminalType::None) return std::nullopt;
-
-    static const QRegularExpression namedRe(QStringLiteral("(先手|下手|後手|上手)の"));
-    if (const QRegularExpressionMatch named = namedRe.match(line, m.capturedEnd(0)); named.hasMatch()) {
+    const QString suffix = line.mid(m.capturedEnd()).trimmed();
+    if (!suffix.startsWith(QChar(u'で')) || suffix.mid(1).trimmed().isEmpty()) return std::nullopt;
+    const QString reason = suffix.mid(1).trimmed();
+    QString word = reason;
+    static const QRegularExpression namedRe(QStringLiteral("^(先手|下手|後手|上手)の"));
+    const QRegularExpressionMatch named = namedRe.match(reason);
+    if (named.hasMatch()) {
         const QString who = named.captured(1);
         result.named = (who == QStringLiteral("先手") || who == QStringLiteral("下手")) ? Turn::Black : Turn::White;
+        word = reason.mid(named.capturedEnd());
+    }
+    result.terminal = TerminalTypes::fromWord(word);
+    if (result.terminal == TerminalType::None && result.named && word == QStringLiteral("勝ち"))
+        result.terminal = TerminalType::Resign;
+    static const QRegularExpression timeoutRe(QStringLiteral("^時間切れにより(先手|下手|後手|上手)の勝ち$"));
+    if (const auto timeout = timeoutRe.match(reason); timeout.hasMatch()) {
+        result.terminal = TerminalType::Timeout;
+        const QString who = timeout.captured(1);
+        result.named = (who == QStringLiteral("先手") || who == QStringLiteral("下手")) ? Turn::Black : Turn::White;
+    }
+    if (result.terminal == TerminalType::None) {
+        // 「までN手」だけなら未終局。「で」に続く独自の終局理由は捨てない。
+        result.terminal = TerminalType::Custom;
+        result.terminalText = reason;
+        result.named.reset();
     }
     return result;
 }
@@ -58,6 +74,7 @@ Turn ResultLine::endingSide(Turn sideToMove) const
     // 「先手の勝ち」「時間切れにより先手の勝ち」は勝った側を名指しする。記録するのは負けた側
     case TerminalType::Resign:
     case TerminalType::Timeout:
+    case TerminalType::Try:
         return other;
     // 反則・入玉宣言・不戦の行は、記録した側をそのまま名指しする
     case TerminalType::IllegalWin:

@@ -120,7 +120,8 @@ static Ki2Written appendKi2Moves(const QList<KifuBranchNode*>& nodes, const QStr
             flush();
             if (!inlineEnding) continue;
             // 終局手は「まで…」の結果行で表す（KI2 では指し手として書かない）
-            out << buildEndingLine(node->ply() - 1, node->terminalType(), node->terminalSide(), handicapNames);
+            out << buildEndingLine(node->ply() - 1, node->terminalType(), node->terminalSide(), handicapNames,
+                                   node->record().terminalText);
         } else {
             written.lastMovePly = node->ply();
             if (!hasNote && !lastMoveHadNote) {
@@ -165,7 +166,8 @@ QStringList Ki2Exporter::exportLines(const KifuBranchTree& recordTree, const Kif
     const KifuBranchNode* terminal = written.terminal;
     if (terminal) {
         // 未終局の「までN手」を未知の終局として読む実装があるため、結果は終局したときだけ書く。
-        out << buildEndingLine(written.lastMovePly, terminal->terminalType(), terminal->terminalSide(), handicapNames);
+        out << buildEndingLine(written.lastMovePly, terminal->terminalType(), terminal->terminalSide(), handicapNames,
+                               terminal->record().terminalText);
         appendKifBookmarks(terminal->bookmark(), out);
         appendKifComments(terminal->comment(), out);
     }

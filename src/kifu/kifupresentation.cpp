@@ -152,7 +152,7 @@ QString moveLabel(const QString& kifText, const QString& beforeSfen, const QStri
 QString entryLabel(const RecordEntry& entry, const QString& beforeSfen, bool fullOrigin)
 {
     if (entry.isTerminal())
-        return QChar(entry.mover == Turn::Black ? u'▲' : u'△') + TerminalTypes::displayLabel(entry.terminal);
+        return QChar(entry.mover == Turn::Black ? u'▲' : u'△') + entry.terminalLabel(true);
     if (entry.move.movingPiece == Piece::None) return entry.displayText;
     const QString usi = entry.move.move.toString();
     // 日本語表記は棋譜の表記（無ければ指し手から作る）

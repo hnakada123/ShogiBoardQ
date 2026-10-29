@@ -117,12 +117,10 @@ bool KifuLoader::applyLoadResult(const KifuLoadResult& result)
 bool KifuLoader::applyRecord(const KifuLoadResult& result)
 {
     const KifParseResult& res = result.record;
-    // 指し手が0手でも、平手以外の開始局面が書かれていれば棋譜として読む（局面編集から保存した棋譜・
-    // 駒落ちの開始局面など。形式によらない）。平手の開始局面だけの棋譜は開くものが無いので読まない
+    // 開始局面が明示された棋譜は0手でも開く。棋譜でも局面でもない入力は引き続き拒否する。
     const bool hasMoves = !res.mainline.usiMoves().isEmpty() || res.mainline.endsWithTerminal();
-    const bool namedHirate = result.startKind == StartKind::Default
-        || (result.startKind == StartKind::Handicap && Position::fromSfen(result.startSfen()) == Position::hirate());
-    if (namedHirate && !hasMoves) {
+    if (result.startKind == StartKind::Default && !hasMoves
+        && result.format != KifuFormat::Jkf) {
         emit errorOccurred(tr("読み込み失敗 %1 から指し手を取得できませんでした。").arg(result.filePath));
         return false;
     }

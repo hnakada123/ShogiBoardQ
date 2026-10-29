@@ -41,6 +41,112 @@ private:
     }
 
 private slots:
+    void terminalTextRoundTrip_data()
+    {
+        QTest::addColumn<QString>("source");
+        QTest::addColumn<QString>("label");
+        QTest::addColumn<int>("format");
+        for (const QString& label : {QStringLiteral("トライ"), QStringLiteral("独自の終局理由"),
+                                     QStringLiteral("独自の投了判断"), QStringLiteral("独自の勝ち"),
+                                     QStringLiteral("不戦勝"), QStringLiteral("不戦敗")}) {
+            for (const bool ki2 : {false, true}) {
+                const QString source = ki2
+                    ? QStringLiteral("手合割：平手\n▲７六歩\nまで1手で%1\n").arg(label)
+                    : QStringLiteral("手合割：平手\n1 ７六歩(77)\n2 %1 ( 0:03/00:00:03)\n").arg(label);
+                for (const Format format : {Format::Kif, Format::Ki2, Format::Jkf}) {
+                    const QString name = label + QString::number(ki2) + QString::number(int(format));
+                    QTest::newRow(qPrintable(name)) << source << label << int(format);
+                }
+            }
+        }
+    }
+
+    void terminalTextRoundTrip()
+    {
+        QFETCH(QString, source);
+        QFETCH(QString, label);
+        QFETCH(int, format);
+        KifuConversionService::Request request;
+        request.text = source;
+        request.outputFormat = static_cast<Format>(format);
+        const auto saved = KifuConversionService::convert(request);
+        QVERIFY2(saved.ok, qPrintable(saved.failure.message));
+        QVERIFY2(saved.warnings.isEmpty(), qPrintable(saved.warnings.join(QLatin1Char('\n'))));
+        const auto reread = KifuLoadParser::parseText(saved.lines.join(QLatin1Char('\n')));
+        QVERIFY2(reread.success, qPrintable(reread.error));
+        QVERIFY2(reread.warning.isEmpty(), qPrintable(reread.warning));
+        QCOMPARE(reread.record.mainline.entries.size(), 2);
+        const RecordEntry& ending = reread.record.mainline.entries.last();
+        QVERIFY(ending.isTerminal());
+        QCOMPARE(ending.terminalLabel(), label);
+        QCOMPARE(ending.mover, Turn::White);
+        if (label == QStringLiteral("トライ")) QCOMPARE(ending.winner(), std::optional<Turn>(Turn::Black));
+        else if (label.startsWith(QStringLiteral("独自"))) QVERIFY(!ending.winner());
+    }
+
+    void jkfSpecialPreservesTextButEmptySpecialRemainsError()
+    {
+        const auto custom = KifuLoadParser::parseText(QStringLiteral("{\"moves\":[{}, {\"special\":\"CUSTOM_END\"}]}"));
+        QVERIFY(custom.success);
+        QCOMPARE(custom.record.mainline.entries.last().terminal, TerminalType::Custom);
+        QCOMPARE(custom.record.mainline.entries.last().terminalLabel(), QStringLiteral("CUSTOM_END"));
+        for (const QString& value : {QStringLiteral("\"\""), QStringLiteral("\"  \""), QStringLiteral("null")}) {
+            const auto invalid = KifuLoadParser::parseText(QStringLiteral("{\"moves\":[{}, {\"special\":%1}]}").arg(value));
+            QVERIFY(invalid.success);
+            QCOMPARE(invalid.record.mainline.entries.last().terminal, TerminalType::Error);
+        }
+    }
+
+    void differentCustomEndingsStayInSeparateBranches()
+    {
+        KifuConversionService::Request request;
+        request.text = QStringLiteral("手合割：平手\n1 ７六歩(77)\n2 独自の結果A\n"
+                                      "変化：2手\n2 独自の結果B\n");
+        request.outputFormat = Format::Kif;
+        const auto saved = KifuConversionService::convert(request);
+        QVERIFY2(saved.ok, qPrintable(saved.failure.message));
+        const auto loaded = KifuLoadParser::parseText(saved.lines.join(QLatin1Char('\n')));
+        QVERIFY(loaded.success);
+        QCOMPARE(loaded.record.mainline.entries.last().terminalText, QStringLiteral("独自の結果A"));
+        QCOMPARE(loaded.record.variations.size(), 1);
+        QCOMPARE(loaded.record.variations.first().line.entries.last().terminalText, QStringLiteral("独自の結果B"));
+    }
+
+    void omittedDropOrBlockedOriginIsRecovered_data()
+    {
+        QTest::addColumn<QString>("source");
+        QTest::addColumn<QStringList>("moves");
+        QTest::newRow("ki2-missing-hand") << QStringLiteral("手合割：平手\n▲５五歩 △３四歩\n")
+            << QStringList{QStringLiteral("P*5e"), QStringLiteral("3c3d")};
+        QTest::newRow("ki2-blocked-bishop") << QStringLiteral("手合割：平手\n▲５五角 △３四歩\n")
+            << QStringList{QStringLiteral("8h5e"), QStringLiteral("3c3d")};
+        QTest::newRow("csa-missing-hand") << QStringLiteral("V3.0\nPI\n+\n+0055FU\nT1.234\n-3334FU\nT0.125\n")
+            << QStringList{QStringLiteral("P*5e"), QStringLiteral("3c3d")};
+    }
+
+    void omittedDropOrBlockedOriginIsRecovered()
+    {
+        QFETCH(QString, source);
+        QFETCH(QStringList, moves);
+        const auto loaded = KifuLoadParser::parseText(source);
+        QVERIFY2(loaded.success, qPrintable(loaded.error));
+        QVERIFY2(loaded.warning.isEmpty(), qPrintable(loaded.warning));
+        QCOMPARE(loaded.record.mainline.usiMoves(), moves);
+        if (source.startsWith(QLatin1String("V3.0"))) {
+            QCOMPARE(loaded.record.mainline.entries.first().time.elapsedMs, 1234);
+            QCOMPARE(loaded.record.mainline.entries.last().time.elapsedMs, 125);
+        }
+    }
+
+    void usiDrawKeepsGenericDraw()
+    {
+        const auto loaded = KifuLoadParser::parseText(QStringLiteral("position startpos moves 7g7f draw"));
+        QVERIFY(loaded.success);
+        QVERIFY(loaded.warning.isEmpty());
+        QCOMPARE(loaded.record.mainline.entries.last().terminal, TerminalType::Draw);
+        QCOMPARE(loaded.record.mainline.entries.last().terminalLabel(), QStringLiteral("引き分け"));
+    }
+
     /// 未終局の KI2 は指し手だけで終え、未知の終局行を作らない。
     void ki2UnfinishedRecordHasNoResultLine()
     {

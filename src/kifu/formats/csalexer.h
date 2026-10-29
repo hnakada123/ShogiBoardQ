@@ -67,7 +67,7 @@ std::optional<CsaMoveToken> parseCsaMoveToken(const QString& token);
  * @brief CSA指し手行を、盤の上の USI の指し手にする（盤は変えない）
  *
  * 移動元の駒は指す側の駒で、指し手の駒種はその駒か成った駒でなければならない。自分の駒は取れない。
- * 駒打ちの駒が駒台にあるかは、指すとき（Position::DropRule::RequireHand）に確かめる。
+ * 駒台にない駒を打つ反則手も、棋譜の再現では保持する。
  * 局面と合わない指し手は nullopt を返し、detail に理由を入れる。
  */
 std::optional<UsiMove> parseMoveLine(const QString& line, Turn mover, const Position& board, QString* detail);

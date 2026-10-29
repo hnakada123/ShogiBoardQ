@@ -26,8 +26,15 @@ struct RecordEntry {
     Turn mover = Turn::Black;   ///< 指した側（終局の行は終局を記録した側）
     QString comment;
     QString bookmark;
+    QString terminalText;  ///< 独自の終局理由。Custom のときだけ使い、表示・再保存でも原文を保つ
 
     bool isTerminal() const { return terminal != TerminalType::None; }
+
+    QString terminalLabel(bool translated = false) const
+    {
+        if (terminal == TerminalType::Custom) return terminalText;
+        return translated ? TerminalTypes::displayLabel(terminal) : TerminalTypes::label(terminal);
+    }
 
     /// 指した手の行。指した側は動かした駒の色で決まる
     static RecordEntry played(const ShogiMove& move, const QString& displayText, const QString& sfen,
@@ -56,6 +63,7 @@ struct RecordEntry {
         case TerminalType::Resign:
         case TerminalType::Timeout:
         case TerminalType::IllegalLoss:
+        case TerminalType::Try:
             return loser;
         case TerminalType::DeclarationWin:
         case TerminalType::IllegalWin:
@@ -80,6 +88,7 @@ struct RecordEntry {
         case TerminalType::Timeout:
         case TerminalType::IllegalLoss:
         case TerminalType::Forfeit:
+        case TerminalType::Try: // 直前の着手でトライ成立。終局行の手番側は負けた側。
             return mover == Turn::Black ? Turn::White : Turn::Black;
         case TerminalType::IllegalWin:
         case TerminalType::DeclarationWin:
@@ -102,15 +111,16 @@ struct RecordEntry {
     }
 
     /// 終局の行。表記は終局語の表（TerminalTypes::label）から作る
-    static RecordEntry ending(TerminalType type, Turn side, const RecordTime& time = {})
+    static RecordEntry ending(TerminalType type, Turn side, const RecordTime& time = {}, const QString& text = {})
     {
         RecordEntry entry;
         entry.terminal = type;
         entry.mover = side;
         entry.time = time;
+        if (type == TerminalType::Custom) entry.terminalText = text.trimmed();
         if (type != TerminalType::None)
             entry.displayText = (side == Turn::Black ? QStringLiteral("▲") : QStringLiteral("△"))
-                + TerminalTypes::label(type);
+                + entry.terminalLabel();
         return entry;
     }
 };

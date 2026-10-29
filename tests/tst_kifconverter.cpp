@@ -585,7 +585,7 @@ private slots:
         tmp.write("手合割：平手\n"
                   "手数----指手---------消費時間--\n");
         // Write a line with 100,000 characters
-        QByteArray longLine = "   1 " + QByteArray(100000, 'X') + "\n";
+        QByteArray longLine = QByteArray("   1 ７六") + QByteArray(100000, 'X') + "\n";
         tmp.write(longLine);
         tmp.close();
 
@@ -912,12 +912,12 @@ private slots:
     void singlePass_unparsableMoveStopsLine()
     {
         const KifuParseOutcome outcome = KifTextParser::parseKif(QStringLiteral(
-            "手数----指手---------消費時間--\n   1 ７六歩(77)\n   2 謎の手\n   3 ２六歩(27)\n"));
+            "手数----指手---------消費時間--\n   1 ７六歩(77)\n   2 ３四謎(33)\n   3 ２六歩(27)\n"));
         QVERIFY2(outcome.success, qPrintable(outcome.warning));
         const RecordLine& line = outcome.record.mainline;
         QCOMPARE(line.usiMoves(), QStringList({QStringLiteral("7g7f")}));
         QCOMPARE(line.entries.size(), 1);
-        QVERIFY2(outcome.warning.contains(QStringLiteral("謎の手")), qPrintable(outcome.warning));
+        QVERIFY2(outcome.warning.contains(QStringLiteral("３四謎(33)")), qPrintable(outcome.warning));
         QVERIFY2(outcome.warning.contains(QStringLiteral("read up to move 1")), qPrintable(outcome.warning));
     }
 
@@ -926,9 +926,9 @@ private slots:
     {
         const ParseOptions options{ParseOptions::UnreadableMove::FailRecord};
         const KifuParseOutcome outcome = KifTextParser::parseKif(QStringLiteral(
-            "手数----指手---------消費時間--\n   1 ７六歩(77)\n   2 謎の手\n   3 ２六歩(27)\n"), options);
+            "手数----指手---------消費時間--\n   1 ７六歩(77)\n   2 ３四謎(33)\n   3 ２六歩(27)\n"), options);
         QVERIFY(!outcome.success);
-        QVERIFY2(outcome.warning.contains(QStringLiteral("謎の手")), qPrintable(outcome.warning));
+        QVERIFY2(outcome.warning.contains(QStringLiteral("３四謎(33)")), qPrintable(outcome.warning));
         // 打ち切りではないので「何手目まで読んだか」は書かない
         QVERIFY2(!outcome.warning.contains(QStringLiteral("read up to move")), qPrintable(outcome.warning));
     }

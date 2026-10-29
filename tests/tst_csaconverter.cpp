@@ -799,7 +799,6 @@ private slots:
         QTest::newRow("wrong-piece") << QByteArray("+7776KY");
         QTest::newRow("empty-source") << QByteArray("+5554FU");
         QTest::newRow("opponent-piece") << QByteArray("+3334FU");
-        QTest::newRow("drop-not-in-hand") << QByteArray("+0055KA");
         QTest::newRow("capture-own-piece") << QByteArray("+7969GI");
         QTest::newRow("wrong-promoted-piece") << QByteArray("+2726NY");
     }

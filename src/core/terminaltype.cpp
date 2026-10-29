@@ -16,7 +16,7 @@ struct Word {
 
 // 文中を探すとき前から順に調べるので、別の語を含む長い語を先に置く
 // （「王手千日手」→「千日手」、「入玉宣言勝ち」→「宣言勝ち」、「不詰」→「詰み」→「詰」、「最大手数到達」→「最大手数」）。
-const std::array<Word, 21> kWords = {{
+const std::array<Word, 22> kWords = {{
     {TerminalType::PerpetualCheck, "王手千日手", true},
     {TerminalType::DeclarationWin, "入玉宣言勝ち", false},
     {TerminalType::DeclarationWin, "入玉勝ち", true},
@@ -38,6 +38,7 @@ const std::array<Word, 21> kWords = {{
     {TerminalType::MaxMoves, "最大手数到達", true},
     {TerminalType::MaxMoves, "最大手数", false},
     {TerminalType::Error, "エラー", true},
+    {TerminalType::Try, "トライ", true},
 }};
 
 // 表示の訳（lupdate が拾えるよう、訳す語をここに並べる）
@@ -61,6 +62,8 @@ const char* translatableLabel(TerminalType type)
     case TerminalType::MaxMoves: return QT_TRANSLATE_NOOP("TerminalType", "最大手数到達");
     case TerminalType::Error: return QT_TRANSLATE_NOOP("TerminalType", "エラー");
     case TerminalType::ForfeitWin: return QT_TRANSLATE_NOOP("TerminalType", "不戦勝");
+    case TerminalType::Try: return QT_TRANSLATE_NOOP("TerminalType", "トライ");
+    case TerminalType::Custom: return nullptr;
     }
     return nullptr;
 }

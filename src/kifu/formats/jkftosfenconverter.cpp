@@ -162,10 +162,13 @@ bool readJkfLine(const QJsonArray& moves, bool isMainline, KifLineBuilder& build
         const JkfMoveParser::Time time = JkfMoveParser::timeOf(obj[QStringLiteral("time")].toObject());
         if (obj.contains(QStringLiteral("special"))) {
             const Turn side = builder.sideToMove();
-            TerminalType terminal = TerminalCodes::fromCsaSpecial(obj[QStringLiteral("special")].toString(), side);
-            if (terminal == TerminalType::None) terminal = TerminalType::Error;
+            const QString special = obj[QStringLiteral("special")].toString();
+            TerminalType terminal = TerminalCodes::fromCsaSpecial(special, side);
+            if (terminal == TerminalType::None) terminal = TerminalTypes::fromWord(special);
+            if (terminal == TerminalType::None)
+                terminal = special.trimmed().isEmpty() ? TerminalType::Error : TerminalType::Custom;
             builder.addTerminal(terminal, side,
-                                hasTime ? builder.timeFor(side, time.elapsedMs, time.totalMs) : KifLineBuilder::zeroTime());
+                                hasTime ? builder.timeFor(side, time.elapsedMs, time.totalMs) : KifLineBuilder::zeroTime(), special);
             if (!comment.isEmpty()) builder.appendComment(comment);
             break;
         }

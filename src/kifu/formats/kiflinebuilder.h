@@ -70,7 +70,7 @@ public:
     }
 
     /// 終局の行を足す（side は終局を記録した側。表記は終局語の表から作る）
-    void addTerminal(TerminalType type, Turn side, const RecordTime& time = zeroTime());
+    void addTerminal(TerminalType type, Turn side, const RecordTime& time = zeroTime(), const QString& text = {});
 
     /// 最後の行（終局の行を含む）にコメントを足す。手がまだなければ開始局面（変化は最初の手）のもの
     void appendComment(const QString& text);

@@ -30,6 +30,7 @@ bool isKi2MoveLine(const QString& line);
 struct ResultLine {
     TerminalType terminal = TerminalType::None;
     int moveCount = 0;
+    QString terminalText; ///< 独自の結果行の終局理由
     /// 行が名指しした側（"先手の勝ち" なら先手、"後手の反則負け" なら後手）。名指しがなければ空
     std::optional<Turn> named;
 

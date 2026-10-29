@@ -394,7 +394,7 @@ void TestParseCommon::terminalWords_findInText()
 
 void TestParseCommon::terminalWords_labelRoundTrip()
 {
-    for (int i = int(TerminalType::Resign); i <= int(TerminalType::ForfeitWin); ++i) {
+    for (int i = int(TerminalType::Resign); i <= int(TerminalType::Try); ++i) {
         const auto type = static_cast<TerminalType>(i);
         const QString label = TerminalTypes::label(type);
         QVERIFY2(!label.isEmpty(), qPrintable(QString::number(i)));
