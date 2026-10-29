@@ -163,9 +163,9 @@ QStringList Ki2Exporter::exportLines(const KifuBranchTree& recordTree, const Kif
         appendKi2Moves(mainNodes, ki2MoveTexts(mainNodes, replayFrom(mainNodes, ctx.startSfen), 1), 1, false,
                        handicapNames, out);
     const KifuBranchNode* terminal = written.terminal;
-    out << buildEndingLine(written.lastMovePly, terminal ? terminal->terminalType() : TerminalType::None,
-                           terminal ? terminal->terminalSide() : Turn::Black, handicapNames);
     if (terminal) {
+        // 未終局の「までN手」を未知の終局として読む実装があるため、結果は終局したときだけ書く。
+        out << buildEndingLine(written.lastMovePly, terminal->terminalType(), terminal->terminalSide(), handicapNames);
         appendKifBookmarks(terminal->bookmark(), out);
         appendKifComments(terminal->comment(), out);
     }

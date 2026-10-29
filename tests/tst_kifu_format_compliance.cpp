@@ -157,15 +157,17 @@ private slots:
         add("not-promote-with-modifier", "k8/9/9/S1S6/9/9/9/9/4K4 b - 1", "7d8c", QStringLiteral("▲８三銀右不成"));
         add("not-promote", "8k/9/9/4S4/9/9/9/9/4K4 b - 1", "5d5c", QStringLiteral("▲５三銀不成"));
         add("no-promotion-outside-zone", "8k/9/9/9/4S4/9/9/9/4K4 b - 1", "5e5d", QStringLiteral("▲５四銀"));
-        // ピンされた金は動ける駒に数えない（修飾語も「打」も要らない）
-        add("pinned-omits-modifier", "4r3k/9/9/9/9/9/9/4G1G2/4K4 b G 1", "3h4g", QStringLiteral("▲４七金"));
+        // 書き出しでは、ピンを判定しない読み手でも移動元・駒打ちが一意になる。
+        add("pinned-keeps-modifier", "4r3k/9/9/9/9/9/9/4G1G2/4K4 b G 1", "3h4g", QStringLiteral("▲４七金右"));
         add("drop-needs-marker", "4r3k/9/9/9/9/9/9/4G1G2/4K4 b G 1", "G*4g", QStringLiteral("▲４七金打"));
-        add("pinned-omits-drop-marker", "4r3k/9/9/9/9/9/9/4G1G2/4K4 b G 1", "G*6g", QStringLiteral("▲６七金"));
+        add("pinned-keeps-drop-marker", "4r3k/9/9/9/9/9/9/4G1G2/4K4 b G 1", "G*6g", QStringLiteral("▲６七金打"));
         add("pinned-along-the-pin", "4r3k/9/9/9/9/9/9/4G1G2/4K4 b G 1", "5h5g", QStringLiteral("▲５七金"));
         // 反則手（二歩・王手放置）も書き、駒の動きだけで読み戻す
         add("illegal-double-pawn", "4k4/9/9/9/9/9/4P4/9/4K4 b P 1", "P*5e", QStringLiteral("▲５五歩"));
         add("illegal-double-pawn-marker", "4k4/9/9/9/9/4P4/9/9/4K4 b P 1", "P*5e", QStringLiteral("▲５五歩打"));
         add("illegal-king-in-check", "4k4/9/9/9/4r4/9/9/9/4K3G b - 1", "1i1h", QStringLiteral("▲１八金"));
+        add("illegal-missing-hand", "4k4/9/9/9/9/9/9/9/4K4 b - 1", "P*5e", QStringLiteral("▲５五歩打"));
+        add("illegal-blocked-bishop", "4k4/9/9/9/9/9/2P6/1B7/4K4 b - 1", "8h5e", QStringLiteral("▲５五角(88)"));
     }
 
     void ki2ModifierNotation()

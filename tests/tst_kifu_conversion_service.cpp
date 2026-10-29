@@ -41,6 +41,95 @@ private:
     }
 
 private slots:
+    /// 未終局の KI2 は指し手だけで終え、未知の終局行を作らない。
+    void ki2UnfinishedRecordHasNoResultLine()
+    {
+        KifuConversionService::Request request;
+        request.text = QStringLiteral("position startpos moves 7g7f 3c3d");
+        request.outputFormat = Format::Ki2;
+        const auto saved = KifuConversionService::convert(request);
+        QVERIFY2(saved.ok, qPrintable(saved.failure.message));
+        for (const QString& line : saved.lines) QVERIFY(!line.startsWith(QStringLiteral("まで")));
+        const auto reread = KifuLoadParser::parseText(saved.lines.join(QLatin1Char('\n')));
+        QVERIFY(reread.success);
+        QCOMPARE(reread.record.mainline.usiMoves(), saved.usiMoves);
+        QVERIFY(!reread.record.mainline.endsWithTerminal());
+    }
+
+    /// 0手の終局も USI の手順欄に置き、平手・任意局面とも読み戻せる。
+    void usiTerminalWithoutMoves_data()
+    {
+        QTest::addColumn<QString>("start");
+        QTest::addColumn<QString>("terminal");
+        for (const QString& start : {QStringLiteral("startpos"),
+                                     QStringLiteral("sfen 4k4/9/9/9/9/9/9/9/4K4 w - 1")}) {
+            for (const QString& terminal : {QStringLiteral("resign"), QStringLiteral("win"), QStringLiteral("break")})
+                QTest::newRow(qPrintable(start + terminal)) << start << terminal;
+        }
+    }
+
+    void usiTerminalWithoutMoves()
+    {
+        QFETCH(QString, start);
+        QFETCH(QString, terminal);
+        KifuConversionService::Request request;
+        request.text = QStringLiteral("position %1 moves %2").arg(start, terminal);
+        request.outputFormat = Format::Usi;
+        const auto saved = KifuConversionService::convert(request);
+        QVERIFY2(saved.ok, qPrintable(saved.failure.message));
+        QCOMPARE(saved.lines, QStringList{request.text});
+        const auto reread = KifuLoadParser::parseText(saved.lines.first());
+        QVERIFY(reread.success);
+        QVERIFY(reread.warning.isEmpty());
+        QCOMPARE(reread.record.mainline.entries.size(), 1);
+        QCOMPARE(reread.record.mainline.entries.first().terminal, saved.mainline.entries.first().terminal);
+    }
+
+    /// KI2 の結果行から、王手千日手・引き分け・最大手数・エラーの種類を失わない。
+    void ki2ExtendedTerminalRoundTrip_data()
+    {
+        QTest::addColumn<QString>("terminal");
+        for (const QString& terminal : {QStringLiteral("王手千日手"), QStringLiteral("引き分け"),
+                                         QStringLiteral("最大手数到達"), QStringLiteral("エラー")})
+            QTest::newRow(qPrintable(terminal)) << terminal;
+    }
+
+    void ki2ExtendedTerminalRoundTrip()
+    {
+        QFETCH(QString, terminal);
+        KifuConversionService::Request request;
+        request.text = QStringLiteral("手合割：平手\n1 ７六歩(77)\n2 %1\n").arg(terminal);
+        request.outputFormat = Format::Ki2;
+        const auto saved = KifuConversionService::convert(request);
+        QVERIFY2(saved.ok, qPrintable(saved.failure.message));
+        QVERIFY(saved.lines.contains(QStringLiteral("まで1手で%1").arg(terminal)));
+        const auto reread = KifuLoadParser::parseText(saved.lines.join(QLatin1Char('\n')));
+        QVERIFY(reread.success);
+        QCOMPARE(reread.record.mainline.entries.size(), 2);
+        QCOMPARE(reread.record.mainline.entries.last().terminal, TerminalTypes::fromWord(terminal));
+    }
+
+    /// 読み込んだ反則の駒打ちも JKF の保存で黙って消さず、後続の手と時間を保つ。
+    void jkfPreservesLenientDrop()
+    {
+        KifuConversionService::Request request;
+        request.text = QStringLiteral("手合割：平手\n1 ５五歩打 ( 0:01/00:00:01)\n"
+                                      "2 ３四歩(33) ( 0:02/00:00:02)\n3 反則負け\n");
+        request.outputFormat = Format::Jkf;
+        const auto saved = KifuConversionService::convert(request);
+        QVERIFY2(saved.ok, qPrintable(saved.failure.message));
+        const auto reread = KifuLoadParser::parseText(saved.lines.join(QLatin1Char('\n')));
+        QVERIFY(reread.success);
+        QVERIFY(reread.warning.isEmpty());
+        QCOMPARE(reread.record.mainline.usiMoves(), (QStringList{QStringLiteral("P*5e"), QStringLiteral("3c3d")}));
+        QCOMPARE(reread.record.mainline.entries.size(), 3);
+        for (qsizetype i = 0; i < saved.mainline.entries.size(); ++i) {
+            QCOMPARE(reread.record.mainline.entries.at(i).sfen, saved.mainline.entries.at(i).sfen);
+            QCOMPARE(reread.record.mainline.entries.at(i).time.toText(), saved.mainline.entries.at(i).time.toText());
+        }
+        QCOMPARE(reread.record.mainline.entries.last().terminal, TerminalType::IllegalLoss);
+    }
+
     /// 指せない手があれば、その手の手前までを読み、警告に理由と読んだ手数を書く（どの形式も同じ）
     void unreplayableMoveTruncatesTheLine_data()
     {

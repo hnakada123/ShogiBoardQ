@@ -143,14 +143,10 @@ std::optional<UsiMove> resolve(const KifMoveGrammar::MoveText& text, const Posit
     return resolveAmong(EngineMoveValidator::pseudoLegalMoves(position), text, board, to, mover);
 }
 
-Annotation annotate(const Position& board, Turn mover, const UsiMove& move)
+static Annotation annotateAmong(const Position& board, Turn mover, const UsiMove& move,
+                                 const QList<UsiMove>& moves)
 {
     const Piece moving = move.isDrop() ? move.drop : toBlack(board.pieceAt(move.from));
-
-    // 読み込みと同じく、反則手は駒の動きだけで決めた手の中で区別する
-    const auto position = EngineMoveValidator::load(board, mover);
-    QList<UsiMove> moves = EngineMoveValidator::legalMoves(position);
-    if (!moves.contains(move)) moves = EngineMoveValidator::pseudoLegalMoves(position);
 
     // 同じ駒で同じマスへ動ける移動元（成り・不成は区別しない）
     QList<BoardSquare> sources;
@@ -170,14 +166,32 @@ Annotation annotate(const Position& board, Turn mover, const UsiMove& move)
     return annotation;
 }
 
+Annotation annotate(const Position& board, Turn mover, const UsiMove& move)
+{
+    // 表示用の候補は合法手から選び、反則手は駒の動きだけで区別する。
+    const auto position = EngineMoveValidator::load(board, mover);
+    QList<UsiMove> moves = EngineMoveValidator::legalMoves(position);
+    if (!moves.contains(move)) moves = EngineMoveValidator::pseudoLegalMoves(position);
+    return annotateAmong(board, mover, move, moves);
+}
+
 QString format(const Position& board, Turn mover, const UsiMove& move, BoardSquare previousTo)
 {
     const Piece moving = move.isDrop() ? move.drop : board.pieceAt(move.from);
     KifMoveText::Notes notes;
-    notes.modifier = annotate(board, mover, move).modifiers;
+    // ファイルには、ピンの合法性を判定しない読み手でも移動元が一意になる修飾語を付ける。
+    // 特に駒打ちは「打」を省くと、ピンされた盤上の駒を動かした手と誤読される。
+    const auto position = EngineMoveValidator::load(board, mover);
+    const QList<UsiMove> moves = EngineMoveValidator::pseudoLegalMoves(position);
+    notes.modifier = annotateAmong(board, mover, move, moves).modifiers;
     notes.declinedPromotion = KifMoveText::couldPromote(moving, move);
     notes.withoutSource = true;
     notes.dropMarkFromModifier = true;
+    if (!moves.contains(move)) {
+        // 持駒不足・駒の飛び越しなど、反則手を局面から逆算できないときは移動元や「打」を残す。
+        notes.withoutSource = false;
+        notes.dropMarkFromModifier = false;
+    }
     return KifMoveText::format(mover, moving, move, previousTo, notes);
 }
 

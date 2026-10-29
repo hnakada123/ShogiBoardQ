@@ -27,7 +27,11 @@ QStringList UsiExporter::exportPosition(const QString& startSfen, const QStringL
     // 開始局面の手数は書かれたまま残す。終局コードは指し手の後に空白で区切って足す
     QString usiLine = UsiPosition::commandFor(startSfen, usiMoves);
     const QString terminalCode = TerminalCodes::usi(terminal);
-    if (!terminalCode.isEmpty()) usiLine += QLatin1Char(' ') + terminalCode;
+    if (!terminalCode.isEmpty()) {
+        // 0手で終局した棋譜でも、終局コードは開始局面ではなく手順の欄に置く。
+        if (usiMoves.isEmpty()) usiLine += QStringLiteral(" moves");
+        usiLine += QLatin1Char(' ') + terminalCode;
+    }
 
     qCDebug(lcKifu).noquote() << "toUsiLines: generated USI position command with" << usiMoves.size()
                               << "moves, terminal:" << terminalCode;

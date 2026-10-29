@@ -27,7 +27,8 @@ bool KifuNodeReplay::advance(const KifuBranchNode* node)
 {
     if (!node->isActualMove()) return true;
     const UsiMove move = node->move().move;
-    const bool applied = canWrite(node) && m_board.applyAs(move, m_mover);
+    // 読み込めた反則手も省かずに書く。持駒不足などの扱いを読み込みと揃える。
+    const bool applied = canWrite(node) && m_board.applyAs(move, m_mover, Position::DropRule::Lenient);
     if (applied) {
         m_mover = opponent(m_mover);
     } else {

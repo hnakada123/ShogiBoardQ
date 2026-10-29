@@ -16,6 +16,7 @@
 #include "kifubranchtree.h"
 #include "branchtree_test_util.h"
 #include "sfenutils.h"
+#include "handicaps.h"
 #include "test_replay.h"
 
 namespace {
@@ -304,6 +305,14 @@ private slots:
         QTest::newRow("hirate") << hirate << QStringLiteral("HIRATE");
         QTest::newRow("six-pieces") << QStringLiteral("2sgkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1")
                                     << QStringLiteral("6");
+        // 拡張された手合名を知らない読み手にも、OTHER の盤面で開始局面を伝える。
+        for (const auto& handicap : Handicaps::kAll) {
+            const QString name = QString::fromLatin1(handicap.jkfPreset);
+            const bool extended = QStringList{QStringLiteral("3"), QStringLiteral("5"), QStringLiteral("5_L"),
+                                              QStringLiteral("7_L"), QStringLiteral("7_R")}.contains(name);
+            QTest::newRow(qPrintable(name)) << QString::fromLatin1(handicap.sfen)
+                                           << (extended ? QStringLiteral("OTHER") : name);
+        }
         // 平手の配置でも後手から指す局面は平手ではない
         QTest::newRow("hirate-white-to-move") << QString(hirate).replace(QStringLiteral(" b "), QStringLiteral(" w "))
                                               << QStringLiteral("OTHER");
