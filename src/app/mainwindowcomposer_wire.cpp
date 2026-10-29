@@ -76,6 +76,8 @@ void MainWindowComposer::connectRecord()
     BranchTreeView* tree = m_c.branchTreeView;
     connect(tree, &BranchTreeView::nodeActivated, nav, &KifuNavigationController::selectBranchTreeNode);
     connect(chart, &EvaluationChartWidget::plyClicked, nav, &KifuNavigationController::selectPly);
+    // 棋譜解析の点は、解析した手順の手へ移る（分岐を足しても手順の末尾の手で探す）
+    connect(chart, &EvaluationChartWidget::analysisPlyClicked, nav, &KifuNavigationController::goToPlyOnLine);
     // 移るのをやめたら、クリックした行の強調を表示中の手に戻す（選択の変更の処理を抜けてから）
     connect(nav, &KifuNavigationController::navigationRejected,
             m_c.kifuDisplay, &KifuDisplayPresenter::refresh, Qt::QueuedConnection);

@@ -452,11 +452,14 @@ set(SRC_KIFU
 )
 
 set(SRC_ANALYSIS
-    src/analysis/analysisjob.cpp
-    src/analysis/analysisjob.h
     src/analysis/analysisoptions.h
     src/analysis/analysissession.cpp
     src/analysis/analysissession.h
+    src/analysis/engineanalysisrunner.cpp
+    src/analysis/engineanalysisrunner.h
+    src/analysis/kifuanalysissession.cpp
+    src/analysis/kifuanalysissession.h
+    src/analysis/matesearchposition.h
     src/analysis/tsumecandidatejob.cpp
     src/analysis/tsumecandidatejob.h
     src/analysis/tsumecollection.cpp
@@ -938,7 +941,6 @@ set(SRC_COMMON
     src/widgets/tablemodelutils.h
     src/style/tablestyles.h
     src/common/threadtypes.h
-    src/analysis/tsumepositionutil.h
 )
 
 # CLI・自動化 API・MCP が共有する GUI 非依存の部品（引数の表・エラーの分類・変換・エンジンの実行器）
@@ -947,8 +949,6 @@ set(SRC_HEADLESS
     src/headless/automationendpoint.h
     src/headless/automationmethodspecs.cpp
     src/headless/automationmethodspecs.h
-    src/headless/engineanalysisrunner.cpp
-    src/headless/engineanalysisrunner.h
     src/headless/enginecatalog.cpp
     src/headless/enginecatalog.h
     src/headless/errorkinds.cpp

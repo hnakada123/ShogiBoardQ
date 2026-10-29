@@ -174,7 +174,7 @@
     <name>AnalysisSession</name>
     <message>
         <location filename="../../src/analysis/analysissession.cpp" line="136"/>
-        <location filename="../../src/analysis/analysissession.cpp" line="196"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="194"/>
         <source>詰み探索</source>
         <translation>詰み探索</translation>
     </message>
@@ -189,32 +189,32 @@
         <translation>エンジンエラー: %1</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="204"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="202"/>
         <source>詰みあり（手順 %1 手）</source>
         <translation>詰みあり（手順 %1 手）</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="207"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="205"/>
         <source>詰みなし</source>
         <translation>詰みなし</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="210"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="208"/>
         <source>（エンジン側）未実装</source>
         <translation>（エンジン側）未実装</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="213"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="211"/>
         <source>時間内に詰みを判定できませんでした</source>
         <translation>時間内に詰みを判定できませんでした</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="220"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="218"/>
         <source>エンジンが応答しなかったため、詰み探索を打ち切りました</source>
         <translation>エンジンが応答しなかったため、詰み探索を打ち切りました</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="225"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="223"/>
         <source>探索が完了しました</source>
         <translation>探索が完了しました</translation>
     </message>
@@ -7430,23 +7430,23 @@ OKを選択すると保存先が指定できます。</translation>
 <context>
     <name>KifuAnalysisController</name>
     <message>
-        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="63"/>
-        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="110"/>
+        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="55"/>
+        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="102"/>
         <source>解析対象の棋譜データが不正です。</source>
         <translation>解析対象の棋譜データが不正です。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="76"/>
+        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="68"/>
         <source>エンジン選択が不正です。</source>
         <translation>エンジン選択が不正です。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="154"/>
+        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="135"/>
         <source>エンジン初期化に失敗しました。エンジン設定を確認してください。</source>
         <translation>エンジン初期化に失敗しました。エンジン設定を確認してください。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="224"/>
+        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="188"/>
         <source>エンジンエラー: %1</source>
         <translation>エンジンエラー: %1</translation>
     </message>
@@ -7741,6 +7741,14 @@ OKを選択すると保存先が指定できます。</translation>
         <location filename="../../src/models/kifuanalysislistmodel.cpp" line="184"/>
         <source>読み筋</source>
         <translation>読み筋</translation>
+    </message>
+</context>
+<context>
+    <name>KifuAnalysisSession</name>
+    <message>
+        <location filename="../../src/analysis/kifuanalysissession.cpp" line="91"/>
+        <source>エンジンが停止の指示に%1秒以内に応答しませんでした。</source>
+        <translation>エンジンが停止の指示に%1秒以内に応答しませんでした。</translation>
     </message>
 </context>
 <context>
@@ -13043,12 +13051,12 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>TsumeSearchController</name>
     <message>
-        <location filename="../../src/ui/controllers/tsumesearchcontroller.cpp" line="38"/>
+        <location filename="../../src/ui/controllers/tsumesearchcontroller.cpp" line="33"/>
         <source>詰み探索用の局面（SFEN）が取得できません。棋譜を読み込むか局面を指定してください。</source>
         <translation>詰み探索用の局面（SFEN）が取得できません。棋譜を読み込むか局面を指定してください。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/tsumesearchcontroller.cpp" line="48"/>
+        <location filename="../../src/ui/controllers/tsumesearchcontroller.cpp" line="43"/>
         <source>詰み探索エンジンの選択が不正です。</source>
         <translation>詰み探索エンジンの選択が不正です。</translation>
     </message>

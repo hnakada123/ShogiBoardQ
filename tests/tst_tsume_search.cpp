@@ -1,9 +1,10 @@
 /// @file tst_tsume_search.cpp
-/// @brief 詰み探索フロー統合テスト（TsumePositionUtil 局面構築→コマンド生成）
+/// @brief 詰み探索フロー統合テスト（MateSearchPosition 局面構築→コマンド生成）
 
 #include <QtTest>
 
-#include "tsumepositionutil.h"
+#include "matesearchposition.h"
+#include "test_replay.h"
 #include "usiposition.h"
 
 class TestTsumeSearch : public QObject
@@ -11,6 +12,13 @@ class TestTsumeSearch : public QObject
     Q_OBJECT
 
 private:
+    /// 単独の局面（手順なし）を詰み探索に送る position コマンド（読めなければ空）
+    static QString matePositionCommand(const QString& sfen)
+    {
+        const std::optional<UsiPosition> position = MateSearchPosition::forLine(RecordLine{}, sfen);
+        return position ? position->command() : QString();
+    }
+
     /// SFEN文字列からトークン分割して手番を取得（"b" or "w"）
     static QString extractTurn(const QString& positionCmd)
     {
@@ -48,7 +56,7 @@ private slots:
 
     // --- エッジケース ---
     void buildForMate_emptyBoard_returnsEmpty();
-    void buildForMate_positionCommand_isAccepted();
+    void buildForMate_lineSendsMovesOrAttackerStart();
 };
 
 // ============================================================
@@ -61,7 +69,7 @@ void TestTsumeSearch::buildForMate_singleKing_forcesAttackerTurn()
     const QString sfenOnlyGoteKing = QStringLiteral("4k4/9/9/9/9/9/9/9/9 b - 1");
     QStringList sfenRecord = {sfenOnlyGoteKing};
 
-    const QString result = TsumePositionUtil::buildPositionForMate(sfenRecord.value(0));
+    const QString result = matePositionCommand(sfenRecord.value(0));
 
     QVERIFY(result.startsWith(QStringLiteral("position sfen ")));
     QCOMPARE(extractTurn(result), QStringLiteral("b"));
@@ -76,7 +84,7 @@ void TestTsumeSearch::buildForMate_tsumePosition_correctFormat()
     const QString tsumeSfen = QStringLiteral("k8/G8/9/9/9/9/9/9/9 b G2r2b2g4s4n4l18p 1");
     QStringList sfenRecord = {tsumeSfen};
 
-    const QString result = TsumePositionUtil::buildPositionForMate(sfenRecord.value(0));
+    const QString result = matePositionCommand(sfenRecord.value(0));
 
     // "position sfen ..." 形式であること
     QVERIFY(result.startsWith(QStringLiteral("position sfen ")));
@@ -108,7 +116,7 @@ void TestTsumeSearch::buildForMate_handicapPosition()
     const QString handicapSfen = QStringLiteral("lnsgkgsnl/7b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
     QStringList sfenRecord = {handicapSfen};
 
-    const QString result = TsumePositionUtil::buildPositionForMate(sfenRecord.value(0));
+    const QString result = matePositionCommand(sfenRecord.value(0));
 
     QVERIFY(result.startsWith(QStringLiteral("position sfen ")));
     // 両玉(K, k)あり → 元の手番 w を維持
@@ -140,7 +148,7 @@ void TestTsumeSearch::buildCheckmateSendCommand_fromSfen()
     const QString tsumeSfen = QStringLiteral("3sks3/9/4G4/9/9/9/9/9/9 b G2r2b4g4s4n4l18p 1");
     QStringList sfenRecord = {tsumeSfen};
 
-    const QString positionCmd = TsumePositionUtil::buildPositionForMate(sfenRecord.value(0));
+    const QString positionCmd = matePositionCommand(sfenRecord.value(0));
 
     // USI checkmate コマンド形式
     const QString checkmateCmd = positionCmd + QStringLiteral("\ngo mate infinite");
@@ -160,7 +168,7 @@ void TestTsumeSearch::tsumePosition_oneMoveMate()
     const QString sfen = QStringLiteral("k8/G8/9/9/9/9/9/9/9 b G2r2b2g4s4n4l18p 1");
     QStringList sfenRecord = {sfen};
 
-    const QString result = TsumePositionUtil::buildPositionForMate(sfenRecord.value(0));
+    const QString result = matePositionCommand(sfenRecord.value(0));
 
     // 正しい position コマンドが構築できる
     QVERIFY(!result.isEmpty());
@@ -184,7 +192,7 @@ void TestTsumeSearch::tsumePosition_threeMoveMate()
     const QString sfen = QStringLiteral("2k6/9/9/9/9/9/9/9/2R6 b G2r2b4g4s4n4l18p 1");
     QStringList sfenRecord = {sfen};
 
-    const QString result = TsumePositionUtil::buildPositionForMate(sfenRecord.value(0));
+    const QString result = matePositionCommand(sfenRecord.value(0));
 
     QVERIFY(!result.isEmpty());
     QVERIFY(result.startsWith(QStringLiteral("position sfen ")));
@@ -203,7 +211,7 @@ void TestTsumeSearch::tsumePosition_noMatePosition()
     const QString sfen = QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b - 1");
     QStringList sfenRecord = {sfen};
 
-    const QString result = TsumePositionUtil::buildPositionForMate(sfenRecord.value(0));
+    const QString result = matePositionCommand(sfenRecord.value(0));
 
     // 両玉あり → position コマンドは構築可能（詰みの有無はエンジンが判断）
     QVERIFY(!result.isEmpty());
@@ -220,26 +228,29 @@ void TestTsumeSearch::tsumePosition_noMatePosition()
 void TestTsumeSearch::buildForMate_emptyBoard_returnsEmpty()
 {
     // 盤面データなし（全ソースが空）→ 空文字列
-    const QString result = TsumePositionUtil::buildPositionForMate(QString());
+    const QString result = matePositionCommand(QString());
 
     QVERIFY(result.isEmpty());
 }
 
-void TestTsumeSearch::buildForMate_positionCommand_isAccepted()
+void TestTsumeSearch::buildForMate_lineSendsMovesOrAttackerStart()
 {
-    // "position sfen ..." の形でも渡せる（moves 以降は使わない）
-    const QString result = TsumePositionUtil::buildPositionForMate(
-        QStringLiteral("position sfen 4k4/9/4G4/9/9/9/9/9/9 b G2r2b4g4s4n4l18p 1 moves G*5b"));
+    // 表示中の手順の途中局面は、開始局面からの手順で送る（エンジンに千日手の判断材料を渡す）
+    const QString start = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+    const QStringList moves{QStringLiteral("7g7f"), QStringLiteral("3c3d")};
+    RecordLine line = TestReplay::recordLine(TestReplay::buildSfenRecord(start, moves, false),
+                                             TestReplay::buildGameMoves(start, moves));
+    line.currentPly = 2;
+    const std::optional<UsiPosition> middle = MateSearchPosition::forLine(line, QString());
+    QVERIFY(middle);
+    QCOMPARE(middle->command(), QStringLiteral("position startpos moves 7g7f 3c3d"));
 
-    QVERIFY(!result.isEmpty());
-    QVERIFY(result.startsWith(QStringLiteral("position sfen ")));
-
-    // 後手玉(k)のみ → 先手(b)手番
-    QCOMPARE(extractTurn(result), QStringLiteral("b"));
-
-    // "position sfen" プレフィックスが剥がされて再構築されること
-    QVERIFY(result.contains(QLatin1String("4k4")));
-    QVERIFY(result.contains(QLatin1String("G")));
+    // 開始局面は攻方の手番に合わせる（玉が後手だけなら先手、手数は1）
+    RecordLine problem;
+    problem.startSfen = QStringLiteral("4k4/9/4G4/9/9/9/9/9/9 w G2r2b2g4s4n4l18p 5");
+    const std::optional<UsiPosition> atStart = MateSearchPosition::forLine(problem, QString());
+    QVERIFY(atStart);
+    QCOMPARE(atStart->command(), QStringLiteral("position sfen 4k4/9/4G4/9/9/9/9/9/9 b G2r2b2g4s4n4l18p 1"));
 }
 
 QTEST_MAIN(TestTsumeSearch)

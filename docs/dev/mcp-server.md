@@ -408,7 +408,7 @@ CLI が GUI 本体と同じクラスを使えるように、`CMakeLists.txt` の
 
 | ディレクトリ | 内容 |
 |---|---|
-| `src/headless/` | CLI・自動化 API・MCP が共有する GUI 非依存の部品: 引数の表（`ParamSpec`・`AutomationMethodSpecs`）、エラーの分類の表（`ErrorKind`・`ErrorKinds`・`Failure`）、書き出し先の検査（`OutputPath`）、自動化 API の接続先（`AutomationEndpoint`）、共通サービス（`KifuConversionService`、`EngineCatalog`、`EngineAnalysisRunner`、`MateSearchRunner`、`TsumeVerificationRunner`。局面の検証は `src/core/` の `SfenValidator`、その JSON は `SfenValidationJson`） |
+| `src/headless/` | CLI・自動化 API・MCP が共有する GUI 非依存の部品: 引数の表（`ParamSpec`・`AutomationMethodSpecs`）、エラーの分類の表（`ErrorKind`・`ErrorKinds`・`Failure`）、書き出し先の検査（`OutputPath`）、自動化 API の接続先（`AutomationEndpoint`）、共通サービス（`KifuConversionService`、`EngineCatalog`、`MateSearchRunner`、`TsumeVerificationRunner`。局面の検証は `src/core/` の `SfenValidator`、その JSON は `SfenValidationJson`。局面の列の解析 `EngineAnalysisRunner` は GUI の棋譜解析と共通なので `src/analysis/`） |
 | `src/automation/` | 自動化 API（`AutomationServer` ほか） |
 | `src/cli/` | `shogiboardq-cli` のエントリーポイントとコマンド実装（`CliCommands*`）、盤面画像（`BoardImageRenderer`）、コマンドの引数の表 `CliCommandSpecs` と引数の解釈 `CliArgs`。JSON 出力と stdin の `stop` 監視 |
 | `mcp/` | Python パッケージとテスト |

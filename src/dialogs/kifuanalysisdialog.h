@@ -4,7 +4,7 @@
 /// @file kifuanalysisdialog.h
 /// @brief 棋譜解析ダイアログクラスの定義
 
-#include "analysisjob.h"
+#include "kifuanalysissession.h"
 #include "enginelistsettings.h"
 #include <QDialog>
 #include <memory>

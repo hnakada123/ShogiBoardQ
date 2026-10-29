@@ -7,7 +7,7 @@
 #include <QTest>
 #include <QStringList>
 
-#include "analysisjob.h"
+#include "engineanalysisrunner.h"
 #include "kifuanalysisrowpresenter.h"
 #include "kifuanalysislistmodel.h"
 #include "kifuanalysisrow.h"

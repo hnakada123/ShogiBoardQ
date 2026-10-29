@@ -162,7 +162,7 @@
     <name>AnalysisSession</name>
     <message>
         <location filename="../../src/analysis/analysissession.cpp" line="136"/>
-        <location filename="../../src/analysis/analysissession.cpp" line="196"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="194"/>
         <source>詰み探索</source>
         <translation>搜索诘棋</translation>
     </message>
@@ -177,32 +177,32 @@
         <translation>引擎错误：%1</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="204"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="202"/>
         <source>詰みあり（手順 %1 手）</source>
         <translation>找到诘棋（%1 手）</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="207"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="205"/>
         <source>詰みなし</source>
         <translation>无诘</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="210"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="208"/>
         <source>（エンジン側）未実装</source>
         <translation>（引擎）尚未实现</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="213"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="211"/>
         <source>時間内に詰みを判定できませんでした</source>
         <translation>未能在限定时间内判定诘棋</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="220"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="218"/>
         <source>エンジンが応答しなかったため、詰み探索を打ち切りました</source>
         <translation>引擎没有响应，已中止搜索诘棋。</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysissession.cpp" line="225"/>
+        <location filename="../../src/analysis/analysissession.cpp" line="223"/>
         <source>探索が完了しました</source>
         <translation>搜索完成</translation>
     </message>
@@ -7212,23 +7212,23 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>KifuAnalysisController</name>
     <message>
-        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="63"/>
-        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="110"/>
+        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="55"/>
+        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="102"/>
         <source>解析対象の棋譜データが不正です。</source>
         <translation>用于分析的棋谱数据无效。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="76"/>
+        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="68"/>
         <source>エンジン選択が不正です。</source>
         <translation>引擎选择无效。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="154"/>
+        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="135"/>
         <source>エンジン初期化に失敗しました。エンジン設定を確認してください。</source>
         <translation>引擎初始化失败。请检查引擎设置。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="224"/>
+        <location filename="../../src/ui/controllers/kifuanalysiscontroller.cpp" line="188"/>
         <source>エンジンエラー: %1</source>
         <translation>引擎错误：%1</translation>
     </message>
@@ -7523,6 +7523,14 @@ OKを選択すると保存先が指定できます。</source>
         <location filename="../../src/models/kifuanalysislistmodel.cpp" line="184"/>
         <source>読み筋</source>
         <translation>主要变化</translation>
+    </message>
+</context>
+<context>
+    <name>KifuAnalysisSession</name>
+    <message>
+        <location filename="../../src/analysis/kifuanalysissession.cpp" line="91"/>
+        <source>エンジンが停止の指示に%1秒以内に応答しませんでした。</source>
+        <translation>引擎未在 %1 秒内响应停止指令。</translation>
     </message>
 </context>
 <context>
@@ -12620,12 +12628,12 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>TsumeSearchController</name>
     <message>
-        <location filename="../../src/ui/controllers/tsumesearchcontroller.cpp" line="38"/>
+        <location filename="../../src/ui/controllers/tsumesearchcontroller.cpp" line="33"/>
         <source>詰み探索用の局面（SFEN）が取得できません。棋譜を読み込むか局面を指定してください。</source>
         <translation>无法获取用于诘棋搜索的局面（SFEN）。请读取棋谱或指定局面。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/tsumesearchcontroller.cpp" line="48"/>
+        <location filename="../../src/ui/controllers/tsumesearchcontroller.cpp" line="43"/>
         <source>詰み探索エンジンの選択が不正です。</source>
         <translation>诘棋搜索引擎选择无效。</translation>
     </message>

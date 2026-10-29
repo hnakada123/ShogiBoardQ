@@ -775,7 +775,7 @@ add_shogi_test(tst_joseki_lines tst_joseki_lines.cpp)
 target_link_libraries(tst_joseki_lines PRIVATE shogiboardq_static)
 
 # ============================================================
-# Unit: TsumeshogiPositionGenerator + TsumePositionUtil テスト
+# Unit: TsumeshogiPositionGenerator + MateSearchPosition テスト
 # ============================================================
 add_shogi_test(tst_tsumeshogi_generator
     tst_tsumeshogi_generator.cpp

@@ -10,10 +10,11 @@
 #include "kifuconversionservice.h"
 #include "kifuformat.h"
 #include "matesearchrunner.h"
-#include "usimove.h"
+#include "usienginesession.h"
 
 #include <QEventLoop>
 #include <QJsonArray>
+#include <algorithm>
 
 namespace {
 
@@ -32,11 +33,11 @@ QJsonObject startedFields(const EngineEntry& engine, const UsiPosition& position
 }
 
 /// 1局面の解析結果（bestmove・ponder・考えた時間・MultiPV ごとの最新の読み筋）
-QJsonObject analysisResult(const EngineAnalysisRunner& runner, const QString& bestmove, const QString& ponder)
+QJsonObject analysisResult(const EngineAnalysisRunner& runner, const UsiBestMove& bestMove)
 {
     QJsonObject obj;
-    obj[QStringLiteral("bestmove")] = bestmove;
-    if (!ponder.isEmpty()) obj[QStringLiteral("ponder")] = ponder;
+    obj[QStringLiteral("bestmove")] = bestMove.move;
+    if (!bestMove.ponder.isEmpty()) obj[QStringLiteral("ponder")] = bestMove.ponder;
     obj[QStringLiteral("elapsed_ms")] = static_cast<double>(runner.elapsedMs());
     QJsonArray lines;
     const auto latest = runner.latestLines();
@@ -56,15 +57,15 @@ public:
 
 public slots:
     void onLine(const UsiInfo& line) { CliOutput::printEvent(QStringLiteral("info"), line.toJson()); }
-    void onPositionFinished(int /*index*/, const QString& bestmove, const QString& ponder)
+    void onPositionFinished(const PlyAnalysis& /*result*/, const UsiBestMove& bestMove)
     {
         m_reported = true;
-        CliOutput::printEvent(QStringLiteral("result"), analysisResult(*m_runner, bestmove, ponder));
+        CliOutput::printEvent(QStringLiteral("result"), analysisResult(*m_runner, bestMove));
     }
     void onFinished(bool /*stopped*/)
     {
         // 初期化の前に止めたときも結果を1つ出す（bestmove は空）
-        if (!m_reported) CliOutput::printEvent(QStringLiteral("result"), analysisResult(*m_runner, QString(), QString()));
+        if (!m_reported) CliOutput::printEvent(QStringLiteral("result"), analysisResult(*m_runner, UsiBestMove{}));
         m_loop->quit();
     }
     void onError(const QString& message)
@@ -87,9 +88,8 @@ class KifuAnalyzeReporter : public QObject
 public:
     struct Plan {
         int fromPly = 0;
-        QStringList sfens;               ///< 本譜の各局面（[0] が開始局面）
-        QStringList moves;               ///< 本譜の USI の指し手
-        QList<UsiPosition> positions;    ///< 解析する局面（fromPly から順に）
+        RecordLine line;                               ///< 本譜
+        QList<std::optional<UsiPosition>> positions;   ///< 解析する局面（fromPly から順に。どれも読めている）
     };
 
     KifuAnalyzeReporter(EngineAnalysisRunner* runner, QEventLoop* loop, Plan plan)
@@ -97,25 +97,26 @@ public:
     int exitCode() const { return m_exitCode; }
 
 public slots:
-    void onPositionStarted(int index)
+    void onPositionStarted(int ply)
     {
         QJsonObject obj;
-        obj[QStringLiteral("current_ply")] = m_plan.fromPly + index;
-        obj[QStringLiteral("completed")] = index;
+        obj[QStringLiteral("current_ply")] = ply;
+        obj[QStringLiteral("completed")] = ply - m_plan.fromPly;
         CliOutput::printEvent(QStringLiteral("progress"), obj);
     }
-    void onPositionFinished(int index, const QString& bestmove, const QString& ponder)
+    void onPositionFinished(const PlyAnalysis& result, const UsiBestMove& bestMove)
     {
-        const int ply = m_plan.fromPly + index;
-        QJsonObject obj = analysisResult(*m_runner, bestmove, ponder);
+        const int ply = result.ply;
+        const int index = ply - m_plan.fromPly;
+        QJsonObject obj = analysisResult(*m_runner, bestMove);
         obj[QStringLiteral("ply")] = ply;
-        obj[QStringLiteral("sfen")] = m_plan.sfens.value(ply);
-        obj[QStringLiteral("played_move")] = ply > 0 ? QJsonValue(m_plan.moves.value(ply - 1)) : QJsonValue();
+        obj[QStringLiteral("sfen")] = m_plan.line.sfenAt(ply);
+        obj[QStringLiteral("played_move")] = ply > 0 ? QJsonValue(m_plan.line.usiMove(ply).toString()) : QJsonValue();
         obj[QStringLiteral("partial")] = m_runner->isStopRequested();
         // 最善の読み筋の評価値を先手から見た値にする（評価値は手番の側から見た値）
         const auto latest = m_runner->latestLines();
         if (const auto best = latest.constFind(1); best != latest.cend()) {
-            const int sign = m_plan.positions.at(index).sideToMove() == Turn::Black ? 1 : -1;
+            const int sign = m_plan.positions.at(index)->sideToMove() == Turn::Black ? 1 : -1;
             if (best->score.isCp()) obj[QStringLiteral("score_cp_black")] = sign * best->score.value;
             if (best->score.isMate()) obj[QStringLiteral("score_mate_black")] = sign * best->score.value;
         }
@@ -189,7 +190,8 @@ int CliCommands::analyze(const QJsonObject& params)
     const int seconds = params.value(QStringLiteral("seconds")).toInt();
     const int multiPv = params.value(QStringLiteral("multipv")).toInt();
 
-    EngineAnalysisRunner runner;
+    UsiEngineSession session;
+    EngineAnalysisRunner runner(&session);
     QEventLoop loop;
     AnalyzeReporter reporter(&runner, &loop);
     QObject::connect(&runner, &EngineAnalysisRunner::lineUpdated, &reporter, &AnalyzeReporter::onLine);
@@ -205,6 +207,7 @@ int CliCommands::analyze(const QJsonObject& params)
     request.positions = {*position};
     request.thinkMs = seconds * 1000;
     request.multiPv = multiPv;
+    request.replyTimeoutMs = EngineAnalysisRunner::kDefaultReplyTimeoutMs;
 
     QJsonObject started = startedFields(*engine, *position);
     started[QStringLiteral("seconds")] = seconds;
@@ -233,7 +236,7 @@ int CliCommands::analyzeKifu(const QJsonObject& params)
     const KifuConversionService::Result record = KifuConversionService::convert(conversion);
     if (!record.ok) return CliOutput::failEvent(record.failure);
 
-    const int moveCount = static_cast<int>(record.usiMoves.size());
+    const int moveCount = record.mainline.moveCount();
     const int fromPly = params.value(QStringLiteral("from_ply")).toInt();
     const int toPly = params.contains(QStringLiteral("to_ply")) ? params.value(QStringLiteral("to_ply")).toInt() : moveCount;
     if (fromPly > toPly || toPly > moveCount) {
@@ -241,24 +244,18 @@ int CliCommands::analyzeKifu(const QJsonObject& params)
                                     QStringLiteral("The ply range %1-%2 is outside the main line (0-%3)")
                                         .arg(fromPly).arg(toPly).arg(moveCount));
     }
-    // 局面は開始局面からの手順で送る（千日手の判断材料をエンジンに渡す）
+    // 局面は GUI の棋譜解析と同じく本譜から作る（開始局面からの手順で送り、千日手の判断材料をエンジンに渡す）
     KifuAnalyzeReporter::Plan plan;
     plan.fromPly = fromPly;
-    plan.sfens = record.sfens;
-    plan.moves = record.usiMoves;
-    QList<UsiMove> played;
-    for (const QString& text : record.usiMoves) {
-        const std::optional<UsiMove> move = UsiMove::parse(text);
-        if (!move) return CliOutput::failEvent(ErrorKind::InvalidContent, QStringLiteral("Unreadable move: %1").arg(text));
-        played << *move;
-    }
-    // 手順を1度だけたどり、手の列は全部の局面で共有する（局面ごとに手順を作り直すと、手数の三乗の時間になる）
-    const std::optional<QList<UsiPosition>> positions = UsiPosition::alongMoves(record.initialSfen, played, fromPly, toPly);
-    if (!positions) {
+    plan.line = record.mainline;
+    plan.positions = plan.line.usiPositions(fromPly, toPly);
+    const bool readable = plan.positions.size() == toPly - fromPly + 1
+        && std::all_of(plan.positions.cbegin(), plan.positions.cend(),
+                       [](const std::optional<UsiPosition>& position) { return position.has_value(); });
+    if (!readable) {
         return CliOutput::failEvent(ErrorKind::InvalidContent,
                                     QStringLiteral("The positions %1-%2 of the main line could not be built").arg(fromPly).arg(toPly));
     }
-    plan.positions = *positions;
     const int seconds = params.value(QStringLiteral("seconds_per_position")).toInt();
     const int multiPv = params.value(QStringLiteral("multipv")).toInt();
 
@@ -266,10 +263,13 @@ int CliCommands::analyzeKifu(const QJsonObject& params)
     request.enginePath = engine->path;
     request.engineName = engine->name;
     request.positions = plan.positions;
+    request.firstPly = fromPly;
     request.thinkMs = seconds * 1000;
     request.multiPv = multiPv;
+    request.replyTimeoutMs = EngineAnalysisRunner::kDefaultReplyTimeoutMs;
 
-    EngineAnalysisRunner runner;
+    UsiEngineSession session;
+    EngineAnalysisRunner runner(&session);
     QEventLoop loop;
     KifuAnalyzeReporter reporter(&runner, &loop, plan);
     QObject::connect(&runner, &EngineAnalysisRunner::positionStarted, &reporter, &KifuAnalyzeReporter::onPositionStarted);

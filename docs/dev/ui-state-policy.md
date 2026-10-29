@@ -20,7 +20,7 @@
 |---|---|---|
 | **Idle** | 待機状態（起動直後・各モード終了後） | 動作を終えた部品がリースを手放したとき |
 | **DuringGame** | 対局中 | `MatchCoordinator::start()`・`resumeInterruptedGame()` |
-| **DuringAnalysis** | 棋譜解析中 | `KifuAnalysisController::start()` |
+| **DuringAnalysis** | 棋譜解析中 | `KifuAnalysisSession::start()`（画面は `KifuAnalysisController`） |
 | **DuringCsaGame** | CSA通信対局中 | `CsaGameCoordinator::onGameStarted()`（サーバーの START を受け、棋譜を作った後） |
 | **DuringTsumeSearch** | 詰み探索中 | `AnalysisSession::start()`（詰み探索のとき） |
 | **DuringConsideration** | 検討中 | `AnalysisSession::start()`（検討のとき） |
@@ -32,8 +32,8 @@
 Idle ──MatchCoordinator::start() / resumeInterruptedGame()────────► DuringGame
      ◄─MatchCoordinator::endGame()（終局・中断・エンジンエラー）──
 
-Idle ──KifuAnalysisController::start()────────────────────────────► DuringAnalysis
-     ◄─KifuAnalysisController::finishRun()（完了・中止・エンジンエラー・エンジンの枠をほかの処理が取った（engineRevoked））
+Idle ──KifuAnalysisSession::start()──────────────────────────────► DuringAnalysis
+     ◄─KifuAnalysisSession::finishRun()（完了・中止・エンジンエラー・エンジンの枠をほかの処理が取った（engineRevoked））
 
 Idle ──CsaGameCoordinator::onGameStarted()（棋譜を作った後）──────► DuringCsaGame
      ◄─CsaGameCoordinator::onClientGameEnded()（棋譜を確定した後）・stopGame()
@@ -162,9 +162,9 @@ MatchCoordinator::resumeAvailabilityChanged ──► refreshResumeAvailability(
     → 動作状態のリースを手放す（Idle） → gameEnded（GameSession::onGameEnded()）
 
 【棋譜解析中】
-  Usi::errorOccurred → AnalysisJob::onError() → stop() → finished(false)
-    → KifuAnalysisController::onFinished() → finishRun() → リースを手放す（Idle）
-  （AnalysisJob::errorOccurred → KifuAnalysisController::onEngineError() がエラーを表示する）
+  UsiEngineSession::errorOccurred → EngineAnalysisRunner::fail() → errorOccurred
+    → KifuAnalysisSession::onRunnerError() → finishRun() → リースを手放す（Idle）→ finished(false)・errorOccurred
+    → KifuAnalysisController::onFinished()（結果の表）・onEngineError()（エラーを表示する）
 
 【詰み探索中】
   Usi::errorOccurred → AnalysisSession::onEngineError()
