@@ -4651,7 +4651,7 @@ onLoadFinished() → applyLoadResult(result)            ← メインスレッ�
 
 低レベルのファイルI/Oを担当する名前空間。
 
-- **`makeDefaultSaveFileName(players, now, extension)`**: 対局者（`MatchPlayers`）と日時から既定のファイル名（`日時_先手_vs_後手.拡張子`。名前が無ければ `日時_Session.拡張子`）を作る。GUI では最後に始めた対局の対局者（`KifuDocument::players()`）を渡す
+- **`makeDefaultSaveFileName(blackName, whiteName, now, extension)`**: 対局者名と日時から既定のファイル名（`日時_先手_vs_後手.拡張子`。名前が無ければ `日時_Session.拡張子`）を作る。GUI では対局情報の対局者名（`KifuDocument::headerPlayerName()`。駒落ちは下手・上手）を渡すので、読み込んだ・貼り付けた棋譜も対局者名の付いた名前になる。対局した棋譜は対局情報に対局者が入る
 - **`charactersNotInShiftJis(text)`**: Shift_JIS で表せない文字を返す
 - **`writeKifuFile(path, lines, errorText, useShiftJis)`**: 行リストをテキストファイルとして書き込む
 
@@ -4691,20 +4691,17 @@ onLoadFinished() → applyLoadResult(result)            ← メインスレッ�
 
 #### KifuExportMetadata — 書き出しの文脈
 
-UIウィジェットへの参照を含まない値。`KifuExportMetadataBuilder` が通常出力と簡易KIF保存で、対局情報の見出し（`collect()`）・対局者名（`resolvePlayerNames()`）・手合割（`handicapLabel()`。開始局面から判定する）を共通に作る。
+UIウィジェットへの参照を含まない値。対局情報は書かれたとおりに書き、日時・持ち時間・対局者を作り出さない（CSA の `$START_TIME`・`$TIME` も対局情報の開始日時・持ち時間から書く）。`KifuExportMetadataBuilder` は手合割（`handicapLabel()`。開始局面から判定する）と対局者の見出し（`blackPlayerKey()`・`playerName()`）を共通に作る。
 
 ```cpp
 struct KifuExportMetadata {
-    bool gameInfoProvided = false;         // 空の編集結果も明示できる
     QList<KifGameInfoItem> gameInfoItems;  // 対局情報
     QString startSfen;                     // 開始局面SFEN
-    MatchPlayers players;                  // 対局情報が無いときに書く対局者（人間・エンジンと名前）
-    TimeControl timeControl;               // 持ち時間（CSA出力用。双方とも時間制限がなければ書かない）
-    QDateTime gameStartDateTime, gameEndDateTime;
+    MatchPlayers players;                  // CSA の N+・N- の補い（対局情報に対局者が無いとき。名前が無ければ書かない）
 };
 ```
 
-GUI では `KifuExport::metadataOf()` が書き出すたびに文書（対局情報・分岐ツリーの開始局面・対局者・`MatchTimeRecord`）から組み立てる。CLI の変換は読み込んだ棋譜の対局情報と開始局面から作る。
+GUI では `KifuExport::metadataOf()` が書き出すたびに文書（対局情報・分岐ツリーの開始局面・対局者）から組み立てる。CLI の変換は読み込んだ棋譜の対局情報と開始局面から作る。
 
 #### KifuFileController — 開く・保存・貼り付け・コピー
 
@@ -5877,11 +5874,11 @@ MainWindowComposer::connectAnalysisAndUi()
 
 CSA 通信対局の接続は Wiring クラスを持たず、`CsaGameSession`（10.5 節）が自分のコンストラクタで `CsaGameCoordinator` のシグナルを実際の受け手へ直接つなぐ（中継シグナルを持たない）。
 
+棋譜の行（`gameStarted`・`recordEntryReady`・`gameEnded`）は、先に作られた `GameSession` が受けて棋譜に足す。着手のハイライトはローカル対局と同じく、棋譜の表示中の手が変わったのを受けて `BoardSyncPresenter` が出す。
+
 ```
 CsaGameSession のコンストラクタ
-  ├── gameStarted / gameEnded / turnChanged / logMessage / recordEntryReady / engineScoreUpdated → 自身のスロット（画面の切り替え）
-  ├── recordEntryReady       → onRecordEntryReady() → MatchRecordSink::appendRecord（GameSession）
-  ├── moveHighlightRequested → BoardInteractionController::showMoveHighlights
+  ├── gameStarted / gameEnded / turnChanged / logMessage / engineScoreUpdated → 自身のスロット（画面の切り替え）
   ├── errorOccurred          → NotificationPresenter::displayErrorMessage
   ├── connectionStateChanged / csaCommLogAppended → CsaLogPanel（CSA ログ）
   ├── CsaLogPanel::csaRawCommandRequested   → CsaGameCoordinator::sendRawCommand
@@ -6849,7 +6846,7 @@ struct Deps {
 };
 ```
 
-盤のビュー・棋譜欄・ハイライトの部品は持たない。盤への着手は `ShogiGameController`、棋譜行は `recordEntryReady`、移動元・移動先のハイライトは `moveHighlightRequested`、通信ログは `csaCommLogAppended` で知らせる。エンジンで指すときは、ローカル対局と同じ `MatchEngineSeat`（`m_engineSeat`）が枠 E1 にエンジンを借りて起動する（`Params::timeSource` に司令塔自身を渡す）。終局は `MatchEngineSeat::finish()`（勝ち・負け・引き分け。探索・先読みを止めて gameover と quit）で、ローカル対局と同じ手順で知らせ、接続を終えるときに `release()` で枠を空ける。通信対局の最中にほかの処理が枠を取ったときは、エンジンの異常と同じく `errorOccurred` → `onEngineError()` で知らせる。同じ接続の次の対局条件（`onGameSummaryReceived()`）は、エンジンが思考を頼める状態（`isReady()`）でなければ起動し直し、起動して初期化している間（`isInitializing()`）は readyok を待ってから同意する（`onEngineInitialized()`）。それ以外はすぐ同意する。思考の依頼は `Usi::requestMatchMove(const UsiPosition&)` で、時間は渡さない（エンジンが `MatchTimeSource` として司令塔から読む）。指し手は `MatchEngineSeat::moveReady` → `onEngineMoveReady(UsiMatchMove)`、投了・入玉宣言勝ちは `resigned`・`declaredWin` で届く。思考情報・USI通信ログのモデルは枠が持つ。
+盤のビュー・棋譜欄・ハイライトの部品は持たない。盤への着手は `ShogiGameController`、棋譜行は `recordEntryReady`（盤のハイライトは棋譜の表示中の手から `BoardSyncPresenter` が出す）、通信ログは `csaCommLogAppended` で知らせる。エンジンで指すときは、ローカル対局と同じ `MatchEngineSeat`（`m_engineSeat`）が枠 E1 にエンジンを借りて起動する（`Params::timeSource` に司令塔自身を渡す）。終局は `MatchEngineSeat::finish()`（勝ち・負け・引き分け。探索・先読みを止めて gameover と quit）で、ローカル対局と同じ手順で知らせ、接続を終えるときに `release()` で枠を空ける。通信対局の最中にほかの処理が枠を取ったときは、エンジンの異常と同じく `errorOccurred` → `onEngineError()` で知らせる。同じ接続の次の対局条件（`onGameSummaryReceived()`）は、エンジンが思考を頼める状態（`isReady()`）でなければ起動し直し、起動して初期化している間（`isInitializing()`）は readyok を待ってから同意する（`onEngineInitialized()`）。それ以外はすぐ同意する。思考の依頼は `Usi::requestMatchMove(const UsiPosition&)` で、時間は渡さない（エンジンが `MatchTimeSource` として司令塔から読む）。指し手は `MatchEngineSeat::moveReady` → `onEngineMoveReady(UsiMatchMove)`、投了・入玉宣言勝ちは `resigned`・`declaredWin` で届く。思考情報・USI通信ログのモデルは枠が持つ。
 
 ### 12.4 CsaGameSession — CSA通信対局の画面への反映
 
@@ -6859,7 +6856,7 @@ CSA通信対局の開始（待機ダイアログ）と、`CsaGameCoordinator` �
 
 #### 役割
 
-- コンストラクタで `CsaGameCoordinator` の各シグナル（`gameStarted`・`gameEnded`・`turnChanged`・`logMessage`・`engineScoreUpdated`・`moveHighlightRequested`・`errorOccurred`）と、`CsaLogPanel`・`BoardMoveController::csaMoveRequested` を直接つなぐ。`gameStarted`・`recordEntryReady`・`gameEnded` は先に作られた `GameSession` も受け、棋譜を先に作る
+- コンストラクタで `CsaGameCoordinator` の各シグナル（`gameStarted`・`gameEnded`・`turnChanged`・`logMessage`・`engineScoreUpdated`・`errorOccurred`）と、`CsaLogPanel`・`BoardMoveController::csaMoveRequested` を直接つなぐ。`gameStarted`・`recordEntryReady`・`gameEnded` は先に作られた `GameSession` も受け、棋譜を先に作る
 - `startGame(const CsaGameDialog::Selection&)`: `CsaWaitingDialog` を出して `CsaGameCoordinator::startGame()` を呼び、対局が始まるかエラー・キャンセルまで待つ。呼び出しは `DialogLauncher`（CsaGameDialog で設定を決めた後）
 - 対局開始時: 後手なら盤を反転し、動作状態（`AppActivityState`）を `DuringCsaGame` にする（棋譜と対局情報の作り直し・対局者の表示は `GameSession::onCsaGameStarted()` が `beginMatchRecord()` で済ませている）
 - 自分のエンジンの評価値: `EvaluationGraphPresenter::plotEngineScore(自分の側, ply, score)`（Deps の `evalGraph`）で、ローカル対局のエンジンの手と同じ符号の扱いで描く

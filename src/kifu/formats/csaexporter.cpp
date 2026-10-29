@@ -59,12 +59,10 @@ QStringList CsaExporter::exportLines(const KifuBranchTree& recordTree, const Kif
             whitePlayer = val;
         }
     }
-    if (blackPlayer.isEmpty() || whitePlayer.isEmpty()) {
-        QString resolvedBlack, resolvedWhite;
-        KifuExportMetadataBuilder::resolvePlayerNames(ctx, resolvedBlack, resolvedWhite);
-        if (blackPlayer.isEmpty()) blackPlayer = resolvedBlack;
-        if (whitePlayer.isEmpty()) whitePlayer = resolvedWhite;
-    }
+    // 対局情報に名前が無ければ、このアプリで対局した対局者の名前（それも無ければ N+・N- を書かない。
+    // 表示言語の「先手」などの語はファイルに書かない）
+    if (blackPlayer.isEmpty()) blackPlayer = ctx.players.name(Turn::Black);
+    if (whitePlayer.isEmpty()) whitePlayer = ctx.players.name(Turn::White);
     if (!blackPlayer.isEmpty()) {
         out << QStringLiteral("N+%1").arg(KifuExportCommon::singleLine(blackPlayer));
     }
@@ -72,10 +70,9 @@ QStringList CsaExporter::exportLines(const KifuBranchTree& recordTree, const Kif
         out << QStringLiteral("N-%1").arg(KifuExportCommon::singleLine(whitePlayer));
     }
 
-    // 5) 棋譜情報（対局者名以外）
-    bool hasStartTime = false;
-    bool hasTime = false;
-
+    // 5) 棋譜情報（対局者名以外）。開始日時・持ち時間も KIF と同じく対局情報から書く
+    // （途中から続けた対局は対局情報を元の棋譜のまま残すので、続けた対局の日時・持ち時間は書かない。
+    //  $START_TIME・$TIME は省略できる）
     for (const auto& it : std::as_const(header)) {
         const QString key = it.key.trimmed();
         const QString val = it.value.trimmed();
@@ -86,11 +83,8 @@ QStringList CsaExporter::exportLines(const KifuBranchTree& recordTree, const Kif
         }
 
         if (key == GameInfoKeys::kTimeControl) {
-            // このアプリで対局した持ち時間は ctx.timeControl から書く（下）。読み込んだ棋譜の持ち時間は文字列から変換する
-            if (!ctx.timeControl.isUnlimited()) continue;
-            // 時間制限のない対局は $TIME を書かずに表す
+            // 先後で違う持ち時間は $TIME+ と $TIME- に分ける。時間制限のない対局は $TIME を書かずに表す
             if (val != QStringLiteral("無制限")) out << CsaFormatter::convertToCsaTimeLines(val);
-            hasTime = true;
             continue;
         }
         const QString csaKey = CsaFormatter::csaKeyFromGameInfo(key);
@@ -100,31 +94,7 @@ QStringList CsaExporter::exportLines(const KifuBranchTree& recordTree, const Kif
             value = CsaFormatter::convertToCsaDateTime(val);
         else if (csaKey == QLatin1String("NOTE"))
             value = CsaFormatter::escapeNote(val);
-        if (csaKey == QLatin1String("START_TIME")) hasStartTime = true;
-        if (csaKey.startsWith(QLatin1String("TIME"))) hasTime = true;
         out << QStringLiteral("$%1:%2").arg(csaKey, KifuExportCommon::singleLine(value));
-    }
-
-    // 5-2) 対局情報に開始日時がなくても、このアプリで対局した開始時刻が分かれば記録する。
-    // 記録のない日時（読み込んだ棋譜の変換時刻など）は書かない（$START_TIME/$END_TIME は省略可能）。
-    if (!hasStartTime && ctx.gameStartDateTime.isValid()) {
-        out << QStringLiteral("$START_TIME:%1")
-                   .arg(ctx.gameStartDateTime.toString(QStringLiteral("yyyy/MM/dd HH:mm:ss")));
-    }
-
-    if (!hasTime && !ctx.timeControl.isUnlimited()) {
-        const auto csaTime = [](const TimeControlSide& side) {
-            return QStringLiteral("%1+%2+%3")
-                .arg(side.mainMs / 1000).arg(side.byoyomiMs / 1000).arg(side.incrementMs / 1000);
-        };
-        // 先後で持ち時間が違う対局は、CSA V3.0 の $TIME+ と $TIME- に分けて書く
-        const TimeControl& tc = ctx.timeControl;
-        if (csaTime(tc.black) == csaTime(tc.white)) {
-            out << QStringLiteral("$TIME:%1").arg(csaTime(tc.black));
-        } else {
-            out << QStringLiteral("$TIME+:%1").arg(csaTime(tc.black));
-            out << QStringLiteral("$TIME-:%1").arg(csaTime(tc.white));
-        }
     }
 
     // 6) 開始局面

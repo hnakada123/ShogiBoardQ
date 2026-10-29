@@ -236,11 +236,9 @@ private slots:
     /// 自動保存のファイル名は、対局者名の制御文字・向きを変える文字を置き換え、長さを切る（セキュリティ監査 S21）
     void defaultSaveFileNameIsSafe()
     {
-        MatchPlayers players;
-        players.seat(Turn::Black).humanName = QStringLiteral("Alice") + QChar(0) + QStringLiteral("\r../\u202Etxt.exe");
-        players.seat(Turn::White).humanName = QString(300, QLatin1Char('b'));
+        const QString black = QStringLiteral("Alice") + QChar(0) + QStringLiteral("\r../\u202Etxt.exe");
         const QDateTime now(QDate(2026, 10, 23), QTime(12, 0, 0));
-        const QString name = KifuIoService::makeDefaultSaveFileName(players, now);
+        const QString name = KifuIoService::makeDefaultSaveFileName(black, QString(300, QLatin1Char('b')), now);
         QVERIFY2(name.startsWith(QStringLiteral("20261023_120000_Alice")), qPrintable(name));
         QVERIFY2(name.endsWith(QStringLiteral(".kifu")), qPrintable(name));
         QVERIFY(!name.contains(QChar(0)));
@@ -248,9 +246,10 @@ private slots:
         QVERIFY(!name.contains(QChar(0x202E)));
         QVERIFY(!name.contains(QLatin1Char('\r')));
         QVERIFY2(name.toUtf8().size() <= 255, qPrintable(name));
-        // 空白だけの名前は、既定の呼び名にする
-        players.seat(Turn::White).humanName = QStringLiteral("   ");
-        QVERIFY(KifuIoService::makeDefaultSaveFileName(players, now).endsWith(QStringLiteral("_vs_P2.kifu")));
+        // 空白だけの名前は、既定の呼び名にする。両方とも無ければ日時だけ
+        QVERIFY(KifuIoService::makeDefaultSaveFileName(black, QStringLiteral("   "), now).endsWith(QStringLiteral("_vs_P2.kifu")));
+        QCOMPARE(KifuIoService::makeDefaultSaveFileName(QString(), QStringLiteral(" "), now, QStringLiteral("csa")),
+                 QStringLiteral("20261023_120000_Session.csa"));
     }
 
     void shiftJisFallback_data()

@@ -451,7 +451,6 @@ void MainWindowComposer::createSessions()
     cd.coordinator = m_c.csaGame;
     cd.activity = &m_activity;
     cd.shogiView = m_c.shogiView;
-    cd.boardController = m_c.boardController;
     cd.boardMoves = m_c.boardMoves;
     cd.csaLog = m_c.csaLog;
     cd.evalGraph = m_c.evalGraph;

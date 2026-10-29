@@ -505,9 +505,9 @@ private slots:
         GameInfoTable table{controller->tableView()};
         QCOMPARE(table.rowCount(), 9);
         QVERIFY(table.text(1, 1).isEmpty());
-        // 対局者は名前が決まるまで「先手」「後手」（KifuDocument::defaultHeader）
-        QCOMPARE(table.text(2, 1), QStringLiteral("先手"));
-        QCOMPARE(table.text(3, 1), QStringLiteral("後手"));
+        // 対局者の名前は対局を始めるまで空（KifuDocument::defaultHeader。欄には入力の案内だけを出す）
+        QVERIFY(table.text(2, 1).isEmpty());
+        QVERIFY(table.text(3, 1).isEmpty());
         table.setText(6, 1, QStringLiteral("練習対局"));
         table.setText(7, 1, QStringLiteral("自宅"));
         window->activateWindow();

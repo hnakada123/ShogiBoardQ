@@ -117,6 +117,8 @@ private:
 
     /// 開いている棋譜の format の行
     QStringList exportLines(KifuFormat format) const;
+    /// 保存ファイル名の既定値（対局情報の対局者名と今の日時。拡張子は extension）
+    QString defaultFileName(const QString& extension) const;
     void startAsyncLoad(const QString& input, Source source);
     /// 読み込みの後始末（画面・自動化 API のどちらの読み込みでも同じ）
     void finishLoad(bool success, Source source, const QString& path);

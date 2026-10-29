@@ -54,7 +54,7 @@ void CsaGameCoordinator::onVerdictTimeout()
     failGame(text);
 }
 
-QString CsaGameCoordinator::validateMoveText(const QString& move, QPoint* from, QPoint* to) const
+QString CsaGameCoordinator::validateMoveText(const QString& move) const
 {
     if (move.length() < 7) {
         qCWarning(lcNetwork) << "Invalid CSA move length:" << move;
@@ -76,9 +76,6 @@ QString CsaGameCoordinator::validateMoveText(const QString& move, QPoint* from, 
                              << "toFile=" << toFile << "toRank=" << toRank << "move=" << move;
         return tr("不正な座標の指し手を受信しました: %1").arg(move);
     }
-
-    if (from) *from = (fromFile == 0 && fromRank == 0) ? QPoint(-1, -1) : QPoint(fromFile, fromRank);
-    if (to) *to = QPoint(toFile, toRank);
     return QString();
 }
 
@@ -124,8 +121,7 @@ std::optional<RecordEntry> CsaGameCoordinator::playCsaMove(const QString& csaMov
     return m_gameController->applyRecordedMove(*move, m_progress.previousTo());
 }
 
-void CsaGameCoordinator::finishMove(const RecordEntry& played, int consumedTimeMs, const QPoint& from,
-                                    const QPoint& to, bool nowMyTurn)
+void CsaGameCoordinator::finishMove(const RecordEntry& played, int consumedTimeMs, bool nowMyTurn)
 {
     CsaGameProgress& p = m_progress;
     const bool isBlackMove = played.mover == Turn::Black;
@@ -140,7 +136,6 @@ void CsaGameCoordinator::finishMove(const RecordEntry& played, int consumedTimeM
     p.record.entries.append(entry);
     emit recordEntryReady(entry);
     emit turnChanged(nowMyTurn);
-    emit moveHighlightRequested(from, to);
     // 盤面・棋譜・時計を確定し終えた着手を知らせる（駒音・定跡ウィンドウ。通知は盤面の更新の後）
     m_gameController->notifyMoveCommitted(isBlackMove ? Turn::Black : Turn::White, p.moveCount());
 }
@@ -152,8 +147,7 @@ void CsaGameCoordinator::finishMove(const RecordEntry& played, int consumedTimeM
 bool CsaGameCoordinator::applyConfirmedMove(const QString& move, int consumedTimeMs, bool nowMyTurn)
 {
     if (m_phase != Phase::Playing || !m_gameController || failIfVerdictPending()) return false;
-    QPoint from, to;
-    const QString problem = validateMoveText(move, &from, &to);
+    const QString problem = validateMoveText(move);
     if (!problem.isEmpty()) {
         deferVerdict(problem, tr("サーバーからの指し手を解釈できません: %1").arg(move));
         return false;
@@ -167,7 +161,7 @@ bool CsaGameCoordinator::applyConfirmedMove(const QString& move, int consumedTim
                      tr("サーバーからの指し手を盤面に適用できません: %1").arg(move));
         return false;
     }
-    finishMove(*played, consumedTimeMs, from, to, nowMyTurn);
+    finishMove(*played, consumedTimeMs, nowMyTurn);
     return true;
 }
 

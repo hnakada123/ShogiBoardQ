@@ -322,7 +322,7 @@ private slots:
         QCOMPARE(restored.tableView()->columnWidth(0), 180);
     }
 
-    void initialValuesHaveDefaultNamesAndDisplayOnlyHints()
+    void initialValuesLeavePlayerNamesEmptyWithDisplayOnlyHints()
     {
         m_controller->setGameInfo(KifuDocument::defaultHeader(), true);
         QCOMPARE(m_table.rowCount(), 9);
@@ -330,20 +330,20 @@ private slots:
                                   QStringLiteral("先手"), QStringLiteral("後手"), QStringLiteral("手合割"),
                                   QStringLiteral("持ち時間"), QStringLiteral("棋戦"),
                                   QStringLiteral("場所"), QStringLiteral("備考")};
-        // 対局者は名前が決まるまで「先手」「後手」と呼ぶ
-        const QStringList values = {{}, {}, QStringLiteral("先手"), QStringLiteral("後手"),
-                                    QStringLiteral("平手"), {}, {}, {}, {}};
+        // 対局者の名前は空にし、入力の案内だけを出す（盤では「先手」「後手」と呼ぶ。表示の語はファイルに入れない）
+        const QStringList values = {{}, {}, {}, {}, QStringLiteral("平手"), {}, {}, {}, {}};
         for (int row = 0; row < keys.size(); ++row) {
             QCOMPARE(m_table.text(row, 0), keys.at(row));
             QCOMPARE(m_table.text(row, 1), values.at(row));
         }
         QVERIFY(!m_controller->model()->canUndo());
         QVERIFY(m_table.accessibleText(1, 1).contains(QStringLiteral("未開始")));
+        QVERIFY(m_table.accessibleText(2, 1).contains(QStringLiteral("名前を入力")));
         m_table.setCurrentCell(2, 1);
         m_table.editCurrent();
         auto* editor = qobject_cast<QLineEdit*>(QApplication::focusWidget());
         QVERIFY(editor);
-        QCOMPARE(editor->text(), QStringLiteral("先手"));
+        QCOMPARE(editor->text(), QString());
         QVERIFY(editor->placeholderText().contains(QStringLiteral("名前を入力")));
         m_controller->commitPendingEditor();
         QVERIFY(!m_controller->hasPendingEditor());
@@ -357,8 +357,8 @@ private slots:
         QVERIFY(!kif.contains(QStringLiteral("未設定")));
         QVERIFY(!kif.contains(QStringLiteral("任意入力")));
         QVERIFY(kif.contains(QStringLiteral("開始日時：\n")));
-        QVERIFY(kif.contains(QStringLiteral("先手：先手\n")));
-        QVERIFY(kif.contains(QStringLiteral("後手：後手\n")));
+        QVERIFY(kif.contains(QStringLiteral("先手：\n")));
+        QVERIFY(kif.contains(QStringLiteral("後手：\n")));
 
         m_controller->setGameInfo({{GameInfoKeys::kStartDateTime, {}}});
         QVERIFY(!m_table.accessibleText(0, 1).contains(QStringLiteral("未開始")));
@@ -452,7 +452,7 @@ private slots:
         QCOMPARE(view.chrome()->card(Turn::Black)->nameLabel()->fullText(), QStringLiteral("▲一郎"));
         document.editHeader(KifuDocument::defaultHeader());
         QCOMPARE(view.chrome()->card(Turn::White)->nameLabel()->fullText(), QStringLiteral("▽後手"));
-        QCOMPARE(document.headerPlayerName(Turn::Black), QStringLiteral("先手"));
+        QVERIFY(document.headerPlayerName(Turn::Black).isEmpty());   // 盤の「先手」「後手」は表示の補い
 
         // 対局中は対局者の名前（対局情報を書き換えても変えない）
         MatchPlayers humans;
