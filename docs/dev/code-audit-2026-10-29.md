@@ -76,7 +76,7 @@
 
 | # | 食い違い | 原因 |
 |---|---|---|
-| F1 | 同じ棋譜を GUI の棋譜解析と CLI の `analyze-kifu` で解析すると、エンジンに送る局面が違う。GUI は SFEN だけを送り、CLI は開始局面と指し手を送る（CLI のコメントでは「千日手の判断材料」）。ほかにも違いがある。<br>- bestmove の待ち: GUI は期限なし、CLI は10秒<br>- MultiPV: GUI は送らない、CLI は送る | 局面の列を解析する実行器が2つある（T2）。<br>`analysisjob.cpp:22`<br>`clicommands_engine.cpp:244-256`<br>`engineanalysisrunner.cpp:39,55`<br>**状態: 済（f4079f7f）**。送る局面だけを直した。GUI も CLI と同じく `UsiPosition::alongMoves` で手順を1度だけたどり、開始局面と指し手で送る（手順をたどれない棋譜だけ局面だけで送る）。待ち時間と MultiPV の違いは T2 で扱う（テスト `jobRunsWithoutUiAndOwnsSnapshot` が送った position を確かめる） |
+| F1 | 同じ棋譜を GUI の棋譜解析と CLI の `analyze-kifu` で解析すると、エンジンに送る局面が違う。GUI は SFEN だけを送り、CLI は開始局面と指し手を送る（CLI のコメントでは「千日手の判断材料」）。ほかにも違いがある。<br>- bestmove の待ち: GUI は期限なし、CLI は10秒<br>- MultiPV: GUI は送らない、CLI は送る | 局面の列を解析する実行器が2つある（T2）。<br>`analysisjob.cpp:22`<br>`clicommands_engine.cpp:244-256`<br>`engineanalysisrunner.cpp:39,55`<br>**状態: 済（f4079f7f）**。送る局面だけを直した。GUI も CLI と同じく `UsiPosition::alongMoves` で手順を1度だけたどり、開始局面と指し手で送る（手順をたどれない棋譜だけ局面だけで送る）。待ち時間と MultiPV の違いは T2 で扱う（テスト `jobRunsWithoutUiAndOwnsSnapshot` が送った position を確かめる）<br>**状態: 済（90fd9307、T2）**。待ち時間と MultiPV は共通の実行器 `EngineAnalysisRunner` の依頼の引数にした（待つ上限は GUI も CLI と同じ10秒に揃え、MultiPV は従来のまま GUI は送らない）。局面は両方とも `RecordLine::usiPositions` で作る |
 | F2 | 英語表示で、対局していない新規の棋譜を保存すると、対局者名に「Black」「White」が入る（KIF では「先手：Black」） | `KifuDocument::defaultHeader` が対局者名の値を `tr("先手")`・`tr("後手")` にしている（`kifudocument.cpp:92-93`）。表示言語がファイルの中身に入る。名前の表示の補いは `PlayerInfoPresenter` が別に持っている（T4）<br>**状態: 済（f4079f7f）**。既定の対局者名を空にした。盤は今までどおり `PlayerInfoPresenter` が「先手」「後手」と補い、対局情報の欄は入力の案内（「未設定（名前を入力できます）」）を出す。KIF は「先手：」と書く。CSA の `N+`・`N-` も訳した語（「先手」「Black」「エンジン」「引擎」など）で補わず、名前が無ければ書かない（`KifuExportMetadataBuilder::resolvePlayerNames` を消した） |
 | F3 | 対局の後に、対局情報の「持ち時間」を手で直して保存すると、形式によって書く値が違う。KIF は直した値を書き、CSA は対局の記録の値を `$TIME` に書く。途中から続けた対局では、CSA にだけ開始日時（`$START_TIME`）が出る | 書き出しの文脈が対局情報と対局の記録の両方を運び、CSA だけが記録を読む（`csaexporter.cpp:88-93,110,115-127`）（T4）<br>**状態: 済（f4079f7f）**。CSA も `$START_TIME`・`$TIME` を対局情報だけから書く。どこからも読まれなくなった `KifuExportMetadata` の `timeControl`・`gameStartDateTime`・`gameEndDateTime` を消した（テスト `csaWritesTimesFromGameInfo`） |
 | F4 | 通信対局で駒を打つと、駒台の移動元のハイライトが消える。ローカル対局では出る | `BoardSyncPresenter` がハイライトを出した直後に、通信対局だけ `moveHighlightRequested` でもう一度出す。このとき駒打ちの移動元を `(-1,-1)` にしている（`csagamecoordinator_moves.cpp:80,143`→`csagamesession.cpp:36-39`→`boardinteractioncontroller.cpp:135-141`）（T1）<br>**状態: 済（f4079f7f）**。`moveHighlightRequested` と `CsaGameSession::Deps::boardController` を消した。通信対局の着手もローカル対局と同じく、棋譜の表示中の手から `BoardSyncPresenter` がハイライトを出す。`validateMoveText` は座標を返さず、通知文のための検査だけにした |
@@ -159,6 +159,28 @@
 - エンジンに送る局面は、いつも `RecordLine::usiPosition(ply)` で作る。詰み探索の手番合わせは `Position` で行い、`TsumePositionUtil` を消す。
 
 **影響**: analysis 3（1つは新規）・headless 2・cli 1・ui 2。差し引き約120行減。テストは `tst_analysisflow`・`tst_tsume_search`・CLI のテスト。
+
+**状態: 済（90fd9307）**。書き直し案のとおりにした。
+- **局面の列の実行器**: `EngineAnalysisRunner` を headless から analysis へ移し、借りた `UsiEngineSession` を使う形にした。
+  - GUI の棋譜解析は枠のエンジンの `Usi::session()`、CLI は自分で作った `UsiEngineSession` を渡す。
+  - 1局面の結果 `PlyAnalysis` も、この実行器が `PlyAnalysisCollector` で作る。
+  - 止め方は2つ。`stop()` は解析中の局面の bestmove を待ってから終える（CLI）。`cancel()` は待たない（GUI の中止・取り上げ）。
+  - 候補手の数（`multiPv`。0 は送らない）と stop の後に bestmove を待つ上限（`replyTimeoutMs`）は依頼の引数にした。
+  - 候補手の数は従来のまま、GUI は送らず CLI は送る。
+  - 待つ上限は、GUI も CLI と同じ10秒で打ち切るように揃えた（決めた仕様）。理由は2つ。GUI の対局・詰み探索は既に応答しないエンジンを打ち切っている。また、席を外して回す棋譜解析が止まったまま「解析中」にならないようにする。
+  - 打ち切ってもそれまでの結果は残り、訳した理由（「エンジンが停止の指示に10秒以内に応答しませんでした。」）を出す。実行器の文は CLI 向けの英語なので、GUI は `isTimedOut()` を見て文を替える。
+- **棋譜解析の実行**: analysis の `KifuAnalysisSession` に移した。
+  - 持つもの: `start`・`stop`、エンジンと動作状態のリース、実行器
+  - シグナル: `plyStarted`・`plyAnalyzed`・`finished`・`errorOccurred`
+  - `KifuAnalysisController` には、ダイアログと表示への反映だけを残した。Deps は12欄から9欄になった（評価値グラフの解析の点のクリックは、合成ルートが棋譜の移動に直接つなぐ）。
+  - `AnalysisJob` を消した。
+- **送る局面**:
+  - 棋譜解析と CLI の analyze-kifu は、どちらも `RecordLine::usiPositions(from, to)` で作る。手順を1度だけたどり、たどれない棋譜だけ局面だけで送る。CLI も本譜の `RecordLine` から作り、`usiMoves` の文字列を読み直さない。
+  - 検討中の局面送りも、検討の開始と同じく `KifuNavigationState::currentUsiPosition()`（開始局面からの手順）にした。
+  - 詰み探索は `MateSearchPosition`（途中局面は手順、開始局面は `Position` で攻方の手番に合わせる）にし、`TsumePositionUtil` と文字列の読み直しを消した。
+- **動作の変わる点**: 2つある。
+  - 検討中に局面を移ると、`position sfen` ではなく開始局面からの手順を送る。
+  - CLI の analyze-kifu は、手順をたどれない棋譜でも、エラーにせず局面だけで送って解析する（GUI と同じ）。
 
 ### T3. 盤と指し手の部品の責務があいまい（game・core・board・ui・dialogs）
 
