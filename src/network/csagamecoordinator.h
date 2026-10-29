@@ -13,6 +13,7 @@
 #include <QPointer>
 #include <QTimer>
 
+#include "appactivitystate.h"
 #include "csaclient.h"
 #include "csagameprogress.h"
 #include "matchautosave.h"
@@ -27,7 +28,9 @@ class ShogiGameController;
 class ShogiClock;
 class EngineSlots;
 class MatchEngineSeat;
+class MatchRecordSink;
 class Usi;
+struct MatchRecordStart;
 
 /**
  * @brief CSA通信対局コーディネータクラス
@@ -46,7 +49,9 @@ class Usi;
  * - 対局フローの制御（接続→ログイン→対局→終了→次の対局条件待ち）
  * - 指し手の進行（相手の手・自分の手の確認・エンジン思考。csagamecoordinator_moves.cpp）
  * - 時間管理のGUIへの反映
- * - 棋譜行（RecordEntry）の組み立て。着手・終局ごとに recordEntryReady を1回発行する
+ * - 棋譜の受け手（MatchRecordSink。ローカル対局と同じ GameSession）への記録。対局の開始で新しい棋譜を
+ *   作らせて再開局面の既存手順を書き、着手・終局ごとに1行ずつ書いて、終局の行の後で確定させる
+ * - 動作状態。棋譜を作った後で「通信対局中」にし、終局・取りやめで待機に戻す（MatchCoordinator と同じ順）
  *
  * 1局ぶんの手数・持ち時間・指し手列は値型 CsaGameProgress（m_progress）が持ち、
  * 時間の計算や終局行の組み立てはその関数が値で返す。自分のエンジンが読む持ち時間（MatchTimeSource）も
@@ -96,6 +101,7 @@ public:
         ShogiGameController* gameController = nullptr;
         ShogiClock* clock = nullptr;
         EngineSlots* engines = nullptr;  ///< エンジンで指すとき、エンジンを置く枠
+        AppActivityState* activity = nullptr;  ///< 対局中を「通信対局中」にする（無ければ動作状態を変えない）
     };
 
     /**
@@ -127,7 +133,10 @@ public:
     explicit CsaGameCoordinator(const Deps& deps, QObject* parent = nullptr);
     CsaGameCoordinator() : CsaGameCoordinator(Deps{}) {}
     ~CsaGameCoordinator() override;
+    /// 棋譜の受け手（ローカル対局と同じ GameSession）。未設定なら棋譜には書かない
+    void setRecordSink(MatchRecordSink* sink) { m_sink = sink; }
     void startGame(const StartOptions& options);
+    /// 接続を切って止める（対局中で自分の手番なら投了してから。動作状態は待機に戻す）
     void stopGame();
 
     GameState gameState() const;
@@ -151,8 +160,6 @@ public:
     const CsaGameProgress& progress() const { return m_progress; }
     /// 受信した対局条件（Game_Summary）。持ち時間は CsaClient::GameSummary の各関数で単位換算する
     const CsaClient::GameSummary& gameSummary() const { return m_progress.summary; }
-    /// 対局の開始局面（SFEN）
-    QString startSfen() const { return m_progress.record.startSfen; }
     void requestChudan();
     void declareWin();
     /// エンジンが自分の手番で思考中なら、すぐ指させる
@@ -160,8 +167,6 @@ public:
 
     void sendRawCommand(const QString& command);
     QString username() const { return m_options.username; }
-    /// 始めた対局の接続と進め方
-    const StartOptions& options() const { return m_options; }
     /// この対局の手順（開始局面と指した手）
     const RecordLine& record() const { return m_progress.record; }
 
@@ -199,18 +204,16 @@ signals:
     void connectionStateChanged(bool connected);
     void gameStateChanged(CsaGameCoordinator::GameState state);
     void errorOccurred(const QString& message);
-    /// 対局が始まった。initialRecords は Game_Summary に含まれていた既存手順の棋譜行
-    void gameStarted(const QString& blackName, const QString& whiteName,
-                     const QList<RecordEntry>& initialRecords);
-    /// 対局が終わった。終局行は直前の recordEntryReady で通知済み
+    /// 対局が始まった（棋譜を作って再開局面の既存手順を書き、通信対局中にした後）
+    void gameStarted(const QString& blackName, const QString& whiteName);
+    /// 対局が終わった（終局の行を書いた棋譜を確定し、動作状態を待機に戻した後）
     void gameEnded(CsaClient::GameResult result, CsaClient::GameEndCause cause, int consumedTimeMs);
-    /// 棋譜行が確定した（対局中の着手ごと・終局時に1回ずつ）。手順（record()）は更新済み
-    void recordEntryReady(const RecordEntry& entry);
     void turnChanged(bool isMyTurn);
     void logMessage(const QString& message, bool isError = false);
     void csaCommLogAppended(const QString& line);
-    /// 自分のエンジンの評価値（自分から見た値）。ply は指した後の手数
-    void engineScoreUpdated(const UsiScore& score, int ply);
+    /// 自分のエンジンが指した手をサーバーへ送った（score は自分から見た評価値。グラフの ply 手目に足す。
+    /// MatchCoordinator::engineMovePlayed と同じ形）
+    void engineMovePlayed(Turn side, int ply, const UsiScore& score);
 
 public slots:
     /// 人間が盤で選んだ手をサーバーへ送る（盤は確認を受けてから動かす）
@@ -258,6 +261,8 @@ private:
     void publishGameState();
     /// 開始局面と再開局面の手を盤に並べる。手を指せなければ失敗にして false
     bool setupInitialPosition();
+    /// この対局の新しい棋譜（サーバーの開始局面・対局者名・持ち時間と、接続ダイアログの自動保存）
+    MatchRecordStart recordStart() const;
     void setupClock();
     void performResign();
     void failGame(const QString& message);
@@ -292,6 +297,9 @@ private:
 
     CsaClient* m_client;
     MatchEngineSeat* m_engineSeat = nullptr;   ///< 自分の手を指すエンジン（枠 E1）
+    MatchRecordSink* m_sink = nullptr;         ///< 棋譜の受け手（非所有）
+    AppActivityState* m_activity = nullptr;    ///< 非所有
+    ActivityLease m_activityLease;             ///< 通信対局中の動作状態（対局の開始で受け取り、終局・取りやめで手放す）
 
     QPointer<ShogiGameController> m_gameController;
     QPointer<ShogiClock> m_clock;

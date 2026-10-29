@@ -18,6 +18,11 @@
 #include "matchtimerecord.h"
 #include "consecutivegameseries.h"
 #include "boardmovecontroller.h"
+#include "csagamecoordinator.h"
+#include "csagamesession.h"
+#include "csalogpanel.h"
+#include "evaluationgraphpresenter.h"
+#include "notificationpresenter.h"
 #include "playerinfopresenter.h"
 #include "kifunavigationstate.h"
 
@@ -140,6 +145,26 @@ private slots:
         QCOMPARE(p.kifuRecord->rowCount(), 1);
         QCOMPARE(p.uiStatePolicy->currentState(), UiStatePolicyManager::Activity::Idle);
     }
+    /// 通信対局の司令塔の知らせは、ローカル対局と同じく合成ルートが受け手へ1本ずつ直接つなぐ
+    /// （CsaGameSession は中継しない）。棋譜の受け手はローカル対局と同じ GameSession
+    void csaSignalsReachReceiversDirectly()
+    {
+        MainWindow window;
+        auto& p = window.composer().parts();
+        CsaGameCoordinator* csa = p.csaGame;
+        const auto connectedOnce = [](QObject* sender, const QMetaMethod& signal, QObject* receiver) {
+            return QObject::disconnect(sender, signal, receiver, QMetaMethod())
+                && !QObject::disconnect(sender, signal, receiver, QMetaMethod());
+        };
+        const QMetaMethod error = QMetaMethod::fromSignal(&CsaGameCoordinator::errorOccurred);
+        QVERIFY(!QObject::disconnect(csa, error, p.csaSession, QMetaMethod()));
+        QVERIFY(connectedOnce(csa, error, p.notifications));
+        QVERIFY(connectedOnce(csa, QMetaMethod::fromSignal(&CsaGameCoordinator::engineMovePlayed), p.evalGraph));
+        QVERIFY(connectedOnce(csa, QMetaMethod::fromSignal(&CsaGameCoordinator::csaCommLogAppended), p.csaLog));
+        QVERIFY(connectedOnce(p.boardMoves, QMetaMethod::fromSignal(&BoardMoveController::csaMoveRequested), csa));
+        QVERIFY(connectedOnce(p.csaLog, QMetaMethod::fromSignal(&CsaLogPanel::csaRawCommandRequested), csa));
+    }
+
     void consecutiveSettingsReachController()
     {
         MainWindow window;

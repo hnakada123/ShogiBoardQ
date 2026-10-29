@@ -7,7 +7,6 @@
 #include <QString>
 #include <optional>
 
-#include "matchtimesettings.h"
 #include "startgamedialogdata.h"
 #include "startoptions.h"
 
@@ -21,8 +20,7 @@ struct GameStartRequest {
 
 /// 対局の開始の計画（共有状態に触れずに作る。実行は GameSession）
 struct GameStartPlan {
-    MatchStartOptions options;          ///< 対局者・開始局面・手順
-    MatchTimeSettings time;             ///< 時間の決まり
+    MatchStartOptions options;          ///< 対局者・開始局面・手順・時間の決まり
     GameStartPreparation preparation;   ///< 開始前に棋譜をどう整えるか
     bool flipBoard = false;             ///< 「人を手前に表示する」で盤を反転する
     int consecutiveGames = 1;           ///< 連続対局の局数
@@ -49,8 +47,8 @@ public:
     static MatchTimeSettings buildTimeSettings(const StartGameDialogData& data);
     /// ダイアログで選んだ対局者（人間・エンジンと名前）
     static MatchPlayers playersFromDialog(const StartGameDialogData& data);
-    /// 対局開始ダイアログの設定から、対局の開始の設定を作る
-    static MatchStartOptions buildStartOptions(const QString& startSfen, const StartGameDialogData& dlg);
+    /// 対局開始ダイアログの設定から、対局の開始の設定を作る（手順は呼び出し側が入れる）
+    static MatchStartOptions buildStartOptions(const StartGameDialogData& dlg);
     /// 「人を手前に表示する」で盤を反転するか（人間対エンジンで、人間の側が手前でないとき）
     static bool needsHumanAtBottomFlip(const StartGameDialogData& dlg, Turn bottomSide);
 

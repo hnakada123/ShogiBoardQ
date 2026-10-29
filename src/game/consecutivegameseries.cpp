@@ -24,10 +24,11 @@ void ConsecutiveGameSeries::beginSeries(const GameStartPlan& firstGame)
     m_remainingGames = m_totalGames - 1;  // 1局目は既に始めている
     m_gameNumber = 1;
     m_nextGame = firstGame;
-    // 次局は独立した棋譜として、同じ開始局面から始める
+    // 次局は独立した棋譜として、1局目を始めた局面から始める
+    const QString startSfen = firstGame.options.recordLine.lastSfen();
     m_nextGame.options.recordLine = RecordLine{};
-    m_nextGame.options.recordLine.startSfen = firstGame.options.sfenStart;
-    m_nextGame.preparation = {GameStartPreparation::Mode::NewGame, firstGame.options.sfenStart, -1};
+    m_nextGame.options.recordLine.startSfen = startSfen;
+    m_nextGame.preparation = {GameStartPreparation::Mode::NewGame, startSfen, -1};
     m_nextGame.flipBoard = false;
 }
 
@@ -52,11 +53,7 @@ void ConsecutiveGameSeries::launchPreparedNextGame()
 {
     --m_remainingGames;
     ++m_gameNumber;
-    // 1局ごとに手番を入れ替える場合。持ち時間もエンジンと一緒に入れ替え、
-    // エンジンごとに時間差を付けた対局でも各エンジンが同じ持ち時間で指し続けるようにする。
-    if (m_nextGame.switchTurnEachGame) {
-        m_nextGame.options.swapSides();
-        m_nextGame.time.rules.swapSides();
-    }
+    // 1局ごとに手番を入れ替える場合（持ち時間もエンジンと一緒に入れ替える）
+    if (m_nextGame.switchTurnEachGame) m_nextGame.options.swapSides();
     emit nextGameReady(m_nextGame);
 }

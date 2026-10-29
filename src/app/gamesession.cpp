@@ -26,10 +26,8 @@
 #include "sessionresetcoordinator.h"
 #include "sfenutils.h"
 #include "timecontroltext.h"
-#include "shogiclock.h"
 #include "shogiview.h"
 #include "startgamedialog.h"
-#include "timecontrolutil.h"
 #include "timedisplaypresenter.h"
 
 #include <QDateTime>
@@ -44,19 +42,13 @@ bool isEditedStart(const QString& raw)
     return !s.isEmpty() && !SfenUtils::isHirateStart(s) && s != QLatin1String("startpos");
 }
 
-/// SFEN の手番（2つ目の欄）
-Turn sideToMove(const QString& sfen)
-{
-    return sfenToTurn(sfen.section(QLatin1Char(' '), 1, 1));
-}
-
 } // namespace
 
 GameSession::GameSession(const Deps& deps, QObject* parent)
     : QObject(parent)
     , m_deps(deps)
 {
-    Q_ASSERT(m_deps.activity && m_deps.match && m_deps.clock && m_deps.csaGame);
+    Q_ASSERT(m_deps.activity && m_deps.match && m_deps.csaGame);
     m_localChannel = std::make_unique<LocalGameChannel>(m_deps.match);
     m_csaChannel = std::make_unique<CsaGameChannel>(m_deps.csaGame);
 
@@ -66,12 +58,6 @@ GameSession::GameSession(const Deps& deps, QObject* parent)
     connect(tree, &KifuBranchTree::childrenReordered, this, &GameSession::discardInterruptedGame);
     connect(tree, &KifuBranchTree::subtreeRemoved, this, &GameSession::discardInterruptedGame);
     connect(tree, &KifuBranchTree::reset, this, &GameSession::discardInterruptedGame);
-
-    // 通信対局の棋譜（画面への反映は CsaGameSession。棋譜を先に作るため、CsaGameSession より先に接続する）
-    CsaGameCoordinator* const csa = m_deps.csaGame;
-    connect(csa, &CsaGameCoordinator::gameStarted, this, &GameSession::onCsaGameStarted);
-    connect(csa, &CsaGameCoordinator::recordEntryReady, this, &GameSession::onCsaRecordEntry);
-    connect(csa, &CsaGameCoordinator::gameEnded, this, &GameSession::onCsaGameEnded);
 }
 
 GameSession::~GameSession() = default;
@@ -90,8 +76,21 @@ QString GameSession::recordStartSfen() const
 }
 
 // ============================================================
-// 棋譜の行（MatchRecordSink）
+// 棋譜（MatchRecordSink）
 // ============================================================
+
+void GameSession::beginRecord(const MatchRecordStart& start)
+{
+    qCDebug(lcApp) << "beginRecord:" << start.players.name(Turn::Black) << "vs" << start.players.name(Turn::White);
+    // ローカル対局の新しい棋譜と同じく作る（前の対局・棋譜解析の評価値グラフ・思考・解析結果は消え、
+    // 利用者が対局情報に書きかけた内容（棋戦・場所など）は残す）
+    GameStartPreparation preparation;
+    preparation.mode = GameStartPreparation::Mode::NewGame;
+    preparation.rootSfen = start.startSfen;
+    m_deps.reset->prepareGameStart(preparation);
+    beginMatchRecord(start.players, start.timeControl, /*continuesRecord=*/false);
+    m_autoSave = start.autoSave;
+}
 
 bool GameSession::canAppendRecord() const
 {
@@ -126,6 +125,17 @@ void GameSession::undoRecords(int count)
         Q_ASSERT(undone);
         Q_UNUSED(undone)
     }
+}
+
+void GameSession::finishRecord(bool autoSave)
+{
+    // 終局の行は追記済み。確定しないと、変化の手・分岐の編集・評価値グラフの追従が止まったままになる
+    m_deps.liveSession->commit();
+    // 終局時刻の記録と対局情報への反映（投了手を含めるため、終局手の追記の後で行う）
+    m_deps.document->recordMatchEnd();
+    // 連続対局の次局・通信対局の次の対局が始まる前に書き出す
+    if (autoSave && m_autoSave.isActive())
+        m_deps.kifuFileController->autoSaveKifu(m_autoSave.dir, m_autoSave.extension);
 }
 
 // ============================================================
@@ -179,21 +189,18 @@ bool GameSession::startGame(const GameStartPlan& plan, bool beginSeries)
     if (plan.flipBoard) m_deps.appearance->flipBoard();
     if (beginSeries) m_deps.consecutive->beginSeries(plan);
 
-    // 2) 時計
-    TimeControlUtil::applyToClock(*m_deps.clock, plan.time, sideToMove(plan.options.sfenStart));
-    m_deps.timePresenter->showClock();
-
-    // 3) 棋譜の文書に対局者・持ち時間・開始日時を記録し、対局情報を作る。
+    // 2) 棋譜の文書に対局者・持ち時間・開始日時を記録し、対局情報を作る。
     //    読み込んだ棋譜の途中から続ける対局では、棋譜の対局情報を残して分岐の最初の手にメモを付ける
     const bool continuesRecord = m_deps.liveSession->isActive() && m_deps.liveSession->anchorPly() > 0;
-    beginMatchRecord(plan.options.players, plan.time.rules, continuesRecord);
+    beginMatchRecord(plan.options.players, plan.options.time.rules, continuesRecord);
     m_autoSave = plan.options.autoSave;
 
-    // 4) 対局（盤・手順・Strategy。動作状態は対局中になる）
+    // 3) 対局（盤・手順・時計の決まり・Strategy。動作状態は対局中になる）
     m_deps.match->start(plan.options);
+    m_deps.timePresenter->showClock();
     discardInterruptedGame();
 
-    // 5) 時計を動かし、初手がエンジンなら思考を始める
+    // 4) 時計を動かし、初手がエンジンなら思考を始める
     m_deps.match->beginPlay();
     return true;
 }
@@ -256,40 +263,6 @@ void GameSession::undoTwoMoves()
 }
 
 // ============================================================
-// 通信対局
-// ============================================================
-
-void GameSession::onCsaGameStarted(const QString& blackName, const QString& whiteName,
-                                   const QList<RecordEntry>& initialRecords)
-{
-    qCDebug(lcApp) << "onCsaGameStarted:" << blackName << "vs" << whiteName;
-    // ローカル対局の新しい棋譜と同じく作る（前の対局・棋譜解析の評価値グラフ・思考・解析結果は消え、
-    // 利用者が対局情報に書きかけた内容（棋戦・場所など）は残す）。対局者・持ち時間・開始日時はサーバーの対局条件
-    GameStartPreparation preparation;
-    preparation.mode = GameStartPreparation::Mode::NewGame;
-    preparation.rootSfen = m_deps.csaGame->startSfen();
-    m_deps.reset->prepareGameStart(preparation);
-    beginMatchRecord(m_csaChannel->players(), m_csaChannel->timeControl(), /*continuesRecord=*/false);
-    m_autoSave = m_deps.csaGame->options().autoSave;
-    // 再開局面の既存手順を棋譜へ入れる（以後の着手は recordEntryReady で届く）
-    for (const RecordEntry& entry : initialRecords) appendRecord(entry);
-}
-
-void GameSession::onCsaRecordEntry(const RecordEntry& entry)
-{
-    appendRecord(entry);
-}
-
-void GameSession::onCsaGameEnded(CsaClient::GameResult result, CsaClient::GameEndCause cause, int consumedTimeMs)
-{
-    Q_UNUSED(result)
-    Q_UNUSED(cause)
-    Q_UNUSED(consumedTimeMs)
-    // 終局行は司令塔が recordEntryReady で渡し済み。次の対局が始まる前に確定して書き出す
-    finishMatchRecord(/*autoSave=*/true);
-}
-
-// ============================================================
 // 新規
 // ============================================================
 
@@ -315,22 +288,9 @@ void GameSession::resetToInitialState()
 void GameSession::onGameEnded(const MatchCoordinator::GameEndInfo& info)
 {
     qCDebug(lcApp).nospace() << "onGameEnded cause=" << static_cast<int>(info.cause) << " loser=" << info.loser;
-    // 中断した対局も記録は確定する（再開は中断の行を除いて記録し直す。待つ間も変化の手・分岐の編集・
-    // 評価値グラフの追従ができ、棋譜を変えたら再開できなくなる）。中断は自動保存しない
-    const bool breakOff = info.cause == MatchCoordinator::Cause::BreakOff;
-    if (breakOff) m_deps.consecutive->reset();
-    finishMatchRecord(/*autoSave=*/!breakOff);
-}
-
-void GameSession::finishMatchRecord(bool autoSave)
-{
-    // 終局の行は追記済み。確定しないと、変化の手・分岐の編集・評価値グラフの追従が止まったままになる
-    m_deps.liveSession->commit();
-    // 終局時刻の記録と対局情報への反映（投了手を含めるため、終局手の追記の後で行う）
-    m_deps.document->recordMatchEnd();
-    // 連続対局の次局・通信対局の次の対局が始まる前に書き出す
-    if (autoSave && m_autoSave.isActive())
-        m_deps.kifuFileController->autoSaveKifu(m_autoSave.dir, m_autoSave.extension);
+    // 中断した対局も記録は確定している（再開は中断の行を除いて記録し直す。待つ間も変化の手・分岐の編集・
+    // 評価値グラフの追従ができ、棋譜を変えたら再開できなくなる）。中断したら連続対局は続けない
+    if (info.cause == MatchCoordinator::Cause::BreakOff) m_deps.consecutive->reset();
 }
 
 void GameSession::onGameEndProcessed(const MatchCoordinator::GameEndInfo& info)

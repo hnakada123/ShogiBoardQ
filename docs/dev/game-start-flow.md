@@ -1,6 +1,6 @@
 # 対局ダイアログから対局開始までのフロー
 
-対局の開始処理は、開始の計画を値として作って検証してから、棋譜・時計・対局者の表示・対局の順に適用する。部品の生成と配線は [MainWindowComposer](composition-root.md) が起動時に行う。メニュー項目は `MenuActionsWiring`（`src/app/menuactionswiring.cpp`）が `GameSession` のスロットへつなぎ、司令塔の終局・中断と連続対局のシグナルは `MainWindowComposer::connectGame()`（`src/app/mainwindowcomposer_wire.cpp`）がつなぐ。開始後の指し手と終局の流れは [対局開始から投了までのフロー](game-play-to-resignation-flow.md) を参照。
+対局の開始処理は、開始の計画を値として作って検証してから、棋譜・対局者の表示・対局（時計を含む）の順に適用する。部品の生成と配線は [MainWindowComposer](composition-root.md) が起動時に行う。メニュー項目は `MenuActionsWiring`（`src/app/menuactionswiring.cpp`）が `GameSession` のスロットへつなぎ、司令塔の終局・中断と連続対局のシグナルは `MainWindowComposer::connectGame()`（`src/app/mainwindowcomposer_wire.cpp`）がつなぐ。開始後の指し手と終局の流れは [対局開始から投了までのフロー](game-play-to-resignation-flow.md) を参照。
 
 ## 開始要求
 
@@ -21,8 +21,7 @@
 
 | 値 | 内容 |
 |---|---|
-| `options` | `MatchStartOptions`（対局者 `MatchPlayers`・開始局面・手順 `recordLine`・エンジンのパス・最大手数・自動保存） |
-| `time` | 時間の決まり（`MatchTimeSettings`） |
+| `options` | `MatchStartOptions`（対局者 `MatchPlayers`・手順 `recordLine`（`currentPly` の局面から始める）・時間の決まり `time`（`MatchTimeSettings`）・エンジンのパス・最大手数・自動保存） |
 | `preparation` | 開始前に棋譜をどう整えるか（`GameStartPreparation`） |
 | `flipBoard` | 「人を手前に表示する」で盤を反転するか |
 | `consecutiveGames`, `switchTurnEachGame` | 連続対局の局数と、1局ごとに手番を入れ替えるか |
@@ -31,14 +30,13 @@
 
 1. `GameStartOptionsBuilder::plan()` が現在局面またはプリセットから開始する手順を決定する。現在局面では `recordLine.currentPly` までを取り（`RecordLine::upTo()`）、後続の手を除く。プリセットでは、ダイアログで選んだ手合割（`StartGameDialogData::startingHandicap`。`Handicaps::kAll` の1つ）の局面だけの手順にする。現在局面から始めるかは `startsFromCurrentPosition()`（`startingHandicap` が `nullptr`）で決まる。
 2. 開始局面を検証する（`GameStartOptionsBuilder::validatePosition()`：先手・後手の玉が盤上に1枚ずつで、`PositionValidator` の検査（駒の数・駒台の玉・手番でない側への王手）を通る）。不正なら計画を作らず、棋譜・時計・エンジンに触れずに理由を返す。
-3. 同じ `plan()` が `buildStartOptions()` で `MatchStartOptions` を、`buildTimeSettings()` で時間設定を作り、`options.recordLine` に決定した手順を入れる。`preparation.mode` は `GameStartPreparation::Mode::NewGame` か `CurrentPosition` のいずれかで、表示用のSFENから推測しない。`flipBoard` は `needsHumanAtBottomFlip()` が決める。
+3. 同じ `plan()` が `buildStartOptions()` で `MatchStartOptions`（時間の決まりは `buildTimeSettings()`）を作り、`options.recordLine` に決定した手順を入れる。開始局面は手順だけが持つ（`recordLine.lastSfen()`）。`preparation.mode` は `GameStartPreparation::Mode::NewGame` か `CurrentPosition` のいずれかで、表示用のSFENから推測しない。`flipBoard` は `needsHumanAtBottomFlip()` が決める。
 4. 計画ができたら `GameSession::startGame()` が次の順に1つの関数で適用する。まず `SessionResetCoordinator::prepareGameStart()`（`src/app/sessionresetcoordinator.cpp`）で棋譜を開始局面に整え、ライブ対局のセッションを始める（`LiveGameSession::startFromNode()`。表示中の手が開始局面になる）。新規ならツリーを開始局面で作り直し、現在局面なら指定ノードまでの手順を残す。終局ノードが選択されていれば親を起点とし、末尾の中断ノードは取り除く。指定ノードが無ければ、同じ局面を探し直さずに何も始めない。ツリーから作られない表示（通信ログ・思考情報・検討・解析結果）はエンジンの表示の持ち主 `EngineDisplayPresenter::clearAll()` で消し、評価値グラフは現在局面からならその手数までに切り、新規なら消す。
 5. 盤の反転が要るなら `MainWindowAppearanceController::flipBoard()` を呼び、ダイアログからの開始なら連続対局の1局目として `ConsecutiveGameSeries::beginSeries()` に計画を渡す。
-6. 時計を一度だけ設定する（`TimeControlUtil::applyToClock()`：時間の決まり・時間切れの扱い・開始局面の手番）。`TimeDisplayPresenter::showClock()` で時計の表示を合わせる（対局中は `TimeDisplayPresenter` が `ShogiClock::timeUpdated` を直接受ける）。
-7. `GameSession::beginMatchRecord(players, time, continuesRecord)` で棋譜の文書に対局を記録する（`KifuDocument::beginMatch()`。通信対局の開始 `GameSession::onCsaGameStarted()` も、サーバーが知らせた対局者名と持ち時間で同じ関数を通る）。文書は対局者と、持ち時間・開始日時（`MatchTimeRecord::begin()`）を記録し、対局情報を対局日・開始日時・対局者・手合割・持ち時間で作り直す（棋戦・場所・備考など利用者が入力した項目は残す）。作り直した対局情報は `headerReset` で対局情報欄と盤の対局者名に届く。読み込んだ棋譜の途中から続ける対局（`continuesRecord`。ライブ対局が棋譜の途中のノードから始まる）では、棋譜の対局情報を残して対局者名だけを書き換え、対局者と日時を分岐の最初の手のメモにする（`GameSession::noteContinuedMatch()`）。盤の対局者名は、文書の知らせ（`playersChanged`・`headerReset`）と動作状態の変化を受けた `PlayerInfoPresenter` が出す。思考タブの2つ目のエンジン欄と評価値グラフの系列名は、`KifuDocument::beginMatch()` が出す `playersChanged` を受けた `EngineDisplayPresenter` が合わせる（通信ログの見出しは枠に入ったエンジンの名前）。最後に、終局したときの自動保存の指定（`MatchStartOptions::autoSave`。`MatchAutoSave`。ローカル対局は拡張子 `kifu`）を覚えておく。終局の `GameSession::finishMatchRecord()` が `MatchAutoSave::isActive()` なら `KifuFileController::autoSaveKifu(dir, extension)` で保存する（中断は保存しない）。
-8. `MatchCoordinator::start()` に確定した `MatchStartOptions` を渡す。司令塔は手順を `recordLine.currentPly` までに切り、`MatchSessionState::begin()` で設定を持ち、対局の手順（`MatchCoordinator::record()`）を作り、動作状態を対局中にし（`AppActivityState::begin()` で受け取ったリースを終局まで持つ。メニューとボタンは `UiStatePolicyManager` がこの変化を受けて切り替える）、盤を開始局面にする（`ShogiGameController::newGame()`）。最後に対局者（`MatchPlayers`）から Strategy を作って開始する（エンジンの生成と起動。初期化は非同期）。時計はまだ動かさない。
-9. 中断した対局を捨てる（`GameSession::discardInterruptedGame()`）。終局の知らせで対局者を下手・上手と呼ぶかは、司令塔がそのつど棋譜の文書から読む（`MatchCoordinator::usesHandicapNames()` → `KifuDocument::usesHandicapNames()`。`MatchCoordinator::Deps::document`）。
-10. `MatchCoordinator::beginPlay()` が時計を始動し、初手がエンジンの手番なら思考を始める（`GameModeStrategy::startInitialMoveIfNeeded()`）。初手のエンジンが初期化中なら、準備完了後に思考を始め、それまで時計を止めておく（`MatchStrategyHost::setWaitingForEngines()`）。初手が人間なら、相手エンジンの初期化を待たずに計時する。
+6. `GameSession::beginMatchRecord(players, time, continuesRecord)` で棋譜の文書に対局を記録する（`KifuDocument::beginMatch()`。通信対局の開始も、通信対局の司令塔が呼ぶ `GameSession::beginRecord()`（`MatchRecordSink`）から、サーバーが知らせた対局者名と持ち時間で同じ関数を通る）。文書は対局者と、持ち時間・開始日時（`MatchTimeRecord::begin()`）を記録し、対局情報を対局日・開始日時・対局者・手合割・持ち時間で作り直す（棋戦・場所・備考など利用者が入力した項目は残す）。作り直した対局情報は `headerReset` で対局情報欄と盤の対局者名に届く。読み込んだ棋譜の途中から続ける対局（`continuesRecord`。ライブ対局が棋譜の途中のノードから始まる）では、棋譜の対局情報を残して対局者名だけを書き換え、対局者と日時を分岐の最初の手のメモにする（`GameSession::noteContinuedMatch()`）。盤の対局者名は、文書の知らせ（`playersChanged`・`headerReset`）と動作状態の変化を受けた `PlayerInfoPresenter` が出す。思考タブの2つ目のエンジン欄と評価値グラフの系列名は、`KifuDocument::beginMatch()` が出す `playersChanged` を受けた `EngineDisplayPresenter` が合わせる（通信ログの見出しは枠に入ったエンジンの名前）。最後に、終局したときの自動保存の指定（`MatchStartOptions::autoSave`。`MatchAutoSave`。ローカル対局は拡張子 `kifu`）を覚えておく。司令塔が終局で呼ぶ `GameSession::finishRecord()` が `MatchAutoSave::isActive()` なら `KifuFileController::autoSaveKifu(dir, extension)` で保存する（中断は保存しない）。
+7. `MatchCoordinator::start()` に確定した `MatchStartOptions` を渡す。司令塔は手順を `recordLine.currentPly` までに切り、`MatchSessionState::begin()` で設定を持ち、対局の手順（`MatchCoordinator::record()`）を作り、動作状態を対局中にし（`AppActivityState::begin()` で受け取ったリースを終局まで持つ。メニューとボタンは `UiStatePolicyManager` がこの変化を受けて切り替える）、盤を開始局面にする（`ShogiGameController::newGame()`）。続けて時計を一度だけ設定する（`applyTimeSettings()`：`options.time` の時間の決まり・時間切れの扱いと、盤の手番）。最後に対局者（`MatchPlayers`）から Strategy を作って開始する（エンジンの生成と起動。初期化は非同期）。時計はまだ動かさない。
+8. `TimeDisplayPresenter::showClock()` で時計の表示を合わせ（対局中は `TimeDisplayPresenter` が `ShogiClock::timeUpdated` を直接受ける）、中断した対局を捨てる（`GameSession::discardInterruptedGame()`）。終局の知らせで対局者を下手・上手と呼ぶかは、司令塔がそのつど棋譜の文書から読む（`MatchCoordinator::usesHandicapNames()` → `KifuDocument::usesHandicapNames()`。`MatchCoordinator::Deps::document`）。
+9. `MatchCoordinator::beginPlay()` が時計を始動し、初手がエンジンの手番なら思考を始める（`GameModeStrategy::startInitialMoveIfNeeded()`）。初手のエンジンが初期化中なら、準備完了後に思考を始め、それまで時計を止めておく（`MatchStrategyHost::setWaitingForEngines()`）。初手が人間なら、相手エンジンの初期化を待たずに計時する。
 
 ## 対局中と再開
 

@@ -63,21 +63,35 @@ void MatchCoordinator::start(const StartOptions& opt)
 
     StartOptions resolved = opt;
     if (resolved.recordLine.isEmpty()) {
-        const QString initial = SfenUtils::normalizePositionLikeSfen(opt.sfenStart);
+        const QString initial = SfenUtils::normalizePositionLikeSfen(opt.recordLine.startSfen);
         resolved.recordLine.startSfen = initial.isEmpty() ? SfenUtils::hirateSfen() : initial;
     }
     resolved.recordLine = resolved.recordLine.upTo(resolved.recordLine.currentPly);
-    resolved.sfenStart = resolved.recordLine.lastSfen();
 
     clearGameEnd();
     m_session.begin(resolved);
     m_record = resolved.recordLine;
     m_activityLease = m_activity->begin(AppActivityState::Activity::DuringGame, this);
 
-    m_gc->newGame(resolved.sfenStart);
+    m_gc->newGame(m_record.lastSfen());
+    applyTimeSettings(resolved.time);
     m_playing = false;
     m_waitingForEngines = false;
     createStrategy(resolved);
+}
+
+void MatchCoordinator::applyTimeSettings(const MatchTimeSettings& settings)
+{
+    // 決まりに値がなければ消費時間だけを数える時計になる。初手にも加算時間を与える処理は
+    // ShogiClock::setTimeControl が行う。時計の手番は開始の局面の手番（盤の手番）
+    const TimeControl rules = settings.rules.normalized();
+    qCDebug(lcGame).noquote()
+        << "applyTimeSettings: limited=" << !rules.isUnlimited()
+        << " P1{mainMs=" << rules.black.mainMs << " byoMs=" << rules.black.byoyomiMs << " incMs=" << rules.black.incrementMs << "}"
+        << " P2{mainMs=" << rules.white.mainMs << " byoMs=" << rules.white.byoyomiMs << " incMs=" << rules.white.incrementMs << "}";
+    m_clock->setLoseOnTimeout(!rules.isUnlimited() && settings.loseOnTimeout);
+    m_clock->setTimeControl(rules);
+    m_clock->setCurrentPlayer(m_gc->currentPlayer());
 }
 
 void MatchCoordinator::beginPlay()
@@ -382,8 +396,10 @@ void MatchCoordinator::endGame(const GameEndInfo& info, std::optional<Turn> engi
                                   : (*engineLoser == side ? GameOverResult::Lose : GameOverResult::Win));
     }
     appendTerminalRecord(info);
+    // 終局の行を書いた棋譜を確定して終了日時を記録し、自動保存する（中断は保存しない）。
+    // 連続対局の次局が始まる前に書き出す
+    if (m_sink) m_sink->finishRecord(/*autoSave=*/info.cause != Cause::BreakOff);
     m_activityLease.reset();
-    // 終局の行を棋譜に書いた後で、時刻と UI を更新させる
     emit gameEnded(info);
 
     switch (notice) {

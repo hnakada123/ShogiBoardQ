@@ -222,7 +222,6 @@ target_link_libraries(tst_pvline PRIVATE shogiboardq_static)
 # ============================================================
 add_shogi_test(tst_shogiclock
     tst_shogiclock.cpp
-    ${SRC}/game/timecontrolutil.cpp
     ${SRC}/common/logcategories.cpp
     ${SRC}/core/shogiclock.cpp
 )

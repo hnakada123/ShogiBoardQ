@@ -16,7 +16,6 @@
 #include "matchcoordinator.h"
 #include "shogiclock.h"
 #include "shogigamecontroller.h"
-#include "timecontrolutil.h"
 #include "usi.h"
 
 static const QString kHirateSfen =
@@ -46,20 +45,24 @@ struct TestHarness {
         engines.destroyEngines();
     }
 
-    /// 本体（GameSession::startGame）と同じ順に、時計を設定して対局を始める
-    void start(const MatchStartOptions& options, const MatchTimeSettings& time = {}, bool beginPlay = true)
+    /// 本体（GameSession::startGame）と同じく対局を始める（時計は司令塔が options.time で設定する）
+    void start(const MatchStartOptions& options, bool beginPlay = true)
     {
-        const QString sfen = GameStartOptionsBuilder::canonicalizeSfen(options.sfenStart);
-        TimeControlUtil::applyToClock(clock, time, sfen.section(QLatin1Char(' '), 1, 1) == QLatin1String("w")
-                                                       ? Turn::White : Turn::Black);
         match->start(options);
         if (beginPlay) match->beginPlay();
+    }
+
+    /// 時間の決まりを変えて start する
+    void start(MatchStartOptions options, const MatchTimeSettings& time)
+    {
+        options.time = time;
+        start(options);
     }
 
     static MatchStartOptions hvh()
     {
         MatchStartOptions opt;
-        opt.sfenStart = kHirateSfen;
+        opt.recordLine.startSfen = kHirateSfen;
         return opt;
     }
 
@@ -136,8 +139,8 @@ private slots:
         QVERIFY2(plan.has_value(), qPrintable(error));
         QCOMPARE(plan->preparation.mode, GameStartPreparation::Mode::NewGame);
         QCOMPARE(plan->preparation.startNodeId, -1);
-        QCOMPARE(plan->options.sfenStart, kHirateSfen);
-        QCOMPARE(plan->time.rules.black.mainMs, 300000LL);
+        QCOMPARE(plan->options.recordLine.lastSfen(), kHirateSfen);
+        QCOMPARE(plan->options.time.rules.black.mainMs, 300000LL);
 
         request.dialogData.startingHandicap = nullptr;
         request.recordLine.startSfen = QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 w - 1");
@@ -145,7 +148,7 @@ private slots:
         QVERIFY2(plan.has_value(), qPrintable(error));
         QCOMPARE(plan->preparation.mode, GameStartPreparation::Mode::CurrentPosition);
         QCOMPARE(plan->preparation.startNodeId, 42);
-        QCOMPARE(plan->options.sfenStart, request.recordLine.startSfen);
+        QCOMPARE(plan->options.recordLine.lastSfen(), request.recordLine.startSfen);
     }
 
     /// 計画どおりに時計を1回設定してから対局を始める
@@ -158,7 +161,7 @@ private slots:
         QString error;
         const std::optional<GameStartPlan> plan = GameStartOptionsBuilder::plan(request, &error);
         QVERIFY2(plan.has_value(), qPrintable(error));
-        h.start(plan->options, plan->time);
+        h.start(plan->options);
         QCOMPARE(h.clock.timeControl().black.mainMs, 300000);
         QVERIFY(h.clock.isRunning());
         QCOMPARE(h.activity.activity(), AppActivityState::Activity::DuringGame);
@@ -225,11 +228,14 @@ private slots:
     /// 対局者は手番によらず座席（先手・後手）で決まる。駒落ちで上手（後手）から指す局面でも同じ
     void players_doNotDependOnSideToMove()
     {
-        StartGameDialogData data;
-        data.players[1].kind = PlayerChoice::Kind::Engine;
-        const QString handicap = QString::fromLatin1(Handicaps::byLabel(u"二枚落ち")->sfen);
-        const MatchStartOptions opt = GameStartOptionsBuilder::buildStartOptions(handicap, data);
-        QCOMPARE(opt.sfenStart, handicap);
+        GameStartRequest request;
+        request.dialogData.players[1].kind = PlayerChoice::Kind::Engine;
+        request.dialogData.startingHandicap = Handicaps::byLabel(u"二枚落ち");
+        QString error;
+        const std::optional<GameStartPlan> plan = GameStartOptionsBuilder::plan(request, &error);
+        QVERIFY2(plan.has_value(), qPrintable(error));
+        const MatchStartOptions& opt = plan->options;
+        QCOMPARE(opt.recordLine.lastSfen(), QString::fromLatin1(request.dialogData.startingHandicap->sfen));
         QVERIFY(opt.players.isHuman(Turn::Black));
         QVERIFY(opt.players.isEngine(Turn::White));
     }
@@ -295,7 +301,7 @@ private slots:
         const std::optional<GameStartPlan> plan = GameStartOptionsBuilder::plan(request, &error);
         QVERIFY2(plan.has_value(), qPrintable(error));
         TestHarness h;
-        h.start(plan->options, plan->time);
+        h.start(plan->options);
         QCOMPARE(h.activity.activity(), AppActivityState::Activity::DuringGame);
         QCOMPARE(h.match->record().startSfen, GameStartOptionsBuilder::canonicalizeSfen(sfen));
     }
@@ -333,7 +339,7 @@ private slots:
     void clockStartsWithPlay()
     {
         TestHarness h;
-        h.start(TestHarness::hvh(), {}, /*beginPlay=*/false);
+        h.start(TestHarness::hvh(), /*beginPlay=*/false);
         QVERIFY(!h.clock.isRunning());
         h.match->beginPlay();
         QVERIFY(h.clock.isRunning());

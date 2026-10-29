@@ -37,12 +37,20 @@ inline UsiMatchMove engineMove(const QString& usi, Turn side, qint64 elapsedMs =
 /// 司令塔が書いた棋譜の行を覚える受け手
 class RecordingSink final : public MatchRecordSink {
 public:
+    void beginRecord(const MatchRecordStart& start) override
+    {
+        begins.append(start);
+        records.clear();
+    }
     bool canAppendRecord() const override { return acceptRecords; }
     void appendRecord(const RecordEntry& entry) override { records.append(entry); }
     bool canUndoRecords(int count) const override { return records.size() >= count; }
     void undoRecords(int count) override { records.resize(records.size() - count); }
+    void finishRecord(bool autoSave) override { finishes.append(autoSave); }
 
+    QList<MatchRecordStart> begins;   ///< beginRecord で受け取った新しい棋譜
     QList<RecordEntry> records;
+    QList<bool> finishes;             ///< finishRecord の autoSave
     bool acceptRecords = true;
 };
 
@@ -85,7 +93,7 @@ struct MatchHarness {
     /// 対局を準備して始める（時計を動かし、初手がエンジンなら思考させる）
     void start(MatchCoordinator::StartOptions opt)
     {
-        if (opt.sfenStart.isEmpty()) opt.sfenStart = SfenUtils::hirateSfen();
+        if (opt.recordLine.startSfen.isEmpty()) opt.recordLine.startSfen = SfenUtils::hirateSfen();
         mc->start(opt);
         mc->beginPlay();
     }
@@ -93,7 +101,7 @@ struct MatchHarness {
     void startHumanVsHuman(const QString& sfen = SfenUtils::hirateSfen())
     {
         MatchCoordinator::StartOptions opt;
-        opt.sfenStart = sfen;
+        opt.recordLine.startSfen = sfen;
         start(opt);
     }
 

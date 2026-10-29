@@ -24,13 +24,11 @@ std::optional<GameStartPlan> GameStartOptionsBuilder::plan(const GameStartReques
         line.startSfen = canonicalizeSfen(line.startSfen);
     }
     line = line.upTo(qBound(0, line.currentPly, line.moveCount()));
-    const QString sfen = line.lastSfen();
-    if (!validatePosition(sfen, error)) return std::nullopt;
+    if (!validatePosition(line.lastSfen(), error)) return std::nullopt;
 
     GameStartPlan result;
-    result.options = buildStartOptions(sfen, dlg);
+    result.options = buildStartOptions(dlg);
     result.options.recordLine = line;
-    result.time = buildTimeSettings(dlg);
     result.preparation.mode = fromCurrent ? GameStartPreparation::Mode::CurrentPosition
                                           : GameStartPreparation::Mode::NewGame;
     result.preparation.rootSfen = line.startSfen;
@@ -138,11 +136,11 @@ QString GameStartOptionsBuilder::canonicalizeSfen(const QString& sfen)
 // 開始の設定
 // ============================================================
 
-MatchStartOptions GameStartOptionsBuilder::buildStartOptions(const QString& startSfen, const StartGameDialogData& dlg)
+MatchStartOptions GameStartOptionsBuilder::buildStartOptions(const StartGameDialogData& dlg)
 {
     MatchStartOptions opt;
     opt.players = playersFromDialog(dlg);
-    opt.sfenStart = startSfen;
+    opt.time = buildTimeSettings(dlg);
     // 定跡を使えるのはエンジンの対局者だけ（定跡そのものは対局を始める側が写して渡す）
     for (std::size_t i = 0; i < dlg.players.size(); ++i) {
         const PlayerChoice& choice = dlg.players[i];

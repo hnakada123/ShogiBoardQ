@@ -4,6 +4,7 @@
 #include "csagamecoordinator.h"
 #include "csamoveconverter.h"
 #include "matchengineseat.h"
+#include "matchrecordsink.h"
 #include "usi.h"
 #include "shogigamecontroller.h"
 #include "shogiclock.h"
@@ -58,6 +59,7 @@ CsaGameCoordinator::CsaGameCoordinator(const Deps& deps, QObject* parent)
     m_gameController = deps.gameController;
     m_clock = deps.clock;
     m_engines = deps.engines;
+    m_activity = deps.activity;
 }
 
 CsaGameCoordinator::~CsaGameCoordinator()
@@ -89,6 +91,7 @@ void CsaGameCoordinator::stopGame()
     if (m_phase == Phase::Playing && m_client->isMyTurn()) performResign();
     setPhase(Phase::Off);
     if (m_clock) m_clock->stopClock();
+    m_activityLease.reset();
     // 同意前の対局条件は、切断の前に拒否する（仕様 3.3。CsaClient::disconnectFromServer）
     cleanup();
 }
@@ -318,11 +321,29 @@ void CsaGameCoordinator::onGameStarted(const QString& gameId)
 
     setupClock();
 
-    // 始まった時点の手順は再開局面の既存手順だけ
-    emit gameStarted(summary.blackName, summary.whiteName, m_progress.record.entries);
+    // 棋譜を作り直して再開局面の既存手順を書いてから、通信対局中にする（ローカル対局の
+    // MatchCoordinator::start と同じ順。同じ接続での次局もここを通る）
+    if (m_sink) {
+        m_sink->beginRecord(recordStart());
+        for (const RecordEntry& entry : std::as_const(m_progress.record.entries)) m_sink->appendRecord(entry);
+    }
+    if (m_activity) m_activityLease = m_activity->begin(AppActivityState::Activity::DuringCsaGame, this);
+    emit gameStarted(summary.blackName, summary.whiteName);
     emit turnChanged(myTurn);
 
     if (!isHumanPlayer() && myTurn) startEngineThinking();
+}
+
+MatchRecordStart CsaGameCoordinator::recordStart() const
+{
+    // 対局者はサーバーが知らせた名前（エンジンで指していても対局者名で記録する）、持ち時間はサーバーの対局条件
+    MatchRecordStart start;
+    start.startSfen = m_progress.record.startSfen;
+    start.players.seat(Turn::Black).humanName = m_progress.summary.blackName;
+    start.players.seat(Turn::White).humanName = m_progress.summary.whiteName;
+    start.timeControl = m_progress.summary.timeControl();
+    start.autoSave = m_options.autoSave;
+    return start;
 }
 
 void CsaGameCoordinator::onGameRejected(const QString& gameId, const QString& rejector)
@@ -371,8 +392,8 @@ void CsaGameCoordinator::onClientGameEnded(CsaClient::GameResult result, CsaClie
     emit logMessage(tr("対局終了: %1 (%2)").arg(resultStr, causeStr));
     setPhase(Phase::Ended);
 
-    // 終局行を棋譜へ渡す（対局の手順は終局の行を含めない）
-    emit recordEntryReady(m_progress.endRecord(result, cause, blackToMove, actualConsumedTimeMs));
+    // 終局行を棋譜へ書く（対局の手順は終局の行を含めない）
+    if (m_sink) m_sink->appendRecord(m_progress.endRecord(result, cause, blackToMove, actualConsumedTimeMs));
 
     // エンジンに gameover を送って終える（ローカル対局の終局と同じ手順。同じ接続で次の対局条件が来たら起動し直す）
     if (m_engineSeat) {
@@ -393,10 +414,13 @@ void CsaGameCoordinator::onClientGameEnded(CsaClient::GameResult result, CsaClie
         }
         m_engineSeat->release();
     }
-    // 対局数を数えてログアウトの要否を先に決める。終局の通知を受ける側（結果の表示・自動保存）は
+    // 対局数を数えてログアウトの要否を先に決める。終局の通知を受ける側（結果の表示）は
     // moreGamesWanted() で続行の有無を見られ、結果のダイアログが LOGOUT を遅らせない
     ++m_completedGames;
     handleGameCountAfterEnd();
+    // 棋譜を確定して自動保存し（次の対局が始まる前に書き出す）、待機に戻す
+    if (m_sink) m_sink->finishRecord(/*autoSave=*/true);
+    m_activityLease.reset();
     emit gameEnded(result, cause, actualConsumedTimeMs);
 }
 

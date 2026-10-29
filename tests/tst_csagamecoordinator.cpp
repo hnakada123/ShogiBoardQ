@@ -2,7 +2,8 @@
 /// @brief CsaGameCoordinator の指し手進行と棋譜行の組み立てを、ローカルの偽 CSA サーバーで確かめる
 ///
 /// 実際のソケット（QTcpServer）でログイン・対局条件・指し手・終局を流し、
-/// 残り時間・手数・手番・局面列・棋譜行（recordEntryReady）と、配線を通した棋譜への追記を検証する。
+/// 残り時間・手数・手番・局面列・棋譜の受け手（MatchRecordSink）に書いた行・動作状態と、
+/// 本体と同じ受け手（GameSession）を通した棋譜への追記を検証する。
 
 #include <QtTest>
 #include <QTcpServer>
@@ -11,7 +12,6 @@
 #include <algorithm>
 
 #include "csagamecoordinator.h"
-#include "csagamesession.h"
 #include "engineslots.h"
 #include "engineprocessmanager.h"
 #include "usi.h"
@@ -24,6 +24,7 @@
 #include "gamesession.h"
 #include "kifuloader.h"
 #include "matchcoordinator.h"
+#include "matchrecordsink.h"
 #include "playerinfopresenter.h"
 #include "sessionresetcoordinator.h"
 #include "kifubranchtree.h"
@@ -76,17 +77,34 @@ struct FakeCsaServer {
     }
 };
 
-/// 盤・時計・局面列と司令塔をそろえ、偽サーバーと対局を始める
+/// 司令塔が書いた棋譜（新しい棋譜・行・確定）を覚える受け手
+struct RecordedSink final : MatchRecordSink {
+    void beginRecord(const MatchRecordStart& start) override { begins.append(start); }
+    bool canAppendRecord() const override { return true; }
+    void appendRecord(const RecordEntry& entry) override { records.append(entry); }
+    bool canUndoRecords(int) const override { return false; }
+    void undoRecords(int) override {}
+    void finishRecord(bool autoSave) override { finishes.append(autoSave); }
+
+    QList<MatchRecordStart> begins;
+    QList<RecordEntry> records;
+    QList<bool> finishes;   ///< finishRecord の autoSave
+};
+
+/// 盤・時計・局面列・動作状態・棋譜の受け手と司令塔をそろえ、偽サーバーと対局を始める
 struct Harness {
     ShogiGameController gc;
     ShogiClock clock;
     EngineSlots engines;
-    CsaGameCoordinator coordinator{CsaGameCoordinator::Deps{&gc, &clock, &engines}};
+    AppActivityState activity;
+    RecordedSink sink;
+    CsaGameCoordinator coordinator{CsaGameCoordinator::Deps{&gc, &clock, &engines, &activity}};
     FakeCsaServer server;
 
     Harness()
     {
         gc.newGame(SfenUtils::hirateSfen());
+        coordinator.setRecordSink(&sink);
     }
 
     /// 対局の手順（開始局面と、確認された手）
@@ -150,47 +168,55 @@ struct Harness {
 
 };
 
-RecordEntry entryAt(const QSignalSpy& spy, int index)
-{
-    return spy.at(index).at(0).value<RecordEntry>();
-}
-
 } // namespace
 
 class TestCsaGameCoordinator : public QObject
 {
     Q_OBJECT
     QTemporaryDir m_config;
+    Harness* m_harness = nullptr;       ///< 知らせを受けた時点の状態を見る対局
+    bool m_startedAfterRecord = false;  ///< 開始の知らせの時点で、棋譜を作って通信対局中にしていた
+    bool m_endedAfterFinish = false;    ///< 終局の知らせの時点で、棋譜を確定して待機に戻していた
+
+public:
+    void observeStarted()
+    {
+        m_startedAfterRecord = m_harness && m_harness->sink.begins.size() == 1
+            && m_harness->activity.is(AppActivityState::Activity::DuringCsaGame);
+    }
+    void observeEnded()
+    {
+        m_endedAfterFinish = m_harness && m_harness->sink.finishes.size() == 1
+            && m_harness->activity.is(AppActivityState::Activity::Idle);
+    }
 
 private slots:
     void engineMoveIsCommittedOnlyOnConfirmation()
     {
         Harness h;
-        QSignalSpy records(&h.coordinator, &CsaGameCoordinator::recordEntryReady);
         QSignalSpy committed(&h.gc, &ShogiGameController::moveCommitted);
         QVERIFY(h.start("-", {}, true));
         h.server.send("+7776FU,T1");
         QVERIFY(h.server.waitForLine(QStringLiteral("-8384FU")));
-        QCOMPARE(records.size(), 1);
+        QCOMPARE(h.sink.records.size(), 1);
         QCOMPARE(committed.size(), 1);
         QCOMPARE(h.moveCount(), 1);
         QCOMPARE(h.moveCount(), 1);
         QCOMPARE(h.gc.board()->pieceCharacter(8, 3), Piece::WhitePawn);
         QCOMPARE(h.coordinator.turnState(), CsaGameCoordinator::TurnState::AwaitingConfirmation);
         h.server.send("-8384FU,T2");
-        QTRY_COMPARE(records.size(), 2);
+        QTRY_COMPARE(h.sink.records.size(), 2);
         QCOMPARE(committed.size(), 2);
         QCOMPARE(h.moveCount(), 2);
         QCOMPARE(h.moveCount(), 2);
         QCOMPARE(h.gc.board()->pieceCharacter(8, 4), Piece::WhitePawn);
-        QCOMPARE(entryAt(records, 1).move.move.toString(), QStringLiteral("8c8d"));
+        QCOMPARE(h.sink.records.at(1).move.move.toString(), QStringLiteral("8c8d"));
     }
 
     /// 自分のエンジンはサーバーが示した残り時間から持ち時間を読み、終局でエンジンの枠を空ける（次局は起動し直す）
     void engineReadsServerTimeAndIsReleasedAtGameEnd()
     {
         Harness h;
-        QSignalSpy records(&h.coordinator, &CsaGameCoordinator::recordEntryReady);
         QVERIFY(h.start("-", {}, true));
         QVERIFY(h.engines.engineInSlot(1));
         // 時間の出どころは対局の残り時間（加算を含まない）・決まり
@@ -204,7 +230,7 @@ private slots:
         QVERIFY(h.server.waitForLine(QStringLiteral("-8384FU")));
         QCOMPARE(h.coordinator.elapsedThisTurn(Turn::Black), 0);
         h.server.send("-8384FU,T2");
-        QTRY_COMPARE(records.size(), 2);
+        QTRY_COMPARE(h.sink.records.size(), 2);
         QTest::qWait(50);
         QVERIFY(h.coordinator.elapsedThisTurn(Turn::Black) > 0);
         QCOMPARE(h.coordinator.elapsedThisTurn(Turn::White), 0);
@@ -285,7 +311,6 @@ private slots:
     void rejectedUnconfirmedMoveLeavesOriginalPosition()
     {
         Harness h;
-        QSignalSpy records(&h.coordinator, &CsaGameCoordinator::recordEntryReady);
         QVERIFY(h.start("+"));
         const QString initial = h.line().startSfen;
         h.playHumanMove(QStringLiteral("7g7f"));
@@ -293,8 +318,8 @@ private slots:
         h.server.send("#ILLEGAL_MOVE");
         h.server.send("#LOSE");
         QTRY_COMPARE(h.coordinator.gameState(), CsaGameCoordinator::GameState::GameOver);
-        QCOMPARE(records.size(), 1);
-        QVERIFY(entryAt(records, 0).isTerminal());
+        QCOMPARE(h.sink.records.size(), 1);
+        QVERIFY(h.sink.records.at(0).isTerminal());
         QCOMPARE(h.line().lastSfen(), initial);
         QCOMPARE(h.moveCount(), 0);
         QCOMPARE(h.gc.board()->pieceCharacter(7, 7), Piece::BlackPawn);
@@ -304,10 +329,8 @@ private slots:
     {
         Harness h;
         QVERIFY(h.start("+"));
-        AppActivityState activity;
-        ActivityLease lease = activity.begin(AppActivityState::Activity::DuringCsaGame, nullptr);
         HumanTurnPolicy::Deps deps;
-        deps.activity = &activity;
+        deps.activity = &h.activity;  // 対局が始まると司令塔が通信対局中にしている
         deps.gameController = &h.gc;
         deps.csaGame = &h.coordinator;
         HumanTurnPolicy policy(deps);
@@ -345,7 +368,6 @@ private slots:
     void myMoveAndOpponentMoveUpdateTimesAndCount()
     {
         Harness h;
-        QSignalSpy records(&h.coordinator, &CsaGameCoordinator::recordEntryReady);
         QSignalSpy turns(&h.coordinator, &CsaGameCoordinator::turnChanged);
         QSignalSpy applied(&h.gc, &ShogiGameController::moveCommitted);
         QVERIFY(h.start("+"));
@@ -359,8 +381,8 @@ private slots:
         h.playHumanMove(QStringLiteral("7g7f"));
         QVERIFY(h.server.waitForLine(QStringLiteral("+7776FU")));
         h.server.send("+7776FU,T5");
-        QTRY_COMPARE(records.size(), 1);
-        const RecordEntry mine = entryAt(records, 0);
+        QTRY_COMPARE(h.sink.records.size(), 1);
+        const RecordEntry mine = h.sink.records.at(0);
         QCOMPARE(mine.mover, Turn::Black);
         QVERIFY(mine.displayText.contains(QStringLiteral("７六歩")));
         QCOMPARE(mine.time.elapsedMs, 5000);
@@ -376,8 +398,8 @@ private slots:
         QCOMPARE(h.moveCount(), 1);
 
         h.server.send("-3334FU,T7");
-        QTRY_COMPARE(records.size(), 2);
-        const RecordEntry theirs = entryAt(records, 1);
+        QTRY_COMPARE(h.sink.records.size(), 2);
+        const RecordEntry theirs = h.sink.records.at(1);
         QCOMPARE(theirs.mover, Turn::White);
         QVERIFY(theirs.displayText.contains(QStringLiteral("３四歩")));
         QCOMPARE(theirs.time.elapsedMs, 7000);
@@ -396,20 +418,25 @@ private slots:
         QCOMPARE(theirs.move.move.toString(), QStringLiteral("3c3d"));
     }
 
-    /// 再開局面（Game_Summary の指し手）は棋譜行として gameStarted で渡し、手数と時間に数える
-    void resumedPositionIsDeliveredWithGameStarted()
+    /// 対局が始まると、サーバーの開始局面・対局者名・持ち時間で新しい棋譜を作らせ、再開局面（Game_Summary の
+    /// 指し手）を棋譜行として書いてから知らせる。再開局面の手も手数と時間に数える
+    void resumedPositionIsWrittenToNewRecord()
     {
         Harness h;
         QSignalSpy started(&h.coordinator, &CsaGameCoordinator::gameStarted);
-        QSignalSpy records(&h.coordinator, &CsaGameCoordinator::recordEntryReady);
         QVERIFY(h.start("+", {"+7776FU,T3", "-3334FU,T4"}));
         QCOMPARE(started.size(), 1);
-        const auto initial = started.at(0).at(2).value<QList<RecordEntry>>();
+        QCOMPARE(h.sink.begins.size(), 1);
+        const MatchRecordStart& begun = h.sink.begins.first();
+        QCOMPARE(begun.startSfen, h.line().startSfen);
+        QCOMPARE(begun.players.name(Turn::Black), QStringLiteral("Sente"));
+        QCOMPARE(begun.players.name(Turn::White), QStringLiteral("Gote"));
+        QCOMPARE(begun.timeControl.black.mainMs, qint64(600000));
+        const QList<RecordEntry>& initial = h.sink.records;
         QCOMPARE(initial.size(), 2);
         QCOMPARE(initial.at(1).mover, Turn::White);
         QCOMPARE(initial.at(1).time.elapsedMs, 4000);
         QCOMPARE(initial.at(1).sfen, h.line().sfenAt(2));
-        QCOMPARE(records.size(), 0);  // 既存手順は recordEntryReady では流さない
         QCOMPARE(h.coordinator.progress().moveCount(), 2);
         QCOMPARE(h.coordinator.blackTotalTimeMs(), 3000);
         QCOMPARE(h.coordinator.whiteTotalTimeMs(), 4000);
@@ -456,18 +483,17 @@ private slots:
         QFETCH(QString, display);
 
         Harness h;
-        QSignalSpy records(&h.coordinator, &CsaGameCoordinator::recordEntryReady);
         QSignalSpy ended(&h.coordinator, &CsaGameCoordinator::gameEnded);
         QVERIFY(h.start("-"));
         QVERIFY(!h.coordinator.isMyTurn());
         h.server.send("+7776FU,T2");
-        QTRY_COMPARE(records.size(), 1);
+        QTRY_COMPARE(h.sink.records.size(), 1);
         h.server.send("%TORYO,T6");  // 消費時間の付いた意思表示（勝敗は次の2行で決まる）
         h.server.send(causeLine);
         h.server.send(resultLine);
         QTRY_COMPARE(ended.size(), 1);
-        QCOMPARE(records.size(), 2);
-        const RecordEntry ending = entryAt(records, 1);
+        QCOMPARE(h.sink.records.size(), 2);
+        const RecordEntry ending = h.sink.records.at(1);
         QCOMPARE(int(ending.terminal), terminal);
         QCOMPARE(ending.displayText, display);
         QCOMPARE(ending.time.elapsedMs, 6000);
@@ -480,24 +506,57 @@ private slots:
     void opponentResignWithoutTimeUsesElapsedTurnTime()
     {
         Harness h;
-        QSignalSpy records(&h.coordinator, &CsaGameCoordinator::recordEntryReady);
         QSignalSpy ended(&h.coordinator, &CsaGameCoordinator::gameEnded);
         QVERIFY(h.start("-"));
         h.server.send("+7776FU,T2");
-        QTRY_COMPARE(records.size(), 1);
+        QTRY_COMPARE(h.sink.records.size(), 1);
         h.playHumanMove(QStringLiteral("3c3d"));
         QVERIFY(h.server.waitForLine(QStringLiteral("-3334FU")));
         h.server.send("-3334FU,T1");
-        QTRY_COMPARE(records.size(), 2);
+        QTRY_COMPARE(h.sink.records.size(), 2);
         QTest::qWait(1200);
         h.server.send("%TORYO");
         h.server.send("#RESIGN");
         h.server.send("#WIN");
         QTRY_COMPARE(ended.size(), 1);
-        const RecordEntry ending = entryAt(records, 2);
+        const RecordEntry ending = h.sink.records.at(2);
         QCOMPARE(ending.terminal, TerminalType::Resign);
         QVERIFY2(ending.time.elapsedMs >= 1000 && ending.time.elapsedMs < 5000,
                  qPrintable(QString::number(ending.time.elapsedMs)));
+    }
+
+    /// 棋譜を作った後で通信対局中にし（開始の知らせはその後）、終局では棋譜を確定して自動保存を頼んでから
+    /// 待機に戻す（終局の知らせはその後）。ローカル対局の司令塔と同じ順
+    void activityFollowsRecordAtStartAndEnd()
+    {
+        Harness h;
+        m_harness = &h;
+        m_startedAfterRecord = false;
+        m_endedAfterFinish = false;
+        connect(&h.coordinator, &CsaGameCoordinator::gameStarted, this, &TestCsaGameCoordinator::observeStarted);
+        connect(&h.coordinator, &CsaGameCoordinator::gameEnded, this, &TestCsaGameCoordinator::observeEnded);
+        QVERIFY(h.start("-"));
+        QVERIFY(m_startedAfterRecord);
+        QCOMPARE(h.activity.activity(), AppActivityState::Activity::DuringCsaGame);
+        QVERIFY(h.sink.finishes.isEmpty());
+
+        h.server.send("%TORYO,T1");
+        h.server.send("#RESIGN");
+        h.server.send("#WIN");
+        QTRY_VERIFY(m_endedAfterFinish);
+        QCOMPARE(h.sink.finishes, QList<bool>({true}));
+        QCOMPARE(h.activity.activity(), AppActivityState::Activity::Idle);
+        m_harness = nullptr;
+    }
+
+    /// 対局の途中で止めても待機に戻る
+    void stopGameReleasesActivity()
+    {
+        Harness h;
+        QVERIFY(h.start("-"));
+        QCOMPARE(h.activity.activity(), AppActivityState::Activity::DuringCsaGame);
+        h.coordinator.stopGame();
+        QCOMPARE(h.activity.activity(), AppActivityState::Activity::Idle);
     }
 
     /// 終局行の組み立ては値型だけで決まる（消費時間は終局行を行った側の累計に足す）
@@ -557,9 +616,8 @@ private slots:
         KifuNavigationState nav(&tree);
         LiveGameSession live(&tree, &nav);
         // 棋譜の受け手（本体と同じ GameSession。通信対局の棋譜を作り直して書くのに使う部品を渡す）
-        AppActivityState activity;
         KifuDocument document(&tree);
-        MatchCoordinator match({&h.gc, &h.clock, &activity, &h.engines, &document});
+        MatchCoordinator match({&h.gc, &h.clock, &h.activity, &h.engines, &document});
         KifuLoader loader(&document);
         EvaluationChartWidget chart;
         EvaluationGraphPresenter graph({&chart, &nav, &live});
@@ -570,20 +628,15 @@ private slots:
         rd.evalGraph = &graph;
         SessionResetCoordinator reset(rd);
         GameSession::Deps sd;
-        sd.activity = &activity;
+        sd.activity = &h.activity;
         sd.match = &match;
         sd.reset = &reset;
         sd.navState = &nav;
         sd.liveSession = &live;
         sd.document = &document;
-        sd.clock = &h.clock;
         sd.csaGame = &h.coordinator;
         GameSession recordService(sd);
-
-        CsaGameSession::Deps cd;
-        cd.coordinator = &h.coordinator;
-        cd.activity = &activity;
-        CsaGameSession session(cd);
+        h.coordinator.setRecordSink(&recordService);
         QSignalSpy sounds(&h.gc, &ShogiGameController::moveCommitted);
 
         QVERIFY(h.start("-"));
@@ -618,6 +671,8 @@ private slots:
         QCOMPARE(document.headerPlayerName(Turn::White), QStringLiteral("Gote"));
         QCOMPARE(document.timeRecord().timeControl().black.mainMs, 600000);
         QVERIFY(document.timeRecord().endDateTime().isValid());
+        // 受け手はこの関数の中だけで生きる
+        h.coordinator.setRecordSink(&h.sink);
     }
 };
 

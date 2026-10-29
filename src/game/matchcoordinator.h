@@ -93,9 +93,9 @@ private:
  * 対局の手順（RecordLine）を持ち、一手の確定（時計・棋譜・千日手・最大手数）、終局の判定と記録、
  * 待った、中断と再開を受け持つ。手番ごとに誰が指すかは対局者の組（MatchPlayers）別の Strategy が決める。
  *
- * 棋譜の行は MatchRecordSink に書き込む（書くと表示中の手が最新の手になり、盤・手番の表示が合う）。
- * 時計・評価値・終局はシグナルで知らせる。アプリの動作状態（対局中・待機）はこのクラスが書く。
- * 通信対局（CSA）はこのクラスを使わない（CsaGameCoordinator）。
+ * 棋譜の行は MatchRecordSink に書き込み、終局の行の後で確定させる（書くと表示中の手が最新の手になり、
+ * 盤・手番の表示が合う）。時計・評価値・終局はシグナルで知らせる。アプリの動作状態（対局中・待機）は
+ * このクラスが書く。通信対局（CSA）はこのクラスを使わず、CsaGameCoordinator が同じ受け手と動作状態を使う。
  */
 class MatchCoordinator : public QObject, private MatchStrategyHost {
     Q_OBJECT
@@ -131,9 +131,10 @@ public:
     // --- 開始・再開 ---
 
     /**
-     * @brief 対局を準備する（盤・手順・対局者・Strategy。時計はまだ動かさない）
+     * @brief 対局を準備する（盤・手順・対局者・時計の決まり・Strategy。時計はまだ動かさない）
      *
-     * opt.recordLine の currentPly までを対局の手順にする（後続の手は捨てる）。
+     * opt.recordLine の currentPly までを対局の手順にし（後続の手は捨てる）、その局面から始める。
+     * 時計には opt.time を入れ、手番を開始の局面の手番にする。
      */
     void start(const StartOptions& opt);
     /// 時計を動かし、初手がエンジンの手番なら思考を始める
@@ -197,7 +198,7 @@ signals:
     void engineMovePlayed(Turn side, int ply, const UsiScore& score);
 
     // --- 終局 ---
-    /// 終局した（終局の行は棋譜に書き、動作状態を待機にした後）
+    /// 終局した（終局の行を書いた棋譜を確定し、動作状態を待機にした後）
     void gameEnded(const MatchCoordinator::GameEndInfo& info);
     /// 終局の知らせ（ダイアログ）を出す
     void gameOverMessage(const QString& title, const QString& message);
@@ -217,6 +218,8 @@ private:
     bool applyEngineMove(const UsiMatchMove& move) override;
     bool completeHumanMove(const RecordEntry& played) override;
 
+    /// 時間の決まりを時計に入れ、時計の手番を盤の手番にする（時計はまだ動かさない）
+    void applyTimeSettings(const MatchTimeSettings& settings);
     void createStrategy(const StartOptions& opt);
     /// side の手番を指すエンジン（人間の手番・対局していなければ nullptr）
     Usi* engineFor(Turn side) const;

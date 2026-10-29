@@ -8,7 +8,6 @@
 #include <QString>
 #include <memory>
 
-#include "csaclient.h"
 #include "gamestartoptionsbuilder.h"
 #include "matchautosave.h"
 #include "matchcoordinator.h"
@@ -30,17 +29,17 @@ class LocalGameChannel;
 class MainWindowAppearanceController;
 class NyugyokuDeclarationHandler;
 class SessionResetCoordinator;
-class ShogiClock;
 class ShogiView;
 class TimeDisplayPresenter;
 
 /**
  * @brief 対局の利用者の操作を受け、対局の棋譜を開始から終局まで受け持つ
  *
- * ローカル対局と通信対局の棋譜は同じ1本の流れで扱う。
- * - 開始: 棋譜を整え、対局者・持ち時間・開始日時を文書に記録し、対局者を表示する（beginMatchRecord）
- * - 着手: 対局の棋譜の受け手（MatchRecordSink）として、確定した行をライブ対局（分岐ツリー）に書く
- * - 終局: ライブ対局を確定し、終了日時を記録して自動保存する（finishMatchRecord）
+ * ローカル対局と通信対局の棋譜は、対局の棋譜の受け手（MatchRecordSink）として同じ1本の流れで扱う。
+ * - 開始: 棋譜を整え、対局者・持ち時間・開始日時を文書に記録する（ローカル対局は startGame、
+ *   通信対局は司令塔が beginRecord で頼む）
+ * - 着手: 確定した行をライブ対局（分岐ツリー）に書く（appendRecord）
+ * - 終局: ライブ対局を確定し、終了日時を記録して自動保存する（finishRecord）
  * 投了・中断・即指し・入玉宣言は対局相手の窓口（GameChannel）へ頼み、対局の種類で分岐しない。
  * 盤・棋譜欄・手番の表示は、ツリーと表示中の手が変わると各部品が自分で合わせる。
  */
@@ -59,7 +58,6 @@ public:
         KifuNavigationState* navState = nullptr;            ///< 表示中の手（現在局面からの開始・再開）
         LiveGameSession* liveSession = nullptr;             ///< 対局の手順の書き先
         KifuDocument* document = nullptr;                   ///< 棋譜の文書（対局者・持ち時間・開始と終了の日時・対局情報）
-        ShogiClock* clock = nullptr;                        ///< 対局の時計
         TimeDisplayPresenter* timePresenter = nullptr;      ///< 時計の表示
         KifuFileController* kifuFileController = nullptr;   ///< 未保存の棋譜の確認
         ShogiView* shogiView = nullptr;                     ///< 手前に表示している側
@@ -73,11 +71,14 @@ public:
     explicit GameSession(const Deps& deps, QObject* parent = nullptr);
     ~GameSession() override;
 
-    // --- MatchRecordSink（対局・通信対局の棋譜の行） ---
+    // --- MatchRecordSink（ローカル対局・通信対局の棋譜） ---
+    /// 通信対局が始まった（サーバーの開始局面・対局者名・持ち時間で棋譜を作り直す）
+    void beginRecord(const MatchRecordStart& start) override;
     bool canAppendRecord() const override;
     void appendRecord(const RecordEntry& entry) override;
     bool canUndoRecords(int count) const override;
     void undoRecords(int count) override;
+    void finishRecord(bool autoSave) override;
 
     /// 計画どおりに対局を始める。beginSeries なら連続対局の1局目として局数を数え始める
     bool startGame(const GameStartPlan& plan, bool beginSeries);
@@ -106,19 +107,12 @@ public slots:
     void discardInterruptedGame();
 
     // --- 司令塔から ---
+    /// 終局した（棋譜は司令塔が finishRecord で確定済み。中断なら連続対局をやめる）
     void onGameEnded(const MatchCoordinator::GameEndInfo& info);
     void onGameEndProcessed(const MatchCoordinator::GameEndInfo& info);
     void onGameInterrupted();
     /// 連続対局の次局
     void startNextGame(const GameStartPlan& plan);
-
-private slots:
-    // --- 通信対局の司令塔から ---
-    /// 通信対局が始まった（サーバーの開始局面・対局者名・持ち時間で棋譜を作り直す）
-    void onCsaGameStarted(const QString& blackName, const QString& whiteName,
-                          const QList<RecordEntry>& initialRecords);
-    void onCsaRecordEntry(const RecordEntry& entry);
-    void onCsaGameEnded(CsaClient::GameResult result, CsaClient::GameEndCause cause, int consumedTimeMs);
 
 private:
     QString recordStartSfen() const;
@@ -126,8 +120,6 @@ private:
     QString josekiBookName() const;
     /// 対局者・持ち時間・開始日時を文書に記録し、対局者を表示する（ローカル対局・通信対局で共通）
     void beginMatchRecord(const MatchPlayers& players, const TimeControl& timeControl, bool continuesRecord);
-    /// 終局した棋譜の後始末（ライブ対局を確定して終了日時を記録し、autoSave なら自動保存する）
-    void finishMatchRecord(bool autoSave);
     /// 読み込んだ棋譜の途中から続けた対局の対局者・日時を、分岐の最初の手のメモにする
     void noteContinuedMatch(const MatchPlayers& players);
 

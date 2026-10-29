@@ -3,16 +3,12 @@
 
 #include "csagamesession.h"
 
-#include "boardmovecontroller.h"
 #include "csagamecoordinator.h"
 #include "csagamedialog.h"
 #include "csawaitingdialog.h"
-#include "csalogpanel.h"
-#include "evaluationgraphpresenter.h"
 #include "logcategories.h"
 #include "mainwindowappearancecontroller.h"
 #include "shogiview.h"
-#include "notificationpresenter.h"
 
 #include <QMessageBox>
 #include <QStatusBar>
@@ -21,7 +17,7 @@ CsaGameSession::CsaGameSession(const Deps& deps, QObject* parent)
     : QObject(parent)
     , m_deps(deps)
 {
-    Q_ASSERT(m_deps.coordinator && m_deps.activity);
+    Q_ASSERT(m_deps.coordinator);
     CsaGameCoordinator* const c = m_deps.coordinator;
 
     // 対局の開始・終局・手番・ログの反映
@@ -29,21 +25,6 @@ CsaGameSession::CsaGameSession(const Deps& deps, QObject* parent)
     connect(c, &CsaGameCoordinator::gameEnded, this, &CsaGameSession::onGameEnded);
     connect(c, &CsaGameCoordinator::turnChanged, this, &CsaGameSession::onTurnChanged);
     connect(c, &CsaGameCoordinator::logMessage, this, &CsaGameSession::onLogMessage);
-    connect(c, &CsaGameCoordinator::engineScoreUpdated, this, &CsaGameSession::onEngineScoreUpdated);
-
-    // 司令塔と画面の部品を直接つなぐ（着手のハイライトはローカル対局と同じく棋譜の表示中の手から出る）
-    if (m_deps.boardMoves) {
-        connect(m_deps.boardMoves, &BoardMoveController::csaMoveRequested, c, &CsaGameCoordinator::onHumanMove);
-    }
-    if (m_deps.notifications) {
-        connect(c, &CsaGameCoordinator::errorOccurred,
-                m_deps.notifications, &NotificationPresenter::displayErrorMessage);
-    }
-    if (CsaLogPanel* log = m_deps.csaLog) {
-        connect(c, &CsaGameCoordinator::connectionStateChanged, log, &CsaLogPanel::setConnected);
-        connect(c, &CsaGameCoordinator::csaCommLogAppended, log, &CsaLogPanel::append);
-        connect(log, &CsaLogPanel::csaRawCommandRequested, c, &CsaGameCoordinator::sendRawCommand);
-    }
 }
 
 // ============================================================
@@ -64,10 +45,7 @@ bool CsaGameSession::startGame(const CsaGameDialog::Selection& selection)
     // 対局開始またはエラーまで待つ
     const bool started = waitingDialog.exec() == QDialog::Accepted
         && c->gameState() == CsaGameCoordinator::GameState::InGame;
-    if (!started) {
-        m_activityLease.reset();
-        if (c->gameState() != CsaGameCoordinator::GameState::Idle) c->stopGame();
-    }
+    if (!started && c->gameState() != CsaGameCoordinator::GameState::Idle) c->stopGame();
     return started;
 }
 
@@ -75,7 +53,6 @@ void CsaGameSession::onWaitingCancelled()
 {
     qCDebug(lcUi) << "onWaitingCancelled: cancelled by user";
     m_deps.coordinator->stopGame();
-    m_activityLease.reset();
     showStatus(tr("通信対局をキャンセルしました"), 3000);
 }
 
@@ -93,9 +70,7 @@ void CsaGameSession::onGameStarted(const QString& blackName, const QString& whit
         && m_deps.shogiView->flipMode() != !c->isBlackSide()) {
         m_deps.appearance->flipBoard();
     }
-    // 棋譜・対局者の表示は GameSession が先に作っている（gameStarted を先に受ける）。
-    // 時計・再開棋譜の準備が揃ってから通信対局中にする。同じ接続での次局もここを通る
-    m_activityLease = m_deps.activity->begin(AppActivityState::Activity::DuringCsaGame, this);
+    // 棋譜・対局者の表示と動作状態は、司令塔がこの知らせの前に整えている（同じ接続での次局もここを通る）
     showStatus(tr("CSA通信対局開始: %1 vs %2").arg(blackName, whiteName), 5000);
 }
 
@@ -105,8 +80,7 @@ void CsaGameSession::onGameEnded(CsaClient::GameResult result, CsaClient::GameEn
     const QString causeText = CsaClient::gameEndCauseText(cause);
     qCDebug(lcUi) << "onGameEnded:" << resultText << "(" << causeText << ")" << "consumedTimeMs=" << consumedTimeMs;
 
-    // 棋譜の確定・終了日時・自動保存は GameSession が先に済ませている（gameEnded を先に受ける）
-    m_activityLease.reset();
+    // 棋譜の確定・終了日時・自動保存と待機への切り替えは、司令塔がこの知らせの前に済ませている
     showGameEndDialog(tr("対局終了"), tr("対局が終了しました。\n\n結果: %1\n原因: %2").arg(resultText, causeText));
     showStatus(tr("対局終了: %1 (%2)").arg(resultText, causeText), 5000);
 }
@@ -122,13 +96,6 @@ void CsaGameSession::onLogMessage(const QString& message, bool isError)
     if (isError) qCWarning(lcUi) << message;
     else qCDebug(lcUi) << message;
     showStatus(message, 3000);
-}
-
-void CsaGameSession::onEngineScoreUpdated(const UsiScore& score, int ply)
-{
-    // 自分のエンジンの評価値（自分から見た値）を、ローカル対局のエンジンの手と同じく自分の側の系列に描く
-    if (!m_deps.evalGraph) return;
-    m_deps.evalGraph->plotEngineScore(m_deps.coordinator->isBlackSide() ? Turn::Black : Turn::White, ply, score);
 }
 
 // ============================================================

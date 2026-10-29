@@ -426,7 +426,7 @@ private slots:
         MatchCoordinator match({&game, &clock, &activity, &engines, nullptr});
         // 後手番の局面から、後手（と先手）をエンジンが指す
         MatchStartOptions opt;
-        opt.sfenStart = afterFirstMove;
+        opt.recordLine.startSfen = afterFirstMove;
         opt.players.seat(Turn::White).engine = true;
         opt.players.seat(Turn::White).engineName = engineName;
         opt.engine(Turn::White).path = QStringLiteral(MOCK_USI_EXECUTABLE);
@@ -435,7 +435,6 @@ private slots:
             opt.players.seat(Turn::Black).engineName = engineName;
             opt.engine(Turn::Black).path = QStringLiteral(MOCK_USI_EXECUTABLE);
         }
-        game.newGame(opt.sfenStart);
         match.start(opt);
         match.beginPlay();
         // 人間対エンジンではエンジンは E1、エンジン同士では後手が E2
@@ -556,7 +555,7 @@ private slots:
             EngineSlots engines;
             MatchCoordinator match({&game, &clock, &activity, &engines, nullptr});
             MatchStartOptions opt;
-            opt.sfenStart = SfenUtils::hirateSfen();
+            opt.recordLine.startSfen = SfenUtils::hirateSfen();
             if (engineIsBlack) {
                 opt.players.seat(Turn::Black).engine = true;
                 opt.players.seat(Turn::Black).engineName = engineName;
@@ -566,7 +565,6 @@ private slots:
                 opt.players.seat(Turn::White).engineName = engineName;
                 opt.engine(Turn::White).path = QStringLiteral(MOCK_USI_EXECUTABLE);
             }
-            game.newGame(opt.sfenStart);
             match.start(opt);
             Usi* engine = engines.engineInSlot(1);
             QVERIFY(engine);

@@ -43,6 +43,7 @@ void setDistinctConsideration(ShogiClock& clock)
 class EventSink final : public MatchRecordSink {
 public:
     explicit EventSink(QStringList& events) : m_events(events) {}
+    void beginRecord(const MatchRecordStart&) override {}
     bool canAppendRecord() const override { return true; }
     void appendRecord(const RecordEntry& entry) override
     {
@@ -51,6 +52,7 @@ public:
     }
     bool canUndoRecords(int) const override { return false; }
     void undoRecords(int) override {}
+    void finishRecord(bool) override { m_events.append(QStringLiteral("finish")); }
     QList<RecordEntry> records;
 
 private:
@@ -60,7 +62,7 @@ private:
 MatchCoordinator::StartOptions humanVsHuman(const QString& sfen = SfenUtils::hirateSfen())
 {
     MatchCoordinator::StartOptions opt;
-    opt.sfenStart = sfen;
+    opt.recordLine.startSfen = sfen;
     return opt;
 }
 
@@ -127,7 +129,7 @@ private slots:
         QCOMPARE(h.sink.records.last().displayText, blackLoses ? QStringLiteral("▲時間切れ") : QStringLiteral("△時間切れ"));
     }
 
-    /// 最大手数: 一手 → 終局の行 → 終局 → 知らせ → 後処理の完了、の順に1回ずつ（自動保存は終局を受けた側）
+    /// 最大手数: 一手 → 終局の行 → 棋譜の確定（自動保存） → 終局 → 知らせ → 後処理の完了、の順に1回ずつ
     void maxMoves_notifiesAfterAppendingAndBeforeCompletion()
     {
         MatchHarness h;
@@ -140,8 +142,8 @@ private slots:
         opt.maxMoves = 1;
         h.start(opt);
         QVERIFY(!playMoves(h, {QStringLiteral("7g7f")}));
-        QCOMPARE(m_events, QStringList({QStringLiteral("append"), QStringLiteral("append"), QStringLiteral("ended"),
-                                         QStringLiteral("dialog"), QStringLiteral("processed")}));
+        QCOMPARE(m_events, QStringList({QStringLiteral("append"), QStringLiteral("append"), QStringLiteral("finish"),
+                                         QStringLiteral("ended"), QStringLiteral("dialog"), QStringLiteral("processed")}));
         QCOMPARE(h.mc->gameEnd()->cause, MatchCoordinator::Cause::Jishogi);
         // 持将棋の行は終局した局面の手番（後手）の行
         QCOMPARE(sink.records.last().displayText, QStringLiteral("△持将棋"));

@@ -47,7 +47,7 @@ struct Deps {
 | 時計 | `clock()`（表示への通知は中継しない。`completeMove()` は時計の通知を止めて値を変えた後に `ShogiClock::notifyTimeUpdated()` を呼ぶ） |
 | 読み取り | `record()`、`currentPly()`、`options()`、`players()`、`isHumanSide()`、`sideToMove()`、`gameOverState()`、`isGameOver()`、`interruptedGame()`、`canResumeInterruptedGame()`、`usesHandicapNames()` |
 
-終局処理はどれも `endGame()` を通り、終局状態の確定 → 時計の停止 → エンジンへの通知（Strategy の `engineSeat(side)` ごとに `MatchEngineSeat::finish()`）→ 終局行の追記 → 動作状態を待機に戻す → `gameEnded` → 知らせ（結果の `gameOverMessage`・`gameEndProcessed`）の順に進む。棋譜の自動保存は司令塔ではなく、`gameEnded` を受けた `GameSession::finishMatchRecord()` が行う（通信対局と同じ流れ）。知らせ方は `Notice` で選び、中断（`Interrupt`）は `gameInterrupted` だけを出し、入玉宣言（`Declaration`）は結果を呼び出し側のダイアログで知らせる。流れの詳細は [対局開始から投了までのフロー](game-play-to-resignation-flow.md) を参照。
+終局処理はどれも `endGame()` を通り、終局状態の確定 → 時計の停止 → エンジンへの通知（Strategy の `engineSeat(side)` ごとに `MatchEngineSeat::finish()`）→ 終局行の追記 → 棋譜の確定（`MatchRecordSink::finishRecord()`）→ 動作状態を待機に戻す → `gameEnded` → 知らせ（結果の `gameOverMessage`・`gameEndProcessed`）の順に進む。棋譜の確定と自動保存は受け手の `GameSession::finishRecord()` が行う（中断は保存しない。通信対局の司令塔も終局で同じ関数を呼ぶ）。知らせ方は `Notice` で選び、中断（`Interrupt`）は `gameInterrupted` だけを出し、入玉宣言（`Declaration`）は結果を呼び出し側のダイアログで知らせる。流れの詳細は [対局開始から投了までのフロー](game-play-to-resignation-flow.md) を参照。
 
 ---
 
@@ -121,11 +121,13 @@ Strategy は手番ごとに誰が指すかだけを決め、一手の確定と�
 
 | `MatchRecordSink` | 内容 |
 |------|------|
+| `beginRecord(start)` | 司令塔が始める対局の新しい棋譜を作る（`MatchRecordStart`：開始局面・対局者・持ち時間・自動保存。通信対局だけが使う。ローカル対局の棋譜は `GameSession::startGame()` が作る） |
 | `canAppendRecord()` | 行を追記できるか（対局のセッションが終わっていれば `false`。司令塔はその手を指さない） |
 | `appendRecord(entry)` | 確定した手・終局の行を追記する |
 | `canUndoRecords(count)`・`undoRecords(count)` | 待ったで末尾の行を取り消す |
+| `finishRecord(autoSave)` | 終局の行の後で棋譜を確定し、終了日時を記録して、`autoSave` なら自動保存する |
 
-実装は `GameSession`（`src/app/gamesession.cpp`）で、ライブ対局のセッション（`LiveGameSession`）を通して分岐ツリーに書く。通信対局の行も、`GameSession` が `CsaGameCoordinator::recordEntryReady` を受けて同じ `appendRecord()` で書く。
+実装は `GameSession`（`src/app/gamesession.cpp`）で、ライブ対局のセッション（`LiveGameSession`）を通して分岐ツリーに書く。通信対局の司令塔（`CsaGameCoordinator`）も `setRecordSink()` で同じ受け手を受け取り、対局の開始で `beginRecord()` と再開局面の手の `appendRecord()`、着手と終局で `appendRecord()`、終局で `finishRecord(true)` を呼ぶ。
 
 シグナル以外に司令塔を直接呼ぶ部品は、`GameSession`（開始の設定と中断・再開、`start()`・`beginPlay()`・`resumeInterruptedGame()`・`attachInterruptedRecord()`）、`LocalGameChannel`（`GameSession` が持つ対局相手の窓口。投了・中断・すぐ指させる・人間の入玉宣言 `declareNyugyoku()`）、`BoardMoveController`（人間の着手）、`HumanTurnPolicy`（人間の手番か）、`CandidateArrowPresenter`（終局状態の読み取り）、`UiStatePolicyManager`（人間が参加しているか・再開できるか。合成ルートが関数で渡す）である。時間切れは司令塔が `ShogiClock::playerTimeOut` を直接受ける。
 

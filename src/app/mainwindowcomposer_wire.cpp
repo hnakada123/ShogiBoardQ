@@ -14,6 +14,8 @@
 #include "consecutivegameseries.h"
 #include "considerationpanel.h"
 #include "considerationuicontroller.h"
+#include "csagamecoordinator.h"
+#include "csalogpanel.h"
 #include "dialoglauncher.h"
 #include "errorbus.h"
 #include "docklayoutmanager.h"
@@ -144,7 +146,7 @@ void MainWindowComposer::connectBoard()
 }
 
 // ---------------------------------------------------------------------------
-// 対局（時計・評価値・終局・連続対局）
+// 対局（時計・評価値・終局・連続対局・通信対局）
 // ---------------------------------------------------------------------------
 
 void MainWindowComposer::connectGame()
@@ -164,6 +166,17 @@ void MainWindowComposer::connectGame()
 
     connect(m_c.consecutiveGames, &ConsecutiveGameSeries::nextGameReady,
             session, &GameSession::startNextGame);
+
+    // 通信対局（棋譜と動作状態は司令塔が受け手と動作状態に書く。開始・終局の画面は CsaGameSession）。
+    // 盤で選んだ手はサーバーへ送り、着手のハイライトはローカル対局と同じく棋譜の表示中の手から出る
+    CsaGameCoordinator* csa = m_c.csaGame;
+    connect(csa, &CsaGameCoordinator::engineMovePlayed, m_c.evalGraph, &EvaluationGraphPresenter::plotEngineScore);
+    connect(csa, &CsaGameCoordinator::errorOccurred, m_c.notifications, &NotificationPresenter::displayErrorMessage);
+    connect(m_c.boardMoves, &BoardMoveController::csaMoveRequested, csa, &CsaGameCoordinator::onHumanMove);
+    CsaLogPanel* csaLog = m_c.csaLog;
+    connect(csa, &CsaGameCoordinator::connectionStateChanged, csaLog, &CsaLogPanel::setConnected);
+    connect(csa, &CsaGameCoordinator::csaCommLogAppended, csaLog, &CsaLogPanel::append);
+    connect(csaLog, &CsaLogPanel::csaRawCommandRequested, csa, &CsaGameCoordinator::sendRawCommand);
 }
 
 // ---------------------------------------------------------------------------

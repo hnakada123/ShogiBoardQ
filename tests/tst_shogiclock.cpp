@@ -2,8 +2,6 @@
 #include <QSignalSpy>
 
 #include "shogiclock.h"
-#include "timecontrolutil.h"
-#include "matchtimesettings.h"
 #include "timecontrol_test_helper.h"
 
 using TestTime::rules;
@@ -29,15 +27,16 @@ private slots:
     {
         QFETCH(qint64, baseMs);
         ShogiClock clock;
-        MatchTimeSettings tc;
-        tc.rules.black.mainMs = tc.rules.white.mainMs = baseMs;
-        tc.rules.black.incrementMs = 10000;
-        tc.rules.white.incrementMs = 7000;
-        TimeControlUtil::applyToClock(clock, tc, Turn::Black);
+        TimeControl rules;
+        rules.black.mainMs = rules.white.mainMs = baseMs;
+        rules.black.incrementMs = 10000;
+        rules.white.incrementMs = 7000;
+        clock.setTimeControl(rules);
+        clock.setCurrentPlayer(Turn::Black);
         QCOMPARE(clock.remainingMs(Turn::Black), baseMs + 10000);
         QCOMPARE(clock.remainingMs(Turn::White), baseMs + 7000);
         // 再適用・再開で初手分を二重加算しない。
-        TimeControlUtil::applyToClock(clock, tc, Turn::Black);
+        clock.setTimeControl(rules);
         auto state = clock.pauseAndSnapshot();
         state.of(Turn::Black).remainingMs -= 3000;
         state.of(Turn::Black).considerationMs = 3000;
