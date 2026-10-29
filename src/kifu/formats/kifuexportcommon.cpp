@@ -82,10 +82,13 @@ QString buildEndingLine(int lastActualMoveNo, TerminalType terminal, Turn side, 
     case TerminalType::DeclarationWin: return QStringLiteral("まで%1手で%2の入玉勝ち").arg(n, declarer);
     case TerminalType::ForfeitWin: return QStringLiteral("まで%1手で%2の不戦勝").arg(n, declarer);
     case TerminalType::Forfeit: return QStringLiteral("まで%1手で%2の不戦敗").arg(n, declarer);
-    case TerminalType::PerpetualCheck:
+    case TerminalType::PerpetualCheck: return QStringLiteral("まで%1手で王手千日手").arg(n);
     case TerminalType::Repetition: return QStringLiteral("まで%1手で千日手").arg(n);
     case TerminalType::Impasse: return QStringLiteral("まで%1手で持将棋").arg(n);
     case TerminalType::Interrupt: return QStringLiteral("まで%1手で中断").arg(n);
+    case TerminalType::Draw: return QStringLiteral("まで%1手で引き分け").arg(n);
+    case TerminalType::MaxMoves: return QStringLiteral("まで%1手で最大手数到達").arg(n);
+    case TerminalType::Error: return QStringLiteral("まで%1手でエラー").arg(n);
     default: return QStringLiteral("まで%1手").arg(n);
     }
 }

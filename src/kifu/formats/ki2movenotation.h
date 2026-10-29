@@ -19,7 +19,8 @@ class Position;
  *
  * 移動元の書かれていない KI2 では、同じ駒が同じマスへ動ける場合に修飾語（右・左・直・上・引・寄）を、
  * 盤上の駒も動ける場合に「打」を付ける（日本将棋連盟の棋譜の表記方法）。
- * 「動ける駒」は局面の合法手で決めるので、ピンされた駒は数えない。
+ * 読み込み・表示の「動ける駒」は合法手で決める。ファイルへの書き出しでは、ピンの判定を
+ * しない読み手にも伝わるよう、駒の動きだけでも区別できる修飾語を付ける。
  *
  * 反則手（二歩・王手放置など）を書いた棋譜も読み書きできるよう、合法手で決まらない手は
  * 駒の動きだけで決める。
@@ -63,7 +64,8 @@ Annotation annotate(const Position& board, Turn mover, const UsiMove& move);
  * @param move 指し手
  * @param previousTo 直前の手の移動先。同じマスなら「同　」と書く
  *
- * 修飾語・「打」・「不成」は必要なときだけ付ける。文字列は KifMoveText で作る（KIF の手から移動元を除いた形）。
+ * 修飾語・「打」はピンされた駒も含めて区別する。「不成」は成れる手に付ける。
+ * 文字列は KifMoveText で作る（KIF の手から移動元を除いた形）。
  */
 QString format(const Position& board, Turn mover, const UsiMove& move, BoardSquare previousTo);
 

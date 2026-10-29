@@ -58,7 +58,14 @@ static QJsonObject buildJkfInitial(const QString& startSfen)
     QJsonObject initial;
 
     const QString preset = JkfMoveParser::presetFromSfen(startSfen);
-    if (!preset.isEmpty()) {
+    // 古い読み込み実装にも伝わる基本の手合だけを preset で書く。
+    // 後から追加された駒落ちは、標準の OTHER と盤・持駒・手番で正確に表す。
+    static const QStringList portablePresets = {
+        QStringLiteral("HIRATE"), QStringLiteral("KY"), QStringLiteral("KY_R"),
+        QStringLiteral("KA"), QStringLiteral("HI"), QStringLiteral("HIKY"),
+        QStringLiteral("2"), QStringLiteral("4"), QStringLiteral("6"),
+        QStringLiteral("8"), QStringLiteral("10")};
+    if (portablePresets.contains(preset)) {
         initial[QStringLiteral("preset")] = preset;
     } else {
         initial[QStringLiteral("preset")] = QStringLiteral("OTHER");
