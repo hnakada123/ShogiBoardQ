@@ -164,8 +164,8 @@ void readMoves(const QStringList& lines, qsizetype begin, KifLineBuilder& builde
                 builder.stop();
                 return;
             }
-            if (!builder.addMove(*move, KifLineBuilder::zeroTime(), {}, Position::DropRule::RequireHand)) {
-                // 駒台にない駒を打つ手（CSA は持ち駒を確かめる）
+            if (!builder.addMove(*move)) {
+                // 駒打ちの反則も棋譜に残す。移動元や駒種の不整合は lexer で拒否する。
                 report.rejectMove(ply, QStringLiteral("CSA: cannot read move %1: Move does not match the position: %2 (%3)")
                                            .arg(ply).arg(token, builder.lastError()));
                 builder.stop();

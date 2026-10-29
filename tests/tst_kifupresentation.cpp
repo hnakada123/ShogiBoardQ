@@ -71,6 +71,9 @@ private slots:
         const RecordEntry first = RecordEntry::played(moves.at(0), QStringLiteral("▲７六歩(77)"), QString());
         QCOMPARE(entryLabel(first, hirate), QStringLiteral("▲P-7f"));
         QCOMPARE(entryLabel(RecordEntry::ending(TerminalType::Resign, Turn::White), hirate), QStringLiteral("△投了"));
+        QCOMPARE(entryLabel(RecordEntry::ending(TerminalType::Try, Turn::White), hirate), QStringLiteral("△トライ"));
+        QCOMPARE(entryLabel(RecordEntry::ending(TerminalType::Custom, Turn::White, {}, QStringLiteral("独自の結果")), hirate),
+                 QStringLiteral("△独自の結果"));
         NotationStyle::configure("zh_CN", "auto", false);
         const QString canonical = QStringLiteral("▲同　飛成(28)");
         QCOMPARE(moveLabel(canonical, hirate, "2h2b+"), canonical);

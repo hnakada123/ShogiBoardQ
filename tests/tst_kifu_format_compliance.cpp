@@ -466,7 +466,7 @@ private slots:
         QTest::addColumn<QString>("terminal");
         for (const auto& terminal : {QStringLiteral("投了"), QStringLiteral("切れ負け"),
                                     QStringLiteral("詰み"), QStringLiteral("反則負け"),
-                                    QStringLiteral("持将棋")}) {
+                                    QStringLiteral("持将棋"), QStringLiteral("引き分け")}) {
             QTest::newRow(qPrintable(terminal)) << terminal;
         }
     }
@@ -480,11 +480,12 @@ private slots:
         const auto reread = convert(saved.lines.join(QLatin1Char('\n')), Format::Kif);
         QVERIFY2(reread.ok, qPrintable(reread.failure.message));
         QCOMPARE(reread.mainline.entries.size(), 2);
-        // 終局の種類が保たれる（棋譜欄の表記は終局語の表の語になる）
+        // USI の draw は持将棋と一般の引き分けを区別しない。読み戻す際は引き分けに統一する。
+        const QString expected = terminal == QStringLiteral("持将棋") ? QStringLiteral("引き分け") : terminal;
         QVERIFY(reread.mainline.endsWithTerminal());
-        QCOMPARE(reread.mainline.terminal()->terminal, TerminalTypes::fromWord(terminal));
-        QCOMPARE(TerminalTypes::findWord(lastText(reread)), TerminalTypes::fromWord(terminal));
-        QVERIFY(reread.lines.join(QLatin1Char('\n')).contains(terminal));
+        QCOMPARE(reread.mainline.terminal()->terminal, TerminalTypes::fromWord(expected));
+        QCOMPARE(TerminalTypes::findWord(lastText(reread)), TerminalTypes::fromWord(expected));
+        QVERIFY(reread.lines.join(QLatin1Char('\n')).contains(expected));
     }
 
     // 貼り付けたテキストは一時ファイルを作らず、各形式のテキスト版の入口で読む

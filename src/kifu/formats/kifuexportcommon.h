@@ -46,7 +46,7 @@ void appendKifComments(const QString& comment, QStringList& out);
  * この行から終局の種類を読み戻す）。
  */
 QString buildEndingLine(int lastActualMoveNo, TerminalType terminal, Turn side,
-                        bool handicapNames);
+                        bool handicapNames, const QString& terminalText = {});
 
 } // namespace KifuExportCommon
 

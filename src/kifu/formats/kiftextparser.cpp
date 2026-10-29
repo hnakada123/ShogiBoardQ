@@ -26,6 +26,15 @@ QString tagOf(Dialect dialect)
     return dialect == Dialect::Kif ? QStringLiteral("KIF") : QStringLiteral("KI2");
 }
 
+bool isCustomTerminal(QStringView text)
+{
+    text = text.trimmed();
+    if (!text.isEmpty() && ShogiNotation::isTurnMark(text.front())) text = text.mid(1).trimmed();
+    // 指し手の形をした壊れた行やパスを、独自の終局理由に置き換えない。
+    return !text.isEmpty() && !text.front().isDigit() && text.front() != QChar(u'同')
+        && !text.contains(u"パス") && !KifMoveGrammar::parseMoveText(text);
+}
+
 /// 開始局面（局面図、なければ手合割と手番の行）。kind にはその書き方を入れる
 Position initialPosition(const QStringList& lines, StartKind* kind)
 {
@@ -109,7 +118,8 @@ private:
     {
         const std::optional<Ki2Lexer::ResultLine> result = Ki2Lexer::parseResultLine(line);
         if (!result) return false;
-        m_builder.addTerminal(result->terminal, result->endingSide(m_builder.sideToMove()));
+        m_builder.addTerminal(result->terminal, result->endingSide(m_builder.sideToMove()),
+                              KifLineBuilder::zeroTime(), result->terminalText);
         return true;
     }
 
@@ -124,6 +134,8 @@ private:
                 // 千日手の行は、消費時間を数えずに累計だけを残す
                 m_builder.addTerminal(terminal, m_builder.sideToMove(),
                                       terminal == TerminalType::Repetition ? RecordTime::fromMilliseconds(0, time.totalMs) : time);
+            } else if (isCustomTerminal(move.text)) {
+                m_builder.addTerminal(TerminalType::Custom, m_builder.sideToMove(), time, move.text);
             } else if (!readMove(move.text, time, line)) {
                 return;
             }

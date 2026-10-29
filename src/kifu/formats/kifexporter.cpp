@@ -105,7 +105,7 @@ static void outputMoveNodes(const QList<KifuBranchNode*>& nodes, int fromPly, QS
         if (node->ply() < fromPly) continue;
 
         QString moveText = node->isTerminal()
-            ? RecordEntry::ending(node->terminalType(), node->terminalSide()).displayText
+            ? KifuExportCommon::singleLine(node->record().terminalLabel())
             : kifMoveText(node);
         if (node->terminalType() == TerminalType::Timeout) moveText = QStringLiteral("切れ負け");
         if (moveText.isEmpty()) continue;
@@ -159,7 +159,7 @@ QStringList KifExporter::exportLines(const KifuBranchTree& recordTree, const Kif
     // 6) 終了行（本譜のみ）
     out << buildEndingLine(lastActualMoveNo, terminalMove ? terminalMove->terminalType() : TerminalType::None,
                            terminalMove ? terminalMove->terminalSide() : Turn::Black,
-                           handicapNames);
+                           handicapNames, terminalMove ? terminalMove->record().terminalText : QString());
 
     // 8) 変化（分岐）を出力（KifuBranchTree から）
     if (branchTree != nullptr && !branchTree->isEmpty()) {

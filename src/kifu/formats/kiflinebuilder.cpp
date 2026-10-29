@@ -45,10 +45,10 @@ bool KifLineBuilder::addMove(const UsiMove& move, const RecordTime& time, const 
     return true;
 }
 
-void KifLineBuilder::addTerminal(TerminalType type, Turn side, const RecordTime& time)
+void KifLineBuilder::addTerminal(TerminalType type, Turn side, const RecordTime& time, const QString& text)
 {
     if (ended()) return;
-    RecordEntry entry = RecordEntry::ending(type, side, time);
+    RecordEntry entry = RecordEntry::ending(type, side, time, text);
     entry.sfen = m_position.toSfen();
     if (m_line.entries.isEmpty()) {
         entry.comment = std::exchange(m_pendingComment, {});

@@ -27,7 +27,9 @@ enum class TerminalType {
     Draw,           ///< 引き分け
     MaxMoves,       ///< 最大手数到達
     Error,          ///< エラー
-    ForfeitWin      ///< 不戦勝
+    ForfeitWin,     ///< 不戦勝
+    Try,            ///< トライルールによる勝ち
+    Custom          ///< 独自の終局理由（原文は RecordEntry が保持）
 };
 
 /**

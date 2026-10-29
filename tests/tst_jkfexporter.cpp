@@ -89,7 +89,7 @@ private slots:
     {
         QTest::addColumn<int>("terminal");
         QTest::addColumn<bool>("white");
-        for (int type = int(TerminalType::Resign); type <= int(TerminalType::ForfeitWin); ++type) {
+        for (int type = int(TerminalType::Resign); type <= int(TerminalType::Try); ++type) {
             QTest::newRow(qPrintable(QStringLiteral("black-%1").arg(type))) << type << false;
             QTest::newRow(qPrintable(QStringLiteral("white-%1").arg(type))) << type << true;
         }
@@ -257,13 +257,13 @@ private slots:
             {0, u"反則勝ち", "-ILLEGAL_ACTION"}, {1, u"反則勝ち", "+ILLEGAL_ACTION"},
             {1, u"中断", "CHUDAN"}, {1, u"不詰", "FUZUMI"}, {1, u"入玉勝ち", "KACHI"},
             {1, u"引き分け", "HIKIWAKE"}, {1, u"最大手数到達", "MAX_MOVES"}, {1, u"エラー", "ERROR"},
-            // JKF に無い終局は書かない
-            {1, u"不戦敗", ""},
+            // 定型の符号が無い終局も special の原文として保持する。
+            {1, u"不戦敗", "不戦敗"}, {1, u"不戦勝", "不戦勝"}, {1, u"トライ", "トライ"},
         };
         for (const auto& row : rows) {
             const QString word = QString::fromUtf16(row.word);
             QTest::newRow(qPrintable(QStringLiteral("%1-%2").arg(word).arg(row.plies)))
-                << row.plies << word << QString::fromLatin1(row.special);
+                << row.plies << word << QString::fromUtf8(row.special);
         }
     }
 

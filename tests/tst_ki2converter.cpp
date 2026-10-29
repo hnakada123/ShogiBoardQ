@@ -73,7 +73,7 @@ private slots:
     {
         QTemporaryFile file;
         QVERIFY(KifuTestHelper::writeToTempFile(file, QStringLiteral(
-            "手合割：平手\n▲７六歩 △５五銀 ▲２六歩\n").toUtf8(), QStringLiteral("ki2")));
+            "手合割：平手\n▲７六歩 △５五玉 ▲２六歩\n").toUtf8(), QStringLiteral("ki2")));
         KifParseResult result;
         QString error;
         QVERIFY(KifuFile::parse<KifuFormat::Ki2>(file.fileName(), result, &error));
@@ -81,6 +81,17 @@ private slots:
         QVERIFY2(error.contains(QStringLiteral("read up to move 1")), qPrintable(error));
         QCOMPARE(result.mainline.usiMoves(), QStringList({"7g7f"}));
         QCOMPARE(result.mainline.entries.size(), 1);
+    }
+
+    void blockedOriginsNeedUnambiguousNotation()
+    {
+        const QString sfen = QStringLiteral("4k4/9/9/9/9/9/2P3P2/1B5B1/4K4 b - 1");
+        QCOMPARE(resolveText(sfen, QStringLiteral("▲５五角")), QString());
+        QCOMPARE(resolveText(sfen, QStringLiteral("▲５五角左")), QStringLiteral("8h5e"));
+        QCOMPARE(resolveText(sfen, QStringLiteral("▲５五角右")), QStringLiteral("2h5e"));
+        // 存在しない修飾語に合う駒や、王の打ち手を補わない。
+        QCOMPARE(resolveText(kHirateSfen, QStringLiteral("▲５五銀右")), QString());
+        QCOMPARE(resolveText(kHirateSfen, QStringLiteral("▲５五玉")), QString());
     }
 
     void promotedMinorPiece_data()

@@ -432,7 +432,8 @@ KifuBranchNode* KifuBranchTree::findMatchingChild(KifuBranchNode* parent, const 
         KifuBranchNode* child = parent->childAt(i);
         if (termType != TerminalType::None) {
             // 終局を宣言する側は必ずしも手番側ではない（反則勝ちなど）。
-            if (child->terminalType() == termType && child->terminalSide() == entry.mover) {
+            if (child->terminalType() == termType && child->terminalSide() == entry.mover
+                && child->record().terminalText == entry.terminalText) {
                 return child;
             }
             continue;

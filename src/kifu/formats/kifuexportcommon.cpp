@@ -65,7 +65,8 @@ void appendKifComments(const QString& comment, QStringList& out)
     }
 }
 
-QString buildEndingLine(int lastActualMoveNo, TerminalType terminal, Turn side, bool handicapNames)
+QString buildEndingLine(int lastActualMoveNo, TerminalType terminal, Turn side, bool handicapNames,
+                        const QString& terminalText)
 {
     const QString n = QString::number(lastActualMoveNo);
     const QString black = handicapNames ? QStringLiteral("下手") : QStringLiteral("先手");
@@ -89,6 +90,8 @@ QString buildEndingLine(int lastActualMoveNo, TerminalType terminal, Turn side, 
     case TerminalType::Draw: return QStringLiteral("まで%1手で引き分け").arg(n);
     case TerminalType::MaxMoves: return QStringLiteral("まで%1手で最大手数到達").arg(n);
     case TerminalType::Error: return QStringLiteral("まで%1手でエラー").arg(n);
+    case TerminalType::Try: return QStringLiteral("まで%1手で%2のトライ").arg(n, opponent);
+    case TerminalType::Custom: return QStringLiteral("まで%1手で%2").arg(n, singleLine(terminalText));
     default: return QStringLiteral("まで%1手").arg(n);
     }
 }

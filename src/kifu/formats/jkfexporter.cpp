@@ -113,7 +113,8 @@ static QJsonArray buildJkfMoves(const KifuBranchNode* first, KifuNodeReplay repl
 
         QJsonObject entry;
         if (node->isTerminal()) {
-            const QString special = TerminalCodes::csaSpecial(node->terminalType(), node->terminalSide(), true);
+            QString special = TerminalCodes::csaSpecial(node->terminalType(), node->terminalSide(), true);
+            if (special.isEmpty()) special = node->record().terminalLabel();
             if (!special.isEmpty()) entry[QStringLiteral("special")] = special;
         } else {
             const UsiMove move = node->move().move;

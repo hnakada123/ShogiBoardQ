@@ -139,8 +139,40 @@ std::optional<UsiMove> resolve(const KifMoveGrammar::MoveText& text, const Posit
     const auto position = EngineMoveValidator::load(board, mover);
     const auto legal = resolveAmong(EngineMoveValidator::legalMoves(position), text, board, to, mover);
     if (legal) return legal;
-    // 合法手で決まらないのは、反則手を書いた棋譜。駒の動きだけで決める
-    return resolveAmong(EngineMoveValidator::pseudoLegalMoves(position), text, board, to, mover);
+    // 合法手で決まらないのは、反則手を書いた棋譜。駒の動きだけで決める。
+    const auto pseudo = EngineMoveValidator::pseudoLegalMoves(position);
+    if (const auto move = resolveAmong(pseudo, text, board, to, mover)) return move;
+    // 複数の移動元が残る場合には、別の手を推測して補わない。
+    for (const UsiMove& move : pseudo) {
+        if (!move.isDrop() && move.to == to && toBlack(board.pieceAt(move.from)) == text.piece)
+            return std::nullopt;
+    }
+
+    // 飛び越しの反則手も、駒の動く向きと修飾語から移動元が1つなら再現する。
+    QList<UsiMove> unblocked;
+    for (int rank = 1; rank <= 9; ++rank) {
+        for (int file = 1; file <= 9; ++file) {
+            const BoardSquare from{file, rank};
+            const Piece piece = board.pieceAt(from);
+            if (piece == Piece::None || pieceSide(piece) != mover || toBlack(piece) != text.piece) continue;
+            Position isolated;
+            isolated.setPieceAt(from, piece);
+            for (const UsiMove& move : EngineMoveValidator::pseudoLegalMoves(isolated, mover)) {
+                if (move.to == to) unblocked.append(move);
+            }
+        }
+    }
+    if (!unblocked.isEmpty()) return resolveAmong(unblocked, text, board, to, mover);
+
+    // 盤上の駒が動く手でなければ、省略された「打」を復元する。持駒不足も棋譜には残す。
+    if (text.modifiers.isEmpty() && !isPromoted(text.piece) && text.piece != Piece::BlackKing
+        && !text.promote.value_or(false) && board.pieceAt(to) == Piece::None) {
+        UsiMove move;
+        move.to = to;
+        move.drop = text.piece;
+        return move;
+    }
+    return std::nullopt;
 }
 
 static Annotation annotateAmong(const Position& board, Turn mover, const UsiMove& move,
