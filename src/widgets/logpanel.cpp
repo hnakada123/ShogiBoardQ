@@ -99,8 +99,6 @@ void LogPanel::buildToolbar(const Names& names)
     auto* decrease = new QToolButton(m_toolbar);
     auto* increase = new QToolButton(m_toolbar);
     new FontSizeControl(decrease, increase, &m_fontSize);
-    decrease->setFixedSize(28, 24);
-    increase->setFixedSize(28, 24);
     connect(&m_fontSize, &FontSizeHelper::fontSizeChanged, this, &LogPanel::applyFontSize);
     m_toolbar->addWidget(decrease);
     m_toolbar->addWidget(increase);

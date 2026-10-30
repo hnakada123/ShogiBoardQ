@@ -11,7 +11,7 @@
 #include "fontsizehelper.h"
 
 class QTableView; class QPushButton; class QSplitter; class QToolButton;
-class KifuRecordListModel; class KifuBranchListModel;
+class KifuRecordListModel; class KifuBranchListModel; class StepButtons;
 
 class RecordPane : public QWidget {
     Q_OBJECT
@@ -39,13 +39,8 @@ public:
     /// 棋譜欄・分岐候補欄の表のスタイルシート（見出しの文字の大きさと選択の色）
     static QString tableStyleSheet(int fontSize);
 
-    // 局面送りのボタン（KifuNavigationController::bindButtons で QAction に結び付ける）
-    QPushButton* firstButton()  const { return m_btn1; }
-    QPushButton* back10Button() const { return m_btn2; }
-    QPushButton* prevButton()   const { return m_btn3; }
-    QPushButton* nextButton()   const { return m_btn4; }
-    QPushButton* fwd10Button()  const { return m_btn5; }
-    QPushButton* lastButton()   const { return m_btn6; }
+    /// 局面送りのボタン（KifuNavigationController::bindButtons で QAction に結び付ける）
+    StepButtons* stepButtons() const { return m_stepButtons; }
 
     QPushButton* fontIncreaseButton() const { return m_btnFontUp; }
     QPushButton* fontDecreaseButton() const { return m_btnFontDown; }
@@ -76,7 +71,7 @@ private:
     QWidget *m_navButtons=nullptr;  // ナビゲーションボタン群（棋譜と分岐の間に縦配置）
     QWidget *m_branchContainer=nullptr;  // 分岐候補欄のコンテナ
     QToolButton* m_branchToggle = nullptr;
-    QPushButton *m_btn1=nullptr,*m_btn2=nullptr,*m_btn3=nullptr,*m_btn4=nullptr,*m_btn5=nullptr,*m_btn6=nullptr;
+    StepButtons* m_stepButtons = nullptr;  ///< 局面送りの6つのボタン（縦）
     QPushButton *m_btnFontUp=nullptr, *m_btnFontDown=nullptr;  // 文字サイズ変更ボタン
     QPushButton *m_btnBookmarkEdit=nullptr;  // しおり編集ボタン
     QPushButton *m_btnToggleTime=nullptr;      // 消費時間列トグル

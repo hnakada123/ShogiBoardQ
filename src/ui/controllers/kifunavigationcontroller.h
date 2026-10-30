@@ -10,7 +10,7 @@
 
 class KifuBranchNode;
 class KifuNavigationState;
-class QAbstractButton;
+class StepButtons;
 class QAction;
 
 /**
@@ -31,16 +31,13 @@ public:
     /// 局面送りの操作
     enum Step { First, Back10, Prev, Next, Fwd10, Last, StepCount };
 
-    /// 局面送りのボタン（並びは Step と同じ。非所有）
-    using Buttons = std::array<QAbstractButton*, StepCount>;
-
     explicit KifuNavigationController(KifuNavigationState* state, QObject* parent = nullptr);
 
     /// 局面送りの操作の QAction（所有はこのクラス）
     QAction* action(Step step) const { return m_actions.at(static_cast<std::size_t>(step)); }
 
-    /// ボタンを押すと QAction を実行し、ボタンの有効・無効を QAction に合わせる
-    void bindButtons(const Buttons& buttons);
+    /// 局面送りのボタンを押すと QAction を実行し、ボタンの説明（ツールチップ）と有効・無効を QAction に合わせる
+    void bindButtons(const StepButtons* buttons);
 
     /// 局面送りの6つの操作をまとめて有効・無効にする（対局中などは無効）
     void setStepActionsEnabled(bool on);

@@ -47,6 +47,7 @@
 #include "usi.h"
 #include "usicommlogmodel.h"
 #include "usimodelbinding.h"
+#include "header_drag_helper.h"
 
 namespace {
 /// 検討・詰み探索のセッションと、それが使うエンジンの枠
@@ -489,6 +490,32 @@ private slots:
     }
 
     /// 最後まで解析すると結果の表が埋まり、解析している手へ棋譜が移り、待機に戻る
+    /// 結果の表は、利用者が見出しの境目をドラッグした列の幅だけを保存し、次に作る表でその幅にする
+    void resultsColumnWidthIsRestored()
+    {
+        const ListSetting<int> saved = AnalysisSettings::kifuAnalysisColumnWidths();
+        saved.set({});
+        {
+            KifuAnalysisListModel model;
+            AnalysisResultsPanel panel;
+            panel.setModel(&model);
+            panel.resize(900, 300);
+            panel.show();
+            QVERIFY(QTest::qWaitForWindowExposed(&panel));
+            HeaderDrag::resizeSection(panel.view()->horizontalHeader(), KifuAnalysisListModel::CandidateColumn, 77);
+            QCOMPARE(saved().value(KifuAnalysisListModel::CandidateColumn), 77);
+            QCOMPARE(saved().value(KifuAnalysisListModel::MoveColumn), 0);
+        }
+        KifuAnalysisListModel model;
+        AnalysisResultsPanel restored;
+        restored.setModel(&model);
+        restored.resize(900, 300);
+        restored.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&restored));
+        QTRY_COMPARE(restored.view()->columnWidth(KifuAnalysisListModel::CandidateColumn), 77);
+        saved.set({});
+    }
+
     void analysisRunsToCompletion()
     {
         TestHelper h;

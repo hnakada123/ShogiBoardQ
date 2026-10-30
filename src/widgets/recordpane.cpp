@@ -2,10 +2,11 @@
 /// @brief 棋譜欄ペインクラスの実装
 
 #include "recordpane.h"
+#include "panelbutton.h"
+#include "stepbuttons.h"
 #include "fontsizecontrol.h"
 #include "incrementaltableview.h"
 #include "tablemodelutils.h"
-#include "buttonstyles.h"
 #include "kifurecordlistmodel.h"
 #include "kifubranchlistmodel.h"
 #include "kifumovedelegate.h"
@@ -143,88 +144,45 @@ void RecordPane::buildToolButtons()
     m_btnFontUp = new QPushButton(this);
     m_btnFontDown = new QPushButton(this);
     new FontSizeControl(m_btnFontDown, m_btnFontUp, &m_fontSize);
-    m_btnFontUp->setFixedSize(36, 24);
-    m_btnFontDown->setFixedSize(36, 24);
-    m_btnFontUp->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
-    m_btnFontDown->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 
     // --- しおり編集ボタン ---
     m_btnBookmarkEdit = new QPushButton(this);
     m_btnBookmarkEdit->setObjectName(QStringLiteral("kifuBookmarkEdit"));
     m_btnBookmarkEdit->setIcon(QIcon(QStringLiteral(":/images/actions/actionEditBookmark.svg")));
-    m_btnBookmarkEdit->setIconSize(QSize(20, 20));
     m_btnBookmarkEdit->setToolTip(tr("しおりを編集"));
-    m_btnBookmarkEdit->setStyleSheet(ButtonStyles::panelToolButton());
-    m_btnBookmarkEdit->setFixedSize(36, 24);
-    m_btnBookmarkEdit->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+    PanelButton::setup(m_btnBookmarkEdit);
 
     // --- 列表示トグルボタン ---
-    const QString toggleBtnStyle = ButtonStyles::panelToolButton();
 
     m_btnToggleTime = new QPushButton(this);
     m_btnToggleTime->setObjectName(QStringLiteral("kifuToggleTime"));
     m_btnToggleTime->setCheckable(true);
     m_btnToggleTime->setChecked(m_appearance.timeVisible);
     m_btnToggleTime->setIcon(QIcon(QStringLiteral(":/images/actions/actionToggleTimeColumn.svg")));
-    m_btnToggleTime->setIconSize(QSize(20, 20));
     m_btnToggleTime->setToolTip(tr("消費時間列の表示/非表示"));
-    m_btnToggleTime->setStyleSheet(toggleBtnStyle);
-    m_btnToggleTime->setFixedSize(36, 24);
-    m_btnToggleTime->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+    PanelButton::setup(m_btnToggleTime);
 
     m_btnToggleBookmark = new QPushButton(this);
     m_btnToggleBookmark->setObjectName(QStringLiteral("kifuToggleBookmark"));
     m_btnToggleBookmark->setCheckable(true);
     m_btnToggleBookmark->setChecked(m_appearance.bookmarkVisible);
     m_btnToggleBookmark->setIcon(QIcon(QStringLiteral(":/images/actions/actionToggleBookmarkColumn.svg")));
-    m_btnToggleBookmark->setIconSize(QSize(20, 20));
     m_btnToggleBookmark->setToolTip(tr("しおり列の表示/非表示"));
-    m_btnToggleBookmark->setStyleSheet(toggleBtnStyle);
-    m_btnToggleBookmark->setFixedSize(36, 24);
-    m_btnToggleBookmark->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+    PanelButton::setup(m_btnToggleBookmark);
 
     m_btnToggleComment = new QPushButton(this);
     m_btnToggleComment->setObjectName(QStringLiteral("kifuToggleComment"));
     m_btnToggleComment->setCheckable(true);
     m_btnToggleComment->setChecked(m_appearance.commentVisible);
     m_btnToggleComment->setIcon(QIcon(QStringLiteral(":/images/actions/actionToggleCommentColumn.svg")));
-    m_btnToggleComment->setIconSize(QSize(20, 20));
     m_btnToggleComment->setToolTip(tr("コメント列の表示/非表示"));
-    m_btnToggleComment->setStyleSheet(toggleBtnStyle);
-    m_btnToggleComment->setFixedSize(36, 24);
-    m_btnToggleComment->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+    PanelButton::setup(m_btnToggleComment);
 }
 
 void RecordPane::buildNavigationPanel()
 {
-    m_btn1 = new QPushButton(this);
-    m_btn2 = new QPushButton(this);
-    m_btn3 = new QPushButton(this);
-    m_btn4 = new QPushButton(this);
-    m_btn5 = new QPushButton(this);
-    m_btn6 = new QPushButton(this);
-
-    m_btn1->setText(tr("▲|"));
-    m_btn2->setText(tr("▲▲"));
-    m_btn3->setText(tr("▲"));
-    m_btn4->setText(tr("▼"));
-    m_btn5->setText(tr("▼▼"));
-    m_btn6->setText(tr("▼|"));
-
-    m_btn1->setToolTip(tr("最初に戻る"));
-    m_btn2->setToolTip(tr("10手戻る"));
-    m_btn3->setToolTip(tr("1手戻る"));
-    m_btn4->setToolTip(tr("1手進む"));
-    m_btn5->setToolTip(tr("10手進む"));
-    m_btn6->setToolTip(tr("最後に進む"));
-
-    const QString btnStyle = ButtonStyles::panelToolButton();
-    const QList<QPushButton*> allBtns = {m_btn1, m_btn2, m_btn3, m_btn4, m_btn5, m_btn6};
-    for (QPushButton* const b : std::as_const(allBtns)) {
-        b->setStyleSheet(btnStyle);
-        b->setFixedSize(36, 24);
-        b->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
-    }
+    m_stepButtons = new StepButtons(Qt::Vertical, QStringLiteral("kifuNav"), this);
+    m_stepButtons->setObjectName(QStringLiteral("kifuNavigation"));
 
     // ナビゲーションボタンを縦に配置（ツール・トグルボタンも含む）
     auto* navLay = new QVBoxLayout;
@@ -238,12 +196,7 @@ void RecordPane::buildNavigationPanel()
     navLay->addWidget(m_btnToggleBookmark, 0, Qt::AlignHCenter);
     navLay->addWidget(m_btnToggleComment, 0, Qt::AlignHCenter);
     navLay->addSpacing(8);
-    navLay->addWidget(m_btn1, 0, Qt::AlignHCenter);
-    navLay->addWidget(m_btn2, 0, Qt::AlignHCenter);
-    navLay->addWidget(m_btn3, 0, Qt::AlignHCenter);
-    navLay->addWidget(m_btn4, 0, Qt::AlignHCenter);
-    navLay->addWidget(m_btn5, 0, Qt::AlignHCenter);
-    navLay->addWidget(m_btn6, 0, Qt::AlignHCenter);
+    navLay->addWidget(m_stepButtons, 0, Qt::AlignHCenter);
     navLay->addStretch();
 
     m_navButtons = new QWidget(this);

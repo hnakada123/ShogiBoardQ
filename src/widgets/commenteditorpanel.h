@@ -45,8 +45,8 @@ public:
     /// 「コメント更新」を押していない編集があるか
     bool hasUnsavedComment() const { return m_isCommentDirty; }
 
-    /// 未保存編集の警告ダイアログを表示（移動を続けるならtrue）
-    bool confirmDiscardUnsavedComment();
+    /// 未更新の本文を捨てる（本文は次に出す手のコメントで置き換わる。確認は CommentCoordinator が出す）
+    void discardPendingComment();
 
     /// 「コメント更新」と同じく、未更新の本文を commentUpdated で知らせる（未更新の本文がなければ何もしない）
     void commitPendingComment();

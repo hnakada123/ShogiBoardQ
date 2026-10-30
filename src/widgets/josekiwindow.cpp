@@ -2,6 +2,7 @@
 /// @brief 定跡ウィンドウ（ドックのパネル）の実装
 
 #include "josekiwindow.h"
+#include "columnwidthmemory.h"
 #include "recentfilesmenu.h"
 #include "fontsizecontrol.h"
 #include "flowlayout.h"
@@ -227,7 +228,8 @@ QWidget *JosekiWindow::buildToolbar()
     m_fontDecreaseButton->setObjectName(QStringLiteral("josekiFontDecrease"));
     m_fontIncreaseButton = new QPushButton(this);
     m_fontIncreaseButton->setObjectName(QStringLiteral("josekiFontIncrease"));
-    new FontSizeControl(m_fontDecreaseButton, m_fontIncreaseButton, &m_fontHelper);
+    // 定跡ウィンドウの操作の列は大きめのボタンなので、ダイアログと同じ大きさにする
+    new FontSizeControl(m_fontDecreaseButton, m_fontIncreaseButton, &m_fontHelper, FontSizeControl::Sizing::Dialog);
     for (auto *button : {m_fontDecreaseButton, m_fontIncreaseButton})
         button->setStyleSheet(buttonStyle + QStringLiteral("QPushButton { padding: 4px 6px; }"));
     m_autoLoadCheckBox = new QCheckBox(tr("自動読込"), this);
@@ -327,8 +329,15 @@ void JosekiWindow::setupUi()
     m_tableView->setActionAvailability(std::bind(&JosekiWindow::isRowActionAvailable, this,
                                                  std::placeholders::_1, std::placeholders::_2));
     mainLayout->addWidget(m_tableView, 1);
-    // 列幅は利用者がドラッグしたときだけ保存する（文字の大きさに合わせた幅は保存しない）
+    // 列幅は利用者がドラッグした列だけ保存する（文字の大きさに合わせた幅は保存しない。最後の列は残りの幅に伸ばす）
     auto *header = static_cast<TableHeaderView *>(m_tableView->horizontalHeader());
+    // 比率の列を足す前の保存（列が1つ少ない）は、比率より前の列の幅だけを使う
+    if (QList<int> saved = JosekiSettings::josekiWindowColumnWidths();
+        saved.size() == JosekiTableModel::ColumnCount - 1) {
+        saved.resize(JosekiTableModel::Ratio);
+        JosekiSettings::josekiWindowColumnWidths.set(saved);
+    }
+    m_columnWidths = new ColumnWidthMemory(header, JosekiSettings::josekiWindowColumnWidths, JosekiTableModel::ColumnCount);
 
     // --- 状態表示 ---
     auto *statusFrame = new QFrame(this);
@@ -345,7 +354,6 @@ void JosekiWindow::setupUi()
     connect(m_showSfenDetailBtn, &QPushButton::toggled, this, &JosekiWindow::onSfenDetailToggled);
     connect(m_deviationButton, &QPushButton::clicked, this, &JosekiWindow::onDeviationClicked);
     connect(m_tableView, &JosekiTableView::rowActionRequested, this, &JosekiWindow::onRowActionRequested);
-    connect(header, &TableHeaderView::sectionResizedByUser, this, &JosekiWindow::saveColumnWidths);
 
     updateRecentFilesMenu();
     updateStatusDisplay();
@@ -371,7 +379,9 @@ void JosekiWindow::applyFontSize()
         if (col == JosekiTableModel::NextMove) sample = JosekiTableModel::derivedReplyText(QStringLiteral("▲７六歩(77)"));
         if (col == JosekiTableModel::Frequency) sample = QStringLiteral("999,999,999");
         if (col == JosekiTableModel::Ratio) sample = QStringLiteral("100.0%");
-        m_tableView->setColumnWidth(col, qMax(m_tableView->columnWidth(col), fm.horizontalAdvance(sample) + 24));
+        // 利用者が決めた幅はそのまま、ほかは今の幅と見本の文字が収まる幅の広いほう
+        const int automatic = qMax(m_tableView->columnWidth(col), fm.horizontalAdvance(sample) + 24);
+        m_tableView->setColumnWidth(col, m_columnWidths->widthOr(col, automatic));
     }
     header->setStretchLastSection(true);
     // 文字・枠・余白を含む sizeHint に幅を任せ、文字を拡大しても欠けないようにする。
@@ -382,9 +392,6 @@ void JosekiWindow::applyFontSize()
     int buttonHeight = qMax(32, fm.height() + 12);
     for (QAbstractButton *button : buttons) buttonHeight = qMax(buttonHeight, button->sizeHint().height());
     for (QAbstractButton *button : buttons) button->setFixedHeight(buttonHeight);
-    const int fontButtonWidth = qMax(36, qMax(m_fontDecreaseButton->sizeHint().width(), m_fontIncreaseButton->sizeHint().width()));
-    for (QPushButton *button : {m_fontDecreaseButton, m_fontIncreaseButton})
-        button->setFixedWidth(fontButtonWidth);
 
     // 注意書きと SFEN の詳細は1段小さい文字で出す
     const int smallSize = qMax(fontSize - 1, 6);
@@ -400,27 +407,13 @@ void JosekiWindow::applyFontSize()
 
 void JosekiWindow::loadSettings()
 {
-    applyFontSize();
-    // 比率の列を足す前の保存（列が1つ少ない）は、比率より前の列の幅だけを使う
-    const auto widths = JosekiSettings::josekiWindowColumnWidths();
-    const int restorable = widths.size() == JosekiTableModel::ColumnCount ? JosekiTableModel::ColumnCount - 1
-                                                                           : JosekiTableModel::Ratio;
-    for (int col = 0; col < widths.size() && col < restorable; ++col) {
-        if (widths.at(col) > 0) m_tableView->setColumnWidth(col, widths.at(col));
-    }
+    applyFontSize();   // 利用者が決めた列幅もここで付ける
     m_autoLoadCheckBox->setChecked(m_session->autoLoadEnabled());
     showFilePath();
     onDisplayToggled(isDisplayEnabled());
     const bool sfenDetailVisible = JosekiSettings::josekiWindowSfenDetailVisible();
     m_showSfenDetailBtn->setChecked(sfenDetailVisible);
     m_sfenDetailWidget->setVisible(sfenDetailVisible);
-}
-
-void JosekiWindow::saveColumnWidths()
-{
-    QList<int> widths;
-    for (int i = 0; i < JosekiTableModel::ColumnCount; ++i) widths.append(m_tableView->columnWidth(i));
-    JosekiSettings::josekiWindowColumnWidths.set(widths);
 }
 
 // ============================================================

@@ -385,9 +385,12 @@ private slots:
                 log.setStatus(fullStatus());
                 // 列幅を保存した値で狭くすると、折り返す設定の表で2行になる・はみ出す値ができる（Qt に描かせる）
                 const auto renderInfo = [&](bool qtText, bool narrow) {
-                    EngineInfoWidget info(AnalysisSettings::ThinkingTable::Engine1);
+                    const ListSetting<int> saved =
+                        AnalysisSettings::engineInfoColumnWidths(AnalysisSettings::ThinkingTable::Engine1);
+                    saved.set(narrow ? QList<int>{70, 60, 48, 40, 52, 70, 40} : QList<int>{});
+                    EngineInfoWidget info(AnalysisSettings::ThinkingTable::Engine1);   // 保存した幅で始まる
+                    saved.set({});
                     info.setModel(&log);
-                    if (narrow) info.setColumnWidths({70, 60, 48, 40, 52, 70, 40});
                     info.resize(1000, 80);
                     auto* table = info.findChild<QTableWidget*>(QStringLiteral("engineInfoTable"));
                     if (!table) return QImage();
@@ -545,19 +548,24 @@ private slots:
         QVERIFY(table->columnWidth(4) < enlargedWidth);
         QVERIFY(table->columnWidth(4) >= QFontMetrics(table->font()).horizontalAdvance(QStringLiteral("999,999,999,999")) + 20);
 
-        // 手動の列幅は値・文字サイズの変更より優先し、再作成後も保存した幅を使う。
+        // 利用者が決めた列幅は値・文字サイズの変更より優先し、再作成後も使う。決めていない列は自動のまま
+        const ListSetting<int> saved = AnalysisSettings::engineInfoColumnWidths(AnalysisSettings::ThinkingTable::Engine1);
         HeaderDrag::resizeSection(table->horizontalHeader(), 4, 180);
-        const QList<int> manual = info.columnWidths();
-        QCOMPARE(manual.at(4), 180);
-        QCOMPARE(AnalysisSettings::engineInfoColumnWidths(AnalysisSettings::ThinkingTable::Engine1), manual);
+        QCoreApplication::processEvents();
+        QCOMPARE(table->columnWidth(4), 180);
+        QCOMPARE(saved(), QList<int>({0, 0, 0, 0, 180, 0, 0}));
+        const int depthWidth = table->columnWidth(3);
         status.nodes = std::numeric_limits<qint64>::max();
         log.setStatus(status);
         info.setFontSize(20);
         QCoreApplication::processEvents();
-        QCOMPARE(info.columnWidths(), manual);
+        QCoreApplication::processEvents();
+        QCOMPARE(table->columnWidth(4), 180);
+        QVERIFY(table->columnWidth(3) > depthWidth);
+        QCOMPARE(saved(), QList<int>({0, 0, 0, 0, 180, 0, 0}));
         EngineInfoWidget restored(AnalysisSettings::ThinkingTable::Engine1);
-        QCOMPARE(restored.columnWidths(), manual);
-        AnalysisSettings::setEngineInfoColumnWidths(AnalysisSettings::ThinkingTable::Engine1, {});
+        QCOMPARE(restored.columnWidths().at(4), 180);
+        saved.set({});
     }
 };
 

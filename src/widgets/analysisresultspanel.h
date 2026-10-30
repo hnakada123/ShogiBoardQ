@@ -17,6 +17,7 @@ class QMenu;
 class ElideLabel;
 class QProgressBar;
 class KifuAnalysisListModel;
+class ColumnWidthMemory;
 
 /**
  * @brief 棋譜解析の結果ドックの中身を作り、結果の表を表示する
@@ -88,8 +89,6 @@ private slots:
     /// 選択行変更時に通知を行う
     void onTableSelectionChanged(const QModelIndex& current, const QModelIndex& previous);
 
-    void saveColumnWidth(int column, int oldSize, int newSize);
-
 private:
     /// ヘッダー列設定を適用する
     void setupHeaderConfiguration();
@@ -112,7 +111,7 @@ private:
     QTimer* m_reflowTimer;              ///< 再レイアウト遅延実行タイマー（thisが所有）
     FontSizeHelper m_fontSize;          ///< 表の文字の大きさ（変更のたびに保存する）
 
-    QList<int> m_columnWidths;     ///< ユーザー指定の列幅（0は自動）
+    ColumnWidthMemory* m_columnWidths = nullptr;   ///< 利用者が決めた列幅（0 は自動。見出しが親）
     bool m_reflowAllRows = true;   ///< 次の列幅合わせで全行を測り直す（リセット・書体の変更）
     int m_reflowFromRow = -1;      ///< 次の列幅合わせで測り始める行（足した・変わった行。-1 は無し）
     int m_totalPositions = 0;

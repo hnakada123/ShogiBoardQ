@@ -2,6 +2,7 @@
 /// @brief 思考の表の実装
 
 #include "thinkingtableview.h"
+#include "columnwidthmemory.h"
 #include "scoretext.h"
 
 #include "shogienginethinkingmodel.h"
@@ -37,7 +38,14 @@ ThinkingTableView::ThinkingTableView(AnalysisSettings::ThinkingTable table, QWid
     header->setMinimumSectionSize(24);
     header->setStretchLastSection(true);
 
-    connect(header, &TableHeaderView::sectionResizedByUser, this, &ThinkingTableView::onSectionResizedByUser);
+    // 上下限の列を足す前の保存（列が1つ少ない）は、盤面・読み筋の位置をずらして引き継ぐ
+    const ListSetting<int> widths = AnalysisSettings::thinkingViewColumnWidths(table);
+    if (QList<int> saved = widths(); saved.size() == Column::ColumnCount - 1) {
+        saved.insert(Column::BoundColumn, 0);
+        widths.set(saved);
+    }
+    // 読み筋の列（最後の列）は表示領域に合わせて伸び縮みするので、ColumnWidthMemory は覚えない
+    m_columnWidths = new ColumnWidthMemory(header, widths, Column::ColumnCount);
     connect(this, &PvTableView::boardRequested, this, &ThinkingTableView::onBoardRequested);
     connect(this, &PvTableView::rowContextMenuAboutToShow, this, &ThinkingTableView::onRowContextMenuAboutToShow);
 }
@@ -59,36 +67,22 @@ void ThinkingTableView::onRowContextMenuAboutToShow(int row, QMenu* menu)
     if (m_model) emit thinkingRowContextMenuAboutToShow(m_model, row, menu);
 }
 
-void ThinkingTableView::onSectionResizedByUser(int logicalIndex)
-{
-    // 読み筋の列は表示領域に合わせて伸び縮みするので、その幅だけが変わったときは保存しない
-    if (!m_model || logicalIndex == Column::PvColumn) return;
-    QList<int> widths;
-    for (int column = 0; column < Column::ColumnCount; ++column) widths.append(columnWidth(column));
-    AnalysisSettings::setThinkingViewColumnWidths(m_table, widths);
-}
-
 void ThinkingTableView::fitColumns()
 {
     if (!m_model) return;
     const QFontMetrics metrics(font());
-    QList<int> saved = AnalysisSettings::thinkingViewColumnWidths(m_table);
-    // 上下限列の追加前に保存した幅は、盤面・読み筋の位置をずらして引き継ぐ。
-    if (saved.size() == Column::ColumnCount - 1) saved.insert(Column::BoundColumn, 0);
-    // 数値の見本（3桁区切り）・上下限の記号・「盤面」ボタンの文字が収まる幅を下限にする
+    // 利用者が決めていない列は、見出し・数値の見本（3桁区切り）・上下限の記号・「盤面」ボタンの文字が収まる幅
     const QString samples[] = {QStringLiteral("99,999"), QStringLiteral("99"), QStringLiteral("99,999,999"),
                                QStringLiteral("-9,999"), QStringLiteral("++"), ShogiEngineThinkingModel::boardButtonText()};
     for (int column = Column::TimeColumn; column < Column::PvColumn; ++column) {
         const QString title = m_model->headerData(column, Qt::Horizontal).toString();
         int sampleWidth = metrics.horizontalAdvance(samples[column]);
         if (column == Column::BoundColumn) sampleWidth = qMax(sampleWidth, metrics.horizontalAdvance(QStringLiteral("--")));
-        const int minimum = qMax(metrics.horizontalAdvance(title), sampleWidth) + 20;
-        const int width = saved.size() == Column::ColumnCount ? qMax(minimum, saved.at(column)) : minimum;
-        setColumnWidth(column, width);
+        // 評価値列は、訳語の長い詰みの表示（英語では "Mate in 99 plies"）も省略せずに表示する
+        if (column == Column::ScoreColumn) sampleWidth = qMax(sampleWidth, metrics.horizontalAdvance(ScoreText::mateIn(-99)));
+        const int automatic = qMax(metrics.horizontalAdvance(title), sampleWidth) + 20;
+        setColumnWidth(column, m_columnWidths->widthOr(column, automatic));
     }
-    // 評価値列は、訳語の長い詰みの表示（英語では "Mate in 99 plies"）も省略せずに表示する。
-    const int mateWidth = metrics.horizontalAdvance(ScoreText::mateIn(-99)) + 20;
-    setColumnWidth(Column::ScoreColumn, qMax(columnWidth(Column::ScoreColumn), mateWidth));
     // 検討の読み筋は、狭いドックでも横スクロールで読めるよう幅を確保する（残りの幅があれば伸ばす）
     if (m_table == AnalysisSettings::ThinkingTable::Consideration)
         setColumnWidth(Column::PvColumn, metrics.horizontalAdvance(QStringLiteral("M")) * 24);

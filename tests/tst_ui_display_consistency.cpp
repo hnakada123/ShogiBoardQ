@@ -34,6 +34,7 @@
 #include "livegamesession.h"
 #include "record_rows_helper.h"
 #include "recordpane.h"
+#include "stepbuttons.h"
 #include "shogimove.h"
 #include "test_replay.h"
 
@@ -508,29 +509,36 @@ private slots:
     {
         UiHarness h;
         EvaluationChartWidget chart;
-        h.nav.bindButtons({h.recordPane.firstButton(), h.recordPane.back10Button(), h.recordPane.prevButton(),
-                           h.recordPane.nextButton(), h.recordPane.fwd10Button(), h.recordPane.lastButton()});
-        h.nav.bindButtons({chart.firstButton(), chart.back10Button(), chart.prevButton(),
-                           chart.nextButton(), chart.fwd10Button(), chart.lastButton()});
+        h.nav.bindButtons(h.recordPane.stepButtons());
+        h.nav.bindButtons(chart.stepButtons());
+        // ボタンは向きの記号だけで、説明は QAction の文（縦と横で記号は違うが説明は同じ）
+        for (int step = 0; step < KifuNavigationController::StepCount; ++step) {
+            const auto s = static_cast<StepButtons::Step>(step);
+            const QString text = h.nav.action(static_cast<KifuNavigationController::Step>(step))->text();
+            QCOMPARE(h.recordPane.stepButtons()->button(s)->toolTip(), text);
+            QCOMPARE(chart.stepButtons()->button(s)->accessibleName(), text);
+            QVERIFY(h.recordPane.stepButtons()->button(s)->text() != chart.stepButtons()->button(s)->text());
+        }
+        QCOMPARE(h.nav.action(KifuNavigationController::Next)->text(), QStringLiteral("1手進む"));
         h.nav.goToPly(2);
 
-        h.recordPane.nextButton()->click();
+        h.recordPane.stepButtons()->nextButton()->click();
         QCOMPARE(h.state.currentPly(), 3);
-        chart.nextButton()->click();
+        chart.stepButtons()->nextButton()->click();
         QCOMPARE(h.state.currentPly(), 4);
-        chart.firstButton()->click();
+        chart.stepButtons()->firstButton()->click();
         QCOMPARE(h.state.currentPly(), 0);
-        h.recordPane.lastButton()->click();
+        h.recordPane.stepButtons()->lastButton()->click();
         const int lastPly = h.state.currentPly();
         QVERIFY(lastPly > 4);
 
-        const QList<QPushButton*> buttons = {h.recordPane.firstButton(), h.recordPane.lastButton(),
-                                             chart.prevButton(), chart.fwd10Button()};
+        const QList<QPushButton*> buttons = {h.recordPane.stepButtons()->firstButton(), h.recordPane.stepButtons()->lastButton(),
+                                             chart.stepButtons()->prevButton(), chart.stepButtons()->fwd10Button()};
         h.nav.setStepActionsEnabled(false);
         for (int step = 0; step < KifuNavigationController::StepCount; ++step)
             QVERIFY(!h.nav.action(static_cast<KifuNavigationController::Step>(step))->isEnabled());
         for (QPushButton* const button : buttons) QVERIFY(!button->isEnabled());
-        chart.firstButton()->click();
+        chart.stepButtons()->firstButton()->click();
         QCOMPARE(h.state.currentPly(), lastPly);
 
         h.nav.setStepActionsEnabled(true);

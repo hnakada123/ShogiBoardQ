@@ -49,7 +49,7 @@ private slots:
     void init()
     {
         GameSettings::gameInfoFontSize.set(10);
-        GameSettings::gameInfoKeyColumnWidth.set(0);
+        GameSettings::gameInfoColumnWidths().set({});
         m_controller.reset(new GameInfoPane);
         m_controller->setGameInfo({{QStringLiteral("先手"), QStringLiteral("Black")},
                                   {QStringLiteral("後手"), QStringLiteral("White")},

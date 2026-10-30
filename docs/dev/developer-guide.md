@@ -156,6 +156,7 @@
 | 2026-10-30 | 棋譜の保存の経路と保存形式の表を1つにした（監査 2026-10-29 の T8）のに合わせて §1.5・§8.1・§8.8・§8.9・§8.12・付録を更新（`KifuIoService` を `KifuSaveFile` にまとめた。拡張子の表 `KifuFormats::saveTargets()` が形式・文字コード `KifuEncoding`・保存の見出しを持ち、保存ダイアログの絞り込みは `KifuFileFilter::forSaving()`・`pathForSaving()` で表から作る。書き出しの文脈 `KifuExportMetadata::encoding` で先頭行の文字コードの宣言を書き、保存のときに文字列を置き換えない。`KifuSaveFile::write` は行を作る関数 `(format, encoding)` を受け、Shift_JIS への変換は1回だけ。CLI・自動化 API の形式の選択肢は `KifuFormats::savableNames()`。定跡ファイルの拡張子と絞り込みは `JosekiBookFile::hasBookSuffix`・`withBookSuffix`・`fileFilter`） |
 | 2026-10-30 | 画面の流れの持ち主をそろえた（監査 2026-10-29 の M1〜M4）のに合わせて §4.4・§6.5・§6.9・§10.4・§10.5・§13.6・§14.3・§14.5・§14.6・§15.5・§16.5・第18章を更新（ui・app の知らせは静的な `NotificationPresenter::information`・`warning`・`critical` で出す（`Wait::No` で待たない）。結果を使う部品が自分でダイアログを開く（CSA 通信対局は `CsaGameSession::openGameDialog()`、局面集は `KifuFileController::openSfenCollection()`、メニューウィンドウは `MenuWindowController::toggleWindow()`）。「新規」の止める手順は `MainWindowActions::startNewRecord()` に移し、`GameSession` は対局の後始末 `abandonGame()` だけを持つ。メニューの項目の接続は排他の組と保存したレイアウトの一覧を除いて `MenuActionsWiring` に集め、チェックできる項目は設定を持つ部品の値から始める（`DockLayoutManager::wireMenuActions()`・`PositionEditSession::EditActions` を消した） |
 | 2026-10-30 | エンジンと設定の規則の置き場所をそろえた（監査 2026-10-29 の M5・M6・M10・M17）のに合わせて §1.5・§7.9・§9.5・§10.4・§11.2・§11.3・§12.5・第18章を更新（エンジンの登録は登録一覧を `RegisteredEngines` で持ち、検索 `findByPath`・登録名の規則 `uniqueName`・パスの正規化 `canonicalPath` を共有する。エンジンの設定ダイアログは `ChangeEngineSettingsDialog::showFor()` で開く。検討の条件の値 `ConsiderationSettings` を services の `analysissettings.h` に移し、`AnalysisSettings::consideration`（`StructSetting`）で保存する。対局開始の時間の換算と以前の版の開始局面の番号は `gamesettings.cpp` の `Player::time()`・`setTime()`・`startingPosition()`・`setStartingPosition()`） |
+| 2026-10-30 | ウィジェットの共通の部品を足した（監査 2026-10-29 の M7・M8・M16・M18）のに合わせて §1.5・§7.8・§9.8・§11.2・§11.5・§12.5・§13.1・§14.5・第18章を更新（局面送りの6つのボタンは widgets の `StepButtons` が作り、説明は `KifuNavigationController::bindButtons(const StepButtons*)` が `QAction` の文から付ける。列幅は表の見出しに付けた `ColumnWidthMemory` が、利用者がドラッグした列だけを覚えて保存する（0 は自動、正の値は利用者の幅。保存した幅を最小値として扱わない。保存は `ListSetting<int>` にそろえ、棋譜解析の結果と対局情報の以前の版の形は初めて読むときに移す）。`TableHeaderView` はマウスの操作の処理の中で変わった列だけを利用者の操作として知らせる。ドックのパネルの小さなボタンの大きさは `PanelButton::setup()`、A-/A+ は `FontSizeControl` が決める。コメント欄の未更新の確認は `CommentCoordinator` が `UnsavedChangesPrompt`（保存・破棄・キャンセル）で出す） |
 
 <!-- chapter-0-end -->
 
@@ -550,7 +551,10 @@ src/
 │   ├── usilogpanel.cpp/.h          #   USI通信ログドックの中身（LogPanel の派生。CSA は csalogpanel）
 │   ├── toolbarwidth.h              #   ドックの操作列がドックの最小幅を広げないようにする（ToolbarWidth::relax）
 │   ├── commenteditorpanel.cpp/.h   #   棋譜コメントドックの中身
-│   ├── tableheaderview.cpp/.h      #   表の見出し。列幅は利用者がドラッグしたときだけ sectionResizedByUser で保存する
+│   ├── tableheaderview.cpp/.h      #   表の見出し。利用者が境目をドラッグした列だけを sectionResizedByUser で知らせる
+│   ├── columnwidthmemory.cpp/.h    #   利用者が決めた列幅の覚えと保存（0 は自動、正の値は利用者の幅）
+│   ├── panelbutton.cpp/.h          #   ドックのパネルの小さなボタンの見た目と大きさ（32×24 を基本に文字に合わせる）
+│   ├── stepbuttons.cpp/.h          #   局面送りの6つのボタンの列（棋譜欄は縦、評価値グラフは横）
 │   ├── incrementaltableview.cpp/.h #   行の追加で表示領域全体を描き直さない表
 │   ├── tablebuttondelegate.cpp/.h  #   表のセルを控えめなボタンとして描くデリゲート
 │   ├── tablemodelutils.h           #   表へのモデルの付け替え（TableModelUtils::setModel。Qt が置き換えた選択モデルを解放する）
@@ -3843,7 +3847,7 @@ KifuPresentation::pv（日本語表記）:
 | 4 | 盤面 | 固定文字列「表示」（中央揃え） | ビューが `TableButtonDelegate` で角丸のボタン風に描く |
 | 5 | 読み筋 | `ShogiInfoRecord::displayPv()` | 表記の設定に合わせた読み筋（ツールチップは移動元付きの全文） |
 
-モデルは列0〜3を数で返し、ビューが `NumericRightAlignCommaDelegate` で3桁区切り・右寄せに描く（`ThinkingTableView` の基底の読み筋の表 `PvTableView` が設定する）。列幅は利用者がドラッグしたときだけ保存する（`TableHeaderView::sectionResizedByUser`）。depth/seldepth の形の深さは、表ではなく `UsiCommLogModel` 側の欄（7.6節の手順3）に出る。
+モデルは列0〜3を数で返し、ビューが `NumericRightAlignCommaDelegate` で3桁区切り・右寄せに描く（`ThinkingTableView` の基底の読み筋の表 `PvTableView` が設定する）。列幅は利用者がドラッグした列だけを保存する（`ColumnWidthMemory`。保存していない列は見出しと数値の見本が収まる幅で、保存した幅を最小値として扱わない）。depth/seldepth の形の深さは、表ではなく `UsiCommLogModel` 側の欄（7.6節の手順3）に出る。
 
 列4（盤面）をクリックする（選んで Enter でもよい）と、`PvClickController::onPvRowClicked(model, row)` が読み筋の盤面ダイアログ（`PvBoardDialog`）を開く。行の読み筋（`PvText`）の指せた手で局面をたどる（開始局面が無ければ、表示中の局面の上でエンジンが送った語を指し直す）。
 
@@ -5387,7 +5391,7 @@ QDockWidget
 
 #### フォントサイズの永続化
 
-A-/A+ ボタンで8pt〜24ptの範囲でフォントサイズを調整でき、変更のたびに `AnalysisSettings::kifuAnalysisFontSize`（`KifuAnalysis/fontSize`）へ保存される。大きさは `FontSizeHelper` が持ち、ボタンは `FontSizeControl` で結ぶ。未保存のときは 10pt から始め、範囲外の保存値は 8〜24 に収める。列幅は、見出しの `TableHeaderView::sectionResizedByUser`（利用者がドラッグしたときだけ）を受けて `AnalysisSettings::kifuAnalysisColumnWidths()` / `setKifuAnalysisColumnWidths()` で保存・復元する。ドックの位置・大きさ・浮動・表示は、ほかのドックと同じく `DockRegistry::saveStates()` が `DockSettings::setDockState()` で保存し（グループは `KifuAnalysisResultsDock`）、起動時に `DockRegistry::createAll()` が `DockSettings::dockState()` から戻す。
+A-/A+ ボタンで8pt〜24ptの範囲でフォントサイズを調整でき、変更のたびに `AnalysisSettings::kifuAnalysisFontSize`（`KifuAnalysis/fontSize`）へ保存される。大きさは `FontSizeHelper` が持ち、ボタンは `FontSizeControl` で結ぶ。未保存のときは 10pt から始め、範囲外の保存値は 8〜24 に収める。列幅は、利用者がドラッグした列だけを `ColumnWidthMemory` が `AnalysisSettings::kifuAnalysisColumnWidths()`（`ListSetting<int>`。以前の版の1つの値の保存は初めて読むときに配列に移す）に保存し、表を作るときに戻す（0 の列は内容に合わせる）。ドックの位置・大きさ・浮動・表示は、ほかのドックと同じく `DockRegistry::saveStates()` が `DockSettings::setDockState()` で保存し（グループは `KifuAnalysisResultsDock`）、起動時に `DockRegistry::createAll()` が `DockSettings::dockState()` から戻す。
 
 ### 9.9 KifuAnalysisListModel — 解析結果テーブルモデル
 
@@ -6257,7 +6261,7 @@ Urgency::Warn5  → 強い警告色（残5秒・秒読み）
 | BranchTreeView | QGraphicsView | 分岐ツリーのドック（ドックの中身そのもの。objectName は `branchTreeView`） | 分岐ツリーの図（`KifuBranchTree` を読むだけの観察者）。`setTree(tree)` でツリーの型付きの知らせを自分で受け、`nodeAppended` で手順の末尾に1手足しただけならその手だけを描き足し、それ以外（新しい変化・並べ替え・削除・作り直し）は作り直す。外とは `KifuBranchNode` の ID だけでやり取りする（`setCurrentNode(nodeId, center)`・`currentNodeId()`、シグナル `nodeActivated(nodeId)`・`nodeContextMenuAboutToShow(nodeId, menu)`、スロット `refreshNode(nodeId)`）。描く前に届いた表示中の手は、描いた時点で目立たせる。キー・マウス・ホイール・右クリックは `QGraphicsView` のイベント関数の上書きで受ける（イベントフィルタは使わない）。折りたたみもノード ID で指定する（`setCollapsed`・`isCollapsed`・`isCollapsible`・`expandAll`）。選べるかは `setClickEnabled()`（`UiStatePolicyManager` が決める）。テスト・自動化用に `isDrawn(nodeId)`・`laneOf(nodeId)`・`rebuildCount()` を持つ。行（変化）の折りたたみと段の割り当ては値型 `BranchTreeLayout`（`branchtreelayout.h/.cpp`）が計算する |
 | BranchNodeItem | QGraphicsPathItem | BranchTreeView の中 | 図の1手（開始局面も同じクラスで、少し大きく太い枠で描く）。ノード ID・行・手数を型付きのメンバで持ち、`setCurrent()`・`setComment()`・`setCollapsedBadge()` で見た目を変える。`BranchTreeItemRoles`（`src/common/branchtreeitemroles.h`）の項目は自動化 API が読むためだけに付ける |
 | EvaluationChartWidget | QWidget | MainWindow 下部（QDockWidget） | Qt Charts による評価値グラフ（2エンジン対応、ゼロライン、カーソル線）。点は `setSeries()` で渡された `EvaluationSeries`（書き手は `EvaluationGraphPresenter`）を描くだけ。表示の設定は値 `EvaluationChartSettings`（`chartSettings()`・`setChartSettings()`。変えると `AnalysisSettings::evalChart` に保存）、軸は `EvaluationChartRange::compute()` が設定・点の範囲・描く場所の大きさから決める（`axes()`）。「表示設定…」は `settingsRequested` を出すだけで、ダイアログは `DialogLauncher` が開く |
-| EngineInfoWidget | QWidget | 思考・検討のページ内（エンジンごとの情報欄） | `UsiCommLogModel` の値を1行の表に出す（エンジン名・予想手・探索手・深さ・ノード数・探索局面数/秒・ハッシュ使用率。予想手の列は隠せる）。探索状況（`EngineSearchStatus`）の数値の書式（3桁区切り・百分率）はここで決める。列幅は保存する |
+| EngineInfoWidget | QWidget | 思考・検討のページ内（エンジンごとの情報欄） | `UsiCommLogModel` の値を1行の表に出す（エンジン名・予想手・探索手・深さ・ノード数・探索局面数/秒・ハッシュ使用率。予想手の列は隠せる）。探索状況（`EngineSearchStatus`）の数値の書式（3桁区切り・百分率）はここで決める。列幅は利用者がドラッグした列だけを保存し（`ColumnWidthMemory`）、その列は内容に合わせて変えない |
 | GameInfoPane | QWidget | 対局情報ドック（思考などのドックとタブにまとめる） | 対局情報のツールバー（元に戻す・切り取り・行の追加など）＋ QTableView。中身・編集の履歴は `GameInfoEditModel`（`src/models/`）。編集は表に入れた時点で文書に入る（「対局情報更新」のボタンは無い）。合成ルートが作り、棋譜の文書（`KifuDocument`）の対局情報を編集する画面としてつなぐ（文書の `headerReset` で中身を入れ、表が変わると `gameInfoEdited` で文書に返す） |
 | AnalysisResultsPanel | QWidget | 棋譜解析の結果ドック | 結果の表（`PvTableView`）・停止ボタン・文字の大きさ。モデルは `setModel()` で1度だけ結ぶ。列幅は自分で保存する。ドックの表示は `KifuAnalysisController` が行う（9.8節） |
 | MenuWindow | QWidget | メニューのドック（棋譜ドックとタブにまとめる。`src/widgets/`） | メニュー項目をボタン形式で表示（タブ付き、お気に入り、カスタマイズモード）。作るのは `MenuWindowController` |
@@ -6277,7 +6281,7 @@ Urgency::Warn5  → 強い警告色（残5秒・秒読み）
 | LongLongSpinBox | QAbstractSpinBox | 64bit 整数対応スピンボックス（Qt 標準 QSpinBox は int 範囲のみ） |
 | DialogUtils | （名前空間） | ダイアログの大きさの保存・復元（`restoreDialogSize`・`saveDialogSize`）など |
 | FontSizeHelper | QObject | A-/A+ のフォントサイズ調整（範囲・保存・変更の通知）。設定の宣言を渡すと初期値の読み込みと保存も行う |
-| FontSizeControl | QObject | A-/A+ のボタン2つを `FontSizeHelper` に結ぶ。ボタンの文字・見た目（`ButtonStyles::fontButton()`）・ツールチップと読み上げ名（「文字を小さくする」「文字を大きくする」）と、範囲の端で押せなくする処理はここだけで決める。ボタンは呼び出し側が置き、objectName も呼び出し側が決める。ボタンには役割のプロパティ `FontSizeControl::kRoleProperty`（`"fontSizeControl"`。値は `"decrease"`・`"increase"`）を付け、テストは表示の文字ではなくこれで探す |
+| FontSizeControl | QObject | A-/A+ のボタン2つを `FontSizeHelper` に結ぶ。ボタンの文字・見た目（`ButtonStyles::fontButton()`）・大きさ（ドックのパネルは `PanelButton`、ダイアログと定跡ウィンドウは `Sizing::Dialog` で文字に合わせる）・ツールチップと読み上げ名（「文字を小さくする」「文字を大きくする」）と、範囲の端で押せなくする処理はここだけで決める。ボタンは呼び出し側が置き、objectName も呼び出し側が決める。ボタンには役割のプロパティ `FontSizeControl::kRoleProperty`（`"fontSizeControl"`。値は `"decrease"`・`"increase"`）を付け、テストは表示の文字ではなくこれで探す |
 | DialogFontScale | QWidget | 全ダイアログ・メッセージボックスに A-/A+ と保存を付ける（`install(dialog, 宣言, options)`）。各部品を元の大きさからの差で拡大・縮小する |
 | EditActions | QObject | 元に戻す・やり直す・切り取り・コピー・貼り付けの5つの `QAction`（`enum Kind`、`action(kind)`・`setEnabled(kind, on)`）。標準ショートカット（`QKeySequence::Undo` など。`Qt::WidgetWithChildrenShortcut` で host に追加）・アイコン・実際のショートカットを添えたツールチップはここだけで決める。ボタンは `createButton(kind, parent)`（`setDefaultAction` した `QToolButton`。フォーカスを取らない）。何をするか・有効にするかは呼び出し側が決める（`CommentEditorPanel` は `QTextEdit` の `undo()` などと `undoAvailable` などに、`GameInfoPane` は自分の編集の履歴とクリップボード操作に結ぶ） |
 | EngineSelector | QObject | 登録エンジンを選ぶ部品（下記） |
@@ -6553,7 +6557,7 @@ Qt の公式サンプルコードを参考にした自動折り返しレイア�
 - **ダイアログ**: `DialogFontScale::install(this, 宣言, options)` を呼ぶ。初期値の読み込み、変更のたびの保存、全部品への反映をまとめて任せる。ダイアログに `FontSizeHelper` のメンバや A-/A+ 用の connect・`applyFontSize()` は書かない（§12.5）
 - **ドックのパネル**: `FontSizeHelper` を持ち、置いた A-/A+ のボタンを `FontSizeControl` で結ぶ。`fontSizeChanged` を表示の作り直しにつなぐ。ThinkingPanel・ConsiderationPanel・UsiLogPanel・CsaLogPanel・GameInfoPane・RecordPane（`GameSettings::kifuPaneFontSize`。範囲と保存は RecordPane の `FontSizeHelper` が持つ）・CommentEditorPanel・AnalysisResultsPanel・JosekiWindow・MenuWindow（`AppSettings::menuWindowFontSize`）が使う
 
-A-/A+ のボタンの文字・見た目・説明と、範囲の端で押せなくする処理は、どちらも `FontSizeControl` が決める。
+A-/A+ のボタンの文字・見た目・大きさ・説明と、範囲の端で押せなくする処理は、どちらも `FontSizeControl` が決める。ドックのパネルの A-/A+ とほかの小さなボタン（アイコン・短い文字）は `PanelButton::setup()` の大きさ（32×24 を基本に、文字と書体に合わせて広げる。書体が変われば測り直す）で、パネルはボタンの大きさを決めない。
 
 **3. イベントフィルタの活用**
 
@@ -7031,7 +7035,7 @@ AnalysisSettings::usiLogFontSize.remove();               // 保存値を消す
 |---|---|---|
 | `BoundedSetting<T>(キー, 既定値, 最小, 最大)` | 1つのキー。読みも書きも `qBound` で範囲に収める | `AppSettings::pieceSoundVolume`（0〜100）、`AppearanceSettings::appearancePieceFilter`、`AnalysisSettings::usiLogCommandTarget`（0〜2） |
 | `StructSetting<T>({SettingField<T>::of(キー, &T::メンバ), ...}, 整える関数)` | メンバごとに1つのキー。保存していない項目は `T{}` の既定値のまま | `AppSettings::pieceSoundTone`（`PieceSoundTone::clamped`）、`TsumeshogiSettings::playPreferences`・`collectionPreferences`、`AnalysisSettings::evalChart`・`consideration`（検討の条件。エンジンの名前は保存しない） |
-| `ListSetting<T>(配列のキー, 要素のキー)` | QSettings の配列。配列のキーは実行時に作ってもよい | `JosekiSettings::josekiWindowColumnWidths`、思考・検討の表の列幅 |
+| `ListSetting<T>(配列のキー, 要素のキー)` | QSettings の配列。配列のキーは実行時に作ってもよい | `JosekiSettings::josekiWindowColumnWidths`、思考・検討の表の列幅（`ColumnWidthMemory` が読み書きする） |
 | `StructListSetting<T>(配列のキー, {項目...})` | 構造体の配列 | `NetworkSettings::csaServerHistory`（`CsaServerHistoryEntry`。最大 `kCsaServerHistoryLimit` = 10 件） |
 
 ```cpp
@@ -7043,13 +7047,13 @@ AppSettings::pieceSoundVolume.set(percent);
 
 #### 関数として書く項目
 
-宣言の表（`Setting<T>` と上の型）で表せない処理が要る項目だけを、ドメイン別ヘッダーに関数として宣言し、`.cpp` で `SettingsCommon::openSettings()` を使って実装する。キーは `settingskeys.h` に置く（外観のキーは `appearancesettings.cpp` の中）。古い保存値を引き継ぐ（`AppearanceSettings::appearanceSection`・`pieceStyle`、以前の版の開始局面の番号を読む `GameSettings::StartGame::startingPosition()`・`setStartingPosition()`）、保存の形と値の形を換える（対局開始の時間を時間・分・秒の項目に保存する `GameSettings::StartGame::Player::time()`・`setTime()`・`defaultTime()`。`gamesettings.cpp`）、未保存の項目をほかの項目で代える（`AppearanceSettings::boardVisuals`。駒台の木目が未保存なら将棋盤の木目を使う）、独自の保存形式（`AppearanceSettings::boardColors` の色の文字列、`AnalysisSettings::kifuAnalysisColumnWidths` の `QVariantList`、`DockSettings::dockState` のグループ名を引数で受けるキー）、キーを実行時に作る（`AnalysisSettings::engineInfoColumnWidths(ThinkingTable)`。中で `ListSetting<int>` を使う）、ドックレイアウトの名前の一覧などである。列幅は `TableHeaderView::sectionResizedByUser`（利用者がドラッグしたときだけ）を受けて、`EngineInfoWidget`・`ThinkingTableView` などが自分で保存する（思考・検討の表は `AnalysisSettings::ThinkingTable` の `Engine1`・`Engine2`・`Consideration` ごと）。補助ダイアログの文字の大きさと大きさは、関数ではなく `appsettings.h` に宣言を1行ずつ書く（`AppSettings::promotionDialogFontSize`・`promotionDialogSize`・`messageBoxFontSize`・`bookmarkDialogFontSize` など。キーは `DialogAppearance/<id>/fontSize`（既定値 0）・`DialogAppearance/<id>/size`（既定値 `QSize()`）。既定値 0 は、未保存ならダイアログの元の大きさから始めるという意味）。
+宣言の表（`Setting<T>` と上の型）で表せない処理が要る項目だけを、ドメイン別ヘッダーに関数として宣言し、`.cpp` で `SettingsCommon::openSettings()` を使って実装する。キーは `settingskeys.h` に置く（外観のキーは `appearancesettings.cpp` の中）。古い保存値を引き継ぐ（`AppearanceSettings::appearanceSection`・`pieceStyle`、以前の版の開始局面の番号を読む `GameSettings::StartGame::startingPosition()`・`setStartingPosition()`）、保存の形と値の形を換える（対局開始の時間を時間・分・秒の項目に保存する `GameSettings::StartGame::Player::time()`・`setTime()`・`defaultTime()`。`gamesettings.cpp`）、未保存の項目をほかの項目で代える（`AppearanceSettings::boardVisuals`。駒台の木目が未保存なら将棋盤の木目を使う）、以前の版の保存形式を移す（`AnalysisSettings::kifuAnalysisColumnWidths()` の `QVariantList`・`GameSettings::gameInfoColumnWidths()` の項目名の列幅1つを、初めて読むときに配列にする）、独自の保存形式（`AppearanceSettings::boardColors` の色の文字列、`DockSettings::dockState` のグループ名を引数で受けるキー）、キーを実行時に作る宣言（`AnalysisSettings::engineInfoColumnWidths(ThinkingTable)`・`thinkingViewColumnWidths(ThinkingTable)` は `ListSetting<int>` の宣言を返す）、ドックレイアウトの名前の一覧などである。列幅は、表の見出しに付けた `ColumnWidthMemory`（widgets）が、利用者がドラッグした列だけを覚えて保存する（規則は1つ: 0 は自動、正の値は利用者が決めた幅。思考・検討の表は `AnalysisSettings::ThinkingTable` の `Engine1`・`Engine2`・`Consideration` ごと）。補助ダイアログの文字の大きさと大きさは、関数ではなく `appsettings.h` に宣言を1行ずつ書く（`AppSettings::promotionDialogFontSize`・`promotionDialogSize`・`messageBoxFontSize`・`bookmarkDialogFontSize` など。キーは `DialogAppearance/<id>/fontSize`（既定値 0）・`DialogAppearance/<id>/size`（既定値 `QSize()`）。既定値 0 は、未保存ならダイアログの元の大きさから始めるという意味）。
 
 ```cpp
-// src/services/analysissettings.cpp より（表の番号でキーを作り、読み書きは ListSetting に任せる）
-QList<int> engineInfoColumnWidths(ThinkingTable table)
+// src/services/analysissettings.cpp より（表の番号でキーを作った宣言を返し、読み書きは ListSetting に任せる）
+ListSetting<int> engineInfoColumnWidths(ThinkingTable table)
 {
-    return ListSetting<int>(tableKey(SettingsKeys::kEngineInfoColumnWidthsFmt, table), SettingsKeys::kArrayWidth)();
+    return {tableKey(SettingsKeys::kEngineInfoColumnWidthsFmt, table), SettingsKeys::kArrayWidth};
 }
 ```
 
@@ -7164,13 +7168,13 @@ ShogiClock::setCurrentPlayer(gameBoard->board()->currentPlayer())
 | オブジェクト | 設定方法 | 役割 |
 |-------------|---------|------|
 | `KifuNavigationState` | コンストラクタ | 表示中の手・選んだ手順の管理（非所有）。分岐ツリー（`KifuBranchTree`）は `state()->tree()` から辿る |
-| 移動前の確認 | `addLeaveGuard(std::function<bool()>)` | 利用者の操作で別の手へ移る前の確認（足した順に聞き、1つでも false なら移らない）。合成ルートが `PositionEditSession::allowsLeavingMove()`（局面編集中でない）と `CommentCoordinator::confirmLeaveEditingMove()`（未更新のコメントを破棄してよい）を足す |
+| 移動前の確認 | `addLeaveGuard(std::function<bool()>)` | 利用者の操作で別の手へ移る前の確認（足した順に聞き、1つでも false なら移らない）。合成ルートが `PositionEditSession::allowsLeavingMove()`（局面編集中でない）と `CommentCoordinator::confirmLeaveEditingMove()`（未更新のコメントを更新するか捨てるか尋ねる）を足す |
 
 #### 局面送りの6つの操作（QAction）
 
 局面送りの6つの操作は、このクラスが `QAction` の組として1つだけ持つ（`enum Step { First, Back10, Prev, Next, Fwd10, Last }`、`action(Step)`）。各 `QAction` の `triggered` を対応スロットにつなぎ、どのスロットも、まず `confirmLeave()` で確認を通す。
 
-`bindButtons(const Buttons&)`（`Buttons` は `Step` の順の `std::array<QAbstractButton*, 6>`）は、ボタンの `clicked` を `QAction::trigger` に、`QAction::enabledChanged` をボタンの `setEnabled` につなぐ。合成ルートは棋譜欄と評価値グラフの2組のボタンを同じ `QAction` に結ぶので、有効・無効を2組に中継しなくても揃う。ボタンの文字は各パネルが決める（棋譜欄は ▲▼、評価値グラフは ◀▶）。有効・無効は `setStepActionsEnabled(bool)` で6つまとめて切り替え（`UiStatePolicyManager` の `WidgetNavigation`）、`stepActionsEnabled()` で読む。
+`bindButtons(const StepButtons*)` は、ボタンの列（widgets の `StepButtons`。`Step` と同じ順の6つ）の各ボタンの `clicked` を `QAction::trigger` に、`QAction::enabledChanged` をボタンの `setEnabled` につなぎ、ボタンの説明（ツールチップ・読み上げ名）を `QAction` の文にする。合成ルートは棋譜欄と評価値グラフの2組のボタンを同じ `QAction` に結ぶので、有効・無効を2組に中継しなくても揃う。ボタンは `StepButtons` が1か所で作り、記号は向きで決まる（棋譜欄は縦の ▲▼、評価値グラフは横の ◀▶）。有効・無効は `setStepActionsEnabled(bool)` で6つまとめて切り替え（`UiStatePolicyManager` の `WidgetNavigation`）、`stepActionsEnabled()` で読む。
 
 | 操作（`Step`） | スロット | 動作 |
 |-------|---------|------|
@@ -7713,7 +7717,7 @@ m_c.dockLayoutManager = new DockLayoutManager(&m_window, m_c.dockRegistry, &m_wi
 - `showCurrentComment()` — `KifuNavigationState::changed()` を受けて、表示中の手のコメントをコメント欄（`CommentEditorPanel`）に出す
 - `onCommentUpdated()` — コメント欄の「コメント更新」を表示中のノードに書く
 - `onBookmarkEditRequested()` — 棋譜欄の「しおり」ボタンで、表示中の手のしおりを編集する
-- `confirmLeaveEditingMove()` — 別の手へ移る前に、未更新のコメントを破棄してよいか確認する（合成ルートが `KifuNavigationController::addLeaveGuard()` に足す）
+- `confirmLeaveEditingMove()` — 別の手へ移る前に、未更新のコメントをどうするか尋ねる（合成ルートが `KifuNavigationController::addLeaveGuard()` に足す）。確認は棋譜・定跡と同じ `UnsavedChangesPrompt`（保存・破棄・キャンセル）で、保存は書いていた手に確定し（`CommentEditorPanel::commitPendingComment()`）、破棄は捨てる（`discardPendingComment()`）。コメント欄は未更新か（`hasUnsavedComment()`）を返し、確定・破棄を受けるだけで、確認は出さない
 
 編集する手は、`Deps::navState` の表示中の手（`KifuNavigationState`）から決める。
 
@@ -9308,6 +9312,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | CliCommandSpecs | NS | cli | `shogiboardq-cli` の全コマンドの引数の表（引数名は MCP のツールと同じ。オプション名は引数名の `_` を `-` にしたもの、旧名・`--no-<名前>`・`--params-json` も受ける。`parse()`・`usage()`） | 第14章 |
 | ClockTimeSource | C | engine | ローカル対局の対局時計から読むエンジンの時間の出どころ（`MatchTimeSource` の実装。`MatchCoordinator` が持つ） | 第7章 |
 | CollapsibleGroupBox | C | widgets | 折りたたみ可能なグループボックス | 第11章 |
+| ColumnWidthMemory | C | widgets | 利用者が決めた列幅の覚えと保存（0 は自動、正の値は利用者の幅。表の見出しに付ける） | 第11章 |
 | CommentCoordinator | C | ui/coordinators | コメント編集の統合調整 | 第14章 |
 | ConsecutiveGameSeries | C | game | エンジン同士の連続対局（局数・手番の入れ替え・次局の計画） | 第6章 |
 | ConsiderationSettings | S | services | 検討の条件の値（エンジン・時間・候補手の数。範囲もここ。`analysissettings.h`） | 第9章 |
@@ -9464,6 +9469,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | NumericRightAlignCommaDelegate | C | widgets | 数値右寄せカンマ区切りデリゲート | 第11章 |
 | NyugyokuDeclarationHandler | C | ui/controllers | 利用者の入玉宣言（確認・宣言・結果の表示。`GameChannel` 経由でローカル対局・通信対局に共通） | 第10章 |
 | OperationSpec | S | automation | 操作1つ（CLI のコマンド・自動化 API のメソッド）の名前・説明・引数の表 | 第14章 |
+| PanelButton | N | widgets | ドックのパネルの小さなボタンの見た目と大きさ（`setup`・`sizeFor`） | 第11章 |
 | ParamSpec | S | automation | 引数1つの仕様（名前・型・必須・範囲・既定値・選択肢・説明）。`ParamSpecs::inputSchema()`・`validate()` で JSON Schema の出力と検査を行う | 第14章 |
 | ParseOptions | S | kifu | 読めない手・指せない手・パスの扱い（手順を打ち切るか、棋譜全体を失敗にするか） | 第8章 |
 | ParseReport | C | kifu | 読み込み中の警告と失敗の記録（`ParseOptions` に従って読めない手を扱う） | 第8章 |
@@ -9513,8 +9519,9 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | ShogiViewInteraction | C | views | 盤のドラッグの状態 | 第11章 |
 | StartGameDialog | C | dialogs | 対局開始設定ダイアログ（選んだ条件は `data()` で `StartGameDialogData` として返す） | 第11章 |
 | StartGameDialogData | S | game | 対局開始ダイアログで選んだ対局の条件（対局者2人・開始局面の手合割・最大手数・連続対局など） | 第6章 |
+| StepButtons | C | widgets | 局面送りの6つのボタンの列（棋譜欄は縦、評価値グラフは横） | 第11章 |
 | TableButtonDelegate | C | widgets | 表のセルを控えめなボタンとして描画する（読み筋の盤面・定跡手の着手と編集など） | 第11章 |
-| TableHeaderView | C | widgets | 表の見出し。列幅は利用者がドラッグしたときだけ `sectionResizedByUser` で知らせて保存する | 第11章 |
+| TableHeaderView | C | widgets | 表の見出し。利用者が境目をドラッグした列だけを `sectionResizedByUser` で知らせる | 第11章 |
 | TerminalCodes | NS | kifu/formats | 棋譜形式ごとの終局の符号（CSA・JKF・USI・USEN） | 第8章 |
 | ThinkingInfoFormatter | C | engine | エンジンの info 行を、思考の表の行（`ThinkingInfoRow`）と探索状況（`EngineSearchStatus`）にする | 第7章 |
 | ThinkingInfoRow | S | engine | 思考タブの1行分の表示データ | 第7章 |
@@ -9812,12 +9819,14 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | engineinfowidget | 第11章 | エンジン情報（探索状況の書式を決める。列幅を自分で保存） |
 | menubuttonwidget | 第11章 | メニューボタン |
 | collapsiblegroupbox | 第11章 | 折りたたみボックス |
+| columnwidthmemory | 第11章 | 利用者が決めた列幅の覚えと保存 |
 | elidelabel | 第11章 | テキスト省略ラベル |
 | flowlayout | 第11章 | フローレイアウト |
 | globaltooltip | 第11章 | ツールチップ |
 | apptooltipfilter | 第11章 | ツールチップフィルタ |
 | longlongspinbox | 第11章 | 64bit スピンボックス |
 | numericrightaligncommadelegate | 第11章 | 数値デリゲート |
+| panelbutton | 第11章 | ドックのパネルの小さなボタンの見た目と大きさ |
 | dialogutils | 第11章, 第17章 | ダイアログの大きさの保存・復元など |
 | fontsizehelper | 第11章, 第17章 | A-/A+ のフォントサイズ調整 |
 | fontsizecontrol | 第11章 | A-/A+ のボタンの組 |
@@ -9828,10 +9837,11 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | playersetupwidget | 第11章 | 対局開始ダイアログの対局者1人の欄 |
 | timecontroleditor | 第11章 | 片方の対局者の持ち時間・秒読み・加算の欄 |
 | settingsformbinding | 第11章 | 入力欄と設定の宣言の対応の表 |
+| stepbuttons | 第11章 | 局面送りの6つのボタンの列 |
 | analysisresultspanel | 第9章, 第11章 | 棋譜解析の結果ドックの中身（結果の表・停止ボタン・文字の大きさ） |
 | considerationpanel | 第9章, 第11章 | 検討ドックの中身（ツールバー・エンジン情報・候補手の表。設定の正本と実行の状態） |
 | gameinfopane | 第11章 | 対局情報ドックの中身（ツールバー＋表） |
-| tableheaderview | 第11章 | 表の見出し。列幅は利用者がドラッグしたときだけ `sectionResizedByUser` で知らせて保存する |
+| tableheaderview | 第11章 | 表の見出し。利用者が境目をドラッグした列だけを `sectionResizedByUser` で知らせる |
 | thinkingpanel | 第11章 | 思考ドックの中身（エンジン2つ分の情報と思考の表、対局中の矢印のチェック） |
 | pvtableview | 第11章 | 読み筋の表（数値の列・「盤面」ボタン・読み筋の描き方。思考の表と棋譜解析の結果の表で使う） |
 | thinkingtableview | 第11章 | 思考の表（`PvTableView` の派生。対局のエンジン2つと検討タブで共用。列幅） |

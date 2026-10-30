@@ -18,6 +18,7 @@ class QGridLayout;
 class QComboBox;
 class QPushButton;
 class EvaluationSeries;
+class StepButtons;
 
 class EvaluationChartWidget : public QWidget
 {
@@ -45,13 +46,8 @@ public:
     /// 点のクリックと矢印ボタンによる局面移動を切り替える（表示設定・評価値の更新は常に可能）
     void setNavigationEnabled(bool enabled);
 
-    // 棋譜欄と同じ6つのナビゲーションボタン（KifuNavigationController::bindButtons で QAction に結び付ける）
-    QPushButton* firstButton() const { return m_navButtons[NavFirst]; }
-    QPushButton* back10Button() const { return m_navButtons[NavBack10]; }
-    QPushButton* prevButton() const { return m_navButtons[NavPrev]; }
-    QPushButton* nextButton() const { return m_navButtons[NavNext]; }
-    QPushButton* fwd10Button() const { return m_navButtons[NavFwd10]; }
-    QPushButton* lastButton() const { return m_navButtons[NavLast]; }
+    /// 棋譜欄と同じ6つの局面送りのボタン（KifuNavigationController::bindButtons で QAction に結び付ける）
+    StepButtons* stepButtons() const { return m_navBar; }
 
 signals:
     /// 「表示設定…」を押した（表示設定のダイアログは上の層が開き、setChartSettings で戻す）
@@ -74,7 +70,6 @@ private slots:
     void onLabelsChanged();
 
 private:
-    enum NavButton { NavFirst, NavBack10, NavPrev, NavNext, NavFwd10, NavLast, NavButtonCount };
     using Score = UsiScore;
     int yAxisLimit() const { return m_axes.yLimit; }
     int xAxisLimit() const { return m_axes.xLimit; }
@@ -87,7 +82,6 @@ private:
     void setupSeries();
     void setupChartViewAndLayout();
     QWidget* createToolbar();
-    QWidget* createNavigationBar(QWidget* parentWidget);
     void updateNavigationPlacement();
     void updateReferenceLines();
     void rebuildSeries();
@@ -119,8 +113,7 @@ private:
     QWidget* m_rangeSelector = nullptr;
     QComboBox* m_rangeMode = nullptr;
     QPushButton* m_settingsButton = nullptr;
-    QWidget* m_navBar = nullptr;
-    QPushButton* m_navButtons[NavButtonCount] = {};
+    StepButtons* m_navBar = nullptr;   ///< 局面送りのボタン（横）
     bool m_navigationEnabled = true;
     bool m_navBarWrapped = false; // 幅が足りず、ナビゲーションボタンを2行目に置いている
     int m_currentPly = 0;

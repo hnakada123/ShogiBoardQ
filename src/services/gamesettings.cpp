@@ -1,9 +1,25 @@
 /// @file gamesettings.cpp
-/// @brief 対局開始の設定のうち、保存の形と値の形が違う項目（時間の換算・以前の版の開始局面の番号）
+/// @brief 対局・棋譜の設定のうち、宣言の表で表せない項目（時間の換算・以前の版の値の引き継ぎ）
 
 #include "gamesettings.h"
 
 #include <iterator>
+
+namespace GameSettings {
+
+ListSetting<int> gameInfoColumnWidths()
+{
+    const ListSetting<int> widths{QStringLiteral("GameInfo/columnWidths"), "width"};
+    // 以前の版は項目名の列幅だけを1つの値で保存していた
+    const Setting<int> legacy{"GameInfo/keyColumnWidth", 0};
+    if (legacy.isSaved()) {
+        widths.set({qMax(0, legacy())});
+        legacy.remove();
+    }
+    return widths;
+}
+
+} // namespace GameSettings
 
 namespace GameSettings::StartGame {
 

@@ -4,7 +4,7 @@
 #include "scoretext.h"
 #include "evaluationchartview.h"
 #include "evaluationseries.h"
-#include "buttonstyles.h"
+#include "stepbuttons.h"
 
 #include <QChart>
 #include <QComboBox>
@@ -156,45 +156,11 @@ QWidget* EvaluationChartWidget::createToolbar()
     m_settingsButton->setObjectName(QStringLiteral("evalDisplaySettings"));
     connect(m_settingsButton, &QPushButton::clicked, this, &EvaluationChartWidget::settingsRequested);
     m_toolbarLayout->addWidget(m_rangeSelector, 0, 0, Qt::AlignLeft);
-    m_toolbarLayout->addWidget(createNavigationBar(toolbar), 0, 1);
+    m_navBar = new StepButtons(Qt::Horizontal, QStringLiteral("evalNav"), toolbar);
+    m_navBar->setObjectName(QStringLiteral("evalNavigation"));
+    m_toolbarLayout->addWidget(m_navBar, 0, 1);
     m_toolbarLayout->addWidget(m_settingsButton, 0, 2, Qt::AlignRight);
     return toolbar;
-}
-
-QWidget* EvaluationChartWidget::createNavigationBar(QWidget* parentWidget)
-{
-    struct Spec {
-        const char* objectName;
-        QString text;
-        QString toolTip;
-    };
-    // 横軸が手数なので ◀▶ で向きを表す。⏮⏭ は多くの日本語フォントに無いため、
-    // 読み筋の盤面と同じく ◀▶ と縦棒を組み合わせて記号の大きさを揃える。
-    const Spec specs[NavButtonCount] = {
-        {"evalNavFirst", QStringLiteral("|◀"), tr("最初に戻る")},
-        {"evalNavBack10", QStringLiteral("◀◀"), tr("10手戻る")},
-        {"evalNavPrev", QStringLiteral("◀"), tr("1手戻る")},
-        {"evalNavNext", QStringLiteral("▶"), tr("1手進む")},
-        {"evalNavFwd10", QStringLiteral("▶▶"), tr("10手進む")},
-        {"evalNavLast", QStringLiteral("▶|"), tr("最後に進む")},
-    };
-    m_navBar = new QWidget(parentWidget);
-    m_navBar->setObjectName(QStringLiteral("evalNavigation"));
-    auto* layout = new QHBoxLayout(m_navBar);
-    layout->setContentsMargins(0, 0, 0, 0);
-    layout->setSpacing(3);
-    const QString style = ButtonStyles::panelToolButton();
-    for (int i = 0; i < NavButtonCount; ++i) {
-        auto* button = new QPushButton(specs[i].text, m_navBar);
-        button->setObjectName(QString::fromLatin1(specs[i].objectName));
-        button->setToolTip(specs[i].toolTip);
-        button->setAccessibleName(specs[i].toolTip);
-        button->setStyleSheet(style);
-        button->setFixedSize(36, 24);
-        layout->addWidget(button);
-        m_navButtons[i] = button;
-    }
-    return m_navBar;
 }
 
 void EvaluationChartWidget::updateNavigationPlacement()

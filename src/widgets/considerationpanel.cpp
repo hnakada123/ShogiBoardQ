@@ -367,17 +367,9 @@ void ConsiderationPanel::applyFontSize()
     QFont font;
     font.setPointSize(size);
 
-    // ツールバー要素のフォントサイズ更新
-    // A+/A- ボタンはフォントサイズに合わせてボタンサイズも更新
-    {
-        const QFontMetrics fm(font);
-        const int btnW = qMax(36, fm.horizontalAdvance(QStringLiteral("A+")) + 8);
-        const int btnH = qMax(24, fm.height() + 4);
-        m_btnConsiderationFontDecrease->setFont(font);
-        m_btnConsiderationFontDecrease->setFixedSize(btnW, btnH);
-        m_btnConsiderationFontIncrease->setFont(font);
-        m_btnConsiderationFontIncrease->setFixedSize(btnW, btnH);
-    }
+    // ツールバー要素のフォントサイズ更新（A-/A+ の大きさは書体に合わせて FontSizeControl が決める）
+    m_btnConsiderationFontDecrease->setFont(font);
+    m_btnConsiderationFontIncrease->setFont(font);
     m_engineComboBox->setFont(font);
     m_btnEngineSettings->setFont(font);
     m_unlimitedTimeRadioButton->setFont(font);

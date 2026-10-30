@@ -2,6 +2,7 @@
 /// @brief 棋譜解析の結果ドックの中身の実装
 
 #include "analysisresultspanel.h"
+#include "columnwidthmemory.h"
 #include "fontsizecontrol.h"
 #include "tableheaderview.h"
 #include "tablemodelutils.h"
@@ -64,20 +65,14 @@ AnalysisResultsPanel::AnalysisResultsPanel(QWidget* parent)
     // 空のモデルが設定されているのでヘッダー設定を適用
     setupHeaderConfiguration();
 
-    m_columnWidths = AnalysisSettings::kifuAnalysisColumnWidths();
-    if (m_columnWidths.size() != kSizedColumns) m_columnWidths = QList<int>(kSizedColumns, 0);
-    // 利用者が見出しの境目をドラッグしたときだけ保存する（内容に合わせた自動の幅は保存しない）
-    connect(header, &TableHeaderView::sectionResizedByUser, this, &AnalysisResultsPanel::saveColumnWidth);
+    // 利用者が見出しの境目をドラッグした列だけ保存する（内容に合わせた自動の幅は保存しない）
+    m_columnWidths = new ColumnWidthMemory(header, AnalysisSettings::kifuAnalysisColumnWidths(), kSizedColumns);
 
     m_fontDecrease = new QPushButton(this);
     m_fontIncrease = new QPushButton(this);
     m_fontDecrease->setObjectName(QStringLiteral("analysisFontDecrease"));
     m_fontIncrease->setObjectName(QStringLiteral("analysisFontIncrease"));
     new FontSizeControl(m_fontDecrease, m_fontIncrease, &m_fontSize);
-    for (auto* button : {m_fontDecrease, m_fontIncrease}) {
-        button->setFixedWidth(40);
-        button->setMinimumHeight(28);
-    }
 
     m_stopButton = new QPushButton(tr("解析中止"), this);
     m_stopButton->setObjectName(QStringLiteral("analysisStopButton"));
@@ -181,7 +176,7 @@ void AnalysisResultsPanel::reflowNow()
     // 解析中は1局面ごとに行が増え、全行を測り直すと1行あたりの処理が行数に比例して伸びていた。
     const bool measureAll = m_reflowAllRows || m_reflowFromRow < 0 || rowCount == 0;
     for (int col = 0; col < kSizedColumns; ++col) {
-        int width = m_columnWidths.value(col);
+        int width = m_columnWidths->userWidth(col);
         if (width <= 0) {
             const int previousWidth = m_header->sectionSize(col);
             if (measureAll) {
@@ -200,13 +195,6 @@ void AnalysisResultsPanel::reflowNow()
     }
     m_reflowAllRows = false;
     m_reflowFromRow = -1;
-}
-
-void AnalysisResultsPanel::saveColumnWidth(int column, int, int newSize)
-{
-    if (column < 0 || column >= kSizedColumns) return;
-    m_columnWidths[column] = newSize;
-    AnalysisSettings::setKifuAnalysisColumnWidths(m_columnWidths);
 }
 
 void AnalysisResultsPanel::onModelReset()

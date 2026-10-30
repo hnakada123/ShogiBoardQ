@@ -5,9 +5,10 @@
 #include "kifubranchtree.h"
 #include "kifubranchnode.h"
 #include "kifunavigationstate.h"
+#include "stepbuttons.h"
 
-#include <QAbstractButton>
 #include <QAction>
+#include <QPushButton>
 
 KifuNavigationController::KifuNavigationController(KifuNavigationState* state, QObject* parent)
     : QObject(parent)
@@ -33,12 +34,15 @@ KifuNavigationController::KifuNavigationController(KifuNavigationState* state, Q
     }
 }
 
-void KifuNavigationController::bindButtons(const Buttons& buttons)
+void KifuNavigationController::bindButtons(const StepButtons* buttons)
 {
-    for (std::size_t i = 0; i < buttons.size(); ++i) {
-        QAbstractButton* button = buttons[i];
+    static_assert(static_cast<int>(StepButtons::Count) == static_cast<int>(StepCount), "same steps");
+    for (std::size_t i = 0; i < m_actions.size(); ++i) {
+        QPushButton* button = buttons->button(static_cast<StepButtons::Step>(i));
         QAction* stepAction = m_actions[i];
-        if (!button) continue;
+        // ボタンは記号だけなので、説明は QAction の文（「1手進む」など）にする
+        button->setToolTip(stepAction->text());
+        button->setAccessibleName(stepAction->text());
         connect(button, &QAbstractButton::clicked, stepAction, &QAction::trigger);
         connect(stepAction, &QAction::enabledChanged, button, &QWidget::setEnabled);
         button->setEnabled(stepAction->isEnabled());

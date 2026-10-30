@@ -29,13 +29,14 @@ public:
         CommentEditorPanel* editor = nullptr;        ///< コメント欄（必須）
         KifuNavigationState* navState = nullptr;     ///< 表示中の手（必須）
         KifuDocument* document = nullptr;            ///< ノードへの書き込み（必須）
-        QWidget* parentWidget = nullptr;             ///< しおりの入力ダイアログの親
+        QWidget* parentWidget = nullptr;             ///< しおりの入力・未更新の確認のダイアログの親
         QStatusBar* statusBar = nullptr;             ///< 書き込んだ知らせ
     };
 
     explicit CommentCoordinator(const Deps& deps, QObject* parent = nullptr);
 
-    /// 別の手へ移る前に、未更新のコメントを破棄してよいか確認する（やめたら false）
+    /// 別の手へ移る前に、未更新のコメントを更新するか捨てるか尋ねる（棋譜・定跡と同じ UnsavedChangesPrompt。
+    /// 「保存」は書いていた手に確定し、「破棄」は捨てる。やめたら false）
     bool confirmLeaveEditingMove();
     /// コメント欄に未更新の本文があるか（棋譜の未保存に数える）
     bool hasPendingComment() const;

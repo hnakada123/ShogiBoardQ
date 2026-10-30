@@ -27,9 +27,9 @@ class QTableView;
  *   見出しを描き直す。棋譜欄は1手ごとに選ぶ行が替わるが、行単位の選択なので描き分けは
  *   変わらない。描いたときの描き分けを見出しごとに覚え、同じなら描き直さない。
  * - 利用者が見出しの境目をドラッグ（またはダブルクリック）して列幅を変えたときだけ
- *   sectionResizedByUser を出す。列幅を保存する表はこれを受ける。保存した幅の復元・
- *   文字の大きさや内容に合わせた自動の幅・最後の列の伸び縮みでは出ないので、
- *   復元した幅を保存し直したり、自動の幅を利用者の幅と取り違えたりしない。
+ *   sectionResizedByUser を出す（そのマウスの操作の処理の中で変わった列だけ）。列幅を保存する表は
+ *   ColumnWidthMemory を付けてこれを受ける。保存した幅の復元・文字の大きさや内容に合わせた自動の幅では
+ *   出ないので、復元した幅を保存し直したり、自動の幅を利用者の幅と取り違えたりしない。
  */
 class TableHeaderView : public QHeaderView
 {
@@ -62,8 +62,7 @@ signals:
 
 protected:
     QSize sectionSizeFromContents(int logicalIndex) const override;
-    void mousePressEvent(QMouseEvent* event) override;
-    void mouseReleaseEvent(QMouseEvent* event) override;
+    void mouseMoveEvent(QMouseEvent* event) override;
     void mouseDoubleClickEvent(QMouseEvent* event) override;
     bool event(QEvent* event) override;
     void paintEvent(QPaintEvent* event) override;
@@ -80,7 +79,7 @@ private:
     static constexpr qsizetype kMaxCachedSizes = 256;
     mutable QHash<SizeKey, QSize> m_sizes;
     QHash<int, int> m_paintedSelectionStates;  ///< 見出しを最後に描いたときの描き分け
-    bool m_mouseOperating = false;             ///< 見出しをマウスで操作している間
+    bool m_mouseOperating = false;             ///< 見出しのマウスの操作（移動・ダブルクリック）を処理している間
 };
 
 size_t qHash(const TableHeaderView::SizeKey& key, size_t seed = 0);

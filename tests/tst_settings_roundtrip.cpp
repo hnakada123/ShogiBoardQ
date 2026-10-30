@@ -486,13 +486,32 @@ private slots:
 
     void analysisSettings_columnWidths()
     {
-        QList<int> widths = {100, 200, 150};
-        AnalysisSettings::setEngineInfoColumnWidths(AnalysisSettings::ThinkingTable::Engine1, widths);
-        QCOMPARE(AnalysisSettings::engineInfoColumnWidths(AnalysisSettings::ThinkingTable::Engine1), widths);
+        using AnalysisSettings::ThinkingTable;
+        const QList<int> widths = {100, 0, 150};
+        AnalysisSettings::engineInfoColumnWidths(ThinkingTable::Engine1).set(widths);
+        QCOMPARE(AnalysisSettings::engineInfoColumnWidths(ThinkingTable::Engine1)(), widths);
+        QVERIFY(AnalysisSettings::engineInfoColumnWidths(ThinkingTable::Engine2)().isEmpty());   // 表の組ごと
 
-        QList<int> thinkWidths = {80, 120, 200, 50};
-        AnalysisSettings::setThinkingViewColumnWidths(AnalysisSettings::ThinkingTable::Engine2, thinkWidths);
-        QCOMPARE(AnalysisSettings::thinkingViewColumnWidths(AnalysisSettings::ThinkingTable::Engine2), thinkWidths);
+        const QList<int> thinkWidths = {80, 120, 200, 50};
+        AnalysisSettings::thinkingViewColumnWidths(ThinkingTable::Engine2).set(thinkWidths);
+        QCOMPARE(AnalysisSettings::thinkingViewColumnWidths(ThinkingTable::Engine2)(), thinkWidths);
+    }
+
+    /// 以前の版が1つの値で保存した列幅は、初めて読むときに配列に移す
+    void columnWidths_legacyValuesMoveToArrays()
+    {
+        QSettings& settings = SettingsCommon::openSettings();
+        settings.setValue(QStringLiteral("KifuAnalysis/columnWidths"), QVariantList{140, 0, -5, 90});
+        QCOMPARE(AnalysisSettings::kifuAnalysisColumnWidths()(), QList<int>({140, 0, 0, 90}));
+        QVERIFY(!settings.value(QStringLiteral("KifuAnalysis/columnWidths")).isValid());   // 配列だけになる
+        QCOMPARE(AnalysisSettings::kifuAnalysisColumnWidths()(), QList<int>({140, 0, 0, 90}));
+        AnalysisSettings::kifuAnalysisColumnWidths().set({60});
+        QCOMPARE(AnalysisSettings::kifuAnalysisColumnWidths()(), QList<int>({60}));
+
+        settings.setValue(QStringLiteral("GameInfo/keyColumnWidth"), 180);
+        QCOMPARE(GameSettings::gameInfoColumnWidths()(), QList<int>({180}));
+        QVERIFY(!settings.contains(QStringLiteral("GameInfo/keyColumnWidth")));
+        QCOMPARE(GameSettings::gameInfoColumnWidths()(), QList<int>({180}));
     }
 
     // ========================================

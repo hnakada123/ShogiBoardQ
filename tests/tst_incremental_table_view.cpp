@@ -455,7 +455,7 @@ private slots:
         window.show();
         QVERIFY(QTest::qWaitForWindowExposed(&window));
         settle();
-        const QList<int> saved = AnalysisSettings::thinkingViewColumnWidths(AnalysisSettings::ThinkingTable::Engine1);
+        const QList<int> saved = AnalysisSettings::thinkingViewColumnWidths(AnalysisSettings::ThinkingTable::Engine1)();
 
         const int lastWidth = view1.columnWidth(ShogiEngineThinkingModel::PvColumn);
         for (int i = 0; i < 8; ++i) model1.prependRow(thinkingRecord(i), kUnlimitedRows);
@@ -467,24 +467,35 @@ private slots:
         QVERIFY(view1.columnWidth(ShogiEngineThinkingModel::PvColumn) != lastWidth);
         view1.resize(820, 130);
         settle();
-        QCOMPARE(AnalysisSettings::thinkingViewColumnWidths(AnalysisSettings::ThinkingTable::Engine1), saved);
+        QCOMPARE(AnalysisSettings::thinkingViewColumnWidths(AnalysisSettings::ThinkingTable::Engine1)(), saved);
 
         // プログラムで列幅を変えても（文字の大きさの変更など）保存しない
         view1.setColumnWidth(2, 140);
         settle();
-        QCOMPARE(AnalysisSettings::thinkingViewColumnWidths(AnalysisSettings::ThinkingTable::Engine1), saved);
+        QCOMPARE(AnalysisSettings::thinkingViewColumnWidths(AnalysisSettings::ThinkingTable::Engine1)(), saved);
 
-        // 利用者が見出しの境目をドラッグして列幅を変えたときは、すべての列の幅を保存する
+        // 利用者が見出しの境目をドラッグして列幅を変えたときは、その列の幅だけを保存する（ほかの列は 0 = 自動）
         HeaderDrag::resizeSection(view1.horizontalHeader(), 2, 123);
         settle();
-        const QList<int> changed = AnalysisSettings::thinkingViewColumnWidths(AnalysisSettings::ThinkingTable::Engine1);
+        const QList<int> changed = AnalysisSettings::thinkingViewColumnWidths(AnalysisSettings::ThinkingTable::Engine1)();
         QCOMPARE(changed.size(), model1.columnCount());
         QCOMPARE(changed.at(2), 123);
+        for (int column = 0; column < changed.size(); ++column) {
+            if (column != 2) QCOMPARE(changed.at(column), saved.value(column));
+        }
 
         // 次に作る表は、保存した幅で始まる
         ThinkingTableView restored(AnalysisSettings::ThinkingTable::Engine1);
         restored.setThinkingModel(&model1);
         QCOMPARE(restored.columnWidth(2), 123);
+
+        // 見本の数値が収まる幅より狭くしても、次に作る表はその幅で始まる（利用者の幅を最小値として扱わない）
+        HeaderDrag::resizeSection(view1.horizontalHeader(), 2, 40);
+        settle();
+        ThinkingTableView narrowed(AnalysisSettings::ThinkingTable::Engine1);
+        narrowed.setThinkingModel(&model1);
+        QCOMPARE(narrowed.columnWidth(2), 40);
+        AnalysisSettings::thinkingViewColumnWidths(AnalysisSettings::ThinkingTable::Engine1).set(saved);
     }
 
     // 同じモデルを渡し直しても、モデルを差し替えても、行の追加を正しく描く

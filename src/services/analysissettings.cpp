@@ -18,42 +18,33 @@ QString tableKey(const char* format, ThinkingTable table)
 } // namespace
 
 // 列幅は表の組ごとの配列（キーは表の番号で決まる）
-QList<int> engineInfoColumnWidths(ThinkingTable table)
+ListSetting<int> engineInfoColumnWidths(ThinkingTable table)
 {
-    return ListSetting<int>(tableKey(SettingsKeys::kEngineInfoColumnWidthsFmt, table), SettingsKeys::kArrayWidth)();
+    return {tableKey(SettingsKeys::kEngineInfoColumnWidthsFmt, table), SettingsKeys::kArrayWidth};
 }
 
-void setEngineInfoColumnWidths(ThinkingTable table, const QList<int>& widths)
+ListSetting<int> thinkingViewColumnWidths(ThinkingTable table)
 {
-    ListSetting<int>(tableKey(SettingsKeys::kEngineInfoColumnWidthsFmt, table), SettingsKeys::kArrayWidth).set(widths);
-}
-
-QList<int> thinkingViewColumnWidths(ThinkingTable table)
-{
-    return ListSetting<int>(tableKey(SettingsKeys::kThinkingViewColumnWidthsFmt, table), SettingsKeys::kArrayWidth)();
-}
-
-void setThinkingViewColumnWidths(ThinkingTable table, const QList<int>& widths)
-{
-    ListSetting<int>(tableKey(SettingsKeys::kThinkingViewColumnWidthsFmt, table), SettingsKeys::kArrayWidth).set(widths);
+    return {tableKey(SettingsKeys::kThinkingViewColumnWidthsFmt, table), SettingsKeys::kArrayWidth};
 }
 
 // --- 棋譜解析 ---
 
-QList<int> kifuAnalysisColumnWidths()
+ListSetting<int> kifuAnalysisColumnWidths()
 {
-    const QVariantList values = SettingsCommon::openSettings()
-        .value(SettingsKeys::kKifuAnalysisColumnWidths).toList();
-    QList<int> widths;
-    for (const QVariant& value : values) widths.append(qMax(0, value.toInt()));
+    const QString key = QString::fromLatin1(SettingsKeys::kKifuAnalysisColumnWidths);
+    const ListSetting<int> widths{key, SettingsKeys::kArrayWidth};
+    // 以前の版は同じキーに1つの値（QVariantList）で保存していた。配列に置き換える
+    QSettings& s = SettingsCommon::openSettings();
+    const QVariant legacy = s.value(key);
+    if (legacy.isValid()) {
+        QList<int> values;
+        const QVariantList list = legacy.toList();
+        for (const QVariant& value : list) values.append(qMax(0, value.toInt()));
+        s.remove(key);
+        widths.set(values);
+    }
     return widths;
-}
-
-void setKifuAnalysisColumnWidths(const QList<int>& widths)
-{
-    QVariantList values;
-    for (int width : widths) values.append(width);
-    SettingsCommon::openSettings().setValue(SettingsKeys::kKifuAnalysisColumnWidths, values);
 }
 
 } // namespace AnalysisSettings

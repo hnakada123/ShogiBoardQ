@@ -64,6 +64,7 @@
 #include "elidelabel.h"
 #include "shogiboard.h"
 #include "recordpane.h"
+#include "stepbuttons.h"
 #include "tablestyles.h"
 #include "kifurecordlistmodel.h"
 #include "kifubranchtree.h"
@@ -1825,8 +1826,8 @@ private slots:
         QVERIFY(exported.contains(editedSfen));
         QVERIFY(!exported.contains(QStringLiteral("7g7f")));
 
-        QTest::mouseClick(record()->firstButton(), Qt::LeftButton);
-        QTest::mouseClick(record()->nextButton(), Qt::LeftButton);
+        QTest::mouseClick(record()->stepButtons()->firstButton(), Qt::LeftButton);
+        QTest::mouseClick(record()->stepButtons()->nextButton(), Qt::LeftButton);
         QCOMPARE(boardSfen(), editedBoard);
         QCOMPARE(board()->board()->position().handsSfen(), editedHand);
         QCOMPARE(board()->board()->currentPlayer(), editedTurn);
@@ -2325,8 +2326,8 @@ private slots:
         QFile fixture(QStringLiteral(REPO "/tests/fixtures/test_branch.kif"));
         QVERIFY(fixture.open(QIODevice::ReadOnly));
         paste(QString::fromUtf8(fixture.readAll()));
-        QTest::mouseClick(record()->firstButton(), Qt::LeftButton);
-        for (int i = 0; i < 3; ++i) QTest::mouseClick(record()->nextButton(), Qt::LeftButton);
+        QTest::mouseClick(record()->stepButtons()->firstButton(), Qt::LeftButton);
+        for (int i = 0; i < 3; ++i) QTest::mouseClick(record()->stepButtons()->nextButton(), Qt::LeftButton);
         auto* branches = record()->branchView(); QVERIFY(branches->model());
         QTRY_VERIFY(branches->model()->rowCount() >= 2);
         const auto index = branches->model()->index(1, 0);
@@ -2368,7 +2369,7 @@ private slots:
         QCOMPARE(board()->board()->pieceCharacter(7, 6), Piece::BlackPawn);
         armDialog("auto"); click("actionResign");
         QTRY_VERIFY(!record()->isNavigationDisabled());
-        QTest::mouseClick(record()->firstButton(), Qt::LeftButton);
+        QTest::mouseClick(record()->stepButtons()->firstButton(), Qt::LeftButton);
         QCOMPARE(copy("actionCopySFEN").trimmed(), edited);
         armDialog("discard"); click("actionNewGame");
         dialogMessages.clear();
@@ -2429,7 +2430,7 @@ private slots:
         QTest::keyClick(editor, Qt::Key_Return, Qt::ControlModifier);
         QTRY_VERIFY(!hasKifuPasteDialog());
         QCOMPARE(record()->kifuView()->model()->rowCount(), 3);
-        QTest::mouseClick(record()->lastButton(), Qt::LeftButton);
+        QTest::mouseClick(record()->stepButtons()->lastButton(), Qt::LeftButton);
         const QString before = copy("actionCopyUSIAll");
         click("actionPasteKifu");
         dialog = window->findChild<KifuPasteDialog*>();
@@ -2511,8 +2512,7 @@ private slots:
             if (dock->widget() == graph) { dock->show(); dock->raise(); }
         }
         QTest::qWait(50);
-        const QList<QPushButton*> buttons = {graph->firstButton(), graph->back10Button(), graph->prevButton(),
-                                             graph->nextButton(), graph->fwd10Button(), graph->lastButton()};
+        const QList<QPushButton*> buttons = graph->stepButtons()->buttons();
         for (auto* button : buttons) QVERIFY(button->isVisible());
 
         // 対局中は棋譜欄の矢印ボタンと同じく押せない。
@@ -2531,22 +2531,22 @@ private slots:
             QCOMPARE(recordView->currentIndex().row(), row);
             QCOMPARE(graph->currentPly(), row);
         };
-        QTest::mouseClick(graph->lastButton(), Qt::LeftButton);
+        QTest::mouseClick(graph->stepButtons()->lastButton(), Qt::LeftButton);
         expect(4);
         const QString last = boardSfen(); QVERIFY(last != initial);
-        QTest::mouseClick(graph->firstButton(), Qt::LeftButton);
+        QTest::mouseClick(graph->stepButtons()->firstButton(), Qt::LeftButton);
         expect(0); QCOMPARE(boardSfen(), initial);
-        QTest::mouseClick(graph->nextButton(), Qt::LeftButton);
+        QTest::mouseClick(graph->stepButtons()->nextButton(), Qt::LeftButton);
         expect(1);
         QCOMPARE(boardSfen(), QString("lnsgkgsnl/1r5b1/ppppppppp/9/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL"));
-        QTest::mouseClick(graph->fwd10Button(), Qt::LeftButton);
+        QTest::mouseClick(graph->stepButtons()->fwd10Button(), Qt::LeftButton);
         expect(4); QCOMPARE(boardSfen(), last);
-        QTest::mouseClick(graph->prevButton(), Qt::LeftButton);
+        QTest::mouseClick(graph->stepButtons()->prevButton(), Qt::LeftButton);
         expect(3);
-        QTest::mouseClick(graph->back10Button(), Qt::LeftButton);
+        QTest::mouseClick(graph->stepButtons()->back10Button(), Qt::LeftButton);
         expect(0); QCOMPARE(boardSfen(), initial);
-        QTest::mouseClick(graph->nextButton(), Qt::LeftButton);
-        QTest::mouseClick(graph->nextButton(), Qt::LeftButton);
+        QTest::mouseClick(graph->stepButtons()->nextButton(), Qt::LeftButton);
+        QTest::mouseClick(graph->stepButtons()->nextButton(), Qt::LeftButton);
         expect(2);
         snapshot("evaluation-graph-navigation");
 
@@ -2557,13 +2557,13 @@ private slots:
         edit->setPlainText(QStringLiteral("未更新のコメント"));
         QVERIFY(panel->hasUnsavedComment());
         armDialog("close");
-        QTest::mouseClick(graph->nextButton(), Qt::LeftButton);
+        QTest::mouseClick(graph->stepButtons()->nextButton(), Qt::LeftButton);
         QVERIFY(dialogHandled);
         QCOMPARE(dialogTitle, QStringLiteral("未保存のコメント"));
         expect(2);
         QVERIFY(panel->hasUnsavedComment());
-        armDialog("yes");
-        QTest::mouseClick(graph->nextButton(), Qt::LeftButton);
+        armDialog("discard");
+        QTest::mouseClick(graph->stepButtons()->nextButton(), Qt::LeftButton);
         QVERIFY(dialogHandled);
         expect(3);
         QVERIFY(!panel->hasUnsavedComment());
@@ -2571,14 +2571,14 @@ private slots:
     void pasteNavigation()
     {
         sampleGame();
-        QTest::mouseClick(record()->lastButton(), Qt::LeftButton);
+        QTest::mouseClick(record()->stepButtons()->lastButton(), Qt::LeftButton);
         const QString last = boardSfen(); QVERIFY(last != initial);
         QCOMPARE(record()->kifuView()->currentIndex().row(), 4);
-        QTest::mouseClick(record()->firstButton(), Qt::LeftButton);
+        QTest::mouseClick(record()->stepButtons()->firstButton(), Qt::LeftButton);
         QCOMPARE(boardSfen(), initial);
-        QTest::mouseClick(record()->nextButton(), Qt::LeftButton);
+        QTest::mouseClick(record()->stepButtons()->nextButton(), Qt::LeftButton);
         QCOMPARE(boardSfen(), QString("lnsgkgsnl/1r5b1/ppppppppp/9/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL"));
-        QTest::mouseClick(record()->lastButton(), Qt::LeftButton); QCOMPARE(boardSfen(), last);
+        QTest::mouseClick(record()->stepButtons()->lastButton(), Qt::LeftButton); QCOMPARE(boardSfen(), last);
         snapshot("kifu-navigation");
         armDialog("discard");
         click("actionNewGame"); QCOMPARE(boardSfen(), initial);
@@ -2592,7 +2592,7 @@ private slots:
     void formatRoundTrip()
     {
         QFETCH(QString, name); sampleGame();
-        QTest::mouseClick(record()->lastButton(), Qt::LeftButton);
+        QTest::mouseClick(record()->stepButtons()->lastButton(), Qt::LeftButton);
         const auto last = boardSfen(); const auto text = copy(name);
         QVERIFY2(!text.isEmpty(), qPrintable(name));
         armDialog("discard");
@@ -2600,7 +2600,7 @@ private slots:
         const auto roundTripUsi = copy("actionCopyUSIAll");
         qInfo() << "round trip" << name << text << roundTripUsi;
         QVERIFY(roundTripUsi.contains("7g7f 3c3d 2g2f 8c8d"));
-        QTest::mouseClick(record()->lastButton(), Qt::LeftButton);
+        QTest::mouseClick(record()->stepButtons()->lastButton(), Qt::LeftButton);
         QCOMPARE(boardSfen(), last);
     }
     void formatCompliance_data()
@@ -2631,14 +2631,14 @@ private slots:
         QFETCH(QString, text); QFETCH(QString, start); QFETCH(QString, last); QFETCH(QString, moves);
         paste(text);
         QCOMPARE(record()->kifuView()->model()->rowCount(), moves.split(' ').size() + 1);
-        QTest::mouseClick(record()->firstButton(), Qt::LeftButton);
+        QTest::mouseClick(record()->stepButtons()->firstButton(), Qt::LeftButton);
         QCOMPARE(copy("actionCopySFEN"), start);
-        QTest::mouseClick(record()->lastButton(), Qt::LeftButton);
+        QTest::mouseClick(record()->stepButtons()->lastButton(), Qt::LeftButton);
         QCOMPARE(copy("actionCopySFEN"), last);
         QVERIFY(copy("actionCopyUSIAll").endsWith("moves " + moves));
         const QString saved = copy("actionCopyKIF");
         armDialog("discard"); click("actionNewGame"); paste(saved);
-        QTest::mouseClick(record()->lastButton(), Qt::LeftButton);
+        QTest::mouseClick(record()->stepButtons()->lastButton(), Qt::LeftButton);
         QCOMPARE(copy("actionCopySFEN"), last);
     }
     void currentPositionCopy_data()
@@ -2652,8 +2652,8 @@ private slots:
     void currentPositionCopy()
     {
         QFETCH(int, ply); QFETCH(QString, expected);
-        sampleGame(); QTest::mouseClick(record()->firstButton(), Qt::LeftButton);
-        for (int i = 0; i < ply; ++i) QTest::mouseClick(record()->nextButton(), Qt::LeftButton);
+        sampleGame(); QTest::mouseClick(record()->stepButtons()->firstButton(), Qt::LeftButton);
+        for (int i = 0; i < ply; ++i) QTest::mouseClick(record()->stepButtons()->nextButton(), Qt::LeftButton);
         const auto current = copy("actionCopyUSICurrent");
         QCOMPARE(current.contains("7g7f"), ply > 0);
         QCOMPARE(current.contains("8c8d"), ply == 4);
@@ -2675,7 +2675,7 @@ private slots:
         armDialog("file", QStringLiteral(REPO "/tests/fixtures/test_basic.kif"));
         click("actionOpenKifuFile"); QVERIFY(dialogHandled);
         QTRY_VERIFY(record()->kifuView()->model()->rowCount() > 2);
-        QTest::mouseClick(record()->lastButton(), Qt::LeftButton);
+        QTest::mouseClick(record()->stepButtons()->lastButton(), Qt::LeftButton);
         const auto last = boardSfen();
         const QString path = QStringLiteral(AUDIT_DIR "/saved.") + extension;
         QFile::remove(path);
@@ -2687,7 +2687,7 @@ private slots:
         click("actionNewGame");
         armDialog("file", path); click("actionOpenKifuFile");
         QTRY_VERIFY(record()->kifuView()->model()->rowCount() > 2);
-        QTest::mouseClick(record()->lastButton(), Qt::LeftButton);
+        QTest::mouseClick(record()->stepButtons()->lastButton(), Qt::LeftButton);
         QCOMPARE(boardSfen(), last);
     }
     void imageExport_data()
@@ -2785,8 +2785,8 @@ private slots:
     void bodCurrentPosition()
     {
         QFETCH(int, ply);
-        sampleGame(); QTest::mouseClick(record()->firstButton(), Qt::LeftButton);
-        for (int i = 0; i < ply; ++i) QTest::mouseClick(record()->nextButton(), Qt::LeftButton);
+        sampleGame(); QTest::mouseClick(record()->stepButtons()->firstButton(), Qt::LeftButton);
+        for (int i = 0; i < ply; ++i) QTest::mouseClick(record()->stepButtons()->nextButton(), Qt::LeftButton);
         const QString last = boardSfen();
         const auto turn = board()->board()->currentPlayer();
         const auto hands = board()->board()->position().handsSfen();
@@ -2867,7 +2867,7 @@ private slots:
         const QString saved = copy("actionCopyKIF");
         QVERIFY(saved.contains(QStringLiteral("７六歩")));
         QVERIFY(!saved.contains(QStringLiteral("P-7f")));
-        QTest::mouseClick(record()->firstButton(), Qt::LeftButton);
+        QTest::mouseClick(record()->stepButtons()->firstButton(), Qt::LeftButton);
         for (auto* view : window->findChildren<QTableView*>()) {
             auto* thinking = qobject_cast<ShogiEngineThinkingModel*>(view->model());
             if (!thinking) continue;
@@ -3383,7 +3383,7 @@ private slots:
         QTRY_COMPARE(recordView->currentIndex().row(), 0);
         QCOMPARE(graph->currentPly(), 0);
         QCOMPARE(boardSfen(), initial);
-        QTest::mouseClick(record()->nextButton(), Qt::LeftButton);
+        QTest::mouseClick(record()->stepButtons()->nextButton(), Qt::LeftButton);
         QCOMPARE(recordView->currentIndex().row(), 1);
         QCOMPARE(graph->currentPly(), 1);
         QCOMPARE(treePly(), 1);
@@ -3827,7 +3827,7 @@ private slots:
         QVERIFY(dialogHandled);
         auto* table = record()->kifuView();
         QTRY_VERIFY(table->model()->rowCount() > 90);
-        QTest::mouseClick(record()->firstButton(), Qt::LeftButton);
+        QTest::mouseClick(record()->stepButtons()->firstButton(), Qt::LeftButton);
         record()->onToggleCommentColumn(true);
         record()->onToggleBookmarkColumn(false);
         auto* edit = window->findChild<QTextEdit*>("kifuCommentEdit");
@@ -3875,15 +3875,15 @@ private slots:
         QVERIFY(saved.contains(QStringLiteral("\n*\n*【テスト用リンク｜コメント表示】")));
         click("actionNewGame");
         paste(saved);
-        QTest::mouseClick(record()->firstButton(), Qt::LeftButton);
+        QTest::mouseClick(record()->stepButtons()->firstButton(), Qt::LeftButton);
         QTRY_COMPARE(edit->toPlainText(), opening);
     }
 
     void commentEditing()
     {
         sampleGame();
-        QTest::mouseClick(record()->firstButton(), Qt::LeftButton);
-        QTest::mouseClick(record()->nextButton(), Qt::LeftButton);
+        QTest::mouseClick(record()->stepButtons()->firstButton(), Qt::LeftButton);
+        QTest::mouseClick(record()->stepButtons()->nextButton(), Qt::LeftButton);
         auto* edit = window->findChild<QTextEdit*>("kifuCommentEdit");
         auto* apply = window->findChild<QPushButton*>("kifuCommentApply");
         auto* panel = window->findChild<CommentEditorPanel*>();
@@ -3928,15 +3928,15 @@ private slots:
         QTest::keyClick(edit, Qt::Key_Return, Qt::ControlModifier);
         QCOMPARE(updates.size(), 1);
 
-        QTest::mouseClick(record()->nextButton(), Qt::LeftButton);
+        QTest::mouseClick(record()->stepButtons()->nextButton(), Qt::LeftButton);
         QTRY_VERIFY(edit->toPlainText().isEmpty());
-        QTest::mouseClick(record()->prevButton(), Qt::LeftButton);
+        QTest::mouseClick(record()->stepButtons()->prevButton(), Qt::LeftButton);
         QTRY_COMPARE(edit->toPlainText(), comment);
         const QString saved = copy("actionCopyKIF");
         QVERIFY(saved.contains(QStringLiteral("2*3\n*\n*https://example.com/?a=1&b=2*x")));
         armDialog("discard"); click("actionNewGame"); paste(saved);
-        QTest::mouseClick(record()->firstButton(), Qt::LeftButton);
-        QTest::mouseClick(record()->nextButton(), Qt::LeftButton);
+        QTest::mouseClick(record()->stepButtons()->firstButton(), Qt::LeftButton);
+        QTest::mouseClick(record()->stepButtons()->nextButton(), Qt::LeftButton);
         QTRY_COMPARE(edit->toPlainText(), comment);
         edit->setFocus();
         QTest::keyClick(edit, Qt::Key_A, Qt::ControlModifier);
@@ -3951,8 +3951,8 @@ private slots:
 
     void commentsAndBookmark()
     {
-        sampleGame(); QTest::mouseClick(record()->firstButton(), Qt::LeftButton);
-        QTest::mouseClick(record()->nextButton(), Qt::LeftButton);
+        sampleGame(); QTest::mouseClick(record()->stepButtons()->firstButton(), Qt::LeftButton);
+        QTest::mouseClick(record()->stepButtons()->nextButton(), Qt::LeftButton);
         QTest::qWait(80);
         QDockWidget* dock = nullptr;
         for (auto* d : window->findChildren<QDockWidget*>()) if (d->windowTitle() == QStringLiteral("棋譜コメント")) dock = d;
@@ -3970,11 +3970,11 @@ private slots:
         QTest::qWait(80);
         QCOMPARE(spy.size(), 1);
         qInfo() << "comment signal" << spy.first();
-        QTest::mouseClick(record()->lastButton(), Qt::LeftButton);
+        QTest::mouseClick(record()->stepButtons()->lastButton(), Qt::LeftButton);
         QTest::qWait(80);
         QVERIFY(!edit->toPlainText().contains("Audit comment"));
-        QTest::mouseClick(record()->firstButton(), Qt::LeftButton);
-        QTest::mouseClick(record()->nextButton(), Qt::LeftButton);
+        QTest::mouseClick(record()->stepButtons()->firstButton(), Qt::LeftButton);
+        QTest::mouseClick(record()->stepButtons()->nextButton(), Qt::LeftButton);
         QTest::qWait(80);
         qInfo() << "comment after navigating" << panel->currentMoveIndex() << edit->toPlainText() << copy("actionCopyKIF");
         QVERIFY(edit->toPlainText().contains("Audit comment at ply one"));
@@ -3985,7 +3985,7 @@ private slots:
         QVERIFY(saved.contains("&Audit bookmark"));
         armDialog("discard");
         click("actionNewGame"); paste(saved);
-        QTest::mouseClick(record()->nextButton(), Qt::LeftButton);
+        QTest::mouseClick(record()->stepButtons()->nextButton(), Qt::LeftButton);
         QTest::qWait(80);
         QVERIFY(edit->toPlainText().contains("Audit comment at ply one"));
         QVERIFY(copy("actionCopyKIF").contains("&Audit bookmark"));
@@ -4008,7 +4008,7 @@ private slots:
             QVERIFY(restored.branchView()->isHidden());
             QVERIFY(!restored.findChild<QToolButton*>(QStringLiteral("kifuBranchToggle"))->isChecked());
         }
-        QTest::mouseClick(record()->nextButton(), Qt::LeftButton);
+        QTest::mouseClick(record()->stepButtons()->nextButton(), Qt::LeftButton);
         QTRY_COMPARE(record()->kifuView()->currentIndex().row(), 1);
         const QString movedPosition = boardSfen();
         QVERIFY(movedPosition != originalPosition);
@@ -4109,7 +4109,7 @@ private slots:
         QCOMPARE(manager->considerationFontSize(), AnalysisSettings::considerationFontSize());
         for (int col = 0; col < ShogiEngineThinkingModel::PvColumn; ++col)
             QVERIFY(view->columnWidth(col) >= view->fontMetrics().horizontalAdvance(model->headerData(col, Qt::Horizontal).toString()));
-        QCOMPARE(AnalysisSettings::thinkingViewColumnWidths(AnalysisSettings::ThinkingTable::Consideration).at(2), 180);
+        QCOMPARE(AnalysisSettings::thinkingViewColumnWidths(AnalysisSettings::ThinkingTable::Consideration)().at(2), 180);
 
         ConsiderationPanel restored;
         restored.setConsiderationThinkingModel(model);
@@ -4149,9 +4149,11 @@ private slots:
         QTRY_COMPARE(table->horizontalScrollBar()->maximum(), 0);
         info.setFontSize(16);
         QTRY_VERIFY(table->columnWidth(4) >= table->fontMetrics().horizontalAdvance(table->item(0, 4)->text()) + 6);
+        // 利用者が見出しの境目をドラッグして決めた幅は、表の大きさ・エンジン名が変わっても変えない
         auto customWidths = info.columnWidths();
         customWidths[0] += 40;
-        info.setColumnWidths(customWidths);
+        HeaderDrag::resizeSection(table->horizontalHeader(), 0, customWidths[0]);
+        QCoreApplication::processEvents();
         info.resize(500, info.height());
         info.resize(1300, info.height());
         QCOMPARE(info.columnWidths(), customWidths);
@@ -4163,10 +4165,10 @@ private slots:
     {
         QFile f(QStringLiteral(REPO "/tests/fixtures/test_branch.kif")); QVERIFY(f.open(QIODevice::ReadOnly));
         paste(QString::fromUtf8(f.readAll()));
-        QTest::mouseClick(record()->firstButton(), Qt::LeftButton);
-        QTest::mouseClick(record()->nextButton(), Qt::LeftButton);
-        QTest::mouseClick(record()->nextButton(), Qt::LeftButton);
-        QTest::mouseClick(record()->nextButton(), Qt::LeftButton);
+        QTest::mouseClick(record()->stepButtons()->firstButton(), Qt::LeftButton);
+        QTest::mouseClick(record()->stepButtons()->nextButton(), Qt::LeftButton);
+        QTest::mouseClick(record()->stepButtons()->nextButton(), Qt::LeftButton);
+        QTest::mouseClick(record()->stepButtons()->nextButton(), Qt::LeftButton);
         QTest::qWait(80);
         auto* branches = record()->branchView(); QVERIFY(branches->model());
         QVERIFY(branches->model()->rowCount() >= 2);
@@ -4321,7 +4323,7 @@ private slots:
     }
     void engineConsiderationPosition()
     {
-        sampleGame(); QTest::mouseClick(record()->lastButton(), Qt::LeftButton); QTest::qWait(80);
+        sampleGame(); QTest::mouseClick(record()->stepButtons()->lastButton(), Qt::LeftButton); QTest::qWait(80);
         const auto expected = boardSfen();
         QDockWidget* dock = nullptr;
         for (auto* d : window->findChildren<QDockWidget*>()) if (d->windowTitle() == QStringLiteral("検討")) dock = d;

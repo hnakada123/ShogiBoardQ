@@ -38,6 +38,8 @@
 #include "kifuanalysislistmodel.h"
 #include "boardsyncpresenter.h"
 #include "dockregistry.h"
+#include "fontsizecontrol.h"
+#include "panelbutton.h"
 #include "docklayoutmanager.h"
 #include "docksettings.h"
 #include "boardinteractioncontroller.h"
@@ -46,6 +48,7 @@
 #include "kifunavigationcontroller.h"
 #include "livegamesession.h"
 #include "recordpane.h"
+#include "stepbuttons.h"
 #include "sfencollectiondialog.h"
 #include "shogiview.h"
 
@@ -54,6 +57,7 @@
 #include <QDockWidget>
 #include <QMessageBox>
 #include <QPushButton>
+#include <QToolButton>
 
 class TestServiceInitialization : public QObject
 {
@@ -88,6 +92,47 @@ private slots:
         coordinator->onCommentUpdated(QStringLiteral("更新後"));
         QCOMPARE(ply2->comment(), QStringLiteral("更新後"));
         QCOMPARE(ply1->comment(), QStringLiteral("最初"));
+    }
+
+    /// 別の手へ移る前の未更新のコメントは、棋譜・定跡と同じ確認（保存・破棄・キャンセル）で尋ねる。
+    /// 保存は書いていた手に確定して移り、破棄は捨てて移り、キャンセルは移らない
+    void leavingWithPendingCommentAsksToSaveOrDiscard()
+    {
+        MainWindow window;
+        auto& parts = window.composer().parts();
+        KifuBranchTree* tree = parts.branchTree;
+        tree->setRootSfen(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"));
+        KifuBranchNode* ply1 = TestTree::addMove(*tree, tree->root(), ShogiMove(), QStringLiteral("▲７六歩(77)"), QStringLiteral("s1"));
+        KifuBranchNode* ply2 = TestTree::addMove(*tree, ply1, ShogiMove(), QStringLiteral("△３四歩(33)"), QStringLiteral("s2"));
+        parts.navState->setCurrentNode(ply1);
+        auto* edit = parts.commentEditor->findChild<QTextEdit*>();
+        QVERIFY(edit);
+        QAction* next = parts.kifuNavController->action(KifuNavigationController::Next);
+        QAction* prev = parts.kifuNavController->action(KifuNavigationController::Prev);
+
+        edit->setPlainText(QStringLiteral("残す"));
+        answerMessageBox(QMessageBox::RejectRole);   // キャンセル
+        next->trigger();
+        QVERIFY(m_answered);
+        QCOMPARE(parts.navState->currentNode(), ply1);
+        QVERIFY(parts.commentEditor->hasUnsavedComment());
+
+        answerMessageBox(QMessageBox::AcceptRole);   // 保存
+        next->trigger();
+        QVERIFY(m_answered);
+        QCOMPARE(parts.navState->currentNode(), ply2);
+        QCOMPARE(ply1->comment(), QStringLiteral("残す"));
+        QVERIFY(!parts.commentEditor->hasUnsavedComment());
+
+        edit->setPlainText(QStringLiteral("捨てる"));
+        answerMessageBox(QMessageBox::DestructiveRole);   // 破棄
+        prev->trigger();
+        QVERIFY(m_answered);
+        QCOMPARE(parts.navState->currentNode(), ply1);
+        QVERIFY(ply2->comment().isEmpty());
+        QCOMPARE(edit->toPlainText(), QStringLiteral("残す"));
+        QVERIFY(!parts.commentEditor->hasUnsavedComment());
+        parts.document->markSaved(QString());
     }
 
     /// 「コメント更新」を押していないコメントは、棋譜の未保存に数え、書き出すときにその手に確定する。
@@ -281,7 +326,7 @@ private slots:
         QVERIFY(nav.kifuFileController->loadKifuText(QStringLiteral("position startpos moves 7g7f 3c3d 2g2f")));
         nav.kifuNavController->goToFirst();
         QCOMPARE(nav.navState->currentPly(), 0);
-        QPushButton* next = nav.recordPane->nextButton();
+        QPushButton* next = nav.recordPane->stepButtons()->nextButton();
         QVERIFY(next->isEnabled());
         next->click();
         QCOMPARE(nav.navState->currentPly(), 1);
@@ -358,6 +403,31 @@ private slots:
             QVERIFY(AppSettings::toolbarVisible());
         }
         AppSettings::notationOrigin.set(false);
+    }
+
+    /// ドックのパネルの A-/A+ は、パネルによらず同じ規則（PanelButton）の大きさになる。
+    /// 定跡ウィンドウだけは操作の列が大きめなので、ダイアログと同じ大きさ
+    void dockPanelFontButtonsShareOneSize()
+    {
+        MainWindow window;
+        int checked = 0;
+        const QList<QDockWidget*> docks = window.findChildren<QDockWidget*>();
+        for (QDockWidget* dock : docks) {
+            const QList<QAbstractButton*> buttons = dock->findChildren<QAbstractButton*>();
+            for (QAbstractButton* button : buttons) {
+                if (button->property(FontSizeControl::kRoleProperty).toString().isEmpty()) continue;
+                if (button->objectName().startsWith(QStringLiteral("joseki"))) continue;
+                QVERIFY2(button->minimumSize() == button->maximumSize(), qPrintable(button->objectName()));
+                QCOMPARE(button->minimumSize(), PanelButton::sizeFor(button));
+                QVERIFY(button->minimumWidth() >= PanelButton::kSize.width());
+                ++checked;
+            }
+        }
+        QVERIFY2(checked >= 16, qPrintable(QString::number(checked)));   // 8つ以上のパネルの組
+        // アイコンだけのボタンは、QAction から付いた文字（「元に戻す」など）では広げない
+        auto* undo = window.findChild<QToolButton*>(QStringLiteral("gameInfoUndo"));
+        QVERIFY(undo && !undo->text().isEmpty());
+        QCOMPARE(undo->size(), PanelButton::kSize);
     }
 
     /// 局面編集の盤の項目は、編集中の盤を変える
