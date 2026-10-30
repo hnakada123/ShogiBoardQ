@@ -557,53 +557,56 @@
 ## 5. 名残・小さな修正
 
 前回の監査で「済」とした項目のうち、残っていたもの:
-- `KifuBranchTree::setComment`（`kifubranchtree.cpp:262`）は呼び出しが0。文書の版を上げずにコメントを書く2つ目の経路で、前回の4章に挙げたもの。
-- `MatchTimeRecord::clearStart`（`matchtimerecord.h:26`）は呼び出しが0。前回は「既に消えていた」と記録されている。
+- `KifuBranchTree::setComment`（`kifubranchtree.cpp:262`）は呼び出しが0。文書の版を上げずにコメントを書く2つ目の経路で、前回の4章に挙げたもの。**状態: 済（38314262）**。消した
+- `MatchTimeRecord::clearStart`（`matchtimerecord.h:26`）は呼び出しが0。前回は「既に消えていた」と記録されている。**状態: 済（38314262）**。消した
 
 呼び出しがない・テストからしか呼ばれないもの:
 - `KifuExportMetadata::gameEndDateTime`（書くだけ）。**状態: 済（f4079f7f）**。F3 で消した
-- `BoardMoveController::Deps::view`（Q_ASSERT でだけ必須とされ、使われていない。`boardmovecontroller.cpp:19`）
-- `CsaGameSession::isActive()`・`coordinator()`
-- `KifuBranchTree::hasBranch(node)`、`RecordLine::displayTexts()`
-- 外からの呼び出しがない公開関数 `SfenReplay::applyLenient`
-- `ButtonStyles::toggleButton`、`RecordPane::appearance()`
-- テスト1つだけが使う `settingsservice.h`
+- `BoardMoveController::Deps::view`（Q_ASSERT でだけ必須とされ、使われていない。`boardmovecontroller.cpp:19`）。**状態: 済（38314262）**。消した
+- `CsaGameSession::isActive()`・`coordinator()`。**状態: 済（38314262）**。`isActive()` は既に無く、`coordinator()` を消した
+- `KifuBranchTree::hasBranch(node)`、`RecordLine::displayTexts()`。**状態: 済（38314262）**。消した（テストはノードの `hasBranch()` と手順の `entries` を使う）
+- 外からの呼び出しがない公開関数 `SfenReplay::applyLenient`。**状態: 済（38314262）**。`positionAfter` の中に入れ、公開の関数は `positionAfter` だけにした
+- `ButtonStyles::toggleButton`、`RecordPane::appearance()`。**状態: 済（38314262）**。消した
+- テスト1つだけが使う `settingsservice.h`。**状態: 済（38314262）**。消し、テストはドメイン別ヘッダーを読む
 - 使っていない include:
   - `gamesession.cpp:25` の `playerinfopresenter.h`
   - `kifurecordlistmodel.cpp`・`shogienginethinkingmodel.cpp` の `applicationfonts.h`（後者は `kifupresentation.h` も）
+  - **状態: 済（38314262）**。3つとも消した
 
 転送だけ・二重のもの:
-- `AutomationContext::uiStatePolicy` は動作状態を転送するだけで、同じ値を指す `activity` の欄がある（`automationcontext.h:36,41`）。
+- `AutomationContext::uiStatePolicy` は動作状態を転送するだけで、同じ値を指す `activity` の欄がある（`automationcontext.h:36,41`）。**状態: 済（38314262）**。欄を消し、`app.state` の `ui_state` は `activity` から読む
 - 自動化 API の `widget.showDock` と、`dock.configure` の `operation=show` は同じ操作。前提の検査だけが違う。MCP もツールを2つ公開している（`show_dock`・`configure_dock`）。
   - **仕様: 決定**。名前は残し、`widget.showDock` は `dock.configure` の show と同じ処理を呼ぶ。前提の検査は `dock.configure` の方（メインウィンドウがモーダルで塞がれていないか、ドックが有効か）にそろえる。
   - 残す理由: `show_dock` は公開しているツールで、MCP のテスト7ファイル、4言語の MCP ガイド、ガイドの画像を撮るスクリプト（`scripts/docs/shoot_tables.py`）が使っている。ドックを見せるだけなら引数1つの `show_dock` の方が選びやすい。
-- キーのエスケープ（%25・%2F・%5C）が2か所にある（`enginesettingsconstants.h:35-46`、`docksettings.cpp:33-53`）。`SettingsCommon` に1つ置く。
-- `EngineSettingsConstants` に、INI のキーと USI のオプションの型を表す語が同居している。キーは `EngineProfileStore` の中に閉じ、型の語は `engineoption.h` へ移す。
-- `TimeControlValidator::hasTime` は `TimeControl::normalized` の規則の写し（`timecontrolvalidator.cpp:12-17`）。
-- `TsumeshogiSettings::migrateCollectionEngineSelection` は、`EngineListSettings` のキーを書き換える処理なのに詰将棋の設定にあり、ダイアログのコンストラクタから呼ばれる。
+  - **状態: 済（38314262）**。決めた仕様のとおり。`dock.configure` の処理を関数にし、`widget.showDock` は `AutomationCommands::showDock()` から operation=show で呼ぶ。対象はメインウィンドウのドックだけになり、ドックでない部品の名前は「Widget must be a dock」ではなく「ドックが見つからない」（not_found）になる
+- キーのエスケープ（%25・%2F・%5C）が2か所にある（`enginesettingsconstants.h:35-46`、`docksettings.cpp:33-53`）。`SettingsCommon` に1つ置く。**状態: 済（38314262）**。`SettingsCommon::escapeKey()`・`unescapeKey()` に置き、エンジンの設定のグループとドックのレイアウト名が使う
+- `EngineSettingsConstants` に、INI のキーと USI のオプションの型を表す語が同居している。キーは `EngineProfileStore` の中に閉じ、型の語は `engineoption.h` へ移す。**状態: 済（38314262）**。案のとおり（`enginesettingsconstants.h` を消した）。型の語は `EngineOption::kTypeSpin` など。設定ファイルを直接準備するテストは `tests/engine_profile_format_helper.h` の語を使う
+- `TimeControlValidator::hasTime` は `TimeControl::normalized` の規則の写し（`timecontrolvalidator.cpp:12-17`）。**状態: 済（38314262）**。`hasTime` を消し、`TimeControl{p1, p2}.normalized()` の `hasLimit()` で決める
+- `TsumeshogiSettings::migrateCollectionEngineSelection` は、`EngineListSettings` のキーを書き換える処理なのに詰将棋の設定にあり、ダイアログのコンストラクタから呼ばれる。**状態: 済（38314262）**。消した。保存場所 `EngineListSettings::SelectionKeys` に以前の版の内蔵の印 `legacyBuiltinPath`（`"@hayanagi"`）を持たせ、`savedSelectionName()` が読むときに空の名前（内蔵）とする（ダイアログを開くだけでは書き換えない）。`tsumeshogisettings.cpp` は空になったので消した
 
 置き場所が少しずれているもの:
-- 時計の警告の閾値 `BoardChromeWidget::kWarn10Ms`・`kWarn5Ms` を使うのは `TimeDisplayPresenter` だけ。
-- `EngineRegistrationDialog` がハンドラを `unique_ptr` と QObject の親の両方で持つ（`engineregistrationdialog.cpp:23`）。
+- 時計の警告の閾値 `BoardChromeWidget::kWarn10Ms`・`kWarn5Ms` を使うのは `TimeDisplayPresenter` だけ。**状態: 済（38314262）**。`TimeDisplayPresenter` の中に移した
+- `EngineRegistrationDialog` がハンドラを `unique_ptr` と QObject の親の両方で持つ（`engineregistrationdialog.cpp:23`）。**状態: 済（38314262）**。親（ダイアログ）だけが持つ
 
 古い説明・コメント:
-- `menuactionswiring.h:26`: 2026-10-16 に削除した `DockUiCoordinator` を挙げている。
-- `MenuWindowController` の説明（遅延生成・押されたボタンの知らせ）。
-- `candidatearrowpresenter.h:39-40`: 説明が二重に書かれている。
-- `shogiviewhighlighting.h:24`: 「値メンバ」とあるが、実際はポインタ。
-- R5 の後に残った「手合割の名前を返す」説明7行（`kiftextparser.h:24,27`、`csatosfenconverter.h:23`、`usentosfenconverter.h:29`、`jkftosfenconverter.h:22,28`、`kifuloadparser.cpp:57`）。
-- `enginelistsettings.cpp:2`・`analysissettings.h:7`・`tsumeshogisettings.h:7` の @brief。
-- 合成ルート: コードのないコメント（`_wire.cpp:138`）、直後の行と合わないコメント（`_wire.cpp:110`）。
+- `menuactionswiring.h:26`: 2026-10-16 に削除した `DockUiCoordinator` を挙げている。**状態: 済**。既に消えていた
+- `MenuWindowController` の説明（遅延生成・押されたボタンの知らせ）。**状態: 済（38314262）**
+- `candidatearrowpresenter.h:39-40`: 説明が二重に書かれている。**状態: 済**。T6 で書き直していた
+- `shogiviewhighlighting.h:24`: 「値メンバ」とあるが、実際はポインタ。**状態: 済**。M11 で書き直した
+- R5 の後に残った「手合割の名前を返す」説明7行（`kiftextparser.h:24,27`、`csatosfenconverter.h:23`、`usentosfenconverter.h:29`、`jkftosfenconverter.h:22,28`、`kifuloadparser.cpp:57`）。**状態: 済（38314262）**。開始局面の書き方（`StartKind`）の説明にした
+- `enginelistsettings.cpp:2`・`analysissettings.h:7`・`tsumeshogisettings.h:7` の @brief。**状態: 済（38314262）**
+- 合成ルート: コードのないコメント（`_wire.cpp:138`）、直後の行と合わないコメント（`_wire.cpp:110`）。**状態: 済（38314262）**
 - CLAUDE.md:
   - services の説明「(settings, time keeping)」
   - `ShogiGameController` の説明「Game flow control」
   - automation のファイル一覧
   - `BoardImageRenderer` の説明「CLI の render-board も使う」
   - dialogs・widgets の節が `JosekiWindow`・`MenuWindow` を説明していない
+  - **状態: 済（38314262）**。automation のファイル一覧に `automationcontext`・`automationwidgets`・`automationparams` を足した。ほかの4つは、これまでの作業で既に直っていた
 
 公開の範囲:
-- `KifuBranchNode::record()` が書き換えられる参照を公開している（`kifubranchnode.h:37`）。そのため、ツリーと文書以外の4か所（ツリーの組み立て・ライブ記録など）がコメントなどを直接書く。
-- `EvaluationChartView` は、描画の状態を公開のメンバ変数で受け取る。
+- `KifuBranchNode::record()` が書き換えられる参照を公開している（`kifubranchnode.h:37`）。そのため、ツリーと文書以外の4か所（ツリーの組み立て・ライブ記録など）がコメントなどを直接書く。**状態: 済（38314262）**。公開の `record()` は読むだけにし、書き換え（`mutableRecord()`）は friend の `KifuBranchTree`・`KifuBranchTreeBuilder`・`KifuDocument` だけにした。ライブ記録の最初の手のコメントは、足す前の行に入れる。テストは `TestTree::record(node)`（`SHOGIBOARDQ_TESTING` のときだけの friend）で書き換える
+- `EvaluationChartView` は、描画の状態を公開のメンバ変数で受け取る。**状態: 済（38314262）**。前景に描くものを値 `EvaluationChartView::Overlay` にまとめ、`setOverlay()` で渡す（読み上げ名と描き直しもここ）。使っていなかった `yLimit` は消した
 
 ---
 
