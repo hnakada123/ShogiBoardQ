@@ -214,6 +214,20 @@
 
 **影響**: 約20ファイル、±250行。テストは `tst_shogiboard`（15か所）・`tst_gamestrategy` など。段階に分けられる（クリックの解釈 → 棋譜の行 → 局面編集）。
 
+**状態: 済（9ae5bb3c）**。3段階とも書き直し案のとおりにした。
+- **クリックの解釈**:
+  - `prepareMove`・成りの選び方は board の `BoardInteractionController::moveFromClick()`・`setPromotionChooser()` へ移し、詰将棋を解く画面（`TsumePlayDialog::submit`）も同じ関数を使う。
+  - 駒台の段の直書き（1〜7・3〜9）はやめ、`BoardCoordinates::standPieceAt` で読む。
+  - `endDragSignal` はなくし、ドラッグは盤の操作が行き先の `submit()` から戻った後に終える。
+  - 盤と手番だけを使う部品（`HumanTurnPolicy`・`KifuFileController`・`BoardSyncPresenter`・`PositionEditSession`・`AutomationContext`・`TsumePlayDialog`・`BoardInteractionController`）は `ShogiBoard` を受け取る。
+  - 残り（合法手の確認・着手・`moveCommitted`）は `GameBoard` に改名した。手番の転送 `currentPlayer`・`setCurrentPlayer` は消した（司令塔は `sideToMove()`）。
+- **棋譜の行**: kifu の `MoveRecord::play(局面, 手, previousTo, ...)` を1つ置き、`KifLineBuilder::addMove` と `GameBoard::commitMove` の両方で使う。指した側はどちらも局面の手番にした。
+- **局面編集**:
+  - 操作は `PositionEditRules` の `Position` を変える関数（`moved`・`cycled`・`cleared`）にした。二歩の判定は移動と巡回で1つの関数を使う。
+  - `ShogiBoard` には差分を知らせる `replacePosition(next)` を置いた。`applyUsiMove`・`updateBoardAndPieceStand`・`promoteOrDemotePiece`・`resetGameBoard`・`setPieceAt` と内部の駒台の部品は消し、局面の包みと知らせだけにした。
+  - 右クリックの巡回も `PositionEditRules::cyclePiece` を通す。
+  - 表示の座標での読み（駒台・駒箱のセルの駒と枚数）は core に残したが、`BoardCoordinates::pieceAt`・`isAvailable` の1か所にまとめた。
+
 ### T4. 対局情報の規則に持ち主がなく、対局者・持ち時間・日時の正本が2つある（kifu・app・ui）。F2・F3 の原因
 
 **問題**
