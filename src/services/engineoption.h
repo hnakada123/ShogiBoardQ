@@ -16,6 +16,14 @@
  */
 struct EngineOption
 {
+    // USI のオプションの型を表す語（type の値）
+    static constexpr char kTypeSpin[] = "spin";         ///< 整数値
+    static constexpr char kTypeCheck[] = "check";       ///< 真偽値
+    static constexpr char kTypeCombo[] = "combo";       ///< 選択肢
+    static constexpr char kTypeButton[] = "button";     ///< ボタン
+    static constexpr char kTypeFilename[] = "filename"; ///< ファイルパス
+    static constexpr char kTypeString[] = "string";     ///< 文字列
+
     QString name;           ///< オプション名
     QString type;           ///< オプションの型（spin, check, combo, button, filename, string）
     QString defaultValue;   ///< デフォルト値

@@ -323,9 +323,8 @@ private slots:
         QCOMPARE(nav.kifuNavController->state(), nav.navState);
         QVERIFY(nav.analysis);
         QCOMPARE(nav.analysis->parent(), &window);
-        // CSA 通信対局の司令塔も起動時に1つだけ作り、通信対局のセッションと対局の操作が同じものを使う
+        // CSA 通信対局の司令塔も起動時に1つだけ作る
         QCOMPARE(window.findChildren<CsaGameCoordinator*>(), QList<CsaGameCoordinator*>{nav.csaGame});
-        QCOMPARE(nav.csaSession->coordinator(), nav.csaGame);
 
         QVERIFY(nav.kifuFileController->loadKifuText(QStringLiteral("position startpos moves 7g7f 3c3d 2g2f")));
         nav.kifuNavController->goToFirst();

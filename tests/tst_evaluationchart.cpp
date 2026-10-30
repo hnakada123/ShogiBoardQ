@@ -124,14 +124,14 @@ private slots:
         QCOMPARE(widget.axes().xLimit, 20);
         QCOMPARE(series(widget)->at(2).y(), 1000.0);
         // 詰みの語は思考の表・棋譜解析の表と同じ「5手詰」。どちらの勝ちかを添える
-        QVERIFY2(view(widget)->summary.contains(QStringLiteral("先手勝ち・5手詰")), qPrintable(view(widget)->summary));
+        QVERIFY2(view(widget)->overlay().summary.contains(QStringLiteral("先手勝ち・5手詰")), qPrintable(view(widget)->overlay().summary));
         widget.appendScoreP1(21, UsiScore::cp(1800));
         QCOMPARE(widget.axes().yLimit, 2000);
         QCOMPARE(widget.axes().xLimit, 30);
         // 大きな通常評価値を勝手に詰みへ変換しない。
         widget.appendScoreP1(22, UsiScore::cp(31111));
         QVERIFY(widget.axes().yLimit >= 31111);
-        QVERIFY(!view(widget)->summary.contains(QStringLiteral("詰み")));
+        QVERIFY(!view(widget)->overlay().summary.contains(QStringLiteral("詰み")));
         widget.clearAll();
         QCOMPARE(widget.axes().yLimit, 1000);
         QCOMPARE(widget.axes().xLimit, 20);
@@ -178,8 +178,8 @@ private slots:
         QCOMPARE(widget.axes().yLimit, 1000);
         QCOMPARE(series(widget)->at(0).y(), 1000.0);
         QCOMPARE(series(widget, 1)->at(0).y(), -1000.0);
-        QVERIFY(view(widget)->summary.contains(QStringLiteral("-6500")));
-        QVERIFY(view(widget)->summary.contains(QStringLiteral("表示範囲外")));
+        QVERIFY(view(widget)->overlay().summary.contains(QStringLiteral("-6500")));
+        QVERIFY(view(widget)->overlay().summary.contains(QStringLiteral("表示範囲外")));
         widget.fixYRange(10000);
         QCOMPARE(series(widget)->at(0).y(), 4500.0);
         QCOMPARE(series(widget, 1)->at(0).y(), -6500.0);
@@ -211,8 +211,8 @@ private slots:
         const UsiScore score = mateScore(mate);
         widget.appendScoreP2(12, invert ? score.negated() : score);
         QCOMPARE(series(widget, 1)->at(0).y(), double(direction * widget.axes().yLimit));
-        QVERIFY2(view(widget)->summary.contains(text), qPrintable(view(widget)->summary));
-        QVERIFY(view(widget)->markers.first().edge);
+        QVERIFY2(view(widget)->overlay().summary.contains(text), qPrintable(view(widget)->overlay().summary));
+        QVERIFY(view(widget)->overlay().markers.first().edge);
     }
 
     void resizeKeepsLabelsReadable()
@@ -295,12 +295,12 @@ private slots:
         fill(rebuilt);
         rebuilt.trimToPly(15);
         rebuilt.setCurrentPly(9);
-        QCOMPARE(view(widget)->summary, view(rebuilt)->summary);
-        QCOMPARE(view(widget)->currentPly, view(rebuilt)->currentPly);
-        QCOMPARE(view(widget)->markers.size(), view(rebuilt)->markers.size());
-        for (qsizetype i = 0; i < view(widget)->markers.size(); ++i) {
-            QCOMPARE(view(widget)->markers.at(i).value, view(rebuilt)->markers.at(i).value);
-            QCOMPARE(view(widget)->markers.at(i).selected, view(rebuilt)->markers.at(i).selected);
+        QCOMPARE(view(widget)->overlay().summary, view(rebuilt)->overlay().summary);
+        QCOMPARE(view(widget)->overlay().currentPly, view(rebuilt)->overlay().currentPly);
+        QCOMPARE(view(widget)->overlay().markers.size(), view(rebuilt)->overlay().markers.size());
+        for (qsizetype i = 0; i < view(widget)->overlay().markers.size(); ++i) {
+            QCOMPARE(view(widget)->overlay().markers.at(i).value, view(rebuilt)->overlay().markers.at(i).value);
+            QCOMPARE(view(widget)->overlay().markers.at(i).selected, view(rebuilt)->overlay().markers.at(i).selected);
         }
         const auto lines = [](EvaluationChartWidget& chart) {
             QList<QList<QPointF>> points;
@@ -385,7 +385,7 @@ private slots:
         QTRY_VERIFY(tooltip->isVisible());
         QVERIFY(tooltip->text().contains(QStringLiteral("4500")));
         widget.setCurrentPly(6);
-        QVERIFY(chartView->summary.contains(QStringLiteral("評価値なし")));
+        QVERIFY(chartView->overlay().summary.contains(QStringLiteral("評価値なし")));
     }
 
     void disabledNavigationKeepsDisplayControls_data()
@@ -504,7 +504,7 @@ private slots:
         QTest::qWait(30);
         auto* chartView = view(widget);
         // 見出しに解析した手順の名前を出す
-        QVERIFY(chartView->summary.startsWith(QStringLiteral("分岐 1  |  ")));
+        QVERIFY(chartView->overlay().summary.startsWith(QStringLiteral("分岐 1  |  ")));
         QSignalSpy normal(&widget, &EvaluationChartWidget::plyClicked);
         QSignalSpy analysis(&widget, &EvaluationChartWidget::analysisPlyClicked);
         const QPoint point = chartView->mapFromScene(chartView->chart()->mapToScene(

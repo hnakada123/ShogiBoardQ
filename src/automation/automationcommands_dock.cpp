@@ -103,6 +103,69 @@ void dragTitleBar(QDockWidget* dock, const QPoint& destination)
     AutomationInput::sendDrag(dock, {start, start + QPoint(QApplication::startDragDistance() + 10, 0), destination});
 }
 
+/// ドックの操作（dock.configure。widget.showDock も operation=show でこれを呼ぶ）
+QJsonObject configureDock(const AutomationContext& context, const QJsonObject& params)
+{
+    auto* window = context.mainWindow;
+    if (!window) throw AutomationError(ErrorKind::InvalidState, QStringLiteral("No main window"));
+    // 型と範囲は AutomationMethodSpecs の表で検査済み。ここでは操作ごとの組み合わせだけを確かめる
+    auto* dock = findDock(window, params.value(QStringLiteral("widget")).toString());
+    const DockOperation operation = operationFrom(params.value(QStringLiteral("operation")).toString());
+    Qt::DockWidgetArea area = Qt::NoDockWidgetArea;
+    QPointer<QDockWidget> relative;
+    if (operation == DockOperation::Dock) area = parseArea(AutomationParams::requireString(params, QStringLiteral("area")));
+    if (operation == DockOperation::Tabify) {
+        relative = findDock(window, AutomationParams::requireString(params, QStringLiteral("relative_to")));
+        if (relative == dock) throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("Cannot tabify a dock with itself"));
+    }
+    QRect geometry;
+    QPoint destination;
+    if (operation == DockOperation::Drag) {
+        if (!params.contains(QStringLiteral("x")) || !params.contains(QStringLiteral("y"))) {
+            throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("drag requires integer x and y"));
+        }
+        destination = QPoint(params.value(QStringLiteral("x")).toInt(), params.value(QStringLiteral("y")).toInt());
+    }
+    if (params.contains(QStringLiteral("geometry"))) {
+        if (operation != DockOperation::Float) {
+            throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("geometry is only valid for float"));
+        }
+        const auto obj = params.value(QStringLiteral("geometry")).toObject();
+        geometry = QRect(obj.value(QStringLiteral("x")).toInt(), obj.value(QStringLiteral("y")).toInt(),
+                         obj.value(QStringLiteral("width")).toInt(), obj.value(QStringLiteral("height")).toInt());
+    }
+    if ((params.contains(QStringLiteral("area")) && operation != DockOperation::Dock)
+        || (params.contains(QStringLiteral("relative_to")) && operation != DockOperation::Tabify)
+        || ((params.contains(QStringLiteral("x")) || params.contains(QStringLiteral("y"))) && operation != DockOperation::Drag)) {
+        throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("Unexpected parameter for dock operation"));
+    }
+    return AutomationInteractions::queue(
+        {dock, [window, dock, operation, area, relative]() { requireOperation(window, dock, operation, area, relative); },
+         [window, dock, operation, area, relative, geometry, destination]() {
+            switch (operation) {
+            case DockOperation::Hide: dock->close(); return;
+            case DockOperation::Drag: dragTitleBar(dock, destination); return;
+            case DockOperation::Float:
+                dock->setFloating(true);
+                if (geometry.isValid()) dock->setGeometry(geometry);
+                break;
+            case DockOperation::Dock:
+                dock->setFloating(false);
+                window->addDockWidget(area, dock);
+                break;
+            case DockOperation::Tabify:
+                dock->setFloating(false);
+                window->tabifyDockWidget(relative, dock);
+                break;
+            case DockOperation::Show:
+                break;
+            }
+            dock->show();
+            dock->raise();
+        }},
+        QJsonObject{{QStringLiteral("object_name"), dock->objectName()}});
+}
+
 } // namespace
 
 void AutomationCommands::registerDockCommands(AutomationDispatcher& dispatcher, const AutomationContext& context)
@@ -144,63 +207,11 @@ void AutomationCommands::registerDockCommands(AutomationDispatcher& dispatcher, 
     });
 
     dispatcher.registerMethod(QStringLiteral("dock.configure"), [context](const QJsonObject& params) {
-        auto* window = context.mainWindow;
-        if (!window) throw AutomationError(ErrorKind::InvalidState, QStringLiteral("No main window"));
-        // 型と範囲は AutomationMethodSpecs の表で検査済み。ここでは操作ごとの組み合わせだけを確かめる
-        auto* dock = findDock(window, params.value(QStringLiteral("widget")).toString());
-        const DockOperation operation = operationFrom(params.value(QStringLiteral("operation")).toString());
-        Qt::DockWidgetArea area = Qt::NoDockWidgetArea;
-        QPointer<QDockWidget> relative;
-        if (operation == DockOperation::Dock) area = parseArea(AutomationParams::requireString(params, QStringLiteral("area")));
-        if (operation == DockOperation::Tabify) {
-            relative = findDock(window, AutomationParams::requireString(params, QStringLiteral("relative_to")));
-            if (relative == dock) throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("Cannot tabify a dock with itself"));
-        }
-        QRect geometry;
-        QPoint destination;
-        if (operation == DockOperation::Drag) {
-            if (!params.contains(QStringLiteral("x")) || !params.contains(QStringLiteral("y"))) {
-                throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("drag requires integer x and y"));
-            }
-            destination = QPoint(params.value(QStringLiteral("x")).toInt(), params.value(QStringLiteral("y")).toInt());
-        }
-        if (params.contains(QStringLiteral("geometry"))) {
-            if (operation != DockOperation::Float) {
-                throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("geometry is only valid for float"));
-            }
-            const auto obj = params.value(QStringLiteral("geometry")).toObject();
-            geometry = QRect(obj.value(QStringLiteral("x")).toInt(), obj.value(QStringLiteral("y")).toInt(),
-                             obj.value(QStringLiteral("width")).toInt(), obj.value(QStringLiteral("height")).toInt());
-        }
-        if ((params.contains(QStringLiteral("area")) && operation != DockOperation::Dock)
-            || (params.contains(QStringLiteral("relative_to")) && operation != DockOperation::Tabify)
-            || ((params.contains(QStringLiteral("x")) || params.contains(QStringLiteral("y"))) && operation != DockOperation::Drag)) {
-            throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("Unexpected parameter for dock operation"));
-        }
-        return AutomationInteractions::queue(
-            {dock, [window, dock, operation, area, relative]() { requireOperation(window, dock, operation, area, relative); },
-             [window, dock, operation, area, relative, geometry, destination]() {
-                switch (operation) {
-                case DockOperation::Hide: dock->close(); return;
-                case DockOperation::Drag: dragTitleBar(dock, destination); return;
-                case DockOperation::Float:
-                    dock->setFloating(true);
-                    if (geometry.isValid()) dock->setGeometry(geometry);
-                    break;
-                case DockOperation::Dock:
-                    dock->setFloating(false);
-                    window->addDockWidget(area, dock);
-                    break;
-                case DockOperation::Tabify:
-                    dock->setFloating(false);
-                    window->tabifyDockWidget(relative, dock);
-                    break;
-                case DockOperation::Show:
-                    break;
-                }
-                dock->show();
-                dock->raise();
-            }},
-            QJsonObject{{QStringLiteral("object_name"), dock->objectName()}});
+        return configureDock(context, params);
     });
+}
+
+QJsonObject AutomationCommands::showDock(const AutomationContext& context, const QString& name)
+{
+    return configureDock(context, {{QStringLiteral("widget"), name}, {QStringLiteral("operation"), QStringLiteral("show")}});
 }

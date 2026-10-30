@@ -222,7 +222,7 @@ bool KifuDocument::usesHandicapNames() const
 void KifuDocument::setComment(KifuBranchNode* node, const QString& comment)
 {
     if (!node || node->comment() == comment) return;
-    node->record().comment = comment;
+    node->mutableRecord().comment = comment;
     ++m_annotationRevision;
     emit commentChanged(node->nodeId(), comment);
 }
@@ -230,7 +230,7 @@ void KifuDocument::setComment(KifuBranchNode* node, const QString& comment)
 void KifuDocument::setBookmark(KifuBranchNode* node, const QString& bookmark)
 {
     if (!node || node->bookmark() == bookmark) return;
-    node->record().bookmark = bookmark;
+    node->mutableRecord().bookmark = bookmark;
     ++m_annotationRevision;
     emit bookmarkChanged(node->nodeId(), bookmark);
 }

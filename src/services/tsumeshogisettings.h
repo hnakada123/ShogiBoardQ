@@ -2,9 +2,9 @@
 #define TSUMESHOGISETTINGS_H
 
 /// @file tsumeshogisettings.h
-/// @brief 詰将棋設定の永続化
+/// @brief 詰将棋の設定の宣言
 ///
-/// 詰将棋局面生成ダイアログに関する設定を提供します。
+/// 詰将棋を解く画面・詰将棋問題一覧・詰将棋局面生成ダイアログの設定。
 
 #include <QString>
 #include <QSize>
@@ -55,8 +55,6 @@ inline const StructSetting<CollectionPreferences> collectionPreferences{
      SettingField<CollectionPreferences>::of("TsumeCollection/page", &CollectionPreferences::page),
      SettingField<CollectionPreferences>::of("TsumeCollection/filter", &CollectionPreferences::filter),
      SettingField<CollectionPreferences>::of("TsumeCollection/timeout", &CollectionPreferences::timeoutSec)}};
-/// 判定エンジンの選択（EngineListSettings::tsumeCollectionSelection）を以前の版の形から移す
-void migrateCollectionEngineSelection();
 
 /// 詰将棋対局・問題一覧の文字サイズ（それぞれ独立、デフォルト: 10）
 inline const Setting<int> tsumePlayFontSize{"FontSize/tsumePlay", 10};

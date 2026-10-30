@@ -17,7 +17,6 @@ class BranchTreeEditController;
 class MatchCoordinator;
 class PositionEditSession;
 class GameBoard;
-class ShogiView;
 
 /**
  * @brief 主画面の盤で指した手の行き先（BoardInputRoute）
@@ -36,7 +35,6 @@ class BoardMoveController : public QObject, public BoardInputRoute
 
 public:
     struct Deps {
-        ShogiView* view = nullptr;                          ///< 盤（必須）
         GameBoard* gameBoard = nullptr;                     ///< 合法判定と着手（必須）
         BoardInteractionController* board = nullptr;        ///< 盤の操作（必須）
         const AppActivityState* activity = nullptr;         ///< 動作状態（必須）

@@ -190,8 +190,8 @@ private slots:
         KifuBranchTree tree;
         tree.setRootSfen(kHirateSfen);
         KifuBranchNode* move = addTestMove(tree, tree.root(), QStringLiteral("7g7f"), QStringLiteral("▲７六歩(77)"));
-        move->record().comment = QStringLiteral("一行目\r手合割：香落ち\n三行目");
-        move->record().bookmark = QStringLiteral("しおり\r+2726FU");
+        TestTree::record(move).comment = QStringLiteral("一行目\r手合割：香落ち\n三行目");
+        TestTree::record(move).bookmark = QStringLiteral("しおり\r+2726FU");
         KifuExportMetadata context;
         context.startSfen = kHirateSfen;
         context.gameInfoItems = {{QStringLiteral("先手"), QStringLiteral("Alice\r手合割：香落ち")},
@@ -830,14 +830,14 @@ private slots:
         QFETCH(QString, openingText);
         KifuBranchTree tree;
         tree.setRootSfen(kHirateSfen);
-        tree.root()->record().displayText = openingText;
-        tree.root()->record().comment = QStringLiteral("opening comment");
+        TestTree::record(tree.root()).displayText = openingText;
+        TestTree::record(tree.root()).comment = QStringLiteral("opening comment");
         auto* first = addTestMove(tree, tree.root(), QStringLiteral("7g7f"),
                                  QStringLiteral("▲７六歩(77)"), QStringLiteral("00:12/00:00:12"));
-        first->record().comment = QStringLiteral("first comment");
+        TestTree::record(first).comment = QStringLiteral("first comment");
         auto* last = addTestMove(tree, first, QStringLiteral("3c3d"),
                                 QStringLiteral("△３四歩(33)"), QStringLiteral("00:34/00:00:34"));
-        last->record().comment = QStringLiteral("last comment");
+        TestTree::record(last).comment = QStringLiteral("last comment");
 
         KifuExportMetadata ctx;
         ctx.startSfen = kHirateSfen;

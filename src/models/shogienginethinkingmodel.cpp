@@ -4,8 +4,6 @@
 #include "shogienginethinkingmodel.h"
 #include "scoretext.h"
 #include "movefont.h"
-#include "kifupresentation.h"
-#include "applicationfonts.h"
 #include <algorithm>
 
 // ============================================================

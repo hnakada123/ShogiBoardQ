@@ -24,7 +24,7 @@
 #include "considerationpanel.h"
 #include "considerationuicontroller.h"
 #include "engineslots.h"
-#include "enginesettingsconstants.h"
+#include "engine_profile_format_helper.h"
 #include "errorbus.h"
 #include "evaluationchartwidget.h"
 #include "evaluationgraphpresenter.h"
@@ -60,7 +60,7 @@ struct AnalysisHarness {
 
 void writeEngineSettings(const QString& path, const QString& name)
 {
-    using namespace EngineSettingsConstants;
+    using namespace EngineProfileFormat;
     QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
     settings.clear();
     settings.beginWriteArray(EnginesGroupName);

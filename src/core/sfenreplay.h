@@ -18,11 +18,8 @@
  */
 namespace SfenReplay {
 
-/// USI の1手を手番側の手として指す。移動元が空・USI として読めない手は false。
+/// 局面から USI の1手を手番側の手として指した後の局面。移動元が空・USI として読めない手は指せず空。
 /// 打つ駒が駒台に無くても、駒のあるマスでも打つ（棋譜の読み込みでは、持ち駒や盤が合わなくても続ける）
-bool applyLenient(Position& position, const QString& usiMove);
-
-/// 局面から USI の1手を指した後の局面。指せなければ空
 QString positionAfter(const QString& sfen, const QString& usiMove);
 
 } // namespace SfenReplay

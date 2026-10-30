@@ -32,9 +32,9 @@ public:
 
     // --- ノード識別 ---
 
-    /// この行（指した手か終局）とコメント・しおり。変えるときも record() の値を直接変える
+    /// この行（指した手か終局）とコメント・しおり。書き換えるのは、ツリー（組み立て）と文書（コメント・しおりの編集。
+    /// 版を上げて知らせる）だけ
     const RecordEntry& record() const { return m_record; }
-    RecordEntry& record() { return m_record; }
 
     int nodeId() const { return m_nodeId; }
 
@@ -94,6 +94,14 @@ public:
 
 private:
     friend class KifuBranchTree;
+    friend class KifuBranchTreeBuilder;   ///< 読み込んだ棋譜の開始局面のコメント・しおりを置く
+    friend class KifuDocument;            ///< コメント・しおりの編集
+#ifdef SHOGIBOARDQ_TESTING
+    friend struct KifuBranchNodeTestAccess;   ///< テストで行の値を直接置く（tests/branchtree_test_util.h）
+#endif
+
+    /// 行を書き換える（上の friend だけ）
+    RecordEntry& mutableRecord() { return m_record; }
 
     /// 子を末尾に加える（child の親・手数をこのノードに合わせる）
     KifuBranchNode* appendChild(std::unique_ptr<KifuBranchNode> child);

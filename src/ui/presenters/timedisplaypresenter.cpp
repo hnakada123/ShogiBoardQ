@@ -9,6 +9,10 @@
 
 namespace {
 
+// 警告のしきい値（ミリ秒）
+constexpr qint64 kWarn10Ms = 10'000;
+constexpr qint64 kWarn5Ms = 5'000;
+
 /// 手番側の時計の緊急度（通常／残り10秒以下／秒読み中・残り5秒以下）を判定する
 BoardChromeWidget::Urgency urgencyFor(const ShogiClock* clock, qint64 ms, Turn side)
 {
@@ -22,11 +26,11 @@ BoardChromeWidget::Urgency urgencyFor(const ShogiClock* clock, qint64 ms, Turn s
         // 秒読みに入る前は、持ち時間が残り10秒以下で予告の警告にする。
         const bool inByoyomi = clock->byoyomiApplied(side) || ms <= 0;
         if (inByoyomi) return Urgency::Warn5;
-        return ms <= BoardChromeWidget::kWarn10Ms ? Urgency::Warn10 : Urgency::Normal;
+        return ms <= kWarn10Ms ? Urgency::Warn10 : Urgency::Normal;
     }
     // 秒読みが無い（切れ負け・加算）場合は、残り時間で2段階に警告する。
-    if (ms <= BoardChromeWidget::kWarn5Ms) return Urgency::Warn5;
-    if (ms <= BoardChromeWidget::kWarn10Ms) return Urgency::Warn10;
+    if (ms <= kWarn5Ms) return Urgency::Warn5;
+    if (ms <= kWarn10Ms) return Urgency::Warn10;
     return Urgency::Normal;
 }
 

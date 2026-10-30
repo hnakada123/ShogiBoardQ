@@ -20,7 +20,7 @@
 class CsaToSfenConverter
 {
 public:
-    /// 棋譜を読む。手合割の名前は平手なら「平手」、それ以外は「局面指定」
+    /// 棋譜を読む。開始局面の書き方は平手なら Handicap、それ以外は Specified
     static KifuParseOutcome parse(QStringView text, const ParseOptions& options = {});
 
     /// CSA ファイルをテキストとして読む（"CSA encoding=" の宣言、なければ UTF-8 → Shift_JIS の順に判別）

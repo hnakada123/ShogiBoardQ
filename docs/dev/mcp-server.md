@@ -126,7 +126,7 @@ MCPの汎用GUI操作は `SHOGIBOARDQ_ALLOW_UNRESTRICTED_UI=1` の明示指定�
 `blackNameLabel` / `whiteNameLabel` で盤面の対局者名を全文取得できる。
 `get_position` と `get_app_state.total_plies`、`goto_ply` の上限は閲覧中の分岐に従い（スキーマの上限は 100000）、
 `get_kifu` は本譜を返す。`get_kifu.truncated` は指定範囲の続きが省略されている場合に true。
-`widget.showDock` は非表示のドックを開くため、親ウィンドウの操作可否を検査する。
+`widget.showDock` は `dock.configure` の `operation=show` と同じ処理を呼ぶ（引数1つで選びやすいので名前を残している）。どちらもメインウィンドウのドックだけを対象にし、メインウィンドウがモーダルで塞がれていないことと、ドックが有効なことを確かめる。
 
 `dock.list` の `hidden` は明示的な非表示、`exposed` は表示領域の有無を表す。
 タブの裏側は `visible=true` でも `exposed=false` となる。`geometry` はグローバル論理座標の

@@ -34,9 +34,10 @@ struct RecordRows {
     KifuBranchNode* append(const QString& text, const QString& time = QString(), const QString& comment = QString(),
                            const QString& bookmark = QString(), const ShogiMove& move = ShogiMove())
     {
-        KifuBranchNode* node = TestTree::addMove(tree, path.last(), move, text, path.last()->sfen(), time);
-        node->record().comment = comment;
-        node->record().bookmark = bookmark;
+        RecordEntry entry = RecordEntry::played(move, text, path.last()->sfen(), RecordTime::fromText(time));
+        entry.comment = comment;
+        entry.bookmark = bookmark;
+        KifuBranchNode* node = tree.addRecord(path.last(), entry);
         path.append(node);
         model.setPath(path);
         return node;

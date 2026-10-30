@@ -7,16 +7,11 @@
 
 namespace SfenReplay {
 
-bool applyLenient(Position& position, const QString& usiMove)
-{
-    const auto move = UsiMove::parse(usiMove);
-    return move && position.apply(*move, Position::DropRule::Lenient);
-}
-
 QString positionAfter(const QString& sfen, const QString& usiMove)
 {
     std::optional<Position> position = Position::fromSfen(sfen);
-    if (!position || !applyLenient(*position, usiMove)) return {};
+    const std::optional<UsiMove> move = UsiMove::parse(usiMove);
+    if (!position || !move || !position->apply(*move, Position::DropRule::Lenient)) return {};
     return position->toSfen();
 }
 

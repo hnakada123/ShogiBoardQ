@@ -12,13 +12,12 @@
 #include "matchcoordinator.h"
 #include "positioneditsession.h"
 #include "shogiboard.h"
-#include "shogiview.h"
 
 BoardMoveController::BoardMoveController(const Deps& deps, QObject* parent)
     : QObject(parent)
     , m_deps(deps)
 {
-    Q_ASSERT(m_deps.view && m_deps.gameBoard && m_deps.board && m_deps.activity && m_deps.match
+    Q_ASSERT(m_deps.gameBoard && m_deps.board && m_deps.activity && m_deps.match
              && m_deps.positionEdit && m_deps.branchEdit && m_deps.turnPolicy);
     m_deps.board->setInputRoute(this);
     // 動作状態が変わったら（対局の開始・局面編集の開始など）、つまんでいた駒を戻す

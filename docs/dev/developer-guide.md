@@ -159,6 +159,7 @@
 | 2026-10-30 | ウィジェットの共通の部品を足した（監査 2026-10-29 の M7・M8・M16・M18）のに合わせて §1.5・§7.8・§9.8・§11.2・§11.5・§12.5・§13.1・§14.5・第18章を更新（局面送りの6つのボタンは widgets の `StepButtons` が作り、説明は `KifuNavigationController::bindButtons(const StepButtons*)` が `QAction` の文から付ける。列幅は表の見出しに付けた `ColumnWidthMemory` が、利用者がドラッグした列だけを覚えて保存する（0 は自動、正の値は利用者の幅。保存した幅を最小値として扱わない。保存は `ListSetting<int>` にそろえ、棋譜解析の結果と対局情報の以前の版の形は初めて読むときに移す）。`TableHeaderView` はマウスの操作の処理の中で変わった列だけを利用者の操作として知らせる。ドックのパネルの小さなボタンの大きさは `PanelButton::setup()`、A-/A+ は `FontSizeControl` が決める。コメント欄の未更新の確認は `CommentCoordinator` が `UnsavedChangesPrompt`（保存・破棄・キャンセル）で出す） |
 | 2026-10-30 | 盤の大きさと ShogiView の残りの持ち主を整えた（監査 2026-10-29 の M9・M11）のに合わせて §11.1・§13.6 を更新（マスの幅の範囲は core の `BoardSquareSize` に置き、`AppSettings::squareSize`・`GameSettings::sfenCollectionSquareSize` は `BoundedSetting`。`ShogiView` はコンストラクタで設定を読まず、本体の盤の大きさは `MainWindowAppearanceController` が読み、変わるたびに保存する。読み筋盤は本体の盤の今の大きさで開く（`PvBoardDialog::setSquareSize()`）。矢印の型は `ShogiViewHighlighting::Arrow` に移し、`ShogiView::setArrows()`・`arrows()` の転送を消した。駒箱の先後の正本は `PositionEditSession`） |
 | 2026-10-30 | 通信対局と局面の文字列の規則の置き場所を整えた（監査 2026-10-29 の M12〜M15）のに合わせて §1.5・§2.3・§5.7・§7.7・§8.2・§8.11・§10.2・§10.5・§12.2・§15.5・第18章を更新（Game_Summary は値 `CsaGameSummary`（持時間は `CsaGameSummary::Time`）と読み取り器 `CsaGameSummaryReader`、`csaclient_parser.cpp`・`_commands.cpp` は `csaclient.cpp` に戻した。ログインの規則は `CsaLogin`、結果の表示名は `CsaGameSession::resultText`・`causeText`。評価値の向きの直しは `UsiScore::blackView`・`viewedBy`。position コマンド・局面の文字列の語の分け方は `UsiPosition::split` だけで、`SfenUtils::normalizeStart`・`normalizePositionLikeSfen` は `UsiPosition::sfenOf` に、`UsiToSfenConverter::parseUsiPositionString` は消した） |
+| 2026-10-30 | 名残と小さな修正（監査 2026-10-29 の5章）に合わせて §1.5・§7.9・§8.2・§8.5・§12.5・§13.8・第18章を更新（ノードの行 `KifuBranchNode::record()` は読むだけにし、書き換えはツリー・組み立て・文書だけ。`KifuBranchTree::setComment`・`hasBranch`、`RecordLine::displayTexts`、`SfenReplay::applyLenient` の公開、`settingsservice.h`・`enginesettingsconstants.h` を消した。登録エンジンの保存形式のキーは `EngineProfileStore` の中、オプションの型の語は `EngineOption::kType*`、キーのエスケープは `SettingsCommon::escapeKey`） |
 
 <!-- chapter-0-end -->
 
@@ -382,7 +383,7 @@ src/
 │   ├── matchplayers.h              #   対局者（先手・後手を人間とエンジンのどちらが指すかと、その名前）
 │   ├── handicaps.h                 #   手合割の表（名前・JKF の preset・開始局面）
 │   ├── jishogicalculator.cpp/.h    #   持将棋の点数計算・判定
-│   ├── sfenreplay.cpp/.h           #   局面に USI の1手を指す（applyLenient・positionAfter。合法手かは確かめない）
+│   ├── sfenreplay.cpp/.h           #   局面に USI の1手を指した後の局面（positionAfter。合法手かは確かめない）
 │   ├── terminaltype.cpp/.h         #   終局手の種類と、棋譜に書く終局語の対応
 │   ├── shoginotation.h             #   棋譜の表記（筋・段・駒の名前・CSA の駒種）
 │   ├── sfenutils.h                 #   SFEN文字列操作
@@ -668,10 +669,8 @@ src/
 ├── services/                       # クロスカッティングサービス
 │   ├── setting.h                   #   設定1項目の宣言（Setting<T>: キーと既定値。範囲付き・構造体・配列の BoundedSetting・StructSetting・ListSetting・StructListSetting）
 │   ├── settingscommon.cpp/.h       #   設定ファイルのパスと共有QSettings
-│   ├── appsettings.h, gamesettings.h, analysissettings.cpp/.h, networksettings.h, josekisettings.h, tsumeshogisettings.cpp/.h, enginedialogsettings.h, docksettings.cpp/.h # ドメイン別の設定の宣言の表
-│   ├── settingsservice.h           #   ドメイン別ヘッダーをまとめて取り込むだけのヘッダー
+│   ├── appsettings.h, gamesettings.h, analysissettings.cpp/.h, networksettings.h, josekisettings.h, tsumeshogisettings.h, enginedialogsettings.h, docksettings.cpp/.h # ドメイン別の設定の宣言の表
 │   ├── settingskeys.h              #   処理が要る設定項目のキー文字列
-│   ├── enginesettingsconstants.h   #   エンジン設定のキー定数
 │   ├── engineprofilestore.cpp/.h   #   登録エンジンの設定（一覧・USIオプション・先読みの設定）の保存形式を知る唯一の場所
 │   ├── engineoption.h              #   USIオプション1つの値（EngineOption）
 │   ├── registeredengines.cpp/.h    #   登録エンジンの一覧と名前・実行ファイルでの検索（EngineEntry・RegisteredEngines）
@@ -3972,7 +3971,7 @@ YaneuraOu\3\value=true
 YaneuraOu\3\type=check
 ```
 
-グループ名は `EngineSettingsConstants::engineOptionsGroup()` で作る（`%`・`/`・`\` をエスケープする）。combo の選択肢（`valueList`）は JSON の配列で保存する（以前の版の空白区切りも読める）。以前の版のエンジン名の最上位グループは、起動時に `EngineProfileStore::migrateLegacyOptionGroups()` が移す。
+保存形式のキーとグループ名は `EngineProfileStore` の中だけにある（グループ名はエンジン名を `SettingsCommon::escapeKey()` で `%`・`/`・`\` をエスケープして作る）。オプションの型を表す語（`spin`・`check` など）は `EngineOption::kTypeSpin` などで、USI の受信行の解釈・設定ダイアログ・保存で共有する。combo の選択肢（`valueList`）は JSON の配列で保存する（以前の版の空白区切りも読める）。以前の版のエンジン名の最上位グループは、起動時に `EngineProfileStore::migrateLegacyOptionGroups()` が移す。
 
 起動時は `EngineProfileStore::launchOptions()` がこの設定から送るオプション（`LaunchOptions`。button 型は値が `on` のものだけ）を作り、`UsiProtocolHandler::setLaunchOptions()` に渡す。`UsiProtocolHandler` は設定ファイルを開かず、渡された値から `setoption` コマンド群を構築する。エンジンが報告していないオプションは送らない。`USI_Ponder` だけはここでは送らず、GUI の先読み設定（`EngineProfileStore::loadPonder()`。エンジンごとのグループの `gui/ponderEnabled` など）から初期化時に一度だけ送る（通知を省略する設定で、エンジンも報告していなければ送らない）。
 
@@ -4155,7 +4154,7 @@ kifu層（`src/kifu/`）は、棋譜の分岐管理・ナビゲーション状�
 | `m_parent` | `KifuBranchNode*` | 親ノードへのポインタ（非所有） |
 | `m_children` | `std::vector<std::unique_ptr<KifuBranchNode>>` | 子ノード（所有。先頭ほど本譜側）。外からは `children()`（`QList` の写し）・`childCount()`・`childAt(index)`・`indexOfChild(child)` で読む |
 
-`displayText()`・`sfen()`・`move()`・`comment()`・`bookmark()`・`timeText()`・`terminalType()`・`terminalSide()` などのアクセサは `m_record` を読む。項目ごとの setter は持たず、変えるときは `record()`（const でない版）の値を直接変える（例: `node->record().comment = text`）。
+`displayText()`・`sfen()`・`move()`・`comment()`・`bookmark()`・`timeText()`・`terminalType()`・`terminalSide()` などのアクセサは `m_record` を読む。項目ごとの setter は持たず、公開する `record()` は読むだけ（const）である。行を書き換えられるのは friend の `KifuBranchTree`（開始局面の局面）・`KifuBranchTreeBuilder`（読み込んだ棋譜の開始局面のコメント・しおり）・`KifuDocument`（コメント・しおりの編集。版を上げて `commentChanged`・`bookmarkChanged` を出す）だけで、ほかの部品は `addRecord()` に渡す `RecordEntry` に値を入れて足す（対局を途中から続けたときの最初の手のコメントも、`LiveGameSession` が足す前の行に入れる）。テストは `tests/branchtree_test_util.h` の `TestTree::record(node)` で書き換える。
 `RecordEntry`（`src/kifu/recordentry.h`）は棋譜の1行の値で、対局（`MatchCoordinator`）・通信対局・棋譜の読み込みから分岐ツリーへ渡す共通の形である。
 指した手の行は `RecordEntry::played()`、終局の行は `RecordEntry::ending()` で作る。
 
@@ -4163,7 +4162,7 @@ kifu層（`src/kifu/`）は、棋譜の分岐管理・ナビゲーション状�
 
 `KifuBranchTree` がルートを `std::unique_ptr<KifuBranchNode>` で所有し、各ノードが子を `std::unique_ptr` で所有する。`parent` は非所有の参照、`m_nodeById`（`QHash<int, KifuBranchNode*>`）は ID から引くための非所有の索引である。ノードのデストラクタは子孫を再帰せずに順に解放するので、長い手順でもスタックを使い切らない。
 
-木の形（親子・兄弟の並び・手数・ID）を変えられるのは `KifuBranchTree`（`KifuBranchNode` の friend。`appendChild`・`takeChild`・`moveChild`）だけで、ノードは形を変える公開の関数を持たない。行の中身（コメントなど）は `record()` を直接変える。
+木の形（親子・兄弟の並び・手数・ID）を変えられるのは `KifuBranchTree`（`KifuBranchNode` の friend。`appendChild`・`takeChild`・`moveChild`）だけで、ノードは形を変える公開の関数を持たない。行の中身（コメント・しおり）を変えるのは上のとおり `KifuDocument` だけである。
 
 #### ツリー構造図
 
@@ -4283,7 +4282,6 @@ struct RecordLine {
     QString lastSfen() const;                     // 最後の局面
     QStringList sfens() const;                    // 開始局面と各手の後の局面
     QList<ShogiMove> moves() const;               // 各手
-    QStringList displayTexts() const;             // 各手の棋譜欄の表記
     UsiMove usiMove(int ply) const;               // ply 手目の指し手
     QStringList usiMoves(int upToPly = -1) const; // upToPly 手目までの USI の指し手
     BoardSquare destinationOf(int ply) const;     // ply 手目の移動先
@@ -4332,9 +4330,7 @@ position コマンド・局面の文字列の読み方は `UsiPosition::split(te
 | ライン | `mainRecordLine()` | 本譜の手順（`RecordLine`、終局行を除く） |
 | ライン | `toRecordLine(nodes, currentPly)` | ノード列を `RecordLine` にする（static） |
 | ライン | `exportLine(lineIndex)` | ラインを `RecordLine` にする（終局行と開始局面のコメント・しおりを含む） |
-| 分岐 | `hasBranch(node)` | 分岐の有無判定 |
 | 分岐の編集 | `moveChild(child, index)` / `promoteToMainLine(node)` / `removeSubtree(node)` | 分岐の並べ替え・本譜にする・削除（`childrenReordered`・`subtreeRemoved`。利用者の操作と、待ったの後の並べ替え（`LiveGameSession`）） |
-| コメント | `setComment(nodeId, comment)` | コメント設定 |
 | 変更の版 | `revision()` | 構造変更のたびに増える値。棋譜の文書（`KifuDocument`）が保存した時点と比べて未保存かを決め、表示中の手（`KifuNavigationState`）が同じ構造をもう知らせたかを見るのに使う |
 
 #### シグナル
@@ -4512,7 +4508,7 @@ CommentCoordinator::onCommentUpdated(moveIndex, comment)  ← コメント欄（
 KifuDocument::setComment(node, comment)
   │
   ├── 内容が変わらなければ何もしない
-  ├── node->record().comment = comment（分岐ツリーのノードに保存）
+  ├── ノードの行のコメントを書き換える（ノードの行を書き換えられるのは文書とツリーだけ）
   └── コメントの変更の回数を増やして（未保存になる）commentChanged(nodeId, comment)
         ├── KifuRecordListModel::refreshNode（合成ルートが接続）… 棋譜欄の該当行を更新
         └── CommentCoordinator::showCurrentComment … コメント欄の本文と手数を更新
@@ -6949,7 +6945,7 @@ CSA通信対局の開始（待機ダイアログ）と、`CsaGameCoordinator` �
 
 アプリケーション設定をINIファイル（`ShogiBoardQ.ini`）で永続化する。設定項目は `Setting<T>` で**キーと既定値を1行で宣言**し、読み書きはその宣言を通す。getter と setter の組やキー定数は手で書かない。詳しい規約は [settings-service.md](settings-service.md) にまとめている。
 
-`src/services/settingsservice.h` は、ドメイン別ヘッダーをまとめて include するだけのヘッダーとして残っている（関数はなく、`.cpp` もない）。新しいコードはドメイン別ヘッダーを直接 include する。
+設定はドメイン別ヘッダーを直接 include する（まとめて取り込むヘッダーは置かない）。
 
 #### INIファイルの場所と構造
 
@@ -7518,22 +7514,23 @@ static void saveImage(QWidget* parent, QWidget* boardWidget,
 
 **ソース**: `src/core/sfenreplay.h/.cpp`（名前空間 `SfenReplay`）
 
-局面に USI の1手を手番側の手として指す小さな関数群。局面は値（`Position`）で持ち、合法手かどうかは確かめない。棋譜の読み込みと同じく、持ち駒の数が合わない駒打ちも指す（`Position::DropRule::Lenient`）。盤に依存しないので core 層に置いている。
+局面に USI の1手を手番側の手として指した後の局面を返す関数（`positionAfter`）。局面は値（`Position`）で持ち、合法手かどうかは確かめない。棋譜の読み込みと同じく、持ち駒の数が合わない駒打ちも指す（`Position::DropRule::Lenient`）。盤に依存しないので core 層に置いている。
 
 棋譜の読み込みは `SfenReplay` を使わず、各形式のパーサが `KifLineBuilder`（8.11）で手を指しながら手順を組み立てる。
 
-#### applyLenient() — USI手の適用
+#### positionAfter() — USI手の適用
 
 ```
-applyLenient(position, usiMove):
-  UsiMove::parse() で読めなければ false
+positionAfter(sfen, usiMove):
+  Position::fromSfen() で局面を、UsiMove::parse() で手を読めなければ空
   Position::apply(move, DropRule::Lenient) で手番側の手として指す
   通常手（"7g7f" / "2b3c+"形式）:
-    移動元が空なら false。取った駒を持ち駒に加え、手番を渡して手数を1つ進める
+    移動元が空なら空。取った駒を持ち駒に加え、手番を渡して手数を1つ進める
   駒打ち（"P*5e"形式）:
     1. 持ち駒があれば1枚減らす（無くても打つ）
     2. 打つマスに駒があっても、打った駒で置き換える
     3. 手番を相手に渡し、手数を1つ進める
+  指した後の局面の SFEN を返す
 ```
 
 #### 座標変換
@@ -7544,7 +7541,6 @@ applyLenient(position, usiMove):
 
 | 関数 | 用途 |
 |---------|------|
-| `applyLenient(position, usiMove)` | 局面に USI の1手を手番側の手として指す（読み筋の表記 `KifuPresentation::pv()` などが使う） |
 | `positionAfter(sfen, usiMove)` | 局面から1手指した後の局面（指せなければ空）。定跡ウィンドウ・候補手の矢印・エンジンの最善手の後の局面に使う |
 
 テストが手順の局面列や指し手列を作るときは、`tests/test_replay.h` の `TestReplay::buildSfenRecord(initialSfen, usiMoves, hasTerminal)`（開始局面と各手の後の局面の列。`hasTerminal` が `true` のとき終局の行のために最後の局面を複製する）と `TestReplay::buildGameMoves(initialSfen, usiMoves)`（各手の `ShogiMove` の列）を使う。どちらも `Position` で手を順に指すテスト用の関数で、本体の `SfenReplay` には無い。
@@ -9376,7 +9372,6 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | EngineRegistrationHandler | C | engine | エンジン登録（usi〜usiok の問い合わせ・オプションの解析・登録一覧 `RegisteredEngines` と設定の保存） | 第7章 |
 | EngineSearchStatus | S | engine | エンジンの探索状況（探索中の手・深さ・ノード数・NPS・ハッシュ使用率）の値 | 第7章 |
 | EngineSelector | C | widgets | 登録エンジンを選ぶ部品（コンボ・「設定」ボタン・未登録の案内・選択の保存。設定ダイアログは `settingsRequested` で受け手に頼む） | 第11章 |
-| EngineSettingsConstants | NS | services | エンジン設定の定数定義 | 第7章 |
 | EngineSettingsOptionHandler | C | dialogs | エンジン設定オプションのウィジェット生成・データ管理 | 第11章 |
 | EngineVsEngineStrategy | C | game | エンジン対エンジンの Strategy | 第6章 |
 | ErrorBus | C | common | アプリ全体のエラー通知イベントバス（シングルトン） | 第4章, 第12章 |
@@ -9527,7 +9522,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | SettingsCommon | NS | services | 設定ファイルのパスと、アプリ全体で共有する `QSettings` | 第12章 |
 | SettingsResetController | C | ui/controllers | 全設定の初期化と、それに伴う終了確認 | 第10章 |
 | SettingsFormBinding | C | widgets | 入力欄と設定の宣言（`Setting<T>`）の対応の表（読み込み・保存・既定値に戻す） | 第11章 |
-| SfenReplay | NS | core | 局面に USI の1手を指す（`applyLenient()`・`positionAfter()`） | 第13章 |
+| SfenReplay | NS | core | 局面に USI の1手を指した後の局面（`positionAfter()`） | 第13章 |
 | SfenUtils | NS | core | SFEN文字列のユーティリティ（ヘッダーオンリー） | 第2章, 第5章 |
 | SfenValidator | NS | core | SFEN の検査（手番・手数の欄と `PositionValidator` の結果と、読めた局面を値 `SfenValidation` で返す。JSON は headless の `SfenValidationJson`） | 第9章 |
 | ShiftJisCodec | NS | kifu | Shift_JIS（CP932）の変換（ICU のない Qt でも使える） | 第8章 |
@@ -9929,8 +9924,6 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | setting | 第12章 | 設定1項目の宣言（`Setting<T>`） |
 | settingscommon | 第12章 | 設定ファイルのパスと共有 `QSettings` |
 | appsettings ほか `*settings` | 第12章 | ドメイン別の設定の宣言の表 |
-| settingsservice | 第12章 | ドメイン別設定ヘッダーをまとめて取り込むだけのヘッダー |
-| enginesettingsconstants | 第1章, 第7章 | エンジン設定の定数 |
 | applicationtranslations | 第16章 | 起動時の言語の決定と翻訳ファイルの読み込み |
 | notationstyle | 第16章 | 表示言語と棋譜の表記の設定（`NotationStyle`） |
 | apppaths | 第12章 | 設定・データ・キャッシュの置き場所（環境変数で別の場所へ切り替えられる） |

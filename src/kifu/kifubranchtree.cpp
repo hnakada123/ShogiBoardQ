@@ -34,7 +34,7 @@ void KifuBranchTree::setRootSfen(const QString& sfen)
     beginBatchUpdate();
     clear();
     m_root = createNode();
-    m_root->record().sfen = sfen;
+    m_root->mutableRecord().sfen = sfen;
     endBatchUpdate();
 }
 
@@ -236,14 +236,6 @@ int KifuBranchTree::lineCount() const
     return static_cast<int>(allLines().size());
 }
 
-bool KifuBranchTree::hasBranch(KifuBranchNode* node) const
-{
-    if (node == nullptr) {
-        return false;
-    }
-    return node->childCount() > 1;
-}
-
 std::optional<int> KifuBranchTree::findLineIndexForNode(KifuBranchNode* node) const
 {
     if (node == nullptr) {
@@ -257,14 +249,6 @@ std::optional<int> KifuBranchTree::findLineIndexForNode(KifuBranchNode* node) co
     const auto it = m_lineIndexByLeaf.constFind(leaf);
     if (it == m_lineIndexByLeaf.constEnd()) return std::nullopt;
     return *it;
-}
-
-void KifuBranchTree::setComment(int nodeId, const QString& comment)
-{
-    KifuBranchNode* node = nodeAt(nodeId);
-    if (node != nullptr) {
-        node->record().comment = comment;
-    }
 }
 
 // === 手順の取り出し ===

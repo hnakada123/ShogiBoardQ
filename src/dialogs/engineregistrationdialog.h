@@ -51,7 +51,7 @@ private slots:
 
 private:
     std::unique_ptr<Ui::EngineRegistrationDialog> ui;
-    std::unique_ptr<EngineRegistrationHandler> m_handler;
+    EngineRegistrationHandler* m_handler = nullptr;   ///< 登録の処理（親はこのダイアログ）
 
     // シグナル・スロットの接続を行う。
     void initializeSignals() const;

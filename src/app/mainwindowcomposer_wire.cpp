@@ -109,7 +109,7 @@ void MainWindowComposer::connectRecord()
     connect(document, &KifuDocument::headerReset, gameInfo, &GameInfoPane::setGameInfo);
     connect(document, &KifuDocument::headerValueSet, gameInfo, &GameInfoPane::updateGameInfoValue);
     connect(gameInfo, &GameInfoPane::gameInfoEdited, document, &KifuDocument::editHeader);
-    // 盤の対局者名は、対局していなければ対局情報に合わせる（対局情報欄で書き換えたときも）
+    // 起動時の対局情報を表に出す（対局を始める前の案内つき）
     gameInfo->setGameInfo(document->header(), true);
 
     // 読み込み・書き出し
@@ -134,7 +134,6 @@ void MainWindowComposer::connectBoard()
     connect(m_c.shogiView, &ShogiView::rightClicked, board, &BoardInteractionController::onRightClick);
     connect(m_c.gameBoard, &GameBoard::moveCommitted,
             m_c.pieceSoundPlayer, &PieceSoundPlayer::playMoveSound);
-    // 定跡ウィンドウで選んだ手は盤で指した手と同じに扱う
 
     // 局面編集（棋譜は編集した局面だけになる）
     PositionEditSession* edit = m_c.positionEdit;

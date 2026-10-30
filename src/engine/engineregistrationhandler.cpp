@@ -3,7 +3,6 @@
 
 #include "engineregistrationhandler.h"
 #include "engineprocessmanager.h"
-#include "enginesettingsconstants.h"
 #include "usienginesession.h"
 #include "usilineparser.h"
 #include "usiprotocolhandler.h"
@@ -11,7 +10,6 @@
 #include "logcategories.h"
 #include <QFileInfo>
 
-using namespace EngineSettingsConstants;
 
 namespace {
 /// 起動から usiok までの待ち時間（オプションの多いエンジンは報告に時間がかかる）
@@ -184,7 +182,7 @@ void EngineRegistrationHandler::parseEngineOptionsFromUsiOutput()
     });
 
     if (usiHashIt == m_engineOptions.end()) {
-        addOption("USI_Hash", OptionTypeSpin, "1024", "1", "2000", "1024");
+        addOption("USI_Hash", EngineOption::kTypeSpin, "1024", "1", "2000", "1024");
         qCDebug(lcUi) << tr("USI_Hash option added.");
     }
 

@@ -11,7 +11,6 @@
 #include <QAbstractButton>
 #include <QApplication>
 #include <QClipboard>
-#include <QDockWidget>
 #include <QImage>
 #include <QKeyEvent>
 #include <QLineEdit>
@@ -124,16 +123,9 @@ void AutomationCommands::registerWidgetCommands(AutomationDispatcher& dispatcher
             named(table));
     });
 
+    // dock.configure の operation=show と同じ（引数1つで選びやすいので名前を残す）
     dispatcher.registerMethod(QStringLiteral("widget.showDock"), [context](const QJsonObject& params) {
-        auto* dock = qobject_cast<QDockWidget*>(targetWidget(context, params, false));
-        if (!dock) throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("Widget must be a dock"));
-        return AutomationInteractions::queue(
-            {dock, [dock]() { AutomationWidgets::requireInteractive(dock->parentWidget()); },
-             [dock]() {
-                 dock->show();
-                 dock->raise();
-             }},
-            named(dock));
+        return AutomationCommands::showDock(context, params.value(QStringLiteral("widget")).toString());
     });
 
     dispatcher.registerMethod(QStringLiteral("widget.click"), [context](const QJsonObject& params) {

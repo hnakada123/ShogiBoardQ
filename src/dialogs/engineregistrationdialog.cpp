@@ -20,7 +20,7 @@
 EngineRegistrationDialog::EngineRegistrationDialog(QWidget *parent)
     : QDialog(parent),
     ui(std::make_unique<Ui::EngineRegistrationDialog>()),
-    m_handler(std::make_unique<EngineRegistrationHandler>(this))
+    m_handler(new EngineRegistrationHandler(this))
 {
     // Qt Designerで作成されたUIをプログラムのウィンドウに読み込み、初期化する。
     ui->setupUi(this);
@@ -91,10 +91,10 @@ void EngineRegistrationDialog::initializeSignals() const
     connect(ui->closeButton, &QPushButton::clicked, this, &QDialog::accept);
 
     // ハンドラシグナルの接続
-    connect(m_handler.get(), &EngineRegistrationHandler::enginesChanged, this, &EngineRegistrationDialog::rebuildEngineList);
-    connect(m_handler.get(), &EngineRegistrationHandler::engineRegistered, this, &EngineRegistrationDialog::onEngineRegistered);
-    connect(m_handler.get(), &EngineRegistrationHandler::errorOccurred, this, &EngineRegistrationDialog::onHandlerError);
-    connect(m_handler.get(), &EngineRegistrationHandler::registrationInProgressChanged, this, &EngineRegistrationDialog::onRegistrationInProgressChanged);
+    connect(m_handler, &EngineRegistrationHandler::enginesChanged, this, &EngineRegistrationDialog::rebuildEngineList);
+    connect(m_handler, &EngineRegistrationHandler::engineRegistered, this, &EngineRegistrationDialog::onEngineRegistered);
+    connect(m_handler, &EngineRegistrationHandler::errorOccurred, this, &EngineRegistrationDialog::onHandlerError);
+    connect(m_handler, &EngineRegistrationHandler::registrationInProgressChanged, this, &EngineRegistrationDialog::onRegistrationInProgressChanged);
 }
 
 // 追加ボタンが押されたときに呼び出されるスロット

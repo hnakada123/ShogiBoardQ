@@ -12,7 +12,18 @@
 #include <QList>
 #include <QString>
 
+/// テストでノードの行の値を直接置く（アプリで書き換えるのはツリー・組み立て・文書だけ。KifuBranchNode の friend）
+struct KifuBranchNodeTestAccess {
+    static RecordEntry& record(KifuBranchNode* node) { return node->mutableRecord(); }
+};
+
 namespace TestTree {
+
+/// ノードの行を書き換える（コメント・表記・消費時間を後から置くテスト用）
+inline RecordEntry& record(KifuBranchNode* node)
+{
+    return KifuBranchNodeTestAccess::record(node);
+}
 
 /// 指した手を足す（表記と局面はそのまま使う）
 inline KifuBranchNode* addMove(KifuBranchTree& tree, KifuBranchNode* parent, const ShogiMove& move,
