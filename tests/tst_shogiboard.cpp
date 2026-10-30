@@ -4,6 +4,7 @@
 #include "shogiboard.h"
 #include "shogiposition.h"
 #include "shogimove.h"
+#include "usimove.h"
 
 static const QString kHirateSfen =
     QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
@@ -153,110 +154,36 @@ private slots:
         QVERIFY(stand.contains(QLatin1Char('P')));
     }
 
-    // === Piece Movement ===
+    // === 局面の置き換え（replacePosition） ===
 
-    void movePiece_basic()
+    /// 変わったマス・駒台・手番だけを知らせる（局面を丸ごと替える setPosition は boardReset）
+    void replacePosition_notifiesOnlyChanges()
     {
         ShogiBoard board;
         board.setSfen(kHirateSfen);
+        QSignalSpy reset(&board, &ShogiBoard::boardReset);
+        QSignalSpy data(&board, &ShogiBoard::dataChanged);
+        QSignalSpy stand(&board, &ShogiBoard::standChanged);
+        QSignalSpy turn(&board, &ShogiBoard::turnChanged);
 
-        // Move pawn from 7g (file=7, rank=7) to 7f (file=7, rank=6)
-        board.movePieceToSquare(Piece::BlackPawn, 7, 7, 7, 6, false);
+        Position next = board.position();
+        QVERIFY(next.apply(*UsiMove::parse(u"7g7f")));
+        board.replacePosition(next);
+        QCOMPARE(board.position(), next);
+        QCOMPARE(reset.count(), 0);
+        QCOMPARE(data.count(), 2);
+        QCOMPARE(data.at(0).at(0).toInt(), 7);
+        QCOMPARE(data.at(0).at(1).toInt(), 6);
+        QCOMPARE(data.at(1).at(0).toInt(), 7);
+        QCOMPARE(data.at(1).at(1).toInt(), 7);
+        QCOMPARE(stand.count(), 0);
+        QCOMPARE(turn.count(), 1);
+        QCOMPARE(turn.at(0).at(0).value<Turn>(), Turn::White);
 
-        const auto& data = board.position().squares();
-        // 7g should be empty: index = (7-1)*9 + (7-1) = 60
-        QCOMPARE(data[60], Piece::None);
-        // 7f should have P: index = (6-1)*9 + (7-1) = 51
-        QCOMPARE(data[51], Piece::BlackPawn);
-    }
-
-    void movePiece_withPromotion()
-    {
-        ShogiBoard board;
-        // Set up a position where P can promote
-        QString sfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppPpppp/9/9/9/PPPP1PPPP/1B5R1/LNSGKGSNL b - 1");
-        board.setSfen(sfen);
-
-        // Move P from rank 3 to rank 2 with promotion
-        board.movePieceToSquare(Piece::BlackPawn, 5, 3, 5, 2, true);
-
-        const auto& data = board.position().squares();
-        // 5b (file=5, rank=2): index = (2-1)*9 + (5-1) = 13
-        QCOMPARE(data[13], Piece::BlackPromotedPawn); // Promoted pawn
-    }
-
-    // === Piece Stand ===
-
-    void addPieceToStand_normalPiece()
-    {
-        ShogiBoard board;
-        board.setSfen(kHirateSfen);
-        int before = board.pieceStandCount(Piece::BlackPawn);
-        board.addPieceToStand(Piece::WhitePawn); // Capture opponent's pawn
-        int after = board.pieceStandCount(Piece::BlackPawn);
-        QCOMPARE(after, before + 1);
-    }
-
-    void addPieceToStand_promotedPiece()
-    {
-        ShogiBoard board;
-        board.setSfen(kHirateSfen);
-        int before = board.pieceStandCount(Piece::BlackPawn);
-        // Capture promoted pawn (opponent's +P) -> should convert to P
-        board.addPieceToStand(Piece::WhitePromotedPawn);
-        int after = board.pieceStandCount(Piece::BlackPawn);
-        QCOMPARE(after, before + 1);
-    }
-
-    void incrementDecrementStand()
-    {
-        ShogiBoard board;
-        board.setSfen(kHirateSfen);
-
-        int before = board.pieceStandCount(Piece::BlackPawn);
-        board.incrementPieceOnStand(Piece::BlackPawn);
-        QCOMPARE(board.pieceStandCount(Piece::BlackPawn), before + 1);
-
-        board.decrementPieceOnStand(Piece::BlackPawn);
-        QCOMPARE(board.pieceStandCount(Piece::BlackPawn), before);
-    }
-
-    // === Board Operations ===
-
-    void resetGameBoard_data()
-    {
-        QTest::addColumn<QString>("sfen");
-        QTest::newRow("hirate") << kHirateSfen;
-        QTest::newRow("moved-kings") << QStringLiteral("9/3k5/9/9/9/9/9/5K3/9 w Pp 1");
-        QTest::newRow("tsume") << QStringLiteral("4k4/9/9/9/9/9/9/9/9 b R 1");
-    }
-
-    void resetGameBoard()
-    {
-        QFETCH(QString, sfen);
-        ShogiBoard board;
-        board.setSfen(sfen);
-        const auto turn = board.currentPlayer();
-        QSignalSpy resetSpy(&board, &ShogiBoard::boardReset);
-        board.resetGameBoard();
-        QCOMPARE(resetSpy.count(), 1);
-
-        QCOMPARE(board.position().boardSfen(), QStringLiteral("9/9/9/9/9/9/9/9/9"));
-        QCOMPARE(board.pieceStandCount(Piece::BlackKing), 0);
-        QCOMPARE(board.pieceStandCount(Piece::WhiteKing), 0);
-        QCOMPARE(board.position().handsSfen(), QStringLiteral("-"));
-        const QMap<Piece, int> allPieces = {
-            {Piece::BlackPawn, 18}, {Piece::BlackLance, 4}, {Piece::BlackKnight, 4},
-            {Piece::BlackSilver, 4}, {Piece::BlackGold, 4}, {Piece::BlackBishop, 2},
-            {Piece::BlackRook, 2}, {Piece::BlackKing, 2}};
-        QCOMPARE(board.pieceBox(), allPieces);
-        QCOMPARE(board.currentPlayer(), turn);
-        ShogiBoard restored;
-        restored.setSfen(board.position().boardSfen() + QStringLiteral(" b ")
-                        + board.position().handsSfen() + QStringLiteral(" 1"));
-        QCOMPARE(restored.position().squares(), board.position().squares());
-        QCOMPARE(restored.position().handsSfen(), board.position().handsSfen());
-        QCOMPARE(restored.pieceBox(), board.pieceBox());
+        // 同じ局面なら何も知らせない
+        board.replacePosition(next);
+        QCOMPARE(data.count(), 2);
+        QCOMPARE(turn.count(), 1);
     }
 
     void pieceBox_countsUnusedPieces()
@@ -287,18 +214,6 @@ private slots:
         QVERIFY(spy.count() >= 1);
     }
 
-    void signal_dataChanged()
-    {
-        ShogiBoard board;
-        board.setSfen(kHirateSfen);
-
-        QSignalSpy spy(&board, &ShogiBoard::dataChanged);
-        QVERIFY(spy.isValid());
-
-        board.movePieceToSquare(Piece::BlackPawn, 7, 7, 7, 6, false);
-        QVERIFY(spy.count() >= 1);
-    }
-
     // 駒台の枚数が変わったときは standChanged で知らせる（盤面の部分的な描き直しに使う）
     void signal_standChanged()
     {
@@ -308,20 +223,18 @@ private slots:
         QSignalSpy spy(&board, &ShogiBoard::standChanged);
         QVERIFY(spy.isValid());
 
-        board.addStandPiece(Piece::BlackPawn);
+        Position next = board.position();
+        next.addToHand(Piece::BlackPawn);
+        board.replacePosition(next);
         QCOMPARE(spy.count(), 1);
         QCOMPARE(spy.at(0).at(0).value<Piece>(), Piece::BlackPawn);
-
-        QVERIFY(board.consumeStandPiece(Piece::BlackPawn));
-        QCOMPARE(spy.count(), 2);
-        // 変わらなかったときは知らせない
-        QVERIFY(!board.consumeStandPiece(Piece::BlackPawn));
-        QCOMPARE(spy.count(), 2);
 
         // 駒を取ると、取った側の駒台が増える
         board.setSfen(QStringLiteral("lnsgkgsnl/1r5b1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL b - 1"));
         spy.clear();
-        board.updateBoardAndPieceStand(Piece::BlackBishop, Piece::WhiteBishop, 8, 8, 2, 2);
+        next = board.position();
+        QVERIFY(next.apply(*UsiMove::parse(u"8h2b")));
+        board.replacePosition(next);
         QCOMPARE(spy.count(), 1);
         QCOMPARE(spy.at(0).at(0).value<Piece>(), Piece::BlackBishop);
         QCOMPARE(board.pieceStandCount(Piece::BlackBishop), 1);
@@ -499,50 +412,20 @@ private slots:
         QCOMPARE(board.toSfen(), QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 12"));
     }
 
-    /// 指すと手番が替わり、手数が1つ進む
-    void applyUsiMove_advancesTurnAndMoveNumber()
+    /// 指した後の局面に置き換えると、手番が替わり、手数が1つ進む
+    void replacePosition_advancesTurnAndMoveNumber()
     {
         ShogiBoard board;
         board.setSfen(kHirateSfen);
-        QVERIFY(board.applyUsiMove(*UsiMove::parse(QStringLiteral("7g7f"))));
+        Position next = board.position();
+        QVERIFY(next.apply(*UsiMove::parse(QStringLiteral("7g7f"))));
+        board.replacePosition(next);
         QCOMPARE(board.currentPlayer(), Turn::White);
         QCOMPARE(board.moveNumber(), 2);
         QVERIFY(board.toSfen().endsWith(QStringLiteral(" w - 2")));
     }
 
-    // === Mandatory promotion ===
-
-    void movePiece_mandatoryPromotion_blackPawnRank1()
-    {
-        // 先手歩が1段目に移動 → 自動で成り
-        QString sfen = QStringLiteral("4k4/4P4/9/9/9/9/9/9/4K4 b - 1");
-        ShogiBoard board;
-        board.setSfen(sfen);
-        board.movePieceToSquare(Piece::BlackPawn, 5, 2, 5, 1, false);
-        QCOMPARE(board.pieceCharacter(5, 1), Piece::BlackPromotedPawn);
-    }
-
-    void movePiece_mandatoryPromotion_blackKnightRank2()
-    {
-        // 先手桂が2段目に移動 → 自動で成り
-        QString sfen = QStringLiteral("4k4/9/4N4/9/9/9/9/9/4K4 b - 1");
-        ShogiBoard board;
-        board.setSfen(sfen);
-        board.movePieceToSquare(Piece::BlackKnight, 5, 3, 4, 1, false);
-        QCOMPARE(board.pieceCharacter(4, 1), Piece::BlackPromotedKnight);
-    }
-
-    void movePiece_mandatoryPromotion_whitePawnRank9()
-    {
-        // 後手歩が9段目に移動 → 自動で成り
-        QString sfen = QStringLiteral("4K4/9/9/9/9/9/9/4p4/4k4 w - 1");
-        ShogiBoard board;
-        board.setSfen(sfen);
-        board.movePieceToSquare(Piece::WhitePawn, 5, 8, 5, 9, false);
-        QCOMPARE(board.pieceCharacter(5, 9), Piece::WhitePromotedPawn);
-    }
-
-    // === pieceAt / setPieceAt ===
+    // === pieceAt ===
 
     void pieceAt_readsBoardSquares()
     {
@@ -553,20 +436,6 @@ private slots:
         QCOMPARE(board.pieceAt(BoardSquare{5, 5}), Piece::None);
         QCOMPARE(board.pieceAt(BoardSquare{0, 5}), Piece::None);
         QCOMPARE(board.pieceAt(BoardSquare{5, 10}), Piece::None);
-    }
-
-    // 局面の組み立て用。成りの補正も駒台の増減もしない
-    void setPieceAt_placesPieceAsGiven()
-    {
-        ShogiBoard board;
-        QSignalSpy changed(&board, &ShogiBoard::dataChanged);
-        board.setPieceAt(BoardSquare{5, 1}, Piece::BlackPawn);
-        QCOMPARE(board.pieceAt(BoardSquare{5, 1}), Piece::BlackPawn);
-        QCOMPARE(changed.count(), 1);
-        board.setPieceAt(BoardSquare{10, 1}, Piece::BlackGold);
-        QCOMPARE(changed.count(), 1);
-        QCOMPARE(board.pieceStandCount(Piece::BlackPawn), 0);
-        QCOMPARE(board.position().boardSfen(), QStringLiteral("4P4/9/9/9/9/9/9/9/9"));
     }
 
     // === copyPositionFrom ===
@@ -588,8 +457,10 @@ private slots:
                  sfen.left(sfen.lastIndexOf(QLatin1Char(' '))));
 
         // 写した後で進めても、写し元は変わらない
-        QVERIFY(copy.applyUsiMove(*UsiMove::parse(u"3a2b"), Turn::White));
-        QVERIFY(copy.applyUsiMove(*UsiMove::parse(u"B*4e"), Turn::Black));
+        Position next = copy.position();
+        QVERIFY(next.applyAs(*UsiMove::parse(u"3a2b"), Turn::White));
+        QVERIFY(next.applyAs(*UsiMove::parse(u"B*4e"), Turn::Black));
+        copy.replacePosition(next);
         QCOMPARE(source.pieceAt(BoardSquare{2, 2}), Piece::BlackHorse);
         QCOMPARE(source.pieceStandCount(Piece::BlackBishop), 1);
         QCOMPARE(copy.pieceStandCount(Piece::BlackBishop), 0);
@@ -604,7 +475,9 @@ private slots:
         ShogiBoard added;
         ShogiBoard loaded;
         ShogiBoard emptyLoaded;
-        added.addStandPiece(Piece::BlackPawn, 3);
+        Position withPawns = added.position();
+        withPawns.addToHand(Piece::BlackPawn, 3);
+        added.replacePosition(withPawns);
         QVERIFY(loaded.trySetSfen(QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b R2p 1")));
         QVERIFY(emptyLoaded.trySetSfen(QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b - 1")));
 

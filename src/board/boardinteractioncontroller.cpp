@@ -4,43 +4,83 @@
 #include "boardinteractioncontroller.h"
 #include "boardcoordinates.h"
 #include "boardinputroute.h"
+#include "positioneditrules.h"
 
 #include "shogiview.h"
 #include "shogiviewhighlighting.h"
-#include "shogigamecontroller.h"
 #include "shogiboard.h"
 #include "shogitypes.h"
 #include "appsettings.h"
 #include "enginemovevalidator.h"
+#include "legalmovestatus.h"
 #include "logcategories.h"
+
+#include <utility>
 
 // ======================================================================
 // 初期化
 // ======================================================================
 
-BoardInteractionController::BoardInteractionController(ShogiView* view,
-                                                       ShogiGameController* gc,
-                                                       QObject* parent)
-    : QObject(parent), m_view(view), m_gc(gc)
+BoardInteractionController::BoardInteractionController(ShogiView* view, ShogiBoard* board, QObject* parent)
+    : QObject(parent), m_view(view), m_board(board)
 {
-    if (Q_UNLIKELY(!m_view) || Q_UNLIKELY(!m_gc)) {
-        qCWarning(lcBoard, "BoardInteractionController: required dependency is null (view=%p, gc=%p)",
-                  static_cast<void*>(m_view), static_cast<void*>(m_gc));
+    if (Q_UNLIKELY(!m_view) || Q_UNLIKELY(!m_board)) {
+        qCWarning(lcBoard, "BoardInteractionController: required dependency is null (view=%p, board=%p)",
+                  static_cast<void*>(m_view), static_cast<void*>(m_board));
         return;
     }
 
     // 盤は起動から終了まで1つ（表示の盤と同じ）。手番が替わった（指した・手番だけを変えた）・局面を置き換えたら、
     // つまんでいた駒と行き先の表示をやめる。局面が変わったら行き先の表示だけを消す
-    ShogiBoard* board = m_gc->board();
-    connect(board, &ShogiBoard::turnChanged, this, &BoardInteractionController::cancelPendingClick);
-    connect(board, &ShogiBoard::boardReset, this, &BoardInteractionController::cancelPendingClick);
-    connect(board, &ShogiBoard::dataChanged, this, &BoardInteractionController::clearLegalMoveHighlights);
+    connect(m_board, &ShogiBoard::turnChanged, this, &BoardInteractionController::cancelPendingClick);
+    connect(m_board, &ShogiBoard::boardReset, this, &BoardInteractionController::cancelPendingClick);
+    connect(m_board, &ShogiBoard::dataChanged, this, &BoardInteractionController::clearLegalMoveHighlights);
 }
 
 void BoardInteractionController::setInputRoute(BoardInputRoute* route)
 {
     if (m_route != route) cancelPendingClick();
     m_route = route;
+}
+
+void BoardInteractionController::setPromotionChooser(PromotionChooser chooser)
+{
+    m_promotionChooser = std::move(chooser);
+}
+
+std::optional<UsiMove> BoardInteractionController::moveFromClick(const QPoint& from, const QPoint& to) const
+{
+    if (!m_board) return std::nullopt;
+    const Turn mover = m_board->currentPlayer();
+    const bool onBoard = from.x() >= 1 && from.x() <= BoardConstants::kBoardSize
+        && from.y() >= 1 && from.y() <= BoardConstants::kBoardSize;
+    // 駒台から打てるのは手番の側の駒台の駒（玉は打てない。並びは BoardCoordinates）
+    const int ownStand = mover == Turn::Black ? kBlackStandFile : kWhiteStandFile;
+    const Piece standPiece =
+        from.x() == ownStand ? BoardCoordinates::standPieceAt(from.x(), from.y()) : Piece::None;
+    const bool fromHand = standPiece != Piece::None && pieceKind(standPiece) != PieceKind::King;
+    const std::optional<UsiMove> candidate =
+        (onBoard || fromHand) ? BoardCoordinates::usiMoveFromSquares(from, to, false) : std::nullopt;
+    if (!candidate) {
+        qCDebug(lcBoard) << "moveFromClick: not a move" << from << to;
+        return std::nullopt;
+    }
+    if (!candidate->isDrop() && m_board->pieceAt(candidate->from) == Piece::None) {
+        qCDebug(lcBoard) << "moveFromClick: the source square is empty" << from;
+        return std::nullopt;
+    }
+
+    // 成り・不成のどちらが合法かで決める。両方とも合法なら対局者に選ばせる
+    const LegalMoveStatus status = EngineMoveValidator::legalStatus(m_board->position(), mover, *candidate);
+    UsiMove move = *candidate;
+    if (status.promotingMoveExists && status.nonPromotingMoveExists) {
+        move.promote = m_promotionChooser ? m_promotionChooser() : false;
+    } else if (status.promotingMoveExists) {
+        move.promote = true;
+    } else if (!status.nonPromotingMoveExists) {
+        return std::nullopt;
+    }
+    return move;
 }
 
 bool BoardInteractionController::acceptsInput() const
@@ -67,8 +107,8 @@ void BoardInteractionController::onLeftClick(const QPoint& pt)
 
     // 駒台クリック時：枚数0を弾く（1stクリックのときのみ）
     if (!m_waitingSecondClick && pt.x() >= kBlackStandFile) {
-        const Piece piece = m_view->board()->pieceCharacter(pt.x(), pt.y());
-        if (!m_view->board()->isPieceAvailableOnStand(piece, pt.x())) {
+        const Piece piece = m_board->pieceCharacter(pt.x(), pt.y());
+        if (!m_board->isPieceAvailableOnStand(piece, pt.x())) {
             return; // 持ち駒がないマスはドラッグさせない
         }
     }
@@ -101,10 +141,9 @@ void BoardInteractionController::onLeftClick(const QPoint& pt)
     const QPoint to   = pt;
     clearLegalMoveHighlights();
 
-    // 成/不成ダイアログ表示中もドラッグ状態を維持するため、ここではドラッグを終了しない。
-    // ShogiGameController 側で昇格判定後に endDragSignal を emit し、
-    // それが ShogiView::endDrag() につながっている（合成ルートが接続する）。
+    // 成・不成を尋ねている間（行き先が moveFromClick で尋ねる）もドラッグの表示を保ち、行き先から戻ったら終える
     m_route->submit(from, to);
+    m_view->endDrag();
 }
 
 void BoardInteractionController::onRightClick(const QPoint& pt)
@@ -168,14 +207,14 @@ void BoardInteractionController::clearSelectionHighlight()
 
 void BoardInteractionController::selectPieceAndHighlight(const QPoint& field)
 {
-    auto* board = m_view->board();
+    auto* board = m_board;
     const int file = field.x();
     const int rank = field.y();
     const Piece value = board->pieceCharacter(file, rank);
 
     // 局面編集でないとき、相手の駒台は触らせない
     if (!isEditing()) {
-        const Turn turn = m_gc->currentPlayer();
+        const Turn turn = m_board->currentPlayer();
         const bool isMyStand = (turn == Turn::Black && file == kBlackStandFile)
                                || (turn == Turn::White && file == kWhiteStandFile);
         if ((file >= kBlackStandFile) && !isMyStand) {
@@ -219,11 +258,10 @@ void BoardInteractionController::clearLegalMoveHighlights()
 void BoardInteractionController::refreshLegalMoveHighlights()
 {
     clearLegalMoveHighlights();
-    if (!m_legalMovesVisible || !m_waitingSecondClick || m_clickPoint.isNull() || !m_view || !m_view->board()
-        || !m_gc || isEditing() || !acceptsInput()) return;
+    if (!m_legalMovesVisible || !m_waitingSecondClick || m_clickPoint.isNull() || !m_view || !m_board
+        || isEditing() || !acceptsInput()) return;
 
-    auto* board = m_view->board();
-    const auto position = EngineMoveValidator::load(board->position(), m_gc->currentPlayer());
+    const auto position = EngineMoveValidator::load(m_board->position(), m_board->currentPlayer());
     if (!position.synced) return;
 
     // 局面の読み込みは1回だけ行い、成り・不成のどちらかが合法なマスを表示する。
@@ -248,7 +286,7 @@ void BoardInteractionController::finalizeDrag()
 
 void BoardInteractionController::togglePiecePromotionOnClick(const QPoint& field)
 {
-    auto* board = m_view->board();
+    auto* board = m_board;
     const int file = field.x();
     const int rank = field.y();
 
@@ -256,8 +294,8 @@ void BoardInteractionController::togglePiecePromotionOnClick(const QPoint& field
     if (file >= kBlackStandFile) return;
     if (board->pieceCharacter(file, rank) == Piece::None) return;
 
-    // 二歩や行き所のない段で成れない形は盤が飛ばす
-    m_gc->board()->promoteOrDemotePiece(file, rank);
+    // 二歩や行き所のない段で成れない形は飛ばす（局面編集の規則）
+    PositionEditRules::cyclePiece(*m_board, BoardSquare{file, rank});
 
     clearSelectionHighlight();
 }

@@ -78,7 +78,7 @@ GameModeStrategy* m_strategy = new HumanVsHumanStrategy(...);
 // Good — Deps 構造体は非所有参照のみ
 struct Deps {
     ShogiView* shogiView = nullptr;       // 所有しない
-    ShogiGameController* gc = nullptr;    // 所有しない
+    GameBoard* gameBoard = nullptr;       // 所有しない
 };
 ```
 

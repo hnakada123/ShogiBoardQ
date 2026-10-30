@@ -15,7 +15,7 @@
 #include "gamestartoptionsbuilder.h"
 #include "matchcoordinator.h"
 #include "shogiclock.h"
-#include "shogigamecontroller.h"
+#include "gameboard.h"
 #include "usi.h"
 
 static const QString kHirateSfen =
@@ -24,7 +24,7 @@ static const QString kHirateSfen =
 /// 対局の司令塔と、その部品（盤・時計・動作状態・エンジンの枠）
 struct TestHarness {
     ShogiClock clock;
-    ShogiGameController gc;
+    GameBoard gc;
     AppActivityState activity;
     EngineSlots engines;
     std::unique_ptr<MatchCoordinator> match;
@@ -32,7 +32,7 @@ struct TestHarness {
     TestHarness()
     {
         MatchCoordinator::Deps matchDeps;
-        matchDeps.gc = &gc;
+        matchDeps.gameBoard = &gc;
         matchDeps.clock = &clock;
         matchDeps.activity = &activity;
         matchDeps.engines = &engines;

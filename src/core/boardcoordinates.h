@@ -7,6 +7,7 @@
 #include <QPoint>
 
 #include "boardconstants.h"
+#include "shogiposition.h"
 #include "shogitypes.h"
 #include "usimove.h"
 
@@ -49,6 +50,23 @@ inline Piece standPieceAt(int file, int rank)
         }
     }
     return Piece::None;
+}
+
+/// 表示の座標の駒（盤上はマスの駒、駒台・駒箱はそのセルに置く駒の種類。範囲外は None）
+inline Piece pieceAt(const Position& position, int file, int rank)
+{
+    if (file >= 1 && file <= BoardConstants::kBoardSize)
+        return (rank >= 1 && rank <= BoardConstants::kBoardSize) ? position.pieceAt(file, rank) : Piece::None;
+    return standPieceAt(file, rank);
+}
+
+/// 駒台・駒箱の座標 file に source の駒が1枚以上あるか（盤上の筋は常に true。駒箱は盤と駒台に無い駒）
+inline bool isAvailable(const Position& position, Piece source, int file)
+{
+    if (file == BoardConstants::kPieceBoxFile) return position.pieceBox().value(toBlack(demote(source)), 0) > 0;
+    if (file == BoardConstants::kBlackStandFile || file == BoardConstants::kWhiteStandFile)
+        return position.handCount(source) > 0;
+    return true;
 }
 
 /// 駒台の座標（成駒は生駒の位置）。駒台に置けない駒は QPoint()

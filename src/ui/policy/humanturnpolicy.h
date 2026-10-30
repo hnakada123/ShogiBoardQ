@@ -8,7 +8,7 @@ class AppActivityState;
 class BranchTreeEditController;
 class CsaGameCoordinator;
 class MatchCoordinator;
-class ShogiGameController;
+class ShogiBoard;
 
 /**
  * @brief 盤を人間が操作できるか・対局が進行中かを、アプリの動作状態と対局の司令塔から判定する
@@ -21,7 +21,7 @@ class HumanTurnPolicy
 public:
     struct Deps {
         const AppActivityState* activity = nullptr;
-        const ShogiGameController* gameController = nullptr;
+        const ShogiBoard* board = nullptr;                 ///< 盤（手番）
         const MatchCoordinator* match = nullptr;
         const CsaGameCoordinator* csaGame = nullptr;     ///< 通信対局の司令塔
         /// 対局していないとき、盤上の着手を棋譜の変化として記録できるか

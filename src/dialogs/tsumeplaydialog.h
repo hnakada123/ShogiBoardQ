@@ -7,7 +7,7 @@
 #include "tsumecollection.h"
 #include "tsumegamesession.h"
 
-class ShogiGameController;
+class ShogiBoard;
 class ShogiView;
 class BoardViewerWidget;
 class BoardInteractionController;
@@ -142,7 +142,7 @@ private:
     Mode m_mode = Mode::Playing;
     bool m_boardRotated = false;
     QString m_savedStatus;
-    ShogiGameController* m_game = nullptr;
+    ShogiBoard* m_board = nullptr;          ///< 解いている局面の盤
     BoardViewerWidget* m_viewer = nullptr;  ///< 盤と縮小・拡大・回転の操作列
     ShogiView* m_view = nullptr;            ///< m_viewer の盤
     BoardInteractionController* m_interaction = nullptr;

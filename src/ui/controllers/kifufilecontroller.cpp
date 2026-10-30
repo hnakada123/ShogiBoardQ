@@ -19,7 +19,6 @@
 #include "kifusavedialogs.h"
 #include "logcategories.h"
 #include "shogiboard.h"
-#include "shogigamecontroller.h"
 #include "usiexporter.h"
 
 #include <QApplication>
@@ -35,7 +34,7 @@ KifuFileController::KifuFileController(const Deps& deps, QObject* parent)
     : QObject(parent)
     , m_deps(deps)
 {
-    Q_ASSERT(m_deps.document && m_deps.loader && m_deps.gameController && m_deps.navState);
+    Q_ASSERT(m_deps.document && m_deps.loader && m_deps.board && m_deps.navState);
     connect(m_deps.loader, &KifuLoader::loadFinished, this, &KifuFileController::onAsyncLoadFinished);
 }
 
@@ -376,7 +375,7 @@ bool KifuFileController::copyUsiCurrentToClipboard()
 QString KifuFileController::boardSfen() const
 {
     // 局面編集による変更も含め、盤に出している局面・手番・持ち駒をコピーする
-    const ShogiBoard* board = m_deps.gameController->board();
+    const ShogiBoard* board = m_deps.board;
     // 手数は表示中の手の局面の手数（無ければ表示中の手数の次）
     bool ok = false;
     int moveNumber = m_deps.navState->currentSfen().section(QLatin1Char(' '), 3, 3).toInt(&ok);

@@ -13,7 +13,6 @@
 #include "logcategories.h"
 #include "sfenutils.h"
 #include "shogiboard.h"
-#include "shogigamecontroller.h"
 #include "shogiview.h"
 #include "shogiviewhighlighting.h"
 
@@ -26,7 +25,7 @@ PositionEditSession::PositionEditSession(const Deps& deps, QObject* parent)
     : QObject(parent)
     , m_deps(deps)
 {
-    Q_ASSERT(m_deps.view && m_deps.gameController && m_deps.board && m_deps.navState && m_deps.activity);
+    Q_ASSERT(m_deps.view && m_deps.view->board() && m_deps.board && m_deps.navState && m_deps.activity);
     connect(m_deps.view->chrome(), &BoardChromeWidget::editExitRequested, this, &PositionEditSession::finish);
     connect(m_deps.activity, &AppActivityState::revoked, this, &PositionEditSession::onActivityRevoked);
 
@@ -87,7 +86,7 @@ void PositionEditSession::endEditing()
     if (!board) return;
 
     // 編集中に替えた手番で、編集した局面を1手目にする
-    const QString sfen = board->position().toSfen(m_deps.gameController->currentPlayer(), 1);
+    const QString sfen = board->position().toSfen(board->currentPlayer(), 1);
     resetInteraction();
     board->setSfen(sfen);
     m_deps.view->setPositionEditMode(false);
@@ -125,7 +124,7 @@ void PositionEditSession::returnAllPiecesToBox()
 {
     if (!isEditing()) return;
     resetInteraction();
-    m_deps.view->board()->resetGameBoard();
+    PositionEditRules::clear(*m_deps.view->board());
 }
 
 void PositionEditSession::setHiratePosition()
@@ -133,7 +132,7 @@ void PositionEditSession::setHiratePosition()
     if (!isEditing()) return;
     resetInteraction();
     m_deps.view->board()->setSfen(SfenUtils::hirateSfen());
-    m_deps.gameController->setCurrentPlayer(Turn::Black);
+    m_deps.view->board()->setCurrentPlayer(Turn::Black);
 }
 
 void PositionEditSession::setTsumePosition()
@@ -141,14 +140,14 @@ void PositionEditSession::setTsumePosition()
     if (!isEditing()) return;
     resetInteraction();
     m_deps.view->board()->setSfen(QString::fromLatin1(kTsumeSample));
-    m_deps.gameController->setCurrentPlayer(Turn::Black);
+    m_deps.view->board()->setCurrentPlayer(Turn::Black);
 }
 
 void PositionEditSession::toggleSideToMove()
 {
     if (!isEditing()) return;
     // 編集中の配置は作り直さず、手番だけ替える
-    const Turn next = m_deps.gameController->currentPlayer() == Turn::Black ? Turn::White : Turn::Black;
-    m_deps.gameController->setCurrentPlayer(next);
+    ShogiBoard* board = m_deps.view->board();
+    board->setCurrentPlayer(board->currentPlayer() == Turn::Black ? Turn::White : Turn::Black);
     m_deps.view->update();
 }

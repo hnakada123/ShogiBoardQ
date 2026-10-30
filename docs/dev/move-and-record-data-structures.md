@@ -15,8 +15,9 @@ USI の指し手と1対1の値型と、座標・表記の対応表は1か所に�
 | `UsiMove` / `BoardSquare` | `src/core/usimove.h` | USI の指し手（"7g7f"・"8h2b+"・"P*5e"）と1対1の値。成りも指し手の一部として持つ。`UsiMove::parse()` と `toString()` が USI の読み書きの唯一の実装 |
 | `BoardCoordinates` | `src/core/boardcoordinates.h` | 盤面表示の座標（1始まり、駒台は筋10・11、駒箱は筋12）と駒・`UsiMove` の対応。駒台の段と駒の並びはここだけで決める |
 | `Position::apply()` | `src/core/shogiposition.cpp` | `UsiMove` を局面の値に適用する（合法性は見ない）。読み筋の漢字化・1手の再生（`SfenReplay`）・棋譜の読み込み（`KifLineBuilder`）と書き出しが使う。駒打ちの扱いは `DropRule`（`RequireHand`・棋譜の読み込み用の `Lenient`） |
-| `ShogiBoard::applyUsiMove()` | `src/core/shogiboard.cpp` | 表示の盤に `Position::apply()` で指し、変わったマス・駒台・手番を知らせる。対局の着手の確定（`ShogiGameController::commitMove()`）が使う |
-| `ShogiGameController::applyMove()` | `src/game/shogigamecontroller.cpp` | 対局で指す。エンジンの手は合法手か確かめ、反則手は盤を変えずに断る（`std::nullopt`）。通信対局の手（サーバーが裁定する）は `applyRecordedMove()`、盤のクリック操作は `validateAndMove()` が成りを選ばせてから同じ確定処理を通る。どれも指した手を `RecordEntry`（4.4）で返す |
+| `ShogiBoard::replacePosition()` | `src/core/shogiboard.cpp` | 表示の盤の局面を置き換え、変わったマス・駒台・手番だけを知らせる。対局の着手（`GameBoard::commitMove()`）と局面編集の操作（`PositionEditRules`）が、次の局面を `Position` で作って渡す |
+| `MoveRecord::play()` | `src/kifu/moverecord.h` | 局面で手番の側が手を指し、指した手の棋譜の1行（`RecordEntry`。表記は `KifMoveText::format()`）を作る。棋譜の読み込み（`KifLineBuilder::addMove()`）と対局の着手（`GameBoard::commitMove()`）で共通 |
+| `GameBoard::applyMove()` | `src/game/gameboard.cpp` | 対局で指す。エンジンの手は合法手か確かめ、反則手は盤を変えずに断る（`std::nullopt`）。通信対局の手（サーバーが裁定する）は `applyRecordedMove()`、盤のクリック操作は盤の操作の `BoardInteractionController::moveFromClick()` が成りを選ばせて手にしてから `applyMove()` を通る。どれも指した手を `RecordEntry`（4.4）で返す |
 | `ShogiNotation` | `src/core/shoginotation.h` | 全角の筋・漢数字の段、駒の名前（指し手用は成香・成桂・成銀を2文字、局面図用は杏・圭・全）、CSA の駒種 |
 | `KifMoveText::format()` | `src/kifu/formats/kifmovetext.h` | 「▲７六歩(77)」「△同　銀(31)」「▲５五角打」の形の指し手。対局の棋譜・棋譜の読み込み（全形式。`KifLineBuilder` が指し手から作る）・通信対局・定跡・詰将棋の読み筋が使う |
 | `SfenReplay` | `src/core/sfenreplay.h` | 局面に USI の1手を指す（`applyLenient()`・`positionAfter()`。合法手かは確かめない）。局面は `Position` で持つ |
@@ -53,7 +54,7 @@ CSA の読み込み（`CsaLexer`）も、開始局面（PI・P1〜P9・P+/P-・0
 2つの局面の差分（`SfenDiffUtils`、`src/dialogs/sfendiffutils.h`。局面は `Position::fromSfenLike()` で読む）から手を求めるのは、
 読み筋の盤の読み筋の値（`PvLine`、`src/dialogs/pvline.h`）だけである。開始局面に至った手（`PvLine::setArrival()` の `lastMove`）が分からないときに、至る前の局面と開始局面の盤を比べて、開始局面で強調する移動元と移動先を決める。読み筋の手を指した後の局面では、指した手そのものから強調する（`PvLine::highlight(ply)`。駒打ちの移動元は打った側の駒台）。
 棋譜をたどるときの盤のハイライト（`BoardSyncPresenter`）は、表示中のノードの指し手（`KifuBranchNode::move()`）から求める（6.5.2）。
-対局で次の手の「同」の基準は、対局の手順の最後の手の移動先（`MatchCoordinator::lastMoveDestination()` = `RecordLine::destinationOf(currentPly())`）から決め、指すたびに `ShogiGameController` に渡す。待った（`MatchCoordinator::undoTwoPlies()`）や中断の再開の後も、手順から導くので写しを直す処理は無い。
+対局で次の手の「同」の基準は、対局の手順の最後の手の移動先（`MatchCoordinator::lastMoveDestination()` = `RecordLine::destinationOf(currentPly())`）から決め、指すたびに `GameBoard` に渡す。待った（`MatchCoordinator::undoTwoPlies()`）や中断の再開の後も、手順から導くので写しを直す処理は無い。
 
 ---
 
@@ -604,7 +605,7 @@ USEN は本譜と各ライン（`allLines()`）のノードの指し手から書
 | **棋譜欄** | `RecordPane` 内の `QTableView` | `KifuRecordListModel` | 表示中の手順。クリックで手に移動 |
 | **分岐候補欄** | `RecordPane` 内の `QTableView` | `KifuBranchListModel` | 表示中の手の分岐候補 |
 | **分岐ツリー欄** | `BranchTreeView`（`QGraphicsView` の派生で、分岐ツリードックの中身そのもの。1手は `BranchNodeItem`） | — (直接描画。`setTree()` でツリーを読む) | ツリーのグラフィカル表示 |
-| **将棋盤** | `ShogiView` | `ShogiBoard`（`ShogiGameController` の盤） | 盤面表示 |
+| **将棋盤** | `ShogiView` | `ShogiBoard`（`GameBoard` の盤） | 盤面表示 |
 
 ### 6.2 Signal/Slot 接続図
 

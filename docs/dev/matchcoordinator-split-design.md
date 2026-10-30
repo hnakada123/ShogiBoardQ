@@ -22,7 +22,7 @@
 
 ```cpp
 struct Deps {
-    ShogiGameController* gc = nullptr;          ///< 対局の盤（必須、非所有）
+    GameBoard* gameBoard = nullptr;             ///< 対局の盤（必須、非所有）
     ShogiClock* clock = nullptr;                ///< 対局の時計（必須、非所有）
     AppActivityState* activity = nullptr;       ///< アプリの動作状態（必須、非所有）
     EngineSlots* engines = nullptr;  ///< エンジンの枠 E1・E2（必須、非所有。検討と共有する）
@@ -32,7 +32,7 @@ struct Deps {
 - 司令塔は `MainWindowComposer::createMatchAndAnalysis()`（`src/app/mainwindowcomposer_create.cpp`）が起動時に一度だけ作り、作り直さない。時計 `ShogiClock` とエンジンの枠 `EngineSlots` も合成ルートが作り、エンジンの枠は検討・詰み探索（`AnalysisSession`）と共有する。
 - コンストラクタは時計の `ShogiClock::playerTimeOut` を自分のスロットにつなぐ。エンジンの投了・入玉宣言勝ち・エラー（`MatchEngineSeat::resigned`・`declaredWin`・`errorOccurred`。起動の失敗は開始の処理から戻った後に届くので、エラーも直接つなぐ）は、Strategy を作ったときに `engineSeat(side)` ごとにつなぐ。対局のエンジンが持ち時間を読む `ClockTimeSource` も司令塔が持つ（`MatchStrategyHost::timeSource()`）。時計の `timeUpdated` は受けない（表示は `TimeDisplayPresenter` が時計から直接受ける）。
 - 棋譜の受け手は `MainWindowComposer::createSessions()` が `setRecordSink(GameSession)` で設定する。司令塔のシグナルの受け先は `MainWindowComposer::connectGame()`（`src/app/mainwindowcomposer_wire.cpp`）がつなぐ（6章）。
-- 司令塔は Hooks（コールバックの構造体）を持たない。手番のコピーも持たず、手番は盤の手番（`ShogiGameController::currentPlayer()`）だけを使う。
+- 司令塔は Hooks（コールバックの構造体）を持たない。手番のコピーも持たず、手番は盤の手番（`sideToMove()` が読む `ShogiBoard::currentPlayer()`）だけを使う。
 
 ---
 
@@ -59,7 +59,7 @@ struct Deps {
 | 開始の設定・対局者・最大手数・終局状態 | `MatchSessionState m_session` |
 | 対局モードの Strategy | `std::unique_ptr<GameModeStrategy> m_strategy` |
 | 中断した対局（再開用。棋譜に書いた中断の行 `terminalNodeId` を含む） | `std::unique_ptr<InterruptedGameState> m_interruptedGame` |
-| 盤と手番 | `ShogiGameController`（Deps） |
+| 盤と手番 | `GameBoard`（Deps） |
 | 時計 | `ShogiClock`（Deps。合成ルートが所有） |
 | エンジン | `EngineSlots`（Deps。合成ルートが所有） |
 

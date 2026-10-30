@@ -43,7 +43,7 @@
 #include "positioneditsession.h"
 #include "pvclickcontroller.h"
 #include "recordpane.h"
-#include "shogigamecontroller.h"
+#include "gameboard.h"
 #include "shogiview.h"
 #include "thinkingpanel.h"
 #include "timedisplaypresenter.h"
@@ -136,8 +136,7 @@ void MainWindowComposer::connectBoard()
     BoardInteractionController* board = m_c.boardController;
     connect(m_c.shogiView, &ShogiView::clicked, board, &BoardInteractionController::onLeftClick);
     connect(m_c.shogiView, &ShogiView::rightClicked, board, &BoardInteractionController::onRightClick);
-    connect(m_c.gameController, &ShogiGameController::endDragSignal, m_c.shogiView, &ShogiView::endDrag);
-    connect(m_c.gameController, &ShogiGameController::moveCommitted,
+    connect(m_c.gameBoard, &GameBoard::moveCommitted,
             m_c.pieceSoundPlayer, &PieceSoundPlayer::playMoveSound);
     // 定跡ウィンドウで選んだ手は盤で指した手と同じに扱う
 

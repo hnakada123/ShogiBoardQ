@@ -8,7 +8,7 @@
 #include "settingscommon.h"
 #include "sfenutils.h"
 #include "shogiboard.h"
-#include "shogigamecontroller.h"
+#include "gameboard.h"
 #include "shogiview.h"
 #include "shogiviewhighlighting.h"
 
@@ -28,7 +28,7 @@ class TestLegalMoveHighlights : public QObject
 
     struct BoardUi {
         TestRoute route;
-        ShogiGameController gc;
+        GameBoard gc;
         ShogiView view;
         std::unique_ptr<BoardInteractionController> controller;
 
@@ -38,7 +38,7 @@ class TestLegalMoveHighlights : public QObject
             view.setBoard(gc.board());
             view.setFlipMode(flipped);
             view.setFixedSize(view.sizeHint());
-            controller = std::make_unique<BoardInteractionController>(&view, &gc);
+            controller = std::make_unique<BoardInteractionController>(&view, gc.board());
             controller->setLegalMovesVisible(true);
             controller->setInputRoute(&route);
             QObject::connect(&view, &ShogiView::clicked, controller.get(), &BoardInteractionController::onLeftClick);
@@ -210,7 +210,7 @@ private slots:
             ui.controller->onMoveApplied(QPoint(7, 7), QPoint(7, 6), operation == "applied");
         else if (operation == "clear") ui.controller->clearAllHighlights();
         else if (operation == "reset") ui.gc.board()->setSfen(SfenUtils::hirateSfen());
-        else if (operation == "turn") ui.gc.setCurrentPlayer(Turn::White);
+        else if (operation == "turn") ui.gc.board()->setCurrentPlayer(Turn::White);
         else if (operation == "disable") ui.controller->setInputRoute(nullptr);
         else if (operation == "edit") {
             TestRoute editRoute;

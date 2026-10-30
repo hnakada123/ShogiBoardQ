@@ -13,7 +13,6 @@
 class BoardInteractionController;
 class KifuNavigationState;
 class QAction;
-class ShogiGameController;
 class ShogiView;
 
 /**
@@ -39,7 +38,6 @@ public:
 
     struct Deps {
         ShogiView* view = nullptr;                          ///< 盤（必須）
-        ShogiGameController* gameController = nullptr;      ///< 盤の局面と手番（必須）
         BoardInteractionController* board = nullptr;        ///< 盤の操作（必須）
         const KifuNavigationState* navState = nullptr;      ///< 表示中の手（編集する局面。必須）
         AppActivityState* activity = nullptr;               ///< 動作状態（必須）

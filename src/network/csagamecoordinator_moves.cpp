@@ -9,7 +9,7 @@
 #include "matchrecordsink.h"
 #include "shogiboard.h"
 #include "shogiclock.h"
-#include "shogigamecontroller.h"
+#include "gameboard.h"
 #include "usi.h"
 #include <QSignalBlocker>
 
@@ -115,11 +115,11 @@ void CsaGameCoordinator::syncClockAfterMove(bool startMyTurnClock)
 
 std::optional<RecordEntry> CsaGameCoordinator::playCsaMove(const QString& csaMove)
 {
-    ShogiBoard* board = m_gameController ? m_gameController->board() : nullptr;
+    ShogiBoard* board = m_gameBoard ? m_gameBoard->board() : nullptr;
     if (!board) return std::nullopt;
     const std::optional<UsiMove> move = CsaMoveConverter::toUsi(csaMove, board->position());
     if (!move) return std::nullopt;
-    return m_gameController->applyRecordedMove(*move, m_progress.previousTo());
+    return m_gameBoard->applyRecordedMove(*move, m_progress.previousTo());
 }
 
 void CsaGameCoordinator::finishMove(const RecordEntry& played, int consumedTimeMs, bool nowMyTurn)
@@ -138,7 +138,7 @@ void CsaGameCoordinator::finishMove(const RecordEntry& played, int consumedTimeM
     if (m_sink) m_sink->appendRecord(entry);
     emit turnChanged(nowMyTurn);
     // 盤面・棋譜・時計を確定し終えた着手を知らせる（駒音・定跡ウィンドウ。通知は盤面の更新の後）
-    m_gameController->notifyMoveCommitted(isBlackMove ? Turn::Black : Turn::White, p.moveCount());
+    m_gameBoard->notifyMoveCommitted(isBlackMove ? Turn::Black : Turn::White, p.moveCount());
 }
 
 // ============================================================
@@ -147,7 +147,7 @@ void CsaGameCoordinator::finishMove(const RecordEntry& played, int consumedTimeM
 
 bool CsaGameCoordinator::applyConfirmedMove(const QString& move, int consumedTimeMs, bool nowMyTurn)
 {
-    if (m_phase != Phase::Playing || !m_gameController || failIfVerdictPending()) return false;
+    if (m_phase != Phase::Playing || !m_gameBoard || failIfVerdictPending()) return false;
     const QString problem = validateMoveText(move);
     if (!problem.isEmpty()) {
         deferVerdict(problem, tr("サーバーからの指し手を解釈できません: %1").arg(move));
@@ -209,7 +209,7 @@ void CsaGameCoordinator::onEngineMoveReady(const UsiMatchMove& result)
         return;
     }
 
-    ShogiBoard* board = m_gameController ? m_gameController->board() : nullptr;
+    ShogiBoard* board = m_gameBoard ? m_gameBoard->board() : nullptr;
     if (!board) {
         emit logMessage(tr("盤面が取得できませんでした"), true);
         return;

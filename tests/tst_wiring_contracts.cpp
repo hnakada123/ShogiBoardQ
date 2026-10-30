@@ -12,7 +12,7 @@
 #include "livegamesession.h"
 #include "gamesession.h"
 #include "matchcoordinator.h"
-#include "shogigamecontroller.h"
+#include "gameboard.h"
 #include "uistatepolicymanager.h"
 #include "shogiclock.h"
 #include "matchtimerecord.h"
@@ -85,7 +85,7 @@ private slots:
         StartGameDialogData data;
         QString error;
         QVERIFY2(startGame(p, data, &error), qPrintable(error));
-        connect(p.gameController, &ShogiGameController::moveCommitted, this, &TestWiringContracts::observeMove);
+        connect(p.gameBoard, &GameBoard::moveCommitted, this, &TestWiringContracts::observeMove);
         p.boardMoves->submit(QPoint(7, 7), QPoint(7, 6));
         p.boardMoves->submit(QPoint(3, 3), QPoint(3, 4));
         QCOMPARE(m_consistentMoves, 2);

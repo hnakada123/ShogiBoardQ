@@ -284,7 +284,7 @@
    - 盤面同期（`BoardSyncPresenter`）が対局の局面列ではなく、表示中の手（`KifuNavigationState::currentNode()`）の局面から盤面を描いているか
 
 3. **手番の置き場**
-   - 手番を盤（`ShogiBoard`）だけが持ち、`ShogiGameController::currentPlayer()`・手番表示・人間の手番の判定がどれも盤の手番から決まるか
+   - 手番を盤（`ShogiBoard`）だけが持ち、`MatchCoordinator::sideToMove()`・手番表示・人間の手番の判定がどれも盤の手番（`ShogiBoard::currentPlayer()`）から決まるか
    - 棋譜ナビゲーション時は表示中の手の SFEN で盤が置き換わり、手番もそれに従うか
 
 4. **`KifuLoader` の使い回し**

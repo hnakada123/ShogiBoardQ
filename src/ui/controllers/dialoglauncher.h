@@ -49,7 +49,7 @@ public:
     ~DialogLauncher() override = default;
 
 
-    /// 成りダイアログで成り・不成を選ばせる（成るなら true）。ShogiGameController の成りの選び方に使う
+    /// 成りダイアログで成り・不成を選ばせる（成るなら true）。盤の操作（BoardInteractionController）の成りの選び方に使う
     bool choosePromotion();
 
 public slots:

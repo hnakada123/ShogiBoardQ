@@ -7,13 +7,12 @@
 #include "kifubranchnode.h"
 #include "kifunavigationstate.h"
 #include "shogiboard.h"
-#include "shogigamecontroller.h"
 
 BoardSyncPresenter::BoardSyncPresenter(const Deps& deps, QObject* parent)
     : QObject(parent)
     , m_deps(deps)
 {
-    Q_ASSERT(m_deps.gc && m_deps.bic && m_deps.navState);
+    Q_ASSERT(m_deps.board && m_deps.bic && m_deps.navState);
 
     connect(m_deps.navState, &KifuNavigationState::changed, this, &BoardSyncPresenter::syncToCurrentNode);
 }
@@ -21,7 +20,7 @@ BoardSyncPresenter::BoardSyncPresenter(const Deps& deps, QObject* parent)
 void BoardSyncPresenter::syncToCurrentNode()
 {
     const KifuBranchNode* node = m_deps.navState->currentNode();
-    ShogiBoard* board = m_deps.gc->board();
+    ShogiBoard* board = m_deps.board;
     if (!node) return;
 
     // 局面が違うときだけ入れ替える（終局の行は直前の局面を持つ）

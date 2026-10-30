@@ -57,7 +57,7 @@
 #include "mainwindow.h"
 #include "mainwindowcomposer.h"
 #include "boardchromewidget.h"
-#include "shogigamecontroller.h"
+#include "gameboard.h"
 #include "shogiview.h"
 #include "shogiviewhighlighting.h"
 #include "boardinteractioncontroller.h"
@@ -1689,11 +1689,11 @@ private slots:
         QCOMPARE(board()->board()->pieceBoxCount(Piece::BlackKing), 2);
         click("actionSetTsumePosition"); QVERIFY(boardSfen().contains('k'));
         click("actionSetHiratePosition"); QCOMPARE(boardSfen(), initial);
-        auto* gc = window->findChild<ShogiGameController*>(); QVERIFY(gc);
-        const auto before = gc->currentPlayer();
+        auto* gc = window->findChild<GameBoard*>(); QVERIFY(gc);
+        const auto before = gc->board()->currentPlayer();
         click("actionChangeTurn");
-        QVERIFY(gc->currentPlayer() != before);
-        click("actionChangeTurn"); QCOMPARE(gc->currentPlayer(), before);
+        QVERIFY(gc->board()->currentPlayer() != before);
+        click("actionChangeTurn"); QCOMPARE(gc->board()->currentPlayer(), before);
         click("actionEndEditPosition"); QVERIFY(!board()->positionEditMode());
     }
     /// 読み込めない棋譜のエラーを閉じた後も、盤面を描き続ける（エラー表示で盤の描画を止めない）
@@ -1841,13 +1841,13 @@ private slots:
     {
         QFETCH(QString, operation);
         startPositionEdit();
-        auto* gc = window->findChild<ShogiGameController*>(); QVERIFY(gc);
+        auto* gc = window->findChild<GameBoard*>(); QVERIFY(gc);
         if (operation == "move" || operation == "rejected-move") {
             QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, squarePoint(3, 3));
             QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier,
                               squarePoint(operation == "move" ? 3 : 4, 4));
             QCOMPARE(board()->board()->pieceCharacter(3, operation == "move" ? 4 : 3), Piece::WhitePawn);
-            QCOMPARE(gc->currentPlayer(), Turn::Black);
+            QCOMPARE(gc->board()->currentPlayer(), Turn::Black);
         } else if (operation == "stands") {
             click("actionReturnAllPiecesToStand");
             const auto hand = board()->board()->position().handsSfen();
@@ -1855,13 +1855,13 @@ private slots:
             click("actionChangeTurn");
             QCOMPARE(board()->board()->position().handsSfen(), hand);
             QCOMPARE(board()->board()->pieceBox(), box);
-            QCOMPARE(gc->currentPlayer(), Turn::White);
+            QCOMPARE(gc->board()->currentPlayer(), Turn::White);
         } else {
             click("actionChangeTurn");
             click(operation == "hirate" ? "actionSetHiratePosition" : "actionSetTsumePosition");
-            QCOMPARE(gc->currentPlayer(), Turn::Black);
+            QCOMPARE(gc->board()->currentPlayer(), Turn::Black);
         }
-        const Turn turn = gc->currentPlayer();
+        const Turn turn = gc->board()->currentPlayer();
         QCOMPARE(board()->board()->currentPlayer(), turn);
         const QString expected = QStringLiteral("%1 %2 %3 1")
             .arg(boardSfen(), turnToSfen(turn), board()->board()->position().handsSfen());
@@ -2267,7 +2267,7 @@ private slots:
         auto* model = board()->board();
         const int standRank = side == 10 ? type : 10 - type;
         const Piece piece = model->pieceCharacter(side, standRank);
-        auto* gc = window->findChild<ShogiGameController*>(); QVERIFY(gc);
+        auto* gc = window->findChild<GameBoard*>(); QVERIFY(gc);
         QVERIFY(PositionEditRules::apply(*gc->board(), {12, type}, {side, standRank}));
         QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, editPoint(side, standRank));
         QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, editPoint(4, destinationRank));
@@ -2283,7 +2283,7 @@ private slots:
     {
         startPositionEdit();
         auto* model = board()->board();
-        auto* gc = window->findChild<ShogiGameController*>(); QVERIFY(gc);
+        auto* gc = window->findChild<GameBoard*>(); QVERIFY(gc);
         const QString before = boardSfen();
         const auto hand = model->position().handsSfen();
         // 二歩、味方駒、玉取り、空の駒台をGUIから操作する。
@@ -2294,7 +2294,7 @@ private slots:
             QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, editPoint(move.second.x(), move.second.y()));
             QCOMPARE(boardSfen(), before);
             QCOMPARE(model->position().handsSfen(), hand);
-            QCOMPARE(gc->currentPlayer(), Turn::Black);
+            QCOMPARE(gc->board()->currentPlayer(), Turn::Black);
         }
         // 不正な座標や駒台セルを渡されても、駒が消えたり別の種類に変わったりしない。
         const QList<QPair<QPoint, QPoint>> invalid = {
@@ -2371,8 +2371,8 @@ private slots:
         QCOMPARE(window->composer().parts().branchTree->root()->sfen(), edited);
         QVERIFY(copy("actionCopyUSIAll").contains(edited));
         QCOMPARE(copy("actionCopySFEN").trimmed(), edited);
-        auto* gc = window->findChild<ShogiGameController*>(); QVERIFY(gc);
-        QCOMPARE(gc->currentPlayer(), Turn::White);
+        auto* gc = window->findChild<GameBoard*>(); QVERIFY(gc);
+        QCOMPARE(gc->board()->currentPlayer(), Turn::White);
         startPositionEdit();
         QCOMPARE(copy("actionCopySFEN").trimmed(), edited);
         click("actionEndEditPosition");

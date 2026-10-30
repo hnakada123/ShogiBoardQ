@@ -29,7 +29,7 @@
 #include "kifufilecontroller.h"
 #include "kifuloader.h"
 #include "shogiboard.h"
-#include "shogigamecontroller.h"
+#include "gameboard.h"
 #include "matchtimerecord.h"
 #include "kifunavigationstate.h"
 #include "kifuexportmetadata.h"
@@ -50,14 +50,14 @@ struct FileHarness {
         KifuFileController::Deps deps;
         deps.document = &document;
         deps.loader = &loader;
-        deps.gameController = &gc;
+        deps.board = gc.board();
         deps.navState = nav;
         controller = std::make_unique<KifuFileController>(deps);
     }
 
     KifuDocument document;
     KifuLoader loader;
-    ShogiGameController gc;
+    GameBoard gc;
     std::unique_ptr<KifuFileController> controller;
 };
 

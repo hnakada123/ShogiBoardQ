@@ -12,7 +12,7 @@
 #include "kifuloadparser.h"
 #include "sfenutils.h"
 #include "sfenreplay.h"
-#include "shogigamecontroller.h"
+#include "gameboard.h"
 #include "shogiboard.h"
 #include "usi.h"
 #include "usienginesession.h"
@@ -296,10 +296,10 @@ private slots:
     void initializationAndMoveKeepEventLoopResponsive()
     {
         qputenv("SBQ_MATCH_INIT_DELAY_MS", "250");
-        ShogiGameController game;
+        GameBoard game;
         QString initial = SfenUtils::hirateSfen();
         game.newGame(initial);
-        game.setCurrentPlayer(Turn::White);
+        game.board()->setCurrentPlayer(Turn::White);
         Usi engine;
         QSignalSpy ready(&engine, &Usi::engineInitialized);
         QSignalSpy moves(&engine, &Usi::matchMoveReady);
@@ -325,10 +325,10 @@ private slots:
     void immediateMoveDuringInitializationKeepsPendingSearch()
     {
         qputenv("SBQ_MATCH_INIT_DELAY_MS", "250");
-        ShogiGameController game;
+        GameBoard game;
         QString initial = SfenUtils::hirateSfen();
         game.newGame(initial);
-        game.setCurrentPlayer(Turn::White);
+        game.board()->setCurrentPlayer(Turn::White);
         Usi engine;
         QSignalSpy moves(&engine, &Usi::matchMoveReady);
         engine.startEngine(QStringLiteral(MOCK_USI_EXECUTABLE), engineName);
@@ -351,10 +351,10 @@ private slots:
         QFETCH(bool, hit);
         qputenv("SBQ_MATCH_STOP_DELAY_MS", "200");
         EngineProfileStore::savePonder(engineName, true, true);
-        ShogiGameController game;
+        GameBoard game;
         QString initial = SfenUtils::hirateSfen();
         game.newGame(initial);
-        game.setCurrentPlayer(Turn::White);
+        game.board()->setCurrentPlayer(Turn::White);
         Usi engine;
         QSignalSpy moves(&engine, &Usi::matchMoveReady);
         QSignalSpy resigns(&engine, &Usi::resigned);
@@ -379,10 +379,10 @@ private slots:
     }
     void canceledMoveAndShutdownDoNotBlock()
     {
-        ShogiGameController game;
+        GameBoard game;
         QString initial = SfenUtils::hirateSfen();
         game.newGame(initial);
-        game.setCurrentPlayer(Turn::White);
+        game.board()->setCurrentPlayer(Turn::White);
         Usi engine;
         QSignalSpy ready(&engine, &Usi::engineInitialized);
         QSignalSpy moves(&engine, &Usi::matchMoveReady);
@@ -419,7 +419,7 @@ private slots:
         qputenv("SBQ_MATCH_STOP_DELAY_MS", "10000");
         qputenv("SBQ_MATCH_IGNORE_TERMINATE", "1");
         qputenv("SBQ_MATCH_REPLY_DELAY_MS", "300");
-        ShogiGameController game;
+        GameBoard game;
         ShogiClock clock;
         AppActivityState activity;
         EngineSlots engines;
@@ -549,7 +549,7 @@ private slots:
         QStringList gameOvers;
         // 終局の後はエンジンを閉じるので、対局ごとにエンジンを起動する（2回目は中断で引き分け）
         for (const bool breakOff : {false, true}) {
-            ShogiGameController game;
+            GameBoard game;
             ShogiClock clock;
             AppActivityState activity;
             EngineSlots engines;
@@ -582,10 +582,10 @@ private slots:
     void exitWhileThinkingReportsError()
     {
         qputenv("SBQ_MATCH_EXIT_ON_GO", "1");
-        ShogiGameController game;
+        GameBoard game;
         QString initial = SfenUtils::hirateSfen();
         game.newGame(initial);
-        game.setCurrentPlayer(Turn::White);
+        game.board()->setCurrentPlayer(Turn::White);
         Usi engine;
         QSignalSpy errors(&engine, &Usi::errorOccurred);
         QSignalSpy moves(&engine, &Usi::matchMoveReady);

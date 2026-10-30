@@ -21,7 +21,7 @@
 #include "gamesession.h"
 #include "matchcoordinator.h"
 #include "shogiclock.h"
-#include "shogigamecontroller.h"
+#include "gameboard.h"
 #include "kifudisplaypresenter.h"
 #include "kifunavigationstate.h"
 #include "livegamesession.h"
@@ -210,7 +210,7 @@ private slots:
         // 棋譜の受け手（本体と同じ GameSession。追記に使う部品と、作るときに要る対局の司令塔だけ渡す）
         AppActivityState activity;
         KifuDocument document(&tree);
-        ShogiGameController gc;
+        GameBoard gc;
         ShogiClock clock;
         EngineSlots engines;
         MatchCoordinator match({&gc, &clock, &activity, &engines, &document});

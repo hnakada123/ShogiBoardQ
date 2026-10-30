@@ -35,7 +35,7 @@
 #include "settingscommon.h"
 #include "sfenutils.h"
 #include "shogiclock.h"
-#include "shogigamecontroller.h"
+#include "gameboard.h"
 #include "startgamedialog.h"
 
 class TestAppGameSession : public QObject
@@ -157,13 +157,13 @@ private slots:
     /// 通信対局の盤上の着手は、司令塔の状態（対局中・人間の手番）のときだけ受け付ける
     void csaHumanTurnFollowsCoordinatorState()
     {
-        ShogiGameController gc;
+        GameBoard gc;
         AppActivityState activity;
         ActivityLease lease = activity.begin(AppActivityState::Activity::DuringCsaGame, nullptr);
         auto csa = std::make_unique<CsaGameCoordinator>();
         HumanTurnPolicy::Deps deps;
         deps.activity = &activity;
-        deps.gameController = &gc;
+        deps.board = gc.board();
         deps.csaGame = csa.get();
         HumanTurnPolicy policy(deps);
         QVERIFY(!policy.isHumanTurnNow());
@@ -186,11 +186,11 @@ private slots:
     /// 棋譜解析・詰み探索・検討の間は、盤で指せない（盤の操作の行き先が受け付けない）
     void busyStatesRejectBoardInput()
     {
-        ShogiGameController gc;
+        GameBoard gc;
         AppActivityState activity;
         HumanTurnPolicy::Deps deps;
         deps.activity = &activity;
-        deps.gameController = &gc;
+        deps.board = gc.board();
         HumanTurnPolicy policy(deps);
         ActivityLease lease;
         for (const auto state : {AppActivityState::Activity::DuringAnalysis, AppActivityState::Activity::DuringTsumeSearch,

@@ -12,7 +12,7 @@
 #include "livegamesession.h"
 #include "logcategories.h"
 #include "shogiboard.h"
-#include "shogigamecontroller.h"
+#include "gameboard.h"
 #include "shogimove.h"
 
 #include <QAction>
@@ -175,23 +175,23 @@ bool BranchTreeEditController::apply(Operation operation, KifuBranchNode* node, 
     return true;
 }
 
-KifuBranchNode* BranchTreeEditController::prepareRecordParent(ShogiGameController* gc) const
+KifuBranchNode* BranchTreeEditController::prepareRecordParent(GameBoard* gameBoard) const
 {
-    if (gc == nullptr || !canEdit()) return nullptr;
+    if (gameBoard == nullptr || !canEdit()) return nullptr;
     KifuBranchNode* parent = m_deps.navState->currentNode();
     if (parent == nullptr) parent = m_deps.tree->root();
     // 終局手（投了など）を表示中なら、その直前の局面から指したものとする
     if (parent != nullptr && parent->isTerminal()) parent = parent->parent();
     if (parent == nullptr || parent->sfen().isEmpty()) return nullptr;
     // 合法判定・成りの確認・指し手表記の生成は対局と同じ処理を使う
-    gc->board()->setSfen(parent->sfen());
+    gameBoard->board()->setSfen(parent->sfen());
     return parent;
 }
 
-bool BranchTreeEditController::recordMove(const UsiMove& move, ShogiGameController* gc)
+bool BranchTreeEditController::recordMove(const UsiMove& move, GameBoard* gameBoard)
 {
-    KifuBranchNode* parent = prepareRecordParent(gc);
-    return parent != nullptr && addMove(parent, move, gc);
+    KifuBranchNode* parent = prepareRecordParent(gameBoard);
+    return parent != nullptr && addMove(parent, move, gameBoard);
 }
 
 int BranchTreeEditController::addVariationLines(KifuBranchNode* parent, const QList<RecordLine>& lines)
@@ -217,11 +217,11 @@ int BranchTreeEditController::addVariationLines(KifuBranchNode* parent, const QL
     return created;
 }
 
-bool BranchTreeEditController::addMove(KifuBranchNode* parent, const UsiMove& move, ShogiGameController* gc)
+bool BranchTreeEditController::addMove(KifuBranchNode* parent, const UsiMove& move, GameBoard* gameBoard)
 {
     // 「同」表記の基準は指す局面に至った手
     const std::optional<RecordEntry> played =
-        gc->applyMove(move, parent->isActualMove() ? parent->move().move.to : BoardSquare{});
+        gameBoard->applyMove(move, parent->isActualMove() ? parent->move().move.to : BoardSquare{});
     if (!played) return false;
 
     // 足した手へ移ってからツリーの変更を知らせる（盤は指した後の局面のまま、表示は1回だけ描き直す）

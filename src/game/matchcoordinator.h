@@ -22,7 +22,7 @@
 class EngineSlots;
 class KifuDocument;
 class MatchRecordSink;
-class ShogiGameController;
+class GameBoard;
 class Usi;
 struct JosekiPick;
 
@@ -106,7 +106,7 @@ public:
     using StartOptions = MatchStartOptions;
 
     struct Deps {
-        ShogiGameController* gc = nullptr;          ///< 対局の盤（必須、非所有）
+        GameBoard* gameBoard = nullptr;             ///< 対局の盤（必須、非所有）
         ShogiClock* clock = nullptr;                ///< 対局の時計（必須、非所有）
         AppActivityState* activity = nullptr;       ///< アプリの動作状態（必須、非所有）
         EngineSlots* engines = nullptr;  ///< エンジンの枠 E1・E2（必須、非所有。検討と共有する）
@@ -165,7 +165,7 @@ public:
 
     /// 人間の手を受け付けるか（終局していない・棋譜に書ける）
     bool canAcceptMove() const;
-    /// 人間が盤で指した（盤のクリックの手を ShogiGameController が指した後）
+    /// 人間が盤で指した（盤のクリックの手を GameBoard が指した後）
     void onHumanMove(const RecordEntry& played);
     /// 手番のエンジンにすぐ指させる
     void forceImmediateMove();
@@ -252,7 +252,7 @@ private:
     // --- 待った・中断 ---
     void captureInterruptedGame();
 
-    ShogiGameController* m_gc = nullptr;
+    GameBoard* m_gameBoard = nullptr;
     ShogiClock* m_clock = nullptr;
     AppActivityState* m_activity = nullptr;
     ActivityLease m_activityLease;   ///< 対局中の動作状態（開始・再開で受け取り、終局で手放す）

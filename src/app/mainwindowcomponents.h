@@ -30,7 +30,7 @@ class BoardMoveController;
 class BoardSyncPresenter;
 class PositionEditSession;
 class ShogiClock;
-class ShogiGameController;
+class GameBoard;
 class ShogiView;
 class TimeDisplayPresenter;
 
@@ -123,7 +123,7 @@ struct MainWindowComponents {
     UsiCommLogModel* commLog2 = nullptr;
 
     // --- 盤・時計 ---
-    ShogiGameController* gameController = nullptr;
+    GameBoard* gameBoard = nullptr;
     ShogiView* shogiView = nullptr;
     BoardInteractionController* boardController = nullptr;
     BoardMoveController* boardMoves = nullptr;          ///< 盤で指した手を動作状態に応じて処理する

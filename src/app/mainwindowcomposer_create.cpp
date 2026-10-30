@@ -67,7 +67,7 @@
 #include "sfenutils.h"
 #include "shogiclock.h"
 #include "shogienginethinkingmodel.h"
-#include "shogigamecontroller.h"
+#include "gameboard.h"
 #include "shogiview.h"
 #include "thinkingpanel.h"
 #include "timedisplaypresenter.h"
@@ -122,11 +122,11 @@ void MainWindowComposer::createRecordAndModels()
 void MainWindowComposer::createBoard()
 {
     // 盤は起動から終了まで1つ。局面は表示中の手（KifuNavigationState）に合わせて入れ替える
-    m_c.gameController = new ShogiGameController(&m_window);
-    m_c.gameController->newGame(m_c.branchTree->root()->sfen());
+    m_c.gameBoard = new GameBoard(&m_window);
+    m_c.gameBoard->newGame(m_c.branchTree->root()->sfen());
     m_c.shogiView = new ShogiView(&m_window);
     m_c.shogiView->setNameFontScale(0.30);
-    m_c.shogiView->setBoard(m_c.gameController->board());
+    m_c.shogiView->setBoard(m_c.gameBoard->board());
 
     m_c.clock = new ShogiClock(&m_window);
     m_c.timePresenter = new TimeDisplayPresenter(m_c.shogiView, m_c.clock, &m_window);
@@ -141,7 +141,7 @@ void MainWindowComposer::createBoard()
     ad.timePresenter = m_c.timePresenter;
     m_c.appearance = new MainWindowAppearanceController(ad, &m_window);
 
-    m_c.boardController = new BoardInteractionController(m_c.shogiView, m_c.gameController, &m_window);
+    m_c.boardController = new BoardInteractionController(m_c.shogiView, m_c.gameBoard->board(), &m_window);
     m_ui.actionLegalMoves->setChecked(AppSettings::legalMovesVisible());
     m_c.boardController->setLegalMovesVisible(m_ui.actionLegalMoves->isChecked());
 }
@@ -179,7 +179,7 @@ void MainWindowComposer::createPanels()
     m_c.kifuDisplay = new KifuDisplayPresenter(dd, &m_window);
 
     BoardSyncPresenter::Deps bs;
-    bs.gc = m_c.gameController;
+    bs.board = m_c.gameBoard->board();
     bs.bic = m_c.boardController;
     bs.navState = m_c.navState;
     m_c.boardSync = new BoardSyncPresenter(bs, &m_window);
@@ -214,7 +214,7 @@ void MainWindowComposer::createMatchAndAnalysis()
     m_c.engines = new EngineSlots(&m_window);
 
     MatchCoordinator::Deps md;
-    md.gc = m_c.gameController;
+    md.gameBoard = m_c.gameBoard;
     md.clock = m_c.clock;
     md.activity = &m_activity;
     md.document = m_c.document;
@@ -230,7 +230,7 @@ void MainWindowComposer::createMatchAndAnalysis()
     m_c.consecutiveGames = new ConsecutiveGameSeries(&m_window);
 
     CsaGameCoordinator::Deps cd;
-    cd.gameController = m_c.gameController;
+    cd.gameBoard = m_c.gameBoard;
     cd.clock = m_c.clock;
     cd.engines = m_c.engines;
     cd.activity = &m_activity;
@@ -238,7 +238,7 @@ void MainWindowComposer::createMatchAndAnalysis()
 
     HumanTurnPolicy::Deps hd;
     hd.activity = &m_activity;
-    hd.gameController = m_c.gameController;
+    hd.board = m_c.gameBoard->board();
     hd.match = m_c.match;
     hd.csaGame = m_c.csaGame;
     hd.branchEdit = m_c.branchEdit;
@@ -246,7 +246,6 @@ void MainWindowComposer::createMatchAndAnalysis()
 
     PositionEditSession::Deps pd;
     pd.view = m_c.shogiView;
-    pd.gameController = m_c.gameController;
     pd.board = m_c.boardController;
     pd.navState = m_c.navState;
     pd.activity = &m_activity;
@@ -261,7 +260,7 @@ void MainWindowComposer::createMatchAndAnalysis()
     // 盤で指した手の行き先（動作状態ごとに、受け付けるか・どう処理するかを決める）
     BoardMoveController::Deps bd;
     bd.view = m_c.shogiView;
-    bd.gameController = m_c.gameController;
+    bd.gameBoard = m_c.gameBoard;
     bd.board = m_c.boardController;
     bd.activity = &m_activity;
     bd.match = m_c.match;
@@ -421,7 +420,7 @@ void MainWindowComposer::createSessions()
     fd.parentWidget = &m_window;
     fd.document = m_c.document;
     fd.loader = m_c.kifuLoader;
-    fd.gameController = m_c.gameController;
+    fd.board = m_c.gameBoard->board();
     fd.navState = m_c.navState;
     fd.activity = &m_activity;
     m_c.kifuFileController = new KifuFileController(fd, &m_window);
@@ -527,7 +526,7 @@ void MainWindowComposer::createControllers()
     dl.evalChart = m_c.evalChart;
     m_c.dialogLauncher = new DialogLauncher(dl, &m_window);
     // 成り・不成を選べる着手では、成りダイアログで対局者に選ばせる
-    m_c.gameController->setPromotionChooser(std::bind(&DialogLauncher::choosePromotion, m_c.dialogLauncher));
+    m_c.boardController->setPromotionChooser(std::bind(&DialogLauncher::choosePromotion, m_c.dialogLauncher));
 
     m_c.images = new ImageExportController({&m_window, m_c.shogiView, m_c.evalChart}, &m_window);
     m_c.settingsReset = new SettingsResetController(&m_window);

@@ -7,7 +7,6 @@
 #include "kifubranchnode.h"
 #include "kifunavigationstate.h"
 #include "shogiboard.h"
-#include "shogigamecontroller.h"
 
 QStringList AutomationCommands::currentLinePositions(const AutomationContext& context)
 {
@@ -32,7 +31,7 @@ QString AutomationCommands::currentSfen(const AutomationContext& context)
 {
     const QString displayed = context.navState ? context.navState->currentSfen() : QString();
     if (!displayed.isEmpty()) return displayed;
-    return context.gameController ? context.gameController->board()->toSfen() : QString();
+    return context.board ? context.board->toSfen() : QString();
 }
 
 void AutomationCommands::registerAll(AutomationDispatcher& dispatcher, const AutomationContext& context)

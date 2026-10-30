@@ -10,7 +10,7 @@
 #include "sfenutils.h"
 #include "shogiboard.h"
 #include "shogiclock.h"
-#include "shogigamecontroller.h"
+#include "gameboard.h"
 #include "shogiview.h"
 #include "shogiviewhighlighting.h"
 #include "timedisplaypresenter.h"
@@ -32,9 +32,9 @@ class TestBoardTurnDisplay : public QObject
 
     QTemporaryDir m_config;
 
-    static void verifyTurn(ShogiView& view, ShogiGameController& gc, bool blackTurn)
+    static void verifyTurn(ShogiView& view, GameBoard& gc, bool blackTurn)
     {
-        QCOMPARE(gc.currentPlayer(), blackTurn ? Turn::Black
+        QCOMPARE(gc.board()->currentPlayer(), blackTurn ? Turn::Black
                                               : Turn::White);
         QCOMPARE(view.board()->currentPlayer(), blackTurn ? Turn::Black : Turn::White);
         QCOMPARE(view.chrome()->activeSide(), blackTurn ? Turn::Black : Turn::White);
@@ -176,7 +176,7 @@ private slots:
         const QStringList sfens = TestReplay::buildSfenRecord(initialSfen, moves, false);
         QCOMPARE(sfens.size(), 4);
 
-        ShogiGameController gc;
+        GameBoard gc;
         gc.newGame(initialSfen);
         ShogiView view;
         view.setBoard(gc.board());
@@ -198,7 +198,7 @@ private slots:
 
     void customColors_followTurnsAndWarnings()
     {
-        ShogiGameController gc;
+        GameBoard gc;
         QString initialSfen = SfenUtils::hirateSfen();
         gc.newGame(initialSfen);
         ShogiView view;
@@ -224,7 +224,7 @@ private slots:
         custom.clockCriticalText = QColor("#aa2961");
         BoardAppearance::instance().setColors(custom);
         for (bool black : {true, false}) {
-            gc.setCurrentPlayer(black ? Turn::Black : Turn::White);
+            gc.board()->setCurrentPlayer(black ? Turn::Black : Turn::White);
             verifyTurn(view, gc, black);
             const auto* badge = view.findChild<QLabel*>(black ? "turnLabelBlack" : "turnLabelWhite");
             QCOMPARE(badge->palette().color(QPalette::WindowText), custom.turnText);
@@ -321,7 +321,7 @@ private slots:
     // 手番の側が替わったら前の手番の時計の警告は消え、同じ側のままなら残る。
     void turnIndicatorFollowsBoard()
     {
-        ShogiGameController gc;
+        GameBoard gc;
         gc.newGame(SfenUtils::hirateSfen());
         ShogiView view;
         view.setBoard(gc.board());
@@ -331,13 +331,13 @@ private slots:
         gc.board()->setCurrentPlayer(Turn::Black);
         QCOMPARE(view.chrome()->urgency(), ShogiView::Urgency::Warn5);
 
-        QVERIFY(gc.board()->applyUsiMove(*UsiMove::parse(QStringLiteral("7g7f"))));
-        QCOMPARE(gc.currentPlayer(), Turn::White);
+        QVERIFY(gc.applyRecordedMove(*UsiMove::parse(QStringLiteral("7g7f")), {}).has_value());
+        QCOMPARE(gc.board()->currentPlayer(), Turn::White);
         QCOMPARE(view.chrome()->activeSide(), Turn::White);
         QCOMPARE(view.chrome()->urgency(), ShogiView::Urgency::Normal);
         QVERIFY(!view.findChild<QLabel*>(QStringLiteral("turnLabelWhite"))->isHidden());
 
-        gc.setCurrentPlayer(Turn::Black);
+        gc.board()->setCurrentPlayer(Turn::Black);
         QCOMPARE(view.chrome()->activeSide(), Turn::Black);
 
         QString whiteToMove = SfenUtils::hirateSfen();
@@ -350,7 +350,7 @@ private slots:
     void longEngineNameStaysAboveClock()
     {
         QString initialSfen = SfenUtils::hirateSfen();
-        ShogiGameController gc;
+        GameBoard gc;
         gc.newGame(initialSfen);
         ShogiView view;
         view.setBoard(gc.board());

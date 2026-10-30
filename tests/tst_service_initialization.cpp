@@ -30,7 +30,7 @@
 #include "considerationuicontroller.h"
 #include "appsettings.h"
 #include "matchcoordinator.h"
-#include "shogigamecontroller.h"
+#include "gameboard.h"
 #include "kifuloader.h"
 #include "kifufilecontroller.h"
 #include "dialoglauncher.h"
@@ -256,9 +256,9 @@ private slots:
     {
         MainWindow window;
         auto& nav = window.composer().parts();
-        QCOMPARE(window.findChildren<ShogiGameController*>(), QList<ShogiGameController*>{nav.gameController});
+        QCOMPARE(window.findChildren<GameBoard*>(), QList<GameBoard*>{nav.gameBoard});
         QVERIFY(window.findChildren<ShogiView*>().contains(nav.shogiView));
-        QCOMPARE(nav.shogiView->board(), nav.gameController->board());
+        QCOMPARE(nav.shogiView->board(), nav.gameBoard->board());
         QCOMPARE(window.findChildren<KifuBranchTree*>(), QList<KifuBranchTree*>{nav.branchTree});
         QCOMPARE(window.findChildren<KifuNavigationState*>(), QList<KifuNavigationState*>{nav.navState});
         QCOMPARE(window.findChildren<KifuNavigationController*>(),

@@ -43,7 +43,7 @@ public:
     virtual bool applyEngineMove(const UsiMatchMove& move) = 0;
 
     /**
-     * @brief 盤で指した人間の手（ShogiGameController が指した後）で一手を確定する
+     * @brief 盤で指した人間の手（GameBoard が指した後）で一手を確定する
      * @return 対局が続くなら true
      */
     virtual bool completeHumanMove(const RecordEntry& played) = 0;
@@ -62,7 +62,7 @@ public:
     /// 対局を開始する（エンジンを作って起動し、表示を整える）
     virtual void start() = 0;
 
-    /// 人間が盤で指した（ShogiGameController が指した後）
+    /// 人間が盤で指した（GameBoard が指した後）
     virtual void onHumanMove(const RecordEntry& played) = 0;
 
     /// 手番がエンジンなら思考を始める（対局の開始・再開の直後に呼ぶ）

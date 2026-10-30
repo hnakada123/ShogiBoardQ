@@ -57,7 +57,7 @@ cmake --build build --target translations
 
 - **core/**: 純粋なゲームロジック（Qt GUI非依存）
   - `shogiposition.cpp/.h` - 局面の値 `Position`（盤81マス・持ち駒・手番・手数）。SFEN の読み書きと指し手の適用（`apply`）はここだけ。計算のための局面はこの値で持つ
-  - `shogiboard.cpp/.h` - 表示・局面編集に使う盤。`Position` を1つ持ち（`position()`）、変更をシグナルで知らせる QObject
+  - `shogiboard.cpp/.h` - 表示・局面編集に使う盤。`Position` を1つ持ち（`position()`）、変更をシグナルで知らせる QObject（局面の包みと知らせだけ。局面を変える規則は持たず、着手と局面編集は次の局面を `Position` で作って `replacePosition(next)` で渡す。変わったマス・駒台・手番だけを知らせる）
   - `shogitypes.h`・`piecerules.h` - 手番と駒（`Piece` は種類＋後手なら16。並びは fmv と同じ）。行き所のない駒・成れる段・持ち駒の並びの規則
   - `positionvalidator.cpp/.h` - 局面の検査 `PositionValidator`（`check()`：駒の数・駒台の玉・玉の重複と有無・手番でない側への王手と、手番側の王手・合法手の数。`boardProblem()` は盤と持ち駒だけ）。validate-sfen（`SfenValidator`）・局面集・詰将棋問題一覧・対局の開始で同じ規則を使う。合法手だけを指すのは `EngineMoveValidator::applyIfLegal`。Hayanagi は詰み探索だけに使う
   - `sfenvalidator.cpp/.h` - SFEN の検査 `SfenValidator::validate`（手番・手数の欄と `Position::fromSfen`・`PositionValidator` の結果を値 `SfenValidation` にし、読めた局面 `position` も返す）と、合法手だけを指した後の SFEN `applyUsiMoves`。JSON にするのは headless の `SfenValidationJson`
@@ -66,7 +66,7 @@ cmake --build build --target translations
   - `shogimove.cpp/.h`・`usimove.h` - Move representation
   - `enginemovevalidator.cpp/.h` - Move legality validation（`fmv::Converter` を境界に `fmvlegalcore` のビットボード合法手生成を使う）
   - `sfenreplay.cpp/.h` - 局面に USI の1手を指す（`applyLenient`・`positionAfter`。合法手かは確かめない）
-  - `boardcoordinates.h` - 盤面表示の座標（駒台は筋10・11、駒箱は筋12）と駒・USI の指し手の対応
+  - `boardcoordinates.h` - 盤面表示の座標（駒台は筋10・11、駒箱は筋12）と駒・USI の指し手の対応（表示の座標の駒・駒台と駒箱の枚数の読み `pieceAt`・`isAvailable` もここだけ）
   - `handicaps.h` - 手合割の表（名前・JKF の preset・開始局面）
   - `jishogicalculator.cpp/.h` - 持将棋の点数計算・判定
   - `matchplayers.h` - 対局者（先手・後手を人間とエンジンのどちらが指すかと名前。1人分は `seat(Turn)`）
@@ -80,7 +80,7 @@ cmake --build build --target translations
   - `gamechannel.cpp/.h` - 対局相手の窓口 `GameChannel`: 投了・中断・即指し・入玉宣言をローカル対局と通信対局で同じ操作にする（ローカル対局は `LocalGameChannel`、通信対局は network の `CsaGameChannel`）
   - `matchautosave.h` - 終局した棋譜の自動保存の指定 `MatchAutoSave`（ローカル対局・通信対局で同じ）
   - `consecutivegameseries.cpp/.h` - エンジン同士の連続対局（局数・手番の入れ替え・次局の計画）
-  - `shogigamecontroller.cpp/.h` - Game flow control
+  - `gameboard.cpp/.h` - 対局の盤 `GameBoard`（盤を持ち、合法手を確かめて指し、指した手を棋譜の1行にする。着手の確定の知らせ `moveCommitted`）。手番は盤（`ShogiBoard::currentPlayer()`）が持つ。盤と手番だけを使う部品は `ShogiBoard` を受け取る
   - `matchrecordsink.h` - 対局の棋譜の受け手 `MatchRecordSink`（新しい棋譜 `beginRecord(MatchRecordStart)`・行の追記と取り消し・終局での確定 `finishRecord`）。ローカル対局と通信対局の司令塔が同じ受け手（`GameSession`）に書く（合成ルートが `setRecordSink()` で渡す）
   - `gamestartoptionsbuilder` - 対局開始ダイアログの値の解釈
 
@@ -89,6 +89,7 @@ cmake --build build --target translations
   - `kifubranchtree.cpp/.h`・`kifubranchnode.cpp/.h` - 分岐ツリー `KifuBranchTree`（ルートを所有し、ノードは子を `std::unique_ptr` で所有する。木の形を変えられるのはツリーだけ）。手を足すのは `addRecord(parent, RecordEntry)` だけ。構造の変更は型付きのシグナル `nodeAppended(parentId, nodeId)`・`childrenReordered(parentId)`・`subtreeRemoved(parentId, nodeId)`・`reset()` で知らせ、`beginBatchUpdate()`〜`endBatchUpdate()` の間は遅らせて順に出す（作り直しを含めば `reset()` 1回）。テストで手を足す・探す補助は `tests/branchtree_test_util.h`（`TestTree`）
   - `kifuexport.cpp/.h` - 形式ごとの書き出しの表（`KifuExport::lines`。GUI の保存・コピーと CLI の変換で共通）
   - `recordline.h`・`recordentry.h` - 1本の手順と1手の記録。手順の型は `RecordLine` だけ（読み込みの本譜・変化・書き出し・表示中の手順・対局の手順。末尾に終局の行を持てる）。エンジンに送る局面は `usiPosition(ply)`（作れなければ nullopt）と、範囲の各局面を手順を1度だけたどって作る `usiPositions(from, to)`（たどれなければ局面だけ。棋譜解析と CLI の analyze-kifu で共通）
+  - `moverecord.h` - 指す前の局面と指し手から棋譜の1行を作る `MoveRecord::play`（動かす駒を局面から決めて指し、表記は `KifMoveText::format`）。棋譜の読み込み（`KifLineBuilder::addMove`）と対局の着手（`GameBoard`）で共通
   - `kifuformat.cpp/.h` - 棋譜の形式（読み込み・保存・変換で共通の1つの enum）と判定
   - `kifuloadparser.cpp/.h` - 棋譜の読み込み口（ファイルの文字コードの判別と形式ごとの変換器への振り分け）
   - `kifparsetypes.h` - 読み込み結果（`KifParseResult`・形式ごとの `parse()` が返す `KifuParseOutcome`）と、読めない手の扱い（`ParseOptions`・`ParseReport`。ここだけで決める）
@@ -104,7 +105,7 @@ cmake --build build --target translations
   - **formats/**: Format converters（テキストを読む。ファイルは `KifuLoadParser` が読んで渡す）
     - `csatosfenconverter`, `jkftosfenconverter`, etc. - 形式ごとに `parse(text, options)` を1つだけ持ち、`KifuParseOutcome` を返す（KIF・KI2 は `KifTextParser::parseKif`・`parseKi2`、BOD は `KifTextParser::parseBod`）
     - `kiftextparser.cpp/.h` - KIF・KI2 で共有する読み取り（行の分類・「変化：N手」の区切り・開始局面）。指し手の文法は `kifmovegrammar`（KIF の手は KI2 の手＋移動元）
-    - `kiflinebuilder.cpp/.h` - 全形式で共通の手順の組み立て（`KifLineBuilder`。指しながら `RecordEntry` を作り、表記は `KifMoveText::format` で作る）
+    - `kiflinebuilder.cpp/.h` - 全形式で共通の手順の組み立て（`KifLineBuilder`。指しながら `RecordEntry` を作る。1行は対局の着手と同じ `MoveRecord::play`）
     - `*exporter` - 形式ごとの書き出し。KIF・KI2 の先頭（文字コード宣言・対局情報・盤面図）は `KifExporter::appendHeaderLines(ctx, out, HeaderOptions)` で共有し、KI2 の本譜と変化は `appendKi2Moves` の1つのループで書く
     - `kifunodereplay.cpp/.h` - 分岐ツリーのノードを指す前の局面と一緒にたどる `KifuNodeReplay`（`board()`・`mover()`・`previousTo()`・`canWrite(node)`・`advance(node)`・`branchFrom(parent)`。指せない手はノードの SFEN から取り直す）。KI2・JKF の書き出しが使う
     - `usencodec.cpp/.h` - USEN の符号表 `UsenCodec`（指し手の3文字と `UsiMove` の符号化と復号 `encodeMove`・`decodeMove`、開始局面 `encodePosition`・`decodePosition`、手順 `decodeLine`・`decodeLines`（"~" で1回だけ分けて本譜と変化の `UsenLine` にする））。`UsenToSfenConverter` と `UsenExporter` が使う
@@ -143,7 +144,8 @@ cmake --build build --target translations
   - `movefont.h` - 指し手・読み筋の書体の規則 `MoveFont`（表のモデルの FontRole と `KifuMoveDelegate` で共通）
 
 - **board/**: 盤面編集・操作
-  - `boardinteractioncontroller.cpp/.h` - 盤のクリックを移動元・移動先にし、選択・直前の手・合法な移動先のハイライトを出す
+  - `boardinteractioncontroller.cpp/.h` - 盤のクリックを移動元・移動先にし、選択・直前の手・合法な移動先のハイライトを出す。クリックを手番の側の手にする処理 `moveFromClick()`（成り・不成の両方が合法なら `setPromotionChooser()` の関数で尋ねる）もここにあり、主画面と詰将棋を解く画面の行き先が使う。ドラッグは行き先の `submit()` から戻った後に終える
+  - `positioneditrules.cpp/.h` - 局面編集の規則 `PositionEditRules`（駒の移動 `moved`・右クリックの成・不成・先後の巡回 `cycled`・盤を空にする `cleared`。`Position` を変える関数で、盤へは `apply`・`cyclePiece`・`clear` が渡す）
   - `boardinputroute.h` - 盤で指した手の行き先 `BoardInputRoute`（つまめるか・局面編集中か・着手の処理。主画面は `BoardMoveController`、詰将棋を解くダイアログは `TsumePlayDialog`）
   - `positioneditsession.cpp/.h` - 局面編集（開始・終了・編集メニュー・編集中の着手）。「編集中か」は動作状態 `DuringPositionEdit` だけで決まる
 

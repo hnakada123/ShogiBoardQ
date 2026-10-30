@@ -6,7 +6,7 @@
 #include "matchengineseat.h"
 #include "matchrecordsink.h"
 #include "usi.h"
-#include "shogigamecontroller.h"
+#include "gameboard.h"
 #include "shogiclock.h"
 #include "shogiboard.h"
 #include "logcategories.h"
@@ -56,7 +56,7 @@ CsaGameCoordinator::CsaGameCoordinator(const Deps& deps, QObject* parent)
             this, &CsaGameCoordinator::onRawMessageReceived);
     connect(m_client, &CsaClient::rawMessageSent,
             this, &CsaGameCoordinator::onRawMessageSent);
-    m_gameController = deps.gameController;
+    m_gameBoard = deps.gameBoard;
     m_clock = deps.clock;
     m_engines = deps.engines;
     m_activity = deps.activity;
@@ -166,12 +166,12 @@ CsaGameCoordinator::TurnState CsaGameCoordinator::turnState() const
 void CsaGameCoordinator::onHumanMove(const UsiMove& move)
 {
     // 成り選択のモーダル処理中に対局が終了することもあるので、届いた時点の状態で確かめる
-    if (m_phase != Phase::Playing || !isMyTurn() || !isHumanPlayer() || !m_gameController)
+    if (m_phase != Phase::Playing || !isMyTurn() || !isHumanPlayer() || !m_gameBoard)
         return;
     // 盤は動かさない（サーバーの確認を受けてから指す）。合法手だけを送る
-    if (!m_gameController->isLegal(move)) return;
+    if (!m_gameBoard->isLegal(move)) return;
     const QString csaMove = CsaMoveConverter::toCsa(move, m_progress.isBlackSide ? Turn::Black : Turn::White,
-                                                    m_gameController->board()->position());
+                                                    m_gameBoard->board()->position());
     if (!csaMove.isEmpty() && m_client->sendMove(csaMove)) emit turnChanged(false);
 }
 

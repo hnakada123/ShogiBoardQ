@@ -5,7 +5,6 @@
 #include "fontsizehelper.h"
 #include "shogiboard.h"
 #include "sfenutils.h"
-#include "shogigamecontroller.h"
 #include "shogiview.h"
 #include "boardviewerwidget.h"
 #include "tsumeshogisettings.h"
@@ -41,9 +40,8 @@ TsumePlayDialog::TsumePlayDialog(QWidget* parent)
     connect(&m_outcomeTimer, &QTimer::timeout, this, &TsumePlayDialog::showPendingOutcome);
     m_session = new TsumeGameSession(this);
     m_solution = new TsumeSolutionReplay(this);
-    m_game = new ShogiGameController(this);
-    QString initialSfen = SfenUtils::hirateSfen();
-    m_game->newGame(initialSfen);
+    m_board = new ShogiBoard(this);
+    m_board->setSfen(SfenUtils::hirateSfen());
     buildUi();
     const auto preferences = TsumeshogiSettings::playPreferences();
     m_problemUi.timeout->setValue(preferences.timeoutSec);
@@ -197,9 +195,9 @@ int TsumePlayDialog::timeoutSec() const
 
 void TsumePlayDialog::buildBoardControls(QVBoxLayout* layout)
 {
-    // 盤と、縮小・拡大・回転の操作列（盤のモデルは対局の盤を使う）
+    // 盤と、縮小・拡大・回転の操作列
     m_viewer = new BoardViewerWidget(BoardViewerWidget::ZoomToolbar | BoardViewerWidget::FitWindowOnZoom,
-                                     BoardViewerWidget::ButtonLabels::Symbols, m_game->board(), this);
+                                     BoardViewerWidget::ButtonLabels::Symbols, m_board, this);
     m_view = m_viewer->view();
     m_view->setObjectName(QStringLiteral("tsumeBoard"));
 
@@ -208,7 +206,9 @@ void TsumePlayDialog::buildBoardControls(QVBoxLayout* layout)
     m_viewer->flipButton()->setObjectName(QStringLiteral("tsumeFlipBoard"));
     connect(m_viewer, &BoardViewerWidget::boardTransformed, this, &TsumePlayDialog::cancelBoardSelection);
     connect(m_viewer, &BoardViewerWidget::flipToggled, this, &TsumePlayDialog::onFlipToggled);
-    m_interaction = new BoardInteractionController(m_view, m_game, this);
+    m_interaction = new BoardInteractionController(m_view, m_board, this);
+    // 成り・不成の両方が指せる手は、主画面と同じダイアログで尋ねる
+    m_interaction->setPromotionChooser([this] { return PromoteDialog::ask(this); });
     // 「表示」→「指せるマスを表示」の設定に従う（メイン画面と同じ）
     m_interaction->setLegalMovesVisible(AppSettings::legalMovesVisible());
     connect(m_view, &ShogiView::clicked, m_interaction, &BoardInteractionController::onLeftClick);
@@ -284,20 +284,11 @@ bool TsumePlayDialog::acceptsInput() const
 
 void TsumePlayDialog::submit(const QPoint& from, const QPoint& to)
 {
-    if (reviewing()) {
-        m_view->endDrag();
-        return;
-    }
-    // 通常対局と同様、成りの選択が終わるまでは移動先のドラッグ表示を保つ。成りの確認は主画面と同じダイアログ
-    const auto parsed = BoardCoordinates::usiMoveFromSquares(from, to, false);
-    QString move = parsed ? parsed->toString() : QString();
-    const auto legal = m_session->legalMoves();
-    const QString promoted = move + QLatin1Char('+');
-    if (!move.isEmpty() && legal.contains(promoted)
-        && (!legal.contains(move) || PromoteDialog::ask(this)))
-        move = promoted;
-    m_view->endDrag();
-    const bool accepted = m_session->play(move);
+    // ドラッグの表示は盤の操作が終える（成りを尋ねている間は保つ）
+    if (reviewing()) return;
+    // クリックを手にする規則と成りの尋ね方は主画面と同じ（BoardInteractionController::moveFromClick）
+    const std::optional<UsiMove> move = m_interaction->moveFromClick(from, to);
+    const bool accepted = move && m_session->play(move->toString());
     m_interaction->onMoveApplied(from, to, accepted);
 }
 
@@ -306,9 +297,8 @@ void TsumePlayDialog::updatePosition(const QString& sfen, const QString& move)
     cancelPendingOutcome();
     m_view->endDrag();
     m_interaction->cancelPendingClick();
-    m_game->board()->setSfen(sfen);
-    const bool blackTurn = sfen.section(QLatin1Char(' '), 1, 1) == QStringLiteral("b");
-    m_game->setCurrentPlayer(blackTurn ? Turn::Black : Turn::White);
+    m_board->setSfen(sfen);
+    const bool blackTurn = m_board->currentPlayer() == Turn::Black;
     if (move.isEmpty()) m_interaction->clearAllHighlights();
     else {
         // 直前の手は、今の手番の相手が指した手
