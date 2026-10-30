@@ -91,7 +91,7 @@ PositionInfo describePosition(const QString &sfen)
     if (!position) return info;
     info.blackToMove = position->sideToMove() == Turn::Black;
     info.ply = position->moveNumber();
-    if (info.ply == 1) info.handicap = Handicaps::byBoard(sfen);
+    if (info.ply == 1) info.handicap = Handicaps::of(*position);
     return info;
 }
 
@@ -861,7 +861,7 @@ void JosekiWindow::updatePositionSummary()
     const QString turn = info.blackToMove ? tr("先手") : tr("後手");
     // 平手・駒落ちの開始局面は手合の名前、それ以外は手数で示す（任意の局面を「駒落ち」と呼ばない）
     QString positionDesc;
-    if (info.handicap == &Handicaps::kAll[0])  // 表の先頭は平手
+    if (info.handicap == &Handicaps::kHirate)
         positionDesc = tr("初期配置");
     else if (info.handicap)
         positionDesc = KifuPresentation::infoValue(GameInfoKeys::kHandicap, Handicaps::labelOf(*info.handicap));

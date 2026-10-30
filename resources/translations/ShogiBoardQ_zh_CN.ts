@@ -4706,38 +4706,38 @@ ABC abc 0123456789</translation>
 <context>
     <name>GameInfoEditModel</name>
     <message>
-        <location filename="../../src/models/gameinfoeditmodel.cpp" line="92"/>
+        <location filename="../../src/models/gameinfoeditmodel.cpp" line="83"/>
         <source>項目</source>
         <translation>项目</translation>
     </message>
     <message>
-        <location filename="../../src/models/gameinfoeditmodel.cpp" line="92"/>
+        <location filename="../../src/models/gameinfoeditmodel.cpp" line="83"/>
         <source>内容</source>
         <translation>内容</translation>
     </message>
     <message>
-        <location filename="../../src/models/gameinfoeditmodel.cpp" line="193"/>
+        <location filename="../../src/models/gameinfoeditmodel.cpp" line="184"/>
         <source>未開始（対局開始時に設定）</source>
         <translation>尚未开始（对局开始时设置）</translation>
     </message>
     <message>
-        <location filename="../../src/models/gameinfoeditmodel.cpp" line="193"/>
-        <location filename="../../src/models/gameinfoeditmodel.cpp" line="197"/>
+        <location filename="../../src/models/gameinfoeditmodel.cpp" line="184"/>
+        <location filename="../../src/models/gameinfoeditmodel.cpp" line="188"/>
         <source>未設定</source>
         <translation>未设置</translation>
     </message>
     <message>
-        <location filename="../../src/models/gameinfoeditmodel.cpp" line="195"/>
+        <location filename="../../src/models/gameinfoeditmodel.cpp" line="186"/>
         <source>未設定（名前を入力できます）</source>
         <translation>未设置（可输入姓名）</translation>
     </message>
     <message>
-        <location filename="../../src/models/gameinfoeditmodel.cpp" line="197"/>
+        <location filename="../../src/models/gameinfoeditmodel.cpp" line="188"/>
         <source>未設定（対局設定から反映）</source>
         <translation>未设置（从对局设置获取）</translation>
     </message>
     <message>
-        <location filename="../../src/models/gameinfoeditmodel.cpp" line="199"/>
+        <location filename="../../src/models/gameinfoeditmodel.cpp" line="190"/>
         <source>任意入力</source>
         <translation>选填</translation>
     </message>
@@ -4968,17 +4968,16 @@ ABC abc 0123456789</translation>
 <context>
     <name>GameSession</name>
     <message>
-        <location filename="../../src/app/gamesession.cpp" line="179"/>
+        <location filename="../../src/app/gamesession.cpp" line="181"/>
         <source>保存していない定跡</source>
         <translation>未保存的定跡</translation>
     </message>
     <message>
-        <location filename="../../src/app/gamesession.cpp" line="222"/>
         <source>無制限</source>
-        <translation>无限制</translation>
+        <translation type="vanished">无限制</translation>
     </message>
     <message>
-        <location filename="../../src/app/gamesession.cpp" line="224"/>
+        <location filename="../../src/app/gamesession.cpp" line="227"/>
         <source>対局：▲%1 △%2（%3 開始、持ち時間 %4）</source>
         <translation>对局：▲%1 △%2（%3 开始，用时 %4）</translation>
     </message>
@@ -8342,172 +8341,172 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">错误</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="177"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="184"/>
         <source>（定跡）</source>
         <translation>（定跡）</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="183"/>
+        <location filename="../../src/kifu/gameinfokeys.h" line="14"/>
         <source>対局日</source>
         <translation>对局日期</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="183"/>
+        <location filename="../../src/kifu/gameinfokeys.h" line="15"/>
         <source>開始日時</source>
         <translation>开始时间</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="184"/>
+        <location filename="../../src/kifu/gameinfokeys.h" line="16"/>
         <source>終了日時</source>
         <translation>结束时间</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="184"/>
+        <location filename="../../src/kifu/gameinfokeys.h" line="17"/>
         <source>先手</source>
         <translation>先手</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="185"/>
+        <location filename="../../src/kifu/gameinfokeys.h" line="18"/>
         <source>後手</source>
         <translation>后手</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="185"/>
+        <location filename="../../src/kifu/gameinfokeys.h" line="20"/>
         <source>下手</source>
         <translation>下手</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="186"/>
+        <location filename="../../src/kifu/gameinfokeys.h" line="21"/>
         <source>上手</source>
         <translation>上手</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="186"/>
+        <location filename="../../src/kifu/gameinfokeys.h" line="26"/>
         <source>手合割</source>
         <translation>让子</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="187"/>
+        <location filename="../../src/kifu/gameinfokeys.h" line="31"/>
         <source>持ち時間</source>
         <translation>用时规则</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="187"/>
+        <location filename="../../src/kifu/gameinfokeys.h" line="32"/>
         <source>棋戦</source>
         <translation>赛事</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="188"/>
+        <location filename="../../src/kifu/gameinfokeys.h" line="33"/>
         <source>場所</source>
         <translation>地点</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="188"/>
+        <location filename="../../src/kifu/gameinfokeys.h" line="34"/>
         <source>備考</source>
         <translation>备注</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="189"/>
+        <location filename="../../src/kifu/gameinfokeys.h" line="35"/>
         <source>戦型</source>
         <translation>战型</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="189"/>
+        <location filename="../../src/kifu/gameinfokeys.h" line="36"/>
         <source>表題</source>
         <translation>标题</translation>
     </message>
     <message>
-        <location filename="../../src/core/handicaps.h" line="23"/>
+        <location filename="../../src/core/handicaps.h" line="24"/>
         <source>平手</source>
         <translation>平手</translation>
     </message>
     <message>
-        <location filename="../../src/core/handicaps.h" line="24"/>
+        <location filename="../../src/core/handicaps.h" line="25"/>
         <source>香落ち</source>
         <translation>去香</translation>
     </message>
     <message>
-        <location filename="../../src/core/handicaps.h" line="25"/>
+        <location filename="../../src/core/handicaps.h" line="26"/>
         <source>右香落ち</source>
         <translation>去右香</translation>
     </message>
     <message>
-        <location filename="../../src/core/handicaps.h" line="26"/>
+        <location filename="../../src/core/handicaps.h" line="27"/>
         <source>角落ち</source>
         <translation>去角</translation>
     </message>
     <message>
-        <location filename="../../src/core/handicaps.h" line="27"/>
+        <location filename="../../src/core/handicaps.h" line="28"/>
         <source>飛車落ち</source>
         <translation>去飞车</translation>
     </message>
     <message>
-        <location filename="../../src/core/handicaps.h" line="28"/>
+        <location filename="../../src/core/handicaps.h" line="29"/>
         <source>飛香落ち</source>
         <translation>去飞香</translation>
     </message>
     <message>
-        <location filename="../../src/core/handicaps.h" line="29"/>
+        <location filename="../../src/core/handicaps.h" line="30"/>
         <source>二枚落ち</source>
         <translation>去二枚</translation>
     </message>
     <message>
-        <location filename="../../src/core/handicaps.h" line="31"/>
+        <location filename="../../src/core/handicaps.h" line="32"/>
         <source>四枚落ち</source>
         <translation>去四枚</translation>
     </message>
     <message>
-        <location filename="../../src/core/handicaps.h" line="30"/>
+        <location filename="../../src/core/handicaps.h" line="31"/>
         <source>三枚落ち</source>
         <translation>去三枚</translation>
     </message>
     <message>
-        <location filename="../../src/core/handicaps.h" line="32"/>
+        <location filename="../../src/core/handicaps.h" line="33"/>
         <source>五枚落ち</source>
         <translation>去五枚</translation>
     </message>
     <message>
-        <location filename="../../src/core/handicaps.h" line="33"/>
+        <location filename="../../src/core/handicaps.h" line="34"/>
         <source>左五枚落ち</source>
         <translation>去左五枚</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="201"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="202"/>
         <source>局面指定</source>
         <translation>指定局面</translation>
     </message>
     <message>
-        <location filename="../../src/core/handicaps.h" line="34"/>
+        <location filename="../../src/core/handicaps.h" line="35"/>
         <source>六枚落ち</source>
         <translation>去六枚</translation>
     </message>
     <message>
-        <location filename="../../src/core/handicaps.h" line="35"/>
+        <location filename="../../src/core/handicaps.h" line="36"/>
         <source>左七枚落ち</source>
         <translation>去左七枚</translation>
     </message>
     <message>
-        <location filename="../../src/core/handicaps.h" line="36"/>
+        <location filename="../../src/core/handicaps.h" line="37"/>
         <source>右七枚落ち</source>
         <translation>去右七枚</translation>
     </message>
     <message>
-        <location filename="../../src/core/handicaps.h" line="37"/>
+        <location filename="../../src/core/handicaps.h" line="38"/>
         <source>八枚落ち</source>
         <translation>去八枚</translation>
     </message>
     <message>
-        <location filename="../../src/core/handicaps.h" line="38"/>
+        <location filename="../../src/core/handicaps.h" line="39"/>
         <source>十枚落ち</source>
         <translation>去十枚</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="201"/>
+        <location filename="../../src/kifu/gameinfokeys.h" line="28"/>
         <source>その他</source>
         <translation>其他</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="205"/>
+        <location filename="../../src/kifu/timecontroltext.h" line="24"/>
         <source>無制限</source>
         <translation>不限时</translation>
     </message>

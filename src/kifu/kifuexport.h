@@ -20,7 +20,7 @@ class KifuDocument;
  */
 namespace KifuExport {
 
-/// 文書の書き出しの文脈（対局情報・開始局面・対局者・持ち時間・開始と終了の日時）
+/// 文書の書き出しの文脈（対局情報・開始局面）
 KifuExportMetadata metadataOf(const KifuDocument& document);
 /// format の行（SFEN・BOD は棋譜を書けないので KIF にする）
 QStringList lines(const KifuBranchTree& tree, const KifuExportMetadata& metadata, KifuFormat format);

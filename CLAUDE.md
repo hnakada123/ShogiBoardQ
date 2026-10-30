@@ -67,7 +67,7 @@ cmake --build build --target translations
   - `enginemovevalidator.cpp/.h` - Move legality validation（`fmv::Converter` を境界に `fmvlegalcore` のビットボード合法手生成を使う）
   - `sfenreplay.cpp/.h` - 局面に USI の1手を指す（`applyLenient`・`positionAfter`。合法手かは確かめない）
   - `boardcoordinates.h` - 盤面表示の座標（駒台は筋10・11、駒箱は筋12）と駒・USI の指し手の対応（表示の座標の駒・駒台と駒箱の枚数の読み `pieceAt`・`isAvailable` もここだけ）
-  - `handicaps.h` - 手合割の表（名前・JKF の preset・開始局面）
+  - `handicaps.h` - 手合割の表（名前・JKF の preset・開始局面）と局面の手合割（`Handicaps::of(Position)`・`ofStart(開始局面の文字列)`。盤・持ち駒・手番で決め、手数は見ない）。平手かどうかは `Handicaps::isHirate` だけで判定する
   - `jishogicalculator.cpp/.h` - 持将棋の点数計算・判定
   - `matchplayers.h` - 対局者（先手・後手を人間とエンジンのどちらが指すかと名前。1人分は `seat(Turn)`）
   - `shogiclock.cpp/.h` - Game clock
@@ -88,6 +88,7 @@ cmake --build build --target translations
   - `kifudocument.cpp/.h` - 開いている棋譜の文書 `KifuDocument`（分岐ツリー・対局情報・対局の記録（対局者・持ち時間・開始と終了の日時）・上書き保存先）。未保存かどうかは保存した時点との比較で求める（対局情報欄の編集は表に入れた時点で文書に入る。入力中のセル・コメント欄の未更新の本文は `Hooks`（`commitPendingEdits`・`hasPendingEdits`）で、保存・書き出し・対局の開始の前に確定し、未保存に数える）
   - `kifubranchtree.cpp/.h`・`kifubranchnode.cpp/.h` - 分岐ツリー `KifuBranchTree`（ルートを所有し、ノードは子を `std::unique_ptr` で所有する。木の形を変えられるのはツリーだけ）。手を足すのは `addRecord(parent, RecordEntry)` だけ。構造の変更は型付きのシグナル `nodeAppended(parentId, nodeId)`・`childrenReordered(parentId)`・`subtreeRemoved(parentId, nodeId)`・`reset()` で知らせ、`beginBatchUpdate()`〜`endBatchUpdate()` の間は遅らせて順に出す（作り直しを含めば `reset()` 1回）。テストで手を足す・探す補助は `tests/branchtree_test_util.h`（`TestTree`）
   - `kifuexport.cpp/.h` - 形式ごとの書き出しの表（`KifuExport::lines`。GUI の保存・コピーと CLI の変換で共通）
+  - `gameinfo.cpp/.h` - 対局情報の規則 `GameInfo`（対局者の見出し `playerKey`・`playerSide`・`playerName`・下手上手と呼ぶか `usesHandicapNames`・手合割の値 `handicapLabel`・`isHandicap`）。見出しの語は `gameinfokeys.h`（画面で訳す見出しは `GameInfoKeys::kTranslated`。`KifuPresentation::infoKey` が引く）、持ち時間の値（「無制限」を含む）は `TimeControlText`。書き出しの文脈 `KifuExportMetadata` は対局情報と開始局面だけで、CSA も対局情報だけから書く
   - `recordline.h`・`recordentry.h` - 1本の手順と1手の記録。手順の型は `RecordLine` だけ（読み込みの本譜・変化・書き出し・表示中の手順・対局の手順。末尾に終局の行を持てる）。エンジンに送る局面は `usiPosition(ply)`（作れなければ nullopt）と、範囲の各局面を手順を1度だけたどって作る `usiPositions(from, to)`（たどれなければ局面だけ。棋譜解析と CLI の analyze-kifu で共通）
   - `moverecord.h` - 指す前の局面と指し手から棋譜の1行を作る `MoveRecord::play`（動かす駒を局面から決めて指し、表記は `KifMoveText::format`）。棋譜の読み込み（`KifLineBuilder::addMove`）と対局の着手（`GameBoard`）で共通
   - `kifuformat.cpp/.h` - 棋譜の形式（読み込み・保存・変換で共通の1つの enum）と判定

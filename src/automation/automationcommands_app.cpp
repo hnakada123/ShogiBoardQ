@@ -8,7 +8,7 @@
 #include "automationwidgets.h"
 #include "csagamecoordinator.h"
 #include "kifudocument.h"
-#include "kifuexportmetadata.h"
+#include "gameinfo.h"
 #include "kifufilecontroller.h"
 #include "sfenutils.h"
 #include "shogiview.h"
@@ -52,8 +52,7 @@ QString playModeName(const AppActivityState& state, const MatchPlayers& players,
     const QString seats = players.engineVsEngine() ? QStringLiteral("engine_vs_engine")
                         : players.isEngine(Turn::Black)  ? QStringLiteral("engine_vs_human")
                                                  : QStringLiteral("human_vs_engine");
-    const bool handicap = KifuExportMetadataBuilder::isHandicap(KifuExportMetadataBuilder::handicapLabel(startSfen));
-    return handicap ? QStringLiteral("handicap_") + seats : seats;
+    return GameInfo::isHandicap(startSfen) ? QStringLiteral("handicap_") + seats : seats;
 }
 
 } // namespace

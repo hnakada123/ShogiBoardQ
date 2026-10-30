@@ -32,7 +32,7 @@
 #include "gameboard.h"
 #include "matchtimerecord.h"
 #include "kifunavigationstate.h"
-#include "kifuexportmetadata.h"
+#include "gameinfo.h"
 #include "kifu_test_helper.h"
 #include "kifuloadparser.h"
 #include "kifubranchtreebuilder.h"
@@ -174,6 +174,14 @@ private slots:
         const QString continued = KifuExport::lines(document, KifuFormat::Csa).join(QLatin1Char('\n'));
         QVERIFY2(!continued.contains(QStringLiteral("$START_TIME")), qPrintable(continued));
         QVERIFY(!continued.contains(QStringLiteral("$TIME")));
+
+        // 対局者も対局情報だけから書く（対局情報に名前の行が無い棋譜を続けた対局では N+・N- を書かない。KIF と同じ）
+        document.startNew(kHirateSfen);
+        document.editHeader({{GameInfoKeys::kEvent, QStringLiteral("研究会")}});
+        document.beginMatch(players, TimeControl{}, true);
+        const QString unnamed = KifuExport::lines(document, KifuFormat::Csa).join(QLatin1Char('\n'));
+        QVERIFY2(!unnamed.contains(QStringLiteral("N+")) && !unnamed.contains(QStringLiteral("N-")), qPrintable(unnamed));
+        QVERIFY(unnamed.contains(QStringLiteral("$EVENT:研究会")));
     }
 
     /// 対局情報・コメント・しおりの改行（CR だけも）は、書き出した棋譜で別の行にならない（セキュリティ監査 S9）
@@ -1471,17 +1479,51 @@ private slots:
     // 手合割：駒落ちの初期配置は名前で、それ以外の局面は「その他」
     void handicapLabelRecognizesPresets()
     {
-        QCOMPARE(KifuExportMetadataBuilder::handicapLabel(kHirateSfen), QStringLiteral("平手"));
-        QCOMPARE(KifuExportMetadataBuilder::handicapLabel(
-                     QStringLiteral("lnsgkgsnl/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1")),
-                 QStringLiteral("二枚落ち"));
+        QCOMPARE(GameInfo::handicapLabel(kHirateSfen), QStringLiteral("平手"));
+        QCOMPARE(GameInfo::handicapLabel(QString()), QStringLiteral("平手"));
+        QCOMPARE(GameInfo::handicapLabel(QStringLiteral("startpos")), QStringLiteral("平手"));
+        const QString twoPieces = QStringLiteral("lnsgkgsnl/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
+        QCOMPARE(GameInfo::handicapLabel(twoPieces), QStringLiteral("二枚落ち"));
+        QVERIFY(GameInfo::isHandicap(twoPieces));
+        QVERIFY(!GameInfo::isHandicap(kHirateSfen));
         // 持駒がある・手番が違うなら駒落ちの初期局面ではない
-        QCOMPARE(KifuExportMetadataBuilder::handicapLabel(
-                     QStringLiteral("lnsgkgsnl/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w P 1")),
-                 QStringLiteral("その他"));
-        QCOMPARE(KifuExportMetadataBuilder::handicapLabel(
+        const QString withHand = QStringLiteral("lnsgkgsnl/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w P 1");
+        QCOMPARE(GameInfo::handicapLabel(withHand), QStringLiteral("その他"));
+        QVERIFY(!GameInfo::isHandicap(withHand));
+        QCOMPARE(GameInfo::handicapLabel(
                      QStringLiteral("lnsgkgsnl/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1")),
                  QStringLiteral("その他"));
+        // 手数は見ない
+        QCOMPARE(GameInfo::handicapLabel(QStringLiteral("lnsgkgsnl/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 5")),
+                 QStringLiteral("二枚落ち"));
+    }
+
+    // 対局者の見出し：先手・後手と下手・上手のどちらも、その側の見出しとして読む
+    void playerKeysCoverBothNamings()
+    {
+        QCOMPARE(GameInfo::playerKey(Turn::Black, false), QStringLiteral("先手"));
+        QCOMPARE(GameInfo::playerKey(Turn::White, true), QStringLiteral("上手"));
+        QCOMPARE(GameInfo::playerSide(QStringLiteral("下手")), std::optional<Turn>(Turn::Black));
+        QCOMPARE(GameInfo::playerSide(QStringLiteral(" 後手 ")), std::optional<Turn>(Turn::White));
+        QVERIFY(!GameInfo::playerSide(QStringLiteral("先手省略名")));
+        QVERIFY(!GameInfo::playerSide(QStringLiteral("棋戦")));
+        // 見出しに対局者がなければ開始局面の手合割で決め、あれば見出しの呼び方に合わせる
+        const QString twoPieces = QStringLiteral("lnsgkgsnl/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
+        QVERIFY(GameInfo::usesHandicapNames({}, twoPieces));
+        QVERIFY(!GameInfo::usesHandicapNames({{QStringLiteral("先手"), QStringLiteral("A")}}, twoPieces));
+        QVERIFY(GameInfo::usesHandicapNames({{QStringLiteral("上手"), QStringLiteral("B")}}, kHirateSfen));
+    }
+
+    // 時間制限のない対局は「無制限」と書き、読むと制限なしになる
+    void timeControlTextUnlimited()
+    {
+        QCOMPARE(TimeControlText::format(TimeControl{}, false), QStringLiteral("無制限"));
+        const auto parsed = TimeControlText::parse(QStringLiteral(" 無制限 "));
+        QVERIFY(parsed && parsed->unlimited && !parsed->perSide);
+        QVERIFY(parsed->timeControl.isUnlimited());
+        QVERIFY(!TimeControlText::parse(QStringLiteral("10:00"))->unlimited);
+        // CSA は $TIME を書かない
+        QVERIFY(CsaFormatter::convertToCsaTimeLines(QStringLiteral("無制限")).isEmpty());
     }
 };
 

@@ -12,12 +12,15 @@
 #include "csagamecoordinator.h"
 #include "errorbus.h"
 #include "gamechannel.h"
+#include "gameinfo.h"
+#include "gameinfokeys.h"
+#include "handicaps.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
 #include "kifudocument.h"
-#include "kifuexportmetadata.h"
 #include "kifufilecontroller.h"
 #include "kifunavigationstate.h"
+#include "kifupresentation.h"
 #include "livegamesession.h"
 #include "logcategories.h"
 #include "mainwindowappearancecontroller.h"
@@ -38,8 +41,7 @@ namespace {
 /// 開始局面が平手でない（局面編集した・棋譜の局面図から始めた）か
 bool isEditedStart(const QString& raw)
 {
-    const QString s = raw.trimmed();
-    return !s.isEmpty() && !SfenUtils::isHirateStart(s) && s != QLatin1String("startpos");
+    return !raw.trimmed().isEmpty() && !Handicaps::isHirate(raw);
 }
 
 } // namespace
@@ -217,9 +219,10 @@ void GameSession::noteContinuedMatch(const MatchPlayers& players)
 {
     // 続けた対局の対局者・日時は分岐の最初の手のメモにする
     const MatchTimeRecord& record = m_deps.document->timeRecord();
-    const bool handicap = KifuExportMetadataBuilder::isHandicap(KifuExportMetadataBuilder::handicapLabel(recordStartSfen()));
-    const QString timeText = record.hasTimeControl()
-        ? TimeControlText::format(record.timeControl(), handicap) : tr("無制限");
+    // メモは表示言語で書く（持ち時間の語・先後の見出しも対局情報の表と同じく訳す）
+    const QString timeText = KifuPresentation::infoValue(
+        GameInfoKeys::kTimeControl,
+        TimeControlText::format(record.timeControl(), GameInfo::isHandicap(recordStartSfen())));
     const QDateTime start = record.startDateTime().isValid() ? record.startDateTime() : QDateTime::currentDateTime();
     m_deps.liveSession->setFirstMoveNote(tr("対局：▲%1 △%2（%3 開始、持ち時間 %4）")
                                              .arg(players.name(Turn::Black), players.name(Turn::White),

@@ -20,7 +20,7 @@ namespace CsaFormatter {
 QString timeToken(const RecordTime& time);
 QString convertToCsaDateTime(const QString& dateTimeStr);
 QString convertToCsaTime(const QString& timeStr);
-/// 対局情報の持ち時間を CSA の行にする。先後で違う持ち時間は $TIME+ と $TIME- の2行になる
+/// 対局情報の持ち時間を CSA の行にする。先後で違う持ち時間は $TIME+ と $TIME- の2行、「無制限」は行なし
 QStringList convertToCsaTimeLines(const QString& timeStr);
 
 /// CSA の棋譜情報の語（"$EVENT:" の EVENT）に対応する対局情報の項目名（別名も読む）。対応がなければ空

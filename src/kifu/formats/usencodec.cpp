@@ -3,8 +3,8 @@
 
 #include "usencodec.h"
 
+#include "handicaps.h"
 #include "logcategories.h"
-#include "sfenutils.h"
 #include "terminalcodes.h"
 
 namespace UsenCodec {
@@ -98,7 +98,7 @@ std::optional<UsiMove> decodeMove(QStringView threeChars)
 QString encodePosition(const QString& sfen)
 {
     const QString trimmed = sfen.trimmed();
-    if (trimmed.isEmpty() || SfenUtils::isHirateStart(trimmed)) return {};
+    if (Handicaps::isHirate(trimmed)) return {};
     // 手数（4番目の欄）は書かない
     QString usen = trimmed.section(QLatin1Char(' '), 0, 2);
     usen.replace(QLatin1Char('/'), QLatin1Char('_'));

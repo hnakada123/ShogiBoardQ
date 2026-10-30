@@ -3,22 +3,13 @@
 
 #include "gameinfoeditmodel.h"
 
+#include "gameinfo.h"
 #include "gameinfokeys.h"
 #include "kifupresentation.h"
 
 #include <algorithm>
 
 namespace {
-bool isBlackPlayerKey(const QString& key)
-{
-    return key == GameInfoKeys::kBlackPlayer || key == GameInfoKeys::kShitatePlayer;
-}
-
-bool isWhitePlayerKey(const QString& key)
-{
-    return key == GameInfoKeys::kWhitePlayer || key == GameInfoKeys::kUwatePlayer;
-}
-
 // 表の行・履歴の行（どちらも key と value を持つ）から項目を探す
 template <typename Entries>
 auto findKey(Entries& entries, const QString& key)
@@ -191,7 +182,7 @@ QString GameInfoEditModel::placeholderFor(const QString& key) const
 {
     if (key == GameInfoKeys::kGameDate || key == GameInfoKeys::kStartDateTime)
         return m_beforeMatchStart ? tr("未開始（対局開始時に設定）") : tr("未設定");
-    if (isBlackPlayerKey(key) || isWhitePlayerKey(key))
+    if (GameInfo::playerSide(key))
         return tr("未設定（名前を入力できます）");
     if (key == GameInfoKeys::kTimeControl)
         return m_beforeMatchStart ? tr("未設定（対局設定から反映）") : tr("未設定");

@@ -5,14 +5,15 @@
 #include "shoginotation.h"
 #include "csaformatter.h"
 #include "kifuexportcommon.h"
+#include "gameinfo.h"
 #include "gameinfokeys.h"
+#include "handicaps.h"
 #include "kifuexportmetadata.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
 #include "kifparsetypes.h"
 #include "logcategories.h"
 #include "sfencsapositionconverter.h"
-#include "sfenutils.h"
 #include "terminalcodes.h"
 
 #include <QDateTime>
@@ -42,32 +43,11 @@ QStringList CsaExporter::exportLines(const KifuBranchTree& recordTree, const Kif
     // 3) 棋譜情報を先に収集（対局者名もここから取得）
     const QList<KifGameInfoItem>& header = ctx.gameInfoItems;
 
-    // 4) 対局者名（駒落ちの下手は先手、上手は後手）
-    const auto isBlackKey = [](const QString& key) {
-        return key == GameInfoKeys::kBlackPlayer || key == GameInfoKeys::kShitatePlayer;
-    };
-    const auto isWhiteKey = [](const QString& key) {
-        return key == GameInfoKeys::kWhitePlayer || key == GameInfoKeys::kUwatePlayer;
-    };
-    QString blackPlayer, whitePlayer;
-    for (const auto& it : std::as_const(header)) {
-        const QString key = it.key.trimmed();
-        const QString val = it.value.trimmed();
-        if (isBlackKey(key) && !val.isEmpty()) {
-            blackPlayer = val;
-        } else if (isWhiteKey(key) && !val.isEmpty()) {
-            whitePlayer = val;
-        }
-    }
-    // 対局情報に名前が無ければ、このアプリで対局した対局者の名前（それも無ければ N+・N- を書かない。
-    // 表示言語の「先手」などの語はファイルに書かない）
-    if (blackPlayer.isEmpty()) blackPlayer = ctx.players.name(Turn::Black);
-    if (whitePlayer.isEmpty()) whitePlayer = ctx.players.name(Turn::White);
-    if (!blackPlayer.isEmpty()) {
-        out << QStringLiteral("N+%1").arg(KifuExportCommon::singleLine(blackPlayer));
-    }
-    if (!whitePlayer.isEmpty()) {
-        out << QStringLiteral("N-%1").arg(KifuExportCommon::singleLine(whitePlayer));
+    // 4) 対局者名（駒落ちの下手は先手、上手は後手。名前が無ければ書かない。表示言語の「先手」などの語は書かない）
+    for (const Turn side : {Turn::Black, Turn::White}) {
+        const QString name = GameInfo::playerName(header, side);
+        if (!name.isEmpty())
+            out << (side == Turn::Black ? QStringLiteral("N+") : QStringLiteral("N-")) + KifuExportCommon::singleLine(name);
     }
 
     // 5) 棋譜情報（対局者名以外）。開始日時・持ち時間も KIF と同じく対局情報から書く
@@ -78,13 +58,11 @@ QStringList CsaExporter::exportLines(const KifuBranchTree& recordTree, const Kif
         const QString val = it.value.trimmed();
         if (key.isEmpty() || val.isEmpty()) continue;
 
-        if (isBlackKey(key) || isWhiteKey(key)) {
-            continue;
-        }
+        if (GameInfo::playerSide(key)) continue;
 
         if (key == GameInfoKeys::kTimeControl) {
             // 先後で違う持ち時間は $TIME+ と $TIME- に分ける。時間制限のない対局は $TIME を書かずに表す
-            if (val != QStringLiteral("無制限")) out << CsaFormatter::convertToCsaTimeLines(val);
+            out << CsaFormatter::convertToCsaTimeLines(val);
             continue;
         }
         const QString csaKey = CsaFormatter::csaKeyFromGameInfo(key);
@@ -97,23 +75,17 @@ QStringList CsaExporter::exportLines(const KifuBranchTree& recordTree, const Kif
         out << QStringLiteral("$%1:%2").arg(csaKey, KifuExportCommon::singleLine(value));
     }
 
-    // 6) 開始局面
-    const bool isHirate = ctx.startSfen.isEmpty() || SfenUtils::isHirateStart(ctx.startSfen);
-
-    if (isHirate) {
+    // 6) 開始局面（平手は PI）
+    QString convErr;
+    const std::optional<Position> start =
+        ctx.startSfen.trimmed().isEmpty() ? Position::hirate() : Position::fromSfenLike(ctx.startSfen, &convErr);
+    if (start && !Handicaps::isHirate(*start)) {
+        out << SfenCsaPositionConverter::toCsaPositionLines(*start);
+    } else {
+        if (!start)
+            qCWarning(lcKifu).noquote() << "SFEN->CSA position conversion failed. fallback to PI. error=" << convErr;
         out << QStringLiteral("PI");
         out << QStringLiteral("+");
-    } else {
-        QString convErr;
-        const std::optional<Position> start = Position::fromSfenLike(ctx.startSfen, &convErr);
-        if (start) {
-            out << SfenCsaPositionConverter::toCsaPositionLines(*start);
-        } else {
-            qCWarning(lcKifu).noquote()
-                << "SFEN->CSA position conversion failed. fallback to PI. error=" << convErr;
-            out << QStringLiteral("PI");
-            out << QStringLiteral("+");
-        }
     }
 
     // 7) 本譜の指し手（分岐ツリーの各手の指し手・指した側・消費時間・終局をそのまま書く）
