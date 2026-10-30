@@ -9,7 +9,6 @@
 #include "usiprotocolhandler.h"
 #include "engineprofilestore.h"
 #include "logcategories.h"
-#include <QFile>
 #include <QFileInfo>
 
 using namespace EngineSettingsConstants;
@@ -17,16 +16,6 @@ using namespace EngineSettingsConstants;
 namespace {
 /// 起動から usiok までの待ち時間（オプションの多いエンジンは報告に時間がかかる）
 constexpr int kUsiOkTimeoutMs = 30000;
-
-QString normalizeEnginePath(const QString& filePath)
-{
-    const QFileInfo info(filePath);
-    const QString canonicalPath = info.canonicalFilePath();
-    if (!canonicalPath.isEmpty()) {
-        return canonicalPath;
-    }
-    return info.absoluteFilePath();
-}
 } // namespace
 
 EngineRegistrationHandler::EngineRegistrationHandler(QObject *parent)
@@ -48,31 +37,8 @@ EngineRegistrationHandler::~EngineRegistrationHandler()
 // 設定ファイルからエンジンリストを読み込む。
 void EngineRegistrationHandler::loadEnginesFromSettings()
 {
-    m_engineList = EngineProfileStore::loadEngines();
+    m_engines = RegisteredEngines::load();
     emit enginesChanged();
-}
-
-const QList<EngineEntry>& EngineRegistrationHandler::engineList() const
-{
-    return m_engineList;
-}
-
-const EngineEntry& EngineRegistrationHandler::engineAt(int index) const
-{
-    return m_engineList.at(index);
-}
-
-// パスの重複を検査する。
-bool EngineRegistrationHandler::isDuplicatePath(const QString& path, QString& existingName) const
-{
-    const QString normalizedInput = normalizeEnginePath(path);
-    for (const EngineEntry& engine : std::as_const(m_engineList)) {
-        if (normalizeEnginePath(engine.path) == normalizedInput) {
-            existingName = engine.name;
-            return true;
-        }
-    }
-    return false;
 }
 
 // ファイルのパスが有効かどうかを検証する。
@@ -94,7 +60,7 @@ void EngineRegistrationHandler::startRegistration(const QString& filePath)
     if (m_registrationInProgress) return;
 
     m_errorOccurred = false;
-    m_fileName = normalizeEnginePath(filePath);
+    m_fileName = RegisteredEngines::canonicalPath(filePath);
     m_engineIdName.clear();
     m_engineIdAuthor.clear();
     m_optionLines.clear();
@@ -158,7 +124,7 @@ void EngineRegistrationHandler::registerEngine(const QString& engineName, const 
     // 同じ実行ファイルは登録前に断っている。別の実行ファイルが同じ id name を名乗る
     // （評価関数だけ違うビルドなど）ときは、登録名に番号を付けて別のエンジンとして登録する。
     // 登録名は設定（オプション・先読み）を保存する名前にもなるので、エンジンごとに設定が分かれる
-    m_engineIdName = uniqueRegisteredName(engineName);
+    m_engineIdName = m_engines.uniqueName(engineName);
     m_engineIdAuthor = engineAuthor;
     m_optionLines = optionLines;
 
@@ -173,9 +139,9 @@ void EngineRegistrationHandler::registerEngine(const QString& engineName, const 
     engine.name = m_engineIdName;
     engine.path = m_fileName;
     engine.author = m_engineIdAuthor;
-    m_engineList.append(engine);
+    m_engines.append(engine);
 
-    EngineProfileStore::saveEngines(m_engineList);
+    EngineProfileStore::saveEngines(m_engines.entries());
     EngineProfileStore::saveOptions(m_engineIdName, m_engineOptions);
 
     setRegistrationInProgress(false);
@@ -183,33 +149,18 @@ void EngineRegistrationHandler::registerEngine(const QString& engineName, const 
     emit engineRegistered(m_engineIdName);
 }
 
-QString EngineRegistrationHandler::uniqueRegisteredName(const QString& idName) const
-{
-    const auto taken = [this](const QString& name) {
-        for (const EngineEntry& engine : std::as_const(m_engineList)) {
-            if (engine.name == name) return true;
-        }
-        return false;
-    };
-    if (!taken(idName)) return idName;
-    for (int number = 2;; ++number) {
-        const QString candidate = QStringLiteral("%1 (%2)").arg(idName).arg(number);
-        if (!taken(candidate)) return candidate;
-    }
-}
-
 // 指定インデックスのエンジンを削除し設定を更新する。
 void EngineRegistrationHandler::removeEngineAt(int index)
 {
-    if (index < 0 || index >= m_engineList.size()) {
+    if (index < 0 || index >= m_engines.entries().size()) {
         qCWarning(lcUi) << "removeEngineAt: invalid index" << index;
         return;
     }
 
-    QString removeEngineName = m_engineList.at(index).name;
-    m_engineList.removeAt(index);
+    const QString removeEngineName = m_engines.entries().at(index).name;
+    m_engines.removeAt(index);
 
-    EngineProfileStore::saveEngines(m_engineList);
+    EngineProfileStore::saveEngines(m_engines.entries());
     EngineProfileStore::removeEngine(removeEngineName);
     emit enginesChanged();
 }

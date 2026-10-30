@@ -60,6 +60,7 @@ set(SETTINGS_SOURCES
     ${SRC}/style/appearancesettings.cpp
     ${SRC}/style/piecestylecatalog.cpp
     ${SRC}/services/docksettings.cpp
+    ${SRC}/services/gamesettings.cpp
     ${SRC}/services/enginelistsettings.cpp
     ${SRC}/services/registeredengines.cpp
     ${SRC}/services/engineprofilestore.cpp
@@ -438,6 +439,7 @@ add_shogi_test(tst_startgamedialog
     ${SRC}/services/enginelistsettings.cpp
     ${SRC}/services/registeredengines.cpp
     ${SRC}/services/engineprofilestore.cpp
+    ${SRC}/services/gamesettings.cpp
     ${SRC}/services/settingscommon.cpp
 )
 set_target_properties(tst_startgamedialog PROPERTIES

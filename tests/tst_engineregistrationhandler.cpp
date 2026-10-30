@@ -144,7 +144,7 @@ private slots:
         EngineEntry existing;
         existing.name = QStringLiteral("YaneuraOu NNUE");
         existing.path = QStringLiteral("/engines/a/YaneuraOu");
-        handler.m_engineList.append(existing);
+        handler.m_engines.append(existing);
         QSignalSpy registered(&handler, &EngineRegistrationHandler::engineRegistered);
 
         handler.m_fileName = QStringLiteral("/engines/b/YaneuraOu");
@@ -160,8 +160,8 @@ private slots:
         QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
         QCOMPARE(settings.beginReadArray(EngineSettingsConstants::engineOptionsGroup(QStringLiteral("YaneuraOu NNUE (2)"))), 2);  // Threads と補った USI_Hash
         settings.endArray();
-        QCOMPARE(handler.uniqueRegisteredName(QStringLiteral("YaneuraOu NNUE")), QStringLiteral("YaneuraOu NNUE (3)"));
-        QCOMPARE(handler.uniqueRegisteredName(QStringLiteral("Other")), QStringLiteral("Other"));
+        QCOMPARE(handler.engines().uniqueName(QStringLiteral("YaneuraOu NNUE")), QStringLiteral("YaneuraOu NNUE (3)"));
+        QCOMPARE(handler.engines().uniqueName(QStringLiteral("Other")), QStringLiteral("Other"));
     }
 
     /// オプションを読めないエンジンは一覧にも設定にも足さない（画面の一覧と行の番号がずれない）
@@ -169,7 +169,7 @@ private slots:
     {
         EngineRegistrationHandler handler;
         const QList<EngineEntry> before = RegisteredEngines::load().entries();
-        handler.m_engineList = before;
+        handler.m_engines = RegisteredEngines(before);
         QSignalSpy registered(&handler, &EngineRegistrationHandler::engineRegistered);
         QSignalSpy failed(&handler, &EngineRegistrationHandler::errorOccurred);
         QSignalSpy changed(&handler, &EngineRegistrationHandler::enginesChanged);
@@ -181,9 +181,8 @@ private slots:
         QCOMPARE(registered.count(), 0);
         QCOMPARE(failed.count(), 1);
         QCOMPARE(changed.count(), 0);   // 一覧は変わらないので画面も作り直さない
-        QCOMPARE(handler.m_engineList.size(), before.size());
-        QString existingName;
-        QVERIFY(!handler.isDuplicatePath(QStringLiteral("/engines/c/Broken"), existingName));
+        QCOMPARE(handler.engines().entries().size(), before.size());
+        QVERIFY(!handler.engines().findByPath(QStringLiteral("/engines/c/Broken")));
 
         // 次の登録が成功しても、失敗したエンジンは保存されない（エラーの印は startRegistration と同じく戻す）
         handler.m_errorOccurred = false;
@@ -197,7 +196,7 @@ private slots:
         QCOMPARE(engines.last().name, QStringLiteral("Good"));
 
         // 消すと一覧と設定から消え、画面に知らせる
-        handler.removeEngineAt(static_cast<int>(handler.engineList().size()) - 1);
+        handler.removeEngineAt(static_cast<int>(handler.engines().entries().size()) - 1);
         QCOMPARE(changed.count(), 2);
         QCOMPARE(RegisteredEngines::load().entries().size(), before.size());
     }
@@ -310,7 +309,8 @@ private slots:
         QCOMPARE(loaded.first().currentValue, opt.currentValue);
     }
 
-    void isDuplicatePath_canonicalizedPath_detectsDuplicate()
+    /// 同じ実行ファイルは、パスを正規化して見つける（登録ダイアログが重複を断る）
+    void findByPath_canonicalizedPath_detectsDuplicate()
     {
         EngineRegistrationHandler handler;
 
@@ -326,12 +326,12 @@ private slots:
         EngineEntry engine;
         engine.name = QStringLiteral("test-engine");
         engine.path = basePath;
-        handler.m_engineList.append(engine);
+        handler.m_engines.append(engine);
 
-        QString existingName;
         const QString alternativePath = tmp.filePath(QStringLiteral("./engine"));
-        QVERIFY(handler.isDuplicatePath(alternativePath, existingName));
-        QCOMPARE(existingName, QStringLiteral("test-engine"));
+        const std::optional<EngineEntry> existing = handler.engines().findByPath(alternativePath);
+        QVERIFY(existing);
+        QCOMPARE(existing->name, QStringLiteral("test-engine"));
     }
 
     void cancelRegistration_whileWaitingForUsiResponse_stopsProcess()

@@ -382,8 +382,7 @@ void TsumeshogiGeneratorDialog::fitSettingsArea()
 
 void TsumeshogiGeneratorDialog::showEngineSettingsDialog(const EngineEntry& engine)
 {
-    ChangeEngineSettingsDialog dialog(engine, this);
-    dialog.exec();
+    ChangeEngineSettingsDialog::showFor(engine, this);
 }
 
 void TsumeshogiGeneratorDialog::fitToFont()

@@ -155,6 +155,7 @@
 | 2026-10-30 | 外観と駒音の置き場所と外観の持ち主を整理した（監査 2026-10-29 の T7）のに合わせて §1.5・§1.6・§12.5・付録を更新（外観の部品 `BoardAppearance`・`AppearanceState`・`PieceImageProvider`・`PieceStyleCatalog`・`BoardAppearanceCatalog`・`BoardColorPresets`・`BoardColors`・`BoardVisuals` を services・common から style へ移し、外観の設定は style の `AppearanceSettings` にした。駒のセット・配色・見た目の持ち主は `BoardAppearance` 1つ（`state()`・`apply()`・`pieceStyleChanged`）で、`PieceImageProvider` は駒の画像の解決とキャッシュだけ。駒音の `PieceSoundPlayer`・`PieceSoundProcessor` は ui/presenters へ移し、駒音の設定ダイアログは値をシグナルで知らせるだけにした。外観のテーマのコンボ（`BoardColorPresets::themes()`）をやめ、「墨と榧」「琥珀」はおすすめの組み合わせ「標準・墨と榧」「標準・琥珀」にした（26種類。見本を6つ足した）。外観ダイアログは `BoardAppearanceDialog` に改名し、見本の描画を `BoardAppearanceSamples` に出した） |
 | 2026-10-30 | 棋譜の保存の経路と保存形式の表を1つにした（監査 2026-10-29 の T8）のに合わせて §1.5・§8.1・§8.8・§8.9・§8.12・付録を更新（`KifuIoService` を `KifuSaveFile` にまとめた。拡張子の表 `KifuFormats::saveTargets()` が形式・文字コード `KifuEncoding`・保存の見出しを持ち、保存ダイアログの絞り込みは `KifuFileFilter::forSaving()`・`pathForSaving()` で表から作る。書き出しの文脈 `KifuExportMetadata::encoding` で先頭行の文字コードの宣言を書き、保存のときに文字列を置き換えない。`KifuSaveFile::write` は行を作る関数 `(format, encoding)` を受け、Shift_JIS への変換は1回だけ。CLI・自動化 API の形式の選択肢は `KifuFormats::savableNames()`。定跡ファイルの拡張子と絞り込みは `JosekiBookFile::hasBookSuffix`・`withBookSuffix`・`fileFilter`） |
 | 2026-10-30 | 画面の流れの持ち主をそろえた（監査 2026-10-29 の M1〜M4）のに合わせて §4.4・§6.5・§6.9・§10.4・§10.5・§13.6・§14.3・§14.5・§14.6・§15.5・§16.5・第18章を更新（ui・app の知らせは静的な `NotificationPresenter::information`・`warning`・`critical` で出す（`Wait::No` で待たない）。結果を使う部品が自分でダイアログを開く（CSA 通信対局は `CsaGameSession::openGameDialog()`、局面集は `KifuFileController::openSfenCollection()`、メニューウィンドウは `MenuWindowController::toggleWindow()`）。「新規」の止める手順は `MainWindowActions::startNewRecord()` に移し、`GameSession` は対局の後始末 `abandonGame()` だけを持つ。メニューの項目の接続は排他の組と保存したレイアウトの一覧を除いて `MenuActionsWiring` に集め、チェックできる項目は設定を持つ部品の値から始める（`DockLayoutManager::wireMenuActions()`・`PositionEditSession::EditActions` を消した） |
+| 2026-10-30 | エンジンと設定の規則の置き場所をそろえた（監査 2026-10-29 の M5・M6・M10・M17）のに合わせて §1.5・§7.9・§9.5・§10.4・§11.2・§11.3・§12.5・第18章を更新（エンジンの登録は登録一覧を `RegisteredEngines` で持ち、検索 `findByPath`・登録名の規則 `uniqueName`・パスの正規化 `canonicalPath` を共有する。エンジンの設定ダイアログは `ChangeEngineSettingsDialog::showFor()` で開く。検討の条件の値 `ConsiderationSettings` を services の `analysissettings.h` に移し、`AnalysisSettings::consideration`（`StructSetting`）で保存する。対局開始の時間の換算と以前の版の開始局面の番号は `gamesettings.cpp` の `Player::time()`・`setTime()`・`startingPosition()`・`setStartingPosition()`） |
 
 <!-- chapter-0-end -->
 
@@ -535,8 +536,7 @@ src/
 │   ├── pvtableview.cpp/.h          #   読み筋の表（数値の列・「盤面」ボタン・読み筋の描き方・行の高さ。思考の表と棋譜解析の結果の表で使う）
 │   ├── thinkingtableview.cpp/.h    #   思考の表（PvTableView の派生。対局のエンジン2つと検討タブで共用）
 │   ├── engineinfowidget.cpp/.h     #   エンジン情報ウィジェット（探索状況の数値の書式はここで決める）
-│   ├── considerationpanel.cpp/.h # 検討タブ（設定 ConsiderationSettings を正本として持ち、実行の状態 RunState で開始/中止のボタンを切り替える）
-│   ├── considerationsettings.h     #   検討タブの設定の値（エンジン・時間・候補手の数）
+│   ├── considerationpanel.cpp/.h # 検討タブ（条件の値 ConsiderationSettings（services の analysissettings.h）を正本として持ち、実行の状態 RunState で開始/中止のボタンを切り替える）
 │   ├── analysisresultspanel.cpp/.h #   棋譜解析の結果ドックの中身
 │   ├── gameinfopane.cpp/.h         #   対局情報ドックの中身（ツールバー＋表。中身は models/gameinfoeditmodel）
 │   ├── josekiwindow.cpp/.h         #   定跡ドックの中身（定跡手の表と操作。操作は意図のシグナルで知らせるだけ）
@@ -3904,7 +3904,8 @@ updateByMultipv(row, maxMultiPV)
 エンジン追加フロー:
   │
   ├── 1. EngineRegistrationDialog::addEngineFromFileSelection()
-  │     └── ファイル選択ダイアログで実行ファイルを選択（パスの重複は isDuplicatePath() で確かめる）
+  │     └── ファイル選択ダイアログで実行ファイルを選択（同じ実行ファイルの登録は
+  │           engines().findByPath() で断る。パスは RegisteredEngines::canonicalPath で正規化して比べる）
   │
   ├── 2. EngineRegistrationHandler::startRegistration(filePath)
   │     └── m_probe（UsiEngineSession）の probeAsync() でエンジンを起動する
@@ -3920,7 +3921,8 @@ updateByMultipv(row, maxMultiPV)
   │     └── option行を解析し EngineOption リストを構築
   │
   ├── 5. EngineProfileStore::saveEngines()
-  │     └── 登録一覧を保存（同じ id name があれば「名前 (2)」のように番号を付ける）
+  │     └── 登録一覧（RegisteredEngines）に足して保存（登録名は RegisteredEngines::uniqueName。
+  │           同じ id name があれば「名前 (2)」のように番号を付ける）
   │
   └── 6. EngineProfileStore::saveOptions()
         └── オプション値を保存し、engineRegistered を出す
@@ -3947,6 +3949,8 @@ struct EngineOption {
 USI プロトコルの `option` コマンドで報告される情報を格納する。型に応じてダイアログ上で適切な入力ウィジェット（スピンボックス、チェックボックス、コンボボックス等）が生成される。
 
 #### 設定の永続化
+
+登録ハンドラは登録一覧を `RegisteredEngines` の値で持ち（`engines()`）、検索（`findByPath`）と登録名の規則（`uniqueName`）は GUI・CLI・自動化 API と同じ関数を使う。登録したエンジンの設定ダイアログは `ChangeEngineSettingsDialog::showFor(engine, parent)` で開く（エンジンを選ぶ部品 `EngineSelector` の「設定」を受けるダイアログ・検討タブも同じ）。
 
 エンジン情報とオプション値は `QSettings`（INI ファイル）に配列で保存される。配列やグループを開いたまま読み書きするため、ほかの設定のような宣言の表（§12.5）は使わない。この保存形式を知るのは `EngineProfileStore`（`src/services/engineprofilestore.h`）だけで、登録ダイアログ（`EngineRegistrationHandler`）・設定ダイアログ（`EngineSettingsOptionHandler`）・エンジンの起動（`UsiEngineSession`）はその関数（`saveEngines()`・`loadOptions()`・`saveOptions()`・`removeEngine()`・`launchOptions()` など）を使い、設定ファイルを開かない。登録一覧を読むときは `EngineListSettings::loadEngines()` を使う。
 
@@ -5135,7 +5139,7 @@ struct AnalysisOptions {
 
 ### 9.5 ConsiderationUiController — 検討モードのUI制御
 
-**ソース**: `src/ui/controllers/considerationuicontroller.h`, `src/ui/controllers/considerationuicontroller.cpp`, `src/widgets/considerationpanel.h`, `src/widgets/considerationsettings.h`, `src/ui/presenters/enginedisplaypresenter.h`
+**ソース**: `src/ui/controllers/considerationuicontroller.h`, `src/ui/controllers/considerationuicontroller.cpp`, `src/widgets/considerationpanel.h`, `src/services/analysissettings.h`（`ConsiderationSettings`）, `src/ui/presenters/enginedisplaypresenter.h`
 
 検討タブ（`ConsiderationPanel`）の操作を検討のセッション（`AnalysisSession`）へ伝えるだけのコントローラである。検討の表示（ボタン・経過時間・情報欄・検討の表）と矢印には触れない。合成ルートが起動時に1つだけ作る（`MainWindowComponents::considerationUi`）。
 
@@ -5143,7 +5147,7 @@ struct AnalysisOptions {
 
 | 何を | 正本 | 説明 |
 |------|------|------|
-| 検討の条件（エンジン・時間・候補手の数） | `ConsiderationPanel::settings()`（`ConsiderationSettings`） | 利用者が変えると保存して `settingsChanged` を出す。ウィジェットはこの値を出すだけ |
+| 検討の条件（エンジン・時間・候補手の数） | `ConsiderationPanel::settings()`（`ConsiderationSettings`。値の型と範囲は services の `analysissettings.h`） | 利用者が変えると保存して `settingsChanged` を出す。時間と候補手の数は `AnalysisSettings::consideration`（`StructSetting`。キーは以前の版と同じ `Consideration/*`）、エンジンは `EngineSelector::saveSelection()` で保存する。ウィジェットはこの値を出すだけ |
 | 検討の矢印を出すか | `BoardArrowActions::consideration()`（checkable な `QAction`） | 検討タブの「矢印表示」のチェックはこれに結ぶだけ。変わるたびに `AnalysisSettings::considerationArrowsVisible` に保存する。検討の条件ではないので、変えても検討をやり直さない |
 | 検討中かどうか | `AnalysisSession::isConsidering()` | 表示・矢印・コントローラはここだけを見る |
 | 検討タブの実行の状態 | `ConsiderationPanel::RunState`（`Idle`・`Running`・`Waiting`） | `EngineDisplayPresenter` がセッションの知らせから `setRunState()` で設定する |
@@ -5895,7 +5899,7 @@ ConsiderationUiController のコンストラクタ
   │     └── 検討タブの設定（settings()）から AnalysisOptions を作り、AnalysisSession::start()
   ├── ConsiderationPanel::stopConsiderationRequested → AnalysisSession::stop()
   ├── ConsiderationPanel::engineSettingsRequested(engine) → onEngineSettingsRequested()
-  │     └── ChangeEngineSettingsDialog(engine, 親) を開く（検討タブは widgets にあり、dialogs を include できない）
+  │     └── ChangeEngineSettingsDialog::showFor(engine, 親) で開く（検討タブは widgets にあり、dialogs を include できない）
   └── ConsiderationPanel::settingsChanged → onSettingsChanged()
         （検討中なら、エンジンが変われば中止して始め直し、候補手の数が変われば updateMultiPV()）
 
@@ -6298,7 +6302,7 @@ Urgency::Warn5  → 強い警告色（残5秒・秒読み）
 | `reload()` | 一覧を読み直す（選んでいたエンジンは保つ） |
 | `select(name)`・`setEnabled(bool)` | 名前で選ぶ。対局の実行中などにコンボと「設定」ボタンを止める |
 | `selectionChanged()` | 選んだエンジンが変わった |
-| `settingsRequested(engine)` | 「設定」が押された。設定ダイアログ（`ChangeEngineSettingsDialog`）は dialogs にあり widgets から include できないので、受け手が開く |
+| `settingsRequested(engine)` | 「設定」が押された。設定ダイアログ（`ChangeEngineSettingsDialog`）は dialogs にあり widgets から include できないので、受け手が `ChangeEngineSettingsDialog::showFor()` で開く |
 
 「設定」ボタンは登録エンジンを選んでいるときだけ押せる。コンボは項目が1つも無いときに無効にする。案内（`hint`）は登録エンジンが無いときだけ出す（棋譜解析のダイアログが使う）。
 「設定」を押したときに登録エンジンを選んでいなければ、「将棋エンジンが選択されていません。」のエラーを出す。
@@ -6383,7 +6387,7 @@ Urgency::Warn5  → 強い警告色（残5秒・秒読み）
 | CsaWaitingDialog | QDialog | なし | CSA通信対局の接続待機表示（状態遷移・ログ表示） |
 | EngineRegistrationDialog | QDialog | engineregistrationdialog.ui | USIエンジンの登録・削除・option自動取得 |
 | EvaluationChartSettingsDialog | QDialog | なし | 評価値グラフの表示設定。今の設定と軸を受け取り、選んだ値を `settings()`（`EvaluationChartSettings`）で返す。評価値グラフの「表示設定…」（`settingsRequested`）を受けて `DialogLauncher::displayEvaluationChartSettings()` が開き、`setChartSettings()` でグラフに渡す |
-| ChangeEngineSettingsDialog | QDialog | changeenginesettingsdialog.ui | USI engine options の編集（テキスト/スピン/チェック/コンボ/ファイル選択）。`ChangeEngineSettingsDialog(engine, parent)` で登録エンジン1つ（`EngineEntry`）を渡して作り、見出しにエンジン名と作者名を出す |
+| ChangeEngineSettingsDialog | QDialog | changeenginesettingsdialog.ui | USI engine options の編集（テキスト/スピン/チェック/コンボ/ファイル選択）。`ChangeEngineSettingsDialog(engine, parent)` で登録エンジン1つ（`EngineEntry`）を渡して作り、見出しにエンジン名と作者名を出す。開いて閉じるまで待つのは `showFor(engine, parent)` の1つ（エンジン登録・対局開始・棋譜解析・詰み探索・詰将棋生成・CSA 通信対局のダイアログと検討タブが使う） |
 | PromoteDialog | QDialog | promotedialog.ui | 成り/不成の選択確認（`ask(parent)` で出して答えを返す。主画面の盤と詰将棋を解く画面で共通） |
 | VersionDialog | QDialog | versiondialog.ui | バージョン情報表示 |
 | PvBoardDialog | QDialog | なし | 読み筋（PV）再生ウィンドウ（ShogiView を内蔵、ナビゲーションボタン付き）。読み筋の値は `PvLine`（`pvline.h`。各手数の局面 `positions()`・手の表記 `moveText(ply)`・読み筋全体の表記 `displayPv()`・直前の手のハイライト `highlight(ply)`）で、表示する手数は `BoardViewerWidget` だけが持つ |
@@ -7026,7 +7030,7 @@ AnalysisSettings::usiLogFontSize.remove();               // 保存値を消す
 | 型 | 保存の形 | 例 |
 |---|---|---|
 | `BoundedSetting<T>(キー, 既定値, 最小, 最大)` | 1つのキー。読みも書きも `qBound` で範囲に収める | `AppSettings::pieceSoundVolume`（0〜100）、`AppearanceSettings::appearancePieceFilter`、`AnalysisSettings::usiLogCommandTarget`（0〜2） |
-| `StructSetting<T>({SettingField<T>::of(キー, &T::メンバ), ...}, 整える関数)` | メンバごとに1つのキー。保存していない項目は `T{}` の既定値のまま | `AppSettings::pieceSoundTone`（`PieceSoundTone::clamped`）、`TsumeshogiSettings::playPreferences`・`collectionPreferences` |
+| `StructSetting<T>({SettingField<T>::of(キー, &T::メンバ), ...}, 整える関数)` | メンバごとに1つのキー。保存していない項目は `T{}` の既定値のまま | `AppSettings::pieceSoundTone`（`PieceSoundTone::clamped`）、`TsumeshogiSettings::playPreferences`・`collectionPreferences`、`AnalysisSettings::evalChart`・`consideration`（検討の条件。エンジンの名前は保存しない） |
 | `ListSetting<T>(配列のキー, 要素のキー)` | QSettings の配列。配列のキーは実行時に作ってもよい | `JosekiSettings::josekiWindowColumnWidths`、思考・検討の表の列幅 |
 | `StructListSetting<T>(配列のキー, {項目...})` | 構造体の配列 | `NetworkSettings::csaServerHistory`（`CsaServerHistoryEntry`。最大 `kCsaServerHistoryLimit` = 10 件） |
 
@@ -7039,7 +7043,7 @@ AppSettings::pieceSoundVolume.set(percent);
 
 #### 関数として書く項目
 
-宣言の表（`Setting<T>` と上の型）で表せない処理が要る項目だけを、ドメイン別ヘッダーに関数として宣言し、`.cpp` で `SettingsCommon::openSettings()` を使って実装する。キーは `settingskeys.h` に置く（外観のキーは `appearancesettings.cpp` の中）。古い保存値を引き継ぐ（`AppearanceSettings::appearanceSection`・`pieceStyle`）、未保存の項目をほかの項目で代える（`AppearanceSettings::boardVisuals`。駒台の木目が未保存なら将棋盤の木目を使う）、独自の保存形式（`AppearanceSettings::boardColors` の色の文字列、`AnalysisSettings::kifuAnalysisColumnWidths` の `QVariantList`、`DockSettings::dockState` のグループ名を引数で受けるキー）、キーを実行時に作る（`AnalysisSettings::engineInfoColumnWidths(ThinkingTable)`。中で `ListSetting<int>` を使う）、ドックレイアウトの名前の一覧などである。列幅は `TableHeaderView::sectionResizedByUser`（利用者がドラッグしたときだけ）を受けて、`EngineInfoWidget`・`ThinkingTableView` などが自分で保存する（思考・検討の表は `AnalysisSettings::ThinkingTable` の `Engine1`・`Engine2`・`Consideration` ごと）。補助ダイアログの文字の大きさと大きさは、関数ではなく `appsettings.h` に宣言を1行ずつ書く（`AppSettings::promotionDialogFontSize`・`promotionDialogSize`・`messageBoxFontSize`・`bookmarkDialogFontSize` など。キーは `DialogAppearance/<id>/fontSize`（既定値 0）・`DialogAppearance/<id>/size`（既定値 `QSize()`）。既定値 0 は、未保存ならダイアログの元の大きさから始めるという意味）。
+宣言の表（`Setting<T>` と上の型）で表せない処理が要る項目だけを、ドメイン別ヘッダーに関数として宣言し、`.cpp` で `SettingsCommon::openSettings()` を使って実装する。キーは `settingskeys.h` に置く（外観のキーは `appearancesettings.cpp` の中）。古い保存値を引き継ぐ（`AppearanceSettings::appearanceSection`・`pieceStyle`、以前の版の開始局面の番号を読む `GameSettings::StartGame::startingPosition()`・`setStartingPosition()`）、保存の形と値の形を換える（対局開始の時間を時間・分・秒の項目に保存する `GameSettings::StartGame::Player::time()`・`setTime()`・`defaultTime()`。`gamesettings.cpp`）、未保存の項目をほかの項目で代える（`AppearanceSettings::boardVisuals`。駒台の木目が未保存なら将棋盤の木目を使う）、独自の保存形式（`AppearanceSettings::boardColors` の色の文字列、`AnalysisSettings::kifuAnalysisColumnWidths` の `QVariantList`、`DockSettings::dockState` のグループ名を引数で受けるキー）、キーを実行時に作る（`AnalysisSettings::engineInfoColumnWidths(ThinkingTable)`。中で `ListSetting<int>` を使う）、ドックレイアウトの名前の一覧などである。列幅は `TableHeaderView::sectionResizedByUser`（利用者がドラッグしたときだけ）を受けて、`EngineInfoWidget`・`ThinkingTableView` などが自分で保存する（思考・検討の表は `AnalysisSettings::ThinkingTable` の `Engine1`・`Engine2`・`Consideration` ごと）。補助ダイアログの文字の大きさと大きさは、関数ではなく `appsettings.h` に宣言を1行ずつ書く（`AppSettings::promotionDialogFontSize`・`promotionDialogSize`・`messageBoxFontSize`・`bookmarkDialogFontSize` など。キーは `DialogAppearance/<id>/fontSize`（既定値 0）・`DialogAppearance/<id>/size`（既定値 `QSize()`）。既定値 0 は、未保存ならダイアログの元の大きさから始めるという意味）。
 
 ```cpp
 // src/services/analysissettings.cpp より（表の番号でキーを作り、読み書きは ListSetting に任せる）
@@ -9306,7 +9310,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | CollapsibleGroupBox | C | widgets | 折りたたみ可能なグループボックス | 第11章 |
 | CommentCoordinator | C | ui/coordinators | コメント編集の統合調整 | 第14章 |
 | ConsecutiveGameSeries | C | game | エンジン同士の連続対局（局数・手番の入れ替え・次局の計画） | 第6章 |
-| ConsiderationSettings | S | widgets | 検討タブの設定の値（エンジン・時間・候補手の数） | 第9章 |
+| ConsiderationSettings | S | services | 検討の条件の値（エンジン・時間・候補手の数。範囲もここ。`analysissettings.h`） | 第9章 |
 | ConsiderationPanel | C | widgets | 検討ドックの中身（ツールバー・エンジン情報・候補手の表）。設定の正本と実行の状態（`RunState`）を持つ | 第9章, 第11章 |
 | ConsiderationUiController | C | ui/controllers | 検討タブの開始・中止・条件の変更・エンジン設定を検討のセッションへ伝える | 第9章, 第10章 |
 | CsaClient | C | network | CSAプロトコル通信クライアント | 第12章 |
@@ -9341,7 +9345,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | EngineProcessManager | C | engine | エンジンプロセスのライフサイクル管理 | 第7章 |
 | EngineProfileStore | NS | services | 登録エンジンの設定（一覧・USIオプション・先読みの設定）の保存形式を知る唯一の場所 | 第7章 |
 | EngineRegistrationDialog | C | dialogs | エンジン登録・設定ダイアログ | 第11章 |
-| EngineRegistrationHandler | C | engine | エンジン登録のワーカースレッド管理・USI解析・設定の永続化 | 第7章 |
+| EngineRegistrationHandler | C | engine | エンジン登録（usi〜usiok の問い合わせ・オプションの解析・登録一覧 `RegisteredEngines` と設定の保存） | 第7章 |
 | EngineSearchStatus | S | engine | エンジンの探索状況（探索中の手・深さ・ノード数・NPS・ハッシュ使用率）の値 | 第7章 |
 | EngineSelector | C | widgets | 登録エンジンを選ぶ部品（コンボ・「設定」ボタン・未登録の案内・選択の保存。設定ダイアログは `settingsRequested` で受け手に頼む） | 第11章 |
 | EngineSettingsConstants | NS | services | エンジン設定の定数定義 | 第7章 |
@@ -9826,7 +9830,6 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | settingsformbinding | 第11章 | 入力欄と設定の宣言の対応の表 |
 | analysisresultspanel | 第9章, 第11章 | 棋譜解析の結果ドックの中身（結果の表・停止ボタン・文字の大きさ） |
 | considerationpanel | 第9章, 第11章 | 検討ドックの中身（ツールバー・エンジン情報・候補手の表。設定の正本と実行の状態） |
-| considerationsettings | 第9章 | 検討タブの設定の値（エンジン・時間・候補手の数） |
 | gameinfopane | 第11章 | 対局情報ドックの中身（ツールバー＋表） |
 | tableheaderview | 第11章 | 表の見出し。列幅は利用者がドラッグしたときだけ `sectionResizedByUser` で知らせて保存する |
 | thinkingpanel | 第11章 | 思考ドックの中身（エンジン2つ分の情報と思考の表、対局中の矢印のチェック） |

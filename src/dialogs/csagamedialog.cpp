@@ -238,8 +238,7 @@ void CsaGameDialog::onAutoSaveDirBrowse()
 // エンジン設定ダイアログを表示する
 void CsaGameDialog::showEngineSettingsDialog(const EngineEntry& engine)
 {
-    ChangeEngineSettingsDialog dialog(engine, this);
-    dialog.exec();
+    ChangeEngineSettingsDialog::showFor(engine, this);
 }
 
 // ========== 選んだ値 ==========

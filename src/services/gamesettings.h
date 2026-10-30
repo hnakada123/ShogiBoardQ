@@ -9,7 +9,9 @@
 #include <QString>
 #include <QStringList>
 #include <QSize>
+#include "handicaps.h"
 #include "setting.h"
+#include "timecontrol.h"
 
 namespace GameSettings {
 
@@ -73,6 +75,13 @@ struct Player {
     Setting<int> basicTimeMinutes;
     Setting<int> byoyomiSec;
     Setting<int> addEachMoveSec;
+
+    /// 持ち時間・秒読み・加算（時間・分・秒の項目に保存した値をミリ秒にする）
+    TimeControlSide time() const;
+    /// 時間を時間・分・秒の項目に保存する（秒未満は切り捨てる）
+    void setTime(const TimeControlSide& time) const;
+    /// 未保存のときの時間
+    TimeControlSide defaultTime() const;
 };
 
 /// 対局者 number（'1' か '2'）の項目（キーは "GameSettings/<項目><番号>"）。human は人間が指すかの既定値
@@ -92,10 +101,16 @@ inline const Player player2 = playerSettings('2', false);
 /// 後手／上手の持ち時間を先手と別に設定するか
 inline const Setting<bool> separateSecondPlayerTime{"GameSettings/isGroupBoxSecondPlayerTimeSettingsChecked", false};
 
-/// 開始局面の手合割の名前（Handicaps の名前。空なら現在の局面。デフォルト: 平手）
+/// 開始局面の手合割の名前（Handicaps の名前。空なら現在の局面。デフォルト: 平手）。読み書きは startingPosition()
 inline const Setting<QString> startingPositionName{"GameSettings/startingPositionName", QStringLiteral("平手")};
 /// 以前の版の開始局面の番号（0=現在の局面、1..14=以前の一覧の並び）。読むだけで、保存すると消す
 inline const Setting<int> startingPositionNumber{"GameSettings/startingPositionNumber", 1};
+
+/// 保存した開始局面の手合割（nullptr は現在の局面。知らない名前は平手）。
+/// 以前の版が番号で保存していれば、以前の一覧の並びで読む
+const Handicaps::Handicap* startingPosition();
+/// 開始局面を手合割の名前で保存する（nullptr は現在の局面。以前の版の番号は消す）
+void setStartingPosition(const Handicaps::Handicap* handicap);
 
 /// 最大手数（デフォルト: 1000）
 inline const Setting<int> maxMoves{"GameSettings/maxMoves", 1000};

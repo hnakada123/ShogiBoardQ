@@ -86,8 +86,7 @@ void TsumeShogiSearchDialog::updateEngineSelection()
 
 void TsumeShogiSearchDialog::showEngineSettingsDialog(const EngineEntry& engine)
 {
-    ChangeEngineSettingsDialog dialog(engine, this);
-    dialog.exec();
+    ChangeEngineSettingsDialog::showFor(engine, this);
 }
 
 void TsumeShogiSearchDialog::accept()

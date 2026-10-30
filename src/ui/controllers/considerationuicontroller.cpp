@@ -74,8 +74,7 @@ void ConsiderationUiController::startConsideration()
 void ConsiderationUiController::onEngineSettingsRequested(const EngineEntry& engine)
 {
     qCDebug(lcUi) << "onEngineSettingsRequested engine=" << engine.name;
-    ChangeEngineSettingsDialog dialog(engine, m_parentWidget);
-    dialog.exec();
+    ChangeEngineSettingsDialog::showFor(engine, m_parentWidget);
 }
 
 void ConsiderationUiController::onSettingsChanged(const ConsiderationSettings& settings)

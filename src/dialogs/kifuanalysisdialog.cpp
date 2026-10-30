@@ -161,8 +161,7 @@ void KifuAnalysisDialog::setMaxPly(int maxPly)
 
 void KifuAnalysisDialog::showEngineSettingsDialog(const EngineEntry& engine)
 {
-    ChangeEngineSettingsDialog dialog(engine, this);
-    dialog.exec();
+    ChangeEngineSettingsDialog::showFor(engine, this);
 }
 
 // OKボタンが押された場合、エンジン名、エンジン番号、解析局面フラグ、思考時間を取得する。

@@ -29,6 +29,10 @@ public:
     // デストラクタ
     ~ChangeEngineSettingsDialog() override;
 
+    /// engine の設定ダイアログを parent の上にモーダルで開き、閉じるまで待つ（OK なら保存する）。
+    /// エンジンを選ぶ部品（EngineSelector）の「設定」を受けるダイアログ・部品はこれで開く
+    static void showFor(const EngineEntry& engine, QWidget* parent);
+
 private:
     // UIコンポーネントのポインタを保持するためのポインタ変数
     std::unique_ptr<Ui::ChangeEngineSettingsDialog> ui;
