@@ -2,6 +2,7 @@
 /// @brief shogiboardq-cli のコマンドごとの引数の表と変換の実装
 
 #include "clicommandspecs.h"
+#include "kifuformat.h"
 
 #include <QCommandLineParser>
 #include <QJsonArray>
@@ -65,10 +66,10 @@ ParamSpec allowFinalAlternatives(const QString& description)
         .aliasFlag(QStringLiteral("no-final-alternatives"), false);
 }
 
+/// 棋譜の形式の名前（保存できる形式。形式の表 KifuFormats から作る）
 QStringList kifuFormats()
 {
-    return {QStringLiteral("kif"), QStringLiteral("ki2"), QStringLiteral("csa"),
-            QStringLiteral("jkf"), QStringLiteral("usi"), QStringLiteral("usen")};
+    return KifuFormats::savableNames();
 }
 
 /// 既定値が true の真偽値を false にするオプション（--no-<名前>）

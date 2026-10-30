@@ -23,6 +23,13 @@ struct JosekiSaveResult;
 namespace JosekiBookFile {
 [[nodiscard]] JosekiLoadResult load(const QString &filePath);
 [[nodiscard]] JosekiSaveResult save(const QString &filePath, const JosekiBook &book);
+
+/// 定跡ファイルの拡張子（.db。大文字小文字を区別しない）のファイルか
+bool hasBookSuffix(const QString &filePath);
+/// 定跡ファイルの拡張子が無ければ .db を付ける（空なら空のまま）
+QString withBookSuffix(const QString &filePath);
+/// 定跡ファイルを選ぶダイアログの絞り込み（定跡ファイル・すべてのファイル）
+QString fileFilter();
 } // namespace JosekiBookFile
 
 /**

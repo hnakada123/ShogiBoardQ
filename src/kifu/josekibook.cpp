@@ -474,6 +474,27 @@ void JosekiBook::clear()
 
 namespace JosekiBookFile {
 
+namespace {
+/// 定跡ファイルの拡張子（やねうら王の定跡ファイルと同じ）
+constexpr char kBookSuffix[] = ".db";
+} // namespace
+
+bool hasBookSuffix(const QString &filePath)
+{
+    return filePath.endsWith(QLatin1String(kBookSuffix), Qt::CaseInsensitive);
+}
+
+QString withBookSuffix(const QString &filePath)
+{
+    if (filePath.isEmpty() || hasBookSuffix(filePath)) return filePath;
+    return filePath + QLatin1String(kBookSuffix);
+}
+
+QString fileFilter()
+{
+    return QCoreApplication::translate("JosekiBookFile", "定跡ファイル (*.db);;すべてのファイル (*)");
+}
+
 JosekiLoadResult load(const QString &filePath)
 {
     JosekiLoadResult result;

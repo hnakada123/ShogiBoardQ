@@ -13,8 +13,8 @@ from shogiboardq_mcp.errors import ToolError
 
 # The lists of shogiboardq-cli environment (test_environment.py checks the real ones)
 SUFFIXES = {
-    paths.KIFU_READ: ["kif", "ki2", "csa", "jkf", "json", "usi", "usen", "sfen", "kifu", "ki2u"],
-    paths.KIFU_WRITE: ["kif", "ki2", "csa", "jkf", "usi", "usen", "sfen", "kifu", "ki2u"],
+    paths.KIFU_READ: ["kifu", "kif", "ki2u", "ki2", "csa", "jkf", "json", "usen", "usi", "sfen"],
+    paths.KIFU_WRITE: ["kifu", "kif", "ki2u", "ki2", "csa", "jkf", "usen", "usi", "sfen"],
     paths.IMAGE_WRITE: ["png", "jpg", "jpeg", "bmp", "webp"],
 }
 

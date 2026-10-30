@@ -53,8 +53,13 @@ class CliTools:
         if args.get("input_path"):
             yield str(paths.resolve_read_path(args["input_path"], "input_path"))
             return
-        suffix = {"auto": ".txt", "kif": ".kif", "ki2": ".ki2", "csa": ".csa", "jkf": ".jkf",
-                  "usi": ".usi", "usen": ".usen"}[args.get("input_format", "auto")]
+        # The format names are the choices of convert-kifu in specs.json (the C++ KifuFormats table);
+        # each name is also the file suffix of its format
+        input_format = args.get("input_format", "auto")
+        choices = specs.operation("command", "convert-kifu")["properties"]["input_format"]["enum"]
+        if input_format not in choices:
+            raise ValueError(f"input_format must be one of {', '.join(choices)}")
+        suffix = ".txt" if input_format == "auto" else f".{input_format}"
         fd, name = tempfile.mkstemp(prefix="shogiboardq-mcp-", suffix=suffix)
         try:
             with os.fdopen(fd, "w", encoding="utf-8") as fh:

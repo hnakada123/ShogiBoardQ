@@ -114,6 +114,8 @@ int CliCommands::convertKifu(const QJsonObject& params)
     request.outputFormat = *KifuFormats::fromName(params.value(QStringLiteral("output_format")).toString());
 
     const QString outputPath = params.value(QStringLiteral("output_path")).toString();
+    // ファイルに書くときは保存先の拡張子の文字コード（.kif・.ki2 は Shift_JIS）で作る
+    if (!outputPath.isEmpty()) request.outputEncoding = KifuSaveFile::encodingForPath(outputPath);
     if (const std::optional<Failure> problem = outputPath.isEmpty() ? std::nullopt
             : OutputPath::check(outputPath, params.value(QStringLiteral("overwrite")).toBool(), QStringLiteral("--overwrite"))) {
         return CliOutput::fail(*problem);
@@ -140,7 +142,7 @@ int CliCommands::convertKifu(const QJsonObject& params)
         obj[QStringLiteral("text")] = result.lines.join(QLatin1Char('\n')) + QLatin1Char('\n');
     } else {
         QString error;
-        if (!KifuSaveFile::write(outputPath, result.lines, &error)) {
+        if (!KifuSaveFile::writeLines(outputPath, result.lines, request.outputEncoding, &error)) {
             return CliOutput::fail(ErrorKind::FileError, error);
         }
         obj[QStringLiteral("output_path")] = outputPath;

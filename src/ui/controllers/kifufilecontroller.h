@@ -115,8 +115,8 @@ private:
         Collection,   ///< 局面集から反映した局面（局面集に残っているので変更なしとし、上書き保存先は持たない）
     };
 
-    /// 開いている棋譜の format の行
-    QStringList exportLines(KifuFormat format) const;
+    /// 開いている棋譜の format の行（encoding はファイルに保存する文字コード。先頭行の宣言に書く）
+    QStringList exportLines(KifuFormat format, KifuEncoding encoding = KifuEncoding::Utf8) const;
     /// 保存ファイル名の既定値（対局情報の対局者名と今の日時。拡張子は extension）
     QString defaultFileName(const QString& extension) const;
     void startAsyncLoad(const QString& input, Source source);

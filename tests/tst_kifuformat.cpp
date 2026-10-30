@@ -59,7 +59,7 @@ private slots:
             QVERIFY2(all.contains(QLatin1String(suffix)), suffix);
         QVERIFY(!all.contains(QStringLiteral("bod")));
         QCOMPARE(KifuFormats::readableSuffixes(KifuFormat::Jkf), QStringList({QStringLiteral("jkf"), QStringLiteral("json")}));
-        QCOMPARE(KifuFormats::readableSuffixes(KifuFormat::Kif), QStringList({QStringLiteral("kif"), QStringLiteral("kifu")}));
+        QCOMPARE(KifuFormats::readableSuffixes(KifuFormat::Kif), QStringList({QStringLiteral("kifu"), QStringLiteral("kif")}));
         QVERIFY(KifuFormats::isReadableFile(QStringLiteral("/games/a.JSON")));
         QVERIFY(!KifuFormats::isReadableFile(QStringLiteral("/games/a.txt")));
     }
@@ -110,6 +110,34 @@ private slots:
         QCOMPARE(KifuFormats::fromPath(QStringLiteral("/tmp/a.bod")), std::nullopt);
         QVERIFY(!KifuFormats::isSavable(KifuFormat::Sfen));
         QVERIFY(KifuFormats::isSavable(KifuFormat::Usen));
+        // CLI・自動化 API の選択肢（保存できる形式の名前）
+        QCOMPARE(KifuFormats::savableNames(),
+                 QStringList({QStringLiteral("kif"), QStringLiteral("ki2"), QStringLiteral("csa"), QStringLiteral("jkf"),
+                              QStringLiteral("usi"), QStringLiteral("usen")}));
+    }
+
+    // 保存できる拡張子の表（保存ダイアログの並び・形式・文字コード）
+    void saveTargetsComeFromTheTable()
+    {
+        QStringList suffixes;
+        for (const KifuFormats::SaveTarget& target : KifuFormats::saveTargets()) {
+            suffixes.append(target.suffix);
+            QVERIFY(KifuFormats::isSavable(target.format));
+            QCOMPARE(KifuFormats::fromName(target.suffix), target.format);
+            QVERIFY(target.label);
+            // Shift_JIS で書くのは .kif と .ki2 だけ
+            QCOMPARE(target.encoding == KifuEncoding::ShiftJis,
+                     target.suffix == QLatin1String("kif") || target.suffix == QLatin1String("ki2"));
+        }
+        QCOMPARE(suffixes, QStringList({QStringLiteral("kifu"), QStringLiteral("kif"), QStringLiteral("ki2u"),
+                                        QStringLiteral("ki2"), QStringLiteral("csa"), QStringLiteral("jkf"),
+                                        QStringLiteral("usen"), QStringLiteral("usi")}));
+        const auto ki2 = KifuFormats::saveTargetForPath(QStringLiteral("/tmp/A.KI2"));
+        QVERIFY(ki2);
+        QCOMPARE(ki2->format, KifuFormat::Ki2);
+        QCOMPARE(ki2->encoding, KifuEncoding::ShiftJis);
+        QVERIFY(!KifuFormats::saveTargetForPath(QStringLiteral("/tmp/a.sfen")));
+        QVERIFY(!KifuFormats::saveTargetForPath(QStringLiteral("/tmp/a")));
     }
 };
 

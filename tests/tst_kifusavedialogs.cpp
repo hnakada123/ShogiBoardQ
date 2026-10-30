@@ -11,11 +11,9 @@
 #include <QAbstractButton>
 #include <QTimer>
 
+#include "kifufilefilter.h"
 #include "kifusavedialogs.h"
-#include "kifuioservice.h"
-#include "matchplayers.h"
 #include "kifusavefile.h"
-#include "kifuioservice.h"
 #include "matchplayers.h"
 
 using SaveFormat = KifuFormat;
@@ -60,7 +58,7 @@ private:
 
     /// 改行コードを LF に正規化して読み出す
     ///
-    /// KifuIoService::writeKifuFile() は QIODevice::Text で書き出すため、
+    /// KifuSaveFile は QIODevice::Text で書き出すため、
     /// 改行はプラットフォーム標準（Windows では CRLF、それ以外は LF）になる。
     /// KIF/KI2 は Windows 系ツールの慣習で CRLF が期待され、CSA/JKF/USI/USEN も
     /// 読み込み側が "\r?\n" を正規化するため、どちらの改行でも正しく往復する。
@@ -70,6 +68,22 @@ private:
         QByteArray bytes = readAllBytes(path);
         bytes.replace("\r\n", "\n");
         return bytes;
+    }
+
+    /// 形式・文字コードによらない行を作る
+    static KifuSaveFile::LineGenerator fixedLines(const QStringList& lines)
+    {
+        return [lines](KifuFormat, KifuEncoding) { return lines; };
+    }
+
+    /// KIF の行を作る（先頭行の文字コードの宣言は、書き出しと同じく渡された文字コードにする）
+    static KifuSaveFile::LineGenerator kifLines(const QStringList& body)
+    {
+        return [body](KifuFormat, KifuEncoding encoding) {
+            return QStringList{encoding == KifuEncoding::ShiftJis ? QStringLiteral("#KIF version=2.0 encoding=Shift_JIS")
+                                                                   : QStringLiteral("#KIF version=2.0 encoding=UTF-8")}
+                + body;
+        };
     }
 
     /// UTF-8 として読み出し、改行コードを LF に正規化する
@@ -119,7 +133,7 @@ private slots:
         QTimer::singleShot(0, &responder, &SaveDialogResponder::respond);
         QString error;
         const auto path = KifuSaveDialogs::saveViaDialog(nullptr,
-            [&](SaveFormat format) {
+            [&](SaveFormat format, KifuEncoding) {
                 ++generated;
                 actual = format;
                 return QStringList{QStringLiteral("selected format only")};
@@ -161,7 +175,7 @@ private slots:
         if (dirty) QTimer::singleShot(0, &responder, &SaveDialogResponder::respond);
         const bool accepted = KifuSaveDialogs::confirmDiscardUnsaved(nullptr, dirty, [&]() {
             ++saves;
-            return KifuSaveFile::write(path, {QStringLiteral("unsaved record")});
+            return KifuSaveFile::write(path, fixedLines({QStringLiteral("unsaved record")}));
         });
         QCOMPARE(accepted, proceed);
         QCOMPARE(saves, dirty && answer == int(QMessageBox::Save) ? 1 : 0);
@@ -177,7 +191,7 @@ private slots:
         QTimer::singleShot(0, &responder, &SaveDialogResponder::respond);
         const bool accepted = KifuSaveDialogs::confirmDiscardUnsaved(nullptr, true, [&]() {
             QTimer::singleShot(0, &responder, &SaveDialogResponder::respond);
-            return !KifuSaveDialogs::saveViaDialog(nullptr, [&](SaveFormat) {
+            return !KifuSaveDialogs::saveViaDialog(nullptr, [&](SaveFormat, KifuEncoding) {
                 ++generated;
                 return QStringList{QStringLiteral("unsaved record")};
             }, QString()).isEmpty();
@@ -204,7 +218,22 @@ private slots:
         QFETCH(QString, path);
         QFETCH(QString, filter);
         QFETCH(QString, expected);
-        QCOMPARE(KifuSaveFile::pathForSelectedFilter(path, filter), expected);
+        QCOMPARE(KifuFileFilter::pathForSaving(path, filter), expected);
+    }
+
+    /// 保存の絞り込みは保存できる拡張子の表の順（UTF-8 の KIF が先頭）で、選んだ絞り込みからその拡張子に戻せる
+    void saveFilterComesFromTheTable()
+    {
+        const QStringList filters = KifuFileFilter::forSaving().split(QStringLiteral(";;"));
+        const auto& targets = KifuFormats::saveTargets();
+        QCOMPARE(filters.size(), targets.size() + 1);
+        QCOMPARE(filters.first(), QStringLiteral("KIF形式 UTF-8 (*.kifu)"));
+        QCOMPARE(filters.last(), QStringLiteral("すべてのファイル (*)"));
+        for (qsizetype i = 0; i < targets.size(); ++i) {
+            QVERIFY2(filters.at(i).endsWith(QStringLiteral("(*.%1)").arg(targets.at(i).suffix)), qPrintable(filters.at(i)));
+            QCOMPARE(KifuFileFilter::pathForSaving(QStringLiteral("game"), filters.at(i)),
+                     QStringLiteral("game.") + targets.at(i).suffix);
+        }
     }
 
     void shiftJisFailurePreservesExistingFile()
@@ -218,7 +247,7 @@ private slots:
         QCOMPARE(file.write(original), original.size());
         file.close();
         QString error;
-        QVERIFY(!KifuSaveFile::write(path, {QString::fromUtf8("棋譜😀")}, &error));
+        QVERIFY(!KifuSaveFile::write(path, fixedLines({QString::fromUtf8("棋譜😀")}), &error));
         // ダイアログを出さない呼び出し（自動化 API・CLI）は、保存できない文字を示してエラーにする
         QVERIFY(error.contains(QString::fromUtf8("😀")));
         QCOMPARE(readAllBytes(path), original);
@@ -226,11 +255,11 @@ private slots:
 
     void charactersNotInShiftJis()
     {
-        QCOMPARE(KifuIoService::charactersNotInShiftJis(QString::fromUtf8("先手：鈴木\n▲７六歩")), QString());
+        QCOMPARE(KifuSaveFile::charactersNotInShiftJis(QString::fromUtf8("先手：鈴木\n▲７六歩")), QString());
         // 中国語UIの既定の対局者名「您」と絵文字（サロゲートペア）を、重複なく出現順に返す
-        QCOMPARE(KifuIoService::charactersNotInShiftJis(QString::fromUtf8("先手：您\n後手：您😀X😀")),
+        QCOMPARE(KifuSaveFile::charactersNotInShiftJis(QString::fromUtf8("先手：您\n後手：您😀X😀")),
                  QString::fromUtf8("您😀"));
-        QCOMPARE(KifuIoService::charactersNotInShiftJis(QString::fromUtf8("您😀"), 1), QString::fromUtf8("您"));
+        QCOMPARE(KifuSaveFile::charactersNotInShiftJis(QString::fromUtf8("您😀"), 1), QString::fromUtf8("您"));
     }
 
     /// 自動保存のファイル名は、対局者名の制御文字・向きを変える文字を置き換え、長さを切る（セキュリティ監査 S21）
@@ -238,7 +267,7 @@ private slots:
     {
         const QString black = QStringLiteral("Alice") + QChar(0) + QStringLiteral("\r../\u202Etxt.exe");
         const QDateTime now(QDate(2026, 10, 23), QTime(12, 0, 0));
-        const QString name = KifuIoService::makeDefaultSaveFileName(black, QString(300, QLatin1Char('b')), now);
+        const QString name = KifuSaveFile::makeDefaultSaveFileName(black, QString(300, QLatin1Char('b')), now);
         QVERIFY2(name.startsWith(QStringLiteral("20261023_120000_Alice")), qPrintable(name));
         QVERIFY2(name.endsWith(QStringLiteral(".kifu")), qPrintable(name));
         QVERIFY(!name.contains(QChar(0)));
@@ -247,8 +276,8 @@ private slots:
         QVERIFY(!name.contains(QLatin1Char('\r')));
         QVERIFY2(name.toUtf8().size() <= 255, qPrintable(name));
         // 空白だけの名前は、既定の呼び名にする。両方とも無ければ日時だけ
-        QVERIFY(KifuIoService::makeDefaultSaveFileName(black, QStringLiteral("   "), now).endsWith(QStringLiteral("_vs_P2.kifu")));
-        QCOMPARE(KifuIoService::makeDefaultSaveFileName(QString(), QStringLiteral(" "), now, QStringLiteral("csa")),
+        QVERIFY(KifuSaveFile::makeDefaultSaveFileName(black, QStringLiteral("   "), now).endsWith(QStringLiteral("_vs_P2.kifu")));
+        QCOMPARE(KifuSaveFile::makeDefaultSaveFileName(QString(), QStringLiteral(" "), now, QStringLiteral("csa")),
                  QStringLiteral("20261023_120000_Session.csa"));
     }
 
@@ -272,9 +301,12 @@ private slots:
         QCOMPARE(file.write(original), original.size());
         file.close();
 
-        const QStringList lines{QStringLiteral("#KIF version=2.0 encoding=UTF-8"),
-                                QString::fromUtf8("先手：您"),
-                                QString::fromUtf8("   1 ７六歩(77)   ( 0:01/00:00:01)")};
+        const QStringList body{QString::fromUtf8("先手：您"), QString::fromUtf8("   1 ７六歩(77)   ( 0:01/00:00:01)")};
+        QList<KifuEncoding> requested;
+        const KifuSaveFile::LineGenerator lines = [&](KifuFormat format, KifuEncoding encoding) {
+            requested.append(encoding);
+            return kifLines(body)(format, encoding);
+        };
         QWidget parent;
         SaveDialogResponder responder;
         responder.answer = answer;
@@ -285,12 +317,15 @@ private slots:
         });
         QString error;
         const bool ok = KifuSaveDialogs::overwriteExisting(&parent, path, lines, &error);
+        QCOMPARE(requested.first(), KifuEncoding::ShiftJis);
         QVERIFY(messageText.contains(QString::fromUtf8("您")));
         QVERIFY2(error.isEmpty(), qPrintable(error));  // キャンセルはエラーとして通知しない
         if (answer == QMessageBox::Save) {
             QVERIFY(ok);
-            // UTF-8 で保存し、先頭行の encoding 宣言も UTF-8 のまま
-            QCOMPARE(readAllTextNormalized(path), lines.join(QLatin1Char('\n')) + QLatin1Char('\n'));
+            // UTF-8 で行を作り直して保存する（先頭行の encoding 宣言も UTF-8）
+            QCOMPARE(requested, (QList<KifuEncoding>{KifuEncoding::ShiftJis, KifuEncoding::Utf8}));
+            QCOMPARE(readAllTextNormalized(path),
+                     kifLines(body)(KifuFormat::Kif, KifuEncoding::Utf8).join(QLatin1Char('\n')) + QLatin1Char('\n'));
         } else {
             QVERIFY(!ok);
             QCOMPARE(readAllBytes(path), original);
@@ -311,8 +346,7 @@ private slots:
             }
         });
         QString error;
-        QVERIFY(KifuSaveDialogs::overwriteExisting(&parent,
-            path, {QStringLiteral("#KIF version=2.0 encoding=UTF-8"), QString::fromUtf8("先手：鈴木")}, &error));
+        QVERIFY(KifuSaveDialogs::overwriteExisting(&parent, path, kifLines({QString::fromUtf8("先手：鈴木")}), &error));
         QVERIFY(!asked);
         QVERIFY(readAllBytes(path).startsWith("#KIF version=2.0 encoding=Shift_JIS"));
     }
@@ -321,7 +355,7 @@ private slots:
     {
         QTemporaryDir dir;
         QString error;
-        QVERIFY(!KifuSaveFile::write(dir.path(), {QStringLiteral("record")}, &error));
+        QVERIFY(!KifuSaveFile::write(dir.path(), fixedLines({QStringLiteral("record")}), &error));
         QVERIFY(!error.isEmpty());
     }
 
@@ -373,14 +407,64 @@ private slots:
         QVERIFY(!KifuSaveFile::hasKnownSaveExtension(QString()));
     }
 
-    void usesShiftJisForPath()
+    void encodingForPath()
     {
-        QVERIFY(KifuSaveFile::usesShiftJisForPath(QStringLiteral("/tmp/a.kif")));
-        QVERIFY(KifuSaveFile::usesShiftJisForPath(QStringLiteral("/tmp/a.KI2")));
-        QVERIFY(!KifuSaveFile::usesShiftJisForPath(QStringLiteral("/tmp/a.kifu")));
-        QVERIFY(!KifuSaveFile::usesShiftJisForPath(QStringLiteral("/tmp/a.ki2u")));
-        QVERIFY(!KifuSaveFile::usesShiftJisForPath(QStringLiteral("/tmp/a.csa")));
-        QVERIFY(!KifuSaveFile::usesShiftJisForPath(QStringLiteral("/tmp/a.usi")));
+        QCOMPARE(KifuSaveFile::encodingForPath(QStringLiteral("/tmp/a.kif")), KifuEncoding::ShiftJis);
+        QCOMPARE(KifuSaveFile::encodingForPath(QStringLiteral("/tmp/a.KI2")), KifuEncoding::ShiftJis);
+        QCOMPARE(KifuSaveFile::encodingForPath(QStringLiteral("/tmp/a.kifu")), KifuEncoding::Utf8);
+        QCOMPARE(KifuSaveFile::encodingForPath(QStringLiteral("/tmp/a.ki2u")), KifuEncoding::Utf8);
+        QCOMPARE(KifuSaveFile::encodingForPath(QStringLiteral("/tmp/a.csa")), KifuEncoding::Utf8);
+        QCOMPARE(KifuSaveFile::encodingForPath(QStringLiteral("/tmp/a.usi")), KifuEncoding::Utf8);
+        QCOMPARE(KifuSaveFile::encodingForPath(QStringLiteral("/tmp/a.txt")), KifuEncoding::Utf8);
+    }
+
+    /// 行は保存先の拡張子の形式と文字コードで1回だけ作る（Shift_JIS で表せれば作り直さない）
+    void writeAsksTheTargetFormatAndEncoding_data()
+    {
+        QTest::addColumn<QString>("name");
+        QTest::addColumn<SaveFormat>("format");
+        QTest::addColumn<int>("encoding");
+        QTest::newRow("kifu") << QStringLiteral("a.kifu") << SaveFormat::Kif << int(KifuEncoding::Utf8);
+        QTest::newRow("kif") << QStringLiteral("a.kif") << SaveFormat::Kif << int(KifuEncoding::ShiftJis);
+        QTest::newRow("ki2") << QStringLiteral("a.ki2") << SaveFormat::Ki2 << int(KifuEncoding::ShiftJis);
+        QTest::newRow("ki2u") << QStringLiteral("a.ki2u") << SaveFormat::Ki2 << int(KifuEncoding::Utf8);
+        QTest::newRow("csa") << QStringLiteral("a.csa") << SaveFormat::Csa << int(KifuEncoding::Utf8);
+        QTest::newRow("usen") << QStringLiteral("a.usen") << SaveFormat::Usen << int(KifuEncoding::Utf8);
+    }
+
+    void writeAsksTheTargetFormatAndEncoding()
+    {
+        QFETCH(QString, name);
+        QFETCH(SaveFormat, format);
+        QFETCH(int, encoding);
+        QTemporaryDir dir;
+        QList<QPair<KifuFormat, KifuEncoding>> requested;
+        QString error;
+        QVERIFY2(KifuSaveFile::write(dir.filePath(name), [&](KifuFormat f, KifuEncoding e) {
+            requested.append({f, e});
+            return QStringList{QStringLiteral("record")};
+        }, &error), qPrintable(error));
+        QCOMPARE(requested.size(), 1);
+        QCOMPARE(requested.first().first, format);
+        QCOMPARE(int(requested.first().second), encoding);
+    }
+
+    /// 作った行を文字コードを指定して書く（CLI の変換の出力）。Shift_JIS で表せない文字は示して失敗する
+    void writeLinesUsesTheGivenEncoding()
+    {
+        QStringEncoder probe("Shift-JIS");
+        if (!probe.isValid()) QSKIP("Shift_JIS codec is not available in this Qt build");
+        QTemporaryDir dir;
+        const QString path = dir.filePath(QStringLiteral("out.txt"));
+        QString error;
+        QVERIFY2(KifuSaveFile::writeLines(path, {QString::fromUtf8("先手：鈴木")}, KifuEncoding::ShiftJis, &error),
+                 qPrintable(error));
+        QStringDecoder decoder("Shift-JIS");
+        QCOMPARE(normalizeNewlines(decoder(readAllBytes(path))), QString::fromUtf8("先手：鈴木\n"));
+        QVERIFY(!KifuSaveFile::writeLines(path, {QString::fromUtf8("您")}, KifuEncoding::ShiftJis, &error));
+        QVERIFY(error.contains(QString::fromUtf8("您")));
+        QVERIFY2(KifuSaveFile::writeLines(path, {QString::fromUtf8("您")}, KifuEncoding::Utf8, &error), qPrintable(error));
+        QCOMPARE(readAllTextNormalized(path), QString::fromUtf8("您\n"));
     }
 
     // === 上書き保存 ===
@@ -399,7 +483,7 @@ private slots:
             QStringLiteral("+7776FU"),
         };
         QString err;
-        QVERIFY2(KifuSaveFile::write(path, lines, &err), qPrintable(err));
+        QVERIFY2(KifuSaveFile::write(path, fixedLines(lines), &err), qPrintable(err));
 
         const QString text = readAllTextNormalized(path);
         QCOMPARE(text, lines.join(QLatin1Char('\n')) + QLatin1Char('\n'));
@@ -414,34 +498,30 @@ private slots:
 
         QString err;
         QVERIFY(KifuSaveFile::write(
-            path, {QStringLiteral("position startpos moves 7g7f 3c3d 2g2f")}, &err));
+            path, fixedLines({QStringLiteral("position startpos moves 7g7f 3c3d 2g2f")}), &err));
         QVERIFY(KifuSaveFile::write(
-            path, {QStringLiteral("position startpos moves 7g7f")}, &err));
+            path, fixedLines({QStringLiteral("position startpos moves 7g7f")}), &err));
 
         QCOMPARE(readAllTextNormalized(path),
                  QStringLiteral("position startpos moves 7g7f\n"));
     }
 
-    /// .kifu は UTF-8 のまま、encoding 宣言も無変更
+    /// .kifu は UTF-8 で、encoding 宣言も UTF-8
     void overwriteExisting_kifuKeepsUtf8Header()
     {
         QTemporaryDir dir;
         QVERIFY(dir.isValid());
         const QString path = dir.filePath(QStringLiteral("game.kifu"));
 
-        const QStringList lines = {
-            QStringLiteral("#KIF version=2.0 encoding=UTF-8"),
-            QStringLiteral("先手：鈴木"),
-            QStringLiteral("   1 ７六歩(77)"),
-        };
+        const QStringList body = {QStringLiteral("先手：鈴木"), QStringLiteral("   1 ７六歩(77)")};
         QString err;
-        QVERIFY2(KifuSaveFile::write(path, lines, &err), qPrintable(err));
+        QVERIFY2(KifuSaveFile::write(path, kifLines(body), &err), qPrintable(err));
 
         const QString text = readAllTextNormalized(path);
-        QCOMPARE(text, lines.join(QLatin1Char('\n')) + QLatin1Char('\n'));
+        QCOMPARE(text, QStringLiteral("#KIF version=2.0 encoding=UTF-8\n") + body.join(QLatin1Char('\n')) + QLatin1Char('\n'));
     }
 
-    /// .kif は Shift_JIS で書かれ、encoding 宣言が差し替わる
+    /// .kif は Shift_JIS で書かれ、encoding 宣言も Shift_JIS で作る
     void overwriteExisting_kifUsesShiftJis()
     {
         QStringEncoder probe("Shift-JIS");
@@ -453,13 +533,9 @@ private slots:
         QVERIFY(dir.isValid());
         const QString path = dir.filePath(QStringLiteral("game.kif"));
 
-        const QStringList lines = {
-            QStringLiteral("#KIF version=2.0 encoding=UTF-8"),
-            QStringLiteral("先手：鈴木"),
-            QStringLiteral("   1 ７六歩(77)"),
-        };
         QString err;
-        QVERIFY2(KifuSaveFile::write(path, lines, &err), qPrintable(err));
+        QVERIFY2(KifuSaveFile::write(path, kifLines({QStringLiteral("先手：鈴木"), QStringLiteral("   1 ７六歩(77)")}), &err),
+                 qPrintable(err));
 
         const QByteArray bytes = readAllBytes(path);
         QStringDecoder decoder("Shift-JIS");

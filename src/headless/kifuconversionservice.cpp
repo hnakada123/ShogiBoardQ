@@ -72,6 +72,7 @@ KifuConversionService::Result KifuConversionService::convert(const Request& requ
         KifuExportMetadata metadata;
         metadata.gameInfoItems = loaded.gameInfo;
         metadata.startSfen = result.initialSfen;
+        metadata.encoding = request.outputEncoding;
         result.lines = KifuExport::lines(tree, metadata, request.outputFormat);
     }
     result.ok = true;

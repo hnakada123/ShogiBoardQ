@@ -162,6 +162,38 @@ private slots:
         QVERIFY(!reread.record.mainline.endsWithTerminal());
     }
 
+    /// 保存する文字コードを渡すと、KIF・KI2・CSA の先頭行の宣言もその文字コードにする（書いた後に置き換えない）
+    void outputEncodingIsDeclaredInTheHeader_data()
+    {
+        QTest::addColumn<int>("format");
+        QTest::addColumn<QString>("utf8");
+        QTest::addColumn<QString>("shiftJis");
+        QTest::newRow("kif") << int(Format::Kif) << QStringLiteral("#KIF version=2.0 encoding=UTF-8")
+                             << QStringLiteral("#KIF version=2.0 encoding=Shift_JIS");
+        QTest::newRow("ki2") << int(Format::Ki2) << QStringLiteral("#KIF version=2.0 encoding=UTF-8")
+                             << QStringLiteral("#KIF version=2.0 encoding=Shift_JIS");
+        QTest::newRow("csa") << int(Format::Csa) << QStringLiteral("'CSA encoding=UTF-8")
+                             << QStringLiteral("'CSA encoding=Shift_JIS");
+    }
+
+    void outputEncodingIsDeclaredInTheHeader()
+    {
+        QFETCH(int, format);
+        QFETCH(QString, utf8);
+        QFETCH(QString, shiftJis);
+        KifuConversionService::Request request;
+        request.text = QStringLiteral("position startpos moves 7g7f 3c3d");
+        request.outputFormat = static_cast<Format>(format);
+        const auto plain = KifuConversionService::convert(request);
+        QVERIFY2(plain.ok, qPrintable(plain.failure.message));
+        QCOMPARE(plain.lines.first(), utf8);
+        request.outputEncoding = KifuEncoding::ShiftJis;
+        const auto sjis = KifuConversionService::convert(request);
+        QVERIFY2(sjis.ok, qPrintable(sjis.failure.message));
+        QCOMPARE(sjis.lines.first(), shiftJis);
+        QCOMPARE(sjis.lines.mid(1), plain.lines.mid(1));
+    }
+
     /// 0手の終局も USI の手順欄に置き、平手・任意局面とも読み戻せる。
     void usiTerminalWithoutMoves_data()
     {

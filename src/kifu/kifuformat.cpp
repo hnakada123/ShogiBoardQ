@@ -12,23 +12,26 @@ namespace KifuFormats {
 
 namespace {
 
-struct FormatName {
+struct Extension {
     KifuFormat format;
-    const char* name;
+    const char* suffix;
+    bool isName;            ///< 形式の名前（CLI・自動化 API の引数）。ほかは読むだけの別名・拡張子
+    KifuEncoding encoding;  ///< 保存するときの文字コード
+    const char* saveLabel;  ///< 保存ダイアログの絞り込みの見出し（保存しない拡張子は nullptr）
 };
 
-// 名前・拡張子。形式ごとに最初の行が名前（後ろの行は読むだけの別名・拡張子）
-const FormatName kNames[] = {
-    {KifuFormat::Kif, "kif"},
-    {KifuFormat::Ki2, "ki2"},
-    {KifuFormat::Csa, "csa"},
-    {KifuFormat::Jkf, "jkf"},
-    {KifuFormat::Usi, "usi"},
-    {KifuFormat::Usen, "usen"},
-    {KifuFormat::Sfen, "sfen"},
-    {KifuFormat::Bod, "bod"},
-    {KifuFormat::Kif, "kifu"},
-    {KifuFormat::Ki2, "ki2u"},
+// 拡張子と形式・文字コード・保存の見出しの表。並びは保存ダイアログの絞り込みの順（UTF-8 の KIF が先頭）
+const Extension kExtensions[] = {
+    {KifuFormat::Kif, "kifu", false, KifuEncoding::Utf8, QT_TRANSLATE_NOOP("KifuFileFilter", "KIF形式 UTF-8")},
+    {KifuFormat::Kif, "kif", true, KifuEncoding::ShiftJis, QT_TRANSLATE_NOOP("KifuFileFilter", "KIF形式 Shift_JIS")},
+    {KifuFormat::Ki2, "ki2u", false, KifuEncoding::Utf8, QT_TRANSLATE_NOOP("KifuFileFilter", "KI2形式 UTF-8")},
+    {KifuFormat::Ki2, "ki2", true, KifuEncoding::ShiftJis, QT_TRANSLATE_NOOP("KifuFileFilter", "KI2形式 Shift_JIS")},
+    {KifuFormat::Csa, "csa", true, KifuEncoding::Utf8, QT_TRANSLATE_NOOP("KifuFileFilter", "CSA形式")},
+    {KifuFormat::Jkf, "jkf", true, KifuEncoding::Utf8, QT_TRANSLATE_NOOP("KifuFileFilter", "JKF形式")},
+    {KifuFormat::Usen, "usen", true, KifuEncoding::Utf8, QT_TRANSLATE_NOOP("KifuFileFilter", "USEN形式")},
+    {KifuFormat::Usi, "usi", true, KifuEncoding::Utf8, QT_TRANSLATE_NOOP("KifuFileFilter", "USI形式")},
+    {KifuFormat::Sfen, "sfen", true, KifuEncoding::Utf8, nullptr},
+    {KifuFormat::Bod, "bod", true, KifuEncoding::Utf8, nullptr},
 };
 
 } // namespace
@@ -36,16 +39,16 @@ const FormatName kNames[] = {
 std::optional<KifuFormat> fromName(const QString& name)
 {
     const QString key = name.trimmed().toLower();
-    for (const auto& entry : kNames) {
-        if (key == QLatin1String(entry.name)) return entry.format;
+    for (const auto& entry : kExtensions) {
+        if (key == QLatin1String(entry.suffix)) return entry.format;
     }
     return std::nullopt;
 }
 
 QString name(KifuFormat format)
 {
-    for (const auto& entry : kNames) {
-        if (entry.format == format) return QString::fromLatin1(entry.name);
+    for (const auto& entry : kExtensions) {
+        if (entry.format == format && entry.isName) return QString::fromLatin1(entry.suffix);
     }
     return {};
 }
@@ -63,12 +66,45 @@ bool isSavable(KifuFormat format)
     return format != KifuFormat::Sfen && format != KifuFormat::Bod;
 }
 
+QStringList savableNames()
+{
+    QStringList names;
+    // 並びは形式の enum の順（"kif" "ki2" "csa" "jkf" "usi" "usen"）
+    for (const KifuFormat format : {KifuFormat::Kif, KifuFormat::Ki2, KifuFormat::Csa, KifuFormat::Jkf,
+                                    KifuFormat::Usi, KifuFormat::Usen})
+        names.append(name(format));
+    return names;
+}
+
+const QList<SaveTarget>& saveTargets()
+{
+    static const QList<SaveTarget> targets = [] {
+        QList<SaveTarget> list;
+        for (const auto& entry : kExtensions) {
+            if (entry.saveLabel)
+                list.append({QString::fromLatin1(entry.suffix), entry.format, entry.encoding, entry.saveLabel});
+        }
+        return list;
+    }();
+    return targets;
+}
+
+std::optional<SaveTarget> saveTargetForPath(const QString& path)
+{
+    const QString suffix = QFileInfo(path).suffix().toLower();
+    if (suffix.isEmpty()) return std::nullopt;
+    for (const SaveTarget& target : saveTargets()) {
+        if (target.suffix == suffix) return target;
+    }
+    return std::nullopt;
+}
+
 QStringList readableSuffixes(std::optional<KifuFormat> format)
 {
     QStringList suffixes;
-    for (const auto& entry : kNames) {
+    for (const auto& entry : kExtensions) {
         if (entry.format == KifuFormat::Bod) continue;   // 局面図はファイルで開かない
-        if (!format || entry.format == *format) suffixes.append(QString::fromLatin1(entry.name));
+        if (!format || entry.format == *format) suffixes.append(QString::fromLatin1(entry.suffix));
         // JKF は .json で配布されることも多い
         if (entry.format == KifuFormat::Jkf && (!format || *format == KifuFormat::Jkf))
             suffixes.append(QStringLiteral("json"));
@@ -84,8 +120,8 @@ bool isReadableFile(const QString& path)
 QStringList writableSuffixes()
 {
     QStringList suffixes;
-    for (const auto& entry : kNames) {
-        if (entry.format != KifuFormat::Bod) suffixes.append(QString::fromLatin1(entry.name));
+    for (const auto& entry : kExtensions) {
+        if (entry.format != KifuFormat::Bod) suffixes.append(QString::fromLatin1(entry.suffix));
     }
     return suffixes;
 }

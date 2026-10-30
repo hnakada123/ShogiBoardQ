@@ -153,6 +153,7 @@
 | 2026-10-30 | 定跡ウィンドウをドックのパネルにした（監査 2026-10-29 の T5）のに合わせて §1.5・§10.3・§11.3・第18章を更新（`JosekiWindow`・`JosekiTableView` は widgets、`JosekiTableModel` は models、`JosekiFileController`・`JosekiEditController`・`JosekiMergeController` は ui/controllers へ。ウィンドウは操作を意図のシグナルで知らせるだけにし、受けてダイアログを出すのは新しい `JosekiBookController`（3つのコントローラを持ち、ドロップの振り分け・閉じるときの確認・ドックの題名の未保存の印も受け持つ。「現在の棋譜から」は表示中の手順を直接渡す）。「棋譜に展開...」の条件のダイアログは `JosekiWindowController` が出す。履歴・前回のファイル・自動読込の保存は `JosekiBookSession`（`restoreSaved`・`autoLoadEnabled`）。`josekiWindowSize` を削除し、列幅は利用者がドラッグしたときに保存する。導いた予想応手は表のモデルが作る） |
 | 2026-10-30 | 盤の矢印を出すかの正本を1つにした（監査 2026-10-29 の T6）のに合わせて §1.5・§7.4・§7.5・§7.7・§9.5・§10.2〜§10.4・§11.2・§12.5・§14.2・§15.4・付録を更新（手番側・先読み側・検討・定跡手の4つの切り替えは ui の `BoardArrowActions` の checkable な `QAction`（設定の復元と保存もここ。検討の矢印も `AnalysisSettings::considerationArrowsVisible` に保存する）。思考ドック・検討タブ・定跡ウィンドウのチェックと「表示」メニューはそれに結び、`CandidateArrowPresenter` はそれだけを読む。対局の矢印は E1・E2 の思考の表の最新の最善の読み筋から作り、探索中か・先読みかはプロトコルの状態（`isSearching()`・`searchKind()`）、先読みの予想手は読み筋の局面に至った手で決める。`UsiProtocolHandler::SearchCandidate`・`Usi::searchCandidate`・`searchCandidateChanged`・`ConsiderationSettings::showArrows`・`ThinkingPanel::arrowSettingsChanged` を削除） |
 | 2026-10-30 | 外観と駒音の置き場所と外観の持ち主を整理した（監査 2026-10-29 の T7）のに合わせて §1.5・§1.6・§12.5・付録を更新（外観の部品 `BoardAppearance`・`AppearanceState`・`PieceImageProvider`・`PieceStyleCatalog`・`BoardAppearanceCatalog`・`BoardColorPresets`・`BoardColors`・`BoardVisuals` を services・common から style へ移し、外観の設定は style の `AppearanceSettings` にした。駒のセット・配色・見た目の持ち主は `BoardAppearance` 1つ（`state()`・`apply()`・`pieceStyleChanged`）で、`PieceImageProvider` は駒の画像の解決とキャッシュだけ。駒音の `PieceSoundPlayer`・`PieceSoundProcessor` は ui/presenters へ移し、駒音の設定ダイアログは値をシグナルで知らせるだけにした。外観のテーマのコンボ（`BoardColorPresets::themes()`）をやめ、「墨と榧」「琥珀」はおすすめの組み合わせ「標準・墨と榧」「標準・琥珀」にした（26種類。見本を6つ足した）。外観ダイアログは `BoardAppearanceDialog` に改名し、見本の描画を `BoardAppearanceSamples` に出した） |
+| 2026-10-30 | 棋譜の保存の経路と保存形式の表を1つにした（監査 2026-10-29 の T8）のに合わせて §1.5・§8.1・§8.8・§8.9・§8.12・付録を更新（`KifuIoService` を `KifuSaveFile` にまとめた。拡張子の表 `KifuFormats::saveTargets()` が形式・文字コード `KifuEncoding`・保存の見出しを持ち、保存ダイアログの絞り込みは `KifuFileFilter::forSaving()`・`pathForSaving()` で表から作る。書き出しの文脈 `KifuExportMetadata::encoding` で先頭行の文字コードの宣言を書き、保存のときに文字列を置き換えない。`KifuSaveFile::write` は行を作る関数 `(format, encoding)` を受け、Shift_JIS への変換は1回だけ。CLI・自動化 API の形式の選択肢は `KifuFormats::savableNames()`。定跡ファイルの拡張子と絞り込みは `JosekiBookFile::hasBookSuffix`・`withBookSuffix`・`fileFilter`） |
 
 <!-- chapter-0-end -->
 
@@ -413,12 +414,11 @@ src/
 │   ├── recordentry.h               #   棋譜の1行（指した手か終局）
 │   ├── moverecord.h                #   指す前の局面と指し手から棋譜の1行を作る（MoveRecord::play。棋譜の読み込みと対局の着手で共通）
 │   ├── recordline.h                #   1本の手順の値（RecordLine）
-│   ├── kifuformat.cpp/.h           #   棋譜の形式（読み込み・保存・変換で共通の KifuFormat）と判定（KifuFormats）
+│   ├── kifuformat.cpp/.h           #   棋譜の形式（読み込み・保存・変換で共通の KifuFormat）と判定、拡張子の表（形式・文字コード・保存の見出し）
 │   ├── kifuloadparser.cpp/.h       #   棋譜の読み込み口（文字コードの判別と形式ごとの変換器への振り分け）
 │   ├── kifuloader.cpp/.h           #   棋譜ファイル・貼り付け・局面を読み（KifuLoadParser をワーカーで）、文書を置き換える
 │   ├── kifutextdecoder.cpp/.h      #   棋譜・局面のテキストの文字コードの判別（KifuTextDecoder。全形式の読み込みで共通）
-│   ├── kifusavefile.cpp/.h         #   ファイルへの書き出し
-│   ├── kifuioservice.cpp/.h        #   棋譜ファイルI/O
+│   ├── kifusavefile.cpp/.h         #   保存形式と文字コード（拡張子から）・ファイルへの書き出し・既定のファイル名
 │   ├── shiftjiscodec.cpp/.h        #   Shift_JIS（CP932）の変換
 │   ├── kifuexport.cpp/.h           #   形式ごとの書き出しの表（KifuExport::lines。GUI と CLI で共通）
 │   ├── kifuexportmetadata.h        #   書き出しの文脈（対局情報と開始局面）
@@ -4103,9 +4103,9 @@ kifu層（`src/kifu/`）は、棋譜の分岐管理・ナビゲーション状�
 │  └─────────────────────┘   └─────────────────────────────┘      │
 │                                                                 │
 │  ┌─────────────────────┐   ┌─────────────────────────────┐      │
-│  │KifuSaveFile         │   │  KifuIoService              │      │
-│  │  保存形式の判定・書込 │   │  既定ファイル名・ファイル書込 │      │
-│  └─────────────────────┘   └─────────────────────────────┘      │
+│  │KifuSaveFile                                              │      │
+│  │  保存形式と文字コード（拡張子の表から）・書込・既定ファイル名 │      │
+│  └──────────────────────────────────────────────────────────┘      │
 │                                                                 │
 │  ┌─────────────────────┐   ┌─────────────────────────────┐      │
 │  │KifuFormat           │   │  KifuExport                 │      │
@@ -4629,9 +4629,9 @@ onLoadFinished() → applyLoadResult(result)            ← メインスレッ�
 
 棋譜欄の `KifuRecordListModel`（分岐ツリーのノードを行とするモデル。行は `setPath()` で表示中の手順のノード列に合わせる）が、行のノードに兄弟があるかで分岐の印を出す（`isBranchRow()`）。手順の行は `KifuDisplayPresenter` が `KifuNavigationState::changed()` を受けて合わせ、分岐の印はツリーの構造の変更（`nodeAppended`・`childrenReordered`・`subtreeRemoved`・`reset`）を受けて描き直す（`refreshBranchMarks()`）。
 
-### 8.8 KifuSaveDialogs / KifuSaveFile / KifuIoService — 保存
+### 8.8 KifuSaveDialogs / KifuSaveFile — 保存
 
-**ソース**: `src/dialogs/kifusavedialogs.h/.cpp`（ダイアログ）、`src/kifu/kifusavefile.h/.cpp`（保存形式の判定と書き込み）、`src/kifu/kifuioservice.h/.cpp`（ファイル I/O）
+**ソース**: `src/dialogs/kifusavedialogs.h/.cpp`（ダイアログ）、`src/kifu/kifusavefile.h/.cpp`（保存形式と文字コードの判定・書き込み・既定のファイル名）、`src/widgets/kifufilefilter.h/.cpp`（保存ダイアログの絞り込み）
 
 保存は、ダイアログを出す部分（dialogs 層）と、ファイルに書く部分（kifu 層）に分かれている。ファイルに書く部分はダイアログを出さないので、GUI・自動化 API・CLI で共通に使う。
 
@@ -4641,28 +4641,22 @@ onLoadFinished() → applyLoadResult(result)            ← メインスレッ�
 
 | 関数 | 説明 |
 |------|------|
-| `saveViaDialog(parent, generateLines, defaultFileName, hasBranches, hasTimeInfo, outError)` | 保存ダイアログを出し、KIF（UTF-8 `.kifu`・Shift_JIS `.kif`）・KI2（`.ki2u`・`.ki2`）・CSA・JKF・USEN・USI のどれかで保存する。形式は選んだパスの拡張子で決まり、決まってから `generateLines(format)` でその形式の行だけを作る。分岐や消費時間を保存できない形式では、続けるか確認する |
-| `overwriteExisting(parent, path, lines, outError)` | 既存ファイルへの上書き保存 |
+| `saveViaDialog(parent, generateLines, defaultFileName, hasBranches, hasTimeInfo, outError)` | 保存ダイアログを出し、KIF（UTF-8 `.kifu`・Shift_JIS `.kif`）・KI2（`.ki2u`・`.ki2`）・CSA・JKF・USEN・USI のどれかで保存する。絞り込みは拡張子の表から作る（`KifuFileFilter::forSaving()`。拡張子を書かなければ選んだ絞り込みの拡張子を付ける `pathForSaving()`）。形式と文字コードは選んだパスの拡張子で決まり、決まってから `generateLines(format, encoding)` でその形式の行だけを作る。分岐や消費時間を保存できない形式では、続けるか確認する |
+| `overwriteExisting(parent, path, generateLines, outError)` | 既存ファイルへの上書き保存（行の作り方は `saveViaDialog` と同じ） |
 | `confirmDiscardUnsaved(parent, isDirty, save)` | 未保存の変更があるとき、保存・破棄・キャンセルを確認する（`isDirty` には `KifuDocument::isModified()` を渡す） |
 
 `saveViaDialog` は保存に成功した場合にファイルパスを返し、キャンセルまたはエラーの場合は空文字を返す。最後に保存したフォルダは `GameSettings::lastKifuSaveDirectory` に記録する。
 
 #### KifuSaveFile
 
-保存形式の判定とファイルへの書き出しを担当する名前空間（ダイアログを出さない）。
+保存形式と文字コードの判定・ファイルへの書き出し・既定のファイル名を担当する名前空間（ダイアログを出さない。GUI・自動化 API・CLI で共通）。形式と文字コードは、保存先の拡張子から形式の表（`KifuFormats::saveTargets()`）で決める。
 
-- **`saveFormatForPath(path)`**: 拡張子から `KifuFormat`（Kif / Ki2 / Csa / Jkf / Usen / Usi。保存できる形式かは `KifuFormats::isSavable()`）を決める（未知の拡張子は Kif）。`LineGenerator` は形式が決まってからその形式の行だけを作る関数
-- **`pathForSelectedFilter(path, selectedFilter)`**: 拡張子のないパスに、選んだフィルタの拡張子を付ける
-- **`hasKnownSaveExtension(path)`** / **`usesShiftJisForPath(path)`**: 保存形式として認識できる拡張子か、Shift_JIS で書く拡張子（`.kif`・`.ki2`）か
-- **`write(path, lines, outError, allowUtf8)`**: 拡張子に応じた文字コードで書く。Shift_JIS で表せない文字があれば `allowUtf8` に聞き、許されれば UTF-8 で書く
-
-#### KifuIoService
-
-低レベルのファイルI/Oを担当する名前空間。
-
+- **`saveFormatForPath(path)`** / **`encodingForPath(path)`**: 拡張子から `KifuFormat`（Kif / Ki2 / Csa / Jkf / Usen / Usi。未知の拡張子は Kif）と文字コード `KifuEncoding`（`.kif`・`.ki2` は Shift_JIS、ほかは UTF-8）を決める
+- **`hasKnownSaveExtension(path)`** / **`knownSaveExtensionsText()`**: 保存形式として認識できる拡張子か、その一覧の文（自動化 API の知らせに使う）
+- **`write(path, generateLines, outError, allowUtf8)`**: 拡張子の形式と文字コードで `generateLines(format, encoding)` に行を作らせて書く（行の先頭の文字コードの宣言は、書き出しが渡された文字コードで書く。書いた後に置き換えない）。Shift_JIS への変換は1回だけ行い、表せない文字があれば `allowUtf8` に聞き、許されれば UTF-8 で行を作り直して書く
+- **`writeLines(path, lines, encoding, outError)`**: 文字コードを指定して、作った行を書く（CLI の `convert-kifu --output-path`。形式は `--output-format` で、文字コードは出力先の拡張子で決めて変換に渡す）
 - **`makeDefaultSaveFileName(blackName, whiteName, now, extension)`**: 対局者名と日時から既定のファイル名（`日時_先手_vs_後手.拡張子`。名前が無ければ `日時_Session.拡張子`）を作る。GUI では対局情報の対局者名（`KifuDocument::headerPlayerName()`。駒落ちは下手・上手）を渡すので、読み込んだ・貼り付けた棋譜も対局者名の付いた名前になる。対局した棋譜は対局情報に対局者が入る
 - **`charactersNotInShiftJis(text)`**: Shift_JIS で表せない文字を返す
-- **`writeKifuFile(path, lines, errorText, useShiftJis)`**: 行リストをテキストファイルとして書き込む
 
 ### 8.9 KifuExport / KifuFileController — 書き出しとファイルの操作
 
@@ -4674,9 +4668,9 @@ onLoadFinished() → applyLoadResult(result)            ← メインスレッ�
 
 | 関数 | 説明 |
 |------|------|
-| `metadataOf(document)` | 文書の書き出しの文脈（`KifuExportMetadata`：対局情報・開始局面） |
-| `lines(tree, metadata, format)` | `format` の行。表の関数を呼ぶ |
-| `lines(document, format)` | `lines(*document.tree(), metadataOf(document), format)` |
+| `metadataOf(document)` | 文書の書き出しの文脈（`KifuExportMetadata`：対局情報・開始局面・文字コード） |
+| `lines(tree, metadata, format)` | `format` の行。表の関数を呼ぶ。KIF・KI2・CSA の先頭行の文字コードの宣言は `metadata.encoding` |
+| `lines(document, format, encoding)` | 文書を `format` の行にする（`encoding` は既定で UTF-8。保存では保存先の文字コードを渡す） |
 
 表の関数は各 Exporter（`src/kifu/formats/`）の `static QStringList exportLines(const KifuBranchTree&, const KifuExportMetadata&)`。
 
@@ -4917,7 +4911,11 @@ KI2 の文字列を作る。本譜と変化の指し手の行は同じループ�
 | `detectFile(filePath)` | ファイルの形式。拡張子で決まらないときは内容から判定する |
 | `fromPath(path)` | 拡張子から形式を求める |
 | `fromName(name)` / `name(format)` | 形式の名前（`"kif"` など。CLI・自動化 API の引数）との変換 |
-| `isSavable(format)` | 棋譜ファイルとして保存できる形式か |
+| `isSavable(format)` / `savableNames()` | 棋譜ファイルとして保存できる形式か、その名前の一覧（CLI の `input_format`・`output_format` と自動化 API の `kifu.get` の選択肢。MCP は `specs.json` の選択肢で受ける） |
+| `saveTargets()` / `saveTargetForPath(path)` | 保存できる拡張子の表（拡張子・形式・文字コード `KifuEncoding`・保存ダイアログの見出し。並びは保存ダイアログの順で、UTF-8 の `.kifu` が先頭）と、保存先の拡張子の行 |
+| `readableSuffixes(format)` / `writableSuffixes()` | 開ける拡張子（JKF の `.json` を含む）・変換で書く拡張子。開くダイアログの絞り込み（`KifuFileFilter::forOpening()`）もこの表から作る |
+
+拡張子・形式・文字コード・保存の見出しは `kifuformat.cpp` の1つの表（`kExtensions`）に書く。拡張子を足すときは表に1行足す。
 
 棋譜の読み込み（`KifuLoadParser`・`KifuFileController`）と棋譜の変換（`KifuConversionService`）で使う。
 
@@ -9411,7 +9409,6 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | KifuExport | NS | kifu | 形式ごとの書き出しの表（GUI の保存・コピーと CLI の変換で共通） | 第8章 |
 | KifuFileController | C | ui/controllers | 棋譜の開く・保存・上書き・自動保存・貼り付けと、棋譜・局面のクリップボードへのコピー | 第3章, 第8章 |
 | KifuFormats | NS | kifu | 棋譜の形式（読み込み・保存・変換で共通の enum）と判定 | 第8章 |
-| KifuIoService | NS | kifu | 棋譜ファイルI/Oサービス | 第8章 |
 | KifuLoader | C | kifu | 棋譜ファイル・貼り付け・局面を読み、棋譜の文書（`KifuDocument`）を置き換える（読み込みの実体は `KifuLoadParser`） | 第8章, 第15章 |
 | KifuLoadParser | NS | kifu | 棋譜の読み込み口（ファイルの文字コードの判別と、形式ごとの変換器への振り分け） | 第8章 |
 | KifuNavigationController | C | ui/controllers | 棋譜ナビゲーション操作（局面送りの6つの QAction と棋譜欄・評価値グラフのボタンの結び付け・分岐）の処理 | 第13章 |
@@ -9422,7 +9419,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | KifuPresentation | NS | kifu | 画面に出す棋譜の表記（指し手・読み筋・終局語・対局情報の見出しと値）を表示言語と表記の設定（`NotationStyle`）に合わせて作る。日本語は `KifMoveText`、英語表記の移動元の要否は `Ki2MoveNotation::annotate()` の `sources` | 第11章, 第16章 |
 | KifuRecordListModel | C | models | 棋譜レコードリストモデル | 第11章 |
 | KifuSaveDialogs | C | dialogs | 棋譜の保存で利用者に聞くこと（保存先・未保存の確認など。静的な関数だけ） | 第8章 |
-| KifuSaveFile | NS | kifu | 棋譜の保存形式（拡張子）とファイルへの書き出し | 第8章 |
+| KifuSaveFile | NS | kifu | 棋譜の保存形式と文字コード（拡張子の表から）、ファイルへの書き出し、既定のファイル名 | 第8章 |
 | LanguageController | C | ui/controllers | アプリ言語切替の制御 | 第10章, 第16章 |
 | LegalMoveStatus | S | core | 指し手の成り・不成それぞれの合法性 | 第5章 |
 | LiveGameSession | C | kifu | 対局中の棋譜一時記録セッション | 第8章 |
@@ -9627,8 +9624,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | kifubranchtree | 第8章 | 分岐ツリー |
 | kifubranchnode | 第8章 | 分岐ノード |
 | kifubranchtreebuilder | 第8章 | ツリー構築 |
-| kifusavefile | 第8章 | 保存形式（拡張子）とファイルへの書き出し |
-| kifuioservice | 第8章 | ファイルI/O |
+| kifusavefile | 第8章 | 保存形式と文字コード（拡張子の表から）、ファイルへの書き出し、既定のファイル名 |
 | kifunavigationstate | 第8章, 第13章 | 表示中のノード |
 | recordline | 第8章 | 手順の値（RecordLine） |
 | livegamesession | 第8章 | 対局中セッション |
@@ -9636,7 +9632,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | kifparsetypes | 第8章 | パース型定義（`KifParseResult`・`KifuParseOutcome`・`ParseOptions`・`ParseReport`） |
 | josekibook | 第8章, 第11章 | 定跡のデータの値型 `JosekiBook` と定跡ファイルの読み書き `JosekiBookFile` |
 | josekibooksession | 第8章, 第11章 | 開いている定跡ファイル（`JosekiBook` の値・変更状態・読み書き） |
-| kifuformat | 第8章 | 棋譜の形式（読み込み・保存・変換で共通の enum）と判定 |
+| kifuformat | 第8章 | 棋譜の形式（読み込み・保存・変換で共通の enum）と判定、拡張子の表（形式・文字コード・保存の見出し） |
 | kifuloadparser | 第8章 | 棋譜の読み込み口（ファイルの文字コードの判別と、形式ごとの変換器への振り分け） |
 | recordentry | 第8章 | 棋譜の1行（指した手か終局） |
 | moverecord | 第6章, 第8章 | 指す前の局面と指し手から棋譜の1行を作る（`MoveRecord::play`） |

@@ -22,10 +22,10 @@ namespace KifuExport {
 
 /// 文書の書き出しの文脈（対局情報・開始局面）
 KifuExportMetadata metadataOf(const KifuDocument& document);
-/// format の行（SFEN・BOD は棋譜を書けないので KIF にする）
+/// format の行（SFEN・BOD は棋譜を書けないので KIF にする）。文字コードの宣言は metadata.encoding
 QStringList lines(const KifuBranchTree& tree, const KifuExportMetadata& metadata, KifuFormat format);
-/// 文書を format の行にする
-QStringList lines(const KifuDocument& document, KifuFormat format);
+/// 文書を format の行にする（encoding はファイルに保存する文字コード。先頭行の宣言に書く）
+QStringList lines(const KifuDocument& document, KifuFormat format, KifuEncoding encoding = KifuEncoding::Utf8);
 
 } // namespace KifuExport
 
