@@ -11,20 +11,15 @@
 #include <QString>
 
 /**
- * @brief 外観の3つの設定（駒のセットは PieceImageProvider、配色と見た目は BoardAppearance）を1つの値にする
+ * @brief 外観の3つの設定（駒のセット・配色・見た目）をまとめた値
  *
- * 外観ダイアログは操作のたびに current() で読み、値を変えて apply() で戻す。
- * 比べるときも値どうしで比べる。
+ * 正本は BoardAppearance。外観ダイアログは操作のたびに BoardAppearance::state() で読み、
+ * 値を変えて BoardAppearance::apply() で戻す。比べるときも値どうしで比べる。
  */
 struct AppearanceState {
     QString pieceStyle = PieceStyleCatalog::standardId();
     BoardColors colors;
     BoardVisuals visuals;
-
-    /// 今の外観
-    static AppearanceState current();
-    /// すべての盤面に反映して保存する（変わった設定だけが変更を知らせる）
-    void apply() const;
 
     friend bool operator==(const AppearanceState& a, const AppearanceState& b)
     {

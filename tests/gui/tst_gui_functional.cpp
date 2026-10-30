@@ -76,13 +76,14 @@
 #include "branchtreeview.h"
 #include "settingscommon.h"
 #include "appsettings.h"
+#include "appearancesettings.h"
 #include "applicationfonts.h"
 #include "applicationrendering.h"
 #include "applicationstyle.h"
 #include "fontsettingsdialog.h"
 #include "boardappearance.h"
 #include "boardcolorpresets.h"
-#include "boardcolordialog.h"
+#include "boardappearancedialog.h"
 #include "boardappearancecatalog.h"
 #include "boardappearancepreview.h"
 #include "thinkingpanel.h"
@@ -226,7 +227,7 @@ class GuiAudit : public QObject
     void selectPieceStyle(const QString& style)
     {
         click("actionBoardAppearance");
-        auto* dialog = window->findChild<BoardColorDialog*>();
+        auto* dialog = window->findChild<BoardAppearanceDialog*>();
         QVERIFY(dialog);
         dialog->findChild<QTabWidget*>("appearanceSections")->setCurrentIndex(0);
         dialog->findChild<QComboBox*>("appearancePieceFilter")->setCurrentIndex(0);
@@ -239,15 +240,15 @@ class GuiAudit : public QObject
         list->scrollToItem(item);
         QTest::qWait(20);
         QTest::mouseClick(list->viewport(), Qt::LeftButton, Qt::NoModifier, list->visualItemRect(item).center());
-        QCOMPARE(AppSettings::pieceStyle(), style);
-        QPointer<BoardColorDialog> guard(dialog);
+        QCOMPARE(AppearanceSettings::pieceStyle(), style);
+        QPointer<BoardAppearanceDialog> guard(dialog);
         dialog->close();
         QTRY_VERIFY(guard.isNull());
     }
     void openAppearanceDetails()
     {
         click("actionBoardAppearance");
-        auto* dialog = window->findChild<BoardColorDialog*>();
+        auto* dialog = window->findChild<BoardAppearanceDialog*>();
         QVERIFY(dialog);
         dialog->findChild<QTabWidget*>("appearanceSections")->setCurrentIndex(5);
     }
@@ -853,7 +854,7 @@ private slots:
         QVERIFY(!action("actionPieceStyleStandard"));
         selectPieceStyle(QStringLiteral("standard"));
         QVERIFY(!hasKifuPasteDialog());
-        QCOMPARE(AppSettings::pieceStyle(), QStringLiteral("standard"));
+        QCOMPARE(AppearanceSettings::pieceStyle(), QStringLiteral("standard"));
         const auto pawn = QIcon(":/pieces/Sente_fu45.svg").pixmap(90).toImage();
         QCOMPARE(board()->piece(Piece::BlackPawn).pixmap(90).toImage(), pawn);
         ShogiView secondary;
@@ -905,7 +906,7 @@ private slots:
         ShogiView secondary;
         const auto standardPawn = board()->piece(Piece::BlackPawn).pixmap(90).toImage();
         selectPieceStyle(style);
-        QCOMPARE(AppSettings::pieceStyle(), style);
+        QCOMPARE(AppearanceSettings::pieceStyle(), style);
         QVERIFY(!hasKifuPasteDialog());
         const QString prefix = QStringLiteral(":/pieces/%1/").arg(style);
         const auto pawn = QIcon(prefix + "Sente_fu45.svg").pixmap(90).toImage();
@@ -932,7 +933,7 @@ private slots:
 
         // 開いている配色ダイアログの表示名・見本も選択した駒に追従する。
         openAppearanceDetails();
-        auto* dialog = window->findChild<BoardColorDialog*>();
+        auto* dialog = window->findChild<BoardAppearanceDialog*>();
         QVERIFY(dialog);
         auto* label = dialog->findChild<QLabel*>("boardColorPresetLabel");
         QVERIFY(label && label->text().contains(PieceStyleCatalog::displayName(style)));
@@ -980,14 +981,15 @@ private slots:
         QFETCH(QString, listName);
         QFETCH(int, tabIndex);
         click("actionBoardAppearance");
-        auto* dialog = window->findChild<BoardColorDialog*>();
+        auto* dialog = window->findChild<BoardAppearanceDialog*>();
         QVERIFY(dialog);
         auto* sections = dialog->findChild<QTabWidget*>("appearanceSections");
         sections->setCurrentIndex(tabIndex);
         auto* list = dialog->findChild<QListWidget*>(listName);
         auto* preview = dialog->findChild<BoardAppearancePreview*>();
         QVERIFY(list && preview);
-        QCOMPARE(list->count(), componentIndex == 2 ? 20 : 26);
+        QCOMPARE(list->count(), BoardAppearanceCatalog::samples(
+            static_cast<BoardAppearanceCatalog::Component>(componentIndex)).size());
         const auto component = static_cast<BoardAppearanceCatalog::Component>(componentIndex);
         const auto samples = BoardAppearanceCatalog::samples(component);
         ShogiView secondary;
@@ -1013,7 +1015,7 @@ private slots:
         const auto expectedVisuals = board()->boardVisuals();
         dialog->resize(1120, 760);
         const auto expectedSize = dialog->size();
-        QPointer<BoardColorDialog> guard(dialog);
+        QPointer<BoardAppearanceDialog> guard(dialog);
         dialog->close();
         QTRY_VERIFY(guard.isNull());
         window->close();
@@ -1021,7 +1023,7 @@ private slots:
         window = std::make_unique<MainWindow>();
         window->show();
         click("actionBoardAppearance");
-        dialog = window->findChild<BoardColorDialog*>();
+        dialog = window->findChild<BoardAppearanceDialog*>();
         QCOMPARE(dialog->size(), expectedSize);
         QCOMPARE(dialog->findChild<QTabWidget*>("appearanceSections")->currentIndex(), tabIndex);
         QCOMPARE(dialog->findChild<QListWidget*>(listName)->currentRow(), samples.size() - 1);
@@ -1031,14 +1033,14 @@ private slots:
     void appearanceBoardBackground()
     {
         click("actionBoardAppearance");
-        auto* dialog = window->findChild<BoardColorDialog*>();
+        auto* dialog = window->findChild<BoardAppearanceDialog*>();
         QVERIFY(dialog);
         auto* sections = dialog->findChild<QTabWidget*>("appearanceSections");
         auto* boards = dialog->findChild<QListWidget*>("appearanceBoards");
         auto* backgrounds = dialog->findChild<QListWidget*>("appearanceBackgrounds");
         auto* combination = dialog->findChild<QComboBox*>("appearanceCombination");
         QVERIFY(sections && boards && backgrounds && combination);
-        QVERIFY(QMetaObject::invokeMethod(combination, "activated", Q_ARG(int, 2)));
+        QVERIFY(QMetaObject::invokeMethod(combination, "activated", Q_ARG(int, 4)));  // 黒檀・月白
         auto custom = board()->boardColors();
         custom.background = QColor("#123456");
         BoardAppearance::instance().setColors(custom);
@@ -1080,7 +1082,7 @@ private slots:
         QCOMPARE(boards->viewport()->grab(boards->visualItemRect(boardItem)).toImage(), boardIcon);
         sections->setCurrentIndex(2);
 
-        QPointer<BoardColorDialog> guard(dialog);
+        QPointer<BoardAppearanceDialog> guard(dialog);
         dialog->close();
         QTRY_VERIFY(guard.isNull());
         window->close();
@@ -1088,7 +1090,7 @@ private slots:
         window = std::make_unique<MainWindow>();
         window->show();
         click("actionBoardAppearance");
-        dialog = window->findChild<BoardColorDialog*>();
+        dialog = window->findChild<BoardAppearanceDialog*>();
         QVERIFY(board()->boardColors() == expected);
         QVERIFY(board()->boardVisuals() == expectedVisuals);
         QCOMPARE(dialog->findChild<QListWidget*>("appearanceBoards")->currentRow(), 1);
@@ -1099,7 +1101,7 @@ private slots:
     void appearanceWindow()
     {
         click("actionBoardAppearance");
-        auto* dialog = window->findChild<BoardColorDialog*>();
+        auto* dialog = window->findChild<BoardAppearanceDialog*>();
         QVERIFY(dialog);
         auto* preview = dialog->findChild<BoardAppearancePreview*>();
         auto* pieces = dialog->findChild<QListWidget*>("appearancePieces");
@@ -1127,8 +1129,8 @@ private slots:
         QTest::qWait(30);
         auto* list = combinations->view();
         QTest::mouseClick(list->viewport(), Qt::LeftButton, Qt::NoModifier,
-                         list->visualRect(list->model()->index(2, 0)).center());
-        QCOMPARE(AppSettings::pieceStyle(), QStringLiteral("deep_ebony"));
+                         list->visualRect(list->model()->index(4, 0)).center());  // 黒檀・月白
+        QCOMPARE(AppearanceSettings::pieceStyle(), QStringLiteral("deep_ebony"));
         QCOMPARE(dialog->findChild<QListWidget*>("appearanceBoards")->currentRow(), 8);
         QCOMPARE(dialog->findChild<QListWidget*>("appearanceStands")->currentRow(), 8);
         QCOMPARE(dialog->findChild<QListWidget*>("appearanceInformation")->currentRow(), 16);
@@ -1147,7 +1149,7 @@ private slots:
         QCOMPARE(boardSfen(), initial);
         QVERIFY(!board()->flipMode());
         QTest::mouseClick(dialog->findChild<QPushButton*>("restoreOpeningAppearanceButton"), Qt::LeftButton);
-        QCOMPARE(AppSettings::pieceStyle(), QStringLiteral("standard"));
+        QCOMPARE(AppearanceSettings::pieceStyle(), QStringLiteral("standard"));
         QVERIFY(board()->boardColors() == BoardColors{});
         QVERIFY(board()->boardVisuals() == BoardVisuals{});
         // 標準外の色にすると見本の選択表示が外れる。
@@ -1170,12 +1172,12 @@ private slots:
             << QStringList{"facet", "atelier", "ribbon"}
             << QStringList{"#e4ca98", "#e9ede7", "#3c5055"}
             << QStringList{"#9e865c", "#a2afa4", "#809294"}
-            << QStringList{"#e9dcc1", "#f0f2ed", "#44555b"} << 6 << 6;
+            << QStringList{"#e9dcc1", "#f0f2ed", "#44555b"} << 6 << 8;
         QTest::newRow("alphabet") << QStringLiteral("alphabet")
             << QStringList{"sei", "rin", "sumi"}
             << QStringList{"#dfc69a", "#dfe5dc", "#384841"}
             << QStringList{"#a28a60", "#a5afa0", "#809186"}
-            << QStringList{"#e9dec4", "#e9ede7", "#43504b"} << 7 << 15;
+            << QStringList{"#e9dec4", "#e9ede7", "#43504b"} << 7 << 17;
     }
     void pieceCombinations()
     {
@@ -1187,7 +1189,7 @@ private slots:
         QFETCH(int, filterIndex);
         QFETCH(int, firstCombination);
         click("actionBoardAppearance");
-        auto* dialog = window->findChild<BoardColorDialog*>();
+        auto* dialog = window->findChild<BoardAppearanceDialog*>();
         QVERIFY(dialog);
         auto* combinations = dialog->findChild<QComboBox*>("appearanceCombination");
         auto* filter = dialog->findChild<QComboBox*>("appearancePieceFilter");
@@ -1206,7 +1208,7 @@ private slots:
                 QTest::mouseClick(choices->viewport(), Qt::LeftButton, Qt::NoModifier,
                                   choices->visualRect(choice).center());
                 QCOMPARE(combinations->currentIndex(), index++);
-                QCOMPARE(AppSettings::pieceStyle(), style);
+                QCOMPARE(AppearanceSettings::pieceStyle(), style);
                 const auto colors = board()->boardColors();
                 QCOMPARE(colors.board, QColor(boardColors.at(surface)));
                 QCOMPARE(colors.stand, colors.board);
@@ -1225,10 +1227,10 @@ private slots:
         window.reset();
         window = std::make_unique<MainWindow>();
         window->show();
-        QCOMPARE(AppSettings::pieceStyle(), QStringLiteral("%1_%2_slate").arg(family, designs.last()));
+        QCOMPARE(AppearanceSettings::pieceStyle(), QStringLiteral("%1_%2_slate").arg(family, designs.last()));
         QVERIFY(board()->boardColors() == colors);
         click("actionBoardAppearance");
-        dialog = window->findChild<BoardColorDialog*>();
+        dialog = window->findChild<BoardAppearanceDialog*>();
         QCOMPARE(dialog->findChild<QComboBox*>("appearanceCombination")->currentIndex(), firstCombination + 8);
         QCOMPARE(dialog->findChild<QComboBox*>("appearancePieceFilter")->currentIndex(), filterIndex);
     }
@@ -1287,18 +1289,21 @@ private slots:
         }
     }
 
-    void boardThemes()
+    /// 標準の駒のおすすめの組み合わせ（以前の外観のテーマ「榧と畳」「墨と榧」「琥珀」を含む）と、木目・影・駒の大きさ
+    void standardCombinations()
     {
         ShogiView secondary;
         openAppearanceDetails();
-        auto* dialog = window->findChild<BoardColorDialog*>();
+        auto* dialog = window->findChild<BoardAppearanceDialog*>();
         QVERIFY(dialog);
         auto* tabs = dialog->findChild<QTabWidget*>("boardColorTabs");
         tabs->setCurrentIndex(5);
-        auto* combo = dialog->findChild<QComboBox*>("boardThemeCombo");
+        QVERIFY(!dialog->findChild<QComboBox*>("boardThemeCombo"));
+        auto* combo = dialog->findChild<QComboBox*>("appearanceCombination");
         QVERIFY(combo);
-        QCOMPARE(combo->count(), 3);
-        for (int i = 0; i < combo->count(); ++i) {
+        const auto& combinations = BoardAppearanceCatalog::combinations();
+        for (int i = 0; i < 3; ++i) {
+            QCOMPARE(QString::fromLatin1(combinations.at(i).pieceStyle), QStringLiteral("standard"));
             combo->showPopup();
             QTest::qWait(20);
             auto* list = combo->view();
@@ -1306,10 +1311,11 @@ private slots:
             list->scrollTo(index);
             QTest::mouseClick(list->viewport(), Qt::LeftButton, Qt::NoModifier, list->visualRect(index).center());
             QTRY_COMPARE(combo->currentIndex(), i);
-            QVERIFY(board()->boardColors() == BoardColorPresets::themes().at(i).colors);
+            const AppearanceState expected = BoardAppearanceCatalog::applied(combinations.at(i), AppearanceState{});
+            QVERIFY(board()->boardColors() == expected.colors);
             QVERIFY(secondary.boardColors() == board()->boardColors());
             QVERIFY(board()->boardVisuals() == BoardVisuals{});
-            QCOMPARE(AppSettings::pieceStyle(), QStringLiteral("standard"));
+            QCOMPARE(AppearanceSettings::pieceStyle(), QStringLiteral("standard"));
             QVERIFY(board()->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/board-theme-%1.png").arg(i)));
             QCOMPARE(boardSfen(), initial);
         }
@@ -1323,8 +1329,8 @@ private slots:
         scale->setValue(94);
         QVERIFY(board()->boardVisuals() == (BoardVisuals{false, false, 94}));
         QVERIFY(board()->grab().toImage() != textured);
-        QCOMPARE(combo->currentIndex(), -1);
-        QPointer<BoardColorDialog> guard(dialog);
+        QCOMPARE(combo->currentIndex(), -1);  // 木目を外したので組み合わせの見本と合わなくなる
+        QPointer<BoardAppearanceDialog> guard(dialog);
         dialog->close();
         QTRY_VERIFY(guard.isNull());
         window->close();
@@ -1333,11 +1339,12 @@ private slots:
         window->show();
         QVERIFY(board()->boardVisuals() == (BoardVisuals{false, false, 94}));
         openAppearanceDetails();
-        dialog = window->findChild<BoardColorDialog*>();
+        dialog = window->findChild<BoardAppearanceDialog*>();
         QVERIFY(dialog);
-        combo = dialog->findChild<QComboBox*>("boardThemeCombo");
+        combo = dialog->findChild<QComboBox*>("appearanceCombination");
         QVERIFY(QMetaObject::invokeMethod(combo, "activated", Q_ARG(int, 0)));
-        QVERIFY(board()->boardVisuals() == BoardVisuals{});
+        // 組み合わせは部品の見本（木目を含む）と駒のセットだけを変え、駒の影と大きさは残す
+        QVERIFY(board()->boardVisuals() == (BoardVisuals{true, false, 94, true}));
         QVERIFY(board()->boardColors() == BoardColors{});
         dialog->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/board-appearance-dialog.png"));
         guard = dialog;
@@ -1353,7 +1360,7 @@ private slots:
     void boardColors()
     {
         BoardAppearance::instance().setVisuals({false, true, 108, false});
-        AppSettings::boardColorDialogTab.set(0);
+        AppearanceSettings::boardColorDialogTab.set(0);
         const BoardColors defaults;
         const BoardColors custom{QColor("#182838"), QColor("#c0d8d0"),
                                  QColor("#6a8494"), QColor("#193b45")};
@@ -1361,7 +1368,7 @@ private slots:
         QSignalSpy changed(&BoardAppearance::instance(), &BoardAppearance::colorsChanged);
         selectPieceStyle(QStringLiteral("standard"));
         openAppearanceDetails();
-        auto* dialog = window->findChild<BoardColorDialog*>();
+        auto* dialog = window->findChild<BoardAppearanceDialog*>();
         QVERIFY(dialog && dialog->isVisible());
         auto* picker = dialog->findChild<QColorDialog*>("boardColorPicker");
         QVERIFY(picker);
@@ -1384,7 +1391,7 @@ private slots:
         QCOMPARE(changed.count(), 4);
         QVERIFY(board()->boardColors() == custom);
         QVERIFY(secondary.boardColors() == custom);
-        QVERIFY(AppSettings::boardColors() == custom);
+        QVERIFY(AppearanceSettings::boardColors() == custom);
         QCOMPARE(board()->chrome()->card(Turn::Black)->clockLabel()->styleSheet(), activeStyle);
         QCOMPARE(board()->chrome()->card(Turn::White)->clockLabel()->palette().color(QPalette::WindowText), BoardColors{}.clockText);
         QCOMPARE(boardSfen(), initial);
@@ -1400,12 +1407,12 @@ private slots:
         picker->reject();
         QCOMPARE(changed.count(), 4);
         QVERIFY(board()->boardColors() == custom);
-        QCOMPARE(AppSettings::boardColorPickerSize(), pickerSize);
+        QCOMPARE(AppearanceSettings::boardColorPickerSize(), pickerSize);
         const QSize dialogSize = dialog->size();
-        QPointer<BoardColorDialog> guard(dialog);
+        QPointer<BoardAppearanceDialog> guard(dialog);
         dialog->close();
         QTRY_VERIFY(guard.isNull());
-        QCOMPARE(AppSettings::boardColorDialogSize(), dialogSize);
+        QCOMPARE(AppearanceSettings::boardColorDialogSize(), dialogSize);
         const auto image = board()->grab().toImage();
         for (const auto& color : values) {
             int count = 0;
@@ -1429,14 +1436,14 @@ private slots:
         window->show();
         QVERIFY(board()->boardColors() == custom);
         openAppearanceDetails();
-        dialog = window->findChild<BoardColorDialog*>();
+        dialog = window->findChild<BoardAppearanceDialog*>();
         QVERIFY(dialog);
         QCOMPARE(dialog->size(), dialogSize);
         QCOMPARE(dialog->findChild<QPushButton*>(names.first())->text(), custom.background.name().toUpper());
         auto* reset = dialog->findChild<QPushButton*>("resetBoardColorsButton");
         QVERIFY(reset);
         QTest::mouseClick(reset, Qt::LeftButton);
-        QVERIFY(AppSettings::boardColors() == defaults);
+        QVERIFY(AppearanceSettings::boardColors() == defaults);
         QVERIFY(board()->boardColors() == defaults);
         QVERIFY(secondary.boardColors() == defaults);
         QCOMPARE(changed.count(), 5);
@@ -1448,7 +1455,7 @@ private slots:
     {
         ShogiView secondary;
         openAppearanceDetails();
-        auto* dialog = window->findChild<BoardColorDialog*>();
+        auto* dialog = window->findChild<BoardAppearanceDialog*>();
         QVERIFY(dialog);
         auto* tabs = dialog->findChild<QTabWidget*>("boardColorTabs");
         auto* picker = dialog->findChild<QColorDialog*>("boardColorPicker");
@@ -1491,7 +1498,7 @@ private slots:
             QTest::mouseClick(buttons->button(QDialogButtonBox::Ok), Qt::LeftButton);
             QTRY_VERIFY(!picker->isVisible());
             expected.*choice.member = choice.color;
-            QVERIFY(AppSettings::boardColors() == expected);
+            QVERIFY(AppearanceSettings::boardColors() == expected);
             QVERIFY(board()->boardColors() == expected);
             QVERIFY(secondary.boardColors() == expected);
             QCOMPARE(button->text(), choice.color.name().toUpper());
@@ -1541,10 +1548,10 @@ private slots:
 
         // ダイアログの選択タブと配色を、再作成したウィンドウでも復元する。
         tabs->setCurrentIndex(4);
-        QPointer<BoardColorDialog> guard(dialog);
+        QPointer<BoardAppearanceDialog> guard(dialog);
         dialog->close();
         QTRY_VERIFY(guard.isNull());
-        QCOMPARE(AppSettings::boardColorDialogTab(), 4);
+        QCOMPARE(AppearanceSettings::boardColorDialogTab(), 4);
         window->close();
         window.reset();
         window = std::make_unique<MainWindow>();
@@ -1552,7 +1559,7 @@ private slots:
         QVERIFY(board()->boardColors() == expected);
         QCOMPARE(board()->chrome()->card(Turn::White)->nameLabel()->palette().color(QPalette::WindowText), expected.nameText);
         openAppearanceDetails();
-        dialog = window->findChild<BoardColorDialog*>();
+        dialog = window->findChild<BoardAppearanceDialog*>();
         QVERIFY(dialog);
         tabs = dialog->findChild<QTabWidget*>("boardColorTabs");
         QCOMPARE(tabs->currentIndex(), 4);
@@ -1560,7 +1567,7 @@ private slots:
         QTest::mouseClick(dialog->findChild<QPushButton*>("resetBoardColorsButton"), Qt::LeftButton);
         QVERIFY(board()->boardColors() == BoardColors{});
         QVERIFY(secondary.boardColors() == BoardColors{});
-        QVERIFY(AppSettings::boardColors() == BoardColors{});
+        QVERIFY(AppearanceSettings::boardColors() == BoardColors{});
     }
     void boardColorPresets_data()
     {
@@ -1570,11 +1577,11 @@ private slots:
     void boardColorPresets()
     {
         BoardAppearance::instance().setVisuals({false, true, 108, false});
-        AppSettings::boardColorDialogTab.set(0);
+        AppearanceSettings::boardColorDialogTab.set(0);
         QFETCH(QString, style);
         selectPieceStyle(style);
         openAppearanceDetails();
-        auto* dialog = window->findChild<BoardColorDialog*>();
+        auto* dialog = window->findChild<BoardAppearanceDialog*>();
         QVERIFY(dialog);
         auto* combo = dialog->findChild<QComboBox*>("boardColorPresetCombo");
         QVERIFY(combo);
@@ -1601,7 +1608,7 @@ private slots:
             QTRY_COMPARE(combo->currentIndex(), i);
             QVERIFY(board()->boardColors() == presets.at(i).colors);
             QVERIFY(secondary.boardColors() == presets.at(i).colors);
-            QVERIFY(AppSettings::boardColors() == presets.at(i).colors);
+            QVERIFY(AppearanceSettings::boardColors() == presets.at(i).colors);
             QCOMPARE(changed.count(), i + 1);
             QCOMPARE(boardSfen(), initial);
             QCOMPARE(board()->grab().toImage().pixelColor(squarePoint(5, 5)), presets.at(i).colors.board);
@@ -1610,7 +1617,7 @@ private slots:
         }
         dialog->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/presets-dialog-%1.png").arg(style));
         const auto selectedColors = presets.last().colors;
-        QPointer<BoardColorDialog> guard(dialog);
+        QPointer<BoardAppearanceDialog> guard(dialog);
         dialog->close();
         QTRY_VERIFY(guard.isNull());
         window->close();
@@ -1618,7 +1625,7 @@ private slots:
         window = std::make_unique<MainWindow>();
         window->show();
         openAppearanceDetails();
-        dialog = window->findChild<BoardColorDialog*>();
+        dialog = window->findChild<BoardAppearanceDialog*>();
         QVERIFY(dialog);
         combo = dialog->findChild<QComboBox*>("boardColorPresetCombo");
         QVERIFY(combo);
@@ -1634,12 +1641,12 @@ private slots:
         picker->setCurrentColor(Qt::magenta);
         picker->accept();
         QCOMPARE(combo->currentIndex(), -1);
-        QCOMPARE(AppSettings::boardColors().grid, QColor(Qt::magenta));
+        QCOMPARE(AppearanceSettings::boardColors().grid, QColor(Qt::magenta));
         BoardAppearance::instance().setColors(selectedColors);
         QCOMPARE(combo->currentIndex(), 4);
         QTest::mouseClick(dialog->findChild<QPushButton*>("resetBoardColorsButton"), Qt::LeftButton);
         QCOMPARE(combo->currentIndex(), -1);
-        QVERIFY(AppSettings::boardColors() == BoardColors{});
+        QVERIFY(AppearanceSettings::boardColors() == BoardColors{});
     }
     void dialogs_data()
     {
@@ -4279,7 +4286,7 @@ private slots:
         auto* button = appearance->findChild<QPushButton*>();
         QVERIFY(button);
         QTest::mouseClick(button, Qt::LeftButton);
-        auto* dialog = window->findChild<BoardColorDialog*>();
+        auto* dialog = window->findChild<BoardAppearanceDialog*>();
         QVERIFY(dialog && dialog->isVisible());
         QCOMPARE(dialog->findChild<QListWidget*>("appearancePieces")->count(),
                  PieceStyleCatalog::ids().size());
@@ -4296,7 +4303,7 @@ private slots:
         QTRY_VERIFY(display->isVisible());
         QTest::mouseClick(display, Qt::LeftButton, Qt::NoModifier,
                           display->actionGeometry(action("actionBoardAppearance")).center());
-        auto* dialog = window->findChild<BoardColorDialog*>();
+        auto* dialog = window->findChild<BoardAppearanceDialog*>();
         QVERIFY(dialog && dialog->isVisible());
         QCOMPARE(dialog->windowTitle(), QStringLiteral("対局画面の外観"));
         QCOMPARE(dialog->findChild<QTabWidget*>("appearanceSections")->count(), 6);

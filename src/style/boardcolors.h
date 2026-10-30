@@ -36,7 +36,7 @@ struct BoardColors {
     struct Field {
         Member member;
         const char* key;         ///< 設定のキー
-        const char* label;       ///< 配色ダイアログの表示名（翻訳の文脈は "BoardColorDialog"）
+        const char* label;       ///< 配色ダイアログの表示名（翻訳の文脈は "BoardAppearanceDialog"）
         const char* objectName;  ///< 配色ダイアログのボタンの objectName
         Group group;
         bool transparent;        ///< アルファ値を使う（0 で透明）
@@ -79,42 +79,42 @@ inline const std::array<BoardColors::Field, 18>& BoardColors::fields()
 {
     using G = Group;
     static const std::array<Field, 18> table{{
-        {&BoardColors::background, "BoardColors/background", QT_TRANSLATE_NOOP("BoardColorDialog", "将棋盤の背景"),
+        {&BoardColors::background, "BoardColors/background", QT_TRANSLATE_NOOP("BoardAppearanceDialog", "将棋盤の背景"),
          "backgroundColorButton", G::Board, false},
-        {&BoardColors::board, "BoardColors/board", QT_TRANSLATE_NOOP("BoardColorDialog", "将棋盤"),
+        {&BoardColors::board, "BoardColors/board", QT_TRANSLATE_NOOP("BoardAppearanceDialog", "将棋盤"),
          "boardColorButton", G::Board, false},
-        {&BoardColors::stand, "BoardColors/stand", QT_TRANSLATE_NOOP("BoardColorDialog", "駒台"),
+        {&BoardColors::stand, "BoardColors/stand", QT_TRANSLATE_NOOP("BoardAppearanceDialog", "駒台"),
          "standColorButton", G::Board, false},
-        {&BoardColors::grid, "BoardColors/grid", QT_TRANSLATE_NOOP("BoardColorDialog", "マス罫線"),
+        {&BoardColors::grid, "BoardColors/grid", QT_TRANSLATE_NOOP("BoardAppearanceDialog", "マス罫線"),
          "gridColorButton", G::Board, false},
-        {&BoardColors::cardBackground, "BoardColors/cardBackground", QT_TRANSLATE_NOOP("BoardColorDialog", "カードの背景"),
+        {&BoardColors::cardBackground, "BoardColors/cardBackground", QT_TRANSLATE_NOOP("BoardAppearanceDialog", "カードの背景"),
          "cardBackgroundColorButton", G::Card, false},
-        {&BoardColors::cardBorder, "BoardColors/cardBorder", QT_TRANSLATE_NOOP("BoardColorDialog", "通常の枠線"),
+        {&BoardColors::cardBorder, "BoardColors/cardBorder", QT_TRANSLATE_NOOP("BoardAppearanceDialog", "通常の枠線"),
          "cardBorderColorButton", G::Card, false},
-        {&BoardColors::activeCardBorder, "BoardColors/activeCardBorder", QT_TRANSLATE_NOOP("BoardColorDialog", "手番側の枠線"),
+        {&BoardColors::activeCardBorder, "BoardColors/activeCardBorder", QT_TRANSLATE_NOOP("BoardAppearanceDialog", "手番側の枠線"),
          "activeCardBorderColorButton", G::Card, false},
-        {&BoardColors::turnBackground, "BoardColors/turnBackground", QT_TRANSLATE_NOOP("BoardColorDialog", "手番の背景"),
+        {&BoardColors::turnBackground, "BoardColors/turnBackground", QT_TRANSLATE_NOOP("BoardAppearanceDialog", "手番の背景"),
          "turnBackgroundColorButton", G::Turn, true},
-        {&BoardColors::turnBorder, "BoardColors/turnBorder", QT_TRANSLATE_NOOP("BoardColorDialog", "手番の枠線"),
+        {&BoardColors::turnBorder, "BoardColors/turnBorder", QT_TRANSLATE_NOOP("BoardAppearanceDialog", "手番の枠線"),
          "turnBorderColorButton", G::Turn, true},
-        {&BoardColors::turnText, "BoardColors/turnText", QT_TRANSLATE_NOOP("BoardColorDialog", "手番の文字"),
+        {&BoardColors::turnText, "BoardColors/turnText", QT_TRANSLATE_NOOP("BoardAppearanceDialog", "手番の文字"),
          "turnTextColorButton", G::Turn, false},
-        {&BoardColors::nameBackground, "BoardColors/nameBackground", QT_TRANSLATE_NOOP("BoardColorDialog", "対局者名の背景"),
+        {&BoardColors::nameBackground, "BoardColors/nameBackground", QT_TRANSLATE_NOOP("BoardAppearanceDialog", "対局者名の背景"),
          "nameBackgroundColorButton", G::Name, true},
-        {&BoardColors::nameBorder, "BoardColors/nameBorder", QT_TRANSLATE_NOOP("BoardColorDialog", "対局者名の枠線"),
+        {&BoardColors::nameBorder, "BoardColors/nameBorder", QT_TRANSLATE_NOOP("BoardAppearanceDialog", "対局者名の枠線"),
          "nameBorderColorButton", G::Name, true},
-        {&BoardColors::nameText, "BoardColors/nameText", QT_TRANSLATE_NOOP("BoardColorDialog", "対局者名の文字"),
+        {&BoardColors::nameText, "BoardColors/nameText", QT_TRANSLATE_NOOP("BoardAppearanceDialog", "対局者名の文字"),
          "nameTextColorButton", G::Name, false},
-        {&BoardColors::clockBackground, "BoardColors/clockBackground", QT_TRANSLATE_NOOP("BoardColorDialog", "持ち時間の背景"),
+        {&BoardColors::clockBackground, "BoardColors/clockBackground", QT_TRANSLATE_NOOP("BoardAppearanceDialog", "持ち時間の背景"),
          "clockBackgroundColorButton", G::Clock, true},
-        {&BoardColors::clockBorder, "BoardColors/clockBorder", QT_TRANSLATE_NOOP("BoardColorDialog", "持ち時間の枠線"),
+        {&BoardColors::clockBorder, "BoardColors/clockBorder", QT_TRANSLATE_NOOP("BoardAppearanceDialog", "持ち時間の枠線"),
          "clockBorderColorButton", G::Clock, true},
-        {&BoardColors::clockText, "BoardColors/clockText", QT_TRANSLATE_NOOP("BoardColorDialog", "持ち時間の文字"),
+        {&BoardColors::clockText, "BoardColors/clockText", QT_TRANSLATE_NOOP("BoardAppearanceDialog", "持ち時間の文字"),
          "clockTextColorButton", G::Clock, false},
         {&BoardColors::clockWarningText, "BoardColors/clockWarningText",
-         QT_TRANSLATE_NOOP("BoardColorDialog", "残り10秒以下の文字"), "clockWarningTextColorButton", G::Clock, false},
+         QT_TRANSLATE_NOOP("BoardAppearanceDialog", "残り10秒以下の文字"), "clockWarningTextColorButton", G::Clock, false},
         {&BoardColors::clockCriticalText, "BoardColors/clockCriticalText",
-         QT_TRANSLATE_NOOP("BoardColorDialog", "秒読み・残り5秒以下の文字"), "clockCriticalTextColorButton", G::Clock, false},
+         QT_TRANSLATE_NOOP("BoardAppearanceDialog", "秒読み・残り5秒以下の文字"), "clockCriticalTextColorButton", G::Clock, false},
     }};
     return table;
 }

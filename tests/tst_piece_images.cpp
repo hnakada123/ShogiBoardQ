@@ -3,10 +3,15 @@
 #include <QTemporaryDir>
 
 #include "piecestylecatalog.h"
-#include "appsettings.h"
+#include "appearancesettings.h"
+#include "boardappearance.h"
 #include "pieceimageprovider.h"
 #include "settingscommon.h"
-#include "settingskeys.h"
+
+namespace {
+/// 駒のセットを保存するキー
+constexpr char kPieceStyleKey[] = "UI/pieceStyle";
+}
 
 class TestPieceImages : public QObject
 {
@@ -39,20 +44,21 @@ private slots:
     {
         QFETCH(QString, selectedStyle);
         auto& provider = PieceImageProvider::instance();
-        QSignalSpy changed(&provider, &PieceImageProvider::styleChanged);
+        auto& appearance = BoardAppearance::instance();
+        QSignalSpy changed(&appearance, &BoardAppearance::pieceStyleChanged);
         const auto standardPawn = provider.icon(Piece::BlackPawn).pixmap(90).toImage();
-        provider.setStyle(selectedStyle);
+        appearance.setPieceStyle(selectedStyle);
         QCOMPARE(changed.count(), 1);
-        QCOMPARE(provider.style(), selectedStyle);
+        QCOMPARE(appearance.pieceStyle(), selectedStyle);
         QVERIFY(provider.icon(Piece::BlackPawn).pixmap(90).toImage() != standardPawn);
         SettingsCommon::openSettings().sync();
         QSettings restored(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-        QCOMPARE(restored.value(SettingsKeys::kPieceStyle).toString(), selectedStyle);
-        provider.setStyle(selectedStyle);
+        QCOMPARE(restored.value(kPieceStyleKey).toString(), selectedStyle);
+        appearance.setPieceStyle(selectedStyle);
         QCOMPARE(changed.count(), 1);
-        provider.setStyle(QStringLiteral("standard"));
+        appearance.setPieceStyle(QStringLiteral("standard"));
         QCOMPARE(changed.count(), 2);
-        QCOMPARE(provider.style(), QStringLiteral("standard"));
+        QCOMPARE(appearance.pieceStyle(), QStringLiteral("standard"));
         QCOMPARE(provider.icon(Piece::BlackPawn).pixmap(90).toImage(), standardPawn);
     }
 
@@ -66,30 +72,31 @@ private slots:
     void legacySettingsMigrate()
     {
         QFETCH(QString, legacyStyle);
-        const BoardColors colors = AppSettings::boardColors();
-        SettingsCommon::openSettings().setValue(SettingsKeys::kPieceStyle, legacyStyle);
+        const BoardColors colors = AppearanceSettings::boardColors();
+        SettingsCommon::openSettings().setValue(kPieceStyleKey, legacyStyle);
         auto& provider = PieceImageProvider::instance();
-        QSignalSpy changed(&provider, &PieceImageProvider::styleChanged);
-        QCOMPARE(provider.style(), QStringLiteral("standard"));
-        QCOMPARE(SettingsCommon::openSettings().value(SettingsKeys::kPieceStyle).toString(),
+        auto& appearance = BoardAppearance::instance();
+        QSignalSpy changed(&appearance, &BoardAppearance::pieceStyleChanged);
+        QCOMPARE(appearance.pieceStyle(), QStringLiteral("standard"));
+        QCOMPARE(SettingsCommon::openSettings().value(kPieceStyleKey).toString(),
                  QStringLiteral("standard"));
-        QVERIFY(AppSettings::boardColors() == colors);
+        QVERIFY(AppearanceSettings::boardColors() == colors);
         const auto pawn = QIcon(":/pieces/Sente_fu45.svg").pixmap(90).toImage();
         QVERIFY(!pawn.isNull());
         QCOMPARE(provider.icon(Piece::BlackPawn).pixmap(90).toImage(), pawn);
         QCOMPARE(provider.iconForStyle(Piece::BlackPawn, legacyStyle).pixmap(90).toImage(), pawn);
-        provider.setStyle(QStringLiteral("standard"));
-        provider.setStyle(QStringLiteral("../unknown"));
-        QCOMPARE(provider.style(), QStringLiteral("standard"));
+        appearance.setPieceStyle(QStringLiteral("standard"));
+        appearance.setPieceStyle(QStringLiteral("../unknown"));
+        QCOMPARE(appearance.pieceStyle(), QStringLiteral("standard"));
         QCOMPARE(changed.count(), 0);
         SettingsCommon::openSettings().sync();
         const QSettings restored(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-        QCOMPARE(restored.value(SettingsKeys::kPieceStyle).toString(), QStringLiteral("standard"));
+        QCOMPARE(restored.value(kPieceStyleKey).toString(), QStringLiteral("standard"));
     }
 
     void standardAndVariantsAreAvailable()
     {
-        QCOMPARE(AppSettings::pieceStyle(), QStringLiteral("standard"));
+        QCOMPARE(AppearanceSettings::pieceStyle(), QStringLiteral("standard"));
         QCOMPARE(PieceStyleCatalog::ids().size(), 40);
         QVERIFY(PieceStyleCatalog::ids().contains(QStringLiteral("sengoku")));
         QCOMPARE(PieceStyleCatalog::ids().first(), QStringLiteral("standard"));
@@ -216,7 +223,7 @@ private slots:
         for (const Turn side : {Turn::Black, Turn::White})
             for (int kind = 0; kind < kPieceKindCount; ++kind) types << makePiece(side, static_cast<PieceKind>(kind));
         for (const auto& style : PieceStyleCatalog::ids()) {
-            provider.setStyle(style);
+            BoardAppearance::instance().setPieceStyle(style);
             const QString prefix = style == QStringLiteral("standard")
                 ? QStringLiteral(":/pieces/") : QStringLiteral(":/pieces/%1/").arg(style);
             for (const Piece type : std::as_const(types)) {

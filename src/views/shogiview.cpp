@@ -57,7 +57,7 @@ ShogiView::ShogiView(QWidget *parent)
     connect(m_chrome, &BoardChromeWidget::pieceBoxSideClicked, this, &ShogiView::setPieceBoxSide);
     relayoutChrome();
 
-    connect(&PieceImageProvider::instance(), &PieceImageProvider::styleChanged,
+    connect(&BoardAppearance::instance(), &BoardAppearance::pieceStyleChanged,
             this, &ShogiView::refreshPieceImages);
     refreshPieceImages();
 }

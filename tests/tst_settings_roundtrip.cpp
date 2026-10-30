@@ -13,6 +13,7 @@
 
 #include "settingsservice.h"
 #include "settingskeys.h"
+#include "appearancesettings.h"
 #include "enginelistsettings.h"
 #include "settingscommon.h"
 #include <QSettings>
@@ -238,59 +239,59 @@ private slots:
         QCOMPARE(AppSettings::language(), QStringLiteral("ja_JP"));
     }
 
-    void appSettings_appearanceSection()
+    void appearanceSettings_appearanceSection()
     {
         auto& settings = SettingsCommon::openSettings();
-        settings.remove(SettingsKeys::kAppearanceSection);
-        QCOMPARE(AppSettings::appearanceSection(), QStringLiteral("pieces"));
+        settings.remove("UI/appearanceSection");
+        QCOMPARE(AppearanceSettings::appearanceSection(), QStringLiteral("pieces"));
         // 背景タブの追加前に保存したタブの番号も、同じ項目を開くよう読み替える
         const QStringList legacyIds{QStringLiteral("pieces"), QStringLiteral("board"), QStringLiteral("stand"),
                                     QStringLiteral("information"), QStringLiteral("details")};
         for (int legacy = 0; legacy <= 4; ++legacy) {
-            settings.setValue(SettingsKeys::kAppearanceSection, legacy);
-            QCOMPARE(AppSettings::appearanceSection(), legacyIds.at(legacy));
+            settings.setValue("UI/appearanceSection", legacy);
+            QCOMPARE(AppearanceSettings::appearanceSection(), legacyIds.at(legacy));
         }
-        settings.setValue(SettingsKeys::kAppearanceSection, 9);
-        QCOMPARE(AppSettings::appearanceSection(), QStringLiteral("pieces"));
-        AppSettings::setAppearanceSection(QStringLiteral("background"));
+        settings.setValue("UI/appearanceSection", 9);
+        QCOMPARE(AppearanceSettings::appearanceSection(), QStringLiteral("pieces"));
+        AppearanceSettings::setAppearanceSection(QStringLiteral("background"));
         settings.sync();
         const QSettings restored(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-        QCOMPARE(restored.value(SettingsKeys::kAppearanceSection).toString(), QStringLiteral("background"));
-        QCOMPARE(AppSettings::appearanceSection(), QStringLiteral("background"));
+        QCOMPARE(restored.value("UI/appearanceSection").toString(), QStringLiteral("background"));
+        QCOMPARE(AppearanceSettings::appearanceSection(), QStringLiteral("background"));
     }
 
-    void appSettings_boardVisuals()
+    void appearanceSettings_boardVisuals()
     {
         auto& settings = SettingsCommon::openSettings();
         settings.remove(QStringLiteral("BoardVisuals"));
-        QVERIFY(AppSettings::boardVisuals() == BoardVisuals{});
-        settings.setValue(SettingsKeys::kBoardWoodGrain, false);
-        QVERIFY(!AppSettings::boardVisuals().standWoodGrain);
-        AppSettings::setBoardVisuals({false, false, 94});
+        QVERIFY(AppearanceSettings::boardVisuals() == BoardVisuals{});
+        settings.setValue("BoardVisuals/woodGrain", false);
+        QVERIFY(!AppearanceSettings::boardVisuals().standWoodGrain);
+        AppearanceSettings::setBoardVisuals({false, false, 94});
         settings.sync();
         const QSettings restored(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-        QCOMPARE(restored.value(SettingsKeys::kBoardWoodGrain).toBool(), false);
-        QCOMPARE(restored.value(SettingsKeys::kStandWoodGrain).toBool(), true);
-        QCOMPARE(restored.value(SettingsKeys::kBoardPieceShadow).toBool(), false);
-        QCOMPARE(restored.value(SettingsKeys::kBoardPieceScale).toInt(), 94);
-        QVERIFY(AppSettings::boardVisuals() == (BoardVisuals{false, false, 94}));
-        settings.setValue(SettingsKeys::kBoardPieceScale, 10000);
-        QCOMPARE(AppSettings::boardVisuals().pieceScale, 112);
-        settings.setValue(SettingsKeys::kBoardPieceScale, -3);
-        QCOMPARE(AppSettings::boardVisuals().pieceScale, 90);
-        AppSettings::setBoardVisuals(BoardVisuals{});
+        QCOMPARE(restored.value("BoardVisuals/woodGrain").toBool(), false);
+        QCOMPARE(restored.value("BoardVisuals/standWoodGrain").toBool(), true);
+        QCOMPARE(restored.value("BoardVisuals/pieceShadow").toBool(), false);
+        QCOMPARE(restored.value("BoardVisuals/pieceScale").toInt(), 94);
+        QVERIFY(AppearanceSettings::boardVisuals() == (BoardVisuals{false, false, 94}));
+        settings.setValue("BoardVisuals/pieceScale", 10000);
+        QCOMPARE(AppearanceSettings::boardVisuals().pieceScale, 112);
+        settings.setValue("BoardVisuals/pieceScale", -3);
+        QCOMPARE(AppearanceSettings::boardVisuals().pieceScale, 90);
+        AppearanceSettings::setBoardVisuals(BoardVisuals{});
     }
 
-    void appSettings_boardColors()
+    void appearanceSettings_boardColors()
     {
         auto& settings = SettingsCommon::openSettings();
         settings.remove(QStringLiteral("BoardColors"));
         const BoardColors defaults;
-        QVERIFY(AppSettings::boardColors() == defaults);
+        QVERIFY(AppearanceSettings::boardColors() == defaults);
         const BoardColors custom{QColor("#182838"), QColor("#c0d8d0"),
                                  QColor("#6a8494"), QColor("#193b45")};
-        AppSettings::setBoardColors(custom);
-        QVERIFY(AppSettings::boardColors() == custom);
+        AppearanceSettings::setBoardColors(custom);
+        QVERIFY(AppearanceSettings::boardColors() == custom);
         settings.sync();
         QSettings restored(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
         QCOMPARE(restored.value(QStringLiteral("BoardColors/background")).toString(), custom.background.name());
@@ -301,22 +302,22 @@ private slots:
         settings.setValue(QStringLiteral("BoardColors/grid"), QStringLiteral("invalid-color"));
         auto expected = custom;
         expected.grid = defaults.grid;
-        QVERIFY(AppSettings::boardColors() == expected);
+        QVERIFY(AppearanceSettings::boardColors() == expected);
         expected.board = QColor();
         expected.stand.setAlpha(32);
-        AppSettings::setBoardColors(expected);
+        AppearanceSettings::setBoardColors(expected);
         expected.board = defaults.board;
         expected.stand.setAlpha(255);
-        QVERIFY(AppSettings::boardColors() == expected);
-        AppSettings::setBoardColors(defaults);
+        QVERIFY(AppearanceSettings::boardColors() == expected);
+        AppearanceSettings::setBoardColors(defaults);
 
-        AppSettings::boardColorDialogSize.set(QSize(600, 380));
-        QCOMPARE(AppSettings::boardColorDialogSize(), QSize(600, 380));
-        AppSettings::boardColorPickerSize.set(QSize(700, 450));
-        QCOMPARE(AppSettings::boardColorPickerSize(), QSize(700, 450));
+        AppearanceSettings::boardColorDialogSize.set(QSize(600, 380));
+        QCOMPARE(AppearanceSettings::boardColorDialogSize(), QSize(600, 380));
+        AppearanceSettings::boardColorPickerSize.set(QSize(700, 450));
+        QCOMPARE(AppearanceSettings::boardColorPickerSize(), QSize(700, 450));
     }
 
-    void appSettings_boardInformationColors()
+    void appearanceSettings_boardInformationColors()
     {
         const BoardColors defaults;
         BoardColors custom;
@@ -334,8 +335,8 @@ private slots:
         custom.clockText = QColor("#254a3c");
         custom.clockWarningText = QColor("#926129");
         custom.clockCriticalText = QColor("#a42d64");
-        AppSettings::setBoardColors(custom);
-        QVERIFY(AppSettings::boardColors() == custom);
+        AppearanceSettings::setBoardColors(custom);
+        QVERIFY(AppearanceSettings::boardColors() == custom);
         auto& settings = SettingsCommon::openSettings();
         settings.sync();
         QSettings restored(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
@@ -344,16 +345,16 @@ private slots:
 
         settings.setValue(QStringLiteral("BoardColors/turnText"), QStringLiteral("invalid-color"));
         custom.turnText = defaults.turnText;
-        QVERIFY(AppSettings::boardColors() == custom);
+        QVERIFY(AppearanceSettings::boardColors() == custom);
         custom.nameBackground = QColor(Qt::transparent);
         custom.cardBackground.setAlpha(32);
-        AppSettings::setBoardColors(custom);
+        AppearanceSettings::setBoardColors(custom);
         custom.cardBackground.setAlpha(255);
-        QVERIFY(AppSettings::boardColors() == custom);
-        AppSettings::setBoardColors(defaults);
-        AppSettings::boardColorDialogTab.set(4);
-        QCOMPARE(AppSettings::boardColorDialogTab(), 4);
-        AppSettings::boardColorDialogTab.set(0);
+        QVERIFY(AppearanceSettings::boardColors() == custom);
+        AppearanceSettings::setBoardColors(defaults);
+        AppearanceSettings::boardColorDialogTab.set(4);
+        QCOMPARE(AppearanceSettings::boardColorDialogTab(), 4);
+        AppearanceSettings::boardColorDialogTab.set(0);
     }
 
     void appSettings_menuWindow()

@@ -62,6 +62,9 @@ QList<BoardAppearanceSample> BoardAppearanceCatalog::samples(Component component
             board(QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "藤鼠"), 0xc8c2d4, 0x635773, false),
             board(QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "砂岩"), 0xd9c6a9, 0x796348, false),
             board(QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "青灰"), 0xb6c7cf, 0x506877, false),
+            // おすすめの組み合わせ「標準・墨と榧」「標準・琥珀」の盤（罫線は標準の色）
+            board(QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "淡榧"), 0xe1c68e, 0x544127),
+            board(QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "蜂蜜"), 0xe3b161, 0x544127),
             board(QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "チェス・木肌"), 0xe4ca98, 0x9e865c, false),
             board(QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "チェス・白"), 0xe9ede7, 0xa2afa4, false),
             board(QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "チェス・墨"), 0x3c5055, 0x809294, false),
@@ -82,6 +85,7 @@ QList<BoardAppearanceSample> BoardAppearanceCatalog::samples(Component component
             background(QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "藍青"), 0x354957), background(QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "薄桜"), 0x8d7a79),
             background(QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "藤鼠"), 0x767080), background(QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "砂岩"), 0x857c6d),
             background(QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "青灰"), 0x667983),
+            background(QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "墨緑"), 0x303b38),
             background(QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "チェス・木肌"), 0xe9dcc1),
             background(QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "チェス・白"), 0xf0f2ed),
             background(QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "チェス・墨"), 0x44555b),
@@ -102,6 +106,8 @@ QList<BoardAppearanceSample> BoardAppearanceCatalog::samples(Component component
             stand(QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "藍青"), 0x4d6e84, false), stand(QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "薄桜"), 0xbea09b, false),
             stand(QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "藤鼠"), 0x9c90af, false), stand(QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "砂岩"), 0xb2a083, false),
             stand(QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "青灰"), 0x8096a2, false),
+            stand(QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "煤竹"), 0x86715a),
+            stand(QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "琥珀"), 0xa26a37),
             stand(QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "チェス・木肌"), 0xe4ca98, false),
             stand(QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "チェス・白"), 0xe9ede7, false),
             stand(QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "チェス・墨"), 0x3c5055, false),
@@ -129,7 +135,9 @@ QList<BoardAppearanceSample> BoardAppearanceCatalog::samples(Component component
         card(QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "銀鼠"), 0xe0e5e7, 0x3c4851, 0xa0aeb7, 0x566c7d),
         card(QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "紅殻"), 0x4b3531, 0xf5e8da, 0x947569, 0xdcb697, true),
         card(QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "石庭"), 0xdde4db, 0x3f5043, 0xa1b19f, 0x536f55),
-        card(QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "月白"), 0xe8edf2, 0x384c61, 0xb1beca, 0x4d6783)};
+        card(QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "月白"), 0xe8edf2, 0x384c61, 0xb1beca, 0x4d6783),
+        card(QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "松煙"), 0x3e4b44, 0xe5e7d9, 0x58665b, 0x7d9878, true),
+        card(QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "鳥の子"), 0xeee4cf, 0x483c29, 0xbdab87, 0x8c6937)};
 }
 
 int BoardAppearanceCatalog::indexOf(Component component, const QString& key)
@@ -183,6 +191,8 @@ const QList<BoardAppearanceCatalog::Combination>& BoardAppearanceCatalog::combin
     // 並びは Component（将棋盤・駒台・対局者情報・背景）
     static const QList<Combination> table = {
         {QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "標準・榧と畳"), "standard", {"榧", "木肌", "若草", "畳"}},
+        {QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "標準・墨と榧"), "standard", {"淡榧", "煤竹", "松煙", "墨緑"}},
+        {QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "標準・琥珀"), "standard", {"蜂蜜", "琥珀", "鳥の子", "焦茶"}},
         {QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "淡虎斑・白榧"), "torafu_light", {"白榧", "白榧", "生成り", "白緑"}},
         {QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "黒檀・月白"), "deep_ebony", {"月白", "月白", "銀鼠", "青鼠"}},
         {QT_TRANSLATE_NOOP("BoardAppearanceCatalog", "白木・墨夜"), "wood_pale", {"墨夜", "墨夜", "墨", "墨夜"}},

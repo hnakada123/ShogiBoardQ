@@ -1,5 +1,8 @@
+/// @file pieceimageprovider.cpp
+/// @brief 駒の画像の解決とキャッシュの実装
+
 #include "pieceimageprovider.h"
-#include "appsettings.h"
+#include "boardappearance.h"
 #include "piecestylecatalog.h"
 #include <QCoreApplication>
 #include <QPointer>
@@ -15,22 +18,9 @@ PieceImageProvider& PieceImageProvider::instance()
     return *provider;
 }
 
-QString PieceImageProvider::style() const
-{
-    return AppSettings::pieceStyle();
-}
-
-void PieceImageProvider::setStyle(const QString& newStyle)
-{
-    if (!PieceStyleCatalog::contains(newStyle)) return;
-    if (newStyle == style()) return;
-    AppSettings::setPieceStyle(newStyle);
-    emit styleChanged();
-}
-
 QIcon PieceImageProvider::icon(Piece piece, bool flipped) const
 {
-    return iconForStyle(piece, style(), flipped);
+    return iconForStyle(piece, BoardAppearance::instance().pieceStyle(), flipped);
 }
 
 QIcon PieceImageProvider::iconForStyle(Piece piece, const QString& currentStyle, bool flipped) const

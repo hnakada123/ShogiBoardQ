@@ -2,7 +2,6 @@
 /// @brief 駒音の設定（音量・音の高さ・イコライザー）ダイアログの実装
 
 #include "piecesoundsettingsdialog.h"
-#include "piecesoundplayer.h"
 #include "appsettings.h"
 #include "dialogfontscale.h"
 #include "countspinbox.h"
@@ -17,11 +16,10 @@
 #include <QSlider>
 #include <QVBoxLayout>
 
-PieceSoundSettingsDialog::PieceSoundSettingsDialog(PieceSoundPlayer* player, QWidget* parent)
+PieceSoundSettingsDialog::PieceSoundSettingsDialog(int volume, const PieceSoundTone& tone, QWidget* parent)
     : QDialog(parent)
-    , m_player(player)
-    , m_initialVolume(player ? player->volume() : AppSettings::pieceSoundVolume.defaultValue())
-    , m_initialTone(player ? player->tone() : PieceSoundTone{})
+    , m_initialVolume(volume)
+    , m_initialTone(tone)
     , m_volumeSlider(new QSlider(Qt::Horizontal, this))
     , m_pitchSlider(new QSlider(Qt::Horizontal, this))
     , m_lowSlider(makeGainSlider(PieceSoundTone::kMaxGainDb, this))
@@ -158,33 +156,31 @@ QSlider* PieceSoundSettingsDialog::makeGainSlider(int maxAbs, QWidget* parent)
 
 void PieceSoundSettingsDialog::reject()
 {
-    if (m_player) {
-        m_player->setVolume(m_initialVolume);
-        m_player->setTone(m_initialTone);
-    }
+    emit volumeChanged(m_initialVolume);
+    emit toneChanged(m_initialTone);
     QDialog::reject();
 }
 
 void PieceSoundSettingsDialog::onVolumeChanged(int value)
 {
     updateLabels();
-    if (!m_player || m_updating) return;
+    if (m_updating) return;
 
-    m_player->setVolume(value);
+    emit volumeChanged(value);
     // ドラッグ中は連続して鳴らさず、離したとき（onSliderReleased）に試聴する
     if (!anySliderDown()) {
-        m_player->preview();
+        emit previewRequested();
     }
 }
 
 void PieceSoundSettingsDialog::onToneSliderChanged()
 {
     updateLabels();
-    if (!m_player || m_updating) return;
+    if (m_updating) return;
 
-    m_player->setTone(toneFromSliders());
+    emit toneChanged(toneFromSliders());
     if (!anySliderDown()) {
-        m_player->preview();
+        emit previewRequested();
     }
 }
 
@@ -195,19 +191,15 @@ void PieceSoundSettingsDialog::onSliderReleased()
 
 void PieceSoundSettingsDialog::previewSound()
 {
-    if (m_player) {
-        m_player->preview();
-    }
+    emit previewRequested();
 }
 
 void PieceSoundSettingsDialog::restoreDefaults()
 {
     applySliders(AppSettings::pieceSoundVolume.defaultValue(), PieceSoundTone{});
-    if (m_player) {
-        m_player->setVolume(AppSettings::pieceSoundVolume.defaultValue());
-        m_player->setTone(PieceSoundTone{});
-        m_player->preview();
-    }
+    emit volumeChanged(AppSettings::pieceSoundVolume.defaultValue());
+    emit toneChanged(PieceSoundTone{});
+    emit previewRequested();
 }
 
 PieceSoundTone PieceSoundSettingsDialog::toneFromSliders() const

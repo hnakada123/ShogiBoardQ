@@ -32,7 +32,7 @@
 #include "settingscommon.h"
 #include "dialogfontscale.h"
 #include "fontsizecontrol.h"
-#include "boardcolordialog.h"
+#include "boardappearancedialog.h"
 #include "changeenginesettingsdialog.h"
 #include "csagamedialog.h"
 #include "csawaitingdialog.h"
@@ -77,7 +77,7 @@ class TestDialogAppearance : public QObject
 
     std::unique_ptr<QDialog> create(const QString& name)
     {
-        if (name == QLatin1String("boardColors")) return std::make_unique<BoardColorDialog>();
+        if (name == QLatin1String("boardColors")) return std::make_unique<BoardAppearanceDialog>();
         if (name == QLatin1String("engineOptions")) {
             auto& settings = SettingsCommon::openSettings();
             settings.beginWriteArray(EngineSettingsConstants::engineOptionsGroup(QStringLiteral("Test engine")), 2);
@@ -114,7 +114,7 @@ class TestDialogAppearance : public QObject
         if (name == QLatin1String("josekiMove")) return std::make_unique<JosekiMoveDialog>();
         if (name == QLatin1String("analysis")) return std::make_unique<KifuAnalysisDialog>();
         if (name == QLatin1String("paste")) return std::make_unique<KifuPasteDialog>();
-        if (name == QLatin1String("sound")) return std::make_unique<PieceSoundSettingsDialog>(nullptr);
+        if (name == QLatin1String("sound")) return std::make_unique<PieceSoundSettingsDialog>(AppSettings::pieceSoundVolume.defaultValue(), PieceSoundTone{});
         if (name == QLatin1String("promotion")) return std::make_unique<PromoteDialog>();
         if (name == QLatin1String("pv"))
             return std::make_unique<PvBoardDialog>(PvText::play(SfenUtils::hirateSfen(), QStringList{QStringLiteral("7g7f")}));
@@ -351,7 +351,7 @@ private slots:
 
     void soundNumericInput()
     {
-        PieceSoundSettingsDialog dialog(nullptr);
+        PieceSoundSettingsDialog dialog(AppSettings::pieceSoundVolume.defaultValue(), PieceSoundTone{});
         for (const auto* name : {"pieceSoundVolume", "pieceSoundPitch", "pieceSoundLow", "pieceSoundMid", "pieceSoundHigh"}) {
             auto* slider = dialog.findChild<QSlider*>(QString::fromLatin1(name));
             auto* input = dialog.findChild<QSpinBox*>(QString::fromLatin1(name) + "Value");
@@ -363,13 +363,41 @@ private slots:
         }
     }
 
+    /// 変えた値はすぐに知らせて試聴を頼み、キャンセルでは開いたときの値を知らせる（鳴らすのは受け手）
+    void soundChangesAreSignaled()
+    {
+        PieceSoundTone opening;
+        opening.pitchSemitones = 2;
+        PieceSoundSettingsDialog dialog(40, opening);
+        QSignalSpy volumes(&dialog, &PieceSoundSettingsDialog::volumeChanged);
+        QSignalSpy tones(&dialog, &PieceSoundSettingsDialog::toneChanged);
+        QSignalSpy previews(&dialog, &PieceSoundSettingsDialog::previewRequested);
+        auto* volume = dialog.findChild<QSlider*>(QStringLiteral("pieceSoundVolume"));
+        auto* pitch = dialog.findChild<QSlider*>(QStringLiteral("pieceSoundPitch"));
+        QVERIFY(volume && pitch);
+        QCOMPARE(volume->value(), 40);
+        QCOMPARE(pitch->value(), 2);
+        QCOMPARE(volumes.count() + tones.count() + previews.count(), 0);
+        volume->setValue(55);
+        QCOMPARE(volumes.count(), 1);
+        QCOMPARE(volumes.last().at(0).toInt(), 55);
+        QCOMPARE(previews.count(), 1);
+        pitch->setValue(-3);
+        QCOMPARE(tones.count(), 1);
+        QCOMPARE(qvariant_cast<PieceSoundTone>(tones.last().at(0)).pitchSemitones, -3);
+        QCOMPARE(previews.count(), 2);
+        dialog.reject();
+        QCOMPARE(volumes.last().at(0).toInt(), 40);
+        QVERIFY(qvariant_cast<PieceSoundTone>(tones.last().at(0)) == opening);
+    }
+
     /// 音の高さが ±1 半音のときは英語の単位を単数形（1 semitone）にする
     void soundPitchSingularUnit()
     {
         QTranslator translator;
         QVERIFY(translator.load(QStringLiteral(TRANSLATIONS_DIR "/ShogiBoardQ_en.qm")));
         qApp->installTranslator(&translator);
-        PieceSoundSettingsDialog dialog(nullptr);
+        PieceSoundSettingsDialog dialog(AppSettings::pieceSoundVolume.defaultValue(), PieceSoundTone{});
         auto* slider = dialog.findChild<QSlider*>(QStringLiteral("pieceSoundPitch"));
         auto* input = dialog.findChild<QSpinBox*>(QStringLiteral("pieceSoundPitchValue"));
         QVERIFY(slider && input);
@@ -384,7 +412,7 @@ private slots:
 
     void footerReflowsWithoutHidingActions()
     {
-        PieceSoundSettingsDialog dialog(nullptr);
+        PieceSoundSettingsDialog dialog(AppSettings::pieceSoundVolume.defaultValue(), PieceSoundTone{});
         dialog.resize(1000, 500);
         dialog.show();
         QVERIFY(QTest::qWaitForWindowExposed(&dialog));
@@ -408,7 +436,7 @@ private slots:
     /// 推奨の高さより低く縮めても、最小の高さ以上なら縮めた高さを保つ（小さい画面でも決定ボタンまで表示できる）
     void dialogKeepsHeightBelowPreferred()
     {
-        BoardColorDialog dialog;
+        BoardAppearanceDialog dialog;
         dialog.show();
         QVERIFY(QTest::qWaitForWindowExposed(&dialog));
         QVERIFY(dialog.sizeHint().height() > 720);
@@ -654,7 +682,7 @@ private slots:
 
     void colorPickerAndCommunicationLog()
     {
-        BoardColorDialog appearance;
+        BoardAppearanceDialog appearance;
         auto* picker = appearance.findChild<QColorDialog*>();
         QVERIFY(picker);
         picker->show();

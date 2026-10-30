@@ -1,5 +1,8 @@
-#ifndef BOARDCOLORDIALOG_H
-#define BOARDCOLORDIALOG_H
+#ifndef BOARDAPPEARANCEDIALOG_H
+#define BOARDAPPEARANCEDIALOG_H
+
+/// @file boardappearancedialog.h
+/// @brief 対局画面の外観ダイアログ（駒・将棋盤・背景・駒台・対局者情報の見本と詳細設定）
 
 #include "appearancestate.h"
 #include "boardappearancecatalog.h"
@@ -14,7 +17,6 @@ class QColorDialog;
 class QPushButton;
 class QComboBox;
 class QLabel;
-class QIcon;
 class QFormLayout;
 class QTabWidget;
 class QCheckBox;
@@ -23,13 +25,18 @@ class QListWidget;
 class QVBoxLayout;
 class BoardAppearancePreview;
 
-/// 駒・盤・背景・駒台・対局者情報の見本と詳細設定を一つのウィンドウで選択する。
-class BoardColorDialog : public QDialog
+/**
+ * @brief 駒・盤・背景・駒台・対局者情報の見本と詳細設定を一つのウィンドウで選択する
+ *
+ * 選んだ外観は BoardAppearance（すべての盤面が共有する正本）に書き、すぐに反映・保存される。
+ * 「おすすめの組み合わせ」は BoardAppearanceCatalog::combinations()。見本の画像は BoardAppearanceSamples が描く。
+ */
+class BoardAppearanceDialog : public QDialog
 {
     Q_OBJECT
 public:
-    explicit BoardColorDialog(QWidget* parent = nullptr);
-    ~BoardColorDialog() override;
+    explicit BoardAppearanceDialog(QWidget* parent = nullptr);
+    ~BoardAppearanceDialog() override;
 
 protected:
     bool eventFilter(QObject* watched, QEvent* event) override;
@@ -41,7 +48,6 @@ private slots:
     void restoreDefaults();
     void rebuildPresets();
     void applyPreset(int index);
-    void applyTheme(int index);
     void applyVisuals();
     void refreshVisuals();
     void selectPiece(int row);
@@ -65,12 +71,10 @@ private:
     QLabel* m_presetLabel;
     QComboBox* m_presetCombo;
     QList<BoardColorPreset> m_presets;
-    QComboBox* m_themeCombo = nullptr;
     QCheckBox* m_woodGrain = nullptr;
     QCheckBox* m_pieceShadow = nullptr;
     QSpinBox* m_pieceScale = nullptr;
     QCheckBox* m_standWoodGrain = nullptr;
-    QList<BoardThemePreset> m_themes;
     QTabWidget* m_sections = nullptr;
     QComboBox* m_pieceFilter = nullptr;
     QComboBox* m_combinations = nullptr;
@@ -85,11 +89,8 @@ private:
     void createColorPages();
     void createAppearancePage();
     void addSection(const QString& id, QWidget* page, const QString& title);
-    void syncThemeSelection();
     void addColorField(QFormLayout* form, const BoardColors::Field& field);
     void syncPresetSelection();
-    QIcon presetIcon(const BoardColors& colors, const QString& style = QString(),
-                     const BoardVisuals& visuals = BoardVisuals{}) const;
 };
 
-#endif // BOARDCOLORDIALOG_H
+#endif // BOARDAPPEARANCEDIALOG_H

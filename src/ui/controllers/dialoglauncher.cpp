@@ -11,7 +11,7 @@
 #include <QUrl>
 #include <utility>
 
-#include "boardcolordialog.h"
+#include "boardappearancedialog.h"
 #include "fontsettingsdialog.h"
 #include "engineregistrationdialog.h"
 #include "evaluationchartsettingsdialog.h"
@@ -137,19 +137,23 @@ void DialogLauncher::displayPieceSoundSettingsDialog()
     auto* player = m_deps.pieceSoundPlayer;
     if (!player) return;
 
-    PieceSoundSettingsDialog dialog(player, m_deps.parentWidget);
+    // 変えた値はすぐに駒音に反映して試聴する（キャンセルでは開いたときの値が届く）
+    PieceSoundSettingsDialog dialog(player->volume(), player->tone(), m_deps.parentWidget);
+    connect(&dialog, &PieceSoundSettingsDialog::volumeChanged, player, &PieceSoundPlayer::setVolume);
+    connect(&dialog, &PieceSoundSettingsDialog::toneChanged, player, &PieceSoundPlayer::setTone);
+    connect(&dialog, &PieceSoundSettingsDialog::previewRequested, player, &PieceSoundPlayer::preview);
     dialog.exec();
 }
 
 void DialogLauncher::displayBoardAppearanceDialog()
 {
-    if (!m_boardColorDialog) {
-        m_boardColorDialog = new BoardColorDialog(m_deps.parentWidget);
-        m_boardColorDialog->setAttribute(Qt::WA_DeleteOnClose);
+    if (!m_appearanceDialog) {
+        m_appearanceDialog = new BoardAppearanceDialog(m_deps.parentWidget);
+        m_appearanceDialog->setAttribute(Qt::WA_DeleteOnClose);
     }
-    m_boardColorDialog->show();
-    m_boardColorDialog->raise();
-    m_boardColorDialog->activateWindow();
+    m_appearanceDialog->show();
+    m_appearanceDialog->raise();
+    m_appearanceDialog->activateWindow();
 }
 
 void DialogLauncher::displayFontSettingsDialog()

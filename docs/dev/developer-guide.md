@@ -152,6 +152,7 @@
 | 2026-10-30 | 対局情報の規則に持ち主を置いた（監査 2026-10-29 の T4）のに合わせて §1.5・§3.4・§5.6・§5.7・§8.9・§10.2・第18章を更新（`KifuExportMetadataBuilder` をやめ、対局者の見出し・手合割の値は kifu の `GameInfo`（`playerKey`・`playerSide`・`playerName`・`usesHandicapNames`・`handicapLabel`・`isHandicap`）に。平手・駒落ちの判定は core の `Handicaps::of`・`ofStart`・`isHirate` にまとめ、`SfenUtils::isHirateStart`・`Handicaps::bySfen`・`byBoard` を削除。「無制限」は `TimeControlText` が書き、読む（`kUnlimited`・`Parsed::unlimited`）。対局情報の見出しは `GameInfoKeys` に `QT_TRANSLATE_NOOP` で持ち、`KifuPresentation::infoKey` はその表 `kTranslated` を引く。書き出しの文脈 `KifuExportMetadata` から対局者 `players` を外し、CSA の `N+`・`N-` も対局情報だけから書く） |
 | 2026-10-30 | 定跡ウィンドウをドックのパネルにした（監査 2026-10-29 の T5）のに合わせて §1.5・§10.3・§11.3・第18章を更新（`JosekiWindow`・`JosekiTableView` は widgets、`JosekiTableModel` は models、`JosekiFileController`・`JosekiEditController`・`JosekiMergeController` は ui/controllers へ。ウィンドウは操作を意図のシグナルで知らせるだけにし、受けてダイアログを出すのは新しい `JosekiBookController`（3つのコントローラを持ち、ドロップの振り分け・閉じるときの確認・ドックの題名の未保存の印も受け持つ。「現在の棋譜から」は表示中の手順を直接渡す）。「棋譜に展開...」の条件のダイアログは `JosekiWindowController` が出す。履歴・前回のファイル・自動読込の保存は `JosekiBookSession`（`restoreSaved`・`autoLoadEnabled`）。`josekiWindowSize` を削除し、列幅は利用者がドラッグしたときに保存する。導いた予想応手は表のモデルが作る） |
 | 2026-10-30 | 盤の矢印を出すかの正本を1つにした（監査 2026-10-29 の T6）のに合わせて §1.5・§7.4・§7.5・§7.7・§9.5・§10.2〜§10.4・§11.2・§12.5・§14.2・§15.4・付録を更新（手番側・先読み側・検討・定跡手の4つの切り替えは ui の `BoardArrowActions` の checkable な `QAction`（設定の復元と保存もここ。検討の矢印も `AnalysisSettings::considerationArrowsVisible` に保存する）。思考ドック・検討タブ・定跡ウィンドウのチェックと「表示」メニューはそれに結び、`CandidateArrowPresenter` はそれだけを読む。対局の矢印は E1・E2 の思考の表の最新の最善の読み筋から作り、探索中か・先読みかはプロトコルの状態（`isSearching()`・`searchKind()`）、先読みの予想手は読み筋の局面に至った手で決める。`UsiProtocolHandler::SearchCandidate`・`Usi::searchCandidate`・`searchCandidateChanged`・`ConsiderationSettings::showArrows`・`ThinkingPanel::arrowSettingsChanged` を削除） |
+| 2026-10-30 | 外観と駒音の置き場所と外観の持ち主を整理した（監査 2026-10-29 の T7）のに合わせて §1.5・§1.6・§12.5・付録を更新（外観の部品 `BoardAppearance`・`AppearanceState`・`PieceImageProvider`・`PieceStyleCatalog`・`BoardAppearanceCatalog`・`BoardColorPresets`・`BoardColors`・`BoardVisuals` を services・common から style へ移し、外観の設定は style の `AppearanceSettings` にした。駒のセット・配色・見た目の持ち主は `BoardAppearance` 1つ（`state()`・`apply()`・`pieceStyleChanged`）で、`PieceImageProvider` は駒の画像の解決とキャッシュだけ。駒音の `PieceSoundPlayer`・`PieceSoundProcessor` は ui/presenters へ移し、駒音の設定ダイアログは値をシグナルで知らせるだけにした。外観のテーマのコンボ（`BoardColorPresets::themes()`）をやめ、「墨と榧」「琥珀」はおすすめの組み合わせ「標準・墨と榧」「標準・琥珀」にした（26種類。見本を6つ足した）。外観ダイアログは `BoardAppearanceDialog` に改名し、見本の描画を `BoardAppearanceSamples` に出した） |
 
 <!-- chapter-0-end -->
 
@@ -494,7 +495,15 @@ src/
 │   ├── applicationfonts.cpp/.h     #   表示言語に応じた書体
 │   ├── applicationstyle.cpp/.h, applicationrendering.cpp/.h # アプリ全体のスタイルと描画の設定
 │   ├── movefont.h                  #   指し手・読み筋の書体の規則（表のモデルの FontRole と KifuMoveDelegate で共通）
-│   └── buttonstyles.h, tablestyles.h # ボタン・表のスタイルシート
+│   ├── buttonstyles.h, tablestyles.h # ボタン・表のスタイルシート
+│   ├── boardappearance.cpp/.h      #   対局画面の外観（駒のセット・配色・見た目）の持ち主（state()・apply()・変更の知らせ）
+│   ├── appearancestate.h           #   外観をまとめた値 AppearanceState
+│   ├── appearancesettings.cpp/.h   #   外観と外観ダイアログの設定の宣言の表（AppearanceSettings）
+│   ├── boardcolors.h, boardvisuals.h #  盤の配色（設定のキーと表示名の表）と質感の値
+│   ├── boardappearancecatalog.cpp/.h #  盤・駒台・対局者情報・背景の見本と、おすすめの組み合わせ（Combination）
+│   ├── boardcolorpresets.cpp/.h    #   盤・駒台・背景のおすすめ配色（「詳細」の配色のコンボ）
+│   ├── piecestylecatalog.cpp/.h    #   駒のセットの表 PieceStyleCatalog（ID・分類・表示名・画像の場所）
+│   └── pieceimageprovider.cpp/.h   #   駒の画像の解決とキャッシュ（駒のセットは BoardAppearance）
 │
 ├── models/                         # Qtモデルと表示用データ
 │   ├── kifurecordlistmodel.cpp/.h  #   棋譜欄のモデル（行は分岐ツリーのノード）
@@ -585,7 +594,7 @@ src/
 │   ├── tsumeshogigeneratordialog.cpp/.h # 詰将棋局面生成ダイアログ
 │   ├── tsumecollectiondialog.cpp/.h #  詰将棋問題集（一覧から選んで解く）
 │   ├── tsumeplaydialog.cpp/.h      #   詰将棋を解く画面（対局と正解手順の再生は Mode、部品の有効・無効は controlStates() の表）
-│   ├── boardcolordialog.cpp/.h     #   外観（駒・盤・背景・駒台・対局者情報。boardappearancepreview が見本）
+│   ├── boardappearancedialog.cpp/.h #  外観（駒・盤・背景・駒台・対局者情報。boardappearancepreview がプレビュー、boardappearancesamples が見本の画像）
 │   ├── fontsettingsdialog.cpp/.h   #   GUI 共通の書体
 │   ├── piecesoundsettingsdialog.cpp/.h # 駒音の設定
 │   ├── jishogiscoredialog.cpp/.h   #   持将棋の点数
@@ -608,6 +617,7 @@ src/
 │   │   ├── enginedisplaypresenter.cpp/.h   # エンジンの表示の持ち主（枠 E1・E2 とモデルの結び・検討の表示・2つ目のエンジン欄・系列名・消去）
 │   │   ├── usimodelbinding.cpp/.h      # エンジン1台とモデルを結ぶ
 │   │   ├── notificationpresenter.cpp/.h # エラー・情報の知らせのダイアログ
+│   │   ├── piecesoundplayer.cpp/.h     # 駒音の再生（piecesoundprocessor が音質の加工）
 │   │   └── kifuanalysisrowpresenter.cpp/.h # 棋譜解析の1局面の結果を結果の表の1行にする
 │   ├── controllers/                #   利用者操作の処理
 │   │   ├── boardarrowactions.cpp/.h        # 盤の矢印を出すかの4つの切り替え（QAction）とその保存
@@ -648,7 +658,7 @@ src/
 ├── services/                       # クロスカッティングサービス
 │   ├── setting.h                   #   設定1項目の宣言（Setting<T>: キーと既定値。範囲付き・構造体・配列の BoundedSetting・StructSetting・ListSetting・StructListSetting）
 │   ├── settingscommon.cpp/.h       #   設定ファイルのパスと共有QSettings
-│   ├── appsettings.cpp/.h, gamesettings.h, analysissettings.cpp/.h, networksettings.h, josekisettings.h, tsumeshogisettings.cpp/.h, enginedialogsettings.h, docksettings.cpp/.h # ドメイン別の設定の宣言の表
+│   ├── appsettings.h, gamesettings.h, analysissettings.cpp/.h, networksettings.h, josekisettings.h, tsumeshogisettings.cpp/.h, enginedialogsettings.h, docksettings.cpp/.h # ドメイン別の設定の宣言の表
 │   ├── settingsservice.h           #   ドメイン別ヘッダーをまとめて取り込むだけのヘッダー
 │   ├── settingskeys.h              #   処理が要る設定項目のキー文字列
 │   ├── enginesettingsconstants.h   #   エンジン設定のキー定数
@@ -659,16 +669,10 @@ src/
 │   ├── apppaths.h                  #   設定・データ・キャッシュの置き場所
 │   ├── applicationtranslations.cpp/.h # 起動時の言語と翻訳の読み込み
 │   ├── notationstyle.cpp/.h        #   表示言語と棋譜の表記の設定（NotationStyle。ApplicationTranslations が決め、KifuPresentation が読む）
-│   ├── boardappearance.cpp/.h      #   全盤面に共通する配色（boardappearancecatalog・boardcolorpresets が既定値）
-│   ├── boardappearancecatalog.cpp/.h #  盤・駒台・対局者情報・背景の見本と、おすすめの組み合わせ（Combination）
-│   ├── appearancestate.cpp/.h      #   外観（駒のセット・配色・見た目）をまとめた値 AppearanceState（current()・apply()）
-│   ├── piecestylecatalog.cpp/.h    #   駒のセットの表 PieceStyleCatalog（ID・分類・表示名・画像の場所）
-│   ├── pieceimageprovider.cpp/.h   #   全盤面で共有する駒画像
-│   └── piecesoundplayer.cpp/.h     #   駒音の再生（piecesoundprocessor・piecesoundtone が音質の加工）
+│   └── piecesoundtone.h            #   駒音の音質の値（音の高さ・3バンドEQ。設定は AppSettings::pieceSoundTone）
 │
 ├── common/                         # 共有の土台（ログ・エラー通知・共有状態など）
 │   ├── appactivitystate.cpp/.h     #   アプリがいま何をしているか（AppActivityState）と持ち主のリース（ActivityLease）
-│   ├── boardcolors.h, boardvisuals.h #  盤の配色と質感の値
 │   ├── branchtreeitemroles.h       #   分岐ツリーの描画と自動化で共有する項目のキー
 │   ├── logcategories.cpp/.h        #   ログカテゴリ
 │   ├── errorbus.cpp/.h             #   エラー通知バス
@@ -1241,7 +1245,7 @@ ShogiBoardQ はディレクトリごとに層を作る。下の層は上の層�
 ```mermaid
 graph BT
     CORE["core/ ・ common/<br/>ルール・盤・指し手・共有の土台"]
-    SVC["services/<br/>設定・駒画像・駒音"]
+    SVC["services/<br/>設定・登録エンジン・表記"]
     KIFU["kifu/<br/>棋譜（分岐ツリー・形式変換）"]
     ENGINE["engine/<br/>USIエンジン連携"]
     GAME["game/<br/>対局管理"]
@@ -1275,9 +1279,9 @@ graph BT
 | 層 | ディレクトリ | 責務 |
 |---------|------------|------|
 | **土台** | `core/`, `common/` | 将棋のルール・盤面・駒・指し手（Qt GUI非依存）と、ログ・エラー通知・動作状態（`AppActivityState`・`ActivityLease`）などの共有部品 |
-| **サービス** | `services/` | 設定の宣言・駒画像・駒音・通知など、層を横断して使う機能 |
+| **サービス** | `services/` | 設定の宣言と保存・登録エンジン・表記と翻訳の設定など、層を横断して使う GUI 非依存の機能 |
 | **ドメイン** | `kifu/`, `engine/`, `game/`, `analysis/`, `network/` | 棋譜・エンジン通信・対局進行・解析・通信対局のロジック。`engine/` は `game/` を知らない（`Usi` は `GameBoard` を持たない） |
-| **見た目** | `style/` | QWidget に依存する書体・アプリ全体のスタイル・ボタンと表のスタイルシート（`ApplicationFonts`・`ApplicationStyle`・`ButtonStyles`・`TableStyles`・`MoveFont`） |
+| **見た目** | `style/` | QWidget に依存する書体・アプリ全体のスタイル・ボタンと表のスタイルシート（`ApplicationFonts`・`ApplicationStyle`・`ButtonStyles`・`TableStyles`・`MoveFont`）と、対局画面の外観（`BoardAppearance`・`AppearanceSettings`・`PieceImageProvider`・`PieceStyleCatalog`・`BoardAppearanceCatalog`） |
 | **表示部品** | `models/`, `views/`, `widgets/`, `board/`, `dialogs/` | Qt のモデル・盤の描画・ウィジェット・盤面操作・ダイアログ |
 | **UI の組み立て** | `ui/`, `app/` | 表示への反映（Presenter）・利用者操作の処理（Controller）・動作状態からの規則（`policy/`）・ドック（`docks/`）・複数の部品にまたがる流れ（Coordinator）と、MainWindow・合成ルート・メニューの接続（`MenuActionsWiring`） |
 
@@ -7022,7 +7026,7 @@ AnalysisSettings::usiLogFontSize.remove();               // 保存値を消す
 
 | 型 | 保存の形 | 例 |
 |---|---|---|
-| `BoundedSetting<T>(キー, 既定値, 最小, 最大)` | 1つのキー。読みも書きも `qBound` で範囲に収める | `AppSettings::pieceSoundVolume`（0〜100）、`AppSettings::appearancePieceFilter`、`AnalysisSettings::usiLogCommandTarget`（0〜2） |
+| `BoundedSetting<T>(キー, 既定値, 最小, 最大)` | 1つのキー。読みも書きも `qBound` で範囲に収める | `AppSettings::pieceSoundVolume`（0〜100）、`AppearanceSettings::appearancePieceFilter`、`AnalysisSettings::usiLogCommandTarget`（0〜2） |
 | `StructSetting<T>({SettingField<T>::of(キー, &T::メンバ), ...}, 整える関数)` | メンバごとに1つのキー。保存していない項目は `T{}` の既定値のまま | `AppSettings::pieceSoundTone`（`PieceSoundTone::clamped`）、`TsumeshogiSettings::playPreferences`・`collectionPreferences` |
 | `ListSetting<T>(配列のキー, 要素のキー)` | QSettings の配列。配列のキーは実行時に作ってもよい | `JosekiSettings::josekiWindowColumnWidths`、思考・検討の表の列幅 |
 | `StructListSetting<T>(配列のキー, {項目...})` | 構造体の配列 | `NetworkSettings::csaServerHistory`（`CsaServerHistoryEntry`。最大 `kCsaServerHistoryLimit` = 10 件） |
@@ -7036,7 +7040,7 @@ AppSettings::pieceSoundVolume.set(percent);
 
 #### 関数として書く項目
 
-宣言の表（`Setting<T>` と上の型）で表せない処理が要る項目だけを、ドメイン別ヘッダーに関数として宣言し、`.cpp` で `SettingsCommon::openSettings()` を使って実装する。キーは `settingskeys.h` に置く。古い保存値を引き継ぐ（`AppSettings::appearanceSection`・`pieceStyle`）、未保存の項目をほかの項目で代える（`AppSettings::boardVisuals`。駒台の木目が未保存なら将棋盤の木目を使う）、独自の保存形式（`AppSettings::boardColors` の色の文字列、`AnalysisSettings::kifuAnalysisColumnWidths` の `QVariantList`、`DockSettings::dockState` のグループ名を引数で受けるキー）、キーを実行時に作る（`AnalysisSettings::engineInfoColumnWidths(ThinkingTable)`。中で `ListSetting<int>` を使う）、ドックレイアウトの名前の一覧などである。列幅は `TableHeaderView::sectionResizedByUser`（利用者がドラッグしたときだけ）を受けて、`EngineInfoWidget`・`ThinkingTableView` などが自分で保存する（思考・検討の表は `AnalysisSettings::ThinkingTable` の `Engine1`・`Engine2`・`Consideration` ごと）。補助ダイアログの文字の大きさと大きさは、関数ではなく `appsettings.h` に宣言を1行ずつ書く（`AppSettings::promotionDialogFontSize`・`promotionDialogSize`・`messageBoxFontSize`・`bookmarkDialogFontSize` など。キーは `DialogAppearance/<id>/fontSize`（既定値 0）・`DialogAppearance/<id>/size`（既定値 `QSize()`）。既定値 0 は、未保存ならダイアログの元の大きさから始めるという意味）。
+宣言の表（`Setting<T>` と上の型）で表せない処理が要る項目だけを、ドメイン別ヘッダーに関数として宣言し、`.cpp` で `SettingsCommon::openSettings()` を使って実装する。キーは `settingskeys.h` に置く（外観のキーは `appearancesettings.cpp` の中）。古い保存値を引き継ぐ（`AppearanceSettings::appearanceSection`・`pieceStyle`）、未保存の項目をほかの項目で代える（`AppearanceSettings::boardVisuals`。駒台の木目が未保存なら将棋盤の木目を使う）、独自の保存形式（`AppearanceSettings::boardColors` の色の文字列、`AnalysisSettings::kifuAnalysisColumnWidths` の `QVariantList`、`DockSettings::dockState` のグループ名を引数で受けるキー）、キーを実行時に作る（`AnalysisSettings::engineInfoColumnWidths(ThinkingTable)`。中で `ListSetting<int>` を使う）、ドックレイアウトの名前の一覧などである。列幅は `TableHeaderView::sectionResizedByUser`（利用者がドラッグしたときだけ）を受けて、`EngineInfoWidget`・`ThinkingTableView` などが自分で保存する（思考・検討の表は `AnalysisSettings::ThinkingTable` の `Engine1`・`Engine2`・`Consideration` ごと）。補助ダイアログの文字の大きさと大きさは、関数ではなく `appsettings.h` に宣言を1行ずつ書く（`AppSettings::promotionDialogFontSize`・`promotionDialogSize`・`messageBoxFontSize`・`bookmarkDialogFontSize` など。キーは `DialogAppearance/<id>/fontSize`（既定値 0）・`DialogAppearance/<id>/size`（既定値 `QSize()`）。既定値 0 は、未保存ならダイアログの元の大きさから始めるという意味）。
 
 ```cpp
 // src/services/analysissettings.cpp より（表の番号でキーを作り、読み書きは ListSetting に任せる）
@@ -9266,7 +9270,8 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | ActivityLease | C | common | 動作状態を持つ権利（`AppActivityState::begin()` が返す move-only の値。手放すと待機中に戻す） | 第3章, 第14章 |
 | AppActivityState | C | common | アプリの動作状態（待機・対局・解析・検討・詰み探索・通信対局・局面編集）の正本 | 第3章, 第14章 |
 | ApplicationTranslations | C | services | 起動時の言語の決定と翻訳ファイルの読み込み | 第16章 |
-| AppearanceState | S | services | 外観（駒のセット・配色・見た目）をまとめた値（`current()`・`apply()`） | 第12章 |
+| AppearanceSettings | NS | style | 対局画面の外観（駒のセット・配色・見た目）と外観ダイアログの設定の宣言の表 | 第12章 |
+| AppearanceState | S | style | 外観（駒のセット・配色・見た目）をまとめた値（正本は `BoardAppearance`） | 第12章 |
 | AppPaths | NS | services | 設定・データ・キャッシュの置き場所（環境変数で別の場所へ切り替えられる） | 第12章 |
 | AppSettings | NS | services | アプリ全般の設定の宣言の表（`Setting<T>`） | 第12章 |
 | AppToolTipFilter | C | widgets | アプリ全体のツールチップフィルタ | 第11章 |
@@ -9459,8 +9464,9 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | ParamSpec | S | automation | 引数1つの仕様（名前・型・必須・範囲・既定値・選択肢・説明）。`ParamSpecs::inputSchema()`・`validate()` で JSON Schema の出力と検査を行う | 第14章 |
 | ParseOptions | S | kifu | 読めない手・指せない手・パスの扱い（手順を打ち切るか、棋譜全体を失敗にするか） | 第8章 |
 | ParseReport | C | kifu | 読み込み中の警告と失敗の記録（`ParseOptions` に従って読めない手を扱う） | 第8章 |
-| PieceSoundPlayer | C | services | 駒音（駒を指したときの効果音）の再生 | 第10章 |
-| PieceStyleCatalog | C | services | 駒のセットの表（ID・分類 `Family`・表示名・画像の場所） | 第12章 |
+| PieceImageProvider | C | style | 駒の画像の解決とキャッシュ（駒のセットは `BoardAppearance`） | 第11章 |
+| PieceSoundPlayer | C | ui/presenters | 駒音（駒を指したときの効果音）の再生 | 第10章 |
+| PieceStyleCatalog | C | style | 駒のセットの表（ID・分類 `Family`・表示名・画像の場所） | 第12章 |
 | PlayerCard | C | views | 対局者1人のカード（手番の札・名前・時計を子に持ち、`place()` で並べる。`setName()`・`setClockText()`・`applyColors()`） | 第11章, 第12章 |
 | PlayerInfoPresenter | C | ui/presenters | 盤の対局者名を出す | 第10章, 第12章 |
 | PlayerChoice | S | game | 対局開始ダイアログで選んだ対局者1人（人間かエンジンか・名前・エンジン・時間。`startgamedialogdata.h`） | 第6章 |
@@ -9697,6 +9703,13 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | movefont | 第11章 | 指し手・読み筋の書体の規則 |
 | buttonstyles | 第11章 | ボタンの役割ごとのスタイルシート（`docs/dev/button-color-scheme.md`） |
 | tablestyles | 第11章 | 表のスタイルシート |
+| boardappearance | 第11章, 第12章 | 対局画面の外観（駒のセット・配色・見た目）の持ち主 |
+| appearancestate | 第12章 | 外観をまとめた値 |
+| appearancesettings | 第12章 | 外観と外観ダイアログの設定の宣言の表 |
+| boardcolors / boardvisuals | 第11章 | 盤の配色と質感の値 |
+| boardappearancecatalog / boardcolorpresets | 第11章 | 部品の見本・おすすめの組み合わせ・おすすめ配色 |
+| piecestylecatalog | 第12章 | 駒のセットの表（ID・分類・表示名・画像の場所） |
+| pieceimageprovider | 第11章 | 駒の画像の解決とキャッシュ |
 
 #### board/（第13章）
 
@@ -9720,6 +9733,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | enginedisplaypresenter | 第9章, 第10章 | エンジンの表示の持ち主（枠 E1・E2 とモデルの結び・検討の表示・2つ目のエンジン欄・系列名・表示の消去） |
 | evaluationgraphpresenter | 第10章 | 評価値グラフの点の書き手と表示中の手数 |
 | usimodelbinding | 第7章, 第10章 | エンジン1台の思考情報・通信ログを、表示のモデルへ反映する |
+| piecesoundplayer / piecesoundprocessor | 第10章 | 駒音（駒を指したときの効果音）の再生と音質の加工 |
 
 #### ui/controllers/（第10章）
 
@@ -9838,6 +9852,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | csagamedialog | 第11章 | CSA対局 |
 | engineregistrationdialog | 第11章 | エンジン登録 |
 | evaluationchartsettingsdialog | 第11章 | 評価値グラフの表示設定 |
+| boardappearancedialog / boardappearancesamples | 第11章 | 対局画面の外観ダイアログと、見本の画像の描画 |
 | changeenginesettingsdialog | 第11章 | エンジン設定変更 |
 | promotedialog | 第6章, 第11章 | 成/不成確認（`PromoteDialog::ask()`） |
 | versiondialog | 第11章 | バージョン情報 |
@@ -9886,9 +9901,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | engineoption | 第7章 | USIオプション1つの値（`EngineOption`） |
 | registeredengines | 第7章 | 登録エンジンの一覧と検索（名前・パス。GUI・CLI・自動化 API で共通） |
 | enginelistsettings | 第7章 | 機能ごとに選んだエンジンの保存 |
-| piecesoundplayer | 第10章 | 駒音（駒を指したときの効果音）の再生 |
-| piecestylecatalog | 第12章 | 駒のセットの表（ID・分類・表示名・画像の場所） |
-| appearancestate | 第12章 | 外観（駒のセット・配色・見た目）をまとめた値 |
+| piecesoundtone | 第10章 | 駒音の音質の値 |
 | notificationpresenter | 第4章 | エラー・情報の知らせのダイアログ |
 
 #### common/（第4章, 第12章）
