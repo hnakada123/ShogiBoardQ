@@ -5,6 +5,7 @@
 /// @brief 検討と対局のエンジンの読みと、定跡手を盤上の矢印にする
 
 #include "shogiview.h"
+#include "shogiviewhighlighting.h"
 #include <QPointer>
 #include <QTimer>
 #include <functional>
@@ -54,7 +55,7 @@ public:
 
     explicit CandidateArrowPresenter(const Deps& deps, QObject* parent = nullptr);
 
-    static std::optional<ShogiView::Arrow> arrowForMove(const QString& move,
+    static std::optional<ShogiViewHighlighting::Arrow> arrowForMove(const QString& move,
                                                       const QString& baseSfen, int priority);
     bool considerationActive() const;
     QString ponderDescription() const { return m_ponderDescription; }
@@ -73,11 +74,11 @@ private slots:
 private:
     /// 矢印の切り替え toggle がオンか（切り替えが無ければ fallback）
     bool arrowsOn(QAction* (BoardArrowActions::*toggle)() const, bool fallback) const;
-    void appendConsiderationArrows(QList<ShogiView::Arrow>& arrows, const QString& sfen) const;
+    void appendConsiderationArrows(QList<ShogiViewHighlighting::Arrow>& arrows, const QString& sfen) const;
     /// 対局のエンジンの読みの矢印を足す（先読み側なら m_ponderDescription に予想した手を書く）
-    void appendMatchArrows(QList<ShogiView::Arrow>& arrows, const QString& sfen);
+    void appendMatchArrows(QList<ShogiViewHighlighting::Arrow>& arrows, const QString& sfen);
     /// 表示中の局面 sfen（手数付き）の定跡手の矢印を足す
-    void appendJosekiArrows(QList<ShogiView::Arrow>& arrows, const QString& sfen) const;
+    void appendJosekiArrows(QList<ShogiViewHighlighting::Arrow>& arrows, const QString& sfen) const;
     QPointer<ShogiView> m_view;
     Deps m_sources;
     std::array<QPointer<Usi>, 2> m_engines;

@@ -26,6 +26,7 @@ PositionEditSession::PositionEditSession(const Deps& deps, QObject* parent)
 {
     Q_ASSERT(m_deps.view && m_deps.view->board() && m_deps.board && m_deps.navState && m_deps.activity);
     connect(m_deps.view->chrome(), &BoardChromeWidget::editExitRequested, this, &PositionEditSession::finish);
+    connect(m_deps.view->chrome(), &BoardChromeWidget::pieceBoxSideClicked, this, &PositionEditSession::setPieceBoxSide);
     connect(m_deps.activity, &AppActivityState::revoked, this, &PositionEditSession::onActivityRevoked);
 }
 
@@ -52,6 +53,7 @@ void PositionEditSession::begin()
     resetInteraction();
     board->setSfen(sfen);
     m_activityLease = m_deps.activity->begin(AppActivityState::Activity::DuringPositionEdit, this);
+    m_deps.view->setPieceBoxSide(m_pieceBoxSide);
     m_deps.view->setPositionEditMode(true);
     m_deps.view->setEditExitButtonVisible(true);
     m_deps.view->update();
@@ -98,7 +100,7 @@ void PositionEditSession::resetInteraction()
 
 bool PositionEditSession::applyEditMove(const QPoint& from, const QPoint& to)
 {
-    const bool ok = PositionEditRules::apply(*m_deps.view->board(), from, to, m_deps.view->pieceBoxSide());
+    const bool ok = PositionEditRules::apply(*m_deps.view->board(), from, to, m_pieceBoxSide);
     // 盤・駒台・駒箱の変化は ShogiBoard の通知で変わった所だけ描き直されるので、ここで盤全体は描き直さない
     m_deps.view->endDrag();
     m_deps.board->onMoveApplied(from, to, ok);
@@ -108,6 +110,12 @@ bool PositionEditSession::applyEditMove(const QPoint& from, const QPoint& to)
 // ============================================================
 // 編集メニュー
 // ============================================================
+
+void PositionEditSession::setPieceBoxSide(Turn side)
+{
+    m_pieceBoxSide = side;
+    m_deps.view->setPieceBoxSide(side);
+}
 
 void PositionEditSession::returnAllPiecesToBox()
 {

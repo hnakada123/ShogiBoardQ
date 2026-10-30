@@ -9,6 +9,7 @@
 #include "branchtreeitemroles.h"
 #include "shogiboard.h"
 #include "shogiview.h"
+#include "shogiviewhighlighting.h"
 
 #include <QAbstractButton>
 #include <QAbstractItemModel>
@@ -139,7 +140,7 @@ bool readBoard(QWidget* w, int, QJsonObject& obj)
     obj[QStringLiteral("square_size")] = board->squareSize();
     if (board->board()) obj[QStringLiteral("board_sfen")] = board->board()->position().boardSfen();
     QJsonArray arrows;
-    for (const auto& arrow : board->arrows()) {
+    for (const auto& arrow : board->highlighting()->arrows()) {
         arrows.append(QJsonObject{{QStringLiteral("from_file"), arrow.fromFile},
                                   {QStringLiteral("from_rank"), arrow.fromRank},
                                   {QStringLiteral("to_file"), arrow.toFile},

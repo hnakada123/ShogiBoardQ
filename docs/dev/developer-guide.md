@@ -157,6 +157,7 @@
 | 2026-10-30 | 画面の流れの持ち主をそろえた（監査 2026-10-29 の M1〜M4）のに合わせて §4.4・§6.5・§6.9・§10.4・§10.5・§13.6・§14.3・§14.5・§14.6・§15.5・§16.5・第18章を更新（ui・app の知らせは静的な `NotificationPresenter::information`・`warning`・`critical` で出す（`Wait::No` で待たない）。結果を使う部品が自分でダイアログを開く（CSA 通信対局は `CsaGameSession::openGameDialog()`、局面集は `KifuFileController::openSfenCollection()`、メニューウィンドウは `MenuWindowController::toggleWindow()`）。「新規」の止める手順は `MainWindowActions::startNewRecord()` に移し、`GameSession` は対局の後始末 `abandonGame()` だけを持つ。メニューの項目の接続は排他の組と保存したレイアウトの一覧を除いて `MenuActionsWiring` に集め、チェックできる項目は設定を持つ部品の値から始める（`DockLayoutManager::wireMenuActions()`・`PositionEditSession::EditActions` を消した） |
 | 2026-10-30 | エンジンと設定の規則の置き場所をそろえた（監査 2026-10-29 の M5・M6・M10・M17）のに合わせて §1.5・§7.9・§9.5・§10.4・§11.2・§11.3・§12.5・第18章を更新（エンジンの登録は登録一覧を `RegisteredEngines` で持ち、検索 `findByPath`・登録名の規則 `uniqueName`・パスの正規化 `canonicalPath` を共有する。エンジンの設定ダイアログは `ChangeEngineSettingsDialog::showFor()` で開く。検討の条件の値 `ConsiderationSettings` を services の `analysissettings.h` に移し、`AnalysisSettings::consideration`（`StructSetting`）で保存する。対局開始の時間の換算と以前の版の開始局面の番号は `gamesettings.cpp` の `Player::time()`・`setTime()`・`startingPosition()`・`setStartingPosition()`） |
 | 2026-10-30 | ウィジェットの共通の部品を足した（監査 2026-10-29 の M7・M8・M16・M18）のに合わせて §1.5・§7.8・§9.8・§11.2・§11.5・§12.5・§13.1・§14.5・第18章を更新（局面送りの6つのボタンは widgets の `StepButtons` が作り、説明は `KifuNavigationController::bindButtons(const StepButtons*)` が `QAction` の文から付ける。列幅は表の見出しに付けた `ColumnWidthMemory` が、利用者がドラッグした列だけを覚えて保存する（0 は自動、正の値は利用者の幅。保存した幅を最小値として扱わない。保存は `ListSetting<int>` にそろえ、棋譜解析の結果と対局情報の以前の版の形は初めて読むときに移す）。`TableHeaderView` はマウスの操作の処理の中で変わった列だけを利用者の操作として知らせる。ドックのパネルの小さなボタンの大きさは `PanelButton::setup()`、A-/A+ は `FontSizeControl` が決める。コメント欄の未更新の確認は `CommentCoordinator` が `UnsavedChangesPrompt`（保存・破棄・キャンセル）で出す） |
+| 2026-10-30 | 盤の大きさと ShogiView の残りの持ち主を整えた（監査 2026-10-29 の M9・M11）のに合わせて §11.1・§13.6 を更新（マスの幅の範囲は core の `BoardSquareSize` に置き、`AppSettings::squareSize`・`GameSettings::sfenCollectionSquareSize` は `BoundedSetting`。`ShogiView` はコンストラクタで設定を読まず、本体の盤の大きさは `MainWindowAppearanceController` が読み、変わるたびに保存する。読み筋盤は本体の盤の今の大きさで開く（`PvBoardDialog::setSquareSize()`）。矢印の型は `ShogiViewHighlighting::Arrow` に移し、`ShogiView::setArrows()`・`arrows()` の転送を消した。駒箱の先後の正本は `PositionEditSession`） |
 
 <!-- chapter-0-end -->
 
@@ -6185,9 +6186,16 @@ ShogiView は QWidget を直接継承した **カスタムペイントウィジ�
 ```cpp
 // src/views/boardgeometry.h
 static constexpr double kSquareAspectRatio = 34.8 / 31.7;  // ≈ 1.098（縦/横）
-static constexpr int kMinSquareSize = 20;
-static constexpr int kMaxSquareSize = 150;
+
+// src/core/boardsquaresize.h（マスの幅の範囲。盤の描画・設定の宣言・CLI の盤面画像で共通）
+namespace BoardSquareSize {
+inline constexpr int kMin = 20;
+inline constexpr int kMax = 150;
+inline constexpr int kDefault = 50;
+}
 ```
+
+ShogiView は設定を読まず、既定の大きさ（`BoardSquareSize::kDefault`）で始まる。大きさは持ち主が `setSquareSize()` で渡す。本体の盤は `MainWindowAppearanceController` が保存した `AppSettings::squareSize` から始め、拡大・縮小のたびに保存する。読み筋盤（`PvBoardDialog::setSquareSize()`）は本体の盤の今の大きさ、局面集ビューア・詰将棋を解く画面はそれぞれの設定（`GameSettings::sfenCollectionSquareSize`・`TsumeshogiSettings::playPreferences`）で始める。どの宣言も範囲は `BoardSquareSize` で、読む側で範囲を確かめ直さない。
 
 盤の位置は、変えない値の型 `BoardGeometry` に1度だけ計算して持つ。条件は `BoardGeometry::Params`（マスの幅 `squareSize`・盤と駒台の間 `standGapCols`・反転 `flipped`・筋と段の数・段の文字の幅を測る書体）で、マスの幅が横の基準ピクセル、縦は `squareSize * kSquareAspectRatio`（`fieldSize()`）。ShogiView は `m_geometry` を1つ持ち（`boardGeometry()`）、マスの大きさ・反転・盤が変わったときに `rebuildGeometry(squareSize, flipped)` で作り直す。描画・入力・ハイライト・対局者カードの配置はこの値を読むだけで、補いの計算やオフセットの足し上げはしない。
 
@@ -6211,7 +6219,8 @@ static constexpr int kMaxSquareSize = 150;
 | `setBoard(ShogiBoard*)` | モデル（局面）を差し替え |
 | `applyBoardAndRender(ShogiBoard*)` | ボード適用＋駒画像読込＋再描画 |
 | `highlighting()->setHighlights(layer, squares) / clearHighlights()` | 層のマスの置き換え・全層の消去（`ShogiViewHighlighting`。変わったマスだけ描き直す） |
-| `setArrows() / clearArrows()` | 矢印（最善手表示）の設定・クリア |
+| `highlighting()->setArrows(arrows)`・`arrows()` | 矢印（`ShogiViewHighlighting::Arrow`）の置き換え・読み出し（ShogiView は転送しない） |
+| `setPieceBoxSide(Turn)`・`pieceBoxSide()` | 駒箱の駒をどちらの駒として出すか（表示だけ。正本は `PositionEditSession`） |
 | `setFlipMode(bool)` | 反転表示の切り替え |
 | `setPositionEditMode(bool)` | 局面編集モードの ON/OFF |
 | `chrome()` | 対局者カード・時計・手番の札（`BoardChromeWidget`）。名前・時計は `view->chrome()->card(Turn::Black)->setName()`・`setClockText()`、手番・時計の警告は `view->chrome()->setActiveSide(Turn)`・`setUrgency()` を直接呼ぶ |
@@ -6224,13 +6233,13 @@ static constexpr int kMaxSquareSize = 150;
 
 **ハイライト** は層（`BoardHighlightLayer`：`LastMoveFrom`・`LastMoveTo`・`Selection`・`LegalDestinations`）ごとのマスの一覧（`QList<QPoint>`）を値で持つ。呼び出し側は `setHighlights(layer, squares)` で層のマスを置き換え、`highlights(layer)` で読む。色と描く順は層で決まり（移動元は黄緑系、移動先・選択は橙系、合法な移動先は青の縁取り）、呼び出し側は色を渡さない。`ShogiViewHighlighting::drawHighlights()` がマスの内側を半透明に塗る。
 
-**矢印** は `Arrow` 構造体で表現される。移動元・移動先座標、優先順位（1=最善手）、色、線種を持ち、検討機能で複数の候補手を盤上に視覚化する。駒打ちの場合は `dropPiece` フィールドに駒（`Piece`）を格納する。
+**矢印** は `ShogiViewHighlighting::Arrow` 構造体で表現され、`view->highlighting()->setArrows()` で渡す（矢印を描き持つのは `ShogiViewHighlighting` だけ）。移動元・移動先座標、優先順位（1=最善手）、色、線種を持ち、検討機能で複数の候補手を盤上に視覚化する。駒打ちの場合は `dropPiece` フィールドに駒（`Piece`）を格納する。
 
 #### 11.1.6 対局者カード・時計・手番表示（BoardChromeWidget）
 
 `src/views/boardchromewidget.h`
 
-対局者カード（先手・後手の `PlayerCard`。`card(Turn)`）、局面編集の「編集終了」ボタン（`setEditExitButtonVisible(bool)`。押すと `editExitRequested`。`ShogiView::setEditExitButtonVisible()` が中継し、`PositionEditSession` が出し入れする）、駒箱の先後切り替え（`placePieceBoxSelector()`・`setPieceBoxSide()`・`pieceBoxSideClicked`）は、`BoardChromeWidget` が持つ。
+対局者カード（先手・後手の `PlayerCard`。`card(Turn)`）、局面編集の「編集終了」ボタン（`setEditExitButtonVisible(bool)`。押すと `editExitRequested`。`ShogiView::setEditExitButtonVisible()` が中継し、`PositionEditSession` が出し入れする）、駒箱の先後切り替え（`placePieceBoxSelector()`・`setPieceBoxSide()`・`pieceBoxSideClicked`）は、`BoardChromeWidget` が持つ。駒箱の先後の正本は局面編集の `PositionEditSession`（`pieceBoxSide()`）で、`pieceBoxSideClicked` を受けて覚え、盤（`ShogiView::setPieceBoxSide()`）とボタンの印に表示させる。
 
 - ShogiView の子として盤と同じ大きさで重ね、部品のある範囲だけをマスク（`setMask`）で残す。それ以外のクリック・描画は下の ShogiView に届くので、盤の入力はそのまま。
 - ShogiView は盤の位置（`BoardGeometry`）を `setBoardGeometry(std::optional<BoardGeometry>)` で渡すだけ（盤が無ければ `std::nullopt` で、カードを隠す）。カードの位置は `BoardGeometry::playerCard()`（駒台の外側）で決まり、ShogiView は駒箱をカードの下に置く。対局者名の大きさ（マスの高さに対する比）は `setNameFontScale()`。
@@ -7455,7 +7464,7 @@ finish():
 
 ```cpp
 bool applyEditMove(from, to):
-  1. PositionEditRules::apply(*view->board(), from, to, view->pieceBoxSide()) で駒を移動
+  1. PositionEditRules::apply(*view->board(), from, to, pieceBoxSide()) で駒を移動（駒箱の先後は自分が持つ）
      （玉を持ち駒にする・二歩・味方の駒の上・駒台に無い駒・玉を取る形は断る。行き所のない段の歩・香・桂は
       PieceRules::isDeadSquare で成駒にする。次の局面を PositionEditRules::moved() で作り、
       ShogiBoard::replacePosition() で変わった所だけを知らせる）

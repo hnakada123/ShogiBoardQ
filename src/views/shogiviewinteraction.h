@@ -25,8 +25,9 @@ public:
     ShogiViewInteraction();
 
     // ───────────────────────── ドラッグ操作 ─────────────────────────
+    /// from の駒をつまむ。駒箱の駒は pieceBoxSide の駒としてつまむ
     void startDrag(const QPoint& from, ShogiBoard* board,
-                   const QPoint& cursorWidgetPos);
+                   const QPoint& cursorWidgetPos, Turn pieceBoxSide);
     void endDrag();
     /// ドラッグ中の駒（icon は dragPiece() の画像）をポインタの位置に描く
     void drawDraggingPiece(QPainter& painter, QSize field, const QIcon& icon, const BoardVisuals& visuals) const;
@@ -38,8 +39,8 @@ public:
 
     // ───────────────────────── モード設定 ─────────────────────────
     void setPositionEditMode(bool positionEditMode);
-    void setPieceBoxSide(Turn side);
-    Turn pieceBoxSide() const { return m_pieceBoxSide; }
+    /// 駒箱からつまんでいる駒を side の駒にする（駒箱の先後を変えたとき。駒箱からでなければ何もしない）
+    void setBoxDragSide(Turn side);
 
     // ───────────────────────── 状態アクセサ ─────────────────────────
     bool positionEditMode() const { return m_positionEditMode; }
@@ -58,7 +59,6 @@ private:
     bool   m_dragging         = false;
     QPoint m_dragFrom;
     Piece  m_dragPiece        = Piece::None;
-    Turn   m_pieceBoxSide     = Turn::Black;
     QPoint m_dragPos;
     QMap<Piece, int> m_tempPieceStandCounts;
 };

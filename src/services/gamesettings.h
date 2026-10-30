@@ -9,6 +9,7 @@
 #include <QString>
 #include <QStringList>
 #include <QSize>
+#include "boardsquaresize.h"
 #include "handicaps.h"
 #include "setting.h"
 #include "timecontrol.h"
@@ -152,8 +153,9 @@ inline const Setting<int> kifuPasteDialogFontSize{"FontSize/kifuPasteDialog", 10
 /// 局面集ビューアの最近使ったファイルリスト（最大5件）
 inline const Setting<QStringList> sfenCollectionRecentFiles{"SfenCollection/recentFiles", QStringList()};
 
-/// 局面集ビューアの将棋盤マスサイズ（デフォルト: 50）
-inline const Setting<int> sfenCollectionSquareSize{"SfenCollection/squareSize", 50};
+/// 局面集ビューアの将棋盤マスサイズ（デフォルト: 50。範囲は BoardSquareSize）
+inline const BoundedSetting<int> sfenCollectionSquareSize{"SfenCollection/squareSize", BoardSquareSize::kDefault,
+                                                          BoardSquareSize::kMin, BoardSquareSize::kMax};
 
 /// 局面集ビューアの最後に開いたディレクトリ
 inline const Setting<QString> sfenCollectionLastDirectory{"SfenCollection/lastDirectory", QString()};

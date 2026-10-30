@@ -24,9 +24,11 @@ MainWindowAppearanceController::MainWindowAppearanceController(const Deps& deps,
     Q_ASSERT(m_mainWindow && deps.centralWidget && m_deps.shogiView);
     setupCentralWidgetContainer(deps.centralWidget);
     configureToolBar(deps.toolBar);
+    // 本体の盤のマスの大きさは保存した値から始める
+    m_deps.shogiView->setSquareSize(AppSettings::squareSize());
     setupBoardInCenter();
-    // 拡大・縮小（メニュー・Ctrl+ホイール）で盤の大きさが変わったら中央の領域を合わせる
-    connect(m_deps.shogiView, &ShogiView::fieldSizeChanged, this, &MainWindowAppearanceController::fitCentralToBoard);
+    // 拡大・縮小（メニュー・Ctrl+ホイール）で盤の大きさが変わったら、中央の領域を合わせて大きさを保存する
+    connect(m_deps.shogiView, &ShogiView::fieldSizeChanged, this, &MainWindowAppearanceController::onBoardZoomed);
 }
 
 void MainWindowAppearanceController::setupCentralWidgetContainer(QWidget* centralWidget)
@@ -133,6 +135,12 @@ void MainWindowAppearanceController::setupBoardInCenter()
 void MainWindowAppearanceController::fitCentralToBoard()
 {
     m_central->setFixedSize(m_deps.shogiView->sizeHint());
+}
+
+void MainWindowAppearanceController::onBoardZoomed()
+{
+    fitCentralToBoard();
+    AppSettings::squareSize.set(m_deps.shogiView->squareSize());
 }
 
 void MainWindowAppearanceController::flipBoard()

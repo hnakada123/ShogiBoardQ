@@ -2,6 +2,7 @@
 /// @brief shogiboardq-cli のコマンドごとの引数の表と変換の実装
 
 #include "clicommandspecs.h"
+#include "boardsquaresize.h"
 #include "kifuformat.h"
 
 #include <QCommandLineParser>
@@ -160,7 +161,8 @@ const QList<OperationSpec>& CliCommandSpecs::all()
          {sfen(false),
           path(QStringLiteral("output_path"), QStringLiteral("Output image path (absolute, .png recommended)."))
               .require().alias(QStringLiteral("output")),
-          integer(QStringLiteral("square_size"), QStringLiteral("Square width in pixels."), 20, 150).withDefault(50).value(QStringLiteral("px")),
+          integer(QStringLiteral("square_size"), QStringLiteral("Square width in pixels."), BoardSquareSize::kMin,
+                  BoardSquareSize::kMax).withDefault(BoardSquareSize::kDefault).value(QStringLiteral("px")),
           boolean(QStringLiteral("flip"), QStringLiteral("View from the white (gote) side.")),
           string(QStringLiteral("last_move"), QStringLiteral("USI move to highlight.")).value(QStringLiteral("move"))
               .matching(usiMovePattern()),

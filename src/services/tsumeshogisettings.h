@@ -8,6 +8,8 @@
 
 #include <QString>
 #include <QSize>
+#include <QtGlobal>
+#include "boardsquaresize.h"
 #include "setting.h"
 
 namespace TsumeshogiSettings {
@@ -18,16 +20,24 @@ struct PlayPreferences {
     QString lastFile;
     int problemIndex = 0;
     int timeoutSec = 5;
-    int squareSize = 42;
+    int squareSize = 42;       // 盤のマスの幅（範囲は BoardSquareSize）
     bool boardRotated = false; // 攻方を下にした標準の向きから回転しているか
+
+    /// 範囲に収めた値
+    static PlayPreferences normalizedOf(PlayPreferences preferences)
+    {
+        preferences.squareSize = qBound(BoardSquareSize::kMin, preferences.squareSize, BoardSquareSize::kMax);
+        return preferences;
+    }
 };
-/// 詰将棋を解くダイアログの設定（既定値は PlayPreferences の既定値）
+/// 詰将棋を解くダイアログの設定（既定値は PlayPreferences の既定値。マスの幅は範囲に収める）
 inline const StructSetting<PlayPreferences> playPreferences{
     {SettingField<PlayPreferences>::of("TsumePlay/file", &PlayPreferences::lastFile),
      SettingField<PlayPreferences>::of("TsumePlay/index", &PlayPreferences::problemIndex),
      SettingField<PlayPreferences>::of("TsumePlay/timeout", &PlayPreferences::timeoutSec),
      SettingField<PlayPreferences>::of("TsumePlay/squareSize", &PlayPreferences::squareSize),
-     SettingField<PlayPreferences>::of("TsumePlay/boardRotated", &PlayPreferences::boardRotated)}};
+     SettingField<PlayPreferences>::of("TsumePlay/boardRotated", &PlayPreferences::boardRotated)},
+    &PlayPreferences::normalizedOf};
 
 /// 詰将棋問題一覧の大きさ（閉じたときに DialogFontScale が保存する）
 inline const Setting<QSize> collectionDialogSize{"TsumeCollection/size", QSize(1100, 800)};

@@ -43,11 +43,8 @@ SfenCollectionDialog::SfenCollectionDialog(QWidget* parent)
     m_recentFiles.setFiles(GameSettings::sfenCollectionRecentFiles());
     m_recentFilesMenu->setFiles(m_recentFiles.files());
 
-    // 前回保存された将棋盤マスサイズを復元
-    const int savedSquareSize = GameSettings::sfenCollectionSquareSize();
-    if (savedSquareSize >= 20 && savedSquareSize <= 150) {
-        m_viewer->view()->setSquareSize(savedSquareSize);
-    }
+    // 前回保存された将棋盤マスサイズを復元（範囲は宣言が収める）
+    m_viewer->view()->setSquareSize(GameSettings::sfenCollectionSquareSize());
 
     // 初期盤面（平手初期局面）を表示する。局面集はまだ無い
     m_viewer->board()->setSfen(SfenUtils::hirateSfen());

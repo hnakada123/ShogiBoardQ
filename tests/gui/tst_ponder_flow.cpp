@@ -22,6 +22,7 @@
 #include "startgamedialog.h"
 #include "promotedialog.h"
 #include "shogiview.h"
+#include "shogiviewhighlighting.h"
 #include "shogiboard.h"
 #include "recordpane.h"
 #include "stepbuttons.h"
@@ -163,25 +164,25 @@ private slots:
         if (humanBlack && !bothEngines) move(QPoint(7, 7), QPoint(7, 6));
         QTRY_VERIFY(commands().join('\n').contains("go btime "));
         QTest::qWait(100);
-        QVERIFY(view()->arrows().isEmpty());
+        QVERIFY(view()->highlighting()->arrows().isEmpty());
         master->setChecked(true);
-        QTRY_COMPARE(view()->arrows().size(), 1);
-        QCOMPARE(view()->arrows().first().penStyle, Qt::SolidLine);
-        QVERIFY(view()->arrows().first().color.red() > view()->arrows().first().color.blue());
+        QTRY_COMPARE(view()->highlighting()->arrows().size(), 1);
+        QCOMPARE(view()->highlighting()->arrows().first().penStyle, Qt::SolidLine);
+        QVERIFY(view()->highlighting()->arrows().first().color.red() > view()->highlighting()->arrows().first().color.blue());
 
         const int before = rows();
         trigger("actionMakeImmediateMove");
         QTRY_COMPARE(rows(), before + 1);
         QTRY_VERIFY(commands().join('\n').contains("go ponder "));
-        QTRY_COMPARE(view()->arrows().size(), bothEngines ? 1 : 0);
+        QTRY_COMPARE(view()->highlighting()->arrows().size(), bothEngines ? 1 : 0);
         ponder->setChecked(true);
-        QTRY_COMPARE(view()->arrows().size(), bothEngines ? 2 : 1);
+        QTRY_COMPARE(view()->highlighting()->arrows().size(), bothEngines ? 2 : 1);
         if (bothEngines) {
             QTRY_VERIFY(thinkingViews.at(0)->model()->rowCount() > 0);
             QTRY_VERIFY(thinkingViews.at(1)->model()->rowCount() > 0);
         }
         int dashed = 0;
-        for (const auto& arrow : view()->arrows()) {
+        for (const auto& arrow : view()->highlighting()->arrows()) {
             if (arrow.penStyle != Qt::DashLine) continue;
             ++dashed;
             QVERIFY(arrow.color.blue() > arrow.color.red());
@@ -195,11 +196,11 @@ private slots:
         if (bothEngines)
             QVERIFY(m_window->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/match-arrows-window.png")));
         master->setChecked(false);
-        QTRY_VERIFY(view()->arrows().isEmpty());
+        QTRY_VERIFY(view()->highlighting()->arrows().isEmpty());
         QVERIFY(ponder->isChecked());
         QVERIFY(!ponder->isEnabled());
         master->setChecked(true);
-        QTRY_COMPARE(view()->arrows().size(), bothEngines ? 2 : 1);
+        QTRY_COMPARE(view()->highlighting()->arrows().size(), bothEngines ? 2 : 1);
 
         if (!bothEngines) {
             // 予想手が当たれば、新たなinfoを待たず先読み候補が赤の実線になる。
@@ -207,11 +208,11 @@ private slots:
             move(humanBlack ? QPoint(2, 7) : QPoint(3, 3),
                  humanBlack ? QPoint(2, 6) : QPoint(3, 4));
             QTRY_VERIFY(commands().join('\n').contains("ponderhit"));
-            QTRY_COMPARE(view()->arrows().size(), 1);
-            QCOMPARE(view()->arrows().first().penStyle, Qt::SolidLine);
+            QTRY_COMPARE(view()->highlighting()->arrows().size(), 1);
+            QCOMPARE(view()->highlighting()->arrows().first().penStyle, Qt::SolidLine);
         }
         finish();
-        QTRY_VERIFY(view()->arrows().isEmpty());
+        QTRY_VERIFY(view()->highlighting()->arrows().isEmpty());
     }
 
     void arrowsPonderMiss()
@@ -221,15 +222,15 @@ private slots:
         m_window->findChild<QCheckBox*>("matchArrows")->setChecked(true);
         m_window->findChild<QCheckBox*>("ponderArrows")->setChecked(true);
         move(QPoint(7, 7), QPoint(7, 6));
-        QTRY_COMPARE(view()->arrows().size(), 1);
+        QTRY_COMPARE(view()->highlighting()->arrows().size(), 1);
         trigger("actionMakeImmediateMove");
         QTRY_COMPARE(rows(), 3);
-        QTRY_VERIFY(view()->arrows().size() == 1 && view()->arrows().first().penStyle == Qt::DashLine);
+        QTRY_VERIFY(view()->highlighting()->arrows().size() == 1 && view()->highlighting()->arrows().first().penStyle == Qt::DashLine);
         move(QPoint(9, 7), QPoint(9, 6));
-        QTRY_VERIFY(view()->arrows().size() == 1 && view()->arrows().first().penStyle == Qt::SolidLine);
+        QTRY_VERIFY(view()->highlighting()->arrows().size() == 1 && view()->highlighting()->arrows().first().penStyle == Qt::SolidLine);
         QVERIFY(!commands().contains("ponderhit"));
         finish();
-        QTRY_VERIFY(view()->arrows().isEmpty());
+        QTRY_VERIFY(view()->highlighting()->arrows().isEmpty());
     }
 
     void arrowsConsiderationExclusive()
@@ -241,9 +242,9 @@ private slots:
         master->setChecked(true);
         ponder->setChecked(true);
         move(QPoint(7, 7), QPoint(7, 6));
-        QTRY_COMPARE(view()->arrows().size(), 1);
+        QTRY_COMPARE(view()->highlighting()->arrows().size(), 1);
         finish();
-        QTRY_VERIFY(view()->arrows().isEmpty());
+        QTRY_VERIFY(view()->highlighting()->arrows().isEmpty());
         auto* toggle = m_window->findChild<QCheckBox*>("considerationArrows");
         auto* startStop = m_window->findChild<QToolButton*>("considerationStartStop");
         QVERIFY(toggle && startStop);
@@ -251,18 +252,18 @@ private slots:
         QCoreApplication::processEvents();
         startStop->click();
         QTRY_COMPARE(startStop->text(), QStringLiteral("検討中止"));
-        QTRY_COMPARE(view()->arrows().size(), 1);
+        QTRY_COMPARE(view()->highlighting()->arrows().size(), 1);
         QVERIFY(!master->isEnabled());
         QVERIFY(!ponder->isEnabled());
         toggle->setChecked(false);
-        QTRY_VERIFY(view()->arrows().isEmpty());
+        QTRY_VERIFY(view()->highlighting()->arrows().isEmpty());
         QTest::qWait(100);
-        QVERIFY(view()->arrows().isEmpty());
+        QVERIFY(view()->highlighting()->arrows().isEmpty());
         toggle->setChecked(true);
-        QTRY_COMPARE(view()->arrows().size(), 1);
+        QTRY_COMPARE(view()->highlighting()->arrows().size(), 1);
         startStop->click();
         QTRY_COMPARE(startStop->text(), QStringLiteral("検討開始"));
-        QTRY_VERIFY(view()->arrows().isEmpty());
+        QTRY_VERIFY(view()->highlighting()->arrows().isEmpty());
         QVERIFY(master->isEnabled());
         QVERIFY(master->isChecked());
         QVERIFY(ponder->isChecked());

@@ -38,12 +38,16 @@
 #include "kifuanalysislistmodel.h"
 #include "boardsyncpresenter.h"
 #include "dockregistry.h"
+#include "boardviewerwidget.h"
+#include "pvboarddialog.h"
+#include "pvtext.h"
 #include "fontsizecontrol.h"
 #include "panelbutton.h"
 #include "docklayoutmanager.h"
 #include "docksettings.h"
 #include "boardinteractioncontroller.h"
 #include "shogiboard.h"
+#include "boardconstants.h"
 #include "kifudisplaypresenter.h"
 #include "kifunavigationcontroller.h"
 #include "livegamesession.h"
@@ -428,6 +432,58 @@ private slots:
         auto* undo = window.findChild<QToolButton*>(QStringLiteral("gameInfoUndo"));
         QVERIFY(undo && !undo->text().isEmpty());
         QCOMPARE(undo->size(), PanelButton::kSize);
+    }
+
+    /// 盤は設定を読まずに既定の大きさで始まり、本体の盤の大きさは保存した値から始めて変わるたびに保存する。
+    /// 読み筋盤は本体の盤の今の大きさで開く（前回の終了時の大きさではない）
+    void squareSizeFollowsTheMainBoard()
+    {
+        AppSettings::squareSize.set(60);
+        {
+            ShogiView standalone;
+            QCOMPARE(standalone.squareSize(), BoardSquareSize::kDefault);
+        }
+        MainWindow window;
+        auto& parts = window.composer().parts();
+        QCOMPARE(parts.shogiView->squareSize(), 60);
+        parts.shogiView->enlargeBoard();
+        parts.shogiView->enlargeBoard();
+        QCOMPARE(parts.shogiView->squareSize(), 62);
+        QCOMPARE(AppSettings::squareSize(), 62);
+
+        PvBoardDialog* dialog = parts.pvClickController->showPvBoard(
+            PvText::play(QStringLiteral("startpos"), QStringLiteral("7g7f 3c3d")), QString());
+        QVERIFY(dialog);
+        QCOMPARE(dialog->findChild<BoardViewerWidget*>()->view()->squareSize(), 62);
+        dialog->close();
+        AppSettings::squareSize.remove();
+    }
+
+    /// 駒箱の先後は局面編集（PositionEditSession）が持ち、盤は表示するだけ。置く駒は編集の持ち主が決める
+    void pieceBoxSideBelongsToPositionEdit()
+    {
+        MainWindow window;
+        auto& parts = window.composer().parts();
+        parts.actions->beginPositionEditing();
+        QVERIFY(parts.positionEdit->isEditing());
+        auto* white = parts.shogiView->findChild<QToolButton*>(QStringLiteral("pieceBoxWhiteButton"));
+        QVERIFY(white);
+        white->click();
+        QCOMPARE(parts.positionEdit->pieceBoxSide(), Turn::White);
+        QCOMPARE(parts.shogiView->pieceBoxSide(), Turn::White);
+
+        parts.shogiView->setPieceBoxSide(Turn::Black);   // 表示だけを変えても、置く駒は変わらない
+        parts.positionEdit->returnAllPiecesToBox();
+        ShogiBoard* board = parts.gameBoard->board();
+        int rank = 1;
+        while (rank <= 8 && board->pieceCharacter(BoardConstants::kPieceBoxFile, rank) != Piece::BlackGold) ++rank;
+        QVERIFY(rank <= 8);
+        QVERIFY(parts.positionEdit->applyEditMove(QPoint(BoardConstants::kPieceBoxFile, rank), QPoint(5, 5)));
+        QCOMPARE(board->pieceCharacter(5, 5), Piece::WhiteGold);
+
+        parts.positionEdit->finish();
+        parts.positionEdit->setPieceBoxSide(Turn::Black);
+        parts.document->markSaved(QString());
     }
 
     /// 局面編集の盤の項目は、編集中の盤を変える

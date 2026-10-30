@@ -18,7 +18,7 @@ ShogiViewInteraction::ShogiViewInteraction() {}
 //  - 駒台（file=10/11）からのドラッグでは在庫（枚数）が 1 以上あることを確認してから開始
 //  - 駒台表示更新のため、一時カウント（m_tempPieceStandCounts）を作成し、つまみ上げた分を減算
 void ShogiViewInteraction::startDrag(const QPoint &from, ShogiBoard* board,
-                                      const QPoint& cursorWidgetPos)
+                                      const QPoint& cursorWidgetPos, Turn pieceBoxSide)
 {
     if (!board) return;
 
@@ -33,7 +33,7 @@ void ShogiViewInteraction::startDrag(const QPoint &from, ShogiBoard* board,
     m_dragging  = true;                               // ドラッグ中フラグ
     m_dragFrom  = from;                               // つまみ上げ元（盤/駒台の座標）
     m_dragPiece = board->pieceCharacter(from.x(), from.y()); // 対象駒
-    if (from.x() == BoardConstants::kPieceBoxFile && m_pieceBoxSide == Turn::White)
+    if (from.x() == BoardConstants::kPieceBoxFile && pieceBoxSide == Turn::White)
         m_dragPiece = toWhite(m_dragPiece);
     m_dragPos   = cursorWidgetPos;                    // 現在のポインタ位置（ウィジェット座標）
 
@@ -60,9 +60,8 @@ void ShogiViewInteraction::endDrag()
     m_tempPieceStandCounts.clear();    // 一時的な駒台枚数をクリア（表示を通常状態へ）
 }
 
-void ShogiViewInteraction::setPieceBoxSide(Turn side)
+void ShogiViewInteraction::setBoxDragSide(Turn side)
 {
-    m_pieceBoxSide = side;
     if (m_dragging && m_dragFrom.x() == BoardConstants::kPieceBoxFile)
         m_dragPiece = side == Turn::Black ? toBlack(m_dragPiece) : toWhite(m_dragPiece);
 }

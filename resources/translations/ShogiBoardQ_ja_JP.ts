@@ -11094,37 +11094,37 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">盤面を回転する</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="97"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="103"/>
         <source>最初の局面に戻る</source>
         <translation>最初の局面に戻る</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="97"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="103"/>
         <source>1手戻る</source>
         <translation>1手戻る</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="97"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="103"/>
         <source>1手進む</source>
         <translation>1手進む</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="97"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="103"/>
         <source>最後の局面まで進む</source>
         <translation>最後の局面まで進む</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="102"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="108"/>
         <source>閉じる</source>
         <translation>閉じる</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="129"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="135"/>
         <source>手数: %1 / %2</source>
         <translation>手数: %1 / %2</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="131"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="137"/>
         <source> (開始局面)</source>
         <translation> (開始局面)</translation>
     </message>
@@ -11830,28 +11830,28 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>局面集ビューア</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="70"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="67"/>
         <source>ファイルを開く</source>
         <translation>ファイルを開く</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="71"/>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="161"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="68"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="158"/>
         <source>SFEN局面集ファイルを開く</source>
         <translation>SFEN局面集ファイルを開く</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="77"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="74"/>
         <source>履歴</source>
         <translation>履歴</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="78"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="75"/>
         <source>最近使ったファイルを開く</source>
         <translation>最近使ったファイルを開く</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="90"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="87"/>
         <source>「ファイルを開く」から局面集を選んでください。</source>
         <translation>「ファイルを開く」から局面集を選んでください。</translation>
     </message>
@@ -11888,7 +11888,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">後手</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="104"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="101"/>
         <source>局面集が読み込まれていません</source>
         <translation>局面集が読み込まれていません</translation>
     </message>
@@ -11925,44 +11925,44 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">最後の局面に移動</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="114"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="111"/>
         <source>選択</source>
         <translation>選択</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="116"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="113"/>
         <source>現在の局面をメインGUIに反映する</source>
         <translation>現在の局面をメインGUIに反映する</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="123"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="120"/>
         <source>閉じる</source>
         <translation>閉じる</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="163"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="160"/>
         <source>テキストファイル (*.txt *.sfen);;すべてのファイル (*)</source>
         <translation>テキストファイル (*.txt *.sfen);;すべてのファイル (*)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="177"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="174"/>
         <source>ファイルを開けませんでした: %1</source>
         <translation>ファイルを開けませんでした: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="190"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="187"/>
         <source>%1 には局面がありません。
 1行に1局面のSFENを書いたファイルを選んでください。</source>
         <translation>%1 には局面がありません。
 1行に1局面のSFENを書いたファイルを選んでください。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="198"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="195"/>
         <source>ファイル: %1</source>
         <translation>ファイル: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="135"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="132"/>
         <source>局面: %1 / %2</source>
         <translation>局面: %1 / %2</translation>
     </message>
@@ -11975,19 +11975,19 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">履歴をクリア</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="176"/>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="189"/>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="235"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="173"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="186"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="232"/>
         <source>エラー</source>
         <translation>エラー</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="197"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="194"/>
         <source>ファイル: %1（読めない %2 行を飛ばしました）</source>
         <translation>ファイル: %1（読めない %2 行を飛ばしました）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="236"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="233"/>
         <source>ファイルが見つかりません: %1</source>
         <translation>ファイルが見つかりません: %1</translation>
     </message>
@@ -12158,7 +12158,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">後手の駒を配置（手番は変更しません）</translation>
     </message>
     <message>
-        <location filename="../../src/views/shogiview.cpp" line="725"/>
+        <location filename="../../src/views/shogiview.cpp" line="712"/>
         <source>駒箱</source>
         <translation>駒箱</translation>
     </message>
@@ -13572,27 +13572,27 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>TsumeshogiGeneratorDialog</name>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="52"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="53"/>
         <source>詰将棋局面生成</source>
         <translation>詰将棋局面生成</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="541"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="543"/>
         <source>エンジン設定</source>
         <translation>エンジン設定</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="544"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="546"/>
         <source>エンジン:</source>
         <translation>エンジン:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="552"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="554"/>
         <source>設定...</source>
         <translation>設定...</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="568"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="570"/>
         <source>※ エンジンは最短手順を返す設定で使用してください（KomoringHeights の場合: PostSearchLevel = MinLength）</source>
         <translation>※ エンジンは最短手順を返す設定で使用してください（KomoringHeights の場合: PostSearchLevel = MinLength）</translation>
     </message>
@@ -13601,227 +13601,227 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">全変化・最終手の余詰を検査します。成・不成を含め、別の詰め方がある局面や判定不能の局面は出力しません。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="570"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="572"/>
         <source>主手順の攻手が一意な局面だけを出力します（成・不成も区別）。玉方が早く詰む変化での別の詰め方は許容し、判定不能の局面は出力しません。</source>
         <translation>主手順の攻手が一意な局面だけを出力します（成・不成も区別）。玉方が早く詰む変化での別の詰め方は許容し、判定不能の局面は出力しません。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="619"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="621"/>
         <source>最終手の複数解を許容する</source>
         <translation>最終手の複数解を許容する</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="621"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="623"/>
         <source>オンにすると、主手順の最終手に複数の詰手があっても採択します（1手詰の初手は除く）。オフにすると最終手も一意な局面だけを出力します。</source>
         <translation>オンにすると、主手順の最終手に複数の詰手があっても採択します（1手詰の初手は除く）。オフにすると最終手も一意な局面だけを出力します。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="576"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="578"/>
         <source>生成設定</source>
         <translation>生成設定</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="555"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="557"/>
         <source>最短手順を返す詰将棋エンジンを使用してください。</source>
         <translation>最短手順を返す詰将棋エンジンを使用してください。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="561"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="563"/>
         <source>エンジン設定・採択条件について</source>
         <translation>エンジン設定・採択条件について</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="594"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="596"/>
         <source> 手詰</source>
         <translation> 手詰</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="595"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="597"/>
         <source>目標手数:</source>
         <translation>目標手数:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="596"/>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="600"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="598"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="602"/>
         <source> 枚</source>
-        <translation> 枚</translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="596"/>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="600"/>
-        <source> 枚</source>
-        <comment>1 のとき</comment>
         <translation> 枚</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="598"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="602"/>
+        <source> 枚</source>
+        <comment>1 のとき</comment>
+        <translation> 枚</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="600"/>
         <source>攻方の盤上の駒と持駒の合計枚数の上限です。</source>
         <translation>攻方の盤上の駒と持駒の合計枚数の上限です。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="599"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="601"/>
         <source>攻め駒上限:</source>
         <translation>攻め駒上限:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="602"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="604"/>
         <source>玉を除く、玉方の盤上の駒の枚数の上限です。</source>
         <translation>玉を除く、玉方の盤上の駒の枚数の上限です。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="603"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="605"/>
         <source>守り駒上限:</source>
         <translation>守り駒上限:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="604"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="606"/>
         <source> 局面</source>
         <translation> 局面</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="604"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="606"/>
         <source> 局面</source>
         <comment>1 のとき</comment>
         <translation> 局面</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="608"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="610"/>
         <source>採択した局面がこの件数に達すると終了します。0 は停止するまで生成を続けます。</source>
         <translation>採択した局面がこの件数に達すると終了します。0 は停止するまで生成を続けます。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="615"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="617"/>
         <source> マス（玉中心）</source>
         <translation> マス（玉中心）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="615"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="617"/>
         <source> マス（玉中心）</source>
         <comment>1 のとき</comment>
         <translation> マス（玉中心）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="617"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="619"/>
         <source>配置範囲:</source>
         <translation>配置範囲:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="612"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="614"/>
         <source> 秒</source>
         <translation> 秒</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="613"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="615"/>
         <source>候補・駒除去後の詰み探索と、それぞれの余詰検査全体に使う時間です。検査時間を超えた局面は採択しません。</source>
         <translation>候補・駒除去後の詰み探索と、それぞれの余詰検査全体に使う時間です。検査時間を超えた局面は採択しません。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="614"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="616"/>
         <source>探索時間/局面:</source>
         <translation>探索時間/局面:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="607"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="609"/>
         <source>無制限</source>
         <translation>無制限</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="609"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="611"/>
         <source>生成上限:</source>
         <translation>生成上限:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="635"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="637"/>
         <source>開始</source>
         <translation>開始</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="639"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="641"/>
         <source>停止</source>
         <translation>停止</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="671"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="673"/>
         <source>結果一覧</source>
         <translation>結果一覧</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="678"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="680"/>
         <source>#</source>
         <translation>#</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="678"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="680"/>
         <source>SFEN</source>
         <translation>SFEN</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="678"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="680"/>
         <source>手数</source>
         <translation>手数</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="678"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="680"/>
         <source>盤面</source>
         <translation>盤面</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="624"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="626"/>
         <source>既定値に戻す</source>
         <translation>既定値に戻す</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="626"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="628"/>
         <source>生成設定を既定値に戻します。</source>
         <translation>生成設定を既定値に戻します。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="637"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="639"/>
         <source>現在の結果をクリアして、新しく生成を開始します。</source>
         <translation>現在の結果をクリアして、新しく生成を開始します。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="641"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="643"/>
         <source>生成を停止します。採択済みの局面は保存・コピーできます。</source>
         <translation>生成を停止します。採択済みの局面は保存・コピーできます。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="654"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="656"/>
         <source>生成上限に対する採択局面数</source>
         <translation>生成上限に対する採択局面数</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="677"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="679"/>
         <source>生成した詰将棋局面</source>
         <translation>生成した詰将棋局面</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="702"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="704"/>
         <source>手順も出力</source>
         <translation>手順も出力</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="704"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="706"/>
         <source>ファイル保存・コピー時に、SFEN の後ろに USI 形式の詰み手順（moves ...）を付加します</source>
         <translation>ファイル保存・コピー時に、SFEN の後ろに USI 形式の詰み手順（moves ...）を付加します</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="709"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="711"/>
         <source>選択した局面をコピー（Ctrl+C）。Ctrl・Shift キーで複数選択できます。</source>
         <translation>選択した局面をコピー（Ctrl+C）。Ctrl・Shift キーで複数選択できます。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="714"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="716"/>
         <source>ファイル保存</source>
         <translation>ファイル保存</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="707"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="709"/>
         <source>選択コピー</source>
         <translation>選択コピー</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="711"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="713"/>
         <source>全コピー</source>
         <translation>全コピー</translation>
     </message>
@@ -13834,144 +13834,144 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">文字サイズを拡大</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="731"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="733"/>
         <source>閉じる</source>
         <translation>閉じる</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="73"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="74"/>
         <source>設定メニューで詰将棋エンジンを登録してください。</source>
         <translation>設定メニューで詰将棋エンジンを登録してください。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="166"/>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="256"/>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="279"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="167"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="257"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="280"/>
         <source>エラー</source>
         <translation>エラー</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="166"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="167"/>
         <source>将棋エンジンが選択されていません。</source>
         <translation>将棋エンジンが選択されていません。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="193"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="194"/>
         <source>エンジンを起動中</source>
         <translation>エンジンを起動中</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="224"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="225"/>
         <source>表示</source>
         <translation>表示</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="225"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="226"/>
         <source>盤面と詰み手順を表示します。行のダブルクリック、または Enter キーでも開けます。</source>
         <translation>盤面と詰み手順を表示します。行のダブルクリック、または Enter キーでも開けます。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="239"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="240"/>
         <source>探索済み: %1 局面 / 採択: %2 局面</source>
         <translation>探索済み: %1 局面 / 採択: %2 局面</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="240"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="241"/>
         <source>経過時間: %1</source>
         <translation>経過時間: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="248"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="249"/>
         <source>停止しました（%1 局面を採択）</source>
         <translation>停止しました（%1 局面を採択）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="249"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="250"/>
         <source>生成完了（%1 局面を採択）</source>
         <translation>生成完了（%1 局面を採択）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="255"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="256"/>
         <source>エラー: %1</source>
         <translation>エラー: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="265"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="266"/>
         <source>SFENをファイルに保存</source>
         <translation>SFENをファイルに保存</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="267"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="268"/>
         <source>テキストファイル (*.txt);;すべてのファイル (*)</source>
         <translation>テキストファイル (*.txt);;すべてのファイル (*)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="279"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="280"/>
         <source>ファイルを保存できませんでした: %1</source>
         <translation>ファイルを保存できませんでした: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="327"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="328"/>
         <source>攻方</source>
         <translation>攻方</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="327"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="328"/>
         <source>玉方</source>
         <translation>玉方</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="340"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="342"/>
         <source>条件に合う局面を探索しています。
 採択した局面から順に表示します。</source>
         <translation>条件に合う局面を探索しています。
 採択した局面から順に表示します。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="341"/>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="694"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="343"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="696"/>
         <source>生成した局面がここに表示されます。
 設定を確認して「開始」を押してください。</source>
         <translation>生成した局面がここに表示されます。
 設定を確認して「開始」を押してください。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="351"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="353"/>
         <source>%v / %m 局面</source>
         <translation>%v / %m 局面</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="351"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="353"/>
         <source>%1 局面（無制限）</source>
         <translation>%1 局面（無制限）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="73"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="74"/>
         <source>待機中</source>
         <translation>待機中</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="424"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="426"/>
         <source>探索中</source>
         <translation>探索中</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="429"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="431"/>
         <source>トリミング中（候補 %1/%2）</source>
         <translation>トリミング中（候補 %1/%2）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="434"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="436"/>
         <source>余詰検査中（問い合わせ %1 回）</source>
         <translation>余詰検査中（問い合わせ %1 回）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="439"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="441"/>
         <source>検査で除外: %1 局面（うち判定不能: %2 局面）</source>
         <translation>検査で除外: %1 局面（うち判定不能: %2 局面）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="445"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="447"/>
         <source>状態: %1</source>
         <translation>状態: %1</translation>
     </message>

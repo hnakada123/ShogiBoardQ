@@ -88,7 +88,7 @@ bool CandidateArrowPresenter::arrowsOn(QAction* (BoardArrowActions::*toggle)() c
     return m_sources.arrows ? (m_sources.arrows->*toggle)()->isChecked() : fallback;
 }
 
-void CandidateArrowPresenter::appendJosekiArrows(QList<ShogiView::Arrow>& arrows, const QString& sfen) const
+void CandidateArrowPresenter::appendJosekiArrows(QList<ShogiViewHighlighting::Arrow>& arrows, const QString& sfen) const
 {
     if (!m_sources.josekiBook || !arrowsOn(&BoardArrowActions::joseki, false)) return;
     if (m_sources.josekiDisplay && !m_sources.josekiDisplay->isChecked()) return;
@@ -140,12 +140,12 @@ void CandidateArrowPresenter::scheduleRefresh()
     if (!m_refreshTimer.isActive()) m_refreshTimer.start(0);
 }
 
-std::optional<ShogiView::Arrow> CandidateArrowPresenter::arrowForMove(
+std::optional<ShogiViewHighlighting::Arrow> CandidateArrowPresenter::arrowForMove(
     const QString& move, const QString& baseSfen, int priority)
 {
     const auto parsed = UsiMove::parse(move);
     if (!parsed || !UsiMove::isExact(move.trimmed())) return std::nullopt;
-    ShogiView::Arrow arrow;
+    ShogiViewHighlighting::Arrow arrow;
     arrow.toFile = parsed->to.file;
     arrow.toRank = parsed->to.rank;
     arrow.priority = priority;
@@ -161,7 +161,7 @@ std::optional<ShogiView::Arrow> CandidateArrowPresenter::arrowForMove(
     return arrow;
 }
 
-void CandidateArrowPresenter::appendConsiderationArrows(QList<ShogiView::Arrow>& arrows, const QString& sfen) const
+void CandidateArrowPresenter::appendConsiderationArrows(QList<ShogiViewHighlighting::Arrow>& arrows, const QString& sfen) const
 {
     const ShogiEngineThinkingModel* model = m_sources.consideration;
     if (!model || !arrowsOn(&BoardArrowActions::consideration, true)) return;
@@ -175,7 +175,7 @@ void CandidateArrowPresenter::appendConsiderationArrows(QList<ShogiView::Arrow>&
     }
 }
 
-void CandidateArrowPresenter::appendMatchArrows(QList<ShogiView::Arrow>& arrows, const QString& sfen)
+void CandidateArrowPresenter::appendMatchArrows(QList<ShogiViewHighlighting::Arrow>& arrows, const QString& sfen)
 {
     // エンジンが指す対局の最中だけ描く（通信対局・検討・解析のエンジンは対象外）
     if (!m_sources.activity || m_sources.activity->activity() != AppActivityState::Activity::DuringGame
@@ -216,7 +216,7 @@ void CandidateArrowPresenter::refresh()
 {
     m_refreshTimer.stop();
     if (!m_view) return;
-    QList<ShogiView::Arrow> arrows;
+    QList<ShogiViewHighlighting::Arrow> arrows;
     m_ponderDescription.clear();
     auto* board = m_view->board();
     if (board) {
@@ -226,6 +226,6 @@ void CandidateArrowPresenter::refresh()
         if (considerationActive()) appendConsiderationArrows(arrows, sfen);
         else appendMatchArrows(arrows, sfen);
     }
-    m_view->setArrows(arrows);
+    m_view->highlighting()->setArrows(arrows);
     emit displayStateChanged(considerationActive(), m_ponderDescription);
 }

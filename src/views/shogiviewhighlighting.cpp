@@ -2,6 +2,7 @@
 /// @brief 将棋盤面のハイライト・矢印の実装
 
 #include "shogiviewhighlighting.h"
+#include "shogiview.h"
 
 #include <QPainter>
 
@@ -36,7 +37,7 @@ struct ArrowMetrics {
 };
 
 /// 矢印の始点と終点のマス。駒打ちは駒台のセルを始点にし、盤上の移動と同じ矢印で描く
-std::pair<QRect, QRect> arrowEnds(const BoardGeometry& geometry, const ShogiView::Arrow& arrow)
+std::pair<QRect, QRect> arrowEnds(const BoardGeometry& geometry, const ShogiViewHighlighting::Arrow& arrow)
 {
     const QRect from = (arrow.fromFile == 0 || arrow.fromRank == 0)
         ? geometry.standCell(arrow.dropPiece)
@@ -77,7 +78,7 @@ void ShogiViewHighlighting::updateSquares(const QList<QPoint>& squares)
 // 矢印管理
 // ─────────────────────────────────────────────────────────────────────────────
 
-void ShogiViewHighlighting::setArrows(const QList<ShogiView::Arrow>& arrows)
+void ShogiViewHighlighting::setArrows(const QList<ShogiViewHighlighting::Arrow>& arrows)
 {
     // エンジンの候補手が届くたびに呼ばれるため、矢印が変わらなければ描き直さない。
     // 変わったときも、前の矢印と新しい矢印が掛かる範囲だけを描き直す（盤全体の描き直しは
@@ -89,7 +90,7 @@ void ShogiViewHighlighting::setArrows(const QList<ShogiView::Arrow>& arrows)
     else m_view->update(dirty);
 }
 
-QRect ShogiViewHighlighting::arrowsPaintRect(const QList<ShogiView::Arrow>& arrows) const
+QRect ShogiViewHighlighting::arrowsPaintRect(const QList<ShogiViewHighlighting::Arrow>& arrows) const
 {
     if (!m_view->board()) return {};
     const BoardGeometry& geometry = m_view->boardGeometry();
@@ -97,7 +98,7 @@ QRect ShogiViewHighlighting::arrowsPaintRect(const QList<ShogiView::Arrow>& arro
     const ArrowMetrics metrics(geometry.squareSize());
     const int margin = qMax(metrics.headSize, metrics.circleRadius) + metrics.width + 2;
     QRect rect;
-    for (const ShogiView::Arrow& arrow : arrows) {
+    for (const ShogiViewHighlighting::Arrow& arrow : arrows) {
         const auto [fromRect, toRect] = arrowEnds(geometry, arrow);
         if (fromRect.isEmpty() || toRect.isEmpty()) continue;
         rect |= (fromRect | toRect).adjusted(-margin, -margin, margin, margin);
@@ -151,7 +152,7 @@ void ShogiViewHighlighting::drawArrows(QPainter& painter)
     const ArrowMetrics metrics(geometry.squareSize());
     const int arrowWidth = metrics.width;
     const int arrowHeadSize = metrics.headSize;
-    for (const ShogiView::Arrow& arrow : std::as_const(m_arrows)) {
+    for (const Arrow& arrow : std::as_const(m_arrows)) {
         const auto [fromRect, toRect] = arrowEnds(geometry, arrow);
         if (fromRect.isEmpty() || toRect.isEmpty()) continue;
 

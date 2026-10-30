@@ -37,7 +37,7 @@ BoardGeometry::BoardGeometry()
 BoardGeometry::BoardGeometry(const Params& params)
     : m_params(params)
 {
-    m_params.squareSize = std::clamp(m_params.squareSize, kMinSquareSize, kMaxSquareSize);
+    m_params.squareSize = std::clamp(m_params.squareSize, BoardSquareSize::kMin, BoardSquareSize::kMax);
     m_params.standGapCols = qBound(0.0, m_params.standGapCols, 2.0);
     m_params.standColumns = qBound(1.0, m_params.standColumns, 4.0);
     m_params.standRows = std::clamp(m_params.standRows, 1, m_params.ranks);

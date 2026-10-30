@@ -10,6 +10,7 @@
 #include <QString>
 #include <QStringList>
 #include <QSize>
+#include "boardsquaresize.h"
 #include "piecesoundtone.h"
 #include "setting.h"
 
@@ -91,8 +92,10 @@ inline const Setting<int> menuWindowCurrentTab{"MenuWindow/currentTab", 0};
 /// メインウィンドウのサイズ（デフォルト: 1100x720）
 inline const Setting<QSize> mainWindowSize{"SizeRelated/mainWindowSize", QSize(1100, 720)};
 
-/// 盤のマスの大きさ（ピクセル、デフォルト: 50）。範囲外の保存値は読む側で既定値へ戻す
-inline const Setting<int> squareSize{"SizeRelated/squareSize", 50};
+/// 本体の盤のマスの大きさ（ピクセル、デフォルト: 50。範囲は BoardSquareSize）。
+/// 読み書きは本体の盤の拡大・縮小を受け持つ MainWindowAppearanceController（変わるたびに保存する）
+inline const BoundedSetting<int> squareSize{"SizeRelated/squareSize", BoardSquareSize::kDefault, BoardSquareSize::kMin,
+                                            BoardSquareSize::kMax};
 
 } // namespace AppSettings
 
