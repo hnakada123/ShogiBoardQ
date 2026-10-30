@@ -125,7 +125,6 @@ private slots:
         QVERIFY(!handler.isInitializing());
         QVERIFY(!handler.isSearching());
         QVERIFY(!handler.isPonderEnabled());
-        QVERIFY(!handler.searchCandidate().active);
     }
 
     /// 起動から初期化・探索・停止・結果までを1つの状態で追う
@@ -191,7 +190,7 @@ private slots:
     // 探索と先読み
     // ================================================================
 
-    void ponderPreservesPredictionAndSendsTime()
+    void ponderSendsTimeAndSwitchesOnHit()
     {
         EngineProcessManager process;
         QVERIFY(startProcess(process));
@@ -200,7 +199,6 @@ private slots:
         handler.onDataReceived(QStringLiteral("bestmove 8c8d ponder 2g2f"));
         UsiGoTime goTime = byoyomi(290000, 4750);
         handler.startSearch(usiPosition("position startpos"), UsiGo::ponder(goTime));
-        QCOMPARE(handler.searchCandidate().predictedMove, QStringLiteral("2g2f"));
         QCOMPARE(handler.searchKind(), UsiProtocolHandler::SearchKind::Ponder);
         QCOMPARE(commands.last().at(0).toString(), QStringLiteral("go ponder btime 290000 wtime 0 byoyomi 4750"));
         handler.sendPonderHit();
@@ -305,9 +303,6 @@ private slots:
         handler.sendPonderHit(); // 回収済みの探索にも送らない
         handler.sendStop();      // 探索していなければ stop も送らない
         QCOMPARE(commands.count(), 1);
-        // 外れた先読みの ponder は次の先読みの予想にしない
-        handler.startSearch(usiPosition("position startpos"), UsiGo::ponder({}));
-        QVERIFY(handler.searchCandidate().predictedMove.isEmpty());
     }
 
     // ================================================================
@@ -336,15 +331,14 @@ private slots:
         QVERIFY(!infoAt(spy, 2).hasScore());
     }
 
-    /// 最善の読み筋（multipv 1）の最後の評価値と候補手を探索ごとに覚え、bestmove に添える
-    void bestmoveCarriesSearchScoreAndCandidate()
+    /// 最善の読み筋（multipv 1）の最後の評価値を探索ごとに覚え、bestmove に添える
+    void bestmoveCarriesSearchScore()
     {
         UsiProtocolHandler handler;
         QSignalSpy bestmove(&handler, &UsiProtocolHandler::bestMoveReceived);
         handler.startSearch(usiPosition("position startpos"), UsiGo::infinite());
         handler.onDataReceived(QStringLiteral("info depth 5 multipv 1 score cp 80 pv 2g2f 8c8d"));
         handler.onDataReceived(QStringLiteral("info depth 5 multipv 2 score cp -40 pv 7g7f"));
-        QCOMPARE(handler.searchCandidate().move, QStringLiteral("2g2f"));
         handler.onDataReceived(QStringLiteral("info depth 6 multipv 1 score mate 3 pv 2g2f"));
         handler.onDataReceived(QStringLiteral("bestmove 2g2f ponder 8c8d"));
         const UsiBestMove result = bestAt(bestmove, 0);
@@ -353,7 +347,6 @@ private slots:
         QVERIFY(result.score.isMate());
         QCOMPARE(result.score.value, 3);
         QVERIFY(result.baseSfen.startsWith(QStringLiteral("lnsgkgsnl")));
-        QVERIFY(!handler.searchCandidate().active);
 
         // 次の探索では前の評価値を使わない
         handler.startSearch(usiPosition("position startpos"), UsiGo::infinite());

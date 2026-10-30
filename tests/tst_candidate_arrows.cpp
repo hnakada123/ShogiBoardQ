@@ -7,21 +7,38 @@
 #include "appactivitystate.h"
 #include "engineslots.h"
 #include "josekibooksession.h"
+#include "boardarrowactions.h"
 #include "candidatearrowpresenter.h"
-#include "considerationsettings.h"
+#include "considerationpanel.h"
+#include "josekisettings.h"
+#include "sfenreplay.h"
 #include "thinkingpanel.h"
 #include "sfenutils.h"
 #include "shogiboard.h"
 #include "shogiclock.h"
 #include "gameboard.h"
 #include "shogienginethinkingmodel.h"
-#include "thinkinginfoformatter.h"
+#include "usi.h"
+#include "usienginesession.h"
 #include "usiprotocolhandler.h"
 
 class TestCandidateArrows : public QObject
 {
     Q_OBJECT
     QTemporaryDir m_settings;
+
+    /// 思考の表の1行（局面 baseSfen の読み筋 pv。lastMove はその局面に至った手）
+    static ThinkingInfoRow row(const QString& baseSfen, const QString& pv, int multipv = 1,
+                               const QString& lastMove = QString())
+    {
+        ThinkingInfoRow result;
+        result.score = UsiScore::cp(30);
+        result.pv = PvText::play(baseSfen, pv);
+        result.lastUsiMove = lastMove;
+        result.multipv = multipv;
+        return result;
+    }
+
 private slots:
     void initTestCase()
     {
@@ -29,65 +46,201 @@ private slots:
         qputenv("XDG_CONFIG_HOME", m_settings.path().toUtf8());
         qputenv("SHOGIBOARDQ_CONFIG_HOME", m_settings.path().toUtf8());
     }
-    void latestCandidateAndSearchLifetime()
+    /// 対局の手番側の矢印: エンジンの思考の表の最新の最善の読み筋（multipv 1）の最初の手を赤の実線で出す。
+    /// 探索を終えたら、思考の表に残った行からは描かない
+    void matchArrowsFollowThinkingRows()
     {
-        ThinkingInfoFormatter presenter;
-        UsiProtocolHandler protocol;
-        connect(&protocol, &UsiProtocolHandler::infoReceived, &presenter, &ThinkingInfoFormatter::onInfoReceived);
-        connect(&protocol, &UsiProtocolHandler::positionChanged, &presenter, &ThinkingInfoFormatter::setSearchPosition);
-        // 読み筋履歴のパーサにも実局面を渡す。
-        protocol.startSearch(*UsiPosition::fromSfen(SfenUtils::hirateSfen()), UsiGo::infinite());
-        protocol.onDataReceived("info depth 10 score cp 300 pv 7g7f 3c3d");
-        QCOMPARE(protocol.searchCandidate().move, QStringLiteral("7g7f"));
-        protocol.onDataReceived("info depth 20 score cp 100 pv 2g2f 8c8d");
-        QCOMPARE(protocol.searchCandidate().move, QStringLiteral("2g2f"));
-        for (const QString& line : {QStringLiteral("info multipv 2 pv 9g9f"),
-                                   QStringLiteral("info nodes 1000"),
-                                   QStringLiteral("info string pv 9g9f"),
-                                   QStringLiteral("info pv resign")}) {
-            protocol.onDataReceived(line);
-            QCOMPARE(protocol.searchCandidate().move, QStringLiteral("2g2f"));
+        const QString hirate = SfenUtils::hirateSfen();
+        ShogiBoard board;
+        board.setSfen(hirate);
+        ShogiView view;
+        view.setBoard(&board);
+        AppActivityState activity;
+        ActivityLease game = activity.begin(AppActivityState::Activity::DuringGame, nullptr);
+        EngineSlots engines;
+        EngineLease engine = engines.acquire(this, 1, QStringLiteral("E1"));
+        UsiProtocolHandler* protocol = engine.engine()->session()->handler();
+        ShogiEngineThinkingModel thinking1;
+        ShogiEngineThinkingModel thinking2;
+        BoardArrowActions toggles(nullptr);
+        toggles.match()->setChecked(true);
+        toggles.ponder()->setChecked(false);
+        CandidateArrowPresenter::Deps deps;
+        deps.view = &view;
+        deps.engines = &engines;
+        deps.thinking = {&thinking1, &thinking2};
+        deps.activity = &activity;
+        deps.arrows = &toggles;
+        CandidateArrowPresenter presenter(deps);
+
+        protocol->startSearch(*UsiPosition::fromSfen(hirate), UsiGo::infinite());
+        thinking1.prependRow(row(hirate, QStringLiteral("7g7f 3c3d")), 100);
+        QTRY_COMPARE(view.arrows().size(), 1);
+        QCOMPARE(view.arrows().first().toFile, 7);
+        QCOMPARE(view.arrows().first().penStyle, Qt::SolidLine);
+        QVERIFY(view.arrows().first().color.red() > view.arrows().first().color.blue());
+        thinking1.prependRow(row(hirate, QStringLiteral("2g2f 8c8d")), 100);
+        QTRY_COMPARE(view.arrows().first().toFile, 2);
+        // 2番目以降の候補手と、最初の手を指せない読み筋は使わない
+        thinking1.prependRow(row(hirate, QStringLiteral("9g9f"), 2), 100);
+        thinking1.prependRow(row(hirate, QStringLiteral("resign")), 100);
+        presenter.refresh();
+        QCOMPARE(view.arrows().size(), 1);
+        QCOMPARE(view.arrows().first().toFile, 2);
+
+        toggles.match()->setChecked(false);
+        QTRY_VERIFY(view.arrows().isEmpty());
+        toggles.match()->setChecked(true);
+        QTRY_COMPARE(view.arrows().size(), 1);
+        // 探索の局面と違う局面を表示している
+        board.setSfen(QString(hirate).replace(QStringLiteral(" b "), QStringLiteral(" w ")));
+        QTRY_VERIFY(view.arrows().isEmpty());
+        board.setSfen(hirate);
+        QTRY_COMPARE(view.arrows().size(), 1);
+
+        // 探索を終えた（bestmove）。思考の表は残る
+        protocol->sendStop();
+        protocol->onDataReceived(QStringLiteral("bestmove 2g2f"));
+        QTRY_VERIFY(view.arrows().isEmpty());
+        QCOMPARE(thinking1.rowCount(), 4);
+
+        // 対局中でなければ描かない
+        protocol->startSearch(*UsiPosition::fromSfen(hirate), UsiGo::infinite());
+        thinking1.prependRow(row(hirate, QStringLiteral("5g5f")), 100);
+        QTRY_COMPARE(view.arrows().size(), 1);
+        game.reset();
+        QTRY_VERIFY(view.arrows().isEmpty());
+    }
+
+    /// 先読み側の矢印: 表示中の局面に予想した手を指した局面の読みを青の破線で出す。予想が当たれば
+    /// 新しい info を待たずに手番側（赤の実線）になる。先読みでない探索の行は、局面が合っても先読みとみなさない
+    void ponderArrowsUsePredictedPosition()
+    {
+        const QString hirate = SfenUtils::hirateSfen();
+        const UsiPosition predicted = *UsiPosition::parse(u"position startpos moves 7g7f");
+        ShogiBoard board;
+        board.setSfen(hirate);
+        ShogiView view;
+        view.setBoard(&board);
+        AppActivityState activity;
+        ActivityLease game = activity.begin(AppActivityState::Activity::DuringGame, nullptr);
+        EngineSlots engines;
+        EngineLease engine = engines.acquire(this, 2, QStringLiteral("E2"));
+        UsiProtocolHandler* protocol = engine.engine()->session()->handler();
+        ShogiEngineThinkingModel thinking1;
+        ShogiEngineThinkingModel thinking2;
+        BoardArrowActions toggles(nullptr);
+        toggles.match()->setChecked(true);
+        toggles.ponder()->setChecked(false);
+        CandidateArrowPresenter::Deps deps;
+        deps.view = &view;
+        deps.engines = &engines;
+        deps.thinking = {&thinking1, &thinking2};
+        deps.activity = &activity;
+        deps.arrows = &toggles;
+        CandidateArrowPresenter presenter(deps);
+
+        // 先読みでない探索は、表示中の局面に至った手が合っても先読みの矢印にしない
+        protocol->startSearch(predicted, UsiGo::infinite());
+        thinking2.prependRow(row(predicted.sfen(), QStringLiteral("3c3d"), 1, QStringLiteral("7g7f")), 100);
+        toggles.ponder()->setChecked(true);
+        presenter.refresh();
+        QVERIFY(view.arrows().isEmpty());
+        protocol->sendStop();
+        protocol->onDataReceived(QStringLiteral("bestmove 3c3d"));
+        toggles.ponder()->setChecked(false);
+
+        protocol->startSearch(predicted, UsiGo::ponder({}));
+        thinking2.clear();
+        thinking2.prependRow(row(predicted.sfen(), QStringLiteral("3c3d 2g2f"), 1, QStringLiteral("7g7f")), 100);
+        presenter.refresh();
+        QVERIFY(view.arrows().isEmpty());
+        toggles.ponder()->setChecked(true);
+        QTRY_COMPARE(view.arrows().size(), 1);
+        QCOMPARE(view.arrows().first().penStyle, Qt::DashLine);
+        QVERIFY(view.arrows().first().color.blue() > view.arrows().first().color.red());
+        QCOMPARE(view.arrows().first().toFile, 3);
+        QVERIFY(presenter.ponderDescription().startsWith(QStringLiteral("先読み：")));
+        QVERIFY(presenter.ponderDescription().contains(QStringLiteral("７六歩")));
+        // 手番側の矢印を切ると先読み側も出さない
+        toggles.match()->setChecked(false);
+        QTRY_VERIFY(view.arrows().isEmpty());
+        toggles.match()->setChecked(true);
+        QTRY_COMPARE(view.arrows().size(), 1);
+
+        // 予想が外れた
+        board.setSfen(SfenReplay::positionAfter(hirate, QStringLiteral("2g2f")));
+        QTRY_VERIFY(view.arrows().isEmpty());
+        QVERIFY(presenter.ponderDescription().isEmpty());
+        // 予想が当たった（ponderhit の前でも、探索の局面が表示中の局面なら手番側）
+        board.setSfen(predicted.sfen());
+        QTRY_COMPARE(view.arrows().size(), 1);
+        QCOMPARE(view.arrows().first().penStyle, Qt::SolidLine);
+        protocol->sendPonderHit();
+        presenter.refresh();
+        QCOMPARE(view.arrows().first().penStyle, Qt::SolidLine);
+        protocol->sendStop();
+        protocol->onDataReceived(QStringLiteral("bestmove 3c3d"));
+        QTRY_VERIFY(view.arrows().isEmpty());
+    }
+
+    /// 4つの切り替えは変えるたびに保存し、次に作ったときに戻す（検討の矢印も保存する）
+    void togglesPersist()
+    {
+        {
+            QAction menu;
+            BoardArrowActions toggles(&menu);
+            QCOMPARE(toggles.joseki(), &menu);
+            QVERIFY(menu.isCheckable());
+            toggles.match()->setChecked(true);
+            toggles.ponder()->setChecked(true);
+            toggles.consideration()->setChecked(false);
+            menu.setChecked(true);
         }
-        protocol.sendStop();
-        protocol.onDataReceived("info pv 9g9f");
-        QVERIFY(!protocol.searchCandidate().active);
-        protocol.onDataReceived("bestmove 2g2f ponder 8c8d");
-        QVERIFY(protocol.searchCandidate().move.isEmpty());
-        // 遅延表示バッファを処理しても盤面用の候補は復活しない。
-        presenter.flushInfoBuffer();
-        QVERIFY(!protocol.searchCandidate().active);
-        protocol.startSearch(*UsiPosition::fromSfen(SfenUtils::hirateSfen()), UsiGo::infinite());
-        QVERIFY(protocol.searchCandidate().move.isEmpty());
-        protocol.onDataReceived("info pv 7g7f");
-        protocol.cancelCurrentOperation();
-        protocol.onDataReceived("info pv 2g2f");
-        QVERIFY(!protocol.searchCandidate().active);
+        QVERIFY(AnalysisSettings::matchArrowsVisible());
+        QVERIFY(AnalysisSettings::ponderArrowsVisible());
+        QVERIFY(!AnalysisSettings::considerationArrowsVisible());
+        QVERIFY(JosekiSettings::boardArrowsVisible());
+        {
+            QAction menu;
+            BoardArrowActions toggles(&menu);
+            QVERIFY(toggles.match()->isChecked());
+            QVERIFY(toggles.ponder()->isChecked());
+            QVERIFY(!toggles.consideration()->isChecked());
+            QVERIFY(menu.isChecked());
+            toggles.match()->setChecked(false);
+            toggles.ponder()->setChecked(false);
+            toggles.consideration()->setChecked(true);
+            menu.setChecked(false);
+        }
+        QVERIFY(AnalysisSettings::considerationArrowsVisible());
+        QVERIFY(!JosekiSettings::boardArrowsVisible());
     }
-    void ponderHitAndMiss()
+
+    /// 思考ドック・検討タブのチェックは切り替えの QAction に結ぶだけ（どちらから変えても揃う）
+    void panelsBindToggles()
     {
-        ThinkingInfoFormatter presenter;
-        UsiProtocolHandler protocol;
-        connect(&protocol, &UsiProtocolHandler::infoReceived, &presenter, &ThinkingInfoFormatter::onInfoReceived);
-        connect(&protocol, &UsiProtocolHandler::positionChanged, &presenter, &ThinkingInfoFormatter::setSearchPosition);
-        protocol.onDataReceived("bestmove 7g7f ponder 3c3d");
-        protocol.startSearch(*UsiPosition::fromSfen(SfenUtils::hirateSfen()), UsiGo::ponder({}));
-        protocol.onDataReceived("info pv 2g2f");
-        QVERIFY(protocol.searchCandidate().pondering);
-        QCOMPARE(protocol.searchCandidate().predictedMove, QStringLiteral("3c3d"));
-        protocol.sendPonderHit();
-        QVERIFY(protocol.searchCandidate().active);
-        QVERIFY(!protocol.searchCandidate().pondering);
-        QCOMPARE(protocol.searchCandidate().move, QStringLiteral("2g2f"));
-        protocol.onDataReceived("bestmove 2g2f ponder 8c8d");
-        protocol.startSearch(*UsiPosition::fromSfen(SfenUtils::hirateSfen()), UsiGo::ponder({}));
-        protocol.onDataReceived("info pv 2f2e");
-        protocol.sendStop();
-        protocol.onDataReceived("info pv 9g9f");
-        QVERIFY(!protocol.searchCandidate().active);
-        protocol.onDataReceived("bestmove resign");
-        protocol.startSearch(*UsiPosition::fromSfen(SfenUtils::hirateSfen()), UsiGo::infinite());
-        QVERIFY(protocol.searchCandidate().move.isEmpty());
+        BoardArrowActions toggles(nullptr);
+        toggles.consideration()->setChecked(false);
+        toggles.match()->setChecked(true);
+        ConsiderationPanel consideration(toggles.consideration());
+        ThinkingPanel thinking({toggles.match(), toggles.ponder()});
+        auto* considerationBox = consideration.findChild<QCheckBox*>(QStringLiteral("considerationArrows"));
+        auto* matchBox = thinking.findChild<QCheckBox*>(QStringLiteral("matchArrows"));
+        QVERIFY(considerationBox && matchBox);
+        QVERIFY(!considerationBox->isChecked());
+        QVERIFY(matchBox->isChecked());
+        // 矢印の切り替えは検討の条件ではない（検討をやり直させない）
+        QSignalSpy settingsChanged(&consideration, &ConsiderationPanel::settingsChanged);
+        considerationBox->setChecked(true);
+        QVERIFY(toggles.consideration()->isChecked());
+        toggles.consideration()->setChecked(false);
+        QVERIFY(!considerationBox->isChecked());
+        QCOMPARE(settingsChanged.count(), 0);
+        toggles.match()->setChecked(false);
+        QVERIFY(!matchBox->isChecked());
     }
+
     void sharedConversion()
     {
         const auto black = SfenUtils::hirateSfen();
@@ -116,15 +269,16 @@ private slots:
         JosekiBookSession book;
         book.addMove(hirate, {QStringLiteral("7g7f"), QStringLiteral("none"), 0, 0, 30, {}});
         book.addMove(hirate, {QStringLiteral("2g2f"), QStringLiteral("none"), 0, 0, 10, {}});
-        QAction arrowsAction;
-        arrowsAction.setCheckable(true);
+        BoardArrowActions toggles(nullptr);
+        QAction& arrowsAction = *toggles.joseki();
+        arrowsAction.setChecked(false);
         QAction displayAction;
         displayAction.setCheckable(true);
         displayAction.setChecked(true);
         CandidateArrowPresenter::Deps deps;
         deps.view = &view;
         deps.josekiBook = &book;
-        deps.josekiArrows = &arrowsAction;
+        deps.arrows = &toggles;
         deps.josekiDisplay = &displayAction;
         CandidateArrowPresenter presenter(deps);
         presenter.refresh();
@@ -164,23 +318,24 @@ private slots:
         EngineSlots engines;
         AnalysisSession session(AnalysisSession::Deps{&engines, &activity});
         ShogiEngineThinkingModel model;
-        ConsiderationSettings considerationSettings;   // 検討タブの設定（showArrows）
+        BoardArrowActions toggles(nullptr);   // 対局の矢印は設定から戻す
+        toggles.consideration()->setChecked(true);
         CandidateArrowPresenter::Deps deps;
         deps.view = &view;
         deps.analysis = &session;
         deps.consideration = &model;
-        deps.considerationSettings = &considerationSettings;
+        deps.arrows = &toggles;
         CandidateArrowPresenter presenter(deps);
         auto* controller = &presenter;
-        ThinkingPanel tab;
+        ThinkingPanel tab({toggles.match(), toggles.ponder()});
         connect(controller, &CandidateArrowPresenter::displayStateChanged,
                 &tab, &ThinkingPanel::setArrowDisplayState);
-        connect(&tab, &ThinkingPanel::arrowSettingsChanged,
-                controller, &CandidateArrowPresenter::scheduleRefresh);
         auto* master = tab.findChild<QCheckBox*>("matchArrows");
         auto* ponder = tab.findChild<QCheckBox*>("ponderArrows");
         QVERIFY(master && ponder);
+        QVERIFY(master->isChecked() && ponder->isChecked());
         master->setChecked(false);
+        QVERIFY(!toggles.match()->isChecked());
         QVERIFY(!ponder->isEnabled());
         QVERIFY(ponder->isChecked());
         QVERIFY(AnalysisSettings::ponderArrowsVisible());
@@ -211,12 +366,10 @@ private slots:
         QVERIFY(view.arrows().at(0).color.alpha() > view.arrows().at(1).color.alpha());
         model.trimToMaxRows(1);
         QTRY_COMPARE(view.arrows().size(), 1);
-        // 検討タブの「矢印」の設定を切ると消え、戻すと出る（設定の変更で描き直す）
-        considerationSettings.showArrows = false;
-        controller->scheduleRefresh();
+        // 検討の矢印の切り替えを切ると消え、戻すと出る（切り替えの変更で描き直す）
+        toggles.consideration()->setChecked(false);
         QTRY_VERIFY(view.arrows().isEmpty());
-        considerationSettings.showArrows = true;
-        controller->scheduleRefresh();
+        toggles.consideration()->setChecked(true);
         QTRY_COMPARE(view.arrows().size(), 1);
         board.setSfen(SfenUtils::hirateSfen().replace(" b ", " w "));
         QTRY_VERIFY(view.arrows().isEmpty());

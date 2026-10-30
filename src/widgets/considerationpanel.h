@@ -12,6 +12,7 @@
 #include "fontsizehelper.h"
 #include "shogienginethinkingmodel.h"
 
+class QAction;
 class QToolButton;
 class QPushButton;
 class QLabel;
@@ -31,8 +32,9 @@ class ThinkingTableView;
  * @brief 検討タブのUI構築・状態管理を担うマネージャ
  *
  * 検討ドックの中身（ツールバー・情報・表）。部品はコンストラクタで作る。
- * - 設定（エンジン・時間・候補手の数・矢印）は ConsiderationSettings を正本として持ち、利用者が変えると
+ * - 設定（エンジン・時間・候補手の数）は ConsiderationSettings を正本として持ち、利用者が変えると
  *   保存して settingsChanged で知らせる。ウィジェットはその値を出すだけ
+ * - 「矢印表示」のチェックは渡された QAction（正本は ui の BoardArrowActions。盤の矢印もそれを読む）に結ぶだけ
  * - 実行の状態（RunState）は検討の表示の持ち主（EngineDisplayPresenter）が設定する。開始/中止のボタンは
  *   状態に応じて startConsiderationRequested か stopConsiderationRequested を出す
  */
@@ -49,7 +51,9 @@ public:
     };
     Q_ENUM(RunState)
 
-    /// ツールバー・情報・表を作り、保存した検討の条件を出す
+    /// ツールバー・情報・表を作り、保存した検討の条件を出す。arrows は「矢印表示」のチェックが結ぶ
+    /// 切り替え（checkable。無ければパネルが作る）
+    explicit ConsiderationPanel(QAction* arrows, QWidget* parent = nullptr);
     explicit ConsiderationPanel(QWidget* parent = nullptr);
     ~ConsiderationPanel() override;
     /// 検討の表が model を出していれば選択を外す（読み筋ダイアログを閉じたとき）
@@ -140,6 +144,7 @@ private:
     QComboBox* m_multiPVComboBox = nullptr;
     QToolButton* m_btnStopConsideration = nullptr;
     QCheckBox* m_showArrowsCheckBox = nullptr;
+    QAction* m_arrowsAction = nullptr;   ///< 検討の矢印を出すか（m_showArrowsCheckBox が結ぶ）
     FontSizeHelper m_considerationFontSize;   ///< 検討タブの文字の大きさ（変更のたびに保存する）
     ConsiderationSettings m_settings;
     RunState m_runState = RunState::Idle;

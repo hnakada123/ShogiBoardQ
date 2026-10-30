@@ -194,10 +194,8 @@ void MainWindowComposer::connectAnalysisAndUi()
     connect(analysis, &AnalysisSession::messageRequested,
             m_c.notifications, &NotificationPresenter::showInformation);
 
-    // 候補手の矢印の表示状態を思考ドックの設定欄に出し、設定が変わったら描き直す
+    // 候補手の矢印の表示状態（検討中か・先読みの説明）を思考ドックの設定欄に出す
     connect(m_c.arrows, &CandidateArrowPresenter::displayStateChanged, thinking, &ThinkingPanel::setArrowDisplayState);
-    connect(thinking, &ThinkingPanel::arrowSettingsChanged, m_c.arrows, &CandidateArrowPresenter::scheduleRefresh);
-    connect(consideration, &ConsiderationPanel::settingsChanged, m_c.arrows, &CandidateArrowPresenter::scheduleRefresh);
     // 盤で指した手と対局で指された手（定跡ウィンドウの「盤の手を登録」がオンなら定跡に登録する）
     JosekiRegistrationController* registration = m_c.josekiRegistration;
     connect(m_c.branchEdit, &BranchTreeEditController::boardMoveRecorded,

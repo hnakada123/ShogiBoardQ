@@ -51,15 +51,6 @@ public:
     /// 探索の種類（Searching・Stopping のとき）
     enum class SearchKind { Main, Ponder, Mate };
 
-    /// 現在の探索の最善候補（候補手の矢印）。info を受け取るたびに更新する
-    struct SearchCandidate {
-        QString baseSfen;
-        QString move;
-        QString predictedMove;
-        bool active = false;
-        bool pondering = false;
-    };
-
     explicit UsiProtocolHandler(EngineProcessManager* process = nullptr, QObject* parent = nullptr);
     ~UsiProtocolHandler() override;
 
@@ -71,7 +62,6 @@ public:
     bool isInitializing() const { return m_state == State::Starting || m_state == State::Handshaking; }
     /// 探索の結果を待っているか（stop を送った後も含む）
     bool isSearching() const { return m_state == State::Searching || m_state == State::Stopping; }
-    const SearchCandidate& searchCandidate() const { return m_searchCandidate; }
 
     // --- 起動と初期化（UsiEngineSession から使う） ---
 
@@ -112,7 +102,8 @@ public:
      * @brief 局面を送って探索を始める（全種類の go の入口）
      * @return 局面が空なら何も送らず false
      *
-     * 探索の文脈（経過時間・評価値・候補手）をここで新しくする。先読みは直前の bestmove の ponder の手を予想とする。
+     * 探索の文脈（経過時間・評価値）をここで新しくする。先読み（UsiGo::ponder）の局面は、予想した相手の手を
+     * 指した局面を渡す（UsiMatchHandler が作る）。
      * 探索中に呼ばない（切り替えは UsiEngineSession::search が前の探索の結果を待ってから行う）。
      */
     bool startSearch(const UsiPosition& position, const UsiGo& go);
@@ -137,7 +128,6 @@ public:
     void cancelCurrentOperation();
 
 signals:
-    void searchCandidateChanged();
     /// 探索を始めた（思考情報を消す）
     void searchStarted();
     /// 読み筋を表示する局面（探索の局面と、そこに至った直前の手）が変わった
@@ -172,8 +162,7 @@ private:
     bool isStaleResult() const;
     /// 探索が終わった（結果を受け取った）
     void finishSearch();
-    void beginCandidateSearch(bool pondering);
-    void invalidateCandidate();
+    /// 最善の読み筋（multipv 1）の評価値を覚える（bestmove に添える）
     void updateSearch(const UsiInfo& info);
 
     EngineProcessManager* m_process = nullptr;  ///< 非所有
@@ -190,8 +179,6 @@ private:
     QString m_baseSfen;               ///< 最後に送った探索局面
     QElapsedTimer m_goTimer;          ///< go（先読みの的中は ponderhit）からの経過時間
     UsiScore m_searchScore;           ///< この探索の最善の読み筋の最後の評価値
-    QString m_predictedMove;          ///< 直前の bestmove の ponder（先読みで予想する手）
-    SearchCandidate m_searchCandidate;
 
     // --- 取り消し ---
     quint64 m_seq = 0;                ///< 操作の通番（取り消すと進む）

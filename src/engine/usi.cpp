@@ -17,7 +17,6 @@ Usi::Usi(QObject* parent)
     connect(m_session, &UsiEngineSession::ready, this, &Usi::engineInitialized);
     connect(m_session, &UsiEngineSession::errorOccurred, this, &Usi::onSessionError);
     connect(m_session, &UsiEngineSession::searchTimedOut, this, &Usi::searchTimedOut);
-    connect(handler, &UsiProtocolHandler::searchCandidateChanged, this, &Usi::searchCandidateChanged);
 
     // 思考の表に出す行と情報欄の値
     connect(handler, &UsiProtocolHandler::positionChanged, m_formatter, &ThinkingInfoFormatter::setSearchPosition);
@@ -177,11 +176,6 @@ void Usi::sendConsoleCommand(const QString& command)
 // ============================================================
 // 読み筋の表示
 // ============================================================
-
-const UsiProtocolHandler::SearchCandidate& Usi::searchCandidate() const
-{
-    return m_session->handler()->searchCandidate();
-}
 
 const EngineProcessManager* Usi::process() const
 {

@@ -1566,7 +1566,7 @@
 <context>
     <name>CandidateArrowPresenter</name>
     <message>
-        <location filename="../../src/ui/presenters/candidatearrowpresenter.cpp" line="158"/>
+        <location filename="../../src/ui/presenters/candidatearrowpresenter.cpp" line="208"/>
         <source>先読み：%1を想定</source>
         <translation>先読み：%1を想定</translation>
     </message>
@@ -1833,117 +1833,117 @@
 <context>
     <name>ConsiderationPanel</name>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="162"/>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="393"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="175"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="405"/>
         <source>検討中止</source>
         <translation>検討中止</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="162"/>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="304"/>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="393"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="175"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="316"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="405"/>
         <source>検討開始</source>
         <translation>検討開始</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="163"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="176"/>
         <source>検討を中止してエンジンを停止します</source>
         <translation>検討を中止してエンジンを停止します</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="163"/>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="305"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="176"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="317"/>
         <source>検討を開始します</source>
         <translation>検討を開始します</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="186"/>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="275"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="199"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="288"/>
         <source>経過: 0:00</source>
         <translation>経過: 0:00</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="198"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="211"/>
         <source>経過: %1:%2</source>
         <translation>経過: %1:%2</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="241"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="254"/>
         <source>検討に使用するエンジンを選択します</source>
         <translation>検討に使用するエンジンを選択します</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="247"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="260"/>
         <source>エンジン設定</source>
         <translation>エンジン設定</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="249"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="262"/>
         <source>選択したエンジンの設定を変更します</source>
         <translation>選択したエンジンの設定を変更します</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="254"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="267"/>
         <source>時間無制限</source>
         <translation>時間無制限</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="256"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="269"/>
         <source>時間制限なしで検討します</source>
         <translation>時間制限なしで検討します</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="259"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="272"/>
         <source>検討時間</source>
         <translation>検討時間</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="261"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="274"/>
         <source>指定した秒数まで検討します</source>
         <translation>指定した秒数まで検討します</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="269"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="282"/>
         <source>検討時間（秒）を指定します</source>
         <translation>検討時間（秒）を指定します</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="272"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="285"/>
         <source>秒まで</source>
         <translation>秒まで</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="277"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="290"/>
         <source>検討開始からの経過時間</source>
         <translation>検討開始からの経過時間</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="286"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="299"/>
         <source>候補手の数</source>
         <translation>候補手の数</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="290"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="303"/>
         <source>%1手</source>
         <translation>%1手</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="293"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="306"/>
         <source>評価値が大きい順に表示する候補手の数を指定します</source>
         <translation>評価値が大きい順に表示する候補手の数を指定します</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="296"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="309"/>
         <source>矢印表示</source>
         <translation>矢印表示</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="298"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="311"/>
         <source>最善手の矢印を盤面に表示します</source>
         <translation>最善手の矢印を盤面に表示します</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="384"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="396"/>
         <source>経過: 000:00</source>
         <translation>経過: 000:00</translation>
     </message>
@@ -7393,33 +7393,33 @@ OKを選択すると保存先が指定できます。</translation>
         <translation>盤の手を登録</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/josekiwindowcontroller.cpp" line="137"/>
-        <location filename="../../src/ui/controllers/josekiwindowcontroller.cpp" line="155"/>
+        <location filename="../../src/ui/controllers/josekiwindowcontroller.cpp" line="130"/>
+        <location filename="../../src/ui/controllers/josekiwindowcontroller.cpp" line="148"/>
         <source>定跡を棋譜に展開</source>
         <translation>定跡を棋譜に展開</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/josekiwindowcontroller.cpp" line="137"/>
+        <location filename="../../src/ui/controllers/josekiwindowcontroller.cpp" line="130"/>
         <source>対局中は棋譜に展開できません。</source>
         <translation>対局中は棋譜に展開できません。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/josekiwindowcontroller.cpp" line="149"/>
+        <location filename="../../src/ui/controllers/josekiwindowcontroller.cpp" line="142"/>
         <source>棋譜に %1 手を足しました。</source>
         <translation>棋譜に %1 手を足しました。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/josekiwindowcontroller.cpp" line="150"/>
+        <location filename="../../src/ui/controllers/josekiwindowcontroller.cpp" line="143"/>
         <source>足せる定跡手がありませんでした（棋譜にすでにある手は足しません）。</source>
         <translation>足せる定跡手がありませんでした（棋譜にすでにある手は足しません）。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/josekiwindowcontroller.cpp" line="152"/>
+        <location filename="../../src/ui/controllers/josekiwindowcontroller.cpp" line="145"/>
         <source>別の手順で同じ局面に着いたため %1 か所で止めました。</source>
         <translation>別の手順で同じ局面に着いたため %1 か所で止めました。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/josekiwindowcontroller.cpp" line="154"/>
+        <location filename="../../src/ui/controllers/josekiwindowcontroller.cpp" line="147"/>
         <source>手の数が上限（%1 手）に達したため、途中で止めました。</source>
         <translation>手の数が上限（%1 手）に達したため、途中で止めました。</translation>
     </message>
@@ -12318,32 +12318,32 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">フォントサイズを大きくする</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/thinkingpanel.cpp" line="33"/>
+        <location filename="../../src/widgets/thinkingpanel.cpp" line="59"/>
         <source>対局中の矢印表示</source>
         <translation>対局中の矢印表示</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/thinkingpanel.cpp" line="36"/>
+        <location filename="../../src/widgets/thinkingpanel.cpp" line="61"/>
         <source>先読み側も表示</source>
         <translation>先読み側も表示</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/thinkingpanel.cpp" line="39"/>
+        <location filename="../../src/widgets/thinkingpanel.cpp" line="63"/>
         <source>Ponder中の応手を青の破線で表示します。エンジンの先読み設定は変更しません。</source>
         <translation>Ponder中の応手を青の破線で表示します。エンジンの先読み設定は変更しません。</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/thinkingpanel.cpp" line="134"/>
+        <location filename="../../src/widgets/thinkingpanel.cpp" line="147"/>
         <source>検討中の矢印表示は検討タブで設定します。</source>
         <translation>検討中の矢印表示は検討タブで設定します。</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/thinkingpanel.cpp" line="136"/>
+        <location filename="../../src/widgets/thinkingpanel.cpp" line="149"/>
         <source>赤の実線：手番側</source>
         <translation>赤の実線：手番側</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/thinkingpanel.cpp" line="137"/>
+        <location filename="../../src/widgets/thinkingpanel.cpp" line="150"/>
         <source> ／ 青の破線：先読み側</source>
         <translation> ／ 青の破線：先読み側</translation>
     </message>
@@ -13689,7 +13689,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>エンジンのファイルパスが指定されていません。</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="93"/>
+        <location filename="../../src/engine/usi.cpp" line="92"/>
         <location filename="../../src/engine/usienginesession.cpp" line="252"/>
         <source>Timeout waiting for bestmove.</source>
         <translation>エンジンから指し手（bestmove）が返ってきません（タイムアウト）。</translation>
@@ -13818,7 +13818,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>エンジンから readyok が返ってきません（タイムアウト）</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="309"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="294"/>
         <source>Invalid bestmove format: %1</source>
         <translation>エンジンの指し手（bestmove）の形式が正しくありません: %1</translation>
     </message>

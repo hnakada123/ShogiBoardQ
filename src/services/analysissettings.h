@@ -98,7 +98,9 @@ inline const BoundedSetting<int> usiLogCommandTarget{"UsiLog/commandTarget", 0, 
 /// 思考タブのフォントサイズ（デフォルト: 10）
 inline const Setting<int> thinkingFontSize{"FontSize/thinking", 10};
 
+/// 対局のエンジンの手番側の読みを盤に矢印で出す（思考タブの「対局中の矢印表示」。デフォルト: false）
 inline const Setting<bool> matchArrowsVisible{"ThinkingView/matchArrowsVisible", false};
+/// 対局のエンジンの先読み側の読みも盤に矢印で出す（思考タブの「先読み側も表示」。デフォルト: false）
 inline const Setting<bool> ponderArrowsVisible{"ThinkingView/ponderArrowsVisible", false};
 
 // --- 棋譜解析 ---
@@ -137,6 +139,9 @@ inline const BoundedSetting<int> considerationByoyomiSec{"Consideration/byoyomiS
 
 /// 検討の候補手の数（デフォルト: 1。1〜10）
 inline const BoundedSetting<int> considerationMultiPV{"Consideration/multiPV", 1, 1, 10};
+
+/// 検討の候補手を盤に矢印で出す（検討タブの「矢印表示」。デフォルト: true）
+inline const Setting<bool> considerationArrowsVisible{"Consideration/arrowsVisible", true};
 
 /// 検討タブのフォントサイズ（デフォルト: 10）
 inline const Setting<int> considerationFontSize{"ConsiderationTab/fontSize", 10};

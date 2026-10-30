@@ -13,6 +13,7 @@
 #include "boardsyncpresenter.h"
 #include "branchtreeeditcontroller.h"
 #include "branchtreeview.h"
+#include "boardarrowactions.h"
 #include "candidatearrowpresenter.h"
 #include "commentcoordinator.h"
 #include "commenteditorpanel.h"
@@ -155,10 +156,13 @@ void MainWindowComposer::createPanels()
     m_c.recordPane = new RecordPane(m_c.appearance->central());
     m_c.recordPane->setModels(m_c.kifuRecord, m_c.kifuBranch);
 
+    // 盤の矢印を出すかの切り替え（思考・検討・定跡ウィンドウのチェックと「表示」メニューが結ぶ）
+    m_c.boardArrows = new BoardArrowActions(m_ui.actionShowJosekiArrows, &m_window);
+
     // ドックの中身（ドックへの配置は createDocks）
-    m_c.thinkingPanel = new ThinkingPanel(&m_window);
+    m_c.thinkingPanel = new ThinkingPanel({m_c.boardArrows->match(), m_c.boardArrows->ponder()}, &m_window);
     m_c.thinkingPanel->setModels(m_c.thinking1, m_c.thinking2, m_c.commLog1, m_c.commLog2);
-    m_c.considerationTab = new ConsiderationPanel(&m_window);
+    m_c.considerationTab = new ConsiderationPanel(m_c.boardArrows->consideration(), &m_window);
     m_c.considerationTab->setConsiderationThinkingModel(m_c.consideration);
     m_c.usiLog = new UsiLogPanel(&m_window);
     m_c.usiLog->setModels(m_c.commLog1, m_c.commLog2);
@@ -306,7 +310,7 @@ void MainWindowComposer::createPresentersAndDocks()
     JosekiWindowController::Deps jd;
     jd.parentWidget = &m_window;
     jd.book = m_c.josekiBook;
-    jd.boardArrows = m_ui.actionShowJosekiArrows;
+    jd.boardArrows = m_c.boardArrows->joseki();
     jd.navState = m_c.navState;
     jd.humanTurn = m_c.humanTurnPolicy.get();
     jd.boardMoves = m_c.boardMoves;
@@ -318,12 +322,12 @@ void MainWindowComposer::createPresentersAndDocks()
     ad.view = m_c.shogiView;
     ad.match = m_c.match;
     ad.engines = m_c.engines;
+    ad.thinking = {m_c.thinking1, m_c.thinking2};
     ad.activity = &m_activity;
     ad.analysis = m_c.analysisSession;
     ad.consideration = m_c.consideration;
-    ad.considerationSettings = &m_c.considerationTab->settings();
+    ad.arrows = m_c.boardArrows;
     ad.josekiBook = m_c.josekiBook;
-    ad.josekiArrows = m_ui.actionShowJosekiArrows;
     ad.josekiDisplay = m_c.joseki->displayAction();
     ad.humanTurn = m_c.humanTurnPolicy.get();
     m_c.arrows = new CandidateArrowPresenter(ad, &m_window);

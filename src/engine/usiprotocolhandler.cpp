@@ -140,13 +140,9 @@ bool UsiProtocolHandler::startSearch(const UsiPosition& position, const UsiGo& g
     m_searchScore = {};
     m_searchKind = go.kind == UsiGo::Kind::Ponder ? SearchKind::Ponder
         : go.kind == UsiGo::Kind::Mate ? SearchKind::Mate : SearchKind::Main;
-    // 先読みは直前の bestmove の ponder の手を予想として探す。それ以外の探索では予想を捨てる
-    if (m_searchKind != SearchKind::Ponder) m_predictedMove.clear();
     setState(State::Searching);
     emit searchStarted();
     m_goTimer.start();
-    if (m_searchKind == SearchKind::Mate) invalidateCandidate();
-    else beginCandidateSearch(m_searchKind == SearchKind::Ponder);
     sendCommand(go.command());
     return true;
 }
@@ -154,9 +150,6 @@ bool UsiProtocolHandler::startSearch(const UsiPosition& position, const UsiGo& g
 void UsiProtocolHandler::sendStop()
 {
     if (m_state != State::Searching) return;
-    invalidateCandidate();
-    // 外れた先読みの結果は使わない
-    if (m_searchKind == SearchKind::Ponder) m_predictedMove.clear();
     setState(State::Stopping);
     sendCommand(QStringLiteral("stop"));
 }
@@ -166,8 +159,6 @@ void UsiProtocolHandler::abandonSearch()
     if (!isSearching()) return;
     // 結果は取り消した探索のものとして捨てる（finishSearch で待機に戻り、searchEnded を出す）
     ++m_seq;
-    m_predictedMove.clear();
-    invalidateCandidate();
     if (m_state == State::Searching) {
         setState(State::Stopping);
         sendCommand(QStringLiteral("stop"));
@@ -179,9 +170,6 @@ void UsiProtocolHandler::sendPonderHit()
     if (m_state != State::Searching || m_searchKind != SearchKind::Ponder) return;
     m_searchKind = SearchKind::Main;
     m_goTimer.start();
-    m_searchCandidate.pondering = false;
-    m_searchCandidate.predictedMove.clear();
-    emit searchCandidateChanged();
     sendCommand(QStringLiteral("ponderhit"));
 }
 
@@ -193,7 +181,6 @@ bool UsiProtocolHandler::isStaleResult() const
 void UsiProtocolHandler::finishSearch()
 {
     if (isSearching()) setState(State::Ready);
-    invalidateCandidate();
 }
 
 // ============================================================
@@ -239,8 +226,6 @@ void UsiProtocolHandler::cancelCurrentOperation()
 {
     // 探索中のエンジンはまだ考えている。状態はそのままにして、遅れて届く結果を捨てる
     ++m_seq;
-    m_predictedMove.clear();
-    invalidateCandidate();
     if (isInitializing()) {
         m_initializationTimer.stop();
         setState(State::NotStarted);
@@ -320,8 +305,6 @@ void UsiProtocolHandler::handleBestMove(const QString& line)
     result.baseSfen = m_baseSfen;
     result.stopped = m_state == State::Stopping;
     result.pondering = isSearching() && m_searchKind == SearchKind::Ponder;
-    // 外れた先読みの結果（予測局面での投了・宣言勝ちを含む）は、次の先読みの予想に使わない
-    m_predictedMove = result.pondering || !result.isMove() ? QString() : result.ponder;
     finishSearch();
     const QPointer<UsiProtocolHandler> guard(this);
     emit bestMoveReceived(result);
@@ -347,29 +330,7 @@ void UsiProtocolHandler::handleCheckmate(const UsiCheckmate& checkmate)
 void UsiProtocolHandler::updateSearch(const UsiInfo& info)
 {
     if (!isSearching() || isStaleResult()) return;
-    // 評価値と候補手は最善の読み筋（multipv 1）から取る
+    // 評価値は最善の読み筋（multipv 1）から取る
     if (info.multipv != 1) return;
     if (info.hasScore()) m_searchScore = info.score;
-    if (!m_searchCandidate.active || info.pv.isEmpty()) return;
-    // info string の中身はパーサが読み筋にしない
-    const QString& move = info.pv.first();
-    if (!UsiMove::isExact(move) || move == m_searchCandidate.move) return;
-    m_searchCandidate.move = move;
-    emit searchCandidateChanged();
-}
-
-void UsiProtocolHandler::beginCandidateSearch(bool pondering)
-{
-    m_searchCandidate = {};
-    m_searchCandidate.active = true;
-    m_searchCandidate.pondering = pondering;
-    m_searchCandidate.baseSfen = m_baseSfen;
-    if (pondering) m_searchCandidate.predictedMove = m_predictedMove;
-    emit searchCandidateChanged();
-}
-
-void UsiProtocolHandler::invalidateCandidate()
-{
-    m_searchCandidate = {};
-    emit searchCandidateChanged();
 }

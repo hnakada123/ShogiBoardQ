@@ -558,6 +558,8 @@ set(SRC_BOARD
 )
 
 set(SRC_UI
+    src/ui/controllers/boardarrowactions.cpp
+    src/ui/controllers/boardarrowactions.h
     src/ui/controllers/boardmovecontroller.cpp
     src/ui/controllers/boardmovecontroller.h
     src/ui/controllers/branchtreeeditcontroller.cpp
