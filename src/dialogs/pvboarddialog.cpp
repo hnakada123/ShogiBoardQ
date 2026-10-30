@@ -74,6 +74,12 @@ void PvBoardDialog::setFlipMode(bool flipped)
     m_viewer->setFlipped(flipped);
 }
 
+void PvBoardDialog::setSquareSize(int squareSize)
+{
+    m_viewer->view()->setSquareSize(squareSize);
+    m_viewer->fitToBoard();   // ウィンドウを盤に合わせ直す
+}
+
 void PvBoardDialog::buildUi()
 {
     auto* mainLayout = new QVBoxLayout(this);

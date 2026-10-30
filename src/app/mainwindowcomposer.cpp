@@ -70,9 +70,8 @@ void MainWindowComposer::shutdown()
     if (m_shutdownDone) return;
     m_shutdownDone = true;
 
-    // 設定保存（ウィンドウ・盤のマスサイズ・ドックの配置）
+    // 設定保存（ウィンドウ・ドックの配置。盤のマスの大きさは変わるたびに MainWindowAppearanceController が保存する）
     AppSettings::mainWindowSize.set(m_window.size());
-    if (m_c.shogiView) AppSettings::squareSize.set(m_c.shogiView->squareSize());
     if (m_c.dockLayoutManager) {
         m_c.dockLayoutManager->saveDockStates();
     }

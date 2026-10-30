@@ -58,7 +58,9 @@ PvBoardDialog* PvClickController::showPvBoard(const PvText& pv, const QString& l
     const QString blackName = m_deps.document ? m_deps.document->headerPlayerName(Turn::Black) : QString();
     const QString whiteName = m_deps.document ? m_deps.document->headerPlayerName(Turn::White) : QString();
     dlg->setPlayerNames(blackName.isEmpty() ? tr("先手") : blackName, whiteName.isEmpty() ? tr("後手") : whiteName);
+    // 本体の盤の今の向きと大きさで出す
     dlg->setFlipMode(m_deps.shogiView && m_deps.shogiView->flipMode());
+    if (m_deps.shogiView) dlg->setSquareSize(m_deps.shogiView->squareSize());
     if (!lastUsiMove.isEmpty()) dlg->setLastMove(lastUsiMove);
     if (!prevSfen.isEmpty()) dlg->setPrevSfenForHighlight(prevSfen);
     dlg->setAttribute(Qt::WA_DeleteOnClose);

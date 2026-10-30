@@ -91,29 +91,6 @@ public:
     /// 局面編集中に駒をドラッグしているときは、駒台のどこに落としてもその駒の置き場所を返す
     QPoint clickedSquare(const QPoint& clickPosition) const;
 
-    // ───────────────────────────── 矢印表示（検討機能用） ─────────────────────
-    // 盤上に矢印を描画するためのデータ構造
-    struct Arrow {
-        int fromFile = 0;   // 移動元の筋（1-9）、駒打ちの場合は0
-        int fromRank = 0;   // 移動元の段（1-9）、駒打ちの場合は0
-        int toFile = 0;     // 移動先の筋（1-9）
-        int toRank = 0;     // 移動先の段（1-9）
-        int priority = 0;   // 優先順位（1が最善手、2以上で数字を表示）
-        Piece dropPiece = Piece::None;  // 駒打ちの場合の打つ側の駒、通常の移動は None
-        QColor color = QColor(255, 0, 0, 200);  // 半透明の赤
-        Qt::PenStyle penStyle = Qt::SolidLine;
-
-        bool operator==(const Arrow& other) const
-        {
-            return fromFile == other.fromFile && fromRank == other.fromRank
-                && toFile == other.toFile && toRank == other.toRank && priority == other.priority
-                && dropPiece == other.dropPiece && color == other.color && penStyle == other.penStyle;
-        }
-        bool operator!=(const Arrow& other) const { return !(*this == other); }
-    };
-    void setArrows(const QList<Arrow>& arrows);  // 矢印をセット（複数可）
-    const QList<Arrow>& arrows() const;            // 現在の候補手矢印
-
     // ───────────────────────────── 操作/状態切替 ────────────────────────────
 
     int  squareSize() const { return m_geometry.squareSize(); }   // マスの幅（px）
@@ -123,7 +100,9 @@ public:
 
     QRect pieceBoxRect() const;                  // 編集中のみ有効な、左下の駒箱
     QRect pieceBoxCellRect(int rank) const;
-    Turn pieceBoxSide() const { return m_interaction.pieceBoxSide(); }
+    /// 駒箱の駒をどちらの駒として出すか（表示だけ。正本は局面編集の PositionEditSession。
+    /// 先後の切り替えのボタンは BoardChromeWidget::pieceBoxSideClicked で編集の持ち主に知らせる）
+    Turn pieceBoxSide() const { return m_pieceBoxSide; }
     void setPieceBoxSide(Turn side);
 
     bool flipMode() const { return m_geometry.flipped(); }       // 反転表示か
@@ -245,6 +224,7 @@ private:
 
     // ハイライト/矢印の管理クラス
     ShogiViewHighlighting* m_highlighting = nullptr;
+    Turn m_pieceBoxSide = Turn::Black;   ///< 駒箱の駒を出す側（表示だけ）
 
     // 対局者カード・時計・手番の札・編集用ボタン（子ウィジェットとして盤に重ねる）
     BoardChromeWidget* m_chrome = nullptr;

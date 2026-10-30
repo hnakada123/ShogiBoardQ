@@ -63,10 +63,12 @@ public slots:
     void onToolBarVisibilityToggled(bool visible);
 
 private slots:
-    /// 盤の大きさが変わったらセントラルウィジェットを盤に合わせる
-    void fitCentralToBoard();
+    /// 盤の大きさが変わったらセントラルウィジェットを盤に合わせ、マスの大きさを保存する
+    void onBoardZoomed();
 
 private:
+    /// セントラルウィジェットを盤の大きさに合わせる
+    void fitCentralToBoard();
     void setupCentralWidgetContainer(QWidget* centralWidget);
     void configureToolBar(QToolBar* toolBar);
     void setupBoardInCenter();

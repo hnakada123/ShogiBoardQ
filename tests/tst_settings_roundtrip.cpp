@@ -634,6 +634,23 @@ private slots:
 
         GameSettings::sfenCollectionSquareSize.set(60);
         QCOMPARE(GameSettings::sfenCollectionSquareSize(), 60);
+    }
+
+    /// 盤のマスの大きさの範囲は BoardSquareSize の1か所で決め、どの宣言も範囲に収めて読む
+    void squareSizesShareOneRange()
+    {
+        QSettings& s = SettingsCommon::openSettings();
+        QCOMPARE(AppSettings::squareSize.minimum(), BoardSquareSize::kMin);
+        QCOMPARE(AppSettings::squareSize.maximum(), BoardSquareSize::kMax);
+        s.setValue(QStringLiteral("SizeRelated/squareSize"), 500);
+        QCOMPARE(AppSettings::squareSize(), BoardSquareSize::kMax);
+        s.setValue(QStringLiteral("SfenCollection/squareSize"), 5);
+        QCOMPARE(GameSettings::sfenCollectionSquareSize(), BoardSquareSize::kMin);
+        s.setValue(QStringLiteral("TsumePlay/squareSize"), 999);
+        QCOMPARE(TsumeshogiSettings::playPreferences().squareSize, BoardSquareSize::kMax);
+        s.remove(QStringLiteral("SizeRelated/squareSize"));
+        s.remove(QStringLiteral("SfenCollection/squareSize"));
+        s.remove(QStringLiteral("TsumePlay/squareSize"));
 
         GameSettings::sfenCollectionLastDirectory.set(QStringLiteral("/tmp/sfen"));
         QCOMPARE(GameSettings::sfenCollectionLastDirectory(), QStringLiteral("/tmp/sfen"));

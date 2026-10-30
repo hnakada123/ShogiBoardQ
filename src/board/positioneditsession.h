@@ -9,6 +9,7 @@
 #include <QString>
 
 #include "appactivitystate.h"
+#include "shogitypes.h"
 
 class BoardInteractionController;
 class KifuNavigationState;
@@ -39,8 +40,11 @@ public:
     bool isEditing() const;
     /// 表示中の手から移ってよいか（局面編集中は棋譜の手を移らない。KifuNavigationController の移動前の確認）
     bool allowsLeavingMove() const { return !isEditing(); }
-    /// 編集中の着手（盤の操作で決まった駒の移動）を盤に反映する。動かせたら true
+    /// 編集中の着手（盤の操作で決まった駒の移動）を盤に反映する。駒箱の駒は pieceBoxSide() の駒として置く。
+    /// 動かせたら true
     bool applyEditMove(const QPoint& from, const QPoint& to);
+    /// 駒箱の駒をどちらの駒として置くか（正本。盤は表示するだけ）
+    Turn pieceBoxSide() const { return m_pieceBoxSide; }
 
 public slots:
     /// 表示中の局面で局面編集を始める
@@ -53,6 +57,8 @@ public slots:
     void setHiratePosition();
     void setTsumePosition();
     void toggleSideToMove();
+    /// 駒箱の駒をどちらの駒として置くか（盤の駒箱の先後の切り替え）
+    void setPieceBoxSide(Turn side);
 
 private slots:
     /// ほかの部品が別の動作を始めた
@@ -72,6 +78,7 @@ private:
 
     Deps m_deps;
     ActivityLease m_activityLease;   ///< 局面編集中の動作状態
+    Turn m_pieceBoxSide = Turn::Black;   ///< 駒箱の駒を置く側（編集をやめても次の編集に引き継ぐ）
 };
 
 #endif // POSITIONEDITSESSION_H

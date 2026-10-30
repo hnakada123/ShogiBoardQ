@@ -4,7 +4,6 @@
 #include "shogiview.h"
 
 #include "movefont.h"
-#include "appsettings.h"
 #include "boardappearance.h"
 #include "boardconstants.h"
 #include "boardcoordinates.h"
@@ -43,10 +42,8 @@ ShogiView::ShogiView(QWidget *parent)
 
     setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 
-    int sq = AppSettings::squareSize();
-    if (sq < BoardGeometry::kMinSquareSize || sq > BoardGeometry::kMaxSquareSize)
-        sq = AppSettings::squareSize.defaultValue();
-    rebuildGeometry(sq, false);
+    // マスの大きさは既定の大きさから始める（設定は持ち主が読んで setSquareSize で渡す）
+    rebuildGeometry(BoardSquareSize::kDefault, false);
 
     setMouseTracking(true);
 
@@ -54,7 +51,6 @@ ShogiView::ShogiView(QWidget *parent)
     setAttribute(Qt::WA_OpaquePaintEvent);
 
     // 対局者カード・時計・手番の札は盤に重ねた BoardChromeWidget が表示する
-    connect(m_chrome, &BoardChromeWidget::pieceBoxSideClicked, this, &ShogiView::setPieceBoxSide);
     relayoutChrome();
 
     connect(&BoardAppearance::instance(), &BoardAppearance::pieceStyleChanged,
@@ -131,7 +127,7 @@ QSize ShogiView::sizeHint() const
 QSize ShogiView::minimumSizeHint() const
 {
     BoardGeometry::Params params = m_geometry.params();
-    params.squareSize = BoardGeometry::kMinSquareSize;
+    params.squareSize = BoardSquareSize::kMin;
     return BoardGeometry(params).viewSize();
 }
 
@@ -160,7 +156,7 @@ void ShogiView::applyBoardScaleChange(int squareSize)
 
 void ShogiView::zoomTo(int size)
 {
-    if (size < BoardGeometry::kMinSquareSize || size > BoardGeometry::kMaxSquareSize || size == squareSize()) return;
+    if (size < BoardSquareSize::kMin || size > BoardSquareSize::kMax || size == squareSize()) return;
     // ドラッグ中の駒の位置はマスの大きさで決まるので放す
     endDrag();
     applyBoardScaleChange(size);
@@ -173,7 +169,7 @@ void ShogiView::zoomTo(int size)
 
 void ShogiView::setSquareSize(int size)
 {
-    if (size < BoardGeometry::kMinSquareSize || size > BoardGeometry::kMaxSquareSize) {
+    if (size < BoardSquareSize::kMin || size > BoardSquareSize::kMax) {
         return;
     }
     applyBoardScaleChange(size);
@@ -238,7 +234,7 @@ void ShogiView::configureFixedSizing(int squarePx)
 {
     setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
     const int s = (squarePx > 0) ? squarePx : squareSize();
-    applyBoardScaleChange(std::clamp(s, BoardGeometry::kMinSquareSize, BoardGeometry::kMaxSquareSize));
+    applyBoardScaleChange(std::clamp(s, BoardSquareSize::kMin, BoardSquareSize::kMax));
 }
 
 // ============================================================
@@ -256,16 +252,6 @@ void ShogiView::refreshBoardColors()
     // 対局者カードの配色は BoardChromeWidget が自分で配色の変更を受け取る
     m_boardColors = BoardAppearance::instance().colors();
     update();
-}
-
-void ShogiView::setArrows(const QList<Arrow>& arrows)
-{
-    m_highlighting->setArrows(arrows);
-}
-
-const QList<ShogiView::Arrow>& ShogiView::arrows() const
-{
-    return m_highlighting->arrows();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -403,7 +389,7 @@ void ShogiView::wheelEvent(QWheelEvent* e)
 
 void ShogiView::startDrag(const QPoint &from)
 {
-    m_interaction.startDrag(from, m_board, mapFromGlobal(QCursor::pos()));
+    m_interaction.startDrag(from, m_board, mapFromGlobal(QCursor::pos()), m_pieceBoxSide);
     // つまんだマス（駒が消える・持駒の枚数が減る）と持ち上げた駒だけを描き直す。
     update(fieldPaintRect(from));
     update(m_interaction.draggingPieceRect(fieldSize(), m_boardVisuals));
@@ -536,7 +522,8 @@ QRect ShogiView::pieceBoxCellRect(int rank) const
 
 void ShogiView::setPieceBoxSide(Turn side)
 {
-    m_interaction.setPieceBoxSide(side);
+    m_pieceBoxSide = side;
+    m_interaction.setBoxDragSide(side);
     m_chrome->setPieceBoxSide(side);
     update();
 }

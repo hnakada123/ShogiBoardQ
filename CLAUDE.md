@@ -66,6 +66,7 @@ cmake --build build --target translations
   - `shogimove.cpp/.h`・`usimove.h` - Move representation
   - `enginemovevalidator.cpp/.h` - Move legality validation（`fmv::Converter` を境界に `fmvlegalcore` のビットボード合法手生成を使う）
   - `sfenreplay.cpp/.h` - 局面に USI の1手を指す（`applyLenient`・`positionAfter`。合法手かは確かめない）
+  - `boardsquaresize.h` - 盤のマスの幅の範囲 `BoardSquareSize`（20〜150、既定50。盤の描画・設定の宣言・CLI の盤面画像で共通）
   - `boardcoordinates.h` - 盤面表示の座標（駒台は筋10・11、駒箱は筋12）と駒・USI の指し手の対応（表示の座標の駒・駒台と駒箱の枚数の読み `pieceAt`・`isAvailable` もここだけ）
   - `handicaps.h` - 手合割の表（名前・JKF の preset・開始局面）と局面の手合割（`Handicaps::of(Position)`・`ofStart(開始局面の文字列)`。盤・持ち駒・手番で決め、手数は見ない）。平手かどうかは `Handicaps::isHirate` だけで判定する
   - `jishogicalculator.cpp/.h` - 持将棋の点数計算・判定
@@ -153,7 +154,7 @@ cmake --build build --target translations
   - `boardinteractioncontroller.cpp/.h` - 盤のクリックを移動元・移動先にし、選択・直前の手・合法な移動先のハイライトを出す（合法な移動先を出すかは保存した設定から始め、`setLegalMovesVisible` で保存する。主画面と詰将棋を解く画面で共通）。クリックを手番の側の手にする処理 `moveFromClick()`（成り・不成の両方が合法なら `setPromotionChooser()` の関数で尋ねる）もここにあり、主画面と詰将棋を解く画面の行き先が使う。ドラッグは行き先の `submit()` から戻った後に終える
   - `positioneditrules.cpp/.h` - 局面編集の規則 `PositionEditRules`（駒の移動 `moved`・右クリックの成・不成・先後の巡回 `cycled`・盤を空にする `cleared`。`Position` を変える関数で、盤へは `apply`・`cyclePiece`・`clear` が渡す）
   - `boardinputroute.h` - 盤で指した手の行き先 `BoardInputRoute`（つまめるか・局面編集中か・着手の処理。主画面は `BoardMoveController`、詰将棋を解くダイアログは `TsumePlayDialog`）
-  - `positioneditsession.cpp/.h` - 局面編集（開始・終了・編集中の盤の操作（全駒を駒箱へ・平手・詰将棋・手番の入れ替え。メニューは `MenuActionsWiring` がつなぐ）・編集中の着手）。「編集中か」は動作状態 `DuringPositionEdit` だけで決まる
+  - `positioneditsession.cpp/.h` - 局面編集（開始・終了・編集中の盤の操作（全駒を駒箱へ・平手・詰将棋・手番の入れ替え。メニューは `MenuActionsWiring` がつなぐ）・編集中の着手）。駒箱の先後の正本もここ（`pieceBoxSide()`。盤の切り替えのボタン `pieceBoxSideClicked` を受け、盤は表示するだけ）。「編集中か」は動作状態 `DuringPositionEdit` だけで決まる
 
 - **ui/**: UI層
   - **presenters/**: 表示への反映
@@ -169,7 +170,7 @@ cmake --build build --target translations
     - `dockregistry` - ドックの表 `DockRegistry`（`DockId`・`DockSpec`）。12個のドックをこの表だけから作り（`createAll()`）、規定の場所に置き（同じ場所のドックは表で前のドックのタブに重ねる。起動時と `resetToDefault()` で同じ配置）、浮動・表示・位置を保存・復元する（`saveStates()`・`DockSettings::DockState`）。ドックを足すときは `DockId` と表に1行足す
     - `docklayoutmanager` - 名前付きレイアウト・起動時のレイアウト・ドックの固定（ドックは `DockRegistry` から取る）
 
-- **views/**: 盤の描画と入力（`shogiview.cpp/.h`）。盤・マス・駒台のセル・座標の文字・対局者カードの位置は `boardgeometry`（`BoardGeometry`。マスの大きさ・反転・筋と段の数・駒台の大きさ（盤は2列4段。詰将棋問題一覧のプレビュー `TsumePositionPreview` は持ち駒を1列に並べて枚数を横に書くので幅を広く段を多くする）から1度だけ計算する変えない値で、すべてウィジェット座標。`ShogiView::boardGeometry()`）、盤に重ねる対局者カード・編集終了ボタン・駒箱の先後切り替えは `boardchromewidget`（カードは1側1枚の `playercard`（`PlayerCard`。手番の札・名前・時計を子に持つ）で、`chrome()->card(Turn)` で触る）、局面によらない部分の画像は `boardstaticlayer`、ドラッグは `shogiviewinteraction`、ハイライト（層 `BoardHighlightLayer` ごとのマスの値。色は層で決まる）と矢印は `shogiviewhighlighting`
+- **views/**: 盤の描画と入力（`shogiview.cpp/.h`）。盤・マス・駒台のセル・座標の文字・対局者カードの位置は `boardgeometry`（`BoardGeometry`。マスの大きさ・反転・筋と段の数・駒台の大きさ（盤は2列4段。詰将棋問題一覧のプレビュー `TsumePositionPreview` は持ち駒を1列に並べて枚数を横に書くので幅を広く段を多くする）から1度だけ計算する変えない値で、すべてウィジェット座標。`ShogiView::boardGeometry()`。マスの大きさの範囲は core の `BoardSquareSize`。`ShogiView` は設定を読まず、持ち主が `setSquareSize()` で渡す（本体の盤は `MainWindowAppearanceController` が `AppSettings::squareSize` を読み書きする））、盤に重ねる対局者カード・編集終了ボタン・駒箱の先後切り替えは `boardchromewidget`（カードは1側1枚の `playercard`（`PlayerCard`。手番の札・名前・時計を子に持つ）で、`chrome()->card(Turn)` で触る）、局面によらない部分の画像は `boardstaticlayer`、ドラッグは `shogiviewinteraction`、ハイライト（層 `BoardHighlightLayer` ごとのマスの値。色は層で決まる）と矢印（`ShogiViewHighlighting::Arrow`）は `shogiviewhighlighting`（どちらも `ShogiView::highlighting()` から直接渡し、`ShogiView` は転送しない）。駒箱の先後は表示だけを持つ（正本は board の `PositionEditSession`）
 - **automation/**: 自動化 API（`ShogiBoardQ --automation`）。引数の表・エラーの分類などの共有部品は headless/（設計: `docs/dev/mcp-server.md`）
   - `automationserver.cpp/.h` - QLocalServer で改行区切り JSON-RPC 2.0 を待ち受け
   - `automationdispatcher.cpp/.h` - JSON-RPC 解析とメソッド表（GUI 非依存）。メソッドを呼ぶ前に引数を表で検査し（知らない引数は拒否）、既定値を補う。エラー応答（`makeError()`）は `error.code` と `error.data.slug` を分類から決める

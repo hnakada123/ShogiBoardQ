@@ -260,6 +260,7 @@ set(SRC_APP
 set(SRC_CORE
     src/core/boardconstants.h
     src/core/boardcoordinates.h
+    src/core/boardsquaresize.h
     src/core/enginemovevalidator.cpp
     src/core/enginemovevalidator.h
     src/core/fmvattacks.cpp

@@ -75,41 +75,41 @@ private slots:
 
         protocol->startSearch(*UsiPosition::fromSfen(hirate), UsiGo::infinite());
         thinking1.prependRow(row(hirate, QStringLiteral("7g7f 3c3d")), 100);
-        QTRY_COMPARE(view.arrows().size(), 1);
-        QCOMPARE(view.arrows().first().toFile, 7);
-        QCOMPARE(view.arrows().first().penStyle, Qt::SolidLine);
-        QVERIFY(view.arrows().first().color.red() > view.arrows().first().color.blue());
+        QTRY_COMPARE(view.highlighting()->arrows().size(), 1);
+        QCOMPARE(view.highlighting()->arrows().first().toFile, 7);
+        QCOMPARE(view.highlighting()->arrows().first().penStyle, Qt::SolidLine);
+        QVERIFY(view.highlighting()->arrows().first().color.red() > view.highlighting()->arrows().first().color.blue());
         thinking1.prependRow(row(hirate, QStringLiteral("2g2f 8c8d")), 100);
-        QTRY_COMPARE(view.arrows().first().toFile, 2);
+        QTRY_COMPARE(view.highlighting()->arrows().first().toFile, 2);
         // 2番目以降の候補手と、最初の手を指せない読み筋は使わない
         thinking1.prependRow(row(hirate, QStringLiteral("9g9f"), 2), 100);
         thinking1.prependRow(row(hirate, QStringLiteral("resign")), 100);
         presenter.refresh();
-        QCOMPARE(view.arrows().size(), 1);
-        QCOMPARE(view.arrows().first().toFile, 2);
+        QCOMPARE(view.highlighting()->arrows().size(), 1);
+        QCOMPARE(view.highlighting()->arrows().first().toFile, 2);
 
         toggles.match()->setChecked(false);
-        QTRY_VERIFY(view.arrows().isEmpty());
+        QTRY_VERIFY(view.highlighting()->arrows().isEmpty());
         toggles.match()->setChecked(true);
-        QTRY_COMPARE(view.arrows().size(), 1);
+        QTRY_COMPARE(view.highlighting()->arrows().size(), 1);
         // 探索の局面と違う局面を表示している
         board.setSfen(QString(hirate).replace(QStringLiteral(" b "), QStringLiteral(" w ")));
-        QTRY_VERIFY(view.arrows().isEmpty());
+        QTRY_VERIFY(view.highlighting()->arrows().isEmpty());
         board.setSfen(hirate);
-        QTRY_COMPARE(view.arrows().size(), 1);
+        QTRY_COMPARE(view.highlighting()->arrows().size(), 1);
 
         // 探索を終えた（bestmove）。思考の表は残る
         protocol->sendStop();
         protocol->onDataReceived(QStringLiteral("bestmove 2g2f"));
-        QTRY_VERIFY(view.arrows().isEmpty());
+        QTRY_VERIFY(view.highlighting()->arrows().isEmpty());
         QCOMPARE(thinking1.rowCount(), 4);
 
         // 対局中でなければ描かない
         protocol->startSearch(*UsiPosition::fromSfen(hirate), UsiGo::infinite());
         thinking1.prependRow(row(hirate, QStringLiteral("5g5f")), 100);
-        QTRY_COMPARE(view.arrows().size(), 1);
+        QTRY_COMPARE(view.highlighting()->arrows().size(), 1);
         game.reset();
-        QTRY_VERIFY(view.arrows().isEmpty());
+        QTRY_VERIFY(view.highlighting()->arrows().isEmpty());
     }
 
     /// 先読み側の矢印: 表示中の局面に予想した手を指した局面の読みを青の破線で出す。予想が当たれば
@@ -145,7 +145,7 @@ private slots:
         thinking2.prependRow(row(predicted.sfen(), QStringLiteral("3c3d"), 1, QStringLiteral("7g7f")), 100);
         toggles.ponder()->setChecked(true);
         presenter.refresh();
-        QVERIFY(view.arrows().isEmpty());
+        QVERIFY(view.highlighting()->arrows().isEmpty());
         protocol->sendStop();
         protocol->onDataReceived(QStringLiteral("bestmove 3c3d"));
         toggles.ponder()->setChecked(false);
@@ -154,34 +154,34 @@ private slots:
         thinking2.clear();
         thinking2.prependRow(row(predicted.sfen(), QStringLiteral("3c3d 2g2f"), 1, QStringLiteral("7g7f")), 100);
         presenter.refresh();
-        QVERIFY(view.arrows().isEmpty());
+        QVERIFY(view.highlighting()->arrows().isEmpty());
         toggles.ponder()->setChecked(true);
-        QTRY_COMPARE(view.arrows().size(), 1);
-        QCOMPARE(view.arrows().first().penStyle, Qt::DashLine);
-        QVERIFY(view.arrows().first().color.blue() > view.arrows().first().color.red());
-        QCOMPARE(view.arrows().first().toFile, 3);
+        QTRY_COMPARE(view.highlighting()->arrows().size(), 1);
+        QCOMPARE(view.highlighting()->arrows().first().penStyle, Qt::DashLine);
+        QVERIFY(view.highlighting()->arrows().first().color.blue() > view.highlighting()->arrows().first().color.red());
+        QCOMPARE(view.highlighting()->arrows().first().toFile, 3);
         QVERIFY(presenter.ponderDescription().startsWith(QStringLiteral("先読み：")));
         QVERIFY(presenter.ponderDescription().contains(QStringLiteral("７六歩")));
         // 手番側の矢印を切ると先読み側も出さない
         toggles.match()->setChecked(false);
-        QTRY_VERIFY(view.arrows().isEmpty());
+        QTRY_VERIFY(view.highlighting()->arrows().isEmpty());
         toggles.match()->setChecked(true);
-        QTRY_COMPARE(view.arrows().size(), 1);
+        QTRY_COMPARE(view.highlighting()->arrows().size(), 1);
 
         // 予想が外れた
         board.setSfen(SfenReplay::positionAfter(hirate, QStringLiteral("2g2f")));
-        QTRY_VERIFY(view.arrows().isEmpty());
+        QTRY_VERIFY(view.highlighting()->arrows().isEmpty());
         QVERIFY(presenter.ponderDescription().isEmpty());
         // 予想が当たった（ponderhit の前でも、探索の局面が表示中の局面なら手番側）
         board.setSfen(predicted.sfen());
-        QTRY_COMPARE(view.arrows().size(), 1);
-        QCOMPARE(view.arrows().first().penStyle, Qt::SolidLine);
+        QTRY_COMPARE(view.highlighting()->arrows().size(), 1);
+        QCOMPARE(view.highlighting()->arrows().first().penStyle, Qt::SolidLine);
         protocol->sendPonderHit();
         presenter.refresh();
-        QCOMPARE(view.arrows().first().penStyle, Qt::SolidLine);
+        QCOMPARE(view.highlighting()->arrows().first().penStyle, Qt::SolidLine);
         protocol->sendStop();
         protocol->onDataReceived(QStringLiteral("bestmove 3c3d"));
-        QTRY_VERIFY(view.arrows().isEmpty());
+        QTRY_VERIFY(view.highlighting()->arrows().isEmpty());
     }
 
     /// 4つの切り替えは変えるたびに保存し、次に作ったときに戻す（検討の矢印も保存する）
@@ -282,28 +282,28 @@ private slots:
         deps.josekiDisplay = &displayAction;
         CandidateArrowPresenter presenter(deps);
         presenter.refresh();
-        QVERIFY(view.arrows().isEmpty());
+        QVERIFY(view.highlighting()->arrows().isEmpty());
 
         arrowsAction.setChecked(true);
-        QTRY_COMPARE(view.arrows().size(), 2);
-        QCOMPARE(view.arrows().at(0).priority, 1);
-        QCOMPARE(view.arrows().at(1).priority, 2);
-        QCOMPARE(view.arrows().at(0).toFile, 7);
-        QCOMPARE(view.arrows().at(0).color.green(), 150);
-        QVERIFY(view.arrows().at(0).color.alpha() > view.arrows().at(1).color.alpha());
+        QTRY_COMPARE(view.highlighting()->arrows().size(), 2);
+        QCOMPARE(view.highlighting()->arrows().at(0).priority, 1);
+        QCOMPARE(view.highlighting()->arrows().at(1).priority, 2);
+        QCOMPARE(view.highlighting()->arrows().at(0).toFile, 7);
+        QCOMPARE(view.highlighting()->arrows().at(0).color.green(), 150);
+        QVERIFY(view.highlighting()->arrows().at(0).color.alpha() > view.highlighting()->arrows().at(1).color.alpha());
 
         book.addMove(hirate, {QStringLiteral("5g5f"), QStringLiteral("none"), 0, 0, 0, {}});
-        QTRY_COMPARE(view.arrows().size(), 3);
+        QTRY_COMPARE(view.highlighting()->arrows().size(), 3);
         displayAction.setChecked(false);
-        QTRY_VERIFY(view.arrows().isEmpty());
+        QTRY_VERIFY(view.highlighting()->arrows().isEmpty());
         displayAction.setChecked(true);
-        QTRY_COMPARE(view.arrows().size(), 3);
+        QTRY_COMPARE(view.highlighting()->arrows().size(), 3);
         board.setSfen(QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b - 1"));
         presenter.refresh();
-        QVERIFY(view.arrows().isEmpty());
+        QVERIFY(view.highlighting()->arrows().isEmpty());
         board.setSfen(hirate);
         arrowsAction.setChecked(false);
-        QTRY_VERIFY(view.arrows().isEmpty());
+        QTRY_VERIFY(view.highlighting()->arrows().isEmpty());
     }
     void considerationAndSettings()
     {
@@ -352,7 +352,7 @@ private slots:
         options.engineName = QStringLiteral("ArrowTest");
         options.position = *UsiPosition::parse(QStringLiteral("position startpos"));
         QVERIFY(session.start(options));
-        QTRY_COMPARE(view.arrows().size(), 1);
+        QTRY_COMPARE(view.highlighting()->arrows().size(), 1);
         QVERIFY(!master->isEnabled());
         QVERIFY(!ponder->isEnabled());
         ThinkingInfoRow second;
@@ -360,27 +360,27 @@ private slots:
         second.pv = PvText::play(SfenUtils::hirateSfen(), QStringLiteral("2g2f"));
         second.multipv = 2;
         model.updateByMultipv(second, 3);
-        QTRY_COMPARE(view.arrows().size(), 2);
-        QCOMPARE(view.arrows().at(0).priority, 1);
-        QCOMPARE(view.arrows().at(1).priority, 2);
-        QVERIFY(view.arrows().at(0).color.alpha() > view.arrows().at(1).color.alpha());
+        QTRY_COMPARE(view.highlighting()->arrows().size(), 2);
+        QCOMPARE(view.highlighting()->arrows().at(0).priority, 1);
+        QCOMPARE(view.highlighting()->arrows().at(1).priority, 2);
+        QVERIFY(view.highlighting()->arrows().at(0).color.alpha() > view.highlighting()->arrows().at(1).color.alpha());
         model.trimToMaxRows(1);
-        QTRY_COMPARE(view.arrows().size(), 1);
+        QTRY_COMPARE(view.highlighting()->arrows().size(), 1);
         // 検討の矢印の切り替えを切ると消え、戻すと出る（切り替えの変更で描き直す）
         toggles.consideration()->setChecked(false);
-        QTRY_VERIFY(view.arrows().isEmpty());
+        QTRY_VERIFY(view.highlighting()->arrows().isEmpty());
         toggles.consideration()->setChecked(true);
-        QTRY_COMPARE(view.arrows().size(), 1);
+        QTRY_COMPARE(view.highlighting()->arrows().size(), 1);
         board.setSfen(SfenUtils::hirateSfen().replace(" b ", " w "));
-        QTRY_VERIFY(view.arrows().isEmpty());
+        QTRY_VERIFY(view.highlighting()->arrows().isEmpty());
         board.setSfen(SfenUtils::hirateSfen());
-        QTRY_COMPARE(view.arrows().size(), 1);
+        QTRY_COMPARE(view.highlighting()->arrows().size(), 1);
         session.stop();
-        QTRY_VERIFY(view.arrows().isEmpty());
+        QTRY_VERIFY(view.highlighting()->arrows().isEmpty());
         QVERIFY(master->isEnabled());
         model.clear();
         QCoreApplication::processEvents();
-        QVERIFY(view.arrows().isEmpty());
+        QVERIFY(view.highlighting()->arrows().isEmpty());
     }
 };
 QTEST_MAIN(TestCandidateArrows)

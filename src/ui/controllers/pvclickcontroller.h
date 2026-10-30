@@ -31,7 +31,7 @@ public:
     struct Deps {
         const KifuNavigationState* navState = nullptr;      ///< 表示中の手順（読み筋の局面に至った手を探す）
         const KifuDocument* document = nullptr;             ///< 対局者名（対局情報。対局を始めると対局者の名前が入る）
-        const ShogiView* shogiView = nullptr;               ///< 盤の反転状態
+        const ShogiView* shogiView = nullptr;               ///< 本体の盤（反転状態とマスの大きさ）
     };
 
     explicit PvClickController(const Deps& deps, QObject* parent = nullptr);

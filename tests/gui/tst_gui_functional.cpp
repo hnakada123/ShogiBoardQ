@@ -884,11 +884,11 @@ private slots:
             "4k4/9/3+r+b+s+n+l+p/9/9/9/+P+L+N+S+B+R3/9/4K4 b 2GSNL8P2gsnl8p 1"));
         // 局面変更に伴う候補手矢印の遅延更新を完了してから、描画確認用の矢印を置く。
         QCoreApplication::processEvents();
-        ShogiView::Arrow drop;
+        ShogiViewHighlighting::Arrow drop;
         drop.toFile = 5;
         drop.toRank = 5;
         drop.dropPiece = Piece::BlackPawn;
-        board()->setArrows({drop});
+        board()->highlighting()->setArrows({drop});
         const auto position = board()->toImage();
         QVERIFY(!position.isNull());
         board()->applyBoardAndRender(board()->board()); // 駒の画像を読み直しても同じ絵になる
@@ -953,11 +953,11 @@ private slots:
             "4k4/9/3+r+b+s+n+l+p/9/9/9/+P+L+N+S+B+R3/9/4K4 b 2GSNL8P2gsnl8p 1"));
         // 局面変更に伴う候補手矢印の遅延更新を完了してから、描画確認用の矢印を置く。
         QCoreApplication::processEvents();
-        ShogiView::Arrow drop;
+        ShogiViewHighlighting::Arrow drop;
         drop.toFile = 5;
         drop.toRank = 5;
         drop.dropPiece = Piece::BlackPawn;
-        board()->setArrows({drop});
+        board()->highlighting()->setArrows({drop});
         const auto variantImage = board()->toImage();
         QVERIFY(!variantImage.isNull());
         selectPieceStyle(QStringLiteral("standard"));

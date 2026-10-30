@@ -3,6 +3,7 @@
 
 #include "boardimagerenderer.h"
 
+#include "boardsquaresize.h"
 #include "sfenvalidator.h"
 #include "shogiboard.h"
 #include "shogiview.h"
@@ -32,9 +33,9 @@ QImage BoardImageRenderer::render(const QString& sfen, const Options& options, F
                     QStringLiteral("Invalid SFEN: %1").arg(validation.errors.join(QStringLiteral("; "))));
     }
     // CLI・自動化 API の引数の表も同じ範囲を検査する。表を通さずに呼ばれても盤の範囲の外は描かない
-    if (options.squareSize < BoardGeometry::kMinSquareSize || options.squareSize > BoardGeometry::kMaxSquareSize) {
+    if (options.squareSize < BoardSquareSize::kMin || options.squareSize > BoardSquareSize::kMax) {
         return fail(ErrorKind::InvalidArgument, QStringLiteral("square_size must be between %1 and %2")
-                                                    .arg(BoardGeometry::kMinSquareSize).arg(BoardGeometry::kMaxSquareSize));
+                                                    .arg(BoardSquareSize::kMin).arg(BoardSquareSize::kMax));
     }
     std::optional<UsiMove> lastMove;
     if (!options.lastMoveUsi.isEmpty()) {

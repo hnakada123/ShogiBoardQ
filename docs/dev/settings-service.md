@@ -220,14 +220,9 @@ m_form.load();
 
 対局開始ダイアログ（対局者・時間・開始局面以外の欄）と詰将棋生成ダイアログ（生成の条件の欄と表示の欄）が使う。詰将棋生成ダイアログの「既定値に戻す」は、生成の条件の表の `reset()` で宣言の既定値に戻す。
 
-### 範囲を読む側で確かめる項目
+### 盤のマスの大きさ
 
-`AppSettings::squareSize` は宣言だけで、範囲外の保存値は読む側（`ShogiView`）で既定値に戻している。
-
-```cpp
-int sq = AppSettings::squareSize();
-if (sq < 20 || sq > 150) sq = AppSettings::squareSize.defaultValue();
-```
+盤のマスの大きさの範囲（20〜150、既定 50）は core の `BoardSquareSize` だけで決め、`AppSettings::squareSize`・`GameSettings::sfenCollectionSquareSize` は `BoundedSetting`、詰将棋を解く画面の `TsumeshogiSettings::PlayPreferences::squareSize` は整える関数（`normalizedOf`）でその範囲に収める。CLI の `render-board` の `square_size` も同じ範囲を使う。`ShogiView` は設定を読まず、本体の盤の大きさは `MainWindowAppearanceController` が読み書きする（拡大・縮小のたびに保存する）。
 
 ---
 

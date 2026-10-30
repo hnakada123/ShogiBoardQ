@@ -34,6 +34,7 @@
 
 #include "boardgeometry.h"
 #include "shogiview.h"
+#include "shogiviewhighlighting.h"
 #include "appearancesettings.h"
 #include "boardappearancecatalog.h"
 #include "boardappearancepreview.h"
@@ -654,7 +655,7 @@ private slots:
         auto arrow = CandidateArrowPresenter::arrowForMove(QStringLiteral("%1*5e").arg(piece), sfen, 1);
         QVERIFY(arrow);
         arrow->color = QColor(255, 0, 255);
-        view.setArrows({*arrow});
+        view.highlighting()->setArrows({*arrow});
         const auto image = renderView(view, 1.0);
         const QRect source = view.standPieceRect(arrow->dropPiece);
         QVERIFY(!source.isEmpty());

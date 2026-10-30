@@ -12,6 +12,8 @@
 
 #include <array>
 
+#include "boardsquaresize.h"
+
 #include "shogitypes.h"
 
 /**
@@ -28,12 +30,10 @@ class BoardGeometry
 public:
     /// マスの縦横比（実際の将棋盤 ≈ 1.098）
     static constexpr double kSquareAspectRatio = 34.8 / 31.7;
-    static constexpr int kMinSquareSize = 20;
-    static constexpr int kMaxSquareSize = 150;
 
     /// 計算の条件
     struct Params {
-        int squareSize = 50;          ///< マスの幅（px。kMinSquareSize〜kMaxSquareSize に収める）
+        int squareSize = BoardSquareSize::kDefault;   ///< マスの幅（px。範囲は core の BoardSquareSize）
         double standGapCols = 0.7;    ///< 盤と駒台の間（マスの幅の何倍か）
         bool flipped = false;         ///< 反転表示（後手を手前にする）
         int files = 9;
