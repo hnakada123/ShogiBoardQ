@@ -11,6 +11,7 @@
 #include "kifubranchtree.h"
 #include "kifunodereplay.h"
 #include "sfenutils.h"
+#include "usiposition.h"
 #include "shogiposition.h"
 #include "logcategories.h"
 
@@ -154,7 +155,7 @@ QStringList JkfExporter::exportLines(const KifuBranchTree& recordTree, const Kif
 
     // 2) initial
     const QString startSfen = ctx.startSfen.trimmed().isEmpty() ? SfenUtils::hirateSfen()
-                                                                : SfenUtils::normalizeStart(ctx.startSfen);
+                                                                : UsiPosition::sfenOf(ctx.startSfen);
     root[QStringLiteral("initial")] = buildJkfInitial(startSfen);
 
     // 3) moves（先頭は開始局面。本譜の手順と、分岐点ごとの forks）

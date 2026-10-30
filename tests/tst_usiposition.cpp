@@ -75,6 +75,52 @@ private slots:
         QVERIFY(!UsiPosition::parse(u"position startpos moves zz"));
     }
 
+    /// position コマンド・局面の文字列の語の分け方は split だけ（parse・sfenOf・棋譜の USI 形式の読み込みが使う）
+    void split_readsEveryWrittenForm()
+    {
+        const QString board = QStringLiteral("4k4/9/9/9/9/9/9/9/4K4");
+        // 接頭辞と "moves" は省け、大文字と小文字を区別しない。区切りは空白・タブのどちらでもよい
+        auto words = UsiPosition::split(u"POSITION Startpos\t7g7f  3c3d");
+        QVERIFY(words);
+        QCOMPARE(words->start, kHirate);
+        QCOMPARE(words->moves, QStringList({QStringLiteral("7g7f"), QStringLiteral("3c3d")}));
+
+        // 手数を省いた SFEN は書かれたまま。手数 1 を補うのは completeStart
+        words = UsiPosition::split(QStringLiteral("sfen %1 b G moves 5h5b").arg(board));
+        QVERIFY(words);
+        QCOMPARE(words->start, board + QStringLiteral(" b G"));
+        QCOMPARE(words->completeStart(), board + QStringLiteral(" b G 1"));
+        QCOMPARE(words->moves, QStringList({QStringLiteral("5h5b")}));
+
+        // 数字だけの4つ目の語が手数
+        words = UsiPosition::split(QStringLiteral("%1 w - 12 resign").arg(board));
+        QVERIFY(words);
+        QCOMPARE(words->start, board + QStringLiteral(" w - 12"));
+        QCOMPARE(words->completeStart(), words->start);
+        QCOMPARE(words->moves, QStringList({QStringLiteral("resign")}));
+
+        // 開始局面の欄が3つに足りない
+        QVERIFY(!UsiPosition::split(u""));
+        QVERIFY(!UsiPosition::split(u"position"));
+        QVERIFY(!UsiPosition::split(QStringLiteral("position sfen %1 b moves 5h5b").arg(board)));
+
+        // parse も同じ読み方（"moves" を省いた手も指す）
+        const auto played = UsiPosition::parse(u"startpos 7g7f");
+        QVERIFY(played);
+        QCOMPARE(played->moves(), QStringList({QStringLiteral("7g7f")}));
+    }
+
+    /// 局面の文字列の SFEN（接頭辞を除き、startpos は平手。指し手を含む・分けられない文字列はそのまま）
+    void sfenOf_stripsPrefixesOnly()
+    {
+        QCOMPARE(UsiPosition::sfenOf(u" startpos "), kHirate);
+        QCOMPARE(UsiPosition::sfenOf(QStringLiteral("position sfen ") + kHirate), kHirate);
+        QCOMPARE(UsiPosition::sfenOf(QStringLiteral("sfen 9/9/9/9/9/9/9/9/9 b -")), QStringLiteral("9/9/9/9/9/9/9/9/9 b -"));
+        QCOMPARE(UsiPosition::sfenOf(u" startpos moves 7g7f"), QStringLiteral("startpos moves 7g7f"));
+        QCOMPARE(UsiPosition::sfenOf(u"hello"), QStringLiteral("hello"));
+        QCOMPARE(UsiPosition::sfenOf(u""), QString());
+    }
+
     void withMove_tracksSideAndLastMove()
     {
         const UsiPosition start = *UsiPosition::fromSfen(u"startpos");

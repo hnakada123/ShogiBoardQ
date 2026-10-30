@@ -5,7 +5,7 @@
 
 #include <limits>
 
-CsaGameProgress CsaGameProgress::forSummary(const CsaClient::GameSummary& summary)
+CsaGameProgress CsaGameProgress::forSummary(const CsaGameSummary& summary)
 {
     CsaGameProgress progress;
     progress.summary = summary;
@@ -31,7 +31,7 @@ int addMs(int a, qint64 b)
 
 void CsaGameProgress::startClockFromSummary()
 {
-    const CsaClient::GameSummary& s = summary;
+    const CsaGameSummary& s = summary;
     int remainingBlack = s.totalTimeMs(true);
     int remainingWhite = s.totalTimeMs(false);
     int consumedBlack = 0;
@@ -70,7 +70,7 @@ void CsaGameProgress::recordMoveTime(bool blackMove, int consumedMs)
 RecordTime CsaGameProgress::initialMoveTime(int index) const
 {
     // 再開局面の各手の消費時間と、その側の累計（「１手 / 合計」の表記）
-    const CsaClient::GameSummary& s = summary;
+    const CsaGameSummary& s = summary;
     if (index < 0 || index >= s.moves.size()) return {};
     const bool black = s.moves.at(index).startsWith(QLatin1Char('+'));
     qint64 total = 0;

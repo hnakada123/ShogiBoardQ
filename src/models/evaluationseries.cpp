@@ -10,16 +10,10 @@ EvaluationSeries::EvaluationSeries(QObject* parent)
 {
 }
 
-UsiScore EvaluationSeries::blackView(Turn viewpoint, const UsiScore& score)
-{
-    // USI エンジンは手番側（指した側）から見た評価値を出すので、後手から見た値は反転する
-    return viewpoint == Turn::White ? score.negated() : score;
-}
-
 void EvaluationSeries::setScore(int series, int ply, Turn viewpoint, const UsiScore& score)
 {
     if (ply < 0 || score.isNone()) return;
-    m_scores[index(series)].insert(ply, blackView(viewpoint, score));
+    m_scores[index(series)].insert(ply, score.blackView(viewpoint));
     emit scoreAdded(series == 1 ? 1 : 0, ply);
 }
 

@@ -51,6 +51,10 @@ public:
 
     CsaGameCoordinator* coordinator() const { return m_deps.coordinator; }
 
+    /// 対局結果・終局の原因の表示名（「勝ち」「投了」など）
+    static QString resultText(CsaClient::GameResult result);
+    static QString causeText(CsaClient::GameEndCause cause);
+
 public slots:
     /// 接続ダイアログを開き、OK なら未保存の棋譜を確かめてから始める（startGame）
     void openGameDialog();

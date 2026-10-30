@@ -158,6 +158,7 @@
 | 2026-10-30 | エンジンと設定の規則の置き場所をそろえた（監査 2026-10-29 の M5・M6・M10・M17）のに合わせて §1.5・§7.9・§9.5・§10.4・§11.2・§11.3・§12.5・第18章を更新（エンジンの登録は登録一覧を `RegisteredEngines` で持ち、検索 `findByPath`・登録名の規則 `uniqueName`・パスの正規化 `canonicalPath` を共有する。エンジンの設定ダイアログは `ChangeEngineSettingsDialog::showFor()` で開く。検討の条件の値 `ConsiderationSettings` を services の `analysissettings.h` に移し、`AnalysisSettings::consideration`（`StructSetting`）で保存する。対局開始の時間の換算と以前の版の開始局面の番号は `gamesettings.cpp` の `Player::time()`・`setTime()`・`startingPosition()`・`setStartingPosition()`） |
 | 2026-10-30 | ウィジェットの共通の部品を足した（監査 2026-10-29 の M7・M8・M16・M18）のに合わせて §1.5・§7.8・§9.8・§11.2・§11.5・§12.5・§13.1・§14.5・第18章を更新（局面送りの6つのボタンは widgets の `StepButtons` が作り、説明は `KifuNavigationController::bindButtons(const StepButtons*)` が `QAction` の文から付ける。列幅は表の見出しに付けた `ColumnWidthMemory` が、利用者がドラッグした列だけを覚えて保存する（0 は自動、正の値は利用者の幅。保存した幅を最小値として扱わない。保存は `ListSetting<int>` にそろえ、棋譜解析の結果と対局情報の以前の版の形は初めて読むときに移す）。`TableHeaderView` はマウスの操作の処理の中で変わった列だけを利用者の操作として知らせる。ドックのパネルの小さなボタンの大きさは `PanelButton::setup()`、A-/A+ は `FontSizeControl` が決める。コメント欄の未更新の確認は `CommentCoordinator` が `UnsavedChangesPrompt`（保存・破棄・キャンセル）で出す） |
 | 2026-10-30 | 盤の大きさと ShogiView の残りの持ち主を整えた（監査 2026-10-29 の M9・M11）のに合わせて §11.1・§13.6 を更新（マスの幅の範囲は core の `BoardSquareSize` に置き、`AppSettings::squareSize`・`GameSettings::sfenCollectionSquareSize` は `BoundedSetting`。`ShogiView` はコンストラクタで設定を読まず、本体の盤の大きさは `MainWindowAppearanceController` が読み、変わるたびに保存する。読み筋盤は本体の盤の今の大きさで開く（`PvBoardDialog::setSquareSize()`）。矢印の型は `ShogiViewHighlighting::Arrow` に移し、`ShogiView::setArrows()`・`arrows()` の転送を消した。駒箱の先後の正本は `PositionEditSession`） |
+| 2026-10-30 | 通信対局と局面の文字列の規則の置き場所を整えた（監査 2026-10-29 の M12〜M15）のに合わせて §1.5・§2.3・§5.7・§7.7・§8.2・§8.11・§10.2・§10.5・§12.2・§15.5・第18章を更新（Game_Summary は値 `CsaGameSummary`（持時間は `CsaGameSummary::Time`）と読み取り器 `CsaGameSummaryReader`、`csaclient_parser.cpp`・`_commands.cpp` は `csaclient.cpp` に戻した。ログインの規則は `CsaLogin`、結果の表示名は `CsaGameSession::resultText`・`causeText`。評価値の向きの直しは `UsiScore::blackView`・`viewedBy`。position コマンド・局面の文字列の語の分け方は `UsiPosition::split` だけで、`SfenUtils::normalizeStart`・`normalizePositionLikeSfen` は `UsiPosition::sfenOf` に、`UsiToSfenConverter::parseUsiPositionString` は消した） |
 
 <!-- chapter-0-end -->
 
@@ -344,7 +345,7 @@ ShogiBoardQ/
 #### ソースコード（`src/`）
 
 ヘッダファイル（`.h`）は対応するソースファイル（`.cpp`）と同じディレクトリに配置される。`foo.cpp/.h` は `foo.cpp` と `foo.h`、`foo*.cpp` は `foo.cpp` と `foo_*.cpp` に分割したファイルを表す。
-1つのクラスは原則1つの `.cpp` に書く。複数のファイルに分けているのは、段階ごとに分けた合成ルート（`mainwindowcomposer_*.cpp`）、コマンド群ごとに分けた `automationcommands_*.cpp`・`clicommands_*.cpp`、`csaclient_parser.cpp`/`_commands.cpp`、`csagamecoordinator_moves.cpp`/`_setup.cpp` である。
+1つのクラスは原則1つの `.cpp` に書く。複数のファイルに分けているのは、段階ごとに分けた合成ルート（`mainwindowcomposer_*.cpp`）、コマンド群ごとに分けた `automationcommands_*.cpp`・`clicommands_*.cpp`、`csagamecoordinator_moves.cpp`/`_setup.cpp` である。
 ディレクトリの並びは層の順（[3.1節](#31-レイヤー構造)）で、下の層は上の層をインクルードしない。
 
 ```
@@ -489,10 +490,13 @@ src/
 │   └── tsumegamesession.cpp/.h     #   詰将棋対局（応手は Hayanagi。挑戦・正答の記録も付ける）
 │
 ├── network/                        # CSA通信対局
-│   ├── csaclient*.cpp/.h           #   CSAプロトコルクライアント（_parser が受信の解析、_commands が送信）
+│   ├── csaclient.cpp/.h            #   CSAプロトコルクライアント（接続・ログイン・対局中の行の処理と送信）
 │   ├── csagamecoordinator*.cpp/.h  #   CSA対局調整（_moves が指し手の進行、_setup が対局の準備）。自分のエンジンの時間の出どころ（MatchTimeSource）も兼ねる
 │   ├── csagamechannel.cpp/.h       #   通信対局の窓口（GameChannel の実装。操作はサーバーへ送り、入玉宣言の成否はサーバーが判定する）
 │   ├── csagameprogress.cpp/.h      #   1局ぶんの進行（持ち時間・手順 RecordLine・終局行）の値型
+│   ├── csagamesummary.cpp/.h       #   対局条件（Game_Summary）の値 CsaGameSummary
+│   ├── csagamesummaryreader.cpp/.h #   Game_Summary を1行ずつ読む CsaGameSummaryReader
+│   ├── csalogin.cpp/.h             #   ログインの規則（ID・パスワード・ゲーム名の検査、LOGIN のパスワード欄）
 │   └── csamoveconverter.cpp/.h     #   CSA と USI の指し手の変換（toCsa / toUsi）
 │
 ├── style/                          # ウィジェットの書体と見た目（QWidget に依存する。analysis・network の上、models の下の層）
@@ -1021,14 +1025,9 @@ lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1
 | 手数 | `1` | 次の手の番号（1以上の正整数） |
 
 ```cpp
-// src/core/sfenutils.h — "startpos" を初期配置SFENに展開
-inline QString normalizeStart(const QString& startPositionStr)
-{
-    if (startPositionStr == QStringLiteral("startpos")) {
-        return QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
-    }
-    return startPositionStr;
-}
+// src/core/usiposition.h — 局面の文字列の SFEN（"position"・"sfen" の接頭辞を除き、"startpos" は平手にする）
+UsiPosition::sfenOf(u"startpos")
+// → "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"
 ```
 
 #### 盤面フィールド
@@ -1051,7 +1050,7 @@ LNSGKGSNL    ← 9段目: 先手の 香桂銀金玉金銀桂香
 
 SFEN の読み書きは局面の値 `Position`（`src/core/shogiposition.h`）だけが行う。
 `Position::fromSfen()` は欄が4つでない、手番が `b`・`w` でない、手数が1以上の整数でない SFEN を読まない（読めなければ `nullopt` を返し、`error` に理由を入れる）。
-`assignSfen()` は読めたときだけ局面を置き換える。`fromSfenLike()` は `startpos`・`sfen ...`・`position ...` の形と手数を省いた3つの欄も受け付ける（`moves` 以降は指して進める）。
+`assignSfen()` は読めたときだけ局面を置き換える。`fromSfenLike()` は `startpos`・`sfen ...`・`position ...` の形と手数を省いた3つの欄も受け付ける（`moves` 以降は指して進める。読み方は `UsiPosition::parse()` と同じで、語の分け方は `UsiPosition::split()` だけが決める。8.2節）。
 手数は `Position::moveNumber()` に残り、`Position::apply()` で1つ進む。
 
 | メソッド | 返す値 |
@@ -2632,12 +2631,8 @@ struct MatchPlayers {
 
 **ソース**: `src/core/sfenutils.h`（ヘッダオンリー）
 
-SFEN 文字列の小さな関数群。`normalizeStart()` は文字列 `"startpos"` を標準初期配置のSFEN文字列に展開し、既にSFEN形式であればそのまま返す。ほかに平手のSFEN（`hirateSfen()`）、局面を比べるキー（`normalizeSfenKey()`。読めれば `Position::positionKey()` で、持ち駒は標準の並びになる）などがある。
-
-```cpp
-SfenUtils::normalizeStart("startpos")
-// → "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"
-```
+SFEN 文字列の小さな関数群。平手のSFEN（`hirateSfen()`）、SFEN の手番（`sideToMove()`）、局面を比べるキー（`normalizeSfenKey()`。読めれば `Position::positionKey()` で、持ち駒は標準の並びになる）がある。
+"startpos"・"position sfen ..." のような局面の文字列を SFEN にするのは `UsiPosition::sfenOf()`（8.2節。position コマンドと同じ語の分け方 `UsiPosition::split()` を使う）。
 
 #### ShogiNotation
 
@@ -3798,7 +3793,7 @@ processInfo(info)
 `score mate +` / `score mate -` のように手数を省く場合は `value` = 0、`mateCountKnown` = false、勝ち負けは `mateWin`（`+` が true）で、`mateText()` は `"+"` / `"-"` を返す。
 数でない値や知らない語は飛ばす。先頭の語が `info` でない行は `std::nullopt` になる。
 
-`UsiScore` は評価値の値型で、表示用の文字列は作らない。先手から見た値にするときは `negated()`、グラフや並べ替えに使う数は `chartValue()`（詰みは ±`kMateValue` = 31111）で得る。
+`UsiScore` は評価値の値型で、表示用の文字列は作らない。エンジンが出す手番側から見た値を先手から見た値にするのは `blackView(Turn 見ている側)` だけで（評価値グラフの点・棋譜解析の結果の表・CLI の analyze-kifu の `score_cp_black`）、先手から見た値を局面の手番側から見た値に戻すのは `viewedBy(Turn)`（定跡への登録）。相手側から見た値は `negated()`、グラフや並べ替えに使う数は `chartValue()`（詰みは ±`kMateValue` = 31111）で得る。
 
 #### UsiBestMove と UsiCheckmate
 
@@ -4300,6 +4295,15 @@ struct RecordLine {
 `usiPosition(ply)` は開始局面と ply 手目までの手を `UsiPosition::fromMoves()` で `UsiPosition`（`src/core/usiposition.h`）にする（手順が無い・指せない手があれば空）。
 `UsiPosition` は開始局面・指し手の列（position コマンドの moves）・指した後の局面（`position()`）・局面に至った直前の手（`lastMove()`）を持つ値で、
 `command()` が平手なら `position startpos moves ...`、それ以外は `position sfen ... moves ...` を返す。kifu 層の `RecordLine` が作るので、engine 層ではなく core 層に置く。
+
+position コマンド・局面の文字列の読み方は `UsiPosition::split(text)` だけが決める。返す `Words` は開始局面 `start`（`startpos` は平手の SFEN。ほかは書かれた SFEN の3つか4つの欄）と、その後の語 `moves`（指し手として読めるかは確かめない）。`position`・`sfen`・`moves` は省け、`position`・`sfen`・`startpos`・`moves` は大文字と小文字を区別しない。手数の欄は数字だけのときに限り、省かれていれば `Words::completeStart()` が手数 1 を補う。これを使うのは次の4つである。
+
+| 使う側 | 読み方 |
+|-------|-------|
+| `UsiPosition::parse()`（`Position::fromSfenLike()` も） | 開始局面を読み、後の語を指し手として順に指す。読めない・指せなければ `nullopt` |
+| `UsiPosition::sfenOf()` | 開始局面の SFEN だけを返す（指し手を含む・分けられない文字列はそのまま）。SFEN の検査（`SfenValidator`）・定跡の手数・対局の開始局面などが使う |
+| `UsiToSfenConverter::parse()` | 棋譜の USI 形式。後の語のうち終局のコード（`resign` など）で止め、指し手として読めない語は警告して飛ばす |
+| `KifuLoader::loadPositionFromSfen()` | `parse()` で局面を確かめてから開始局面にする（読めなければ棋譜を置き換えない） |
 
 | 取り出し方 | 中身 |
 |---------|------|
@@ -4844,7 +4848,7 @@ KifuNavigationState
 | `CsaToSfenConverter` | CSA (.csa) | コンピュータ将棋協会形式。PI/P1..P9による初期局面、`+`/`-` による指し手、`$` による対局情報を解析 | なし |
 | `JkfToSfenConverter` | JKF (.jkf) | JSON棋譜フォーマット。`header` / `initial` / `moves` の3セクション構造。分岐は `forks` 配列で表現 | あり |
 | `UsenToSfenConverter` | USEN (.usen) | URLセーフ短縮形式。base36エンコードされた指し手列（3文字=1手。符号表は `UsenCodec`）。`~(startPly).` で分岐区切り | あり |
-| `UsiToSfenConverter` | USI (.usi) | USI position コマンド文字列。`startpos moves ...` または `sfen ... moves ...` 形式 | なし |
+| `UsiToSfenConverter` | USI (.usi) | USI position コマンド文字列。`startpos moves ...` または `sfen ... moves ...` 形式（語の分け方は `UsiPosition::split()`） | なし |
 
 終局語は `TerminalCodes`（`formats/terminalcodes.h`）、手合割の名前と開始局面は `Handicaps`（`core/handicaps.h`）の表を共有する。
 
@@ -5688,7 +5692,7 @@ ShogiClock::timeUpdated()（tick・状態の変化・ShogiClock::notifyTimeUpdat
 
 評価値グラフの点（`EvaluationSeries`、`src/models/evaluationseries.h`）を持ち、点を足す・消す・系列の名前を付けるのはこのクラスだけである。グラフ（`EvaluationChartWidget`）は `setSeries()` で渡された点を描くだけで、点の追加・削除・名前の変化はモデルのシグナル（`scoreAdded`・`scoresTrimmed`・`labelsChanged`）で受ける。棋譜をたどるときは縦線を表示中の手数に合わせる。
 
-`EvaluationSeries` は評価値を先手から見た値で持つ（系列は2本）。エンジンの評価値はそれを出した側から見た値なので、先手から見た値への直しは `EvaluationSeries::blackView()` の1か所だけで行う。棋譜解析の点なら、解析した手順の末尾の手のノード ID（`analysisLineEnd()`）と見出しに出す手順の名前（`analysisLineName()`。「本譜」「分岐 N」）も持つ。
+`EvaluationSeries` は評価値を先手から見た値で持つ（系列は2本）。エンジンの評価値はそれを出した側から見た値なので、先手から見た値への直しは core の `UsiScore::blackView()` で行う（棋譜解析の結果の表・CLI と同じ）。棋譜解析の点なら、解析した手順の末尾の手のノード ID（`analysisLineEnd()`）と見出しに出す手順の名前（`analysisLineName()`。「本譜」「分岐 N」）も持つ。
 
 | メソッド | 説明 |
 |---------|------|
@@ -6020,7 +6024,7 @@ KifuFileController::chooseAndLoadKifuFile() など（画面からの読み込み
                                → UiStatePolicyManager::enableNavigationIfAllowed()
 ```
 
-同期版（`loadFile()`・`loadText()`・`loadPositionFromSfen()`）は自動化 API とテストが使い、失敗時は `errorOccurred` を出してから `false` を返す。読み込み中に別の読み込みを始めると、前の処理は取り消す（`cancelLoad()`）。
+同期版（`loadFile()`・`loadText()`・`loadPositionFromSfen()`）は自動化 API とテストが使い、失敗時は `errorOccurred` を出してから `false` を返す。`loadPositionFromSfen()` は position コマンドと同じ読み方（`UsiPosition::parse()`）で局面を確かめ、読めなければ棋譜を置き換えない。読み込み中に別の読み込みを始めると、前の処理は取り消す（`cancelLoad()`）。
 
 #### CsaGameSession — CSA通信対局の進行
 
@@ -6628,7 +6632,7 @@ CSAサーバー（[shogi-server](https://github.com/TadaoYamaoka/shogi-server)�
 - TCP/IPソケット（`QTcpSocket`）による接続の確立・切断
 - CSAプロトコルメッセージの解析と状態遷移
 - ログイン/ログアウト処理
-- Game_Summaryの受信と解析（時間設定・局面情報を含む）
+- Game_Summary の受け取り（行は `CsaGameSummaryReader` が読み、値 `CsaGameSummary` で知らせる）
 - 指し手の送受信と消費時間の抽出
 - 対局結果の判定（結果行は2行連続で受信: 事象行 + 結果行）
 
@@ -6669,13 +6673,13 @@ stateDiagram-v2
 
 #### 受信処理のアーキテクチャ
 
-TCPストリームはパケット境界と行境界が一致しないため、`m_receiveBuffer` にデータを蓄積し、改行文字（`\n`）で分割して1行ずつ `processLine()` に渡す（受信行の解析は `csaclient_parser.cpp`、意思表示・生コマンド・接続の維持は `csaclient_commands.cpp`）。
+TCPストリームはパケット境界と行境界が一致しないため、`m_receiveBuffer` にデータを蓄積し、改行文字（`\n`）で分割して1行ずつ `processLine()` に渡す。
 
 ```
 QTcpSocket::readyRead → onReadyRead() → m_receiveBuffer に蓄積
                                         → 改行で分割
                                         → processLine(line)
-                                            ├── processGameSummary()      [Game_Summary解析中]
+                                            ├── processGameSummary()      [Game_Summary の間。CsaGameSummaryReader::read()]
                                             ├── processLoginResponse()    [Connected状態]
                                             ├── processWaitingLine()      [LoggedIn・WaitingForGame・GameOver状態]
                                             ├── START: / REJECT:          [GameReady状態]
@@ -6686,7 +6690,7 @@ QTcpSocket::readyRead → onReadyRead() → m_receiveBuffer に蓄積
 
 #### Game_Summary解析
 
-Game_Summaryはセクション構造を持つ複合メッセージで、いまどの階層を読んでいるかを1つの列挙型で持って解析する。
+Game_Summaryはセクション構造を持つ複合メッセージで、読み取り器 `CsaGameSummaryReader`（`src/network/csagamesummaryreader.h`）が、いまどの階層を読んでいるかを1つの列挙型で持って読む。ソケットも接続の状態も持たないので、行を渡すだけで単体で試せる。
 
 ```
 BEGIN Game_Summary
@@ -6705,11 +6709,11 @@ BEGIN Game_Summary
 END Game_Summary
 ```
 
-読み取り位置は `enum class SummarySection`（`Outside`・`TopLevel`・`Time`・`TimeBlack`・`TimeWhite`・`Position`）の `m_summarySection` 1つで持つ。`Outside` 以外の間は、受信した行をすべて `processGameSummary()` に渡す。`BEGIN Time+` / `BEGIN Time-` は先手/後手の個別の持時間で、`TimeBlack` / `TimeWhite` で区別する。
+`CsaClient` は `BEGIN Game_Summary` を受けたら読み取り器を作り（`std::optional<CsaGameSummaryReader>`）、その間に受けた行をすべて `read()` に渡す。`read()` は状態 `Status` を返す: `Reading`（続きを待つ）・`Finished`（`END Game_Summary` まで読んだ。`summary()` を `GameReady` にして知らせる）・`TooLarge`（行の数 `kMaxLines` か大きさ `kMaxBytes` を超えた。切断する）。読み取り位置は読み取り器の中の `Section`（`TopLevel`・`Time`・`TimeBlack`・`TimeWhite`・`Position`）で、`BEGIN Time+` / `BEGIN Time-` は先手/後手の個別の持時間なので `TimeBlack` / `TimeWhite` で区別する。
 
-#### GameSummary構造体
+#### CsaGameSummary 構造体
 
-サーバーから受信した対局条件を保持する。
+サーバーから受信した対局条件を保持する値（`src/network/csagamesummary.h`。既定値は宣言に書き、`= {}` で作り直す）。
 
 | フィールド | 型 | 説明 |
 |-----------|-----|------|
@@ -6722,12 +6726,12 @@ END Game_Summary
 | `toMove` | `Turn` | 最初の手番（`To_Move`。通常は `Turn::Black`） |
 | `rematchOnDraw` | `bool` | 引き分け時に再対局するか |
 | `maxMoves` | `int` | 最大手数（0=無制限） |
-| `timeBlack` / `timeWhite` | `CsaClient::TimeControl` | 先手/後手の持時間（`timeUnit`・`totalTime`・`byoyomi`・`increment`・`delay` などを単位時間で持つ）。共通の `Time` は両方に入れ、`Time+` / `Time-` は該当側だけを上書きする |
+| `timeBlack` / `timeWhite` | `CsaGameSummary::Time` | 先手/後手の持時間（`timeUnit`・`totalTime`・`byoyomi`・`increment`・`delay` などを単位時間で持つ）。共通の `Time` は両方に入れ、`Time+` / `Time-` は該当側だけを上書きする |
 | `hasIndividualTime` | `bool` | `Time+` / `Time-` の個別設定があるか |
 | `positionLines` | `QStringList` | 初期局面（CSA形式） |
 | `moves` / `moveConsumedTimes` | `QStringList` / `QList<int>` | 途中局面からの再開用指し手リストと、各手の消費時間 |
 
-主な関数: `isBlackSide()`（こちらが先手（下手）か）、`movesFirst()`（こちらが最初に指すか）、`timeControl()`（持ち時間の決まりを時計と同じ `::TimeControl` のミリ秒で返す。時間無制限なら値はすべて 0）、`isTimeUnlimited()`、`totalTimeMs(black)`・`byoyomiMs(black)`・`incrementMs(black)`（単位時間をミリ秒に換算）。
+主な関数: `isBlackSide()`（こちらが先手（下手）か）、`movesFirst()`（こちらが最初に指すか）、`timeControl()`（持ち時間の決まりを時計と同じ `TimeControl` のミリ秒で返す。時間無制限なら値はすべて 0）、`isTimeUnlimited()`、`totalTimeMs(black)`・`byoyomiMs(black)`・`incrementMs(black)`（単位時間をミリ秒に換算。1つの値は `kMaxTimeMs`（7日）まで）、`consumedUnits(line)`（指し手・意思表示の行の `,T12` の単位時間の数。再開局面の指し手と対局中の行で共通）。
 
 対局中にいまこちらの手番かどうかは `CsaClient::isMyTurn()` が持つ。`START:` を受けたときに `movesFirst()` から決め、指し手行（自分の手の確認を含む）を受けるたびに切り替える。指し手・意思表示の確認待ちは `awaitingMoveConfirmation()`。
 
@@ -6782,6 +6786,14 @@ CsaClientが発行するシグナルはすべて `CsaGameCoordinator` のスロ�
 | `Chudan` | `#CHUDAN` | 中断 |
 | `IllegalAction` | `#ILLEGAL_ACTION` | 不正行為 |
 | `Unknown` | — | 不明 |
+
+結果と原因の表示名（「勝ち」「投了」など）は network に置かず、結果を画面に出す ui の `CsaGameSession::resultText()`・`causeText()` が持つ（ステータスバーと結果のダイアログ）。
+
+#### ログインの規則（CsaLogin）
+
+**ソース**: `src/network/csalogin.h/.cpp`
+
+ID・パスワードの規則（CSA サーバープロトコル 3.1。ID は英数字・`_`・`-` で32文字以内、パスワードは空白を含まない32文字以内の7ビット ASCII）と、shogi-server のゲーム名の形（`名前-持時間-秒読み`、末尾の `F` はフィッシャー）を持つ。`CsaLogin::check(Credentials)` が最初に見つけた問題を `Issue`（`MissingHost`・`MissingId`・`MissingPassword`・`Whitespace`・`InvalidId`・`InvalidPassword`・`InvalidGameName`）で返し、接続ダイアログ（`CsaGameDialog`）はそれを文に直すだけである。LOGIN に送るパスワード欄（`ゲーム名[-b|-w],パスワード`）は `CsaLogin::passwordField()` が作る。
 
 ### 12.3 CsaGameCoordinator — CSA通信対局コーディネータ
 
@@ -8195,7 +8207,7 @@ sequenceDiagram
 | `CsaGameSession` | 通信対局の1回の接続を画面に反映する。接続ダイアログの値で `CsaGameCoordinator` に開始を頼み（待機ダイアログ）、対局の開始・手番・終局を盤の向き・ステータスバー・結果のダイアログへ映す（`src/ui/coordinators/`） |
 | `GameSession` | 通信対局の棋譜（作り直し・対局者・持ち時間・開始と終了の日時・着手の行・自動保存）を、ローカル対局と同じ棋譜の受け手（`MatchRecordSink`）として受け持つ。投了・中断・入玉宣言は `CsaGameChannel` 経由でサーバーへ送る（`src/app/`） |
 | `CsaGameCoordinator` | CSA通信対局の進行管理（合成ルートが起動時に1つ作る）。1局の進行（持ち時間・手数・手順）は `CsaGameProgress` に持ち、手順は `record`（`RecordLine`）1つだけ。自分の手番は持たず `CsaClient::isMyTurn()` を見る。棋譜は受け手に書き、動作状態 `DuringCsaGame` は自分で持つ（`MatchCoordinator` と同じ順） |
-| `CsaClient` | CSAプロトコルのTCP/IP通信実装。メッセージの送受信と状態管理。Game_Summary は `GameSummary`（`myTurn` は `std::optional<Turn>`、`toMove` は `Turn`）にまとめる |
+| `CsaClient` | CSAプロトコルのTCP/IP通信実装。メッセージの送受信と状態管理。Game_Summary は `CsaGameSummaryReader` が読んで値 `CsaGameSummary`（`myTurn` は `std::optional<Turn>`、`toMove` は `Turn`）にする |
 | `MatchEngineSeat` | エンジンで指すときの `Usi` の起動・知らせ・終局の手順（ローカル対局と共有。エンジンの枠は `EngineSlots` を使う） |
 | `GameBoard` | 盤面データの更新と、着手確定の知らせ（`moveCommitted`） |
 
@@ -9333,6 +9345,8 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | CsaGameCoordinator | C | network | CSAネットワーク対局の統合調整。自分のエンジンの時間の出どころ（`MatchTimeSource`）も兼ねる | 第12章 |
 | CsaGameDialog | C | dialogs | CSA対局接続ダイアログ | 第11章 |
 | CsaGameProgress | S | network | 通信対局1局ぶんの進行（手順 `RecordLine`・持ち時間・消費時間） | 第12章 |
+| CsaGameSummary | S | network | 対局条件（Game_Summary）の値。持時間は `CsaGameSummary::Time` | 第12章 |
+| CsaGameSummaryReader | C | network | Game_Summary を1行ずつ読み、読み終え・上限超えを状態で返す | 第12章 |
 | CsaGameSession | C | ui/coordinators | 通信対局の開始（待機ダイアログ）と、進行の画面への反映（棋譜・自動保存は `GameSession`） | 第10章, 第12章 |
 | CsaLogPanel | C | widgets | CSA通信ログドックの中身（`LogPanel` の派生。接続状態・接続中だけ送れるコマンド） | 第11章, 第12章 |
 | LogPanel | C | widgets | 通信ログのパネルの共通部分（USI・CSA） | 第11章 |
@@ -9706,10 +9720,13 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 
 | ファイル | 解説章 | 内容 |
 |---------|--------|------|
-| csaclient | 第12章 | CSAプロトコルクライアント（csaclient_parser・csaclient_commands に分割） |
+| csaclient | 第12章 | CSAプロトコルクライアント |
 | csagamecoordinator | 第12章 | CSA対局調整（csagamecoordinator_moves・_setup に分割）。自分のエンジンの時間の出どころ（`MatchTimeSource`）も兼ねる |
 | csagamechannel | 第6章, 第12章 | 通信対局の窓口（`GameChannel` の実装） |
 | csagameprogress | 第12章 | 1局ぶんの進行の値型 |
+| csagamesummary | 第12章 | 対局条件（Game_Summary）の値（`CsaGameSummary`） |
+| csagamesummaryreader | 第12章 | Game_Summary を1行ずつ読む（`CsaGameSummaryReader`） |
+| csalogin | 第12章 | ログインの規則（`CsaLogin::check`・`passwordField`） |
 | csamoveconverter | 第12章 | CSA と USI の指し手の変換（`toCsa`・`toUsi`） |
 
 #### style/（第11章, 第16章）

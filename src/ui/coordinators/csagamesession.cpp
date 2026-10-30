@@ -87,13 +87,13 @@ void CsaGameSession::onGameStarted(const QString& blackName, const QString& whit
 
 void CsaGameSession::onGameEnded(CsaClient::GameResult result, CsaClient::GameEndCause cause, int consumedTimeMs)
 {
-    const QString resultText = CsaClient::gameResultText(result);
-    const QString causeText = CsaClient::gameEndCauseText(cause);
-    qCDebug(lcUi) << "onGameEnded:" << resultText << "(" << causeText << ")" << "consumedTimeMs=" << consumedTimeMs;
+    const QString shownResult = resultText(result);
+    const QString shownCause = causeText(cause);
+    qCDebug(lcUi) << "onGameEnded:" << shownResult << "(" << shownCause << ")" << "consumedTimeMs=" << consumedTimeMs;
 
     // 棋譜の確定・終了日時・自動保存と待機への切り替えは、司令塔がこの知らせの前に済ませている
-    showGameEndDialog(tr("対局終了"), tr("対局が終了しました。\n\n結果: %1\n原因: %2").arg(resultText, causeText));
-    showStatus(tr("対局終了: %1 (%2)").arg(resultText, causeText), 5000);
+    showGameEndDialog(tr("対局終了"), tr("対局が終了しました。\n\n結果: %1\n原因: %2").arg(shownResult, shownCause));
+    showStatus(tr("対局終了: %1 (%2)").arg(shownResult, shownCause), 5000);
 }
 
 void CsaGameSession::onTurnChanged(bool isMyTurn)
@@ -112,6 +112,36 @@ void CsaGameSession::onLogMessage(const QString& message, bool isError)
 // ============================================================
 // 表示
 // ============================================================
+
+QString CsaGameSession::resultText(CsaClient::GameResult result)
+{
+    switch (result) {
+    case CsaClient::GameResult::Win:      return tr("勝ち");
+    case CsaClient::GameResult::Lose:     return tr("負け");
+    case CsaClient::GameResult::Draw:     return tr("引き分け");
+    case CsaClient::GameResult::Censored: return tr("打ち切り");
+    case CsaClient::GameResult::Chudan:   return tr("中断");
+    case CsaClient::GameResult::Unknown:  break;
+    }
+    return tr("不明");
+}
+
+QString CsaGameSession::causeText(CsaClient::GameEndCause cause)
+{
+    switch (cause) {
+    case CsaClient::GameEndCause::Resign:         return tr("投了");
+    case CsaClient::GameEndCause::TimeUp:         return tr("時間切れ");
+    case CsaClient::GameEndCause::IllegalMove:    return tr("反則");
+    case CsaClient::GameEndCause::Sennichite:     return tr("千日手");
+    case CsaClient::GameEndCause::OuteSennichite: return tr("連続王手の千日手");
+    case CsaClient::GameEndCause::Jishogi:        return tr("入玉宣言");
+    case CsaClient::GameEndCause::MaxMoves:       return tr("手数制限");
+    case CsaClient::GameEndCause::Chudan:         return tr("中断");
+    case CsaClient::GameEndCause::IllegalAction:  return tr("不正行為");
+    case CsaClient::GameEndCause::Unknown:        break;
+    }
+    return tr("不明");
+}
 
 void CsaGameSession::showGameEndDialog(const QString& title, const QString& message)
 {

@@ -9,6 +9,7 @@
 
 #include "shogiposition.h"
 #include "shogitypes.h"
+#include "usiposition.h"
 
 /// SFEN文字列の正規化・変換ユーティリティ
 namespace SfenUtils {
@@ -39,28 +40,6 @@ inline Turn sideToMove(const QString& sfen)
     return sfen.section(QLatin1Char(' '), 1, 1, QString::SectionSkipEmpty) == QLatin1String("w") ? Turn::White : Turn::Black;
 }
 
-/// "startpos" を標準初期配置のSFEN文字列に展開する（既にSFENならそのまま返す）
-inline QString normalizeStart(const QString& startPositionStr)
-{
-    QString trimmed = startPositionStr.trimmed();
-    if (trimmed == QStringLiteral("startpos")) {
-        return hirateSfen();
-    }
-    return trimmed;
-}
-
-/// "position ..." 接頭辞を除去し、純粋な SFEN/startpos 文字列に正規化する
-inline QString normalizePositionLikeSfen(const QString& positionLike)
-{
-    QString sfen = positionLike.trimmed();
-    if (sfen.startsWith(QStringLiteral("position sfen "))) {
-        sfen = sfen.mid(14).trimmed();
-    } else if (sfen.startsWith(QStringLiteral("position "))) {
-        sfen = sfen.mid(9).trimmed();
-    }
-    return normalizeStart(sfen);
-}
-
 /**
  * @brief 比較用キー（`board turn stand`。手数を含めない）へ正規化する
  *
@@ -70,9 +49,8 @@ inline QString normalizePositionLikeSfen(const QString& positionLike)
  */
 inline QString normalizeSfenKey(const QString& sfenLike)
 {
-    const QString normalized = normalizePositionLikeSfen(sfenLike);
-    if (const auto position = Position::fromSfenLike(normalized)) return position->positionKey();
-    return normalized.section(QLatin1Char(' '), 0, 2, QString::SectionSkipEmpty);
+    if (const auto position = Position::fromSfenLike(sfenLike)) return position->positionKey();
+    return UsiPosition::sfenOf(sfenLike).section(QLatin1Char(' '), 0, 2, QString::SectionSkipEmpty);
 }
 
 } // namespace SfenUtils

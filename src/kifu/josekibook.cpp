@@ -6,6 +6,7 @@
 #include "kifuexportcommon.h"
 #include "logcategories.h"
 #include "sfenutils.h"
+#include "usiposition.h"
 #include "usimove.h"
 
 #include <QCoreApplication>
@@ -34,7 +35,7 @@ constexpr char kDropLetters[] = "PLNSGBR";
 std::optional<int> plyOf(const QString &sfen)
 {
     const QString field =
-        SfenUtils::normalizePositionLikeSfen(sfen).section(QLatin1Char(' '), 3, 3, QString::SectionSkipEmpty);
+        UsiPosition::sfenOf(sfen).section(QLatin1Char(' '), 3, 3, QString::SectionSkipEmpty);
     bool ok = false;
     const int ply = field.toInt(&ok);
     if (!ok || ply < 1) return std::nullopt;

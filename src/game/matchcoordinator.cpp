@@ -17,6 +17,7 @@
 #include "matchengineseat.h"
 #include "matchrecordsink.h"
 #include "sfenutils.h"
+#include "usiposition.h"
 #include "shogiboard.h"
 #include "shogiclock.h"
 #include "gameboard.h"
@@ -63,7 +64,7 @@ void MatchCoordinator::start(const StartOptions& opt)
 
     StartOptions resolved = opt;
     if (resolved.recordLine.isEmpty()) {
-        const QString initial = SfenUtils::normalizePositionLikeSfen(opt.recordLine.startSfen);
+        const QString initial = UsiPosition::sfenOf(opt.recordLine.startSfen);
         resolved.recordLine.startSfen = initial.isEmpty() ? SfenUtils::hirateSfen() : initial;
     }
     resolved.recordLine = resolved.recordLine.upTo(resolved.recordLine.currentPly);

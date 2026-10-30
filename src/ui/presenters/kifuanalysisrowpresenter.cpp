@@ -3,12 +3,11 @@
 
 #include "kifuanalysisrowpresenter.h"
 
-#include "evaluationseries.h"
 #include "kifmovetext.h"
 #include "kifuanalysislistmodel.h"
 #include "kifuanalysisrow.h"
 #include "logcategories.h"
-#include "sfenutils.h"
+#include "usiposition.h"
 
 #include <QString>
 
@@ -25,11 +24,11 @@ UsiScore KifuAnalysisRowPresenter::append(const PlyAnalysis& result)
     const UsiScore score = result.book ? UsiScore{} : result.score;
 
     const QString position = m_refs.line && ply <= m_refs.line->moveCount()
-        ? SfenUtils::normalizePositionLikeSfen(m_refs.line->sfenAt(ply)) : QString();
+        ? UsiPosition::sfenOf(m_refs.line->sfenAt(ply)) : QString();
     const bool isGoteTurn = position.isEmpty() ? ply % 2 == 1
         : position.section(QLatin1Char(' '), 1, 1) == QStringLiteral("w");
-    // エンジンは手番側から見た評価値を出す（先手から見た値への直しは評価値グラフの点と同じ規則）
-    const UsiScore blackScore = EvaluationSeries::blackView(isGoteTurn ? Turn::White : Turn::Black, score);
+    // エンジンは手番側から見た評価値を出すので、先手から見た値にする
+    const UsiScore blackScore = score.blackView(isGoteTurn ? Turn::White : Turn::Black);
     std::optional<int> difference;
     if (blackScore.isCp()) {
         if (m_previousCp) difference = blackScore.value - *m_previousCp;
@@ -50,9 +49,9 @@ UsiScore KifuAnalysisRowPresenter::append(const PlyAnalysis& result)
     if (!result.book) resultRow.pv = result.pv;
     resultRow.depth = result.book ? -1 : result.depth;
     if (m_refs.line && ply > 0 && ply <= m_refs.line->moveCount() + 1)
-        resultRow.beforeSfen = SfenUtils::normalizePositionLikeSfen(m_refs.line->sfenAt(ply - 1));
+        resultRow.beforeSfen = UsiPosition::sfenOf(m_refs.line->sfenAt(ply - 1));
     if (m_refs.line && ply >= 0 && ply <= m_refs.line->moveCount())
-        resultRow.sfen = SfenUtils::normalizePositionLikeSfen(m_refs.line->sfenAt(ply));
+        resultRow.sfen = UsiPosition::sfenOf(m_refs.line->sfenAt(ply));
     if (m_refs.line) resultRow.lastUsiMove = m_refs.line->usiMove(ply).toString();
 
     // 候補手（前の行の読み筋の最初の指し手。前の行の局面に至った手と同じマスへの手は「同　」）

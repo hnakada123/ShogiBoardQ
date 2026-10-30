@@ -6,7 +6,7 @@
 #include "terminalcodes.h"
 #include "kiflinebuilder.h"
 #include "kifutextdecoder.h"
-#include "sfenutils.h"
+#include "usiposition.h"
 
 #include <QRegularExpression>
 
@@ -66,26 +66,6 @@ static bool looksLikeSfenBoard(const QString& token)
     return Position::fromSfen(token + QStringLiteral(" b - 1")).has_value();
 }
 
-static bool isTurnToken(const QString& token)
-{
-    return equalsKeyword(token, "b") || equalsKeyword(token, "w");
-}
-
-// 持ち駒トークン: SFEN の持ち駒の欄として読める（"-" または枚数付き駒文字の並び。例: "2P3p", "S"）
-static bool isHandsToken(const QString& token)
-{
-    return !token.isEmpty() && Position::fromSfen(QStringLiteral("9/9/9/9/9/9/9/9/9 b %1 1").arg(token)).has_value();
-}
-
-static bool isPlyToken(const QString& token)
-{
-    if (token.isEmpty()) return false;
-    for (const QChar c : token) {
-        if (c < QLatin1Char('0') || c > QLatin1Char('9')) return false;
-    }
-    return true;
-}
-
 static QStringList splitTokens(const QString& text)
 {
     static const QRegularExpression kWhitespaceRe(QStringLiteral("\\s+"));
@@ -115,20 +95,28 @@ KifuParseOutcome UsiToSfenConverter::parse(QStringView text, const ParseOptions&
     KifuParseOutcome outcome;
     ParseReport report(options);
     QString content;
-    QString baseSfen;
-    QStringList usiMoves;
-    QString terminalCode;
     QString warn;
-    if (!selectPositionLine(KifuTextDecoder::splitLines(text.toString()), content, &warn)
-        || !parseUsiPositionString(content, baseSfen, usiMoves, &terminalCode, &warn)) {
+    if (!selectPositionLine(KifuTextDecoder::splitLines(text.toString()), content, &warn)) {
         outcome.warning = warn;
         return outcome;
     }
-    if (!warn.isEmpty()) report.warn(warn);
-    const std::optional<Position> start = Position::fromSfen(baseSfen);
+    // 開始局面と後の語の分け方は position コマンドと同じ（UsiPosition::split）
+    const std::optional<UsiPosition::Words> words = UsiPosition::split(content);
+    const std::optional<Position> start = words ? Position::fromSfen(words->completeStart()) : std::nullopt;
     if (!start) {
         outcome.warning = QStringLiteral("Unknown USI position format: %1\n").arg(content.left(80));
         return outcome;
+    }
+    // 指し手の列。終局理由のコードの後は読まず、指し手として読めない語は飛ばす
+    QStringList usiMoves;
+    QString terminalCode;
+    for (const QString& token : words->moves) {
+        if (TerminalCodes::isUsiCode(token)) {
+            terminalCode = token.toLower();
+            break;
+        }
+        if (UsiMove::parse(token)) usiMoves.append(token);
+        else report.warn(QStringLiteral("Skipping unknown token: %1\n").arg(token));
     }
     outcome.startKind = *start == Position::hirate() ? StartKind::Handicap : StartKind::Specified;
     outcome.record.mainline.startSfen = start->toSfen();
@@ -184,74 +172,5 @@ bool UsiToSfenConverter::selectPositionLine(const QStringList& lines, QString& c
     }
 
     content = firstNonEmpty;
-    return true;
-}
-
-bool UsiToSfenConverter::parseUsiPositionString(const QString& usiStr,
-                                                 QString& baseSfen,
-                                                 QStringList& usiMoves,
-                                                 QString* terminalCode,
-                                                 QString* warn)
-{
-    baseSfen.clear();
-    usiMoves.clear();
-    if (terminalCode) terminalCode->clear();
-
-    const QStringList tokens = splitTokens(usiStr);
-    qsizetype i = 0;
-
-    // "position" は省略可
-    if (i < tokens.size() && equalsKeyword(tokens.at(i), "position")) ++i;
-
-    // 開始局面: startpos | [sfen] <board> <turn> <hands> [<ply>]
-    if (i < tokens.size() && equalsKeyword(tokens.at(i), "startpos")) {
-        baseSfen = SfenUtils::hirateSfen();
-        ++i;
-    } else {
-        if (i < tokens.size() && equalsKeyword(tokens.at(i), "sfen")) ++i;
-
-        const bool hasSfenFields = (i + 3 <= tokens.size())
-                                   && looksLikeSfenBoard(tokens.at(i))
-                                   && isTurnToken(tokens.at(i + 1))
-                                   && isHandsToken(tokens.at(i + 2));
-        if (!hasSfenFields) {
-            if (warn) {
-                *warn += QStringLiteral("Unknown USI position format: %1\n")
-                             .arg(usiStr.trimmed().left(80));
-            }
-            return false;
-        }
-
-        const QString board = tokens.at(i);
-        const QString turn = tokens.at(i + 1).toLower();
-        const QString hands = tokens.at(i + 2);
-        i += 3;
-
-        // 手数は省略可（既定 1）
-        QString ply = QStringLiteral("1");
-        if (i < tokens.size() && isPlyToken(tokens.at(i))) {
-            ply = tokens.at(i);
-            ++i;
-        }
-        baseSfen = QStringLiteral("%1 %2 %3 %4").arg(board, turn, hands, ply);
-    }
-
-    // 指し手列（"moves" キーワードは省略可）
-    if (i < tokens.size() && equalsKeyword(tokens.at(i), "moves")) ++i;
-
-    for (; i < tokens.size(); ++i) {
-        const QString& token = tokens.at(i);
-        if (TerminalCodes::isUsiCode(token)) {
-            // 終局理由コード。以降は無視
-            if (terminalCode) *terminalCode = token.toLower();
-            break;
-        }
-        if (UsiMove::parse(token)) {
-            usiMoves.append(token);
-        } else if (warn) {
-            *warn += QStringLiteral("Skipping unknown token: %1\n").arg(token);
-        }
-    }
-
     return true;
 }

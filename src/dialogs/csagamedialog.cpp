@@ -5,22 +5,13 @@
 #include "dialogfontscale.h"
 #include "ui_csagamedialog.h"
 #include "changeenginesettingsdialog.h"
+#include "csalogin.h"
 #include "engineselector.h"
 #include "networksettings.h"
 #include <QDir>
 #include <QFileDialog>
 #include <QMessageBox>
-#include <QRegularExpression>
 #include <QSignalBlocker>
-
-namespace {
-/// shogi-server のゲーム名（名前-持時間-秒読み、末尾の F はフィッシャー）
-const QRegularExpression& gameNamePattern()
-{
-    static const QRegularExpression pattern(QStringLiteral("^[0-9A-Za-z_@.\\-]+-\\d+-\\d+F?$"));
-    return pattern;
-}
-} // namespace
 
 CsaGameDialog::CsaGameDialog(QWidget *parent)
     : QDialog(parent)
@@ -133,29 +124,21 @@ QString CsaGameDialog::validationMessage() const
     if (ui->radioButtonEngine->isChecked() && !m_engineSelector->selected()) {
         return tr("「設定」→「エンジン設定」からエンジンを登録してください。");
     }
-    const QString host = ui->lineEditHost->text().trimmed();
-    const QString id = ui->lineEditId->text().trimmed();
-    const QString password = ui->lineEditPassword->text();
-    if (host.isEmpty()) return tr("接続先ホストを入力してください。");
-    if (id.isEmpty()) return tr("IDを入力してください。");
-    if (password.isEmpty()) return tr("パスワードを入力してください。");
-    static const QRegularExpression whitespace(QStringLiteral("\\s"));
-    if (host.contains(whitespace) || id.contains(whitespace) || password.contains(whitespace)) {
-        return tr("接続先ホスト・ID・パスワードに空白や改行は使用できません。");
-    }
-    // CSAサーバープロトコル 3.1: ID は英数字・「_」・「-」で32バイト以内、
-    // パスワードは空白を含まない32バイト以内の7ビットASCII
-    static const QRegularExpression idPattern(QStringLiteral("^[0-9A-Za-z_-]{1,32}$"));
-    if (!idPattern.match(id).hasMatch()) {
+    // ログインの規則は network の CsaLogin が決め、ここでは文に直すだけ
+    const CsaLogin::Credentials credentials{ui->lineEditHost->text().trimmed(), ui->lineEditId->text().trimmed(),
+                                            ui->lineEditPassword->text(), ui->lineEditGameName->text().trimmed()};
+    switch (CsaLogin::check(credentials)) {
+    case CsaLogin::Issue::MissingHost: return tr("接続先ホストを入力してください。");
+    case CsaLogin::Issue::MissingId: return tr("IDを入力してください。");
+    case CsaLogin::Issue::MissingPassword: return tr("パスワードを入力してください。");
+    case CsaLogin::Issue::Whitespace: return tr("接続先ホスト・ID・パスワードに空白や改行は使用できません。");
+    case CsaLogin::Issue::InvalidId:
         return tr("IDは英数字・「_」・「-」のみを使い、32文字以内で入力してください。");
-    }
-    static const QRegularExpression passwordPattern(QStringLiteral("^[\\x21-\\x7e]{1,32}$"));
-    if (!passwordPattern.match(password).hasMatch()) {
+    case CsaLogin::Issue::InvalidPassword:
         return tr("パスワードは半角の英数字・記号のみを使い、32文字以内で入力してください。");
-    }
-    const QString gameName = ui->lineEditGameName->text().trimmed();
-    if (!gameName.isEmpty() && !gameNamePattern().match(gameName).hasMatch()) {
+    case CsaLogin::Issue::InvalidGameName:
         return tr("ゲーム名は「名前-持時間-秒読み」の形式で入力してください（例: floodgate-300-10F）。");
+    case CsaLogin::Issue::None: break;
     }
     if (ui->checkBoxAutoSave->isChecked() && ui->lineEditAutoSaveDir->text().trimmed().isEmpty()) {
         return tr("棋譜の自動保存先フォルダを指定してください。");
@@ -256,8 +239,8 @@ CsaGameDialog::Selection CsaGameDialog::selection() const
     const std::optional<Turn> preferred = turn == TurnPreference::Black ? std::optional<Turn>(Turn::Black)
         : turn == TurnPreference::White                                 ? std::optional<Turn>(Turn::White)
                                                                         : std::nullopt;
-    start.password = CsaClient::loginPassword(ui->lineEditPassword->text(), ui->lineEditGameName->text().trimmed(),
-                                              preferred);
+    start.password = CsaLogin::passwordField(ui->lineEditPassword->text(), ui->lineEditGameName->text().trimmed(),
+                                             preferred);
     if (ui->radioButtonHuman->isChecked()) {
         start.playerType = CsaGameCoordinator::PlayerType::Human;
     } else {

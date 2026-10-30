@@ -84,7 +84,7 @@ QString CsaGameCoordinator::validateMoveText(const QString& move) const
 // 時計
 // ============================================================
 
-void CsaGameCoordinator::startDisplayClock(ShogiClock* clock, const CsaClient::GameSummary& summary,
+void CsaGameCoordinator::startDisplayClock(ShogiClock* clock, const CsaGameSummary& summary,
                                            qint64 blackRemainingMs, qint64 whiteRemainingMs)
 {
     if (!clock) return;

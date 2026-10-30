@@ -22,7 +22,7 @@
  * 盤面・時計・サーバーとのやり取りは持たない（GUI やソケットなしで試せる）。
  */
 struct CsaGameProgress {
-    CsaClient::GameSummary summary;  ///< 受信した対局条件
+    CsaGameSummary summary;  ///< 受信した対局条件
     bool isBlackSide = true;         ///< 自分が先手か
 
     /// この対局の手順（開始局面と指された手。再開局面の手を含み、終局の行は含めない）
@@ -35,7 +35,7 @@ struct CsaGameProgress {
     int resignConsumedMs = 0;        ///< 自分の投了時に時計から測った消費時間
 
     /// 対局条件を受けて、前局の記録を消す
-    static CsaGameProgress forSummary(const CsaClient::GameSummary& summary);
+    static CsaGameProgress forSummary(const CsaGameSummary& summary);
 
     /**
      * @brief 再開局面（仕様 3.2.3）の持ち時間を求める

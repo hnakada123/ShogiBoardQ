@@ -42,12 +42,36 @@ public:
      */
     static std::optional<QList<UsiPosition>> alongMoves(QStringView startSfen, const QList<UsiMove>& moves,
                                                         int fromPly, int toPly);
+    /// position コマンドを語に分けた値（局面・指し手として読めるかは確かめない）
+    struct Words {
+        /// 開始局面（"startpos" は平手の SFEN。ほかは書かれた SFEN の3つか4つの欄を空白1つでつないだもの）
+        QString start;
+        /// 開始局面の後の語（"moves" は除く）
+        QStringList moves;
+        /// 手数の欄を省いた開始局面に手数 1 を補った SFEN
+        QString completeStart() const;
+    };
     /**
-     * @brief position コマンド（"position startpos moves ..." / "position sfen ... moves ..."）を読む
+     * @brief position コマンド（"position startpos moves ..." / "position sfen ... moves ..."）を語に分ける
      *
-     * "position " を省いた形・SFEN だけの形（手数を省いた3つの欄も）も受け付ける。読めなければ nullopt を返し、error に理由を入れる
+     * position コマンド・局面の文字列の読み方はここだけで決める（parse・sfenOf・棋譜の USI 形式の読み込みが使う）。
+     * "position"・"sfen"・"moves" は省け、"position"・"sfen"・"startpos"・"moves" は大文字と小文字を区別しない。
+     * SFEN は盤・手番・持ち駒の3つの欄と、数字だけなら手数の欄。開始局面の欄が3つに足りなければ nullopt
+     */
+    static std::optional<Words> split(QStringView text);
+    /**
+     * @brief position コマンドを読む（split で分け、開始局面から手を順に指す）
+     *
+     * 読めない・指せない手があれば nullopt を返し、error に理由を入れる
      */
     static std::optional<UsiPosition> parse(QStringView text, QString* error = nullptr);
+    /**
+     * @brief 局面の文字列（"position"・"sfen" の接頭辞・"startpos" を含んでよい）の SFEN
+     *
+     * "startpos" は平手の SFEN にし、手数を省いた形はそのまま返す。指し手を含むか語に分けられなければ、
+     * 前後の空白を除いた文字列のまま返す（局面として読めるかは確かめない）
+     */
+    static QString sfenOf(QStringView text);
 
     bool isEmpty() const { return !m_valid; }
 

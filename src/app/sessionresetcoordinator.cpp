@@ -10,7 +10,7 @@
 #include "kifudocument.h"
 #include "kifuloader.h"
 #include "livegamesession.h"
-#include "sfenutils.h"
+#include "usiposition.h"
 
 KifuBranchNode* SessionResetCoordinator::prepareGameStart(const GameStartPreparation& preparation)
 {
@@ -32,7 +32,7 @@ KifuBranchNode* SessionResetCoordinator::prepareGameStart(const GameStartPrepara
         // 新しい棋譜（前の棋譜の対局の記録・上書き保存先は残さない）。対局情報は利用者が対局の前に
         // 書いた項目（棋戦・場所など）を残し、対局者・日時・持ち時間は対局の開始で作り直す。
         // 評価値グラフとエンジンの表示は、文書の置き換えを受けて消える
-        m_deps.document->startNew(SfenUtils::normalizeStart(preparation.rootSfen), /*keepHeader=*/true);
+        m_deps.document->startNew(UsiPosition::sfenOf(preparation.rootSfen), /*keepHeader=*/true);
         node = tree->root();
     } else {
         // 現在局面から続けるときは、それまでの評価値を残す

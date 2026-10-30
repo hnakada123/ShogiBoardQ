@@ -316,7 +316,7 @@ void CsaGameCoordinator::onGameStarted(const QString& gameId)
 
     if (!setupInitialPosition()) return;
 
-    const CsaClient::GameSummary& summary = m_progress.summary;
+    const CsaGameSummary& summary = m_progress.summary;
     const bool myTurn = m_client->isMyTurn();
 
     setupClock();
@@ -386,10 +386,8 @@ void CsaGameCoordinator::onClientGameEnded(CsaClient::GameResult result, CsaClie
         }
     }
 
-    const QString resultStr = CsaClient::gameResultText(result);
-    const QString causeStr = CsaClient::gameEndCauseText(cause);
-
-    emit logMessage(tr("対局終了: %1 (%2)").arg(resultStr, causeStr));
+    // 結果の表示（ステータスバー・ダイアログ）は gameEnded を受ける ui の CsaGameSession が出す
+    qCInfo(lcNetwork) << "Game ended:" << result << cause;
     setPhase(Phase::Ended);
 
     // 終局行を棋譜へ書く（対局の手順は終局の行を含めない）

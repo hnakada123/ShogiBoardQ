@@ -7,10 +7,13 @@
 #include <QMetaType>
 #include <QString>
 
+#include "shogitypes.h"
+
 /**
  * @brief 評価値（score cp / score mate とその境界）
  *
- * エンジンの info 行の値は手番側から見た値。先手から見た値にするときは negated() を使う。
+ * エンジンの info 行の値は手番側から見た値。先手から見た値への直しは blackView() だけで行い、
+ * 先手から見た値を局面の手番側から見た値に戻すのは viewedBy()。
  * 表示用の文字列はここでは作らない（表示する側のモデルが作る）。
  */
 struct UsiScore {
@@ -62,6 +65,11 @@ struct UsiScore {
 
     /// 相手側から見た値（評価値と詰みの勝ち負けを反転し、上限・下限を入れ替える）
     UsiScore negated() const;
+
+    /// viewpoint の側から見たこの値を、先手から見た値にする（後手から見た値は反転する）
+    UsiScore blackView(Turn viewpoint) const { return viewpoint == Turn::White ? negated() : *this; }
+    /// 先手から見たこの値を、side の側から見た値にする（blackView の逆）
+    UsiScore viewedBy(Turn side) const { return blackView(side); }
 
     /// グラフ・並べ替えに使う数（Cp は評価値、Mate は ±kMateValue、None は 0）
     int chartValue() const;
