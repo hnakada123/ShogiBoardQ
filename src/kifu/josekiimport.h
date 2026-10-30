@@ -14,6 +14,7 @@
 
 #include "shogitypes.h"
 
+class QMimeData;
 struct KifParseResult;
 struct RecordLine;
 
@@ -51,6 +52,8 @@ struct Result {
 bool isKifuFile(const QString &path);
 /// ファイルとフォルダ（サブフォルダの中まで）から棋譜ファイルを集める（重複を除き、フォルダの中は名前順）
 QStringList expandPaths(const QStringList &paths);
+/// ドロップされたもののうち、手元のファイル・フォルダのパス（定跡ウィンドウと登録のダイアログへのドロップ）
+QStringList localPaths(const QMimeData *mimeData);
 
 /**
  * @brief 1局の棋譜の手を集める

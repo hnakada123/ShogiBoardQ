@@ -150,6 +150,7 @@
 | 2026-10-30 | 棋譜解析の実行と局面の列の実行器を1つにした（監査 2026-10-29 の T2）のに合わせて §1.5・§7.5・§7.7・§7.11・§9.1〜§9.3・§9.6・§9.7・§9.10・§10.3・付録を更新（棋譜解析の実行は analysis の `KifuAnalysisSession`（エンジンと動作状態のリース）に移し、`KifuAnalysisController` は画面だけにした。GUI の棋譜解析と CLI の analyze・analyze-kifu は analysis の `EngineAnalysisRunner`（借りた `UsiEngineSession` を使う。候補手の数と bestmove を待つ上限は依頼で決める）を共有し、送る局面は `RecordLine::usiPositions()` で作る。`AnalysisJob` を消し、`EngineAnalysisRunner` を headless から analysis へ移した。検討中の局面送りも開始局面からの手順にし、詰み探索の手番合わせは `MateSearchPosition`（`Position` で合わせる）にして `TsumePositionUtil` を消した） |
 | 2026-10-30 | 盤と指し手の部品の責務を分けた（監査 2026-10-29 の T3）のに合わせて §1.5・§1.6・§3.1・§3.2・§3.3・§3.5・§4.1・§4.2・§4.5・§5.2・§5.4・§6.1〜§6.3・§6.6〜§6.9・§6.11・§7.1・§8.9・§8.11・§10.2〜§10.4・§10.6・§12.3・§12.6・§12.8・§13.5・§13.6・§14.2〜§14.4・§15.2・§15.5・§18.3・§18.4 を更新（`ShogiGameController` を `GameBoard` に改名し、盤のクリックを手にする処理と成りの尋ね方を board の `BoardInteractionController::moveFromClick()`・`setPromotionChooser()` へ移して詰将棋を解く画面と共有した（`prepareMove`・`endDragSignal` を削除。ドラッグは盤の操作が行き先から戻った後に終える）。盤と手番だけを使う部品は `ShogiBoard` を受け取る。棋譜の1行の組み立てを kifu の `MoveRecord::play()` に1つにして棋譜の読み込みと対局の着手で使う。局面編集の操作を board の `PositionEditRules`（`Position` を変える関数 `moved`・`cycled`・`cleared`）へ移し、`ShogiBoard` は局面の包みと、変わった所だけを知らせる `replacePosition()` だけにした（`applyUsiMove`・`updateBoardAndPieceStand`・`promoteOrDemotePiece`・`resetGameBoard`・`setPieceAt` を削除）） |
 | 2026-10-30 | 対局情報の規則に持ち主を置いた（監査 2026-10-29 の T4）のに合わせて §1.5・§3.4・§5.6・§5.7・§8.9・§10.2・第18章を更新（`KifuExportMetadataBuilder` をやめ、対局者の見出し・手合割の値は kifu の `GameInfo`（`playerKey`・`playerSide`・`playerName`・`usesHandicapNames`・`handicapLabel`・`isHandicap`）に。平手・駒落ちの判定は core の `Handicaps::of`・`ofStart`・`isHirate` にまとめ、`SfenUtils::isHirateStart`・`Handicaps::bySfen`・`byBoard` を削除。「無制限」は `TimeControlText` が書き、読む（`kUnlimited`・`Parsed::unlimited`）。対局情報の見出しは `GameInfoKeys` に `QT_TRANSLATE_NOOP` で持ち、`KifuPresentation::infoKey` はその表 `kTranslated` を引く。書き出しの文脈 `KifuExportMetadata` から対局者 `players` を外し、CSA の `N+`・`N-` も対局情報だけから書く） |
+| 2026-10-30 | 定跡ウィンドウをドックのパネルにした（監査 2026-10-29 の T5）のに合わせて §1.5・§10.3・§11.3・第18章を更新（`JosekiWindow`・`JosekiTableView` は widgets、`JosekiTableModel` は models、`JosekiFileController`・`JosekiEditController`・`JosekiMergeController` は ui/controllers へ。ウィンドウは操作を意図のシグナルで知らせるだけにし、受けてダイアログを出すのは新しい `JosekiBookController`（3つのコントローラを持ち、ドロップの振り分け・閉じるときの確認・ドックの題名の未保存の印も受け持つ。「現在の棋譜から」は表示中の手順を直接渡す）。「棋譜に展開...」の条件のダイアログは `JosekiWindowController` が出す。履歴・前回のファイル・自動読込の保存は `JosekiBookSession`（`restoreSaved`・`autoLoadEnabled`）。`josekiWindowSize` を削除し、列幅は利用者がドラッグしたときに保存する。導いた予想応手は表のモデルが作る） |
 
 <!-- chapter-0-end -->
 
@@ -503,6 +504,7 @@ src/
 │   ├── shogiinforecord.cpp/.h      #   思考の表の1行（エンジンの info 1件）
 │   ├── usicommlogmodel.cpp/.h      #   エンジン1台の情報欄（エンジン名・探索状況・予想手）と通信ログの行の知らせ
 │   ├── evaluationseries.cpp/.h     #   評価値グラフの点（先手から見た評価値の列が2本・系列名・解析した手順の番号）
+│   ├── josekitablemodel.cpp/.h     #   定跡ウィンドウの表のモデル（データは kifu/josekibooksession。予想応手の無い手には導いた応手を出す）
 │   └── gameinfoeditmodel.cpp/.h    #   対局情報の表の中身と編集の履歴
 │
 ├── views/                          # 盤の描画と入力
@@ -526,6 +528,8 @@ src/
 │   ├── considerationsettings.h     #   検討タブの設定の値（エンジン・時間・候補手の数・矢印）
 │   ├── analysisresultspanel.cpp/.h #   棋譜解析の結果ドックの中身
 │   ├── gameinfopane.cpp/.h         #   対局情報ドックの中身（ツールバー＋表。中身は models/gameinfoeditmodel）
+│   ├── josekiwindow.cpp/.h         #   定跡ドックの中身（定跡手の表と操作。操作は意図のシグナルで知らせるだけ）
+│   ├── josekitableview.cpp/.h      #   定跡手の表（ボタンの列・右クリックのメニューを行の操作にする）
 │   ├── branchtreeview.cpp/.h       #   分岐ツリーの図（QGraphicsView の派生でドックの中身。KifuBranchTree の変更の知らせを受けて描き直す。外とはノード ID でやり取りする）
 │   ├── branchnodeitem.cpp/.h       #   分岐ツリーの図の1手（開始局面を含む）の図形
 │   ├── branchtreelayout.cpp/.h     #   分岐ツリーの行の折りたたみと段の割り当て
@@ -589,9 +593,6 @@ src/
 │   ├── pvline.cpp/.h               #   読み筋の値 PvLine（各手数の局面・手の表記・直前の手のハイライト）
 │   ├── sfendiffutils.h             #   2つの局面（SFEN）の盤上の差分（pvline が使う）
 │   ├── kifupastedialog.cpp/.h      #   棋譜貼り付けダイアログ
-│   ├── josekiwindow.cpp/.h         #   定跡ウィンドウ（画面のみ）
-│   ├── josekitablemodel.cpp/.h     #   定跡ウィンドウの表のモデル（データは kifu/josekibooksession）
-│   ├── josekifilecontroller.cpp/.h #   定跡ファイルの操作（開く・新規・保存・最近使ったファイル）
 │   ├── josekimergedialog.cpp/.h    #   定跡結合ダイアログ
 │   └── josekimovedialog.cpp/.h     #   定跡手の追加・編集ダイアログ（setEntry()/entry()。入力部の josekimoveinputwidget は局面の合法手の一覧から選ぶ）
 │
@@ -614,7 +615,11 @@ src/
 │   │   ├── kifuanalysiscontroller.cpp/.h   # 棋譜解析の開始・中止と進行の表示
 │   │   ├── tsumesearchcontroller.cpp/.h    # 詰み探索の開始・中止
 │   │   ├── branchtreeeditcontroller.cpp/.h # 分岐ツリーの編集と盤上の変化の記録
-│   │   ├── josekiwindowcontroller.cpp/.h   # 定跡ウィンドウの表示・更新
+│   │   ├── josekiwindowcontroller.cpp/.h   # 定跡ウィンドウの表示・更新・着手・棋譜への展開
+│   │   ├── josekibookcontroller.cpp/.h     # 定跡ウィンドウからの定跡の操作（ファイル・定跡手・マージ・ドロップ・閉じるときの確認）
+│   │   ├── josekifilecontroller.cpp/.h     # 定跡ファイルの操作（開く・新規・保存・最近使ったファイル）
+│   │   ├── josekieditcontroller.cpp/.h     # 定跡手の追加・編集・削除のダイアログ
+│   │   ├── josekimergecontroller.cpp/.h    # 棋譜・定跡ファイルからのマージのダイアログ
 │   │   ├── menuwindowcontroller.cpp/.h     # メニューウィンドウの表示
 │   │   ├── languagecontroller.cpp/.h       # 言語・棋譜表記の切替
 │   │   ├── pvclickcontroller.cpp/.h        # 読み筋のクリック
@@ -5711,7 +5716,8 @@ Controllers は「View → Model」方向のイベント処理を担当する。
 | `PvClickController` | `pvclickcontroller.h` | 読み筋行クリック時のPV盤面ダイアログ表示（棋譜解析の結果の行も `showPvBoard()` で開く） | `ShogiEngineThinkingModel`, `PvBoardDialog` |
 | `UsiCommandController` | `usicommandcontroller.h` | 手動USIコマンドの送信 | `EngineSlots`, `UsiLogPanel` |
 | `NyugyokuDeclarationHandler` | `nyugyokudeclarationhandler.h` | 利用者の入玉宣言（確認・宣言・結果の表示）をローカル対局・通信対局で同じ手順で行う | `GameChannel`, `KifuDocument` |
-| `JosekiWindowController` | `josekiwindowcontroller.h` | 定跡ウィンドウの生成・更新と、定跡手から着手への変換 | `JosekiWindow`, `KifuNavigationState`, `BoardMoveController` |
+| `JosekiWindowController` | `josekiwindowcontroller.h` | 定跡ウィンドウの生成・更新と、定跡手から着手への変換・棋譜への展開 | `JosekiWindow`, `KifuNavigationState`, `BoardMoveController` |
+| `JosekiBookController` | `josekibookcontroller.h` | 定跡ウィンドウからの定跡の操作（ファイル・定跡手・マージ・ドロップ・閉じるときの確認） | `JosekiWindow`, `JosekiBookSession`, `KifuNavigationState` |
 | `MenuWindowController` | `menuwindowcontroller.h` | メニューバーの項目を集めてメニューウィンドウを作る | `MenuWindow`, `QMenuBar` |
 | `BranchTreeEditController` | `branchtreeeditcontroller.h` | 分岐ツリーの右クリックメニューからの分岐の編集と、対局外の盤上の着手の記録 | `KifuBranchTree`, `BranchTreeView` |
 | `ImageExportController` | `imageexportcontroller.h` | 盤と評価値グラフの画像のコピー・保存 | `ShogiView`, `EvaluationChartWidget` |
@@ -5786,7 +5792,8 @@ onPvRowClicked(ShogiEngineThinkingModel* model, row)
 | `LanguageController` | 言語メニュー（システム・日本語・英語・簡体字・繁体字）と棋譜表記のメニューを処理し、言語を変えたら再起動を案内する |
 | `UsiCommandController` | `UsiLogPanel` の手動コマンド入力欄からのUSIコマンドを、エンジンの枠（`EngineSlots` の E1・E2）のエンジンに送る。エンジン未起動時は通信ログにエラーを表示する |
 | `NyugyokuDeclarationHandler` | 利用者の入玉宣言を行う（`handleDeclaration(GameChannel*)`。`GameSession::declareNyugyoku()` が `activeChannel()` を渡す。コンストラクタは親ウィジェットと `const KifuDocument*`）。対局中でなければ警告、人間の手番でなければ案内を出す。窓口がこちらで判定する対局（`judgesDeclaration()`。ローカル対局）なら持将棋ルール（24点法・27点法）が選ばれているかを確かめる。確認（宣言する側は `KifuDocument::usesHandicapNames()` で下手・上手とも呼ぶ）の後で `GameChannel::declareNyugyoku()` で宣言し、判定結果が返れば（ローカル対局は `MatchCoordinator::declareNyugyoku(declarer, rule)` が盤面から判定して終局する）ダイアログで知らせる。通信対局はサーバーが判定して終局を知らせる |
-| `JosekiWindowController` | 定跡ウィンドウ（`JosekiWindow`）を作ってドックに載せ、ドックが前面にある間だけ局面に合わせて更新する。定跡手を選ぶと USI 文字列を `UsiMove::parse()` で `UsiMove` にし、成りの選択を出さずに `BoardMoveController::playUsiMove()` で指す。指せたかは `playUsiMove()` の戻り値で判定し、指せなければ定跡ウィンドウに失敗を知らせる。人間の手番かどうかは `HumanTurnPolicy`（合成ルートが `isHumanTurnNow` として渡す）に聞く。定跡へのマージには、表示中の手順（`RecordLine`）をそのまま渡す。定跡の表示（「■ 停止」）と「盤の手を登録」の checkable な `QAction` を持ち（表示は設定に保存する）、メニューの「盤に定跡手を表示」と合わせて定跡ウィンドウ・盤の矢印・盤の手の登録に渡す |
+| `JosekiWindowController` | 定跡ウィンドウ（`JosekiWindow`）を作ってドックに載せ、ドックが前面にある間だけ局面に合わせて更新する。定跡手を選ぶと USI 文字列を `UsiMove::parse()` で `UsiMove` にし、成りの選択を出さずに `BoardMoveController::playUsiMove()` で指す。指せたかは `playUsiMove()` の戻り値で判定し、指せなければ定跡ウィンドウに失敗を知らせる。人間の手番かどうかは `HumanTurnPolicy` に聞き、その判定を定跡ウィンドウに渡す（`setHumanCanPlayProvider`。「着手」を押したときもウィンドウがこの判定で確かめる）。「棋譜に展開...」では条件のダイアログ（`JosekiExpandDialog`）を出して展開する。定跡の表示（「■ 停止」）と「盤の手を登録」の checkable な `QAction` を持ち（表示は設定に保存する）、メニューの「盤に定跡手を表示」と合わせて定跡ウィンドウ・盤の矢印・盤の手の登録に渡す |
+| `JosekiBookController` | 定跡ウィンドウの意図のシグナル（新規・開く・保存・履歴・マージ・ドロップ・定跡手の追加/編集/削除）を受けて、ダイアログを出して処理する。ファイルは `JosekiFileController`、定跡手は `JosekiEditController`、マージは `JosekiMergeController`（3つともここが持ち、ダイアログの親は定跡ウィンドウ）。「現在の棋譜から」は表示中の手順（`KifuNavigationState::currentRecordLine()`）を渡す。ドロップは定跡ファイル（.db）1つなら開き、それ以外は複数の棋譜から登録するダイアログに並べる（ドロップの処理の後で）。ドックを閉じるときとアプリを閉じるときに未保存の変更を確かめ（ドックを閉じて「破棄」なら保存した内容に戻す）、未保存の間はドックの題名に「*」を付ける。`JosekiWindowController` が作る |
 | `MenuWindowController` | メニューバーの項目をカテゴリごとに集めて `MenuWindow` を作る（初回だけ）。押されたボタンは `MenuWindow` がその `QAction` を実行する |
 | `BranchTreeEditController` | 分岐ツリーの右クリックメニューで分岐を編集する（本譜にする・並べ替え・削除）。対局していないときの盤上の着手を、現在の手の次の手（変化）として記録する |
 | `ImageExportController` | メニューの「盤面の画像」「評価値グラフの画像」のコピー・保存（`copyBoardToClipboard()`・`saveBoardImage()` など） |
@@ -6371,7 +6378,7 @@ Urgency::Warn5  → 強い警告色（残5秒・秒読み）
 | VersionDialog | QDialog | versiondialog.ui | バージョン情報表示 |
 | PvBoardDialog | QDialog | なし | 読み筋（PV）再生ウィンドウ（ShogiView を内蔵、ナビゲーションボタン付き）。読み筋の値は `PvLine`（`pvline.h`。各手数の局面 `positions()`・手の表記 `moveText(ply)`・読み筋全体の表記 `displayPv()`・直前の手のハイライト `highlight(ply)`）で、表示する手数は `BoardViewerWidget` だけが持つ |
 | KifuPasteDialog | QDialog | なし | クリップボードからの棋譜テキスト取り込み（形式自動判定） |
-| JosekiWindow | QWidget | なし | 定跡データベースの表示・編集・マージ（独立ウィンドウ） |
+| JosekiWindow | QWidget | なし | 定跡ドックの中身（widgets）。表示中の局面の定跡手の表と、ファイル・定跡手・マージ・展開の操作。操作は意図のシグナルで知らせ、ダイアログは ui の `JosekiBookController`・`JosekiWindowController` が出す |
 | JosekiMoveDialog | QDialog | なし | 定跡手の追加・編集（やねうら王形式）。指し手は局面の合法手を棋譜の表記で並べた一覧から選び（`JosekiMoveInputWidget`。一覧は `moveInputCombo`）、予想応手は着手後の局面の合法手と先頭の「なし」から選ぶ（`nextMoveInputCombo`）。値は `setEntry(const JosekiMove&)`・`entry()` で受け渡し、編集モードでは渡した指し手を変えない |
 | JosekiMergeDialog | QDialog | なし | 表示中の手順・棋譜ファイルの本譜（`RecordLine`）の手を、開いている定跡に1手ずつか全部登録する（`JosekiBookSession::importMoves`。保存はしない）。「登録済」は定跡に手があるか（`hasMove`）で決め、定跡が変わると表を作り直す |
 | MenuWindow | QWidget | なし | メニュー項目のボタン一覧表示（お気に入り・カテゴリ別タブ） |
@@ -9360,11 +9367,12 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | JkfExporter | C | kifu/formats | JKF形式の書き出し | 第8章 |
 | JkfToSfenConverter | C | kifu/formats | JKF形式→SFEN変換器 | 第8章 |
 | JosekiBook | C | kifu | 定跡のデータの値型（局面のキー `positionKey()` から `JosekiPosition`（登録したときの SFEN・定跡手）を引く map 1つ。棋譜で指された手を数えるのは `addPlayedMove()`）。読み書きは `JosekiBookFile::load()`・`save()` | 第8章, 第11章 |
+| JosekiBookController | C | ui/controllers | 定跡ウィンドウからの定跡の操作（ファイル・定跡手・マージ・ドロップ・閉じるときの確認） | 第10章 |
 | JosekiBookSession | C | kifu | 開いている定跡ファイル（`JosekiBook` の値・変更状態・読み書き） | 第8章, 第11章 |
 | JosekiMergeDialog | C | dialogs | 定跡結合ダイアログ | 第11章 |
 | JosekiMoveDialog | C | dialogs | 定跡手入力ダイアログ（値は `setEntry()`・`entry()`） | 第11章 |
 | JosekiMoveInputWidget | C | dialogs | 定跡手の入力欄（局面の合法手を棋譜の表記で並べた一覧。データは USI） | 第11章 |
-| JosekiWindow | C | dialogs | 定跡管理ウィンドウ | 第11章 |
+| JosekiWindow | C | widgets | 定跡ドックの中身（定跡手の表と操作。操作は意図のシグナルで知らせる） | 第11章 |
 | JosekiWindowController | C | ui/controllers | 定跡ウィンドウの表示・更新と、選んだ定跡手の着手の要求 | 第10章 |
 | Ki2Exporter | C | kifu/formats | KI2形式の書き出し | 第8章 |
 | Ki2Lexer | NS | kifu/formats | KI2形式固有の行の字句解析（指し手の行・「まで…」の結果の行） | 第8章 |
@@ -9710,7 +9718,11 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | ファイル | 解説章 | 内容 |
 |---------|--------|------|
 | considerationuicontroller | 第9章, 第10章 | 検討タブの操作を検討のセッションへ伝える |
-| josekiwindowcontroller | 第10章 | 定跡ウィンドウ |
+| josekiwindowcontroller | 第10章 | 定跡ウィンドウ（局面・着手・棋譜への展開） |
+| josekibookcontroller | 第10章 | 定跡ウィンドウからの定跡の操作 |
+| josekifilecontroller | 第10章 | 定跡ファイルの操作（開く・新規・保存・履歴） |
+| josekieditcontroller | 第10章 | 定跡手の追加・編集・削除 |
+| josekimergecontroller | 第10章 | 棋譜・定跡ファイルからのマージ |
 | menuwindowcontroller | 第10章 | メニューウィンドウ |
 | languagecontroller | 第10章, 第16章 | 言語切替 |
 | nyugyokudeclarationhandler | 第10章 | 利用者の入玉宣言（`GameChannel` 経由でローカル対局・通信対局に共通） |
@@ -9765,6 +9777,8 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | ファイル | 解説章 | 内容 |
 |---------|--------|------|
 | recordpane | 第11章 | 棋譜ペイン |
+| josekiwindow | 第11章 | 定跡ドックの中身 |
+| josekitableview | 第11章 | 定跡手の表 |
 | branchtreeview | 第11章, 第13章 | 分岐ツリーの図（`BranchTreeView`。ドックの中身の `QGraphicsView`） |
 | branchnodeitem | 第11章 | 分岐ツリーの図の1手の図形（`BranchNodeItem`） |
 | branchtreelayout | 第11章 | 分岐ツリーの行の折りたたみと段の割り当て |
@@ -9823,14 +9837,11 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | pvline | 第11章 | 読み筋盤の読み筋の値 `PvLine` |
 | kifupastedialog | 第11章 | 棋譜ペースト |
 | csawaitingdialog | 第11章 | CSA待機 |
-| josekiwindow | 第11章 | 定跡ウィンドウ |
 | josekimergedialog | 第11章 | 定跡結合 |
 | josekimovedialog | 第11章 | 定跡手入力 |
 | josekimoveinputwidget | 第11章 | 定跡手の入力欄（局面の合法手の一覧） |
 | enginesettingsoptionhandler | 第11章 | エンジン設定オプションのウィジェット生成・データ管理 |
 | jishogiscoredialog | 第10章 | 持将棋の点数ダイアログ |
-| josekitablemodel | 第11章 | 定跡の表のモデル（データは `JosekiBookSession`） |
-| josekifilecontroller | 第11章 | 定跡ファイルの操作（開く・保存・結合） |
 | kifusavedialogs | 第8章 | 棋譜保存の確認・保存ダイアログ |
 | engineoptiondescriptions | 第7章 | エンジン設定画面のオプションの説明と分類 |
 | sfendiffutils | 第5章 | 2つの局面の盤上の差分（読み筋の値 `PvLine` が使う） |
@@ -9844,6 +9855,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | kifuanalysislistmodel | 第9章 | 解析結果の表のモデル（行は `KifuAnalysisRow` の値） |
 | kifuanalysisrow | 第9章 | 解析結果の表の1行 |
 | gameinfoeditmodel | 第11章 | 対局情報の表の中身・編集の履歴 |
+| josekitablemodel | 第11章 | 定跡の表のモデル（データは `JosekiBookSession`） |
 | shogienginethinkingmodel | 第7章 | 思考結果モデル |
 | shogiinforecord | 第7章, 第8章 | 思考情報レコード |
 | usicommlogmodel | 第7章 | 情報欄（エンジン名・探索状況・予想手）と通信ログの行の知らせ |

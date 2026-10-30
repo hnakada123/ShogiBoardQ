@@ -167,17 +167,6 @@ JosekiImportDialog::~JosekiImportDialog()
     m_binding.save();
 }
 
-QStringList JosekiImportDialog::localPaths(const QMimeData *mimeData)
-{
-    QStringList paths;
-    if (!mimeData || !mimeData->hasUrls()) return paths;
-    const QList<QUrl> urls = mimeData->urls();
-    for (const QUrl &url : urls) {
-        if (url.isLocalFile()) paths.append(url.toLocalFile());
-    }
-    return paths;
-}
-
 QStringList JosekiImportDialog::paths() const
 {
     QStringList paths;
@@ -318,12 +307,12 @@ void JosekiImportDialog::updateInputs()
 
 void JosekiImportDialog::dragEnterEvent(QDragEnterEvent *event)
 {
-    if (!isRunning() && !localPaths(event->mimeData()).isEmpty()) event->acceptProposedAction();
+    if (!isRunning() && !JosekiImport::localPaths(event->mimeData()).isEmpty()) event->acceptProposedAction();
 }
 
 void JosekiImportDialog::dropEvent(QDropEvent *event)
 {
-    const QStringList dropped = localPaths(event->mimeData());
+    const QStringList dropped = JosekiImport::localPaths(event->mimeData());
     if (isRunning() || dropped.isEmpty()) return;
     appendPaths(dropped);
     event->acceptProposedAction();

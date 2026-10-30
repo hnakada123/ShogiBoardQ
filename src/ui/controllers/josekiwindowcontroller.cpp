@@ -8,7 +8,9 @@
 
 #include "boardmovecontroller.h"
 #include "branchtreeeditcontroller.h"
+#include "josekibookcontroller.h"
 #include "josekibooksession.h"
+#include "josekiexpanddialog.h"
 #include "josekiwindow.h"
 #include "kifubranchnode.h"
 #include "kifunavigationcontroller.h"
@@ -41,6 +43,8 @@ JosekiWindowController::JosekiWindowController(const Deps& deps, QObject* parent
     connect(deps.boardArrows, &QAction::toggled, this, &JosekiWindowController::onBoardArrowsToggled);
     m_josekiWindow = new JosekiWindow(deps.book, {m_displayAction, m_recordBoardMovesAction, deps.boardArrows},
                                       m_parentWidget);
+    // 定跡そのものの操作（ファイル・定跡手・マージ・ドロップ）は、表示中の手順を渡して任せる
+    m_bookController = new JosekiBookController({deps.book, m_josekiWindow, m_navState}, this);
 
     // 定跡手選択シグナルを接続
     connect(m_josekiWindow, &JosekiWindow::josekiMoveSelected,
@@ -49,9 +53,6 @@ JosekiWindowController::JosekiWindowController(const Deps& deps, QObject* parent
     // 定跡手を指せるかは、表示を作り直すたびに盤面クリックと同じ判定で問い合わせる
     m_josekiWindow->setHumanCanPlayProvider(std::bind(&JosekiWindowController::determineHumanCanPlay, this));
 
-    // 棋譜データ要求シグナルを接続
-    connect(m_josekiWindow, &JosekiWindow::requestKifuDataForMerge,
-            this, &JosekiWindowController::onRequestKifuDataForMerge);
     connect(m_navState, &KifuNavigationState::changed, this, &JosekiWindowController::updateJosekiWindow);
     // 定跡が変わったら、表示中の手順が定跡を外れた手も合わせる
     connect(deps.book, &JosekiBookSession::contentChanged, this, &JosekiWindowController::updateJosekiWindow);
@@ -67,6 +68,12 @@ void JosekiWindowController::attachDock(QDockWidget* dock)
         connect(dock, &QDockWidget::visibilityChanged,
                 this, &JosekiWindowController::onDockVisibilityChanged);
     }
+    m_bookController->attachDock(dock);
+}
+
+bool JosekiWindowController::confirmClose()
+{
+    return m_bookController->confirmClose();
 }
 
 void JosekiWindowController::onDockVisibilityChanged(bool visible)
@@ -120,8 +127,12 @@ void JosekiWindowController::updateBookDeviation()
     m_josekiWindow->setBookDeviation(line.startPly + *index, move);
 }
 
-void JosekiWindowController::onExpandRequested(const JosekiLines::ExpandOptions& options)
+void JosekiWindowController::onExpandRequested()
 {
+    JosekiExpandDialog dialog(m_josekiWindow);
+    // ダイアログを開いている間に読み書きが始まったら展開しない
+    if (dialog.exec() != QDialog::Accepted || m_book->isBusy()) return;
+    const JosekiLines::ExpandOptions options = dialog.options();
     if (!m_branchEdit->canEdit()) {
         QMessageBox::information(m_parentWidget, tr("定跡を棋譜に展開"), tr("対局中は棋譜に展開できません。"));
         return;
@@ -159,12 +170,7 @@ void JosekiWindowController::onJosekiMoveSelected(const QString& usiMove)
         qCDebug(lcUi) << "onJosekiMoveSelected: empty move";
         return;
     }
-    // 最後に表示を更新した後で終局・手番交代していれば、着手ボタンを消して何もしない
-    if (!determineHumanCanPlay()) {
-        m_josekiWindow->updateHumanCanPlay();
-        return;
-    }
-
+    // 指せるかは定跡ウィンドウが押したときに determineHumanCanPlay で確かめている
     const auto move = UsiMove::parse(usiMove);
     if (!move) {
         qCWarning(lcUi) << "onJosekiMoveSelected: invalid move format";
@@ -175,12 +181,4 @@ void JosekiWindowController::onJosekiMoveSelected(const QString& usiMove)
     const bool moveSuccess = m_boardMoves->playUsiMove(*move);
     qCDebug(lcUi) << "Move result: success=" << moveSuccess;
     if (!moveSuccess) m_josekiWindow->showMoveFailed(usiMove);
-}
-
-void JosekiWindowController::onRequestKifuDataForMerge()
-{
-    // 表示中の手順（分岐を選んでいればその分岐）を渡す
-    const RecordLine line = m_navState->currentRecordLine();
-    qCDebug(lcUi) << "onRequestKifuDataForMerge: moves=" << line.moveCount() << "currentPly=" << line.currentPly;
-    m_josekiWindow->openMergeForLine(line);
 }

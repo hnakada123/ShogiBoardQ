@@ -6,6 +6,7 @@
 #include "josekitablemodel.h"
 #include "kifumovedelegate.h"
 #include "tablebuttondelegate.h"
+#include "tableheaderview.h"
 
 #include <QAction>
 #include <QHeaderView>
@@ -18,6 +19,8 @@ JosekiTableView::JosekiTableView(JosekiTableModel *model, QWidget *parent)
     , m_model(model)
 {
     setObjectName(QStringLiteral("josekiTable"));
+    // 利用者が列幅を変えたときだけ知らせる見出し（sectionResizedByUser）
+    TableHeaderView::install(this);
     setModel(m_model);
     auto *moveDelegate = new KifuMoveDelegate(this);
     setItemDelegateForColumn(JosekiTableModel::Move, moveDelegate);

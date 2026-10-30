@@ -8,6 +8,7 @@
 #include <QList>
 #include <QString>
 #include <QStringList>
+#include <functional>
 
 #include "josekitypes.h"
 
@@ -16,8 +17,8 @@
  *
  * 「着手」「編集」「削除」の列はボタンの文字を返す（ボタンの形はデリゲートが描き、押したときの処理は
  * 表を持つ側が列で決める）。人間が指せないときは「着手」の列を空にする。
- * 予想応手が「なし」の手で、次の局面の定跡から導いた応手を渡されていれば、予想応手の列に灰色の括弧付きで出す
- * （定跡のデータは変えない）。
+ * 予想応手が「なし」の手には、定跡手を指した後の局面の定跡から導いた応手（やねうら王が先読みに使う手）を、
+ * 予想応手の列に灰色の括弧付きで出す（定跡のデータは変えない）。
  * 行数が変わるときも行の挿入・削除で知らせ、利用者が変えた列幅を保つ。
  */
 class JosekiTableModel : public QAbstractTableModel
@@ -28,15 +29,16 @@ public:
     /// Ratio はこの局面の出現頻度の合計に対する割合（合計が0なら空）
     enum Column { No, Play, Move, NextMove, Edit, Delete, Value, Depth, Frequency, Ratio, Comment, ColumnCount };
 
+    /// 局面の定跡手のうち、やねうら王が先頭に並べる手（JosekiBookSession::leadingMove。無ければ空）
+    using LeadingMove = std::function<QString(const QString &sfen)>;
+
     explicit JosekiTableModel(QObject *parent = nullptr);
 
-    /// 局面と定跡手を入れ替える。derivedReplies は行ごとの導いた応手（予想応手が「なし」の行に
-    /// やねうら王が先読みに使う、次の局面の定跡手。無ければ空。省けばどの行にも出さない）
+    /// 局面と定跡手を入れ替える。予想応手が「なし」の行には、定跡手を指した後の局面の leadingMoveAt を
+    /// 導いた応手として出す（省けばどの行にも出さない）
     void setMoves(const QString &sfen, const QList<JosekiMove> &moves, bool humanCanPlay,
-                  const QStringList &derivedReplies = {});
+                  const LeadingMove &leadingMoveAt = {});
     const QList<JosekiMove> &moves() const { return m_moves; }
-    /// 予想応手が無い
-    static bool hasNoReply(const JosekiMove &move);
     bool humanCanPlay() const { return m_humanCanPlay; }
 
     /// 定跡手の表記（KifuPresentation::move。表示言語と表記の設定に合わせる）。定跡の表は手ごとに独立しているので「同」は使わない
@@ -50,6 +52,9 @@ public:
     QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
 
 private:
+    /// 予想応手が無い
+    static bool hasNoReply(const JosekiMove &move);
+
     QString m_sfen;
     QList<JosekiMove> m_moves;
     QStringList m_derivedReplies;  ///< 行ごとの導いた応手（無い行は空）

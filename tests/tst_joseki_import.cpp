@@ -234,8 +234,8 @@ private slots:
     {
         QMimeData mime;
         mime.setUrls({QUrl::fromLocalFile(m_games.at(0)), QUrl(QStringLiteral("https://example.com/a.kif"))});
-        QCOMPARE(JosekiImportDialog::localPaths(&mime), QStringList{m_games.at(0)});
-        QVERIFY(JosekiImportDialog::localPaths(nullptr).isEmpty());
+        QCOMPARE(JosekiImport::localPaths(&mime), QStringList{m_games.at(0)});
+        QVERIFY(JosekiImport::localPaths(nullptr).isEmpty());
     }
 
     /// 定跡ファイルを足すダイアログ: ファイルがあるときだけ足せ、同じ指し手の扱いを保存する

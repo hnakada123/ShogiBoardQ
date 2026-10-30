@@ -43,18 +43,22 @@ QString JosekiTableModel::derivedReplyText(const QString &moveText)
 }
 
 void JosekiTableModel::setMoves(const QString &sfen, const QList<JosekiMove> &moves, bool humanCanPlay,
-                                const QStringList &derivedReplies)
+                                const LeadingMove &leadingMoveAt)
 {
     const int oldRows = static_cast<int>(m_moves.size());
     const int newRows = static_cast<int>(moves.size());
     m_sfen = sfen;
     m_humanCanPlay = humanCanPlay;
-    m_derivedReplies = derivedReplies;
     m_frequencyTotal = 0;
     for (const JosekiMove &move : moves) m_frequencyTotal += qMax(move.frequency, 0);
-    // 予想応手の表記に使う、定跡手を指した後の局面（表示のたびに指し直さない）
+    // 定跡手を指した後の局面（予想応手の表記と導いた応手に使う。表示のたびに指し直さない）
     m_afterSfens.clear();
-    for (const JosekiMove &move : moves) m_afterSfens.append(SfenReplay::positionAfter(sfen, move.move));
+    m_derivedReplies.clear();
+    for (const JosekiMove &move : moves) {
+        const QString after = SfenReplay::positionAfter(sfen, move.move);
+        m_afterSfens.append(after);
+        m_derivedReplies.append(leadingMoveAt && hasNoReply(move) ? leadingMoveAt(after) : QString());
+    }
     // 行の数だけを増減させ、残る行は中身を差し替える（列幅と表示位置は保つ）
     if (newRows < oldRows) {
         beginRemoveRows(QModelIndex(), newRows, oldRows - 1);
@@ -87,7 +91,7 @@ QVariant JosekiTableModel::data(const QModelIndex &index, int role) const
     const JosekiMove &move = m_moves.at(index.row());
     const int column = index.column();
     // 予想応手が「なし」で、次の局面の定跡から応手を導けた行
-    const QString derivedReply = hasNoReply(move) ? m_derivedReplies.value(index.row()) : QString();
+    const QString &derivedReply = m_derivedReplies.at(index.row());
 
     if (role == Qt::TextAlignmentRole) {
         switch (column) {

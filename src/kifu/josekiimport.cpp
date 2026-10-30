@@ -12,6 +12,8 @@
 #include <QDir>
 #include <QDirIterator>
 #include <QFileInfo>
+#include <QMimeData>
+#include <QUrl>
 
 #include <algorithm>
 
@@ -60,6 +62,17 @@ QStringList expandPaths(const QStringList &paths)
         }
     }
     return files;
+}
+
+QStringList localPaths(const QMimeData *mimeData)
+{
+    QStringList paths;
+    if (!mimeData || !mimeData->hasUrls()) return paths;
+    const QList<QUrl> urls = mimeData->urls();
+    for (const QUrl &url : urls) {
+        if (url.isLocalFile()) paths.append(url.toLocalFile());
+    }
+    return paths;
 }
 
 Collector::Collector(const Options &options)

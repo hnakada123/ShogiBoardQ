@@ -3,6 +3,8 @@
 
 #include "josekibooksession.h"
 
+#include "josekisettings.h"
+
 #include <QFileInfo>
 #include <QtConcurrentRun>
 #include <algorithm>
@@ -150,6 +152,7 @@ JosekiBookSession::EngineRegistration JosekiBookSession::registerEnginePv(const 
 void JosekiBookSession::addRecentFile(const QString &filePath)
 {
     m_recentFiles.add(filePath);
+    saveHistory();
     emit recentFilesChanged();
 }
 
@@ -157,6 +160,7 @@ void JosekiBookSession::removeRecentFile(const QString &filePath)
 {
     if (!m_recentFiles.remove(filePath)) return;
     if (filePath == m_deferredLoadPath) cancelDeferredLoad();
+    saveHistory();
     emit recentFilesChanged();
 }
 
@@ -165,6 +169,7 @@ void JosekiBookSession::clearRecentFiles()
     m_recentFiles.clear();
     // 履歴から消えた（「履歴をクリア」した）前回のファイルは、自動で読み込まない
     cancelDeferredLoad();
+    saveHistory();
     emit recentFilesChanged();
 }
 
@@ -177,7 +182,29 @@ void JosekiBookSession::restore(const QStringList &recentFiles, const QString &l
         m_deferredLoadPath = lastFilePath;
         emit deferredLoadChanged();
     }
+    saveHistory();
     emit recentFilesChanged();
+}
+
+void JosekiBookSession::restoreSaved()
+{
+    restore(JosekiSettings::josekiWindowRecentFiles(), JosekiSettings::josekiWindowLastFilePath(), autoLoadEnabled());
+}
+
+bool JosekiBookSession::autoLoadEnabled() const
+{
+    return JosekiSettings::josekiWindowAutoLoadEnabled();
+}
+
+void JosekiBookSession::setAutoLoadEnabled(bool enabled)
+{
+    JosekiSettings::josekiWindowAutoLoadEnabled.set(enabled);
+}
+
+void JosekiBookSession::saveHistory() const
+{
+    JosekiSettings::josekiWindowRecentFiles.set(m_recentFiles.files());
+    JosekiSettings::josekiWindowLastFilePath.set(lastFilePath());
 }
 
 QString JosekiBookSession::lastFilePath() const
@@ -201,6 +228,7 @@ void JosekiBookSession::cancelDeferredLoad()
 {
     if (m_deferredLoadPath.isEmpty()) return;
     m_deferredLoadPath.clear();
+    saveHistory();
     emit deferredLoadChanged();
 }
 
@@ -214,6 +242,7 @@ void JosekiBookSession::newBook()
     m_book.clear();
     m_filePath.clear();
     setModified(false);
+    saveHistory();
     emit filePathChanged();
     emit contentChanged();
 }

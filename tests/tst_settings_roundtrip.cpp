@@ -672,10 +672,6 @@ private slots:
         JosekiSettings::josekiWindowFontSize.set(12);
         QCOMPARE(JosekiSettings::josekiWindowFontSize(), 12);
 
-        QSize josekiSize(1100, 800);
-        JosekiSettings::josekiWindowSize.set(josekiSize);
-        QCOMPARE(JosekiSettings::josekiWindowSize(), josekiSize);
-
         JosekiSettings::josekiWindowAutoLoadEnabled.set(true);
         QCOMPARE(JosekiSettings::josekiWindowAutoLoadEnabled(), true);
 

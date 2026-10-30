@@ -18,6 +18,7 @@ class QMenu;
  * 「着手」「編集」「削除」の列のクリック・ダブルクリック（着手）・右クリックのメニューを、行の操作
  * （rowActionRequested）にして知らせる。何をするかは表を持つ側が決める。メニューの項目を押せるかは
  * setActionAvailability で渡した判定で、メニューを開くたびに決める。定跡手が無いときの案内も表の中に出す。
+ * 横の見出しは TableHeaderView（利用者が列幅を変えたときだけ sectionResizedByUser を出す）。
  */
 class JosekiTableView : public QTableView
 {
