@@ -86,7 +86,7 @@
 | # | 疑い | 根拠 |
 |---|---|---|
 | U1 | 対局者名の入った棋譜を開いて保存すると、既定のファイル名が「日時_Session」になる（対局した棋譜なら「日時_先手_vs_後手」） | 既定のファイル名は対局の記録 `players()` から作る（`kifufilecontroller.cpp:218,264`、`kifuioservice.cpp:48`）。棋譜を読むと記録は空になる（`kifudocument.cpp:129`）。意図した動作かもしれない<br>**仕様: 決定**。既定のファイル名は対局情報の対局者名（先手・後手、駒落ちは下手・上手）から作り、「日時_先手_vs_後手」にする。対局者名がなければ今までどおり「日時_Session」。対局した棋譜は対局情報と記録の対局者が同じなので、名前は変わらない。開いた元のファイル名は使わない（このアプリは読み込んだファイルの場所を持たず、自分で保存したファイルだけを上書きするため）<br>**状態: 済（f4079f7f）**。名前を付けて保存と自動保存の既定のファイル名を `KifuFileController::defaultFileName()` 1つで作り、対局情報の対局者名（`KifuDocument::headerPlayerName`）を渡す。途中から続けた対局も対局情報の対局者名を今の対局者にするので、自動保存の名前は変わらない（テスト `defaultFileNameUsesGameInfoPlayers`） |
-| U2 | 検討タブの「矢印を表示」だけが保存されない。対局の矢印は保存される | 正本が3通りある（T6）。`considerationpanel.cpp:88-95,299` |
+| U2 | 検討タブの「矢印を表示」だけが保存されない。対局の矢印は保存される | 正本が3通りある（T6）。`considerationpanel.cpp:88-95,299`<br>**状態: 済（d674a02e、T6）**。検討の矢印も `BoardArrowActions` の `QAction` にし、`AnalysisSettings::considerationArrowsVisible` に保存する（テスト `togglesPersist`） |
 | U3 | メニューウィンドウのドックの大きさが保存されない | `MenuWindow` が独立ウィンドウだった頃の名残で、大きさは `closeEvent` で保存している（`menuwindow.cpp:421-440`）。ドックに入った子のウィジェットでは呼ばれないと思われる（P2）<br>**状態: 済（3b4f2a49、P2）**。名残の保存を消した。ドックの大きさ・浮動の位置は `DockRegistry` がほかのドックと同じく保存する |
 | U4 | 読み筋盤のマスの大きさが、本体の盤の今の大きさではなく、前回アプリを終了したときの大きさになる | `ShogiView` のコンストラクタが本体の盤の設定 `AppSettings::squareSize` を読む（`shogiview.cpp:46-48`）。書き込むのは終了時だけ（`mainwindowcomposer.cpp:76`）（M9） |
 | U5 | 思考の表で列を狭めても、次の起動で戻らない | 戻すときに `qMax(最小値, 保存した幅)` にしている（`thinkingtableview.cpp:62-87`）。列幅の規則が部品ごとに違う（M8） |
@@ -368,6 +368,28 @@
 - 対局の矢印も、思考の表の行（`ThinkingInfoFormatter` の出力）から作る。`SearchCandidate`・`Usi::searchCandidate`・`searchCandidateChanged` は消す。
 
 **影響**: widgets 2・ui 1・app 2・engine 3・settings 1。差し引き約60行減。
+
+**状態: 済（d674a02e）**。書き直し案のとおりにした。
+- **切り替え**: 4つの切り替えは、新しい `BoardArrowActions`（ui/controllers）の checkable な `QAction` にした。
+  - 起動時に設定から戻し、変わるたびに保存する。定跡手は「表示」メニューの「盤に定跡手を表示」を受け取る。
+  - 検討の矢印も `AnalysisSettings::considerationArrowsVisible`（既定はオン）に保存するようにした（U2）。
+  - 「盤に定跡手を表示」の保存は `JosekiWindowController` から移した。
+- **パネル**: 思考ドック（`ThinkingPanel::ArrowActions`）と検討タブはチェックを渡された `QAction` に結ぶだけにした。
+  - `ThinkingPanel::arrowSettingsChanged` を消した。
+  - `ConsiderationSettings::showArrows` を消した。矢印は検討の条件ではないので、変えても `settingsChanged` を出さない。
+- **presenter**: `CandidateArrowPresenter` は `BoardArrowActions` の `QAction` だけを読み、`toggled` で自分で描き直す。合成ルートの描き直しの配線2本を消した。
+- **対局の矢印**: E1・E2 の思考の表の、最新の最善の読み筋（multipv 1 で最初の手を指せた行）から作る。
+  - 探索の局面が表示中の局面なら手番側。
+  - 表示中の局面に「読み筋の局面に至った手」（予想した相手の手）を指すと探索の局面になるなら、先読み側。
+  - エンジンからは、探索中か（`isSearching()`）・先読みか（`searchKind()`）と、探索の終わり（`searchEnded`）だけを読む。探索中かを見ないと、待ったで戻した局面で前の探索の行を先読みと取り違えるため。
+  - SFEN を `section` で切って読み直す処理はなくなった。
+- **engine**: `SearchCandidate`・`Usi::searchCandidate`・`searchCandidateChanged` を消した。
+  - それだけに使っていた予想手の覚え（`m_predictedMove`）も消した。予想手は `UsiMatchHandler::ponderPosition()` が持つ。
+  - engine は61行減。全体では、新しいクラスと説明の分で増えた（src は +290／−175）。
+- **テスト**: `tst_candidate_arrows` のプロトコルの候補のテストを、presenter が思考の表から矢印を作るテストにした。
+  - 内容: 手番側・2番目以降の候補と指せない読み筋を使わない・探索の終わり・対局中でないとき・先読みの当たり外れ・先読みでない探索。
+  - 切り替えの保存と、パネルのチェックの結び付きのテストも足した。
+  - `tst_usimatchhandler` の予想手は `ponderPosition()` から読む。実エンジン（Apery・技巧）の回帰テストも通った。
 
 ### T7. services に GUI 専用の外観・駒音があり、外観の状態の持ち主が2つある（services・style・dialogs）
 
