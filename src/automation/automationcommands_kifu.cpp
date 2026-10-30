@@ -121,7 +121,7 @@ void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, 
         // 棋譜の拡張子のファイルにだけ保存する（ほかの名前を KIF で書かない。セキュリティ監査 S15）
         if (!KifuSaveFile::hasKnownSaveExtension(path)) {
             throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("Not a record file name: %1").arg(path),
-                                  QStringLiteral("Use .kif, .kifu, .ki2, .ki2u, .csa, .jkf, .usi or .usen"));
+                                  QStringLiteral("Use one of %1").arg(KifuSaveFile::knownSaveExtensionsText()));
         }
         const QFileInfo info(path);
         KifuFileController* controller = requireFileController(context);
@@ -130,7 +130,7 @@ void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, 
             const QString message = error.isEmpty() ? QStringLiteral("Saving failed: %1").arg(path)
                                                     : QStringLiteral("Saving failed: %1: %2").arg(path, error);
             throw AutomationError(ErrorKind::FileError, message,
-                                  KifuSaveFile::usesShiftJisForPath(path)
+                                  KifuSaveFile::encodingForPath(path) == KifuEncoding::ShiftJis
                                       ? QStringLiteral("Use a .kifu or .ki2u path to save as UTF-8")
                                       : QString());
         }
@@ -178,15 +178,12 @@ void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, 
             return result;
         }
 
-        const auto kifuFormat = KifuFormats::fromName(format);
-        if (!kifuFormat || !KifuFormats::isSavable(*kifuFormat)) {
-            throw AutomationError(ErrorKind::InvalidArgument,
-                                  QStringLiteral("format must be one of moves, kif, ki2, csa, jkf, usen, usi"));
-        }
+        // 形式の名前は表（KifuFormats::savableNames）の選択肢で検査済み
+        const KifuFormat kifuFormat = *KifuFormats::fromName(format);
         if (!context.document) {
             throw AutomationError(ErrorKind::InternalError, QStringLiteral("Kifu document is unavailable"));
         }
-        const QStringList lines = KifuExport::lines(*context.document, *kifuFormat);
+        const QStringList lines = KifuExport::lines(*context.document, kifuFormat);
         result[QStringLiteral("text")] = lines.join(QLatin1Char('\n')) + (lines.isEmpty() ? QString() : QStringLiteral("\n"));
         result[QStringLiteral("truncated")] = false;
         return result;

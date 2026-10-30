@@ -35,7 +35,8 @@ QStringList CsaExporter::exportLines(const KifuBranchTree& recordTree, const Kif
     QStringList out;
 
     // 1) 文字コード宣言 (V3.0で追加)
-    out << QStringLiteral("'CSA encoding=UTF-8");
+    out << (ctx.encoding == KifuEncoding::ShiftJis ? QStringLiteral("'CSA encoding=Shift_JIS")
+                                                    : QStringLiteral("'CSA encoding=UTF-8"));
 
     // 2) バージョン
     out << QStringLiteral("V3.0");

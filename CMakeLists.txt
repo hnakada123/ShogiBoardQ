@@ -434,8 +434,6 @@ set(SRC_KIFU
     src/kifu/timecontroltext.h
     src/kifu/kifuformat.cpp
     src/kifu/kifuformat.h
-    src/kifu/kifuioservice.cpp
-    src/kifu/kifuioservice.h
     src/kifu/kifuloader.cpp
     src/kifu/kifuloader.h
     src/kifu/kifuloadparser.cpp

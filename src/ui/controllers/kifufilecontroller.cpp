@@ -12,7 +12,6 @@
 #include "kifubranchtree.h"
 #include "kifudocument.h"
 #include "kifuexport.h"
-#include "kifuioservice.h"
 #include "kifuloader.h"
 #include "kifunavigationstate.h"
 #include "kifupastedialog.h"
@@ -29,6 +28,7 @@
 #include <QFileInfo>
 #include <QMessageBox>
 #include <QProgressDialog>
+#include <functional>
 
 KifuFileController::KifuFileController(const Deps& deps, QObject* parent)
     : QObject(parent)
@@ -64,9 +64,9 @@ bool KifuFileController::confirmDiscardUnsaved()
     });
 }
 
-QStringList KifuFileController::exportLines(KifuFormat format) const
+QStringList KifuFileController::exportLines(KifuFormat format, KifuEncoding encoding) const
 {
-    return KifuExport::lines(*m_deps.document, format);
+    return KifuExport::lines(*m_deps.document, format, encoding);
 }
 
 // ============================================================
@@ -203,9 +203,9 @@ QString KifuFileController::defaultFileName(const QString& extension) const
 {
     // 対局情報の対局者名から作る（読み込んだ・貼り付けた棋譜も同じ。対局した棋譜は対局情報に対局者が入っている）
     const KifuDocument* document = m_deps.document;
-    return KifuIoService::makeDefaultSaveFileName(document->headerPlayerName(Turn::Black),
-                                                  document->headerPlayerName(Turn::White),
-                                                  QDateTime::currentDateTime(), extension);
+    return KifuSaveFile::makeDefaultSaveFileName(document->headerPlayerName(Turn::Black),
+                                                 document->headerPlayerName(Turn::White),
+                                                 QDateTime::currentDateTime(), extension);
 }
 
 void KifuFileController::saveKifuToFile()
@@ -222,7 +222,8 @@ void KifuFileController::saveKifuToFile()
 
     QString error;
     const QString path = KifuSaveDialogs::saveViaDialog(
-        m_deps.parentWidget, [this](KifuFormat format) { return exportLines(format); },
+        m_deps.parentWidget,
+        std::bind(&KifuFileController::exportLines, this, std::placeholders::_1, std::placeholders::_2),
         defaultFileName(QStringLiteral("kifu")),
         hasBranches, hasTimeInfo, &error);
     if (!error.isEmpty()) QMessageBox::warning(m_deps.parentWidget, tr("KIF Save Error"), error);
@@ -251,10 +252,11 @@ bool KifuFileController::writeToPath(const QString& filePath, QWidget* dialogPar
 {
     if (errorText) errorText->clear();
     if (filePath.isEmpty()) return false;
-    // 名前を付けて保存と同じ基準（拡張子）で保存形式を決める。
+    // 名前を付けて保存と同じ基準（拡張子）で保存形式と文字コードを決める。
     // KIF 固定で書くと .csa などに保存したファイルが KIF 内容で上書きされてしまう
-    const QStringList lines = exportLines(KifuSaveFile::saveFormatForPath(filePath));
-    const bool ok = KifuSaveDialogs::overwriteExisting(dialogParent, filePath, lines, errorText);
+    const bool ok = KifuSaveDialogs::overwriteExisting(
+        dialogParent, filePath,
+        std::bind(&KifuFileController::exportLines, this, std::placeholders::_1, std::placeholders::_2), errorText);
     if (ok) markSaved(filePath, tr("棋譜を上書き保存しました: %1").arg(filePath));
     return ok;
 }

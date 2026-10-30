@@ -2,6 +2,7 @@
 /// @brief 自動化 API のメソッドごとの引数の表
 
 #include "automationmethodspecs.h"
+#include "kifuformat.h"
 
 using namespace ParamSpecs;
 
@@ -52,9 +53,7 @@ const QList<OperationSpec>& AutomationMethodSpecs::all()
          {string(QStringLiteral("path"), QStringLiteral("Destination file (absolute path).")).atLeast(1).require(),
           boolean(QStringLiteral("overwrite"), QStringLiteral("Allow replacing an existing file."))}},
         {QStringLiteral("kifu.get"), QStringLiteral("The record as moves of a line, or as exported text."),
-         {choice(QStringLiteral("format"), QString(), {QStringLiteral("moves"), QStringLiteral("kif"), QStringLiteral("ki2"),
-                                                       QStringLiteral("csa"), QStringLiteral("jkf"), QStringLiteral("usi"),
-                                                       QStringLiteral("usen")})
+         {choice(QStringLiteral("format"), QString(), QStringList{QStringLiteral("moves")} + KifuFormats::savableNames())
               .withDefault(QStringLiteral("moves")),
           choice(QStringLiteral("line"), QStringLiteral("Line for format=moves."), {QStringLiteral("current"), QStringLiteral("main")})
               .withDefault(QStringLiteral("current")),

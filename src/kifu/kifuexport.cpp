@@ -50,9 +50,11 @@ QStringList lines(const KifuBranchTree& tree, const KifuExportMetadata& metadata
     return exporterFor(format)(tree, metadata);
 }
 
-QStringList lines(const KifuDocument& document, KifuFormat format)
+QStringList lines(const KifuDocument& document, KifuFormat format, KifuEncoding encoding)
 {
-    return lines(*document.tree(), metadataOf(document), format);
+    KifuExportMetadata metadata = metadataOf(document);
+    metadata.encoding = encoding;
+    return lines(*document.tree(), metadata, format);
 }
 
 } // namespace KifuExport

@@ -27,8 +27,8 @@ public:
     /// 保存失敗・キャンセルは false。破棄しても呼び出し元の dirty 状態は変更しない。
     static bool confirmDiscardUnsaved(QWidget* parent, bool isDirty, const std::function<bool()>& save);
 
-    /// ダイアログを出してKIF/KI2/CSA/JKF/USEN/USI形式で保存。成功時は保存パス、失敗/キャンセルは空文字。
-    /// defaultFileName は前回保存したフォルダに置く既定のファイル名
+    /// ダイアログを出して保存する（形式と文字コードは選んだ拡張子。KifuFormats::saveTargets）。
+    /// 成功時は保存パス、失敗/キャンセルは空文字。defaultFileName は前回保存したフォルダに置く既定のファイル名
     static QString saveViaDialog(QWidget* parent,
                                  const KifuSaveFile::LineGenerator& generateLines,
                                  const QString& defaultFileName,
@@ -36,9 +36,11 @@ public:
                                  bool hasTimeInfo = false,
                                  QString* outError = nullptr);
 
-    /// 既存ファイルへ上書き保存する。.kif/.ki2 に Shift_JIS で表せない文字があれば
-    /// UTF-8 で保存するか確認する（キャンセル時は outError が空で false）。parent が nullptr なら確認せずエラーにする。
-    static bool overwriteExisting(QWidget* parent, const QString& path, const QStringList& lines, QString* outError = nullptr);
+    /// 既存ファイルへ上書き保存する（行は拡張子の形式と文字コードで generateLines に作らせる）。.kif/.ki2 に
+    /// Shift_JIS で表せない文字があれば UTF-8 で保存するか確認する（キャンセル時は outError が空で false）。
+    /// parent が nullptr なら確認せずエラーにする。
+    static bool overwriteExisting(QWidget* parent, const QString& path, const KifuSaveFile::LineGenerator& generateLines,
+                                  QString* outError = nullptr);
 
 private:
     /// Shift_JIS で表せない文字があるとき、UTF-8 で保存するか確認する。保存するなら true

@@ -27,6 +27,8 @@ public:
         QString text;                            ///< 入力文字列（inputPath と排他）
         std::optional<KifuFormat> inputFormat;   ///< なければ拡張子／内容から判定
         KifuFormat outputFormat = KifuFormat::Kif; ///< 出力形式（Sfen は本譜の局面列）
+        /// 出力を保存する文字コード（KIF・KI2・CSA の先頭行の宣言に書く。保存先は KifuSaveFile::encodingForPath）
+        KifuEncoding outputEncoding = KifuEncoding::Utf8;
     };
 
     struct Result {

@@ -2,6 +2,7 @@
 /// @brief 棋譜の保存ダイアログ・未保存の確認の実装
 
 #include "kifusavedialogs.h"
+#include "kifufilefilter.h"
 #include "unsavedchangesprompt.h"
 
 #include <QFileDialog>
@@ -54,22 +55,11 @@ QString KifuSaveDialogs::saveViaDialog(QWidget* parent,
     if (!lastDir.isEmpty())
         defaultName = QDir(lastDir).filePath(defaultName);
 
-    // フィルタを作成（KIF/KI2/CSA/JKF/USEN/USI形式が選択可能）
-    const QString filter = tr(
-        "KIF形式 UTF-8 (*.kifu);;"
-        "KIF形式 Shift_JIS (*.kif);;"
-        "KI2形式 UTF-8 (*.ki2u);;"
-        "KI2形式 Shift_JIS (*.ki2);;"
-        "CSA形式 (*.csa);;"
-        "JKF形式 (*.jkf);;"
-        "USEN形式 (*.usen);;"
-        "USI形式 (*.usi);;"
-        "すべてのファイル (*)");
-
+    // 絞り込みは保存できる拡張子の表から作る
     QString selectedFilter;
     const QString chosenPath = QFileDialog::getSaveFileName(
-        parent, tr("名前を付けて保存"), defaultName, filter, &selectedFilter);
-    const QString path = KifuSaveFile::pathForSelectedFilter(chosenPath, selectedFilter);
+        parent, tr("名前を付けて保存"), defaultName, KifuFileFilter::forSaving(), &selectedFilter);
+    const QString path = KifuFileFilter::pathForSaving(chosenPath, selectedFilter);
     if (path.isEmpty()) return QString();
 
     GameSettings::lastKifuSaveDirectory.set(QFileInfo(path).absolutePath());
@@ -124,7 +114,7 @@ QString KifuSaveDialogs::saveViaDialog(QWidget* parent,
         break;
     }
 
-    if (!overwriteExisting(parent, path, generateLines(format), outError)) return QString();
+    if (!overwriteExisting(parent, path, generateLines, outError)) return QString();
     return path;
 }
 
@@ -142,11 +132,12 @@ bool KifuSaveDialogs::confirmDiscardUnsaved(QWidget* parent, bool isDirty, const
     return false;
 }
 
-bool KifuSaveDialogs::overwriteExisting(QWidget* parent, const QString& path, const QStringList& lines, QString* outError)
+bool KifuSaveDialogs::overwriteExisting(QWidget* parent, const QString& path,
+                                        const KifuSaveFile::LineGenerator& generateLines, QString* outError)
 {
     // 親ウィンドウが無い（自動化 API から保存する）ときは確認を出さずエラーにする
-    if (!parent) return KifuSaveFile::write(path, lines, outError);
-    return KifuSaveFile::write(path, lines, outError, [parent](const QString& missing) {
+    if (!parent) return KifuSaveFile::write(path, generateLines, outError);
+    return KifuSaveFile::write(path, generateLines, outError, [parent](const QString& missing) {
         return confirmUtf8Fallback(parent, missing);
     });
 }

@@ -13,20 +13,6 @@
 #include <QMessageBox>
 #include <QPushButton>
 
-namespace {
-QString bookFileFilter()
-{
-    return JosekiFileController::tr("定跡ファイル (*.db);;すべてのファイル (*)");
-}
-
-QString withBookSuffix(QString filePath)
-{
-    if (!filePath.isEmpty() && !filePath.endsWith(QStringLiteral(".db"), Qt::CaseInsensitive))
-        filePath += QStringLiteral(".db");
-    return filePath;
-}
-} // namespace
-
 JosekiFileController::JosekiFileController(const Deps &deps, QObject *parent)
     : QObject(parent)
     , m_deps(deps)
@@ -54,7 +40,7 @@ void JosekiFileController::open()
     const QString current = m_deps.session->filePath();
     const QString startDir = current.isEmpty() ? QString() : QFileInfo(current).absolutePath();
     const QString filePath =
-        QFileDialog::getOpenFileName(m_deps.parentWidget, tr("定跡ファイルを開く"), startDir, bookFileFilter());
+        QFileDialog::getOpenFileName(m_deps.parentWidget, tr("定跡ファイルを開く"), startDir, JosekiBookFile::fileFilter());
     if (!filePath.isEmpty()) openFile(filePath);
 }
 
@@ -188,6 +174,6 @@ QString JosekiFileController::selectSaveFilePath()
 {
     const QString current = m_deps.session->filePath();
     const QString startDir = current.isEmpty() ? QString() : QFileInfo(current).absolutePath();
-    return withBookSuffix(
-        QFileDialog::getSaveFileName(m_deps.parentWidget, tr("定跡ファイルを保存"), startDir, bookFileFilter()));
+    return JosekiBookFile::withBookSuffix(QFileDialog::getSaveFileName(
+        m_deps.parentWidget, tr("定跡ファイルを保存"), startDir, JosekiBookFile::fileFilter()));
 }

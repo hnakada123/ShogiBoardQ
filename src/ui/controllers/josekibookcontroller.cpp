@@ -60,7 +60,7 @@ void JosekiBookController::openDroppedPaths(const QStringList &paths)
 {
     if (paths.isEmpty()) return;
     // 定跡ファイル（.db）1つなら開き、それ以外は複数の棋譜から登録するダイアログに並べる
-    if (paths.size() == 1 && paths.constFirst().endsWith(QStringLiteral(".db"), Qt::CaseInsensitive)) {
+    if (paths.size() == 1 && JosekiBookFile::hasBookSuffix(paths.constFirst())) {
         m_files->openRecent(paths.constFirst());
         return;
     }

@@ -2,6 +2,7 @@
 /// @brief 別の定跡ファイルを今の定跡に足すダイアログの実装
 
 #include "josekibookmergedialog.h"
+#include "josekibook.h"
 
 #include "dialogfontscale.h"
 #include "josekisettings.h"
@@ -99,7 +100,7 @@ void JosekiBookMergeDialog::browse()
 {
     const QString start = filePath().isEmpty() ? m_directory : QFileInfo(filePath()).absolutePath();
     const QString file = QFileDialog::getOpenFileName(this, tr("足す定跡ファイルを選択"), start,
-                                                      tr("定跡ファイル (*.db);;すべてのファイル (*)"));
+                                                      JosekiBookFile::fileFilter());
     if (!file.isEmpty()) m_path->setText(file);
 }
 
