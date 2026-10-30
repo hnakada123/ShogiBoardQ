@@ -532,16 +532,20 @@ set(SRC_ENGINE
 set(SRC_NETWORK
     src/network/csaclient.cpp
     src/network/csaclient.h
-    src/network/csaclient_commands.cpp
-    src/network/csaclient_parser.cpp
     src/network/csagamechannel.cpp
     src/network/csagamechannel.h
     src/network/csagamecoordinator.cpp
     src/network/csagamecoordinator.h
     src/network/csagamecoordinator_moves.cpp
     src/network/csagamecoordinator_setup.cpp
+    src/network/csagamesummary.cpp
+    src/network/csagamesummary.h
+    src/network/csagamesummaryreader.cpp
+    src/network/csagamesummaryreader.h
     src/network/csagameprogress.cpp
     src/network/csagameprogress.h
+    src/network/csalogin.cpp
+    src/network/csalogin.h
     src/network/csamoveconverter.cpp
     src/network/csamoveconverter.h
 )

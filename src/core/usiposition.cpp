@@ -5,6 +5,8 @@
 
 #include "sfenutils.h"
 
+#include <algorithm>
+
 UsiPosition::UsiPosition(const Position& start, std::optional<UsiMove> lastMove)
     : m_valid(true)
     , m_start(start)
@@ -58,37 +60,71 @@ std::optional<QList<UsiPosition>> UsiPosition::alongMoves(QStringView startSfen,
     return positions;
 }
 
+QString UsiPosition::Words::completeStart() const
+{
+    return start.count(QLatin1Char(' ')) == 2 ? start + QStringLiteral(" 1") : start;
+}
+
+std::optional<UsiPosition::Words> UsiPosition::split(QStringView text)
+{
+    const auto isKeyword = [](const QString& token, const char* keyword) {
+        return token.compare(QLatin1String(keyword), Qt::CaseInsensitive) == 0;
+    };
+    // 空白・タブ・改行のどれで区切ってもよい
+    const QStringList tokens = text.toString().simplified().split(QLatin1Char(' '), Qt::SkipEmptyParts);
+    qsizetype i = 0;
+    if (i < tokens.size() && isKeyword(tokens.at(i), "position")) ++i;
+    if (i >= tokens.size()) return std::nullopt;
+
+    Words words;
+    if (isKeyword(tokens.at(i), "startpos")) {
+        words.start = SfenUtils::hirateSfen();
+        ++i;
+    } else {
+        if (isKeyword(tokens.at(i), "sfen")) ++i;
+        // 盤・手番・持ち駒の3つの欄（"moves" が先に来れば足りない）と、数字だけなら手数の欄
+        QStringList fields;
+        for (; i < tokens.size() && fields.size() < 3 && !isKeyword(tokens.at(i), "moves"); ++i)
+            fields << tokens.at(i);
+        if (fields.size() < 3) return std::nullopt;
+        if (i < tokens.size()) {
+            const QString& ply = tokens.at(i);
+            if (std::all_of(ply.cbegin(), ply.cend(), [](QChar c) { return c.isDigit(); })) {
+                fields << ply;
+                ++i;
+            }
+        }
+        words.start = fields.join(QLatin1Char(' '));
+    }
+    if (i < tokens.size() && isKeyword(tokens.at(i), "moves")) ++i;
+    words.moves = tokens.mid(i);
+    return words;
+}
+
 std::optional<UsiPosition> UsiPosition::parse(QStringView text, QString* error)
 {
-    QStringView rest = text.trimmed();
-    if (rest.startsWith(u"position ")) rest = rest.sliced(9).trimmed();
-    QStringView movesPart;
-    if (const qsizetype moves = rest.indexOf(u" moves"); moves >= 0) {
-        movesPart = rest.sliced(moves + 6).trimmed();
-        rest = rest.left(moves).trimmed();
-    } else if (rest.endsWith(u"moves")) {
-        rest = rest.chopped(5).trimmed();
-    }
-    if (rest.startsWith(u"sfen ")) rest = rest.sliced(5).trimmed();
-
-    std::optional<UsiPosition> position;
-    if (rest == u"startpos") {
-        position = UsiPosition(Position::hirate());
-    } else if (const std::optional<Position> start = rest.count(QLatin1Char(' ')) == 2
-                   ? Position::fromSfen(rest.toString() + QStringLiteral(" 1"), error)
-                   : Position::fromSfen(rest, error)) {
-        position = UsiPosition(*start);
-    } else {
+    const std::optional<Words> words = split(text);
+    if (!words) {
+        if (error) *error = QStringLiteral("Unknown position format: %1").arg(text.trimmed().left(80));
         return std::nullopt;
     }
-    for (const QStringView token : movesPart.tokenize(QLatin1Char(' '), Qt::SkipEmptyParts)) {
+    const std::optional<Position> start = Position::fromSfen(words->completeStart(), error);
+    if (!start) return std::nullopt;
+    UsiPosition position(*start);
+    for (const QString& token : words->moves) {
         const std::optional<UsiMove> move = UsiMove::parse(token);
-        if (!move || !position->advance(*move)) {
+        if (!move || !position.advance(*move)) {
             if (error) *error = QStringLiteral("Move cannot be applied: %1").arg(token);
             return std::nullopt;
         }
     }
     return position;
+}
+
+QString UsiPosition::sfenOf(QStringView text)
+{
+    const std::optional<Words> words = split(text);
+    return words && words->moves.isEmpty() ? words->start : text.trimmed().toString();
 }
 
 std::optional<UsiPosition> UsiPosition::withMove(const UsiMove& move) const

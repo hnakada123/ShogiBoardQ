@@ -54,18 +54,6 @@ public:
 private:
     // 行の中から解析対象の行（最初の position/SFEN らしき行、なければ最初の非空行）を選ぶ
     static bool selectPositionLine(const QStringList& lines, QString& content, QString* warn);
-
-    // USI position コマンド文字列を解析して初期局面SFENと指し手列を取得
-    // 入力例: "position startpos moves 2g2f 3c3d"
-    // 入力例: "position sfen lnsgkgsnl/... b - 1 moves 2g2f 3c3d"
-    // 入力例: "startpos moves 2g2f 3c3d" (position省略)
-    // 入力例: "lnsgkgsnl/... b - 1" (局面のみ、sfen省略)
-    // 開始局面を解釈できない場合は false を返す
-    static bool parseUsiPositionString(const QString& usiStr,
-                                       QString& baseSfen,
-                                       QStringList& usiMoves,
-                                       QString* terminalCode,
-                                       QString* warn);
 };
 
 #endif // USITOSFENCONVERTER_H

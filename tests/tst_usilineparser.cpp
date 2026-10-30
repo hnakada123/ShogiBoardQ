@@ -95,6 +95,24 @@ private slots:
         QCOMPARE(minus->pv, QStringList({QStringLiteral("resign")}));
     }
 
+    // 手番側から見た値を先手から見た値に直すのは UsiScore::blackView だけ（後手から見た値だけを反転する）
+    void blackViewFlipsOnlyWhitesScore()
+    {
+        const UsiScore cp = UsiScore::cp(120, UsiScore::Bound::Lower);
+        QCOMPARE(cp.blackView(Turn::Black), cp);
+        const UsiScore flipped = cp.blackView(Turn::White);
+        QCOMPARE(flipped.value, -120);
+        QVERIFY(flipped.bound == UsiScore::Bound::Upper);
+
+        const UsiScore mate = UsiScore::mate(3).blackView(Turn::White);
+        QCOMPARE(mate.value, -3);
+        QCOMPARE(mate.mateSign(), -1);
+
+        // viewedBy は逆の直し（先手から見た値 → その側から見た値）
+        QCOMPARE(flipped.viewedBy(Turn::White), cp);
+        QCOMPARE(cp.viewedBy(Turn::Black), cp);
+    }
+
     void parsesBounds()
     {
         const auto lower = UsiLineParser::parseInfo(QStringLiteral("info depth 8 score cp 120 lowerbound nodes 10 pv 2g2f"));

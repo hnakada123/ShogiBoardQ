@@ -6,7 +6,7 @@
 #include "enginemovevalidator.h"
 #include "piecerules.h"
 #include "positionvalidator.h"
-#include "sfenutils.h"
+#include "usiposition.h"
 
 namespace {
 
@@ -40,7 +40,7 @@ QString problemText(PositionValidator::Problem problem)
 SfenValidation SfenValidator::validate(const QString& sfenLike)
 {
     SfenValidation result;
-    const QString sfen = SfenUtils::normalizePositionLikeSfen(sfenLike);
+    const QString sfen = UsiPosition::sfenOf(sfenLike);
     if (sfen.isEmpty()) {
         result.errors.append(QStringLiteral("SFEN is empty"));
         return result;

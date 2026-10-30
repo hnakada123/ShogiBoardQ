@@ -16,7 +16,7 @@
  * @brief 評価値グラフに描く評価値の列（1つ目と2つ目の系列）
  *
  * 評価値は先手から見た値で持つ。エンジンの評価値はそれを出した側から見た値なので、
- * 先手から見た値への直しは blackView の1か所だけで行う。グラフ（EvaluationChartWidget）はこの列を描くだけ。
+ * 先手から見た値への直しは core の UsiScore::blackView で行う。グラフ（EvaluationChartWidget）はこの列を描くだけ。
  * 対局では1つ目が先手のエンジン、2つ目が後手のエンジン。検討・棋譜解析・通信対局の自分のエンジンも同じ規則で置く。
  */
 class EvaluationSeries : public QObject
@@ -27,9 +27,6 @@ public:
     static constexpr int kSeriesCount = 2;
 
     explicit EvaluationSeries(QObject* parent = nullptr);
-
-    /// viewpoint の側から見た評価値を、先手から見た値にする
-    static UsiScore blackView(Turn viewpoint, const UsiScore& score);
 
     /// viewpoint の側から見た score を、series（0・1）の ply 手目に置く（評価値なしは置かない）
     void setScore(int series, int ply, Turn viewpoint, const UsiScore& score);

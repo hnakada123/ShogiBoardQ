@@ -584,7 +584,7 @@ private slots:
     /// 加算の扱いとエンジンへ渡す時間（手番側は今の手番の加算を除く）
     void progressTimeTracking()
     {
-        CsaClient::GameSummary summary;
+        CsaGameSummary summary;
         summary.myTurn = Turn::White;
         summary.toMove = Turn::Black;
         summary.timeBlack.specified = true;

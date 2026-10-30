@@ -262,6 +262,22 @@ private slots:
         QCOMPARE(h.nav.currentNode(), h.tree.root());
         QVERIFY(h.loader.findChildren<KifuBranchTree*>().isEmpty());
     }
+    /// 局面の読み込みは position コマンドと同じ読み方で局面を確かめ、読めなければ棋譜を置き換えない
+    void positionLoadRejectsUnreadablePosition()
+    {
+        KifuHarness h;
+        QVERIFY(h.loader.loadText(QStringLiteral("position startpos moves 7g7f")));
+        const QStringList before = h.positions();
+        QSignalSpy errors(&h.loader, &KifuLoader::errorOccurred);
+        QVERIFY(!h.loader.loadPositionFromSfen(QStringLiteral("xyz b - 1")));
+        QVERIFY(!h.loader.loadPositionFromSfen(QStringLiteral("sfen 4k4/9/9/9/9/9/9/9/4K4 b")));
+        QCOMPARE(errors.count(), 2);
+        QCOMPARE(h.positions(), before);
+
+        // "position" の接頭辞・"startpos"・指し手も読む（指した後の局面を開始局面にする）
+        QVERIFY(h.loader.loadPositionFromSfen(QStringLiteral("position startpos moves 7g7f")));
+        QCOMPARE(h.tree.root()->sfen(), afterFirstMove);
+    }
     void destructionDoesNotWaitForParsing()
     {
         auto h = std::make_unique<KifuHarness>();

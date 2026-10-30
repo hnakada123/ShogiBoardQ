@@ -116,9 +116,9 @@ public slots:
         // 最善の読み筋の評価値を先手から見た値にする（評価値は手番の側から見た値）
         const auto latest = m_runner->latestLines();
         if (const auto best = latest.constFind(1); best != latest.cend()) {
-            const int sign = m_plan.positions.at(index)->sideToMove() == Turn::Black ? 1 : -1;
-            if (best->score.isCp()) obj[QStringLiteral("score_cp_black")] = sign * best->score.value;
-            if (best->score.isMate()) obj[QStringLiteral("score_mate_black")] = sign * best->score.value;
+            const UsiScore score = best->score.blackView(m_plan.positions.at(index)->sideToMove());
+            if (score.isCp()) obj[QStringLiteral("score_cp_black")] = score.value;
+            if (score.isMate()) obj[QStringLiteral("score_mate_black")] = score.value;
         }
         m_completed = index + 1;
         CliOutput::printEvent(QStringLiteral("position"), obj);

@@ -6,6 +6,7 @@
 #include "kifudocument.h"
 #include "logcategories.h"
 #include "shogiposition.h"
+#include "usiposition.h"
 
 #include <QtConcurrentRun>
 #include <utility>
@@ -85,17 +86,17 @@ bool KifuLoader::loadText(const QString& content)
     return applyLoadResult(KifuLoadParser::parseText(content));
 }
 
-bool KifuLoader::loadPositionFromSfen(const QString& sfenStr)
+bool KifuLoader::loadPositionFromSfen(const QString& sfen)
 {
     cancelLoad();
-    QString sfen = sfenStr.trimmed();
-    if (sfen.startsWith(QStringLiteral("sfen "), Qt::CaseInsensitive)) sfen = sfen.mid(5).trimmed();
-    if (sfen.split(QLatin1Char(' '), Qt::SkipEmptyParts).size() < 4) {
+    // 読み方は position コマンドと同じ（UsiPosition::parse）。局面として読めなければ置き換えない
+    const std::optional<UsiPosition> position = UsiPosition::parse(sfen);
+    if (!position) {
         emit errorOccurred(tr("無効なSFEN形式です。"));
         return false;
     }
     // 局面だけの棋譜にする（表示中の手は開始局面へ戻る）
-    m_document->replaceWithPosition(sfen);
+    m_document->replaceWithPosition(position->sfen());
     return true;
 }
 

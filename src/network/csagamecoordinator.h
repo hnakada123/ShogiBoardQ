@@ -158,8 +158,8 @@ public:
     int whiteRemainingMs() const { return m_progress.whiteRemainingMs; }
     /// 1局ぶんの進行（手数・持ち時間・指し手列）
     const CsaGameProgress& progress() const { return m_progress; }
-    /// 受信した対局条件（Game_Summary）。持ち時間は CsaClient::GameSummary の各関数で単位換算する
-    const CsaClient::GameSummary& gameSummary() const { return m_progress.summary; }
+    /// 受信した対局条件（Game_Summary）。持ち時間は CsaGameSummary の各関数で単位換算する
+    const CsaGameSummary& gameSummary() const { return m_progress.summary; }
     void requestChudan();
     void declareWin();
     /// エンジンが自分の手番で思考中なら、すぐ指させる
@@ -182,14 +182,14 @@ public:
      *
      * Format が将棋以外、またはエンジン対局で時間無制限のときは REJECT する。
      */
-    static QString unsupportedConditionReason(const CsaClient::GameSummary& summary, PlayerType playerType);
+    static QString unsupportedConditionReason(const CsaGameSummary& summary, PlayerType playerType);
 
     /**
      * @brief 対局開始時に表示用時計を CSA の持時間に合わせる
      *
      * 双方とも時間無制限なら消費時間を数える時計にする。以後は着手ごとに残り時間だけを合わせる。
      */
-    static void startDisplayClock(ShogiClock* clock, const CsaClient::GameSummary& summary,
+    static void startDisplayClock(ShogiClock* clock, const CsaGameSummary& summary,
                                   qint64 blackRemainingMs, qint64 whiteRemainingMs);
 
     /// 裁定が届かないときに中断とみなすまでの時間
@@ -227,7 +227,7 @@ private slots:
     void onLoginSucceeded();
     void onLoginFailed(const QString& reason);
     void onLogoutCompleted();
-    void onGameSummaryReceived(const CsaClient::GameSummary& summary);
+    void onGameSummaryReceived(const CsaGameSummary& summary);
     void onGameStarted(const QString& gameId);
     void onGameRejected(const QString& gameId, const QString& rejector);
     void onMoveReceived(const QString& move, int consumedTimeMs);
@@ -270,7 +270,7 @@ private:
     /// エンジンを起動し、readyok まで AGREE を保留する
     void startEngine();
     /// 受信した対局条件の持時間・手数制限・宣言ルールをログに出す
-    void logGameConditions(const CsaClient::GameSummary& summary);
+    void logGameConditions(const CsaGameSummary& summary);
     /// 現在のオプションでサーバーへ接続し、ログイン以降の流れを始める
     void connectForGame();
     /// 終局後の対局数の扱い（上限に達したらログアウト、残っていれば次を待つ）

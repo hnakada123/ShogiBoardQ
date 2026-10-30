@@ -6,6 +6,7 @@
 #include "automationparams.h"
 #include "kifufilecontroller.h"
 #include "sfenutils.h"
+#include "usiposition.h"
 #include "sfenvalidator.h"
 
 #include <QJsonArray>
@@ -18,7 +19,7 @@ void AutomationCommands::registerPositionCommands(AutomationDispatcher& dispatch
         const int ply = context.currentPly();
         result[QStringLiteral("sfen")] = currentSfen(context);
         const QString start = record.isEmpty() ? SfenUtils::hirateSfen() : record.first();
-        result[QStringLiteral("start_sfen")] = SfenUtils::normalizeStart(start);
+        result[QStringLiteral("start_sfen")] = UsiPosition::sfenOf(start);
         result[QStringLiteral("ply")] = ply;
         // 表示中の手数までの指し手（分岐ツリーの各手から取る）
         const RecordLine line = currentRecordLine(context);

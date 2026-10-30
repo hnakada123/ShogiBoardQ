@@ -61,7 +61,7 @@ JosekiRegistrationController::Target JosekiRegistrationController::targetOf(cons
     target.sfen = row.sfen;
     target.pv = row.pv.usiMoves();
     // 結果の表は先手から見た評価値で持つので、局面の手番側から見た値に戻す
-    target.score = whiteToMove(row.sfen) ? row.evaluation.negated() : row.evaluation;
+    target.score = row.evaluation.viewedBy(whiteToMove(row.sfen) ? Turn::White : Turn::Black);
     target.depth = row.depth;
     return target;
 }

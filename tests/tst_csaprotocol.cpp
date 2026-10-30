@@ -2,7 +2,7 @@
 /// @brief CSAプロトコル関連のユニットテスト
 ///
 /// テスト対象:
-/// - CsaClient::GameSummary（時間単位変換、初期化、手番判定）
+/// - CsaGameSummary（時間単位変換、初期化、手番判定）
 /// - CsaMoveConverter（CSA↔USI の指し手の変換）・CsaClient の結果の表示名
 /// - SfenCsaPositionConverter（CSA↔SFEN局面変換）
 
@@ -21,6 +21,8 @@
 
 // private メンバへは CsaClient の friend 宣言（SHOGIBOARDQ_TESTING 時のみ有効）経由でアクセスする
 #include "csaclient.h"
+#include "csagamesummaryreader.h"
+#include "csalogin.h"
 #include "csamoveconverter.h"
 #include "sfencsapositionconverter.h"
 #include "shogiboard.h"
@@ -29,6 +31,14 @@
 class Tst_CsaProtocol : public QObject
 {
     Q_OBJECT
+
+    /// Game_Summary の中の行を順に読み取り器に渡した結果
+    static CsaGameSummary readSummary(std::initializer_list<const char*> lines)
+    {
+        CsaGameSummaryReader reader;
+        for (const char* line : lines) reader.read(QString::fromLatin1(line));
+        return reader.summary();
+    }
 
 private slots:
     void csaClient_extensionRepliesDoNotEndGame()
@@ -154,7 +164,7 @@ private slots:
         QFETCH(QString, timeUnit);
         QFETCH(int, expectedMs);
 
-        CsaClient::GameSummary gs;
+        CsaGameSummary gs;
         gs.timeBlack.timeUnit = timeUnit;
         QCOMPARE(gs.timeUnitMs(true), expectedMs);
     }
@@ -162,8 +172,8 @@ private slots:
     /// 持ち時間は Time_Unit で換算し、Time+/Time- があれば手番ごとの値を使う
     void gameSummary_timeControlMs()
     {
-        CsaClient::GameSummary gs;
-        for (CsaClient::TimeControl* t : {&gs.timeBlack, &gs.timeWhite}) {
+        CsaGameSummary gs;
+        for (CsaGameSummary::Time* t : {&gs.timeBlack, &gs.timeWhite}) {
             t->timeUnit = QStringLiteral("1min");
             t->totalTime = 10;
             t->byoyomi = 1;
@@ -198,19 +208,19 @@ private slots:
         gs.timeBlack.timeUnit = QStringLiteral("1min");
         gs.timeBlack.totalTime = 100000;
         gs.timeBlack.increment = std::numeric_limits<int>::max();
-        QCOMPARE(gs.totalTimeMs(true), CsaClient::kMaxTimeMs);
-        QCOMPARE(gs.incrementMs(true), CsaClient::kMaxTimeMs);
-        QCOMPARE(gs.unitsToMs(true, std::numeric_limits<int>::max()), CsaClient::kMaxTimeMs);
+        QCOMPARE(gs.totalTimeMs(true), CsaGameSummary::kMaxTimeMs);
+        QCOMPARE(gs.incrementMs(true), CsaGameSummary::kMaxTimeMs);
+        QCOMPARE(gs.unitsToMs(true, std::numeric_limits<int>::max()), CsaGameSummary::kMaxTimeMs);
         QCOMPARE(gs.unitsToMs(true, 2), 120000);
     }
 
     // ========================================
-    // GameSummary: 初期化とクリア
+    // GameSummary: 初期化と作り直し
     // ========================================
 
-    void gameSummary_clear()
+    void gameSummary_reset()
     {
-        CsaClient::GameSummary gs;
+        CsaGameSummary gs;
         gs.gameId = QStringLiteral("test-game-123");
         gs.blackName = QStringLiteral("Sente");
         gs.whiteName = QStringLiteral("Gote");
@@ -220,7 +230,7 @@ private slots:
         gs.timeBlack.specified = true;
         gs.moveConsumedTimes.append(3);
 
-        gs.clear();
+        gs = {};
 
         QVERIFY(gs.gameId.isEmpty());
         QVERIFY(gs.blackName.isEmpty());
@@ -245,7 +255,7 @@ private slots:
 
     void gameSummary_isBlackSide()
     {
-        CsaClient::GameSummary gs;
+        CsaGameSummary gs;
 
         gs.myTurn = Turn::Black;
         QVERIFY(gs.isBlackSide());
@@ -258,42 +268,6 @@ private slots:
         gs.myTurn.reset();
         QVERIFY(!gs.isBlackSide());
         QVERIFY(!gs.movesFirst());
-    }
-
-    // ========================================
-    // CsaMoveConverter: 対局結果文字列
-    // ========================================
-
-    void gameResultToString()
-    {
-        QVERIFY(!CsaClient::gameResultText(CsaClient::GameResult::Win).isEmpty());
-        QVERIFY(!CsaClient::gameResultText(CsaClient::GameResult::Lose).isEmpty());
-        QVERIFY(!CsaClient::gameResultText(CsaClient::GameResult::Draw).isEmpty());
-        QVERIFY(!CsaClient::gameResultText(CsaClient::GameResult::Censored).isEmpty());
-        QVERIFY(!CsaClient::gameResultText(CsaClient::GameResult::Chudan).isEmpty());
-        QVERIFY(!CsaClient::gameResultText(CsaClient::GameResult::Unknown).isEmpty());
-    }
-
-    // ========================================
-    // CsaMoveConverter: 終局原因文字列
-    // ========================================
-
-    void gameEndCauseToString()
-    {
-        QVERIFY(!CsaClient::gameEndCauseText(CsaClient::GameEndCause::Resign).isEmpty());
-        QVERIFY(!CsaClient::gameEndCauseText(CsaClient::GameEndCause::TimeUp).isEmpty());
-        QVERIFY(!CsaClient::gameEndCauseText(CsaClient::GameEndCause::IllegalMove).isEmpty());
-        QVERIFY(!CsaClient::gameEndCauseText(CsaClient::GameEndCause::Sennichite).isEmpty());
-        QVERIFY(!CsaClient::gameEndCauseText(CsaClient::GameEndCause::OuteSennichite).isEmpty());
-        QVERIFY(!CsaClient::gameEndCauseText(CsaClient::GameEndCause::Jishogi).isEmpty());
-        QVERIFY(!CsaClient::gameEndCauseText(CsaClient::GameEndCause::MaxMoves).isEmpty());
-        QVERIFY(!CsaClient::gameEndCauseText(CsaClient::GameEndCause::Chudan).isEmpty());
-        QVERIFY(!CsaClient::gameEndCauseText(CsaClient::GameEndCause::IllegalAction).isEmpty());
-        QVERIFY(!CsaClient::gameEndCauseText(CsaClient::GameEndCause::Unknown).isEmpty());
-
-        // 各結果が異なる文字列であることを確認
-        QVERIFY(CsaClient::gameEndCauseText(CsaClient::GameEndCause::Resign)
-                != CsaClient::gameEndCauseText(CsaClient::GameEndCause::TimeUp));
     }
 
     // ========================================
@@ -508,7 +482,7 @@ private slots:
         QFETCH(QString, timeUnit);
         QFETCH(int, expectedMs);
 
-        CsaClient::GameSummary gs;
+        CsaGameSummary gs;
         gs.timeWhite.timeUnit = timeUnit;
         QCOMPARE(gs.timeUnitMs(false), expectedMs);
     }
@@ -532,7 +506,7 @@ private slots:
     void gameSummary_incompleteData()
     {
         // A GameSummary with missing fields should still be usable
-        CsaClient::GameSummary gs;
+        CsaGameSummary gs;
         // Defaults should be safe
         QCOMPARE(gs.timeBlack.totalTime, 0);
         QCOMPARE(gs.timeWhite.byoyomi, 0);
@@ -682,7 +656,7 @@ private slots:
         client.m_receiveBuffer = QByteArrayLiteral("partial");
         client.m_gameSummary.gameId = QStringLiteral("game-id");
         client.m_isMyTurn = true;
-        client.m_summarySection = CsaClient::SummarySection::TimeBlack;
+        client.m_summaryReader.emplace();
         client.m_pendingFirstResultLine = QStringLiteral("#RESIGN");
         client.m_endMoveConsumedTimeMs = 1234;
         client.m_connectionState = CsaClient::ConnectionState::InGame;
@@ -692,37 +666,46 @@ private slots:
         QVERIFY(client.m_receiveBuffer.isEmpty());
         QVERIFY(client.m_gameSummary.gameId.isEmpty());
         QVERIFY(!client.m_isMyTurn);
-        QCOMPARE(client.m_summarySection, CsaClient::SummarySection::Outside);
+        QVERIFY(!client.m_summaryReader);
         QVERIFY(client.m_pendingFirstResultLine.isEmpty());
         QCOMPARE(client.m_endMoveConsumedTimeMs, 0);
         // 接続状態は resetSessionState() では変更しない
         QCOMPARE(client.m_connectionState, CsaClient::ConnectionState::InGame);
     }
 
-    void csaClient_processGameSummary_invalidNumeric_keepsCurrentValues()
+    void gameSummaryReader_invalidNumeric_keepsCurrentValues()
     {
-        CsaClient client;
-        client.m_summarySection = CsaClient::SummarySection::Time;
-        for (CsaClient::TimeControl* t : {&client.m_gameSummary.timeBlack, &client.m_gameSummary.timeWhite}) {
-            t->totalTime = 600;
-            t->byoyomi = 30;
-            t->delay = 5;
-        }
-
-        client.processGameSummary(QStringLiteral("Total_Time:abc"));
-        client.processGameSummary(QStringLiteral("Byoyomi:-1"));
-        client.processGameSummary(QStringLiteral("Delay:xyz"));
-
-        for (const CsaClient::TimeControl* t : {&client.m_gameSummary.timeBlack, &client.m_gameSummary.timeWhite}) {
+        const CsaGameSummary gs = readSummary({"BEGIN Time", "Total_Time:600", "Byoyomi:30", "Delay:5",
+                                               "Total_Time:abc", "Byoyomi:-1", "Delay:xyz", "END Time",
+                                               "Max_Moves:256", "Max_Moves:not-a-number"});
+        for (const CsaGameSummary::Time* t : {&gs.timeBlack, &gs.timeWhite}) {
             QCOMPARE(t->totalTime, 600);
             QCOMPARE(t->byoyomi, 30);
             QCOMPARE(t->delay, 5);
         }
+        QCOMPARE(gs.maxMoves, 256);
+    }
 
-        client.m_summarySection = CsaClient::SummarySection::TopLevel;
-        client.m_gameSummary.maxMoves = 256;
-        client.processGameSummary(QStringLiteral("Max_Moves:not-a-number"));
-        QCOMPARE(client.m_gameSummary.maxMoves, 256);
+    /// 読み取り器は "END Game_Summary" で読み終え、行の数か大きさが上限を超えたら知らせる
+    void gameSummaryReader_reportsFinishAndLimits()
+    {
+        CsaGameSummaryReader reader;
+        QCOMPARE(reader.read(QStringLiteral("Game_ID:g1")), CsaGameSummaryReader::Status::Reading);
+        QCOMPARE(reader.read(QStringLiteral("END Game_Summary")), CsaGameSummaryReader::Status::Finished);
+        // 読み終えた後の行は読まない
+        QCOMPARE(reader.read(QStringLiteral("Game_ID:g2")), CsaGameSummaryReader::Status::Finished);
+        QCOMPARE(reader.summary().gameId, QStringLiteral("g1"));
+
+        CsaGameSummaryReader lines;
+        CsaGameSummaryReader::Status status = CsaGameSummaryReader::Status::Reading;
+        for (int i = 0; i <= CsaGameSummaryReader::kMaxLines && status == CsaGameSummaryReader::Status::Reading; ++i)
+            status = lines.read(QStringLiteral("P+"));
+        QCOMPARE(status, CsaGameSummaryReader::Status::TooLarge);
+
+        CsaGameSummaryReader bytes;
+        const QString big(CsaGameSummaryReader::kMaxBytes / 2, QLatin1Char('P'));
+        QCOMPARE(bytes.read(big), CsaGameSummaryReader::Status::Reading);
+        QCOMPARE(bytes.read(big), CsaGameSummaryReader::Status::TooLarge);
     }
 
     // ========================================
@@ -731,7 +714,7 @@ private slots:
 
     void gameSummary_individualTime()
     {
-        CsaClient::GameSummary gs;
+        CsaGameSummary gs;
 
         // 個別時間が設定された場合
         gs.hasIndividualTime = true;
@@ -745,8 +728,8 @@ private slots:
         QCOMPARE(gs.timeFor(true).byoyomi, 30);
         QCOMPARE(gs.timeFor(false).byoyomi, 60);
 
-        // clear で全てリセットされる
-        gs.clear();
+        // 作り直すと全てリセットされる
+        gs = {};
         QVERIFY(!gs.hasIndividualTime);
         QCOMPARE(gs.timeBlack.totalTime, 0);
         QCOMPARE(gs.timeWhite.totalTime, 0);
@@ -756,7 +739,7 @@ private slots:
 
     void gameSummary_positionAndMovesClear()
     {
-        CsaClient::GameSummary gs;
+        CsaGameSummary gs;
         gs.positionLines.append(QStringLiteral("PI"));
         gs.moves.append(QStringLiteral("+7776FU"));
         gs.moveConsumedTimes.append(12);
@@ -766,7 +749,7 @@ private slots:
         QCOMPARE(gs.positionMoveConsumedMs(0), 12000);
         QCOMPARE(gs.positionMoveConsumedMs(1), 0);
 
-        gs.clear();
+        gs = {};
         QVERIFY(gs.positionLines.isEmpty());
         QVERIFY(gs.moves.isEmpty());
         QVERIFY(gs.moveConsumedTimes.isEmpty());
@@ -775,55 +758,9 @@ private slots:
     void gameSummary_maxMovesNonNumeric()
     {
         // maxMoves は toInt() で解析される - 0 が返る
-        CsaClient::GameSummary gs;
+        CsaGameSummary gs;
         gs.maxMoves = QStringLiteral("ABC").toInt();  // 0
         QCOMPARE(gs.maxMoves, 0);
-    }
-
-    // ========================================
-    // CsaMoveConverter: 全結果値が一意であること
-    // ========================================
-
-    void gameResultToString_allDistinct()
-    {
-        QStringList results;
-        results << CsaClient::gameResultText(CsaClient::GameResult::Win)
-                << CsaClient::gameResultText(CsaClient::GameResult::Lose)
-                << CsaClient::gameResultText(CsaClient::GameResult::Draw)
-                << CsaClient::gameResultText(CsaClient::GameResult::Censored)
-                << CsaClient::gameResultText(CsaClient::GameResult::Chudan)
-                << CsaClient::gameResultText(CsaClient::GameResult::Unknown);
-
-        // 全て非空
-        for (const QString& r : std::as_const(results)) {
-            QVERIFY(!r.isEmpty());
-        }
-
-        // 全て異なる
-        QSet<QString> unique(results.begin(), results.end());
-        QCOMPARE(unique.size(), results.size());
-    }
-
-    void gameEndCauseToString_allDistinct()
-    {
-        QStringList causes;
-        causes << CsaClient::gameEndCauseText(CsaClient::GameEndCause::Resign)
-               << CsaClient::gameEndCauseText(CsaClient::GameEndCause::TimeUp)
-               << CsaClient::gameEndCauseText(CsaClient::GameEndCause::IllegalMove)
-               << CsaClient::gameEndCauseText(CsaClient::GameEndCause::Sennichite)
-               << CsaClient::gameEndCauseText(CsaClient::GameEndCause::OuteSennichite)
-               << CsaClient::gameEndCauseText(CsaClient::GameEndCause::Jishogi)
-               << CsaClient::gameEndCauseText(CsaClient::GameEndCause::MaxMoves)
-               << CsaClient::gameEndCauseText(CsaClient::GameEndCause::Chudan)
-               << CsaClient::gameEndCauseText(CsaClient::GameEndCause::IllegalAction)
-               << CsaClient::gameEndCauseText(CsaClient::GameEndCause::Unknown);
-
-        for (const QString& c : std::as_const(causes)) {
-            QVERIFY(!c.isEmpty());
-        }
-
-        QSet<QString> unique(causes.begin(), causes.end());
-        QCOMPARE(unique.size(), causes.size());
     }
 
     // ========================================
@@ -903,7 +840,7 @@ private slots:
     void csaClient_gameSummaryDefault()
     {
         CsaClient client;
-        const CsaClient::GameSummary& gs = client.gameSummary();
+        const CsaGameSummary& gs = client.gameSummary();
 
         // デフォルト値が適切であること
         QVERIFY(gs.gameId.isEmpty());
@@ -921,17 +858,13 @@ private slots:
     // 仕様 3.2.2: Time / Time+ / Time- の先後別フィールド
     // ========================================
 
-    void csaClient_timeSections_keepPerSideFields()
+    void gameSummaryReader_timeSections_keepPerSideFields()
     {
-        CsaClient client;
-        client.m_summarySection = CsaClient::SummarySection::TopLevel;
-        for (const char* line : {"BEGIN Time", "Time_Unit:1sec", "Total_Time:300", "Byoyomi:10",
-                                 "Increment:5", "Delay:3", "Least_Time_Per_Move:1", "Time_Roundup:YES", "END Time",
-                                 "BEGIN Time+", "Increment:7", "END Time+",
-                                 "BEGIN Time-", "Time_Unit:1msec", "Total_Time:600000", "Delay:0", "END Time-"}) {
-            client.processGameSummary(QString::fromLatin1(line));
-        }
-        const CsaClient::GameSummary& gs = client.m_gameSummary;
+        const CsaGameSummary gs = readSummary({"BEGIN Time", "Time_Unit:1sec", "Total_Time:300", "Byoyomi:10",
+                                               "Increment:5", "Delay:3", "Least_Time_Per_Move:1", "Time_Roundup:YES",
+                                               "END Time", "BEGIN Time+", "Increment:7", "END Time+",
+                                               "BEGIN Time-", "Time_Unit:1msec", "Total_Time:600000", "Delay:0",
+                                               "END Time-"});
         QVERIFY(gs.hasIndividualTime);
         QVERIFY(gs.timeBlack.specified);
         QVERIFY(gs.timeWhite.specified);
@@ -965,7 +898,7 @@ private slots:
         QVERIFY(!client.gameSummary().allowsJishogiDeclaration());
 
         // 全時間要素が省略された Time 階層も無制限
-        CsaClient::GameSummary gs;
+        CsaGameSummary gs;
         gs.timeBlack.specified = gs.timeWhite.specified = true;
         QVERIFY(gs.isTimeUnlimited());
         gs.timeWhite.delay = 3;
@@ -976,16 +909,11 @@ private slots:
     // 仕様 3.2.3: 再開局面の指し手は消費時間を保持する
     // ========================================
 
-    void csaClient_positionMoves_keepConsumedTimes()
+    void gameSummaryReader_positionMoves_keepConsumedTimes()
     {
-        CsaClient client;
-        client.m_summarySection = CsaClient::SummarySection::TopLevel;
-        for (const char* line : {"BEGIN Time+", "Time_Unit:1msec", "END Time+",
-                                 "BEGIN Position", "PI", "+", "+7776FU,T1500", "-3334FU,T6", "+2726FU",
-                                 "END Position"}) {
-            client.processGameSummary(QString::fromLatin1(line));
-        }
-        const CsaClient::GameSummary& gs = client.m_gameSummary;
+        const CsaGameSummary gs = readSummary({"BEGIN Time+", "Time_Unit:1msec", "END Time+",
+                                               "BEGIN Position", "PI", "+", "+7776FU,T1500", "-3334FU,T6", "+2726FU",
+                                               "END Position"});
         QCOMPARE(gs.moves, (QStringList{QStringLiteral("+7776FU"), QStringLiteral("-3334FU"), QStringLiteral("+2726FU")}));
         QCOMPARE(gs.moveConsumedTimes, (QList<int>{1500, 6, 0}));
         // 指した側の時間単位で換算する（先手は msec、後手は sec）
@@ -1176,13 +1104,45 @@ private:
 
 private slots:
     /// ゲーム名と手番の希望は shogi-server の「ゲーム名[-b|-w],パスワード」の形でパスワードに載せる
-    void csaClient_loginPasswordCarriesGameName()
+    void csaLogin_passwordFieldCarriesGameName()
     {
-        QCOMPARE(CsaClient::loginPassword(QStringLiteral("pw"), QString(), Turn::Black), QStringLiteral("pw"));
-        QCOMPARE(CsaClient::loginPassword(QStringLiteral("pw"), QStringLiteral("floodgate-600-10"), std::nullopt),
+        QCOMPARE(CsaLogin::passwordField(QStringLiteral("pw"), QString(), Turn::Black), QStringLiteral("pw"));
+        QCOMPARE(CsaLogin::passwordField(QStringLiteral("pw"), QStringLiteral("floodgate-600-10"), std::nullopt),
                  QStringLiteral("floodgate-600-10,pw"));
-        QCOMPARE(CsaClient::loginPassword(QStringLiteral("pw"), QStringLiteral("g"), Turn::Black), QStringLiteral("g-b,pw"));
-        QCOMPARE(CsaClient::loginPassword(QStringLiteral("pw"), QStringLiteral("g"), Turn::White), QStringLiteral("g-w,pw"));
+        QCOMPARE(CsaLogin::passwordField(QStringLiteral("pw"), QStringLiteral("g"), Turn::Black), QStringLiteral("g-b,pw"));
+        QCOMPARE(CsaLogin::passwordField(QStringLiteral("pw"), QStringLiteral("g"), Turn::White), QStringLiteral("g-w,pw"));
+    }
+
+    /// ID・パスワード（CSA サーバープロトコル 3.1）とゲーム名（shogi-server）の規則。最初に見つけた問題を返す
+    void csaLogin_checkReportsFirstIssue_data()
+    {
+        QTest::addColumn<QString>("host");
+        QTest::addColumn<QString>("id");
+        QTest::addColumn<QString>("password");
+        QTest::addColumn<QString>("gameName");
+        QTest::addColumn<CsaLogin::Issue>("issue");
+        const QString ok = QStringLiteral("abc");
+        QTest::newRow("ok") << ok << QStringLiteral("Bo-ard_Q") << QStringLiteral("p@ss!~") << QString() << CsaLogin::Issue::None;
+        QTest::newRow("gameName") << ok << ok << ok << QStringLiteral("floodgate-300-10F") << CsaLogin::Issue::None;
+        QTest::newRow("noHost") << QString() << QString() << QString() << QString() << CsaLogin::Issue::MissingHost;
+        QTest::newRow("noId") << ok << QString() << ok << QString() << CsaLogin::Issue::MissingId;
+        QTest::newRow("noPassword") << ok << ok << QString() << QString() << CsaLogin::Issue::MissingPassword;
+        QTest::newRow("spaceInHost") << QStringLiteral("a b") << ok << ok << QString() << CsaLogin::Issue::Whitespace;
+        QTest::newRow("newlineInPassword") << ok << ok << QStringLiteral("p\nw") << QString() << CsaLogin::Issue::Whitespace;
+        QTest::newRow("idSymbol") << ok << QStringLiteral("a.b") << ok << QString() << CsaLogin::Issue::InvalidId;
+        QTest::newRow("idTooLong") << ok << QString(33, QLatin1Char('a')) << ok << QString() << CsaLogin::Issue::InvalidId;
+        QTest::newRow("passwordNonAscii") << ok << ok << QStringLiteral("パス") << QString() << CsaLogin::Issue::InvalidPassword;
+        QTest::newRow("passwordTooLong") << ok << ok << QString(33, QLatin1Char('p')) << QString() << CsaLogin::Issue::InvalidPassword;
+        QTest::newRow("gameNameWithoutTime") << ok << ok << ok << QStringLiteral("floodgate") << CsaLogin::Issue::InvalidGameName;
+    }
+    void csaLogin_checkReportsFirstIssue()
+    {
+        QFETCH(QString, host);
+        QFETCH(QString, id);
+        QFETCH(QString, password);
+        QFETCH(QString, gameName);
+        QFETCH(CsaLogin::Issue, issue);
+        QCOMPARE(CsaLogin::check({host, id, password, gameName}), issue);
     }
 
     void csaClient_tlsCertificateVerification_data()
@@ -1330,8 +1290,8 @@ private slots:
         client.processLine(QStringLiteral("BEGIN Game_Summary"));
         client.processLine(QStringLiteral("BEGIN Position"));
         const QString line = byteLimit ? QString(CsaClient::kMaxLineBytes, QLatin1Char('P')) : QStringLiteral("P+");
-        const int count = byteLimit ? 33 : CsaClient::kMaxSummaryLines;
-        for (int i = 0; i < count && client.m_summarySection != CsaClient::SummarySection::Outside; ++i) client.processGameSummary(line);
+        const int count = byteLimit ? 33 : CsaGameSummaryReader::kMaxLines;
+        for (int i = 0; i < count && client.m_summaryReader; ++i) client.processLine(line);
         QCOMPARE(client.connectionState(), CsaClient::ConnectionState::Disconnected);
         QCOMPARE(errors.count(), 1);
         QVERIFY(client.gameSummary().positionLines.isEmpty());

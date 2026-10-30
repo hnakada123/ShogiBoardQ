@@ -40,7 +40,7 @@ public:
     // --- 同期（自動化 API・テスト。失敗時は errorOccurred を出してから false） ---
     [[nodiscard]] bool loadFile(const QString& filePath);
     [[nodiscard]] bool loadText(const QString& content);
-    /// SFEN の局面を開始局面にする
+    /// SFEN の局面（"sfen"・"position" の接頭辞・"startpos"・指し手も読む）を開始局面にする。読めなければ置き換えない
     [[nodiscard]] bool loadPositionFromSfen(const QString& sfen);
 
 signals:

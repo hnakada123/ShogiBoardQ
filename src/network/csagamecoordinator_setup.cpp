@@ -70,7 +70,7 @@ void CsaGameCoordinator::setupClock()
         return;
     }
 
-    const CsaClient::GameSummary& s = m_progress.summary;
+    const CsaGameSummary& s = m_progress.summary;
     startDisplayClock(m_clock, s, m_progress.blackRemainingMs, m_progress.whiteRemainingMs);
     // 終局の裁定はサーバーを正とし、表示用時計の時間切れで対局を終了しない。
     m_clock->setLoseOnTimeout(false);
@@ -116,7 +116,7 @@ void CsaGameCoordinator::startEngine()
     m_engineSeat->start(params);
 }
 
-QString CsaGameCoordinator::unsupportedConditionReason(const CsaClient::GameSummary& summary,
+QString CsaGameCoordinator::unsupportedConditionReason(const CsaGameSummary& summary,
                                                       PlayerType playerType)
 {
     // Format は Position の書式と指し手表記を決める。将棋以外は解釈できない
@@ -130,14 +130,14 @@ QString CsaGameCoordinator::unsupportedConditionReason(const CsaClient::GameSumm
     return QString();
 }
 
-void CsaGameCoordinator::logGameConditions(const CsaClient::GameSummary& summary)
+void CsaGameCoordinator::logGameConditions(const CsaGameSummary& summary)
 {
     if (summary.isTimeUnlimited()) {
         emit logMessage(tr("持時間: 無制限"));
     } else {
         for (const bool black : {true, false}) {
             if (!black && !summary.hasIndividualTime) break;
-            const CsaClient::TimeControl& t = summary.timeFor(black);
+            const CsaGameSummary::Time& t = summary.timeFor(black);
             QString text = tr("持時間: %1秒, 秒読み: %2秒, 加算: %3秒")
                                .arg(t.totalTimeMs() / 1000)
                                .arg(t.byoyomiMs() / 1000)
@@ -164,7 +164,7 @@ void CsaGameCoordinator::logGameConditions(const CsaClient::GameSummary& summary
     }
 }
 
-void CsaGameCoordinator::onGameSummaryReceived(const CsaClient::GameSummary& summary)
+void CsaGameCoordinator::onGameSummaryReceived(const CsaGameSummary& summary)
 {
     // 終局後も同じ接続で次の対局条件を受けるので、前局の記録はここで消す
     m_progress = CsaGameProgress::forSummary(summary);

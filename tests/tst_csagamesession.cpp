@@ -23,6 +23,30 @@ private slots:
         qputenv("SHOGIBOARDQ_CONFIG_HOME", m_config.path().toUtf8());
     }
 
+    /// 対局結果・終局の原因の表示名は ui が持つ。どれも空でなく、互いに違う
+    void resultAndCauseTextsAreDistinct()
+    {
+        using Result = CsaClient::GameResult;
+        using Cause = CsaClient::GameEndCause;
+        QStringList results;
+        for (const Result result : {Result::Win, Result::Lose, Result::Draw, Result::Censored, Result::Chudan,
+                                    Result::Unknown}) {
+            results << CsaGameSession::resultText(result);
+        }
+        QStringList causes;
+        for (const Cause cause : {Cause::Resign, Cause::TimeUp, Cause::IllegalMove, Cause::Sennichite,
+                                  Cause::OuteSennichite, Cause::Jishogi, Cause::MaxMoves, Cause::Chudan,
+                                  Cause::IllegalAction, Cause::Unknown}) {
+            causes << CsaGameSession::causeText(cause);
+        }
+        for (const QStringList& texts : {results, causes}) {
+            QVERIFY(!texts.contains(QString()));
+            QCOMPARE(QSet<QString>(texts.cbegin(), texts.cend()).size(), texts.size());
+        }
+        QCOMPARE(CsaGameSession::resultText(Result::Win), QStringLiteral("勝ち"));
+        QCOMPARE(CsaGameSession::causeText(Cause::Resign), QStringLiteral("投了"));
+    }
+
     /// 司令塔のログはステータスバーに出る
     void logMessageReachesStatusBar()
     {
