@@ -108,7 +108,7 @@ void Tst_MatchCoordinator::start_preparesHumanGame()
     h.startHumanVsHuman();
     QVERIFY(h.mc->players().humanVsHuman());
     QCOMPARE(h.activity.activity(), AppActivityState::Activity::DuringGame);
-    QCOMPARE(h.gc.currentPlayer(), Turn::Black);
+    QCOMPARE(h.gc.board()->currentPlayer(), Turn::Black);
     QCOMPARE(h.mc->record().startSfen, SfenUtils::hirateSfen());
     QVERIFY(h.mc->isHumanSide(Turn::Black));
     QVERIFY(h.mc->isHumanSide(Turn::White));
@@ -126,7 +126,7 @@ void Tst_MatchCoordinator::start_keepsRecordLineUpToCurrentPly()
     h.start(opt);
     // 表示中の手（2手目）までを対局の手順にし、後続の手は捨てる
     QCOMPARE(h.mc->currentPly(), 2);
-    QCOMPARE(h.gc.currentPlayer(), Turn::Black);
+    QCOMPARE(h.gc.board()->currentPlayer(), Turn::Black);
     QCOMPARE(h.gc.board()->toSfen(), h.mc->record().lastSfen());
 }
 
@@ -140,7 +140,7 @@ void Tst_MatchCoordinator::humanMove_isRecordedAndAnnounced()
     h.startHumanVsHuman();
     // 手番の正本は盤。盤が手番の変化を1回だけ知らせる
     QSignalSpy turn(h.gc.board(), &ShogiBoard::turnChanged);
-    QSignalSpy committed(&h.gc, &ShogiGameController::moveCommitted);
+    QSignalSpy committed(&h.gc, &GameBoard::moveCommitted);
 
     QVERIFY(h.playHuman(QStringLiteral("7g7f")));
 
@@ -152,7 +152,7 @@ void Tst_MatchCoordinator::humanMove_isRecordedAndAnnounced()
     QCOMPARE(h.sink.records.first().move.move.to, (BoardSquare{7, 6}));
     QCOMPARE(turn.count(), 1);
     QCOMPARE(turn.first().first().value<Turn>(), Turn::White);
-    QCOMPARE(h.gc.currentPlayer(), Turn::White);
+    QCOMPARE(h.gc.board()->currentPlayer(), Turn::White);
     QCOMPARE(committed.count(), 1);
     QCOMPARE(committed.first().at(1).toInt(), 1);
 }
@@ -310,7 +310,7 @@ void Tst_MatchCoordinator::undoTwoPlies_restoresBoardAndRecord()
     QCOMPARE(h.sink.records.size(), 1);
     QCOMPARE(undone.count(), 1);
     QCOMPARE(undone.first().first().toInt(), 1);
-    QCOMPARE(h.gc.currentPlayer(), Turn::White);
+    QCOMPARE(h.gc.board()->currentPlayer(), Turn::White);
     QCOMPARE(h.gc.board()->toSfen(), h.mc->record().lastSfen());
     // 次の手の「同」表記は、戻した局面に至った手（７六歩）の移動先を基準にする
     QCOMPARE(h.mc->lastMoveDestination(), (BoardSquare{7, 6}));

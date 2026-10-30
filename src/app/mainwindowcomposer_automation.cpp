@@ -9,6 +9,7 @@
 #include "automationcontext.h"
 #include "automationserver.h"
 #include "csagamecoordinator.h"
+#include "gameboard.h"
 #include "menuwindow.h"
 #include "menuwindowcontroller.h"
 #include "logcategories.h"
@@ -27,7 +28,7 @@ void MainWindowComposer::startAutomationServer(const QString& socketPath)
 
     AutomationContext ctx;
     ctx.mainWindow = &m_window;
-    ctx.gameController = m_c.gameController;
+    ctx.board = m_c.gameBoard->board();
     ctx.shogiView = m_c.shogiView;
     ctx.branchTree = m_c.branchTree;
     ctx.activity = &m_activity;

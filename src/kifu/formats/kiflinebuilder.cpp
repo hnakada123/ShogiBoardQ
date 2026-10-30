@@ -3,6 +3,8 @@
 
 #include "kiflinebuilder.h"
 
+#include "moverecord.h"
+
 #include <utility>
 
 KifLineBuilder::KifLineBuilder(const Position& start, int startPly, std::optional<UsiMove> previous, LineKind kind)
@@ -22,20 +24,10 @@ bool KifLineBuilder::addMove(const UsiMove& move, const RecordTime& time, const 
         m_lastError = QStringLiteral("The line has ended: %1").arg(move.toString());
         return false;
     }
-    const Turn mover = m_position.sideToMove();
-    const ShogiMove described = m_position.describe(move);
-    if (described.movingPiece == Piece::None) {
-        m_lastError = QStringLiteral("Source square is empty: %1").arg(move.toString());
-        return false;
-    }
-    if (!m_position.apply(move, rule)) {
-        m_lastError = QStringLiteral("Move cannot be applied: %1").arg(move.toString());
-        return false;
-    }
-
-    const QString text = KifMoveText::format(mover, described.movingPiece, move, previousTo(), notes);
-    RecordEntry entry = RecordEntry::played(described, text, m_position.toSfen(), time);
-    entry.mover = mover;
+    // 対局の着手（GameBoard）と同じ組み立てで、指した手の行を作る
+    std::optional<RecordEntry> played = MoveRecord::play(m_position, move, previousTo(), time, notes, rule, &m_lastError);
+    if (!played) return false;
+    RecordEntry& entry = *played;
     if (m_line.entries.isEmpty()) {
         entry.comment = std::exchange(m_pendingComment, {});
         entry.bookmark = std::exchange(m_pendingBookmark, {});

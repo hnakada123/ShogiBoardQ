@@ -19,7 +19,7 @@ class QAction;
 class QMenu;
 class QPoint;
 class QWidget;
-class ShogiGameController;
+class GameBoard;
 
 /**
  * @brief 分岐の編集（本譜にする・並べ替え・削除）を担当するコントローラ
@@ -63,12 +63,12 @@ public:
 
     /**
      * @brief 対局していないときに盤上で指した手（定跡の手を含む）を、表示中の手の次の手（変化）として記録する
-     * @param gc 合法判定と指し手表記の生成に使う（盤面は指した後の局面になる）
+     * @param gameBoard 合法判定と指し手表記の生成に使う（盤面は指した後の局面になる）
      * @return 合法手で、記録（または同じ手の既存ノードへ移動）できたら true
      *
      * 同じ手が既にあればそのノードへ移るだけで、新しい変化は作らない。
      */
-    bool recordMove(const UsiMove& move, ShogiGameController* gc);
+    bool recordMove(const UsiMove& move, GameBoard* gameBoard);
 
     /**
      * @brief 手順をまとめて parent の後の変化として足す（定跡の展開）
@@ -94,9 +94,9 @@ private slots:
 
 private:
     /// 盤上の手を指す局面（表示中の手。終局の行なら直前の手）。盤をその局面にする。無ければ nullptr
-    KifuBranchNode* prepareRecordParent(ShogiGameController* gc) const;
+    KifuBranchNode* prepareRecordParent(GameBoard* gameBoard) const;
     /// parent の局面で move を指して記録する
-    bool addMove(KifuBranchNode* parent, const UsiMove& move, ShogiGameController* gc);
+    bool addMove(KifuBranchNode* parent, const UsiMove& move, GameBoard* gameBoard);
     /// menu に node を対象とする編集操作を追加する
     void addEditActions(QMenu* menu, KifuBranchNode* node);
     bool confirmDeletion(KifuBranchNode* node) const;

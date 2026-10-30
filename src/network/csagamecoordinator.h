@@ -24,7 +24,7 @@
 #include "usimatchhandler.h"
 #include "usimove.h"
 
-class ShogiGameController;
+class GameBoard;
 class ShogiClock;
 class EngineSlots;
 class MatchEngineSeat;
@@ -37,7 +37,7 @@ struct MatchRecordStart;
  *
  * CSAプロトコルを使用した通信対局の進行を管理するクラス。
  * CsaClientを通じてサーバーと通信し、GUI側の
- * ShogiGameController（盤と手番）、ShogiClock（時計）と連携して
+ * GameBoard（盤と手番）、ShogiClock（時計）と連携して
  * 対局を進行させる。
  *
  * 対応する対局形態:
@@ -98,7 +98,7 @@ public:
      * @brief 依存オブジェクト
      */
     struct Deps {
-        ShogiGameController* gameController = nullptr;
+        GameBoard* gameBoard = nullptr;
         ShogiClock* clock = nullptr;
         EngineSlots* engines = nullptr;  ///< エンジンで指すとき、エンジンを置く枠
         AppActivityState* activity = nullptr;  ///< 対局中を「通信対局中」にする（無ければ動作状態を変えない）
@@ -301,7 +301,7 @@ private:
     AppActivityState* m_activity = nullptr;    ///< 非所有
     ActivityLease m_activityLease;             ///< 通信対局中の動作状態（対局の開始で受け取り、終局・取りやめで手放す）
 
-    QPointer<ShogiGameController> m_gameController;
+    QPointer<GameBoard> m_gameBoard;
     QPointer<ShogiClock> m_clock;
     EngineSlots* m_engines = nullptr;  ///< 非所有
 

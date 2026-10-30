@@ -7,7 +7,7 @@
 #include "branchtreeeditcontroller.h"
 #include "csagamecoordinator.h"
 #include "matchcoordinator.h"
-#include "shogigamecontroller.h"
+#include "shogiboard.h"
 
 HumanTurnPolicy::BoardInput HumanTurnPolicy::boardInput() const
 {
@@ -21,8 +21,8 @@ HumanTurnPolicy::BoardInput HumanTurnPolicy::boardInput() const
         return m_deps.branchEdit && m_deps.branchEdit->canEdit() ? BoardInput::Variation : BoardInput::None;
     case AppActivityState::Activity::DuringGame: {
         const MatchCoordinator* match = m_deps.match;
-        const bool humanTurn = match && m_deps.gameController && match->canAcceptMove()
-            && match->isHumanSide(m_deps.gameController->currentPlayer());
+        const bool humanTurn = match && m_deps.board && match->canAcceptMove()
+            && match->isHumanSide(m_deps.board->currentPlayer());
         return humanTurn ? BoardInput::Game : BoardInput::None;
     }
     case AppActivityState::Activity::DuringCsaGame: {

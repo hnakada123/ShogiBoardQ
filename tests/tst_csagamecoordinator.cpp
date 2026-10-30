@@ -34,7 +34,7 @@
 #include "sfenutils.h"
 #include "shogiboard.h"
 #include "shogiclock.h"
-#include "shogigamecontroller.h"
+#include "gameboard.h"
 
 namespace {
 
@@ -93,7 +93,7 @@ struct RecordedSink final : MatchRecordSink {
 
 /// 盤・時計・局面列・動作状態・棋譜の受け手と司令塔をそろえ、偽サーバーと対局を始める
 struct Harness {
-    ShogiGameController gc;
+    GameBoard gc;
     ShogiClock clock;
     EngineSlots engines;
     AppActivityState activity;
@@ -194,7 +194,7 @@ private slots:
     void engineMoveIsCommittedOnlyOnConfirmation()
     {
         Harness h;
-        QSignalSpy committed(&h.gc, &ShogiGameController::moveCommitted);
+        QSignalSpy committed(&h.gc, &GameBoard::moveCommitted);
         QVERIFY(h.start("-", {}, true));
         h.server.send("+7776FU,T1");
         QVERIFY(h.server.waitForLine(QStringLiteral("-8384FU")));
@@ -331,7 +331,7 @@ private slots:
         QVERIFY(h.start("+"));
         HumanTurnPolicy::Deps deps;
         deps.activity = &h.activity;  // 対局が始まると司令塔が通信対局中にしている
-        deps.gameController = &h.gc;
+        deps.board = h.gc.board();
         deps.csaGame = &h.coordinator;
         HumanTurnPolicy policy(deps);
         // 通信対局中に盤で指した手は、BoardMoveController がそのまま司令塔へ送る
@@ -341,7 +341,7 @@ private slots:
         QCOMPARE(h.coordinator.turnState(), CsaGameCoordinator::TurnState::AwaitingConfirmation);
         QVERIFY(!policy.isHumanTurnNow());
         QCOMPARE(h.moveCount(), 0);
-        QCOMPARE(h.gc.currentPlayer(), Turn::Black);
+        QCOMPARE(h.gc.board()->currentPlayer(), Turn::Black);
         QCOMPARE(h.gc.board()->pieceCharacter(7, 7), Piece::BlackPawn);
         // UI の許可判定を通らない追加要求も、履歴や盤面を変更しない。
         h.coordinator.onHumanMove(*UsiMove::parse(u"2g2f"));
@@ -369,7 +369,7 @@ private slots:
     {
         Harness h;
         QSignalSpy turns(&h.coordinator, &CsaGameCoordinator::turnChanged);
-        QSignalSpy applied(&h.gc, &ShogiGameController::moveCommitted);
+        QSignalSpy applied(&h.gc, &GameBoard::moveCommitted);
         QVERIFY(h.start("+"));
         QVERIFY(h.coordinator.isMyTurn());
         QVERIFY(h.coordinator.isBlackSide());
@@ -637,7 +637,7 @@ private slots:
         sd.csaGame = &h.coordinator;
         GameSession recordService(sd);
         h.coordinator.setRecordSink(&recordService);
-        QSignalSpy sounds(&h.gc, &ShogiGameController::moveCommitted);
+        QSignalSpy sounds(&h.gc, &GameBoard::moveCommitted);
 
         QVERIFY(h.start("-"));
         h.server.send("+7776FU,T1");

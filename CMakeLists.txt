@@ -318,6 +318,8 @@ set(SRC_GAME
     src/game/gamemodestrategy.h
     src/game/gamestartoptionsbuilder.cpp
     src/game/gamestartoptionsbuilder.h
+    src/game/gameboard.cpp
+    src/game/gameboard.h
     src/game/gamechannel.cpp
     src/game/gamechannel.h
     src/game/humanvsenginestrategy.cpp
@@ -340,8 +342,6 @@ set(SRC_GAME
     src/game/nyugyokujudgement.h
     src/game/sennichitedetector.cpp
     src/game/sennichitedetector.h
-    src/game/shogigamecontroller.cpp
-    src/game/shogigamecontroller.h
     src/game/startgamedialogdata.h
     src/game/startoptions.h
     src/game/timecontrolvalidator.cpp
@@ -445,6 +445,7 @@ set(SRC_KIFU
     src/kifu/kifusavefile.h
     src/kifu/livegamesession.cpp
     src/kifu/livegamesession.h
+    src/kifu/moverecord.h
     src/kifu/recordentry.h
     src/kifu/recordline.h
     src/kifu/shiftjiscodec.cpp

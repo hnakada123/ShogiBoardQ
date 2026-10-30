@@ -21,7 +21,7 @@
 #include "sfenutils.h"
 #include "shogiboard.h"
 #include "shogiclock.h"
-#include "shogigamecontroller.h"
+#include "gameboard.h"
 
 /// エンジンが指した手（指した側・考えた時間・評価値）
 inline UsiMatchMove engineMove(const QString& usi, Turn side, qint64 elapsedMs = 1000, const UsiScore& score = {})
@@ -58,7 +58,7 @@ public:
 struct MatchHarness {
     KifuBranchTree tree;
     KifuDocument document{&tree};   ///< 対局者を下手・上手と呼ぶかを対局情報から決める
-    ShogiGameController gc;
+    GameBoard gc;
     ShogiClock clock;
     AppActivityState activity;
     EngineSlots engines;
@@ -70,7 +70,7 @@ struct MatchHarness {
     {
         gc.newGame(SfenUtils::hirateSfen());
         MatchCoordinator::Deps deps;
-        deps.gc = &gc;
+        deps.gameBoard = &gc;
         deps.clock = &clock;
         deps.activity = &activity;
         deps.engines = &engines;

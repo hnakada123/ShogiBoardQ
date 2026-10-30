@@ -123,20 +123,19 @@ private slots:
         QVERIFY(!BoardCoordinates::usiMoveFromSquares(QPoint(7, 7), QPoint(10, 1), false));  // 駒台へは指せない
     }
 
-    void board_appliesMoves()
+    void position_appliesMoves()
     {
-        ShogiBoard board;
-        board.setSfen(QStringLiteral("4k4/9/9/9/9/9/9/1B7/4K4 b P 1"));
-        QVERIFY(board.applyUsiMove(*UsiMove::parse(u"P*5e"), Turn::Black));
-        QCOMPARE(board.pieceCharacter(5, 5), Piece::BlackPawn);
-        QCOMPARE(board.pieceStandCount(Piece::BlackPawn), 0);
-        QVERIFY(!board.applyUsiMove(*UsiMove::parse(u"P*5d"), Turn::Black));  // 駒台に歩がない
-        QVERIFY(board.applyUsiMove(*UsiMove::parse(u"8h2b+"), Turn::Black));
-        QCOMPARE(board.pieceCharacter(2, 2), Piece::BlackHorse);
-        QVERIFY(!board.applyUsiMove(*UsiMove::parse(u"8h7g"), Turn::Black));  // 移動元が空
-        QVERIFY(board.applyUsiMove(*UsiMove::parse(u"5a5b"), Turn::White));
-        QVERIFY(board.applyUsiMove(*UsiMove::parse(u"2b5b"), Turn::Black));  // 玉を取る（盤への適用は合法性を見ない）
-        QCOMPARE(board.pieceStandCount(Piece::BlackKing), 1);
+        Position position = *Position::fromSfen(QStringLiteral("4k4/9/9/9/9/9/9/1B7/4K4 b P 1"));
+        QVERIFY(position.applyAs(*UsiMove::parse(u"P*5e"), Turn::Black));
+        QCOMPARE(position.pieceAt(5, 5), Piece::BlackPawn);
+        QCOMPARE(position.handCount(Piece::BlackPawn), 0);
+        QVERIFY(!position.applyAs(*UsiMove::parse(u"P*5d"), Turn::Black));  // 駒台に歩がない
+        QVERIFY(position.applyAs(*UsiMove::parse(u"8h2b+"), Turn::Black));
+        QCOMPARE(position.pieceAt(2, 2), Piece::BlackHorse);
+        QVERIFY(!position.applyAs(*UsiMove::parse(u"8h7g"), Turn::Black));  // 移動元が空
+        QVERIFY(position.applyAs(*UsiMove::parse(u"5a5b"), Turn::White));
+        QVERIFY(position.applyAs(*UsiMove::parse(u"2b5b"), Turn::Black));  // 玉を取る（局面への適用は合法性を見ない）
+        QCOMPARE(position.handCount(Piece::BlackKing), 1);
     }
 
     void shogiMove_convertsBothWays()

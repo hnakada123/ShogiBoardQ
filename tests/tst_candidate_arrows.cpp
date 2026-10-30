@@ -13,7 +13,7 @@
 #include "sfenutils.h"
 #include "shogiboard.h"
 #include "shogiclock.h"
-#include "shogigamecontroller.h"
+#include "gameboard.h"
 #include "shogienginethinkingmodel.h"
 #include "thinkinginfoformatter.h"
 #include "usiprotocolhandler.h"

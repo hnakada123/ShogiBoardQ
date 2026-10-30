@@ -11,7 +11,7 @@
 #include "appactivitystate.h"
 
 class QMainWindow;
-class ShogiGameController;
+class ShogiBoard;
 class ShogiView;
 class KifuBranchTree;
 class KifuNavigationState;
@@ -29,7 +29,7 @@ class AnalysisSession;
  */
 struct AutomationContext {
     QMainWindow* mainWindow = nullptr;
-    ShogiGameController* gameController = nullptr;
+    const ShogiBoard* board = nullptr;
     ShogiView* shogiView = nullptr;
     KifuBranchTree* branchTree = nullptr;
 

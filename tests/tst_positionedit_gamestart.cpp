@@ -10,7 +10,7 @@
 #include "kifunavigationcontroller.h"
 #include "kifunavigationstate.h"
 #include "matchcoordinator.h"
-#include "shogigamecontroller.h"
+#include "gameboard.h"
 #include "shogiboard.h"
 #include "sfenutils.h"
 
@@ -49,7 +49,7 @@ private slots:
         const QString expected = preset == 0 ? edited : SfenUtils::hirateSfen();
         QCOMPARE(p.branchTree->root()->sfen(), expected);
         QCOMPARE(p.match->record().startSfen, expected);
-        QCOMPARE(p.gameController->currentPlayer(), preset == 0 ? Turn::White : Turn::Black);
+        QCOMPARE(p.gameBoard->board()->currentPlayer(), preset == 0 ? Turn::White : Turn::Black);
         // 終局の知らせ（ダイアログ）を出さずに対局を終える
         p.match->handleBreakOff();
         QVERIFY(p.match->isGameOver());

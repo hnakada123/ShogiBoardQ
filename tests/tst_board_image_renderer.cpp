@@ -28,6 +28,7 @@
 #include "piecepainter.h"
 #include "pieceimageprovider.h"
 #include "settingscommon.h"
+#include "positioneditrules.h"
 #include "shogiboard.h"
 #include <QRegion>
 
@@ -285,7 +286,7 @@ private slots:
     void appearancePreviewAndRestore()
     {
         ShogiBoard model;
-        model.resetGameBoard();
+        PositionEditRules::clear(model);
         ShogiView live;
         live.applyBoardAndRender(&model);
         live.chrome()->card(Turn::Black)->setClockText(QStringLiteral("03:21"));
@@ -442,7 +443,7 @@ private slots:
     void configuredSizeSurvivesBoardAssignment()
     {
         ShogiBoard model;
-        model.resetGameBoard();
+        PositionEditRules::clear(model);
         for (const int size : {20, 50, 100, 150}) {
             ShogiView view;
             view.configureFixedSizing(size);
@@ -463,7 +464,7 @@ private slots:
     {
         BoardAppearance::instance().setVisuals({false, true, 108, false});
         ShogiBoard model;
-        model.resetGameBoard();
+        PositionEditRules::clear(model);
         ShogiView view;
         view.applyBoardAndRender(&model);
         for (const int size : {20, 53, 100, 150}) {

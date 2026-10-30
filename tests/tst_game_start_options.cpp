@@ -61,7 +61,7 @@ private slots:
         QCOMPARE(h.mc->currentPly(), 3);
         QCOMPARE(h.mc->record().sfens(), line.sfens().mid(0, 4));
         QCOMPARE(h.gc.board()->toSfen(), line.sfenAt(3));
-        QCOMPARE(h.gc.currentPlayer(), Turn::White);
+        QCOMPARE(h.gc.board()->currentPlayer(), Turn::White);
 
         // 手番（後手）のエンジンに、選んだ手順の局面で思考させる
         Usi* engine = h.engines.engineInSlot(1);

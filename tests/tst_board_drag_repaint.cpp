@@ -25,7 +25,7 @@
 #include "sfencollectiondialog.h"
 #include "sfenvalidator.h"
 #include "shogiboard.h"
-#include "shogigamecontroller.h"
+#include "gameboard.h"
 #include "boardchromewidget.h"
 #include "shogiview.h"
 #include "shogiviewhighlighting.h"
@@ -35,11 +35,12 @@
 /// 盤面の変わらない部分を描いた画像が、盤の反転・大きさ・配色・質感の変更に追従すること。
 /// 対局画面の外観（駒・将棋盤・背景・駒台・対局者情報）をどれに変えても、描き残しが出ないこと。
 /// 読み筋ウィンドウ・局面集ビューアで局面を替えても、変わった所だけを描き直すこと。
-/// 盤のクリック（移動元・移動先）の手を指す（盤の操作と同じく prepareMove で決めてから指す）。指せなければ nullopt
-static std::optional<RecordEntry> clickMove(ShogiGameController& gc, const QPoint& from, const QPoint& to)
+/// 盤のクリック（移動元・移動先）の手を指す（主画面と同じく盤の操作の moveFromClick で決めてから指す）。指せなければ nullopt
+static std::optional<RecordEntry> clickMove(const BoardInteractionController& interaction, GameBoard& gameBoard,
+                                            const QPoint& from, const QPoint& to)
 {
-    const std::optional<UsiMove> move = gc.prepareMove(from, to);
-    return move ? gc.applyRecordedMove(*move, {}) : std::nullopt;
+    const std::optional<UsiMove> move = interaction.moveFromClick(from, to);
+    return move ? gameBoard.applyRecordedMove(*move, {}) : std::nullopt;
 }
 
 class TestBoardDragRepaint : public QObject
@@ -76,7 +77,7 @@ class TestBoardDragRepaint : public QObject
 
     struct BoardUi {
         TestRoute route;
-        ShogiGameController gc;
+        GameBoard gc;
         ShogiView view;
         std::unique_ptr<BoardInteractionController> controller;
 
@@ -86,7 +87,7 @@ class TestBoardDragRepaint : public QObject
             view.setBoard(gc.board());
             view.setFlipMode(flipped);
             view.setFixedSize(view.sizeHint());
-            controller = std::make_unique<BoardInteractionController>(&view, &gc);
+            controller = std::make_unique<BoardInteractionController>(&view, gc.board());
             controller->setLegalMovesVisible(true);
             controller->setInputRoute(&route);
             // 対局中と同じく、対局者名・時計・手番表示・直前の指し手を表示する
@@ -187,9 +188,12 @@ class TestBoardDragRepaint : public QObject
 
     static QStringList positionsAfterPvMoves()
     {
-        ShogiGameController gc;
+        GameBoard gc;
         QString start = validSfen();
         gc.newGame(start);
+        ShogiView view;
+        view.setBoard(gc.board());
+        const BoardInteractionController interaction(&view, gc.board());
         QStringList history{validSfen()};
         const QList<QPair<QPoint, QPoint>> game = {
             {QPoint(10, 6), QPoint(5, 5)}, {QPoint(8, 5), QPoint(8, 6)},
@@ -197,7 +201,7 @@ class TestBoardDragRepaint : public QObject
         };
         for (const auto& [from, to] : game) {
             QPoint f = from, t = to;
-            const std::optional<RecordEntry> played = clickMove(gc, f, t);
+            const std::optional<RecordEntry> played = clickMove(interaction, gc, f, t);
             if (!played) return {};
             history.append(played->sfen);
         }
@@ -271,8 +275,6 @@ class TestBoardDragRepaint : public QObject
         if (!m_appearanceBoard || m_appearanceBoard->view.flipMode() != flipped) {
             m_appearanceBoard.reset();
             m_appearanceBoard = std::make_unique<BoardUi>(sfen(), flipped);
-            QObject::connect(&m_appearanceBoard->gc, &ShogiGameController::endDragSignal,
-                             &m_appearanceBoard->view, &ShogiView::endDrag);
         }
         return *m_appearanceBoard;
     }
@@ -479,7 +481,7 @@ private slots:
         QCOMPARE(stalePixels(ui), 0);
 
         // 全部の駒を駒箱へ戻した後でも、違うマスを描き直す
-        ui.gc.board()->resetGameBoard();
+        PositionEditRules::clear(*ui.gc.board());
         QCoreApplication::processEvents();
         ui.gc.board()->setSfen(sfen());
         QCoreApplication::processEvents();
@@ -504,7 +506,6 @@ private slots:
     void boardChangesLeaveNoStalePixels()
     {
         BoardUi ui(sfen(), false);
-        QObject::connect(&ui.gc, &ShogiGameController::endDragSignal, &ui.view, &ShogiView::endDrag);
         QVERIFY(QTest::qWaitForWindowExposed(&ui.view));
         QCoreApplication::processEvents();
 
@@ -518,7 +519,7 @@ private slots:
             QCoreApplication::processEvents();
             ui.controller->onLeftClick(to);
             QPoint f = from, t = to;
-            const bool ok = clickMove(ui.gc, f, t).has_value();
+            const bool ok = clickMove(*ui.controller, ui.gc, f, t).has_value();
             QVERIFY(ok);
             ui.controller->onMoveApplied(f, t, ok);
             QCoreApplication::processEvents();
@@ -552,7 +553,7 @@ private slots:
             QCoreApplication::processEvents();
             QCOMPARE(stalePixels(ui), 0);
         }
-        ui.gc.board()->promoteOrDemotePiece(7, 7);
+        PositionEditRules::cyclePiece(*ui.gc.board(), BoardSquare{7, 7});
         QCoreApplication::processEvents();
         QCOMPARE(stalePixels(ui), 0);
     }
@@ -743,7 +744,7 @@ private slots:
             settle();
             ui.controller->onLeftClick(to);
             QPoint f = from, t = to;
-            const bool ok = clickMove(ui.gc, f, t).has_value();
+            const bool ok = clickMove(*ui.controller, ui.gc, f, t).has_value();
             QVERIFY(ok);
             ++ply;
             ui.controller->onMoveApplied(f, t, ok);

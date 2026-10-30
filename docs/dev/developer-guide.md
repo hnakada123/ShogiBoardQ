@@ -27,7 +27,7 @@
 | [第3章](#第3章-アーキテクチャ全体図) | アーキテクチャ全体図 | レイヤー構造、データフロー、MainWindowの位置づけ |
 | [第4章](#第4章-設計パターンとコーディング規約) | 設計パターンとコーディング規約 | Deps/Hooks/Refs、合成ルート、シグナルと MatchRecordSink、クラス名の役割、コード規約 |
 | [第5章](#第5章-core層純粋なゲームロジック) | core層：純粋なゲームロジック | Position・ShogiBoard、UsiMove・ShogiMove・UsiPosition、EngineMoveValidator、ShogiClock、MatchPlayers |
-| [第6章](#第6章-game層対局管理) | game層：対局管理 | MatchCoordinator、対局者ごとの Strategy、ShogiGameController、GameSession、ConsecutiveGameSeries |
+| [第6章](#第6章-game層対局管理) | game層：対局管理 | MatchCoordinator、対局者ごとの Strategy、GameBoard、GameSession、ConsecutiveGameSeries |
 | [第7章](#第7章-engine層usiエンジン連携) | engine層：USIエンジン連携 | Usi、UsiProtocolHandler、UsiLineParser、EngineSlots、思考情報の整形 |
 | [第8章](#第8章-kifu層棋譜管理) | kifu層：棋譜管理 | 分岐ツリー、棋譜モデル、KifuFormat、フォーマット変換 |
 | [第9章](#第9章-analysis層解析機能) | analysis層：解析機能 | 検討・棋譜解析・詰将棋探索の3モード |
@@ -148,6 +148,7 @@
 | 2026-10-29 | 置き場所と名前を責務に合わせた（監査 2026-10-29 の4章）のに合わせて §1.5・§1.6・§3.1・§3.2・§6・§8・§10・§13・§14・第18章・付録を更新（navigation 層をなくして `KifuNavigationController` を `ui/controllers/` へ。`ui/coordinators/` には `CsaGameSession`・`CommentCoordinator` だけを残し、`KifuFileController`・`DialogLauncher` は `ui/controllers/`、`UiStatePolicyManager`・`HumanTurnPolicy` は `ui/policy/`、`DockRegistry`・`DockLayoutManager` は `ui/docks/` へ。エンジンの枠を engine の `EngineSlots` に改名。SFEN の検査を core の `SfenValidator`（JSON は headless の `SfenValidationJson`）に、局面集ファイルを kifu に。盤面画像 `BoardImageRenderer` を cli へ、自動化 API の接続先を headless の `AutomationEndpoint` へ。自動化 API のメソッドを名前空間ごとのファイルに分け直した。`MenuWindow` を widgets へ移し、独立ウィンドウの名残（`menuWindowSize` など）を消した。`KifReader`→`KifuTextDecoder`、`JkfMoveParser`→`JkfCodec`、`BoardImageExporter`→`WidgetImageExporter`（`ui/controllers/`）、`startgamedatabridge.h`→`startgamedialogdata.h`。司令塔だけが使う型を `matchcoordinator.h` にまとめた） |
 | 2026-10-30 | 通信対局の流れをローカル対局と同じ仕組みにした（監査 2026-10-29 の T1）のに合わせて §1.5・§1.6・§6.1〜§6.5・§6.7・§6.9・§8.5・§8.9・§10.2・§10.4・§10.5・§12.1・§12.3・§12.4・§12.8・§14.4・§15.1・§15.5・付録を更新（`CsaGameCoordinator` も `setRecordSink()` で棋譜の受け手 `GameSession` を受け取り、開始で `MatchRecordSink::beginRecord()`、着手と終局で `appendRecord()`、終局で `finishRecord()` を呼ぶ。動作状態 `DuringCsaGame` も司令塔が持ち、シグナル `recordEntryReady` と `GameSession` の `onCsa*` をなくした。ローカル対局の終局も `MatchCoordinator` が `finishRecord()` を呼ぶ。評価値・エラー・通信ログ・盤の手の接続を `CsaGameSession` から合成ルートの `connectGame()` へ移した。時間の決まりを `MatchStartOptions::time` に入れ、`MatchCoordinator::start()` が盤の手番で時計に入れる（`TimeControlUtil`・`matchtimesettings.h`・`MatchStartOptions::sfenStart` を削除）） |
 | 2026-10-30 | 棋譜解析の実行と局面の列の実行器を1つにした（監査 2026-10-29 の T2）のに合わせて §1.5・§7.5・§7.7・§7.11・§9.1〜§9.3・§9.6・§9.7・§9.10・§10.3・付録を更新（棋譜解析の実行は analysis の `KifuAnalysisSession`（エンジンと動作状態のリース）に移し、`KifuAnalysisController` は画面だけにした。GUI の棋譜解析と CLI の analyze・analyze-kifu は analysis の `EngineAnalysisRunner`（借りた `UsiEngineSession` を使う。候補手の数と bestmove を待つ上限は依頼で決める）を共有し、送る局面は `RecordLine::usiPositions()` で作る。`AnalysisJob` を消し、`EngineAnalysisRunner` を headless から analysis へ移した。検討中の局面送りも開始局面からの手順にし、詰み探索の手番合わせは `MateSearchPosition`（`Position` で合わせる）にして `TsumePositionUtil` を消した） |
+| 2026-10-30 | 盤と指し手の部品の責務を分けた（監査 2026-10-29 の T3）のに合わせて §1.5・§1.6・§3.1・§3.2・§3.3・§3.5・§4.1・§4.2・§4.5・§5.2・§5.4・§6.1〜§6.3・§6.6〜§6.9・§6.11・§7.1・§8.9・§8.11・§10.2〜§10.4・§10.6・§12.3・§12.6・§12.8・§13.5・§13.6・§14.2〜§14.4・§15.2・§15.5・§18.3・§18.4 を更新（`ShogiGameController` を `GameBoard` に改名し、盤のクリックを手にする処理と成りの尋ね方を board の `BoardInteractionController::moveFromClick()`・`setPromotionChooser()` へ移して詰将棋を解く画面と共有した（`prepareMove`・`endDragSignal` を削除。ドラッグは盤の操作が行き先から戻った後に終える）。盤と手番だけを使う部品は `ShogiBoard` を受け取る。棋譜の1行の組み立てを kifu の `MoveRecord::play()` に1つにして棋譜の読み込みと対局の着手で使う。局面編集の操作を board の `PositionEditRules`（`Position` を変える関数 `moved`・`cycled`・`cleared`）へ移し、`ShogiBoard` は局面の包みと、変わった所だけを知らせる `replacePosition()` だけにした（`applyUsiMove`・`updateBoardAndPieceStand`・`promoteOrDemotePiece`・`resetGameBoard`・`setPieceAt` を削除）） |
 
 <!-- chapter-0-end -->
 
@@ -392,7 +393,7 @@ src/
 │   ├── startgamedialogdata.h       #   対局開始ダイアログで選んだ値（対局者1人の選択 PlayerChoice と対局の条件 StartGameDialogData）
 │   ├── sennichitedetector.cpp/.h   #   千日手の検出
 │   ├── nyugyokujudgement.cpp/.h    #   入玉宣言の判定（人間の宣言とエンジンの bestmove win で共通）
-│   ├── shogigamecontroller.cpp/.h  #   指し手の検証と盤への適用、手番
+│   ├── gameboard.cpp/.h            #   対局の盤（指し手の検証と盤への適用、指した手を棋譜の1行に）
 │   ├── gamestartoptionsbuilder.cpp/.h # 対局開始ダイアログの値の解釈（時間・対局者）
 │   ├── timecontrolvalidator.cpp/.h #   対局開始前の時間設定の検証
 │   └── consecutivegameseries.cpp/.h # エンジン同士の連続対局（局数・手番の入れ替え・次局の計画）
@@ -406,6 +407,7 @@ src/
 │   ├── livegamesession.cpp/.h      #   対局中の記録セッション
 │   ├── kifunavigationstate.cpp/.h  #   表示中のノード（changed() を出す）
 │   ├── recordentry.h               #   棋譜の1行（指した手か終局）
+│   ├── moverecord.h                #   指す前の局面と指し手から棋譜の1行を作る（MoveRecord::play。棋譜の読み込みと対局の着手で共通）
 │   ├── recordline.h                #   1本の手順の値（RecordLine）
 │   ├── kifuformat.cpp/.h           #   棋譜の形式（読み込み・保存・変換で共通の KifuFormat）と判定（KifuFormats）
 │   ├── kifuloadparser.cpp/.h       #   棋譜の読み込み口（文字コードの判別と形式ごとの変換器への振り分け）
@@ -559,7 +561,7 @@ src/
 │   ├── boardinteractioncontroller.cpp/.h # 盤のクリックを移動元・移動先にして行き先へ渡し、ハイライトを出す
 │   ├── boardinputroute.h           #   盤で指した手の行き先（BoardInputRoute: つまめるか・局面編集中か・着手）
 │   ├── positioneditsession.cpp/.h  #   局面編集（開始・終了・編集メニュー・編集中の着手）
-│   └── positioneditrules.cpp/.h    #   局面編集で駒を盤・駒台・駒箱の間で動かす規則（PositionEditRules::apply）
+│   └── positioneditrules.cpp/.h    #   局面編集の規則（駒の移動・成・不成・先後の巡回・盤を空にする。Position を変える関数）
 │
 ├── dialogs/                        # ダイアログ実装（.ui は同じ場所）
 │   ├── startgamedialog.cpp/.h/.ui  #   対局開始ダイアログ（先手・後手の欄は widgets/playersetupwidget・timecontroleditor）
@@ -702,31 +704,31 @@ src/
 
 | ディレクトリ | ファイル数 | 行数 | 概要 |
 |-------------|-----------|------|------|
-| `app/` | 19 | 2,437 | メインウィンドウ、エントリーポイント、合成ルート、対局の流れ（`GameSession`） |
-| `core/` | 52 | 5,986 | 純粋ゲームロジック |
-| `game/` | 29 | 2,636 | 対局管理 |
-| `kifu/` | 53 | 6,688 | 棋譜管理（formatsを除く） |
-| `kifu/formats/` | 55 | 5,942 | フォーマット変換器 |
+| `app/` | 19 | 2,440 | メインウィンドウ、エントリーポイント、合成ルート、対局の流れ（`GameSession`） |
+| `core/` | 52 | 5,818 | 純粋ゲームロジック |
+| `game/` | 29 | 2,532 | 対局管理 |
+| `kifu/` | 54 | 6,737 | 棋譜管理（formatsを除く） |
+| `kifu/formats/` | 55 | 5,934 | フォーマット変換器 |
 | `engine/` | 33 | 4,155 | USIエンジン連携 |
-| `analysis/` | 37 | 4,297 | 解析機能 |
+| `analysis/` | 37 | 4,311 | 解析機能 |
 | `network/` | 14 | 3,424 | CSA通信対局 |
 | `style/` | 9 | 812 | ウィジェットの書体と見た目（スタイル・ボタンと表のスタイルシート） |
-| `board/` | 7 | 722 | 盤面操作 |
-| `ui/presenters/` | 20 | 1,567 | 表示への反映 |
+| `board/` | 7 | 876 | 盤面操作 |
+| `ui/presenters/` | 20 | 1,566 | 表示への反映 |
 | `ui/controllers/` | 42 | 4,223 | 利用者操作の処理（棋譜の読み書き・ナビゲーション・ダイアログの起動を含む） |
 | `ui/policy/` | 4 | 503 | 動作状態からの規則（メニュー・ボタンの有効/無効、盤の手の行き先） |
 | `ui/docks/` | 4 | 701 | ドックの表とレイアウト |
 | `ui/coordinators/` | 4 | 335 | 複数の部品にまたがる UI の流れ（通信対局・コメント） |
 | `views/` | 18 | 3,172 | 将棋盤描画 |
 | `widgets/` | 105 | 12,952 | カスタムウィジェット |
-| `dialogs/` | 79 | 12,879 | ダイアログ |
+| `dialogs/` | 79 | 12,869 | ダイアログ |
 | `models/` | 20 | 1,664 | Qtモデル・表示用データ |
 | `services/` | 47 | 3,781 | 横断サービス・設定の宣言 |
 | `common/` | 12 | 597 | 共有の土台（ログ・エラー通知・共有状態） |
 | `headless/` | 22 | 1,390 | CLI・自動化 API・MCP が共有する GUI 非依存の部品 |
-| `automation/` | 31 | 3,102 | 自動化 API |
+| `automation/` | 31 | 3,101 | 自動化 API |
 | `cli/` | 15 | 1,730 | `shogiboardq-cli` |
-| **合計** | **731** | **約85,700** | |
+| **合計** | **732** | **約85,600** | |
 
 ### 1.7 リソース構成
 
@@ -1265,7 +1267,7 @@ graph BT
 |---------|------------|------|
 | **土台** | `core/`, `common/` | 将棋のルール・盤面・駒・指し手（Qt GUI非依存）と、ログ・エラー通知・動作状態（`AppActivityState`・`ActivityLease`）などの共有部品 |
 | **サービス** | `services/` | 設定の宣言・駒画像・駒音・通知など、層を横断して使う機能 |
-| **ドメイン** | `kifu/`, `engine/`, `game/`, `analysis/`, `network/` | 棋譜・エンジン通信・対局進行・解析・通信対局のロジック。`engine/` は `game/` を知らない（`Usi` は `ShogiGameController` を持たない） |
+| **ドメイン** | `kifu/`, `engine/`, `game/`, `analysis/`, `network/` | 棋譜・エンジン通信・対局進行・解析・通信対局のロジック。`engine/` は `game/` を知らない（`Usi` は `GameBoard` を持たない） |
 | **見た目** | `style/` | QWidget に依存する書体・アプリ全体のスタイル・ボタンと表のスタイルシート（`ApplicationFonts`・`ApplicationStyle`・`ButtonStyles`・`TableStyles`・`MoveFont`） |
 | **表示部品** | `models/`, `views/`, `widgets/`, `board/`, `dialogs/` | Qt のモデル・盤の描画・ウィジェット・盤面操作・ダイアログ |
 | **UI の組み立て** | `ui/`, `app/` | 表示への反映（Presenter）・利用者操作の処理（Controller）・動作状態からの規則（`policy/`）・ドック（`docks/`）・複数の部品にまたがる流れ（Coordinator）と、MainWindow・合成ルート・メニューの接続（`MenuActionsWiring`） |
@@ -1298,7 +1300,7 @@ graph BT
 **禁止される依存の例**:
 
 - `core/` → `game/`: 土台の層が対局管理のクラスを参照してはならない
-- `engine/` → `game/`: エンジン連携は対局の盤（`ShogiGameController`）を知らない。対局の局面（position の文字列）・時間の条件・時計は呼び出し側が渡す
+- `engine/` → `game/`: エンジン連携は対局の盤（`GameBoard`）を知らない。対局の局面（position の文字列）・時間の条件・時計は呼び出し側が渡す
 - `kifu/` → `engine/`: 棋譜はエンジンを知らない
 - `game/` → `ui/`: 対局管理がUI部品を直接操作してはならない。司令塔はシグナルで知らせ、棋譜の行は `MatchRecordSink` に書く（[4.3節](#43-シグナルと-stdfunction-コールバック)）
 
@@ -1332,7 +1334,7 @@ graph LR
     PARTS -.-> EC["EvaluationChartWidget<br/>(評価値グラフ)"]
     PARTS -.-> TP["ThinkingPanel<br/>(思考ドック)"]
 
-    MC --> SGC["ShogiGameController"]
+    MC --> SGC["GameBoard"]
     MC --> USI["Usi (エンジン)"]
 ```
 
@@ -1355,7 +1357,7 @@ graph LR
 | **エンジンの表示** | `EngineDisplayPresenter` | 枠 E1・E2 のエンジンとモデルの結び、検討の表示、2つ目のエンジン欄と評価値グラフの系列名、表示の消去を1か所で受け持つ |
 | **棋譜読込** | `KifuLoader` | 棋譜ファイル・貼り付け・局面を読み、分岐ツリーを作り直す（読み込みの実体は `KifuLoadParser`） |
 | **棋譜の表示** | `KifuNavigationState`・`KifuDisplayPresenter`・`BoardSyncPresenter` | 表示中の手を1か所で持ち、変わるたびに棋譜欄・分岐・盤が自分で合わせる |
-| **ゲーム制御** | `ShogiGameController` | 指し手の適用、成り判定、合法手チェック、手番 |
+| **対局の盤** | `GameBoard` | 合法手チェックと指し手の適用、棋譜の1行（手番は盤の `ShogiBoard`、クリックの解釈と成り判定は盤の操作 `BoardInteractionController`） |
 | **盤面操作** | `BoardInteractionController`・`BoardMoveController` | マウスクリック→駒選択→移動の変換と、動作状態に応じた着手の処理 |
 | **メニューの接続** | `MenuActionsWiring` | メニュー・ツールバーの項目と処理する部品の接続 |
 | **プレゼンター** | `*Presenter` 群 | モデル・状態から表示への反映 |
@@ -1458,7 +1460,7 @@ sequenceDiagram
     participant SV as ShogiView<br/>(盤面描画)
     participant BIC as BoardInteraction<br/>Controller
     participant BMC as BoardMove<br/>Controller
-    participant SGC as ShogiGame<br/>Controller
+    participant SGC as GameBoard<br/>(対局の盤)
     participant SB as ShogiBoard<br/>(盤面状態)
     participant MC as MatchCoordinator<br/>(司令塔)
     participant GS as GameSession<br/>(MatchRecordSink)
@@ -1470,11 +1472,11 @@ sequenceDiagram
     SV->>BIC: clicked(QPoint)
     BIC->>BIC: 駒の選択と合法な移動先の表示<br/>(EngineMoveValidator)
     BIC->>BMC: submit(from, to)<br/>(BoardInputRoute)
-    BMC->>SGC: prepareMove()<br/>(DuringGame の場合)
-    SGC->>SGC: 合法手判定・成り/不成の選択<br/>(EngineMoveValidator・PromoteDialog)
-    SGC-->>BMC: UsiMove
+    BMC->>BIC: moveFromClick()<br/>(DuringGame の場合)
+    BIC->>BIC: 合法手判定・成り/不成の選択<br/>(EngineMoveValidator・PromoteDialog)
+    BIC-->>BMC: UsiMove
     BMC->>SGC: applyMove(UsiMove)<br/>(playUsiMove)
-    SGC->>SB: applyUsiMove()
+    SGC->>SB: replacePosition(指した後の局面)
     SB-->>SV: dataChanged / standChanged<br/>(変わったマスを再描画)
     SGC-->>BMC: RecordEntry
     BMC->>BIC: onMoveApplied()<br/>(移動元・移動先のハイライト)
@@ -1486,21 +1488,21 @@ sequenceDiagram
     MC->>USI: position + go<br/>(エンジンへ送信)
     USI-->>MC: bestmove<br/>(エンジンの応手)
     MC->>SGC: applyMove(UsiMove)
-    SGC->>SB: applyUsiMove()
+    SGC->>SB: replacePosition(指した後の局面)
     MC->>GS: appendRecord()
 ```
 
 #### フロー解説
 
 1. **ユーザー操作**: `ShogiView` がマウスクリックを受け、`clicked` シグナルで `BoardInteractionController` に盤の座標を通知する。駒をつまめるかは行き先（`BoardInputRoute::acceptsInput()`）に聞く。1回目のクリックで駒を選び、設定により `EngineMoveValidator` で合法な移動先を光らせる
-2. **着手要求**: 2回目のクリックで、移動元・移動先を行き先の `BoardInputRoute::submit()` に渡す。主画面の行き先 `BoardMoveController` が、動作状態（`AppActivityState`）に応じて処理を分ける。行き先は `HumanTurnPolicy::boardInput()` の1か所で決まる。局面編集中は `PositionEditSession::applyEditMove()`、それ以外はクリックを `ShogiGameController::prepareMove()` で `UsiMove` にしてから、待機中は棋譜の変化として `BranchTreeEditController::recordMove()`、通信対局は `csaMoveRequested(UsiMove)`、ローカル対局は次のとおり
-3. **合法手判定と適用**: ローカル対局では、`MatchCoordinator::isHumanSide()` が真の手番のときだけ `ShogiGameController::prepareMove()` が `EngineMoveValidator` で合法手かを判定し、クリックを `UsiMove` にする。成り・不成の両方が合法なら成りの選び方（`DialogLauncher::choosePromotion()` が `PromoteDialog::ask()` で選ばせる）に従う。`BoardMoveController::playUsiMove()` が `ShogiGameController::applyMove()` で盤を更新し（`ShogiBoard::applyUsiMove()`）、結果は棋譜の1行（`RecordEntry`）で返る
+2. **着手要求**: 2回目のクリックで、移動元・移動先を行き先の `BoardInputRoute::submit()` に渡す。主画面の行き先 `BoardMoveController` が、動作状態（`AppActivityState`）に応じて処理を分ける。行き先は `HumanTurnPolicy::boardInput()` の1か所で決まる。局面編集中は `PositionEditSession::applyEditMove()`、それ以外はクリックを盤の操作の `BoardInteractionController::moveFromClick()` で `UsiMove` にしてから、待機中は棋譜の変化として `BranchTreeEditController::recordMove()`、通信対局は `csaMoveRequested(UsiMove)`、ローカル対局は次のとおり
+3. **合法手判定と適用**: ローカル対局では、`MatchCoordinator::isHumanSide()` が真の手番のときだけ `BoardInteractionController::moveFromClick()` が `EngineMoveValidator` で合法手かを判定し、クリックを `UsiMove` にする（詰将棋を解く画面も同じ関数）。成り・不成の両方が合法なら成りの選び方（`DialogLauncher::choosePromotion()` が `PromoteDialog::ask()` で選ばせる）に従う。`BoardMoveController::playUsiMove()` が対局の盤 `GameBoard::applyMove()` で指し（棋譜の1行は `MoveRecord::play()` が作り、盤には `ShogiBoard::replacePosition()` で変わった所だけを知らせる）、結果は棋譜の1行（`RecordEntry`）で返る
 4. **一手の確定**: `BoardMoveController` が `MatchCoordinator::onHumanMove()` を呼ぶと、対局者の組ごとの Strategy を通して `completeMove()` が時計・考慮時間を確定し、行を `MatchRecordSink`（`GameSession::appendRecord()`）に書く。`GameSession` はライブ対局のセッション（`LiveGameSession`）経由で分岐ツリー（`KifuBranchTree`）に追記する
 5. **表示の同期**:
    - `ShogiView`: `ShogiBoard` の `dataChanged`／`standChanged`／`turnChanged` シグナルで、変わったマスと駒台、手番の表示を更新する。移動元・移動先のハイライトは `BoardInteractionController` が付ける
    - 棋譜欄・分岐・盤・コメント・評価値グラフなど: 分岐ツリーが変わると `KifuNavigationState` が表示中の手を最新の手に進めて `changed()` を出し、`KifuDisplayPresenter`（棋譜欄・分岐候補欄・分岐ツリー）、`BoardSyncPresenter`（盤・ハイライト）などが各自で合わせる
    - `moveCommitted` シグナルでは、駒音を鳴らす（`PieceSoundPlayer`）
-6. **エンジン応答**: 対エンジンの対局では、`MatchCoordinator` がエンジンに `position` + `go` を送り（`requestEngineMove()`）、`bestmove` を `ShogiGameController::applyMove()` で指して一手を確定する。評価値グラフは `engineMovePlayed` シグナルで `EvaluationGraphPresenter::plotEngineScore()` が更新する
+6. **エンジン応答**: 対エンジンの対局では、`MatchCoordinator` がエンジンに `position` + `go` を送り（`requestEngineMove()`）、`bestmove` を `GameBoard::applyMove()` で指して一手を確定する。評価値グラフは `engineMovePlayed` シグナルで `EvaluationGraphPresenter::plotEngineScore()` が更新する
 
 #### 棋譜読み込みのデータフロー
 
@@ -1627,7 +1629,7 @@ class HumanTurnPolicy
 public:
     struct Deps {
         const AppActivityState* activity = nullptr;
-        const ShogiGameController* gameController = nullptr;
+        const ShogiBoard* board = nullptr;
         const MatchCoordinator* match = nullptr;
         const CsaGameCoordinator* csaGame = nullptr;     ///< 通信対局の司令塔
         /// 対局していないとき、盤上の着手を棋譜の変化として記録できるか
@@ -1649,7 +1651,7 @@ private:
 // src/game/matchcoordinator.h
 
 struct Deps {
-    ShogiGameController* gc = nullptr;          ///< 対局の盤（必須、非所有）
+    GameBoard* gameBoard = nullptr;             ///< 対局の盤（必須、非所有）
     ShogiClock* clock = nullptr;                ///< 対局の時計（必須、非所有）
     AppActivityState* activity = nullptr;       ///< アプリの動作状態（必須、非所有）
     EngineSlots* engines = nullptr;  ///< エンジンの枠 E1・E2（必須、非所有。検討と共有する）
@@ -1701,7 +1703,7 @@ struct Deps {
 m_c.engines = new EngineSlots(&m_window);
 
 MatchCoordinator::Deps md;
-md.gc = m_c.gameController;
+md.gameBoard = m_c.gameBoard;
 md.clock = m_c.clock;
 md.activity = &m_state.activity;
 md.engines = m_c.engines;
@@ -1923,7 +1925,7 @@ class BoardSyncPresenter : public QObject {
     Q_OBJECT
 public:
     struct Deps {
-        ShogiGameController* gc = nullptr;             ///< 盤（必須）
+        ShogiBoard* board = nullptr;                   ///< 盤（必須）
         BoardInteractionController* bic = nullptr;     ///< ハイライトとクリック待ち（必須）
 
         const KifuNavigationState* navState = nullptr; ///< 表示中の手（必須）
@@ -2310,22 +2312,18 @@ ShogiBoard（QObject）
 | カテゴリ | メソッド | 説明 |
 |---------|---------|------|
 | **局面** | `position()` / `setPosition(position)` | 今の局面／丸ごと置き換える（`boardReset` で知らせる） |
+| | `replacePosition(next)` | 局面を `next` にし、変わったマス（`dataChanged`）・駒台（`standChanged`）・手番（`turnChanged`）だけを知らせる。対局の着手（`GameBoard`）と局面編集の操作（`PositionEditRules`）が次の局面を `Position` で作って渡す |
 | | `setSfen(sfenStr)` | SFEN文字列から盤面全体を復元する（不正なら盤面を変えず、ErrorBus に通知する） |
 | | `trySetSfen(sfenStr, error)` | 同上。不正なら盤面を変えずに false を返す（通知しない） |
 | | `toSfen()` | 局面全体（盤・手番・持駒・手数）の SFEN を返す |
 | **盤面参照** | `pieceAt(square)` | 盤上のマスの駒を返す（盤外のマスは `Piece::None`） |
-| | `pieceCharacter(file, rank)` | 指定マスの駒を返す（筋10・11は先手・後手の駒台の並び） |
+| | `pieceCharacter(file, rank)` | 指定マスの駒を返す（筋10・11は先手・後手の駒台、12は駒箱の並び。`BoardCoordinates::pieceAt()`） |
+| | `isPieceAvailableOnStand(piece, file)` | 駒台・駒箱のその駒が1枚以上あるか（`BoardCoordinates::isAvailable()`） |
 | | `pieceStandCount(piece)` | 指定駒の駒台の枚数 |
 | | `pieceBox()` / `pieceBoxCount(piece)` | 盤上・両駒台にない駒（駒箱）を数える |
 | | `currentPlayer()` / `setCurrentPlayer(turn)` | 手番を返す／手番だけを変える（局面編集の手番変更など） |
 | | `moveNumber()` / `setMoveNumber(n)` | 次に指す手の手数 |
-| **駒操作** | `applyUsiMove(move, mover)` / `applyUsiMove(move)` | USI の指し手を `Position::apply()` で指し、変わったマス・駒台・手番を知らせる（合法手かどうかは確かめない。`mover` を省くと手番側の手。対局の着手の確定 `ShogiGameController::commitMove()` が使う） |
-| | `setPieceAt(square, piece)` | マスの駒を置き換える（局面の組み立て用） |
-| **局面編集** | `updateBoardAndPieceStand(...)` | 盤・駒台・駒箱の間で駒を動かす（`PositionEditRules::apply()` が規則を確かめてから呼ぶ。行き所のない段の歩・香・桂は成駒にする） |
-| | `promoteOrDemotePiece(file, rank)` | 指定マスの駒の成・不成・先後を巡回して替える（右クリック） |
-| | `resetGameBoard()` | 盤上・両駒台を空にして、全駒を駒箱に戻す |
-
-駒台の増減・盤の駒の移動の部品（`addPieceToStand`・`incrementPieceOnStand` など）は、局面編集の操作の内部だけで使う（非公開。単体テストは friend で触る）。
+`ShogiBoard` は局面の包みと変更の知らせだけを受け持ち、局面を変える規則は持たない。着手は `GameBoard`（`MoveRecord::play()`）が、局面編集の操作（駒の移動・右クリックの成・不成・先後の巡回・盤を空にする）は board の `PositionEditRules`（13章）が、どれも次の局面を `Position` で作り、`replacePosition()`（盤を空にするときは `setPosition()`）で渡す。
 
 #### シグナル
 
@@ -2436,7 +2434,7 @@ struct LegalMoveStatus {
 };
 ```
 
-盤のクリックを手にする `ShogiGameController::prepareMove()` は、両方が `true` なら対局者に成るかどうかを選ばせ（`setPromotionChooser()` で渡された関数）、成りだけが `true` なら成り、どちらも `false` なら着手を受け付けない。成り・不成まで決まった手（エンジン・定跡の手。`applyMove()`・`isLegal()`）は、指し手の成り・不成の側が `true` かを確かめる。
+盤のクリックを手にする盤の操作の `BoardInteractionController::moveFromClick()` は、両方が `true` なら対局者に成るかどうかを選ばせ（`setPromotionChooser()` で渡された関数）、成りだけが `true` なら成り、どちらも `false` なら着手を受け付けない。成り・不成まで決まった手（エンジン・定跡の手。`applyMove()`・`isLegal()`）は、指し手の成り・不成の側が `true` かを確かめる。
 
 #### 判定の手順
 
@@ -2707,7 +2705,7 @@ game 層
     ├── GameModeStrategy（HumanVsHuman / HumanVsEngine / EngineVsEngine）
     ├── MatchSessionState（開始の設定・対局者・終局状態）
     ├── EngineSlots（エンジンの枠 E1・E2。検討と共有）── Usi × 最大2
-    ├── ShogiGameController（盤・合法手・棋譜の表記）── 成/不成の選択（DialogLauncher::choosePromotion() → PromoteDialog::ask()）
+    ├── GameBoard（盤・合法手・棋譜の1行。成/不成の選択は盤の操作 BoardInteractionController::moveFromClick()）
     └── ShogiClock（対局時計）
   ConsecutiveGameSeries（連続対局）
 ```
@@ -2719,7 +2717,7 @@ game 層
 | **MatchSessionState** | `matchcoordinator.h` | 開始の設定（`MatchStartOptions`）・対局者（`MatchPlayers`）・終局状態を持つ（エンジンの先読みの局面は `UsiMatchHandler` だけが持つ） |
 | **EngineSlots** | `engineslots.h/.cpp` | エンジンの枠 E1・E2 の生成・破棄（対局・検討・棋譜解析・CSA 通信対局で共有）。使う側には `acquire()` で move-only の `EngineLease` を渡し、枠をほかの持ち主に取られた前の持ち主には `engineRevoked` で知らせる |
 | **MatchEngineSeat** | `matchengineseat.h/.cpp` | 対局で指すエンジン1台。枠からエンジンを借り、手番と持ち時間の出どころを渡して起動し、初期化・指し手・投了・入玉宣言勝ち・エラーを自分のシグナルで知らせる。終局は `finish(GameOverResult)` で、ローカル対局・通信対局で同じ手順 |
-| **ShogiGameController** | `shogigamecontroller.h/.cpp` | 対局の盤を持ち、指し手の合法性の検証と適用、棋譜の表記を行う（「同」の基準は呼び出し側が手順から渡す） |
+| **GameBoard** | `gameboard.h/.cpp` | 対局の盤を持ち、指し手の合法性の検証と適用を行い、指した手を棋譜の1行（`MoveRecord::play()`）にする（「同」の基準は呼び出し側が手順から渡す） |
 | **GameStartOptionsBuilder** | `gamestartoptionsbuilder.h/.cpp` | 対局開始ダイアログの値と表示中の手順から、開始の計画（`GameStartPlan`）を作る。状態を持たない |
 | **ConsecutiveGameSeries** | `consecutivegameseries.h/.cpp` | エンジン同士の連続対局の局数と、次局の計画 |
 | **GameSession** | `app/gamesession.h/.cpp` | 対局の開始・終局・再開の手順と利用者の操作の受け口、棋譜の受け手。UI の部品を扱うので `app/` に置く |
@@ -2742,7 +2740,7 @@ game 層
 | 責務 | 内容 |
 |------|------|
 | **対局開始** | `start()` で対局の手順・対局者・Strategy を用意し（時計はまだ動かさない）、`beginPlay()` で時計を動かして初手がエンジンなら思考を始める |
-| **手番管理** | 手番は盤（`ShogiGameController::currentPlayer()` が返す `ShogiBoard` の手番）だけを正とし、司令塔はコピーを持たない |
+| **手番管理** | 手番は盤（`ShogiBoard::currentPlayer()`。司令塔は `sideToMove()` で読む）だけを正とし、司令塔はコピーを持たない |
 | **指し手進行** | 人間の着手（`onHumanMove()`）は Strategy に渡す。一手の確定（時計・棋譜・千日手・最大手数）は Strategy から `MatchStrategyHost` 経由で呼ばれる `completeHumanMove()`・`applyEngineMove()` が行う |
 | **エンジン** | エンジンの枠は `EngineSlots`（Deps の `engines`）が持つ。思考の依頼は `requestEngineMove(side)` で、手番のエンジンに `Usi::requestMatchMove()` を送る |
 | **終局判定** | 投了・時間切れ・中断・入玉宣言・千日手・連続王手の千日手・最大手数・反則の各終局を処理し、終局の行を棋譜に書く |
@@ -2831,7 +2829,7 @@ Strategy から司令塔への依頼は `MatchStrategyHost`（`src/game/gamemode
 
 ```cpp
 struct Deps {
-    ShogiGameController* gc = nullptr;          // 対局の盤（必須、非所有）
+    GameBoard* gameBoard = nullptr;             // 対局の盤（必須、非所有）
     ShogiClock* clock = nullptr;                // 対局の時計（必須、非所有）
     AppActivityState* activity = nullptr;       // アプリの動作状態（必須、非所有）
     EngineSlots* engines = nullptr;  // エンジンの枠 E1・E2（必須、非所有。検討と共有する）
@@ -2849,7 +2847,7 @@ start(opt)
   │
   ├── 1. 中断した対局を捨てる。opt.recordLine を currentPly までにする（その最後の局面から始める）
   ├── 2. 終局状態をクリアし、MatchSessionState::begin(opt)、対局の手順 m_record を設定
-  ├── 3. AppActivityState を DuringGame にし、gc->newGame(手順の最後の局面)   … 盤が開始局面になり、盤の手番が変わる
+  ├── 3. AppActivityState を DuringGame にし、gameBoard->newGame(手順の最後の局面)   … 盤が開始局面になり、盤の手番が変わる
   ├── 4. applyTimeSettings(opt.time)   … 時間の決まり・時間切れの扱いを時計に入れ、時計の手番を盤の手番にする（まだ動かさない）
   │
   └── 5. createStrategy(opt)
@@ -2898,7 +2896,7 @@ sequenceDiagram
     participant SRC as SessionResetCoordinator
     participant DOC as KifuDocument
     participant MC as MatchCoordinator
-    participant GC as ShogiGameController
+    participant GC as GameBoard
     participant Clock as ShogiClock
     participant USI as Usi (Engine)
 
@@ -3048,39 +3046,39 @@ prepareGameStart(preparation)
 
 対局の手順（`RecordLine`）はここでは作らない。`GameSession::startGameFromDialog()` が表示中の手順（`KifuNavigationState::currentRecordLine()`）を `GameStartRequest::recordLine` に入れ、`GameStartOptionsBuilder::plan()` がその手数までを `MatchStartOptions::recordLine` にする（[対局開始フロー](game-start-flow.md)）。
 
-### 6.6 ShogiGameController — 盤面とルールの橋渡し
+### 6.6 GameBoard — 対局の盤
 
-`ShogiGameController` は対局で使う盤（`ShogiBoard`）を持ち、`EngineMoveValidator` で指し手を確かめて盤に指すコントローラである。指した手は棋譜の1行（`RecordEntry`）として返し、対局の手順への追加は呼び出し側（司令塔・通信対局）が行う。
+`GameBoard` は対局で使う盤（`ShogiBoard`）を持ち、`EngineMoveValidator` で指し手を確かめて盤に指す。指した手は棋譜の1行（`RecordEntry`）として返し、対局の手順への追加は呼び出し側（司令塔・通信対局・変化の記録）が行う。盤のクリックを手にする処理と成り・不成の尋ね方は、盤の操作（board の `BoardInteractionController::moveFromClick()`。13章）が持ち、主画面と詰将棋を解く画面で共通にする。盤と手番だけを使う部品（`HumanTurnPolicy`・`KifuFileController`・`BoardSyncPresenter`・`PositionEditSession`・`AutomationContext`・`TsumePlayDialog`）は `GameBoard` ではなく `ShogiBoard` を受け取る。
 
-**ソース**: `src/game/shogigamecontroller.h`, `src/game/shogigamecontroller.cpp`
+**ソース**: `src/game/gameboard.h`, `src/game/gameboard.cpp`
 
 #### 指し手実行フロー
 
-人間の着手（盤のクリック）は `prepareMove()` で `UsiMove` にしてから `applyMove()`、成り・不成まで決まった手（エンジンの手・定跡ウィンドウの手）は `applyMove()`、通信対局でサーバーが知らせた手では `applyRecordedMove()` が呼ばれる。どれも最後に `commitMove()` で指す。
+人間の着手（盤のクリック）は盤の操作の `moveFromClick()` で `UsiMove` にしてから `applyMove()`、成り・不成まで決まった手（エンジンの手・定跡ウィンドウの手）は `applyMove()`、通信対局でサーバーが知らせた手では `applyRecordedMove()` が呼ばれる。どれも最後に `commitMove()` で指す。
 
 「同」表記の基準（局面に至った手の移動先。開始局面は無効なマス）は、このクラスでは持たず、手順を持つ呼び出し側が指すたびに `previousTo` で渡す。
 対局は `MatchCoordinator::lastMoveDestination()`（`m_record.destinationOf(currentPly())`。`BoardMoveController` と `applyEngineMove()` が渡す）、
 通信対局は `CsaGameProgress::previousTo()`、分岐の編集（`BranchTreeEditController`）は親ノードの手の移動先を渡す。
 
 ```
-prepareMove(from, to)（盤を変えない）
+BoardInteractionController::moveFromClick(from, to)（盤を変えない。13章）
   ├── 1. クリックした2マス（表示の座標。駒台は筋 10・11）を UsiMove にする
-  │     盤外・相手の駒台・空きマスからの手は受け付けない
-  ├── 2. legalStatus() — EngineMoveValidator で成り・不成それぞれを判定
+  │     盤外・相手の駒台・玉・空きマスからの手は受け付けない（駒台の並びは BoardCoordinates）
+  ├── 2. EngineMoveValidator::legalStatus() で成り・不成それぞれを判定
   └── 3. 成るかどうかを決める
         ├── 両方とも合法 → setPromotionChooser() の関数（成りダイアログ）で決める
         ├── 成りだけ合法（行き所のない駒）→ 成る
         └── どちらも不合法 → nullopt
 
-applyMove(move, previousTo)
+GameBoard::applyMove(move, previousTo)
   ├── isLegal() で、指し手の成り・不成の側が合法かを確かめる（反則手は盤を変えずに nullopt）
   └── commitMove()
 
-commitMove(move, previousTo)
-  ├── board()->applyUsiMove(move, mover)    盤を更新（手番を相手に渡し、手数を1つ進める。turnChanged が出る）
-  └── RecordEntry::played(ShogiMove(move, 動かした駒, 取った駒),
-                          KifMoveText::format(mover, 動かした駒, move, previousTo),   棋譜の文字列（previousTo と同じマスなら「同」）
-                          board()->toSfen())            指した後の局面
+GameBoard::commitMove(move, previousTo)
+  ├── MoveRecord::play(盤の局面の写し, move, previousTo)   棋譜の1行（棋譜の読み込みの KifLineBuilder と同じ関数）
+  │     ├── Position::describe() で動かす駒・取る駒、Position::apply() で指す（手番を相手に渡し、手数を1つ進める）
+  │     └── KifMoveText::format(手番, 動かした駒, move, previousTo)   棋譜の文字列（previousTo と同じマスなら「同」）
+  └── ShogiBoard::replacePosition(指した後の局面)   変わったマス・駒台・手番だけを知らせる（turnChanged が出る）
 ```
 
 着手の確定の知らせ（`moveCommitted`）は `commitMove()` では出さない。呼び出し側が盤・手順・棋譜・時計を更新し終えてから `notifyMoveCommitted(mover, ply)` で出す（ローカル対局は `MatchCoordinator::completeMove()`、通信対局は `CsaGameCoordinator`）。
@@ -3090,19 +3088,18 @@ commitMove(move, previousTo)
 | シグナル | 接続先 | 用途 |
 |---------|-------|------|
 | `moveCommitted(Turn, int)` | PieceSoundPlayer::playMoveSound | 着手確定通知。ローカル対局・通信対局のどちらもこの知らせを使う |
-| `endDragSignal()` | ShogiView::endDrag | 駒のドラッグ表示を終える |
 
-手番の変更の知らせは `ShogiGameController` ではなく、盤の `ShogiBoard::turnChanged` が出す（6.7節）。
+駒のドラッグ表示は、盤の操作が行き先の `submit()` から戻った後に `ShogiView::endDrag()` で終える（成り・不成を尋ねている間は保つ）。手番の変更の知らせは `GameBoard` ではなく、盤の `ShogiBoard::turnChanged` が出す（6.7節）。
 
 ### 6.7 手番管理 — 手番は ShogiBoard だけが持つ
 
-手番は `ShogiBoard`（`src/core/shogiboard.h`）だけが持つ。`ShogiGameController::currentPlayer()` は盤の手番を返すだけで、`ShogiGameController`・`MatchCoordinator`・`AppActivityState` は手番のコピーを持たない。手番の表現を変換したり、手番を各部品へ配ったりする専用のクラスは無い。
+手番は `ShogiBoard`（`src/core/shogiboard.h`）だけが持つ（`ShogiBoard::currentPlayer()`）。`GameBoard`・`MatchCoordinator`・`AppActivityState` は手番のコピーを持たず、司令塔は `sideToMove()` で盤の手番を読む。手番の表現を変換したり、手番を各部品へ配ったりする専用のクラスは無い。
 
 | 操作 | 内容 |
 |------|------|
-| 局面を入れ替える | `ShogiGameController::newGame(sfen)`・`ShogiBoard::setSfen()` で、SFEN の手番が盤の手番になる |
-| 一手を指す | `ShogiBoard::applyUsiMove(move, mover)` が `Position::apply()` で相手の手番にし、手数を1つ進める |
-| 手番を直接変える | `ShogiGameController::setCurrentPlayer()` → `ShogiBoard::setCurrentPlayer()`（局面編集の手番変更・検討する局面の手番） |
+| 局面を入れ替える | `GameBoard::newGame(sfen)`・`ShogiBoard::setSfen()` で、SFEN の手番が盤の手番になる |
+| 一手を指す | `GameBoard::commitMove()` が `Position::apply()` で相手の手番にした局面を `ShogiBoard::replacePosition()` で渡す（手数も1つ進む） |
+| 手番を直接変える | `ShogiBoard::setCurrentPlayer()`（局面編集の手番変更・検討する局面の手番） |
 
 手番が変わると盤が `ShogiBoard::turnChanged(Turn)` を出し、これを受けた部品がそれぞれ自分の表示や状態を合わせる。
 
@@ -3112,7 +3109,7 @@ ShogiBoard::turnChanged(Turn)
   └──▶ BoardInteractionController::cancelPendingClick()   … 1回目のクリックを取り消す
 ```
 
-時計の手番は、司令塔の `completeMove()` が一手を確定するたびに `ShogiClock::setCurrentPlayer(gc->currentPlayer())` で盤に合わせる。対局の開始時は `MatchCoordinator::start()`（`applyTimeSettings()`）が開始局面の手番を時計に設定する。
+時計の手番は、司令塔の `completeMove()` が一手を確定するたびに `ShogiClock::setCurrentPlayer(sideToMove())` で盤に合わせる。対局の開始時は `MatchCoordinator::start()`（`applyTimeSettings()`）が開始局面の手番を時計に設定する。
 
 #### 人間/エンジンの手番切替
 
@@ -3126,9 +3123,9 @@ ShogiBoard::turnChanged(Turn)
               人間の着手              エンジンの着手
                    │                     │
   BoardMoveController::playMove         Usi::matchMoveReady
-     → GC::prepareMove()                 → Strategy::onEngineMoveReady()
-     → playUsiMove() → GC::applyMove()   → MatchStrategyHost::applyEngineMove()
-     → MatchCoordinator::onHumanMove()      → GC::applyMove()
+     → BIC::moveFromClick()              → Strategy::onEngineMoveReady()
+     → playUsiMove() → GameBoard::applyMove()  → MatchStrategyHost::applyEngineMove()
+     → MatchCoordinator::onHumanMove()      → GameBoard::applyMove()
      → Strategy::onHumanMove()
      → MatchStrategyHost::completeHumanMove()
                    └──────────┬──────────┘
@@ -3170,10 +3167,10 @@ public:
 
 `PromoteDialog`（「成る」「成らない」のボタン）を出し、`QDialog::Accepted`（成る）なら `true`、それ以外（成らない・閉じた）なら `false` を返す。
 
-主画面では、`ShogiGameController::prepareMove()` が成り・不成の両方とも合法な手で成りの選び方の関数（`setPromotionChooser()` で渡す `DialogLauncher::choosePromotion()`。合成ルートが設定する）を呼び、`DialogLauncher::choosePromotion()` が `PromoteDialog::ask()` を呼ぶ（6.6 節）。詰将棋を解く画面は、成る手と成らない手の両方が合法なときに `PromoteDialog::ask()` を直接呼ぶ。以下の場合はダイアログを表示しない:
+盤の操作の `BoardInteractionController::moveFromClick()` が、成り・不成の両方とも合法な手で成りの選び方の関数（`setPromotionChooser()` で渡す）を呼ぶ（6.6 節）。主画面は合成ルートが `DialogLauncher::choosePromotion()`（`PromoteDialog::ask()` を呼ぶ）を、詰将棋を解く画面は `PromoteDialog::ask()` を渡す。以下の場合はダイアログを表示しない:
 
 - **行き所のない駒**: 成りだけが合法な手（歩・香が1段目、桂が1〜2段目へ動く手。後手は逆）は成る
-- **成り・不成の決まった手**: 定跡ウィンドウの手は成り・不成まで決まった `UsiMove` なので、`BoardMoveController::playUsiMove()` が `prepareMove()` を通さずに指す
+- **成り・不成の決まった手**: 定跡ウィンドウの手は成り・不成まで決まった `UsiMove` なので、`BoardMoveController::playUsiMove()` が `moveFromClick()` を通さずに指す
 
 ### 6.9 GameSession — 対局の流れの UI 側
 
@@ -3259,8 +3256,8 @@ HumanTurnPolicy::BoardInput HumanTurnPolicy::boardInput() const
         return m_deps.branchEdit && m_deps.branchEdit->canEdit() ? BoardInput::Variation : BoardInput::None;
     case AppActivityState::Activity::DuringGame: {
         const MatchCoordinator* match = m_deps.match;
-        const bool humanTurn = match && m_deps.gameController && match->canAcceptMove()
-            && match->isHumanSide(m_deps.gameController->currentPlayer());
+        const bool humanTurn = match && m_deps.board && match->canAcceptMove()
+            && match->isHumanSide(m_deps.board->currentPlayer());
         return humanTurn ? BoardInput::Game : BoardInput::None;
     }
     case AppActivityState::Activity::DuringCsaGame: ...（対局中・人間・自分の手番なら CsaServer）
@@ -3328,7 +3325,7 @@ startNextGame()
 │    │     └── 司令塔のシグナル（gameEnded など）を受ける               │
 │    │                                                                  │
 │    ├── MatchCoordinator  (司令塔)                                     │
-│    │     ├── ShogiGameController (盤面/ルール。手番は盤が持つ)         │
+│    │     ├── GameBoard (盤面/ルール。手番は盤が持つ)         │
 │    │     ├── ShogiClock (時計)                                        │
 │    │     ├── EngineSlots ── Usi × 2 (エンジン)             │
 │    │     ├── GameModeStrategy (対局モード別の手番の進め方)             │
@@ -3356,7 +3353,7 @@ engine層は、外部の USI（Universal Shogi Interface）対応エンジンと
 
 ### 7.1 3層アーキテクチャ
 
-engine層は **単一責任原則（SRP）** に基づき、以下の3つのクラスに分離されている。プロセスとプロトコル処理は `UsiEngineSession`（GUI と自動化・CLI で共用する接続）が束ね、`Usi` はそれと `ThinkingInfoFormatter`・`UsiMatchHandler` を持つ。engine層は game層を知らない（`Usi` は `ShogiGameController` を持たず、対局の持ち時間は engine 層の `MatchTimeSource`（`src/engine/matchtimesource.h`）を `setMatchTimeSource()` で受け取って読むだけ。ローカル対局は対局時計の `ClockTimeSource`、通信対局はサーバーの残り時間を返す `CsaGameCoordinator`）。また表示のモデルにも触れない。思考の表・情報欄・通信ログのモデルへの反映は、ui層の `UsiModelBinding` が `Usi` のシグナルを受けて行う（7.10節）。
+engine層は **単一責任原則（SRP）** に基づき、以下の3つのクラスに分離されている。プロセスとプロトコル処理は `UsiEngineSession`（GUI と自動化・CLI で共用する接続）が束ね、`Usi` はそれと `ThinkingInfoFormatter`・`UsiMatchHandler` を持つ。engine層は game層を知らない（`Usi` は `GameBoard` を持たず、対局の持ち時間は engine 層の `MatchTimeSource`（`src/engine/matchtimesource.h`）を `setMatchTimeSource()` で受け取って読むだけ。ローカル対局は対局時計の `ClockTimeSource`、通信対局はサーバーの残り時間を返す `CsaGameCoordinator`）。また表示のモデルにも触れない。思考の表・情報欄・通信ログのモデルへの反映は、ui層の `UsiModelBinding` が `Usi` のシグナルを受けて行う（7.10節）。
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -4715,7 +4712,7 @@ struct Deps {
     QWidget* parentWidget;                          // ダイアログの親（必須）
     KifuDocument* document;                         // 開いている棋譜（必須）
     KifuLoader* loader;           // 読み込み（全部の読み込みで1つを使い回す。必須）
-    ShogiGameController* gameController;            // 盤（局面のコピー。必須）
+    const ShogiBoard* board;                         // 盤（局面のコピー。必須）
     const KifuNavigationState* navState;            // 表示中の手（局面のコピー・現在の手までのコピー。必須）
     const AppActivityState* activity;               // 動作状態（棋譜を置き換えてよいかの判定。必須）
 };
@@ -4850,7 +4847,7 @@ static KifuParseOutcome parse(QStringView text, const ParseOptions& options = {}
 
 | 関数 | 内容 |
 |------|------|
-| `addMove(move, time, notes, rule)` | 手番側の手を指して1行足す。指せなければ（移動元が空・打つ駒がない）何も変えずに `false`。打つ駒が持ち駒にない手は既定で許す（`Position::DropRule::Lenient`。CSA は `RequireHand`） |
+| `addMove(move, time, notes, rule)` | 手番側の手を指して1行足す（行は `MoveRecord::play()`。対局の着手 `GameBoard` と同じ関数）。指せなければ（移動元が空・打つ駒がない）何も変えずに `false`。打つ駒が持ち駒にない手は既定で許す（`Position::DropRule::Lenient`。CSA は `RequireHand`） |
 | `addTerminal(type, side, time)` | 終局の行を足す（表記は終局語の表から作る） |
 | `appendComment(text)` / `appendBookmark(text)` | 最後の行にコメント・しおりを足す。手がまだなければ本譜は開始局面（`RecordLine::openingComment`・`openingBookmark`）、変化は最初の手のもの |
 | `timeFor(side, elapsedMs, totalMs)` | 1手の消費時間から累計を足した `RecordTime` を作る（CSA の T 行・JKF の time） |
@@ -5562,7 +5559,7 @@ Presenters は「Model → View」の単方向データフローを担当する�
 
 **ソース**: `src/ui/presenters/boardsyncpresenter.h`, `src/ui/presenters/boardsyncpresenter.cpp`
 
-表示中の手が変わるたびに、盤をその局面に合わせ、直前の手をハイライトするプレゼンターである。コンストラクタで `Deps` 構造体（`gc`・`bic`・`navState`）を受け取り、`KifuNavigationState::changed` を `syncToCurrentNode()` につなぐ。局面は棋譜の正本（分岐ツリー）の表示中のノードが持つ。対局中も、対局の手順は `LiveGameSession` が分岐ツリーに積んでいくので同じ経路で描ける。
+表示中の手が変わるたびに、盤をその局面に合わせ、直前の手をハイライトするプレゼンターである。コンストラクタで `Deps` 構造体（`board`・`bic`・`navState`）を受け取り、`KifuNavigationState::changed` を `syncToCurrentNode()` につなぐ。局面は棋譜の正本（分岐ツリー）の表示中のノードが持つ。対局中も、対局の手順は `LiveGameSession` が分岐ツリーに積んでいくので同じ経路で描ける。
 
 | メソッド | 説明 |
 |---------|------|
@@ -5690,7 +5687,7 @@ Controllers は「View → Model」方向のイベント処理を担当する。
 
 | Controller | ソース | 責務 | 主な操作対象 |
 |-----------|--------|------|------------|
-| `BoardMoveController` | `boardmovecontroller.h` | 盤上で指した手を、動作状態に合わせて処理する（局面編集・棋譜の変化の記録・通信対局・対局） | `BoardInteractionController`, `ShogiGameController`, `MatchCoordinator` |
+| `BoardMoveController` | `boardmovecontroller.h` | 盤上で指した手を、動作状態に合わせて処理する（局面編集・棋譜の変化の記録・通信対局・対局） | `BoardInteractionController`, `GameBoard`, `MatchCoordinator` |
 | `ConsiderationUiController` | `considerationuicontroller.h` | 検討タブの操作（開始・中止・エンジン設定・条件の変更）を検討のセッションへ伝える。表示には触れない | `ConsiderationPanel`, `AnalysisSession` |
 | `KifuAnalysisController` | `kifuanalysiscontroller.h` | 棋譜解析の条件ダイアログ、解析の進み具合の表示、結果の行の選択（第9章） | `KifuAnalysisSession`, `AnalysisResultsPanel`, `EvaluationGraphPresenter` |
 | `TsumeSearchController` | `tsumesearchcontroller.h` | 詰み探索の条件ダイアログと探索の開始（第9章） | `AnalysisSession` |
@@ -5724,16 +5721,16 @@ playMove(from, to)                  ← submit()（盤の操作）から
   ├── Edit → PositionEditSession::applyEditMove()
   ├── None → 受け付けない
   └── Variation・Game・CsaServer
-       → ShogiGameController::prepareMove() で UsiMove にする（成り・不成の選択もここ）
+       → BoardInteractionController::moveFromClick() で UsiMove にする（成り・不成の選択もここ）
        → playUsiMove(move)
 
 playUsiMove(move)                   ← playMove()、JosekiWindowController（定跡手）から
   ├── Variation → BranchTreeEditController::recordMove()
   │     （指した手を表示中の手の次の手＝変化として棋譜に記録する）
-  ├── CsaServer → ShogiGameController::isLegal() なら csaMoveRequested(move) シグナル
+  ├── CsaServer → GameBoard::isLegal() なら csaMoveRequested(move) シグナル
   │     （→ CsaGameCoordinator::onHumanMove(const UsiMove&)。通信対局は確認を受けてから確定するので、盤は動かさない）
   └── Game（ローカル対局で人間の手番）
-       → ShogiGameController::applyMove(move, MatchCoordinator::lastMoveDestination())
+       → GameBoard::applyMove(move, MatchCoordinator::lastMoveDestination())
        ├── BoardInteractionController::onMoveApplied() でハイライトを更新
        └── 指せたら MatchCoordinator::onHumanMove(指した手の RecordEntry)
             （考慮時間の確定・棋譜への追記・千日手と最大手数の判定・エンジンへの手番渡しは司令塔が行う）
@@ -5900,7 +5897,7 @@ CsaGameSession のコンストラクタ
   └── gameStarted / gameEnded / turnChanged / logMessage → 自身のスロット（画面の切り替え）
 ```
 
-通信対局の指し手も `ShogiGameController` が盤に指すので、駒音（`PieceSoundPlayer`）はローカル対局と同じ `ShogiGameController::moveCommitted` で受ける（`connectBoard()`）。
+通信対局の指し手も `GameBoard` が盤に指すので、駒音（`PieceSoundPlayer`）はローカル対局と同じ `GameBoard::moveCommitted` で受ける（`connectBoard()`）。
 
 #### 対局者情報の配線（PlayerInfoPresenter）
 
@@ -6065,10 +6062,10 @@ BoardInputRoute::submit(from, to)
   ▼ [BoardMoveController が行き先（setInputRoute）]
 [Controller] BoardMoveController::playMove(from, to)
   │  └── 動作状態（AppActivityState）と MatchCoordinator::isHumanSide() で、人間が指せる手番かを確かめる
-  │      ShogiGameController::prepareMove() でクリックを UsiMove にして playUsiMove(move)
+  │      BoardInteractionController::moveFromClick() でクリックを UsiMove にして playUsiMove(move)
   │
-  ├── ShogiGameController::applyMove(move, MatchCoordinator::lastMoveDestination())  ← Model層
-  │     ├── ShogiBoard::applyUsiMove()
+  ├── GameBoard::applyMove(move, MatchCoordinator::lastMoveDestination())  ← Model層
+  │     ├── ShogiBoard::replacePosition(指した後の局面)
   │     │     └── [View] ShogiView が dataChanged / standChanged で変わったマスを再描画
   │     └── moveCommitted(mover, ply) シグナル
   │           └── PieceSoundPlayer::playMoveSound()（駒音）
@@ -6740,13 +6737,13 @@ CsaClientが発行するシグナルはすべて `CsaGameCoordinator` のスロ�
 
 **ソース**: `src/network/csagamecoordinator.h/.cpp`（指し手の進行は `csagamecoordinator_moves.cpp`、初期局面・時計の準備は `csagamecoordinator_setup.cpp`）
 
-CsaClientとゲームシステム（ShogiGameController, ShogiClock等）の橋渡し役。CSA通信対局の全体フローを制御する。
+CsaClientとゲームシステム（GameBoard, ShogiClock等）の橋渡し役。CSA通信対局の全体フローを制御する。
 
 #### 責務
 
 - CsaClient のシグナルを受け取り、ゲームシステムに反映
 - CSA形式 ↔ USI形式の指し手変換（`CsaMoveConverter::toUsi()` / `toCsa()`）
-- 盤面への指し手適用（`playCsaMove()` が `toUsi()` で得た指し手を `ShogiGameController::applyRecordedMove()` で指す。確定後は `ShogiGameController::notifyMoveCommitted()` でローカル対局と同じ経路の `moveCommitted` を出す）
+- 盤面への指し手適用（`playCsaMove()` が `toUsi()` で得た指し手を `GameBoard::applyRecordedMove()` で指す。確定後は `GameBoard::notifyMoveCommitted()` でローカル対局と同じ経路の `moveCommitted` を出す）
 - 対局の手順を `CsaGameProgress::record`（`RecordLine`）1つに積み、確定した棋譜行を棋譜の受け手（`MatchRecordSink`。ローカル対局と同じ `GameSession`）へ書く。対局の開始では `beginRecord(recordStart())`（サーバーの開始局面・対局者名・持ち時間と、接続ダイアログの自動保存）で新しい棋譜を作らせてから再開局面の既存手順を書き、終局では終局の行の後で `finishRecord(true)` を呼ぶ
 - 動作状態。棋譜を作った後で `DuringCsaGame` のリースを取り（`MatchCoordinator::start()` と同じ形）、終局（棋譜の確定の後）と `stopGame()` で手放す
 - GUI側の時計制御（サーバーの権威的な消費時間でGUI時計を補正。表示用の `ShogiClock` はサーバーの残り時間の写しで、計算には使わない）
@@ -6762,7 +6759,7 @@ CsaGameCoordinatorは2種類の対局形態をサポートする。
 
 | PlayerType | 説明 |
 |-----------|------|
-| `Human` | 人間がGUI経由で指す。`BoardMoveController` が盤のクリックを `UsiMove` にして（`ShogiGameController::prepareMove()`）`csaMoveRequested` で渡し、`onHumanMove(const UsiMove&)` スロットが合法手か（`isLegal()`）を確かめてから `CsaMoveConverter::toCsa()` でCSA形式にしてサーバーへ送る（盤は確認を受けてから指す） |
+| `Human` | 人間がGUI経由で指す。`BoardMoveController` が盤のクリックを `UsiMove` にして（`BoardInteractionController::moveFromClick()`）`csaMoveRequested` で渡し、`onHumanMove(const UsiMove&)` スロットが合法手か（`isLegal()`）を確かめてから `CsaMoveConverter::toCsa()` でCSA形式にしてサーバーへ送る（盤は確認を受けてから指す） |
 | `Engine` | USIエンジンが自動応答。`startEngineThinking()` でエンジンに思考→結果を `toCsa()` でCSA変換→送信 |
 
 #### GameState — 対局状態
@@ -6853,7 +6850,7 @@ CSA通信対局では、サーバーが権威的な消費時間（`T` に続く�
 | `toUsi(csaMove, board)` | CSA → USI（`std::optional<UsiMove>`） | `"+7776FU"` → `7g7f`。成りは盤の駒とCSAの駒種を比べて決める。書式・手番・駒が盤と合わなければ `nullopt` |
 | `toCsa(move, mover, board)` | USI → CSA（`QString`） | `7g7f`（先手）→ `"+7776FU"`。動かす駒がなければ空 |
 
-どちらも指す前の盤の駒を読む（CSAの駒種は指した後の駒のため）。盤への適用は `CsaGameCoordinator::playCsaMove()` が `ShogiGameController::applyRecordedMove(move, m_progress.previousTo())` で行い、棋譜の表示用の文字は `commitMove()` が `KifMoveText::format()` で作る（「同」は渡した直前の手の移動先で決める）。
+どちらも指す前の盤の駒を読む（CSAの駒種は指した後の駒のため）。盤への適用は `CsaGameCoordinator::playCsaMove()` が `GameBoard::applyRecordedMove(move, m_progress.previousTo())` で行い、棋譜の表示用の文字は `commitMove()` が `KifMoveText::format()` で作る（「同」は渡した直前の手の移動先で決める）。
 
 駒打ちの場合、CSA形式では移動元が `00`（例: `+0077FU`）となり、GUI座標では `from.x() >= BoardConstants::kBlackStandFile`（10=先手駒台, 11=後手駒台）で表現される。
 
@@ -6861,14 +6858,14 @@ CSA通信対局では、サーバーが権威的な消費時間（`T` に続く�
 
 ```cpp
 struct Deps {
-    ShogiGameController* gameController = nullptr;
+    GameBoard* gameBoard = nullptr;
     ShogiClock* clock = nullptr;
     EngineSlots* engines = nullptr;  ///< エンジンで指すとき、エンジンを置く枠
     AppActivityState* activity = nullptr;  ///< 対局中を「通信対局中」にする（無ければ動作状態を変えない）
 };
 ```
 
-棋譜の受け手は `setRecordSink(MatchRecordSink*)` で受け取る（司令塔は受け手より先に作るので、合成ルートが `createSessions()` で渡す。`MatchCoordinator` と同じ）。盤のビュー・棋譜欄・ハイライトの部品は持たない。盤への着手は `ShogiGameController`、棋譜行は棋譜の受け手へ書き（盤のハイライトは棋譜の表示中の手から `BoardSyncPresenter` が出す）、通信ログは `csaCommLogAppended`、自分のエンジンの評価値は `engineMovePlayed(side, ply, score)`（`MatchCoordinator` と同じ形。合成ルートが `EvaluationGraphPresenter::plotEngineScore` につなぐ）で知らせる。エンジンで指すときは、ローカル対局と同じ `MatchEngineSeat`（`m_engineSeat`）が枠 E1 にエンジンを借りて起動する（`Params::timeSource` に司令塔自身を渡す）。終局は `MatchEngineSeat::finish()`（勝ち・負け・引き分け。探索・先読みを止めて gameover と quit）で、ローカル対局と同じ手順で知らせ、接続を終えるときに `release()` で枠を空ける。通信対局の最中にほかの処理が枠を取ったときは、エンジンの異常と同じく `errorOccurred` → `onEngineError()` で知らせる。同じ接続の次の対局条件（`onGameSummaryReceived()`）は、エンジンが思考を頼める状態（`isReady()`）でなければ起動し直し、起動して初期化している間（`isInitializing()`）は readyok を待ってから同意する（`onEngineInitialized()`）。それ以外はすぐ同意する。思考の依頼は `Usi::requestMatchMove(const UsiPosition&)` で、時間は渡さない（エンジンが `MatchTimeSource` として司令塔から読む）。指し手は `MatchEngineSeat::moveReady` → `onEngineMoveReady(UsiMatchMove)`、投了・入玉宣言勝ちは `resigned`・`declaredWin` で届く。思考情報・USI通信ログのモデルは枠が持つ。
+棋譜の受け手は `setRecordSink(MatchRecordSink*)` で受け取る（司令塔は受け手より先に作るので、合成ルートが `createSessions()` で渡す。`MatchCoordinator` と同じ）。盤のビュー・棋譜欄・ハイライトの部品は持たない。盤への着手は `GameBoard`、棋譜行は棋譜の受け手へ書き（盤のハイライトは棋譜の表示中の手から `BoardSyncPresenter` が出す）、通信ログは `csaCommLogAppended`、自分のエンジンの評価値は `engineMovePlayed(side, ply, score)`（`MatchCoordinator` と同じ形。合成ルートが `EvaluationGraphPresenter::plotEngineScore` につなぐ）で知らせる。エンジンで指すときは、ローカル対局と同じ `MatchEngineSeat`（`m_engineSeat`）が枠 E1 にエンジンを借りて起動する（`Params::timeSource` に司令塔自身を渡す）。終局は `MatchEngineSeat::finish()`（勝ち・負け・引き分け。探索・先読みを止めて gameover と quit）で、ローカル対局と同じ手順で知らせ、接続を終えるときに `release()` で枠を空ける。通信対局の最中にほかの処理が枠を取ったときは、エンジンの異常と同じく `errorOccurred` → `onEngineError()` で知らせる。同じ接続の次の対局条件（`onGameSummaryReceived()`）は、エンジンが思考を頼める状態（`isReady()`）でなければ起動し直し、起動して初期化している間（`isInitializing()`）は readyok を待ってから同意する（`onEngineInitialized()`）。それ以外はすぐ同意する。思考の依頼は `Usi::requestMatchMove(const UsiPosition&)` で、時間は渡さない（エンジンが `MatchTimeSource` として司令塔から読む）。指し手は `MatchEngineSeat::moveReady` → `onEngineMoveReady(UsiMatchMove)`、投了・入玉宣言勝ちは `resigned`・`declaredWin` で届く。思考情報・USI通信ログのモデルは枠が持つ。
 
 ### 12.4 CsaGameSession — CSA通信対局の画面への反映
 
@@ -7066,7 +7063,7 @@ MyDialog::MyDialog(QWidget* parent)
 
 **ソース**: `src/views/boardchromewidget.h/.cpp`, `src/views/playercard.h/.cpp`, `src/ui/presenters/timedisplaypresenter.h/.cpp`, `src/game/matchcoordinator.h/.cpp`
 
-手番は `ShogiBoard` だけが持つ（`ShogiGameController::currentPlayer()` は盤の手番を返す）。盤の手番の札は、`ShogiView::setBoard()` が `ShogiBoard::turnChanged` を `BoardChromeWidget::setActiveSide(Turn)` に直接つなぐことで合わせる。手番の側が替わると、時計の警告も消える。
+手番は `ShogiBoard` だけが持つ（`ShogiBoard::currentPlayer()`）。盤の手番の札は、`ShogiView::setBoard()` が `ShogiBoard::turnChanged` を `BoardChromeWidget::setActiveSide(Turn)` に直接つなぐことで合わせる。手番の側が替わると、時計の警告も消える。
 
 対局中の時計の値は、`TimeDisplayPresenter` が `ShogiClock::timeUpdated` を直接受けて（`showClock()`）時計から読む。司令塔は中継しない。着手の確定では司令塔が時計の通知を止めてまとめて値を変え、その後で `ShogiClock::notifyTimeUpdated()` を呼ぶ。通信対局でも、サーバーの残り時間を写した同じ時計を同じ経路で表示する。`TimeDisplayPresenter` は時計の文字を `view->chrome()->card(Turn)->setClockText()` で出し、残り時間に応じた警告（`BoardChromeWidget::Urgency` の `Warn10`・`Warn5`）を `setUrgency()` で反映する。盤を反転したときなどは `refresh()` で最後の値から描き直す。人間同士の対局の考慮時間の計測は、対局モード別の Strategy（`HumanVsHumanStrategy`）が持つ。
 
@@ -7100,14 +7097,14 @@ MyDialog::MyDialog(QWidget* parent)
 1. **決まりの正規化**: `settings.rules.normalized()` で先後の決まりを整える。秒読みと加算の排他、持ち時間0の秒読みの扱いは `TimeControl::normalized()` が受け持つ
 2. **時間切れ負け**: 時間制限があり、`settings.loseOnTimeout` がオンのときだけ `ShogiClock::setLoseOnTimeout(true)` にする
 3. **時計への適用**: `ShogiClock::setTimeControl(rules)` で先後の決まりを渡す（初手の加算も時計が行う）
-4. **最初の手番**: `ShogiClock::setCurrentPlayer(盤の手番)`。開始局面の手番は盤（`ShogiGameController::currentPlayer()`）から読み、SFEN の文字列を切って求めない
+4. **最初の手番**: `ShogiClock::setCurrentPlayer(盤の手番)`。開始局面の手番は盤（`ShogiBoard::currentPlayer()`）から読み、SFEN の文字列を切って求めない
 
 ```
 MatchStartOptions::time = MatchTimeSettings {rules: TimeControl {black, white}, loseOnTimeout}
     ↓ MatchCoordinator::start() → applyTimeSettings()
 ShogiClock::setLoseOnTimeout(limited && loseOnTimeout)
 ShogiClock::setTimeControl(rules.normalized())
-ShogiClock::setCurrentPlayer(gc->currentPlayer())
+ShogiClock::setCurrentPlayer(gameBoard->board()->currentPlayer())
 ```
 
 <!-- chapter-12-end -->
@@ -7278,7 +7275,7 @@ flowchart TD
 
 **ソース**: `src/board/boardinteractioncontroller.h/.cpp`、`src/board/boardinputroute.h`
 
-盤面上のクリックを移動元・移動先にし、ハイライトを出すコントローラ。手番の判定・成りの選択・着手は持たず、盤で指した手の行き先（`BoardInputRoute`）に任せる。
+盤面上のクリックを移動元・移動先にし、ハイライトを出すコントローラ。受け付けるかの判定と着手は持たず、盤で指した手の行き先（`BoardInputRoute`）に任せる。移動元・移動先を手番の側の手にする処理（`moveFromClick()`。成り・不成の尋ね方 `setPromotionChooser()` を含む）はここに置き、主画面と詰将棋を解く画面の行き先が `submit()` の中で使う。構築時に表示する盤（`ShogiBoard`）を受け取る。
 
 #### 盤で指した手の行き先（BoardInputRoute）
 
@@ -7311,9 +7308,16 @@ public:
   1. m_waitingSecondClick = false
   2. 同一マスクリック → キャンセル（finalizeDrag）
   3. 異なるマス → 合法な移動先の表示を消し、行き先の submit(from, to) に渡す
+  4. 行き先から戻ったら endDrag() でドラッグを終える（行き先が成り・不成を尋ねている間は保つ）
+
+moveFromClick(from, to)（行き先が submit() の中で呼ぶ。盤は変えない）:
+  1. 移動元が盤上の駒か、手番の側の駒台の駒（玉は打てない。並びは BoardCoordinates）か
+  2. BoardCoordinates::usiMoveFromSquares() で UsiMove にする
+  3. EngineMoveValidator::legalStatus() で成り・不成それぞれの合法性を調べる
+  4. 両方合法なら成りの選び方（setPromotionChooser）に尋ね、成りだけ合法なら成る。どちらも不合法なら nullopt
 ```
 
-右クリックは2クリック待ち中のキャンセル、または局面編集中（`isEditing()`）の成/不成トグルに使用される。2クリックの途中状態は `cancelPendingClick()`（public slot）で取り消す。盤の手番が替わったとき（`ShogiBoard::turnChanged`）・盤が作り直されたとき（`boardReset`）に自分でつなぎ、動作状態が変わったとき（`AppActivityState::changed`）は `BoardMoveController` がつなぐ。
+右クリックは2クリック待ち中のキャンセル、または局面編集中（`isEditing()`）の成・不成・先後の巡回（`PositionEditRules::cyclePiece()`）に使用される。2クリックの途中状態は `cancelPendingClick()`（public slot）で取り消す。盤の手番が替わったとき（`ShogiBoard::turnChanged`）・盤が作り直されたとき（`boardReset`）に自分でつなぎ、動作状態が変わったとき（`AppActivityState::changed`）は `BoardMoveController` がつなぐ。
 
 #### ハイライト
 
@@ -7347,7 +7351,7 @@ onMoveApplied(from, to, success):
 
 **ソース**: `src/board/positioneditsession.h/.cpp`
 
-局面編集の開始・終了、編集メニューの操作、編集中の着手を1か所で受け持つ。「編集中か」（`isEditing()`）は動作状態が `AppActivityState::DuringPositionEdit` かの1つだけで決まり、盤の描き方（`ShogiView::setPositionEditMode()`）と「編集終了」ボタン（`ShogiView::setEditExitButtonVisible()`）はこのクラスが動作状態に合わせて切り替える。依存（`Deps`）は `view`・`gameController`・`board`（`BoardInteractionController`）・`navState`・`activity` と編集メニューの項目（`EditActions`）で、合成ルートは `MainWindowComponents::positionEdit` として持つ。
+局面編集の開始・終了、編集メニューの操作、編集中の着手を1か所で受け持つ。「編集中か」（`isEditing()`）は動作状態が `AppActivityState::DuringPositionEdit` かの1つだけで決まり、盤の描き方（`ShogiView::setPositionEditMode()`）と「編集終了」ボタン（`ShogiView::setEditExitButtonVisible()`）はこのクラスが動作状態に合わせて切り替える。依存（`Deps`）は `view`（盤と手番は `view->board()` の `ShogiBoard`）・`board`（`BoardInteractionController`）・`navState`・`activity` と編集メニューの項目（`EditActions`）で、合成ルートは `MainWindowComponents::positionEdit` として持つ。
 
 メニューの「局面編集」は `MainWindowActions::beginPositionEditing()` が未保存の棋譜を確認し、中断した対局を捨ててから `begin()` を呼ぶ。終了はメニューの「局面編集の終了」（`MenuActionsWiring`）と盤の「編集終了」ボタン（`BoardChromeWidget::editExitRequested`。コンストラクタでつなぐ）から `finish()` を呼ぶ。
 
@@ -7381,12 +7385,28 @@ finish():
 
 | スロット | 対応アクション（`EditActions`） | 動作 |
 |---------|-------------|------|
-| `returnAllPiecesToBox()` | 「全ての駒を駒箱へ」（`returnAllPiecesToStand`） | `ShogiBoard::resetGameBoard()` を呼ぶ |
+| `returnAllPiecesToBox()` | 「全ての駒を駒箱へ」（`returnAllPiecesToStand`） | `PositionEditRules::clear()` を呼ぶ |
 | `setHiratePosition()` | 「平手初期配置」（`setHiratePosition`） | 平手のSFEN（`SfenUtils::hirateSfen()`）を盤に設定し、手番を先手にする |
 | `setTsumePosition()` | 「詰将棋初期配置」（`setTsumePosition`） | 詰将棋の見本のSFENを盤に設定し、手番を先手にする |
 | `toggleSideToMove()` | 「手番切替」（`changeTurn`） | 配置はそのままで、先手 ⇔ 後手をトグル |
 
 どれも編集中でなければ何もしない。メニューの項目はコンストラクタでつなぐ。
+
+#### PositionEditRules — 局面編集の規則
+
+**ソース**: `src/board/positioneditrules.h/.cpp`
+
+局面編集の操作を、局面（`Position`）を変える関数として持つ。盤（`ShogiBoard`）は局面の包みと知らせだけで、編集の規則を持たない。
+
+| 関数 | 内容 |
+|------|------|
+| `moved(position, from, to, pieceBoxSide)` | 盤・駒台・駒箱の間で駒を動かした局面（置けない形は `nullopt`。取った駒は取った側の持ち駒、行き所のない段の歩・香・桂は成駒） |
+| `cycled(position, square)` | 右クリックの成・不成・先後の巡回（先手の生駒 → 成駒 → 後手の生駒 → 成駒。行き所のない段・二歩になる形は飛ばす） |
+| `cleared(position)` | 盤上・両駒台を空にした局面（全駒が駒箱に戻る。手番と手数は残す） |
+| `canMove(position, source, dest, fileFrom, fileTo)` | 置ける形か（玉を持ち駒にしない・二歩でない・味方の駒の上でない・駒台に駒がある・玉を取らない） |
+| `apply`・`cyclePiece`・`clear`（`ShogiBoard&` を受ける） | 上の局面を盤に渡す（`replacePosition()`。盤を空にするときは全部の駒が動くので `setPosition()`） |
+
+二歩の判定は移動と巡回で同じ関数（同じ筋の同じ側の歩を数える）を使う。表示の座標（駒台は筋10・11、駒箱は筋12）の駒は `BoardCoordinates::pieceAt()`・`isAvailable()` で読む。
 
 #### applyEditMove() — 編集中の着手適用
 
@@ -7396,7 +7416,8 @@ finish():
 bool applyEditMove(from, to):
   1. PositionEditRules::apply(*view->board(), from, to, view->pieceBoxSide()) で駒を移動
      （玉を持ち駒にする・二歩・味方の駒の上・駒台に無い駒・玉を取る形は断る。行き所のない段の歩・香・桂は
-      ShogiBoard が PieceRules::isDeadSquare で成駒にする）
+      PieceRules::isDeadSquare で成駒にする。次の局面を PositionEditRules::moved() で作り、
+      ShogiBoard::replacePosition() で変わった所だけを知らせる）
   2. view->endDrag() でドラッグ状態を解除
   3. board->onMoveApplied() でハイライトを更新
   （盤・駒台・駒箱の変化は ShogiBoard の通知で変わった所だけ描き直される）
@@ -7535,7 +7556,7 @@ MainWindow のメンバは `ui`・`m_composer`・`m_skipCloseConfirmation`（自
 |---------|-----------|
 | 棋譜の正本 | `branchTree`（`KifuBranchTree`）・`navState`（`KifuNavigationState`）・`liveGameSession`・`kifuNavController`・`document`（`KifuDocument`。分岐ツリーの直後に作る） |
 | モデル | `kifuRecord`・`kifuBranch`・`thinking1/2`・`consideration`・`analysis`・`commLog1/2` |
-| 盤・時計 | `gameController`（`ShogiGameController`）・`shogiView`・`boardController`（`BoardInteractionController`）・`boardMoves`（`BoardMoveController`）・`boardSync`（`BoardSyncPresenter`）・`positionEdit`（`PositionEditSession`）・`clock`・`timePresenter` |
+| 盤・時計 | `gameBoard`（`GameBoard`）・`shogiView`・`boardController`（`BoardInteractionController`）・`boardMoves`（`BoardMoveController`）・`boardSync`（`BoardSyncPresenter`）・`positionEdit`（`PositionEditSession`）・`clock`・`timePresenter` |
 | 画面部品 | `recordPane`・`thinkingPanel`・`considerationTab`・`usiLog`・`csaLog`・`commentEditor`・`branchTreeView`・`evalChart`・`gameInfoPane`・`dockRegistry`（`DockRegistry`。12 個のドックは `dock(DockId)` で引く） |
 | 棋譜の表示と編集 | `kifuDisplay`（`KifuDisplayPresenter`）・`branchEdit`（`BranchTreeEditController`）・`commentCoordinator` |
 | 対局・検討・通信対局 | `engines`（`EngineSlots`。エンジンの枠 E1・E2 を対局・検討・棋譜解析・CSA 通信対局で共有）・`match`（`MatchCoordinator`）・`analysisSession`（`AnalysisSession`）・`consecutiveGames`（`ConsecutiveGameSeries`）・`csaGame`（`CsaGameCoordinator`）・`gameSession`（`GameSession`。対局の棋譜の受け手）・`csaSession`（`CsaGameSession`）・`humanTurnPolicy`・`sessionReset`（`SessionResetCoordinator`） |
@@ -7554,7 +7575,7 @@ MainWindow のメンバは `ui`・`m_composer`・`m_skipCloseConfirmation`（自
 
 - **依存はポインタで渡す**: 部品は `Deps` 構造体で、ほかの部品のポインタを受け取る。たとえば `GameSession::Deps` は `activity`・`match`・`analysis`・`engines`・`consecutive`・`reset`・`navState`・`liveSession` などをポインタで持つ。生成前の部品を指すための `std::function<X*()>` のゲッターは使わない。
 - **状態は AppActivityState を指す**: 動作状態を使う部品は `&m_activity`（`AppActivityState*`）を受け取り（`GameSession`・`AutomationContext`・`MatchCoordinator`・`AnalysisSession`・`UiStatePolicyManager`・`HumanTurnPolicy`・`BoardMoveController`・`CsaGameSession` など）、使うときに読む。棋譜に付く状態（対局者・上書き保存先・対局情報）を使う部品は棋譜の文書 `KifuDocument*` を受け取る（`GameSession`・`KifuFileController`・`PlayerInfoPresenter`・`PvClickController`・`KifuAnalysisController`・`MatchCoordinator`・`AutomationContext` など。読むだけの部品は `const`）。
-- **作った後に渡すもの**: 司令塔（`MatchCoordinator`）は棋譜の受け手の `GameSession` より先に作るので、受け手だけ `createSessions()` で `setRecordSink()` によって渡す。ほかに、`KifuNavigationController::addLeaveGuard()`（局面編集中でない `PositionEditSession::allowsLeavingMove()` と、未更新のコメントの確認 `CommentCoordinator::confirmLeaveEditingMove()`）・`ShogiGameController::setPromotionChooser()` が、できあがった部品の関数を受け取る。合成ルートは判断を持たず、部品の関数を結ぶだけにする。盤の操作の行き先（`BoardInteractionController::setInputRoute()`）は、`BoardMoveController` が自分のコンストラクタで自分を渡す。
+- **作った後に渡すもの**: 司令塔（`MatchCoordinator`）は棋譜の受け手の `GameSession` より先に作るので、受け手だけ `createSessions()` で `setRecordSink()` によって渡す。ほかに、`KifuNavigationController::addLeaveGuard()`（局面編集中でない `PositionEditSession::allowsLeavingMove()` と、未更新のコメントの確認 `CommentCoordinator::confirmLeaveEditingMove()`）・`GameBoard::setPromotionChooser()` が、できあがった部品の関数を受け取る。合成ルートは判断を持たず、部品の関数を結ぶだけにする。盤の操作の行き先（`BoardInteractionController::setInputRoute()`）は、`BoardMoveController` が自分のコンストラクタで自分を渡す。
 - **`std::function` はフックだけ**: 上位へ問い合わせ・操作を委ねるフック（`KifuDocument::Hooks::commitPendingEdits`、`UiStatePolicyManager::Deps` の `localGameHasHuman`・`canResumeGame`、`JosekiWindowController::Deps::isHumanTurnNow` など）と、層の境界をまたぐ関数（`AutomationContext` のお気に入りの取得・設定）にだけ使う。司令塔（`MatchCoordinator`）はフックを持たず、シグナルと棋譜の受け手（`MatchRecordSink`）で上位に知らせる（[4.3節](#43-シグナルと-stdfunction-コールバック)）。
 
 二重ポインタ（`T**`）で相手の変数に書き込む形は使わない。起動するクラスだけが使うダイアログ（CSA 通信対局の接続ダイアログ、局面集ビューア）は、その起動役（`DialogLauncher`）が持つ。
@@ -7573,7 +7594,7 @@ MainWindow::MainWindow()
  └─ m_composer->compose()
      │  1) 生成（mainwindowcomposer_create.cpp）
      ├─ createRecordAndModels()        // 棋譜の正本（分岐ツリー・KifuNavigationState・ライブ対局・ナビゲーション）、各モデル、ui->setupUi()
-     ├─ createBoard()                  // ShogiGameController と ShogiView、時計と時間表示、外観コントローラ、盤の操作（BoardInteractionController）
+     ├─ createBoard()                  // GameBoard と ShogiView、時計と時間表示、外観コントローラ、盤の操作（BoardInteractionController）
      ├─ createPanels()                 // 棋譜欄・ドックの中身（思考・検討・通信ログ・コメント・分岐ツリー）・評価値グラフ・対局情報、棋譜の表示と編集
      ├─ createMatchAndAnalysis()       // エンジンの枠・司令塔・検討・通信対局の司令塔、人間の手番の判定、盤の着手（BoardMoveController）、局面編集
      ├─ createPresentersAndDocks()     // 評価値グラフ・エンジンの表示（EngineDisplayPresenter。評価値グラフの後）・候補手の矢印・対局者情報、メニューウィンドウ・定跡ウィンドウ・棋譜解析結果、ドックの生成と配置
@@ -7590,7 +7611,7 @@ MainWindow::MainWindow()
      └─ finalizeUi()                   // 盤・棋譜欄・対局者名の描画、ウィンドウの大きさとドックの配置の復元、名前・時計のフォント、ツールチップ
 ```
 
-**司令塔（MatchCoordinator）の生成と接続**: 司令塔は `createMatchAndAnalysis()` で、エンジンの枠（`EngineSlots`）を作った後に `MatchCoordinator::Deps`（`gc`・`clock`・`activity`・`engines`）を渡して1回だけ作る。検討・詰み探索の `AnalysisSession` と通信対局の `CsaGameCoordinator` も同じエンジンの枠を受け取る。
+**司令塔（MatchCoordinator）の生成と接続**: 司令塔は `createMatchAndAnalysis()` で、エンジンの枠（`EngineSlots`）を作った後に `MatchCoordinator::Deps`（`gameBoard`・`clock`・`activity`・`engines`）を渡して1回だけ作る。検討・詰み探索の `AnalysisSession` と通信対局の `CsaGameCoordinator` も同じエンジンの枠を受け取る。
 
 - `createSessions()` が両方の司令塔に `setRecordSink()` で棋譜の受け手（`GameSession`）を渡す（`MatchCoordinator`・`CsaGameCoordinator`）。`connectGame()` が司令塔のシグナルを `GameSession` などへ直接つなぐ（評価値 `engineMovePlayed`、待った `movesUndone`、再開できるか `resumeAvailabilityChanged`、終局 `gameEnded`・`gameOverMessage`・`gameEndProcessed`、中断 `gameInterrupted`、連続対局 `nextGameReady`）。時計の表示は `TimeDisplayPresenter` が `ShogiClock::timeUpdated` を自分でつなぐ。通信対局も `connectGame()` が `CsaGameCoordinator` の評価値 `engineMovePlayed`・エラー `errorOccurred`・通信ログと、盤の手 `BoardMoveController::csaMoveRequested` をつなぐ。通信対局の棋譜はシグナルではなく司令塔が受け手に書き、動作状態も司令塔が持つので、接続の順に頼らない。検討のシグナルは `connectAnalysisAndUi()` がつなぐ。
 - 終局の知らせは、終局の行の追記（`MatchRecordSink::appendRecord()`）→ 棋譜の確定（`MatchRecordSink::finishRecord()`：ライブ対局のセッションの確定・終局時刻の記録・棋譜の自動保存）→ アイドルへの遷移 → `gameEnded`（`GameSession::onGameEnded()`。中断なら連続対局をやめる）→ `gameOverMessage` → `gameEndProcessed`（連続対局の次局）の順に出る。
@@ -7802,7 +7823,7 @@ sequenceDiagram
     participant SV as ShogiView
     participant BIC as BoardInteractionController
     participant BMC as BoardMoveController
-    participant SGC as ShogiGameController
+    participant SGC as GameBoard
     participant MV as EngineMoveValidator
     participant SB as ShogiBoard
     participant MC as MatchCoordinator
@@ -7823,14 +7844,14 @@ sequenceDiagram
     BIC->>BMC: submit(from, to)（BoardInputRoute）→ playMove()
     Note over BMC: 動作状態（AppActivityState）で振り分ける。<br/>対局中なら、受け付けられる状態で<br/>手番が人間（MatchCoordinator::isHumanSide）か確かめる
 
-    BMC->>SGC: prepareMove()
-    SGC->>MV: legalStatus()（盤・駒台・指し手）
-    MV-->>SGC: 成り・不成それぞれの合法性
+    BMC->>BIC: moveFromClick()
+    BIC->>MV: legalStatus()（盤・駒台・指し手）
+    MV-->>BIC: 成り・不成それぞれの合法性
 
     alt 合法手の場合
-        SGC-->>BMC: UsiMove（成り・不成も決まった手）
+        BIC-->>BMC: UsiMove（成り・不成も決まった手）
         BMC->>SGC: playUsiMove() → applyMove()
-        SGC->>SB: applyUsiMove()
+        SGC->>SB: replacePosition(指した後の局面)
         SB-->>SV: dataChanged / standChanged / turnChanged シグナル
         SV->>SV: 変わったマス・駒台を再描画
         SGC-->>BMC: 指した手（RecordEntry）
@@ -7865,7 +7886,7 @@ sequenceDiagram
 | `ShogiView` | 盤面の描画とマウスイベントの発行。クリックを `clickedSquare()` でマスにして `clicked` で知らせる |
 | `BoardInteractionController` | 2クリック方式の駒選択と、行き先（`BoardInputRoute`）への移動元・移動先の受け渡し、ハイライト管理 |
 | `BoardMoveController` | 主画面の `BoardInputRoute`。つまめるかを答え、盤で決まった手を動作状態に合わせて局面編集・棋譜の変化の記録・通信対局・対局に振り分ける（`src/ui/controllers/`） |
-| `ShogiGameController` | 指し手の検証と盤面更新の実行。着手確定の知らせ（`moveCommitted`） |
+| `GameBoard` | 指し手の検証と盤面更新の実行。着手確定の知らせ（`moveCommitted`） |
 | `EngineMoveValidator` | 合法手判定ロジック（王手放置、二歩、打ち歩詰め、行き所のない駒等を検査） |
 | `ShogiBoard` | 9x9盤面 + 駒台のデータモデル。手番もここだけが持つ |
 | `MatchCoordinator` | 一手の確定（時計・棋譜の行・千日手・最大手数）と、エンジンへの手番渡し |
@@ -7874,7 +7895,7 @@ sequenceDiagram
 
 **補足:**
 - `BoardMoveController::playMove()` が行き先（`HumanTurnPolicy::boardInput()`）で振り分ける。局面編集中は `PositionEditSession::applyEditMove()`、待機中は `BranchTreeEditController::recordMove()`、通信対局中は `csaMoveRequested(UsiMove)` シグナル、対局中は上のフローである。定跡ウィンドウの手は `playUsiMove()` から同じ処理に入る。どの場合も `onMoveApplied()` で手を受け付けたかを盤の操作へ返す
-- 成り・不成は `ShogiGameController::prepareMove()` が合法性と合わせて決め、クリックを1回だけ `UsiMove` にする（盤に指すのは `applyMove()`）。両方とも合法なら成りダイアログ（`setPromotionChooser()` で渡す `DialogLauncher::choosePromotion()`）で選ばせ、成りだけが合法（行き所のない駒）なら成る（6.6 節）
+- 成り・不成は盤の操作の `BoardInteractionController::moveFromClick()` が合法性と合わせて決め、クリックを1回だけ `UsiMove` にする（盤に指すのは `applyMove()`）。両方とも合法なら成りダイアログ（`setPromotionChooser()` で渡す `DialogLauncher::choosePromotion()`）で選ばせ、成りだけが合法（行き所のない駒）なら成る（6.6 節）
 - `MatchCoordinator::onHumanMove()` は対局者の組の Strategy（人間対エンジンなら `HumanVsEngineStrategy`）に渡す。Strategy は `MatchStrategyHost::completeHumanMove()` で一手を確定させ、エンジンの手番なら `requestEngineMove()` で `Usi::requestMatchMove()`（position と go）を頼み、`matchMoveReady` シグナルで受けた応手を `applyEngineMove()` で指す
 - 手番は `ShogiBoard` だけが持ち、`ShogiBoard::turnChanged` を `BoardChromeWidget::setActiveSide()` が受けて盤の手番表示を切り替える。時計の表示は `TimeDisplayPresenter` が `ShogiClock::timeUpdated` を直接受けて合わせる
 - 人間同士の対局ではエンジンとの通信はなく、司令塔が一手を確定して手番が交互に切り替わる。通信対局では `BoardMoveController` が `csaMoveRequested(UsiMove)` シグナルで手を `CsaGameCoordinator::onHumanMove(const UsiMove&)` へ送る（15.5）
@@ -8039,7 +8060,7 @@ sequenceDiagram
     participant CGC as CsaGameCoordinator
     participant CC as CsaClient
     participant Srv as CSAサーバー
-    participant SGC as ShogiGameController
+    participant SGC as GameBoard
     participant GS as GameSession
     participant MES as MatchEngineSeat
 
@@ -8083,7 +8104,7 @@ sequenceDiagram
         alt 自分の手番（CsaClient::isMyTurn()）
             alt 人間が指す場合
                 User->>CGC: 盤面クリック → BoardMoveController::csaMoveRequested → onHumanMove()
-                CGC->>SGC: prepareMove()（盤は変えずに合法性と成りを確定）
+                Note over CGC: 盤の操作の moveFromClick() が盤は変えずに合法性と成りを確定した手
             else エンジンが指す場合
                 CGC->>MES: engine()->requestMatchMove(position)（時間は CsaGameCoordinator（MatchTimeSource）から読む）
                 MES-->>CGC: moveReady（bestmove）
@@ -8125,15 +8146,15 @@ sequenceDiagram
 | `CsaGameCoordinator` | CSA通信対局の進行管理（合成ルートが起動時に1つ作る）。1局の進行（持ち時間・手数・手順）は `CsaGameProgress` に持ち、手順は `record`（`RecordLine`）1つだけ。自分の手番は持たず `CsaClient::isMyTurn()` を見る。棋譜は受け手に書き、動作状態 `DuringCsaGame` は自分で持つ（`MatchCoordinator` と同じ順） |
 | `CsaClient` | CSAプロトコルのTCP/IP通信実装。メッセージの送受信と状態管理。Game_Summary は `GameSummary`（`myTurn` は `std::optional<Turn>`、`toMove` は `Turn`）にまとめる |
 | `MatchEngineSeat` | エンジンで指すときの `Usi` の起動・知らせ・終局の手順（ローカル対局と共有。エンジンの枠は `EngineSlots` を使う） |
-| `ShogiGameController` | 盤面データの更新と、着手確定の知らせ（`moveCommitted`） |
+| `GameBoard` | 盤面データの更新と、着手確定の知らせ（`moveCommitted`） |
 
 **補足:**
 - `CsaClient`は状態マシンパターンで実装されており、`ConnectionState`が `Disconnected → Connecting → Connected → LoggedIn → WaitingForGame → GameReady → InGame → GameOver` と遷移する
-- CSA形式の指し手（例: `+7776FU`）とUSI形式の指し手（例: `7g7f`）の変換は `CsaMoveConverter`（`toCsa()`・`toUsi()`）だけが担当する。どちらも指す前の盤の駒を読み、盤は動かさない。棋譜の表記は `KifMoveText::format()` で作り、盤への適用は `ShogiGameController::applyRecordedMove()` が行う
+- CSA形式の指し手（例: `+7776FU`）とUSI形式の指し手（例: `7g7f`）の変換は `CsaMoveConverter`（`toCsa()`・`toUsi()`）だけが担当する。どちらも指す前の盤の駒を読み、盤は動かさない。棋譜の表記は `KifMoveText::format()` で作り、盤への適用は `GameBoard::applyRecordedMove()` が行う
 - 自分の手も相手の手も、サーバーからの確認（`moveConfirmed`／`moveReceived`）を受けてから盤に指す。盤で入力した手はその時点では盤を変えない
 - 解釈できない指し手行が届いたときは、すぐ終局させずサーバーの裁定（`#ILLEGAL_MOVE` と勝敗）を待つ
 - エンジン対局時は `MatchEngineSeat` が `Usi` を借り、`matchMoveReady` で受けた応手を `moveReady` で `CsaGameCoordinator` に返す
-- 着手確定の知らせは、ローカル対局と同じ `ShogiGameController::moveCommitted`（`notifyMoveCommitted()` が出す）で、駒音はこれを受ける
+- 着手確定の知らせは、ローカル対局と同じ `GameBoard::moveCommitted`（`notifyMoveCommitted()` が出す）で、駒音はこれを受ける
 - 終局原因（投了・時間切れ・千日手・入玉宣言等）は `CsaClient::GameEndCause` 列挙型で分類され、対応する結果表示が行われる
 
 <!-- chapter-15-end -->
@@ -9233,7 +9254,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | WidgetImageExporter | C | board | 盤面画像のクリップボードコピー・ファイル保存 | 第13章 |
 | BoardImageRenderer | C | cli | 盤面画像の描画（render-board） | 第13章 |
 | BoardInputRoute | C | board | 盤で指した手の行き先のインターフェース（`acceptsInput()`・`isEditing()`・`submit()`） | 第13章 |
-| BoardInteractionController | C | board | 盤のクリックを移動元・移動先にして行き先へ渡す操作と、ハイライト制御 | 第13章 |
+| BoardInteractionController | C | board | 盤のクリックを移動元・移動先にして行き先へ渡す操作、クリックを手番の側の手にする処理（成り・不成の尋ね方を含む。`moveFromClick()`）と、ハイライト制御 | 第13章 |
 | BoardMoveController | C | ui/controllers | 主画面の `BoardInputRoute`。盤で指した手を、動作状態に合わせて処理する（局面編集・棋譜の変化の記録・通信対局・対局） | 第10章, 第15章 |
 | BoardSquare | S | core | 盤のマス（筋・段）の値型 | 第5章 |
 | BoardStaticLayer | C | views | 盤面のうち局面によらない部分（盤・マス・段筋の文字など）の画像 | 第11章 |
@@ -9394,8 +9415,9 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | MateSearchRunner | C | automation | 登録エンジンで詰みを探す実行器（CLI・自動化 API と共有） | 第9章 |
 | MenuActionsWiring | NS | app | メニュー・ツールバーの項目を、処理する部品へつなぐ（シグナルの接続だけ） | 第4章, 第10章 |
 | MenuButtonWidget | C | widgets | メニューボタンウィジェット | 第11章 |
-| MenuWindow | C | dialogs | メニュー項目をボタンで並べるウィンドウ | 第11章 |
+| MenuWindow | C | widgets | メニュー項目をボタンで並べるドックのパネル | 第11章 |
 | MenuWindowController | C | ui/controllers | メニューウィンドウの表示と、押されたボタンの項目の通知 | 第10章 |
+| MoveRecord | NS | kifu | 指す前の局面と指し手から棋譜の1行を作る（`play()`。棋譜の読み込みの `KifLineBuilder` と対局の着手の `GameBoard` で共通） | 第6章, 第8章 |
 | MoveFont | NS | style | 指し手・読み筋の書体の規則（表のモデルの FontRole と `KifuMoveDelegate` で共通。ヘッダーオンリー） | 第11章 |
 | NotationStyle | NS | services | 表示言語と棋譜の表記の設定（`configure()`・`options()`・`revision()`・`resolveLanguage()`。`ApplicationTranslations` が決め、`KifuPresentation` が読む） | 第16章 |
 | NumericRightAlignCommaDelegate | C | widgets | 数値右寄せカンマ区切りデリゲート | 第11章 |
@@ -9414,6 +9436,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | PlyAnalysisCollector | C | analysis | 1局面の info と bestmove から `PlyAnalysis` を作る | 第9章 |
 | Position | C | core | 局面の値（盤・持ち駒・手番・手数）。SFEN の読み書きと指し手の適用 | 第2章, 第5章 |
 | PositionCollectionFile | NS | analysis | 局面集ファイル（1行1局面）の規則。局面集ビューアと詰将棋問題一覧で共有 | 第9章, 第11章 |
+| PositionEditRules | NS | board | 局面編集の規則（駒の移動・成・不成・先後の巡回・盤を空にする。`Position` を変える関数） | 第13章 |
 | PositionEditSession | C | board | 局面編集の開始・終了・編集メニュー・編集中の着手（編集中かは動作状態で決まる） | 第13章 |
 | PositionValidator | NS | core | 局面として成り立つかの検査（駒の数・駒台の玉・玉の重複と有無・手番でない側への王手）と王手・合法手の数 | 第3章 |
 | PromoteDialog | C | dialogs | 成/不成確認ダイアログ（`ask()`。主画面の盤と詰将棋を解く画面で共通） | 第6章, 第11章 |
@@ -9437,10 +9460,10 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | SfenUtils | NS | core | SFEN文字列のユーティリティ（ヘッダーオンリー） | 第2章, 第5章 |
 | SfenValidator | NS | core | SFEN の検査（手番・手数の欄と `PositionValidator` の結果と、読めた局面を値 `SfenValidation` で返す。JSON は headless の `SfenValidationJson`） | 第9章 |
 | ShiftJisCodec | NS | kifu | Shift_JIS（CP932）の変換（ICU のない Qt でも使える） | 第8章 |
-| ShogiBoard | C | core | 表示・局面編集に使う盤（Position を1つ持ち、変更をシグナルで知らせる） | 第5章 |
+| ShogiBoard | C | core | 表示・局面編集に使う盤（Position を1つ持ち、変更をシグナルで知らせる包み。変わった所だけを知らせる `replacePosition()`） | 第5章 |
 | ShogiClock | C | core | 対局時計・時間管理 | 第5章 |
 | ShogiEngineThinkingModel | C | models | 思考の表のモデル（行は `ShogiInfoRecord` の値。MultiPV対応） | 第7章, 第11章 |
-| ShogiGameController | C | game | 対局進行・盤面更新・合法手検証 | 第6章 |
+| GameBoard | C | game | 対局の盤（合法手の検証と指し手の適用、指した手を棋譜の1行に。着手確定の知らせ） | 第6章 |
 | ShogiInfoRecord | C | models | USIエンジン思考情報レコード | 第7章, 第8章 |
 | ShogiMove | S | core | 指した手の記録（USI の指し手と、動かした駒・取った駒） | 第5章 |
 | ShogiNotation | NS | core | 棋譜の表記（筋・段・駒の名前・CSA の駒種）の対応表（ヘッダーオンリー） | 第2章, 第5章 |
@@ -9528,7 +9551,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | gamechannel | 第6章 | 対局相手の窓口 `GameChannel`（投了・中断・即指し・入玉宣言をローカル対局と通信対局で同じ操作に）とローカル対局の実装 `LocalGameChannel` |
 | matchautosave | 第6章 | 終局した棋譜の自動保存の指定（ローカル対局・通信対局で同じ） |
 | gamemodestrategy | 第6章 | 対局モード別の Strategy（実装は humanvs*strategy・enginevsenginestrategy） |
-| shogigamecontroller | 第6章 | 対局フロー制御（指し手の検証と盤への適用） |
+| gameboard | 第6章 | 対局の盤（指し手の検証と盤への適用、棋譜の1行） |
 | consecutivegameseries | 第6章 | エンジン同士の連続対局（局数・手番の入れ替え・次局の計画） |
 | enginevsenginestrategy | 第6章 | エンジン対エンジンの Strategy |
 | gamestartoptionsbuilder | 第6章 | 対局開始ダイアログの値から、対局の開始の計画（局面・対局者・時間・連続対局）を作る |
@@ -9578,6 +9601,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | kifuformat | 第8章 | 棋譜の形式（読み込み・保存・変換で共通の enum）と判定 |
 | kifuloadparser | 第8章 | 棋譜の読み込み口（ファイルの文字コードの判別と、形式ごとの変換器への振り分け） |
 | recordentry | 第8章 | 棋譜の1行（指した手か終局） |
+| moverecord | 第6章, 第8章 | 指す前の局面と指し手から棋譜の1行を作る（`MoveRecord::play`） |
 | shiftjiscodec | 第8章 | Shift_JIS（CP932）の変換（ICU のない Qt でも使える） |
 | kifupresentation | 第11章, 第16章 | 画面に出す棋譜の表記（表示言語と表記の設定に合わせる） |
 | positioncollectionfile | 第9章 | 局面集ファイル（1行1局面）の規則（局面集ビューアと詰将棋問題一覧で共有） |
@@ -9646,8 +9670,9 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 
 | ファイル | 解説章 | 内容 |
 |---------|--------|------|
-| boardinteractioncontroller | 第13章 | 盤面操作制御 |
+| boardinteractioncontroller | 第13章 | 盤面操作制御（クリックを手にする処理・成りの尋ね方を含む） |
 | boardinputroute | 第13章 | 盤で指した手の行き先 |
+| positioneditrules | 第13章 | 局面編集の規則（Position を変える関数） |
 | positioneditsession | 第13章 | 局面編集 |
 
 #### ui/presenters/（第10章）

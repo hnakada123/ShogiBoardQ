@@ -21,7 +21,7 @@
 #include "kifubranchnode.h"
 #include "recordpane.h"
 #include "branchtreeview.h"
-#include "shogigamecontroller.h"
+#include "gameboard.h"
 #include "shogiboard.h"
 #include "sfenutils.h"
 #include "shogiclock.h"
@@ -62,7 +62,7 @@ struct Harness : QObject {
     KifuBranchListModel branches{&tree};
     RecordPane pane;
     BranchTreeView treeManager;
-    ShogiGameController gc;
+    GameBoard gc;
     LiveGameSession session{&tree, &state};
     std::unique_ptr<KifuDisplayPresenter> display;
     ShogiClock clock;
@@ -102,7 +102,7 @@ struct Harness : QObject {
         session.startFromRoot();
 
         MatchCoordinator::Deps deps;
-        deps.gc = &gc;
+        deps.gameBoard = &gc;
         deps.clock = &clock;
         deps.activity = &activity;
         deps.engines = &engines;
@@ -126,7 +126,7 @@ struct Harness : QObject {
     /// 着手し、その手の考慮時間を時計に確定する（対局中の着手と同じ経路）
     bool playTimed(const QString& usi, qint64 ms)
     {
-        clock.setMeasuredConsiderationTime(gc.currentPlayer(), ms);
+        clock.setMeasuredConsiderationTime(gc.board()->currentPlayer(), ms);
         return play(usi);
     }
 

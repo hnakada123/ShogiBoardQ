@@ -15,7 +15,8 @@
 #include "matchtimesource.h"
 #include "timecontrol_test_helper.h"
 #include "shogiclock.h"
-#include "shogigamecontroller.h"
+#include "gameboard.h"
+#include "shogiboard.h"
 #include "thinkinginfoformatter.h"
 #include "settingscommon.h"
 #include "engineprofilestore.h"
@@ -29,7 +30,7 @@ class MatchHarness : public QObject
 public:
     ShogiClock clock;
     ClockTimeSource clockTime{&clock};
-    ShogiGameController game;
+    GameBoard game;
     UsiEngineSession session;   ///< 探索の依頼と切り替え（プロセスと状態機械はこのテストが直接動かす）
     EngineProcessManager& process = *session.process();
     UsiProtocolHandler& protocol = *session.handler();
@@ -47,7 +48,7 @@ public:
     {
         QString initial = SfenUtils::hirateSfen();
         game.newGame(initial);
-        game.setCurrentPlayer(Turn::White);
+        game.board()->setCurrentPlayer(Turn::White);
         match.setTimeSource(&clockTime);
         connect(&protocol, &UsiProtocolHandler::positionChanged, &formatter, &ThinkingInfoFormatter::setSearchPosition);
         connect(&match, &UsiMatchHandler::moveReady, this, &MatchHarness::acceptMove);
@@ -228,7 +229,7 @@ private slots:
         // 持ち時間0・加算10秒。時計は初手の加算を足して10秒から始まる。
         h.clock.setTimeControl(TestTime::rules(0, 0, 0, 0, 10, 10));
         h.clock.setCurrentPlayer(Turn::Black);
-        h.game.setCurrentPlayer(Turn::Black);
+        h.game.board()->setCurrentPlayer(Turn::Black);
         h.clock.startClock();
         h.match.requestMove(*UsiPosition::parse(u"position startpos"));
         QTRY_VERIFY_WITH_TIMEOUT(h.completed > 0 || h.errors > 0 || h.clock.isGameOver(), 11000);
@@ -259,7 +260,7 @@ private slots:
         // 持ち時間300秒＋加算10秒。時計は初手の加算を含めて310秒から始まる。
         h.clock.setTimeControl(TestTime::rules(300, 300, 0, 0, 10, 10));
         h.clock.setCurrentPlayer(Turn::Black);
-        h.game.setCurrentPlayer(Turn::Black);
+        h.game.board()->setCurrentPlayer(Turn::Black);
         h.clock.startClock();
         h.match.requestMove(*UsiPosition::parse(u"position startpos"));
         QTRY_VERIFY_WITH_TIMEOUT(h.completed > 0 || h.errors > 0, 5000);
@@ -279,7 +280,7 @@ private slots:
         h.clock.stopClock();
         h.clock.setTimeControl(TestTime::rules(300, 300, 0, 0, 10, 10));
         h.clock.setCurrentPlayer(Turn::Black);
-        h.game.setCurrentPlayer(Turn::Black);
+        h.game.board()->setCurrentPlayer(Turn::Black);
         h.clock.startClock();
         h.match.requestMove(*UsiPosition::parse(u"position startpos"));
         QTRY_VERIFY_WITH_TIMEOUT(h.completed > 0 || h.errors > 0, 5000);
@@ -402,10 +403,10 @@ private slots:
     void committedPositionRecognizesPonderHit()
     {
         EngineProfileStore::savePonder(QStringLiteral("MatchTest"), true, true);
-        ShogiGameController game;
+        GameBoard game;
         QString sfen = SfenUtils::hirateSfen();
         game.newGame(sfen);
-        game.setCurrentPlayer(Turn::White);
+        game.board()->setCurrentPlayer(Turn::White);
         Usi engine;
         QSignalSpy initialized(&engine, &Usi::engineInitialized);
         QSignalSpy moves(&engine, &Usi::matchMoveReady);

@@ -7,15 +7,23 @@
 #include "shogimove.h"
 #include "shogitypes.h"
 #include "shogiboard.h"
-#include "shogigamecontroller.h"
+#include "gameboard.h"
+#include "boardinteractioncontroller.h"
+#include "shogiview.h"
 #include "jishogicalculator.h"
 #include "handicaps.h"
 
-/// 盤のクリック（移動元・移動先）の手を指す（盤の操作と同じく prepareMove で決めてから指す）。指せなければ nullopt
-static std::optional<RecordEntry> clickMove(ShogiGameController& gc, const QPoint& from, const QPoint& to)
+/// 盤のクリック（移動元・移動先）の手を指す（主画面と同じく盤の操作の moveFromClick で決めてから指す）。
+/// 成り・不成の両方が合法なら chooser に尋ねる（無ければ成らない）。指せなければ nullopt
+static std::optional<RecordEntry> clickMove(GameBoard& gameBoard, const QPoint& from, const QPoint& to,
+                                            const BoardInteractionController::PromotionChooser& chooser = {})
 {
-    const std::optional<UsiMove> move = gc.prepareMove(from, to);
-    return move ? gc.applyRecordedMove(*move, {}) : std::nullopt;
+    ShogiView view;
+    view.setBoard(gameBoard.board());
+    BoardInteractionController interaction(&view, gameBoard.board());
+    interaction.setPromotionChooser(chooser);
+    const std::optional<UsiMove> move = interaction.moveFromClick(from, to);
+    return move ? gameBoard.applyRecordedMove(*move, {}) : std::nullopt;
 }
 
 class TestCoreDataStructures : public QObject
@@ -86,7 +94,10 @@ private slots:
         QCOMPARE(spy.count(), 1);
         QCOMPARE(spy.last().first().value<Turn>(), Turn::Black);
 
-        QVERIFY(board.applyUsiMove(*UsiMove::parse(u"7g7f")));
+        // 指した後の局面に置き換えると、変わった手番を知らせる
+        Position next = board.position();
+        QVERIFY(next.apply(*UsiMove::parse(u"7g7f")));
+        board.replacePosition(next);
         QCOMPARE(spy.count(), 2);
         QCOMPARE(board.currentPlayer(), Turn::White);
     }
@@ -414,37 +425,90 @@ private slots:
         QCOMPARE(handicap ? QString::fromLatin1(handicap->sfen) : QString(), expectedSfen);
     }
 
-    // GC の手番更新が盤面モデルの手番にも反映されること
-    //（対局中は盤面を SFEN から再設定しないため、盤面から生成する SFEN の手番はこれに依存する）
-    void gameController_setCurrentPlayer_syncsBoardTurn()
+    // === 局面編集の規則（PositionEditRules） ===
+
+    void positionEdit_clearedReturnsEveryPieceToTheBox_data()
     {
-        ShogiGameController gc;
-        QString startSfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
-        gc.newGame(startSfen);
-        QVERIFY(gc.board() != nullptr);
-        QCOMPARE(gc.board()->currentPlayer(), Turn::Black);
-
-        gc.setCurrentPlayer(Turn::White);
-        QCOMPARE(gc.currentPlayer(), Turn::White);
-        QCOMPARE(gc.board()->currentPlayer(), Turn::White);
-
-        gc.setCurrentPlayer(Turn::Black);
-        QCOMPARE(gc.currentPlayer(), Turn::Black);
-        QCOMPARE(gc.board()->currentPlayer(), Turn::Black);
-
+        QTest::addColumn<QString>("sfen");
+        QTest::newRow("hirate") << QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+        QTest::newRow("moved-kings") << QStringLiteral("9/3k5/9/9/9/9/9/5K3/9 w Pp 1");
+        QTest::newRow("tsume") << QStringLiteral("4k4/9/9/9/9/9/9/9/9 b R 1");
     }
 
-    void gameController_pieceBoxTransfers_data()
+    /// 盤を空にすると全駒が駒箱に戻り、手番は残る（盤には丸ごと置き換えて知らせる）
+    void positionEdit_clearedReturnsEveryPieceToTheBox()
+    {
+        QFETCH(QString, sfen);
+        ShogiBoard board;
+        board.setSfen(sfen);
+        const Turn turn = board.currentPlayer();
+        QSignalSpy reset(&board, &ShogiBoard::boardReset);
+        PositionEditRules::clear(board);
+        QCOMPARE(reset.count(), 1);
+        QCOMPARE(board.position().boardSfen(), QStringLiteral("9/9/9/9/9/9/9/9/9"));
+        QCOMPARE(board.position().handsSfen(), QStringLiteral("-"));
+        const QMap<Piece, int> allPieces = {
+            {Piece::BlackPawn, 18}, {Piece::BlackLance, 4}, {Piece::BlackKnight, 4},
+            {Piece::BlackSilver, 4}, {Piece::BlackGold, 4}, {Piece::BlackBishop, 2},
+            {Piece::BlackRook, 2}, {Piece::BlackKing, 2}};
+        QCOMPARE(board.pieceBox(), allPieces);
+        QCOMPARE(board.currentPlayer(), turn);
+    }
+
+    void positionEdit_deadSquarePromotes_data()
+    {
+        QTest::addColumn<QString>("sfen");
+        QTest::addColumn<QPoint>("from");
+        QTest::addColumn<QPoint>("to");
+        QTest::addColumn<Piece>("placed");
+        QTest::newRow("black-pawn-rank1") << QStringLiteral("4k4/4P4/9/9/9/9/9/9/4K4 b - 1")
+                                          << QPoint(5, 2) << QPoint(4, 1) << Piece::BlackPromotedPawn;
+        QTest::newRow("black-knight-rank2") << QStringLiteral("4k4/9/4N4/9/9/9/9/9/4K4 b - 1")
+                                            << QPoint(5, 3) << QPoint(4, 2) << Piece::BlackPromotedKnight;
+        QTest::newRow("white-pawn-rank9") << QStringLiteral("4K4/9/9/9/9/9/9/4p4/4k4 w - 1")
+                                          << QPoint(5, 8) << QPoint(4, 9) << Piece::WhitePromotedPawn;
+    }
+
+    /// 行き所のない段に置いた歩・香・桂は成駒にする
+    void positionEdit_deadSquarePromotes()
+    {
+        QFETCH(QString, sfen);
+        QFETCH(QPoint, from);
+        QFETCH(QPoint, to);
+        QFETCH(Piece, placed);
+        const std::optional<Position> next = PositionEditRules::moved(*Position::fromSfen(sfen), from, to);
+        QVERIFY(next);
+        QCOMPARE(next->pieceAt(to.x(), to.y()), placed);
+        QCOMPARE(next->pieceAt(from.x(), from.y()), Piece::None);
+    }
+
+    /// 盤上の相手の駒の上に動かすと取り、取った側の駒台が増える（成駒は生駒にして）。盤には変わった所だけを知らせる
+    void positionEdit_captureGoesToTheMoversStand()
+    {
+        ShogiBoard board;
+        board.setSfen(QStringLiteral("4k4/9/4+p4/9/9/9/9/4R4/4K4 b - 1"));
+        QSignalSpy data(&board, &ShogiBoard::dataChanged);
+        QSignalSpy stand(&board, &ShogiBoard::standChanged);
+        QVERIFY(PositionEditRules::apply(board, QPoint(5, 8), QPoint(5, 3)));
+        QCOMPARE(board.pieceCharacter(5, 3), Piece::BlackRook);
+        QCOMPARE(board.pieceStandCount(Piece::BlackPawn), 1);
+        QCOMPARE(data.count(), 2);
+        QCOMPARE(stand.count(), 1);
+        QCOMPARE(stand.at(0).at(0).value<Piece>(), Piece::BlackPawn);
+        QCOMPARE(board.currentPlayer(), Turn::Black);   // 編集中の駒配置は手番を変えない
+    }
+
+    void gameBoard_pieceBoxTransfers_data()
     {
         QTest::addColumn<int>("rank");
         for (int rank = 1; rank <= 8; ++rank)
             QTest::newRow(qPrintable(QString::number(rank))) << rank;
     }
 
-    void gameController_pieceBoxTransfers()
+    void gameBoard_pieceBoxTransfers()
     {
         QFETCH(int, rank);
-        ShogiGameController gc;
+        GameBoard gc;
         QString empty = QStringLiteral("9/9/9/9/9/9/9/9/9 w - 1");
         gc.newGame(empty);
         auto* board = gc.board();
@@ -457,7 +521,7 @@ private slots:
             QCOMPARE(board->pieceCharacter(5, 5), piece);
             QCOMPARE(board->pieceBoxCount(piece), initialBox.value(piece) - 1);
             for (int step = 0; step < state; ++step)
-                gc.board()->promoteOrDemotePiece(5, 5);
+                PositionEditRules::cyclePiece(*gc.board(), BoardSquare{5, 5});
             const Piece expected = state < 2 ? piece : toWhite(piece);
             if (states == 4)
                 QCOMPARE(board->pieceCharacter(5, 5), state % 2 ? promote(expected) : expected);
@@ -477,15 +541,15 @@ private slots:
             }
             QCOMPARE(board->pieceBox(), initialBox);
         }
-        QCOMPARE(gc.currentPlayer(), Turn::White);
+        QCOMPARE(gc.board()->currentPlayer(), Turn::White);
     }
 
-    void gameController_pieceBoxWhiteTransfers_data() { gameController_pieceBoxTransfers_data(); }
+    void gameBoard_pieceBoxWhiteTransfers_data() { gameBoard_pieceBoxTransfers_data(); }
 
-    void gameController_pieceBoxWhiteTransfers()
+    void gameBoard_pieceBoxWhiteTransfers()
     {
         QFETCH(int, rank);
-        ShogiGameController gc;
+        GameBoard gc;
         QString empty = QStringLiteral("9/9/9/9/9/9/9/9/9 b - 1");
         gc.newGame(empty);
         auto* board = gc.board();
@@ -509,13 +573,13 @@ private slots:
             }
             QCOMPARE(board->pieceBox(), initialBox);
         }
-        QCOMPARE(gc.currentPlayer(), Turn::Black);
+        QCOMPARE(gc.board()->currentPlayer(), Turn::Black);
         QCOMPARE(board->currentPlayer(), Turn::Black);
     }
 
-    void gameController_pieceBoxPawnsOnSameFile()
+    void gameBoard_pieceBoxPawnsOnSameFile()
     {
-        ShogiGameController gc;
+        GameBoard gc;
         QString empty = QStringLiteral("9/9/9/9/9/9/9/9/9 w - 1");
         gc.newGame(empty);
         QVERIFY(PositionEditRules::apply(*gc.board(), {12, 1}, {5, 7}, Turn::Black));
@@ -526,17 +590,17 @@ private slots:
         QCOMPARE(gc.board()->pieceCharacter(5, 3), Piece::WhitePawn);
         QCOMPARE(gc.board()->pieceBoxCount(Piece::BlackPawn), 16);
         QCOMPARE(gc.board()->pieceBoxCount(Piece::WhitePawn), 16);
-        QCOMPARE(gc.currentPlayer(), Turn::White);
+        QCOMPARE(gc.board()->currentPlayer(), Turn::White);
         QCOMPARE(gc.board()->currentPlayer(), Turn::White);
     }
 
-    void gameController_pieceBoxRejectsEmptyAndWrongSlots()
+    void gameBoard_pieceBoxRejectsEmptyAndWrongSlots()
     {
-        ShogiGameController gc;
+        GameBoard gc;
         QString empty = QStringLiteral("9/9/9/9/9/9/9/9/9 b - 1");
         gc.newGame(empty);
         QVERIFY(PositionEditRules::apply(*gc.board(), {12, 8}, {5, 1}));
-        gc.board()->promoteOrDemotePiece(5, 1);
+        PositionEditRules::cyclePiece(*gc.board(), BoardSquare{5, 1});
         QVERIFY(PositionEditRules::apply(*gc.board(), {12, 8}, {5, 9}));
         const Position before = gc.board()->position();
         const auto box = gc.board()->pieceBox();
@@ -548,7 +612,7 @@ private slots:
         QCOMPARE(gc.board()->pieceBox(), box);
     }
 
-    void gameController_editRejectsKingToStand_data()
+    void gameBoard_editRejectsKingToStand_data()
     {
         QTest::addColumn<QPoint>("from");
         QTest::addColumn<QPoint>("to");
@@ -558,21 +622,21 @@ private slots:
         QTest::newRow("white-to-white") << QPoint(5, 1) << QPoint(11, 2);
     }
 
-    void gameController_editRejectsKingToStand()
+    void gameBoard_editRejectsKingToStand()
     {
         QFETCH(QPoint, from);
         QFETCH(QPoint, to);
-        ShogiGameController gc;
+        GameBoard gc;
         QString initial = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
         gc.newGame(initial);
         const Position before = gc.board()->position();
         QVERIFY(!PositionEditRules::apply(*gc.board(), from, to));
         QCOMPARE(gc.board()->position(), before);
-        QCOMPARE(gc.currentPlayer(), Turn::White);
+        QCOMPARE(gc.board()->currentPlayer(), Turn::White);
         QCOMPARE(gc.board()->currentPlayer(), Turn::White);
     }
 
-    void gameController_rejectsInvalidClickCoordinates_data()
+    void gameBoard_rejectsInvalidClickCoordinates_data()
     {
         QTest::addColumn<QPoint>("from");
         QTest::addColumn<QPoint>("to");
@@ -587,33 +651,33 @@ private slots:
         QTest::newRow("opponent-stand") << QPoint(11, 9) << QPoint(7, 6);
     }
 
-    void gameController_rejectsInvalidClickCoordinates()
+    void gameBoard_rejectsInvalidClickCoordinates()
     {
         QFETCH(QPoint, from);
         QFETCH(QPoint, to);
-        ShogiGameController gc;
+        GameBoard gc;
         QString initial = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
         gc.newGame(initial);
         const Position before = gc.board()->position();
-        QSignalSpy committed(&gc, &ShogiGameController::moveCommitted);
+        QSignalSpy committed(&gc, &GameBoard::moveCommitted);
         QVERIFY(!clickMove(gc, from, to));
         QCOMPARE(gc.board()->position(), before);
         QCOMPARE(gc.board()->toSfen(), initial);
         QCOMPARE(committed.count(), 0);
-        QCOMPARE(gc.currentPlayer(), Turn::Black);
+        QCOMPARE(gc.board()->currentPlayer(), Turn::Black);
     }
 
-    void gameController_acceptsEngineDrop_data()
+    void gameBoard_acceptsEngineDrop_data()
     {
         QTest::addColumn<bool>("black");
         QTest::newRow("black") << true;
         QTest::newRow("white") << false;
     }
 
-    void gameController_acceptsEngineDrop()
+    void gameBoard_acceptsEngineDrop()
     {
         QFETCH(bool, black);
-        ShogiGameController gc;
+        GameBoard gc;
         QString initial = QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 ")
             + (black ? QStringLiteral("b P 1") : QStringLiteral("w p 1"));
         gc.newGame(initial);
@@ -628,7 +692,7 @@ private slots:
     }
 
     /// エンジン・通信対局の手も合法手か確かめ、反則手は盤も記録も変えずに断る
-    void gameController_rejectsIllegalEngineMove_data()
+    void gameBoard_rejectsIllegalEngineMove_data()
     {
         QTest::addColumn<QString>("sfen");
         QTest::addColumn<QString>("move");
@@ -645,28 +709,28 @@ private slots:
                                             << QStringLiteral("5h6h");
     }
 
-    void gameController_rejectsIllegalEngineMove()
+    void gameBoard_rejectsIllegalEngineMove()
     {
         QFETCH(QString, sfen);
         QFETCH(QString, move);
-        ShogiGameController gc;
+        GameBoard gc;
         gc.newGame(sfen);
         const Position board = gc.board()->position();
-        QSignalSpy committed(&gc, &ShogiGameController::moveCommitted);
+        QSignalSpy committed(&gc, &GameBoard::moveCommitted);
         const auto parsed = UsiMove::parse(move);
         QVERIFY(parsed);
         QVERIFY(!gc.applyMove(*parsed, {}));
         QCOMPARE(gc.board()->position(), board);
         QCOMPARE(committed.count(), 0);
-        QCOMPARE(gc.currentPlayer(), Turn::Black);
+        QCOMPARE(gc.board()->currentPlayer(), Turn::Black);
     }
 
     /// 成りは指し手どおりに指し、成らない手は成らないまま指す（共有の成りフラグに頼らない）
-    void gameController_appliesEnginePromotionAsGiven()
+    void gameBoard_appliesEnginePromotionAsGiven()
     {
         const QString sfen = QStringLiteral("lnsgkgsnl/1r5b1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL b - 3");
         for (const bool promote : {true, false}) {
-            ShogiGameController gc;
+            GameBoard gc;
             QString initial = sfen;
             gc.newGame(initial);
             const UsiMove move = *UsiMove::parse(promote ? u"8h2b+" : u"8h2b");
@@ -678,7 +742,7 @@ private slots:
         }
     }
 
-    void gameController_clickAsksPromotionOnlyWhenBothLegal_data()
+    void gameBoard_clickAsksPromotionOnlyWhenBothLegal_data()
     {
         QTest::addColumn<bool>("illegalAttempt");
         QTest::newRow("ordinary-book-move") << false;
@@ -686,25 +750,28 @@ private slots:
     }
 
     /// 盤のクリックは、成り・不成の両方が合法なときだけ成りの選び方に聞く
-    void gameController_clickAsksPromotionOnlyWhenBothLegal()
+    void gameBoard_clickAsksPromotionOnlyWhenBothLegal()
     {
         QFETCH(bool, illegalAttempt);
-        ShogiGameController gc;
+        GameBoard gc;
         QString initial = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
         gc.newGame(initial);
         int promotionQuestions = 0;
-        gc.setPromotionChooser([&promotionQuestions] { ++promotionQuestions; return false; });
+        const BoardInteractionController::PromotionChooser chooser = [&promotionQuestions] {
+            ++promotionQuestions;
+            return false;
+        };
         if (illegalAttempt) {
             QPoint empty(7, 6), dest(7, 5);
-            QVERIFY(!clickMove(gc, empty, dest));
+            QVERIFY(!clickMove(gc, empty, dest, chooser));
         }
-        QVERIFY(clickMove(gc, QPoint(7, 7), QPoint(7, 6)));
-        QVERIFY(clickMove(gc, QPoint(3, 3), QPoint(3, 4)));
-        QVERIFY(clickMove(gc, QPoint(8, 8), QPoint(2, 2)));
+        QVERIFY(clickMove(gc, QPoint(7, 7), QPoint(7, 6), chooser));
+        QVERIFY(clickMove(gc, QPoint(3, 3), QPoint(3, 4), chooser));
+        QVERIFY(clickMove(gc, QPoint(8, 8), QPoint(2, 2), chooser));
         QCOMPARE(promotionQuestions, 1);
     }
 
-    void gameController_bookMoveKeepsItsPromotion_data()
+    void gameBoard_bookMoveKeepsItsPromotion_data()
     {
         QTest::addColumn<bool>("promote");
         QTest::newRow("promote") << true;
@@ -712,31 +779,27 @@ private slots:
     }
 
     /// 成り・不成まで決まった手（定跡の手）は、成りの選択を出さずにそのとおり指す
-    void gameController_bookMoveKeepsItsPromotion()
+    void gameBoard_bookMoveKeepsItsPromotion()
     {
         QFETCH(bool, promote);
-        ShogiGameController gc;
+        GameBoard gc;
         QString initial = QStringLiteral("lnsgkgsnl/1r5b1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL b - 3");
         gc.newGame(initial);
-        int promotionQuestions = 0;
-        gc.setPromotionChooser([&promotionQuestions] { ++promotionQuestions; return false; });
         const UsiMove move = *UsiMove::parse(promote ? u"8h2b+" : u"8h2b");
         QVERIFY(gc.isLegal(move));
         const std::optional<RecordEntry> played = gc.applyMove(move, {});
         QVERIFY(played);
-        QCOMPARE(promotionQuestions, 0);
         QCOMPARE(played->move.isPromotion(), promote);
     }
 
     /// 盤のクリック操作で成り・不成を選べるときは、成りの選び方の答えどおりに指す
-    void gameController_clickUsesPromotionChoice()
+    void gameBoard_clickUsesPromotionChoice()
     {
         for (const bool choice : {true, false}) {
-            ShogiGameController gc;
+            GameBoard gc;
             QString initial = QStringLiteral("lnsgkgsnl/1r5b1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL b - 3");
             gc.newGame(initial);
-            gc.setPromotionChooser([choice] { return choice; });
-            const std::optional<RecordEntry> played = clickMove(gc, QPoint(8, 8), QPoint(2, 2));
+            const std::optional<RecordEntry> played = clickMove(gc, QPoint(8, 8), QPoint(2, 2), [choice] { return choice; });
             QVERIFY(played);
             QCOMPARE(played->move.isPromotion(), choice);
             QCOMPARE(gc.board()->pieceCharacter(2, 2), choice ? Piece::BlackHorse : Piece::BlackBishop);

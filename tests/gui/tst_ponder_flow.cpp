@@ -31,7 +31,7 @@
 #include "matchtimesource.h"
 #include "usi.h"
 #include "shogiclock.h"
-#include "shogigamecontroller.h"
+#include "gameboard.h"
 #include "thinkingpanel.h"
 #include "engineinfowidget.h"
 

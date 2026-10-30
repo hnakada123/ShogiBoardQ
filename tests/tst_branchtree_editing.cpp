@@ -29,7 +29,7 @@
 #include "kifupresentation.h"
 #include "livegamesession.h"
 #include "shogiboard.h"
-#include "shogigamecontroller.h"
+#include "gameboard.h"
 #include "shogimove.h"
 
 namespace {
@@ -210,7 +210,7 @@ private slots:
         KifuBranchTree tree;
         tree.setRootSfen(kHirateSfen);
         EditHarness h(tree);
-        ShogiGameController gc;
+        GameBoard gc;
 
         QVERIFY(h.controller.recordMove(UsiMove::fromString(u"7g7f"), &gc));
         KifuBranchNode* move = tree.root()->childAt(0);
@@ -263,7 +263,7 @@ private slots:
         KifuBranchTree tree;
         tree.setRootSfen(kHirateSfen);   // 起動直後と同じく開始局面だけ
         EditHarness h(tree);
-        ShogiGameController gc;
+        GameBoard gc;
         QVERIFY(h.controller.canEdit());
 
         QSignalSpy changed(&h.state, &KifuNavigationState::changed);
@@ -310,7 +310,7 @@ private slots:
         KifuBranchTree tree;
         tree.setRootSfen(kHirateSfen);
         EditHarness h(tree);
-        ShogiGameController gc;
+        GameBoard gc;
         QVERIFY(h.controller.recordMove(UsiMove::fromString(u"7g7f"), &gc));   // 棋譜に ▲７六歩
         h.nav.goToNode(tree.root());
         KifuBranchNode* current = h.state.currentNode();

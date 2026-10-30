@@ -2,7 +2,7 @@
 
 本ドキュメントでは、対局が開始された後の指し手の流れ（人間の着手、エンジンの着手、時計管理）から、投了などによる終局までの一連のフローを説明する。対局が始まるまでの流れは [対局ダイアログから対局開始までのフロー](game-start-flow.md) を参照。対象はローカル対局（人間同士・人間対エンジン・エンジン同士）で、CSA 通信対局は経路が分かれる所だけを記す。
 
-先手・後手はすべて `Turn`（`Turn::Black`／`Turn::White`、`src/core/shogitypes.h`）で表す。誰が指すかは `MatchPlayers`（`src/core/matchplayers.h`）で表す。手番は盤（`ShogiBoard`）だけが持ち、`ShogiGameController::currentPlayer()` は盤の手番を返す。部品は起動時に `MainWindowComposer`（`src/app/mainwindowcomposer*.cpp`）が全部作って配線する（[composition-root.md](composition-root.md)）。対局の司令塔 `MatchCoordinator`（`src/game/matchcoordinator.cpp`）は `MainWindowComposer::createMatchAndAnalysis()` が一度だけ作り、対局ごとに使い回す。司令塔は子ハンドラもフック（コールバックの構造体）も持たない。一手の確定・終局の判定と記録・待った・中断と再開を自分で行い、アプリの動作状態（`AppActivityState` の対局中・待機）を書き、時計・評価値・終局は表示にシグナルで知らせ、棋譜の行は `MatchRecordSink`（`src/game/matchrecordsink.h`）へ書き込む。シグナルの受け先は `MainWindowComposer::connectGame()`（`src/app/mainwindowcomposer_wire.cpp`）がつなぎ、主な受け先は `GameSession`（`src/app/gamesession.cpp`）である。`GameSession` は `MatchRecordSink` の実装でもある。
+先手・後手はすべて `Turn`（`Turn::Black`／`Turn::White`、`src/core/shogitypes.h`）で表す。誰が指すかは `MatchPlayers`（`src/core/matchplayers.h`）で表す。手番は盤（`ShogiBoard`）だけが持つ（`ShogiBoard::currentPlayer()`。司令塔は `MatchCoordinator::sideToMove()` で読む）。部品は起動時に `MainWindowComposer`（`src/app/mainwindowcomposer*.cpp`）が全部作って配線する（[composition-root.md](composition-root.md)）。対局の司令塔 `MatchCoordinator`（`src/game/matchcoordinator.cpp`）は `MainWindowComposer::createMatchAndAnalysis()` が一度だけ作り、対局ごとに使い回す。司令塔は子ハンドラもフック（コールバックの構造体）も持たない。一手の確定・終局の判定と記録・待った・中断と再開を自分で行い、アプリの動作状態（`AppActivityState` の対局中・待機）を書き、時計・評価値・終局は表示にシグナルで知らせ、棋譜の行は `MatchRecordSink`（`src/game/matchrecordsink.h`）へ書き込む。シグナルの受け先は `MainWindowComposer::connectGame()`（`src/app/mainwindowcomposer_wire.cpp`）がつなぎ、主な受け先は `GameSession`（`src/app/gamesession.cpp`）である。`GameSession` は `MatchRecordSink` の実装でもある。
 
 盤・棋譜欄・指し手のハイライトは、司令塔が直接は動かさない。棋譜に行を書くと表示中の手（`KifuNavigationState`）が最新の手に移り、その変化を受けた部品（`BoardSyncPresenter`・`KifuDisplayPresenter` など）が自分で表示を合わせる（4.2）。
 
@@ -18,7 +18,7 @@
 │  ┌────────────────────────────────────────────────┐        │
 │  │ 人間の手番                                     │        │
 │  │  1. 盤のクリック（駒選択→移動先）              │        │
-│  │  2. prepareMove() → applyMove()（盤面更新）    │        │
+│  │  2. moveFromClick() → applyMove()（盤面更新）  │        │
 │  │  3. MatchCoordinator::onHumanMove()            │        │
 │  │     → Strategy → completeMove()                │        │
 │  └────────────────────────┬───────────────────────┘        │
@@ -74,7 +74,7 @@ BoardInteractionController::onLeftClick(pt)
 
 1. 受け付けの確認: 盤で指した手の行き先（`BoardInputRoute`、`src/board/boardinputroute.h`）の `acceptsInput()` が false なら無視する。主画面の行き先は `BoardMoveController` で、`BoardMoveController` のコンストラクタが `setInputRoute(this)` で登録する。局面編集中は常に受け付け、それ以外は `HumanTurnPolicy::isHumanTurnNow()`（`src/ui/policy/humanturnpolicy.cpp`）で決める。対局中は `MatchCoordinator::isHumanSide(盤の手番)`、通信対局中は人間が指していて自分の手番か、対局していないときは変化として記録できるか（`BranchTreeEditController::canRecordBoardMove()`）。解析中・詰み探索中・検討中は受け付けない。
 2. 1回目のクリック（駒選択）: 持ち駒のない駒台のマスは無視する。`ShogiView::startDrag()` でドラッグを始め、`selectPieceAndHighlight()` で駒を選ぶ。選んだマスを `BoardHighlightLayer::Selection` の層に、合法な移動先（`EngineMoveValidator` で判定）を `LegalDestinations` の層に出す（メニューで表示を切り替えられる）。相手の駒台や空きマスは選ばない。`m_waitingSecondClick = true` に設定する。
-3. 2回目のクリック（移動先指定）: 同じマスならキャンセルする。別のマスなら行き先の `BoardInputRoute::submit(from, to)` に渡す。成り・不成のダイアログを出している間もドラッグ状態を保つため、ここではドラッグを終えない（`ShogiGameController::endDragSignal` → `ShogiView::endDrag()` で終える。`connectBoard()` が接続）。
+3. 2回目のクリック（移動先指定）: 同じマスならキャンセルする。別のマスなら行き先の `BoardInputRoute::submit(from, to)` に渡し、行き先から戻ってから `ShogiView::endDrag()` でドラッグを終える（行き先が成り・不成を尋ねている間もドラッグ状態を保つ）。
 
 右クリック（`onRightClick()`）は、2回目のクリック待ちなら選択を取り消す。盤の手番が替わったとき（`ShogiBoard::turnChanged`）と動作状態が変わったとき（`AppActivityState::changed`。`BoardMoveController` が接続）も、つまんでいた駒の選択を取り消す（`cancelPendingClick()`）。
 
@@ -84,7 +84,7 @@ BoardInteractionController::onLeftClick(pt)
 BoardInputRoute::submit(from, to)
     ↓  （主画面の行き先は BoardMoveController）
 BoardMoveController::playMove(from, to)        （src/ui/controllers/boardmovecontroller.cpp）
-    ↓  対局・通信対局では ShogiGameController::prepareMove() で UsiMove にする（成り・不成もここで決まる）
+    ↓  対局・通信対局・変化の記録では BoardInteractionController::moveFromClick() で UsiMove にする（成り・不成もここで決まる）
 BoardMoveController::playUsiMove(move)
 ```
 
@@ -92,49 +92,48 @@ BoardMoveController::playUsiMove(move)
 
 - 局面編集中（`Activity::DuringPositionEdit`）なら `PositionEditSession::applyEditMove()` に渡して終わる。
 - 対局していない待機中（`Activity::Idle`）なら、指した手を表示中の手の次の手（変化）として記録して終わる（盤の手は `BranchTreeEditController::recordBoardMove()`、定跡の手は `recordMove()`）。
-- 通信対局中（`Activity::DuringCsaGame`）なら、`ShogiGameController::isLegal()` で合法手か確かめて `csaMoveRequested(move)` シグナルを発行する（→ `CsaGameCoordinator::onHumanMove(const UsiMove&)`。合成ルートの `connectGame()` が接続）。盤はサーバーの確認を受けてから変えるので、ここでは指さない。
+- 通信対局中（`Activity::DuringCsaGame`）なら、`GameBoard::isLegal()` で合法手か確かめて `csaMoveRequested(move)` シグナルを発行する（→ `CsaGameCoordinator::onHumanMove(const UsiMove&)`。合成ルートの `connectGame()` が接続）。盤はサーバーの確認を受けてから変えるので、ここでは指さない。
 - 対局中（`Activity::DuringGame`）で、司令塔が手を受け付け（`MatchCoordinator::canAcceptMove()`：終局しておらず棋譜に書ける）、盤の手番が人間（`isHumanSide()`）のときだけ指す。それ以外は `onMoveApplied(from, to, false)` で選択を取り消して終わる。
-- `ShogiGameController::applyMove(move, MatchCoordinator::lastMoveDestination())` で指し、結果を `BoardInteractionController::onMoveApplied()` に渡して選択のハイライトを更新する（1.4）。不合法ならここで終わる。
+- `GameBoard::applyMove(move, MatchCoordinator::lastMoveDestination())` で指し、結果を `BoardInteractionController::onMoveApplied()` に渡して選択のハイライトを更新する（1.4）。不合法ならここで終わる。
 - 合法なら、指した手（`RecordEntry`）を `MatchCoordinator::onHumanMove(played)` に渡す（2章）。考慮時間の確定・棋譜への追記・千日手と最大手数の判定・エンジンへの手番渡しは司令塔が行う。
 
 ### 1.3 指し手の検証と盤面更新
 
-**ファイル:** `src/game/shogigamecontroller.cpp`
+**ファイル:** `src/board/boardinteractioncontroller.cpp`（クリックを手にする）、`src/game/gameboard.cpp`（指す）、`src/kifu/moverecord.h`（棋譜の1行）
 
 ```cpp
-std::optional<UsiMove> ShogiGameController::prepareMove(const QPoint& from, const QPoint& to);
-std::optional<RecordEntry> ShogiGameController::applyMove(const UsiMove& move, BoardSquare previousTo);
+std::optional<UsiMove> BoardInteractionController::moveFromClick(const QPoint& from, const QPoint& to) const;
+std::optional<RecordEntry> GameBoard::applyMove(const UsiMove& move, BoardSquare previousTo);
 ```
 
-盤のクリック（表示の座標）は `prepareMove()` が盤を変えずに `UsiMove` にする（合法手の判定と成り・不成の決定）。指すのは `applyMove()` で、指し手どおりの成り・不成が合法か（`isLegal()`）を確かめてから `commitMove()` で盤に指す。エンジンの手（2.2）・定跡の手も同じ `applyMove()` を通る。指した手は棋譜の1行（`RecordEntry`）として返し、対局の手順への追加は司令塔が行う。
+盤のクリック（表示の座標）は、盤の操作の `moveFromClick()` が盤を変えずに `UsiMove` にする（合法手の判定と成り・不成の決定）。詰将棋を解く画面（`TsumePlayDialog`）も同じ関数を使う。指すのは対局の盤 `GameBoard` の `applyMove()` で、指し手どおりの成り・不成が合法か（`isLegal()`）を確かめてから `commitMove()` で盤に指す。エンジンの手（2.2）・定跡の手も同じ `applyMove()` を通る。指した手は棋譜の1行（`RecordEntry`）として返し、対局の手順への追加は司令塔が行う。
 
 #### 処理ステップ
 
 | ステップ | 処理内容 |
 |---|---|
-| 入力検証 | 移動元が盤上か手番の側の駒台か、移動元に駒があるかを確認する。座標は `BoardCoordinates::usiMoveFromSquares()` で `UsiMove` にする |
-| 合法手判定 | `legalStatus()` が `EngineMoveValidator::legalStatus()` で、成り・不成それぞれが合法かを調べる |
+| 入力検証 | 移動元が盤上の駒か、手番の側の駒台の駒（玉は打てない。並びは `BoardCoordinates`）かを確認する。座標は `BoardCoordinates::usiMoveFromSquares()` で `UsiMove` にする |
+| 合法手判定 | `EngineMoveValidator::legalStatus()` で、成り・不成それぞれが合法かを調べる |
 | 成り判定 | 下の「成り判定の詳細」のとおり。どちらも不合法なら `nullopt` を返し、盤は変えない |
-| ドラッグ終了 | `emit endDragSignal()`（→ `ShogiView::endDrag()`） |
-| 盤面更新 | `commitMove()` → `ShogiBoard::applyUsiMove(move, mover)` で駒の移動・取得を反映し、手番を相手に移す（SFEN の手数も1つ進む。手番が替わると `ShogiBoard::turnChanged` が出る。3.5） |
-| 棋譜の行 | `RecordEntry::played(ShogiMove(move, moving, captured), 棋譜文字列, board()->toSfen())`。棋譜文字列は `KifMoveText::format(mover, moving, move, previousTo)` で日本語表記にする（例: `"▲７六歩(77)"`。呼び出し側が渡した直前の手の移動先 `previousTo` と同じマスなら「同」。対局では `MatchCoordinator::lastMoveDestination()`） |
-| 直前の手 | `m_lastMove` を更新する（`lastMove()` で読める） |
+| ドラッグ終了 | 行き先の `submit()` から戻った後に、盤の操作が `ShogiView::endDrag()` を呼ぶ |
+| 棋譜の行と盤面更新 | `commitMove()` が盤の局面の写しで `MoveRecord::play(局面, move, previousTo)` を呼び、指した手の行（`RecordEntry`）を作る（棋譜の読み込みの `KifLineBuilder::addMove()` と同じ関数。棋譜文字列は `KifMoveText::format()` の日本語表記で、例: `"▲７六歩(77)"`。呼び出し側が渡した直前の手の移動先 `previousTo` と同じマスなら「同」。対局では `MatchCoordinator::lastMoveDestination()`）。指した後の局面を `ShogiBoard::replacePosition()` で盤に渡し、変わったマス・駒台・手番だけを知らせる（SFEN の手数も1つ進む。手番が替わると `ShogiBoard::turnChanged` が出る。3.5） |
 
 着手確定の知らせ `moveCommitted` はここでは出さない。司令塔が一手を確定し終えてから `notifyMoveCommitted()` で出す（4.4）。
 
 #### 成り判定の詳細
 
 ```
-prepareMove() の成り・不成
+moveFromClick() の成り・不成
     ├─ 成りだけ合法（行き所のない駒など）→ 成る
     ├─ 不成だけ合法 → 成らない
     ├─ 両方合法
     │    └─ setPromotionChooser() で設定した関数で対局者に選ばせる
-    │         DialogLauncher::choosePromotion() → PromoteDialog::ask()
+    │         主画面: DialogLauncher::choosePromotion() → PromoteDialog::ask()
+    │         詰将棋を解く画面: PromoteDialog::ask()
     └─ どちらも不合法 → nullopt
 ```
 
-成りの選び方は `MainWindowComposer::createControllers()` が設定する。エンジンの手と定跡の手は成り・不成が決まった `UsiMove` で届くので、`prepareMove()` を通らず、`applyMove()` が指し手どおりの成り・不成が合法かだけを確かめる。
+主画面の成りの選び方は `MainWindowComposer::createControllers()` が盤の操作に設定する。エンジンの手と定跡の手は成り・不成が決まった `UsiMove` で届くので、`moveFromClick()` を通らず、`applyMove()` が指し手どおりの成り・不成が合法かだけを確かめる。
 
 ### 1.4 着手後のハイライト更新
 
@@ -189,13 +188,13 @@ MatchCoordinator::completeMove(played, engineScore)
     │      clock->commitMove(mover)                 … 考慮時間を合計に足し、秒読み・加算を適用（3.3）
     │      played.time = clock->recordTime(mover)   … 棋譜に書く消費時間
     │      clock->setConsiderationTimeMs(mover, 0)
-    │      clock->setCurrentPlayer(gc->currentPlayer())   … 時計の手番を盤の手番に合わせる（3.5）
+    │      clock->setCurrentPlayer(sideToMove())   … 時計の手番を盤の手番に合わせる（3.5）
     ├─ 対局の手順に足す: m_record.entries.append(played)
     ├─ 棋譜に書く: m_sink->appendRecord(played)    … GameSession → LiveGameSession（4.2）
     │      表示中の手が最新の手に移り、盤・ハイライト・棋譜欄が合う
     ├─ clock->notifyTimeUpdated()                 → ShogiClock::timeUpdated → TimeDisplayPresenter（3.6）
     ├─ エンジンの手なら emit engineMovePlayed(mover, ply, score) → EvaluationGraphPresenter::plotEngineScore()
-    ├─ gc->notifyMoveCommitted(mover, ply)        → moveCommitted（4.4）
+    ├─ gameBoard->notifyMoveCommitted(mover, ply) → moveCommitted（4.4）
     ├─ 千日手チェック: checkAndHandleSennichite() → 成立なら false（8.4）
     └─ 最大手数チェック: maxMoves > 0 && 手数 >= maxMoves → handleMaxMovesJishogi()、false（8.3）
 ```
@@ -242,7 +241,7 @@ HumanVsEngineStrategy::onEngineMoveReady(move)
 
 MatchCoordinator::applyEngineMove(move)
     ├─ 終局済み・棋譜に書けないなら false
-    ├─ gc->applyMove(move.move, lastMoveDestination())（合法手か確かめて指す。「同」の基準は手順の最後の手の移動先）
+    ├─ gameBoard->applyMove(move.move, lastMoveDestination())（合法手か確かめて指す。「同」の基準は手順の最後の手の移動先）
     │      └─ 反則手: handleEngineIllegalMove(move.side) → false（8.6）
     ├─ エンジンの考慮時間を時計に渡す: clock->setMeasuredConsiderationTime(move.side, move.elapsedMs)
     └─ completeMove(played, move.score)（2.1。評価値グラフへの追記を含む）
@@ -435,17 +434,17 @@ UsiGoTime compute() の返り値:
 
 ### 3.5 盤の手番と時計の手番
 
-手番の正本は盤（`ShogiBoard`）である。盤に指すと（`ShogiBoard::applyUsiMove()`）手番が相手に移り、`ShogiBoard::turnChanged` が出る。手番の表示は盤の手番をそのまま示す。
+手番の正本は盤（`ShogiBoard`）である。盤に指すと（`GameBoard::commitMove()` が指した後の局面を `ShogiBoard::replacePosition()` で渡す）手番が相手に移り、`ShogiBoard::turnChanged` が出る。手番の表示は盤の手番をそのまま示す。
 
 ```
-ShogiBoard::applyUsiMove(move, mover)        （ShogiGameController::commitMove() の中）
+ShogiBoard::replacePosition(指した後の局面)    （GameBoard::commitMove() の中）
     ↓ advanceTurn(): 手番を相手に移す
 ShogiBoard::turnChanged(Turn)
     ├─ BoardChromeWidget::setActiveSide(Turn)             … 対局者名の手番の印（ShogiView::setBoard() が接続）
     └─ BoardInteractionController::cancelPendingClick()  … つまんでいた駒の選択を取り消す
 ```
 
-時計は、どちらの側の時間を減らすかを自分で持つ（`ShogiClock` の手番）。司令塔の `completeMove()` は一手を確定するときに `ShogiClock::setCurrentPlayer(gc->currentPlayer())` で時計の手番を盤の手番に合わせる（2.1）。対局の開始時は `MatchCoordinator::start()`（`applyTimeSettings()`）が開始局面の手番を、中断した対局の再開時は `ShogiClock::restoreSnapshot()` が中断したときの手番を時計に入れる。`ShogiClock::setCurrentPlayer()` は、前回の tick からの経過時間を前の手番の側に精算してから手番を切り替え、新しい手番の側の考慮時間を0から数え直す（同じ手番なら何もしない）。
+時計は、どちらの側の時間を減らすかを自分で持つ（`ShogiClock` の手番）。司令塔の `completeMove()` は一手を確定するときに `ShogiClock::setCurrentPlayer(sideToMove())` で時計の手番を盤の手番に合わせる（2.1）。対局の開始時は `MatchCoordinator::start()`（`applyTimeSettings()`）が開始局面の手番を、中断した対局の再開時は `ShogiClock::restoreSnapshot()` が中断したときの手番を時計に入れる。`ShogiClock::setCurrentPlayer()` は、前回の tick からの経過時間を前の手番の側に精算してから手番を切り替え、新しい手番の側の考慮時間を0から数え直す（同じ手番なら何もしない）。
 
 エンジンの bestmove を受け取ったときは、`UsiMatchHandler::onBestMoveReceived()` が `MatchTimeSource::finishTurn()`（`ClockTimeSource` は `ShogiClock::finishTurn()`）で時計を精算し、手番が切り替わるまでエンジンの側の時間を減らさない。
 
@@ -480,7 +479,7 @@ entries[1] ...
 ```
 
 - `MatchCoordinator::start()` が `MatchStartOptions::recordLine` の `currentPly` までを手順にする（後続の手は捨てる）。
-- `completeMove()` が確定した手を末尾に足す。行の SFEN は `ShogiGameController::commitMove()` が指した後の盤から作る（`ShogiBoard::applyUsiMove()` が SFEN の手数を1つ進める）。
+- `completeMove()` が確定した手を末尾に足す。行の SFEN は `GameBoard::commitMove()`（`MoveRecord::play()`）が指した後の局面から作る（`Position::apply()` が SFEN の手数を1つ進める）。
 - エンジンに探索させる局面は `m_record.usiPosition(currentPly())`、次の手の「同」表記の基準は `lastMoveDestination()`（`m_record.destinationOf(currentPly())`）、千日手の判定は `m_record.sfens()` から作る。待った（`undoTwoPlies()`）は末尾の2手を取り除き、両方のエンジンに `Usi::forgetPonder()` で先読みの局面を捨てさせる。
 
 対局の設定・対局者・最大手数・終局状態は `MatchSessionState`（`src/game/matchcoordinator.h`）が持つ。先読みの局面はエンジンの `UsiMatchHandler` だけが持つ。
@@ -513,7 +512,7 @@ GameSession::appendRecord(entry)                 （src/app/gamesession.cpp）
 |---|---|
 | 対局の手順（開始局面・指した手・各手の後の局面） | `MatchCoordinator::m_record`（`RecordLine`） |
 | 対局の設定・対局者・最大手数・終局状態・先読みの局面 | `MatchSessionState` |
-| 盤と手番 | `ShogiBoard`（`ShogiGameController` が持つ） |
+| 盤と手番 | `ShogiBoard`（`GameBoard` が持つ） |
 | 残り時間・考慮時間・時計の手番 | `ShogiClock` |
 | 対局者・持ち時間と対局の開始・終了日時（対局情報・棋譜用） | `KifuDocument`（`players()`・`timeRecord()`。`MatchTimeRecord`） |
 | 中断した対局（再開用） | `MatchCoordinator::m_interruptedGame`（`InterruptedGameState`） |
@@ -524,10 +523,10 @@ GameSession::appendRecord(entry)                 （src/app/gamesession.cpp）
 
 ### 4.4 着手確定の通知（moveCommitted）
 
-`completeMove()` は棋譜に書いて表示を合わせた後に `ShogiGameController::notifyMoveCommitted(mover, ply)` を呼ぶ。
+`completeMove()` は棋譜に書いて表示を合わせた後に `GameBoard::notifyMoveCommitted(mover, ply)` を呼ぶ。
 
 ```
-ShogiGameController::moveCommitted(mover, ply)
+GameBoard::moveCommitted(mover, ply)
     └─ PieceSoundPlayer::playMoveSound()   … 駒音（MainWindowComposer::connectBoard() が接続）
 ```
 
@@ -570,7 +569,7 @@ GameSession::resign()                           （src/app/gamesession.cpp）
 void MatchCoordinator::handleResign()
 {
     if (isGameOver()) return;
-    const Turn loser = m_gc->currentPlayer();
+    const Turn loser = sideToMove();
     endGame({Cause::Resignation, loser}, loser, Notice::Announce);
 }
 ```
@@ -578,7 +577,7 @@ void MatchCoordinator::handleResign()
 #### 処理ステップ
 
 1. 終局済みチェック: 終局済みなら何もしない。
-2. 敗者の決定: 投了の敗者は盤の手番の側（`gc->currentPlayer()`）。
+2. 敗者の決定: 投了の敗者は盤の手番の側（`sideToMove()`）。
 3. 終局: `endGame(info, loser, Notice::Announce)`（6.1）。時計の停止、エンジンへの終了通知（下表）、終局行の追記、待機への切り替え、`gameEnded`、結果の知らせまで行う。
 
 #### エンジンへの終了通知
@@ -759,12 +758,12 @@ struct MatchGameOverState {
 ```cpp
 void MatchCoordinator::appendTerminalRecord(const GameEndInfo& info)
 {
-    const Turn sideToMove = m_gc->currentPlayer();
+    const Turn toMove = sideToMove();
     TerminalType terminal = TerminalType::None;
     // ... info.cause から TerminalType を決める ...
 
     // 終局行の印と消費時間は、その行（投了・宣言など）を行った側のもの
-    const Turn mover = RecordEntry::endingSide(terminal, sideToMove, info.loser);
+    const Turn mover = RecordEntry::endingSide(terminal, toMove, info.loser);
     m_clock->commitMove(mover);
     const RecordEntry entry = RecordEntry::ending(terminal, mover, m_clock->recordTime(mover));
     if (m_sink && m_sink->canAppendRecord()) m_sink->appendRecord(entry);
@@ -869,7 +868,7 @@ void MatchCoordinator::handleBreakOff()
     if (isGameOver()) return;
     // 中断の後に届く bestmove resign は、終局の知らせ（MatchEngineSeat::finish）の後なので受けない。
     // quit に応答しない場合も terminate/kill まで進める。中断後の思考表示は保持する。
-    endGame({Cause::BreakOff, m_gc->currentPlayer()}, std::nullopt, Notice::Interrupt);
+    endGame({Cause::BreakOff, sideToMove()}, std::nullopt, Notice::Interrupt);
 }
 ```
 
@@ -982,7 +981,7 @@ MatchCoordinator::handleEngineWin(side)
 
 ### 8.6 エンジンの反則手: handleEngineIllegalMove()
 
-エンジンの指し手が `ShogiGameController::applyMove()` で不合法と判定されると、`MatchCoordinator::applyEngineMove()` は盤に指さずに `handleEngineIllegalMove(エンジンの手番)` を呼ぶ（2.2）。
+エンジンの指し手が `GameBoard::applyMove()` で不合法と判定されると、`MatchCoordinator::applyEngineMove()` は盤に指さずに `handleEngineIllegalMove(エンジンの手番)` を呼ぶ（2.2）。
 
 ```
 MatchCoordinator::handleEngineIllegalMove(Turn side)
@@ -1092,7 +1091,7 @@ MatchCoordinator::handleResign()
 | 盤で指した手の行き先（インターフェース） | `src/board/boardinputroute.h` | - |
 | 盤を人間が操作できるかの判定 | `src/ui/policy/humanturnpolicy.h` | `src/ui/policy/humanturnpolicy.cpp` |
 | 盤（局面と手番） | `src/core/shogiboard.h` | `src/core/shogiboard.cpp` |
-| ゲームコントローラ | `src/game/shogigamecontroller.h` | `src/game/shogigamecontroller.cpp` |
+| ゲームコントローラ | `src/game/gameboard.h` | `src/game/gameboard.cpp` |
 | 対局司令塔（一手の確定・終局・待った・中断と再開） | `src/game/matchcoordinator.h` | `src/game/matchcoordinator.cpp` |
 | 対局の設定・終局状態 | `src/game/matchcoordinator.h` | - |
 | 棋譜の受け手のインターフェース | `src/game/matchrecordsink.h` | - |

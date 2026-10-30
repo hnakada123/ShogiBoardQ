@@ -18,7 +18,7 @@ class TestGameStrategy : public QObject {
     {
         const auto& h = *m_observed;
         m_coherentMove = mover == Turn::Black && ply == 1 && h.sink.records.size() == 1
-            && h.gc.currentPlayer() == Turn::White && h.mc->record().moveCount() == 1
+            && h.gc.board()->currentPlayer() == Turn::White && h.mc->record().moveCount() == 1
             && h.sink.records.last().sfen == h.mc->record().lastSfen()
             && h.sink.records.last().time.toText() == h.clock.recordTime(Turn::Black).toText();
     }
@@ -51,7 +51,7 @@ private slots:
         startTimed(h);
         m_observed = &h;
         m_coherentMove = false;
-        connect(&h.gc, &ShogiGameController::moveCommitted, this, &TestGameStrategy::observeCommittedMove);
+        connect(&h.gc, &GameBoard::moveCommitted, this, &TestGameStrategy::observeCommittedMove);
         QVERIFY(engineMove(h, QStringLiteral("7g7f"), Turn::Black, 3000));
         QVERIFY(m_coherentMove);
         m_observed = nullptr;
@@ -71,7 +71,7 @@ private slots:
         startTimed(h);
         m_observed = &h;
         m_recordsAtCommit = -1;
-        connect(&h.gc, &ShogiGameController::moveCommitted, this, &TestGameStrategy::observeCommit);
+        connect(&h.gc, &GameBoard::moveCommitted, this, &TestGameStrategy::observeCommit);
         QSignalSpy evaluated(h.mc.get(), &MatchCoordinator::engineMovePlayed);
         if (human) {
             h.clock.setMeasuredConsiderationTime(Turn::Black, 3000);
@@ -92,7 +92,7 @@ private slots:
         QCOMPARE(recorded.time.elapsedMs, 3000);
         QCOMPARE(recorded.time.totalMs, 3000);
         QCOMPARE(h.mc->currentPly(), 1);
-        QCOMPARE(h.gc.currentPlayer(), Turn::White);
+        QCOMPARE(h.gc.board()->currentPlayer(), Turn::White);
         QCOMPARE(m_recordsAtCommit, 1);
         m_observed = nullptr;
     }

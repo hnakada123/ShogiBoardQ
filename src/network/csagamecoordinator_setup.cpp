@@ -13,17 +13,17 @@
 #include "sfenutils.h"
 #include "shogiboard.h"
 #include "shogiclock.h"
-#include "shogigamecontroller.h"
+#include "gameboard.h"
 #include "usi.h"
 #include <QSignalBlocker>
 
 bool CsaGameCoordinator::setupInitialPosition()
 {
-    if (!m_gameController || !m_gameController->board()) {
+    if (!m_gameBoard || !m_gameBoard->board()) {
         return true;
     }
 
-    const QSignalBlocker replayNotifications(m_gameController);
+    const QSignalBlocker replayNotifications(m_gameBoard);
     const QString hiratePosition = SfenUtils::hirateSfen();
 
     QString parseError;
@@ -34,12 +34,12 @@ bool CsaGameCoordinator::setupInitialPosition()
             << "CSA position parse failed. fallback to hirate. error=" << parseError;
         startSfen = hiratePosition;
     }
-    m_gameController->board()->setSfen(*startSfen);
-    m_gameController->board()->setMoveNumber(1);
+    m_gameBoard->board()->setSfen(*startSfen);
+    m_gameBoard->board()->setMoveNumber(1);
 
     CsaGameProgress& p = m_progress;
     p.record = RecordLine{};
-    p.record.startSfen = m_gameController->board()->toSfen();
+    p.record.startSfen = m_gameBoard->board()->toSfen();
 
     for (const QString& move : std::as_const(p.summary.moves)) {
         const std::optional<RecordEntry> played = playCsaMove(move);

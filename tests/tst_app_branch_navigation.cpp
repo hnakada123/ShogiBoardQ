@@ -32,7 +32,7 @@
 #include "sessionresetcoordinator.h"
 #include "sfenutils.h"
 #include "shogiboard.h"
-#include "shogigamecontroller.h"
+#include "gameboard.h"
 #include "test_replay.h"
 
 namespace {
@@ -43,7 +43,7 @@ const QString kNoLanceSfen =
 /// 盤の局面（手数を除く）
 QString boardPosition(const MainWindowComponents& p)
 {
-    return p.gameController->board()->toSfen().section(QLatin1Char(' '), 0, 2);
+    return p.gameBoard->board()->toSfen().section(QLatin1Char(' '), 0, 2);
 }
 
 QString position(const QString& sfen)

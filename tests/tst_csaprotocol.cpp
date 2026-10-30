@@ -24,7 +24,7 @@
 #include "csamoveconverter.h"
 #include "sfencsapositionconverter.h"
 #include "shogiboard.h"
-#include "shogigamecontroller.h"
+#include "gameboard.h"
 
 class Tst_CsaProtocol : public QObject
 {
@@ -125,7 +125,7 @@ private slots:
 
     void csaMoveConverter_promotedPieceMoveIsNotPromotion()
     {
-        ShogiGameController gc;
+        GameBoard gc;
         gc.newGame(QStringLiteral("lnsgkg1nl/1r5+B1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/7R1/LNSGKGSNL b B 5"));
         const auto move = CsaMoveConverter::toUsi(QStringLiteral("+2231UM"), gc.board()->position());
         QVERIFY(move);
@@ -875,7 +875,7 @@ private slots:
 
     void csaMoveConverter_dropWithoutHandIsRejected()
     {
-        ShogiGameController gc;
+        GameBoard gc;
         QString startSfen = QStringLiteral(
             "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
         gc.newGame(startSfen);

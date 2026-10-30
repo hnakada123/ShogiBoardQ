@@ -19,7 +19,7 @@
 #include "sfenutils.h"
 #include "shogiboard.h"
 #include "shogiclock.h"
-#include "shogigamecontroller.h"
+#include "gameboard.h"
 #include "usi.h"
 #include "usimatchhandler.h"
 #include "nyugyokujudgement.h"
@@ -40,14 +40,14 @@ constexpr int kBookMoveDelayMs = 1000;
 
 MatchCoordinator::MatchCoordinator(const Deps& deps, QObject* parent)
     : QObject(parent)
-    , m_gc(deps.gc)
+    , m_gameBoard(deps.gameBoard)
     , m_clock(deps.clock)
     , m_activity(deps.activity)
     , m_engines(deps.engines)
     , m_clockTime(deps.clock)
     , m_document(deps.document)
 {
-    Q_ASSERT(m_gc && m_clock && m_activity && m_engines);
+    Q_ASSERT(m_gameBoard && m_clock && m_activity && m_engines);
     connect(m_clock, &ShogiClock::playerTimeOut, this, &MatchCoordinator::handlePlayerTimeOut);
 }
 
@@ -73,7 +73,7 @@ void MatchCoordinator::start(const StartOptions& opt)
     m_record = resolved.recordLine;
     m_activityLease = m_activity->begin(AppActivityState::Activity::DuringGame, this);
 
-    m_gc->newGame(m_record.lastSfen());
+    m_gameBoard->newGame(m_record.lastSfen());
     applyTimeSettings(resolved.time);
     m_playing = false;
     m_waitingForEngines = false;
@@ -91,7 +91,7 @@ void MatchCoordinator::applyTimeSettings(const MatchTimeSettings& settings)
         << " P2{mainMs=" << rules.white.mainMs << " byoMs=" << rules.white.byoyomiMs << " incMs=" << rules.white.incrementMs << "}";
     m_clock->setLoseOnTimeout(!rules.isUnlimited() && settings.loseOnTimeout);
     m_clock->setTimeControl(rules);
-    m_clock->setCurrentPlayer(m_gc->currentPlayer());
+    m_clock->setCurrentPlayer(sideToMove());
 }
 
 void MatchCoordinator::beginPlay()
@@ -110,7 +110,7 @@ void MatchCoordinator::setWaitingForEngines(bool waiting)
 
 Turn MatchCoordinator::sideToMove() const
 {
-    return m_gc->currentPlayer();
+    return m_gameBoard->board()->currentPlayer();
 }
 
 void MatchCoordinator::createStrategy(const StartOptions& opt)
@@ -178,7 +178,7 @@ bool MatchCoordinator::completeHumanMove(const RecordEntry& played)
 bool MatchCoordinator::applyEngineMove(const UsiMatchMove& move)
 {
     if (isGameOver() || (m_sink && !m_sink->canAppendRecord())) return false;
-    const std::optional<RecordEntry> played = m_gc->applyMove(move.move, lastMoveDestination());
+    const std::optional<RecordEntry> played = m_gameBoard->applyMove(move.move, lastMoveDestination());
     if (!played) {
         handleEngineIllegalMove(move.side);
         return false;
@@ -197,7 +197,7 @@ bool MatchCoordinator::completeMove(RecordEntry played, std::optional<UsiScore> 
         m_clock->commitMove(mover);
         played.time = m_clock->recordTime(mover);
         m_clock->setConsiderationTimeMs(mover, 0);
-        m_clock->setCurrentPlayer(m_gc->currentPlayer());
+        m_clock->setCurrentPlayer(sideToMove());
     }
     // 棋譜に書くと表示中の手が最新の手になり、盤・ハイライト・手番の表示が合う
     m_record.entries.append(played);
@@ -205,7 +205,7 @@ bool MatchCoordinator::completeMove(RecordEntry played, std::optional<UsiScore> 
     // 時計の表示は時計を見る部品（TimeDisplayPresenter）が合わせる
     m_clock->notifyTimeUpdated();
     if (engineScore) emit engineMovePlayed(mover, currentPly(), *engineScore);
-    m_gc->notifyMoveCommitted(mover, currentPly());
+    m_gameBoard->notifyMoveCommitted(mover, currentPly());
 
     if (checkAndHandleSennichite()) return false;
     if (m_session.maxMoves() > 0 && currentPly() >= m_session.maxMoves()) {
@@ -253,7 +253,7 @@ void MatchCoordinator::forceImmediateMove()
 {
     if (isGameOver()) return;
     // 人間の手番に「すぐ指させる」を押しても先読みは止めない
-    if (Usi* engine = engineFor(m_gc->currentPlayer())) engine->requestImmediateMove();
+    if (Usi* engine = engineFor(sideToMove())) engine->requestImmediateMove();
 }
 
 // ============================================================
@@ -263,7 +263,7 @@ void MatchCoordinator::forceImmediateMove()
 void MatchCoordinator::handleResign()
 {
     if (isGameOver()) return;
-    const Turn loser = m_gc->currentPlayer();
+    const Turn loser = sideToMove();
     endGame({Cause::Resignation, loser}, loser, Notice::Announce);
 }
 
@@ -292,7 +292,7 @@ void MatchCoordinator::handleEngineWin(Turn side)
     // エンジンの入玉宣言（bestmove win）も人間の宣言と同じく、盤面から条件と点数を判定する。
     // 条件を満たさなければ宣言したエンジンの負け、24点法の24〜30点は持将棋。
     const NyugyokuJudgement::Result result =
-        NyugyokuJudgement::judgeEngineDeclaration(m_gc->board()->position(), side == Turn::Black, usesHandicapNames());
+        NyugyokuJudgement::judgeEngineDeclaration(m_gameBoard->board()->position(), side == Turn::Black, usesHandicapNames());
     handleNyugyokuDeclaration(side, result.success, result.isDraw);
     // 人間の宣言は宣言の結果ダイアログで知らせる。エンジンの宣言はここで判定結果を知らせる
     if (isGameOver()) emit gameOverMessage(NyugyokuJudgement::resultTitle(), result.message);
@@ -301,7 +301,7 @@ void MatchCoordinator::handleEngineWin(Turn side)
 NyugyokuJudgement::Result MatchCoordinator::declareNyugyoku(Turn declarer, JishogiCalculator::Rule rule)
 {
     const NyugyokuJudgement::Result result =
-        NyugyokuJudgement::judge(m_gc->board()->position(), declarer == Turn::Black, rule, usesHandicapNames());
+        NyugyokuJudgement::judge(m_gameBoard->board()->position(), declarer == Turn::Black, rule, usesHandicapNames());
     handleNyugyokuDeclaration(declarer, result.success, result.isDraw);
     return result;
 }
@@ -328,7 +328,7 @@ void MatchCoordinator::handleBreakOff()
     if (isGameOver()) return;
     // 中断の後に届く bestmove resign は、終局の知らせ（MatchEngineSeat::finish）の後なので受けない。
     // quit に応答しない場合も terminate/kill まで進める。中断後の思考表示は保持する。
-    endGame({Cause::BreakOff, m_gc->currentPlayer()}, std::nullopt, Notice::Interrupt);
+    endGame({Cause::BreakOff, sideToMove()}, std::nullopt, Notice::Interrupt);
 }
 
 void MatchCoordinator::handleMaxMovesJishogi()
@@ -419,21 +419,21 @@ void MatchCoordinator::endGame(const GameEndInfo& info, std::optional<Turn> engi
 
 void MatchCoordinator::appendTerminalRecord(const GameEndInfo& info)
 {
-    const Turn sideToMove = m_gc->currentPlayer();
+    const Turn toMove = sideToMove();
     TerminalType terminal = TerminalType::None;
     switch (info.cause) {
     case Cause::Jishogi: terminal = TerminalType::Impasse; break;
     case Cause::NyugyokuWin: terminal = TerminalType::DeclarationWin; break;
     case Cause::IllegalMove: terminal = TerminalType::IllegalLoss; break;
     case Cause::Sennichite: terminal = TerminalType::Repetition; break;
-    case Cause::OuteSennichite: terminal = RecordEntry::perpetualCheckTerminal(info.loser, sideToMove); break;
+    case Cause::OuteSennichite: terminal = RecordEntry::perpetualCheckTerminal(info.loser, toMove); break;
     case Cause::BreakOff: terminal = TerminalType::Interrupt; break;
     case Cause::Resignation: terminal = TerminalType::Resign; break;
     case Cause::Timeout: terminal = TerminalType::Timeout; break;
     }
 
     // 終局行の印と消費時間は、その行（投了・宣言など）を行った側のもの
-    const Turn mover = RecordEntry::endingSide(terminal, sideToMove, info.loser);
+    const Turn mover = RecordEntry::endingSide(terminal, toMove, info.loser);
     m_clock->commitMove(mover);
     const RecordEntry entry = RecordEntry::ending(terminal, mover, m_clock->recordTime(mover));
     if (m_sink && m_sink->canAppendRecord()) m_sink->appendRecord(entry);
@@ -474,8 +474,8 @@ QString MatchCoordinator::resultMessage(const GameEndInfo& info) const
 bool MatchCoordinator::undoTwoPlies()
 {
     // 開始局面を残すために2手分の手順が要る。人間の手番のときだけ戻す
-    if (isGameOver() || m_record.moveCount() < 2 || !m_gc->board()) return false;
-    if (!isHumanSide(m_gc->currentPlayer())) return false;
+    if (isGameOver() || m_record.moveCount() < 2 || !m_gameBoard->board()) return false;
+    if (!isHumanSide(sideToMove())) return false;
     if (m_sink && !m_sink->canUndoRecords(2)) return false;
 
     {
@@ -484,7 +484,7 @@ bool MatchCoordinator::undoTwoPlies()
         const int targetPly = currentPly() - 2;
 
         // 盤面と手番を戻す（「同」表記の基準は手順の最後の手から導く）
-        m_gc->board()->setSfen(m_record.sfenAt(targetPly));
+        m_gameBoard->board()->setSfen(m_record.sfenAt(targetPly));
         m_record.entries.resize(targetPly);
 
         // 時計を取り消した自分の手を指し始めたときへ戻し、考慮時間は今から測り直す
@@ -533,7 +533,7 @@ void MatchCoordinator::discardInterruptedGame()
 
 bool MatchCoordinator::resumeInterruptedGame()
 {
-    if (!m_interruptedGame || !m_gc->board()) return false;
+    if (!m_interruptedGame || !m_gameBoard->board()) return false;
     const auto state = std::move(m_interruptedGame);
     emit resumeAvailabilityChanged();
 
@@ -541,7 +541,7 @@ bool MatchCoordinator::resumeInterruptedGame()
     m_session.begin(state->options);
     m_activityLease = m_activity->begin(AppActivityState::Activity::DuringGame, this);
     m_record = state->record;
-    m_gc->board()->setSfen(m_record.lastSfen());
+    m_gameBoard->board()->setSfen(m_record.lastSfen());
 
     // 時計のスナップショットは持ち時間の決まりと時間切れの扱いも含む
     m_clock->restoreSnapshot(state->clock);

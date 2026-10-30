@@ -39,7 +39,7 @@ ShogiBoardQ プロジェクトにおけるデバッグ出力・ログの統一�
 
 | パターン | 例 |
 |---------|-----|
-| 関数の入口/出口トレース | `"prepareMove enter from="`, `"exit recSize="` |
+| 関数の入口/出口トレース | `"playMove from="`, `"exit recSize="` |
 | ポインタアドレスの出力 | `"sfenRecord*=" << static_cast<const void*>(ptr)` |
 | 毎手呼ばれるSFEN/盤面出力 | `"setSfen:"`, `"last sfen ="` |
 | 処理フロー分岐の確認 | `"HvE: forwarding to ..."`, `"not a live play mode"` |

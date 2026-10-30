@@ -19,7 +19,7 @@
 #include "mainwindowappearancecontroller.h"
 #include "playerinfopresenter.h"
 #include "sessionresetcoordinator.h"
-#include "shogigamecontroller.h"
+#include "gameboard.h"
 #include "shogiview.h"
 
 MainWindowComposer::MainWindowComposer(MainWindow& window, Ui::MainWindow& ui)
@@ -55,7 +55,7 @@ void MainWindowComposer::compose()
 void MainWindowComposer::finalizeUi()
 {
     // 盤・棋譜欄・分岐・手番と対局者名の初期表示（対局は始めない。盤の対局者名は対局情報の初期値「先手」「後手」）
-    m_c.shogiView->applyBoardAndRender(m_c.gameController->board());
+    m_c.shogiView->applyBoardAndRender(m_c.gameBoard->board());
     m_c.kifuDisplay->refresh();
 
     // ウィンドウの大きさ（小さすぎる保存値は使わない）と、起動時のドックのレイアウト

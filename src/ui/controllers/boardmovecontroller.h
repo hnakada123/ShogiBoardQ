@@ -16,7 +16,7 @@ class BoardInteractionController;
 class BranchTreeEditController;
 class MatchCoordinator;
 class PositionEditSession;
-class ShogiGameController;
+class GameBoard;
 class ShogiView;
 
 /**
@@ -37,7 +37,7 @@ class BoardMoveController : public QObject, public BoardInputRoute
 public:
     struct Deps {
         ShogiView* view = nullptr;                          ///< 盤（必須）
-        ShogiGameController* gameController = nullptr;      ///< 合法判定と着手（必須）
+        GameBoard* gameBoard = nullptr;                     ///< 合法判定と着手（必須）
         BoardInteractionController* board = nullptr;        ///< 盤の操作（必須）
         const AppActivityState* activity = nullptr;         ///< 動作状態（必須）
         MatchCoordinator* match = nullptr;                  ///< 対局の司令塔（必須）
