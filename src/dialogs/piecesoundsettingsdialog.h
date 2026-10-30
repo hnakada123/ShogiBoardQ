@@ -8,38 +8,47 @@
 
 #include "piecesoundtone.h"
 
-class PieceSoundPlayer;
 class QSlider;
 class QSpinBox;
 
 /**
  * @brief 駒音の音量・音の高さ・3バンドイコライザーをスライダーで調整するダイアログ
  *
- * 各スライダーの変更は PieceSoundPlayer に即時反映され、操作のたびに駒音を試聴できる。
- * 「標準に戻す」で全項目を既定値へ、キャンセルで開いたときの値へ戻す。
+ * 各スライダーの変更はすぐに volumeChanged・toneChanged で知らせ、操作のたびに previewRequested で試聴を頼む
+ * （駒音を鳴らすのは受け手。ui の DialogLauncher が PieceSoundPlayer に結ぶ）。
+ * 「標準に戻す」で全項目を既定値へ、キャンセルで開いたときの値へ戻す（戻した値も知らせる）。
  */
 class PieceSoundSettingsDialog : public QDialog
 {
     Q_OBJECT
 
 public:
-    explicit PieceSoundSettingsDialog(PieceSoundPlayer* player, QWidget* parent = nullptr);
+    /// volume・tone は開いたときの音量と音質
+    PieceSoundSettingsDialog(int volume, const PieceSoundTone& tone, QWidget* parent = nullptr);
 
 public slots:
     /// キャンセル: 開いたときの音量・音質へ戻して閉じる
     void reject() override;
 
+signals:
+    /// 音量が変わった（0〜100 %）
+    void volumeChanged(int percent);
+    /// 音質が変わった
+    void toneChanged(const PieceSoundTone& tone);
+    /// 今の設定で駒音を鳴らしてほしい（試聴）
+    void previewRequested();
+
 private slots:
-    /// 音量スライダーの変更をプレイヤーへ反映し、ドラッグ中でなければ試聴する
+    /// 音量スライダーの変更を知らせ、ドラッグ中でなければ試聴を頼む
     void onVolumeChanged(int value);
 
-    /// 音の高さ / EQ スライダーの変更をプレイヤーへ反映し、ドラッグ中でなければ試聴する
+    /// 音の高さ / EQ スライダーの変更を知らせ、ドラッグ中でなければ試聴を頼む
     void onToneSliderChanged();
 
     /// ドラッグ終了時に試聴する
     void onSliderReleased();
 
-    /// 現在の設定で駒音を鳴らす
+    /// 今の設定での試聴を頼む
     void previewSound();
 
     /// 全項目を既定値へ戻す
@@ -52,7 +61,6 @@ private:
     void updateLabels();
     bool anySliderDown() const;
 
-    PieceSoundPlayer* m_player;        ///< 駒音プレイヤー（非所有）
     int m_initialVolume;               ///< 開いたときの音量（キャンセル時に復元）
     PieceSoundTone m_initialTone;      ///< 開いたときの音質（キャンセル時に復元）
     bool m_updating = false;           ///< スライダー一括更新中は試聴を抑止する

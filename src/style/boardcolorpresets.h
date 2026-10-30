@@ -1,6 +1,9 @@
 #ifndef BOARDCOLORPRESETS_H
 #define BOARDCOLORPRESETS_H
 
+/// @file boardcolorpresets.h
+/// @brief 盤・駒台・背景のおすすめ配色（外観ダイアログの「詳細」の配色のコンボ）
+
 #include "boardcolors.h"
 #include <QCoreApplication>
 #include <QList>
@@ -11,18 +14,11 @@ struct BoardColorPreset {
     BoardColors colors;
 };
 
-struct BoardThemePreset {
-    QString id;
-    QString name;
-    BoardColors colors;
-};
-
-/// 詳細設定で使う全体テーマ・共通配色（駒セットの表示名は PieceStyleCatalog）。
+/// 盤・駒台・背景・罫線の配色の表（外観の全体の組み合わせは BoardAppearanceCatalog::combinations）
 class BoardColorPresets
 {
     Q_DECLARE_TR_FUNCTIONS(BoardColorPresets)
 public:
-    static QList<BoardThemePreset> themes();
     static QList<BoardColorPreset> palettes();
 };
 

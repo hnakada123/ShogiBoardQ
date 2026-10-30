@@ -1,44 +1,39 @@
-#include "boardcolordialog.h"
-#include "appsettings.h"
-#include "appearancestate.h"
-#include "piecestylecatalog.h"
-#include "boardappearance.h"
-#include "dialogfontscale.h"
-#include "pieceimageprovider.h"
-#include "boardsurfacepainter.h"
-#include "piecepainter.h"
+/// @file boardappearancedialog.cpp
+/// @brief 対局画面の外観ダイアログの実装
 
+#include "boardappearancedialog.h"
+#include "appearancesettings.h"
+#include "boardappearance.h"
+#include "boardappearancepreview.h"
+#include "boardappearancesamples.h"
+#include "dialogfontscale.h"
+#include "piecestylecatalog.h"
+
+#include <QCheckBox>
 #include <QColorDialog>
 #include <QComboBox>
 #include <QDialogButtonBox>
+#include <QEvent>
 #include <QFormLayout>
+#include <QHBoxLayout>
 #include <QLabel>
-#include <QPainter>
+#include <QListWidget>
 #include <QPushButton>
+#include <QScrollArea>
 #include <QSignalBlocker>
+#include <QSpinBox>
+#include <QTabBar>
 #include <QTabWidget>
 #include <QVBoxLayout>
 #include <optional>
-#include <utility>
-#include <QCheckBox>
-#include <QSpinBox>
-#include "boardappearancecatalog.h"
-#include "boardappearancepreview.h"
-#include <QApplication>
-#include <QEvent>
-#include <QHBoxLayout>
-#include <QHash>
-#include <QListWidget>
-#include <QScrollArea>
-#include <QStyledItemDelegate>
-#include <QTabBar>
-#include <functional>
 
-BoardColorDialog::BoardColorDialog(QWidget* parent)
+namespace Samples = BoardAppearanceSamples;
+
+BoardAppearanceDialog::BoardAppearanceDialog(QWidget* parent)
     : QDialog(parent), m_picker(new QColorDialog(this))
 {
     setWindowTitle(tr("対局画面の外観"));
-    m_opening = AppearanceState::current();
+    m_opening = BoardAppearance::instance().state();
     m_presets = BoardColorPresets::palettes();
     setMinimumSize(960, 640);
     auto* layout = new QVBoxLayout(this);
@@ -53,52 +48,52 @@ BoardColorDialog::BoardColorDialog(QWidget* parent)
     m_presetCombo->setIconSize(QSize(120, 72));
     m_presetCombo->setMaxVisibleItems(5);
     m_presetLabel->setBuddy(m_presetCombo);
-    connect(m_presetCombo, &QComboBox::activated, this, &BoardColorDialog::applyPreset);
-    connect(&PieceImageProvider::instance(), &PieceImageProvider::styleChanged,
-            this, &BoardColorDialog::rebuildPresets);
+    connect(m_presetCombo, &QComboBox::activated, this, &BoardAppearanceDialog::applyPreset);
+    connect(&BoardAppearance::instance(), &BoardAppearance::pieceStyleChanged,
+            this, &BoardAppearanceDialog::rebuildPresets);
     m_tabs = new QTabWidget(this);
     m_tabs->setObjectName(QStringLiteral("boardColorTabs"));
     m_tabs->setTabPosition(QTabWidget::West);
     createColorPages();
     createAppearancePage();
     createWorkspace(layout);
-    m_tabs->setCurrentIndex(qBound(0, AppSettings::boardColorDialogTab(), m_tabs->count() - 1));
+    m_tabs->setCurrentIndex(qBound(0, AppearanceSettings::boardColorDialogTab(), m_tabs->count() - 1));
     auto* buttons = new QDialogButtonBox(QDialogButtonBox::Close, this);
     auto* undo = buttons->addButton(tr("開いたときの外観に戻す"), QDialogButtonBox::ResetRole);
     undo->setObjectName(QStringLiteral("restoreOpeningAppearanceButton"));
-    connect(undo, &QPushButton::clicked, this, &BoardColorDialog::restoreOpeningAppearance);
+    connect(undo, &QPushButton::clicked, this, &BoardAppearanceDialog::restoreOpeningAppearance);
     auto* reset = buttons->addButton(tr("標準色に戻す"), QDialogButtonBox::ResetRole);
     reset->setObjectName(QStringLiteral("resetBoardColorsButton"));
-    connect(reset, &QPushButton::clicked, this, &BoardColorDialog::restoreDefaults);
+    connect(reset, &QPushButton::clicked, this, &BoardAppearanceDialog::restoreDefaults);
     connect(buttons, &QDialogButtonBox::rejected, this, &QDialog::reject);
     layout->addWidget(buttons);
 
     m_picker->setObjectName(QStringLiteral("boardColorPicker"));
     m_picker->setOption(QColorDialog::DontUseNativeDialog);
     m_picker->setWindowModality(Qt::WindowModal);
-    connect(m_picker, &QColorDialog::colorSelected, this, &BoardColorDialog::applyColor);
+    connect(m_picker, &QColorDialog::colorSelected, this, &BoardAppearanceDialog::applyColor);
     connect(&BoardAppearance::instance(), &BoardAppearance::colorsChanged,
-            this, &BoardColorDialog::refreshButtons);
+            this, &BoardAppearanceDialog::refreshButtons);
     rebuildPresets();
     refreshButtons();
     // 文字の大きさと、閉じたときに保存する大きさ（色の選択も同じ）
     DialogFontScale::Options dialogOptions;
-    dialogOptions.size = &AppSettings::boardColorDialogSize;
-    DialogFontScale::install(this, AppSettings::boardColorsDialogFontSize, dialogOptions);
+    dialogOptions.size = &AppearanceSettings::boardColorDialogSize;
+    DialogFontScale::install(this, AppearanceSettings::boardColorsDialogFontSize, dialogOptions);
     DialogFontScale::Options pickerOptions;
-    pickerOptions.size = &AppSettings::boardColorPickerSize;
-    DialogFontScale::install(m_picker, AppSettings::colorPickerDialogFontSize, pickerOptions);
+    pickerOptions.size = &AppearanceSettings::boardColorPickerSize;
+    DialogFontScale::install(m_picker, AppearanceSettings::colorPickerDialogFontSize, pickerOptions);
 }
 
-BoardColorDialog::~BoardColorDialog()
+BoardAppearanceDialog::~BoardAppearanceDialog()
 {
-    AppSettings::boardColorDialogTab.set(m_tabs->currentIndex());
+    AppearanceSettings::boardColorDialogTab.set(m_tabs->currentIndex());
     const int section = m_sections->currentIndex();
-    if (section >= 0 && section < m_sectionIds.size()) AppSettings::setAppearanceSection(m_sectionIds.at(section));
-    AppSettings::appearancePieceFilter.set(m_pieceFilter->currentIndex());
+    if (section >= 0 && section < m_sectionIds.size()) AppearanceSettings::setAppearanceSection(m_sectionIds.at(section));
+    AppearanceSettings::appearancePieceFilter.set(m_pieceFilter->currentIndex());
 }
 
-void BoardColorDialog::createColorPages()
+void BoardAppearanceDialog::createColorPages()
 {
     auto page = [this](const QString& title, const QString& note = QString()) {
         auto* widget = new QWidget(m_tabs);
@@ -142,10 +137,10 @@ void BoardColorDialog::createColorPages()
     }
 }
 
-void BoardColorDialog::addColorField(QFormLayout* form, const BoardColors::Field& field)
+void BoardAppearanceDialog::addColorField(QFormLayout* form, const BoardColors::Field& field)
 {
     const BoardColors::Member member = field.member;
-    const QString label = QCoreApplication::translate("BoardColorDialog", field.label);
+    const QString label = QCoreApplication::translate("BoardAppearanceDialog", field.label);
     auto* button = new QPushButton(this);
     button->setObjectName(QString::fromLatin1(field.objectName));
     button->setAccessibleName(label);
@@ -154,10 +149,10 @@ void BoardColorDialog::addColorField(QFormLayout* form, const BoardColors::Field
     button->setAutoDefault(false);
     form->addRow(label, button);
     m_fields.append({button, member, label});
-    connect(button, &QPushButton::clicked, this, &BoardColorDialog::chooseColor);
+    connect(button, &QPushButton::clicked, this, &BoardAppearanceDialog::chooseColor);
 }
 
-void BoardColorDialog::chooseColor()
+void BoardAppearanceDialog::chooseColor()
 {
     for (const auto& field : std::as_const(m_fields)) {
         if (field.button != sender()) continue;
@@ -170,45 +165,34 @@ void BoardColorDialog::chooseColor()
     }
 }
 
-void BoardColorDialog::applyColor(const QColor& color)
+void BoardAppearanceDialog::applyColor(const QColor& color)
 {
     if (!m_selectedMember || !color.isValid()) return;
-    AppearanceState state = AppearanceState::current();
+    AppearanceState state = BoardAppearance::instance().state();
     state.colors.*m_selectedMember = color;
-    state.apply();
+    BoardAppearance::instance().apply(state);
 }
 
-void BoardColorDialog::refreshButtons()
+void BoardAppearanceDialog::refreshButtons()
 {
     const auto colors = BoardAppearance::instance().colors();
     for (const auto& field : std::as_const(m_fields)) {
         const QColor color = colors.*field.member;
-        QPixmap swatch(36, 22);
-        swatch.fill(Qt::white);
-        QPainter painter(&swatch);
-        for (int y = 0; y < swatch.height(); y += 6)
-            for (int x = 0; x < swatch.width(); x += 6)
-                if ((x / 6 + y / 6) % 2 == 0) painter.fillRect(x, y, 6, 6, QColor(210, 210, 210));
-        painter.fillRect(swatch.rect(), color);
-        painter.setPen(palette().color(QPalette::Mid));
-        painter.drawRect(swatch.rect().adjusted(0, 0, -1, -1));
-        painter.end();
-        field.button->setIcon(QIcon(swatch));
+        field.button->setIcon(Samples::colorSwatch(color, palette().color(QPalette::Mid)));
         field.button->setText(color.name(color.alpha() == 255 ? QColor::HexRgb : QColor::HexArgb).toUpper());
     }
     syncPresetSelection();
-    syncThemeSelection();
 }
 
-void BoardColorDialog::restoreDefaults()
+void BoardAppearanceDialog::restoreDefaults()
 {
     BoardAppearance::instance().setColors(BoardColors{});
 }
 
-void BoardColorDialog::rebuildPresets()
+void BoardAppearanceDialog::rebuildPresets()
 {
     // 配色は駒のセットによらない。見本に描く駒と見出しの駒の名前だけを描き直す
-    const QString style = PieceImageProvider::instance().style();
+    const QString style = BoardAppearance::instance().pieceStyle();
     m_presetLabel->setText(tr("%1に合うおすすめ配色").arg(PieceStyleCatalog::displayName(style)));
     const QSignalBlocker blocker(m_presetCombo);
     if (m_presetCombo->count() != m_presets.size()) {
@@ -216,24 +200,23 @@ void BoardColorDialog::rebuildPresets()
         for (const auto& preset : std::as_const(m_presets)) m_presetCombo->addItem(preset.name);
     }
     for (int i = 0; i < m_presetCombo->count(); ++i)
-        m_presetCombo->setItemIcon(i, presetIcon(m_presets.at(i).colors));
+        m_presetCombo->setItemIcon(i, Samples::paletteSample(m_presets.at(i).colors, style));
     syncPresetSelection();
-    syncThemeSelection();
 }
 
-void BoardColorDialog::applyPreset(int index)
+void BoardAppearanceDialog::applyPreset(int index)
 {
     if (index < 0 || index >= m_presets.size()) return;
-    AppearanceState state = AppearanceState::current();
+    AppearanceState state = BoardAppearance::instance().state();
     const auto& selected = m_presets.at(index).colors;
     state.colors.background = selected.background;
     state.colors.board = selected.board;
     state.colors.stand = selected.stand;
     state.colors.grid = selected.grid;
-    state.apply();
+    BoardAppearance::instance().apply(state);
 }
 
-void BoardColorDialog::syncPresetSelection()
+void BoardAppearanceDialog::syncPresetSelection()
 {
     const auto colors = BoardAppearance::instance().colors();
     int selected = -1;
@@ -247,51 +230,18 @@ void BoardColorDialog::syncPresetSelection()
     m_presetCombo->setCurrentIndex(selected);
 }
 
-QIcon BoardColorDialog::presetIcon(const BoardColors& colors, const QString& style,
-                                  const BoardVisuals& visuals) const
-{
-    // 高DPIでも輪郭が崩れないよう2倍で描画する。
-    QPixmap preview(240, 144);
-    preview.setDevicePixelRatio(2);
-    preview.fill(colors.background);
-    QPainter painter(&preview);
-    BoardSurfacePainter::draw(painter, QRect(4, 5, 22, 29), colors.stand, visuals.standWoodGrain, 20);
-    BoardSurfacePainter::draw(painter, QRect(94, 38, 22, 29), colors.stand, visuals.standWoodGrain, 20);
-    BoardSurfacePainter::draw(painter, QRect(28, 1, 64, 70), colors.board, visuals.woodGrain, 20);
-    painter.setBrush(Qt::NoBrush);
-    painter.setPen(colors.grid);
-    for (int row = 0; row < 3; ++row)
-        for (int col = 0; col < 3; ++col)
-            painter.drawRect(QRect(30 + col * 20, 3 + row * 22, 20, 22));
-    auto& pieces = PieceImageProvider::instance();
-    const QString selected = style.isEmpty() ? pieces.style() : style;
-    PiecePainter::draw(painter, pieces.iconForStyle(Piece::WhiteDragon, selected), QRect(50, 3, 20, 22), visuals);
-    PiecePainter::draw(painter, pieces.iconForStyle(Piece::BlackPawn, selected), QRect(70, 25, 20, 22), visuals);
-    PiecePainter::draw(painter, pieces.iconForStyle(Piece::BlackKing, selected), QRect(50, 47, 20, 22), visuals);
-    painter.end();
-    return QIcon(preview);
-}
-
 // ============================================================
 // 外観のページ（木目・影・駒の倍率）
 // ============================================================
 
-void BoardColorDialog::createAppearancePage()
+void BoardAppearanceDialog::createAppearancePage()
 {
     auto* page = new QWidget(m_tabs);
     auto* layout = new QVBoxLayout(page);
-    auto* description = new QLabel(tr("盤・駒台・駒・対局者情報をまとめて整える外観です。選択するとすべての将棋盤に反映・保存されます。"), page);
+    auto* description = new QLabel(tr("駒の大きさ・駒の影・木目を設定します。すべての将棋盤に反映・保存されます。"), page);
     description->setWordWrap(true);
     layout->addWidget(description);
     auto* form = new QFormLayout;
-    m_themeCombo = new QComboBox(page);
-    m_themeCombo->setObjectName(QStringLiteral("boardThemeCombo"));
-    m_themeCombo->setPlaceholderText(tr("カスタム（個別に指定）"));
-    m_themeCombo->setIconSize(QSize(120, 72));
-    m_themes = BoardColorPresets::themes();
-    for (const auto& theme : std::as_const(m_themes))
-        m_themeCombo->addItem(presetIcon(theme.colors, PieceStyleCatalog::standardId()), theme.name, theme.id);
-    form->addRow(tr("外観"), m_themeCombo);
     m_pieceScale = new QSpinBox(page);
     m_pieceScale->setObjectName(QStringLiteral("boardPieceScale"));
     m_pieceScale->setRange(90, 112);
@@ -307,38 +257,25 @@ void BoardColorDialog::createAppearancePage()
     m_standWoodGrain = new QCheckBox(tr("駒台の木目を表示する"), page);
     m_standWoodGrain->setObjectName(QStringLiteral("standWoodGrain"));
     layout->addWidget(m_standWoodGrain);
-    auto* note = new QLabel(tr("外観を選ぶと「標準の駒」と標準の大きさ・影に切り替わります。各部品はこのウィンドウの見本から個別に選べます。"), page);
-    note->setWordWrap(true);
-    layout->addWidget(note);
     layout->addStretch();
     // 既存タブの保存済み番号を維持するため末尾に追加する。
     m_tabs->addTab(page, tr("外観"));
     refreshVisuals();
-    connect(m_themeCombo, &QComboBox::activated, this, &BoardColorDialog::applyTheme);
-    connect(m_pieceScale, &QSpinBox::valueChanged, this, &BoardColorDialog::applyVisuals);
-    connect(m_woodGrain, &QCheckBox::toggled, this, &BoardColorDialog::applyVisuals);
-    connect(m_pieceShadow, &QCheckBox::toggled, this, &BoardColorDialog::applyVisuals);
-    connect(m_standWoodGrain, &QCheckBox::toggled, this, &BoardColorDialog::applyVisuals);
+    connect(m_pieceScale, &QSpinBox::valueChanged, this, &BoardAppearanceDialog::applyVisuals);
+    connect(m_woodGrain, &QCheckBox::toggled, this, &BoardAppearanceDialog::applyVisuals);
+    connect(m_pieceShadow, &QCheckBox::toggled, this, &BoardAppearanceDialog::applyVisuals);
+    connect(m_standWoodGrain, &QCheckBox::toggled, this, &BoardAppearanceDialog::applyVisuals);
     connect(&BoardAppearance::instance(), &BoardAppearance::visualsChanged,
-            this, &BoardColorDialog::refreshVisuals);
+            this, &BoardAppearanceDialog::refreshVisuals);
 }
 
-void BoardColorDialog::applyTheme(int index)
-{
-    if (index < 0 || index >= m_themes.size()) return;
-    AppearanceState state;
-    state.colors = m_themes.at(index).colors;
-    state.apply();
-    syncThemeSelection();
-}
-
-void BoardColorDialog::applyVisuals()
+void BoardAppearanceDialog::applyVisuals()
 {
     BoardAppearance::instance().setVisuals({m_woodGrain->isChecked(), m_pieceShadow->isChecked(),
                                           m_pieceScale->value(), m_standWoodGrain->isChecked()});
 }
 
-void BoardColorDialog::refreshVisuals()
+void BoardAppearanceDialog::refreshVisuals()
 {
     const auto visuals = BoardAppearance::instance().visuals();
     const QSignalBlocker blockGrain(m_woodGrain), blockShadow(m_pieceShadow), blockScale(m_pieceScale), blockStand(m_standWoodGrain);
@@ -346,171 +283,15 @@ void BoardColorDialog::refreshVisuals()
     m_pieceShadow->setChecked(visuals.pieceShadow);
     m_pieceScale->setValue(visuals.pieceScale);
     m_standWoodGrain->setChecked(visuals.standWoodGrain);
-    syncThemeSelection();
-}
-
-void BoardColorDialog::syncThemeSelection()
-{
-    if (!m_themeCombo) return;
-    // 外観（テーマ）は標準の駒・標準の見た目と、テーマの配色の組
-    int selected = -1;
-    const AppearanceState current = AppearanceState::current();
-    for (qsizetype i = 0; i < m_themes.size(); ++i) {
-        AppearanceState theme;
-        theme.colors = m_themes.at(i).colors;
-        if (theme == current) selected = static_cast<int>(i);
-    }
-    const QSignalBlocker blocker(m_themeCombo);
-    m_themeCombo->setCurrentIndex(selected);
 }
 
 // ============================================================
 // 盤と駒の組み合わせの一覧
 // ============================================================
 
-namespace {
 using Component = BoardAppearanceCatalog::Component;
-QListWidget* gallery(QWidget* parent, const QString& name)
-{
-    auto* list = new QListWidget(parent);
-    list->setObjectName(name);
-    list->setViewMode(QListView::IconMode);
-    list->setResizeMode(QListView::Adjust);
-    list->setMovement(QListView::Static);
-    list->setSelectionMode(QAbstractItemView::SingleSelection);
-    list->setIconSize(QSize(142, 86));
-    list->setGridSize(QSize(164, 120));
-    list->setSpacing(4);
-    list->setWordWrap(true);
-    list->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    list->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
-    list->setStyleSheet(QStringLiteral(
-        "QListWidget { border: 0; background: palette(base); }"
-        "QListWidget::item { border: 1px solid palette(midlight); border-radius: 6px; padding: 5px; }"
-        "QListWidget::item:selected { border: 2px solid palette(highlight); background: palette(alternate-base); color: palette(text); }"
-        "QListWidget::item:hover { border-color: palette(highlight); }"));
-    return list;
-}
 
-QIcon sampleIconWithoutTint(const QPixmap& image)
-{
-    QIcon icon(image);
-    // 選択中にも Qt の選択色で見本の駒や配色を着色しない。
-    icon.addPixmap(image, QIcon::Selected);
-    icon.addPixmap(image, QIcon::Active);
-    return icon;
-}
-
-QPixmap blankSample()
-{
-    QPixmap image(284, 172);
-    image.setDevicePixelRatio(2);
-    image.fill(Qt::transparent);
-    return image;
-}
-
-// 見本は、一覧で画面に見えた項目だけを描く。開くたびに全項目を描くと、駒のセットや
-// 盤・駒台などの見本を増やすほどウィンドウを開くのが遅くなり、メモリも増えるため。
-class LazySampleDelegate : public QStyledItemDelegate
-{
-public:
-    using Render = std::function<QIcon(const QModelIndex&)>;
-
-    LazySampleDelegate(Render render, QObject* parent)
-        : QStyledItemDelegate(parent), m_render(std::move(render))
-    {
-    }
-
-    void paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const override
-    {
-        QStyleOptionViewItem opt = option;
-        initStyleOption(&opt, index);
-        const auto it = m_samples.constFind(index.row());
-        if (it != m_samples.cend()) {
-            opt.icon = *it;
-        } else {
-            opt.icon = m_render(index);
-            m_samples.insert(index.row(), opt.icon);
-        }
-        const QWidget* widget = opt.widget;
-        QStyle* style = widget ? widget->style() : QApplication::style();
-        style->drawControl(QStyle::CE_ItemViewItem, &opt, painter, widget);
-    }
-
-    // 描いた見本を捨てて、次に見えたときに描き直させる。
-    void clear() { m_samples.clear(); }
-
-private:
-    Render m_render;
-    mutable QHash<int, QIcon> m_samples;
-};
-
-QIcon pieceSampleIcon(const QString& style)
-{
-    QPixmap image = blankSample();
-    QPainter painter(&image);
-    static constexpr Piece glyphs[] = {Piece::BlackKing, Piece::BlackPawn, Piece::BlackDragon};
-    for (int i = 0; i < 3; ++i)
-        PiecePainter::draw(painter, PieceImageProvider::instance().iconForStyle(glyphs[i], style),
-                           QRect(4 + i * 46, 16, 43, 48), {});
-    painter.end();
-    return sampleIconWithoutTint(image);
-}
-
-QIcon sampleIcon(Component component, const BoardAppearanceSample& sample, const QString& style)
-{
-    QPixmap image = blankSample();
-    QPainter painter(&image);
-    painter.setRenderHint(QPainter::Antialiasing);
-    const auto& c = sample.colors;
-    auto& pieces = PieceImageProvider::instance();
-    if (component == Component::Information) {
-        painter.setPen(QPen(c.activeCardBorder, 2));
-        painter.setBrush(c.cardBackground);
-        painter.drawRoundedRect(QRectF(6, 3, 130, 78), 5, 5);
-        painter.setPen(Qt::NoPen);
-        painter.setBrush(c.turnBackground);
-        painter.drawRoundedRect(QRectF(14, 10, 36, 18), 3, 3);
-        QFont font = painter.font();
-        font.setPixelSize(11);
-        font.setBold(true);
-        painter.setFont(font);
-        painter.setPen(c.turnText);
-        painter.drawText(QRect(14, 10, 36, 18), Qt::AlignCenter, BoardColorDialog::tr("手番"));
-        font.setPixelSize(14);
-        font.setBold(false);
-        painter.setFont(font);
-        painter.setPen(c.nameText);
-        painter.drawText(QRect(14, 32, 114, 18), Qt::AlignLeft, BoardColorDialog::tr("▲先手"));
-        font.setPixelSize(22);
-        font.setBold(true);
-        painter.setFont(font);
-        painter.setPen(c.clockText);
-        painter.drawText(QRect(14, 52, 114, 27), Qt::AlignLeft, QStringLiteral("09:58"));
-    } else if (component == Component::Stand) {
-        BoardSurfacePainter::draw(painter, QRectF(14, 3, 112, 76), c.stand, sample.woodGrain, 30);
-        PiecePainter::draw(painter, pieces.iconForStyle(Piece::BlackBishop, style), QRect(23, 19, 42, 46), {});
-        PiecePainter::draw(painter, pieces.iconForStyle(Piece::BlackPawn, style), QRect(73, 22, 39, 43), {});
-    } else if (component == Component::Background) {
-        painter.setPen(Qt::NoPen);
-        painter.setBrush(c.background);
-        painter.drawRoundedRect(QRectF(6, 3, 130, 78), 5, 5);
-    } else {
-        BoardSurfacePainter::draw(painter, QRectF(16, 3, 110, 77), c.board, sample.woodGrain, 25);
-        painter.setPen(QPen(c.grid, .6));
-        for (int i = 0; i <= 3; ++i) {
-            painter.drawLine(QPointF(22 + i * 32, 8), QPointF(22 + i * 32, 74));
-            painter.drawLine(QPointF(22, 8 + i * 22), QPointF(118, 8 + i * 22));
-        }
-        PiecePainter::draw(painter, pieces.iconForStyle(Piece::WhitePawn, style), QRect(54, 8, 24, 25), {});
-        PiecePainter::draw(painter, pieces.iconForStyle(Piece::BlackKing, style), QRect(84, 48, 29, 29), {});
-    }
-    painter.end();
-    return sampleIconWithoutTint(image);
-}
-}
-
-void BoardColorDialog::createWorkspace(QVBoxLayout* layout)
+void BoardAppearanceDialog::createWorkspace(QVBoxLayout* layout)
 {
     auto* content = new QHBoxLayout;
     m_sections = new QTabWidget(this);
@@ -526,14 +307,14 @@ void BoardColorDialog::createWorkspace(QVBoxLayout* layout)
     for (int family = 1; family < static_cast<int>(PieceStyleCatalog::Family::Count); ++family)
         m_pieceFilter->addItem(PieceStyleCatalog::familyName(static_cast<PieceStyleCatalog::Family>(family)));
     pieceLayout->addWidget(m_pieceFilter);
-    m_pieceList = gallery(piecePage, QStringLiteral("appearancePieces"));
+    m_pieceList = Samples::createGallery(piecePage, QStringLiteral("appearancePieces"));
     m_pieceList->viewport()->installEventFilter(this);
-    m_pieceList->setItemDelegate(new LazySampleDelegate([](const QModelIndex& index) {
-        return pieceSampleIcon(index.data(Qt::UserRole).toString());
+    m_pieceList->setItemDelegate(new Samples::LazySampleDelegate([](const QModelIndex& index) {
+        return Samples::pieceSample(index.data(Qt::UserRole).toString());
     }, m_pieceList));
     pieceLayout->addWidget(m_pieceList);
     // 見本は描くときに作る。項目の大きさを揃えるため、同じ大きさの空の画像を全項目で共有する。
-    const QIcon placeholder = sampleIconWithoutTint(blankSample());
+    const QIcon placeholder = Samples::placeholder();
     for (const auto& entry : PieceStyleCatalog::entries()) {
         const QString style = QString::fromLatin1(entry.id);
         auto* item = new QListWidgetItem(placeholder, PieceStyleCatalog::displayName(style), m_pieceList);
@@ -567,12 +348,12 @@ void BoardColorDialog::createWorkspace(QVBoxLayout* layout)
         auto* note = new QLabel(section.note, page);
         note->setWordWrap(true);
         column->addWidget(note);
-        auto* list = gallery(page, QString::fromLatin1(section.listName));
+        auto* list = Samples::createGallery(page, QString::fromLatin1(section.listName));
         list->viewport()->installEventFilter(this);
         list->setProperty("component", static_cast<int>(component));
-        list->setItemDelegate(new LazySampleDelegate([component](const QModelIndex& index) {
-            return sampleIcon(component, BoardAppearanceCatalog::samples(component).at(index.row()),
-                              PieceImageProvider::instance().style());
+        list->setItemDelegate(new Samples::LazySampleDelegate([component](const QModelIndex& index) {
+            return Samples::componentSample(component, BoardAppearanceCatalog::samples(component).at(index.row()),
+                                            BoardAppearance::instance().pieceStyle());
         }, list));
         const auto samples = BoardAppearanceCatalog::samples(component);
         for (const auto& sample : samples)
@@ -580,7 +361,7 @@ void BoardColorDialog::createWorkspace(QVBoxLayout* layout)
         m_componentLists.at(static_cast<std::size_t>(component)) = list;
         column->addWidget(list);
         addSection(QString::fromLatin1(section.id), page, section.title);
-        connect(list, &QListWidget::currentRowChanged, this, &BoardColorDialog::selectComponent);
+        connect(list, &QListWidget::currentRowChanged, this, &BoardAppearanceDialog::selectComponent);
     }
     auto* details = new QScrollArea(m_sections);
     details->setWidgetResizable(true);
@@ -630,25 +411,25 @@ void BoardColorDialog::createWorkspace(QVBoxLayout* layout)
 
     connect(position, &QComboBox::currentIndexChanged, m_preview, &BoardAppearancePreview::setPosition);
     connect(flip, &QPushButton::toggled, m_preview, &BoardAppearancePreview::setFlipped);
-    connect(m_pieceList, &QListWidget::currentRowChanged, this, &BoardColorDialog::selectPiece);
-    connect(m_pieceFilter, &QComboBox::currentIndexChanged, this, &BoardColorDialog::filterPieces);
-    connect(m_combinations, &QComboBox::activated, this, &BoardColorDialog::applyCombination);
-    connect(&BoardAppearance::instance(), &BoardAppearance::colorsChanged, this, &BoardColorDialog::syncCatalog);
-    connect(&BoardAppearance::instance(), &BoardAppearance::visualsChanged, this, &BoardColorDialog::syncCatalog);
-    connect(&PieceImageProvider::instance(), &PieceImageProvider::styleChanged,
-            this, &BoardColorDialog::refreshCatalogIcons);
-    m_sections->setCurrentIndex(qMax(0, static_cast<int>(m_sectionIds.indexOf(AppSettings::appearanceSection()))));
-    m_pieceFilter->setCurrentIndex(AppSettings::appearancePieceFilter());
+    connect(m_pieceList, &QListWidget::currentRowChanged, this, &BoardAppearanceDialog::selectPiece);
+    connect(m_pieceFilter, &QComboBox::currentIndexChanged, this, &BoardAppearanceDialog::filterPieces);
+    connect(m_combinations, &QComboBox::activated, this, &BoardAppearanceDialog::applyCombination);
+    connect(&BoardAppearance::instance(), &BoardAppearance::colorsChanged, this, &BoardAppearanceDialog::syncCatalog);
+    connect(&BoardAppearance::instance(), &BoardAppearance::visualsChanged, this, &BoardAppearanceDialog::syncCatalog);
+    connect(&BoardAppearance::instance(), &BoardAppearance::pieceStyleChanged,
+            this, &BoardAppearanceDialog::refreshCatalogIcons);
+    m_sections->setCurrentIndex(qMax(0, static_cast<int>(m_sectionIds.indexOf(AppearanceSettings::appearanceSection()))));
+    m_pieceFilter->setCurrentIndex(AppearanceSettings::appearancePieceFilter());
     syncCatalog();
 }
 
-void BoardColorDialog::selectPiece(int row)
+void BoardAppearanceDialog::selectPiece(int row)
 {
     if (row < 0) return;
-    PieceImageProvider::instance().setStyle(m_pieceList->item(row)->data(Qt::UserRole).toString());
+    BoardAppearance::instance().setPieceStyle(m_pieceList->item(row)->data(Qt::UserRole).toString());
 }
 
-void BoardColorDialog::selectComponent(int row)
+void BoardAppearanceDialog::selectComponent(int row)
 {
     if (row < 0) return;
     auto* list = qobject_cast<QListWidget*>(sender());
@@ -656,12 +437,12 @@ void BoardColorDialog::selectComponent(int row)
     const auto component = static_cast<Component>(list->property("component").toInt());
     const auto samples = BoardAppearanceCatalog::samples(component);
     if (row >= samples.size()) return;
-    AppearanceState state = AppearanceState::current();
+    AppearanceState state = BoardAppearance::instance().state();
     BoardAppearanceCatalog::apply(component, samples.at(row), state.colors, state.visuals);
-    state.apply();
+    BoardAppearance::instance().apply(state);
 }
 
-void BoardColorDialog::filterPieces(int index)
+void BoardAppearanceDialog::filterPieces(int index)
 {
     // index は PieceStyleCatalog::Family の値（0 は「すべて」）
     if (index < 0 || index >= static_cast<int>(PieceStyleCatalog::Family::Count)) return;
@@ -672,19 +453,19 @@ void BoardColorDialog::filterPieces(int index)
     }
 }
 
-void BoardColorDialog::refreshCatalogIcons()
+void BoardAppearanceDialog::refreshCatalogIcons()
 {
     // 盤・駒台の見本には選択中の駒を描くので、駒のセットが変わったら描き直す。
     for (auto* list : std::as_const(m_componentLists)) {
-        static_cast<LazySampleDelegate*>(list->itemDelegate())->clear();
+        static_cast<Samples::LazySampleDelegate*>(list->itemDelegate())->clear();
         list->viewport()->update();
     }
     syncCatalog();
 }
 
-void BoardColorDialog::syncCatalog()
+void BoardAppearanceDialog::syncCatalog()
 {
-    const AppearanceState state = AppearanceState::current();
+    const AppearanceState state = BoardAppearance::instance().state();
     const QSignalBlocker blockPieces(m_pieceList), blockCombinations(m_combinations);
     m_pieceList->setCurrentRow(static_cast<int>(PieceStyleCatalog::ids().indexOf(state.pieceStyle)));
     QString names[BoardAppearanceCatalog::kComponentCount];
@@ -705,25 +486,26 @@ void BoardColorDialog::syncCatalog()
     m_combinations->setCurrentIndex(BoardAppearanceCatalog::combinationIndex(state));
 }
 
-void BoardColorDialog::applyCombination(int index)
+void BoardAppearanceDialog::applyCombination(int index)
 {
     const auto& combinations = BoardAppearanceCatalog::combinations();
     if (index < 0 || index >= combinations.size()) return;
-    BoardAppearanceCatalog::applied(combinations.at(index), AppearanceState::current()).apply();
+    auto& appearance = BoardAppearance::instance();
+    appearance.apply(BoardAppearanceCatalog::applied(combinations.at(index), appearance.state()));
 }
 
-void BoardColorDialog::restoreOpeningAppearance()
+void BoardAppearanceDialog::restoreOpeningAppearance()
 {
-    m_opening.apply();
+    BoardAppearance::instance().apply(m_opening);
 }
 
-void BoardColorDialog::addSection(const QString& id, QWidget* page, const QString& title)
+void BoardAppearanceDialog::addSection(const QString& id, QWidget* page, const QString& title)
 {
     m_sections->addTab(page, title);
     m_sectionIds.append(id);
 }
 
-bool BoardColorDialog::eventFilter(QObject* watched, QEvent* event)
+bool BoardAppearanceDialog::eventFilter(QObject* watched, QEvent* event)
 {
     if (event->type() == QEvent::Resize || event->type() == QEvent::FontChange) {
         auto* viewport = qobject_cast<QWidget*>(watched);

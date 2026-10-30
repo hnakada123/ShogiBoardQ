@@ -12,7 +12,7 @@
 class QWidget;
 class QDockWidget;
 class ShogiView;
-class BoardColorDialog;
+class BoardAppearanceDialog;
 class CsaGameDialog;
 class CsaGameSession;
 class SfenCollectionDialog;
@@ -80,7 +80,7 @@ private:
     // Lifecycle: Created on open, deleted on close (WA_DeleteOnClose)
     QPointer<SfenCollectionDialog> m_sfenCollectionDialog;
     // 盤の外観の設定は開いたまま盤を見比べられるようにモードレスで1つだけ開く（閉じたら破棄）
-    QPointer<BoardColorDialog> m_boardColorDialog;
+    QPointer<BoardAppearanceDialog> m_appearanceDialog;
 };
 
 #endif // DIALOGLAUNCHER_H

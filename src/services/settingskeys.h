@@ -10,14 +10,6 @@
 
 namespace SettingsKeys {
 
-// --- UI ---
-inline constexpr char kPieceStyle[]                      = "UI/pieceStyle";
-inline constexpr char kBoardWoodGrain[]                  = "BoardVisuals/woodGrain";
-inline constexpr char kStandWoodGrain[]                  = "BoardVisuals/standWoodGrain";
-inline constexpr char kAppearanceSection[]               = "UI/appearanceSection";
-inline constexpr char kBoardPieceShadow[]                = "BoardVisuals/pieceShadow";
-inline constexpr char kBoardPieceScale[]                 = "BoardVisuals/pieceScale";
-
 // --- Sound ---
 
 // --- EngineInfo (動的キー: QString(...).arg(idx) で使用) ---

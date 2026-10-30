@@ -1,35 +1,50 @@
-/// @file appsettings.cpp
-/// @brief アプリケーション全般設定の永続化実装
+/// @file appearancesettings.cpp
+/// @brief 対局画面の外観と外観ダイアログの設定の永続化実装
 
-#include "appsettings.h"
+#include "appearancesettings.h"
 #include "settingscommon.h"
-#include "settingskeys.h"
-#include "piecestylecatalog.h"
+
 #include <QSettings>
 
-namespace AppSettings {
+namespace AppearanceSettings {
 
-// --- UI状態 ---
+namespace {
+constexpr char kPieceStyle[] = "UI/pieceStyle";
+constexpr char kBoardWoodGrain[] = "BoardVisuals/woodGrain";
+constexpr char kStandWoodGrain[] = "BoardVisuals/standWoodGrain";
+constexpr char kBoardPieceShadow[] = "BoardVisuals/pieceShadow";
+constexpr char kBoardPieceScale[] = "BoardVisuals/pieceScale";
+constexpr char kAppearanceSection[] = "UI/appearanceSection";
+
+const StructSetting<BoardVisuals>& visualsSetting()
+{
+    static const StructSetting<BoardVisuals> setting{
+        {SettingField<BoardVisuals>::of(kBoardWoodGrain, &BoardVisuals::woodGrain),
+         SettingField<BoardVisuals>::of(kStandWoodGrain, &BoardVisuals::standWoodGrain),
+         SettingField<BoardVisuals>::of(kBoardPieceShadow, &BoardVisuals::pieceShadow),
+         SettingField<BoardVisuals>::of(kBoardPieceScale, &BoardVisuals::pieceScale)},
+        &BoardVisuals::normalized};
+    return setting;
+}
+} // namespace
+
+// --- 外観 ---
 
 QString pieceStyle()
 {
     auto& settings = SettingsCommon::openSettings();
-    const QString style = settings.value(SettingsKeys::kPieceStyle, PieceStyleCatalog::standardId()).toString();
+    const QString style = settings.value(kPieceStyle, PieceStyleCatalog::standardId()).toString();
     if (PieceStyleCatalog::contains(style)) return style;
     // 糸柾（wood_straight）と廃止済みの旧セットは、糸柾を採用した標準セットへ移行する。
-    settings.setValue(SettingsKeys::kPieceStyle, PieceStyleCatalog::standardId());
+    settings.setValue(kPieceStyle, PieceStyleCatalog::standardId());
     return PieceStyleCatalog::standardId();
 }
 
 void setPieceStyle(const QString& style)
 {
-    SettingsCommon::openSettings().setValue(SettingsKeys::kPieceStyle,
+    SettingsCommon::openSettings().setValue(kPieceStyle,
         PieceStyleCatalog::contains(style) ? style : PieceStyleCatalog::standardId());
 }
-
-// --- 駒音 ---
-
-// --- 盤面の配色 ---
 
 BoardColors boardColors()
 {
@@ -52,24 +67,11 @@ void setBoardColors(const BoardColors& colors)
     }
 }
 
-namespace {
-const StructSetting<BoardVisuals>& visualsSetting()
-{
-    static const StructSetting<BoardVisuals> setting{
-        {SettingField<BoardVisuals>::of(SettingsKeys::kBoardWoodGrain, &BoardVisuals::woodGrain),
-         SettingField<BoardVisuals>::of(SettingsKeys::kStandWoodGrain, &BoardVisuals::standWoodGrain),
-         SettingField<BoardVisuals>::of(SettingsKeys::kBoardPieceShadow, &BoardVisuals::pieceShadow),
-         SettingField<BoardVisuals>::of(SettingsKeys::kBoardPieceScale, &BoardVisuals::pieceScale)},
-        &BoardVisuals::normalized};
-    return setting;
-}
-} // namespace
-
 BoardVisuals boardVisuals()
 {
     BoardVisuals visuals = visualsSetting()();
     // 駒台の木目を分ける前の版は、将棋盤の木目の設定だけを保存していた
-    if (!StructSetting<BoardVisuals>::isSaved(SettingsKeys::kStandWoodGrain)) visuals.standWoodGrain = visuals.woodGrain;
+    if (!StructSetting<BoardVisuals>::isSaved(kStandWoodGrain)) visuals.standWoodGrain = visuals.woodGrain;
     return visuals;
 }
 
@@ -78,9 +80,11 @@ void setBoardVisuals(const BoardVisuals& visuals)
     visualsSetting().set(visuals);
 }
 
+// --- 外観ダイアログ ---
+
 QString appearanceSection()
 {
-    const auto saved = SettingsCommon::openSettings().value(SettingsKeys::kAppearanceSection, "pieces").toString();
+    const auto saved = SettingsCommon::openSettings().value(kAppearanceSection, "pieces").toString();
     // 背景タブの追加前は、タブの番号（駒・将棋盤・駒台・対局者情報・詳細）で保存していた
     bool ok = false;
     const int legacy = saved.toInt(&ok);
@@ -91,7 +95,7 @@ QString appearanceSection()
 
 void setAppearanceSection(const QString& id)
 {
-    SettingsCommon::openSettings().setValue(SettingsKeys::kAppearanceSection, id);
+    SettingsCommon::openSettings().setValue(kAppearanceSection, id);
 }
 
-} // namespace AppSettings
+} // namespace AppearanceSettings

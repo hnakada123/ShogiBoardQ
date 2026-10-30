@@ -57,8 +57,8 @@ endif()
 set(SETTINGS_SOURCES
     ${SRC}/services/settingscommon.cpp
     ${SRC}/services/analysissettings.cpp
-    ${SRC}/services/appsettings.cpp
-    ${SRC}/services/piecestylecatalog.cpp
+    ${SRC}/style/appearancesettings.cpp
+    ${SRC}/style/piecestylecatalog.cpp
     ${SRC}/services/docksettings.cpp
     ${SRC}/services/enginelistsettings.cpp
     ${SRC}/services/registeredengines.cpp
@@ -655,8 +655,6 @@ add_shogi_test(tst_settings_reset
     ${SRC}/ui/controllers/settingsresetcontroller.cpp
     ${SRC}/widgets/dialogutils.cpp
     ${SRC}/services/settingscommon.cpp
-    ${SRC}/services/appsettings.cpp
-    ${SRC}/services/piecestylecatalog.cpp
 )
 set_tests_properties(tst_settings_reset PROPERTIES TIMEOUT 20)
 
@@ -855,9 +853,10 @@ add_shogi_test(tst_dock_layout
 # ============================================================
 add_shogi_test(tst_piece_images
     tst_piece_images.cpp
-    ${SRC}/services/pieceimageprovider.cpp
-    ${SRC}/services/appsettings.cpp
-    ${SRC}/services/piecestylecatalog.cpp
+    ${SRC}/style/pieceimageprovider.cpp
+    ${SRC}/style/boardappearance.cpp
+    ${SRC}/style/appearancesettings.cpp
+    ${SRC}/style/piecestylecatalog.cpp
     ${SRC}/services/settingscommon.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../resources/shogiboardq.qrc
 )
@@ -950,7 +949,7 @@ target_compile_definitions(tst_translation_files PRIVATE
 # ============================================================
 add_shogi_test(tst_piece_sound_processor
     tst_piece_sound_processor.cpp
-    ${SRC}/services/piecesoundprocessor.cpp
+    ${SRC}/ui/presenters/piecesoundprocessor.cpp
 )
 
 # 終局後の棋譜閲覧における手番ラベル・背景色の連動を実際のビューで検証する
@@ -1168,8 +1167,6 @@ add_shogi_test(tst_evaluationchart
     ${SRC}/widgets/fontsizecontrol.cpp
     ${SRC}/widgets/fontsizehelper.cpp
     ${SRC}/widgets/dialogutils.cpp
-    ${SRC}/services/appsettings.cpp
-    ${SRC}/services/piecestylecatalog.cpp
     ${SRC}/services/analysissettings.cpp
     ${SRC}/services/settingscommon.cpp
 )

@@ -86,7 +86,7 @@ T["ja"] = {
             "p": "「表示」→「対局画面の外観…」で、駒・将棋盤・背景・駒台・対局者情報を見本から選べます。プレビューで全体を確かめながら、好みの対局画面に仕上げられます。",
             "items": [
                 "駒は標準・虎斑・木肌・淡色・深色・戦国文字・チェス風・アルファベットの40種類",
-                "将棋盤・背景・駒台は各26種類、対局者情報は20種類。おすすめの組み合わせも24種類",
+                "将棋盤・駒台は各28種類、背景は27種類、対局者情報は22種類。おすすめの組み合わせも26種類",
                 "選んだ外観は読み筋盤・詰将棋・画像出力にも反映",
             ],
             "links": [("piece-style", "駒の種類"), ("board-colors", "対局画面の外観")],
@@ -213,7 +213,7 @@ T["en"] = {
             "p": "Open View → Game Appearance… to choose pieces, board, background, piece stands, and player cards from samples, and check the whole screen in the live preview.",
             "items": [
                 "40 piece styles: standard, tiger grain, wood, light, deep, Sengoku Kanji, chess-inspired, and alphabet",
-                "26 boards, backgrounds, and piece stands each, 20 player-card styles, and 24 suggested combinations",
+                "28 boards and piece stands each, 27 backgrounds, 22 player-card styles, and 26 suggested combinations",
                 "Your choice also applies to the PV board, tsume shogi, and exported images",
             ],
             "links": [("piece-style", "Piece Styles"), ("board-colors", "Game Appearance")],
@@ -340,7 +340,7 @@ T["zh-cn"] = {
             "p": "通过“视图”→“对局外观…”，可以从样本中分别选择棋子、棋盘、背景、驹台和对局者信息，并在预览中确认整体效果。",
             "items": [
                 "棋子共 40 种：标准、虎纹、木纹、浅色、深色、战国汉字、国际象棋风格和字母",
-                "棋盘、背景、驹台各 26 种，对局者信息 20 种，另有 24 种推荐组合",
+                "棋盘、驹台各 28 种，背景 27 种，对局者信息 22 种，另有 26 种推荐组合",
                 "所选外观同样应用于变化棋盘、诘棋和导出的图片",
             ],
             "links": [("piece-style", "棋子样式"), ("board-colors", "对局外观")],
@@ -467,7 +467,7 @@ T["zh-tw"] = {
             "p": "透過「檢視」→「對局外觀…」，可從樣本中分別選擇棋子、棋盤、背景、駒台與對局者資訊，並在預覽中確認整體效果。",
             "items": [
                 "棋子共 40 種：標準、虎紋、木紋、淺色、深色、戰國漢字、西洋棋風格與字母",
-                "棋盤、背景、駒台各 26 種，對局者資訊 20 種，另有 24 種推薦組合",
+                "棋盤、駒台各 28 種，背景 27 種，對局者資訊 22 種，另有 26 種推薦組合",
                 "所選外觀也會套用到變化棋盤、詰棋與匯出的圖片",
             ],
             "links": [("piece-style", "棋子樣式"), ("board-colors", "對局外觀")],

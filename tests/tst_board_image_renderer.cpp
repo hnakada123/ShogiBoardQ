@@ -23,7 +23,7 @@
 #include "appearancestate.h"
 #include "boardimagerenderer.h"
 #include "boardappearance.h"
-#include "boardcolordialog.h"
+#include "boardappearancedialog.h"
 #include "boardsurfacepainter.h"
 #include "piecepainter.h"
 #include "pieceimageprovider.h"
@@ -34,7 +34,7 @@
 
 #include "boardgeometry.h"
 #include "shogiview.h"
-#include "appsettings.h"
+#include "appearancesettings.h"
 #include "boardappearancecatalog.h"
 #include "boardappearancepreview.h"
 #include "candidatearrowpresenter.h"
@@ -172,35 +172,61 @@ private slots:
     void appearanceControlsPropagateAndPersist()
     {
         ShogiView first, second;
-        BoardColorDialog dialog;
-        auto* themes = dialog.findChild<QComboBox*>("boardThemeCombo");
+        BoardAppearanceDialog dialog;
+        // 外観のテーマはおすすめの組み合わせにまとめた
+        QVERIFY(!dialog.findChild<QComboBox*>("boardThemeCombo"));
+        auto* combination = dialog.findChild<QComboBox*>("appearanceCombination");
         auto* grain = dialog.findChild<QCheckBox*>("boardWoodGrain");
         auto* shadow = dialog.findChild<QCheckBox*>("boardPieceShadow");
         auto* scale = dialog.findChild<QSpinBox*>("boardPieceScale");
-        QVERIFY(themes && grain && shadow && scale);
-        QCOMPARE(themes->currentData().toString(), QStringLiteral("kaya"));
-        for (int i = 0; i < themes->count(); ++i) {
-            QVERIFY(QMetaObject::invokeMethod(themes, "activated", Q_ARG(int, i)));
-            QVERIFY(first.boardColors() == BoardColorPresets::themes().at(i).colors);
-            QVERIFY(second.boardColors() == first.boardColors());
-            QCOMPARE(AppSettings::pieceStyle(), QStringLiteral("standard"));
-        }
+        QVERIFY(combination && grain && shadow && scale);
+        QCOMPARE(combination->currentIndex(), 0);  // 標準・榧と畳
         grain->setChecked(false);
         shadow->setChecked(false);
         scale->setValue(94);
-        QCOMPARE(themes->currentIndex(), -1);
+        QCOMPARE(combination->currentIndex(), -1);
         QVERIFY(first.boardVisuals() == (BoardVisuals{false, false, 94}));
         QVERIFY(second.boardVisuals() == first.boardVisuals());
         SettingsCommon::openSettings().sync();
         ShogiView restored;
-        BoardColorDialog restoredDialog;
+        BoardAppearanceDialog restoredDialog;
         QVERIFY(restored.boardVisuals() == first.boardVisuals());
         QVERIFY(restored.boardColors() == first.boardColors());
         QCOMPARE(restoredDialog.findChild<QSpinBox*>("boardPieceScale")->value(), 94);
-        QVERIFY(QMetaObject::invokeMethod(themes, "activated", Q_ARG(int, 0)));
-        QVERIFY(first.boardVisuals() == BoardVisuals{});
-        QCOMPARE(themes->currentData().toString(), QStringLiteral("kaya"));
-        QCOMPARE(restoredDialog.findChild<QComboBox*>("boardThemeCombo")->currentIndex(), 0);
+        QVERIFY(QMetaObject::invokeMethod(combination, "activated", Q_ARG(int, 0)));
+        QVERIFY(first.boardColors() == BoardColors{});
+        // 組み合わせは部品の見本（木目を含む）と駒のセットだけを変え、駒の影と大きさは残す
+        QVERIFY(first.boardVisuals() == (BoardVisuals{true, false, 94, true}));
+        QCOMPARE(restoredDialog.findChild<QComboBox*>("appearanceCombination")->currentIndex(), 0);
+    }
+
+    /// 以前の外観のテーマ「墨と榧」「琥珀」は、標準の駒のおすすめの組み合わせにした（盤・駒台・背景・カードはテーマの色）
+    void formerThemesAreCombinations()
+    {
+        using Catalog = BoardAppearanceCatalog;
+        struct Theme {
+            const char* name;
+            QRgb background, board, stand, cardBackground, nameText, accent;
+        };
+        const Theme themes[] = {{"標準・墨と榧", 0x303b38, 0xe1c68e, 0x86715a, 0x3e4b44, 0xe5e7d9, 0x7d9878},
+                                {"標準・琥珀", 0x39352f, 0xe3b161, 0xa26a37, 0xeee4cf, 0x483c29, 0x8c6937}};
+        const auto& combinations = Catalog::combinations();
+        for (const Theme& theme : themes) {
+            int index = -1;
+            for (int i = 0; i < combinations.size(); ++i)
+                if (QString::fromUtf8(combinations.at(i).name) == QString::fromUtf8(theme.name)) index = i;
+            QVERIFY2(index > 0, theme.name);
+            const AppearanceState state = Catalog::applied(combinations.at(index), AppearanceState{});
+            QCOMPARE(state.pieceStyle, QStringLiteral("standard"));
+            QCOMPARE(state.colors.background, QColor(theme.background));
+            QCOMPARE(state.colors.board, QColor(theme.board));
+            QCOMPARE(state.colors.grid, BoardColors{}.grid);
+            QCOMPARE(state.colors.stand, QColor(theme.stand));
+            QCOMPARE(state.colors.cardBackground, QColor(theme.cardBackground));
+            QCOMPARE(state.colors.nameText, QColor(theme.nameText));
+            QCOMPARE(state.colors.turnBackground, QColor(theme.accent));
+            QVERIFY(state.visuals == BoardVisuals{});
+        }
     }
 
     /// おすすめの組み合わせは、ある駒のセットとある見本だけを指し、当てはめるとその組み合わせとして選ばれる
@@ -236,7 +262,7 @@ private slots:
         using Component = BoardAppearanceCatalog::Component;
         for (const auto component : {Component::Board, Component::Stand, Component::Information, Component::Background}) {
             const auto samples = BoardAppearanceCatalog::samples(component);
-            QCOMPARE(samples.size(), component == Component::Information ? 20 : 26);
+            QCOMPARE(samples.size(), component == Component::Information ? 22 : component == Component::Background ? 27 : 28);
             QSet<QString> names;
             for (const auto& sample : samples) {
                 QVERIFY(!names.contains(sample.name));
@@ -291,7 +317,7 @@ private slots:
         live.applyBoardAndRender(&model);
         live.chrome()->card(Turn::Black)->setClockText(QStringLiteral("03:21"));
         const auto position = model.position().boardSfen();
-        BoardColorDialog dialog;
+        BoardAppearanceDialog dialog;
         auto* pieces = dialog.findChild<QListWidget*>("appearancePieces");
         auto* preview = dialog.findChild<BoardAppearancePreview*>();
         auto* combination = dialog.findChild<QComboBox*>("appearanceCombination");
@@ -307,8 +333,8 @@ private slots:
         QCOMPARE(preview->findChild<ShogiBoard*>()->position().boardSfen(),
                  QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL"));
         const auto original = preview->image();
-        QVERIFY(QMetaObject::invokeMethod(combination, "activated", Q_ARG(int, 2)));
-        QCOMPARE(AppSettings::pieceStyle(), QStringLiteral("deep_ebony"));
+        QVERIFY(QMetaObject::invokeMethod(combination, "activated", Q_ARG(int, 4)));  // 黒檀・月白
+        QCOMPARE(AppearanceSettings::pieceStyle(), QStringLiteral("deep_ebony"));
         QVERIFY(preview->image() != original);
         const auto selected = preview->image();
         preview->setPosition(1);
@@ -324,7 +350,7 @@ private slots:
         dialog.findChild<QPushButton*>("restoreOpeningAppearanceButton")->click();
         QVERIFY(live.boardColors() == BoardColors{});
         QVERIFY(live.boardVisuals() == BoardVisuals{});
-        QCOMPARE(AppSettings::pieceStyle(), QStringLiteral("standard"));
+        QCOMPARE(AppearanceSettings::pieceStyle(), QStringLiteral("standard"));
         preview->setPosition(0);
         preview->setFlipped(false);
         QCOMPARE(preview->image(), original);
@@ -333,7 +359,7 @@ private slots:
     void appearanceSamplesAreDrawnWhenShown()
     {
         // 見本は一覧に描くときに作る。空の画像のまま表示されず、駒を変えると盤の見本も描き直す
-        BoardColorDialog dialog;
+        BoardAppearanceDialog dialog;
         dialog.show();
         QVERIFY(QTest::qWaitForWindowExposed(&dialog));
         auto* sections = dialog.findChild<QTabWidget*>("appearanceSections");
@@ -360,9 +386,9 @@ private slots:
         boards->scrollToTop();
         const auto standard = sample(boards);
         QVERIFY(colorCount(standard) > 20);
-        PieceImageProvider::instance().setStyle(QStringLiteral("chess_facet_wood"));
+        BoardAppearance::instance().setPieceStyle(QStringLiteral("chess_facet_wood"));
         QVERIFY(sample(boards) != standard);
-        PieceImageProvider::instance().setStyle(QStringLiteral("standard"));
+        BoardAppearance::instance().setPieceStyle(QStringLiteral("standard"));
         QCOMPARE(sample(boards), standard);
     }
 

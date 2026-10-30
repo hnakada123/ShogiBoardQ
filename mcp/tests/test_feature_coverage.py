@@ -101,10 +101,10 @@ class UI:
 async def test_colors_sound_groups_and_language(coverage_env):
     async with mcp_session(coverage_env) as session:
         ui = UI(session)
-        color = await ui.open("actionBoardAppearance", "BoardColorDialog")
+        color = await ui.open("actionBoardAppearance", "BoardAppearanceDialog")
         await ui.call("set_widget_value", target=color, widget="appearanceSections", value=5)
         await ui.call("set_widget_value", target=color, widget="boardColorTabs", value=5)
-        await ui.call("set_widget_value", target=color, widget="boardThemeCombo", value="墨と榧")
+        await ui.call("set_widget_value", target=color, widget="appearanceCombination", value="標準・墨と榧")
         await ui.call("set_widget_value", target=color, widget="boardPieceScale", value=94)
         assert (await ui.read("boardPieceScale", color))["value"] == 94
         await ui.call("set_widget_value", target=color, widget="boardColorTabs", value=0)

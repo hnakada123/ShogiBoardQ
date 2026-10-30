@@ -22,7 +22,7 @@ BoardAppearancePreview::BoardAppearancePreview(QWidget* parent)
     // ShogiView の更新後に画像を取得する（同じ通知先への接続順を維持）。
     connect(&BoardAppearance::instance(), &BoardAppearance::colorsChanged, this, &BoardAppearancePreview::refresh);
     connect(&BoardAppearance::instance(), &BoardAppearance::visualsChanged, this, &BoardAppearancePreview::refresh);
-    connect(&PieceImageProvider::instance(), &PieceImageProvider::styleChanged, this, &BoardAppearancePreview::refresh);
+    connect(&BoardAppearance::instance(), &BoardAppearance::pieceStyleChanged, this, &BoardAppearancePreview::refresh);
     setPosition(0);
 }
 

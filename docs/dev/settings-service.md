@@ -70,7 +70,8 @@ getter と setter の組やキー定数は手で書かない。値の範囲を�
 
 | namespace | ファイル | 主な内容 |
 |---|---|---|
-| `AppSettings` | `appsettings.h/.cpp` | 言語・指し手の表記、GUI共通フォント、UI状態、駒画像・駒音、盤の配色、メニューウィンドウ、メインウィンドウのサイズと盤のマスの大きさ、補助ダイアログの文字サイズ・大きさ（id ごと） |
+| `AppSettings` | `appsettings.h` | 言語・指し手の表記、GUI共通フォント、UI状態、駒音、メニューウィンドウ、メインウィンドウのサイズと盤のマスの大きさ、補助ダイアログの文字サイズ・大きさ（id ごと） |
+| `AppearanceSettings` | `src/style/appearancesettings.h/.cpp` | 対局画面の外観（駒のセット・盤の配色・木目と駒の影と大きさ）と外観ダイアログ（大きさ・開いていたタブ・駒の絞り込み）。値の型（`BoardColors`・`BoardVisuals`・`PieceStyleCatalog`）と同じ style の層に置く。読み書きして変更を知らせるのは `BoardAppearance` |
 | `GameSettings` | `gamesettings.h` | 棋譜ファイルのディレクトリ、棋譜欄、コメント・対局情報タブ、対局開始ダイアログ（`GameSettings::StartGame`）、棋譜貼り付け、局面集、持将棋の点数ダイアログ |
 | `AnalysisSettings` | `analysissettings.h/.cpp` | 分岐ツリー、評価値グラフ、解析タブ（列幅・USIログ・思考タブ）、棋譜解析、検討、詰み探索、読み筋盤面 |
 | `NetworkSettings` | `networksettings.h` | CSA通信対局ダイアログ（対局者・接続先・詳細設定・接続先の履歴 `csaServerHistory`）、待機ダイアログ、通信ログ |
@@ -144,7 +145,7 @@ GameSettings::commentFontSize.remove();                           // 保存値�
 
 | 型 | 保存の形 | 使っている宣言 |
 |---|---|---|
-| `BoundedSetting<T>(キー, 既定値, 最小, 最大)` | 1つのキー。読みも書きも `qBound` で範囲に収める（`minimum()`・`maximum()`） | `AppSettings::pieceSoundVolume`（0〜100）、`AppSettings::appearancePieceFilter`（0〜`PieceStyleCatalog::Family::Count` − 1。0 は「すべて」）、`AnalysisSettings::usiLogCommandTarget`（0〜2）、`AppSettings::menuWindowButtonSize`（48〜120）、`AnalysisSettings::branchTreeZoomPercent`（50〜200）、`GameSettings::gameInfoKeyColumnWidth`（0〜600）。画面は範囲の定数を持たず、`minimum()`・`maximum()` を読む |
+| `BoundedSetting<T>(キー, 既定値, 最小, 最大)` | 1つのキー。読みも書きも `qBound` で範囲に収める（`minimum()`・`maximum()`） | `AppSettings::pieceSoundVolume`（0〜100）、`AppearanceSettings::appearancePieceFilter`（0〜`PieceStyleCatalog::Family::Count` − 1。0 は「すべて」）、`AnalysisSettings::usiLogCommandTarget`（0〜2）、`AppSettings::menuWindowButtonSize`（48〜120）、`AnalysisSettings::branchTreeZoomPercent`（50〜200）、`GameSettings::gameInfoKeyColumnWidth`（0〜600）。画面は範囲の定数を持たず、`minimum()`・`maximum()` を読む |
 | `StructSetting<T>({項目...}, 整える関数)` | 構造体のメンバごとに1つのキー。項目は `SettingField<T>::of(キー, &T::メンバ)`。保存していない項目は `T{}` の既定値のまま。整える関数（省略可）は読んだ値と書く値の両方に掛ける。項目ごとの保存の有無は `StructSetting<T>::isSaved(キー)` | `AppSettings::pieceSoundTone`（`PieceSoundTone::clamped` で範囲に収める）、`TsumeshogiSettings::playPreferences`・`collectionPreferences` |
 | `ListSetting<T>(配列のキー, 要素のキー)` | QSettings の配列（`<配列のキー>/size` と `<配列のキー>/<番号>/<要素のキー>`）。配列のキーは実行時に作ってもよい | `JosekiSettings::josekiWindowColumnWidths`、`AnalysisSettings::engineInfoColumnWidths(ThinkingTable)`・`thinkingViewColumnWidths(ThinkingTable)`（表の番号でキーを作る関数の中で使う） |
 | `StructListSetting<T>(配列のキー, {項目...})` | 構造体の配列。要素ごとに `SettingField<T>` の項目を書く | `NetworkSettings::csaServerHistory`（`CsaServerHistoryEntry` の `host`・`port`・`useTls`・`id`。新しい順で最大 `kCsaServerHistoryLimit` = 10 件。件数を絞るのは `CsaGameDialog`） |
@@ -296,28 +297,28 @@ INI ファイル内のキーは `グループ名/キー名` の形式で、宣�
 
 | 処理 | 関数 |
 |---|---|
-| 古い保存値の引き継ぎ・不正値の補正 | `AppSettings::appearanceSection`（外観ダイアログのタブの id を文字列で返す。旧版のタブの番号は id に読み替える）、`AppSettings::pieceStyle`（`PieceStyleCatalog` にない値・廃止したセットは `standard` に戻す）、`TsumeshogiSettings::migrateCollectionEngineSelection`（判定エンジンの `"@hayanagi"` を空の名前に直す） |
-| 未保存の項目をほかの項目で代える | `AppSettings::boardVisuals` / `setBoardVisuals`（中身は `StructSetting<BoardVisuals>`。駒台の木目 `standWoodGrain` が未保存なら、それを分ける前の版の将棋盤の木目 `woodGrain` を使う） |
-| 独自の保存形式 | `AppSettings::boardColors` / `setBoardColors`（色を `#RRGGBB`・`#AARRGGBB` の文字列で保存し、不正な色は標準色に戻す）、`AnalysisSettings::kifuAnalysisColumnWidths` / `setKifuAnalysisColumnWidths`（1つのキーに `QVariantList` で保存）、`DockSettings::dockState` / `setDockState`（グループ名を引数で受ける。キーは `<グループ>/floating`・`/visible`・`/geometry`。グループは `DockRegistry` の表の `settingsGroup`。表示の既定値も引数で受ける） |
+| 古い保存値の引き継ぎ・不正値の補正 | `AppearanceSettings::appearanceSection`（外観ダイアログのタブの id を文字列で返す。旧版のタブの番号は id に読み替える）、`AppearanceSettings::pieceStyle`（`PieceStyleCatalog` にない値・廃止したセットは `standard` に戻す）、`TsumeshogiSettings::migrateCollectionEngineSelection`（判定エンジンの `"@hayanagi"` を空の名前に直す） |
+| 未保存の項目をほかの項目で代える | `AppearanceSettings::boardVisuals` / `setBoardVisuals`（中身は `StructSetting<BoardVisuals>`。駒台の木目 `standWoodGrain` が未保存なら、それを分ける前の版の将棋盤の木目 `woodGrain` を使う） |
+| 独自の保存形式 | `AppearanceSettings::boardColors` / `setBoardColors`（色を `#RRGGBB`・`#AARRGGBB` の文字列で保存し、不正な色は標準色に戻す）、`AnalysisSettings::kifuAnalysisColumnWidths` / `setKifuAnalysisColumnWidths`（1つのキーに `QVariantList` で保存）、`DockSettings::dockState` / `setDockState`（グループ名を引数で受ける。キーは `<グループ>/floating`・`/visible`・`/geometry`。グループは `DockRegistry` の表の `settingsGroup`。表示の既定値も引数で受ける） |
 | キーを実行時に作る | `AnalysisSettings::engineInfoColumnWidths` / `thinkingViewColumnWidths`（表 `ThinkingTable` の番号でキーを作り、`ListSetting<int>` で読み書きする） |
 | グループの中の名前の一覧 | `DockSettings::savedDockLayoutNames` / `saveDockLayout` / `loadDockLayout` / `deleteDockLayout` |
 
-関数は namespace のドメイン別ヘッダーに宣言し、`.cpp` で `SettingsCommon::openSettings()` を使って実装する。キーは `settingskeys.h` の定数に置く。
+関数は namespace のドメイン別ヘッダーに宣言し、`.cpp` で `SettingsCommon::openSettings()` を使って実装する。キーは `settingskeys.h` の定数に置く（`AppearanceSettings` のキーは `appearancesettings.cpp` の中）。
 
 補助ダイアログ（成り・しおり・駒音・メッセージボックスなど）の文字の大きさと大きさも、関数ではなく `appsettings.h` の宣言の表に1行ずつ書く（`AppSettings::promotionDialogFontSize`・`promotionDialogSize`・`messageBoxFontSize`・`bookmarkDialogFontSize` など）。キーは `DialogAppearance/<id>/fontSize`（既定値 0）・`DialogAppearance/<id>/size`（既定値 `QSize()`）で、以前の版と同じ。既定値 0 は「未保存ならダイアログの元の大きさから始める」の意味。
 
 ```cpp
-// src/services/appsettings.cpp（宣言の型を使い、代替の処理だけを関数に書く）
+// src/style/appearancesettings.cpp（宣言の型を使い、代替の処理だけを関数に書く）
 BoardVisuals boardVisuals()
 {
     BoardVisuals visuals = visualsSetting()();   // StructSetting<BoardVisuals>
     // 駒台の木目を分ける前の版は、将棋盤の木目の設定だけを保存していた
-    if (!StructSetting<BoardVisuals>::isSaved(SettingsKeys::kStandWoodGrain)) visuals.standWoodGrain = visuals.woodGrain;
+    if (!StructSetting<BoardVisuals>::isSaved(kStandWoodGrain)) visuals.standWoodGrain = visuals.woodGrain;
     return visuals;
 }
 ```
 
-範囲や形式を変える宣言・関数を足したら、範囲外の値・旧形式の値を含めて `tst_settings_roundtrip` に往復のテストを書く（`appSettings_pieceSoundVolume`・`appSettings_boardVisuals`・`appSettings_appearanceSection` など）。
+範囲や形式を変える宣言・関数を足したら、範囲外の値・旧形式の値を含めて `tst_settings_roundtrip` に往復のテストを書く（`appSettings_pieceSoundVolume`・`appearanceSettings_boardVisuals`・`appearanceSettings_appearanceSection` など）。
 
 ---
 

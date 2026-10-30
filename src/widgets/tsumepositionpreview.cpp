@@ -25,7 +25,7 @@ TsumePositionPreview::TsumePositionPreview(const QString& sfen, QWidget* parent)
     setMinimumSize(sizeHint());
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     setAttribute(Qt::WA_TransparentForMouseEvents);
-    connect(&PieceImageProvider::instance(), &PieceImageProvider::styleChanged, this, &TsumePositionPreview::appearanceChanged);
+    connect(&BoardAppearance::instance(), &BoardAppearance::pieceStyleChanged, this, &TsumePositionPreview::appearanceChanged);
     connect(&BoardAppearance::instance(), &BoardAppearance::colorsChanged, this, &TsumePositionPreview::appearanceChanged);
     connect(&BoardAppearance::instance(), &BoardAppearance::visualsChanged, this, &TsumePositionPreview::appearanceChanged);
 }

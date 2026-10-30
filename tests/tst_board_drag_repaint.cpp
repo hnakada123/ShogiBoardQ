@@ -264,7 +264,7 @@ class TestBoardDragRepaint : public QObject
             BoardAppearanceCatalog::apply(component, BoardAppearanceCatalog::samples(component).at(index),
                                           colors, visuals);
         }
-        PieceImageProvider::instance().setStyle(style);
+        BoardAppearance::instance().setPieceStyle(style);
         BoardAppearance::instance().setColors(colors);
         BoardAppearance::instance().setVisuals(visuals);
     }
@@ -287,13 +287,13 @@ private slots:
         qputenv("SHOGIBOARDQ_CONFIG_HOME", m_config.path().toUtf8());
         m_defaultColors = BoardAppearance::instance().colors();
         m_defaultVisuals = BoardAppearance::instance().visuals();
-        m_defaultPieceStyle = PieceImageProvider::instance().style();
+        m_defaultPieceStyle = BoardAppearance::instance().pieceStyle();
     }
 
     void cleanupTestCase()
     {
         m_appearanceBoard.reset();
-        PieceImageProvider::instance().setStyle(m_defaultPieceStyle);
+        BoardAppearance::instance().setPieceStyle(m_defaultPieceStyle);
         BoardAppearance::instance().setColors(m_defaultColors);
         BoardAppearance::instance().setVisuals(m_defaultVisuals);
     }

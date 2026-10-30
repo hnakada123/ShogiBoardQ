@@ -628,6 +628,10 @@ set(SRC_UI
     src/ui/presenters/kifudisplaypresenter.h
     src/ui/presenters/notificationpresenter.cpp
     src/ui/presenters/notificationpresenter.h
+    src/ui/presenters/piecesoundplayer.cpp
+    src/ui/presenters/piecesoundplayer.h
+    src/ui/presenters/piecesoundprocessor.cpp
+    src/ui/presenters/piecesoundprocessor.h
     src/ui/presenters/playerinfopresenter.cpp
     src/ui/presenters/playerinfopresenter.h
     src/ui/presenters/timedisplaypresenter.cpp
@@ -778,8 +782,10 @@ set(SRC_WIDGETS
 set(SRC_DIALOGS
     src/dialogs/boardappearancepreview.cpp
     src/dialogs/boardappearancepreview.h
-    src/dialogs/boardcolordialog.cpp
-    src/dialogs/boardcolordialog.h
+    src/dialogs/boardappearancedialog.cpp
+    src/dialogs/boardappearancedialog.h
+    src/dialogs/boardappearancesamples.cpp
+    src/dialogs/boardappearancesamples.h
     src/dialogs/changeenginesettingsdialog.cpp
     src/dialogs/changeenginesettingsdialog.h
     src/dialogs/csagamedialog.cpp
@@ -878,18 +884,7 @@ set(SRC_SERVICES
     src/services/notationstyle.h
     src/services/applicationtranslations.h
     src/services/apppaths.h
-    src/services/appsettings.cpp
     src/services/appsettings.h
-    src/services/boardappearance.cpp
-    src/services/boardappearance.h
-    src/services/boardappearancecatalog.cpp
-    src/services/boardappearancecatalog.h
-    src/services/boardcolorpresets.cpp
-    src/services/boardcolorpresets.h
-    src/services/piecestylecatalog.cpp
-    src/services/piecestylecatalog.h
-    src/services/appearancestate.cpp
-    src/services/appearancestate.h
     src/services/docksettings.cpp
     src/services/docksettings.h
     src/services/enginedialogsettings.h
@@ -904,12 +899,6 @@ set(SRC_SERVICES
     src/services/gamesettings.h
     src/services/josekisettings.h
     src/services/networksettings.h
-    src/services/pieceimageprovider.cpp
-    src/services/pieceimageprovider.h
-    src/services/piecesoundplayer.cpp
-    src/services/piecesoundplayer.h
-    src/services/piecesoundprocessor.cpp
-    src/services/piecesoundprocessor.h
     src/services/piecesoundtone.h
     src/services/setting.h
     src/services/settingscommon.cpp
@@ -923,15 +912,24 @@ set(SRC_SERVICES
 set(SRC_COMMON
     src/common/appactivitystate.cpp
     src/common/appactivitystate.h
+    src/style/appearancesettings.cpp
+    src/style/appearancesettings.h
+    src/style/appearancestate.h
     src/style/applicationfonts.cpp
     src/style/applicationfonts.h
     src/style/applicationrendering.cpp
     src/style/applicationrendering.h
     src/style/applicationstyle.cpp
     src/style/applicationstyle.h
-    src/common/boardcolors.h
+    src/style/boardappearance.cpp
+    src/style/boardappearance.h
+    src/style/boardappearancecatalog.cpp
+    src/style/boardappearancecatalog.h
+    src/style/boardcolorpresets.cpp
+    src/style/boardcolorpresets.h
+    src/style/boardcolors.h
     src/common/boundedfile.h
-    src/common/boardvisuals.h
+    src/style/boardvisuals.h
     src/common/branchtreeitemroles.h
     src/style/buttonstyles.h
     src/common/errorbus.cpp
@@ -944,6 +942,10 @@ set(SRC_COMMON
     src/common/logcategories.cpp
     src/common/logcategories.h
     src/style/movefont.h
+    src/style/pieceimageprovider.cpp
+    src/style/pieceimageprovider.h
+    src/style/piecestylecatalog.cpp
+    src/style/piecestylecatalog.h
     src/widgets/tablemodelutils.h
     src/style/tablestyles.h
     src/common/threadtypes.h

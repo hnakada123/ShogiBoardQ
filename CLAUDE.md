@@ -143,6 +143,11 @@ cmake --build build --target translations
   - `applicationstyle`・`applicationrendering` - アプリ全体のスタイルと描画の設定
   - `buttonstyles.h`・`tablestyles.h` - ボタン・表のスタイルシート（`ButtonStyles`・`TableStyles`）
   - `movefont.h` - 指し手・読み筋の書体の規則 `MoveFont`（表のモデルの FontRole と `KifuMoveDelegate` で共通）
+  - `boardappearance` - 対局画面の外観（駒のセット・配色・見た目）の持ち主 `BoardAppearance`（すべての盤面が共有する。`pieceStyle`・`colors`・`visuals` と、まとめた値 `AppearanceState`（`appearancestate.h`）の `state()`・`apply()`。変わったものだけを `pieceStyleChanged`・`colorsChanged`・`visualsChanged` で知らせる）。保存は `appearancesettings`（`AppearanceSettings`。外観ダイアログの大きさ・開いていたタブ・駒の絞り込みも）
+  - `boardcolors.h`・`boardvisuals.h` - 配色 `BoardColors`（設定のキーと外観ダイアログの表示名の表 `fields()`）と、木目・駒の影・駒の大きさ `BoardVisuals`
+  - `pieceimageprovider` - 駒の画像の解決とキャッシュ `PieceImageProvider`（駒のセットは持たず、今の駒のセットは `BoardAppearance`）
+  - `piecestylecatalog` - 駒のセットの表 `PieceStyleCatalog`（ID・分類 `Family`・表示名・画像の場所）。駒のセットを足すときはこの表に1行足す（外観ダイアログの絞り込みの番号は `Family` の値）
+  - `boardappearancecatalog` - 部品ごとの見本（将棋盤・駒台・対局者情報・背景）と、おすすめの組み合わせ `combinations()`（駒のセットと部品の見本の名前）。`boardcolorpresets` は盤・駒台・背景のおすすめ配色（「詳細」の配色のコンボ）
 
 - **board/**: 盤面編集・操作
   - `boardinteractioncontroller.cpp/.h` - 盤のクリックを移動元・移動先にし、選択・直前の手・合法な移動先のハイライトを出す。クリックを手番の側の手にする処理 `moveFromClick()`（成り・不成の両方が合法なら `setPromotionChooser()` の関数で尋ねる）もここにあり、主画面と詰将棋を解く画面の行き先が使う。ドラッグは行き先の `submit()` から戻った後に終える
@@ -152,7 +157,7 @@ cmake --build build --target translations
 
 - **ui/**: UI層
   - **presenters/**: 表示への反映
-    - `enginedisplaypresenter`（エンジンの表示の持ち主。検討の表示は `AnalysisSession` の知らせだけから決める）, `playerinfopresenter`（盤の対局者名）, `evaluationgraphpresenter`（評価値グラフの点の唯一の書き手）, `kifudisplaypresenter`（棋譜欄・分岐）, `boardsyncpresenter`（盤と手番）, `candidatearrowpresenter`（検討・対局のエンジンの読みと、定跡ウィンドウで開いている定跡の定跡手（緑。「表示」→「盤に定跡手を表示」）の矢印。対局の矢印は E1・E2 の思考の表の最新の最善の読み筋から作り、探索中か・先読みかだけをエンジンに聞く。どれを出すかは ui/controllers の `BoardArrowActions` の `QAction` だけを読む）, etc.
+    - `enginedisplaypresenter`（エンジンの表示の持ち主。検討の表示は `AnalysisSession` の知らせだけから決める）, `playerinfopresenter`（盤の対局者名）, `evaluationgraphpresenter`（評価値グラフの点の唯一の書き手）, `kifudisplaypresenter`（棋譜欄・分岐）, `boardsyncpresenter`（盤と手番）, `piecesoundplayer`（駒音 `PieceSoundPlayer`。`GameBoard::moveCommitted` と詰将棋対局の着手で鳴らす。音質の加工は `piecesoundprocessor`、音質の値と設定は services の `piecesoundtone.h`・`AppSettings`。駒音の設定ダイアログは値をシグナルで知らせるだけで、`DialogLauncher` がプレイヤーに結ぶ）, `candidatearrowpresenter`（検討・対局のエンジンの読みと、定跡ウィンドウで開いている定跡の定跡手（緑。「表示」→「盤に定跡手を表示」）の矢印。対局の矢印は E1・E2 の思考の表の最新の最善の読み筋から作り、探索中か・先読みかだけをエンジンに聞く。どれを出すかは ui/controllers の `BoardArrowActions` の `QAction` だけを読む）, etc.
   - **controllers/**: 利用者操作の処理
     - `boardarrowactions`（盤の矢印を出すかの4つの切り替え `BoardArrowActions`（手番側・先読み側・検討・定跡手の checkable な `QAction`）。設定から戻し、変わるたびに保存する。思考ドック・検討タブ・定跡ウィンドウのチェックと「表示」メニューの「盤に定跡手を表示」はこれに結ぶだけ）, `boardmovecontroller`（主画面の `BoardInputRoute`。行き先ごとに手を処理する）, `considerationuicontroller`（検討タブの操作を `AnalysisSession` へ伝えるだけ）, `josekiwindowcontroller`（定跡ウィンドウ（widgets の `JosekiWindow`）を作って表示中の局面に合わせ、表示中の手順が定跡を外れた手を出す。「棋譜に展開...」は条件のダイアログを出し、`JosekiLines::expand` の手順を `BranchTreeEditController::addVariationLines` で変化として足す。定跡そのものの操作は、ここが作る `josekibookcontroller`（`JosekiBookController`。ウィンドウの意図のシグナルを受け、ファイルは `JosekiFileController`、定跡手の追加・編集・削除は `JosekiEditController`、マージは `JosekiMergeController`（「現在の棋譜から」は表示中の手順）に渡す。ドロップの振り分け、ドックを閉じるときの確認と題名の未保存の印も受け持つ）。定跡の表示（「■ 停止」）・「盤の手を登録」の checkable な `QAction` を持ち、正本にする（「盤に定跡手を表示」の正本は `BoardArrowActions`）。定跡ウィンドウのボタン・チェック、盤の矢印、盤の手の登録はこの `QAction` を読む）, `josekiregistrationcontroller`（思考の表・検討の表・棋譜解析の結果の表の右クリックで読み筋の最初の手を定跡に登録し、「盤の手を登録」がオンなら盤で指した手（`BranchTreeEditController::boardMoveRecorded`）と対局で指された手（`GameSession::gameMoveRecorded`。人間・エンジンとも、ローカル・通信対局とも）を登録する。定跡を変えられないとき（`JosekiBookSession::canEdit`）は押せない）, `menuwindowcontroller`, `pvclickcontroller`, `dialoglauncher`, `kifufilecontroller`（棋譜の開く・保存・貼り付け・コピー。読み込みは kifu の `KifuLoader`、保存で聞くダイアログは dialogs の `KifuSaveDialogs`）, `widgetimageexporter`（盤・評価値グラフの画像のコピーと、形式を選んだ保存 `WidgetImageExporter`。決まった場所への PNG の保存は `screenshotservice`）, etc.
     - `kifunavigationcontroller` - 棋譜ナビゲーション（ボタン・分岐）。局面送りの6つの操作は `QAction` の組（`action(Step)`）で1つだけ持ち、棋譜欄と評価値グラフのボタンを `bindButtons()` で結ぶ（有効・無効も QAction に従う。切り替えは `setStepActionsEnabled()`）
@@ -202,17 +207,16 @@ cmake --build build --target translations
 - **dialogs/**: Dialog implementations (with co-located .ui files)
   - `josekiexpanddialog`（定跡を棋譜に展開する条件）・`josekiimportdialog`（複数の棋譜・フォルダから定跡に登録。集めるのはワーカースレッドで、進み具合と中止を出す。定跡ウィンドウへのドロップでも開く）・`josekibookmergedialog`（別の定跡ファイルを足す条件）・`josekianalysisregisterdialog`（棋譜解析の結果をまとめて登録する手数と手番）・`josekimergedialog`（表示中の手順・棋譜ファイルの本譜の手を選んで登録。「登録済」は定跡に手があるか（`hasMove`）で、登録は `importMoves`）。定跡ウィンドウの「盤の手を登録」（保存しない設定で、起動するとオフ）の登録は `JosekiRegistrationController` が行う
   - `josekimovedialog`・`josekimoveinputwidget` - 定跡手の追加・編集。指し手は局面の合法手を棋譜の表記で並べた一覧から選ぶ（`JosekiMoveInputWidget`。一覧のオブジェクト名は `<name>Combo`。予想応手は着手後の局面の合法手で、先頭が「なし」）。値の受け渡しは `JosekiMoveDialog::setEntry(const JosekiMove&)`・`entry()`
+  - `boardappearancedialog`・`boardappearancesamples` - 対局画面の外観ダイアログ `BoardAppearanceDialog`（駒・将棋盤・背景・駒台・対局者情報の見本の一覧、「おすすめの組み合わせ」、「詳細」の色と木目・影・駒の大きさ。選んだ外観は `BoardAppearance` に書く）と、見本の画像を描く `BoardAppearanceSamples`（見えた項目だけを描く一覧の `LazySampleDelegate`）
   - `promotedialog` - 成り・不成の確認。`PromoteDialog::ask(parent)` で尋ねる（主画面の `DialogLauncher::choosePromotion()` と詰将棋を解く画面で共通）
   - `pvboarddialog`・`pvline` - 読み筋盤（`PvBoardDialog(PvText)`）。読み筋1本の値 `PvLine`（`PvText` から作る。各手数の局面 `positions()`・手の表記 `moveText(ply)`・`displayPv()`・直前の手のハイライト `highlight(ply)` が返す `PvLine::Highlight`）。表示する手数は `BoardViewerWidget` だけが持つ
   - `tsumeplaydialog` - 詰将棋を解く画面。対局と正解手順の再生は `Mode { Playing, Reviewing }`、部品の有効・無効は `controlStates()` の表1か所で決める。挑戦・正答の記録は `analysis/tsumegamesession`（`TsumeGameSession`）が付ける
 - **models/**: Qt models for lists and data binding（`shogienginethinkingmodel`・`kifuanalysislistmodel`: 思考の表・棋譜解析の結果の表。行は `ShogiInfoRecord`・`KifuAnalysisRow`（`kifuanalysisrow.h`）の値で持ち、表記の設定ごとの表示は `NotationTextCache` で覚える。詰みの評価値の表記（「3手詰」・手数の分からない詰みは「詰み」）は `scoretext` の `ScoreText` だけで作り、評価値グラフも「先手勝ち・3手詰」のようにこれを使う、`josekitablemodel`: 定跡ウィンドウの表（予想応手が「なし」の手には、指した後の局面の定跡から導いた応手を灰色で出す。`setMoves` に `JosekiBookSession::leadingMove` を渡す）、`usicommlogmodel`: エンジン1台の情報欄と通信ログの行の知らせ、`evaluationseries`: 評価値グラフの点。先手から見た値で持ち、向きの直しは `blackView()` だけ）
-- **services/**: Cross-cutting services (settings, time keeping)
+- **services/**: 設定の宣言と保存・登録エンジン・表記と翻訳の設定など、GUI に依存しない共有のサービス（外観は style、駒音は ui）
   - `engineprofilestore.cpp/.h` - 登録エンジンの設定（一覧・USIオプション・先読みの設定）の保存形式を知る唯一の場所（ほかの部品は設定ファイルを開かずにこの関数を使う）
   - `registeredengines.cpp/.h` - 登録エンジン1つ `EngineEntry` と一覧 `RegisteredEngines`（`load()`・名前とパスでの検索。GUI・CLI・自動化 API で共通）。機能ごとに選んだエンジンの保存は `enginelistsettings`（`EngineListSettings::SelectionKeys`）。オプションの型は `EngineOption` 1つ（`UsiLineParser::parseOption` が返す）
-  - `piecestylecatalog.cpp/.h` - 駒のセットの表 `PieceStyleCatalog`（ID・分類 `Family`・表示名・画像の場所）。駒のセットを足すときはこの表に1行足す（外観ダイアログの絞り込みの番号は `Family` の値）
   - `notationstyle.cpp/.h` - 表示言語と棋譜の表記の設定 `NotationStyle`（`Notation`・`Options`・`resolveLanguage`・`configure`・`options`・`revision`）。起動時に `ApplicationTranslations` が設定し、kifu の `KifuPresentation` が読む
-  - `appearancestate.cpp/.h` - 外観（駒のセット・配色・見た目）をまとめた値 `AppearanceState`（`current()`・`apply()`）。おすすめの組み合わせは `boardappearancecatalog` の `combinations()`
-- **common/**: 共有の土台（`appactivitystate`（動作状態 `AppActivityState` と持ち主のリース `ActivityLease`）・`boardcolors.h`・`boardvisuals.h`・`branchtreeitemroles.h`・`errorbus`・`logcategories`・`threadtypes.h`・`boundedfile.h`（利用者が選んだ棋譜・局面集を、通常のファイルだけ上限つきで読む `BoundedFile::read`）・`recentfilelist`（最近使ったファイルの一覧 `RecentFileList`。新しい順・重複なし・上限つき。定跡の `JosekiBookSession` と局面集ビューアが使う））
+- **common/**: 共有の土台（`appactivitystate`（動作状態 `AppActivityState` と持ち主のリース `ActivityLease`）・`branchtreeitemroles.h`・`errorbus`・`logcategories`・`threadtypes.h`・`boundedfile.h`（利用者が選んだ棋譜・局面集を、通常のファイルだけ上限つきで読む `BoundedFile::read`）・`recentfilelist`（最近使ったファイルの一覧 `RecentFileList`。新しい順・重複なし・上限つき。定跡の `JosekiBookSession` と局面集ビューアが使う））
 
 ### UI Files
 
@@ -278,7 +282,7 @@ grep -c 'type="unfinished"' resources/translations/*.ts | \
 3. **列幅**: テーブルやリストビューの列幅を保存
 4. **最後に選択した項目**: コンボボックスの選択状態など
 
-設定はドメイン別ヘッダー（`src/services/appsettings.h`・`gamesettings.h`・`analysissettings.h`・`networksettings.h`・`josekisettings.h`・`tsumeshogisettings.h`・`enginedialogsettings.h`・`docksettings.h`）に、`Setting<T>`（`src/services/setting.h`）で**キーと既定値を1行で宣言する**。getter と setter の組やキー定数は手で書かない。
+設定はドメイン別ヘッダー（`src/services/appsettings.h`・`gamesettings.h`・`analysissettings.h`・`networksettings.h`・`josekisettings.h`・`tsumeshogisettings.h`・`enginedialogsettings.h`・`docksettings.h`、外観は値の型と同じ層の `src/style/appearancesettings.h`）に、`Setting<T>`（`src/services/setting.h`）で**キーと既定値を1行で宣言する**。getter と setter の組やキー定数は手で書かない。
 
 **追加手順:**
 1. ドメイン別ヘッダーに `inline const Setting<T> name{"Group/key", 既定値};` を1行足す
