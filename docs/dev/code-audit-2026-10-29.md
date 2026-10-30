@@ -478,6 +478,36 @@
 
 **影響**: 約12ファイル、差し引き約80行減。テストは `tst_kifusavedialogs`（27か所）。
 
+**状態: 済（bf9a4a1d）**。書き直し案のとおりにした。
+- **保存の経路**: `KifuIoService` を `KifuSaveFile` にまとめた（既定のファイル名・Shift_JIS で表せない文字・書き込み）。
+  - Shift_JIS への変換は1回だけにした。表せない文字を探すのは、変換に失敗したときだけ。
+  - 届かなかったエラー文（"Some characters cannot be saved in Shift_JIS..."）は無くなった。
+- **形式の表**: `kifuformat.cpp` の拡張子の表 `kExtensions` に、文字コード（`KifuEncoding`）と保存ダイアログの見出しを持たせた。
+  - 並びは保存ダイアログの順（UTF-8 の `.kifu` が先頭）にし、形式の名前は表の印で決める。
+  - 新しい関数: `KifuFormats::saveTargets()`・`saveTargetForPath()`・`savableNames()`。
+- **文字コードの宣言**: 書き出しの文脈 `KifuExportMetadata::encoding` で、KIF・KI2・CSA の先頭行に文字コードの宣言を書く。
+  - `KifuSaveFile::write` は、行を作る関数 `(format, encoding)` を受け取る。
+  - Shift_JIS で表せない文字があり UTF-8 で保存してよいと答えたときは、UTF-8 で行を作り直す。1行目を文字列で置き換える処理は消した。
+  - CLI の変換は、出力先の拡張子の文字コードを変換に渡し、`writeLines` で書く。
+- **絞り込み**: 保存ダイアログの絞り込みは `KifuFileFilter::forSaving()` で表から作る。
+  - 選んだ絞り込みからの拡張子は、正規表現ではなく表の拡張子で見分ける（`pathForSaving()`）。
+  - 手書きの絞り込みの文と、`KifuSaveFile::pathForSelectedFilter`・`usesShiftJisForPath` を消した（`encodingForPath` にした）。
+- **形式の一覧**: CLI の `input_format`・`output_format` と、自動化 API の `kifu.get` の選択肢は `KifuFormats::savableNames()` から作る。
+  - `kifu.save` の拡張子の案内も、表から作る（`KifuSaveFile::knownSaveExtensionsText()`）。
+  - `kifu.get` の届かなかったエラー文は消した。
+  - MCP の一時ファイルの拡張子は、`specs.json` の `input_format` の選択肢で確かめ、形式の名前をそのまま拡張子にする（対応表を消した）。
+- **定跡ファイル**: 拡張子と絞り込みを `JosekiBookFile::hasBookSuffix`・`withBookSuffix`・`fileFilter` の1か所にまとめた。
+- **翻訳**: 文脈の変わった文（`KifuIoService`→`KifuSaveFile` の5件、定跡ファイルの絞り込み）は旧い訳から入れた。保存の絞り込みの見出し8件は、旧い1つの文の訳を分けて入れた。
+- **行数**: src は +386／−331 で、見込み（約80行減）と違い少し増えた。表の文字コードと見出しの欄、`writeLines`・`knownSaveExtensionsText`・`forSaving` と説明の分。
+- **使う人から見て変わる所**:
+  - 開くダイアログの「棋譜ファイル」の拡張子の並び（`*.kifu *.kif …`）と、CLI の `environment` の拡張子の並びが、表の順になった。
+  - `kifu.save` の拡張子の案内の文が変わった。
+  - 保存されるファイルの中身は変わらない。
+- **テスト**: `tst_kifusavedialogs` は行を作る関数で保存を試す形にした。
+  - 足したテスト: 保存の絞り込みが表から作られること、保存先の拡張子の形式と文字コードで1回だけ行を作ること、`writeLines`。
+  - `tst_kifuformat` に表のテスト、`tst_kifu_conversion_service` に文字コードの宣言のテストを足した。
+  - MCP の `test_paths.py` が持つ拡張子の並びの写し（CLI の `environment` と比べる）を、新しい並びにした。
+
 ---
 
 ## 3. 中くらいの候補
