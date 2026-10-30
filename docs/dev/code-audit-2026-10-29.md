@@ -327,6 +327,25 @@
 
 **影響**: ウィンドウは600行台になる。CMake・CLAUDE.md の更新が要る。`tst_josekiwindow` は friend 経由のアクセスが約140か所ある。クラス名を変えなければ、翻訳の文脈は変わらない。
 
+**状態: 済（306a2a77）**。書き直し案のとおりにした。違うのは、3つのコントローラの持ち主を新しい `JosekiBookController`（ui/controllers）にしたこと。
+- **置き場所**: `JosekiTableModel` は models、`JosekiTableView`・`JosekiWindow` は widgets、File・Edit・Merge のコントローラは ui/controllers へ移した。クラス名は変えていないので、翻訳の文脈は変わらない。
+- **ウィンドウ**: 意図をシグナルで出すだけのパネルにした（新規・開く・保存・履歴・マージ・ドロップ・定跡手の追加/編集/削除・着手・展開）。
+  - コントローラ・ダイアログを作らず、dialogs を include しない。ドロップのパスは kifu の `JosekiImport::localPaths` で読む。
+  - 表の並べ替えだけは、ダイアログの要らない表の操作として、セッションに直接書く。
+  - 911行が828行になった。残りはパネルの組み立て・文字の大きさ・表示で、600行台にはならなかった。
+- **コントローラ**: `JosekiWindowController` が `JosekiBookController` を作り、`JosekiBookController` が File・Edit・Merge を持つ。
+  - 盤・棋譜とつなぐ部分（着手・展開・定跡を外れた手）と、定跡そのものの操作（ファイル・定跡手・マージ）で持ち主を分けた。後者は軽い部品（セッション・ウィンドウ・表示中の手）だけで作れるので、テストで組み立てられる。
+  - 閉じるときの確認・ドロップの振り分け・ドックの題名の未保存の印は `JosekiBookController`、展開の条件のダイアログは `JosekiWindowController` が受け持つ。
+  - 「現在の棋譜から」は `navState->currentRecordLine()` を直接渡す。4段の中継（`kifuDataRequested` など）は消した。
+  - ドックへの結び付けは `JosekiWindowController::attachDock` の1か所にした。
+- **保存**: 履歴・前回のファイルは、`JosekiBookSession` が変わるたびに保存する。起動時は合成ルートが `restoreSaved()` で戻す。自動読込の設定も `JosekiBookSession`（`autoLoadEnabled`）が読み書きする。
+  - `josekiWindowSize` は消した。列幅は、ほかの表と同じく利用者がドラッグしたとき（`TableHeaderView::sectionResizedByUser`）に保存する。
+- **重複**:
+  - 導いた予想応手は表のモデルが作る（`setMoves` に `JosekiBookSession::leadingMove` を渡す。指した後の局面の計算は1か所）。
+  - 人間が指せるかの判定は `JosekiWindowController` の1つの関数で、ウィンドウが表を作るときと「着手」を押したときに使う。覚えておく値は表のモデルの1つだけにした。
+- `JosekiRegistrationController` の表記は `KifuPresentation::move` にした。
+- テスト: `tst_josekiwindow` はウィンドウと `JosekiBookController` を組んで試す。「現在の棋譜から」とドックの題名のテストを足した。
+
 ### T6. 盤の矢印を出すかの正本が3通りあり、対局の矢印だけプロトコルの状態から文字列で作る（widgets・ui・engine・app）。U2 の原因
 
 **問題**
