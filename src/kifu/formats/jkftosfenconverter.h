@@ -19,13 +19,13 @@ class Position;
  *
  * JKF仕様: https://github.com/na2hiro/json-kifu-format
  *
- * JSON は1回だけ解析し、棋譜・開始局面・手合割の名前・対局情報をまとめて返す。
+ * JSON は1回だけ解析し、棋譜・開始局面とその書き方・対局情報をまとめて返す。
  * 指し手・初期局面の変換は JkfCodec、手順の組み立ては KifLineBuilder に任せる。
  */
 class JkfToSfenConverter
 {
 public:
-    /// 棋譜を読む。手合割の名前は preset の手合割（OTHER は「任意局面」）
+    /// 棋譜を読む。開始局面の書き方は preset なら Handicap、OTHER の局面図なら Diagram、initial が無ければ Default
     static KifuParseOutcome parse(QStringView text, const ParseOptions& options = {});
 
 private:

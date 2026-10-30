@@ -17,7 +17,7 @@ getter と setter の組やキー定数は手で書かない。値の範囲を�
 4. [新しい設定項目の追加手順](#4-新しい設定項目の追加手順)
 5. [関数として書く項目](#5-関数として書く項目)
 6. [QSettings を直接開く場合（配列・グループのデータ）](#6-qsettings-を直接開く場合配列グループのデータ)
-7. [エンジンの登録情報（EngineSettingsConstants）](#7-エンジンの登録情報enginesettingsconstants)
+7. [エンジンの登録情報（EngineProfileStore）](#7-エンジンの登録情報engineprofilestore)
 8. [テスト](#8-テスト)
 9. [旧バージョンからの移行](#9-旧バージョンからの移行)
 
@@ -59,9 +59,8 @@ getter と setter の組やキー定数は手で書かない。値の範囲を�
 | `src/services/settingscommon.h/.cpp` | 設定ファイルのパス（`settingsFilePath()`）、アプリ全体で共有する `QSettings`（`openSettings()`）、全設定の消去（`resetAllSettings()`） |
 | ドメイン別ヘッダー（下表） | 設定項目の宣言の表。処理が要る項目の関数宣言もここに置く |
 | `src/services/settingskeys.h` | 関数として書いた項目と、機能ごとのエンジン選択（`EngineListSettings`）が使うキー定数。宣言の表の項目はキーを宣言に直接書くので、新しい項目のためにここへ定数を足さない |
-| `src/services/settingsservice.h` | ドメイン別ヘッダーをまとめて include するだけのヘッダー（関数はなく、`.cpp` もない）。新しいコードはドメイン別ヘッダーを直接 include する |
-| `src/services/engineprofilestore.h/.cpp` | 登録エンジンの設定（一覧・USIオプション・先読みの設定）の保存形式を知る唯一の場所（[7章](#7-エンジンの登録情報enginesettingsconstants)） |
-| `src/services/enginelistsettings.h/.cpp` | 登録エンジン一覧の検索（名前・パス）と、機能ごとに選んだエンジンの保存（[7章](#7-エンジンの登録情報enginesettingsconstants)） |
+| `src/services/engineprofilestore.h/.cpp` | 登録エンジンの設定（一覧・USIオプション・先読みの設定）の保存形式を知る唯一の場所（[7章](#7-エンジンの登録情報engineprofilestore)） |
+| `src/services/enginelistsettings.h/.cpp` | 登録エンジン一覧の検索（名前・パス）と、機能ごとに選んだエンジンの保存（[7章](#7-エンジンの登録情報engineprofilestore)） |
 | `src/services/engineoption.h` | USIオプション1つの値 `EngineOption`（名前・型・既定値・範囲・現在値・選択肢） |
 
 ### ドメイン別ヘッダー
@@ -292,7 +291,7 @@ INI ファイル内のキーは `グループ名/キー名` の形式で、宣�
 
 | 処理 | 関数 |
 |---|---|
-| 古い保存値の引き継ぎ・不正値の補正 | `AppearanceSettings::appearanceSection`（外観ダイアログのタブの id を文字列で返す。旧版のタブの番号は id に読み替える）、`AppearanceSettings::pieceStyle`（`PieceStyleCatalog` にない値・廃止したセットは `standard` に戻す）、`TsumeshogiSettings::migrateCollectionEngineSelection`（判定エンジンの `"@hayanagi"` を空の名前に直す）、`GameSettings::StartGame::startingPosition` / `setStartingPosition`（以前の版の開始局面の番号を読み、保存するときに消す）、`AnalysisSettings::kifuAnalysisColumnWidths`（1つのキーに `QVariantList` で保存していた値を配列に移す）、`GameSettings::gameInfoColumnWidths`（項目名の列幅 `GameInfo/keyColumnWidth` を配列に移す） |
+| 古い保存値の引き継ぎ・不正値の補正 | `AppearanceSettings::appearanceSection`（外観ダイアログのタブの id を文字列で返す。旧版のタブの番号は id に読み替える）、`AppearanceSettings::pieceStyle`（`PieceStyleCatalog` にない値・廃止したセットは `standard` に戻す）、`EngineListSettings::savedSelectionName`（詰将棋問題一覧の判定エンジンの以前の版の `"@hayanagi"` を空の名前として読む）、`GameSettings::StartGame::startingPosition` / `setStartingPosition`（以前の版の開始局面の番号を読み、保存するときに消す）、`AnalysisSettings::kifuAnalysisColumnWidths`（1つのキーに `QVariantList` で保存していた値を配列に移す）、`GameSettings::gameInfoColumnWidths`（項目名の列幅 `GameInfo/keyColumnWidth` を配列に移す） |
 | 保存の形と値の形の換算 | `GameSettings::StartGame::Player::time` / `setTime` / `defaultTime`（持ち時間を時間・分・秒の項目に保存し、`TimeControlSide` のミリ秒で読み書きする） |
 | 未保存の項目をほかの項目で代える | `AppearanceSettings::boardVisuals` / `setBoardVisuals`（中身は `StructSetting<BoardVisuals>`。駒台の木目 `standWoodGrain` が未保存なら、それを分ける前の版の将棋盤の木目 `woodGrain` を使う） |
 | 独自の保存形式 | `AppearanceSettings::boardColors` / `setBoardColors`（色を `#RRGGBB`・`#AARRGGBB` の文字列で保存し、不正な色は標準色に戻す）、`DockSettings::dockState` / `setDockState`（グループ名を引数で受ける。キーは `<グループ>/floating`・`/visible`・`/geometry`。グループは `DockRegistry` の表の `settingsGroup`。表示の既定値も引数で受ける） |
@@ -345,11 +344,11 @@ settings.endArray();
 
 ---
 
-## 7. エンジンの登録情報（EngineSettingsConstants）
+## 7. エンジンの登録情報（EngineProfileStore）
 
 エンジンの登録情報（名前、パス、作者、オプション）は配列で保存するため、宣言の表ではなく [6章](#6-qsettings-を直接開く場合配列グループのデータ) の方法で読み書きする。
 この保存形式を知るのは `EngineProfileStore`（`src/services/engineprofilestore.h`）だけで、ほかの部品は設定ファイルを開かずにその関数を使う。
-INI キー名は `src/services/enginesettingsconstants.h` に定数として定義されている。
+INI のキー名も `engineprofilestore.cpp` の中だけに置く（テストが設定ファイルを直接準備するときは `tests/engine_profile_format_helper.h` の語を使う）。オプションの型を表す語（`spin`・`check` など）は `EngineOption::kTypeSpin` などで、USI の受信行の解釈・設定ダイアログと共有する。
 
 ```
 [Engines]
@@ -363,8 +362,8 @@ YaneuraOu\1\name=Threads
 ...
 ```
 
-エンジンごとの設定は `EngineSettingsConstants::engineOptionsGroup(名前)`（`EngineOptions/<名前>`）のグループに置く。
-名前の `%`・`/`・`\` はエスケープするので、`General` や `/` を含む名前でもほかの設定と衝突しない。
+エンジンごとの設定は `EngineOptions/<名前>` のグループに置く。
+名前の `%`・`/`・`\` は `SettingsCommon::escapeKey()` でエスケープするので（ドックのレイアウト名と同じ）、`General` や `/` を含む名前でもほかの設定と衝突しない。
 グループの中身は次のとおり（INI では `[EngineOptions]` の下に `YaneuraOu\1\name=...` の形で並ぶ）。
 
 ```
@@ -441,8 +440,9 @@ CSA通信対局のキーは以前の版と同じで、`NetworkSettings` には�
 
 詰将棋問題一覧の判定エンジンは、内蔵の Hayanagi の項目（`Options::builtinLabel`）と、名前に KomoringHeights を含む登録エンジンだけを出す。
 以前の版は `TsumeCollection/engine` にパスを保存し、内蔵の Hayanagi は `"@hayanagi"` と書いていた。
-ダイアログを開くときに `TsumeshogiSettings::migrateCollectionEngineSelection()` が `"@hayanagi"` を空の名前に直す。
-パスは以前の版のパスのキーとして `restoreSelection()` が読む。
+保存場所 `EngineListSettings::tsumeCollectionSelection()` は、以前の版のパスのキーに書いた内蔵の印（`SelectionKeys::legacyBuiltinPath` = `"@hayanagi"`）を持ち、
+名前が保存されていなければ `savedSelectionName()` がそれを空の名前（内蔵）として返す。パスは以前の版のパスのキーとして `restoreSelection()` が読む。
+どちらも読むだけで、選び直して保存したときに名前を書き、以前の版のキーを消す。
 
 ### 先読みのGUI設定
 

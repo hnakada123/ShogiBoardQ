@@ -26,7 +26,7 @@
 class UsenToSfenConverter
 {
 public:
-    /// 棋譜を読む。手合割の名前は平手なら「平手」、局面を書いていれば「局面指定」
+    /// 棋譜を読む。開始局面の書き方は "~" が無ければ Default、"~" の前が空なら Handicap、局面を書いていれば Specified
     static KifuParseOutcome parse(QStringView text, const ParseOptions& options = {});
 
 private:

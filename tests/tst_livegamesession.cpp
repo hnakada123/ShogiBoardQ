@@ -276,6 +276,32 @@ private slots:
         QCOMPARE(nav.currentLineIndex(), 0);
     }
 
+    /// 棋譜の途中から続けた対局の情報は、新しく作った最初の手のコメントになる（指し直した既存の手には付けない）
+    void firstMoveNoteBecomesCommentOfNewNode()
+    {
+        KifuBranchTree tree;
+        tree.setRootSfen(kHirateSfen);
+        ShogiMove move;
+        auto* n1 = TestTree::addMove(tree, tree.root(), move, QStringLiteral("▲７六歩"), QStringLiteral("board1 w - 2"));
+        auto* n2 = TestTree::addMove(tree, n1, move, QStringLiteral("△３四歩"), QStringLiteral("board2 b - 3"));
+
+        KifuNavigationState nav(&tree);
+        LiveGameSession session(&tree, &nav);
+        session.startFromNode(n1);
+        session.setFirstMoveNote(QStringLiteral("continued"));
+        // 既存の手を指し直した: コメントは付けず、次に作る手まで残す
+        session.appendRecord(playedEntry(QStringLiteral("△３四歩"), QStringLiteral("board2 b - 3"), QStringLiteral("0:15")));
+        QCOMPARE(session.liveNode(), n2);
+        QVERIFY(n2->comment().isEmpty());
+        session.appendRecord(playedEntry(QStringLiteral("▲２六歩"), QStringLiteral("board3 w - 4"), QStringLiteral("0:05")));
+        KifuBranchNode* created = session.liveNode();
+        QVERIFY(created != n2);
+        QCOMPARE(created->comment(), QStringLiteral("continued"));
+        // 2手目以降には付けない
+        session.appendRecord(playedEntry(QStringLiteral("△８四歩"), QStringLiteral("board4 b - 5"), QStringLiteral("0:05")));
+        QVERIFY(session.liveNode()->comment().isEmpty());
+    }
+
     void addMove_branchesAtDivergence()
     {
         // 同じ手を1手指し直した後に別の手を指すと、分岐は実際に手が分かれた地点にできる

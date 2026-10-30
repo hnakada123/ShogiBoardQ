@@ -28,34 +28,12 @@ void setDockState(const QString& group, const DockState& state)
 
 namespace {
 
-// レイアウト名は設定のキーにする。「/」「\」はグループの区切りになるので、「%」とともに %XX にする
-// （以前の版はそのまま保存していた。「%」を含む名前は、そのままのキーが残っていればそれを使う）
-QString escapeLayoutName(const QString& name)
-{
-    QString key = name;
-    key.replace(QLatin1Char('%'), QStringLiteral("%25"));
-    key.replace(QLatin1Char('/'), QStringLiteral("%2F"));
-    key.replace(QLatin1Char('\\'), QStringLiteral("%5C"));
-    return key;
-}
-
-QString unescapeLayoutName(const QString& key)
-{
-    QString name;
-    for (qsizetype i = 0; i < key.size(); ++i) {
-        const QStringView code = QStringView(key).mid(i, 3);
-        if (code == u"%2F") { name += QLatin1Char('/'); i += 2; }
-        else if (code == u"%5C") { name += QLatin1Char('\\'); i += 2; }
-        else if (code == u"%25") { name += QLatin1Char('%'); i += 2; }
-        else name += key.at(i);
-    }
-    return name;
-}
-
+// レイアウト名は設定のキーにする（SettingsCommon::escapeKey。以前の版はそのまま保存していた。
+// 「%」を含む名前は、そのままのキーが残っていればそれを使う）
 QString layoutKey(const QSettings& s, const QString& name)
 {
     const QString group = QString::fromLatin1(SettingsKeys::kCustomDockLayoutsGroup) + QLatin1Char('/');
-    const QString escaped = group + escapeLayoutName(name);
+    const QString escaped = group + SettingsCommon::escapeKey(name);
     const QString legacy = group + name;
     return !s.contains(escaped) && name.contains(QLatin1Char('%')) && s.contains(legacy) ? legacy : escaped;
 }
@@ -71,7 +49,7 @@ QStringList savedDockLayoutNames()
     s.endGroup();
     QStringList names;
     for (const QString& key : keys) {
-        const QString name = unescapeLayoutName(key);
+        const QString name = SettingsCommon::unescapeKey(key);
         if (!names.contains(name)) names.append(name);
     }
     return names;
@@ -83,7 +61,7 @@ void saveDockLayout(const QString& name, const QByteArray& state)
     QSettings& s = SettingsCommon::openSettings();
     // 以前の版のキーは消して、今の形のキーに書く
     const QString key = layoutKey(s, name);
-    const QString escaped = QString::fromLatin1(SettingsKeys::kCustomDockLayoutsGroup) + QLatin1Char('/') + escapeLayoutName(name);
+    const QString escaped = QString::fromLatin1(SettingsKeys::kCustomDockLayoutsGroup) + QLatin1Char('/') + SettingsCommon::escapeKey(name);
     if (key != escaped) s.remove(key);
     s.setValue(escaped, state);
 }

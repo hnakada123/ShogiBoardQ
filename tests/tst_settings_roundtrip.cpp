@@ -11,7 +11,14 @@
 #include <QDir>
 #include <QFile>
 
-#include "settingsservice.h"
+#include "analysissettings.h"
+#include "appsettings.h"
+#include "docksettings.h"
+#include "enginedialogsettings.h"
+#include "gamesettings.h"
+#include "josekisettings.h"
+#include "networksettings.h"
+#include "tsumeshogisettings.h"
 #include "settingskeys.h"
 #include "appearancesettings.h"
 #include "enginelistsettings.h"
@@ -23,6 +30,15 @@ class Tst_SettingsRoundtrip : public QObject
     Q_OBJECT
 
 private slots:
+    /// 利用者が付けた名前（エンジン名・ドックのレイアウト名）をキーの1つの区切りにするエスケープは1つ
+    void escapeKeyRoundTrips()
+    {
+        const QString name = QStringLiteral("a/b\\c%d 2F");
+        QCOMPARE(SettingsCommon::escapeKey(name), QStringLiteral("a%2Fb%5Cc%25d 2F"));
+        QCOMPARE(SettingsCommon::unescapeKey(SettingsCommon::escapeKey(name)), name);
+        QCOMPARE(SettingsCommon::unescapeKey(QStringLiteral("100%")), QStringLiteral("100%"));
+    }
+
     void initTestCase()
     {
         // テストモードを有効にして、テスト用の設定パスを使用

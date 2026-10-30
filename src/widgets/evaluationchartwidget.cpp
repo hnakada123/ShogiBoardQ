@@ -440,28 +440,26 @@ void EvaluationChartWidget::updatePresentation()
 {
     if (!m_chartView) return;
     QStringList values;
-    m_chartView->markers.clear();
+    EvaluationChartView::Overlay overlay;
     for (int side = 0; side < 2; ++side) {
-        m_chartView->legends[side] = scores(side).isEmpty() ? QString() : seriesName(side);
+        overlay.legends[side] = scores(side).isEmpty() ? QString() : seriesName(side);
         const auto selected = scores(side).constFind(m_currentPly);
         if (selected != scores(side).cend()) values.append(tr("%1：%2").arg(seriesName(side), scoreText(*selected)));
         for (auto it = scores(side).cbegin(); it != scores(side).cend(); ++it) {
             const bool edge = it->isMate() || qAbs(qint64(it->value)) > yAxisLimit();
             const bool highlight = it.key() == m_currentPly || (m_hoverSide == side && m_hoverPly == it.key());
             if (edge || highlight || scores(side).size() <= 40)
-                m_chartView->markers.append({QPointF(it.key(), displayedValue(*it)),
+                overlay.markers.append({QPointF(it.key(), displayedValue(*it)),
                     EvaluationChartView::seriesColor(side), edge, highlight, side == 1});
         }
     }
-    m_chartView->summary = tr("%1手目  |  %2").arg(m_currentPly)
+    overlay.summary = tr("%1手目  |  %2").arg(m_currentPly)
         .arg(values.isEmpty() ? tr("評価値なし") : values.join(QStringLiteral("   /   ")));
     if (!m_evaluation->analysisLineName().isEmpty())
-        m_chartView->summary.prepend(m_evaluation->analysisLineName() + QStringLiteral("  |  "));
-    m_chartView->setAccessibleName(m_chartView->summary);
-    m_chartView->currentPly = m_currentPly;
-    m_chartView->xLimit = xAxisLimit();
-    m_chartView->yLimit = yAxisLimit();
-    m_chartView->viewport()->update();
+        overlay.summary.prepend(m_evaluation->analysisLineName() + QStringLiteral("  |  "));
+    overlay.currentPly = m_currentPly;
+    overlay.xLimit = xAxisLimit();
+    m_chartView->setOverlay(std::move(overlay));
 }
 
 void EvaluationChartWidget::flushPendingScores()

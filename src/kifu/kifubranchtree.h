@@ -199,11 +199,6 @@ public:
     // === 分岐判定 ===
 
     /**
-     * @brief このノードに分岐があるか
-     */
-    bool hasBranch(KifuBranchNode* node) const;
-
-    /**
      * @brief 指定ノードが属するラインインデックスを取得
      * @param node 対象ノード
      * @return ラインインデックス（見つからない場合はstd::nullopt）
@@ -213,13 +208,6 @@ public:
      * 見つからない場合は、そのノードを含む最初のラインを返す。
      */
     std::optional<int> findLineIndexForNode(KifuBranchNode* node) const;
-
-    // === コメント ===
-
-    /**
-     * @brief ノードのコメントを設定
-     */
-    void setComment(int nodeId, const QString& comment);
 
     // === データ抽出 ===
 

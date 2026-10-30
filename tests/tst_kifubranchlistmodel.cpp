@@ -53,7 +53,7 @@ private slots:
     {
         KifuBranchListModel model(&m_tree);
         model.setCandidates(m_firstMoves, -1, false);
-        m_firstMoves.at(2)->record().displayText = QStringLiteral("▲９六歩(97)");
+        TestTree::record(m_firstMoves.at(2)).displayText = QStringLiteral("▲９六歩(97)");
         QSignalSpy changed(&model, &QAbstractItemModel::dataChanged);
         model.refreshAll();
         QCOMPARE(changed.count(), 1);

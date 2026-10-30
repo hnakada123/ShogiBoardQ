@@ -3,7 +3,6 @@
 
 #include "kifurecordlistmodel.h"
 #include "movefont.h"
-#include "applicationfonts.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
 #include "kifupresentation.h"

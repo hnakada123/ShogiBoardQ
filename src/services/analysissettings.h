@@ -2,9 +2,10 @@
 #define ANALYSISSETTINGS_H
 
 /// @file analysissettings.h
-/// @brief 解析・検討設定の永続化
+/// @brief 解析・検討とエンジンの表示の設定の宣言
 ///
-/// 評価値グラフ・解析タブ・棋譜解析・検討モード・読み筋盤面に関する設定を提供します。
+/// 検討・棋譜解析・詰み探索の条件と、評価値グラフ・分岐ツリーの図・思考の表・エンジン情報欄・USI 通信ログ・
+/// 盤の矢印の表示の設定。
 
 #include <QMetaType>
 #include <QSize>

@@ -151,19 +151,6 @@ inline QString undoRedo()
         "#f5f5f5", "#9e9e9e", "#e0e0e0");
 }
 
-/// 列表示トグルボタン（ブルーグレー、checked: 濃い青）
-inline QString toggleButton()
-{
-    return detail::buildDualStyle(
-        "#8a9bb5", "white", "#6b7d99",
-        "#5a82b8", "#3d5a80",
-        "#c0c8d4", "#e0e0e0", "#a8b4c4",
-        "padding: 2px 4px; min-width: 28px; max-width: 36px;",
-        "QPushButton:checked, QToolButton:checked {"
-        "  background-color: #4A6FA5; border: 1px solid #3d5a80;"
-        "}");
-}
-
 /// ファイル開く/保存/履歴ボタン（ライトブルー）
 inline QString fileOperation()
 {

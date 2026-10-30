@@ -11,11 +11,11 @@
 #include "changeenginesettingsdialog.h"
 #include "enginelistsettings.h"
 #include "engineprofilestore.h"
-#include "enginesettingsconstants.h"
+#include "engine_profile_format_helper.h"
 #include "longlongspinbox.h"
 #include "settingscommon.h"
 
-using namespace EngineSettingsConstants;
+using namespace EngineProfileFormat;
 
 class TestEngineProfileStore : public QObject
 {

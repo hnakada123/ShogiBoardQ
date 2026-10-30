@@ -15,6 +15,13 @@ EvaluationChartView::EvaluationChartView(QChart* chart, QWidget* parent)
     viewport()->setMouseTracking(true);
 }
 
+void EvaluationChartView::setOverlay(Overlay overlay)
+{
+    m_overlay = std::move(overlay);
+    setAccessibleName(m_overlay.summary);
+    viewport()->update();
+}
+
 QColor EvaluationChartView::seriesColor(int side)
 {
     return QColor(side == 0 ? QStringLiteral("#2563EB") : QStringLiteral("#C26719"));
@@ -29,13 +36,13 @@ void EvaluationChartView::drawHeader(QPainter* painter, const QRectF& area)
     const qreal summaryWidth = compact ? header.width() * 0.55 : header.width();
     painter->setPen(QColor(QStringLiteral("#334155")));
     painter->drawText(QRectF(header.topLeft(), QSizeF(summaryWidth, row)), Qt::AlignLeft | Qt::AlignVCenter,
-                      fm.elidedText(summary, Qt::ElideRight, static_cast<int>(summaryWidth)));
-    const int count = (!legends[0].isEmpty() ? 1 : 0) + (!legends[1].isEmpty() ? 1 : 0);
+                      fm.elidedText(m_overlay.summary, Qt::ElideRight, static_cast<int>(summaryWidth)));
+    const int count = (!m_overlay.legends[0].isEmpty() ? 1 : 0) + (!m_overlay.legends[1].isEmpty() ? 1 : 0);
     const qreal legendWidth = (compact ? header.width() - summaryWidth - 16 : header.width()) / qMax(1, count);
     const qreal legendTop = compact ? header.top() : header.bottom();
     qreal x = compact ? header.left() + summaryWidth + 16 : header.left();
     for (int side = 0; side < 2; ++side) {
-        if (legends[side].isEmpty()) continue;
+        if (m_overlay.legends[side].isEmpty()) continue;
         const qreal y = legendTop + row / 2;
         QPen pen(seriesColor(side), 2);
         if (side == 1) pen.setStyle(Qt::DashLine);
@@ -43,7 +50,7 @@ void EvaluationChartView::drawHeader(QPainter* painter, const QRectF& area)
         painter->drawLine(QPointF(x, y), QPointF(x + 20, y));
         painter->setPen(QColor(QStringLiteral("#475569")));
         painter->drawText(QRectF(x + 28, legendTop, legendWidth - 36, row), Qt::AlignVCenter,
-                          fm.elidedText(legends[side], Qt::ElideRight, static_cast<int>(legendWidth - 36)));
+                          fm.elidedText(m_overlay.legends[side], Qt::ElideRight, static_cast<int>(legendWidth - 36)));
         x += legendWidth;
     }
 
@@ -56,10 +63,10 @@ void EvaluationChartView::drawHeader(QPainter* painter, const QRectF& area)
                       Qt::AlignLeft | Qt::AlignVCenter,
                       QCoreApplication::translate("EvaluationChartWidget", "後手有利"));
 
-    if (currentPly > xLimit) return;
-    const QString text = QCoreApplication::translate("EvaluationChartWidget", "%1手目").arg(currentPly);
+    if (m_overlay.currentPly > m_overlay.xLimit) return;
+    const QString text = QCoreApplication::translate("EvaluationChartWidget", "%1手目").arg(m_overlay.currentPly);
     const qreal labelWidth = fm.horizontalAdvance(text) + 16;
-    const qreal cursorX = chart()->mapToPosition(QPointF(currentPly, 0)).x();
+    const qreal cursorX = chart()->mapToPosition(QPointF(m_overlay.currentPly, 0)).x();
     const qreal labelX = qBound(area.left(), cursorX - labelWidth / 2, qMax(area.left(), area.right() - labelWidth));
     const QRectF label(labelX, area.top() - row - 3, labelWidth, row);
     painter->setPen(Qt::NoPen);
@@ -73,8 +80,8 @@ void EvaluationChartView::drawMarkers(QPainter* painter, const QRectF& area)
 {
     painter->save();
     painter->setClipRect(area.adjusted(-6, -6, 6, 6));
-    for (const auto& marker : std::as_const(markers)) {
-        if (marker.value.x() > xLimit) continue;
+    for (const auto& marker : std::as_const(m_overlay.markers)) {
+        if (marker.value.x() > m_overlay.xLimit) continue;
         const QPointF p = chart()->mapToPosition(marker.value);
         painter->setPen(QPen(marker.color, marker.selected ? 2 : 1));
         painter->setBrush(marker.selected ? QColor(Qt::white) : marker.color);

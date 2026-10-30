@@ -509,7 +509,7 @@ private slots:
             return QString();
         };
         QVERIFY(!tipOf(f.a5->nodeId()).contains(QStringLiteral("注目の一手")));
-        f.a5->record().comment = QStringLiteral("注目の一手");
+        TestTree::record(f.a5).comment = QStringLiteral("注目の一手");
         view.refreshNode(f.a5->nodeId());
         QVERIFY(tipOf(f.a5->nodeId()).contains(QStringLiteral("注目の一手")));
     }

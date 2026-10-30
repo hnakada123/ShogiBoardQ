@@ -1,5 +1,5 @@
 /// @file enginelistsettings.cpp
-/// @brief 設定ファイルから登録エンジン一覧を読み込むユーティリティの実装
+/// @brief 機能ごとに選んだエンジンの保存の実装
 
 #include "enginelistsettings.h"
 
@@ -35,14 +35,20 @@ EngineListSettings::SelectionKeys EngineListSettings::csaGameSelection()
 
 EngineListSettings::SelectionKeys EngineListSettings::tsumeCollectionSelection()
 {
-    return {SettingsKeys::kTsumeCollectionEngineName, nullptr, SettingsKeys::kTsumeCollectionEngine};
+    // 以前の版は判定エンジンをパスで保存し、内蔵の Hayanagi は "@hayanagi" と書いていた
+    return {SettingsKeys::kTsumeCollectionEngineName, nullptr, SettingsKeys::kTsumeCollectionEngine, "@hayanagi"};
 }
 
 std::optional<QString> EngineListSettings::savedSelectionName(const SelectionKeys& keys)
 {
     const QSettings& settings = SettingsCommon::openSettings();
-    if (!keys.name || !settings.contains(keys.name)) return std::nullopt;
-    return settings.value(keys.name).toString();
+    if (!keys.name) return std::nullopt;
+    if (settings.contains(keys.name)) return settings.value(keys.name).toString();
+    if (keys.legacyPath && keys.legacyBuiltinPath
+        && settings.value(keys.legacyPath).toString() == QLatin1String(keys.legacyBuiltinPath)) {
+        return QString();
+    }
+    return std::nullopt;
 }
 
 int EngineListSettings::restoreSelection(const SelectionKeys& keys, const RegisteredEngines& engines)

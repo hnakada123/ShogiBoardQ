@@ -12,7 +12,6 @@
 #include "kifufilecontroller.h"
 #include "sfenutils.h"
 #include "shogiview.h"
-#include "uistatepolicymanager.h"
 
 #include <QCoreApplication>
 #include <QJsonArray>
@@ -76,8 +75,8 @@ void AutomationCommands::registerAppCommands(AutomationDispatcher& dispatcher, c
 
     dispatcher.registerMethod(QStringLiteral("app.state"), [context](const QJsonObject&) {
         QJsonObject result;
-        UiStatePolicyManager* policy = context.uiStatePolicy;
-        result[QStringLiteral("ui_state")] = policy ? uiStateName(policy->currentState()) : QStringLiteral("unknown");
+        result[QStringLiteral("ui_state")] = context.activity ? uiStateName(context.activity->activity())
+                                                              : QStringLiteral("unknown");
         const int ply = context.currentPly();
         const QStringList record = currentLinePositions(context);
         const QString startSfen = record.isEmpty() ? SfenUtils::hirateSfen() : record.first();

@@ -785,7 +785,9 @@ private slots:
         QVERIFY2(warn.isEmpty(), qPrintable(warn));
         QCOMPARE(result.mainline.usiMoves(), usi);
         QVERIFY(!result.mainline.endsWithTerminal());
-        QCOMPARE(result.mainline.displayTexts(), pretty);
+        QStringList texts;
+        for (const RecordEntry& entry : std::as_const(result.mainline.entries)) texts << entry.displayText;
+        QCOMPARE(texts, pretty);
     }
 
     // ========================================

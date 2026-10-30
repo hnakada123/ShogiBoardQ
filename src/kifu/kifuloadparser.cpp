@@ -54,7 +54,7 @@ KifuParseOutcome parseBod(QStringView text, const ParseOptions& /*options*/)
     return KifTextParser::parseBod(text);
 }
 
-/// 形式ごとの読み方（どの形式も1回の解析で棋譜・開始局面・手合割の名前・対局情報・警告を返す）
+/// 形式ごとの読み方（どの形式も1回の解析で棋譜・開始局面とその書き方・対局情報・警告を返す）
 Parser parserFor(KifuFormat format)
 {
     switch (format) {

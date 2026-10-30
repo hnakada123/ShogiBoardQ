@@ -8,12 +8,42 @@
 #include <QRegularExpression>
 #include <QSettings>
 
-#include "enginesettingsconstants.h"
 #include "settingscommon.h"
 
-using namespace EngineSettingsConstants;
-
 namespace {
+
+// 保存形式のキー（設定ファイルを読み書きするのはこのファイルだけ）
+
+constexpr char EnginesGroupName[] = "Engines";    ///< 登録エンジンの一覧の配列
+constexpr char EngineNameKey[] = "name";          ///< エンジン名
+constexpr char EnginePathKey[] = "path";          ///< 実行ファイルのパス
+constexpr char EngineAuthorKey[] = "author";      ///< 作者
+
+/// エンジンごとの設定（USI オプションの配列と GUI の設定）を置く親グループ
+constexpr char EngineOptionsGroupName[] = "EngineOptions";
+// エンジンごとのグループ内に保存する GUI の設定（USI オプションの配列とは別）
+constexpr char EngineGuiPonderEnabledKey[] = "gui/ponderEnabled";
+constexpr char EngineSendUnreportedPonderKey[] = "gui/sendUnreportedPonderOption";
+
+// オプションの項目
+constexpr char EngineOptionNameKey[] = "name";
+constexpr char EngineOptionTypeKey[] = "type";
+constexpr char EngineOptionDefaultKey[] = "default";
+constexpr char EngineOptionMinKey[] = "min";
+constexpr char EngineOptionMaxKey[] = "max";
+constexpr char EngineOptionValueKey[] = "value";
+constexpr char EngineOptionValueListKey[] = "valueList";   ///< combo の選択肢
+
+/**
+ * @brief エンジンごとの設定を置くグループ（"EngineOptions/<エスケープした名前>"）
+ *
+ * エンジンの id name をそのままグループ名にすると、ほかの設定のグループ（General など）と衝突し、
+ * "/" を含む名前は入れ子のグループになる。名前をエスケープして親グループの下に置く。
+ */
+QString engineOptionsGroup(const QString& engineName)
+{
+    return QLatin1String(EngineOptionsGroupName) + QLatin1Char('/') + SettingsCommon::escapeKey(engineName);
+}
 
 /// combo の選択肢は JSON の配列で保存する（選択肢に空白を含められる）
 QString serializeValueList(const QStringList& values)
@@ -179,7 +209,7 @@ LaunchOptions launchOptions(const QString& engineName)
     for (const EngineOption& option : options) {
         // 先読みの可否は GUI の設定から送る
         if (isPonderOption(option.name)) continue;
-        if (option.type == QLatin1String(OptionTypeButton)) {
+        if (option.type == QLatin1String(EngineOption::kTypeButton)) {
             // button 型は "on" のときだけ値なしで送る
             if (option.currentValue == QLatin1String("on")) launch.options.append({option.name, QString(), true});
         } else {

@@ -175,3 +175,22 @@ async def test_invalid_and_modally_blocked_operations(dock_env):
         await ui.error("configure_dock", widget="ThinkingDock", operation="float")
         await ui.error("trigger_action", name="actionResetDockLayout")
         await ui.call("close_dialog", target=dialogs[0]["selector"])
+
+
+async def test_show_dock_is_configure_show(dock_env):
+    """show_dock runs the same operation and checks as configure_dock operation=show."""
+    async with mcp_session(dock_env) as session:
+        ui = Docks(session)
+        # Only main-window docks are targets; another widget's name is not found as a dock.
+        message = await ui.error("show_dock", widget="kifuTable")
+        assert "not_found" in message and "kifuTable" in message
+        # Showing is allowed while docks are locked, like configure_dock operation=show.
+        await ui.call("trigger_action", name="actionLockDocks")
+        await ui.configure("UsiLogDock", "hide")
+        await ui.wait("UsiLogDock", hidden=True)
+        await ui.call("show_dock", widget="UsiLogDock")
+        await ui.wait("UsiLogDock", hidden=False, exposed=True)
+        await ui.configure("UsiLogDock", "hide")
+        await ui.wait("UsiLogDock", hidden=True)
+        await ui.configure("UsiLogDock", "show")
+        await ui.wait("UsiLogDock", hidden=False, exposed=True)

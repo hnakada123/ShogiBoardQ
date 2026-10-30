@@ -25,7 +25,7 @@
 #include <QLibraryInfo>
 #include <memory>
 
-#include "enginesettingsconstants.h"
+#include "engine_profile_format_helper.h"
 #include "pvtext.h"
 #include "applicationfonts.h"
 #include "appsettings.h"
@@ -80,7 +80,7 @@ class TestDialogAppearance : public QObject
         if (name == QLatin1String("boardColors")) return std::make_unique<BoardAppearanceDialog>();
         if (name == QLatin1String("engineOptions")) {
             auto& settings = SettingsCommon::openSettings();
-            settings.beginWriteArray(EngineSettingsConstants::engineOptionsGroup(QStringLiteral("Test engine")), 2);
+            settings.beginWriteArray(EngineProfileFormat::engineOptionsGroup(QStringLiteral("Test engine")), 2);
             settings.setArrayIndex(0);
             settings.setValue(QStringLiteral("name"), QStringLiteral("Threads"));
             settings.setValue(QStringLiteral("type"), QStringLiteral("spin"));

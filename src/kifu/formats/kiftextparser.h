@@ -21,10 +21,10 @@ namespace KifTextParser {
 
 enum class Dialect { Kif, Ki2 };
 
-/// 棋譜を読む（本譜・変化・開始局面・手合割の名前・対局情報・警告）
+/// 棋譜を読む（本譜・変化・開始局面とその書き方・対局情報・警告）
 KifuParseOutcome parse(QStringView text, Dialect dialect, const ParseOptions& options = {});
 
-/// KIF の棋譜を読む（形式ごとの読み込みの入口。手合割の名前は局面図なら "BOD"、手合割の行がなければ "平手(既定)"）
+/// KIF の棋譜を読む（形式ごとの読み込みの入口。開始局面の書き方は局面図なら Diagram、手合割の行が無ければ Default）
 inline KifuParseOutcome parseKif(QStringView text, const ParseOptions& options = {})
 {
     return parse(text, Dialect::Kif, options);

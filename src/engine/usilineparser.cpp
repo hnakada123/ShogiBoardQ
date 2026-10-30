@@ -3,7 +3,6 @@
 
 #include "usilineparser.h"
 
-#include "enginesettingsconstants.h"
 
 #include <QJsonArray>
 #include <QStringView>
@@ -158,13 +157,12 @@ QStringList words(const QString& line)
 /// その種類の option に書ける属性か
 bool isOptionAttribute(const QString& type, const QString& key)
 {
-    using namespace EngineSettingsConstants;
-    if (type == QLatin1String(OptionTypeSpin))
+    if (type == QLatin1String(EngineOption::kTypeSpin))
         return key == u"default" || key == u"min" || key == u"max";
-    if (type == QLatin1String(OptionTypeCombo)) return key == u"default" || key == u"var";
-    if (type == QLatin1String(OptionTypeButton)) return false;
-    if (type == QLatin1String(OptionTypeCheck) || type == QLatin1String(OptionTypeString)
-        || type == QLatin1String(OptionTypeFilename))
+    if (type == QLatin1String(EngineOption::kTypeCombo)) return key == u"default" || key == u"var";
+    if (type == QLatin1String(EngineOption::kTypeButton)) return false;
+    if (type == QLatin1String(EngineOption::kTypeCheck) || type == QLatin1String(EngineOption::kTypeString)
+        || type == QLatin1String(EngineOption::kTypeFilename))
         return key == u"default";
     return key == u"default" || key == u"min" || key == u"max" || key == u"var";
 }
@@ -196,8 +194,7 @@ std::optional<EngineOption> UsiLineParser::parseOption(const QString& line, QStr
     option.type = tokens.at(typeIndex + 1);
 
     // string / filename は "default" より後ろをそのまま値にする（空白を含むパスなど）
-    using namespace EngineSettingsConstants;
-    if (option.type == QLatin1String(OptionTypeString) || option.type == QLatin1String(OptionTypeFilename)) {
+    if (option.type == QLatin1String(EngineOption::kTypeString) || option.type == QLatin1String(EngineOption::kTypeFilename)) {
         const qsizetype defaultIndex = tokens.indexOf(QStringLiteral("default"), typeIndex + 2);
         if (defaultIndex >= 0) option.defaultValue = tokens.mid(defaultIndex + 1).join(QLatin1Char(' '));
         option.currentValue = option.defaultValue;

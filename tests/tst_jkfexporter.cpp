@@ -110,9 +110,9 @@ private slots:
                 KifuExport::lines(tree, ctx, KifuFormat::Jkf), KifuExport::lines(tree, ctx, KifuFormat::Usi), KifuExport::lines(tree, ctx, KifuFormat::Usen)};
         };
         const auto original = exportAll();
-        node->record().displayText = QStringLiteral("display text has no result or side");
+        TestTree::record(node).displayText = QStringLiteral("display text has no result or side");
         QCOMPARE(exportAll(), original);
-        node->record().displayText = {};
+        TestTree::record(node).displayText = {};
         QCOMPARE(exportAll(), original);
         if (static_cast<TerminalType>(terminal) == TerminalType::IllegalWin) {
             QVERIFY(KifuExport::lines(tree, ctx, KifuFormat::Csa).contains(white ? QStringLiteral("%+ILLEGAL_ACTION")

@@ -64,7 +64,6 @@ set(SETTINGS_SOURCES
     ${SRC}/services/enginelistsettings.cpp
     ${SRC}/services/registeredengines.cpp
     ${SRC}/services/engineprofilestore.cpp
-    ${SRC}/services/tsumeshogisettings.cpp
 )
 
 # Copy fixtures to build directory

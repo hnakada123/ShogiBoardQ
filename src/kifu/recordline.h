@@ -62,13 +62,6 @@ struct RecordLine {
         for (int ply = 1; ply <= moveCount(); ++ply) out << entries.at(ply - 1).move;
         return out;
     }
-    QStringList displayTexts() const
-    {
-        QStringList out;
-        out.reserve(moveCount());
-        for (int ply = 1; ply <= moveCount(); ++ply) out << entries.at(ply - 1).displayText;
-        return out;
-    }
     QString displayText(int ply) const
     {
         return (ply >= 1 && ply <= moveCount()) ? entries.at(ply - 1).displayText : QString();

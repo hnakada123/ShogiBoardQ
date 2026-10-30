@@ -4,7 +4,7 @@
 #include <QFile>
 #include <algorithm>
 
-#include "enginesettingsconstants.h"
+#include "engine_profile_format_helper.h"
 #include "kifupresentation.h"
 #include "usilineparser.h"
 #include "boardcoordinates.h"
@@ -88,7 +88,7 @@ public:
     {
         {
             QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-            settings.beginWriteArray(EngineSettingsConstants::engineOptionsGroup(QStringLiteral("MatchTest")), 1);
+            settings.beginWriteArray(EngineProfileFormat::engineOptionsGroup(QStringLiteral("MatchTest")), 1);
             settings.setArrayIndex(0);
             settings.setValue(QStringLiteral("name"), QStringLiteral("USI_Ponder"));
             settings.setValue(QStringLiteral("type"), QStringLiteral("check"));
@@ -201,7 +201,7 @@ private slots:
         qputenv("SBQ_MATCH_PONDER_MODE", mode.toUtf8());
         {
             QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-            settings.beginWriteArray(EngineSettingsConstants::engineOptionsGroup(QStringLiteral("MatchTest")), 1);
+            settings.beginWriteArray(EngineProfileFormat::engineOptionsGroup(QStringLiteral("MatchTest")), 1);
             settings.setArrayIndex(0);
             settings.setValue(QStringLiteral("name"), QStringLiteral("UnsupportedOption"));
             settings.setValue(QStringLiteral("type"), QStringLiteral("check"));
@@ -538,7 +538,7 @@ private slots:
         QFETCH(bool, sendUnreported);
         {
             QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-            settings.beginWriteArray(EngineSettingsConstants::engineOptionsGroup(QStringLiteral("MatchTest")), 2);
+            settings.beginWriteArray(EngineProfileFormat::engineOptionsGroup(QStringLiteral("MatchTest")), 2);
             settings.setArrayIndex(0);
             settings.setValue(QStringLiteral("name"), QStringLiteral("OwnBook"));
             settings.setValue(QStringLiteral("type"), QStringLiteral("check"));

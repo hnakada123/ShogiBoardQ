@@ -66,7 +66,7 @@ cmake --build build --target translations
   - `usiscore.cpp/.h` - USI の評価値 `UsiScore`（cp・詰み・上限下限）。エンジンが出す手番側から見た値を先手から見た値に直すのは `blackView(Turn)` だけ（評価値グラフ・棋譜解析の結果の表・CLI の analyze-kifu で共通。逆の直しは `viewedBy(Turn)`）
   - `shogimove.cpp/.h`・`usimove.h` - Move representation
   - `enginemovevalidator.cpp/.h` - Move legality validation（`fmv::Converter` を境界に `fmvlegalcore` のビットボード合法手生成を使う）
-  - `sfenreplay.cpp/.h` - 局面に USI の1手を指す（`applyLenient`・`positionAfter`。合法手かは確かめない）
+  - `sfenreplay.cpp/.h` - 局面に USI の1手を指した後の局面 `SfenReplay::positionAfter`（合法手かは確かめない）
   - `boardsquaresize.h` - 盤のマスの幅の範囲 `BoardSquareSize`（20〜150、既定50。盤の描画・設定の宣言・CLI の盤面画像で共通）
   - `boardcoordinates.h` - 盤面表示の座標（駒台は筋10・11、駒箱は筋12）と駒・USI の指し手の対応（表示の座標の駒・駒台と駒箱の枚数の読み `pieceAt`・`isAvailable` もここだけ）
   - `handicaps.h` - 手合割の表（名前・JKF の preset・開始局面）と局面の手合割（`Handicaps::of(Position)`・`ofStart(開始局面の文字列)`。盤・持ち駒・手番で決め、手数は見ない）。平手かどうかは `Handicaps::isHirate` だけで判定する
@@ -88,7 +88,7 @@ cmake --build build --target translations
 
 - **kifu/**: 棋譜関連（GUI に依存しない）
   - `kifudocument.cpp/.h` - 開いている棋譜の文書 `KifuDocument`（分岐ツリー・対局情報・対局の記録（対局者・持ち時間・開始と終了の日時）・上書き保存先）。未保存かどうかは保存した時点との比較で求める（対局情報欄の編集は表に入れた時点で文書に入る。入力中のセル・コメント欄の未更新の本文は `Hooks`（`commitPendingEdits`・`hasPendingEdits`）で、保存・書き出し・対局の開始の前に確定し、未保存に数える）
-  - `kifubranchtree.cpp/.h`・`kifubranchnode.cpp/.h` - 分岐ツリー `KifuBranchTree`（ルートを所有し、ノードは子を `std::unique_ptr` で所有する。木の形を変えられるのはツリーだけ）。手を足すのは `addRecord(parent, RecordEntry)` だけ。構造の変更は型付きのシグナル `nodeAppended(parentId, nodeId)`・`childrenReordered(parentId)`・`subtreeRemoved(parentId, nodeId)`・`reset()` で知らせ、`beginBatchUpdate()`〜`endBatchUpdate()` の間は遅らせて順に出す（作り直しを含めば `reset()` 1回）。テストで手を足す・探す補助は `tests/branchtree_test_util.h`（`TestTree`）
+  - `kifubranchtree.cpp/.h`・`kifubranchnode.cpp/.h` - 分岐ツリー `KifuBranchTree`（ルートを所有し、ノードは子を `std::unique_ptr` で所有する。木の形を変えられるのはツリーだけ。ノードの行 `record()` は読むだけで、書き換えるのはツリーの組み立てと、コメント・しおりを版を上げて知らせる `KifuDocument::setComment`・`setBookmark` だけ）。手を足すのは `addRecord(parent, RecordEntry)` だけ。構造の変更は型付きのシグナル `nodeAppended(parentId, nodeId)`・`childrenReordered(parentId)`・`subtreeRemoved(parentId, nodeId)`・`reset()` で知らせ、`beginBatchUpdate()`〜`endBatchUpdate()` の間は遅らせて順に出す（作り直しを含めば `reset()` 1回）。テストで手を足す・探す補助は `tests/branchtree_test_util.h`（`TestTree`）
   - `kifuexport.cpp/.h` - 形式ごとの書き出しの表（`KifuExport::lines`。GUI の保存・コピーと CLI の変換で共通）
   - `gameinfo.cpp/.h` - 対局情報の規則 `GameInfo`（対局者の見出し `playerKey`・`playerSide`・`playerName`・下手上手と呼ぶか `usesHandicapNames`・手合割の値 `handicapLabel`・`isHandicap`）。見出しの語は `gameinfokeys.h`（画面で訳す見出しは `GameInfoKeys::kTranslated`。`KifuPresentation::infoKey` が引く）、持ち時間の値（「無制限」を含む）は `TimeControlText`。書き出しの文脈 `KifuExportMetadata` は対局情報と開始局面だけで、CSA も対局情報だけから書く
   - `recordline.h`・`recordentry.h` - 1本の手順と1手の記録。手順の型は `RecordLine` だけ（読み込みの本譜・変化・書き出し・表示中の手順・対局の手順。末尾に終局の行を持てる）。エンジンに送る局面は `usiPosition(ply)`（作れなければ nullopt）と、範囲の各局面を手順を1度だけたどって作る `usiPositions(from, to)`（たどれなければ局面だけ。棋譜解析と CLI の analyze-kifu で共通）
@@ -176,7 +176,10 @@ cmake --build build --target translations
 - **automation/**: 自動化 API（`ShogiBoardQ --automation`）。引数の表・エラーの分類などの共有部品は headless/（設計: `docs/dev/mcp-server.md`）
   - `automationserver.cpp/.h` - QLocalServer で改行区切り JSON-RPC 2.0 を待ち受け
   - `automationdispatcher.cpp/.h` - JSON-RPC 解析とメソッド表（GUI 非依存）。メソッドを呼ぶ前に引数を表で検査し（知らない引数は拒否）、既定値を補う。エラー応答（`makeError()`）は `error.code` と `error.data.slug` を分類から決める
-  - `automationcommands_*.cpp` - メソッドの実装。メソッド `x.y` は `automationcommands_x.cpp`（名前空間ごとに1ファイル。登録の一覧と共有の読み取りは `automationcommands.cpp`）、`automationactionpolicy` は QAction 許可リスト
+  - `automationcommands_*.cpp` - メソッドの実装。メソッド `x.y` は `automationcommands_x.cpp`（名前空間ごとに1ファイル。登録の一覧と共有の読み取りは `automationcommands.cpp`）、`automationactionpolicy` は QAction 許可リスト。`widget.showDock` は `dock.configure` の `operation=show` と同じ処理（`AutomationCommands::showDock`）
+  - `automationcontext.h` - メソッドの実装に渡すアプリの状態と部品 `AutomationContext`（動作状態は `activity` から読む）
+  - `automationwidgets.cpp/.h` - ウィンドウ・部品の名前での引き当てと、操作できるかの検査（`requireWidget`・`requireInteractive`）
+  - `automationparams.cpp/.h` - 範囲が画面の状態で決まる引数・操作によって必須になる引数の取り出し `AutomationParams`
   - `automationinteractions.cpp/.h` - 応答の後に行う UI 操作の予約 `AutomationInteractions::queue(QueuedInteraction{target, check, perform}, response)`。`check` は予約の時点と実行の直前の2回走る（メソッドは同じ検査を予約の前に書かない）。結果（pending・running・done・failed と分類つきの error・cancelled）を記録して `ui.interaction` で返す（応答に `"queued": true` と `"interaction"` の番号）。UI を操作するメソッドはこれで予約し、`AutomationDeferredCall` を直接使うのは `app.quit` だけ。実行時の失敗は握りつぶさない。MCP サーバーは `AppClient.call_queued()` で実行を待つ
   - `automationinput.cpp/.h` - 通常のマウス入力 `AutomationInput::sendClick()`・`sendDrag()`（盤・表のセル・分岐ツリー・ドックのタイトルバー）
   - `automationwidgetadapters.cpp/.h` - 部品の型ごとの読み（`describe()`・`widget.text`）と書き（`writer()`・`widget.setValue`）の表 `AutomationWidgetAdapters`。型を足すときは表に1行足す

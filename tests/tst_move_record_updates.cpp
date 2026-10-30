@@ -307,7 +307,7 @@ private slots:
                                                      move.movingPiece, move.move, {}, notes);
             auto* node = TestTree::addMove(tree, path.last(), move, label, sfen);
             const qint64 seconds = path.size() % 60;
-            node->record().time = RecordTime::fromMilliseconds(seconds * 61000,
+            TestTree::record(node).time = RecordTime::fromMilliseconds(seconds * 61000,
                 (path.size() % 100) * 3600000 + seconds * 61000);
             path.append(node);
         }
@@ -367,7 +367,7 @@ private slots:
             KifuBranchNode* node = TestTree::addMove(tree, path.last(), ShogiMove(), QStringLiteral("▲７六歩(77)"),
                                                 QStringLiteral("sfen-%1").arg(row),
                                                 QStringLiteral("00:01/00:00:%1").arg(row, 2, 10, QLatin1Char('0')));
-            node->record().comment = (sentence.repeated(1 + row % 5) + QStringLiteral(" (%1)").arg(row));
+            TestTree::record(node).comment = (sentence.repeated(1 + row % 5) + QStringLiteral(" (%1)").arg(row));
             path.append(node);
         }
         // 5手目を分岐にして、分岐の印の付いた行も比べる

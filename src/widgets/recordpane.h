@@ -34,7 +34,6 @@ public:
     /// 棋譜欄の行のクリックを有効・無効にする（局面送りのボタンは KifuNavigationController の QAction に従う）
     void setKifuViewEnabled(bool on);
     bool isNavigationDisabled() const { return !m_appearance.navigationEnabled; }
-    const Appearance& appearance() const { return m_appearance; }
 
     /// 棋譜欄・分岐候補欄の表のスタイルシート（見出しの文字の大きさと選択の色）
     static QString tableStyleSheet(int fontSize);

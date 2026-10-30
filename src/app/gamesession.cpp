@@ -23,7 +23,6 @@
 #include "logcategories.h"
 #include "mainwindowappearancecontroller.h"
 #include "nyugyokudeclarationhandler.h"
-#include "playerinfopresenter.h"
 #include "sessionresetcoordinator.h"
 #include "timecontroltext.h"
 #include "shogiview.h"

@@ -13,7 +13,6 @@
 #include "engineselector.h"
 #include "settingscommon.h"
 #include "settingskeys.h"
-#include "tsumeshogisettings.h"
 
 namespace {
 bool isMateEngine(const EngineEntry& engine)
@@ -139,7 +138,6 @@ private slots:
         options.filter = &isMateEngine;
 
         settings().setValue(SettingsKeys::kTsumeCollectionEngine, QStringLiteral("@hayanagi"));
-        TsumeshogiSettings::migrateCollectionEngineSelection();
         QComboBox builtinCombo;
         EngineSelector builtin({&builtinCombo, nullptr, nullptr}, options, nullptr);
         QVERIFY(builtin.isBuiltinSelected());
@@ -147,7 +145,6 @@ private slots:
         settings().clear();
         registerEngines({QStringLiteral("Mate Solver")});
         settings().setValue(SettingsKeys::kTsumeCollectionEngine, QStringLiteral("/engines/Mate Solver"));
-        TsumeshogiSettings::migrateCollectionEngineSelection();
         QComboBox pathCombo;
         EngineSelector byPath({&pathCombo, nullptr, nullptr}, options, nullptr);
         QCOMPARE(byPath.selected()->name, QStringLiteral("Mate Solver"));

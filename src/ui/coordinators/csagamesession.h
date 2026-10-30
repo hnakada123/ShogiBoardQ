@@ -49,8 +49,6 @@ public:
      */
     bool startGame(const CsaGameDialog::Selection& selection);
 
-    CsaGameCoordinator* coordinator() const { return m_deps.coordinator; }
-
     /// 対局結果・終局の原因の表示名（「勝ち」「投了」など）
     static QString resultText(CsaClient::GameResult result);
     static QString causeText(CsaClient::GameEndCause cause);

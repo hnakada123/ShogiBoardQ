@@ -5,22 +5,12 @@
 
 namespace TimeControlValidator {
 
-namespace {
-
-bool hasTime(const TimeControlSide& p, bool useByoyomi)
-{
-    if (p.mainMs > 0) return true;
-    // 秒読みと加算は排他。どちらかに秒読みがあれば加算は対局に使わない（TimeControl::normalized と同じ）。
-    return useByoyomi ? p.byoyomiMs > 0 : p.incrementMs > 0;
-}
-
-} // namespace
-
 Issue validate(const TimeControlSide& p1, const TimeControlSide& p2, bool hasEngine)
 {
-    const bool useByoyomi = p1.byoyomiMs > 0 || p2.byoyomiMs > 0;
-    const bool limited1 = hasTime(p1, useByoyomi);
-    const bool limited2 = hasTime(p2, useByoyomi);
+    // 秒読みと加算が両方あれば加算は対局に使わない。どちらを使うかは対局と同じ TimeControl::normalized で決める
+    const TimeControl rules = TimeControl{p1, p2}.normalized();
+    const bool limited1 = rules.black.hasLimit();
+    const bool limited2 = rules.white.hasLimit();
 
     if (limited1 && limited2) return Issue::None;
     if (limited1) return Issue::Player2HasNoTime;

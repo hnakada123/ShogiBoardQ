@@ -16,7 +16,6 @@ class ShogiView;
 class KifuBranchTree;
 class KifuNavigationState;
 class KifuNavigationController;
-class UiStatePolicyManager;
 class KifuFileController;
 class KifuDocument;
 class CsaGameCoordinator;
@@ -38,7 +37,6 @@ struct AutomationContext {
     const AnalysisSession* analysis = nullptr;                ///< 検討・詰み探索（エンジン名）
     const KifuNavigationState* navState = nullptr;            ///< 表示中の手数（分岐ツリーのカーソル）
     KifuNavigationController* navigationController = nullptr;
-    UiStatePolicyManager* uiStatePolicy = nullptr;
     KifuFileController* kifuFileController = nullptr;
     const CsaGameCoordinator* csaGame = nullptr;              ///< 通信対局の司令塔
 

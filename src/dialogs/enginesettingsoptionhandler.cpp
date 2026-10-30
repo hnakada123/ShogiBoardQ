@@ -2,7 +2,6 @@
 /// @brief エンジン設定オプションのウィジェット生成・データ管理ハンドラの実装
 
 #include "enginesettingsoptionhandler.h"
-#include "enginesettingsconstants.h"
 #include "engineoptiondescriptions.h"
 #include "engineprofilestore.h"
 #include "buttonstyles.h"
@@ -12,7 +11,6 @@
 #include <QFileDialog>
 #include <utility>
 
-using namespace EngineSettingsConstants;
 
 namespace {
 
@@ -165,11 +163,12 @@ void EngineSettingsOptionHandler::addHelpDescription(const QString& optionName, 
 EngineSettingsOptionHandler::OptionEditor EngineSettingsOptionHandler::createEditor(const EngineOption& option,
                                                                                     QVBoxLayout* layout)
 {
-    if (option.type == OptionTypeFilename || option.type == OptionTypeString) return createTextBox(option, layout);
-    if (option.type == OptionTypeSpin) return createSpinBox(option, layout);
-    if (option.type == OptionTypeCheck) return createCheckBox(option, layout);
-    if (option.type == OptionTypeButton) return createButton(option, layout);
-    if (option.type == OptionTypeCombo) return createComboBox(option, layout);
+    if (option.type == EngineOption::kTypeFilename || option.type == EngineOption::kTypeString)
+        return createTextBox(option, layout);
+    if (option.type == EngineOption::kTypeSpin) return createSpinBox(option, layout);
+    if (option.type == EngineOption::kTypeCheck) return createCheckBox(option, layout);
+    if (option.type == EngineOption::kTypeButton) return createButton(option, layout);
+    if (option.type == EngineOption::kTypeCombo) return createComboBox(option, layout);
     return {};
 }
 

@@ -2,7 +2,7 @@
 /// @brief EngineRegistrationHandler のオプション解析と実行時キャンセルテスト
 
 // private メンバへは EngineRegistrationHandler の friend 宣言（SHOGIBOARDQ_TESTING 時のみ有効）経由でアクセスする
-#include "enginesettingsconstants.h"
+#include "engine_profile_format_helper.h"
 #include "engineprofilestore.h"
 #include "engineregistrationhandler.h"
 #include "engineregistrationdialog.h"
@@ -158,7 +158,7 @@ private slots:
         QCOMPARE(engines.at(1).path, QStringLiteral("/engines/b/YaneuraOu"));
         // オプションは登録名ごとに保存する
         QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-        QCOMPARE(settings.beginReadArray(EngineSettingsConstants::engineOptionsGroup(QStringLiteral("YaneuraOu NNUE (2)"))), 2);  // Threads と補った USI_Hash
+        QCOMPARE(settings.beginReadArray(EngineProfileFormat::engineOptionsGroup(QStringLiteral("YaneuraOu NNUE (2)"))), 2);  // Threads と補った USI_Hash
         settings.endArray();
         QCOMPARE(handler.engines().uniqueName(QStringLiteral("YaneuraOu NNUE")), QStringLiteral("YaneuraOu NNUE (3)"));
         QCOMPARE(handler.engines().uniqueName(QStringLiteral("Other")), QStringLiteral("Other"));
@@ -293,7 +293,7 @@ private slots:
         EngineProfileStore::saveOptions(QStringLiteral("ComboEngine"), {opt});
 
         QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-        settings.beginReadArray(EngineSettingsConstants::engineOptionsGroup(QStringLiteral("ComboEngine")));
+        settings.beginReadArray(EngineProfileFormat::engineOptionsGroup(QStringLiteral("ComboEngine")));
         settings.setArrayIndex(0);
         const QJsonDocument json = QJsonDocument::fromJson(settings.value(QStringLiteral("valueList")).toString().toUtf8());
         settings.endArray();

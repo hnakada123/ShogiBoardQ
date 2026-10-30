@@ -145,7 +145,7 @@ void TestConsiderationPosition::terminalMove_isNotPartOfLine()
     const RecordLine line = t.lineAt(resign);
 
     QCOMPARE(line.moveCount(), 3);
-    QCOMPARE(line.displayTexts().size(), 3);
+    QVERIFY(!line.endsWithTerminal());   // 終局の行は手順に入らない
     QCOMPARE(line.currentPly, 3);
     const UsiPosition r = *t.nav.currentUsiPosition();
     QCOMPARE(r.command(), QStringLiteral("position startpos moves 7g7f 3c3d 2g2f"));

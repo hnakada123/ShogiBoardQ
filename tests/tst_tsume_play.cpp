@@ -1,6 +1,6 @@
 #include <QSettings>
 #include "settingscommon.h"
-#include "enginesettingsconstants.h"
+#include "engine_profile_format_helper.h"
 #include <QtTest>
 #include <QFile>
 #include <QSignalSpy>
@@ -541,7 +541,7 @@ private slots:
     /// 登録済みエンジンの保存済みの設定（スレッド数など）を送り、最短手数の確認に必要な設定だけ上書きする
     void externalUsesSavedEngineOptions()
     {
-        using namespace EngineSettingsConstants;
+        using namespace EngineProfileFormat;
         const QString name = QStringLiteral("KomoringHeights mock");
         QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
         settings.beginWriteArray(EnginesGroupName, 1);

@@ -138,7 +138,7 @@ private slots:
         auto* node = TestTree::addMove(tree, tree.root(), ShogiMove(), QStringLiteral("m1"), QStringLiteral("s1"));
         QVERIFY(tree.revision() > last);
         last = tree.revision();
-        tree.setComment(node->nodeId(), QStringLiteral("comment"));
+        TestTree::record(node).comment = QStringLiteral("comment");
         QCOMPARE(tree.revision(), last); // コメントは構造変更ではない
         QVERIFY(tree.removeLeaf(node));
         QVERIFY(tree.revision() > last);
@@ -282,9 +282,9 @@ private slots:
 
         auto mainline = tree.mainLine();
         // n2 (ply 2) should have a branch (two children: n3 and b1)
-        QVERIFY(tree.hasBranch(mainline[2]));
+        QVERIFY(mainline[2]->hasBranch());
         // n1 (ply 1) should not have a branch
-        QVERIFY(!tree.hasBranch(mainline[1]));
+        QVERIFY(!mainline[1]->hasBranch());
     }
 
     void clear()

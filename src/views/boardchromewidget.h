@@ -33,12 +33,8 @@ class BoardChromeWidget : public QWidget
     Q_OBJECT
 
 public:
-    /// 手番側の残り時間に応じた時計の警告
+    /// 手番側の残り時間に応じた時計の警告（どれにするかは TimeDisplayPresenter が決める）
     enum class Urgency { Normal, Warn10, Warn5 };
-
-    // しきい値（ミリ秒）
-    static constexpr qint64 kWarn10Ms = 10'000;
-    static constexpr qint64 kWarn5Ms  = 5'000;
 
     explicit BoardChromeWidget(QWidget* parent = nullptr);
 

@@ -256,7 +256,6 @@ void MainWindowComposer::createMatchAndAnalysis()
 
     // 盤で指した手の行き先（動作状態ごとに、受け付けるか・どう処理するかを決める）
     BoardMoveController::Deps bd;
-    bd.view = m_c.shogiView;
     bd.gameBoard = m_c.gameBoard;
     bd.board = m_c.boardController;
     bd.activity = &m_activity;
