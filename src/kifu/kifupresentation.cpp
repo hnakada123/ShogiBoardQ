@@ -1,4 +1,5 @@
 #include "kifupresentation.h"
+#include "gameinfo.h"
 #include "gameinfokeys.h"
 #include "handicaps.h"
 #include "ki2movenotation.h"
@@ -17,6 +18,12 @@ namespace {
 QString translated(const char* source)
 {
     return QCoreApplication::translate("KifuPresentation", source);
+}
+
+/// 語の定数（GameInfoKeys・TimeControlText。原文が QT_TRANSLATE_NOOP で訳の一覧に載っている）の訳
+QString translated(const QString& source)
+{
+    return translated(source.toUtf8().constData());
 }
 
 /// 英語表記の1手（board は指す前の局面、moving は動かす駒）
@@ -179,33 +186,26 @@ QString bookLabel()
 
 QString infoKey(const QString& canonical)
 {
-    static const char* const keys[] = {
-        QT_TRANSLATE_NOOP("KifuPresentation", "対局日"), QT_TRANSLATE_NOOP("KifuPresentation", "開始日時"),
-        QT_TRANSLATE_NOOP("KifuPresentation", "終了日時"), QT_TRANSLATE_NOOP("KifuPresentation", "先手"),
-        QT_TRANSLATE_NOOP("KifuPresentation", "後手"), QT_TRANSLATE_NOOP("KifuPresentation", "下手"),
-        QT_TRANSLATE_NOOP("KifuPresentation", "上手"), QT_TRANSLATE_NOOP("KifuPresentation", "手合割"),
-        QT_TRANSLATE_NOOP("KifuPresentation", "持ち時間"), QT_TRANSLATE_NOOP("KifuPresentation", "棋戦"),
-        QT_TRANSLATE_NOOP("KifuPresentation", "場所"), QT_TRANSLATE_NOOP("KifuPresentation", "備考"),
-        QT_TRANSLATE_NOOP("KifuPresentation", "戦型"), QT_TRANSLATE_NOOP("KifuPresentation", "表題")};
-    for (const char* key : keys) if (canonical == QString::fromUtf8(key)) return translated(key);
+    for (const QString* key : GameInfoKeys::kTranslated)
+        if (canonical == *key) return translated(*key);
     return canonical;
 }
 
 QString infoValue(const QString& key, const QString& raw)
 {
     if (key == GameInfoKeys::kHandicap) {
-        // 手合割の名前は core の表（Handicaps::kAll）と同じ語。表にない「局面指定」「その他」だけここに書く
+        // 手合割の名前は core の表（Handicaps::kAll）と同じ語。表にない「その他」（このアプリが書く）と
+        // 「局面指定」（ほかのソフトが書く）もここで訳す
         for (const Handicaps::Handicap& handicap : Handicaps::kAll)
             if (raw == Handicaps::labelOf(handicap)) return translated(handicap.label);
-        static const char* const others[] = {
-            QT_TRANSLATE_NOOP("KifuPresentation", "局面指定"), QT_TRANSLATE_NOOP("KifuPresentation", "その他")};
-        for (const char* value : others) if (raw == QString::fromUtf8(value)) return translated(value);
+        if (raw == GameInfoKeys::kHandicapOther) return translated(GameInfoKeys::kHandicapOther);
+        static const char* const positionSpecified = QT_TRANSLATE_NOOP("KifuPresentation", "局面指定");
+        if (raw == QString::fromUtf8(positionSpecified)) return translated(positionSpecified);
     }
-    if (key == GameInfoKeys::kTimeControl && raw == QStringLiteral("無制限"))
-        return translated(QT_TRANSLATE_NOOP("KifuPresentation", "無制限"));
     if (key == GameInfoKeys::kTimeControl) {
         // このアプリの持ち時間の書式（TimeControlText）を表示言語に合わせる。先後で違えば見出しと各側を訳す
         if (const std::optional<TimeControlText::Parsed> parsed = TimeControlText::parse(raw)) {
+            if (parsed->unlimited) return translated(TimeControlText::kUnlimited);
             const auto side = [](const TimeControlSide& value) {
                 if (value.incrementMs < 1000 || value.byoyomiMs >= 1000) return TimeControlText::format(value);
                 TimeControlSide main = value;
@@ -217,8 +217,8 @@ QString infoValue(const QString& key, const QString& raw)
             if (!parsed->perSide) return side(tc.black);
             const bool handicap = parsed->handicapNames;
             return QStringLiteral("%1 %2 / %3 %4")
-                .arg(infoKey(handicap ? GameInfoKeys::kShitatePlayer : GameInfoKeys::kBlackPlayer), side(tc.black),
-                     infoKey(handicap ? GameInfoKeys::kUwatePlayer : GameInfoKeys::kWhitePlayer), side(tc.white));
+                .arg(infoKey(GameInfo::playerKey(Turn::Black, handicap)), side(tc.black),
+                     infoKey(GameInfo::playerKey(Turn::White, handicap)), side(tc.white));
         }
     }
     return raw;

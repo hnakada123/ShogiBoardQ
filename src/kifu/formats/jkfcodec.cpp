@@ -29,8 +29,7 @@ QString presetToSfen(const QString& preset)
 
 QString presetFromSfen(const QString& sfen)
 {
-    if (sfen.trimmed().isEmpty()) return QStringLiteral("HIRATE");
-    const Handicaps::Handicap* handicap = Handicaps::bySfen(sfen);
+    const Handicaps::Handicap* handicap = Handicaps::ofStart(sfen);
     return handicap ? QString::fromLatin1(handicap->jkfPreset) : QString();
 }
 

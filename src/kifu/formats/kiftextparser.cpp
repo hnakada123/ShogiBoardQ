@@ -58,9 +58,8 @@ Position initialPosition(const QStringList& lines, StartKind* kind)
             break;
         }
     }
-    if (name.isEmpty()) name = QStringLiteral("平手");
     *kind = found.isEmpty() ? StartKind::Default : StartKind::Handicap;
-    // 知らない手合割の名前は平手にする
+    // 書かれていない・知らない手合割の名前は平手にする
     const Handicaps::Handicap* handicap = Handicaps::byLabel(name);
     Position initial = handicap ? Position::fromSfen(QString::fromLatin1(handicap->sfen)).value_or(Position::hirate())
                                 : Position::hirate();

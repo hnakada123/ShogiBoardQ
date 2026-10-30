@@ -425,6 +425,24 @@ private slots:
         QCOMPARE(handicap ? QString::fromLatin1(handicap->sfen) : QString(), expectedSfen);
     }
 
+    /// 局面の手合割は盤・持ち駒・手番で決め、手数は見ない（どの表の局面も自分の手合割になる）
+    void handicaps_ofPosition()
+    {
+        for (const Handicaps::Handicap& handicap : Handicaps::kAll) {
+            const std::optional<Position> start = Position::fromSfen(QString::fromLatin1(handicap.sfen));
+            QVERIFY(start);
+            QCOMPARE(Handicaps::of(*start), &handicap);
+        }
+        QVERIFY(Handicaps::isHirate(QStringLiteral("startpos")));
+        QVERIFY(Handicaps::isHirate(QString()));
+        QVERIFY(Handicaps::isHirate(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 7")));
+        // 持ち駒がある・手番が違う・読めない局面は手合割ではない
+        QVERIFY(!Handicaps::ofStart(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b P 1")));
+        QVERIFY(!Handicaps::ofStart(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1")));
+        QVERIFY(!Handicaps::ofStart(QStringLiteral("not a position")));
+        QVERIFY(!Handicaps::isHirate(QStringLiteral("startpos moves 7g7f")));
+    }
+
     // === 局面編集の規則（PositionEditRules） ===
 
     void positionEdit_clearedReturnsEveryPieceToTheBox_data()

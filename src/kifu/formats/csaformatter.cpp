@@ -116,8 +116,11 @@ QString convertToCsaTime(const QString& timeStr)
 
 QStringList convertToCsaTimeLines(const QString& timeStr)
 {
+    const std::optional<TimeControlText::Parsed> parsed = TimeControlText::parse(timeStr);
+    // 時間制限のない対局（「無制限」）は $TIME を書かずに表す
+    if (parsed && parsed->unlimited) return {};
     // 先後で違う持ち時間（"先手 mm:ss+秒 / 後手 mm:ss+秒"、駒落ちは下手・上手）は CSA V3.0 の $TIME+ と $TIME- に分ける
-    if (const std::optional<TimeControlText::Parsed> parsed = TimeControlText::parse(timeStr); parsed && parsed->perSide) {
+    if (parsed && parsed->perSide) {
         return {QStringLiteral("$TIME+:") + csaTimeValue(parsed->timeControl.black),
                 QStringLiteral("$TIME-:") + csaTimeValue(parsed->timeControl.white)};
     }

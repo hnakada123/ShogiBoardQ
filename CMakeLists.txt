@@ -404,6 +404,8 @@ set(SRC_KIFU
     src/kifu/formats/usiexporter.h
     src/kifu/formats/usitosfenconverter.cpp
     src/kifu/formats/usitosfenconverter.h
+    src/kifu/gameinfo.cpp
+    src/kifu/gameinfo.h
     src/kifu/gameinfokeys.h
     src/kifu/josekibooksession.cpp
     src/kifu/josekibooksession.h
@@ -423,7 +425,6 @@ set(SRC_KIFU
     src/kifu/kifubranchtree.h
     src/kifu/kifubranchtreebuilder.cpp
     src/kifu/kifubranchtreebuilder.h
-    src/kifu/kifuexportmetadata.cpp
     src/kifu/kifuexportmetadata.h
     src/kifu/kifutextdecoder.cpp
     src/kifu/kifutextdecoder.h

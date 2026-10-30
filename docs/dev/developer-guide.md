@@ -149,6 +149,7 @@
 | 2026-10-30 | 通信対局の流れをローカル対局と同じ仕組みにした（監査 2026-10-29 の T1）のに合わせて §1.5・§1.6・§6.1〜§6.5・§6.7・§6.9・§8.5・§8.9・§10.2・§10.4・§10.5・§12.1・§12.3・§12.4・§12.8・§14.4・§15.1・§15.5・付録を更新（`CsaGameCoordinator` も `setRecordSink()` で棋譜の受け手 `GameSession` を受け取り、開始で `MatchRecordSink::beginRecord()`、着手と終局で `appendRecord()`、終局で `finishRecord()` を呼ぶ。動作状態 `DuringCsaGame` も司令塔が持ち、シグナル `recordEntryReady` と `GameSession` の `onCsa*` をなくした。ローカル対局の終局も `MatchCoordinator` が `finishRecord()` を呼ぶ。評価値・エラー・通信ログ・盤の手の接続を `CsaGameSession` から合成ルートの `connectGame()` へ移した。時間の決まりを `MatchStartOptions::time` に入れ、`MatchCoordinator::start()` が盤の手番で時計に入れる（`TimeControlUtil`・`matchtimesettings.h`・`MatchStartOptions::sfenStart` を削除）） |
 | 2026-10-30 | 棋譜解析の実行と局面の列の実行器を1つにした（監査 2026-10-29 の T2）のに合わせて §1.5・§7.5・§7.7・§7.11・§9.1〜§9.3・§9.6・§9.7・§9.10・§10.3・付録を更新（棋譜解析の実行は analysis の `KifuAnalysisSession`（エンジンと動作状態のリース）に移し、`KifuAnalysisController` は画面だけにした。GUI の棋譜解析と CLI の analyze・analyze-kifu は analysis の `EngineAnalysisRunner`（借りた `UsiEngineSession` を使う。候補手の数と bestmove を待つ上限は依頼で決める）を共有し、送る局面は `RecordLine::usiPositions()` で作る。`AnalysisJob` を消し、`EngineAnalysisRunner` を headless から analysis へ移した。検討中の局面送りも開始局面からの手順にし、詰み探索の手番合わせは `MateSearchPosition`（`Position` で合わせる）にして `TsumePositionUtil` を消した） |
 | 2026-10-30 | 盤と指し手の部品の責務を分けた（監査 2026-10-29 の T3）のに合わせて §1.5・§1.6・§3.1・§3.2・§3.3・§3.5・§4.1・§4.2・§4.5・§5.2・§5.4・§6.1〜§6.3・§6.6〜§6.9・§6.11・§7.1・§8.9・§8.11・§10.2〜§10.4・§10.6・§12.3・§12.6・§12.8・§13.5・§13.6・§14.2〜§14.4・§15.2・§15.5・§18.3・§18.4 を更新（`ShogiGameController` を `GameBoard` に改名し、盤のクリックを手にする処理と成りの尋ね方を board の `BoardInteractionController::moveFromClick()`・`setPromotionChooser()` へ移して詰将棋を解く画面と共有した（`prepareMove`・`endDragSignal` を削除。ドラッグは盤の操作が行き先から戻った後に終える）。盤と手番だけを使う部品は `ShogiBoard` を受け取る。棋譜の1行の組み立てを kifu の `MoveRecord::play()` に1つにして棋譜の読み込みと対局の着手で使う。局面編集の操作を board の `PositionEditRules`（`Position` を変える関数 `moved`・`cycled`・`cleared`）へ移し、`ShogiBoard` は局面の包みと、変わった所だけを知らせる `replacePosition()` だけにした（`applyUsiMove`・`updateBoardAndPieceStand`・`promoteOrDemotePiece`・`resetGameBoard`・`setPieceAt` を削除）） |
+| 2026-10-30 | 対局情報の規則に持ち主を置いた（監査 2026-10-29 の T4）のに合わせて §1.5・§3.4・§5.6・§5.7・§8.9・§10.2・第18章を更新（`KifuExportMetadataBuilder` をやめ、対局者の見出し・手合割の値は kifu の `GameInfo`（`playerKey`・`playerSide`・`playerName`・`usesHandicapNames`・`handicapLabel`・`isHandicap`）に。平手・駒落ちの判定は core の `Handicaps::of`・`ofStart`・`isHirate` にまとめ、`SfenUtils::isHirateStart`・`Handicaps::bySfen`・`byBoard` を削除。「無制限」は `TimeControlText` が書き、読む（`kUnlimited`・`Parsed::unlimited`）。対局情報の見出しは `GameInfoKeys` に `QT_TRANSLATE_NOOP` で持ち、`KifuPresentation::infoKey` はその表 `kTranslated` を引く。書き出しの文脈 `KifuExportMetadata` から対局者 `players` を外し、CSA の `N+`・`N-` も対局情報だけから書く） |
 
 <!-- chapter-0-end -->
 
@@ -417,10 +418,11 @@ src/
 │   ├── kifuioservice.cpp/.h        #   棋譜ファイルI/O
 │   ├── shiftjiscodec.cpp/.h        #   Shift_JIS（CP932）の変換
 │   ├── kifuexport.cpp/.h           #   形式ごとの書き出しの表（KifuExport::lines。GUI と CLI で共通）
-│   ├── kifuexportmetadata.cpp/.h   #   棋譜出力のヘッダー（対局者・手合割など）
+│   ├── kifuexportmetadata.h        #   書き出しの文脈（対局情報と開始局面）
+│   ├── gameinfo.cpp/.h             #   対局情報の規則（GameInfo。対局者の見出し・手合割の値）
 │   ├── kifupresentation.cpp/.h     #   画面に出す棋譜の表記（指し手・読み筋・終局語。表示言語と表記の設定 NotationStyle に合わせる）
 │   ├── positioncollectionfile.cpp/.h # 局面集ファイル（1行1局面）の規則（局面集ビューアと詰将棋問題一覧で共有）
-│   ├── gameinfokeys.h              #   対局情報の項目のキー
+│   ├── gameinfokeys.h              #   対局情報の見出しの語（画面で訳す見出しの表 kTranslated）
 │   ├── kifparsetypes.h             #   棋譜の読み込み結果の型（KifParseResult・KifuParseOutcome・ParseOptions）
 │   ├── josekibook.cpp/.h           #   定跡のデータの値型 JosekiBook（局面のキー→JosekiPosition の map 1つ）と、定跡ファイル（YANEURAOU-DB2016）の読み書き JosekiBookFile::load/save（ワーカースレッドから呼べる）
 │   ├── josekibooksession.cpp/.h    #   開いている定跡ファイル（JosekiBook の値・変更状態・読み書き・履歴と前回のファイルの遅延読込。変えられないとき canEdit() は変更を受け付けない）
@@ -1398,7 +1400,7 @@ graph LR
 | `engineVsEngine()` / `humanVsHuman()` | エンジン同士／人間同士か |
 | `name(side)` | その手番を指す側の名前（エンジンならエンジンの名前） |
 
-対局の条件は `MatchStartOptions::players` で司令塔に渡す。平手か駒落ちかは対局者に持たず、開始局面から判定する（`KifuExportMetadataBuilder::handicapLabel()`）。対局者として表示するのはローカル対局中（`DuringGame`）だけで、`PlayerInfoPresenter` が動作状態を見て `KifuDocument::players()` を出すか決める（検討・解析・通信対局のエンジンは対局者ではない）。
+対局の条件は `MatchStartOptions::players` で司令塔に渡す。平手か駒落ちかは対局者に持たず、開始局面から判定する（`GameInfo::isHandicap()`）。対局者として表示するのはローカル対局中（`DuringGame`）だけで、`PlayerInfoPresenter` が動作状態を見て `KifuDocument::players()` を出すか決める（検討・解析・通信対局のエンジンは対局者ではない）。
 
 #### 動作状態と対局者による動作分岐
 
@@ -2602,7 +2604,7 @@ struct MatchPlayers {
 };
 ```
 
-対局開始ダイアログで選んだ人間の名前とエンジンの名前を両方持ち、手番ごとに指す側の名前を `name()` で返す。駒落ちでは先手が下手、後手が上手である。平手か駒落ちかは持たず、開始局面から判定する（`KifuExportMetadataBuilder::handicapLabel()`）。
+対局開始ダイアログで選んだ人間の名前とエンジンの名前を両方持ち、手番ごとに指す側の名前を `name()` で返す。駒落ちでは先手が下手、後手が上手である。平手か駒落ちかは持たず、開始局面から判定する（`GameInfo::isHandicap()`）。
 
 対局の条件として `MatchStartOptions::players` で司令塔に渡し、司令塔は `MatchCoordinator::players()`・`isHumanSide(Turn)` で返す。手番の側がエンジンかどうかで、エンジンに思考させるか、盤の操作を受け付けるか（`HumanTurnPolicy`）を決める。
 
@@ -2612,7 +2614,7 @@ struct MatchPlayers {
 
 **ソース**: `src/core/sfenutils.h`（ヘッダオンリー）
 
-SFEN 文字列の小さな関数群。`normalizeStart()` は文字列 `"startpos"` を標準初期配置のSFEN文字列に展開し、既にSFEN形式であればそのまま返す。ほかに平手のSFEN（`hirateSfen()`）、平手かどうかの判定（`isHirateStart()`）、局面を比べるキー（`normalizeSfenKey()`。読めれば `Position::positionKey()` で、持ち駒は標準の並びになる）などがある。
+SFEN 文字列の小さな関数群。`normalizeStart()` は文字列 `"startpos"` を標準初期配置のSFEN文字列に展開し、既にSFEN形式であればそのまま返す。ほかに平手のSFEN（`hirateSfen()`）、局面を比べるキー（`normalizeSfenKey()`。読めれば `Position::positionKey()` で、持ち駒は標準の並びになる）などがある。
 
 ```cpp
 SfenUtils::normalizeStart("startpos")
@@ -4657,7 +4659,7 @@ onLoadFinished() → applyLoadResult(result)            ← メインスレッ�
 
 ### 8.9 KifuExport / KifuFileController — 書き出しとファイルの操作
 
-**ソース**: `src/kifu/kifuexport.h/.cpp`、`src/kifu/kifuexportmetadata.h/.cpp`、`src/ui/controllers/kifufilecontroller.h/.cpp`
+**ソース**: `src/kifu/kifuexport.h/.cpp`、`src/kifu/kifuexportmetadata.h`、`src/kifu/gameinfo.h/.cpp`、`src/ui/controllers/kifufilecontroller.h/.cpp`
 
 #### KifuExport — 形式ごとの書き出しの表
 
@@ -4665,7 +4667,7 @@ onLoadFinished() → applyLoadResult(result)            ← メインスレッ�
 
 | 関数 | 説明 |
 |------|------|
-| `metadataOf(document)` | 文書の書き出しの文脈（`KifuExportMetadata`：対局情報・開始局面・対局者・持ち時間・開始と終了の日時） |
+| `metadataOf(document)` | 文書の書き出しの文脈（`KifuExportMetadata`：対局情報・開始局面） |
 | `lines(tree, metadata, format)` | `format` の行。表の関数を呼ぶ |
 | `lines(document, format)` | `lines(*document.tree(), metadataOf(document), format)` |
 
@@ -4691,17 +4693,31 @@ onLoadFinished() → applyLoadResult(result)            ← メインスレッ�
 
 #### KifuExportMetadata — 書き出しの文脈
 
-UIウィジェットへの参照を含まない値。対局情報は書かれたとおりに書き、日時・持ち時間・対局者を作り出さない（CSA の `$START_TIME`・`$TIME` も対局情報の開始日時・持ち時間から書く）。`KifuExportMetadataBuilder` は手合割（`handicapLabel()`。開始局面から判定する）と対局者の見出し（`blackPlayerKey()`・`playerName()`）を共通に作る。
+UIウィジェットへの参照を含まない値。対局情報は書かれたとおりに書き、日時・持ち時間・対局者を作り出さない（CSA の `N+`・`N-`・`$START_TIME`・`$TIME` も対局情報の対局者・開始日時・持ち時間から書く。対局の記録からは足さない）。
 
 ```cpp
 struct KifuExportMetadata {
     QList<KifGameInfoItem> gameInfoItems;  // 対局情報
     QString startSfen;                     // 開始局面SFEN
-    MatchPlayers players;                  // CSA の N+・N- の補い（対局情報に対局者が無いとき。名前が無ければ書かない）
 };
 ```
 
-GUI では `KifuExport::metadataOf()` が書き出すたびに文書（対局情報・分岐ツリーの開始局面・対局者）から組み立てる。CLI の変換は読み込んだ棋譜の対局情報と開始局面から作る。
+GUI では `KifuExport::metadataOf()` が書き出すたびに文書（対局情報・分岐ツリーの開始局面）から組み立てる。CLI の変換は読み込んだ棋譜の対局情報と開始局面から作る。
+
+#### GameInfo — 対局情報の規則
+
+対局情報は KIF の見出し（`GameInfoKeys`）と値の並びで、ファイルに書く語のまま持つ（画面では `KifuPresentation::infoKey`・`infoValue` が訳す）。見出しの判定と手合割の値は名前空間 `GameInfo`（`gameinfo.h`）だけで決め、棋譜の文書・書き出し（KIF・KI2・CSA）・対局情報の表（`GameInfoEditModel`）・対局（`GameSession`）・自動化 API が使う。
+
+| 関数 | 説明 |
+|------|------|
+| `handicapLabel(startSfen)` | 手合割の値。平手・駒落ちの初期配置（`Handicaps::ofStart`。盤・持ち駒・手番で決め、手数は見ない）は手合割の名前、それ以外は「その他」 |
+| `isHandicap(startSfen)` | 駒落ちの初期配置か（平手・その他は false） |
+| `playerKey(side, handicapNames)` | 対局者の見出し（先手・後手、駒落ちは下手・上手） |
+| `playerSide(key)` | 見出しが対局者（先手・後手・下手・上手）なら、その側 |
+| `playerName(header, side)` | 対局者名（先手・後手か下手・上手、なければ省略名） |
+| `usesHandicapNames(header, startSfen)` | 下手・上手と呼ぶか（見出しの呼び方に合わせ、見出しに対局者がなければ開始局面の手合割） |
+
+持ち時間の値は `TimeControlText`（`timecontroltext.h`）が書き、読む（`mm:ss+秒`・`mm:ss+秒秒加算`・先後で違えば「先手 … / 後手 …」。時間制限のない対局は `kUnlimited`（「無制限」）で、`parse()` は `Parsed::unlimited` を立てる。CSA は `$TIME` を書かない）。平手かどうかは core の `Handicaps::isHirate(position)`・`isHirate(startSfen)` で判定する（USI の `position startpos` にするかだけは、手数1の平手と同じかで決める）。
 
 #### KifuFileController — 開く・保存・貼り付け・コピー
 
@@ -5616,7 +5632,7 @@ KifuNavigationState::changed
 
 公開の関数は持たない。文書の知らせ（`playersChanged`・`headerReset`・`headerEdited`・`headerValueSet`）と動作状態の `changed` を自分でつなぎ、そのたびに `refresh()` で求め直す（対局中なら文書の対局者 `KifuDocument::players()`、対局していなければ対局情報の名前 `KifuDocument::headerPlayerName()`）。ほかの部品は盤の名前を書き込まない。
 
-対局情報（開始日時・対局者・手合割・持ち時間・終了日時）を作るのは文書（`KifuDocument::beginMatch()`・`recordMatchEnd()`）で、手合割は開始局面から `KifuExportMetadataBuilder::handicapLabel()` で求め、駒落ちなら対局情報の見出しを下手・上手にする。対局情報欄（`GameInfoPane`）は合成ルートが作り、文書の対局情報を編集する画面としてつなぐ（8.5節）。エンジン名をどこに出すかは 12.7 節を参照。
+対局情報（開始日時・対局者・手合割・持ち時間・終了日時）を作るのは文書（`KifuDocument::beginMatch()`・`recordMatchEnd()`）で、手合割は開始局面から `GameInfo::handicapLabel()` で求め、駒落ちなら対局情報の見出しを下手・上手にする。対局情報欄（`GameInfoPane`）は合成ルートが作り、文書の対局情報を編集する画面としてつなぐ（8.5節）。エンジン名をどこに出すかは 12.7 節を参照。
 
 #### TimeDisplayPresenter — 対局時計
 
@@ -9322,7 +9338,9 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | FlowLayout | C | widgets | フロー（折り返し）レイアウトマネージャ | 第11章 |
 | FontSizeControl | C | widgets | A-/A+ のボタンの組（文字・見た目・説明・範囲の端での無効化） | 第11章 |
 | FontSizeHelper | C | widgets | 文字の大きさ（A-/A+）の状態・範囲・保存と変更の通知 | 第11章 |
+| GameBoard | C | game | 対局の盤（合法手の検証と指し手の適用、指した手を棋譜の1行に。着手確定の知らせ） | 第6章 |
 | GameChannel | C | game | 対局相手の窓口のインターフェース（投了・中断・即指し・入玉宣言をローカル対局と通信対局で同じ操作に。実装は `LocalGameChannel`・`CsaGameChannel`） | 第6章 |
+| GameInfo | NS | kifu | 対局情報の規則（対局者の見出し・手合割の値） | 第8章 |
 | GameInfoEditModel | C | models | 対局情報の表の中身・編集の履歴 | 第11章 |
 | GameInfoPane | C | widgets | 対局情報ドックの中身（ツールバー＋表） | 第11章 |
 | GameModeStrategy | C | game | 対局モード別の手番の進め方（人間対人間・人間対エンジン・エンジン対エンジン） | 第6章 |
@@ -9331,7 +9349,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | GameStartOptionsBuilder | C | game | 対局開始ダイアログの値から、対局の開始の計画（局面・対局者・時間・連続対局）を作る | 第6章 |
 | GameStartPlan | S | game | 対局の開始の計画（開始の設定・時間・開始前の整え方・連続対局） | 第6章 |
 | GlobalToolTip | C | widgets | グローバルツールチップ表示ウィジェット | 第11章 |
-| Handicaps | NS | core | 手合割（名前・JKF の preset・開始局面）の表 | 第8章 |
+| Handicaps | NS | core | 手合割（名前・JKF の preset・開始局面）の表と、局面の手合割（`of`・`ofStart`・`isHirate`） | 第8章 |
 | HumanTurnPolicy | C | ui/controllers | 盤を人間が操作できる手番か・対局が進行中かの判定 | 第6章 |
 | HumanVsEngineStrategy | C | game | 人間対エンジンの Strategy | 第6章 |
 | HumanVsHumanStrategy | C | game | 人間対人間の Strategy | 第6章 |
@@ -9370,7 +9388,6 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | KifuDisplayPresenter | C | ui/presenters | 棋譜欄・分岐候補欄・分岐ツリーに、表示中の手と手順を映す | 第10章 |
 | KifuDocument | C | kifu | 開いている棋譜の文書（分岐ツリー・対局情報・対局の記録・上書き保存先。未保存は保存した時点との比較で求める） | 第8章 |
 | KifuExport | NS | kifu | 形式ごとの書き出しの表（GUI の保存・コピーと CLI の変換で共通） | 第8章 |
-| KifuExportMetadataBuilder | NS | kifu | UI に依存しない棋譜出力メタデータとヘッダの生成 | 第8章 |
 | KifuFileController | C | ui/controllers | 棋譜の開く・保存・上書き・自動保存・貼り付けと、棋譜・局面のクリップボードへのコピー | 第3章, 第8章 |
 | KifuFormats | NS | kifu | 棋譜の形式（読み込み・保存・変換で共通の enum）と判定 | 第8章 |
 | KifuIoService | NS | kifu | 棋譜ファイルI/Oサービス | 第8章 |
@@ -9463,7 +9480,6 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | ShogiBoard | C | core | 表示・局面編集に使う盤（Position を1つ持ち、変更をシグナルで知らせる包み。変わった所だけを知らせる `replacePosition()`） | 第5章 |
 | ShogiClock | C | core | 対局時計・時間管理 | 第5章 |
 | ShogiEngineThinkingModel | C | models | 思考の表のモデル（行は `ShogiInfoRecord` の値。MultiPV対応） | 第7章, 第11章 |
-| GameBoard | C | game | 対局の盤（合法手の検証と指し手の適用、指した手を棋譜の1行に。着手確定の知らせ） | 第6章 |
 | ShogiInfoRecord | C | models | USIエンジン思考情報レコード | 第7章, 第8章 |
 | ShogiMove | S | core | 指した手の記録（USI の指し手と、動かした駒・取った駒） | 第5章 |
 | ShogiNotation | NS | core | 棋譜の表記（筋・段・駒の名前・CSA の駒種）の対応表（ヘッダーオンリー） | 第2章, 第5章 |

@@ -42,7 +42,6 @@ KifuExportMetadata metadataOf(const KifuDocument& document)
     KifuExportMetadata metadata;
     metadata.gameInfoItems = document.header();
     metadata.startSfen = document.startSfen();
-    metadata.players = document.players();
     return metadata;
 }
 

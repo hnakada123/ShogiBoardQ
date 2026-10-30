@@ -4,11 +4,12 @@
 #include "kifudocument.h"
 #include "timecontroltext.h"
 
+#include "gameinfo.h"
 #include "gameinfokeys.h"
+#include "handicaps.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
 #include "kifubranchtreebuilder.h"
-#include "kifuexportmetadata.h"
 #include "kifusavefile.h"
 #include "sfenutils.h"
 
@@ -19,22 +20,19 @@
 namespace {
 
 /// 対局を始めたときの対局情報（対局日・開始日時・対局者・手合割・持ち時間）
-QList<KifGameInfoItem> matchStartItems(const QDateTime& start, const QString& blackName, const QString& whiteName,
-                                       const QString& handicap, const TimeControl& timeControl)
+QList<KifGameInfoItem> matchStartItems(const QDateTime& start, const MatchPlayers& players, const QString& startSfen,
+                                       const TimeControl& timeControl)
 {
-    const QString handicapLabel = handicap.isEmpty() ? QStringLiteral("平手") : handicap;
+    const bool handicap = GameInfo::isHandicap(startSfen);
     QList<KifGameInfoItem> items;
     items.append({GameInfoKeys::kGameDate, start.toString(QStringLiteral("yyyy/MM/dd"))});
     items.append({GameInfoKeys::kStartDateTime, start.toString(QStringLiteral("yyyy/MM/dd HH:mm:ss"))});
     // 先手・後手（駒落ちは柿木形式の KIF と同じく下手・上手）
-    items.append({KifuExportMetadataBuilder::blackPlayerKey(handicapLabel), blackName});
-    items.append({KifuExportMetadataBuilder::whitePlayerKey(handicapLabel), whiteName});
-    items.append({GameInfoKeys::kHandicap, handicapLabel});
-    // 未開始の「未設定」と、時間制限のない対局を区別する
-    items.append({GameInfoKeys::kTimeControl,
-                  timeControl.isUnlimited() ? QStringLiteral("無制限")
-                                            : TimeControlText::format(
-                                                  timeControl, KifuExportMetadataBuilder::isHandicap(handicapLabel))});
+    for (const Turn side : {Turn::Black, Turn::White})
+        items.append({GameInfo::playerKey(side, handicap), players.name(side)});
+    items.append({GameInfoKeys::kHandicap, GameInfo::handicapLabel(startSfen)});
+    // 時間制限のない対局は「無制限」と書き、未開始の「未設定」（空）と区別する
+    items.append({GameInfoKeys::kTimeControl, TimeControlText::format(timeControl, handicap)});
     return items;
 }
 
@@ -43,15 +41,13 @@ QList<KifGameInfoItem> mergeForMatch(const QList<KifGameInfoItem>& automaticItem
                                      const QList<KifGameInfoItem>& current)
 {
     QList<KifGameInfoItem> items = automaticItems;
-    // 対局者の見出しは平手（先手・後手）と駒落ち（下手・上手）で変わるため、前の対局の行を残さない
-    QSet<QString> replacedKeys = {GameInfoKeys::kEndDateTime, GameInfoKeys::kConsumedTime, GameInfoKeys::kResult,
-                                  GameInfoKeys::kBlackPlayer, GameInfoKeys::kWhitePlayer,
-                                  GameInfoKeys::kShitatePlayer, GameInfoKeys::kUwatePlayer};
+    QSet<QString> replacedKeys = {GameInfoKeys::kEndDateTime, GameInfoKeys::kConsumedTime, GameInfoKeys::kResult};
     for (const auto& item : automaticItems) replacedKeys.insert(item.key);
     QSet<QString> retainedKeys;
     for (const auto& item : current) {
         const QString key = item.key.trimmed();
-        if (key.isEmpty() || replacedKeys.contains(key)) continue;
+        // 対局者の見出しは平手（先手・後手）と駒落ち（下手・上手）で変わるため、前の対局の行を残さない
+        if (key.isEmpty() || replacedKeys.contains(key) || GameInfo::playerSide(key)) continue;
         items.append(item);
         retainedKeys.insert(key);
     }
@@ -91,7 +87,7 @@ QList<KifGameInfoItem> KifuDocument::defaultHeader()
             {GameInfoKeys::kStartDateTime, {}},
             {GameInfoKeys::kBlackPlayer, {}},
             {GameInfoKeys::kWhitePlayer, {}},
-            {GameInfoKeys::kHandicap, QStringLiteral("平手")},
+            {GameInfoKeys::kHandicap, Handicaps::labelOf(Handicaps::kHirate)},
             {GameInfoKeys::kTimeControl, {}},
             {GameInfoKeys::kEvent, {}},
             {GameInfoKeys::kSite, {}},
@@ -151,21 +147,16 @@ void KifuDocument::beginMatch(const MatchPlayers& players, const TimeControl& ti
         // 棋譜の対局情報は残し、対局者名だけを今の対局者にする（駒落ちの見出し下手・上手も同じ）
         QList<QPair<QString, QString>> names;
         for (const auto& item : std::as_const(m_header)) {
-            if (item.key == GameInfoKeys::kBlackPlayer || item.key == GameInfoKeys::kShitatePlayer)
-                names.append({item.key, players.name(Turn::Black)});
-            else if (item.key == GameInfoKeys::kWhitePlayer || item.key == GameInfoKeys::kUwatePlayer)
-                names.append({item.key, players.name(Turn::White)});
+            if (const std::optional<Turn> side = GameInfo::playerSide(item.key))
+                names.append({item.key, players.name(*side)});
         }
         for (const auto& name : std::as_const(names)) setHeaderValue(name.first, name.second);
         return;
     }
 
     commitPendingEdits();
-    const QString handicap = KifuExportMetadataBuilder::handicapLabel(startSfen());
     const QList<KifGameInfoItem> header =
-        mergeForMatch(matchStartItems(m_timeRecord.startDateTime(), players.name(Turn::Black),
-                                      players.name(Turn::White), handicap, timeControl),
-                      m_header);
+        mergeForMatch(matchStartItems(m_timeRecord.startDateTime(), players, startSfen(), timeControl), m_header);
     // 利用者が編集していなければ、作り直した対局情報も変更に数えない
     if (m_header == m_saved.header) m_saved.header = header;
     m_header = header;
@@ -216,12 +207,12 @@ void KifuDocument::setHeaderValue(const QString& key, const QString& value)
 
 QString KifuDocument::headerPlayerName(Turn side) const
 {
-    return KifuExportMetadataBuilder::playerName(header(), side);
+    return GameInfo::playerName(header(), side);
 }
 
 bool KifuDocument::usesHandicapNames() const
 {
-    return KifuExportMetadataBuilder::usesHandicapNames(header(), startSfen());
+    return GameInfo::usesHandicapNames(header(), startSfen());
 }
 
 // ============================================================

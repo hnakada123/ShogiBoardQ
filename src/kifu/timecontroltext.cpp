@@ -3,7 +3,7 @@
 
 #include "timecontroltext.h"
 
-#include "gameinfokeys.h"
+#include "gameinfo.h"
 
 #include <QRegularExpression>
 
@@ -25,12 +25,13 @@ QString format(const TimeControlSide& side)
 
 QString format(const TimeControl& timeControl, bool handicapNames)
 {
+    if (timeControl.isUnlimited()) return kUnlimited;
     QString blackText = format(timeControl.black);
     const QString whiteText = format(timeControl.white);
     if (blackText == whiteText) return blackText;
     return QStringLiteral("%1 %2 / %3 %4")
-        .arg(handicapNames ? GameInfoKeys::kShitatePlayer : GameInfoKeys::kBlackPlayer, blackText,
-             handicapNames ? GameInfoKeys::kUwatePlayer : GameInfoKeys::kWhitePlayer, whiteText);
+        .arg(GameInfo::playerKey(Turn::Black, handicapNames), blackText,
+             GameInfo::playerKey(Turn::White, handicapNames), whiteText);
 }
 
 std::optional<TimeControlSide> parseSide(const QString& text)
@@ -51,17 +52,18 @@ std::optional<TimeControlSide> parseSide(const QString& text)
 std::optional<Parsed> parse(const QString& text)
 {
     const QString trimmed = text.trimmed();
+    if (trimmed == kUnlimited) return Parsed{{}, true, false, false};
     static const QRegularExpression perSide(
         QStringLiteral("^(先手|下手) (.+) / (後手|上手) (.+)$"));
     if (const QRegularExpressionMatch m = perSide.match(trimmed); m.hasMatch()) {
         const std::optional<TimeControlSide> black = parseSide(m.captured(2));
         const std::optional<TimeControlSide> white = parseSide(m.captured(4));
         if (!black || !white) return std::nullopt;
-        return Parsed{{*black, *white}, true, m.captured(1) == GameInfoKeys::kShitatePlayer};
+        return Parsed{{*black, *white}, false, true, m.captured(1) == GameInfo::playerKey(Turn::Black, true)};
     }
     const std::optional<TimeControlSide> both = parseSide(trimmed);
     if (!both) return std::nullopt;
-    return Parsed{{*both, *both}, false, false};
+    return Parsed{{*both, *both}, false, false, false};
 }
 
 } // namespace TimeControlText

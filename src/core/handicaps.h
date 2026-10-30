@@ -9,6 +9,7 @@
 #include <QtGlobal>
 
 #include "sfenutils.h"
+#include "shogiposition.h"
 
 namespace Handicaps {
 
@@ -38,6 +39,9 @@ inline constexpr Handicap kAll[] = {
     {QT_TRANSLATE_NOOP("KifuPresentation", "十枚落ち"), "10", "4k4/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
 };
 
+/// 平手（表の先頭）
+inline constexpr const Handicap& kHirate = kAll[0];
+
 /// 手合割の名前（KIF の「手合割：」の値）
 inline QString labelOf(const Handicap& handicap) { return QString::fromUtf8(handicap.label); }
 
@@ -60,26 +64,31 @@ inline const Handicap* byJkfPreset(QStringView preset)
     return nullptr;
 }
 
-/// 開始局面（盤・手番・持ち駒。手数は見ない）が同じ手合割。なければ nullptr
-inline const Handicap* bySfen(const QString& sfen)
+/// 局面（盤・持ち駒・手番。手数は見ない）が初期配置の手合割（平手を含む）。なければ nullptr
+inline const Handicap* of(const Position& position)
 {
-    const QString key = SfenUtils::normalizeSfenKey(sfen);
+    if (!position.handsEmpty()) return nullptr;
+    // 表の局面は「盤 手番 - 1」
+    const QString key = position.boardSfen()
+        + (position.sideToMove() == Turn::Black ? QLatin1String(" b ") : QLatin1String(" w "));
     for (const Handicap& handicap : kAll) {
-        if (SfenUtils::normalizeSfenKey(QString::fromLatin1(handicap.sfen)) == key) return &handicap;
+        if (QString::fromLatin1(handicap.sfen).startsWith(key)) return &handicap;
     }
     return nullptr;
 }
 
-/// 盤（駒の配置だけ）が同じ手合割。なければ nullptr
-inline const Handicap* byBoard(const QString& sfen)
+/// 開始局面（SFEN・startpos・position コマンド。空は平手）の手合割。読めない・初期配置でなければ nullptr
+inline const Handicap* ofStart(const QString& startSfen)
 {
-    const QString board = sfen.trimmed().section(QLatin1Char(' '), 0, 0);
-    if (board.isEmpty()) return nullptr;
-    for (const Handicap& handicap : kAll) {
-        if (board == QString::fromLatin1(handicap.sfen).section(QLatin1Char(' '), 0, 0)) return &handicap;
-    }
-    return nullptr;
+    if (startSfen.trimmed().isEmpty()) return &kHirate;
+    const std::optional<Position> position = Position::fromSfenLike(startSfen);
+    return position ? of(*position) : nullptr;
 }
+
+/// 平手の初期配置か（手数は見ない）
+inline bool isHirate(const Position& position) { return of(position) == &kHirate; }
+/// 開始局面が平手の初期配置か（空は平手）
+inline bool isHirate(const QString& startSfen) { return ofStart(startSfen) == &kHirate; }
 
 } // namespace Handicaps
 

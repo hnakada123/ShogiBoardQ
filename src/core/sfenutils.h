@@ -75,13 +75,6 @@ inline QString normalizeSfenKey(const QString& sfenLike)
     return normalized.section(QLatin1Char(' '), 0, 2, QString::SectionSkipEmpty);
 }
 
-/// 平手初期局面（`startpos` / 完全SFEN / `position ...`）かを判定する
-inline bool isHirateStart(const QString& sfenLike)
-{
-    static const QString hirateKey = normalizeSfenKey(hirateSfen());
-    return normalizeSfenKey(sfenLike) == hirateKey;
-}
-
 } // namespace SfenUtils
 
 #endif // SFENUTILS_H
