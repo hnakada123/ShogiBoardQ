@@ -269,6 +269,24 @@
 
 **影響**: 約15ファイル、差し引き約50行減。テストは `tst_csaconverter`・`tst_kifudocument`・`tst_gameinfoeditmodel`。
 
+**状態: 済（4eb28348）**。書き直し案のとおりにした。
+- **規則の持ち主**: `KifuExportMetadataBuilder` をやめ、kifu の `GameInfo`（`gameinfo.h`）に寄せた。
+  - 関数は `playerKey(side, handicapNames)`・`playerSide(key)`・`playerName`・`usesHandicapNames`・`handicapLabel(startSfen)`・`isHandicap(startSfen)`。
+  - 「先手（または下手）の見出しか」の4か所（`GameInfoEditModel`・`CsaExporter`・`KifuDocument::beginMatch`・`mergeForMatch`）は `playerSide` を使う。
+  - `kifuexportmetadata.h` は書き出しの文脈の構造体だけを残した。
+- **平手・駒落ちの判定**: core の `Handicaps` に `of(Position)`・`ofStart(開始局面の文字列)`・`isHirate` を置いた（盤・持ち駒・手番で決め、手数は見ない）。
+  - `SfenUtils::isHirateStart`・`Handicaps::bySfen`・`byBoard` と、`kifexporter.cpp` の盤の比較は消した。
+  - 語 `"平手"` の直書きは `Handicaps::kHirate` にした。
+  - USI の `position startpos` にするか（`UsiPosition::command`・`commandFor`）と、USI・CSA の読み込みの `StartKind` は、手数1の平手との一致のまま残した。プロトコルの書き方の問題で、手合割の規則ではないため。
+- **無制限**: `TimeControlText` が書き（`format` は制限がなければ `kUnlimited`）、読む（`Parsed::unlimited`）。
+  - 文書・表示・CSA（`convertToCsaTimeLines` は行を返さない）はこれを使う。
+  - 続けた対局のメモ（`GameSession::noteContinuedMatch`）の持ち時間は `KifuPresentation::infoValue` で訳す。先後で違う持ち時間の見出しも、表示言語になった。
+- **見出しの一覧**: `GameInfoKeys` の訳す見出しを `QT_TRANSLATE_NOOP` で持ち、表 `kTranslated` を置いた。`KifuPresentation::infoKey` はその表を引くだけにした（「表題」も `kTitle` として加えた）。
+- **書き出しの文脈**: `KifuExportMetadata` から `players` を外した。
+  - CSA の `N+`・`N-` も対局情報の対局者名（`GameInfo::playerName`。省略名も使う）だけから書く。
+  - 対局者の行が無い棋譜を続けた対局では、KIF と同じく書かない（テスト `csaWritesTimesFromGameInfo`）。
+- `$TIME` の書式は、F3 で `csaformatter.cpp` の1か所になっていた。
+
 ### T5. 定跡ウィンドウが dialogs にあり、9つの責務を持つ（dialogs・ui・kifu・widgets・models）
 
 **問題**
