@@ -37,6 +37,7 @@
 #include "sfenreplay.h"
 #include "sfenutils.h"
 #include "test_replay.h"
+#include "header_drag_helper.h"
 
 namespace {
 /// 定跡ウィンドウと、ウィンドウの定跡の操作（ファイル・定跡手・マージ・ドロップ・閉じるときの確認）を受ける部品。
@@ -1123,12 +1124,20 @@ void TestJosekiWindow::testColumnWidthsSurviveRefresh()
         QVERIFY(seedWindow(window, m_tempDir.filePath(QStringLiteral("widths.db"))));
         window.show();
         QVERIFY(QTest::qWaitForWindowExposed(&window));
-        // 利用者が見出しの境目をドラッグしたときに保存する
-        window.m_tableView->setColumnWidth(2, 280);
-        window.m_tableView->setColumnWidth(3, 270);
-        window.saveColumnWidths();
+        // 利用者が見出しの境目をドラッグした列だけを保存する（プログラムで変えた幅は保存しない）
+        window.m_tableView->setColumnWidth(4, 90);
+        HeaderDrag::resizeSection(window.m_tableView->horizontalHeader(), 2, 280);
+        HeaderDrag::resizeSection(window.m_tableView->horizontalHeader(), 3, 270);
+        const QList<int> saved = JosekiSettings::josekiWindowColumnWidths();
+        QCOMPARE(saved.value(2), 280);
+        QCOMPARE(saved.value(3), 270);
+        QCOMPARE(saved.value(4), 0);
+        // 文字の大きさを変えても、利用者が決めた幅は変えない
+        const int fontSize = window.m_fontHelper.fontSize();
+        window.m_fontHelper.setFontSize(fontSize + 2);
         window.setCurrentSfen(initialSfen());
         QCOMPARE(window.m_tableView->columnWidth(2), 280);
+        window.m_fontHelper.setFontSize(fontSize);
         window.hide();
         window.show();
         QCOMPARE(window.m_tableView->columnWidth(3), 270);
@@ -1579,15 +1588,16 @@ void TestJosekiWindow::testMoveListPlaceholder()
 
 void TestJosekiWindow::testFontButtonsKeepWidth()
 {
-    // A-/A+ は「表示」の枠の中で文字が収まる幅を保つ（スタイルだけだと 20px ほどに縮む）
+    // A-/A+ は「表示」の枠の中で文字が収まる幅を保つ（スタイルだけだと 20px ほどに縮む）。
+    // 大きさはダイアログと同じく FontSizeControl が決める
     JosekiBookSession session;
     JosekiPanel panel(&session);
     JosekiWindow &window = panel.window;
     for (const char *name : {"josekiFontDecrease", "josekiFontIncrease"}) {
         auto *button = window.findChild<QPushButton*>(QString::fromLatin1(name));
         QVERIFY2(button, name);
-        QCOMPARE(button->minimumWidth(), 36);
-        QCOMPARE(button->maximumWidth(), 36);
+        QCOMPARE(button->minimumWidth(), button->maximumWidth());
+        QVERIFY(button->minimumWidth() >= qMax(36, button->fontMetrics().horizontalAdvance(button->text()) + 16));
     }
 }
 

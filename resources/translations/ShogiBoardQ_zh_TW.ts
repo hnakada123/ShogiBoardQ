@@ -50,7 +50,7 @@
 <context>
     <name>AnalysisResultsPanel</name>
     <message>
-        <location filename="../../src/widgets/analysisresultspanel.cpp" line="54"/>
+        <location filename="../../src/widgets/analysisresultspanel.cpp" line="55"/>
         <source>棋譜解析結果</source>
         <translation>棋譜分析結果</translation>
     </message>
@@ -71,38 +71,38 @@
         <translation type="vanished">放大字型大小</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/analysisresultspanel.cpp" line="82"/>
+        <location filename="../../src/widgets/analysisresultspanel.cpp" line="77"/>
         <source>解析中止</source>
         <translation>停止分析</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/analysisresultspanel.cpp" line="98"/>
-        <location filename="../../src/widgets/analysisresultspanel.cpp" line="308"/>
+        <location filename="../../src/widgets/analysisresultspanel.cpp" line="93"/>
+        <location filename="../../src/widgets/analysisresultspanel.cpp" line="296"/>
         <source>解析条件を設定して、棋譜解析を開始してください。</source>
         <translation>請選擇分析設定，開始分析棋譜。</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/analysisresultspanel.cpp" line="103"/>
+        <location filename="../../src/widgets/analysisresultspanel.cpp" line="98"/>
         <source>解析の進捗</source>
         <translation>分析進度</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/analysisresultspanel.cpp" line="112"/>
+        <location filename="../../src/widgets/analysisresultspanel.cpp" line="107"/>
         <source>評価値は先手視点（＋: 先手有利／−: 後手有利）。行を選択すると局面へ移動し、「表示」で読み筋を確認できます。</source>
         <translation>評價值以先手為基準（正值有利於先手，負值有利於後手）。選擇一行可跳至對應局面；按一下「顯示」可查看後續變化。</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/analysisresultspanel.cpp" line="301"/>
+        <location filename="../../src/widgets/analysisresultspanel.cpp" line="289"/>
         <source>解析中止 · %1 / %2局面を解析済み</source>
         <translation>已停止 · 已分析 %1 / %2 個局面</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/analysisresultspanel.cpp" line="298"/>
+        <location filename="../../src/widgets/analysisresultspanel.cpp" line="286"/>
         <source>解析中 · %1 / %2局面を解析済み</source>
         <translation>分析中 · 已分析 %1 / %2 個局面</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/analysisresultspanel.cpp" line="305"/>
+        <location filename="../../src/widgets/analysisresultspanel.cpp" line="293"/>
         <source>解析完了 · %1局面</source>
         <translation>分析完成 · %1 個局面</translation>
     </message>
@@ -1771,32 +1771,54 @@
 <context>
     <name>CommentCoordinator</name>
     <message>
-        <location filename="../../src/ui/coordinators/commentcoordinator.cpp" line="60"/>
+        <location filename="../../src/ui/coordinators/commentcoordinator.cpp" line="44"/>
+        <source>開始局面のコメント</source>
+        <translation>初始局面的註解</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/commentcoordinator.cpp" line="44"/>
+        <source>%1手目のコメント</source>
+        <translation>第 %1 手的註解</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/commentcoordinator.cpp" line="45"/>
+        <source>未保存のコメント</source>
+        <translation>未儲存的註解</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/commentcoordinator.cpp" line="46"/>
+        <source>コメントが編集されていますが、まだ棋譜に更新されていません。
+更新してから移動しますか？</source>
+        <translation>註解已修改，但尚未更新到棋譜。
+要先更新再移動嗎？</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/commentcoordinator.cpp" line="77"/>
         <source>コメントを更新しました（手数: %1）</source>
         <translation>已更新註解（第 %1 手）</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/commentcoordinator.cpp" line="67"/>
+        <location filename="../../src/ui/coordinators/commentcoordinator.cpp" line="84"/>
         <source>手を選択してください</source>
         <translation>請選擇著法</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/commentcoordinator.cpp" line="72"/>
+        <location filename="../../src/ui/coordinators/commentcoordinator.cpp" line="89"/>
         <source>しおりを編集</source>
         <translation>編輯書籤</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/commentcoordinator.cpp" line="73"/>
+        <location filename="../../src/ui/coordinators/commentcoordinator.cpp" line="90"/>
         <source>しおり名（手数: %1）:</source>
         <translation>書籤名稱（第 %1 手）：</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/commentcoordinator.cpp" line="82"/>
+        <location filename="../../src/ui/coordinators/commentcoordinator.cpp" line="99"/>
         <source>しおりを削除しました（手数: %1）</source>
         <translation>已刪除書籤（第 %1 手）</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/commentcoordinator.cpp" line="83"/>
+        <location filename="../../src/ui/coordinators/commentcoordinator.cpp" line="100"/>
         <source>しおりを設定しました（手数: %1）</source>
         <translation>已設定書籤（第 %1 手）</translation>
     </message>
@@ -1804,44 +1826,41 @@
 <context>
     <name>CommentEditorPanel</name>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="50"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="49"/>
         <source>この局面のコメントを入力できます</source>
         <translation>輸入此局面的註解</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="51"/>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="368"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="50"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="335"/>
         <source>リンクは Ctrl+クリックで開きます</source>
         <translation>按住 Ctrl 按一下可開啟連結</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="147"/>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="163"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="146"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="162"/>
         <source>開始局面</source>
         <translation>初始局面</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="147"/>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="163"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="146"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="162"/>
         <source>%1手目</source>
         <translation>第 %1 手</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="185"/>
         <source>未保存のコメント</source>
-        <translation>未儲存的註解</translation>
+        <translation type="vanished">未儲存的註解</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="186"/>
         <source>コメントが編集されていますが、まだ更新されていません。
 変更を破棄して移動しますか？</source>
-        <translation>註解已修改，但尚未更新。
+        <translation type="vanished">註解已修改，但尚未更新。
 要放棄修改並移動嗎？</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="188"/>
         <source>破棄して移動</source>
-        <translation>放棄並移動</translation>
+        <translation type="vanished">放棄並移動</translation>
     </message>
     <message>
         <source>フォントサイズを小さくする</source>
@@ -1872,17 +1891,17 @@
         <translation type="vanished">貼上 (Ctrl+V)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="344"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="311"/>
         <source>修正中</source>
         <translation>編輯中</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="348"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="315"/>
         <source>コメント更新</source>
         <translation>更新註解</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="350"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="317"/>
         <source>編集したコメントを棋譜に反映する (Ctrl+Enter)</source>
         <translation>將編輯後的註解套用到棋譜 (Ctrl+Enter)</translation>
     </message>
@@ -1966,14 +1985,14 @@
     <name>ConsiderationPanel</name>
     <message>
         <location filename="../../src/widgets/considerationpanel.cpp" line="170"/>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="397"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="389"/>
         <source>検討中止</source>
         <translation>停止</translation>
     </message>
     <message>
         <location filename="../../src/widgets/considerationpanel.cpp" line="170"/>
         <location filename="../../src/widgets/considerationpanel.cpp" line="308"/>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="397"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="389"/>
         <source>検討開始</source>
         <translation>開始研究</translation>
     </message>
@@ -2075,7 +2094,7 @@
         <translation>在棋盤上顯示最佳著法的箭頭</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="388"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="380"/>
         <source>経過: 000:00</source>
         <translation>已用時：000:00</translation>
     </message>
@@ -3988,37 +4007,37 @@
 <context>
     <name>EngineInfoWidget</name>
     <message>
-        <location filename="../../src/widgets/engineinfowidget.cpp" line="43"/>
+        <location filename="../../src/widgets/engineinfowidget.cpp" line="44"/>
         <source>エンジン</source>
         <translation>引擎</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineinfowidget.cpp" line="43"/>
+        <location filename="../../src/widgets/engineinfowidget.cpp" line="44"/>
         <source>予想手</source>
         <translation>預測著法</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineinfowidget.cpp" line="43"/>
+        <location filename="../../src/widgets/engineinfowidget.cpp" line="44"/>
         <source>探索手</source>
         <translation>搜尋著法</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineinfowidget.cpp" line="44"/>
+        <location filename="../../src/widgets/engineinfowidget.cpp" line="45"/>
         <source>深さ</source>
         <translation>深度</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineinfowidget.cpp" line="44"/>
+        <location filename="../../src/widgets/engineinfowidget.cpp" line="45"/>
         <source>ノード数</source>
         <translation>節點數</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineinfowidget.cpp" line="44"/>
+        <location filename="../../src/widgets/engineinfowidget.cpp" line="45"/>
         <source>ハッシュ使用率</source>
         <translation>哈希使用率</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineinfowidget.cpp" line="44"/>
+        <location filename="../../src/widgets/engineinfowidget.cpp" line="45"/>
         <source>探索局面数/秒</source>
         <translation>節點/秒</translation>
     </message>
@@ -4708,12 +4727,12 @@
 <context>
     <name>EvaluationChartWidget</name>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="415"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="381"/>
         <source>先手</source>
         <translation>先手</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="415"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="381"/>
         <source>後手</source>
         <translation>後手</translation>
     </message>
@@ -4726,32 +4745,32 @@
         <translation type="vanished">%1勝 · 詰棋</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="420"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="386"/>
         <source>%1（表示範囲外）</source>
         <translation>%1（超出範圍）</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="427"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="393"/>
         <source>先手エンジン</source>
         <translation>先手引擎</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="427"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="393"/>
         <source>後手エンジン</source>
         <translation>後手引擎</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="481"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="447"/>
         <source>%1：%2</source>
         <translation>%1：%2</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="490"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="456"/>
         <source>%1手目  |  %2</source>
         <translation>第 %1 手 | %2</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="491"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="457"/>
         <source>評価値なし</source>
         <translation>無評價值</translation>
     </message>
@@ -4765,13 +4784,13 @@
     </message>
     <message>
         <location filename="../../src/widgets/evaluationchartview.cpp" line="54"/>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="281"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="247"/>
         <source>先手有利</source>
         <translation>先手有利</translation>
     </message>
     <message>
         <location filename="../../src/widgets/evaluationchartview.cpp" line="57"/>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="281"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="247"/>
         <source>後手有利</source>
         <translation>後手有利</translation>
     </message>
@@ -4781,7 +4800,7 @@
         <translation>第 %1 手</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="564"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="530"/>
         <source>%1
 %2手目：%3
 先手視点の評価値</source>
@@ -4790,9 +4809,8 @@
 評價值以先手為基準</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="174"/>
         <source>最初に戻る</source>
-        <translation>跳到起點</translation>
+        <translation type="vanished">跳到起點</translation>
     </message>
     <message>
         <location filename="../../src/widgets/evaluationchartwidget.cpp" line="146"/>
@@ -4815,32 +4833,27 @@
         <translation>顯示設定…</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="175"/>
         <source>10手戻る</source>
-        <translation>後退 10 手</translation>
+        <translation type="vanished">後退 10 手</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="176"/>
         <source>1手戻る</source>
-        <translation>後退一手</translation>
+        <translation type="vanished">後退一手</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="177"/>
         <source>1手進む</source>
-        <translation>前進一手</translation>
+        <translation type="vanished">前進一手</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="178"/>
         <source>10手進む</source>
-        <translation>前進 10 手</translation>
+        <translation type="vanished">前進 10 手</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="179"/>
         <source>最後に進む</source>
-        <translation>跳到終點</translation>
+        <translation type="vanished">跳到終點</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="417"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="383"/>
         <source>%1勝ち・%2</source>
         <translation>%1勝 · %2</translation>
     </message>
@@ -4900,12 +4913,12 @@ ABC abc 0123456789</translation>
 <context>
     <name>FontSizeControl</name>
     <message>
-        <location filename="../../src/widgets/fontsizecontrol.cpp" line="28"/>
+        <location filename="../../src/widgets/fontsizecontrol.cpp" line="29"/>
         <source>文字を小さくする</source>
         <translation>縮小字型大小</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/fontsizecontrol.cpp" line="29"/>
+        <location filename="../../src/widgets/fontsizecontrol.cpp" line="30"/>
         <source>文字を大きくする</source>
         <translation>放大字型大小</translation>
     </message>
@@ -5062,22 +5075,22 @@ ABC abc 0123456789</translation>
         <translation type="vanished">貼上 (Ctrl+V)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="344"/>
+        <location filename="../../src/widgets/gameinfopane.cpp" line="338"/>
         <source>行を追加</source>
         <translation>新增行</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="344"/>
+        <location filename="../../src/widgets/gameinfopane.cpp" line="338"/>
         <source>新しい行を追加する</source>
         <translation>新增一行</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="345"/>
+        <location filename="../../src/widgets/gameinfopane.cpp" line="339"/>
         <source>行を削除</source>
         <translation>刪除行</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="346"/>
+        <location filename="../../src/widgets/gameinfopane.cpp" line="340"/>
         <source>選択行を削除する（元に戻す操作で復元できます）</source>
         <translation>刪除選取行（可透過復原恢復）</translation>
     </message>
@@ -5094,7 +5107,7 @@ ABC abc 0123456789</translation>
         <translation type="vanished">有尚未套用的修改</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="356"/>
+        <location filename="../../src/widgets/gameinfopane.cpp" line="350"/>
         <source>内容をダブルクリックして編集</source>
         <translation>按兩下內容進行編輯</translation>
     </message>
@@ -6810,87 +6823,87 @@ YaneuraOu 會以此著法進行背景思考。</translation>
         <translation type="vanished">定跡視窗</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="168"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="169"/>
         <source>ファイル</source>
         <translation>檔案</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="169"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="170"/>
         <source>新規</source>
         <translation>新建</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="169"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="170"/>
         <source>新しい空の定跡ファイルを作成</source>
         <translation>建立空白定跡檔案</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="171"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="172"/>
         <source>開く</source>
         <translation>開啟</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="171"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="172"/>
         <source>定跡ファイル(.db)を開く</source>
         <translation>開啟定跡檔案 (.db)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="173"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="174"/>
         <source>保存</source>
         <translation>儲存</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="173"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="174"/>
         <source>現在のファイルに上書き保存</source>
         <translation>儲存到目前檔案</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="176"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="177"/>
         <source>別名保存</source>
         <translation>另存為</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="176"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="177"/>
         <source>別の名前で保存</source>
         <translation>以新名稱儲存</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="178"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="179"/>
         <source>履歴</source>
         <translation>歷史記錄</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="178"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="179"/>
         <source>最近使ったファイルを開く</source>
         <translation>開啟最近使用的檔案</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="193"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="194"/>
         <source>棋譜や別の定跡ファイルから定跡に登録（棋譜ファイル・フォルダはウィンドウへのドロップでも登録できる）</source>
         <translation>從棋譜或其他定跡檔案註冊到定跡（也可以將棋譜檔案與資料夾拖放到視窗中註冊）</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="203"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="204"/>
         <source>複数の棋譜から...</source>
         <translation>從多個棋譜...</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="204"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="205"/>
         <source>定跡ファイルから...</source>
         <translation>從定跡檔案...</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="207"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="208"/>
         <source>棋譜に展開...</source>
         <translation>展開到棋譜...</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="207"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="208"/>
         <source>表示中の局面から定跡手をたどり、棋譜の変化として足す</source>
         <translation>從目前局面沿定跡著法前進，作為棋譜的變化加入</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="210"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="211"/>
         <source>盤の手を登録</source>
         <translation>註冊棋盤著法</translation>
     </message>
@@ -6899,7 +6912,7 @@ YaneuraOu 會以此著法進行背景思考。</translation>
         <translation type="vanished">將對局以外在棋盤上走的著法註冊為走子前局面的定跡著法（不變更已註冊的著法；重新啟動應用程式後恢復關閉）</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="225"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="226"/>
         <source>表示</source>
         <translation>顯示</translation>
     </message>
@@ -6912,7 +6925,7 @@ YaneuraOu 會以此著法進行背景思考。</translation>
         <translation type="vanished">放大字型大小</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="342"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="351"/>
         <source>※ 追加・編集・削除後は「保存」ボタンで定跡ファイルに保存してください</source>
         <translation>新增、編輯或刪除著法後，請按一下「儲存」以儲存定跡檔案。</translation>
     </message>
@@ -6925,32 +6938,32 @@ YaneuraOu 會以此著法進行背景思考。</translation>
         <translation type="vanished">縮小字型大小</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="233"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="235"/>
         <source>自動読込</source>
         <translation>自動載入</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="234"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="236"/>
         <source>定跡ウィンドウ表示時に前回のファイルを自動で読み込む</source>
         <translation>開啟定跡視窗時自動載入上次的檔案</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="189"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="190"/>
         <source>操作</source>
         <translation>操作</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="190"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="191"/>
         <source>＋追加</source>
         <translation>＋新增</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="190"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="191"/>
         <source>現在の局面に定跡手を追加</source>
         <translation>為目前局面新增定跡著法</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="192"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="193"/>
         <source>マージ ▼</source>
         <translation>合併 ▼</translation>
     </message>
@@ -6959,71 +6972,71 @@ YaneuraOu 會以此著法進行背景思考。</translation>
         <translation type="vanished">將棋譜合併到定跡庫</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="200"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="201"/>
         <source>現在の棋譜から</source>
         <translation>從目前棋譜</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="201"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="202"/>
         <source>棋譜ファイルから</source>
         <translation>從棋譜檔案</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="212"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="213"/>
         <source>盤で指した手と対局で指された手（人間・エンジンとも）を、指す前の局面の定跡手として登録する（登録済みの手は変えない。局面編集の手は登録しない。アプリを起動し直すとオフに戻る）</source>
         <translation>將在棋盤上走的著法與對局中走的著法（人與引擎都包括）註冊為走子前局面的定跡著法（不變更已註冊的著法；局面編輯中的著法不註冊；重新啟動應用程式後恢復為關閉）</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="215"/>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="628"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="216"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="621"/>
         <source>■ 停止</source>
         <translation>■ 停止</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="215"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="216"/>
         <source>定跡表示を停止/再開</source>
         <translation>停止／恢復定跡顯示</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="236"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="238"/>
         <source>盤に矢印</source>
         <translation>棋盤箭頭</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="238"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="240"/>
         <source>表示中の局面の定跡手を盤に矢印で表示する（「表示」メニューの「盤に定跡手を表示」と同じ）</source>
         <translation>在棋盤上用箭頭顯示目前局面的定跡著法（與「檢視」選單的「在棋盤上顯示定跡著法」相同）</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="279"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="281"/>
         <source>ファイル:</source>
         <translation>檔案：</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="280"/>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="806"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="282"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="799"/>
         <source>未選択</source>
         <translation>未選擇</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="292"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="294"/>
         <source>局面:</source>
         <translation>局面：</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="293"/>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="484"/>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="778"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="295"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="477"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="771"/>
         <source>(未設定)</source>
         <translation>（未設定）</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="296"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="298"/>
         <source>詳細</source>
         <translation>詳細</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="296"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="298"/>
         <source>SFENの詳細を表示/非表示</source>
         <translation>顯示／隱藏 SFEN 詳情</translation>
     </message>
@@ -7076,7 +7089,7 @@ YaneuraOu 會以此著法進行背景思考。</translation>
         <translation type="vanished">複製著法</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="801"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="794"/>
         <source> (未読込)</source>
         <translation>（未載入）</translation>
     </message>
@@ -7101,12 +7114,12 @@ YaneuraOu 會以此著法進行背景思考。</translation>
         <translation type="vanished">錯誤</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="699"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="692"/>
         <source>定跡: (該当なし)</source>
         <translation>定跡：（無符合）</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="690"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="683"/>
         <source>定跡SFEN: %1</source>
         <translation>定跡 SFEN：%1</translation>
     </message>
@@ -7115,7 +7128,7 @@ YaneuraOu 會以此著法進行背景思考。</translation>
         <translation type="vanished">按兩下執行著法</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="628"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="621"/>
         <source>▶ 再開</source>
         <translation>▶ 恢復</translation>
     </message>
@@ -7128,67 +7141,67 @@ YaneuraOu 會以此著法進行背景思考。</translation>
         <translation type="vanished">已將 %1 註冊到定跡</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="647"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="640"/>
         <source>%1手目の%2で定跡を外れています</source>
         <translation>在第 %1 手的%2脫離定跡</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="648"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="641"/>
         <source>押すとその手へ移ります</source>
         <translation>按一下即可移動到該著法</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="650"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="643"/>
         <source>表示中の手順はすべて定跡にあります</source>
         <translation>目前手順全部在定跡中</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="696"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="689"/>
         <source>（手数違いの登録: %1）</source>
         <translation>（以不同手數分別註冊：%1）</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="735"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="728"/>
         <source>✓読込済</source>
         <translation>✓已載入</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="750"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="743"/>
         <source>定跡ファイルを足しています...</source>
         <translation>正在合併定跡檔案...</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="751"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="744"/>
         <source>ファイル: %1</source>
         <translation>檔案：%1</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="751"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="744"/>
         <source>ファイル: 未選択</source>
         <translation>檔案：未選擇</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="752"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="745"/>
         <source>局面数: %1</source>
         <translation>局面數：%1</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="753"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="746"/>
         <source>【停止中】</source>
         <translation>[已停止]</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="753"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="746"/>
         <source>定跡: %1件</source>
         <translation>定跡：%1 條</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="511"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="504"/>
         <source>着手エラー</source>
         <translation>著法錯誤</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="512"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="505"/>
         <source>定跡手「%1」を指すことができませんでした。
 
 この定跡手は現在の局面では合法手ではない可能性があります。
@@ -7199,7 +7212,7 @@ YaneuraOu 會以此著法進行背景思考。</translation>
 定跡資料可能存在錯誤。</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="811"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="804"/>
         <source>新規ファイル（未保存）</source>
         <translation>新檔案（未儲存）</translation>
     </message>
@@ -7212,7 +7225,7 @@ YaneuraOu 會以此著法進行背景思考。</translation>
         <translation type="vanished">定跡</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="732"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="725"/>
         <source>未保存</source>
         <translation>未儲存</translation>
     </message>
@@ -7275,7 +7288,7 @@ YaneuraOu 會以此著法進行背景思考。</translation>
         <translation type="vanished">覆寫</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="537"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="530"/>
         <source>定跡手は、対局中の自分の手番か、対局していないときに指せます。</source>
         <translation>定跡著法可在對局中輪到自己時，或不在對局中時執行。</translation>
     </message>
@@ -7302,17 +7315,17 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">指定定跡儲存位置</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="748"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="741"/>
         <source>読み込み中...</source>
         <translation>正在載入...</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="749"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="742"/>
         <source>保存中...</source>
         <translation>正在儲存...</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="537"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="530"/>
         <source>情報</source>
         <translation>資訊</translation>
     </message>
@@ -7347,51 +7360,51 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">將棋譜合併到定跡庫 - %1</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="763"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="756"/>
         <source>定跡表示を停止しています。「再開」で表示を再開します。</source>
         <translation>定跡顯示已暫停。按一下「恢復」重新顯示定跡著法。</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="761"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="754"/>
         <source>定跡ファイルを読み込んでいます...</source>
         <translation>正在載入定跡檔案...</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="754"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="747"/>
         <source>盤の手を登録中</source>
         <translation>正在註冊棋盤著法</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="765"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="758"/>
         <source>将棋盤で局面を表示すると、その局面の定跡を確認できます。</source>
         <translation>在棋盤上顯示局面，即可查看其定跡著法。</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="767"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="760"/>
         <source>「開く」で定跡ファイルを読み込むと、表示中の局面の定跡手が表示されます。
 「新規」で新しい定跡ファイルを作ることもできます。</source>
         <translation>按一下「開啟」讀取定跡檔案後，會顯示目前局面的定跡著法。
 也可以按一下「新建」建立新的定跡檔案。</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="770"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="763"/>
         <source>この局面には定跡が登録されていません。
 「＋追加」で指し手を登録するか、「マージ」から棋譜を取り込めます。</source>
         <translation>此局面沒有定跡著法。
 可透過「新增」輸入著法，或透過「合併」匯入棋譜。</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="783"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="776"/>
         <source>先手</source>
         <translation>先手</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="783"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="776"/>
         <source>後手</source>
         <translation>後手</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="787"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="780"/>
         <source>初期配置</source>
         <translation>初始局面</translation>
     </message>
@@ -7400,17 +7413,17 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">讓子</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="791"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="784"/>
         <source>%1手目</source>
         <translation>第 %1 手</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="792"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="785"/>
         <source>%1 (%2番)</source>
         <translation>%1（%2行棋）</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="794"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="787"/>
         <source>局面SFEN: %1</source>
         <translation>局面 SFEN：%1</translation>
     </message>
@@ -7425,7 +7438,7 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">目前輪到引擎行棋，無法執行著法。</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/josekiwindow.cpp" line="581"/>
+        <location filename="../../src/widgets/josekiwindow.cpp" line="574"/>
         <source>「%1」をコピーしました</source>
         <translation>已複製「%1」</translation>
     </message>
@@ -8469,32 +8482,32 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>KifuNavigationController</name>
     <message>
-        <location filename="../../src/ui/controllers/kifunavigationcontroller.cpp" line="21"/>
+        <location filename="../../src/ui/controllers/kifunavigationcontroller.cpp" line="22"/>
         <source>最初に戻る</source>
         <translation>跳到起點</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifunavigationcontroller.cpp" line="22"/>
+        <location filename="../../src/ui/controllers/kifunavigationcontroller.cpp" line="23"/>
         <source>10手戻る</source>
         <translation>後退 10 手</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifunavigationcontroller.cpp" line="23"/>
+        <location filename="../../src/ui/controllers/kifunavigationcontroller.cpp" line="24"/>
         <source>1手戻る</source>
         <translation>後退一手</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifunavigationcontroller.cpp" line="24"/>
+        <location filename="../../src/ui/controllers/kifunavigationcontroller.cpp" line="25"/>
         <source>1手進む</source>
         <translation>前進一手</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifunavigationcontroller.cpp" line="25"/>
+        <location filename="../../src/ui/controllers/kifunavigationcontroller.cpp" line="26"/>
         <source>10手進む</source>
         <translation>前進 10 手</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifunavigationcontroller.cpp" line="26"/>
+        <location filename="../../src/ui/controllers/kifunavigationcontroller.cpp" line="27"/>
         <source>最後に進む</source>
         <translation>跳到終點</translation>
     </message>
@@ -9033,47 +9046,47 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>LogPanel</name>
     <message>
-        <location filename="../../src/widgets/logpanel.cpp" line="112"/>
+        <location filename="../../src/widgets/logpanel.cpp" line="110"/>
         <source>折り返し</source>
         <translation>自動換行</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/logpanel.cpp" line="114"/>
+        <location filename="../../src/widgets/logpanel.cpp" line="112"/>
         <source>長い行をウィンドウ幅で折り返す</source>
         <translation>依視窗寬度自動換行</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/logpanel.cpp" line="119"/>
+        <location filename="../../src/widgets/logpanel.cpp" line="117"/>
         <source>最新へ</source>
         <translation>最新</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/logpanel.cpp" line="121"/>
+        <location filename="../../src/widgets/logpanel.cpp" line="119"/>
         <source>最新のログへ移動（末尾では新着ログに自動追従）</source>
         <translation>跳到最新記錄（在底部自動跟隨新條目）</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/logpanel.cpp" line="124"/>
+        <location filename="../../src/widgets/logpanel.cpp" line="122"/>
         <source>全てコピー</source>
         <translation>複製全部</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/logpanel.cpp" line="126"/>
+        <location filename="../../src/widgets/logpanel.cpp" line="124"/>
         <source>ログ全体をクリップボードへコピー</source>
         <translation>將全部記錄複製到剪貼簿</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/logpanel.cpp" line="128"/>
+        <location filename="../../src/widgets/logpanel.cpp" line="126"/>
         <source>消去</source>
         <translation>清除</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/logpanel.cpp" line="130"/>
+        <location filename="../../src/widgets/logpanel.cpp" line="128"/>
         <source>表示中のログを消去</source>
         <translation>清除目前顯示的記錄</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/logpanel.cpp" line="147"/>
+        <location filename="../../src/widgets/logpanel.cpp" line="145"/>
         <source>送信</source>
         <translation>傳送</translation>
     </message>
@@ -9868,12 +9881,12 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">選單</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/menuwindow.cpp" line="51"/>
+        <location filename="../../src/widgets/menuwindow.cpp" line="52"/>
         <source>Decrease button size</source>
         <translation>縮小按鈕</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/menuwindow.cpp" line="59"/>
+        <location filename="../../src/widgets/menuwindow.cpp" line="60"/>
         <source>Increase button size</source>
         <translation>放大按鈕</translation>
     </message>
@@ -9886,43 +9899,43 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">放大字型大小</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/menuwindow.cpp" line="86"/>
-        <location filename="../../src/widgets/menuwindow.cpp" line="330"/>
+        <location filename="../../src/widgets/menuwindow.cpp" line="87"/>
+        <location filename="../../src/widgets/menuwindow.cpp" line="331"/>
         <source>お気に入り編集</source>
         <translation>編輯收藏</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/menuwindow.cpp" line="88"/>
+        <location filename="../../src/widgets/menuwindow.cpp" line="89"/>
         <source>お気に入りの追加・削除・並べ替え</source>
         <translation>新增、移除或重新排列收藏</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/menuwindow.cpp" line="95"/>
+        <location filename="../../src/widgets/menuwindow.cpp" line="96"/>
         <source>各項目の＋で追加、×で削除できます。お気に入りはドラッグで並べ替えできます。</source>
         <translation>使用＋新增項目，使用×移除項目。拖曳收藏可調整順序。</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/menuwindow.cpp" line="103"/>
+        <location filename="../../src/widgets/menuwindow.cpp" line="104"/>
         <source>このタブの項目を検索</source>
         <translation>搜尋此分頁的項目</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/menuwindow.cpp" line="155"/>
+        <location filename="../../src/widgets/menuwindow.cpp" line="156"/>
         <source>お気に入り</source>
         <translation>收藏</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/menuwindow.cpp" line="315"/>
+        <location filename="../../src/widgets/menuwindow.cpp" line="316"/>
         <source>お気に入りはまだありません。「お気に入り編集」を押して、各タブの項目を追加してください。</source>
         <translation>尚無收藏。請選擇「編輯收藏」，從各分頁新增項目。</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/menuwindow.cpp" line="316"/>
+        <location filename="../../src/widgets/menuwindow.cpp" line="317"/>
         <source>該当する項目がありません。</source>
         <translation>沒有符合的項目。</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/menuwindow.cpp" line="330"/>
+        <location filename="../../src/widgets/menuwindow.cpp" line="331"/>
         <source>編集完了</source>
         <translation>完成編輯</translation>
     </message>
@@ -11311,99 +11324,87 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">縮小字型大小</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="156"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="152"/>
         <source>しおりを編集</source>
         <translation>編輯書籤</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="170"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="162"/>
         <source>消費時間列の表示/非表示</source>
         <translation>顯示／隱藏用時列</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="181"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="170"/>
         <source>しおり列の表示/非表示</source>
         <translation>顯示／隱藏書籤列</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="192"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="178"/>
         <source>コメント列の表示/非表示</source>
         <translation>顯示／隱藏註解列</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="207"/>
         <source>▲|</source>
-        <translation>▲|</translation>
+        <translation type="vanished">▲|</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="208"/>
         <source>▲▲</source>
-        <translation>▲▲</translation>
+        <translation type="vanished">▲▲</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="209"/>
         <source>▲</source>
-        <translation>▲</translation>
+        <translation type="vanished">▲</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="210"/>
         <source>▼</source>
-        <translation>▼</translation>
+        <translation type="vanished">▼</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="211"/>
         <source>▼▼</source>
-        <translation>▼▼</translation>
+        <translation type="vanished">▼▼</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="212"/>
         <source>▼|</source>
-        <translation>▼|</translation>
+        <translation type="vanished">▼|</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="214"/>
         <source>最初に戻る</source>
-        <translation>跳到起點</translation>
+        <translation type="vanished">跳到起點</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="215"/>
         <source>10手戻る</source>
-        <translation>後退 10 手</translation>
+        <translation type="vanished">後退 10 手</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="216"/>
         <source>1手戻る</source>
-        <translation>後退一手</translation>
+        <translation type="vanished">後退一手</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="217"/>
         <source>1手進む</source>
-        <translation>前進一手</translation>
+        <translation type="vanished">前進一手</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="218"/>
         <source>10手進む</source>
-        <translation>前進 10 手</translation>
+        <translation type="vanished">前進 10 手</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="219"/>
         <source>最後に進む</source>
-        <translation>跳到終點</translation>
+        <translation type="vanished">跳到終點</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="490"/>
-        <location filename="../../src/widgets/recordpane.cpp" line="491"/>
-        <location filename="../../src/widgets/recordpane.cpp" line="496"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="443"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="444"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="449"/>
         <source>分岐候補</source>
         <translation>候選變化</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="492"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="445"/>
         <source>分岐候補を折りたたむ</source>
         <translation>折疊變化</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="492"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="445"/>
         <source>分岐候補を展開する</source>
         <translation>展開變化</translation>
     </message>
@@ -12292,32 +12293,32 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">放大字號</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/thinkingpanel.cpp" line="59"/>
+        <location filename="../../src/widgets/thinkingpanel.cpp" line="56"/>
         <source>対局中の矢印表示</source>
         <translation>對局中顯示箭頭</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/thinkingpanel.cpp" line="61"/>
+        <location filename="../../src/widgets/thinkingpanel.cpp" line="58"/>
         <source>先読み側も表示</source>
         <translation>同時顯示背景思考方</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/thinkingpanel.cpp" line="63"/>
+        <location filename="../../src/widgets/thinkingpanel.cpp" line="60"/>
         <source>Ponder中の応手を青の破線で表示します。エンジンの先読み設定は変更しません。</source>
         <translation>以藍色虛線顯示背景思考中的應手。不變更引擎的背景思考設定。</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/thinkingpanel.cpp" line="147"/>
+        <location filename="../../src/widgets/thinkingpanel.cpp" line="144"/>
         <source>検討中の矢印表示は検討タブで設定します。</source>
         <translation>研究時的箭頭顯示請在研究分頁中設定。</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/thinkingpanel.cpp" line="149"/>
+        <location filename="../../src/widgets/thinkingpanel.cpp" line="146"/>
         <source>赤の実線：手番側</source>
         <translation>紅色實線：目前行棋方</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/thinkingpanel.cpp" line="150"/>
+        <location filename="../../src/widgets/thinkingpanel.cpp" line="147"/>
         <source> ／ 青の破線：先読み側</source>
         <translation> ／ 藍色虛線：背景思考方</translation>
     </message>

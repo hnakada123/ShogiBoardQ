@@ -24,6 +24,7 @@
 #include "shogiview.h"
 #include "shogiboard.h"
 #include "recordpane.h"
+#include "stepbuttons.h"
 #include "settingscommon.h"
 #include "engineprofilestore.h"
 #include "engineslots.h"
@@ -246,7 +247,7 @@ private slots:
         auto* toggle = m_window->findChild<QCheckBox*>("considerationArrows");
         auto* startStop = m_window->findChild<QToolButton*>("considerationStartStop");
         QVERIFY(toggle && startStop);
-        record()->firstButton()->click();
+        record()->stepButtons()->firstButton()->click();
         QCoreApplication::processEvents();
         startStop->click();
         QTRY_COMPARE(startStop->text(), QStringLiteral("検討中止"));

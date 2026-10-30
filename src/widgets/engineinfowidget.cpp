@@ -2,6 +2,7 @@
 /// @brief エンジン情報表示ウィジェットクラスの実装
 
 #include "engineinfowidget.h"
+#include "columnwidthmemory.h"
 #include "movefont.h"
 #include "tableheaderview.h"
 #include "itemtextdelegate.h"
@@ -29,8 +30,8 @@ EngineInfoWidget::EngineInfoWidget(AnalysisSettings::ThinkingTable table, QWidge
     setupTable();
     initializeCells();
     buildLayout();
-    // 保存した列幅があれば使う
-    setColumnWidths(AnalysisSettings::engineInfoColumnWidths(m_thinkingTable));
+    // 保存した列幅（利用者が決めた列）を付ける
+    updateTableGeometry();
 }
 
 void EngineInfoWidget::setupTable()
@@ -78,8 +79,10 @@ void EngineInfoWidget::setupTable()
         m_table->setColumnHidden(COL_PRED, true);
     }
 
-    // 利用者が列幅を変えたら保存する
-    connect(header, &TableHeaderView::sectionResizedByUser, this, &EngineInfoWidget::onSectionResizedByUser);
+    // 利用者が列幅を変えたら、その列だけ覚えて保存する（0 の列は内容に合わせる）
+    m_columnWidths = new ColumnWidthMemory(header, AnalysisSettings::engineInfoColumnWidths(m_thinkingTable), COL_COUNT);
+    // 表の幅はドラッグの処理の外で合わせる（ほかの列の自動の幅を利用者の幅に数えない）
+    connect(m_columnWidths, &ColumnWidthMemory::userWidthChanged, this, &EngineInfoWidget::scheduleTableGeometry);
 
     // 編集不可・選択不可
     m_table->setEditTriggers(QAbstractItemView::NoEditTriggers);
@@ -233,24 +236,6 @@ void EngineInfoWidget::applyHeaderStyle()
         "QTableView { background: #ffffff; color: #303841; border: 1px solid #d8dee5; }"));
 }
 
-// 列幅の設定
-void EngineInfoWidget::setColumnWidths(const QList<int>& widths)
-{
-    if (!m_table || widths.size() != COL_COUNT) return;
-    for (int col = 0; col < COL_COUNT; ++col) {
-        if (widths.at(col) > 0) m_table->setColumnWidth(col, widths.at(col));
-    }
-    m_fixedColumnWidths = true;
-    updateTableGeometry();
-}
-
-void EngineInfoWidget::onSectionResizedByUser()
-{
-    m_fixedColumnWidths = true;
-    AnalysisSettings::setEngineInfoColumnWidths(m_thinkingTable, columnWidths());
-    updateTableGeometry();
-}
-
 void EngineInfoWidget::resizeEvent(QResizeEvent* event)
 {
     QWidget::resizeEvent(event);
@@ -293,53 +278,52 @@ int EngineInfoWidget::headerHeight()
 void EngineInfoWidget::updateTableGeometry()
 {
     m_tableGeometryPending = false;
-    if (!m_fixedColumnWidths) {
-        const QFont headingFont = m_table->font();
-        const QFont moveFont = MoveFont::font(headingFont);
-        const QFontMetrics headingMetrics(headingFont);
-        const QFontMetrics moveMetrics(moveFont);
-        if (headingFont != m_measuredHeadingFont || moveFont != m_measuredMoveFont
-            || m_cellWidths.size() != COL_COUNT) {
-            m_measuredHeadingFont = headingFont;
-            m_measuredMoveFont = moveFont;
-            m_cellWidths = QList<MeasuredText>(COL_COUNT);
-            m_headingWidths = QList<MeasuredText>(COL_COUNT);
+    const QFont headingFont = m_table->font();
+    const QFont moveFont = MoveFont::font(headingFont);
+    const QFontMetrics headingMetrics(headingFont);
+    const QFontMetrics moveMetrics(moveFont);
+    if (headingFont != m_measuredHeadingFont || moveFont != m_measuredMoveFont
+        || m_cellWidths.size() != COL_COUNT) {
+        m_measuredHeadingFont = headingFont;
+        m_measuredMoveFont = moveFont;
+        m_cellWidths = QList<MeasuredText>(COL_COUNT);
+        m_headingWidths = QList<MeasuredText>(COL_COUNT);
 
-            // 通常の探索情報は初期幅に収め、更新や次の思考開始で列の位置を動かさない。
-            const QString moveSample = MoveFont::usesJapaneseFont() ? QStringLiteral("▲９九銀不成(99)") : QStringLiteral("▲B8hx2b+");
-            QString samples[] = {QString(), moveSample, moveSample, QStringLiteral("999/999"),
-                                 QStringLiteral("999,999,999,999"), QStringLiteral("999,999,999"), QStringLiteral("999%")};
-            // 数字の幅が一定でない書体でも、想定桁数の範囲では列を広げずに済むようにする。
-            QChar widestDigit = QLatin1Char('0');
-            for (const QChar digit : QStringLiteral("123456789")) {
-                if (headingMetrics.horizontalAdvance(digit) > headingMetrics.horizontalAdvance(widestDigit))
-                    widestDigit = digit;
-            }
-            m_autoColumnWidths.clear();
-            for (int col = 0; col < COL_COUNT; ++col) {
-                if (col >= COL_DEPTH) samples[col].replace(QLatin1Char('9'), widestDigit);
-                const QFontMetrics& metrics = (col == COL_PRED || col == COL_SEARCHED) ? moveMetrics : headingMetrics;
-                m_autoColumnWidths.append(metrics.horizontalAdvance(samples[col]) + 20);
-            }
+        // 通常の探索情報は初期幅に収め、更新や次の思考開始で列の位置を動かさない。
+        const QString moveSample = MoveFont::usesJapaneseFont() ? QStringLiteral("▲９九銀不成(99)") : QStringLiteral("▲B8hx2b+");
+        QString samples[] = {QString(), moveSample, moveSample, QStringLiteral("999/999"),
+                             QStringLiteral("999,999,999,999"), QStringLiteral("999,999,999"), QStringLiteral("999%")};
+        // 数字の幅が一定でない書体でも、想定桁数の範囲では列を広げずに済むようにする。
+        QChar widestDigit = QLatin1Char('0');
+        for (const QChar digit : QStringLiteral("123456789")) {
+            if (headingMetrics.horizontalAdvance(digit) > headingMetrics.horizontalAdvance(widestDigit))
+                widestDigit = digit;
         }
-        const auto measured = [](MeasuredText& cache, const QString& text, const QFontMetrics& metrics) {
-            if (cache.width < 0 || cache.text != text) {
-                cache.text = text;
-                cache.width = metrics.horizontalAdvance(text);
-            }
-            return cache.width;
-        };
+        m_autoColumnWidths.clear();
         for (int col = 0; col < COL_COUNT; ++col) {
-            const auto* item = m_table->item(0, col);
-            const auto* heading = m_table->horizontalHeaderItem(col);
+            if (col >= COL_DEPTH) samples[col].replace(QLatin1Char('9'), widestDigit);
             const QFontMetrics& metrics = (col == COL_PRED || col == COL_SEARCHED) ? moveMetrics : headingMetrics;
-            int contentWidth = qMax(measured(m_cellWidths[col], item ? item->text() : QString(), metrics),
-                                    measured(m_headingWidths[col], heading ? heading->text() : QString(),
-                                             headingMetrics)) + 20;
-            if (col == COL_ENGINE_NAME) contentWidth = qBound(120, contentWidth, 260);
-            m_autoColumnWidths[col] = qMax(m_autoColumnWidths.at(col), contentWidth);
-            m_table->setColumnWidth(col, m_autoColumnWidths.at(col));
+            m_autoColumnWidths.append(metrics.horizontalAdvance(samples[col]) + 20);
         }
+    }
+    const auto measured = [](MeasuredText& cache, const QString& text, const QFontMetrics& metrics) {
+        if (cache.width < 0 || cache.text != text) {
+            cache.text = text;
+            cache.width = metrics.horizontalAdvance(text);
+        }
+        return cache.width;
+    };
+    for (int col = 0; col < COL_COUNT; ++col) {
+        const auto* item = m_table->item(0, col);
+        const auto* heading = m_table->horizontalHeaderItem(col);
+        const QFontMetrics& metrics = (col == COL_PRED || col == COL_SEARCHED) ? moveMetrics : headingMetrics;
+        int contentWidth = qMax(measured(m_cellWidths[col], item ? item->text() : QString(), metrics),
+                                measured(m_headingWidths[col], heading ? heading->text() : QString(),
+                                         headingMetrics)) + 20;
+        if (col == COL_ENGINE_NAME) contentWidth = qBound(120, contentWidth, 260);
+        m_autoColumnWidths[col] = qMax(m_autoColumnWidths.at(col), contentWidth);
+        // 利用者が決めた幅があればそれを使う（内容に合わせて変えない）
+        m_table->setColumnWidth(col, m_columnWidths->widthOr(col, m_autoColumnWidths.at(col)));
     }
     const int contentWidth = m_table->horizontalHeader()->length();
     const int availableWidth = qMax(1, width());

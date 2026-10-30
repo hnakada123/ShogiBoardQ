@@ -9,6 +9,7 @@
 
 #include "buttonstyles.h"
 #include "fontsizehelper.h"
+#include "panelbutton.h"
 
 FontSizeControl::FontSizeControl(QAbstractButton* decrease, QAbstractButton* increase, FontSizeHelper* helper,
                                  Sizing sizing)
@@ -31,7 +32,8 @@ FontSizeControl::FontSizeControl(QAbstractButton* decrease, QAbstractButton* inc
     for (const auto& b : buttons) {
         b.button->setText(QString::fromLatin1(b.text));
         b.button->setProperty(kRoleProperty, QString::fromLatin1(b.role));
-        b.button->setStyleSheet(ButtonStyles::fontButton());
+        if (sizing == Sizing::Panel) PanelButton::setup(b.button, ButtonStyles::fontButton());
+        else b.button->setStyleSheet(ButtonStyles::fontButton());
         b.button->setToolTip(b.toolTip);
         b.button->setAccessibleName(b.toolTip);
         if (auto* push = qobject_cast<QPushButton*>(b.button)) push->setAutoDefault(false);

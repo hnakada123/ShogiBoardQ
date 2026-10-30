@@ -116,13 +116,11 @@ inline const Setting<QSize> evalChartSettingsSize{"EvalChart/settingsSize", QSiz
 /// 思考の表とその上のエンジン情報欄の組。列幅は組ごとに保存する
 enum class ThinkingTable { Engine1 = 0, Engine2 = 1, Consideration = 2 };
 
-/// エンジン情報欄の列幅
-QList<int> engineInfoColumnWidths(ThinkingTable table);
-void setEngineInfoColumnWidths(ThinkingTable table, const QList<int>& widths);
+/// エンジン情報欄の列幅（列ごと。0 は自動。読み書きは widgets の ColumnWidthMemory）
+ListSetting<int> engineInfoColumnWidths(ThinkingTable table);
 
-/// 思考の表（読み筋の表）の列幅
-QList<int> thinkingViewColumnWidths(ThinkingTable table);
-void setThinkingViewColumnWidths(ThinkingTable table, const QList<int>& widths);
+/// 思考の表（読み筋の表）の列幅（列ごと。0 は自動。読み筋の列は表示領域に合わせるので使わない）
+ListSetting<int> thinkingViewColumnWidths(ThinkingTable table);
 
 /// USI通信ログタブのフォントサイズ（デフォルト: 10）
 inline const Setting<int> usiLogFontSize{"FontSize/usiLog", 10};
@@ -144,9 +142,9 @@ inline const Setting<bool> ponderArrowsVisible{"ThinkingView/ponderArrowsVisible
 /// 棋譜解析ダイアログのフォントサイズ（0 はアプリケーションの文字サイズを使用）
 inline const Setting<int> kifuAnalysisFontSize{"KifuAnalysis/fontSize", 0};
 
-/// 解析結果の先頭7列の幅（0は内容に合わせて調整）
-QList<int> kifuAnalysisColumnWidths();
-void setKifuAnalysisColumnWidths(const QList<int>& widths);
+/// 解析結果の表の読み筋より前の列の幅（列ごと。0 は内容に合わせる）。
+/// 以前の版が1つの値（QVariantList）で保存していれば、初めて読むときに配列に移す
+ListSetting<int> kifuAnalysisColumnWidths();
 
 /// 1手あたりの思考時間・秒（デフォルト: 3）
 inline const Setting<int> kifuAnalysisByoyomiSec{"KifuAnalysis/byoyomiSec", 3};

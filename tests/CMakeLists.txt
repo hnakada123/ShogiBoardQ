@@ -434,6 +434,7 @@ add_shogi_test(tst_startgamedialog
     ${SRC}/widgets/dialogutils.cpp
     ${SRC}/widgets/dialogfontscale.cpp
     ${SRC}/widgets/fontsizecontrol.cpp
+    ${SRC}/widgets/panelbutton.cpp
     ${SRC}/widgets/fontsizehelper.cpp
     ${SRC}/common/logcategories.cpp
     ${SRC}/services/enginelistsettings.cpp
@@ -465,6 +466,7 @@ add_shogi_test(tst_engineprofilestore
     ${SRC}/widgets/dialogutils.cpp
     ${SRC}/widgets/dialogfontscale.cpp
     ${SRC}/widgets/fontsizecontrol.cpp
+    ${SRC}/widgets/panelbutton.cpp
     ${SRC}/widgets/fontsizehelper.cpp
     ${SRC}/common/logcategories.cpp
     ${SRC}/services/enginelistsettings.cpp
@@ -851,6 +853,7 @@ add_shogi_test(tst_dock_layout
     ${SRC}/widgets/opaquebackground.cpp
     ${SRC}/widgets/dialogfontscale.cpp
     ${SRC}/widgets/fontsizecontrol.cpp
+    ${SRC}/widgets/panelbutton.cpp
     ${SRC}/widgets/fontsizehelper.cpp
     ${SRC}/widgets/dialogutils.cpp
     ${SETTINGS_SOURCES}
@@ -879,6 +882,7 @@ add_shogi_test(tst_menu_window
     ${SRC}/widgets/menubuttonwidget.cpp
     ${SRC}/widgets/flowlayout.cpp
     ${SRC}/widgets/fontsizecontrol.cpp
+    ${SRC}/widgets/panelbutton.cpp
     ${SRC}/widgets/fontsizehelper.cpp
     ${SRC}/widgets/dialogutils.cpp
     ${SETTINGS_SOURCES}
@@ -891,6 +895,7 @@ add_shogi_test(tst_language_controller
     tst_language_controller.cpp
     ${SRC}/widgets/dialogfontscale.cpp
     ${SRC}/widgets/fontsizecontrol.cpp
+    ${SRC}/widgets/panelbutton.cpp
     ${SRC}/widgets/fontsizehelper.cpp
     ${SRC}/widgets/dialogutils.cpp
     ${SRC}/common/logcategories.cpp
@@ -916,6 +921,7 @@ add_shogi_test(tst_jishogi_score_dialog
     ${SRC}/core/jishogicalculator.cpp
     ${SRC}/widgets/dialogfontscale.cpp
     ${SRC}/widgets/fontsizecontrol.cpp
+    ${SRC}/widgets/panelbutton.cpp
     ${SRC}/widgets/fontsizehelper.cpp
     ${SRC}/widgets/dialogutils.cpp
     ${SRC}/style/applicationfonts.cpp
@@ -1167,6 +1173,7 @@ target_link_libraries(tst_memory_lifecycle PRIVATE shogiboardq_static)
 add_shogi_test(tst_evaluationchart
     tst_evaluationchart.cpp
     ${SRC}/widgets/evaluationchartwidget.cpp
+    ${SRC}/widgets/stepbuttons.cpp
     ${SRC}/models/evaluationseries.cpp
     ${SRC}/models/scoretext.cpp
     ${SRC}/widgets/evaluationchartview.cpp
@@ -1175,6 +1182,7 @@ add_shogi_test(tst_evaluationchart
     ${SRC}/core/usiscore.cpp
     ${SRC}/widgets/dialogfontscale.cpp
     ${SRC}/widgets/fontsizecontrol.cpp
+    ${SRC}/widgets/panelbutton.cpp
     ${SRC}/widgets/fontsizehelper.cpp
     ${SRC}/widgets/dialogutils.cpp
     ${SRC}/services/analysissettings.cpp
@@ -1187,6 +1195,7 @@ add_shogi_test(tst_csalogpanel
     ${SRC}/widgets/csalogpanel.cpp
     ${SRC}/widgets/logpanel.cpp
     ${SRC}/widgets/fontsizecontrol.cpp
+    ${SRC}/widgets/panelbutton.cpp
     ${SRC}/widgets/fontsizehelper.cpp
     ${SRC}/style/applicationfonts.cpp
     ${SRC}/services/settingscommon.cpp
@@ -1198,6 +1207,7 @@ add_shogi_test(tst_usilogpanel
     ${SRC}/widgets/usilogpanel.cpp
     ${SRC}/widgets/logpanel.cpp
     ${SRC}/widgets/fontsizecontrol.cpp
+    ${SRC}/widgets/panelbutton.cpp
     ${SRC}/widgets/fontsizehelper.cpp
     ${SRC}/widgets/elidelabel.cpp
     ${SRC}/models/usicommlogmodel.cpp

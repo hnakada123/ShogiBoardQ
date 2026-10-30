@@ -67,10 +67,8 @@ void MainWindowComposer::connectRecord()
 
     // 棋譜を移る操作（棋譜欄と評価値グラフのボタン・行・分岐候補・分岐ツリー・グラフの点）
     // 局面送りのボタンは2組とも同じ QAction に結び付ける（有効・無効も QAction に従う）
-    nav->bindButtons({pane->firstButton(), pane->back10Button(), pane->prevButton(),
-                      pane->nextButton(), pane->fwd10Button(), pane->lastButton()});
-    nav->bindButtons({chart->firstButton(), chart->back10Button(), chart->prevButton(),
-                      chart->nextButton(), chart->fwd10Button(), chart->lastButton()});
+    nav->bindButtons(pane->stepButtons());
+    nav->bindButtons(chart->stepButtons());
     connect(pane, &RecordPane::mainRowChanged, nav, &KifuNavigationController::selectRecordRow);
     connect(pane, &RecordPane::branchRowActivated, nav, &KifuNavigationController::selectBranchCandidateRow);
     BranchTreeView* tree = m_c.branchTreeView;

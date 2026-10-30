@@ -8,12 +8,14 @@
 #include "pvtableview.h"
 #include "shogienginethinkingmodel.h"
 
+class ColumnWidthMemory;
+
 /**
  * @brief エンジンの読み筋を1行ずつ出す表
  *
  * 読み筋の表（PvTableView）の時間・深さ・ノード数・評価値を数値の列にしたもの。列幅は思考の表の組（table）
- * ごとに、利用者が見出しの境目をドラッグしたときだけ保存し、表を作るときに戻す。読み筋の列は表示領域
- * いっぱいまで伸ばす。
+ * ごとに、利用者が見出しの境目をドラッグした列だけ保存し（ColumnWidthMemory）、表を作るときに戻す。
+ * 保存していない列は見出しと数値の見本が収まる幅にする。読み筋の列は表示領域いっぱいまで伸ばす。
  */
 class ThinkingTableView : public PvTableView
 {
@@ -32,18 +34,17 @@ signals:
     void thinkingRowContextMenuAboutToShow(ShogiEngineThinkingModel* model, int row, QMenu* menu);
 
 protected:
-    /// 保存した列幅（無ければ見出しと数値の見本が収まる幅）を当てる
+    /// 利用者が決めた列幅（無ければ見出しと数値の見本が収まる幅）を当てる
     void fitColumns() override;
 
 private slots:
     void onBoardRequested(int row);
     void onRowContextMenuAboutToShow(int row, QMenu* menu);
-    void onSectionResizedByUser(int logicalIndex);
 
 private:
-
     AnalysisSettings::ThinkingTable m_table;
     ShogiEngineThinkingModel* m_model = nullptr;
+    ColumnWidthMemory* m_columnWidths = nullptr;   ///< 利用者が決めた列幅（見出しが親）
 };
 
 #endif // THINKINGTABLEVIEW_H

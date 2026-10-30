@@ -12,6 +12,7 @@
 #include "fontsizehelper.h"
 #include "kifparsetypes.h"  // KifGameInfoItem
 
+class ColumnWidthMemory;
 class EditActions;
 class GameInfoEditModel;
 class QLabel;
@@ -75,7 +76,6 @@ private slots:
     void observeEditor();
     void updateTablePresentation();
     void applyFontSize();
-    void onSectionResizedByUser(int logicalIndex, int oldSize, int newSize);
 
 private:
     void buildToolbar();
@@ -98,7 +98,7 @@ private:
     QLabel* m_editingLabel = nullptr;
 
     FontSizeHelper m_fontSize;      ///< 表の文字の大きさ（変更のたびに保存する）
-    int m_keyColumnWidth = 0;       ///< 利用者が決めた項目名の列幅（0 は内容に合わせる）
+    ColumnWidthMemory* m_columnWidths = nullptr;  ///< 利用者が決めた項目名の列幅（0 は内容に合わせる。見出しが親）
 };
 
 #endif // GAMEINFOPANE_H

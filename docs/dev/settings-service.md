@@ -145,9 +145,9 @@ GameSettings::commentFontSize.remove();                           // 保存値�
 
 | 型 | 保存の形 | 使っている宣言 |
 |---|---|---|
-| `BoundedSetting<T>(キー, 既定値, 最小, 最大)` | 1つのキー。読みも書きも `qBound` で範囲に収める（`minimum()`・`maximum()`） | `AppSettings::pieceSoundVolume`（0〜100）、`AppearanceSettings::appearancePieceFilter`（0〜`PieceStyleCatalog::Family::Count` − 1。0 は「すべて」）、`AnalysisSettings::usiLogCommandTarget`（0〜2）、`AppSettings::menuWindowButtonSize`（48〜120）、`AnalysisSettings::branchTreeZoomPercent`（50〜200）、`GameSettings::gameInfoKeyColumnWidth`（0〜600）。画面は範囲の定数を持たず、`minimum()`・`maximum()` を読む |
-| `StructSetting<T>({項目...}, 整える関数)` | 構造体のメンバごとに1つのキー。項目は `SettingField<T>::of(キー, &T::メンバ)`。保存していない項目は `T{}` の既定値のまま。整える関数（省略可）は読んだ値と書く値の両方に掛ける。項目ごとの保存の有無は `StructSetting<T>::isSaved(キー)` | `AppSettings::pieceSoundTone`（`PieceSoundTone::clamped` で範囲に収める）、`TsumeshogiSettings::playPreferences`・`collectionPreferences` |
-| `ListSetting<T>(配列のキー, 要素のキー)` | QSettings の配列（`<配列のキー>/size` と `<配列のキー>/<番号>/<要素のキー>`）。配列のキーは実行時に作ってもよい | `JosekiSettings::josekiWindowColumnWidths`、`AnalysisSettings::engineInfoColumnWidths(ThinkingTable)`・`thinkingViewColumnWidths(ThinkingTable)`（表の番号でキーを作る関数の中で使う） |
+| `BoundedSetting<T>(キー, 既定値, 最小, 最大)` | 1つのキー。読みも書きも `qBound` で範囲に収める（`minimum()`・`maximum()`） | `AppSettings::pieceSoundVolume`（0〜100）、`AppearanceSettings::appearancePieceFilter`（0〜`PieceStyleCatalog::Family::Count` − 1。0 は「すべて」）、`AnalysisSettings::usiLogCommandTarget`（0〜2）、`AppSettings::menuWindowButtonSize`（48〜120）、`AnalysisSettings::branchTreeZoomPercent`（50〜200）。画面は範囲の定数を持たず、`minimum()`・`maximum()` を読む |
+| `StructSetting<T>({項目...}, 整える関数)` | 構造体のメンバごとに1つのキー。項目は `SettingField<T>::of(キー, &T::メンバ)`。保存していない項目は `T{}` の既定値のまま。整える関数（省略可）は読んだ値と書く値の両方に掛ける。項目ごとの保存の有無は `StructSetting<T>::isSaved(キー)` | `AppSettings::pieceSoundTone`（`PieceSoundTone::clamped` で範囲に収める）、`TsumeshogiSettings::playPreferences`・`collectionPreferences`、`AnalysisSettings::evalChart`・`consideration`（検討の条件 `ConsiderationSettings`。エンジンの名前は保存しない） |
+| `ListSetting<T>(配列のキー, 要素のキー)` | QSettings の配列（`<配列のキー>/size` と `<配列のキー>/<番号>/<要素のキー>`）。配列のキーは実行時に作ってもよい | `JosekiSettings::josekiWindowColumnWidths`、`AnalysisSettings::engineInfoColumnWidths(ThinkingTable)`・`thinkingViewColumnWidths(ThinkingTable)`（表の番号でキーを作った宣言を返す関数）、`kifuAnalysisColumnWidths()`・`GameSettings::gameInfoColumnWidths()`（以前の版の形を移してから宣言を返す）。列幅は widgets の `ColumnWidthMemory` が読み書きする（0 は自動、正の値は利用者が決めた幅） |
 | `StructListSetting<T>(配列のキー, {項目...})` | 構造体の配列。要素ごとに `SettingField<T>` の項目を書く | `NetworkSettings::csaServerHistory`（`CsaServerHistoryEntry` の `host`・`port`・`useTls`・`id`。新しい順で最大 `kCsaServerHistoryLimit` = 10 件。件数を絞るのは `CsaGameDialog`） |
 
 ```cpp
@@ -191,11 +191,11 @@ saved.byoyomiSec.set(static_cast<int>(time.byoyomiMs / kSecondMs));
 
 対局者の欄（`PlayerSetupWidget`）は、作るときにその対局者の `Player` を受け取り、人間かエンジンか（`isHuman`。旧版との互換のため `isEngine` も書く）・名前（`humanName`）・エンジン（`engineName`）を読み書きする。
 エンジンは名前で保存する（`EngineSelector` の保存先に `engineName` を渡す）。名前が無い以前の版の値だけ、`engineNumber`・`enginePath` を読む。保存したエンジンが削除されていれば人間に戻す。
-時間（`basicTimeHour`・`basicTimeMinutes`・`byoyomiSec`・`addEachMoveSec`）はダイアログが `TimeControlSide` との間で変換して読み書きする。
+時間（`basicTimeHour`・`basicTimeMinutes`・`byoyomiSec`・`addEachMoveSec`）は `Player::time()`・`setTime()`・`defaultTime()`（`gamesettings.cpp`）が `TimeControlSide` との間で変換して読み書きする。
 
 開始局面は手合割の名前（`Handicaps` の名前）で `startingPositionName` に保存する。空なら現在の局面。
 以前の版は、以前の一覧の並びの番号（0=現在の局面、1=平手 … 14=十枚落ち）を `startingPositionNumber` に保存していた。
-ダイアログはこのキーが残っていれば（`isSaved()`）先にそれを読み、保存するときに消す（`remove()`）。
+`GameSettings::StartGame::startingPosition()` はこのキーが残っていれば先にそれを読み、`setStartingPosition()` は名前で保存してこのキーを消す（`gamesettings.cpp`）。ダイアログはこの2つを使う。
 
 `GameSettings::StartGame` の項目はダイアログ（`startgamedialog.cpp`・`playersetupwidget.cpp`）のほか、`NyugyokuJudgement::configuredRule()`（`jishogiRule`）も読む。
 
@@ -297,10 +297,11 @@ INI ファイル内のキーは `グループ名/キー名` の形式で、宣�
 
 | 処理 | 関数 |
 |---|---|
-| 古い保存値の引き継ぎ・不正値の補正 | `AppearanceSettings::appearanceSection`（外観ダイアログのタブの id を文字列で返す。旧版のタブの番号は id に読み替える）、`AppearanceSettings::pieceStyle`（`PieceStyleCatalog` にない値・廃止したセットは `standard` に戻す）、`TsumeshogiSettings::migrateCollectionEngineSelection`（判定エンジンの `"@hayanagi"` を空の名前に直す） |
+| 古い保存値の引き継ぎ・不正値の補正 | `AppearanceSettings::appearanceSection`（外観ダイアログのタブの id を文字列で返す。旧版のタブの番号は id に読み替える）、`AppearanceSettings::pieceStyle`（`PieceStyleCatalog` にない値・廃止したセットは `standard` に戻す）、`TsumeshogiSettings::migrateCollectionEngineSelection`（判定エンジンの `"@hayanagi"` を空の名前に直す）、`GameSettings::StartGame::startingPosition` / `setStartingPosition`（以前の版の開始局面の番号を読み、保存するときに消す）、`AnalysisSettings::kifuAnalysisColumnWidths`（1つのキーに `QVariantList` で保存していた値を配列に移す）、`GameSettings::gameInfoColumnWidths`（項目名の列幅 `GameInfo/keyColumnWidth` を配列に移す） |
+| 保存の形と値の形の換算 | `GameSettings::StartGame::Player::time` / `setTime` / `defaultTime`（持ち時間を時間・分・秒の項目に保存し、`TimeControlSide` のミリ秒で読み書きする） |
 | 未保存の項目をほかの項目で代える | `AppearanceSettings::boardVisuals` / `setBoardVisuals`（中身は `StructSetting<BoardVisuals>`。駒台の木目 `standWoodGrain` が未保存なら、それを分ける前の版の将棋盤の木目 `woodGrain` を使う） |
-| 独自の保存形式 | `AppearanceSettings::boardColors` / `setBoardColors`（色を `#RRGGBB`・`#AARRGGBB` の文字列で保存し、不正な色は標準色に戻す）、`AnalysisSettings::kifuAnalysisColumnWidths` / `setKifuAnalysisColumnWidths`（1つのキーに `QVariantList` で保存）、`DockSettings::dockState` / `setDockState`（グループ名を引数で受ける。キーは `<グループ>/floating`・`/visible`・`/geometry`。グループは `DockRegistry` の表の `settingsGroup`。表示の既定値も引数で受ける） |
-| キーを実行時に作る | `AnalysisSettings::engineInfoColumnWidths` / `thinkingViewColumnWidths`（表 `ThinkingTable` の番号でキーを作り、`ListSetting<int>` で読み書きする） |
+| 独自の保存形式 | `AppearanceSettings::boardColors` / `setBoardColors`（色を `#RRGGBB`・`#AARRGGBB` の文字列で保存し、不正な色は標準色に戻す）、`DockSettings::dockState` / `setDockState`（グループ名を引数で受ける。キーは `<グループ>/floating`・`/visible`・`/geometry`。グループは `DockRegistry` の表の `settingsGroup`。表示の既定値も引数で受ける） |
+| キーを実行時に作る | `AnalysisSettings::engineInfoColumnWidths` / `thinkingViewColumnWidths`（表 `ThinkingTable` の番号でキーを作った `ListSetting<int>` の宣言を返す） |
 | グループの中の名前の一覧 | `DockSettings::savedDockLayoutNames` / `saveDockLayout` / `loadDockLayout` / `deleteDockLayout` |
 
 関数は namespace のドメイン別ヘッダーに宣言し、`.cpp` で `SettingsCommon::openSettings()` を使って実装する。キーは `settingskeys.h` の定数に置く（`AppearanceSettings` のキーは `appearancesettings.cpp` の中）。
@@ -440,7 +441,7 @@ CSA通信対局のキーは以前の版と同じで、`NetworkSettings` には�
 
 これらの機能の画面は、コンボ・「設定」ボタン・未登録の案内を `EngineSelector`（`src/widgets/engineselector.h`）に結び、`Options::keys` に上の関数の値を渡す。
 `EngineSelector` は作るときに保存した選択を戻し（保存が無ければ先頭の登録エンジン）、`saveSelection()` で保存する。
-検討タブだけは、設定の正本 `ConsiderationSettings` を保存するときに `saveSelection(considerationSelection(), 名前)` を自分で呼ぶ。
+検討タブも、設定の正本 `ConsiderationSettings` を保存するときにエンジンは `EngineSelector::saveSelection()` で保存する（時間と候補手の数は `AnalysisSettings::consideration`）。
 対局開始ダイアログ（`StartGameDialog`）も、対局者の欄（`PlayerSetupWidget`）が `EngineSelector` を使う。コンボの先頭の内蔵の項目を「人間」にし、保存先は `GameSettings::StartGame::player1`・`player2` の `engineName`・`engineNumber`・`enginePath` である。
 
 詰将棋問題一覧の判定エンジンは、内蔵の Hayanagi の項目（`Options::builtinLabel`）と、名前に KomoringHeights を含む登録エンジンだけを出す。

@@ -29,6 +29,7 @@
 #include "mainwindow.h"
 #include "mainwindowcomposer.h"
 #include "recordpane.h"
+#include "stepbuttons.h"
 #include "sessionresetcoordinator.h"
 #include "sfenutils.h"
 #include "shogiboard.h"
@@ -88,18 +89,18 @@ private slots:
         QVERIFY(loadRecord(p));
         QSignalSpy changed(p.navState, &KifuNavigationState::changed);
 
-        p.recordPane->nextButton()->click();
+        p.recordPane->stepButtons()->nextButton()->click();
         QCOMPARE(p.navState->currentPly(), 1);
         QCOMPARE(changed.count(), 1);
         QCOMPARE(boardPosition(p), position(p.navState->currentSfen()));
         QCOMPARE(p.kifuRecord->currentHighlightRow(), 1);
 
-        p.recordPane->lastButton()->click();
+        p.recordPane->stepButtons()->lastButton()->click();
         QCOMPARE(p.navState->currentPly(), 5);
-        p.recordPane->prevButton()->click();
+        p.recordPane->stepButtons()->prevButton()->click();
         QCOMPARE(p.navState->currentPly(), 4);
         QCOMPARE(boardPosition(p), position(p.navState->currentSfen()));
-        p.recordPane->firstButton()->click();
+        p.recordPane->stepButtons()->firstButton()->click();
         QCOMPARE(p.navState->currentNode(), p.branchTree->root());
         QCOMPARE(boardPosition(p), position(SfenUtils::hirateSfen()));
         QCOMPARE(p.kifuRecord->currentHighlightRow(), 0);
@@ -137,8 +138,7 @@ private slots:
                 chartView->chart()->mapToPosition(QPointF(1, 100))));
             QTest::mouseClick(chartView->viewport(), Qt::LeftButton, Qt::NoModifier, point);
         };
-        const QList<QPushButton*> buttons = {graph->firstButton(), graph->back10Button(), graph->prevButton(),
-                                             graph->nextButton(), graph->fwd10Button(), graph->lastButton()};
+        const QList<QPushButton*> buttons = graph->stepButtons()->buttons();
         auto& activity = window.composer().activity();
         // 同じグラフで対局開始→終局→再開→中断に相当する状態遷移を確かめる。
         for (int cycle = 0; cycle < 2; ++cycle) {
@@ -164,9 +164,9 @@ private slots:
             QCOMPARE(graph->currentPly(), 1);
             QCOMPARE(boardPosition(p), position(p.navState->currentSfen()));
             QVERIFY(boardPosition(p) != currentPosition);
-            graph->firstButton()->click();
+            graph->stepButtons()->firstButton()->click();
             QCOMPARE(p.navState->currentPly(), 0);
-            graph->lastButton()->click();
+            graph->stepButtons()->lastButton()->click();
             QCOMPARE(p.navState->currentPly(), 5);
         }
     }

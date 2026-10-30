@@ -682,6 +682,8 @@ set(SRC_WIDGETS
     src/widgets/branchtreeview.h
     src/widgets/collapsiblegroupbox.cpp
     src/widgets/collapsiblegroupbox.h
+    src/widgets/columnwidthmemory.cpp
+    src/widgets/columnwidthmemory.h
     src/widgets/commenteditorpanel.cpp
     src/widgets/commenteditorpanel.h
     src/widgets/considerationpanel.cpp
@@ -755,8 +757,12 @@ set(SRC_WIDGETS
     src/widgets/recordhighlightdelegate.h
     src/widgets/recordpane.cpp
     src/widgets/recordpane.h
+    src/widgets/panelbutton.cpp
+    src/widgets/panelbutton.h
     src/widgets/settingsformbinding.cpp
     src/widgets/settingsformbinding.h
+    src/widgets/stepbuttons.cpp
+    src/widgets/stepbuttons.h
     src/widgets/tablebuttondelegate.h
     src/widgets/tableheaderview.cpp
     src/widgets/tableheaderview.h

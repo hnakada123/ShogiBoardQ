@@ -48,8 +48,9 @@ inline const Setting<int> commentFontSize{"FontSize/comment", 10};
 /// 対局情報タブのフォントサイズ（デフォルト: 10）
 inline const Setting<int> gameInfoFontSize{"FontSize/gameInfo", 10};
 
-/// 対局情報の項目列幅（0: 内容に合わせて自動調整。最大 600）
-inline const BoundedSetting<int> gameInfoKeyColumnWidth{"GameInfo/keyColumnWidth", 0, 0, 600};
+/// 対局情報の表の列幅（項目名の列だけ。0 は内容に合わせる）。
+/// 以前の版の項目名の列幅（GameInfo/keyColumnWidth）は、初めて読むときにこの配列に移す
+ListSetting<int> gameInfoColumnWidths();
 
 // --- 対局開始 ---
 

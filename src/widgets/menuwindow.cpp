@@ -2,6 +2,7 @@
 /// @brief メニューウィンドウクラスの実装
 
 #include "menuwindow.h"
+#include "panelbutton.h"
 #include "fontsizecontrol.h"
 #include "buttonstyles.h"
 #include "menubuttonwidget.h"
@@ -49,7 +50,7 @@ void MenuWindow::setupUi()
     m_buttonSizeDecreaseBtn = new QToolButton(this);
     m_buttonSizeDecreaseBtn->setText(QStringLiteral("\u25a1-"));  // □-
     m_buttonSizeDecreaseBtn->setToolTip(tr("Decrease button size"));
-    m_buttonSizeDecreaseBtn->setStyleSheet(ButtonStyles::fontButton());
+    PanelButton::setup(m_buttonSizeDecreaseBtn, ButtonStyles::fontButton());
     connect(m_buttonSizeDecreaseBtn, &QToolButton::clicked, this, &MenuWindow::onButtonSizeDecrease);
     headerLayout->addWidget(m_buttonSizeDecreaseBtn);
 
@@ -57,7 +58,7 @@ void MenuWindow::setupUi()
     m_buttonSizeIncreaseBtn = new QToolButton(this);
     m_buttonSizeIncreaseBtn->setText(QStringLiteral("\u25a1+"));  // □+
     m_buttonSizeIncreaseBtn->setToolTip(tr("Increase button size"));
-    m_buttonSizeIncreaseBtn->setStyleSheet(ButtonStyles::fontButton());
+    PanelButton::setup(m_buttonSizeIncreaseBtn, ButtonStyles::fontButton());
     connect(m_buttonSizeIncreaseBtn, &QToolButton::clicked, this, &MenuWindow::onButtonSizeIncrease);
     headerLayout->addWidget(m_buttonSizeIncreaseBtn);
 

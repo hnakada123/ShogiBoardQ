@@ -9,6 +9,7 @@
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
 #include "kifunavigationstate.h"
+#include "unsavedchangesprompt.h"
 
 #include <QInputDialog>
 #include <QStatusBar>
@@ -37,7 +38,23 @@ void CommentCoordinator::showCurrentComment()
 
 bool CommentCoordinator::confirmLeaveEditingMove()
 {
-    return m_deps.editor->confirmDiscardUnsavedComment();
+    if (!m_deps.editor->hasUnsavedComment()) return true;
+    const KifuBranchNode* node = m_deps.document->tree()->nodeAt(m_editingNodeId);
+    const QString detail = !node ? QString()
+        : node->ply() == 0 ? tr("開始局面のコメント") : tr("%1手目のコメント").arg(node->ply());
+    switch (UnsavedChangesPrompt::ask(m_deps.parentWidget, tr("未保存のコメント"),
+                                      tr("コメントが編集されていますが、まだ棋譜に更新されていません。\n"
+                                         "更新してから移動しますか？"), detail)) {
+    case UnsavedChangesPrompt::Choice::Save:
+        m_deps.editor->commitPendingComment();
+        return true;
+    case UnsavedChangesPrompt::Choice::Discard:
+        m_deps.editor->discardPendingComment();
+        return true;
+    case UnsavedChangesPrompt::Choice::Cancel:
+        break;
+    }
+    return false;
 }
 
 bool CommentCoordinator::hasPendingComment() const

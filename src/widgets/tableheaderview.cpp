@@ -40,16 +40,12 @@ TableHeaderView* TableHeaderView::install(QTableView* view)
     return header;
 }
 
-// 境目のドラッグは押してから離すまで、ダブルクリック（内容に合わせる）はその処理の間に列幅が変わる
-void TableHeaderView::mousePressEvent(QMouseEvent* event)
+// 境目のドラッグはマウスを動かす処理の中で、ダブルクリック（内容に合わせる）はその処理の中で列幅が変わる。
+// 押している間でも、その処理の外で（キューに入れた処理などが）変えた列幅は利用者の操作に数えない
+void TableHeaderView::mouseMoveEvent(QMouseEvent* event)
 {
     m_mouseOperating = true;
-    QHeaderView::mousePressEvent(event);
-}
-
-void TableHeaderView::mouseReleaseEvent(QMouseEvent* event)
-{
-    QHeaderView::mouseReleaseEvent(event);
+    QHeaderView::mouseMoveEvent(event);
     m_mouseOperating = false;
 }
 

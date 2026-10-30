@@ -22,6 +22,7 @@ class QLabel;
 class QPushButton;
 class QShowEvent;
 class QToolButton;
+class ColumnWidthMemory;
 class JosekiBookSession;
 class RecentFilesMenu;
 class JosekiTableModel;
@@ -144,8 +145,6 @@ private slots:
     void onExpandButtonClicked();
     void onDeviationClicked();
     void onRestoreStatusDisplay();
-    /// 利用者が列幅を変えた（保存する）
-    void saveColumnWidths();
 
 private:
     // --- 画面 ---
@@ -215,6 +214,7 @@ private:
 
     // === 表とコンテキストメニュー ===
     JosekiTableView *m_tableView = nullptr;
+    ColumnWidthMemory *m_columnWidths = nullptr;   ///< 利用者が決めた列幅（0 は文字に合わせる。見出しが親）
 
     // === View 状態 ===
     QString       m_currentSfen;

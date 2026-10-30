@@ -52,10 +52,7 @@ ThinkingPanel::ThinkingPanel(const ArrowActions& actions, QWidget* parent)
     auto* controls = new QHBoxLayout;
     const auto* fontButtons = FontSizeControl::createToolButtons(
         this, &m_fontSize, QStringLiteral("thinkingFontDecrease"), QStringLiteral("thinkingFontIncrease"));
-    for (auto* button : {fontButtons->decreaseButton(), fontButtons->increaseButton()}) {
-        button->setFixedSize(36, 24);
-        controls->addWidget(button);
-    }
+    for (auto* button : {fontButtons->decreaseButton(), fontButtons->increaseButton()}) controls->addWidget(button);
     m_matchArrows = new QCheckBox(tr("対局中の矢印表示"), this);
     m_matchArrows->setObjectName(QStringLiteral("matchArrows"));
     m_ponderArrows = new QCheckBox(tr("先読み側も表示"), this);

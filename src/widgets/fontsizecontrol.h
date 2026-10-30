@@ -29,10 +29,10 @@ public:
     static constexpr const char* kDecreaseRole = "decrease";
     static constexpr const char* kIncreaseRole = "increase";
 
-    /// ボタンの大きさの決め方
+    /// ボタンの大きさの決め方（どちらもここで決め、呼び出し側は大きさを付けない）
     enum class Sizing {
-        Panel,    ///< 呼び出し側が決める（ドックのツールバーなど）
-        Dialog,   ///< 文字に合わせて幅と高さを決める（ダイアログの操作列）
+        Panel,    ///< ドックのパネルの小さなボタン（PanelButton。書体が変われば測り直す）
+        Dialog,   ///< 文字に合わせて幅と高さを決める（ダイアログ・定跡ウィンドウの操作列）
     };
 
     /// decrease・increase を helper に結ぶ（この部品は helper の子になる）

@@ -2,10 +2,11 @@
 /// @brief 対局情報ドックの中身の実装
 
 #include "gameinfopane.h"
+#include "panelbutton.h"
+#include "columnwidthmemory.h"
 #include "editactions.h"
 #include "fontsizecontrol.h"
 
-#include "buttonstyles.h"
 #include "flowlayout.h"
 #include "gameinfoeditmodel.h"
 #include "gameinfokeys.h"
@@ -69,7 +70,6 @@ GameInfoPane::GameInfoPane(QWidget* parent)
     : QWidget(parent)
     , m_model(new GameInfoEditModel(this))
     , m_fontSize(GameSettings::gameInfoFontSize, 8, 24)
-    , m_keyColumnWidth(GameSettings::gameInfoKeyColumnWidth())
 {
     auto* mainLayout = new QVBoxLayout(this);
     mainLayout->setContentsMargins(0, 0, 0, 0);
@@ -122,7 +122,8 @@ GameInfoPane::GameInfoPane(QWidget* parent)
             this, &GameInfoPane::updateEditingIndicator);
     // 内容の列の幅が変わると折り返しが変わるので行の高さを合わせ、利用者が決めた項目名の列幅は保存する
     connect(header, &QHeaderView::sectionResized, m_table, &QTableView::resizeRowsToContents);
-    connect(header, &TableHeaderView::sectionResizedByUser, this, &GameInfoPane::onSectionResizedByUser);
+    // 利用者が項目名の列幅を変えたら覚えて保存する（値の列は残りの幅に伸ばす）
+    m_columnWidths = new ColumnWidthMemory(header, GameSettings::gameInfoColumnWidths(), GameInfoEditModel::ValueColumn);
     connect(qApp, &QApplication::focusChanged, this, &GameInfoPane::observeEditor);
     connect(QApplication::clipboard(), &QClipboard::dataChanged, this, &GameInfoPane::updateEditingIndicator);
     connect(m_table->itemDelegate(), &QAbstractItemDelegate::closeEditor,
@@ -308,14 +309,9 @@ void GameInfoPane::buildToolbar()
         result->setToolTip(tip);
         result->setAccessibleName(tip);
         result->setFocusPolicy(Qt::NoFocus); // セルの編集中の選択範囲を保つ
-        result->setStyleSheet(ButtonStyles::panelToolButton());
-        result->setMinimumSize(32, 28);
-        if (!icon.isEmpty()) {
+        if (!icon.isEmpty())
             result->setIcon(QIcon(QStringLiteral(":/images/actions/") + icon + QStringLiteral(".svg")));
-            result->setIconSize(QSize(18, 18));
-        }
-        if (icon.isEmpty() && text.size() > 2)
-            result->setMinimumWidth(result->fontMetrics().horizontalAdvance(text) + 20);
+        PanelButton::setup(result);
         layout->addWidget(result);
         return result;
     };
@@ -328,9 +324,7 @@ void GameInfoPane::buildToolbar()
     const auto editButton = [this](QHBoxLayout* layout, EditActions::Kind kind, const QString& name) {
         QToolButton* result = m_editActions->createButton(kind, layout->parentWidget());
         result->setObjectName(name);
-        result->setStyleSheet(ButtonStyles::panelToolButton());
-        result->setMinimumSize(32, 28);
-        result->setIconSize(QSize(18, 18));
+        PanelButton::setup(result);
         layout->addWidget(result);
     };
     auto* history = group();
@@ -413,13 +407,7 @@ void GameInfoPane::updateTablePresentation()
         const QString key = m_model->index(row, GameInfoEditModel::KeyColumn).data(Qt::AccessibleTextRole).toString();
         keyWidth = qMax(keyWidth, m_table->fontMetrics().horizontalAdvance(key) + 24);
     }
-    m_table->setColumnWidth(GameInfoEditModel::KeyColumn, m_keyColumnWidth > 0 ? m_keyColumnWidth : qMin(keyWidth, 320));
+    m_table->setColumnWidth(GameInfoEditModel::KeyColumn,
+                            m_columnWidths->widthOr(GameInfoEditModel::KeyColumn, qMin(keyWidth, 320)));
     m_table->resizeRowsToContents();
-}
-
-void GameInfoPane::onSectionResizedByUser(int logicalIndex, int /*oldSize*/, int newSize)
-{
-    if (logicalIndex != GameInfoEditModel::KeyColumn) return;
-    GameSettings::gameInfoKeyColumnWidth.set(newSize);
-    m_keyColumnWidth = GameSettings::gameInfoKeyColumnWidth();
 }

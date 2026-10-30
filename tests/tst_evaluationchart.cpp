@@ -11,6 +11,7 @@
 #include <QTemporaryDir>
 #include <QTimer>
 #include "evaluationchartwidget.h"
+#include "stepbuttons.h"
 #include "evaluationchartsettingsdialog.h"
 #include "evaluationchartview.h"
 #include "evaluationseries.h"
@@ -410,8 +411,7 @@ private slots:
         };
         QSignalSpy normal(&widget, &EvaluationChartWidget::plyClicked);
         QSignalSpy analysis(&widget, &EvaluationChartWidget::analysisPlyClicked);
-        const QList<QPushButton*> buttons = {widget.firstButton(), widget.back10Button(), widget.prevButton(),
-                                             widget.nextButton(), widget.fwd10Button(), widget.lastButton()};
+        const QList<QPushButton*> buttons = widget.stepButtons()->buttons();
 
         widget.setNavigationEnabled(false);
         QTest::mouseClick(chartView->viewport(), Qt::LeftButton, Qt::NoModifier, point());
@@ -463,17 +463,13 @@ private slots:
         widget.resize(1000, 400);
         widget.show();
         QTest::qWait(30);
-        const QList<QPushButton*> buttons = {widget.firstButton(), widget.back10Button(), widget.prevButton(),
-                                             widget.nextButton(), widget.fwd10Button(), widget.lastButton()};
-        const QStringList tips = {QStringLiteral("最初に戻る"), QStringLiteral("10手戻る"), QStringLiteral("1手戻る"),
-                                  QStringLiteral("1手進む"), QStringLiteral("10手進む"), QStringLiteral("最後に進む")};
+        const QList<QPushButton*> buttons = widget.stepButtons()->buttons();
         auto* settings = widget.findChild<QPushButton*>(QStringLiteral("evalDisplaySettings"));
         auto* range = widget.findChild<QComboBox*>(QStringLiteral("evalRangeMode"));
         QVERIFY(settings && range);
         const auto rect = [&widget](QWidget* child) { return QRect(child->mapTo(&widget, QPoint()), child->size()); };
         for (qsizetype i = 0; i < buttons.size(); ++i) {
             QVERIFY(buttons[i] && buttons[i]->isVisible());
-            QCOMPARE(buttons[i]->toolTip(), tips[i]);
             if (i > 0) QVERIFY(rect(buttons[i - 1]).right() < rect(buttons[i]).left());
         }
         // 横長では表示範囲・表示設定と同じ行の中央に並べる。

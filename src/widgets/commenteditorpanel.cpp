@@ -2,10 +2,10 @@
 /// @brief 棋譜コメント編集パネルクラスの実装
 
 #include "commenteditorpanel.h"
+#include "panelbutton.h"
 #include "toolbarwidth.h"
 #include "fontsizecontrol.h"
 #include "editactions.h"
-#include "dialogutils.h"
 #include "buttonstyles.h"
 #include "gamesettings.h"
 #include "logcategories.h"
@@ -22,7 +22,6 @@
 #include <QRegularExpression>
 #include <QDesktopServices>
 #include <QUrl>
-#include <QMessageBox>
 #include <QSizePolicy>
 #include <QAction>
 #include <QApplication>
@@ -164,40 +163,11 @@ void CommentEditorPanel::setCurrentMoveIndex(int index)
     updateEditingIndicator();
 }
 
-bool CommentEditorPanel::confirmDiscardUnsavedComment()
+void CommentEditorPanel::discardPendingComment()
 {
-    qCDebug(lcUi).noquote()
-        << "[CommentEditorPanel] confirmDiscardUnsavedComment ENTER:"
-        << " m_isCommentDirty=" << m_isCommentDirty;
-
-    if (!m_isCommentDirty) {
-        qCDebug(lcUi).noquote() << "[CommentEditorPanel] confirmDiscardUnsavedComment: not dirty, returning true";
-        return true;
-    }
-
-    qCDebug(lcUi).noquote() << "[CommentEditorPanel] confirmDiscardUnsavedComment: showing QMessageBox...";
-
-    // 親ウィジェットをQTextEditから取得
-    QWidget* parentWidget = m_comment ? m_comment->window() : nullptr;
-
-    const bool discard = DialogUtils::confirmAction(
-        parentWidget,
-        tr("未保存のコメント"),
-        tr("コメントが編集されていますが、まだ更新されていません。\n"
-           "変更を破棄して移動しますか？"),
-        tr("破棄して移動"), QMessageBox::Warning);
-
-    qCDebug(lcUi).noquote() << "[CommentEditorPanel] confirmDiscardUnsavedComment: discard=" << discard;
-
-    if (discard) {
-        m_isCommentDirty = false;
-        updateEditingIndicator();
-        qCDebug(lcUi).noquote() << "[CommentEditorPanel] confirmDiscardUnsavedComment: user chose Yes, returning true";
-        return true;
-    }
-
-    qCDebug(lcUi).noquote() << "[CommentEditorPanel] confirmDiscardUnsavedComment: user chose No, returning false";
-    return false;
+    if (!m_isCommentDirty) return;
+    m_isCommentDirty = false;
+    updateEditingIndicator();
 }
 
 // static
@@ -329,15 +299,12 @@ void CommentEditorPanel::buildCommentToolbar(QWidget* parentWidget)
     m_btnFontDecrease = new QToolButton(m_commentToolbar);
     m_btnFontIncrease = new QToolButton(m_commentToolbar);
     new FontSizeControl(m_btnFontDecrease, m_btnFontIncrease, &m_fontSize);
-    m_btnFontDecrease->setFixedSize(28, 24);
-    m_btnFontIncrease->setFixedSize(28, 24);
 
     m_editActions = new EditActions(this);
     QToolButton* editButtons[EditActions::KindCount] = {};
     for (int kind = 0; kind < EditActions::KindCount; ++kind) {
         QToolButton* button = m_editActions->createButton(static_cast<EditActions::Kind>(kind), m_commentToolbar);
-        button->setFixedSize(28, 24);
-        button->setStyleSheet(kind <= EditActions::Redo ? ButtonStyles::undoRedo() : ButtonStyles::editOperation());
+        PanelButton::setup(button, kind <= EditActions::Redo ? ButtonStyles::undoRedo() : ButtonStyles::editOperation());
         editButtons[kind] = button;
     }
 
