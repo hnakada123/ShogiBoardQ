@@ -99,8 +99,6 @@ public:
 
     // --- 読み筋の表示 ---
 
-    const UsiProtocolHandler::SearchCandidate& searchCandidate() const;
-
     /// 整えた思考の行・情報欄の値を知らせる部品（表示する側が受ける）
     const ThinkingInfoFormatter* thinking() const { return m_formatter; }
     /// 送受信した行を知らせる部品（通信ログ）
@@ -114,7 +112,6 @@ public:
 signals:
     void engineInitialized();
     void errorOccurred(const QString& message);
-    void searchCandidateChanged();
     /// 探索（詰み探索など）が打ち切りの後も答えなかった
     void searchTimedOut();
     /// 対局で指した（UsiMatchHandler::moveReady）

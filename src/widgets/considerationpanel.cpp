@@ -8,6 +8,7 @@
 #include "logcategories.h"
 #include "analysissettings.h"
 
+#include <QAction>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QLabel>
@@ -27,9 +28,21 @@
 #include <initializer_list>
 
 ConsiderationPanel::ConsiderationPanel(QWidget* parent)
+    : ConsiderationPanel(nullptr, parent)
+{
+}
+
+ConsiderationPanel::ConsiderationPanel(QAction* arrows, QWidget* parent)
     : QWidget(parent)
+    , m_arrowsAction(arrows)
     , m_considerationFontSize(AnalysisSettings::considerationFontSize, 8, 24)
 {
+    if (!m_arrowsAction) {
+        // 単独で使うとき
+        m_arrowsAction = new QAction(this);
+        m_arrowsAction->setCheckable(true);
+        m_arrowsAction->setChecked(true);
+    }
     auto* layout = new QVBoxLayout(this);
     layout->setContentsMargins(4, 4, 4, 4);
     layout->setSpacing(4);
@@ -61,7 +74,6 @@ void ConsiderationPanel::onControlChanged()
     next.unlimitedTime = m_unlimitedTimeRadioButton->isChecked();
     next.byoyomiSec = m_byoyomiSecSpinBox->value();
     next.multiPV = m_multiPVComboBox->currentData().toInt();
-    next.showArrows = m_showArrowsCheckBox->isChecked();
     updateTimeControls();
     if (next == m_settings) return;
     m_settings = next;
@@ -76,12 +88,10 @@ void ConsiderationPanel::showSettings()
     const QSignalBlocker timedBlocker(m_considerationTimeRadioButton);
     const QSignalBlocker secondsBlocker(m_byoyomiSecSpinBox);
     const QSignalBlocker multiPVBlocker(m_multiPVComboBox);
-    const QSignalBlocker arrowsBlocker(m_showArrowsCheckBox);
     m_engineSelector->select(m_settings.engineName);
     (m_settings.unlimitedTime ? m_unlimitedTimeRadioButton : m_considerationTimeRadioButton)->setChecked(true);
     m_byoyomiSecSpinBox->setValue(m_settings.byoyomiSec);
     m_multiPVComboBox->setCurrentIndex(m_settings.multiPV - 1);
-    m_showArrowsCheckBox->setChecked(m_settings.showArrows);
     updateTimeControls();
 }
 
@@ -122,7 +132,10 @@ void ConsiderationPanel::loadEnginesAndSettings()
             this, &ConsiderationPanel::onControlChanged);
     connect(m_multiPVComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &ConsiderationPanel::onControlChanged);
-    connect(m_showArrowsCheckBox, &QCheckBox::toggled, this, &ConsiderationPanel::onControlChanged);
+    // 矢印のチェックは検討の条件ではなく、盤の矢印の切り替えに結ぶ
+    m_showArrowsCheckBox->setChecked(m_arrowsAction->isChecked());
+    connect(m_showArrowsCheckBox, &QCheckBox::toggled, m_arrowsAction, &QAction::setChecked);
+    connect(m_arrowsAction, &QAction::toggled, m_showArrowsCheckBox, &QCheckBox::setChecked);
 }
 
 // ===================== エンジン名 =====================
@@ -296,7 +309,6 @@ void ConsiderationPanel::buildToolbarControls()
     m_showArrowsCheckBox = new QCheckBox(tr("矢印表示"), m_considerationToolbar);
     m_showArrowsCheckBox->setObjectName(QStringLiteral("considerationArrows"));
     m_showArrowsCheckBox->setToolTip(tr("最善手の矢印を盤面に表示します"));
-    m_showArrowsCheckBox->setChecked(true);
 
     // 検討開始/中止ボタン（初期状態は「検討開始」）
     m_btnStopConsideration = new QToolButton(m_considerationToolbar);

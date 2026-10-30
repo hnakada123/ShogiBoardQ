@@ -1597,7 +1597,7 @@ This cannot be undone.</translation>
 <context>
     <name>CandidateArrowPresenter</name>
     <message>
-        <location filename="../../src/ui/presenters/candidatearrowpresenter.cpp" line="158"/>
+        <location filename="../../src/ui/presenters/candidatearrowpresenter.cpp" line="208"/>
         <source>先読み：%1を想定</source>
         <translation>Ponder: assuming %1</translation>
     </message>
@@ -1900,117 +1900,117 @@ Discard the changes and move?</translation>
 <context>
     <name>ConsiderationPanel</name>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="162"/>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="393"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="175"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="405"/>
         <source>検討中止</source>
         <translation>Stop</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="162"/>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="304"/>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="393"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="175"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="316"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="405"/>
         <source>検討開始</source>
         <translation>Start Consideration</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="163"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="176"/>
         <source>検討を中止してエンジンを停止します</source>
         <translation>Stop analysis and terminate the engine</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="163"/>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="305"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="176"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="317"/>
         <source>検討を開始します</source>
         <translation>Start analysis</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="186"/>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="275"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="199"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="288"/>
         <source>経過: 0:00</source>
         <translation>Elapsed: 0:00</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="198"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="211"/>
         <source>経過: %1:%2</source>
         <translation>Elapsed: %1:%2</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="241"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="254"/>
         <source>検討に使用するエンジンを選択します</source>
         <translation>Select the engine for analysis</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="247"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="260"/>
         <source>エンジン設定</source>
         <translation>Engine Settings</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="249"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="262"/>
         <source>選択したエンジンの設定を変更します</source>
         <translation>Configure the selected engine</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="254"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="267"/>
         <source>時間無制限</source>
         <translation>Unlimited</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="256"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="269"/>
         <source>時間制限なしで検討します</source>
         <translation>Analyze without a time limit</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="259"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="272"/>
         <source>検討時間</source>
         <translation>Analysis Time</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="261"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="274"/>
         <source>指定した秒数まで検討します</source>
         <translation>Analyze for the specified number of seconds</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="269"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="282"/>
         <source>検討時間（秒）を指定します</source>
         <translation>Set the analysis time in seconds</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="272"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="285"/>
         <source>秒まで</source>
         <translation>seconds</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="277"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="290"/>
         <source>検討開始からの経過時間</source>
         <translation>Elapsed time since consideration started</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="286"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="299"/>
         <source>候補手の数</source>
         <translation>Candidate moves</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="290"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="303"/>
         <source>%1手</source>
         <translation>%1 moves</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="293"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="306"/>
         <source>評価値が大きい順に表示する候補手の数を指定します</source>
         <translation>Specify the number of candidate moves to display in order of evaluation</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="296"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="309"/>
         <source>矢印表示</source>
         <translation>Show Arrows</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="298"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="311"/>
         <source>最善手の矢印を盤面に表示します</source>
         <translation>Displays arrows for the best moves on the board</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationpanel.cpp" line="384"/>
+        <location filename="../../src/widgets/considerationpanel.cpp" line="396"/>
         <source>経過: 000:00</source>
         <translation>Elapsed: 000:00</translation>
     </message>
@@ -8117,33 +8117,33 @@ Do you want to save them?</translation>
         <translation>Register board moves</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/josekiwindowcontroller.cpp" line="137"/>
-        <location filename="../../src/ui/controllers/josekiwindowcontroller.cpp" line="155"/>
+        <location filename="../../src/ui/controllers/josekiwindowcontroller.cpp" line="130"/>
+        <location filename="../../src/ui/controllers/josekiwindowcontroller.cpp" line="148"/>
         <source>定跡を棋譜に展開</source>
         <translation>Expand the Book into the Game Record</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/josekiwindowcontroller.cpp" line="137"/>
+        <location filename="../../src/ui/controllers/josekiwindowcontroller.cpp" line="130"/>
         <source>対局中は棋譜に展開できません。</source>
         <translation>The book cannot be expanded into the game record during a game.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/josekiwindowcontroller.cpp" line="149"/>
+        <location filename="../../src/ui/controllers/josekiwindowcontroller.cpp" line="142"/>
         <source>棋譜に %1 手を足しました。</source>
         <translation>Added %1 moves to the game record.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/josekiwindowcontroller.cpp" line="150"/>
+        <location filename="../../src/ui/controllers/josekiwindowcontroller.cpp" line="143"/>
         <source>足せる定跡手がありませんでした（棋譜にすでにある手は足しません）。</source>
         <translation>There were no book moves to add (moves already in the game record are not added).</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/josekiwindowcontroller.cpp" line="152"/>
+        <location filename="../../src/ui/controllers/josekiwindowcontroller.cpp" line="145"/>
         <source>別の手順で同じ局面に着いたため %1 か所で止めました。</source>
         <translation>Stopped at %1 places where another line reached the same position.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/josekiwindowcontroller.cpp" line="154"/>
+        <location filename="../../src/ui/controllers/josekiwindowcontroller.cpp" line="147"/>
         <source>手の数が上限（%1 手）に達したため、途中で止めました。</source>
         <translation>Stopped partway because the number of moves reached the limit (%1).</translation>
     </message>
@@ -14072,32 +14072,32 @@ The engine would treat its available time as 0 seconds and move almost without t
         <translation type="vanished">Increase font size</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/thinkingpanel.cpp" line="33"/>
+        <location filename="../../src/widgets/thinkingpanel.cpp" line="59"/>
         <source>対局中の矢印表示</source>
         <translation>Show arrows during games</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/thinkingpanel.cpp" line="36"/>
+        <location filename="../../src/widgets/thinkingpanel.cpp" line="61"/>
         <source>先読み側も表示</source>
         <translation>Also show pondering side</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/thinkingpanel.cpp" line="39"/>
+        <location filename="../../src/widgets/thinkingpanel.cpp" line="63"/>
         <source>Ponder中の応手を青の破線で表示します。エンジンの先読み設定は変更しません。</source>
         <translation>Show ponder replies as blue dashed arrows. This does not change the engine’s pondering setting.</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/thinkingpanel.cpp" line="134"/>
+        <location filename="../../src/widgets/thinkingpanel.cpp" line="147"/>
         <source>検討中の矢印表示は検討タブで設定します。</source>
         <translation>Configure consideration arrows in the Consideration tab.</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/thinkingpanel.cpp" line="136"/>
+        <location filename="../../src/widgets/thinkingpanel.cpp" line="149"/>
         <source>赤の実線：手番側</source>
         <translation>Solid red: side to move</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/thinkingpanel.cpp" line="137"/>
+        <location filename="../../src/widgets/thinkingpanel.cpp" line="150"/>
         <source> ／ 青の破線：先読み側</source>
         <translation> / Dashed blue: pondering side</translation>
     </message>
@@ -15467,7 +15467,7 @@ Check the settings and press Start.</translation>
         <translation type="vanished">USI engine is not running.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="93"/>
+        <location filename="../../src/engine/usi.cpp" line="92"/>
         <location filename="../../src/engine/usienginesession.cpp" line="252"/>
         <source>Timeout waiting for bestmove.</source>
         <translation>Timeout waiting for bestmove.</translation>
@@ -15596,7 +15596,7 @@ Check the settings and press Start.</translation>
         <translation>Timeout waiting for readyok</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="309"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="294"/>
         <source>Invalid bestmove format: %1</source>
         <translation>Invalid bestmove format: %1</translation>
     </message>

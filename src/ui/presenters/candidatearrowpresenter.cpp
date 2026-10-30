@@ -1,9 +1,8 @@
 #include "candidatearrowpresenter.h"
 
-#include "considerationsettings.h"
 #include "analysissession.h"
-#include "analysissettings.h"
 #include "appactivitystate.h"
+#include "boardarrowactions.h"
 #include "engineslots.h"
 #include "humanturnpolicy.h"
 #include "josekibooksession.h"
@@ -27,6 +26,25 @@ QString positionKey(const QString& sfen)
 /// 番号を付ける定跡手の矢印の数（表の上から。多いと番号で盤が隠れる）
 constexpr int kNumberedJosekiArrows = 5;
 
+/// 思考の表の最新の最善の読み筋（multipv 1 で、最初の手を指せた行。表は新しい行が先頭）
+const ShogiInfoRecord* latestBestRecord(const ShogiEngineThinkingModel& thinking)
+{
+    for (int row = 0; row < thinking.rowCount(); ++row) {
+        const ShogiInfoRecord* record = thinking.recordAt(row);
+        if (record && record->multipv() == 1 && record->pv().firstMove()) return record;
+    }
+    return nullptr;
+}
+
+/// 表の行が変わったら描き直す
+void connectRows(const QAbstractItemModel* model, CandidateArrowPresenter* presenter)
+{
+    QObject::connect(model, &QAbstractItemModel::rowsInserted, presenter, &CandidateArrowPresenter::scheduleRefresh);
+    QObject::connect(model, &QAbstractItemModel::rowsRemoved, presenter, &CandidateArrowPresenter::scheduleRefresh);
+    QObject::connect(model, &QAbstractItemModel::dataChanged, presenter, &CandidateArrowPresenter::scheduleRefresh);
+    QObject::connect(model, &QAbstractItemModel::modelReset, presenter, &CandidateArrowPresenter::scheduleRefresh);
+}
+
 }
 
 CandidateArrowPresenter::CandidateArrowPresenter(const Deps& deps, QObject* parent)
@@ -47,25 +65,32 @@ CandidateArrowPresenter::CandidateArrowPresenter(const Deps& deps, QObject* pare
         connect(deps.analysis, &AnalysisSession::considerationModeEnded,
                 this, &CandidateArrowPresenter::scheduleRefresh);
     }
-    if (ShogiEngineThinkingModel* model = deps.consideration) {
-        connect(model, &QAbstractItemModel::rowsInserted, this, &CandidateArrowPresenter::scheduleRefresh);
-        connect(model, &QAbstractItemModel::rowsRemoved, this, &CandidateArrowPresenter::scheduleRefresh);
-        connect(model, &QAbstractItemModel::dataChanged, this, &CandidateArrowPresenter::scheduleRefresh);
-        connect(model, &QAbstractItemModel::modelReset, this, &CandidateArrowPresenter::scheduleRefresh);
-    }
+    // 検討の表と、対局のエンジンの思考の表
+    const std::array<const ShogiEngineThinkingModel*, 3> models{deps.consideration, deps.thinking[0], deps.thinking[1]};
+    for (const ShogiEngineThinkingModel* model : models)
+        if (model) connectRows(model, this);
     if (deps.engines) {
         connect(deps.engines, &EngineSlots::enginesChanged, this, &CandidateArrowPresenter::bindEngines);
         bindEngines();
     }
     if (deps.josekiBook)
         connect(deps.josekiBook, &JosekiBookSession::contentChanged, this, &CandidateArrowPresenter::scheduleRefresh);
-    for (const QAction* action : {deps.josekiArrows, deps.josekiDisplay})
-        if (action) connect(action, &QAction::toggled, this, &CandidateArrowPresenter::scheduleRefresh);
+    if (const BoardArrowActions* toggles = deps.arrows) {
+        for (const QAction* action : {toggles->match(), toggles->ponder(), toggles->consideration(), toggles->joseki()})
+            connect(action, &QAction::toggled, this, &CandidateArrowPresenter::scheduleRefresh);
+    }
+    if (deps.josekiDisplay)
+        connect(deps.josekiDisplay, &QAction::toggled, this, &CandidateArrowPresenter::scheduleRefresh);
+}
+
+bool CandidateArrowPresenter::arrowsOn(QAction* (BoardArrowActions::*toggle)() const, bool fallback) const
+{
+    return m_sources.arrows ? (m_sources.arrows->*toggle)()->isChecked() : fallback;
 }
 
 void CandidateArrowPresenter::appendJosekiArrows(QList<ShogiView::Arrow>& arrows, const QString& sfen) const
 {
-    if (!m_sources.josekiBook || !m_sources.josekiArrows || !m_sources.josekiArrows->isChecked()) return;
+    if (!m_sources.josekiBook || !arrowsOn(&BoardArrowActions::joseki, false)) return;
     if (m_sources.josekiDisplay && !m_sources.josekiDisplay->isChecked()) return;
     // 対局中は人間の手番だけ（エンジンの手番に定跡手を見せても使えない）
     const HumanTurnPolicy* turn = m_sources.humanTurn;
@@ -87,13 +112,17 @@ void CandidateArrowPresenter::appendJosekiArrows(QList<ShogiView::Arrow>& arrows
 
 void CandidateArrowPresenter::bindEngines()
 {
-    for (const auto& engine : m_engines)
-        if (engine) disconnect(engine, nullptr, this, nullptr);
+    for (const auto& engine : m_engines) {
+        if (!engine) continue;
+        disconnect(engine, nullptr, this, nullptr);
+        disconnect(engine->protocol(), nullptr, this, nullptr);
+    }
     m_engines = {m_sources.engines ? m_sources.engines->engineInSlot(1) : nullptr,
                  m_sources.engines ? m_sources.engines->engineInSlot(2) : nullptr};
     for (const auto& engine : m_engines) {
         if (!engine) continue;
-        connect(engine, &Usi::searchCandidateChanged, this, &CandidateArrowPresenter::scheduleRefresh);
+        // 探索を終えたら、思考の表に残った行からは描かない
+        connect(engine->protocol(), &UsiProtocolHandler::searchEnded, this, &CandidateArrowPresenter::scheduleRefresh);
         connect(engine, &QObject::destroyed, this, &CandidateArrowPresenter::scheduleRefresh);
     }
     scheduleRefresh();
@@ -132,31 +161,52 @@ std::optional<ShogiView::Arrow> CandidateArrowPresenter::arrowForMove(
     return arrow;
 }
 
+void CandidateArrowPresenter::appendConsiderationArrows(QList<ShogiView::Arrow>& arrows, const QString& sfen) const
+{
+    const ShogiEngineThinkingModel* model = m_sources.consideration;
+    if (!model || !arrowsOn(&BoardArrowActions::consideration, true)) return;
+    for (int row = 0; row < model->rowCount(); ++row) {
+        const auto* record = model->recordAt(row);
+        if (!record || positionKey(record->pv().baseSfen()) != positionKey(sfen)) continue;
+        const std::optional<UsiMove> move = record->pv().firstMove();
+        if (!move) continue;
+        if (auto arrow = arrowForMove(move->toString(), record->pv().baseSfen(), record->multipv()))
+            arrows.append(*arrow);
+    }
+}
+
 void CandidateArrowPresenter::appendMatchArrows(QList<ShogiView::Arrow>& arrows, const QString& sfen)
 {
     // エンジンが指す対局の最中だけ描く（通信対局・検討・解析のエンジンは対象外）
-    if (!m_sources.match || !m_sources.activity
-        || m_sources.activity->activity() != AppActivityState::Activity::DuringGame
-        || m_sources.match->isGameOver() || !AnalysisSettings::matchArrowsVisible()) return;
+    if (!m_sources.activity || m_sources.activity->activity() != AppActivityState::Activity::DuringGame
+        || (m_sources.match && m_sources.match->isGameOver()) || !arrowsOn(&BoardArrowActions::match, false))
+        return;
+    const bool ponderVisible = arrowsOn(&BoardArrowActions::ponder, false);
 
-    for (const auto& engine : m_engines) {
-        if (!engine) continue;
-        const auto& candidate = engine->searchCandidate();
-        if (!candidate.active || candidate.move.isEmpty()) continue;
-        if (candidate.pondering) {
-            if (!AnalysisSettings::ponderArrowsVisible() || candidate.predictedMove.isEmpty()) continue;
-            const QString predicted = SfenReplay::positionAfter(sfen, candidate.predictedMove);
-            if (predicted.isEmpty() || positionKey(predicted) != positionKey(candidate.baseSfen)) continue;
-        } else if (positionKey(candidate.baseSfen) != positionKey(sfen)) {
-            continue;
+    for (size_t i = 0; i < m_engines.size(); ++i) {
+        const Usi* engine = m_engines[i];
+        const ShogiEngineThinkingModel* thinking = m_sources.thinking[i];
+        // 探索を終えた後に残った行（待ったで戻した局面の前の探索など）からは描かない
+        if (!engine || !thinking || !engine->protocol()->isSearching()) continue;
+        const ShogiInfoRecord* record = latestBestRecord(*thinking);
+        if (!record) continue;
+        const QString& baseSfen = record->pv().baseSfen();
+        const bool pondering = positionKey(baseSfen) != positionKey(sfen);
+        QString predicted;
+        if (pondering) {
+            // 先読み: 表示中の局面に予想した手（探索の局面に至った手）を指した局面を探索している
+            if (!ponderVisible || engine->protocol()->searchKind() != UsiProtocolHandler::SearchKind::Ponder) continue;
+            predicted = record->lastUsiMove();
+            const QString predictedSfen = predicted.isEmpty() ? QString() : SfenReplay::positionAfter(sfen, predicted);
+            if (predictedSfen.isEmpty() || positionKey(predictedSfen) != positionKey(baseSfen)) continue;
         }
-        auto arrow = arrowForMove(candidate.move, candidate.baseSfen, 0);
+        auto arrow = arrowForMove(record->pv().firstMove()->toString(), baseSfen, 0);
         if (!arrow) continue;
-        if (candidate.pondering) {
+        if (pondering) {
             arrow->color = QColor(30, 110, 220, 200);
             arrow->penStyle = Qt::DashLine;
             m_ponderDescription = tr("先読み：%1を想定").arg(
-                KifuPresentation::move(sfen, candidate.predictedMove, KifuPresentation::options()));
+                KifuPresentation::move(sfen, predicted, KifuPresentation::options()));
         }
         arrows.append(*arrow);
     }
@@ -173,21 +223,8 @@ void CandidateArrowPresenter::refresh()
         // 定跡手の矢印はエンジンの矢印の下に描く（先に足す）。定跡は手数違いの登録を区別するので手数付きで引く
         appendJosekiArrows(arrows, board->position().toSfen(board->currentPlayer(), board->position().moveNumber()));
         const QString sfen = board->position().toSfen(board->currentPlayer(), 1);
-        if (considerationActive()) {
-            const bool show = !m_sources.considerationSettings || m_sources.considerationSettings->showArrows;
-            if (ShogiEngineThinkingModel* model = m_sources.consideration; show && model) {
-                for (int row = 0; row < model->rowCount(); ++row) {
-                    const auto* record = model->recordAt(row);
-                    if (!record || positionKey(record->pv().baseSfen()) != positionKey(sfen)) continue;
-                    const std::optional<UsiMove> move = record->pv().firstMove();
-                    if (!move) continue;
-                    if (auto arrow = arrowForMove(move->toString(), record->pv().baseSfen(), record->multipv()))
-                        arrows.append(*arrow);
-                }
-            }
-        } else {
-            appendMatchArrows(arrows, sfen);
-        }
+        if (considerationActive()) appendConsiderationArrows(arrows, sfen);
+        else appendMatchArrows(arrows, sfen);
     }
     m_view->setArrows(arrows);
     emit displayStateChanged(considerationActive(), m_ponderDescription);

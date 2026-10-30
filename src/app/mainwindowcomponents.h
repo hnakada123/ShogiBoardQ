@@ -73,6 +73,7 @@ class MainWindowAppearanceController;
 class PlayerInfoPresenter;
 
 // 利用者の操作
+class BoardArrowActions;
 class ConsiderationUiController;
 class DialogLauncher;
 class ImageExportController;
@@ -178,6 +179,8 @@ struct MainWindowComponents {
     NotificationPresenter* notifications = nullptr;
 
     // --- 利用者の操作 ---
+    /// 盤の矢印を出すかの切り替え（思考・検討・定跡ウィンドウのチェックと「表示」メニューが結び、盤の矢印が読む）
+    BoardArrowActions* boardArrows = nullptr;
     MainWindowActions* actions = nullptr;
     DialogLauncher* dialogLauncher = nullptr;
     KifuAnalysisController* kifuAnalysis = nullptr;

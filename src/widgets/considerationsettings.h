@@ -2,7 +2,7 @@
 #define CONSIDERATIONSETTINGS_H
 
 /// @file considerationsettings.h
-/// @brief 検討タブの設定（エンジン・時間・候補手の数・矢印）
+/// @brief 検討タブの設定（エンジン・時間・候補手の数）
 
 #include <QMetaType>
 #include <QString>
@@ -16,7 +16,6 @@ struct ConsiderationSettings {
     /// 時間を決めるときの1局面の検討時間（秒。範囲と既定値は AnalysisSettings::considerationByoyomiSec）
     int byoyomiSec = AnalysisSettings::considerationByoyomiSec.defaultValue();
     int multiPV = 1;             ///< 候補手の数（1〜10。範囲は AnalysisSettings::considerationMultiPV）
-    bool showArrows = true;      ///< 候補手の矢印を盤に出す
 
     /// 1局面の検討時間（ms。0 は無制限）
     int byoyomiMs() const { return unlimitedTime ? 0 : byoyomiSec * 1000; }
@@ -24,7 +23,7 @@ struct ConsiderationSettings {
     bool operator==(const ConsiderationSettings& other) const
     {
         return engineName == other.engineName && unlimitedTime == other.unlimitedTime
-            && byoyomiSec == other.byoyomiSec && multiPV == other.multiPV && showArrows == other.showArrows;
+            && byoyomiSec == other.byoyomiSec && multiPV == other.multiPV;
     }
     bool operator!=(const ConsiderationSettings& other) const { return !(*this == other); }
 };

@@ -77,8 +77,12 @@ public:
     {
         return protocol.isSearching() && protocol.searchKind() == UsiProtocolHandler::SearchKind::Ponder;
     }
-    /// 先読みで予想している相手の手
-    QString predictedMove() const { return protocol.searchCandidate().predictedMove; }
+    /// 先読みで予想している相手の手（先読みの局面に至った手）
+    QString predictedMove() const
+    {
+        const std::optional<UsiMove>& move = match.ponderPosition().lastMove();
+        return move ? move->toString() : QString();
+    }
     void recordCommand(const QString& command) { commands.append(command); }
     bool start(const QString& path, bool ponderEnabled = true)
     {
@@ -355,7 +359,7 @@ private slots:
         QCOMPARE(h.reply(), QPoint(8, 4));
         QVERIFY(h.isPondering());
         // 通信した局面（7g7f後）から、bestmoveと予測手を進めた局面。表示中の盤には依存しない。
-        QCOMPARE(h.protocol.searchCandidate().baseSfen,
+        QCOMPARE(h.match.ponderPosition().sfen(),
                  QStringLiteral("lnsgkgsnl/1r5b1/p1ppppppp/1p7/9/2P4P1/PP1PPPP1P/1B5R1/LNSGKGSNL w - 4"));
         QSignalSpy rows(&h.formatter, &ThinkingInfoFormatter::thinkingInfoUpdated);
         h.formatter.processInfo(*UsiLineParser::parseInfo(QStringLiteral("info depth 1 score cp 0 pv 8d8e 2f2e 8e8f")));

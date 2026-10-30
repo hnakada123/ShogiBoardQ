@@ -10,6 +10,7 @@
 #include "shogienginethinkingmodel.h"
 
 class EngineInfoWidget;
+class QAction;
 class QCheckBox;
 class QLabel;
 class QMenu;
@@ -20,7 +21,8 @@ class UsiCommLogModel;
  * @brief 対局・棋譜解析のエンジンの思考を出す思考ドックの中身
  *
  * エンジンごとに名前などの情報欄と思考の表を持つ（2つ目のエンジンは使うときだけ出す）。
- * 上部に文字の大きさのボタンと、対局中の候補手の矢印の表示設定を置く。
+ * 上部に文字の大きさのボタンと、対局中の候補手の矢印のチェックを置く。チェックは渡された QAction
+ * （正本は ui の BoardArrowActions。盤の矢印もそれを読む）に結ぶだけ。
  * 表の体裁と列幅は ThinkingTableView、情報欄の列幅は EngineInfoWidget が受け持つ。
  */
 class ThinkingPanel : public QWidget
@@ -28,6 +30,14 @@ class ThinkingPanel : public QWidget
     Q_OBJECT
 
 public:
+    /// 対局中の矢印のチェックが結ぶ切り替え（どれも checkable。無いものはパネルが作る）
+    struct ArrowActions {
+        QAction* match = nullptr;   ///< 手番側の読み（「対局中の矢印表示」）
+        QAction* ponder = nullptr;  ///< 先読み側の読み（「先読み側も表示」）
+    };
+
+    ThinkingPanel(const ArrowActions& actions, QWidget* parent = nullptr);
+    /// 矢印の切り替えの QAction をパネルが作る
     explicit ThinkingPanel(QWidget* parent = nullptr);
 
     /// 表に出す思考情報と、情報欄に出すエンジン名・状態（log）
@@ -49,26 +59,24 @@ public slots:
     void clearSelection(const ShogiEngineThinkingModel* model);
 
 signals:
-    /// 対局の矢印・先読みの矢印の表示設定が変わった（矢印を描き直す）
-    void arrowSettingsChanged();
     /// 読み筋の行の「盤面」ボタンが押された
     void pvRowClicked(ShogiEngineThinkingModel* model, int row);
     /// 読み筋の行を右クリックした（受け手が menu に項目を足す）
     void rowContextMenuAboutToShow(ShogiEngineThinkingModel* model, int row, QMenu* menu);
 
 private slots:
-    void onMatchArrowsToggled(bool checked);
-    void onPonderArrowsToggled(bool checked);
     void applyFontSize();
+    /// チェックの押せるかと、矢印の説明を合わせる
+    void updateArrowControls();
 
 private:
-    void updateArrowControls();
 
     EngineInfoWidget* m_info1 = nullptr;
     EngineInfoWidget* m_info2 = nullptr;
     ThinkingTableView* m_view1 = nullptr;
     ThinkingTableView* m_view2 = nullptr;
     FontSizeHelper m_fontSize;   ///< 表と情報欄の文字の大きさ（変更のたびに保存する）
+    ArrowActions m_arrowActions;
     QCheckBox* m_matchArrows = nullptr;
     QCheckBox* m_ponderArrows = nullptr;
     QLabel* m_arrowDescription = nullptr;

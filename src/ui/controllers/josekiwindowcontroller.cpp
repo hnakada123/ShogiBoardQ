@@ -38,9 +38,7 @@ JosekiWindowController::JosekiWindowController(const Deps& deps, QObject* parent
     m_displayAction->setCheckable(true);
     m_displayAction->setChecked(JosekiSettings::josekiWindowDisplayEnabled());
     m_recordBoardMovesAction->setCheckable(true);
-    deps.boardArrows->setChecked(JosekiSettings::boardArrowsVisible());
     connect(m_displayAction, &QAction::toggled, this, &JosekiWindowController::onDisplayToggled);
-    connect(deps.boardArrows, &QAction::toggled, this, &JosekiWindowController::onBoardArrowsToggled);
     m_josekiWindow = new JosekiWindow(deps.book, {m_displayAction, m_recordBoardMovesAction, deps.boardArrows},
                                       m_parentWidget);
     // 定跡そのものの操作（ファイル・定跡手・マージ・ドロップ）は、表示中の手順を渡して任せる
@@ -102,11 +100,6 @@ void JosekiWindowController::onDisplayToggled(bool displayed)
 {
     JosekiSettings::josekiWindowDisplayEnabled.set(displayed);
     updateBookDeviation();
-}
-
-void JosekiWindowController::onBoardArrowsToggled(bool visible)
-{
-    JosekiSettings::boardArrowsVisible.set(visible);
 }
 
 void JosekiWindowController::updateBookDeviation()

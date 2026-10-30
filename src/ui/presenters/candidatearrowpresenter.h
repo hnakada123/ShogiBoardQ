@@ -11,9 +11,9 @@
 #include <optional>
 #include <array>
 
-struct ConsiderationSettings;
 class AnalysisSession;
 class AppActivityState;
+class BoardArrowActions;
 class EngineSlots;
 class HumanTurnPolicy;
 class JosekiBookSession;
@@ -22,8 +22,15 @@ class ShogiEngineThinkingModel;
 class QAction;
 class Usi;
 
-/// 検討と対局の候補矢印と、定跡ウィンドウで開いている定跡の定跡手の矢印を一括管理する。タブの表示状態には依存しない。
-/// 定跡手の矢印（緑）はエンジンの矢印の下に描き、比率の高い手ほど濃くする。
+/**
+ * @brief 検討と対局のエンジンの読みと、定跡ウィンドウで開いている定跡の定跡手を盤の矢印にする
+ *
+ * タブの表示状態には依存しない。どの矢印を出すかは BoardArrowActions の QAction だけを読む。
+ * - 検討: 検討の表の各候補手の読み筋の最初の手
+ * - 対局: エンジンごとの思考の表の、最新の最善の読み筋（multipv 1）の最初の手。探索の局面が表示中の局面なら
+ *   手番側（赤の実線）、表示中の局面に予想した手（その局面に至った手）を指した局面なら先読み側（青の破線）
+ * - 定跡手（緑）: エンジンの矢印の下に描き、出現頻度の高い手ほど濃くする
+ */
 class CandidateArrowPresenter : public QObject
 {
     Q_OBJECT
@@ -31,16 +38,16 @@ public:
     /// 矢印の元になる対局と検討（無いものは描かない）
     struct Deps {
         ShogiView* view = nullptr;                     ///< 矢印を描く盤（必須）
-        MatchCoordinator* match = nullptr;             ///< 対局中のエンジンの読み
-        EngineSlots* engines = nullptr;     ///< 読みを出すエンジンの枠
+        MatchCoordinator* match = nullptr;             ///< 終局したか（無ければ動作状態だけで決める）
+        EngineSlots* engines = nullptr;                ///< 対局のエンジンの枠（探索中か・先読み中か）
+        /// 枠 E1・E2 のエンジンの思考の表（対局の矢印の元）
+        std::array<const ShogiEngineThinkingModel*, 2> thinking{};
         AppActivityState* activity = nullptr;          ///< 対局中か・終局したか
         AnalysisSession* analysis = nullptr;           ///< 検討中か（正本はセッション）
         ShogiEngineThinkingModel* consideration = nullptr; ///< 検討の読み筋（検討中の矢印の元）
-        /// 検討の候補手の矢印を出すか（検討タブの設定）。無ければ出す
-        /// 検討の条件（検討タブの正本 ConsiderationPanel::settings()。showArrows で検討の矢印を出す。無ければいつでも出す）
-        const ConsiderationSettings* considerationSettings = nullptr;
+        /// 矢印を出すかの切り替え（無ければ対局・定跡手の矢印は出さず、検討の矢印は出す）
+        const BoardArrowActions* arrows = nullptr;
         const JosekiBookSession* josekiBook = nullptr; ///< 定跡手の矢印の元（定跡ウィンドウで開いている定跡）
-        const QAction* josekiArrows = nullptr;         ///< 「盤に定跡手を表示」（無ければ定跡手の矢印を出さない）
         const QAction* josekiDisplay = nullptr;        ///< 定跡ウィンドウの定跡の表示（オフなら出さない。無ければ出す）
         const HumanTurnPolicy* humanTurn = nullptr;    ///< 対局中は人間の手番だけ出す（無ければいつでも出す）
     };
@@ -64,6 +71,10 @@ private slots:
     void bindEngines();
 
 private:
+    /// 矢印の切り替え toggle がオンか（切り替えが無ければ fallback）
+    bool arrowsOn(QAction* (BoardArrowActions::*toggle)() const, bool fallback) const;
+    void appendConsiderationArrows(QList<ShogiView::Arrow>& arrows, const QString& sfen) const;
+    /// 対局のエンジンの読みの矢印を足す（先読み側なら m_ponderDescription に予想した手を書く）
     void appendMatchArrows(QList<ShogiView::Arrow>& arrows, const QString& sfen);
     /// 表示中の局面 sfen（手数付き）の定跡手の矢印を足す
     void appendJosekiArrows(QList<ShogiView::Arrow>& arrows, const QString& sfen) const;

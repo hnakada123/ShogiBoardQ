@@ -34,7 +34,7 @@ class QDockWidget;
  * ここが作る JosekiBookController が受け持つ。
  *
  * 定跡の表示の切り替え（displayAction。保存する）と「盤の手を登録」（recordBoardMovesAction。保存しない）の
- * QAction を持ち、「盤に定跡手を表示」（メニューの QAction。保存する）と合わせて定跡ウィンドウに渡す。
+ * QAction を持ち、「盤に定跡手を表示」（正本と保存は BoardArrowActions）と合わせて定跡ウィンドウに渡す。
  * 盤の矢印（CandidateArrowPresenter）と盤の手の登録（JosekiRegistrationController）もこの QAction を読む。
  */
 class JosekiWindowController : public QObject
@@ -45,7 +45,7 @@ public:
     struct Deps {
         QWidget* parentWidget = nullptr;
         JosekiBookSession* book = nullptr;               ///< 開いている定跡（必須・非所有）
-        QAction* boardArrows = nullptr;                  ///< 「表示」メニューの「盤に定跡手を表示」（必須）
+        QAction* boardArrows = nullptr;                  ///< 「盤に定跡手を表示」（BoardArrowActions::joseki。必須）
         /// 表示中の手。定跡ウィンドウの局面と、棋譜のマージに使う（非所有）
         const KifuNavigationState* navState = nullptr;
         /// 盤面クリックと同じ「人間が今指せるか」の判定
@@ -109,8 +109,6 @@ private slots:
     void onExpandRequested();
     /// 定跡の表示を止めた・再開した（保存し、定跡を外れた手の表示を合わせる）
     void onDisplayToggled(bool displayed);
-    /// 「盤に定跡手を表示」を変えた（保存する）
-    void onBoardArrowsToggled(bool visible);
 
 private:
     /// 人間が今指せるか（盤面クリックと同じ判定）
