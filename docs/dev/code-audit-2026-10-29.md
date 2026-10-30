@@ -424,6 +424,31 @@
 
 **影響**: 移動17ファイル、include の修正15か所前後。プリセットの統合を除けば動作は変わらない。
 
+**状態: 済（eae7e56d）**。書き直し案のとおりにした。
+- **外観の置き場所**: 外観の一群を services・common から style へ移した。
+  - 移したもの: `BoardAppearance`・`AppearanceState`・`PieceImageProvider`・`PieceStyleCatalog`・`BoardAppearanceCatalog`・`BoardColorPresets`・`BoardColors`・`BoardVisuals`（P9 の boardcolors・boardvisuals も）。
+  - 外観の設定（駒のセット・配色・見た目と外観ダイアログ）は `AppSettings` から style の `AppearanceSettings` に移した。値の型と同じ層に置かないと、services が style を include することになるため。
+  - 中身の無くなった `appsettings.cpp` と `appearancestate.cpp` は消した。
+- **外観の持ち主**: `BoardAppearance` が駒のセット・配色・見た目の3つを持つ。
+  - `state()`・`apply()` で値をまとめて読み書きし、`pieceStyleChanged`・`colorsChanged`・`visualsChanged` で知らせる。
+  - `PieceImageProvider` は駒の画像の解決とキャッシュだけにした（駒のセットとその知らせは持たない）。
+  - 外観ダイアログは `BoardAppearance` だけに書く（`setStyle` を直接呼ぶ経路は無くなった）。
+- **駒音**: `PieceSoundPlayer`・`PieceSoundProcessor` は ui/presenters へ移した。
+  - 音質の値 `PieceSoundTone` は設定（`AppSettings::pieceSoundTone`）と駒音の設定ダイアログが使うので services に残した。
+  - dialogs は ui を include できないので、駒音の設定ダイアログはプレイヤーを持たず、`volumeChanged`・`toneChanged`・`previewRequested` で知らせるだけにした。`DialogLauncher` がプレイヤーに結ぶ。
+- **テーマ（決めた仕様）**: 外観タブのテーマのコンボ・`BoardColorPresets::themes()`・`syncThemeSelection` を消した。
+  - 「墨と榧」「琥珀」は、標準の駒のおすすめの組み合わせ「標準・墨と榧」「標準・琥珀」にした（「標準・榧と畳」の後。26種類）。
+  - 同じ色の見本が無かったので6つ足した。将棋盤「淡榧」「蜂蜜」、駒台「煤竹」「琥珀」、背景「墨緑」、対局者情報「松煙」「鳥の子」（琥珀の背景は既存の「焦茶」と同じ）。将棋盤・駒台は各28種類、背景は27種類、対局者情報は22種類。
+  - テーマの色と違えた所: 対局者情報の見本は、ほかの見本と同じく文字の色のコントラストを4.5以上にする決まりがある。「墨と榧」の手番の文字（白）は手番の背景との比が3.2だったので、ほかの暗いカードと同じく暗い文字にした。残り時間の警告の文字も、ほかの見本の色にそろえた。
+  - 設定には色の値を保存しているので、テーマを選んでいた人の外観は変わらない（組み合わせの欄は、色がずれた所があれば「自由な組み合わせ」になる）。
+  - 外観タブの説明は、木目・駒の影・駒の大きさの設定だけの文にした。
+- **ダイアログ**: `BoardColorDialog` を `BoardAppearanceDialog` に改名し、見本の描画（一覧・駒と部品と配色と色の見本・見えた項目だけを描く `LazySampleDelegate`）を `BoardAppearanceSamples` に出した。739行が521行になった。
+  - 翻訳の文脈が変わった54件は旧い訳から埋め直した。新しい文9件（見本の名前・組み合わせの名前・外観タブの説明）は訳を入れた。
+- **ガイドとホーム**: ホーム（`gen_home.py` で4言語）と board-colors のガイド（4言語）の見本の数・名前・組み合わせの数を直した。数が写っている背景と対局者情報のタブの画像（4言語で8枚）を撮り直した。
+- **テスト**: `tst_board_image_renderer` のテーマのテストを、組み合わせと木目・影・大きさのテスト（`appearanceControlsPropagateAndPersist`）と、以前のテーマの色が組み合わせになっていることのテスト（`formerThemesAreCombinations`）にした。
+  - GUI テストの `boardThemes` は `standardCombinations` にした。MCP のテストは組み合わせを選ぶ形にした。
+  - 駒音のダイアログが知らせることのテスト（`soundChangesAreSignaled`）を足した。
+
 ### T8. 棋譜の保存の経路と保存形式の表が分かれている（kifu・dialogs・automation・cli・mcp）
 
 **問題**
@@ -492,7 +517,7 @@
 | P6 | analysis/sfenvalidationservice・positioncollectionfile | どちらも core だけに依存し、解析の要素はない。`SfenValidationService` は局面を `normalizedSfen` の文字列で返し、呼び出し側が `Position::fromSfen` で読み直している（`sfenvalidationservice.cpp:132`、`cliargs.cpp:26`） | 局面を値で返す検査は core か kifu に置き、JSON にする部分は headless へ移す<br>**状態: 済（3b4f2a49）**。検査は core の `SfenValidator`（`sfenvalidator.h`）にし、結果 `SfenValidation` に読めた局面 `position` を足して、CLI の `resolvePosition` と `applyUsiMoves` の読み直しをやめた。JSON は headless の `SfenValidationJson`。局面集ファイルは kifu へ移した |
 | P7 | engine/engineoptiondescriptions | エンジン設定画面の説明文と分類（cpp は373行）。使うのは dialogs の `enginesettingsoptionhandler` だけ | dialogs へ移す<br>**状態: 済（3b4f2a49）** |
 | P8 | core/kifmovetext・sfendiffutils | `KifMoveText`（KIF の表記）は core からの利用が0で、使う11ファイルはすべて kifu 以上。`SfenDiffUtils` の利用は dialogs の `pvline.cpp` の1か所だけ | `KifMoveText` は kifu/formats（`KifMoveGrammar` の隣）へ。`SfenDiffUtils` は使う側へ<br>**状態: 済（3b4f2a49）**。`KifMoveText` は kifu/formats、`SfenDiffUtils` は dialogs へ |
-| P9 | common/boardcolors.h・boardvisuals.h・tsumeevaluation.h | `boardcolors.h` は設定のキー、配色ダイアログの表示名、ボタンの objectName まで持つ（`boardcolors.h:36-41,78-114`）。最も下の層での使い手は services。`tsumeevaluation.h` は詰みの判定結果の値で、使うのは engine と analysis。engine の `MateAnswer` と内容が近い | boardcolors・boardvisuals は T7 で外観と一緒に style へ。tsumeevaluation は engine へ移し、`MateAnswer` と合わせられるか見る<br>**状態: 一部済（3b4f2a49）**。`tsumeevaluation.h` は engine へ移した。`MateAnswer`（エンジンの1回の答え）とは、手数の確定（最短の攻手・最長の応手）と説明を持つ点で役割が違うので、合わせなかった。boardcolors・boardvisuals は T7 で扱う |
+| P9 | common/boardcolors.h・boardvisuals.h・tsumeevaluation.h | `boardcolors.h` は設定のキー、配色ダイアログの表示名、ボタンの objectName まで持つ（`boardcolors.h:36-41,78-114`）。最も下の層での使い手は services。`tsumeevaluation.h` は詰みの判定結果の値で、使うのは engine と analysis。engine の `MateAnswer` と内容が近い | boardcolors・boardvisuals は T7 で外観と一緒に style へ。tsumeevaluation は engine へ移し、`MateAnswer` と合わせられるか見る<br>**状態: 一部済（3b4f2a49）**。`tsumeevaluation.h` は engine へ移した。`MateAnswer`（エンジンの1回の答え）とは、手数の確定（最短の攻手・最長の応手）と説明を持つ点で役割が違うので、合わせなかった。boardcolors・boardvisuals は T7 で扱う<br>**状態: 済（eae7e56d、T7）**。boardcolors・boardvisuals は外観と一緒に style へ移した |
 | P10 | game の小さなヘッダー | 責務ではなく、使う側の都合で分かれている。<br>- `matchtypes.h`: 説明は「時間パラメータ等の軽量ヘッダ」だが、時間の型を持たず、include は2つ<br>- `interruptedgamestate.h`・`matchsessionstate.h`: `matchcoordinator.h` からしか include されない<br>- `matchtimesettings.h`・`timecontrolutil`: `GameSession` のためだけにある<br>- `startgamedatabridge.h`: 「bridge」が中の値の型 `PlayerChoice`・`StartGameDialogData` を表していない | 司令塔専用の3つは `matchcoordinator.h` へまとめる。`timecontrolutil` は T1 で消える。`startgamedatabridge` は中身に合う名前にする<br>**状態: 一部済（3b4f2a49）**。`matchtypes.h`・`interruptedgamestate.h`・`matchsessionstate.h` を `matchcoordinator.h` にまとめ、`startgamedatabridge.h` は `startgamedialogdata.h` にした。`matchtimesettings.h`・`timecontrolutil` は T1 で扱う<br>**状態: 済（6fc258da、T1）**。`MatchTimeSettings` は `startoptions.h` へ移し、`timecontrolutil` は `MatchCoordinator::start()` が時計に入れる形にして消した |
 | P11 | automation のファイル分け | メソッドの名前空間と合っていない。<br>- `_ui.cpp` に `board.click`・`ui.interaction`・`widget.text` がある<br>- `widget.*` が2ファイルに分かれている<br>- `_navigation.cpp` の中身は `menu.*` と `branch.click`<br>- 基盤のクラス `AutomationDeferredCall` が commands のヘッダーにある<br>CLAUDE.md は7ファイルのうち4つしか挙げていない | 名前空間の接頭辞ごとに分け直す。`AutomationDeferredCall` は automationinteractions へ移す<br>**状態: 済（3b4f2a49）**。メソッド `x.y` は `automationcommands_x.cpp`（app・position・kifu・board・branch・menu・action・dialog・widget・dock・screenshot・clipboard・ui）。登録の一覧と共有の読み取りは `automationcommands.cpp`、`AutomationDeferredCall` は automationinteractions |
 | P12 | 名前 | `KifReader` は全形式の文字コードの判別に使われている（5ファイル）。`JkfMoveParser` は書き出し側の関数（`presetFromSfen`・`modifierToRelative`）も持ち、`jkftosfenconverter.cpp:122` は `presetToSfen` を書き直している。`board/BoardImageExporter` は盤に限らない画像の書き出し（評価値グラフにも使う）で、ui の `ScreenshotService` と同じく `grab()` して書く | 中身に合う名前にし、画像の書き出しは1つにする<br>**状態: 済（3b4f2a49）**。`KifReader` は `KifuTextDecoder`、`JkfMoveParser` は読み書き両方の符号表なので `UsenCodec` に倣って `JkfCodec` にし、変換器の preset の読み直しを `JkfCodec::presetToSfen`（知らない preset は空）に寄せた。`BoardImageExporter` は `WidgetImageExporter` にして `ScreenshotService` の隣（ui/controllers）へ移した。2つの書き出しは、共通の部分が `QImageWriter` の書き込みだけで、利用者が形式と場所を選ぶ保存と、決まった場所への PNG の保存とで役割が違うので、1つのクラスにはしなかった |
