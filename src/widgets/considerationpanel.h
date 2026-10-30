@@ -7,7 +7,7 @@
 #include <QWidget>
 #include <QString>
 
-#include "considerationsettings.h"
+#include "analysissettings.h"
 #include "enginelistsettings.h"
 #include "fontsizehelper.h"
 #include "shogienginethinkingmodel.h"

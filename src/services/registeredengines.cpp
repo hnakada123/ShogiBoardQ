@@ -7,13 +7,11 @@
 
 #include <QFileInfo>
 
-namespace {
-QString canonicalPath(const QString& file)
+QString RegisteredEngines::canonicalPath(const QString& path)
 {
-    const QString resolved = QFileInfo(file).canonicalFilePath();
-    return resolved.isEmpty() ? QFileInfo(file).absoluteFilePath() : resolved;
+    const QString resolved = QFileInfo(path).canonicalFilePath();
+    return resolved.isEmpty() ? QFileInfo(path).absoluteFilePath() : resolved;
 }
-} // namespace
 
 RegisteredEngines RegisteredEngines::load()
 {
@@ -58,4 +56,18 @@ std::optional<EngineEntry> RegisteredEngines::findByPath(const QString& path) co
     const int index = indexOfPath(path);
     if (index < 0) return std::nullopt;
     return m_entries.at(index);
+}
+
+QString RegisteredEngines::uniqueName(const QString& name) const
+{
+    if (indexOfName(name) < 0) return name;
+    for (int number = 2;; ++number) {
+        const QString candidate = QStringLiteral("%1 (%2)").arg(name).arg(number);
+        if (indexOfName(candidate) < 0) return candidate;
+    }
+}
+
+void RegisteredEngines::removeAt(int index)
+{
+    if (index >= 0 && index < m_entries.size()) m_entries.removeAt(index);
 }

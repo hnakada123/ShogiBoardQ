@@ -97,11 +97,8 @@ void ConsiderationPanel::showSettings()
 
 void ConsiderationPanel::saveSettings() const
 {
-    if (!m_settings.engineName.isEmpty())
-        EngineListSettings::saveSelection(EngineListSettings::considerationSelection(), m_settings.engineName);
-    AnalysisSettings::considerationUnlimitedTime.set(m_settings.unlimitedTime);
-    AnalysisSettings::considerationByoyomiSec.set(m_settings.byoyomiSec);
-    AnalysisSettings::considerationMultiPV.set(m_settings.multiPV);
+    m_engineSelector->saveSelection();
+    AnalysisSettings::consideration.set(m_settings);
 }
 
 void ConsiderationPanel::reloadEngines()
@@ -117,11 +114,9 @@ void ConsiderationPanel::loadEnginesAndSettings()
     m_engineSelector = new EngineSelector({m_engineComboBox, m_btnEngineSettings, nullptr}, engineOptions, this);
     connect(m_engineSelector, &EngineSelector::settingsRequested,
             this, &ConsiderationPanel::engineSettingsRequested);
+    m_settings = AnalysisSettings::consideration();
     if (const std::optional<EngineSelector::Engine> engine = m_engineSelector->selected())
         m_settings.engineName = engine->name;
-    m_settings.unlimitedTime = AnalysisSettings::considerationUnlimitedTime();
-    m_settings.byoyomiSec = AnalysisSettings::considerationByoyomiSec();
-    m_settings.multiPV = AnalysisSettings::considerationMultiPV();
     showSettings();
 
     // 利用者がどれを変えても、画面の値から条件を読み直す
@@ -276,9 +271,7 @@ void ConsiderationPanel::buildToolbarControls()
     // 検討時間スピンボックス
     m_byoyomiSecSpinBox = new QSpinBox(m_considerationToolbar);
     m_byoyomiSecSpinBox->setObjectName(QStringLiteral("considerationSeconds"));
-    m_byoyomiSecSpinBox->setRange(AnalysisSettings::considerationByoyomiSec.minimum(),
-                                  AnalysisSettings::considerationByoyomiSec.maximum());
-    m_byoyomiSecSpinBox->setValue(20);
+    m_byoyomiSecSpinBox->setRange(ConsiderationSettings::kMinByoyomiSec, ConsiderationSettings::kMaxByoyomiSec);
     m_byoyomiSecSpinBox->setToolTip(tr("検討時間（秒）を指定します"));
 
     // 「秒まで」ラベル
@@ -299,10 +292,9 @@ void ConsiderationPanel::buildToolbarControls()
     m_multiPVLabel = new QLabel(tr("候補手の数"), m_considerationToolbar);
     m_multiPVComboBox = new QComboBox(m_considerationToolbar);
     m_multiPVComboBox->setObjectName(QStringLiteral("considerationMultiPV"));
-    for (int i = 1; i <= 10; ++i) {
+    for (int i = 1; i <= ConsiderationSettings::kMaxMultiPV; ++i) {
         m_multiPVComboBox->addItem(tr("%1手").arg(i), i);
     }
-    m_multiPVComboBox->setCurrentIndex(0);
     m_multiPVComboBox->setToolTip(tr("評価値が大きい順に表示する候補手の数を指定します"));
 
     // 矢印表示チェックボックス

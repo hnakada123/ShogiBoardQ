@@ -82,9 +82,11 @@ private slots:
     {
         registerEngines();
         EngineListSettings::saveSelection(EngineListSettings::considerationSelection(), QStringLiteral("Hayanagi 1.5.0"));
-        AnalysisSettings::considerationUnlimitedTime.set(true);
-        AnalysisSettings::considerationByoyomiSec.set(87);
-        AnalysisSettings::considerationMultiPV.set(6);
+        ConsiderationSettings consideration;
+        consideration.unlimitedTime = true;
+        consideration.byoyomiSec = 87;
+        consideration.multiPV = 6;
+        AnalysisSettings::consideration.set(consideration);
         TsumeShogiSearchDialog dialog;
         dialog.show();
         QVERIFY(QTest::qWaitForWindowExposed(&dialog));
@@ -117,9 +119,7 @@ private slots:
         QVERIFY(!AnalysisSettings::tsumeSearchUnlimitedTime());
         QCOMPARE(settings().value(QString::fromLatin1(EngineListSettings::considerationSelection().name)).toString(),
                  QStringLiteral("Hayanagi 1.5.0"));
-        QCOMPARE(AnalysisSettings::considerationByoyomiSec(), 87);
-        QCOMPARE(AnalysisSettings::considerationMultiPV(), 6);
-        QVERIFY(AnalysisSettings::considerationUnlimitedTime());
+        QCOMPARE(AnalysisSettings::consideration(), consideration);
 
         registerEngines(true);
         TsumeShogiSearchDialog restored;

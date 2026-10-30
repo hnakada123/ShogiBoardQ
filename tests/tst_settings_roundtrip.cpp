@@ -462,14 +462,26 @@ private slots:
 
     void analysisSettings_consideration()
     {
-        AnalysisSettings::considerationUnlimitedTime.set(true);
-        QCOMPARE(AnalysisSettings::considerationUnlimitedTime(), true);
+        // エンジンの名前は検討タブのエンジンの選択に保存するので、条件には入れない
+        ConsiderationSettings settings;
+        settings.engineName = QStringLiteral("not saved here");
+        settings.unlimitedTime = false;
+        settings.byoyomiSec = 60;
+        settings.multiPV = 4;
+        AnalysisSettings::consideration.set(settings);
+        ConsiderationSettings expected = settings;
+        expected.engineName.clear();
+        QCOMPARE(AnalysisSettings::consideration(), expected);
+        // キーは以前の版と同じ
+        QCOMPARE(SettingsCommon::openSettings().value(QStringLiteral("Consideration/byoyomiSec")).toInt(), 60);
+        QCOMPARE(SettingsCommon::openSettings().value(QStringLiteral("Consideration/multiPV")).toInt(), 4);
+        QCOMPARE(SettingsCommon::openSettings().value(QStringLiteral("Consideration/unlimitedTime")).toBool(), false);
 
-        AnalysisSettings::considerationByoyomiSec.set(60);
-        QCOMPARE(AnalysisSettings::considerationByoyomiSec(), 60);
-
-        AnalysisSettings::considerationMultiPV.set(4);
-        QCOMPARE(AnalysisSettings::considerationMultiPV(), 4);
+        // 範囲の外は端に寄せる
+        SettingsCommon::openSettings().setValue(QStringLiteral("Consideration/byoyomiSec"), 0);
+        SettingsCommon::openSettings().setValue(QStringLiteral("Consideration/multiPV"), 11);
+        QCOMPARE(AnalysisSettings::consideration().byoyomiSec, ConsiderationSettings::kMinByoyomiSec);
+        QCOMPARE(AnalysisSettings::consideration().multiPV, ConsiderationSettings::kMaxMultiPV);
     }
 
     void analysisSettings_columnWidths()
@@ -486,6 +498,49 @@ private slots:
     // ========================================
     // GameSettings: 対局設定
     // ========================================
+
+    /// 対局開始の時間は時間・分・秒の項目に保存し、ミリ秒で読み書きする
+    void gameSettings_startGameTime()
+    {
+        namespace Saved = GameSettings::StartGame;
+        TimeControlSide time;
+        time.mainMs = (2 * 3600 + 5 * 60) * 1000 + 999;   // 秒未満は切り捨てる
+        time.byoyomiMs = 30000;
+        Saved::player2.setTime(time);
+        QCOMPARE(Saved::player2.basicTimeHour(), 2);
+        QCOMPARE(Saved::player2.basicTimeMinutes(), 5);
+        QCOMPARE(Saved::player2.byoyomiSec(), 30);
+        QCOMPARE(Saved::player2.addEachMoveSec(), 0);
+        TimeControlSide expected = time;
+        expected.mainMs = (2 * 3600 + 5 * 60) * 1000;
+        QCOMPARE(Saved::player2.time(), expected);
+        QCOMPARE(Saved::player2.defaultTime(), TimeControlSide());
+    }
+
+    /// 開始局面は手合割の名前で保存し、以前の版の番号は以前の一覧の並びで読む（保存すると消す）
+    void gameSettings_startingPosition()
+    {
+        namespace Saved = GameSettings::StartGame;
+        const Handicaps::Handicap* kaku = Handicaps::byLabel(u"角落ち");
+        QVERIFY(kaku);
+        Saved::setStartingPosition(kaku);
+        QCOMPARE(Saved::startingPosition(), kaku);
+        Saved::setStartingPosition(nullptr);   // 現在の局面
+        QCOMPARE(Saved::startingPosition(), nullptr);
+        Saved::startingPositionName.set(QStringLiteral("unknown"));
+        QCOMPARE(Saved::startingPosition(), &Handicaps::kHirate);
+
+        QSettings& settings = SettingsCommon::openSettings();
+        settings.setValue(QStringLiteral("GameSettings/startingPositionNumber"), 4);   // 以前の並びの4番目
+        QCOMPARE(Saved::startingPosition(), kaku);
+        settings.setValue(QStringLiteral("GameSettings/startingPositionNumber"), 0);
+        QCOMPARE(Saved::startingPosition(), nullptr);
+        settings.setValue(QStringLiteral("GameSettings/startingPositionNumber"), 99);   // 範囲外は平手
+        QCOMPARE(Saved::startingPosition(), &Handicaps::kHirate);
+        Saved::setStartingPosition(kaku);
+        QVERIFY(!Saved::startingPositionNumber.isSaved());
+        QCOMPARE(Saved::startingPosition(), kaku);
+    }
 
     void gameSettings_kifuDirectory()
     {

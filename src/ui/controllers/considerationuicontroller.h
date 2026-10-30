@@ -7,7 +7,7 @@
 #include <QObject>
 #include <QString>
 
-#include "considerationsettings.h"
+#include "analysissettings.h"
 #include "registeredengines.h"
 
 class QWidget;

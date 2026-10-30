@@ -32,6 +32,12 @@ ChangeEngineSettingsDialog::ChangeEngineSettingsDialog(const EngineEntry& engine
 
 ChangeEngineSettingsDialog::~ChangeEngineSettingsDialog() = default;
 
+void ChangeEngineSettingsDialog::showFor(const EngineEntry& engine, QWidget* parent)
+{
+    ChangeEngineSettingsDialog dialog(engine, parent);
+    dialog.exec();
+}
+
 // エンジンオプションに基づいてUIコンポーネントを作成して配置する。
 void ChangeEngineSettingsDialog::createOptionWidgets()
 {

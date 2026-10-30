@@ -30,14 +30,8 @@ public:
     /// 設定ファイルからエンジンリストを読み込む
     void loadEnginesFromSettings();
 
-    /// 登録エンジンの一覧（正本。画面の一覧は enginesChanged で作り直す）
-    const QList<EngineEntry>& engineList() const;
-
-    /// 指定インデックスのエンジン情報を取得する
-    const EngineEntry& engineAt(int index) const;
-
-    /// パスの重複を検査する（重複時は existingName にエンジン名を返す）
-    bool isDuplicatePath(const QString& path, QString& existingName) const;
+    /// 登録エンジンの一覧（正本。画面の一覧は enginesChanged で作り直す。同じ実行ファイルの検索は findByPath）
+    const RegisteredEngines& engines() const { return m_engines; }
 
     /// エンジンパスが有効かどうかを検証する
     bool validateEnginePath(const QString& filePath) const;
@@ -85,9 +79,6 @@ private:
     void addOption(const QString& name, const QString& type, const QString& defaultValue,
                    const QString& min, const QString& max, const QString& currentValue);
 
-    /// 登録名。同じ id name の登録があれば「名前 (2)」のように番号を付けて重複しない名前にする
-    QString uniqueRegisteredName(const QString& idName) const;
-
     // エラー設定＋シグナル送出
     void setError(const QString& message);
 
@@ -101,7 +92,7 @@ private:
     QString m_fileName;
     QString m_engineIdName;
     QString m_engineIdAuthor;
-    QList<EngineEntry> m_engineList;
+    RegisteredEngines m_engines;
     QList<EngineOption> m_engineOptions;
 };
 

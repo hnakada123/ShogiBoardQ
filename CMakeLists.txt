@@ -894,6 +894,7 @@ set(SRC_SERVICES
     src/services/engineprofilestore.cpp
     src/services/engineprofilestore.h
     src/services/enginesettingsconstants.h
+    src/services/gamesettings.cpp
     src/services/gamesettings.h
     src/services/josekisettings.h
     src/services/networksettings.h

@@ -6,6 +6,7 @@
 ///
 /// 評価値グラフ・解析タブ・棋譜解析・検討モード・読み筋盤面に関する設定を提供します。
 
+#include <QMetaType>
 #include <QSize>
 #include <QList>
 #include <QString>
@@ -50,6 +51,41 @@ struct EvaluationChartSettings {
     }
     friend bool operator!=(const EvaluationChartSettings& a, const EvaluationChartSettings& b) { return !(a == b); }
 };
+
+/// 検討の条件（検討タブで選ぶ。値の範囲はここだけで決める）。検討タブはこの値を正本として持ち、変わると知らせる
+struct ConsiderationSettings {
+    static constexpr int kMinByoyomiSec = 1;
+    static constexpr int kMaxByoyomiSec = 3600;
+    static constexpr int kMaxMultiPV = 10;
+
+    /// 検討に使うエンジン（登録名。保存は検討タブのエンジンの選択 EngineListSettings::considerationSelection）
+    QString engineName;
+    bool unlimitedTime = true;   ///< 時間無制限で検討する
+    int byoyomiSec = 20;         ///< 時間を決めるときの1局面の検討時間（秒）
+    int multiPV = 1;             ///< 候補手の数（1〜kMaxMultiPV）
+
+    /// 1局面の検討時間（ms。0 は無制限）
+    int byoyomiMs() const { return unlimitedTime ? 0 : byoyomiSec * 1000; }
+
+    /// 範囲に収めた値
+    ConsiderationSettings normalized() const
+    {
+        ConsiderationSettings result = *this;
+        result.byoyomiSec = qBound(kMinByoyomiSec, byoyomiSec, kMaxByoyomiSec);
+        result.multiPV = qBound(1, multiPV, kMaxMultiPV);
+        return result;
+    }
+    static ConsiderationSettings normalizedOf(const ConsiderationSettings& settings) { return settings.normalized(); }
+
+    friend bool operator==(const ConsiderationSettings& a, const ConsiderationSettings& b)
+    {
+        return a.engineName == b.engineName && a.unlimitedTime == b.unlimitedTime && a.byoyomiSec == b.byoyomiSec
+            && a.multiPV == b.multiPV;
+    }
+    friend bool operator!=(const ConsiderationSettings& a, const ConsiderationSettings& b) { return !(a == b); }
+};
+
+Q_DECLARE_METATYPE(ConsiderationSettings)
 
 namespace AnalysisSettings {
 
@@ -131,14 +167,12 @@ inline const Setting<QSize> kifuAnalysisDialogSize{"SizeRelated/kifuAnalysisDial
 // --- 検討モード ---
 
 
-/// 検討タブの時間無制限フラグ（デフォルト: true）
-inline const Setting<bool> considerationUnlimitedTime{"Consideration/unlimitedTime", true};
-
-/// 検討タブで時間を決めるときの1局面の検討時間・秒（デフォルト: 20。1〜3600。検討の条件の既定値もこれ）
-inline const BoundedSetting<int> considerationByoyomiSec{"Consideration/byoyomiSec", 20, 1, 3600};
-
-/// 検討の候補手の数（デフォルト: 1。1〜10）
-inline const BoundedSetting<int> considerationMultiPV{"Consideration/multiPV", 1, 1, 10};
+/// 検討の条件（エンジンを除く。キーは以前の版と同じ。範囲は ConsiderationSettings で決める）
+inline const StructSetting<ConsiderationSettings> consideration{
+    {SettingField<ConsiderationSettings>::of("Consideration/unlimitedTime", &ConsiderationSettings::unlimitedTime),
+     SettingField<ConsiderationSettings>::of("Consideration/byoyomiSec", &ConsiderationSettings::byoyomiSec),
+     SettingField<ConsiderationSettings>::of("Consideration/multiPV", &ConsiderationSettings::multiPV)},
+    &ConsiderationSettings::normalizedOf};
 
 /// 検討の候補手を盤に矢印で出す（検討タブの「矢印表示」。デフォルト: true）
 inline const Setting<bool> considerationArrowsVisible{"Consideration/arrowsVisible", true};

@@ -21,7 +21,7 @@ struct EngineEntry {
  * @brief 登録エンジンの一覧（登録の順）と、名前・実行ファイルでの検索
  *
  * 保存形式は EngineProfileStore だけが知る（読むのは load()、書くのは EngineProfileStore::saveEngines）。
- * 検索はここだけで行う（GUI・CLI・自動化 API で同じ）。
+ * 検索と登録名の規則はここだけで行う（GUI・CLI・自動化 API・エンジンの登録で同じ）。
  */
 class RegisteredEngines
 {
@@ -43,6 +43,16 @@ public:
     int indexOfPath(const QString& path) const;
     std::optional<EngineEntry> findByName(const QString& name) const;
     std::optional<EngineEntry> findByPath(const QString& path) const;
+
+    /// 登録で重ならない名前（同じ名前の登録があれば「名前 (2)」のように番号を付ける）
+    QString uniqueName(const QString& name) const;
+    /// 比べるときの実行ファイルのパス（シンボリックリンクと "." などを解いた絶対パス。無いファイルは絶対パス）
+    static QString canonicalPath(const QString& path);
+
+    /// 登録の順の最後に足す
+    void append(const EngineEntry& entry) { m_entries.append(entry); }
+    /// 位置 index の登録を消す（範囲外なら何もしない）
+    void removeAt(int index);
 
 private:
     QList<EngineEntry> m_entries;

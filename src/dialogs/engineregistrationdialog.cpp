@@ -118,12 +118,10 @@ void EngineRegistrationDialog::addEngineFromFileSelection()
         return;
     }
 
-    // 既にリストに同じエンジンがあるかどうかをチェック
-    QString existingName;
-    if (m_handler->isDuplicatePath(fileName, existingName)) {
-        // エンジン登録が重複している場合、重複エラーのメッセージを表示する。
+    // 同じ実行ファイル（パスを正規化して比べる）を登録していれば断る
+    if (const std::optional<EngineEntry> existing = m_handler->engines().findByPath(fileName)) {
         QMessageBox::critical(this, tr("エラー"),
-            tr("エンジン %1 は既に追加されています。").arg(existingName));
+            tr("エンジン %1 は既に追加されています。").arg(existing->name));
         return;
     }
 
@@ -171,13 +169,9 @@ void EngineRegistrationDialog::configureEngine()
         return;
     }
 
-    // ここからは選択されたアイテムが正確に一つであることが保証されている。
-     // 最初（唯一の）アイテムを取得する。
-    QListWidgetItem* selectedItem = items.first();
-
     // 選択されたエンジンの設定変更ダイアログを表示する（見出しに作者名も出す）
-    ChangeEngineSettingsDialog dialog(m_handler->engineAt(ui->engineListWidget->row(selectedItem)), this);
-    dialog.exec();
+    ChangeEngineSettingsDialog::showFor(m_handler->engines().entries().at(ui->engineListWidget->row(items.first())),
+                                        this);
 }
 
 void EngineRegistrationDialog::rebuildEngineList()
@@ -186,7 +180,7 @@ void EngineRegistrationDialog::rebuildEngineList()
     const QString selectedName = current ? current->text() : QString();
     const int selectedRow = ui->engineListWidget->currentRow();
     ui->engineListWidget->clear();
-    for (const EngineEntry& engine : std::as_const(m_handler->engineList())) {
+    for (const EngineEntry& engine : m_handler->engines().entries()) {
         auto* item = new QListWidgetItem(engine.name, ui->engineListWidget);
         item->setToolTip(engine.path);
     }

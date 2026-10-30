@@ -27,48 +27,6 @@ QString defaultKifuSaveDir()
     return QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
 }
 
-constexpr qint64 kSecondMs = 1000;
-
-/// 保存した時間（時間・分・秒で保存している）
-TimeControlSide savedTime(const Saved::Player& saved)
-{
-    TimeControlSide time;
-    time.mainMs = (static_cast<qint64>(saved.basicTimeHour()) * 3600 + saved.basicTimeMinutes() * 60) * kSecondMs;
-    time.byoyomiMs = saved.byoyomiSec() * kSecondMs;
-    time.incrementMs = saved.addEachMoveSec() * kSecondMs;
-    return time;
-}
-
-void saveTime(const Saved::Player& saved, const TimeControlSide& time)
-{
-    saved.basicTimeHour.set(static_cast<int>(time.mainMs / (3600 * kSecondMs)));
-    saved.basicTimeMinutes.set(static_cast<int>(time.mainMs % (3600 * kSecondMs) / (60 * kSecondMs)));
-    saved.byoyomiSec.set(static_cast<int>(time.byoyomiMs / kSecondMs));
-    saved.addEachMoveSec.set(static_cast<int>(time.incrementMs / kSecondMs));
-}
-
-TimeControlSide defaultTime(const Saved::Player& saved)
-{
-    TimeControlSide time;
-    time.mainMs = (static_cast<qint64>(saved.basicTimeHour.defaultValue()) * 3600
-                   + saved.basicTimeMinutes.defaultValue() * 60) * kSecondMs;
-    time.byoyomiMs = saved.byoyomiSec.defaultValue() * kSecondMs;
-    time.incrementMs = saved.addEachMoveSec.defaultValue() * kSecondMs;
-    return time;
-}
-
-/// 以前の版が保存した開始局面の番号（0=現在の局面、1..14 はこの並び）の手合割。範囲外なら平手
-const Handicaps::Handicap* legacyStartingPosition(int number)
-{
-    static constexpr const char16_t* kLegacyOrder[] = {
-        u"平手", u"香落ち", u"右香落ち", u"角落ち", u"飛車落ち", u"飛香落ち", u"二枚落ち",
-        u"三枚落ち", u"四枚落ち", u"五枚落ち", u"左五枚落ち", u"六枚落ち", u"八枚落ち", u"十枚落ち",
-    };
-    if (number == 0) return nullptr;
-    const int index = number >= 1 && number <= static_cast<int>(std::size(kLegacyOrder)) ? number - 1 : 0;
-    return Handicaps::byLabel(QStringView(kLegacyOrder[index]));
-}
-
 /// 「現在の局面」の項目の値（手合割の項目は Handicaps::kAll の添字）
 constexpr int kCurrentPosition = -1;
 } // namespace
@@ -235,8 +193,7 @@ void StartGameDialog::swapSides()
 
 void StartGameDialog::showEngineSettingsDialog(const EngineEntry& engine)
 {
-    ChangeEngineSettingsDialog dialog(engine, this);
-    dialog.exec();
+    ChangeEngineSettingsDialog::showFor(engine, this);
 }
 
 void StartGameDialog::showJosekiConditionsDialog(int side)
@@ -366,31 +323,22 @@ void StartGameDialog::saveGameSettings()
     const std::array<const Saved::Player*, 2> saved{&Saved::player1, &Saved::player2};
     for (std::size_t i = 0; i < 2; ++i) {
         m_players[i]->save();
-        saveTime(*saved[i], m_times[i]->value());
+        saved[i]->setTime(m_times[i]->value());
     }
     // 開始局面は手合割の名前で保存する（「現在の局面」は空）
     const int position = ui->comboBoxStartingPosition->currentData().toInt();
-    Saved::startingPositionName.set(position == kCurrentPosition ? QString()
-                                                                 : Handicaps::labelOf(Handicaps::kAll[position]));
-    Saved::startingPositionNumber.remove();
+    Saved::setStartingPosition(position == kCurrentPosition ? nullptr : &Handicaps::kAll[position]);
     m_form.save();
 }
 
 void StartGameDialog::loadGameSettings()
 {
     const std::array<const Saved::Player*, 2> saved{&Saved::player1, &Saved::player2};
-    for (std::size_t i = 0; i < 2; ++i) m_times[i]->setValue(savedTime(*saved[i]));
+    for (std::size_t i = 0; i < 2; ++i) m_times[i]->setValue(saved[i]->time());
     m_form.load();
 
-    // 開始局面: 手合割の名前（空は現在の局面）。以前の版は番号（と表示した名前）で保存していた
-    const Handicaps::Handicap* handicap = &Handicaps::kAll[0];
-    if (Saved::startingPositionNumber.isSaved()) {
-        handicap = legacyStartingPosition(Saved::startingPositionNumber());
-    } else {
-        const QString name = Saved::startingPositionName();
-        handicap = name.isEmpty() ? nullptr : Handicaps::byLabel(name);
-        if (!handicap && !name.isEmpty()) handicap = &Handicaps::kAll[0];
-    }
+    // 開始局面: 手合割（nullptr は現在の局面）
+    const Handicaps::Handicap* handicap = Saved::startingPosition();
     ui->comboBoxStartingPosition->setCurrentIndex(
         handicap ? ui->comboBoxStartingPosition->findData(static_cast<int>(handicap - Handicaps::kAll)) : 0);
 
@@ -402,8 +350,8 @@ void StartGameDialog::resetSettingsToDefault()
     // 先手は人間、後手は先頭の登録エンジン（無ければ人間）
     m_players[0]->reset(false);
     m_players[1]->reset(true);
-    m_times[0]->setValue(defaultTime(Saved::player1));
-    m_times[1]->setValue(defaultTime(Saved::player2));
+    m_times[0]->setValue(Saved::player1.defaultTime());
+    m_times[1]->setValue(Saved::player2.defaultTime());
     m_form.reset();
     // 開始局面は平手
     ui->comboBoxStartingPosition->setCurrentIndex(1);
