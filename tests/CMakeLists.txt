@@ -653,6 +653,8 @@ add_shogi_test(tst_settings_roundtrip
 add_shogi_test(tst_settings_reset
     tst_settings_reset.cpp
     ${SRC}/ui/controllers/settingsresetcontroller.cpp
+    ${SRC}/ui/presenters/notificationpresenter.cpp
+    ${SRC}/common/errorbus.cpp
     ${SRC}/widgets/dialogutils.cpp
     ${SRC}/services/settingscommon.cpp
 )
@@ -821,6 +823,8 @@ add_shogi_test(tst_image_export
     tst_image_export.cpp
     ${SRC}/common/logcategories.cpp
     ${SRC}/ui/controllers/widgetimageexporter.cpp
+    ${SRC}/ui/presenters/notificationpresenter.cpp
+    ${SRC}/common/errorbus.cpp
 )
 
 # ============================================================
@@ -839,6 +843,8 @@ add_shogi_test(tst_dock_layout
     ${SRC}/common/logcategories.cpp
     ${SRC}/ui/docks/docklayoutmanager.cpp
     ${SRC}/ui/docks/dockregistry.cpp
+    ${SRC}/ui/presenters/notificationpresenter.cpp
+    ${SRC}/common/errorbus.cpp
     ${SRC}/widgets/layoutboundarywidget.cpp
     ${SRC}/widgets/opaquebackground.cpp
     ${SRC}/widgets/dialogfontscale.cpp
@@ -887,6 +893,8 @@ add_shogi_test(tst_language_controller
     ${SRC}/widgets/dialogutils.cpp
     ${SRC}/common/logcategories.cpp
     ${SRC}/ui/controllers/languagecontroller.cpp
+    ${SRC}/ui/presenters/notificationpresenter.cpp
+    ${SRC}/common/errorbus.cpp
     ${SETTINGS_SOURCES}
 )
 

@@ -4,7 +4,6 @@
 #include "positioneditsession.h"
 #include "positioneditrules.h"
 
-#include <QAction>
 
 #include "appactivitystate.h"
 #include "boardchromewidget.h"
@@ -28,16 +27,6 @@ PositionEditSession::PositionEditSession(const Deps& deps, QObject* parent)
     Q_ASSERT(m_deps.view && m_deps.view->board() && m_deps.board && m_deps.navState && m_deps.activity);
     connect(m_deps.view->chrome(), &BoardChromeWidget::editExitRequested, this, &PositionEditSession::finish);
     connect(m_deps.activity, &AppActivityState::revoked, this, &PositionEditSession::onActivityRevoked);
-
-    const EditActions& a = m_deps.actions;
-    if (a.returnAllPiecesToStand)
-        connect(a.returnAllPiecesToStand, &QAction::triggered, this, &PositionEditSession::returnAllPiecesToBox);
-    if (a.setHiratePosition)
-        connect(a.setHiratePosition, &QAction::triggered, this, &PositionEditSession::setHiratePosition);
-    if (a.setTsumePosition)
-        connect(a.setTsumePosition, &QAction::triggered, this, &PositionEditSession::setTsumePosition);
-    if (a.changeTurn)
-        connect(a.changeTurn, &QAction::triggered, this, &PositionEditSession::toggleSideToMove);
 }
 
 bool PositionEditSession::isEditing() const

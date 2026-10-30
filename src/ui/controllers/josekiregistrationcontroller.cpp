@@ -2,6 +2,7 @@
 /// @brief エンジンの読み筋を定跡に登録する利用者操作の実装
 
 #include "josekiregistrationcontroller.h"
+#include "notificationpresenter.h"
 
 #include "josekianalysisregisterdialog.h"
 #include "josekibooksession.h"
@@ -13,7 +14,6 @@
 
 #include <QAction>
 #include <QMenu>
-#include <QMessageBox>
 #include <QStatusBar>
 
 namespace {
@@ -168,5 +168,5 @@ void JosekiRegistrationController::registerAnalysisResults()
         ? tr("定跡に %1 手を登録し、%2 手を書き換えました（定跡ウィンドウで保存してください）").arg(result.added).arg(result.updated)
         : tr("定跡に %1 手を登録しました（定跡ウィンドウで保存してください）").arg(result.added);
     showStatus(text);
-    QMessageBox::information(m_deps.parentWidget, tr("結果をまとめて定跡に登録"), text);
+    NotificationPresenter::information(m_deps.parentWidget, tr("結果をまとめて定跡に登録"), text);
 }

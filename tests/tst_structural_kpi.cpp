@@ -518,6 +518,27 @@ private slots:
     }
 
     // ================================================================
+    // i2) ui・app の知らせは NotificationPresenter で出す
+    //     QMessageBox の静的関数を直接使うと、自動化 API の呼び出し中の記録（ScopedCapture）と
+    //     文を HTML として読まない指定（PlainText）を通らない
+    // ================================================================
+    void uiAndAppUseNotificationPresenter()
+    {
+        const QRegularExpression pattern(QStringLiteral(R"(QMessageBox::(warning|information|critical)\s*\()"));
+        QStringList offenders;
+        for (const char* dir : {"/src/ui", "/src/app"}) {
+            QDirIterator it(QStringLiteral(SOURCE_DIR) + QLatin1String(dir), {QStringLiteral("*.cpp")}, QDir::Files,
+                            QDirIterator::Subdirectories);
+            while (it.hasNext()) {
+                const QString path = it.next();
+                const int count = countPatternOccurrences(path, pattern);
+                if (count > 0) offenders.append(QStringLiteral("%1: %2").arg(QFileInfo(path).fileName()).arg(count));
+            }
+        }
+        QVERIFY2(offenders.isEmpty(), qPrintable(offenders.join(QStringLiteral(", "))));
+    }
+
+    // ================================================================
     // j) テストは非公開メンバを覗かない
     //    `#define private public` を使わず、MainWindow::composer() などの公開 API で検証する
     // ================================================================

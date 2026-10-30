@@ -7,6 +7,7 @@
 #include <QMenuBar>
 #include <QMenu>
 #include <QAction>
+#include <QDockWidget>
 #include <utility>
 #include "logcategories.h"
 
@@ -17,6 +18,13 @@ MenuWindowController::MenuWindowController(const Deps& deps, QObject* parent)
 {
     // カテゴリ情報を収集して設定（ドックの表示の切り替えはドックを作った後に collectCategoriesFromMenuBar() で足す）
     collectCategoriesFromMenuBar();
+}
+
+void MenuWindowController::toggleWindow()
+{
+    if (!m_dock) return;
+    m_dock->toggleViewAction()->trigger();
+    if (m_dock->isVisible()) m_dock->raise();
 }
 
 void MenuWindowController::collectCategoriesFromMenuBar()

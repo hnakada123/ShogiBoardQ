@@ -2,6 +2,7 @@
 /// @brief 棋譜の文書とファイルをつなぐ部品の実装
 
 #include "kifufilecontroller.h"
+#include "notificationpresenter.h"
 
 #include "kifufilefilter.h"
 #include "appactivitystate.h"
@@ -17,6 +18,7 @@
 #include "kifupastedialog.h"
 #include "kifusavedialogs.h"
 #include "logcategories.h"
+#include "sfencollectiondialog.h"
 #include "shogiboard.h"
 #include "usiexporter.h"
 
@@ -26,7 +28,6 @@
 #include <QDir>
 #include <QFileDialog>
 #include <QFileInfo>
-#include <QMessageBox>
 #include <QProgressDialog>
 #include <functional>
 
@@ -105,6 +106,21 @@ void KifuFileController::onKifuPasteImportRequested(const QString& content)
     qCDebug(lcApp) << "onKifuPasteImportRequested: content length =" << content.size();
     if (refuseReplacingRecord() || !confirmDiscardUnsaved()) return;
     startAsyncLoad(content, Source::Text);
+}
+
+void KifuFileController::openSfenCollection()
+{
+    // 既にダイアログが開いている場合はアクティブにする
+    if (m_sfenCollectionDialog) {
+        m_sfenCollectionDialog->raise();
+        m_sfenCollectionDialog->activateWindow();
+        return;
+    }
+    m_sfenCollectionDialog = new SfenCollectionDialog(m_deps.parentWidget);
+    m_sfenCollectionDialog->setAttribute(Qt::WA_DeleteOnClose);
+    connect(m_sfenCollectionDialog, &SfenCollectionDialog::positionSelected,
+            this, &KifuFileController::onSfenCollectionPositionSelected);
+    m_sfenCollectionDialog->show();
 }
 
 void KifuFileController::onSfenCollectionPositionSelected(const QString& sfen)
@@ -226,7 +242,7 @@ void KifuFileController::saveKifuToFile()
         std::bind(&KifuFileController::exportLines, this, std::placeholders::_1, std::placeholders::_2),
         defaultFileName(QStringLiteral("kifu")),
         hasBranches, hasTimeInfo, &error);
-    if (!error.isEmpty()) QMessageBox::warning(m_deps.parentWidget, tr("KIF Save Error"), error);
+    if (!error.isEmpty()) NotificationPresenter::warning(m_deps.parentWidget, tr("KIF Save Error"), error);
     if (!path.isEmpty()) markSaved(path, tr("棋譜を保存しました: %1").arg(path));
 }
 
@@ -240,7 +256,7 @@ void KifuFileController::overwriteKifuFile()
     QString error;
     // 確認ダイアログでキャンセルした場合は error が空
     if (!writeToPath(filePath, m_deps.parentWidget, &error) && !error.isEmpty())
-        QMessageBox::warning(m_deps.parentWidget, tr("KIF Save Error"), error);
+        NotificationPresenter::warning(m_deps.parentWidget, tr("KIF Save Error"), error);
 }
 
 bool KifuFileController::saveKifuToPath(const QString& filePath, QString* errorText)

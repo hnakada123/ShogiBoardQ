@@ -2,12 +2,11 @@
 /// @brief メニューから開くダイアログの起動の実装
 
 #include "dialoglauncher.h"
+#include "notificationpresenter.h"
 #include "piecesoundplayer.h"
 #include "piecesoundsettingsdialog.h"
 
 #include <QDesktopServices>
-#include <QDockWidget>
-#include <QMessageBox>
 #include <QUrl>
 #include <utility>
 
@@ -20,13 +19,9 @@
 #include "shogiview.h"
 #include "jishogiscoredialog.h"
 #include "shogiboard.h"
-#include "csagamesession.h"
-#include "csagamedialog.h"
-#include "sfencollectiondialog.h"
 #include "tsumeshogigeneratordialog.h"
 #include "tsumecollectiondialog.h"
 #include "versiondialog.h"
-#include "kifufilecontroller.h"
 #include "logcategories.h"
 
 DialogLauncher::DialogLauncher(const Deps& deps, QObject* parent)
@@ -62,7 +57,7 @@ void DialogLauncher::displayJishogiScoreDialog()
 {
     auto* sv = m_deps.shogiView;
     if (!sv || !sv->board()) {
-        QMessageBox::warning(m_deps.parentWidget, tr("エラー"), tr("盤面データがありません。"));
+        NotificationPresenter::warning(m_deps.parentWidget, tr("エラー"), tr("盤面データがありません。"));
         return;
     }
 
@@ -82,54 +77,6 @@ void DialogLauncher::displayTsumeshogiGeneratorDialog()
 {
     TsumeshogiGeneratorDialog dialog(m_deps.parentWidget);
     dialog.exec();
-}
-
-void DialogLauncher::displayMenuWindow()
-{
-    // ドックの表示/非表示をトグル
-    QDockWidget* dock = m_deps.menuWindowDock;
-    if (!dock) return;
-    if (dock->isVisible()) {
-        dock->hide();
-    } else {
-        dock->show();
-        dock->raise();
-    }
-}
-
-void DialogLauncher::displayCsaGameDialog()
-{
-    // ダイアログが未作成の場合は作成する
-    if (!m_csaGameDialog) {
-        m_csaGameDialog = new CsaGameDialog(m_deps.parentWidget);
-    }
-
-    CsaGameDialog* dlg = m_csaGameDialog;
-    dlg->refreshChoices();
-
-    // ダイアログを表示する
-    if (dlg->exec() == QDialog::Accepted) {
-        if (m_deps.kifuFileController && !m_deps.kifuFileController->confirmDiscardUnsaved()) return;
-        // 待機ダイアログを出して対局が始まるまで待つ（始まった後は CsaGameSession が進める）
-        if (m_deps.csaSession) m_deps.csaSession->startGame(dlg->selection());
-    }
-}
-
-void DialogLauncher::displaySfenCollectionViewer()
-{
-    // 既にダイアログが開いている場合はアクティブにする
-    if (m_sfenCollectionDialog) {
-        m_sfenCollectionDialog->raise();
-        m_sfenCollectionDialog->activateWindow();
-        return;
-    }
-
-    auto* dlg = new SfenCollectionDialog(m_deps.parentWidget);
-    m_sfenCollectionDialog = dlg;
-    dlg->setAttribute(Qt::WA_DeleteOnClose);
-    connect(dlg, &SfenCollectionDialog::positionSelected,
-            this, &DialogLauncher::sfenCollectionPositionSelected);
-    dlg->show();
 }
 
 void DialogLauncher::displayPieceSoundSettingsDialog()

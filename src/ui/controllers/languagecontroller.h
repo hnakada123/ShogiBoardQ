@@ -35,8 +35,6 @@ public:
         QAction* notationAuto = nullptr;          ///< 指し手の表記: 言語に合わせる
         QAction* notationJapanese = nullptr;      ///< 指し手の表記: 日本式
         QAction* notationWestern = nullptr;       ///< 指し手の表記: 英語式
-        QAction* notationOrigin = nullptr;        ///< 移動元を付ける
-        QAction* notationHelp = nullptr;          ///< 表記の説明
     };
 
     /// 言語（相互排他）と表記の項目を設定とつなぐ
@@ -46,16 +44,22 @@ public:
      * @brief 言語メニューのチェックを保存した言語に合わせる
      */
     void updateMenuState();
+    /// 移動元を付けるか（「移動元を付ける」のチェックの初期値）
+    bool notationOrigin() const;
+
+public slots:
+    /// 「移動元を付ける」を変えた（保存し、再起動を案内する）
+    void onOriginTriggered(bool enabled);
+    /// 「棋譜表記の読み方」
+    void showNotationHelp();
 
 private slots:
     /// 言語の項目が選ばれた（項目の data が言語コード）
     void onLanguageTriggered(QAction* action);
     void onNotationTriggered(QAction* action);
-    void onOriginTriggered(bool enabled);
-    void showNotationHelp();
 
 private:
-    void setNotationActions(QAction* automatic, QAction* japanese, QAction* western, QAction* origin, QAction* help);
+    void setNotationActions(QAction* automatic, QAction* japanese, QAction* western);
     void restartNotice();
 
     QActionGroup* m_languageGroup = nullptr;   ///< 言語の項目（data は "system"・"ja_JP"・"en"・"zh_CN"・"zh_TW"）

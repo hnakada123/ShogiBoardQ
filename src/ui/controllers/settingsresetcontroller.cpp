@@ -2,6 +2,7 @@
 /// @brief 全設定の初期化と終了確認の実装
 
 #include "settingsresetcontroller.h"
+#include "notificationpresenter.h"
 #include "dialogutils.h"
 #include "settingscommon.h"
 
@@ -39,7 +40,7 @@ int SettingsResetController::finalizeExit(int exitCode)
     // ウィンドウや子ウィジェットが終了時に保存する値も、ここでまとめて消去する。
     if (SettingsCommon::resetAllSettings()) return 0;
 
-    QMessageBox::critical(nullptr, tr("設定の初期化に失敗"),
+    NotificationPresenter::critical(nullptr, tr("設定の初期化に失敗"),
         tr("設定ファイルを初期化できませんでした。\n"
            "保存先の書き込み権限や空き容量を確認してください。\n\n%1")
             .arg(SettingsCommon::settingsFilePath()));

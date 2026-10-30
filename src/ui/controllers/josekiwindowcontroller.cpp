@@ -2,6 +2,7 @@
 /// @brief 定跡ウィンドウの表示・更新と、定跡手の着手の実装
 
 #include "josekiwindowcontroller.h"
+#include "notificationpresenter.h"
 
 #include "humanturnpolicy.h"
 #include "logcategories.h"
@@ -20,7 +21,6 @@
 
 #include <QAction>
 #include <QDockWidget>
-#include <QMessageBox>
 #include <functional>
 
 JosekiWindowController::JosekiWindowController(const Deps& deps, QObject* parent)
@@ -127,7 +127,7 @@ void JosekiWindowController::onExpandRequested()
     if (dialog.exec() != QDialog::Accepted || m_book->isBusy()) return;
     const JosekiLines::ExpandOptions options = dialog.options();
     if (!m_branchEdit->canEdit()) {
-        QMessageBox::information(m_parentWidget, tr("定跡を棋譜に展開"), tr("対局中は棋譜に展開できません。"));
+        NotificationPresenter::information(m_parentWidget, tr("定跡を棋譜に展開"), tr("対局中は棋譜に展開できません。"));
         return;
     }
     // 終局の行を表示していれば、その前の局面から展開する
@@ -145,7 +145,7 @@ void JosekiWindowController::onExpandRequested()
         text += QLatin1Char('\n') + tr("別の手順で同じ局面に着いたため %1 か所で止めました。").arg(result.transpositions);
     if (result.truncated)
         text += QLatin1Char('\n') + tr("手の数が上限（%1 手）に達したため、途中で止めました。").arg(options.maxMoves);
-    QMessageBox::information(m_parentWidget, tr("定跡を棋譜に展開"), text);
+    NotificationPresenter::information(m_parentWidget, tr("定跡を棋譜に展開"), text);
 }
 
 bool JosekiWindowController::determineHumanCanPlay() const

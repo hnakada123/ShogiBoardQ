@@ -3165,22 +3165,22 @@
 <context>
     <name>CsaGameSession</name>
     <message>
-        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="56"/>
+        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="67"/>
         <source>通信対局をキャンセルしました</source>
         <translation>网络对局已取消</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="74"/>
+        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="85"/>
         <source>CSA通信対局開始: %1 vs %2</source>
         <translation>CSA 网络对局开始：%1 对 %2</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="84"/>
+        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="95"/>
         <source>対局終了</source>
         <translation>对局结束</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="84"/>
+        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="95"/>
         <source>対局が終了しました。
 
 結果: %1
@@ -3191,17 +3191,17 @@
 原因：%2</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="85"/>
+        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="96"/>
         <source>対局終了: %1 (%2)</source>
         <translation>对局结束：%1（%2）</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="91"/>
+        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="102"/>
         <source>先手番</source>
         <translation>先手行棋</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="91"/>
+        <location filename="../../src/ui/coordinators/csagamesession.cpp" line="102"/>
         <source>後手番</source>
         <translation>后手行棋</translation>
     </message>
@@ -3656,12 +3656,12 @@
 <context>
     <name>DialogLauncher</name>
     <message>
-        <location filename="../../src/ui/controllers/dialoglauncher.cpp" line="65"/>
+        <location filename="../../src/ui/controllers/dialoglauncher.cpp" line="60"/>
         <source>エラー</source>
         <translation>错误</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/dialoglauncher.cpp" line="65"/>
+        <location filename="../../src/ui/controllers/dialoglauncher.cpp" line="60"/>
         <source>盤面データがありません。</source>
         <translation>没有棋盘数据。</translation>
     </message>
@@ -3731,101 +3731,101 @@
 <context>
     <name>DockLayoutManager</name>
     <message>
-        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="48"/>
+        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="58"/>
         <source>ドックレイアウトを保存</source>
         <translation>保存面板布局</translation>
     </message>
     <message>
-        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="49"/>
+        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="59"/>
         <source>レイアウト名:</source>
         <translation>布局名称：</translation>
     </message>
     <message>
-        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="64"/>
-        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="104"/>
+        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="74"/>
+        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="114"/>
         <source>確認</source>
         <translation>确认</translation>
     </message>
     <message>
-        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="65"/>
+        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="75"/>
         <source>「%1」は既に存在します。上書きしますか？</source>
         <translation>“%1”已存在。覆盖吗？</translation>
     </message>
     <message>
-        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="66"/>
+        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="76"/>
         <source>上書きする</source>
         <translation>覆盖</translation>
     </message>
     <message>
-        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="78"/>
+        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="88"/>
         <source>保存完了</source>
         <translation>保存完成</translation>
     </message>
     <message>
-        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="79"/>
+        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="89"/>
         <source>レイアウト「%1」を保存しました。</source>
         <translation>已保存布局“%1”。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="88"/>
+        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="98"/>
         <source>エラー</source>
         <translation>错误</translation>
     </message>
     <message>
-        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="89"/>
+        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="99"/>
         <source>レイアウト「%1」が見つかりません。</source>
         <translation>未找到布局“%1”。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="105"/>
+        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="115"/>
         <source>レイアウト「%1」を削除しますか？</source>
         <translation>删除布局“%1”吗？</translation>
     </message>
     <message>
-        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="105"/>
+        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="115"/>
         <source>削除する</source>
         <translation>删除</translation>
     </message>
     <message>
-        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="117"/>
         <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="127"/>
+        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="137"/>
         <source>設定完了</source>
         <translation>设置完成</translation>
     </message>
     <message>
-        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="118"/>
+        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="128"/>
         <source>レイアウト「%1」を起動時のレイアウトに設定しました。</source>
         <translation>已将布局“%1”设为启动布局。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="128"/>
+        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="138"/>
         <source>起動時のレイアウト設定をクリアしました。
 次回起動時はデフォルトレイアウトが使用されます。</source>
         <translation>已清除启动布局设置。
 下次启动时将使用默认布局。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="158"/>
+        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="168"/>
         <source>（保存済みレイアウトなし）</source>
         <translation>（无已保存的布局）</translation>
     </message>
     <message>
-        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="172"/>
+        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="182"/>
         <source>復元</source>
         <translation>恢复</translation>
     </message>
     <message>
-        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="177"/>
+        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="187"/>
         <source>起動時のレイアウトに設定</source>
         <translation>设为启动布局</translation>
     </message>
     <message>
-        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="184"/>
+        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="194"/>
         <source>削除</source>
         <translation>删除</translation>
     </message>
     <message>
-        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="192"/>
+        <location filename="../../src/ui/docks/docklayoutmanager.cpp" line="202"/>
         <source>起動時のレイアウトをクリア</source>
         <translation>清除启动布局</translation>
     </message>
@@ -5230,7 +5230,7 @@ ABC abc 0123456789</translation>
 <context>
     <name>GameSession</name>
     <message>
-        <location filename="../../src/app/gamesession.cpp" line="181"/>
+        <location filename="../../src/app/gamesession.cpp" line="178"/>
         <source>保存していない定跡</source>
         <translation>未保存的定跡</translation>
     </message>
@@ -5239,7 +5239,7 @@ ABC abc 0123456789</translation>
         <translation type="vanished">无限制</translation>
     </message>
     <message>
-        <location filename="../../src/app/gamesession.cpp" line="227"/>
+        <location filename="../../src/app/gamesession.cpp" line="224"/>
         <source>対局：▲%1 △%2（%3 開始、持ち時間 %4）</source>
         <translation>对局：▲%1 △%2（%3 开始，用时 %4）</translation>
     </message>
@@ -8100,7 +8100,7 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>KifuFileController</name>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="80"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="81"/>
         <source>棋譜ファイルを開く</source>
         <translation>打开棋谱文件</translation>
     </message>
@@ -8113,7 +8113,7 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">棋谱文件 (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.usi *.sfen *.usen);;KIF 文件 (*.kif *.kifu);;KI2 文件 (*.ki2 *.ki2u);;CSA 文件 (*.csa);;JKF 文件 (*.jkf);;USI/SFEN 文件 (*.usi *.sfen);;USEN 文件 (*.usen)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="55"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="56"/>
         <source>対局・検討・解析・局面編集の間は、棋譜を読み込めません</source>
         <translation>对局、研究、分析或局面编辑期间无法载入棋谱</translation>
     </message>
@@ -8122,169 +8122,169 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">棋谱文件 (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.json *.usi *.sfen *.usen);;KIF 文件 (*.kif *.kifu);;KI2 文件 (*.ki2 *.ki2u);;CSA 文件 (*.csa);;JKF 文件 (*.jkf *.json);;USI/SFEN 文件 (*.usi *.sfen);;USEN 文件 (*.usen)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="123"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="139"/>
         <source>棋譜を読み込み中...</source>
         <translation>正在载入棋谱...</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="123"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="139"/>
         <source>キャンセル</source>
         <translation>取消</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="157"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="173"/>
         <source>棋譜を取り込みました</source>
         <translation>棋谱已导入</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="165"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="181"/>
         <source>局面を反映しました</source>
         <translation>局面已应用</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="165"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="181"/>
         <source>局面の反映に失敗しました</source>
         <translation>应用局面失败</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="229"/>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="243"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="245"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="259"/>
         <source>KIF Save Error</source>
         <translation>KIF 保存错误</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="230"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="246"/>
         <source>棋譜を保存しました: %1</source>
         <translation>棋谱已保存：%1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="260"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="276"/>
         <source>棋譜を上書き保存しました: %1</source>
         <translation>棋谱已覆盖保存：%1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="268"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="284"/>
         <source>棋譜の自動保存先を作成できません: %1</source>
         <translation>无法创建自动保存文件夹：%1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="280"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="296"/>
         <source>棋譜データが空のため自動保存をスキップしました</source>
         <translation>棋谱数据为空，已跳过自动保存</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="285"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="301"/>
         <source>棋譜を自動保存しました: %1</source>
         <translation>已自动保存棋谱：%1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="289"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="305"/>
         <source>棋譜の自動保存に失敗しました: %1</source>
         <translation>自动保存棋谱失败：%1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="303"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="319"/>
         <source>クリップボードへのコピーに失敗しました</source>
         <translation>复制到剪贴板失败</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="317"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="333"/>
         <source>KIF形式の棋譜データがありません</source>
         <translation>没有 KIF 格式棋谱数据</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="317"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="333"/>
         <source>KIF形式の棋譜をクリップボードにコピーしました</source>
         <translation>已将 KIF 格式棋谱复制到剪贴板</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="324"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="340"/>
         <source>KI2形式の棋譜データがありません</source>
         <translation>没有 KI2 格式棋谱数据</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="324"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="340"/>
         <source>KI2形式の棋譜をクリップボードにコピーしました</source>
         <translation>已将 KI2 格式棋谱复制到剪贴板</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="328"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="344"/>
         <source>CSA形式の棋譜データがありません</source>
         <translation>没有 CSA 格式棋谱数据</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="329"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="345"/>
         <source>CSA形式の棋譜をクリップボードにコピーしました（CSA形式は分岐に対応していないため、本譜のみです）</source>
         <translation>已将 CSA 格式棋谱复制到剪贴板（CSA 格式不支持变化，仅包含主线）</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="330"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="346"/>
         <source>CSA形式の棋譜をクリップボードにコピーしました</source>
         <translation>已将 CSA 格式棋谱复制到剪贴板</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="333"/>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="370"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="349"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="386"/>
         <source>USI形式の棋譜データがありません</source>
         <translation>没有 USI 格式棋谱数据</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="334"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="350"/>
         <source>USI形式の棋譜をクリップボードにコピーしました（USI形式は分岐に対応していないため、本譜のみです）</source>
         <translation>已将 USI 格式棋谱复制到剪贴板（USI 格式不支持变化，仅包含主线）</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="335"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="351"/>
         <source>USI形式の棋譜をクリップボードにコピーしました</source>
         <translation>已将 USI 格式棋谱复制到剪贴板</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="338"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="354"/>
         <source>JKF形式の棋譜データがありません</source>
         <translation>没有 JKF 格式棋谱数据</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="338"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="354"/>
         <source>JKF形式の棋譜をクリップボードにコピーしました</source>
         <translation>已将 JKF 格式棋谱复制到剪贴板</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="341"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="357"/>
         <source>USEN形式の棋譜データがありません</source>
         <translation>没有 USEN 格式棋谱数据</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="341"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="357"/>
         <source>USEN形式の棋譜をクリップボードにコピーしました</source>
         <translation>已将 USEN 格式棋谱复制到剪贴板</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="374"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="390"/>
         <source>USI形式（現在の指し手まで）の棋譜をクリップボードにコピーしました</source>
         <translation>已将截至当前着法的 USI 格式棋谱复制到剪贴板</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="392"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="408"/>
         <source>SFEN形式の局面データがありません</source>
         <translation>没有 SFEN 格式局面数据</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="395"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="411"/>
         <source>SFEN形式の局面をクリップボードにコピーしました</source>
         <translation>已将 SFEN 格式局面复制到剪贴板</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="402"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="418"/>
         <source>BOD形式の局面データがありません</source>
         <translation>没有 BOD 格式局面数据</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="407"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="423"/>
         <source>SFEN形式の解析に失敗しました</source>
         <translation>解析 SFEN 格式失败</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="416"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="432"/>
         <source>BOD形式の局面をクリップボードにコピーしました</source>
         <translation>已将 BOD 格式局面复制到剪贴板</translation>
     </message>
@@ -8990,24 +8990,24 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>LanguageController</name>
     <message>
-        <location filename="../../src/ui/controllers/languagecontroller.cpp" line="61"/>
+        <location filename="../../src/ui/controllers/languagecontroller.cpp" line="60"/>
         <source>言語設定</source>
         <translation>语言</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/languagecontroller.cpp" line="62"/>
+        <location filename="../../src/ui/controllers/languagecontroller.cpp" line="61"/>
         <source>設定を変更しました。
 変更を反映するにはアプリケーションを再起動してください。</source>
         <translation>设置已修改。
 请重新启动应用程序以应用设置。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/languagecontroller.cpp" line="96"/>
+        <location filename="../../src/ui/controllers/languagecontroller.cpp" line="97"/>
         <source>棋譜表記の読み方</source>
         <translation>棋谱记法说明</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/languagecontroller.cpp" line="97"/>
+        <location filename="../../src/ui/controllers/languagecontroller.cpp" line="98"/>
         <source>表記設定は表示だけに適用されます。棋譜の保存形式は変わりません。
 
 英語表記：K=玉、R=飛、B=角、G=金、S=銀、N=桂、L=香、P=歩。
@@ -9930,17 +9930,17 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>NotificationPresenter</name>
     <message>
-        <location filename="../../src/ui/presenters/notificationpresenter.cpp" line="54"/>
+        <location filename="../../src/ui/presenters/notificationpresenter.cpp" line="39"/>
         <source>Information</source>
         <translation>信息</translation>
     </message>
     <message>
-        <location filename="../../src/ui/presenters/notificationpresenter.cpp" line="57"/>
+        <location filename="../../src/ui/presenters/notificationpresenter.cpp" line="42"/>
         <source>Warning</source>
         <translation>警告</translation>
     </message>
     <message>
-        <location filename="../../src/ui/presenters/notificationpresenter.cpp" line="61"/>
+        <location filename="../../src/ui/presenters/notificationpresenter.cpp" line="46"/>
         <source>Error</source>
         <translation>错误</translation>
     </message>
@@ -11435,12 +11435,12 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>SettingsResetController</name>
     <message>
-        <location filename="../../src/ui/controllers/settingsresetcontroller.cpp" line="21"/>
+        <location filename="../../src/ui/controllers/settingsresetcontroller.cpp" line="22"/>
         <source>設定の初期化</source>
         <translation>重置设置</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/settingsresetcontroller.cpp" line="22"/>
+        <location filename="../../src/ui/controllers/settingsresetcontroller.cpp" line="23"/>
         <source>エンジン登録、表示、対局など、すべての設定を初期値に戻して終了します。
 この操作は取り消せません。次回起動時は初期設定が使用されます。
 
@@ -11451,17 +11451,17 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 重置所有设置并退出吗？</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/settingsresetcontroller.cpp" line="25"/>
+        <location filename="../../src/ui/controllers/settingsresetcontroller.cpp" line="26"/>
         <source>初期値に戻して終了</source>
         <translation>恢复默认并退出</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/settingsresetcontroller.cpp" line="42"/>
+        <location filename="../../src/ui/controllers/settingsresetcontroller.cpp" line="43"/>
         <source>設定の初期化に失敗</source>
         <translation>重置设置失败</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/settingsresetcontroller.cpp" line="43"/>
+        <location filename="../../src/ui/controllers/settingsresetcontroller.cpp" line="44"/>
         <source>設定ファイルを初期化できませんでした。
 保存先の書き込み権限や空き容量を確認してください。
 
@@ -12719,7 +12719,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
     </message>
     <message>
         <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="132"/>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="220"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="218"/>
         <source>正解手順</source>
         <translation>解答</translation>
     </message>
@@ -12732,17 +12732,17 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">放大字号</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="433"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="431"/>
         <source>一手戻す</source>
         <translation>撤销上一手</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="446"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="444"/>
         <source>探索中止</source>
         <translation>停止搜索</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="447"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="445"/>
         <source>再判定</source>
         <translation>重试搜索</translation>
     </message>
@@ -12752,7 +12752,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>返回题集</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="432"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="430"/>
         <source>最初から解き直す</source>
         <translation>重新开始此题</translation>
     </message>
@@ -12769,23 +12769,23 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">翻转棋盘</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="268"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="266"/>
         <source>第%1問 — 詰み手数を確認しています…</source>
         <translation>题目 %1 — 正在验证诘棋手数…</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="332"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="330"/>
         <source>詰みと玉方の応手を確認しています…</source>
         <translation>正在验证诘棋及防守着法…</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="357"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="355"/>
         <source>判定が完了していません。不正解とは判定していません。時間を増やして再判定してください。</source>
         <translation>搜索尚未完成，您的着法未被判错。请增加时间后重试。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="275"/>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="276"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="273"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="274"/>
         <source>あなた</source>
         <translation>您</translation>
     </message>
@@ -12806,114 +12806,114 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">不成</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="329"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="327"/>
         <source>第%1問 — %2手詰 ／ 玉方: Hayanagi</source>
         <translation>题目 %1 — %2 手诘／防守：Hayanagi</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="330"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="328"/>
         <source>あなたの手番です。残り%1手以内で詰ませてください。</source>
         <translation>轮到您行棋。请在剩余 %1 手内完成诘棋。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="333"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="331"/>
         <source>判定を中断しました。判定時間を増やして「再判定」するか、一手戻してください。</source>
         <translation>搜索已暂停。请增加搜索时间后重试，或撤销上一手。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="336"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="334"/>
         <source>正答済み ／ 挑戦%1回・正答%2回</source>
         <translation>已解答／尝试 %1 次，解答 %2 次</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="337"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="335"/>
         <source>未正答 ／ 挑戦%1回</source>
         <translation>未解答／尝试 %1 次</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="338"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="336"/>
         <source>履歴を保存できません: %1</source>
         <translation>无法保存进度：%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="351"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="349"/>
         <source>正解です。玉方を詰ませました！</source>
         <translation>正确！您已将死防守方玉将。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="354"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="352"/>
         <source>この応手で詰みを防がれました。王手を続けても詰みません。</source>
         <translation>此应手可避免诘棋，无法通过连续王手强制将死。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="355"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="353"/>
         <source>この応手により、残り%1手以内では詰みません。一手戻して考え直してください。</source>
         <translation>此应手可避免在剩余 %1 手内被将死。请撤销上一手后重试。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="360"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="358"/>
         <source>この局面は王手の連続で詰ませられません。別の問題を選んでください。</source>
         <translation>此局面无法通过连续王手强制将死。请选择其他题目。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="383"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="381"/>
         <source>王手になる合法手を指してください。二歩・打ち歩詰め・自玉の王手放置はできません。</source>
         <translation>请走合法的王手。禁止二步、打步诘及己方玉将仍被王手的着法。</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="127"/>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="558"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="556"/>
         <source>正解手順:</source>
         <translation>解答：</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="403"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="401"/>
         <source>1手戻る</source>
         <translation>后退一手</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="404"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="402"/>
         <source>1手進む</source>
         <translation>前进一手</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="405"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="403"/>
         <source>詰み局面へ</source>
         <translation>最终将死局面</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="225"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="223"/>
         <source>対局に戻る</source>
         <translation>继续解题</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="402"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="400"/>
         <source>開始局面へ</source>
         <translation>初始局面</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="560"/>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="561"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="558"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="559"/>
         <source>正解手順を確認中…</source>
         <translation>正在验证解答…</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="562"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="560"/>
         <source>正解手順を取得しています。探索中止または対局に戻る操作で中断できます。</source>
         <translation>正在寻找解答。可选择“停止搜索”或“继续解题”取消。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="566"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="564"/>
         <source>正解手順: %1 / %2手</source>
         <translation>解答：%1 / %2 手</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="567"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="565"/>
         <source>正解手順の一例を再生中です。「対局に戻る」で元の局面から続けられます。</source>
         <translation>正在查看一种解法。选择“继续解题”可回到原局面继续。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="570"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="568"/>
         <source>正解手順: 未確認</source>
         <translation>解答：未验证</translation>
     </message>

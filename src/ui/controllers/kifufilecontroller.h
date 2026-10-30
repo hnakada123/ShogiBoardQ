@@ -18,6 +18,7 @@ class KifuLoader;
 class KifuNavigationState;
 class KifuPasteDialog;
 class QProgressDialog;
+class SfenCollectionDialog;
 class QWidget;
 class ShogiBoard;
 
@@ -59,6 +60,8 @@ public slots:
     void pasteKifuFromClipboard();
     /// 棋譜貼り付けダイアログからの取り込み
     void onKifuPasteImportRequested(const QString& content);
+    /// 局面集ビューアを開く（開いていれば前面に出す）。選んだ局面は onSfenCollectionPositionSelected で反映する
+    void openSfenCollection();
     /// SFEN局面集から選択された局面を反映
     void onSfenCollectionPositionSelected(const QString& sfen);
 
@@ -132,6 +135,8 @@ private:
 
     Deps m_deps;
     QPointer<KifuPasteDialog> m_kifuPasteDialog;
+    /// 局面集ビューア（開いている間は1つだけ。閉じると破棄される）
+    QPointer<SfenCollectionDialog> m_sfenCollectionDialog;
     QPointer<QProgressDialog> m_loadProgress;
     QString m_pendingLoadPath;
     Source m_pendingSource = Source::File;

@@ -2,6 +2,7 @@
 /// @brief 部品の画像のクリップボードへのコピーとファイルへの保存の実装
 
 #include "widgetimageexporter.h"
+#include "notificationpresenter.h"
 #include <QClipboard>
 #include <QApplication>
 #include <QImageWriter>
@@ -11,7 +12,6 @@
 #include <QDir>
 #include <QImage>
 #include <QPixmap>
-#include <QMessageBox>
 
 // ======================================================================
 // ヘルパ関数
@@ -44,8 +44,8 @@ void WidgetImageExporter::saveImage(QWidget* parent, QWidget* boardWidget, const
     for (const QByteArray& f : std::as_const(supportedFormats))
         fmts.insert(QString::fromLatin1(f).toLower());
     if (fmts.isEmpty()) {
-        QMessageBox::critical(parent, tr("Error"),
-                              tr("No writable image formats are available."));
+        NotificationPresenter::critical(parent, tr("Error"),
+                                        tr("No writable image formats are available."));
         return;
     }
 
@@ -76,15 +76,15 @@ void WidgetImageExporter::saveImage(QWidget* parent, QWidget* boardWidget, const
         const auto f = map.value(selFilter);
         path += "." + f.ext; fmt = f.key;
     } else { if (suffix=="jpg") suffix="jpeg"; fmt=suffix; if (!hasFormat(fmts, fmt)) {
-            QMessageBox::critical(parent, tr("Error"),
-                                  tr("This image format is not available: %1").arg(suffix));
+            NotificationPresenter::critical(parent, tr("Error"),
+                                            tr("This image format is not available: %1").arg(suffix));
             return; } }
 
     const QImage img = boardWidget->grab().toImage();
     QImageWriter w(path, fmt.toLatin1());
     if (fmt=="jpeg" || fmt=="webp") w.setQuality(95);
     if (!w.write(img)) {
-        QMessageBox::critical(parent, tr("Error"),
-                              tr("Failed to save the image: %1").arg(w.errorString()));
+        NotificationPresenter::critical(parent, tr("Error"),
+                                        tr("Failed to save the image: %1").arg(w.errorString()));
     }
 }

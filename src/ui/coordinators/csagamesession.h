@@ -5,12 +5,14 @@
 /// @brief CSA 通信対局の開始（待機ダイアログ）と、通信対局の進行の画面への反映
 
 #include <QObject>
+#include <QPointer>
 #include <QString>
 
 #include "csaclient.h"
 #include "csagamedialog.h"
 
 class CsaGameCoordinator;
+class KifuFileController;
 class MainWindowAppearanceController;
 class QStatusBar;
 class QWidget;
@@ -19,7 +21,7 @@ class ShogiView;
 /**
  * @brief 通信対局の1回の接続（1局または連続した対局）を始め、画面に知らせる
  *
- * 通信の手順は CsaGameCoordinator が行う。このクラスは接続ダイアログの値で対局を始め（待機ダイアログ）、
+ * 通信の手順は CsaGameCoordinator が行う。このクラスは接続ダイアログを開き、その値で対局を始め（待機ダイアログ）、
  * 対局の開始・手番・終局を盤の向き・ステータスバー・結果のダイアログへ反映する。
  * 棋譜（対局者・開始と終了・自動保存）と動作状態は、ローカル対局と同じく司令塔と GameSession が受け持ち、
  * 評価値グラフ・通信ログ・エラー・盤の手の接続は合成ルートがつなぐ。
@@ -34,7 +36,8 @@ public:
         ShogiView* shogiView = nullptr;                    ///< 盤の向き
         MainWindowAppearanceController* appearance = nullptr; ///< 後手のとき盤を反転する
         QStatusBar* statusBar = nullptr;
-        QWidget* parentWidget = nullptr;                   ///< 待機・結果ダイアログの親
+        QWidget* parentWidget = nullptr;                   ///< 接続・待機・結果ダイアログの親
+        KifuFileController* kifuFiles = nullptr;           ///< 始める前の未保存の棋譜の確認
     };
 
     explicit CsaGameSession(const Deps& deps, QObject* parent = nullptr);
@@ -49,6 +52,8 @@ public:
     CsaGameCoordinator* coordinator() const { return m_deps.coordinator; }
 
 public slots:
+    /// 接続ダイアログを開き、OK なら未保存の棋譜を確かめてから始める（startGame）
+    void openGameDialog();
     /// 待機ダイアログで「キャンセル」した
     void onWaitingCancelled();
 
@@ -63,6 +68,8 @@ private:
     void showStatus(const QString& message, int timeoutMs) const;
 
     Deps m_deps;
+    /// 接続ダイアログ（初めて開くときに作り、入力した値を残すため使い回す）
+    QPointer<CsaGameDialog> m_gameDialog;
     bool m_autoFlipBoard = true;         ///< 後手のときは盤を反転する（接続ダイアログの設定）
 };
 

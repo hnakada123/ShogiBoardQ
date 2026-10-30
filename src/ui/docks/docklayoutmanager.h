@@ -32,7 +32,7 @@ public:
     DockLayoutManager(QMainWindow* mainWindow, DockRegistry* docks, QObject* parent = nullptr);
 
     /**
-     * @brief 保存済みレイアウトメニューを設定する
+     * @brief 保存済みレイアウトのメニューを設定する（項目はここが作ってつなぐ）
      * @param menu メニュー
      */
     void setSavedLayoutsMenu(QMenu* menu);
@@ -82,19 +82,12 @@ public:
     void updateSavedLayoutsMenu();
 
     /**
-     * @brief メニュー項目の接続を一括で行う
-     * @param menuActions 「表示」メニュー配下のアクション群
-     */
-    void wireMenuActions(QAction* resetLayout,
-                         QAction* saveLayoutAs,
-                         QAction* lockDocks,
-                         QMenu* savedLayoutsMenu);
-
-    /**
-     * @brief ドックのロック状態を切り替える
+     * @brief ドックのロック状態を切り替えて保存する（作ったときは保存した状態にする）
      * @param locked true=ロック（移動・フローティング禁止）
      */
     void setDocksLocked(bool locked);
+    /// ドックを固定しているか（「ドックを固定」のチェックの初期値）
+    bool docksLocked() const;
 
     /**
      * @brief すべてのドックの状態（浮動/可視/ジオメトリ）を保存

@@ -9,10 +9,13 @@
 #include <QStringList>
 
 /**
- * @brief エラー・情報の知らせをダイアログで出す（知らせの表示の唯一の持ち主）
+ * @brief エラー・情報の知らせをダイアログで出す（ui・app の知らせの表示の唯一の持ち主）
  *
  * ErrorBus・KifuLoader・CSA 通信対局・終局・検討の終了などの知らせを受け取り、
- * メッセージボックスで出す。自動化 API の呼び出し中は ScopedCapture で記録だけする。
+ * メッセージボックスで出す。ui・app の部品が自分の操作の結果を知らせるときも、QMessageBox を直接出さずに
+ * static な information・warning・critical を使う。どれも文を HTML として読まず、
+ * 自動化 API の呼び出し中は ScopedCapture で記録だけする。
+ * （dialogs・widgets はこの層より下にあるので、ダイアログの中の確認や知らせは自分で出す）
  */
 class NotificationPresenter : public QObject
 {
@@ -50,7 +53,21 @@ public:
         ScopedCapture* m_previous = nullptr;
     };
 
+    /// 知らせを閉じるまで待つか
+    enum class Wait {
+        UntilClosed,  ///< 閉じるまで待つ（モーダル）
+        No,           ///< 出したらすぐ戻る（続けて対局するときの結果の表示は、次の対局の開始を止めない）
+    };
+
     explicit NotificationPresenter(const Deps& deps, QObject* parent = nullptr);
+
+    /// 題名付きの情報を parent の上に出す（自動化 API の呼び出し中は記録だけ）
+    static void information(QWidget* parent, const QString& title, const QString& message,
+                            Wait wait = Wait::UntilClosed);
+    /// 題名付きの警告を出す（記録するときは情報と同じく notices）
+    static void warning(QWidget* parent, const QString& title, const QString& message);
+    /// 題名付きのエラーを出す（記録するときは errors）
+    static void critical(QWidget* parent, const QString& title, const QString& message);
 
 public slots:
     void displayErrorMessage(const QString& message);
@@ -59,6 +76,10 @@ public slots:
     void showInformation(const QString& title, const QString& message);
 
 private:
+    enum class Kind { Information, Warning, Critical };
+    /// 知らせを出す（自動化 API の呼び出し中は記録だけ）。文は HTML として読まない
+    static void show(QWidget* parent, Kind kind, const QString& title, const QString& message, Wait wait);
+
     Deps m_deps;
 };
 

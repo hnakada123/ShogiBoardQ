@@ -2,6 +2,7 @@
 #include <QtTest>
 #include <QTemporaryDir>
 #include "mainwindow.h"
+#include "mainwindowactions.h"
 #include "mainwindowcomposer.h"
 #include "gamesession.h"
 #include "josekibooksession.h"
@@ -42,7 +43,7 @@ private slots:
         QVERIFY(service);
         QVERIFY(session);
         QVERIFY(document);
-        parts.gameSession->resetToInitialState();
+        parts.actions->startNewRecord();
         const QString initial = SfenUtils::hirateSfen();
         const QStringList usi{"7g7f", "3c3d"};
         const auto moves = TestReplay::buildGameMoves(initial, usi);
@@ -86,7 +87,7 @@ private slots:
             QVERIFY(csa.contains("T1.250"));
             QVERIFY(jkf.contains("TORYO"));
             document->markSaved(QString());
-            parts.gameSession->resetToInitialState();
+            parts.actions->startNewRecord();
             QCOMPARE(rows->rowCount(), 1);
             QCOMPARE(tree->nodeCount(), 1);
             QCOMPARE(parts.gameSession, service);
@@ -98,7 +99,7 @@ private slots:
     {
         MainWindow window;
         auto& parts = window.composer().parts();
-        parts.gameSession->resetToInitialState();
+        parts.actions->startNewRecord();
         auto* recordMoves = parts.joseki->josekiWindow()->findChild<QCheckBox*>(QStringLiteral("josekiRecordBoardMoves"));
         QVERIFY(recordMoves);
         const QString initial = SfenUtils::hirateSfen();
@@ -127,7 +128,7 @@ private slots:
         QVERIFY(parts.josekiBook->isEmpty());
 
         parts.document->markSaved(QString());
-        parts.gameSession->resetToInitialState();
+        parts.actions->startNewRecord();
         recordMoves->setChecked(true);
         playGame();
         QCOMPARE(parts.josekiBook->movesAt(positions.at(0)).size(), 1);
@@ -143,7 +144,7 @@ private slots:
     {
         MainWindow window;
         auto& parts = window.composer().parts();
-        parts.gameSession->resetToInitialState();
+        parts.actions->startNewRecord();
         parts.document->markSaved(QString());
         parts.gameSession->appendRecord(
             RecordEntry::ending(TerminalType::Resign, Turn::Black));

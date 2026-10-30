@@ -4,6 +4,7 @@
 #include <QMessageBox>
 #include <QTimer>
 #include "mainwindow.h"
+#include "mainwindowactions.h"
 #include "mainwindowcomposer.h"
 #include "gamestartoptionsbuilder.h"
 #include "kifudocument.h"
@@ -139,7 +140,7 @@ private slots:
         auto& p = window.composer().parts();
         p.liveGameSession->startFromRoot();
         QVERIFY(p.liveGameSession->isActive());
-        p.gameSession->resetToInitialState();
+        p.actions->startNewRecord();
         QVERIFY(!p.liveGameSession->isActive());
         QCOMPARE(p.branchTree->nodeCount(), 1);
         QCOMPARE(p.kifuRecord->rowCount(), 1);

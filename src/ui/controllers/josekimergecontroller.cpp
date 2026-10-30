@@ -2,6 +2,7 @@
 /// @brief 定跡ウィンドウの「マージ」の実装
 
 #include "josekimergecontroller.h"
+#include "notificationpresenter.h"
 
 #include "gamesettings.h"
 #include "kifufilefilter.h"
@@ -14,7 +15,6 @@
 #include <QDir>
 #include <QFileDialog>
 #include <QFileInfo>
-#include <QMessageBox>
 #include <QWidget>
 
 JosekiMergeController::JosekiMergeController(const Deps &deps, QObject *parent)
@@ -46,7 +46,7 @@ void JosekiMergeController::mergeFromKifuFile()
     // 棋譜ファイルの本譜（棋譜を開くときと同じ読み込み）
     const KifuLoadResult loaded = KifuLoadParser::parseFile(kifuFilePath);
     if (!loaded.success) {
-        QMessageBox::warning(m_deps.parentWidget, tr("エラー"), tr("棋譜ファイルの読み込みに失敗しました。\n%1").arg(loaded.error));
+        NotificationPresenter::warning(m_deps.parentWidget, tr("エラー"), tr("棋譜ファイルの読み込みに失敗しました。\n%1").arg(loaded.error));
         return;
     }
     if (!m_deps.session->canEdit()) return;
@@ -69,7 +69,7 @@ void JosekiMergeController::mergeFromBookFile()
     if (dialog.exec() != QDialog::Accepted || !m_deps.session->canEdit()) return;
     const QString filePath = dialog.filePath();
     if (!current.isEmpty() && QFileInfo(filePath) == QFileInfo(current)) {
-        QMessageBox::information(m_deps.parentWidget, tr("情報"), tr("開いている定跡ファイルと同じファイルは足せません。"));
+        NotificationPresenter::information(m_deps.parentWidget, tr("情報"), tr("開いている定跡ファイルと同じファイルは足せません。"));
         return;
     }
     // 読み込みと足し合わせはワーカースレッドで行う。終わったら onBookMerged・onBookMergeFailed
@@ -78,24 +78,24 @@ void JosekiMergeController::mergeFromBookFile()
 
 void JosekiMergeController::onBookMerged(const QString &filePath, const JosekiBook::MergeStats &stats)
 {
-    QMessageBox::information(m_deps.parentWidget, tr("定跡ファイルを足す"),
-                             tr("「%1」から、局面を %2 つと定跡手を %3 手足し、同じ指し手 %4 手を合わせました。\n"
-                                "定跡ウィンドウで保存してください。")
-                                 .arg(QFileInfo(filePath).fileName())
-                                 .arg(stats.addedPositions)
-                                 .arg(stats.addedMoves)
-                                 .arg(stats.updatedMoves));
+    NotificationPresenter::information(m_deps.parentWidget, tr("定跡ファイルを足す"),
+                                       tr("「%1」から、局面を %2 つと定跡手を %3 手足し、同じ指し手 %4 手を合わせました。\n"
+                                          "定跡ウィンドウで保存してください。")
+                                           .arg(QFileInfo(filePath).fileName())
+                                           .arg(stats.addedPositions)
+                                           .arg(stats.addedMoves)
+                                           .arg(stats.updatedMoves));
 }
 
 void JosekiMergeController::onBookMergeFailed(const QString &errorMessage)
 {
-    QMessageBox::warning(m_deps.parentWidget, tr("エラー"), tr("定跡ファイルを足せませんでした。\n%1").arg(errorMessage));
+    NotificationPresenter::warning(m_deps.parentWidget, tr("エラー"), tr("定跡ファイルを足せませんでした。\n%1").arg(errorMessage));
 }
 
 void JosekiMergeController::openDialog(const RecordLine &line, const QString &title)
 {
     if (line.moveCount() == 0) {
-        QMessageBox::information(m_deps.parentWidget, tr("情報"), tr("棋譜に指し手がありません。"));
+        NotificationPresenter::information(m_deps.parentWidget, tr("情報"), tr("棋譜に指し手がありません。"));
         return;
     }
     auto *dialog = new JosekiMergeDialog(m_deps.session, line, m_deps.parentWidget);

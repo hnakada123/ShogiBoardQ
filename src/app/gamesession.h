@@ -15,8 +15,6 @@
 
 class AppActivityState;
 class JosekiBookSession;
-class AnalysisSession;
-class EngineSlots;
 class ConsecutiveGameSeries;
 class CsaGameChannel;
 class CsaGameCoordinator;
@@ -51,8 +49,6 @@ public:
     struct Deps {
         const AppActivityState* activity = nullptr;         ///< 動作状態（対局中の窓口を決める）
         MatchCoordinator* match = nullptr;                  ///< ローカル対局の司令塔
-        AnalysisSession* analysis = nullptr;                ///< 検討・詰み探索（「新規」で止める）
-        EngineSlots* engines = nullptr;          ///< エンジンの枠（「新規」で全部止める。省略可）
         ConsecutiveGameSeries* consecutive = nullptr;  ///< 連続対局
         SessionResetCoordinator* reset = nullptr;           ///< 棋譜と表示の作り直し
         KifuNavigationState* navState = nullptr;            ///< 表示中の手（現在局面からの開始・再開）
@@ -101,8 +97,9 @@ public slots:
     void declareNyugyoku();
     void undoTwoMoves();
     void resumeInterruptedGame();
-    /// 「新規」: 対局・検討・通信対局を止め、平手の開始局面だけの棋譜にする（未保存の確認は呼び出し側）
-    void resetToInitialState();
+    /// 対局の後始末（「新規」）。通信対局を止め、終局の状態・連続対局・中断した対局を捨てる。
+    /// 検討・エンジン・棋譜の作り直しは「新規」の流れ（MainWindowActions::startNewRecord）が行う
+    void abandonGame();
     /// 中断した対局を再開できなくする（棋譜を変えたとき・別の対局を始めたとき）
     void discardInterruptedGame();
 

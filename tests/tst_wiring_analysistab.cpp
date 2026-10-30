@@ -5,6 +5,7 @@
 #include <QTimer>
 #include <QMessageBox>
 #include "mainwindow.h"
+#include "mainwindowactions.h"
 #include "mainwindowcomposer.h"
 #include "branchtreeview.h"
 #include "commenteditorpanel.h"
@@ -50,7 +51,7 @@ private slots:
     {
         MainWindow window;
         auto& p = window.composer().parts();
-        p.gameSession->resetToInitialState();
+        p.actions->startNewRecord();
         const QStringList usi{"7g7f"};
         const auto moves = TestReplay::buildGameMoves(SfenUtils::hirateSfen(), usi);
         const auto sfens = TestReplay::buildSfenRecord(SfenUtils::hirateSfen(), usi, false);
