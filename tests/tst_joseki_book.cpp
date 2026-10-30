@@ -1025,15 +1025,21 @@ void TestJosekiBook::tableModel_showsFrequencyRatio()
     QVERIFY(model.index(0, JosekiTableModel::Ratio).data().toString().isEmpty());
 }
 
-/// 予想応手が「なし」の手には、導いた応手を灰色の括弧付きで出す。予想応手を書いた手には出さない
+/// 予想応手が「なし」の手には、指した後の局面の定跡から導いた応手を灰色の括弧付きで出す。予想応手を書いた手には出さない
 void TestJosekiBook::tableModel_showsDerivedReplyInGray()
 {
     JosekiTableModel model;
     const QString hirate = SfenUtils::hirateSfen();
     JosekiMove written = makeMove(QStringLiteral("2g2f"));
     written.nextMove = QStringLiteral("8c8d");
+    // 7g7f と 2g2f の後の局面にだけ定跡手がある（5g5f の後には無い）
+    const QStringList withBook = {SfenReplay::positionAfter(hirate, QStringLiteral("7g7f")),
+                                  SfenReplay::positionAfter(hirate, QStringLiteral("2g2f"))};
+    const auto leadingMoveAt = [&withBook](const QString &sfen) {
+        return withBook.contains(sfen) ? QStringLiteral("3c3d") : QString();
+    };
     model.setMoves(hirate, {makeMove(QStringLiteral("7g7f")), written, makeMove(QStringLiteral("5g5f"))}, true,
-                   {QStringLiteral("3c3d"), QStringLiteral("3c3d"), QString()});
+                   leadingMoveAt);
     const auto next = [&model](int row, int role) { return model.index(row, JosekiTableModel::NextMove).data(role); };
 
     QCOMPARE(next(0, Qt::DisplayRole).toString(), QStringLiteral("（△３四歩(33)）"));

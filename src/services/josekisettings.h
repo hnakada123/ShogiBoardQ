@@ -18,16 +18,13 @@ namespace JosekiSettings {
 /// 定跡ウィンドウのフォントサイズ（デフォルト: 10）
 inline const Setting<int> josekiWindowFontSize{"JosekiWindow/fontSize", 10};
 
-/// 定跡ウィンドウの最後に開いた定跡ファイルパス
+/// 定跡ウィンドウの最後に開いた定跡ファイルパス（JosekiBookSession が保存する）
 inline const Setting<QString> josekiWindowLastFilePath{"JosekiWindow/lastFilePath", QString()};
 
-/// 定跡ウィンドウのサイズ（デフォルト: 800x500）
-inline const Setting<QSize> josekiWindowSize{"JosekiWindow/size", QSize(800, 500)};
-
-/// 定跡ファイル自動読込（デフォルト: true）
+/// 定跡ファイル自動読込（デフォルト: true。JosekiBookSession が読み書きする）
 inline const Setting<bool> josekiWindowAutoLoadEnabled{"JosekiWindow/autoLoadEnabled", true};
 
-/// 定跡ウィンドウの最近使ったファイルリスト（最大5件）
+/// 定跡ウィンドウの最近使ったファイルリスト（最大5件。JosekiBookSession が保存する）
 inline const Setting<QStringList> josekiWindowRecentFiles{"JosekiWindow/recentFiles", QStringList()};
 
 /// 定跡ウィンドウの表示停止状態（デフォルト: true＝表示有効）
@@ -36,7 +33,7 @@ inline const Setting<bool> josekiWindowDisplayEnabled{"JosekiWindow/displayEnabl
 /// 定跡ウィンドウのSFEN詳細表示状態（デフォルト: false）
 inline const Setting<bool> josekiWindowSfenDetailVisible{"JosekiWindow/sfenDetailVisible", false};
 
-/// 定跡ウィンドウのテーブル列幅
+/// 定跡ウィンドウのテーブル列幅（利用者が列幅を変えたときに保存する）
 inline const ListSetting<int> josekiWindowColumnWidths{QStringLiteral("JosekiWindow/columnWidths"), "width"};
 
 /// 定跡手編集ダイアログのフォントサイズ（デフォルト: 10）

@@ -296,8 +296,10 @@ void MainWindowComposer::createPresentersAndDocks()
     ed.csaLog = m_c.csaLog;
     m_c.engineDisplay = new EngineDisplayPresenter(ed, &m_window);
 
-    // 開いている定跡（定跡ウィンドウが表示・編集し、盤の矢印と対局でも使う）
+    // 開いている定跡（定跡ウィンドウが表示・編集し、盤の矢印と対局でも使う）。前回の履歴を戻し、
+    // 自動読込なら前回のファイルは定跡ウィンドウを初めて表示したときに読み込む
     m_c.josekiBook = new JosekiBookSession(&m_window);
+    m_c.josekiBook->restoreSaved();
 
     // 定跡ウィンドウ。定跡手を指せるかは盤のクリックと同じ判定を使う。定跡の表示・「盤に定跡手を表示」・
     // 「盤の手を登録」の QAction は盤の矢印と定跡への登録も読む
@@ -372,10 +374,8 @@ void MainWindowComposer::createDocks()
     // メニューウィンドウの分類に、ドックの表示の切り替えも入れる
     m_c.menuWindowController->collectCategoriesFromMenuBar();
 
-    // 定跡ウィンドウはドックが前面に出ている間だけ更新する
-    QDockWidget* josekiDock = docks->dock(Id::Joseki);
-    m_c.joseki->josekiWindow()->setDockWidget(josekiDock);
-    m_c.joseki->attachDock(josekiDock);
+    // 定跡ウィンドウはドックが前面に出ている間だけ更新する（閉じるときは未保存の変更を確かめる）
+    m_c.joseki->attachDock(docks->dock(Id::Joseki));
 
     // ドックの固定と保存したレイアウトのメニューは wireMenuActions() でつなぐ（connectAnalysisAndUi）
     m_c.dockLayoutManager = new DockLayoutManager(&m_window, docks, &m_window);

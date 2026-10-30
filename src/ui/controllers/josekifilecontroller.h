@@ -2,7 +2,7 @@
 #define JOSEKIFILECONTROLLER_H
 
 /// @file josekifilecontroller.h
-/// @brief 定跡ウィンドウのファイル操作（開く・新規・保存・最近使ったファイル）と、その確認ダイアログ
+/// @brief 定跡ウィンドウのファイル操作（開く・新規・保存・最近使ったファイル）と、その確認ダイアログ（JosekiBookController が持つ）
 
 #include <QObject>
 #include <QString>

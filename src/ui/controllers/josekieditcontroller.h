@@ -2,7 +2,7 @@
 #define JOSEKIEDITCONTROLLER_H
 
 /// @file josekieditcontroller.h
-/// @brief 定跡ウィンドウの定跡手の追加・編集・削除（入力と確認のダイアログ）
+/// @brief 定跡ウィンドウの定跡手の追加・編集・削除（入力と確認のダイアログ。JosekiBookController が持つ）
 
 #include <QObject>
 #include <QString>

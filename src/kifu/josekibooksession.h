@@ -36,7 +36,8 @@ struct JosekiBookMergeResult {
  * 読み込みと非同期の保存はワーカースレッドで行い（threading-guidelines: 値オブジェクトだけを渡す）、
  * 完了をシグナルで知らせる。画面（メッセージ・カーソル・ボタン）は扱わない。
  *
- * 前回のファイルは、初めて使うとき（定跡ウィンドウを初めて表示したとき）に読み込む（restore・startDeferredLoad）。
+ * 前回のファイルは、初めて使うとき（定跡ウィンドウを初めて表示したとき）に読み込む（restoreSaved・startDeferredLoad）。
+ * 最近使ったファイルと前回のファイルは、変わるたびに設定に保存する（JosekiSettings。自動読込の設定もここで読み書きする）。
  * 読み書き中と、前回のファイルの読み込みを待っている間は定跡を変えられない（canEdit。変更の関数は何もせずに false）。
  */
 class JosekiBookSession : public QObject
@@ -124,6 +125,11 @@ public:
      * @param deferLoad 前回のファイルを、初めて使うとき（startDeferredLoad）に読み込む
      */
     void restore(const QStringList &recentFiles, const QString &lastFilePath, bool deferLoad);
+    /// 設定に保存した履歴と前回のファイルを戻す（起動時に1回。自動読込なら前回のファイルの読み込みを待つ）
+    void restoreSaved();
+    /// 前回のファイルを次の起動で自動で読み込むか（設定に保存する）
+    bool autoLoadEnabled() const;
+    void setAutoLoadEnabled(bool enabled);
     /// 次回に読み込む前回のファイル。読み込みを待っていればそのファイル、開いているファイルが履歴にあればそれ、
     /// 何も開いていなければ履歴に残っている前回のファイル。「履歴をクリア」した後は、開き直すか保存するまで空
     QString lastFilePath() const;
@@ -186,6 +192,8 @@ private:
     void markSaved(const QString &filePath);
     /// 前回のファイルの読み込みを待たなくする（別のファイルを開いた・作った・保存した・履歴から消えた）
     void cancelDeferredLoad();
+    /// 最近使ったファイルと前回のファイルを設定に保存する（どちらかが変わったとき）
+    void saveHistory() const;
 
     JosekiBook m_book;
     QString m_filePath;

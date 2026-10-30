@@ -282,7 +282,7 @@ INI ファイル内のキーは `グループ名/キー名` の形式で、宣�
 
 | 用途 | 既存の例 |
 |---|---|
-| ウィンドウサイズ | `SizeRelated/kifuPasteDialogSize`、`JosekiWindow/size`、`EngineSettings/dialogSize` |
+| ウィンドウサイズ | `SizeRelated/kifuPasteDialogSize`、`JosekiWindow/mergeDialogSize`、`EngineSettings/dialogSize` |
 | フォントサイズ | `FontSize/kifuPasteDialog`、`JosekiWindow/fontSize`、`DialogAppearance/promotion/fontSize`（補助ダイアログ） |
 | 表示状態 | `RecordPane/timeColumnVisible`、`EvalChartDock/visible` |
 | 最後の選択 | `UI/lastSelectedTabIndex`、`MenuWindow/currentTab` |

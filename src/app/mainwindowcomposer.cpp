@@ -12,7 +12,6 @@
 #include "gameinfopane.h"
 #include "engineslots.h"
 #include "humanturnpolicy.h"
-#include "josekiwindow.h"
 #include "josekiwindowcontroller.h"
 #include "kifudisplaypresenter.h"
 #include "kifufilecontroller.h"
@@ -90,6 +89,5 @@ void MainWindowComposer::shutdown()
 bool MainWindowComposer::confirmClose()
 {
     if (m_c.kifuFileController && !m_c.kifuFileController->confirmDiscardUnsaved()) return false;
-    JosekiWindow* joseki = m_c.joseki ? m_c.joseki->josekiWindow() : nullptr;
-    return !joseki || joseki->confirmClose();
+    return !m_c.joseki || m_c.joseki->confirmClose();
 }

@@ -5,7 +5,6 @@
 
 #include "josekianalysisregisterdialog.h"
 #include "josekibooksession.h"
-#include "josekitablemodel.h"
 #include "kifuanalysislistmodel.h"
 #include "kifuanalysisrow.h"
 #include "kifupresentation.h"
@@ -48,7 +47,7 @@ void JosekiRegistrationController::recordBoardMove(const QString& sfen, const QS
     }
     if (m_deps.book->hasMove(sfen, usiMove)) return;
     if (m_deps.book->addMove(sfen, {usiMove, std::nullopt, 0, 0, 1, {}}))
-        showStatus(tr("%1 を定跡に登録しました").arg(JosekiTableModel::moveText(usiMove, sfen)));
+        showStatus(tr("%1 を定跡に登録しました").arg(KifuPresentation::move(sfen, usiMove, KifuPresentation::options())));
 }
 
 void JosekiRegistrationController::showStatus(const QString& text) const

@@ -17,6 +17,7 @@
 class HumanTurnPolicy;
 class BoardMoveController;
 class BranchTreeEditController;
+class JosekiBookController;
 class JosekiBookSession;
 class KifuNavigationController;
 class JosekiWindow;
@@ -28,7 +29,9 @@ class QDockWidget;
  * @brief 定跡ウィンドウを作って表示中の手の局面に合わせ、選んだ定跡手を盤への着手として要求する
  *
  * 表示中の手（KifuNavigationState）が変わるたびに、定跡ウィンドウが前面にあれば局面と、表示中の手順が定跡を
- * 外れた手を合わせる。定跡ウィンドウの「棋譜に展開...」で、表示中の局面から定跡を棋譜の変化に展開する。
+ * 外れた手を合わせる。定跡ウィンドウの「棋譜に展開...」で条件のダイアログを出し、表示中の局面から定跡を
+ * 棋譜の変化に展開する。定跡そのものの操作（ファイル・定跡手・マージ・ドロップ・閉じるときの確認）は、
+ * ここが作る JosekiBookController が受け持つ。
  *
  * 定跡の表示の切り替え（displayAction。保存する）と「盤の手を登録」（recordBoardMovesAction。保存しない）の
  * QAction を持ち、「盤に定跡手を表示」（メニューの QAction。保存する）と合わせて定跡ウィンドウに渡す。
@@ -84,9 +87,13 @@ public:
      * @brief 定跡ウィンドウを入れたドックを登録する
      *
      * タブにまとめたドックは裏に回っても Qt では表示中のままなので、ドックの
-     * visibilityChanged で前面にあるかを覚え、前面にある間だけ更新する。
+     * visibilityChanged で前面にあるかを覚え、前面にある間だけ更新する。ドックを閉じるときの確認と
+     * 題名の未保存の印は JosekiBookController に任せる。
      */
     void attachDock(QDockWidget* dock);
+
+    /// 定跡の未保存の変更を確かめる（アプリを閉じるとき）。続けてよければ true
+    [[nodiscard]] bool confirmClose();
 
 private slots:
     /**
@@ -95,16 +102,11 @@ private slots:
      */
     void onJosekiMoveSelected(const QString& usiMove);
 
-    /**
-     * @brief 棋譜データマージ要求時の処理
-     */
-    void onRequestKifuDataForMerge();
-
     /// ドックが前面に出た・裏に回った・閉じたときの処理
     void onDockVisibilityChanged(bool visible);
 
-    /// 表示中の局面から定跡を棋譜の変化に展開する
-    void onExpandRequested(const JosekiLines::ExpandOptions& options);
+    /// 展開の条件を選び、表示中の局面から定跡を棋譜の変化に展開する
+    void onExpandRequested();
     /// 定跡の表示を止めた・再開した（保存し、定跡を外れた手の表示を合わせる）
     void onDisplayToggled(bool displayed);
     /// 「盤に定跡手を表示」を変えた（保存する）
@@ -128,6 +130,7 @@ private:
     QAction* m_displayAction = nullptr;
     QAction* m_recordBoardMovesAction = nullptr;
     JosekiWindow* m_josekiWindow = nullptr;
+    JosekiBookController* m_bookController = nullptr;
     /// 定跡ウィンドウを入れたドック（無ければ nullptr。単独のウィンドウとして使う場合）
     QDockWidget* m_dockWidget = nullptr;
     /// ドックが前面に出ているか（visibilityChanged で更新）

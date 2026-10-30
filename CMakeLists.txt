@@ -570,6 +570,14 @@ set(SRC_UI
     src/ui/controllers/dialoglauncher.h
     src/ui/controllers/imageexportcontroller.cpp
     src/ui/controllers/imageexportcontroller.h
+    src/ui/controllers/josekibookcontroller.cpp
+    src/ui/controllers/josekibookcontroller.h
+    src/ui/controllers/josekieditcontroller.cpp
+    src/ui/controllers/josekieditcontroller.h
+    src/ui/controllers/josekifilecontroller.cpp
+    src/ui/controllers/josekifilecontroller.h
+    src/ui/controllers/josekimergecontroller.cpp
+    src/ui/controllers/josekimergecontroller.h
     src/ui/controllers/josekiregistrationcontroller.cpp
     src/ui/controllers/josekiregistrationcontroller.h
     src/ui/controllers/josekiwindowcontroller.cpp
@@ -718,6 +726,10 @@ set(SRC_WIDGETS
     src/widgets/itemtextdelegate.h
     src/widgets/itemtextpainter.cpp
     src/widgets/itemtextpainter.h
+    src/widgets/josekitableview.cpp
+    src/widgets/josekitableview.h
+    src/widgets/josekiwindow.cpp
+    src/widgets/josekiwindow.h
     src/widgets/kifumovedelegate.h
     src/widgets/kifufilefilter.cpp
     src/widgets/kifufilefilter.h
@@ -788,16 +800,10 @@ set(SRC_DIALOGS
     src/dialogs/josekianalysisregisterdialog.h
     src/dialogs/josekibookmergedialog.cpp
     src/dialogs/josekibookmergedialog.h
-    src/dialogs/josekieditcontroller.cpp
-    src/dialogs/josekieditcontroller.h
     src/dialogs/josekiexpanddialog.cpp
     src/dialogs/josekiexpanddialog.h
     src/dialogs/josekiimportdialog.cpp
     src/dialogs/josekiimportdialog.h
-    src/dialogs/josekifilecontroller.cpp
-    src/dialogs/josekifilecontroller.h
-    src/dialogs/josekimergecontroller.cpp
-    src/dialogs/josekimergecontroller.h
     src/dialogs/josekimergedialog.cpp
     src/dialogs/josekimergedialog.h
     src/dialogs/josekimovedialog.cpp
@@ -806,12 +812,6 @@ set(SRC_DIALOGS
     src/dialogs/josekimovedialog.h
     src/dialogs/josekimoveinputwidget.cpp
     src/dialogs/josekimoveinputwidget.h
-    src/dialogs/josekitablemodel.cpp
-    src/dialogs/josekitableview.cpp
-    src/dialogs/josekitableview.h
-    src/dialogs/josekitablemodel.h
-    src/dialogs/josekiwindow.cpp
-    src/dialogs/josekiwindow.h
     src/dialogs/kifuanalysisdialog.cpp
     src/dialogs/kifuanalysisdialog.h
     src/dialogs/kifupastedialog.cpp
@@ -846,6 +846,8 @@ set(SRC_DIALOGS
 set(SRC_MODELS
     src/models/gameinfoeditmodel.cpp
     src/models/gameinfoeditmodel.h
+    src/models/josekitablemodel.cpp
+    src/models/josekitablemodel.h
     src/models/kifuanalysislistmodel.cpp
     src/models/kifuanalysislistmodel.h
     src/models/kifuanalysisrow.h

@@ -26,12 +26,6 @@ JosekiMergeController::JosekiMergeController(const Deps &deps, QObject *parent)
     connect(m_deps.session, &JosekiBookSession::bookMergeFailed, this, &JosekiMergeController::onBookMergeFailed);
 }
 
-void JosekiMergeController::mergeFromCurrentKifu()
-{
-    if (!m_deps.session->canEdit()) return;
-    emit kifuDataRequested();
-}
-
 void JosekiMergeController::openForLine(const RecordLine &line)
 {
     if (!m_deps.session->canEdit()) return;
@@ -57,11 +51,6 @@ void JosekiMergeController::mergeFromKifuFile()
     }
     if (!m_deps.session->canEdit()) return;
     openDialog(loaded.record.mainline, tr("棋譜から定跡にマージ - %1").arg(QFileInfo(kifuFilePath).fileName()));
-}
-
-void JosekiMergeController::mergeFromKifuFiles()
-{
-    importPaths({});
 }
 
 void JosekiMergeController::importPaths(const QStringList &paths)

@@ -18,7 +18,6 @@ class QDragEnterEvent;
 class QDropEvent;
 class QLabel;
 class QListWidget;
-class QMimeData;
 class QProgressBar;
 class QPushButton;
 class QSpinBox;
@@ -38,9 +37,6 @@ public:
     /// paths は初めに並べるファイル・フォルダ（定跡ウィンドウへのドロップ）
     JosekiImportDialog(JosekiBookSession *session, const QStringList &paths, QWidget *parent = nullptr);
     ~JosekiImportDialog() override;
-
-    /// ドロップされたもののうち、手元のファイル・フォルダのパス
-    static QStringList localPaths(const QMimeData *mimeData);
 
     /// 並べたファイル・フォルダ
     QStringList paths() const;

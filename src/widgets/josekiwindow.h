@@ -1,5 +1,5 @@
 /// @file josekiwindow.h
-/// @brief 定跡ウィンドウクラスの定義
+/// @brief 定跡ウィンドウ（ドックのパネル）の定義
 
 #ifndef JOSEKIWINDOW_H
 #define JOSEKIWINDOW_H
@@ -11,13 +11,11 @@
 #include <functional>
 
 #include "fontsizehelper.h"
-#include "josekilines.h"
 #include "josekitableview.h"
-#include "recordline.h"
+#include "josekitypes.h"
 
 class QAction;
 class QCheckBox;
-class QDockWidget;
 class QDragEnterEvent;
 class QDropEvent;
 class QLabel;
@@ -25,20 +23,17 @@ class QPushButton;
 class QShowEvent;
 class QToolButton;
 class JosekiBookSession;
-class JosekiEditController;
-class JosekiFileController;
-class JosekiMergeController;
 class RecentFilesMenu;
 class JosekiTableModel;
 
 /**
- * @brief 定跡ウィンドウ
+ * @brief 定跡ウィンドウ（ドックのパネル）
  *
- * 表示中の局面の定跡手を表に出し、定跡手の追加・編集・削除・着手と棋譜からのマージを受け付ける。
+ * 表示中の局面の定跡手を表に出し、利用者の操作を意図のシグナルで知らせる。
  * - 開いている定跡ファイル（データ・パス・変更状態・履歴・読み書き）は JosekiBookSession（合成ルートが作り、
- *   ほかの部品とも共有する。ウィンドウは持たない）
- * - ファイルの利用者操作（開く・新規・保存・履歴）と確認ダイアログは JosekiFileController
- * - 定跡手の追加・編集・削除のダイアログは JosekiEditController、マージは JosekiMergeController
+ *   ほかの部品とも共有する。ウィンドウは表示に読み、表の並べ替えだけを直接書く）
+ * - ファイル（開く・新規・保存・履歴）・定跡手の追加・編集・削除・マージ・ドロップ・棋譜への展開は、
+ *   シグナルで知らせる（ダイアログを出して処理するのは ui の JosekiBookController・JosekiWindowController）
  * - 表の中身は JosekiTableModel（「着手」「編集」「削除」の列はボタンとして描く）
  * - 定跡の表示の停止・盤の手の登録・盤の矢印は、渡された QAction を正本にする（ボタンとチェックはそれに結ぶだけ）
  * - 前回のファイルの読み込みは、初めて表示したときにセッションに頼む（JosekiBookSession::startDeferredLoad）
@@ -48,7 +43,7 @@ class JosekiWindow : public QWidget
     Q_OBJECT
 
 #ifdef SHOGIBOARDQ_TESTING
-    /// テスト専用: tst_josekiwindow.cpp が保存状態とマージ処理を直接検証する
+    /// テスト専用: tst_josekiwindow.cpp が部品と表示を直接検証する
     friend class TestJosekiWindow;
 #endif
 
@@ -59,6 +54,15 @@ public:
         QAction *recordBoardMoves = nullptr;  ///< 盤で指した手を登録する（「盤の手を登録」）
         QAction *boardArrows = nullptr;       ///< 盤に定跡手の矢印を出す（「表示」メニューの「盤に定跡手を表示」）
     };
+
+    /// 「マージ ▼」の項目
+    enum class MergeSource {
+        CurrentKifu,  ///< 現在の棋譜から（表示中の手順）
+        KifuFile,     ///< 棋譜ファイルから
+        KifuFiles,    ///< 複数の棋譜から...
+        BookFile,     ///< 定跡ファイルから...
+    };
+    Q_ENUM(MergeSource)
 
     /// session は開いている定跡（必須。非所有で、ウィンドウより長く生きる）
     JosekiWindow(JosekiBookSession *session, const Actions &actions, QWidget *parent = nullptr);
@@ -72,31 +76,47 @@ public:
     void setHumanCanPlayProvider(std::function<bool()> provider);
     /// 定跡手を指せるかを問い合わせ直し、変わっていれば表の「着手」を作り直す
     void updateHumanCanPlay();
-    void setDockWidget(QDockWidget *dock);
-    [[nodiscard]] bool confirmClose();
 
-    /// 表示中の手順の手を選んで登録するダイアログを開く（requestKifuDataForMerge への応答）
-    void openMergeForLine(const RecordLine &line);
     /// 定跡手を盤に指せなかったことを知らせる
     void showMoveFailed(const QString &usiMove);
     /// 表示中の手順が定跡を外れた手を出す（ply > 0 ならその手数の手 moveText、0 ならすべて定跡、負なら出さない）
     void setBookDeviation(int ply, const QString &moveText);
 
+public slots:
+    /// 状態表示に text を少しの間出す（「読み込み中...」など）
+    void showTransientStatus(const QString &text);
+
 signals:
+    // --- ファイル（「ファイル」のボタンと「履歴」のメニュー） ---
+    void newBookRequested();
+    void openBookRequested();
+    void saveBookRequested();
+    void saveBookAsRequested();
+    void recentFileRequested(const QString &filePath);
+    void clearRecentFilesRequested();
+    /// 「マージ ▼」の項目を選んだ
+    void mergeRequested(JosekiWindow::MergeSource source);
+    /// ファイル・フォルダをドロップした（定跡ファイル1つなら開き、それ以外は複数の棋譜から登録する）
+    void pathsDropped(const QStringList &paths);
+
+    // --- 定跡手（sfen は操作を選んだときに表に出していた局面） ---
+    void addMoveRequested(const QString &sfen);
+    void editMoveRequested(const QString &sfen, const JosekiMove &move);
+    void deleteMoveRequested(const QString &sfen, const QString &usiMove);
+    /// 定跡手を盤に指す（指せるときだけ出す）
     void josekiMoveSelected(const QString &usiMove);
-    void requestKifuDataForMerge();
-    /// 「棋譜に展開...」で、表示中の局面から定跡を棋譜の変化に展開する条件を選んだ
-    void expandRequested(const JosekiLines::ExpandOptions &options);
+
+    /// 「棋譜に展開...」を押した（表示中の局面から定跡を棋譜の変化に展開する）
+    void expandRequested();
     /// 定跡を外れた手（の表示）を押した（その手数へ移る）
     void deviationPlyRequested(int ply);
 
 protected:
     /// 初めて表示したときに前回のファイルを読み込む
     void showEvent(QShowEvent *event) override;
-    /// 定跡ファイル（.db）1つのドロップは開き、棋譜ファイル・フォルダは複数の棋譜から登録するダイアログに並べる
+    /// 定跡を変えられるときだけ、ファイル・フォルダのドロップを受ける
     void dragEnterEvent(QDragEnterEvent *event) override;
     void dropEvent(QDropEvent *event) override;
-    bool eventFilter(QObject *obj, QEvent *event) override;
 
 private slots:
     // --- 開いている定跡の変化 ---
@@ -112,10 +132,11 @@ private slots:
     void onAddMoveButtonClicked();
     /// 表のボタン・ダブルクリック・右クリックのメニューの操作
     void onRowActionRequested(JosekiTableView::RowAction action, int row);
+    void onMergeMenuTriggered(QAction *action);
 
     // --- 表示 ---
     void onSfenDetailToggled(bool checked);
-    void onAutoLoadCheckBoxChanged(Qt::CheckState state);
+    void onAutoLoadToggled(bool checked);
     /// 「■ 停止」「▶ 再開」を押した（表示の切り替えを変える）
     void onStopButtonClicked(bool stopped);
     /// 表示の切り替えが変わった（ボタンの文字と表を合わせる）
@@ -123,9 +144,8 @@ private slots:
     void onExpandButtonClicked();
     void onDeviationClicked();
     void onRestoreStatusDisplay();
-    void showTransientStatus(const QString &text);
-    void openDroppedPaths();
-
+    /// 利用者が列幅を変えた（保存する）
+    void saveColumnWidths();
 
 private:
     // --- 画面 ---
@@ -133,7 +153,6 @@ private:
     QWidget *buildToolbar();
     void applyFontSize();
     void loadSettings();
-    void saveSettings();
     void updateJosekiDisplay();
     void clearTable();
     void updateStatusDisplay();
@@ -145,21 +164,16 @@ private:
     /// 定跡を変えられるか（読み書き中でなく、前回のファイルの読み込みを待っていない）
     bool canEdit() const;
     bool isDisplayEnabled() const;
-    void editMoveAt(int row);
-    void deleteMoveAt(int row);
+    /// 人間が今、定跡手を指せるか（問い合わせの関数が無ければ指せる）
+    bool humanCanPlayNow() const;
     void playMoveAt(int row);
     /// 表の行の操作を今できるか（右クリックのメニューの項目を押せるか）
-    bool isRowActionAvailable(JosekiTableView::RowAction action, int row);
+    bool isRowActionAvailable(JosekiTableView::RowAction action, int row) const;
     /// 先頭へ・上へ・下へ移動と、出現頻度・評価値の順に並べる
     void reorderMoveAt(JosekiTableView::RowAction action, int row);
-    void refreshHumanCanPlay();
 
-
-    // --- データとファイル ---
+    // --- データ ---
     JosekiBookSession *m_session = nullptr;
-    JosekiFileController *m_files = nullptr;
-    JosekiMergeController *m_merge = nullptr;
-    JosekiEditController *m_edit = nullptr;
     JosekiTableModel *m_model = nullptr;
 
     // === ファイルグループ ===
@@ -205,18 +219,11 @@ private:
     // === View 状態 ===
     QString       m_currentSfen;
     FontSizeHelper m_fontHelper;
-    bool          m_humanCanPlay = true;
     std::function<bool()> m_humanCanPlayProvider;
-    bool          m_autoLoadEnabled = true;
     /// 表に出している局面。同じ局面が続けて設定されたときに表を作り直さないための覚え
     QString       m_displayedSfen;
     /// 新規・読み込み・保存でファイルを選んだ（選ぶまではファイル名の欄に「未選択」と出す）
     bool          m_fileChosen = false;
-    /// ドロップされたファイル・フォルダ（ドロップの処理の後で開く）
-    QStringList   m_droppedPaths;
-
-    /// 親ドックウィジェット
-    QDockWidget  *m_dockWidget = nullptr;
 };
 
 #endif // JOSEKIWINDOW_H

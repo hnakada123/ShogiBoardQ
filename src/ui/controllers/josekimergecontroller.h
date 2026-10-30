@@ -2,7 +2,7 @@
 #define JOSEKIMERGECONTROLLER_H
 
 /// @file josekimergecontroller.h
-/// @brief 定跡ウィンドウの「マージ」（棋譜・別の定跡ファイルから定跡に登録するダイアログを開く）
+/// @brief 定跡ウィンドウの「マージ」（棋譜・別の定跡ファイルから定跡に登録するダイアログを開く。JosekiBookController が持つ）
 
 #include <QObject>
 #include <QString>
@@ -34,24 +34,15 @@ public:
 
     explicit JosekiMergeController(const Deps &deps, QObject *parent = nullptr);
 
-    /// 表示中の手順の手を選んで登録するダイアログを開く（kifuDataRequested への応答）
+    /// 「マージ ▼」→「現在の棋譜から」: 手順（表示中の手順）の手を選んで登録するダイアログを開く
     void openForLine(const RecordLine &line);
-    /// paths（棋譜ファイル・フォルダ）を並べて、複数の棋譜から登録するダイアログを開く（定跡ウィンドウへのドロップ）
-    void importPaths(const QStringList &paths);
-
-public slots:
-    /// 「マージ ▼」→「現在の棋譜から」
-    void mergeFromCurrentKifu();
     /// 「マージ ▼」→「棋譜ファイルから」
     void mergeFromKifuFile();
-    /// 「マージ ▼」→「複数の棋譜から...」
-    void mergeFromKifuFiles();
+    /// 「マージ ▼」→「複数の棋譜から...」と、定跡ウィンドウへのドロップ: paths（棋譜ファイル・フォルダ）を
+    /// 並べて、複数の棋譜から登録するダイアログを開く
+    void importPaths(const QStringList &paths);
     /// 「マージ ▼」→「定跡ファイルから...」
     void mergeFromBookFile();
-
-signals:
-    /// 表示中の手順を求める（応答は openForLine）
-    void kifuDataRequested();
 
 private slots:
     /// 「定跡ファイルから」で足し終えた・足せなかった
