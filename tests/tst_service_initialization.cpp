@@ -34,9 +34,14 @@
 #include "kifuloader.h"
 #include "kifufilecontroller.h"
 #include "dialoglauncher.h"
+#include "menuwindowcontroller.h"
 #include "kifuanalysislistmodel.h"
 #include "boardsyncpresenter.h"
 #include "dockregistry.h"
+#include "docklayoutmanager.h"
+#include "docksettings.h"
+#include "boardinteractioncontroller.h"
+#include "shogiboard.h"
 #include "kifudisplaypresenter.h"
 #include "kifunavigationcontroller.h"
 #include "livegamesession.h"
@@ -188,8 +193,8 @@ private slots:
         const QPointer<AnalysisSession> analysis = parts.analysisSession;
         QVERIFY(first && engines && analysis);
 
-        parts.gameSession->resetToInitialState();
-        parts.gameSession->resetToInitialState();
+        parts.actions->startNewRecord();
+        parts.actions->startNewRecord();
 
         QVERIFY(first && engines && analysis);
         QCOMPARE(parts.match, first.data());
@@ -286,17 +291,17 @@ private slots:
     void sfenCollectionViewerIsReusedWhileOpen()
     {
         MainWindow window;
-        DialogLauncher* dialogs = window.composer().parts().dialogLauncher;
-        QVERIFY(dialogs);
+        KifuFileController* files = window.composer().parts().kifuFileController;
+        QVERIFY(files);
 
-        dialogs->displaySfenCollectionViewer();
-        dialogs->displaySfenCollectionViewer();
+        files->openSfenCollection();
+        files->openSfenCollection();
         QCOMPARE(window.findChildren<SfenCollectionDialog*>().size(), 1);
         const QPointer<SfenCollectionDialog> first = window.findChild<SfenCollectionDialog*>();
         first->close();
         QTRY_VERIFY(first.isNull());
 
-        dialogs->displaySfenCollectionViewer();
+        files->openSfenCollection();
         const QList<SfenCollectionDialog*> reopened = window.findChildren<SfenCollectionDialog*>();
         QCOMPARE(reopened.size(), 1);
         reopened.first()->close();
@@ -313,11 +318,62 @@ private slots:
         QVERIFY(dock);
         const bool wasVisible = dock->isVisible();
 
-        parts.dialogLauncher->displayMenuWindow();
+        parts.menuWindowController->toggleWindow();
         QCOMPARE(dock->isVisible(), !wasVisible);
-        parts.dialogLauncher->displayMenuWindow();
+        // 表示の切り替えはドックの toggleViewAction（「表示」メニューの項目）と同じ
+        QCOMPARE(dock->toggleViewAction()->isChecked(), dock->isVisible());
+        parts.menuWindowController->toggleWindow();
         QCOMPARE(dock->isVisible(), wasVisible);
         QCOMPARE(parts.dockRegistry->dock(DockRegistry::DockId::Menu), dock);
+    }
+
+    /// チェックできるメニューの項目は、設定を持つ部品の今の値から始め、変えるとその部品が保存する
+    void checkableMenuItemsStartFromTheirOwners()
+    {
+        AppSettings::legalMovesVisible.set(false);
+        AppSettings::toolbarVisible.set(false);
+        AppSettings::notationOrigin.set(true);
+        DockSettings::docksLocked.set(true);
+        {
+            MainWindow window;
+            auto& parts = window.composer().parts();
+            QAction* legalMoves = window.findChild<QAction*>(QStringLiteral("actionLegalMoves"));
+            QAction* toolBar = window.findChild<QAction*>(QStringLiteral("actionToolBar"));
+            QAction* origin = window.findChild<QAction*>(QStringLiteral("actionNotationOrigin"));
+            QAction* lockDocks = window.findChild<QAction*>(QStringLiteral("actionLockDocks"));
+            QVERIFY(legalMoves && toolBar && origin && lockDocks);
+            QVERIFY(!legalMoves->isChecked());
+            QVERIFY(!parts.boardController->legalMovesVisible());
+            QVERIFY(!toolBar->isChecked());
+            QVERIFY(origin->isChecked());
+            QVERIFY(lockDocks->isChecked());
+            QVERIFY(parts.dockLayoutManager->docksLocked());
+
+            legalMoves->trigger();
+            QVERIFY(parts.boardController->legalMovesVisible());
+            QVERIFY(AppSettings::legalMovesVisible());
+            lockDocks->trigger();
+            QVERIFY(!DockSettings::docksLocked());
+            toolBar->trigger();
+            QVERIFY(AppSettings::toolbarVisible());
+        }
+        AppSettings::notationOrigin.set(false);
+    }
+
+    /// 局面編集の盤の項目は、編集中の盤を変える
+    void positionEditMenuItemsReachTheSession()
+    {
+        MainWindow window;
+        auto& parts = window.composer().parts();
+        QAction* changeTurn = window.findChild<QAction*>(QStringLiteral("actionChangeTurn"));
+        QVERIFY(changeTurn);
+        parts.actions->beginPositionEditing();
+        QVERIFY(parts.positionEdit->isEditing());
+        const Turn before = parts.gameBoard->board()->currentPlayer();
+        changeTurn->trigger();
+        QCOMPARE(parts.gameBoard->board()->currentPlayer(), opponent(before));
+        parts.positionEdit->finish();
+        parts.document->markSaved(QString());
     }
 
 private:

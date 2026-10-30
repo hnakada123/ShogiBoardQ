@@ -154,6 +154,7 @@
 | 2026-10-30 | 盤の矢印を出すかの正本を1つにした（監査 2026-10-29 の T6）のに合わせて §1.5・§7.4・§7.5・§7.7・§9.5・§10.2〜§10.4・§11.2・§12.5・§14.2・§15.4・付録を更新（手番側・先読み側・検討・定跡手の4つの切り替えは ui の `BoardArrowActions` の checkable な `QAction`（設定の復元と保存もここ。検討の矢印も `AnalysisSettings::considerationArrowsVisible` に保存する）。思考ドック・検討タブ・定跡ウィンドウのチェックと「表示」メニューはそれに結び、`CandidateArrowPresenter` はそれだけを読む。対局の矢印は E1・E2 の思考の表の最新の最善の読み筋から作り、探索中か・先読みかはプロトコルの状態（`isSearching()`・`searchKind()`）、先読みの予想手は読み筋の局面に至った手で決める。`UsiProtocolHandler::SearchCandidate`・`Usi::searchCandidate`・`searchCandidateChanged`・`ConsiderationSettings::showArrows`・`ThinkingPanel::arrowSettingsChanged` を削除） |
 | 2026-10-30 | 外観と駒音の置き場所と外観の持ち主を整理した（監査 2026-10-29 の T7）のに合わせて §1.5・§1.6・§12.5・付録を更新（外観の部品 `BoardAppearance`・`AppearanceState`・`PieceImageProvider`・`PieceStyleCatalog`・`BoardAppearanceCatalog`・`BoardColorPresets`・`BoardColors`・`BoardVisuals` を services・common から style へ移し、外観の設定は style の `AppearanceSettings` にした。駒のセット・配色・見た目の持ち主は `BoardAppearance` 1つ（`state()`・`apply()`・`pieceStyleChanged`）で、`PieceImageProvider` は駒の画像の解決とキャッシュだけ。駒音の `PieceSoundPlayer`・`PieceSoundProcessor` は ui/presenters へ移し、駒音の設定ダイアログは値をシグナルで知らせるだけにした。外観のテーマのコンボ（`BoardColorPresets::themes()`）をやめ、「墨と榧」「琥珀」はおすすめの組み合わせ「標準・墨と榧」「標準・琥珀」にした（26種類。見本を6つ足した）。外観ダイアログは `BoardAppearanceDialog` に改名し、見本の描画を `BoardAppearanceSamples` に出した） |
 | 2026-10-30 | 棋譜の保存の経路と保存形式の表を1つにした（監査 2026-10-29 の T8）のに合わせて §1.5・§8.1・§8.8・§8.9・§8.12・付録を更新（`KifuIoService` を `KifuSaveFile` にまとめた。拡張子の表 `KifuFormats::saveTargets()` が形式・文字コード `KifuEncoding`・保存の見出しを持ち、保存ダイアログの絞り込みは `KifuFileFilter::forSaving()`・`pathForSaving()` で表から作る。書き出しの文脈 `KifuExportMetadata::encoding` で先頭行の文字コードの宣言を書き、保存のときに文字列を置き換えない。`KifuSaveFile::write` は行を作る関数 `(format, encoding)` を受け、Shift_JIS への変換は1回だけ。CLI・自動化 API の形式の選択肢は `KifuFormats::savableNames()`。定跡ファイルの拡張子と絞り込みは `JosekiBookFile::hasBookSuffix`・`withBookSuffix`・`fileFilter`） |
+| 2026-10-30 | 画面の流れの持ち主をそろえた（監査 2026-10-29 の M1〜M4）のに合わせて §4.4・§6.5・§6.9・§10.4・§10.5・§13.6・§14.3・§14.5・§14.6・§15.5・§16.5・第18章を更新（ui・app の知らせは静的な `NotificationPresenter::information`・`warning`・`critical` で出す（`Wait::No` で待たない）。結果を使う部品が自分でダイアログを開く（CSA 通信対局は `CsaGameSession::openGameDialog()`、局面集は `KifuFileController::openSfenCollection()`、メニューウィンドウは `MenuWindowController::toggleWindow()`）。「新規」の止める手順は `MainWindowActions::startNewRecord()` に移し、`GameSession` は対局の後始末 `abandonGame()` だけを持つ。メニューの項目の接続は排他の組と保存したレイアウトの一覧を除いて `MenuActionsWiring` に集め、チェックできる項目は設定を持つ部品の値から始める（`DockLayoutManager::wireMenuActions()`・`PositionEditSession::EditActions` を消した） |
 
 <!-- chapter-0-end -->
 
@@ -1833,7 +1834,7 @@ ud.canResumeGame = std::bind(&MatchCoordinator::canResumeInterruptedGame, m_c.ma
 |-------|---------|------|
 | `MenuActionsWiring` | `app/menuactionswiring.h` | メニュー/ツールバーの QAction を処理する部品のスロットへ接続する（ファイル・編集・対局などのメニューごとに関数を分ける） |
 
-言語・表記のメニューは `LanguageController`、局面編集中の盤のメニューは `PositionEditSession`、ドックの配置のメニューは `DockLayoutManager`（`wireMenuActions()`）が、それぞれ自分でつなぐ。CSA通信対局の開始と画面への反映は `CsaGameSession`（`ui/coordinators/`）、メニューから開くダイアログの起動は `DialogLauncher`（`ui/controllers/dialoglauncher.h`）、盤の対局者名の表示は `PlayerInfoPresenter`、エンジンの表示（思考・検討・通信ログ・2つ目のエンジン欄・評価値グラフの系列名）は `EngineDisplayPresenter`（どちらも `ui/presenters/`）が自分でつなぐ。検討タブの操作は `ConsiderationUiController` が検討のセッションへ伝え、定跡ウィンドウ・メニューウィンドウは配線だけでなく表示も持つので、Controller（`JosekiWindowController`・`MenuWindowController`、`ui/controllers/`）にしている。
+メニュー・ツールバーの項目の triggered・toggled は、すべて `MenuActionsWiring` がつなぐ。チェックできる項目（合法手の表示・ツールバー・駒音・ドックの固定・移動元）は、設定を持つ部品の今の値（`BoardInteractionController::legalMovesVisible()`・`MainWindowAppearanceController::isToolBarVisible()`・`PieceSoundPlayer::isEnabled()`・`DockLayoutManager::docksLocked()`・`LanguageController::notationOrigin()`）から始め、変えたらその部品に渡す（保存は部品が行う）。例外は、排他の組（言語・指し手の表記。組と選択の印を持つ `LanguageController`）と、項目を作る部品のメニュー（保存したレイアウトの一覧。`DockLayoutManager::setSavedLayoutsMenu()`）の2つだけ。CSA通信対局のダイアログと画面への反映は `CsaGameSession`（`ui/coordinators/`）、結果を受ける部品のないダイアログの起動は `DialogLauncher`（`ui/controllers/dialoglauncher.h`）、盤の対局者名の表示は `PlayerInfoPresenter`、エンジンの表示（思考・検討・通信ログ・2つ目のエンジン欄・評価値グラフの系列名）は `EngineDisplayPresenter`（どちらも `ui/presenters/`）が自分でつなぐ。検討タブの操作は `ConsiderationUiController` が検討のセッションへ伝え、定跡ウィンドウ・メニューウィンドウは配線だけでなく表示も持つので、Controller（`JosekiWindowController`・`MenuWindowController`、`ui/controllers/`）にしている。
 
 #### 典型的な構造
 
@@ -1862,7 +1863,8 @@ struct Deps {
     KifuFileController* kifuFiles = nullptr;           ///< 開く・保存・貼り付け・棋譜と局面のコピー
     GameSession* session = nullptr;                    ///< 対局の開始・投了・中断・待った・即指し
     AnalysisSession* analysis = nullptr;               ///< 詰み探索の中止
-    // ... 局面編集・棋譜解析・詰み探索・外観・画像・盤・駒音・設定の初期化（すべてポインタ）
+    // ... 通信対局・メニューウィンドウ・局面編集・棋譜解析・詰み探索・外観・画像・盤・駒音・設定の初期化・
+    //     ドックの配置・言語と表記（すべてポインタ）
 };
 
 /// 起動時に1回だけ呼ぶ
@@ -3027,7 +3029,7 @@ struct MatchTimeSettings {
 | メソッド | 呼び出し元 | 内容 |
 |---------|-----------|------|
 | `prepareGameStart(preparation)` | `GameSession::startGame()` | 対局を始める局面に棋譜を整え、ライブ対局を始める。始めたノードを返す |
-| `resetToNewRecord(sfen)` | 「新規」（`GameSession::resetToInitialState()`）、局面編集 | 読み込み途中の棋譜を捨て、ライブ対局を破棄して、局面 `sfen` だけの新しい棋譜にする（`KifuDocument::startNew()`） |
+| `resetToNewRecord(sfen)` | 「新規」（`MainWindowActions::startNewRecord()`）、局面編集 | 読み込み途中の棋譜を捨て、ライブ対局を破棄して、局面 `sfen` だけの新しい棋譜にする（`KifuDocument::startNew()`） |
 
 評価値グラフとエンジンの表示（通信ログ・思考情報・検討・解析結果。`EngineDisplayPresenter::clearAll()`）は、文書の置き換え（`KifuDocument::replaced`。新規・読み込み・局面の反映・新しい棋譜での対局の開始）を受けて自分で消える。`SessionResetCoordinator` が表示に触るのは、文書を置き換えずに現在局面から対局を続けるとき（評価値グラフを開始の手数で切り詰める）だけ。連続対局の次局（`GameSession::startNextGame()`）と通信対局の開始（司令塔が呼ぶ `GameSession::beginRecord()`）も `prepareGameStart()` を通る。
 
@@ -3201,7 +3203,7 @@ public:
 | **終局後処理** | 司令塔が終局の行の後で呼ぶ `finishRecord(autoSave)`（ライブ対局のセッションの確定（中断も。再開は中断の行を除いて記録し直す）、終局時刻の記録 `KifuDocument::recordMatchEnd()`、`autoSave` で `m_autoSave.isActive()` なら `KifuFileController::autoSaveKifu(dir, extension)`）・`onGameEnded()`（中断なら連続対局をやめる）・`onGameEndProcessed()`（連続対局の次局の予約） |
 | **中断と再開** | `onGameInterrupted()`・`discardInterruptedGame()`・`resumeInterruptedGame()` |
 | **通信対局の棋譜** | 通信対局の司令塔が対局の開始で呼ぶ `beginRecord(MatchRecordStart)` が、ローカル対局の新しい棋譜と同じく `SessionResetCoordinator::prepareGameStart()` で棋譜を作り直して（対局情報に書きかけた内容は残し、前の表示は文書の置き換えで消える）ライブ対局を始め、サーバーが知らせた対局者・持ち時間で `beginMatchRecord()`、接続ダイアログの自動保存の指定を覚える。再開局面の既存手順・着手・終局の行は司令塔が `appendRecord()` で書き、終局で `finishRecord(true)` を呼ぶ |
-| **リセット** | 「新規」の `resetToInitialState()` |
+| **後始末** | 「新規」の `abandonGame()`（通信対局を止め、終局の状態・連続対局・中断した対局を捨てる。検討・エンジン・棋譜の作り直しは `MainWindowActions::startNewRecord()`） |
 
 #### シグナル接続
 
@@ -5859,24 +5861,25 @@ void wire(const Deps& deps);
 
 **ソース**: `src/app/menuactionswiring.h`, `src/app/menuactionswiring.cpp`
 
-`Ui::MainWindow` が持つ全ての `QAction`（ファイル操作、対局、盤操作、解析、表示など）を、担当するクラスのスロットに接続する。`MainWindowComposer::connectAnalysisAndUi()` が起動時に1回だけ `wire()` を呼ぶ。言語・表記のメニューは `LanguageController`、局面編集中の盤のメニューは `PositionEditSession`、ドックの配置のメニューは、同じ `connectAnalysisAndUi()` が `DockLayoutManager::wireMenuActions()` を呼んでつなぐ。
+`Ui::MainWindow` が持つ全ての `QAction`（ファイル操作、対局、盤操作、解析、表示など）を、担当するクラスのスロットに接続する。`MainWindowComposer::connectAnalysisAndUi()` が起動時に1回だけ `wire()` を呼ぶ。項目の triggered・toggled はすべてここでつなぎ、チェックできる項目は `bindCheck()`（設定を持つ部品の今の値から始め、`toggled` を部品のスロットへつなぐ。メニューではアイコンの代わりにチェックの印を出す）で結ぶ。ここでつながないのは、排他の組（言語・指し手の表記。`LanguageController`）と、保存したレイアウトの一覧（項目を作る `DockLayoutManager`。同じ `connectAnalysisAndUi()` が `setSavedLayoutsMenu()` を呼ぶ）だけ。
 
 ```
 wire()
   ├── wireFileMenu     → MainWindowActions（新規・終了）、KifuFileController（開く・保存・上書き）、
   │                      ImageExportController（盤・評価値グラフの画像）
-  ├── wireEditMenu     → KifuFileController（棋譜・局面のコピー、貼り付け）、
-  │                      DialogLauncher（局面集）、ImageExportController（画像のコピー）、
-  │                      MainWindowActions（局面編集の開始）、PositionEditSession（局面編集の終了）
+  ├── wireEditMenu     → KifuFileController（棋譜・局面のコピー、貼り付け、局面集）、
+  │                      ImageExportController（画像のコピー）、MainWindowActions（局面編集の開始）、
+  │                      PositionEditSession（局面編集の終了・全駒を駒箱へ・平手・詰将棋・手番の入れ替え）
   ├── wireDisplayMenu  → MainWindowAppearanceController（盤の拡大・縮小・反転、ツールバー）、
-  │                      DialogLauncher（盤の外観・文字の大きさ・メニューウィンドウ）、
-  │                      BoardInteractionController（合法手の表示）
+  │                      DialogLauncher（盤の外観・文字の大きさ）、MenuWindowController（メニューウィンドウ）、
+  │                      BoardInteractionController（合法手の表示）、
+  │                      DockLayoutManager（既定の配置に戻す・名前を付けて保存・ドックの固定）
   ├── wireGameMenu     → GameSession（対局開始・投了・待った・即指し・中断・再開・入玉宣言）、
-  │                      DialogLauncher（CSA通信対局・詰将棋の対局と生成・持将棋）、
+  │                      CsaGameSession（CSA通信対局）、DialogLauncher（詰将棋の対局と生成・持将棋）、
   │                      KifuAnalysisController（棋譜解析と中止）、
   │                      TsumeSearchController（詰み探索）、AnalysisSession（詰み探索の中止）
-  ├── wireSettingsMenu → DialogLauncher（エンジン設定・駒音の設定）、PieceSoundPlayer、
-  │                      SettingsResetController
+  ├── wireSettingsMenu → DialogLauncher（エンジン設定・駒音の設定）、PieceSoundPlayer（駒音）、
+  │                      SettingsResetController、LanguageController（移動元・棋譜表記の読み方）
   └── wireHelpMenu     → DialogLauncher（バージョン情報・Webサイト）、QApplication::aboutQt
 ```
 
@@ -5960,19 +5963,19 @@ Coordinators は、複数のオブジェクトをまたぐ複雑な処理フロ�
 
 | Coordinator | ソース | 役割 |
 |------------|--------|------|
-| `DialogLauncher` | `dialoglauncher.h` | メニューから開くダイアログ（エンジン設定・CSA通信対局・詰将棋・局面集・持将棋・駒音・盤の外観・文字の大きさなど）を、必要な部品を渡して開く。成り・不成の選択（`choosePromotion()`。`PromoteDialog::ask()` を呼ぶ）も受け持つ |
-| `KifuFileController` | `kifufilecontroller.h` | 棋譜の開く・保存・上書き・自動保存・貼り付けと、棋譜・局面のクリップボードへのコピー（第8章） |
-| `CsaGameSession` | `csagamesession.h` | CSA 通信対局の開始（待機ダイアログ）と、進行の画面への反映（棋譜・自動保存は `GameSession`） |
+| `DialogLauncher` | `dialoglauncher.h` | 結果を受ける部品のないダイアログ（エンジン設定・詰将棋・持将棋・駒音・盤の外観・文字の大きさなど）を、必要な部品を渡して開く。成り・不成の選択（`choosePromotion()`。`PromoteDialog::ask()` を呼ぶ）も受け持つ |
+| `KifuFileController` | `kifufilecontroller.h` | 棋譜の開く・保存・上書き・自動保存・貼り付けと、棋譜・局面のクリップボードへのコピー（第8章）。局面集ビューア（`openSfenCollection()`。開いている間は1つで、もう一度開くと前面に出す）も開いて、選んだ局面を読む |
+| `CsaGameSession` | `csagamesession.h` | CSA 通信対局のダイアログ（`openGameDialog()`。1つを使い回し、OK なら未保存を確かめて始める）、対局の開始（待機ダイアログ）と、進行の画面への反映（棋譜・自動保存は `GameSession`） |
 | `CommentCoordinator` | `commentcoordinator.h` | 棋譜コメントとしおりの表示・編集（14.5.3） |
 | `UiStatePolicyManager` | `uistatepolicymanager.h` | 動作状態（`AppActivityState`）ごとのメニュー・ボタンの有効・無効・非表示 |
 | `DockRegistry` | `dockregistry.h` | ドックの表（`DockSpec`）から12個のドックを作り、規定の場所に置き、浮動・表示・位置を保存・復元する |
-| `DockLayoutManager` | `docklayoutmanager.h` | 名前付きレイアウトの保存・復元・削除、起動時のレイアウト、ドックの固定（メニューへの接続は `wireMenuActions()`） |
+| `DockLayoutManager` | `docklayoutmanager.h` | 名前付きレイアウトの保存・復元・削除、起動時のレイアウト、ドックの固定（作ったときに保存した状態にする。メニューの項目は `MenuActionsWiring` がつなぎ、保存したレイアウトの一覧の項目は `setSavedLayoutsMenu()` で受け取ったメニューに自分で作る） |
 
 #### DialogLauncher — ダイアログ統合窓口
 
 **ソース**: `src/ui/controllers/dialoglauncher.h`, `src/ui/controllers/dialoglauncher.cpp`
 
-メニューから開くダイアログの起動窓口になる Coordinator である。ダイアログの生成・パラメータ設定・シグナル接続を一元化する。依存（`Deps`）は `MainWindowComposer` が起動時に作って渡す。検討・詰み探索・棋譜解析の条件ダイアログは、それぞれ `ConsiderationUiController`・`TsumeSearchController`・`KifuAnalysisController` が出す。
+メニューから開くダイアログのうち、結果を受ける部品のないもの（設定・情報・詰将棋）の起動窓口である。依存（`Deps`）は `MainWindowComposer` が起動時に作って渡す。結果を使う部品があるダイアログは、その部品が自分で開いて受ける。対局開始は `GameSession`、CSA 通信対局は `CsaGameSession::openGameDialog()`、棋譜の貼り付けと局面集は `KifuFileController`、検討・詰み探索・棋譜解析の条件ダイアログは、それぞれ `ConsiderationUiController`・`TsumeSearchController`・`KifuAnalysisController` が出す。メニューウィンドウはダイアログではなくドックなので、`MenuWindowController::toggleWindow()`（ドックの `toggleViewAction()` で出し入れし、出したら前面に出す）が受ける。
 
 **管理するダイアログ群:**
 
@@ -5984,12 +5987,9 @@ Coordinators は、複数のオブジェクトをまたぐ複雑な処理フロ�
 | 成り確認 | `choosePromotion()` | 駒を成るかどうかの選択（`PromoteDialog::ask()`。6.8 節） |
 | 持将棋スコア | `displayJishogiScoreDialog()` | `JishogiScoreDialog::showFor(position, parent)`（`src/dialogs/jishogiscoredialog.h`）で、表示中の局面の点数を `JishogiCalculator::calculate()` で数え、先後の王手を `EngineMoveValidator::isInCheck()` で調べて、ダイアログをモーダルで開く。ダイアログは先手・後手の2列の表で、宣言点数（敵陣の駒＋持ち駒）・総点数（盤上の全駒＋持ち駒）・玉が敵陣にいるか・敵陣に玉以外の駒が10枚以上あるか（枚数つき）・王手がかかっていないか・24点法と27点法の判定を出す。A-/A+（`GameSettings::jishogiScoreFontSize`）と「結果をコピー」もある |
 | 詰将棋の生成・対局 | `displayTsumeshogiGeneratorDialog()`・`displayTsumePlayDialog()` | 詰将棋の生成と対局のダイアログ |
-| メニューウィンドウ | `displayMenuWindow()` | メニューウィンドウのドックを出す |
-| CSA通信対局 | `displayCsaGameDialog()` | 接続ダイアログを出し、`CsaGameSession::startGame()` で始める |
-| 局面集 | `displaySfenCollectionViewer()` | 局面集ビューア。選んだ局面は `sfenCollectionPositionSelected` で知らせる |
 | 駒音・盤の外観・文字の大きさ | `displayPieceSoundSettingsDialog()`・`displayBoardAppearanceDialog()`・`displayFontSettingsDialog()` | 各設定ダイアログ（盤の外観は開いたまま盤を見比べられるモードレス） |
 
-終局・検討の終了・詰み探索の結果の知らせ（メッセージボックス）は `NotificationPresenter::showInformation`（`MatchCoordinator::gameOverMessage`・`AnalysisSession::messageRequested` からつなぐ）が出す。
+終局・検討の終了・詰み探索の結果の知らせ（メッセージボックス）は `NotificationPresenter::showInformation`（`MatchCoordinator::gameOverMessage`・`AnalysisSession::messageRequested` からつなぐ）が出す。ui・app の部品が自分で出す知らせも、静的な `NotificationPresenter::information()`・`warning()`・`critical()` で出す（`QMessageBox` の静的関数は使わない。`tst_structural_kpi` が検査する）。自動化 API の `ScopedCapture` の間はダイアログを出さずに記録し、文は PlainText で出す。閉じるのを待たずに処理を続ける知らせ（連続対局の途中の通信対局の結果）は `Wait::No` を渡す。確認の問い（はい・いいえ）は `DialogUtils::confirmAction()` と `UnsavedChangesPrompt`、dialogs・widgets の中の知らせはそのダイアログ・ウィジェットが出す。
 
 #### KifuLoader — 棋譜の読み込み
 
@@ -6073,7 +6073,8 @@ KifuFileController::chooseAndLoadKifuFile() など（画面からの読み込み
 | `setAsStartupLayout(name)` | 起動時に自動適用するレイアウトを設定 |
 | `setDocksLocked(locked)` | ドックの移動・リサイズを禁止/許可 |
 | `saveDockStates()` | すべてのドックの状態を保存（`DockRegistry::saveStates()`） |
-| `wireMenuActions(...)` | メニューアクションとの接続（起動時に `MainWindowComposer::connectAnalysisAndUi()` から呼ぶ） |
+| `setSavedLayoutsMenu(menu)` | 保存したレイアウトの一覧のメニューを受け取り、項目を作ってつなぐ（起動時に `MainWindowComposer::connectAnalysisAndUi()` から呼ぶ） |
+| `docksLocked()` | ドックを固定しているか（「ドックを固定」のチェックの初期値） |
 
 ### 10.6 UI層全体のデータフロー
 
@@ -7383,7 +7384,7 @@ onMoveApplied(from, to, success):
 
 **ソース**: `src/board/positioneditsession.h/.cpp`
 
-局面編集の開始・終了、編集メニューの操作、編集中の着手を1か所で受け持つ。「編集中か」（`isEditing()`）は動作状態が `AppActivityState::DuringPositionEdit` かの1つだけで決まり、盤の描き方（`ShogiView::setPositionEditMode()`）と「編集終了」ボタン（`ShogiView::setEditExitButtonVisible()`）はこのクラスが動作状態に合わせて切り替える。依存（`Deps`）は `view`（盤と手番は `view->board()` の `ShogiBoard`）・`board`（`BoardInteractionController`）・`navState`・`activity` と編集メニューの項目（`EditActions`）で、合成ルートは `MainWindowComponents::positionEdit` として持つ。
+局面編集の開始・終了、編集中の盤の操作、編集中の着手を1か所で受け持つ。「編集中か」（`isEditing()`）は動作状態が `AppActivityState::DuringPositionEdit` かの1つだけで決まり、盤の描き方（`ShogiView::setPositionEditMode()`）と「編集終了」ボタン（`ShogiView::setEditExitButtonVisible()`）はこのクラスが動作状態に合わせて切り替える。依存（`Deps`）は `view`（盤と手番は `view->board()` の `ShogiBoard`）・`board`（`BoardInteractionController`）・`navState`・`activity` と編集メニューの項目（`EditActions`）で、合成ルートは `MainWindowComponents::positionEdit` として持つ。
 
 メニューの「局面編集」は `MainWindowActions::beginPositionEditing()` が未保存の棋譜を確認し、中断した対局を捨ててから `begin()` を呼ぶ。終了はメニューの「局面編集の終了」（`MenuActionsWiring`）と盤の「編集終了」ボタン（`BoardChromeWidget::editExitRequested`。コンストラクタでつなぐ）から `finish()` を呼ぶ。
 
@@ -7415,14 +7416,14 @@ finish():
 
 #### 編集メニュー
 
-| スロット | 対応アクション（`EditActions`） | 動作 |
+| スロット | メニューの項目 | 動作 |
 |---------|-------------|------|
-| `returnAllPiecesToBox()` | 「全ての駒を駒箱へ」（`returnAllPiecesToStand`） | `PositionEditRules::clear()` を呼ぶ |
-| `setHiratePosition()` | 「平手初期配置」（`setHiratePosition`） | 平手のSFEN（`SfenUtils::hirateSfen()`）を盤に設定し、手番を先手にする |
-| `setTsumePosition()` | 「詰将棋初期配置」（`setTsumePosition`） | 詰将棋の見本のSFENを盤に設定し、手番を先手にする |
-| `toggleSideToMove()` | 「手番切替」（`changeTurn`） | 配置はそのままで、先手 ⇔ 後手をトグル |
+| `returnAllPiecesToBox()` | 「全ての駒を駒箱へ」（`actionReturnAllPiecesToStand`） | `PositionEditRules::clear()` を呼ぶ |
+| `setHiratePosition()` | 「平手初期配置」（`actionSetHiratePosition`） | 平手のSFEN（`SfenUtils::hirateSfen()`）を盤に設定し、手番を先手にする |
+| `setTsumePosition()` | 「詰将棋初期配置」（`actionSetTsumePosition`） | 詰将棋の見本のSFENを盤に設定し、手番を先手にする |
+| `toggleSideToMove()` | 「手番切替」（`actionChangeTurn`） | 配置はそのままで、先手 ⇔ 後手をトグル |
 
-どれも編集中でなければ何もしない。メニューの項目はコンストラクタでつなぐ。
+どれも編集中でなければ何もしない。メニューの項目は、ほかの項目と同じく `MenuActionsWiring`（`wireEditMenu()`）がつなぐ。
 
 #### PositionEditRules — 局面編集の規則
 
@@ -7605,14 +7606,14 @@ MainWindow のメンバは `ui`・`m_composer`・`m_skipCloseConfirmation`（自
 
 `MainWindowComposer` は部品を依存する部品より後に作り、依存はコンストラクタの `Deps` で渡す。共通の規則は [4.2節](#42-合成ルートでの組み立て) を参照。
 
-- **依存はポインタで渡す**: 部品は `Deps` 構造体で、ほかの部品のポインタを受け取る。たとえば `GameSession::Deps` は `activity`・`match`・`analysis`・`engines`・`consecutive`・`reset`・`navState`・`liveSession` などをポインタで持つ。生成前の部品を指すための `std::function<X*()>` のゲッターは使わない。
+- **依存はポインタで渡す**: 部品は `Deps` 構造体で、ほかの部品のポインタを受け取る。たとえば `GameSession::Deps` は `activity`・`match`・`consecutive`・`reset`・`navState`・`liveSession` などをポインタで持つ。生成前の部品を指すための `std::function<X*()>` のゲッターは使わない。
 - **状態は AppActivityState を指す**: 動作状態を使う部品は `&m_activity`（`AppActivityState*`）を受け取り（`GameSession`・`AutomationContext`・`MatchCoordinator`・`AnalysisSession`・`UiStatePolicyManager`・`HumanTurnPolicy`・`BoardMoveController`・`CsaGameSession` など）、使うときに読む。棋譜に付く状態（対局者・上書き保存先・対局情報）を使う部品は棋譜の文書 `KifuDocument*` を受け取る（`GameSession`・`KifuFileController`・`PlayerInfoPresenter`・`PvClickController`・`KifuAnalysisController`・`MatchCoordinator`・`AutomationContext` など。読むだけの部品は `const`）。
 - **作った後に渡すもの**: 司令塔（`MatchCoordinator`）は棋譜の受け手の `GameSession` より先に作るので、受け手だけ `createSessions()` で `setRecordSink()` によって渡す。ほかに、`KifuNavigationController::addLeaveGuard()`（局面編集中でない `PositionEditSession::allowsLeavingMove()` と、未更新のコメントの確認 `CommentCoordinator::confirmLeaveEditingMove()`）・`GameBoard::setPromotionChooser()` が、できあがった部品の関数を受け取る。合成ルートは判断を持たず、部品の関数を結ぶだけにする。盤の操作の行き先（`BoardInteractionController::setInputRoute()`）は、`BoardMoveController` が自分のコンストラクタで自分を渡す。
 - **`std::function` はフックだけ**: 上位へ問い合わせ・操作を委ねるフック（`KifuDocument::Hooks::commitPendingEdits`、`UiStatePolicyManager::Deps` の `localGameHasHuman`・`canResumeGame`、`JosekiWindowController::Deps::isHumanTurnNow` など）と、層の境界をまたぐ関数（`AutomationContext` のお気に入りの取得・設定）にだけ使う。司令塔（`MatchCoordinator`）はフックを持たず、シグナルと棋譜の受け手（`MatchRecordSink`）で上位に知らせる（[4.3節](#43-シグナルと-stdfunction-コールバック)）。
 
-二重ポインタ（`T**`）で相手の変数に書き込む形は使わない。起動するクラスだけが使うダイアログ（CSA 通信対局の接続ダイアログ、局面集ビューア）は、その起動役（`DialogLauncher`）が持つ。
+二重ポインタ（`T**`）で相手の変数に書き込む形は使わない。結果を使う部品があるダイアログ（CSA 通信対局の接続ダイアログ、局面集ビューア）は、その部品（`CsaGameSession`・`KifuFileController`）が開いて持つ。
 
-「新規」・対局開始前・局面編集・棋譜読み込み前の、棋譜とモデルの消去は `SessionResetCoordinator` が行う。`GameSession::resetToInitialState()`（「新規」）もこのコーディネータで初期状態に戻す。
+「新規」・対局開始前・局面編集・棋譜読み込み前の、棋譜とモデルの消去は `SessionResetCoordinator` が行う。「新規」（`MainWindowActions::startNewRecord()`）も、検討・対局・エンジンを止めてから、このコーディネータで平手の開始局面だけの棋譜にする。
 
 `tst_service_initialization` は本体の MainWindow を使い、部品が1回だけ作られてシグナルが重複してつながらないこと、司令塔・エンジンの枠・検討のセッションが1つだけであることなどを確かめる。
 
@@ -7696,7 +7697,7 @@ m_c.menuWindowController->collectCategoriesFromMenuBar();
 m_c.dockLayoutManager = new DockLayoutManager(&m_window, m_c.dockRegistry, &m_window);
 ```
 
-ドックを使う部品には `m_c.dockRegistry->dock(DockRegistry::DockId::AnalysisResults)` のように1つずつ渡す（`KifuAnalysisController::Deps::resultsDock`・`DialogLauncher::Deps::menuWindowDock`）。
+ドックを使う部品には `m_c.dockRegistry->dock(DockRegistry::DockId::AnalysisResults)` のように1つずつ渡す（`KifuAnalysisController::Deps::resultsDock`。メニューウィンドウは `MenuWindowController::attachDock()`）。
 
 #### 14.5.3 CommentCoordinator
 
@@ -7716,13 +7717,14 @@ m_c.dockLayoutManager = new DockLayoutManager(&m_window, m_c.dockRegistry, &m_wi
 
 ### 14.6 操作の受け口（MainWindowActions）
 
-MainWindow はスロットを持たない。メニュー・盤・棋譜欄の操作は、処理する部品のスロットへ直接つなぐ。メニュー・ツールバーの項目のつなぎ込みは `MenuActionsWiring::wire()`（`src/app/menuactionswiring.h`）が起動時に1回だけ行う（言語・表記のメニューは `LanguageController`、局面編集中の盤のメニューは `PositionEditSession`、ドック配置のメニューは `DockLayoutManager::wireMenuActions()` がつなぐ）。たとえば待ったは `GameSession` のスロットへ、棋譜の保存は `KifuFileController` へ、ダイアログの表示は `DialogLauncher` へ直接つなぐ。
+MainWindow はスロットを持たない。メニュー・盤・棋譜欄の操作は、処理する部品のスロットへ直接つなぐ。メニュー・ツールバーの項目のつなぎ込みは `MenuActionsWiring::wire()`（`src/app/menuactionswiring.h`）が起動時に1回だけ行う（例外は、言語・指し手の表記の排他の組（`LanguageController`）と、保存したレイアウトの一覧（`DockLayoutManager`）だけ）。たとえば待ったは `GameSession` のスロットへ、棋譜の保存は `KifuFileController` へ、ダイアログの表示は `DialogLauncher` へ直接つなぐ。
 
 1つの部品では完結しないものだけ、`MainWindowActions`（`src/app/mainwindowactions.h`）のスロットが受ける。部品は `MainWindowActions::Deps` でポインタとして受け取る（すべて非所有）。
 
 | スロット | 接続元 | 処理 |
 |---------|--------|------|
-| `resetToInitialState()` | メニュー「新規」 | 未保存の棋譜を確認 → `GameSession::resetToInitialState()` |
+| `resetToInitialState()` | メニュー「新規」 | 未保存の棋譜を確認 → `startNewRecord()` |
+| `startNewRecord()` | 「新規」・テスト | 検討・詰み探索を止め（`AnalysisSession::stop()`）、対局の後始末（`GameSession::abandonGame()`。通信対局・終局の状態・連続対局・中断した対局）、対局・棋譜解析のエンジンを止め（`EngineSlots::destroyEngines()`）、平手の開始局面だけの棋譜にする（`SessionResetCoordinator::resetToNewRecord()`） |
 | `beginPositionEditing()` | メニュー「局面編集の開始」 | 未保存の棋譜を確認し、中断した対局を破棄（`GameSession::discardInterruptedGame()`） → `PositionEditSession::begin()` |
 | `resetRecordForEditedPosition(sfen)` | `PositionEditSession::editingStarted` / `editingFinished` | シグナルで渡された局面を開始局面とする棋譜に作り直す（`SessionResetCoordinator`） |
 | `requestQuit()` | メニュー「終了」 | ウィンドウを閉じる（確認は `MainWindow::closeEvent()`）。閉じられたらアプリを終了する |
@@ -8096,8 +8098,8 @@ sequenceDiagram
     participant GS as GameSession
     participant MES as MatchEngineSeat
 
-    User->>CGD: 接続情報を入力しOK（DialogLauncher::displayCsaGameDialog）
-    CGD->>CGS: startGame(dialog->selection())
+    User->>CGD: 接続情報を入力しOK（CsaGameSession::openGameDialog）
+    CGD->>CGS: 未保存を確かめて startGame(dialog->selection())
     Note over CGS: 待機ダイアログ（CsaWaitingDialog）を出し、<br/>対局が始まるかエラー・キャンセルまで待つ
     CGS->>CGC: startGame(StartOptions)
     CGC->>CC: connectToServer(host, port)
@@ -8411,22 +8413,24 @@ LanguageController (QObject)
 │   ├── parentWidget                      再起動の知らせ・表記の説明の親ウィジェット
 │   ├── systemLanguage / japanese / english / chineseSimplified / chineseTraditional
 │   │                                     言語のメニュー項目
-│   └── notationAuto / notationJapanese / notationWestern / notationOrigin / notationHelp
-│                                         棋譜表記のメニュー項目
+│   └── notationAuto / notationJapanese / notationWestern
+│                                         棋譜表記の排他の組のメニュー項目
 ├── メンバ
 │   ├── m_languageGroup: QActionGroup*    言語の排他選択グループ（項目の data が言語コード "system"・"ja_JP"・"en"・"zh_CN"・"zh_TW"）
 │   ├── m_notationGroup: QActionGroup*    棋譜表記（言語に合わせる・日本語表記・英語表記）の排他選択グループ
 │   └── m_parentWidget: QWidget*          ダイアログ表示用の親ウィジェット
 ├── public メソッド
-│   ├── LanguageController(Deps, parent)  メニュー項目を設定とつなぐ（コンストラクタで登録まで行う）
-│   └── updateMenuState()                 現在の設定でチェック状態を更新
-├── private slots
-│   ├── onLanguageTriggered(QAction*)     言語の選択時（項目の data を保存し、変わっていれば再起動を案内）
-│   ├── onNotationTriggered(QAction*)     棋譜表記の選択時
+│   ├── LanguageController(Deps, parent)  排他の組を作って設定とつなぐ（コンストラクタで登録まで行う）
+│   ├── updateMenuState()                 現在の設定でチェック状態を更新
+│   └── notationOrigin()                  移動元を付けるか（「移動元」のチェックの初期値）
+├── public slots（MenuActionsWiring がつなぐ）
 │   ├── onOriginTriggered(bool)           「英語表記で移動元を常に表示」の切り替え時
 │   └── showNotationHelp()                棋譜表記の読み方を表示
+├── private slots
+│   ├── onLanguageTriggered(QAction*)     言語の選択時（項目の data を保存し、変わっていれば再起動を案内）
+│   └── onNotationTriggered(QAction*)     棋譜表記の選択時
 └── private メソッド
-    ├── setNotationActions()              棋譜表記のメニュー項目の登録と接続
+    ├── setNotationActions()              棋譜表記の排他の組の登録と接続
     └── restartNotice()                   再起動の案内ダイアログ
 ```
 
@@ -8438,7 +8442,7 @@ sequenceDiagram
     participant Menu as 言語メニュー
     participant LC as LanguageController
     participant SS as AppSettings
-    participant MB as QMessageBox
+    participant MB as NotificationPresenter
 
     User->>Menu: 「日本語」を選択
     Menu->>LC: onLanguageTriggered(action)（QActionGroup::triggered。data は "ja_JP"）
@@ -8473,12 +8477,10 @@ ld.chineseTraditional = m_ui.actionLanguageChineseTraditional;
 ld.notationAuto = m_ui.actionNotationAuto;
 ld.notationJapanese = m_ui.actionNotationJapanese;
 ld.notationWestern = m_ui.actionNotationWestern;
-ld.notationOrigin = m_ui.actionNotationOrigin;
-ld.notationHelp = m_ui.actionNotationHelp;
 m_c.languageController = new LanguageController(ld, &m_window);
 ```
 
-コンストラクタの内部で各アクションの `triggered` シグナルと対応するスロットが接続されるため、呼び出し側での追加的な `connect()` は不要である。
+言語と棋譜表記の排他の組は、コンストラクタの内部で `QActionGroup::triggered` と対応するスロットが接続される。「移動元」と「棋譜表記の読み方」は排他の組ではないので、ほかのメニューの項目と同じく `MenuActionsWiring`（`wireSettingsMenu()`）が `notationOrigin()` の値から始めてつなぐ。
 
 ### 16.6 AppSettingsによる言語設定の永続化
 
@@ -9524,7 +9526,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | TsumeShogiSearchDialog | C | dialogs | 詰将棋探索ダイアログ | 第11章 |
 | TsumeVerificationJob | C | analysis | 総予算と1回の上限つきの唯一解の検査（生成と CLI の余詰検査で共通） | 第9章 |
 | TsumeVerificationRunner | C | automation | 詰将棋の検証の実行器（CLI・自動化 API と共有） | 第9章 |
-| NotificationPresenter | C | ui | エラー・情報の知らせのダイアログ | 第4章 |
+| NotificationPresenter | C | ui | エラー・警告・情報の知らせのダイアログ（ui・app の唯一の出し手。静的な `information`・`warning`・`critical`） | 第4章 |
 | UiStatePolicyManager | C | ui/policy | 動作状態ごとのメニュー・ボタンの有効・無効（コンパイル時の表） | 第6章, 第10章, 第14章 |
 | UsenCodec | NS | kifu/formats | USEN の符号（指し手の3文字・開始局面・手順）の符号化と復号 | 第8章 |
 | UsenExporter | C | kifu/formats | USEN形式の書き出し | 第8章 |

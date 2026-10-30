@@ -8,6 +8,7 @@
 #include <QStatusBar>
 #include "csagamecoordinator.h"
 #include "csawaitingdialog.h"
+#include "csagamedialog.h"
 #include "csagamesession.h"
 #include "notificationpresenter.h"
 
@@ -58,6 +59,66 @@ private slots:
         auto* detail = waiting.findChild<QLabel*>(QStringLiteral("csaWaitingDetail"));
         QVERIFY(detail);
         QCOMPARE(detail->textFormat(), Qt::PlainText);
+    }
+
+    /// ui・app の部品が出す知らせ（static な information・warning・critical）も HTML として読まない。
+    /// 自動化 API の呼び出し中は出さずに記録し、警告・情報は notices、エラーは errors に入れる
+    void staticNotificationsAreCapturedAndPlain()
+    {
+        const QString text = QStringLiteral("<b>file</b> not found");
+        Qt::TextFormat format = Qt::AutoText;
+        QMessageBox::Icon icon = QMessageBox::NoIcon;
+        QTimer::singleShot(0, this, [&format, &icon]() {
+            auto* box = qobject_cast<QMessageBox*>(QApplication::activeModalWidget());
+            if (!box) return;
+            format = box->textFormat();
+            icon = box->icon();
+            box->accept();
+        });
+        NotificationPresenter::warning(nullptr, QStringLiteral("title"), text);
+        QCOMPARE(format, Qt::PlainText);
+        QCOMPARE(icon, QMessageBox::Warning);
+
+        const NotificationPresenter::ScopedCapture capture;
+        NotificationPresenter::information(nullptr, QStringLiteral("t"), QStringLiteral("info"));
+        NotificationPresenter::warning(nullptr, QStringLiteral("t"), QStringLiteral("warn"));
+        NotificationPresenter::critical(nullptr, QStringLiteral("t"), QStringLiteral("error"));
+        QCOMPARE(capture.notices(), QStringList({QStringLiteral("info"), QStringLiteral("warn")}));
+        QCOMPARE(capture.errors(), QStringList({QStringLiteral("error")}));
+        QVERIFY(!QApplication::activeModalWidget());
+    }
+
+    /// 続けて対局するときの結果の表示は、閉じるのを待たずに戻る（次の対局の開始を止めない）
+    void notificationWithoutWaitingReturnsAtOnce()
+    {
+        QWidget parent;
+        NotificationPresenter::information(&parent, QStringLiteral("result"), QStringLiteral("win"),
+                                           NotificationPresenter::Wait::No);
+        auto* box = parent.findChild<QMessageBox*>();
+        QVERIFY(box);
+        QVERIFY(box->isVisible());
+        QVERIFY(!box->isModal());
+        QCOMPARE(box->textFormat(), Qt::PlainText);
+        box->close();
+    }
+
+    /// 接続ダイアログは CsaGameSession が開き、入力した値を残すため使い回す。キャンセルなら始めない
+    void gameDialogIsOpenedAndReused()
+    {
+        CsaGameCoordinator coordinator;
+        QWidget parent;
+        CsaGameSession::Deps deps;
+        deps.coordinator = &coordinator;
+        deps.parentWidget = &parent;
+        CsaGameSession session(deps);
+        for (int i = 0; i < 2; ++i) {
+            QTimer::singleShot(0, this, []() {
+                if (auto* dialog = qobject_cast<CsaGameDialog*>(QApplication::activeModalWidget())) dialog->reject();
+            });
+            session.openGameDialog();
+        }
+        QCOMPARE(parent.findChildren<CsaGameDialog*>().size(), 1);
+        QVERIFY(!parent.findChild<CsaWaitingDialog*>());
     }
 
     /// 対局の開始はステータスバーに対局者名で出す。棋譜と動作状態は司令塔が整えるので、ここでは受けない

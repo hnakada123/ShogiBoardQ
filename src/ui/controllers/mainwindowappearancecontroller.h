@@ -33,7 +33,6 @@ public:
         QMainWindow* window = nullptr;                  ///< 横幅を盤・ドックに合わせるウィンドウ（必須）
         QWidget* centralWidget = nullptr;               ///< 盤を置くセントラルウィジェット（必須）
         QToolBar* toolBar = nullptr;                    ///< ツールバー
-        QAction* toolBarAction = nullptr;               ///< 「ツールバー」メニュー（表示状態を合わせる）
         ShogiView* shogiView = nullptr;                 ///< 盤（必須）
         TimeDisplayPresenter* timePresenter = nullptr;  ///< 盤を反転したときに時計を描き直す
     };
@@ -47,6 +46,9 @@ public:
     // --- アクセサ ---
 
     QWidget* central() const { return m_central; }
+    /// ツールバーを出すか（保存した設定から始める。「ツールバー」のチェックの初期値）
+    bool isToolBarVisible() const;
+
 public slots:
     /// 盤を反転する（手前に表示する側を入れ替え、駒の向きと時計の見た目を合わせる）
     void flipBoard();
@@ -57,7 +59,7 @@ public slots:
     /// 盤縮小アクション
     void onActionShrinkBoardTriggered();
 
-    /// ツールバー表示/非表示切替
+    /// ツールバー表示/非表示切替（設定に保存する）
     void onToolBarVisibilityToggled(bool visible);
 
 private slots:
@@ -66,7 +68,7 @@ private slots:
 
 private:
     void setupCentralWidgetContainer(QWidget* centralWidget);
-    void configureToolBarFromUi(QToolBar* toolBar, QAction* actionToolBar);
+    void configureToolBar(QToolBar* toolBar);
     void setupBoardInCenter();
     bool eventFilter(QObject* watched, QEvent* event) override;
     void scheduleWindowWidthUpdate();

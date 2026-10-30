@@ -1025,7 +1025,7 @@ SFENの手数欄とツリー上の手数も混同しない。
 `KifuDocument::beginMatch()` が対局者と、持ち時間・開始日時（`MatchTimeRecord::begin()`）を記録する。`TimeDisplayPresenter` は時計の残り時間を表示するだけにする。
 
 連続対局の次局（`GameSession::startNextGame()`）は、`SessionResetCoordinator::resetToNewRecord()` で独立した棋譜にしてから同じ手順で始める。
-「新規」（`GameSession::resetToInitialState()`）は `resetToNewRecord()` で平手の開始局面だけの棋譜にし、ライブ対局を始めない。
+「新規」（`MainWindowActions::startNewRecord()`）は `resetToNewRecord()` で平手の開始局面だけの棋譜にし、ライブ対局を始めない。
 共有SFENや文字列の特殊値から新規対局・途中再開・リセットを推測する処理はない。
 
 ### 8.4 対局後に途中局面から再度対局した場合

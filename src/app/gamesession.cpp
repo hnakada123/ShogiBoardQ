@@ -2,10 +2,8 @@
 /// @brief 対局の利用者の操作・開始の手順・棋譜の行・終局と中断の後処理
 
 #include "gamesession.h"
-#include "engineslots.h"
 #include "josekibooksession.h"
 
-#include "analysissession.h"
 #include "appactivitystate.h"
 #include "consecutivegameseries.h"
 #include "csagamechannel.h"
@@ -27,7 +25,6 @@
 #include "nyugyokudeclarationhandler.h"
 #include "playerinfopresenter.h"
 #include "sessionresetcoordinator.h"
-#include "sfenutils.h"
 #include "timecontroltext.h"
 #include "shogiview.h"
 #include "startgamedialog.h"
@@ -269,19 +266,12 @@ void GameSession::undoTwoMoves()
 // 新規
 // ============================================================
 
-void GameSession::resetToInitialState()
+void GameSession::abandonGame()
 {
-    m_deps.analysis->stop();
-    if (m_deps.csaGame) m_deps.csaGame->stopGame();
-    // 対局・棋譜解析のエンジンも止める（思考情報の表示は作り直しで消す）
-    if (m_deps.engines) m_deps.engines->destroyEngines(false);
+    m_deps.csaGame->stopGame();
     m_deps.match->clearGameEnd();
     m_deps.consecutive->reset();
     discardInterruptedGame();
-
-    // 前の対局者・持ち時間・上書き保存先も残さない（盤には対局情報の初期値「先手」「後手」を出す）
-    // 動作状態は、止めた検討・通信対局・解析がそれぞれ手放す（「新規」は待機中だけ）
-    m_deps.reset->resetToNewRecord(SfenUtils::hirateSfen());
 }
 
 // ============================================================

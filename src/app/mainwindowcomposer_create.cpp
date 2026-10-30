@@ -137,14 +137,11 @@ void MainWindowComposer::createBoard()
     ad.window = &m_window;
     ad.centralWidget = m_ui.centralwidget;
     ad.toolBar = m_ui.toolBar;
-    ad.toolBarAction = m_ui.actionToolBar;
     ad.shogiView = m_c.shogiView;
     ad.timePresenter = m_c.timePresenter;
     m_c.appearance = new MainWindowAppearanceController(ad, &m_window);
 
     m_c.boardController = new BoardInteractionController(m_c.shogiView, m_c.gameBoard->board(), &m_window);
-    m_ui.actionLegalMoves->setChecked(AppSettings::legalMovesVisible());
-    m_c.boardController->setLegalMovesVisible(m_ui.actionLegalMoves->isChecked());
 }
 
 // ---------------------------------------------------------------------------
@@ -253,10 +250,6 @@ void MainWindowComposer::createMatchAndAnalysis()
     pd.board = m_c.boardController;
     pd.navState = m_c.navState;
     pd.activity = &m_activity;
-    pd.actions.returnAllPiecesToStand = m_ui.actionReturnAllPiecesToStand;
-    pd.actions.setHiratePosition = m_ui.actionSetHiratePosition;
-    pd.actions.setTsumePosition = m_ui.actionSetTsumePosition;
-    pd.actions.changeTurn = m_ui.actionChangeTurn;
     m_c.positionEdit = new PositionEditSession(pd, &m_window);
     // 局面編集中は棋譜を移らない
     m_c.kifuNavController->addLeaveGuard(std::bind(&PositionEditSession::allowsLeavingMove, m_c.positionEdit));
@@ -375,13 +368,14 @@ void MainWindowComposer::createDocks()
     m_c.dockRegistry = new DockRegistry(&m_window, m_ui.Display, &m_window);
     DockRegistry* docks = m_c.dockRegistry;
     docks->createAll(contents);
-    // メニューウィンドウの分類に、ドックの表示の切り替えも入れる
+    // メニューウィンドウの分類に、ドックの表示の切り替えも入れる。ツールバーの「メニュー」はドックの表示を切り替える
     m_c.menuWindowController->collectCategoriesFromMenuBar();
+    m_c.menuWindowController->attachDock(docks->dock(Id::Menu));
 
     // 定跡ウィンドウはドックが前面に出ている間だけ更新する（閉じるときは未保存の変更を確かめる）
     m_c.joseki->attachDock(docks->dock(Id::Joseki));
 
-    // ドックの固定と保存したレイアウトのメニューは wireMenuActions() でつなぐ（connectAnalysisAndUi）
+    // 保存した固定の状態にする。メニューの項目は MenuActionsWiring と setSavedLayoutsMenu() でつなぐ（connectAnalysisAndUi）
     m_c.dockLayoutManager = new DockLayoutManager(&m_window, docks, &m_window);
 }
 
@@ -405,9 +399,6 @@ void MainWindowComposer::createSessions()
     m_c.uiStatePolicy = new UiStatePolicyManager(ud, &m_window);
     m_c.notifications = new NotificationPresenter({&m_window}, &m_window);
     m_c.pieceSoundPlayer = new PieceSoundPlayer(&m_window);
-    // メニュー「駒音」はチェックマークを見せるためアイコンを出さず、設定のオン・オフを映す
-    m_ui.actionPieceSound->setIconVisibleInMenu(false);
-    m_ui.actionPieceSound->setChecked(m_c.pieceSoundPlayer->isEnabled());
 
     // 棋譜の読み込み・保存
     m_c.kifuLoader = new KifuLoader(m_c.document, &m_window);
@@ -434,8 +425,6 @@ void MainWindowComposer::createSessions()
     GameSession::Deps gd;
     gd.activity = &m_activity;
     gd.match = m_c.match;
-    gd.analysis = m_c.analysisSession;
-    gd.engines = m_c.engines;
     gd.consecutive = m_c.consecutiveGames;
     gd.reset = m_c.sessionReset.get();
     gd.navState = m_c.navState;
@@ -459,6 +448,7 @@ void MainWindowComposer::createSessions()
     cd.appearance = m_c.appearance;
     cd.statusBar = m_ui.statusbar;
     cd.parentWidget = &m_window;
+    cd.kifuFiles = m_c.kifuFileController;
     m_c.csaSession = new CsaGameSession(cd, &m_window);
 }
 
@@ -478,8 +468,6 @@ void MainWindowComposer::createControllers()
     ld.notationAuto = m_ui.actionNotationAuto;
     ld.notationJapanese = m_ui.actionNotationJapanese;
     ld.notationWestern = m_ui.actionNotationWestern;
-    ld.notationOrigin = m_ui.actionNotationOrigin;
-    ld.notationHelp = m_ui.actionNotationHelp;
     m_c.languageController = new LanguageController(ld, &m_window);
 
     PvClickController::Deps pv;
@@ -517,16 +505,15 @@ void MainWindowComposer::createControllers()
     ad.positionEdit = m_c.positionEdit;
     ad.kifuFileController = m_c.kifuFileController;
     ad.reset = m_c.sessionReset.get();
+    ad.analysis = m_c.analysisSession;
+    ad.engines = m_c.engines;
     m_c.actions = new MainWindowActions(ad, &m_window);
 
     // メニューから開くダイアログ
     DialogLauncher::Deps dl;
     dl.parentWidget = &m_window;
-    dl.kifuFileController = m_c.kifuFileController;
     dl.shogiView = m_c.shogiView;
-    dl.csaSession = m_c.csaSession;
     dl.pieceSoundPlayer = m_c.pieceSoundPlayer;
-    dl.menuWindowDock = m_c.dockRegistry->dock(DockRegistry::DockId::Menu);
     dl.evalChart = m_c.evalChart;
     m_c.dialogLauncher = new DialogLauncher(dl, &m_window);
     // 成り・不成を選べる着手では、成りダイアログで対局者に選ばせる

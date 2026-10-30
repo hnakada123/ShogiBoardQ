@@ -2,6 +2,7 @@
 /// @brief 言語切替コントローラクラスの実装
 
 #include "languagecontroller.h"
+#include "notificationpresenter.h"
 #include "appsettings.h"
 #include "dialogfontscale.h"
 
@@ -30,10 +31,8 @@ LanguageController::LanguageController(const Deps& deps, QObject* parent)
     connect(m_languageGroup, &QActionGroup::triggered, this, &LanguageController::onLanguageTriggered);
     updateMenuState();
 
-    if (deps.notationAuto && deps.notationJapanese && deps.notationWestern && deps.notationOrigin && deps.notationHelp) {
-        setNotationActions(deps.notationAuto, deps.notationJapanese, deps.notationWestern, deps.notationOrigin,
-                           deps.notationHelp);
-    }
+    if (deps.notationAuto && deps.notationJapanese && deps.notationWestern)
+        setNotationActions(deps.notationAuto, deps.notationJapanese, deps.notationWestern);
 }
 
 void LanguageController::updateMenuState()
@@ -57,16 +56,20 @@ void LanguageController::onLanguageTriggered(QAction* action)
 void LanguageController::restartNotice()
 {
     if (m_parentWidget) {
-        QMessageBox::information(m_parentWidget,
+        NotificationPresenter::information(m_parentWidget,
             tr("言語設定"),
             tr("設定を変更しました。\n変更を反映するにはアプリケーションを再起動してください。"));
     }
 
 }
 
-void LanguageController::setNotationActions(QAction* automatic, QAction* japanese, QAction* western, QAction* origin, QAction* help)
+bool LanguageController::notationOrigin() const
 {
-    connect(help, &QAction::triggered, this, &LanguageController::showNotationHelp);
+    return AppSettings::notationOrigin();
+}
+
+void LanguageController::setNotationActions(QAction* automatic, QAction* japanese, QAction* western)
+{
     m_notationGroup = new QActionGroup(this);
     automatic->setData(QStringLiteral("auto"));
     japanese->setData(QStringLiteral("japanese"));
@@ -76,8 +79,6 @@ void LanguageController::setNotationActions(QAction* automatic, QAction* japanes
         action->setChecked(action->data().toString() == AppSettings::moveNotation());
     }
     connect(m_notationGroup, &QActionGroup::triggered, this, &LanguageController::onNotationTriggered);
-    origin->setChecked(AppSettings::notationOrigin());
-    connect(origin, &QAction::triggered, this, &LanguageController::onOriginTriggered);
 }
 void LanguageController::onNotationTriggered(QAction* action)
 {

@@ -11,6 +11,7 @@
 #include "shogiview.h"
 #include "boardconstants.h"
 #include "usimove.h"
+#include "appsettings.h"
 
 class BoardInputRoute;
 class ShogiBoard;
@@ -46,8 +47,9 @@ public:
      */
     std::optional<UsiMove> moveFromClick(const QPoint& from, const QPoint& to) const;
 
-    /// 選択した駒の合法な移動先を表示し、設定を保存する。
+    /// 選択した駒の合法な移動先を表示し、設定を保存する（作ったときは保存した設定から始める）
     void setLegalMovesVisible(bool visible);
+    bool legalMovesVisible() const { return m_legalMovesVisible; }
 
     // --- ハイライト操作 ---
 
@@ -90,7 +92,7 @@ private:
     ShogiBoard* m_board = nullptr;       ///< 表示している盤（非所有）
     BoardInputRoute* m_route = nullptr;  ///< 指した手の行き先（非所有）
     PromotionChooser m_promotionChooser; ///< 成り・不成の選び方
-    bool m_legalMovesVisible = true;     ///< 合法な移動先の表示
+    bool m_legalMovesVisible = AppSettings::legalMovesVisible();  ///< 合法な移動先の表示
 
     // --- クリック状態 ---
     QPoint m_clickPoint; ///< 現在選択中のマス座標

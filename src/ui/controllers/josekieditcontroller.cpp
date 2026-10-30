@@ -2,13 +2,13 @@
 /// @brief 定跡ウィンドウの定跡手の追加・編集・削除の実装
 
 #include "josekieditcontroller.h"
+#include "notificationpresenter.h"
 
 #include "dialogutils.h"
 #include "josekibooksession.h"
 #include "josekimovedialog.h"
 #include "josekitablemodel.h"
 
-#include <QMessageBox>
 #include <QWidget>
 
 JosekiEditController::JosekiEditController(const Deps &deps, QObject *parent)
@@ -29,7 +29,7 @@ bool JosekiEditController::addMove(const QString &targetSfen)
     const QString sfen = targetSfen;
     if (!canEdit()) return false;
     if (sfen.isEmpty()) {
-        QMessageBox::warning(m_deps.parentWidget, tr("定跡手追加"),
+        NotificationPresenter::warning(m_deps.parentWidget, tr("定跡手追加"),
             tr("局面が設定されていません。\n将棋盤で局面を表示してから定跡手を追加してください。"));
         return false;
     }

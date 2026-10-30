@@ -6,13 +6,17 @@
 
 #include "analysissession.h"
 #include "boardinteractioncontroller.h"
+#include "csagamesession.h"
+#include "docklayoutmanager.h"
 #include "dialoglauncher.h"
 #include "gamesession.h"
 #include "imageexportcontroller.h"
 #include "kifuanalysiscontroller.h"
 #include "kifufilecontroller.h"
+#include "languagecontroller.h"
 #include "mainwindowactions.h"
 #include "mainwindowappearancecontroller.h"
+#include "menuwindowcontroller.h"
 #include "piecesoundplayer.h"
 #include "positioneditsession.h"
 #include "settingsresetcontroller.h"
@@ -23,6 +27,16 @@
 namespace MenuActionsWiring {
 
 namespace {
+
+/// チェックできる項目: 設定を持つ部品の今の値 checked から始め、変えたら receiver に渡す（保存は receiver が行う）。
+/// メニューではアイコンの代わりにチェックの印を出す
+template<class Receiver>
+void bindCheck(QAction* action, bool checked, Receiver* receiver, void (Receiver::*slot)(bool))
+{
+    action->setIconVisibleInMenu(false);
+    action->setChecked(checked);
+    QObject::connect(action, &QAction::toggled, receiver, slot);
+}
 
 void wireFileMenu(const Deps& d)
 {
@@ -50,11 +64,17 @@ void wireEditMenu(const Deps& d)
     QObject::connect(ui->actionCopySFEN, &QAction::triggered, kifu, &KifuFileController::copySfenToClipboard);
     QObject::connect(ui->actionCopyBOD, &QAction::triggered, kifu, &KifuFileController::copyBodToClipboard);
     QObject::connect(ui->actionPasteKifu, &QAction::triggered, d.kifuFiles, &KifuFileController::pasteKifuFromClipboard);
-    QObject::connect(ui->actionSfenCollectionViewer, &QAction::triggered, d.dialogs, &DialogLauncher::displaySfenCollectionViewer);
+    QObject::connect(ui->actionSfenCollectionViewer, &QAction::triggered, kifu, &KifuFileController::openSfenCollection);
     QObject::connect(ui->actionCopyBoardToClipboard, &QAction::triggered, d.images, &ImageExportController::copyBoardToClipboard);
     QObject::connect(ui->actionCopyEvalGraphToClipboard, &QAction::triggered, d.images, &ImageExportController::copyEvalGraphToClipboard);
+    // 局面編集（終了と、編集中の盤の操作）
+    PositionEditSession* edit = d.positionEdit;
     QObject::connect(ui->actionStartEditPosition, &QAction::triggered, d.actions, &MainWindowActions::beginPositionEditing);
-    QObject::connect(ui->actionEndEditPosition, &QAction::triggered, d.positionEdit, &PositionEditSession::finish);
+    QObject::connect(ui->actionEndEditPosition, &QAction::triggered, edit, &PositionEditSession::finish);
+    QObject::connect(ui->actionReturnAllPiecesToStand, &QAction::triggered, edit, &PositionEditSession::returnAllPiecesToBox);
+    QObject::connect(ui->actionSetHiratePosition, &QAction::triggered, edit, &PositionEditSession::setHiratePosition);
+    QObject::connect(ui->actionSetTsumePosition, &QAction::triggered, edit, &PositionEditSession::setTsumePosition);
+    QObject::connect(ui->actionChangeTurn, &QAction::triggered, edit, &PositionEditSession::toggleSideToMove);
 }
 
 void wireGameMenu(const Deps& d)
@@ -63,7 +83,7 @@ void wireGameMenu(const Deps& d)
     GameSession* session = d.session;
     DialogLauncher* dialogs = d.dialogs;
     QObject::connect(ui->actionStartGame, &QAction::triggered, session, &GameSession::startGameFromDialog);
-    QObject::connect(ui->actionCSA, &QAction::triggered, dialogs, &DialogLauncher::displayCsaGameDialog);
+    QObject::connect(ui->actionCSA, &QAction::triggered, d.csaSession, &CsaGameSession::openGameDialog);
     QObject::connect(ui->actionResign, &QAction::triggered, session, &GameSession::resign);
     QObject::connect(ui->actionUndoMove, &QAction::triggered, session, &GameSession::undoTwoMoves);
     QObject::connect(ui->actionMakeImmediateMove, &QAction::triggered, session, &GameSession::makeEngineMoveNow);
@@ -87,20 +107,30 @@ void wireDisplayMenu(const Deps& d)
     QObject::connect(ui->actionEnlargeBoard, &QAction::triggered, appearance, &MainWindowAppearanceController::onActionEnlargeBoardTriggered);
     QObject::connect(ui->actionShrinkBoard, &QAction::triggered, appearance, &MainWindowAppearanceController::onActionShrinkBoardTriggered);
     QObject::connect(ui->actionBoardAppearance, &QAction::triggered, d.dialogs, &DialogLauncher::displayBoardAppearanceDialog);
-    QObject::connect(ui->actionLegalMoves, &QAction::toggled, d.boardController, &BoardInteractionController::setLegalMovesVisible);
+    bindCheck(ui->actionLegalMoves, d.boardController->legalMovesVisible(), d.boardController,
+              &BoardInteractionController::setLegalMovesVisible);
     QObject::connect(ui->actionFontSettings, &QAction::triggered, d.dialogs, &DialogLauncher::displayFontSettingsDialog);
-    QObject::connect(ui->actionToolBar, &QAction::toggled, appearance, &MainWindowAppearanceController::onToolBarVisibilityToggled);
+    bindCheck(ui->actionToolBar, appearance->isToolBarVisible(), appearance,
+              &MainWindowAppearanceController::onToolBarVisibilityToggled);
+    // ドックの配置
+    DockLayoutManager* layout = d.dockLayout;
+    QObject::connect(ui->actionResetDockLayout, &QAction::triggered, layout, &DockLayoutManager::resetToDefault);
+    QObject::connect(ui->actionSaveDockLayout, &QAction::triggered, layout, &DockLayoutManager::saveLayoutAs);
+    bindCheck(ui->actionLockDocks, layout->docksLocked(), layout, &DockLayoutManager::setDocksLocked);
     // ツールバーだけにある項目
-    QObject::connect(ui->actionMenuWindow, &QAction::triggered, d.dialogs, &DialogLauncher::displayMenuWindow);
+    QObject::connect(ui->actionMenuWindow, &QAction::triggered, d.menuWindow, &MenuWindowController::toggleWindow);
 }
 
 void wireSettingsMenu(const Deps& d)
 {
     Ui::MainWindow* ui = d.ui;
     QObject::connect(ui->actionEngineSettings, &QAction::triggered, d.dialogs, &DialogLauncher::displayEngineSettingsDialog);
-    QObject::connect(ui->actionPieceSound, &QAction::toggled, d.pieceSound, &PieceSoundPlayer::setEnabled);
+    bindCheck(ui->actionPieceSound, d.pieceSound->isEnabled(), d.pieceSound, &PieceSoundPlayer::setEnabled);
     QObject::connect(ui->actionPieceSoundSettings, &QAction::triggered, d.dialogs, &DialogLauncher::displayPieceSoundSettingsDialog);
     QObject::connect(ui->actionResetSettings, &QAction::triggered, d.settingsReset, &SettingsResetController::confirmAndQuit);
+    // 指し手の表記（言語に合わせる・日本式・英語式の組は LanguageController がつなぐ）
+    bindCheck(ui->actionNotationOrigin, d.language->notationOrigin(), d.language, &LanguageController::onOriginTriggered);
+    QObject::connect(ui->actionNotationHelp, &QAction::triggered, d.language, &LanguageController::showNotationHelp);
 }
 
 void wireHelpMenu(const Deps& d)
@@ -115,9 +145,9 @@ void wireHelpMenu(const Deps& d)
 
 void wire(const Deps& d)
 {
-    Q_ASSERT(d.ui && d.actions && d.dialogs && d.kifuFiles && d.session && d.analysis
+    Q_ASSERT(d.ui && d.actions && d.dialogs && d.kifuFiles && d.session && d.csaSession && d.menuWindow && d.analysis
              && d.positionEdit && d.kifuAnalysis && d.tsumeSearch && d.appearance && d.images
-             && d.boardController && d.pieceSound && d.settingsReset);
+             && d.boardController && d.pieceSound && d.settingsReset && d.dockLayout && d.language);
     wireFileMenu(d);
     wireEditMenu(d);
     wireDisplayMenu(d);

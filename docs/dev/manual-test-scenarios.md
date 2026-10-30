@@ -213,8 +213,8 @@
 - 再度対局が正常に開始できる
 
 **重点確認ポイント:**
-- `GameSession::resetToInitialState()` の実行順序（「新規」は `MainWindowActions::resetToInitialState()` が未保存の確認をしてから呼ぶ）:
-  1. 検討・詰み探索（`AnalysisSession::stop()`。自分のエンジンだけを手放す）と通信対局（`CsaGameCoordinator::stopGame()`）を止め、対局・棋譜解析のエンジンも `EngineSlots::destroyEngines(false)` で止めて（持ち主には `engineRevoked` で知らせる）、司令塔の終局状態・連続対局・中断した対局を消す
+- `MainWindowActions::startNewRecord()` の実行順序（「新規」は `MainWindowActions::resetToInitialState()` が未保存の確認をしてから呼ぶ）:
+  1. 検討・詰み探索（`AnalysisSession::stop()`。自分のエンジンだけを手放す）を止め、対局の後始末（`GameSession::abandonGame()`。通信対局を `CsaGameCoordinator::stopGame()` で止め、司令塔の終局状態・連続対局・中断した対局を消す）をしてから、対局・棋譜解析のエンジンも `EngineSlots::destroyEngines(false)` で止める（持ち主には `engineRevoked` で知らせる）
   2. `SessionResetCoordinator::resetToNewRecord()` — 読み込み途中の棋譜を捨て（`KifuLoader::cancelLoad()`）、`KifuDocument::startNew()` で平手の開始局面だけの棋譜にする。文書の置き換え（`KifuDocument::replaced`）を受けて、通信ログ・思考情報・検討・解析結果（`EngineDisplayPresenter::clearAll()`）と評価値グラフが消える。文書の置き換えで対局情報は既定の項目になり、対局者・持ち時間・終局日時・上書き保存先も消え、盤の対局者名は対局情報の初期値（「先手」「後手」）に戻る（`headerReset` → `PlayerInfoPresenter()`）
   3. 動作状態を `Idle` に戻す
 - 動作状態（`AppActivityState::activity()`） が `Idle` に戻り、`KifuDocument::players()` が空・`KifuDocument::filePath()` が空になるか
@@ -290,7 +290,7 @@
 4. **`KifuLoader` の使い回し**
    - 起動時に作った1つのインスタンス（`MainWindowComposer::createSessions()` が作る）で、2回目以降の読み込みも正しく反映されるか
    - 読み込み中に別の棋譜を読み込んだとき、前の読み込みの結果が後から反映されないか（`KifuLoader::startLoad()` が前のジョブを捨てる）
-   - 初期状態へのリセット（`GameSession::resetToInitialState()` → `SessionResetCoordinator::resetToNewRecord()`）で、読み込み途中の棋譜が `KifuLoader::cancelLoad()` で捨てられるか
+   - 初期状態へのリセット（`MainWindowActions::startNewRecord()` → `SessionResetCoordinator::resetToNewRecord()`）で、読み込み途中の棋譜が `KifuLoader::cancelLoad()` で捨てられるか
 
 5. **`UiStatePolicyManager` の状態遷移**
    - 各シナリオで期待される状態遷移が正しく発生しているか

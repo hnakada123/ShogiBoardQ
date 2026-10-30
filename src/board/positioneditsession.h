@@ -12,7 +12,6 @@
 
 class BoardInteractionController;
 class KifuNavigationState;
-class QAction;
 class ShogiView;
 
 /**
@@ -28,20 +27,11 @@ class PositionEditSession : public QObject
     Q_OBJECT
 
 public:
-    /// 編集メニューの項目（編集中だけ有効。UiStatePolicyManager）
-    struct EditActions {
-        QAction* returnAllPiecesToStand = nullptr;
-        QAction* setHiratePosition = nullptr;
-        QAction* setTsumePosition = nullptr;
-        QAction* changeTurn = nullptr;
-    };
-
     struct Deps {
         ShogiView* view = nullptr;                          ///< 盤（必須）
         BoardInteractionController* board = nullptr;        ///< 盤の操作（必須）
         const KifuNavigationState* navState = nullptr;      ///< 表示中の手（編集する局面。必須）
         AppActivityState* activity = nullptr;               ///< 動作状態（必須）
-        EditActions actions;
     };
 
     explicit PositionEditSession(const Deps& deps, QObject* parent = nullptr);

@@ -104,17 +104,15 @@ private slots:
     /// 「棋譜表記の読み方」は、記号と説明が別の行に分かれないよう各行を折り返さずに表示する
     void notationHelpKeepsLinesUnwrapped()
     {
-        QAction automatic, japanese, western, origin, help;
+        QAction automatic, japanese, western;
         LanguageController::Deps deps;
         deps.notationAuto = &automatic;
         deps.notationJapanese = &japanese;
         deps.notationWestern = &western;
-        deps.notationOrigin = &origin;
-        deps.notationHelp = &help;
         LanguageController controller(deps);
         m_unwrappedLines = -1;
         QTimer::singleShot(0, this, &TestLanguageController::inspectNotationHelp);
-        help.trigger();
+        controller.showNotationHelp();
         QVERIFY(m_unwrappedLines > 5);
     }
     /// 幅はメッセージボックスの文字サイズ操作で保存した大きさの文字で測る（既定の文字で測ると幅が合わない）。
@@ -125,17 +123,15 @@ private slots:
         if (saved < 8) QSKIP("既定の文字が最小の大きさのため確かめられない");
         AppSettings::messageBoxFontSize.set(saved);
         DialogFontScale::installForMessageBoxes(qApp);
-        QAction automatic, japanese, western, origin, help;
+        QAction automatic, japanese, western;
         LanguageController::Deps deps;
         deps.notationAuto = &automatic;
         deps.notationJapanese = &japanese;
         deps.notationWestern = &western;
-        deps.notationOrigin = &origin;
-        deps.notationHelp = &help;
         LanguageController controller(deps);
         m_unwrappedLines = -1;
         QTimer::singleShot(0, this, &TestLanguageController::inspectNotationHelp);
-        help.trigger();
+        controller.showNotationHelp();
         QVERIFY(m_unwrappedLines > 5);
         QCOMPARE(m_labelPointSize, saved);
         QCOMPARE(m_labelMinimumWidth, qMin(m_widestLine, m_widthLimit) + 8);

@@ -6,11 +6,12 @@
 #include "csagamecoordinator.h"
 #include "csagamedialog.h"
 #include "csawaitingdialog.h"
+#include "kifufilecontroller.h"
 #include "logcategories.h"
 #include "mainwindowappearancecontroller.h"
+#include "notificationpresenter.h"
 #include "shogiview.h"
 
-#include <QMessageBox>
 #include <QStatusBar>
 
 CsaGameSession::CsaGameSession(const Deps& deps, QObject* parent)
@@ -30,6 +31,16 @@ CsaGameSession::CsaGameSession(const Deps& deps, QObject* parent)
 // ============================================================
 // 対局の開始
 // ============================================================
+
+void CsaGameSession::openGameDialog()
+{
+    if (!m_gameDialog) m_gameDialog = new CsaGameDialog(m_deps.parentWidget);
+    m_gameDialog->refreshChoices();
+    if (m_gameDialog->exec() != QDialog::Accepted) return;
+    if (m_deps.kifuFiles && !m_deps.kifuFiles->confirmDiscardUnsaved()) return;
+    // 待機ダイアログを出して対局が始まるまで待つ（始まった後はこのクラスが進める）
+    startGame(m_gameDialog->selection());
+}
 
 bool CsaGameSession::startGame(const CsaGameDialog::Selection& selection)
 {
@@ -105,15 +116,9 @@ void CsaGameSession::onLogMessage(const QString& message, bool isError)
 void CsaGameSession::showGameEndDialog(const QString& title, const QString& message)
 {
     // 対局を続けるときは、結果の表示が次の対局の開始を止めないようにする
-    auto* box = new QMessageBox(QMessageBox::Information, title, message, QMessageBox::Ok, m_deps.parentWidget);
-    box->setAttribute(Qt::WA_DeleteOnClose);
-    box->setTextFormat(Qt::PlainText);
-    if (m_deps.coordinator->moreGamesWanted()) {
-        box->setModal(false);
-        box->show();
-        return;
-    }
-    box->exec();
+    NotificationPresenter::information(m_deps.parentWidget, title, message,
+                                       m_deps.coordinator->moreGamesWanted() ? NotificationPresenter::Wait::No
+                                                                             : NotificationPresenter::Wait::UntilClosed);
 }
 
 void CsaGameSession::showStatus(const QString& message, int timeoutMs) const

@@ -23,7 +23,7 @@ MainWindowAppearanceController::MainWindowAppearanceController(const Deps& deps,
 {
     Q_ASSERT(m_mainWindow && deps.centralWidget && m_deps.shogiView);
     setupCentralWidgetContainer(deps.centralWidget);
-    configureToolBarFromUi(deps.toolBar, deps.toolBarAction);
+    configureToolBar(deps.toolBar);
     setupBoardInCenter();
     // 拡大・縮小（メニュー・Ctrl+ホイール）で盤の大きさが変わったら中央の領域を合わせる
     connect(m_deps.shogiView, &ShogiView::fieldSizeChanged, this, &MainWindowAppearanceController::fitCentralToBoard);
@@ -82,7 +82,7 @@ void MainWindowAppearanceController::updateWindowWidth()
     }
 }
 
-void MainWindowAppearanceController::configureToolBarFromUi(QToolBar* toolBar, QAction* actionToolBar)
+void MainWindowAppearanceController::configureToolBar(QToolBar* toolBar)
 {
     if (!toolBar) return;
 
@@ -99,14 +99,12 @@ void MainWindowAppearanceController::configureToolBarFromUi(QToolBar* toolBar, Q
         );
 
     // 保存された設定からツールバーの表示状態を復元
-    bool visible = AppSettings::toolbarVisible();
-    toolBar->setVisible(visible);
+    toolBar->setVisible(AppSettings::toolbarVisible());
+}
 
-    // メニュー内でアイコンを非表示にしてチェックマークを表示
-    if (actionToolBar) {
-        actionToolBar->setIconVisibleInMenu(false);
-        actionToolBar->setChecked(visible);
-    }
+bool MainWindowAppearanceController::isToolBarVisible() const
+{
+    return m_deps.toolBar && !m_deps.toolBar->isHidden();
 }
 
 void MainWindowAppearanceController::installAppToolTips()

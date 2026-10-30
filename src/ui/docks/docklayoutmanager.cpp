@@ -2,6 +2,7 @@
 /// @brief ドックレイアウト管理クラスの実装
 
 #include "appsettings.h"
+#include "notificationpresenter.h"
 #include "dialogfontscale.h"
 #include "dialogutils.h"
 #include "docklayoutmanager.h"
@@ -11,7 +12,6 @@
 #include <QMainWindow>
 #include <QMenu>
 #include <QInputDialog>
-#include <QMessageBox>
 #include <QAction>
 
 #include "logcategories.h"
@@ -22,11 +22,21 @@ DockLayoutManager::DockLayoutManager(QMainWindow* mainWindow, DockRegistry* dock
     , m_docks(docks)
 {
     Q_ASSERT(m_mainWindow && m_docks);
+    // 保存した固定の状態にする
+    setDocksLocked(DockSettings::docksLocked());
 }
 
 void DockLayoutManager::setSavedLayoutsMenu(QMenu* menu)
 {
     m_savedLayoutsMenu = menu;
+    if (!menu) return;
+    menu->setProperty("automationMenu", true);
+    updateSavedLayoutsMenu();
+}
+
+bool DockLayoutManager::docksLocked() const
+{
+    return DockSettings::docksLocked();
 }
 
 void DockLayoutManager::showAllDocks()
@@ -75,7 +85,7 @@ void DockLayoutManager::saveLayoutAs()
     // メニューを更新
     updateSavedLayoutsMenu();
 
-    QMessageBox::information(m_mainWindow, tr("保存完了"),
+    NotificationPresenter::information(m_mainWindow, tr("保存完了"),
         tr("レイアウト「%1」を保存しました。").arg(name));
 }
 
@@ -85,7 +95,7 @@ void DockLayoutManager::restoreLayout(const QString& name)
 
     QByteArray state = DockSettings::loadDockLayout(name);
     if (state.isEmpty()) {
-        QMessageBox::warning(m_mainWindow, tr("エラー"),
+        NotificationPresenter::warning(m_mainWindow, tr("エラー"),
             tr("レイアウト「%1」が見つかりません。").arg(name));
         return;
     }
@@ -114,7 +124,7 @@ void DockLayoutManager::setAsStartupLayout(const QString& name)
 
     DockSettings::startupDockLayoutName.set(name);
     updateSavedLayoutsMenu();
-    QMessageBox::information(m_mainWindow, tr("設定完了"),
+    NotificationPresenter::information(m_mainWindow, tr("設定完了"),
         tr("レイアウト「%1」を起動時のレイアウトに設定しました。").arg(name));
 }
 
@@ -124,7 +134,7 @@ void DockLayoutManager::clearStartupLayout()
 
     DockSettings::startupDockLayoutName.set(QString());
     updateSavedLayoutsMenu();
-    QMessageBox::information(m_mainWindow, tr("設定完了"),
+    NotificationPresenter::information(m_mainWindow, tr("設定完了"),
         tr("起動時のレイアウト設定をクリアしました。\n次回起動時はデフォルトレイアウトが使用されます。"));
 }
 
@@ -192,30 +202,6 @@ void DockLayoutManager::updateSavedLayoutsMenu()
     QAction* clearStartupAction = m_savedLayoutsMenu->addAction(tr("起動時のレイアウトをクリア"));
     clearStartupAction->setEnabled(!startupLayoutName.isEmpty());
     connect(clearStartupAction, &QAction::triggered, this, &DockLayoutManager::clearStartupLayout);
-}
-
-void DockLayoutManager::wireMenuActions(QAction* resetLayout,
-                                        QAction* saveLayoutAs,
-                                        QAction* lockDocks,
-                                        QMenu* savedLayoutsMenu)
-{
-    if (resetLayout) {
-        connect(resetLayout, &QAction::triggered, this, &DockLayoutManager::resetToDefault);
-    }
-    if (saveLayoutAs) {
-        connect(saveLayoutAs, &QAction::triggered, this, &DockLayoutManager::saveLayoutAs);
-    }
-    if (lockDocks) {
-        lockDocks->setChecked(DockSettings::docksLocked());
-        connect(lockDocks, &QAction::toggled, this, &DockLayoutManager::setDocksLocked);
-        // 起動時適用
-        setDocksLocked(lockDocks->isChecked());
-    }
-    if (savedLayoutsMenu) {
-        savedLayoutsMenu->setProperty("automationMenu", true);
-        setSavedLayoutsMenu(savedLayoutsMenu);
-        updateSavedLayoutsMenu();
-    }
 }
 
 void DockLayoutManager::setDocksLocked(bool locked)

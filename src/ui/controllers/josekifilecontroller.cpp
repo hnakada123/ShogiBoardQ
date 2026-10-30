@@ -2,6 +2,7 @@
 /// @brief 定跡ウィンドウのファイル操作の実装
 
 #include "josekifilecontroller.h"
+#include "notificationpresenter.h"
 #include "unsavedchangesprompt.h"
 
 #include "josekibooksession.h"
@@ -10,7 +11,6 @@
 #include <QDir>
 #include <QFileDialog>
 #include <QFileInfo>
-#include <QMessageBox>
 #include <QPushButton>
 
 JosekiFileController::JosekiFileController(const Deps &deps, QObject *parent)
@@ -72,7 +72,7 @@ void JosekiFileController::openRecent(const QString &filePath)
     if (isBusy()) return;
     if (filePath.isEmpty() || !confirmDiscardChanges()) return;
     if (!QFileInfo::exists(filePath)) {
-        QMessageBox::warning(m_deps.parentWidget, tr("エラー"), tr("ファイルが見つかりません: %1").arg(filePath));
+        NotificationPresenter::warning(m_deps.parentWidget, tr("エラー"), tr("ファイルが見つかりません: %1").arg(filePath));
         m_deps.session->removeRecentFile(filePath);
         return;
     }
@@ -118,18 +118,18 @@ bool JosekiFileController::saveNow(const QString &filePath)
 {
     QString errorMessage;
     if (m_deps.session->save(filePath, &errorMessage)) return true;
-    QMessageBox::warning(m_deps.parentWidget, tr("エラー"), errorMessage);
+    NotificationPresenter::warning(m_deps.parentWidget, tr("エラー"), errorMessage);
     return false;
 }
 
 void JosekiFileController::onLoadFailed(const QString &errorMessage)
 {
-    if (!errorMessage.isEmpty()) QMessageBox::warning(m_deps.parentWidget, tr("エラー"), errorMessage);
+    if (!errorMessage.isEmpty()) NotificationPresenter::warning(m_deps.parentWidget, tr("エラー"), errorMessage);
 }
 
 void JosekiFileController::onSaveFailed(const QString &errorMessage)
 {
-    QMessageBox::warning(m_deps.parentWidget, tr("エラー"), errorMessage);
+    NotificationPresenter::warning(m_deps.parentWidget, tr("エラー"), errorMessage);
 }
 
 void JosekiFileController::onBusyChanged(bool busy)
@@ -146,8 +146,8 @@ void JosekiFileController::onBusyChanged(bool busy)
 bool JosekiFileController::confirmDiscardChanges()
 {
     if (isBusy()) {
-        QMessageBox::information(m_deps.parentWidget, tr("処理中"),
-                                 tr("ファイルの読み込み/保存が完了するまでお待ちください。"));
+        NotificationPresenter::information(m_deps.parentWidget, tr("処理中"),
+                                           tr("ファイルの読み込み/保存が完了するまでお待ちください。"));
         return false;
     }
     if (!m_deps.session->isModified()) return true;

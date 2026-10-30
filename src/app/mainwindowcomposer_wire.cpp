@@ -120,8 +120,6 @@ void MainWindowComposer::connectRecord()
             m_c.notifications, &NotificationPresenter::displayErrorMessage);
     connect(m_c.dialogLauncher, &DialogLauncher::engineListChanged,
             m_c.considerationTab, &ConsiderationPanel::reloadEngines);
-    connect(m_c.dialogLauncher, &DialogLauncher::sfenCollectionPositionSelected,
-            m_c.kifuFileController, &KifuFileController::onSfenCollectionPositionSelected);
     connect(m_c.evalChart, &EvaluationChartWidget::settingsRequested,
             m_c.dialogLauncher, &DialogLauncher::displayEvaluationChartSettings);
     connect(m_c.kifuFileController, &KifuFileController::statusMessage, m_ui.statusbar, &QStatusBar::showMessage);
@@ -226,6 +224,8 @@ void MainWindowComposer::connectAnalysisAndUi()
     md.dialogs = m_c.dialogLauncher;
     md.kifuFiles = m_c.kifuFileController;
     md.session = m_c.gameSession;
+    md.csaSession = m_c.csaSession;
+    md.menuWindow = m_c.menuWindowController;
     md.analysis = analysis;
     md.positionEdit = m_c.positionEdit;
     md.kifuAnalysis = m_c.kifuAnalysis;
@@ -235,9 +235,11 @@ void MainWindowComposer::connectAnalysisAndUi()
     md.boardController = m_c.boardController;
     md.pieceSound = m_c.pieceSoundPlayer;
     md.settingsReset = m_c.settingsReset;
+    md.dockLayout = m_c.dockLayoutManager;
+    md.language = m_c.languageController;
     MenuActionsWiring::wire(md);
-    m_c.dockLayoutManager->wireMenuActions(m_ui.actionResetDockLayout, m_ui.actionSaveDockLayout,
-                                           m_ui.actionLockDocks, m_ui.menuSavedLayouts);
+    // 保存したレイアウトの一覧の項目は、作る DockLayoutManager がつなぐ
+    m_c.dockLayoutManager->setSavedLayoutsMenu(m_ui.menuSavedLayouts);
 
     connect(&ErrorBus::instance(), &ErrorBus::messagePosted,
             m_c.notifications, &NotificationPresenter::displayMessage);

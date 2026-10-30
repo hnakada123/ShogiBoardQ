@@ -209,8 +209,6 @@ void TsumePlayDialog::buildBoardControls(QVBoxLayout* layout)
     m_interaction = new BoardInteractionController(m_view, m_board, this);
     // 成り・不成の両方が指せる手は、主画面と同じダイアログで尋ねる
     m_interaction->setPromotionChooser([this] { return PromoteDialog::ask(this); });
-    // 「表示」→「指せるマスを表示」の設定に従う（メイン画面と同じ）
-    m_interaction->setLegalMovesVisible(AppSettings::legalMovesVisible());
     connect(m_view, &ShogiView::clicked, m_interaction, &BoardInteractionController::onLeftClick);
     connect(m_view, &ShogiView::rightClicked, m_interaction, &BoardInteractionController::onRightClick);
     m_interaction->setInputRoute(this);
