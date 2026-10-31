@@ -62,10 +62,11 @@ private:
     /// 改行はプラットフォーム標準（Windows では CRLF、それ以外は LF）になる。
     /// KIF/KI2 は Windows 系ツールの慣習で CRLF が期待され、CSA/JKF/USI/USEN も
     /// 読み込み側が "\r?\n" を正規化するため、どちらの改行でも正しく往復する。
-    /// 内容の検証では改行コードの違いを無視する。
+    /// 内容の検証では改行コードの違いと、UTF-8 の KIF・KI2 の先頭の BOM（utf8KifAndKi2_startWithBom で確かめる）を無視する。
     static QByteArray readAllNormalized(const QString& path)
     {
         QByteArray bytes = readAllBytes(path);
+        if (bytes.startsWith("\xEF\xBB\xBF")) bytes.remove(0, 3);
         bytes.replace("\r\n", "\n");
         return bytes;
     }
@@ -145,6 +146,9 @@ private slots:
             QCOMPARE(actual, expectedFormat);
             QCOMPARE(path, responder.filePath);
             QCOMPARE(readAllNormalized(path), QByteArray("selected format only\n"));
+            // UTF-8 の KIF・KI2 だけ BOM を付ける
+            QCOMPARE(readAllBytes(path).startsWith("\xEF\xBB\xBF"),
+                     expectedFormat == SaveFormat::Kif || expectedFormat == SaveFormat::Ki2);
         }
     }
 
@@ -449,6 +453,56 @@ private slots:
         QCOMPARE(int(requested.first().second), encoding);
     }
 
+    /// UTF-8 の KIF・KI2 には BOM を付け、ほかの形式には付けない（ShogiGUI は BOM の無い UTF-8 の棋譜を
+    /// Shift_JIS として読んでしまう。ShogiGUI との相互読み込みの検証）
+    void utf8KifAndKi2_startWithBom_data()
+    {
+        QTest::addColumn<QString>("name");
+        QTest::addColumn<bool>("bom");
+        QTest::newRow("kifu") << QStringLiteral("a.kifu") << true;
+        QTest::newRow("ki2u") << QStringLiteral("a.ki2u") << true;
+        QTest::newRow("csa") << QStringLiteral("a.csa") << false;
+        QTest::newRow("jkf") << QStringLiteral("a.jkf") << false;
+        QTest::newRow("usi") << QStringLiteral("a.usi") << false;
+        QTest::newRow("usen") << QStringLiteral("a.usen") << false;
+    }
+
+    void utf8KifAndKi2_startWithBom()
+    {
+        QFETCH(QString, name);
+        QFETCH(bool, bom);
+        QTemporaryDir dir;
+        const QString path = dir.filePath(name);
+        QString error;
+        QVERIFY2(KifuSaveFile::write(path, [](KifuFormat, KifuEncoding) {
+            return QStringList{QString::fromUtf8("先手：鈴木")};
+        }, &error), qPrintable(error));
+        const QByteArray bytes = readAllBytes(path);
+        QCOMPARE(bytes.startsWith("\xEF\xBB\xBF"), bom);
+        QCOMPARE(normalizeNewlines(QString::fromUtf8(bom ? bytes.mid(3) : bytes)), QString::fromUtf8("先手：鈴木\n"));
+    }
+
+    /// Shift_JIS で表せない文字で UTF-8 に書き直した .kif も BOM を付ける。CLI の変換の出力（writeLines）も同じ
+    void utf8Fallback_andWriteLines_startWithBom()
+    {
+        QTemporaryDir dir;
+        const QString kif = dir.filePath(QStringLiteral("fallback.kif"));
+        QString error;
+        QVERIFY2(KifuSaveFile::write(kif, [](KifuFormat, KifuEncoding) {
+            return QStringList{QString::fromUtf8("先手：𠮷田")};
+        }, &error, [](const QString&) { return true; }), qPrintable(error));
+        QVERIFY(readAllBytes(kif).startsWith("\xEF\xBB\xBF"));
+
+        const QString kifu = dir.filePath(QStringLiteral("cli.kifu"));
+        QVERIFY2(KifuSaveFile::writeLines(kifu, {QString::fromUtf8("先手：鈴木")}, KifuFormat::Kif,
+                                          KifuEncoding::Utf8, &error), qPrintable(error));
+        QVERIFY(readAllBytes(kifu).startsWith("\xEF\xBB\xBF"));
+        const QString jkf = dir.filePath(QStringLiteral("cli.jkf"));
+        QVERIFY2(KifuSaveFile::writeLines(jkf, {QStringLiteral("{}")}, KifuFormat::Jkf, KifuEncoding::Utf8, &error),
+                 qPrintable(error));
+        QVERIFY(!readAllBytes(jkf).startsWith("\xEF\xBB\xBF"));
+    }
+
     /// 作った行を文字コードを指定して書く（CLI の変換の出力）。Shift_JIS で表せない文字は示して失敗する
     void writeLinesUsesTheGivenEncoding()
     {
@@ -457,13 +511,13 @@ private slots:
         QTemporaryDir dir;
         const QString path = dir.filePath(QStringLiteral("out.txt"));
         QString error;
-        QVERIFY2(KifuSaveFile::writeLines(path, {QString::fromUtf8("先手：鈴木")}, KifuEncoding::ShiftJis, &error),
+        QVERIFY2(KifuSaveFile::writeLines(path, {QString::fromUtf8("先手：鈴木")}, KifuFormat::Kif, KifuEncoding::ShiftJis, &error),
                  qPrintable(error));
         QStringDecoder decoder("Shift-JIS");
         QCOMPARE(normalizeNewlines(decoder(readAllBytes(path))), QString::fromUtf8("先手：鈴木\n"));
-        QVERIFY(!KifuSaveFile::writeLines(path, {QString::fromUtf8("您")}, KifuEncoding::ShiftJis, &error));
+        QVERIFY(!KifuSaveFile::writeLines(path, {QString::fromUtf8("您")}, KifuFormat::Kif, KifuEncoding::ShiftJis, &error));
         QVERIFY(error.contains(QString::fromUtf8("您")));
-        QVERIFY2(KifuSaveFile::writeLines(path, {QString::fromUtf8("您")}, KifuEncoding::Utf8, &error), qPrintable(error));
+        QVERIFY2(KifuSaveFile::writeLines(path, {QString::fromUtf8("您")}, KifuFormat::Csa, KifuEncoding::Utf8, &error), qPrintable(error));
         QCOMPARE(readAllTextNormalized(path), QString::fromUtf8("您\n"));
     }
 

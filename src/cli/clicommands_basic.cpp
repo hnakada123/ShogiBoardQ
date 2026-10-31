@@ -142,7 +142,7 @@ int CliCommands::convertKifu(const QJsonObject& params)
         obj[QStringLiteral("text")] = result.lines.join(QLatin1Char('\n')) + QLatin1Char('\n');
     } else {
         QString error;
-        if (!KifuSaveFile::writeLines(outputPath, result.lines, request.outputEncoding, &error)) {
+        if (!KifuSaveFile::writeLines(outputPath, result.lines, request.outputFormat, request.outputEncoding, &error)) {
             return CliOutput::fail(ErrorKind::FileError, error);
         }
         obj[QStringLiteral("output_path")] = outputPath;

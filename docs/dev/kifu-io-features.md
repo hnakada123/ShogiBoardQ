@@ -27,7 +27,7 @@
 読み込み（`KifuLoadParser`）は既定の `UnreadableMove::TruncateLine` で読む（`FailRecord` にすると、棋譜全体を読めなかったことにする）。
 
 - 表記が読めない手、局面に合わない手、手番と違う符号の手（CSA）、指せない手があれば、その手順はその手の手前で打ち切り、
-  読み込みは成功として続ける。警告に理由と「何手目まで読んだか」（`The record was read up to move N.`。`ParseReport::truncationNotice()`）を書き、画面には警告として出す。
+  読み込みは成功として続ける。警告に理由と「何手目まで読んだか」（`The record was read up to move N.`。`ParseReport::truncationNotice()`）を書き、画面には警告として出す（`KifuLoader::warningOccurred`。エラーの `errorOccurred` とは分け、自動化 API の `kifu.load` は成功の応答の `warnings` で返す）。
   指せない手の理由は全形式で同じ文面にする（`KifLineBuilder::cannotRestore()`。例: `KIF: Cannot restore move 3: Source square is empty: 7g7e`）。
 - パスの手（KIF・KI2 の「パス」）も、対応していない手として同じに打ち切る（`ParseReport::rejectPass()`）。
 - 変化の手順も同じ。変化の最初の手から読めなければ、その変化は手のない変化になる（本譜は残す）。
@@ -87,6 +87,10 @@ USEN Files (*.usen)
 | USI | `.usi` | USI形式 (*.usi) |
 
 保存形式は拡張子で決まる（`KifuSaveFile::saveFormatForPath()`）。分岐・消費時間・コメントを書けない形式へ保存するときは、失われる情報を示して続けるかを確かめる。
+
+UTF-8 の KIF・KI2（`.kifu`・`.ki2u` と、Shift_JIS で表せない文字があって UTF-8 で書き直した `.kif`・`.ki2`）は BOM を付けて書く（`KifuSaveFile::write()`・`writeLines()`）。
+ShogiGUI は BOM の無い UTF-8 の棋譜を、拡張子や `encoding=UTF-8` の宣言によらず Shift_JIS として読み、`.kifu` は「KIF解析エラー」、`.ki2u` は指し手 0 手になる（ShogiGUI 自身の `.kifu` も BOM 付き）。
+CSA・JKF・USI・USEN には付けない（CSA は1行目の `'CSA encoding=UTF-8` の宣言で文字コードを示す）。
 
 ### 画像出力
 

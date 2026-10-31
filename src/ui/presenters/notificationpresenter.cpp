@@ -31,6 +31,11 @@ void NotificationPresenter::displayErrorMessage(const QString& message)
     displayMessage(ErrorBus::ErrorLevel::Error, message);
 }
 
+void NotificationPresenter::displayWarningMessage(const QString& message)
+{
+    displayMessage(ErrorBus::ErrorLevel::Warning, message);
+}
+
 void NotificationPresenter::displayMessage(ErrorBus::ErrorLevel level, const QString& message)
 {
     // エラーを表示しても盤面の描画と操作は止めない（棋譜の読み込み失敗などは表示中の局面に影響しない）

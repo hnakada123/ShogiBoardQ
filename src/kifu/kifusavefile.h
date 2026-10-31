@@ -42,17 +42,20 @@ using Utf8Fallback = std::function<bool(const QString& missing)>;
  *
  * .kif・.ki2 で Shift_JIS で表せない文字があれば allowUtf8 に聞き、許されれば UTF-8 で行を作り直して書く
  * （先頭行は encoding=UTF-8 の宣言になる）。allowUtf8 が無ければエラーにする。
+ * UTF-8 の KIF・KI2（.kifu・.ki2u と、UTF-8 で書き直した .kif・.ki2）には BOM を付ける。
  * allowUtf8 が断ったときは outError を空のまま false を返す。
  */
 bool write(const QString& path, const LineGenerator& generate, QString* outError = nullptr,
            const Utf8Fallback& allowUtf8 = {});
 
 /**
- * @brief 文字コード encoding で作った行を書く（CLI の変換の出力。形式は呼び出し側が決める）
+ * @brief 形式 format・文字コード encoding で作った行を書く（CLI の変換の出力。形式は呼び出し側が決める）
  *
+ * UTF-8 の KIF・KI2 は write() と同じく BOM を付ける。
  * Shift_JIS で表せない文字があれば、その文字を outError に書いて false を返す。
  */
-bool writeLines(const QString& path, const QStringList& lines, KifuEncoding encoding, QString* outError = nullptr);
+bool writeLines(const QString& path, const QStringList& lines, KifuFormat format, KifuEncoding encoding,
+                QString* outError = nullptr);
 
 /// 保存ファイル名の既定値（日時_先手_vs_後手.拡張子。対局者の名前が無ければ 日時_Session.拡張子）。
 /// 名前は対局情報の対局者名（駒落ちは下手・上手）を渡す

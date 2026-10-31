@@ -46,6 +46,8 @@ public:
 signals:
     void loadFinished(bool success);
     void errorOccurred(const QString& errorMessage);
+    /// 読めた棋譜に読み飛ばした行・直した手番などがある（棋譜は置き換わる）
+    void warningOccurred(const QString& warningMessage);
 
 private slots:
     void onLoadFinished();

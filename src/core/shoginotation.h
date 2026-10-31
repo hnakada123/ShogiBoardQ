@@ -10,6 +10,7 @@
 #include <QString>
 #include <QStringView>
 #include <limits>
+#include <optional>
 
 #include "shogitypes.h"
 
@@ -115,6 +116,14 @@ inline bool isTurnMark(QChar ch)
 {
     return ch == QChar(u'▲') || ch == QChar(u'△') || ch == QChar(u'▽')
         || ch == QChar(u'☗') || ch == QChar(u'☖');
+}
+
+/// 手番の印が表す手番（▲☗は先手・下手、△▽☖は後手・上手。印でなければ nullopt）
+inline std::optional<Turn> turnOfMark(QChar ch)
+{
+    if (ch == QChar(u'▲') || ch == QChar(u'☗')) return Turn::Black;
+    if (ch == QChar(u'△') || ch == QChar(u'▽') || ch == QChar(u'☖')) return Turn::White;
+    return std::nullopt;
 }
 
 // ============================================================

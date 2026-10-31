@@ -93,9 +93,9 @@ private:
 
     QRect itemViewRect(SubElement element, const QStyleOptionViewItem& item, const QWidget* widget) const
     {
-        const ItemRectKey key{static_cast<int>(element), item.rect.size(), item.features.toInt(),
+        const ItemRectKey key{static_cast<int>(element), item.rect.size(), static_cast<uint>(item.features.toInt()),
                               item.features.testFlag(QStyleOptionViewItem::HasDecoration) ? item.decorationSize : QSize(),
-                              static_cast<int>(item.decorationPosition), item.decorationAlignment.toInt(),
+                              static_cast<int>(item.decorationPosition), static_cast<uint>(item.decorationAlignment.toInt()),
                               static_cast<int>(item.direction), item.fontMetrics.fontDpi(),
                               QCoreApplication::testAttribute(Qt::AA_Use96Dpi)};
         if (const auto it = m_itemRects.constFind(key); it != m_itemRects.cend())

@@ -185,9 +185,10 @@ private slots:
         QCOMPARE(jsonText(nestedForks.at(0)),
                  jsonText(QJsonArray{QJsonObject{{"move", boardMove(1, 5, 1, 6, 2, "OU")}}}));
         const QJsonArray thirdForks = moves.at(3).toObject().value(QStringLiteral("forks")).toArray();
-        QCOMPARE(jsonText(thirdForks),
-                 jsonText(QJsonArray{QJsonArray{QJsonObject{{"move", boardMove(0, 7, 8, 6, 8, "KI",
-                                                                                {{"relative", "L"}})}}}}));
+        // QJsonArray{配列} は、要素1つの同じ型のリストとしてコピーになるコンパイラがある（CWG 1467）。append で入れ子にする
+        QJsonArray expectedThirdForks;
+        expectedThirdForks.append(QJsonArray{QJsonObject{{"move", boardMove(0, 7, 8, 6, 8, "KI", {{"relative", "L"}})}}});
+        QCOMPARE(jsonText(thirdForks), jsonText(expectedThirdForks));
         for (int i : {2, 4, 5, 6, 7, 8}) QVERIFY(!moves.at(i).toObject().contains(QStringLiteral("forks")));
 
         // 読み込むと、同じ手順・変化・局面に戻り、表示は同・修飾語・打・成・不成を含む

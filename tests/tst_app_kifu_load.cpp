@@ -272,6 +272,56 @@ private slots:
         QCOMPARE(p.document->filePath(), target);
     }
 
+    /// 警告のある棋譜は読み込み、知らせはエラーでなく警告にする（自動化 API の kifu.load は warnings で返す）
+    void warningIsNotReportedAsError()
+    {
+        MainWindow window;
+        auto& p = window.composer().parts();
+        QSignalSpy errors(p.kifuLoader, &KifuLoader::errorOccurred);
+        QSignalSpy warnings(p.kifuLoader, &KifuLoader::warningOccurred);
+        NotificationPresenter::ScopedCapture shown;
+        // 終局の後ろの指し手は読み飛ばして警告する
+        const QString text = QStringLiteral("手合割：平手\n手数----指手---------消費時間--\n"
+                                            "   1 ７六歩(77)\n   2 投了\n   3 ２六歩(27)\n");
+        QVERIFY(p.kifuFileController->loadKifuText(text));
+        QCOMPARE(p.branchTree->mainRecordLine().usiMoves(), QStringList{QStringLiteral("7g7f")});
+        QCOMPARE(errors.count(), 0);
+        QCOMPARE(warnings.count(), 1);
+        QVERIFY(shown.errors().isEmpty());
+        QCOMPARE(shown.notices().size(), 1);
+        p.document->markSaved(QString());
+    }
+
+    /// 盤と持駒として成り立たない開始局面（持駒に金五枚）の棋譜は、CLI と同じく開かずにエラーにする
+    void invalidStartPositionIsRejected()
+    {
+        MainWindow window;
+        auto& p = window.composer().parts();
+        QSignalSpy errors(p.kifuLoader, &KifuLoader::errorOccurred);
+        NotificationPresenter::ScopedCapture shown;
+        const QString text = QStringLiteral(
+            "後手の持駒：なし\n"
+            "  ９ ８ ７ ６ ５ ４ ３ ２ １\n"
+            "+---------------------------+\n"
+            "|v香v桂v銀v金v玉v金v銀v桂v香|一\n"
+            "| ・v飛 ・ ・ ・ ・ ・v角 ・|二\n"
+            "|v歩v歩v歩v歩v歩v歩v歩v歩v歩|三\n"
+            "| ・ ・ ・ ・ ・ ・ ・ ・ ・|四\n"
+            "| ・ ・ ・ ・ ・ ・ ・ ・ ・|五\n"
+            "| ・ ・ ・ ・ ・ ・ ・ ・ ・|六\n"
+            "| 歩 歩 歩 歩 歩 歩 歩 歩 歩|七\n"
+            "| ・ 角 ・ ・ ・ ・ ・ 飛 ・|八\n"
+            "| 香 桂 銀 金 玉 金 銀 桂 香|九\n"
+            "+---------------------------+\n"
+            "先手の持駒：金五\n"
+            "手数----指手---------消費時間--\n"
+            "   1 ７六歩(77)\n");
+        QVERIFY(!p.kifuFileController->loadKifuText(text));
+        QCOMPARE(errors.count(), 1);
+        QVERIFY(errors.at(0).at(0).toString().contains(QStringLiteral("駒の数が上限を超えています")));
+        QVERIFY(p.branchTree->mainRecordLine().usiMoves().isEmpty());
+    }
+
     /// 棋譜を置き換えると、文書の置き換えの知らせを受けて前の評価値グラフが消える。読めなかったときは残す
     void replacingRecordClearsEvaluationGraph()
     {
