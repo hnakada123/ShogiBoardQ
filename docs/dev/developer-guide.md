@@ -160,6 +160,7 @@
 | 2026-10-30 | 盤の大きさと ShogiView の残りの持ち主を整えた（監査 2026-10-29 の M9・M11）のに合わせて §11.1・§13.6 を更新（マスの幅の範囲は core の `BoardSquareSize` に置き、`AppSettings::squareSize`・`GameSettings::sfenCollectionSquareSize` は `BoundedSetting`。`ShogiView` はコンストラクタで設定を読まず、本体の盤の大きさは `MainWindowAppearanceController` が読み、変わるたびに保存する。読み筋盤は本体の盤の今の大きさで開く（`PvBoardDialog::setSquareSize()`）。矢印の型は `ShogiViewHighlighting::Arrow` に移し、`ShogiView::setArrows()`・`arrows()` の転送を消した。駒箱の先後の正本は `PositionEditSession`） |
 | 2026-10-30 | 通信対局と局面の文字列の規則の置き場所を整えた（監査 2026-10-29 の M12〜M15）のに合わせて §1.5・§2.3・§5.7・§7.7・§8.2・§8.11・§10.2・§10.5・§12.2・§15.5・第18章を更新（Game_Summary は値 `CsaGameSummary`（持時間は `CsaGameSummary::Time`）と読み取り器 `CsaGameSummaryReader`、`csaclient_parser.cpp`・`_commands.cpp` は `csaclient.cpp` に戻した。ログインの規則は `CsaLogin`、結果の表示名は `CsaGameSession::resultText`・`causeText`。評価値の向きの直しは `UsiScore::blackView`・`viewedBy`。position コマンド・局面の文字列の語の分け方は `UsiPosition::split` だけで、`SfenUtils::normalizeStart`・`normalizePositionLikeSfen` は `UsiPosition::sfenOf` に、`UsiToSfenConverter::parseUsiPositionString` は消した） |
 | 2026-10-30 | 名残と小さな修正（監査 2026-10-29 の5章）に合わせて §1.5・§7.9・§8.2・§8.5・§12.5・§13.8・第18章を更新（ノードの行 `KifuBranchNode::record()` は読むだけにし、書き換えはツリー・組み立て・文書だけ。`KifuBranchTree::setComment`・`hasBranch`、`RecordLine::displayTexts`、`SfenReplay::applyLenient` の公開、`settingsservice.h`・`enginesettingsconstants.h` を消した。登録エンジンの保存形式のキーは `EngineProfileStore` の中、オプションの型の語は `EngineOption::kType*`、キーのエスケープは `SettingsCommon::escapeKey`） |
+| 2026-11-01 | ShogiHome との棋譜の相互読み込みの検証で直した点に合わせて `KifLineBuilder` の表を更新（持ち駒にない駒・駒のあるマスへの駒打ちは全形式で反則の記録として指し、`lastIrregularity()`・`warnIrregularity()` で警告する。CSA も `Lenient`） |
 
 <!-- chapter-0-end -->
 
@@ -4875,13 +4876,14 @@ static KifuParseOutcome parse(QStringView text, const ParseOptions& options = {}
 
 | 関数 | 内容 |
 |------|------|
-| `addMove(move, time, notes, rule)` | 手番側の手を指して1行足す（行は `MoveRecord::play()`。対局の着手 `GameBoard` と同じ関数）。指せなければ（移動元が空・打つ駒がない）何も変えずに `false`。打つ駒が持ち駒にない手は既定で許す（`Position::DropRule::Lenient`。CSA は `RequireHand`） |
+| `addMove(move, time, notes, rule)` | 手番側の手を指して1行足す（行は `MoveRecord::play()`。対局の着手 `GameBoard` と同じ関数）。指せなければ（移動元が空・打つ駒がない）何も変えずに `false`。打つ駒が持ち駒にない手・駒のあるマスへ打つ手は、反則の記録として既定で指す（`Position::DropRule::Lenient`。全形式） |
 | `addTerminal(type, side, time)` | 終局の行を足す（表記は終局語の表から作る） |
 | `appendComment(text)` / `appendBookmark(text)` | 最後の行にコメント・しおりを足す。手がまだなければ本譜は開始局面（`RecordLine::openingComment`・`openingBookmark`）、変化は最初の手のもの |
 | `timeFor(side, elapsedMs, totalMs)` | 1手の消費時間から累計を足した `RecordTime` を作る（CSA の T 行・JKF の time） |
 | `setLastTime(time)` | 最後の行の消費時間を置き換える（指し手の後に消費時間を書く形式） |
 | `stop()` | 手順を打ち切る（読めない手の後。以降の手は足さない） |
 | `lastError()` / `cannotRestore(format, ply)` | 指せなかった理由と、全形式で同じ文面の警告（`"KIF: Cannot restore move 3: Source square is empty: 7g7e"`） |
+| `lastIrregularity()` / `warnIrregularity(report, format, ply)` | 直前の `addMove` で指した反則の駒打ちの理由と、それを `ParseReport` の警告にする（`"KIF: Move 3 is an illegal drop: The dropped piece is not in hand: B*5e"`。手順は打ち切らない。各形式の読み込みが `addMove` の後に呼ぶ） |
 | `take()` | 組み立てた `RecordLine` |
 
 棋譜欄の表記は、取り込んだ原文を写さず、いつも指し手と直前の手から `KifMoveText::format()` で作る。棋譜に書かれていた相対位置の修飾語・「不成」は `KifMoveText::Notes` で渡して残す。CSA・JKF の消費時間は `RecordTime::fromMilliseconds()` で作り、文字列を経由しない。

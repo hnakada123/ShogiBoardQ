@@ -195,6 +195,7 @@ bool readJkfLine(const QJsonArray& moves, bool isMainline, KifLineBuilder& build
             builder.stop();
             break;
         }
+        builder.warnIrregularity(report, QStringLiteral("JKF"), ply);
         if (!comment.isEmpty()) builder.appendComment(comment);
     }
     return true;

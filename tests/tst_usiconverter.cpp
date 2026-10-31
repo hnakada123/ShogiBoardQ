@@ -63,7 +63,7 @@ private slots:
     }
 
     // ========================================
-    // Normal: piece drop (P*5e)
+    // Normal: piece drop (B*5e)
     // ========================================
 
     void convertFile_pieceDrop()
@@ -72,9 +72,9 @@ private slots:
         QStringList moves = KifuFile::usiMoves<KifuFormat::Usi>(
             fixturePath(QStringLiteral("test_drops.usi")), &error);
         QVERIFY2(error.isEmpty(), qPrintable(error));
-        // Moves: 7g7f 3c3d 8h2b+ 3a2b P*5e
+        // Moves: 7g7f 3c3d 8h2b+ 3a2b B*5e（角交換で持った角を打つ）
         QCOMPARE(moves.size(), 5);
-        QCOMPARE(moves.at(4), QStringLiteral("P*5e"));
+        QCOMPARE(moves.at(4), QStringLiteral("B*5e"));
     }
 
     // ========================================
@@ -116,19 +116,19 @@ private slots:
 
     void convertFile_variousDrops()
     {
-        // Test each drop piece type individually
+        // Test each drop piece type individually (black holds every kind, so each drop is legal and reads without a warning)
         struct DropCase {
             const char* moveStr;
             QString expected;
         };
         DropCase cases[] = {
-            {"position startpos moves 7g7f 3c3d 8h2b+ 3a2b P*5e", QStringLiteral("P*5e")},
-            {"position startpos moves 7g7f 3c3d 8h2b+ 3a2b L*1a", QStringLiteral("L*1a")},
-            {"position startpos moves 7g7f 3c3d 8h2b+ 3a2b N*3c", QStringLiteral("N*3c")},
-            {"position startpos moves 7g7f 3c3d 8h2b+ 3a2b S*5e", QStringLiteral("S*5e")},
-            {"position startpos moves 7g7f 3c3d 8h2b+ 3a2b G*4d", QStringLiteral("G*4d")},
-            {"position startpos moves 7g7f 3c3d 8h2b+ 3a2b B*5e", QStringLiteral("B*5e")},
-            {"position startpos moves 7g7f 3c3d 8h2b+ 3a2b R*5e", QStringLiteral("R*5e")},
+            {"position sfen 4k4/9/9/9/9/9/9/9/4K4 b RBGSNLP 1 moves 5i4h 5a4b P*5e", QStringLiteral("P*5e")},
+            {"position sfen 4k4/9/9/9/9/9/9/9/4K4 b RBGSNLP 1 moves 5i4h 5a4b L*1e", QStringLiteral("L*1e")},
+            {"position sfen 4k4/9/9/9/9/9/9/9/4K4 b RBGSNLP 1 moves 5i4h 5a4b N*3e", QStringLiteral("N*3e")},
+            {"position sfen 4k4/9/9/9/9/9/9/9/4K4 b RBGSNLP 1 moves 5i4h 5a4b S*5e", QStringLiteral("S*5e")},
+            {"position sfen 4k4/9/9/9/9/9/9/9/4K4 b RBGSNLP 1 moves 5i4h 5a4b G*4d", QStringLiteral("G*4d")},
+            {"position sfen 4k4/9/9/9/9/9/9/9/4K4 b RBGSNLP 1 moves 5i4h 5a4b B*5e", QStringLiteral("B*5e")},
+            {"position sfen 4k4/9/9/9/9/9/9/9/4K4 b RBGSNLP 1 moves 5i4h 5a4b R*5e", QStringLiteral("R*5e")},
         };
 
         for (const auto& tc : cases) {
@@ -142,7 +142,7 @@ private slots:
             QString error;
             QStringList moves = KifuFile::usiMoves<KifuFormat::Usi>(tmp.fileName(), &error);
             QVERIFY2(error.isEmpty(), qPrintable(error));
-            QVERIFY(moves.size() >= 5);
+            QCOMPARE(moves.size(), 3);
             QCOMPARE(moves.last(), tc.expected);
         }
     }

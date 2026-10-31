@@ -28,6 +28,7 @@ void readMoves(const UsenLine& line, KifLineBuilder& builder, ParseReport& repor
             builder.stop();
             return;
         }
+        builder.warnIrregularity(report, QStringLiteral("USEN"), ply);
     }
     if (!line.terminal.isEmpty()) builder.addTerminal(TerminalCodes::fromUsen(line.terminal), builder.sideToMove());
 }

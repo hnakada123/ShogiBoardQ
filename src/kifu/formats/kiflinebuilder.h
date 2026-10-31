@@ -9,6 +9,7 @@
 #include <optional>
 
 #include "kifmovetext.h"
+#include "kifparsetypes.h"
 #include "recordline.h"
 #include "recordtime.h"
 #include "shogiposition.h"
@@ -69,6 +70,19 @@ public:
         return QStringLiteral("%1: Cannot restore move %2: %3").arg(format).arg(ply).arg(m_lastError);
     }
 
+    /// 直前の addMove で指した手が反則の駒打ち（持ち駒にない駒・駒のあるマスへ）なら、その理由。なければ空
+    const QString& lastIrregularity() const { return m_lastIrregularity; }
+    /**
+     * @brief 直前の addMove の反則の駒打ちを report の警告にする（"KIF: Move 3 is an illegal drop: ..."。全形式で同じ文面）
+     *
+     * 反則の手も棋譜に残すので手順は打ち切らない。黙って読むと、成り立たない局面（駒の数の上限を超える）になったことに気づけない。
+     */
+    void warnIrregularity(ParseReport& report, const QString& format, int ply) const
+    {
+        if (!m_lastIrregularity.isEmpty())
+            report.warn(QStringLiteral("%1: Move %2 is an illegal drop: %3").arg(format).arg(ply).arg(m_lastIrregularity));
+    }
+
     /// 1行もない手順の開始局面の手番を side にする（局面図の手番の書き違えを1手目から直す）。行があれば何もせず false
     bool correctStartTurn(Turn side);
 
@@ -109,6 +123,7 @@ private:
     LineKind m_kind = LineKind::Mainline;
     bool m_stopped = false;
     QString m_lastError;
+    QString m_lastIrregularity;
     QString m_pendingComment;   ///< 変化の最初の手より前のコメント
     QString m_pendingBookmark;  ///< 変化の最初の手より前のしおり
     std::array<qint64, 2> m_totalMs{0, 0};
