@@ -138,6 +138,7 @@ KifuParseOutcome UsiToSfenConverter::parse(QStringView text, const ParseOptions&
             builder.stop();
             break;
         }
+        builder.warnIrregularity(report, QStringLiteral("USI"), ply);
     }
     if (!terminalCode.isEmpty()) builder.addTerminal(TerminalCodes::fromUsi(terminalCode), builder.sideToMove());
     outcome.warning = report.warnings();

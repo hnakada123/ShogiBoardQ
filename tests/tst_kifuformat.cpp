@@ -28,6 +28,9 @@ private slots:
         QTest::newRow("kif-with-bod") << bod + QStringLiteral("\n手数----指手---------消費時間--\n1 ２五歩(26)\n") << Format::Kif;
         QTest::newRow("kif-without-heading") << bod + QStringLiteral("\n  1 ２五歩(26)\n") << Format::Kif;
         QTest::newRow("ki2-header-comment") << QStringLiteral("先手：テスト\n*△３四歩を検討\n▲７六歩 △３四歩\n") << Format::Ki2;
+        // 0手で終わった KI2 は指し手の行が無く、終局の行だけで KI2 と分かる（KIF なら手数の見出しがある）
+        QTest::newRow("ki2-zero-moves") << QStringLiteral("先手：甲\n後手：乙\n手合割：平手\nまで0手で後手の勝ち\n") << Format::Ki2;
+        QTest::newRow("kif-zero-moves") << QStringLiteral("手合割：平手\n手数----指手---------消費時間--\n   1 投了\nまで0手で後手の勝ち\n") << Format::Kif;
         QTest::newRow("sfen") << sfen << Format::Sfen;
         QTest::newRow("usi-short") << QStringLiteral("startpos moves 7g7f") << Format::Usi;
         QTest::newRow("usi-sfen") << QStringLiteral("sfen ") + sfen + QStringLiteral(" moves 2g2f") << Format::Usi;

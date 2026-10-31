@@ -374,6 +374,31 @@ private slots:
         QVERIFY(info.isEmpty());
     }
 
+    // 駒落ちの初期配置（PI11KY）から始まる棋譜の N+・N- は下手・上手の見出しにする（平手は先手・後手のまま）
+    void gameInfo_handicapUsesShitateUwate_data()
+    {
+        QTest::addColumn<QString>("start");
+        QTest::addColumn<QString>("blackKey");
+        QTest::addColumn<QString>("whiteKey");
+        QTest::newRow("kyo") << QStringLiteral("PI11KY\n-\n") << QStringLiteral("下手") << QStringLiteral("上手");
+        QTest::newRow("hirate") << QStringLiteral("PI\n+\n") << QStringLiteral("先手") << QStringLiteral("後手");
+    }
+
+    void gameInfo_handicapUsesShitateUwate()
+    {
+        QFETCH(QString, start);
+        QFETCH(QString, blackKey);
+        QFETCH(QString, whiteKey);
+        const QString text = QStringLiteral("V2.2\nN+下手 検証\nN-上手 検証\n") + start;
+        const KifuParseOutcome outcome = KifuFile::parseText<KifuFormat::Csa>(text, {});
+        QVERIFY(outcome.success);
+        QCOMPARE(outcome.gameInfo.size(), 3);
+        QCOMPARE(outcome.gameInfo.at(1).key, blackKey);
+        QCOMPARE(outcome.gameInfo.at(1).value, QStringLiteral("下手 検証"));
+        QCOMPARE(outcome.gameInfo.at(2).key, whiteKey);
+        QCOMPARE(outcome.gameInfo.at(2).value, QStringLiteral("上手 検証"));
+    }
+
     // ========================================
     // Boundary: extractGameInfo from empty file
     // ========================================

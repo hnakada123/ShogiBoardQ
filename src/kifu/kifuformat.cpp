@@ -174,6 +174,8 @@ KifuFormat detect(const QString& content)
     // BODの「手数＝4 △８四歩 まで」やコメント中の指し手をKI2と誤認しない。
     static const QRegularExpression ki2MoveRe(QStringLiteral("^\\s*[▲△▽☗☖][0-9０-９一二三四五六七八九同]"),
                                               QRegularExpression::MultilineOption);
+    static const QRegularExpression ki2ResultRe(QStringLiteral("^\\s*まで[0-9０-９]+手で"),
+                                                QRegularExpression::MultilineOption);
     static const QRegularExpression bodBorderRe(QStringLiteral("^\\+[-─]+\\+"), QRegularExpression::MultilineOption);
 
     // SFEN判定
@@ -210,8 +212,8 @@ KifuFormat detect(const QString& content)
         qCDebug(lcKifu).noquote() << "detected format: KIF";
         return KifuFormat::Kif;
     }
-    // KI2判定（▲△で始まる指し手）
-    if (content.contains(ki2MoveRe)) {
+    // KI2判定（▲△で始まる指し手か、0手で終わった KI2 の「まで0手で後手の勝ち」の行。KIF なら手数の見出しがある）
+    if (content.contains(ki2MoveRe) || content.contains(ki2ResultRe)) {
         qCDebug(lcKifu).noquote() << "detected format: KI2";
         return KifuFormat::Ki2;
     }

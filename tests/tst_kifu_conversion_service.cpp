@@ -116,21 +116,26 @@ private slots:
     {
         QTest::addColumn<QString>("source");
         QTest::addColumn<QStringList>("moves");
+        QTest::addColumn<QString>("warning");
+        // 持ち駒にない歩を打つ反則の手も記録どおり読み、警告する
         QTest::newRow("ki2-missing-hand") << QStringLiteral("手合割：平手\n▲５五歩 △３四歩\n")
-            << QStringList{QStringLiteral("P*5e"), QStringLiteral("3c3d")};
+            << QStringList{QStringLiteral("P*5e"), QStringLiteral("3c3d")}
+            << QStringLiteral("KI2: Move 1 is an illegal drop: The dropped piece is not in hand: P*5e");
         QTest::newRow("ki2-blocked-bishop") << QStringLiteral("手合割：平手\n▲５五角 △３四歩\n")
-            << QStringList{QStringLiteral("8h5e"), QStringLiteral("3c3d")};
+            << QStringList{QStringLiteral("8h5e"), QStringLiteral("3c3d")} << QString();
         QTest::newRow("csa-missing-hand") << QStringLiteral("V3.0\nPI\n+\n+0055FU\nT1.234\n-3334FU\nT0.125\n")
-            << QStringList{QStringLiteral("P*5e"), QStringLiteral("3c3d")};
+            << QStringList{QStringLiteral("P*5e"), QStringLiteral("3c3d")}
+            << QStringLiteral("CSA: Move 1 is an illegal drop: The dropped piece is not in hand: P*5e");
     }
 
     void omittedDropOrBlockedOriginIsRecovered()
     {
         QFETCH(QString, source);
         QFETCH(QStringList, moves);
+        QFETCH(QString, warning);
         const auto loaded = KifuLoadParser::parseText(source);
         QVERIFY2(loaded.success, qPrintable(loaded.error));
-        QVERIFY2(loaded.warning.isEmpty(), qPrintable(loaded.warning));
+        QCOMPARE(loaded.warning.trimmed(), warning);
         QCOMPARE(loaded.record.mainline.usiMoves(), moves);
         if (source.startsWith(QLatin1String("V3.0"))) {
             QCOMPARE(loaded.record.mainline.entries.first().time.elapsedMs, 1234);
@@ -258,7 +263,8 @@ private slots:
         QVERIFY2(saved.ok, qPrintable(saved.failure.message));
         const auto reread = KifuLoadParser::parseText(saved.lines.join(QLatin1Char('\n')));
         QVERIFY(reread.success);
-        QVERIFY(reread.warning.isEmpty());
+        // 反則の手は残すが、読むたびに警告する
+        QVERIFY2(reread.warning.contains(QStringLiteral("JKF: Move 1 is an illegal drop")), qPrintable(reread.warning));
         QCOMPARE(reread.record.mainline.usiMoves(), (QStringList{QStringLiteral("P*5e"), QStringLiteral("3c3d")}));
         QCOMPARE(reread.record.mainline.entries.size(), 3);
         for (qsizetype i = 0; i < saved.mainline.entries.size(); ++i) {
@@ -266,6 +272,38 @@ private slots:
             QCOMPARE(reread.record.mainline.entries.at(i).time.toText(), saved.mainline.entries.at(i).time.toText());
         }
         QCOMPARE(reread.record.mainline.entries.last().terminal, TerminalType::IllegalLoss);
+    }
+
+    /// 持ち駒にない駒を打つ反則の手は、どの形式でも記録どおり読み（手順を打ち切らない）、警告する（不正入力 I03）
+    void illegalDropIsKeptWithAWarning_data()
+    {
+        QTest::addColumn<int>("format");
+        QTest::addColumn<QString>("tag");
+        QTest::newRow("kif") << int(Format::Kif) << QStringLiteral("KIF");
+        QTest::newRow("ki2") << int(Format::Ki2) << QStringLiteral("KI2");
+        QTest::newRow("csa") << int(Format::Csa) << QStringLiteral("CSA");
+        QTest::newRow("jkf") << int(Format::Jkf) << QStringLiteral("JKF");
+        QTest::newRow("usi") << int(Format::Usi) << QStringLiteral("USI");
+        QTest::newRow("usen") << int(Format::Usen) << QStringLiteral("USEN");
+    }
+    void illegalDropIsKeptWithAWarning()
+    {
+        QFETCH(int, format);
+        QFETCH(QString, tag);
+        const QStringList moves{QStringLiteral("7g7f"), QStringLiteral("3c3d"), QStringLiteral("B*5e"), QStringLiteral("8c8d")};
+        KifuConversionService::Request request;
+        request.text = QStringLiteral("position startpos moves 7g7f 3c3d B*5e 8c8d");
+        request.outputFormat = static_cast<Format>(format);
+        const auto saved = KifuConversionService::convert(request);
+        QVERIFY2(saved.ok, qPrintable(saved.failure.message));
+        const QString warnings = saved.warnings.join(QLatin1Char('\n'));
+        QVERIFY2(warnings.contains(QStringLiteral("USI: Move 3 is an illegal drop: The dropped piece is not in hand: B*5e")),
+                 qPrintable(warnings));
+        const auto reread = KifuLoadParser::parseText(saved.lines.join(QLatin1Char('\n')));
+        QVERIFY(reread.success);
+        QCOMPARE(reread.record.mainline.usiMoves(), moves);
+        QVERIFY2(reread.warning.contains(QStringLiteral("%1: Move 3 is an illegal drop").arg(tag)), qPrintable(reread.warning));
+        QVERIFY(!reread.warning.contains(QStringLiteral("Move 4")));
     }
 
     /// 指せない手があれば、その手の手前までを読み、警告に理由と読んだ手数を書く（どの形式も同じ）

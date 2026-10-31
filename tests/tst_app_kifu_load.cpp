@@ -188,6 +188,26 @@ private slots:
         p.document->markSaved(QString());
     }
 
+    void hirateRecordWithoutMovesOpensInEveryFormat_data() { positionOnlyRecordsOpenInEveryFormat_data(); }
+
+    /// 平手の局面を貼り付けた（対局情報の無い）0手の棋譜も、保存したものを開ける（KIF・KI2 は「手合割：平手」を書く）
+    void hirateRecordWithoutMovesOpensInEveryFormat()
+    {
+        QFETCH(int, format);
+        MainWindow window;
+        auto& p = window.composer().parts();
+        QVERIFY(p.kifuFileController->loadKifuFile(fixture(QStringLiteral("test_basic.kif"))));
+        p.document->replaceWithPosition(SfenUtils::hirateSfen());
+        const QString text = KifuExport::lines(*p.document, static_cast<KifuFormat>(format)).join(QLatin1Char('\n'));
+        p.document->markSaved(QString());
+        QVERIFY(p.kifuFileController->loadKifuFile(fixture(QStringLiteral("test_basic.kif"))));
+        NotificationPresenter::ScopedCapture shown;
+        QVERIFY2(p.kifuFileController->loadKifuText(text), qPrintable(text + shown.errors().join(QLatin1Char('\n'))));
+        QCOMPARE(p.branchTree->root()->sfen(), SfenUtils::hirateSfen());
+        QCOMPARE(p.branchTree->nodeCount(), 1);
+        p.document->markSaved(QString());
+    }
+
     void emptyHirateRecordsLoad_data()
     {
         QTest::addColumn<QString>("text");

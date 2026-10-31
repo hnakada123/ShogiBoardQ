@@ -8,6 +8,7 @@
 #include "boundedfile.h"
 #include "csaformatter.h"
 #include "csalexer.h"
+#include "gameinfo.h"
 #include "gameinfokeys.h"
 #include "kiflinebuilder.h"
 #include "terminalcodes.h"
@@ -91,7 +92,8 @@ QStringList CsaToSfenConverter::splitStatements(const QString& rawText, QString*
 
 namespace {
 
-QList<KifGameInfoItem> gameInfoOf(const QStringList& lines)
+/// handicapNames なら N+・N- を下手・上手の見出しにする（駒落ちの初期配置から始まる棋譜。KIF の書き出しもその呼び方になる）
+QList<KifGameInfoItem> gameInfoOf(const QStringList& lines, bool handicapNames)
 {
     QList<KifGameInfoItem> items;
     for (const QString& rawLine : lines) {
@@ -102,9 +104,9 @@ QList<KifGameInfoItem> gameInfoOf(const QStringList& lines)
         if (line.startsWith(QLatin1Char('P')) || line == QLatin1String("PI")) continue;
 
         if (line.startsWith(QLatin1String("N+"))) {
-            items.append({ GameInfoKeys::kBlackPlayer, line.mid(2).trimmed() });
+            items.append({ GameInfo::playerKey(Turn::Black, handicapNames), line.mid(2).trimmed() });
         } else if (line.startsWith(QLatin1String("N-"))) {
-            items.append({ GameInfoKeys::kWhitePlayer, line.mid(2).trimmed() });
+            items.append({ GameInfo::playerKey(Turn::White, handicapNames), line.mid(2).trimmed() });
         } else if (line.startsWith(QLatin1Char('$'))) {
             const qsizetype colon = line.indexOf(QLatin1Char(':'));
             if (colon > 0) {
@@ -171,6 +173,7 @@ void readMoves(const QStringList& lines, qsizetype begin, KifLineBuilder& builde
                 builder.stop();
                 return;
             }
+            builder.warnIrregularity(report, QStringLiteral("CSA"), ply);
         }
     }
 }
@@ -204,7 +207,7 @@ KifuParseOutcome CsaToSfenConverter::parse(QStringView text, const ParseOptions&
 
     outcome.record.mainline = builder.take();
     outcome.startKind = start == Position::hirate() ? StartKind::Handicap : StartKind::Specified;
-    outcome.gameInfo = gameInfoOf(lines);
+    outcome.gameInfo = gameInfoOf(lines, GameInfo::isHandicap(start.toSfen()));
     outcome.success = true;
     return outcome;
 }

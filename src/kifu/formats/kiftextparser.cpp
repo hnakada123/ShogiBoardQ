@@ -213,6 +213,7 @@ private:
             m_builder.stop();
             return false;
         }
+        m_builder.warnIrregularity(m_report, m_tag, ply);
         return true;
     }
 

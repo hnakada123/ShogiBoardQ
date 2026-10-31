@@ -201,8 +201,10 @@ private slots:
             const QString text = KifuExport::lines(tree, context, format).join(QLatin1Char('\n'));
             QVERIFY2(!text.contains(QLatin1Char('\r')), qPrintable(text));
             const QStringList lines = text.split(QLatin1Char('\n'));
+            // 手合割の行が対局情報に無いとき、KIF・KI2 は開始局面を書く「手合割：平手」を1行だけ足す
+            QCOMPARE(lines.count(QStringLiteral("手合割：平手")), format == KifuFormat::Csa ? 0 : 1);
             for (const QString& line : lines) {
-                QVERIFY2(!line.startsWith(QStringLiteral("手合割")), qPrintable(text));
+                QVERIFY2(!line.startsWith(QStringLiteral("手合割")) || line == QStringLiteral("手合割：平手"), qPrintable(text));
                 QVERIFY2(!line.startsWith(QStringLiteral("PI82")), qPrintable(text));
                 QVERIFY2(!line.startsWith(QStringLiteral("+2726FU")), qPrintable(text));
             }

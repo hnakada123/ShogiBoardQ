@@ -196,16 +196,23 @@ bool KifExporter::appendHeaderLines(const KifuExportMetadata& ctx, QStringList& 
     const bool handicapNames = GameInfo::usesHandicapNames(header, ctx.startSfen);
     // 手合割の行が削除されていても、開始局面は盤面図で保持する。
     bool isNonStandard = !Handicaps::isHirate(ctx.startSfen);
+    bool hasHandicap = false;
     for (const auto& it : std::as_const(header)) {
         const QString key = it.key.trimmed();
         const QString value = it.value.trimmed();
         if (key.isEmpty()) continue;
         if (!options.consumedTime && key == GameInfoKeys::kConsumedTime) continue;
         out << fwColonLine(key, value);
+        if (key == GameInfoKeys::kHandicap) hasHandicap = true;
         if (key == GameInfoKeys::kHandicap && value == GameInfoKeys::kHandicapOther) isNonStandard = true;
     }
 
-    if (isNonStandard) out << sfenToBodLines(ctx.startSfen, handicapNames);
+    if (isNonStandard) {
+        out << sfenToBodLines(ctx.startSfen, handicapNames);
+    } else if (!hasHandicap) {
+        // 平手で手合割の行が無いと開始局面を書く行が無く、指し手の無い棋譜は読み戻せない。平手と書く
+        out << fwColonLine(GameInfoKeys::kHandicap, Handicaps::labelOf(Handicaps::kHirate));
+    }
     return handicapNames;
 }
 

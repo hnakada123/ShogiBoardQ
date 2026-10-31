@@ -20,13 +20,24 @@ bool KifLineBuilder::addMove(const UsiMove& move, const RecordTime& time, const 
                              Position::DropRule rule)
 {
     m_lastError.clear();
+    m_lastIrregularity.clear();
     if (ended()) {
         m_lastError = QStringLiteral("The line has ended: %1").arg(move.toString());
         return false;
     }
+    // 反則の駒打ちも記録どおり指すが、指す前の局面で何が反則かを残す（呼び出し側が警告にする）
+    if (move.isDrop() && rule == Position::DropRule::Lenient) {
+        if (m_position.handCount(move.dropPieceFor(m_position.sideToMove())) <= 0)
+            m_lastIrregularity = QStringLiteral("The dropped piece is not in hand: %1").arg(move.toString());
+        else if (m_position.pieceAt(move.to) != Piece::None)
+            m_lastIrregularity = QStringLiteral("The piece is dropped on an occupied square: %1").arg(move.toString());
+    }
     // 対局の着手（GameBoard）と同じ組み立てで、指した手の行を作る
     std::optional<RecordEntry> played = MoveRecord::play(m_position, move, previousTo(), time, notes, rule, &m_lastError);
-    if (!played) return false;
+    if (!played) {
+        m_lastIrregularity.clear();
+        return false;
+    }
     RecordEntry& entry = *played;
     if (m_line.entries.isEmpty()) {
         entry.comment = std::exchange(m_pendingComment, {});
