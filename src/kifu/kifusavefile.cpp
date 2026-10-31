@@ -79,6 +79,15 @@ bool writeBytes(const QString& path, const QByteArray& bytes, QString* outError)
     return true;
 }
 
+/// UTF-8 で書く内容。KIF・KI2 は BOM を付ける（ShogiGUI は BOM の無い UTF-8 の棋譜を、拡張子や
+/// encoding=UTF-8 の宣言によらず Shift_JIS として読み、読めない。ShogiGUI 自身の .kifu も BOM 付き）
+QByteArray utf8Bytes(KifuFormat format, const QString& content)
+{
+    QByteArray bytes = content.toUtf8();
+    if (format == KifuFormat::Kif || format == KifuFormat::Ki2) bytes.prepend("\xEF\xBB\xBF");
+    return bytes;
+}
+
 bool checkPath(const QString& path, QString* outError)
 {
     if (outError) outError->clear();
@@ -120,7 +129,7 @@ bool write(const QString& path, const LineGenerator& generate, QString* outError
     const KifuFormat format = saveFormatForPath(path);
     const KifuEncoding encoding = encodingForPath(path);
     const QString content = contentOf(generate(format, encoding));
-    if (encoding == KifuEncoding::Utf8) return writeBytes(path, content.toUtf8(), outError);
+    if (encoding == KifuEncoding::Utf8) return writeBytes(path, utf8Bytes(format, content), outError);
 
     // 変換を済ませてから保存を始め、表せない文字による内容の欠けを防ぐ
     if (const auto sjis = ShiftJisCodec::encode(content)) return writeBytes(path, *sjis, outError);
@@ -131,14 +140,15 @@ bool write(const QString& path, const LineGenerator& generate, QString* outError
     }
     if (!allowUtf8(missing)) return false;
     // 先頭行の宣言も UTF-8 にして作り直す
-    return writeBytes(path, contentOf(generate(format, KifuEncoding::Utf8)).toUtf8(), outError);
+    return writeBytes(path, utf8Bytes(format, contentOf(generate(format, KifuEncoding::Utf8))), outError);
 }
 
-bool writeLines(const QString& path, const QStringList& lines, KifuEncoding encoding, QString* outError)
+bool writeLines(const QString& path, const QStringList& lines, KifuFormat format, KifuEncoding encoding,
+                QString* outError)
 {
     if (!checkPath(path, outError)) return false;
     const QString content = contentOf(lines);
-    if (encoding == KifuEncoding::Utf8) return writeBytes(path, content.toUtf8(), outError);
+    if (encoding == KifuEncoding::Utf8) return writeBytes(path, utf8Bytes(format, content), outError);
     const auto sjis = ShiftJisCodec::encode(content);
     if (!sjis) {
         if (outError) *outError = shiftJisError(charactersNotInShiftJis(content));

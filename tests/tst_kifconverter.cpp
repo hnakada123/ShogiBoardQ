@@ -1048,6 +1048,121 @@ private slots:
         QCOMPARE(line.usiMove(6).toString(), QStringLiteral("2c2d"));
         QCOMPARE(line.entries[5].mover, Turn::White);
     }
+
+    // 終局の後の手は読まず、読まなかったことを警告する。指し手でない行は独自の終局として残るので、
+    // 警告がないと後ろの手順が消えたことに気づけない（ShogiGUI との相互読み込みの検証 I12）
+    void movesAfterTheEnd_areReported_data()
+    {
+        QTest::addColumn<QString>("ending");
+        QTest::addColumn<QString>("terminalText");
+        QTest::newRow("投了") << QStringLiteral("投了") << QStringLiteral("投了");
+        QTest::newRow("独自の終局") << QStringLiteral("これは指し手ではない") << QStringLiteral("これは指し手ではない");
+    }
+
+    void movesAfterTheEnd_areReported()
+    {
+        QFETCH(QString, ending);
+        QFETCH(QString, terminalText);
+        const KifuParseOutcome outcome = KifTextParser::parseKif(QStringLiteral(
+            "手数----指手---------消費時間--\n"
+            "   1 ７六歩(77)\n   2 %1\n   3 ２六歩(27)\n   4 ８四歩(83)\n").arg(ending));
+        QVERIFY2(outcome.success, qPrintable(outcome.warning));
+        const RecordLine& line = outcome.record.mainline;
+        QCOMPARE(line.usiMoves(), QStringList({"7g7f"}));
+        QVERIFY(line.endsWithTerminal());
+        QCOMPARE(line.entries.last().terminalLabel(), terminalText);
+        // 警告は1回だけ
+        QCOMPARE(outcome.warning.count(QStringLiteral("moves after the end of the game were not read")), 1);
+        QVERIFY2(outcome.warning.contains(QStringLiteral("3 ２六歩(27)")), qPrintable(outcome.warning));
+    }
+
+    // 局面図の後ろに書いた対局情報も読む。筋の見出し「９ ８ ７ …」を指し手の行と取り違えて、
+    // そこで対局情報を読むのをやめない（ShogiGUI は局面図の後に先手・後手を書く。相互読み込みの検証）
+    void gameInfoAfterBoardDiagram_isRead()
+    {
+        const QString text = QStringLiteral(
+            "#KIF version=2.0 encoding=UTF-8\n"
+            "後手の持駒：なし\n"
+            "  ９ ８ ７ ６ ５ ４ ３ ２ １\n"
+            "+---------------------------+\n"
+            "| ・ ・ ・ ・ ・ ・ ・ ・v玉|一\n"
+            "| ・ ・ ・ ・ ・ ・ ・ ・ ・|二\n"
+            "| ・ ・ ・ 金 金 金 ・ ・ ・|三\n"
+            "| ・ ・ ・ ・ ・ ・ ・ ・ ・|四\n"
+            "| ・ ・ ・ ・ ・ ・ ・ ・ ・|五\n"
+            "| ・ ・ ・ ・ ・ ・ ・ ・ ・|六\n"
+            "| ・ ・ ・ ・ ・ ・ ・ ・ ・|七\n"
+            "| ・ ・ ・ ・ ・ ・ ・ ・ ・|八\n"
+            "| ・ ・ ・ ・ 玉 ・ ・ ・ ・|九\n"
+            "+---------------------------+\n"
+            "先手の持駒：なし\n"
+            "先手：検証 先手\n"
+            "後手：検証 後手\n"
+            "手数----指手---------消費時間--\n"
+            "   1 ５二金(63)        ( 0:00/00:00:00)\n");
+        const KifuParseOutcome outcome = KifTextParser::parseKif(text);
+        QVERIFY2(outcome.success, qPrintable(outcome.warning));
+        QCOMPARE(outcome.record.mainline.usiMoves(), QStringList({"6c5b"}));
+        QCOMPARE(outcome.gameInfo,
+                 (QList<KifGameInfoItem>{{QStringLiteral("先手"), QStringLiteral("検証 先手")},
+                                         {QStringLiteral("後手"), QStringLiteral("検証 後手")}}));
+    }
+
+    // ShogiGUI 0.0.8.8 の駒落ちの棋譜: 局面図の後に「下手番」と書くが、1手目は上手の駒を動かす。
+    // 開始局面の手番を1手目から直して読み、直したことを警告する
+    void boardDiagramWithWrongTurn_isCorrectedByTheFirstMove()
+    {
+        const QString text = QStringLiteral(
+            "上手の持駒：なし\n"
+            "  ９ ８ ７ ６ ５ ４ ３ ２ １\n"
+            "+---------------------------+\n"
+            "|v香v桂v銀v金v玉v金v銀v桂 ・|一\n"
+            "| ・v飛 ・ ・ ・ ・ ・v角 ・|二\n"
+            "|v歩v歩v歩v歩v歩v歩v歩v歩v歩|三\n"
+            "| ・ ・ ・ ・ ・ ・ ・ ・ ・|四\n"
+            "| ・ ・ ・ ・ ・ ・ ・ ・ ・|五\n"
+            "| ・ ・ ・ ・ ・ ・ ・ ・ ・|六\n"
+            "| 歩 歩 歩 歩 歩 歩 歩 歩 歩|七\n"
+            "| ・ 角 ・ ・ ・ ・ ・ 飛 ・|八\n"
+            "| 香 桂 銀 金 玉 金 銀 桂 香|九\n"
+            "+---------------------------+\n"
+            "下手の持駒：なし\n"
+            "下手番\n"
+            "下手：検証 下手\n"
+            "上手：検証 上手\n"
+            "手数----指手---------消費時間--\n"
+            "   1 ９四歩(93)        ( 0:00/00:00:00)\n"
+            "   2 ９八香(99)        ( 0:00/00:00:00)\n"
+            "   3 投了             ( 0:00/00:00:00)\n");
+        const KifuParseOutcome outcome = KifTextParser::parseKif(text);
+        QVERIFY2(outcome.success, qPrintable(outcome.warning));
+        QCOMPARE(outcome.record.mainline.startSfen,
+                 QStringLiteral("lnsgkgsn1/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"));
+        QCOMPARE(outcome.record.mainline.usiMoves(), QStringList({"9c9d", "9i9h"}));
+        QVERIFY2(outcome.warning.contains(QStringLiteral("the side to move was corrected")), qPrintable(outcome.warning));
+    }
+
+    // 2手目以降で相手の駒を動かす手は読まない（以前は手番をずらしたまま読んでいた）
+    void movingTheOpponentsPiece_isRejected()
+    {
+        const KifuParseOutcome outcome = KifTextParser::parseKif(QStringLiteral(
+            "手合割：平手\n手数----指手---------消費時間--\n"
+            "   1 ７六歩(77)\n   2 ６六歩(67)\n   3 ２六歩(27)\n"));
+        QCOMPARE(outcome.record.mainline.usiMoves(), QStringList({"7g7f"}));
+        QVERIFY2(outcome.warning.contains(QStringLiteral("The piece belongs to the side not to move: 6g6f")),
+                 qPrintable(outcome.warning));
+        QVERIFY2(!outcome.warning.contains(QStringLiteral("corrected")), qPrintable(outcome.warning));
+    }
+
+    // 終局の後のコメントや「まで」の行は警告しない
+    void linesAfterTheEnd_withoutMoves_areNotReported()
+    {
+        const KifuParseOutcome outcome = KifTextParser::parseKif(QStringLiteral(
+            "手数----指手---------消費時間--\n"
+            "   1 ７六歩(77)\n   2 投了\n*終局のコメント\nまで1手で先手の勝ち\n"));
+        QVERIFY2(outcome.success, qPrintable(outcome.warning));
+        QVERIFY2(outcome.warning.isEmpty(), qPrintable(outcome.warning));
+    }
 };
 
 QTEST_MAIN(TestKifConverter)

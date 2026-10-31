@@ -9542,23 +9542,55 @@ Do you want to save them?</translation>
         <translation>The game record has an invalid variation parent or starting ply.</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="38"/>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="96"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="23"/>
+        <source>局面を読めません</source>
+        <translation>The position cannot be read</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="27"/>
+        <source>駒の数が上限を超えています（盤と持駒の合計）</source>
+        <translation>There are more pieces than the game has (board and hands combined)</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="28"/>
+        <source>持駒に玉があります</source>
+        <translation>A king is in hand</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="29"/>
+        <source>同じ側の玉が2枚以上あります</source>
+        <translation>A side has more than one king</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="59"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="117"/>
         <source>棋譜ファイルの読み込みに失敗しました: %1%2</source>
         <translation>Failed to load game record file: %1%2</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="92"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="113"/>
         <source>BOD形式の解析に失敗しました。%1</source>
         <translation>Failed to parse BOD format. %1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="95"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="116"/>
         <source>棋譜の読み込みに失敗しました。%1</source>
         <translation>Failed to load the game record.%1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="110"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="127"/>
+        <source>棋譜の開始局面が不正です: %1</source>
+        <translation>The start position of the game record is invalid: %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="128"/>
+        <source>棋譜ファイルの開始局面が不正です: %1
+%2</source>
+        <translation>The start position of the game record file is invalid: %1
+%2</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="138"/>
         <source>貼り付けるテキストが空です。</source>
         <translation>The text to paste is empty.</translation>
     </message>
@@ -10095,7 +10127,7 @@ Do you want to continue?</translation>
         <translation>Failed to close file: %1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavefile.cpp" line="86"/>
+        <location filename="../../src/kifu/kifusavefile.cpp" line="95"/>
         <source>File path is empty.</source>
         <translation>File path is empty.</translation>
     </message>
@@ -11832,17 +11864,17 @@ Please restart the application to apply the changes.</translation>
 <context>
     <name>NotificationPresenter</name>
     <message>
-        <location filename="../../src/ui/presenters/notificationpresenter.cpp" line="39"/>
+        <location filename="../../src/ui/presenters/notificationpresenter.cpp" line="44"/>
         <source>Information</source>
         <translation>Information</translation>
     </message>
     <message>
-        <location filename="../../src/ui/presenters/notificationpresenter.cpp" line="42"/>
+        <location filename="../../src/ui/presenters/notificationpresenter.cpp" line="47"/>
         <source>Warning</source>
         <translation>Warning</translation>
     </message>
     <message>
-        <location filename="../../src/ui/presenters/notificationpresenter.cpp" line="46"/>
+        <location filename="../../src/ui/presenters/notificationpresenter.cpp" line="51"/>
         <source>Error</source>
         <translation>Error</translation>
     </message>

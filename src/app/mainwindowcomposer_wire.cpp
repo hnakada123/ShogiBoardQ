@@ -116,6 +116,8 @@ void MainWindowComposer::connectRecord()
     KifuLoader* loader = m_c.kifuLoader;
     connect(loader, &KifuLoader::errorOccurred,
             m_c.notifications, &NotificationPresenter::displayErrorMessage);
+    connect(loader, &KifuLoader::warningOccurred,
+            m_c.notifications, &NotificationPresenter::displayWarningMessage);
     connect(m_c.dialogLauncher, &DialogLauncher::engineListChanged,
             m_c.considerationTab, &ConsiderationPanel::reloadEngines);
     connect(m_c.evalChart, &EvaluationChartWidget::settingsRequested,

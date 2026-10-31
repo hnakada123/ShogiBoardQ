@@ -146,6 +146,9 @@ QList<KifGameInfoItem> extractHeaderGameInfo(
         const QString t = rawLine.trimmed();
         if (t.isEmpty()) continue;
         if (kLineIsComment.match(t).hasMatch()) continue;
+        // 局面図の筋の見出し「９ ８ ７ …」は手数で始まる指し手の行に見えるので、先に読み飛ばす。
+        // 局面図の後ろに対局情報を書くソフト（ShogiGUI）がある
+        if (isBoardHeaderOrFrame(t)) continue;
         if (isMoveLine(t)) break;
         if (isBodHandsLine(t)) continue;
 

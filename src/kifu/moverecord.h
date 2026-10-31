@@ -34,6 +34,11 @@ inline std::optional<RecordEntry> play(Position& position, const UsiMove& move, 
         if (error) *error = QStringLiteral("Source square is empty: %1").arg(move.toString());
         return std::nullopt;
     }
+    // 相手の駒を動かす手は、反則手としても棋譜に残せない（指した側と動いた駒が食い違い、以降の手番がずれる）
+    if (!move.isDrop() && pieceSide(described.movingPiece) != mover) {
+        if (error) *error = QStringLiteral("The piece belongs to the side not to move: %1").arg(move.toString());
+        return std::nullopt;
+    }
     if (!position.apply(move, rule)) {
         if (error) *error = QStringLiteral("Move cannot be applied: %1").arg(move.toString());
         return std::nullopt;

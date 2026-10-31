@@ -17,6 +17,8 @@
 
 #include <QRegularExpression>
 
+#include <utility>
+
 namespace {
 
 using KifTextParser::Dialect;
@@ -87,6 +89,9 @@ public:
     {
     }
 
+    /// 本譜の1手目が手番でない側の手なら、開始局面の手番を直して読む（本譜だけ。変化の開始局面は本譜から決まる）
+    void allowStartTurnCorrection() { m_startTurnCorrectable = true; }
+
     /// lines[begin, end) を読む。棋譜全体を読めなかったことにしたら false
     bool read(const QStringList& lines, qsizetype begin, qsizetype end)
     {
@@ -102,7 +107,16 @@ public:
                 if (!name.isEmpty()) m_builder.appendBookmark(name);
                 continue;
             }
-            if (m_builder.ended() || line.isEmpty()) continue;
+            if (line.isEmpty()) continue;
+            if (m_builder.ended()) {
+                // 終局の後の指し手は読まない。黙って捨てると、指し手でない行を独自の終局と読んだときに
+                // 残りの手順が消えたことに気づけない
+                if (!m_warnedAfterEnd && (KifLexer::startsWithMoveNumber(line) || Ki2Lexer::isKi2MoveLine(line))) {
+                    m_report.warn(QStringLiteral("%1: moves after the end of the game were not read: %2").arg(m_tag, line));
+                    m_warnedAfterEnd = true;
+                }
+                continue;
+            }
             if (m_dialect == Dialect::Ki2 && readResultLine(line)) continue;
             if (KifuParseCommon::isKifSkippableHeaderLine(line) || KifuParseCommon::isBoardHeaderOrFrame(line)) continue;
             if (KifLexer::startsWithMoveNumber(line)) readNumberedLine(line);
@@ -152,6 +166,16 @@ private:
                 m_builder.addTerminal(terminal, m_builder.sideToMove());
                 return;
             }
+            // 手番の印が手番と違う手は読まない（印を見ないと、相手の手、たとえば持っていない駒を打つ手に読み替えてしまう）
+            const std::optional<Turn> marked = ShogiNotation::turnOfMark(move.front());
+            if (marked) correctStartTurn(*marked, move);
+            if (marked && *marked != m_builder.sideToMove()) {
+                const int ply = m_builder.nextPly();
+                m_report.rejectMove(ply, QStringLiteral("%1: move %2 is marked for the side not to move: %3")
+                                             .arg(m_tag).arg(ply).arg(move));
+                m_builder.stop();
+                return;
+            }
             if (!readMove(move, KifLineBuilder::zeroTime(), move)) return;
         }
     }
@@ -180,6 +204,10 @@ private:
             m_builder.stop();
             return false;
         }
+        if (!move->isDrop()) {
+            if (const Piece piece = m_builder.position().pieceAt(move->from); piece != Piece::None)
+                correctStartTurn(pieceSide(piece), source);
+        }
         if (!m_builder.addMove(*move, time, notes)) {
             m_report.rejectMove(ply, m_builder.cannotRestore(m_tag, ply));
             m_builder.stop();
@@ -188,10 +216,26 @@ private:
         return true;
     }
 
+    /**
+     * @brief 1手目を指す側が開始局面の手番と違えば、開始局面の手番の書き違えとして直す（1手目でだけ）
+     *
+     * ShogiGUI 0.0.8.8 は駒落ちの棋譜を局面図で保存し、上手から指す棋譜にも「下手番」と書く。
+     * そのまま読むと、1手目は下手が上手の駒を動かす手になる。
+     */
+    void correctStartTurn(Turn mover, const QString& source)
+    {
+        if (!std::exchange(m_startTurnCorrectable, false)) return;
+        if (mover == m_builder.sideToMove() || !m_builder.correctStartTurn(mover)) return;
+        m_report.warn(QStringLiteral("%1: the first move is played by the side the start position does not give the move to; "
+                                     "the side to move was corrected: %2").arg(m_tag, source));
+    }
+
     Dialect m_dialect;
     QString m_tag;
     ParseReport& m_report;
     KifLineBuilder& m_builder;
+    bool m_warnedAfterEnd = false;  ///< 終局の後の手の警告を出したか（手順ごとに1回）
+    bool m_startTurnCorrectable = false;  ///< 1手目で開始局面の手番を直してよいか（本譜の1手目の前だけ true）
 };
 
 QList<KifGameInfoItem> gameInfoOf(const QStringList& lines, Dialect dialect)
@@ -224,7 +268,9 @@ KifuParseOutcome parse(QStringView text, Dialect dialect, const ParseOptions& op
     KifParseResult& record = outcome.record;
     {
         KifLineBuilder main(initialPosition(lines, &outcome.startKind));
-        if (!BlockReader(dialect, report, main).read(lines, 0, boundaries.first())) {
+        BlockReader reader(dialect, report, main);
+        reader.allowStartTurnCorrection();
+        if (!reader.read(lines, 0, boundaries.first())) {
             outcome.warning = report.warnings();
             return outcome;
         }

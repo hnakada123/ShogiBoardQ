@@ -471,11 +471,16 @@ private slots:
                 {"to", QJsonObject{{"x", toX}, {"y", toY}}}}}};
         };
         auto branchLast = move(6, 7, 6, 6, 0);
-        branchLast["forks"] = QJsonArray{QJsonArray{move(5, 7, 5, 6, 0)}};
+        // QJsonArray{配列} は、要素1つの同じ型のリストとしてコピーになるコンパイラがある（CWG 1467）。append で入れ子にする
+        QJsonArray lastForks;
+        lastForks.append(QJsonArray{move(5, 7, 5, 6, 0)});
+        branchLast["forks"] = lastForks;
         const QJsonArray branch{move(2, 7, 2, 6, 0), move(8, 3, 8, 4, 1),
                                 move(7, 7, 7, 6, 0), move(3, 3, 3, 4, 1), branchLast};
         auto first = move(7, 7, 7, 6, 0);
-        first["forks"] = QJsonArray{branch};
+        QJsonArray firstForks;
+        firstForks.append(branch);
+        first["forks"] = firstForks;
         const QJsonObject record{{"initial", QJsonObject{{"preset", "HIRATE"}}},
             {"moves", QJsonArray{QJsonObject{}, first, move(3, 3, 3, 4, 1),
                                  move(2, 7, 2, 6, 0), move(8, 3, 8, 4, 1), move(2, 6, 2, 5, 0)}}};

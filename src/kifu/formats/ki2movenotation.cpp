@@ -165,8 +165,9 @@ std::optional<UsiMove> resolve(const KifMoveGrammar::MoveText& text, const Posit
     if (!unblocked.isEmpty()) return resolveAmong(unblocked, text, board, to, mover);
 
     // 盤上の駒が動く手でなければ、省略された「打」を復元する。持駒不足も棋譜には残す。
+    // 「成」「不成」は盤上の駒が動く手にだけ付くので、付いていれば打に読み替えない
     if (text.modifiers.isEmpty() && !isPromoted(text.piece) && text.piece != Piece::BlackKing
-        && !text.promote.value_or(false) && board.pieceAt(to) == Piece::None) {
+        && !text.promote.has_value() && board.pieceAt(to) == Piece::None) {
         UsiMove move;
         move.to = to;
         move.drop = text.piece;

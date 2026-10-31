@@ -37,6 +37,14 @@ bool KifLineBuilder::addMove(const UsiMove& move, const RecordTime& time, const 
     return true;
 }
 
+bool KifLineBuilder::correctStartTurn(Turn side)
+{
+    if (!m_line.entries.isEmpty()) return false;
+    m_position.setSideToMove(side);
+    m_line.startSfen = m_position.toSfen();
+    return true;
+}
+
 void KifLineBuilder::addTerminal(TerminalType type, Turn side, const RecordTime& time, const QString& text)
 {
     if (ended()) return;

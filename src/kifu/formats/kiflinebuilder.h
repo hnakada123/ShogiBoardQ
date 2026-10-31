@@ -69,6 +69,9 @@ public:
         return QStringLiteral("%1: Cannot restore move %2: %3").arg(format).arg(ply).arg(m_lastError);
     }
 
+    /// 1行もない手順の開始局面の手番を side にする（局面図の手番の書き違えを1手目から直す）。行があれば何もせず false
+    bool correctStartTurn(Turn side);
+
     /// 終局の行を足す（side は終局を記録した側。表記は終局語の表から作る）
     void addTerminal(TerminalType type, Turn side, const RecordTime& time = zeroTime(), const QString& text = {});
 

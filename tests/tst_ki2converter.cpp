@@ -83,6 +83,59 @@ private slots:
         QCOMPARE(result.mainline.entries.size(), 1);
     }
 
+    /// 手番の印が手番と違う手は読まない（相手の手、持っていない駒を打つ手に読み替えない。ShogiGUI との相互読み込みの検証 I09）
+    void moveMarkedForTheOtherSideIsRejected()
+    {
+        const KifuParseOutcome outcome = KifTextParser::parseKi2(QStringLiteral(
+            "手合割：平手\n▲７六歩    △３四歩    ▲２六歩    ▲２五歩    △８四歩\n"));
+        QVERIFY2(outcome.success, qPrintable(outcome.warning));
+        QCOMPARE(outcome.record.mainline.usiMoves(), QStringList({"7g7f", "3c3d", "2g2f"}));
+        QVERIFY2(outcome.warning.contains(QStringLiteral("move 4 is marked for the side not to move")),
+                 qPrintable(outcome.warning));
+        QVERIFY2(outcome.warning.contains(QStringLiteral("read up to move 3")), qPrintable(outcome.warning));
+
+        // 駒落ちは上手（△）から指す。印が合っていれば今までどおり読む
+        const KifuParseOutcome handicap = KifTextParser::parseKi2(QStringLiteral(
+            "手合割：香落ち\n△３四歩    ▲７六歩\n"));
+        QVERIFY2(handicap.success, qPrintable(handicap.warning));
+        QVERIFY2(handicap.warning.isEmpty(), qPrintable(handicap.warning));
+        QCOMPARE(handicap.record.mainline.usiMoves(), QStringList({"3c3d", "7g7f"}));
+    }
+
+    /// 1手目の印が開始局面の手番と違えば、開始局面の手番の書き違えとして直し、直したことを警告する
+    void firstMoveMarkCorrectsTheStartTurn()
+    {
+        const KifuParseOutcome outcome = KifTextParser::parseKi2(QStringLiteral(
+            "手合割：香落ち\n下手番\n△９四歩    ▲９八香    △８四歩\n"));
+        QVERIFY2(outcome.success, qPrintable(outcome.warning));
+        QCOMPARE(outcome.record.mainline.usiMoves(), QStringList({"9c9d", "9i9h", "8c8d"}));
+        QVERIFY(outcome.record.mainline.startSfen.contains(QStringLiteral(" w ")));
+        QVERIFY2(outcome.warning.contains(QStringLiteral("the side to move was corrected")), qPrintable(outcome.warning));
+    }
+
+    /// 「不成」の付いた手は盤上の駒が動く手。動かせる駒がなければ、省略された「打」とは読まない
+    void declinedPromotionIsNotReadAsADrop()
+    {
+        const KifuParseOutcome outcome = KifTextParser::parseKi2(QStringLiteral("手合割：平手\n▲９四歩不成\n"));
+        QVERIFY(outcome.record.mainline.usiMoves().isEmpty());
+        QVERIFY2(outcome.warning.contains(QStringLiteral("cannot parse move 1")), qPrintable(outcome.warning));
+
+        // 「不成」の付かない手は、今までどおり省略された「打」を復元する
+        const KifuParseOutcome drop = KifTextParser::parseKi2(QStringLiteral("手合割：平手\n▲５五歩\n"));
+        QCOMPARE(drop.record.mainline.usiMoves(), QStringList({"P*5e"}));
+    }
+
+    /// 終局の後の指し手は読まずに、読まなかったことを警告する
+    void movesAfterTheEndAreReported()
+    {
+        const KifuParseOutcome outcome = KifTextParser::parseKi2(QStringLiteral(
+            "手合割：平手\n▲７六歩    △投了\n▲２六歩\n"));
+        QVERIFY2(outcome.success, qPrintable(outcome.warning));
+        QCOMPARE(outcome.record.mainline.usiMoves(), QStringList({"7g7f"}));
+        QVERIFY2(outcome.warning.contains(QStringLiteral("moves after the end of the game were not read")),
+                 qPrintable(outcome.warning));
+    }
+
     void blockedOriginsNeedUnambiguousNotation()
     {
         const QString sfen = QStringLiteral("4k4/9/9/9/9/9/2P3P2/1B5B1/4K4 b - 1");

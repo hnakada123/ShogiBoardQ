@@ -71,6 +71,7 @@ public:
 
 public slots:
     void displayErrorMessage(const QString& message);
+    void displayWarningMessage(const QString& message);
     void displayMessage(ErrorBus::ErrorLevel level, const QString& message);
     /// 題名付きの知らせ（終局・検討の終了・詰み探索の結果）
     void showInformation(const QString& title, const QString& message);
