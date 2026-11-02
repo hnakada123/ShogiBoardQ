@@ -145,7 +145,7 @@
 
 | # | 食い違い | 原因 |
 |---|---|---|
-| F22 | 英語表記（Western）にして定跡手の追加・編集ダイアログを開くと、指し手と予想応手の一覧だけが日本語の KIF 表記になる。同じダイアログの「定跡手: …」のラベルと定跡ウィンドウの表は英語表記 | 一覧は `KifMoveText::format` を直接呼ぶ（`josekimoveinputwidget.cpp:36-38`）。表とラベルは `KifuPresentation::move` を使う（`josekitablemodel.cpp:29-33`、`josekieditcontroller.cpp:61`）（M3） |
+| F22 | 英語表記（Western）にして定跡手の追加・編集ダイアログを開くと、指し手と予想応手の一覧だけが日本語の KIF 表記になる。同じダイアログの「定跡手: …」のラベルと定跡ウィンドウの表は英語表記 | 一覧は `KifMoveText::format` を直接呼ぶ（`josekimoveinputwidget.cpp:36-38`）。表とラベルは `KifuPresentation::move` を使う（`josekitablemodel.cpp:29-33`、`josekieditcontroller.cpp:61`）（M3）<br>**状態: 済（7eea6c89）**。一覧も表・ラベルと同じ `KifuPresentation` で作る（局面を読み直さない `KifuPresentation::move(Position, UsiMove, Options)` を足した）。英語表記なら成と不成は `+`・`=` で見分ける。日本語表記の一覧には、表・棋譜欄と同じく「不成」を付けなくなった（成る手は「成」が付くので見分けられる） |
 | F23 | 棋譜解析の結果ドックで A+ を押すと、次に開く棋譜解析ダイアログも大きくなる。逆も同じ | 1つの宣言 `AnalysisSettings::kifuAnalysisFontSize`（`KifuAnalysis/fontSize`。`analysissettings.h:143-144`）を、ダイアログ（`kifuanalysisdialog.cpp:100`）と結果ドック（`analysisresultspanel.cpp:33-34`）が使う。宣言の説明はダイアログだけを書く。文字の大きさの宣言41個のうち、2つの部品が使うのはこれだけ |
 | F24 | 詰将棋を解く画面で判定時間を変えても、一覧に戻ると捨てられる。次に問題を開くと一覧の値に戻る。解く画面が保存する `TsumePlay/timeout` は使われない | 解く画面はコンストラクタで保存した値を入れる（`tsumeplaydialog.cpp:47`）が、一覧が開く前に必ず `setProblem(..., 一覧の値)` で上書きする（`tsumecollectiondialog.cpp:447,470`、`tsumeplaydialog.cpp:180`）。閉じるときに保存する（`:65`）が、一覧はその値を読み戻さない |
 | F25 | 同じ局面集ファイルでも、局面集ビューアと詰将棋問題一覧で開き方が違う。<br>- 絞り込み: ビューアは `*.txt *.sfen` で `.usi` を出さない。問題一覧は `.usi` も出す<br>- 開けないとき: ビューアは理由を出さない。問題一覧は英語の `BoundedFile::describe` の文を日本語の文に混ぜる | 規則（`PositionCollectionFile`）は共有している。ファイルを読む処理は、ビューアがダイアログの中に持ち（`sfencollectiondialog.cpp:156-221`）、問題一覧は `TsumeCollectionSession::load`（`tsumecollectionsession.cpp:31-34`）にある（M2） |
