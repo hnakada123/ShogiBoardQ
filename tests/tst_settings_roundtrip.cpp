@@ -107,12 +107,14 @@ private slots:
         const TsumeshogiSettings::PlayPreferences partial = TsumeshogiSettings::playPreferences();
         QCOMPARE(partial.squareSize, 50);
         QCOMPARE(partial.problemIndex, TsumeshogiSettings::PlayPreferences{}.problemIndex);
-        QCOMPARE(partial.timeoutSec, TsumeshogiSettings::PlayPreferences{}.timeoutSec);
+        QCOMPARE(partial.boardRotated, TsumeshogiSettings::PlayPreferences{}.boardRotated);
 
         TsumeshogiSettings::PlayPreferences preferences;
-        preferences.timeoutSec = 30;
+        preferences.boardRotated = true;
         TsumeshogiSettings::playPreferences.set(preferences);
-        QCOMPARE(s.value(QStringLiteral("TsumePlay/timeout")).toInt(), 30);
+        QCOMPARE(s.value(QStringLiteral("TsumePlay/boardRotated")).toBool(), true);
+        // 判定時間は問題一覧だけが持つ（解く画面は保存しない）
+        QVERIFY(!s.contains(QStringLiteral("TsumePlay/timeout")));
         QCOMPARE(TsumeshogiSettings::playPreferences().squareSize, preferences.squareSize);
         s.remove(QStringLiteral("TsumePlay"));
     }
@@ -880,6 +882,13 @@ private slots:
         QCOMPARE(restored.page, collection.page);
         QCOMPARE(restored.filter, collection.filter);
         QCOMPARE(restored.timeoutSec, collection.timeoutSec);
+        // 判定時間は範囲（1〜600秒）に収める
+        using Collection = TsumeshogiSettings::CollectionPreferences;
+        collection.timeoutSec = 0;
+        TsumeshogiSettings::collectionPreferences.set(collection);
+        QCOMPARE(TsumeshogiSettings::collectionPreferences().timeoutSec, Collection::kMinTimeoutSec);
+        SettingsCommon::openSettings().setValue(QStringLiteral("TsumeCollection/timeout"), 9999);
+        QCOMPARE(TsumeshogiSettings::collectionPreferences().timeoutSec, Collection::kMaxTimeoutSec);
     }
 
     // ========================================

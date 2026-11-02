@@ -109,7 +109,8 @@ void TsumeCollectionDialog::buildUi()
     engineRow->addWidget(new QLabel(tr("判定時間:"), this));
     m_timeout = new QSpinBox(this);
     m_timeout->setObjectName(QStringLiteral("tsumeCollectionTimeout"));
-    m_timeout->setRange(1, 600);
+    m_timeout->setRange(TsumeshogiSettings::CollectionPreferences::kMinTimeoutSec,
+                        TsumeshogiSettings::CollectionPreferences::kMaxTimeoutSec);
     m_timeout->setSuffix(tr(" 秒"));
     engineRow->addWidget(m_timeout);
     auto* reanalyze = new QPushButton(tr("このページを再判定"), this);
@@ -446,6 +447,8 @@ void TsumeCollectionDialog::startProblem()
         connect(&play, &TsumePlayDialog::movePlayed, this, &TsumeCollectionDialog::movePlayed);
         playProblemAt(position, m_timeout->value());
         play.exec();
+        // 対局画面で変えた判定時間は一覧の値にする（以後の判定・再判定にも使い、一覧を閉じるときに保存する）
+        m_timeout->setValue(play.timeoutSec());
         m_play = nullptr;
     }
     m_playing = false;

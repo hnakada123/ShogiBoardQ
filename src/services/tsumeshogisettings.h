@@ -16,10 +16,10 @@ namespace TsumeshogiSettings {
 
 /// 詰将棋を解くダイアログの大きさ（閉じたときに DialogFontScale が保存する）
 inline const Setting<QSize> playDialogSize{"TsumePlay/size", QSize(760, 760)};
+/// 解く画面の判定時間は問題一覧の値（CollectionPreferences::timeoutSec）だけで、ここには持たない
 struct PlayPreferences {
     QString lastFile;
     int problemIndex = 0;
-    int timeoutSec = 5;
     int squareSize = 42;       // 盤のマスの幅（範囲は BoardSquareSize）
     bool boardRotated = false; // 攻方を下にした標準の向きから回転しているか
 
@@ -34,7 +34,6 @@ struct PlayPreferences {
 inline const StructSetting<PlayPreferences> playPreferences{
     {SettingField<PlayPreferences>::of("TsumePlay/file", &PlayPreferences::lastFile),
      SettingField<PlayPreferences>::of("TsumePlay/index", &PlayPreferences::problemIndex),
-     SettingField<PlayPreferences>::of("TsumePlay/timeout", &PlayPreferences::timeoutSec),
      SettingField<PlayPreferences>::of("TsumePlay/squareSize", &PlayPreferences::squareSize),
      SettingField<PlayPreferences>::of("TsumePlay/boardRotated", &PlayPreferences::boardRotated)},
     &PlayPreferences::normalizedOf};
@@ -42,19 +41,31 @@ inline const StructSetting<PlayPreferences> playPreferences{
 /// 詰将棋問題一覧の大きさ（閉じたときに DialogFontScale が保存する）
 inline const Setting<QSize> collectionDialogSize{"TsumeCollection/size", QSize(1100, 800)};
 struct CollectionPreferences {
+    /// 判定時間（秒）の範囲。問題一覧と、そこから開く解く画面の欄で共通
+    static constexpr int kMinTimeoutSec = 1;
+    static constexpr int kMaxTimeoutSec = 600;
+
     QString lastFile;
     int pageSize = 10;
     int page = 1;
     int filter = 0;
-    int timeoutSec = 5;
+    int timeoutSec = 5;  ///< 判定時間（秒）。解く画面で変えた値も一覧に戻って保存する
+
+    /// 範囲に収めた値
+    static CollectionPreferences normalizedOf(CollectionPreferences preferences)
+    {
+        preferences.timeoutSec = qBound(kMinTimeoutSec, preferences.timeoutSec, kMaxTimeoutSec);
+        return preferences;
+    }
 };
-/// 詰将棋問題一覧の設定（既定値は CollectionPreferences の既定値）
+/// 詰将棋問題一覧の設定（既定値は CollectionPreferences の既定値。判定時間は範囲に収める）
 inline const StructSetting<CollectionPreferences> collectionPreferences{
     {SettingField<CollectionPreferences>::of("TsumeCollection/file", &CollectionPreferences::lastFile),
      SettingField<CollectionPreferences>::of("TsumeCollection/pageSize", &CollectionPreferences::pageSize),
      SettingField<CollectionPreferences>::of("TsumeCollection/page", &CollectionPreferences::page),
      SettingField<CollectionPreferences>::of("TsumeCollection/filter", &CollectionPreferences::filter),
-     SettingField<CollectionPreferences>::of("TsumeCollection/timeout", &CollectionPreferences::timeoutSec)}};
+     SettingField<CollectionPreferences>::of("TsumeCollection/timeout", &CollectionPreferences::timeoutSec)},
+    &CollectionPreferences::normalizedOf};
 
 /// 詰将棋対局・問題一覧の文字サイズ（それぞれ独立、デフォルト: 10）
 inline const Setting<int> tsumePlayFontSize{"FontSize/tsumePlay", 10};
