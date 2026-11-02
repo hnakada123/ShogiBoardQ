@@ -11,6 +11,7 @@
 #include "logcategories.h"
 #include "handicaps.h"
 #include "parsecommon.h"
+#include "recordentry.h"
 #include "shoginotation.h"
 #include "shogiposition.h"
 #include "terminaltype.h"
@@ -134,9 +135,27 @@ private:
     {
         const std::optional<Ki2Lexer::ResultLine> result = Ki2Lexer::parseResultLine(line);
         if (!result) return false;
-        m_builder.addTerminal(result->terminal, result->endingSide(m_builder.sideToMove()),
-                              KifLineBuilder::zeroTime(), result->terminalText);
+        addNamedTerminal(result->terminal, result->endingSide(m_builder.sideToMove()), line.trimmed(),
+                         result->terminalText);
         return true;
+    }
+
+    /**
+     * @brief 名指しされた側（KI2 の結果行・手番の印）の終局の行を、手番側の行にそろえて足す
+     *
+     * ほかの形式は終局の行を手番側の行としてしか書けないので、勝敗を変えずに手番側の行にする
+     * （RecordEntry::forSideToMove。「まで3手で先手の反則負け」は後手の反則勝ち）。手番でない側の投了・
+     * 入玉宣言勝ちなどはそろえられないので、名指しのまま残して知らせる
+     */
+    void addNamedTerminal(TerminalType type, Turn side, const QString& source, const QString& text = {})
+    {
+        const Turn sideToMove = m_builder.sideToMove();
+        const RecordEntry::Ending ending = RecordEntry::forSideToMove(type, side, sideToMove);
+        if (ending.side != sideToMove) {
+            m_report.warn(QStringLiteral("%1: The ending is recorded for the side not to move; formats other than KI2 "
+                                         "write it for the side to move: %2").arg(m_tag, source));
+        }
+        m_builder.addTerminal(ending.terminal, ending.side, KifLineBuilder::zeroTime(), text);
     }
 
     /// 手数で始まる行（KIF。"1 ７六歩(77) ( 0:01/00:00:01)"。1行に複数の手が並ぶこともある）
@@ -166,7 +185,8 @@ private:
         for (const QString& move : parsed.moves) {
             if (m_builder.ended()) return;
             if (const TerminalType terminal = TerminalTypes::findWord(move); terminal != TerminalType::None) {
-                m_builder.addTerminal(terminal, m_builder.sideToMove());
+                // 「△投了」の印は終局を記録した側
+                addNamedTerminal(terminal, ShogiNotation::turnOfMark(move.front()).value_or(m_builder.sideToMove()), move);
                 break;
             }
             // 本譜の1手目なら、手番の印で開始局面の手番の書き違えを直す。印が手番と違う手は readMove が読まない

@@ -99,15 +99,43 @@ struct RecordEntry {
         }
     }
 
+    /// 終局の行の種類と、記録する側
+    struct Ending {
+        TerminalType terminal = TerminalType::None;
+        Turn side = Turn::Black;
+    };
+
     /**
-     * @brief 連続王手の千日手の終局の行の種類
+     * @brief 終局の行を、勝敗を変えずに終局した局面の手番側の行にする
+     * @param type 終局の種類
+     * @param side 終局を記録する側（endingSide。KI2 の結果行なら名指しから決めた側）
+     * @param sideToMove 終局した局面の手番
      *
-     * 終局した局面の手番側の行にする。王手をかけていた側（loser）が手番なら反則負け、相手が手番なら反則勝ち。
-     * 対局と通信対局で同じ規則
+     * KI2 の結果行のほかは、終局の行を手番側の行としてしか書けない（KIF の手数の行・CSA の符号・JKF の special・
+     * USI・USEN）。手番でない側の行のまま書くと、読み直したときに勝敗が変わる。そこで、手番でない側の反則負けは
+     * 手番側の反則勝ちに（反則勝ちは反則負けに）、不戦敗は不戦勝に（不戦勝は不戦敗に）し、勝敗のない終局は手番側の
+     * 行にする。投了・詰み・時間切れ・入玉宣言勝ち・トライは、相手の行にすると意味が変わるので side のまま返す
+     * （呼び出し側は side が手番側かを比べて知らせる）。
+     * 対局の終局（連続王手の千日手は王手をかけていた側の反則負け）・通信対局の終局・CSA と JKF の
+     * +/-ILLEGAL_ACTION・KI2 の結果行で同じ規則
      */
-    static TerminalType perpetualCheckTerminal(Turn loser, Turn sideToMove)
+    static Ending forSideToMove(TerminalType type, Turn side, Turn sideToMove)
     {
-        return loser == sideToMove ? TerminalType::IllegalLoss : TerminalType::IllegalWin;
+        if (side == sideToMove) return {type, side};
+        switch (type) {
+        case TerminalType::IllegalLoss: return {TerminalType::IllegalWin, sideToMove};
+        case TerminalType::IllegalWin: return {TerminalType::IllegalLoss, sideToMove};
+        case TerminalType::Forfeit: return {TerminalType::ForfeitWin, sideToMove};
+        case TerminalType::ForfeitWin: return {TerminalType::Forfeit, sideToMove};
+        case TerminalType::Resign:
+        case TerminalType::Checkmate:
+        case TerminalType::Timeout:
+        case TerminalType::DeclarationWin:
+        case TerminalType::Try:
+            return {type, side};
+        default:
+            return {type, sideToMove};
+        }
     }
 
     /// 終局の行。表記は終局語の表（TerminalTypes::label）から作る

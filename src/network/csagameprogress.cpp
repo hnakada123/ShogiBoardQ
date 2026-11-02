@@ -126,7 +126,8 @@ RecordEntry CsaGameProgress::endRecord(CsaClient::GameResult result, CsaClient::
     case Cause::TimeUp: type = TerminalType::Timeout; break;
     case Cause::IllegalMove:
     case Cause::IllegalAction: type = TerminalType::IllegalLoss; break;
-    case Cause::OuteSennichite: type = RecordEntry::perpetualCheckTerminal(loser, sideToMove); break;
+    // 連続王手の千日手は王手をかけていた側の反則負け（手番側の行にそろえる）
+    case Cause::OuteSennichite: type = TerminalType::IllegalLoss; break;
     case Cause::Sennichite: type = TerminalType::Repetition; break;
     // 入玉宣言は宣言した勝者の行。点数による引き分けは持将棋
     case Cause::Jishogi: type = isDraw ? TerminalType::Impasse : TerminalType::DeclarationWin; break;
@@ -135,9 +136,10 @@ RecordEntry CsaGameProgress::endRecord(CsaClient::GameResult result, CsaClient::
     case Cause::Unknown: break;
     }
 
-    // 消費時間は終局行を行った側の累計に足す
-    const Turn side = RecordEntry::endingSide(type, sideToMove, loser);
+    // 終局行は手番側の行にそろえ（手番でない側の反則負けは手番側の反則勝ち）、消費時間はその側の累計に足す
+    const RecordEntry::Ending ending =
+        RecordEntry::forSideToMove(type, RecordEntry::endingSide(type, sideToMove, loser), sideToMove);
     const RecordTime time =
-        RecordTime::fromMilliseconds(consumedMs, qint64(totalMs(side == Turn::Black)) + consumedMs);
-    return RecordEntry::ending(type, side, time);
+        RecordTime::fromMilliseconds(consumedMs, qint64(totalMs(ending.side == Turn::Black)) + consumedMs);
+    return RecordEntry::ending(ending.terminal, ending.side, time);
 }

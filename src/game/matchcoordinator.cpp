@@ -427,16 +427,19 @@ void MatchCoordinator::appendTerminalRecord(const GameEndInfo& info)
     case Cause::NyugyokuWin: terminal = TerminalType::DeclarationWin; break;
     case Cause::IllegalMove: terminal = TerminalType::IllegalLoss; break;
     case Cause::Sennichite: terminal = TerminalType::Repetition; break;
-    case Cause::OuteSennichite: terminal = RecordEntry::perpetualCheckTerminal(info.loser, toMove); break;
+    // 連続王手の千日手は王手をかけていた側の反則負け（手番側の行にそろえる）
+    case Cause::OuteSennichite: terminal = TerminalType::IllegalLoss; break;
     case Cause::BreakOff: terminal = TerminalType::Interrupt; break;
     case Cause::Resignation: terminal = TerminalType::Resign; break;
     case Cause::Timeout: terminal = TerminalType::Timeout; break;
     }
 
-    // 終局行の印と消費時間は、その行（投了・宣言など）を行った側のもの
-    const Turn mover = RecordEntry::endingSide(terminal, toMove, info.loser);
-    m_clock->commitMove(mover);
-    const RecordEntry entry = RecordEntry::ending(terminal, mover, m_clock->recordTime(mover));
+    // 終局行の印と消費時間は、その行（投了・宣言など）を行った側のもの。手番でない側の反則負けは、勝敗を変えずに
+    // 手番側の反則勝ちの行にする（棋譜の形式は終局の行を手番側の行としてしか書けない）
+    const RecordEntry::Ending ending =
+        RecordEntry::forSideToMove(terminal, RecordEntry::endingSide(terminal, toMove, info.loser), toMove);
+    m_clock->commitMove(ending.side);
+    const RecordEntry entry = RecordEntry::ending(ending.terminal, ending.side, m_clock->recordTime(ending.side));
     if (m_sink && m_sink->canAppendRecord()) m_sink->appendRecord(entry);
 }
 

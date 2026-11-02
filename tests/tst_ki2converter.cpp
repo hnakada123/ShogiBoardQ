@@ -486,27 +486,44 @@ private slots:
         QCOMPARE(fromText.mainline.startSfen, kHirateSfen);
     }
 
-    /// 結果行が名指しした側を終局の行に記録し、書き出すと同じ結果行に戻る
+    /// 結果行が名指しした側を読み、勝敗を変えずに手番側の終局の行にする（監査 2026-11-01 F3）。
+    /// 手番側にそろえられない行（手番でない側の入玉宣言勝ちなど）は名指しのまま残して警告する。
+    /// 書き出すと、同じ勝敗の結果行になる
     void resultLine_namedSideRoundTrips_data()
     {
         QTest::addColumn<QString>("resultLine");
         QTest::addColumn<int>("terminal");
         QTest::addColumn<int>("mover");
+        QTest::addColumn<QString>("written");
+        QTest::addColumn<bool>("warned");
         // 3手目の後は後手番
         QTest::newRow("先手の反則負け") << QStringLiteral("まで3手で先手の反則負け")
-                                         << int(TerminalType::IllegalLoss) << int(Turn::Black);
+                                         << int(TerminalType::IllegalWin) << int(Turn::White)
+                                         << QStringLiteral("まで3手で後手の反則勝ち") << false;
         QTest::newRow("後手の反則負け") << QStringLiteral("まで3手で後手の反則負け")
-                                         << int(TerminalType::IllegalLoss) << int(Turn::White);
+                                         << int(TerminalType::IllegalLoss) << int(Turn::White)
+                                         << QStringLiteral("まで3手で後手の反則負け") << false;
         QTest::newRow("先手の反則勝ち") << QStringLiteral("まで3手で先手の反則勝ち")
-                                         << int(TerminalType::IllegalWin) << int(Turn::Black);
+                                         << int(TerminalType::IllegalLoss) << int(Turn::White)
+                                         << QStringLiteral("まで3手で後手の反則負け") << false;
+        QTest::newRow("後手の反則勝ち") << QStringLiteral("まで3手で後手の反則勝ち")
+                                         << int(TerminalType::IllegalWin) << int(Turn::White)
+                                         << QStringLiteral("まで3手で後手の反則勝ち") << false;
+        QTest::newRow("先手の不戦敗") << QStringLiteral("まで3手で先手の不戦敗")
+                                       << int(TerminalType::ForfeitWin) << int(Turn::White)
+                                       << QStringLiteral("まで3手で後手の不戦勝") << false;
         QTest::newRow("先手の入玉勝ち") << QStringLiteral("まで3手で先手の入玉勝ち")
-                                         << int(TerminalType::DeclarationWin) << int(Turn::Black);
+                                         << int(TerminalType::DeclarationWin) << int(Turn::Black)
+                                         << QStringLiteral("まで3手で先手の入玉勝ち") << true;
         QTest::newRow("先手の勝ち") << QStringLiteral("まで3手で先手の勝ち")
-                                     << int(TerminalType::Resign) << int(Turn::White);
+                                     << int(TerminalType::Resign) << int(Turn::White)
+                                     << QStringLiteral("まで3手で先手の勝ち") << false;
         QTest::newRow("時間切れにより後手の勝ち") << QStringLiteral("まで3手で時間切れにより後手の勝ち")
-                                                   << int(TerminalType::Timeout) << int(Turn::Black);
+                                                   << int(TerminalType::Timeout) << int(Turn::Black)
+                                                   << QStringLiteral("まで3手で時間切れにより後手の勝ち") << true;
         QTest::newRow("千日手") << QStringLiteral("まで3手で千日手")
-                                << int(TerminalType::Repetition) << int(Turn::White);
+                                << int(TerminalType::Repetition) << int(Turn::White)
+                                << QStringLiteral("まで3手で千日手") << false;
     }
 
     void resultLine_namedSideRoundTrips()
@@ -514,15 +531,49 @@ private slots:
         QFETCH(QString, resultLine);
         QFETCH(int, terminal);
         QFETCH(int, mover);
+        QFETCH(QString, written);
+        QFETCH(bool, warned);
         const KifuParseOutcome outcome = KifTextParser::parseKi2(
             QStringLiteral("手合割：平手\n▲７六歩 △３四歩 ▲２二角成\n") + resultLine + QStringLiteral("\n"));
         QVERIFY2(outcome.success, qPrintable(outcome.warning));
+        QCOMPARE(outcome.warning.contains(QStringLiteral("side not to move")), warned);
         const RecordLine& line = outcome.record.mainline;
         QVERIFY(line.endsWithTerminal());
         const RecordEntry& ending = line.entries.last();
         QCOMPARE(int(ending.terminal), terminal);
         QCOMPARE(int(ending.mover), mover);
-        QCOMPARE(KifuExportCommon::buildEndingLine(3, ending.terminal, ending.mover, false), resultLine);
+        QCOMPARE(KifuExportCommon::buildEndingLine(3, ending.terminal, ending.mover, false), written);
+    }
+
+    /// 指し手の行の終局（「▲反則負け」）も、印が名指しした側を手番側の行にそろえる
+    void markedTerminal_isAlignedToSideToMove_data()
+    {
+        QTest::addColumn<QString>("terminalText");
+        QTest::addColumn<int>("terminal");
+        QTest::addColumn<int>("mover");
+        QTest::addColumn<bool>("warned");
+        // 1手目の後は後手番
+        QTest::newRow("手番側の投了") << QStringLiteral("△投了") << int(TerminalType::Resign) << int(Turn::White) << false;
+        QTest::newRow("手番でない側の反則負け") << QStringLiteral("▲反則負け") << int(TerminalType::IllegalWin)
+                                                 << int(Turn::White) << false;
+        QTest::newRow("手番でない側の投了") << QStringLiteral("▲投了") << int(TerminalType::Resign) << int(Turn::Black)
+                                             << true;
+    }
+
+    void markedTerminal_isAlignedToSideToMove()
+    {
+        QFETCH(QString, terminalText);
+        QFETCH(int, terminal);
+        QFETCH(int, mover);
+        QFETCH(bool, warned);
+        const KifuParseOutcome outcome =
+            KifTextParser::parseKi2(QStringLiteral("手合割：平手\n▲７六歩 ") + terminalText + QStringLiteral("\n"));
+        QVERIFY2(outcome.success, qPrintable(outcome.warning));
+        QCOMPARE(outcome.warning.contains(QStringLiteral("side not to move")), warned);
+        const RecordLine& line = outcome.record.mainline;
+        QVERIFY(line.endsWithTerminal());
+        QCOMPARE(int(line.entries.last().terminal), terminal);
+        QCOMPARE(int(line.entries.last().mover), mover);
     }
 
     // 変化の開始局面は KIF と同じ規則で探す（直前の変化が届かなければ本譜）

@@ -462,8 +462,12 @@ private slots:
                                  << int(TerminalType::Timeout) << QStringLiteral("△時間切れ");
         QTest::newRow("sennichite") << QByteArray("#SENNICHITE") << QByteArray("#DRAW")
                                     << int(TerminalType::Repetition) << QStringLiteral("△千日手");
-        QTest::newRow("illegal") << QByteArray("#ILLEGAL_MOVE") << QByteArray("#WIN")
-                                 << int(TerminalType::IllegalLoss) << QStringLiteral("▲反則負け");
+        // 反則は反則した側の反則負け。手番でない側（先手）の反則は、勝敗を変えずに手番側（後手）の反則勝ちの行にする
+        // （監査 2026-11-01 F3。棋譜の形式は終局の行を手番側の行としてしか書けない）
+        QTest::newRow("illegal-by-side-to-move") << QByteArray("#ILLEGAL_MOVE") << QByteArray("#LOSE")
+                                                 << int(TerminalType::IllegalLoss) << QStringLiteral("△反則負け");
+        QTest::newRow("illegal-by-other-side") << QByteArray("#ILLEGAL_MOVE") << QByteArray("#WIN")
+                                               << int(TerminalType::IllegalWin) << QStringLiteral("△反則勝ち");
         // 連続王手の千日手は終局した局面の手番側（後手番）の行。王手をかけていた先手の反則
         QTest::newRow("oute-sennichite") << QByteArray("#OUTE_SENNICHITE") << QByteArray("#WIN")
                                          << int(TerminalType::IllegalWin) << QStringLiteral("△反則勝ち");
