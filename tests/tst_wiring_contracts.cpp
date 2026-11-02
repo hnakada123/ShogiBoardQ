@@ -162,7 +162,6 @@ private slots:
         QVERIFY(connectedOnce(csa, error, p.notifications));
         QVERIFY(connectedOnce(csa, QMetaMethod::fromSignal(&CsaGameCoordinator::engineMovePlayed), p.evalGraph));
         QVERIFY(connectedOnce(csa, QMetaMethod::fromSignal(&CsaGameCoordinator::csaCommLogAppended), p.csaLog));
-        QVERIFY(connectedOnce(p.boardMoves, QMetaMethod::fromSignal(&BoardMoveController::csaMoveRequested), csa));
         QVERIFY(connectedOnce(p.csaLog, QMetaMethod::fromSignal(&CsaLogPanel::csaRawCommandRequested), csa));
     }
 

@@ -166,9 +166,17 @@ bool MatchCoordinator::canAcceptMove() const
     return !isGameOver() && (!m_sink || m_sink->canAppendRecord());
 }
 
-void MatchCoordinator::onHumanMove(const RecordEntry& played)
+bool MatchCoordinator::playHumanMove(const UsiMove& move)
 {
-    if (m_strategy) m_strategy->onHumanMove(played);
+    if (!m_strategy || !canAcceptMove() || !isHumanSide(sideToMove())) return false;
+    const std::optional<RecordEntry> played = m_gameBoard->applyMove(move, lastMoveDestination());
+    if (!played) {
+        qCDebug(lcGame) << "human move rejected:" << move.toString();
+        return false;
+    }
+    // 考慮時間の確定・棋譜への追記・千日手と最大手数の判定・エンジンへの手番渡しは Strategy から completeHumanMove
+    m_strategy->onHumanMove(*played);
+    return true;
 }
 
 bool MatchCoordinator::completeHumanMove(const RecordEntry& played)

@@ -21,6 +21,7 @@
 #include "usicommlogmodel.h"
 #include "usilogpanel.h"
 #include "humanturnpolicy.h"
+#include "csagamechannel.h"
 #include "csagameprogress.h"
 #include "appactivitystate.h"
 #include "kifudocument.h"
@@ -176,7 +177,7 @@ struct Harness {
     {
         const auto move = UsiMove::parse(usi);
         QVERIFY(move.has_value());
-        coordinator.onHumanMove(*move);
+        coordinator.sendHumanMove(*move);
     }
 
 };
@@ -372,6 +373,24 @@ private slots:
         QVERIFY(usiLog.findChild<QPlainTextEdit*>(QStringLiteral("usiLogView"))->toPlainText().isEmpty());
     }
 
+    /// 盤で選んだ手は対局相手の窓口（GameChannel::playMove）からサーバーへ送る。盤は確認を受けるまで変えず、
+    /// 合法手かは司令塔が1回だけ確かめる（ローカル対局と同じ入口。監査 2026-11-01 T3）
+    void humanMoveThroughChannelIsSentNotPlayed()
+    {
+        Harness h;
+        QVERIFY(h.start("+"));
+        CsaGameChannel channel(&h.coordinator);
+        // 合法手でない手は送らない
+        QCOMPARE(channel.playMove(*UsiMove::parse(u"7g7e")), GameChannel::MoveResult::Rejected);
+        QCOMPARE(channel.playMove(*UsiMove::parse(u"7g7f")), GameChannel::MoveResult::Sent);
+        QVERIFY(h.server.waitForLine(QStringLiteral("+7776FU")));
+        QCOMPARE(h.moveCount(), 0);
+        // 確認を待つ間は自分の手番ではない
+        QCOMPARE(channel.playMove(*UsiMove::parse(u"2g2f")), GameChannel::MoveResult::Rejected);
+        h.server.send("+7776FU,T1");
+        QTRY_COMPARE(h.moveCount(), 1);
+    }
+
     /// エンジンが指した直後の go ponder の自分の持ち時間は、今の手の消費を引いた残り（加算は引かない）。
     /// 相手の残りは次の手番の加算を含まない値のまま（監査 2026-11-01 F14）
     void ponderAfterEngineMoveUsesTimeLeftAfterThisMove()
@@ -469,7 +488,7 @@ private slots:
         HumanTurnPolicy policy(deps);
         // 通信対局中に盤で指した手は、BoardMoveController がそのまま司令塔へ送る
         QVERIFY(policy.isHumanTurnNow());
-        h.coordinator.onHumanMove(*UsiMove::parse(u"7g7f"));
+        h.coordinator.sendHumanMove(*UsiMove::parse(u"7g7f"));
         QVERIFY(h.server.waitForLine(QStringLiteral("+7776FU")));
         QCOMPARE(h.coordinator.turnState(), CsaGameCoordinator::TurnState::AwaitingConfirmation);
         QVERIFY(!policy.isHumanTurnNow());
@@ -477,8 +496,8 @@ private slots:
         QCOMPARE(h.gc.board()->currentPlayer(), Turn::Black);
         QCOMPARE(h.gc.board()->pieceCharacter(7, 7), Piece::BlackPawn);
         // UI の許可判定を通らない追加要求も、履歴や盤面を変更しない。
-        h.coordinator.onHumanMove(*UsiMove::parse(u"2g2f"));
-        h.coordinator.onHumanMove(*UsiMove::parse(u"3c3d"));
+        h.coordinator.sendHumanMove(*UsiMove::parse(u"2g2f"));
+        h.coordinator.sendHumanMove(*UsiMove::parse(u"3c3d"));
         QCOMPARE(h.moveCount(), 0);
         h.server.send("+7776FU,T5");
         QTRY_COMPARE(h.coordinator.progress().moveCount(), 1);

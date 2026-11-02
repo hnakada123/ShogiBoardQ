@@ -8,6 +8,7 @@
 #include <QSignalSpy>
 #include <QTemporaryDir>
 
+#include "gamechannel.h"
 #include "match_test_helper.h"
 #include "terminaltype.h"
 #include "usi.h"
@@ -36,6 +37,7 @@ private slots:
     // === 着手 ===
     void humanMove_isRecordedAndAnnounced();
     void humanMove_rejectedWhenSinkIsClosed();
+    void humanMove_throughLocalChannel();
 
     // === 終局の記録 ===
     void resign_recordsTerminalAndAnnounces();
@@ -164,6 +166,27 @@ void Tst_MatchCoordinator::humanMove_rejectedWhenSinkIsClosed()
     h.sink.acceptRecords = false;
     // 棋譜に書けない（ライブ対局のセッションが終わった）ときは手を受け付けない
     QVERIFY(!h.mc->canAcceptMove());
+}
+
+/// 盤で選んだ手は対局相手の窓口（GameChannel::playMove）から司令塔へ渡り、司令塔が合法手を確かめて盤に指す
+/// （通信対局と同じ入口。監査 2026-11-01 T3）
+void Tst_MatchCoordinator::humanMove_throughLocalChannel()
+{
+    MatchHarness h;
+    h.startHumanVsHuman();
+    LocalGameChannel channel(h.mc.get());
+    QCOMPARE(channel.playMove(*UsiMove::parse(u"7g7f")), GameChannel::MoveResult::Played);
+    QCOMPARE(h.mc->currentPly(), 1);
+    QCOMPARE(h.gc.board()->currentPlayer(), Turn::White);
+    const QString before = h.gc.board()->toSfen();
+    // 合法手でない手は盤を変えない（後手番に先手の 7g の駒はもう無い）
+    QCOMPARE(channel.playMove(*UsiMove::parse(u"7g7f")), GameChannel::MoveResult::Rejected);
+    QCOMPARE(h.gc.board()->toSfen(), before);
+    QCOMPARE(h.mc->currentPly(), 1);
+    // 棋譜に書けないときも指さない
+    h.sink.acceptRecords = false;
+    QCOMPARE(channel.playMove(*UsiMove::parse(u"3c3d")), GameChannel::MoveResult::Rejected);
+    QCOMPARE(h.gc.board()->toSfen(), before);
 }
 
 // ============================================================
@@ -313,7 +336,7 @@ void Tst_MatchCoordinator::undoTwoPlies_restoresBoardAndRecord()
     QCOMPARE(h.gc.board()->currentPlayer(), Turn::White);
     QCOMPARE(h.gc.board()->toSfen(), h.mc->record().lastSfen());
     // 次の手の「同」表記は、戻した局面に至った手（７六歩）の移動先を基準にする
-    QCOMPARE(h.mc->lastMoveDestination(), (BoardSquare{7, 6}));
+    QCOMPARE(h.mc->record().destinationOf(h.mc->currentPly()), (BoardSquare{7, 6}));
 }
 
 void Tst_MatchCoordinator::undoTwoPlies_needsTwoMoves()

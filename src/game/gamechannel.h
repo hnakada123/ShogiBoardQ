@@ -8,6 +8,7 @@
 
 #include "nyugyokujudgement.h"
 #include "shogitypes.h"
+#include "usimove.h"
 
 class MatchCoordinator;
 
@@ -15,12 +16,23 @@ class MatchCoordinator;
  * @brief 対局中の利用者の操作の送り先
  *
  * ローカル対局（MatchCoordinator）と通信対局（CsaGameCoordinator）の違いはこの型の実装に閉じ込め、
- * 投了・中断・即指し・入玉宣言を受ける側（GameSession・NyugyokuDeclarationHandler）は対局の種類で分岐しない。
+ * 盤の手・投了・中断・即指し・入玉宣言を受ける側（BoardMoveController・GameSession・NyugyokuDeclarationHandler）は
+ * 対局の種類で分岐しない。
  */
 class GameChannel
 {
 public:
+    /// 盤で選んだ手を渡した結果
+    enum class MoveResult {
+        Rejected,   ///< 指せない（人間の手番でない・合法手でない・終局した）
+        Played,     ///< 盤で指した（ローカル対局）
+        Sent,       ///< サーバーへ送った（盤はサーバーの確認を受けてから動かす。通信対局）
+    };
+
     virtual ~GameChannel() = default;
+
+    /// 手番の人間が盤で選んだ手を指す（合法手かはここで確かめる）
+    virtual MoveResult playMove(const UsiMove& move) = 0;
 
     virtual void resign() = 0;
     virtual void breakOff() = 0;
@@ -46,6 +58,7 @@ class LocalGameChannel final : public GameChannel
 public:
     explicit LocalGameChannel(MatchCoordinator* match);
 
+    MoveResult playMove(const UsiMove& move) override;
     void resign() override;
     void breakOff() override;
     void moveNow() override;

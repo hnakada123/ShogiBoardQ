@@ -169,13 +169,13 @@ void MainWindowComposer::connectGame()
     connect(session, &GameSession::gameStarting, m_c.engineDisplay, &EngineDisplayPresenter::clearEngineLogs);
 
     // 通信対局（棋譜と動作状態は司令塔が受け手と動作状態に書く。開始・終局の画面は CsaGameSession）。
-    // 盤で選んだ手はサーバーへ送り、着手のハイライトはローカル対局と同じく棋譜の表示中の手から出る
+    // 盤で選んだ手は BoardMoveController が対局中の窓口（CsaGameChannel）からサーバーへ送り、着手のハイライトは
+    // ローカル対局と同じく棋譜の表示中の手から出る
     CsaGameCoordinator* csa = m_c.csaGame;
     connect(csa, &CsaGameCoordinator::engineMovePlayed, m_c.evalGraph, &EvaluationGraphPresenter::plotEngineScore);
     connect(csa, &CsaGameCoordinator::matchEngineStarted, m_c.engineDisplay, &EngineDisplayPresenter::showMatchEngine);
     connect(m_c.csaSession, &CsaGameSession::gameStarting, m_c.engineDisplay, &EngineDisplayPresenter::clearEngineLogs);
     connect(csa, &CsaGameCoordinator::errorOccurred, m_c.notifications, &NotificationPresenter::displayErrorMessage);
-    connect(m_c.boardMoves, &BoardMoveController::csaMoveRequested, csa, &CsaGameCoordinator::onHumanMove);
     CsaLogPanel* csaLog = m_c.csaLog;
     connect(csa, &CsaGameCoordinator::connectionStateChanged, csaLog, &CsaLogPanel::setConnected);
     connect(csa, &CsaGameCoordinator::csaCommLogAppended, csaLog, &CsaLogPanel::append);

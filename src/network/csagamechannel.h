@@ -13,6 +13,7 @@ class CsaGameChannel final : public GameChannel
 public:
     explicit CsaGameChannel(CsaGameCoordinator* coordinator);
 
+    MoveResult playMove(const UsiMove& move) override;
     void resign() override;
     void breakOff() override;
     void moveNow() override;

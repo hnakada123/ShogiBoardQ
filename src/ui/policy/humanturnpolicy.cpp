@@ -30,7 +30,7 @@ HumanTurnPolicy::BoardInput HumanTurnPolicy::boardInput() const
         const CsaGameCoordinator* csa = m_deps.csaGame;
         const bool myTurn = csa && csa->gameState() == CsaGameCoordinator::GameState::InGame && csa->isHumanPlayer()
             && csa->isMyTurn();
-        return myTurn ? BoardInput::CsaServer : BoardInput::None;
+        return myTurn ? BoardInput::Game : BoardInput::None;
     }
     default:
         return BoardInput::None;
@@ -54,7 +54,7 @@ bool HumanTurnPolicy::canEditRecord() const
 bool HumanTurnPolicy::isHumanTurnNow() const
 {
     const BoardInput input = boardInput();
-    return input == BoardInput::Variation || input == BoardInput::Game || input == BoardInput::CsaServer;
+    return input == BoardInput::Variation || input == BoardInput::Game;
 }
 
 bool HumanTurnPolicy::isGameActivelyInProgress() const

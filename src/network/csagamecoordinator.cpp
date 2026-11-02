@@ -163,16 +163,18 @@ CsaGameCoordinator::TurnState CsaGameCoordinator::turnState() const
     return m_client->isMyTurn() ? TurnState::MyTurn : TurnState::OpponentTurn;
 }
 
-void CsaGameCoordinator::onHumanMove(const UsiMove& move)
+bool CsaGameCoordinator::sendHumanMove(const UsiMove& move)
 {
     // 成り選択のモーダル処理中に対局が終了することもあるので、届いた時点の状態で確かめる
     if (m_phase != Phase::Playing || !isMyTurn() || !isHumanPlayer() || !m_gameBoard)
-        return;
+        return false;
     // 盤は動かさない（サーバーの確認を受けてから指す）。合法手だけを送る
-    if (!m_gameBoard->isLegal(move)) return;
+    if (!m_gameBoard->isLegal(move)) return false;
     const QString csaMove = CsaMoveConverter::toCsa(move, m_progress.isBlackSide ? Turn::Black : Turn::White,
                                                     m_gameBoard->board()->position());
-    if (!csaMove.isEmpty() && m_client->sendMove(csaMove)) emit turnChanged(false);
+    if (csaMove.isEmpty() || !m_client->sendMove(csaMove)) return false;
+    emit turnChanged(false);
+    return true;
 }
 
 void CsaGameCoordinator::onResign()

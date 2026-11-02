@@ -6,6 +6,7 @@
 
 #include <QObject>
 #include <QPoint>
+#include <functional>
 
 #include "boardinputroute.h"
 #include "humanturnpolicy.h"
@@ -14,7 +15,7 @@
 class AppActivityState;
 class BoardInteractionController;
 class BranchTreeEditController;
-class MatchCoordinator;
+class GameChannel;
 class PositionEditSession;
 class GameBoard;
 
@@ -24,8 +25,8 @@ class GameBoard;
  * 受け付けるかと行き先は HumanTurnPolicy::boardInput() の1か所で決まる。このクラスは行き先ごとに処理する。
  * - 局面編集: 駒の配置を変える（PositionEditSession）
  * - 変化: 表示中の手の次の手として棋譜に記録する（BranchTreeEditController）
- * - 通信対局: サーバーへ送るよう知らせる（盤は確認を受けてから動かす）
- * - 対局: 合法手なら指し、対局の司令塔へ渡す
+ * - 対局（ローカル・通信）: 対局相手の窓口（GameChannel::playMove）へ渡す。ローカル対局は司令塔が合法手を確かめて
+ *   盤に指し、通信対局はサーバーへ送る（盤は確認を受けてから動かす）
  * 局面編集のほかは、クリックの移動元・移動先を UsiMove にしてから同じ処理に渡す。
  * どの場合も、手を受け付けたかを盤の操作へ返す（つまんだ駒の表示を戻すため）。
  */
@@ -35,10 +36,9 @@ class BoardMoveController : public QObject, public BoardInputRoute
 
 public:
     struct Deps {
-        GameBoard* gameBoard = nullptr;                     ///< 合法判定と着手（必須）
+        GameBoard* gameBoard = nullptr;                     ///< 変化の記録の盤と手番（必須）
         BoardInteractionController* board = nullptr;        ///< 盤の操作（必須）
         const AppActivityState* activity = nullptr;         ///< 動作状態（必須）
-        MatchCoordinator* match = nullptr;                  ///< 対局の司令塔（必須）
         PositionEditSession* positionEdit = nullptr;        ///< 局面編集（必須）
         BranchTreeEditController* branchEdit = nullptr;     ///< 変化の記録（必須）
         const HumanTurnPolicy* turnPolicy = nullptr;        ///< 盤の手の行き先（必須）
@@ -46,6 +46,10 @@ public:
 
     /// 盤の操作（deps.board）の行き先になる
     explicit BoardMoveController(const Deps& deps, QObject* parent = nullptr);
+
+    /// 対局中の手の渡し先（GameSession::activeChannel。対局していなければ nullptr を返す）。合成ルートが
+    /// 対局のセッションを作った後に渡す
+    void setActiveChannel(std::function<GameChannel*()> activeChannel) { m_activeChannel = std::move(activeChannel); }
 
     // --- BoardInputRoute ---
     bool acceptsInput() const override;
@@ -63,16 +67,13 @@ public:
      */
     bool playUsiMove(const UsiMove& move);
 
-signals:
-    /// 通信対局で人間が手を選んだ（盤は動かしていない）
-    void csaMoveRequested(const UsiMove& move);
-
 private:
     using Input = HumanTurnPolicy::BoardInput;
     /// 指した手の結果を盤の操作へ返す（ハイライト・つまんだ駒の表示）
     void reportResult(const UsiMove& move, bool ok);
 
     Deps m_deps;
+    std::function<GameChannel*()> m_activeChannel;
 };
 
 #endif // BOARDMOVECONTROLLER_H

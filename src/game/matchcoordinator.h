@@ -108,8 +108,6 @@ public:
     /// 対局の手順（開始局面と、対局で指した手。終局の行は含めない）
     const RecordLine& record() const { return m_record; }
     int currentPly() const override { return m_record.moveCount(); }
-    /// 手順の最後の手の移動先（次の手の「同」表記の基準。手が無ければ無効なマス）
-    BoardSquare lastMoveDestination() const { return m_record.destinationOf(currentPly()); }
 
     // --- 開始・再開 ---
 
@@ -148,8 +146,11 @@ public:
 
     /// 人間の手を受け付けるか（終局していない・棋譜に書ける）
     bool canAcceptMove() const;
-    /// 人間が盤で指した（盤のクリックの手を GameBoard が指した後）
-    void onHumanMove(const RecordEntry& played);
+    /**
+     * @brief 手番の人間の手を指す（盤で選んだ手。エンジンの手と同じく司令塔が合法手を確かめて盤に指す）
+     * @return 指した（人間の手番でない・合法手でない・終局した・棋譜に書けないときは false で、盤は変えない）
+     */
+    bool playHumanMove(const UsiMove& move);
     /// 手番のエンジンにすぐ指させる
     void forceImmediateMove();
     /// 自分の手と相手の手を1つずつ取り消す（人間の手番のときだけ）
@@ -193,6 +194,8 @@ signals:
     void resumeAvailabilityChanged();
 
 private:
+    /// 手順の最後の手の移動先（次の手の「同」表記の基準。手が無ければ無効なマス）
+    BoardSquare lastMoveDestination() const { return m_record.destinationOf(currentPly()); }
     // --- MatchStrategyHost ---
     EngineSlots& engines() override { return *m_engines; }
     MatchTimeSource* timeSource() override { return &m_clockTime; }
