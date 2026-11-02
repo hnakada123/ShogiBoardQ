@@ -2,7 +2,6 @@
 /// @brief 棋譜コメント編集パネルクラスの実装
 
 #include "commenteditorpanel.h"
-#include "panelbutton.h"
 #include "toolbarwidth.h"
 #include "fontsizecontrol.h"
 #include "editactions.h"
@@ -303,9 +302,7 @@ void CommentEditorPanel::buildCommentToolbar(QWidget* parentWidget)
     m_editActions = new EditActions(this);
     QToolButton* editButtons[EditActions::KindCount] = {};
     for (int kind = 0; kind < EditActions::KindCount; ++kind) {
-        QToolButton* button = m_editActions->createButton(static_cast<EditActions::Kind>(kind), m_commentToolbar);
-        PanelButton::setup(button, kind <= EditActions::Redo ? ButtonStyles::undoRedo() : ButtonStyles::editOperation());
-        editButtons[kind] = button;
+        editButtons[kind] = m_editActions->createButton(static_cast<EditActions::Kind>(kind), m_commentToolbar);
     }
 
     m_editingLabel = new QLabel(tr("修正中"), m_commentToolbar);

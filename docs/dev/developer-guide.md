@@ -166,6 +166,7 @@
 | 2026-11-02 | 棋譜解析ダイアログと結果ドックの文字の大きさの設定を分けた（監査 2026-11-01 F23）のに合わせて §9.8 を更新（結果ドックは `kifuAnalysisResultsFontSize`（以前の版と同じ `KifuAnalysis/fontSize` で、保存してある値を引き継ぐ）、ダイアログは新しい `kifuAnalysisDialogFontSize`（`KifuAnalysis/dialogFontSize`）） |
 | 2026-11-02 | 局面集ファイルの読み方を1つにした（監査 2026-11-01 F25・M2）。`PositionCollectionFile::readFile`（通常のファイルだけを上限まで読み、読めない理由を訳した文で返す）と `fileFilter`（`*.txt *.sfen *.usi`）を、局面集ビューア（`SfenCollectionDialog`）と詰将棋問題一覧（`TsumeCollectionSession::load`）が使う |
 | 2026-11-02 | 対局者名の大きさを全部の盤で1つにした（監査 2026-11-01 F27）。マスの高さに対する比は `BoardChromeWidget::kNameFontScale`（0.30）だけで、`ShogiView::setNameFontScale`・`BoardChromeWidget::setNameFontScale` は消した（外観ダイアログの見本と CLI の render-board は 0.36 で描いていた） |
+| 2026-11-03 | 元に戻す〜貼り付けのボタンの見た目を1つにした（監査 2026-11-01 F28）のに合わせてクラスの一覧の `EditActions` を更新（`EditActions::createButton()` が `PanelButton::setup` の既定の見た目と大きさを付け、コメント欄と対局情報で同じ灰色のボタンにする。コメント欄は `ButtonStyles::undoRedo`（橙）・`editOperation`（緑）を付けていた） |
 
 <!-- chapter-0-end -->
 
@@ -6310,7 +6311,7 @@ Urgency::Warn5  → 強い警告色（残5秒・秒読み）
 | FontSizeHelper | QObject | A-/A+ のフォントサイズ調整（範囲・保存・変更の通知）。設定の宣言を渡すと初期値の読み込みと保存も行う |
 | FontSizeControl | QObject | A-/A+ のボタン2つを `FontSizeHelper` に結ぶ。ボタンの文字・見た目（`ButtonStyles::fontButton()`）・大きさ（ドックのパネルは `PanelButton`、ダイアログと定跡ウィンドウは `Sizing::Dialog` で文字に合わせる）・ツールチップと読み上げ名（「文字を小さくする」「文字を大きくする」）と、範囲の端で押せなくする処理はここだけで決める。ボタンは呼び出し側が置き、objectName も呼び出し側が決める。ボタンには役割のプロパティ `FontSizeControl::kRoleProperty`（`"fontSizeControl"`。値は `"decrease"`・`"increase"`）を付け、テストは表示の文字ではなくこれで探す |
 | DialogFontScale | QWidget | 全ダイアログ・メッセージボックスに A-/A+ と保存を付ける（`install(dialog, 宣言, options)`）。各部品を元の大きさからの差で拡大・縮小する |
-| EditActions | QObject | 元に戻す・やり直す・切り取り・コピー・貼り付けの5つの `QAction`（`enum Kind`、`action(kind)`・`setEnabled(kind, on)`）。標準ショートカット（`QKeySequence::Undo` など。`Qt::WidgetWithChildrenShortcut` で host に追加）・アイコン・実際のショートカットを添えたツールチップはここだけで決める。ボタンは `createButton(kind, parent)`（`setDefaultAction` した `QToolButton`。フォーカスを取らない）。何をするか・有効にするかは呼び出し側が決める（`CommentEditorPanel` は `QTextEdit` の `undo()` などと `undoAvailable` などに、`GameInfoPane` は自分の編集の履歴とクリップボード操作に結ぶ） |
+| EditActions | QObject | 元に戻す・やり直す・切り取り・コピー・貼り付けの5つの `QAction`（`enum Kind`、`action(kind)`・`setEnabled(kind, on)`）。標準ショートカット（`QKeySequence::Undo` など。`Qt::WidgetWithChildrenShortcut` で host に追加）・アイコン・実際のショートカットを添えたツールチップはここだけで決める。ボタンは `createButton(kind, parent)`（`setDefaultAction` した `QToolButton`。フォーカスを取らない。見た目と大きさは `PanelButton::setup` の既定で、ほかのパネルの小さなボタンと同じ。使う側は色を選ばない）。何をするか・有効にするかは呼び出し側が決める（`CommentEditorPanel` は `QTextEdit` の `undo()` などと `undoAvailable` などに、`GameInfoPane` は自分の編集の履歴とクリップボード操作に結ぶ） |
 | EngineSelector | QObject | 登録エンジンを選ぶ部品（下記） |
 | PlayerSetupWidget | QWidget | 対局開始ダイアログの対局者1人の欄（下記） |
 | TimeControlEditor | QWidget | 片方の対局者の持ち時間（時間・分）・秒読み・加算の欄（下記） |

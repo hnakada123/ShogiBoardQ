@@ -2,6 +2,7 @@
 /// @brief 編集操作の QAction の組の実装
 
 #include "editactions.h"
+#include "panelbutton.h"
 
 #include <QAction>
 #include <QIcon>
@@ -51,5 +52,6 @@ QToolButton* EditActions::createButton(Kind kind, QWidget* parent) const
     button->setDefaultAction(action(kind));
     button->setAccessibleName(action(kind)->text());
     button->setFocusPolicy(Qt::NoFocus);
+    PanelButton::setup(button); // 見た目と大きさはほかのパネルの小さなボタンと同じ
     return button;
 }
