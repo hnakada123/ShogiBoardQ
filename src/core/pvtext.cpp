@@ -15,24 +15,6 @@ bool isAnnotation(QStringView token)
     return !head.isDigit() && !QStringView(u"PLNSGBR").contains(head);
 }
 
-bool belongsTo(Piece piece, Turn side)
-{
-    return side == Turn::Black ? isBlackPiece(piece) : isWhitePiece(piece);
-}
-
-/// board の上で mover が move で動かす駒（指す側の駒でない・持ち駒にない・行き先が自分の駒なら None）
-Piece movingPiece(const Position& board, const UsiMove& move, Turn mover)
-{
-    if (move.isDrop()) {
-        const Piece piece = move.dropPieceFor(mover);
-        if (board.pieceAt(move.to) != Piece::None || board.handCount(piece) <= 0) return Piece::None;
-        return piece;
-    }
-    const Piece piece = board.pieceAt(move.from);
-    if (!belongsTo(piece, mover) || belongsTo(board.pieceAt(move.to), mover)) return Piece::None;
-    return piece;
-}
-
 } // namespace
 
 PvText PvText::play(const QString& baseSfen, const QStringList& tokens, BoardSquare previousTo)
@@ -48,9 +30,11 @@ PvText PvText::play(const QString& baseSfen, const QStringList& tokens, BoardSqu
         for (; index < tokens.size(); ++index) {
             const std::optional<UsiMove> move = UsiMove::parse(tokens.at(index));
             if (!move) break;
+            // 手番側の手として局面に合わない手（相手の駒・自分の駒を取る・持ち駒にない駒を打つ）から先は指さない
+            if (board.mismatchOf(*move) != Position::MoveMismatch::None) break;
             const Turn mover = board.sideToMove();
-            const Piece moving = movingPiece(board, *move, mover);
-            if (moving == Piece::None || !board.apply(*move)) break;
+            const Piece moving = board.describe(*move).movingPiece;
+            if (!board.apply(*move)) break;
             pv.m_steps.append(Step{*move, mover, moving});
         }
     }

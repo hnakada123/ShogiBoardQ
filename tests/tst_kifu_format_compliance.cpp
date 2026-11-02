@@ -635,6 +635,44 @@ private slots:
         QVERIFY2(!failed.warning.contains(QStringLiteral("read up to move")), qPrintable(failed.warning));
     }
 
+    /// 局面に合わない手（自分の駒を取る手、書かれた駒・手番が局面と違う手）は、全形式で同じく読まずに手前で打ち切る。
+    /// 以前は CSA・KI2 だけが断り、USI の 7g8h は自分の角を取って後手の持ち駒にしていた（監査 2026-11-01 F1）
+    void moveNotFittingThePositionIsRejected_data()
+    {
+        QTest::addColumn<QString>("text");
+        QTest::addColumn<QString>("reason");
+        const QString kifHead = QStringLiteral("手合割：平手\n手数----指手---------消費時間--\n   1 ７六歩(77)\n");
+        const QString ownCapture = QStringLiteral("The move captures a piece of the side to move: 3c2b");
+        QTest::newRow("usi-own-capture") << QStringLiteral("position startpos moves 7g7f 3c2b") << ownCapture;
+        QTest::newRow("usen-own-capture")
+            << QStringLiteral("~0.%1%2.").arg(UsenCodec::encodeMove(UsiMove::fromString(QStringLiteral("7g7f"))),
+                                             UsenCodec::encodeMove(UsiMove::fromString(QStringLiteral("3c2b"))))
+            << ownCapture;
+        QTest::newRow("kif-own-capture") << kifHead + QStringLiteral("   2 ２二歩(33)\n") << ownCapture;
+        QTest::newRow("kif-written-piece") << kifHead + QStringLiteral("   2 ３四飛(33)\n")
+                                           << QStringLiteral("The written piece is not the piece on the source square: 3c3d");
+        const QString jkfFirst = QStringLiteral(R"({"moves":[{},{"move":{"from":{"x":7,"y":7},"to":{"x":7,"y":6},"piece":"FU","color":0}},)");
+        QTest::newRow("jkf-color")
+            << jkfFirst + QStringLiteral(R"({"move":{"from":{"x":3,"y":3},"to":{"x":3,"y":4},"piece":"FU","color":0}}]})")
+            << QStringLiteral("The move is written for the side not to move: 3c3d");
+        QTest::newRow("jkf-written-piece")
+            << jkfFirst + QStringLiteral(R"({"move":{"from":{"x":3,"y":3},"to":{"x":3,"y":4},"piece":"KA","color":1}}]})")
+            << QStringLiteral("The written piece is not the piece on the source square: 3c3d");
+        QTest::newRow("csa-own-capture") << QStringLiteral("V2.2\nPI\n+\n+7776FU\n-3322FU\n") << ownCapture;
+    }
+
+    void moveNotFittingThePositionIsRejected()
+    {
+        QFETCH(QString, text);
+        QFETCH(QString, reason);
+        const auto result = convert(text, Format::Usi);
+        QVERIFY2(result.ok, qPrintable(result.failure.message));
+        QCOMPARE(result.usiMoves, QStringList{QStringLiteral("7g7f")});
+        const QString warnings = result.warnings.join(QLatin1Char('\n'));
+        QVERIFY2(warnings.contains(reason), qPrintable(warnings));
+        QVERIFY2(warnings.contains(QStringLiteral("read up to move 1")), qPrintable(warnings));
+    }
+
     /// 指し手の語が1つも読めない USI も、局面だけの読み込みにして警告を捨てない（監査 2026-11-01 F2）
     void usiWithOnlyUnreadableMovesWarns()
     {

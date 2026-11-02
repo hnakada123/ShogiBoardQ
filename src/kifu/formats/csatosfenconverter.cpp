@@ -152,24 +152,18 @@ void readMoves(const QStringList& lines, qsizetype begin, KifLineBuilder& builde
             }
         } else if (CsaLexer::isMoveLine(token)) {
             if (builder.ended()) continue;
-            const Turn mover = (token.at(0) == QLatin1Char('+')) ? Turn::Black : Turn::White;
             const int ply = builder.nextPly();
 
-            // 手番と違う符号の手・読めない手・局面に合わない手は、その手の手前で手順を打ち切る（全形式で同じ）
+            // 読めない手・手番と違う符号の手・局面に合わない手は、その手の手前で手順を打ち切る（全形式で同じ）
             QString detail;
-            std::optional<UsiMove> move;
-            if (mover != builder.sideToMove()) {
-                detail = QStringLiteral("Not the side to move: %1").arg(token);
-            } else {
-                move = CsaLexer::parseMoveLine(token, mover, builder.position(), &detail);
-            }
+            const std::optional<CsaLexer::CsaMove> move = CsaLexer::parseMoveLine(token, builder.position(), &detail);
             if (!move) {
                 report.rejectMove(ply, QStringLiteral("CSA: cannot read move %1: %2").arg(ply).arg(detail));
                 builder.stop();
                 return;
             }
-            if (!builder.addMove(*move)) {
-                // 駒打ちの反則も棋譜に残す。移動元や駒種の不整合は lexer で拒否する。
+            // 駒打ちの反則も棋譜に残す（警告する）
+            if (!builder.addMove(move->move, KifLineBuilder::zeroTime(), {}, move->written)) {
                 report.rejectMove(ply, QStringLiteral("CSA: cannot read move %1: Move does not match the position: %2 (%3)")
                                            .arg(ply).arg(token, builder.lastError()));
                 builder.stop();

@@ -90,7 +90,7 @@ private slots:
             "手合割：平手\n▲７六歩    △３四歩    ▲２六歩    ▲２五歩    △８四歩\n"));
         QVERIFY2(outcome.success, qPrintable(outcome.warning));
         QCOMPARE(outcome.record.mainline.usiMoves(), QStringList({"7g7f", "3c3d", "2g2f"}));
-        QVERIFY2(outcome.warning.contains(QStringLiteral("move 4 is marked for the side not to move")),
+        QVERIFY2(outcome.warning.contains(QStringLiteral("Cannot restore move 4: The move is written for the side not to move")),
                  qPrintable(outcome.warning));
         QVERIFY2(outcome.warning.contains(QStringLiteral("read up to move 3")), qPrintable(outcome.warning));
 

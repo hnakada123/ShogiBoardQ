@@ -307,6 +307,23 @@ ShogiMove Position::describe(const UsiMove& move) const
     return ShogiMove(move, moving, move.isDrop() ? Piece::None : pieceAt(move.to));
 }
 
+Position::MoveMismatch Position::mismatchOf(const UsiMove& move, DropRule rule) const
+{
+    if (!move.isValid()) return MoveMismatch::InvalidMove;
+    if (move.isDrop()) {
+        if (rule == DropRule::Lenient) return MoveMismatch::None;
+        if (handCount(move.dropPieceFor(m_sideToMove)) <= 0) return MoveMismatch::DropNotInHand;
+        if (pieceAt(move.to) != Piece::None) return MoveMismatch::DropOnOccupied;
+        return MoveMismatch::None;
+    }
+    const Piece moving = pieceAt(move.from);
+    if (moving == Piece::None) return MoveMismatch::EmptySource;
+    if (pieceSide(moving) != m_sideToMove) return MoveMismatch::OpponentPiece;
+    const Piece captured = pieceAt(move.to);
+    if (captured != Piece::None && pieceSide(captured) == m_sideToMove) return MoveMismatch::CapturesOwnPiece;
+    return MoveMismatch::None;
+}
+
 bool Position::apply(const UsiMove& move, DropRule rule)
 {
     if (!move.isValid()) return false;
