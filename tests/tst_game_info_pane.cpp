@@ -1,4 +1,5 @@
 #include <QtTest>
+#include <QAction>
 #include <QCheckBox>
 #include <QClipboard>
 #include <QDialog>
@@ -11,6 +12,8 @@
 #include <QTemporaryDir>
 #include <QToolButton>
 #include "gameinfopane.h"
+#include "buttonstyles.h"
+#include "commenteditorpanel.h"
 #include "game_info_table_helper.h"
 #include "header_drag_helper.h"
 #include "gamesettings.h"
@@ -207,6 +210,30 @@ private slots:
         QVERIFY(!copy->isEnabled());
         QVERIFY(!cut->isEnabled());
         QVERIFY(!paste->isEnabled());
+    }
+
+    /// 元に戻す〜貼り付けのボタンは、対局情報とコメント欄で同じ見た目と大きさ（ほかのパネルのボタンと同じ）
+    void editButtonsLookTheSameInEveryPane()
+    {
+        CommentEditorPanel comment;
+        const QStringList names = {QStringLiteral("gameInfoUndo"), QStringLiteral("gameInfoRedo"),
+                                   QStringLiteral("gameInfoCut"), QStringLiteral("gameInfoCopy"),
+                                   QStringLiteral("gameInfoPaste")};
+        const auto commentButtons = comment.findChildren<QToolButton*>();
+        for (const QString& name : names) {
+            auto* gameInfo = m_controller->findChild<QToolButton*>(name);
+            QVERIFY2(gameInfo && gameInfo->defaultAction(), qPrintable(name));
+            QToolButton* inComment = nullptr;
+            for (QToolButton* button : commentButtons) {
+                if (button->defaultAction() && button->defaultAction()->text() == gameInfo->defaultAction()->text())
+                    inComment = button;
+            }
+            QVERIFY2(inComment, qPrintable(name));
+            QCOMPARE(gameInfo->styleSheet(), ButtonStyles::panelToolButton());
+            QCOMPARE(inComment->styleSheet(), gameInfo->styleSheet());
+            QCOMPARE(inComment->iconSize(), gameInfo->iconSize());
+            QCOMPARE(inComment->minimumSize(), gameInfo->minimumSize());
+        }
     }
 
     /// 案内文がボタンの次の行に回っても、余白があれば1行で表示する

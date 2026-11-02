@@ -324,7 +324,6 @@ void GameInfoPane::buildToolbar()
     const auto editButton = [this](QHBoxLayout* layout, EditActions::Kind kind, const QString& name) {
         QToolButton* result = m_editActions->createButton(kind, layout->parentWidget());
         result->setObjectName(name);
-        PanelButton::setup(result);
         layout->addWidget(result);
     };
     auto* history = group();

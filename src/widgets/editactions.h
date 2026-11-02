@@ -18,7 +18,8 @@ class QWidget;
  * QAction は host に追加し、ショートカットは host とその子にフォーカスがあるときだけ効く
  * （Qt::WidgetWithChildrenShortcut）。入力欄にフォーカスがあるときは、入力欄が自分で処理する。
  * 何をするかは呼び出し側が action(kind) の triggered を受けて決め、有効・無効も呼び出し側が決める。
- * ボタンは createButton() で作り、QAction の状態（有効・無効）に従う。
+ * ボタンは createButton() で作り、QAction の状態（有効・無効）に従う。見た目と大きさもここで決め
+ * （`PanelButton::setup` の既定の見た目）、使う側はボタンの色を選ばない。
  */
 class EditActions : public QObject
 {
@@ -33,7 +34,8 @@ public:
     QAction* action(Kind kind) const { return m_actions.at(static_cast<std::size_t>(kind)); }
     void setEnabled(Kind kind, bool on);
 
-    /// action(kind) を既定の操作にするボタン（フォーカスを取らず、入力欄の選択範囲を保つ）
+    /// action(kind) を既定の操作にするパネルのボタン（フォーカスを取らず、入力欄の選択範囲を保つ。
+    /// 見た目と大きさは PanelButton::setup の既定）
     QToolButton* createButton(Kind kind, QWidget* parent) const;
 
 private:
