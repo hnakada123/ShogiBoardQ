@@ -172,6 +172,7 @@
 | 2026-11-03 | 終局の原因からの対応をローカル対局と通信対局で1つにした（監査 2026-11-01 F15）のに合わせて第5章の内部型定義を更新（`MatchCause`・`MatchGameEndInfo` を `src/game/matchending.h` に移し、`MatchCause::MaxMoves` を足した。終局語とエンジンへの gameover は `MatchEnding` だけで決め、通信対局は `CsaGameProgress::endInfo()` でサーバーの結果を原因に直す。最大手数は持将棋と書き（通信対局は「最大手数到達」と書いていた）、最大手数・中断・知らない原因の終局でも通信対局のエンジンに `gameover draw` を送る（今までは送らなかった）。`MatchCoordinator::handleMaxMovesJishogi()` は `handleMaxMoves()`、`endGame()` の `engineLoser` 引数は消した） |
 | 2026-11-03 | 時計の残りから USI の btime/wtime への換算を1つにした（監査 2026-11-01 F14）のに合わせて §7.4・§12.3 を更新（`UsiGoTimeCalculator::fromClock()` と `UsiClockSide` を足し、`ClockTimeSource::snapshot()` と `CsaGameProgress::engineTiming(pondering, elapsedThisTurnMs, marginMs)` が使う。通信対局の先読みの go ponder は、自分の残りから今の手の消費を引き、加算は引かない（以前は今の手の消費を引かず加算を引いていた）。手番側の経過時間は先読みでないときも引く） |
 | 2026-11-03 | 通信対局の開始でその対局の通信ログとエンジン名を消さないようにした（監査 2026-11-01 F12）のに合わせて §4.5・§6.5・§10.2 を更新（文書の置き換えで呼ぶ `EngineDisplayPresenter::clearAll()` は通信ログを消さず、結んでいるエンジンの名前も残す（`UsiCommLogModel::clearStatus()`）。通信ログは対局を始めるとき（`GameSession::gameStarting`・`CsaGameSession::gameStarting`）に `clearEngineLogs()` で消す。通信対局の評価値グラフの自分の系列名は `CsaGameCoordinator::matchEngineStarted` → `showMatchEngine()`。新規・棋譜の読み込みでは通信ログを消さなくなった） |
+| 2026-11-03 | 盤の人間の手をローカル対局と通信対局で同じ入口にした（監査 2026-11-01 T3 の5つ目）のに合わせて §3.4・§3.5・§6.2・§6.6・§6.7・§6.9・§10.3・§10.4・§10.6・§12.3・§14.6・§15.2・§15.5 を更新（`GameChannel::playMove(UsiMove)`（`MoveResult`: `Rejected`・`Played`・`Sent`）を足し、`BoardMoveController` は対局中の窓口（`setActiveChannel()` で受け取る `GameSession::activeChannel()`）へ渡すだけにした。ローカル対局は `MatchCoordinator::playHumanMove(UsiMove)` がエンジンの手と同じく合法手を確かめて盤に指し、通信対局は `CsaGameCoordinator::sendHumanMove()`（旧 `onHumanMove` スロット）が合法手を確かめてサーバーへ送る。`BoardInput::CsaServer` は `Game` にまとめ、`BoardMoveController::csaMoveRequested`・`MatchCoordinator::onHumanMove(RecordEntry)` を消し、`lastMoveDestination()` は非公開にした） |
 
 <!-- chapter-0-end -->
 
@@ -1438,7 +1439,7 @@ graph LR
 | `DuringPositionEdit` | `Edit`（駒の配置を変える） |
 | `Idle`（終局後を含む） | 棋譜を変えてよければ `Variation`（棋譜の変化として記録。`HumanTurnPolicy::canEditRecord()`） |
 | `DuringGame` | 手を受け付け（`MatchCoordinator::canAcceptMove()`）、手番の側を人間が指すとき（`isHumanSide()`）だけ `Game`。エンジン同士では不可 |
-| `DuringCsaGame` | 対局中（`GameState::InGame`）で自分が人間、自分の手番（`isHumanPlayer()` と `isMyTurn()`）のときだけ `CsaServer` |
+| `DuringCsaGame` | 対局中（`GameState::InGame`）で自分が人間、自分の手番（`isHumanPlayer()` と `isMyTurn()`）のときだけ `Game`（ローカル対局と同じく対局相手の窓口 `GameChannel::playMove()` へ渡し、通信対局の窓口がサーバーへ送る） |
 | 解析・検討・詰み探索・終了処理の後（`disable()`） | `None`（指せない） |
 
 **棋譜を移って・変えてよいか**（`HumanTurnPolicy::canBrowseRecord()`・`canEditRecord()`）
@@ -1515,12 +1516,13 @@ sequenceDiagram
     BMC->>BIC: moveFromClick()<br/>(DuringGame の場合)
     BIC->>BIC: 合法手判定・成り/不成の選択<br/>(EngineMoveValidator・PromoteDialog)
     BIC-->>BMC: UsiMove
-    BMC->>SGC: applyMove(UsiMove)<br/>(playUsiMove)
+    BMC->>MC: playHumanMove(UsiMove)<br/>(playUsiMove → GameChannel::playMove)
+    MC->>SGC: applyMove(UsiMove, 直前の手の移動先)
     SGC->>SB: replacePosition(指した後の局面)
     SB-->>SV: dataChanged / standChanged<br/>(変わったマスを再描画)
-    SGC-->>BMC: RecordEntry
+    SGC-->>MC: RecordEntry
+    MC-->>BMC: Played
     BMC->>BIC: onMoveApplied()<br/>(移動元・移動先のハイライト)
-    BMC->>MC: onHumanMove(RecordEntry)
     MC->>GS: appendRecord()
     GS->>LGS: appendRecord()
     LGS-->>DISP: 表示中の手が変わる<br/>(KifuNavigationState::changed)
@@ -1535,9 +1537,9 @@ sequenceDiagram
 #### フロー解説
 
 1. **ユーザー操作**: `ShogiView` がマウスクリックを受け、`clicked` シグナルで `BoardInteractionController` に盤の座標を通知する。駒をつまめるかは行き先（`BoardInputRoute::acceptsInput()`）に聞く。1回目のクリックで駒を選び、設定により `EngineMoveValidator` で合法な移動先を光らせる
-2. **着手要求**: 2回目のクリックで、移動元・移動先を行き先の `BoardInputRoute::submit()` に渡す。主画面の行き先 `BoardMoveController` が、動作状態（`AppActivityState`）に応じて処理を分ける。行き先は `HumanTurnPolicy::boardInput()` の1か所で決まる。局面編集中は `PositionEditSession::applyEditMove()`、それ以外はクリックを盤の操作の `BoardInteractionController::moveFromClick()` で `UsiMove` にしてから、待機中は棋譜の変化として `BranchTreeEditController::recordMove()`、通信対局は `csaMoveRequested(UsiMove)`、ローカル対局は次のとおり
-3. **合法手判定と適用**: ローカル対局では、`MatchCoordinator::isHumanSide()` が真の手番のときだけ `BoardInteractionController::moveFromClick()` が `EngineMoveValidator` で合法手かを判定し、クリックを `UsiMove` にする（詰将棋を解く画面も同じ関数）。成り・不成の両方が合法なら成りの選び方（`DialogLauncher::choosePromotion()` が `PromoteDialog::ask()` で選ばせる）に従う。`BoardMoveController::playUsiMove()` が対局の盤 `GameBoard::applyMove()` で指し（棋譜の1行は `MoveRecord::play()` が作り、盤には `ShogiBoard::replacePosition()` で変わった所だけを知らせる）、結果は棋譜の1行（`RecordEntry`）で返る
-4. **一手の確定**: `BoardMoveController` が `MatchCoordinator::onHumanMove()` を呼ぶと、対局者の組ごとの Strategy を通して `completeMove()` が時計・考慮時間を確定し、行を `MatchRecordSink`（`GameSession::appendRecord()`）に書く。`GameSession` はライブ対局のセッション（`LiveGameSession`）経由で分岐ツリー（`KifuBranchTree`）に追記する
+2. **着手要求**: 2回目のクリックで、移動元・移動先を行き先の `BoardInputRoute::submit()` に渡す。主画面の行き先 `BoardMoveController` が、動作状態（`AppActivityState`）に応じて処理を分ける。行き先は `HumanTurnPolicy::boardInput()` の1か所で決まる。局面編集中は `PositionEditSession::applyEditMove()`、それ以外はクリックを盤の操作の `BoardInteractionController::moveFromClick()` で `UsiMove` にしてから、待機中は棋譜の変化として `BranchTreeEditController::recordMove()`、対局中は対局相手の窓口（`GameChannel::playMove()`。`GameSession::activeChannel()` を `setActiveChannel()` で受け取る）へ渡す。通信対局の窓口はサーバーへ送り（盤は確認を受けてから動かす）、ローカル対局は次のとおり
+3. **合法手判定と適用**: ローカル対局では、`MatchCoordinator::isHumanSide()` が真の手番のときだけ `BoardInteractionController::moveFromClick()` が `EngineMoveValidator` で合法手かを判定し、クリックを `UsiMove` にする（詰将棋を解く画面も同じ関数）。成り・不成の両方が合法なら成りの選び方（`DialogLauncher::choosePromotion()` が `PromoteDialog::ask()` で選ばせる）に従う。ローカル対局の窓口から `MatchCoordinator::playHumanMove(UsiMove)` が呼ばれ、エンジンの手と同じく司令塔が対局の盤 `GameBoard::applyMove()` で指し（合法手の確認はここだけ。棋譜の1行は `MoveRecord::play()` が作り、盤には `ShogiBoard::replacePosition()` で変わった所だけを知らせる）、結果は棋譜の1行（`RecordEntry`）で返る
+4. **一手の確定**: `MatchCoordinator::playHumanMove()` が指した手を対局者の組ごとの Strategy に渡すと、Strategy を通して `completeMove()` が時計・考慮時間を確定し、行を `MatchRecordSink`（`GameSession::appendRecord()`）に書く。`GameSession` はライブ対局のセッション（`LiveGameSession`）経由で分岐ツリー（`KifuBranchTree`）に追記する
 5. **表示の同期**:
    - `ShogiView`: `ShogiBoard` の `dataChanged`／`standChanged`／`turnChanged` シグナルで、変わったマスと駒台、手番の表示を更新する。移動元・移動先のハイライトは `BoardInteractionController` が付ける
    - 棋譜欄・分岐・盤・コメント・評価値グラフなど: 分岐ツリーが変わると `KifuNavigationState` が表示中の手を最新の手に進めて `changed()` を出し、`KifuDisplayPresenter`（棋譜欄・分岐候補欄・分岐ツリー）、`BoardSyncPresenter`（盤・ハイライト）などが各自で合わせる
@@ -2783,7 +2785,7 @@ game 層
 |------|------|
 | **対局開始** | `start()` で対局の手順・対局者・Strategy を用意し（時計はまだ動かさない）、`beginPlay()` で時計を動かして初手がエンジンなら思考を始める |
 | **手番管理** | 手番は盤（`ShogiBoard::currentPlayer()`。司令塔は `sideToMove()` で読む）だけを正とし、司令塔はコピーを持たない |
-| **指し手進行** | 人間の着手（`onHumanMove()`）は Strategy に渡す。一手の確定（時計・棋譜・千日手・最大手数）は Strategy から `MatchStrategyHost` 経由で呼ばれる `completeHumanMove()`・`applyEngineMove()` が行う |
+| **指し手進行** | 人間の着手（`playHumanMove(UsiMove)`。盤の手は `LocalGameChannel::playMove()` から届く）は、エンジンの手と同じく司令塔が合法手を確かめて盤に指し、Strategy に渡す。一手の確定（時計・棋譜・千日手・最大手数）は Strategy から `MatchStrategyHost` 経由で呼ばれる `completeHumanMove()`・`applyEngineMove()` が行う |
 | **エンジン** | エンジンの枠は `EngineSlots`（Deps の `engines`）が持つ。思考の依頼は `requestEngineMove(side)` で、手番のエンジンに `Usi::requestMatchMove()` を送る |
 | **終局判定** | 投了・時間切れ・中断・入玉宣言・千日手・連続王手の千日手・最大手数・反則の各終局を処理し、終局の行を棋譜に書く |
 | **棋譜記録** | 確定した行（指し手・終局）を `MatchRecordSink` に書く。受け手は `GameSession` |
@@ -3108,7 +3110,7 @@ prepareGameStart(preparation)
 人間の着手（盤のクリック）は盤の操作の `moveFromClick()` で `UsiMove` にしてから `applyMove()`、成り・不成まで決まった手（エンジンの手・定跡ウィンドウの手）は `applyMove()`、通信対局でサーバーが知らせた手では `applyRecordedMove()` が呼ばれる。どれも最後に `commitMove()` で指す。
 
 「同」表記の基準（局面に至った手の移動先。開始局面は無効なマス）は、このクラスでは持たず、手順を持つ呼び出し側が指すたびに `previousTo` で渡す。
-対局は `MatchCoordinator::lastMoveDestination()`（`m_record.destinationOf(currentPly())`。`BoardMoveController` と `applyEngineMove()` が渡す）、
+対局は `MatchCoordinator` の非公開の `lastMoveDestination()`（`m_record.destinationOf(currentPly())`。`playHumanMove()` と `applyEngineMove()` が渡す）、
 通信対局は `CsaGameProgress::previousTo()`、分岐の編集（`BranchTreeEditController`）は親ノードの手の移動先を渡す。
 
 ```
@@ -3175,8 +3177,9 @@ ShogiBoard::turnChanged(Turn)
                    │                     │
   BoardMoveController::playMove         Usi::matchMoveReady
      → BIC::moveFromClick()              → Strategy::onEngineMoveReady()
-     → playUsiMove() → GameBoard::applyMove()  → MatchStrategyHost::applyEngineMove()
-     → MatchCoordinator::onHumanMove()      → GameBoard::applyMove()
+     → playUsiMove() → GameChannel::playMove()  → MatchStrategyHost::applyEngineMove()
+     → MatchCoordinator::playHumanMove()    → GameBoard::applyMove()
+     → GameBoard::applyMove()
      → Strategy::onHumanMove()
      → MatchStrategyHost::completeHumanMove()
                    └──────────┬──────────┘
@@ -3311,14 +3314,14 @@ HumanTurnPolicy::BoardInput HumanTurnPolicy::boardInput() const
             && match->isHumanSide(m_deps.board->currentPlayer());
         return humanTurn ? BoardInput::Game : BoardInput::None;
     }
-    case AppActivityState::Activity::DuringCsaGame: ...（対局中・人間・自分の手番なら CsaServer）
+    case AppActivityState::Activity::DuringCsaGame: ...（対局中・人間・自分の手番なら Game）
     default:
         return BoardInput::None;
     }
 }
 ```
 
-`isHumanTurnNow()` は行き先が `Variation`・`Game`・`CsaServer` のどれかか、`isGameActivelyInProgress()` はローカル対局なら終局前か、通信対局なら `CsaGameCoordinator::GameState::InGame` かを返す。盤のクリックでは、盤で指した手の行き先 `BoardMoveController` が `acceptsInput()`（行き先が `None` でないか）・`isEditing()`（`Edit` か）で使う（`BoardInteractionController` はつまむたびに行き先に聞く）。定跡ウィンドウ（`JosekiWindowController::Deps::humanTurn`）と矢印（`CandidateArrowPresenter::Deps::humanTurn`）はこの `HumanTurnPolicy` を型付きで受ける。終了処理では `disable()` で何も受け付けなくする（盤の操作が参照し続けるので破棄はしない）。
+`isHumanTurnNow()` は行き先が `Variation`・`Game` のどちらかか、`isGameActivelyInProgress()` はローカル対局なら終局前か、通信対局なら `CsaGameCoordinator::GameState::InGame` かを返す。盤のクリックでは、盤で指した手の行き先 `BoardMoveController` が `acceptsInput()`（行き先が `None` でないか）・`isEditing()`（`Edit` か）で使う（`BoardInteractionController` はつまむたびに行き先に聞く）。定跡ウィンドウ（`JosekiWindowController::Deps::humanTurn`）と矢印（`CandidateArrowPresenter::Deps::humanTurn`）はこの `HumanTurnPolicy` を型付きで受ける。終了処理では `disable()` で何も受け付けなくする（盤の操作が参照し続けるので破棄はしない）。
 
 ### 6.10 ConsecutiveGameSeries — 連続対局制御
 
@@ -5799,20 +5802,20 @@ Controllers は「View → Model」方向のイベント処理を担当する。
 playMove(from, to)                  ← submit()（盤の操作）から
   ├── Edit → PositionEditSession::applyEditMove()
   ├── None → 受け付けない
-  └── Variation・Game・CsaServer
+  └── Variation・Game
        → BoardInteractionController::moveFromClick() で UsiMove にする（成り・不成の選択もここ）
        → playUsiMove(move)
 
 playUsiMove(move)                   ← playMove()、JosekiWindowController（定跡手）から
   ├── Variation → BranchTreeEditController::recordMove()
   │     （指した手を表示中の手の次の手＝変化として棋譜に記録する）
-  ├── CsaServer → GameBoard::isLegal() なら csaMoveRequested(move) シグナル
-  │     （→ CsaGameCoordinator::onHumanMove(const UsiMove&)。通信対局は確認を受けてから確定するので、盤は動かさない）
-  └── Game（ローカル対局で人間の手番）
-       → GameBoard::applyMove(move, MatchCoordinator::lastMoveDestination())
-       ├── BoardInteractionController::onMoveApplied() でハイライトを更新
-       └── 指せたら MatchCoordinator::onHumanMove(指した手の RecordEntry)
-            （考慮時間の確定・棋譜への追記・千日手と最大手数の判定・エンジンへの手番渡しは司令塔が行う）
+  └── Game（対局で人間の手番。ローカル・通信）
+       → 対局中の窓口（setActiveChannel で受け取った GameSession::activeChannel()）の GameChannel::playMove(move)
+       ├── LocalGameChannel → MatchCoordinator::playHumanMove(move): 合法手なら GameBoard::applyMove で指し、Strategy へ
+       │     （考慮時間の確定・棋譜への追記・千日手と最大手数の判定・エンジンへの手番渡しは司令塔が行う）。Played
+       ├── CsaGameChannel → CsaGameCoordinator::sendHumanMove(move): 合法手ならサーバーへ送る
+       │     （通信対局は確認を受けてから確定するので、盤は動かさない）。Sent
+       └── BoardInteractionController::onMoveApplied() でハイライトを更新（盤で指したときだけ ok）
 ```
 
 どの場合も、手を受け付けたかを戻り値で返し、`onMoveApplied()` で盤の操作（つまんだ駒の表示）を戻す。クリックは1回だけ `UsiMove` にし、その後の処理は `playUsiMove()` にまとまっている。定跡ウィンドウの手（`JosekiWindowController`）は成り・不成まで決まっているので `playUsiMove()` を直接呼び（盤の座標を経由しない。局面編集中は指さない）、盤で指した手と同じに扱われる。
@@ -5972,8 +5975,8 @@ MainWindowComposer::connectGame()
   ├── engineMovePlayed       → EvaluationGraphPresenter::plotEngineScore（ローカル対局の司令塔と同じ形）
   ├── errorOccurred          → NotificationPresenter::displayErrorMessage
   ├── connectionStateChanged / csaCommLogAppended → CsaLogPanel（CSA ログ）
-  ├── CsaLogPanel::csaRawCommandRequested   → CsaGameCoordinator::sendRawCommand
-  └── BoardMoveController::csaMoveRequested → CsaGameCoordinator::onHumanMove
+  └── CsaLogPanel::csaRawCommandRequested   → CsaGameCoordinator::sendRawCommand
+  （盤の手は BoardMoveController が対局中の窓口 CsaGameChannel::playMove → sendHumanMove で渡す。シグナルではない）
 
 CsaGameSession のコンストラクタ
   └── gameStarted / gameEnded / turnChanged / logMessage → 自身のスロット（画面の切り替え）
@@ -6143,8 +6146,9 @@ BoardInputRoute::submit(from, to)
 [Controller] BoardMoveController::playMove(from, to)
   │  └── 動作状態（AppActivityState）と MatchCoordinator::isHumanSide() で、人間が指せる手番かを確かめる
   │      BoardInteractionController::moveFromClick() でクリックを UsiMove にして playUsiMove(move)
+  │      → 対局中の窓口 LocalGameChannel::playMove(move) → MatchCoordinator::playHumanMove(move)  ← game層
   │
-  ├── GameBoard::applyMove(move, MatchCoordinator::lastMoveDestination())  ← Model層
+  ├── GameBoard::applyMove(move, 直前の手の移動先)  ← Model層（司令塔が呼ぶ）
   │     ├── ShogiBoard::replacePosition(指した後の局面)
   │     │     └── [View] ShogiView が dataChanged / standChanged で変わったマスを再描画
   │     └── moveCommitted(mover, ply) シグナル
@@ -6153,7 +6157,7 @@ BoardInputRoute::submit(from, to)
   ├── [Controller] BoardInteractionController::onMoveApplied(from, to, ok)
   │     └── 移動元・移動先のハイライト（違法手なら駒の選択を解除）
   │
-  └── MatchCoordinator::onHumanMove(played)  ← game層
+  └── Strategy::onHumanMove(played) → MatchStrategyHost::completeHumanMove()  ← game層
         └── 一手の確定（時計・千日手・最大手数）→ MatchRecordSink::appendRecord()（GameSession）
               └── LiveGameSession::appendRecord() が分岐ツリーに追記し、表示中の手を足した手へ移す
                     └── KifuNavigationState::changed
@@ -6855,7 +6859,7 @@ CsaGameCoordinatorは2種類の対局形態をサポートする。
 
 | PlayerType | 説明 |
 |-----------|------|
-| `Human` | 人間がGUI経由で指す。`BoardMoveController` が盤のクリックを `UsiMove` にして（`BoardInteractionController::moveFromClick()`）`csaMoveRequested` で渡し、`onHumanMove(const UsiMove&)` スロットが合法手か（`isLegal()`）を確かめてから `CsaMoveConverter::toCsa()` でCSA形式にしてサーバーへ送る（盤は確認を受けてから指す） |
+| `Human` | 人間がGUI経由で指す。`BoardMoveController` が盤のクリックを `UsiMove` にして（`BoardInteractionController::moveFromClick()`）対局中の窓口（`CsaGameChannel::playMove()`）に渡し、`sendHumanMove(const UsiMove&)` が合法手か（`isLegal()`）を確かめてから `CsaMoveConverter::toCsa()` でCSA形式にしてサーバーへ送る（盤は確認を受けてから指す） |
 | `Engine` | USIエンジンが自動応答。`startEngineThinking()` でエンジンに思考→結果を `toCsa()` でCSA変換→送信 |
 
 #### GameState — 対局状態
@@ -6913,7 +6917,7 @@ sequenceDiagram
     Coord->>Sink: appendRecord(entry)
     Coord-->>UI: turnChanged()
 
-    UI->>Coord: onHumanMove(UsiMove)
+    UI->>Coord: sendHumanMove(UsiMove)（CsaGameChannel::playMove から）
     Coord->>Client: sendMove(+7776FU)
     Client->>Server: +7776FU
     Server-->>Client: +7776FU,T3
@@ -7710,7 +7714,7 @@ MainWindow::MainWindow()
 
 **司令塔（MatchCoordinator）の生成と接続**: 司令塔は `createMatchAndAnalysis()` で、エンジンの枠（`EngineSlots`）を作った後に `MatchCoordinator::Deps`（`gameBoard`・`clock`・`activity`・`engines`）を渡して1回だけ作る。検討・詰み探索の `AnalysisSession` と通信対局の `CsaGameCoordinator` も同じエンジンの枠を受け取る。
 
-- `createSessions()` が両方の司令塔に `setRecordSink()` で棋譜の受け手（`GameSession`）を渡す（`MatchCoordinator`・`CsaGameCoordinator`）。`connectGame()` が司令塔のシグナルを `GameSession` などへ直接つなぐ（評価値 `engineMovePlayed`、待った `movesUndone`、再開できるか `resumeAvailabilityChanged`、終局 `gameEnded`・`gameOverMessage`・`gameEndProcessed`、中断 `gameInterrupted`、連続対局 `nextGameReady`）。時計の表示は `TimeDisplayPresenter` が `ShogiClock::timeUpdated` を自分でつなぐ。通信対局も `connectGame()` が `CsaGameCoordinator` の評価値 `engineMovePlayed`・エラー `errorOccurred`・通信ログと、盤の手 `BoardMoveController::csaMoveRequested` をつなぐ。通信対局の棋譜はシグナルではなく司令塔が受け手に書き、動作状態も司令塔が持つので、接続の順に頼らない。検討のシグナルは `connectAnalysisAndUi()` がつなぐ。
+- `createSessions()` が両方の司令塔に `setRecordSink()` で棋譜の受け手（`GameSession`）を渡す（`MatchCoordinator`・`CsaGameCoordinator`）。`connectGame()` が司令塔のシグナルを `GameSession` などへ直接つなぐ（評価値 `engineMovePlayed`、待った `movesUndone`、再開できるか `resumeAvailabilityChanged`、終局 `gameEnded`・`gameOverMessage`・`gameEndProcessed`、中断 `gameInterrupted`、連続対局 `nextGameReady`）。時計の表示は `TimeDisplayPresenter` が `ShogiClock::timeUpdated` を自分でつなぐ。通信対局も `connectGame()` が `CsaGameCoordinator` の評価値 `engineMovePlayed`・自分のエンジン `matchEngineStarted`・エラー `errorOccurred`・通信ログをつなぐ。盤の手はシグナルではなく、`createSessions()` が `BoardMoveController::setActiveChannel()` に渡す対局中の窓口（`GameSession::activeChannel()`）から届く。通信対局の棋譜はシグナルではなく司令塔が受け手に書き、動作状態も司令塔が持つので、接続の順に頼らない。検討のシグナルは `connectAnalysisAndUi()` がつなぐ。
 - 終局の知らせは、終局の行の追記（`MatchRecordSink::appendRecord()`）→ 棋譜の確定（`MatchRecordSink::finishRecord()`：ライブ対局のセッションの確定・終局時刻の記録・棋譜の自動保存）→ アイドルへの遷移 → `gameEnded`（`GameSession::onGameEnded()`。中断なら連続対局をやめる）→ `gameOverMessage` → `gameEndProcessed`（連続対局の次局）の順に出る。
 - `tests/tst_wiring_contracts.cpp` は本体の部品で、対局の開始と終局が実際の受け手に届くこと（UI 状態・対局者・時計・棋譜の行）と、着手と待ったで司令塔の手順・棋譜・表示中の局面がそろうことを確かめる。
 
@@ -7797,8 +7801,7 @@ MainWindow はスロットを持たない。メニュー・盤・棋譜欄の操
 
 - 局面編集中: 駒の配置を変える（`PositionEditSession::applyEditMove()`）
 - 待機中: 表示中の手の次の手（変化）として棋譜に記録する（`BranchTreeEditController`）
-- 通信対局中: `csaMoveRequested(UsiMove)` で `CsaGameCoordinator::onHumanMove(const UsiMove&)` に渡す
-- 対局中で人間の手番: 合法手なら指し、司令塔に渡す
+- 対局中（ローカル・通信）で人間の手番: 対局中の窓口（`GameChannel::playMove()`）に渡す。ローカル対局は司令塔（`MatchCoordinator::playHumanMove()`）が合法手を確かめて指し、通信対局は `CsaGameCoordinator::sendHumanMove()` がサーバーへ送る
 
 人間が盤で操作できる手番かの判定は `HumanTurnPolicy::isHumanTurnNow()`（対局していなければ、変化の入力を受け付けるか）で、`BoardMoveController::acceptsInput()`（局面編集中は判定を使わずに受け付ける）と定跡ウィンドウが使う。盤面クリックは `UiStatePolicyManager` の表に含めない。矢印ボタンなどの有効・無効は `UiStatePolicyManager` が状態ごとに決める（[UI状態ポリシー](ui-state-policy.md)）。
 
@@ -7948,14 +7951,15 @@ sequenceDiagram
 
     alt 合法手の場合
         BIC-->>BMC: UsiMove（成り・不成も決まった手）
-        BMC->>SGC: playUsiMove() → applyMove()
+        BMC->>MC: playUsiMove() → LocalGameChannel::playMove() → playHumanMove(UsiMove)
+        MC->>SGC: applyMove(UsiMove, 直前の手の移動先)
         SGC->>SB: replacePosition(指した後の局面)
         SB-->>SV: dataChanged / standChanged / turnChanged シグナル
         SV->>SV: 変わったマス・駒台を再描画
-        SGC-->>BMC: 指した手（RecordEntry）
+        SGC-->>MC: 指した手（RecordEntry）
+        MC-->>BMC: Played
         BMC->>BIC: onMoveApplied(from, to, true)
         Note over BIC: LastMoveFrom・LastMoveTo の層に出す
-        BMC->>MC: onHumanMove(RecordEntry)
         Note over MC: Strategy → completeHumanMove()<br/>時計の確定と消費時間の記録
         MC->>GS: appendRecord()（MatchRecordSink。ライブ対局のセッションに追記）
         GS-->>BSP: 表示中の手が最新の手になり、盤・ハイライト・手番の表示を合わせる
@@ -7992,11 +7996,11 @@ sequenceDiagram
 | `BoardSyncPresenter` | 表示中の手の局面に盤を合わせ、指し手のハイライトと手番を示す（`src/ui/presenters/`） |
 
 **補足:**
-- `BoardMoveController::playMove()` が行き先（`HumanTurnPolicy::boardInput()`）で振り分ける。局面編集中は `PositionEditSession::applyEditMove()`、待機中は `BranchTreeEditController::recordMove()`、通信対局中は `csaMoveRequested(UsiMove)` シグナル、対局中は上のフローである。定跡ウィンドウの手は `playUsiMove()` から同じ処理に入る。どの場合も `onMoveApplied()` で手を受け付けたかを盤の操作へ返す
+- `BoardMoveController::playMove()` が行き先（`HumanTurnPolicy::boardInput()`）で振り分ける。局面編集中は `PositionEditSession::applyEditMove()`、待機中は `BranchTreeEditController::recordMove()`、対局中（ローカル・通信）は対局中の窓口の `GameChannel::playMove()` で、ローカル対局は上のフローである。定跡ウィンドウの手は `playUsiMove()` から同じ処理に入る。どの場合も `onMoveApplied()` で手を受け付けたかを盤の操作へ返す
 - 成り・不成は盤の操作の `BoardInteractionController::moveFromClick()` が合法性と合わせて決め、クリックを1回だけ `UsiMove` にする（盤に指すのは `applyMove()`）。両方とも合法なら成りダイアログ（`setPromotionChooser()` で渡す `DialogLauncher::choosePromotion()`）で選ばせ、成りだけが合法（行き所のない駒）なら成る（6.6 節）
-- `MatchCoordinator::onHumanMove()` は対局者の組の Strategy（人間対エンジンなら `HumanVsEngineStrategy`）に渡す。Strategy は `MatchStrategyHost::completeHumanMove()` で一手を確定させ、エンジンの手番なら `requestEngineMove()` で `Usi::requestMatchMove()`（position と go）を頼み、`matchMoveReady` シグナルで受けた応手を `applyEngineMove()` で指す
+- `MatchCoordinator::playHumanMove()` は合法手を盤に指してから、対局者の組の Strategy（人間対エンジンなら `HumanVsEngineStrategy`）に渡す。Strategy は `MatchStrategyHost::completeHumanMove()` で一手を確定させ、エンジンの手番なら `requestEngineMove()` で `Usi::requestMatchMove()`（position と go）を頼み、`matchMoveReady` シグナルで受けた応手を `applyEngineMove()` で指す
 - 手番は `ShogiBoard` だけが持ち、`ShogiBoard::turnChanged` を `BoardChromeWidget::setActiveSide()` が受けて盤の手番表示を切り替える。時計の表示は `TimeDisplayPresenter` が `ShogiClock::timeUpdated` を直接受けて合わせる
-- 人間同士の対局ではエンジンとの通信はなく、司令塔が一手を確定して手番が交互に切り替わる。通信対局では `BoardMoveController` が `csaMoveRequested(UsiMove)` シグナルで手を `CsaGameCoordinator::onHumanMove(const UsiMove&)` へ送る（15.5）
+- 人間同士の対局ではエンジンとの通信はなく、司令塔が一手を確定して手番が交互に切り替わる。通信対局では `BoardMoveController` が対局中の窓口 `CsaGameChannel::playMove()` から手を `CsaGameCoordinator::sendHumanMove(const UsiMove&)` へ渡す（15.5）
 - 対局していないときに盤で指した手は、`BranchTreeEditController::recordMove()` が棋譜の変化として記録する
 
 ---
@@ -8201,7 +8205,7 @@ sequenceDiagram
     loop 対局中
         alt 自分の手番（CsaClient::isMyTurn()）
             alt 人間が指す場合
-                User->>CGC: 盤面クリック → BoardMoveController::csaMoveRequested → onHumanMove()
+                User->>CGC: 盤面クリック → BoardMoveController → CsaGameChannel::playMove → sendHumanMove()
                 Note over CGC: 盤の操作の moveFromClick() が盤は変えずに合法性と成りを確定した手
             else エンジンが指す場合
                 CGC->>MES: engine()->requestMatchMove(position)（時間は CsaGameCoordinator（MatchTimeSource）から読む）

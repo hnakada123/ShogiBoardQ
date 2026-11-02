@@ -8,8 +8,8 @@
 #include "boardinteractioncontroller.h"
 #include "branchtreeeditcontroller.h"
 #include "gameboard.h"
+#include "gamechannel.h"
 #include "logcategories.h"
-#include "matchcoordinator.h"
 #include "positioneditsession.h"
 #include "shogiboard.h"
 
@@ -17,8 +17,8 @@ BoardMoveController::BoardMoveController(const Deps& deps, QObject* parent)
     : QObject(parent)
     , m_deps(deps)
 {
-    Q_ASSERT(m_deps.gameBoard && m_deps.board && m_deps.activity && m_deps.match
-             && m_deps.positionEdit && m_deps.branchEdit && m_deps.turnPolicy);
+    Q_ASSERT(m_deps.gameBoard && m_deps.board && m_deps.activity && m_deps.positionEdit && m_deps.branchEdit
+             && m_deps.turnPolicy);
     m_deps.board->setInputRoute(this);
     // 動作状態が変わったら（対局の開始・局面編集の開始など）、つまんでいた駒を戻す
     connect(m_deps.activity, &AppActivityState::changed,
@@ -63,24 +63,13 @@ bool BoardMoveController::playUsiMove(const UsiMove& move)
         reportResult(move, ok);
         return ok;
     }
-    case Input::CsaServer: {
-        // 通信対局は確認を受けてから確定する。入力側は盤面や履歴を変更しない
-        const bool legal = m_deps.gameBoard->isLegal(move);
-        if (legal) emit csaMoveRequested(move);
-        reportResult(move, false);
-        return legal;
-    }
     case Input::Game: {
-        const std::optional<RecordEntry> played =
-            m_deps.gameBoard->applyMove(move, m_deps.match->lastMoveDestination());
-        reportResult(move, played.has_value());
-        if (!played) {
-            qCDebug(lcUi) << "human move rejected";
-            return false;
-        }
-        // 考慮時間の確定・棋譜への追記・千日手と最大手数の判定・エンジンへの手番渡しは対局の司令塔が行う
-        m_deps.match->onHumanMove(*played);
-        return true;
+        // ローカル対局は司令塔が合法手を確かめて盤に指し、通信対局はサーバーへ送る（盤は確認を受けてから動かす）
+        GameChannel* channel = m_activeChannel ? m_activeChannel() : nullptr;
+        const GameChannel::MoveResult result = channel ? channel->playMove(move) : GameChannel::MoveResult::Rejected;
+        reportResult(move, result == GameChannel::MoveResult::Played);
+        if (result == GameChannel::MoveResult::Rejected) qCDebug(lcUi) << "human move rejected";
+        return result != GameChannel::MoveResult::Rejected;
     }
     case Input::Edit:   // 局面編集では成り・不成まで決まった手（定跡の手）は指さない
     case Input::None:

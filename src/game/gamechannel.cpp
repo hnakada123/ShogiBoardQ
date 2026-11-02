@@ -11,6 +11,11 @@ LocalGameChannel::LocalGameChannel(MatchCoordinator* match)
     Q_ASSERT(m_match);
 }
 
+GameChannel::MoveResult LocalGameChannel::playMove(const UsiMove& move)
+{
+    return m_match->playHumanMove(move) ? MoveResult::Played : MoveResult::Rejected;
+}
+
 void LocalGameChannel::resign()
 {
     m_match->handleResign();

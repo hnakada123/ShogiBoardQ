@@ -259,7 +259,6 @@ void MainWindowComposer::createMatchAndAnalysis()
     bd.gameBoard = m_c.gameBoard;
     bd.board = m_c.boardController;
     bd.activity = &m_activity;
-    bd.match = m_c.match;
     bd.positionEdit = m_c.positionEdit;
     bd.branchEdit = m_c.branchEdit;
     bd.turnPolicy = m_c.humanTurnPolicy.get();
@@ -438,6 +437,8 @@ void MainWindowComposer::createSessions()
     gd.nyugyoku = m_c.nyugyokuHandler;
     gd.josekiBook = m_c.josekiBook;
     m_c.gameSession = new GameSession(gd, &m_window);
+    // 盤で指した手は、対局中の窓口（ローカル対局・通信対局）へ渡す
+    m_c.boardMoves->setActiveChannel(std::bind(&GameSession::activeChannel, m_c.gameSession));
     // 司令塔（ローカル対局・通信対局）は棋譜の受け手（GameSession）より先に作るので、ここで渡す
     m_c.match->setRecordSink(m_c.gameSession);
     m_c.csaGame->setRecordSink(m_c.gameSession);

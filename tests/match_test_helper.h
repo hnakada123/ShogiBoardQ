@@ -105,15 +105,11 @@ struct MatchHarness {
         start(opt);
     }
 
-    /// 人間の手を盤に指して司令塔に渡す（指せなければ false）
+    /// 人間の手を司令塔に指させる（盤で選んだ手と同じ。指せなければ false）
     bool playHuman(const QString& usi)
     {
         const auto move = UsiMove::parse(usi);
-        if (!move) return false;
-        const std::optional<RecordEntry> played = gc.applyMove(*move, mc->lastMoveDestination());
-        if (!played) return false;
-        mc->onHumanMove(*played);
-        return true;
+        return move && mc->playHumanMove(*move);
     }
 
     /// 対局情報の対局者の見出しを、駒落ちの下手・上手か平手の先手・後手にする

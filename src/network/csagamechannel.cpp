@@ -11,6 +11,11 @@ CsaGameChannel::CsaGameChannel(CsaGameCoordinator* coordinator)
     Q_ASSERT(m_coordinator);
 }
 
+GameChannel::MoveResult CsaGameChannel::playMove(const UsiMove& move)
+{
+    return m_coordinator->sendHumanMove(move) ? MoveResult::Sent : MoveResult::Rejected;
+}
+
 void CsaGameChannel::resign()
 {
     m_coordinator->onResign();

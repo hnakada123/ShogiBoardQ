@@ -133,11 +133,7 @@ struct Harness : QObject {
     bool play(const QString& usi)
     {
         const auto move = UsiMove::parse(usi);
-        if (!move) return false;
-        const std::optional<RecordEntry> played = gc.applyMove(*move, match->lastMoveDestination());
-        if (!played) return false;
-        match->onHumanMove(*played);
-        return true;
+        return move && match->playHumanMove(*move);
     }
 
     bool undo() { return match->undoTwoPlies(); }

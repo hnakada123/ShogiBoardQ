@@ -218,9 +218,11 @@ signals:
     /// MatchCoordinator::engineMovePlayed と同じ形）
     void engineMovePlayed(Turn side, int ply, const UsiScore& score);
 
+public:
+    /// 人間が盤で選んだ手をサーバーへ送る（盤は確認を受けてから動かす。合法手かはここで確かめる）。送ったら true
+    bool sendHumanMove(const UsiMove& move);
+
 public slots:
-    /// 人間が盤で選んだ手をサーバーへ送る（盤は確認を受けてから動かす）
-    void onHumanMove(const UsiMove& move);
     void onResign();
 
 private slots:
