@@ -30,6 +30,7 @@ QString uiStateName(AppActivityState::Activity state)
     case AppActivityState::Activity::DuringTsumeSearch: return QStringLiteral("tsume_search");
     case AppActivityState::Activity::DuringConsideration: return QStringLiteral("consideration");
     case AppActivityState::Activity::DuringPositionEdit: return QStringLiteral("position_edit");
+    case AppActivityState::Activity::DuringCsaConnection: return QStringLiteral("csa_connected");
     }
     return QStringLiteral("unknown");
 }
@@ -44,7 +45,8 @@ QString playModeName(const AppActivityState& state, const MatchPlayers& players,
     case Activity::DuringAnalysis: return QStringLiteral("analysis");
     case Activity::DuringConsideration: return QStringLiteral("consideration");
     case Activity::DuringTsumeSearch: return QStringLiteral("tsume_search");
-    case Activity::DuringCsaGame: return QStringLiteral("csa_network");
+    case Activity::DuringCsaGame:
+    case Activity::DuringCsaConnection: return QStringLiteral("csa_network");
     case Activity::DuringGame: break;
     }
     if (players.humanVsHuman()) return QStringLiteral("human_vs_human");

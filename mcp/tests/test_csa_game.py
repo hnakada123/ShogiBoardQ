@@ -133,11 +133,12 @@ class CsaUI:
             dialog = await self.dialog("PromoteDialog")
             await self.call("click_dialog_button", target=dialog, text="成る" if usi.endswith("+") else "成らない")
 
-    async def dismiss_end(self):
+    async def dismiss_end(self, **expected):
+        """Close the result dialog. One game returns to idle; more games stay connected (`ui_state="csa_connected"`)."""
         dialog = await self.dialog("QMessageBox")
         data = await self.call("get_widget_text", target=dialog)
         await self.call("close_dialog", target=dialog)
-        await self.wait_state(ui_state="idle", play_mode="not_started")
+        await self.wait_state(**(expected or {"ui_state": "idle", "play_mode": "not_started"}))
         return str(data)
 
 
@@ -1083,15 +1084,20 @@ async def test_games_continue_on_the_same_connection(csa_env, tmp_path):
             await ui.call("trigger_action", name="actionResign")
             await peer.until("%TORYO")
             await peer.send("%TORYO,T1\n#RESIGN\n#LOSE")
-            assert "投了" in await ui.dismiss_end()
+            # Between games the client stays connected: the record can be browsed and saved, but nothing new starts.
+            assert "投了" in await ui.dismiss_end(ui_state="csa_connected", play_mode="csa_network")
             await ui.call("save_kifu", path=str(tmp_path / "second.kif"), overwrite=True)
-            # Starting another connection logs out of the current one first.
-            await ui.connect(server.port)
+            actions = {a["name"]: a for a in (await ui.call("list_actions"))["actions"]}
+            assert not actions["actionCSA"]["enabled"] and not actions["actionOpenKifuFile"]["enabled"]
+            # "Abort" between games logs out (LOGOUT precedes the disconnect).
+            await ui.call("trigger_action", name="actionBreakOffGame")
             await peer.until("LOGOUT")
             await peer.send("LOGOUT:completed")
             assert await peer_closed(peer)
+            await ui.wait_state(ui_state="idle", play_mode="not_started")
         finally:
             await peer.close()
+        await ui.connect(server.port)
         peer = await server.login()
         try:
             await peer.send(fake_summary(game_id="third"))

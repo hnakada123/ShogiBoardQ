@@ -262,8 +262,14 @@ private:
         Failed      ///< 続けられない失敗（ログイン失敗・不正な局面・エンジンの失敗）
     };
     void setPhase(Phase phase);
-    /// gameState() が前に知らせた値から変わっていれば gameStateChanged を出す
+    /// gameState() が前に知らせた値から変わっていれば gameStateChanged を出す（動作状態も合わせる）
     void publishGameState();
+    /// サーバーとの通信対局を続けているか（接続してから、ログアウト・失敗・予定の対局数を終えるまで。
+    /// 終局の後にサーバーが切っても、再接続を待つ間は続ける）
+    bool sessionContinues() const;
+    /// 動作状態を接続に合わせる。対局していない間は DuringCsaConnection、続けなければ手放す
+    /// （対局の間の DuringCsaGame は、棋譜を作ってから onGameStarted が始める）
+    void updateActivity();
     /// 開始局面と再開局面の手を盤に並べる。手を指せなければ失敗にして false
     bool setupInitialPosition();
     /// この対局の新しい棋譜（サーバーの開始局面・対局者名・持ち時間と、接続ダイアログの自動保存）

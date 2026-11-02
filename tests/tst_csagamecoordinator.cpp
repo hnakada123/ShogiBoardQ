@@ -21,6 +21,7 @@
 #include "usicommlogmodel.h"
 #include "usilogpanel.h"
 #include "humanturnpolicy.h"
+#include "uistatepolicymanager.h"
 #include "csagamechannel.h"
 #include "csagameprogress.h"
 #include "appactivitystate.h"
@@ -114,6 +115,8 @@ struct Harness {
     RecordedSink sink;
     CsaGameCoordinator coordinator{CsaGameCoordinator::Deps{&gc, &clock, &engines, &activity}};
     FakeCsaServer server;
+    int gameLimit = 0;   ///< 対局数（0 は制限なし）
+    bool reconnect = false;   ///< 終局の後にサーバーが切ったら接続し直す
 
     Harness()
     {
@@ -140,7 +143,8 @@ struct Harness {
             options.engineName = QStringLiteral("CSA test engine");
         }
         options.keepAliveEnabled = false;
-        options.gameLimit = 0;  // 終局後に LOGOUT せず、結果表示もモーダルにしない
+        options.gameLimit = gameLimit;  // 既定は 0: 終局後に LOGOUT せず、結果表示もモーダルにしない
+        options.reconnectAfterGame = reconnect;
         coordinator.startGame(options);
         if (!server.accept()) return false;
         if (!server.waitForLine(QStringLiteral("LOGIN user pass"))) return false;
@@ -200,8 +204,9 @@ public:
     }
     void observeEnded()
     {
+        // 対局数の制限なし（次の対局を待つ）なので、対局の間の状態を終えて通信対局の接続中に戻っている
         m_endedAfterFinish = m_harness && m_harness->sink.finishes.size() == 1
-            && m_harness->activity.is(AppActivityState::Activity::Idle);
+            && m_harness->activity.is(AppActivityState::Activity::DuringCsaConnection);
     }
 
 private slots:
@@ -683,7 +688,7 @@ private slots:
     }
 
     /// 棋譜を作った後で通信対局中にし（開始の知らせはその後）、終局では棋譜を確定して自動保存を頼んでから
-    /// 待機に戻す（終局の知らせはその後）。ローカル対局の司令塔と同じ順
+    /// 対局の間の状態を終える（終局の知らせはその後）。ローカル対局の司令塔と同じ順
     void activityFollowsRecordAtStartAndEnd()
     {
         Harness h;
@@ -702,8 +707,82 @@ private slots:
         h.server.send("#WIN");
         QTRY_VERIFY(m_endedAfterFinish);
         QCOMPARE(h.sink.finishes, QList<bool>({true}));
-        QCOMPARE(h.activity.activity(), AppActivityState::Activity::Idle);
+        QCOMPARE(h.activity.activity(), AppActivityState::Activity::DuringCsaConnection);
         m_harness = nullptr;
+    }
+
+    /// 連続の通信対局の局と局の間は「通信対局の接続中」で、棋譜を見る・保存するだけ（開く・対局開始・局面編集・
+    /// 棋譜解析・検討・棋譜の編集はできない）。「中断」でログアウトして待機に戻る（監査 2026-11-01 F13）
+    void betweenGamesIsConnectedAndBreakOffLogsOut()
+    {
+        Harness h;
+        QVERIFY(h.start("-"));
+        h.server.send("%TORYO,T1");
+        h.server.send("#RESIGN");
+        h.server.send("#WIN");
+        QTRY_COMPARE(h.coordinator.gameState(), CsaGameCoordinator::GameState::GameOver);
+        QCOMPARE(h.activity.activity(), AppActivityState::Activity::DuringCsaConnection);
+
+        using P = UiStatePolicyManager;
+        const auto policy = [](P::UiElement element) {
+            return P::tablePolicy(AppActivityState::Activity::DuringCsaConnection, element);
+        };
+        for (const P::UiElement element : {P::UiElement::FileSave, P::UiElement::FileSaveAs, P::UiElement::EditCopyKifu,
+                                           P::UiElement::WidgetNavigation, P::UiElement::FileNew,
+                                           P::UiElement::GameBreakOff})
+            QCOMPARE(policy(element), P::Policy::Enabled);
+        for (const P::UiElement element : {P::UiElement::FileOpen, P::UiElement::EditPasteKifu, P::UiElement::GameStart,
+                                           P::UiElement::GameCsa, P::UiElement::GameAnalyzeKifu,
+                                           P::UiElement::GameTsumeSearch, P::UiElement::WidgetConsiderationStart,
+                                           P::UiElement::SettingsEngine, P::UiElement::GameResign})
+            QCOMPARE(policy(element), P::Policy::Disabled);
+        QCOMPARE(policy(P::UiElement::EditStartPosition), P::Policy::Hidden);
+        HumanTurnPolicy::Deps turnDeps;
+        turnDeps.activity = &h.activity;
+        turnDeps.csaGame = &h.coordinator;
+        const HumanTurnPolicy turn(turnDeps);
+        QVERIFY(turn.canBrowseRecord());
+        QVERIFY(!turn.canEditRecord());
+        QCOMPARE(turn.boardInput(), HumanTurnPolicy::BoardInput::None);
+
+        // 「中断」は局と局の間ならログアウトする
+        CsaGameChannel channel(&h.coordinator);
+        channel.breakOff();
+        QCOMPARE(h.activity.activity(), AppActivityState::Activity::Idle);
+        QCOMPARE(h.coordinator.gameState(), CsaGameCoordinator::GameState::Idle);
+    }
+
+    /// 終局の後にサーバーが切ったとき（shogi-server）は、接続し直すまで通信対局の接続中のまま
+    void serverDisconnectBetweenGamesKeepsConnectedUntilReconnect()
+    {
+        Harness h;
+        h.reconnect = true;
+        QVERIFY(h.start("-"));
+        h.server.send("%TORYO,T1");
+        h.server.send("#RESIGN");
+        h.server.send("#WIN");
+        QTRY_COMPARE(h.sink.finishes.size(), 1);
+        h.server.peer->disconnectFromHost();
+        QTRY_COMPARE(h.coordinator.gameState(), CsaGameCoordinator::GameState::GameOver);
+        QTest::qWait(50);
+        QCOMPARE(h.activity.activity(), AppActivityState::Activity::DuringCsaConnection);
+        // 再接続の待ちでやめても待機に戻る
+        h.coordinator.stopGame();
+        QCOMPARE(h.activity.activity(), AppActivityState::Activity::Idle);
+    }
+
+    /// 予定の対局数を終えたら、終局で待機に戻る
+    void lastGameEndReturnsToIdle()
+    {
+        Harness h;
+        h.gameLimit = 1;
+        QVERIFY(h.start("-"));
+        QCOMPARE(h.activity.activity(), AppActivityState::Activity::DuringCsaGame);
+        h.server.send("%TORYO,T1");
+        h.server.send("#RESIGN");
+        h.server.send("#WIN");
+        QTRY_COMPARE(h.sink.finishes.size(), 1);
+        QCOMPARE(h.activity.activity(), AppActivityState::Activity::Idle);
     }
 
     /// 対局の途中で止めても待機に戻る

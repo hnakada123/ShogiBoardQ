@@ -173,6 +173,7 @@
 | 2026-11-03 | 時計の残りから USI の btime/wtime への換算を1つにした（監査 2026-11-01 F14）のに合わせて §7.4・§12.3 を更新（`UsiGoTimeCalculator::fromClock()` と `UsiClockSide` を足し、`ClockTimeSource::snapshot()` と `CsaGameProgress::engineTiming(pondering, elapsedThisTurnMs, marginMs)` が使う。通信対局の先読みの go ponder は、自分の残りから今の手の消費を引き、加算は引かない（以前は今の手の消費を引かず加算を引いていた）。手番側の経過時間は先読みでないときも引く） |
 | 2026-11-03 | 通信対局の開始でその対局の通信ログとエンジン名を消さないようにした（監査 2026-11-01 F12）のに合わせて §4.5・§6.5・§10.2 を更新（文書の置き換えで呼ぶ `EngineDisplayPresenter::clearAll()` は通信ログを消さず、結んでいるエンジンの名前も残す（`UsiCommLogModel::clearStatus()`）。通信ログは対局を始めるとき（`GameSession::gameStarting`・`CsaGameSession::gameStarting`）に `clearEngineLogs()` で消す。通信対局の評価値グラフの自分の系列名は `CsaGameCoordinator::matchEngineStarted` → `showMatchEngine()`。新規・棋譜の読み込みでは通信ログを消さなくなった） |
 | 2026-11-03 | 盤の人間の手をローカル対局と通信対局で同じ入口にした（監査 2026-11-01 T3 の5つ目）のに合わせて §3.4・§3.5・§6.2・§6.6・§6.7・§6.9・§10.3・§10.4・§10.6・§12.3・§14.6・§15.2・§15.5 を更新（`GameChannel::playMove(UsiMove)`（`MoveResult`: `Rejected`・`Played`・`Sent`）を足し、`BoardMoveController` は対局中の窓口（`setActiveChannel()` で受け取る `GameSession::activeChannel()`）へ渡すだけにした。ローカル対局は `MatchCoordinator::playHumanMove(UsiMove)` がエンジンの手と同じく合法手を確かめて盤に指し、通信対局は `CsaGameCoordinator::sendHumanMove()`（旧 `onHumanMove` スロット）が合法手を確かめてサーバーへ送る。`BoardInput::CsaServer` は `Game` にまとめ、`BoardMoveController::csaMoveRequested`・`MatchCoordinator::onHumanMove(RecordEntry)` を消し、`lastMoveDestination()` は非公開にした） |
+| 2026-11-03 | 通信対局の接続中を動作状態にした（監査 2026-11-01 F13）のに合わせて §3.4・§12.3・§14.2 を更新（`AppActivityState::Activity::DuringCsaConnection` を足し、`CsaGameCoordinator` が接続してから通信対局を続ける間（`sessionContinues()`）持つ。対局の間は `DuringCsaGame`。局と局の間は棋譜を見る・保存・コピーだけで、開く・貼り付け・対局開始・局面編集・棋譜解析・詰み探索・詰将棋生成・検討・エンジン設定・棋譜の編集はできない。「新規」と「中断」（`CsaGameChannel::breakOff()` → `stopGame()`）でログアウトする。自動化 API の `ui_state` は `csa_connected`、`play_mode` は `csa_network`） |
 
 <!-- chapter-0-end -->
 
@@ -1412,10 +1413,11 @@ graph LR
 | `DuringAnalysis` | 棋譜解析中 |
 | `DuringConsideration` | 検討中 |
 | `DuringTsumeSearch` | 詰み探索中 |
-| `DuringCsaGame` | CSA通信対局中 |
+| `DuringCsaGame` | CSA通信対局中（対局している間） |
 | `DuringPositionEdit` | 局面編集中 |
+| `DuringCsaConnection` | CSA通信対局の接続中で、対局していない間（ログインして最初の対局を待つ間・連続対局の局と局の間）。棋譜を見る・保存するだけ |
 
-`AppActivityState` は `QObject` で、値が変わると `changed()` を出す。値を変えられるのは `begin(動作, 持ち主)` が返す move-only の `ActivityLease` を持つ部品だけで、対局の司令塔（`MatchCoordinator` が `DuringGame`）、検討・詰み探索のセッション（`AnalysisSession`）、棋譜解析（`KifuAnalysisController` が `DuringAnalysis`）、通信対局（`CsaGameSession` が `DuringCsaGame`）、局面編集（`PositionEditSession` が `DuringPositionEdit`）である。終局・中止でリースを手放すと `Idle` に戻る。別の部品が別の動作を始めた後は、前の持ち主がリースを手放しても状態は変わらず、前の持ち主には `revoked(owner)` が次のイベントループで届く（検討・詰み探索・棋譜解析は止め、局面編集は編集した局面で編集を終える）。`UiStatePolicyManager` は `changed()` を受けて、メニュー・ボタンの有効/無効を更新する。
+`AppActivityState` は `QObject` で、値が変わると `changed()` を出す。値を変えられるのは `begin(動作, 持ち主)` が返す move-only の `ActivityLease` を持つ部品だけで、対局の司令塔（`MatchCoordinator` が `DuringGame`）、検討・詰み探索のセッション（`AnalysisSession`）、棋譜解析（`KifuAnalysisController` が `DuringAnalysis`）、通信対局（`CsaGameCoordinator` が、接続してからログアウト・失敗・予定の対局数を終えるまで `DuringCsaConnection`、対局の間は `DuringCsaGame`。同じ持ち主がリースを取り直すので、局と局の間に待機中を通らない）、局面編集（`PositionEditSession` が `DuringPositionEdit`）である。終局・中止でリースを手放すと `Idle` に戻る。別の部品が別の動作を始めた後は、前の持ち主がリースを手放しても状態は変わらず、前の持ち主には `revoked(owner)` が次のイベントループで届く（検討・詰み探索・棋譜解析は止め、局面編集は編集した局面で編集を終える）。`UiStatePolicyManager` は `changed()` を受けて、メニュー・ボタンの有効/無効を更新する。
 
 #### 対局者（MatchPlayers）
 
@@ -1449,6 +1451,7 @@ graph LR
 | 状態 | 移ってよいか（`canBrowseRecord`） | 変えてよいか（`canEditRecord`。分岐の削除・本譜にする・並べ替え・定跡の展開） |
 |------|------|------|
 | `Idle`・`DuringConsideration`・`DuringTsumeSearch` | 可 | 可（対局の棋譜を書いていなければ。検討は表示中の局面が変われば送り直す） |
+| `DuringCsaConnection` | 可 | 不可（棋譜は次の対局で置き換わる） |
 | `DuringGame`・`DuringCsaGame`・`DuringAnalysis`・`DuringPositionEdit` | 不可 | 不可 |
 
 移ってよい状態は `UiStatePolicyManager` の表の `WidgetNavigation` の行（`tablePolicy()`）から求め、表と別に持たない。盤で指した手を記録するのは待機中だけ（上の表）。
@@ -1476,6 +1479,7 @@ graph LR
 |----------|-----------------|----------------|---------|
 | `Idle` | 有効 | 有効 | 有効 |
 | `DuringGame`・`DuringCsaGame` | **無効** | **無効** | **無効** |
+| `DuringCsaConnection` | 有効（見るだけ。保存・コピーもできる） | **無効** | **無効**（「新規」と「中断」は通信対局をやめる（ログアウト）ので押せる。検討・棋譜解析・エンジン設定は次の対局でエンジンを使うので無効） |
 | `DuringConsideration`・`DuringTsumeSearch` | 有効（検討は局面移動で再解析） | **無効** | **無効** |
 | `DuringAnalysis` | **無効**（自動進行中） | **無効** | **無効** |
 
@@ -1484,7 +1488,9 @@ graph LR
 **4. 動作状態の遷移**
 
 ```
-Idle ──→ DuringGame / DuringCsaGame ──→ 終局・中断 ──→ Idle
+Idle ──→ DuringGame ──→ 終局・中断 ──→ Idle
+Idle ──→ DuringCsaConnection（接続・ログイン）──→ DuringCsaGame ──→ 終局 ──→ DuringCsaConnection（次の対局を待つ）…
+      └─ ログアウト・失敗・予定の対局数を終える・「中断」「新規」──→ Idle
 Idle ──→ DuringConsideration / DuringTsumeSearch / DuringAnalysis ──→ 終了 ──→ Idle
 Idle ──→ DuringPositionEdit ──→ 編集終了 ──→ Idle
 ```
@@ -6845,7 +6851,7 @@ CsaClientとゲームシステム（GameBoard, ShogiClock等）の橋渡し役�
 - CSA形式 ↔ USI形式の指し手変換（`CsaMoveConverter::toUsi()` / `toCsa()`）
 - 盤面への指し手適用（`playCsaMove()` が `toUsi()` で得た指し手を `GameBoard::applyRecordedMove()` で指す。確定後は `GameBoard::notifyMoveCommitted()` でローカル対局と同じ経路の `moveCommitted` を出す）
 - 対局の手順を `CsaGameProgress::record`（`RecordLine`）1つに積み、確定した棋譜行を棋譜の受け手（`MatchRecordSink`。ローカル対局と同じ `GameSession`）へ書く。対局の開始では `beginRecord(recordStart())`（サーバーの開始局面・対局者名・持ち時間と、接続ダイアログの自動保存）で新しい棋譜を作らせてから再開局面の既存手順を書き、終局では終局の行の後で `finishRecord(true)` を呼ぶ
-- 動作状態。棋譜を作った後で `DuringCsaGame` のリースを取り（`MatchCoordinator::start()` と同じ形）、終局（棋譜の確定の後）と `stopGame()` で手放す
+- 動作状態。接続してから通信対局を続ける間（`sessionContinues()`: ログアウト・失敗・予定の対局数を終えるまで。終局の後にサーバーが切っても再接続を待つ間は続ける）は `DuringCsaConnection` のリースを持ち（`updateActivity()`。`publishGameState()` のたびに合わせる）、対局の間は棋譜を作った後で `DuringCsaGame` に取り直す（`MatchCoordinator::start()` と同じ形）。終局（棋譜の確定の後）で接続中に戻すか手放し、`stopGame()` で手放す。局と局の間の「中断」（`CsaGameChannel::breakOff()`）は `stopGame()` でログアウトする
 - GUI側の時計制御（サーバーの権威的な消費時間でGUI時計を補正。表示用の `ShogiClock` はサーバーの残り時間の写しで、計算には使わない）
 - USIエンジンの起動・思考管理（エンジン vs サーバー対局時。ローカル対局と同じ `MatchEngineSeat`。エンジンはローカルの対局・検討と同じ `EngineSlots` の枠 E1 に置く）
 - 自分のエンジンの時間の出どころ（`MatchTimeSource` を継承する。`snapshot()` は `CsaGameProgress::engineTiming(pondering, 手番側の経過時間, margin)` のサーバーの残り時間・決まり・遅延・余裕から（自分の手をサーバーが確認するまで残り時間は手番の初めのままなので、手番側の経過時間を引く。先読みでは今の手の消費になる）、`elapsedThisTurn()` は手番（`CsaGameProgress::sideToMove()`。手順の最後の手の相手）が変わるたびに始める自分の `QElapsedTimer` から返す。投了の消費時間もこの値で、表示用の時計を読まない）
@@ -7641,7 +7647,7 @@ MainWindow のメンバは `ui`・`m_composer`・`m_skipCloseConfirmation`（自
 
 #### AppActivityState — 動作状態
 
-`AppActivityState`（`src/common/appactivitystate.h`）は、部品どうしで共有する動作状態（`Idle`・`DuringGame`・`DuringAnalysis`・`DuringCsaGame`・`DuringTsumeSearch`・`DuringConsideration`・`DuringPositionEdit`）の唯一の置き場である。合成ルートが持ち、部品は組み立て時に `AppActivityState*` を受け取って使うときに読む。部品のメンバに状態のコピーを持たない。
+`AppActivityState`（`src/common/appactivitystate.h`）は、部品どうしで共有する動作状態（`Idle`・`DuringGame`・`DuringAnalysis`・`DuringCsaGame`・`DuringTsumeSearch`・`DuringConsideration`・`DuringPositionEdit`・`DuringCsaConnection`）の唯一の置き場である。合成ルートが持ち、部品は組み立て時に `AppActivityState*` を受け取って使うときに読む。部品のメンバに状態のコピーを持たない。
 
 状態を変えられるのは、`begin(動作, 持ち主)` が返す move-only の `ActivityLease` を持つ部品だけである。リースを手放す（`reset()`・破棄）と `Idle` に戻るが、別の部品が別の動作を始めた後は何もしない。取り上げられた前の持ち主には `revoked(owner)` が次のイベントループで届く（エンジンの枠の `EngineLease`・`engineRevoked` と同じ形）。値が変わると `changed()` を出す。
 

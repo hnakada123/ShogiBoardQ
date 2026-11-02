@@ -139,7 +139,7 @@ cmake --build build --target translations
 - **network/**: CSA通信対局
   - `csaclient.cpp/.h` - CSA protocol client（接続・ログイン・対局中の行の処理と送信・キープアライブ）。対局条件は値 `CsaGameSummary`（`csagamesummary`。持時間は `CsaGameSummary::Time`）で知らせ、Game_Summary の行は読み取り器 `CsaGameSummaryReader`（`csagamesummaryreader`。1行ずつ `read()` に渡し、読み終え・上限超えを状態で返す。ソケットを持たないので単体で試せる）が読む
   - `csalogin.cpp/.h` - ログインの規則 `CsaLogin`（ID・パスワード（CSA サーバープロトコル 3.1）とゲーム名（shogi-server）の検査 `check()` が問題の種類 `Issue` を返し、通信対局のダイアログは文に直すだけ。LOGIN に送るパスワードにゲーム名と手番の希望を載せる `passwordField()`）
-  - `csagamecoordinator.cpp/.h` - CSA game coordination（手順と持ち時間と手番は `CsaGameProgress`。対局の状態 `gameState()` は持たずに、接続の段階を `CsaClient::ConnectionState` から、対局中・終局後・失敗を司令塔の段階 `Phase` から求める）。棋譜はローカル対局と同じ受け手（`MatchRecordSink`）に書き、動作状態 `DuringCsaGame` も自分で持つ（棋譜を作ってから対局中にし、終局では棋譜を確定してから待機に戻す。`MatchCoordinator` と同じ順）
+  - `csagamecoordinator.cpp/.h` - CSA game coordination（手順と持ち時間と手番は `CsaGameProgress`。対局の状態 `gameState()` は持たずに、接続の段階を `CsaClient::ConnectionState` から、対局中・終局後・失敗を司令塔の段階 `Phase` から求める）。棋譜はローカル対局と同じ受け手（`MatchRecordSink`）に書き、動作状態も自分で持つ（接続してから通信対局を続ける間（`sessionContinues()`。ログアウト・失敗・予定の対局数を終えるまで）は `DuringCsaConnection` で、局と局の間は棋譜を見る・保存するだけ。対局の間は、棋譜を作ってから `DuringCsaGame` にし、終局では棋譜を確定してから接続中に戻すか手放す。`MatchCoordinator` と同じ順。局と局の間の「中断」（`CsaGameChannel::breakOff`）と「新規」はログアウトする）
   - `csagamechannel.cpp/.h` - 通信対局の窓口 `CsaGameChannel`（`GameChannel` の実装。操作はサーバーへ送り、入玉宣言の成否はサーバーが判定する）
 
 - **style/**: ウィジェットの書体と見た目（QWidget に依存する。analysis・network の上、models の下の層。`engine`〜`network`・`models` を参照しない）

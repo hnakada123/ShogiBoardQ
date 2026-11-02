@@ -23,7 +23,9 @@ void CsaGameChannel::resign()
 
 void CsaGameChannel::breakOff()
 {
-    m_coordinator->requestChudan();
+    // 対局中はサーバーに中断を求め、局と局の間（次の対局を待つ間）は通信対局をやめる（ログアウト）
+    if (m_coordinator->gameState() == CsaGameCoordinator::GameState::InGame) m_coordinator->requestChudan();
+    else m_coordinator->stopGame();
 }
 
 void CsaGameChannel::moveNow()

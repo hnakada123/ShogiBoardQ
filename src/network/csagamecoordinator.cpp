@@ -137,8 +137,40 @@ void CsaGameCoordinator::setPhase(Phase phase)
     publishGameState();
 }
 
+bool CsaGameCoordinator::sessionContinues() const
+{
+    switch (m_phase) {
+    case Phase::Off:
+    case Phase::Failed:
+        return false;
+    case Phase::Playing:
+        return true;
+    case Phase::Active:
+        // 接続・ログイン・対局条件を待つ間。接続できなかった・切れたときは続けない（gameState は Error）
+        return m_client->connectionState() != CsaClient::ConnectionState::Disconnected;
+    case Phase::Ended:
+        // 次の対局を待つ（接続したまま、または再接続の待ち）
+        return moreGamesWanted() && (m_client->connectionState() != CsaClient::ConnectionState::Disconnected
+                                     || m_reconnectTimer->isActive());
+    }
+    return false;
+}
+
+void CsaGameCoordinator::updateActivity()
+{
+    if (!m_activity || m_phase == Phase::Playing) return;
+    if (!sessionContinues()) {
+        m_activityLease.reset();
+        return;
+    }
+    // 局と局の間も通信対局を続けているので、待機中に戻さない（棋譜の置き換え・開始系の操作を止める）
+    if (!m_activityLease.isCurrent() || !m_activity->is(AppActivityState::Activity::DuringCsaConnection))
+        m_activityLease = m_activity->begin(AppActivityState::Activity::DuringCsaConnection, this);
+}
+
 void CsaGameCoordinator::publishGameState()
 {
+    updateActivity();
     const GameState state = gameState();
     if (state == m_publishedState) return;
     m_publishedState = state;
@@ -408,9 +440,10 @@ void CsaGameCoordinator::onClientGameEnded(CsaClient::GameResult result, CsaClie
     // moreGamesWanted() で続行の有無を見られ、結果のダイアログが LOGOUT を遅らせない
     ++m_completedGames;
     handleGameCountAfterEnd();
-    // 棋譜を確定して自動保存し（次の対局が始まる前に書き出す）、待機に戻す
+    // 棋譜を確定して自動保存し（次の対局が始まる前に書き出す）、対局の間の動作状態を終える。
+    // 次の対局を待つなら通信対局の接続中に、続けなければ待機に戻す
     if (m_sink) m_sink->finishRecord(/*autoSave=*/true);
-    m_activityLease.reset();
+    updateActivity();
     emit gameEnded(result, cause, actualConsumedTimeMs);
 }
 

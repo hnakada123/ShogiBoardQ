@@ -47,8 +47,10 @@ bool HumanTurnPolicy::canBrowseRecord() const
 
 bool HumanTurnPolicy::canEditRecord() const
 {
-    // 対局の棋譜を書いている間は、ツリーに手を足している最中なので変えない
-    return canBrowseRecord() && !(m_deps.liveSession && m_deps.liveSession->isActive());
+    // 対局の棋譜を書いている間は、ツリーに手を足している最中なので変えない。通信対局の局と局の間は見るだけ
+    // （棋譜は次の対局で置き換わる）
+    return canBrowseRecord() && !(m_deps.liveSession && m_deps.liveSession->isActive())
+        && !m_deps.activity->is(AppActivityState::Activity::DuringCsaConnection);
 }
 
 bool HumanTurnPolicy::isHumanTurnNow() const
