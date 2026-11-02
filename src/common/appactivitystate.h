@@ -51,8 +51,10 @@ class AppActivityState : public QObject
 {
     Q_OBJECT
 public:
+    /// 動作状態。DuringCsaConnection は通信対局のサーバーに接続している間のうち、対局していない間
+    /// （ログインして最初の対局を待つ間・連続対局の局と局の間。対局の間は DuringCsaGame）
     enum class Activity { Idle, DuringGame, DuringAnalysis, DuringCsaGame,
-                          DuringTsumeSearch, DuringConsideration, DuringPositionEdit };
+                          DuringTsumeSearch, DuringConsideration, DuringPositionEdit, DuringCsaConnection };
     Q_ENUM(Activity)
 
     Activity activity() const { return m_activity; }

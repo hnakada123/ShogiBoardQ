@@ -41,9 +41,12 @@ using E = UiStatePolicyManager::UiElement;
 using StateSet = unsigned;
 constexpr StateSet in(S state) { return 1u << static_cast<unsigned>(state); }
 constexpr StateSet kAllStates = in(S::Idle) | in(S::DuringGame) | in(S::DuringAnalysis) | in(S::DuringCsaGame)
-                              | in(S::DuringTsumeSearch) | in(S::DuringConsideration) | in(S::DuringPositionEdit);
-/// 盤と棋譜を見るだけの状態（局面を変える操作はしないが、棋譜の閲覧・保存はできる）
-constexpr StateSet kBrowsing = in(S::Idle) | in(S::DuringTsumeSearch) | in(S::DuringConsideration);
+                              | in(S::DuringTsumeSearch) | in(S::DuringConsideration) | in(S::DuringPositionEdit)
+                              | in(S::DuringCsaConnection);
+/// 盤と棋譜を見るだけの状態（局面を変える操作はしないが、棋譜の閲覧・保存はできる）。通信対局の局と局の間も
+/// 見る・保存だけ（棋譜は次の対局で置き換わり、エンジンは次の対局で使う。HumanTurnPolicy::canEditRecord は変えない）
+constexpr StateSet kBrowsing = in(S::Idle) | in(S::DuringTsumeSearch) | in(S::DuringConsideration)
+                             | in(S::DuringCsaConnection);
 constexpr StateSet kPlaying = in(S::DuringGame) | in(S::DuringCsaGame);
 
 enum class Off { Disable, Hide };
@@ -58,7 +61,8 @@ struct Rule {
 // 並びは UiElement の宣言順（下の static_assert で確かめる）
 constexpr Rule kRules[] = {
     // --- ファイルメニュー ---
-    {E::FileNew,                in(S::Idle),  Off::Disable},  // 新規・開く: 局面を変えるので待機中だけ
+    // 新規・開く: 局面を変えるので待機中だけ。新規は通信対局の局と局の間も押せる（ログアウトしてから新しい棋譜にする）
+    {E::FileNew,                in(S::Idle) | in(S::DuringCsaConnection), Off::Disable},
     {E::FileOpen,               in(S::Idle),  Off::Disable},
     {E::FileSave,               kBrowsing,    Off::Disable},
     {E::FileSaveAs,             kBrowsing,    Off::Disable},
@@ -84,7 +88,7 @@ constexpr Rule kRules[] = {
     {E::GameResign,             kPlaying,     Off::Disable},  // ローカル対局は人間が参加するときだけ（effectivePolicy）
     {E::GameUndo,               in(S::DuringGame), Off::Disable},  // 同上
     {E::GameMakeImmediate,      kPlaying,     Off::Disable},
-    {E::GameBreakOff,           kPlaying,     Off::Disable},
+    {E::GameBreakOff,           kPlaying | in(S::DuringCsaConnection), Off::Disable},  // 局と局の間はログアウト
     {E::GameResume,             in(S::Idle),  Off::Disable},  // 中断した対局があるときだけ（effectivePolicy）
     {E::GameAnalyzeKifu,        in(S::Idle),  Off::Disable},
     {E::GameCancelAnalysis,     in(S::DuringAnalysis), Off::Disable},
@@ -101,7 +105,9 @@ constexpr Rule kRules[] = {
     {E::WidgetNavigation,       kBrowsing,    Off::Disable},
     {E::WidgetBranchTree,       kBrowsing,    Off::Disable},
     // 局面編集中は盤が編集中の局面なので検討しない（編集を終えてから始める）
-    {E::WidgetConsiderationStart, kAllStates & ~kPlaying & ~in(S::DuringPositionEdit), Off::Disable},
+    // 通信対局の局と局の間は、次の対局でエンジンを使うので検討しない
+    {E::WidgetConsiderationStart, kAllStates & ~kPlaying & ~in(S::DuringPositionEdit) & ~in(S::DuringCsaConnection),
+     Off::Disable},
 };
 
 constexpr bool rulesFollowDeclarationOrder()

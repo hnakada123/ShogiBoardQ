@@ -63,7 +63,10 @@ GameSession::~GameSession() = default;
 GameChannel* GameSession::activeChannel() const
 {
     const AppActivityState& activity = *m_deps.activity;
-    if (activity.is(AppActivityState::Activity::DuringCsaGame)) return m_csaChannel.get();
+    // 通信対局はサーバーに接続している間（局と局の間も。「中断」でやめられる）
+    if (activity.is(AppActivityState::Activity::DuringCsaGame)
+        || activity.is(AppActivityState::Activity::DuringCsaConnection))
+        return m_csaChannel.get();
     if (activity.is(AppActivityState::Activity::DuringGame)) return m_localChannel.get();
     return nullptr;
 }

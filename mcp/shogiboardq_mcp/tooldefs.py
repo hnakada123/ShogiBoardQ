@@ -412,8 +412,8 @@ PHASE2_TOOLS: list[types.Tool] = [
     _tool(
         "get_app_state",
         "Get app state",
-        "Return the state of the running ShogiBoardQ window: UI state (idle, game, analysis, CSA game, tsume "
-        "search, consideration, position edit), play mode, current ply and total plies, current kifu file, "
+        "Return the state of the running ShogiBoardQ window: UI state (idle, game, analysis, CSA game, CSA "
+        "connected between games, tsume search, consideration, position edit), play mode, current ply and total plies, current kifu file, "
         "unsaved changes, open dialogs and engine names. During CSA sessions csa reports connection/game "
         "state, side, player type and remaining/consumed milliseconds at the last server-confirmed turn. "
         "Starts ShogiBoardQ with --automation if "
