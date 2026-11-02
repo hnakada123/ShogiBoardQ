@@ -146,7 +146,7 @@
 | # | 食い違い | 原因 |
 |---|---|---|
 | F22 | 英語表記（Western）にして定跡手の追加・編集ダイアログを開くと、指し手と予想応手の一覧だけが日本語の KIF 表記になる。同じダイアログの「定跡手: …」のラベルと定跡ウィンドウの表は英語表記 | 一覧は `KifMoveText::format` を直接呼ぶ（`josekimoveinputwidget.cpp:36-38`）。表とラベルは `KifuPresentation::move` を使う（`josekitablemodel.cpp:29-33`、`josekieditcontroller.cpp:61`）（M3）<br>**状態: 済（7eea6c89）**。一覧も表・ラベルと同じ `KifuPresentation` で作る（局面を読み直さない `KifuPresentation::move(Position, UsiMove, Options)` を足した）。英語表記なら成と不成は `+`・`=` で見分ける。日本語表記の一覧には、表・棋譜欄と同じく「不成」を付けなくなった（成る手は「成」が付くので見分けられる） |
-| F23 | 棋譜解析の結果ドックで A+ を押すと、次に開く棋譜解析ダイアログも大きくなる。逆も同じ | 1つの宣言 `AnalysisSettings::kifuAnalysisFontSize`（`KifuAnalysis/fontSize`。`analysissettings.h:143-144`）を、ダイアログ（`kifuanalysisdialog.cpp:100`）と結果ドック（`analysisresultspanel.cpp:33-34`）が使う。宣言の説明はダイアログだけを書く。文字の大きさの宣言41個のうち、2つの部品が使うのはこれだけ |
+| F23 | 棋譜解析の結果ドックで A+ を押すと、次に開く棋譜解析ダイアログも大きくなる。逆も同じ | 1つの宣言 `AnalysisSettings::kifuAnalysisFontSize`（`KifuAnalysis/fontSize`。`analysissettings.h:143-144`）を、ダイアログ（`kifuanalysisdialog.cpp:100`）と結果ドック（`analysisresultspanel.cpp:33-34`）が使う。宣言の説明はダイアログだけを書く。文字の大きさの宣言41個のうち、2つの部品が使うのはこれだけ<br>**状態: 済（5be6fa99。今の値は結果ドックが引き継ぐと決めた）**。結果ドックは `kifuAnalysisResultsFontSize`（以前と同じキー `KifuAnalysis/fontSize`。既定 10）、ダイアログは新しい `kifuAnalysisDialogFontSize`（`KifuAnalysis/dialogFontSize`。未保存ならダイアログの元の大きさ）にした。キーを変えないので引き継ぎの処理は要らない |
 | F24 | 詰将棋を解く画面で判定時間を変えても、一覧に戻ると捨てられる。次に問題を開くと一覧の値に戻る。解く画面が保存する `TsumePlay/timeout` は使われない | 解く画面はコンストラクタで保存した値を入れる（`tsumeplaydialog.cpp:47`）が、一覧が開く前に必ず `setProblem(..., 一覧の値)` で上書きする（`tsumecollectiondialog.cpp:447,470`、`tsumeplaydialog.cpp:180`）。閉じるときに保存する（`:65`）が、一覧はその値を読み戻さない |
 | F25 | 同じ局面集ファイルでも、局面集ビューアと詰将棋問題一覧で開き方が違う。<br>- 絞り込み: ビューアは `*.txt *.sfen` で `.usi` を出さない。問題一覧は `.usi` も出す<br>- 開けないとき: ビューアは理由を出さない。問題一覧は英語の `BoundedFile::describe` の文を日本語の文に混ぜる | 規則（`PositionCollectionFile`）は共有している。ファイルを読む処理は、ビューアがダイアログの中に持ち（`sfencollectiondialog.cpp:156-221`）、問題一覧は `TsumeCollectionSession::load`（`tsumecollectionsession.cpp:31-34`）にある（M2） |
 | F26 | アプリの既定の書体が 10pt でない環境（Windows 9pt、macOS 13pt）では、起動直後の思考ドックの表と情報欄の値が既定の書体の大きさになる。A+→A- と押すと、同じ「10」が本当の 10pt になる。情報欄の見出しだけは最初から 10pt | `thinkingpanel.cpp:91-92` が `if (m_fontSize.fontSize() != 10) applyFontSize();` としている。ほかのパネルは起動時に必ず大きさを付ける |
@@ -560,7 +560,7 @@
    - F1（局面に合う手か）: core に規則を1つ置く。→ 済（9260770f）
    - F3（終局の行の側）: recordentry の規則を一般にする。→ 済（a96fc436）
 2. **T2（棋譜を移ってよいか・変えてよいか）を次に直す。** F9 は対局中にエンジンの反則負けになりうる。規則は `HumanTurnPolicy` に2つの関数を足すだけで、入口の数は少ない。→ 済（ba6c80dd。検討中の分岐の編集は許す）
-3. **1.2 の小さな食い違いをまとめて直す。** F7・F11・F18・F19・F22〜F30 は、それぞれ1〜2ファイルで直せる。F23 の設定のキーを分けるときは、今の値を引き継ぐかを決める。
+3. **1.2 の小さな食い違いをまとめて直す。** F7・F11・F18・F19・F22〜F30 は、それぞれ1〜2ファイルで直せる。F23 の設定のキーを分けるときは、今の値を引き継ぐかを決める（→ 結果ドックが引き継ぐ。2026-11-02）。
 4. **T3（通信対局）は、終局の対応表（F15）→ btime の換算（F14）→ 表示の消去（F12）→ 人間の手の順に進める。** 接続中の動作状態（F13）は、仕様（局と局の間に何を許すか）を決めてから。M6（`CsaGameCoordinator` の分割）は T3 と一緒に進める。
 5. **T4・T5 は、MCP の `specs.json` の作り直しが要るものをまとめる。** 引数の範囲（F17・F18・F19）を変えたら、`python3 -m shogiboardq_mcp.specs build/shogiboardq-cli` で作り直す。U1（開始局面の検査）と F16（詰み探索の手番）は仕様を決めてから。
 6. **T6 と3章・4章は、いつでも進められる。** P1（views と widgets の相互 include の解消）は、CMake・CLAUDE.md・`tst_layer_dependencies` の表を同じコミットで直す。
