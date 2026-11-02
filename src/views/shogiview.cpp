@@ -272,12 +272,6 @@ void ShogiView::setEditExitButtonVisible(bool visible)
     m_chrome->setEditExitButtonVisible(visible);
 }
 
-void ShogiView::setNameFontScale(double scale)
-{
-    m_chrome->setNameFontScale(scale);
-    relayoutPieceBoxSideSelector();
-}
-
 // ============================================================
 // マウス・キーの入力
 // ============================================================

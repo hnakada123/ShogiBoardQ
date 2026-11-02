@@ -38,11 +38,12 @@ public:
 
     explicit BoardChromeWidget(QWidget* parent = nullptr);
 
+    /// 対局者名の大きさ（マスの高さに対する比）。本体の盤・読み筋盤・外観ダイアログの見本・CLI の盤面画像で共通
+    static constexpr double kNameFontScale = 0.30;
+
     // ──────────────── 配置 ────────────────
     /// 盤の位置に合わせてカードと「編集終了」ボタンを置き直す（盤が無ければカードを隠す）
     void setBoardGeometry(const std::optional<BoardGeometry>& geometry);
-    /// 対局者名の大きさ（マスの高さに対する比）
-    void setNameFontScale(double scale);
     /// 対局者のカード
     PlayerCard* card(Turn side) const { return m_cards[side == Turn::Black ? 0 : 1]; }
     /// 対局者カードの高さ（BoardGeometry::pieceBox に渡す。カードを置いていなければ 0）
@@ -88,7 +89,6 @@ private:
     std::array<QToolButton*, 2> m_pieceBoxButtons{};
 
     std::optional<BoardGeometry> m_geometry;    ///< 盤の位置（盤が無ければ空）
-    double m_nameFontScale = 0.36;
     int m_cardHeight = 0;   ///< 対局者カードの高さ（名前と時計の書体で決まる。カードを出していなければ 0）
     bool m_clockEnabled = true;
 

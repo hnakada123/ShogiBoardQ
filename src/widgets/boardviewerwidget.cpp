@@ -44,7 +44,6 @@ BoardViewerWidget::BoardViewerWidget(Features features, ButtonLabels labels, Sho
     const bool bare = !(features & (ZoomToolbar | Navigation | ScrollArea));
     if (bare) return;
 
-    m_view->setNameFontScale(0.30);  // GUI本体と同じ対局者名の大きさ
     m_view->setBoard(m_board);
     m_view->chrome()->setClockEnabled(false);
     // 拡大・縮小（ボタン・Ctrl+ホイール）で盤の大きさが変わったら、ウィンドウを盤に合わせる

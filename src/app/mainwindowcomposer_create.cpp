@@ -126,7 +126,6 @@ void MainWindowComposer::createBoard()
     m_c.gameBoard = new GameBoard(&m_window);
     m_c.gameBoard->newGame(m_c.branchTree->root()->sfen());
     m_c.shogiView = new ShogiView(&m_window);
-    m_c.shogiView->setNameFontScale(0.30);
     m_c.shogiView->setBoard(m_c.gameBoard->board());
 
     m_c.clock = new ShogiClock(&m_window);

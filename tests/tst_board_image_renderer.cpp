@@ -34,6 +34,10 @@
 
 #include "boardgeometry.h"
 #include "shogiview.h"
+#include "boardchromewidget.h"
+#include "boardviewerwidget.h"
+#include "elidelabel.h"
+#include "playercard.h"
 #include "shogiviewhighlighting.h"
 #include "appearancesettings.h"
 #include "boardappearancecatalog.h"
@@ -465,6 +469,34 @@ private slots:
             QCOMPARE(again.pixmap.toImage(), before);
             QCOMPARE(again.bounds, first.bounds);
         }
+    }
+
+    /// 対局者名は、本体の盤・読み筋盤（BoardViewerWidget）・外観ダイアログの見本・CLI の盤面画像（何も付けない
+    /// ShogiView）で、マスの高さに対して同じ大きさで描く（見本と画像だけ約2割大きかった）
+    void playerNamesUseOneSizeOnEveryBoard()
+    {
+        ShogiBoard model;
+        PositionEditRules::clear(model);
+        const auto nameSize = [](const ShogiView& view) {
+            return view.chrome()->card(Turn::Black)->nameLabel()->font().pixelSize();
+        };
+        const auto expected = [](const ShogiView& view) {
+            return qMax(8, qRound(view.fieldSize().height() * BoardChromeWidget::kNameFontScale * 0.8));
+        };
+        ShogiView bare;  // CLI の render-board と外観の見本と同じ、何も付けない盤
+        bare.configureFixedSizing(50);
+        bare.applyBoardAndRender(&model);
+        QCOMPARE(nameSize(bare), expected(bare));
+
+        BoardViewerWidget viewer(BoardViewerWidget::ZoomToolbar);  // 読み筋盤・局面集ビューアの盤
+        viewer.view()->setSquareSize(50);
+        QCOMPARE(viewer.view()->fieldSize(), bare.fieldSize());
+        QCOMPARE(nameSize(*viewer.view()), nameSize(bare));
+
+        BoardAppearancePreview preview;  // 外観ダイアログの見本
+        const ShogiView* sample = preview.findChild<ShogiView*>();
+        QVERIFY(sample);
+        QCOMPARE(nameSize(*sample), expected(*sample));
     }
 
     void configuredSizeSurvivesBoardAssignment()

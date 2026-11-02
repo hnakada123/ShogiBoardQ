@@ -112,8 +112,6 @@ public:
     void startDrag(const QPoint &from);
     void endDrag();
 
-    // 対局者名の大きさ（マスの高さに対する比。0.2〜1.0）
-    void setNameFontScale(double scale);
 
     // 対局者カード・時計・手番の札・編集用ボタン
     BoardChromeWidget* chrome() const { return m_chrome; }
