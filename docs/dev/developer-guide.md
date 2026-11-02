@@ -171,6 +171,7 @@
 | 2026-11-03 | 通信ログのパネルの設定の変更を、同じ設定を使うパネルに伝えるようにした（監査 2026-11-01 F30）のに合わせて第18章を更新（CSA 通信ログのドックと待機ダイアログのログは、片方で変えた文字の大きさと折り返しにもう片方も合わせる。以前はどちらも作るときに1回だけ設定を読み、ドックは次の起動まで古い値のままで、その後の A+ で古い値から計算して保存し直していた） |
 | 2026-11-03 | 終局の原因からの対応をローカル対局と通信対局で1つにした（監査 2026-11-01 F15）のに合わせて第5章の内部型定義を更新（`MatchCause`・`MatchGameEndInfo` を `src/game/matchending.h` に移し、`MatchCause::MaxMoves` を足した。終局語とエンジンへの gameover は `MatchEnding` だけで決め、通信対局は `CsaGameProgress::endInfo()` でサーバーの結果を原因に直す。最大手数は持将棋と書き（通信対局は「最大手数到達」と書いていた）、最大手数・中断・知らない原因の終局でも通信対局のエンジンに `gameover draw` を送る（今までは送らなかった）。`MatchCoordinator::handleMaxMovesJishogi()` は `handleMaxMoves()`、`endGame()` の `engineLoser` 引数は消した） |
 | 2026-11-03 | 時計の残りから USI の btime/wtime への換算を1つにした（監査 2026-11-01 F14）のに合わせて §7.4・§12.3 を更新（`UsiGoTimeCalculator::fromClock()` と `UsiClockSide` を足し、`ClockTimeSource::snapshot()` と `CsaGameProgress::engineTiming(pondering, elapsedThisTurnMs, marginMs)` が使う。通信対局の先読みの go ponder は、自分の残りから今の手の消費を引き、加算は引かない（以前は今の手の消費を引かず加算を引いていた）。手番側の経過時間は先読みでないときも引く） |
+| 2026-11-03 | 通信対局の開始でその対局の通信ログとエンジン名を消さないようにした（監査 2026-11-01 F12）のに合わせて §4.5・§6.5・§10.2 を更新（文書の置き換えで呼ぶ `EngineDisplayPresenter::clearAll()` は通信ログを消さず、結んでいるエンジンの名前も残す（`UsiCommLogModel::clearStatus()`）。通信ログは対局を始めるとき（`GameSession::gameStarting`・`CsaGameSession::gameStarting`）に `clearEngineLogs()` で消す。通信対局の評価値グラフの自分の系列名は `CsaGameCoordinator::matchEngineStarted` → `showMatchEngine()`。新規・棋譜の読み込みでは通信ログを消さなくなった） |
 
 <!-- chapter-0-end -->
 
@@ -2027,7 +2028,7 @@ private slots:
 };
 ```
 
-**EngineDisplayPresenter** — エンジンの表示の持ち主。枠 E1・E2 のエンジンを思考の表・情報欄・通信ログのモデルと結び（`UsiModelBinding`）、検討タブの実行の状態（`ConsiderationPanel::setRunState()`）・情報欄・検討の表への読み筋を検討のセッション（`AnalysisSession`）の知らせだけから決める。2つ目のエンジン欄と評価値グラフの系列名は文書の対局者（`KifuDocument::playersChanged`）から、検討・詰み探索ではそのエンジン（`AnalysisSession::engineNamesChanged`）から決める。棋譜を作り直すときの表示の消去は `clearAll()`（`SessionResetCoordinator` が呼ぶ）:
+**EngineDisplayPresenter** — エンジンの表示の持ち主。枠 E1・E2 のエンジンを思考の表・情報欄・通信ログのモデルと結び（`UsiModelBinding`）、検討タブの実行の状態（`ConsiderationPanel::setRunState()`）・情報欄・検討の表への読み筋を検討のセッション（`AnalysisSession`）の知らせだけから決める。2つ目のエンジン欄と評価値グラフの系列名は文書の対局者（`KifuDocument::playersChanged`）から、検討・詰み探索ではそのエンジン（`AnalysisSession::engineNamesChanged`）から、通信対局は司令塔が知らせる自分のエンジン（`CsaGameCoordinator::matchEngineStarted` → `showMatchEngine()`。棋譜の対局者はサーバーの名前）から決める。棋譜を作り直すときの表示の消去は `clearAll()`（文書の置き換えで呼ぶ。棋譜に結び付く表示だけを消し、通信ログと、結んでいるエンジンの名前は残す）、前の対局の通信ログ（USI・CSA）の消去は `clearEngineLogs()`（対局を始めるときの `GameSession::gameStarting`・`CsaGameSession::gameStarting` で呼ぶ。通信対局はログインとエンジンの起動の後に START で棋譜を作り直すので、棋譜の作り直しでは消さない）:
 
 ```cpp
 // src/ui/presenters/enginedisplaypresenter.h（抜粋）
@@ -2042,8 +2043,13 @@ public:
         // ... 通信ログ・思考の表（E1/E2）・検討の表・棋譜解析の結果・思考ドック・検討ドック・評価値グラフ・ログ窓
     };
 
-    /// 前の対局・検討・解析のエンジンの表示を消す（通信ログ・思考情報・検討・解析結果・エンジン名）
+    /// 前の対局・検討・解析の、棋譜に結び付くエンジンの表示を消す（思考情報・検討・解析結果。
+    /// 結んでいないエンジンの名前も消す）。通信ログは消さない
     void clearAll();
+    /// 前の対局の通信ログ（USI・CSA）を消す（対局を始めるとき）
+    void clearEngineLogs();
+    /// 通信対局の自分のエンジンの名前を評価値グラフの系列名にする
+    void showMatchEngine(Turn side, const QString& engineName);
 };
 ```
 
@@ -3061,7 +3067,7 @@ struct MatchTimeSettings {
 | `prepareGameStart(preparation)` | `GameSession::startGame()` | 対局を始める局面に棋譜を整え、ライブ対局を始める。始めたノードを返す |
 | `resetToNewRecord(sfen)` | 「新規」（`MainWindowActions::startNewRecord()`）、局面編集 | 読み込み途中の棋譜を捨て、ライブ対局を破棄して、局面 `sfen` だけの新しい棋譜にする（`KifuDocument::startNew()`） |
 
-評価値グラフとエンジンの表示（通信ログ・思考情報・検討・解析結果。`EngineDisplayPresenter::clearAll()`）は、文書の置き換え（`KifuDocument::replaced`。新規・読み込み・局面の反映・新しい棋譜での対局の開始）を受けて自分で消える。`SessionResetCoordinator` が表示に触るのは、文書を置き換えずに現在局面から対局を続けるとき（評価値グラフを開始の手数で切り詰める）だけ。連続対局の次局（`GameSession::startNextGame()`）と通信対局の開始（司令塔が呼ぶ `GameSession::beginRecord()`）も `prepareGameStart()` を通る。
+評価値グラフとエンジンの表示（思考情報・検討・解析結果。`EngineDisplayPresenter::clearAll()`）は、文書の置き換え（`KifuDocument::replaced`。新規・読み込み・局面の反映・新しい棋譜での対局の開始）を受けて自分で消える。通信ログ（USI・CSA）は消さず、対局を始めるとき（`GameSession::gameStarting`・`CsaGameSession::gameStarting` → `EngineDisplayPresenter::clearEngineLogs()`）に消す。結んでいるエンジンの名前も残す（`UsiCommLogModel::clearStatus()`）。`SessionResetCoordinator` が表示に触るのは、文書を置き換えずに現在局面から対局を続けるとき（評価値グラフを開始の手数で切り詰める）だけ。連続対局の次局（`GameSession::startNextGame()`）と通信対局の開始（司令塔が呼ぶ `GameSession::beginRecord()`）も `prepareGameStart()` を通る。
 
 #### prepareGameStart() の処理フロー
 
@@ -3078,8 +3084,8 @@ prepareGameStart(preparation)
   │    （始まっていたライブ対局のセッションは先に破棄する）
   │
   ├── EngineDisplayPresenter::clearAll()
-  │     通信ログ・情報欄・思考の表・検討・棋譜解析の表の初期化、思考ドック・検討タブのエンジン名のクリア、
-  │     検討タブの実行の状態を Idle に
+  │     情報欄（結んでいるエンジンの名前は残す）・思考の表・検討・棋譜解析の表の初期化、思考ドック・検討タブの
+  │     エンジン名のクリア、検討タブの実行の状態を Idle に（通信ログは対局を始めるときに clearEngineLogs で消す）
   │
   ├── 評価値グラフ
   │     ├── 現在の局面から → 開始ノードの手数までにする（trimToPly）
@@ -5746,7 +5752,7 @@ ShogiClock::timeUpdated()（tick・状態の変化・ShogiClock::notifyTimeUpdat
 | 思考の表・情報欄・通信ログ（E1・E2） | 枠にエンジンが入るたびに `UsiModelBinding` で結ぶ（`EngineSlots::enginesChanged`）。枠の表示の消去の要求（`displayClearRequested`）で通信ログ・情報欄・思考の表を消す |
 | 検討タブ（実行の状態・情報欄・検討の表） | `AnalysisSession` の知らせだけから決める。`considerationSearchStarted` で E1 の読み筋を検討の表へ出し、検討タブと思考タブの情報欄を E1 のモデルにして `setRunState(Running)`、`considerationWaitingStarted` で `Waiting`、`considerationModeEnded` で `Idle`、`considerationResultsCleared` で検討の表を消す。検討中かどうかの正本は `AnalysisSession::isConsidering()` |
 | 2つ目のエンジン欄・評価値グラフの系列名 | 対局では文書の対局者（`KifuDocument::playersChanged`）から決める（2つ目のエンジン欄はエンジン同士の対局だけ、系列名は先手・後手のエンジン名）。検討・詰み探索では `AnalysisSession::engineNamesChanged` から（2つ目のエンジン欄を隠し、1つ目の系列名・検討タブ・思考タブのエンジン名をそのエンジンにする） |
-| 表示の消去 | `clearAll()` が通信ログ・情報欄・思考の表・検討の表・棋譜解析の結果・USI/CSA の通信ログ窓・エンジン名を消し、検討タブを `Idle` に戻す（`SessionResetCoordinator` が棋譜を作り直すときに呼ぶ） |
+| 表示の消去 | `clearAll()` が情報欄（結んでいるエンジンの名前は残す）・思考の表・検討の表・棋譜解析の結果・エンジン名の代わりの表示を消し、検討タブを `Idle` に戻す（文書の置き換えで呼ぶ）。USI/CSA の通信ログ窓は `clearEngineLogs()` が対局を始めるときに消す |
 
 ### 10.3 Controllers — UIイベント処理
 

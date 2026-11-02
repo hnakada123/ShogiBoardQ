@@ -9,6 +9,8 @@
 #include <QString>
 #include <array>
 
+#include "shogitypes.h"
+
 class AnalysisSession;
 class ConsiderationPanel;
 class CsaLogPanel;
@@ -31,8 +33,11 @@ class UsiModelBinding;
  * - 検討の表示（検討タブの実行の状態・経過時間・情報欄のモデル・検討の表への読み筋）は、検討のセッション
  *   （AnalysisSession）の知らせだけから決める。検討中かどうかの正本はセッション
  * - 対局の2つ目のエンジン欄と評価値グラフの系列名は、文書の対局者（KifuDocument::players）から、
- *   検討・詰み探索のときはそのエンジンから決める
- * - 棋譜を作り直すとき（新規・対局の開始前・読み込み前）の表示の消去（clearAll）
+ *   検討・詰み探索のときはそのエンジンから、通信対局は司令塔が知らせる自分のエンジン（showMatchEngine）から決める
+ * - 棋譜を作り直すとき（新規・対局の開始前・読み込み前）の表示の消去（clearAll）。棋譜に結び付く表示
+ *   （思考・検討・解析結果）だけを消し、通信ログと結んでいるエンジンの名前は残す
+ * - 対局を始めるとき（ローカル対局の開始・通信対局の接続の前）の通信ログの消去（clearEngineLogs）。通信対局は
+ *   エンジンの起動とログインの後に棋譜を作り直すので、棋譜の作り直しでは消さない
  */
 class EngineDisplayPresenter : public QObject
 {
@@ -58,8 +63,15 @@ public:
 
     explicit EngineDisplayPresenter(const Deps& deps, QObject* parent = nullptr);
 
-    /// 前の対局・検討・解析のエンジンの表示を消す（通信ログ・思考情報・検討・解析結果・エンジン名）
+    /// 前の対局・検討・解析の、棋譜に結び付くエンジンの表示を消す（思考情報・検討・解析結果。
+    /// 結んでいないエンジンの名前も消す）。通信ログは消さない
     void clearAll();
+
+public slots:
+    /// 前の対局の通信ログ（USI・CSA）を消す（対局を始めるとき）
+    void clearEngineLogs();
+    /// 通信対局の自分のエンジン（side が指す）の名前を評価値グラフの系列名にする（文書の対局者はサーバーの名前）
+    void showMatchEngine(Turn side, const QString& engineName);
 
 private slots:
     void bindEngines();

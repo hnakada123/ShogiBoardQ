@@ -44,6 +44,11 @@ void UsiCommLogModel::appendLogLine(const QString& line)
 void UsiCommLogModel::clear()
 {
     setEngineName(QString());
+    clearStatus();
+}
+
+void UsiCommLogModel::clearStatus()
+{
     if (m_status == EngineSearchStatus{} && m_predictedMove.isEmpty()) return;
     m_status = {};
     m_predictedMove.clear();

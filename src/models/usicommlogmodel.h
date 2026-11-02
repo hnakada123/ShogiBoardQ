@@ -37,7 +37,9 @@ public:
     void setPredictedMove(const QString& move);
     /// 通信ログの行を知らせる
     void appendLogLine(const QString& line);
-    /// エンジン名・探索状況・予想手を消す
+    /// 探索状況・予想手を消す（エンジン名は残す。エンジンを結んだまま前の探索の表示だけを消す）
+    void clearStatus();
+    /// エンジン名・探索状況・予想手を消す（エンジンを結んでいないとき）
     void clear();
 
 signals:

@@ -20,6 +20,7 @@
 #include "errorbus.h"
 #include "docklayoutmanager.h"
 #include "evaluationchartwidget.h"
+#include "csagamesession.h"
 #include "enginedisplaypresenter.h"
 #include "evaluationgraphpresenter.h"
 #include "gameinfopane.h"
@@ -103,7 +104,8 @@ void MainWindowComposer::connectRecord()
                                 std::bind(&GameInfoPane::hasPendingEditor, m_c.gameInfoPane)});
     document->addPendingEditor({std::bind(&CommentCoordinator::commitPendingComment, m_c.commentCoordinator),
                                 std::bind(&CommentCoordinator::hasPendingComment, m_c.commentCoordinator)});
-    // 文書を置き換えたら、ツリーから作られない表示（評価値グラフ・エンジンの表示・解析結果）を消す
+    // 文書を置き換えたら、ツリーから作られない表示（評価値グラフ・エンジンの表示・解析結果）を消す。
+    // 通信ログは対局を始めるときに消す（通信対局はログインとエンジンの起動の後に棋譜を作り直す）
     connect(document, &KifuDocument::replaced, m_c.evalGraph, &EvaluationGraphPresenter::clear);
     connect(document, &KifuDocument::replaced, m_c.engineDisplay, &EngineDisplayPresenter::clearAll);
     connect(document, &KifuDocument::headerReset, gameInfo, &GameInfoPane::setGameInfo);
@@ -164,11 +166,14 @@ void MainWindowComposer::connectGame()
 
     connect(m_c.consecutiveGames, &ConsecutiveGameSeries::nextGameReady,
             session, &GameSession::startNextGame);
+    connect(session, &GameSession::gameStarting, m_c.engineDisplay, &EngineDisplayPresenter::clearEngineLogs);
 
     // 通信対局（棋譜と動作状態は司令塔が受け手と動作状態に書く。開始・終局の画面は CsaGameSession）。
     // 盤で選んだ手はサーバーへ送り、着手のハイライトはローカル対局と同じく棋譜の表示中の手から出る
     CsaGameCoordinator* csa = m_c.csaGame;
     connect(csa, &CsaGameCoordinator::engineMovePlayed, m_c.evalGraph, &EvaluationGraphPresenter::plotEngineScore);
+    connect(csa, &CsaGameCoordinator::matchEngineStarted, m_c.engineDisplay, &EngineDisplayPresenter::showMatchEngine);
+    connect(m_c.csaSession, &CsaGameSession::gameStarting, m_c.engineDisplay, &EngineDisplayPresenter::clearEngineLogs);
     connect(csa, &CsaGameCoordinator::errorOccurred, m_c.notifications, &NotificationPresenter::displayErrorMessage);
     connect(m_c.boardMoves, &BoardMoveController::csaMoveRequested, csa, &CsaGameCoordinator::onHumanMove);
     CsaLogPanel* csaLog = m_c.csaLog;

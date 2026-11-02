@@ -51,7 +51,9 @@ bool CsaGameSession::startGame(const CsaGameDialog::Selection& selection)
     CsaWaitingDialog waitingDialog(c, m_deps.parentWidget);
     connect(&waitingDialog, &CsaWaitingDialog::cancelRequested, this, &CsaGameSession::onWaitingCancelled);
 
-    // 待機ダイアログがシグナルを受け取れるようになってから始める
+    // 待機ダイアログがシグナルを受け取れるようになってから始める。ログインから START までの通信ログと
+    // エンジンの起動の通信ログを残すため、前の対局のログは接続の前に消す
+    emit gameStarting();
     c->startGame(options);
     // 対局開始またはエラーまで待つ
     const bool started = waitingDialog.exec() == QDialog::Accepted

@@ -329,6 +329,8 @@ void CsaGameCoordinator::onGameStarted(const QString& gameId)
     }
     if (m_activity) m_activityLease = m_activity->begin(AppActivityState::Activity::DuringCsaGame, this);
     emit gameStarted(summary.blackName, summary.whiteName);
+    if (!isHumanPlayer())
+        emit matchEngineStarted(m_progress.isBlackSide ? Turn::Black : Turn::White, m_options.engineName);
     emit turnChanged(myTurn);
 
     if (!isHumanPlayer() && myTurn) startEngineThinking();

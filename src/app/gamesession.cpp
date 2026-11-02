@@ -179,6 +179,8 @@ QString GameSession::josekiBookName() const
 
 bool GameSession::startGame(const GameStartPlan& plan, bool beginSeries)
 {
+    // 前の対局の通信ログを消す（この対局のエンジンの起動からのログを残す）
+    emit gameStarting();
     // 1) 棋譜を開始局面に整え、ライブ対局を始める（表示中の手が開始局面になる）
     if (!m_deps.reset->prepareGameStart(plan.preparation)) {
         qCWarning(lcApp) << "startGame: the start node no longer exists";

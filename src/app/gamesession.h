@@ -85,6 +85,8 @@ public:
 signals:
     /// 対局（ローカル・通信）で指された手を棋譜に書いた（sfen は指す前の局面。定跡ウィンドウの「盤の手を登録」が受ける）
     void gameMoveRecorded(const QString& sfen, const QString& usiMove);
+    /// ローカル対局を始める（連続対局の次局も。棋譜を作り直してエンジンを起動する前。前の対局の通信ログを消す）
+    void gameStarting();
 
 public slots:
     // --- 利用者の操作 ---

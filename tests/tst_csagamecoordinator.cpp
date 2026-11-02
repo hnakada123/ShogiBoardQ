@@ -8,20 +8,27 @@
 #include <QtTest>
 #include <QTcpServer>
 #include <QTcpSocket>
+#include <QPlainTextEdit>
 #include <QTemporaryDir>
 #include <algorithm>
+#include <functional>
 
 #include "csagamecoordinator.h"
 #include "engineslots.h"
 #include "engineprocessmanager.h"
 #include "engineprofilestore.h"
 #include "usi.h"
+#include "usicommlogmodel.h"
+#include "usilogpanel.h"
 #include "humanturnpolicy.h"
 #include "csagameprogress.h"
 #include "appactivitystate.h"
 #include "kifudocument.h"
 #include "evaluationchartwidget.h"
+#include "csalogpanel.h"
+#include "enginedisplaypresenter.h"
 #include "evaluationgraphpresenter.h"
+#include "evaluationseries.h"
 #include "gamesession.h"
 #include "kifuloader.h"
 #include "matchcoordinator.h"
@@ -80,7 +87,11 @@ struct FakeCsaServer {
 
 /// 司令塔が書いた棋譜（新しい棋譜・行・確定）を覚える受け手
 struct RecordedSink final : MatchRecordSink {
-    void beginRecord(const MatchRecordStart& start) override { begins.append(start); }
+    void beginRecord(const MatchRecordStart& start) override
+    {
+        begins.append(start);
+        if (onBegin) onBegin();
+    }
     bool canAppendRecord() const override { return true; }
     void appendRecord(const RecordEntry& entry) override { records.append(entry); }
     bool canUndoRecords(int) const override { return false; }
@@ -90,6 +101,7 @@ struct RecordedSink final : MatchRecordSink {
     QList<MatchRecordStart> begins;
     QList<RecordEntry> records;
     QList<bool> finishes;   ///< finishRecord の autoSave
+    std::function<void()> onBegin;   ///< 新しい棋譜を作るときに呼ぶ（アプリは棋譜の作り直しで表示を消す）
 };
 
 /// 盤・時計・局面列・動作状態・棋譜の受け手と司令塔をそろえ、偽サーバーと対局を始める
@@ -309,6 +321,55 @@ private slots:
         QStringList commands;
         for (const QList<QVariant>& args : std::as_const(sent)) commands << args.at(0).toString();
         QVERIFY2(commands.contains(QStringLiteral("gameover draw")), qPrintable(commands.join(QLatin1Char(','))));
+    }
+
+    /// 通信対局は、ログインとエンジンの起動の後に START で棋譜を作り直す。作り直しで消すのは棋譜に結び付く表示だけで、
+    /// その対局の通信ログ（LOGIN〜START）・USI ログ（usi〜readyok）・E1 のエンジン名は残す。評価値グラフの自分の
+    /// 系列名はエンジン名（棋譜の対局者はサーバーの名前）。通信ログは次に対局を始めるときに消す（監査 2026-11-01 F12）
+    void startKeepsLogsAndEngineName()
+    {
+        Harness h;
+        UsiCommLogModel commLog1;
+        UsiCommLogModel commLog2;
+        UsiLogPanel usiLog;
+        usiLog.setModels(&commLog1, &commLog2);
+        CsaLogPanel csaLog;
+        KifuBranchTree tree;
+        tree.setRootSfen(SfenUtils::hirateSfen());
+        KifuNavigationState nav(&tree);
+        LiveGameSession live(&tree, &nav);
+        EvaluationChartWidget chart;
+        EvaluationGraphPresenter graph({&chart, &nav, &live});
+        EngineDisplayPresenter::Deps deps;
+        deps.engines = &h.engines;
+        deps.commLog1 = &commLog1;
+        deps.commLog2 = &commLog2;
+        deps.usiLog = &usiLog;
+        deps.csaLog = &csaLog;
+        deps.evalGraph = &graph;
+        EngineDisplayPresenter display(deps);
+        // 合成ルートと同じ結び（棋譜の作り直しで clearAll）
+        connect(&h.coordinator, &CsaGameCoordinator::csaCommLogAppended, &csaLog, &CsaLogPanel::append);
+        connect(&h.coordinator, &CsaGameCoordinator::matchEngineStarted, &display,
+                &EngineDisplayPresenter::showMatchEngine);
+        h.sink.onBegin = std::bind(&EngineDisplayPresenter::clearAll, &display);
+        QVERIFY(h.start("-", {}, true));
+        QCOMPARE(h.sink.begins.size(), 1);
+
+        const QString csaText = csaLog.findChild<QPlainTextEdit*>(QStringLiteral("csaLogView"))->toPlainText();
+        QVERIFY2(csaText.contains(QStringLiteral("LOGIN")) && csaText.contains(QStringLiteral("START:g1")),
+                 qPrintable(csaText));
+        const QString usiText = usiLog.findChild<QPlainTextEdit*>(QStringLiteral("usiLogView"))->toPlainText();
+        QVERIFY2(usiText.contains(QStringLiteral("usiok")) && usiText.contains(QStringLiteral("readyok")),
+                 qPrintable(usiText));
+        QCOMPARE(commLog1.engineName(), QStringLiteral("CSA test engine"));
+        // 自分は後手なので2つ目の系列
+        QCOMPARE(graph.series()->name(1), QStringLiteral("CSA test engine"));
+
+        // 次の対局を始めるときに通信ログを消す
+        display.clearEngineLogs();
+        QVERIFY(csaLog.findChild<QPlainTextEdit*>(QStringLiteral("csaLogView"))->toPlainText().isEmpty());
+        QVERIFY(usiLog.findChild<QPlainTextEdit*>(QStringLiteral("usiLogView"))->toPlainText().isEmpty());
     }
 
     /// エンジンが指した直後の go ponder の自分の持ち時間は、今の手の消費を引いた残り（加算は引かない）。
