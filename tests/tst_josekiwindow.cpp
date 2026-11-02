@@ -19,6 +19,7 @@
 #include "josekisettings.h"
 // private メンバへは JosekiWindow・JosekiBookController の friend 宣言（SHOGIBOARDQ_TESTING 時のみ有効）経由でアクセスする
 #include "josekiwindow.h"
+#include "josekitableview.h"
 #include "josekibookcontroller.h"
 #include "josekibooksession.h"
 #include "josekibook.h"
@@ -130,6 +131,7 @@ private slots:
     void testReplyValidationAndPreview();
     void testEditReplyAndLargeFrequency();
     void testColumnWidthsSurviveRefresh();
+    void testAutoColumnWidthsShrinkWithFont();
     void testEmptyAndStoppedDisplay();
     void testDialogCancelPersistsSize();
     void testAddKeepsTargetPosition();
@@ -1157,6 +1159,42 @@ void TestJosekiWindow::testColumnWidthsSurviveRefresh()
     QVERIFY(QTest::qWaitForWindowExposed(&restored));
     QCOMPARE(restored.m_tableView->columnWidth(2), 280);
     QCOMPARE(restored.m_tableView->columnWidth(3), 270);
+}
+
+/// 自動の列幅は文字の大きさに合わせて広がり、A- で元の幅に戻る（A+ で広げた幅を下限にしない）
+void TestJosekiWindow::testAutoColumnWidthsShrinkWithFont()
+{
+    JosekiSettings::josekiWindowAutoLoadEnabled.set(false);
+    JosekiSettings::josekiWindowColumnWidths.set({});
+    JosekiBookSession session;
+    JosekiPanel panel(&session);
+    JosekiWindow &window = panel.window;
+    QVERIFY(seedWindow(window, m_tempDir.filePath(QStringLiteral("autowidths.db"))));
+    window.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&window));
+    // テストではアプリの書体を決めないので、表示したときに書体（ファミリー）が決まり直す。その書体で測り直してから比べる
+    window.applyFontSize();
+    const auto widths = [&window]() {
+        QList<int> result;
+        for (int col = 0; col < JosekiTableModel::ColumnCount - 1; ++col)
+            result.append(window.m_tableView->columnWidth(col));
+        return result;
+    };
+    const QList<int> initial = widths();
+    for (int col = 0; col < JosekiTableModel::ColumnCount - 1; ++col)
+        QVERIFY(initial.at(col) >= JosekiTableView::minimumColumnWidth(col));
+    auto *increase = window.findChild<QPushButton *>(QStringLiteral("josekiFontIncrease"));
+    auto *decrease = window.findChild<QPushButton *>(QStringLiteral("josekiFontDecrease"));
+    QVERIFY(increase && decrease);
+    const int size = window.m_fontHelper.fontSize();
+    for (int i = 0; i < 4; ++i) increase->click();
+    QVERIFY(window.m_fontHelper.fontSize() > size);
+    QVERIFY(widths().at(JosekiTableModel::Move) > initial.at(JosekiTableModel::Move));
+    // 上限で止まった分は数えず、同じ大きさまで戻す
+    for (int i = 0; i < 4 && window.m_fontHelper.fontSize() > size; ++i) decrease->click();
+    QCOMPARE(window.m_fontHelper.fontSize(), size);
+    QCOMPARE(widths(), initial);
+    JosekiSettings::josekiWindowFontSize.set(10);
 }
 
 void TestJosekiWindow::testEmptyAndStoppedDisplay()

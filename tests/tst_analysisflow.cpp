@@ -10,6 +10,7 @@
 #include <QPushButton>
 #include <QRadioButton>
 #include <QSpinBox>
+#include <QTableView>
 #include <QTemporaryDir>
 #include "engineprocessmanager.h"
 #include <QSignalSpy>
@@ -18,6 +19,7 @@
 #include <QVBoxLayout>
 #include <QWidget>
 #include <memory>
+#include <numeric>
 
 #include "analysisresultspanel.h"
 #include "analysissession.h"
@@ -518,6 +520,48 @@ private slots:
         QVERIFY(QTest::qWaitForWindowExposed(&restored));
         QTRY_COMPARE(restored.view()->columnWidth(KifuAnalysisListModel::CandidateColumn), 77);
         saved.set({});
+    }
+
+    /// 自動の列幅は文字の大きさに合わせて広がり、A- で元の幅に戻る（A+ で広げた幅を下限にしない）
+    void resultsAutoColumnsShrinkWithFont()
+    {
+        AnalysisSettings::kifuAnalysisColumnWidths().set({});
+        AnalysisSettings::kifuAnalysisResultsFontSize.set(10);
+        KifuAnalysisListModel model;
+        AnalysisResultsPanel panel;
+        panel.setModel(&model);
+        for (int ply = 1; ply <= 3; ++ply) {
+            KifuAnalysisRow row;
+            row.ply = ply;
+            row.move = QStringLiteral("▲７六歩(77)");
+            row.candidateMove = QStringLiteral("△３四歩(33)");
+            row.depth = 20;
+            model.appendRow(row);
+        }
+        panel.resize(1400, 300);
+        panel.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&panel));
+        QTableView* view = panel.view();
+        const auto widths = [view]() {
+            QList<int> result;
+            for (int col = 0; col < KifuAnalysisListModel::PvColumn; ++col) result.append(view->columnWidth(col));
+            return result;
+        };
+        const auto total = [](const QList<int>& list) { return std::accumulate(list.cbegin(), list.cend(), 0); };
+        QTest::qWait(20);  // 行を足した後の測り直し（次のイベントループ）
+        const QList<int> initial = widths();
+        auto* increase = panel.findChild<QPushButton*>(QStringLiteral("analysisFontIncrease"));
+        auto* decrease = panel.findChild<QPushButton*>(QStringLiteral("analysisFontDecrease"));
+        QVERIFY(increase && decrease);
+        for (int i = 0; i < 8; ++i) increase->click();
+        const int enlarged = AnalysisSettings::kifuAnalysisResultsFontSize();
+        QVERIFY(enlarged > 10);
+        QTRY_VERIFY(total(widths()) > total(initial));
+        // 上限で止まった分は数えず、同じ大きさまで戻す
+        for (int i = 0; i < 8 && AnalysisSettings::kifuAnalysisResultsFontSize() > 10; ++i) decrease->click();
+        QCOMPARE(AnalysisSettings::kifuAnalysisResultsFontSize(), 10);
+        QTRY_COMPARE(widths(), initial);
+        AnalysisSettings::kifuAnalysisResultsFontSize.remove();
     }
 
     /// 棋譜解析ダイアログと結果ドックの文字の大きさは別々に保存する（片方の A+ がもう片方を変えない）。
