@@ -9,6 +9,7 @@
 
 #include <optional>
 
+#include "kiflinebuilder.h"
 #include "usimove.h"
 
 class Position;
@@ -63,14 +64,20 @@ struct CsaMoveToken {
 /// CSAトークン（+7776FU形式）から座標と駒種を抽出（座標は0〜9の数字かだけを確かめる）
 std::optional<CsaMoveToken> parseCsaMoveToken(const QString& token);
 
+/// CSA の指し手行を読んだ手
+struct CsaMove {
+    UsiMove move;
+    WrittenMove written;  ///< 符号の手番と、成る前の駒（局面と合うかは KifLineBuilder::addMove が確かめる）
+};
+
 /**
  * @brief CSA指し手行を、盤の上の USI の指し手にする（盤は変えない）
  *
- * 移動元の駒は指す側の駒で、指し手の駒種はその駒か成った駒でなければならない。自分の駒は取れない。
- * 駒台にない駒を打つ反則手も、棋譜の再現では保持する。
- * 局面と合わない指し手は nullopt を返し、detail に理由を入れる。
+ * CSA の駒種は動かした後の駒なので、移動元の駒が成ってその駒種になる手を成りとし、書かれた駒は成る前の駒にする。
+ * 手番・駒・自分の駒を取らないかは確かめない（全形式で同じく KifLineBuilder::addMove が確かめる）。
+ * 読めない行・盤の外の座標・打てない駒は nullopt を返し、detail に理由を入れる。
  */
-std::optional<UsiMove> parseMoveLine(const QString& line, Turn mover, const Position& board, QString* detail);
+std::optional<CsaMove> parseMoveLine(const QString& line, const Position& board, QString* detail);
 
 // === コメント・時間 ===
 

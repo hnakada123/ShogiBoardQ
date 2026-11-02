@@ -469,7 +469,7 @@ private slots:
         QTest::newRow("no-piece") << QStringLiteral("V2.2\nPI\n+\n+7776FU\n-3334FU\n+1112HI\n-8384FU\n+2726FU\n%TORYO\n")
                                   << QStringLiteral("does not match the position");
         QTest::newRow("wrong-side") << QStringLiteral("V2.2\nPI\n+\n+7776FU\n-3334FU\n-8384FU\n+2726FU\n%TORYO\n")
-                                    << QStringLiteral("Not the side to move");
+                                    << QStringLiteral("The move is written for the side not to move");
     }
     void csaUnreadableMoveTruncatesTheRecord()
     {

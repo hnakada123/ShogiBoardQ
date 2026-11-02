@@ -104,6 +104,24 @@ public:
     /// 手番側の指し手として、動かす駒・取る駒を添える（移動元が空なら movingPiece は None）
     ShogiMove describe(const UsiMove& move) const;
 
+    /// 指し手が手番側の手として局面に合わない理由
+    enum class MoveMismatch {
+        None,              ///< 合う
+        InvalidMove,       ///< 指し手の形が正しくない（盤の外・移動元と移動先が同じ）
+        EmptySource,       ///< 移動元に駒がない
+        OpponentPiece,     ///< 移動元の駒が手番でない側の駒
+        CapturesOwnPiece,  ///< 移動先に手番側の駒がある
+        DropNotInHand,     ///< 打つ駒が持ち駒にない（RequireHand のとき）
+        DropOnOccupied,    ///< 駒のあるマスへ打つ（RequireHand のとき）
+    };
+    /**
+     * @brief 指し手が手番側の手として局面に合うか（合法手かは見ない）
+     *
+     * 見るのは、動かす駒の色・自分の駒を取らないか・打つ駒と打つ先（rule が Lenient なら打つ手は見ない）。
+     * 棋譜の1行（MoveRecord::play。棋譜の読み込みと対局の着手）と読み筋（PvText）で同じ規則を使う。
+     */
+    MoveMismatch mismatchOf(const UsiMove& move, DropRule rule = DropRule::RequireHand) const;
+
     /**
      * @brief 手番側の指し手を指す（合法手かは確かめない）
      *

@@ -169,22 +169,15 @@ private:
                 m_builder.addTerminal(terminal, m_builder.sideToMove());
                 break;
             }
-            // 手番の印が手番と違う手は読まない（印を見ないと、相手の手、たとえば持っていない駒を打つ手に読み替えてしまう）
-            const std::optional<Turn> marked = ShogiNotation::turnOfMark(move.front());
-            if (marked) correctStartTurn(*marked, move);
-            if (marked && *marked != m_builder.sideToMove()) {
-                const int ply = m_builder.nextPly();
-                m_report.rejectMove(ply, QStringLiteral("%1: move %2 is marked for the side not to move: %3")
-                                             .arg(m_tag).arg(ply).arg(move));
-                m_builder.stop();
-                return;
-            }
+            // 本譜の1手目なら、手番の印で開始局面の手番の書き違えを直す。印が手番と違う手は readMove が読まない
+            if (const std::optional<Turn> marked = ShogiNotation::turnOfMark(move.front())) correctStartTurn(*marked, move);
             if (!readMove(move, KifLineBuilder::zeroTime(), move)) return;
         }
         if (!parsed.comment.isEmpty()) m_builder.appendComment(parsed.comment);
     }
 
-    /// 指し手の文字列を読んで指す。読めない・指せない手なら手順を打ち切って false
+    /// 指し手の文字列を読んで指す。読めない・指せない手（書かれた駒・手番の印が局面と違う手を含む）なら手順を
+    /// 打ち切って false
     bool readMove(const QString& text, const RecordTime& time, const QString& source)
     {
         const int ply = m_builder.nextPly();
@@ -194,7 +187,12 @@ private:
             return false;
         }
         const auto parsed = KifMoveGrammar::parseMoveText(text);
-        const Turn mover = m_builder.sideToMove();
+        // 書かれたとおりに読み（手番の印があればその側の手として）、局面と合うかは KifLineBuilder::addMove が確かめる。
+        // 印を見ずに手番側の手として読むと、相手の手、たとえば持っていない駒を打つ手に読み替えてしまう
+        WrittenMove written;
+        if (parsed) written.piece = parsed->piece;
+        if (const QString trimmed = text.trimmed(); !trimmed.isEmpty()) written.side = ShogiNotation::turnOfMark(trimmed.front());
+        const Turn mover = written.side.value_or(m_builder.sideToMove());
         const std::optional<UsiMove> move =
             parsed ? KifMoveGrammar::resolve(*parsed, m_builder.position(), mover, m_builder.previousTo()) : std::nullopt;
         KifMoveText::Notes notes;
@@ -212,7 +210,7 @@ private:
             if (const Piece piece = m_builder.position().pieceAt(move->from); piece != Piece::None)
                 correctStartTurn(pieceSide(piece), source);
         }
-        if (!m_builder.addMove(*move, time, notes)) {
+        if (!m_builder.addMove(*move, time, notes, written)) {
             m_report.rejectMove(ply, m_builder.cannotRestore(m_tag, ply));
             m_builder.stop();
             return false;

@@ -56,7 +56,7 @@ cmake --build build --target translations
   - `sessionresetcoordinator.cpp/.h` - 対局の開始前（`prepareGameStart`。連続対局の次局・通信対局の開始も）・新規・局面編集で棋譜を作り直す。評価値グラフとエンジンの表示（`EngineDisplayPresenter::clearAll()`）は文書の置き換え（`KifuDocument::replaced`）を受けて自分で消える
 
 - **core/**: 純粋なゲームロジック（Qt GUI非依存）
-  - `shogiposition.cpp/.h` - 局面の値 `Position`（盤81マス・持ち駒・手番・手数）。SFEN の読み書きと指し手の適用（`apply`）はここだけ。計算のための局面はこの値で持つ
+  - `shogiposition.cpp/.h` - 局面の値 `Position`（盤81マス・持ち駒・手番・手数）。SFEN の読み書きと指し手の適用（`apply`）はここだけ。手番側の手として局面に合うか（動かす駒の色・自分の駒を取らないか・打つ駒と打つ先）は `mismatchOf` だけで決める（棋譜の1行の `MoveRecord::play` と読み筋の `PvText` が使う）。計算のための局面はこの値で持つ
   - `shogiboard.cpp/.h` - 表示・局面編集に使う盤。`Position` を1つ持ち（`position()`）、変更をシグナルで知らせる QObject（局面の包みと知らせだけ。局面を変える規則は持たず、着手と局面編集は次の局面を `Position` で作って `replacePosition(next)` で渡す。変わったマス・駒台・手番だけを知らせる）
   - `shogitypes.h`・`piecerules.h` - 手番と駒（`Piece` は種類＋後手なら16。並びは fmv と同じ）。行き所のない駒・成れる段・持ち駒の並びの規則
   - `positionvalidator.cpp/.h` - 局面の検査 `PositionValidator`（`check()`：駒の数・駒台の玉・玉の重複と有無・手番でない側への王手と、手番側の王手・合法手の数。`boardProblem()` は盤と持ち駒だけ）。validate-sfen（`SfenValidator`）・局面集・詰将棋問題一覧・対局の開始で同じ規則を使う。合法手だけを指すのは `EngineMoveValidator::applyIfLegal`。Hayanagi は詰み探索だけに使う
@@ -108,7 +108,7 @@ cmake --build build --target translations
   - **formats/**: Format converters（テキストを読む。ファイルは `KifuLoadParser` が読んで渡す）
     - `csatosfenconverter`, `jkftosfenconverter`, etc. - 形式ごとに `parse(text, options)` を1つだけ持ち、`KifuParseOutcome` を返す（KIF・KI2 は `KifTextParser::parseKif`・`parseKi2`、BOD は `KifTextParser::parseBod`）
     - `kiftextparser.cpp/.h` - KIF・KI2 で共有する読み取り（行の分類・「変化：N手」の区切り・開始局面）。指し手の文法は `kifmovegrammar`（KIF の手は KI2 の手＋移動元）
-    - `kiflinebuilder.cpp/.h` - 全形式で共通の手順の組み立て（`KifLineBuilder`。指しながら `RecordEntry` を作る。1行は対局の着手と同じ `MoveRecord::play`）
+    - `kiflinebuilder.cpp/.h` - 全形式で共通の手順の組み立て（`KifLineBuilder`。指しながら `RecordEntry` を作る。1行は対局の着手と同じ `MoveRecord::play`）。棋譜に書かれた駒と手番（`WrittenMove`。KIF・KI2 の駒名と手番の印、CSA の駒種と符号、JKF の piece と color）が局面と違う手は、全形式で同じく `addMove` が断る
     - `*exporter` - 形式ごとの書き出し。KIF・KI2 の先頭（文字コード宣言・対局情報・盤面図）は `KifExporter::appendHeaderLines(ctx, out, HeaderOptions)` で共有し、KI2 の本譜と変化は `appendKi2Moves` の1つのループで書く
     - `kifunodereplay.cpp/.h` - 分岐ツリーのノードを指す前の局面と一緒にたどる `KifuNodeReplay`（`board()`・`mover()`・`previousTo()`・`canWrite(node)`・`advance(node)`・`branchFrom(parent)`。指せない手はノードの SFEN から取り直す）。KI2・JKF の書き出しが使う
     - `usencodec.cpp/.h` - USEN の符号表 `UsenCodec`（指し手の3文字と `UsiMove` の符号化と復号 `encodeMove`・`decodeMove`、開始局面 `encodePosition`・`decodePosition`、手順 `decodeLine`・`decodeLines`（"~" で1回だけ分けて本譜と変化の `UsenLine` にする。読めない指し手はその手前までの手と `UsenLine::unreadableMove` にし、どう扱うかは読み手の `ParseReport` が決める）、形式の判別に使う全体の形 `hasUsenShape`）。終局コードは作者の実装（mog-core-scala）に合わせて先頭の1文字で決め、反則の `i` の後ろの反則手は読むだけ（`UsenLine::illegalMove`。局面には指さない）。反則負け・反則勝ちは書かない（`TerminalCodes::usen` が空）。`UsenToSfenConverter` と `UsenExporter` が使う

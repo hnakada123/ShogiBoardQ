@@ -45,15 +45,6 @@ bool isTurnMarker(const QString& token)
 
 // --- 指し手解析 ---
 
-namespace {
-
-bool belongsTo(Piece piece, Turn side)
-{
-    return side == Turn::Black ? isBlackPiece(piece) : isWhitePiece(piece);
-}
-
-} // namespace
-
 std::optional<CsaMoveToken> parseCsaMoveToken(const QString& token)
 {
     if (token.size() < 7) return std::nullopt;
@@ -76,7 +67,7 @@ std::optional<CsaMoveToken> parseCsaMoveToken(const QString& token)
     return CsaMoveToken{BoardSquare{fx, fy}, BoardSquare{tx, ty}, piece};
 }
 
-std::optional<UsiMove> parseMoveLine(const QString& line, Turn mover, const Position& board, QString* detail)
+std::optional<CsaMove> parseMoveLine(const QString& line, const Position& board, QString* detail)
 {
     const qsizetype comma = line.indexOf(QLatin1Char(','));
     const QString token = (comma >= 0) ? line.left(comma) : line;
@@ -98,25 +89,20 @@ std::optional<UsiMove> parseMoveLine(const QString& line, Turn mover, const Posi
         return std::nullopt;
     }
 
-    // 指し手と動かす駒（駒打ちは打つ駒、盤上の移動は成る前の駒）。成りは移動元の駒と指し手の駒種から決まる
-    UsiMove move;
-    move.to = csa->to;
-    Piece moving = Piece::None;
+    CsaMove result;
+    result.written.side = token.at(0) == QLatin1Char('+') ? Turn::Black : Turn::White;
+    result.move.to = csa->to;
     if (isDrop) {
-        move.drop = csa->piece;
-        moving = move.dropPieceFor(mover);
+        result.move.drop = csa->piece;
+        result.written.piece = csa->piece;
     } else {
-        move.from = csa->from;
-        moving = board.pieceAt(csa->from);
-        const Piece before = toBlack(moving);
-        move.promote = (before != csa->piece && promote(before) == csa->piece);
-        if (!belongsTo(moving, mover) || (before != csa->piece && !move.promote)) moving = Piece::None;
+        // 移動元の駒が成って指し手の駒種になるなら成り。書かれた駒は成る前の駒（成りでなければ書かれた駒種のまま）
+        result.move.from = csa->from;
+        const Piece before = toBlack(board.pieceAt(csa->from));
+        result.move.promote = (before != csa->piece && promote(before) == csa->piece);
+        result.written.piece = result.move.promote ? before : csa->piece;
     }
-    if (moving == Piece::None || belongsTo(board.pieceAt(move.to), mover)) {
-        if (detail) *detail = QStringLiteral("Move does not match the position: %1").arg(token);
-        return std::nullopt;
-    }
-    return move;
+    return result;
 }
 
 // --- コメント・時間 ---

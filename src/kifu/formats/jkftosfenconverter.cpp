@@ -8,6 +8,7 @@
 #include "sfenutils.h"
 #include "jkfcodec.h"
 #include "kiflinebuilder.h"
+#include "shoginotation.h"
 #include "terminalcodes.h"
 #include "shogiposition.h"
 
@@ -16,20 +17,21 @@
 #include <QJsonDocument>
 
 namespace {
-int normalizedColorIndex(const QJsonObject& moveObject, int plyNumber, ParseReport& report)
+/// 手の color（0 が先手、1 が後手）。書いていなければ nullopt、読めない値は警告して nullopt（手番と比べない）
+std::optional<Turn> writtenSide(const QJsonObject& moveObject, int plyNumber, ParseReport& report)
 {
     const QJsonValue colorValue = moveObject.value(QStringLiteral("color"));
+    if (colorValue.isUndefined()) return std::nullopt;
     if (!colorValue.isDouble()) {
-        report.warn(QStringLiteral("JKF: move %1 has invalid color type; fallback to 0").arg(plyNumber));
-        return 0;
+        report.warn(QStringLiteral("JKF: move %1 has invalid color type; it is ignored").arg(plyNumber));
+        return std::nullopt;
     }
-
     const int color = colorValue.toInt(-1);
     if (color != 0 && color != 1) {
-        report.warn(QStringLiteral("JKF: move %1 has out-of-range color %2; fallback to 0").arg(plyNumber).arg(color));
-        return 0;
+        report.warn(QStringLiteral("JKF: move %1 has out-of-range color %2; it is ignored").arg(plyNumber).arg(color));
+        return std::nullopt;
     }
-    return color;
+    return color == 0 ? Turn::Black : Turn::White;
 }
 } // namespace
 
@@ -185,12 +187,13 @@ bool readJkfLine(const QJsonArray& moves, bool isMainline, KifLineBuilder& build
             builder.stop();
             break;
         }
-        RecordTime recordTime = KifLineBuilder::zeroTime();
-        if (hasTime) {
-            const Turn side = normalizedColorIndex(moveObject, ply, report) == 0 ? Turn::Black : Turn::White;
-            recordTime = builder.timeFor(side, time.elapsedMs, time.totalMs);
-        }
-        if (!builder.addMove(*move, recordTime, JkfCodec::notesOf(moveObject))) {
+        // 書かれた color と piece（成る前の駒）が局面と違う手は読まない（全形式で同じ）
+        WrittenMove written;
+        written.side = writtenSide(moveObject, ply, report);
+        written.piece = ShogiNotation::pieceFromCsaCode(moveObject[QStringLiteral("piece")].toString());
+        const RecordTime recordTime = hasTime ? builder.timeFor(builder.sideToMove(), time.elapsedMs, time.totalMs)
+                                              : KifLineBuilder::zeroTime();
+        if (!builder.addMove(*move, recordTime, JkfCodec::notesOf(moveObject), written)) {
             if (!report.rejectMove(ply, builder.cannotRestore(QStringLiteral("JKF"), ply)))
                 return false;
             builder.stop();

@@ -24,6 +24,12 @@
  * 突き合わせることはない。手番・直前の手の移動先（「同」の基準）・両者の累計の消費時間はこの部品が持つ。
  * 棋譜欄の表記は、指し手と直前の手から KifMoveText で作る（取り込んだ原文は使わない）。
  */
+/// 棋譜に書かれていた手の駒と手番（形式が書くものだけ）。局面と食い違う手は、全形式で同じく読まない
+struct WrittenMove {
+    Piece piece = Piece::None;  ///< 動かす駒（成る前の駒を先手の駒で表す。KIF・KI2 の駒名、CSA の駒種、JKF の piece）。書かない形式は None
+    std::optional<Turn> side;   ///< 指す側（KI2 の手番の印、CSA の符号、JKF の color）。書かない形式は nullopt
+};
+
 class KifLineBuilder
 {
 public:
@@ -57,11 +63,12 @@ public:
     /**
      * @brief 手番側の手を指して、棋譜の1行を足す
      * @param notes 棋譜に書かれていた修飾（相対位置・「不成」。JKF・KI2 の表記を残す）
+     * @param written 棋譜に書かれていた駒と手番（局面の駒・手番と食い違えば指さない）
      * @param rule 打つ駒が持ち駒にない手を許すか（既定は棋譜の読み込み用に許す）
-     * @return 指せなければ（移動元が空・打つ駒がない）何も変えずに false
+     * @return 指せなければ（書かれた駒・手番の食い違い、Position::mismatchOf）何も変えずに false
      */
     bool addMove(const UsiMove& move, const RecordTime& time = zeroTime(), const KifMoveText::Notes& notes = {},
-                 Position::DropRule rule = Position::DropRule::Lenient);
+                 const WrittenMove& written = {}, Position::DropRule rule = Position::DropRule::Lenient);
     /// 直前の addMove で指せなかった理由（"Source square is empty: 7g7e" など）
     const QString& lastError() const { return m_lastError; }
     /// 指せなかった手の警告（"KIF: Cannot restore move 3: Source square is empty: 7g7e"。全形式で同じ文面）
