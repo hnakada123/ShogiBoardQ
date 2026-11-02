@@ -82,8 +82,9 @@ class CliTools:
                                     output_path=str(output_path) if output_path is not None else None)
             result = await run_cli(cli_args, timeout=120)
 
-        structured = {k: result[k] for k in ("input_format", "output_format", "initial_sfen", "ply_count",
-                                              "usi_moves", "sfens", "moves", "game_info", "has_branches", "warnings")
+        structured = {k: result[k] for k in ("input_format", "output_format", "initial_sfen", "is_hirate", "ply_count",
+                                              "usi_moves", "sfens", "moves", "game_info", "has_branches",
+                                              "variations_dropped", "warnings")
                       if k in result}
         # The lists follow the record, so cap them like the text (max_chars): a long record must not flood the client.
         max_moves = int(args["max_moves"])
@@ -96,12 +97,16 @@ class CliTools:
         for key in ("game_info", "warnings"):
             if key in structured:
                 structured[key] = structured[key][:MAX_LIST_ITEMS]
+        # Whether the start is the initial position and whether the output lost the variations are decided by the
+        # CLI (Handicaps::isHirate, KifuExport::writesVariations), so the rules are not copied here.
+        start = "the initial position" if result.get("is_hirate") else result["initial_sfen"]
+        output_name = result["output_format"].upper()
         text_lines = [
-            f"Converted {result['input_format'].upper()} → {result['output_format'].upper()}: "
-            f"{result['ply_count']} moves from {'the initial position' if result['initial_sfen'].startswith('lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b -') else result['initial_sfen']}."
+            f"Converted {result['input_format'].upper()} → {output_name}: {result['ply_count']} moves from {start}."
         ]
-        if result.get("has_branches"):
-            text_lines.append("The record has variations; only the main line is exported.")
+        if result.get("variations_dropped"):
+            text_lines.append(f"The record has variations; {output_name} cannot hold them, so only the main line "
+                              "is exported.")
         if moves_truncated:
             text_lines.append(f"Only the first {max_moves} moves are listed (moves_truncated); ply_count has the full count.")
         if result.get("warnings"):

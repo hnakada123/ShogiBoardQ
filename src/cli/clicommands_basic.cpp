@@ -15,6 +15,7 @@
 #include "cliargs.h"
 #include "clioutput.h"
 #include "enginecatalog.h"
+#include "handicaps.h"
 #include "kifuconversionservice.h"
 #include "kifusavefile.h"
 #include "outputpath.h"
@@ -129,12 +130,14 @@ int CliCommands::convertKifu(const QJsonObject& params)
     obj[QStringLiteral("input_format")] = KifuFormats::name(result.inputFormat);
     obj[QStringLiteral("output_format")] = KifuFormats::name(request.outputFormat);
     obj[QStringLiteral("initial_sfen")] = result.initialSfen;
+    obj[QStringLiteral("is_hirate")] = Handicaps::isHirate(result.initialSfen);
     obj[QStringLiteral("ply_count")] = static_cast<int>(result.usiMoves.size());
     obj[QStringLiteral("usi_moves")] = QJsonArray::fromStringList(result.usiMoves);
     obj[QStringLiteral("sfens")] = QJsonArray::fromStringList(result.sfens);
     obj[QStringLiteral("moves")] = RecordJson::moves(result.mainline);
     obj[QStringLiteral("game_info")] = gameInfoToJson(result.gameInfo);
     obj[QStringLiteral("has_branches")] = result.hasBranches;
+    obj[QStringLiteral("variations_dropped")] = result.variationsDropped;
     obj[QStringLiteral("warnings")] = QJsonArray::fromStringList(result.warnings);
     obj[QStringLiteral("line_count")] = static_cast<int>(result.lines.size());
 

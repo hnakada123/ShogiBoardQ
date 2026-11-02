@@ -27,6 +27,10 @@ QStringList lines(const KifuBranchTree& tree, const KifuExportMetadata& metadata
 /// 文書を format の行にする（encoding はファイルに保存する文字コード。先頭行の宣言に書く）
 QStringList lines(const KifuDocument& document, KifuFormat format, KifuEncoding encoding = KifuEncoding::Utf8);
 
+/// format の書き出しが変化を書けるか（KIF・KI2・JKF・USEN）。CSA・USI は本譜だけを書き、
+/// SFEN・BOD は局面だけの形式なので false（CLI の変換の SFEN の出力は本譜の局面列）
+bool writesVariations(KifuFormat format);
+
 } // namespace KifuExport
 
 #endif // KIFUEXPORT_H

@@ -57,4 +57,21 @@ QStringList lines(const KifuDocument& document, KifuFormat format, KifuEncoding 
     return lines(*document.tree(), metadata, format);
 }
 
+bool writesVariations(KifuFormat format)
+{
+    switch (format) {
+    case KifuFormat::Kif:
+    case KifuFormat::Ki2:
+    case KifuFormat::Jkf:
+    case KifuFormat::Usen:
+        return true;
+    case KifuFormat::Csa:
+    case KifuFormat::Usi:
+    case KifuFormat::Sfen:
+    case KifuFormat::Bod:
+        break;
+    }
+    return false;
+}
+
 } // namespace KifuExport

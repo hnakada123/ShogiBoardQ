@@ -43,6 +43,7 @@ public:
         QList<KifGameInfoItem> gameInfo;   ///< 対局情報
         QStringList warnings;              ///< 解析時の警告
         bool hasBranches = false;          ///< 変化を含むか
+        bool variationsDropped = false;    ///< 変化を含むが、出力の形式が変化を書けない（本譜だけを書いた）
     };
 
     static Result convert(const Request& request);
