@@ -7,6 +7,7 @@
 #include <QPushButton>
 #include <QHeaderView>
 #include <QTableView>
+#include <QTableWidget>
 #include <QTemporaryDir>
 #include <QToolButton>
 #include "gameinfopane.h"
@@ -429,6 +430,30 @@ private slots:
         QTest::mouseClick(decrease, Qt::LeftButton);
         QCOMPARE(AnalysisSettings::thinkingFontSize(), 10);
         QCOMPARE(tab.info1()->fontSize(), 10);
+    }
+
+    /// アプリの既定の書体が 10pt でない環境（Windows 9pt・macOS 13pt）でも、思考ドックの表と情報欄は
+    /// 起動直後から保存した大きさ（未保存なら 10pt）で出す。A+→A- で同じ「10」に戻したときと同じ大きさ
+    void thinkingPanelStartsAtTheSavedSizeWhateverTheAppFont()
+    {
+        const QFont appFont = QApplication::font();
+        for (const int appSize : {9, 13}) {
+            QFont font = appFont;
+            font.setPointSize(appSize);
+            QApplication::setFont(font);
+            AnalysisSettings::thinkingFontSize.remove();
+            QWidget parent;
+            ThinkingPanel tab(&parent);
+            const auto views = tab.findChildren<QTableView*>(QString(), Qt::FindDirectChildrenOnly);
+            QCOMPARE(views.size(), 2);
+            for (QTableView* view : views) QCOMPARE(view->font().pointSize(), 10);
+            for (EngineInfoWidget* info : {tab.info1(), tab.info2()}) {
+                auto* table = info->findChild<QTableWidget*>();
+                QVERIFY(table);
+                QCOMPARE(table->font().pointSize(), 10);
+            }
+        }
+        QApplication::setFont(appFont);
     }
 
     void startupShowsDefaultPlayerNamesOnBoard()

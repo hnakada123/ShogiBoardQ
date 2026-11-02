@@ -88,8 +88,9 @@ ThinkingPanel::ThinkingPanel(const ArrowActions& actions, QWidget* parent)
     connect(m_view1, &ThinkingTableView::thinkingRowContextMenuAboutToShow, this, &ThinkingPanel::rowContextMenuAboutToShow);
     connect(m_view2, &ThinkingTableView::thinkingRowContextMenuAboutToShow, this, &ThinkingPanel::rowContextMenuAboutToShow);
     connect(&m_fontSize, &FontSizeHelper::fontSizeChanged, this, &ThinkingPanel::applyFontSize);
-    // 既定の大きさ（10）のときは表の既定の書体のままにする
-    if (m_fontSize.fontSize() != 10) applyFontSize();
+    // 保存した大きさ（未保存なら 10pt）をいつも付ける。アプリの既定の書体が 10pt でない環境
+    // （Windows 9pt・macOS 13pt）でも、起動直後から A-/A+ と同じ大きさにする
+    applyFontSize();
 
     // 2つ目のエンジンは使うときだけ出す
     setSecondEngineVisible(false);
