@@ -135,6 +135,7 @@ int CliCommands::convertKifu(const QJsonObject& params)
     obj[QStringLiteral("usi_moves")] = QJsonArray::fromStringList(result.usiMoves);
     obj[QStringLiteral("sfens")] = QJsonArray::fromStringList(result.sfens);
     obj[QStringLiteral("moves")] = RecordJson::moves(result.mainline);
+    RecordJson::addOpening(obj, result.mainline.openingComment, result.mainline.openingBookmark);
     obj[QStringLiteral("game_info")] = gameInfoToJson(result.gameInfo);
     obj[QStringLiteral("has_branches")] = result.hasBranches;
     obj[QStringLiteral("variations_dropped")] = result.variationsDropped;

@@ -69,6 +69,36 @@ class KifuUi:
         await self.call("click_dialog_button", target="kifuPasteDialog", text="取り込む")
 
 
+OPENING_KIF = ("手合割：平手\n*開始局面のコメント\n&序盤\n手数----指手---------消費時間--\n"
+               "   1 ７六歩(77)\n*初手のコメント\n   2 ３四歩(33)\n")
+
+
+async def test_opening_comment_and_bookmark(kifu_env, tmp_path):
+    """get_kifu and convert_kifu return the start position's comment and bookmark in the same fields."""
+    async with mcp_session(kifu_env) as session:
+        ui = KifuUi(session, tmp_path)
+        converted = await ui.call("convert_kifu", text=OPENING_KIF, output_format="usi")
+        assert converted["opening_comment"] == "開始局面のコメント"
+        assert converted["opening_bookmark"] == "序盤"
+        assert [m["ply"] for m in converted["moves"]] == [1, 2]
+
+        await ui.call("load_kifu", text=OPENING_KIF)
+        kifu = await ui.call("get_kifu")
+        assert kifu["opening_comment"] == "開始局面のコメント"
+        assert kifu["opening_bookmark"] == "序盤"
+        assert [m["usi"] for m in kifu["moves"]] == ["7g7f", "3c3d"]
+        assert kifu["moves"][0]["comment"] == "初手のコメント"
+        text, _, error = result_data(await session.call_tool("get_kifu", {}))
+        assert not error and "Start position comment: 開始局面のコメント" in text
+
+        # The fields are left out when the start position has neither.
+        await ui.call("load_kifu", path=str(FIXTURES / "test_basic.kif"), discard_unsaved=True)
+        kifu = await ui.call("get_kifu")
+        assert "opening_comment" not in kifu and "opening_bookmark" not in kifu
+        converted = await ui.call("convert_kifu", input_path=str(FIXTURES / "test_basic.kif"), output_format="usi")
+        assert "opening_comment" not in converted and "opening_bookmark" not in converted
+
+
 @pytest.mark.parametrize("extension", ["kif", "kifu", "ki2", "ki2u", "csa", "jkf", "usi", "usen"])
 async def test_save_reload_formats(kifu_env, tmp_path, extension):
     async with mcp_session(kifu_env) as session:

@@ -81,6 +81,10 @@ class AppTools:
             line_label = "main line" if line_index == 0 else f"variation line {line_index}"
             lines = [f"{result.get('total_plies', 0)} plies total ({line_label}); "
                      f"showing {len(moves)} from ply {params['from_ply']}."]
+            if result.get("opening_bookmark"):
+                lines.append(f"Start position bookmark: {result['opening_bookmark']}")
+            if result.get("opening_comment"):
+                lines.append(f"Start position comment: {result['opening_comment']}")
             for m in moves:
                 extra = ""
                 if m.get("time"):

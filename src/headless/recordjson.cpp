@@ -22,3 +22,9 @@ QJsonArray RecordJson::moves(const RecordLine& line)
         array.append(entry(line.startPly + static_cast<int>(i), line.entries.at(i)));
     return array;
 }
+
+void RecordJson::addOpening(QJsonObject& obj, const QString& comment, const QString& bookmark)
+{
+    if (!comment.isEmpty()) obj[QStringLiteral("opening_comment")] = comment;
+    if (!bookmark.isEmpty()) obj[QStringLiteral("opening_bookmark")] = bookmark;
+}
