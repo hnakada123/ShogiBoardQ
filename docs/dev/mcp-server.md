@@ -91,7 +91,7 @@ shogiboardq-cli            ShogiBoardQ --automation
 | `goto_ply` | 指定手数へ移動 | `ply` | `kifu.goto` |
 | `list_actions` | `trigger_action` で実行できる動作の一覧（有効・チェック状態付き） | なし | `action.list` |
 | `trigger_action` | `QAction` の objectName を許可リスト内で実行（応答後に実行するのでモーダルダイアログでも返る） | `name` | `action.trigger` |
-| `click_board_square` | 盤面・駒台へマウスクリックを送る（回転に依存しない論理座標） | `target`、`file`、`rank`、`button` | `board.click` |
+| `click_board_square` | 盤面・駒台・駒箱へマウスクリックを送る（回転に依存しない論理座標） | `target`、`file`、`rank`、`button` | `board.click` |
 | `click_dialog_button` | ダイアログのボタンを押す。問題カード・成り選択にも対応 | `target`、`widget` または `text`、`index` | `dialog.clickButton` |
 | `list_docks` | 非表示を含む全ドックの配置・タブ・表示領域・固定状態 | なし | `dock.list` |
 | `configure_dock` | 表示、閉じる、浮動化、四方向配置、タブ化、タイトルバードラッグ | `widget`、`operation`、`area?`、`relative_to?`、`geometry?`、`x?`、`y?` | `dock.configure` |
@@ -242,7 +242,7 @@ ShogiBoardQ --automation [--automation-socket PATH]
 | `kifu.goto` | `{ply}` | `{ply, sfen}` | `-32602` 範囲外、`invalid_state` 対局・通信対局・棋譜解析・局面編集の間（GUI の棋譜欄と同じ規則 `HumanTurnPolicy::canBrowseRecord`） |
 | `action.list` | - | `{actions:[{name,text,enabled,checked,checkable}]}` | - |
 | `action.trigger` | `{name}` | `{name, triggered:true, queued:true, interaction}`（応答後に実行） | `-32001` 許可リスト外、`-32002` 無効状態、`-32005` 存在しない |
-| `board.click` | `{target?, file, rank, button?: "left"\|"right"}` | `{target, file, rank, queued:true, interaction}`（応答後に実行） | `-32602` 不正座標、`-32002` 操作不可、`-32005` 盤なし |
+| `board.click` | `{target?, file, rank, button?: "left"\|"right"}`（`file` は盤1〜9・先手の駒台10・後手の駒台11・駒箱12。駒台・駒箱の段は `BoardCoordinates::standPieceAt` の並びだけを受け付け、引数の説明もこの表から作る） | `{target, file, rank, queued:true, interaction}`（応答後に実行） | `-32602` 不正座標（表示していない駒箱も）、`-32002` 操作不可、`-32005` 盤なし |
 | `dialog.clickButton` | `{target, widget? または text?, index?}` | `{object_name, text, queued:true, interaction}`（応答後に実行） | `-32602` 不正引数、`-32002` 操作不可、`-32005` ボタンなし |
 | `screenshot.capture` | `{target?: "main"\|objectName\|タイトル, output_dir?}` | `{path, width, height}` | `-32602` 相対の `output_dir`、`-32005` 対象なし |
 | `dialog.list` | - | `{windows:[{object_name,class,title,visible,modal,active,main,width,height}]}` | - |

@@ -6,6 +6,7 @@
 #include "automationinput.h"
 #include "automationinteractions.h"
 #include "automationwidgets.h"
+#include "boardcoordinates.h"
 #include "shogiview.h"
 
 namespace {
@@ -40,8 +41,10 @@ void AutomationCommands::registerBoardCommands(AutomationDispatcher& dispatcher,
         const QString target = params.value(QStringLiteral("target")).toString();
         const int file = params.value(QStringLiteral("file")).toInt();
         const int rank = params.value(QStringLiteral("rank")).toInt();
-        if ((file == 10 && rank > 8) || (file == 11 && rank < 2)) {
-            throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("Invalid hand piece coordinate"));
+        // 駒台・駒箱は駒の並びにある段だけ（並びは BoardCoordinates の表）
+        if (file > BoardConstants::kBoardSize && BoardCoordinates::standPieceAt(file, rank) == Piece::None) {
+            throw AutomationError(ErrorKind::InvalidArgument,
+                                  QStringLiteral("No piece of the hand or piece box is at this rank"));
         }
         const QString button = params.value(QStringLiteral("button")).toString();
         QWidget* window = requireWindow(context, target);

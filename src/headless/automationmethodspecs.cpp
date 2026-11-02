@@ -2,6 +2,7 @@
 /// @brief 自動化 API のメソッドごとの引数の表
 
 #include "automationmethodspecs.h"
+#include "boardcoordinates.h"
 #include "kifuformat.h"
 
 using namespace ParamSpecs;
@@ -29,6 +30,30 @@ ParamSpec discardUnsaved()
 ParamSpec coordinate(const QString& name)
 {
     return integer(name, QString(), -100000, 100000);
+}
+
+/// 駒台・駒箱の筋 file の段と駒（"rank 1=P 2=L …"）。並びは BoardCoordinates::standPieceAt の表から作る
+QString standRanks(int file)
+{
+    QStringList cells;
+    for (int rank = 1; rank <= BoardConstants::kBoardSize; ++rank) {
+        const Piece piece = BoardCoordinates::standPieceAt(file, rank);
+        if (piece != Piece::None) cells.append(QStringLiteral("%1=%2").arg(rank).arg(pieceLetter(toBlack(piece))));
+    }
+    return QStringLiteral("rank ") + cells.join(QLatin1Char(' '));
+}
+
+/// 盤のマスの筋（盤上1〜9・先手と後手の駒台・駒箱）
+ParamSpec boardFile()
+{
+    return integer(QStringLiteral("file"),
+                   QStringLiteral("1-9 are the files of the board. %1 is Black's hand (%2), %3 is White's hand (%4) "
+                                  "and %5 is the piece box shown while editing a position (%6).")
+                       .arg(BoardConstants::kBlackStandFile).arg(standRanks(BoardConstants::kBlackStandFile))
+                       .arg(BoardConstants::kWhiteStandFile).arg(standRanks(BoardConstants::kWhiteStandFile))
+                       .arg(BoardConstants::kPieceBoxFile).arg(standRanks(BoardConstants::kPieceBoxFile)),
+                   1, BoardConstants::kPieceBoxFile)
+        .require();
 }
 } // namespace
 
@@ -61,8 +86,8 @@ const QList<OperationSpec>& AutomationMethodSpecs::all()
           integer(QStringLiteral("max_moves"), QString(), 1, 100000).withDefault(200)}},
         {QStringLiteral("kifu.goto"), QStringLiteral("Go to a ply of the current line (0 = start position)."),
          {integer(QStringLiteral("ply"), QString(), 0, 100000).require()}},
-        {QStringLiteral("board.click"), QStringLiteral("Click a board square (file 10/11 are the hands)."),
-         {target(), integer(QStringLiteral("file"), QString(), 1, 11).require(),
+        {QStringLiteral("board.click"), QStringLiteral("Click a board square, a piece in hand or a piece in the piece box."),
+         {target(), boardFile(),
           integer(QStringLiteral("rank"), QString(), 1, 9).require(),
           choice(QStringLiteral("button"), QString(), {QStringLiteral("left"), QStringLiteral("right")})
               .withDefault(QStringLiteral("left"))}},

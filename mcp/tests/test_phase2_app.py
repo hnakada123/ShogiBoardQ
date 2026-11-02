@@ -151,6 +151,52 @@ async def test_actions_dialogs_and_screenshots(app_env, tmp_path):
         assert not is_error and widgets["widgets"]
 
 
+async def test_position_edit_piece_box_clicks(app_env):
+    """The piece box (file 12) can be clicked while editing a position, as with the mouse in the GUI."""
+    async with mcp_session(app_env) as session:
+        async def call(tool, **args):
+            text, data, error = await _call(session, tool, **args)
+            assert not error, text
+            return data
+
+        async def board_sfen():
+            widgets = (await call("get_widget_text"))["widgets"]
+            return next(w for w in widgets if "board_sfen" in w)["board_sfen"]
+
+        async def wait_board(expected):
+            for _ in range(100):
+                if await board_sfen() == expected:
+                    return
+                await asyncio.sleep(0.05)
+            pytest.fail(f"board did not become {expected}: {await board_sfen()}")
+
+        tools = {tool.name: tool for tool in (await session.list_tools()).tools}
+        file_schema = tools["click_board_square"].input_schema["properties"]["file"]
+        assert file_schema["maximum"] == 12 and "piece box" in file_schema["description"]
+
+        # Outside position editing the piece box is not shown.
+        text, _, error = await _call(session, "click_board_square", file=12, rank=8)
+        assert error and "not displayed" in text
+
+        await call("trigger_action", name="actionStartEditPosition")
+        for _ in range(100):
+            if (await call("get_app_state"))["ui_state"] == "position_edit":
+                break
+            await asyncio.sleep(0.05)
+        await call("trigger_action", name="actionReturnAllPiecesToStand")
+        await wait_board("9/9/9/9/9/9/9/9/9")
+
+        await call("click_board_square", file=12, rank=8)  # a king in the piece box
+        await call("click_board_square", file=5, rank=9)
+        await wait_board("9/9/9/9/9/9/9/9/4K4")
+
+        # Ranks without a piece cell are refused by the same table as the hands.
+        for file, rank in [(12, 9), (10, 9), (11, 1)]:
+            text, _, error = await _call(session, "click_board_square", file=file, rank=rank)
+            assert error and "rank" in text, (file, rank, text)
+        await call("trigger_action", name="actionEndEditPosition")
+
+
 async def test_tsume_board_clicks(app_env, tmp_path):
     """Exercise real dialog mouse input, promotion, flipped hand drops and modal guards through MCP."""
     env = dict(app_env)
