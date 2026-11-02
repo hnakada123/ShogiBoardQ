@@ -52,17 +52,9 @@ QString western(const Position& board, const UsiMove& move, Piece moving, Option
 /// 局面の上の1手の表記。読めない手はそのまま返し、駒のない移動元からは駒を作らない
 QString format(const Position& board, const QString& usi, Options style, bool side)
 {
-    const std::optional<UsiMove> move = UsiMove::parse(usi.trimmed());
-    if (!move) return usi;
-    const Turn mover = board.sideToMove();
-    const Piece moving = move->isDrop() ? move->dropPieceFor(mover) : board.pieceAt(move->from);
-    if (moving == Piece::None) return usi; // Incomplete input: never invent a piece.
-
-    if (style.notation == Notation::Japanese) {
-        const QString text = KifMoveText::format(mover, moving, *move);
-        return side ? text : text.mid(1);
-    }
-    return western(board, *move, moving, style, side);
+    const std::optional<UsiMove> parsed = UsiMove::parse(usi.trimmed());
+    if (!parsed) return usi;
+    return move(board, *parsed, style, side);
 }
 
 /// 読み筋の表記の設定（fullOrigin なら移動元をすべて付ける）
@@ -79,6 +71,19 @@ QString rankLabel(int rank)
     if (rank < 1 || rank > 9) return {};
     return options().notation == Notation::Western ? QString(QChar('a' + rank - 1))
                                                    : ShogiNotation::rankKanji(rank);
+}
+
+QString move(const Position& before, const UsiMove& move, Options style, bool includeSide)
+{
+    const Turn mover = before.sideToMove();
+    const Piece moving = move.isDrop() ? move.dropPieceFor(mover) : before.pieceAt(move.from);
+    if (moving == Piece::None) return move.toString(); // Incomplete input: never invent a piece.
+
+    if (style.notation == Notation::Japanese) {
+        const QString text = KifMoveText::format(mover, moving, move);
+        return includeSide ? text : text.mid(1);
+    }
+    return western(before, move, moving, style, includeSide);
 }
 
 QString move(const QString& beforeSfen, const QString& usi, Options style, bool includeSide)

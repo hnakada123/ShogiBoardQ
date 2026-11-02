@@ -33,6 +33,8 @@
 #include "kifubranchtreebuilder.h"
 #include "kifparsetypes.h"
 #include "kifunavigationstate.h"
+#include "kifupresentation.h"
+#include "notationstyle.h"
 #include "recordline.h"
 #include "sfenreplay.h"
 #include "sfenutils.h"
@@ -141,6 +143,7 @@ private slots:
     void testExpandAndDeviation();
     void testButtonColumnsActOnRow();
     void testMoveListPlaceholder();
+    void testMoveListFollowsNotation();
     void testFontButtonsKeepWidth();
 
 private:
@@ -1599,6 +1602,38 @@ void TestJosekiWindow::testMoveListPlaceholder()
     input.setCurrentSfen(QString());
     QCOMPARE(combo->count(), 0);
     QCOMPARE(combo->placeholderText(), QStringLiteral("局面がありません"));
+}
+
+void TestJosekiWindow::testMoveListFollowsNotation()
+{
+    // 指し手の一覧は、定跡ウィンドウの表・「定跡手: …」と同じ画面の表記（英語表記なら英語の手）。
+    // 成と不成の両方を指せる手は、表記の設定どおり見分けられる（英語表記は + と =）
+    const QString sfen = QStringLiteral("4k4/9/9/6S2/9/9/9/9/4K4 b - 1");
+    const struct {
+        const char *language;
+        const char *notation;
+        const char *promote;
+        const char *decline;
+    } cases[] = {
+        {"en", "western", "▲S-3c+", "▲S-3c="},
+        {"ja_JP", "japanese", "▲３三銀成(34)", "▲３三銀(34)"},
+    };
+    for (const auto &style : cases) {
+        NotationStyle::configure(QString::fromLatin1(style.language), QString::fromLatin1(style.notation), false);
+        JosekiMoveInputWidget input(QStringLiteral("moveInput"), QStringLiteral("指し手"), false);
+        input.setCurrentSfen(sfen);
+        auto *combo = input.findChild<QComboBox*>(QStringLiteral("moveInputCombo"));
+        QVERIFY(combo && combo->count() > 0);
+        for (int i = 0; i < combo->count(); ++i) {
+            QCOMPARE(combo->itemText(i),
+                     KifuPresentation::move(sfen, combo->itemData(i).toString(), KifuPresentation::options()));
+        }
+        QCOMPARE(combo->itemText(combo->findData(QStringLiteral("3d3c+"))), QString::fromUtf8(style.promote));
+        QCOMPARE(combo->itemText(combo->findData(QStringLiteral("3d3c"))), QString::fromUtf8(style.decline));
+        input.setUsiMove(QStringLiteral("3d3c+"));
+        QCOMPARE(input.findChild<QLabel*>(QStringLiteral("movePreview"))->text(), QString::fromUtf8(style.promote));
+    }
+    NotationStyle::configure(QStringLiteral("ja_JP"), QStringLiteral("japanese"), false);
 }
 
 void TestJosekiWindow::testFontButtonsKeepWidth()

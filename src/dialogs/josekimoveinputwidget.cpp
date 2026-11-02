@@ -4,7 +4,7 @@
 #include "josekimoveinputwidget.h"
 
 #include "enginemovevalidator.h"
-#include "kifmovetext.h"
+#include "kifupresentation.h"
 #include "shogiposition.h"
 
 #include <QComboBox>
@@ -22,20 +22,20 @@ struct LegalMove {
     QString text;
 };
 
-/// 局面の合法手を、駒の種類・移動先・移動元の順に並べて表記を付ける
+/// 局面の合法手を、駒の種類・移動先・移動元の順に並べて表記を付ける。表記は定跡ウィンドウの表・
+/// ダイアログの「定跡手: …」と同じ画面の表記（KifuPresentation。表記の設定に合わせる）
 QList<LegalMove> legalMovesOf(const QString &sfen)
 {
     const std::optional<Position> board = Position::fromSfen(sfen);
     if (!board) return {};
     const Turn mover = board->sideToMove();
+    const KifuPresentation::Options style = KifuPresentation::options();
     QList<LegalMove> result;
     const QList<UsiMove> moves = EngineMoveValidator::legalMoves(*board, mover);
     for (const UsiMove &move : moves) {
         const Piece moving = move.isDrop() ? move.dropPieceFor(mover) : board->pieceAt(move.from);
         if (moving == Piece::None) continue;
-        KifMoveText::Notes notes;
-        notes.declinedPromotion = KifMoveText::couldPromote(moving, move);
-        result.append({move, moving, KifMoveText::format(mover, moving, move, {}, notes)});
+        result.append({move, moving, KifuPresentation::move(*board, move, style)});
     }
     std::sort(result.begin(), result.end(), [](const LegalMove &a, const LegalMove &b) {
         const auto key = [](const LegalMove &m) {
