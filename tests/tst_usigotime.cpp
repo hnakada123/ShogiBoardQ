@@ -123,6 +123,27 @@ private slots:
         QCOMPARE(UsiGoTimeCalculator::compute(in).byoyomi, 150LL);
     }
 
+    /// 時計の残りから btime/wtime への換算（ローカル対局と通信対局で共通。監査 2026-11-01 F14）
+    void fromClockConvertsRemainingToUsiTime()
+    {
+        const TimeControl tc = rules(600, 600, 0, 0, 10, 10);
+        // 加算を足してある残りは加算を引き、まだ引いていない経過時間も引く
+        UsiGoTimeInput in = UsiGoTimeCalculator::fromClock(tc, Turn::Black, false, {310000, true, 1500},
+                                                           {300000, false, 0});
+        QCOMPARE(in.sideToMove, Turn::Black);
+        QCOMPARE(in.btimeMs, 298500LL);
+        QCOMPARE(in.wtimeMs, 300000LL);
+        // 先読みする側の残りに足してある加算は指し終えた手番の分なので引かない（経過時間は引く）
+        in = UsiGoTimeCalculator::fromClock(tc, Turn::Black, true, {310000, true, 60000}, {300000, true, 0});
+        QCOMPARE(in.btimeMs, 250000LL);
+        QCOMPARE(in.wtimeMs, 290000LL);
+        // 秒読みの対局は加算を使わない。経過時間が残りを超えても 0 で止める
+        in = UsiGoTimeCalculator::fromClock(rules(100, 100, 10, 10, 0, 0), Turn::White, true, {100000, false, 0},
+                                            {100000, true, 160000});
+        QCOMPARE(in.btimeMs, 100000LL);
+        QCOMPARE(in.wtimeMs, 0LL);
+    }
+
     void commandText()
     {
         UsiGoTime t;

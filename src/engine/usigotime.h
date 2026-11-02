@@ -61,7 +61,26 @@ struct UsiGoTimeInput {
     qint64 marginMs = 0;       ///< 通信の遅延に備えて差し引く時間
 };
 
+/// 対局の時計が示す1人分の残り（ローカル対局の対局時計・通信対局のサーバーの残り時間）
+struct UsiClockSide {
+    qint64 remainingMs = 0;          ///< 残り持ち時間（秒読みを含まない）
+    bool includesIncrement = false;  ///< 残りに、その側の今の手番（手番でなければ次の手番）の加算を足してあるか
+    qint64 unsettledMs = 0;          ///< 残りからまだ引いていない、今の手番の経過時間
+};
+
 namespace UsiGoTimeCalculator {
+
+/**
+ * @brief 対局の時計の残りから go の時間の入力（btime/wtime）を作る（ローカル対局と通信対局で共通）
+ * @param side 思考する側
+ * @param pondering 先読みか（side は指し終えて相手の手番。side の残りは次の手番の分）
+ *
+ * USI の btime/wtime は、その側の次の手番（手番側は今の手番）で加わる加算を含まない残り。残りに加算を足してある
+ * 側はそれを引き、まだ引いていない経過時間も引く。先読みする側の残りに足してある加算は指し終えた手番の分で、
+ * 次の手番の加算ではないので引かない。秒読みの対局は加算を使わない。秒読みの残り・遅延・余裕は呼び出し側が足す
+ */
+UsiGoTimeInput fromClock(const TimeControl& timeControl, Turn side, bool pondering,
+                         const UsiClockSide& black, const UsiClockSide& white);
 
 /// GUI の期限より先に返せるよう、毎手差し引く余裕の上限（予算の半分を超えない）
 inline constexpr qint64 kEngineReserveMs = 250;

@@ -1333,8 +1333,11 @@ for command in sys.stdin:
                 await peer.send("START:spec")
                 await peer.until("+7776FU", timeout=20)
                 command = log.read_text().splitlines()[-1]
-                assert command.startswith("go btime 300000 wtime 300000 byoyomi "), command
-                budgets.append(int(command.rsplit(" ", 1)[1]))
+                words = command.split()
+                assert words[:2] == ["go", "btime"] and words[3:5] == ["wtime", "300000"], command
+                # The side to move's btime is its remaining time minus what this turn has used so far.
+                assert 299000 < int(words[2]) <= 300000 and words[5] == "byoyomi", command
+                budgets.append(int(words[6]))
                 await peer.send("+7776FU,T1")
                 await peer.send("#CHUDAN")
                 await ui.dismiss_end()

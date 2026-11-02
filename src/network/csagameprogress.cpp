@@ -80,23 +80,22 @@ RecordTime CsaGameProgress::initialMoveTime(int index) const
     return RecordTime::fromMilliseconds(s.positionMoveConsumedMs(index), total);
 }
 
-UsiGoTimeInput CsaGameProgress::engineTiming(int marginMs) const
+UsiGoTimeInput CsaGameProgress::engineTiming(bool pondering, qint64 elapsedThisTurnMs, int marginMs) const
 {
     // 仕様 3.2.2.1: 1手に使える時間は「遅延時間＋残り時間＋秒読み」。遅延時間はサーバーが消費時間から
     // 差し引くので、今の手の思考時間に足すだけでよい。サーバーは LF の到着時刻で消費時間を測るので、
     // 通信の遅延に備えて余裕を差し引く。go に載せる値は UsiGoTimeCalculator が求める。
-    const TimeControl tc = summary.timeControl().normalized();
-    const TimeControlSide& mine = tc.side(isBlackSide ? Turn::Black : Turn::White);
-    qint64 black = qMax(0, blackRemainingMs);
-    qint64 white = qMax(0, whiteRemainingMs);
-    qint64& own = isBlackSide ? black : white;
-    own = qMax<qint64>(0, own - mine.incrementMs);
-
-    UsiGoTimeInput timing;
-    timing.timeControl = tc;
-    timing.btimeMs = black;
-    timing.wtimeMs = white;
-    timing.extraMs = mine.delayMs;
+    const TimeControl tc = summary.timeControl();
+    const Turn mine = isBlackSide ? Turn::Black : Turn::White;
+    const Turn toMove = sideToMove();
+    // 手番側の残りだけが今の手番の加算を含み、今の手番の経過時間はまだ引いていない
+    const auto clockSide = [&](Turn player) {
+        const bool onTurn = player == toMove;
+        return UsiClockSide{qMax(0, remainingMs(player == Turn::Black)), onTurn, onTurn ? elapsedThisTurnMs : 0};
+    };
+    UsiGoTimeInput timing = UsiGoTimeCalculator::fromClock(tc, mine, pondering, clockSide(Turn::Black),
+                                                           clockSide(Turn::White));
+    timing.extraMs = tc.normalized().side(mine).delayMs;
     timing.marginMs = qMax(0, marginMs);
     return timing;
 }

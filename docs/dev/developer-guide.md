@@ -170,6 +170,7 @@
 | 2026-11-03 | A- で自動の列幅が縮むようにした（監査 2026-11-01 F29）のに合わせて §9.8 を更新（棋譜解析の結果の表は全行を測り直すときに今の幅を下限にしない。定跡ウィンドウの自動の幅は見本の文字が収まる幅で、下限は作ったときの幅 `JosekiTableView::minimumColumnWidth`。どちらも以前は今の幅を下限にしていたので、A+ で広げた幅が A- で戻らなかった） |
 | 2026-11-03 | 通信ログのパネルの設定の変更を、同じ設定を使うパネルに伝えるようにした（監査 2026-11-01 F30）のに合わせて第18章を更新（CSA 通信ログのドックと待機ダイアログのログは、片方で変えた文字の大きさと折り返しにもう片方も合わせる。以前はどちらも作るときに1回だけ設定を読み、ドックは次の起動まで古い値のままで、その後の A+ で古い値から計算して保存し直していた） |
 | 2026-11-03 | 終局の原因からの対応をローカル対局と通信対局で1つにした（監査 2026-11-01 F15）のに合わせて第5章の内部型定義を更新（`MatchCause`・`MatchGameEndInfo` を `src/game/matchending.h` に移し、`MatchCause::MaxMoves` を足した。終局語とエンジンへの gameover は `MatchEnding` だけで決め、通信対局は `CsaGameProgress::endInfo()` でサーバーの結果を原因に直す。最大手数は持将棋と書き（通信対局は「最大手数到達」と書いていた）、最大手数・中断・知らない原因の終局でも通信対局のエンジンに `gameover draw` を送る（今までは送らなかった）。`MatchCoordinator::handleMaxMovesJishogi()` は `handleMaxMoves()`、`endGame()` の `engineLoser` 引数は消した） |
+| 2026-11-03 | 時計の残りから USI の btime/wtime への換算を1つにした（監査 2026-11-01 F14）のに合わせて §7.4・§12.3 を更新（`UsiGoTimeCalculator::fromClock()` と `UsiClockSide` を足し、`ClockTimeSource::snapshot()` と `CsaGameProgress::engineTiming(pondering, elapsedThisTurnMs, marginMs)` が使う。通信対局の先読みの go ponder は、自分の残りから今の手の消費を引き、加算は引かない（以前は今の手の消費を引かず加算を引いていた）。手番側の経過時間は先読みでないときも引く） |
 
 <!-- chapter-0-end -->
 
@@ -3583,7 +3584,7 @@ enum class SearchKind { Main, Ponder, Mate };
 
 #### 主要コマンド送信メソッド
 
-go に載せる内容は `UsiGo`（`src/engine/usigotime.h`）で表す。時計から `UsiGoTime`（btime・wtime・byoyomi・binc・winc）を求める計算は `UsiGoTimeCalculator::compute()` にある。
+go に載せる内容は `UsiGo`（`src/engine/usigotime.h`）で表す。時計から `UsiGoTime`（btime・wtime・byoyomi・binc・winc）を求める計算は `UsiGoTimeCalculator::compute()` にある。対局の時計の残り（1人分ずつ `UsiClockSide`: 残り・加算を足してあるか・まだ引いていない経過時間）から USI の btime/wtime の意味（その側の次の手番の加算を含まない残り）への換算は `UsiGoTimeCalculator::fromClock()` だけで、ローカル対局の `ClockTimeSource` と通信対局の `CsaGameProgress::engineTiming()` が使う。加算を足してある残りは加算を、まだ引いていない経過時間はその時間を引く。先読みする側の残りに足してある加算は指し終えた手番の分なので引かない。
 
 | メソッド | 生成されるコマンド |
 |---------|------------------|
@@ -6837,7 +6838,7 @@ CsaClientとゲームシステム（GameBoard, ShogiClock等）の橋渡し役�
 - 動作状態。棋譜を作った後で `DuringCsaGame` のリースを取り（`MatchCoordinator::start()` と同じ形）、終局（棋譜の確定の後）と `stopGame()` で手放す
 - GUI側の時計制御（サーバーの権威的な消費時間でGUI時計を補正。表示用の `ShogiClock` はサーバーの残り時間の写しで、計算には使わない）
 - USIエンジンの起動・思考管理（エンジン vs サーバー対局時。ローカル対局と同じ `MatchEngineSeat`。エンジンはローカルの対局・検討と同じ `EngineSlots` の枠 E1 に置く）
-- 自分のエンジンの時間の出どころ（`MatchTimeSource` を継承する。`snapshot()` は `CsaGameProgress::engineTiming(margin)` のサーバーの残り時間・決まり・遅延・余裕から、`elapsedThisTurn()` は手番（`CsaGameProgress::sideToMove()`。手順の最後の手の相手）が変わるたびに始める自分の `QElapsedTimer` から返す。投了の消費時間もこの値で、表示用の時計を読まない）
+- 自分のエンジンの時間の出どころ（`MatchTimeSource` を継承する。`snapshot()` は `CsaGameProgress::engineTiming(pondering, 手番側の経過時間, margin)` のサーバーの残り時間・決まり・遅延・余裕から（自分の手をサーバーが確認するまで残り時間は手番の初めのままなので、手番側の経過時間を引く。先読みでは今の手の消費になる）、`elapsedThisTurn()` は手番（`CsaGameProgress::sideToMove()`。手順の最後の手の相手）が変わるたびに始める自分の `QElapsedTimer` から返す。投了の消費時間もこの値で、表示用の時計を読まない）
 - 対局結果の日本語変換と表示
 
 自分の手番は持たない。いまの手番は `CsaClient::isMyTurn()` と確認待ち（`awaitingMoveConfirmation()`）から `turnState()`（`MyTurn`・`AwaitingConfirmation`・`OpponentTurn`）として求め、`isMyTurn()` はその `MyTurn` を返す。

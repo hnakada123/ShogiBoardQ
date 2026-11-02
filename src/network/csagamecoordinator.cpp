@@ -410,10 +410,12 @@ void CsaGameCoordinator::onClientGameEnded(CsaClient::GameResult result, CsaClie
     emit gameEnded(result, cause, actualConsumedTimeMs);
 }
 
-MatchSearchTiming CsaGameCoordinator::snapshot(Turn side, bool /*pondering*/) const
+MatchSearchTiming CsaGameCoordinator::snapshot(Turn side, bool pondering) const
 {
-    // 先読みも自分の持ち時間を読む。残り時間は着手ごとにサーバーが示した値
-    UsiGoTimeInput input = m_progress.engineTiming(m_options.thinkingMarginMs);
+    // 先読みも自分の持ち時間を読む。残り時間は着手ごとにサーバーが示した値で、自分の手をサーバーが確認するまでは
+    // 今の手の消費を引いていないので、手番側の経過時間を引く（ローカル対局と同じ換算）
+    UsiGoTimeInput input = m_progress.engineTiming(pondering, elapsedThisTurn(m_progress.sideToMove()),
+                                                   m_options.thinkingMarginMs);
     input.sideToMove = side;
     return MatchSearchTiming::fromInput(input);
 }
