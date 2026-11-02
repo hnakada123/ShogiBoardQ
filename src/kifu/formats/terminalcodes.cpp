@@ -10,9 +10,10 @@ namespace {
 struct Code {
     TerminalType type;
     const char* code;
+    bool readOnly = false;  ///< 読むだけで書かない符号
 };
 
-// 書くときは種類の最初の行、読むときは符号の最初の行を使う（後ろの行は読むだけの別名）
+// 書くときは種類の最初の行（readOnly の行は除く）、読むときは符号の最初の行を使う（後ろの行は読むだけの別名）
 
 const Code kCsaCodes[] = {
     {TerminalType::Resign, "TORYO"},
@@ -49,23 +50,25 @@ const Code kUsiCodes[] = {
     {TerminalType::IllegalLoss, "illegal"},
 };
 
-// USEN の符号（.i=反則, .r=投了, .t=時間切れ, .p=中断, .j=持将棋）。千日手は持将棋と同じく引き分けの j で書く
+// USEN の符号（作者の実装 mog-core-scala の SpecialMove に合わせる。r=投了, t=時間切れ, p=中断, j=持将棋）。
+// 千日手は持将棋と同じく引き分けの j で書く。
+// i は手番側の反則（手番側の負け）で、後ろに反則手の3文字が続く（UsenCodec が読む）。終局の行は反則手を持たないので
+// 書かず、読むだけにする。反則勝ちの符号は無い
 const Code kUsenCodes[] = {
-    {TerminalType::IllegalLoss, "i"},
-    {TerminalType::IllegalWin, "i"},
     {TerminalType::Resign, "r"},
     {TerminalType::Timeout, "t"},
     {TerminalType::Interrupt, "p"},
     {TerminalType::Impasse, "j"},
     {TerminalType::PerpetualCheck, "j"},
     {TerminalType::Repetition, "j"},
+    {TerminalType::IllegalLoss, "i", true},
 };
 
 template <size_t N>
 QString codeOf(const Code (&table)[N], TerminalType type)
 {
     for (const Code& entry : table) {
-        if (entry.type == type) return QString::fromLatin1(entry.code);
+        if (entry.type == type && !entry.readOnly) return QString::fromLatin1(entry.code);
     }
     return {};
 }

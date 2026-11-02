@@ -118,14 +118,6 @@ bool KifuLoader::applyLoadResult(const KifuLoadResult& result)
 bool KifuLoader::applyRecord(const KifuLoadResult& result)
 {
     const KifParseResult& res = result.record;
-    // 開始局面が明示された棋譜は0手でも開く。棋譜でも局面でもない入力は引き続き拒否する。
-    const bool hasMoves = !res.mainline.usiMoves().isEmpty() || res.mainline.endsWithTerminal();
-    if (result.startKind == StartKind::Default && !hasMoves
-        && result.format != KifuFormat::Jkf) {
-        emit errorOccurred(tr("読み込み失敗 %1 から指し手を取得できませんでした。").arg(result.filePath));
-        return false;
-    }
-
     // 文書を読んだ棋譜で置き換える（ツリーの変更の通知は作り終えてから1回）。表示中の手は開始局面へ戻る
     if (!m_document->replaceWithRecord(res, result.gameInfo)) {
         emit errorOccurred(tr("棋譜の分岐元または開始手数が不正です。"));

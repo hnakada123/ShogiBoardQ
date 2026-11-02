@@ -127,6 +127,17 @@ QStringList convertToCsaTimeLines(const QString& timeStr)
     return {convertToCsaTime(timeStr)};
 }
 
+QString timeLimitToTimeControl(const QString& value)
+{
+    static const QRegularExpression re(QStringLiteral("^(\\d+):(\\d{2})(?:\\+(\\d+))?$"));
+    const QRegularExpressionMatch m = re.match(value.trimmed());
+    if (!m.hasMatch() || m.captured(2).toInt() >= 60) return value;
+    TimeControlSide side;
+    side.mainMs = (m.captured(1).toLongLong() * 60 + m.captured(2).toLongLong()) * 60 * 1000;
+    side.byoyomiMs = m.captured(3).toLongLong() * 1000;
+    return TimeControlText::format(side);
+}
+
 namespace {
 
 struct CsaInfoKey {

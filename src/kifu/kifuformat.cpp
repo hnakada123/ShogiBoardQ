@@ -4,6 +4,7 @@
 #include "kifuformat.h"
 #include "kifutextdecoder.h"
 #include "logcategories.h"
+#include "usencodec.h"
 
 #include <QFileInfo>
 #include <QRegularExpression>
@@ -162,8 +163,6 @@ KifuFormat detect(const QString& content)
     static const QRegularExpression usiLineRe(
         QStringLiteral("^\\s*(?:position\\b|startpos\\b|sfen\\s|[lnsgkrpb1-9+]+(?:/[lnsgkrpb1-9+]+){8}\\s+[bw]\\s)"),
         QRegularExpression::MultilineOption | QRegularExpression::CaseInsensitiveOption);
-    static const QRegularExpression usenRe(
-        QStringLiteral("^[a-zA-Z0-9_.-]*(?:~[0-9]*\\.[a-zA-Z0-9]*(?:\\.[a-zA-Z]?)?)+$"));
     static const QRegularExpression csaHeaderRe(
         QStringLiteral("^(?:V[23](?:\\.\\d+)?(?:,|$)|PI(?:[0-9]{2}[A-Z]{2})*(?:,|$)|P[1-9+-]|N[+-]|\\$(?:EVENT|SITE|TIME|START_TIME|END_TIME|NOTE):)"),
         QRegularExpression::MultilineOption);
@@ -194,7 +193,7 @@ KifuFormat detect(const QString& content)
         return KifuFormat::Usi;
     }
     // USEN全体の構造を確認し、コメントやURL内のチルダを除外する。
-    if (usenRe.match(trimmed).hasMatch()) {
+    if (UsenCodec::hasUsenShape(trimmed)) {
         qCDebug(lcKifu).noquote() << "detected format: USEN";
         return KifuFormat::Usen;
     }

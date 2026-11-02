@@ -29,9 +29,9 @@ QString usi(TerminalType type);
 TerminalType fromUsi(const QString& code);
 bool isUsiCode(const QString& code);
 
-/// USEN の終局の符号（1文字）。符号のない終局は空
+/// USEN の終局の符号（1文字）。符号のない終局と、書かない反則負け（符号 i は反則手を要る）は空
 QString usen(TerminalType type);
-/// USEN の終局の符号を読む。不明な符号は Error
+/// USEN の終局の符号（終局コードの欄の先頭の1文字）を読む。不明な符号は Error
 TerminalType fromUsen(const QString& code);
 bool isUsenCode(const QString& code);
 

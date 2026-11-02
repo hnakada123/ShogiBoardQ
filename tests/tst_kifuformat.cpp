@@ -43,6 +43,8 @@ private slots:
         QTest::newRow("csa-moves") << QStringLiteral("+7776FU\n-3334FU") << Format::Csa;
         QTest::newRow("usen-custom-position") << QStringLiteral("1nsgkgsn1_9_ppppppppp_9_9_9_PPPPPPPPP_1B5R1_LNSGKGSNL.w.-~0.09k7ku.r") << Format::Usen;
         QTest::newRow("usen") << QStringLiteral("~0.7ku.r~1.0e4.r") << Format::Usen;
+        // 反則の終局コード i の後ろの反則手（USEN の作者の実装が書く）
+        QTest::newRow("usen-illegal-move") << QStringLiteral("~0.7ku2jm.i7bq") << Format::Usen;
         QTest::newRow("kif-tilde") << QStringLiteral("*https://example.org/~user\n手数----指手---------\n1 ７六歩(77)") << Format::Kif;
         QTest::newRow("csa-tilde") << QStringLiteral("'comment ~\nPI\n+\n+7776FU") << Format::Csa;
     }

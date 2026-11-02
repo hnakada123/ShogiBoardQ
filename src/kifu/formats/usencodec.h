@@ -15,7 +15,8 @@
 struct UsenLine {
     int offset = 0;          ///< 何手の後から始まるか（本譜は 0。変化はその手が変える手の1つ前の手数）
     QList<UsiMove> moves;
-    QString terminal;        ///< 終局コード（TerminalCodes::fromUsen。無ければ空）
+    QString terminal;        ///< 終局コード（先頭の1文字。TerminalCodes::fromUsen。無ければ空）
+    std::optional<UsiMove> illegalMove;  ///< 反則の終局コード i の後ろの反則手（局面には指さない。無ければ nullopt）
 };
 
 /**
@@ -25,8 +26,14 @@ struct UsenLine {
  *   （金 9・歩 10・香 11・桂 12・銀 13・角 14・飛 15）。code を base36 の3文字で書く
  * - 開始局面: SFEN の手数を除き、'/' を '_'、' ' を '.'、'+' を 'z' にする。平手は空
  * - 棋譜: "<開始局面>~<本譜>~<変化>~..."。手順は "<オフセット>.<指し手の3文字の列>.<終局コード>"
+ * - 終局コード: 先頭の1文字で決める（作者の実装 mog-core-scala と同じ）。反則の i の後ろには反則手の3文字が続く
+ *   （以前の ShogiBoardQ が書いた i だけの欄も読む）。空なら未終局
  */
 namespace UsenCodec {
+
+/// テキスト全体が USEN の形（開始局面の後に "~<オフセット>.<指し手>[.<終局コード>]" が続く）か。形式の判別に使う。
+/// 指し手と終局コードの中身は確かめない（decodeLines が読んで確かめる）
+bool hasUsenShape(const QString& text);
 
 /// 指し手を3文字にする（符号にできない指し手は空）
 QString encodeMove(const UsiMove& move);
@@ -38,7 +45,8 @@ QString encodePosition(const QString& sfen);
 /// "~" の前の部分を SFEN にする（手数を省いていれば 1 を補う。空なら空）
 QString decodePosition(QStringView part);
 
-/// 1本の手順（"<オフセット>.<指し手の3文字の列>[.<終局コード>]"）を読む。1手でも読めなければ nullopt と error
+/// 1本の手順（"<オフセット>.<指し手の3文字の列>[.<終局コード>]"）を読む。1手でも読めない・終局コードが読めなければ
+/// nullopt と error
 std::optional<UsenLine> decodeLine(QStringView part, QString* error = nullptr);
 /// 棋譜の "~" より後（最初が本譜、続きが変化）を読む。開始局面の部分は読まない。1本でも読めなければ nullopt と error
 std::optional<QList<UsenLine>> decodeLines(QStringView usen, QString* error = nullptr);
