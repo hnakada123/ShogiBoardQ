@@ -18,7 +18,6 @@
 #include <QStyle>
 #include <QToolButton>
 
-#include <algorithm>
 
 namespace {
 
@@ -102,13 +101,6 @@ void BoardChromeWidget::setBoardGeometry(const std::optional<BoardGeometry>& geo
     updateMask();
 }
 
-void BoardChromeWidget::setNameFontScale(double scale)
-{
-    m_nameFontScale = std::clamp(scale, 0.2, 1.0);
-    relayoutCards();
-    updateMask();
-}
-
 // 名前・時計・手番の札はカードに並べ、カードは駒台の外側（盤の上下）に置く。
 void BoardChromeWidget::relayoutCards()
 {
@@ -124,7 +116,7 @@ void BoardChromeWidget::relayoutCards()
     metrics.clockVisible = m_clockEnabled;
 
     QFont nameFont = font();
-    nameFont.setPixelSize(qMax(8, qRound(fs.height() * m_nameFontScale * 0.8)));
+    nameFont.setPixelSize(qMax(8, qRound(fs.height() * kNameFontScale * 0.8)));
     metrics.badgeFont = font();
     metrics.badgeFont.setPixelSize(qMax(8, qRound(fs.height() * 0.16)));
     metrics.badgeFont.setBold(true);

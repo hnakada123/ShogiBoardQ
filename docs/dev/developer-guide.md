@@ -165,6 +165,7 @@
 | 2026-11-02 | 定跡手のダイアログの指し手の一覧を画面の表記にした（監査 2026-11-01 F22）のに合わせて第11章・クラスの一覧を更新（`JosekiMoveInputWidget` は `KifuPresentation::move(Position, UsiMove, Options)` で表記を作り、英語表記なら英語の手を並べる。日本語表記の一覧に「不成」は付けない（定跡ウィンドウの表・棋譜欄と同じ）） |
 | 2026-11-02 | 棋譜解析ダイアログと結果ドックの文字の大きさの設定を分けた（監査 2026-11-01 F23）のに合わせて §9.8 を更新（結果ドックは `kifuAnalysisResultsFontSize`（以前の版と同じ `KifuAnalysis/fontSize` で、保存してある値を引き継ぐ）、ダイアログは新しい `kifuAnalysisDialogFontSize`（`KifuAnalysis/dialogFontSize`）） |
 | 2026-11-02 | 局面集ファイルの読み方を1つにした（監査 2026-11-01 F25・M2）。`PositionCollectionFile::readFile`（通常のファイルだけを上限まで読み、読めない理由を訳した文で返す）と `fileFilter`（`*.txt *.sfen *.usi`）を、局面集ビューア（`SfenCollectionDialog`）と詰将棋問題一覧（`TsumeCollectionSession::load`）が使う |
+| 2026-11-02 | 対局者名の大きさを全部の盤で1つにした（監査 2026-11-01 F27）。マスの高さに対する比は `BoardChromeWidget::kNameFontScale`（0.30）だけで、`ShogiView::setNameFontScale`・`BoardChromeWidget::setNameFontScale` は消した（外観ダイアログの見本と CLI の render-board は 0.36 で描いていた） |
 
 <!-- chapter-0-end -->
 
