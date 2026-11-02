@@ -3,10 +3,13 @@
 
 #include "positioncollectionfile.h"
 
+#include "boundedfile.h"
 #include "sfenutils.h"
 #include "sfenvalidator.h"
 #include "usimove.h"
 
+#include <QCoreApplication>
+#include <QFileInfo>
 
 namespace PositionCollectionFile {
 
@@ -77,6 +80,36 @@ Contents parse(const QString& text)
         }
     }
     return contents;
+}
+
+File readFile(const QString& path)
+{
+    File file;
+    const qint64 limit = BoundedFile::kMaxCollectionBytes;
+    const QString name = QFileInfo(path).fileName();
+    switch (BoundedFile::read(path, limit, file.bytes)) {
+    case BoundedFile::Result::Ok:
+        file.ok = true;
+        file.text = QString::fromUtf8(file.bytes);
+        break;
+    case BoundedFile::Result::OpenFailed:
+        file.error = QCoreApplication::translate("PositionCollectionFile", "ファイルを開けませんでした: %1").arg(name);
+        break;
+    case BoundedFile::Result::NotRegularFile:
+        file.error = QCoreApplication::translate("PositionCollectionFile", "通常のファイルではありません: %1").arg(name);
+        break;
+    case BoundedFile::Result::TooLarge:
+        file.error = QCoreApplication::translate("PositionCollectionFile", "ファイルが大きすぎます（%1 MB まで）: %2")
+                         .arg(limit / (1024 * 1024))
+                         .arg(name);
+        break;
+    }
+    return file;
+}
+
+QString fileFilter()
+{
+    return QCoreApplication::translate("PositionCollectionFile", "局面集 (*.txt *.sfen *.usi);;すべてのファイル (*)");
 }
 
 } // namespace PositionCollectionFile
