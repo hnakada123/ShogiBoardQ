@@ -164,13 +164,14 @@ void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, 
                 result[QStringLiteral("line")] = lineIndex >= 0 && lineIndex < lines.size() ? lineIndex : 0;
                 // 手数はほかの形式・get_app_state と同じく手順の行数（終局の行も1手に数える）
                 result[QStringLiteral("total_plies")] = qMax(0, line.length() - 1);
+                // 開始局面のコメント・しおりは行にせず、CLI の convert-kifu と同じ欄に書く（from_ply は1から）
+                if (const KifuBranchNode* root = tree->root())
+                    RecordJson::addOpening(result, root->comment(), root->bookmark());
                 int emitted = 0;
                 const QList<KifuBranchNode*> nodes = line.nodesFrom(fromPly);
                 for (const KifuBranchNode* node : nodes) {
                     if (emitted >= maxMoves) { truncated = true; break; }
-                    QJsonObject move = RecordJson::entry(node->ply(), node->record());
-                    if (node->ply() == 0) move[QStringLiteral("text")] = QStringLiteral("開始局面");
-                    moves.append(move);
+                    moves.append(RecordJson::entry(node->ply(), node->record()));
                     ++emitted;
                 }
             }

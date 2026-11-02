@@ -197,7 +197,8 @@ PHASE1_TOOLS: list[types.Tool] = [
         "Convert a shogi game record (kifu) to another format. Input is a file path or the record text in KIF, "
         "KI2, CSA, JKF, USI or USEN (auto-detected unless input_format is given). Output formats: kif, ki2, csa, "
         "jkf, usi, usen, or sfen (one SFEN per position of the main line). Returns the converted text (truncated "
-        "to max_chars) plus the main-line USI moves, SFEN list and game information. has_branches tells whether the "
+        "to max_chars) plus the main-line USI moves, SFEN list, the start position's comment and bookmark "
+        "(opening_comment, opening_bookmark) and game information. has_branches tells whether the "
         "record has variations, and variations_dropped whether the output format cannot hold them (only the main "
         "line is written). Pass output_path to write the result to a file instead of returning the text. Does not "
         "require the GUI.",
@@ -222,6 +223,8 @@ PHASE1_TOOLS: list[types.Tool] = [
                 "usi_moves": {"type": "array", "items": {"type": "string"}},
                 "sfens": {"type": "array", "items": {"type": "string"}},
                 "moves": {"type": "array", "items": {"type": "object"}},
+                "opening_comment": {"type": "string"},
+                "opening_bookmark": {"type": "string"},
                 "game_info": {"type": "array", "items": {"type": "object"}},
                 "has_branches": {"type": "boolean"},
                 "variations_dropped": {"type": "boolean"},
@@ -467,13 +470,16 @@ PHASE2_TOOLS: list[types.Tool] = [
         "Get kifu",
         "Return the record shown in ShogiBoardQ. format=moves (default) gives a structured list of the line "
         "being displayed (the variation when one is shown; line=main for the main line) with ply, Japanese "
-        "notation, USI move, time and comment, limited by from_ply/max_moves; the other formats return the "
-        "exported text (with all variations) truncated to max_chars.",
+        "notation, USI move, time and comment, limited by from_ply/max_moves, and the start position's comment "
+        "and bookmark as opening_comment and opening_bookmark; the other formats return the exported text (with "
+        "all variations) truncated to max_chars.",
         _spec("method", "kifu.get", extra={"max_chars": {"type": "integer", "minimum": 1000, "maximum": 500_000,
                                                         "default": 30000,
                                                         "description": "Maximum characters of exported text to return."}}),
         {"type": "object", "properties": {"format": {"type": "string"}, "total_plies": {"type": "integer"},
                                           "moves": {"type": "array", "items": {"type": "object"}},
+                                          "opening_comment": {"type": "string"},
+                                          "opening_bookmark": {"type": "string"},
                                           "text": {"type": "string"}, "truncated": {"type": "boolean"}},
          "required": ["format", "total_plies"]},
         read_only=True,

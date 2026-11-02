@@ -82,7 +82,10 @@ const QList<OperationSpec>& AutomationMethodSpecs::all()
               .withDefault(QStringLiteral("moves")),
           choice(QStringLiteral("line"), QStringLiteral("Line for format=moves."), {QStringLiteral("current"), QStringLiteral("main")})
               .withDefault(QStringLiteral("current")),
-          integer(QStringLiteral("from_ply"), QString(), 1, 100000).withDefault(1),
+          integer(QStringLiteral("from_ply"),
+                  QStringLiteral("First ply listed for format=moves (1 = the first move). The start position's comment "
+                                 "and bookmark are returned as opening_comment and opening_bookmark."),
+                  1, 100000).withDefault(1),
           integer(QStringLiteral("max_moves"), QString(), 1, 100000).withDefault(200)}},
         {QStringLiteral("kifu.goto"), QStringLiteral("Go to a ply of the current line (0 = start position)."),
          {integer(QStringLiteral("ply"), QString(), 0, 100000).require()}},

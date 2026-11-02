@@ -696,6 +696,7 @@
     },
     "from_ply": {
      "default": 1,
+     "description": "First ply listed for format=moves (1 = the first move). The start position's comment and bookmark are returned as opening_comment and opening_bookmark.",
      "maximum": 100000,
      "minimum": 1,
      "type": "integer"

@@ -83,8 +83,8 @@ class CliTools:
             result = await run_cli(cli_args, timeout=120)
 
         structured = {k: result[k] for k in ("input_format", "output_format", "initial_sfen", "is_hirate", "ply_count",
-                                              "usi_moves", "sfens", "moves", "game_info", "has_branches",
-                                              "variations_dropped", "warnings")
+                                              "usi_moves", "sfens", "moves", "opening_comment", "opening_bookmark",
+                                              "game_info", "has_branches", "variations_dropped", "warnings")
                       if k in result}
         # The lists follow the record, so cap them like the text (max_chars): a long record must not flood the client.
         max_moves = int(args["max_moves"])
