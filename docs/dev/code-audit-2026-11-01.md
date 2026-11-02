@@ -112,9 +112,9 @@
 
 | # | 食い違い | 原因 |
 |---|---|---|
-| F9 | 対局中は、棋譜欄の行・局面送りのボタン・分岐ツリー・評価値グラフを押せない。ところが、分岐候補欄の行（「本譜へ戻る」も）と、定跡ウィンドウの「N手目の…で定跡を外れています」ボタンは押せる。<br>押すと表示中の手が移り、`BoardSyncPresenter` が盤を移った先の局面に置き換える（`boardsyncpresenter.cpp:28`）。この盤は対局の盤 `GameBoard` と同じ1つ（`mainwindowcomposer_create.cpp:183`）なので、次のことが起きる。<br>- エンジンの次の手は、置き換わった局面で合法かを判定される（`matchcoordinator.cpp:182-184`）。非合法ならエンジンの反則負け、合法なら別の局面の行が棋譜に足される<br>- 人間の手番の判定も盤の手番で行う（`humanturnpolicy.cpp:24-25`）<br>分岐候補欄に行が出る場面はふつうにある（待ったの後に別の手を指した、読み込んだ棋譜の途中から対局した）。自動化 API の `kifu.goto`（`automationcommands_kifu.cpp:204`）も、動作状態を見ずに移る | 「棋譜を移ってよいか」は、表の `{E::WidgetNavigation, kBrowsing}`（`uistatepolicymanager.cpp:99,238-242`）にしかない。<br>- `RecordPane::setKifuViewEnabled` が止めるのは棋譜の表 `m_kifu` だけで、分岐候補の表 `m_branch` は止めない（`recordpane.cpp:358-371`）<br>- 定跡ウィンドウのボタンは `KifuNavigationController::selectPly` へ直接つながる（`josekiwindowcontroller.cpp:58`）<br>- `KifuNavigationController` の利用者の操作が通す `confirmLeave`（`kifunavigationcontroller.cpp:127`）は、未更新のコメントと局面編集中かの2つだけを見る |
-| F10 | 局面編集中に、定跡ウィンドウの「棋譜に展開…」を押せる。押すと編集前の局面に定跡の手が足され、ツリーの変更を受けて `BoardSyncPresenter` が盤を編集前の局面に戻す。編集中の配置は消え、足した手も編集を終えると消える（`mainwindowcomposer_wire.cpp:143`）。<br>また、棋譜解析の最中は、分岐ツリーからは削除・本譜にするができないのに、分岐候補欄の右クリックからはできる | 「棋譜（分岐ツリー）を変えてよいか」の規則が入口ごとに違う。<br>- 盤で指した手: 待機中だけ（`humanturnpolicy.cpp:18-21`）<br>- 分岐ツリーの右クリック: クリックの許可（表の kBrowsing）と `canEdit`（`branchtreeview.cpp:665`）<br>- 分岐候補欄の右クリック: `canEdit` だけ（`branchtreeeditcontroller.cpp:64`）<br>- 定跡の展開: `canEdit` だけ（`josekiwindowcontroller.cpp:129`）<br>`BranchTreeEditController::canEdit()` は「ライブ対局が無い」かしか見ない（`branchtreeeditcontroller.cpp:28-31`） |
-| F11 | 棋譜解析の結果の行と、評価値グラフの解析の点をクリックすると、書きかけのコメントを「保存・破棄・キャンセル」と聞かずに、書いていた手へ黙って確定する | どちらも確認を通さない `goToPlyOnLine` を直接呼ぶ（`kifuanalysiscontroller.cpp:208`、`mainwindowcomposer_wire.cpp:78`）。`commentcoordinator.cpp:30`・`.h:20` の「利用者が別の手へ移るときは移る前に確認を通している」は、この2つの入口では成り立たない |
+| F9 | 対局中は、棋譜欄の行・局面送りのボタン・分岐ツリー・評価値グラフを押せない。ところが、分岐候補欄の行（「本譜へ戻る」も）と、定跡ウィンドウの「N手目の…で定跡を外れています」ボタンは押せる。<br>押すと表示中の手が移り、`BoardSyncPresenter` が盤を移った先の局面に置き換える（`boardsyncpresenter.cpp:28`）。この盤は対局の盤 `GameBoard` と同じ1つ（`mainwindowcomposer_create.cpp:183`）なので、次のことが起きる。<br>- エンジンの次の手は、置き換わった局面で合法かを判定される（`matchcoordinator.cpp:182-184`）。非合法ならエンジンの反則負け、合法なら別の局面の行が棋譜に足される<br>- 人間の手番の判定も盤の手番で行う（`humanturnpolicy.cpp:24-25`）<br>分岐候補欄に行が出る場面はふつうにある（待ったの後に別の手を指した、読み込んだ棋譜の途中から対局した）。自動化 API の `kifu.goto`（`automationcommands_kifu.cpp:204`）も、動作状態を見ずに移る | 「棋譜を移ってよいか」は、表の `{E::WidgetNavigation, kBrowsing}`（`uistatepolicymanager.cpp:99,238-242`）にしかない。<br>- `RecordPane::setKifuViewEnabled` が止めるのは棋譜の表 `m_kifu` だけで、分岐候補の表 `m_branch` は止めない（`recordpane.cpp:358-371`）<br>- 定跡ウィンドウのボタンは `KifuNavigationController::selectPly` へ直接つながる（`josekiwindowcontroller.cpp:58`）<br>- `KifuNavigationController` の利用者の操作が通す `confirmLeave`（`kifunavigationcontroller.cpp:127`）は、未更新のコメントと局面編集中かの2つだけを見る<br>**状態: 済（ba6c80dd）**。`HumanTurnPolicy::canBrowseRecord`（表の WidgetNavigation の行から求める）を `KifuNavigationController` の移る前の確認の最初に足した。分岐候補欄（`RecordPane::setNavigationEnabled`）と定跡の「外れた手」（`JosekiWindow::setRecordOperationsEnabled`）も表で止め、`kifu.goto` は invalid_state を返す |
+| F10 | 局面編集中に、定跡ウィンドウの「棋譜に展開…」を押せる。押すと編集前の局面に定跡の手が足され、ツリーの変更を受けて `BoardSyncPresenter` が盤を編集前の局面に戻す。編集中の配置は消え、足した手も編集を終えると消える（`mainwindowcomposer_wire.cpp:143`）。<br>また、棋譜解析の最中は、分岐ツリーからは削除・本譜にするができないのに、分岐候補欄の右クリックからはできる | 「棋譜（分岐ツリー）を変えてよいか」の規則が入口ごとに違う。<br>- 盤で指した手: 待機中だけ（`humanturnpolicy.cpp:18-21`）<br>- 分岐ツリーの右クリック: クリックの許可（表の kBrowsing）と `canEdit`（`branchtreeview.cpp:665`）<br>- 分岐候補欄の右クリック: `canEdit` だけ（`branchtreeeditcontroller.cpp:64`）<br>- 定跡の展開: `canEdit` だけ（`josekiwindowcontroller.cpp:129`）<br>`BranchTreeEditController::canEdit()` は「ライブ対局が無い」かしか見ない（`branchtreeeditcontroller.cpp:28-31`）<br>**状態: 済（ba6c80dd）**。`HumanTurnPolicy::canEditRecord`（移ってよく、対局の棋譜を書いていない）を分岐の編集・定跡の展開・盤の手の記録で使う。検討中・詰み探索中の分岐の編集は許すと決めた（2026-11-02）。展開は条件を聞く前にも確かめ、知らせの文を「対局中・棋譜解析中・局面編集中は…」にした |
+| F11 | 棋譜解析の結果の行と、評価値グラフの解析の点をクリックすると、書きかけのコメントを「保存・破棄・キャンセル」と聞かずに、書いていた手へ黙って確定する | どちらも確認を通さない `goToPlyOnLine` を直接呼ぶ（`kifuanalysiscontroller.cpp:208`、`mainwindowcomposer_wire.cpp:78`）。`commentcoordinator.cpp:30`・`.h:20` の「利用者が別の手へ移るときは移る前に確認を通している」は、この2つの入口では成り立たない<br>**状態: 済（ba6c80dd）**。どちらも確認を通す `KifuNavigationController::selectPlyOnLine` を使う（表示中の手と手順が変わらなければ聞かない）。やめたら結果の行の選択を表示中の手に戻す |
 
 **通信対局**（T3）
 
@@ -226,9 +226,11 @@
 - `BranchTreeEditController::canEdit()` と定跡の展開のボタンは `canEditRecord()` を使う。知らせの文（「対局中は…」）も直す。
 - 表の WidgetNavigation で、`RecordPane` の分岐候補の表も止める。定跡ウィンドウの「外れた手」のボタンも、同じ規則で無効にする。
 - 自動化 API の `kifu.goto` は、移れない状態なら invalid_state を返す。
-- 検討中に分岐の編集を許すかは、仕様で決める。
+- 検討中に分岐の編集を許すかは、仕様で決める。→ 許す（2026-11-02。詰み探索中も同じ。盤で指した手を記録するのは待機中だけのまま）
 
 **影響**: ui 4（`kifunavigationcontroller`・`humanturnpolicy`・`branchtreeeditcontroller`・`josekiwindowcontroller`）・widgets 2（`recordpane`・`josekiwindow`）・合成ルート・`automationcommands_kifu`。テストは `tst_ui_display_consistency`（待ったの後の対局中に候補を押しても移らない）・`tst_app_ui_state_policy`・`tst_josekiwindow`（局面編集中は展開しない）・`tst_branchtree_editing`。
+
+**状態: 済（ba6c80dd）**。案から変えた点: `canBrowseRecord` は動作状態の集合を写さず、`UiStatePolicyManager::tablePolicy` の WidgetNavigation の行から求める。`canEditRecord` は `BranchTreeEditController` からライブ対局の有無を移した（`HumanTurnPolicy` が `BranchTreeEditController` に頼る向きを逆にした）。移る前の確認は、移ってよい状態か→未更新のコメントの順に聞く（移れないのにコメントを聞かない）。定跡の「棋譜に展開...」も WidgetNavigation の行で止める（変えてよい状態と移ってよい状態は、対局の棋譜を書いている間を除いて同じ）。`kifu.goto` のテストは `tst_automation_security`
 
 ### T3. 通信対局に、ローカル対局との差が時間・終局・表示の消去に残っている（network・game・engine・ui）。F12〜F15 の原因
 
@@ -557,7 +559,7 @@
    - F2（読めない手）: `rejectMove` に通す。→ 済（37aa90f9）
    - F1（局面に合う手か）: core に規則を1つ置く。→ 済（9260770f）
    - F3（終局の行の側）: recordentry の規則を一般にする。→ 済（a96fc436）
-2. **T2（棋譜を移ってよいか・変えてよいか）を次に直す。** F9 は対局中にエンジンの反則負けになりうる。規則は `HumanTurnPolicy` に2つの関数を足すだけで、入口の数は少ない。
+2. **T2（棋譜を移ってよいか・変えてよいか）を次に直す。** F9 は対局中にエンジンの反則負けになりうる。規則は `HumanTurnPolicy` に2つの関数を足すだけで、入口の数は少ない。→ 済（ba6c80dd。検討中の分岐の編集は許す）
 3. **1.2 の小さな食い違いをまとめて直す。** F7・F11・F18・F19・F22〜F30 は、それぞれ1〜2ファイルで直せる。F23 の設定のキーを分けるときは、今の値を引き継ぐかを決める。
 4. **T3（通信対局）は、終局の対応表（F15）→ btime の換算（F14）→ 表示の消去（F12）→ 人間の手の順に進める。** 接続中の動作状態（F13）は、仕様（局と局の間に何を許すか）を決めてから。M6（`CsaGameCoordinator` の分割）は T3 と一緒に進める。
 5. **T4・T5 は、MCP の `specs.json` の作り直しが要るものをまとめる。** 引数の範囲（F17・F18・F19）を変えたら、`python3 -m shogiboardq_mcp.specs build/shogiboardq-cli` で作り直す。U1（開始局面の検査）と F16（詰み探索の手番）は仕様を決めてから。
