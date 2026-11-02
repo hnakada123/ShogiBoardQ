@@ -110,8 +110,9 @@ bool KifuLoader::applyLoadResult(const KifuLoadResult& result)
         if (!result.error.isEmpty()) emit errorOccurred(result.error);
         return false;
     }
-    if (result.positionOnly) return loadPositionFromSfen(result.startSfen());
+    // 局面だけになった読み込みの警告も出す
     if (!result.warning.isEmpty()) emit warningOccurred(tr("棋譜の読み込みで警告があります:\n%1").arg(result.warning));
+    if (result.positionOnly) return loadPositionFromSfen(result.startSfen());
     return applyRecord(result);
 }
 

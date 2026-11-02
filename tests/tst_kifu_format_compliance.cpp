@@ -12,6 +12,12 @@
 #include "kifubranchnode.h"
 #include "bodtextgenerator.h"
 #include "parsecommon.h"
+#include "csatosfenconverter.h"
+#include "jkftosfenconverter.h"
+#include "kiftextparser.h"
+#include "usencodec.h"
+#include "usentosfenconverter.h"
+#include "usitosfenconverter.h"
 #include "sfenutils.h"
 
 using Format = KifuFormat;
@@ -583,13 +589,68 @@ private slots:
         QCOMPARE(reread.usiMoves, result.usiMoves);
     }
 
+    /// 読めない手の扱いは全形式で同じ（ParseOptions）。既定はその手の手前で打ち切って警告し、後の手を詰めて
+    /// 読まない（USI は読めない語を飛ばして後の手が1手ずれていた）。FailRecord なら棋譜全体を読めない（監査 2026-11-01 F2）
+    void unreadableMoveIsTreatedTheSameInEveryFormat_data()
+    {
+        QTest::addColumn<int>("format");
+        QTest::addColumn<QString>("text");
+        QTest::newRow("kif") << int(Format::Kif)
+                             << QStringLiteral("手数----指手---------消費時間--\n   1 ７六歩(77)\n   2 ３四謎(33)\n   3 ２六歩(27)\n");
+        QTest::newRow("ki2") << int(Format::Ki2) << QStringLiteral("手合割：平手\n▲７六歩    △３四謎    ▲２六歩\n");
+        QTest::newRow("csa") << int(Format::Csa) << QStringLiteral("V2.2\nPI\n+\n+7776FU\n-3334XX\n+2726FU\n");
+        QTest::newRow("usi") << int(Format::Usi) << QStringLiteral("position startpos moves 7g7f 3c3x 2g2f");
+        QTest::newRow("jkf") << int(Format::Jkf) << QStringLiteral(
+            R"({"moves":[{},{"move":{"from":{"x":7,"y":7},"to":{"x":7,"y":6},"piece":"FU","color":0}},)"
+            R"({"move":{"to":{"x":0,"y":6},"piece":"FU","color":1}},)"
+            R"({"move":{"from":{"x":2,"y":7},"to":{"x":2,"y":6},"piece":"FU","color":0}}]})");
+        QTest::newRow("usen") << int(Format::Usen)
+                              << QStringLiteral("~0.%1zzz%2.").arg(UsenCodec::encodeMove(UsiMove::fromString(QStringLiteral("7g7f"))),
+                                                                   UsenCodec::encodeMove(UsiMove::fromString(QStringLiteral("2g2f"))));
+    }
+
+    void unreadableMoveIsTreatedTheSameInEveryFormat()
+    {
+        QFETCH(int, format);
+        QFETCH(QString, text);
+        using Parse = KifuParseOutcome (*)(QStringView, const ParseOptions&);
+        Parse parse = nullptr;
+        switch (static_cast<Format>(format)) {
+        case Format::Kif: parse = &KifTextParser::parseKif; break;
+        case Format::Ki2: parse = &KifTextParser::parseKi2; break;
+        case Format::Csa: parse = &CsaToSfenConverter::parse; break;
+        case Format::Usi: parse = &UsiToSfenConverter::parse; break;
+        case Format::Jkf: parse = &JkfToSfenConverter::parse; break;
+        case Format::Usen: parse = &UsenToSfenConverter::parse; break;
+        default: QFAIL("unexpected format");
+        }
+        const KifuParseOutcome truncated = parse(text, ParseOptions{});
+        QVERIFY2(truncated.success, qPrintable(truncated.warning));
+        QCOMPARE(truncated.record.mainline.usiMoves(), QStringList{QStringLiteral("7g7f")});
+        QVERIFY2(truncated.warning.contains(QStringLiteral("read up to move 1")), qPrintable(truncated.warning));
+
+        const KifuParseOutcome failed = parse(text, ParseOptions{ParseOptions::UnreadableMove::FailRecord});
+        QVERIFY(!failed.success);
+        QVERIFY(!failed.warning.isEmpty());
+        QVERIFY2(!failed.warning.contains(QStringLiteral("read up to move")), qPrintable(failed.warning));
+    }
+
+    /// 指し手の語が1つも読めない USI も、局面だけの読み込みにして警告を捨てない（監査 2026-11-01 F2）
+    void usiWithOnlyUnreadableMovesWarns()
+    {
+        const auto result = convert(QStringLiteral("position startpos moves 7g7x"), Format::Usi);
+        QVERIFY2(result.ok, qPrintable(result.failure.message));
+        QVERIFY(result.usiMoves.isEmpty());
+        QVERIFY2(result.warnings.join(QLatin1Char('\n')).contains(QStringLiteral("USI: Invalid USI move 1: 7g7x")),
+                 qPrintable(result.warnings.join(QLatin1Char('\n'))));
+    }
+
     void malformedJkfIsRejected_data()
     {
         QTest::addColumn<QString>("json");
         QTest::newRow("moves-type") << QStringLiteral(R"({"moves":{}})");
         QTest::newRow("move-entry") << QStringLiteral(R"({"moves":[{},42]})");
         QTest::newRow("initial-board") << QStringLiteral(R"({"initial":{"preset":"OTHER","data":{"board":[],"hands":[{},{}],"color":0}},"moves":[{}]})");
-        QTest::newRow("move-coordinate") << QStringLiteral(R"({"moves":[{},{"move":{"to":{"x":0,"y":6},"piece":"FU","color":0}}]})");
         QTest::newRow("fork-type") << QStringLiteral(R"({"moves":[{},{"forks":[{}]}]})");
     }
 

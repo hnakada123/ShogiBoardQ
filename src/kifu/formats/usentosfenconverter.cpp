@@ -18,8 +18,8 @@
 
 namespace {
 
-/// 指し手を順に指し、終局コードがあれば終局の行を足す。指せない手があれば、その手の手前で打ち切る。
-/// 反則の終局コードの後ろの反則手は、終局の行に持てないので警告して捨てる（局面には指さない）
+/// 指し手を順に指し、終局コードがあれば終局の行を足す。読めない手・指せない手があれば、その手の手前で打ち切る
+/// （全形式で同じ）。反則の終局コードの後ろの反則手は、終局の行に持てないので警告して捨てる（局面には指さない）
 void readMoves(const UsenLine& line, KifLineBuilder& builder, ParseReport& report)
 {
     for (const UsiMove& move : line.moves) {
@@ -30,6 +30,12 @@ void readMoves(const UsenLine& line, KifLineBuilder& builder, ParseReport& repor
             return;
         }
         builder.warnIrregularity(report, QStringLiteral("USEN"), ply);
+    }
+    if (!line.unreadableMove.isEmpty()) {
+        const int ply = builder.nextPly();
+        report.rejectMove(ply, QStringLiteral("USEN: Move %1 '%2' could not be decoded").arg(ply).arg(line.unreadableMove));
+        builder.stop();
+        return;
     }
     if (line.terminal.isEmpty()) return;
     if (line.illegalMove) {

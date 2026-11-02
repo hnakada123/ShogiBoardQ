@@ -111,7 +111,7 @@ cmake --build build --target translations
     - `kiflinebuilder.cpp/.h` - 全形式で共通の手順の組み立て（`KifLineBuilder`。指しながら `RecordEntry` を作る。1行は対局の着手と同じ `MoveRecord::play`）
     - `*exporter` - 形式ごとの書き出し。KIF・KI2 の先頭（文字コード宣言・対局情報・盤面図）は `KifExporter::appendHeaderLines(ctx, out, HeaderOptions)` で共有し、KI2 の本譜と変化は `appendKi2Moves` の1つのループで書く
     - `kifunodereplay.cpp/.h` - 分岐ツリーのノードを指す前の局面と一緒にたどる `KifuNodeReplay`（`board()`・`mover()`・`previousTo()`・`canWrite(node)`・`advance(node)`・`branchFrom(parent)`。指せない手はノードの SFEN から取り直す）。KI2・JKF の書き出しが使う
-    - `usencodec.cpp/.h` - USEN の符号表 `UsenCodec`（指し手の3文字と `UsiMove` の符号化と復号 `encodeMove`・`decodeMove`、開始局面 `encodePosition`・`decodePosition`、手順 `decodeLine`・`decodeLines`（"~" で1回だけ分けて本譜と変化の `UsenLine` にする）、形式の判別に使う全体の形 `hasUsenShape`）。終局コードは作者の実装（mog-core-scala）に合わせて先頭の1文字で決め、反則の `i` の後ろの反則手は読むだけ（`UsenLine::illegalMove`。局面には指さない）。反則負け・反則勝ちは書かない（`TerminalCodes::usen` が空）。`UsenToSfenConverter` と `UsenExporter` が使う
+    - `usencodec.cpp/.h` - USEN の符号表 `UsenCodec`（指し手の3文字と `UsiMove` の符号化と復号 `encodeMove`・`decodeMove`、開始局面 `encodePosition`・`decodePosition`、手順 `decodeLine`・`decodeLines`（"~" で1回だけ分けて本譜と変化の `UsenLine` にする。読めない指し手はその手前までの手と `UsenLine::unreadableMove` にし、どう扱うかは読み手の `ParseReport` が決める）、形式の判別に使う全体の形 `hasUsenShape`）。終局コードは作者の実装（mog-core-scala）に合わせて先頭の1文字で決め、反則の `i` の後ろの反則手は読むだけ（`UsenLine::illegalMove`。局面には指さない）。反則負け・反則勝ちは書かない（`TerminalCodes::usen` が空）。`UsenToSfenConverter` と `UsenExporter` が使う
 
 - **analysis/**: 解析機能（GUI に依存しない）
   - `analysissession.cpp/.h` - 検討・詰み探索のセッション。検討中に表示中の局面が変わったら `KifuNavigationState::currentUsiPosition()`（開始局面からの手順）で送り直す

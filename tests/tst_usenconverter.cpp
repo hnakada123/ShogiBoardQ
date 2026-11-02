@@ -27,7 +27,8 @@ private:
         return QCoreApplication::applicationDirPath() + QStringLiteral("/fixtures/") + name;
     }
 
-    /// 棋譜の "~" より後を読み、本譜の手を USI の文字列にする（読めなければ空）
+    /// 棋譜の "~" より後を読み、本譜の手を USI の文字列にする（読めなければ空）。読めない手があれば、
+    /// その手前までの手を返し、error に読めなかった手を書く
     static QStringList mainMoves(const QString& usen, QString* terminal = nullptr, QString* error = nullptr)
     {
         const std::optional<QList<UsenLine>> lines = UsenCodec::decodeLines(usen, error);
@@ -35,6 +36,8 @@ private:
         QStringList moves;
         if (lines) {
             for (const UsiMove& move : lines->constFirst().moves) moves.append(move.toString());
+            if (error && !lines->constFirst().unreadableMove.isEmpty())
+                *error = QStringLiteral("Unreadable move '%1'").arg(lines->constFirst().unreadableMove);
         }
         return moves;
     }
@@ -75,30 +78,45 @@ private slots:
                     .isEmpty());
     }
 
-    void invalidMovesRejectWholeRecord_data()
+    /// 読めない手は、その手の手前で手順を打ち切って警告する（全形式で同じ。監査 2026-11-01 F2）。
+    /// FailRecord の指定なら棋譜全体を読めなかったことにする
+    void invalidMovesTruncateTheLine_data()
     {
         QTest::addColumn<QString>("text");
-        QTest::newRow("invalid-main") << QStringLiteral("~0.7kuzzz.r");
-        QTest::newRow("truncated-main") << QStringLiteral("~0.7ku2j.r");
-        QTest::newRow("invalid-fork") << QStringLiteral("~0.7ku2jm.r~1.zzz.r");
-        QTest::newRow("truncated-fork") << QStringLiteral("~0.7ku2jm.r~1.2j.r");
+        QTest::addColumn<QStringList>("mainline");
+        QTest::addColumn<int>("variationMoves");
+        QTest::addColumn<QString>("warning");
+        const QStringList one{QStringLiteral("7g7f")};
+        const QStringList two{QStringLiteral("7g7f"), QStringLiteral("3c3d")};
+        QTest::newRow("invalid-main") << QStringLiteral("~0.7kuzzz.r") << one << -1
+                                      << QStringLiteral("USEN: Move 2 'zzz' could not be decoded");
+        QTest::newRow("truncated-main") << QStringLiteral("~0.7ku2j.r") << one << -1
+                                        << QStringLiteral("USEN: Move 2 '2j' could not be decoded");
+        QTest::newRow("invalid-fork") << QStringLiteral("~0.7ku2jm.r~1.zzz.r") << two << 0
+                                      << QStringLiteral("USEN: Move 2 'zzz' could not be decoded");
+        QTest::newRow("truncated-fork") << QStringLiteral("~0.7ku2jm.r~1.2j.r") << two << 0
+                                        << QStringLiteral("USEN: Move 2 '2j' could not be decoded");
     }
 
-    void invalidMovesRejectWholeRecord()
+    void invalidMovesTruncateTheLine()
     {
         QFETCH(QString, text);
-        QTemporaryFile file;
-        QVERIFY(KifuTestHelper::writeToTempFile(file, text.toUtf8(), QStringLiteral("usen")));
-        KifParseResult result;
-        QString error;
-        QVERIFY(!KifuFile::parse<KifuFormat::Usen>(file.fileName(), result, &error));
-        QVERIFY(!error.isEmpty());
-        QVERIFY(result.mainline.usiMoves().isEmpty());
-        QVERIFY(result.variations.isEmpty());
-        QVERIFY(KifuFile::usiMoves<KifuFormat::Usen>(file.fileName()).isEmpty());
-        const RecordLine line = KifuFile::mainline<KifuFormat::Usen>(file.fileName());
-        QVERIFY(line.isEmpty());
-        QVERIFY(line.entries.isEmpty());
+        QFETCH(QStringList, mainline);
+        QFETCH(int, variationMoves);
+        QFETCH(QString, warning);
+        const KifuParseOutcome outcome = UsenToSfenConverter::parse(text);
+        QVERIFY2(outcome.success, qPrintable(outcome.warning));
+        QCOMPARE(outcome.record.mainline.usiMoves(), mainline);
+        QVERIFY2(outcome.warning.contains(warning), qPrintable(outcome.warning));
+        // 打ち切った手順には、読めない手の後ろの終局コードも付けない
+        QCOMPARE(outcome.record.mainline.endsWithTerminal(), variationMoves >= 0);
+        QCOMPARE(outcome.record.variations.size(), variationMoves >= 0 ? 1 : 0);
+        if (variationMoves >= 0) QCOMPARE(outcome.record.variations.first().line.moveCount(), variationMoves);
+
+        const KifuParseOutcome failed =
+            UsenToSfenConverter::parse(text, ParseOptions{ParseOptions::UnreadableMove::FailRecord});
+        QVERIFY(!failed.success);
+        QVERIFY2(failed.warning.contains(warning), qPrintable(failed.warning));
     }
 
     void detectInitialSfen()
@@ -244,7 +262,7 @@ private slots:
         // Only 1 or 2 chars (incomplete 3-char move encoding)
         QString error;
         QVERIFY(mainMoves(QStringLiteral("~0.7k"), nullptr, &error).isEmpty());
-        QVERIFY(error.contains(QStringLiteral("Incomplete")));
+        QCOMPARE(error, QStringLiteral("Unreadable move '7k'"));
     }
 
     // ========================================
@@ -369,9 +387,11 @@ private slots:
         QCOMPARE(lines->at(1).offset, 1);
         QCOMPARE(lines->at(1).moves.size(), 1);
         QCOMPARE(lines->at(1).terminal, QStringLiteral("p"));
-        // 変化の手が読めなければ全体を読まない
-        QVERIFY(!UsenCodec::decodeLines(QStringLiteral("~0.7ku~1.!!!"), &error));
-        QVERIFY(error.contains(QStringLiteral("Move 1")));
+        // 変化の読めない手は、その変化の手前までと読めなかった手にする（どう扱うかは UsenToSfenConverter が決める）
+        const auto withBadFork = UsenCodec::decodeLines(QStringLiteral("~0.7ku~1.!!!"), &error);
+        QVERIFY2(withBadFork.has_value(), qPrintable(error));
+        QVERIFY(withBadFork->at(1).moves.isEmpty());
+        QCOMPARE(withBadFork->at(1).unreadableMove, QStringLiteral("!!!"));
     }
 
     void decodeUsenMovesStrict_validInput()
@@ -387,11 +407,10 @@ private slots:
 
     void decodeUsenMovesStrict_invalidInput()
     {
-        // 不正なbase36があれば、部分的な指し手列も下流へ渡さない。
-        // 続く "7ku" は正常 (7g7f)
+        // 不正なbase36の手から後は読まない（続く "7ku" は正常な 7g7f だが、手順に入れない）
         QString error;
         QVERIFY(mainMoves(QStringLiteral("~0.!!!7ku"), nullptr, &error).isEmpty());
-        QVERIFY(error.contains(QStringLiteral("Move 1")));
+        QCOMPARE(error, QStringLiteral("Unreadable move '!!!'"));
     }
 
     // ========================================
@@ -403,7 +422,7 @@ private slots:
         QString error;
         QVERIFY(mainMoves(QStringLiteral("~0.!!!@@@"), nullptr, &error).isEmpty());
         // 最初に読めなかった手だけを知らせる
-        QVERIFY(error.contains(QStringLiteral("Move 1")));
+        QCOMPARE(error, QStringLiteral("Unreadable move '!!!'"));
     }
 
     // ========================================
