@@ -20,6 +20,7 @@
 #include "tsumeplaydialog.h"
 #include "tsumepositionpreview.h"
 #include "tsumeshogisettings.h"
+#include "settingscommon.h"
 #include "mainwindow.h"
 #include "applicationfonts.h"
 #include "kifupresentation.h"
@@ -450,10 +451,13 @@ private slots:
         TsumeProgressStore store;
         QVERIFY(store.open());
         QVERIFY(store.recordAttempt(TsumeCollection::positionId(problems[1].sfen)));
+        SettingsCommon::openSettings().remove(QStringLiteral("TsumePlay/timeout"));
         TsumeCollectionDialog window;
         QVERIFY(window.loadFile(file.fileName()));
         window.show();
         QVERIFY(QTest::qWaitForWindowExposed(&window));
+        auto* collectionTimeout = window.findChild<QSpinBox*>(QStringLiteral("tsumeCollectionTimeout"));
+        QCOMPARE(collectionTimeout->value(), TsumeshogiSettings::CollectionPreferences{}.timeoutSec);
         auto* filter = window.findChild<QComboBox*>(QStringLiteral("tsumeProgressFilter"));
         filter->setCurrentIndex(1); // 未挑戦: 第2問を除いた3問
         QCOMPARE(cards(window).size(), 3);
@@ -466,6 +470,10 @@ private slots:
         QVERIFY(completed);
         QCOMPARE(navigationStage, 4);
         QVERIFY(window.isVisible());
+        // 対局画面で変えた判定時間（7秒）は一覧の値になり、一覧を閉じると一覧の設定に保存する。
+        // 対局画面は判定時間を保存しない
+        QCOMPARE(collectionTimeout->value(), 7);
+        QVERIFY(!SettingsCommon::openSettings().contains(QStringLiteral("TsumePlay/timeout")));
         // 出題した問題はすべて挑戦として記録し、一覧へ戻ると絞り込みへ反映する。
         QCOMPARE(store.progress(TsumeCollection::positionId(problems[0].sfen)).attempts, 1);
         QCOMPARE(store.progress(TsumeCollection::positionId(problems[2].sfen)).attempts, 2);
@@ -476,6 +484,8 @@ private slots:
         for (auto* card : cards(window)) {
             QVERIFY(card->findChild<QLabel*>(QStringLiteral("cardProgress"))->text().contains(QStringLiteral("挑戦")));
         }
+        window.close();
+        QCOMPARE(TsumeshogiSettings::collectionPreferences().timeoutSec, 7);
     }
     void verifiedCollectionSkipsInitialSearch()
     {

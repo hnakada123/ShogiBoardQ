@@ -44,7 +44,8 @@ TsumePlayDialog::TsumePlayDialog(QWidget* parent)
     m_board->setSfen(SfenUtils::hirateSfen());
     buildUi();
     const auto preferences = TsumeshogiSettings::playPreferences();
-    m_problemUi.timeout->setValue(preferences.timeoutSec);
+    // 判定時間は問題一覧の値を setProblem で受け取る（ここでは保存も復元もしない）
+    m_problemUi.timeout->setValue(TsumeshogiSettings::CollectionPreferences{}.timeoutSec);
     m_view->setSquareSize(preferences.squareSize);
     m_boardRotated = preferences.boardRotated;
     updateTimeLimit();
@@ -62,7 +63,6 @@ TsumePlayDialog::~TsumePlayDialog()
     m_solution->cancel();
     m_session->cancel();
     auto preferences = TsumeshogiSettings::playPreferences();
-    preferences.timeoutSec = m_problemUi.timeout->value();
     preferences.squareSize = m_view->squareSize();
     preferences.boardRotated = m_boardRotated;
     TsumeshogiSettings::playPreferences.set(preferences);
@@ -106,7 +106,8 @@ void TsumePlayDialog::buildUi()
     controls->addWidget(new QLabel(tr("判定時間:"), this));
     m_problemUi.timeout = new QSpinBox(this);
     m_problemUi.timeout->setObjectName(QStringLiteral("tsumeTimeLimit"));
-    m_problemUi.timeout->setRange(1, 600);
+    m_problemUi.timeout->setRange(TsumeshogiSettings::CollectionPreferences::kMinTimeoutSec,
+                                  TsumeshogiSettings::CollectionPreferences::kMaxTimeoutSec);
     m_problemUi.timeout->setSuffix(tr(" 秒"));
     connect(m_problemUi.timeout, &QSpinBox::valueChanged, this, &TsumePlayDialog::updateTimeLimit);
     controls->addWidget(m_problemUi.timeout);
