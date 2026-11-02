@@ -254,7 +254,7 @@
 - USI の btime への換算は、usigotime に関数を1つ置いて2つの実装が呼ぶ。入力は「残りに次の加算を含むか」と「今の手の経過時間」。先読みのときは、自分の残りから `elapsedThisTurn(自分)` を引き、加算は引かない。
 - 通信ログ・USI ログ・エンジン名の消去は、文書の置き換えから外す。対局の開始の入口（`MatchCoordinator::start` の前と、通信対局の接続の前）で行う。あわせて `UsiCommLogModel::clear()` が、エンジンを結んだまま名前を消さないようにする。評価値グラフの系列名は、通信対局ではエンジン名を記録の外から渡す。
 - 通信対局の接続中（ログインからログアウトまで）を動作状態に持つ。閲覧はできて、棋譜の置き換えと開始系の操作はできない状態にする（仕様の判断が要る）。
-- `MatchCoordinator::playHumanMove(UsiMove)` をエンジンの手と同じ形で置き、`GameChannel` に `playMove(UsiMove)` を足す。`BoardMoveController` の2つの分岐は1つになり、`lastMoveDestination()` は非公開にできる。
+- `MatchCoordinator::playHumanMove(UsiMove)` をエンジンの手と同じ形で置き、`GameChannel` に `playMove(UsiMove)` を足す。`BoardMoveController` の2つの分岐は1つになり、`lastMoveDestination()` は非公開にできる。→ 済（4b8d5787。`GameChannel::playMove` の結果は `Rejected`・`Played`・`Sent`。`BoardMoveController` は `setActiveChannel()` で受け取る `GameSession::activeChannel()` へ渡し、通信対局は `CsaGameCoordinator::sendHumanMove` が合法手を1回だけ確かめる。`BoardInput::CsaServer` は `Game` にまとめた）
 
 **影響**: network 3・game 3・engine 1・ui 3・合成ルート。テストは `tst_match_end`・`tst_csagamecoordinator`（先読みの時間のテストを足す）・`tst_usimatchhandler`・`tst_wiring_contracts`・`tst_csagamesession`・`tst_i18n_workflows:427`。
 
