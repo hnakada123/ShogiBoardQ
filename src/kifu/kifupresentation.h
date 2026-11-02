@@ -8,6 +8,7 @@
 #include "notationstyle.h"
 #include "shogimove.h"
 
+class Position;
 class PvText;
 struct RecordEntry;
 
@@ -25,6 +26,9 @@ QString rankLabel(int rank);
 /// 局面 beforeSfen の上の1手 usi の表記（style の表記。駒のない移動元や読めない手は usi のまま）
 QString move(const QString& beforeSfen, const QString& usi, Options style,
              bool includeSide = true);
+/// 局面 before の上の1手 move の表記（style の表記。駒のない移動元からは駒を作らず USI のまま）。
+/// 同じ局面の手を並べる一覧（定跡手のダイアログの合法手）は、局面を読み直さずにこれを使う
+QString move(const Position& before, const UsiMove& move, Options style, bool includeSide = true);
 /**
  * @brief 読み筋の表記（fullOrigin なら英語表記で移動元をすべて付ける）
  *

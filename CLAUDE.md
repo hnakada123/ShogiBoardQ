@@ -215,7 +215,7 @@ cmake --build build --target translations
   - `settingsformbinding` - 入力欄と設定の宣言（`Setting<T>`）の対応の表 `SettingsFormBinding`（`add()` を1度書けば `load()`・`save()`・`reset()`（既定値に戻す）を同じ表で行う。対局開始・詰将棋生成のダイアログが使う）
 - **dialogs/**: Dialog implementations (with co-located .ui files)
   - `josekiexpanddialog`（定跡を棋譜に展開する条件）・`josekiimportdialog`（複数の棋譜・フォルダから定跡に登録。集めるのはワーカースレッドで、進み具合と中止を出す。定跡ウィンドウへのドロップでも開く）・`josekibookmergedialog`（別の定跡ファイルを足す条件）・`josekianalysisregisterdialog`（棋譜解析の結果をまとめて登録する手数と手番）・`josekimergedialog`（表示中の手順・棋譜ファイルの本譜の手を選んで登録。「登録済」は定跡に手があるか（`hasMove`）で、登録は `importMoves`）。定跡ウィンドウの「盤の手を登録」（保存しない設定で、起動するとオフ）の登録は `JosekiRegistrationController` が行う
-  - `josekimovedialog`・`josekimoveinputwidget` - 定跡手の追加・編集。指し手は局面の合法手を棋譜の表記で並べた一覧から選ぶ（`JosekiMoveInputWidget`。一覧のオブジェクト名は `<name>Combo`。予想応手は着手後の局面の合法手で、先頭が「なし」）。値の受け渡しは `JosekiMoveDialog::setEntry(const JosekiMove&)`・`entry()`
+  - `josekimovedialog`・`josekimoveinputwidget` - 定跡手の追加・編集。指し手は局面の合法手を画面の表記（`KifuPresentation::move`。定跡ウィンドウの表と同じく表記の設定に従う）で並べた一覧から選ぶ（`JosekiMoveInputWidget`。一覧のオブジェクト名は `<name>Combo`。予想応手は着手後の局面の合法手で、先頭が「なし」）。値の受け渡しは `JosekiMoveDialog::setEntry(const JosekiMove&)`・`entry()`
   - `boardappearancedialog`・`boardappearancesamples` - 対局画面の外観ダイアログ `BoardAppearanceDialog`（駒・将棋盤・背景・駒台・対局者情報の見本の一覧、「おすすめの組み合わせ」、「詳細」の色と木目・影・駒の大きさ。選んだ外観は `BoardAppearance` に書く）と、見本の画像を描く `BoardAppearanceSamples`（見えた項目だけを描く一覧の `LazySampleDelegate`）
   - `promotedialog` - 成り・不成の確認。`PromoteDialog::ask(parent)` で尋ねる（主画面の `DialogLauncher::choosePromotion()` と詰将棋を解く画面で共通）
   - `pvboarddialog`・`pvline` - 読み筋盤（`PvBoardDialog(PvText)`）。読み筋1本の値 `PvLine`（`PvText` から作る。各手数の局面 `positions()`・手の表記 `moveText(ply)`・`displayPv()`・直前の手のハイライト `highlight(ply)` が返す `PvLine::Highlight`）。表示する手数は `BoardViewerWidget` だけが持つ
