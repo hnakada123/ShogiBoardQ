@@ -1,4 +1,5 @@
 #include <QtTest>
+#include <QAbstractButton>
 #include <QLineEdit>
 #include <QPlainTextEdit>
 #include <QPushButton>
@@ -7,6 +8,7 @@
 #include <QTemporaryDir>
 
 #include "csalogpanel.h"
+#include "fontsizecontrol.h"
 #include "networksettings.h"
 
 #include <QAction>
@@ -105,6 +107,57 @@ private slots:
         clear->trigger();
         QVERIFY(view->document()->isEmpty());
         QVERIFY(!copy->isEnabled());
+    }
+
+    /// ドックと通信対局の待機ダイアログのログは同じ設定を使い、片方で変えた文字の大きさと折り返しに
+    /// もう片方も合わせる（作ったときの古い値から計算して保存し直さない）。別の設定のパネルは変えない
+    void panelsSharingSettingsFollowEachOther()
+    {
+        NetworkSettings::csaLogFontSize.set(10);
+        NetworkSettings::csaLogWrapLines.set(false);
+        const Setting<int> otherFont{"FontSize/testOtherLog", 10};
+        const Setting<bool> otherWrap{"TestOtherLog/wrapLines", false};
+        CsaLogPanel dock;
+        LogPanel other(otherFont, otherWrap, LogPanel::Names{}, nullptr);
+        const auto button = [](QWidget& panel, const char* role) {
+            const auto buttons = panel.findChildren<QAbstractButton*>();
+            for (QAbstractButton* candidate : buttons) {
+                if (candidate->property(FontSizeControl::kRoleProperty).toString() == QLatin1String(role))
+                    return candidate;
+            }
+            return static_cast<QAbstractButton*>(nullptr);
+        };
+        const auto logSize = [](QWidget& panel) {
+            const auto views = panel.findChildren<QPlainTextEdit*>();
+            return views.isEmpty() ? -1 : views.first()->font().pointSize();
+        };
+        auto* dockWrap = dock.findChild<QAction*>("csaLogWrap");
+        auto* dockView = dock.findChild<QPlainTextEdit*>("csaLogView");
+        {
+            CsaLogPanel waiting;
+            auto* increase = button(waiting, "increase");
+            QVERIFY(increase);
+            increase->click();
+            increase->click();
+            QCOMPARE(NetworkSettings::csaLogFontSize(), 12);
+            QCOMPARE(logSize(dock), 12);
+            QCOMPARE(logSize(waiting), 12);
+            waiting.findChild<QAction*>("csaLogWrap")->trigger();
+            QVERIFY(NetworkSettings::csaLogWrapLines());
+            QVERIFY(dockWrap->isChecked());
+            QCOMPARE(dockView->lineWrapMode(), QPlainTextEdit::WidgetWidth);
+        }
+        // 待機ダイアログを閉じた後のドックの A+ は、合わせた大きさから1つ上げる
+        button(dock, "increase")->click();
+        QCOMPARE(NetworkSettings::csaLogFontSize(), 13);
+        QCOMPARE(logSize(dock), 13);
+        dockWrap->trigger();
+        QVERIFY(!NetworkSettings::csaLogWrapLines());
+        // 別の設定を使うパネル（USI 通信ログ）は変わらない
+        QCOMPARE(otherFont(), 10);
+        QCOMPARE(logSize(other), 10);
+        QVERIFY(!otherWrap());
+        NetworkSettings::csaLogFontSize.set(10);
     }
 };
 

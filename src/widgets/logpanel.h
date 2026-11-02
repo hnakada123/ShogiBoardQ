@@ -5,6 +5,7 @@
 /// @brief 通信ログのパネルの共通部分（USI・CSA）
 
 #include <QColor>
+#include <QList>
 #include <QString>
 #include <QWidget>
 
@@ -26,6 +27,8 @@ class QToolButton;
  * コマンドの入力欄を持つ。追記は閲覧位置と選択範囲を保ち、末尾を見ているときだけ新着に追従する。
  * 派生クラスは操作列に部品を足し（addToolbarWidget）、コマンドの欄の前に部品を置き（commandLayout）、
  * 送ってよいか（canSend）と入力したコマンドの行き先（commandEntered）を決める。
+ * 同じ設定を使うパネル（CSA 通信ログのドックと通信対局の待機ダイアログのログ）は、文字の大きさと
+ * 折り返しを変えたら互いに合わせる（作るときに読んだ古い値で保存し直さない）。
  */
 class LogPanel : public QWidget
 {
@@ -76,12 +79,17 @@ private slots:
     void scrollToLatest();
     void copyAll();
     void updateLogActions();
-    void applyFontSize();
+    void onFontSizeChanged(int size);
 
 private:
     void buildToolbar(const Names& names);
     void buildCommandBar(const Names& names);
+    void applyFontSize();
+    /// 同じ文字の大きさ・折り返しの設定を使う、ほかの生きているパネル
+    QList<LogPanel*> panelsSharingFontSize() const;
+    QList<LogPanel*> panelsSharingWrapLines() const;
 
+    const Setting<int>& m_fontSizeSetting;
     const Setting<bool>& m_wrapLines;
     FontSizeHelper m_fontSize;   ///< ログ・コマンドの欄の文字の大きさ（変更のたびに保存する）
     QToolBar* m_toolbar = nullptr;

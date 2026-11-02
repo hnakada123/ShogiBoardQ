@@ -47,10 +47,18 @@ protected:
         QPlainTextDocumentLayout::documentChanged(from, charsRemoved, charsAdded);
     }
 };
+
+/// 生きているパネル（同じ設定を使うパネルに変更を伝える。UI のスレッドだけで使う）
+QList<LogPanel*>& livePanels()
+{
+    static QList<LogPanel*> panels;
+    return panels;
+}
 } // namespace
 
 LogPanel::LogPanel(const Setting<int>& fontSize, const Setting<bool>& wrapLines, const Names& names, QWidget* parent)
     : QWidget(parent)
+    , m_fontSizeSetting(fontSize)
     , m_wrapLines(wrapLines)
     , m_fontSize(fontSize, 8, 24)
 {
@@ -85,9 +93,32 @@ LogPanel::LogPanel(const Setting<int>& fontSize, const Setting<bool>& wrapLines,
 
     applyFontSize();
     updateLogActions();
+    livePanels().append(this);
 }
 
-LogPanel::~LogPanel() = default;
+LogPanel::~LogPanel()
+{
+    livePanels().removeOne(this);
+}
+
+QList<LogPanel*> LogPanel::panelsSharingFontSize() const
+{
+    QList<LogPanel*> result;
+    for (LogPanel* panel : std::as_const(livePanels())) {
+        if (panel != this && qstrcmp(panel->m_fontSizeSetting.key(), m_fontSizeSetting.key()) == 0)
+            result.append(panel);
+    }
+    return result;
+}
+
+QList<LogPanel*> LogPanel::panelsSharingWrapLines() const
+{
+    QList<LogPanel*> result;
+    for (LogPanel* panel : std::as_const(livePanels())) {
+        if (panel != this && qstrcmp(panel->m_wrapLines.key(), m_wrapLines.key()) == 0) result.append(panel);
+    }
+    return result;
+}
 
 void LogPanel::buildToolbar(const Names& names)
 {
@@ -99,7 +130,7 @@ void LogPanel::buildToolbar(const Names& names)
     auto* decrease = new QToolButton(m_toolbar);
     auto* increase = new QToolButton(m_toolbar);
     new FontSizeControl(decrease, increase, &m_fontSize);
-    connect(&m_fontSize, &FontSizeHelper::fontSizeChanged, this, &LogPanel::applyFontSize);
+    connect(&m_fontSize, &FontSizeHelper::fontSizeChanged, this, &LogPanel::onFontSizeChanged);
     m_toolbar->addWidget(decrease);
     m_toolbar->addWidget(increase);
     m_toolbar->addSeparator();
@@ -227,6 +258,13 @@ void LogPanel::applyFontSize()
     }
 }
 
+void LogPanel::onFontSizeChanged(int size)
+{
+    applyFontSize();
+    // 同じ設定のパネルも同じ大きさにする（同じ大きさなら何もしないので、伝え返しは止まる）
+    for (LogPanel* panel : panelsSharingFontSize()) panel->m_fontSize.setFontSize(size);
+}
+
 void LogPanel::onCommandEntered()
 {
     const QString command = m_commandInput->text().trimmed();
@@ -248,6 +286,8 @@ void LogPanel::onWrapToggled(bool checked)
     m_logView->setLineWrapMode(checked ? QPlainTextEdit::WidgetWidth : QPlainTextEdit::NoWrap);
     if (follow) scroll->setValue(scroll->maximum());
     m_wrapLines.set(checked);
+    // 同じ設定のパネルも合わせる（同じ状態なら toggled が出ないので、伝え返しは止まる）
+    for (LogPanel* panel : panelsSharingWrapLines()) panel->m_wrapAction->setChecked(checked);
 }
 
 void LogPanel::scrollToLatest()
