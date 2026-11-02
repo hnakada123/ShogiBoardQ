@@ -4,6 +4,7 @@
 #include "dialogfontscale.h"
 #include "dialogutils.h"
 #include "engineselector.h"
+#include "positioncollectionfile.h"
 #include "tsumecollectionsession.h"
 #include "tsumeshogisettings.h"
 #include <QComboBox>
@@ -282,7 +283,7 @@ void TsumeCollectionDialog::restoreLastFile()
 void TsumeCollectionDialog::openFile()
 {
     const auto path = QFileDialog::getOpenFileName(this, tr("詰将棋の局面集を開く"), m_session->filePath(),
-                                                 tr("局面集 (*.txt *.sfen *.usi);;すべてのファイル (*)"));
+                                                 PositionCollectionFile::fileFilter());
     if (!path.isEmpty()) loadFile(path);
 }
 
@@ -291,9 +292,10 @@ bool TsumeCollectionDialog::loadFile(const QString& path)
     QString error;
     QList<int> invalidLines;
     if (!m_session->load(path, &error, &invalidLines)) {
+        // 開けなかった理由は局面集ビューアと同じ文（PositionCollectionFile::readFile）
         QMessageBox::warning(this, windowTitle(), error.isEmpty()
             ? tr("有効な詰将棋局面がありません。SFEN形式と玉方の玉を確認してください。")
-            : tr("ファイルを開けませんでした。\n%1").arg(error));
+            : error);
         return false;
     }
     m_fileLabel->setText(QFileInfo(path).fileName());

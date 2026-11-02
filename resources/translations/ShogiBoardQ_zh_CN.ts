@@ -8751,7 +8751,7 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">错误</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="184"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="189"/>
         <source>（定跡）</source>
         <translation>（定跡）</translation>
     </message>
@@ -8881,7 +8881,7 @@ OKを選択すると保存先が指定できます。</source>
         <translation>去左五枚</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="202"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="207"/>
         <source>局面指定</source>
         <translation>指定局面</translation>
     </message>
@@ -8921,7 +8921,7 @@ OKを選択すると保存先が指定できます。</source>
         <translation>不限时</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifupresentation.cpp" line="213"/>
+        <location filename="../../src/kifu/kifupresentation.cpp" line="218"/>
         <source>%1+%2秒加算</source>
         <translation>%1+每步加%2秒</translation>
     </message>
@@ -10810,6 +10810,29 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
     </message>
 </context>
 <context>
+    <name>PositionCollectionFile</name>
+    <message>
+        <location filename="../../src/kifu/positioncollectionfile.cpp" line="96"/>
+        <source>ファイルを開けませんでした: %1</source>
+        <translation>无法打开文件：%1</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/positioncollectionfile.cpp" line="99"/>
+        <source>通常のファイルではありません: %1</source>
+        <translation>不是普通文件：%1</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/positioncollectionfile.cpp" line="102"/>
+        <source>ファイルが大きすぎます（%1 MB まで）: %2</source>
+        <translation>文件太大（上限 %1 MB）：%2</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/positioncollectionfile.cpp" line="112"/>
+        <source>局面集 (*.txt *.sfen *.usi);;すべてのファイル (*)</source>
+        <translation>局面集 (*.txt *.sfen *.usi);;所有文件 (*)</translation>
+    </message>
+</context>
+<context>
     <name>PreStartCleanupHandler</name>
     <message>
         <source>=== 開始局面 ===</source>
@@ -11580,33 +11603,33 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>SfenCollectionDialog</name>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="35"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="33"/>
         <source>局面集ビューア</source>
         <translation>SFEN 局面集查看器</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="67"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="65"/>
         <source>ファイルを開く</source>
         <translation>打开文件</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="68"/>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="158"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="66"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="156"/>
         <source>SFEN局面集ファイルを開く</source>
         <translation>打开 SFEN 局面集</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="74"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="72"/>
         <source>履歴</source>
         <translation>历史记录</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="75"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="73"/>
         <source>最近使ったファイルを開く</source>
         <translation>打开最近使用的文件</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="87"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="85"/>
         <source>「ファイルを開く」から局面集を選んでください。</source>
         <translation>选择“打开文件”载入局面集。</translation>
     </message>
@@ -11643,7 +11666,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">后手</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="101"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="99"/>
         <source>局面集が読み込まれていません</source>
         <translation>尚未载入局面集</translation>
     </message>
@@ -11680,44 +11703,42 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">跳到最后局面</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="111"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="109"/>
         <source>選択</source>
         <translation>选择</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="113"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="111"/>
         <source>現在の局面をメインGUIに反映する</source>
         <translation>将当前局面应用于主棋盘</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="120"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="118"/>
         <source>閉じる</source>
         <translation>关闭</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="160"/>
         <source>テキストファイル (*.txt *.sfen);;すべてのファイル (*)</source>
-        <translation>文本文件 (*.txt *.sfen);;所有文件 (*)</translation>
+        <translation type="vanished">文本文件 (*.txt *.sfen);;所有文件 (*)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="174"/>
         <source>ファイルを開けませんでした: %1</source>
-        <translation>无法打开文件：%1</translation>
+        <translation type="vanished">无法打开文件：%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="187"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="181"/>
         <source>%1 には局面がありません。
 1行に1局面のSFENを書いたファイルを選んでください。</source>
         <translation>%1 中没有局面。
 请选择每行写有一个 SFEN 局面的文件。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="195"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="189"/>
         <source>ファイル: %1</source>
         <translation>文件：%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="132"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="130"/>
         <source>局面: %1 / %2</source>
         <translation>局面：%1 / %2</translation>
     </message>
@@ -11730,19 +11751,19 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">清除历史记录</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="173"/>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="186"/>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="232"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="172"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="180"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="226"/>
         <source>エラー</source>
         <translation>错误</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="194"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="188"/>
         <source>ファイル: %1（読めない %2 行を飛ばしました）</source>
         <translation>文件：%1（已跳过无法读取的 %2 行）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="233"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="227"/>
         <source>ファイルが見つかりません: %1</source>
         <translation>未找到文件：%1</translation>
     </message>
@@ -12485,83 +12506,83 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>TsumeCollectionDialog</name>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="42"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="43"/>
         <source>詰将棋問題一覧</source>
         <translation>诘棋题集</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="84"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="85"/>
         <source>局面集を開く…</source>
         <translation>打开题集…</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="87"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="88"/>
         <source>局面集を選択してください。</source>
         <translation>请选择题集。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="91"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="92"/>
         <source>この局面集の履歴を初期化…</source>
         <translation>重置此题集的历史记录…</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="97"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="98"/>
         <source>全局面集の履歴を初期化…</source>
         <translation>重置所有题集的历史记录…</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="105"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="106"/>
         <source>判定エンジン:</source>
         <translation>诘棋引擎：</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="50"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="51"/>
         <source>Hayanagi（内蔵・31手まで）</source>
         <translation>Hayanagi（内置，最多 31 手）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="109"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="110"/>
         <source>判定時間:</source>
         <translation>搜索时间：</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="113"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="115"/>
         <source> 秒</source>
         <translation> 秒</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="115"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="117"/>
         <source>このページを再判定</source>
         <translation>重新验证此页</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="125"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="127"/>
         <source>表示件数:</source>
         <translation>每页题数：</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="130"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="132"/>
         <source>挑戦状況:</source>
         <translation>进度：</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="134"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="136"/>
         <source>すべて</source>
         <translation>全部</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="134"/>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="254"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="136"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="256"/>
         <source>未挑戦</source>
         <translation>未尝试</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="134"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="136"/>
         <source>挑戦済み・未正答</source>
         <translation>已尝试，未解答</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="134"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="136"/>
         <source>正答済み</source>
         <translation>已解答</translation>
     </message>
@@ -12574,133 +12595,131 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">放大字号</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="158"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="160"/>
         <source>最初</source>
         <translation>第一页</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="159"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="161"/>
         <source>前ページ</source>
         <translation>上一页</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="160"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="162"/>
         <source>次ページ</source>
         <translation>下一页</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="162"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="164"/>
         <source>最後</source>
         <translation>最后一页</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="176"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="178"/>
         <source>閉じる</source>
         <translation>关闭</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="211"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="213"/>
         <source>内蔵判定は31手までです。長手数を解く場合はエンジン登録でKomoringHeightsを登録し、ここで選択してください。</source>
         <translation>内置引擎最多支持 31 手。对于更长的题目，请注册 KomoringHeights 引擎并在此选择。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="210"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="212"/>
         <source>玉方はHayanagi、詰み判定はKomoringHeightsです。参考手順の手数と、確認済みの詰み手数を区別して表示します。</source>
         <translation>Hayanagi 负责防守，KomoringHeights 负责验证诘棋。参考变化长度与已验证的诘棋手数会分别显示。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="224"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="226"/>
         <source>履歴を保存できません: %1</source>
         <translation>无法保存进度：%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="229"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="231"/>
         <source>判定中…</source>
         <translation>验证中…</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="231"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="233"/>
         <source>%1手詰</source>
         <translation>%1 手诘</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="232"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="234"/>
         <source>不詰（確認済み）</source>
         <translation>无诘（已验证）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="233"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="235"/>
         <source>判定不能（再判定できます）</source>
         <translation>未确定（可重试）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="236"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="238"/>
         <source>手数未判定</source>
         <translation>尚未验证诘棋手数</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="236"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="238"/>
         <source>参考手順: %1手・未検証</source>
         <translation>参考变化：%1 手，未验证</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="253"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="255"/>
         <source>正答済み ／ 挑戦%1回・正答%2回</source>
         <translation>已解答／尝试 %1 次，解答 %2 次</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="254"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="256"/>
         <source>挑戦済み・未正答 ／ 挑戦%1回</source>
         <translation>已尝试，未解答／尝试 %1 次</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="255"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="257"/>
         <source>最終挑戦: %1
 最終正答: %2</source>
         <translation>上次尝试：%1
 上次解答：%2</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="258"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="260"/>
         <source>第%1問 / %2 / %3</source>
         <translation>题目 %1 / %2 / %3</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="283"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="285"/>
         <source>詰将棋の局面集を開く</source>
         <translation>打开诘棋题集</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="284"/>
         <source>局面集 (*.txt *.sfen *.usi);;すべてのファイル (*)</source>
-        <translation>题集文件 (*.txt *.sfen *.usi);;所有文件 (*)</translation>
+        <translation type="vanished">题集文件 (*.txt *.sfen *.usi);;所有文件 (*)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="295"/>
         <source>ファイルを開けませんでした。
 %1</source>
-        <translation>无法打开文件。
+        <translation type="vanished">无法打开文件。
 %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="294"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="297"/>
         <source>有効な詰将棋局面がありません。SFEN形式と玉方の玉を確認してください。</source>
         <translation>未找到有效的诘棋局面。请检查 SFEN 格式和防守方玉将。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="306"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="309"/>
         <source>次の行は形式が不正なため読み込めませんでした: %1</source>
         <translation>以下行因格式无效而无法载入：%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="318"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="321"/>
         <source>過去に開いたすべての局面集の挑戦・正答履歴を初期化し、すべての問題を未挑戦に戻します。
 この操作は取り消せません。初期化しますか？</source>
         <translation>清除所有已打开题集的尝试与解答历史，将全部题目标记为未尝试。
 此操作无法撤销。重置历史吗？</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="319"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="322"/>
         <source>「%1」の全問題の挑戦・正答履歴を初期化し、未挑戦に戻します。
 表示中のページや絞り込みに関係なく、この局面集の全問題が対象です。
 同じ局面が他の局面集にもある場合、その共有履歴も初期化されます。
@@ -12711,40 +12730,40 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 此操作无法撤销。重置历史吗？</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="320"/>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="329"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="323"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="332"/>
         <source>履歴の初期化</source>
         <translation>重置历史</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="324"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="327"/>
         <source>初期化する</source>
         <translation>重置</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="329"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="332"/>
         <source>履歴を初期化できませんでした。
 %1</source>
         <translation>无法重置历史。
 %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="359"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="362"/>
         <source>%1問中 %2〜%3問 ／ %4/%5ページ</source>
         <translation>共 %1 题，显示 %2–%3 / 第 %4 页，共 %5 页</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="372"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="375"/>
         <source>問題がありません。「局面集を開く…」からSFEN形式のファイルを選んでください。</source>
         <translation>尚未载入题目。请选择“打开题集…”，并选择 SFEN 文件。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="373"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="376"/>
         <source>この挑戦状況に一致する問題はありません。絞り込みを「すべて」にすると全問を表示できます。</source>
         <translation>没有符合此进度筛选条件的题目。选择“全部”显示所有题目。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="391"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="394"/>
         <source>第%1問（%2行目）</source>
         <translation>题目 %1（第 %2 行）</translation>
     </message>
@@ -12813,18 +12832,18 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>搜索时间：</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="110"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="111"/>
         <source> 秒</source>
         <translation> 秒</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="118"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="119"/>
         <source>王手を続け、表示された手数以内に詰ませてください。別解も判定します。</source>
         <translation>连续王手，在显示的手数以内完成诘棋。允许其他正确解法。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="132"/>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="218"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="133"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="219"/>
         <source>正解手順</source>
         <translation>解答</translation>
     </message>
@@ -12837,27 +12856,27 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">放大字号</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="431"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="432"/>
         <source>一手戻す</source>
         <translation>撤销上一手</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="444"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="445"/>
         <source>探索中止</source>
         <translation>停止搜索</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="445"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="446"/>
         <source>再判定</source>
         <translation>重试搜索</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="153"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="154"/>
         <source>一覧に戻る</source>
         <translation>返回题集</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="430"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="431"/>
         <source>最初から解き直す</source>
         <translation>重新开始此题</translation>
     </message>
@@ -12874,23 +12893,23 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">翻转棋盘</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="266"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="267"/>
         <source>第%1問 — 詰み手数を確認しています…</source>
         <translation>题目 %1 — 正在验证诘棋手数…</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="330"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="331"/>
         <source>詰みと玉方の応手を確認しています…</source>
         <translation>正在验证诘棋及防守着法…</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="355"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="356"/>
         <source>判定が完了していません。不正解とは判定していません。時間を増やして再判定してください。</source>
         <translation>搜索尚未完成，您的着法未被判错。请增加时间后重试。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="273"/>
         <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="274"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="275"/>
         <source>あなた</source>
         <translation>您</translation>
     </message>
@@ -12911,114 +12930,114 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">不成</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="327"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="328"/>
         <source>第%1問 — %2手詰 ／ 玉方: Hayanagi</source>
         <translation>题目 %1 — %2 手诘／防守：Hayanagi</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="328"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="329"/>
         <source>あなたの手番です。残り%1手以内で詰ませてください。</source>
         <translation>轮到您行棋。请在剩余 %1 手内完成诘棋。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="331"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="332"/>
         <source>判定を中断しました。判定時間を増やして「再判定」するか、一手戻してください。</source>
         <translation>搜索已暂停。请增加搜索时间后重试，或撤销上一手。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="334"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="335"/>
         <source>正答済み ／ 挑戦%1回・正答%2回</source>
         <translation>已解答／尝试 %1 次，解答 %2 次</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="335"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="336"/>
         <source>未正答 ／ 挑戦%1回</source>
         <translation>未解答／尝试 %1 次</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="336"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="337"/>
         <source>履歴を保存できません: %1</source>
         <translation>无法保存进度：%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="349"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="350"/>
         <source>正解です。玉方を詰ませました！</source>
         <translation>正确！您已将死防守方玉将。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="352"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="353"/>
         <source>この応手で詰みを防がれました。王手を続けても詰みません。</source>
         <translation>此应手可避免诘棋，无法通过连续王手强制将死。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="353"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="354"/>
         <source>この応手により、残り%1手以内では詰みません。一手戻して考え直してください。</source>
         <translation>此应手可避免在剩余 %1 手内被将死。请撤销上一手后重试。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="358"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="359"/>
         <source>この局面は王手の連続で詰ませられません。別の問題を選んでください。</source>
         <translation>此局面无法通过连续王手强制将死。请选择其他题目。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="381"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="382"/>
         <source>王手になる合法手を指してください。二歩・打ち歩詰め・自玉の王手放置はできません。</source>
         <translation>请走合法的王手。禁止二步、打步诘及己方玉将仍被王手的着法。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="127"/>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="556"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="128"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="557"/>
         <source>正解手順:</source>
         <translation>解答：</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="401"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="402"/>
         <source>1手戻る</source>
         <translation>后退一手</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="402"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="403"/>
         <source>1手進む</source>
         <translation>前进一手</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="403"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="404"/>
         <source>詰み局面へ</source>
         <translation>最终将死局面</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="223"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="224"/>
         <source>対局に戻る</source>
         <translation>继续解题</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="400"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="401"/>
         <source>開始局面へ</source>
         <translation>初始局面</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="558"/>
         <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="559"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="560"/>
         <source>正解手順を確認中…</source>
         <translation>正在验证解答…</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="560"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="561"/>
         <source>正解手順を取得しています。探索中止または対局に戻る操作で中断できます。</source>
         <translation>正在寻找解答。可选择“停止搜索”或“继续解题”取消。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="564"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="565"/>
         <source>正解手順: %1 / %2手</source>
         <translation>解答：%1 / %2 手</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="565"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="566"/>
         <source>正解手順の一例を再生中です。「対局に戻る」で元の局面から続けられます。</source>
         <translation>正在查看一种解法。选择“继续解题”可回到原局面继续。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="568"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="569"/>
         <source>正解手順: 未確認</source>
         <translation>解答：未验证</translation>
     </message>

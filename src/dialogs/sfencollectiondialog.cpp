@@ -2,7 +2,6 @@
 /// @brief SFEN局面集ビューアダイアログクラスの実装
 
 #include "sfencollectiondialog.h"
-#include "boundedfile.h"
 #include "buttonstyles.h"
 #include "boardviewerwidget.h"
 #include "shogiboard.h"
@@ -23,7 +22,6 @@
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QMessageBox>
-#include <QTextStream>
 
 namespace {
 constexpr QSize kMinimumSize{400, 500};
@@ -157,7 +155,7 @@ void SfenCollectionDialog::onOpenFileClicked()
         this,
         tr("SFEN局面集ファイルを開く"),
         lastDir,
-        tr("テキストファイル (*.txt *.sfen);;すべてのファイル (*)"));
+        PositionCollectionFile::fileFilter());
 
     if (!filePath.isEmpty()) {
         loadFromFile(filePath);
@@ -167,21 +165,17 @@ void SfenCollectionDialog::onOpenFileClicked()
 bool SfenCollectionDialog::loadFromFile(const QString& filePath)
 {
     QFileInfo fi(filePath);
-    // 通常のファイルだけを上限まで読む（FIFO・デバイス・巨大なファイルで止まらない）
-    QByteArray contents;
-    if (BoundedFile::read(filePath, BoundedFile::kMaxCollectionBytes, contents) != BoundedFile::Result::Ok) {
-        QMessageBox::warning(this, tr("エラー"),
-                             tr("ファイルを開けませんでした: %1").arg(fi.fileName()));
+    // 通常のファイルだけを上限まで読む（FIFO・デバイス・巨大なファイルで止まらない）。読み方と読めない理由の文は
+    // 詰将棋問題一覧と同じ（PositionCollectionFile::readFile）
+    const PositionCollectionFile::File file = PositionCollectionFile::readFile(filePath);
+    if (!file.ok) {
+        QMessageBox::warning(this, tr("エラー"), file.error);
         return false;
     }
 
-    QTextStream in(contents);
-    QString text = in.readAll();
-    text.replace(QStringLiteral("\r\n"), QStringLiteral("\n"));
-
-    // 局面が1つもないファイルでは、表示中の局面集をそのまま残す
+    // 局面が1つもないファイルでは、表示中の局面集をそのまま残す（行末の CR は行の規則が除く）
     int skippedLines = 0;
-    const QStringList sfens = parseSfenLines(text, &skippedLines);
+    const QStringList sfens = parseSfenLines(file.text, &skippedLines);
     if (sfens.isEmpty()) {
         QMessageBox::warning(this, tr("エラー"),
                              tr("%1 には局面がありません。\n"

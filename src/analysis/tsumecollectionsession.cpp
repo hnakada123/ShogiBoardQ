@@ -2,7 +2,7 @@
 /// @brief 開いている詰将棋の局面集の実装
 
 #include "tsumecollectionsession.h"
-#include "boundedfile.h"
+#include "positioncollectionfile.h"
 
 #include "tsumepositionanalyzer.h"
 
@@ -27,13 +27,13 @@ TsumeCollectionSession::~TsumeCollectionSession() = default;
 
 bool TsumeCollectionSession::load(const QString& path, QString* errorMessage, QList<int>* invalidLines)
 {
-    QByteArray contents;
-    const BoundedFile::Result read = BoundedFile::read(path, BoundedFile::kMaxCollectionBytes, contents);
-    if (read != BoundedFile::Result::Ok) {
-        if (errorMessage) *errorMessage = BoundedFile::describe(read, path, BoundedFile::kMaxCollectionBytes);
+    // 読み方と読めない理由の文は局面集ビューアと同じ（PositionCollectionFile::readFile）
+    const PositionCollectionFile::File file = PositionCollectionFile::readFile(path);
+    if (!file.ok) {
+        if (errorMessage) *errorMessage = file.error;
         return false;
     }
-    const TsumeCollection::Result parsed = TsumeCollection::parse(QString::fromUtf8(contents));
+    const TsumeCollection::Result parsed = TsumeCollection::parse(file.text);
     if (parsed.problems.isEmpty()) {
         if (errorMessage) errorMessage->clear();
         return false;
@@ -43,7 +43,7 @@ bool TsumeCollectionSession::load(const QString& path, QString* errorMessage, QL
     m_ids = parsed.positionIds;
     m_file = path;
     m_results.clear();
-    m_store->setVerifiedCollection(contents, parsed);
+    m_store->setVerifiedCollection(file.bytes, parsed);
     refreshProgress();
     if (invalidLines) *invalidLines = parsed.invalidLines;
     return true;

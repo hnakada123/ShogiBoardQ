@@ -4,6 +4,7 @@
 /// @file positioncollectionfile.h
 /// @brief 局面集ファイル（1行1局面）の読み取り。局面集ビューアと詰将棋問題一覧で共有する
 
+#include <QByteArray>
 #include <QList>
 #include <QString>
 #include <QStringList>
@@ -45,6 +46,20 @@ enum class LineKind { Skipped, Position, Invalid };
 LineKind parseLine(const QString& text, int lineNumber, Line* line);
 /// テキスト全体を読む
 Contents parse(const QString& text);
+
+/// 局面集ファイルの中身
+struct File {
+    bool ok = false;
+    QByteArray bytes; ///< ファイルの中身（詰将棋問題一覧が確認済みの局面集を見分けるのに使う）
+    QString text;     ///< UTF-8 として読んだ文（parse に渡す）
+    QString error;    ///< 読めなかった理由（表示言語に訳した文。ok なら空）
+};
+
+/// 局面集ファイルを読む。通常のファイルだけを上限（BoundedFile::kMaxCollectionBytes）まで読み、読めなければ
+/// 理由を訳した文で返す。局面集ビューアと詰将棋問題一覧（TsumeCollectionSession::load）で共通
+File readFile(const QString& path);
+/// 局面集ファイルを開くダイアログの絞り込み（訳した文。局面集ビューアと詰将棋問題一覧で共通）
+QString fileFilter();
 
 } // namespace PositionCollectionFile
 

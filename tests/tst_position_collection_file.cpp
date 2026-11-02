@@ -1,6 +1,9 @@
 /// @file tst_position_collection_file.cpp
 /// @brief 局面集ファイルの1行の規則（PositionCollectionFile）と最近使ったファイルの一覧（RecentFileList）のテスト
 
+#include <QDir>
+#include <QFile>
+#include <QTemporaryDir>
 #include <QtTest>
 
 #include "positioncollectionfile.h"
@@ -88,6 +91,42 @@ private slots:
         QCOMPARE(result.problems.at(0).referenceMoves.size(), 5);
         QCOMPARE(result.problems.at(1).sfen, kTsume);
         QVERIFY(result.problems.at(1).referenceMoves.isEmpty());
+    }
+
+    /// 局面集ファイルの読み方と読めない理由の文は、局面集ビューアと詰将棋問題一覧で同じ
+    void readFileReportsReasonsInTheDisplayLanguage()
+    {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QString path = dir.filePath(QStringLiteral("problems.sfen"));
+        const QByteArray bytes = (QStringLiteral("startpos\r\nsfen ") + kTsume + QStringLiteral("\r\n")).toUtf8();
+        {
+            QFile out(path);
+            QVERIFY(out.open(QIODevice::WriteOnly));
+            out.write(bytes);
+        }
+        const PositionCollectionFile::File file = PositionCollectionFile::readFile(path);
+        QVERIFY(file.ok);
+        QVERIFY(file.error.isEmpty());
+        QCOMPARE(file.bytes, bytes);
+        QCOMPARE(PositionCollectionFile::parse(file.text).lines.size(), 2);
+
+        const PositionCollectionFile::File missing = PositionCollectionFile::readFile(dir.filePath(QStringLiteral("none.sfen")));
+        QVERIFY(!missing.ok);
+        QCOMPARE(missing.error, QStringLiteral("ファイルを開けませんでした: none.sfen"));
+
+        QVERIFY(QDir(dir.path()).mkdir(QStringLiteral("folder.sfen")));
+        const PositionCollectionFile::File folder = PositionCollectionFile::readFile(dir.filePath(QStringLiteral("folder.sfen")));
+        QVERIFY(!folder.ok);
+        QCOMPARE(folder.error, QStringLiteral("通常のファイルではありません: folder.sfen"));
+    }
+
+    /// 開くダイアログの絞り込みは、局面集のどの拡張子も出す（ビューアだけ .usi を出さなかった）
+    void fileFilterListsEveryCollectionSuffix()
+    {
+        const QString filter = PositionCollectionFile::fileFilter();
+        for (const char* suffix : {"*.txt", "*.sfen", "*.usi"})
+            QVERIFY2(filter.contains(QLatin1String(suffix)), suffix);
     }
 
     void recentFileListOrderAndLimit()
