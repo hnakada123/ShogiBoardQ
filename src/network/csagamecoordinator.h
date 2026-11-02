@@ -206,6 +206,9 @@ signals:
     void errorOccurred(const QString& message);
     /// 対局が始まった（棋譜を作って再開局面の既存手順を書き、通信対局中にした後）
     void gameStarted(const QString& blackName, const QString& whiteName);
+    /// 自分のエンジンで指す対局が始まった（gameStarted の後。side は自分の手番、engineName は登録名。
+    /// 棋譜の対局者はサーバーの名前なので、評価値グラフの系列名はこれで知らせる）
+    void matchEngineStarted(Turn side, const QString& engineName);
     /// 対局が終わった（終局の行を書いた棋譜を確定し、動作状態を待機に戻した後）
     void gameEnded(CsaClient::GameResult result, CsaClient::GameEndCause cause, int consumedTimeMs);
     void turnChanged(bool isMyTurn);

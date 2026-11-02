@@ -53,7 +53,7 @@ cmake --build build --target translations
   - `mainwindowactions.cpp/.h` - メニュー・盤・棋譜欄からの利用者操作の振り分け先。「新規」は未保存を確かめてから `startNewRecord()`（検討を止め、対局の後始末 `GameSession::abandonGame()`、エンジンを止め、平手の棋譜にする）
   - `menuactionswiring.cpp/.h` - メニュー・ツールバーの項目と処理する部品の接続。項目の triggered・toggled はすべてここでつなぎ、チェックできる項目（合法手の表示・ツールバー・駒音・ドックの固定・移動元）は設定を持つ部品の今の値から始める（保存は部品）。ここでつながないのは、排他の組（言語・指し手の表記。`LanguageController`）と、項目を作る部品のメニュー（保存したレイアウトの一覧。`DockLayoutManager::setSavedLayoutsMenu`）だけ
   - `gamesession.cpp/.h` - 対局の開始・終局・再開・後始末（「新規」の `abandonGame()`）と、対局の棋譜の受け手（`MatchRecordSink`）。ローカル対局と通信対局の棋譜を開始から終局・自動保存まで1本の流れで扱い（司令塔が通信対局の開始で `beginRecord`、着手と終局で `appendRecord`、終局で `finishRecord` を呼ぶ）、投了・中断・即指し・入玉宣言は `activeChannel()`（`GameChannel`）へ送る
-  - `sessionresetcoordinator.cpp/.h` - 対局の開始前（`prepareGameStart`。連続対局の次局・通信対局の開始も）・新規・局面編集で棋譜を作り直す。評価値グラフとエンジンの表示（`EngineDisplayPresenter::clearAll()`）は文書の置き換え（`KifuDocument::replaced`）を受けて自分で消える
+  - `sessionresetcoordinator.cpp/.h` - 対局の開始前（`prepareGameStart`。連続対局の次局・通信対局の開始も）・新規・局面編集で棋譜を作り直す。評価値グラフとエンジンの表示（`EngineDisplayPresenter::clearAll()`。思考・検討・解析結果。通信ログと結んでいるエンジンの名前は残す）は文書の置き換え（`KifuDocument::replaced`）を受けて自分で消える。通信ログ（USI・CSA）は対局を始めるとき（`GameSession::gameStarting`・`CsaGameSession::gameStarting`）に `clearEngineLogs()` で消す（通信対局はログインとエンジンの起動の後に START で棋譜を作り直すので）
 
 - **core/**: 純粋なゲームロジック（Qt GUI非依存）
   - `shogiposition.cpp/.h` - 局面の値 `Position`（盤81マス・持ち駒・手番・手数）。SFEN の読み書きと指し手の適用（`apply`）はここだけ。手番側の手として局面に合うか（動かす駒の色・自分の駒を取らないか・打つ駒と打つ先）は `mismatchOf` だけで決める（棋譜の1行の `MoveRecord::play` と読み筋の `PvText` が使う）。計算のための局面はこの値で持つ

@@ -53,6 +53,10 @@ public:
     static QString resultText(CsaClient::GameResult result);
     static QString causeText(CsaClient::GameEndCause cause);
 
+signals:
+    /// 通信対局を始める（サーバーへ接続する前。前の対局の通信ログを消す）
+    void gameStarting();
+
 public slots:
     /// 接続ダイアログを開き、OK なら未保存の棋譜を確かめてから始める（startGame）
     void openGameDialog();

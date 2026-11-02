@@ -63,8 +63,12 @@ void EngineDisplayPresenter::bindEngines()
 
 void EngineDisplayPresenter::clearEngineOutput()
 {
-    for (UsiCommLogModel* log : {m_deps.commLog1, m_deps.commLog2}) {
-        if (log) log->clear();
+    const std::array<UsiCommLogModel*, 2> logs{m_deps.commLog1, m_deps.commLog2};
+    for (size_t i = 0; i < logs.size(); ++i) {
+        if (!logs[i]) continue;
+        // 結んでいるエンジンの名前は残す（通信対局は、エンジンを起動した後に棋譜を作り直す）
+        if (m_engines[i]) logs[i]->clearStatus();
+        else logs[i]->clear();
     }
     for (ShogiEngineThinkingModel* thinking : {m_deps.thinking1, m_deps.thinking2}) {
         if (thinking) thinking->clear();
@@ -76,8 +80,6 @@ void EngineDisplayPresenter::clearAll()
     clearEngineOutput();
     clearConsideration();
     if (m_deps.analysisModel) m_deps.analysisModel->clear();
-    if (UsiLogPanel* log = m_deps.usiLog) log->clear();
-    if (CsaLogPanel* log = m_deps.csaLog) log->clear();
     if (ThinkingPanel* panel = m_deps.thinkingPanel) {
         panel->info1()->setDisplayNameFallback(QString());
         panel->info2()->setDisplayNameFallback(QString());
@@ -87,6 +89,12 @@ void EngineDisplayPresenter::clearAll()
         // 検討の実行の状態（ボタン・経過時間）は AnalysisSession の知らせだけから決める
         tab->setConsiderationEngineName(QString());
     }
+}
+
+void EngineDisplayPresenter::clearEngineLogs()
+{
+    if (UsiLogPanel* log = m_deps.usiLog) log->clear();
+    if (CsaLogPanel* log = m_deps.csaLog) log->clear();
 }
 
 // ============================================================
@@ -149,6 +157,15 @@ void EngineDisplayPresenter::onPlayersChanged()
     if (EvaluationGraphPresenter* graph = m_deps.evalGraph) {
         graph->setEngine1Name(players.engineName(Turn::Black));
         graph->setEngine2Name(players.engineName(Turn::White));
+    }
+}
+
+void EngineDisplayPresenter::showMatchEngine(Turn side, const QString& engineName)
+{
+    // 先手のエンジンは1つ目、後手のエンジンは2つ目の系列（plotEngineScore と同じ）
+    if (EvaluationGraphPresenter* graph = m_deps.evalGraph) {
+        if (side == Turn::Black) graph->setEngine1Name(engineName);
+        else graph->setEngine2Name(engineName);
     }
 }
 
