@@ -28,9 +28,10 @@ namespace KifuLoadParser {
 /// ファイルを1回読み（文字コードは形式ごとに判別）、parseContent に渡す。形式がなければファイルから判定する
 KifuLoadResult parseFile(const QString& path, std::optional<KifuFormat> format = std::nullopt,
                          const CancelFlag& cancel = {});
-/// 貼り付けたテキストの形式を判定して読む
+/// 貼り付けたテキストの形式を判定して読む（判定できなければ KIF として読む）
 KifuLoadResult parseText(const QString& content, const CancelFlag& cancel = {});
-/// 形式が決まっているテキストを読む（指し手のない USI・SFEN と BOD は positionOnly にする）。
+/// 形式が決まっているテキストを読む（指し手のない USI・SFEN と BOD は positionOnly にする。指し手も開始局面の指定も
+/// ない棋譜は失敗にする）。
 /// sourceName は失敗時のメッセージに使う（ファイル名など。空でもよい）
 KifuLoadResult parseContent(const QString& content, KifuFormat format,
                             const CancelFlag& cancel = {}, const QString& sourceName = QString());

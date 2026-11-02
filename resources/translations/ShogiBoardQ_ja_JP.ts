@@ -8433,144 +8433,144 @@ OKを選択すると保存先が指定できます。</translation>
         <translation>局面の反映に失敗しました</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="245"/>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="259"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="250"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="264"/>
         <source>KIF Save Error</source>
         <translation>棋譜保存エラー</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="246"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="251"/>
         <source>棋譜を保存しました: %1</source>
         <translation>棋譜を保存しました: %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="276"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="281"/>
         <source>棋譜を上書き保存しました: %1</source>
         <translation>棋譜を上書き保存しました: %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="284"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="289"/>
         <source>棋譜の自動保存先を作成できません: %1</source>
         <translation>棋譜の自動保存先を作成できません: %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="296"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="301"/>
         <source>棋譜データが空のため自動保存をスキップしました</source>
         <translation>棋譜データが空のため自動保存をスキップしました</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="301"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="306"/>
         <source>棋譜を自動保存しました: %1</source>
         <translation>棋譜を自動保存しました: %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="305"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="310"/>
         <source>棋譜の自動保存に失敗しました: %1</source>
         <translation>棋譜の自動保存に失敗しました: %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="319"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="324"/>
         <source>クリップボードへのコピーに失敗しました</source>
         <translation>クリップボードへのコピーに失敗しました</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="333"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="338"/>
         <source>KIF形式の棋譜データがありません</source>
         <translation>KIF形式の棋譜データがありません</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="333"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="338"/>
         <source>KIF形式の棋譜をクリップボードにコピーしました</source>
         <translation>KIF形式の棋譜をクリップボードにコピーしました</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="340"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="345"/>
         <source>KI2形式の棋譜データがありません</source>
         <translation>KI2形式の棋譜データがありません</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="340"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="345"/>
         <source>KI2形式の棋譜をクリップボードにコピーしました</source>
         <translation>KI2形式の棋譜をクリップボードにコピーしました</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="344"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="349"/>
         <source>CSA形式の棋譜データがありません</source>
         <translation>CSA形式の棋譜データがありません</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="345"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="350"/>
         <source>CSA形式の棋譜をクリップボードにコピーしました（CSA形式は分岐に対応していないため、本譜のみです）</source>
         <translation>CSA形式の棋譜をクリップボードにコピーしました（CSA形式は分岐に対応していないため、本譜のみです）</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="346"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="351"/>
         <source>CSA形式の棋譜をクリップボードにコピーしました</source>
         <translation>CSA形式の棋譜をクリップボードにコピーしました</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="349"/>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="386"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="354"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="391"/>
         <source>USI形式の棋譜データがありません</source>
         <translation>USI形式の棋譜データがありません</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="350"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="355"/>
         <source>USI形式の棋譜をクリップボードにコピーしました（USI形式は分岐に対応していないため、本譜のみです）</source>
         <translation>USI形式の棋譜をクリップボードにコピーしました（USI形式は分岐に対応していないため、本譜のみです）</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="351"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="356"/>
         <source>USI形式の棋譜をクリップボードにコピーしました</source>
         <translation>USI形式の棋譜をクリップボードにコピーしました</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="354"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="359"/>
         <source>JKF形式の棋譜データがありません</source>
         <translation>JKF形式の棋譜データがありません</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="354"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="359"/>
         <source>JKF形式の棋譜をクリップボードにコピーしました</source>
         <translation>JKF形式の棋譜をクリップボードにコピーしました</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="357"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="362"/>
         <source>USEN形式の棋譜データがありません</source>
         <translation>USEN形式の棋譜データがありません</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="357"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="362"/>
         <source>USEN形式の棋譜をクリップボードにコピーしました</source>
         <translation>USEN形式の棋譜をクリップボードにコピーしました</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="390"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="395"/>
         <source>USI形式（現在の指し手まで）の棋譜をクリップボードにコピーしました</source>
         <translation>USI形式（現在の指し手まで）の棋譜をクリップボードにコピーしました</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="408"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="413"/>
         <source>SFEN形式の局面データがありません</source>
         <translation>SFEN形式の局面データがありません</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="411"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="416"/>
         <source>SFEN形式の局面をクリップボードにコピーしました</source>
         <translation>SFEN形式の局面をクリップボードにコピーしました</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="418"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="423"/>
         <source>BOD形式の局面データがありません</source>
         <translation>BOD形式の局面データがありません</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="423"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="428"/>
         <source>SFEN形式の解析に失敗しました</source>
         <translation>SFEN形式の解析に失敗しました</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="432"/>
+        <location filename="../../src/ui/controllers/kifufilecontroller.cpp" line="437"/>
         <source>BOD形式の局面をクリップボードにコピーしました</source>
         <translation>BOD形式の局面をクリップボードにコピーしました</translation>
     </message>
@@ -8598,42 +8598,42 @@ OKを選択すると保存先が指定できます。</translation>
         <translation>すべてのファイル (*)</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuformat.cpp" line="25"/>
+        <location filename="../../src/kifu/kifuformat.cpp" line="26"/>
         <source>KIF形式 UTF-8</source>
         <translation>KIF形式 UTF-8</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuformat.cpp" line="26"/>
+        <location filename="../../src/kifu/kifuformat.cpp" line="27"/>
         <source>KIF形式 Shift_JIS</source>
         <translation>KIF形式 Shift_JIS</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuformat.cpp" line="27"/>
+        <location filename="../../src/kifu/kifuformat.cpp" line="28"/>
         <source>KI2形式 UTF-8</source>
         <translation>KI2形式 UTF-8</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuformat.cpp" line="28"/>
+        <location filename="../../src/kifu/kifuformat.cpp" line="29"/>
         <source>KI2形式 Shift_JIS</source>
         <translation>KI2形式 Shift_JIS</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuformat.cpp" line="29"/>
+        <location filename="../../src/kifu/kifuformat.cpp" line="30"/>
         <source>CSA形式</source>
         <translation>CSA形式</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuformat.cpp" line="30"/>
+        <location filename="../../src/kifu/kifuformat.cpp" line="31"/>
         <source>JKF形式</source>
         <translation>JKF形式</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuformat.cpp" line="31"/>
+        <location filename="../../src/kifu/kifuformat.cpp" line="32"/>
         <source>USEN形式</source>
         <translation>USEN形式</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuformat.cpp" line="32"/>
+        <location filename="../../src/kifu/kifuformat.cpp" line="33"/>
         <source>USI形式</source>
         <translation>USI形式</translation>
     </message>
@@ -8725,12 +8725,12 @@ OKを選択すると保存先が指定できます。</translation>
 %1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloader.cpp" line="125"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="131"/>
         <source>読み込み失敗 %1 から指し手を取得できませんでした。</source>
         <translation>読み込み失敗 %1 から指し手を取得できませんでした。</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloader.cpp" line="131"/>
+        <location filename="../../src/kifu/kifuloader.cpp" line="123"/>
         <source>棋譜の分岐元または開始手数が不正です。</source>
         <translation>棋譜の分岐元または開始手数が不正です。</translation>
     </message>
@@ -8755,35 +8755,40 @@ OKを選択すると保存先が指定できます。</translation>
         <translation>同じ側の玉が2枚以上あります</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="59"/>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="117"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="60"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="118"/>
         <source>棋譜ファイルの読み込みに失敗しました: %1%2</source>
         <translation>棋譜ファイルの読み込みに失敗しました: %1%2</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="113"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="114"/>
         <source>BOD形式の解析に失敗しました。%1</source>
         <translation>BOD形式の解析に失敗しました。%1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="116"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="117"/>
         <source>棋譜の読み込みに失敗しました。%1</source>
         <translation>棋譜の読み込みに失敗しました。%1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="127"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="130"/>
+        <source>棋譜から指し手を取得できませんでした。</source>
+        <translation>棋譜から指し手を取得できませんでした。</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="139"/>
         <source>棋譜の開始局面が不正です: %1</source>
         <translation>棋譜の開始局面が不正です: %1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="128"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="140"/>
         <source>棋譜ファイルの開始局面が不正です: %1
 %2</source>
         <translation>棋譜ファイルの開始局面が不正です: %1
 %2</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="138"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="150"/>
         <source>貼り付けるテキストが空です。</source>
         <translation>貼り付けるテキストが空です。</translation>
     </message>
@@ -9175,12 +9180,12 @@ OKを選択すると保存先が指定できます。</translation>
 <context>
     <name>KifuSaveDialogs</name>
     <message>
-        <location filename="../../src/dialogs/kifusavedialogs.cpp" line="21"/>
+        <location filename="../../src/dialogs/kifusavedialogs.cpp" line="35"/>
         <source>Shift_JISで保存できない文字</source>
         <translation>Shift_JISで保存できない文字</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifusavedialogs.cpp" line="22"/>
+        <location filename="../../src/dialogs/kifusavedialogs.cpp" line="36"/>
         <source>次の文字はShift_JISで保存できません：%1
 
 UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を記録します。</source>
@@ -9189,12 +9194,12 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を記録します。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifusavedialogs.cpp" line="26"/>
+        <location filename="../../src/dialogs/kifusavedialogs.cpp" line="40"/>
         <source>UTF-8で保存</source>
         <translation>UTF-8で保存</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifusavedialogs.cpp" line="27"/>
+        <location filename="../../src/dialogs/kifusavedialogs.cpp" line="41"/>
         <source>キャンセル</source>
         <translation>キャンセル</translation>
     </message>
@@ -9203,75 +9208,83 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">KIF形式 UTF-8 (*.kifu);;KIF形式 Shift_JIS (*.kif);;KI2形式 UTF-8 (*.ki2u);;KI2形式 Shift_JIS (*.ki2);;CSA形式 (*.csa);;JKF形式 (*.jkf);;USEN形式 (*.usen);;USI形式 (*.usi);;すべてのファイル (*)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifusavedialogs.cpp" line="61"/>
+        <location filename="../../src/dialogs/kifusavedialogs.cpp" line="74"/>
         <source>名前を付けて保存</source>
         <translation>名前を付けて保存</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifusavedialogs.cpp" line="73"/>
+        <location filename="../../src/dialogs/kifusavedialogs.cpp" line="86"/>
         <source>KI2形式で保存</source>
         <translation>KI2形式で保存</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifusavedialogs.cpp" line="74"/>
+        <location filename="../../src/dialogs/kifusavedialogs.cpp" line="87"/>
         <source>KI2形式は消費時間に対応していないため、消費時間の情報は保存されません。
 保存を続けますか？</source>
         <translation>KI2形式は消費時間に対応していないため、消費時間の情報は保存されません。
 保存を続けますか？</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifusavedialogs.cpp" line="81"/>
+        <location filename="../../src/dialogs/kifusavedialogs.cpp" line="94"/>
         <source>CSA形式で保存</source>
         <translation>CSA形式で保存</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifusavedialogs.cpp" line="82"/>
+        <location filename="../../src/dialogs/kifusavedialogs.cpp" line="95"/>
         <source>CSA形式は分岐に対応していないため、分岐の情報は保存されません。
 保存を続けますか？</source>
         <translation>CSA形式は分岐に対応していないため、分岐の情報は保存されません。
 保存を続けますか？</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifusavedialogs.cpp" line="91"/>
+        <location filename="../../src/dialogs/kifusavedialogs.cpp" line="104"/>
         <source>USEN形式で保存</source>
         <translation>USEN形式で保存</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifusavedialogs.cpp" line="92"/>
+        <location filename="../../src/dialogs/kifusavedialogs.cpp" line="105"/>
+        <source>USEN形式は消費時間・コメント・しおりに対応していないため、これらの情報は保存されません。
+詰み・反則負け・反則勝ちなど一部の終局理由も保存されません。
+保存を続けますか？</source>
+        <translation>USEN形式は消費時間・コメント・しおりに対応していないため、これらの情報は保存されません。
+詰み・反則負け・反則勝ちなど一部の終局理由も保存されません。
+保存を続けますか？</translation>
+    </message>
+    <message>
         <source>USEN形式は消費時間・コメント・しおりに対応していないため、これらの情報は保存されません。
 詰み・反則勝ちなど一部の終局理由も保存されません。
 保存を続けますか？</source>
-        <translation>USEN形式は消費時間・コメント・しおりに対応していないため、これらの情報は保存されません。
+        <translation type="vanished">USEN形式は消費時間・コメント・しおりに対応していないため、これらの情報は保存されません。
 詰み・反則勝ちなど一部の終局理由も保存されません。
 保存を続けますか？</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifusavedialogs.cpp" line="100"/>
-        <location filename="../../src/dialogs/kifusavedialogs.cpp" line="106"/>
+        <location filename="../../src/dialogs/kifusavedialogs.cpp" line="113"/>
+        <location filename="../../src/dialogs/kifusavedialogs.cpp" line="119"/>
         <source>USI形式で保存</source>
         <translation>USI形式で保存</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifusavedialogs.cpp" line="101"/>
+        <location filename="../../src/dialogs/kifusavedialogs.cpp" line="114"/>
         <source>USI形式は分岐に対応していないため、分岐の情報は保存されません。
 保存を続けますか？</source>
         <translation>USI形式は分岐に対応していないため、分岐の情報は保存されません。
 保存を続けますか？</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifusavedialogs.cpp" line="107"/>
+        <location filename="../../src/dialogs/kifusavedialogs.cpp" line="120"/>
         <source>USI形式は消費時間に対応していないため、消費時間の情報は保存されません。
 保存を続けますか？</source>
         <translation>USI形式は消費時間に対応していないため、消費時間の情報は保存されません。
 保存を続けますか？</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifusavedialogs.cpp" line="124"/>
+        <location filename="../../src/dialogs/kifusavedialogs.cpp" line="137"/>
         <source>未保存の棋譜</source>
         <translation>未保存の棋譜</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifusavedialogs.cpp" line="124"/>
+        <location filename="../../src/dialogs/kifusavedialogs.cpp" line="137"/>
         <source>棋譜に未保存の変更があります。保存しますか？</source>
         <translation>棋譜に未保存の変更があります。保存しますか？</translation>
     </message>

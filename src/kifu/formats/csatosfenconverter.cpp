@@ -113,6 +113,8 @@ QList<KifGameInfoItem> gameInfoOf(const QStringList& lines, bool handicapNames)
                 const QString csaKey = line.mid(1, colon - 1).trimmed();
                 QString val = line.mid(colon + 1).trimmed();
                 if (csaKey == QLatin1String("NOTE")) val = CsaFormatter::unescapeNote(val);
+                // V2.2 の時:分を、持ち時間の書式（分:秒）で読み違えないように直す
+                if (csaKey == QLatin1String("TIME_LIMIT")) val = CsaFormatter::timeLimitToTimeControl(val);
                 const QString key = CsaFormatter::gameInfoKeyFromCsa(csaKey);
                 items.append({ key.isEmpty() ? csaKey : key, val });
             }

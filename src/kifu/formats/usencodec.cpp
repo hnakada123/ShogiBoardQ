@@ -7,6 +7,8 @@
 #include "logcategories.h"
 #include "terminalcodes.h"
 
+#include <QRegularExpression>
+
 namespace UsenCodec {
 
 namespace {
@@ -49,7 +51,42 @@ BoardSquare squareAt(int index)
     return BoardSquare{index % 9 + 1, index / 9 + 1};
 }
 
+/// 終局コードの欄（空・符号の1文字・反則の i と反則手の3文字）を line に読む。読めなければ false と error
+bool readTerminal(QStringView field, UsenLine& line, QString* error)
+{
+    if (field.isEmpty()) return true;
+    const QString code = field.left(1).toString();
+    if (!TerminalCodes::isUsenCode(code)) {
+        if (error) *error = QStringLiteral("Unknown terminal code '%1'").arg(field);
+        return false;
+    }
+    const QStringView rest = field.mid(1);
+    if (!rest.isEmpty()) {
+        // 反則の符号だけが、後ろに反則手の3文字を持つ
+        if (TerminalCodes::fromUsen(code) != TerminalType::IllegalLoss) {
+            if (error) *error = QStringLiteral("Unexpected characters after the terminal code '%1'").arg(field);
+            return false;
+        }
+        line.illegalMove = decodeMove(rest);
+        if (!line.illegalMove) {
+            if (error) *error = QStringLiteral("The illegal move '%1' could not be decoded").arg(rest);
+            return false;
+        }
+    }
+    line.terminal = code;
+    return true;
+}
+
 } // namespace
+
+bool hasUsenShape(const QString& text)
+{
+    // 開始局面（SFEN の '/' ' ' '+' を '_' '.' 'z' にしたもの）の後に、"~" で始まる手順が1本以上続く。
+    // 終局コードの欄は英数字の並び（中身は readTerminal が確かめる）。コメントや URL の中のチルダは含まない
+    static const QRegularExpression re(
+        QStringLiteral("^[a-zA-Z0-9_.-]*(?:~[0-9]*\\.[a-zA-Z0-9]*(?:\\.[a-zA-Z0-9]*)?)+$"));
+    return re.match(text).hasMatch();
+}
 
 QString encodeMove(const UsiMove& move)
 {
@@ -132,15 +169,13 @@ std::optional<UsenLine> decodeLine(QStringView part, QString* error)
     line.offset = part.left(dot).toInt(&ok);
     if (!ok || line.offset < 0) return fail(QStringLiteral("Invalid line offset '%1'").arg(part.left(dot)));
 
-    // 末尾の ".<終局コード>"（未終局は空のコード）
+    // 指し手の列の後の ".<終局コード>"（未終局は空の欄。欄が無くてもよい）
     QStringView moves = part.mid(dot + 1);
-    const qsizetype lastDot = moves.lastIndexOf(QLatin1Char('.'));
-    if (lastDot >= 0) {
-        const QString code = moves.mid(lastDot + 1).toString();
-        if (code.isEmpty() || TerminalCodes::isUsenCode(code)) {
-            line.terminal = code;
-            moves = moves.left(lastDot);
-        }
+    const qsizetype terminalDot = moves.indexOf(QLatin1Char('.'));
+    if (terminalDot >= 0) {
+        QString terminalError;
+        if (!readTerminal(moves.mid(terminalDot + 1), line, &terminalError)) return fail(terminalError);
+        moves = moves.left(terminalDot);
     }
 
     for (qsizetype i = 0; i < moves.size(); i += 3) {

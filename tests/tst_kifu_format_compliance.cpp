@@ -400,6 +400,132 @@ private slots:
         QCOMPARE(reread.usiMoves, result.usiMoves);
     }
 
+    /// USEN の i は手番側の反則で、反則勝ちの符号は無い。反則負けも反則手を持たないので書かない（監査 2026-11-01 F4・F31）
+    void usenDoesNotWriteIllegalTerminals_data()
+    {
+        QTest::addColumn<QString>("terminal");
+        QTest::newRow("illegal-win") << QStringLiteral("反則勝ち");
+        QTest::newRow("illegal-loss") << QStringLiteral("反則負け");
+    }
+
+    void usenDoesNotWriteIllegalTerminals()
+    {
+        QFETCH(QString, terminal);
+        const auto saved = convert(QStringLiteral("手合割：平手\n1 ７六歩(77)\n2 ３四歩(33)\n3 %1\n").arg(terminal),
+                                   Format::Usen);
+        QVERIFY2(saved.ok, qPrintable(saved.failure.message));
+        QCOMPARE(saved.lines, QStringList{QStringLiteral("~0.7ku2jm.")});
+        const auto reread = convert(saved.lines.first(), Format::Kif);
+        QVERIFY2(reread.ok, qPrintable(reread.failure.message));
+        QCOMPARE(reread.usiMoves, (QStringList{QStringLiteral("7g7f"), QStringLiteral("3c3d")}));
+        QVERIFY(!reread.mainline.endsWithTerminal());
+    }
+
+    /// 作者の実装が書く反則手つきの i を、形式の判別でも USEN と読み、手番側の反則負けにする。反則手は警告して捨てる
+    /// （監査 2026-11-01 F32）。以前の ShogiBoardQ が書いた i だけの欄も読む
+    void usenReadsIllegalMoveTerminal_data()
+    {
+        QTest::addColumn<QString>("text");
+        QTest::addColumn<bool>("warns");
+        QTest::newRow("with-illegal-move") << QStringLiteral("~0.7ku2jm.i7bq") << true;
+        QTest::newRow("legacy-without-move") << QStringLiteral("~0.7ku2jm.i") << false;
+    }
+
+    void usenReadsIllegalMoveTerminal()
+    {
+        QFETCH(QString, text);
+        QFETCH(bool, warns);
+        const auto result = convert(text, Format::Kif);
+        QVERIFY2(result.ok, qPrintable(result.failure.message));
+        QCOMPARE(result.inputFormat, Format::Usen);
+        QCOMPARE(result.usiMoves, (QStringList{QStringLiteral("7g7f"), QStringLiteral("3c3d")}));
+        QVERIFY(result.mainline.endsWithTerminal());
+        QCOMPARE(result.mainline.entries.last().terminal, TerminalType::IllegalLoss);
+        QCOMPARE(lastText(result), QStringLiteral("▲反則負け"));
+        const QString warnings = result.warnings.join(QLatin1Char('\n'));
+        QCOMPARE(warnings.contains(QStringLiteral("USEN: The illegal move 5g5f at move 3 is not kept")), warns);
+    }
+
+    /// 終局コードの欄が読めない USEN は、棋譜全体を読めなかったことにする
+    void usenRejectsMalformedTerminal_data()
+    {
+        QTest::addColumn<QString>("text");
+        QTest::addColumn<QString>("message");
+        QTest::newRow("unknown-code") << QStringLiteral("~0.7ku2jm.x") << QStringLiteral("Unknown terminal code 'x'");
+        QTest::newRow("trailing-after-resign") << QStringLiteral("~0.7ku2jm.r7bq")
+                                               << QStringLiteral("Unexpected characters after the terminal code 'r7bq'");
+        QTest::newRow("short-illegal-move") << QStringLiteral("~0.7ku2jm.i7b")
+                                            << QStringLiteral("The illegal move '7b' could not be decoded");
+    }
+
+    void usenRejectsMalformedTerminal()
+    {
+        QFETCH(QString, text);
+        QFETCH(QString, message);
+        const auto result = convert(text, Format::Kif);
+        QVERIFY(!result.ok);
+        QCOMPARE(result.inputFormat, Format::Usen);
+        QVERIFY2(result.failure.message.contains(message), qPrintable(result.failure.message));
+    }
+
+    /// 指し手も開始局面の指定もない入力は、空の棋譜にせず失敗にする。GUI の読み込みと同じ規則（監査 2026-11-01 F32）。
+    /// 開始局面を書いた棋譜は、指し手が無くても読める
+    void textWithoutMovesOrStartFails_data()
+    {
+        QTest::addColumn<QString>("text");
+        QTest::addColumn<bool>("ok");
+        QTest::newRow("plain-text") << QStringLiteral("hello world") << false;
+        QTest::newRow("tilde-text") << QStringLiteral("see ~0.7ku later") << false;
+        QTest::newRow("players-only") << QStringLiteral("先手：甲\n後手：乙\n") << false;
+        QTest::newRow("handicap-only") << QStringLiteral("手合割：香落ち\n") << true;
+        QTest::newRow("usen-no-moves") << QStringLiteral("~0..") << true;
+    }
+
+    void textWithoutMovesOrStartFails()
+    {
+        QFETCH(QString, text);
+        QFETCH(bool, ok);
+        const auto result = convert(text, Format::Usi);
+        QCOMPARE(result.ok, ok);
+        if (!ok) {
+            QCOMPARE(result.failure.kind, ErrorKind::InvalidContent);
+            QVERIFY2(result.failure.message.contains(QStringLiteral("指し手を取得できませんでした")),
+                     qPrintable(result.failure.message));
+        }
+    }
+
+    /// CSA V2.2 の $TIME_LIMIT は「時:分+秒読み」。持ち時間の書式（分:秒）と取り違えない（監査 2026-11-01 F5）
+    void csaTimeLimitIsHoursAndMinutes_data()
+    {
+        QTest::addColumn<QString>("limit");
+        QTest::addColumn<QString>("kif");
+        QTest::addColumn<QString>("csa");
+        QTest::newRow("byoyomi") << QStringLiteral("01:30+30") << QStringLiteral("持ち時間：90:00+30")
+                                 << QStringLiteral("$TIME:5400+30+0");
+        QTest::newRow("no-byoyomi") << QStringLiteral("00:25+00") << QStringLiteral("持ち時間：25:00")
+                                    << QStringLiteral("$TIME:1500+0+0");
+        QTest::newRow("unknown-format") << QStringLiteral("1h") << QStringLiteral("持ち時間：1h")
+                                        << QStringLiteral("$TIME_LIMIT:1h");
+    }
+
+    void csaTimeLimitIsHoursAndMinutes()
+    {
+        QFETCH(QString, limit);
+        QFETCH(QString, kif);
+        QFETCH(QString, csa);
+        const QString text = QStringLiteral("V2.2\nN+甲\nN-乙\n$TIME_LIMIT:%1\nPI\n+\n+7776FU\n").arg(limit);
+        const auto asKif = convert(text, Format::Kif);
+        QVERIFY2(asKif.ok, qPrintable(asKif.failure.message));
+        QVERIFY2(asKif.lines.contains(kif), qPrintable(asKif.lines.join(QLatin1Char('\n'))));
+        const auto asCsa = convert(text, Format::Csa);
+        QVERIFY2(asCsa.ok, qPrintable(asCsa.failure.message));
+        QVERIFY2(asCsa.lines.contains(csa), qPrintable(asCsa.lines.join(QLatin1Char('\n'))));
+        // KIF に書いたものを CSA にしても同じ持ち時間
+        const auto viaKif = convert(asKif.lines.join(QLatin1Char('\n')), Format::Csa);
+        QVERIFY2(viaKif.ok, qPrintable(viaKif.failure.message));
+        QVERIFY2(viaKif.lines.contains(csa), qPrintable(viaKif.lines.join(QLatin1Char('\n'))));
+    }
+
     void jkfHandicapAndNullPromotion()
     {
         const QString text = QStringLiteral(R"({"header":{},"initial":{"preset":"6"},"moves":[{},

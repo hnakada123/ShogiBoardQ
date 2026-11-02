@@ -227,21 +227,26 @@ QString KifuFileController::defaultFileName(const QString& extension) const
 void KifuFileController::saveKifuToFile()
 {
     const KifuBranchTree* tree = m_deps.document->tree();
-    const bool hasBranches = tree->lineCount() > 1;
-    bool hasTimeInfo = false;
+    KifuSaveDialogs::RecordContents contents;
+    contents.branches = tree->lineCount() > 1;
     for (const auto* node : tree->mainLine()) {
         if (!node->timeText().isEmpty()) {
-            hasTimeInfo = true;
+            contents.times = true;
             break;
         }
+    }
+    const QList<BranchLine> lines = tree->allLines();
+    for (const BranchLine& line : lines) {
+        const KifuBranchNode* leaf = line.leaf;
+        if (leaf && leaf->isTerminal() && !contents.terminals.contains(leaf->terminalType()))
+            contents.terminals.append(leaf->terminalType());
     }
 
     QString error;
     const QString path = KifuSaveDialogs::saveViaDialog(
         m_deps.parentWidget,
         std::bind(&KifuFileController::exportLines, this, std::placeholders::_1, std::placeholders::_2),
-        defaultFileName(QStringLiteral("kifu")),
-        hasBranches, hasTimeInfo, &error);
+        defaultFileName(QStringLiteral("kifu")), contents, &error);
     if (!error.isEmpty()) NotificationPresenter::warning(m_deps.parentWidget, tr("KIF Save Error"), error);
     if (!path.isEmpty()) markSaved(path, tr("棋譜を保存しました: %1").arg(path));
 }

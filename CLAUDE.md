@@ -94,7 +94,7 @@ cmake --build build --target translations
   - `recordline.h`・`recordentry.h` - 1本の手順と1手の記録。手順の型は `RecordLine` だけ（読み込みの本譜・変化・書き出し・表示中の手順・対局の手順。末尾に終局の行を持てる）。エンジンに送る局面は `usiPosition(ply)`（作れなければ nullopt）と、範囲の各局面を手順を1度だけたどって作る `usiPositions(from, to)`（たどれなければ局面だけ。棋譜解析と CLI の analyze-kifu で共通）
   - `moverecord.h` - 指す前の局面と指し手から棋譜の1行を作る `MoveRecord::play`（動かす駒を局面から決めて指し、表記は `KifMoveText::format`）。棋譜の読み込み（`KifLineBuilder::addMove`）と対局の着手（`GameBoard`）で共通
   - `kifuformat.cpp/.h` - 棋譜の形式（読み込み・保存・変換で共通の1つの enum）と判定。拡張子・形式・文字コード（`KifuEncoding`）・保存ダイアログの見出しは1つの表（`saveTargets()`・`savableNames()`・`readableSuffixes()`）で、保存・開くダイアログの絞り込み（widgets の `KifuFileFilter::forSaving`・`forOpening`）と CLI・自動化 API の形式の選択肢もこの表から作る
-  - `kifuloadparser.cpp/.h` - 棋譜の読み込み口（ファイルの文字コードの判別と形式ごとの変換器への振り分け）
+  - `kifuloadparser.cpp/.h` - 棋譜の読み込み口（ファイルの文字コードの判別と形式ごとの変換器への振り分け）。指し手も終局も開始局面の指定もない棋譜（形式を判別できずに KIF として読んだ文など）は、GUI・CLI・自動化 API で同じく失敗にする
   - `kifparsetypes.h` - 読み込み結果（`KifParseResult`・形式ごとの `parse()` が返す `KifuParseOutcome`）と、読めない手の扱い（`ParseOptions`・`ParseReport`。ここだけで決める）
   - `kifusavefile.cpp/.h` - 棋譜の保存 `KifuSaveFile`（保存先の拡張子から形式と文字コードを決め、`write(path, generateLines)` で行を作らせて書く。行の先頭の文字コードの宣言は書き出しの文脈 `KifuExportMetadata::encoding` で書く。Shift_JIS で表せない文字があれば受け手に聞いて UTF-8 で作り直す。CLI の変換の出力は `writeLines`。既定のファイル名 `makeDefaultSaveFileName`）。保存で聞くダイアログは dialogs の `KifuSaveDialogs`
   - `kifuloader.cpp/.h` - 棋譜ファイル・貼り付けた棋譜・局面を読み（`KifuLoadParser` をワーカースレッドで）、`KifuDocument` を置き換える `KifuLoader`（合成ルートが1つ作り、全部の読み込みで使い回す）
@@ -111,7 +111,7 @@ cmake --build build --target translations
     - `kiflinebuilder.cpp/.h` - 全形式で共通の手順の組み立て（`KifLineBuilder`。指しながら `RecordEntry` を作る。1行は対局の着手と同じ `MoveRecord::play`）
     - `*exporter` - 形式ごとの書き出し。KIF・KI2 の先頭（文字コード宣言・対局情報・盤面図）は `KifExporter::appendHeaderLines(ctx, out, HeaderOptions)` で共有し、KI2 の本譜と変化は `appendKi2Moves` の1つのループで書く
     - `kifunodereplay.cpp/.h` - 分岐ツリーのノードを指す前の局面と一緒にたどる `KifuNodeReplay`（`board()`・`mover()`・`previousTo()`・`canWrite(node)`・`advance(node)`・`branchFrom(parent)`。指せない手はノードの SFEN から取り直す）。KI2・JKF の書き出しが使う
-    - `usencodec.cpp/.h` - USEN の符号表 `UsenCodec`（指し手の3文字と `UsiMove` の符号化と復号 `encodeMove`・`decodeMove`、開始局面 `encodePosition`・`decodePosition`、手順 `decodeLine`・`decodeLines`（"~" で1回だけ分けて本譜と変化の `UsenLine` にする））。`UsenToSfenConverter` と `UsenExporter` が使う
+    - `usencodec.cpp/.h` - USEN の符号表 `UsenCodec`（指し手の3文字と `UsiMove` の符号化と復号 `encodeMove`・`decodeMove`、開始局面 `encodePosition`・`decodePosition`、手順 `decodeLine`・`decodeLines`（"~" で1回だけ分けて本譜と変化の `UsenLine` にする）、形式の判別に使う全体の形 `hasUsenShape`）。終局コードは作者の実装（mog-core-scala）に合わせて先頭の1文字で決め、反則の `i` の後ろの反則手は読むだけ（`UsenLine::illegalMove`。局面には指さない）。反則負け・反則勝ちは書かない（`TerminalCodes::usen` が空）。`UsenToSfenConverter` と `UsenExporter` が使う
 
 - **analysis/**: 解析機能（GUI に依存しない）
   - `analysissession.cpp/.h` - 検討・詰み探索のセッション。検討中に表示中の局面が変わったら `KifuNavigationState::currentUsiPosition()`（開始局面からの手順）で送り直す

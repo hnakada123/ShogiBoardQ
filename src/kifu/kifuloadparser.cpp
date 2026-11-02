@@ -33,6 +33,7 @@ QString startPositionProblem(const QString& sfen)
     }
     return {};
 }
+
 }
 
 bool KifuLoadParser::readFileText(const QString& path, KifuFormat format, QString& outText, QString* warn)
@@ -119,6 +120,17 @@ KifuLoadResult KifuLoadParser::parseContent(const QString& content, KifuFormat f
         return result;
     }
     if (canceled(cancel)) return result;
+    // 開始局面を書いた棋譜は0手でも開く。指し手も終局も開始局面の指定もない入力（形式を判別できずに KIF として
+    // 読んだ文など）は、空の棋譜にせず読めなかったことにする。JKF は initial を省けば平手と決まっている
+    const RecordLine& mainline = result.record.mainline;
+    const bool hasMoves = !mainline.usiMoves().isEmpty() || mainline.endsWithTerminal();
+    if (!result.positionOnly && result.startKind == StartKind::Default && !hasMoves && format != KifuFormat::Jkf) {
+        result.success = false;
+        result.error = sourceName.isEmpty()
+            ? QCoreApplication::translate("KifuLoader", "棋譜から指し手を取得できませんでした。")
+            : QCoreApplication::translate("KifuLoader", "読み込み失敗 %1 から指し手を取得できませんでした。").arg(sourceName);
+        return result;
+    }
     if (result.record.mainline.startSfen.isEmpty()) result.record.mainline.startSfen = SfenUtils::hirateSfen();
     // 開始局面は盤と持駒として成り立つものだけを受け付ける（GUI・CLI・自動化 API で同じ規則）
     if (const QString reason = startPositionProblem(result.record.mainline.startSfen); !reason.isEmpty()) {

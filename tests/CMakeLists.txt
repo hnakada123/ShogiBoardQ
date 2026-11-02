@@ -248,6 +248,8 @@ add_shogi_test(tst_kifuformat
     ${SRC}/kifu/kifutextdecoder.cpp
     ${SRC}/kifu/shiftjiscodec.cpp
     ${SRC}/kifu/formats/bodtextgenerator.cpp
+    ${SRC}/kifu/formats/terminalcodes.cpp
+    ${SRC}/kifu/formats/usencodec.cpp
     ${SRC}/common/logcategories.cpp
 )
 
@@ -320,6 +322,8 @@ add_shogi_test(tst_kifusavedialogs
     ${SRC}/kifu/kifusavefile.cpp
     ${SRC}/kifu/kifuformat.cpp
     ${SRC}/kifu/kifutextdecoder.cpp
+    ${SRC}/kifu/formats/terminalcodes.cpp
+    ${SRC}/kifu/formats/usencodec.cpp
     ${SRC}/common/logcategories.cpp
     ${SRC}/dialogs/kifusavedialogs.cpp
     ${SRC}/widgets/unsavedchangesprompt.cpp

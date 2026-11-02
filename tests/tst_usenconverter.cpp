@@ -251,6 +251,30 @@ private slots:
     // Normal: terminalFromCode
     // ========================================
 
+    /// 終局コードは先頭の1文字で決め、反則の i の後ろの3文字は反則手として読む（作者の実装 mog-core-scala と同じ）
+    void terminalFieldWithIllegalMove()
+    {
+        QString error;
+        const auto lines = UsenCodec::decodeLines(QStringLiteral("~0.7ku2jm.i7bq~1.6y2.i"), &error);
+        QVERIFY2(lines.has_value(), qPrintable(error));
+        QCOMPARE(lines->at(0).moves.size(), 2);
+        QCOMPARE(lines->at(0).terminal, QStringLiteral("i"));
+        QVERIFY(lines->at(0).illegalMove.has_value());
+        QCOMPARE(lines->at(0).illegalMove->toString(), QStringLiteral("5g5f"));
+        // 以前の ShogiBoardQ が書いた i だけの欄
+        QCOMPARE(lines->at(1).terminal, QStringLiteral("i"));
+        QVERIFY(!lines->at(1).illegalMove.has_value());
+    }
+
+    /// 反則の符号 i は読むだけで書かない（反則負けは反則手を持たない。反則勝ちの符号は無い）
+    void illegalTerminalsHaveNoUsenCode()
+    {
+        QCOMPARE(TerminalCodes::fromUsen(QStringLiteral("i")), TerminalType::IllegalLoss);
+        QVERIFY(TerminalCodes::usen(TerminalType::IllegalLoss).isEmpty());
+        QVERIFY(TerminalCodes::usen(TerminalType::IllegalWin).isEmpty());
+        QCOMPARE(TerminalCodes::usen(TerminalType::Resign), QStringLiteral("r"));
+    }
+
     void terminalFromCode()
     {
         QCOMPARE(TerminalCodes::fromUsen(QStringLiteral("r")), TerminalType::Resign);

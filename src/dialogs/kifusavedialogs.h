@@ -10,6 +10,7 @@
 #include <functional>
 
 #include "kifusavefile.h"
+#include "terminaltype.h"
 
 class QWidget;
 
@@ -23,6 +24,13 @@ class KifuSaveDialogs
     Q_DECLARE_TR_FUNCTIONS(KifuSaveDialogs)
 
 public:
+    /// 保存する棋譜にあるもの（選んだ形式で保存できないものがあれば確認する）
+    struct RecordContents {
+        bool branches = false;              ///< 変化がある
+        bool times = false;                 ///< 本譜に消費時間がある
+        QList<TerminalType> terminals;      ///< 手順の終局の行の種類（本譜と変化）
+    };
+
     /// 未保存変更がある場合に保存・破棄・キャンセルを確認する。
     /// 保存失敗・キャンセルは false。破棄しても呼び出し元の dirty 状態は変更しない。
     static bool confirmDiscardUnsaved(QWidget* parent, bool isDirty, const std::function<bool()>& save);
@@ -32,8 +40,7 @@ public:
     static QString saveViaDialog(QWidget* parent,
                                  const KifuSaveFile::LineGenerator& generateLines,
                                  const QString& defaultFileName,
-                                 bool hasBranches = false,
-                                 bool hasTimeInfo = false,
+                                 const RecordContents& contents,
                                  QString* outError = nullptr);
 
     /// 既存ファイルへ上書き保存する（行は拡張子の形式と文字コードで generateLines に作らせる）。.kif/.ki2 に

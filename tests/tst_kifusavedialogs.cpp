@@ -14,6 +14,7 @@
 #include "kifufilefilter.h"
 #include "kifusavedialogs.h"
 #include "kifusavefile.h"
+#include "gamesettings.h"
 #include "matchplayers.h"
 
 using SaveFormat = KifuFormat;
@@ -138,7 +139,7 @@ private slots:
                 ++generated;
                 actual = format;
                 return QStringList{QStringLiteral("selected format only")};
-            }, QString(), false, false, &error);
+            }, QString(), KifuSaveDialogs::RecordContents{}, &error);
         QVERIFY2(error.isEmpty(), qPrintable(error));
         QCOMPARE(generated, responder.cancelFile ? 0 : 1);
         if (responder.cancelFile) QVERIFY(path.isEmpty());
@@ -150,6 +151,50 @@ private slots:
             QCOMPARE(readAllBytes(path).startsWith("\xEF\xBB\xBF"),
                      expectedFormat == SaveFormat::Kif || expectedFormat == SaveFormat::Ki2);
         }
+    }
+
+    /// USEN に書けない終局（反則負け・反則勝ち・詰みなど）は、消費時間がなくても保存の前に確かめる（監査 2026-11-01 F31）
+    void usenAsksBeforeDroppingTerminals_data()
+    {
+        QTest::addColumn<int>("terminal");
+        QTest::addColumn<bool>("asks");
+        QTest::newRow("resign") << int(TerminalType::Resign) << false;
+        QTest::newRow("repetition") << int(TerminalType::Repetition) << false;
+        QTest::newRow("illegal-loss") << int(TerminalType::IllegalLoss) << true;
+        QTest::newRow("illegal-win") << int(TerminalType::IllegalWin) << true;
+        QTest::newRow("checkmate") << int(TerminalType::Checkmate) << true;
+    }
+
+    void usenAsksBeforeDroppingTerminals()
+    {
+        QFETCH(int, terminal);
+        QFETCH(bool, asks);
+        QTemporaryDir dir;
+        SaveDialogResponder responder;
+        responder.filePath = dir.filePath(QStringLiteral("record.usen"));
+        responder.answer = QMessageBox::Cancel;
+        // 保存ダイアログは前回のフォルダの既定の名前から始まるので、この行のフォルダにしておく
+        GameSettings::lastKifuSaveDirectory.set(dir.path());
+        bool asked = false;
+        QTimer poll;
+        poll.setInterval(10);
+        connect(&poll, &QTimer::timeout, &responder, [&]() {
+            if (qobject_cast<QMessageBox*>(QApplication::activeModalWidget())) asked = true;
+            responder.respond();
+        });
+        poll.start();
+        KifuSaveDialogs::RecordContents contents;
+        contents.terminals = {static_cast<TerminalType>(terminal)};
+        int generated = 0;
+        const QString path = KifuSaveDialogs::saveViaDialog(nullptr, [&](SaveFormat, KifuEncoding) {
+            ++generated;
+            return QStringList{QStringLiteral("~0.7ku.")};
+        }, QStringLiteral("record.usen"), contents);
+        poll.stop();
+        QCOMPARE(asked, asks);
+        // 確かめて取りやめたら書かない
+        QCOMPARE(path.isEmpty(), asks);
+        QCOMPARE(generated, asks ? 0 : 1);
     }
 
     void unsavedChangesGuard_data()
@@ -198,7 +243,7 @@ private slots:
             return !KifuSaveDialogs::saveViaDialog(nullptr, [&](SaveFormat, KifuEncoding) {
                 ++generated;
                 return QStringList{QStringLiteral("unsaved record")};
-            }, QString()).isEmpty();
+            }, QString(), KifuSaveDialogs::RecordContents{}).isEmpty();
         });
         QVERIFY(!accepted);
         QCOMPARE(generated, 0);
