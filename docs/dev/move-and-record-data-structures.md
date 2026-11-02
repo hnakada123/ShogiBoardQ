@@ -469,6 +469,7 @@ struct RecordEntry {
                               const QString& sfen, const RecordTime& time = {});   // 指した手の行
     static RecordEntry ending(TerminalType type, Turn side, const RecordTime& time = {});  // 終局の行
     static Turn endingSide(TerminalType type, Turn sideToMove, Turn loser);         // 終局の行を記録する側
+    static Ending forSideToMove(TerminalType type, Turn side, Turn sideToMove);    // 勝敗を変えずに手番側の行にする
 };
 
 struct RecordLine {
@@ -499,7 +500,10 @@ struct RecordLine {
 ```
 
 終局の行を記録する側は `RecordEntry::endingSide()` で決める（投了・時間切れ・反則負けは負けた側、入玉宣言勝ち・反則勝ちは勝った側、
-千日手・持将棋・中断などの勝敗のない終局は手番側）。対局・通信対局・棋譜の読み込みで同じ規則を使う。
+千日手・持将棋・中断などの勝敗のない終局は手番側）。記録する側が手番でなければ、`RecordEntry::forSideToMove()` で
+勝敗を変えずに手番側の行にそろえる（反則負けと反則勝ち、不戦敗と不戦勝を入れ替える。KI2 の結果行のほかは、終局の行を
+手番側の行としてしか書けないため）。投了・詰み・時間切れ・入玉宣言勝ち・トライはそろえられないので、記録する側のまま残す
+（KI2 の結果行で手番でない側の投了などを読むと、警告を出す）。対局・通信対局・棋譜の読み込みで同じ規則を使う。
 
 | 取り出し方 | 中身 |
 |---|---|

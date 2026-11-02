@@ -2,6 +2,7 @@
 /// @brief 棋譜形式ごとの終局の符号の実装
 
 #include "terminalcodes.h"
+#include "recordentry.h"
 
 #include <QStringView>
 
@@ -86,11 +87,11 @@ const Code* entryOf(const Code (&table)[N], QStringView code, Qt::CaseSensitivit
 
 namespace TerminalCodes {
 
-QString csaSpecial(TerminalType type, Turn sideToMove, bool perpetualCheck)
+QString csaSpecial(TerminalType type, Turn side, bool perpetualCheck)
 {
-    // 手番側の反則勝ちは、相手（手番でない側）の反則
+    // 反則勝ちは、相手の反則
     if (type == TerminalType::IllegalWin)
-        return sideToMove == Turn::Black ? QStringLiteral("-ILLEGAL_ACTION") : QStringLiteral("+ILLEGAL_ACTION");
+        return side == Turn::Black ? QStringLiteral("-ILLEGAL_ACTION") : QStringLiteral("+ILLEGAL_ACTION");
     if (type == TerminalType::PerpetualCheck && !perpetualCheck) type = TerminalType::Repetition;
     return codeOf(kCsaCodes, type);
 }
@@ -99,11 +100,11 @@ TerminalType fromCsaSpecial(const QString& code, Turn sideToMove)
 {
     QStringView key(code);
     if (key.startsWith(QLatin1Char('%'))) key = key.mid(1);
-    // +ILLEGAL_ACTION / -ILLEGAL_ACTION は反則した側。手番側でなければ手番側の反則勝ち
+    // +ILLEGAL_ACTION / -ILLEGAL_ACTION は反則した側の反則負け。手番側でなければ手番側の反則勝ち
     if ((key.startsWith(QLatin1Char('+')) || key.startsWith(QLatin1Char('-')))
         && key.mid(1).startsWith(QLatin1String("ILLEGAL_ACTION"))) {
         const Turn offender = key.startsWith(QLatin1Char('+')) ? Turn::Black : Turn::White;
-        return offender == sideToMove ? TerminalType::IllegalLoss : TerminalType::IllegalWin;
+        return RecordEntry::forSideToMove(TerminalType::IllegalLoss, offender, sideToMove).terminal;
     }
     // 後ろに続く語（"%TORYO,T10" の時間など）は見ない
     for (const Code& entry : kCsaCodes) {

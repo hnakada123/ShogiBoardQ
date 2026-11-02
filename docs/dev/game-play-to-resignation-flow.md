@@ -738,18 +738,18 @@ struct MatchGameOverState {
 
 #### 終局手の棋譜表記
 
-終局行は `RecordEntry::ending(terminal, mover, time)` で作り、表記は印（▲/△）と終局語の表（`TerminalTypes::label()`、`src/core/terminaltype.cpp`）から作る。印の側（`mover`）は `RecordEntry::endingSide()` が決める。
+終局行は `RecordEntry::ending(terminal, mover, time)` で作り、表記は印（▲/△）と終局語の表（`TerminalTypes::label()`、`src/core/terminaltype.cpp`）から作る。印の側（`mover`）は `RecordEntry::endingSide()` が決め、`RecordEntry::forSideToMove()` で勝敗を変えずに手番側の行にそろえる（手番でない側の反則負けは手番側の反則勝ち。棋譜の形式は終局の行を手番側の行としてしか書けない。棋譜の読み込み・CSA通信対局の `CsaGameProgress::endRecord()` と同じ規則）。
 
 | 終局原因 | `TerminalType` | 棋譜表記例 | 印（▲/△）の側 |
 |---|---|---|---|
 | 投了 (Resignation) | `Resign` | `"▲投了"` / `"△投了"` | 敗者 |
 | 時間切れ (Timeout) | `Timeout` | `"▲時間切れ"` / `"△時間切れ"` | 敗者 |
-| 反則負け (IllegalMove) | `IllegalLoss` | `"▲反則負け"` / `"△反則負け"` | 敗者 |
+| 反則負け (IllegalMove) | `IllegalLoss` | `"▲反則負け"` / `"△反則負け"` | 敗者（敗者が手番でなければ、手番側の `IllegalWin`） |
 | 中断 (BreakOff) | `Interrupt` | `"▲中断"` / `"△中断"` | 中断したときの手番の側 |
 | 入玉勝ち (NyugyokuWin) | `DeclarationWin` | `"▲入玉勝ち"` / `"△入玉勝ち"` | 勝者（宣言した側） |
 | 持将棋 (Jishogi) | `Impasse` | `"▲持将棋"` / `"△持将棋"` | 終局した局面の手番の側 |
 | 千日手 (Sennichite) | `Repetition` | `"▲千日手"` / `"△千日手"` | 終局した局面の手番の側 |
-| 連続王手の千日手 (OuteSennichite) | `IllegalLoss`／`IllegalWin` | `"▲反則負け"` / `"△反則勝ち"` など | 終局した局面の手番の側。王手を続けた側が手番なら「反則負け」、相手が手番なら「反則勝ち」（`RecordEntry::perpetualCheckTerminal(loser, sideToMove)`。CSA通信対局の `CsaGameProgress::endRecord()` と同じ規則） |
+| 連続王手の千日手 (OuteSennichite) | `IllegalLoss`／`IllegalWin` | `"▲反則負け"` / `"△反則勝ち"` など | 終局した局面の手番の側。王手を続けた側の反則負け（`IllegalLoss`）を手番側にそろえるので、王手を続けた側が手番なら「反則負け」、相手が手番なら「反則勝ち」 |
 
 `▲` = 先手、`△` = 後手。
 
@@ -762,10 +762,12 @@ void MatchCoordinator::appendTerminalRecord(const GameEndInfo& info)
     TerminalType terminal = TerminalType::None;
     // ... info.cause から TerminalType を決める ...
 
-    // 終局行の印と消費時間は、その行（投了・宣言など）を行った側のもの
-    const Turn mover = RecordEntry::endingSide(terminal, toMove, info.loser);
-    m_clock->commitMove(mover);
-    const RecordEntry entry = RecordEntry::ending(terminal, mover, m_clock->recordTime(mover));
+    // 終局行の印と消費時間は、その行（投了・宣言など）を行った側のもの。手番でない側の反則負けは、勝敗を変えずに
+    // 手番側の反則勝ちの行にする（棋譜の形式は終局の行を手番側の行としてしか書けない）
+    const RecordEntry::Ending ending =
+        RecordEntry::forSideToMove(terminal, RecordEntry::endingSide(terminal, toMove, info.loser), toMove);
+    m_clock->commitMove(ending.side);
+    const RecordEntry entry = RecordEntry::ending(ending.terminal, ending.side, m_clock->recordTime(ending.side));
     if (m_sink && m_sink->canAppendRecord()) m_sink->appendRecord(entry);
     m_session.markTerminalRecorded();
 }

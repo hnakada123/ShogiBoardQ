@@ -306,6 +306,57 @@ private slots:
         }
     }
 
+    /// KI2 の結果行が手番でない側を名指しした終局は、勝敗を変えずに手番側の行にする。どの形式に書いて読み直しても
+    /// 勝敗が変わらない（監査 2026-11-01 F3。USEN は反則の終局を書かないので除く）
+    void ki2NamedEndingKeepsTheWinner_data()
+    {
+        QTest::addColumn<QString>("resultLine");
+        QTest::addColumn<QString>("label");
+        QTest::addColumn<int>("winner");
+        // 3手目の後は後手番
+        QTest::newRow("先手の反則負け") << QStringLiteral("まで3手で先手の反則負け") << QStringLiteral("△反則勝ち")
+                                         << int(Turn::White);
+        QTest::newRow("先手の反則勝ち") << QStringLiteral("まで3手で先手の反則勝ち") << QStringLiteral("△反則負け")
+                                         << int(Turn::Black);
+    }
+
+    void ki2NamedEndingKeepsTheWinner()
+    {
+        QFETCH(QString, resultLine);
+        QFETCH(QString, label);
+        QFETCH(int, winner);
+        const QString text = QStringLiteral("手合割：平手\n▲７六歩 △３四歩 ▲２六歩\n") + resultLine + QStringLiteral("\n");
+        for (const Format fmt : {Format::Kif, Format::Ki2, Format::Csa, Format::Jkf, Format::Usi}) {
+            const auto saved = convert(text, fmt, Format::Ki2);
+            QVERIFY2(saved.ok, qPrintable(saved.failure.message));
+            QVERIFY2(saved.warnings.isEmpty(), qPrintable(saved.warnings.join(QLatin1Char('\n'))));
+            QCOMPARE(lastText(saved), label);
+            const auto reread = convert(saved.lines.join(QLatin1Char('\n')), Format::Kif, fmt);
+            QVERIFY2(reread.ok, qPrintable(reread.failure.message));
+            QVERIFY(reread.mainline.endsWithTerminal());
+            QCOMPARE(lastText(reread), label);
+            QCOMPARE(int(reread.mainline.terminal()->winner().value_or(Turn::Black)), winner);
+            // KIF の結果行も、手数の行と同じ勝敗を書く
+            if (fmt == Format::Kif) {
+                const QString written = saved.lines.join(QLatin1Char('\n'));
+                QVERIFY2(written.contains(QStringLiteral("4 ") + label.mid(1)), qPrintable(written));
+                QVERIFY2(written.contains(QStringLiteral("まで3手で後手の") + label.mid(1)), qPrintable(written));
+            }
+        }
+    }
+
+    /// 手番でない側の投了・入玉宣言勝ちなど、手番側の行にできない KI2 の結果行は、名指しのまま読んで警告する
+    void ki2NamedEndingThatCannotBeAlignedWarns()
+    {
+        const auto result = convert(QStringLiteral("手合割：平手\n▲７六歩 △３四歩 ▲２六歩\nまで3手で後手の勝ち\n"),
+                                    Format::Ki2, Format::Ki2);
+        QVERIFY2(result.ok, qPrintable(result.failure.message));
+        QCOMPARE(lastText(result), QStringLiteral("▲投了"));
+        QVERIFY2(result.warnings.join(QLatin1Char('\n')).contains(QStringLiteral("side not to move")),
+                 qPrintable(result.warnings.join(QLatin1Char('\n'))));
+        QVERIFY(result.lines.contains(QStringLiteral("まで3手で後手の勝ち")));
+    }
+
     void whiteToMoveTerminalRoundTrip()
     {
         const QString sfen = QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 w - 1");
