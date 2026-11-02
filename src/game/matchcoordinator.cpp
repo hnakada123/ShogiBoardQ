@@ -210,7 +210,7 @@ bool MatchCoordinator::completeMove(RecordEntry played, std::optional<UsiScore> 
 
     if (checkAndHandleSennichite()) return false;
     if (m_session.maxMoves() > 0 && currentPly() >= m_session.maxMoves()) {
-        handleMaxMovesJishogi();
+        handleMaxMoves();
         return false;
     }
     return !isGameOver();
@@ -265,26 +265,26 @@ void MatchCoordinator::handleResign()
 {
     if (isGameOver()) return;
     const Turn loser = sideToMove();
-    endGame({Cause::Resignation, loser}, loser, Notice::Announce);
+    endGame({Cause::Resignation, loser}, Notice::Announce);
 }
 
 void MatchCoordinator::handleEngineResign(Turn side)
 {
     if (isGameOver()) return;
-    endGame({Cause::Resignation, side}, side, Notice::Announce);
+    endGame({Cause::Resignation, side}, Notice::Announce);
 }
 
 void MatchCoordinator::handleEngineIllegalMove(Turn side)
 {
     if (isGameOver()) return;
     // エンジンが反則手を返した。盤には指さずに、そのエンジンの反則負けとする
-    endGame({Cause::IllegalMove, side}, side, Notice::Announce);
+    endGame({Cause::IllegalMove, side}, Notice::Announce);
 }
 
 void MatchCoordinator::handlePlayerTimeOut(Turn player)
 {
     if (isGameOver()) return;
-    endGame({Cause::Timeout, player}, player, Notice::Announce);
+    endGame({Cause::Timeout, player}, Notice::Announce);
 }
 
 void MatchCoordinator::handleEngineWin(Turn side)
@@ -313,11 +313,11 @@ void MatchCoordinator::handleNyugyokuDeclaration(Turn declarer, bool success, bo
     qCInfo(lcGame) << "handleNyugyokuDeclaration(): declarer=" << declarer
                    << " success=" << success << " isDraw=" << isDraw;
     if (isDraw) {
-        endGame({Cause::Jishogi, declarer}, std::nullopt, Notice::Declaration);
+        endGame({Cause::Jishogi, declarer}, Notice::Declaration);
     } else if (success) {
-        endGame({Cause::NyugyokuWin, opponent(declarer)}, opponent(declarer), Notice::Declaration);
+        endGame({Cause::NyugyokuWin, opponent(declarer)}, Notice::Declaration);
     } else {
-        endGame({Cause::IllegalMove, declarer}, declarer, Notice::Declaration);
+        endGame({Cause::IllegalMove, declarer}, Notice::Declaration);
     }
 }
 
@@ -329,14 +329,14 @@ void MatchCoordinator::handleBreakOff()
     if (isGameOver()) return;
     // 中断の後に届く bestmove resign は、終局の知らせ（MatchEngineSeat::finish）の後なので受けない。
     // quit に応答しない場合も terminate/kill まで進める。中断後の思考表示は保持する。
-    endGame({Cause::BreakOff, sideToMove()}, std::nullopt, Notice::Interrupt);
+    endGame({Cause::BreakOff, sideToMove()}, Notice::Interrupt);
 }
 
-void MatchCoordinator::handleMaxMovesJishogi()
+void MatchCoordinator::handleMaxMoves()
 {
     if (isGameOver()) return;
-    qCInfo(lcGame) << "handleMaxMovesJishogi(): max moves reached";
-    endGame({Cause::Jishogi, Turn::Black}, std::nullopt, Notice::Announce);
+    qCInfo(lcGame) << "handleMaxMoves(): max moves reached";
+    endGame({Cause::MaxMoves, Turn::Black}, Notice::Announce);
 }
 
 bool MatchCoordinator::checkAndHandleSennichite()
@@ -347,13 +347,13 @@ bool MatchCoordinator::checkAndHandleSennichite()
         return false;
     case SennichiteDetector::Result::Draw:
         qCInfo(lcGame) << "draw by repetition";
-        endGame({Cause::Sennichite, Turn::Black}, std::nullopt, Notice::Announce);
+        endGame({Cause::Sennichite, Turn::Black}, Notice::Announce);
         return true;
     case SennichiteDetector::Result::ContinuousCheckByBlack:
-        endGame({Cause::OuteSennichite, Turn::Black}, Turn::Black, Notice::Announce);
+        endGame({Cause::OuteSennichite, Turn::Black}, Notice::Announce);
         return true;
     case SennichiteDetector::Result::ContinuousCheckByWhite:
-        endGame({Cause::OuteSennichite, Turn::White}, Turn::White, Notice::Announce);
+        endGame({Cause::OuteSennichite, Turn::White}, Notice::Announce);
         return true;
     }
     return false;
@@ -380,7 +380,7 @@ void MatchCoordinator::clearGameEnd()
     m_session.clearEnd();
 }
 
-void MatchCoordinator::endGame(const GameEndInfo& info, std::optional<Turn> engineLoser, Notice notice)
+void MatchCoordinator::endGame(const GameEndInfo& info, Notice notice)
 {
     if (!m_session.finish(info)) {
         qCDebug(lcGame) << "endGame() ignored: already over";
@@ -393,8 +393,7 @@ void MatchCoordinator::endGame(const GameEndInfo& info, std::optional<Turn> engi
     for (const Turn side : {Turn::Black, Turn::White}) {
         MatchEngineSeat* seat = m_strategy ? m_strategy->engineSeat(side) : nullptr;
         if (!seat) continue;
-        seat->finish(!engineLoser ? GameOverResult::Draw
-                                  : (*engineLoser == side ? GameOverResult::Lose : GameOverResult::Win));
+        seat->finish(MatchEnding::engineResult(info, side));
     }
     appendTerminalRecord(info);
     // 終局の行を書いた棋譜を確定して終了日時を記録し、自動保存する（中断は保存しない）。
@@ -420,24 +419,9 @@ void MatchCoordinator::endGame(const GameEndInfo& info, std::optional<Turn> engi
 
 void MatchCoordinator::appendTerminalRecord(const GameEndInfo& info)
 {
-    const Turn toMove = sideToMove();
-    TerminalType terminal = TerminalType::None;
-    switch (info.cause) {
-    case Cause::Jishogi: terminal = TerminalType::Impasse; break;
-    case Cause::NyugyokuWin: terminal = TerminalType::DeclarationWin; break;
-    case Cause::IllegalMove: terminal = TerminalType::IllegalLoss; break;
-    case Cause::Sennichite: terminal = TerminalType::Repetition; break;
-    // 連続王手の千日手は王手をかけていた側の反則負け（手番側の行にそろえる）
-    case Cause::OuteSennichite: terminal = TerminalType::IllegalLoss; break;
-    case Cause::BreakOff: terminal = TerminalType::Interrupt; break;
-    case Cause::Resignation: terminal = TerminalType::Resign; break;
-    case Cause::Timeout: terminal = TerminalType::Timeout; break;
-    }
-
     // 終局行の印と消費時間は、その行（投了・宣言など）を行った側のもの。手番でない側の反則負けは、勝敗を変えずに
-    // 手番側の反則勝ちの行にする（棋譜の形式は終局の行を手番側の行としてしか書けない）
-    const RecordEntry::Ending ending =
-        RecordEntry::forSideToMove(terminal, RecordEntry::endingSide(terminal, toMove, info.loser), toMove);
+    // 手番側の反則勝ちの行にする（棋譜の形式は終局の行を手番側の行としてしか書けない）。対応は通信対局と同じ
+    const RecordEntry::Ending ending = MatchEnding::endingOf(info, sideToMove());
     m_clock->commitMove(ending.side);
     const RecordEntry entry = RecordEntry::ending(ending.terminal, ending.side, m_clock->recordTime(ending.side));
     if (m_sink && m_sink->canAppendRecord()) m_sink->appendRecord(entry);
@@ -456,7 +440,7 @@ QString MatchCoordinator::resultMessage(const GameEndInfo& info) const
         return tr("%1の投了。%2の勝ちです。").arg(loserJP, winnerJP);
     case Cause::Timeout:
         return tr("%1の時間切れ。%2の勝ちです。").arg(loserJP, winnerJP);
-    case Cause::Jishogi:
+    case Cause::MaxMoves:
         return tr("最大手数に達しました。持将棋です。");
     case Cause::IllegalMove:
         return tr("%1の反則負け。%2の勝ちです。").arg(loserJP, winnerJP);
@@ -464,7 +448,8 @@ QString MatchCoordinator::resultMessage(const GameEndInfo& info) const
         return tr("千日手が成立しました。");
     case Cause::OuteSennichite:
         return tr("%1の連続王手の千日手。%2の勝ちです。").arg(loserJP, winnerJP);
-    case Cause::NyugyokuWin:  // 入玉宣言は宣言の判定結果で知らせる
+    case Cause::Jishogi:      // 入玉宣言は宣言の判定結果で知らせる
+    case Cause::NyugyokuWin:
     case Cause::BreakOff:     // 中断は知らせない
         break;
     }

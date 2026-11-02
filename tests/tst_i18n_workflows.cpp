@@ -424,7 +424,8 @@ private slots:
             // 反則と連続王手の千日手は手番側の行。先手（自分）の反則・王手で終局して後手番なので、後手の反則勝ち
             {Cause::IllegalMove, TerminalType::IllegalWin}, {Cause::OuteSennichite, TerminalType::IllegalWin},
             {Cause::Sennichite, TerminalType::Repetition}, {Cause::Jishogi, TerminalType::DeclarationWin},
-            {Cause::MaxMoves, TerminalType::MaxMoves}, {Cause::Chudan, TerminalType::Interrupt}};
+            // 最大手数はローカル対局と同じく持将棋と書く（監査 2026-11-01 F15）
+            {Cause::MaxMoves, TerminalType::Impasse}, {Cause::Chudan, TerminalType::Interrupt}};
         for (const auto& ending : endings) {
             QCOMPARE(csa.endRecord(CsaClient::GameResult::Lose, ending.first, false, 0).terminal, ending.second);
         }

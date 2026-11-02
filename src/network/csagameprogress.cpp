@@ -110,35 +110,35 @@ RecordEntry CsaGameProgress::moveRecord(bool blackMove, const QString& displayTe
     return entry;
 }
 
-RecordEntry CsaGameProgress::endRecord(CsaClient::GameResult result, CsaClient::GameEndCause cause,
-                                       bool blackToMove, int consumedMs) const
+MatchGameEndInfo CsaGameProgress::endInfo(CsaClient::GameResult result, CsaClient::GameEndCause cause) const
 {
     using Cause = CsaClient::GameEndCause;
-    const bool isDraw = (result == CsaClient::GameResult::Draw);
-    const Turn sideToMove = blackToMove ? Turn::Black : Turn::White;
     // 勝敗のない終局（中断など）の負けた側は使われない
     const bool iAmLoser = (result == CsaClient::GameResult::Lose);
     const Turn loser = (iAmLoser == isBlackSide) ? Turn::Black : Turn::White;
-
-    TerminalType type = TerminalType::Interrupt;
     switch (cause) {
-    case Cause::Resign: type = TerminalType::Resign; break;
-    case Cause::TimeUp: type = TerminalType::Timeout; break;
+    case Cause::Resign: return {MatchCause::Resignation, loser};
+    case Cause::TimeUp: return {MatchCause::Timeout, loser};
     case Cause::IllegalMove:
-    case Cause::IllegalAction: type = TerminalType::IllegalLoss; break;
-    // 連続王手の千日手は王手をかけていた側の反則負け（手番側の行にそろえる）
-    case Cause::OuteSennichite: type = TerminalType::IllegalLoss; break;
-    case Cause::Sennichite: type = TerminalType::Repetition; break;
-    // 入玉宣言は宣言した勝者の行。点数による引き分けは持将棋
-    case Cause::Jishogi: type = isDraw ? TerminalType::Impasse : TerminalType::DeclarationWin; break;
-    case Cause::MaxMoves: type = TerminalType::MaxMoves; break;
+    case Cause::IllegalAction: return {MatchCause::IllegalMove, loser};
+    case Cause::OuteSennichite: return {MatchCause::OuteSennichite, loser};
+    case Cause::Sennichite: return {MatchCause::Sennichite, loser};
+    // 入玉宣言は宣言した側の勝ち。点数による引き分けは持将棋
+    case Cause::Jishogi:
+        return {result == CsaClient::GameResult::Draw ? MatchCause::Jishogi : MatchCause::NyugyokuWin, loser};
+    case Cause::MaxMoves: return {MatchCause::MaxMoves, loser};
     case Cause::Chudan:
     case Cause::Unknown: break;
     }
+    return {MatchCause::BreakOff, loser};
+}
 
+RecordEntry CsaGameProgress::endRecord(CsaClient::GameResult result, CsaClient::GameEndCause cause,
+                                       bool blackToMove, int consumedMs) const
+{
     // 終局行は手番側の行にそろえ（手番でない側の反則負けは手番側の反則勝ち）、消費時間はその側の累計に足す
-    const RecordEntry::Ending ending =
-        RecordEntry::forSideToMove(type, RecordEntry::endingSide(type, sideToMove, loser), sideToMove);
+    const Turn sideToMove = blackToMove ? Turn::Black : Turn::White;
+    const RecordEntry::Ending ending = MatchEnding::endingOf(endInfo(result, cause), sideToMove);
     const RecordTime time =
         RecordTime::fromMilliseconds(consumedMs, qint64(totalMs(ending.side == Turn::Black)) + consumedMs);
     return RecordEntry::ending(ending.terminal, ending.side, time);

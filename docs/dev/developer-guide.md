@@ -169,6 +169,7 @@
 | 2026-11-03 | 元に戻す〜貼り付けのボタンの見た目を1つにした（監査 2026-11-01 F28）のに合わせてクラスの一覧の `EditActions` を更新（`EditActions::createButton()` が `PanelButton::setup` の既定の見た目と大きさを付け、コメント欄と対局情報で同じ灰色のボタンにする。コメント欄は `ButtonStyles::undoRedo`（橙）・`editOperation`（緑）を付けていた） |
 | 2026-11-03 | A- で自動の列幅が縮むようにした（監査 2026-11-01 F29）のに合わせて §9.8 を更新（棋譜解析の結果の表は全行を測り直すときに今の幅を下限にしない。定跡ウィンドウの自動の幅は見本の文字が収まる幅で、下限は作ったときの幅 `JosekiTableView::minimumColumnWidth`。どちらも以前は今の幅を下限にしていたので、A+ で広げた幅が A- で戻らなかった） |
 | 2026-11-03 | 通信ログのパネルの設定の変更を、同じ設定を使うパネルに伝えるようにした（監査 2026-11-01 F30）のに合わせて第18章を更新（CSA 通信ログのドックと待機ダイアログのログは、片方で変えた文字の大きさと折り返しにもう片方も合わせる。以前はどちらも作るときに1回だけ設定を読み、ドックは次の起動まで古い値のままで、その後の A+ で古い値から計算して保存し直していた） |
+| 2026-11-03 | 終局の原因からの対応をローカル対局と通信対局で1つにした（監査 2026-11-01 F15）のに合わせて第5章の内部型定義を更新（`MatchCause`・`MatchGameEndInfo` を `src/game/matchending.h` に移し、`MatchCause::MaxMoves` を足した。終局語とエンジンへの gameover は `MatchEnding` だけで決め、通信対局は `CsaGameProgress::endInfo()` でサーバーの結果を原因に直す。最大手数は持将棋と書き（通信対局は「最大手数到達」と書いていた）、最大手数・中断・知らない原因の終局でも通信対局のエンジンに `gameover draw` を送る（今までは送らなかった）。`MatchCoordinator::handleMaxMovesJishogi()` は `handleMaxMoves()`、`endGame()` の `engineLoser` 引数は消した） |
 
 <!-- chapter-0-end -->
 
@@ -2786,21 +2787,30 @@ game 層
 
 #### 内部型定義
 
-終局原因・終局情報・終局状態は `src/game/matchcoordinator.h` にあり、`MatchCoordinator::Cause` などはその別名である。対局者（先手・後手）は、盤や対局の進行と同じ `Turn`（`Turn::Black`／`Turn::White`）で表す。
+終局原因 `MatchCause`・終局情報 `MatchGameEndInfo` は `src/game/matchending.h`、終局状態は `src/game/matchcoordinator.h` にあり、`MatchCoordinator::Cause` などはその別名である。対局者（先手・後手）は、盤や対局の進行と同じ `Turn`（`Turn::Black`／`Turn::White`）で表す。
 
 ```cpp
-// 終局原因
-enum class Cause : int {
+// 終局原因（ローカル対局と通信対局で共通。通信対局はサーバーの結果をこの原因に直す）
+enum class MatchCause : int {
     Resignation    = 0,  // 投了
     Timeout        = 1,  // 時間切れ
-    BreakOff       = 2,  // 中断
-    Jishogi        = 3,  // 持将棋／最大手数到達
+    BreakOff       = 2,  // 中断（通信対局はサーバーの中断・切断と、知らない終局の知らせ）
+    Jishogi        = 3,  // 持将棋（入玉宣言の点数による引き分け）
     NyugyokuWin    = 4,  // 入玉宣言勝ち
     IllegalMove    = 5,  // 反則負け（入玉宣言失敗など）
     Sennichite     = 6,  // 千日手（引き分け）
-    OuteSennichite = 7   // 連続王手の千日手（反則負け）
+    OuteSennichite = 7,  // 連続王手の千日手（反則負け）
+    MaxMoves       = 8,  // 最大手数到達（棋譜には持将棋と書く）
 };
 ```
+
+原因から棋譜の終局の行とエンジンへの gameover を決める対応は `MatchEnding`（同じヘッダー）だけにある。ローカル対局の `MatchCoordinator::endGame()` と通信対局の `CsaGameCoordinator`（`CsaGameProgress::endInfo()` でサーバーの結果を原因に直す）が同じ関数を使う。
+
+| 関数 | 決めること |
+|------|-----------|
+| `terminalOf(cause)` | 終局語。最大手数は持将棋（どの形式にも書け、ほかのアプリでも読める）、連続王手の千日手は王手をかけていた側の反則負け |
+| `endingOf(info, sideToMove)` | 終局の行の終局語と側（`RecordEntry::forSideToMove` で手番側の行にそろえる） |
+| `isDraw(cause)`・`engineResult(info, side)` | 勝ち負けのない終局（中断・持将棋・最大手数・千日手）はエンジンに `gameover draw`、それ以外は負けた側に lose・勝った側に win |
 
 エンジンの投了・入玉宣言は `MatchEngineSeat` の `resigned(Turn)`・`declaredWin(Turn)` で、エンジンの手番として届く（司令塔が Strategy の `engineSeat(side)` ごとにつなぐ）。人間対エンジンでは、エンジンが後手でもエンジンは1つ目の枠（E1）に入る。エンジン同士では先手が E1、後手が E2 である。枠は思考情報・通信ログの表示先の区別で、投了などの判定は枠ではなくエンジンの手番で行う。
 

@@ -9,6 +9,7 @@
 #include <QSignalSpy>
 
 #include "match_test_helper.h"
+#include "matchending.h"
 #include "nyugyokujudgement.h"
 #include "settingscommon.h"
 #include "terminaltype.h"
@@ -144,11 +145,41 @@ private slots:
         QVERIFY(!playMoves(h, {QStringLiteral("7g7f")}));
         QCOMPARE(m_events, QStringList({QStringLiteral("append"), QStringLiteral("append"), QStringLiteral("finish"),
                                          QStringLiteral("ended"), QStringLiteral("dialog"), QStringLiteral("processed")}));
-        QCOMPARE(h.mc->gameEnd()->cause, MatchCoordinator::Cause::Jishogi);
-        // 持将棋の行は終局した局面の手番（後手）の行
+        QCOMPARE(h.mc->gameEnd()->cause, MatchCoordinator::Cause::MaxMoves);
+        // 最大手数は持将棋と書く（通信対局と同じ）。持将棋の行は終局した局面の手番（後手）の行
         QCOMPARE(sink.records.last().displayText, QStringLiteral("△持将棋"));
         QCOMPARE(sink.records.last().mover, Turn::White);
         QVERIFY(h.lastMessageText().contains(QStringLiteral("最大手数")));
+    }
+
+    /// 終局の原因から終局語とエンジンへの gameover を決める表は、ローカル対局と通信対局で1つ（監査 2026-11-01 F15）。
+    /// 最大手数は持将棋と書き、中断を含めて勝ち負けのない終局はエンジンに draw と知らせる
+    void endingTableIsShared_data()
+    {
+        QTest::addColumn<int>("cause");
+        QTest::addColumn<int>("terminal");
+        QTest::addColumn<bool>("draw");
+        QTest::newRow("resignation") << int(MatchCause::Resignation) << int(TerminalType::Resign) << false;
+        QTest::newRow("timeout") << int(MatchCause::Timeout) << int(TerminalType::Timeout) << false;
+        QTest::newRow("break-off") << int(MatchCause::BreakOff) << int(TerminalType::Interrupt) << true;
+        QTest::newRow("jishogi") << int(MatchCause::Jishogi) << int(TerminalType::Impasse) << true;
+        QTest::newRow("max-moves") << int(MatchCause::MaxMoves) << int(TerminalType::Impasse) << true;
+        QTest::newRow("nyugyoku-win") << int(MatchCause::NyugyokuWin) << int(TerminalType::DeclarationWin) << false;
+        QTest::newRow("illegal") << int(MatchCause::IllegalMove) << int(TerminalType::IllegalLoss) << false;
+        QTest::newRow("sennichite") << int(MatchCause::Sennichite) << int(TerminalType::Repetition) << true;
+        QTest::newRow("oute-sennichite") << int(MatchCause::OuteSennichite) << int(TerminalType::IllegalLoss) << false;
+    }
+
+    void endingTableIsShared()
+    {
+        QFETCH(int, cause);
+        QFETCH(int, terminal);
+        QFETCH(bool, draw);
+        const MatchGameEndInfo info{static_cast<MatchCause>(cause), Turn::White};
+        QCOMPARE(int(MatchEnding::terminalOf(info.cause)), terminal);
+        QCOMPARE(MatchEnding::isDraw(info.cause), draw);
+        QCOMPARE(MatchEnding::engineResult(info, Turn::White), draw ? GameOverResult::Draw : GameOverResult::Lose);
+        QCOMPARE(MatchEnding::engineResult(info, Turn::Black), draw ? GameOverResult::Draw : GameOverResult::Win);
     }
 
     // --- 投了 ---
