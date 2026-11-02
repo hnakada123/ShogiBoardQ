@@ -308,6 +308,36 @@ private slots:
         QVERIFY2(commands.contains(QStringLiteral("gameover draw")), qPrintable(commands.join(QLatin1Char(','))));
     }
 
+    /// 最大手数（打ち切り）・中断・知らない原因でも、ローカル対局と同じく gameover draw を送る（監査 2026-11-01 F15）
+    void unscoredEndingsSendGameOverDrawToEngine_data()
+    {
+        QTest::addColumn<QList<QByteArray>>("lines");
+        QTest::addColumn<QString>("expected");
+        QTest::newRow("max-moves") << QList<QByteArray>{"#MAX_MOVES", "#CENSORED"} << QStringLiteral("gameover draw");
+        QTest::newRow("chudan") << QList<QByteArray>{"#CHUDAN"} << QStringLiteral("gameover draw");
+        QTest::newRow("unknown-cause") << QList<QByteArray>{"#SOMETHING_NEW", "#WIN"} << QStringLiteral("gameover draw");
+        QTest::newRow("resign-win") << QList<QByteArray>{"#RESIGN", "#WIN"} << QStringLiteral("gameover win");
+    }
+
+    void unscoredEndingsSendGameOverDrawToEngine()
+    {
+        QFETCH(QList<QByteArray>, lines);
+        QFETCH(QString, expected);
+        Harness h;
+        QVERIFY(h.start("-", {}, true));
+        Usi* engine = h.engines.engineInSlot(1);
+        QVERIFY(engine);
+        QSignalSpy sent(engine->process(), &EngineProcessManager::commandSent);
+        for (const QByteArray& line : std::as_const(lines)) h.server.send(line);
+        QTRY_COMPARE(h.coordinator.gameState(), CsaGameCoordinator::GameState::GameOver);
+        QStringList gameOvers;
+        for (const QList<QVariant>& args : std::as_const(sent)) {
+            const QString command = args.at(0).toString();
+            if (command.startsWith(QStringLiteral("gameover"))) gameOvers << command;
+        }
+        QCOMPARE(gameOvers, QStringList{expected});
+    }
+
     void rejectedUnconfirmedMoveLeavesOriginalPosition()
     {
         Harness h;
@@ -475,8 +505,9 @@ private slots:
                                      << int(TerminalType::DeclarationWin) << QStringLiteral("△入玉勝ち");
         QTest::newRow("jishogi-draw") << QByteArray("#JISHOGI") << QByteArray("#DRAW")
                                       << int(TerminalType::Impasse) << QStringLiteral("△持将棋");
+        // 最大手数はローカル対局と同じく持将棋と書く（監査 2026-11-01 F15）
         QTest::newRow("max-moves") << QByteArray("#MAX_MOVES") << QByteArray("#CENSORED")
-                                   << int(TerminalType::MaxMoves) << QStringLiteral("△最大手数到達");
+                                   << int(TerminalType::Impasse) << QStringLiteral("△持将棋");
     }
 
     void endCauseMapsToTerminalType()

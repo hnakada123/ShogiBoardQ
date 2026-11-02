@@ -393,23 +393,11 @@ void CsaGameCoordinator::onClientGameEnded(CsaClient::GameResult result, CsaClie
     // 終局行を棋譜へ書く（対局の手順は終局の行を含めない）
     if (m_sink) m_sink->appendRecord(m_progress.endRecord(result, cause, blackToMove, actualConsumedTimeMs));
 
-    // エンジンに gameover を送って終える（ローカル対局の終局と同じ手順。同じ接続で次の対局条件が来たら起動し直す）
+    // エンジンに gameover を送って終える（ローカル対局の終局と同じ手順と同じ対応 MatchEnding。最大手数・中断は draw。
+    // 同じ接続で次の対局条件が来たら起動し直す）
     if (m_engineSeat) {
-        switch (result) {
-        case CsaClient::GameResult::Win:
-            m_engineSeat->finish(GameOverResult::Win);
-            break;
-        case CsaClient::GameResult::Lose:
-            m_engineSeat->finish(GameOverResult::Lose);
-            break;
-        case CsaClient::GameResult::Draw:
-            m_engineSeat->finish(GameOverResult::Draw);
-            break;
-        case CsaClient::GameResult::Censored:
-        case CsaClient::GameResult::Chudan:
-        case CsaClient::GameResult::Unknown:
-            break;
-        }
+        m_engineSeat->finish(MatchEnding::engineResult(m_progress.endInfo(result, cause),
+                                                       isBlackSide ? Turn::Black : Turn::White));
         m_engineSeat->release();
     }
     // 対局数を数えてログアウトの要否を先に決める。終局の通知を受ける側（結果の表示）は

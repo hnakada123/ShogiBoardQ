@@ -11,6 +11,7 @@
 
 #include "appactivitystate.h"
 #include "gamemodestrategy.h"
+#include "matchending.h"
 #include "matchtimesource.h"
 #include "nyugyokujudgement.h"
 #include "recordline.h"
@@ -25,24 +26,6 @@ class MatchRecordSink;
 class GameBoard;
 class Usi;
 struct JosekiPick;
-
-/// 終局原因（MatchCoordinator::Cause）
-enum class MatchCause : int {
-    Resignation    = 0,  ///< 投了
-    Timeout        = 1,  ///< 時間切れ
-    BreakOff       = 2,  ///< 中断
-    Jishogi        = 3,  ///< 持将棋／最大手数到達
-    NyugyokuWin    = 4,  ///< 入玉宣言勝ち
-    IllegalMove    = 5,  ///< 反則負け（入玉宣言失敗など）
-    Sennichite     = 6,  ///< 千日手（引き分け）
-    OuteSennichite = 7   ///< 連続王手の千日手（反則負け）
-};
-
-/// 終局情報（MatchCoordinator::GameEndInfo）。対局者（先手・後手）は Turn で表す
-struct MatchGameEndInfo {
-    MatchCause  cause = MatchCause::Resignation;  ///< 終局原因
-    Turn        loser = Turn::Black;              ///< 敗者
-};
 
 /// 中断したローカル対局の状態（アプリ起動中だけ保持する）。再開すると、この手順と時計から続ける
 struct InterruptedGameState {
@@ -234,7 +217,7 @@ private:
     void handleEngineIllegalMove(Turn side);
     void handleEngineError(const QString& message);
     bool checkAndHandleSennichite();
-    void handleMaxMovesJishogi();
+    void handleMaxMoves();
     /// 終局の後の知らせ方
     enum class Notice {
         Announce,     ///< 結果のダイアログを出して gameEndProcessed
@@ -243,9 +226,10 @@ private:
     };
     /**
      * @brief 終局する（時計を止め、エンジンに gameover を送り、終局の行を書いて待機に戻す）
-     * @param engineLoser エンジンに負けと知らせる側（引き分け・中断は nullopt）
+     *
+     * 終局語とエンジンへの gameover は原因から決める（MatchEnding。通信対局と同じ対応）
      */
-    void endGame(const GameEndInfo& info, std::optional<Turn> engineLoser, Notice notice);
+    void endGame(const GameEndInfo& info, Notice notice);
     void appendTerminalRecord(const GameEndInfo& info);
     QString resultMessage(const GameEndInfo& info) const;
 

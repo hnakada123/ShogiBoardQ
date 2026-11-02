@@ -330,6 +330,8 @@ set(SRC_GAME
     src/game/matchautosave.h
     src/game/matchcoordinator.cpp
     src/game/matchcoordinator.h
+    src/game/matchending.cpp
+    src/game/matchending.h
     src/game/matchengineseat.cpp
     src/game/matchengineseat.h
     src/game/matchrecordsink.h

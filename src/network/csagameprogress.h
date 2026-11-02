@@ -9,6 +9,7 @@
 #include <optional>
 
 #include "csaclient.h"
+#include "matchending.h"
 #include "recordentry.h"
 #include "recordline.h"
 #include "recordtime.h"
@@ -87,14 +88,23 @@ struct CsaGameProgress {
     RecordEntry moveRecord(bool blackMove, const QString& displayText, int consumedMs) const;
 
     /**
+     * @brief サーバーの結果を対局の終局（原因と負けた側）に直す
+     * @param result 自分から見た勝敗
+     * @param cause 終局原因
+     *
+     * 入玉宣言は引き分けなら持将棋、それ以外は宣言の勝ち。最大手数（#MAX_MOVES・#CENSORED）は最大手数。
+     * 中断・切断と、知らない原因は中断にする。終局語とエンジンへの gameover はローカル対局と同じ MatchEnding で決める
+     */
+    MatchGameEndInfo endInfo(CsaClient::GameResult result, CsaClient::GameEndCause cause) const;
+
+    /**
      * @brief 終局行を組み立てる
      * @param result 自分から見た勝敗
      * @param cause 終局原因
      * @param blackToMove 終局した局面で先手の手番か（連続王手の千日手の手番側）
      * @param consumedMs 終局行の消費時間
      *
-     * 終局原因を TerminalType に対応させ、終局行を行った側（RecordEntry::endingSide）の行を手番側の行にそろえて
-     * （RecordEntry::forSideToMove）、その側の印と消費時間を付ける。ローカルの対局と同じ規則。
+     * endInfo の終局を MatchEnding::endingOf で手番側の行にし（ローカルの対局と同じ対応）、その側の印と消費時間を付ける
      */
     RecordEntry endRecord(CsaClient::GameResult result, CsaClient::GameEndCause cause,
                           bool blackToMove, int consumedMs) const;
