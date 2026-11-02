@@ -61,10 +61,7 @@ private slots:
     void isBoardHeaderOrFrame_digitLine();
     void isBoardHeaderOrFrame_emptyLine();
     void isBoardHeaderOrFrame_normalLine();
-    void isKifSkippableHeaderLine_empty();
-    void isKifSkippableHeaderLine_comment();
-    void isKifSkippableHeaderLine_header();
-    void isKifSkippableHeaderLine_moveLine();
+    void isBoardHeaderOrFrame_handsWordInMoveComment();
     void isBodHandsLine_sente();
     void isBodHandsLine_gote();
     void isBodHandsLine_normal();
@@ -243,27 +240,11 @@ void TestParseCommon::isBoardHeaderOrFrame_normalLine()
     QVERIFY(!KifuParseCommon::isBoardHeaderOrFrame(QStringLiteral("先手：田中")));
 }
 
-void TestParseCommon::isKifSkippableHeaderLine_empty()
+void TestParseCommon::isBoardHeaderOrFrame_handsWordInMoveComment()
 {
-    QVERIFY(KifuParseCommon::isKifSkippableHeaderLine(QString()));
-}
-
-void TestParseCommon::isKifSkippableHeaderLine_comment()
-{
-    QVERIFY(KifuParseCommon::isKifSkippableHeaderLine(QStringLiteral("#コメント")));
-}
-
-void TestParseCommon::isKifSkippableHeaderLine_header()
-{
-    QVERIFY(KifuParseCommon::isKifSkippableHeaderLine(QStringLiteral("開始日時：2025/01/01")));
-    QVERIFY(KifuParseCommon::isKifSkippableHeaderLine(QStringLiteral("棋戦：王将戦")));
-    QVERIFY(KifuParseCommon::isKifSkippableHeaderLine(QStringLiteral("手合割：平手")));
-}
-
-void TestParseCommon::isKifSkippableHeaderLine_moveLine()
-{
-    // Move lines should not be skippable
-    QVERIFY(!KifuParseCommon::isKifSkippableHeaderLine(QStringLiteral("   1 ７六歩(77)")));
+    // 持駒の見出しは行頭だけを見る。指し手の行のコメントに書いた語では、局面図の行としない（監査 2026-11-01 F6）
+    QVERIFY(KifuParseCommon::isBoardHeaderOrFrame(QStringLiteral("  後手の持駒：なし")));
+    QVERIFY(!KifuParseCommon::isBoardHeaderOrFrame(QStringLiteral("   1 ７六歩(77)   ( 0:00/00:00:00) *先手の持駒は歩だけ")));
 }
 
 void TestParseCommon::isBodHandsLine_sente()
@@ -279,7 +260,6 @@ void TestParseCommon::isBodHandsLine_gote()
     // 駒落ちの棋譜は先手側を下手、後手側を上手と書く
     QVERIFY(KifuParseCommon::isBodHandsLine(QStringLiteral("上手の持駒：なし")));
     QVERIFY(KifuParseCommon::isBodHandsLine(QStringLiteral("下手の持ち駒：歩")));
-    QVERIFY(KifuParseCommon::isKifSkippableHeaderLine(QStringLiteral("上手番")));
     QVERIFY(!KifuParseCommon::isBodHandsLine(QStringLiteral("上手：田中")));
 }
 

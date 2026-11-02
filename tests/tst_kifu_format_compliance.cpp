@@ -400,6 +400,47 @@ private slots:
         QCOMPARE(reread.usiMoves, result.usiMoves);
     }
 
+    /// 行内コメントに対局情報の語があっても、指し手の行は読む。コメントはその行の最後の手に付ける（監査 2026-11-01 F6）
+    void moveLineWithGameInfoWordInComment_data()
+    {
+        QTest::addColumn<QString>("text");
+        QTest::addColumn<QStringList>("moves");
+        QTest::addColumn<int>("commentPly");
+        QTest::addColumn<QString>("comment");
+        const QString kifHead = QStringLiteral("手合割：平手\n手数----指手---------消費時間--\n");
+        const QStringList three{QStringLiteral("7g7f"), QStringLiteral("3c3d"), QStringLiteral("2g2f")};
+        QTest::newRow("kif-figure") << kifHead + QStringLiteral("   1 ７六歩(77)   ( 0:00/00:00:00) *第1図\n"
+                                                                "   2 ３四歩(33)   ( 0:00/00:00:00)\n   3 ２六歩(27)\n")
+                                    << three << 1 << QStringLiteral("第1図");
+        QTest::newRow("kif-side-to-move") << kifHead + QStringLiteral("   1 ７六歩(77) *ここで先手番\n   2 ３四歩(33)\n"
+                                                                      "   3 ２六歩(27)\n")
+                                          << three << 1 << QStringLiteral("ここで先手番");
+        QTest::newRow("kif-place") << kifHead + QStringLiteral("   1 ７六歩(77)\n   2 ３四歩(33) *場所：東京\n   3 ２六歩(27)\n")
+                                   << three << 2 << QStringLiteral("場所：東京");
+        QTest::newRow("kif-hands") << kifHead + QStringLiteral("   1 ７六歩(77) *先手の持駒はなし\n   2 ３四歩(33)\n"
+                                                               "   3 ２六歩(27)\n")
+                                   << three << 1 << QStringLiteral("先手の持駒はなし");
+        QTest::newRow("ki2-figure") << QStringLiteral("手合割：平手\n▲７六歩    △３四歩 *第1図\n▲２六歩\n")
+                                    << three << 2 << QStringLiteral("第1図");
+        // コメントの中の手番の印を指し手と読まない
+        QTest::newRow("ki2-mark-in-comment") << QStringLiteral("手合割：平手\n▲７六歩 *次は△３四歩\n△８四歩\n")
+                                             << QStringList{QStringLiteral("7g7f"), QStringLiteral("8c8d")} << 1
+                                             << QStringLiteral("次は△３四歩");
+    }
+
+    void moveLineWithGameInfoWordInComment()
+    {
+        QFETCH(QString, text);
+        QFETCH(QStringList, moves);
+        QFETCH(int, commentPly);
+        QFETCH(QString, comment);
+        const auto result = convert(text, Format::Usi);
+        QVERIFY2(result.ok, qPrintable(result.failure.message));
+        QCOMPARE(result.usiMoves, moves);
+        QVERIFY2(result.warnings.isEmpty(), qPrintable(result.warnings.join(QLatin1Char('\n'))));
+        QCOMPARE(result.mainline.entries.at(commentPly - 1).comment, comment);
+    }
+
     /// USEN の i は手番側の反則で、反則勝ちの符号は無い。反則負けも反則手を持たないので書かない（監査 2026-11-01 F4・F31）
     void usenDoesNotWriteIllegalTerminals_data()
     {
