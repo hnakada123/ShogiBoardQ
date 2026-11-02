@@ -147,7 +147,7 @@
 |---|---|---|
 | F22 | 英語表記（Western）にして定跡手の追加・編集ダイアログを開くと、指し手と予想応手の一覧だけが日本語の KIF 表記になる。同じダイアログの「定跡手: …」のラベルと定跡ウィンドウの表は英語表記 | 一覧は `KifMoveText::format` を直接呼ぶ（`josekimoveinputwidget.cpp:36-38`）。表とラベルは `KifuPresentation::move` を使う（`josekitablemodel.cpp:29-33`、`josekieditcontroller.cpp:61`）（M3）<br>**状態: 済（7eea6c89）**。一覧も表・ラベルと同じ `KifuPresentation` で作る（局面を読み直さない `KifuPresentation::move(Position, UsiMove, Options)` を足した）。英語表記なら成と不成は `+`・`=` で見分ける。日本語表記の一覧には、表・棋譜欄と同じく「不成」を付けなくなった（成る手は「成」が付くので見分けられる） |
 | F23 | 棋譜解析の結果ドックで A+ を押すと、次に開く棋譜解析ダイアログも大きくなる。逆も同じ | 1つの宣言 `AnalysisSettings::kifuAnalysisFontSize`（`KifuAnalysis/fontSize`。`analysissettings.h:143-144`）を、ダイアログ（`kifuanalysisdialog.cpp:100`）と結果ドック（`analysisresultspanel.cpp:33-34`）が使う。宣言の説明はダイアログだけを書く。文字の大きさの宣言41個のうち、2つの部品が使うのはこれだけ<br>**状態: 済（5be6fa99。今の値は結果ドックが引き継ぐと決めた）**。結果ドックは `kifuAnalysisResultsFontSize`（以前と同じキー `KifuAnalysis/fontSize`。既定 10）、ダイアログは新しい `kifuAnalysisDialogFontSize`（`KifuAnalysis/dialogFontSize`。未保存ならダイアログの元の大きさ）にした。キーを変えないので引き継ぎの処理は要らない |
-| F24 | 詰将棋を解く画面で判定時間を変えても、一覧に戻ると捨てられる。次に問題を開くと一覧の値に戻る。解く画面が保存する `TsumePlay/timeout` は使われない | 解く画面はコンストラクタで保存した値を入れる（`tsumeplaydialog.cpp:47`）が、一覧が開く前に必ず `setProblem(..., 一覧の値)` で上書きする（`tsumecollectiondialog.cpp:447,470`、`tsumeplaydialog.cpp:180`）。閉じるときに保存する（`:65`）が、一覧はその値を読み戻さない |
+| F24 | 詰将棋を解く画面で判定時間を変えても、一覧に戻ると捨てられる。次に問題を開くと一覧の値に戻る。解く画面が保存する `TsumePlay/timeout` は使われない | 解く画面はコンストラクタで保存した値を入れる（`tsumeplaydialog.cpp:47`）が、一覧が開く前に必ず `setProblem(..., 一覧の値)` で上書きする（`tsumecollectiondialog.cpp:447,470`、`tsumeplaydialog.cpp:180`）。閉じるときに保存する（`:65`）が、一覧はその値を読み戻さない<br>**状態: 済（45dc7af4。解く画面で変えた値は一覧に戻すと決めた）**。一覧へ戻ると、解く画面の判定時間を一覧の欄に入れる（以後の判定・再判定に使い、一覧の `TsumeCollection/timeout` に保存する）。`PlayPreferences` から判定時間を消し、範囲 1〜600 秒は `CollectionPreferences::kMinTimeoutSec`・`kMaxTimeoutSec` にして2つの欄と整える関数で使う。T6 の `problemIndex`・`lastFile` の名残はまだ残っている |
 | F25 | 同じ局面集ファイルでも、局面集ビューアと詰将棋問題一覧で開き方が違う。<br>- 絞り込み: ビューアは `*.txt *.sfen` で `.usi` を出さない。問題一覧は `.usi` も出す<br>- 開けないとき: ビューアは理由を出さない。問題一覧は英語の `BoundedFile::describe` の文を日本語の文に混ぜる | 規則（`PositionCollectionFile`）は共有している。ファイルを読む処理は、ビューアがダイアログの中に持ち（`sfencollectiondialog.cpp:156-221`）、問題一覧は `TsumeCollectionSession::load`（`tsumecollectionsession.cpp:31-34`）にある（M2） |
 | F26 | アプリの既定の書体が 10pt でない環境（Windows 9pt、macOS 13pt）では、起動直後の思考ドックの表と情報欄の値が既定の書体の大きさになる。A+→A- と押すと、同じ「10」が本当の 10pt になる。情報欄の見出しだけは最初から 10pt | `thinkingpanel.cpp:91-92` が `if (m_fontSize.fontSize() != 10) applyFontSize();` としている。ほかのパネルは起動時に必ず大きさを付ける |
 | F27 | 外観ダイアログのプレビューと CLI の render-board は、本体の盤より対局者名とカードを約2割大きく描く | 名前の大きさ 0.30 を本体の盤（`mainwindowcomposer_create.cpp:129`）と `BoardViewerWidget`（`boardviewerwidget.cpp:47`）が別々に入れ、ほかの盤は既定値 0.36（`boardchromewidget.h:91`）のまま描く。`BoardViewerWidget` も、機能を持たない（外観のプレビュー）ときは 0.30 を入れる前に return する |
@@ -334,7 +334,7 @@
 - 値の型（`JosekiPlayOptions`・`BoardVisuals`・詰将棋の判定時間）に範囲の定数を置き、spinbox はそれを使う。動作は変わらない。
 - 文字の大きさの宣言を `BoundedSetting` にし、`FontSizeHelper` は宣言の範囲を読む。
 - 結果ドック用に `AnalysisSettings::analysisResultsFontSize`（既定10）を新しく置く。今の値を引き継ぐなら初回だけ旧キーから写す。
-- 詰将棋の判定時間は、問題一覧の1つにする。解く画面で変えた値を一覧に戻すか、解く画面では保存しないかを決める。`problemIndex` を消し、`lastFile` は以前の版の引き継ぎとして settings の関数にするか消す。
+- 詰将棋の判定時間は、問題一覧の1つにする。解く画面で変えた値を一覧に戻すか、解く画面では保存しないかを決める（→ 一覧に戻す。45dc7af4 で済）。`problemIndex` を消し、`lastFile` は以前の版の引き継ぎとして settings の関数にするか消す。
 - `CsaLogPanel` の設定は、変わったら知らせる（`FontSizeHelper` の変更の知らせを共有する）か、待機ダイアログの窓はドックのパネルを見せる形にする。
 - 3つのダイアログの大きさは `DialogFontScale::install` の `options.size` に渡す。
 
