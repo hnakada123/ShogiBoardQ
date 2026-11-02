@@ -67,6 +67,24 @@ async def test_convert_kifu_from_file_and_text(server_env, tmp_path):
         assert data["usi_moves"][:2] == ["7g7f", "3c3d"]
         assert data["text"].startswith("position startpos moves 7g7f 3c3d")
         assert data["truncated"] is False
+        assert data["is_hirate"] is True and "from the initial position" in text
+        assert data["has_branches"] is False and data["variations_dropped"] is False
+
+        # Only an output format that cannot hold the variations reports the main line alone.
+        for output_format, dropped in (("csa", True), ("usi", True), ("kif", False), ("jkf", False), ("usen", False)):
+            text, data, is_error = await _call(session, "convert_kifu", input_path=str(FIXTURES / "test_branch.kif"),
+                                               output_format=output_format)
+            assert not is_error, text
+            assert data["has_branches"] is True
+            assert data["variations_dropped"] is dropped, output_format
+            assert ("only the main line" in text) is dropped, text
+            assert ("変化：" in data["text"]) is (output_format == "kif")
+
+        handicap = "position sfen lnsgkgsn1/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1 moves 3c3d"
+        text, data, is_error = await _call(session, "convert_kifu", text=handicap, output_format="kif")
+        assert not is_error, text
+        assert data["is_hirate"] is False
+        assert data["initial_sfen"] in text and "initial position" not in text
 
         csa_text = "V2.2\nN+Sente\nN-Gote\nPI\n+\n+7776FU\n-3334FU\n%TORYO\n"
         out = tmp_path / "converted.kif"

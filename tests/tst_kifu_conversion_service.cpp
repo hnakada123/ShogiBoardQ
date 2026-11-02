@@ -8,6 +8,7 @@
 #include <QRegularExpression>
 
 #include "kifuconversionservice.h"
+#include "kifuexport.h"
 #include "sfenutils.h"
 #include "kifuloadparser.h"
 
@@ -631,6 +632,52 @@ private slots:
         QVERIFY2(result.ok, qPrintable(result.failure.message));
         QVERIFY(result.hasBranches);
         QVERIFY(!result.usiMoves.isEmpty());
+    }
+
+    void variationsAreDroppedOnlyByFormatsThatCannotHoldThem_data()
+    {
+        QTest::addColumn<Format>("output");
+        QTest::addColumn<bool>("writesVariations");
+        QTest::newRow("kif") << Format::Kif << true;
+        QTest::newRow("ki2") << Format::Ki2 << true;
+        QTest::newRow("csa") << Format::Csa << false;
+        QTest::newRow("jkf") << Format::Jkf << true;
+        QTest::newRow("usi") << Format::Usi << false;
+        QTest::newRow("usen") << Format::Usen << true;
+        QTest::newRow("sfen") << Format::Sfen << false;
+    }
+
+    /// 変化を書けるかの表（KifuExport::writesVariations）は、書き出しが実際に変化を書くかと合う。
+    /// MCP の convert_kifu の要約はこの結果（variations_dropped）で「本譜だけ」と出す
+    void variationsAreDroppedOnlyByFormatsThatCannotHoldThem()
+    {
+        QFETCH(Format, output);
+        QFETCH(bool, writesVariations);
+        QCOMPARE(KifuExport::writesVariations(output), writesVariations);
+
+        const auto result = convertFile(QStringLiteral("test_branch.kif"), output);
+        QVERIFY2(result.ok, qPrintable(result.failure.message));
+        QVERIFY(result.hasBranches);
+        QCOMPARE(result.variationsDropped, !writesVariations);
+        if (output == Format::Sfen) {
+            QCOMPARE(result.lines, result.sfens);  // 本譜の局面列
+            return;
+        }
+
+        KifuConversionService::Request reread;
+        reread.text = result.lines.join(QLatin1Char('\n'));
+        reread.inputFormat = output;
+        reread.outputFormat = Format::Kif;
+        const auto again = KifuConversionService::convert(reread);
+        QVERIFY2(again.ok, qPrintable(again.failure.message));
+        QCOMPARE(again.hasBranches, writesVariations);
+        QCOMPARE(again.usiMoves, result.usiMoves);
+        QVERIFY(!again.variationsDropped);
+
+        const auto plain = convertFile(QStringLiteral("test_basic.kif"), output);
+        QVERIFY2(plain.ok, qPrintable(plain.failure.message));
+        QVERIFY(!plain.hasBranches);
+        QVERIFY(!plain.variationsDropped);
     }
 
     /// 失敗は分類つきで返す（ファイルがない・入力の指定の誤り・読めない中身・不正な開始局面）
