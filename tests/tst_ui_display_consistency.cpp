@@ -15,12 +15,14 @@
 #include <QTextEdit>
 #include <QVBoxLayout>
 #include <memory>
+#include "appactivitystate.h"
 
 #include "branchtreeitemroles.h"
 #include "branchtreeview.h"
 #include "commentcoordinator.h"
 #include "commenteditorpanel.h"
 #include "evaluationchartwidget.h"
+#include "humanturnpolicy.h"
 #include "kifudocument.h"
 #include "kifubranchlistmodel.h"
 #include "kifubranchnode.h"
@@ -85,6 +87,8 @@ struct UiHarness {
     KifuNavigationState state{&tree};
     KifuNavigationController nav{&state};
     LiveGameSession live{&tree, &state};
+    AppActivityState activity;
+    HumanTurnPolicy policy{policyDeps(activity, live)};
     KifuRecordListModel recordModel{&tree};
     KifuBranchListModel branchModel{&tree};
     RecordPane recordPane{nullptr};
@@ -112,7 +116,17 @@ struct UiHarness {
                          &nav, &KifuNavigationController::selectBranchTreeNode);
         QObject::connect(&nav, &KifuNavigationController::navigationRejected,
                          display.get(), &KifuDisplayPresenter::refresh);
+        // 本体（MainWindowComposer::createMatchAndAnalysis）と同じく、移ってよい状態かを最初に確かめる
+        nav.addLeaveGuard(std::bind(&HumanTurnPolicy::canBrowseRecord, &policy));
         display->refresh();
+    }
+
+    static HumanTurnPolicy::Deps policyDeps(const AppActivityState& activity, const LiveGameSession& live)
+    {
+        HumanTurnPolicy::Deps deps;
+        deps.activity = &activity;
+        deps.liveSession = &live;
+        return deps;
     }
 
     /// 対局の1手（表記と局面だけ）
@@ -501,6 +515,68 @@ private slots:
         h.nav.onNextClicked();
         QCOMPARE(asked, 5);
         QCOMPARE(h.state.currentPly(), 4);
+    }
+
+    /// 対局中は、分岐候補欄の行（「本譜へ戻る」も）・評価値グラフ・定跡の「外れた手」・棋譜解析の結果から移らない。
+    /// 移ると対局の盤が別の局面に置き換わり、エンジンの次の手が反則になりうる（監査 2026-11-01 F9）
+    void liveGame_doesNotLeaveTheLiveMove()
+    {
+        UiHarness h;
+        // 2手目から対局を始めると、3手目に本譜と変化の候補が出る（待ったの後・棋譜の途中からの対局と同じ）
+        KifuBranchNode* start = TestTree::findByPlyOnMainLine(h.tree, 2);
+        h.nav.goToNode(start);
+        h.live.startFromNode(start);
+        QObject owner;
+        const ActivityLease lease = h.activity.begin(AppActivityState::Activity::DuringGame, &owner);
+        h.play(QStringLiteral("▲６六歩(67)"), QStringLiteral("6g6f"));
+        KifuBranchNode* live = h.live.liveNode();
+        QCOMPARE(h.state.currentNode(), live);
+        QVERIFY(h.branchModel.candidateCount() >= 2);
+        VERIFY_CONSISTENT(h);
+
+        // 移る操作の入口（KifuNavigationController の利用者の操作）は、どれも移ってよい状態かを確かめる
+        emit h.recordPane.branchRowActivated(0);
+        h.nav.selectBranchCandidateRow(h.branchModel.candidateCount());   // 本譜へ戻る
+        h.nav.selectPly(1);                                                // 評価値グラフ・定跡の「外れた手」
+        h.nav.selectPlyOnLine(h.scenario.branchLeafNode->nodeId(), 1);     // 棋譜解析の結果の行・グラフの解析の点
+        h.nav.onFirstClicked();
+        QCOMPARE(h.state.currentNode(), live);
+        VERIFY_CONSISTENT(h);
+
+        // 対局中は棋譜欄と同じく分岐候補欄のクリックも止める（UiStatePolicyManager が切り替える）
+        h.recordPane.setNavigationEnabled(false);
+        QSignalSpy activated(&h.recordPane, &RecordPane::branchRowActivated);
+        emit h.recordPane.branchView()->clicked(h.branchModel.index(0, 0));
+        QCOMPARE(activated.count(), 0);
+        QVERIFY(h.recordPane.branchView()->viewport()->testAttribute(Qt::WA_TransparentForMouseEvents));
+        h.recordPane.setNavigationEnabled(true);
+        h.live.discard();
+    }
+
+    /// 棋譜解析の結果の行・グラフの解析の点も、ほかの入口と同じく移る前の確認（書きかけのコメント）を通す。
+    /// 表示中の手と手順が変わらなければ聞かない（監査 2026-11-01 F11）
+    void selectPlyOnLine_asksBeforeLeaving()
+    {
+        UiHarness h;
+        h.nav.goToPly(3);
+        int asked = 0;
+        bool allow = false;
+        h.nav.addLeaveGuard([&asked, &allow]() { ++asked; return allow; });
+
+        const int leaf = h.scenario.branchLeafNode->nodeId();
+        h.nav.selectPlyOnLine(leaf, 4);
+        QCOMPARE(asked, 1);
+        QCOMPARE(h.state.currentPly(), 3);
+        QCOMPARE(h.state.currentLineIndex(), 0);
+
+        allow = true;
+        h.nav.selectPlyOnLine(leaf, 4);
+        QCOMPARE(asked, 2);
+        QCOMPARE(h.state.currentNode(), h.tree.nodeOnLine(leaf, 4));
+        // 同じ手・同じ手順を選び直しても聞かない
+        h.nav.selectPlyOnLine(leaf, 4);
+        QCOMPARE(asked, 2);
+        VERIFY_CONSISTENT(h);
     }
 
     /// 棋譜欄と評価値グラフの局面送りのボタンは同じ QAction に結び付き、

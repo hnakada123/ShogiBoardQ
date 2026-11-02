@@ -19,6 +19,7 @@ class KifuNavigationController;
 class KifuFileController;
 class KifuDocument;
 class CsaGameCoordinator;
+class HumanTurnPolicy;
 class AnalysisSession;
 
 /**
@@ -37,6 +38,7 @@ struct AutomationContext {
     const AnalysisSession* analysis = nullptr;                ///< 検討・詰み探索（エンジン名）
     const KifuNavigationState* navState = nullptr;            ///< 表示中の手数（分岐ツリーのカーソル）
     KifuNavigationController* navigationController = nullptr;
+    const HumanTurnPolicy* turnPolicy = nullptr;              ///< 棋譜を移ってよいか（kifu.goto。GUI の入口と同じ規則）
     KifuFileController* kifuFileController = nullptr;
     const CsaGameCoordinator* csaGame = nullptr;              ///< 通信対局の司令塔
 

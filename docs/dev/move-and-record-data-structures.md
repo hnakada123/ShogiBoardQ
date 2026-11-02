@@ -1088,7 +1088,7 @@ root → 1手目 → ... → 4手目 → 5手目(指し直し) → ... → 8手�
 以前の棋譜から再利用した手（8.2・8.4で既存ノードに合流した手）を取り消した場合は記録しないため、以前の本譜の並びは変わらない。
 棋譜欄は対局中、開始局面から最新手までを表示し、分岐のある手には「+」を付ける（`KifuRecordListModel` がノードの親の子の数から決める）。
 終局すると動作状態は待機中（`AppActivityState::Activity::Idle`）に戻り、盤上で指した手は `HumanTurnPolicy::isHumanTurnNow()`
-（→ `BranchTreeEditController::canRecordBoardMove()`。ライブ対局が終わっていれば受け付ける）で受け付け、
+（→ `HumanTurnPolicy::canEditRecord()`。ライブ対局が終わっていれば受け付ける）で受け付け、
 `BoardMoveController::playMove()` から `BranchTreeEditController::recordBoardMove()` が表示中の手の次の手（変化）として分岐ツリーに加える。
 続きを対局として指すときは、8.4 のように「現在の局面」から対局を開始する。
 

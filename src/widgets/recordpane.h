@@ -22,7 +22,7 @@ public:
         bool timeVisible = true;
         bool bookmarkVisible = true;
         bool commentVisible = true;
-        bool navigationEnabled = true;   ///< 行のクリックで局面を移れる（対局中は無効）
+        bool navigationEnabled = true;   ///< 棋譜欄・分岐候補欄の行のクリックで局面を移れる（対局中などは無効）
     };
 
     explicit RecordPane(QWidget* parent=nullptr);
@@ -31,8 +31,9 @@ public:
     QTableView* kifuView() const;
     QTableView* branchView() const;
 
-    /// 棋譜欄の行のクリックを有効・無効にする（局面送りのボタンは KifuNavigationController の QAction に従う）
-    void setKifuViewEnabled(bool on);
+    /// 棋譜欄と分岐候補欄の行のクリック（分岐候補欄の右クリックの編集も）を有効・無効にする
+    /// （局面送りのボタンは KifuNavigationController の QAction に従う）
+    void setNavigationEnabled(bool on);
     bool isNavigationDisabled() const { return !m_appearance.navigationEnabled; }
 
     /// 棋譜欄・分岐候補欄の表のスタイルシート（見出しの文字の大きさと選択の色）

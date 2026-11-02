@@ -239,7 +239,7 @@ ShogiBoardQ --automation [--automation-socket PATH]
 | `kifu.load` | `{path?, text?, discard_unsaved?}` | `{total_plies, start_sfen, kifu_file, warnings?}` | `-32602` 相対パス・`path` と `text` の一方だけを渡していない、`-32005` ファイルなし、`-32004` 未保存、`invalid_state` 対局・検討・解析・局面編集の間、`-32006`（`parse_error`）読込失敗（理由をメッセージに含め、エラーダイアログは出さない） |
 | `kifu.save` | `{path, overwrite?}` | `{path, format}` | `-32602` 相対パス・ディレクトリを指す（`OutputPath::check`）、`-32003`（`file_exists`）既存ファイル、`-32005` ディレクトリなし、`-32003`（`file_error`）書き込みの失敗・.kif・.ki2 に Shift_JIS で表せない文字（確認ダイアログは出さず、文字を示して `.kifu`・`.ki2u` を案内） |
 | `kifu.get` | `{format?, line?: "current"\|"main", from_ply?, max_moves?, max_chars?}` | `{format, total_plies, line, moves:[{ply,text,usi,time,comment}], text?, truncated}`（`moves` は表示中の手順。`line="main"` で本譜） | - |
-| `kifu.goto` | `{ply}` | `{ply, sfen}` | `-32602` 範囲外 |
+| `kifu.goto` | `{ply}` | `{ply, sfen}` | `-32602` 範囲外、`invalid_state` 対局・通信対局・棋譜解析・局面編集の間（GUI の棋譜欄と同じ規則 `HumanTurnPolicy::canBrowseRecord`） |
 | `action.list` | - | `{actions:[{name,text,enabled,checked,checkable}]}` | - |
 | `action.trigger` | `{name}` | `{name, triggered:true, queued:true, interaction}`（応答後に実行） | `-32001` 許可リスト外、`-32002` 無効状態、`-32005` 存在しない |
 | `board.click` | `{target?, file, rank, button?: "left"\|"right"}` | `{target, file, rank, queued:true, interaction}`（応答後に実行） | `-32602` 不正座標、`-32002` 操作不可、`-32005` 盤なし |

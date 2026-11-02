@@ -36,6 +36,7 @@ void MainWindowComposer::startAutomationServer(const QString& socketPath)
     ctx.analysis = m_c.analysisSession;
     ctx.navState = m_c.navState;
     ctx.navigationController = m_c.kifuNavController;
+    ctx.turnPolicy = m_c.humanTurnPolicy.get();
     ctx.kifuFileController = m_c.kifuFileController;
     ctx.csaGame = m_c.csaGame;
     // メニューウィンドウは MenuWindowController が起動時に作る

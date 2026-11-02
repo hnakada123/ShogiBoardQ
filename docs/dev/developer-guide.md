@@ -161,6 +161,7 @@
 | 2026-10-30 | 通信対局と局面の文字列の規則の置き場所を整えた（監査 2026-10-29 の M12〜M15）のに合わせて §1.5・§2.3・§5.7・§7.7・§8.2・§8.11・§10.2・§10.5・§12.2・§15.5・第18章を更新（Game_Summary は値 `CsaGameSummary`（持時間は `CsaGameSummary::Time`）と読み取り器 `CsaGameSummaryReader`、`csaclient_parser.cpp`・`_commands.cpp` は `csaclient.cpp` に戻した。ログインの規則は `CsaLogin`、結果の表示名は `CsaGameSession::resultText`・`causeText`。評価値の向きの直しは `UsiScore::blackView`・`viewedBy`。position コマンド・局面の文字列の語の分け方は `UsiPosition::split` だけで、`SfenUtils::normalizeStart`・`normalizePositionLikeSfen` は `UsiPosition::sfenOf` に、`UsiToSfenConverter::parseUsiPositionString` は消した） |
 | 2026-10-30 | 名残と小さな修正（監査 2026-10-29 の5章）に合わせて §1.5・§7.9・§8.2・§8.5・§12.5・§13.8・第18章を更新（ノードの行 `KifuBranchNode::record()` は読むだけにし、書き換えはツリー・組み立て・文書だけ。`KifuBranchTree::setComment`・`hasBranch`、`RecordLine::displayTexts`、`SfenReplay::applyLenient` の公開、`settingsservice.h`・`enginesettingsconstants.h` を消した。登録エンジンの保存形式のキーは `EngineProfileStore` の中、オプションの型の語は `EngineOption::kType*`、キーのエスケープは `SettingsCommon::escapeKey`） |
 | 2026-11-01 | ShogiHome との棋譜の相互読み込みの検証で直した点に合わせて `KifLineBuilder` の表を更新（持ち駒にない駒・駒のあるマスへの駒打ちは全形式で反則の記録として指し、`lastIrregularity()`・`warnIrregularity()` で警告する。CSA も `Lenient`） |
+| 2026-11-02 | 棋譜を移って・変えてよいかの規則を1つにした（監査 2026-11-01 T2）のに合わせて §3.4・§6.9・§13.1・§14.3 を更新（`HumanTurnPolicy::canBrowseRecord()`（`UiStatePolicyManager` の表の `WidgetNavigation` の行）・`canEditRecord()` を足し、`KifuNavigationController` の移る前の確認・`BranchTreeEditController::canEdit()`・定跡の展開・自動化 API の `kifu.goto` がそれを使う。検討中・詰み探索中も分岐の編集はできる。`PositionEditSession::allowsLeavingMove()` を削除し、`RecordPane::setKifuViewEnabled()` は分岐候補欄も止める `setNavigationEnabled()` にした。棋譜解析の結果の行・グラフの解析の点は確認を通す `selectPlyOnLine()`） |
 
 <!-- chapter-0-end -->
 
@@ -1425,10 +1426,21 @@ graph LR
 | 状態 | 盤の手の行き先（`HumanTurnPolicy::BoardInput`） |
 |------|------------|
 | `DuringPositionEdit` | `Edit`（駒の配置を変える） |
-| `Idle`（終局後を含む） | 対局の棋譜を書いていなければ `Variation`（棋譜の変化として記録。`BranchTreeEditController::canEdit()`） |
+| `Idle`（終局後を含む） | 棋譜を変えてよければ `Variation`（棋譜の変化として記録。`HumanTurnPolicy::canEditRecord()`） |
 | `DuringGame` | 手を受け付け（`MatchCoordinator::canAcceptMove()`）、手番の側を人間が指すとき（`isHumanSide()`）だけ `Game`。エンジン同士では不可 |
 | `DuringCsaGame` | 対局中（`GameState::InGame`）で自分が人間、自分の手番（`isHumanPlayer()` と `isMyTurn()`）のときだけ `CsaServer` |
 | 解析・検討・詰み探索・終了処理の後（`disable()`） | `None`（指せない） |
+
+**棋譜を移って・変えてよいか**（`HumanTurnPolicy::canBrowseRecord()`・`canEditRecord()`）
+
+棋譜を移る・変える入口（局面送りのボタン・棋譜欄・分岐候補欄・分岐ツリー・評価値グラフ・定跡ウィンドウの「定跡を外れた手」と「棋譜に展開...」・棋譜解析の結果の行・自動化 API の `kifu.goto`）は、すべてこの2つの関数で決める。
+
+| 状態 | 移ってよいか（`canBrowseRecord`） | 変えてよいか（`canEditRecord`。分岐の削除・本譜にする・並べ替え・定跡の展開） |
+|------|------|------|
+| `Idle`・`DuringConsideration`・`DuringTsumeSearch` | 可 | 可（対局の棋譜を書いていなければ。検討は表示中の局面が変われば送り直す） |
+| `DuringGame`・`DuringCsaGame`・`DuringAnalysis`・`DuringPositionEdit` | 不可 | 不可 |
+
+移ってよい状態は `UiStatePolicyManager` の表の `WidgetNavigation` の行（`tablePolicy()`）から求め、表と別に持たない。盤で指した手を記録するのは待機中だけ（上の表）。
 
 **2. エンジンの使用**
 
@@ -3258,7 +3270,7 @@ MatchCoordinator::gameInterrupted
 
 どちらの手番を人間が指すかは、対局者 `MatchPlayers`（`src/core/matchplayers.h`）の `isHuman(Turn)`・`isEngine(Turn)` で決まる。司令塔の `MatchCoordinator::isHumanSide(Turn)` は、対局を一度でも始めていればその対局の `players().isHuman(side)` を返す。
 
-盤で指した手の行き先の規則は `HumanTurnPolicy`（`src/ui/policy/humanturnpolicy.h`）の `boardInput()` 1か所にある。動作状態（`AppActivityState`）で、ローカル対局なら司令塔、通信対局なら `CsaGameCoordinator` に聞く。
+盤で指した手の行き先の規則は `HumanTurnPolicy`（`src/ui/policy/humanturnpolicy.h`）の `boardInput()` 1か所にある（棋譜を移って・変えてよいかの `canBrowseRecord()`・`canEditRecord()` も同じクラス）。動作状態（`AppActivityState`）で、ローカル対局なら司令塔、通信対局なら `CsaGameCoordinator` に聞く。
 
 ```cpp
 HumanTurnPolicy::BoardInput HumanTurnPolicy::boardInput() const
@@ -3268,7 +3280,7 @@ HumanTurnPolicy::BoardInput HumanTurnPolicy::boardInput() const
     case AppActivityState::Activity::DuringPositionEdit:
         return BoardInput::Edit;
     case AppActivityState::Activity::Idle:
-        return m_deps.branchEdit && m_deps.branchEdit->canEdit() ? BoardInput::Variation : BoardInput::None;
+        return canEditRecord() ? BoardInput::Variation : BoardInput::None;
     case AppActivityState::Activity::DuringGame: {
         const MatchCoordinator* match = m_deps.match;
         const bool humanTurn = match && m_deps.board && match->canAcceptMove()
@@ -7187,7 +7199,7 @@ ShogiClock::setCurrentPlayer(gameBoard->board()->currentPlayer())
 | オブジェクト | 設定方法 | 役割 |
 |-------------|---------|------|
 | `KifuNavigationState` | コンストラクタ | 表示中の手・選んだ手順の管理（非所有）。分岐ツリー（`KifuBranchTree`）は `state()->tree()` から辿る |
-| 移動前の確認 | `addLeaveGuard(std::function<bool()>)` | 利用者の操作で別の手へ移る前の確認（足した順に聞き、1つでも false なら移らない）。合成ルートが `PositionEditSession::allowsLeavingMove()`（局面編集中でない）と `CommentCoordinator::confirmLeaveEditingMove()`（未更新のコメントを更新するか捨てるか尋ねる）を足す |
+| 移動前の確認 | `addLeaveGuard(std::function<bool()>)` | 利用者の操作で別の手へ移る前の確認（足した順に聞き、1つでも false なら移らない）。合成ルートが `HumanTurnPolicy::canBrowseRecord()`（対局中・棋譜解析中・局面編集中でない）と `CommentCoordinator::confirmLeaveEditingMove()`（未更新のコメントを更新するか捨てるか尋ねる）をこの順に足す（移れないのにコメントを聞かない） |
 
 #### 局面送りの6つの操作（QAction）
 
@@ -7212,7 +7224,7 @@ ShogiClock::setCurrentPlayer(gameBoard->board()->currentPlayer())
 
 #### 確認を通さない移動と、利用者の操作
 
-プログラムからの移動は確認を通さない。利用者の操作は、移る前に `confirmLeave()` を通す。確認でやめたときは `navigationRejected()` を出す（クリックした行の強調を表示中の手に戻すため。合成ルートが `KifuDisplayPresenter::refresh` につなぐ）。
+プログラムからの移動（対局の着手・棋譜解析の進み具合・読み込み）は確認を通さない。利用者の操作は、どの入口からでも移る前に `confirmLeave()` を通す。確認でやめたときは `navigationRejected()` を出す（クリックした行の強調を表示中の手に戻すため。合成ルートが `KifuDisplayPresenter::refresh` につなぐ）。
 
 | 種類 | メソッド | 動作 |
 |------|---------|------|
@@ -7224,7 +7236,8 @@ ShogiClock::setCurrentPlayer(gameBoard->board()->currentPlayer())
 | 操作 | `selectRecordRow(int row)` | 棋譜欄の行を選んだ |
 | 操作 | `selectBranchCandidateRow(int row)` | 分岐候補欄の行を選んだ（候補の後ろの行は「本譜へ戻る」） |
 | 操作 | `selectBranchTreeNode(int nodeId)` | 分岐ツリーの手を選んだ（`BranchTreeView::nodeActivated` から） |
-| 操作 | `selectPly(int ply)` | 評価値グラフの手数を選んだ |
+| 操作 | `selectPly(int ply)` | 評価値グラフの手数・定跡ウィンドウの「定跡を外れた手」を選んだ |
+| 操作 | `selectPlyOnLine(int lineEndNodeId, int ply)` | 棋譜解析の結果の行・評価値グラフの解析の点を選んだ（`goToPlyOnLine`。表示中の手と手順が変わらなければ聞かない） |
 
 #### selectBranchTreeNode() — 分岐ツリークリック処理
 
@@ -7635,7 +7648,7 @@ MainWindow のメンバは `ui`・`m_composer`・`m_skipCloseConfirmation`（自
 
 - **依存はポインタで渡す**: 部品は `Deps` 構造体で、ほかの部品のポインタを受け取る。たとえば `GameSession::Deps` は `activity`・`match`・`consecutive`・`reset`・`navState`・`liveSession` などをポインタで持つ。生成前の部品を指すための `std::function<X*()>` のゲッターは使わない。
 - **状態は AppActivityState を指す**: 動作状態を使う部品は `&m_activity`（`AppActivityState*`）を受け取り（`GameSession`・`AutomationContext`・`MatchCoordinator`・`AnalysisSession`・`UiStatePolicyManager`・`HumanTurnPolicy`・`BoardMoveController`・`CsaGameSession` など）、使うときに読む。棋譜に付く状態（対局者・上書き保存先・対局情報）を使う部品は棋譜の文書 `KifuDocument*` を受け取る（`GameSession`・`KifuFileController`・`PlayerInfoPresenter`・`PvClickController`・`KifuAnalysisController`・`MatchCoordinator`・`AutomationContext` など。読むだけの部品は `const`）。
-- **作った後に渡すもの**: 司令塔（`MatchCoordinator`）は棋譜の受け手の `GameSession` より先に作るので、受け手だけ `createSessions()` で `setRecordSink()` によって渡す。ほかに、`KifuNavigationController::addLeaveGuard()`（局面編集中でない `PositionEditSession::allowsLeavingMove()` と、未更新のコメントの確認 `CommentCoordinator::confirmLeaveEditingMove()`）・`GameBoard::setPromotionChooser()` が、できあがった部品の関数を受け取る。合成ルートは判断を持たず、部品の関数を結ぶだけにする。盤の操作の行き先（`BoardInteractionController::setInputRoute()`）は、`BoardMoveController` が自分のコンストラクタで自分を渡す。
+- **作った後に渡すもの**: 司令塔（`MatchCoordinator`）は棋譜の受け手の `GameSession` より先に作るので、受け手だけ `createSessions()` で `setRecordSink()` によって渡す。ほかに、`KifuNavigationController::addLeaveGuard()`（移ってよい状態か `HumanTurnPolicy::canBrowseRecord()` と、未更新のコメントの確認 `CommentCoordinator::confirmLeaveEditingMove()`）・`GameBoard::setPromotionChooser()` が、できあがった部品の関数を受け取る。合成ルートは判断を持たず、部品の関数を結ぶだけにする。盤の操作の行き先（`BoardInteractionController::setInputRoute()`）は、`BoardMoveController` が自分のコンストラクタで自分を渡す。
 - **`std::function` はフックだけ**: 上位へ問い合わせ・操作を委ねるフック（`KifuDocument::Hooks::commitPendingEdits`、`UiStatePolicyManager::Deps` の `localGameHasHuman`・`canResumeGame`、`JosekiWindowController::Deps::isHumanTurnNow` など）と、層の境界をまたぐ関数（`AutomationContext` のお気に入りの取得・設定）にだけ使う。司令塔（`MatchCoordinator`）はフックを持たず、シグナルと棋譜の受け手（`MatchRecordSink`）で上位に知らせる（[4.3節](#43-シグナルと-stdfunction-コールバック)）。
 
 二重ポインタ（`T**`）で相手の変数に書き込む形は使わない。結果を使う部品があるダイアログ（CSA 通信対局の接続ダイアログ、局面集ビューア）は、その部品（`CsaGameSession`・`KifuFileController`）が開いて持つ。

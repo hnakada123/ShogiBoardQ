@@ -190,6 +190,17 @@ void KifuNavigationController::selectPly(int ply)
     goToPly(ply);
 }
 
+void KifuNavigationController::selectPlyOnLine(int lineEndNodeId, int ply)
+{
+    const KifuBranchTree* tree = m_state->tree();
+    const KifuBranchNode* node = tree->nodeOnLine(lineEndNodeId, ply);
+    if (!node) return;
+    // 表示中の手で、手順もその手順なら何も変わらない
+    if (node == m_state->currentNode() && m_state->selectedPath().contains(tree->nodeAt(lineEndNodeId))) return;
+    if (!confirmLeave()) return;
+    goToPlyOnLine(lineEndNodeId, ply);
+}
+
 void KifuNavigationController::onFirstClicked() { if (confirmLeave()) goToFirst(); }
 void KifuNavigationController::onBack10Clicked() { if (confirmLeave()) goBack(10); }
 void KifuNavigationController::onPrevClicked() { if (confirmLeave()) goBack(1); }

@@ -132,7 +132,8 @@ CSA通信対局のリースは、ローカル対局の `MatchCoordinator` と同
 - 表のほかに条件が付く項目がある（`effectivePolicy()`）。待った・投了・入玉宣言は、ローカル対局では人間が参加しているときだけ有効
   （`Deps::localGameHasHuman`。エンジン同士の対局では無効。CSA通信対局の投了・入玉宣言はこの条件を見ない）。
   再開は中断した対局を再開できるときだけ有効（`Deps::canResumeGame`。合成ルートが `MatchCoordinator::canResumeInterruptedGame()` を渡す。中断した対局の状態は司令塔の `InterruptedGameState` だけが持つ）
-- 「ナビゲーションボタン」と「棋譜欄クリック」は同じ UI 要素（`WidgetNavigation`）で、局面送りの QAction を `KifuNavigationController::setStepActionsEnabled()`（`Deps::navigation`）、棋譜欄の行のクリックを `RecordPane::setKifuViewEnabled()`（`Deps::recordPane`）で切り替える。
+- 棋譜を移る・変える操作は1つの UI 要素（`WidgetNavigation`）で、局面送りの QAction を `KifuNavigationController::setStepActionsEnabled()`（`Deps::navigation`）、棋譜欄と分岐候補欄の行のクリック（分岐候補欄の右クリックの編集も）を `RecordPane::setNavigationEnabled()`（`Deps::recordPane`）、評価値グラフを `EvaluationChartWidget::setNavigationEnabled()`（`Deps::evalChart`）、定跡ウィンドウの「定跡を外れた手」と「棋譜に展開...」を `JosekiWindow::setRecordOperationsEnabled()`（`Deps::joseki`）で切り替える。
+  部品を止めるだけでは表に載っていない入口（自動化 API など）を止められないので、`HumanTurnPolicy::canBrowseRecord()`・`canEditRecord()` が同じ行（`tablePolicy()`）から求め、`KifuNavigationController` の移る前の確認・分岐の編集・定跡の展開・`kifu.goto` もそれを見る
   棋譜欄と評価値グラフのボタンは `KifuNavigationController::bindButtons()` で同じ QAction に結ばれ、有効・無効も QAction に従う
 - 「分岐ツリークリック」は `BranchTreeView::setClickEnabled()`（`Deps::branchTree`）で制御（クリックとキー操作での移動）
 - 盤面クリック（指し手入力）は表に含めない。駒をつまめるかは盤で指した手の行き先（`BoardInputRoute`。主画面は `BoardMoveController`）が決める（局面編集中は常に可、それ以外は `HumanTurnPolicy::isHumanTurnNow()`。解析中・詰み探索中・検討中は受け付けない）

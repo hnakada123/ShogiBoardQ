@@ -2,7 +2,7 @@
 #define BRANCHTREEEDITCONTROLLER_H
 
 /// @file branchtreeeditcontroller.h
-/// @brief 分岐ツリーの右クリックメニューから分岐を編集するコントローラの定義
+/// @brief 分岐の編集（右クリックのメニュー）・盤の手の記録・定跡の展開で棋譜（分岐ツリー）を変えるコントローラの定義
 
 #include <QObject>
 #include <QString>
@@ -14,7 +14,7 @@ class KifuBranchNode;
 class KifuBranchTree;
 class KifuNavigationController;
 class KifuNavigationState;
-class LiveGameSession;
+class HumanTurnPolicy;
 class QAction;
 class QMenu;
 class QPoint;
@@ -22,11 +22,15 @@ class QWidget;
 class GameBoard;
 
 /**
- * @brief 分岐の編集（本譜にする・並べ替え・削除）を担当するコントローラ
+ * @brief 棋譜（分岐ツリー）を利用者の操作で変えるコントローラ
  *
- * BranchTreeView の右クリックメニューに操作を追加し、選ばれた操作を
- * KifuBranchTree に適用する。編集後は現在の手を表示し直し、棋譜を未保存にする。
- * 対局中（ライブセッション中）は編集しない。
+ * - 分岐の編集（本譜にする・並べ替え・削除）: 分岐ツリーと分岐候補欄の右クリックのメニューに操作を足し、
+ *   選ばれた操作を KifuBranchTree に適用する
+ * - 盤の手の記録: 待機中に盤で指した手を、表示中の手の次の手（変化）として足す（recordMove）
+ * - 定跡の展開: 定跡の手順をまとめて変化として足す（addVariationLines）
+ *
+ * 変えてよいかは HumanTurnPolicy::canEditRecord だけで決める（対局中・棋譜解析中・局面編集中は変えない。
+ * 検討中・詰み探索中は変えてよい）。未保存の印は棋譜の文書がツリーの変更から決める。
  */
 class BranchTreeEditController : public QObject
 {
@@ -37,7 +41,7 @@ public:
         KifuBranchTree* tree = nullptr;                  ///< 棋譜の正本（必須）
         KifuNavigationState* navState = nullptr;         ///< 表示中の手（必須）
         KifuNavigationController* navController = nullptr; ///< 移る前の確認（必須）
-        LiveGameSession* liveSession = nullptr;          ///< 対局中は編集しない（必須）
+        const HumanTurnPolicy* policy = nullptr;         ///< 棋譜を変えてよいか（必須）
         QWidget* parentWidget = nullptr;                 ///< 確認ダイアログの親
     };
 
@@ -51,7 +55,7 @@ public:
 
     explicit BranchTreeEditController(const Deps& deps, QObject* parent = nullptr);
 
-    /// 分岐の編集・盤の手の記録・定跡の展開ができるか（対局の棋譜を書いていない。棋譜が空でも開始局面から記録する）
+    /// 分岐の編集・盤の手の記録・定跡の展開ができるか（HumanTurnPolicy::canEditRecord。棋譜が空でも開始局面から記録する）
     bool canEdit() const;
 
     /// 指定ノードに操作を適用する（右クリックメニュー・テストから使う）。
@@ -75,7 +79,7 @@ public:
      * @param lines parent の局面から始まる手順（先の手順ほど前の変化になる）
      * @return 新しく足した手の数（同じ手が既にあればその手をたどり、足さない）
      *
-     * 表示中の手は変えない。対局中は足さない。
+     * 表示中の手は変えない。棋譜を変えられないとき（canEdit が false）は足さない。
      */
     int addVariationLines(KifuBranchNode* parent, const QList<RecordLine>& lines);
 

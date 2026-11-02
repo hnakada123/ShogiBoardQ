@@ -13,6 +13,7 @@
 #include <QTimer>
 
 #include "analysissettings.h"
+#include "appactivitystate.h"
 #include "branchtreeeditcontroller.h"
 #include "kiflinebuilder.h"
 #include "shogiposition.h"
@@ -30,6 +31,7 @@
 #include "livegamesession.h"
 #include "shogiboard.h"
 #include "gameboard.h"
+#include "humanturnpolicy.h"
 #include "shogimove.h"
 
 namespace {
@@ -67,12 +69,14 @@ struct Fixture {
     }
 };
 
-/// 分岐の編集に要る部品一式（表示中の手・移動・ライブ対局・未保存の印）
+/// 分岐の編集に要る部品一式（表示中の手・移動・ライブ対局・動作状態と、変えてよいかの判定・未保存の印）
 struct EditHarness {
     KifuNavigationState state;
     KifuNavigationController nav;
     LiveGameSession live;
     KifuDocument document;   ///< 未保存かどうか（ツリーの変更で決まる）
+    AppActivityState activity;
+    HumanTurnPolicy policy;
     BranchTreeEditController controller;
 
     explicit EditHarness(KifuBranchTree& tree)
@@ -80,18 +84,27 @@ struct EditHarness {
         , nav(&state)
         , live(&tree, &state)
         , document(&tree)
-        , controller(deps(tree, state, nav, live))
+        , policy(policyDeps(activity, live))
+        , controller(deps(tree, state, nav, policy))
     {
     }
 
+    static HumanTurnPolicy::Deps policyDeps(const AppActivityState& activity, const LiveGameSession& live)
+    {
+        HumanTurnPolicy::Deps d;
+        d.activity = &activity;
+        d.liveSession = &live;
+        return d;
+    }
+
     static BranchTreeEditController::Deps deps(KifuBranchTree& tree, KifuNavigationState& state,
-                                               KifuNavigationController& nav, LiveGameSession& live)
+                                               KifuNavigationController& nav, const HumanTurnPolicy& policy)
     {
         BranchTreeEditController::Deps d;
         d.tree = &tree;
         d.navState = &state;
         d.navController = &nav;
-        d.liveSession = &live;
+        d.policy = &policy;
         return d;
     }
 };
@@ -256,7 +269,43 @@ private slots:
         QVERIFY(h.controller.canEdit());
     }
 
-    // 対局していないときの盤上の手：棋譜が空なら開始局面から始め、同じ手は既存の手へ移動する
+    /// 棋譜を変えてよいかは動作状態で決まる。検討中・詰み探索中は変えてよく、棋譜解析中・局面編集中・対局中は
+    /// どの入口からも変えない（監査 2026-11-01 F10。分岐候補欄の右クリックも同じ canEdit を見る）
+    void controller_editableOnlyWhileBrowsing_data()
+    {
+        QTest::addColumn<int>("activity");
+        QTest::addColumn<bool>("editable");
+        using A = AppActivityState::Activity;
+        QTest::newRow("idle") << int(A::Idle) << true;
+        QTest::newRow("consideration") << int(A::DuringConsideration) << true;
+        QTest::newRow("tsume-search") << int(A::DuringTsumeSearch) << true;
+        QTest::newRow("kifu-analysis") << int(A::DuringAnalysis) << false;
+        QTest::newRow("position-edit") << int(A::DuringPositionEdit) << false;
+        QTest::newRow("game") << int(A::DuringGame) << false;
+        QTest::newRow("csa-game") << int(A::DuringCsaGame) << false;
+    }
+
+    void controller_editableOnlyWhileBrowsing()
+    {
+        QFETCH(int, activity);
+        QFETCH(bool, editable);
+        Fixture f;
+        EditHarness h(f.tree);
+        QObject owner;
+        ActivityLease lease;
+        if (activity != int(AppActivityState::Activity::Idle))
+            lease = h.activity.begin(static_cast<AppActivityState::Activity>(activity), &owner);
+
+        QCOMPARE(h.controller.canEdit(), editable);
+        QCOMPARE(h.controller.isApplicable(BranchTreeEditController::Operation::DeleteFromHere, f.b2), editable);
+        QCOMPARE(h.controller.apply(BranchTreeEditController::Operation::DeleteFromHere, f.b2, false), editable);
+        // 盤で指した手を記録するのは待機中だけ（検討中・詰み探索中は記録しない）
+        QCOMPARE(h.policy.boardInput() == HumanTurnPolicy::BoardInput::Variation,
+                 activity == int(AppActivityState::Activity::Idle));
+        // 棋譜を移れるのも同じ状態（対局中・棋譜解析中・局面編集中は移らない）
+        QCOMPARE(h.policy.canBrowseRecord(), editable);
+    }
+
     // 対局していないときの盤上の手：表示中の手の次の手として記録し、同じ手は既存の手へ移動する
     void controller_recordsBoardMoveAsVariation()
     {

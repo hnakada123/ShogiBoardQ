@@ -10,6 +10,7 @@
 #include "kifubranchtree.h"
 #include "kifudocument.h"
 #include "kifuexport.h"
+#include "humanturnpolicy.h"
 #include "kifufilecontroller.h"
 #include "kifunavigationcontroller.h"
 #include "kifusavefile.h"
@@ -200,6 +201,12 @@ void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, 
         if (!nav || !context.branchTree || context.branchTree->isEmpty()) {
             throw AutomationError(ErrorKind::InvalidState, QStringLiteral("No record is loaded"),
                                   QStringLiteral("Load a record with kifu.load first"));
+        }
+        // 棋譜欄・分岐候補欄などの GUI の入口と同じ規則（対局の盤・解析・編集中の局面を表示中の手から外さない）
+        if (context.turnPolicy && !context.turnPolicy->canBrowseRecord()) {
+            throw AutomationError(ErrorKind::InvalidState,
+                                  QStringLiteral("The record cannot be navigated during a game, kifu analysis or position editing"),
+                                  QStringLiteral("Wait until app.state reports ui_state idle, consideration or tsume_search"));
         }
         nav->goToPly(ply);
         QJsonObject result;

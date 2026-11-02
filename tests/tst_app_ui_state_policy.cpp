@@ -9,7 +9,12 @@
 #include <QMainWindow>
 #include "ui_mainwindow.h"
 
+#include <QPushButton>
+#include <QTableView>
 #include "appactivitystate.h"
+#include "josekibooksession.h"
+#include "josekiwindow.h"
+#include "recordpane.h"
 #include "uistatepolicymanager.h"
 
 class TestAppUiStatePolicy : public QObject
@@ -573,6 +578,35 @@ private slots:
         verifyDisabled(p, S::DuringAnalysis, E::WidgetNavigation, "WidgetNavigation");
         verifyDisabled(p, S::DuringCsaGame, E::WidgetNavigation, "WidgetNavigation");
         verifyDisabled(p, S::DuringPositionEdit, E::WidgetNavigation, "WidgetNavigation");
+    }
+
+    /// WidgetNavigation の行は、表に載っていなかった入口（分岐候補欄・定跡ウィンドウの「定跡を外れた手」と
+    /// 「棋譜に展開...」）も切り替える（監査 2026-11-01 F9・F10）
+    void widgetNavigation_coversBranchCandidatesAndJosekiButtons()
+    {
+        RecordPane pane;
+        JosekiBookSession session;
+        JosekiWindow joseki(&session);
+        UiStatePolicyManager::Deps deps;
+        deps.recordPane = &pane;
+        deps.joseki = &joseki;
+        Policy p(deps);
+        auto* deviation = joseki.findChild<QPushButton*>(QStringLiteral("josekiDeviation"));
+        QVERIFY(deviation);
+        joseki.setBookDeviation(5, QStringLiteral("▲５六歩(57)"));
+        QVERIFY(deviation->isEnabled());
+
+        for (const S state : {S::DuringGame, S::DuringCsaGame, S::DuringAnalysis, S::DuringPositionEdit}) {
+            p.set(state);
+            QVERIFY(pane.isNavigationDisabled());
+            QVERIFY(pane.branchView()->viewport()->testAttribute(Qt::WA_TransparentForMouseEvents));
+            QVERIFY(!deviation->isEnabled());
+        }
+        // 検討中は移れる（分岐の編集もできる）
+        p.set(S::DuringConsideration);
+        QVERIFY(!pane.isNavigationDisabled());
+        QVERIFY(!pane.branchView()->viewport()->testAttribute(Qt::WA_TransparentForMouseEvents));
+        QVERIFY(deviation->isEnabled());
     }
 
     /// WidgetBranchTree: Idle, TsumeSearch, Consideration で有効
