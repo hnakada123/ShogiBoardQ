@@ -97,7 +97,7 @@ KifuAnalysisDialog::KifuAnalysisDialog(QWidget *parent)
     fontOptions.decrease = ui->btnFontDecrease;
     fontOptions.increase = ui->btnFontIncrease;
     fontOptions.size = &AnalysisSettings::kifuAnalysisDialogSize;
-    DialogFontScale::install(this, AnalysisSettings::kifuAnalysisFontSize, fontOptions);
+    DialogFontScale::install(this, AnalysisSettings::kifuAnalysisDialogFontSize, fontOptions);
 }
 
 KifuAnalysisDialog::~KifuAnalysisDialog() = default;

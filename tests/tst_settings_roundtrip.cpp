@@ -419,8 +419,11 @@ private slots:
         AnalysisSettings::thinkingFontSize.set(13);
         QCOMPARE(AnalysisSettings::thinkingFontSize(), 13);
 
-        AnalysisSettings::kifuAnalysisFontSize.set(14);
-        QCOMPARE(AnalysisSettings::kifuAnalysisFontSize(), 14);
+        AnalysisSettings::kifuAnalysisResultsFontSize.set(14);
+        QCOMPARE(AnalysisSettings::kifuAnalysisResultsFontSize(), 14);
+        AnalysisSettings::kifuAnalysisDialogFontSize.set(12);
+        QCOMPARE(AnalysisSettings::kifuAnalysisDialogFontSize(), 12);
+        QCOMPARE(AnalysisSettings::kifuAnalysisResultsFontSize(), 14);
 
         AnalysisSettings::considerationFontSize.set(15);
         QCOMPARE(AnalysisSettings::considerationFontSize(), 15);

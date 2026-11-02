@@ -29,9 +29,9 @@ constexpr int kSizedColumns = KifuAnalysisListModel::PvColumn;
 AnalysisResultsPanel::AnalysisResultsPanel(QWidget* parent)
     : QWidget(parent)
     , m_reflowTimer(new QTimer(this))
-    // 未保存なら 10pt から始める
-    , m_fontSize({AnalysisSettings::kifuAnalysisFontSize.valueOr(10), 8, 24, 1,
-                  [](int size) { AnalysisSettings::kifuAnalysisFontSize.set(size); }})
+    // 未保存なら 10pt から始める（棋譜解析ダイアログの文字の大きさとは別に保存する）
+    , m_fontSize({AnalysisSettings::kifuAnalysisResultsFontSize(), 8, 24, 1,
+                  [](int size) { AnalysisSettings::kifuAnalysisResultsFontSize.set(size); }})
 {
     connect(&m_fontSize, &FontSizeHelper::fontSizeChanged, this, &AnalysisResultsPanel::applyFontSize);
     m_reflowTimer->setSingleShot(true);
