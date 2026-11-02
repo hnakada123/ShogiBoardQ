@@ -163,6 +163,7 @@
 | 2026-11-01 | ShogiHome との棋譜の相互読み込みの検証で直した点に合わせて `KifLineBuilder` の表を更新（持ち駒にない駒・駒のあるマスへの駒打ちは全形式で反則の記録として指し、`lastIrregularity()`・`warnIrregularity()` で警告する。CSA も `Lenient`） |
 | 2026-11-02 | 棋譜を移って・変えてよいかの規則を1つにした（監査 2026-11-01 T2）のに合わせて §3.4・§6.9・§13.1・§14.3 を更新（`HumanTurnPolicy::canBrowseRecord()`（`UiStatePolicyManager` の表の `WidgetNavigation` の行）・`canEditRecord()` を足し、`KifuNavigationController` の移る前の確認・`BranchTreeEditController::canEdit()`・定跡の展開・自動化 API の `kifu.goto` がそれを使う。検討中・詰み探索中も分岐の編集はできる。`PositionEditSession::allowsLeavingMove()` を削除し、`RecordPane::setKifuViewEnabled()` は分岐候補欄も止める `setNavigationEnabled()` にした。棋譜解析の結果の行・グラフの解析の点は確認を通す `selectPlyOnLine()`） |
 | 2026-11-02 | 定跡手のダイアログの指し手の一覧を画面の表記にした（監査 2026-11-01 F22）のに合わせて第11章・クラスの一覧を更新（`JosekiMoveInputWidget` は `KifuPresentation::move(Position, UsiMove, Options)` で表記を作り、英語表記なら英語の手を並べる。日本語表記の一覧に「不成」は付けない（定跡ウィンドウの表・棋譜欄と同じ）） |
+| 2026-11-02 | 棋譜解析ダイアログと結果ドックの文字の大きさの設定を分けた（監査 2026-11-01 F23）のに合わせて §9.8 を更新（結果ドックは `kifuAnalysisResultsFontSize`（以前の版と同じ `KifuAnalysis/fontSize` で、保存してある値を引き継ぐ）、ダイアログは新しい `kifuAnalysisDialogFontSize`（`KifuAnalysis/dialogFontSize`）） |
 
 <!-- chapter-0-end -->
 
@@ -5407,7 +5408,7 @@ QDockWidget
 
 #### フォントサイズの永続化
 
-A-/A+ ボタンで8pt〜24ptの範囲でフォントサイズを調整でき、変更のたびに `AnalysisSettings::kifuAnalysisFontSize`（`KifuAnalysis/fontSize`）へ保存される。大きさは `FontSizeHelper` が持ち、ボタンは `FontSizeControl` で結ぶ。未保存のときは 10pt から始め、範囲外の保存値は 8〜24 に収める。列幅は、利用者がドラッグした列だけを `ColumnWidthMemory` が `AnalysisSettings::kifuAnalysisColumnWidths()`（`ListSetting<int>`。以前の版の1つの値の保存は初めて読むときに配列に移す）に保存し、表を作るときに戻す（0 の列は内容に合わせる）。ドックの位置・大きさ・浮動・表示は、ほかのドックと同じく `DockRegistry::saveStates()` が `DockSettings::setDockState()` で保存し（グループは `KifuAnalysisResultsDock`）、起動時に `DockRegistry::createAll()` が `DockSettings::dockState()` から戻す。
+A-/A+ ボタンで8pt〜24ptの範囲でフォントサイズを調整でき、変更のたびに `AnalysisSettings::kifuAnalysisResultsFontSize`（`KifuAnalysis/fontSize`）へ保存される。棋譜解析ダイアログの文字の大きさは別の `kifuAnalysisDialogFontSize`（`KifuAnalysis/dialogFontSize`）で、片方の A-/A+ はもう片方に移らない（以前の版は1つのキーを共有していたので、保存してある値は結果ドックが引き継ぐ）。大きさは `FontSizeHelper` が持ち、ボタンは `FontSizeControl` で結ぶ。未保存のときは 10pt から始め、範囲外の保存値は 8〜24 に収める。列幅は、利用者がドラッグした列だけを `ColumnWidthMemory` が `AnalysisSettings::kifuAnalysisColumnWidths()`（`ListSetting<int>`。以前の版の1つの値の保存は初めて読むときに配列に移す）に保存し、表を作るときに戻す（0 の列は内容に合わせる）。ドックの位置・大きさ・浮動・表示は、ほかのドックと同じく `DockRegistry::saveStates()` が `DockSettings::setDockState()` で保存し（グループは `KifuAnalysisResultsDock`）、起動時に `DockRegistry::createAll()` が `DockSettings::dockState()` から戻す。
 
 ### 9.9 KifuAnalysisListModel — 解析結果テーブルモデル
 

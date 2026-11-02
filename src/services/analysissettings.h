@@ -140,8 +140,11 @@ inline const Setting<bool> ponderArrowsVisible{"ThinkingView/ponderArrowsVisible
 
 // --- 棋譜解析 ---
 
-/// 棋譜解析ダイアログのフォントサイズ（0 はアプリケーションの文字サイズを使用）
-inline const Setting<int> kifuAnalysisFontSize{"KifuAnalysis/fontSize", 0};
+/// 棋譜解析ダイアログのフォントサイズ（0 は未保存。ダイアログの元の大きさから始める）
+inline const Setting<int> kifuAnalysisDialogFontSize{"KifuAnalysis/dialogFontSize", 0};
+/// 棋譜解析の結果ドックのフォントサイズ（デフォルト: 10）。以前の版はダイアログと結果ドックがこのキーを共有して
+/// いたので、保存してある値は結果ドックが引き継ぐ（ダイアログは kifuAnalysisDialogFontSize から始め直す）
+inline const Setting<int> kifuAnalysisResultsFontSize{"KifuAnalysis/fontSize", 10};
 
 /// 解析結果の表の読み筋より前の列の幅（列ごと。0 は内容に合わせる）。
 /// 以前の版が1つの値（QVariantList）で保存していれば、初めて読むときに配列に移す

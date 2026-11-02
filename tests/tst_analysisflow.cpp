@@ -7,6 +7,7 @@
 #include <QTest>
 #include <QComboBox>
 #include <QLabel>
+#include <QPushButton>
 #include <QRadioButton>
 #include <QSpinBox>
 #include <QTemporaryDir>
@@ -20,6 +21,9 @@
 
 #include "analysisresultspanel.h"
 #include "analysissession.h"
+#include "analysissettings.h"
+#include "dialogfontscale.h"
+#include "fontsizehelper.h"
 #include "appactivitystate.h"
 #include "considerationpanel.h"
 #include "considerationuicontroller.h"
@@ -514,6 +518,42 @@ private slots:
         QVERIFY(QTest::qWaitForWindowExposed(&restored));
         QTRY_COMPARE(restored.view()->columnWidth(KifuAnalysisListModel::CandidateColumn), 77);
         saved.set({});
+    }
+
+    /// 棋譜解析ダイアログと結果ドックの文字の大きさは別々に保存する（片方の A+ がもう片方を変えない）。
+    /// 以前の版が共有していたキー（KifuAnalysis/fontSize）の値は結果ドックが引き継ぐ
+    void dialogAndResultsKeepSeparateFontSizes()
+    {
+        QCOMPARE(QByteArray(AnalysisSettings::kifuAnalysisResultsFontSize.key()), QByteArray("KifuAnalysis/fontSize"));
+        AnalysisSettings::kifuAnalysisDialogFontSize.remove();
+        AnalysisSettings::kifuAnalysisResultsFontSize.set(13);  // 以前の版が保存した値
+        {
+            AnalysisResultsPanel panel;
+            auto* increase = panel.findChild<QPushButton*>(QStringLiteral("analysisFontIncrease"));
+            QVERIFY(increase);
+            increase->click();
+            QCOMPARE(AnalysisSettings::kifuAnalysisResultsFontSize(), 14);
+            QVERIFY(!AnalysisSettings::kifuAnalysisDialogFontSize.isSaved());
+        }
+        {
+            KifuAnalysisDialog dialog;
+            DialogFontScale* scale = nullptr;  // Q_OBJECT のない部品なので findChild では探せない
+            const QList<QWidget*> children = dialog.findChildren<QWidget*>();
+            for (QWidget* child : children) {
+                if (auto* found = dynamic_cast<DialogFontScale*>(child)) scale = found;
+            }
+            auto* increase = dialog.findChild<QPushButton*>(QStringLiteral("btnFontIncrease"));
+            QVERIFY(scale && increase);
+            // ダイアログは結果ドックの 14pt ではなく、ダイアログの元の大きさから始める
+            const int initial = scale->fontSize()->fontSize();
+            QCOMPARE(initial, qMax(8, dialog.font().pointSize()));
+            QVERIFY(initial != 14);
+            increase->click();
+            QCOMPARE(AnalysisSettings::kifuAnalysisDialogFontSize(), initial + 1);
+            QCOMPARE(AnalysisSettings::kifuAnalysisResultsFontSize(), 14);
+        }
+        AnalysisSettings::kifuAnalysisDialogFontSize.remove();
+        AnalysisSettings::kifuAnalysisResultsFontSize.remove();
     }
 
     void analysisRunsToCompletion()
