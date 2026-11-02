@@ -34,20 +34,15 @@ MatchSearchTiming FixedTimeSource::snapshot(Turn side, bool /*pondering*/) const
 MatchSearchTiming ClockTimeSource::snapshot(Turn side, bool pondering) const
 {
     MatchSearchTiming result;
-    auto& input = result.input;
-    input.sideToMove = side;
     m_clock->updateClock();
     result.expired = m_clock->isGameOver();
-    input.timeControl = m_clock->timeControl();
-    const auto tc = input.timeControl.normalized();
-    // 時計は手番の始めに加算を足しているので、USI の btime/wtime の意味（加算を含まない）に戻す
-    const auto remaining = [&](Turn player) {
-        const qint64 increment = tc.usesByoyomi() || (pondering && player == side)
-            ? 0 : tc.side(player).incrementMs;
-        return qMax<qint64>(0, m_clock->remainingMainTimeMs(player) - increment);
-    };
-    input.btimeMs = remaining(Turn::Black);
-    input.wtimeMs = remaining(Turn::White);
+    // 対局時計は着手を確定したときに次の手番の加算を足すので、どちらの残りも加算を含む（先読みを始めるのは自分の
+    // 着手の確定より前で、自分の残りに足してあるのは指した手番の加算。fromClock は先読みする側の加算を引かない）。
+    // 経過時間は時計が残りから引いている
+    const UsiClockSide black{m_clock->remainingMainTimeMs(Turn::Black), true, 0};
+    const UsiClockSide white{m_clock->remainingMainTimeMs(Turn::White), true, 0};
+    result.input = UsiGoTimeCalculator::fromClock(m_clock->timeControl(), side, pondering, black, white);
+    auto& input = result.input;
     if (!pondering) input.moverByoyomiMs = qMax<qint64>(0,
         m_clock->remainingTurnTimeMs(side) - m_clock->remainingMainTimeMs(side));
     if (m_clock->enforcesTimeout()) result.timeoutMs = boundedMs(m_clock->remainingTurnTimeMs(side));

@@ -71,13 +71,16 @@ struct CsaGameProgress {
     RecordTime initialMoveTime(int index) const;
 
     /**
-     * @brief 自分の手番でエンジンに渡す時間の条件
+     * @brief 自分のエンジンに渡す時間の条件
+     * @param pondering 先読みか（自分は指し終えたが、サーバーが確認するまで残り時間は自分の手番のまま）
+     * @param elapsedThisTurnMs 手番側（sideToMove）の今の手番の経過時間（残りからまだ引いていない）
      * @param marginMs 通信の遅延に備えて差し引く余裕
      *
-     * CSA の残り時間は手番の始めに加算するので、手番側は今の手番の加算を含む。USI の
-     * btime/wtime の意味（その手番の加算を含まない）にそろえる。遅延時間は今の手にだけ足す。
+     * CSA の残り時間は手番の始めに加算するので、手番側は今の手番の加算を含む。USI の btime/wtime の意味
+     * （その手番の加算を含まない）への換算はローカル対局と同じ UsiGoTimeCalculator::fromClock で行い、
+     * 手番側の経過時間も引く（先読みでは自分の今の手の消費になる）。遅延時間は今の手にだけ足す。
      */
-    UsiGoTimeInput engineTiming(int marginMs) const;
+    UsiGoTimeInput engineTiming(bool pondering, qint64 elapsedThisTurnMs, int marginMs) const;
 
     /**
      * @brief 着手の棋譜行を組み立てる（盤面の値は呼び出し側が埋める）

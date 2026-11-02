@@ -134,7 +134,7 @@ cmake --build build --target translations
   - `matequeryloop.cpp/.h` - 引き出し型の問い合わせ元 `MateQuerySource` を `MateOracle` で回す `MateQueryLoop`
   - `engineprocessmanager.cpp/.h` - Engine process lifecycle
   - `usimatchhandler.cpp/.h` - 対局での USI のやり取り（先読みの当たりは ponderhit、外れは `UsiEngineSession::search` に頼み直す）。定跡手（`requestBookMove`）は探索させず、先読み中なら止めて、待つ時間の後で同じ `moveReady` で知らせる（「すぐ指させる」は `playBookMoveNow`）
-  - `matchtimesource.cpp/.h` - エンジンの思考に使う時間の出どころ `MatchTimeSource`（ローカル対局は対局時計の `ClockTimeSource`、通信対局はサーバーの残り時間を返す `CsaGameCoordinator`、時計のない場合は `FixedTimeSource`）
+  - `matchtimesource.cpp/.h` - エンジンの思考に使う時間の出どころ `MatchTimeSource`（ローカル対局は対局時計の `ClockTimeSource`、通信対局はサーバーの残り時間を返す `CsaGameCoordinator`、時計のない場合は `FixedTimeSource`）。時計の残りから USI の btime/wtime への換算は `usigotime` の `UsiGoTimeCalculator::fromClock` だけ（加算を足してある残りは加算を、まだ引いていない経過時間はその時間を引く。先読みする側の加算は引かない）
 
 - **network/**: CSA通信対局
   - `csaclient.cpp/.h` - CSA protocol client（接続・ログイン・対局中の行の処理と送信・キープアライブ）。対局条件は値 `CsaGameSummary`（`csagamesummary`。持時間は `CsaGameSummary::Time`）で知らせ、Game_Summary の行は読み取り器 `CsaGameSummaryReader`（`csagamesummaryreader`。1行ずつ `read()` に渡し、読み終え・上限超えを状態で返す。ソケットを持たないので単体で試せる）が読む

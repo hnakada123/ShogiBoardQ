@@ -67,6 +67,23 @@ void take(Budget& b, qint64 amount)
 
 } // namespace
 
+UsiGoTimeInput fromClock(const TimeControl& timeControl, Turn side, bool pondering,
+                         const UsiClockSide& black, const UsiClockSide& white)
+{
+    const TimeControl tc = timeControl.normalized();
+    const auto usiRemaining = [&](Turn player, const UsiClockSide& clock) {
+        const bool subtractIncrement = clock.includesIncrement && !(pondering && player == side);
+        const qint64 increment = subtractIncrement ? incrementOf(tc, player) : 0;
+        return qMax<qint64>(0, clock.remainingMs - increment - qMax<qint64>(0, clock.unsettledMs));
+    };
+    UsiGoTimeInput input;
+    input.timeControl = timeControl;
+    input.sideToMove = side;
+    input.btimeMs = usiRemaining(Turn::Black, black);
+    input.wtimeMs = usiRemaining(Turn::White, white);
+    return input;
+}
+
 qint64 budgetMs(const UsiGoTimeInput& input)
 {
     const TimeControl tc = input.timeControl.normalized();

@@ -14,6 +14,7 @@
 #include "csagamecoordinator.h"
 #include "engineslots.h"
 #include "engineprocessmanager.h"
+#include "engineprofilestore.h"
 #include "usi.h"
 #include "humanturnpolicy.h"
 #include "csagameprogress.h"
@@ -221,9 +222,11 @@ private slots:
         QVERIFY(h.engines.engineInSlot(1));
         // 時間の出どころは対局の残り時間（加算を含まない）・決まり
         const MatchSearchTiming timing = h.coordinator.snapshot(Turn::White, false);
-        const UsiGoTimeInput expected = h.coordinator.progress().engineTiming(1000);
+        const UsiGoTimeInput expected = h.coordinator.progress().engineTiming(
+            false, h.coordinator.elapsedThisTurn(Turn::Black), 1000);
         QCOMPARE(timing.input.wtimeMs, expected.wtimeMs);
-        QCOMPARE(timing.input.btimeMs, expected.btimeMs);
+        // 手番の先手は今の手番の経過時間を引くので、読んだ時刻の差だけずれうる
+        QVERIFY(qAbs(timing.input.btimeMs - expected.btimeMs) <= 50);
         QCOMPARE(timing.input.timeControl.white.incrementMs, qint64(10000));
         // 手番の考慮時間は手番の側だけが数える
         h.server.send("+7776FU,T1");
@@ -306,6 +309,45 @@ private slots:
         QStringList commands;
         for (const QList<QVariant>& args : std::as_const(sent)) commands << args.at(0).toString();
         QVERIFY2(commands.contains(QStringLiteral("gameover draw")), qPrintable(commands.join(QLatin1Char(','))));
+    }
+
+    /// エンジンが指した直後の go ponder の自分の持ち時間は、今の手の消費を引いた残り（加算は引かない）。
+    /// 相手の残りは次の手番の加算を含まない値のまま（監査 2026-11-01 F14）
+    void ponderAfterEngineMoveUsesTimeLeftAfterThisMove()
+    {
+        constexpr int kThinkMs = 1500;
+        qputenv("SBQ_MATCH_REPLY_DELAY_MS", QByteArray::number(kThinkMs));
+        EngineProfileStore::savePonder(QStringLiteral("CSA test engine"), true, true);
+        Harness h;
+        QVERIFY(h.start("-", {}, true));
+        qunsetenv("SBQ_MATCH_REPLY_DELAY_MS");
+        Usi* engine = h.engines.engineInSlot(1);
+        QVERIFY(engine);
+        QSignalSpy sent(engine->process(), &EngineProcessManager::commandSent);
+        h.server.send("+7776FU,T1");
+        QVERIFY(h.server.waitForLine(QStringLiteral("-8384FU"), 5000));
+        QString ponder;
+        QTRY_VERIFY_WITH_TIMEOUT(([&sent, &ponder] {
+            for (const QList<QVariant>& args : std::as_const(sent)) {
+                const QString command = args.at(0).toString();
+                if (command.startsWith(QStringLiteral("go ponder"))) ponder = command;
+            }
+            return !ponder.isEmpty();
+        }()), 3000);
+        const QStringList words = ponder.split(QLatin1Char(' '));
+        const auto field = [&words](const QString& name) {
+            const qsizetype i = words.indexOf(name);
+            return i >= 0 && i + 1 < words.size() ? words.at(i + 1).toLongLong() : -1;
+        };
+        // 後手（自分）は手番の初めに 600 秒＋加算 10 秒。kThinkMs 考えて指した残りから、通信の余裕（1秒）と
+        // エンジンの余裕（250ms）を引く。加算は winc で送る（以前は今の手の消費を引かず、加算を引いていた）
+        const qint64 expectedMax = 610000 - kThinkMs - 1000 - 250;
+        QVERIFY2(field(QStringLiteral("wtime")) <= expectedMax && field(QStringLiteral("wtime")) > expectedMax - 1000,
+                 qPrintable(ponder));
+        QCOMPARE(field(QStringLiteral("winc")), 10000LL);
+        // 先手は手番の初めの 610 秒から1秒使った残り（次の加算はまだ足していない）
+        QCOMPARE(field(QStringLiteral("btime")), 609000LL);
+        EngineProfileStore::savePonder(QStringLiteral("CSA test engine"), false, false);
     }
 
     /// 最大手数（打ち切り）・中断・知らない原因でも、ローカル対局と同じく gameover draw を送る（監査 2026-11-01 F15）
@@ -635,11 +677,35 @@ private slots:
         QCOMPARE(progress.blackRemainingMs, 0);
         QCOMPARE(progress.blackTotalMs, 70000);
         QCOMPARE(progress.whiteRemainingMs, 65000);
-        const UsiGoTimeInput timing = progress.engineTiming(-100);
+        const RecordEntry blackMove = progress.moveRecord(true, QStringLiteral("▲７六歩"), 70000);
+        QCOMPARE(blackMove.time.totalMs, 70000);
+        progress.record.entries.append(blackMove);
+        QCOMPARE(progress.sideToMove(), Turn::White);
+        // 手番の自分（後手）の残りは今の手番の加算を含むので引く
+        const UsiGoTimeInput timing = progress.engineTiming(false, 0, -100);
         QCOMPARE(timing.wtimeMs, 60000);
         QCOMPARE(timing.btimeMs, 0);
         QCOMPARE(timing.marginMs, 0);
-        QCOMPARE(progress.moveRecord(true, QStringLiteral("▲７六歩"), 70000).time.totalMs, 70000);
+    }
+
+    /// 先読みの自分の持ち時間は、今の手の消費を引いた残り（監査 2026-11-01 F14 の例。秒読み10秒、手番の初めの
+    /// 残り100秒、60秒考えて指した）。サーバーが自分の手を確認するまで、残り時間は手番の初めのまま
+    void progressPonderTimingSubtractsThisMove()
+    {
+        CsaGameSummary summary;
+        summary.myTurn = Turn::White;
+        summary.toMove = Turn::White;
+        summary.timeBlack.specified = true;
+        summary.timeBlack.totalTime = 100;
+        summary.timeBlack.byoyomi = 10;
+        summary.timeWhite = summary.timeBlack;
+        CsaGameProgress progress = CsaGameProgress::forSummary(summary);
+        progress.startClockFromSummary();
+        QCOMPARE(progress.sideToMove(), Turn::White);
+        QCOMPARE(progress.engineTiming(false, 0, 0).wtimeMs, 100000);
+        const UsiGoTimeInput ponder = progress.engineTiming(true, 60000, 0);
+        QCOMPARE(ponder.wtimeMs, 40000);
+        QCOMPARE(ponder.btimeMs, 100000);
     }
 
     /// 通信対局のセッションを通すと、棋譜（ライブ記録）には着手ごと・終局で1行ずつだけ入る
