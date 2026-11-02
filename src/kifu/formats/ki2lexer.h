@@ -43,8 +43,14 @@ std::optional<ResultLine> parseResultLine(const QString& line);
 
 // === 指し手テキスト解析 ===
 
-/// KI2形式の1行から指し手を抽出（複数手が1行に含まれる場合あり）
-QStringList extractMovesFromLine(const QString& line);
+/// KI2 の指し手の行（"▲７六歩    △３四歩 *コメント"）
+struct MovesLine {
+    QStringList moves;  ///< 手番の印で始まる指し手の表記（1行に複数手が並ぶことがある）
+    QString comment;    ///< 行内コメント（"*" から行末まで。KIF の行内コメントと同じ。無ければ空）
+};
+
+/// KI2 の指し手の行を指し手と行内コメントに分ける（コメントの中の手番の印を指し手と読まない）
+MovesLine splitMovesLine(const QString& line);
 
 } // namespace Ki2Lexer
 

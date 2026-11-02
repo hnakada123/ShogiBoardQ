@@ -46,12 +46,8 @@ bool isBoardHeaderOrFrame(QStringView line)
         if (boxCount >= qMax(3, static_cast<int>(s.size()) / 2)) return true;
     }
 
-    // 持駒見出し（駒落ちは下手・上手）
-    if (line.contains(QStringLiteral("先手の持駒")) ||
-        line.contains(QStringLiteral("後手の持駒")) ||
-        line.contains(QStringLiteral("下手の持駒")) ||
-        line.contains(QStringLiteral("上手の持駒")))
-        return true;
+    // 持駒見出し（駒落ちは下手・上手）。行頭だけを見る（指し手の行のコメントに書いた語で、指し手の行を読み飛ばさない）
+    if (isBodHandsLine(line.trimmed())) return true;
 
     // 下部見出し（"一二三…九"）だけの行
     {
@@ -66,39 +62,6 @@ bool isBoardHeaderOrFrame(QStringView line)
             if (ok && kanjiCount >= 5) return true;
         }
     }
-    return false;
-}
-
-bool isKifSkippableHeaderLine(QStringView line)
-{
-    if (line.isEmpty()) return true;
-    if (line.startsWith(QLatin1Char('#'))) return true;
-
-    static const QStringList keys = {
-        QStringLiteral("開始日時"), QStringLiteral("終了日時"), QStringLiteral("対局日"),
-        QStringLiteral("棋戦"), QStringLiteral("戦型"), QStringLiteral("持ち時間"),
-        QStringLiteral("秒読み"), QStringLiteral("消費時間"), QStringLiteral("場所"),
-        QStringLiteral("表題"),   QStringLiteral("掲載"),   QStringLiteral("記録係"),
-        QStringLiteral("備考"),   QStringLiteral("図"),     QStringLiteral("振り駒"),
-        QStringLiteral("先手省略名"), QStringLiteral("後手省略名"),
-        QStringLiteral("手数----指手---------消費時間--"),
-        QStringLiteral("手数――指手――――――――消費時間――"),
-        QStringLiteral("先手："), QStringLiteral("後手："),
-        QStringLiteral("下手："), QStringLiteral("上手："),
-        QStringLiteral("先手番"), QStringLiteral("後手番"),
-        QStringLiteral("下手番"), QStringLiteral("上手番"),
-        QStringLiteral("手合割"), QStringLiteral("手合"),
-        QStringLiteral("手数＝")
-    };
-    for (const auto& k : std::as_const(keys)) {
-        if (line.contains(k)) return true;
-    }
-
-    if (line.startsWith(QLatin1Char('&'))) return true;
-
-    static const QRegularExpression s_made(QStringLiteral("^\\s*まで[0-9０-９]+手"));
-    if (s_made.matchView(line).hasMatch()) return true;
-
     return false;
 }
 

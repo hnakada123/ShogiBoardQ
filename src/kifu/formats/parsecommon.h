@@ -15,11 +15,9 @@ namespace KifuParseCommon {
 // 改行区切りで追記（buf が空でなければ '\n' を挿入してから text を追加）
 void appendLine(QString& buf, const QString& text);
 
-// KIF/KI2共通：盤面枠行・ヘッダ行を判定（BODの数字行、罫線行、持駒見出し等）
+// KIF/KI2共通：盤面枠行・ヘッダ行を判定（BODの数字行、罫線行、行頭の持駒見出し等）。
+// 筋の数字の行は手数で始まる指し手の行に見えるので、指し手の行かを見る前に判定する
 bool isBoardHeaderOrFrame(QStringView line);
-
-// KIF/KI2共通：スキップ可能なヘッダ行かどうか判定
-bool isKifSkippableHeaderLine(QStringView line);
 
 // KIF/KI2共通：コメント行判定（先頭が '*' or '＊'）
 bool isKifCommentLine(QStringView s);

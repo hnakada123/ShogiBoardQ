@@ -90,21 +90,24 @@ Turn ResultLine::endingSide(Turn sideToMove) const
 
 // === 指し手テキスト解析 ===
 
-QStringList extractMovesFromLine(const QString& line)
+MovesLine splitMovesLine(const QString& line)
 {
-    QStringList moves;
-    const QString t = line.trimmed();
+    MovesLine result;
+    QString t = line.trimmed();
+    qsizetype commentAt = t.indexOf(QChar(u'*'));
+    if (const qsizetype zenkaku = t.indexOf(QChar(u'＊')); zenkaku >= 0 && (commentAt < 0 || zenkaku < commentAt))
+        commentAt = zenkaku;
+    if (commentAt >= 0) {
+        result.comment = t.mid(commentAt + 1).trimmed();
+        t.truncate(commentAt);
+    }
     static const QRegularExpression moveRe(QStringLiteral("([▲△▽☗☖][^▲△▽☗☖]+)"));
     QRegularExpressionMatchIterator it = moveRe.globalMatch(t);
     while (it.hasNext()) {
-        QRegularExpressionMatch m = it.next();
-        QString move = m.captured(1).trimmed();
-        qsizetype commentIdx = move.indexOf(QChar(u'*'));
-        if (commentIdx < 0) commentIdx = move.indexOf(QChar(u'＊'));
-        if (commentIdx >= 0) move = move.left(commentIdx).trimmed();
-        if (!move.isEmpty()) moves << move;
+        const QString move = it.next().captured(1).trimmed();
+        if (!move.isEmpty()) result.moves << move;
     }
-    return moves;
+    return result;
 }
 
 } // namespace Ki2Lexer

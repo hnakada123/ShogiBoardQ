@@ -118,7 +118,10 @@ public:
                 continue;
             }
             if (m_dialect == Dialect::Ki2 && readResultLine(line)) continue;
-            if (KifuParseCommon::isKifSkippableHeaderLine(line) || KifuParseCommon::isBoardHeaderOrFrame(line)) continue;
+            // 局面図の筋の数字の行は、手数で始まる指し手の行に見える
+            if (KifuParseCommon::isBoardHeaderOrFrame(line)) continue;
+            // 指し手の行は、行内コメントに対局情報の語（「*第1図」「*場所…」）があっても読む。
+            // それ以外の行（対局情報・手番・局面図・指し手の見出しなど）は手順に入れない
             if (KifLexer::startsWithMoveNumber(line)) readNumberedLine(line);
             else if (Ki2Lexer::isKi2MoveLine(line)) readMarkedLine(line);
         }
@@ -156,15 +159,15 @@ private:
         }
     }
 
-    /// 手番の印で始まる行（KI2。"▲７六歩    △３四歩"）
+    /// 手番の印で始まる行（KI2。"▲７六歩    △３四歩 *コメント"）。行内コメントは行の最後の手に付ける
     void readMarkedLine(const QString& line)
     {
-        const QStringList moves = Ki2Lexer::extractMovesFromLine(line);
-        for (const QString& move : moves) {
+        const Ki2Lexer::MovesLine parsed = Ki2Lexer::splitMovesLine(line);
+        for (const QString& move : parsed.moves) {
             if (m_builder.ended()) return;
             if (const TerminalType terminal = TerminalTypes::findWord(move); terminal != TerminalType::None) {
                 m_builder.addTerminal(terminal, m_builder.sideToMove());
-                return;
+                break;
             }
             // 手番の印が手番と違う手は読まない（印を見ないと、相手の手、たとえば持っていない駒を打つ手に読み替えてしまう）
             const std::optional<Turn> marked = ShogiNotation::turnOfMark(move.front());
@@ -178,6 +181,7 @@ private:
             }
             if (!readMove(move, KifLineBuilder::zeroTime(), move)) return;
         }
+        if (!parsed.comment.isEmpty()) m_builder.appendComment(parsed.comment);
     }
 
     /// 指し手の文字列を読んで指す。読めない・指せない手なら手順を打ち切って false
