@@ -14,6 +14,12 @@
 #include <QMenu>
 #include <QVBoxLayout>
 
+int JosekiTableView::minimumColumnWidth(int column)
+{
+    static constexpr int kWidths[JosekiTableModel::ColumnCount - 1] = {40, 50, 120, 120, 50, 50, 70, 50, 80, 60};
+    return column >= 0 && column < JosekiTableModel::ColumnCount - 1 ? kWidths[column] : 0;
+}
+
 JosekiTableView::JosekiTableView(JosekiTableModel *model, QWidget *parent)
     : QTableView(parent)
     , m_model(model)
@@ -38,8 +44,7 @@ JosekiTableView::JosekiTableView(JosekiTableModel *model, QWidget *parent)
     setMouseTracking(true);
     verticalHeader()->setVisible(false);
     setContextMenuPolicy(Qt::CustomContextMenu);
-    const int defaultWidths[JosekiTableModel::ColumnCount - 1] = {40, 50, 120, 120, 50, 50, 70, 50, 80, 60};
-    for (int col = 0; col < JosekiTableModel::ColumnCount - 1; ++col) setColumnWidth(col, defaultWidths[col]);
+    for (int col = 0; col < JosekiTableModel::ColumnCount - 1; ++col) setColumnWidth(col, minimumColumnWidth(col));
     horizontalHeader()->setStretchLastSection(true);
 
     m_emptyGuide = new QLabel(viewport());

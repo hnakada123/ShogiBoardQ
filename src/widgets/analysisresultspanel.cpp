@@ -167,18 +167,18 @@ void AnalysisResultsPanel::setupHeaderConfiguration()
 
 void AnalysisResultsPanel::reflowNow()
 {
-    // ユーザーが調整した列幅を保ち、自動列だけを内容に合わせて広げる。
+    // ユーザーが調整した列幅を保ち、自動列だけを内容に合わせる。
     // 読み筋より前の列の最小幅（読み筋の列は残りの幅に伸ばす）
     static constexpr int minWidths[kSizedColumns] = {140, 120, 50, 85, 110, 85, 60};
     QAbstractItemModel* model = m_view->model();
     const int rowCount = model ? model->rowCount() : 0;
-    // 列幅は広がる一方なので、足した・変わった行だけ測れば全行を測り直した結果と同じになる。
+    // 全行を測り直す（文字の大きさ・結果の置き換え・並べ替え）と、内容に合わせて縮みもする。
+    // 行を足した・変えただけなら、その行だけを測って今の幅から広げる（足しただけなら全行を測り直した結果と同じ）。
     // 解析中は1局面ごとに行が増え、全行を測り直すと1行あたりの処理が行数に比例して伸びていた。
     const bool measureAll = m_reflowAllRows || m_reflowFromRow < 0 || rowCount == 0;
     for (int col = 0; col < kSizedColumns; ++col) {
         int width = m_columnWidths->userWidth(col);
         if (width <= 0) {
-            const int previousWidth = m_header->sectionSize(col);
             if (measureAll) {
                 m_view->resizeColumnToContents(col);
                 width = qMax(minWidths[col], m_header->sectionSize(col));
@@ -188,8 +188,8 @@ void AnalysisResultsPanel::reflowNow()
                     content = qMax(content, m_view->sizeHintForIndex(model->index(row, col)).width());
                 if (m_view->showGrid()) content += 1;
                 width = qMax(minWidths[col], qMax(content, m_header->sectionSizeHint(col)));
+                width = qMax(width, m_header->sectionSize(col));
             }
-            if (rowCount > 0) width = qMax(width, previousWidth);
         }
         m_header->resizeSection(col, width);
     }

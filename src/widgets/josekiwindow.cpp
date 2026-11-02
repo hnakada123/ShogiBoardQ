@@ -379,8 +379,9 @@ void JosekiWindow::applyFontSize()
         if (col == JosekiTableModel::NextMove) sample = JosekiTableModel::derivedReplyText(QStringLiteral("▲７六歩(77)"));
         if (col == JosekiTableModel::Frequency) sample = QStringLiteral("999,999,999");
         if (col == JosekiTableModel::Ratio) sample = QStringLiteral("100.0%");
-        // 利用者が決めた幅はそのまま、ほかは今の幅と見本の文字が収まる幅の広いほう
-        const int automatic = qMax(m_tableView->columnWidth(col), fm.horizontalAdvance(sample) + 24);
+        // 利用者が決めた幅はそのまま、ほかは見本の文字が収まる幅（作ったときの幅より狭くしない）。
+        // 今の幅を下限にしないので、A- で A+ の前の幅に戻る
+        const int automatic = qMax(JosekiTableView::minimumColumnWidth(col), fm.horizontalAdvance(sample) + 24);
         m_tableView->setColumnWidth(col, m_columnWidths->widthOr(col, automatic));
     }
     header->setStretchLastSection(true);

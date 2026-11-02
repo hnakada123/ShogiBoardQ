@@ -41,6 +41,10 @@ public:
 
     explicit JosekiTableView(JosekiTableModel *model, QWidget *parent = nullptr);
 
+    /// column の自動の幅の下限（作ったときの幅。文字が収まる幅がこれより狭くても、ここまでは縮めない。
+    /// 最後の列（残りの幅に伸ばす）は 0）
+    static int minimumColumnWidth(int column);
+
     /// メニューの項目を押せるかの判定（行と操作を受け取る）。無ければすべて押せる
     void setActionAvailability(std::function<bool(JosekiTableView::RowAction, int)> available);
     /// row 行目のメニューの項目を押せるかを決め直す（メニューを開く前に呼ぶ）
