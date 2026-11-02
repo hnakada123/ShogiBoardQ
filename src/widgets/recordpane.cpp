@@ -91,9 +91,11 @@ void RecordPane::applyAppearance()
     m_kifu->setStyleSheet(kifuStyle);
     m_branch->setStyleSheet(tableStyleSheet(m_appearance.fontSize));
 
-    // 行のクリック
-    m_kifu->viewport()->setAttribute(Qt::WA_TransparentForMouseEvents, !m_appearance.navigationEnabled);
-    m_kifu->setFocusPolicy(m_appearance.navigationEnabled ? Qt::StrongFocus : Qt::NoFocus);
+    // 行のクリック（分岐候補欄も棋譜欄と同じく止める）
+    for (QTableView* view : {m_kifu, m_branch}) {
+        view->viewport()->setAttribute(Qt::WA_TransparentForMouseEvents, !m_appearance.navigationEnabled);
+        view->setFocusPolicy(m_appearance.navigationEnabled ? Qt::StrongFocus : Qt::NoFocus);
+    }
 
     // 列の表示。指し手・消費時間は内容に合わせ、しおり・コメントの最右の表示列だけを伸ばす
     m_kifu->setColumnHidden(Column::TimeColumn, !m_appearance.timeVisible);
@@ -355,17 +357,19 @@ void RecordPane::setModels(KifuRecordListModel* recModel, KifuBranchListModel* b
 QTableView* RecordPane::kifuView() const { return m_kifu; }
 QTableView* RecordPane::branchView() const { return m_branch; }
 
-void RecordPane::setKifuViewEnabled(bool on)
+void RecordPane::setNavigationEnabled(bool on)
 {
-    qCDebug(lcUi) << "setKifuViewEnabled called, on=" << on;
+    qCDebug(lcUi) << "setNavigationEnabled called, on=" << on;
     m_appearance.navigationEnabled = on;
     if (!on) {
         // 対局中は行を選ばない（選択の知らせは出さない）
-        m_kifu->clearFocus();
-        if (QItemSelectionModel* selection = m_kifu->selectionModel()) {
-            const QSignalBlocker blocker(selection);
-            selection->clearSelection();
-            selection->setCurrentIndex(QModelIndex(), QItemSelectionModel::Clear);
+        for (QTableView* view : {m_kifu, m_branch}) {
+            view->clearFocus();
+            if (QItemSelectionModel* selection = view->selectionModel()) {
+                const QSignalBlocker blocker(selection);
+                selection->clearSelection();
+                selection->setCurrentIndex(QModelIndex(), QItemSelectionModel::Clear);
+            }
         }
     }
     applyAppearance();
@@ -452,6 +456,8 @@ void RecordPane::updateBranchAppearance()
 
 void RecordPane::onBranchClicked(const QModelIndex& index)
 {
+    // 行のクリックを止めている間は、届いた知らせ（自動化 API の入力など）も移る操作にしない
+    if (!m_appearance.navigationEnabled) return;
     m_lastClickedBranchIndex = index;
     m_branchClickGuard = true;
     QTimer::singleShot(0, this, &RecordPane::clearBranchClickGuard);
@@ -460,6 +466,7 @@ void RecordPane::onBranchClicked(const QModelIndex& index)
 
 void RecordPane::onBranchActivated(const QModelIndex& index)
 {
+    if (!m_appearance.navigationEnabled) return;
     if (m_branchClickGuard && index.isValid() && index == m_lastClickedBranchIndex) {
         qCDebug(lcUi).noquote() << "[RecordPane] onBranchActivated: skipped (already handled by clicked) row=" << index.row();
         return;
@@ -475,6 +482,7 @@ void RecordPane::clearBranchClickGuard()
 
 void RecordPane::onBranchContextMenuRequested(const QPoint& pos)
 {
+    if (!m_appearance.navigationEnabled) return;
     const QModelIndex index = m_branch->indexAt(pos);
     emit branchContextMenuRequested(index.isValid() ? index.row() : -1, m_branch->viewport()->mapToGlobal(pos));
 }

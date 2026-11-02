@@ -192,21 +192,10 @@ void MainWindowComposer::createPanels()
     cd.parentWidget = &m_window;
     cd.statusBar = m_ui.statusbar;
     m_c.commentCoordinator = new CommentCoordinator(cd, &m_window);
-
-    BranchTreeEditController::Deps ed;
-    ed.tree = m_c.branchTree;
-    ed.navState = m_c.navState;
-    ed.navController = m_c.kifuNavController;
-    ed.liveSession = m_c.liveGameSession;
-    ed.parentWidget = &m_window;
-    m_c.branchEdit = new BranchTreeEditController(ed, &m_window);
-
-    // 未更新のコメントは破棄してよいか確かめてから棋譜を移る（局面編集中の確認は局面編集を作るときに足す）
-    m_c.kifuNavController->addLeaveGuard(std::bind(&CommentCoordinator::confirmLeaveEditingMove, m_c.commentCoordinator));
 }
 
 // ---------------------------------------------------------------------------
-// 対局・検討・通信対局の司令塔と、盤を操作できるかの判定
+// 対局・検討・通信対局の司令塔と、盤を操作できるか・棋譜を移って・変えてよいかの判定
 // ---------------------------------------------------------------------------
 
 void MainWindowComposer::createMatchAndAnalysis()
@@ -237,13 +226,27 @@ void MainWindowComposer::createMatchAndAnalysis()
     cd.activity = &m_activity;
     m_c.csaGame = new CsaGameCoordinator(cd, &m_window);
 
+    // 盤の手の行き先と、棋譜を移って・変えてよいか（棋譜を移る・変える入口はすべてこれを通す）
     HumanTurnPolicy::Deps hd;
     hd.activity = &m_activity;
     hd.board = m_c.gameBoard->board();
     hd.match = m_c.match;
     hd.csaGame = m_c.csaGame;
-    hd.branchEdit = m_c.branchEdit;
+    hd.liveSession = m_c.liveGameSession;
     m_c.humanTurnPolicy = std::make_unique<HumanTurnPolicy>(hd);
+    // 利用者の操作で棋譜を移る前の確認。対局中・棋譜解析中・局面編集中は移らない。移れる状態なら、
+    // 未更新のコメントを破棄してよいかを確かめる（移れないのにコメントを聞かないよう、この順に聞く）
+    m_c.kifuNavController->addLeaveGuard(std::bind(&HumanTurnPolicy::canBrowseRecord, m_c.humanTurnPolicy.get()));
+    m_c.kifuNavController->addLeaveGuard(std::bind(&CommentCoordinator::confirmLeaveEditingMove, m_c.commentCoordinator));
+
+    // 分岐の編集・盤の手の記録・定跡の展開（棋譜を変えてよいかは HumanTurnPolicy::canEditRecord）
+    BranchTreeEditController::Deps ed;
+    ed.tree = m_c.branchTree;
+    ed.navState = m_c.navState;
+    ed.navController = m_c.kifuNavController;
+    ed.policy = m_c.humanTurnPolicy.get();
+    ed.parentWidget = &m_window;
+    m_c.branchEdit = new BranchTreeEditController(ed, &m_window);
 
     PositionEditSession::Deps pd;
     pd.view = m_c.shogiView;
@@ -251,8 +254,6 @@ void MainWindowComposer::createMatchAndAnalysis()
     pd.navState = m_c.navState;
     pd.activity = &m_activity;
     m_c.positionEdit = new PositionEditSession(pd, &m_window);
-    // 局面編集中は棋譜を移らない
-    m_c.kifuNavController->addLeaveGuard(std::bind(&PositionEditSession::allowsLeavingMove, m_c.positionEdit));
 
     // 盤で指した手の行き先（動作状態ごとに、受け付けるか・どう処理するかを決める）
     BoardMoveController::Deps bd;
@@ -392,6 +393,7 @@ void MainWindowComposer::createSessions()
     ud.evalChart = m_c.evalChart;
     ud.branchTree = m_c.branchTreeView;
     ud.consideration = m_c.considerationTab;
+    ud.joseki = m_c.joseki->josekiWindow();
     ud.localGameHasHuman = std::bind(&MatchCoordinator::hasHumanPlayer, m_c.match);
     ud.canResumeGame = std::bind(&MatchCoordinator::canResumeInterruptedGame, m_c.match);
     ud.activity = &m_activity;

@@ -39,6 +39,11 @@ KifuAnalysisController::KifuAnalysisController(const Deps& deps, QObject* parent
         connect(m_deps.navState, &KifuNavigationState::changed,
                 this, &KifuAnalysisController::syncResultSelection);
     }
+    // 移るのをやめたら、選んだ結果の行を表示中の手に戻す（選択の変更の処理を抜けてから）
+    if (m_deps.navController) {
+        connect(m_deps.navController, &KifuNavigationController::navigationRejected,
+                this, &KifuAnalysisController::syncResultSelection, Qt::QueuedConnection);
+    }
 }
 
 // 解析の実行は合成ルートが持つ（先に壊れることもある）ので、ここでは触らない
@@ -205,7 +210,8 @@ void KifuAnalysisController::syncResultSelection()
 void KifuAnalysisController::onResultRowSelected(int row)
 {
     if (isRunning() || row < 0 || row >= m_deps.analysisModel->rowCount()) return;
-    if (m_deps.navController) m_deps.navController->goToPlyOnLine(m_lineEndNodeId, m_startPly + row);
+    // 利用者の操作なので、ほかの入口と同じく移る前の確認（書きかけのコメントなど）を通す
+    if (m_deps.navController) m_deps.navController->selectPlyOnLine(m_lineEndNodeId, m_startPly + row);
 }
 
 void KifuAnalysisController::onResultRowDoubleClicked(int row)

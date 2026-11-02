@@ -9,6 +9,7 @@
 #include "evaluationchartwidget.h"
 #include "branchtreeview.h"
 #include "considerationpanel.h"
+#include "josekiwindow.h"
 
 #include <QAction>
 #include "logcategories.h"
@@ -96,6 +97,7 @@ constexpr Rule kRules[] = {
     {E::SettingsEngine,         in(S::Idle) | in(S::DuringConsideration), Off::Disable},
     {E::SettingsReset,          in(S::Idle),  Off::Disable},  // アプリを終了するので待機中だけ
     // --- ウィジェット ---
+    // 棋譜を移る・変える操作は、見るだけの状態でだけ（HumanTurnPolicy::canBrowseRecord・canEditRecord もこの行で決まる）
     {E::WidgetNavigation,       kBrowsing,    Off::Disable},
     {E::WidgetBranchTree,       kBrowsing,    Off::Disable},
     // 局面編集中は盤が編集中の局面なので検討しない（編集を終えてから始める）
@@ -236,9 +238,10 @@ void UiStatePolicyManager::applyPolicy(UiElement element, Policy policy)
     const bool enabled = policy == Policy::Enabled;
     switch (element) {
     case UiElement::WidgetNavigation:
-        if (m_deps.recordPane) m_deps.recordPane->setKifuViewEnabled(enabled);
+        if (m_deps.recordPane) m_deps.recordPane->setNavigationEnabled(enabled);
         if (m_deps.navigation) m_deps.navigation->setStepActionsEnabled(enabled);
         if (m_deps.evalChart) m_deps.evalChart->setNavigationEnabled(enabled);
+        if (m_deps.joseki) m_deps.joseki->setRecordOperationsEnabled(enabled);
         break;
     case UiElement::WidgetBranchTree:
         if (m_deps.branchTree) m_deps.branchTree->setClickEnabled(enabled);

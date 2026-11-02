@@ -17,8 +17,9 @@ class QAction;
  * @brief 棋譜を移る操作を受けて、表示中の手（KifuNavigationState）を動かす
  *
  * 表示の更新はしない。表示する部品は KifuNavigationState::changed() を受けて自分で合わせる。
- * 利用者の操作は、移る前に確認（未更新のコメントの破棄など）を通す。確認でやめたときは
- * navigationRejected() を出す（クリックした行の強調を表示中の手に戻すため）。
+ * 利用者の操作（select*・on*Clicked）は、すべて移る前に確認（移ってよい状態か・未更新のコメントの破棄など）を
+ * 通す。確認でやめたときは navigationRejected() を出す（クリックした行の強調を表示中の手に戻すため）。
+ * 確認を通さない go* は、プログラムからの移動（対局の着手・棋譜解析の進み具合・読み込み）だけに使う。
  *
  * 局面送りの6つの操作は QAction として1組だけ持つ。棋譜欄と評価値グラフのボタンは
  * bindButtons() でこの QAction に結び付け、有効・無効も QAction に合わせる。
@@ -42,8 +43,8 @@ public:
     /// 局面送りの6つの操作をまとめて有効・無効にする（対局中などは無効）
     void setStepActionsEnabled(bool on);
 
-    /// 利用者の操作で別の手へ移る前の確認。false なら移らない
-    /// 移動前の確認を足す（足した順に聞き、1つでも false なら移らない）
+    /// 利用者の操作で別の手へ移る前の確認を足す（足した順に聞き、1つでも false なら移らない）。
+    /// 移ってよい状態か（HumanTurnPolicy::canBrowseRecord）・未更新のコメントの確認を合成ルートが足す
     void addLeaveGuard(std::function<bool()> guard) { m_leaveGuards.append(std::move(guard)); }
 
     KifuNavigationState* state() const { return m_state; }
@@ -78,8 +79,10 @@ public slots:
      * たどった手順（図でその手を描いた行）に移る。開始局面なら分岐の選択を忘れて開始局面へ。
      */
     void selectBranchTreeNode(int nodeId);
-    /// 評価値グラフの手数を選んだ
+    /// 評価値グラフの手数・定跡ウィンドウの「定跡を外れた手」を選んだ
     void selectPly(int ply);
+    /// 棋譜解析の結果の行・評価値グラフの解析の点を選んだ（lineEndNodeId の手で終わる手順の ply 手目。goToPlyOnLine）
+    void selectPlyOnLine(int lineEndNodeId, int ply);
     void onFirstClicked();
     void onBack10Clicked();
     void onPrevClicked();

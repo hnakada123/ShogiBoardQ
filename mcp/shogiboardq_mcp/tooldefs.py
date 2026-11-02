@@ -477,7 +477,8 @@ PHASE2_TOOLS: list[types.Tool] = [
     _tool(
         "goto_ply",
         "Go to ply",
-        "Navigate the record shown in ShogiBoardQ to the given ply (0 = start position) on the current line.",
+        "Navigate the record shown in ShogiBoardQ to the given ply (0 = start position) on the current line. "
+        "Fails with invalid_state during a game, kifu analysis or position editing.",
         _spec("method", "kifu.goto"),
         {"type": "object", "properties": {"ply": {"type": "integer"}, "sfen": {"type": "string"}}, "required": ["ply"]},
         idempotent=True,

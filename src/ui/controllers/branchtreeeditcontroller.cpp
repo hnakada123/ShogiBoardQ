@@ -8,8 +8,8 @@
 #include "kifubranchtree.h"
 #include "kifunavigationcontroller.h"
 #include "kifunavigationstate.h"
+#include "humanturnpolicy.h"
 #include "kifupresentation.h"
-#include "livegamesession.h"
 #include "logcategories.h"
 #include "shogiboard.h"
 #include "gameboard.h"
@@ -22,13 +22,13 @@ BranchTreeEditController::BranchTreeEditController(const Deps& deps, QObject* pa
     : QObject(parent)
     , m_deps(deps)
 {
-    Q_ASSERT(m_deps.tree && m_deps.navState && m_deps.navController && m_deps.liveSession);
+    Q_ASSERT(m_deps.tree && m_deps.navState && m_deps.navController && m_deps.policy);
 }
 
 bool BranchTreeEditController::canEdit() const
 {
-    // 対局中はツリーに手を追加している最中なので編集しない
-    return !m_deps.liveSession->isActive();
+    // 対局中・棋譜解析中・局面編集中は、どの入口からも変えない（規則は HumanTurnPolicy の1か所）
+    return m_deps.policy->canEditRecord();
 }
 
 bool BranchTreeEditController::isApplicable(Operation operation, KifuBranchNode* node) const

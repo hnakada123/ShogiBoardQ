@@ -626,16 +626,24 @@ void JosekiWindow::onDisplayToggled(bool displayed)
 
 void JosekiWindow::onExpandButtonClicked()
 {
-    if (m_session->isBusy() || m_model->moves().isEmpty()) return;
+    if (!m_recordOperationsEnabled || m_session->isBusy() || m_model->moves().isEmpty()) return;
     emit expandRequested();
+}
+
+void JosekiWindow::setRecordOperationsEnabled(bool enabled)
+{
+    if (m_recordOperationsEnabled == enabled) return;
+    m_recordOperationsEnabled = enabled;
+    m_deviationButton->setEnabled(enabled && m_deviationPly > 0);
+    updateStatusDisplay();
 }
 
 void JosekiWindow::setBookDeviation(int ply, const QString &moveText)
 {
     m_deviationPly = ply;
     m_deviationButton->setVisible(ply >= 0);
-    // すべて定跡どおりなら押す先がないので押せなくする（色でも分ける）
-    m_deviationButton->setEnabled(ply > 0);
+    // すべて定跡どおりなら押す先がないので押せなくする（色でも分ける）。対局中なども押せない
+    m_deviationButton->setEnabled(m_recordOperationsEnabled && ply > 0);
     if (ply > 0) {
         m_deviationButton->setText(tr("%1手目の%2で定跡を外れています").arg(ply).arg(moveText));
         m_deviationButton->setToolTip(tr("押すとその手へ移ります"));
@@ -647,7 +655,7 @@ void JosekiWindow::setBookDeviation(int ply, const QString &moveText)
 
 void JosekiWindow::onDeviationClicked()
 {
-    if (m_deviationPly > 0) emit deviationPlyRequested(m_deviationPly);
+    if (m_recordOperationsEnabled && m_deviationPly > 0) emit deviationPlyRequested(m_deviationPly);
 }
 
 void JosekiWindow::onSfenDetailToggled(bool checked)
@@ -715,7 +723,7 @@ void JosekiWindow::updateStatusDisplay()
     const bool modified = m_session->isModified();
     const bool hasData = !m_session->isEmpty();
     m_addMoveButton->setEnabled(canEdit() && !m_currentSfen.isEmpty());
-    m_expandButton->setEnabled(!m_session->isBusy() && !m_model->moves().isEmpty());
+    m_expandButton->setEnabled(m_recordOperationsEnabled && !m_session->isBusy() && !m_model->moves().isEmpty());
     if (m_filePathLabel->toolTip() != filePath) m_filePathLabel->setToolTip(filePath);
     m_noticeLabel->setVisible(modified);
 

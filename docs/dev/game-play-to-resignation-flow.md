@@ -72,7 +72,7 @@ BoardInteractionController::onLeftClick(pt)
 
 `onLeftClick()` の処理:
 
-1. 受け付けの確認: 盤で指した手の行き先（`BoardInputRoute`、`src/board/boardinputroute.h`）の `acceptsInput()` が false なら無視する。主画面の行き先は `BoardMoveController` で、`BoardMoveController` のコンストラクタが `setInputRoute(this)` で登録する。局面編集中は常に受け付け、それ以外は `HumanTurnPolicy::isHumanTurnNow()`（`src/ui/policy/humanturnpolicy.cpp`）で決める。対局中は `MatchCoordinator::isHumanSide(盤の手番)`、通信対局中は人間が指していて自分の手番か、対局していないときは変化として記録できるか（`BranchTreeEditController::canRecordBoardMove()`）。解析中・詰み探索中・検討中は受け付けない。
+1. 受け付けの確認: 盤で指した手の行き先（`BoardInputRoute`、`src/board/boardinputroute.h`）の `acceptsInput()` が false なら無視する。主画面の行き先は `BoardMoveController` で、`BoardMoveController` のコンストラクタが `setInputRoute(this)` で登録する。局面編集中は常に受け付け、それ以外は `HumanTurnPolicy::isHumanTurnNow()`（`src/ui/policy/humanturnpolicy.cpp`）で決める。対局中は `MatchCoordinator::isHumanSide(盤の手番)`、通信対局中は人間が指していて自分の手番か、対局していないときは棋譜を変えてよいか（`HumanTurnPolicy::canEditRecord()`。待機中だけ記録する）。解析中・詰み探索中・検討中は受け付けない。
 2. 1回目のクリック（駒選択）: 持ち駒のない駒台のマスは無視する。`ShogiView::startDrag()` でドラッグを始め、`selectPieceAndHighlight()` で駒を選ぶ。選んだマスを `BoardHighlightLayer::Selection` の層に、合法な移動先（`EngineMoveValidator` で判定）を `LegalDestinations` の層に出す（メニューで表示を切り替えられる）。相手の駒台や空きマスは選ばない。`m_waitingSecondClick = true` に設定する。
 3. 2回目のクリック（移動先指定）: 同じマスならキャンセルする。別のマスなら行き先の `BoardInputRoute::submit(from, to)` に渡し、行き先から戻ってから `ShogiView::endDrag()` でドラッグを終える（行き先が成り・不成を尋ねている間もドラッグ状態を保つ）。
 

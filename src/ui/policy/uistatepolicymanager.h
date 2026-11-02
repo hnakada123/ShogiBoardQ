@@ -14,6 +14,7 @@ class KifuNavigationController;
 class EvaluationChartWidget;
 class BranchTreeView;
 class ConsiderationPanel;
+class JosekiWindow;
 
 namespace Ui { class MainWindow; }
 
@@ -84,7 +85,8 @@ public:
         SettingsReset,
 
         // --- ウィジェット ---
-        WidgetNavigation,      ///< ナビゲーションボタン + 棋譜欄・評価値グラフのクリック
+        WidgetNavigation,      ///< 棋譜を移る・変える操作（局面送りのボタン・棋譜欄と分岐候補欄・評価値グラフのクリック・
+                               ///< 定跡ウィンドウの「定跡を外れた手」と「棋譜に展開...」）。HumanTurnPolicy::canBrowseRecord もこの行
         WidgetBranchTree,      ///< 分岐ツリークリック
         WidgetConsiderationStart, ///< 検討ドック「検討開始」ボタン
 
@@ -94,11 +96,12 @@ public:
     /// 依存オブジェクト
     struct Deps {
         Ui::MainWindow* ui = nullptr;
-        RecordPane* recordPane = nullptr;                     ///< 棋譜欄のクリック
+        RecordPane* recordPane = nullptr;                     ///< 棋譜欄・分岐候補欄のクリック
         KifuNavigationController* navigation = nullptr;       ///< 局面送りの操作（棋譜欄と評価値グラフのボタン）
         EvaluationChartWidget* evalChart = nullptr;            ///< 評価値グラフの局面移動
         BranchTreeView* branchTree = nullptr;                 ///< 分岐ツリーのクリック
         ConsiderationPanel* consideration = nullptr;     ///< 検討ドックの「検討開始」
+        JosekiWindow* joseki = nullptr;                  ///< 定跡ウィンドウの「定跡を外れた手」・「棋譜に展開...」
         std::function<bool()> localGameHasHuman;  ///< ローカル対局に人間が参加しているか（待った・投了・入玉宣言）
         std::function<bool()> canResumeGame;      ///< 中断した対局を再開できるか（司令塔に問い合わせる）
         const AppActivityState* activity = nullptr;   ///< 動作状態（必須）

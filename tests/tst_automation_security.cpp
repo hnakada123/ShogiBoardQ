@@ -6,11 +6,18 @@
 #include <QMainWindow>
 #include <QTemporaryDir>
 
+#include "appactivitystate.h"
 #include "automationcommands.h"
 #include "automationcontext.h"
 #include "automationdispatcher.h"
 #include "automationwidgets.h"
+#include "branchtree_test_util.h"
 #include "csagamedialog.h"
+#include "errorkinds.h"
+#include "humanturnpolicy.h"
+#include "kifubranchtree.h"
+#include "kifunavigationcontroller.h"
+#include "kifunavigationstate.h"
 #include "networksettings.h"
 
 class TestAutomationSecurity : public QObject
@@ -29,6 +36,48 @@ private slots:
     {
         QVERIFY(m_config.isValid());
         qputenv("SHOGIBOARDQ_CONFIG_HOME", m_config.path().toUtf8());
+    }
+
+    /// 自動化 API は GUI の規則を迂回しない。kifu.goto は棋譜欄と同じ規則で、対局中・棋譜解析中・局面編集中は
+    /// 移らずに invalid_state を返す（監査 2026-11-01 F9。HumanTurnPolicy::canBrowseRecord）
+    void kifuGotoFollowsTheBrowseRule()
+    {
+        KifuBranchTree tree;
+        tree.setRootSfen(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"));
+        KifuBranchNode* first = TestTree::addMove(tree, tree.root(), ShogiMove(), QStringLiteral("▲７六歩(77)"),
+                                                  QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL w - 2"));
+        KifuNavigationState state(&tree);
+        KifuNavigationController nav(&state);
+        nav.goToNode(first);
+        AppActivityState activity;
+        HumanTurnPolicy::Deps policyDeps;
+        policyDeps.activity = &activity;
+        const HumanTurnPolicy policy(policyDeps);
+        AutomationContext context;
+        context.branchTree = &tree;
+        context.activity = &activity;
+        context.navState = &state;
+        context.navigationController = &nav;
+        context.turnPolicy = &policy;
+        AutomationDispatcher dispatcher;
+        AutomationCommands::registerKifuCommands(dispatcher, context);
+        const QJsonObject params{{QStringLiteral("ply"), 0}};
+
+        QObject owner;
+        for (const auto refused : {AppActivityState::Activity::DuringGame, AppActivityState::Activity::DuringAnalysis,
+                                   AppActivityState::Activity::DuringPositionEdit}) {
+            const ActivityLease lease = activity.begin(refused, &owner);
+            const QJsonObject response = call(dispatcher, QStringLiteral("kifu.goto"), params);
+            QCOMPARE(response.value(QStringLiteral("error")).toObject().value(QStringLiteral("data")).toObject()
+                         .value(QStringLiteral("slug")).toString(),
+                     ErrorKinds::slug(ErrorKind::InvalidState));
+            QCOMPARE(state.currentNode(), first);
+        }
+        // 検討中は移れる（検討は表示中の局面を追う）
+        const ActivityLease consideration = activity.begin(AppActivityState::Activity::DuringConsideration, &owner);
+        const QJsonObject response = call(dispatcher, QStringLiteral("kifu.goto"), params);
+        QVERIFY2(!response.contains(QStringLiteral("error")), QJsonDocument(response).toJson().constData());
+        QCOMPARE(state.currentNode(), tree.root());
     }
 
     void manuallyRevealedPasswordRemainsPrivate()

@@ -122,12 +122,18 @@ void JosekiWindowController::updateBookDeviation()
 
 void JosekiWindowController::onExpandRequested()
 {
+    // 棋譜を変えてよいか（HumanTurnPolicy::canEditRecord）は、条件を聞く前と、ダイアログを閉じた後に確かめる
+    // （開いている間に対局・棋譜解析・局面編集が始まることがある）
+    if (!m_branchEdit->canEdit()) {
+        showExpandRefused();
+        return;
+    }
     JosekiExpandDialog dialog(m_josekiWindow);
     // ダイアログを開いている間に読み書きが始まったら展開しない
     if (dialog.exec() != QDialog::Accepted || m_book->isBusy()) return;
     const JosekiLines::ExpandOptions options = dialog.options();
     if (!m_branchEdit->canEdit()) {
-        NotificationPresenter::information(m_parentWidget, tr("定跡を棋譜に展開"), tr("対局中は棋譜に展開できません。"));
+        showExpandRefused();
         return;
     }
     // 終局の行を表示していれば、その前の局面から展開する
@@ -146,6 +152,12 @@ void JosekiWindowController::onExpandRequested()
     if (result.truncated)
         text += QLatin1Char('\n') + tr("手の数が上限（%1 手）に達したため、途中で止めました。").arg(options.maxMoves);
     NotificationPresenter::information(m_parentWidget, tr("定跡を棋譜に展開"), text);
+}
+
+void JosekiWindowController::showExpandRefused() const
+{
+    NotificationPresenter::information(m_parentWidget, tr("定跡を棋譜に展開"),
+                                       tr("対局中・棋譜解析中・局面編集中は棋譜に展開できません。"));
 }
 
 bool JosekiWindowController::determineHumanCanPlay() const

@@ -52,9 +52,9 @@ public:
         const HumanTurnPolicy* humanTurn = nullptr;   ///< 人間が今指せるか（定跡手を指せるか）
         /// 定跡手を盤に指す（盤の操作と同じ処理。必須）
         BoardMoveController* boardMoves = nullptr;
-        /// 定跡を棋譜の変化に展開する（必須）
+        /// 定跡を棋譜の変化に展開する（変えてよいかもここに聞く。必須）
         BranchTreeEditController* branchEdit = nullptr;
-        /// 定跡を外れた手へ移る（必須）
+        /// 定跡を外れた手へ移る（利用者の操作として、移る前の確認を通す。必須）
         KifuNavigationController* navController = nullptr;
     };
 
@@ -115,6 +115,8 @@ private:
     bool determineHumanCanPlay() const;
     /// 表示中の手順が定跡を外れた手を定跡ウィンドウに出す
     void updateBookDeviation();
+    /// 棋譜を変えられない状態なので展開しないと知らせる
+    void showExpandRefused() const;
 
     // 依存オブジェクト
     QWidget* m_parentWidget = nullptr;
