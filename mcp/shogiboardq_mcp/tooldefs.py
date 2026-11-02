@@ -513,8 +513,8 @@ PHASE2_TOOLS: list[types.Tool] = [
         "Click board square",
         "Click a square on the visible board through its normal mouse event handler. Click the source, then "
         "the destination to make a move. Coordinates are logical and do not change when the board is flipped. "
-        "For hand pieces use file=10 (Black), ranks 1..8=P,L,N,S,G,B,R,K; file=11 (White), ranks "
-        "9..2=P,L,N,S,G,B,R,K. Right-click cancels selection. Returns when the click is queued, not when "
+        "The hands and the piece box (while editing a position) are extra files; the file parameter lists their "
+        "ranks. Right-click cancels selection. Returns when the click is queued, not when "
         "a move is accepted or the engine finishes. Use get_widget_text/capture_screenshot to inspect the "
         "result. A promotion dialog can be answered with click_dialog_button. Hidden, disabled or modally "
         "blocked boards are refused; normal game input rules still apply.",

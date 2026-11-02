@@ -472,7 +472,8 @@
      "type": "string"
     },
     "file": {
-     "maximum": 11,
+     "description": "1-9 are the files of the board. 10 is Black's hand (rank 1=P 2=L 3=N 4=S 5=G 6=B 7=R 8=K), 11 is White's hand (rank 2=K 3=R 4=B 5=G 6=S 7=N 8=L 9=P) and 12 is the piece box shown while editing a position (rank 1=P 2=L 3=N 4=S 5=G 6=B 7=R 8=K).",
+     "maximum": 12,
      "minimum": 1,
      "type": "integer"
     },

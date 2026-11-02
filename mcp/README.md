@@ -57,7 +57,7 @@ ShogiBoardQ の機能を [Model Context Protocol (MCP)](https://modelcontextprot
 | `get_position` / `set_position` | 現在局面の取得と設定 |
 | `load_kifu` / `save_kifu` / `get_kifu` / `goto_ply` | 棋譜の読み込み・保存・取得・手数移動 |
 | `list_actions` / `trigger_action` | メニュー動作の一覧と実行（許可リスト方式） |
-| `click_board_square` | 盤面・駒台のクリック。回転・盤サイズに追従し、通常のマウス入力として処理 |
+| `click_board_square` | 盤面・駒台・駒箱（局面編集中）のクリック。回転・盤サイズに追従し、通常のマウス入力として処理 |
 | `show_dock` | 検討・思考などのドックを表示し、タブ化されている場合も前面へ移動 |
 | `list_docks` / `configure_dock` | 全ドックの状態確認、切り離し、四方向への再配置、タブ化、表示・非表示、タイトルバーのドラッグ |
 | `click_widget` / `set_widget_value` / `click_table_cell` | 名前またはselectorで部品を指定。ボタン、コンボ・数値・スライダー・チェック・リスト・色・テキスト、棋譜・読み筋表の操作 |
@@ -80,7 +80,8 @@ ShogiBoardQ の機能を [Model Context Protocol (MCP)](https://modelcontextprot
 成り選択は主画面と同じ確認ダイアログ（`PromoteDialog`）で、`click_dialog_button(target="PromoteDialog", text="成る")`
 （成らないときは `text="成らない"`）で回答します。
 駒台は先手が `file=10`・`rank=1..8`（歩・香・桂・銀・金・角・飛・玉）、
-後手が `file=11`・`rank=9..2`（同順）です。`button="right"` は選択を取り消します。
+後手が `file=11`・`rank=9..2`（同順）です。局面編集中は駒箱も `file=12`（先手の駒台と同じ並び）で押せます。
+段と駒の対応は `click_board_square` の `file` の説明にもあります。`button="right"` は選択を取り消します。
 ボタンは `widget`（objectName）か `text`（表示文字列の完全一致）で指定し、
 同名の問題カードは `index`（0始まり）で選択できます。
 非表示・無効な対象や、別のモーダルダイアログに遮られた対象は操作しません。
