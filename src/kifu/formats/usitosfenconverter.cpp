@@ -107,40 +107,33 @@ KifuParseOutcome UsiToSfenConverter::parse(QStringView text, const ParseOptions&
         outcome.warning = QStringLiteral("Unknown USI position format: %1\n").arg(content.left(80));
         return outcome;
     }
-    // 指し手の列。終局理由のコードの後は読まず、指し手として読めない語は飛ばす
-    QStringList usiMoves;
-    QString terminalCode;
-    for (const QString& token : words->moves) {
-        if (TerminalCodes::isUsiCode(token)) {
-            terminalCode = token.toLower();
-            break;
-        }
-        if (UsiMove::parse(token)) usiMoves.append(token);
-        else report.warn(QStringLiteral("Skipping unknown token: %1\n").arg(token));
-    }
     outcome.startKind = *start == Position::hirate() ? StartKind::Handicap : StartKind::Specified;
     outcome.record.mainline.startSfen = start->toSfen();
     // 指し手のない局面（.sfen ファイルなど）は局面だけを読む
-    if (usiMoves.isEmpty() && terminalCode.isEmpty()) {
+    if (words->moves.isEmpty()) {
         outcome.success = true;
         outcome.positionOnly = true;
-        outcome.warning = report.warnings();
         return outcome;
     }
 
+    // 指し手の列。終局理由のコードの後は読まない。読めない語・指せない手は、その手の手前で打ち切る（全形式で同じ。
+    // 読めない語を飛ばして続けると、後の手が1手ずれる）
     KifLineBuilder builder(*start);
-    for (const QString& moveText : std::as_const(usiMoves)) {
+    for (const QString& token : words->moves) {
+        if (TerminalCodes::isUsiCode(token)) {
+            builder.addTerminal(TerminalCodes::fromUsi(token), builder.sideToMove());
+            break;
+        }
         const int ply = builder.nextPly();
-        const std::optional<UsiMove> move = UsiMove::parse(moveText);
+        const std::optional<UsiMove> move = UsiMove::parse(token);
         if (!move || !builder.addMove(*move)) {
             report.rejectMove(ply, move ? builder.cannotRestore(QStringLiteral("USI"), ply)
-                                        : QStringLiteral("USI: Invalid USI move %1: %2").arg(ply).arg(moveText));
+                                        : QStringLiteral("USI: Invalid USI move %1: %2").arg(ply).arg(token));
             builder.stop();
             break;
         }
         builder.warnIrregularity(report, QStringLiteral("USI"), ply);
     }
-    if (!terminalCode.isEmpty()) builder.addTerminal(TerminalCodes::fromUsi(terminalCode), builder.sideToMove());
     outcome.warning = report.warnings();
     if (report.failed()) return outcome;
     outcome.record.mainline = builder.take();

@@ -178,12 +178,14 @@ std::optional<UsenLine> decodeLine(QStringView part, QString* error)
         moves = moves.left(terminalDot);
     }
 
+    // 読めない手（3文字に足りない末尾を含む）の手前まで読む
     for (qsizetype i = 0; i < moves.size(); i += 3) {
-        const int moveNumber = static_cast<int>(i / 3) + 1;
-        if (i + 3 > moves.size()) return fail(QStringLiteral("Incomplete USEN move at %1").arg(moveNumber));
-        const std::optional<UsiMove> move = decodeMove(moves.mid(i, 3));
-        if (!move)
-            return fail(QStringLiteral("Move %1 '%2' could not be decoded").arg(moveNumber).arg(moves.mid(i, 3)));
+        const QStringView code = moves.mid(i, 3);
+        const std::optional<UsiMove> move = decodeMove(code);
+        if (!move) {
+            line.unreadableMove = code.toString();
+            break;
+        }
         line.moves.append(*move);
     }
     return line;

@@ -179,16 +179,17 @@ bool readJkfLine(const QJsonArray& moves, bool isMainline, KifLineBuilder& build
 
         const QJsonObject moveObject = obj[QStringLiteral("move")].toObject();
         const std::optional<UsiMove> move = JkfCodec::toUsiMove(moveObject);
+        // 読めない手・指せない手は、その手の手前で手順を打ち切る（全形式で同じ）
         if (!move) {
-            report.fail(QStringLiteral("JKF: invalid move at ply %1").arg(ply));
-            return false;
+            if (!report.rejectMove(ply, QStringLiteral("JKF: invalid move at ply %1").arg(ply))) return false;
+            builder.stop();
+            break;
         }
         RecordTime recordTime = KifLineBuilder::zeroTime();
         if (hasTime) {
             const Turn side = normalizedColorIndex(moveObject, ply, report) == 0 ? Turn::Black : Turn::White;
             recordTime = builder.timeFor(side, time.elapsedMs, time.totalMs);
         }
-        // 指せない手は、その手の手前で手順を打ち切る（全形式で同じ）
         if (!builder.addMove(*move, recordTime, JkfCodec::notesOf(moveObject))) {
             if (!report.rejectMove(ply, builder.cannotRestore(QStringLiteral("JKF"), ply)))
                 return false;

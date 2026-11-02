@@ -17,6 +17,8 @@ struct UsenLine {
     QList<UsiMove> moves;
     QString terminal;        ///< 終局コード（先頭の1文字。TerminalCodes::fromUsen。無ければ空）
     std::optional<UsiMove> illegalMove;  ///< 反則の終局コード i の後ろの反則手（局面には指さない。無ければ nullopt）
+    /// 読めなかった最初の指し手の文字（moves はその手前まで。その手から後は読まない。無ければ空）
+    QString unreadableMove;
 };
 
 /**
@@ -45,10 +47,11 @@ QString encodePosition(const QString& sfen);
 /// "~" の前の部分を SFEN にする（手数を省いていれば 1 を補う。空なら空）
 QString decodePosition(QStringView part);
 
-/// 1本の手順（"<オフセット>.<指し手の3文字の列>[.<終局コード>]"）を読む。1手でも読めない・終局コードが読めなければ
-/// nullopt と error
+/// 1本の手順（"<オフセット>.<指し手の3文字の列>[.<終局コード>]"）を読む。オフセットか終局コードが読めなければ
+/// nullopt と error。読めない指し手は、その手前までの手と unreadableMove にする（どう扱うかは読み手の ParseReport が決める）
 std::optional<UsenLine> decodeLine(QStringView part, QString* error = nullptr);
-/// 棋譜の "~" より後（最初が本譜、続きが変化）を読む。開始局面の部分は読まない。1本でも読めなければ nullopt と error
+/// 棋譜の "~" より後（最初が本譜、続きが変化）を読む。開始局面の部分は読まない。1本でも decodeLine が nullopt なら
+/// nullopt と error
 std::optional<QList<UsenLine>> decodeLines(QStringView usen, QString* error = nullptr);
 
 } // namespace UsenCodec

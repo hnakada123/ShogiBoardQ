@@ -312,6 +312,33 @@ private slots:
         p.document->markSaved(QString());
     }
 
+    /// USI の読めない語は、後の手を詰めて読まずに手前で打ち切り、指し手が残らなくても警告を出す（監査 2026-11-01 F2）
+    void usiUnreadableMoveIsReported_data()
+    {
+        QTest::addColumn<QString>("text");
+        QTest::addColumn<QStringList>("moves");
+        QTest::newRow("middle") << QStringLiteral("position startpos moves 7g7f 7g7x 3c3d")
+                                << QStringList{QStringLiteral("7g7f")};
+        QTest::newRow("first") << QStringLiteral("position startpos moves 7g7x 3c3d") << QStringList{};
+    }
+
+    void usiUnreadableMoveIsReported()
+    {
+        QFETCH(QString, text);
+        QFETCH(QStringList, moves);
+        MainWindow window;
+        auto& p = window.composer().parts();
+        QSignalSpy warnings(p.kifuLoader, &KifuLoader::warningOccurred);
+        NotificationPresenter::ScopedCapture shown;
+        QVERIFY2(p.kifuFileController->loadKifuText(text), qPrintable(shown.errors().join(QLatin1Char('\n'))));
+        QCOMPARE(p.branchTree->mainRecordLine().usiMoves(), moves);
+        QCOMPARE(warnings.count(), 1);
+        QVERIFY2(warnings.first().first().toString().contains(QStringLiteral("7g7x")),
+                 qPrintable(warnings.first().first().toString()));
+        QVERIFY(shown.errors().isEmpty());
+        p.document->markSaved(QString());
+    }
+
     /// 盤と持駒として成り立たない開始局面（持駒に金五枚）の棋譜は、CLI と同じく開かずにエラーにする
     void invalidStartPositionIsRejected()
     {
