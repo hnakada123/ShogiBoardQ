@@ -76,8 +76,6 @@ public:
     /// 定跡手を指せるかを問い合わせ直し、変わっていれば表の「着手」を作り直す
     void updateHumanCanPlay();
 
-    /// 定跡手を盤に指せなかったことを知らせる
-    void showMoveFailed(const QString &usiMove);
     /// 表示中の手順が定跡を外れた手を出す（ply > 0 ならその手数の手 moveText、0 ならすべて定跡、負なら出さない）
     void setBookDeviation(int ply, const QString &moveText);
     /// 棋譜を移る・変える操作（「定跡を外れた手」へ移る・「棋譜に展開...」）を押せるようにするか
@@ -105,7 +103,7 @@ signals:
     void addMoveRequested(const QString &sfen);
     void editMoveRequested(const QString &sfen, const JosekiMove &move);
     void deleteMoveRequested(const QString &sfen, const QString &usiMove);
-    /// 定跡手を盤に指す（指せるときだけ出す）
+    /// 「着手」を押した（定跡手を盤に指す。指せるかの確かめと、指せなかったときの知らせは受け手が行う）
     void josekiMoveSelected(const QString &usiMove);
 
     /// 「棋譜に展開...」を押した（表示中の局面から定跡を棋譜の変化に展開する）

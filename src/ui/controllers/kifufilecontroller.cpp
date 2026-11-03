@@ -7,7 +7,6 @@
 #include "kifufilefilter.h"
 #include "appactivitystate.h"
 #include "bodtextgenerator.h"
-#include "errorbus.h"
 #include "gamesettings.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
@@ -296,7 +295,8 @@ void KifuFileController::autoSaveKifu(const QString& saveDir, const QString& ext
         return;
     }
     qCWarning(lcKifu).noquote() << "autoSaveKifu failed:" << errorText;
-    ErrorBus::instance().postMessage(ErrorBus::ErrorLevel::Error, tr("棋譜の自動保存に失敗しました: %1").arg(errorText));
+    NotificationPresenter::critical(m_deps.parentWidget, tr("棋譜の自動保存"),
+                                    tr("棋譜の自動保存に失敗しました: %1").arg(errorText));
 }
 
 // ============================================================

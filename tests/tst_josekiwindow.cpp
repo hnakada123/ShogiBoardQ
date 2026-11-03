@@ -155,6 +155,7 @@ private slots:
     void testReorderRows();
     void testExpandAndDeviation();
     void testButtonColumnsActOnRow();
+    void testStalePlayLeavesNoticeToController();
     void testMoveListPlaceholder();
     void testMoveListFollowsNotation();
     void testFontButtonsKeepWidth();
@@ -1631,6 +1632,35 @@ void TestJosekiWindow::testButtonColumnsActOnRow()
     m_responseRole = QMessageBox::AcceptRole;
     QCOMPARE(window.m_model->rowCount(), 0);
     QVERIFY(window.m_session->isModified());
+}
+
+/// 表を作った後で指せなくなってから「着手」を押すと、着手ボタンを消して押したことを知らせるだけ。
+/// 指せるかの確かめと知らせは受け手（JosekiWindowController）が行い、ウィンドウはメッセージボックスを
+/// 出さない（監査 2026-11-01 M16）
+void TestJosekiWindow::testStalePlayLeavesNoticeToController()
+{
+    JosekiSettings::josekiWindowAutoLoadEnabled.set(false);
+    JosekiBookSession session;
+    JosekiPanel panel(&session);
+    JosekiWindow &window = panel.window;
+    QVERIFY(seedWindow(window, m_tempDir.filePath(QStringLiteral("stale.db"))));
+    window.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&window));
+    bool canPlay = true;
+    window.setHumanCanPlayProvider([&canPlay] { return canPlay; });
+    window.updateJosekiDisplay();
+    QVERIFY(window.m_model->humanCanPlay());
+
+    canPlay = false;   // 表を作った後で終局・手番交代した
+    QSignalSpy selected(&window, &JosekiWindow::josekiMoveSelected);
+    m_messageSeen = false;
+    QTimer::singleShot(0, this, &TestJosekiWindow::respondToMessageBox);
+    emit window.m_tableView->clicked(window.m_model->index(0, JosekiTableModel::Play));
+    QCoreApplication::processEvents();
+    QVERIFY(!m_messageSeen);
+    QCOMPARE(selected.count(), 1);
+    QCOMPARE(selected.first().first().toString(), QStringLiteral("7g7f"));
+    QVERIFY(!window.m_model->humanCanPlay());   // 着手ボタンは消えた
 }
 
 QTEST_MAIN(TestJosekiWindow)

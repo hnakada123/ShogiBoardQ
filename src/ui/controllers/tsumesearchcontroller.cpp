@@ -4,7 +4,7 @@
 #include "tsumesearchcontroller.h"
 
 #include "analysissession.h"
-#include "errorbus.h"
+#include "notificationpresenter.h"
 #include "kifunavigationstate.h"
 #include "matesearchposition.h"
 #include "tsumeshogisearchdialog.h"
@@ -28,8 +28,8 @@ void TsumeSearchController::showDialogAndStart()
 {
     const std::optional<UsiPosition> position = positionForMate();
     if (!position) {
-        ErrorBus::instance().postMessage(
-            ErrorBus::ErrorLevel::Warning,
+        NotificationPresenter::warning(
+            m_deps.parentWidget, tr("詰み探索"),
             tr("詰み探索用の局面（SFEN）が取得できません。棋譜を読み込むか局面を指定してください。"));
         return;
     }
@@ -40,7 +40,7 @@ void TsumeSearchController::showDialogAndStart()
         if (dialog.exec() != QDialog::Accepted) return;
         const std::optional<EngineEntry> engine = dialog.engine();
         if (!engine) {
-            ErrorBus::instance().postMessage(ErrorBus::ErrorLevel::Warning, tr("詰み探索エンジンの選択が不正です。"));
+            NotificationPresenter::warning(m_deps.parentWidget, tr("詰み探索"), tr("詰み探索エンジンの選択が不正です。"));
             return;
         }
         options.mode = AnalysisOptions::Mode::Tsume;
