@@ -24,7 +24,7 @@ namespace PositionCollectionFile {
 /// 読めた1行
 struct Line {
     int lineNumber = 0;      ///< ファイルの行番号（1始まり）
-    QString startSfen;       ///< 書かれた局面（SFEN の4語。startpos は平手の SFEN）
+    QString startSfen;       ///< 書かれた局面（SFEN の4語。手数を省いた行は手数 1。startpos は平手の SFEN）
     QStringList moves;       ///< moves の後の指し手
     bool movesPlayed = false; ///< position コマンドの指し手（true）か、参考手順（false）か
 

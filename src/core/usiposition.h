@@ -48,13 +48,18 @@ public:
         QString start;
         /// 開始局面の後の語（"moves" は除く）
         QStringList moves;
+        /// 前に "position" を書いた（position コマンドの行。局面集はその指し手を指した後の局面にする）
+        bool positionCommand = false;
+        /// 開始局面を "startpos" で書いた
+        bool startpos = false;
         /// 手数の欄を省いた開始局面に手数 1 を補った SFEN
         QString completeStart() const;
     };
     /**
      * @brief position コマンド（"position startpos moves ..." / "position sfen ... moves ..."）を語に分ける
      *
-     * position コマンド・局面の文字列の読み方はここだけで決める（parse・sfenOf・棋譜の USI 形式の読み込みが使う）。
+     * position コマンド・局面の文字列の読み方はここだけで決める（parse・sfenOf・棋譜の USI 形式の読み込み・
+     * 局面集ファイルの行 PositionCollectionFile::parseLine が使う）。
      * "position"・"sfen"・"moves" は省け、"position"・"sfen"・"startpos"・"moves" は大文字と小文字を区別しない。
      * SFEN は盤・手番・持ち駒の3つの欄と、数字だけなら手数の欄。開始局面の欄が3つに足りなければ nullopt
      */

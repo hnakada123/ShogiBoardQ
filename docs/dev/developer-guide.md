@@ -185,6 +185,7 @@
 | 2026-11-03 | 保存できる形式の定義を保存の表1つにした（監査 2026-11-01 T5）（`KifuFormats::savableNames()` は保存の表から作り、並びは表の順。使っていない `isSavable()` を消した。CLI の `environment` に `kifu_save_suffixes` を足し、MCP の `save_kifu` はアプリの `kifu.save` と同じく `.sfen` を断る） |
 | 2026-11-03 | 詰みの問い合わせを `MateOracle` の1系統にした（監査 2026-11-01 M1・U2）のに合わせて §7.1・§9.7 を更新（`MateOracle` は接続を持つか借りる。GUI の詰み探索 `AnalysisSession` は `Usi::session()` を借りた `MateOracle` で問い合わせ、`Usi::startMateSearch()`・`Usi::searchTimedOut` を消した。go mate に bestmove で答えるエンジンの答えは `MateOracle` が `Unknown` にし、CLI の `mate`・`verify-tsume`・詰将棋生成も待ち続けない） |
 | 2026-11-03 | 定跡手の表記を1つの関数にした（監査 2026-11-01 M3）（定跡ウィンドウの表・定跡手のダイアログの一覧とラベル・定跡に登録した知らせと右クリックのメニュー・定跡を外れた手は、どれも `JosekiTableModel::moveText` で作る。一覧の合法手は局面を読み直さない `moveText(Position, UsiMove)`） |
+| 2026-11-03 | position の文字列の語の分け方を `UsiPosition::split` だけにした（監査 2026-11-01 M4）（`UsiPosition::Words` に前に position を書いたか `positionCommand`・startpos で書いたか `startpos` を足した。局面集ファイルの行 `PositionCollectionFile::parseLine` はこれで分け、手数の欄と `moves` を省いた行も読む。USI 形式の棋譜のファイルの対象の行は split と `Position::fromSfen` で選び、仮の SFEN を組み立てて盤の欄を確かめる判定を消した） |
 
 <!-- chapter-0-end -->
 

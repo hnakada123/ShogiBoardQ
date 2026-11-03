@@ -690,6 +690,25 @@ private slots:
         QVERIFY(!plain.variationsDropped);
     }
 
+    /// USI 形式のファイルは、局面として読める最初の行を読む（行の判定も position コマンドと同じ UsiPosition::split
+    /// と Position::fromSfen。監査 M4）。コメントや、"sfen" で始まっても局面として読めない行は飛ばす
+    void usiReadsTheFirstReadablePositionLine()
+    {
+        KifuConversionService::Request request;
+        request.inputFormat = Format::Usi;
+        request.outputFormat = Format::Usi;
+        request.text = QStringLiteral("# ShogiGUI\nsfen broken b - 1\n\nposition startpos moves 7g7f 3c3d\n");
+        const auto result = KifuConversionService::convert(request);
+        QVERIFY2(result.ok, qPrintable(result.failure.message));
+        QCOMPARE(result.usiMoves, (QStringList{QStringLiteral("7g7f"), QStringLiteral("3c3d")}));
+
+        // 手数を省いた SFEN と "moves" を省いた手も、position コマンドと同じく読む
+        request.text = QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b G 5i4h\n");
+        const auto omitted = KifuConversionService::convert(request);
+        QVERIFY2(omitted.ok, qPrintable(omitted.failure.message));
+        QCOMPARE(omitted.usiMoves, QStringList{QStringLiteral("5i4h")});
+    }
+
     /// 書けるものの表（KifuExport::capabilities）は、書き出しが実際に消費時間・コメント・しおりを書くかと合う
     void capabilitiesMatchWhatTheExportersWrite_data()
     {
