@@ -184,6 +184,7 @@
 | 2026-11-03 | 棋譜解析の1局面の評価値を GUI と CLI で1つにした（監査 2026-11-01 U3）のに合わせて §9.3・§9.6 を更新（`PlyAnalysis::score`（手番側から見た値）を `blackScore`（先手から見た値）にし、`PlyAnalysisCollector` が解析した局面の手番で直す。GUI の `KifuAnalysisRowPresenter` は SFEN の手番の字を読まず、CLI の `analyze-kifu` は最後に読み筋のあった info（`latestLines()`）でなくこの値を使う） |
 | 2026-11-03 | 保存できる形式の定義を保存の表1つにした（監査 2026-11-01 T5）（`KifuFormats::savableNames()` は保存の表から作り、並びは表の順。使っていない `isSavable()` を消した。CLI の `environment` に `kifu_save_suffixes` を足し、MCP の `save_kifu` はアプリの `kifu.save` と同じく `.sfen` を断る） |
 | 2026-11-03 | 詰みの問い合わせを `MateOracle` の1系統にした（監査 2026-11-01 M1・U2）のに合わせて §7.1・§9.7 を更新（`MateOracle` は接続を持つか借りる。GUI の詰み探索 `AnalysisSession` は `Usi::session()` を借りた `MateOracle` で問い合わせ、`Usi::startMateSearch()`・`Usi::searchTimedOut` を消した。go mate に bestmove で答えるエンジンの答えは `MateOracle` が `Unknown` にし、CLI の `mate`・`verify-tsume`・詰将棋生成も待ち続けない） |
+| 2026-11-03 | 定跡手の表記を1つの関数にした（監査 2026-11-01 M3）（定跡ウィンドウの表・定跡手のダイアログの一覧とラベル・定跡に登録した知らせと右クリックのメニュー・定跡を外れた手は、どれも `JosekiTableModel::moveText` で作る。一覧の合法手は局面を読み直さない `moveText(Position, UsiMove)`） |
 
 <!-- chapter-0-end -->
 

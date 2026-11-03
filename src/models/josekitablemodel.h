@@ -12,6 +12,9 @@
 
 #include "josekitypes.h"
 
+class Position;
+struct UsiMove;
+
 /**
  * @brief 表示中の局面の定跡手の表
  *
@@ -41,8 +44,15 @@ public:
     const QList<JosekiMove> &moves() const { return m_moves; }
     bool humanCanPlay() const { return m_humanCanPlay; }
 
-    /// 定跡手の表記（KifuPresentation::move。表示言語と表記の設定に合わせる）。定跡の表は手ごとに独立しているので「同」は使わない
+    /**
+     * @brief 定跡手の表記（KifuPresentation::move。表示言語と表記の設定に合わせる）
+     *
+     * 定跡手を画面に出すときはどこでもこれを使う（定跡ウィンドウの表・定跡手のダイアログの一覧とラベル・
+     * 定跡に登録した知らせ・定跡を外れた手）。定跡の表は手ごとに独立しているので「同」は使わない。
+     */
     static QString moveText(const QString &usiMove, const QString &sfen);
+    /// 同じ局面の手を並べる一覧（定跡手のダイアログの合法手）の表記。局面を読み直さない
+    static QString moveText(const Position &before, const UsiMove &move);
     /// 導いた応手の表記（moveText を括弧で囲む）
     static QString derivedReplyText(const QString &moveText);
 

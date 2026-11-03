@@ -4,10 +4,14 @@
 #include <QtTest>
 #include <QAction>
 #include <QMenu>
+#include <QScopeGuard>
+#include <QStatusBar>
 #include <QTemporaryDir>
 
 #include "josekibooksession.h"
 #include "josekiregistrationcontroller.h"
+#include "josekitablemodel.h"
+#include "notationstyle.h"
 #include "kifuanalysislistmodel.h"
 #include "kifuanalysisrow.h"
 #include "sfenreplay.h"
@@ -158,6 +162,31 @@ private slots:
         QMenu noPvMenu;
         controller.onThinkingRowContextMenu(&thinking, 0, &noPvMenu);   // 新しい行は先頭
         QVERIFY(!noPvMenu.findChild<QAction *>(QStringLiteral("josekiRegisterPv"))->isEnabled());
+    }
+
+    /// 定跡手の表記は定跡ウィンドウの表と同じ JosekiTableModel::moveText（表記の設定に合わせる。監査 M3）
+    void registrationTextFollowsNotation()
+    {
+        NotationStyle::configure(QStringLiteral("en"), QStringLiteral("western"), false);
+        const auto restore = qScopeGuard([] {
+            NotationStyle::configure(QStringLiteral("ja_JP"), QStringLiteral("auto"), false);
+        });
+        KifuAnalysisListModel model;
+        fillAnalysis(model);
+        JosekiBookSession book;
+        QStatusBar statusBar;
+        JosekiRegistrationController::Deps d = deps(&book, &model);
+        d.statusBar = &statusBar;
+        JosekiRegistrationController controller(d);
+        QMenu menu;
+        controller.onAnalysisRowContextMenu(0, &menu);
+        auto *action = menu.findChild<QAction *>(QStringLiteral("josekiRegisterPv"));
+        QVERIFY(action);
+        const QString western = JosekiTableModel::moveText(QStringLiteral("7g7f"), hirate());
+        QVERIFY2(!western.contains(QStringLiteral("七")) && western.contains(QStringLiteral("7f")), qPrintable(western));
+        QVERIFY2(action->text().contains(western), qPrintable(action->text()));
+        action->trigger();
+        QVERIFY2(statusBar.currentMessage().contains(western), qPrintable(statusBar.currentMessage()));
     }
 
     /// 棋譜解析の結果の表の右クリックには、行の登録とまとめての登録を出す
