@@ -200,6 +200,7 @@
 | 2026-11-03 | 棋譜解析・詰み探索のダイアログの入力欄を設定の表で読み書きするようにした（監査 2026-11-01 M17・P5）のに合わせて §9.6・§9.7・§11.2・§11.3 を更新（`KifuAnalysisDialog` は思考時間と範囲のラジオの組、`TsumeShogiSearchDialog` は探索の制限時間の欄とラジオの組を `SettingsFormBinding` で読み書きする。開始・終了手数は `setMaxPly` の後で戻すので手で読み書きする。詰み探索のダイアログは制限時間を `timeLimitMs()`（ms。0 は無制限）の1つで返し、`byoyomiSec()`・`unlimitedTimeFlag()` を削除。欄の名前は `timeLimitSec`・`limitedTimeRadioButton`。棋譜解析のダイアログは `processEngineSettings` を `accept()` の上書きにし、直接呼んでも範囲と思考時間を決めて保存する（エンジンが無ければ閉じない）。`EngineSelector`・`KifuAnalysisDialog`・`CsaGameDialog`・`TsumeshogiGeneratorDialog` の `using Engine = EngineEntry` を消した。§11.2 の `SettingsFormBinding` の表に小数・2択・ラジオの組を足した） |
 | 2026-11-03 | SFEN の手番を文字列で読む写しを消した（監査 2026-11-01 M18）のに合わせて §5.7 を更新（盤の矢印の駒打ちの駒の色は `Position::fromSfenLike()` の手番、定跡の登録（`JosekiRegistrationController`）は `SfenUtils::sideToMove()` で読む。テストからしか使われていなかった `turnToSfen`・`sfenToTurn`（`shogitypes.h`）と `SfenUtils::kHirateBoardSfen`・`hirateBoardSfen()` を削除） |
 | 2026-11-03 | `ShogiView` の同じ仕事の入口を1組にした（監査 2026-11-01 M19）のに合わせて §11.1.4 を更新（`applyBoardAndRender` を消し、別の盤を渡したときの描き直しは `setBoard` が行う。`configureFixedSizing` を消し、範囲の外を端に寄せるのは `setSquareSize` が行う。起動時の合成ルートの空振りの呼び出しと、外観の見本が反転・局面を替えるたびの呼び出しも消した） |
+| 2026-11-03 | 盤を使う表示の部品を views に移した（監査 2026-11-01 P1）のに合わせて §1.5・§3.1・§3.2・§11.1.2・第17章・第18章を更新（`BoardViewerWidget`・`TsumePositionPreview` を widgets から views へ移し、層の順を「widgets → views」にした（views は widgets の `ElideLabel`・`GlobalToolTip` を使い、widgets は views を使わない。`tst_layer_dependencies` の widgets の行に views を足した）。筋・段の文字の描き方は `BoardStaticLayer::drawCoordinates()` の1つにし、`ShogiView::drawRanksAndFiles` とプレビューの写しを消した） |
 
 <!-- chapter-0-end -->
 
@@ -577,7 +578,9 @@ src/
 │   ├── shogiviewinteraction.cpp/.h #   ドラッグの状態
 │   ├── shogiviewhighlighting.cpp/.h #  ハイライト・矢印
 │   ├── piecepainter.cpp/.h         #   駒の描画（倍率と影、持駒の重ね描き）
-│   └── boardsurfacepainter.cpp/.h  #   盤・駒台の木肌と縁の描画
+│   ├── boardsurfacepainter.cpp/.h  #   盤・駒台の木肌と縁の描画
+│   ├── boardviewerwidget.cpp/.h    #   盤と縮小・拡大・回転・局面送り（読み筋・局面集・詰将棋・外観の見本で共通）
+│   └── tsumepositionpreview.cpp/.h #   詰将棋問題一覧の小さな盤（盤と同じ配置・木肌・筋と段の文字）
 │
 ├── widgets/                        # カスタムQtウィジェット
 │   ├── recordpane.cpp/.h           #   棋譜表示ペイン（見た目は値 Appearance を applyAppearance() の1か所で反映）
@@ -618,14 +621,13 @@ src/
 │   ├── playersetupwidget.cpp/.h    #   対局開始ダイアログの対局者1人の欄（人間かエンジンか・名前・「エンジン設定」）
 │   ├── timecontroleditor.cpp/.h    #   片方の対局者の持ち時間・秒読み・加算の欄（TimeControlSide で読み書き）
 │   ├── settingsformbinding.cpp/.h  #   入力欄と設定の宣言（Setting<T>）の対応の表（読み込み・保存・既定値に戻す）
-│   ├── boardviewerwidget.cpp/.h    #   盤と縮小・拡大・回転・局面送り（読み筋・局面集・詰将棋・外観の見本で共通）
 │   ├── menuwindow.cpp/.h           #   メニューのドックの中身（メニュー項目をボタンで並べる。お気に入り・ボタンの大きさ・タブは変えたときに保存）
 │   ├── menubuttonwidget.cpp/.h     #   メニューボタン
 │   ├── collapsiblegroupbox.cpp/.h  #   折りたたみグループボックス
 │   ├── elidelabel.cpp/.h           #   省略ラベル
 │   ├── flowlayout.cpp/.h           #   フローレイアウト
 │   ├── globaltooltip.cpp/.h, apptooltipfilter.cpp/.h # ツールチップ
-│   └── longlongspinbox, countspinbox, numericrightaligncommadelegate.h, tsumepositionpreview, opaquebackground, layoutboundarywidget # 入力・表示の小部品
+│   └── longlongspinbox, countspinbox, numericrightaligncommadelegate.h, opaquebackground, layoutboundarywidget # 入力・表示の小部品
 │
 ├── board/                          # 盤面編集・操作
 │   ├── boardinteractioncontroller.cpp/.h # 盤のクリックを移動元・移動先にして行き先へ渡し、ハイライトを出す
@@ -1287,7 +1289,7 @@ ShogiBoardQは6種類の棋譜フォーマットを読み込める（局面だ�
 
 ### 3.1 レイヤー構造
 
-ShogiBoardQ はディレクトリごとに層を作る。下の層は上の層をインクルードしない。下から順に次のとおりで、同じ段に並ぶディレクトリどうしもインクルードしない（`views/`・`widgets/` は `board/` を、`analysis/`・`network/` は互いを参照しない）。
+ShogiBoardQ はディレクトリごとに層を作る。下の層は上の層をインクルードしない。下から順に次のとおりで、同じ段に並ぶディレクトリどうしもインクルードしない（`analysis/`・`network/` は互いを参照しない）。`views/`（盤の描画と、盤を使う表示の部品）は `widgets/` の `ElideLabel`・`GlobalToolTip` を使い、`widgets/` は `views/` を使わない。
 
 ```mermaid
 graph BT
@@ -1299,7 +1301,8 @@ graph BT
     MID["analysis/ ・ network/<br/>解析・CSA通信対局"]
     STYLE["style/<br/>ウィジェットの書体・見た目"]
     MODELS["models/<br/>Qtモデル・表示用データ"]
-    VIEW["views/ ・ widgets/<br/>盤の描画・部品"]
+    WIDGETS["widgets/<br/>部品"]
+    VIEW["views/<br/>盤の描画"]
     BOARD["board/<br/>盤面操作"]
     DLG["dialogs/<br/>ダイアログ"]
     UI["ui/<br/>presenters / controllers<br/>policy / docks / coordinators"]
@@ -1312,7 +1315,8 @@ graph BT
     MID --> GAME
     STYLE --> MID
     MODELS --> STYLE
-    VIEW --> MODELS
+    WIDGETS --> MODELS
+    VIEW --> WIDGETS
     BOARD --> VIEW
     DLG --> BOARD
     UI --> DLG
@@ -1329,7 +1333,7 @@ graph BT
 | **サービス** | `services/` | 設定の宣言と保存・登録エンジン・表記と翻訳の設定など、層を横断して使う GUI 非依存の機能 |
 | **ドメイン** | `kifu/`, `engine/`, `game/`, `analysis/`, `network/` | 棋譜・エンジン通信・対局進行・解析・通信対局のロジック。`engine/` は `game/` を知らない（`Usi` は `GameBoard` を持たない） |
 | **見た目** | `style/` | QWidget に依存する書体・アプリ全体のスタイル・ボタンと表のスタイルシート（`ApplicationFonts`・`ApplicationStyle`・`ButtonStyles`・`TableStyles`・`MoveFont`）と、対局画面の外観（`BoardAppearance`・`AppearanceSettings`・`PieceImageProvider`・`PieceStyleCatalog`・`BoardAppearanceCatalog`） |
-| **表示部品** | `models/`, `views/`, `widgets/`, `board/`, `dialogs/` | Qt のモデル・盤の描画・ウィジェット・盤面操作・ダイアログ |
+| **表示部品** | `models/`, `widgets/`, `views/`, `board/`, `dialogs/` | Qt のモデル・ウィジェット・盤の描画（`ShogiView` と、盤を使う `BoardViewerWidget`・`TsumePositionPreview`）・盤面操作・ダイアログ |
 | **UI の組み立て** | `ui/`, `app/` | 表示への反映（Presenter）・利用者操作の処理（Controller）・動作状態からの規則（`policy/`）・ドック（`docks/`）・複数の部品にまたがる流れ（Coordinator）と、MainWindow・合成ルート・メニューの接続（`MenuActionsWiring`） |
 
 ### 3.2 層間の依存ルール
@@ -1345,8 +1349,9 @@ graph BT
 | `game/` | `analysis/`・`network/` より上の全部 |
 | `analysis/`・`network/` | 互いと、`style/` より上の全部 |
 | `style/` | `engine/`・`game/`・`analysis/`・`network/` と、`models/` より上の全部 |
-| `models/` | `views/`・`widgets/`・`board/` より上の全部 |
-| `views/`・`widgets/` | `board/`・`dialogs/`・`ui/`・`app/` |
+| `models/` | `widgets/`・`views/`・`board/` より上の全部 |
+| `widgets/` | `views/`・`board/`・`dialogs/`・`ui/`・`app/` |
+| `views/` | `board/`・`dialogs/`・`ui/`・`app/` |
 | `board/` | `dialogs/`・`ui/`・`app/` |
 | `dialogs/` | `ui/`・`app/` |
 | `ui/` | `app/` |
@@ -6261,7 +6266,7 @@ ShogiView は QWidget を直接継承した **カスタムペイントウィジ�
 レイヤー 5   : drawPieces()              — 盤上の駒
 レイヤー 6   : drawStandPieces() / drawPieceBoxPieces() — 駒台の駒と枚数（局面編集中は駒箱の駒も）
 レイヤー 6.5 : ShogiViewHighlighting::drawArrows() — 候補手の矢印（駒台からの始点も駒の上に重ねる）
-レイヤー 7   : drawRanksAndFiles()       — 段・筋ラベル
+レイヤー 7   : BoardStaticLayer::drawCoordinates() — 段・筋ラベル（詰将棋問題一覧のプレビューも同じ関数）
 レイヤー 8   : ShogiViewInteraction::drawDraggingPiece() — ドラッグ中の駒（最前面）
 ```
 
@@ -8781,7 +8786,7 @@ statusBar()->showMessage(tr("手数: %1").arg(moveCount));
 └─ ログ・エラー通知・共有状態などの土台 ──→ src/common/
 ```
 
-置き場所は層の規則にも合わせる。下の層は上の層を `#include` しない。下から順に core・common → services → kifu → engine → game → analysis・network → style → models → views・widgets → board → dialogs → ui → app で、automation・cli は外側の入口である（analysis・network は互いを参照しない）。`tests/tst_layer_dependencies.cpp` が `#include` を調べて確かめる（§3.2）。たとえば game のクラスは ui の部品を知らないので、表示や棋譜への反映はシグナルか、上の層が実装するインターフェース（司令塔の棋譜の受け手 `MatchRecordSink` を app の `GameSession` が実装する、など）で知らせる。
+置き場所は層の規則にも合わせる。下の層は上の層を `#include` しない。下から順に core・common → services → kifu → engine → game → analysis・network → style → models → widgets → views → board → dialogs → ui → app で、automation・cli は外側の入口である（analysis・network は互いを参照しない）。`tests/tst_layer_dependencies.cpp` が `#include` を調べて確かめる（§3.2）。たとえば game のクラスは ui の部品を知らないので、表示や棋譜への反映はシグナルか、上の層が実装するインターフェース（司令塔の棋譜の受け手 `MatchRecordSink` を app の `GameSession` が実装する、など）で知らせる。
 
 #### 今回の例: 棋譜タグ機能
 
@@ -9433,7 +9438,8 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | BoardArrowActions | C | ui/controllers | 盤の矢印を出すかの4つの切り替え（手番側・先読み側・検討・定跡手）の `QAction` と、その保存 | 第9章, 第10章 |
 | BoardMoveController | C | ui/controllers | 主画面の `BoardInputRoute`。盤で指した手を、動作状態に合わせて処理する（局面編集・棋譜の変化の記録・通信対局・対局） | 第10章, 第15章 |
 | BoardSquare | S | core | 盤のマス（筋・段）の値型 | 第5章 |
-| BoardStaticLayer | C | views | 盤面のうち局面によらない部分（盤・マス・段筋の文字など）の画像 | 第11章 |
+| BoardStaticLayer | C | views | 盤面のうち局面によらない部分（盤・マス・罫線・駒台の木肌など）の画像と、筋・段の文字の描き方（`drawCoordinates`。盤と詰将棋問題一覧のプレビューで共通） | 第11章 |
+| BoardViewerWidget | C | views | 盤と縮小・拡大・回転・局面送り（読み筋盤・局面集ビューア・詰将棋を解く画面・外観の見本で共通） | 第11章 |
 | BoardSyncPresenter | C | ui/presenters | 表示中の手の局面に盤を合わせ、指し手のハイライトと手番を示す | 第10章 |
 | BranchNodeItem | C | widgets | 分岐ツリーの図の1手（開始局面を含む）の図形 | 第11章 |
 | BranchTreeEditController | C | ui/controllers | 分岐ツリーの右クリックメニューからの分岐の編集と、盤上の変化の記録 | 第10章 |
@@ -9664,6 +9670,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | TimeDisplayPresenter | C | ui/presenters | 時計の表示の更新（`ShogiClock::timeUpdated` を直接受ける） | 第10章 |
 | TsumeCandidateJob | C | analysis | 詰将棋の候補1つを採択か棄却まで進める（手数の確認・唯一解の検査・要らない駒の除去） | 第9章 |
 | TsumeCollectionSession | C | analysis | 詰将棋集の進捗・解析待ちの管理 | 第9章 |
+| TsumePositionPreview | C | views | 詰将棋問題一覧の小さな盤（盤と同じ配置 `BoardGeometry`・木肌・筋と段の文字） | 第11章 |
 | TsumeSearchController | C | ui/controllers | 詰み探索（メニューの「詰み探索」: 条件ダイアログを出して表示中の局面を探索する） | 第9章 |
 | TsumeshogiGenerator | C | analysis | 詰将棋局面の自動生成（候補の待ち行列・問い合わせの中継・結果の集計） | 第9章 |
 | TsumeShogiSearchDialog | C | dialogs | 詰将棋探索ダイアログ | 第11章 |

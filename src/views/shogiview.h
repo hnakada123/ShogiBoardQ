@@ -148,7 +148,6 @@ protected:
 
 private:
     // ───────────────────────────── 描画ヘルパ（盤/駒/ラベル） ────────────────
-    void drawRanksAndFiles(QPainter* painter) const;           // 段・筋の番号
 
     void drawPieces(QPainter* painter);                        // 盤の全駒
     void drawPiece(QPainter* painter, int file, int rank);

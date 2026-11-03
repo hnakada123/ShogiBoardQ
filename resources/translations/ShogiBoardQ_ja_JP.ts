@@ -1601,82 +1601,82 @@
 <context>
     <name>BoardViewerWidget</name>
     <message>
-        <location filename="../../src/widgets/boardviewerwidget.cpp" line="39"/>
+        <location filename="../../src/views/boardviewerwidget.cpp" line="39"/>
         <source>先手</source>
         <translation>先手</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/boardviewerwidget.cpp" line="40"/>
+        <location filename="../../src/views/boardviewerwidget.cpp" line="40"/>
         <source>後手</source>
         <translation>後手</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/boardviewerwidget.cpp" line="78"/>
+        <location filename="../../src/views/boardviewerwidget.cpp" line="78"/>
         <source>縮小</source>
         <translation>縮小</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/boardviewerwidget.cpp" line="78"/>
+        <location filename="../../src/views/boardviewerwidget.cpp" line="78"/>
         <source>将棋盤を縮小する</source>
         <translation>将棋盤を縮小する</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/boardviewerwidget.cpp" line="79"/>
+        <location filename="../../src/views/boardviewerwidget.cpp" line="79"/>
         <source>拡大</source>
         <translation>拡大</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/boardviewerwidget.cpp" line="79"/>
+        <location filename="../../src/views/boardviewerwidget.cpp" line="79"/>
         <source>将棋盤を拡大する</source>
         <translation>将棋盤を拡大する</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/boardviewerwidget.cpp" line="80"/>
+        <location filename="../../src/views/boardviewerwidget.cpp" line="80"/>
         <source>盤面の回転</source>
         <translation>盤面の回転</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/boardviewerwidget.cpp" line="80"/>
+        <location filename="../../src/views/boardviewerwidget.cpp" line="80"/>
         <source>盤面を回転する</source>
         <translation>盤面を回転する</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/boardviewerwidget.cpp" line="105"/>
+        <location filename="../../src/views/boardviewerwidget.cpp" line="105"/>
         <source>最初</source>
         <translation>最初</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/boardviewerwidget.cpp" line="105"/>
+        <location filename="../../src/views/boardviewerwidget.cpp" line="105"/>
         <source>最初の局面に移動</source>
         <translation>最初の局面に移動</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/boardviewerwidget.cpp" line="106"/>
+        <location filename="../../src/views/boardviewerwidget.cpp" line="106"/>
         <source>前へ</source>
         <translation>前へ</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/boardviewerwidget.cpp" line="106"/>
+        <location filename="../../src/views/boardviewerwidget.cpp" line="106"/>
         <source>前の局面に移動</source>
         <translation>前の局面に移動</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/boardviewerwidget.cpp" line="107"/>
+        <location filename="../../src/views/boardviewerwidget.cpp" line="107"/>
         <source>次へ</source>
         <translation>次へ</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/boardviewerwidget.cpp" line="107"/>
+        <location filename="../../src/views/boardviewerwidget.cpp" line="107"/>
         <source>次の局面に移動</source>
         <translation>次の局面に移動</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/boardviewerwidget.cpp" line="108"/>
+        <location filename="../../src/views/boardviewerwidget.cpp" line="108"/>
         <source>最後</source>
         <translation>最後</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/boardviewerwidget.cpp" line="108"/>
+        <location filename="../../src/views/boardviewerwidget.cpp" line="108"/>
         <source>最後の局面に移動</source>
         <translation>最後の局面に移動</translation>
     </message>
@@ -1831,7 +1831,7 @@
 <context>
     <name>CandidateArrowPresenter</name>
     <message>
-        <location filename="../../src/ui/presenters/candidatearrowpresenter.cpp" line="208"/>
+        <location filename="../../src/ui/presenters/candidatearrowpresenter.cpp" line="210"/>
         <source>先読み：%1を想定</source>
         <translation>先読み：%1を想定</translation>
     </message>
@@ -6921,63 +6921,63 @@ OKを選択すると保存先が指定できます。</translation>
 <context>
     <name>JosekiRegistrationController</name>
     <message>
-        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="72"/>
+        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="63"/>
         <source>読み筋の最初の手を定跡に登録</source>
         <translation>読み筋の最初の手を定跡に登録</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="74"/>
+        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="65"/>
         <source>読み筋の最初の手（%1）を定跡に登録</source>
         <translation>読み筋の最初の手（%1）を定跡に登録</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="81"/>
+        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="72"/>
         <source>この行には局面に合った読み筋がありません</source>
         <translation>この行には局面に合った読み筋がありません</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="83"/>
+        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="74"/>
         <source>定跡ウィンドウで定跡を開くと登録できます（読み書き中は登録できません）</source>
         <translation>定跡ウィンドウで定跡を開くと登録できます（読み書き中は登録できません）</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="85"/>
+        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="76"/>
         <source>読み筋の2手目を予想応手にします。登録済みの手は評価値・深さ・予想応手だけを書き換えます</source>
         <translation>読み筋の2手目を予想応手にします。登録済みの手は評価値・深さ・予想応手だけを書き換えます</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="107"/>
+        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="98"/>
         <source>結果をまとめて定跡に登録...</source>
         <translation>結果をまとめて定跡に登録...</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="50"/>
-        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="120"/>
+        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="41"/>
+        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="111"/>
         <source>%1 を定跡に登録しました</source>
         <translation>%1 を定跡に登録しました</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="45"/>
+        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="36"/>
         <source>定跡の読み書き中のため、盤の手を登録できませんでした</source>
         <translation>定跡の読み書き中のため、盤の手を登録できませんでした</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="123"/>
+        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="114"/>
         <source>定跡の %1 の評価値・深さ・予想応手を書き換えました</source>
         <translation>定跡の %1 の評価値・深さ・予想応手を書き換えました</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="168"/>
+        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="159"/>
         <source>定跡に %1 手を登録し、%2 手を書き換えました（定跡ウィンドウで保存してください）</source>
         <translation>定跡に %1 手を登録し、%2 手を書き換えました（定跡ウィンドウで保存してください）</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="169"/>
+        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="160"/>
         <source>定跡に %1 手を登録しました（定跡ウィンドウで保存してください）</source>
         <translation>定跡に %1 手を登録しました（定跡ウィンドウで保存してください）</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="171"/>
+        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="162"/>
         <source>結果をまとめて定跡に登録</source>
         <translation>結果をまとめて定跡に登録</translation>
     </message>
@@ -7983,47 +7983,47 @@ OKを選択すると保存先が指定できます。</translation>
         <translation>文字サイズを拡大</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="28"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="25"/>
         <source>解析開始</source>
         <translation>解析開始</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="31"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="28"/>
         <source>解析開始手数</source>
         <translation>解析開始手数</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="32"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="29"/>
         <source>解析終了手数</source>
         <translation>解析終了手数</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="34"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="31"/>
         <source>解析エンジン</source>
         <translation>解析エンジン</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="112"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="98"/>
         <source>約%1秒</source>
         <translation>約%1秒</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="113"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="99"/>
         <source>約%1分%2秒</source>
         <translation>約%1分%2秒</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="114"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="100"/>
         <source>約%1時間%2分</source>
         <translation>約%1時間%2分</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="115"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="101"/>
         <source>解析対象: %1局面&#x3000;所要時間の目安: %2</source>
         <translation>解析対象: %1局面&#x3000;所要時間の目安: %2</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="116"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="102"/>
         <source>エンジンの起動時間などにより、実際の所要時間は前後します。</source>
         <translation>エンジンの起動時間などにより、実際の所要時間は前後します。</translation>
     </message>
@@ -8036,7 +8036,7 @@ OKを選択すると保存先が指定できます。</translation>
         <translation type="vanished">エラー</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="196"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="179"/>
         <source>%1手目から%2手目まで</source>
         <translation>%1手目から%2手目まで</translation>
     </message>
@@ -12471,7 +12471,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation type="vanished">後手の駒を配置（手番は変更しません）</translation>
     </message>
     <message>
-        <location filename="../../src/views/shogiview.cpp" line="706"/>
+        <location filename="../../src/views/shogiview.cpp" line="662"/>
         <source>駒箱</source>
         <translation>駒箱</translation>
     </message>
@@ -13669,17 +13669,17 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>TsumePositionPreview</name>
     <message>
-        <location filename="../../src/widgets/tsumepositionpreview.cpp" line="51"/>
+        <location filename="../../src/views/tsumepositionpreview.cpp" line="49"/>
         <source>攻方</source>
         <translation>攻方</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/tsumepositionpreview.cpp" line="49"/>
+        <location filename="../../src/views/tsumepositionpreview.cpp" line="47"/>
         <source>玉方</source>
         <translation>玉方</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/tsumepositionpreview.cpp" line="103"/>
+        <location filename="../../src/views/tsumepositionpreview.cpp" line="93"/>
         <source>なし</source>
         <translation>なし</translation>
     </message>
@@ -13777,12 +13777,12 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>探索開始</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogisearchdialog.cpp" line="83"/>
+        <location filename="../../src/dialogs/tsumeshogisearchdialog.cpp" line="77"/>
         <source>詰み探索に対応したエンジンを選択してください。</source>
         <translation>詰み探索に対応したエンジンを選択してください。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogisearchdialog.cpp" line="84"/>
+        <location filename="../../src/dialogs/tsumeshogisearchdialog.cpp" line="78"/>
         <source>使用できるエンジンがありません。「設定」→「エンジン設定」で登録してください。</source>
         <translation>使用できるエンジンがありません。「設定」→「エンジン設定」で登録してください。</translation>
     </message>

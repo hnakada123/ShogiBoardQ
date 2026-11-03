@@ -658,6 +658,8 @@ set(SRC_UI
 set(SRC_VIEWS
     src/views/boardchromewidget.cpp
     src/views/boardchromewidget.h
+    src/views/boardviewerwidget.cpp
+    src/views/boardviewerwidget.h
     src/views/boardgeometry.cpp
     src/views/boardgeometry.h
     src/views/playercard.cpp
@@ -674,6 +676,8 @@ set(SRC_VIEWS
     src/views/shogiviewhighlighting.h
     src/views/shogiviewinteraction.cpp
     src/views/shogiviewinteraction.h
+    src/views/tsumepositionpreview.cpp
+    src/views/tsumepositionpreview.h
 )
 
 set(SRC_WIDGETS
@@ -683,8 +687,6 @@ set(SRC_WIDGETS
     src/widgets/analysisresultspanel.h
     src/widgets/apptooltipfilter.cpp
     src/widgets/apptooltipfilter.h
-    src/widgets/boardviewerwidget.cpp
-    src/widgets/boardviewerwidget.h
     src/widgets/branchtreelayout.cpp
     src/widgets/branchtreelayout.h
     src/widgets/branchnodeitem.cpp
@@ -783,8 +785,6 @@ set(SRC_WIDGETS
     src/widgets/thinkingtableview.h
     src/widgets/timecontroleditor.cpp
     src/widgets/timecontroleditor.h
-    src/widgets/tsumepositionpreview.cpp
-    src/widgets/tsumepositionpreview.h
     src/widgets/unsavedchangesprompt.cpp
     src/widgets/unsavedchangesprompt.h
     src/widgets/logpanel.cpp

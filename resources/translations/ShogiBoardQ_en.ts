@@ -1621,82 +1621,82 @@ Stands: %3 / Players: %4</translation>
 <context>
     <name>BoardViewerWidget</name>
     <message>
-        <location filename="../../src/widgets/boardviewerwidget.cpp" line="39"/>
+        <location filename="../../src/views/boardviewerwidget.cpp" line="39"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/boardviewerwidget.cpp" line="40"/>
+        <location filename="../../src/views/boardviewerwidget.cpp" line="40"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/boardviewerwidget.cpp" line="78"/>
+        <location filename="../../src/views/boardviewerwidget.cpp" line="78"/>
         <source>縮小</source>
         <translation>Zoom out</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/boardviewerwidget.cpp" line="78"/>
+        <location filename="../../src/views/boardviewerwidget.cpp" line="78"/>
         <source>将棋盤を縮小する</source>
         <translation>Shrink Board</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/boardviewerwidget.cpp" line="79"/>
+        <location filename="../../src/views/boardviewerwidget.cpp" line="79"/>
         <source>拡大</source>
         <translation>Zoom in</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/boardviewerwidget.cpp" line="79"/>
+        <location filename="../../src/views/boardviewerwidget.cpp" line="79"/>
         <source>将棋盤を拡大する</source>
         <translation>Enlarge Board</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/boardviewerwidget.cpp" line="80"/>
+        <location filename="../../src/views/boardviewerwidget.cpp" line="80"/>
         <source>盤面の回転</source>
         <translation>Flip Board</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/boardviewerwidget.cpp" line="80"/>
+        <location filename="../../src/views/boardviewerwidget.cpp" line="80"/>
         <source>盤面を回転する</source>
         <translation>Flip the board</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/boardviewerwidget.cpp" line="105"/>
+        <location filename="../../src/views/boardviewerwidget.cpp" line="105"/>
         <source>最初</source>
         <translation>First</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/boardviewerwidget.cpp" line="105"/>
+        <location filename="../../src/views/boardviewerwidget.cpp" line="105"/>
         <source>最初の局面に移動</source>
         <translation>Go to First Position</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/boardviewerwidget.cpp" line="106"/>
+        <location filename="../../src/views/boardviewerwidget.cpp" line="106"/>
         <source>前へ</source>
         <translation>Previous</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/boardviewerwidget.cpp" line="106"/>
+        <location filename="../../src/views/boardviewerwidget.cpp" line="106"/>
         <source>前の局面に移動</source>
         <translation>Go to Previous Position</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/boardviewerwidget.cpp" line="107"/>
+        <location filename="../../src/views/boardviewerwidget.cpp" line="107"/>
         <source>次へ</source>
         <translation>Next</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/boardviewerwidget.cpp" line="107"/>
+        <location filename="../../src/views/boardviewerwidget.cpp" line="107"/>
         <source>次の局面に移動</source>
         <translation>Go to Next Position</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/boardviewerwidget.cpp" line="108"/>
+        <location filename="../../src/views/boardviewerwidget.cpp" line="108"/>
         <source>最後</source>
         <translation>Last</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/boardviewerwidget.cpp" line="108"/>
+        <location filename="../../src/views/boardviewerwidget.cpp" line="108"/>
         <source>最後の局面に移動</source>
         <translation>Go to Last Position</translation>
     </message>
@@ -1862,7 +1862,7 @@ This cannot be undone.</translation>
 <context>
     <name>CandidateArrowPresenter</name>
     <message>
-        <location filename="../../src/ui/presenters/candidatearrowpresenter.cpp" line="208"/>
+        <location filename="../../src/ui/presenters/candidatearrowpresenter.cpp" line="210"/>
         <source>先読み：%1を想定</source>
         <translation>Ponder: assuming %1</translation>
     </message>
@@ -7577,63 +7577,63 @@ Positive values favor the side to move, negative values are unfavorable.</transl
 <context>
     <name>JosekiRegistrationController</name>
     <message>
-        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="72"/>
+        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="63"/>
         <source>読み筋の最初の手を定跡に登録</source>
         <translation>Register the First PV Move in the Book</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="74"/>
+        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="65"/>
         <source>読み筋の最初の手（%1）を定跡に登録</source>
         <translation>Register the First PV Move (%1) in the Book</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="81"/>
+        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="72"/>
         <source>この行には局面に合った読み筋がありません</source>
         <translation>This row has no PV that matches the position</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="83"/>
+        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="74"/>
         <source>定跡ウィンドウで定跡を開くと登録できます（読み書き中は登録できません）</source>
         <translation>Available after opening a book in the Joseki window (not while it is being loaded or saved)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="85"/>
+        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="76"/>
         <source>読み筋の2手目を予想応手にします。登録済みの手は評価値・深さ・予想応手だけを書き換えます</source>
         <translation>The second PV move becomes the expected response. A move already in the book only gets its score, depth and expected response updated</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="107"/>
+        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="98"/>
         <source>結果をまとめて定跡に登録...</source>
         <translation>Register Results in the Book...</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="50"/>
-        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="120"/>
+        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="41"/>
+        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="111"/>
         <source>%1 を定跡に登録しました</source>
         <translation>Registered %1 in the book</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="45"/>
+        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="36"/>
         <source>定跡の読み書き中のため、盤の手を登録できませんでした</source>
         <translation>Could not register the board move because the book is being loaded or saved</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="123"/>
+        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="114"/>
         <source>定跡の %1 の評価値・深さ・予想応手を書き換えました</source>
         <translation>Updated the score, depth and expected response of %1 in the book</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="168"/>
+        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="159"/>
         <source>定跡に %1 手を登録し、%2 手を書き換えました（定跡ウィンドウで保存してください）</source>
         <translation>Registered %1 moves and updated %2 moves in the book (save the book in the Joseki window)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="169"/>
+        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="160"/>
         <source>定跡に %1 手を登録しました（定跡ウィンドウで保存してください）</source>
         <translation>Registered %1 moves in the book (save the book in the Joseki window)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="171"/>
+        <location filename="../../src/ui/controllers/josekiregistrationcontroller.cpp" line="162"/>
         <source>結果をまとめて定跡に登録</source>
         <translation>Register Results in the Book</translation>
     </message>
@@ -8719,47 +8719,47 @@ There may be an error in the opening book data.</translation>
         <translation type="vanished">Error</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="28"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="25"/>
         <source>解析開始</source>
         <translation>Start analysis</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="31"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="28"/>
         <source>解析開始手数</source>
         <translation>First move to analyze</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="32"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="29"/>
         <source>解析終了手数</source>
         <translation>Last move to analyze</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="34"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="31"/>
         <source>解析エンジン</source>
         <translation>Analysis engine</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="112"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="98"/>
         <source>約%1秒</source>
         <translation>About %1 sec</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="113"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="99"/>
         <source>約%1分%2秒</source>
         <translation>About %1 min %2 sec</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="114"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="100"/>
         <source>約%1時間%2分</source>
         <translation>About %1 hr %2 min</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="115"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="101"/>
         <source>解析対象: %1局面&#x3000;所要時間の目安: %2</source>
         <translation>%1 positions · Estimated time: %2</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="116"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="102"/>
         <source>エンジンの起動時間などにより、実際の所要時間は前後します。</source>
         <translation>Actual duration may vary, including engine startup time.</translation>
     </message>
@@ -8772,7 +8772,7 @@ There may be an error in the opening book data.</translation>
         <translation type="vanished">Error</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="196"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="179"/>
         <source>%1手目から%2手目まで</source>
         <translation>from move %1 to %2</translation>
     </message>
@@ -14189,7 +14189,7 @@ Choose a file with one SFEN position per line.</translation>
         <translation type="vanished">Place white pieces (does not change the side to move)</translation>
     </message>
     <message>
-        <location filename="../../src/views/shogiview.cpp" line="706"/>
+        <location filename="../../src/views/shogiview.cpp" line="662"/>
         <source>駒箱</source>
         <translation>Piece Box</translation>
     </message>
@@ -15423,17 +15423,17 @@ This cannot be undone. Reset history?</translation>
 <context>
     <name>TsumePositionPreview</name>
     <message>
-        <location filename="../../src/widgets/tsumepositionpreview.cpp" line="51"/>
+        <location filename="../../src/views/tsumepositionpreview.cpp" line="49"/>
         <source>攻方</source>
         <translation>Attacker</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/tsumepositionpreview.cpp" line="49"/>
+        <location filename="../../src/views/tsumepositionpreview.cpp" line="47"/>
         <source>玉方</source>
         <translation>Defender</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/tsumepositionpreview.cpp" line="103"/>
+        <location filename="../../src/views/tsumepositionpreview.cpp" line="93"/>
         <source>なし</source>
         <translation>None</translation>
     </message>
@@ -15531,12 +15531,12 @@ This cannot be undone. Reset history?</translation>
         <translation>Start search</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogisearchdialog.cpp" line="83"/>
+        <location filename="../../src/dialogs/tsumeshogisearchdialog.cpp" line="77"/>
         <source>詰み探索に対応したエンジンを選択してください。</source>
         <translation>Select an engine that supports mate search.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogisearchdialog.cpp" line="84"/>
+        <location filename="../../src/dialogs/tsumeshogisearchdialog.cpp" line="78"/>
         <source>使用できるエンジンがありません。「設定」→「エンジン設定」で登録してください。</source>
         <translation>No engine is available. Register one in Settings → Engine Settings.</translation>
     </message>

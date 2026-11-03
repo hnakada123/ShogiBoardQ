@@ -5,6 +5,8 @@
 
 #include "boardsurfacepainter.h"
 #include "boardgeometry.h"
+#include "kifupresentation.h"
+#include "movefont.h"
 
 #include <QPaintDevice>
 #include <QPainter>
@@ -110,6 +112,28 @@ void BoardStaticLayer::paint(QPainter& painter, const Key& key, const BoardGeome
             painter.drawEllipse(QPointF(key.cells.left() + fs.width() * column, key.cells.top() + fs.height() * row),
                                 starRadius, starRadius);
         }
+    }
+    painter.restore();
+}
+
+void BoardStaticLayer::drawCoordinates(QPainter& painter, const BoardGeometry& geometry, const QColor& color,
+                                       const QRegion& region)
+{
+    const auto visible = [&region](const QRect& rect) { return region.isEmpty() || region.intersects(rect); };
+    painter.save();
+    QFont font = painter.font();
+    font.setPixelSize(geometry.labelPixelSize());
+    font.setBold(false);
+    painter.setPen(color);
+    painter.setFont(MoveFont::font(font));   // 段の漢数字は指し手と同じ書体
+    for (int rank = 1; rank <= geometry.ranks(); ++rank) {
+        const QRect label = geometry.rankLabel(rank);
+        if (visible(label)) painter.drawText(label, Qt::AlignCenter, KifuPresentation::rankLabel(rank));
+    }
+    painter.setFont(font);
+    for (int file = 1; file <= geometry.files(); ++file) {
+        const QRect label = geometry.fileLabel(file);
+        if (visible(label)) painter.drawText(label, Qt::AlignCenter, QString::number(file));
     }
     painter.restore();
 }

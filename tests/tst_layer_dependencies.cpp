@@ -34,7 +34,8 @@ private:
 
     /// 下の層は上の層をインクルードしない。下から順に
     /// common（ログ・エラー通知）・core → services → kifu・engine → game → analysis・network
-    /// → style（ウィジェットの書体・見た目）→ models → views・widgets・board → dialogs → ui → app。
+    /// → style（ウィジェットの書体・見た目）→ models → widgets → views（盤の描画。部品の ElideLabel・GlobalToolTip を
+    /// 使う）→ board → dialogs → ui → app。
     /// automation・cli は外側の入口。headless（CLI・自動化 API・MCP が共有する部品）は core〜analysis だけを使う
     static QList<LayerRule> layerRules()
     {
@@ -62,7 +63,7 @@ private:
                                                 "engine", "game", "analysis", "network", "models"})},
             {QStringLiteral("src/models"), dirs({"app", "ui", "dialogs", "widgets", "views", "board", "automation", "cli"})},
             {QStringLiteral("src/views"), dirs({"app", "ui", "dialogs", "board", "automation", "cli"})},
-            {QStringLiteral("src/widgets"), dirs({"app", "ui", "dialogs", "board", "automation", "cli"})},
+            {QStringLiteral("src/widgets"), dirs({"app", "ui", "dialogs", "views", "board", "automation", "cli"})},
             {QStringLiteral("src/board"), dirs({"app", "ui", "dialogs", "automation", "cli"})},
             {QStringLiteral("src/dialogs"), dirs({"app", "ui", "automation", "cli"})},
             {QStringLiteral("src/ui"), dirs({"app", "automation", "cli"})},
