@@ -179,6 +179,7 @@
 | 2026-11-03 | 保存形式で失うものを形式の表から決めるようにした（監査 2026-11-01 F20）のに合わせて §8.8・§8.9 を更新（`KifuExport::capabilities()`（変化・消費時間・コメント・しおり）・`writesTerminal()`・`lossIn()` を置き、`KifuSaveDialogs::saveViaDialog` は形式ごとの switch の代わりに `lossOf` の失うものを並べて確認する（USEN・USI のコメント・しおり、変化の消費時間、CSA・USI の書けない終局も聞く）。`RecordContents` は消した。コピーの知らせも同じ表で、含まないものを出す。消費時間のない形式を読んだ手の 0 秒の時間は `RecordTime::isRecorded()` で数えない） |
 | 2026-11-03 | CLI の詰み探索の局面を GUI にそろえた（監査 2026-11-01 F16）のに合わせて §9.7 を更新（CLI の `mate` は指し手の無い局面に `MateSearchPosition::attackerToMove()` をかけ、攻方の玉の無い詰将棋の局面を、SFEN の手番によらず攻方の手番で調べる） |
 | 2026-11-03 | 詰将棋生成の条件の範囲を GUI と CLI で1つにした（監査 2026-11-01 F17）のに合わせて §9.11 を更新（範囲は `TsumeshogiSettings::GeneratorLimits`、設定は `BoundedSetting`。CLI の `generate-tsume` は GUI と同じ範囲と既定値（手数 1〜99、件数 1〜10000・既定 10、時間 1〜300 秒、守り駒 0〜10。件数の 0 = 無制限は GUI だけ）。MCP の `generate_tsume` は件数を 100 までに絞る。奇数の規則は `GeneratorLimits::isTargetMoves`・`oddTargetMoves` だけ） |
+| 2026-11-03 | 通信対局の自動保存の形式の一覧を保存の表から作るようにした（監査 2026-11-01 F21・U6）のに合わせて §6.2 を更新（`CsaGameDialog` は `KifuFormats::saveTargets()` の8形式を「名前を付けて保存」と同じ見出し（`KifuFileFilter::saveLabel()`）で並べる。形式の既定は `MatchAutoSave::extension` の `kifu` だけで、ローカル対局と通信対局で同じ。`NetworkSettings::csaAutoSaveFormat` は選んだことがなければ空） |
 
 <!-- chapter-0-end -->
 
@@ -2847,7 +2848,7 @@ enum class MatchCause : int {
 | `engines` | 先手（下手）・後手（上手）のエンジンの設定 `EngineSeat{path, joseki}`（実行パスと定跡を使う条件。`engine(Turn)` で引く。人間の側は使わない） |
 | `josekiBook` | 対局で使う定跡（対局を始めたときに開いていた定跡の写し。`usesJoseki()` のときだけ写す） |
 | `maxMoves` | 最大手数（0＝無制限） |
-| `autoSave` | 終局した棋譜の自動保存（`MatchAutoSave`: `enabled`・`dir`・`extension`。ローカル対局は `kifu`。保存は `GameSession` が行う） |
+| `autoSave` | 終局した棋譜の自動保存（`MatchAutoSave`: `enabled`・`dir`・`extension`。形式の既定は `kifu`（UTF-8 の KIF）で、ローカル対局は既定のまま、通信対局はダイアログで「名前を付けて保存」と同じ表（`KifuFormats::saveTargets()`。見出しは `KifuFileFilter::saveLabel()`）から選ぶ。保存は `GameSession` が行う） |
 
 対局のモード（人間対人間・人間対エンジン・エンジン同士）は列挙型では持たず、`players` の `isEngine(Turn)` で決まる。連続対局で手番を入れ替えるときは `swapSides()` が対局者・エンジンの設定・持ち時間の決まり（`TimeControl::swapSides()`）を入れ替える。
 

@@ -1196,7 +1196,8 @@ async def test_game_limit_logs_out_after_last_game(csa_env, tmp_path):
         ui = CsaUI(session)
         await ui.connect(server.port, options={"radioButtonGamesCount": True, "spinBoxGameCount": 2,
                                                "checkBoxAutoSave": True, "lineEditAutoSaveDir": str(tmp_path / "records"),
-                                               "comboBoxAutoSaveFormat": 3})
+                                               # The order of Save As: kifu, kif, ki2u, ki2, csa, ...
+                                               "comboBoxAutoSaveFormat": 4})
         peer = await server.login()
         try:
             for game_id in ("one", "two"):

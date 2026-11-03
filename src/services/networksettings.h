@@ -79,8 +79,9 @@ inline const Setting<bool> csaAutoSaveEnabled{"CsaGameSettings/autoSaveEnabled",
 /// 自動保存先フォルダ（デフォルト: 空）
 inline const Setting<QString> csaAutoSaveDir{"CsaGameSettings/autoSaveDir", QString()};
 
-/// 自動保存の形式を拡張子で表す（kif/kifu/ki2/csa/jkf/usi。デフォルト: kif）
-inline const Setting<QString> csaAutoSaveFormat{"CsaGameSettings/autoSaveFormat", QStringLiteral("kif")};
+/// 自動保存の形式を拡張子で表す（保存の表 KifuFormats::saveTargets の拡張子。選んだことがなければ空で、
+/// 通信対局のダイアログはローカル対局と同じ既定の形式 MatchAutoSave::extension を使う）
+inline const Setting<QString> csaAutoSaveFormat{"CsaGameSettings/autoSaveFormat", QString()};
 
 /// 後手のときに盤を反転するか（デフォルト: true）
 inline const Setting<bool> csaAutoFlipBoard{"CsaGameSettings/autoFlipBoard", true};

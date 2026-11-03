@@ -149,7 +149,7 @@ MatchStartOptions GameStartOptionsBuilder::buildStartOptions(const StartGameDial
     opt.maxMoves = dlg.maxMoves;
     opt.autoSave.enabled = dlg.autoSaveKifu;
     opt.autoSave.dir = dlg.kifuSaveDir;
-    opt.autoSave.extension = QStringLiteral("kifu");   // ローカル対局は UTF-8 の KIF
+    // 形式は既定（MatchAutoSave::extension。ローカル対局では選ばない）
     return opt;
 }
 

@@ -35,6 +35,9 @@
 #include "boardappearancedialog.h"
 #include "changeenginesettingsdialog.h"
 #include "csagamedialog.h"
+#include "kifufilefilter.h"
+#include "matchautosave.h"
+#include "networksettings.h"
 #include "csawaitingdialog.h"
 #include "engineregistrationdialog.h"
 #include "fontsettingsdialog.h"
@@ -598,6 +601,30 @@ private slots:
         PromoteDialog reopened;
         QCOMPARE(reopened.size(), QSize(540, 280));
         QCOMPARE(reopened.font().pointSize(), AppSettings::promotionDialogFontSize.valueOr(10));
+    }
+
+    /// 通信対局の自動保存の形式は「名前を付けて保存」と同じ表・同じ見出しで、選んだことがなければローカル対局と
+    /// 同じ既定の形式（.kifu）。保存した選択はそのまま戻す（監査 2026-11-01 F21・U6）
+    void csaAutoSaveFormatsFollowTheSaveTable()
+    {
+        const QList<KifuFormats::SaveTarget>& targets = KifuFormats::saveTargets();
+        {
+            CsaGameDialog dialog;
+            auto* combo = dialog.findChild<QComboBox*>(QStringLiteral("comboBoxAutoSaveFormat"));
+            QVERIFY(combo);
+            QCOMPARE(combo->count(), targets.size());
+            for (int i = 0; i < combo->count(); ++i) {
+                QCOMPARE(combo->itemData(i).toString(), targets.at(i).suffix);
+                QCOMPARE(combo->itemText(i), KifuFileFilter::saveLabel(targets.at(i)));
+            }
+            QCOMPARE(combo->currentData().toString(), MatchAutoSave().extension);
+            QCOMPARE(MatchAutoSave().extension, QStringLiteral("kifu"));
+        }
+        NetworkSettings::csaAutoSaveFormat.set(QStringLiteral("usen"));
+        CsaGameDialog reopened;
+        auto* combo = reopened.findChild<QComboBox*>(QStringLiteral("comboBoxAutoSaveFormat"));
+        QVERIFY(combo);
+        QCOMPARE(combo->currentData().toString(), QStringLiteral("usen"));
     }
 
     /// 局面集ビューアは、閉じるボタンや Esc（reject）で閉じても盤の大きさを保存する（ウィンドウは盤に合わせる）

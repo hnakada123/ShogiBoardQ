@@ -81,7 +81,7 @@ cmake --build build --target translations
   - `matchending.cpp/.h` - 終局の原因 `MatchCause`（ローカル対局と通信対局で共通。通信対局はサーバーの結果を `CsaGameProgress::endInfo` で直す）と、原因から棋譜の終局の行・エンジンへの gameover への対応 `MatchEnding`（ここだけ。最大手数は持将棋と書き、中断を含めて勝ち負けのない終局はエンジンに draw）
   - `matchengineseat.cpp/.h` - 対局で指すエンジン1台 `MatchEngineSeat`（枠のリース・手番・持ち時間の出どころ・知らせの接続・終局の手順）。人間対エンジン・エンジン同士の Strategy（`GameModeStrategy::engineSeat(side)`）と通信対局（`CsaGameCoordinator`）が持つ。初期化・指し手・投了・入玉宣言勝ち・エラー（枠を取り上げられたときも）を自分のシグナルで知らせ、終局は `finish(GameOverResult)`（探索・先読みを止めて gameover と quit）で、ローカル対局・通信対局で同じ手順
   - `gamechannel.cpp/.h` - 対局相手の窓口 `GameChannel`: 盤の人間の手（`playMove(UsiMove)`。ローカル対局は司令塔の `MatchCoordinator::playHumanMove` がエンジンの手と同じく合法手を確かめて盤に指し、通信対局は `CsaGameCoordinator::sendHumanMove` がサーバーへ送る）・投了・中断・即指し・入玉宣言をローカル対局と通信対局で同じ操作にする（ローカル対局は `LocalGameChannel`、通信対局は network の `CsaGameChannel`）
-  - `matchautosave.h` - 終局した棋譜の自動保存の指定 `MatchAutoSave`（ローカル対局・通信対局で同じ）
+  - `matchautosave.h` - 終局した棋譜の自動保存の指定 `MatchAutoSave`（ローカル対局・通信対局で同じ。形式の既定 `kifu` はここだけ。通信対局のダイアログの形式の一覧は「名前を付けて保存」と同じ表 `KifuFormats::saveTargets()` と見出し `KifuFileFilter::saveLabel()`）
   - `consecutivegameseries.cpp/.h` - エンジン同士の連続対局（局数・手番の入れ替え・次局の計画）
   - `gameboard.cpp/.h` - 対局の盤 `GameBoard`（盤を持ち、合法手を確かめて指し、指した手を棋譜の1行にする。着手の確定の知らせ `moveCommitted`）。手番は盤（`ShogiBoard::currentPlayer()`）が持つ。盤と手番だけを使う部品は `ShogiBoard` を受け取る
   - `matchrecordsink.h` - 対局の棋譜の受け手 `MatchRecordSink`（新しい棋譜 `beginRecord(MatchRecordStart)`・行の追記と取り消し・終局での確定 `finishRecord`）。ローカル対局と通信対局の司令塔が同じ受け手（`GameSession`）に書く（合成ルートが `setRecordSink()` で渡す）

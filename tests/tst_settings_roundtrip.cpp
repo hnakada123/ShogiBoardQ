@@ -721,7 +721,8 @@ private slots:
         QVERIFY(!NetworkSettings::csaReconnectAfterGame());
         QVERIFY(!NetworkSettings::csaAutoSaveEnabled());
         QVERIFY(NetworkSettings::csaAutoSaveDir().isEmpty());
-        QCOMPARE(NetworkSettings::csaAutoSaveFormat(), QStringLiteral("kif"));
+        // 選んだことがなければ空（ダイアログは MatchAutoSave の既定の形式を使う）
+        QVERIFY(NetworkSettings::csaAutoSaveFormat().isEmpty());
         QVERIFY(NetworkSettings::csaAutoFlipBoard());
         QVERIFY(NetworkSettings::csaGameName().isEmpty());
         QCOMPARE(NetworkSettings::csaTurnPreference(), 0);
