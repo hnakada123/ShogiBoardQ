@@ -301,9 +301,9 @@
 
 - kifu の形式の表（`kifuformat.cpp` の `kExtensions` か `KifuExport`）に、分岐・消費時間・コメント・しおりを書けるかを持たせる。`KifuFileController` は文書が持つもの（全ノードの分岐・消費時間・コメント・しおり）を数えて渡す。ダイアログは「失うもの」の一覧から文を作る。→ 済（d0fd008d。表は `KifuExport::capabilities`、失うものは `KifuExport::lossIn` で、コントローラーは数えずに形式ごとに聞く関数を渡す）
 - 通信対局の自動保存の一覧は `KifuFormats::saveTargets()` から作る。ローカル対局と通信対局の既定の違い（U6）は仕様を決め、`MatchAutoSave` の既定値か設定の1か所にする。`matchautosave.h:13` のコメントの一覧を消す。→ 済（56a8085b。既定は `MatchAutoSave` の .kifu）
-- `isSavable`・`savableNames` は表の `saveLabel` と `isName` から作る。
+- `isSavable`・`savableNames` は表の `saveLabel` と `isName` から作る。→ 済（0309bbee。`savableNames` は表から作り、使っていない `isSavable` は消した）
 - `KifuFileFilter` を kifu へ移す（P2）。
-- CLI の `environment` に保存の拡張子（`saveTargets` から作る）を足す。MCP の `save_kifu` はそれで検査し、説明もそれから作る。`convert_kifu` の要約は、変化を書けない形式（csa・usi・sfen）のときだけ「本譜だけ」と出す。平手かどうかは CLI の結果に `is_hirate` を足して読む。
+- CLI の `environment` に保存の拡張子（`saveTargets` から作る）を足す。MCP の `save_kifu` はそれで検査し、説明もそれから作る。`convert_kifu` の要約は、変化を書けない形式（csa・usi・sfen）のときだけ「本譜だけ」と出す。平手かどうかは CLI の結果に `is_hirate` を足して読む。→ 済（0309bbee。`kifu_save_suffixes`。説明は文のままにし、テストが environment の一覧と比べる。`convert_kifu` の要約は F7 で済み）
 
 **影響**: kifu 2・dialogs 2・ui 1・widgets→kifu 1・game 1・cli 1・mcp 3。翻訳は約6件。テストは `tst_kifusavedialogs`・`tst_kifuformat`・MCP の `test_paths.py`・`test_kifu_management.py`。
 
