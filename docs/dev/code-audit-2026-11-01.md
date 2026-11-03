@@ -139,7 +139,7 @@
 | # | 食い違い | 原因 |
 |---|---|---|
 | F20 | コメント・しおりはあるが消費時間はない棋譜を USEN・USI で保存すると、コメント・しおりが黙って消える。USEN の確認の文は「消費時間・コメント・しおりに対応していない」と書くのに、出す条件は消費時間があるときだけ。USI はコメントを見ない。消費時間も本譜しか見ないので、変化にだけ消費時間があっても聞かない | 形式ごとの失う情報の知識が、ダイアログの switch にある（`kifusavedialogs.cpp:70-110`）。渡される判定は `hasBranches`・`hasTimeInfo` の2つだけ（`kifufilecontroller.cpp:229-236`）。同じ知識が `kifufilecontroller.cpp:345,350` のコピーの文にもある<br>**状態: 済（d0fd008d）**。kifu の `KifuExport` に、形式が書けるものの表 `capabilities`（変化・消費時間・コメント・しおり。`writesVariations` もこの表）と、終局の行を書けるか `writesTerminal`（CSA・USI・USEN は符号の表）を置いた。棋譜を形式で書くと失うもの `lossIn`（変化を書けない形式は本譜だけを見る）を、保存の確認（`KifuSaveDialogs::saveViaDialog` の `lossOf`。switch と `RecordContents` は消した）とコピーの知らせが使う。CSA・USI の書けない終局（独自の終局理由・最大手数など）も聞くようになった。消費時間のない形式を読んだ手は 0 秒の時間を持つので、`RecordTime::isRecorded` で数えない（今までは USI・KI2 から読んだ棋譜でも、無い消費時間について聞いていた） |
-| F21 | 通信対局の自動保存で選べる形式は6つで、`.ki2u`・`.usen` が無い。保存ダイアログは8つ。見出しも保存ダイアログ（「KIF形式 Shift_JIS」など）と違う | `CsaGameDialog::populateAutoSaveFormats` が一覧を手書きしている（`csagamedialog.cpp:111-120`）。`matchautosave.h:13` のコメントにも別の一覧がある（10-29 T8 の残り） |
+| F21 | 通信対局の自動保存で選べる形式は6つで、`.ki2u`・`.usen` が無い。保存ダイアログは8つ。見出しも保存ダイアログ（「KIF形式 Shift_JIS」など）と違う | `CsaGameDialog::populateAutoSaveFormats` が一覧を手書きしている（`csagamedialog.cpp:111-120`）。`matchautosave.h:13` のコメントにも別の一覧がある（10-29 T8 の残り）<br>**状態: 済（56a8085b）**。U6 と一緒に、一覧は保存の表・既定は .kifu と決めた（2026-11-03）。`CsaGameDialog` は `KifuFormats::saveTargets()` の8形式を「名前を付けて保存」と同じ見出し（`KifuFileFilter::saveLabel()`）で並べる。コメントの一覧は消した。ガイドの画像 `csa-01-advanced.png`（4言語）は古い見出しのまま |
 
 **表示と設定**（T6・3章）
 
@@ -164,7 +164,7 @@
 | U3 | 1局面の評価値の取り出し元が、GUI の棋譜解析と CLI の `analyze-kifu` で違う。最後の info に評価値か読み筋の片方しかないと、値が変わる | GUI は `PlyAnalysis::score`（bestmove に付いた評価値）を使う。CLI は `PlyAnalysis` を受け取っているのに、読み筋のある info だけを覚える `latestLines()[1].score` から作る（`clicommands_engine.cpp:117-121`）。先手から見た値に直す手番も、CLI は `UsiPosition::sideToMove()`、GUI は SFEN の2語目（`kifuanalysisrowpresenter.cpp:26-31`）で読む |
 | U4 | エンジン同士の連続対局は、1局ごとにモーダルの「対局終了」で止まる。通信対局は続けるときは止めない（`Wait::No`、`csagamesession.cpp:150`） | 通信対局はサーバーの時間制限があるので、違いには理由がある。ローカルの連続対局を席を外して回す用途では、毎局止まる |
 | U5 | 中断した対局の自動保存が違う。ローカル対局は保存せず（`matchcoordinator.cpp:402`）、通信対局は保存する（`csagamecoordinator.cpp:420`） | ローカル対局は再開できるためと思われる。意図した仕様なら直さなくてよい |
-| U6 | 自動保存の既定の形式が、ローカル対局は `.kifu`（UTF-8）固定、通信対局は `.kif`（Shift_JIS）が既定 | `gamestartoptionsbuilder.cpp:152` と `networksettings.h:83`。F21 と一緒に決める |
+| U6 | 自動保存の既定の形式が、ローカル対局は `.kifu`（UTF-8）固定、通信対局は `.kif`（Shift_JIS）が既定 | `gamestartoptionsbuilder.cpp:152` と `networksettings.h:83`。F21 と一緒に決める<br>**状態: 済（56a8085b）**。既定はどちらも .kifu（2026-11-03 に決めた）。既定は `MatchAutoSave::extension` だけに置き、ローカル対局は既定のまま、通信対局は選んだことがなければ同じ既定（`csaAutoSaveFormat` の宣言の既定は空）。保存してある選択はそのまま |
 | U7 | ShogiBoardQ は持将棋・千日手・連続王手の千日手を USEN の `j` で書く（`terminalcodes.cpp:59-61`。コメントは「千日手は持将棋と同じく引き分けの j で書く」）。USEN の作者の実装は `j` を宣言勝ち（`DeclareWin`。表示は「持将棋」、CSA は `%JISHOGI`）として読む。ShogiBoardQ は入玉宣言勝ちを USEN に書かず、`j` を読むと持将棋（引き分け）にする | 仕様は宣言勝ちと持将棋を1つの `j` にしていて、千日手の符号は無い。千日手を `j` で書くのをやめるか、仕様のあいまいさとして今のままにするかを決める。急がない |
 
 ---
@@ -300,7 +300,7 @@
 **書き直し案**
 
 - kifu の形式の表（`kifuformat.cpp` の `kExtensions` か `KifuExport`）に、分岐・消費時間・コメント・しおりを書けるかを持たせる。`KifuFileController` は文書が持つもの（全ノードの分岐・消費時間・コメント・しおり）を数えて渡す。ダイアログは「失うもの」の一覧から文を作る。→ 済（d0fd008d。表は `KifuExport::capabilities`、失うものは `KifuExport::lossIn` で、コントローラーは数えずに形式ごとに聞く関数を渡す）
-- 通信対局の自動保存の一覧は `KifuFormats::saveTargets()` から作る。ローカル対局と通信対局の既定の違い（U6）は仕様を決め、`MatchAutoSave` の既定値か設定の1か所にする。`matchautosave.h:13` のコメントの一覧を消す。
+- 通信対局の自動保存の一覧は `KifuFormats::saveTargets()` から作る。ローカル対局と通信対局の既定の違い（U6）は仕様を決め、`MatchAutoSave` の既定値か設定の1か所にする。`matchautosave.h:13` のコメントの一覧を消す。→ 済（56a8085b。既定は `MatchAutoSave` の .kifu）
 - `isSavable`・`savableNames` は表の `saveLabel` と `isName` から作る。
 - `KifuFileFilter` を kifu へ移す（P2）。
 - CLI の `environment` に保存の拡張子（`saveTargets` から作る）を足す。MCP の `save_kifu` はそれで検査し、説明もそれから作る。`convert_kifu` の要約は、変化を書けない形式（csa・usi・sfen）のときだけ「本譜だけ」と出す。平手かどうかは CLI の結果に `is_hirate` を足して読む。
