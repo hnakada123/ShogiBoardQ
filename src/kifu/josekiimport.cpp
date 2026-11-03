@@ -8,6 +8,7 @@
 #include "kifuformat.h"
 #include "kifuloadparser.h"
 #include "logcategories.h"
+#include "sfenutils.h"
 
 #include <QDir>
 #include <QDirIterator>
@@ -111,7 +112,7 @@ void Collector::addLine(const QString &startSfen, const RecordLine &line, std::o
         }
         const QString usiMove = entry.move.move.toString();
         if (take && !usiMove.isEmpty()) {
-            const QString key = JosekiBook::positionKey(before) + QLatin1Char(' ') + usiMove;
+            const QString key = SfenUtils::normalizeSfenKey(before) + QLatin1Char(' ') + usiMove;
             if (!seenInGame.contains(key)) {
                 seenInGame.insert(key);
                 // 定跡のコメントは1行で書くので、改行は空白にする

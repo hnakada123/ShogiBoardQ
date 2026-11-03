@@ -331,8 +331,7 @@ void TsumePlayDialog::updateState()
     else if (state == State::Paused) m_infoUi.status->setText(tr("判定を中断しました。判定時間を増やして「再判定」するか、一手戻してください。"));
     if (m_store && !m_problem.sfen.isEmpty()) {
         const auto progress = m_store->progress(TsumeCollection::positionId(m_problem.sfen));
-        m_problemUi.history->setText(progress.solves > 0 ? tr("正答済み ／ 挑戦%1回・正答%2回").arg(progress.attempts).arg(progress.solves)
-                                             : tr("未正答 ／ 挑戦%1回").arg(progress.attempts));
+        m_problemUi.history->setText(progress.text());
         if (!m_store->error().isEmpty()) m_problemUi.history->setText(tr("履歴を保存できません: %1").arg(m_store->error()));
     }
     applyControlStates();

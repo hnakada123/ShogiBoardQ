@@ -8,6 +8,7 @@
 #include "notationstyle.h"
 #include "shogimove.h"
 
+class KifuBranchNode;
 class Position;
 class PvText;
 struct RecordEntry;
@@ -50,6 +51,8 @@ QString moveLabel(const QString& kifText, const QString& beforeSfen, const QStri
  * 指し手を読めなかった行は棋譜の表記のまま。
  */
 QString entryLabel(const RecordEntry& entry, const QString& beforeSfen, bool fullOrigin = false);
+/// 分岐ツリーのノード1つの表記（指す前の局面は親のノード。棋譜欄・分岐候補欄・分岐ツリー・手順の削除の確認で共通）
+QString nodeLabel(const KifuBranchNode& node, bool fullOrigin = false);
 /// 棋譜欄の1行（手数を4桁に右寄せして前に付け、分岐がある手には branchMark を付ける）
 QString numberedLabel(int ply, const QString& label, bool branch);
 /// 分岐がある手に付ける印（日本語表記は "+"、英語表記は " [+]"）

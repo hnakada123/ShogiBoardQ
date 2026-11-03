@@ -27,7 +27,7 @@ JishogiCalculator::JishogiResult JishogiCalculator::calculate(const Position& po
             if (piece == Piece::None) continue;
 
             const int points = piecePoints(piece);
-            PlayerScore& score = isSentePiece(piece) ? result.sente : result.gote;
+            PlayerScore& score = isBlackPiece(piece) ? result.sente : result.gote;
             const bool inCamp = PieceRules::inPromotionZone(pieceSide(piece), rank);
             score.totalPoints += points;
             if (pieceKind(piece) == PieceKind::King) {
@@ -46,10 +46,10 @@ JishogiCalculator::JishogiResult JishogiCalculator::calculate(const Position& po
                                       static_cast<PieceKind>(slot % kHandKindCount));
         const int points = piecePoints(piece) * position.handCount(piece);
 
-        if (isSentePiece(piece)) {
+        if (isBlackPiece(piece)) {
             result.sente.totalPoints += points;
             result.sente.declarationPoints += points;
-        } else if (isGotePiece(piece)) {
+        } else if (isWhitePiece(piece)) {
             result.gote.totalPoints += points;
             result.gote.declarationPoints += points;
         }
@@ -130,14 +130,4 @@ bool JishogiCalculator::isMajorPiece(Piece piece)
     default:
         return false;
     }
-}
-
-bool JishogiCalculator::isSentePiece(Piece piece)
-{
-    return isBlackPiece(piece);
-}
-
-bool JishogiCalculator::isGotePiece(Piece piece)
-{
-    return isWhitePiece(piece);
 }

@@ -3,6 +3,7 @@
 
 #include <QtTest>
 
+#include "sfenutils.h"
 #include "sennichitedetector.h"
 
 namespace {
@@ -81,7 +82,7 @@ private slots:
 
     void positionKey_dropsMoveNumber()
     {
-        QCOMPARE(SennichiteDetector::positionKey(QStringLiteral("8k/9/9/9/7R1/9/9/9/4K4 b - 13")),
+        QCOMPARE(SfenUtils::normalizeSfenKey(QStringLiteral("8k/9/9/9/7R1/9/9/9/4K4 b - 13")),
                  QStringLiteral("8k/9/9/9/7R1/9/9/9/4K4 b -"));
     }
 };

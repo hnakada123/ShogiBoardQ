@@ -2,6 +2,7 @@
 /// @brief 検討・詰み探索のセッションの実装
 
 #include "analysissession.h"
+#include "analysissettings.h"
 
 #include "appactivitystate.h"
 #include "engineslots.h"
@@ -147,7 +148,7 @@ void AnalysisSession::onEngineError(const QString& message)
 
 void AnalysisSession::updateMultiPV(int multiPV)
 {
-    multiPV = qBound(1, multiPV, 10);
+    multiPV = qBound(1, multiPV, ConsiderationSettings::kMaxMultiPV);
     if (m_mode != Mode::Consideration || m_multiPV == multiPV) return;
     m_multiPV = multiPV;
     requestConsiderationRestart();

@@ -1,4 +1,6 @@
 #include "kifupresentation.h"
+
+#include "kifubranchnode.h"
 #include "gameinfo.h"
 #include "gameinfokeys.h"
 #include "handicaps.h"
@@ -171,6 +173,12 @@ QString entryLabel(const RecordEntry& entry, const QString& beforeSfen, bool ful
     if (entry.displayText.isEmpty() && options().notation == Notation::Japanese)
         return KifMoveText::format(entry.mover, entry.move.movingPiece, entry.move.move);
     return moveLabel(entry.displayText, beforeSfen, usi, fullOrigin);
+}
+
+QString nodeLabel(const KifuBranchNode& node, bool fullOrigin)
+{
+    const KifuBranchNode* parent = node.parent();
+    return entryLabel(node.record(), parent ? parent->sfen() : QString(), fullOrigin);
 }
 
 QString numberedLabel(int ply, const QString& label, bool branch)

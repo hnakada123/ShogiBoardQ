@@ -141,6 +141,7 @@ private:
     int m_index = 0;                       ///< 解析している局面の添字
     bool m_stopRequested = false;
     bool m_timedOut = false;
+    bool m_multiPvSent = false;            ///< 候補手の数を送った（依頼の最初の局面の前に1回だけ）
 };
 
 #endif // ENGINEANALYSISRUNNER_H

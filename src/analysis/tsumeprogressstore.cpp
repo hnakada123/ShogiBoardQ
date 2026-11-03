@@ -1,6 +1,7 @@
 #include "tsumeprogressstore.h"
 #include "tsumecollection.h"
 #include "apppaths.h"
+#include <QCoreApplication>
 #include <QDateTime>
 #include <QDir>
 #include <QJsonArray>
@@ -9,6 +10,14 @@
 #include <QSqlQuery>
 #include <QUuid>
 #include <algorithm>
+
+QString TsumeProgressStore::Progress::text() const
+{
+    if (solves > 0)
+        return QCoreApplication::translate("TsumeProgressStore", "正答済み ／ 挑戦%1回・正答%2回").arg(attempts).arg(solves);
+    if (attempts > 0) return QCoreApplication::translate("TsumeProgressStore", "挑戦済み・未正答 ／ 挑戦%1回").arg(attempts);
+    return QCoreApplication::translate("TsumeProgressStore", "未挑戦");
+}
 
 TsumeProgressStore::TsumeProgressStore(const QString& dataDirectory, const QString& cacheDirectory)
     : m_dataDirectory(dataDirectory.isEmpty() ? AppPaths::dataDirectory() : dataDirectory)

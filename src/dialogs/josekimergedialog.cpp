@@ -12,6 +12,7 @@
 #include "josekisettings.h"
 #include "kifumovedelegate.h"
 #include "kifupresentation.h"
+#include "sfenutils.h"
 
 #include <QButtonGroup>
 #include <QFileInfo>
@@ -217,7 +218,7 @@ void JosekiMergeDialog::onRegisterAllButtonClicked()
     QList<JosekiImport::Move> pending;
     QSet<QString> pendingKeys;
     for (const Row &row : std::as_const(m_rows)) {
-        const QString key = JosekiBook::positionKey(row.sfen) + QLatin1Char(' ') + row.usiMove;
+        const QString key = SfenUtils::normalizeSfenKey(row.sfen) + QLatin1Char(' ') + row.usiMove;
         if (isRegistered(row) || pendingKeys.contains(key)) continue;
         pendingKeys.insert(key);
         pending.append(JosekiImport::Move{row.sfen, row.usiMove, 1, {}});

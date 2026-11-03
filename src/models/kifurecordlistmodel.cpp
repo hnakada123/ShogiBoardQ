@@ -44,7 +44,7 @@ QString KifuRecordListModel::moveText(const KifuBranchNode* node, bool fullOrigi
 {
     if (!node->parent()) return tr("=== 開始局面 ===");
     return KifuPresentation::numberedLabel(
-        node->ply(), KifuPresentation::entryLabel(node->record(), node->parent()->sfen(), fullOrigin), isBranchRow(node));
+        node->ply(), KifuPresentation::nodeLabel(*node, fullOrigin), isBranchRow(node));
 }
 
 QVariant KifuRecordListModel::data(const QModelIndex& index, int role) const

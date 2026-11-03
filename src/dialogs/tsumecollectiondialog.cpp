@@ -251,8 +251,7 @@ void TsumeCollectionDialog::updateCard(QPushButton* card)
     length->setText(lengthText(index));
     const TsumeEvaluation result = m_session->result(index).value_or(TsumeEvaluation{});
     length->setToolTip(result.detail);
-    history->setText(progress.solves > 0 ? tr("正答済み ／ 挑戦%1回・正答%2回").arg(progress.attempts).arg(progress.solves)
-                     : progress.attempts > 0 ? tr("挑戦済み・未正答 ／ 挑戦%1回").arg(progress.attempts) : tr("未挑戦"));
+    history->setText(progress.text());
     history->setToolTip(tr("最終挑戦: %1\n最終正答: %2").arg(progress.lastAttempt, progress.lastSolved));
     // QPushButton の標準 sizeHint は内部レイアウトの高さを含まない。
     card->setMinimumHeight(card->layout()->minimumSize().height());

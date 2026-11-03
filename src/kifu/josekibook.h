@@ -51,8 +51,6 @@ QString fileFilter();
 class JosekiBook
 {
 public:
-    /// 定跡の局面のキー（手数を除き、持ち駒の並びを正規化した SFEN）
-    static QString positionKey(const QString &sfen);
 
     bool isEmpty() const { return m_positions.isEmpty(); }
     /// 局面の数（同じ局面を手数違いで登録していても1つと数える）
