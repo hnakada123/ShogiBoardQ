@@ -15,6 +15,7 @@ from shogiboardq_mcp.errors import ToolError
 SUFFIXES = {
     paths.KIFU_READ: ["kifu", "kif", "ki2u", "ki2", "csa", "jkf", "json", "usen", "usi", "sfen"],
     paths.KIFU_WRITE: ["kifu", "kif", "ki2u", "ki2", "csa", "jkf", "usen", "usi", "sfen"],
+    paths.KIFU_SAVE: ["kifu", "kif", "ki2u", "ki2", "csa", "jkf", "usen", "usi"],
     paths.IMAGE_WRITE: ["png", "jpg", "jpeg", "bmp", "webp"],
 }
 
@@ -56,6 +57,16 @@ def test_paths_outside_allowed_dirs_are_rejected(monkeypatch, tmp_path):
     assert info.value.code == "not_allowed"
     with pytest.raises(ToolError):
         paths.resolve_write_path(str(outside / "new.kif"), overwrite=False)
+
+
+def test_saving_the_application_record_refuses_position_only_files(monkeypatch, tmp_path):
+    # kifu.save writes only the extensions of Save As; the position-only .sfen is for convert_kifu
+    monkeypatch.setenv("SHOGIBOARDQ_ALLOWED_DIRS", str(tmp_path))
+    with pytest.raises(ToolError) as info:
+        paths.resolve_write_path(str(tmp_path / "game.sfen"), False, "path", paths.KIFU_SAVE)
+    assert info.value.code == "invalid_argument"
+    assert paths.resolve_write_path(str(tmp_path / "game.sfen"), False) == (tmp_path / "game.sfen").resolve()
+    assert paths.resolve_write_path(str(tmp_path / "game.ki2u"), False, "path", paths.KIFU_SAVE)
 
 
 def test_overwrite_policy(monkeypatch, tmp_path):

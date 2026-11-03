@@ -43,9 +43,7 @@ QString name(KifuFormat format);
 /// 拡張子の形式（大文字小文字を区別しない）。分からなければ nullopt
 std::optional<KifuFormat> fromPath(const QString& path);
 
-/// 棋譜ファイルとして保存できる形式か（Kif・Ki2・Csa・Jkf・Usi・Usen）
-bool isSavable(KifuFormat format);
-/// 保存できる形式の名前（"kif" "ki2" "csa" "jkf" "usi" "usen"。CLI・自動化 API の引数の選択肢）
+/// 保存できる形式の名前（"kif" "ki2" "csa" "jkf" "usen" "usi"。CLI・自動化 API の引数の選択肢。saveTargets と同じ表から作る）
 QStringList savableNames();
 /// 保存できる拡張子の一覧（保存ダイアログの絞り込みの並び。UTF-8 の .kifu が先頭）
 const QList<SaveTarget>& saveTargets();

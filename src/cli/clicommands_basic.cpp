@@ -80,6 +80,10 @@ int CliCommands::environment(const QJsonObject& /*params*/)
     // MCP サーバーが読み書きを許すファイルの拡張子
     obj[QStringLiteral("kifu_read_suffixes")] = QJsonArray::fromStringList(KifuFormats::readableSuffixes());
     obj[QStringLiteral("kifu_write_suffixes")] = QJsonArray::fromStringList(KifuFormats::writableSuffixes());
+    // アプリの kifu.save が保存する拡張子（保存ダイアログと同じ表。局面だけの .sfen は含まない）
+    QStringList saveSuffixes;
+    for (const KifuFormats::SaveTarget& target : KifuFormats::saveTargets()) saveSuffixes.append(target.suffix);
+    obj[QStringLiteral("kifu_save_suffixes")] = QJsonArray::fromStringList(saveSuffixes);
     obj[QStringLiteral("image_write_suffixes")] = QJsonArray::fromStringList(BoardImageRenderer::fileSuffixes());
     CliOutput::printJson(obj);
     return 0;

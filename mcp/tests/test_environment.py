@@ -38,6 +38,17 @@ def test_environment_lists_the_file_extensions(env):
     for key, expected in SUFFIXES.items():
         assert env[key] == expected, key
     assert "json" not in env[paths.KIFU_WRITE]
+    # save_kifu saves what the application's kifu.save saves: Save As, without the position-only .sfen
+    assert "sfen" not in env[paths.KIFU_SAVE]
+
+
+def test_save_kifu_names_the_save_extensions(env):
+    from shogiboardq_mcp import paths
+    from shogiboardq_mcp.tooldefs import ALL_TOOLS
+
+    description = next(t for t in ALL_TOOLS if t.name == "save_kifu").description
+    named = re.findall(r"\.([a-z0-9]+)\b", description.split("(", 1)[1].split(")", 1)[0])
+    assert sorted(set(named)) == sorted(env[paths.KIFU_SAVE])
 
 
 def test_python_errors_use_the_shared_words(env):

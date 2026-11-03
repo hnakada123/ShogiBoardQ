@@ -62,18 +62,13 @@ std::optional<KifuFormat> fromPath(const QString& path)
     return format;
 }
 
-bool isSavable(KifuFormat format)
-{
-    return format != KifuFormat::Sfen && format != KifuFormat::Bod;
-}
-
 QStringList savableNames()
 {
+    // 保存の見出しのある拡張子のうち、形式の名前の行（表の並び）
     QStringList names;
-    // 並びは形式の enum の順（"kif" "ki2" "csa" "jkf" "usi" "usen"）
-    for (const KifuFormat format : {KifuFormat::Kif, KifuFormat::Ki2, KifuFormat::Csa, KifuFormat::Jkf,
-                                    KifuFormat::Usi, KifuFormat::Usen})
-        names.append(name(format));
+    for (const auto& entry : kExtensions) {
+        if (entry.saveLabel && entry.isName) names.append(QString::fromLatin1(entry.suffix));
+    }
     return names;
 }
 
