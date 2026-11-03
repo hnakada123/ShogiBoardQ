@@ -7,7 +7,8 @@ ShogiBoardQ の版番号は、リリースした日の日付にする（CalVer�
 - `YYYY.MM.DD`（例: `2026.10.07`）。月と日は2桁で書く。
 - 同じ日に2回目以降のリリースをするときは、4つ目の番号を付ける（`2026.10.07.1`、`2026.10.07.2`）。
   - CMake の `project(VERSION)` は4つまで使える。macOS のバンドルの版は Apple の規則では数字3つまでとされているが、App Store では配布していないので現状は支障がない。
-- 版番号は `CMakeLists.txt` の `APP_VERSION` だけで決める。アプリと `shogiboardq-cli` の版、自動化 API・MCP の `version`、macOS のバンドルの版、「バージョン情報」の表示、詰将棋の問題集に記録する版は、すべてここから取る。
+- 版番号は `CMakeLists.txt` の `APP_VERSION` だけで決める。アプリと `shogiboardq-cli` の版、自動化 API の `version`（`app.version`）・CLI の `environment` の `version`、macOS のバンドルの版、「バージョン情報」の表示、詰将棋の問題集に記録する版は、すべてここから取る。
+- MCP サーバー（`mcp/`）の版は Python のパッケージの版で、`mcp/shogiboardq_mcp/__init__.py` の `__version__` の1か所に書く（`mcp/pyproject.toml` は dynamic でここから読み、MCP の initialize の応答の `serverInfo.version` にも使う）。アプリの版とは別に持ち、アプリの版はツール（`get_app_state` などのアプリの状態・CLI の `environment`）で読む。
 
 ## 上げるとき
 

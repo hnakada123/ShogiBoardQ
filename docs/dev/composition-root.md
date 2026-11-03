@@ -33,7 +33,7 @@
 
 自動化 API のサーバーは `mainwindowcomposer_automation.cpp` の `startAutomationServer()` が作る。
 
-依存は各部品のコンストラクタに `Deps` で渡すので、部品は依存する部品より後に作る（作った後に `set*` で注入しない）。
+依存は各部品のコンストラクタに `Deps` で渡すので、部品は依存する部品より後に作る（作った後に `set*` で注入しない。例外は下の「例外」）。
 部品どうしのシグナルは全部作ってからつなぐので、シグナルでつながるだけの部品どうしは作る順を気にしなくてよい。
 
 ## 規則
@@ -52,9 +52,9 @@
    `CsaGameCoordinator`）はフックを持たず、シグナルと `MatchRecordSink`（対局の棋譜の受け手。実体は `GameSession`）で
    知らせる。棋譜を作ってから動作状態を対局中にし、終局では棋譜を確定してから待機に戻すのも司令塔で、シグナルを
    つないだ順には頼らない。
-5. 層の境界をまたぐときだけ関数で受け取る。例: `AutomationContext` は dialogs 層の
-   メニューウィンドウを触れないので、お気に入りの取得・設定を関数で受け取る。
-6. テストは `MainWindow::composer().parts()` と `state()` で部品と状態を読む。`#define private public` は使わない。
+5. 層の境界をまたぐときだけ関数で受け取る。例: `AutomationContext` は widgets 層の
+   メニューウィンドウ（`MenuWindow`）を触れないので、お気に入りの取得・設定を関数で受け取る。
+6. テストは `MainWindow::composer().parts()` と `activity()` で部品と動作状態を読む。`#define private public` は使わない。
 
 `tests/tst_structural_kpi.cpp` の `appLayerHasNoLazyEnsure` と `testsDoNotRedefinePrivate` が 2 と 6 を確かめる。
 
@@ -62,4 +62,8 @@
 
 - 司令塔（`MatchCoordinator`・`CsaGameCoordinator`）は棋譜の受け手の `GameSession` より先に作るので、受け手だけは
   `createSessions()` で `setRecordSink()` によって渡す。
+- 複数の部品が足す口（`KifuNavigationController::addLeaveGuard()`×2・`KifuDocument::addPendingEditor()`×2）と、
+  ドックの表 `DockRegistry` が作ったドックを受け取る部品（`MenuWindowController::attachDock()`・
+  `JosekiWindowController::attachDock()`）、メニューの項目を作る部品（`DockLayoutManager::setSavedLayoutsMenu()`）は、
+  相手ができあがってから渡す。
 - `AutomationServer` は `--automation` 指定時だけ `startAutomationServer()` で作る。

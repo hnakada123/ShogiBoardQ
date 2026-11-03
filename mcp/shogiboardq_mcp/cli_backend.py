@@ -1,7 +1,7 @@
 """Locate and run ``shogiboardq-cli``.
 
 One-shot commands return a single JSON document on stdout. Long-running
-commands (analyze, mate, generate-tsume) stream JSON Lines and are driven by
+commands (analyze, analyze-kifu, mate, generate-tsume) stream JSON Lines and are driven by
 :mod:`shogiboardq_mcp.jobs` instead.
 """
 

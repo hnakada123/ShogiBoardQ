@@ -8,7 +8,8 @@
 namespace NotationStyle {
 
 namespace {
-// 表示用の設定はメインスレッドで起動時（と言語の変更時）に決める
+// 表示用の設定はメインスレッドで起動時に決める（configure を呼ぶのは起動時の ApplicationTranslations だけで、
+// 表記の設定の変更は再起動で反映する。revision が変わるのはテストの中だけ）
 Options current;
 int currentRevision = 0;
 } // namespace
