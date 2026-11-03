@@ -4,8 +4,6 @@
 #include "tsumepositionpreview.h"
 
 #include "boardappearance.h"
-#include "kifupresentation.h"
-#include "movefont.h"
 #include "pieceimageprovider.h"
 #include "piecepainter.h"
 
@@ -68,16 +66,8 @@ void TsumePositionPreview::paintEvent(QPaintEvent*)
     }
     for (const Turn side : {Turn::Black, Turn::White}) drawHand(painter, side, colors, visuals);
 
-    // 筋・段の文字（盤と同じ帯）
-    QFont font = painter.font();
-    font.setPixelSize(m_geometry.labelPixelSize());
-    painter.setPen(colors.grid);
-    painter.setFont(MoveFont::font(font));   // 段の漢数字は指し手と同じ書体
-    for (int rank = 1; rank <= Position::kRanks; ++rank)
-        painter.drawText(m_geometry.rankLabel(rank), Qt::AlignCenter, KifuPresentation::rankLabel(rank));
-    painter.setFont(font);
-    for (int file = 1; file <= Position::kFiles; ++file)
-        painter.drawText(m_geometry.fileLabel(file), Qt::AlignCenter, QString::number(file));
+    // 筋・段の文字（盤と同じ帯・同じ描き方）
+    BoardStaticLayer::drawCoordinates(painter, m_geometry, colors.grid);
 }
 
 void TsumePositionPreview::drawHand(QPainter& painter, Turn side, const BoardColors& colors, const BoardVisuals& visuals)

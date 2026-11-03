@@ -3,12 +3,10 @@
 
 #include "shogiview.h"
 
-#include "movefont.h"
 #include "boardappearance.h"
 #include "boardconstants.h"
 #include "boardcoordinates.h"
 #include "boardsurfacepainter.h"
-#include "kifupresentation.h"
 #include "logcategories.h"
 #include "pieceimageprovider.h"
 #include "piecepainter.h"
@@ -512,27 +510,6 @@ void ShogiView::relayoutPieceBoxSideSelector()
 // ============================================================
 
 // 段・筋の番号（罫線と同じ色）
-void ShogiView::drawRanksAndFiles(QPainter* painter) const
-{
-    painter->save();
-    QFont font = painter->font();
-    font.setPixelSize(m_geometry.labelPixelSize());
-    font.setBold(false);
-    const QFont rankFont = MoveFont::font(font);   // 段の漢数字は指し手と同じ書体
-    painter->setPen(m_boardColors.grid);
-    painter->setFont(rankFont);
-    for (int rank = 1; rank <= m_board->ranks(); ++rank) {
-        const QRect label = m_geometry.rankLabel(rank);
-        if (intersectsPaintRegion(label)) painter->drawText(label, Qt::AlignCenter, KifuPresentation::rankLabel(rank));
-    }
-    painter->setFont(font);
-    for (int file = 1; file <= m_board->files(); ++file) {
-        const QRect label = m_geometry.fileLabel(file);
-        if (intersectsPaintRegion(label)) painter->drawText(label, Qt::AlignCenter, QString::number(file));
-    }
-    painter->restore();
-}
-
 void ShogiView::drawPieces(QPainter* painter)
 {
     // 段（r）を降順、筋（c）を昇順に走査し、各マスの駒を描画
@@ -590,7 +567,7 @@ void ShogiView::paintEvent(QPaintEvent* event)
     m_highlighting->drawArrows(painter);
 
     // 7) 段・筋ラベル（最前面に近いレイヤに載せる）
-    drawRanksAndFiles(&painter);
+    BoardStaticLayer::drawCoordinates(painter, m_geometry, m_boardColors.grid, m_paintRegion);
 
     // 8) 最前面：ドラッグ中の駒（マウス追従）。盤やラベルより上に重ねる。
     m_interaction.drawDraggingPiece(painter, fieldSize(), piece(m_interaction.dragPiece()), m_boardVisuals);

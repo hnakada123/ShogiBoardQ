@@ -7,10 +7,12 @@
 #include "boardcolors.h"
 #include "boardvisuals.h"
 
+#include <QColor>
 #include <QPixmap>
 #include <QPointF>
 #include <QRect>
 #include <QRectF>
+#include <QRegion>
 #include <QSize>
 
 class QPainter;
@@ -34,6 +36,11 @@ public:
               const BoardColors& colors, const BoardVisuals& visuals);
     /// 今の画像の識別子。作り直すと変わり、1つ前の画像に戻すと元の値に戻る
     qint64 cacheKey() const { return m_image.cacheKey(); }
+
+    /// 筋・段の文字を描く（盤の外側の帯。段の漢数字は指し手と同じ書体）。画像には入れず、ハイライトの上に描く。
+    /// region が空でなければ、掛かる文字だけを描く（盤 ShogiView と詰将棋問題一覧のプレビューで共通）
+    static void drawCoordinates(QPainter& painter, const BoardGeometry& geometry, const QColor& color,
+                                const QRegion& region = {});
 
 private:
     /// 画像を作った条件
