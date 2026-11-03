@@ -474,6 +474,7 @@ void MainWindowComposer::createControllers()
     PvClickController::Deps pv;
     pv.navState = m_c.navState;
     pv.document = m_c.document;
+    pv.activity = &m_activity;
     pv.shogiView = m_c.shogiView;
     m_c.pvClickController = new PvClickController(pv, &m_window);
     m_c.usiCommandController = new UsiCommandController({m_c.engines, m_c.usiLog}, &m_window);

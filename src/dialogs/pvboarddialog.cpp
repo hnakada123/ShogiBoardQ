@@ -51,8 +51,8 @@ PvBoardDialog::~PvBoardDialog() = default;
 
 void PvBoardDialog::setPlayerNames(const QString& blackName, const QString& whiteName)
 {
-    m_viewer->view()->chrome()->card(Turn::Black)->setName(blackName.isEmpty() ? tr("先手") : blackName);
-    m_viewer->view()->chrome()->card(Turn::White)->setName(whiteName.isEmpty() ? tr("後手") : whiteName);
+    m_viewer->view()->chrome()->card(Turn::Black)->setName(blackName);
+    m_viewer->view()->chrome()->card(Turn::White)->setName(whiteName);
 }
 
 void PvBoardDialog::setLastMove(const QString& lastMove)

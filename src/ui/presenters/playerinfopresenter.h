@@ -16,7 +16,8 @@ class ShogiView;
 /**
  * @brief 盤の対局者名を出す（表示だけ）
  *
- * 対局中は対局者、対局していなければ対局情報の名前（初期値は「先手」「後手」）を出す。
+ * 対局中は対局者、対局していなければ対局情報の名前（どちらも空なら「先手」「後手」）を出す。名前の決め方は
+ * boardName の1つで、読み筋盤（PvClickController）も同じ名前を出す。
  * 対局者と対局情報は棋譜の文書（KifuDocument）が持ち、このクラスは書き換えない。
  * 文書の知らせ（対局者・対局情報の作り直しと編集）と動作状態の変化を自分で受け、そのたびに求め直す
  * （ほかの部品は名前を書き込まない）。
@@ -36,13 +37,15 @@ public:
     explicit PlayerInfoPresenter(const Deps& deps, QObject* parent = nullptr);
     ~PlayerInfoPresenter() override;
 
+    /// 盤に出す side の対局者名。対局中は対局者、対局していなければ対局情報の名前（先手・後手、駒落ちは
+    /// 下手・上手、無ければ省略名）。どちらも空なら「先手」「後手」
+    static QString boardName(const KifuDocument& document, const AppActivityState& activity, Turn side);
+
 private slots:
     /// 対局中なら対局者の名前を、対局していなければ対局情報の名前を盤に出す
     void refresh();
 
 private:
-    void setBoardNames(const QString& black, const QString& white);
-
     Deps m_deps;
 };
 

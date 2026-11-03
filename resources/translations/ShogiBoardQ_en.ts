@@ -5819,38 +5819,38 @@ Each screen keeps its current text size.</translation>
 <context>
     <name>GameInfoEditModel</name>
     <message>
-        <location filename="../../src/models/gameinfoeditmodel.cpp" line="83"/>
+        <location filename="../../src/models/gameinfoeditmodel.cpp" line="84"/>
         <source>項目</source>
         <translation>Item</translation>
     </message>
     <message>
-        <location filename="../../src/models/gameinfoeditmodel.cpp" line="83"/>
+        <location filename="../../src/models/gameinfoeditmodel.cpp" line="84"/>
         <source>内容</source>
         <translation>Value</translation>
     </message>
     <message>
-        <location filename="../../src/models/gameinfoeditmodel.cpp" line="184"/>
+        <location filename="../../src/models/gameinfoeditmodel.cpp" line="185"/>
         <source>未開始（対局開始時に設定）</source>
         <translation>Not started (set when the game starts)</translation>
     </message>
     <message>
-        <location filename="../../src/models/gameinfoeditmodel.cpp" line="184"/>
-        <location filename="../../src/models/gameinfoeditmodel.cpp" line="188"/>
+        <location filename="../../src/models/gameinfoeditmodel.cpp" line="185"/>
+        <location filename="../../src/models/gameinfoeditmodel.cpp" line="189"/>
         <source>未設定</source>
         <translation>Not set</translation>
     </message>
     <message>
-        <location filename="../../src/models/gameinfoeditmodel.cpp" line="186"/>
+        <location filename="../../src/models/gameinfoeditmodel.cpp" line="187"/>
         <source>未設定（名前を入力できます）</source>
         <translation>Not set (enter a player name)</translation>
     </message>
     <message>
-        <location filename="../../src/models/gameinfoeditmodel.cpp" line="188"/>
+        <location filename="../../src/models/gameinfoeditmodel.cpp" line="189"/>
         <source>未設定（対局設定から反映）</source>
         <translation>Not set (from game settings)</translation>
     </message>
     <message>
-        <location filename="../../src/models/gameinfoeditmodel.cpp" line="190"/>
+        <location filename="../../src/models/gameinfoeditmodel.cpp" line="191"/>
         <source>任意入力</source>
         <translation>Optional</translation>
     </message>
@@ -5858,7 +5858,7 @@ Each screen keeps its current text size.</translation>
 <context>
     <name>GameInfoPane</name>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="96"/>
+        <location filename="../../src/widgets/gameinfopane.cpp" line="92"/>
         <source>対局情報</source>
         <translation>Game Info</translation>
     </message>
@@ -5913,22 +5913,22 @@ Discard changes and continue?</translation>
         <translation type="vanished">Paste (Ctrl+V)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="337"/>
+        <location filename="../../src/widgets/gameinfopane.cpp" line="333"/>
         <source>行を追加</source>
         <translation>Add row</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="337"/>
+        <location filename="../../src/widgets/gameinfopane.cpp" line="333"/>
         <source>新しい行を追加する</source>
         <translation>Add a new row</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="338"/>
+        <location filename="../../src/widgets/gameinfopane.cpp" line="334"/>
         <source>行を削除</source>
         <translation>Delete row</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="339"/>
+        <location filename="../../src/widgets/gameinfopane.cpp" line="335"/>
         <source>選択行を削除する（元に戻す操作で復元できます）</source>
         <translation>Delete the selected row (can be restored with Undo)</translation>
     </message>
@@ -5945,7 +5945,7 @@ Discard changes and continue?</translation>
         <translation type="vanished">Unapplied changes</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="349"/>
+        <location filename="../../src/widgets/gameinfopane.cpp" line="345"/>
         <source>内容をダブルクリックして編集</source>
         <translation>Double-click a value to edit</translation>
     </message>
@@ -12710,12 +12710,12 @@ Are you sure you want to declare?</translation>
 <context>
     <name>PlayerInfoPresenter</name>
     <message>
-        <location filename="../../src/ui/presenters/playerinfopresenter.cpp" line="43"/>
+        <location filename="../../src/ui/presenters/playerinfopresenter.cpp" line="32"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/ui/presenters/playerinfopresenter.cpp" line="44"/>
+        <location filename="../../src/ui/presenters/playerinfopresenter.cpp" line="32"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
@@ -12919,14 +12919,12 @@ Are you sure you want to declare?</translation>
         <translation>Principal Variation Display</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="54"/>
         <source>先手</source>
-        <translation>Black</translation>
+        <translation type="vanished">Black</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="55"/>
         <source>後手</source>
-        <translation>White</translation>
+        <translation type="vanished">White</translation>
     </message>
     <message>
         <source>将棋盤を縮小する</source>
@@ -12983,14 +12981,12 @@ Are you sure you want to declare?</translation>
 <context>
     <name>PvClickController</name>
     <message>
-        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="60"/>
         <source>先手</source>
-        <translation>Black</translation>
+        <translation type="vanished">Black</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="60"/>
         <source>後手</source>
-        <translation>White</translation>
+        <translation type="vanished">White</translation>
     </message>
 </context>
 <context>
