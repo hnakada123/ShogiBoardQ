@@ -2,9 +2,8 @@
 #define KIFUDOCUMENT_H
 
 /// @file kifudocument.h
-/// @brief 開いている棋譜の文書（分岐ツリー・対局情報・対局の記録・ファイルの紐づけ）
+/// @brief 開いている棋譜の文書（分岐ツリー・対局情報・対局者・ファイルの紐づけ）
 
-#include <QDateTime>
 #include <QList>
 #include <QObject>
 #include <QString>
@@ -12,7 +11,6 @@
 
 #include "kifparsetypes.h"
 #include "matchplayers.h"
-#include "matchtimerecord.h"
 #include "shogitypes.h"
 #include "timecontrol.h"
 
@@ -25,7 +23,7 @@ class KifuBranchTree;
  * 書き出しと保存に使う情報をまとめて持つ。
  * - 分岐ツリー（棋譜の正本。オブジェクトは合成ルートが持ち、文書は中身を置き換える）
  * - 対局情報（ヘッダー。対局情報欄はこれを編集する画面）
- * - 対局の記録（対局者・持ち時間・開始と終了の日時）
+ * - 最後に始めた対局の対局者（持ち時間と開始・終了の日時は対局情報に書き、別には持たない）
  * - ファイルの紐づけ（上書き保存先と、保存した時点の状態）
  *
  * 未保存かどうかは「ツリーの revision・コメントの変更・対局情報が保存した時点と違う」で求める
@@ -70,16 +68,16 @@ public:
     // --- 対局 ---
 
     /**
-     * @brief 対局を始める（対局者と持ち時間を記録し、開始日時を今にする）
+     * @brief 対局を始める（対局者を記録する）
      * @param continuesRecord 読み込んだ棋譜の途中から続ける対局（対局情報は棋譜のまま残す）
      *
-     * 続ける対局でなければ、対局情報を対局日・開始日時・対局者・手合割・持ち時間で作り直す
+     * 続ける対局でなければ、対局情報を対局日・開始日時（今）・対局者・手合割・持ち時間で作り直す
      * （棋戦・場所・備考など利用者が入力した項目は残す）。続ける対局は対局者名だけを書き換える。
      */
     void beginMatch(const MatchPlayers& players, const TimeControl& timeControl, bool continuesRecord);
-    /// 終局した（終了日時を記録して対局情報に書く）
+    /// 終局した（終了日時を今にして対局情報に書く。棋譜の途中から続けた対局は対局情報を書き換えない）
     void recordMatchEnd();
-    /// 終了日時を消す（中断した対局を再開した）
+    /// 対局情報の終了日時を消す（中断した対局を再開した）
     void clearMatchEnd();
 
     // --- 対局情報（ヘッダー） ---
@@ -93,12 +91,10 @@ public:
     /// 対局者を下手・上手と呼ぶか（駒落ちで、対局情報の見出しが下手・上手のとき）
     bool usesHandicapNames() const;
 
-    // --- 対局の記録 ---
+    // --- 対局者 ---
 
     /// 最後に始めた対局の対局者（対局していなければ空）
     const MatchPlayers& players() const { return m_players; }
-    /// 持ち時間と開始・終了の日時
-    const MatchTimeRecord& timeRecord() const { return m_timeRecord; }
 
     // --- コメント・しおり ---
 
@@ -158,7 +154,6 @@ private:
     QList<Hooks> m_editors;   ///< 文書を編集する画面（画面がなければ空）
     QList<KifGameInfoItem> m_header;
     MatchPlayers m_players;
-    MatchTimeRecord m_timeRecord;
     bool m_keepRecordHeader = false;    ///< 棋譜の途中から続けた対局（対局情報を書き換えない）
     QString m_filePath;
     quint64 m_annotationRevision = 0;   ///< コメント・しおりの変更の回数

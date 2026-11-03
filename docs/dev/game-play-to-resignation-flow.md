@@ -320,7 +320,7 @@ onEngineMoveReady(move)   ← Usi::matchMoveReady
 
 **ファイル:** `src/core/shogiclock.cpp`
 
-`ShogiClock` は先手・後手の状態（残り時間・考慮時間・総考慮時間・秒読みに入っているか）を `SideState` にまとめて持ち、API はすべて `Turn` で受ける。50ms ごとの tick（`updateClock()`）で、時計の手番の側の残り時間と考慮時間を進める。時計は合成ルート（`MainWindowComposer::createBoard()`）が作り、司令塔（`MatchCoordinator::Deps::clock`・`CsaGameCoordinator::Deps::clock`）と `TimeDisplayPresenter` に渡す。司令塔はこの時計を読む時間の出どころ `ClockTimeSource`（`src/engine/matchtimesource.h`）を持ち（`MatchStrategyHost::timeSource()`）、`MatchEngineSeat::start()` が対局のエンジンに `Usi::setMatchTimeSource()` でつなぐ。対局を始めるときは `MatchCoordinator::start()` が `MatchStartOptions::time` の持ち時間の決まりと開始局面の手番を時計に入れ（`applyTimeSettings()`）、棋譜の文書（`KifuDocument::beginMatch()`）が `MatchTimeRecord`（`src/kifu/matchtimerecord.h`。対局情報と棋譜に書く持ち時間と開始・終了の日時）に記録する。持ち時間の決まりと表示の仕様は [時間設定の仕様](game-time-control-spec.md) を参照。
+`ShogiClock` は先手・後手の状態（残り時間・考慮時間・総考慮時間・秒読みに入っているか）を `SideState` にまとめて持ち、API はすべて `Turn` で受ける。50ms ごとの tick（`updateClock()`）で、時計の手番の側の残り時間と考慮時間を進める。時計は合成ルート（`MainWindowComposer::createBoard()`）が作り、司令塔（`MatchCoordinator::Deps::clock`・`CsaGameCoordinator::Deps::clock`）と `TimeDisplayPresenter` に渡す。司令塔はこの時計を読む時間の出どころ `ClockTimeSource`（`src/engine/matchtimesource.h`）を持ち（`MatchStrategyHost::timeSource()`）、`MatchEngineSeat::start()` が対局のエンジンに `Usi::setMatchTimeSource()` でつなぐ。対局を始めるときは `MatchCoordinator::start()` が `MatchStartOptions::time` の持ち時間の決まりと開始局面の手番を時計に入れ（`applyTimeSettings()`）、棋譜の文書（`KifuDocument::beginMatch()`）が対局情報に持ち時間と開始日時を書く（終了日時は `recordMatchEnd()`。対局情報のほかには持たない）。持ち時間の決まりと表示の仕様は [時間設定の仕様](game-time-control-spec.md) を参照。
 
 ### 3.1 時間計測の仕組み
 
@@ -514,7 +514,7 @@ GameSession::appendRecord(entry)                 （src/app/gamesession.cpp）
 | 対局の設定・対局者・最大手数・終局状態・先読みの局面 | `MatchSessionState` |
 | 盤と手番 | `ShogiBoard`（`GameBoard` が持つ） |
 | 残り時間・考慮時間・時計の手番 | `ShogiClock` |
-| 対局者・持ち時間と対局の開始・終了日時（対局情報・棋譜用） | `KifuDocument`（`players()`・`timeRecord()`。`MatchTimeRecord`） |
+| 対局者・持ち時間と対局の開始・終了日時（対局情報・棋譜用） | `KifuDocument`（対局者は `players()`、持ち時間と日時は対局情報 `header()`） |
 | 中断した対局（再開用） | `MatchCoordinator::m_interruptedGame`（`InterruptedGameState`） |
 | 棋譜の正本（分岐ツリー） | `KifuBranchTree`（`LiveGameSession` が対局の手を足す） |
 | 表示中の手 | `KifuNavigationState` |
@@ -803,8 +803,7 @@ MatchCoordinator::endGame()
            │      （再開は中断の行を除いて記録し直す。待つ間も変化の手・分岐の編集・評価値グラフの追従ができる）
            ├─ (2) 終局時刻を記録し、対局情報に反映（終局行を書いた後で行う）
            │      KifuDocument::recordMatchEnd()
-           │        ├─ MatchTimeRecord::recordEnd()
-           │        └─ 対局情報の終了日時を書く（未保存に数えない。棋譜の途中から続けた対局では書かない）
+           │        └─ 対局情報の終了日時（今）を書く（未保存に数えない。棋譜の途中から続けた対局では書かない）
            │             → emit headerValueSet → GameInfoPane::updateGameInfoValue()
            └─ (3) autoSave で自動保存の指定が有効なら（MatchAutoSave::isActive()）
                   KifuFileController::autoSaveKifu(dir, extension)   … 連続対局の次局・通信対局の次の対局より前に書き出す
@@ -1118,7 +1117,6 @@ MatchCoordinator::handleResign()
 | 棋譜欄・分岐の表示 | `src/ui/presenters/kifudisplaypresenter.h` | `src/ui/presenters/kifudisplaypresenter.cpp` |
 | 将棋時計 | `src/core/shogiclock.h` | `src/core/shogiclock.cpp` |
 | 棋譜の文書（対局情報・対局者・持ち時間・上書き保存先） | `src/kifu/kifudocument.h` | `src/kifu/kifudocument.cpp` |
-| 持ち時間と開始・終了の日時 | `src/kifu/matchtimerecord.h` | `src/kifu/matchtimerecord.cpp` |
 | 持ち時間を時計に入れる（対局の開始） | `src/game/matchcoordinator.h` | `src/game/matchcoordinator.cpp` |
 | 時計の表示 | `src/ui/presenters/timedisplaypresenter.h` | `src/ui/presenters/timedisplaypresenter.cpp` |
 | 対局者名・時計・手番の印の表示 | `src/views/boardchromewidget.h` | `src/views/boardchromewidget.cpp` |

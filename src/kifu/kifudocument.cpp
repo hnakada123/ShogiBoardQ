@@ -13,6 +13,7 @@
 #include "kifusavefile.h"
 #include "sfenutils.h"
 
+#include <QDateTime>
 #include <QPair>
 #include <QSet>
 #include <algorithm>
@@ -123,7 +124,6 @@ void KifuDocument::finishReplacement(const QList<KifGameInfoItem>& header, bool 
 {
     m_header = header;
     m_players = {};
-    m_timeRecord.clear();
     m_keepRecordHeader = false;
     m_filePath.clear();
     m_unsavedContent = false;
@@ -140,7 +140,6 @@ void KifuDocument::finishReplacement(const QList<KifGameInfoItem>& header, bool 
 void KifuDocument::beginMatch(const MatchPlayers& players, const TimeControl& timeControl, bool continuesRecord)
 {
     m_players = players;
-    m_timeRecord.begin(timeControl);
     m_keepRecordHeader = continuesRecord;
     emit playersChanged();
     if (continuesRecord) {
@@ -156,7 +155,7 @@ void KifuDocument::beginMatch(const MatchPlayers& players, const TimeControl& ti
 
     commitPendingEdits();
     const QList<KifGameInfoItem> header =
-        mergeForMatch(matchStartItems(m_timeRecord.startDateTime(), players, startSfen(), timeControl), m_header);
+        mergeForMatch(matchStartItems(QDateTime::currentDateTime(), players, startSfen(), timeControl), m_header);
     // 利用者が編集していなければ、作り直した対局情報も変更に数えない
     if (m_header == m_saved.header) m_saved.header = header;
     m_header = header;
@@ -165,14 +164,12 @@ void KifuDocument::beginMatch(const MatchPlayers& players, const TimeControl& ti
 
 void KifuDocument::recordMatchEnd()
 {
-    m_timeRecord.recordEnd();
     if (!m_keepRecordHeader)
-        setHeaderValue(GameInfoKeys::kEndDateTime, m_timeRecord.endDateTime().toString(QStringLiteral("yyyy/MM/dd HH:mm:ss")));
+        setHeaderValue(GameInfoKeys::kEndDateTime, QDateTime::currentDateTime().toString(QStringLiteral("yyyy/MM/dd HH:mm:ss")));
 }
 
 void KifuDocument::clearMatchEnd()
 {
-    m_timeRecord.clearEnd();
     if (!m_keepRecordHeader) setHeaderValue(GameInfoKeys::kEndDateTime, QString());
 }
 

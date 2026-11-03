@@ -339,8 +339,6 @@ set(SRC_GAME
     src/kifu/kifudocument.h
     src/kifu/kifuexport.cpp
     src/kifu/kifuexport.h
-    src/kifu/matchtimerecord.cpp
-    src/kifu/matchtimerecord.h
     src/game/nyugyokujudgement.cpp
     src/game/nyugyokujudgement.h
     src/game/sennichitedetector.cpp

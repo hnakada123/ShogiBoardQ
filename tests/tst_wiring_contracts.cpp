@@ -8,6 +8,8 @@
 #include "mainwindowcomposer.h"
 #include "gamestartoptionsbuilder.h"
 #include "kifudocument.h"
+#include "gameinfo_test_util.h"
+#include "timecontroltext.h"
 #include "kifubranchtree.h"
 #include "kifurecordlistmodel.h"
 #include "livegamesession.h"
@@ -16,7 +18,6 @@
 #include "gameboard.h"
 #include "uistatepolicymanager.h"
 #include "shogiclock.h"
-#include "matchtimerecord.h"
 #include "consecutivegameseries.h"
 #include "boardmovecontroller.h"
 #include "csagamecoordinator.h"
@@ -123,13 +124,15 @@ private slots:
         QCOMPARE(p.document->players().name(Turn::White), QStringLiteral("花子"));
         QVERIFY(p.liveGameSession->isActive());
         QCOMPARE(p.clock->timeControl().black.mainMs, 180000);
-        QCOMPARE(p.document->timeRecord().timeControl().black.mainMs, 180000);
-        QVERIFY(p.document->timeRecord().startDateTime().isValid());
+        // 持ち時間と開始日時は対局情報に書く（時計と同じ持ち時間）
+        QCOMPARE(headerValue(*p.document, GameInfoKeys::kTimeControl),
+                 TimeControlText::format(p.clock->timeControl(), false));
+        QVERIFY(!headerValue(*p.document, GameInfoKeys::kStartDateTime).isEmpty());
 
         p.gameSession->resign();
         QVERIFY(m_endWasCommitted);
         QCOMPARE(p.kifuRecord->rowCount(), 2);
-        QVERIFY(p.document->timeRecord().endDateTime().isValid());
+        QVERIFY(!headerValue(*p.document, GameInfoKeys::kEndDateTime).isEmpty());
         p.gameSession->resign();
         QCOMPARE(p.kifuRecord->rowCount(), 2);
         p.document->markSaved(QString());

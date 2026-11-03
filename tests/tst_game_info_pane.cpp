@@ -565,11 +565,15 @@ private slots:
         MatchPlayers players;
         players.seat(Turn::Black).humanName = QStringLiteral("太郎");
         players.seat(Turn::White).humanName = QStringLiteral("花子");
+        const QDateTime before = QDateTime::currentDateTime();
         document.beginMatch(players, TimeControl{{300000, 30000, 0}, {300000, 30000, 0}}, false);
-        const QDateTime start = document.timeRecord().startDateTime();
+        const QDateTime after = QDateTime::currentDateTime();
         QCOMPARE(table.rowCount(), 9);
+        // 対局日と開始日時は対局を始めた時刻
+        const QDateTime start = QDateTime::fromString(table.text(1, 1), QStringLiteral("yyyy/MM/dd HH:mm:ss"));
+        QVERIFY2(start.isValid(), qPrintable(table.text(1, 1)));
+        QVERIFY(start >= before.addMSecs(-before.time().msec()) && start <= after);
         QCOMPARE(table.text(0, 1), start.toString(QStringLiteral("yyyy/MM/dd")));
-        QCOMPARE(table.text(1, 1), start.toString(QStringLiteral("yyyy/MM/dd HH:mm:ss")));
         QCOMPARE(table.text(2, 1), QStringLiteral("太郎"));
         QCOMPARE(table.text(3, 1), QStringLiteral("花子"));
         QCOMPARE(table.text(5, 1), QStringLiteral("05:00+30"));

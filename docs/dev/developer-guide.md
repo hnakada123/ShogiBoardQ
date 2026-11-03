@@ -188,6 +188,7 @@
 | 2026-11-03 | position の文字列の語の分け方を `UsiPosition::split` だけにした（監査 2026-11-01 M4）（`UsiPosition::Words` に前に position を書いたか `positionCommand`・startpos で書いたか `startpos` を足した。局面集ファイルの行 `PositionCollectionFile::parseLine` はこれで分け、手数の欄と `moves` を省いた行も読む。USI 形式の棋譜のファイルの対象の行は split と `Position::fromSfen` で選び、仮の SFEN を組み立てて盤の欄を確かめる判定を消した） |
 | 2026-11-03 | 棋譜ファイルの読み込みの経路を1本にした（監査 2026-11-01 M5）のに合わせて §8 と付録を更新（CSA の変換器のファイルの読み込み `CsaToSfenConverter::readFileText()` と `KifuLoadParser::readFileText()` を消し、`KifuLoadParser::parseFile()` は形式によらず `KifuTextDecoder::readAllTextAuto()` で読む。文字コードの宣言（KIF・KI2 の `#KIF … encoding=`、CSA の `'CSA encoding=`・`'encoding=`）は `KifuTextDecoder::decodeAuto()` が BOM の次に見て、宣言どおりに読めるときだけ従う） |
 | 2026-11-03 | 持将棋ルールを対局の条件に入れた（監査 2026-11-01 M7）のに合わせて §10.3 を更新（対局ダイアログの持将棋ルールは `StartGameDialogData::jishogiRule` から `MatchStartOptions::jishogiRule` に入り、入玉宣言は人間もエンジンも `MatchCoordinator::declareNyugyoku(declarer)` が `NyugyokuJudgement::judgeDeclaration()` で判定する（「なし」なら27点法で判定して説明に書く）。`NyugyokuJudgement::configuredRule()`・`ruleFromSetting()`・`judgeEngineDeclaration()` を消し、`GameChannel::judgesDeclaration()` を宣言を受け付けるかの `acceptsDeclaration()` にした。game は持将棋ルールの設定を読まない） |
+| 2026-11-03 | 棋譜の文書の対局の時間の記録 `MatchTimeRecord` を消した（監査 2026-11-01 M8）のに合わせて §1.5・§8.5・§10.2・付録を更新（持ち時間と開始・終了の日時は対局情報にだけ書く。`KifuDocument::timeRecord()` を消し、棋譜の途中から続けた対局のメモ `GameSession::noteContinuedMatch()` は持ち時間を引数で受け取る） |
 
 <!-- chapter-0-end -->
 
@@ -439,7 +440,6 @@ src/
 │
 ├── kifu/                           # 棋譜管理（GUI に依存しない）
 │   ├── kifudocument.cpp/.h         #   開いている棋譜の文書（分岐ツリー・対局情報・対局の記録・上書き保存先）
-│   ├── matchtimerecord.cpp/.h      #   対局の持ち時間と開始・終了の日時（棋譜の文書が持ち、対局情報と棋譜に書く）
 │   ├── kifubranchnode.cpp/.h       #   分岐ノード
 │   ├── kifubranchtree.cpp/.h       #   分岐ツリー（棋譜の正本）
 │   ├── kifubranchtreebuilder.cpp/.h #  分岐ツリー構築
@@ -3259,7 +3259,7 @@ public:
 | 責務 | 内容 |
 |------|------|
 | **利用者の操作** | `startGameFromDialog()`・`resign()`・`breakOff()`・`makeEngineMoveNow()`・`declareNyugyoku()`・`undoTwoMoves()`・`resumeInterruptedGame()`。投了・中断・すぐ指させるは `activeChannel()` の `GameChannel`（動作状態が `DuringCsaGame` なら `CsaGameChannel`、`DuringGame` なら `LocalGameChannel`、それ以外は nullptr）に頼み、対局の種類で分岐しない。入玉宣言は `NyugyokuDeclarationHandler::handleDeclaration(activeChannel())` に任せる |
-| **対局の開始** | `startGameFromDialog()`（ダイアログ → `GameStartOptionsBuilder::plan()`）と `startGame(plan, beginSeries)`（棋譜を整える → `beginMatchRecord(players, timeControl, continuesRecord)`（棋譜の文書に対局者・持ち時間・開始日時を記録して対局情報を作る `KifuDocument::beginMatch()`、続ける対局なら分岐の最初の手のメモ、対局者の表示）→ 自動保存の指定（`MatchStartOptions::autoSave`）を覚える → `MatchCoordinator::start()`（時計の決まりもここで入る）→ 時計の表示 → `beginPlay()`）。連続対局の次局は `startNextGame(plan)` |
+| **対局の開始** | `startGameFromDialog()`（ダイアログ → `GameStartOptionsBuilder::plan()`）と `startGame(plan, beginSeries)`（棋譜を整える → `beginMatchRecord(players, timeControl, continuesRecord)`（棋譜の文書に対局者を記録し、持ち時間・開始日時を書いた対局情報を作る `KifuDocument::beginMatch()`、続ける対局なら分岐の最初の手のメモ（持ち時間は引数の `timeControl`）、対局者の表示）→ 自動保存の指定（`MatchStartOptions::autoSave`）を覚える → `MatchCoordinator::start()`（時計の決まりもここで入る）→ 時計の表示 → `beginPlay()`）。連続対局の次局は `startNextGame(plan)` |
 | **棋譜の受け手** | `MatchRecordSink` の `beginRecord()`・`canAppendRecord()`・`appendRecord()`・`canUndoRecords()`・`undoRecords()`・`finishRecord()`。行は `LiveGameSession` に追記する。合成ルートが `setRecordSink()` で両方の司令塔に渡す |
 | **終局後処理** | 司令塔が終局の行の後で呼ぶ `finishRecord(autoSave)`（ライブ対局のセッションの確定（中断も。再開は中断の行を除いて記録し直す）、終局時刻の記録 `KifuDocument::recordMatchEnd()`、`autoSave` で `m_autoSave.isActive()` なら `KifuFileController::autoSaveKifu(dir, extension)`）・`onGameEnded()`（中断なら連続対局をやめる）・`onGameEndProcessed()`（連続対局の次局の予約） |
 | **中断と再開** | `onGameInterrupted()`・`discardInterruptedGame()`・`resumeInterruptedGame()` |
@@ -4507,7 +4507,7 @@ struct KifuParseOutcome {
 
 ### 8.5 KifuDocument — 開いている棋譜の文書
 
-**ソース**: `src/kifu/kifudocument.h/.cpp`、`src/kifu/matchtimerecord.h/.cpp`
+**ソース**: `src/kifu/kifudocument.h/.cpp`
 
 開いている棋譜の文書（`QObject`）。書き出しと保存に使う情報をまとめて持つ。
 
@@ -4515,7 +4515,7 @@ struct KifuParseOutcome {
 |---------|------|
 | 分岐ツリー | 棋譜の正本（`tree()`）。オブジェクトは合成ルートが作って持ち、文書は非所有のポインタで受け取って中身を置き換える |
 | 対局情報 | ヘッダー（`header()`。`QList<KifGameInfoItem>`）。対局情報欄（`GameInfoPane`）はこれを編集する画面 |
-| 対局の記録 | 最後に始めた対局の対局者（`players()`。`MatchPlayers`）と、持ち時間・開始と終了の日時（`timeRecord()`。`MatchTimeRecord`） |
+| 対局者 | 最後に始めた対局の対局者（`players()`。`MatchPlayers`）。対局の持ち時間と開始・終了の日時は対局情報にだけ書き、別には持たない |
 | ファイルの紐づけ | 上書き保存先（`filePath()`）と、保存した時点の状態 |
 
 合成ルートは `createRecordAndModels()` で分岐ツリーの直後に文書を作る（`MainWindowComponents::document`）。
@@ -4536,8 +4536,8 @@ struct KifuParseOutcome {
 
 | メソッド | 呼ぶ側 | 内容 |
 |---------|-------|------|
-| `beginMatch(players, timeControl, continuesRecord)` | `GameSession::beginMatchRecord()`（ローカル対局の `startGame()`・通信対局の司令塔が呼ぶ `beginRecord()`） | 対局者と持ち時間を記録し、開始日時を今にする。対局情報を対局日・開始日時・対局者・手合割・持ち時間で作り直す（棋戦・場所・備考など利用者が入力した項目は残す）。読み込んだ棋譜の途中から続ける対局（`continuesRecord`）では、棋譜の対局情報を残して対局者名だけを書き換える |
-| `recordMatchEnd()` | `GameSession::finishRecord()`（ローカル対局・通信対局の司令塔が終局で呼ぶ） | 終了日時を記録して対局情報に書く |
+| `beginMatch(players, timeControl, continuesRecord)` | `GameSession::beginMatchRecord()`（ローカル対局の `startGame()`・通信対局の司令塔が呼ぶ `beginRecord()`） | 対局者を記録する。対局情報を対局日・開始日時（今）・対局者・手合割・持ち時間で作り直す（棋戦・場所・備考など利用者が入力した項目は残す）。読み込んだ棋譜の途中から続ける対局（`continuesRecord`）では、棋譜の対局情報を残して対局者名だけを書き換える |
+| `recordMatchEnd()` | `GameSession::finishRecord()`（ローカル対局・通信対局の司令塔が終局で呼ぶ） | 終了日時（今）を対局情報に書く |
 | `clearMatchEnd()` | `GameSession::resumeInterruptedGame()` | 終了日時を消す（中断した対局を再開した） |
 
 対局が書く値（終了日時・続けた対局の対局者名）は `headerValueSet(key, value)` で知らせ、保存した時点の内容にも書くので未保存に数えない。利用者が対局情報を編集していなければ、`beginMatch()` で作り直した対局情報も変更に数えない。
@@ -5729,7 +5729,7 @@ KifuNavigationState::changed
 
 **ソース**: `src/ui/presenters/timedisplaypresenter.h`, `src/ui/presenters/timedisplaypresenter.cpp`
 
-対局時計の表示を管理するプレゼンターである。コンストラクタで時計の `ShogiClock::timeUpdated` を自分の `showClock()` に直接つなぎ、残り時間のフォーマットと表示を行う（司令塔は中継しない）。ローカル対局は対局の時計、通信対局はサーバーの残り時間を写した表示用の同じ時計で、どちらも同じ時計を見る。時計そのもの（`ShogiClock`）は合成ルートが作り、持ち時間の決まりは対局の司令塔（ローカル対局は `MatchCoordinator::start()` の `applyTimeSettings()`、12.8 節。通信対局は `CsaGameCoordinator`）が入れる。対局情報と棋譜に書く持ち時間・開始終了日時は棋譜の文書の `MatchTimeRecord`（`src/kifu/`。`KifuDocument::timeRecord()`）が持つ。
+対局時計の表示を管理するプレゼンターである。コンストラクタで時計の `ShogiClock::timeUpdated` を自分の `showClock()` に直接つなぎ、残り時間のフォーマットと表示を行う（司令塔は中継しない）。ローカル対局は対局の時計、通信対局はサーバーの残り時間を写した表示用の同じ時計で、どちらも同じ時計を見る。時計そのもの（`ShogiClock`）は合成ルートが作り、持ち時間の決まりは対局の司令塔（ローカル対局は `MatchCoordinator::start()` の `applyTimeSettings()`、12.8 節。通信対局は `CsaGameCoordinator`）が入れる。対局情報と棋譜に書く持ち時間・開始終了日時は、棋譜の文書が対局情報に書く（`KifuDocument::beginMatch()`・`recordMatchEnd()`）。
 
 | 処理 | 説明 |
 |------|------|
@@ -9548,7 +9548,6 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | MatchSessionState | C | game | 対局の設定と終了状態の持ち主 | 第6章 |
 | MatchStartOptions | S | game | 対局開始の設定（対局者・手順・時間の決まり・エンジンのパス） | 第6章 |
 | MatchStrategyHost | C | game | Strategy が司令塔に頼む操作のインターフェース | 第6章 |
-| MatchTimeRecord | C | kifu | 対局の持ち時間と開始・終了の日時（棋譜の文書が持ち、対局情報と棋譜に書く記録） | 第6章, 第8章 |
 | MatchTimeSettings | S | game | 対局の時間の決まり（持ち時間・秒読み・加算と、時間切れの扱い。`MatchStartOptions::time`） | 第6章, 第12章 |
 | MatchTimeSource | C | engine | エンジンの思考に使う時間の出どころのインターフェース（ローカル対局は対局時計、通信対局はサーバーの残り時間） | 第7章, 第12章 |
 | MateAnswer | S | engine | 詰みの問い合わせの答え（`Mate`・`NoMate`・`Unknown`・`Unsupported` と手順。`UsiCheckmate` からの変換は `fromCheckmate()` だけ） | 第7章, 第9章 |
@@ -9731,7 +9730,6 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 |---------|--------|------|
 | kifudocument | 第8章 | 開いている棋譜の文書（分岐ツリー・対局情報・対局の記録・上書き保存先・未保存の判定） |
 | kifuexport | 第8章 | 形式ごとの書き出しの表 |
-| matchtimerecord | 第6章, 第8章 | 対局の持ち時間と開始・終了の日時（棋譜の文書が持ち、対局情報と棋譜に書く） |
 | kifubranchtree | 第8章 | 分岐ツリー |
 | kifubranchnode | 第8章 | 分岐ノード |
 | kifubranchtreebuilder | 第8章 | ツリー構築 |
