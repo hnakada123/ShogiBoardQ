@@ -4,39 +4,41 @@
 #include "enginelistsettings.h"
 
 #include "settingscommon.h"
-#include "settingskeys.h"
 
 #include <QSettings>
 
+// 機能ごとのキー（名前のキーと、以前の版が保存していた番号・パスのキー。以前の版のキーは読むだけ）
+
 EngineListSettings::SelectionKeys EngineListSettings::considerationSelection()
 {
-    return {SettingsKeys::kConsiderationEngineName, SettingsKeys::kConsiderationEngineIndex, nullptr};
+    return {"Consideration/engineName", "Consideration/engineIndex", nullptr};
 }
 
 EngineListSettings::SelectionKeys EngineListSettings::kifuAnalysisSelection()
 {
-    return {SettingsKeys::kKifuAnalysisEngineName, SettingsKeys::kKifuAnalysisEngineIndex, nullptr};
+    return {"KifuAnalysis/engineName", "KifuAnalysis/engineIndex", nullptr};
 }
 
 EngineListSettings::SelectionKeys EngineListSettings::tsumeSearchSelection()
 {
-    return {SettingsKeys::kTsumeSearchEngineName, nullptr, SettingsKeys::kTsumeSearchEnginePath};
+    return {"TsumeSearch/engineName", nullptr, "TsumeSearch/enginePath"};
 }
 
 EngineListSettings::SelectionKeys EngineListSettings::tsumeshogiGeneratorSelection()
 {
-    return {SettingsKeys::kTsumeshogiGeneratorEngineName, SettingsKeys::kTsumeshogiGeneratorEngineIndex, nullptr};
+    return {"TsumeshogiGenerator/engineName", "TsumeshogiGenerator/engineIndex", nullptr};
 }
 
 EngineListSettings::SelectionKeys EngineListSettings::csaGameSelection()
 {
-    return {SettingsKeys::kCsaEngineName, SettingsKeys::kCsaEngineNumber, nullptr};
+    return {"CsaGameSettings/engineName", "CsaGameSettings/engineNumber", nullptr};
 }
 
 EngineListSettings::SelectionKeys EngineListSettings::tsumeCollectionSelection()
 {
-    // 以前の版は判定エンジンをパスで保存し、内蔵の Hayanagi は "@hayanagi" と書いていた
-    return {SettingsKeys::kTsumeCollectionEngineName, nullptr, SettingsKeys::kTsumeCollectionEngine, "@hayanagi"};
+    // 判定エンジンの名前（内蔵エンジンなら空の文字列）。以前の版は判定エンジンをパスで保存し、
+    // 内蔵の Hayanagi は "@hayanagi" と書いていた
+    return {"TsumeCollection/engineName", nullptr, "TsumeCollection/engine", "@hayanagi"};
 }
 
 std::optional<QString> EngineListSettings::savedSelectionName(const SelectionKeys& keys)
