@@ -895,7 +895,9 @@ private slots:
         board()->highlighting()->setArrows({drop});
         const auto position = board()->toImage();
         QVERIFY(!position.isNull());
-        board()->applyBoardAndRender(board()->board()); // 駒の画像を読み直しても同じ絵になる
+        // 反転して戻す（駒の画像を読み直す）と同じ絵になる
+        board()->setFlipMode(!board()->flipMode());
+        board()->setFlipMode(!board()->flipMode());
         QCOMPARE(board()->toImage(), position);
         snapshot("pieces-standard-promoted-and-hand");
     }

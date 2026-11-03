@@ -185,13 +185,13 @@ private slots:
 
         // ライブ対局の終局局面から、棋譜をたどる閲覧へ
         gc.board()->setSfen(sfens.last());
-        view.applyBoardAndRender(gc.board());
+        view.setBoard(gc.board());
 
         // 先頭・末尾へのジャンプ、一手ずつの前後移動、同じ局面の再選択。
         // 手番の印は盤の局面の手番に従う。
         for (const int ply : {0, 1, 2, 3, 3, 2, 1, 0, 3, 0}) {
             gc.board()->setSfen(sfens.at(ply));
-            view.applyBoardAndRender(gc.board());
+            view.setBoard(gc.board());
             verifyTurn(view, gc, (ply % 2 == 0) != whiteStart);
         }
     }

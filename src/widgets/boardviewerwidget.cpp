@@ -40,7 +40,7 @@ BoardViewerWidget::BoardViewerWidget(Features features, ButtonLabels labels, Sho
     m_view->chrome()->card(Turn::White)->setName(tr("後手"));
 
     // 部品を何も持たない見本用は、盤とモデルだけを持つ。配置は呼び出し側が決め、
-    // ShogiView::applyBoardAndRender() で局面を渡して画像に描いて使う
+    // ShogiView::setBoard() で局面を渡して画像に描いて使う
     const bool bare = !(features & (ZoomToolbar | Navigation | ScrollArea));
     if (bare) return;
 

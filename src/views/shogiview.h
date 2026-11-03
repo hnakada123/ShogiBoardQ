@@ -66,7 +66,7 @@ public:
     const BoardVisuals& boardVisuals() const { return m_boardVisuals; }
 
     // ───────────────────────────── ボード接続 ────────────────────────────────
-    void setBoard(ShogiBoard* board);   // モデル（局面）を差し替え
+    void setBoard(ShogiBoard* board);   // モデル（局面）を差し替え、別の盤なら全体を描き直す
     ShogiBoard* board() const;          // 現在のモデル
 
     // ───────────────────────────── 盤サイズ系 ────────────────────────────────
@@ -94,7 +94,7 @@ public:
     // ───────────────────────────── 操作/状態切替 ────────────────────────────
 
     int  squareSize() const { return m_geometry.squareSize(); }   // マスの幅（px）
-    void setSquareSize(int size);                // マスの幅を変えて盤の位置を計算し直す
+    void setSquareSize(int size);                // マスの幅を変えて盤の位置を計算し直す（範囲の外は端に寄せる）
     void setPositionEditMode(bool positionEditMode); // 局面編集モードON/OFF
     bool positionEditMode() const;
 
@@ -117,13 +117,6 @@ public:
     BoardChromeWidget* chrome() const { return m_chrome; }
 
     QImage toImage(qreal scale = 1.0);
-
-    // board を適用して即再描画する（ピース読み込みも面倒見ます）
-    void applyBoardAndRender(ShogiBoard* board);
-
-    // レイアウト都合の固定サイズ指定は外側の責務にするのが基本ですが、
-    // まとめたいならこちらも用意可（任意）
-    void configureFixedSizing(int squarePx = -1);
 
     // ── 状態管理
     using Urgency = BoardChromeWidget::Urgency;

@@ -199,6 +199,7 @@
 | 2026-11-03 | ui・app の知らせを NotificationPresenter の直接の呼び出しにそろえた（監査 2026-11-01 M16）のに合わせて §4.6・§9.4・§9.6・§9.7・§10.3・§15 を更新（検討・詰み探索・棋譜解析・棋譜の自動保存・対局開始の知らせは `ErrorBus` を通さず、題名付きの `NotificationPresenter::warning`・`critical` で出す。`ErrorBus` を使うのは core（`ShogiBoard::setSfen()`）だけで、`tst_structural_kpi` が ui・app から流していないかを検査する。定跡ウィンドウの `showMoveFailed()` と「着手」のメッセージボックスを消し、指せるかの確かめと知らせは `JosekiWindowController` が行う） |
 | 2026-11-03 | 棋譜解析・詰み探索のダイアログの入力欄を設定の表で読み書きするようにした（監査 2026-11-01 M17・P5）のに合わせて §9.6・§9.7・§11.2・§11.3 を更新（`KifuAnalysisDialog` は思考時間と範囲のラジオの組、`TsumeShogiSearchDialog` は探索の制限時間の欄とラジオの組を `SettingsFormBinding` で読み書きする。開始・終了手数は `setMaxPly` の後で戻すので手で読み書きする。詰み探索のダイアログは制限時間を `timeLimitMs()`（ms。0 は無制限）の1つで返し、`byoyomiSec()`・`unlimitedTimeFlag()` を削除。欄の名前は `timeLimitSec`・`limitedTimeRadioButton`。棋譜解析のダイアログは `processEngineSettings` を `accept()` の上書きにし、直接呼んでも範囲と思考時間を決めて保存する（エンジンが無ければ閉じない）。`EngineSelector`・`KifuAnalysisDialog`・`CsaGameDialog`・`TsumeshogiGeneratorDialog` の `using Engine = EngineEntry` を消した。§11.2 の `SettingsFormBinding` の表に小数・2択・ラジオの組を足した） |
 | 2026-11-03 | SFEN の手番を文字列で読む写しを消した（監査 2026-11-01 M18）のに合わせて §5.7 を更新（盤の矢印の駒打ちの駒の色は `Position::fromSfenLike()` の手番、定跡の登録（`JosekiRegistrationController`）は `SfenUtils::sideToMove()` で読む。テストからしか使われていなかった `turnToSfen`・`sfenToTurn`（`shogitypes.h`）と `SfenUtils::kHirateBoardSfen`・`hirateBoardSfen()` を削除） |
+| 2026-11-03 | `ShogiView` の同じ仕事の入口を1組にした（監査 2026-11-01 M19）のに合わせて §11.1.4 を更新（`applyBoardAndRender` を消し、別の盤を渡したときの描き直しは `setBoard` が行う。`configureFixedSizing` を消し、範囲の外を端に寄せるのは `setSquareSize` が行う。起動時の合成ルートの空振りの呼び出しと、外観の見本が反転・局面を替えるたびの呼び出しも消した） |
 
 <!-- chapter-0-end -->
 
@@ -6308,8 +6309,8 @@ ShogiView は設定を読まず、既定の大きさ（`BoardSquareSize::kDefaul
 
 | メソッド | 説明 |
 |---------|------|
-| `setBoard(ShogiBoard*)` | モデル（局面）を差し替え |
-| `applyBoardAndRender(ShogiBoard*)` | ボード適用＋駒画像読込＋再描画 |
+| `setBoard(ShogiBoard*)` | モデル（局面）を差し替え、別の盤なら全体を描き直す（同じ盤なら何もしない。局面の変化は盤の通知で変わったマスだけを描き直す。駒の画像は作ったとき・駒のセットと反転が変わったときに読み直す） |
+| `setSquareSize(int)` | マスの幅を変えて盤の位置を計算し直す（範囲 `BoardSquareSize` の外は端に寄せる。CLI の盤面画像・外観の見本・読み筋盤なども同じ入口） |
 | `highlighting()->setHighlights(layer, squares) / clearHighlights()` | 層のマスの置き換え・全層の消去（`ShogiViewHighlighting`。変わったマスだけ描き直す） |
 | `highlighting()->setArrows(arrows)`・`arrows()` | 矢印（`ShogiViewHighlighting::Arrow`）の置き換え・読み出し（ShogiView は転送しない） |
 | `setPieceBoxSide(Turn)`・`pieceBoxSide()` | 駒箱の駒をどちらの駒として出すか（表示だけ。正本は `PositionEditSession`） |

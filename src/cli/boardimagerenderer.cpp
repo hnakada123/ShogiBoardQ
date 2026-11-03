@@ -54,8 +54,8 @@ QImage BoardImageRenderer::render(const QString& sfen, const Options& options, F
     view.chrome()->setClockEnabled(false);
     view.chrome()->card(Turn::Black)->setName(options.blackName);
     view.chrome()->card(Turn::White)->setName(options.whiteName);
-    view.configureFixedSizing(options.squareSize);
-    view.applyBoardAndRender(&board);
+    view.setSquareSize(options.squareSize);
+    view.setBoard(&board);
     view.resize(view.sizeHint());
 
     if (lastMove) {
