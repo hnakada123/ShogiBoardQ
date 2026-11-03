@@ -438,9 +438,9 @@
 - analyze-kifu は、本譜を読むだけのために `KifuConversionService::convert(outputFormat=Sfen)` を呼ぶ（`clicommands_engine.cpp:229-237`）。必要なら読み込みだけの関数を置く
 
 使っていない include:
-- app: `mainwindowcomposer.cpp` の `commentcoordinator.h`・`considerationpanel.h`・`gameinfopane.h`・`playerinfopresenter.h`、`mainwindowcomposer_wire.cpp` の `QPushButton`・`playerinfopresenter.h`・`timedisplaypresenter.h`
-- dialogs: `josekimovedialog.cpp` の `buttonstyles.h`、`pvboarddialog.cpp` の `analysissettings.h`、`tsumeplaydialog.cpp` の `appsettings.h`、`boardappearancepreview.cpp` の `pieceimageprovider.h`、`kifuanalysisdialog.cpp` の `<QFile>`・`<QTextStream>`・`<qmessagebox.h>`（済。d5b74bab で M17 と一緒に直した）、`csagamedialog.cpp` の `<QMessageBox>`、`startgamedialog.cpp` の `<QDir>`、`tsumecollectiondialog.cpp` の `<QFile>`、`kifusavedialogs.cpp` の `<QDateTime>`
-- cli・automation: `cliargs.cpp:6-7,12`（`clicommandspecs.h`・`clioutput.h`・`QDir`）、`automationcommands_widget.cpp:13-14`（`QClipboard`・`QImage`）
+- app: `mainwindowcomposer.cpp` の `commentcoordinator.h`・`considerationpanel.h`・`gameinfopane.h`・`playerinfopresenter.h`、`mainwindowcomposer_wire.cpp` の `QPushButton`・`playerinfopresenter.h`・`timedisplaypresenter.h` → 済（fd380e07）
+- dialogs: `josekimovedialog.cpp` の `buttonstyles.h`、`pvboarddialog.cpp` の `analysissettings.h`、`tsumeplaydialog.cpp` の `appsettings.h`、`boardappearancepreview.cpp` の `pieceimageprovider.h`、`kifuanalysisdialog.cpp` の `<QFile>`・`<QTextStream>`・`<qmessagebox.h>`（済。d5b74bab で M17 と一緒に直した）、`csagamedialog.cpp` の `<QMessageBox>`、`startgamedialog.cpp` の `<QDir>`、`tsumecollectiondialog.cpp` の `<QFile>`、`kifusavedialogs.cpp` の `<QDateTime>` → 済（fd380e07）
+- cli・automation: `cliargs.cpp:6-7,12`（`clicommandspecs.h`・`clioutput.h`・`QDir`）、`automationcommands_widget.cpp:13-14`（`QClipboard`・`QImage`） → 済（fd380e07）
 
 古い説明・コメント:
 - CLAUDE.md:
