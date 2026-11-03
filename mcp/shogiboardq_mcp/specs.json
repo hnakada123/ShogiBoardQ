@@ -227,9 +227,9 @@
      "type": "integer"
     },
     "max_positions": {
-     "default": 5,
+     "default": 10,
      "description": "Stop after this many positions.",
-     "maximum": 100,
+     "maximum": 10000,
      "minimum": 1,
      "type": "integer"
     },
@@ -241,15 +241,15 @@
     "target_moves": {
      "default": 3,
      "description": "Mate length in plies (odd).",
-     "maximum": 19,
+     "maximum": 99,
      "minimum": 1,
      "type": "integer"
     },
     "timeout_ms": {
      "default": 5000,
      "description": "Engine time per candidate, per trimming step and per verification.",
-     "maximum": 60000,
-     "minimum": 500,
+     "maximum": 300000,
+     "minimum": 1000,
      "type": "integer"
     }
    },

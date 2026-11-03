@@ -147,9 +147,9 @@ void TsumeshogiGeneratorDialog::loadSettings()
 {
     m_conditionsForm.load();
     m_displayForm.load();
-    // 旧バージョンで偶数が保存されていた場合に備えて奇数に補正する
-    const int targetMoves = m_settingsUi.targetMoves->value();
-    if (targetMoves % 2 == 0) m_settingsUi.targetMoves->setValue(qMax(1, targetMoves - 1));
+    // 以前の版で偶数が保存されていた場合に備えて奇数に補正する
+    m_settingsUi.targetMoves->setValue(
+        TsumeshogiSettings::GeneratorLimits::oddTargetMoves(m_settingsUi.targetMoves->value()));
 }
 
 void TsumeshogiGeneratorDialog::saveSettings()
@@ -480,7 +480,8 @@ protected:
     {
         const QValidator::State state = QSpinBox::validate(input, pos);
         if (state != QValidator::Acceptable) return state;
-        return (valueFromText(input) % 2 != 0) ? QValidator::Acceptable : QValidator::Intermediate;
+        return TsumeshogiSettings::GeneratorLimits::isTargetMoves(valueFromText(input)) ? QValidator::Acceptable
+                                                                                        : QValidator::Intermediate;
     }
 };
 
@@ -591,31 +592,37 @@ void TsumeshogiGeneratorDialog::buildFormSection(QVBoxLayout* mainLayout)
 
     m_settingsUi.targetMoves = new OddSpinBox(this);
     m_settingsUi.targetMoves->setObjectName(QStringLiteral("generatorTargetMoves"));
-    m_settingsUi.targetMoves->setRange(1, 99);
+    m_settingsUi.targetMoves->setRange(TsumeshogiSettings::tsumeshogiGeneratorTargetMoves.minimum(),
+                                       TsumeshogiSettings::tsumeshogiGeneratorTargetMoves.maximum());
     m_settingsUi.targetMoves->setSingleStep(2);
     m_settingsUi.targetMoves->setSuffix(tr(" 手詰"));
     leftForm->addRow(tr("目標手数:"), m_settingsUi.targetMoves);
     m_settingsUi.maxAttack = new CountSpinBox(tr(" 枚", "1 のとき"), tr(" 枚"), this);
-    m_settingsUi.maxAttack->setRange(1, 10);
+    m_settingsUi.maxAttack->setRange(TsumeshogiSettings::tsumeshogiGeneratorMaxAttackPieces.minimum(),
+                                     TsumeshogiSettings::tsumeshogiGeneratorMaxAttackPieces.maximum());
     m_settingsUi.maxAttack->setToolTip(tr("攻方の盤上の駒と持駒の合計枚数の上限です。"));
     leftForm->addRow(tr("攻め駒上限:"), m_settingsUi.maxAttack);
     m_settingsUi.maxDefend = new CountSpinBox(tr(" 枚", "1 のとき"), tr(" 枚"), this);
-    m_settingsUi.maxDefend->setRange(0, 5);
+    m_settingsUi.maxDefend->setRange(TsumeshogiSettings::tsumeshogiGeneratorMaxDefendPieces.minimum(),
+                                     TsumeshogiSettings::tsumeshogiGeneratorMaxDefendPieces.maximum());
     m_settingsUi.maxDefend->setToolTip(tr("玉を除く、玉方の盤上の駒の枚数の上限です。"));
     leftForm->addRow(tr("守り駒上限:"), m_settingsUi.maxDefend);
     m_settingsUi.maxPositions = new CountSpinBox(tr(" 局面", "1 のとき"), tr(" 局面"), this);
     m_settingsUi.maxPositions->setObjectName(QStringLiteral("generatorMaxPositions"));
-    m_settingsUi.maxPositions->setRange(0, 10000);
+    m_settingsUi.maxPositions->setRange(TsumeshogiSettings::tsumeshogiGeneratorMaxPositions.minimum(),
+                                        TsumeshogiSettings::tsumeshogiGeneratorMaxPositions.maximum());
     m_settingsUi.maxPositions->setSpecialValueText(tr("無制限"));
     m_settingsUi.maxPositions->setToolTip(tr("採択した局面がこの件数に達すると終了します。0 は停止するまで生成を続けます。"));
     rightForm->addRow(tr("生成上限:"), m_settingsUi.maxPositions);
     m_settingsUi.timeout = new QSpinBox(this);
-    m_settingsUi.timeout->setRange(1, 300);
+    m_settingsUi.timeout->setRange(TsumeshogiSettings::tsumeshogiGeneratorTimeoutSec.minimum(),
+                                   TsumeshogiSettings::tsumeshogiGeneratorTimeoutSec.maximum());
     m_settingsUi.timeout->setSuffix(tr(" 秒"));
     m_settingsUi.timeout->setToolTip(tr("候補・駒除去後の詰み探索と、それぞれの余詰検査全体に使う時間です。検査時間を超えた局面は採択しません。"));
     rightForm->addRow(tr("探索時間/局面:"), m_settingsUi.timeout);
     m_settingsUi.attackRange = new CountSpinBox(tr(" マス（玉中心）", "1 のとき"), tr(" マス（玉中心）"), this);
-    m_settingsUi.attackRange->setRange(1, 8);
+    m_settingsUi.attackRange->setRange(TsumeshogiSettings::tsumeshogiGeneratorAttackRange.minimum(),
+                                       TsumeshogiSettings::tsumeshogiGeneratorAttackRange.maximum());
     rightForm->addRow(tr("配置範囲:"), m_settingsUi.attackRange);
     auto* options = new QHBoxLayout;
     m_settingsUi.allowFinalAlternatives = new QCheckBox(tr("最終手の複数解を許容する"), this);

@@ -4,6 +4,7 @@
 #include "clicommandspecs.h"
 #include "boardsquaresize.h"
 #include "kifuformat.h"
+#include "tsumeshogisettings.h"
 
 #include <QCommandLineParser>
 #include <QJsonArray>
@@ -59,6 +60,11 @@ ParamSpec path(const QString& name, const QString& description)
 ParamSpec seconds(const QString& description, qint64 defaultValue)
 {
     return integer(QStringLiteral("seconds"), description, 1, 600).withDefault(defaultValue);
+}
+/// 範囲のある設定の宣言（GUI の欄と同じ範囲と既定値）から作る整数の引数
+ParamSpec bounded(const QString& name, const QString& description, const BoundedSetting<int>& setting)
+{
+    return integer(name, description, setting.minimum(), setting.maximum()).withDefault(setting.defaultValue());
 }
 /// 最終手の別の詰め方を許すか（旧名 --no-final-alternatives は false）
 ParamSpec allowFinalAlternatives(const QString& description)
@@ -194,15 +200,22 @@ const QList<OperationSpec>& CliCommandSpecs::all()
          {engine(), sfen(true), moves(), stdinControl(), seconds(QStringLiteral("Search time in seconds."), 10)}},
         {QStringLiteral("generate-tsume"), QStringLiteral("Generate tsume problems (JSON Lines)"),
          {engine(), stdinControl(),
-          integer(QStringLiteral("target_moves"), QStringLiteral("Mate length in plies (odd)."), 1, 19).withDefault(3),
-          integer(QStringLiteral("max_positions"), QStringLiteral("Stop after this many positions."), 1, 100).withDefault(5),
+          // 範囲と既定値は GUI の生成ダイアログと同じ宣言（TsumeshogiSettings。生成上限の 0 = 無制限は GUI だけ）
+          bounded(QStringLiteral("target_moves"), QStringLiteral("Mate length in plies (odd)."),
+                  TsumeshogiSettings::tsumeshogiGeneratorTargetMoves),
+          integer(QStringLiteral("max_positions"), QStringLiteral("Stop after this many positions."), 1,
+                  TsumeshogiSettings::tsumeshogiGeneratorMaxPositions.maximum())
+              .withDefault(TsumeshogiSettings::tsumeshogiGeneratorMaxPositions.defaultValue()),
           integer(QStringLiteral("timeout_ms"), QStringLiteral("Engine time per candidate, per trimming step and per verification."),
-                  500, 60000).withDefault(5000).value(QStringLiteral("ms")),
-          integer(QStringLiteral("max_attack_pieces"), QStringLiteral("Maximum attacking pieces on board and in hand."), 1, 10)
-              .withDefault(4).alias(QStringLiteral("max-attack")),
-          integer(QStringLiteral("max_defend_pieces"), QStringLiteral("Maximum defending pieces other than the king."), 0, 10)
-              .withDefault(1).alias(QStringLiteral("max-defend")),
-          integer(QStringLiteral("attack_range"), QStringLiteral("Placement range around the king."), 1, 8).withDefault(3),
+                  TsumeshogiSettings::tsumeshogiGeneratorTimeoutSec.minimum() * 1000,
+                  TsumeshogiSettings::tsumeshogiGeneratorTimeoutSec.maximum() * 1000)
+              .withDefault(TsumeshogiSettings::tsumeshogiGeneratorTimeoutSec.defaultValue() * 1000).value(QStringLiteral("ms")),
+          bounded(QStringLiteral("max_attack_pieces"), QStringLiteral("Maximum attacking pieces on board and in hand."),
+                  TsumeshogiSettings::tsumeshogiGeneratorMaxAttackPieces).alias(QStringLiteral("max-attack")),
+          bounded(QStringLiteral("max_defend_pieces"), QStringLiteral("Maximum defending pieces other than the king."),
+                  TsumeshogiSettings::tsumeshogiGeneratorMaxDefendPieces).alias(QStringLiteral("max-defend")),
+          bounded(QStringLiteral("attack_range"), QStringLiteral("Placement range around the king."),
+                  TsumeshogiSettings::tsumeshogiGeneratorAttackRange),
           boolean(QStringLiteral("add_remaining_to_defender_hand"),
                   QStringLiteral("Give the pieces not on the board to the defender's hand."), true)
               .aliasFlag(QStringLiteral("no-remaining-to-hand"), false),

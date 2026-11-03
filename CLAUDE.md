@@ -119,7 +119,7 @@ cmake --build build --target translations
   - `kifuanalysissession.cpp/.h` - 棋譜解析の実行 `KifuAnalysisSession`（`start(AnalysisRequest)`・`stop()`。枠 E1 のエンジンと動作状態「棋譜解析中」のリースを持ち、取り上げられたらやめる。局面は `RecordLine::usiPositions`。stop の後に bestmove を返さないエンジンは CLI と同じ10秒で打ち切り、訳した理由を出す。知らせは `plyStarted`・`plyAnalyzed`・`finished`・`errorOccurred`）。画面（結果の表・評価値グラフ・棋譜の移動）は ui の `KifuAnalysisController`
   - `engineanalysisrunner.cpp/.h` - 局面の列を1つのエンジンで順に解析する実行器 `EngineAnalysisRunner`（借りた `UsiEngineSession` を起動し、局面ごとに go infinite → 一定時間で stop → bestmove。候補手の数 `multiPv`（0 は送らない）と stop の後に bestmove を待つ上限 `replyTimeoutMs` は依頼で決める。`stop()` は解析中の局面の結果を待ち、`cancel()` は待たない）。GUI の棋譜解析と CLI の analyze・analyze-kifu で共通。1局面の結果 `PlyAnalysis` は `PlyAnalysisCollector` が multipv 1 の info と bestmove から作る
   - `tsumecandidatejob.cpp/.h`・`tsumeverificationjob.cpp/.h` - 詰将棋の候補1つの処理（手数の確認・唯一解の検査・要らない駒の除去）と、総予算つきの唯一解の検査（引き出し型の `MateQuerySource`。生成と CLI の検査で共通）
-  - `tsumeshogigenerator.cpp/.h` - 詰将棋の生成（候補の待ち行列・問い合わせの中継・結果の集計）
+  - `tsumeshogigenerator.cpp/.h` - 詰将棋の生成（候補の待ち行列・問い合わせの中継・結果の集計）。条件の範囲・既定値・目標手数の奇数の規則は services の `TsumeshogiSettings::GeneratorLimits` と設定の宣言だけで決め、生成ダイアログの欄と CLI の generate-tsume の引数がそれから作る（`Settings::normalized()` も同じ範囲）
   - `tsumecollectionsession.cpp/.h` - 詰将棋集の進捗・解析待ちの管理
   - `matesearchposition.h` - 詰み探索に送る局面 `MateSearchPosition`（`forLine`: 途中局面は開始局面からの手順、開始局面は `attackerToMove` で玉の有無から決めた攻方の手番・手数1。`Position` で合わせ、文字列を組み立てない。CLI の `mate` も指し手の無い局面に `attackerToMove` をかける）
 

@@ -14,6 +14,8 @@
 #include "inputpath.h"
 #include "outputpath.h"
 #include "paramspec.h"
+#include "tsumeshogigenerator.h"
+#include "tsumeshogisettings.h"
 
 #include <QFile>
 #include <QTemporaryDir>
@@ -212,6 +214,49 @@ private slots:
         const AutomationError error(*exists);
         QCOMPARE(error.kind(), ErrorKind::FileExists);
         QCOMPARE(error.hint(), exists->hint);
+    }
+
+    /// 詰将棋生成の条件の範囲と既定値は、GUI の生成ダイアログの設定と CLI の generate-tsume で同じ
+    /// （生成上限の 0 = 無制限は GUI だけ。奇数の規則も1つ。監査 2026-11-01 F17）
+    void tsumeGenerationLimitsAreShared()
+    {
+        const OperationSpec* generate = CliCommandSpecs::find(QStringLiteral("generate-tsume"));
+        QVERIFY(generate);
+        const auto compare = [&](const char* name, const BoundedSetting<int>& setting, int scale) {
+            const ParamSpec* param = generate->param(QString::fromLatin1(name));
+            QVERIFY2(param, name);
+            QCOMPARE(param->maximum.value(), qint64(setting.maximum()) * scale);
+            QCOMPARE(param->defaultValue.toInteger(), qint64(setting.defaultValue()) * scale);
+            if (setting.minimum() > 0) QCOMPARE(param->minimum.value(), qint64(setting.minimum()) * scale);
+            else QCOMPARE(param->minimum.value(), qint64(QLatin1String(name) == QLatin1String("max_positions") ? 1 : 0));
+        };
+        compare("target_moves", TsumeshogiSettings::tsumeshogiGeneratorTargetMoves, 1);
+        compare("max_positions", TsumeshogiSettings::tsumeshogiGeneratorMaxPositions, 1);
+        compare("timeout_ms", TsumeshogiSettings::tsumeshogiGeneratorTimeoutSec, 1000);
+        compare("max_attack_pieces", TsumeshogiSettings::tsumeshogiGeneratorMaxAttackPieces, 1);
+        compare("max_defend_pieces", TsumeshogiSettings::tsumeshogiGeneratorMaxDefendPieces, 1);
+        compare("attack_range", TsumeshogiSettings::tsumeshogiGeneratorAttackRange, 1);
+
+        using Limits = TsumeshogiSettings::GeneratorLimits;
+        QVERIFY(Limits::isTargetMoves(1) && Limits::isTargetMoves(99));
+        QVERIFY(!Limits::isTargetMoves(0) && !Limits::isTargetMoves(2) && !Limits::isTargetMoves(101));
+        QCOMPARE(Limits::oddTargetMoves(4), 3);
+        QCOMPARE(Limits::oddTargetMoves(0), 1);
+        QCOMPARE(Limits::oddTargetMoves(120), 99);
+
+        // 生成器は渡された条件を同じ範囲に収める（GUI・CLI のどちらから来ても）
+        TsumeshogiGenerator::Settings settings;
+        settings.targetMoves = 6;
+        settings.timeoutMs = 999999;
+        settings.maxPositionsToFind = -1;
+        settings.posGenSettings.maxDefendPieces = 50;
+        settings.posGenSettings.attackRange = 0;
+        const TsumeshogiGenerator::Settings normalized = settings.normalized();
+        QCOMPARE(normalized.targetMoves, 5);
+        QCOMPARE(normalized.timeoutMs, Limits::kMaxTimeoutSec * 1000);
+        QCOMPARE(normalized.maxPositionsToFind, 0);
+        QCOMPARE(normalized.posGenSettings.maxDefendPieces, Limits::kMaxDefendPieces);
+        QCOMPARE(normalized.posGenSettings.attackRange, Limits::kMinAttackRange);
     }
 
     /// 読むファイルの検査は CLI の入力と kifu.load で同じ分類（MCP の paths.py とも同じ）
