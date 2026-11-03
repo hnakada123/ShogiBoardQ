@@ -3,6 +3,7 @@
 
 #include "branchnodeitem.h"
 #include "branchtreeitemroles.h"
+#include "plaintooltip.h"
 
 #include <QBrush>
 #include <QCoreApplication>
@@ -97,14 +98,17 @@ void BranchNodeItem::setCollapsedBadge(int hiddenCount, const QColor& textColor)
 
 void BranchNodeItem::updateToolTip()
 {
-    QString tip = m_moveTip;
+    // 手の説明とコメント（棋譜から来る）を区切り線で分け、どちらも文字のまま出す
+    QStringList sections{m_moveTip};
     if (!m_comment.isEmpty()) {
         QString shown = m_comment.left(kTooltipCommentChars);
         if (m_comment.size() > kTooltipCommentChars) shown += QStringLiteral("…");
-        if (!tip.isEmpty()) tip += QStringLiteral("<hr/>");
-        tip += QStringLiteral("<p style='white-space:pre-wrap'>%1</p>").arg(shown.toHtmlEscaped());
+        sections.append(shown);
     }
-    if (m_collapsed)
-        tip += QCoreApplication::translate("BranchTreeView", "<p>（ダブルクリックで展開）</p>");
-    setToolTip(tip.isEmpty() ? QString() : QStringLiteral("<qt>%1</qt>").arg(tip));
+    if (m_collapsed) {
+        QString& last = sections.last();
+        if (!last.isEmpty()) last += QLatin1Char('\n');
+        last += QCoreApplication::translate("BranchTreeView", "（ダブルクリックで展開）");
+    }
+    setToolTip(plainToolTip(sections));
 }

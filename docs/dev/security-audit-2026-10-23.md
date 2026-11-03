@@ -304,7 +304,7 @@ Info は5章にまとめる。
 
 ### S12【Low】定跡ファイルのコメントがツールチップで HTML として描かれる
 
-**状態: 済（96e4096e）**。`JosekiTableModel` のツールチップを `<qt>` とエスケープで出す（テスト `tableModel_showsDerivedReplyInGray`）
+**状態: 済（96e4096e）**。`JosekiTableModel` のツールチップを `<qt>` とエスケープで出す（テスト `tableModel_showsDerivedReplyInGray`）。その後、外から来た文字列のツールチップは style の `plainToolTip()` 1つで出すようにし、エスケープしていなかったエンジン名（エンジンを選ぶコンボ・エンジン情報欄・`ElideLabel`）もこれで出す（2026-11-01 監査 M12。テスト `tst_plain_tooltip`）
 
 - **場所**: `src/dialogs/josekitablemodel.cpp:87-95`。`Qt::ToolTipRole` が、`move.comment`・`move.nextMove`・`move.move` をエスケープせずに返す。
 - **入力の出どころ**

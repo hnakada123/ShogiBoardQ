@@ -15,7 +15,8 @@ class QString;
  *
  * 任意のグローバル座標付近にプレーンテキストを表示する小さなフローティング UI を提供する。
  * - Qt::ToolTip | Qt::FramelessWindowHint により枠なし・フォーカス奪取なしで表示
- * - HTML は無効化し、文字列は HTML エスケープして安全に表示（XSS 対策）
+ * - ラベルは PlainText で、文字列は HTML として読ませずにそのまま表示（XSS 対策）。
+ *   ここに渡す文字列は plainToolTip() で包まない（包むとタグがそのまま見える）
  * - setCompact(true) で余白・角丸・フォントを小さめに一括変更可能
  *
  * シグナル/スロットは持たない。必要に応じて Q_OBJECT 化やアニメーションの拡張を検討。
@@ -30,7 +31,7 @@ public:
 
     // ツールチップを表示
     // 役割：スクリーン座標 globalPos の少し右下に、plainText をプレーン表示する。
-    // 注意：plainText は実装側で toHtmlEscaped() され、HTML は無効化される。
+    // 注意：plainText は HTML として読まない（「&」「<」もそのまま見える）。
     void showText(const QPoint& globalPos, const QString& plainText);
 
     // ツールチップを非表示

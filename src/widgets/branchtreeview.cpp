@@ -70,7 +70,7 @@ BranchNodeItem::Content moveContent(const KifuBranchNode* node)
     BranchNodeItem::Content content;
     content.label = labelOf(node);
     // 手の表記（読み上げ形式）
-    content.tooltip = labelOf(node, true).toHtmlEscaped();
+    content.tooltip = labelOf(node, true);
     content.font = labelFont(node);
     content.fill = node->record().mover == Turn::Black ? QColor(196, 230, 255) : QColor(255, 223, 196);
     return content;

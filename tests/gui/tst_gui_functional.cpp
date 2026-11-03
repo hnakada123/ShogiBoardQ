@@ -48,6 +48,7 @@
 #include <QTableWidget>
 #include "positioneditrules.h"
 #include "piecestylecatalog.h"
+#include "plaintooltip.h"
 #include "../game_info_table_helper.h"
 #include "../header_drag_helper.h"
 #include <QTranslator>
@@ -4161,7 +4162,7 @@ private slots:
         QCOMPARE(info.columnWidths(), customWidths);
         model.setEngineName(QStringLiteral("An engine with a very long display name"));
         QCOMPARE(info.columnWidths(), customWidths);
-        QCOMPARE(table->item(0, 0)->toolTip(), model.engineName());
+        QCOMPARE(table->item(0, 0)->toolTip(), plainToolTip(model.engineName()));
     }
     void branchNavigation()
     {

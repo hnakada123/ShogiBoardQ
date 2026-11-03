@@ -3,6 +3,7 @@
 
 #include "menubuttonwidget.h"
 #include "buttonstyles.h"
+#include "plaintooltip.h"
 
 #include <QMouseEvent>
 #include <QDrag>
@@ -208,7 +209,7 @@ void MenuButtonWidget::onActionChanged()
         tooltip += QStringLiteral(" (%1)").arg(m_action->shortcut().toString(QKeySequence::NativeText));
     if (!m_action->toolTip().isEmpty() && displayText(m_action->toolTip()) != text)
         tooltip += QLatin1Char('\n') + displayText(m_action->toolTip());
-    setToolTip(QStringLiteral("<qt>%1</qt>").arg(tooltip.toHtmlEscaped().replace(QLatin1Char('\n'), QStringLiteral("<br>"))));
+    setToolTip(plainToolTip(tooltip));
     m_mainButton->setToolTip(toolTip());
     m_mainButton->setCheckable(m_action->isCheckable());
     m_mainButton->setChecked(m_action->isChecked());

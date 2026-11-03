@@ -2,6 +2,7 @@
 /// @brief 登録エンジンを選ぶ部品の実装
 
 #include "engineselector.h"
+#include "plaintooltip.h"
 
 #include <QAbstractButton>
 #include <QComboBox>
@@ -64,7 +65,8 @@ void EngineSelector::populate(const QString& selectName, bool builtin)
         if (!m_options.builtinLabel.isEmpty()) m_combo->addItem(m_options.builtinLabel);
         for (const Engine& engine : m_engines.entries()) {
             m_combo->addItem(engine.name, engine.path);
-            m_combo->setItemData(m_combo->count() - 1, engine.name, Qt::ToolTipRole);
+            // エンジン名は登録したエンジンが名乗る名前なので、文字のまま出す
+            m_combo->setItemData(m_combo->count() - 1, plainToolTip(engine.name), Qt::ToolTipRole);
         }
         const int offset = m_options.builtinLabel.isEmpty() ? 0 : 1;
         const int index = m_engines.indexOfName(selectName);
@@ -140,7 +142,7 @@ void EngineSelector::onSettingsClicked()
 void EngineSelector::updateState()
 {
     m_combo->setEnabled(m_enabled && m_combo->count() > 0);
-    m_combo->setToolTip(m_combo->currentText());
+    m_combo->setToolTip(plainToolTip(m_combo->currentText()));
     if (m_settingsButton) m_settingsButton->setEnabled(m_enabled && selected().has_value());
     if (m_hint) m_hint->setVisible(m_engines.isEmpty());
 }

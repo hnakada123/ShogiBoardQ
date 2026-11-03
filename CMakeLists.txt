@@ -959,6 +959,8 @@ set(SRC_COMMON
     src/style/pieceimageprovider.h
     src/style/piecestylecatalog.cpp
     src/style/piecestylecatalog.h
+    src/style/plaintooltip.cpp
+    src/style/plaintooltip.h
     src/widgets/tablemodelutils.h
     src/style/tablestyles.h
     src/common/threadtypes.h

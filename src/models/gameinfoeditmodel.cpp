@@ -6,6 +6,7 @@
 #include "gameinfo.h"
 #include "gameinfokeys.h"
 #include "kifupresentation.h"
+#include "plaintooltip.h"
 
 #include <algorithm>
 
@@ -47,9 +48,8 @@ QVariant GameInfoEditModel::data(const QModelIndex& index, int role) const
     case Qt::AccessibleTextRole:
         return presentedText(index.row(), index.column());
     case Qt::ToolTipRole:
-        // ツールチップでは棋譜中のHTMLらしい文字列もそのまま表示する。
-        return QStringLiteral("<qt>%1</qt>").arg(presentedText(index.row(), index.column())
-                                                     .toHtmlEscaped().replace(QLatin1Char('\n'), QStringLiteral("<br/>")));
+        // 棋譜の対局情報の HTML らしい文字列も、文字のまま出す
+        return plainToolTip(presentedText(index.row(), index.column()));
     default:
         return {};
     }

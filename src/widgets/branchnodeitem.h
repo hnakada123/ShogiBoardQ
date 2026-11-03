@@ -27,7 +27,7 @@ public:
     /// 描く中身
     struct Content {
         QString label;          ///< 枠の中の文字
-        QString tooltip;        ///< 手の説明（HTML。コメントは setComment で足す）
+        QString tooltip;        ///< 手の説明（文字のまま。コメントは setComment で足す）
         QFont font;             ///< 枠の中の文字の書体
         QColor fill;            ///< 枠の色
         bool start = false;     ///< 開始局面（少し大きく、太い枠で描く）

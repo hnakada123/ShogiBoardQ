@@ -2,6 +2,7 @@
 /// @brief テキスト省略表示ラベルクラスの実装
 
 #include "elidelabel.h"
+#include "plaintooltip.h"
 #include <QPainter>
 #include <QTextLayout>
 
@@ -17,7 +18,7 @@ void ElideLabel::setFullText(const QString& t)
     if (m_fullText == t) return;
     m_fullText = t;
     setProperty("fullText", m_fullText); // 汎用のUI検査でも省略前の文字列を取得できるようにする
-    setToolTip(m_fullText);
+    setToolTip(plainToolTip(m_fullText));   // 対局者名・エンジン名など外から来た文字も文字のまま出す
     update();
 }
 

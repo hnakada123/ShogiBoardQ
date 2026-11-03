@@ -35,6 +35,7 @@
 #include "sfenutils.h"
 #include "matchplayers.h"
 #include "checkable_action.h"
+#include "plaintooltip.h"
 
 class TestGameInfoPane : public QObject
 {
@@ -329,9 +330,9 @@ private slots:
         m_controller->resize(360, 400);
         QTRY_VERIFY(m_table.view->rowHeight(2) > wideHeight);
         m_controller->undo();
-        QCOMPARE(m_table.toolTip(2, 1), QStringLiteral("<qt>Original</qt>"));
+        QCOMPARE(m_table.toolTip(2, 1), plainToolTip(QStringLiteral("Original")));
         m_controller->updateGameInfoValue(QStringLiteral("棋戦"), QStringLiteral("Automatic"));
-        QCOMPARE(m_table.toolTip(2, 1), QStringLiteral("<qt>Automatic</qt>"));
+        QCOMPARE(m_table.toolTip(2, 1), plainToolTip(QStringLiteral("Automatic")));
     }
 
     void fontAndColumnWidthAreRestored()

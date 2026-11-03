@@ -148,6 +148,7 @@ MCPの汎用GUI操作は `SHOGIBOARDQ_ALLOW_UNRESTRICTED_UI=1` の明示指定�
 `get_widget_text(widget=..., include_children=true)` で対象内に絞って列挙できる。
 `max_widgets` は最大3000（既定300）、`max_rows` は表・リスト・分岐ノードの取得上限。
 `parent_selector`、`accessible_name`、`tooltip`、メニューボタンの `action_name` も返す。
+`tooltip` は利用者に見える文字（HTML で包んだツールチップは描いた文字。style の `shownToolTipText()`）。
 
 メニューは `list_menu_actions(widget=...)` で読み取り、0始まりの階層インデックス
 `select_menu_action(widget=..., path=[0, 1])` で選択する。
