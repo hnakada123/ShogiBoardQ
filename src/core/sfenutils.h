@@ -14,19 +14,9 @@
 /// SFEN文字列の正規化・変換ユーティリティ
 namespace SfenUtils {
 
-/// 平手初期配置（盤面部分・C文字列）
-inline constexpr const char* kHirateBoardSfen =
-    "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL";
-
 /// 平手初期配置（手番・持ち駒・手数を含む完全SFEN・C文字列）
 inline constexpr const char* kHirateSfen =
     "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1";
-
-/// 平手初期配置（盤面部分のみ）
-inline QString hirateBoardSfen()
-{
-    return QString::fromLatin1(kHirateBoardSfen);
-}
 
 /// 平手初期配置（手番・持ち駒・手数を含む完全SFEN）
 inline QString hirateSfen()

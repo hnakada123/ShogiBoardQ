@@ -94,6 +94,7 @@
 #include "usilogpanel.h"
 #include "gamesettings.h"
 #include "sfencollectiondialog.h"
+#include "sfenutils.h"
 #include "kifupastedialog.h"
 #include "josekiwindow.h"
 #include "pvtext.h"
@@ -1809,8 +1810,7 @@ private slots:
         const QString editedBoard = boardSfen();
         const QString editedHand = board()->board()->position().handsSfen();
         const Turn editedTurn = board()->board()->currentPlayer();
-        const QString editedSfen = QStringLiteral("%1 %2 %3 1")
-                                      .arg(editedBoard, turnToSfen(editedTurn), editedHand);
+        const QString editedSfen = board()->board()->position().positionKey() + QStringLiteral(" 1");
         if (useExitButton) {
             auto* exitButton = board()->findChild<QPushButton*>("editExitButton");
             QVERIFY(exitButton);
@@ -1874,8 +1874,7 @@ private slots:
         }
         const Turn turn = gc->board()->currentPlayer();
         QCOMPARE(board()->board()->currentPlayer(), turn);
-        const QString expected = QStringLiteral("%1 %2 %3 1")
-            .arg(boardSfen(), turnToSfen(turn), board()->board()->position().handsSfen());
+        const QString expected = board()->board()->position().positionKey() + QStringLiteral(" 1");
         QCOMPARE(copy("actionCopySFEN").trimmed(), expected);
         click("actionEndEditPosition");
         QCOMPARE(copy("actionCopySFEN").trimmed(), expected);
@@ -3191,8 +3190,7 @@ private slots:
                                   view->visualRect(index).center());
                 QTRY_COMPARE(view->currentIndex().row(), row);
                 QTRY_COMPARE(boardSfen(), sfens.at(row).section(QLatin1Char(' '), 0, 0));
-                QCOMPARE(turnToSfen(board()->board()->currentPlayer()),
-                         sfens.at(row).section(QLatin1Char(' '), 1, 1));
+                QCOMPARE(board()->board()->currentPlayer(), SfenUtils::sideToMove(sfens.at(row)));
                 QCOMPARE(model->currentHighlightRow(), row);
                 const QModelIndexList selected = view->selectionModel()->selectedRows();
                 QCOMPARE(selected.size(), 1);
@@ -3351,7 +3349,7 @@ private slots:
             QTest::qWait(150); // グラフの遅延更新後にも選択が戻らないこと。
             QCOMPARE(recordView->currentIndex().row(), ply);
             QCOMPARE(boardSfen(), sfens.at(ply).section(QLatin1Char(' '), 0, 0));
-            QCOMPARE(turnToSfen(board()->board()->currentPlayer()), sfens.at(ply).section(QLatin1Char(' '), 1, 1));
+            QCOMPARE(board()->board()->currentPlayer(), SfenUtils::sideToMove(sfens.at(ply)));
             QCOMPARE(graph->currentPly(), ply);
             QCOMPARE(treePly(), ply);
             QCOMPARE(treeLane(), 0);

@@ -11,6 +11,7 @@
 #include "sfenreplay.h"
 #include "sfenutils.h"
 #include "shogiboard.h"
+#include "shogiposition.h"
 #include "shogienginethinkingmodel.h"
 #include "usi.h"
 
@@ -150,9 +151,10 @@ std::optional<ShogiViewHighlighting::Arrow> CandidateArrowPresenter::arrowForMov
     arrow.toRank = parsed->to.rank;
     arrow.priority = priority;
     if (parsed->isDrop()) {
-        const auto turn = baseSfen.simplified().section(QLatin1Char(' '), 1, 1);
-        if (turn != QLatin1String("b") && turn != QLatin1String("w")) return std::nullopt;
-        arrow.dropPiece = parsed->dropPieceFor(turn == QLatin1String("b") ? Turn::Black : Turn::White);
+        // 打つ駒の色は局面の手番（局面として読めなければ描かない）
+        const std::optional<Position> position = Position::fromSfenLike(baseSfen);
+        if (!position) return std::nullopt;
+        arrow.dropPiece = parsed->dropPieceFor(position->sideToMove());
     } else {
         arrow.fromFile = parsed->from.file;
         arrow.fromRank = parsed->from.rank;

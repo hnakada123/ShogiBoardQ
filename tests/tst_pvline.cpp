@@ -64,7 +64,7 @@ private slots:
     /// 開始局面に至った駒打ちは、開始局面の手番の相手が打った手（後手番なら先手の駒台）
     void arrivalDropUsesStandOfPreviousMover()
     {
-        PvLine line = lineOf(QStringLiteral("%1 w Pp 1").arg(SfenUtils::hirateBoardSfen()), {});
+        PvLine line = lineOf(QString(SfenUtils::hirateSfen()).replace(QStringLiteral(" b - "), QStringLiteral(" w Pp ")), {});
         line.setArrival(QStringLiteral("P*5e"), QString());
         const PvLine::Highlight highlight = line.highlight(0);
         QCOMPARE(from(highlight), BoardCoordinates::standSquareOf(Piece::BlackPawn));

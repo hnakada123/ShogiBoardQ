@@ -284,6 +284,25 @@ private slots:
         QVERIFY(!CandidateArrowPresenter::arrowForMove("resign", black, 1));
         QVERIFY(!CandidateArrowPresenter::arrowForMove("7g0f", black, 1));
     }
+
+    /// 駒打ちの矢印の駒の色は局面の手番で決める（局面として読めない文字列からは描かない）
+    void dropArrowUsesPositionSideToMove()
+    {
+        const QString black = SfenUtils::hirateSfen();
+        const auto blackDrop = CandidateArrowPresenter::arrowForMove("P*5e", black, 1);
+        QVERIFY(blackDrop);
+        QCOMPARE(blackDrop->dropPiece, Piece::BlackPawn);
+        // position コマンドの形でも、指した後の局面の手番で決める
+        const auto afterMove = CandidateArrowPresenter::arrowForMove(
+            "P*5e", QStringLiteral("position startpos moves 7g7f"), 1);
+        QVERIFY(afterMove);
+        QCOMPARE(afterMove->dropPiece, Piece::WhitePawn);
+        // 手番の欄が無い・壊れた局面
+        QVERIFY(!CandidateArrowPresenter::arrowForMove("P*5e", QStringLiteral("9/9/9/9/9/9/9/9/9 x - 1"), 1));
+        QVERIFY(!CandidateArrowPresenter::arrowForMove("P*5e", QStringLiteral("xyz b - 1"), 1));
+        // 駒を動かす手は局面を読まない
+        QVERIFY(CandidateArrowPresenter::arrowForMove("7g7f", QString(), 1));
+    }
     /// 定跡手の矢印: 表の順に番号を付け、出現頻度の高い手ほど濃い緑にする。定跡が変われば描き直し、
     /// 「盤に定跡手を表示」がオフのとき・定跡ウィンドウで表示を止めたときは出さない
     void josekiArrows()
