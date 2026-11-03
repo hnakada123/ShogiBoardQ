@@ -418,24 +418,24 @@
 - `KifuFileController::loadKifuText`（`kifufilecontroller.cpp:194-199`）だけが `finishLoad` を通らない（`.h:30` の「後始末を同じ関数で行う」と合わない。違いは貼り付けダイアログを閉じない・ステータスバーに出さないことだけ） → 済（d0286913。貼り付けと同じ後始末を通す。テストは `tst_app_kifu_load` の `textLoadFinishesLikePaste`）
 
 小さな写し・二重:
-- 候補手の数の上限10を書き写している（`analysissession.cpp:146`。正本は `ConsiderationSettings::kMaxMultiPV`）
-- 開始局面の正規化が3か所（`GameStartOptionsBuilder::canonicalizeSfen`、それを済ませた後の `MatchCoordinator::start`（`matchcoordinator.cpp:65-70`）、正本の `UsiPosition::sfenOf`）
-- 通信対局の手番を「自分の手番か」と「先後」から組み立てる式が3か所（`csagamechannel.cpp:34-38`、`csagamesession.cpp:101`、`csaclient.cpp:550`）。`CsaGameProgress::sideToMove()` を使う
-- 探索の前の setoption の送り方が2つ（検討は `UsiSearchRequest::options`、棋譜解析は `engineanalysisrunner.cpp:89-90` が handler に直接送る）
-- `positionKey` の1行の転送が4つ（`josekibook.cpp:91-94`、`sennichitedetector.cpp:11-15`、`kifubranchtree.cpp:389-393`、`candidatearrowpresenter.cpp:20-24`。どれも `SfenUtils::normalizeSfenKey` を呼ぶだけ）
-- 指し手の表記 `entryLabel(node->record(), parent ? parent->sfen() : …)` を4か所で書く（`kifubranchlistmodel.cpp:32-36`、`kifurecordlistmodel.cpp:42-47`、`branchtreeview.cpp:56-59`、`branchtreeeditcontroller.cpp:120`）。`KifuBranchNode` 1つから表記を作る関数を1つ置く
-- 挑戦履歴の文が2つ（問題一覧の札 `tsumecollectiondialog.cpp:253-254` は「挑戦済み・未正答 ／ 挑戦N回」「未挑戦」、解く画面 `tsumeplaydialog.cpp:334-335` は「未正答 ／ 挑戦N回」）
-- `JishogiCalculator::isSentePiece`・`isGotePiece` は `isBlackPiece`・`isWhitePiece` への転送だけ（`jishogicalculator.cpp:155-163`、`.h:79-83`）。説明の「大文字」「小文字」と `:21-25` の ShogiBoard の添字の説明は、駒を文字で持っていた頃のもの
-- 既定値の写し: `kifupastedialog.cpp:19`・`jishogiscoredialog.cpp:25` の `kDefaultSize`、`csawaitingdialog.cpp:21,193-198`（`DialogUtils::restoreDialogSize` の「>100」の確かめの手書き）、`changeenginesettingsdialog.cpp:128` の `setChecked(true)`（`PonderPreferences::sendUnreportedOption` の既定の写し）、`boardappearancedialog.cpp:211-215` の4色（`BoardColors::sameBoardPalette` の写し）
-- `tsumecollectiondialog.cpp:470` は選んだエンジンを `m_engine->currentData()` で読み、`EngineSelector::selected()`（`:207`）を通らない
-- 二重の保存: 問題一覧（`:70,76`）と生成ダイアログ（`:81,87`）が `done()` とデストラクタの両方で保存する。定跡の取り込みダイアログだけが、閉じても条件を保存する（デストラクタ）。展開・定跡ファイルを足す・解析結果の登録は OK のときだけ保存する
-- `csaLegacyPassword.remove()` は起動時に `app/main.cpp:74` で消しているので、`csagamedialog.cpp:357,367` の2回は要らない（services と dialogs の範囲で別々に見つかった）
-- `josekibook.cpp` の `qCWarning(lcUi)` 5か所は kifu へ移した後の名残。`lcKifu` にする
-- `BoardImageRenderer`: `boardimagerenderer.cpp:35` の「CLI・自動化 API の引数の表も同じ範囲を検査する」（自動化 API に盤面画像のメソッドは無い）。`boardimagerenderer.h:23` の `squareSize = 50; ///< 20〜150` は `BoardSquareSize::kDefault` を使う（10-29 M9・P4 の残り）
-- 成りの選び方: `DialogLauncher::choosePromotion`（`dialoglauncher.cpp:51-54`）は `PromoteDialog::ask` を呼ぶだけで、作った後の `setPromotionChooser` で注入している（`mainwindowcomposer_create.cpp:519`）。盤を作るときに `std::bind(&PromoteDialog::ask, &m_window)` を渡せば、1段と後からの注入が消える
-- `DockLayoutManager::resetToDefault`・`saveDockStates`（`docklayoutmanager.cpp:48-51,249`）は `DockRegistry` を呼ぶだけ
-- `TsumeSolutionReplay` は同じ正解手順を3回指す（検証は fmv、各局面は Hayanagi、表記はダイアログの `PvText`）。10-23 R4 で詰将棋の部品には Hayanagi を使ってよいとしたので、規則違反ではない。手を入れるなら後回しでよい
-- analyze-kifu は、本譜を読むだけのために `KifuConversionService::convert(outputFormat=Sfen)` を呼ぶ（`clicommands_engine.cpp:229-237`）。必要なら読み込みだけの関数を置く
+- 候補手の数の上限10を書き写している（`analysissession.cpp:146`。正本は `ConsiderationSettings::kMaxMultiPV`） → 済（e27a6da6）
+- 開始局面の正規化が3か所（`GameStartOptionsBuilder::canonicalizeSfen`、それを済ませた後の `MatchCoordinator::start`（`matchcoordinator.cpp:65-70`）、正本の `UsiPosition::sfenOf`） → 済（e27a6da6。canonicalizeSfen は UsiPosition::sfenOf で整え、MatchCoordinator::start の正規化を消した）
+- 通信対局の手番を「自分の手番か」と「先後」から組み立てる式が3か所（`csagamechannel.cpp:34-38`、`csagamesession.cpp:101`、`csaclient.cpp:550`）。`CsaGameProgress::sideToMove()` を使う → 見送り（送った手の確認を待つ間を相手の手番として扱う式で、確認後の手順から求める `CsaGameProgress::sideToMove()` とは意味が違う。2026-11-04）
+- 探索の前の setoption の送り方が2つ（検討は `UsiSearchRequest::options`、棋譜解析は `engineanalysisrunner.cpp:89-90` が handler に直接送る） → 済（e27a6da6。棋譜解析も `UsiSearchRequest::options` に載せる）
+- `positionKey` の1行の転送が4つ（`josekibook.cpp:91-94`、`sennichitedetector.cpp:11-15`、`kifubranchtree.cpp:389-393`、`candidatearrowpresenter.cpp:20-24`。どれも `SfenUtils::normalizeSfenKey` を呼ぶだけ） → 済（e27a6da6。3つを消した。分岐ツリーの関数は欄の数を確かめるので残した）
+- 指し手の表記 `entryLabel(node->record(), parent ? parent->sfen() : …)` を4か所で書く（`kifubranchlistmodel.cpp:32-36`、`kifurecordlistmodel.cpp:42-47`、`branchtreeview.cpp:56-59`、`branchtreeeditcontroller.cpp:120`）。`KifuBranchNode` 1つから表記を作る関数を1つ置く → 済（e27a6da6。`KifuPresentation::nodeLabel`）
+- 挑戦履歴の文が2つ（問題一覧の札 `tsumecollectiondialog.cpp:253-254` は「挑戦済み・未正答 ／ 挑戦N回」「未挑戦」、解く画面 `tsumeplaydialog.cpp:334-335` は「未正答 ／ 挑戦N回」） → 済（e27a6da6。`TsumeProgressStore::Progress::text()`。解く画面も問題一覧の文にそろえた）
+- `JishogiCalculator::isSentePiece`・`isGotePiece` は `isBlackPiece`・`isWhitePiece` への転送だけ（`jishogicalculator.cpp:155-163`、`.h:79-83`）。説明の「大文字」「小文字」と `:21-25` の ShogiBoard の添字の説明は、駒を文字で持っていた頃のもの → 済（e27a6da6。`:21-25` の古い説明は前に消えていた）
+- 既定値の写し: `kifupastedialog.cpp:19`・`jishogiscoredialog.cpp:25` の `kDefaultSize`、`csawaitingdialog.cpp:21,193-198`（`DialogUtils::restoreDialogSize` の「>100」の確かめの手書き）、`changeenginesettingsdialog.cpp:128` の `setChecked(true)`（`PonderPreferences::sendUnreportedOption` の既定の写し）、`boardappearancedialog.cpp:211-215` の4色（`BoardColors::sameBoardPalette` の写し） → 済（6f85ed86）
+- `tsumecollectiondialog.cpp:470` は選んだエンジンを `m_engine->currentData()` で読み、`EngineSelector::selected()`（`:207`）を通らない → 済（6f85ed86）
+- 二重の保存: 問題一覧（`:70,76`）と生成ダイアログ（`:81,87`）が `done()` とデストラクタの両方で保存する。定跡の取り込みダイアログだけが、閉じても条件を保存する（デストラクタ）。展開・定跡ファイルを足す・解析結果の登録は OK のときだけ保存する → 済（6f85ed86。閉じたとき（done）の1回にし、定跡の取り込みは取り込みを始めたときだけ保存する）
+- `csaLegacyPassword.remove()` は起動時に `app/main.cpp:74` で消しているので、`csagamedialog.cpp:357,367` の2回は要らない（services と dialogs の範囲で別々に見つかった） → 済（6f85ed86）
+- `josekibook.cpp` の `qCWarning(lcUi)` 5か所は kifu へ移した後の名残。`lcKifu` にする → 済（6f85ed86）
+- `BoardImageRenderer`: `boardimagerenderer.cpp:35` の「CLI・自動化 API の引数の表も同じ範囲を検査する」（自動化 API に盤面画像のメソッドは無い）。`boardimagerenderer.h:23` の `squareSize = 50; ///< 20〜150` は `BoardSquareSize::kDefault` を使う（10-29 M9・P4 の残り） → 済（6f85ed86）
+- 成りの選び方: `DialogLauncher::choosePromotion`（`dialoglauncher.cpp:51-54`）は `PromoteDialog::ask` を呼ぶだけで、作った後の `setPromotionChooser` で注入している（`mainwindowcomposer_create.cpp:519`）。盤を作るときに `std::bind(&PromoteDialog::ask, &m_window)` を渡せば、1段と後からの注入が消える → 済（6f85ed86）
+- `DockLayoutManager::resetToDefault`・`saveDockStates`（`docklayoutmanager.cpp:48-51,249`）は `DockRegistry` を呼ぶだけ → 済（6f85ed86）
+- `TsumeSolutionReplay` は同じ正解手順を3回指す（検証は fmv、各局面は Hayanagi、表記はダイアログの `PvText`）。10-23 R4 で詰将棋の部品には Hayanagi を使ってよいとしたので、規則違反ではない。手を入れるなら後回しでよい → 見送り（監査のとおり後回し。2026-11-04）
+- analyze-kifu は、本譜を読むだけのために `KifuConversionService::convert(outputFormat=Sfen)` を呼ぶ（`clicommands_engine.cpp:229-237`）。必要なら読み込みだけの関数を置く → 見送り（監査のとおり必要になったら。2026-11-04）
 
 使っていない include:
 - app: `mainwindowcomposer.cpp` の `commentcoordinator.h`・`considerationpanel.h`・`gameinfopane.h`・`playerinfopresenter.h`、`mainwindowcomposer_wire.cpp` の `QPushButton`・`playerinfopresenter.h`・`timedisplaypresenter.h` → 済（fd380e07）
