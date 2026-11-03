@@ -3,7 +3,6 @@
 
 #include "docksettings.h"
 #include "settingscommon.h"
-#include "settingskeys.h"
 #include <QSettings>
 
 namespace DockSettings {
@@ -28,11 +27,14 @@ void setDockState(const QString& group, const DockState& state)
 
 namespace {
 
+/// 名前を付けたドックのレイアウトのグループ（キーはレイアウト名）
+constexpr char kCustomDockLayoutsGroup[] = "CustomDockLayouts";
+
 // レイアウト名は設定のキーにする（SettingsCommon::escapeKey。以前の版はそのまま保存していた。
 // 「%」を含む名前は、そのままのキーが残っていればそれを使う）
 QString layoutKey(const QSettings& s, const QString& name)
 {
-    const QString group = QString::fromLatin1(SettingsKeys::kCustomDockLayoutsGroup) + QLatin1Char('/');
+    const QString group = QString::fromLatin1(kCustomDockLayoutsGroup) + QLatin1Char('/');
     const QString escaped = group + SettingsCommon::escapeKey(name);
     const QString legacy = group + name;
     return !s.contains(escaped) && name.contains(QLatin1Char('%')) && s.contains(legacy) ? legacy : escaped;
@@ -44,7 +46,7 @@ QString layoutKey(const QSettings& s, const QString& name)
 QStringList savedDockLayoutNames()
 {
     QSettings& s = SettingsCommon::openSettings();
-    s.beginGroup(SettingsKeys::kCustomDockLayoutsGroup);
+    s.beginGroup(kCustomDockLayoutsGroup);
     const QStringList keys = s.childKeys();
     s.endGroup();
     QStringList names;
@@ -61,7 +63,7 @@ void saveDockLayout(const QString& name, const QByteArray& state)
     QSettings& s = SettingsCommon::openSettings();
     // 以前の版のキーは消して、今の形のキーに書く
     const QString key = layoutKey(s, name);
-    const QString escaped = QString::fromLatin1(SettingsKeys::kCustomDockLayoutsGroup) + QLatin1Char('/') + SettingsCommon::escapeKey(name);
+    const QString escaped = QString::fromLatin1(kCustomDockLayoutsGroup) + QLatin1Char('/') + SettingsCommon::escapeKey(name);
     if (key != escaped) s.remove(key);
     s.setValue(escaped, state);
 }

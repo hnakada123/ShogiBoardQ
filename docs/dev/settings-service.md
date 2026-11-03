@@ -58,7 +58,6 @@ getter と setter の組やキー定数は手で書かない。値の範囲を�
 | `src/services/setting.h` | `Setting<T>`。設定ファイルの1項目（キーと既定値）を表し、読み書きの入口になる。範囲付きの `BoundedSetting<T>`、構造体の `StructSetting<T>`（項目は `SettingField<T>`）、配列の `ListSetting<T>`・`StructListSetting<T>` も置く（[3章](#範囲付き構造体配列の宣言)） |
 | `src/services/settingscommon.h/.cpp` | 設定ファイルのパス（`settingsFilePath()`）、アプリ全体で共有する `QSettings`（`openSettings()`）、全設定の消去（`resetAllSettings()`） |
 | ドメイン別ヘッダー（下表） | 設定項目の宣言の表。処理が要る項目の関数宣言もここに置く |
-| `src/services/settingskeys.h` | 関数として書いた項目と、機能ごとのエンジン選択（`EngineListSettings`）が使うキー定数。宣言の表の項目はキーを宣言に直接書くので、新しい項目のためにここへ定数を足さない |
 | `src/services/engineprofilestore.h/.cpp` | 登録エンジンの設定（一覧・USIオプション・先読みの設定）の保存形式を知る唯一の場所（[7章](#7-エンジンの登録情報engineprofilestore)） |
 | `src/services/enginelistsettings.h/.cpp` | 登録エンジン一覧の検索（名前・パス）と、機能ごとに選んだエンジンの保存（[7章](#7-エンジンの登録情報engineprofilestore)） |
 | `src/services/engineoption.h` | USIオプション1つの値 `EngineOption`（名前・型・既定値・範囲・現在値・選択肢） |
@@ -301,7 +300,7 @@ INI ファイル内のキーは `グループ名/キー名` の形式で、宣�
 | キーを実行時に作る | `AnalysisSettings::engineInfoColumnWidths` / `thinkingViewColumnWidths`（表 `ThinkingTable` の番号でキーを作った `ListSetting<int>` の宣言を返す） |
 | グループの中の名前の一覧 | `DockSettings::savedDockLayoutNames` / `saveDockLayout` / `loadDockLayout` / `deleteDockLayout` |
 
-関数は namespace のドメイン別ヘッダーに宣言し、`.cpp` で `SettingsCommon::openSettings()` を使って実装する。キーは `settingskeys.h` の定数に置く（`AppearanceSettings` のキーは `appearancesettings.cpp` の中）。
+関数は namespace のドメイン別ヘッダーに宣言し、`.cpp` で `SettingsCommon::openSettings()` を使って実装する。キーはその関数の `.cpp` の中に書く（1つの関数だけが使うキーは関数の中の文字、いくつかの関数が使うキーは無名名前空間の定数。例: `analysissettings.cpp` の列幅の配列のキー、`docksettings.cpp` の `kCustomDockLayoutsGroup`）。キーの定数をヘッダーに出さない（テストは宣言や関数から読むか、以前の版の保存の形を確かめるときはキーを文字で書く）。
 
 補助ダイアログ（成り・しおり・駒音・メッセージボックスなど）の文字の大きさと大きさも、関数ではなく `appsettings.h` の宣言の表に1行ずつ書く（`AppSettings::promotionDialogFontSize`・`promotionDialogSize`・`messageBoxFontSize`・`bookmarkDialogFontSize` など）。キーは `DialogAppearance/<id>/fontSize`（既定値 0）・`DialogAppearance/<id>/size`（既定値 `QSize()`）で、以前の版と同じ。既定値 0 は「未保存ならダイアログの元の大きさから始める」の意味。
 
@@ -431,7 +430,7 @@ const QString path = index >= 0 ? engines.at(index).path : QString();
 | 詰将棋問題一覧の判定 | `tsumeCollectionSelection()` | `TsumeCollection/engineName`（内蔵の Hayanagi なら空の文字列） | `TsumeCollection/engine`（パス） |
 | 対局開始の対局者 | `GameSettings::StartGame::player1`・`player2` の宣言（`PlayerSetupWidget` が `SelectionKeys` にする） | `GameSettings/engineName1`・`engineName2` | `GameSettings/engineNumber1`・`engineNumber2`（番号）、`enginePath1`・`enginePath2`（パス） |
 
-キーは `settingskeys.h` の定数（`kCsaEngineName`・`kCsaEngineNumber`・`kTsumeCollectionEngineName` など）に置く。
+キーは `enginelistsettings.cpp` の各関数（`csaGameSelection()` など）が返す `SelectionKeys` に文字で書く（テストも `EngineListSettings::csaGameSelection().legacyIndex` のように読む）。
 CSA通信対局のキーは以前の版と同じで、`NetworkSettings` には宣言しない。
 以前の版のキーは、名前で見つからないときだけ読み、保存時に消す。
 `savedSelectionName(keys)` は保存した名前を返す（保存していなければ `std::nullopt`。空の文字列は登録エンジン以外の項目を選んだ印）。

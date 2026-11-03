@@ -203,6 +203,7 @@
 | 2026-11-03 | 盤を使う表示の部品を views に移した（監査 2026-11-01 P1）のに合わせて §1.5・§3.1・§3.2・§11.1.2・第17章・第18章を更新（`BoardViewerWidget`・`TsumePositionPreview` を widgets から views へ移し、層の順を「widgets → views」にした（views は widgets の `ElideLabel`・`GlobalToolTip` を使い、widgets は views を使わない。`tst_layer_dependencies` の widgets の行に views を足した）。筋・段の文字の描き方は `BoardStaticLayer::drawCoordinates()` の1つにし、`ShogiView::drawRanksAndFiles` とプレビューの写しを消した） |
 | 2026-11-03 | 棋譜ファイルの絞り込みを kifu に移した（監査 2026-11-01 P2）のに合わせて §1.5・§8.8 を更新（`KifuFileFilter` は QtWidgets を使わず、kifu の拡張子の表（`KifuFormats::saveTargets()`）が翻訳の文脈に指定しているので、widgets から kifu へ移した。使う側（dialogs の `KifuSaveDialogs`・`CsaGameDialog`・`JosekiImportDialog`、ui の `KifuFileController`・`JosekiMergeController`）は include を変えずにそのまま使う） |
 | 2026-11-03 | headless の部品の説明を直し、棋譜解析の依頼の名前を変えた（監査 2026-11-01 P3・P4）のに合わせて §1.5・§9.3・§9.6・第18章・付録を更新（`KifuConversionService`・`EngineCatalog`・`MateSearchRunner`・`TsumeVerificationRunner`・`SfenValidationJson` は今は CLI だけが使う（自動化 API にはエンジンを受け取るメソッドがない）。core〜analysis だけを使う部品なので headless に置いたまま、「自動化 API と共有」の記述を直した。棋譜解析の依頼 `AnalysisRequest` を `KifuAnalysisRequest` に改名（検討の `AnalysisOptions` と紛らわしかった）） |
+| 2026-11-03 | 設定のキーの定数を使う .cpp に入れた（監査 2026-11-01 P6）のに合わせて §1.5・第12章（関数として書く項目）・第17章を更新（`settingskeys.h` を消した。列幅の配列のキーは `analysissettings.cpp`、名前を付けたドックのレイアウトのグループは `docksettings.cpp` の無名名前空間の定数、機能ごとのエンジンの選択のキーは `enginelistsettings.cpp` の各関数の中の文字にした。テストは `EngineListSettings::csaGameSelection()` などの宣言から読む） |
 
 <!-- chapter-0-end -->
 
@@ -718,7 +719,6 @@ src/
 │   ├── setting.h                   #   設定1項目の宣言（Setting<T>: キーと既定値。範囲付き・構造体・配列の BoundedSetting・StructSetting・ListSetting・StructListSetting）
 │   ├── settingscommon.cpp/.h       #   設定ファイルのパスと共有QSettings
 │   ├── appsettings.h, gamesettings.h, analysissettings.cpp/.h, networksettings.h, josekisettings.h, tsumeshogisettings.h, enginedialogsettings.h, docksettings.cpp/.h # ドメイン別の設定の宣言の表
-│   ├── settingskeys.h              #   処理が要る設定項目のキー文字列
 │   ├── engineprofilestore.cpp/.h   #   登録エンジンの設定（一覧・USIオプション・先読みの設定）の保存形式を知る唯一の場所
 │   ├── engineoption.h              #   USIオプション1つの値（EngineOption）
 │   ├── registeredengines.cpp/.h    #   登録エンジンの一覧と名前・実行ファイルでの検索（EngineEntry・RegisteredEngines）
@@ -7180,13 +7180,13 @@ AppSettings::pieceSoundVolume.set(percent);
 
 #### 関数として書く項目
 
-宣言の表（`Setting<T>` と上の型）で表せない処理が要る項目だけを、ドメイン別ヘッダーに関数として宣言し、`.cpp` で `SettingsCommon::openSettings()` を使って実装する。キーは `settingskeys.h` に置く（外観のキーは `appearancesettings.cpp` の中）。古い保存値を引き継ぐ（`AppearanceSettings::appearanceSection`・`pieceStyle`、以前の版の開始局面の番号を読む `GameSettings::StartGame::startingPosition()`・`setStartingPosition()`）、保存の形と値の形を換える（対局開始の時間を時間・分・秒の項目に保存する `GameSettings::StartGame::Player::time()`・`setTime()`・`defaultTime()`。`gamesettings.cpp`）、未保存の項目をほかの項目で代える（`AppearanceSettings::boardVisuals`。駒台の木目が未保存なら将棋盤の木目を使う）、以前の版の保存形式を移す（`AnalysisSettings::kifuAnalysisColumnWidths()` の `QVariantList`・`GameSettings::gameInfoColumnWidths()` の項目名の列幅1つを、初めて読むときに配列にする）、独自の保存形式（`AppearanceSettings::boardColors` の色の文字列、`DockSettings::dockState` のグループ名を引数で受けるキー）、キーを実行時に作る宣言（`AnalysisSettings::engineInfoColumnWidths(ThinkingTable)`・`thinkingViewColumnWidths(ThinkingTable)` は `ListSetting<int>` の宣言を返す）、ドックレイアウトの名前の一覧などである。列幅は、表の見出しに付けた `ColumnWidthMemory`（widgets）が、利用者がドラッグした列だけを覚えて保存する（規則は1つ: 0 は自動、正の値は利用者が決めた幅。思考・検討の表は `AnalysisSettings::ThinkingTable` の `Engine1`・`Engine2`・`Consideration` ごと）。補助ダイアログの文字の大きさと大きさは、関数ではなく `appsettings.h` に宣言を1行ずつ書く（`AppSettings::promotionDialogFontSize`・`promotionDialogSize`・`messageBoxFontSize`・`bookmarkDialogFontSize` など。キーは `DialogAppearance/<id>/fontSize`（既定値 0）・`DialogAppearance/<id>/size`（既定値 `QSize()`）。既定値 0 は、未保存ならダイアログの元の大きさから始めるという意味）。
+宣言の表（`Setting<T>` と上の型）で表せない処理が要る項目だけを、ドメイン別ヘッダーに関数として宣言し、`.cpp` で `SettingsCommon::openSettings()` を使って実装する。キーはその `.cpp` の中（関数の中の文字か、無名名前空間の定数）に書き、ヘッダーに出さない（外観のキーも `appearancesettings.cpp` の中）。古い保存値を引き継ぐ（`AppearanceSettings::appearanceSection`・`pieceStyle`、以前の版の開始局面の番号を読む `GameSettings::StartGame::startingPosition()`・`setStartingPosition()`）、保存の形と値の形を換える（対局開始の時間を時間・分・秒の項目に保存する `GameSettings::StartGame::Player::time()`・`setTime()`・`defaultTime()`。`gamesettings.cpp`）、未保存の項目をほかの項目で代える（`AppearanceSettings::boardVisuals`。駒台の木目が未保存なら将棋盤の木目を使う）、以前の版の保存形式を移す（`AnalysisSettings::kifuAnalysisColumnWidths()` の `QVariantList`・`GameSettings::gameInfoColumnWidths()` の項目名の列幅1つを、初めて読むときに配列にする）、独自の保存形式（`AppearanceSettings::boardColors` の色の文字列、`DockSettings::dockState` のグループ名を引数で受けるキー）、キーを実行時に作る宣言（`AnalysisSettings::engineInfoColumnWidths(ThinkingTable)`・`thinkingViewColumnWidths(ThinkingTable)` は `ListSetting<int>` の宣言を返す）、ドックレイアウトの名前の一覧などである。列幅は、表の見出しに付けた `ColumnWidthMemory`（widgets）が、利用者がドラッグした列だけを覚えて保存する（規則は1つ: 0 は自動、正の値は利用者が決めた幅。思考・検討の表は `AnalysisSettings::ThinkingTable` の `Engine1`・`Engine2`・`Consideration` ごと）。補助ダイアログの文字の大きさと大きさは、関数ではなく `appsettings.h` に宣言を1行ずつ書く（`AppSettings::promotionDialogFontSize`・`promotionDialogSize`・`messageBoxFontSize`・`bookmarkDialogFontSize` など。キーは `DialogAppearance/<id>/fontSize`（既定値 0）・`DialogAppearance/<id>/size`（既定値 `QSize()`）。既定値 0 は、未保存ならダイアログの元の大きさから始めるという意味）。
 
 ```cpp
 // src/services/analysissettings.cpp より（表の番号でキーを作った宣言を返し、読み書きは ListSetting に任せる）
 ListSetting<int> engineInfoColumnWidths(ThinkingTable table)
 {
-    return {tableKey(SettingsKeys::kEngineInfoColumnWidthsFmt, table), SettingsKeys::kArrayWidth};
+    return {tableKey(kEngineInfoColumnWidthsFmt, table), kArrayWidth};   // キーは同じ .cpp の無名名前空間の定数
 }
 ```
 
@@ -9075,7 +9075,7 @@ connect(fontScale->fontSize(), &FontSizeHelper::fontSizeChanged, this, &KifuTagD
 | **宣言** | `inline const Setting<T> name{"Group/key", 既定値};` を1行。ドキュメントコメントに既定値を書く。範囲付きは `BoundedSetting<T>`、構造体は `StructSetting<T>`、配列は `ListSetting<T>`・`StructListSetting<T>`（§12.5） |
 | **INIキー命名** | `グループ名/キー名` 形式（例: `FontSize/kifuTag`）。キーを変えると保存済みの値は読まれなくなる |
 | **読み書き** | `NS::name()` / `NS::name.set(v)` / `NS::name.defaultValue()`。既定値が翻訳文や実行時の場所で決まる項目は `NS::name.valueOr(...)` |
-| **関数にする項目** | 宣言の型で表せない処理（古い保存値の引き継ぎ、未保存の項目の代わり、独自の保存形式など）が要るものだけ。`SettingsCommon::openSettings()` を使い、キーは `settingskeys.h` に置く |
+| **関数にする項目** | 宣言の型で表せない処理（古い保存値の引き継ぎ、未保存の項目の代わり、独自の保存形式など）が要るものだけ。`SettingsCommon::openSettings()` を使い、キーはその `.cpp` の中に書く（ヘッダーに出さない） |
 | **QSettings の直接構築** | `beginReadArray` / `beginGroup` でグループを開いたまま読み書きする配列データだけ（`QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat)`） |
 | **永続化対象の判断** | ウィンドウサイズ、フォントサイズ、列幅、最後の選択状態など |
 

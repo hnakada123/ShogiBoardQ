@@ -14,7 +14,6 @@
 #include "layoutboundarywidget.h"
 #include "docksettings.h"
 #include "settingscommon.h"
-#include "settingskeys.h"
 #include <QSettings>
 
 class TestDockLayout : public QObject
@@ -345,9 +344,9 @@ void TestDockLayout::layoutNames_withSeparatorsRoundTrip()
         QVERIFY(!DockSettings::savedDockLayoutNames().contains(names.at(i)));
     }
 
-    // 以前の版が「%」を含む名前をそのままのキーで保存していたもの
+    // 以前の版が「%」を含む名前をそのままのキーで保存していたもの（保存の形を確かめるので、キーは文字で書く）
     QSettings& settings = SettingsCommon::openSettings();
-    settings.setValue(QString::fromLatin1(SettingsKeys::kCustomDockLayoutsGroup) + QStringLiteral("/50%"), QByteArray("old"));
+    settings.setValue(QStringLiteral("CustomDockLayouts/50%"), QByteArray("old"));
     QVERIFY(DockSettings::savedDockLayoutNames().contains(QStringLiteral("50%")));
     QCOMPARE(DockSettings::loadDockLayout(QStringLiteral("50%")), QByteArray("old"));
     DockSettings::deleteDockLayout(QStringLiteral("50%"));

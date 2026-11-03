@@ -288,7 +288,7 @@ UIには検証中・余詰で棄却・判定不能を区別して表示する。
 | 採択状態・共通出力条件・キャンセル | `src/analysis/tsumeshogigenerator.{h,cpp}` |
 | トリミング後の検証 | 同上。`tsumeshogigenerator_sfen.cpp` の除去結果を新局面として扱う |
 | エンジン能力・応答 | 外部方式を採る場合は `src/engine/usi*`。通常の `checkmate` を唯一性保証と解釈しない |
-| 設定・進捗・結果の表示 | `src/dialogs/tsumeshogigeneratordialog*`、`src/services/tsumeshogisettings*`、`settingskeys.h`、翻訳 `.ts` |
+| 設定・進捗・結果の表示 | `src/dialogs/tsumeshogigeneratordialog*`、`src/services/tsumeshogisettings*`、`src/services/enginelistsettings.cpp`（エンジンの選択のキー）、翻訳 `.ts` |
 | 保証範囲の説明・テスト | `docs/dev/tsumeshogi-generator.md`、`tests/`、`tests/CMakeLists.txt` |
 
 Hayanagiに変更が必要なら、独立リポジトリ `/home/nakada/GitHub/Hayanagi` で管理・検証してからShogiBoardQのサブモジュール参照を更新する。今回その変更は行っていない。

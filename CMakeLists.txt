@@ -918,7 +918,6 @@ set(SRC_SERVICES
     src/services/setting.h
     src/services/settingscommon.cpp
     src/services/settingscommon.h
-    src/services/settingskeys.h
     src/services/tsumeshogisettings.h
 )
 

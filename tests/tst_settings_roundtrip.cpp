@@ -19,7 +19,6 @@
 #include "josekisettings.h"
 #include "networksettings.h"
 #include "tsumeshogisettings.h"
-#include "settingskeys.h"
 #include "appearancesettings.h"
 #include "enginelistsettings.h"
 #include "settingscommon.h"
