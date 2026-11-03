@@ -26,9 +26,9 @@ EngineSelector::EngineSelector(const Widgets& widgets, const Options& options, Q
 
 void EngineSelector::loadList()
 {
-    QList<Engine> engines;
+    QList<EngineEntry> engines;
     const RegisteredEngines all = RegisteredEngines::load();
-    for (const Engine& engine : all.entries()) {
+    for (const EngineEntry& engine : all.entries()) {
         if (!m_options.filter || m_options.filter(engine)) engines.append(engine);
     }
     m_engines = RegisteredEngines(engines);
@@ -50,7 +50,7 @@ void EngineSelector::restoreSaved()
 
 void EngineSelector::reload()
 {
-    const std::optional<Engine> current = selected();
+    const std::optional<EngineEntry> current = selected();
     const bool builtin = isBuiltinSelected();
     loadList();
     populate(current ? current->name : QString(), builtin);
@@ -63,7 +63,7 @@ void EngineSelector::populate(const QString& selectName, bool builtin)
         const QSignalBlocker blocker(m_combo);
         m_combo->clear();
         if (!m_options.builtinLabel.isEmpty()) m_combo->addItem(m_options.builtinLabel);
-        for (const Engine& engine : m_engines.entries()) {
+        for (const EngineEntry& engine : m_engines.entries()) {
             m_combo->addItem(engine.name, engine.path);
             // エンジン名は登録したエンジンが名乗る名前なので、文字のまま出す
             m_combo->setItemData(m_combo->count() - 1, plainToolTip(engine.name), Qt::ToolTipRole);
@@ -84,7 +84,7 @@ int EngineSelector::engineIndexAt(int comboIndex) const
     return index >= 0 && index < m_engines.entries().size() ? index : -1;
 }
 
-std::optional<EngineSelector::Engine> EngineSelector::selected() const
+std::optional<EngineEntry> EngineSelector::selected() const
 {
     const int index = engineIndexAt(m_combo->currentIndex());
     if (index < 0) return std::nullopt;
@@ -112,7 +112,7 @@ void EngineSelector::saveSelection() const
     if (!m_options.keys.name) return;
     if (isBuiltinSelected()) {
         EngineListSettings::saveSelection(m_options.keys, QString());
-    } else if (const std::optional<Engine> engine = selected()) {
+    } else if (const std::optional<EngineEntry> engine = selected()) {
         EngineListSettings::saveSelection(m_options.keys, engine->name);
     }
 }
@@ -131,7 +131,7 @@ void EngineSelector::onCurrentIndexChanged()
 
 void EngineSelector::onSettingsClicked()
 {
-    const std::optional<Engine> engine = selected();
+    const std::optional<EngineEntry> engine = selected();
     if (!engine) {
         QMessageBox::critical(m_combo->window(), tr("エラー"), tr("将棋エンジンが選択されていません。"));
         return;

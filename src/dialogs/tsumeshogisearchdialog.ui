@@ -58,13 +58,13 @@
        <layout class="QHBoxLayout" name="limitedTimeRow">
         <property name="spacing"><number>12</number></property>
         <item>
-         <widget class="QRadioButton" name="considerationTimeRadioButton">
+         <widget class="QRadioButton" name="limitedTimeRadioButton">
           <property name="text"><string>時間を指定</string></property>
           <property name="checked"><bool>true</bool></property>
          </widget>
         </item>
         <item>
-         <widget class="QSpinBox" name="byoyomiSec">
+         <widget class="QSpinBox" name="timeLimitSec">
           <property name="accessibleName"><string>探索時間（秒）</string></property>
           <property name="suffix"><string> 秒</string></property>
           <property name="minimum"><number>1</number></property>
@@ -139,8 +139,8 @@
  <tabstops>
   <tabstop>comboBoxEngine1</tabstop>
   <tabstop>engineSetting</tabstop>
-  <tabstop>considerationTimeRadioButton</tabstop>
-  <tabstop>byoyomiSec</tabstop>
+  <tabstop>limitedTimeRadioButton</tabstop>
+  <tabstop>timeLimitSec</tabstop>
   <tabstop>unlimitedTimeRadioButton</tabstop>
   <tabstop>buttonBox</tabstop>
   <tabstop>toolButtonFontDecrease</tabstop>

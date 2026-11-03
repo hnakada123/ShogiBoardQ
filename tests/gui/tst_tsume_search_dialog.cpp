@@ -92,15 +92,16 @@ private slots:
         dialog.show();
         QVERIFY(QTest::qWaitForWindowExposed(&dialog));
         QVERIFY(!dialog.findChild<QSpinBox*>(QStringLiteral("spinBoxMultiPV")));
-        auto* time = dialog.findChild<QSpinBox*>(QStringLiteral("byoyomiSec"));
-        auto* limited = dialog.findChild<QRadioButton*>(QStringLiteral("considerationTimeRadioButton"));
+        auto* time = dialog.findChild<QSpinBox*>(QStringLiteral("timeLimitSec"));
+        auto* limited = dialog.findChild<QRadioButton*>(QStringLiteral("limitedTimeRadioButton"));
         auto* unlimited = dialog.findChild<QRadioButton*>(QStringLiteral("unlimitedTimeRadioButton"));
         QVERIFY(limited->isChecked());
         QCOMPARE(time->value(), 20);
+        QCOMPARE(dialog.timeLimitMs(), 20000);
         time->setValue(0);
         QCOMPARE(time->value(), 1);
         QTest::mouseClick(unlimited, Qt::LeftButton, Qt::NoModifier, QPoint(10, unlimited->height() / 2));
-        QVERIFY(dialog.unlimitedTimeFlag());
+        QCOMPARE(dialog.timeLimitMs(), 0);   // 時間無制限
         QVERIFY(!time->isEnabled());
         QTest::mouseClick(limited, Qt::LeftButton, Qt::NoModifier, QPoint(10, limited->height() / 2));
         QVERIFY(time->isEnabled());
@@ -113,7 +114,7 @@ private slots:
         QTest::keyClicks(editor, "35");
         QTest::keyClick(editor, Qt::Key_Return);
         QTRY_COMPARE(dialog.result(), int(QDialog::Accepted));
-        QCOMPARE(dialog.byoyomiSec(), 35);
+        QCOMPARE(dialog.timeLimitMs(), 35000);
         QCOMPARE(AnalysisSettings::tsumeSearchTimeLimitSec(), 35);
         QCOMPARE(settings().value(QString::fromLatin1(EngineListSettings::tsumeSearchSelection().name)).toString(),
                  QStringLiteral("YaneuraOu Mate — long engine name for selection and tooltip"));
@@ -126,13 +127,17 @@ private slots:
         TsumeShogiSearchDialog restored;
         QVERIFY(restored.engine().has_value());
         QCOMPARE(restored.engine()->path, QStringLiteral("/test/engine1"));
-        QCOMPARE(restored.byoyomiSec(), 35);
+        QCOMPARE(restored.timeLimitMs(), 35000);
         restored.findChild<QRadioButton*>(QStringLiteral("unlimitedTimeRadioButton"))->setChecked(true);
         restored.accept();
+        QVERIFY(AnalysisSettings::tsumeSearchUnlimitedTime());
+        // 無制限を戻すと秒の欄は使えないが、前回の秒数は残る
         TsumeShogiSearchDialog unlimitedRestored;
-        QVERIFY(unlimitedRestored.unlimitedTimeFlag());
-        QVERIFY(!unlimitedRestored.findChild<QSpinBox*>()->isEnabled());
-        QCOMPARE(unlimitedRestored.byoyomiSec(), 35);
+        QCOMPARE(unlimitedRestored.timeLimitMs(), 0);
+        QVERIFY(unlimitedRestored.findChild<QRadioButton*>(QStringLiteral("unlimitedTimeRadioButton"))->isChecked());
+        auto* restoredTime = unlimitedRestored.findChild<QSpinBox*>(QStringLiteral("timeLimitSec"));
+        QVERIFY(!restoredTime->isEnabled());
+        QCOMPARE(restoredTime->value(), 35);
     }
 
     void cancelAndAppearancePersistence()
@@ -158,7 +163,7 @@ private slots:
         TsumeShogiSearchDialog restored;
         QCOMPARE(restored.size(), dialog.size());
         QCOMPARE(restored.font().pointSize(), 11);
-        QCOMPARE(restored.byoyomiSec(), 42);
+        QCOMPARE(restored.timeLimitMs(), 42000);
     }
 
     void presentation_data()

@@ -29,8 +29,6 @@ class EngineSelector : public QObject
     Q_OBJECT
 
 public:
-    using Engine = EngineEntry;
-
     /// 結び付ける部品（コンボは必須。ほかは無ければ nullptr）
     struct Widgets {
         QComboBox* combo = nullptr;
@@ -57,7 +55,7 @@ public:
     const RegisteredEngines& engines() const { return m_engines; }
     bool hasEngines() const { return !m_engines.isEmpty(); }
     /// 選んだ登録エンジン（内蔵の項目を選んだとき・何も選んでいないときは std::nullopt）
-    std::optional<Engine> selected() const;
+    std::optional<EngineEntry> selected() const;
     /// 内蔵エンジンの項目を選んでいる
     bool isBuiltinSelected() const;
 

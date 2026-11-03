@@ -10,12 +10,9 @@
 #include "engineselector.h"
 #include "buttonstyles.h"
 
-#include <QFile>
 #include <QComboBox>
 #include <QLabel>
 #include <QAbstractItemView>
-#include <QTextStream>
-#include <qmessagebox.h>
 
 // 棋譜解析ダイアログのUIを設定する。
 KifuAnalysisDialog::KifuAnalysisDialog(QWidget *parent)
@@ -49,29 +46,18 @@ KifuAnalysisDialog::KifuAnalysisDialog(QWidget *parent)
     engineOptions.keys = EngineListSettings::kifuAnalysisSelection();
     m_engineSelector = new EngineSelector({ui->comboBoxEngine1, ui->engineSetting, ui->engineHint}, engineOptions, this);
     connect(m_engineSelector, &EngineSelector::settingsRequested, this, &KifuAnalysisDialog::showEngineSettingsDialog);
-    
-    // 設定から前回の思考時間を復元
-    int savedByoyomi = AnalysisSettings::kifuAnalysisByoyomiSec();
-    if (savedByoyomi > 0) {
-        ui->byoyomiSec->setValue(savedByoyomi);
-    }
-    
-    // 設定から解析範囲を復元
-    bool savedFullRange = AnalysisSettings::kifuAnalysisFullRange();
-    if (savedFullRange) {
-        ui->radioButtonInitPosition->setChecked(true);
-    } else {
-        ui->radioButtonRangePosition->setChecked(true);
-    }
-    
-    // 設定から開始・終了手数を復元（setMaxPlyで上書きされる可能性があるが初期値として設定）
+
+    // 前回の思考時間と解析範囲（「開始局面から最終手まで」か範囲指定）
+    m_form.add(ui->byoyomiSec, AnalysisSettings::kifuAnalysisByoyomiSec);
+    m_form.add(ui->radioButtonRangePosition, ui->radioButtonInitPosition, AnalysisSettings::kifuAnalysisFullRange);
+    m_form.load();
+
+    // 前回の開始・終了手数（欄の上限が決まる setMaxPly で入れる）
     m_savedStartPly = AnalysisSettings::kifuAnalysisStartPly();
     m_savedEndPly = AnalysisSettings::kifuAnalysisEndPly();
 
-    // エンジン設定ボタンが押されたときの処理
-
-    // 条件を検証・保存してからダイアログを閉じる。
-    connect(ui->buttonBox, &QDialogButtonBox::accepted, this, &KifuAnalysisDialog::processEngineSettings);
+    // 条件を確かめ・保存してからダイアログを閉じる。
+    connect(ui->buttonBox, &QDialogButtonBox::accepted, this, &KifuAnalysisDialog::accept);
 
     // キャンセルボタンが押された場合、ダイアログを拒否する動作を行う。
     connect(ui->buttonBox, &QDialogButtonBox::rejected, this, &KifuAnalysisDialog::reject);
@@ -164,27 +150,24 @@ void KifuAnalysisDialog::showEngineSettingsDialog(const EngineEntry& engine)
     ChangeEngineSettingsDialog::showFor(engine, this);
 }
 
-// OKボタンが押された場合、エンジン名、エンジン番号、解析局面フラグ、思考時間を取得する。
-void KifuAnalysisDialog::processEngineSettings()
+void KifuAnalysisDialog::accept()
 {
     if (!m_engineSelector->selected()) return;
 
     // 範囲（「開始局面から最終手まで」か範囲指定）と1局面の思考時間
-    const bool fullRange = !ui->radioButtonRangePosition->isChecked();
+    const bool fullRange = ui->radioButtonInitPosition->isChecked();
     m_options.startPly = fullRange ? 0 : qBound(0, ui->spinBoxStartPly->value(), m_maxPly);
     m_options.endPly = fullRange ? m_maxPly : qBound(m_options.startPly, ui->spinBoxEndPly->value(), m_maxPly);
     m_options.movetimeMs = ui->byoyomiSec->value() * 1000;
 
-    // 設定を保存
     m_engineSelector->saveSelection();
-    AnalysisSettings::kifuAnalysisByoyomiSec.set(ui->byoyomiSec->value());
-    AnalysisSettings::kifuAnalysisFullRange.set(fullRange);
+    m_form.save();
     AnalysisSettings::kifuAnalysisStartPly.set(ui->spinBoxStartPly->value());
     AnalysisSettings::kifuAnalysisEndPly.set(ui->spinBoxEndPly->value());
-    accept();
+    QDialog::accept();
 }
 
-std::optional<KifuAnalysisDialog::Engine> KifuAnalysisDialog::engine() const
+std::optional<EngineEntry> KifuAnalysisDialog::engine() const
 {
     return m_engineSelector->selected();
 }

@@ -59,7 +59,7 @@ void ConsiderationPanel::onControlChanged()
 {
     // 画面の値を読み直し、変わった条件を保存して知らせる
     ConsiderationSettings next = m_settings;
-    const std::optional<EngineSelector::Engine> engine = m_engineSelector->selected();
+    const std::optional<EngineEntry> engine = m_engineSelector->selected();
     next.engineName = engine ? engine->name : QString();
     next.unlimitedTime = m_unlimitedTimeRadioButton->isChecked();
     next.byoyomiSec = m_byoyomiSecSpinBox->value();
@@ -105,7 +105,7 @@ void ConsiderationPanel::loadEnginesAndSettings()
     connect(m_engineSelector, &EngineSelector::settingsRequested,
             this, &ConsiderationPanel::engineSettingsRequested);
     m_settings = AnalysisSettings::consideration();
-    if (const std::optional<EngineSelector::Engine> engine = m_engineSelector->selected())
+    if (const std::optional<EngineEntry> engine = m_engineSelector->selected())
         m_settings.engineName = engine->name;
     showSettings();
 

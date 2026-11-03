@@ -606,6 +606,66 @@ private slots:
         AnalysisSettings::kifuAnalysisResultsFontSize.remove();
     }
 
+    /// 棋譜解析ダイアログは前回の思考時間と範囲を戻し、accept で範囲と思考時間を決めて保存する。
+    /// accept を直接呼んでも「解析開始」と同じで、エンジンが無ければ閉じない
+    void dialogAcceptDecidesAndSavesConditions()
+    {
+        writeEngineSettings(mockEngine(), QStringLiteral("MockEngine"));
+        AnalysisSettings::kifuAnalysisByoyomiSec.set(4);
+        AnalysisSettings::kifuAnalysisFullRange.set(false);
+        AnalysisSettings::kifuAnalysisStartPly.set(1);
+        AnalysisSettings::kifuAnalysisEndPly.set(2);
+        {
+            KifuAnalysisDialog dialog;
+            dialog.setMaxPly(5);
+            auto* time = dialog.findChild<QSpinBox*>(QStringLiteral("byoyomiSec"));
+            auto* range = dialog.findChild<QRadioButton*>(QStringLiteral("radioButtonRangePosition"));
+            auto* full = dialog.findChild<QRadioButton*>(QStringLiteral("radioButtonInitPosition"));
+            auto* start = dialog.findChild<QSpinBox*>(QStringLiteral("spinBoxStartPly"));
+            auto* end = dialog.findChild<QSpinBox*>(QStringLiteral("spinBoxEndPly"));
+            QVERIFY(time && range && full && start && end);
+            QCOMPARE(time->value(), 4);
+            QVERIFY(range->isChecked());
+            QVERIFY(start->isEnabled());
+            QCOMPARE(start->value(), 1);
+            QCOMPARE(end->value(), 2);
+
+            time->setValue(7);
+            end->setValue(3);
+            dialog.accept();
+            QCOMPARE(dialog.result(), int(QDialog::Accepted));
+            QCOMPARE(dialog.options().startPly, 1);
+            QCOMPARE(dialog.options().endPly, 3);
+            QCOMPARE(dialog.options().movetimeMs, 7000);
+            QCOMPARE(AnalysisSettings::kifuAnalysisByoyomiSec(), 7);
+            QVERIFY(!AnalysisSettings::kifuAnalysisFullRange());
+            QCOMPARE(AnalysisSettings::kifuAnalysisEndPly(), 3);
+        }
+        {
+            KifuAnalysisDialog dialog;
+            dialog.setMaxPly(5);
+            dialog.findChild<QRadioButton*>(QStringLiteral("radioButtonInitPosition"))->setChecked(true);
+            QVERIFY(!dialog.findChild<QSpinBox*>(QStringLiteral("spinBoxStartPly"))->isEnabled());
+            dialog.accept();
+            QCOMPARE(dialog.options().startPly, 0);
+            QCOMPARE(dialog.options().endPly, 5);
+            QVERIFY(AnalysisSettings::kifuAnalysisFullRange());
+        }
+        SettingsCommon::openSettings().remove(QStringLiteral("Engines"));
+        {
+            KifuAnalysisDialog dialog;
+            dialog.setMaxPly(5);
+            dialog.findChild<QSpinBox*>(QStringLiteral("byoyomiSec"))->setValue(9);
+            dialog.accept();
+            QCOMPARE(dialog.result(), int(QDialog::Rejected));
+            QCOMPARE(AnalysisSettings::kifuAnalysisByoyomiSec(), 7);
+        }
+        for (const auto* setting : {&AnalysisSettings::kifuAnalysisByoyomiSec, &AnalysisSettings::kifuAnalysisStartPly,
+                                    &AnalysisSettings::kifuAnalysisEndPly})
+            setting->remove();
+        AnalysisSettings::kifuAnalysisFullRange.remove();
+    }
+
     /// 棋譜解析ダイアログと結果ドックの文字の大きさは別々に保存する（片方の A+ がもう片方を変えない）。
     /// 以前の版が共有していたキー（KifuAnalysis/fontSize）の値は結果ドックが引き継ぐ
     void dialogAndResultsKeepSeparateFontSizes()

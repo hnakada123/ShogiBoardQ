@@ -30,17 +30,16 @@ TsumeShogiSearchDialog::TsumeShogiSearchDialog(QWidget *parent)
     EngineSelector::Options engineOptions;
     engineOptions.keys = EngineListSettings::tsumeSearchSelection();
     m_engineSelector = new EngineSelector({ui->comboBoxEngine1, ui->engineSetting, nullptr}, engineOptions, this);
-    ui->byoyomiSec->setValue(AnalysisSettings::tsumeSearchTimeLimitSec());
-    const bool unlimited = AnalysisSettings::tsumeSearchUnlimitedTime();
-    ui->unlimitedTimeRadioButton->setChecked(unlimited);
-    ui->considerationTimeRadioButton->setChecked(!unlimited);
-    ui->byoyomiSec->setEnabled(!unlimited);
+
+    // 探索の制限時間。秒の欄は「時間を指定」のときだけ使える（読み込みで無制限に戻したときも合うよう、読み込む前につなぐ）
+    connect(ui->limitedTimeRadioButton, &QRadioButton::toggled, ui->timeLimitSec, &QSpinBox::setEnabled);
+    m_form.add(ui->timeLimitSec, AnalysisSettings::tsumeSearchTimeLimitSec);
+    m_form.add(ui->limitedTimeRadioButton, ui->unlimitedTimeRadioButton, AnalysisSettings::tsumeSearchUnlimitedTime);
+    m_form.load();
 
     connect(m_engineSelector, &EngineSelector::selectionChanged, this, &TsumeShogiSearchDialog::updateEngineSelection);
     connect(m_engineSelector, &EngineSelector::settingsRequested,
             this, &TsumeShogiSearchDialog::showEngineSettingsDialog);
-    connect(ui->considerationTimeRadioButton, &QRadioButton::toggled,
-            ui->byoyomiSec, &QSpinBox::setEnabled);
     connect(ui->buttonBox, &QDialogButtonBox::accepted, this, &TsumeShogiSearchDialog::accept);
     connect(ui->buttonBox, &QDialogButtonBox::rejected, this, &TsumeShogiSearchDialog::reject);
     updateEngineSelection();
@@ -59,14 +58,9 @@ std::optional<EngineEntry> TsumeShogiSearchDialog::engine() const
     return m_engineSelector->selected();
 }
 
-int TsumeShogiSearchDialog::byoyomiSec() const
+int TsumeShogiSearchDialog::timeLimitMs() const
 {
-    return ui->byoyomiSec->value();
-}
-
-bool TsumeShogiSearchDialog::unlimitedTimeFlag() const
-{
-    return ui->unlimitedTimeRadioButton->isChecked();
+    return ui->unlimitedTimeRadioButton->isChecked() ? 0 : ui->timeLimitSec->value() * 1000;
 }
 
 bool TsumeShogiSearchDialog::hasValidEngine() const
@@ -92,10 +86,9 @@ void TsumeShogiSearchDialog::showEngineSettingsDialog(const EngineEntry& engine)
 void TsumeShogiSearchDialog::accept()
 {
     if (!hasValidEngine()) return;
-    ui->byoyomiSec->interpretText();
+    ui->timeLimitSec->interpretText();
     m_engineSelector->saveSelection();
-    AnalysisSettings::tsumeSearchUnlimitedTime.set(unlimitedTimeFlag());
-    AnalysisSettings::tsumeSearchTimeLimitSec.set(byoyomiSec());
+    m_form.save();
     QDialog::accept();
 }
 

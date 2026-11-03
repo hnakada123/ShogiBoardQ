@@ -244,7 +244,7 @@ CsaGameDialog::Selection CsaGameDialog::selection() const
         start.playerType = CsaGameCoordinator::PlayerType::Human;
     } else {
         start.playerType = CsaGameCoordinator::PlayerType::Engine;
-        const std::optional<Engine> engine = m_engineSelector->selected();
+        const std::optional<EngineEntry> engine = m_engineSelector->selected();
         start.engineName = engine ? engine->name : QString();
         start.enginePath = engine ? engine->path : QString();
     }
