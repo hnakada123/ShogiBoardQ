@@ -31,6 +31,19 @@ def test_relative_paths_are_rejected(monkeypatch, tmp_path):
     assert info.value.code == "invalid_argument"
 
 
+def test_read_paths_are_classified_like_the_application(monkeypatch, tmp_path):
+    # The same words as InputPath::check (src/headless/inputpath.cpp): missing files are not found,
+    # directories are invalid arguments.
+    monkeypatch.setenv("SHOGIBOARDQ_ALLOWED_DIRS", str(tmp_path))
+    with pytest.raises(ToolError) as info:
+        paths.resolve_read_path(str(tmp_path / "missing.kif"))
+    assert info.value.code == "not_found"
+    (tmp_path / "folder.kif").mkdir()
+    with pytest.raises(ToolError) as info:
+        paths.resolve_read_path(str(tmp_path / "folder.kif"))
+    assert info.value.code == "invalid_argument"
+
+
 def test_paths_outside_allowed_dirs_are_rejected(monkeypatch, tmp_path):
     allowed = tmp_path / "allowed"
     allowed.mkdir()

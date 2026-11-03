@@ -190,7 +190,7 @@ cmake --build build --target translations
   - `paramspec.cpp/.h` - 引数の表の部品 `ParamSpec`（名前・型・必須・範囲・既定値・選択肢・説明）と `OperationSpec`。JSON Schema の出力（`ParamSpecs::inputSchema()`）と検査（`validate()`）。CLI・自動化 API・MCP で共有する
   - `automationmethodspecs.cpp/.h` - 自動化 API の全メソッドの引数の表 `AutomationMethodSpecs`。メソッドは補われた値を読み、`AutomationParams` は範囲が画面の状態で決まる引数にだけ使う
   - `automationendpoint.cpp/.h` - 自動化 API の接続先 `AutomationEndpoint`（既定のソケットの場所・エンドポイントファイル・1メッセージの上限 `kMaxMessageBytes`）。自動化 API のサーバーと CLI の `environment` が共有する
-  - `outputpath.cpp/.h` - 書き出し先の事前検査 `OutputPath::check`（絶対パス・ディレクトリでない・上書きの許可・置き場所。CLI の出力先と `kifu.save` で共通。MCP の `paths.py` も同じ分類）
+  - `outputpath.cpp/.h`・`inputpath.cpp/.h` - 書き出し先の事前検査 `OutputPath::check`（絶対パス・ディレクトリでない・上書きの許可・置き場所。CLI の出力先と `kifu.save` で共通）と、読むファイルの事前検査 `InputPath::check`（絶対パス・存在・通常のファイル。CLI の `input_path`（`KifuConversionService`）と `kifu.load` で共通）。MCP の `paths.py` も同じ分類
   - `kifuconversionservice`, `enginecatalog`, `matesearchrunner`, `tsumeverificationrunner`（詰みの問い合わせは `MateOracle`） - CLI と自動化 API が使うサービス（局面の検証は core の `SfenValidator`、その JSON は `sfenvalidationjson`）。失敗は `Failure` で返す
 - **cli/**: `shogiboardq-cli`（GUI を起動しない JSON 出力コマンド。`mcp/` の MCP サーバーが呼び出す）
   - `clicommandspecs.cpp/.h` - 全コマンドの引数の表 `CliCommandSpecs`（オプション名は引数名の `_` を `-` にしたもの）。オプションの登録・使い方の文・コマンドラインから検査済みの JSON への変換（真偽値はフラグ、文字列の配列は空白区切り）をこの表から行う。コマンドの名前・実装・出力の種類（JSON か JSON Lines のイベントか）は `main.cpp` の表の1行で決め、`CliCommands::run()` が引数を表で検査してから、検査済みの JSON をコマンドに渡す（コマンドは `resolvePosition(params)`・`resolveEngine(params)` で解決する）。指し手の JSON は CLI と自動化 API で共通の `headless/recordjson`（`RecordJson::entry`・`moves`。開始局面のコメント・しおりは行にせず `addOpening` で `opening_comment`・`opening_bookmark` に書く）

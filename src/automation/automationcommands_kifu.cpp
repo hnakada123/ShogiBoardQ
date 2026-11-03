@@ -11,6 +11,7 @@
 #include "kifudocument.h"
 #include "kifuexport.h"
 #include "humanturnpolicy.h"
+#include "inputpath.h"
 #include "kifufilecontroller.h"
 #include "kifunavigationcontroller.h"
 #include "kifusavefile.h"
@@ -22,13 +23,6 @@
 #include <QJsonArray>
 
 namespace {
-
-void requireAbsolutePath(const QString& path)
-{
-    if (!QFileInfo(path).isAbsolute()) {
-        throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("Path must be absolute: %1").arg(path));
-    }
-}
 
 int totalPlies(const AutomationContext& context)
 {
@@ -82,20 +76,16 @@ void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, 
         if (path.isEmpty() == text.isEmpty()) {
             throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("Pass exactly one of \"path\" or \"text\""));
         }
+        // CLI の入力と同じ検査（FIFO・デバイスは読み終わらず、メインスレッドを止めるので通常のファイルだけ）
+        if (!path.isEmpty()) {
+            if (const std::optional<Failure> problem = InputPath::check(path)) throw AutomationError(*problem);
+        }
         KifuFileController* controller = AutomationCommands::requireReplaceableRecord(
             context, params.value(QStringLiteral("discard_unsaved")).toBool());
         bool ok = false;
         // 読み込み失敗のダイアログは出さず、内容をエラー応答で返す
         const NotificationPresenter::ScopedCapture capture;
         if (!path.isEmpty()) {
-            requireAbsolutePath(path);
-            if (!QFileInfo::exists(path)) {
-                throw AutomationError(ErrorKind::NotFound, QStringLiteral("File not found: %1").arg(path));
-            }
-            // FIFO・デバイスは読み終わらず、メインスレッドを止める
-            if (!QFileInfo(path).isFile()) {
-                throw AutomationError(ErrorKind::InvalidArgument, QStringLiteral("Not a regular file: %1").arg(path));
-            }
             ok = controller->loadKifuFile(path);
         } else {
             ok = controller->loadKifuText(text);

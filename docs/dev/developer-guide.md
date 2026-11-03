@@ -175,6 +175,7 @@
 | 2026-11-03 | 盤の人間の手をローカル対局と通信対局で同じ入口にした（監査 2026-11-01 T3 の5つ目）のに合わせて §3.4・§3.5・§6.2・§6.6・§6.7・§6.9・§10.3・§10.4・§10.6・§12.3・§14.6・§15.2・§15.5 を更新（`GameChannel::playMove(UsiMove)`（`MoveResult`: `Rejected`・`Played`・`Sent`）を足し、`BoardMoveController` は対局中の窓口（`setActiveChannel()` で受け取る `GameSession::activeChannel()`）へ渡すだけにした。ローカル対局は `MatchCoordinator::playHumanMove(UsiMove)` がエンジンの手と同じく合法手を確かめて盤に指し、通信対局は `CsaGameCoordinator::sendHumanMove()`（旧 `onHumanMove` スロット）が合法手を確かめてサーバーへ送る。`BoardInput::CsaServer` は `Game` にまとめ、`BoardMoveController::csaMoveRequested`・`MatchCoordinator::onHumanMove(RecordEntry)` を消し、`lastMoveDestination()` は非公開にした） |
 | 2026-11-03 | 通信対局の接続中を動作状態にした（監査 2026-11-01 F13）のに合わせて §3.4・§12.3・§14.2 を更新（`AppActivityState::Activity::DuringCsaConnection` を足し、`CsaGameCoordinator` が接続してから通信対局を続ける間（`sessionContinues()`）持つ。対局の間は `DuringCsaGame`。局と局の間は棋譜を見る・保存・コピーだけで、開く・貼り付け・対局開始・局面編集・棋譜解析・詰み探索・詰将棋生成・検討・エンジン設定・棋譜の編集はできない。「新規」と「中断」（`CsaGameChannel::breakOff()` → `stopGame()`）でログアウトする。自動化 API の `ui_state` は `csa_connected`、`play_mode` は `csa_network`） |
 | 2026-11-03 | `CsaGameCoordinator` の1局の進行に入らない仕事を切り出した（監査 2026-11-01 M6）のに合わせて §12.3 を更新（対局条件の受け入れの判断とログの文は `CsaGameSummary::unsupportedReason()`・`conditionLines()`、裁定の待ちは `CsaVerdictWait`、対局数と再接続は `CsaGameSeries`。LOGIN のパスワードを伏せるのは `CsaClient` だけにし、「すぐ指させる」はローカル対局と同じ `Usi::requestImmediateMove()` にした。使っていない `username()`・`gameSummary()`・`completedGames()`・`gameLimit()` を消した） |
+| 2026-11-03 | 読むファイルの検査を CLI と自動化 API で1つにした（監査 2026-11-01 F8）のに合わせて §1.5 のファイルの一覧を更新（headless に `InputPath::check`（絶対パス・存在・通常のファイル）を置き、CLI の `convert-kifu`・`analyze-kifu` の `input_path`（`KifuConversionService`）と `kifu.load` が使う。CLI も相対パスを断り、ディレクトリは `parse_error` でなく `invalid_argument` にした。MCP の `paths.py` と同じ分類） |
 
 <!-- chapter-0-end -->
 
@@ -721,6 +722,7 @@ src/
 │   ├── automationmethodspecs.cpp/.h #  自動化 API の全メソッドの引数の表 AutomationMethodSpecs（CLI の describe も出す）
 │   ├── automationendpoint.cpp/.h   #   自動化 API の接続先（既定のソケット・エンドポイントファイル・1メッセージの上限。サーバーと CLI の environment で共通）
 │   ├── outputpath.cpp/.h           #   書き出し先の事前検査 OutputPath::check（CLI の出力先と kifu.save で共通）
+│   ├── inputpath.cpp/.h            #   読むファイルの事前検査 InputPath::check（CLI の入力と kifu.load で共通）
 │   ├── sfenvalidationjson.cpp/.h   #   SFEN の検査結果の JSON（validate-sfen）
 │   ├── enginecatalog.cpp/.h        #   登録エンジンの名前解決
 │   ├── kifuconversionservice.cpp/.h #  棋譜の形式変換
