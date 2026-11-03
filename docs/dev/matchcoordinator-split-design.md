@@ -112,7 +112,7 @@ Strategy は手番ごとに誰が指すかだけを決め、一手の確定と�
 | `movesUndone(ply)` | `EvaluationGraphPresenter::trimToPly()` |
 | `engineMovePlayed(side, ply, score)` | `EvaluationGraphPresenter::plotEngineScore()` |
 | `gameEnded(info)` | `GameSession::onGameEnded()` |
-| `gameOverMessage(title, message)` | `NotificationPresenter::showInformation()` |
+| `gameOverMessage(title, message)` | `GameSession::showGameOverMessage()`（連続対局の途中の局は待たない） |
 | `gameEndProcessed(info)` | `GameSession::onGameEndProcessed()` |
 | `gameInterrupted()` | `GameSession::onGameInterrupted()` |
 | `resumeAvailabilityChanged()` | `UiStatePolicyManager::refreshResumeAvailability()` |

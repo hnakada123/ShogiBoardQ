@@ -205,6 +205,7 @@
 | 2026-11-03 | headless の部品の説明を直し、棋譜解析の依頼の名前を変えた（監査 2026-11-01 P3・P4）のに合わせて §1.5・§9.3・§9.6・第18章・付録を更新（`KifuConversionService`・`EngineCatalog`・`MateSearchRunner`・`TsumeVerificationRunner`・`SfenValidationJson` は今は CLI だけが使う（自動化 API にはエンジンを受け取るメソッドがない）。core〜analysis だけを使う部品なので headless に置いたまま、「自動化 API と共有」の記述を直した。棋譜解析の依頼 `AnalysisRequest` を `KifuAnalysisRequest` に改名（検討の `AnalysisOptions` と紛らわしかった）） |
 | 2026-11-03 | 設定のキーの定数を使う .cpp に入れた（監査 2026-11-01 P6）のに合わせて §1.5・第12章（関数として書く項目）・第17章を更新（`settingskeys.h` を消した。列幅の配列のキーは `analysissettings.cpp`、名前を付けたドックのレイアウトのグループは `docksettings.cpp` の無名名前空間の定数、機能ごとのエンジンの選択のキーは `enginelistsettings.cpp` の各関数の中の文字にした。テストは `EngineListSettings::csaGameSelection()` などの宣言から読む） |
 | 2026-11-03 | 以前の版の値の引き継ぎを設定の関数に移した（監査 2026-11-01 P7）のに合わせて第12章（関数として書く項目）・§1.5 を更新（思考の表と定跡ウィンドウの列の数が変わった列幅は `AnalysisSettings::thinkingViewColumnWidths()`・`JosekiSettings::josekiWindowColumnWidths()`（列の番号は設定の側の定数で、表の部品が `static_assert` で照らす）、持将棋の点数ダイアログの小さい保存サイズは `GameSettings::jishogiScoreDialogSize()`（最小の大きさ `kJishogiScoreDialogMinimumSize`）、詰将棋生成の偶数の目標手数は `TsumeshogiSettings::upgradeLegacyGeneratorTargetMoves()`、問題一覧の以前の版のファイルは `TsumeshogiSettings::lastCollectionFile()`。解く画面の設定の使われていない `lastFile`・`problemIndex` を消した。`josekisettings.cpp`・`tsumeshogisettings.cpp` を足した） |
+| 2026-11-04 | エンジン同士の連続対局の途中の局で終局の知らせを待たないようにした（監査 2026-11-01 U4）のに合わせて §4.3・§6.2・§10.5 を更新（`MatchCoordinator::gameOverMessage` は `GameSession::showGameOverMessage` につなぎ、次の局が残っていれば `NotificationPresenter::Wait::No` で出して次の局へ進め、前の局の知らせは閉じる。`NotificationPresenter::information()` は待たずに出したメッセージボックスを返す） |
 
 <!-- chapter-0-end -->
 
@@ -1870,7 +1871,7 @@ connect(match, &MatchCoordinator::resumeAvailabilityChanged,
         m_c.uiStatePolicy, &UiStatePolicyManager::refreshResumeAvailability);
 
 connect(match, &MatchCoordinator::gameEnded, session, &GameSession::onGameEnded);
-connect(match, &MatchCoordinator::gameOverMessage, m_c.notifications, &NotificationPresenter::showInformation);
+connect(match, &MatchCoordinator::gameOverMessage, session, &GameSession::showGameOverMessage);
 ```
 
 #### 実例: std::function で上の層の操作を委ねる
@@ -2982,7 +2983,7 @@ beginPlay()
 | `engineMovePlayed(Turn, int, UsiScore)` | EvaluationGraphPresenter::plotEngineScore | エンジンの手の後、その手番のエンジンの評価値をグラフに足す |
 | `movesUndone(int)` | EvaluationGraphPresenter::trimToPly | 待ったの後に評価値グラフを戻した手数までにする |
 | `gameEnded(GameEndInfo)` | GameSession::onGameEnded | 終局（終局の行を書いた棋譜を `MatchRecordSink::finishRecord()` で確定し、動作状態を待機にした後）。中断なら連続対局をやめる |
-| `gameOverMessage(title, message)` | NotificationPresenter::showInformation | 終局の知らせのダイアログ |
+| `gameOverMessage(title, message)` | GameSession::showGameOverMessage | 終局の知らせのダイアログ（エンジン同士の連続対局で次の局が残っていれば閉じるのを待たず、前の局の知らせは閉じる） |
 | `gameEndProcessed(GameEndInfo)` | GameSession::onGameEndProcessed | 終局の後処理（知らせ）の完了。エンジン同士の連続対局の次局はここから |
 | `gameInterrupted()` | GameSession::onGameInterrupted | 中断の行のノードを `attachInterruptedRecord()` で中断した対局に結びつける |
 | `resumeAvailabilityChanged()` | UiStatePolicyManager::refreshResumeAvailability | 「対局再開」の有効・無効を問い合わせ直す（`canResumeInterruptedGame()`） |
@@ -6099,7 +6100,7 @@ Coordinators は、複数のオブジェクトをまたぐ複雑な処理フロ�
 | 詰将棋の生成・対局 | `displayTsumeshogiGeneratorDialog()`・`displayTsumePlayDialog()` | 詰将棋の生成と対局のダイアログ |
 | 駒音・盤の外観・文字の大きさ | `displayPieceSoundSettingsDialog()`・`displayBoardAppearanceDialog()`・`displayFontSettingsDialog()` | 各設定ダイアログ（盤の外観は開いたまま盤を見比べられるモードレス） |
 
-終局・検討の終了・詰み探索の結果の知らせ（メッセージボックス）は `NotificationPresenter::showInformation`（`MatchCoordinator::gameOverMessage`・`AnalysisSession::messageRequested` からつなぐ）が出す。ui・app の部品が自分で出す知らせも、静的な `NotificationPresenter::information()`・`warning()`・`critical()` で出す（`QMessageBox` の静的関数は使わない。`tst_structural_kpi` が検査する）。自動化 API の `ScopedCapture` の間はダイアログを出さずに記録し、文は PlainText で出す。閉じるのを待たずに処理を続ける知らせ（連続対局の途中の通信対局の結果）は `Wait::No` を渡す。確認の問い（はい・いいえ）は `DialogUtils::confirmAction()` と `UnsavedChangesPrompt`、dialogs・widgets の中の知らせはそのダイアログ・ウィジェットが出す。
+検討の終了・詰み探索の結果の知らせ（メッセージボックス）は `NotificationPresenter::showInformation`（`AnalysisSession::messageRequested` からつなぐ）が出す。ローカル対局の終局の知らせ（`MatchCoordinator::gameOverMessage`）は `GameSession::showGameOverMessage` が出す。ui・app の部品が自分で出す知らせも、静的な `NotificationPresenter::information()`・`warning()`・`critical()` で出す（`QMessageBox` の静的関数は使わない。`tst_structural_kpi` が検査する）。自動化 API の `ScopedCapture` の間はダイアログを出さずに記録し、文は PlainText で出す。閉じるのを待たずに処理を続ける知らせ（連続対局の途中の局の結果。通信対局とエンジン同士の連続対局）は `Wait::No` を渡す（`information()` は出した非モーダルのメッセージボックスを返すので、次の知らせを出すときに閉じられる）。確認の問い（はい・いいえ）は `DialogUtils::confirmAction()` と `UnsavedChangesPrompt`、dialogs・widgets の中の知らせはそのダイアログ・ウィジェットが出す。
 
 #### KifuLoader — 棋譜の読み込み
 

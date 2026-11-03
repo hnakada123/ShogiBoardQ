@@ -8,6 +8,8 @@
 #include <QObject>
 #include <QStringList>
 
+class QMessageBox;
+
 /**
  * @brief エラー・情報の知らせをダイアログで出す（ui・app の知らせの表示の唯一の持ち主）
  *
@@ -61,9 +63,10 @@ public:
 
     explicit NotificationPresenter(const Deps& deps, QObject* parent = nullptr);
 
-    /// 題名付きの情報を parent の上に出す（自動化 API の呼び出し中は記録だけ）
-    static void information(QWidget* parent, const QString& title, const QString& message,
-                            Wait wait = Wait::UntilClosed);
+    /// 題名付きの情報を parent の上に出す（自動化 API の呼び出し中は記録だけ）。Wait::No なら、出した
+    /// 非モーダルのメッセージボックス（閉じると消える）を返す（次の知らせで閉じるため。それ以外は nullptr）
+    static QMessageBox* information(QWidget* parent, const QString& title, const QString& message,
+                                    Wait wait = Wait::UntilClosed);
     /// 題名付きの警告を出す（記録するときは情報と同じく notices）
     static void warning(QWidget* parent, const QString& title, const QString& message);
     /// 題名付きのエラーを出す（記録するときは errors）
@@ -79,7 +82,7 @@ public slots:
 private:
     enum class Kind { Information, Warning, Critical };
     /// 知らせを出す（自動化 API の呼び出し中は記録だけ）。文は HTML として読まない
-    static void show(QWidget* parent, Kind kind, const QString& title, const QString& message, Wait wait);
+    static QMessageBox* show(QWidget* parent, Kind kind, const QString& title, const QString& message, Wait wait);
 
     Deps m_deps;
 };
