@@ -2,7 +2,7 @@
 #define KIFUCONVERSIONSERVICE_H
 
 /// @file kifuconversionservice.h
-/// @brief 棋譜ファイル／文字列を各形式へ変換する GUI 非依存サービス（自動化・CLI 用）
+/// @brief 棋譜ファイル／文字列を各形式へ変換する GUI 非依存サービス（CLI 用。core〜analysis だけを使うので headless に置く）
 
 #include <QList>
 #include <QString>

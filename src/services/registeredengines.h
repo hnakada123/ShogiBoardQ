@@ -21,7 +21,7 @@ struct EngineEntry {
  * @brief 登録エンジンの一覧（登録の順）と、名前・実行ファイルでの検索
  *
  * 保存形式は EngineProfileStore だけが知る（読むのは load()、書くのは EngineProfileStore::saveEngines）。
- * 検索と登録名の規則はここだけで行う（GUI・CLI・自動化 API・エンジンの登録で同じ）。
+ * 検索と登録名の規則はここだけで行う（GUI・CLI・エンジンの登録で同じ）。
  */
 class RegisteredEngines
 {

@@ -52,9 +52,9 @@ public:
     ~KifuAnalysisController() override;
 
     /// 解析を始める（前の解析は止める）。始められなければ知らせて false
-    bool start(AnalysisRequest request);
+    bool start(KifuAnalysisRequest request);
     /// 表示中の手順と条件ダイアログの値から解析の依頼を作る（エンジンが選ばれていなければ nullopt）
-    std::optional<AnalysisRequest> requestFromDialog(const KifuAnalysisDialog& dialog) const;
+    std::optional<KifuAnalysisRequest> requestFromDialog(const KifuAnalysisDialog& dialog) const;
 
     bool isRunning() const { return m_deps.session->isRunning(); }
 

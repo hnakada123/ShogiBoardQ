@@ -36,7 +36,7 @@ public:
     std::optional<EngineEntry> engine() const;
 
     /// 選んだ解析の範囲と1局面の思考時間（「開始局面から最終手まで」なら 0〜最大手数。範囲は最大手数に収める）
-    AnalysisRequest::Options options() const { return m_options; }
+    KifuAnalysisRequest::Options options() const { return m_options; }
 
     // 最大手数を設定する（ダイアログ表示前に呼び出す）
     void setMaxPly(int maxPly);
@@ -68,7 +68,7 @@ private:
     SettingsFormBinding m_form;
 
     /// OK で決めた範囲と思考時間
-    AnalysisRequest::Options m_options;
+    KifuAnalysisRequest::Options m_options;
 
     // 最大手数
     int m_maxPly = 0;

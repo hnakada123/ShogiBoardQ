@@ -2,7 +2,7 @@
 #define TSUMEVERIFICATIONRUNNER_H
 
 /// @file tsumeverificationrunner.h
-/// @brief 登録エンジンを使って 1 局面の余詰検査を行う実行器（自動化・CLI 用）
+/// @brief 登録エンジンを使って 1 局面の余詰検査を行う実行器（CLI 用。core〜analysis だけを使うので headless に置く）
 
 #include <QElapsedTimer>
 #include <QObject>

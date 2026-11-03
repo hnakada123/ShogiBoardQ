@@ -2,7 +2,7 @@
 #define MATESEARCHRUNNER_H
 
 /// @file matesearchrunner.h
-/// @brief 登録エンジンの `go mate` で 1 局面の詰みを探索する実行器（自動化・CLI 用）
+/// @brief 登録エンジンの `go mate` で 1 局面の詰みを探索する実行器（CLI 用。core〜analysis だけを使うので headless に置く）
 
 #include <QElapsedTimer>
 #include <QObject>
