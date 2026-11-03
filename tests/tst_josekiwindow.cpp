@@ -115,7 +115,6 @@ private slots:
 
     // setCurrentSfen テスト
     void testSetCurrentSfenWithInitialPosition();
-    void testSetCurrentSfenWithStartpos();
     void testSetCurrentSfenWithEmpty();
     void testSetCurrentSfenWithMidgamePosition();
     void testSetCurrentSfenShowsPositionSummary();
@@ -400,29 +399,6 @@ void TestJosekiWindow::testSetCurrentSfenWithInitialPosition()
     QVERIFY(summaryLabel != nullptr);
     QVERIFY(!summaryLabel->text().contains(tr("(未設定)")));
     QVERIFY(summaryLabel->text().contains(tr("初期配置")));
-}
-
-void TestJosekiWindow::testSetCurrentSfenWithStartpos()
-{
-    JosekiBookSession session;
-    JosekiPanel panel(&session);
-    JosekiWindow &window = panel.window;
-    window.setCurrentSfen(QStringLiteral("startpos"));
-
-    // "startpos" は内部で平手初期局面SFENに変換されるので「初期配置 (先手番)」
-    QLabel *summaryLabel = nullptr;
-    const auto labels = window.findChildren<QLabel *>();
-    for (auto *label : labels) {
-        if (label->text().contains(tr("先手")) || label->text().contains(tr("後手"))
-            || label->text().contains(tr("(未設定)"))) {
-            summaryLabel = label;
-            break;
-        }
-    }
-    qWarning() << "[TEST] testSetCurrentSfenWithStartpos: summaryLabel="
-               << (summaryLabel ? summaryLabel->text() : QStringLiteral("(not found)"));
-    QVERIFY(summaryLabel != nullptr);
-    QVERIFY(!summaryLabel->text().contains(tr("(未設定)")));
 }
 
 void TestJosekiWindow::testSetCurrentSfenWithEmpty()

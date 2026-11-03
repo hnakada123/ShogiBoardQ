@@ -40,12 +40,8 @@ public:
     /// 読み筋全体の表記（表記の設定に合わせる。fullOrigin なら移動元をすべて付ける）
     QString displayPv(bool fullOrigin = false) const;
 
-    /**
-     * @brief 開始局面に至った手を設定する（開始局面のハイライトに使う）
-     * @param lastMove 至った手（USI）。分からなければ空
-     * @param previousSfen 至る前の局面。lastMove が空なら、開始局面との盤の差分から手を決める
-     */
-    void setArrival(const QString& lastMove, const QString& previousSfen);
+    /// 開始局面に至った手（USI。開始局面のハイライトに使う。分からなければ空で、ハイライトしない）
+    void setArrival(const QString& lastMove);
 
     /// ply 手目を指した後の局面で強調する直前の手（0 は開始局面に至った手）
     Highlight highlight(int ply) const;
@@ -56,7 +52,6 @@ private:
     PvText m_pv;
     QStringList m_positions;  ///< [0] が開始局面、[i] が i 手指した後
     QString m_lastMove;
-    QString m_previousSfen;
 };
 
 #endif // PVLINE_H

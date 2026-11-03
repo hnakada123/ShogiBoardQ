@@ -69,6 +69,7 @@ public:
     JosekiWindow(JosekiBookSession *session, const Actions &actions, QWidget *parent = nullptr);
     ~JosekiWindow() override;
 
+    /// 表示中の局面（SFEN。棋譜のノードの局面をそのまま受け取る）
     void setCurrentSfen(const QString &sfen);
     /// 定跡手を指せるかを問い合わせる関数。表示の更新や着手のたびにその場で判定する
     /// （定跡ファイルを開いた直後など、局面が変わらないときも最新の状態にするため）

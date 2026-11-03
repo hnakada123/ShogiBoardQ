@@ -41,8 +41,6 @@ public:
      * @param lastMove USI形式の手（例: "7g7f"）
      */
     void setLastMove(const QString& lastMove);
-    /// 起動時の局面に至る前の局面（直前の手が分からないとき、盤の差分からハイライトを決める）
-    void setPrevSfenForHighlight(const QString& prevSfen);
 
     /**
      * @brief 盤面の反転モードを設定（GUI本体の向きに合わせる）
@@ -65,8 +63,6 @@ private:
 
 private:
     std::unique_ptr<PvLine> m_line;
-    QString m_lastMove;    ///< 起動時の局面に至った手
-    QString m_prevSfen;    ///< 起動時の局面に至る前の局面
 
     BoardViewerWidget* m_viewer = nullptr;  ///< 盤・拡大縮小・回転・局面送り
     QLabel* m_pvLabel = nullptr;

@@ -208,6 +208,7 @@
 | 2026-11-04 | エンジン同士の連続対局の途中の局で終局の知らせを待たないようにした（監査 2026-11-01 U4）のに合わせて §4.3・§6.2・§10.5 を更新（`MatchCoordinator::gameOverMessage` は `GameSession::showGameOverMessage` につなぎ、次の局が残っていれば `NotificationPresenter::Wait::No` で出して次の局へ進め、前の局の知らせは閉じる。`NotificationPresenter::information()` は待たずに出したメッセージボックスを返す） |
 | 2026-11-04 | USEN に千日手を `j` で書かないようにした（監査 2026-11-01 U7）のに合わせて §8.9 を更新（USEN の仕様に千日手の符号は無く、作者の実装は `j` を宣言勝ちとして読むので、千日手・連続王手の千日手は書けない終局にした（`TerminalCodes::usen` が空。保存の確認で知らせる）。`j` は持将棋だけで、読むと持将棋（引き分け）） |
 | 2026-11-04 | 呼び出しが0の部分を消した（監査 2026-11-01 5章）のに合わせて §8.11 を更新（`PieceSoundPlayer` の3つのシグナル、`Usi::search(UsiSearchRequest)`、`MatchEngineSeat::side()`、`MatchStrategyHost::currentPly()`、`EngineRegistrationHandler::progressUpdated`、`TsumeGameSession::legalMoves()`、`KifLineBuilder::lastIrregularity()`、`ParseReport::options()`、通信対局のエンジンを名前で登録一覧から引く分岐を削除） |
+| 2026-11-04 | 届かない分岐を消した（監査 2026-11-01 5章）のに合わせて §1.5・§5.1・§10.3・付録を更新（読み筋盤の盤の差分から直前の手を求める経路（`sfendiffutils.h`・`PvBoardDialog::setPrevSfenForHighlight`・`PvLine::setArrival` の第2引数・`showPvBoard` の `prevSfen`）、`JosekiWindow::setCurrentSfen` の入力の整え、定跡の取り込みの開始局面が空のときの分岐を削除。`KifuFileController::loadKifuText` も読み込みの後始末 `finishLoad` を通す） |
 
 <!-- chapter-0-end -->
 
@@ -665,7 +666,6 @@ src/
 │   ├── sfencollectiondialog.cpp/.h #   SFEN局面集ビューア（1行の規則は kifu の PositionCollectionFile、履歴は RecentFileList・RecentFilesMenu）
 │   ├── pvboarddialog.cpp/.h        #   読み筋盤面ダイアログ（表示する手数は BoardViewerWidget だけが持つ）
 │   ├── pvline.cpp/.h               #   読み筋の値 PvLine（各手数の局面・手の表記・直前の手のハイライト）
-│   ├── sfendiffutils.h             #   2つの局面（SFEN）の盤上の差分（pvline が使う）
 │   ├── kifupastedialog.cpp/.h      #   棋譜貼り付けダイアログ
 │   ├── josekimergedialog.cpp/.h    #   定跡結合ダイアログ
 │   └── josekimovedialog.cpp/.h     #   定跡手の追加・編集ダイアログ（setEntry()/entry()。入力部の josekimoveinputwidget は局面の合法手の一覧から選ぶ）
@@ -2343,7 +2343,6 @@ src/core/
 ├── recordtime.h              棋譜の一手の消費時間と累計
 ├── usiscore.h / .cpp         USI の評価値（score cp / score mate）
 ├── sfenreplay.h / .cpp       局面に USI の1手を指す（合法手かは確かめない）
-├── sfendiffutils.h           2つの局面（SFEN）の盤上の差分
 ├── terminaltype.h / .cpp     終局手の種類と終局語
 ├── sfenutils.h               SFEN文字列ユーティリティ
 ├── shoginotation.h           棋譜の表記（筋・段・駒の名前・CSA の駒種）
@@ -5887,17 +5886,16 @@ playUsiMove(move)                   ← playMove()、JosekiWindowController（�
 
 **ソース**: `src/ui/controllers/pvclickcontroller.h`, `src/ui/controllers/pvclickcontroller.cpp`
 
-`ThinkingPanel`（思考タブ）や検討タブの読み筋（PV）行の「盤面」ボタンを押した際の処理を担当する。読み筋盤を開く処理 `showPvBoard(pv, lastUsiMove, prevSfen)` は棋譜解析の結果の行（`KifuAnalysisController`）も使い、対局者名と盤の向きの規則をここ1か所で決める（対局者名は本体の盤と同じ `PlayerInfoPresenter::boardName()`。そのため `Deps` に文書 `document` と動作状態 `activity` を持つ。盤の向きと大きさは本体の盤 `shogiView` から写す）。クリックされた行から読み筋データを取得し、`PvBoardDialog`（ミニ盤面ビューア）を表示する。`ThinkingPanel::pvRowClicked`・`ConsiderationPanel::pvRowClicked` を `onPvRowClicked()` につなぐのは `MainWindowComposer::connectAnalysisAndUi()` である。
+`ThinkingPanel`（思考タブ）や検討タブの読み筋（PV）行の「盤面」ボタンを押した際の処理を担当する。読み筋盤を開く処理 `showPvBoard(pv, lastUsiMove)` は棋譜解析の結果の行（`KifuAnalysisController`）も使い、対局者名と盤の向きの規則をここ1か所で決める（対局者名は本体の盤と同じ `PlayerInfoPresenter::boardName()`。そのため `Deps` に文書 `document` と動作状態 `activity` を持つ。盤の向きと大きさは本体の盤 `shogiView` から写す）。クリックされた行から読み筋データを取得し、`PvBoardDialog`（ミニ盤面ビューア）を表示する。`ThinkingPanel::pvRowClicked`・`ConsiderationPanel::pvRowClicked` を `onPvRowClicked()` につなぐのは `MainWindowComposer::connectAnalysisAndUi()` である。
 
 ```
 onPvRowClicked(ShogiEngineThinkingModel* model, row)
   ├── model->recordAt(row) の ShogiInfoRecord から読み筋（USI の手順と漢字表記）を取得
   ├── 読み筋の起点の局面 SFEN を決める
   │     record->baseSfen()、無ければ KifuNavigationState の表示中の局面、それも無ければ平手
-  ├── 起点の局面が表示中の手順（RecordLine）の何手目かを探し、その直前の局面と、
-  │     その局面に至った手（record->lastUsiMove() が空なら RecordLine::usiMove(ply)）を
-  │     ハイライトに使う
-  └── showPvBoard(pv, lastUsiMove, prevSfen)
+  ├── 起点の局面に至った手をハイライトに使う（record->lastUsiMove()。空なら、起点の局面が表示中の手順
+  │     （RecordLine）の何手目かを探し、RecordLine::usiMove(ply)）
+  └── showPvBoard(pv, lastUsiMove)
        ├── 先手/後手名を決める（対局情報の名前 KifuDocument::headerPlayerName()。対局を始めると対局者の名前が入る。
        │     名前が無ければ「先手」「後手」）、盤の向きを本体の盤に合わせる
        └── PvBoardDialog を作成・表示
@@ -10029,7 +10027,6 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | jishogiscoredialog | 第10章 | 持将棋の点数ダイアログ |
 | kifusavedialogs | 第8章 | 棋譜保存の確認・保存ダイアログ |
 | engineoptiondescriptions | 第7章 | エンジン設定画面のオプションの説明と分類 |
-| sfendiffutils | 第5章 | 2つの局面の盤上の差分（読み筋の値 `PvLine` が使う） |
 
 #### models/（第11章）
 

@@ -35,24 +35,24 @@ void PvClickController::onPvRowClicked(ShogiEngineThinkingModel* model, int row)
     }
     const QString baseSfen = pv.baseSfen();
 
-    // 読み筋の局面が表示中の手順の何手目かを探し、その局面に至った手をハイライトに使う
+    // 至った手が思考の行に無ければ、読み筋の局面が表示中の手順の何手目かを探し、その局面に至った手を使う
     QString lastUsiMove = record->lastUsiMove();
-    QString prevSfen;
-    const QString baseKey = SfenUtils::normalizeSfenKey(baseSfen);
-    for (int ply = 1; ply <= line.moveCount(); ++ply) {
-        if (SfenUtils::normalizeSfenKey(line.sfenAt(ply)) != baseKey) continue;
-        prevSfen = line.sfenAt(ply - 1);
-        if (lastUsiMove.isEmpty()) lastUsiMove = line.usiMove(ply).toString();
-        break;
+    if (lastUsiMove.isEmpty()) {
+        const QString baseKey = SfenUtils::normalizeSfenKey(baseSfen);
+        for (int ply = 1; ply <= line.moveCount(); ++ply) {
+            if (SfenUtils::normalizeSfenKey(line.sfenAt(ply)) != baseKey) continue;
+            lastUsiMove = line.usiMove(ply).toString();
+            break;
+        }
     }
     qCDebug(lcUi) << "onPvRowClicked: row=" << row << "base=" << baseSfen;
 
-    PvBoardDialog* dlg = showPvBoard(pv, lastUsiMove, prevSfen);
+    PvBoardDialog* dlg = showPvBoard(pv, lastUsiMove);
     m_dialogSources.insert(dlg, model);
     connect(dlg, &QDialog::finished, this, &PvClickController::onPvDialogFinished);
 }
 
-PvBoardDialog* PvClickController::showPvBoard(const PvText& pv, const QString& lastUsiMove, const QString& prevSfen)
+PvBoardDialog* PvClickController::showPvBoard(const PvText& pv, const QString& lastUsiMove)
 {
     auto* dlg = new PvBoardDialog(pv, qobject_cast<QWidget*>(parent()));
     // 対局者名は本体の盤と同じ（対局中は対局者、対局していなければ対局情報の名前）
@@ -62,7 +62,6 @@ PvBoardDialog* PvClickController::showPvBoard(const PvText& pv, const QString& l
     dlg->setFlipMode(m_deps.shogiView && m_deps.shogiView->flipMode());
     if (m_deps.shogiView) dlg->setSquareSize(m_deps.shogiView->squareSize());
     if (!lastUsiMove.isEmpty()) dlg->setLastMove(lastUsiMove);
-    if (!prevSfen.isEmpty()) dlg->setPrevSfenForHighlight(prevSfen);
     dlg->setAttribute(Qt::WA_DeleteOnClose);
     dlg->show();
     return dlg;

@@ -65,7 +65,7 @@ private slots:
     void arrivalDropUsesStandOfPreviousMover()
     {
         PvLine line = lineOf(QString(SfenUtils::hirateSfen()).replace(QStringLiteral(" b - "), QStringLiteral(" w Pp ")), {});
-        line.setArrival(QStringLiteral("P*5e"), QString());
+        line.setArrival(QStringLiteral("P*5e"));
         const PvLine::Highlight highlight = line.highlight(0);
         QCOMPARE(from(highlight), BoardCoordinates::standSquareOf(Piece::BlackPawn));
         QCOMPARE(to(highlight), QPoint(5, 5));
@@ -79,37 +79,13 @@ private slots:
         QVERIFY(!line.highlight(0).to);
     }
 
-    // 直前の手がなく直前の局面だけがあるときは、2つの局面の盤の差分から移動元・移動先を決める
-    void diffHighlight_dropUsesStandOfDroppingSide()
+    /// 開始局面に至った手が盤上の手なら、移動元と移動先を強調する（5筋以外で筋と段を取り違えない）
+    void arrivalBoardMoveKeepsFileAndRank()
     {
-        PvLine line = lineOf(QStringLiteral("4k4/9/9/9/4g4/9/9/9/4K4 b - 2"), {});
-        line.setArrival(QString(), QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 w g 1"));
-        QCOMPARE(from(line.highlight(0)), BoardCoordinates::standSquareOf(Piece::WhiteGold));
-        QCOMPARE(to(line.highlight(0)), QPoint(5, 5));
-    }
-
-    void diffHighlight_captureUsesSourceAndDestination()
-    {
-        PvLine line = lineOf(QStringLiteral("4k4/9/9/4R4/9/9/9/9/4K4 w P 2"), {});
-        line.setArrival(QString(), QStringLiteral("4k4/9/9/4p4/9/4R4/9/9/4K4 b - 1"));
-        QCOMPARE(from(line.highlight(0)), QPoint(5, 6));
-        QCOMPARE(to(line.highlight(0)), QPoint(5, 4));
-    }
-
-    void diffHighlight_boardMoveOffCenterKeepsFileAndRank()
-    {
-        // 5筋以外のマスで、筋の向きと段を取り違えないこと（7七→7六）
         PvLine line = lineOf(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL w - 2"), {});
-        line.setArrival(QString(), SfenUtils::hirateSfen());
+        line.setArrival(QStringLiteral("7g7f"));
         QCOMPARE(from(line.highlight(0)), QPoint(7, 7));
         QCOMPARE(to(line.highlight(0)), QPoint(7, 6));
-    }
-
-    void diffHighlight_unreadablePreviousPositionGivesNoHighlight()
-    {
-        PvLine line = lineOf(QStringLiteral("4k4/9/9/9/4g4/9/9/9/4K4 b - 2"), {});
-        line.setArrival(QString(), QStringLiteral("4k4/9/9/9/9/9/9/4K4 w g 1"));
-        QVERIFY(!line.highlight(0).to);
     }
 };
 
