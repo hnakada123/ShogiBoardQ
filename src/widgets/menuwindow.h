@@ -72,13 +72,6 @@ public:
     QStringList favorites() const { return m_favoriteActionNames; }
     QStringList availableActions() const { return m_actionMap.keys(); }
 
-signals:
-    /**
-     * @brief お気に入りリストが変更されたときのシグナル
-     * @param favoriteActionNames 新しいお気に入りリスト
-     */
-    void favoritesChanged(const QStringList& favoriteActionNames);
-
 private slots:
     void updateFilter();
     /**

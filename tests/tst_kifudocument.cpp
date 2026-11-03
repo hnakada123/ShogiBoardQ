@@ -766,7 +766,7 @@ private slots:
         session.startFromNode(anchor);
         session.appendRecord(RecordEntry::played(TestReplay::buildGameMoves(anchor->sfen(), sessionUsi).value(0),
                                                  newPretty, sessionSfens.last(),
-                                                 RecordTime::fromText(QStringLiteral("00:05/00:00:05"))));
+                                                 RecordTime::fromMilliseconds(5000, 5000)));
         QVERIFY(session.commit());
 
         FileHarness files(&tree, &nav);

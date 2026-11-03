@@ -2,6 +2,7 @@
 /// @brief 定跡ウィンドウ（ドックのパネル）の実装
 
 #include "josekiwindow.h"
+#include "dialogutils.h"
 #include "actionbinding.h"
 #include "columnwidthmemory.h"
 #include "recentfilesmenu.h"
@@ -338,7 +339,7 @@ void JosekiWindow::setupUi()
 void JosekiWindow::applyFontSize()
 {
     // メニュー（履歴・マージ・表の右クリック）も DialogUtils が同じ文字にする
-    const QFont font = m_fontHelper.applyTo(this);
+    const QFont font = DialogUtils::applyFontSize(this, m_fontHelper.fontSize());
     const int fontSize = m_fontHelper.fontSize();
     const QFontMetrics fm(font);
 

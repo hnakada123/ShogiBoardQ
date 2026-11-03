@@ -27,21 +27,12 @@ namespace PositionEditRules {
 std::optional<Position> moved(const Position& position, const QPoint& from, const QPoint& to,
                               Turn pieceBoxSide = Turn::Black);
 
-/// 盤上のマスの駒を、先手の生駒 → 成駒 → 後手の生駒 → 成駒の順に巡らせた局面（行き所のない段・二歩になる形は
-/// 飛ばす）。駒が無い・盤外なら nullopt
-std::optional<Position> cycled(const Position& position, BoardSquare square);
-
-/// 盤上・両駒台を空にした局面（全駒が駒箱に戻る。手番と手数は残す）
-Position cleared(const Position& position);
-
-/// source（移動元の駒）を dest（移動先の駒。駒台なら駒台の駒種）の上へ動かせるか
-bool canMove(const Position& position, Piece source, Piece dest, int fileFrom, int fileTo);
-
 // --- 盤への反映 ---
 
 /// moved の局面を盤に反映する。動かせなければ盤を変えず false
 bool apply(ShogiBoard& board, const QPoint& from, const QPoint& to, Turn pieceBoxSide = Turn::Black);
-/// cycled の局面を盤に反映する。巡らせられなければ盤を変えず false
+/// 盤上のマスの駒を、先手の生駒 → 成駒 → 後手の生駒 → 成駒の順に巡らせる（行き所のない段・二歩になる形は飛ばす）。
+/// 駒が無い・盤外・巡らせられなければ盤を変えず false
 bool cyclePiece(ShogiBoard& board, BoardSquare square);
 /// 盤上・両駒台を空にする（全部の駒が動くので、局面を丸ごと置き換えて知らせる）
 void clear(ShogiBoard& board);

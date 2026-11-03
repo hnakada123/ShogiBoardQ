@@ -4,6 +4,7 @@
 /// @file branchtree_test_util.h
 /// @brief テストで分岐ツリーを作る・引くための関数（製品のコードは addRecord と ID で扱う）
 
+#include "recordtime_test_util.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
 #include "recordentry.h"
@@ -29,14 +30,14 @@ inline RecordEntry& record(KifuBranchNode* node)
 inline KifuBranchNode* addMove(KifuBranchTree& tree, KifuBranchNode* parent, const ShogiMove& move,
                                const QString& displayText, const QString& sfen, const QString& timeText = QString())
 {
-    return tree.addRecord(parent, RecordEntry::played(move, displayText, sfen, RecordTime::fromText(timeText)));
+    return tree.addRecord(parent, RecordEntry::played(move, displayText, sfen, recordTimeFromText(timeText)));
 }
 
 /// 終局の行を足す（表記は終局語の表から作る）
 inline KifuBranchNode* addTerminalMove(KifuBranchTree& tree, KifuBranchNode* parent, TerminalType type, Turn side,
                                        const QString& timeText = QString())
 {
-    return tree.addRecord(parent, RecordEntry::ending(type, side, RecordTime::fromText(timeText)));
+    return tree.addRecord(parent, RecordEntry::ending(type, side, recordTimeFromText(timeText)));
 }
 
 /// 本譜の ply 手目（無ければ nullptr）

@@ -7,6 +7,7 @@
 #include <QList>
 #include <QString>
 
+#include "recordtime_test_util.h"
 #include "kifubranchnode.h"
 #include "kifubranchtree.h"
 #include "branchtree_test_util.h"
@@ -34,7 +35,7 @@ struct RecordRows {
     KifuBranchNode* append(const QString& text, const QString& time = QString(), const QString& comment = QString(),
                            const QString& bookmark = QString(), const ShogiMove& move = ShogiMove())
     {
-        RecordEntry entry = RecordEntry::played(move, text, path.last()->sfen(), RecordTime::fromText(time));
+        RecordEntry entry = RecordEntry::played(move, text, path.last()->sfen(), recordTimeFromText(time));
         entry.comment = comment;
         entry.bookmark = bookmark;
         KifuBranchNode* node = tree.addRecord(path.last(), entry);

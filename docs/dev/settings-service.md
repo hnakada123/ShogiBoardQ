@@ -269,7 +269,7 @@ MyDialog::~MyDialog()
 実際のコードでは `KifuPasteDialog`（`src/dialogs/kifupastedialog.cpp`）が同じ形になっている。
 
 - `DialogFontScale::install(QDialog*, const Setting<int>&, const Options&)`（`src/widgets/dialogfontscale.h`）は、宣言から初期値を読んで `Options` の `minSize`〜`maxSize`（既定 8〜24）に収め、A-/A+ で変わるたびに同じ宣言へ保存する。`Options::size` を渡すと、ダイアログの大きさも開くときに戻し、閉じるときに保存する。文字の大きさの宣言の既定値が 0 なら、未保存のときはダイアログの元の大きさから始める。各部品は元の大きさからの差で拡大・縮小するので、見出しの相対の大きさは作るときに1回決めればよい。大きさに合わせた追加の調整は、返す部品の `fontSize()`（`FontSizeHelper*`）の `fontSizeChanged` につなぐ。ダイアログに `FontSizeHelper` のメンバや `applyFontSize()` は書かない
-- ドックのパネルは `FontSizeHelper(const Setting<int>&, int min = 8, int max = 24, int step = 1)`（`src/widgets/fontsizehelper.h`）を持ち、A-/A+ のボタンを `FontSizeControl`（`src/widgets/fontsizecontrol.h`）で結ぶ。A-/A+ の文字・見た目・説明と、範囲の端で押せなくする処理は `FontSizeControl` だけが決める。文字の反映は `fontSizeChanged` をパネルの表示の作り直しにつなぐ（定跡ウィンドウのようにウィンドウ全体に付けるときは `applyTo(window)`、つまり `DialogUtils::applyFontSize`）
+- ドックのパネルは `FontSizeHelper(const Setting<int>&, int min = 8, int max = 24, int step = 1)`（`src/widgets/fontsizehelper.h`）を持ち、A-/A+ のボタンを `FontSizeControl`（`src/widgets/fontsizecontrol.h`）で結ぶ。A-/A+ の文字・見た目・説明と、範囲の端で押せなくする処理は `FontSizeControl` だけが決める。文字の反映は `fontSizeChanged` をパネルの表示の作り直しにつなぐ（定跡ウィンドウのようにウィンドウ全体に付けるときは `DialogUtils::applyFontSize(window, helper.fontSize())`）
 - `DialogUtils::restoreDialogSize(QWidget*, const Setting<QSize>&)` は、幅・高さとも 100 を超える保存値だけを適用する。`DialogUtils::saveDialogSize(const QWidget*, const Setting<QSize>&)` は現在のサイズを保存する（`src/widgets/dialogutils.h`）
 
 ### INI キーの命名

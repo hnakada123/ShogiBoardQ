@@ -157,7 +157,7 @@ cmake --build build --target translations
 
 - **board/**: 盤面編集・操作
   - `boardinteractioncontroller.cpp/.h` - 盤のクリックを移動元・移動先にし、選択・直前の手・合法な移動先のハイライトを出す（合法な移動先を出すかは保存した設定から始め、`setLegalMovesVisible` で保存する。主画面と詰将棋を解く画面で共通）。クリックを手番の側の手にする処理 `moveFromClick()`（成り・不成の両方が合法なら、作るときに渡した成りの選び方の関数で尋ねる）もここにあり、主画面と詰将棋を解く画面の行き先が使う。ドラッグは行き先の `submit()` から戻った後に終える
-  - `positioneditrules.cpp/.h` - 局面編集の規則 `PositionEditRules`（駒の移動 `moved`・右クリックの成・不成・先後の巡回 `cycled`・盤を空にする `cleared`。`Position` を変える関数で、盤へは `apply`・`cyclePiece`・`clear` が渡す）
+  - `positioneditrules.cpp/.h` - 局面編集の規則 `PositionEditRules`（駒の移動 `moved` は `Position` を変える関数。盤へは `apply`・右クリックの成・不成・先後の巡回 `cyclePiece`・盤を空にする `clear` が渡す。巡回と空にする局面・置ける形の判定は .cpp の中だけ）
   - `boardinputroute.h` - 盤で指した手の行き先 `BoardInputRoute`（つまめるか・局面編集中か・着手の処理・局面編集中の右クリック `cycle`。主画面は `BoardMoveController`、詰将棋を解くダイアログは `TsumePlayDialog`）
   - `positioneditsession.cpp/.h` - 局面編集（開始・終了・編集中の盤の操作（全駒を駒箱へ・平手・詰将棋・手番の入れ替え。メニューは `MenuActionsWiring` がつなぐ）・編集中の着手 `applyEditMove` と右クリックの巡回 `cycleEditPiece`。どちらも盤の行き先 `BoardMoveController` から渡され、盤の操作は局面を変えない）。駒箱の先後の正本もここ（`pieceBoxSide()`。盤の切り替えのボタン `pieceBoxSideClicked` を受け、盤は表示するだけ）。「編集中か」は動作状態 `DuringPositionEdit` だけで決まる
 

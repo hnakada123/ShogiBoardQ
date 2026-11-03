@@ -181,7 +181,6 @@ void MenuWindow::setFavorites(const QStringList& favoriteActionNames)
     updateFavoritesTab();
     updateCustomizeModeForAllTabs();
     AppSettings::menuWindowFavorites.set(m_favoriteActionNames);
-    Q_EMIT favoritesChanged(m_favoriteActionNames);
 }
 
 QScrollArea* MenuWindow::createCategoryTab(const CategoryInfo& category, bool isFavoriteTab)
@@ -347,7 +346,6 @@ void MenuWindow::onAddToFavorites(const QString& actionName)
         updateFavoritesTab();
         updateCustomizeModeForAllTabs();
         AppSettings::menuWindowFavorites.set(m_favoriteActionNames);
-        Q_EMIT favoritesChanged(m_favoriteActionNames);
     }
 }
 
@@ -357,7 +355,6 @@ void MenuWindow::onRemoveFromFavorites(const QString& actionName)
         updateFavoritesTab();
         updateCustomizeModeForAllTabs();
         AppSettings::menuWindowFavorites.set(m_favoriteActionNames);
-        Q_EMIT favoritesChanged(m_favoriteActionNames);
     }
 }
 
@@ -370,7 +367,6 @@ void MenuWindow::onFavoriteReordered(const QString& sourceActionName, const QStr
         m_favoriteActionNames.move(sourceIndex, targetIndex);
         updateFavoritesTab();
         AppSettings::menuWindowFavorites.set(m_favoriteActionNames);
-        Q_EMIT favoritesChanged(m_favoriteActionNames);
     }
 }
 

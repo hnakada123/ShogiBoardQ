@@ -104,8 +104,8 @@ private:
     QPersistentModelIndex m_lastClickedBranchIndex;
     bool m_branchClickGuard = false;
 
-public slots:
-    // 列の表示（列のボタン。表示は保存する）
+private slots:
+    // 列の表示（列のボタンの toggled だけから呼ぶ。表示は保存する）
     void onToggleTimeColumn(bool checked);
     void onToggleBookmarkColumn(bool checked);
     void onToggleCommentColumn(bool checked);
