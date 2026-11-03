@@ -1,5 +1,5 @@
 /// @file kifufilefilter.cpp
-/// @brief 棋譜ファイルを開くダイアログの絞り込みの実装
+/// @brief 棋譜ファイルを開く・保存するダイアログの絞り込みの実装
 
 #include "kifufilefilter.h"
 

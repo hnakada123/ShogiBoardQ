@@ -9480,18 +9480,18 @@ There may be an error in the opening book data.</translation>
 <context>
     <name>KifuFileFilter</name>
     <message>
-        <location filename="../../src/widgets/kifufilefilter.cpp" line="43"/>
+        <location filename="../../src/kifu/kifufilefilter.cpp" line="43"/>
         <source>棋譜ファイル (%1)</source>
         <translation>Game Record Files (%1)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/kifufilefilter.cpp" line="45"/>
+        <location filename="../../src/kifu/kifufilefilter.cpp" line="45"/>
         <source>%1形式 (%2)</source>
         <translation>%1 Format (%2)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/kifufilefilter.cpp" line="46"/>
-        <location filename="../../src/widgets/kifufilefilter.cpp" line="54"/>
+        <location filename="../../src/kifu/kifufilefilter.cpp" line="46"/>
+        <location filename="../../src/kifu/kifufilefilter.cpp" line="54"/>
         <source>すべてのファイル (*)</source>
         <translation>All Files (*)</translation>
     </message>

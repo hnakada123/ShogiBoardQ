@@ -327,7 +327,7 @@ add_shogi_test(tst_kifusavedialogs
     ${SRC}/common/logcategories.cpp
     ${SRC}/dialogs/kifusavedialogs.cpp
     ${SRC}/widgets/unsavedchangesprompt.cpp
-    ${SRC}/widgets/kifufilefilter.cpp
+    ${SRC}/kifu/kifufilefilter.cpp
     ${SRC}/kifu/shiftjiscodec.cpp
     ${SRC}/services/settingscommon.cpp
 )

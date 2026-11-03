@@ -8487,18 +8487,18 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>KifuFileFilter</name>
     <message>
-        <location filename="../../src/widgets/kifufilefilter.cpp" line="43"/>
+        <location filename="../../src/kifu/kifufilefilter.cpp" line="43"/>
         <source>棋譜ファイル (%1)</source>
         <translation>棋谱文件 (%1)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/kifufilefilter.cpp" line="45"/>
+        <location filename="../../src/kifu/kifufilefilter.cpp" line="45"/>
         <source>%1形式 (%2)</source>
         <translation>%1 格式 (%2)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/kifufilefilter.cpp" line="46"/>
-        <location filename="../../src/widgets/kifufilefilter.cpp" line="54"/>
+        <location filename="../../src/kifu/kifufilefilter.cpp" line="46"/>
+        <location filename="../../src/kifu/kifufilefilter.cpp" line="54"/>
         <source>すべてのファイル (*)</source>
         <translation>所有文件 (*)</translation>
     </message>
