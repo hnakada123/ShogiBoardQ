@@ -546,10 +546,14 @@ set(SRC_NETWORK
     src/network/csagamesummaryreader.h
     src/network/csagameprogress.cpp
     src/network/csagameprogress.h
+    src/network/csagameseries.cpp
+    src/network/csagameseries.h
     src/network/csalogin.cpp
     src/network/csalogin.h
     src/network/csamoveconverter.cpp
     src/network/csamoveconverter.h
+    src/network/csaverdictwait.cpp
+    src/network/csaverdictwait.h
 )
 
 set(SRC_BOARD

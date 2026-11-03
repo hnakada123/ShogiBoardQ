@@ -4,6 +4,7 @@
 /// @file csagamesummary.h
 /// @brief CSA の対局条件（Game_Summary）の値
 
+#include <QCoreApplication>
 #include <QList>
 #include <QString>
 #include <QStringList>
@@ -16,9 +17,13 @@
 /**
  * @brief CSA サーバーが送る対局条件（BEGIN Game_Summary 〜 END Game_Summary）
  *
- * 読むのは CsaGameSummaryReader。値は受け取ったままで、ミリ秒への換算と持ち時間の決まりへの変換はここで行う。
+ * 読むのは CsaGameSummaryReader。値は受け取ったままで、ミリ秒への換算と持ち時間の決まりへの変換、
+ * 受け入れるかの判断（unsupportedReason）とログに出す対局条件の文（conditionLines）はここで行う。
  */
 struct CsaGameSummary {
+    Q_DECLARE_TR_FUNCTIONS(CsaGameSummary)
+
+public:
     /// 1つの時間の値（持時間・秒読み・加算・1手の消費時間）の上限（ミリ秒。7日）。
     /// サーバーが送る大きな値で、持ち時間の計算を桁あふれさせない（セキュリティ監査 S13）
     static constexpr int kMaxTimeMs = 7 * 24 * 60 * 60 * 1000;
@@ -99,6 +104,22 @@ struct CsaGameSummary {
 
     /// 指し手・意思表示の行（"+7776FU,T12"・"%TORYO,T4"）の消費時間（単位時間の数。無い・読めなければ 0）
     static int consumedUnits(const QString& line);
+
+    /**
+     * @brief 受け入れられない対局条件なら、その理由を返す（受け入れるなら空。訳した文）
+     * @param playedByEngine こちらがエンジンで指すか
+     *
+     * Format が将棋以外、またはエンジンで指すのに時間無制限のときは REJECT する。
+     */
+    QString unsupportedReason(bool playedByEngine) const;
+
+    /// ログに出す対局条件の1行（warning は注意として目立たせる）
+    struct ConditionLine {
+        QString text;
+        bool warning = false;
+    };
+    /// 持時間・手数制限・宣言ルールと、プロトコルの注意（ログに出す訳した文）
+    QList<ConditionLine> conditionLines() const;
 };
 
 #endif // CSAGAMESUMMARY_H

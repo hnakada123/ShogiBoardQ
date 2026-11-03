@@ -174,6 +174,7 @@
 | 2026-11-03 | 通信対局の開始でその対局の通信ログとエンジン名を消さないようにした（監査 2026-11-01 F12）のに合わせて §4.5・§6.5・§10.2 を更新（文書の置き換えで呼ぶ `EngineDisplayPresenter::clearAll()` は通信ログを消さず、結んでいるエンジンの名前も残す（`UsiCommLogModel::clearStatus()`）。通信ログは対局を始めるとき（`GameSession::gameStarting`・`CsaGameSession::gameStarting`）に `clearEngineLogs()` で消す。通信対局の評価値グラフの自分の系列名は `CsaGameCoordinator::matchEngineStarted` → `showMatchEngine()`。新規・棋譜の読み込みでは通信ログを消さなくなった） |
 | 2026-11-03 | 盤の人間の手をローカル対局と通信対局で同じ入口にした（監査 2026-11-01 T3 の5つ目）のに合わせて §3.4・§3.5・§6.2・§6.6・§6.7・§6.9・§10.3・§10.4・§10.6・§12.3・§14.6・§15.2・§15.5 を更新（`GameChannel::playMove(UsiMove)`（`MoveResult`: `Rejected`・`Played`・`Sent`）を足し、`BoardMoveController` は対局中の窓口（`setActiveChannel()` で受け取る `GameSession::activeChannel()`）へ渡すだけにした。ローカル対局は `MatchCoordinator::playHumanMove(UsiMove)` がエンジンの手と同じく合法手を確かめて盤に指し、通信対局は `CsaGameCoordinator::sendHumanMove()`（旧 `onHumanMove` スロット）が合法手を確かめてサーバーへ送る。`BoardInput::CsaServer` は `Game` にまとめ、`BoardMoveController::csaMoveRequested`・`MatchCoordinator::onHumanMove(RecordEntry)` を消し、`lastMoveDestination()` は非公開にした） |
 | 2026-11-03 | 通信対局の接続中を動作状態にした（監査 2026-11-01 F13）のに合わせて §3.4・§12.3・§14.2 を更新（`AppActivityState::Activity::DuringCsaConnection` を足し、`CsaGameCoordinator` が接続してから通信対局を続ける間（`sessionContinues()`）持つ。対局の間は `DuringCsaGame`。局と局の間は棋譜を見る・保存・コピーだけで、開く・貼り付け・対局開始・局面編集・棋譜解析・詰み探索・詰将棋生成・検討・エンジン設定・棋譜の編集はできない。「新規」と「中断」（`CsaGameChannel::breakOff()` → `stopGame()`）でログアウトする。自動化 API の `ui_state` は `csa_connected`、`play_mode` は `csa_network`） |
+| 2026-11-03 | `CsaGameCoordinator` の1局の進行に入らない仕事を切り出した（監査 2026-11-01 M6）のに合わせて §12.3 を更新（対局条件の受け入れの判断とログの文は `CsaGameSummary::unsupportedReason()`・`conditionLines()`、裁定の待ちは `CsaVerdictWait`、対局数と再接続は `CsaGameSeries`。LOGIN のパスワードを伏せるのは `CsaClient` だけにし、「すぐ指させる」はローカル対局と同じ `Usi::requestImmediateMove()` にした。使っていない `username()`・`gameSummary()`・`completedGames()`・`gameLimit()` を消した） |
 
 <!-- chapter-0-end -->
 
@@ -512,6 +513,8 @@ src/
 │   ├── csagamesummary.cpp/.h       #   対局条件（Game_Summary）の値 CsaGameSummary
 │   ├── csagamesummaryreader.cpp/.h #   Game_Summary を1行ずつ読む CsaGameSummaryReader
 │   ├── csalogin.cpp/.h             #   ログインの規則（ID・パスワード・ゲーム名の検査、LOGIN のパスワード欄）
+│   ├── csagameseries.cpp/.h        #   1つの接続で続ける対局の数と終局後の再接続（CsaGameSeries）
+│   ├── csaverdictwait.cpp/.h       #   解釈できない指し手行の後のサーバーの裁定の待ち（CsaVerdictWait）
 │   └── csamoveconverter.cpp/.h     #   CSA と USI の指し手の変換（toCsa / toUsi）
 │
 ├── style/                          # ウィジェットの書体と見た目（QWidget に依存する。analysis・network の上、models の下の層）
@@ -6856,6 +6859,16 @@ CsaClientとゲームシステム（GameBoard, ShogiClock等）の橋渡し役�
 - USIエンジンの起動・思考管理（エンジン vs サーバー対局時。ローカル対局と同じ `MatchEngineSeat`。エンジンはローカルの対局・検討と同じ `EngineSlots` の枠 E1 に置く）
 - 自分のエンジンの時間の出どころ（`MatchTimeSource` を継承する。`snapshot()` は `CsaGameProgress::engineTiming(pondering, 手番側の経過時間, margin)` のサーバーの残り時間・決まり・遅延・余裕から（自分の手をサーバーが確認するまで残り時間は手番の初めのままなので、手番側の経過時間を引く。先読みでは今の手の消費になる）、`elapsedThisTurn()` は手番（`CsaGameProgress::sideToMove()`。手順の最後の手の相手）が変わるたびに始める自分の `QElapsedTimer` から返す。投了の消費時間もこの値で、表示用の時計を読まない）
 - 対局結果の日本語変換と表示
+
+1局の進行に入らない次の仕事は、小さな部品と値に出してある（司令塔はそれを呼んでログの文と終局の手順を書く）。
+
+| 部品・値 | 受け持つこと |
+|------|------|
+| `CsaGameSummary::unsupportedReason()`・`conditionLines()` | 対局条件を受け入れるかの判断（将棋以外の Format・エンジンで指すのに時間無制限なら REJECT）と、ログに出す持時間・最大手数・宣言ルール・プロトコルの注意の文 |
+| `CsaVerdictWait`（`src/network/csaverdictwait.h`） | 解釈できない指し手行の後の、サーバーの裁定（#ILLEGAL_MOVE と勝敗）の待ち（仕様 3.4）。待ち始めた理由を持ち、届かなければ `timedOut` で知らせる |
+| `CsaGameSeries`（`src/network/csagameseries.h`） | 1つの接続（再接続を含む）で続ける対局の数（`moreGamesWanted()`）と、終局後にサーバーが切ったときの再接続の待ち（`scheduleReconnect()`・`reconnectDue`） |
+
+LOGIN のパスワードを通信ログで伏せるのは `CsaClient::sendMessage()` だけで、司令塔は届いた文をそのまま通信ログへ出す。「すぐ指させる」はローカル対局と同じ `Usi::requestImmediateMove()`。
 
 自分の手番は持たない。いまの手番は `CsaClient::isMyTurn()` と確認待ち（`awaitingMoveConfirmation()`）から `turnState()`（`MyTurn`・`AwaitingConfirmation`・`OpponentTurn`）として求め、`isMyTurn()` はその `MyTurn` を返す。
 
