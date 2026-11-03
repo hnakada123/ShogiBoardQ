@@ -18,8 +18,9 @@
  *   内容は変わるたびに文書へ渡す（GameInfoPane::gameInfoEdited）ので、未保存かは文書が決める。
  * - 自動で書き換える値（対局者名・終了日時など）は履歴にも書き込むので、元に戻しても古い値に戻らない。
  *
- * 表示用の値（Qt::DisplayRole・Qt::EditRole）は書いたままの文字列。項目名・値の表記の切り替えは
- * Qt::AccessibleTextRole・Qt::ToolTipRole と、表の描画（GameInfoPane）で行う。
+ * Qt::DisplayRole・Qt::EditRole は書いたままの文字列（編集・コピー・棋譜に使う）。画面に出す文字
+ * （項目名・値の表記を切り替え、空の内容は案内文）は PresentedTextRole の1つで作り、表の描画と列幅
+ * （GameInfoPane）・読み上げ（Qt::AccessibleTextRole）・ツールチップはどれもこれを使う。
  */
 class GameInfoEditModel : public QAbstractTableModel
 {
@@ -29,6 +30,9 @@ public:
     enum Column { KeyColumn, ValueColumn, ColumnCount };
     /// 内容が空のときに薄く出す案内文（表示だけで、値・コピー・棋譜には含めない）
     static constexpr int PlaceholderRole = Qt::UserRole + 1;
+    /// 画面に出す文字（項目名・値は表記の設定に合わせ、空の内容は案内文）。描画・列幅・読み上げ・
+    /// ツールチップで共通
+    static constexpr int PresentedTextRole = Qt::UserRole + 2;
 
     explicit GameInfoEditModel(QObject* parent = nullptr);
 

@@ -11,7 +11,6 @@
 #include "gameinfoeditmodel.h"
 #include "gameinfokeys.h"
 #include "gamesettings.h"
-#include "kifupresentation.h"
 #include "logcategories.h"
 #include "tableheaderview.h"
 #include "tablestyles.h"
@@ -33,8 +32,8 @@
 #include <QVBoxLayout>
 
 namespace {
-// 項目名・内容は表記の設定に合わせて描き、空の内容には案内文を薄く出す。
-// 案内文は描画時だけ表示し、編集値・コピー・棋譜出力には含めない。
+// 画面に出す文字（項目名・内容の表記、空の内容の案内文）はモデルの PresentedTextRole を描き、
+// 案内文は薄く出す。案内文は描画時だけ表示し、編集値・コピー・棋譜出力には含めない。
 class GameInfoValueDelegate : public QStyledItemDelegate
 {
 public:
@@ -53,15 +52,12 @@ protected:
     void initStyleOption(QStyleOptionViewItem* option, const QModelIndex& index) const override
     {
         QStyledItemDelegate::initStyleOption(option, index);
-        if (!option->text.isEmpty()) {
-            option->text = index.column() == GameInfoEditModel::KeyColumn ? KifuPresentation::infoKey(option->text)
-                : KifuPresentation::infoValue(index.siblingAtColumn(GameInfoEditModel::KeyColumn).data().toString(),
-                                              option->text);
-            return;
-        }
-        option->text = index.data(GameInfoEditModel::PlaceholderRole).toString();
+        // 改行の扱いは DisplayRole の文字と同じにする（displayText が行の区切りに替える）
+        option->text = displayText(index.data(GameInfoEditModel::PresentedTextRole), option->locale);
+        if (option->text.isEmpty()) return;
         option->features |= QStyleOptionViewItem::HasDisplay;
-        option->palette.setColor(QPalette::Text, option->palette.color(QPalette::PlaceholderText));
+        if (index.data(Qt::EditRole).toString().isEmpty())
+            option->palette.setColor(QPalette::Text, option->palette.color(QPalette::PlaceholderText));
     }
 };
 } // namespace
@@ -403,7 +399,8 @@ void GameInfoPane::updateTablePresentation()
     // 項目名の列は、利用者が幅を決めていなければ表記した項目名が収まる幅にする
     int keyWidth = 120;
     for (int row = 0; row < m_model->rowCount(); ++row) {
-        const QString key = m_model->index(row, GameInfoEditModel::KeyColumn).data(Qt::AccessibleTextRole).toString();
+        const QString key = m_model->index(row, GameInfoEditModel::KeyColumn)
+                                .data(GameInfoEditModel::PresentedTextRole).toString();
         keyWidth = qMax(keyWidth, m_table->fontMetrics().horizontalAdvance(key) + 24);
     }
     m_table->setColumnWidth(GameInfoEditModel::KeyColumn,

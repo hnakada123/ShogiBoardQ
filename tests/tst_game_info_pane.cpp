@@ -7,6 +7,9 @@
 #include <QLabel>
 #include <QPushButton>
 #include <QHeaderView>
+#include <QStandardItemModel>
+#include <QStyledItemDelegate>
+#include <QTranslator>
 #include <QTableView>
 #include <QTableWidget>
 #include <QTemporaryDir>
@@ -318,6 +321,62 @@ private slots:
         QVERIFY(!remove->isEnabled());
         m_controller->undo();
         QCOMPARE(m_table.rowCount(), 1);
+    }
+
+    /// 表に描く文字・項目名の列幅・読み上げ・ツールチップは、モデルの PresentedTextRole の1つから作る
+    /// （項目名・内容の表記と、空の内容の案内文。監査 2026-11-01 M13）
+    void cellsShowPresentedText()
+    {
+        // 項目名の表記を切り替える（訳の一覧の代わりに「棋戦」だけを訳す）
+        class KeyTranslator : public QTranslator
+        {
+        public:
+            bool isEmpty() const override { return false; }
+            QString translate(const char* context, const char* source, const char*, int) const override
+            {
+                if (qstrcmp(context, "KifuPresentation") == 0 && QString::fromUtf8(source) == GameInfoKeys::kEvent)
+                    return QStringLiteral("Tournament with a long translated name");
+                return {};
+            }
+        } translator;
+        QCoreApplication::installTranslator(&translator);
+        m_controller->setGameInfo({{GameInfoKeys::kEvent, QStringLiteral("Original")}, {GameInfoKeys::kSite, QString()}});
+
+        const QString translatedKey = QStringLiteral("Tournament with a long translated name");
+        const QString placeholder = QStringLiteral("任意入力");
+        const auto presented = [this](int row, int column) {
+            return m_table.index(row, column).data(GameInfoEditModel::PresentedTextRole).toString();
+        };
+        QCOMPARE(presented(0, 0), translatedKey);
+        QCOMPARE(presented(0, 1), QStringLiteral("Original"));
+        QCOMPARE(presented(1, 0), GameInfoKeys::kSite);
+        QCOMPARE(presented(1, 1), placeholder);
+        QCOMPARE(m_table.text(1, 1), QString());   // 案内文は値に入れない
+
+        // 描く文字: 表のデリゲートの大きさが、その文字だけを持つ項目の大きさと同じ
+        QStyleOptionViewItem option;
+        option.initFrom(m_table.view);
+        option.widget = m_table.view;
+        QStandardItemModel reference;
+        QStyledItemDelegate plain;
+        const auto drawnSize = [&](int row, int column) {
+            return m_table.view->itemDelegateForIndex(m_table.index(row, column))->sizeHint(option, m_table.index(row, column));
+        };
+        const auto sizeOf = [&](const QString& text) {
+            reference.clear();
+            reference.appendRow(new QStandardItem(text));
+            return plain.sizeHint(option, reference.index(0, 0));
+        };
+        QVERIFY(sizeOf(translatedKey) != sizeOf(GameInfoKeys::kEvent));
+        QCOMPARE(drawnSize(0, 0), sizeOf(translatedKey));
+        QCOMPARE(drawnSize(1, 1), sizeOf(placeholder));
+
+        // 項目名の列幅も表記した項目名で測る（利用者が幅を決めていなければ）
+        const int keyWidth = m_table.view->fontMetrics().horizontalAdvance(translatedKey) + 24;
+        QCOMPARE(m_table.view->columnWidth(0), qBound(120, keyWidth, 320));
+        QCOMPARE(m_table.accessibleText(0, 0), translatedKey);
+        QCOMPARE(m_table.toolTip(1, 1), plainToolTip(placeholder));
+        QCoreApplication::removeTranslator(&translator);
     }
 
     void longValuesWrapAndTooltipsStayCurrent()

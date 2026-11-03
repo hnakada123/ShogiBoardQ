@@ -193,6 +193,7 @@
 | 2026-11-03 | 1組の駒の枚数と敵陣の表を1つにした（監査 2026-11-01 M10）のに合わせて第1章・第2章・第5章を更新（`PieceRules::kSetCounts`・`setCount()` を駒箱 `Position::pieceBox()`・`PositionValidator`・`TsumeshogiPositionGenerator` が使う。詰将棋の候補局面の生成は自前の駒種・成れるかの表・行き所のない段の判定をやめ、`PieceKind`・`isPromotable`・`PieceRules::isDeadSquare` を使う。持将棋の敵陣は `PieceRules::inPromotionZone`） |
 | 2026-11-03 | パネルのチェックと切り替えの `QAction` の結び付けを1つにした（監査 2026-11-01 M11）のに合わせて §1.5・§11.2・§11.3・第18章を更新（widgets に `ActionBinding::bindCheckable()` を置き、思考ドック（`ThinkingPanel`）・検討タブ（`ConsiderationPanel`）・定跡ウィンドウ（`JosekiWindow`）のチェックはそれで結ぶ。QAction は必須にし、渡されなければパネルが作る分岐と、テストのためだけの引数なしのコンストラクタを消した） |
 | 2026-11-03 | 外から来た文字列のツールチップの書き方を1つにした（監査 2026-11-01 M12）のに合わせて §1.5・§11.5.3・第18章を更新（style に `plainToolTip()` を置き、棋譜欄のコメント・対局情報・定跡ウィンドウ・思考の表の読み筋・分岐ツリー・メニューウィンドウのボタンと、エスケープせずに入れていたエンジンを選ぶコンボ・エンジン情報欄・`ElideLabel`（エンジン名・対局者名）はこれで出す。空白と改行もそのまま出す（`white-space:pre-wrap`。以前の `<br/>` に替える書き方は連続した空白を詰めていた）。`GlobalToolTip` はラベルを `Qt::PlainText` にし、エスケープした文字（「&amp;」など）を見せないようにした。自動化 API の部品の一覧の `tooltip` は、見える文字 `shownToolTipText()` で返す） |
+| 2026-11-03 | 対局情報の表に出す文字をモデルの1か所で作るようにした（監査 2026-11-01 M13）のに合わせて §11.2・第18章を更新（`GameInfoEditModel::PresentedTextRole` を足し、表のデリゲートは項目名・内容の表記を自分で作らずにこれを描く。項目名の列幅もこれで測る。以前はモデルの `presentedText`（読み上げ・ツールチップ・列幅）とデリゲート（描画）が同じ処理を別々に持っていた） |
 
 <!-- chapter-0-end -->
 
@@ -6346,7 +6347,7 @@ Urgency::Warn5  → 強い警告色（残5秒・秒読み）
 | BranchNodeItem | QGraphicsPathItem | BranchTreeView の中 | 図の1手（開始局面も同じクラスで、少し大きく太い枠で描く）。ノード ID・行・手数を型付きのメンバで持ち、`setCurrent()`・`setComment()`・`setCollapsedBadge()` で見た目を変える。`BranchTreeItemRoles`（`src/common/branchtreeitemroles.h`）の項目は自動化 API が読むためだけに付ける |
 | EvaluationChartWidget | QWidget | MainWindow 下部（QDockWidget） | Qt Charts による評価値グラフ（2エンジン対応、ゼロライン、カーソル線）。点は `setSeries()` で渡された `EvaluationSeries`（書き手は `EvaluationGraphPresenter`）を描くだけ。表示の設定は値 `EvaluationChartSettings`（`chartSettings()`・`setChartSettings()`。変えると `AnalysisSettings::evalChart` に保存）、軸は `EvaluationChartRange::compute()` が設定・点の範囲・描く場所の大きさから決める（`axes()`）。「表示設定…」は `settingsRequested` を出すだけで、ダイアログは `DialogLauncher` が開く |
 | EngineInfoWidget | QWidget | 思考・検討のページ内（エンジンごとの情報欄） | `UsiCommLogModel` の値を1行の表に出す（エンジン名・予想手・探索手・深さ・ノード数・探索局面数/秒・ハッシュ使用率。予想手の列は隠せる）。探索状況（`EngineSearchStatus`）の数値の書式（3桁区切り・百分率）はここで決める。列幅は利用者がドラッグした列だけを保存し（`ColumnWidthMemory`）、その列は内容に合わせて変えない |
-| GameInfoPane | QWidget | 対局情報ドック（思考などのドックとタブにまとめる） | 対局情報のツールバー（元に戻す・切り取り・行の追加など）＋ QTableView。中身・編集の履歴は `GameInfoEditModel`（`src/models/`）。編集は表に入れた時点で文書に入る（「対局情報更新」のボタンは無い）。合成ルートが作り、棋譜の文書（`KifuDocument`）の対局情報を編集する画面としてつなぐ（文書の `headerReset` で中身を入れ、表が変わると `gameInfoEdited` で文書に返す） |
+| GameInfoPane | QWidget | 対局情報ドック（思考などのドックとタブにまとめる） | 対局情報のツールバー（元に戻す・切り取り・行の追加など）＋ QTableView。中身・編集の履歴は `GameInfoEditModel`（`src/models/`）。`Qt::DisplayRole`・`Qt::EditRole` は書いたままの文字列（編集・コピー・棋譜に使う）で、画面に出す文字（項目名・内容の表記と、空の内容の薄い案内文）はモデルの `PresentedTextRole` の1つで作る。表の描画（デリゲート）・項目名の列幅・読み上げ・ツールチップはどれもそれを読む。編集は表に入れた時点で文書に入る（「対局情報更新」のボタンは無い）。合成ルートが作り、棋譜の文書（`KifuDocument`）の対局情報を編集する画面としてつなぐ（文書の `headerReset` で中身を入れ、表が変わると `gameInfoEdited` で文書に返す） |
 | AnalysisResultsPanel | QWidget | 棋譜解析の結果ドック | 結果の表（`PvTableView`）・停止ボタン・文字の大きさ。モデルは `setModel()` で1度だけ結ぶ。列幅は自分で保存する。ドックの表示は `KifuAnalysisController` が行う（9.8節） |
 | MenuWindow | QWidget | メニューのドック（棋譜ドックとタブにまとめる。`src/widgets/`） | メニュー項目をボタン形式で表示（タブ付き、お気に入り、カスタマイズモード）。作るのは `MenuWindowController` |
 | MenuButtonWidget | QWidget | MenuWindow 内 | QAction をアイコン＋テキストで表示するカスタムボタン、D&D対応 |
@@ -9999,7 +10000,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | kifubranchlistmodel | 第11章 | 分岐候補モデル |
 | kifuanalysislistmodel | 第9章 | 解析結果の表のモデル（行は `KifuAnalysisRow` の値） |
 | kifuanalysisrow | 第9章 | 解析結果の表の1行 |
-| gameinfoeditmodel | 第11章 | 対局情報の表の中身・編集の履歴 |
+| gameinfoeditmodel | 第11章 | 対局情報の表の中身・編集の履歴・画面に出す文字（`PresentedTextRole`） |
 | josekitablemodel | 第11章 | 定跡の表のモデル（データは `JosekiBookSession`） |
 | shogienginethinkingmodel | 第7章 | 思考結果モデル |
 | shogiinforecord | 第7章, 第8章 | 思考情報レコード |
