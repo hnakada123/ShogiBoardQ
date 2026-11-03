@@ -24,6 +24,8 @@
 #include "uistatepolicymanager.h"
 #include "csagamechannel.h"
 #include "csagameprogress.h"
+#include "csagameseries.h"
+#include "csaverdictwait.h"
 #include "appactivitystate.h"
 #include "kifudocument.h"
 #include "evaluationchartwidget.h"
@@ -769,6 +771,93 @@ private slots:
         // 再接続の待ちでやめても待機に戻る
         h.coordinator.stopGame();
         QCOMPARE(h.activity.activity(), AppActivityState::Activity::Idle);
+    }
+
+    /// 通信ログの LOGIN はパスワードを伏せる（伏せるのはクライアントの1か所。監査 2026-11-01 M6）
+    void loginPasswordIsMaskedInCommLog()
+    {
+        Harness h;
+        QStringList lines;
+        QSignalSpy comm(&h.coordinator, &CsaGameCoordinator::csaCommLogAppended);
+        QVERIFY(h.start("-"));
+        for (const QList<QVariant>& args : std::as_const(comm)) lines << args.at(0).toString();
+        QVERIFY2(lines.contains(QStringLiteral("◀ LOGIN user *****")), qPrintable(lines.join(QLatin1Char('\n'))));
+        for (const QString& line : std::as_const(lines)) QVERIFY2(!line.contains(QStringLiteral("pass")), qPrintable(line));
+    }
+
+    /// 裁定の待ち: 待ち始めた理由を take で受け取り、時間が過ぎたら timedOut で知らせる
+    void verdictWaitHoldsTheFailureText()
+    {
+        CsaVerdictWait wait(30);
+        QVERIFY(!wait.isPending());
+        wait.begin(QStringLiteral("cannot read"));
+        QVERIFY(wait.isPending());
+        QCOMPARE(wait.take(), QStringLiteral("cannot read"));
+        QVERIFY(!wait.isPending());
+        QSignalSpy timedOut(&wait, &CsaVerdictWait::timedOut);
+        wait.begin(QStringLiteral("again"));
+        QTRY_COMPARE(timedOut.size(), 1);
+        QCOMPARE(timedOut.first().first().toString(), QStringLiteral("again"));
+        QVERIFY(!wait.isPending());
+        wait.begin(QStringLiteral("cleared"));
+        wait.clear();
+        QTest::qWait(60);
+        QCOMPARE(timedOut.size(), 1);
+    }
+
+    /// 対局数と再接続: 対局数の上限まで続け、終局がサーバーの裁定で再接続の設定があるときだけ接続し直す
+    void gameSeriesCountsGamesAndSchedulesReconnect()
+    {
+        CsaGameSeries series;
+        series.begin(2, true);
+        QVERIFY(series.moreGamesWanted());
+        series.setLastEndedByServer(false);
+        QVERIFY(!series.scheduleReconnect());
+        series.finishGame();
+        series.setLastEndedByServer(true);
+        QVERIFY(series.scheduleReconnect());
+        QVERIFY(series.isReconnectPending());
+        series.stop();
+        QVERIFY(!series.isReconnectPending());
+        series.finishGame();
+        QCOMPARE(series.completedGames(), 2);
+        QVERIFY(!series.moreGamesWanted());
+        QVERIFY(!series.scheduleReconnect());
+        // 制限なし（0）は数えても続ける。再接続の設定がなければ接続し直さない
+        series.begin(0, false);
+        series.finishGame();
+        series.setLastEndedByServer(true);
+        QVERIFY(series.moreGamesWanted());
+        QVERIFY(!series.scheduleReconnect());
+    }
+
+    /// 受け入れの判断とログの文は対局条件の値が決める（監査 2026-11-01 M6）
+    void summaryDecidesAcceptanceAndConditionLines()
+    {
+        CsaGameSummary summary;
+        summary.format = QStringLiteral("Shogi 1.0");
+        QVERIFY(summary.isTimeUnlimited());
+        QVERIFY(summary.unsupportedReason(false).isEmpty());
+        QVERIFY(!summary.unsupportedReason(true).isEmpty());   // エンジンは時間無制限では指せない
+        summary.format = QStringLiteral("Chess 1.0");
+        QVERIFY(!summary.unsupportedReason(false).isEmpty());
+
+        summary.format = QStringLiteral("Shogi 1.0");
+        summary.timeBlack.specified = true;
+        summary.timeBlack.totalTime = 600;
+        summary.timeBlack.increment = 10;
+        summary.timeWhite = summary.timeBlack;
+        summary.maxMoves = 256;
+        summary.protocolMode = QStringLiteral("Direct");
+        QVERIFY(summary.unsupportedReason(true).isEmpty());
+        const QList<CsaGameSummary::ConditionLine> lines = summary.conditionLines();
+        QStringList texts;
+        for (const CsaGameSummary::ConditionLine& line : lines) texts << line.text;
+        QVERIFY2(texts.size() == 4, qPrintable(texts.join(QLatin1Char('|'))));
+        QVERIFY(texts.at(0).contains(QStringLiteral("600")) && texts.at(0).contains(QStringLiteral("10")));
+        QVERIFY(texts.at(1).contains(QStringLiteral("256")));
+        QVERIFY(!lines.at(2).warning);
+        QVERIFY(lines.at(3).warning && texts.at(3).contains(QStringLiteral("Direct")));
     }
 
     /// 予定の対局数を終えたら、終局で待機に戻る

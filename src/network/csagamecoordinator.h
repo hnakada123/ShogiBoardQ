@@ -11,11 +11,11 @@
 #include <QStringList>
 #include <QList>
 #include <QPointer>
-#include <QTimer>
 
 #include "appactivitystate.h"
 #include "csaclient.h"
 #include "csagameprogress.h"
+#include "csagameseries.h"
 #include "matchautosave.h"
 #include "matchtimesource.h"
 #include "recordentry.h"
@@ -27,6 +27,7 @@
 class GameBoard;
 class ShogiClock;
 class EngineSlots;
+class CsaVerdictWait;
 class MatchEngineSeat;
 class MatchRecordSink;
 class Usi;
@@ -158,31 +159,17 @@ public:
     int whiteRemainingMs() const { return m_progress.whiteRemainingMs; }
     /// 1局ぶんの進行（手数・持ち時間・指し手列）
     const CsaGameProgress& progress() const { return m_progress; }
-    /// 受信した対局条件（Game_Summary）。持ち時間は CsaGameSummary の各関数で単位換算する
-    const CsaGameSummary& gameSummary() const { return m_progress.summary; }
     void requestChudan();
     void declareWin();
     /// エンジンが自分の手番で思考中なら、すぐ指させる
     void forceImmediateMove();
 
     void sendRawCommand(const QString& command);
-    QString username() const { return m_options.username; }
     /// この対局の手順（開始局面と指した手）
     const RecordLine& record() const { return m_progress.record; }
 
-    /// この接続でまだ対局を続けるか（対局数の上限に達していない）
-    bool moreGamesWanted() const;
-    int completedGames() const { return m_completedGames; }
-    int gameLimit() const { return m_options.gameLimit; }
-
-    /**
-     * @brief 受け入れられない対局条件なら、その理由を返す（受け入れるなら空）
-     * @param summary 受信した対局条件
-     * @param playerType こちらの対局者タイプ
-     *
-     * Format が将棋以外、またはエンジン対局で時間無制限のときは REJECT する。
-     */
-    static QString unsupportedConditionReason(const CsaGameSummary& summary, PlayerType playerType);
+    /// この接続でまだ対局を続けるか（対局数の上限に達していない。CsaGameSeries）
+    bool moreGamesWanted() const { return m_series->moreGamesWanted(); }
 
     /**
      * @brief 対局開始時に表示用時計を CSA の持時間に合わせる
@@ -241,7 +228,7 @@ private slots:
     /// サーバーの裁定で終局した（CsaClient::gameEnded）。切断や内部エラーによる終局と区別する
     void onServerGameEnded(CsaClient::GameResult result, CsaClient::GameEndCause cause, int consumedTimeMs);
     void onGameInterrupted();
-    /// 終局後にサーバーが切断したとき、少し待ってから次の対局のために接続し直す
+    /// 終局後にサーバーが切断したとき、少し待ってから次の対局のために接続し直す（CsaGameSeries::reconnectDue）
     void reconnectForNextGame();
     void onRawMessageReceived(const QString& message);
     void onRawMessageSent(const QString& message);
@@ -250,7 +237,8 @@ private slots:
     void onEngineInitialized();
     void onEngineError(const QString& message);
     void onEngineMoveReady(const UsiMatchMove& move);
-    void onVerdictTimeout();
+    /// 裁定が届かないまま待ちの時間が過ぎた（CsaVerdictWait::timedOut）
+    void onVerdictTimedOut(const QString& failureText);
 
 private:
     /// 司令塔だけが知る段階（接続の段階は CsaClient が持つ）
@@ -280,8 +268,6 @@ private:
     void cleanup();
     /// エンジンを起動し、readyok まで AGREE を保留する
     void startEngine();
-    /// 受信した対局条件の持時間・手数制限・宣言ルールをログに出す
-    void logGameConditions(const CsaGameSummary& summary);
     /// 現在のオプションでサーバーへ接続し、ログイン以降の流れを始める
     void connectForGame();
     /// 終局後の対局数の扱い（上限に達したらログアウト、残っていれば次を待つ）
@@ -293,12 +279,10 @@ private:
     void syncClockAfterMove(bool startMyTurnClock);
     /// 指し手行の書式・座標を確認し、問題があれば通知文を返す（問題なければ空）
     QString validateMoveText(const QString& move) const;
-    /// 解釈できない指し手行を記録し、サーバーの裁定を待つ
+    /// 解釈できない指し手行を記録し、サーバーの裁定を待つ（CsaVerdictWait）
     void deferVerdict(const QString& logText, const QString& failureText);
     /// 裁定待ちのまま次の行が来たら、続行できないとして終局させる
     bool failIfVerdictPending();
-    /// 解釈できなかった指し手の裁定待ちを取り消す（終局・切断時）
-    void clearPendingVerdict();
     /// CSA の指し手で盤を進める（盤と合わなければ nullopt）。表記の「同」は CSA の棋譜の直前の手で決める
     std::optional<RecordEntry> playCsaMove(const QString& csaMove);
     /// 着手を記録して通知する（手数・手番・棋譜行。盤のハイライトは棋譜の表示中の手から出る）
@@ -318,19 +302,14 @@ private:
 
     Phase m_phase = Phase::Off;
     GameState m_publishedState = GameState::Idle;  ///< 最後に gameStateChanged で知らせた値
-    bool m_lastGameEndedByServer = false; ///< 直前の終局がサーバーの裁定によるもの（再接続の条件）
-    int m_completedGames = 0;            ///< この接続（再接続を含む）で終えた対局数
-    QTimer* m_reconnectTimer;            ///< 終局後の再接続までの待ち
+    CsaGameSeries* m_series;             ///< この接続（再接続を含む）の対局数と終局後の再接続
+    CsaVerdictWait* m_verdict;           ///< 解釈できない指し手行の後の、サーバーの裁定の待ち
     StartOptions m_options;
 
     CsaGameProgress m_progress;          ///< 1局ぶんの進行（対局条件の受信で作り直す）
 
 
-    QTimer* m_verdictTimer;              ///< 裁定待ちのタイムアウト
     QElapsedTimer m_turnTimer;           ///< 今の手番（m_progress.sideToMove()）が始まってからの時間
-    QString m_pendingFailureText;        ///< 裁定が届かなかったときの終局理由（空なら待ちなし）
-
-    static constexpr int kReconnectDelayMs = 3000; ///< 終局後の再接続までの待ち時間
 };
 
 #endif // CSAGAMECOORDINATOR_H

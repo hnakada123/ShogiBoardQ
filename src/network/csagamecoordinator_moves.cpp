@@ -4,6 +4,7 @@
 #include "csagamecoordinator.h"
 
 #include "csamoveconverter.h"
+#include "csaverdictwait.h"
 #include "logcategories.h"
 #include "matchengineseat.h"
 #include "matchrecordsink.h"
@@ -23,36 +24,21 @@ void CsaGameCoordinator::deferVerdict(const QString& logText, const QString& fai
     // 勝敗が送られる。ここで終局させず、サーバーの裁定を待つ
     emit logMessage(logText, true);
     emit logMessage(tr("サーバーの裁定を待ちます"), false);
-    m_pendingFailureText = failureText;
-    m_verdictTimer->start();
+    m_verdict->begin(failureText);
 }
 
 bool CsaGameCoordinator::failIfVerdictPending()
 {
-    if (m_pendingFailureText.isEmpty()) return false;
-    const QString text = m_pendingFailureText;
-    clearPendingVerdict();
-    failGame(text);
+    if (!m_verdict->isPending()) return false;
+    failGame(m_verdict->take());
     return true;
 }
 
-void CsaGameCoordinator::clearPendingVerdict()
+void CsaGameCoordinator::onVerdictTimedOut(const QString& failureText)
 {
-    m_verdictTimer->stop();
-    m_pendingFailureText.clear();
-}
-
-void CsaGameCoordinator::onVerdictTimeout()
-{
-    if (m_pendingFailureText.isEmpty()) return;
-    if (m_phase != Phase::Playing) {
-        clearPendingVerdict();
-        return;
-    }
-    const QString text = m_pendingFailureText;
-    clearPendingVerdict();
+    if (m_phase != Phase::Playing) return;
     emit logMessage(tr("サーバーの裁定が届きませんでした"), true);
-    failGame(text);
+    failGame(failureText);
 }
 
 QString CsaGameCoordinator::validateMoveText(const QString& move) const

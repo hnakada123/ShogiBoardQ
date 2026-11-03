@@ -7,6 +7,7 @@
 #include "usi.h"
 #include "registeredengines.h"
 #include "csamoveconverter.h"
+#include "csaverdictwait.h"
 #include "logcategories.h"
 #include "parsecommon.h"
 #include "sfencsapositionconverter.h"
@@ -116,54 +117,6 @@ void CsaGameCoordinator::startEngine()
     m_engineSeat->start(params);
 }
 
-QString CsaGameCoordinator::unsupportedConditionReason(const CsaGameSummary& summary,
-                                                      PlayerType playerType)
-{
-    // Format は Position の書式と指し手表記を決める。将棋以外は解釈できない
-    if (!summary.format.isEmpty() && !summary.format.startsWith(QStringLiteral("Shogi"))) {
-        return tr("未対応の Format です: %1").arg(summary.format);
-    }
-    // 時間無制限ではエンジンに思考時間を与えられない（ローカル対局と同じ方針）
-    if (playerType == PlayerType::Engine && summary.isTimeUnlimited()) {
-        return tr("時間無制限の対局はエンジンでは行えません");
-    }
-    return QString();
-}
-
-void CsaGameCoordinator::logGameConditions(const CsaGameSummary& summary)
-{
-    if (summary.isTimeUnlimited()) {
-        emit logMessage(tr("持時間: 無制限"));
-    } else {
-        for (const bool black : {true, false}) {
-            if (!black && !summary.hasIndividualTime) break;
-            const CsaGameSummary::Time& t = summary.timeFor(black);
-            QString text = tr("持時間: %1秒, 秒読み: %2秒, 加算: %3秒")
-                               .arg(t.totalTimeMs() / 1000)
-                               .arg(t.byoyomiMs() / 1000)
-                               .arg(t.incrementMs() / 1000);
-            if (t.delay > 0) text += tr(", 遅延: %1秒").arg(t.delayMs() / 1000);
-            if (t.leastTimePerMove > 0) text += tr(", 最少消費: %1秒").arg(t.leastTimePerMoveMs() / 1000);
-            if (summary.hasIndividualTime) {
-                text = (black ? tr("先手の") : tr("後手の")) + text;
-            }
-            emit logMessage(text);
-        }
-    }
-    if (summary.maxMoves > 0) {
-        emit logMessage(tr("最大手数: %1手").arg(summary.maxMoves));
-    }
-    emit logMessage(summary.allowsJishogiDeclaration()
-                        ? tr("入玉宣言ルール: %1").arg(summary.declaration)
-                        : tr("入玉宣言ルール: なし"));
-    if (!summary.protocolVersion.isEmpty() && !summary.protocolVersion.startsWith(QStringLiteral("1."))) {
-        emit logMessage(tr("未知のプロトコルバージョンです: %1").arg(summary.protocolVersion), true);
-    }
-    if (summary.protocolMode != QStringLiteral("Server")) {
-        emit logMessage(tr("Protocol_Mode が Server ではありません: %1").arg(summary.protocolMode), true);
-    }
-}
-
 void CsaGameCoordinator::onGameSummaryReceived(const CsaGameSummary& summary)
 {
     // 終局後も同じ接続で次の対局条件を受けるので、前局の記録はここで消す
@@ -171,7 +124,7 @@ void CsaGameCoordinator::onGameSummaryReceived(const CsaGameSummary& summary)
 
     emit logMessage(tr("対局条件を受信しました"));
     emit logMessage(tr("先手: %1, 後手: %2").arg(summary.blackName, summary.whiteName));
-    logGameConditions(summary);
+    for (const CsaGameSummary::ConditionLine& line : summary.conditionLines()) emit logMessage(line.text, line.warning);
 
     // 拒否するとクライアントが対局待ちに戻る（仕様 3.3）
     if (!moreGamesWanted()) {
@@ -181,7 +134,7 @@ void CsaGameCoordinator::onGameSummaryReceived(const CsaGameSummary& summary)
         return;
     }
 
-    const QString rejectReason = unsupportedConditionReason(summary, m_options.playerType);
+    const QString rejectReason = summary.unsupportedReason(m_options.playerType == PlayerType::Engine);
     if (!rejectReason.isEmpty()) {
         emit logMessage(tr("対局条件を拒否します: %1").arg(rejectReason), true);
         m_client->reject(summary.gameId);
@@ -204,14 +157,9 @@ void CsaGameCoordinator::onGameSummaryReceived(const CsaGameSummary& summary)
 // 対局数と再接続
 // ============================================================
 
-bool CsaGameCoordinator::moreGamesWanted() const
-{
-    return m_options.gameLimit <= 0 || m_completedGames < m_options.gameLimit;
-}
-
 void CsaGameCoordinator::connectForGame()
 {
-    m_lastGameEndedByServer = false;
+    m_series->setLastEndedByServer(false);
     // 段階を先に変えておき、接続の状態の知らせ（接続中）で知らせる。すぐ失敗したときは Error になる
     m_phase = Phase::Active;
     emit logMessage(tr("サーバー %1:%2 に接続中...").arg(m_options.host).arg(m_options.port));
@@ -222,13 +170,13 @@ void CsaGameCoordinator::connectForGame()
 void CsaGameCoordinator::handleGameCountAfterEnd()
 {
     if (!moreGamesWanted()) {
-        emit logMessage(tr("予定の対局数（%1局）を終えたのでログアウトします").arg(m_completedGames));
+        emit logMessage(tr("予定の対局数（%1局）を終えたのでログアウトします").arg(m_series->completedGames()));
         m_client->disconnectFromServer();
         return;
     }
-    const QString progress = m_options.gameLimit > 0
-        ? tr("%1/%2局").arg(m_completedGames).arg(m_options.gameLimit)
-        : tr("%1局目まで終了").arg(m_completedGames);
+    const int completed = m_series->completedGames();
+    const QString progress = m_series->gameLimit() > 0 ? tr("%1/%2局").arg(completed).arg(m_series->gameLimit())
+                                                       : tr("%1局目まで終了").arg(completed);
     if (m_client->isConnected()) {
         emit logMessage(tr("次の対局条件を待ちます（%1）").arg(progress));
     }
@@ -238,13 +186,13 @@ void CsaGameCoordinator::reconnectForNextGame()
 {
     if (m_phase != Phase::Ended || !moreGamesWanted()) return;
     if (m_client->connectionState() != CsaClient::ConnectionState::Disconnected) return;
-    emit logMessage(tr("次の対局のために再接続します（%1局目まで終了）").arg(m_completedGames));
+    emit logMessage(tr("次の対局のために再接続します（%1局目まで終了）").arg(m_series->completedGames()));
     connectForGame();
 }
 
 void CsaGameCoordinator::cleanup()
 {
-    clearPendingVerdict();
+    m_verdict->clear();
     if (m_engineSeat) m_engineSeat->release();
     m_client->disconnectFromServer();
 }

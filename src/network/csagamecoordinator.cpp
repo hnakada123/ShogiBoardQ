@@ -3,6 +3,7 @@
 
 #include "csagamecoordinator.h"
 #include "csamoveconverter.h"
+#include "csaverdictwait.h"
 #include "matchengineseat.h"
 #include "matchrecordsink.h"
 #include "usi.h"
@@ -11,21 +12,14 @@
 #include "shogiboard.h"
 #include "logcategories.h"
 
-#include <QRegularExpression>
-
 CsaGameCoordinator::CsaGameCoordinator(const Deps& deps, QObject* parent)
     : QObject(parent)
     , m_client(new CsaClient(this))
-    , m_reconnectTimer(new QTimer(this))
-    , m_verdictTimer(new QTimer(this))
+    , m_series(new CsaGameSeries(this))
+    , m_verdict(new CsaVerdictWait(kVerdictTimeoutMs, this))
 {
-    m_verdictTimer->setSingleShot(true);
-    m_verdictTimer->setInterval(kVerdictTimeoutMs);
-    connect(m_verdictTimer, &QTimer::timeout, this, &CsaGameCoordinator::onVerdictTimeout);
-    m_reconnectTimer->setSingleShot(true);
-    m_reconnectTimer->setInterval(kReconnectDelayMs);
-    connect(m_reconnectTimer, &QTimer::timeout,
-            this, &CsaGameCoordinator::reconnectForNextGame);
+    connect(m_verdict, &CsaVerdictWait::timedOut, this, &CsaGameCoordinator::onVerdictTimedOut);
+    connect(m_series, &CsaGameSeries::reconnectDue, this, &CsaGameCoordinator::reconnectForNextGame);
     connect(m_client, &CsaClient::connectionStateChanged,
             this, &CsaGameCoordinator::onConnectionStateChanged);
     connect(m_client, &CsaClient::errorOccurred,
@@ -78,7 +72,7 @@ void CsaGameCoordinator::startGame(const StartOptions& options)
     cleanup();
     m_options = options;
     m_options.thinkingMarginMs = qMax(0, options.thinkingMarginMs);
-    m_completedGames = 0;
+    m_series->begin(options.gameLimit, options.reconnectAfterGame);
     m_client->setKeepAliveEnabled(options.keepAliveEnabled);
     m_client->setKeepAliveIntervalMs(options.keepAliveIntervalMs);
     m_client->setTcpKeepAliveEnabled(options.tcpKeepAliveEnabled);
@@ -87,7 +81,7 @@ void CsaGameCoordinator::startGame(const StartOptions& options)
 
 void CsaGameCoordinator::stopGame()
 {
-    m_reconnectTimer->stop();
+    m_series->stop();
     if (m_phase == Phase::Playing && m_client->isMyTurn()) performResign();
     setPhase(Phase::Off);
     if (m_clock) m_clock->stopClock();
@@ -151,7 +145,7 @@ bool CsaGameCoordinator::sessionContinues() const
     case Phase::Ended:
         // 次の対局を待つ（接続したまま、または再接続の待ち）
         return moreGamesWanted() && (m_client->connectionState() != CsaClient::ConnectionState::Disconnected
-                                     || m_reconnectTimer->isActive());
+                                     || m_series->isReconnectPending());
     }
     return false;
 }
@@ -179,7 +173,7 @@ void CsaGameCoordinator::publishGameState()
 
 bool CsaGameCoordinator::isMyTurn() const
 {
-    return turnState() == TurnState::MyTurn && m_pendingFailureText.isEmpty();
+    return turnState() == TurnState::MyTurn && !m_verdict->isPending();
 }
 
 bool CsaGameCoordinator::isBlackSide() const
@@ -255,7 +249,8 @@ void CsaGameCoordinator::declareWin()
 void CsaGameCoordinator::forceImmediateMove()
 {
     if (m_phase != Phase::Playing || isHumanPlayer() || !isMyTurn()) return;
-    if (Usi* engine = m_engineSeat ? m_engineSeat->engine() : nullptr) engine->stop();
+    // ローカル対局と同じく、エンジンにすぐ指させる（初期化の途中なら、始めた探索の後で止める）
+    if (Usi* engine = m_engineSeat ? m_engineSeat->engine() : nullptr) engine->requestImmediateMove();
 }
 
 void CsaGameCoordinator::onConnectionStateChanged(CsaClient::ConnectionState state)
@@ -272,14 +267,14 @@ void CsaGameCoordinator::onConnectionStateChanged(CsaClient::ConnectionState sta
         switch (m_phase) {
         case Phase::Playing:
             // 対局中の切断は中断として終局させる
-            m_lastGameEndedByServer = false;
+            m_series->setLastEndedByServer(false);
             onClientGameEnded(CsaClient::GameResult::Chudan, CsaClient::GameEndCause::Chudan, 0);
             return;
         case Phase::Ended:
             // shogi-server は終局のたびに切断する。対局数が残っていれば接続し直して次を待つ
-            if (m_options.reconnectAfterGame && m_lastGameEndedByServer && moreGamesWanted()) {
-                emit logMessage(tr("サーバーが切断しました。%1秒後に再接続します").arg(kReconnectDelayMs / 1000));
-                m_reconnectTimer->start();
+            if (m_series->scheduleReconnect()) {
+                emit logMessage(tr("サーバーが切断しました。%1秒後に再接続します")
+                                    .arg(CsaGameSeries::kReconnectDelayMs / 1000));
             }
             break;
         case Phase::Active:
@@ -301,7 +296,7 @@ void CsaGameCoordinator::onClientError(const QString& message)
 {
     emit logMessage(tr("エラー: %1").arg(message), true);
     if (m_phase == Phase::Playing) {
-        m_lastGameEndedByServer = false;
+        m_series->setLastEndedByServer(false);
         onClientGameEnded(CsaClient::GameResult::Chudan, CsaClient::GameEndCause::Chudan, 0);
         return;
     }
@@ -311,7 +306,7 @@ void CsaGameCoordinator::onClientError(const QString& message)
 void CsaGameCoordinator::onServerGameEnded(CsaClient::GameResult result, CsaClient::GameEndCause cause,
                                            int consumedTimeMs)
 {
-    m_lastGameEndedByServer = true;
+    m_series->setLastEndedByServer(true);
     onClientGameEnded(result, cause, consumedTimeMs);
 }
 
@@ -391,7 +386,7 @@ void CsaGameCoordinator::onGameRejected(const QString& gameId, const QString& re
 void CsaGameCoordinator::onClientGameEnded(CsaClient::GameResult result, CsaClient::GameEndCause cause, int consumedTimeMs)
 {
     // 解釈できなかった指し手の裁定待ちは、終局で解消する
-    clearPendingVerdict();
+    m_verdict->clear();
 
     if (m_phase != Phase::Playing) return;
     const bool isBlackSide = m_progress.isBlackSide;
@@ -438,7 +433,7 @@ void CsaGameCoordinator::onClientGameEnded(CsaClient::GameResult result, CsaClie
     }
     // 対局数を数えてログアウトの要否を先に決める。終局の通知を受ける側（結果の表示）は
     // moreGamesWanted() で続行の有無を見られ、結果のダイアログが LOGOUT を遅らせない
-    ++m_completedGames;
+    m_series->finishGame();
     handleGameCountAfterEnd();
     // 棋譜を確定して自動保存し（次の対局が始まる前に書き出す）、対局の間の動作状態を終える。
     // 次の対局を待つなら通信対局の接続中に、続けなければ待機に戻す
@@ -475,20 +470,9 @@ void CsaGameCoordinator::onRawMessageReceived(const QString& message)
 
 void CsaGameCoordinator::onRawMessageSent(const QString& message)
 {
+    // LOGIN のパスワードはクライアントが伏せてから知らせる（CsaClient::sendMessage）
     emit logMessage(tr("[SEND] %1").arg(message));
-    QString displayMsg = message;
-    if (displayMsg.startsWith(QStringLiteral("LOGIN "))) {
-        static const QRegularExpression kWhitespaceRe(QStringLiteral("\\s+"));
-        const QStringList parts = displayMsg.split(kWhitespaceRe, Qt::SkipEmptyParts);
-        if (parts.size() >= 3) {
-            QStringList masked = parts;
-            masked[2] = QStringLiteral("*****");
-            displayMsg = masked.join(QLatin1Char(' '));
-        } else {
-            displayMsg = QStringLiteral("LOGIN *****");
-        }
-    }
-    emit csaCommLogAppended(QStringLiteral("◀ ") + displayMsg);
+    emit csaCommLogAppended(QStringLiteral("◀ ") + message);
 }
 
 void CsaGameCoordinator::onEngineResigned()
@@ -524,7 +508,7 @@ void CsaGameCoordinator::onEngineError(const QString& message)
 void CsaGameCoordinator::failGame(const QString& message)
 {
     const bool inGame = (m_phase == Phase::Playing);
-    m_lastGameEndedByServer = false;
+    m_series->setLastEndedByServer(false);
     if (!inGame) setPhase(Phase::Failed);
     // 同意できなくなった対局条件は、切断の前に拒否する（CsaClient::disconnectFromServer）
     m_client->disconnectFromServer();
