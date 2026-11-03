@@ -45,6 +45,7 @@ QVariant GameInfoEditModel::data(const QModelIndex& index, int role) const
         return index.column() == KeyColumn ? row.key : row.value;
     case PlaceholderRole:
         return index.column() == ValueColumn ? placeholderFor(row.key.trimmed()) : QString();
+    case PresentedTextRole:
     case Qt::AccessibleTextRole:
         return presentedText(index.row(), index.column());
     case Qt::ToolTipRole:
