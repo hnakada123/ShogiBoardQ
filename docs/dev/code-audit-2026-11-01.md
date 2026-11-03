@@ -161,7 +161,7 @@
 |---|---|---|
 | U1 | 同じ局面を、入口によって受け付けたり断ったりする。玉が1枚もない局面と、手番でない側に王手がかかった局面を、次のように扱う。<br>- 受け付ける: GUI の貼り付け・ファイル、自動化 API の `kifu.load`<br>- 断る: 自動化 API の `position.set`、局面集 | `kifuloadparser.cpp:18-35` は `boardProblem` だけを見る。`position.set` は `SfenValidator::validate().valid` を求める（`automationcommands_position.cpp:33-37`）。`kifuloadparser.cpp:123` のコメント「GUI・CLI・自動化 API で同じ規則」と合わない。kifu と services の範囲で別々に見つかった<br>**状態: 済（7113de23）**。position.set を局面の貼り付けにそろえる（2026-11-03 に決めた）。棋譜の開始局面の規則 `KifuLoadParser::startPositionProblem` を公開し、`KifuLoader::loadPositionFromSfen`（局面の貼り付け・局面集・SFEN だけの棋譜。これまでは読めるかだけを見ていた）と `position.set` が使う。局面集・詰将棋問題一覧のファイルの行は、検討・詰み探索に使う局面なので `SfenValidator` のまま（理由を `kifuloadparser.h` と CLAUDE.md に書いた） |
 | U2 | `go mate` に bestmove で答えるエンジンだと、GUI の詰み探索は終わるが、`MateOracle` を使う経路（CLI の `mate`・`verify-tsume`・詰将棋生成）は待ち続ける | GUI の詰み探索（`AnalysisSession`）は bestmove で終える（`analysissession.cpp:66,221-224`）。`MateOracle` は `checkmateReceived` しか受けない（`mateoracle.cpp:28,89-94`）。bestmove を受けると `UsiEngineSession` が答えを待つタイマーを止めるので、`timedOut` も届かない。CLI は外側の期限なしに待つ。そう答えるエンジンが実在するかは確かめていない（M1） |
-| U3 | 1局面の評価値の取り出し元が、GUI の棋譜解析と CLI の `analyze-kifu` で違う。最後の info に評価値か読み筋の片方しかないと、値が変わる | GUI は `PlyAnalysis::score`（bestmove に付いた評価値）を使う。CLI は `PlyAnalysis` を受け取っているのに、読み筋のある info だけを覚える `latestLines()[1].score` から作る（`clicommands_engine.cpp:117-121`）。先手から見た値に直す手番も、CLI は `UsiPosition::sideToMove()`、GUI は SFEN の2語目（`kifuanalysisrowpresenter.cpp:26-31`）で読む |
+| U3 | 1局面の評価値の取り出し元が、GUI の棋譜解析と CLI の `analyze-kifu` で違う。最後の info に評価値か読み筋の片方しかないと、値が変わる | GUI は `PlyAnalysis::score`（bestmove に付いた評価値）を使う。CLI は `PlyAnalysis` を受け取っているのに、読み筋のある info だけを覚える `latestLines()[1].score` から作る（`clicommands_engine.cpp:117-121`）。先手から見た値に直す手番も、CLI は `UsiPosition::sideToMove()`、GUI は SFEN の2語目（`kifuanalysisrowpresenter.cpp:26-31`）で読む<br>**状態: 済（00b460f3）**。`PlyAnalysis::score` を先手から見た値 `blackScore` にし、`PlyAnalysisCollector` が解析した局面の手番で直す。GUI の結果の表と CLI の `analyze-kifu` はこの値を使う |
 | U4 | エンジン同士の連続対局は、1局ごとにモーダルの「対局終了」で止まる。通信対局は続けるときは止めない（`Wait::No`、`csagamesession.cpp:150`） | 通信対局はサーバーの時間制限があるので、違いには理由がある。ローカルの連続対局を席を外して回す用途では、毎局止まる |
 | U5 | 中断した対局の自動保存が違う。ローカル対局は保存せず（`matchcoordinator.cpp:402`）、通信対局は保存する（`csagamecoordinator.cpp:420`） | ローカル対局は再開できるためと思われる。意図した仕様なら直さなくてよい |
 | U6 | 自動保存の既定の形式が、ローカル対局は `.kifu`（UTF-8）固定、通信対局は `.kif`（Shift_JIS）が既定 | `gamestartoptionsbuilder.cpp:152` と `networksettings.h:83`。F21 と一緒に決める<br>**状態: 済（56a8085b）**。既定はどちらも .kifu（2026-11-03 に決めた）。既定は `MatchAutoSave::extension` だけに置き、ローカル対局は既定のまま、通信対局は選んだことがなければ同じ既定（`csaAutoSaveFormat` の宣言の既定は空）。保存してある選択はそのまま |
@@ -280,7 +280,7 @@
 - `board.click` の `file` の上限を `BoardConstants::kPieceBoxFile` にし、駒台の段の手書きの検査を消す（`squareClickPosition` が表示されていない座標を断る）。MCP の説明に「局面編集中は file=12 が駒箱」と書く。
 - `kifu.get` で開始局面を出すかを決める。出すなら下限を 0 にし、`RecordJson` も開始局面のコメントを出す。出さないなら届かない分岐を消す。
 - 開始局面を受け付ける規則を kifu に1つ置く（例: `KifuLoader::loadPositionFromSfen` が `startPositionProblem` と同じ検査をする）。`position.set` をそれより厳しくするなら、理由を仕様として書く。→ 済（7113de23。厳しくしない）
-- `PlyAnalysisCollector` は解析した局面を持っている（`engineanalysisrunner.h:50`）。そこで先手から見た評価値を `PlyAnalysis` に入れ、CLI と `KifuAnalysisRowPresenter` はその値を使う。
+- `PlyAnalysisCollector` は解析した局面を持っている（`engineanalysisrunner.h:50`）。そこで先手から見た評価値を `PlyAnalysis` に入れ、CLI と `KifuAnalysisRowPresenter` はその値を使う。→ 済（00b460f3）
 
 **影響**: headless 2〜3・cli 3・automation 2・analysis 2・ui 1・mcp 3。`specs.json` の作り直し。テストは `tst_kifu_conversion_service`・`tst_param_specs`・CLI の mate と generate-tsume のテスト・MCP の `test_paths.py` と盤・棋譜のテスト。
 
