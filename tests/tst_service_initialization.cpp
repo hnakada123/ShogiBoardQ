@@ -485,6 +485,31 @@ private slots:
         parts.document->markSaved(QString());
     }
 
+    /// 盤の右クリックは、局面編集中だけ局面編集（PositionEditSession）が駒を巡らせる（監査 2026-11-01 M14）
+    void positionEditRightClickReachesTheSession()
+    {
+        MainWindow window;
+        auto& parts = window.composer().parts();
+        ShogiBoard* board = parts.gameBoard->board();
+        // 編集中でなければ盤を変えない
+        emit parts.shogiView->rightClicked(QPoint(8, 8));
+        QCOMPARE(board->pieceCharacter(8, 8), Piece::BlackBishop);
+
+        parts.actions->beginPositionEditing();
+        QVERIFY(parts.positionEdit->isEditing());
+        emit parts.shogiView->rightClicked(QPoint(8, 8));
+        QCOMPARE(board->pieceCharacter(8, 8), Piece::BlackHorse);
+        emit parts.shogiView->rightClicked(QPoint(8, 8));
+        QCOMPARE(board->pieceCharacter(8, 8), Piece::WhiteBishop);
+        // 盤外（駒台）と空きマスは何もしない
+        QVERIFY(!parts.positionEdit->cycleEditPiece(QPoint(BoardConstants::kBlackStandFile, 1)));
+        QVERIFY(!parts.positionEdit->cycleEditPiece(QPoint(5, 5)));
+
+        parts.positionEdit->finish();
+        QVERIFY(!parts.positionEdit->cycleEditPiece(QPoint(5, 7)));
+        parts.document->markSaved(QString());
+    }
+
     /// 局面編集の盤の項目は、編集中の盤を変える
     void positionEditMenuItemsReachTheSession()
     {

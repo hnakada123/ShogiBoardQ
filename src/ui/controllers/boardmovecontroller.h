@@ -55,6 +55,8 @@ public:
     bool acceptsInput() const override;
     bool isEditing() const override;
     void submit(const QPoint& from, const QPoint& to) override;
+    /// 局面編集中の右クリックを局面編集（PositionEditSession）へ渡す
+    void cycle(const QPoint& square) override;
 
     /**
      * @brief 盤の座標で手を指す（今の動作状態に合った処理をする）

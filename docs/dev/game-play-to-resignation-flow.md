@@ -76,7 +76,7 @@ BoardInteractionController::onLeftClick(pt)
 2. 1回目のクリック（駒選択）: 持ち駒のない駒台のマスは無視する。`ShogiView::startDrag()` でドラッグを始め、`selectPieceAndHighlight()` で駒を選ぶ。選んだマスを `BoardHighlightLayer::Selection` の層に、合法な移動先（`EngineMoveValidator` で判定）を `LegalDestinations` の層に出す（メニューで表示を切り替えられる）。相手の駒台や空きマスは選ばない。`m_waitingSecondClick = true` に設定する。
 3. 2回目のクリック（移動先指定）: 同じマスならキャンセルする。別のマスなら行き先の `BoardInputRoute::submit(from, to)` に渡し、行き先から戻ってから `ShogiView::endDrag()` でドラッグを終える（行き先が成り・不成を尋ねている間もドラッグ状態を保つ）。
 
-右クリック（`onRightClick()`）は、2回目のクリック待ちなら選択を取り消す。盤の手番が替わったとき（`ShogiBoard::turnChanged`）と動作状態が変わったとき（`AppActivityState::changed`。`BoardMoveController` が接続）も、つまんでいた駒の選択を取り消す（`cancelPendingClick()`）。
+右クリック（`onRightClick()`）は、2回目のクリック待ちなら選択を取り消す。局面編集中なら行き先の `BoardInputRoute::cycle(square)` に渡す（`BoardMoveController` が `PositionEditSession::cycleEditPiece()` で駒の成・不成・先後を巡らせる）。盤の手番が替わったとき（`ShogiBoard::turnChanged`）と動作状態が変わったとき（`AppActivityState::changed`。`BoardMoveController` が接続）も、つまんでいた駒の選択を取り消す（`cancelPendingClick()`）。
 
 ### 1.2 指し手のルーティング
 

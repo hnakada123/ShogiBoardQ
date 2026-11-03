@@ -40,6 +40,11 @@ void BoardMoveController::submit(const QPoint& from, const QPoint& to)
     (void)playMove(from, to);
 }
 
+void BoardMoveController::cycle(const QPoint& square)
+{
+    if (m_deps.turnPolicy->boardInput() == Input::Edit) (void)m_deps.positionEdit->cycleEditPiece(square);
+}
+
 bool BoardMoveController::playMove(const QPoint& from, const QPoint& to)
 {
     qCDebug(lcUi) << "playMove from=" << from << " to=" << to;

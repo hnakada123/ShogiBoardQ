@@ -47,6 +47,8 @@ private:
     bool acceptsInput() const override;
     bool isEditing() const override { return false; }
     void submit(const QPoint& from, const QPoint& to) override;
+    /// 局面編集をしないので、右クリックの巡回は受けない
+    void cycle(const QPoint&) override {}
 
 private slots:
     void selectProblem();

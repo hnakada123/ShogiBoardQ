@@ -73,6 +73,7 @@ class TestBoardDragRepaint : public QObject
         bool acceptsInput() const override { return true; }
         bool isEditing() const override { return editing; }
         void submit(const QPoint&, const QPoint&) override {}
+        void cycle(const QPoint&) override {}
     };
 
     struct BoardUi {
