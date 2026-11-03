@@ -2,7 +2,7 @@
 /// @brief JKF形式棋譜コンバータクラスの実装
 ///
 /// 指し手変換・初期局面構築は JkfCodec に委譲。
-/// 本ファイルはファイルI/O・パーサ状態管理・オーケストレーションを担当する。
+/// 本ファイルは JSON の解析・パーサ状態管理・オーケストレーションを担当する（ファイルは KifuLoadParser が読んで渡す）。
 
 #include "jkftosfenconverter.h"
 #include "sfenutils.h"

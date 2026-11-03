@@ -2,7 +2,8 @@
 #define KIFU_FILE_HELPER_H
 
 /// @file kifu_file_helper.h
-/// @brief 棋譜ファイルをアプリと同じ読み方（KifuLoadParser::readFileText）で読み、形式の読み方に渡す
+/// @brief 棋譜ファイルをアプリと同じ読み方（KifuTextDecoder::readAllTextAuto。KifuLoadParser::parseFile と同じ）で読み、
+/// 形式の読み方に渡す
 
 #include <QMap>
 #include <QStringList>
@@ -11,6 +12,7 @@
 #include "jkftosfenconverter.h"
 #include "kiftextparser.h"
 #include "kifuloadparser.h"
+#include "kifutextdecoder.h"
 #include "sfenutils.h"
 #include "usentosfenconverter.h"
 #include "usitosfenconverter.h"
@@ -35,7 +37,7 @@ KifuParseOutcome parseFile(const QString& path, const ParseOptions& options = {}
 {
     QString text;
     QString warn;
-    if (!KifuLoadParser::readFileText(path, Format, text, &warn)) {
+    if (!KifuTextDecoder::readAllTextAuto(path, text, nullptr, &warn)) {
         KifuParseOutcome failed;
         failed.warning = warn;
         return failed;

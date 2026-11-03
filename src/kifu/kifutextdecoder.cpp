@@ -3,11 +3,14 @@
 
 #include "kifutextdecoder.h"
 #include "boundedfile.h"
+#include "kifuformat.h"
 
 #include <QByteArray>
 #include "logcategories.h"
 #include "shiftjiscodec.h"
 #include <QStringDecoder>
+
+#include <optional>
 
 namespace KifuTextDecoder {
 
@@ -105,6 +108,42 @@ static bool decodeByBom(const QByteArray& bytes, QString& out, QString* usedEnco
     return false;
 }
 
+// 文字コードの宣言を探す範囲（宣言は先頭の行に書く）
+constexpr qsizetype kDeclarationBytes = 128;
+constexpr char kDeclarationKey[] = "encoding=";
+
+// 先頭の範囲にあるコメントの行（' か # で始まる）の "encoding=" の宣言。KIF・KI2 の
+// "#KIF version=2.0 encoding=Shift_JIS"、CSA の "'CSA encoding=UTF-8"（V3.0）と "'encoding=UTF-8"。
+// 値は UTF-8 と Shift_JIS だけを読み（大文字・小文字は問わない）、ほかの値は宣言が無いものとする
+static std::optional<KifuEncoding> declaredEncoding(const QByteArray& bytes)
+{
+    const QList<QByteArray> lines = bytes.left(kDeclarationBytes).split('\n');
+    for (const QByteArray& rawLine : lines) {
+        const QByteArray line = rawLine.trimmed();
+        if (!line.startsWith('#') && !line.startsWith('\'')) continue;
+        const QList<QByteArray> words = line.mid(1).simplified().split(' ');
+        for (const QByteArray& word : words) {
+            const QByteArray lower = word.toLower();
+            if (!lower.startsWith(kDeclarationKey)) continue;
+            const QByteArray value = lower.mid(qsizetype(sizeof(kDeclarationKey) - 1));
+            if (value == "utf-8") return KifuEncoding::Utf8;
+            if (value == "shift_jis") return KifuEncoding::ShiftJis;
+            return std::nullopt;
+        }
+    }
+    return std::nullopt;
+}
+
+// 宣言の文字コードで読む（読めなければ nullopt）
+static std::optional<QString> decodeAs(const QByteArray& bytes, KifuEncoding encoding)
+{
+    if (encoding == KifuEncoding::ShiftJis) return ShiftJisCodec::decode(bytes);
+    bool ok = false;
+    QString text = decodeWith(bytes, "UTF-8", ok);
+    if (!ok) return std::nullopt;
+    return text;
+}
+
 // --- public API ------------------------------------------------------------
 
 QString decodeAuto(const QByteArray& bytes, QString* usedEncoding, QString* warn)
@@ -112,26 +151,36 @@ QString decodeAuto(const QByteArray& bytes, QString* usedEncoding, QString* warn
     QString text;
     // 1) BOM 優先
     if (decodeByBom(bytes, text, usedEncoding)) return text;
-    // 2) UTF-8 を試す（置換文字の有無で判定）
+    // 2) 文字コードの宣言。宣言どおりに読めないときは宣言を使わずに判別する
+    if (const std::optional<KifuEncoding> declared = declaredEncoding(bytes)) {
+        if (std::optional<QString> decoded = decodeAs(bytes, *declared)) {
+            if (usedEncoding) {
+                *usedEncoding = *declared == KifuEncoding::ShiftJis ? QStringLiteral("cp932(declared)")
+                                                                     : QStringLiteral("utf-8(declared)");
+            }
+            return std::move(*decoded);
+        }
+    }
+    // 3) UTF-8 を試す（置換文字の有無で判定）
     bool okUtf8 = false;
     QString sUtf8 = decodeWith(bytes, "UTF-8", okUtf8);
     if (okUtf8) {
         if (usedEncoding) *usedEncoding = QStringLiteral("utf-8");
         return sUtf8;
     }
-    // 3) CP932 / Shift_JIS
+    // 4) CP932 / Shift_JIS
     if (auto sSj = ShiftJisCodec::decode(bytes)) {
         if (usedEncoding) *usedEncoding = QStringLiteral("cp932");
         return std::move(*sSj);
     }
-    // 4) EUC-JP（稀）
+    // 5) EUC-JP（稀）
     bool okEuc = false;
     QString sEuc = decodeWith(bytes, "EUC-JP", okEuc);
     if (okEuc) {
         if (usedEncoding) *usedEncoding = QStringLiteral("euc-jp");
         return sEuc;
     }
-    // 5) 仕方なくローカル 8bit
+    // 6) 仕方なくローカル 8bit
     if (usedEncoding) *usedEncoding = QStringLiteral("local8bit(fallback)");
     if (warn) *warn += QStringLiteral("fallback: local8bit was used; encoding could not be detected precisely.\n");
     return QString::fromLocal8Bit(bytes);

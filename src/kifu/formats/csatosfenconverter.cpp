@@ -2,10 +2,9 @@
 /// @brief CSA形式棋譜コンバータクラスの実装
 ///
 /// 字句解析・トークン化は CsaLexer に委譲。
-/// 本ファイルはファイルI/O・パーサ状態管理・オーケストレーションを担当する。
+/// 本ファイルは文への分割・対局情報・手順の読み取りを担当する（ファイルは KifuLoadParser が読んで渡す）。
 
 #include "csatosfenconverter.h"
-#include "boundedfile.h"
 #include "csaformatter.h"
 #include "csalexer.h"
 #include "gameinfo.h"
@@ -13,58 +12,15 @@
 #include "kiflinebuilder.h"
 #include "terminalcodes.h"
 #include "kifutextdecoder.h"
-#include "shiftjiscodec.h"
 #include "shogiposition.h"
 
-#include <QStringDecoder>
-
-// ============================================================
-// ファイル読込
-// ============================================================
-
-bool CsaToSfenConverter::readFileText(const QString& path, QString& outText, QString* warn)
+QStringList CsaToSfenConverter::splitStatements(const QString& text, QString* warn)
 {
-    QByteArray raw;
-    const BoundedFile::Result read = BoundedFile::read(path, BoundedFile::kMaxKifuBytes, raw);
-    if (read != BoundedFile::Result::Ok) {
-        if (warn) *warn += BoundedFile::describe(read, path, BoundedFile::kMaxKifuBytes) + QLatin1Char('\n');
-        return false;
-    }
-    // CSA V3 の文字コードの宣言（'encoding=...）があればそれに従う
-    const QByteArray head = raw.left(128);
-    const bool utf8Header  = head.contains("CSA encoding=UTF-8")
-                          || head.contains("'encoding=UTF-8");
-    const bool sjisHeader  = head.contains("CSA encoding=SHIFT_JIS")
-                          || head.contains("CSA encoding=Shift_JIS")
-                          || head.contains("'encoding=SHIFT_JIS")
-                          || head.contains("'encoding=Shift_JIS");
-    if (utf8Header) {
-        QStringDecoder dec(QStringDecoder::Utf8);
-        outText = dec(raw);
-        return true;
-    }
-    if (sjisHeader) {
-        if (std::optional<QString> decoded = ShiftJisCodec::decode(raw)) {
-            outText = std::move(*decoded);
-            return true;
-        }
-    }
-    // 宣言が無い（宣言どおりに読めない）ときは、ほかの棋譜と同じ順で判別する（BOM・UTF-8・CP932・EUC-JP）
-    outText = KifuTextDecoder::decodeAuto(raw, nullptr, warn);
-    return true;
-}
-
-QStringList CsaToSfenConverter::splitStatements(const QString& rawText, QString* warn)
-{
-    QString text = rawText;
-    if (!text.isEmpty() && text.front() == QChar(0xFEFF)) text.remove(0, 1);
-    text.replace(QStringLiteral("\r\n"), QStringLiteral("\n"));
-    text.replace(QLatin1Char('\r'), QLatin1Char('\n'));
     QStringList outLines;
     // 初期配置を含めてマルチステートメントを展開する。コメントと文字列値の
     // カンマは本文として保持し、複数対局の指し手を一つの棋譜に混ぜない。
     // 行の残りは複製せずに位置で進める（「,」ごとに残りを複製すると、長い行で二乗の時間になる。セキュリティ監査 S6）
-    const QStringList physicalLines = text.split(QLatin1Char('\n'));
+    const QStringList physicalLines = KifuTextDecoder::splitLines(text);
     for (const QString& physicalLine : physicalLines) {
         QStringView line(physicalLine);
         while (!line.isEmpty()) {

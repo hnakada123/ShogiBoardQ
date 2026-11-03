@@ -58,7 +58,7 @@ USEN Files (*.usen)
   - `loadPositionFromSfen(sfen)` — SFEN局面を開始局面にする
   - 棋譜は `KifuDocument::replaceWithRecord(record, startSfen, header)`、局面だけのもの（SFEN・BOD・指し手のない USI）は `KifuDocument::replaceWithPosition(sfen)` で文書を丸ごと置き換える。置き換えると前の棋譜の対局者・持ち時間・上書き保存先は消え、対局情報は文書の `headerReset` で対局情報欄と盤の対局者名に届く
 - **`KifuLoadParser`** (`src/kifu/kifuloadparser.h/.cpp`) — GUI を含まない読み込み口（結果は値 `KifuLoadResult`）
-  - `parseFile(path)` — ファイルを1回だけ読み（`readFileText()`：CSA は CSA の文字コード宣言、それ以外は自動判別）、`parseContent()` に渡す
+  - `parseFile(path)` — ファイルを1回だけ読み（`KifuTextDecoder::readAllTextAuto()`。文字コードは形式によらず、BOM → 先頭のコメントの行の宣言（KIF・KI2 の `#KIF version=2.0 encoding=…`、CSA の `'CSA encoding=…`・`'encoding=…`。宣言どおりに読めるときだけ従う）→ UTF-8・CP932・EUC-JP の判別の順で決める）、`parseContent()` に渡す
   - `parseContent(content, format)` — `KifuFormat` から形式ごとの `parse()` を表（`parserFor()`）で選んで呼び、結果（`KifuParseOutcome`）を `KifuLoadResult` に写す。指し手のない USI・SFEN と BOD は局面だけを `positionOnly` に返す
 - 各形式の変換器（`src/kifu/formats/*tosfenconverter` と `kiftextparser`）はテキストを読むだけで、ファイルは読まない。形式ごとに1つの関数 `parse(text, options)` だけを持ち、1回の解析で棋譜（本譜・変化）・開始局面・手合割の名前・対局情報・警告を `KifuParseOutcome` に入れて返す（`KifTextParser::parseKif` / `KifTextParser::parseKi2` / `CsaToSfenConverter::parse` / `JkfToSfenConverter::parse` / `UsenToSfenConverter::parse` / `UsiToSfenConverter::parse`。BOD は `KifTextParser::parseBod`）
   - KIF・KI2 は `KifTextParser::parse(text, Dialect::Kif / Dialect::Ki2)`（`parseKif`・`parseKi2`）が同じ処理で読む（行の分類・「変化：N手」の区切り・コメント・しおり・開始局面・指し手の文法 `KifMoveGrammar`）。KIF の手は「KI2 の手＋移動元 `(xy)`」として読み、移動元が書いてなければ局面の合法手から決める

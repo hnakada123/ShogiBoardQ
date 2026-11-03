@@ -69,6 +69,66 @@ private slots:
         QCOMPARE(lines, (QStringList{QStringLiteral("▲７六歩"), QString()}));
     }
 
+    /// 先頭の行の文字コードの宣言（KIF・KI2・CSA）は、宣言どおりに読めるときに従う。CSA は名前とコメントの
+    /// ほかは ASCII なので、Shift_JIS の名前が UTF-8 としても読めてしまう（「遙子」は UTF-8 なら「ꡎq」）
+    void declarationDecidesTheEncoding_data()
+    {
+        QTest::addColumn<QByteArray>("content");
+        QTest::addColumn<QString>("expectedEncoding");
+        QTest::addColumn<QString>("expectedText");
+
+        const QByteArray yoko = QByteArray::fromHex("eaa18e71");  // "遙子"（CP932。UTF-8 としても読める）
+        const QByteArray habu = QByteArray::fromHex("894890b691508ea1");  // "羽生善治"（CP932）
+        QTest::newRow("kif shift_jis")
+            << QByteArray("#KIF version=2.0 encoding=Shift_JIS\r\n") + yoko
+            << QStringLiteral("cp932(declared)")
+            << QStringLiteral("#KIF version=2.0 encoding=Shift_JIS\r\n遙子");
+        QTest::newRow("kif utf-8")
+            << QByteArray("#KIF version=2.0 encoding=UTF-8\n") + QStringLiteral("先手：遙子").toUtf8()
+            << QStringLiteral("utf-8(declared)")
+            << QStringLiteral("#KIF version=2.0 encoding=UTF-8\n先手：遙子");
+        QTest::newRow("csa v3")
+            << QByteArray("'CSA encoding=SHIFT_JIS\nV3.0\nN+") + yoko
+            << QStringLiteral("cp932(declared)")
+            << QStringLiteral("'CSA encoding=SHIFT_JIS\nV3.0\nN+遙子");
+        QTest::newRow("csa legacy")
+            << QByteArray("V2.2\n'encoding=Shift_JIS\nN+") + yoko
+            << QStringLiteral("cp932(declared)")
+            << QStringLiteral("V2.2\n'encoding=Shift_JIS\nN+遙子");
+        // 宣言どおりに読めなければ、宣言を使わずに判別する
+        QTest::newRow("unreadable declaration")
+            << QByteArray("'CSA encoding=UTF-8\nN+") + habu
+            << QStringLiteral("cp932")
+            << QStringLiteral("'CSA encoding=UTF-8\nN+羽生善治");
+        // 読まない値の宣言と、コメントの行でない "encoding=" は宣言にしない
+        QTest::newRow("unknown value")
+            << QByteArray("#KIF version=2.0 encoding=ISO-2022-JP\n") + QStringLiteral("先手").toUtf8()
+            << QStringLiteral("utf-8")
+            << QStringLiteral("#KIF version=2.0 encoding=ISO-2022-JP\n先手");
+        QTest::newRow("not a comment")
+            << QByteArray("N+encoding=Shift_JIS\n") + QStringLiteral("先手").toUtf8()
+            << QStringLiteral("utf-8")
+            << QStringLiteral("N+encoding=Shift_JIS\n先手");
+        // BOM は宣言より先に決める
+        QTest::newRow("bom first")
+            << QByteArray("\xEF\xBB\xBF'CSA encoding=Shift_JIS\nN+") + QStringLiteral("遙子").toUtf8()
+            << QStringLiteral("utf-8(bom)")
+            << QStringLiteral("'CSA encoding=Shift_JIS\nN+遙子");
+    }
+
+    void declarationDecidesTheEncoding()
+    {
+        QFETCH(QByteArray, content);
+        QFETCH(QString, expectedEncoding);
+        QFETCH(QString, expectedText);
+
+        QString usedEncoding;
+        QString warn;
+        QCOMPARE(KifuTextDecoder::decodeAuto(content, &usedEncoding, &warn), expectedText);
+        QCOMPARE(usedEncoding, expectedEncoding);
+        QVERIFY2(warn.isEmpty(), qPrintable(warn));
+    }
+
     // Qt が Shift_JIS を扱えない環境（ICU なし）で使う OS の変換機能を直接確認する
     void shiftJisPlatform_roundTrip()
     {

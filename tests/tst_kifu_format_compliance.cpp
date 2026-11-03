@@ -860,6 +860,44 @@ private slots:
         QCOMPARE(fromText.startSfen(), fromFile.startSfen());
     }
 
+    // ファイルの文字コードは形式によらず1つの規則（BOM → 先頭の宣言（宣言どおりに読めるとき）→ 判別）で決める。
+    // CSA だけが自分でファイルを読んでいた頃は、UTF-8 と宣言した Shift_JIS のファイルを文字化けして読んでいた
+    void fileEncodingFollowsOneRule_data()
+    {
+        QTest::addColumn<QByteArray>("content");
+        QTest::addColumn<QString>("expectedName");
+
+        const QByteArray moves("\nN-B\nPI\n+\n+7776FU\n-3334FU\n%TORYO\n");
+        QTest::newRow("declared shift_jis")
+            << QByteArray("'CSA encoding=Shift_JIS\nV3.0\nN+") + QByteArray::fromHex("eaa18e71") + moves
+            << QStringLiteral("遙子");
+        QTest::newRow("declared utf-8 but shift_jis")
+            << QByteArray("'CSA encoding=UTF-8\nV3.0\nN+") + QByteArray::fromHex("894890b691508ea1") + moves
+            << QStringLiteral("羽生善治");
+        QTest::newRow("bom before declaration")
+            << QByteArray("\xEF\xBB\xBF'CSA encoding=Shift_JIS\nV3.0\nN+") + QStringLiteral("羽生善治").toUtf8() + moves
+            << QStringLiteral("羽生善治");
+    }
+
+    void fileEncodingFollowsOneRule()
+    {
+        QFETCH(QByteArray, content);
+        QFETCH(QString, expectedName);
+
+        QTemporaryFile file(QDir::tempPath() + QStringLiteral("/parse_XXXXXX.csa"));
+        QVERIFY(file.open());
+        QCOMPARE(file.write(content), content.size());
+        file.close();
+        const auto loaded = KifuLoadParser::parseFile(file.fileName());
+        QVERIFY2(loaded.success, qPrintable(loaded.error));
+        QCOMPARE(loaded.record.mainline.usiMoves(), QStringList({QStringLiteral("7g7f"), QStringLiteral("3c3d")}));
+        QString blackName;
+        for (const auto& item : loaded.gameInfo) {
+            if (item.key == QStringLiteral("先手")) blackName = item.value;
+        }
+        QCOMPARE(blackName, expectedName);
+    }
+
     // 文字コードの宣言の無い CSA も、ほかの形式と同じ順（BOM・UTF-8・CP932・EUC-JP）で判別する
     void csaWithoutDeclarationDetectsUtf16Bom()
     {
