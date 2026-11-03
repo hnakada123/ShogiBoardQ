@@ -14,15 +14,19 @@
 
 namespace {
 bool canceled(const CancelFlag& cancel) { return cancel && cancel->load(); }
+}
 
-/// 開始局面が盤と持駒として成り立たない理由（成り立てば空）。玉の無い図（駒箱に入れた編集中の盤など）と
-/// 手番でない側に王手がかかっている図は受け付ける
-QString startPositionProblem(const QString& sfen)
+QString KifuLoadParser::startPositionProblem(const QString& sfen)
 {
     const std::optional<Position> position = Position::fromSfen(sfen);
     if (!position) return QCoreApplication::translate("KifuLoader", "局面を読めません");
+    return startPositionProblem(*position);
+}
+
+QString KifuLoadParser::startPositionProblem(const Position& position)
+{
     using Problem = PositionValidator::Problem;
-    switch (PositionValidator::boardProblem(*position)) {
+    switch (PositionValidator::boardProblem(position)) {
     case Problem::PieceCountOver:
         return QCoreApplication::translate("KifuLoader", "駒の数が上限を超えています（盤と持駒の合計）");
     case Problem::KingInHand: return QCoreApplication::translate("KifuLoader", "持駒に玉があります");
@@ -32,8 +36,6 @@ QString startPositionProblem(const QString& sfen)
     case Problem::None: break;
     }
     return {};
-}
-
 }
 
 bool KifuLoadParser::readFileText(const QString& path, KifuFormat format, QString& outText, QString* warn)
@@ -132,7 +134,7 @@ KifuLoadResult KifuLoadParser::parseContent(const QString& content, KifuFormat f
         return result;
     }
     if (result.record.mainline.startSfen.isEmpty()) result.record.mainline.startSfen = SfenUtils::hirateSfen();
-    // 開始局面は盤と持駒として成り立つものだけを受け付ける（GUI・CLI・自動化 API で同じ規則）
+    // 開始局面は盤と持駒として成り立つものだけを受け付ける（GUI・CLI・自動化 API で同じ規則。startPositionProblem）
     if (const QString reason = startPositionProblem(result.record.mainline.startSfen); !reason.isEmpty()) {
         result.success = false;
         result.error = sourceName.isEmpty()

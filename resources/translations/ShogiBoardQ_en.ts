@@ -9574,82 +9574,83 @@ Do you want to save them?</translation>
 <context>
     <name>KifuLoader</name>
     <message>
-        <location filename="../../src/kifu/kifuloader.cpp" line="95"/>
+        <location filename="../../src/kifu/kifuloader.cpp" line="96"/>
         <source>無効なSFEN形式です。</source>
         <translation>Invalid SFEN format.</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloader.cpp" line="114"/>
+        <location filename="../../src/kifu/kifuloader.cpp" line="120"/>
         <source>棋譜の読み込みで警告があります:
 %1</source>
         <translation>Warning while loading game record:
 %1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="131"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="133"/>
         <source>読み込み失敗 %1 から指し手を取得できませんでした。</source>
         <translation>Load failed: Could not get moves from %1.</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloader.cpp" line="124"/>
+        <location filename="../../src/kifu/kifuloader.cpp" line="130"/>
         <source>棋譜の分岐元または開始手数が不正です。</source>
         <translation>The game record has an invalid variation parent or starting ply.</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="23"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="22"/>
         <source>局面を読めません</source>
         <translation>The position cannot be read</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="27"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="31"/>
         <source>駒の数が上限を超えています（盤と持駒の合計）</source>
         <translation>There are more pieces than the game has (board and hands combined)</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="28"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="32"/>
         <source>持駒に玉があります</source>
         <translation>A king is in hand</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="29"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="33"/>
         <source>同じ側の玉が2枚以上あります</source>
         <translation>A side has more than one king</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="60"/>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="118"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="62"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="120"/>
         <source>棋譜ファイルの読み込みに失敗しました: %1%2</source>
         <translation>Failed to load game record file: %1%2</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="114"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="116"/>
         <source>BOD形式の解析に失敗しました。%1</source>
         <translation>Failed to parse BOD format. %1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="117"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="119"/>
         <source>棋譜の読み込みに失敗しました。%1</source>
         <translation>Failed to load the game record.%1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="130"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="132"/>
         <source>棋譜から指し手を取得できませんでした。</source>
         <translation>Could not get moves from the game record.</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="139"/>
+        <location filename="../../src/kifu/kifuloader.cpp" line="101"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="141"/>
         <source>棋譜の開始局面が不正です: %1</source>
         <translation>The start position of the game record is invalid: %1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="140"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="142"/>
         <source>棋譜ファイルの開始局面が不正です: %1
 %2</source>
         <translation>The start position of the game record file is invalid: %1
 %2</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadparser.cpp" line="150"/>
+        <location filename="../../src/kifu/kifuloadparser.cpp" line="152"/>
         <source>貼り付けるテキストが空です。</source>
         <translation>The text to paste is empty.</translation>
     </message>

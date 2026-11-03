@@ -443,7 +443,9 @@ PHASE2_TOOLS: list[types.Tool] = [
     _tool(
         "set_position",
         "Set position",
-        "Replace the position shown in ShogiBoardQ with the given SFEN (the record is cleared). Fails with "
+        "Replace the position shown in ShogiBoardQ with the given SFEN (the record is cleared). The position is "
+        "accepted like pasting it in the application: piece counts, kings in hand and two kings of one side are "
+        "invalid_argument, but positions without kings or with the side not to move in check are accepted. Fails with "
         "unsaved_changes when the current record has unsaved edits unless discard_unsaved is true.",
         _spec("method", "position.set"),
         {"type": "object", "properties": {"sfen": {"type": "string"}}, "required": ["sfen"]},

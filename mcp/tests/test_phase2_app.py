@@ -96,6 +96,16 @@ async def test_app_round_trip(app_env, tmp_path):
         assert data["sfen"].startswith("7nk/7nn/9")
         text, data, is_error = await _call(session, "set_position", sfen="garbage", discard_unsaved=True)
         assert is_error and "Invalid SFEN" in text
+        # Accepted like pasting a position in the application (audit 2026-11-01 U1): no kings, or the side not
+        # to move in check. Positions whose pieces do not fit are still invalid.
+        for sfen in ("9/9/9/9/9/9/9/9/9 b R 1", "4k4/4R4/9/9/9/9/9/9/4K4 b - 1"):
+            text, data, is_error = await _call(session, "set_position", sfen=sfen, discard_unsaved=True)
+            assert not is_error, text
+            assert data["sfen"] == sfen
+        text, data, is_error = await _call(
+            session, "set_position", discard_unsaved=True,
+            sfen="lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b 2P 1")
+        assert is_error and "Invalid SFEN" in text
 
 
 async def test_actions_dialogs_and_screenshots(app_env, tmp_path):

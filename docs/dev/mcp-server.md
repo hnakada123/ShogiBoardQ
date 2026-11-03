@@ -235,7 +235,7 @@ ShogiBoardQ --automation [--automation-socket PATH]
 | `app.state` | - | `{ui_state, play_mode, current_ply, total_plies, sfen, kifu_file, dirty, board_flipped, dialogs:[...], engines:{black,white}, csa?:{...}}` | - |
 | `app.quit` | - | `{ok:true}`（応答後に終了。テストハーネス用で MCP ツールには出さない） | - |
 | `position.get` | - | `{sfen, start_sfen, ply, moves[]}` | - |
-| `position.set` | `{sfen, discard_unsaved?}` | `{sfen}` | `-32602` 不正 SFEN、`-32004` 未保存 |
+| `position.set` | `{sfen, discard_unsaved?}` | `{sfen}` | `-32602` 不正 SFEN（GUI の局面の貼り付けと同じ規則 `KifuLoadParser::startPositionProblem`。駒の数・持駒の玉・玉の重複は断り、玉の無い図と手番でない側に王手がかかった図は受け付ける）、`-32004` 未保存 |
 | `kifu.load` | `{path?, text?, discard_unsaved?}` | `{total_plies, start_sfen, kifu_file, warnings?}` | `-32602` 相対パス・ディレクトリなど通常のファイルでない（`InputPath::check`。CLI の `input_path` と同じ）・`path` と `text` の一方だけを渡していない、`-32005` ファイルなし、`-32004` 未保存、`invalid_state` 対局・検討・解析・局面編集の間、`-32006`（`parse_error`）読込失敗（理由をメッセージに含め、エラーダイアログは出さない） |
 | `kifu.save` | `{path, overwrite?}` | `{path, format}` | `-32602` 相対パス・ディレクトリを指す（`OutputPath::check`）、`-32003`（`file_exists`）既存ファイル、`-32005` ディレクトリなし、`-32003`（`file_error`）書き込みの失敗・.kif・.ki2 に Shift_JIS で表せない文字（確認ダイアログは出さず、文字を示して `.kifu`・`.ki2u` を案内） |
 | `kifu.get` | `{format?, line?: "current"\|"main", from_ply?, max_moves?, max_chars?}` | `{format, total_plies, line, moves:[{ply,text,usi,time,comment,bookmark}], opening_comment?, opening_bookmark?, text?, truncated}`（`moves` は表示中の手順の1手目から（`from_ply` は1以上）。`line="main"` で本譜。開始局面のコメント・しおりは行にせず `opening_comment`・`opening_bookmark` に書く（空なら省く。CLI の convert-kifu と同じ `RecordJson::addOpening`）） | - |
