@@ -62,11 +62,8 @@ void MatchCoordinator::start(const StartOptions& opt)
 {
     discardInterruptedGame();
 
+    // 開始局面は SFEN で受け取る（対局開始の条件を作る GameStartOptionsBuilder::canonicalizeSfen が整える）
     StartOptions resolved = opt;
-    if (resolved.recordLine.isEmpty()) {
-        const QString initial = UsiPosition::sfenOf(opt.recordLine.startSfen);
-        resolved.recordLine.startSfen = initial.isEmpty() ? SfenUtils::hirateSfen() : initial;
-    }
     resolved.recordLine = resolved.recordLine.upTo(resolved.recordLine.currentPly);
 
     clearGameEnd();

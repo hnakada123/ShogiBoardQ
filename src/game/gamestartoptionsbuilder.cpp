@@ -125,11 +125,9 @@ MatchPlayers GameStartOptionsBuilder::playersFromDialog(const StartGameDialogDat
 
 QString GameStartOptionsBuilder::canonicalizeSfen(const QString& sfen)
 {
-    QString t = sfen.trimmed();
-    if (t.isEmpty() || t == QLatin1String("startpos")) {
-        return SfenUtils::hirateSfen();
-    }
-    return t;
+    // 局面の文字列（"startpos"・"sfen ..."・SFEN）の読み方は UsiPosition::sfenOf の1つ。空なら平手
+    const QString canonical = UsiPosition::sfenOf(sfen);
+    return canonical.isEmpty() ? SfenUtils::hirateSfen() : canonical;
 }
 
 // ============================================================

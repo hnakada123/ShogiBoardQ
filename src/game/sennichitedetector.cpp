@@ -8,23 +8,18 @@
 
 #include "logcategories.h"
 
-QString SennichiteDetector::positionKey(const QString& sfen)
-{
-    // 手数を除いた "board turn hand"（持ち駒は標準の並び）
-    return SfenUtils::normalizeSfenKey(sfen);
-}
-
 SennichiteDetector::Result SennichiteDetector::check(const QStringList& sfenRecord)
 {
     if (sfenRecord.size() < 4) return Result::None;
 
-    const QString currentKey = positionKey(sfenRecord.last());
+    // 手数を除いた "board turn hand"（持ち駒は標準の並び）
+    const QString currentKey = SfenUtils::normalizeSfenKey(sfenRecord.last());
     if (currentKey.isEmpty()) return Result::None;
 
     // 同一局面キーの出現インデックスを収集
     QList<int> occurrences;
     for (int i = 0; i < sfenRecord.size(); ++i) {
-        if (positionKey(sfenRecord.at(i)) == currentKey) {
+        if (SfenUtils::normalizeSfenKey(sfenRecord.at(i)) == currentKey) {
             occurrences.append(i);
         }
     }

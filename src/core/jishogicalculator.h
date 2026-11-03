@@ -85,12 +85,6 @@ private:
 
     /// 駒が大駒（飛車・角・龍・馬）かどうかを判定する
     static bool isMajorPiece(Piece piece);
-
-    /// 先手の駒かどうかを判定する（大文字）
-    static bool isSentePiece(Piece piece);
-
-    /// 後手の駒かどうかを判定する（小文字）
-    static bool isGotePiece(Piece piece);
 };
 
 #endif // JISHOGICALCULATOR_H

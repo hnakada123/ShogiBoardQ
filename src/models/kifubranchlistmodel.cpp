@@ -31,8 +31,7 @@ int KifuBranchListModel::columnCount(const QModelIndex& parent) const
 
 QString KifuBranchListModel::moveText(const KifuBranchNode* node, bool fullOrigin) const
 {
-    const QString before = node->parent() ? node->parent()->sfen() : QString();
-    return KifuPresentation::entryLabel(node->record(), before, fullOrigin);
+    return KifuPresentation::nodeLabel(*node, fullOrigin);
 }
 
 QVariant KifuBranchListModel::data(const QModelIndex& index, int role) const

@@ -86,15 +86,10 @@ QString translated(const char *source)
 // 詰めた形との変換
 // ============================================================
 
-QString JosekiBook::positionKey(const QString &sfen)
-{
-    return SfenUtils::normalizeSfenKey(sfen);
-}
-
 QByteArray JosekiBook::keyOf(const QString &sfen)
 {
     // toUtf8 は長さの3倍の領域を取るので、表に入れるキーは詰める
-    QByteArray key = positionKey(sfen).toUtf8();
+    QByteArray key = SfenUtils::normalizeSfenKey(sfen).toUtf8();
     key.squeeze();
     return key;
 }

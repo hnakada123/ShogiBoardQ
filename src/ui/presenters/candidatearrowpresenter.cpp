@@ -18,11 +18,6 @@
 #include <QAction>
 
 namespace {
-QString positionKey(const QString& sfen)
-{
-    // 手数は描画する盤面の同一性に含めない。
-    return SfenUtils::normalizeSfenKey(sfen);
-}
 
 /// 番号を付ける定跡手の矢印の数（表の上から。多いと番号で盤が隠れる）
 constexpr int kNumberedJosekiArrows = 5;
@@ -169,7 +164,7 @@ void CandidateArrowPresenter::appendConsiderationArrows(QList<ShogiViewHighlight
     if (!model || !arrowsOn(&BoardArrowActions::consideration, true)) return;
     for (int row = 0; row < model->rowCount(); ++row) {
         const auto* record = model->recordAt(row);
-        if (!record || positionKey(record->pv().baseSfen()) != positionKey(sfen)) continue;
+        if (!record || SfenUtils::normalizeSfenKey(record->pv().baseSfen()) != SfenUtils::normalizeSfenKey(sfen)) continue;
         const std::optional<UsiMove> move = record->pv().firstMove();
         if (!move) continue;
         if (auto arrow = arrowForMove(move->toString(), record->pv().baseSfen(), record->multipv()))
@@ -193,14 +188,14 @@ void CandidateArrowPresenter::appendMatchArrows(QList<ShogiViewHighlighting::Arr
         const ShogiInfoRecord* record = latestBestRecord(*thinking);
         if (!record) continue;
         const QString& baseSfen = record->pv().baseSfen();
-        const bool pondering = positionKey(baseSfen) != positionKey(sfen);
+        const bool pondering = SfenUtils::normalizeSfenKey(baseSfen) != SfenUtils::normalizeSfenKey(sfen);
         QString predicted;
         if (pondering) {
             // 先読み: 表示中の局面に予想した手（探索の局面に至った手）を指した局面を探索している
             if (!ponderVisible || engine->protocol()->searchKind() != UsiProtocolHandler::SearchKind::Ponder) continue;
             predicted = record->lastUsiMove();
             const QString predictedSfen = predicted.isEmpty() ? QString() : SfenReplay::positionAfter(sfen, predicted);
-            if (predictedSfen.isEmpty() || positionKey(predictedSfen) != positionKey(baseSfen)) continue;
+            if (predictedSfen.isEmpty() || SfenUtils::normalizeSfenKey(predictedSfen) != SfenUtils::normalizeSfenKey(baseSfen)) continue;
         }
         auto arrow = arrowForMove(record->pv().firstMove()->toString(), baseSfen, 0);
         if (!arrow) continue;

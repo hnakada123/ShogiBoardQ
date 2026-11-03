@@ -862,7 +862,7 @@ void TestJosekiWindow::testConfirmClose()
     JosekiWindow &window = panel.window;
     const QString path = m_tempDir.filePath(QStringLiteral("close.db"));
     QVERIFY(seedWindow(window, path));
-    const QString key = JosekiBook::positionKey(initialSfen());
+    const QString key = SfenUtils::normalizeSfenKey(initialSfen());
     QVERIFY(window.m_session->updateMove(initialSfen(), {QStringLiteral("7g7f"), QStringLiteral("none"), 99, 32, 1, {}}));
     m_responseRole = static_cast<QMessageBox::ButtonRole>(role);
     m_messageSeen = false;
@@ -889,7 +889,7 @@ void TestJosekiWindow::testDockCloseDiscardRevertsBook()
     panel.controller.attachDock(&dock);
     const QString path = m_tempDir.filePath(QStringLiteral("dock-close.db"));
     QVERIFY(seedWindow(window, path));
-    const QString key = JosekiBook::positionKey(initialSfen());
+    const QString key = SfenUtils::normalizeSfenKey(initialSfen());
     QVERIFY(window.m_session->updateMove(initialSfen(), {QStringLiteral("7g7f"), QStringLiteral("none"), 99, 32, 1, {}}));
     QVERIFY(window.m_session->isModified());
     // 未保存の間はドックの題名に印を付ける
@@ -1092,7 +1092,7 @@ void TestJosekiWindow::testEditReplyAndLargeFrequency()
     JosekiWindow &window = panel.window;
     const QString path = m_tempDir.filePath(QStringLiteral("edit-reply.db"));
     QVERIFY(seedWindow(window, path));
-    const QString key = JosekiBook::positionKey(initialSfen());
+    const QString key = SfenUtils::normalizeSfenKey(initialSfen());
     QVERIFY(window.m_session->updateMove(initialSfen(), {QStringLiteral("7g7f"), QStringLiteral("8c8d"), 10, 32, 2000000, {}}));
     window.updateJosekiDisplay();
     window.show();

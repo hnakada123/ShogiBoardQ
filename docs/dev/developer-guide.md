@@ -209,6 +209,7 @@
 | 2026-11-04 | USEN に千日手を `j` で書かないようにした（監査 2026-11-01 U7）のに合わせて §8.9 を更新（USEN の仕様に千日手の符号は無く、作者の実装は `j` を宣言勝ちとして読むので、千日手・連続王手の千日手は書けない終局にした（`TerminalCodes::usen` が空。保存の確認で知らせる）。`j` は持将棋だけで、読むと持将棋（引き分け）） |
 | 2026-11-04 | 呼び出しが0の部分を消した（監査 2026-11-01 5章）のに合わせて §8.11 を更新（`PieceSoundPlayer` の3つのシグナル、`Usi::search(UsiSearchRequest)`、`MatchEngineSeat::side()`、`MatchStrategyHost::currentPly()`、`EngineRegistrationHandler::progressUpdated`、`TsumeGameSession::legalMoves()`、`KifLineBuilder::lastIrregularity()`、`ParseReport::options()`、通信対局のエンジンを名前で登録一覧から引く分岐を削除） |
 | 2026-11-04 | 届かない分岐を消した（監査 2026-11-01 5章）のに合わせて §1.5・§5.1・§10.3・付録を更新（読み筋盤の盤の差分から直前の手を求める経路（`sfendiffutils.h`・`PvBoardDialog::setPrevSfenForHighlight`・`PvLine::setArrival` の第2引数・`showPvBoard` の `prevSfen`）、`JosekiWindow::setCurrentSfen` の入力の整え、定跡の取り込みの開始局面が空のときの分岐を削除。`KifuFileController::loadKifuText` も読み込みの後始末 `finishLoad` を通す） |
+| 2026-11-04 | 規則と式の写しを1つにした（監査 2026-11-01 5章）のに合わせて §5.7・第18章を更新（局面を比べるキーの1行の転送 `JosekiBook::positionKey`・`SennichiteDetector::positionKey` などを消して `SfenUtils::normalizeSfenKey` を直接呼ぶ。分岐ツリーのノードの表記は `KifuPresentation::nodeLabel(node)` の1つ（棋譜欄・分岐候補欄・分岐ツリー・手順の削除の確認）。開始局面の正規化は `GameStartOptionsBuilder::canonicalizeSfen` が `UsiPosition::sfenOf` で行い、`MatchCoordinator::start` は SFEN を受け取る。棋譜解析の候補手の数は検討と同じく探索の頼み（`UsiSearchRequest::options`）に載せる。検討の候補手の数の上限は `ConsiderationSettings::kMaxMultiPV`。詰将棋の挑戦状況の表記は `TsumeProgressStore::Progress::text()` の1つ。`JishogiCalculator::isSentePiece`・`isGotePiece` を消した） |
 
 <!-- chapter-0-end -->
 
@@ -2712,7 +2713,7 @@ struct MatchPlayers {
 
 **ソース**: `src/core/sfenutils.h`（ヘッダオンリー）
 
-SFEN 文字列の小さな関数群。平手のSFEN（`hirateSfen()`）、SFEN の手番（`sideToMove()`）、局面を比べるキー（`normalizeSfenKey()`。読めれば `Position::positionKey()` で、持ち駒は標準の並びになる）がある。
+SFEN 文字列の小さな関数群。平手のSFEN（`hirateSfen()`）、SFEN の手番（`sideToMove()`）、局面を比べるキー（`normalizeSfenKey()`。読めれば `Position::positionKey()` で、持ち駒は標準の並びになる）がある。定跡・千日手の判定・盤の矢印は、局面を比べるキーを自分で作らずにこの関数を直接呼ぶ。
 SFEN の手番を文字列で読むのは `sideToMove()` だけで（読み筋盤の直前の手・定跡の登録の評価値の向きと手番の絞り込み）、ほかの部品は手番の欄を自分で切り出さない。局面として読めるかも確かめたいとき（盤の矢印の駒打ちの駒の色）は `Position::fromSfenLike()` で読んで `sideToMove()` を使う。
 "startpos"・"position sfen ..." のような局面の文字列を SFEN にするのは `UsiPosition::sfenOf()`（8.2節。position コマンドと同じ語の分け方 `UsiPosition::split()` を使う）。
 
@@ -9531,7 +9532,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | JishogiScoreDialog | C | dialogs | 持将棋の点数ダイアログ（`showFor()` が局面から点数と王手を計算して開く） | 第10章 |
 | JkfExporter | C | kifu/formats | JKF形式の書き出し | 第8章 |
 | JkfToSfenConverter | C | kifu/formats | JKF形式→SFEN変換器 | 第8章 |
-| JosekiBook | C | kifu | 定跡のデータの値型（局面のキー `positionKey()` から `JosekiPosition`（登録したときの SFEN・定跡手）を引く map 1つ。棋譜で指された手を数えるのは `addPlayedMove()`）。読み書きは `JosekiBookFile::load()`・`save()` | 第8章, 第11章 |
+| JosekiBook | C | kifu | 定跡のデータの値型（局面のキー（`SfenUtils::normalizeSfenKey()`）から `JosekiPosition`（登録したときの SFEN・定跡手）を引く map 1つ。棋譜で指された手を数えるのは `addPlayedMove()`）。読み書きは `JosekiBookFile::load()`・`save()` | 第8章, 第11章 |
 | JosekiBookController | C | ui/controllers | 定跡ウィンドウからの定跡の操作（ファイル・定跡手・マージ・ドロップ・閉じるときの確認） | 第10章 |
 | JosekiBookSession | C | kifu | 開いている定跡ファイル（`JosekiBook` の値・変更状態・読み書き） | 第8章, 第11章 |
 | JosekiMergeDialog | C | dialogs | 定跡結合ダイアログ | 第11章 |

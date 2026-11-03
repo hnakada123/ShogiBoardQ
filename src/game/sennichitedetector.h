@@ -30,13 +30,6 @@ public:
      */
     static Result check(const QStringList& sfenRecord);
 
-    /**
-     * @brief SFEN文字列から手数フィールドを除いた局面キーを返す
-     * @param sfen "board turn hand moveNum" 形式のSFEN文字列
-     * @return "board turn hand" 部分（手数を除く）
-     */
-    static QString positionKey(const QString& sfen);
-
 private:
     /**
      * @brief 連続王手判定（3回目と4回目の出現の間の手順を調べる）

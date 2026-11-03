@@ -762,13 +762,13 @@ void TestJosekiBook::normalizeSfen_removesPlyNumber()
 {
     const QString input = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
     const QString expected = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b -");
-    QCOMPARE(JosekiBook::positionKey(input), expected);
+    QCOMPARE(SfenUtils::normalizeSfenKey(input), expected);
 }
 
 void TestJosekiBook::normalizeSfen_alreadyNormalized()
 {
     const QString input = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b -");
-    QCOMPARE(JosekiBook::positionKey(input), input);
+    QCOMPARE(SfenUtils::normalizeSfenKey(input), input);
 }
 
 void TestJosekiBook::usiMoveToJapanese_promotedPiecesUseRecordNames()

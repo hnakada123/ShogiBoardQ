@@ -55,7 +55,7 @@ QFont labelFont(const KifuBranchNode* node)
 /// 分岐ツリーの手の表記（KifuPresentation の表記設定に従う）
 QString labelOf(const KifuBranchNode* node, bool fullOrigin = false)
 {
-    return KifuPresentation::entryLabel(node->record(), node->parent() ? node->parent()->sfen() : QString(), fullOrigin);
+    return KifuPresentation::nodeLabel(*node, fullOrigin);
 }
 
 /// 列の間隔に必要な幅（表記の幅＋余白）

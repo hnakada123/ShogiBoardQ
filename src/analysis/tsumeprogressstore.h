@@ -19,6 +19,10 @@ public:
         int solves = 0;
         QString lastAttempt;
         QString lastSolved;
+
+        /// 挑戦状況の表記（「正答済み ／ 挑戦N回・正答M回」「挑戦済み・未正答 ／ 挑戦N回」「未挑戦」。
+        /// 問題一覧の札と解く画面で共通）
+        QString text() const;
     };
     explicit TsumeProgressStore(const QString& dataDirectory = {}, const QString& cacheDirectory = {});
     ~TsumeProgressStore();

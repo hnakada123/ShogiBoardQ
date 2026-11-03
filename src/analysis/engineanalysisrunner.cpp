@@ -74,6 +74,7 @@ void EngineAnalysisRunner::start(const Request& request)
     m_latest.clear();
     m_stopRequested = false;
     m_timedOut = false;
+    m_multiPvSent = false;
     m_index = 0;
     m_request = request;
     m_elapsed.invalidate();
@@ -86,8 +87,6 @@ void EngineAnalysisRunner::onSessionReady()
 {
     if (m_state != State::Initializing) return;
     m_state = State::Analyzing;
-    if (m_request.multiPv > 0)
-        m_session->handler()->sendSetOption(QStringLiteral("MultiPV"), QString::number(m_request.multiPv));
     analyzeFrom(0);
 }
 
@@ -117,6 +116,11 @@ void EngineAnalysisRunner::analyzeFrom(int index)
     search.go = UsiGo::infinite();
     search.stopAfterMs = qMax(100, m_request.thinkMs);
     search.replyTimeoutMs = m_request.replyTimeoutMs;
+    // 候補手の数は検討と同じく探索の頼みに載せる（依頼したときだけ、最初の局面の前に1回送る）
+    if (m_request.multiPv > 0 && !m_multiPvSent) {
+        search.options = {{QStringLiteral("MultiPV"), QString::number(m_request.multiPv)}};
+        m_multiPvSent = true;
+    }
     m_elapsed.start();
     if (!m_session->search(search)) {
         fail(QStringLiteral("No position to analyse"));
