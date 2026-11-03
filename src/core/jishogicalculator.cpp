@@ -87,13 +87,18 @@ JishogiCalculator::JishogiResult JishogiCalculator::calculate(const Position& po
 // 宣言条件判定
 // ============================================================================
 
+bool JishogiCalculator::hasEnoughPiecesInCamp(const PlayerScore& score)
+{
+    return score.piecesInEnemyTerritory >= kRequiredPiecesInCamp;
+}
+
 bool JishogiCalculator::meetsDeclarationConditions(const PlayerScore& score, bool kingInCheck)
 {
     // 王手がかかっている場合は宣言できない
     if (kingInCheck) {
         return false;
     }
-    return score.kingInEnemyTerritory && score.piecesInEnemyTerritory >= 10;
+    return score.kingInEnemyTerritory && hasEnoughPiecesInCamp(score);
 }
 
 // ============================================================================
@@ -127,18 +132,18 @@ JishogiCalculator::Verdict JishogiCalculator::judge(const PlayerScore& score, Ru
 /// 成駒は成る前の駒と同じ点数
 int JishogiCalculator::piecePoints(Piece piece)
 {
-    // 大駒（飛車・角・龍・馬）: 5点
-    // 小駒（金・銀・桂・香・歩・と金・成香・成桂・成銀）: 1点
+    // 大駒（飛車・角・龍・馬）: kMajorPiecePoints
+    // 小駒（金・銀・桂・香・歩・と金・成香・成桂・成銀）: kMinorPiecePoints
     // 玉: 0点
     if (piece == Piece::BlackKing || piece == Piece::WhiteKing) {
         return 0;
     }
 
     if (isMajorPiece(piece)) {
-        return 5;
+        return kMajorPiecePoints;
     }
 
-    return 1;
+    return kMinorPiecePoints;
 }
 
 bool JishogiCalculator::isMajorPiece(Piece piece)

@@ -189,6 +189,7 @@
 | 2026-11-03 | 棋譜ファイルの読み込みの経路を1本にした（監査 2026-11-01 M5）のに合わせて §8 と付録を更新（CSA の変換器のファイルの読み込み `CsaToSfenConverter::readFileText()` と `KifuLoadParser::readFileText()` を消し、`KifuLoadParser::parseFile()` は形式によらず `KifuTextDecoder::readAllTextAuto()` で読む。文字コードの宣言（KIF・KI2 の `#KIF … encoding=`、CSA の `'CSA encoding=`・`'encoding=`）は `KifuTextDecoder::decodeAuto()` が BOM の次に見て、宣言どおりに読めるときだけ従う） |
 | 2026-11-03 | 持将棋ルールを対局の条件に入れた（監査 2026-11-01 M7）のに合わせて §10.3 を更新（対局ダイアログの持将棋ルールは `StartGameDialogData::jishogiRule` から `MatchStartOptions::jishogiRule` に入り、入玉宣言は人間もエンジンも `MatchCoordinator::declareNyugyoku(declarer)` が `NyugyokuJudgement::judgeDeclaration()` で判定する（「なし」なら27点法で判定して説明に書く）。`NyugyokuJudgement::configuredRule()`・`ruleFromSetting()`・`judgeEngineDeclaration()` を消し、`GameChannel::judgesDeclaration()` を宣言を受け付けるかの `acceptsDeclaration()` にした。game は持将棋ルールの設定を読まない） |
 | 2026-11-03 | 棋譜の文書の対局の時間の記録 `MatchTimeRecord` を消した（監査 2026-11-01 M8）のに合わせて §1.5・§8.5・§10.2・付録を更新（持ち時間と開始・終了の日時は対局情報にだけ書く。`KifuDocument::timeRecord()` を消し、棋譜の途中から続けた対局のメモ `GameSession::noteContinuedMatch()` は持ち時間を引数で受け取る） |
+| 2026-11-03 | 入玉宣言の駒の数と点数を core の1か所にした（監査 2026-11-01 M9）のに合わせて第18章を更新（`JishogiCalculator` に敵陣に要る駒の数 `kRequiredPiecesInCamp`・`hasEnoughPiecesInCamp()` と駒の点数 `kMajorPiecePoints`・`kMinorPiecePoints` を置き、持将棋の点数のダイアログと `NyugyokuJudgement` の説明文の数はこれと `winningPoints()`・`requiredPoints()` から入れる） |
 
 <!-- chapter-0-end -->
 
@@ -9482,7 +9483,7 @@ KifuTagController::KifuTagController(const Deps& deps, QObject* parent)
 | HumanVsHumanStrategy | C | game | 人間対人間の Strategy | 第6章 |
 | InterruptedGameState | S | game | 中断したローカル対局の状態（アプリ起動中だけ保持する） | 第6章 |
 | ItemTextDelegate | C | widgets | 項目の文字を、配置を覚えて描くデリゲート | 第11章 |
-| JishogiCalculator | C | core | 持将棋の点数計算と宣言の判定（`judge()` が `Verdict` を返す。点数の閾値はここだけ。文言は `NyugyokuJudgement`・`JishogiScoreDialog` が作る） | 第12章 |
+| JishogiCalculator | C | core | 持将棋の点数計算と宣言の判定（`judge()` が `Verdict` を返す。駒の点数・敵陣に要る駒の数 `kRequiredPiecesInCamp`・点数の閾値はここだけ。文言は `NyugyokuJudgement`・`JishogiScoreDialog` が作り、数はここから入れる） | 第12章 |
 | JishogiScoreDialog | C | dialogs | 持将棋の点数ダイアログ（`showFor()` が局面から点数と王手を計算して開く） | 第10章 |
 | JkfExporter | C | kifu/formats | JKF形式の書き出し | 第8章 |
 | JkfToSfenConverter | C | kifu/formats | JKF形式→SFEN変換器 | 第8章 |

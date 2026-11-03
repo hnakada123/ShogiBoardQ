@@ -36,6 +36,7 @@ private slots:
     void meetsConditions_kingNotInCamp_false();
     void meetsConditions_lessThanTenPieces_false();
     void meetsConditions_kingInCheck_false();
+    void enoughPiecesInCamp_followsTheRequiredCount();
 
     // === 24点法判定テスト ===
 
@@ -259,6 +260,20 @@ void TestJishogiCalculator::meetsConditions_kingNotInCamp_false()
     score.piecesInEnemyTerritory = 10;
 
     QVERIFY(!JishogiCalculator::meetsDeclarationConditions(score, false));
+}
+
+/// 敵陣の駒の数の条件は kRequiredPiecesInCamp（10枚）の1か所で決め、宣言条件もそれを使う
+void TestJishogiCalculator::enoughPiecesInCamp_followsTheRequiredCount()
+{
+    QCOMPARE(JishogiCalculator::kRequiredPiecesInCamp, 10);
+    JishogiCalculator::PlayerScore score{};
+    score.kingInEnemyTerritory = true;
+    score.piecesInEnemyTerritory = JishogiCalculator::kRequiredPiecesInCamp - 1;
+    QVERIFY(!JishogiCalculator::hasEnoughPiecesInCamp(score));
+    QVERIFY(!JishogiCalculator::meetsDeclarationConditions(score, false));
+    score.piecesInEnemyTerritory = JishogiCalculator::kRequiredPiecesInCamp;
+    QVERIFY(JishogiCalculator::hasEnoughPiecesInCamp(score));
+    QVERIFY(JishogiCalculator::meetsDeclarationConditions(score, false));
 }
 
 void TestJishogiCalculator::meetsConditions_lessThanTenPieces_false()

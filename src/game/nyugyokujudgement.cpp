@@ -22,19 +22,23 @@ NyugyokuJudgement::Result NyugyokuJudgement::judge(const Position& position, boo
     const Verdict verdict = JishogiCalculator::judge(score, rule, declarerIsSente, inCheck);
 
     const bool kingInEnemyTerritory = score.kingInEnemyTerritory;
-    const bool enoughPieces = score.piecesInEnemyTerritory >= 10;
+    const bool enoughPieces = JishogiCalculator::hasEnoughPiecesInCamp(score);
     const bool noCheck = !inCheck;
 
+    // 駒の数と点数は core の規則（JishogiCalculator）から入れる
     const QString checkMark = tr("○");
     const QString crossMark = tr("×");
     QString details = tr("【宣言条件の判定】\n"
                          "① 玉が敵陣にいる: %1\n"
-                         "② 敵陣に10枚以上: %2 (%3枚)\n"
-                         "③ 王手がかかっていない: %4\n"
-                         "④ 宣言点数: %5点\n")
-        .arg(kingInEnemyTerritory ? checkMark : crossMark, enoughPieces ? checkMark : crossMark)
+                         "② 敵陣に%2枚以上: %3 (%4枚)\n"
+                         "③ 王手がかかっていない: %5\n"
+                         "④ 宣言点数: %6点\n")
+        .arg(kingInEnemyTerritory ? checkMark : crossMark)
+        .arg(JishogiCalculator::kRequiredPiecesInCamp)
+        .arg(enoughPieces ? checkMark : crossMark)
         .arg(score.piecesInEnemyTerritory)
-        .arg(noCheck ? checkMark : crossMark, QString::number(score.declarationPoints));
+        .arg(noCheck ? checkMark : crossMark)
+        .arg(score.declarationPoints);
 
     Result result;
     result.success = verdict == Verdict::Win || verdict == Verdict::Draw;
@@ -44,10 +48,12 @@ NyugyokuJudgement::Result NyugyokuJudgement::judge(const Position& position, boo
     QString reason;
     if (rule == JishogiCalculator::Rule::Points24) {
         details += tr("\n【24点法】\n");
+        const int win = JishogiCalculator::winningPoints(rule, declarerIsSente);
+        const int draw = JishogiCalculator::requiredPoints(rule, declarerIsSente);
         switch (verdict) {
-        case Verdict::Win: reason = tr("31点以上: 勝ち"); break;
-        case Verdict::Draw: reason = tr("24〜30点: 引き分け"); break;
-        case Verdict::ShortOfPoints: reason = tr("24点未満: 宣言失敗"); break;
+        case Verdict::Win: reason = tr("%1点以上: 勝ち").arg(win); break;
+        case Verdict::Draw: reason = tr("%1〜%2点: 引き分け").arg(draw).arg(win - 1); break;
+        case Verdict::ShortOfPoints: reason = tr("%1点未満: 宣言失敗").arg(draw); break;
         case Verdict::NotDeclarable: reason = tr("条件未達: 宣言失敗"); break;
         }
     } else {

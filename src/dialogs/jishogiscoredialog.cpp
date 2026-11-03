@@ -67,25 +67,36 @@ JishogiScoreDialog::JishogiScoreDialog(const JishogiCalculator::JishogiResult& r
            tr("%1点").arg(result.gote.totalPoints), QStringLiteral("totalPoints"));
     addRow(grid, tr("玉が敵陣にいる"), conditionText(result.sente.kingInEnemyTerritory),
            conditionText(result.gote.kingInEnemyTerritory), QStringLiteral("kingInCamp"));
-    addRow(grid, tr("敵陣に玉以外の駒が10枚以上"),
-           tr("%1\n%2 / 10枚").arg(conditionText(result.sente.piecesInEnemyTerritory >= 10))
-               .arg(result.sente.piecesInEnemyTerritory),
-           tr("%1\n%2 / 10枚").arg(conditionText(result.gote.piecesInEnemyTerritory >= 10))
-               .arg(result.gote.piecesInEnemyTerritory), QStringLiteral("piecesInCamp"));
+    using Calculator = JishogiCalculator;
+    const int requiredPieces = Calculator::kRequiredPiecesInCamp;
+    addRow(grid, tr("敵陣に玉以外の駒が%1枚以上").arg(requiredPieces),
+           tr("%1\n%2 / %3枚").arg(conditionText(Calculator::hasEnoughPiecesInCamp(result.sente)))
+               .arg(result.sente.piecesInEnemyTerritory).arg(requiredPieces),
+           tr("%1\n%2 / %3枚").arg(conditionText(Calculator::hasEnoughPiecesInCamp(result.gote)))
+               .arg(result.gote.piecesInEnemyTerritory).arg(requiredPieces), QStringLiteral("piecesInCamp"));
     addRow(grid, tr("王手がかかっていない"), conditionText(!senteInCheck),
            conditionText(!goteInCheck), QStringLiteral("notInCheck"));
-    using Rule = JishogiCalculator::Rule;
+    using Rule = Calculator::Rule;
     addRow(grid, tr("24点法"), ruleText(result.sente, senteInCheck, true, Rule::Points24),
            ruleText(result.gote, goteInCheck, false, Rule::Points24), QStringLiteral("rule24"), true);
     addRow(grid, tr("27点法"), ruleText(result.sente, senteInCheck, true, Rule::Points27),
            ruleText(result.gote, goteInCheck, false, Rule::Points27), QStringLiteral("rule27"), true);
     contentLayout->addLayout(grid);
 
-    const QString notes = tr("点数：飛・角（龍・馬）は5点、その他は1点。玉は数えません。\n"
+    // 点数と駒の数は core の規則（JishogiCalculator）から入れる
+    const int win24 = Calculator::winningPoints(Rule::Points24, true);
+    const QString notes = tr("点数：飛・角（龍・馬）は%1点、その他は%2点。玉は数えません。\n"
                              "敵陣：先手は一〜三段、後手は七〜九段。\n"
-                             "24点法：24〜30点で引き分け、31点以上で勝ち。\n"
-                             "27点法：先手28点以上、後手27点以上で勝ち。\n"
-                             "どちらも上の3つの宣言条件を満たす必要があります。実際の宣言は自分の手番で行います。");
+                             "24点法：%3〜%4点で引き分け、%5点以上で勝ち。\n"
+                             "27点法：先手%6点以上、後手%7点以上で勝ち。\n"
+                             "どちらも上の3つの宣言条件を満たす必要があります。実際の宣言は自分の手番で行います。")
+                              .arg(Calculator::kMajorPiecePoints)
+                              .arg(Calculator::kMinorPiecePoints)
+                              .arg(Calculator::requiredPoints(Rule::Points24, true))
+                              .arg(win24 - 1)
+                              .arg(win24)
+                              .arg(Calculator::winningPoints(Rule::Points27, true))
+                              .arg(Calculator::winningPoints(Rule::Points27, false));
     auto* explanation = new QLabel(notes, m_content);
     explanation->setWordWrap(true);
     explanation->setTextInteractionFlags(Qt::TextSelectableByMouse);
