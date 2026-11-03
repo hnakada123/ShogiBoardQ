@@ -24,7 +24,9 @@ class UsiEngineSession;
 /// 1局面の解析の結果（bestmove の時点で1回だけ作る）
 struct PlyAnalysis {
     int ply = -1;
-    UsiScore score;       ///< 最善の読み筋（multipv 1）の最後の評価値（その局面の手番側から見た値。定跡は None）
+    /// 最善の読み筋（multipv 1）の最後の評価値を先手から見た値（エンジンは手番側から見た値を出すので、解析した局面の
+    /// 手番で直す。定跡は None）。GUI の棋譜解析の表・評価値グラフと CLI の analyze-kifu が同じ値を使う
+    UsiScore blackScore;
     PvText pv;            ///< 最善の読み筋（解析した局面の上で指した手と、指せなかった語）
     int depth = -1;       ///< 最善の読み筋を出したときの探索深さ（無ければ -1）
     bool book = false;    ///< info が1つも届かずに bestmove が届いた（定跡）
@@ -35,8 +37,9 @@ Q_DECLARE_METATYPE(PlyAnalysis)
 /**
  * @brief 1局面の info を集めて、bestmove で結果（PlyAnalysis）にする（Qt のイベントループを知らない）
  *
- * 読み筋は最善の読み筋（multipv 1）の最後の行から、評価値は bestmove が持つ値（UsiBestMove::score）から取る。
- * 読み筋は、探索した局面の上でここで指す（思考情報の表示の整形には頼らない）。
+ * 読み筋は最善の読み筋（multipv 1）の最後の行から、評価値は bestmove が持つ値（UsiBestMove::score）から取り、
+ * 先手から見た値に直す（向きを直す手番は解析した局面のもの）。読み筋は、探索した局面の上でここで指す
+ * （思考情報の表示の整形には頼らない）。
  */
 class PlyAnalysisCollector
 {

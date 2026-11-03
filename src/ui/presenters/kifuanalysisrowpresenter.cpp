@@ -21,14 +21,8 @@ UsiScore KifuAnalysisRowPresenter::append(const PlyAnalysis& result)
     const int ply = result.ply;
     if (!m_refs.analysisModel || ply < 0) return {};
 
-    const UsiScore score = result.book ? UsiScore{} : result.score;
-
-    const QString position = m_refs.line && ply <= m_refs.line->moveCount()
-        ? UsiPosition::sfenOf(m_refs.line->sfenAt(ply)) : QString();
-    const bool isGoteTurn = position.isEmpty() ? ply % 2 == 1
-        : position.section(QLatin1Char(' '), 1, 1) == QStringLiteral("w");
-    // エンジンは手番側から見た評価値を出すので、先手から見た値にする
-    const UsiScore blackScore = score.blackView(isGoteTurn ? Turn::White : Turn::Black);
+    // 先手から見た値は解析した局面の手番で直してある（PlyAnalysisCollector。CLI の analyze-kifu と同じ値）
+    const UsiScore blackScore = result.book ? UsiScore{} : result.blackScore;
     std::optional<int> difference;
     if (blackScore.isCp()) {
         if (m_previousCp) difference = blackScore.value - *m_previousCp;

@@ -90,7 +90,6 @@ public:
     struct Plan {
         int fromPly = 0;
         RecordLine line;                               ///< 本譜
-        QList<std::optional<UsiPosition>> positions;   ///< 解析する局面（fromPly から順に。どれも読めている）
     };
 
     KifuAnalyzeReporter(EngineAnalysisRunner* runner, QEventLoop* loop, Plan plan)
@@ -114,13 +113,10 @@ public slots:
         obj[QStringLiteral("sfen")] = m_plan.line.sfenAt(ply);
         obj[QStringLiteral("played_move")] = ply > 0 ? QJsonValue(m_plan.line.usiMove(ply).toString()) : QJsonValue();
         obj[QStringLiteral("partial")] = m_runner->isStopRequested();
-        // 最善の読み筋の評価値を先手から見た値にする（評価値は手番の側から見た値）
-        const auto latest = m_runner->latestLines();
-        if (const auto best = latest.constFind(1); best != latest.cend()) {
-            const UsiScore score = best->score.blackView(m_plan.positions.at(index)->sideToMove());
-            if (score.isCp()) obj[QStringLiteral("score_cp_black")] = score.value;
-            if (score.isMate()) obj[QStringLiteral("score_mate_black")] = score.value;
-        }
+        // 最善の読み筋の評価値を先手から見た値（GUI の棋譜解析の表と同じ PlyAnalysis::blackScore）
+        const UsiScore& score = result.blackScore;
+        if (score.isCp()) obj[QStringLiteral("score_cp_black")] = score.value;
+        if (score.isMate()) obj[QStringLiteral("score_mate_black")] = score.value;
         m_completed = index + 1;
         CliOutput::printEvent(QStringLiteral("position"), obj);
     }
@@ -249,9 +245,9 @@ int CliCommands::analyzeKifu(const QJsonObject& params)
     KifuAnalyzeReporter::Plan plan;
     plan.fromPly = fromPly;
     plan.line = record.mainline;
-    plan.positions = plan.line.usiPositions(fromPly, toPly);
-    const bool readable = plan.positions.size() == toPly - fromPly + 1
-        && std::all_of(plan.positions.cbegin(), plan.positions.cend(),
+    const QList<std::optional<UsiPosition>> positions = plan.line.usiPositions(fromPly, toPly);
+    const bool readable = positions.size() == toPly - fromPly + 1
+        && std::all_of(positions.cbegin(), positions.cend(),
                        [](const std::optional<UsiPosition>& position) { return position.has_value(); });
     if (!readable) {
         return CliOutput::failEvent(ErrorKind::InvalidContent,
@@ -263,7 +259,7 @@ int CliCommands::analyzeKifu(const QJsonObject& params)
     EngineAnalysisRunner::Request request;
     request.enginePath = engine->path;
     request.engineName = engine->name;
-    request.positions = plan.positions;
+    request.positions = positions;
     request.firstPly = fromPly;
     request.thinkMs = seconds * 1000;
     request.multiPv = multiPv;

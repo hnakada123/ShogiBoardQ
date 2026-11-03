@@ -181,6 +181,7 @@
 | 2026-11-03 | 詰将棋生成の条件の範囲を GUI と CLI で1つにした（監査 2026-11-01 F17）のに合わせて §9.11 を更新（範囲は `TsumeshogiSettings::GeneratorLimits`、設定は `BoundedSetting`。CLI の `generate-tsume` は GUI と同じ範囲と既定値（手数 1〜99、件数 1〜10000・既定 10、時間 1〜300 秒、守り駒 0〜10。件数の 0 = 無制限は GUI だけ）。MCP の `generate_tsume` は件数を 100 までに絞る。奇数の規則は `GeneratorLimits::isTargetMoves`・`oddTargetMoves` だけ） |
 | 2026-11-03 | 通信対局の自動保存の形式の一覧を保存の表から作るようにした（監査 2026-11-01 F21・U6）のに合わせて §6.2 を更新（`CsaGameDialog` は `KifuFormats::saveTargets()` の8形式を「名前を付けて保存」と同じ見出し（`KifuFileFilter::saveLabel()`）で並べる。形式の既定は `MatchAutoSave::extension` の `kifu` だけで、ローカル対局と通信対局で同じ。`NetworkSettings::csaAutoSaveFormat` は選んだことがなければ空） |
 | 2026-11-03 | 局面を受け付ける規則を1つにした（監査 2026-11-01 U1）のに合わせて §8.2・§10.5 を更新（棋譜の開始局面の規則 `KifuLoadParser::startPositionProblem()` を公開し、`KifuLoader::loadPositionFromSfen()` と自動化 API の `position.set` も使う。`position.set` は GUI の局面の貼り付けと同じく、玉の無い図・手番でない側に王手がかかった図を受け付ける。局面集・詰将棋問題一覧は `SfenValidator` のまま） |
+| 2026-11-03 | 棋譜解析の1局面の評価値を GUI と CLI で1つにした（監査 2026-11-01 U3）のに合わせて §9.3・§9.6 を更新（`PlyAnalysis::score`（手番側から見た値）を `blackScore`（先手から見た値）にし、`PlyAnalysisCollector` が解析した局面の手番で直す。GUI の `KifuAnalysisRowPresenter` は SFEN の手番の字を読まず、CLI の `analyze-kifu` は最後に読み筋のあった info（`latestLines()`）でなくこの値を使う） |
 
 <!-- chapter-0-end -->
 
@@ -5135,7 +5136,7 @@ onBestMove()
 | フィールド | 内容 |
 |---|---|
 | `ply` | 手数 |
-| `score` | 評価値（`UsiBestMove::score`。その局面の手番側から見た値。定跡は None） |
+| `blackScore` | 評価値を先手から見た値（`UsiBestMove::score` を、解析した局面の手番で `UsiScore::blackView()` に直す。定跡は None）。GUI の結果の表・評価値グラフと CLI の `analyze-kifu` の `score_cp_black`・`score_mate_black` が同じ値を使う |
 | `pv` | 最善の読み筋（`PvText`。解析した局面の上で指した手と、指せなかった語） |
 | `book` | info が1つも届かずに bestmove が届いた（定跡） |
 
@@ -5284,7 +5285,7 @@ CandidateArrowPresenter::refresh()
 棋譜解析の画面を受け持つコントローラである。条件ダイアログを出して解析の実行（`KifuAnalysisSession`。9.3）に始めさせ、その知らせを結果のモデル・評価値グラフ・棋譜欄に反映し、完了を結果の表に知らせる。エンジンと動作状態「棋譜解析中」は実行が持つ（検討の `ConsiderationUiController` と `AnalysisSession` と同じ形）。評価値グラフの点は、局面の結果を受けたときではなく次の局面の解析を始めたとき（`plyStarted`）か解析を終えたときに足す（`m_pendingPlot`）。合成ルートが起動時に1つ作り（`MainWindowComponents::kifuAnalysis`）、メニュー「棋譜解析」は `MenuActionsWiring` が `showDialogAndStart()` へ、「解析中止」は `stop()` へつなぐ。
 
 - **`KifuAnalysisSession`**（analysis 層）: 解析の依頼（`AnalysisRequest`：手順 `RecordLine`・範囲と思考時間 `AnalysisRequest::Options`・エンジンのパスと名前・解析する手順の末尾の手 `lineEndNodeId`）と、枠 E1 のエンジン・動作状態のリース、局面の列の実行器を持つ（9.3）
-- **`KifuAnalysisRowPresenter`**（ui/presenters）: 1局面の結果（`PlyAnalysis`）を `append()` で結果の表の1行にし、先手から見た評価値を返す（評価値グラフの点に使う）。候補手は前の行の読み筋の最初の手で、前の行の局面に至った手と同じマスへの手は `KifMoveText::format` が「同　」と書く
+- **`KifuAnalysisRowPresenter`**（ui/presenters）: 1局面の結果（`PlyAnalysis`）を `append()` で結果の表の1行にし、先手から見た評価値（`PlyAnalysis::blackScore`。向きは直さない）を返す（評価値グラフの点に使う）。候補手は前の行の読み筋の最初の手で、前の行の局面に至った手と同じマスへの手は `KifMoveText::format` が「同　」と書く
 
 #### Deps 構造体（主要メンバー）
 

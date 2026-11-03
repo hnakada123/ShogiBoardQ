@@ -55,7 +55,7 @@ PlyAnalysis result(int ply, const UsiScore& score, const QStringList& pv = {})
 {
     PlyAnalysis analysis;
     analysis.ply = ply;
-    analysis.score = score;
+    analysis.blackScore = score;
     // 読み筋は平手の盤の上で、手数の偶奇で決めた手番の側から指す
     QString base = SfenUtils::hirateSfen();
     if (ply % 2 == 1) base.replace(QStringLiteral(" b "), QStringLiteral(" w "));
@@ -79,7 +79,8 @@ private slots:
         const PlyAnalysis analysis = collector.finish(bestMove(UsiScore::cp(50)));
         QCOMPARE(analysis.ply, 1);
         QVERIFY(!analysis.book);
-        QCOMPARE(analysis.score.value, 50);
+        // 後手番の局面の評価値（手番側から見た 50）は、先手から見た -50 にする
+        QCOMPARE(analysis.blackScore.value, -50);
         QCOMPARE(analysis.pv.usiMoves(), (QStringList{QStringLiteral("3c3d"), QStringLiteral("2g2f")}));
         QCOMPARE(KifuPresentation::pv(analysis.pv), QStringLiteral("△３四歩(33)▲２六歩(27)"));
         QCOMPARE(analysis.depth, 10);
@@ -94,7 +95,7 @@ private slots:
         collector.addInfo(info("info depth 10 multipv 1 score cp 200 pv 7g7f 3c3d"));
         collector.addInfo(info("info depth 11 multipv 2 score cp -300 pv 2g2f 8c8d"));
         const PlyAnalysis analysis = collector.finish(bestMove(UsiScore::cp(200)));
-        QCOMPARE(analysis.score.value, 200);
+        QCOMPARE(analysis.blackScore.value, 200);
         // 深さも最善の読み筋のもの（定跡に登録するときに使う）
         QCOMPARE(analysis.depth, 10);
         QCOMPARE(analysis.pv.usiText(), QStringLiteral("7g7f 3c3d"));
@@ -140,12 +141,11 @@ private slots:
         KifuAnalysisRowPresenter::Refs refs;
         refs.analysisModel = &model;
         KifuAnalysisRowPresenter handler(refs);
-        // ply=2 は偶数（先手番）なので評価値 200 がそのまま
+        // 結果の評価値は先手から見た値（向きは PlyAnalysisCollector が解析した局面の手番で直す）で、表にそのまま出す
         PlyAnalysis first = result(2, UsiScore::cp(200), {QStringLiteral("7g7f")});
         first.depth = 18;
         QCOMPARE(handler.append(first).value, 200);
-        // ply=3 は後手番なので先手から見た値に符号を直す
-        QCOMPARE(handler.append(result(3, UsiScore::cp(80), {QStringLiteral("3c3d")})).value, -80);
+        QCOMPARE(handler.append(result(3, UsiScore::cp(-80), {QStringLiteral("3c3d")})).value, -80);
         QCOMPARE(model.rowCount(), 2);
         QCOMPARE(model.row(0)->pv.usiText(), QStringLiteral("7g7f"));
         // 行は局面の手数と読み筋の深さも持つ（定跡に登録するときに使う）
@@ -197,7 +197,7 @@ private slots:
         const auto analyzed = [&line](int ply, const QString& pv) {
             PlyAnalysis analysis;
             analysis.ply = ply;
-            analysis.score = UsiScore::cp(10);
+            analysis.blackScore = UsiScore::cp(10);
             analysis.pv = PvText::play(line.sfenAt(ply), QStringList{pv});
             return analysis;
         };
@@ -229,18 +229,29 @@ private slots:
         QCOMPARE(model.row(0)->depth, -1);
     }
 
+    /// 詰みの評価値も、解析した局面の手番で先手から見た値にし（PlyAnalysisCollector）、表はそのまま出す
     void mateScoresKeepTheirSide()
     {
+        PlyAnalysisCollector collector;
+        // 後手番の局面で後手が詰ます手順は、先手から見ると詰まされる側
+        collector.begin(1, position("position startpos moves 7g7f"));
+        collector.addInfo(info("info score mate 5 pv 3c3d"));
+        const PlyAnalysis mated = collector.finish(bestMove(UsiScore::mate(5)));
+        QVERIFY(mated.blackScore.isMate());
+        QCOMPARE(mated.blackScore.mateText(), QStringLiteral("-5"));
+        // 後手番で手番側（後手）が詰まされる（手数の分からない詰み）は、先手の勝ち
+        collector.begin(3, position("position startpos moves 7g7f 3c3d 2g2f"));
+        collector.addInfo(info("info score mate - pv 8c8d"));
+        const PlyAnalysis winning = collector.finish(bestMove(info("info score mate -").score));
+        QCOMPARE(winning.blackScore.mateText(), QStringLiteral("+"));
+
         KifuAnalysisListModel model;
         KifuAnalysisRowPresenter::Refs refs;
         refs.analysisModel = &model;
         KifuAnalysisRowPresenter handler(refs);
-        // 後手番の局面なので先手から見ると詰まされる側
-        const UsiScore mated = handler.append(result(1, UsiScore::mate(5), {QStringLiteral("7g7f")}));
-        QVERIFY(mated.isMate());
-        QCOMPARE(mated.mateText(), QStringLiteral("-5"));
+        QCOMPARE(handler.append(mated).mateText(), QStringLiteral("-5"));
         QVERIFY(handler.append(result(2, UsiScore::cp(120))).isCp());
-        QCOMPARE(handler.append(result(3, info("info score mate -").score)).mateText(), QStringLiteral("+"));
+        QCOMPARE(handler.append(winning).mateText(), QStringLiteral("+"));
     }
 
     void missingEvaluationAndDifferences()
@@ -252,7 +263,7 @@ private slots:
         handler.append(result(0, UsiScore::cp(120), {QStringLiteral("7g7f")}));
         QVERIFY(!model.row(0)->evaluationDifference);
         QCOMPARE(model.index(0, 5).data().toString(), QStringLiteral("-"));
-        handler.append(result(1, UsiScore::cp(-160), {QStringLiteral("3c3d")}));
+        handler.append(result(1, UsiScore::cp(160), {QStringLiteral("3c3d")}));
         QCOMPARE(model.row(1)->evaluationDifference, std::optional<int>(40));
         QCOMPARE(model.index(1, 5).data().toString(), QStringLiteral("40"));
         QVERIFY(handler.append(result(2, UsiScore{}, {QStringLiteral("2g2f")})).isNone());
