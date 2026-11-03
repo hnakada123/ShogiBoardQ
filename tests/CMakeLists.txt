@@ -61,6 +61,8 @@ set(SETTINGS_SOURCES
     ${SRC}/style/piecestylecatalog.cpp
     ${SRC}/services/docksettings.cpp
     ${SRC}/services/gamesettings.cpp
+    ${SRC}/services/josekisettings.cpp
+    ${SRC}/services/tsumeshogisettings.cpp
     ${SRC}/services/enginelistsettings.cpp
     ${SRC}/services/registeredengines.cpp
     ${SRC}/services/engineprofilestore.cpp

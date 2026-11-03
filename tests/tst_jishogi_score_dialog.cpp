@@ -116,7 +116,7 @@ private slots:
     void fontSizeScrollingAndPersistence()
     {
         GameSettings::jishogiScoreFontSize.set(200);
-        GameSettings::jishogiScoreDialogSize.set(QSize(250, 280));
+        GameSettings::jishogiScoreDialogSize().set(QSize(250, 280));
         {
             JishogiScoreDialog dialog(m_initial, false, false);
             QCOMPARE(dialog.size(), QSize(660, 640));
@@ -144,7 +144,7 @@ private slots:
             close->click();
             QCOMPARE(dialog.result(), static_cast<int>(QDialog::Accepted));
         }
-        QCOMPARE(GameSettings::jishogiScoreDialogSize(), QSize(700, 680));
+        QCOMPARE(GameSettings::jishogiScoreDialogSize()(), QSize(700, 680));
         JishogiScoreDialog reopened(m_initial, false, false);
         QCOMPARE(reopened.size(), QSize(700, 680));
         QCOMPARE(reopened.findChild<QLabel*>(QStringLiteral("sente_totalPoints"))->font().pointSize(), 10);

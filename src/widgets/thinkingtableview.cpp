@@ -38,14 +38,11 @@ ThinkingTableView::ThinkingTableView(AnalysisSettings::ThinkingTable table, QWid
     header->setMinimumSectionSize(24);
     header->setStretchLastSection(true);
 
-    // 上下限の列を足す前の保存（列が1つ少ない）は、盤面・読み筋の位置をずらして引き継ぐ
-    const ListSetting<int> widths = AnalysisSettings::thinkingViewColumnWidths(table);
-    if (QList<int> saved = widths(); saved.size() == Column::ColumnCount - 1) {
-        saved.insert(Column::BoundColumn, 0);
-        widths.set(saved);
-    }
+    // 列幅の保存は設定の側が列の番号を持つ（以前の版の保存の引き継ぎも設定の側）
+    static_assert(AnalysisSettings::kThinkingViewColumnCount == Column::ColumnCount);
+    static_assert(AnalysisSettings::kThinkingViewBoundColumn == Column::BoundColumn);
     // 読み筋の列（最後の列）は表示領域に合わせて伸び縮みするので、ColumnWidthMemory は覚えない
-    m_columnWidths = new ColumnWidthMemory(header, widths, Column::ColumnCount);
+    m_columnWidths = new ColumnWidthMemory(header, AnalysisSettings::thinkingViewColumnWidths(table), Column::ColumnCount);
     connect(this, &PvTableView::boardRequested, this, &ThinkingTableView::onBoardRequested);
     connect(this, &PvTableView::rowContextMenuAboutToShow, this, &ThinkingTableView::onRowContextMenuAboutToShow);
 }

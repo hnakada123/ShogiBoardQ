@@ -19,6 +19,16 @@ ListSetting<int> gameInfoColumnWidths()
     return widths;
 }
 
+const Setting<QSize>& jishogiScoreDialogSize()
+{
+    static const Setting<QSize> size{"JishogiScore/dialogSize", QSize(660, 640)};
+    // 以前の版の小さいレイアウトで保存した大きさは捨て、比較表の標準の大きさから始める
+    const QSize saved = size();
+    if (saved.width() < kJishogiScoreDialogMinimumSize.width() || saved.height() < kJishogiScoreDialogMinimumSize.height())
+        size.remove();
+    return size;
+}
+
 } // namespace GameSettings
 
 namespace GameSettings::StartGame {

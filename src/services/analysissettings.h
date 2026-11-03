@@ -120,7 +120,13 @@ enum class ThinkingTable { Engine1 = 0, Engine2 = 1, Consideration = 2 };
 /// エンジン情報欄の列幅（列ごと。0 は自動。読み書きは widgets の ColumnWidthMemory）
 ListSetting<int> engineInfoColumnWidths(ThinkingTable table);
 
-/// 思考の表（読み筋の表）の列幅（列ごと。0 は自動。読み筋の列は表示領域に合わせるので使わない）
+/// 思考の表の列の数と、上下限の列の位置（models の ShogiEngineThinkingModel::Column と同じ番号。
+/// services は models を include できないので、ここに番号を書き、表の部品が static_assert で照らす）
+inline constexpr int kThinkingViewColumnCount = 7;
+inline constexpr int kThinkingViewBoundColumn = 4;
+
+/// 思考の表（読み筋の表）の列幅（列ごと。0 は自動。読み筋の列は表示領域に合わせるので使わない）。
+/// 上下限の列を足す前の版の保存（列が1つ少ない）は、初めて読むときに上下限の列に 0 を入れて移す
 ListSetting<int> thinkingViewColumnWidths(ThinkingTable table);
 
 /// USI通信ログタブのフォントサイズ（デフォルト: 10）

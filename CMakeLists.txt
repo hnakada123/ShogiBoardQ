@@ -912,12 +912,14 @@ set(SRC_SERVICES
     src/services/engineprofilestore.h
     src/services/gamesettings.cpp
     src/services/gamesettings.h
+    src/services/josekisettings.cpp
     src/services/josekisettings.h
     src/services/networksettings.h
     src/services/piecesoundtone.h
     src/services/setting.h
     src/services/settingscommon.cpp
     src/services/settingscommon.h
+    src/services/tsumeshogisettings.cpp
     src/services/tsumeshogisettings.h
 )
 

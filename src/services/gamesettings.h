@@ -166,8 +166,12 @@ inline const Setting<QString> sfenCollectionLastDirectory{"SfenCollection/lastDi
 /// 持将棋の点数ダイアログのフォントサイズ（デフォルト: 10）
 inline const Setting<int> jishogiScoreFontSize{"FontSize/jishogiScore", 10};
 
-/// 持将棋の点数ダイアログのウィンドウサイズ（デフォルト: 660x640）
-inline const Setting<QSize> jishogiScoreDialogSize{"JishogiScore/dialogSize", QSize(660, 640)};
+/// 持将棋の点数ダイアログの最小の大きさ
+inline constexpr QSize kJishogiScoreDialogMinimumSize{480, 360};
+
+/// 持将棋の点数ダイアログのウィンドウサイズ（デフォルト: 660x640）。以前の版の小さいレイアウトで
+/// 保存した大きさ（最小の大きさより小さい）は、初めて読むときに捨てて既定の大きさから始める
+const Setting<QSize>& jishogiScoreDialogSize();
 
 } // namespace GameSettings
 
