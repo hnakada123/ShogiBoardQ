@@ -195,6 +195,7 @@
 | 2026-11-03 | 外から来た文字列のツールチップの書き方を1つにした（監査 2026-11-01 M12）のに合わせて §1.5・§11.5.3・第18章を更新（style に `plainToolTip()` を置き、棋譜欄のコメント・対局情報・定跡ウィンドウ・思考の表の読み筋・分岐ツリー・メニューウィンドウのボタンと、エスケープせずに入れていたエンジンを選ぶコンボ・エンジン情報欄・`ElideLabel`（エンジン名・対局者名）はこれで出す。空白と改行もそのまま出す（`white-space:pre-wrap`。以前の `<br/>` に替える書き方は連続した空白を詰めていた）。`GlobalToolTip` はラベルを `Qt::PlainText` にし、エスケープした文字（「&amp;」など）を見せないようにした。自動化 API の部品の一覧の `tooltip` は、見える文字 `shownToolTipText()` で返す） |
 | 2026-11-03 | 対局情報の表に出す文字をモデルの1か所で作るようにした（監査 2026-11-01 M13）のに合わせて §11.2・第18章を更新（`GameInfoEditModel::PresentedTextRole` を足し、表のデリゲートは項目名・内容の表記を自分で作らずにこれを描く。項目名の列幅もこれで測る。以前はモデルの `presentedText`（読み上げ・ツールチップ・列幅）とデリゲート（描画）が同じ処理を別々に持っていた） |
 | 2026-11-03 | 局面編集の右クリックの巡回も行き先を通すようにした（監査 2026-11-01 M14）のに合わせて §1.5・§10.3・§13.5・§13.6・第18章を更新（`BoardInputRoute::cycle(square)` を足し、`BoardInteractionController::onRightClick()` は局面編集中なら盤を変えずに行き先へ渡す。主画面の `BoardMoveController::cycle()` が `PositionEditSession::cycleEditPiece()` に渡し、詰将棋を解く画面は何もしない。`togglePiecePromotionOnClick()` を消した） |
+| 2026-11-03 | 盤の対局者名の決め方を1つにした（監査 2026-11-01 M15）のに合わせて §8.5・§10.2・§10.3・§12.7 を更新（`PlayerInfoPresenter::boardName(document, activity, side)` を足し、本体の盤と読み筋盤（`PvClickController::showPvBoard()`。`Deps` に `activity` を足した）がこれを使う。読み筋盤は対局中も対局情報の名前を出していたので、棋譜に先手・後手の行が無いまま途中から続けた対局などで本体の盤と名前が違った。「先手」「後手」の補いは `PvBoardDialog::setPlayerNames()` からも消した） |
 
 <!-- chapter-0-end -->
 
@@ -2052,6 +2053,10 @@ public:
         const AppActivityState* activity = nullptr;  ///< 対局中か（必須、非所有）
         ShogiView* shogiView = nullptr;
     };
+
+    /// 盤に出す side の対局者名（対局中は対局者、対局していなければ対局情報の名前。どちらも空なら
+    /// 「先手」「後手」）。読み筋盤（PvClickController）も使う
+    static QString boardName(const KifuDocument& document, const AppActivityState& activity, Turn side);
 
 private slots:
     /// 対局中なら対局者（KifuDocument::players()）の名前を、対局していなければ対局情報の名前を盤に出す。
@@ -4554,7 +4559,7 @@ struct KifuParseOutcome {
 
 - 画面で入力中の編集（対局情報欄のセル・コメント欄の未更新の本文）は、上位層へのフック（Hooks パターン）`addPendingEditor(Hooks{commitPendingEdits, hasPendingEdits})` で編集する画面ごとに受け取る。合成ルートが `GameInfoPane`（`commitPendingEditor`・`hasPendingEditor`）と `CommentCoordinator`（`commitPendingComment`・`hasPendingComment`）を1つずつ足す。保存・書き出し・対局の開始の前に確定し、`isModified()` は未確定の編集も未保存に数える。`header()` は読むだけで確定しない
 - `editHeader(items)` は利用者が対局情報欄で編集した内容を受け取る（`GameInfoPane::gameInfoEdited` から）
-- `headerPlayerName(side)` は対局情報の対局者名（先手・後手。駒落ちは下手・上手。なければ省略名）。対局していないときの盤の対局者名（`PlayerInfoPresenter`）と棋譜解析の対局者名（`KifuAnalysisController`）に使う
+- `headerPlayerName(side)` は対局情報の対局者名（先手・後手。駒落ちは下手・上手。なければ省略名）。対局していないときの盤と読み筋盤の対局者名（`PlayerInfoPresenter::boardName()`）と棋譜解析の対局者名（`KifuAnalysisController`）に使う
 - `usesHandicapNames()` は対局者を下手・上手と呼ぶか（駒落ちで、対局情報の見出しが下手・上手のとき）。司令塔の終局の知らせと入玉宣言の判定（`MatchCoordinator::usesHandicapNames()`）・利用者の入玉宣言の確認（`NyugyokuDeclarationHandler`。ローカル対局・通信対局で共通）・BOD のコピーが使う
 
 #### 未保存の判定
@@ -5725,11 +5730,11 @@ KifuNavigationState::changed
 
 **ソース**: `src/ui/presenters/playerinfopresenter.h`, `src/ui/presenters/playerinfopresenter.cpp`
 
-盤の対局者名を出すプレゼンターである（表示だけ）。対局者（`MatchPlayers`、[5.6節](#56-matchplayers--対局者)）と対局情報は棋譜の文書（`KifuDocument`、8.5節）が持ち、このクラスは読むだけで書き換えない。盤の対局者名は、対局中は対局者、対局していなければ対局情報の名前（初期値は「先手」「後手」）にする。エンジンの表示（通信ログの見出し・2つ目のエンジン欄・検討タブ・評価値グラフの系列名）は `EngineDisplayPresenter` が受け持つ。
+盤の対局者名を出すプレゼンターである（表示だけ）。対局者（`MatchPlayers`、[5.6節](#56-matchplayers--対局者)）と対局情報は棋譜の文書（`KifuDocument`、8.5節）が持ち、このクラスは読むだけで書き換えない。盤の対局者名は、対局中は対局者、対局していなければ対局情報の名前（どちらも空なら「先手」「後手」）にする。名前の決め方は静的関数 `boardName(document, activity, side)` の1つで、読み筋盤（`PvClickController::showPvBoard()`）も同じ名前を出す。エンジンの表示（通信ログの見出し・2つ目のエンジン欄・検討タブ・評価値グラフの系列名）は `EngineDisplayPresenter` が受け持つ。
 
 `Deps` は `document`（`const KifuDocument*`）・`activity`（`const AppActivityState*`。対局中か）・`shogiView` の3つ。
 
-公開の関数は持たない。文書の知らせ（`playersChanged`・`headerReset`・`headerEdited`・`headerValueSet`）と動作状態の `changed` を自分でつなぎ、そのたびに `refresh()` で求め直す（対局中なら文書の対局者 `KifuDocument::players()`、対局していなければ対局情報の名前 `KifuDocument::headerPlayerName()`）。ほかの部品は盤の名前を書き込まない。
+公開の関数は `boardName()` だけ。文書の知らせ（`playersChanged`・`headerReset`・`headerEdited`・`headerValueSet`）と動作状態の `changed` を自分でつなぎ、そのたびに `refresh()` で求め直す（対局中なら文書の対局者 `KifuDocument::players()`、対局していなければ対局情報の名前 `KifuDocument::headerPlayerName()`）。ほかの部品は盤の名前を書き込まない。
 
 対局情報（開始日時・対局者・手合割・持ち時間・終了日時）を作るのは文書（`KifuDocument::beginMatch()`・`recordMatchEnd()`）で、手合割は開始局面から `GameInfo::handicapLabel()` で求め、駒落ちなら対局情報の見出しを下手・上手にする。対局情報欄（`GameInfoPane`）は合成ルートが作り、文書の対局情報を編集する画面としてつなぐ（8.5節）。エンジン名をどこに出すかは 12.7 節を参照。
 
@@ -5860,7 +5865,7 @@ playUsiMove(move)                   ← playMove()、JosekiWindowController（�
 
 **ソース**: `src/ui/controllers/pvclickcontroller.h`, `src/ui/controllers/pvclickcontroller.cpp`
 
-`ThinkingPanel`（思考タブ）や検討タブの読み筋（PV）行の「盤面」ボタンを押した際の処理を担当する。読み筋盤を開く処理 `showPvBoard(pv, lastUsiMove, prevSfen)` は棋譜解析の結果の行（`KifuAnalysisController`）も使い、対局者名と盤の向きの規則をここ1か所で決める。クリックされた行から読み筋データを取得し、`PvBoardDialog`（ミニ盤面ビューア）を表示する。`ThinkingPanel::pvRowClicked`・`ConsiderationPanel::pvRowClicked` を `onPvRowClicked()` につなぐのは `MainWindowComposer::connectAnalysisAndUi()` である。
+`ThinkingPanel`（思考タブ）や検討タブの読み筋（PV）行の「盤面」ボタンを押した際の処理を担当する。読み筋盤を開く処理 `showPvBoard(pv, lastUsiMove, prevSfen)` は棋譜解析の結果の行（`KifuAnalysisController`）も使い、対局者名と盤の向きの規則をここ1か所で決める（対局者名は本体の盤と同じ `PlayerInfoPresenter::boardName()`。そのため `Deps` に文書 `document` と動作状態 `activity` を持つ。盤の向きと大きさは本体の盤 `shogiView` から写す）。クリックされた行から読み筋データを取得し、`PvBoardDialog`（ミニ盤面ビューア）を表示する。`ThinkingPanel::pvRowClicked`・`ConsiderationPanel::pvRowClicked` を `onPvRowClicked()` につなぐのは `MainWindowComposer::connectAnalysisAndUi()` である。
 
 ```
 onPvRowClicked(ShogiEngineThinkingModel* model, row)
@@ -7219,7 +7224,7 @@ MyDialog::MyDialog(QWidget* parent)
 
 **ソース**: `src/ui/presenters/playerinfopresenter.h/.cpp`、`src/ui/presenters/enginedisplaypresenter.h/.cpp`（クラスの概要は 10.2 節）
 
-盤の対局者名は `PlayerInfoPresenter` が対局者（`MatchPlayers`、[5.6節](#56-matchplayers--対局者)）から決める。対局中（動作状態が `DuringGame`）は最後に始めた対局の対局者（`KifuDocument::players()`）を出し、対局していなければ対局情報の名前を出す（`PlayerInfoPresenter` が文書と動作状態の知らせで決める）。エンジン名（通信ログの見出し・2つ目のエンジン欄・評価値グラフの系列名・検討タブ）は `EngineDisplayPresenter` が決める。
+盤の対局者名は `PlayerInfoPresenter` が対局者（`MatchPlayers`、[5.6節](#56-matchplayers--対局者)）から決める。対局中（動作状態が `DuringGame`）は最後に始めた対局の対局者（`KifuDocument::players()`）を出し、対局していなければ対局情報の名前を出す（`PlayerInfoPresenter` が文書と動作状態の知らせで決める。決め方は `PlayerInfoPresenter::boardName()` の1つで、読み筋盤も同じ名前を出す）。エンジン名（通信ログの見出し・2つ目のエンジン欄・評価値グラフの系列名・検討タブ）は `EngineDisplayPresenter` が決める。
 
 #### 通信ログの見出し（E1・E2）
 

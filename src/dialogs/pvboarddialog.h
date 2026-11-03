@@ -33,11 +33,7 @@ public:
     explicit PvBoardDialog(const PvText& pv, QWidget* parent = nullptr);
     ~PvBoardDialog() override;
 
-    /**
-     * @brief 対局者名を設定
-     * @param blackName 先手の名前
-     * @param whiteName 後手の名前
-     */
+    /// 盤に出す対局者名（呼び出し側が決めた名前をそのまま出す。設定しなければ「先手」「後手」）
     void setPlayerNames(const QString& blackName, const QString& whiteName);
 
     /**

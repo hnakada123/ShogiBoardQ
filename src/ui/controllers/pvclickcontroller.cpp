@@ -3,9 +3,9 @@
 
 #include "pvclickcontroller.h"
 
-#include "kifudocument.h"
 #include "kifunavigationstate.h"
 #include "logcategories.h"
+#include "playerinfopresenter.h"
 #include "pvboarddialog.h"
 #include "pvtext.h"
 #include "sfenutils.h"
@@ -17,6 +17,7 @@ PvClickController::PvClickController(const Deps& deps, QObject* parent)
     : QObject(parent)
     , m_deps(deps)
 {
+    Q_ASSERT(m_deps.document && m_deps.activity);
 }
 
 void PvClickController::onPvRowClicked(ShogiEngineThinkingModel* model, int row)
@@ -54,10 +55,9 @@ void PvClickController::onPvRowClicked(ShogiEngineThinkingModel* model, int row)
 PvBoardDialog* PvClickController::showPvBoard(const PvText& pv, const QString& lastUsiMove, const QString& prevSfen)
 {
     auto* dlg = new PvBoardDialog(pv, qobject_cast<QWidget*>(parent()));
-    // 対局者名（対局情報の名前。無ければ先手・後手）
-    const QString blackName = m_deps.document ? m_deps.document->headerPlayerName(Turn::Black) : QString();
-    const QString whiteName = m_deps.document ? m_deps.document->headerPlayerName(Turn::White) : QString();
-    dlg->setPlayerNames(blackName.isEmpty() ? tr("先手") : blackName, whiteName.isEmpty() ? tr("後手") : whiteName);
+    // 対局者名は本体の盤と同じ（対局中は対局者、対局していなければ対局情報の名前）
+    dlg->setPlayerNames(PlayerInfoPresenter::boardName(*m_deps.document, *m_deps.activity, Turn::Black),
+                        PlayerInfoPresenter::boardName(*m_deps.document, *m_deps.activity, Turn::White));
     // 本体の盤の今の向きと大きさで出す
     dlg->setFlipMode(m_deps.shogiView && m_deps.shogiView->flipMode());
     if (m_deps.shogiView) dlg->setSquareSize(m_deps.shogiView->squareSize());

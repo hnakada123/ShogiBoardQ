@@ -24,22 +24,20 @@ PlayerInfoPresenter::PlayerInfoPresenter(const Deps& deps, QObject* parent)
 
 PlayerInfoPresenter::~PlayerInfoPresenter() = default;
 
-void PlayerInfoPresenter::refresh()
+QString PlayerInfoPresenter::boardName(const KifuDocument& document, const AppActivityState& activity, Turn side)
 {
-    if (m_deps.activity->is(AppActivityState::Activity::DuringGame)) {
-        const MatchPlayers& players = m_deps.document->players();
-        qCDebug(lcUi).noquote() << "board names: black=" << players.name(Turn::Black)
-                                << " white=" << players.name(Turn::White);
-        setBoardNames(players.name(Turn::Black), players.name(Turn::White));
-        return;
-    }
-    // 先手・後手が無ければ駒落ちの下手・上手、それも無ければ省略名
-    setBoardNames(m_deps.document->headerPlayerName(Turn::Black), m_deps.document->headerPlayerName(Turn::White));
+    const QString name = activity.is(AppActivityState::Activity::DuringGame) ? document.players().name(side)
+                                                                             : document.headerPlayerName(side);
+    if (!name.isEmpty()) return name;
+    return side == Turn::Black ? tr("先手") : tr("後手");
 }
 
-void PlayerInfoPresenter::setBoardNames(const QString& black, const QString& white)
+void PlayerInfoPresenter::refresh()
 {
     if (!m_deps.shogiView) return;
-    m_deps.shogiView->chrome()->card(Turn::Black)->setName(black.isEmpty() ? tr("先手") : black);
-    m_deps.shogiView->chrome()->card(Turn::White)->setName(white.isEmpty() ? tr("後手") : white);
+    for (const Turn side : {Turn::Black, Turn::White}) {
+        const QString name = boardName(*m_deps.document, *m_deps.activity, side);
+        qCDebug(lcUi).noquote() << "board name:" << (side == Turn::Black ? "black" : "white") << name;
+        m_deps.shogiView->chrome()->card(side)->setName(name);
+    }
 }

@@ -55,6 +55,11 @@
 #include "stepbuttons.h"
 #include "sfencollectiondialog.h"
 #include "shogiview.h"
+#include "boardchromewidget.h"
+#include "elidelabel.h"
+#include "gameinfokeys.h"
+#include "playercard.h"
+#include "timecontrol.h"
 
 #include <QAbstractButton>
 #include <QApplication>
@@ -482,6 +487,55 @@ private slots:
 
         parts.positionEdit->finish();
         parts.positionEdit->setPieceBoxSide(Turn::Black);
+        parts.document->markSaved(QString());
+    }
+
+    /// 読み筋盤の対局者名は本体の盤と同じ規則で決める（対局中は対局者、対局していなければ対局情報の名前、
+    /// どちらも空なら「先手」「後手」。監査 2026-11-01 M15）
+    void pvBoardPlayerNamesFollowMainBoard()
+    {
+        MainWindow window;
+        auto& parts = window.composer().parts();
+        AppActivityState& activity = window.composer().activity();
+        const auto shownName = [](const ShogiView* view, Turn side) {
+            return view->chrome()->card(side)->nameLabel()->fullText();
+        };
+        const auto namesMatch = [&](const QString& black, const QString& white) {
+            PvBoardDialog* dialog = parts.pvClickController->showPvBoard(
+                PvText::play(QStringLiteral("startpos"), QStringLiteral("7g7f")), QString());
+            const ShogiView* pvView = dialog->findChild<BoardViewerWidget*>()->view();
+            const bool same = shownName(pvView, Turn::Black) == shownName(parts.shogiView, Turn::Black)
+                && shownName(pvView, Turn::White) == shownName(parts.shogiView, Turn::White)
+                && shownName(parts.shogiView, Turn::Black).endsWith(black)
+                && shownName(parts.shogiView, Turn::White).endsWith(white);
+            if (!same) {
+                qWarning().noquote() << "main:" << shownName(parts.shogiView, Turn::Black)
+                                     << shownName(parts.shogiView, Turn::White)
+                                     << "pv:" << shownName(pvView, Turn::Black) << shownName(pvView, Turn::White);
+            }
+            dialog->close();
+            return same;
+        };
+
+        // 対局情報に先手・後手の行が無く省略名だけの棋譜（途中から続けても対局情報の名前は書き換わらない）
+        parts.document->editHeader({{GameInfoKeys::kBlackShortName, QStringLiteral("棋譜の先手")},
+                                    {GameInfoKeys::kWhiteShortName, QStringLiteral("棋譜の後手")}});
+        QVERIFY(namesMatch(QStringLiteral("棋譜の先手"), QStringLiteral("棋譜の後手")));
+
+        MatchPlayers players;
+        players.seat(Turn::Black).humanName = QStringLiteral("対局の先手");
+        players.seat(Turn::White).engine = true;
+        players.seat(Turn::White).engineName = QStringLiteral("対局のエンジン");
+        parts.document->beginMatch(players, TimeControl{}, /*continuesRecord=*/true);
+        QCOMPARE(parts.document->headerPlayerName(Turn::Black), QStringLiteral("棋譜の先手"));
+        QObject owner;
+        ActivityLease game = activity.begin(AppActivityState::Activity::DuringGame, &owner);
+        QVERIFY(namesMatch(QStringLiteral("対局の先手"), QStringLiteral("対局のエンジン")));
+
+        game.reset();
+        QVERIFY(namesMatch(QStringLiteral("棋譜の先手"), QStringLiteral("棋譜の後手")));
+        parts.document->editHeader({});
+        QVERIFY(namesMatch(QStringLiteral("先手"), QStringLiteral("後手")));
         parts.document->markSaved(QString());
     }
 

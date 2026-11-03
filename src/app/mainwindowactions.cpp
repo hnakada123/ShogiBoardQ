@@ -49,7 +49,7 @@ void MainWindowActions::startNewRecord()
     m_deps.gameSession->abandonGame();
     // 対局・棋譜解析のエンジンも止める（思考情報の表示は作り直しで消す）
     if (m_deps.engines) m_deps.engines->destroyEngines(false);
-    // 前の対局者・持ち時間・上書き保存先も残さない（盤には対局情報の初期値「先手」「後手」を出す）
+    // 前の対局者・持ち時間・上書き保存先も残さない（対局情報の対局者名は空になり、盤には「先手」「後手」と補って出す）
     m_deps.reset->resetToNewRecord(SfenUtils::hirateSfen());
 }
 

@@ -53,7 +53,8 @@ void MainWindowComposer::compose()
 
 void MainWindowComposer::finalizeUi()
 {
-    // 盤・棋譜欄・分岐・手番と対局者名の初期表示（対局は始めない。盤の対局者名は対局情報の初期値「先手」「後手」）
+    // 盤・棋譜欄・分岐・手番と対局者名の初期表示（対局は始めない。対局情報の対局者名は空なので、盤には
+    // PlayerInfoPresenter が「先手」「後手」と補って出す）
     m_c.shogiView->applyBoardAndRender(m_c.gameBoard->board());
     m_c.kifuDisplay->refresh();
 

@@ -5298,38 +5298,38 @@ ABC abc 0123456789</translation>
 <context>
     <name>GameInfoEditModel</name>
     <message>
-        <location filename="../../src/models/gameinfoeditmodel.cpp" line="83"/>
+        <location filename="../../src/models/gameinfoeditmodel.cpp" line="84"/>
         <source>項目</source>
         <translation>項目</translation>
     </message>
     <message>
-        <location filename="../../src/models/gameinfoeditmodel.cpp" line="83"/>
+        <location filename="../../src/models/gameinfoeditmodel.cpp" line="84"/>
         <source>内容</source>
         <translation>内容</translation>
     </message>
     <message>
-        <location filename="../../src/models/gameinfoeditmodel.cpp" line="184"/>
+        <location filename="../../src/models/gameinfoeditmodel.cpp" line="185"/>
         <source>未開始（対局開始時に設定）</source>
         <translation>未開始（対局開始時に設定）</translation>
     </message>
     <message>
-        <location filename="../../src/models/gameinfoeditmodel.cpp" line="184"/>
-        <location filename="../../src/models/gameinfoeditmodel.cpp" line="188"/>
+        <location filename="../../src/models/gameinfoeditmodel.cpp" line="185"/>
+        <location filename="../../src/models/gameinfoeditmodel.cpp" line="189"/>
         <source>未設定</source>
         <translation>未設定</translation>
     </message>
     <message>
-        <location filename="../../src/models/gameinfoeditmodel.cpp" line="186"/>
+        <location filename="../../src/models/gameinfoeditmodel.cpp" line="187"/>
         <source>未設定（名前を入力できます）</source>
         <translation>未設定（名前を入力できます）</translation>
     </message>
     <message>
-        <location filename="../../src/models/gameinfoeditmodel.cpp" line="188"/>
+        <location filename="../../src/models/gameinfoeditmodel.cpp" line="189"/>
         <source>未設定（対局設定から反映）</source>
         <translation>未設定（対局設定から反映）</translation>
     </message>
     <message>
-        <location filename="../../src/models/gameinfoeditmodel.cpp" line="190"/>
+        <location filename="../../src/models/gameinfoeditmodel.cpp" line="191"/>
         <source>任意入力</source>
         <translation>任意入力</translation>
     </message>
@@ -5337,7 +5337,7 @@ ABC abc 0123456789</translation>
 <context>
     <name>GameInfoPane</name>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="96"/>
+        <location filename="../../src/widgets/gameinfopane.cpp" line="92"/>
         <source>対局情報</source>
         <translation>対局情報</translation>
     </message>
@@ -5392,22 +5392,22 @@ ABC abc 0123456789</translation>
         <translation type="vanished">貼り付け (Ctrl+V)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="337"/>
+        <location filename="../../src/widgets/gameinfopane.cpp" line="333"/>
         <source>行を追加</source>
         <translation>行を追加</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="337"/>
+        <location filename="../../src/widgets/gameinfopane.cpp" line="333"/>
         <source>新しい行を追加する</source>
         <translation>新しい行を追加する</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="338"/>
+        <location filename="../../src/widgets/gameinfopane.cpp" line="334"/>
         <source>行を削除</source>
         <translation>行を削除</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="339"/>
+        <location filename="../../src/widgets/gameinfopane.cpp" line="335"/>
         <source>選択行を削除する（元に戻す操作で復元できます）</source>
         <translation>選択行を削除する（元に戻す操作で復元できます）</translation>
     </message>
@@ -5424,7 +5424,7 @@ ABC abc 0123456789</translation>
         <translation type="vanished">未反映の変更があります</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopane.cpp" line="349"/>
+        <location filename="../../src/widgets/gameinfopane.cpp" line="345"/>
         <source>内容をダブルクリックして編集</source>
         <translation>内容をダブルクリックして編集</translation>
     </message>
@@ -11162,12 +11162,12 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>PlayerInfoPresenter</name>
     <message>
-        <location filename="../../src/ui/presenters/playerinfopresenter.cpp" line="43"/>
+        <location filename="../../src/ui/presenters/playerinfopresenter.cpp" line="32"/>
         <source>先手</source>
         <translation>先手</translation>
     </message>
     <message>
-        <location filename="../../src/ui/presenters/playerinfopresenter.cpp" line="44"/>
+        <location filename="../../src/ui/presenters/playerinfopresenter.cpp" line="32"/>
         <source>後手</source>
         <translation>後手</translation>
     </message>
@@ -11343,14 +11343,12 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>読み筋表示</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="54"/>
         <source>先手</source>
-        <translation>先手</translation>
+        <translation type="vanished">先手</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="55"/>
         <source>後手</source>
-        <translation>後手</translation>
+        <translation type="vanished">後手</translation>
     </message>
     <message>
         <source>将棋盤を縮小する</source>
@@ -11407,14 +11405,12 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>PvClickController</name>
     <message>
-        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="60"/>
         <source>先手</source>
-        <translation>先手</translation>
+        <translation type="vanished">先手</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="60"/>
         <source>後手</source>
-        <translation>後手</translation>
+        <translation type="vanished">後手</translation>
     </message>
 </context>
 <context>
