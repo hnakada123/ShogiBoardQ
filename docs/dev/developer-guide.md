@@ -197,6 +197,7 @@
 | 2026-11-03 | 局面編集の右クリックの巡回も行き先を通すようにした（監査 2026-11-01 M14）のに合わせて §1.5・§10.3・§13.5・§13.6・第18章を更新（`BoardInputRoute::cycle(square)` を足し、`BoardInteractionController::onRightClick()` は局面編集中なら盤を変えずに行き先へ渡す。主画面の `BoardMoveController::cycle()` が `PositionEditSession::cycleEditPiece()` に渡し、詰将棋を解く画面は何もしない。`togglePiecePromotionOnClick()` を消した） |
 | 2026-11-03 | 盤の対局者名の決め方を1つにした（監査 2026-11-01 M15）のに合わせて §8.5・§10.2・§10.3・§12.7 を更新（`PlayerInfoPresenter::boardName(document, activity, side)` を足し、本体の盤と読み筋盤（`PvClickController::showPvBoard()`。`Deps` に `activity` を足した）がこれを使う。読み筋盤は対局中も対局情報の名前を出していたので、棋譜に先手・後手の行が無いまま途中から続けた対局などで本体の盤と名前が違った。「先手」「後手」の補いは `PvBoardDialog::setPlayerNames()` からも消した） |
 | 2026-11-03 | ui・app の知らせを NotificationPresenter の直接の呼び出しにそろえた（監査 2026-11-01 M16）のに合わせて §4.6・§9.4・§9.6・§9.7・§10.3・§15 を更新（検討・詰み探索・棋譜解析・棋譜の自動保存・対局開始の知らせは `ErrorBus` を通さず、題名付きの `NotificationPresenter::warning`・`critical` で出す。`ErrorBus` を使うのは core（`ShogiBoard::setSfen()`）だけで、`tst_structural_kpi` が ui・app から流していないかを検査する。定跡ウィンドウの `showMoveFailed()` と「着手」のメッセージボックスを消し、指せるかの確かめと知らせは `JosekiWindowController` が行う） |
+| 2026-11-03 | 棋譜解析・詰み探索のダイアログの入力欄を設定の表で読み書きするようにした（監査 2026-11-01 M17・P5）のに合わせて §9.6・§9.7・§11.2・§11.3 を更新（`KifuAnalysisDialog` は思考時間と範囲のラジオの組、`TsumeShogiSearchDialog` は探索の制限時間の欄とラジオの組を `SettingsFormBinding` で読み書きする。開始・終了手数は `setMaxPly` の後で戻すので手で読み書きする。詰み探索のダイアログは制限時間を `timeLimitMs()`（ms。0 は無制限）の1つで返し、`byoyomiSec()`・`unlimitedTimeFlag()` を削除。欄の名前は `timeLimitSec`・`limitedTimeRadioButton`。棋譜解析のダイアログは `processEngineSettings` を `accept()` の上書きにし、直接呼んでも範囲と思考時間を決めて保存する（エンジンが無ければ閉じない）。`EngineSelector`・`KifuAnalysisDialog`・`CsaGameDialog`・`TsumeshogiGeneratorDialog` の `using Engine = EngineEntry` を消した。§11.2 の `SettingsFormBinding` の表に小数・2択・ラジオの組を足した） |
 
 <!-- chapter-0-end -->
 
@@ -5331,7 +5332,9 @@ showDialogAndStart()
   ├── 1. KifuAnalysisDialog を表示（モーダル）
   │     ├── エンジン選択（EngineSelector。選んだエンジンは dialog.engine()）
   │     ├── 解析範囲（開始手〜終了手。手数の上限は line.moveCount()）
-  │     └── 1手あたりの思考時間
+  │     ├── 1手あたりの思考時間
+  │     └── 「解析開始」（accept）で範囲と思考時間を dialog.options() に決め、エンジンの選択と一緒に保存する
+  │           （思考時間と範囲のラジオの組は SettingsFormBinding、開始・終了手数は setMaxPly の後で戻すので手で読み書きする）
   │
   └── 2. requestFromDialog(dialog) → AnalysisRequest を組み立てて start(request)
         │
@@ -5402,13 +5405,14 @@ showDialogAndStart()
   │
   ├── 2. TsumeShogiSearchDialog を表示（モーダル）
   │     ├── エンジン選択（EngineSelector。選んだエンジンは dialog.engine()）
-  │     └── 探索時間設定
+  │     └── 探索の制限時間（dialog.timeLimitMs()。ms で、「時間無制限」なら 0。秒の欄とラジオの組は SettingsFormBinding で
+  │           設定と結び、「探索開始」で保存する）
   │
   └── 3. ダイアログを閉じてから、次のイベントループで AnalysisSession::start(AnalysisOptions)
               ├── mode = AnalysisOptions::Mode::Tsume
               ├── enginePath, engineName
               ├── position    ← 構築した局面
-              └── byoyomiMs   ← 探索制限時間（0 = 無制限）
+              └── byoyomiMs   ← dialog.timeLimitMs()（0 = 無制限）
 ```
 
 `AnalysisSession` は枠のエンジンの接続（`Usi::session()`）を借りた `MateOracle`（9.11。CLI の詰み探索・詰将棋の検査と生成と同じ部品）を作り、`MateOracle::start()` で起動して `ask(position, ms)` で問い合わせ、答え（`answered(MateAnswer)`。下表）か `timedOut` を受けると `stop()` で問い合わせの部品を消してエンジンを破棄し、`messageRequested` で結果を知らせる（`MainWindowComposer` が `NotificationPresenter::showInformation` につなぐ）。
@@ -6454,12 +6458,15 @@ Urgency::Warn5  → 強い警告色（残5秒・秒読み）
 | 欄 | 設定の型 | 結ぶ値 |
 |---|---|---|
 | `QSpinBox` | `Setting<int>` | 値 |
+| `QDoubleSpinBox` | `Setting<double>` | 値 |
 | `QAbstractButton`（チェックボックス・ラジオボタン） | `Setting<bool>` | checked |
+| 2つのラジオボタンの組（`add(false の欄, true の欄, 宣言)`） | `Setting<bool>` | true の欄が選ばれているか |
+| ラジオボタンの組（`QList<QAbstractButton*>`） | `Setting<int>` | 選んだ位置（範囲外は先頭） |
 | `QGroupBox`（チェックできるグループ） | `Setting<bool>` | checked |
 | `QComboBox` | `Setting<int>` | 選んだ位置 |
 | `QLineEdit` | `Setting<QString>` | 文字。`defaultText` を渡すと、未保存のときと既定値に戻すときにその値を使う |
 
-`StartGameDialog`（対局者・時間・開始局面以外の欄）と `TsumeshogiGeneratorDialog`（生成の条件の欄と表示の欄）が使う。詰将棋生成ダイアログの「既定値に戻す」は、生成の条件の表の `reset()` で宣言の既定値に戻す。
+`StartGameDialog`（対局者・時間・開始局面以外の欄）・`TsumeshogiGeneratorDialog`（生成の条件の欄と表示の欄）・`KifuAnalysisDialog`（思考時間と範囲のラジオの組。開始・終了手数は欄の上限を決める `setMaxPly` の後で戻すので表に入れない）・`TsumeShogiSearchDialog`（探索の制限時間の欄とラジオの組）のほか、通信対局と定跡の展開・登録・マージ・取り込みのダイアログが使う。詰将棋生成ダイアログの「既定値に戻す」は、生成の条件の表の `reset()` で宣言の既定値に戻す。
 
 #### デリゲート
 
@@ -6481,8 +6488,8 @@ Urgency::Warn5  → 強い警告色（残5秒・秒読み）
 | クラス名 | 基底クラス | .ui ファイル | 用途 |
 |---------|-----------|------------|------|
 | StartGameDialog | QDialog | startgamedialog.ui | 対局開始パラメータ収集（対局者・持ち時間・開始局面・連続対局設定）。先手・後手の対局者と時間の欄は `.ui` に置かず、`PlayerSetupWidget`・`TimeControlEditor` を2つずつコードで作ってグループに入れる。対局者・時間・開始局面以外の欄は `SettingsFormBinding` で設定と結ぶ |
-| TsumeShogiSearchDialog | QDialog | tsumeshogisearchdialog.ui | 詰み探索の設定（エンジン選択・探索時間）。選んだエンジンは `engine()`（`std::optional<EngineEntry>`） |
-| KifuAnalysisDialog | QDialog | kifuanalysisdialog.ui | 棋譜解析パラメータ収集（解析範囲・エンジン・思考時間）。選んだエンジンは `engine()`（`std::optional<EngineEntry>`） |
+| TsumeShogiSearchDialog | QDialog | tsumeshogisearchdialog.ui | 詰み探索の設定（エンジン選択・探索の制限時間）。選んだエンジンは `engine()`（`std::optional<EngineEntry>`）、制限時間は `timeLimitMs()`（ms。0 は無制限） |
+| KifuAnalysisDialog | QDialog | kifuanalysisdialog.ui | 棋譜解析パラメータ収集（解析範囲・エンジン・思考時間）。選んだエンジンは `engine()`（`std::optional<EngineEntry>`）、範囲と思考時間は「解析開始」（`accept()`）で決めた `options()` |
 | CsaGameDialog | QDialog | csagamedialog.ui | CSA通信対局設定（サーバー接続情報・対局者選択。エンジンは `EngineSelector` で選ぶ） |
 | CsaWaitingDialog | QDialog | なし | CSA通信対局の接続待機表示（状態遷移・ログ表示） |
 | EngineRegistrationDialog | QDialog | engineregistrationdialog.ui | USIエンジンの登録・削除・option自動取得 |

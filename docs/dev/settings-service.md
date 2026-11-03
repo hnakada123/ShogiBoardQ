@@ -206,7 +206,10 @@ saved.byoyomiSec.set(static_cast<int>(time.byoyomiMs / kSecondMs));
 | 欄 | 宣言の型 |
 |---|---|
 | `QSpinBox` | `Setting<int>` |
+| `QDoubleSpinBox` | `Setting<double>` |
 | `QAbstractButton`（チェックボックス・ラジオボタン）・`QGroupBox`（チェックできるグループ） | `Setting<bool>` |
+| 2つのラジオボタンの組（`add(false の欄, true の欄, 宣言)`） | `Setting<bool>` |
+| ラジオボタンの組（`QList<QAbstractButton*>`。選んだ位置） | `Setting<int>` |
 | `QComboBox`（選んだ位置） | `Setting<int>` |
 | `QLineEdit` | `Setting<QString>`（既定の文字の関数を渡せる。未保存のときと既定値に戻すときに使う） |
 
@@ -217,7 +220,7 @@ m_form.add(ui->checkBoxAutoSaveKifu, Saved::autoSaveKifu);
 m_form.load();
 ```
 
-対局開始ダイアログ（対局者・時間・開始局面以外の欄）と詰将棋生成ダイアログ（生成の条件の欄と表示の欄）が使う。詰将棋生成ダイアログの「既定値に戻す」は、生成の条件の表の `reset()` で宣言の既定値に戻す。
+対局開始ダイアログ（対局者・時間・開始局面以外の欄）・詰将棋生成ダイアログ（生成の条件の欄と表示の欄）・棋譜解析ダイアログ（思考時間と範囲のラジオの組。開始・終了手数は欄の上限を決める `setMaxPly` の後で戻すので表に入れない）・詰み探索ダイアログ（探索の制限時間の欄とラジオの組）のほか、通信対局と定跡の展開・登録・マージ・取り込みのダイアログが使う。詰将棋生成ダイアログの「既定値に戻す」は、生成の条件の表の `reset()` で宣言の既定値に戻す。
 
 ### 盤のマスの大きさ
 

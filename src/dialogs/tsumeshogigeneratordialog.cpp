@@ -162,7 +162,7 @@ void TsumeshogiGeneratorDialog::saveSettings()
 void TsumeshogiGeneratorDialog::onStartClicked()
 {
     if (isRunning()) return;
-    const std::optional<Engine> engine = m_engineSelector->selected();
+    const std::optional<EngineEntry> engine = m_engineSelector->selected();
     if (!engine) {
         QMessageBox::critical(this, tr("エラー"), tr("将棋エンジンが選択されていません。"));
         return;

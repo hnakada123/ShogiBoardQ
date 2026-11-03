@@ -47,7 +47,7 @@ void TsumeSearchController::showDialogAndStart()
         options.enginePath = engine->path;
         options.engineName = engine->name;
         options.position = *position;
-        options.byoyomiMs = dialog.unlimitedTimeFlag() ? 0 : dialog.byoyomiSec() * 1000;   // 0 は無制限
+        options.byoyomiMs = dialog.timeLimitMs();   // 0 は無制限
     }
     // ダイアログの終了処理を終えてから、次のイベントループで探索を始める
     m_pending = options;

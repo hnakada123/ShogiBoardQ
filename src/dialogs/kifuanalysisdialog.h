@@ -6,6 +6,7 @@
 
 #include "kifuanalysissession.h"
 #include "enginelistsettings.h"
+#include "settingsformbinding.h"
 #include <QDialog>
 #include <memory>
 #include <optional>
@@ -16,21 +17,23 @@ namespace Ui {
 class KifuAnalysisDialog;
 }
 
-// 棋譜解析ダイアログのUIを設定する。
+/**
+ * @brief 棋譜解析の条件（エンジン・解析の範囲・1局面の思考時間）を選ぶダイアログ
+ *
+ * 思考時間の欄と範囲のラジオの組（開始局面から最終手まで・範囲指定）は SettingsFormBinding で設定と結ぶ。
+ * 範囲の開始・終了手数は、欄の上限を決める setMaxPly の後で戻すので表に入れない。
+ * 「解析開始」（accept）で範囲と思考時間を決め、エンジンの選択と一緒に保存する。
+ */
 class KifuAnalysisDialog : public QDialog
 {
     Q_OBJECT
 
 public:
-    // コンストラクタ
     explicit KifuAnalysisDialog(QWidget *parent = nullptr);
     ~KifuAnalysisDialog() override;
 
-    /// 登録済みエンジン（名前・実行ファイル・作者）
-    using Engine = EngineEntry;
-
     /// 選んでいるエンジン（未登録なら std::nullopt）
-    std::optional<Engine> engine() const;
+    std::optional<EngineEntry> engine() const;
 
     /// 選んだ解析の範囲と1局面の思考時間（「開始局面から最終手まで」なら 0〜最大手数。範囲は最大手数に収める）
     AnalysisRequest::Options options() const { return m_options; }
@@ -38,13 +41,14 @@ public:
     // 最大手数を設定する（ダイアログ表示前に呼び出す）
     void setMaxPly(int maxPly);
 
+public slots:
+    /// エンジンを選んでいれば、範囲と思考時間を決めて、エンジンの選択と一緒に保存して閉じる（選んでいなければ閉じない）
+    void accept() override;
+
 private slots:
     /// 選んだエンジンの設定ダイアログを開く
     void showEngineSettingsDialog(const EngineEntry& engine);
 
-    // OKボタンが押された場合、エンジン名、エンジン番号、解析局面フラグ、思考時間を取得する。
-    void processEngineSettings();
-    
     // 範囲指定ラジオボタンが選択された場合
     void onRangeRadioToggled(bool checked);
     
@@ -59,6 +63,9 @@ private:
 
     /// エンジンの選択（コンボ・設定ボタン・未登録の案内。QObject parent 所有）
     EngineSelector* m_engineSelector = nullptr;
+
+    /// 思考時間の欄・範囲のラジオの組と設定（「解析開始」で保存する）
+    SettingsFormBinding m_form;
 
     /// OK で決めた範囲と思考時間
     AnalysisRequest::Options m_options;

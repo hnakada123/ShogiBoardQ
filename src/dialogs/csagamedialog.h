@@ -35,12 +35,6 @@ class CsaGameDialog : public QDialog
     Q_OBJECT
 
 public:
-    /**
-     * @brief エンジン情報を格納する構造体
-     */
-    /// 登録済みエンジン（名前・実行ファイル・作者）
-    using Engine = EngineEntry;
-
     /// 対局数の決め方
     enum class GameCountMode {
         Single = 0,     ///< 1局で終了

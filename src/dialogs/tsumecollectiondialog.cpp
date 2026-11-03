@@ -206,7 +206,7 @@ void TsumeCollectionDialog::savePreferences()
 
 void TsumeCollectionDialog::engineChanged()
 {
-    const std::optional<EngineSelector::Engine> engine = m_engineSelector->selected();
+    const std::optional<EngineEntry> engine = m_engineSelector->selected();
     m_session->setEngine(engine ? engine->path : QString());
     m_notice->setText(m_session->usesEngine()
         ? tr("玉方はHayanagi、詰み判定はKomoringHeightsです。参考手順の手数と、確認済みの詰み手数を区別して表示します。")

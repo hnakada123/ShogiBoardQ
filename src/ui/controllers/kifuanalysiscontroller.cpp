@@ -68,7 +68,7 @@ void KifuAnalysisController::showDialogAndStart()
 
 std::optional<AnalysisRequest> KifuAnalysisController::requestFromDialog(const KifuAnalysisDialog& dialog) const
 {
-    const std::optional<KifuAnalysisDialog::Engine> engine = dialog.engine();
+    const std::optional<EngineEntry> engine = dialog.engine();
     if (!engine) {
         showError(tr("エンジン選択が不正です。"));
         return std::nullopt;

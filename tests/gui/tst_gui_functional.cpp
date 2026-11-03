@@ -402,7 +402,9 @@ public slots:
             } else if (dialogMode == "startAnalysis") {
                 auto* bb = d->findChild<QDialogButtonBox*>();
                 if (!bb || !bb->button(QDialogButtonBox::Ok)) { d->reject(); return; }
-                if (auto* time = d->findChild<QSpinBox*>("byoyomiSec")) time->setValue(1);
+                // 棋譜解析は1局面の思考時間、詰み探索は探索の制限時間を1秒にする
+                for (const char* name : {"byoyomiSec", "timeLimitSec"})
+                    if (auto* time = d->findChild<QSpinBox*>(name)) time->setValue(1);
                 QTest::mouseClick(bb->button(QDialogButtonBox::Ok), Qt::LeftButton);
             } else if (dialogMode == "register") {
                 auto* add = d->findChild<QPushButton*>("addEngineButton");

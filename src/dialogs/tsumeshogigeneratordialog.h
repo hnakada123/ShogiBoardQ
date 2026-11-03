@@ -66,8 +66,6 @@ private slots:
     void showEngineSettingsDialog(const EngineEntry& engine);
 
 private:
-    /// 登録済みエンジン（名前・実行ファイル・作者）
-    using Engine = EngineEntry;
     /// 生成の進み
     enum class RunState {
         NotStarted,  ///< まだ開始していない
