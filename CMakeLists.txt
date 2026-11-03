@@ -435,6 +435,8 @@ set(SRC_KIFU
     src/kifu/timecontroltext.h
     src/kifu/kifuformat.cpp
     src/kifu/kifuformat.h
+    src/kifu/kifufilefilter.cpp
+    src/kifu/kifufilefilter.h
     src/kifu/kifuloader.cpp
     src/kifu/kifuloader.h
     src/kifu/kifuloadparser.cpp
@@ -750,8 +752,6 @@ set(SRC_WIDGETS
     src/widgets/josekiwindow.cpp
     src/widgets/josekiwindow.h
     src/widgets/kifumovedelegate.h
-    src/widgets/kifufilefilter.cpp
-    src/widgets/kifufilefilter.h
     src/widgets/layoutboundarywidget.cpp
     src/widgets/layoutboundarywidget.h
     src/widgets/longlongspinbox.cpp

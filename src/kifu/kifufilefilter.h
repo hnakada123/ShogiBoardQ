@@ -2,7 +2,8 @@
 #define KIFUFILEFILTER_H
 
 /// @file kifufilefilter.h
-/// @brief 棋譜ファイルを開く・保存するダイアログの絞り込み（拡張子と見出しは KifuFormats の表から作る）
+/// @brief 棋譜ファイルを開く・保存するダイアログの絞り込み（拡張子と見出しは KifuFormats の表から作る。
+///        QtWidgets を使わない文字列だけなので kifu に置く。翻訳の文脈 "KifuFileFilter" は表の見出しと共通）
 
 #include <QString>
 

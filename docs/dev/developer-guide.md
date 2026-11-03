@@ -201,6 +201,7 @@
 | 2026-11-03 | SFEN の手番を文字列で読む写しを消した（監査 2026-11-01 M18）のに合わせて §5.7 を更新（盤の矢印の駒打ちの駒の色は `Position::fromSfenLike()` の手番、定跡の登録（`JosekiRegistrationController`）は `SfenUtils::sideToMove()` で読む。テストからしか使われていなかった `turnToSfen`・`sfenToTurn`（`shogitypes.h`）と `SfenUtils::kHirateBoardSfen`・`hirateBoardSfen()` を削除） |
 | 2026-11-03 | `ShogiView` の同じ仕事の入口を1組にした（監査 2026-11-01 M19）のに合わせて §11.1.4 を更新（`applyBoardAndRender` を消し、別の盤を渡したときの描き直しは `setBoard` が行う。`configureFixedSizing` を消し、範囲の外を端に寄せるのは `setSquareSize` が行う。起動時の合成ルートの空振りの呼び出しと、外観の見本が反転・局面を替えるたびの呼び出しも消した） |
 | 2026-11-03 | 盤を使う表示の部品を views に移した（監査 2026-11-01 P1）のに合わせて §1.5・§3.1・§3.2・§11.1.2・第17章・第18章を更新（`BoardViewerWidget`・`TsumePositionPreview` を widgets から views へ移し、層の順を「widgets → views」にした（views は widgets の `ElideLabel`・`GlobalToolTip` を使い、widgets は views を使わない。`tst_layer_dependencies` の widgets の行に views を足した）。筋・段の文字の描き方は `BoardStaticLayer::drawCoordinates()` の1つにし、`ShogiView::drawRanksAndFiles` とプレビューの写しを消した） |
+| 2026-11-03 | 棋譜ファイルの絞り込みを kifu に移した（監査 2026-11-01 P2）のに合わせて §1.5・§8.8 を更新（`KifuFileFilter` は QtWidgets を使わず、kifu の拡張子の表（`KifuFormats::saveTargets()`）が翻訳の文脈に指定しているので、widgets から kifu へ移した。使う側（dialogs の `KifuSaveDialogs`・`CsaGameDialog`・`JosekiImportDialog`、ui の `KifuFileController`・`JosekiMergeController`）は include を変えずにそのまま使う） |
 
 <!-- chapter-0-end -->
 
@@ -461,6 +462,7 @@ src/
 │   ├── moverecord.h                #   指す前の局面と指し手から棋譜の1行を作る（MoveRecord::play。棋譜の読み込みと対局の着手で共通）
 │   ├── recordline.h                #   1本の手順の値（RecordLine）
 │   ├── kifuformat.cpp/.h           #   棋譜の形式（読み込み・保存・変換で共通の KifuFormat）と判定、拡張子の表（形式・文字コード・保存の見出し）
+│   ├── kifufilefilter.cpp/.h       #   棋譜を開く・保存するダイアログの絞り込み（拡張子の表から作る。保存の見出し・拡張子の補い）
 │   ├── kifuloadparser.cpp/.h       #   棋譜の読み込み口（文字コードの判別と形式ごとの変換器への振り分け）
 │   ├── kifuloader.cpp/.h           #   棋譜ファイル・貼り付け・局面を読み（KifuLoadParser をワーカーで）、文書を置き換える
 │   ├── kifutextdecoder.cpp/.h      #   棋譜・局面のテキストの文字コードの判別（KifuTextDecoder。全形式の読み込みで共通）
@@ -4728,7 +4730,7 @@ onLoadFinished() → applyLoadResult(result)            ← メインスレッ�
 
 ### 8.8 KifuSaveDialogs / KifuSaveFile — 保存
 
-**ソース**: `src/dialogs/kifusavedialogs.h/.cpp`（ダイアログ）、`src/kifu/kifusavefile.h/.cpp`（保存形式と文字コードの判定・書き込み・既定のファイル名）、`src/widgets/kifufilefilter.h/.cpp`（保存ダイアログの絞り込み）
+**ソース**: `src/dialogs/kifusavedialogs.h/.cpp`（ダイアログ）、`src/kifu/kifusavefile.h/.cpp`（保存形式と文字コードの判定・書き込み・既定のファイル名）、`src/kifu/kifufilefilter.h/.cpp`（保存ダイアログの絞り込み）
 
 保存は、ダイアログを出す部分（dialogs 層）と、ファイルに書く部分（kifu 層）に分かれている。ファイルに書く部分はダイアログを出さないので、GUI・自動化 API・CLI で共通に使う。
 
